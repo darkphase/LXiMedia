@@ -1,0 +1,50 @@
+#!/bin/sh
+
+### BEGIN INIT INFO
+# Provides:		lximcbackend
+# Required-Start:	$syslog $network $local_fs
+# Required-Stop:	$syslog $network $local_fs
+# Default-Start:	2 3 4 5
+# Default-Stop:		0 1 6
+# Short-Description:	Backend for LXiMediaCenter
+### END INIT INFO
+
+PATH=/sbin:/usr/sbin:/usr/local/sbin:/bin:/usr/bin:/usr/local/bin
+NAME=lximcbackend
+USER=lximediacenter
+DESC="LXiMediaCenter Backend"
+PIDFILE=/var/run/$NAME.pid
+EXEC=/usr/bin/$NAME
+
+set -e
+
+case "$1" in
+	start)
+		echo -n "Starting $DESC: "
+		start-stop-daemon --start --oknodo --chuid $USER --exec $EXEC -- --start > $PIDFILE
+		echo "$NAME."
+		;;
+
+	stop)
+		echo -n "Stopping $DESC: "
+		if [ -f "$PIDFILE" ]; then
+			start-stop-daemon --stop --oknodo --user $USER --pidfile $PIDFILE --exec $EXEC --retry=TERM/30/KILL/5
+			rm $PIDFILE
+		fi
+		echo "$NAME."
+		;;
+
+	restart|force-reload)
+		$0 stop
+		sleep 10
+		$0 start
+		;;
+
+	*)
+		N=/etc/init.d/$NAME
+		echo "Usage: $N {start|stop|restart|force-reload}" >&2
+		exit 1
+		;;
+esac
+
+exit 0

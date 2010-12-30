@@ -1,0 +1,57 @@
+/***************************************************************************
+ *   Copyright (C) 2007 by A.J. Admiraal                                   *
+ *   code@admiraal.dds.nl                                                  *
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License version 2 as     *
+ *   published by the Free Software Foundation.                            *
+ *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
+ ***************************************************************************/
+
+#ifndef __AUDIORESAMPLER_H
+#define __AUDIORESAMPLER_H
+
+#include <QtCore>
+#include <LXiStream>
+#include "ffmpegcommon.h"
+
+namespace LXiStream {
+namespace FFMpegBackend {
+
+
+/*! This audio filter can be used to resample an audio stream.
+ */
+class AudioResampler : public SInterfaces::AudioResampler
+{
+Q_OBJECT
+public:
+  explicit                      AudioResampler(const QString &, QObject *);
+  virtual                       ~AudioResampler();
+
+public: // From SInterfaces::AudioResampler
+  virtual void                  setFormat(const SAudioFormat &);
+  virtual SAudioFormat          format(void);
+
+  virtual SAudioBuffer          processBuffer(const SAudioBuffer &);
+
+private:
+  SAudioFormat                  outFormat;
+  ReSampleContext             * reSampleContext;
+  int                           inSampleRate;
+  int                           inNumChannels;
+  volatile bool                 reopen;
+};
+
+
+} } // End of namespaces
+
+#endif

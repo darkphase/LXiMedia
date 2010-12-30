@@ -1,0 +1,11 @@
+#ifndef LXISTREAMGUI_MODULE_H
+#define LXISTREAMGUI_MODULE_H
+
+#include "liblxistreamgui/sdisplay.h"
+#include "liblxistreamgui/simage.h"
+#include "liblxistreamgui/svideoview.h"
+#include "liblxistreamgui/svumeter.h"
+
+using namespace LXiStreamGui;
+
+#endif

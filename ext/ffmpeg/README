@@ -1,0 +1,12 @@
+To compile ffmpeg for Windows follow the steps below, note that for Linux the
+livavcodec-dev, libavformat-dev, libavutil-dev and libswscale-dev packages
+should be installed instead.
+
+- Make sure MSYS is installed in the same directory as the QtSDK mingw
+  installation and start a bash shell.
+
+- Configure ffmpeg using:
+  ./configure --disable-ffmpeg --disable-ffplay --disable-ffserver --enable-swscale --enable-memalign-hack --disable-debug --enable-mmx --enable-sse --disable-amd3dnow --disable-amd3dnowext --disable-ssse3 --extra-cflags="-D_ISOC99_SOURCE -D_POSIX_C_SOURCE=200112 -march=i686 -mmmx -msse -msse2 -mfpmath=sse"
+
+- Run mingw32-make and copy the libavcodec.a, libavformat.a, libavutil.a and
+  libswscale.a files to ext/ffmpeg/bin.win32.

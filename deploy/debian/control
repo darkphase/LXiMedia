@@ -1,0 +1,149 @@
+Source: lximedia
+Priority: extra
+Maintainer: A.J. Admiraal <code@admiraal.dds.nl>
+Build-Depends: debhelper (>= 7),
+               dpkg-dev (>= 1.13.9),
+               bash, 
+               doxygen,
+               g++,
+               gcc,
+               make,
+               binutils-dev,  
+               libasound2-dev, 
+               libavcodec-dev,
+               libavformat-dev,
+               libavutil-dev,
+               libswscale-dev,
+               libexif-dev,
+               libfftw3-dev,
+               libpulse-dev,
+               libqt4-dev,
+               libqt4-test,
+               libqtcore4,
+               libqtgui4,
+               libqt4-network,
+               libqt4-sql,
+               libqt4-xml,
+               libx11-dev,
+               libxext-dev,
+               libxrandr-dev,
+               libxtst-dev,
+               libxv-dev,
+               qt4-qmake,
+               zlib1g-dev
+Standards-Version: 3.8.4
+Section: libs
+Homepage: http://lximedia.sourceforge.net/
+
+Package: liblxistream-dev
+Section: libdevel
+Architecture: any
+Depends: liblxistream1 (= ${binary:Version}), 
+         liblxistreamgui1 (= ${binary:Version})
+Description: Development files for liblxistream
+ liblxistream is a streaming media library.
+
+Package: liblximediacenter-dev
+Section: libdevel
+Architecture: any
+Depends: liblxistream-dev (= ${binary:Version}), 
+         liblximediacenter1 (= ${binary:Version}), 
+         liblxistream1 (= ${binary:Version}), 
+         liblxistreamgui1 (= ${binary:Version})
+Description: Development files for liblxistream
+ liblxistream is a streaming media library.
+
+Package: liblxistream1
+Section: libs
+Architecture: any
+Depends: ${misc:Depends},
+         binutils,
+         libasound2,
+         libavcodec52 | libavcodec51,
+         libavformat52 | libavformat51,
+         libavutil52 | libavutil50 | libavutil49,
+         libswscale0,
+         libexif12,
+         libfftw3-3,
+         libpulse0,
+         libqtcore4,
+         libqtgui4,
+         libqt4-network,
+         libqt4-xml
+Recommends: lxistreamgui1 (= ${binary:Version})
+Description: A streaming media library
+ Provides a platform independent abstraction for different multimedia libraries.
+
+Package: liblxistreamgui1
+Section: libs
+Architecture: any
+Depends: ${misc:Depends},
+         liblxistream1 (= ${binary:Version}), 
+         libqtcore4,
+         libqtgui4,
+         libqt4-xml,
+         libx11-6,
+         libxrandr2,
+         libxext6,
+         libxtst6,
+         libxv1
+Description: GUI library for liblxistream.
+ Adds X11/Qt GUI support to liblxistream.
+
+Package: liblximediacenter1
+Section: libs
+Architecture: any
+Depends: ${misc:Depends},
+         liblxistream1 (= ${binary:Version}), 
+         liblxistreamgui1 (= ${binary:Version}),
+         libqtcore4,
+         libqtgui4,
+         libqt4-xml,
+         libqt4-sql,
+         libqt4-sql-sqlite
+Description: A DLNA based transcoding media server
+ This package provides the base library for LXiMediaCenter.
+
+Package: lximediacenter1
+Section: multimedia
+Architecture: any
+Depends: ${misc:Depends},
+         liblxistream1 (= ${binary:Version}), 
+         liblxistreamgui1 (= ${binary:Version}),
+         liblximediacenter1 (= ${binary:Version}), 
+         libqtcore4,
+         libqtgui4,
+         libqt4-xml
+Description: A DLNA based transcoding media server
+ LXiMediaCenter is a DLNA based transcoding media server.
+
+Package: lximediacenter1-allinone
+Section: multimedia
+Architecture: any
+Depends: ${misc:Depends},
+         binutils,
+         libasound2,
+         libavcodec52 | libavcodec51,
+         libavformat52 | libavformat51,
+         libavutil52 | libavutil50 | libavutil49,
+         libswscale0,
+         libexif12,
+         libfftw3-3,
+         libpulse0,
+         libqtcore4,
+         libqtgui4,
+         libqt4-xml,
+         libqt4-sql,
+         libqt4-sql-sqlite,
+         libx11-6,
+         libxrandr2,
+         libxext6,
+         libxtst6,
+         libxv1
+Provides: liblxistream1,
+          liblxistreamgui1,
+          liblximediacenter1
+Description: A DLNA based transcoding media server
+ LXiMediaCenter is a DLNA based transcoding media server.
+ This package contains all libraries so it can be distributed easily over the
+ internet.

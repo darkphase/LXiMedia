@@ -1,0 +1,7 @@
+<!DOCTYPE RCC><RCC version="1.0">
+<qresource prefix="/flowplayer">
+  <file>flowplayer-3.2.5.swf</file>
+  <file>flowplayer.controls-3.2.3.swf</file>
+  <file>flowplayer-3.2.4.min.js</file>
+</qresource>
+</RCC>

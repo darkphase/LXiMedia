@@ -1,0 +1,21 @@
+<!DOCTYPE RCC><RCC version="1.0">
+<qresource prefix="/backend">
+  <file>null.png</file>
+
+  <file>checknone.png</file>
+  <file>checkfull.png</file>
+  <file>checksome.png</file>
+  <file>checknonedisabled.png</file>
+  <file>checkfulldisabled.png</file>
+  <file>checksomedisabled.png</file>
+
+  <file>treeopen.png</file>
+  <file>treeclose.png</file>
+
+  <file>starenabled.png</file>
+  <file>stardisabled.png</file>
+
+  <file>restart.png</file>
+  <file>shutdown.png</file>
+</qresource>
+</RCC>
