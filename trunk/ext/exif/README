@@ -1,0 +1,15 @@
+To compile libexif for Windows follow the steps below, note that for Linux the
+libexif-dev package should be installed instead.
+
+- Make sure MSYS is installed in the same directory as the QtSDK mingw
+  installation and start a bash shell.
+
+- Configure libexif using:
+  ./configure
+
+- In the QtSDK mingw installation directory; copy and rename mingw32-make.exe
+  into make.exe.
+  
+- Run make and copy the libexif.a file to ext/exif/bin.win32.
+
+- In the QtSDK mingw installation directory; remove make.exe again.

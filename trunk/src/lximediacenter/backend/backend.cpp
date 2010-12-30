@@ -1,0 +1,630 @@
+/***************************************************************************
+ *   Copyright (C) 2010 by A.J. Admiraal                                   *
+ *   code@admiraal.dds.nl                                                  *
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License version 2 as     *
+ *   published by the Free Software Foundation.                            *
+ *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
+ ***************************************************************************/
+
+#include "backend.h"
+#include <iostream>
+#ifdef Q_OS_UNIX
+#include <unistd.h>
+#include "unixdaemon.h"
+#endif
+
+const quint8        Backend::haltExitCode = 0x33;
+const QEvent::Type  Backend::exitEventType = QEvent::Type(QEvent::registerEventType());
+const QEvent::Type  Backend::restartEventType = QEvent::Type(QEvent::registerEventType());
+const QEvent::Type  Backend::shutdownEventType = QEvent::Type(QEvent::registerEventType());
+const QUrl          Backend::submitErrorUrl("http://www.admiraal.dds.nl/submitlog.php");
+
+Backend::Backend()
+        :BackendServer::MasterServer(),
+         masterHttpServer(),
+         masterSsdpServer(),
+         masterDlnaServer(&masterHttpServer),
+         httpRootDir(new HttpRootDir(&masterHttpServer, this)),
+//         dlnaServiceDir(&masterDlnaServer),
+         cssParser(),
+         htmlParser(),
+         backendPlugins(),
+         backendServers()
+{
+  // Initialize LXiStream
+  QDir logDir(GlobalSettings::applicationDataDir() + "/log");
+  if (!logDir.exists())
+    logDir.mkpath(logDir.absolutePath());
+
+  SSystem::initialize(SSystem::Initialize_Default, logDir.absolutePath());
+
+  // Seed the random number generator.
+  qsrand(int(QDateTime::currentDateTime().toTime_t()));
+
+  qDebug() << "Using data directory" << GlobalSettings::applicationDataDir();
+
+  // Check and backup settings file
+  const QString settingsFile = GlobalSettings::settingsFile();
+  if (QFile::exists(settingsFile + ".bak"))
+  {
+    if (!QFile::exists(settingsFile) || (QFileInfo(settingsFile).size() == 0))
+    {
+      qDebug() << "Using backup settings " << settingsFile + ".bak";
+
+      // Backup exists, use it.
+      QFile::remove(settingsFile);
+      QFile::rename(settingsFile + ".bak", settingsFile);
+    }
+    else
+      QFile::remove(settingsFile + ".bak");
+  }
+
+  QFile::copy(settingsFile, settingsFile + ".bak");
+
+  // Open database
+  Database::initialize();
+}
+
+Backend::~Backend()
+{
+  qDebug() << "LXiMediaCenter backend stopping.";
+
+  ImdbClient::shutdown();
+
+  masterDlnaServer.close();
+  masterSsdpServer.close();
+  masterHttpServer.close();
+
+  foreach (BackendServer *server, backendServers)
+    delete server;
+
+  foreach (BackendPlugin *plugin, backendPlugins)
+    delete plugin;
+
+  QThreadPool::globalInstance()->waitForDone();
+
+  // Remove backup settings
+  const QString settingsFile = GlobalSettings::settingsFile();
+  if (QFile::exists(settingsFile))
+    QFile::remove(settingsFile + ".bak");
+
+  qDebug() << "LXiMediaCenter backend stopped.";
+
+  // Shutdown LXiStream
+  SSystem::shutdown();
+
+  // Close database
+  Database::shutdown();
+}
+
+void Backend::start(void)
+{
+  GlobalSettings settings;
+
+  masterHttpServer.initialize(settings.defaultBackendInterfaces(),
+                              settings.value("HttpPort", settings.defaultBackendHttpPort()).toInt());
+
+  // Write a port file so the server can be found
+  QFile portFile(QDir(GlobalSettings::applicationDataDir()).absoluteFilePath("server.port"));
+  if (portFile.open(QFile::WriteOnly))
+    portFile.write(QByteArray::number(masterHttpServer.serverPort(QHostAddress::LocalHost)));
+
+  // Setup HTTP server
+  masterHttpServer.setRoot(httpRootDir);
+  masterHttpServer.addFile("/favicon.ico",                    ":/lximediacenter/appicon.ico");
+  masterHttpServer.addFile("/appicon.png",                    ":/lximediacenter/appicon.png");
+  masterHttpServer.addFile("/logo.png",                       ":/lximediacenter/logo.png");
+  masterHttpServer.addDir ("/img", new HttpServerDir(&masterHttpServer));
+  masterHttpServer.addFile("/img/null.png",                   ":/backend/null.png");
+  masterHttpServer.addFile("/img/checknone.png",              ":/backend/checknone.png");
+  masterHttpServer.addFile("/img/checkfull.png",              ":/backend/checkfull.png");
+  masterHttpServer.addFile("/img/checksome.png",              ":/backend/checksome.png");
+  masterHttpServer.addFile("/img/checknonedisabled.png",      ":/backend/checknonedisabled.png");
+  masterHttpServer.addFile("/img/checkfulldisabled.png",      ":/backend/checkfulldisabled.png");
+  masterHttpServer.addFile("/img/checksomedisabled.png",      ":/backend/checksomedisabled.png");
+  masterHttpServer.addFile("/img/treeopen.png",               ":/backend/treeopen.png");
+  masterHttpServer.addFile("/img/treeclose.png",              ":/backend/treeclose.png");
+  masterHttpServer.addFile("/img/starenabled.png",            ":/backend/starenabled.png");
+  masterHttpServer.addFile("/img/stardisabled.png",           ":/backend/stardisabled.png");
+  masterHttpServer.addFile("/img/restart.png",                ":/backend/restart.png");
+  masterHttpServer.addFile("/img/shutdown.png",               ":/backend/shutdown.png");
+  masterHttpServer.addDir ("/swf", new HttpServerDir(&masterHttpServer));
+  masterHttpServer.addFile("/swf/flowplayer.swf",             ":/flowplayer/flowplayer-3.2.5.swf");
+  masterHttpServer.addFile("/swf/flowplayer.controls.swf",    ":/flowplayer/flowplayer.controls-3.2.3.swf");
+  masterHttpServer.addFile("/swf/flowplayer.js",              ":/flowplayer/flowplayer-3.2.4.min.js");
+
+  // Setup default palette.
+  HtmlParser::Palette palette;
+//  palette.window      = HtmlParser::Palette::Rgb(240, 240, 255);
+//  palette.windowText  = HtmlParser::Palette::Rgb(  0,   0,   0);
+//  palette.base        = HtmlParser::Palette::Rgb(160, 160, 192);
+//  palette.altBase     = HtmlParser::Palette::Rgb(128, 128, 160);
+//  palette.text        = HtmlParser::Palette::Rgb( 32,  32,  48);
+//  palette.button      = HtmlParser::Palette::Rgb( 64,  64,  80);
+//  palette.buttonText  = HtmlParser::Palette::Rgb(255, 255, 255);
+  palette.window      = HtmlParser::Palette::Rgb(160, 160, 192);
+  palette.windowText  = HtmlParser::Palette::Rgb( 32,  32,  48);
+  palette.base        = HtmlParser::Palette::Rgb(240, 240, 255);
+  palette.altBase     = HtmlParser::Palette::Rgb(224, 224, 240);
+  palette.text        = HtmlParser::Palette::Rgb(  0,   0,   0);
+  palette.button      = HtmlParser::Palette::Rgb( 64,  64,  80);
+  palette.buttonText  = HtmlParser::Palette::Rgb(255, 255, 255);
+
+  HtmlParser::setPalette(palette);
+  cssParser.clear();
+  htmlParser.clear();
+
+  htmlParser.setField("TR_MEDIA",               tr("Media"));
+  htmlParser.setField("TR_CENTER",              tr("Center"));
+  htmlParser.setField("TR_LOGO",                tr("<span class=\"logoa\">LX</span><span class=\"logob\">i</span><span class=\"logoc\">Media</span><span class=\"logoa\">Center</span>"));
+
+  SDebug::WriteLocker wl(&lock, __FILE__, __LINE__);
+
+  // A minimal general menu
+  QList<QPair<QString, QString> > generalMenu;
+  generalMenu += QPair<QString, QString>(tr("Main"), "/");
+  generalMenu += QPair<QString, QString>(tr("Log"),  "/main.log#bottom");
+  generalMenu += QPair<QString, QString>(tr("About"),  "/about.html");
+  submenuItems[tr("General")] = generalMenu;
+
+  wl.unlock();
+
+  // This call may take a while if the database needs to be updated ...
+  ImdbClient::initialize(&threadPool);
+
+  wl.relock(__FILE__, __LINE__);
+
+  // The full general menu
+  generalMenu.clear();
+  generalMenu += QPair<QString, QString>(tr("Main"), "/");
+  generalMenu += QPair<QString, QString>(tr("Log"),  "/main.log#bottom");
+  generalMenu += QPair<QString, QString>(tr("Settings"),  "/settings.html");
+  generalMenu += QPair<QString, QString>(tr("About"),  "/about.html");
+  submenuItems[tr("General")] = generalMenu;
+
+  // Load plugins
+  backendPlugins = BackendPlugin::loadPlugins();
+  foreach (BackendPlugin *backendPlugin, backendPlugins)
+  if (backendPlugin)
+  {
+    qDebug() << "Loading backend:" << backendPlugin->pluginName()
+             << "by" << backendPlugin->authorName()
+             << "version" << backendPlugin->pluginVersion();
+
+    QString pluginDir = backendPlugin->pluginName().toLower();
+    pluginDir.replace(" ", "");
+    masterHttpServer.addDir("/" + pluginDir, new HttpServerDir(&masterHttpServer));
+
+    const QList<BackendServer *> servers = backendPlugin->createServers(this);
+    if (!servers.isEmpty())
+    {
+      QList<QPair<QString, QString> > menu;
+      foreach (BackendServer *server, servers)
+      {
+        backendServers += server;
+
+        menu += QPair<QString, QString>(server->name(), server->httpPath());
+      }
+
+      submenuItems[backendPlugin->pluginName()] = menu;
+    }
+  }
+
+  wl.unlock();
+
+  // Setup SSDP server
+  masterSsdpServer.initialize(settings.defaultBackendInterfaces());
+  masterSsdpServer.publish(GlobalSettings::productAbbr() + QString(":server"), &masterHttpServer, "/");
+
+  // Setup DLNA server
+  masterDlnaServer.initialize(&masterSsdpServer);
+
+//  DlnaServer::File shutdown(dlnaServiceDir.server());
+//  shutdown.url = "/?shutdown=shutdown";
+//  shutdown.mimeType = "video/mpeg";
+//  dlnaServiceDir.addFile(tr("Shutdown server"), shutdown);
+//  dlnaServiceDir.sortOrder = 0xFFFFFFFF; // Last item
+//
+//  masterDlnaServer.addDir("/" + tr("Service"), &dlnaServiceDir);
+
+  qDebug() << "Finished initialization.";
+}
+
+Backend::SearchCacheEntry Backend::search(const QString &query) const
+{
+  GlobalSettings settings;
+
+  const QString queryText = query.simplified();
+  const QStringList queryRaw = SStringParser::toRawName(queryText.split(' '));
+
+  SDebug::ReadLocker rl(&lock, __FILE__, __LINE__);
+
+  // Look for a cache entry
+  QMap<QString, SearchCacheEntry>::ConstIterator i = searchCache.find(queryText);
+  if (i != searchCache.end())
+  if (i->update.elapsed() < 60000)
+    return *i;
+
+  rl.unlock();
+
+  QTime timer;
+  timer.start();
+
+  // Start parallel searches
+  class Query : public QRunnable
+  {
+  public:
+    inline Query(const BackendServer *backendServer, const QStringList &query)
+      : backendServer(backendServer),
+        query(query)
+    {
+      setAutoDelete(false);
+    }
+
+    virtual void run(void)
+    {
+      result = backendServer->search(query);
+      finished.release(1);
+    }
+
+  public:
+    const BackendServer * const backendServer;
+    const QStringList query;
+
+    BackendServer::SearchResultList result;
+    QSemaphore finished;
+  };
+
+  QList<QRunnable *> tasks;
+  foreach (const BackendServer *backendServer, backendServers)
+  {
+    QRunnable * const q = new Query(backendServer, queryRaw);
+    threadPool.start(q, 1); // High priority since these need to be responsive.
+    tasks += q;
+  }
+
+  // Gather all results, this will block until the tasks are ready.
+  SearchCacheEntry entry;
+  foreach (QRunnable *r, tasks)
+  {
+    Query * const q = static_cast<Query *>(r);
+    q->finished.acquire(1);
+
+    foreach (BackendServer::SearchResult result, q->result)
+    {
+      const QByteArray baseUrl = q->backendServer->httpPath().toUtf8();
+
+      if (!result.location.isEmpty())
+        result.location = baseUrl + result.location;
+
+      if (!result.thumbLocation.isEmpty())
+        result.thumbLocation = baseUrl + result.thumbLocation;
+
+      entry.results.insert(1.0 - result.relevance, result);
+    }
+
+    delete q;
+  }
+
+  entry.duration = timer.elapsed();
+
+  SDebug::WriteLocker wl(&lock, __FILE__, __LINE__);
+
+  while (searchCache.count() > 64)
+    searchCache.erase(searchCache.begin());
+
+  entry.update.start();
+  searchCache.insert(queryText, entry);
+
+  // Remove old searches
+  for (QMap<QString, SearchCacheEntry>::Iterator i=searchCache.begin(); i!=searchCache.end(); )
+  if (i->update.elapsed() >= 60000)
+    i = searchCache.erase(i);
+  else
+    i++;
+
+  return entry;
+}
+
+void Backend::customEvent(QEvent *e)
+{
+  if (e->type() == exitEventType)
+  {
+    qApp->exit(0);
+  }
+  else if (e->type() == restartEventType)
+  {
+    // This exitcode instructs main.cpp to restart.
+    qApp->exit(-1);
+  }
+  else if (e->type() == shutdownEventType)
+  {
+    // This exitcode instructs the UnixDaemon to initiate a system halt.
+    qApp->exit(haltExitCode);
+  }
+}
+
+QByteArray Backend::parseHtmlContent(const QUrl &url, const QByteArray &content, const QByteArray &head) const
+{
+  HtmlParser localParser(htmlParser);
+  localParser.setField("HEAD", head);
+
+  // Build menus
+  SDebug::ReadLocker rl(&lock, __FILE__, __LINE__);
+
+  QString pluginPath = url.path(), pagePath;
+  const int s2 = pluginPath.indexOf('/', 1);
+  if (s2 > 1)
+  {
+    pagePath = pluginPath.mid(s2);
+    pluginPath = pluginPath.left(s2 + 1);
+
+    const int s3 = pagePath.indexOf('/', 1);
+    if (s3 > 1)
+      pagePath = pagePath.left(s3 + 1);
+  }
+  else
+  {
+    pagePath = pluginPath;
+    pluginPath = "/";
+  }
+
+  localParser.setField("HEAD_MENUITEMS", QByteArray(""));
+  localParser.setField("HEAD_SUBMENUITEMS", QByteArray(""));
+  for (QMap<QString, QList<QPair<QString, QString> > >::ConstIterator i=submenuItems.begin();
+       i!=submenuItems.end();
+       i++)
+  {
+    bool selected = false;
+    for (QList<QPair<QString, QString> >::ConstIterator j=i->begin(); j!=i->end(); j++)
+    {
+      QString p = j->second;
+      const int s2 = p.indexOf('/', 1);
+      if (s2 > 1)
+        p = p.left(s2 + 1);
+      else
+        p = "/";
+
+      if (p == pluginPath)
+      {
+        selected = true;
+
+        localParser.setField("TEXT", j->first);
+        localParser.setField("LINK", j->second);
+
+        const char * const html = j->second.split('#').first().endsWith(pagePath) ? htmlSubMenuItemSel : htmlSubMenuItem;
+        localParser.appendField("HEAD_SUBMENUITEMS", localParser.parse(html));
+      }
+    }
+
+    localParser.setField("TEXT", i.key());
+    localParser.setField("LINK", i.value().first().second);
+    localParser.appendField("HEAD_MENUITEMS", localParser.parse(selected ? htmlMenuItemSel : htmlMenuItem));
+  }
+
+  rl.unlock();
+
+  localParser.setField("CONTENT", content);
+
+  return localParser.parse(htmlIndex);
+}
+
+HttpServer * Backend::httpServer(void)
+{
+  return &masterHttpServer;
+}
+
+SsdpServer * Backend::ssdpServer(void)
+{
+  return &masterSsdpServer;
+}
+
+DlnaServer * Backend::dlnaServer(void)
+{
+  return &masterDlnaServer;
+}
+
+QThreadPool * Backend::ioThreadPool(void)
+{
+  return &threadPool;
+}
+
+
+Backend::HttpRootDir::HttpRootDir(HttpServer *httpServer, Backend *parent)
+    : HttpServerDir(httpServer),
+      parent(parent)
+{
+}
+
+bool Backend::HttpRootDir::handleConnection(const QHttpRequestHeader &request, QAbstractSocket *socket)
+{
+  const QUrl url(request.path());
+  const QString file = url.path().mid(url.path().lastIndexOf('/') + 1);
+
+  if (url.hasQueryItem("exit"))
+  {
+    QCoreApplication::postEvent(parent, new QEvent(exitEventType));
+
+    socket->write(QHttpResponseHeader(204).toString().toUtf8());
+    return false;
+  }
+  else if (url.hasQueryItem("restart"))
+  {
+    QCoreApplication::postEvent(parent, new QEvent(restartEventType));
+
+    socket->write(QHttpResponseHeader(204).toString().toUtf8());
+    return false;
+  }
+  else if (url.hasQueryItem("shutdown"))
+  {
+    QCoreApplication::postEvent(parent, new QEvent(shutdownEventType));
+
+    socket->write(QHttpResponseHeader(204).toString().toUtf8());
+    return false;
+  }
+  else if (url.hasQueryItem("dismisserrors"))
+  {
+    GlobalSettings().setValue("DismissedErrors", SDebug::LogFile::errorLogFiles());
+
+    return parent->handleHtmlRequest(url, file, socket);
+  }
+  else if (file == "traystatus.xml")
+  {
+    QDomDocument doc("");
+    QDomElement root = doc.createElement("traystatus");
+    doc.appendChild(root);
+
+    // Hostinfo
+    QDomElement hostInfo = doc.createElement("hostinfo");
+    root.appendChild(hostInfo);
+    hostInfo.setAttribute("hostname", QHostInfo::localHostName());
+
+    // DLNA clients
+    GlobalSettings settings;
+    settings.beginGroup("DLNA");
+
+    foreach (const QString &group, settings.childGroups())
+    if (group.startsWith("Client_"))
+    {
+      QDomElement dlnaClient = doc.createElement("dlnaclient");
+      root.appendChild(dlnaClient);
+      dlnaClient.setAttribute("name", group.mid(7));
+      dlnaClient.setAttribute("useragent", settings.value("UserAgent", tr("Unknown")).toString());
+      dlnaClient.setAttribute("lastseen", settings.value("LastSeen").toDateTime().toString(Qt::ISODate));
+    }
+
+    settings.endGroup();
+
+    // Active log file
+    QDomElement activeLogFile = doc.createElement("activelogfile");
+    root.appendChild(activeLogFile);
+    activeLogFile.setAttribute("name", QFileInfo(SDebug::LogFile::activeLogFile()).fileName());
+
+    // Error logs
+    const QSet<QString> dismissedFiles =
+        QSet<QString>::fromList(settings.value("DismissedErrors").toStringList());
+
+    QStringList errorLogFiles;
+    foreach (const QString &file, SDebug::LogFile::errorLogFiles())
+    if (!dismissedFiles.contains(file))
+      errorLogFiles += file;
+
+    foreach (const QString &file, errorLogFiles)
+    {
+      QDomElement errorLogFile = doc.createElement("errorlogfile");
+      root.appendChild(errorLogFile);
+      errorLogFile.setAttribute("name", QFileInfo(file).fileName());
+    }
+
+    QHttpResponseHeader response(200);
+    response.setContentType("text/xml;charset=utf-8");
+    response.setValue("Cache-Control", "no-cache");
+
+    socket->write(response.toString().toUtf8());
+    socket->write(doc.toByteArray());
+    return false;
+  }
+  else if (file.endsWith(".css"))
+  {
+    return parent->handleCssRequest(url, file, socket);
+  }
+  else if (url.hasQueryItem("q"))
+  {
+    return parent->handleHtmlSearch(url, file, socket);
+  }
+  else if (request.path() == "/")
+  {
+    return parent->handleHtmlRequest(url, file, socket);
+  }
+  else if (file.endsWith(".log"))
+  {
+    static const char * const logHead = " <link rel=\"stylesheet\" href=\"/log.css\" type=\"text/css\" media=\"screen, handheld, projection\" />\n";
+
+    QString logFileName;
+    if (file == "main.log")
+    {
+      logFileName = SDebug::LogFile::activeLogFile();
+    }
+    else foreach (const QString &f, SDebug::LogFile::allLogFiles())
+    if (f.endsWith("/" + file))
+    {
+      logFileName = f;
+      break;
+    }
+
+    SDebug::LogFile logFile(logFileName);
+    if (logFile.open(SDebug::LogFile::ReadOnly))
+    {
+      HtmlParser htmlParser(parent->htmlParser);
+      htmlParser.setField("TR_DATE", tr("Date"));
+      htmlParser.setField("TR_TYPE", tr("Type"));
+      htmlParser.setField("TR_MESSAGE", tr("Message"));
+
+      htmlParser.setField("LOG_MESSAGES", QByteArray(""));
+
+      for (SDebug::LogFile::Message msg=logFile.readMessage();
+           msg.date.isValid();
+           msg=logFile.readMessage())
+      {
+        const bool mr = !msg.message.isEmpty();
+
+        htmlParser.setField("ITEM_ROWS", QByteArray::number(mr ? 2 : 1));
+
+        if (msg.type == "INF")
+          htmlParser.setField("ITEM_CLASS", QByteArray("loginf"));
+        else if (msg.type == "WRN")
+          htmlParser.setField("ITEM_CLASS", QByteArray("logwrn"));
+        else if ((msg.type == "CRT") || (msg.type == "EXC"))
+          htmlParser.setField("ITEM_CLASS", QByteArray("logerr"));
+        else
+          htmlParser.setField("ITEM_CLASS", QByteArray("logdbg"));
+
+        htmlParser.setField("ITEM_ROWS", QByteArray::number(mr ? 2 : 1));
+        htmlParser.setField("ITEM_DATE", msg.date.toString("yyyy-MM-dd/hh:mm:ss"));
+        htmlParser.setField("ITEM_TYPE", msg.type);
+        htmlParser.setField("ITEM_PID", QByteArray::number(msg.pid));
+        htmlParser.setField("ITEM_TID", QByteArray::number(msg.tid));
+        htmlParser.setField("ITEM_TYPE", msg.type);
+        htmlParser.setField("ITEM_HEADLINE", msg.headline);
+        htmlParser.appendField("LOG_MESSAGES", htmlParser.parse(htmlLogFileHeadline));
+
+        if (mr)
+        {
+          htmlParser.setField("ITEM_MESSAGE", msg.message.replace('\n', "<br />\n"));
+          htmlParser.appendField("LOG_MESSAGES", htmlParser.parse(htmlLogFileMessage));
+        }
+      }
+
+      QHttpResponseHeader response(200);
+      response.setContentType("text/html;charset=utf-8");
+      response.setValue("Cache-Control", "no-cache");
+      if (logFileName == SDebug::LogFile::activeLogFile())
+        response.setValue("Refresh", "10;URL=#bottom");
+
+      socket->write(response.toString().toUtf8());
+      socket->write(parent->parseHtmlContent(url, htmlParser.parse(htmlLogFile), logHead));
+      return false;
+    }
+  }
+  else if (file == "settings.html")
+  {
+    return parent->handleHtmlConfig(url, socket);
+  }
+  else if (file == "about.html")
+  {
+    return parent->showAbout(url, socket);
+  }
+
+  return HttpServerDir::handleConnection(request, socket);
+}

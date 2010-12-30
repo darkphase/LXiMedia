@@ -1,0 +1,6 @@
+usr/lib/libLXiStream.so*
+usr/lib/liblxistream/libalsa.so
+usr/lib/liblxistream/libffmpeg.so
+usr/lib/liblxistream/libfftw.so
+usr/lib/liblxistream/libpulseaudio.so
+usr/lib/liblxistream/libv4l.so

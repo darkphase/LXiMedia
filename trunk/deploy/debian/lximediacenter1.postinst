@@ -1,0 +1,25 @@
+#!/bin/sh -e
+
+USER=lximediacenter
+HOME=/var/lib/lximc
+
+case "$1" in
+	configure)
+		if ! getent group $USER > /dev/null ; then
+			addgroup --system --quiet $USER
+		fi
+		if ! getent passwd $USER > /dev/null ; then
+			adduser --system --quiet --ingroup $USER --home "$HOME" $USER
+		fi
+		;;
+
+		abort-upgrade|abort-remove|abort-deconfigure)
+		;;
+
+		*)
+		echo "postinst called with unknown argument \`$1'" >&2
+		exit 1
+		;;
+esac
+
+#DEBHELPER#

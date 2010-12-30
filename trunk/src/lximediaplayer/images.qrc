@@ -1,0 +1,6 @@
+<!DOCTYPE RCC><RCC version="1.0">
+<qresource prefix="/images">
+  <file>view-fullscreen.svg</file>
+  <file>view-fullscreensec.svg</file>
+</qresource>
+</RCC>

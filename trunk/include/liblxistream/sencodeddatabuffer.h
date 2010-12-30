@@ -1,0 +1,67 @@
+/***************************************************************************
+ *   Copyright (C) 2007 by A.J. Admiraal                                   *
+ *   code@admiraal.dds.nl                                                  *
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License version 2 as     *
+ *   published by the Free Software Foundation.                            *
+ *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
+ ***************************************************************************/
+
+#ifndef LXSTREAM_SENCODEDDATABUFFER_H
+#define LXSTREAM_SENCODEDDATABUFFER_H
+
+#include <QtCore>
+#include "sdatacodec.h"
+#include "sbuffer.h"
+#include "stime.h"
+
+namespace LXiStream {
+
+/*! This class represents a buffer containing encoded misc data.
+ */
+class SEncodedDataBuffer : public SBuffer
+{
+public:
+  inline                        SEncodedDataBuffer(void) : SBuffer()     { }
+  inline explicit               SEncodedDataBuffer(const SDataCodec &codec, int capacity = 0) : SBuffer(capacity) { d.codec = codec; }
+  inline                        SEncodedDataBuffer(const SDataCodec &codec, const char *data, int size) : SBuffer(data, size) { d.codec = codec; }
+  inline                        SEncodedDataBuffer(const SDataCodec &codec, const QByteArray &data) : SBuffer(data) { d.codec = codec; }
+  inline                        SEncodedDataBuffer(const SDataCodec &codec, const MemoryPtr &memory) : SBuffer(memory) { d.codec = codec; }
+
+  inline const SDataCodec     & codec(void) const                               { return d.codec; }
+  inline void                   setCodec(const SDataCodec &codec)               { d.codec = codec; }
+
+  inline STime                  decodingTimeStamp(void) const                   { return d.decodingTimeStamp; }
+  inline void                   setDecodingTimeStamp(STime t)                   { d.decodingTimeStamp = t; }
+  inline STime                  presentationTimeStamp(void) const               { return d.presentationTimeStamp; }
+  inline void                   setPresentationTimeStamp(STime t)               { d.presentationTimeStamp = t; }
+  inline STime                  duration(void) const                            { return d.duration; }
+  inline void                   setDuration(STime t)                            { d.duration = t; }
+
+private:
+  struct
+  {
+    SDataCodec                  codec;
+    STime                       decodingTimeStamp;
+    STime                       presentationTimeStamp;
+    STime                       duration;
+  }                             d;
+};
+
+typedef QList<SEncodedDataBuffer> SEncodedDataBufferList;
+
+} // End of namespace
+
+Q_DECLARE_METATYPE(LXiStream::SEncodedDataBuffer)
+
+#endif

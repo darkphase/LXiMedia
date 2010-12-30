@@ -1,0 +1,11 @@
+#ifndef LXISTREAMGL_MODULE_H
+#define LXISTREAMGL_MODULE_H
+
+#include "liblxistreamgl/sglshader.h"
+#include "liblxistreamgl/sglsystem.h"
+#include "liblxistreamgl/sglvideoview.h"
+#include "liblxistreamgl/stexturebuffer.h"
+
+using namespace LXiStreamGl;
+
+#endif

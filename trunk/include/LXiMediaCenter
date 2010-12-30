@@ -1,0 +1,22 @@
+#ifndef LXMEDIACENTER_MODULE_H
+#define LXMEDIACENTER_MODULE_H
+
+#include "liblximediacenter/backendserver.h"
+#include "liblximediacenter/database.h"
+#include "liblximediacenter/dlnaserver.h"
+#include "liblximediacenter/fileserver.h"
+#include "liblximediacenter/globalsettings.h"
+#include "liblximediacenter/htmlparser.h"
+#include "liblximediacenter/httpoutputnode.h"
+#include "liblximediacenter/httpserver.h"
+#include "liblximediacenter/imdbclient.h"
+#include "liblximediacenter/plugininterfaces.h"
+#include "liblximediacenter/pluginsettings.h"
+#include "liblximediacenter/ssdpclient.h"
+#include "liblximediacenter/ssdpserver.h"
+#include "liblximediacenter/teletext.h"
+#include "liblximediacenter/videoserver.h"
+
+using namespace LXiMediaCenter;
+
+#endif

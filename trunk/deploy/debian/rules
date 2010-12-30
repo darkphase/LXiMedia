@@ -1,0 +1,59 @@
+#!/usr/bin/make -f
+
+export DH_COMPAT=5
+
+build: Makefile
+	dh_testdir
+	$(MAKE) -j `grep -c 'model name' /proc/cpuinfo`
+
+build-doxy:
+	dh_testdir
+	doxygen
+
+install: build build-doxy
+	dh_testdir
+	dh_testroot
+	dh_prep
+	dh_installdirs -ptmp usr/share/doc/lximedia-doc/html
+	install -m 644 -D doc/html/* debian/tmp/usr/share/doc/lximedia-doc/html/
+	dh_installdirs -ptmp usr/include/liblximediacenter
+	dh_installdirs -ptmp usr/include/liblxistream
+	dh_installdirs -ptmp usr/include/liblxistreamgui
+	install -m 644 -D include/liblximediacenter/*.h debian/tmp/usr/include/liblximediacenter/
+	install -m 644 -D include/LXiMediaCenter debian/tmp/usr/include/
+	install -m 644 -D include/liblxistream/*.h debian/tmp/usr/include/liblxistream/
+	install -m 644 -D include/LXiStream debian/tmp/usr/include/
+	install -m 644 -D include/liblxistreamgui/*.h debian/tmp/usr/include/liblxistreamgui/
+	install -m 644 -D include/LXiStreamGui debian/tmp/usr/include/
+	dh_installdirs -ptmp usr/lib
+	dh_installdirs -ptmp usr/lib/liblxistream
+	dh_installdirs -ptmp usr/lib/lximediacenter
+	dh_installdirs -ptmp usr/bin
+	$(MAKE) install INSTALL_ROOT=`pwd`/debian/tmp
+	dh_install --fail-missing --sourcedir=debian/tmp
+
+binary: install
+	dh_testdir
+	dh_testroot
+	dh_lintian
+	dh_installinit --init-script=lximcbackend -- start 41 1 2 3 4 5 . stop 80 0 6 .
+	dh_link
+	dh_compress
+	dh_fixperms
+	dh_strip
+	dh_installdeb
+	dh_gencontrol
+	dh_md5sums
+	dh_builddeb
+
+clean:
+	dh_testdir
+	dh_testroot
+	rm -rf bin doc lib obj
+	rm -f Makefile
+	dh_clean
+
+Makefile:
+	dh_testdir
+	qmake -r CONFIG+=release
+

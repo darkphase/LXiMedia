@@ -1,0 +1,15 @@
+To compile fftw for Windows follow the steps below, note that for Linux the
+libfftw3-dev package should be installed instead.
+
+- Make sure MSYS is installed in the same directory as the QtSDK mingw
+  installation and start a bash shell.
+
+- Configure libexif using:
+  ./configure --enable-single --enable-sse --with-our-malloc16
+  
+- In the QtSDK mingw installation directory; copy and rename mingw32-make.exe
+  into make.exe.
+
+- Run make and copy the libfftw3f.a file to ext/fftw/bin.win32.
+
+- In the QtSDK mingw installation directory; remove make.exe again.

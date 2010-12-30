@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="16"
+   height="16"
+   id="svg2"
+   version="1.1"
+   inkscape:version="0.47 r22583"
+   inkscape:export-filename="/data/Development/LXiMediaCenter/src/backend/images/stardisabled.png"
+   inkscape:export-xdpi="90"
+   inkscape:export-ydpi="90"
+   sodipodi:docname="stardisabled.svg">
+  <defs
+     id="defs4">
+    <inkscape:perspective
+       sodipodi:type="inkscape:persp3d"
+       inkscape:vp_x="0 : 526.18109 : 1"
+       inkscape:vp_y="0 : 1000 : 0"
+       inkscape:vp_z="744.09448 : 526.18109 : 1"
+       inkscape:persp3d-origin="372.04724 : 350.78739 : 1"
+       id="perspective10" />
+  </defs>
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="31.678384"
+     inkscape:cx="3.194869"
+     inkscape:cy="8.1091652"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     inkscape:window-width="1680"
+     inkscape:window-height="1028"
+     inkscape:window-x="1276"
+     inkscape:window-y="-3"
+     inkscape:window-maximized="1" />
+  <metadata
+     id="metadata7">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(0,-1036.3622)">
+    <path
+       sodipodi:type="star"
+       style="fill:none;fill-opacity:1;stroke:#000000;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:1.5,3;stroke-dashoffset:0.45"
+       id="path2826"
+       sodipodi:sides="5"
+       sodipodi:cx="8"
+       sodipodi:cy="8.5"
+       sodipodi:r1="7"
+       sodipodi:r2="4"
+       sodipodi:arg1="0.9173137"
+       sodipodi:arg2="1.5456322"
+       inkscape:flatsided="false"
+       inkscape:rounded="0.20136392"
+       inkscape:randomized="0"
+       d="M 12.255686,14.057799 C 11.546166,14.601089 8.993998,12.476248 8.1006459,12.498734 7.2072938,12.521219 4.7652516,14.771761 4.0292981,14.264853 3.2933446,13.757944 4.5255253,10.674077 4.2280796,9.8313966 3.930634,8.9887165 1.0356086,7.3616522 1.2902849,6.5050755 1.5449612,5.6484989 4.8586586,5.8674048 5.5681791,5.3241147 6.2776997,4.7808247 6.9305178,1.5247014 7.8238699,1.5022162 8.717222,1.479731 9.533019,4.6988901 10.268972,5.2057984 c 0.735954,0.5069083 4.034443,0.1215778 4.331889,0.9642578 0.297445,0.84268 -2.512062,2.6133239 -2.766738,3.4699005 -0.254676,0.8565763 1.131084,3.8745523 0.421563,4.4178423 z"
+       transform="translate(0,1036.3622)" />
+  </g>
+</svg>

@@ -1,0 +1,16 @@
+<RCC>
+    <qresource prefix="/" >
+        <!-- The test image "ImageTest.jpeg" is public domain. It is a detail of
+             "Pieter Bruegel the Elder - Storm at Sea".
+        -->
+        <file>ImageTest.jpeg</file>
+
+        <!-- The test sound "SoundTest.ogg" is public domain. It is a the chord
+             of A major played on an acoustic guitar.
+        -->
+        <file>SoundTest.ogg</file>
+
+        <file>FingerPrintTest.jpeg</file>
+        <file>FingerPrintTest.ogg</file>
+    </qresource>
+</RCC>
