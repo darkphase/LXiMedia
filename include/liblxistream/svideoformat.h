@@ -40,7 +40,10 @@ public:
     Format_RGB24, Format_BGR24, Format_RGB32, Format_BGR32, Format_GRAY8,
     Format_GRAY16BE, Format_GRAY16LE,
     Format_YUYV422 = 0x2100, Format_UYVY422, Format_YUV410P, Format_YUV411P,
-    Format_YUV420P, Format_YUV422P, Format_YUV444P
+    Format_YUV420P, Format_YUV422P, Format_YUV444P,
+    Format_BGGR8 = 0x2200, Format_GBRG8, Format_GRBG8, Format_RGGB8,
+    Format_BGGR10, Format_GBRG10, Format_GRBG10, Format_RGGB10,
+    Format_BGGR16, Format_GBRG16, Format_GRBG16, Format_RGGB16
   };
 
   /*! Specifies the field-mode of image data.

@@ -66,6 +66,9 @@ bool SAudioInputNode::start(void)
     return true;
   }
 
+  delete d->input;
+  d->input = NULL;
+
   qWarning() << "Failed to open audio input device" << d->device;
   return false;
 }
@@ -74,17 +77,21 @@ void SAudioInputNode::stop(void)
 {
   SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
 
-  d->input->stop();
+  if (d->input)
+  {
+    d->input->stop();
 
-  delete d->input;
-  d->input = NULL;
+    delete d->input;
+    d->input = NULL;
+  }
 }
 
 void SAudioInputNode::process(void)
 {
   SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
 
-  d->input->process();
+  if (d->input)
+    d->input->process();
 }
 
 

@@ -155,6 +155,13 @@ public:
     QString                     file;
   };
 
+  struct Chapter
+  {
+    QString                     title;
+    STime                       begin;
+    STime                       end;
+  };
+
   struct ProbeInfo
   {
     inline ProbeInfo(void) : isProbed(false), isReadable(false), year(0), track(0) { }
@@ -171,6 +178,7 @@ public:
     QList<VideoStreamInfo>      videoStreams;
     QList<DataStreamInfo>       dataStreams;
     SVideoCodec                 imageCodec;
+    QList<Chapter>              chapters;
 
     QString                     title;
     QString                     author;
@@ -231,6 +239,7 @@ public:
   typedef FormatProber::AudioStreamInfo AudioStreamInfo;
   typedef FormatProber::VideoStreamInfo VideoStreamInfo;
   typedef FormatProber::DataStreamInfo  DataStreamInfo;
+  typedef FormatProber::Chapter         Chapter;
 
 public:
   static BufferReader         * create(QObject *parent, const QString &format, bool nonNull = true);
@@ -253,6 +262,7 @@ public:
   virtual QList<VideoStreamInfo> videoStreams(void) const = 0;
   virtual QList<DataStreamInfo>  dataStreams(void) const = 0;
   virtual void                  selectStreams(const QList<quint16> &) = 0;
+  virtual QList<Chapter>        chapters(void) const = 0;
 };
 
 /*! The BufferWriter interface can be used to write serialized buffers to a

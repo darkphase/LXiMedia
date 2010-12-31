@@ -68,7 +68,6 @@ BackendServer::SearchResultList MovieServer::search(const QStringList &query) co
 
 void MovieServer::updateDlnaTask(void)
 {
-#warning lastPlayed
   QMap<QString, QMap<QString, MediaDatabase::Node> > movies;
   foreach (const QString &movie, mediaDatabase->allMovies())
   {

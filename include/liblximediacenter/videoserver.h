@@ -78,11 +78,14 @@ protected:
 
   struct ThumbnailListItem
   {
+    inline ThumbnailListItem(void) : played(false) { }
+
     QString                     page;
     QString                     title;
     QString                     subtitle;
     QString                     iconurl;
     QString                     url;
+    bool                        played;
   };
 
   typedef QMultiMap<QString, ThumbnailListItem> ThumbnailListItemMap;

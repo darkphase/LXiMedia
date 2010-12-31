@@ -29,6 +29,8 @@ struct SAudioOutputNode::Data
   QString                       device;
   SInterfaces::AudioOutput    * output;
   STimer                      * timer;
+  STime                         delay;
+  SAudioBufferList              delayList;
 };
 
 SAudioOutputNode::SAudioOutputNode(SGraph *parent, const QString &device)
@@ -39,6 +41,7 @@ SAudioOutputNode::SAudioOutputNode(SGraph *parent, const QString &device)
   d->device = device;
   d->output = NULL;
   d->timer = NULL;
+  d->delay = STime::null;
 }
 
 SAudioOutputNode::~SAudioOutputNode()
@@ -78,14 +81,45 @@ void SAudioOutputNode::stop(void)
   d->output = NULL;
 }
 
+void SAudioOutputNode::setDelay(STime delay)
+{
+  d->delay = delay;
+}
+
+STime SAudioOutputNode::delay(void) const
+{
+  return d->delay;
+}
+
 void SAudioOutputNode::input(const SAudioBuffer &audioBuffer)
 {
   if (d->output)
   {
-    if (d->timer)
-      d->timer->correctOffset(audioBuffer.timeStamp() + d->output->latency());
+    if (!audioBuffer.isNull())
+    {
+      const STime latency = d->output->latency();
 
-    d->output->consume(audioBuffer);
+      d->delayList.append(audioBuffer);
+      while (!d->delayList.isEmpty())
+      if ((latency + audioBuffer.timeStamp() - d->delayList.first().timeStamp()) >= d->delay)
+      {
+        const SAudioBuffer buffer = d->delayList.takeFirst();
+
+        if (d->timer)
+          d->timer->correctOffset(buffer.timeStamp() + latency);
+
+        d->output->consume(buffer);
+      }
+      else
+        break;
+    }
+    else // Flush
+    {
+      foreach (const SAudioBuffer &buffer, d->delayList)
+        d->output->consume(buffer);
+
+      d->delayList.clear();
+    }
   }
 }
 

@@ -233,7 +233,37 @@ MediaDatabase::Node MediaDatabase::readNode(UniqueID uid) const
 
 void MediaDatabase::setLastPlayed(UniqueID uid, const QDateTime &lastPlayed)
 {
-#warning lastPlayed
+  setLastPlayed(readNode(uid), lastPlayed);
+}
+
+void MediaDatabase::setLastPlayed(const Node &node, const QDateTime &lastPlayed)
+{
+  QSettings settings(GlobalSettings::applicationDataDir() + "/lastplayed.db", QSettings::IniFormat);
+
+  QString key = node.path;
+  key.replace('/', '|');
+  key.replace('\\', '|');
+
+  if (lastPlayed.isValid())
+    settings.setValue(key, lastPlayed);
+  else
+    settings.remove(key);
+}
+
+QDateTime MediaDatabase::lastPlayed(UniqueID uid) const
+{
+  return lastPlayed(readNode(uid));
+}
+
+QDateTime MediaDatabase::lastPlayed(const Node &node) const
+{
+  QSettings settings(GlobalSettings::applicationDataDir() + "/lastplayed.db", QSettings::IniFormat);
+
+  QString key = node.path;
+  key.replace('/', '|');
+  key.replace('\\', '|');
+
+  return settings.value(key, QDateTime()).toDateTime();
 }
 
 QStringList MediaDatabase::allMovies(void) const
@@ -584,12 +614,6 @@ QList<MediaDatabase::UniqueID> MediaDatabase::latestSongs(unsigned count) const
     result << query.value(0).toLongLong();
 
   return result;
-}
-
-QList<MediaDatabase::UniqueID> MediaDatabase::lastPlayedSongs(unsigned count) const
-{
-#warning lastPlayed
-  return QList<MediaDatabase::UniqueID>();
 }
 
 QStringList MediaDatabase::allMusicArtists(void) const

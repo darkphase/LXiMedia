@@ -193,7 +193,7 @@ void PlaylistNode::playSong(const MediaDatabase::Node &node)
 {
   if (!node.isNull())
   {
-    mediaDatabase->setLastPlayed(node.uid, QDateTime::currentDateTime());
+    mediaDatabase->setLastPlayed(node);
 
     Q_ASSERT(input == NULL);
     input = new Input(node.uid, node.path);

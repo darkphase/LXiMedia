@@ -17,50 +17,23 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef CAMERASERVER_H
-#define CAMERASERVER_H
+#ifndef LXISTREAM_SPIXELS_H
+#define LXISTREAM_SPIXELS_H
 
-#include <QtCore>
-#include <LXiMediaCenter>
-#include <LXiStream>
+#include <stdint.h>
 
-namespace LXiMediaCenter {
+#ifdef __cplusplus
+namespace LXiStream {
+namespace SPixels {
+#endif
+  
+struct RGBAPixel { uint8_t b,  g, r,  a; } __attribute__((packed));
+  
+struct YUYVPixel { uint8_t y0, u, y1, v; } __attribute__((packed));
+struct UYVYPixel { uint8_t u, y0, v, y1; } __attribute__((packed));
 
-class TelevisionBackend;
-
-class CameraServer : public VideoServer
-{
-Q_OBJECT
-protected:
-  class CameraStream : public Stream
-  {
-  public:
-                                CameraStream(CameraServer *, const QHostAddress &peer, const QString &url, const QString &camera);
-
-  public:
-    SAudioVideoInputNode        input;
-  };
-
-public:
-                                CameraServer(TelevisionBackend *, MasterServer *, const QStringList &);
-  virtual                       ~CameraServer();
-
-  inline bool                   hasCameras(void) const                           { return !cameras.isEmpty(); }
-
-  virtual bool                  handleConnection(const QHttpRequestHeader &, QAbstractSocket *);
-
-protected:
-  virtual bool                  streamVideo(const QHttpRequestHeader &, QAbstractSocket *);
-  virtual bool                  buildPlaylist(const QHttpRequestHeader &, QAbstractSocket *);
-
-private:
-  bool                          handleHtmlRequest(const QUrl &, const QString &, QAbstractSocket *);
-
-private:
-  TelevisionBackend     * const plugin;
-  const QStringList             cameras;
-};
-
-} // End of namespace
+#ifdef __cplusplus
+} } // End of namespaces
+#endif
 
 #endif

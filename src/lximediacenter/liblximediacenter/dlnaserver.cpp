@@ -587,7 +587,7 @@ QDomElement DlnaServer::didlDirectory(QDomDocument &doc, const DirCacheEntry::It
   containerElm.setAttribute("restricted", "false");
 
   QDomElement titleElm = doc.createElement("dc:title");
-  titleElm.appendChild(doc.createTextNode(item.title));
+  titleElm.appendChild(doc.createTextNode((item.played ? "*" : "") + item.title));
   containerElm.appendChild(titleElm);
 
   QDomElement upnpClassElm = doc.createElement("upnp:class");
@@ -605,7 +605,7 @@ QDomElement DlnaServer::didlFile(QDomDocument &doc, const QString &host, const Q
   itemElm.setAttribute("restricted", "false");
 
   QDomElement titleElm = doc.createElement("dc:title");
-  titleElm.appendChild(doc.createTextNode(item.title));
+  titleElm.appendChild(doc.createTextNode((item.played ? "*" : "") + item.title));
   itemElm.appendChild(titleElm);
 
   if (addMeta && item.date.isValid())
@@ -913,6 +913,7 @@ DlnaServer::DirCacheEntry::Item::Item(const QString &title, const DlnaServerDir 
 DlnaServerDir::DlnaServerDir(DlnaServer *parent)
     : FileServerDir(parent),
       id(parent->p->idCounter.fetchAndAddOrdered(1) | DlnaServer::DIR_ID_MASK),
+      played(false),
       sortOrder(DlnaServer::defaultSortOrder),
       updateId(1)
 {

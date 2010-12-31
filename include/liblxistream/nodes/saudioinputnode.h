@@ -25,7 +25,8 @@
 
 namespace LXiStream {
 
-/*! This is a generic decoder node wich decodes audio and video buffers.
+/*! This is a generic audio input node that can be used to obtain audio data
+    from an audio device such as a audio capture card.
  */
 class SAudioInputNode : public QObject,
                         public SInterfaces::SourceNode

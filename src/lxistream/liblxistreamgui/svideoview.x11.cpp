@@ -24,6 +24,7 @@
 #include <X11/extensions/XShm.h>
 #include <X11/extensions/Xv.h>
 #include <X11/extensions/Xvlib.h>
+#include "simage.h"
 
 namespace LXiStreamGui {
 
@@ -169,7 +170,7 @@ bool SVideoView::start(STimer *timer)
 {
   p->timer = timer;
   if (p->updateTimerId == -1)
-    p->updateTimerId = startTimer(20);
+    p->updateTimerId = startTimer(10);
 
   return true;
 }
@@ -195,7 +196,20 @@ void SVideoView::input(const SVideoBuffer &videoBuffer)
   SDebug::MutexLocker l(&p->mutex, __FILE__, __LINE__);
 
   if (!videoBuffer.isNull())
-    p->videoBuffers.append(videoBuffer);
+  {
+    if (((videoBuffer.format().format() >= SVideoFormat::Format_RGB555) &&
+         (videoBuffer.format().format() <= SVideoFormat::Format_BGR32)) ||
+        ((videoBuffer.format().format() >= SVideoFormat::Format_YUYV422) &&
+         (videoBuffer.format().format() <= SVideoFormat::Format_YUV444P)))
+    {
+      p->videoBuffers.append(videoBuffer);
+    }
+    else if ((videoBuffer.format().format() >= SVideoFormat::Format_BGGR8) &&
+             (videoBuffer.format().format() <= SVideoFormat::Format_RGGB8))
+    {
+      p->videoBuffers.append(SVideoDemosaicNode::demosaic(videoBuffer));
+    }
+  }
 }
 
 void SVideoView::paintEvent(QPaintEvent *)
@@ -206,31 +220,25 @@ void SVideoView::paintEvent(QPaintEvent *)
 
   SDebug::MutexLocker l(&p->mutex, __FILE__, __LINE__);
 
-  /*SImageBuffer imageBuffer;
+  SImage image;
   if (p->source && !p->source->p->videoBuffers.isEmpty())
-    imageBuffer = p->source->p->videoBuffers.first();
+    image = SImage(p->source->p->videoBuffers.first());
   else if (!p->videoBuffers.isEmpty())
-    imageBuffer = p->videoBuffers.first();
+    image = SImage(p->videoBuffers.first());
 
-  if (!imageBuffer.isNull())
+  if (!image.isNull())
   {
-    QSizeF sz(imageBuffer.codec().size().absoluteSize());
+    QSizeF sz(image.size());
     sz.scale(size(), Qt::KeepAspectRatio);
-    QImage image = imageBuffer.toImage();
-    if (!image.isNull())
-    {
-      image = image.scaled(sz.toSize(), Qt::IgnoreAspectRatio, (image.height() <= 576) ? Qt::SmoothTransformation : Qt::FastTransformation);
-      const QPoint pos((width() / 2) - (image.width() / 2), (height() / 2) - (image.height() / 2));
-      if ((pos.x() != 0) || (pos.y() != 0))
-        painter.fillRect(rect(), Qt::black);
+    image = image.scaled(sz.toSize(), Qt::IgnoreAspectRatio, (image.height() <= 576) ? Qt::SmoothTransformation : Qt::FastTransformation);
 
-      painter.drawImage(pos, image);
-    }
+    const QPoint pos((width() / 2) - (image.width() / 2), (height() / 2) - (image.height() / 2));
+    painter.drawImage(pos, image);
 
     foreach (SVideoView *clone, p->clones)
       clone->repaint();
   }
-  else*/
+  else
     painter.fillRect(rect(), Qt::black);
 
   painter.end();
@@ -254,7 +262,12 @@ void SVideoView::timerEvent(QTimerEvent *e)
         updateRequired = true;
       }
       else
+      {
+        if (p->timer)
+          p->timer->correctOffset(head.timeStamp(), STime::fromSec(10));
+
         break;
+      }
     }
 
     if (updateRequired)
@@ -484,6 +497,18 @@ XvImageFormatValues SVideoView::Private::toXvFormat(SVideoFormat::Format format)
       case SVideoFormat::Format_GRAY8:
       case SVideoFormat::Format_GRAY16BE:
       case SVideoFormat::Format_GRAY16LE:
+      case SVideoFormat::Format_BGGR8:
+      case SVideoFormat::Format_GBRG8:
+      case SVideoFormat::Format_GRBG8:
+      case SVideoFormat::Format_RGGB8:
+      case SVideoFormat::Format_BGGR10:
+      case SVideoFormat::Format_GBRG10:
+      case SVideoFormat::Format_GRBG10:
+      case SVideoFormat::Format_RGGB10:
+      case SVideoFormat::Format_BGGR16:
+      case SVideoFormat::Format_GBRG16:
+      case SVideoFormat::Format_GRBG16:
+      case SVideoFormat::Format_RGGB16:
       case SVideoFormat::Format_Invalid:
         break;
     }

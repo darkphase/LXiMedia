@@ -22,6 +22,7 @@
 #include <libexif/exif-utils.h>
 #include <libexif/exif-ifd.h>
 #include <libexif/exif-tag.h>
+#include <liblxistream/nodes/svideodemosaicnode.h>
 
 // Implemented in simage.convert.c
 extern "C" void LXiStreamGui_SImage_convertYUYVtoRGB(void *rgb, const void *yuv, unsigned numPixels);
@@ -34,9 +35,16 @@ namespace LXiStreamGui {
 
 using namespace LXiStream;
 
-SImage::SImage(const SVideoBuffer &videoBuffer, bool fast)
+SImage::SImage(const SVideoBuffer &inbuffer, bool fast)
   : QImage()
 {
+  SVideoBuffer videoBuffer = inbuffer;
+  if ((videoBuffer.format().format() >= SVideoFormat::Format_BGGR8) &&
+      (videoBuffer.format().format() <= SVideoFormat::Format_RGGB8))
+  {
+    videoBuffer = SVideoDemosaicNode::demosaic(videoBuffer);
+  }
+
   const SSize size = videoBuffer.format().size();
 
   switch(videoBuffer.format().format())

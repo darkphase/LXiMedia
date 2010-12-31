@@ -33,36 +33,28 @@ bool CameraServer::handleHtmlRequest(const QUrl &url, const QString &file, QAbst
 
   if (file.endsWith(".html")) // Show player
   {
-    const QString camera = file.left(file.length() - 5);
-    htmlParser.setField("PLAYER_ITEM", camera);
-    htmlParser.setField("PLAYER_ITEM_TEXT", tr("Play in external player"));
-    htmlParser.setField("DOWNLOAD_ITEM_TEXT", tr("Download as MPEG file"));
-    htmlParser.setField("PLAYER_VIDEOITEMS", htmlParser.parse(htmlPlayerVideoItem));
+    htmlParser.setField("PLAYER", buildVideoPlayer(file.left(file.length() - 5).toAscii(), SMediaInfo(), url));
 
     htmlParser.setField("PLAYER_INFOITEMS", QByteArray(""));
-
-    htmlParser.setField("PLAYER_DESCRIPTION_NAME", tr("Description"));
+    htmlParser.setField("PLAYER_DESCRIPTION_NAME", QByteArray(""));
     htmlParser.setField("PLAYER_DESCRIPTION", QByteArray(""));
 
-    l.unlock();
     return sendHtmlContent(socket, url, response, htmlParser.parse(htmlPlayer), headPlayer);
   }
   else
   {
-    ThumbnailListItemMap cameras;
-    for (QMap<QString, Camera *>::Iterator i=this->cameras.begin();
-         i!=this->cameras.end();
-         i++)
+    ThumbnailListItemMap items;
+    foreach (const QString &camera, cameras)
     {
       ThumbnailListItem item;
-      item.title = (*i)->terminal->friendlyName();
-      item.iconurl = i.key().toUtf8().toHex() + "-thumb.jpeg";
-      item.url = i.key().toUtf8().toHex() + ".html";
-      cameras.insert(SStringParser::toRawName(item.title), item);
+      item.title = camera;
+      item.iconurl = camera.toUtf8().toHex() + "-thumb.jpeg";
+      item.url = camera.toUtf8().toHex() + ".html";
+      items.insert(SStringParser::toRawName(item.title), item);
     }
 
     l.unlock();
-    return sendHtmlContent(socket, url, response, buildThumbnailView(tr("Cameras"), cameras, url), headList);
+    return sendHtmlContent(socket, url, response, buildThumbnailView(tr("Cameras"), items, url), headList);
   }
 }
 

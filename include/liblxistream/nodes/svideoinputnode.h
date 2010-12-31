@@ -25,7 +25,8 @@
 
 namespace LXiStream {
 
-/*! This is a generic decoder node wich decodes audio and video buffers.
+/*! This is a generic video input node that can be used to obtain video data
+    from a video device such as a webcam or video capture card.
  */
 class SVideoInputNode : public QObject,
                         public SInterfaces::SourceNode

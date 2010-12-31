@@ -78,7 +78,11 @@ public:
 
   UniqueID                      fromPath(const QString &path) const;
   Node                          readNode(UniqueID) const;
-  void                          setLastPlayed(UniqueID, const QDateTime &);
+
+  void                          setLastPlayed(UniqueID, const QDateTime & = QDateTime::currentDateTime());
+  void                          setLastPlayed(const Node &, const QDateTime & = QDateTime::currentDateTime());
+  QDateTime                     lastPlayed(UniqueID) const;
+  QDateTime                     lastPlayed(const Node &) const;
 
   QStringList                   allMovies(void) const;
   QList<UniqueID>               allMovieFiles(const QString &key) const;
@@ -105,7 +109,6 @@ public:
   unsigned                      numSongs(void) const;
   UniqueID                      getSong(unsigned) const;
   QList<UniqueID>               latestSongs(unsigned count) const;
-  QList<UniqueID>               lastPlayedSongs(unsigned count) const;
   QStringList                   allMusicArtists(void) const;
   QList<UniqueID>               allMusicArtistFiles(const QString &key) const;
   QStringList                   allMusicGenres(void) const;

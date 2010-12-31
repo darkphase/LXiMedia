@@ -5,8 +5,8 @@ DESTDIR = .
 # LXiStream
 SUBDIRS += lxistream
 
-# LXiMediaPlayer
-#SUBDIRS += lximediaplayer
-
 # LXiMediaCenter
 SUBDIRS += lximediacenter
+
+# LXiMediaPlayer
+SUBDIRS += lximediaplayer

@@ -39,7 +39,7 @@ void FFMpegTest::initTestCase(void)
   QVERIFY(SSystem::loadModule(new FFMpegBackend::Module()));
 
 //  const SMediaInfo mediaInfo("");
-//  qDebug() << mediaInfo.videoStreams().first().codec.frameRate();
+//  qDebug() << mediaInfo.videoStreams().first().codec.frameRate().toFrequency() << mediaInfo.chapters().count();
 //
 //  QFile file("/tmp/test.jpeg");
 //  if (file.open(QFile::WriteOnly))

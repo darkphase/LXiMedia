@@ -75,6 +75,7 @@ private:
   void                          updateAgc(const SVideoBuffer &);
 
   static quint32                toV4L(SVideoFormat::Format);
+  static SVideoFormat::Format   fromV4L(quint32);
   static quint32                toV4L(const SVideoCodec &codec);
   static v4l2_field             toV4L(SVideoFormat::FieldMode);
 
@@ -84,7 +85,7 @@ private:
   int                           devDesc;
   v4l2_capability               capabilities;
 
-  //QMap<quint32, v4l2_fmtdesc>   pixelFormats;
+  QList<SVideoFormat::Format>   pixelFormats;
   //QMap<QString, v4l2_input>     videoInputs;
   //QMap<SAnalogTuner::VideoStandard, v4l2_standard> videoStandards;
   //QMap<QString, v4l2_queryctrl> videoControls;
