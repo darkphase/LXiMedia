@@ -73,21 +73,15 @@ private:
   public:
     inline CaptureGraph(const QString &device)
       : SGraph(),
-        videoInput(this, device)//,
-        //audioInput(this),
-        //sync(this),
-        //audioOutput(this)
+        audioVideoInput(this, device),
+        audioOutput(this)
     {
-      //connect(&videoInput, SIGNAL(output(SVideoBuffer)), &sync, SLOT(input(SVideoBuffer)));
-      //connect(&audioInput, SIGNAL(output(SAudioBuffer)), &sync, SLOT(input(SAudioBuffer)));
-      //connect(&sync, SIGNAL(output(SAudioBuffer)), &audioOutput, SLOT(input(SAudioBuffer)));
+      connect(&audioVideoInput, SIGNAL(output(SAudioBuffer)), &audioOutput, SLOT(input(SAudioBuffer)));
     }
 
   public:
-    SVideoInputNode             videoInput;
-    //SAudioInputNode             audioInput;
-    //STimeStampSyncNode          sync;
-    //SAudioOutputNode            audioOutput;
+    SAudioVideoInputNode        audioVideoInput;
+    SAudioOutputNode            audioOutput;
   };
 
 public:

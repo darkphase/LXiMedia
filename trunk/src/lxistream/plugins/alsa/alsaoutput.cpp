@@ -25,7 +25,7 @@ namespace AlsaBackend {
 
 AlsaOutput::AlsaOutput(const QString &dev, QObject *parent)
   : SInterfaces::AudioOutput(parent),
-    dev(dev),
+    dev(dev.mid(dev.lastIndexOf(", ") + 2)),
     pcm(NULL),
     resampler(NULL),
     outLatency(STime::null),

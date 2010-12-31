@@ -581,6 +581,29 @@ void BufferReader::selectStreams(const QList<quint16> &streamIds)
     streamContext[i]->selected = streamIds.contains(i);
 }
 
+QList<BufferReader::Chapter> BufferReader::chapters(void) const
+{
+  QMultiMap<STime, Chapter> chapters;
+
+  if (formatContext)
+  for (unsigned i=0; i<formatContext->nb_chapters; i++)
+  {
+    const SInterval interval(formatContext->chapters[i]->time_base.num, formatContext->chapters[i]->time_base.den);
+
+    Chapter chapter;
+#if ((LIBAVCODEC_VERSION_INT >> 16) >= 52)
+    if (formatContext->chapters[i]->title)
+      chapter.title = formatContext->chapters[i]->title;
+#endif
+    chapter.begin = STime(formatContext->chapters[i]->start, interval);
+    chapter.end = STime(formatContext->chapters[i]->end, interval);
+
+    chapters.insert(chapter.begin, chapter);
+  }
+
+  return chapters.values();
+}
+
 /*! Returns true if the data contains DTS data.
  */
 bool BufferReader::isDTS(const uint8_t *inPtr, int inSize)

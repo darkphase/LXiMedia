@@ -17,82 +17,45 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "nodes/svideoinputnode.h"
-#include "sdebug.h"
-#include "sinterfaces.h"
-#include "sgraph.h"
+#ifndef LXISTREAM_SAUDIOVIDEOINPUTNODE_H
+#define LXISTREAM_SAUDIOVIDEOINPUTNODE_H
+
+#include <QtCore>
+#include "../sinterfaces.h"
 
 namespace LXiStream {
 
-
-struct SVideoInputNode::Data
+/*! This is a generic audio/video input node that can be used to obtain audio
+    and video data from a capture device such as a video capture card.
+ */
+class SAudioVideoInputNode : public QObject,
+                             public SInterfaces::SourceNode
 {
-  QString                       device;
-  SInterfaces::VideoInput     * input;
+Q_OBJECT
+public:
+  explicit                      SAudioVideoInputNode(SGraph *, const QString &device = QString::null);
+  virtual                       ~SAudioVideoInputNode();
+
+  static QStringList            devices(void);
+
+  virtual bool                  start(void);
+  virtual void                  stop(void);
+  virtual void                  process(void);
+
+signals:
+  void                          output(const SAudioBuffer &);
+  void                          output(const SVideoBuffer &);
+
+private slots:
+  void                          produced(const SAudioBuffer &);
+  void                          produced(const SVideoBuffer &);
+
+private:
+  struct Data;
+  Data                  * const d;
 };
-
-SVideoInputNode::SVideoInputNode(SGraph *parent, const QString &device)
-  : QObject(parent),
-    SInterfaces::SourceNode(parent),
-    d(new Data())
-{
-  d->device = device;
-  d->input = NULL;
-}
-
-SVideoInputNode::~SVideoInputNode()
-{
-  delete d->input;
-  delete d;
-  *const_cast<Data **>(&d) = NULL;
-}
-
-QStringList SVideoInputNode::devices(void)
-{
-  return SInterfaces::VideoInput::available();
-}
-
-bool SVideoInputNode::start(void)
-{
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
-  delete d->input;
-  d->input = SInterfaces::VideoInput::create(this, d->device);
-
-  if (d->input)
-  if (d->input->start())
-  {
-    connect(d->input, SIGNAL(produce(const SVideoBuffer &)), SIGNAL(output(const SVideoBuffer &)));
-    return true;
-  }
-
-  delete d->input;
-  d->input = NULL;
-
-  qWarning() << "Failed to open video input device" << d->device;
-  return false;
-}
-
-void SVideoInputNode::stop(void)
-{
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
-  if (d->input)
-  {
-    d->input->stop();
-
-    delete d->input;
-    d->input = NULL;
-  }
-}
-
-void SVideoInputNode::process(void)
-{
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
-  if (d->input)
-    d->input->process();
-}
 
 
 } // End of namespace
+
+#endif

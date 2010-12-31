@@ -19,24 +19,24 @@
 
 #include "televisionbackend.h"
 #include "cameraserver.h"
-#include "scan.h"
-#include "teletextserver.h"
-#include "televisionserver.h"
-#include "configserver.h"
+//#include "scan.h"
+//#include "teletextserver.h"
+//#include "televisionserver.h"
+//#include "configserver.h"
 
 Q_EXPORT_PLUGIN2(PLUGIN_NAME, LXiMediaCenter::TelevisionBackend);
 
 namespace LXiMediaCenter {
 
 TelevisionBackend::TelevisionBackend(QObject *parent)
-                  :BackendPlugin(parent),
-                   epgDatabase(NULL)
+  : BackendPlugin(parent)//,
+    //epgDatabase(NULL)
 {
 }
 
 TelevisionBackend::~TelevisionBackend()
 {
-  delete epgDatabase;
+  //delete epgDatabase;
 }
 
 QString TelevisionBackend::pluginName(void) const
@@ -56,34 +56,34 @@ QString TelevisionBackend::authorName(void) const
 
 QList<BackendServer *> TelevisionBackend::createServers(BackendServer::MasterServer *server)
 {
-  if (epgDatabase == NULL)
-    epgDatabase = new EpgDatabase(this);
+  //if (epgDatabase == NULL)
+  //  epgDatabase = new EpgDatabase(this);
 
   QList<BackendServer *> servers;
-  TeletextServer * const teletextServer = new TeletextServer(epgDatabase, server, this);
-  TelevisionServer * const televisionServer = new TelevisionServer(epgDatabase, teletextServer, server, this);
-  ConfigServer * configServer = NULL;
+  //TeletextServer * const teletextServer = new TeletextServer(epgDatabase, server, this);
+  //TelevisionServer * const televisionServer = new TelevisionServer(epgDatabase, teletextServer, server, this);
+  //ConfigServer * configServer = NULL;
 
-  if (televisionServer->hasTuners())
-  {
-    servers += televisionServer;
-    servers += teletextServer;
-    configServer = new ConfigServer(televisionServer, server, this);
-  }
-  else
-  {
-    delete televisionServer;
-    delete teletextServer;
-  }
+//  if (televisionServer->hasTuners())
+//  {
+//    servers += televisionServer;
+//    servers += teletextServer;
+//    configServer = new ConfigServer(televisionServer, server, this);
+//  }
+//  else
+//  {
+//    delete televisionServer;
+//    delete teletextServer;
+//  }
 
-  CameraServer * const cameraServer = new CameraServer(server, this);
+  CameraServer * const cameraServer = new CameraServer(this, server, SAudioVideoInputNode::devices());
   if (cameraServer->hasCameras())
     servers += cameraServer;
   else
     delete cameraServer;
 
-  if (configServer)
-    servers += configServer;
+//  if (configServer)
+//    servers += configServer;
 
   return servers;
 }

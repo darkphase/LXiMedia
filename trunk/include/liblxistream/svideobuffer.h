@@ -17,8 +17,8 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXSTREAM_SVIDEOBUFFER_H
-#define LXSTREAM_SVIDEOBUFFER_H
+#ifndef LXISTREAM_SVIDEOBUFFER_H
+#define LXISTREAM_SVIDEOBUFFER_H
 
 #include <QtGui/QImage>
 #include "svideoformat.h"

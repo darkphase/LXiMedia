@@ -27,17 +27,15 @@
 
 namespace LXiMediaCenter {
 
-class MediaServerVideoFile;
-
 class MediaServer : public VideoServer
 {
 Q_OBJECT
-friend class MediaServerVideoFile;
 protected:
   class FileStream : public TranscodeStream
   {
   public:
                                 FileStream(MediaServer *, const QHostAddress &peer, const QString &url, const QString &fileName, MediaDatabase::UniqueID);
+    virtual                     ~FileStream();
 
   public:
     const QDateTime             startTime;

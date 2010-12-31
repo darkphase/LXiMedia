@@ -1,4 +1,4 @@
 TEMPLATE = subdirs
 DESTDIR = .
 
-SUBDIRS += mediaplayer #television
+SUBDIRS += mediaplayer television

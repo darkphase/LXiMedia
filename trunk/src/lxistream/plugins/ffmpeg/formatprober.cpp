@@ -141,6 +141,10 @@ void FormatProber::probeFile(ProbeInfo &pi, QIODevice *file)
         if (!dataStreams.isEmpty())
           pi.dataStreams = dataStreams;
 
+        const QList<Chapter> chapters = bufferReader.chapters();
+        if (!chapters.isEmpty())
+          pi.chapters = chapters;
+
         pi.isProbed = true;
         pi.isReadable = true;
 

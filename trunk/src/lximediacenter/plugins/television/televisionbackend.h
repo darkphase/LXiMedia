@@ -22,7 +22,7 @@
 
 #include <QtCore>
 #include <LXiMediaCenter>
-#include "epgdatabase.h"
+//#include "epgdatabase.h"
 
 namespace LXiMediaCenter {
 
@@ -40,7 +40,7 @@ public:
   virtual QList<BackendServer *> createServers(BackendServer::MasterServer *);
 
 private:
-  EpgDatabase                 * epgDatabase;
+  //EpgDatabase                 * epgDatabase;
 };
 
 } // End of namespace

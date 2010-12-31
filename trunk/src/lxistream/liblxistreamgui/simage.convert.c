@@ -22,13 +22,9 @@
 #ifdef __SSE__
   #include <xmmintrin.h>
 #endif
+#include "spixels.h"
 
 __inline int bound(int a, int b, int c) { return b < a ? a : (b > c ? c : b); }
-
-struct YUYVPixel { uint8_t y0, u, y1, v; } __attribute__((packed));
-struct UYVYPixel { uint8_t u, y0, v, y1; } __attribute__((packed));
-struct RGBAPixel { uint8_t b,  g, r,  a; } __attribute__((packed));
-
 
 void LXiStreamGui_SImage_convertYUYVtoRGB
  (struct RGBAPixel * restrict rgb, const struct YUYVPixel * restrict yuv, unsigned numPixels)

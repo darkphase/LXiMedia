@@ -77,6 +77,7 @@ public: // From SInterfaces::BufferReader
   virtual QList<VideoStreamInfo> videoStreams(void) const;
   virtual QList<DataStreamInfo>  dataStreams(void) const;
   virtual void                  selectStreams(const QList<quint16> &);
+  virtual QList<Chapter>        chapters(void) const;
 
 private: // DTS framing
   static bool                   isDTS(const uint8_t *, int);

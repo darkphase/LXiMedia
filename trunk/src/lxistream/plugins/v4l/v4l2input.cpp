@@ -57,7 +57,7 @@ V4l2Input::V4l2Input(const QString &device, QObject *parent)
   : SInterfaces::VideoInput(parent),
     devDesc(-1),
     mutex(QMutex::Recursive),
-    outFormat(SVideoFormat::Format_RGB32, SSize(720, 576), SInterval::fromFrequency(25), SVideoFormat::FieldMode_InterlacedTopFirst),
+    outFormat(SVideoFormat::Format_Invalid, SSize(1280, 1024), SInterval::fromFrequency(25)),
     agc(true),
     agcCounter(0),
     agcMin(-1.0f), agcMax(-1.0f), agcMaxc(-1.0f),
@@ -85,7 +85,7 @@ V4l2Input::V4l2Input(const QString &device, QObject *parent)
       ioctl(devDesc, VIDIOC_S_PRIORITY, &prio);
 
       // Enumerate formats
-      /*for (int i=0; i>=0; i++)
+      for (int i=0; i>=0; i++)
       {
         v4l2_fmtdesc desc;
         memset(&desc, 0, sizeof(desc));
@@ -93,10 +93,18 @@ V4l2Input::V4l2Input(const QString &device, QObject *parent)
         desc.type  = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
         if (::ioctl(devDesc, VIDIOC_ENUM_FMT, &desc) >= 0)
-          pixelFormats[desc.pixelformat] = desc;
+          pixelFormats += fromV4L(desc.pixelformat);
         else
           break;
-      }*/
+      }
+
+      if (pixelFormats.isEmpty())
+      { // Default formats
+        pixelFormats += SVideoFormat::Format_YUYV422;
+        pixelFormats += SVideoFormat::Format_UYVY422;
+        pixelFormats += SVideoFormat::Format_RGB32;
+        pixelFormats += SVideoFormat::Format_BGR32;
+      }
 
       // Enumerate inputs
       /*for (int i=0; i>=0; i++)
@@ -190,16 +198,15 @@ bool V4l2Input::start(void)
 {
   // Build a list of codecs to test
   QList<SVideoFormat> formats;
-  formats += outFormat;
-  formats += SVideoFormat(SVideoFormat::Format_RGB32, outFormat.size(), outFormat.frameRate(), SVideoFormat::FieldMode_InterlacedTopFirst);
-  formats += SVideoFormat(SVideoFormat::Format_RGB32, outFormat.size(), outFormat.frameRate(), SVideoFormat::FieldMode_InterlacedBottomFirst);
-  formats += SVideoFormat(SVideoFormat::Format_RGB32, outFormat.size(), outFormat.frameRate(), SVideoFormat::FieldMode_Progressive);
-  formats += SVideoFormat(SVideoFormat::Format_YUYV422, outFormat.size(), outFormat.frameRate(), SVideoFormat::FieldMode_InterlacedTopFirst);
-  formats += SVideoFormat(SVideoFormat::Format_YUYV422, outFormat.size(), outFormat.frameRate(), SVideoFormat::FieldMode_InterlacedBottomFirst);
-  formats += SVideoFormat(SVideoFormat::Format_YUYV422, outFormat.size(), outFormat.frameRate(), SVideoFormat::FieldMode_Progressive);
-  formats += SVideoFormat(SVideoFormat::Format_UYVY422, outFormat.size(), outFormat.frameRate(), SVideoFormat::FieldMode_InterlacedTopFirst);
-  formats += SVideoFormat(SVideoFormat::Format_UYVY422, outFormat.size(), outFormat.frameRate(), SVideoFormat::FieldMode_InterlacedBottomFirst);
-  formats += SVideoFormat(SVideoFormat::Format_UYVY422, outFormat.size(), outFormat.frameRate(), SVideoFormat::FieldMode_Progressive);
+  if (!outFormat.isNull() && pixelFormats.contains(outFormat.format()))
+    formats += outFormat;
+
+  foreach (SVideoFormat::Format format, pixelFormats)
+  {
+    formats += SVideoFormat(format, outFormat.size(), outFormat.frameRate(), SVideoFormat::FieldMode_Progressive);
+    formats += SVideoFormat(format, outFormat.size(), outFormat.frameRate(), SVideoFormat::FieldMode_InterlacedTopFirst);
+    formats += SVideoFormat(format, outFormat.size(), outFormat.frameRate(), SVideoFormat::FieldMode_InterlacedBottomFirst);
+  }
 
   // Find a codec
   outFormat = SVideoFormat();
@@ -225,7 +232,7 @@ bool V4l2Input::start(void)
         testSize.setHeight(imgformat.fmt.pix.height);
       }
 
-#warning Find correct aspect ratio
+      // Assuming always 4:3 aspect ratio.
       testSize.setAspectRatio(float(imgformat.fmt.pix.height) / float(imgformat.fmt.pix.width) * 1.333f);
       testFormat.setSize(testSize);
       outFormat = testFormat;
@@ -236,7 +243,7 @@ bool V4l2Input::start(void)
       bufferRequest.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
       bufferRequest.memory = V4L2_MEMORY_MMAP;
 
-      if (::ioctl(devDesc, VIDIOC_REQBUFS, &bufferRequest) >= 0 )
+      if (::ioctl(devDesc, VIDIOC_REQBUFS, &bufferRequest) >= 0)
       {
         mappedBuffers = 0;
         buffers = new v4l2_buffer[bufferRequest.count];
@@ -267,13 +274,14 @@ bool V4l2Input::start(void)
         }
       }
 
+      for (int i=0; i<mappedBuffers; i++)
+      if (::ioctl(devDesc, VIDIOC_QBUF, buffers + i) < 0)
+        qWarning() << "V4l2Input: failed to ioctl device (VIDIOC_QBUF) " << i;
+
       // Start the stream
-      if (ioctl(devDesc, VIDIOC_STREAMON, &bufferRequest.type) >= 0)
+      if (::ioctl(devDesc, VIDIOC_STREAMON, &bufferRequest.type) >= 0)
       {
         streamOn = true;
-
-        for (int i=0; i<mappedBuffers; i++)
-          queueBuffer(i);
 
         ::v4l2_control control;
         control.id = V4L2_CID_AUDIO_MUTE;
@@ -326,14 +334,30 @@ void V4l2Input::process(void)
   { // mmap based capture
     for (int n=0; n<3; n++)
     {
-      Memory * mem = nextImage();
-
+      Memory * const mem = nextImage();
       if (mem)
       {
-        const int offset[4] = { 0, 0, 0, 0 };
-        const int lineSize[4] = { bufferSize / outFormat.size().height(), 0, 0, 0 };
+        SVideoBuffer buffer;
+        if (outFormat.numPlanes() == 3)
+        {
+          int wr = 0, hr = 0;
+          outFormat.planarYUVRatio(wr, hr);
 
-        SVideoBuffer buffer(outFormat, SBuffer::MemoryPtr(mem), offset, lineSize);
+          const int w = outFormat.size().width(), h = outFormat.size().height();
+          const int s = w * h, s1 = (w / wr) * (h / hr);
+          const int offset[4] = { 0, s, s + s1 , s + s1 + s1 };
+          const int lineSize[4] = { h, h / hr, h / hr, 0 };
+
+          buffer = SVideoBuffer(outFormat, SBuffer::MemoryPtr(mem), offset, lineSize);
+        }
+        else
+        {
+          const int offset[4] = { 0, 0, 0, 0 };
+          const int lineSize[4] = { bufferSize / outFormat.size().height(), 0, 0, 0 };
+
+          buffer = SVideoBuffer(outFormat, SBuffer::MemoryPtr(mem), offset, lineSize);
+        }
+
         buffer.setTimeStamp(timer.smoothTimeStamp());
 
         if (agc)
@@ -655,18 +679,19 @@ void V4l2Input::queueBuffer(int index)
 
   if (index < mappedBuffers)
   {
-    if (ioctl(devDesc, VIDIOC_QBUF, buffers + index) < 0)
+    if (::ioctl(devDesc, VIDIOC_QBUF, buffers + index) < 0)
       qWarning() << "V4l2Input: failed to ioctl device (VIDIOC_QBUF) " << index;
   }
 }
 
-#define FOURCC(a,b,c,d)       (quint32(a) | (quint32(b) << 8) | (quint32(c) << 16) | (quint32(d) << 24))
+#define FOURCC(a,b,c,d) (quint32(a) | (quint32(b) << 8) | (quint32(c) << 16) | (quint32(d) << 24))
 
 quint32 V4l2Input::toV4L(SVideoFormat::Format format)
 {
   switch (format)
   {
   case SVideoFormat::Format_GRAY8:              return FOURCC('G','R','E','Y');
+
 #if Q_BYTE_ORDER == Q_BIG_ENDIAN
   case SVideoFormat::Format_RGB555:             return FOURCC('R','G','B','O');
   case SVideoFormat::Format_RGB565:             return FOURCC('R','G','B','P');
@@ -682,13 +707,68 @@ quint32 V4l2Input::toV4L(SVideoFormat::Format format)
   case SVideoFormat::Format_RGB32:              return FOURCC('B','G','R','4');
   case SVideoFormat::Format_BGR32:              return FOURCC('R','G','B','4');
 #endif
+
   case SVideoFormat::Format_YUYV422:            return FOURCC('Y','U','Y','V');
   case SVideoFormat::Format_UYVY422:            return FOURCC('U','Y','V','Y');
+  case SVideoFormat::Format_YUV410P:            return FOURCC('4','1','0','P');
   case SVideoFormat::Format_YUV411P:            return FOURCC('4','1','1','P');
   case SVideoFormat::Format_YUV420P:            return FOURCC('4','2','0','P');
   case SVideoFormat::Format_YUV422P:            return FOURCC('4','2','2','P');
 
+  case SVideoFormat::Format_BGGR8:              return FOURCC('B','A','8','1');
+  case SVideoFormat::Format_GBRG8:              return FOURCC('G','B','R','G');
+  case SVideoFormat::Format_GRBG8:              return FOURCC('G','R','B','G');
+  case SVideoFormat::Format_RGGB8:              return FOURCC('R','G','G','B');
+  case SVideoFormat::Format_BGGR10:             return FOURCC('B','G','1','0');
+  case SVideoFormat::Format_GBRG10:             return FOURCC('G','B','1','0');
+  case SVideoFormat::Format_GRBG10:             return FOURCC('B','A','1','0');
+  case SVideoFormat::Format_RGGB10:             return FOURCC('R','G','1','0');
+  case SVideoFormat::Format_BGGR16:             return FOURCC('B','Y','R','2');
+
   default:                                      return 0;
+  }
+}
+
+SVideoFormat::Format V4l2Input::fromV4L(quint32 format)
+{
+  switch (format)
+  {
+  case FOURCC('G','R','E','Y'): return SVideoFormat::Format_GRAY8;
+  
+#if Q_BYTE_ORDER == Q_BIG_ENDIAN
+  case FOURCC('R','G','B','O'): return SVideoFormat::Format_RGB555;
+  case FOURCC('R','G','B','P'): return SVideoFormat::Format_RGB565;
+  case FOURCC('R','G','B','3'): return SVideoFormat::Format_RGB24;
+  case FOURCC('B','G','R','3'): return SVideoFormat::Format_BGR24;
+  case FOURCC('R','G','B','4'): return SVideoFormat::Format_RGB32;
+  case FOURCC('B','G','R','4'): return SVideoFormat::Format_BGR32;
+#else // RGB and BGR are deliberately swapped here.
+  case FOURCC('B','G','R','O'): return SVideoFormat::Format_RGB555;
+  case FOURCC('B','G','R','P'): return SVideoFormat::Format_RGB565;
+  case FOURCC('B','G','R','3'): return SVideoFormat::Format_RGB24;
+  case FOURCC('R','G','B','3'): return SVideoFormat::Format_BGR24;
+  case FOURCC('B','G','R','4'): return SVideoFormat::Format_RGB32;
+  case FOURCC('R','G','B','4'): return SVideoFormat::Format_BGR32;
+#endif
+
+  case FOURCC('Y','U','Y','V'): return SVideoFormat::Format_YUYV422;
+  case FOURCC('U','Y','V','Y'): return SVideoFormat::Format_UYVY422;
+  case FOURCC('4','1','0','P'): return SVideoFormat::Format_YUV410P;
+  case FOURCC('4','1','1','P'): return SVideoFormat::Format_YUV411P;
+  case FOURCC('4','2','0','P'): return SVideoFormat::Format_YUV420P;
+  case FOURCC('4','2','2','P'): return SVideoFormat::Format_YUV422P;
+
+  case FOURCC('B','A','8','1'): return SVideoFormat::Format_BGGR8;
+  case FOURCC('G','B','R','G'): return SVideoFormat::Format_GBRG8;
+  case FOURCC('G','R','B','G'): return SVideoFormat::Format_GRBG8;
+  case FOURCC('R','G','G','B'): return SVideoFormat::Format_RGGB8;
+  case FOURCC('B','G','1','0'): return SVideoFormat::Format_BGGR10;
+  case FOURCC('G','B','1','0'): return SVideoFormat::Format_GBRG10;
+  case FOURCC('B','A','1','0'): return SVideoFormat::Format_GRBG10;
+  case FOURCC('R','G','1','0'): return SVideoFormat::Format_RGGB10;
+  case FOURCC('B','Y','R','2'): return SVideoFormat::Format_BGGR16;
+
+  default:                      return SVideoFormat::Format_Invalid;
   }
 }
 

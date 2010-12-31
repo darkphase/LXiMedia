@@ -63,20 +63,47 @@ int SVideoFormat::sampleSize(Format format)
   switch (format)
   {
   // Video formats
-  case Format_GRAY8:          return 1;
+  case Format_GRAY8:
+    return 1;
+
   case Format_GRAY16BE:
   case Format_GRAY16LE:
   case Format_RGB555:
   case Format_BGR555:
   case Format_RGB565:
-  case Format_BGR565:         return 2;
+  case Format_BGR565:
+    return 2;
+
   case Format_RGB24:
-  case Format_BGR24:          return 3;
+  case Format_BGR24:
+    return 3;
+
   case Format_RGB32:
-  case Format_BGR32:          return 4;
+  case Format_BGR32:
+    return 4;
+
   case Format_YUYV422:
-  case Format_UYVY422:        return 2;
-  default:                    return 1;
+  case Format_UYVY422:
+    return 2;
+
+  case Format_BGGR8:
+  case Format_GBRG8:
+  case Format_GRBG8:
+  case Format_RGGB8:
+    return 1;
+
+  case Format_BGGR10:
+  case Format_GBRG10:
+  case Format_GRBG10:
+  case Format_RGGB10:
+  case Format_BGGR16:
+  case Format_GBRG16:
+  case Format_GRBG16:
+  case Format_RGGB16:
+    return 2;
+
+  default:
+    return 1;
   }
 }
 
@@ -105,6 +132,20 @@ int SVideoFormat::numPlanes(Format format)
   case Format_YUV422P:
   case Format_YUV444P:
     return 3;
+
+  case Format_BGGR8:
+  case Format_GBRG8:
+  case Format_GRBG8:
+  case Format_RGGB8:
+  case Format_BGGR10:
+  case Format_GBRG10:
+  case Format_GRBG10:
+  case Format_RGGB10:
+  case Format_BGGR16:
+  case Format_GBRG16:
+  case Format_GRBG16:
+  case Format_RGGB16:
+    return 1;
 
   default:
     return 0;
@@ -153,12 +194,26 @@ quint32 SVideoFormat::nullPixelValue(Format format)
   case Format_UYVY422:
     return 0x007F007F;
 
+  case Format_BGGR8:
+  case Format_GBRG8:
+  case Format_GRBG8:
+  case Format_RGGB8:
+  case Format_BGGR10:
+  case Format_GBRG10:
+  case Format_GRBG10:
+  case Format_RGGB10:
+  case Format_BGGR16:
+  case Format_GBRG16:
+  case Format_GRBG16:
+  case Format_RGGB16:
+    return 0;
+
   default:
     return 0;
   }
 }
 
-/*! Returns the name of the format, e.g. "PCM16le"
+/*! Returns the name of the format, e.g. "RGB/555"
  */
 const char * SVideoFormat::formatName(Format format)
 {
@@ -182,6 +237,19 @@ const char * SVideoFormat::formatName(Format format)
   case Format_YUV420P:                return "YUV/420 planar";
   case Format_YUV422P:                return "YUV/422 planar";
   case Format_YUV444P:                return "YUV/444 planar";
+  case Format_BGGR8:                  return "Bayer/BGGR8";
+  case Format_GBRG8:                  return "Bayer/GBRG8";
+  case Format_GRBG8:                  return "Bayer/GRBG8";
+  case Format_RGGB8:                  return "Bayer/RGGB8";
+  case Format_BGGR10:                 return "Bayer/BGGR10";
+  case Format_GBRG10:                 return "Bayer/GBRG10";
+  case Format_GRBG10:                 return "Bayer/GRBG10";
+  case Format_RGGB10:                 return "Bayer/RGGB10";
+  case Format_BGGR16:                 return "Bayer/BGGR16";
+  case Format_GBRG16:                 return "Bayer/GBRG16";
+  case Format_GRBG16:                 return "Bayer/GRBG16";
+  case Format_RGGB16:                 return "Bayer/RGGB16";
+
   default:                            return "";
   }
 }

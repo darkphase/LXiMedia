@@ -46,8 +46,7 @@ void Module::registerClasses(void)
           if (snd_ctl_card_info_malloc(&info) == 0)
           if (snd_ctl_card_info(ctl, info) == 0)
           {
-            const QString devName = SStringParser::toRawName(snd_ctl_card_info_get_longname(info)).toLower();
-            QString name = QString(snd_ctl_card_info_get_name(info));
+            const QString longName = snd_ctl_card_info_get_longname(info);
 
             char **hints = NULL;
             if (snd_device_name_hint(card, "pcm", reinterpret_cast<void ***>(&hints)) == 0)
@@ -68,16 +67,16 @@ void Module::registerClasses(void)
                 if (name == "default:") // Analog output
                 {
                   if (!inputOnly)
-                    AlsaOutput::registerClass<AlsaOutput>(SFactory::Scheme(-card, "hw:" + QString::number(card)));
+                    AlsaOutput::registerClass<AlsaOutput>(SFactory::Scheme(-card, longName + ", hw:" + QString::number(card)));
 
-                  AlsaInput::registerClass<AlsaInput>(SFactory::Scheme(-card, "hw:" + QString::number(card)));
+                  AlsaInput::registerClass<AlsaInput>(SFactory::Scheme(-card, longName + ", hw:" + QString::number(card)));
                 }
                 else if (name == "iec958:") // Iec958 (S/PDIF) output
                 {
                   if (!inputOnly)
-                    AlsaOutput::registerClass<AlsaOutput>(SFactory::Scheme(-card, "iec958:" + QString::number(card)));
+                    AlsaOutput::registerClass<AlsaOutput>(SFactory::Scheme(-card, longName + ", iec958:" + QString::number(card)));
 
-                  AlsaInput::registerClass<AlsaInput>(SFactory::Scheme(-card, "iec958:" + QString::number(card)));
+                  AlsaInput::registerClass<AlsaInput>(SFactory::Scheme(-card, longName + ", iec958:" + QString::number(card)));
                 }
               }
             }

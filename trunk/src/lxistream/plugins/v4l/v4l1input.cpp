@@ -182,7 +182,7 @@ bool V4l1Input::start(void)
         if (::ioctl(devDesc, VIDIOCSWIN, &grabWin) >= 0)
         {
           outFormat = testFormat;
-#warning Find correct aspect ratio
+          // Assuming always 4:3 aspect ratio.
           testSize.setAspectRatio(float(grabWin.height) / float(grabWin.width) * 1.333f);
           outFormat.setSize(testSize);
           currentBufferIndex = 0;

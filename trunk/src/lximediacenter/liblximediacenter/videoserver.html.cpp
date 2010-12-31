@@ -77,7 +77,7 @@ const char * const VideoServer::htmlThumbnailItemRow =
 const char * const VideoServer::htmlThumbnailItem =
     "    <td class=\"thumbnaillistitem\">\n"
     "     <center>\n"
-    "      <div class=\"thumbnaillistitem\">\n"
+    "      <div class=\"{ITEM_CLASS}\">\n"
     "       <a class=\"thumbnaillistitem\" title=\"{ITEM_TITLE}\" href=\"{ITEM_URL}\">\n"
     "        <img src=\"{ITEM_ICONURL}\" alt=\"{ITEM_TITLE}\" />\n"
     "       </a>\n"
@@ -177,6 +177,11 @@ const char * const VideoServer::htmlPlayerThumbItem =
     "          {TR_SUBTITLES}:\n"
     "          <select name=\"subtitles\">\n"
     "{SUBTITLES}"
+    "          </select>\n"
+    "          <br /><br />\n"
+    "          {TR_START_FROM}:\n"
+    "          <select name=\"position\">\n"
+    "{CHAPTERS}"
     "          </select>\n"
     "          <br /><br />\n"
     "          <input type=\"submit\" value=\"{TR_PLAY_HERE}\" />\n"
@@ -299,6 +304,7 @@ QByteArray VideoServer::buildThumbnailView(const QString &title, const Thumbnail
       foreach (const ThumbnailListItem &item, items)
       if ((++i >= pageBegin) && (i < pageEnd))
       {
+        htmlParser.setField("ITEM_CLASS", QByteArray(item.played ? "thumbnaillistitemplayed" : "thumbnaillistitem"));
         htmlParser.setField("ITEM_TITLE", item.title);
         htmlParser.setField("ITEM_RAW_TITLE", SStringParser::toRawName(item.title));
         htmlParser.setField("ITEM_SUBTITLE", item.subtitle);
@@ -364,6 +370,7 @@ QByteArray VideoServer::buildThumbnailView(const QString &title, const Thumbnail
       foreach (const ThumbnailListItem &item, items)
       if (SStringParser::toRawName(item.page) == selectedPage)
       {
+        htmlParser.setField("ITEM_CLASS", QByteArray(item.played ? "thumbnaillistitemplayed" : "thumbnaillistitem"));
         htmlParser.setField("ITEM_TITLE", item.title);
         htmlParser.setField("ITEM_RAW_TITLE", SStringParser::toRawName(item.title));
         htmlParser.setField("ITEM_SUBTITLE", item.subtitle);
@@ -402,6 +409,7 @@ QByteArray VideoServer::buildVideoPlayer(const QByteArray &item, const SMediaInf
   htmlParser.setField("TR_DOWNLOAD", tr("Download file"));
   htmlParser.setField("TR_LANGUAGE", tr("Language"));
   htmlParser.setField("TR_SUBTITLES", tr("Subtitles"));
+  htmlParser.setField("TR_START_FROM", tr("Start from"));
   htmlParser.setField("TR_TRANSCODE_TO", tr("Transcode to"));
 
   htmlParser.setField("TR_DOWNLOAD_OPTIONS_EXPLAIN",
@@ -426,6 +434,7 @@ QByteArray VideoServer::buildVideoPlayer(const QByteArray &item, const SMediaInf
 
   int count = 1;
   htmlParser.setField("LANGUAGES", QByteArray(""));
+  htmlParser.setField("SELECTED", QByteArray(""));
   foreach (const SInterfaces::FormatProber::AudioStreamInfo &stream, mediaInfo.audioStreams())
   {
     htmlParser.setField("VALUE", QByteArray::number(stream.streamId, 16));
@@ -439,6 +448,7 @@ QByteArray VideoServer::buildVideoPlayer(const QByteArray &item, const SMediaInf
 
   count = 1;
   htmlParser.setField("SUBTITLES", QByteArray(""));
+  htmlParser.setField("SELECTED", QByteArray(""));
   foreach (const SInterfaces::FormatProber::DataStreamInfo &stream, mediaInfo.dataStreams())
   {
     htmlParser.setField("VALUE", QByteArray::number(stream.streamId, 16));
@@ -501,6 +511,37 @@ QByteArray VideoServer::buildVideoPlayer(const QByteArray &item, const SMediaInf
 
   foreach (const GlobalSettings::TranscodeChannel &channel, settings.allTranscodeChannels())
     T::addChannel(htmlParser, settings, genericTranscodeChannels, channel);
+
+  htmlParser.setField("CHAPTERS", QByteArray(""));
+  htmlParser.setField("SELECTED", QByteArray(""));
+  if (!mediaInfo.chapters().isEmpty())
+  {
+    int chapterNum = 1;
+    foreach (const SMediaInfo::Chapter &chapter, mediaInfo.chapters())
+    {
+      htmlParser.setField("VALUE", QByteArray::number(chapter.begin.toSec()));
+      htmlParser.setField("TEXT", tr("Chapter") + " " + QString::number(chapterNum++));
+      if (!chapter.title.isEmpty())
+        htmlParser.appendField("TEXT", ", " + chapter.title);
+
+      htmlParser.appendField("CHAPTERS", htmlParser.parse(htmlPlayerThumbItemOption));
+    }
+  }
+  else if (mediaInfo.duration().isValid())
+  {
+    for (int i=0, n=mediaInfo.duration().toSec(); i<n; i+=120)
+    {
+      htmlParser.setField("VALUE", QByteArray::number(i));
+      htmlParser.setField("TEXT", QTime().addSecs(i).toString(videoTimeFormat));
+      htmlParser.appendField("CHAPTERS", htmlParser.parse(htmlPlayerThumbItemOption));
+    }
+  }
+  else
+  {
+    htmlParser.setField("VALUE", QByteArray("0"));
+    htmlParser.setField("TEXT", QTime().toString(videoTimeFormat));
+    htmlParser.appendField("CHAPTERS", htmlParser.parse(htmlPlayerThumbItemOption));
+  }
 
   if (url.hasQueryItem("play"))
     return htmlParser.parse(htmlPlayerVideoItem);

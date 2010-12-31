@@ -17,82 +17,39 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "nodes/svideoinputnode.h"
-#include "sdebug.h"
-#include "sinterfaces.h"
-#include "sgraph.h"
+#ifndef LXISTREAM_SVIDEODEMOSAICNODE_H
+#define LXISTREAM_SVIDEODEMOSAICNODE_H
+
+#include <QtCore>
+#include "../sinterfaces.h"
 
 namespace LXiStream {
 
+class SVideoBuffer;
 
-struct SVideoInputNode::Data
+
+class SVideoDemosaicNode : public QObject,
+                           public SInterfaces::Node
 {
-  QString                       device;
-  SInterfaces::VideoInput     * input;
+Q_OBJECT
+public:
+  explicit                      SVideoDemosaicNode(SGraph *);
+  virtual                       ~SVideoDemosaicNode();
+
+  static SVideoBuffer           demosaic(const SVideoBuffer &);
+
+public slots:
+  void                          input(const SVideoBuffer &);
+
+signals:
+  void                          output(const SVideoBuffer &);
+
+private:
+  struct Data;
+  Data                  * const d;
 };
-
-SVideoInputNode::SVideoInputNode(SGraph *parent, const QString &device)
-  : QObject(parent),
-    SInterfaces::SourceNode(parent),
-    d(new Data())
-{
-  d->device = device;
-  d->input = NULL;
-}
-
-SVideoInputNode::~SVideoInputNode()
-{
-  delete d->input;
-  delete d;
-  *const_cast<Data **>(&d) = NULL;
-}
-
-QStringList SVideoInputNode::devices(void)
-{
-  return SInterfaces::VideoInput::available();
-}
-
-bool SVideoInputNode::start(void)
-{
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
-  delete d->input;
-  d->input = SInterfaces::VideoInput::create(this, d->device);
-
-  if (d->input)
-  if (d->input->start())
-  {
-    connect(d->input, SIGNAL(produce(const SVideoBuffer &)), SIGNAL(output(const SVideoBuffer &)));
-    return true;
-  }
-
-  delete d->input;
-  d->input = NULL;
-
-  qWarning() << "Failed to open video input device" << d->device;
-  return false;
-}
-
-void SVideoInputNode::stop(void)
-{
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
-  if (d->input)
-  {
-    d->input->stop();
-
-    delete d->input;
-    d->input = NULL;
-  }
-}
-
-void SVideoInputNode::process(void)
-{
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
-  if (d->input)
-    d->input->process();
-}
 
 
 } // End of namespace
+
+#endif

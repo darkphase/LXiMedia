@@ -91,6 +91,7 @@ void MediaServer::addVideoFile(DlnaServerDir *dir, const MediaDatabase::Node &no
     file.iconUrl = httpPath() + MediaDatabase::toUidString(node.uid) + "-thumb.jpeg";
     file.mimeType = "video/mpeg";
     file.sortOrder = sortOrder;
+    file.played = mediaDatabase->lastPlayed(node).isValid();
 
     dir->addFile(name, file);
   }
@@ -103,6 +104,7 @@ void MediaServer::addVideoFile(DlnaServerDir *dir, const QList<MediaDatabase::No
   if (!nodes.isEmpty())
   {
     MediaServerFileDir * const fileRootDir = new MediaServerFileDir(dir->server());
+    fileRootDir->played = true;
 
     const QList<SInterfaces::FormatProber::AudioStreamInfo> audioStreams = nodes.first().mediaInfo.audioStreams();
     const QList<SInterfaces::FormatProber::VideoStreamInfo> videoStreams = nodes.first().mediaInfo.videoStreams();
@@ -141,8 +143,11 @@ void MediaServer::addVideoFile(DlnaServerDir *dir, const QList<MediaDatabase::No
         file.url = url;
         file.iconUrl = httpPath() + MediaDatabase::toUidString(videoFile.second.uid) + "-thumb.jpeg";
         file.mimeType = "video/mpeg";
+        file.played = mediaDatabase->lastPlayed(videoFile.second).isValid();
         //file.description = video.plot;
         fileDir->addFile(videoFile.first, file);
+
+        fileRootDir->played &= file.played;
 
         seekOfs += videoFile.second.mediaInfo.duration().toSec();
         for (; seekSec<seekOfs; seekSec+=seekBySecs)
@@ -346,6 +351,7 @@ bool MediaServer::handleHtmlRequest(const QUrl &url, const QString &file, QAbstr
             item.title = i.key();
             item.iconurl = MediaDatabase::toUidString(uid) + "-thumb.jpeg";
             item.url = MediaDatabase::toUidString(uid) + ".html";
+            item.played = mediaFileDir->played;
 
             if (mediaFileDir->uids.count() > 1)
               item.title += ", " + tr("Part") + " " + QString::number(++count);
@@ -363,6 +369,7 @@ bool MediaServer::handleHtmlRequest(const QUrl &url, const QString &file, QAbstr
             item.subtitle = QString::number(subDir->count()) + " " + tr("items");
             item.iconurl = subDir->findIcon();
             item.url = QString::number(subDir->id, 16) + "-dir.html";
+            item.played = subDir->played;
 
             items.insert(("00000000" + QString::number(subDir->sortOrder, 16)).right(8) + item.title, item);
           }
@@ -376,6 +383,7 @@ bool MediaServer::handleHtmlRequest(const QUrl &url, const QString &file, QAbstr
         item.title = i.key();
         item.iconurl = i->iconUrl;
         item.url = i->url + ".html";
+        item.played = i->played;
 
         items.insert(("00000000" + QString::number(i->sortOrder, 16)).right(8) + item.title, item);
       }
@@ -453,6 +461,12 @@ MediaServer::FileStream::FileStream(MediaServer *parent, const QHostAddress &pee
   connect(&file, SIGNAL(output(SEncodedAudioBuffer)), &audioDecoder, SLOT(input(SEncodedAudioBuffer)));
   connect(&file, SIGNAL(output(SEncodedVideoBuffer)), &videoDecoder, SLOT(input(SEncodedVideoBuffer)));
   connect(&file, SIGNAL(output(SEncodedDataBuffer)), &dataDecoder, SLOT(input(SEncodedDataBuffer)));
+}
+
+MediaServer::FileStream::~FileStream()
+{
+  if (startTime.secsTo(QDateTime::currentDateTime()) >= 120)
+    static_cast<MediaServer *>(parent)->mediaDatabase->setLastPlayed(uid);
 }
 
 } // End of namespace

@@ -37,6 +37,9 @@ public:
 
   static QStringList            devices(void);
 
+  void                          setDelay(STime);
+  STime                         delay(void) const;
+
   virtual bool                  start(STimer *);
   virtual void                  stop(void);
 

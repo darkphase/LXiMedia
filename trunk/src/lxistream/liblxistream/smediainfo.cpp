@@ -73,6 +73,15 @@ QDomNode SMediaInfo::toXml(QDomDocument &doc) const
     mediainfo.appendChild(elm);
   }
 
+  foreach (const Chapter &chapter, d.pi.chapters)
+  {
+    QDomElement elm = createElement(doc, "chapter");
+    elm.setAttribute("title", chapter.title);
+    elm.setAttribute("begin", chapter.begin.toUSec());
+    elm.setAttribute("end", chapter.end.toUSec());
+    mediainfo.appendChild(elm);
+  }
+
   if (!d.pi.title.isEmpty())     mediainfo.setAttribute("title", SStringParser::removeControl(d.pi.title));
   if (!d.pi.author.isEmpty())    mediainfo.setAttribute("author", SStringParser::removeControl(d.pi.author));
   if (!d.pi.copyright.isEmpty()) mediainfo.setAttribute("copyright", SStringParser::removeControl(d.pi.copyright));
@@ -138,6 +147,21 @@ void SMediaInfo::fromXml(const QDomNode &elm)
   QDomElement imgElm = mediainfo.firstChildElement("imagecodec");
   if (!imgElm.isNull())
     d.pi.imageCodec.fromXml(imgElm);
+
+  QMultiMap<STime, Chapter> chapters;
+  for (QDomElement elm = mediainfo.firstChildElement("chapter");
+       !elm.isNull();
+       elm = elm.nextSiblingElement("chapter"))
+  {
+    Chapter chapter;
+    chapter.title = elm.attribute("title");
+    chapter.begin = STime::fromUSec(elm.attribute("begin").toLongLong());
+    chapter.end = STime::fromUSec(elm.attribute("end").toLongLong());
+
+    chapters.insert(chapter.begin, chapter);
+  }
+
+  d.pi.chapters = chapters.values();
 
   d.pi.title = mediainfo.attribute("title");
   d.pi.author = mediainfo.attribute("author");

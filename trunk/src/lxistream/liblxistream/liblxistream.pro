@@ -40,6 +40,7 @@ HEADERS += $${LXIMEDIA_DIR}/include/LXiStream \
     $${LXIMEDIA_DIR}/include/liblxistream/sinterfaces.h \
     $${LXIMEDIA_DIR}/include/liblxistream/sinterval.h \
     $${LXIMEDIA_DIR}/include/liblxistream/smediainfo.h \
+    $${LXIMEDIA_DIR}/include/liblxistream/spixels.h \
     $${LXIMEDIA_DIR}/include/liblxistream/sserializable.h \
     $${LXIMEDIA_DIR}/include/liblxistream/ssize.h \
     $${LXIMEDIA_DIR}/include/liblxistream/sstringparser.h \
@@ -91,6 +92,7 @@ HEADERS += $${LXIMEDIA_DIR}/include/liblxistream/nodes/saudiodecodernode.h \
     $${LXIMEDIA_DIR}/include/liblxistream/nodes/saudiomatrixnode.h \
     $${LXIMEDIA_DIR}/include/liblxistream/nodes/saudiooutputnode.h \
     $${LXIMEDIA_DIR}/include/liblxistream/nodes/saudioresamplenode.h \
+    $${LXIMEDIA_DIR}/include/liblxistream/nodes/saudiovideoinputnode.h \
     $${LXIMEDIA_DIR}/include/liblxistream/nodes/sdatadecodernode.h \
     $${LXIMEDIA_DIR}/include/liblxistream/nodes/sfileinputnode.h \
     $${LXIMEDIA_DIR}/include/liblxistream/nodes/sfileoutputnode.h \
@@ -102,6 +104,7 @@ HEADERS += $${LXIMEDIA_DIR}/include/liblxistream/nodes/saudiodecodernode.h \
     $${LXIMEDIA_DIR}/include/liblxistream/nodes/svideoboxnode.h \
     $${LXIMEDIA_DIR}/include/liblxistream/nodes/svideodecodernode.h \
     $${LXIMEDIA_DIR}/include/liblxistream/nodes/svideodeinterlacenode.h \
+    $${LXIMEDIA_DIR}/include/liblxistream/nodes/svideodemosaicnode.h \
     $${LXIMEDIA_DIR}/include/liblxistream/nodes/svideoencodernode.h \
     $${LXIMEDIA_DIR}/include/liblxistream/nodes/svideoinputnode.h \
     $${LXIMEDIA_DIR}/include/liblxistream/nodes/svideoletterboxdetectnode.h \
@@ -113,6 +116,7 @@ SOURCES += nodes/saudiodecodernode.cpp \
     nodes/saudiomatrixnode.mix.c \
     nodes/saudiooutputnode.cpp \
     nodes/saudioresamplenode.cpp \
+    nodes/saudiovideoinputnode.cpp \
     nodes/sdatadecodernode.cpp \
     nodes/sfileinputnode.cpp \
     nodes/sfileoutputnode.cpp \
@@ -126,6 +130,8 @@ SOURCES += nodes/saudiodecodernode.cpp \
     nodes/svideoboxnode.box.c \
     nodes/svideodecodernode.cpp \
     nodes/svideodeinterlacenode.cpp \
+    nodes/svideodemosaicnode.cpp \
+    nodes/svideodemosaicnode.demosaic.c \
     nodes/svideoencodernode.cpp \
     nodes/svideoinputnode.cpp \
     nodes/svideoletterboxdetectnode.cpp \

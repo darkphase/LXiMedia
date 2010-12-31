@@ -22,50 +22,25 @@
 
 namespace LXiMediaCenter {
 
-CameraServer::CameraServer(MasterServer *server, TelevisionBackend *plugin)
-             :VideoServer(QT_TR_NOOP("Cameras"), server),
-              plugin(plugin)
+CameraServer::CameraServer(TelevisionBackend *plugin, MasterServer *server, const QStringList &cameras)
+  : VideoServer(QT_TR_NOOP("Cameras"), plugin, server),
+    plugin(plugin),
+    cameras(cameras)
 {
   enableDlna();
 
-  quint32 id = 0x80000000;
-
-  foreach (const SSystem::DeviceEntry &captureDevice, SSystem::availableVideoCaptureDevices())
+  foreach (const QString &camera, cameras)
   {
-    STerminals::AudioVideoDevice * const dev = SSystem::createTerminal<STerminals::AudioVideoDevice>(this, captureDevice.url, false);
-    if (dev)
-    {
-      if (dev->tuner() == NULL)
-      {
-        cameras[captureDevice.url] = new Camera(id++, dev);
+    DlnaServer::File file(dlnaDir.server());
+    file.mimeType = "video/mpeg";
+    file.url = httpPath() + camera.toUtf8().toHex() + ".mpeg";
 
-        DlnaServer::File file(dlnaDir.server());
-        file.mimeType = "video/mpeg";
-        file.url = httpPath() + captureDevice.url.toUtf8().toHex() + ".mpeg";
-
-        QString title = dev->friendlyName();
-        for (int i=1; (i<1000) && (dlnaDir.findFile(title).id > 0); i++)
-        if (i == 1)
-          title = title + ("00" + QString::number(i)).right(3);
-        else
-          title = title.left(title.length() - 3) + ("00" + QString::number(i)).right(3);
-
-        dlnaDir.addFile(title, file);
-      }
-      else
-        delete dev;
-    }
+    dlnaDir.addFile(camera, file);
   }
-
-  dlnaDir.sortOrder += 10;
 }
 
 CameraServer::~CameraServer()
 {
-  removeAllStreams();
-  
-  foreach (Camera *camera, cameras)
-    delete camera;
 }
 
 bool CameraServer::handleConnection(const QHttpRequestHeader &request, QAbstractSocket *socket)
@@ -79,88 +54,64 @@ bool CameraServer::handleConnection(const QHttpRequestHeader &request, QAbstract
   return VideoServer::handleConnection(request, socket);
 }
 
-bool CameraServer::streamVideo(const QHttpRequestHeader &request, QAbstractSocket *socket, const StreamRequest &r)
+bool CameraServer::streamVideo(const QHttpRequestHeader &request, QAbstractSocket *socket)
 {
-  const QString camera = QString::fromUtf8(QByteArray::fromHex(r.item.toAscii()));
-  StreamRequest streamRequest = r;
-  streamRequest.item = "camera:" + camera;
-  streamRequest.position = "0";
-  streamRequest.frameTime = STime::fromMSec(40);
-  streamRequest.channelSetup = SAudioCodec::Channel_Stereo;
+  const QUrl url(request.path());
 
-  if (joinExistingStream(socket, streamRequest))
+  QString camera;
+  const QStringList file = url.path().mid(url.path().lastIndexOf('/') + 1).split('.');
+  if (file.count() >= 2)
+    camera = QString::fromUtf8(QByteArray::fromHex(file.first().toAscii()));
+
+  // Create a new stream
+  CameraStream *stream = new CameraStream(this, socket->peerAddress(), request.path(), camera);
+  stream->setup(false);
+  if (stream->start())
     return true; // The graph owns the socket now.
 
-  SDebug::WriteLocker l(&lock, __FILE__, __LINE__);
-
-  const unsigned streamId = registerStreamId();
-  if (streamId == 0)
-  {
-    socket->write(QHttpResponseHeader(503).toString().toUtf8());
-    return false;
-  }
-
-  const bool ownClient = request.value("User-Agent").contains("LXiStream");
-  const QUrl url = request.path();
-  const bool fastTranscode = url.queryItemValue("transcode") != "slow";
-  const QString fileName = QDir(url.path()).dirName();
-
-  Stream * const stream = new Stream();
-  stream->request = streamRequest;
-  stream->startPos = 0;
-  stream->contentType = HttpServer::toMimeType(fileName);
-  stream->startTime = QDateTime::currentDateTime();
-
-  stream->graph = new SGraph(SGraph::MediaTask_Playback);
-  stream->httpTerminal = stream->graph->createTerminal<STerminals::HttpStream>("http:///" + fileName, false);
-
-  if (stream->httpTerminal)
-  {
-    stream->httpNode = stream->graph->openStream(stream->httpTerminal, stream->httpTerminal->outputStream(0));
-
-    QHttpResponseHeader header(200);
-    header.setContentType(stream->contentType);
-    header.setValue("Cache-Control", "no-cache");
-    header.setValue("X-Identifier", QString::number(streamId));
-    stream->httpNode->setProperty("httpHeader", header.toString().toUtf8());
-
-    if (!ownClient)
-    {
-      stream->httpNode->setProperty("enablePrivateData", false);
-      buildIntro(stream);
-    }
-    else
-      stream->httpNode->setProperty("enablePrivateData", true);
-
-    stream->httpNode->invokeMethod("addSocket", Q_ARG(QAbstractSocket *, socket));
-
-    stream->inputTerminal = cameras[camera]->terminal;
-    stream->inputNode = stream->graph->openStream(stream->inputTerminal, stream->inputTerminal->inputStream(0));
-
-    if (!ownClient)
-      buildTranscodeGraph(stream, fastTranscode);
-    else
-      stream->graph->connectNodes(stream->inputNode, stream->httpNode);
-
-    if (stream->graph->prepare())
-    {
-      stream->graph->start();
-
-      addStream(stream, streamId);
-
-      qDebug() << "Started video stream for camera " << camera;
-      return true; // The graph owns the socket now.
-    }
-
-    qWarning() << "Failed to start video stream for camera" << camera;
-
-    delete stream->graph; // Will also delete any objects created by the graph.
-    delete stream;
-    return true; // The graph owns the socket now.
-  }
+  delete stream;
 
   socket->write(QHttpResponseHeader(404).toString().toUtf8());
+
+  qWarning() << "Failed to start stream" << request.path();
   return false;
+}
+
+bool CameraServer::buildPlaylist(const QHttpRequestHeader &request, QAbstractSocket *socket)
+{
+  const QUrl url(request.path());
+  const QStringList file = url.path().mid(url.path().lastIndexOf('/') + 1).split('.');
+
+  HtmlParser htmlParser;
+  htmlParser.setField("ITEMS", QByteArray(""));
+
+  const QString server = "http://" + request.value("Host") + httpPath();
+
+  if (file.count() >= 2)
+  {
+    htmlParser.setField("ITEM_LENGTH", QByteArray(""));
+    htmlParser.setField("ITEM_NAME", file.first());
+
+    htmlParser.setField("ITEM_URL", server.toAscii() + file.first() + ".mpeg");
+    htmlParser.appendField("ITEMS", htmlParser.parse(m3uPlaylistItem));
+  }
+
+  QHttpResponseHeader response(200);
+  response.setContentType("audio/x-mpegurl");
+  response.setValue("Cache-Control", "no-cache");
+  socket->write(response.toString().toUtf8());
+  socket->write(htmlParser.parse(m3uPlaylist));
+
+  return false;
+}
+
+
+CameraServer::CameraStream::CameraStream(CameraServer *parent, const QHostAddress &peer, const QString &url, const QString &camera)
+  : Stream(parent, peer, url),
+    input(this, camera)
+{
+  connect(&input, SIGNAL(output(SAudioBuffer)), &sync, SLOT(input(SAudioBuffer)));
+  connect(&input, SIGNAL(output(SVideoBuffer)), &subtitleRenderer, SLOT(input(SVideoBuffer)));
 }
 
 } // End of namespace

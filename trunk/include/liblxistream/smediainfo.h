@@ -29,9 +29,10 @@ namespace LXiStream {
 class SMediaInfo : public SSerializable
 {
 public:
-  typedef SInterfaces::FormatProber::AudioStreamInfo AudioStreamInfo;
-  typedef SInterfaces::FormatProber::VideoStreamInfo VideoStreamInfo;
-  typedef SInterfaces::FormatProber::DataStreamInfo  DataStreamInfo;
+  typedef SInterfaces::FormatProber::AudioStreamInfo  AudioStreamInfo;
+  typedef SInterfaces::FormatProber::VideoStreamInfo  VideoStreamInfo;
+  typedef SInterfaces::FormatProber::DataStreamInfo   DataStreamInfo;
+  typedef SInterfaces::FormatProber::Chapter          Chapter;
 
   /*  class FingerPrint : public SSerializable
   {
@@ -90,6 +91,7 @@ public:
   inline const QList<VideoStreamInfo> & videoStreams(void) const                { probe(); return d.pi.videoStreams; } //!< The video streams, if applicable.
   inline const QList<DataStreamInfo> & dataStreams(void) const                  { probeDataStreams(); return d.pi.dataStreams; } //!< The data streams, if applicable.
   inline const SVideoCodec    & imageCodec(void) const                          { probe(); return d.pi.imageCodec; } //!< The image codec, if applicable.
+  inline const QList<Chapter> & chapters(void) const                            { probe(); return d.pi.chapters; } //!< A list of chapters, if applicable.
 
   inline const QString        & title(void) const                               { probe(); return d.pi.title; } //!< The title (e.g. from ID3).
   inline const QString        & author(void) const                              { probe(); return d.pi.author; } //!< The author (e.g. from ID3).
