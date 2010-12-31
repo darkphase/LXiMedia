@@ -58,6 +58,7 @@ V4l2Input::V4l2Input(const QString &device, QObject *parent)
     devDesc(-1),
     mutex(QMutex::Recursive),
     outFormat(SVideoFormat::Format_Invalid, SSize(1280, 1024), SInterval::fromFrequency(25)),
+    numOutBuffers(defaultOutBuffers),
     agc(true),
     agcCounter(0),
     agcMin(-1.0f), agcMax(-1.0f), agcMaxc(-1.0f),
@@ -194,6 +195,16 @@ SVideoFormat V4l2Input::format(void)
   return outFormat;
 }
 
+void V4l2Input::setMaxBuffers(int b)
+{
+  numOutBuffers = b > 0 ? b : defaultOutBuffers;
+}
+
+int V4l2Input::maxBuffers(void) const
+{
+  return numOutBuffers;
+}
+
 bool V4l2Input::start(void)
 {
   // Build a list of codecs to test
@@ -239,7 +250,7 @@ bool V4l2Input::start(void)
       bufferSize = outFormat.sampleSize() * testSize.width() * testSize.height();
 
       // Request new buffers
-      bufferRequest.count = 32;
+      bufferRequest.count = numOutBuffers;
       bufferRequest.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
       bufferRequest.memory = V4L2_MEMORY_MMAP;
 

@@ -483,6 +483,8 @@ protected:
 public:
   virtual void                  setFormat(const SVideoFormat &) = 0;
   virtual SVideoFormat          format(void) = 0;
+  virtual void                  setMaxBuffers(int) = 0;
+  virtual int                   maxBuffers(void) const = 0;
 
   virtual bool                  start(void) = 0;
   virtual void                  stop(void) = 0;

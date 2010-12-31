@@ -127,7 +127,7 @@ void LXiStream_SVideoDemosaicNode_demosaic_RGGB8
 } __attribute__((nonnull(1, 5)));
 
 void LXiStream_SVideoDemosaicNode_demosaic_postfilter
- (uint8_t * srcData, unsigned srcWidth, unsigned srcStride, unsigned srcNumLines)
+ (uint8_t * restrict srcData, unsigned srcWidth, unsigned srcStride, unsigned srcNumLines)
 {
   uint8_t backupLineData[srcStride * 2];
   uint8_t * const backupLine[2] = { backupLineData, backupLineData + srcStride };
@@ -136,14 +136,14 @@ void LXiStream_SVideoDemosaicNode_demosaic_postfilter
   if ((srcNumLines > 1) && (srcWidth > 1))
   for (unsigned y=1; y<srcNumLines-1; y++)
   {
-    struct RGBAPixel * const bakLine = backupLine[y % 2];
-    struct RGBAPixel * const inLine = srcData + (srcStride * y);
+    struct RGBAPixel * const restrict bakLine = backupLine[y % 2];
+    struct RGBAPixel * const restrict inLine = srcData + (srcStride * y);
     memcpy(bakLine, inLine, srcStride);
 
-    const struct RGBAPixel * const srcLine1 = backupLine[(y - 1) % 2];
-    const struct RGBAPixel * const srcLine2 = bakLine;
-    const struct RGBAPixel * const srcLine3 = ((uint8_t *)inLine) + srcStride;
-    struct RGBAPixel * const dstLine = inLine;
+    const struct RGBAPixel * const restrict srcLine1 = backupLine[(y - 1) % 2];
+    const struct RGBAPixel * const restrict srcLine2 = bakLine;
+    const struct RGBAPixel * const restrict srcLine3 = ((uint8_t *)inLine) + srcStride;
+    struct RGBAPixel * const restrict dstLine = inLine;
 
     for (unsigned x=1; x<srcWidth-1; x++)
     {

@@ -28,6 +28,7 @@ namespace LXiStream {
 struct SVideoInputNode::Data
 {
   QString                       device;
+  int                           maxBuffers;
   SInterfaces::VideoInput     * input;
 };
 
@@ -37,6 +38,7 @@ SVideoInputNode::SVideoInputNode(SGraph *parent, const QString &device)
     d(new Data())
 {
   d->device = device;
+  d->maxBuffers = 0;
   d->input = NULL;
 }
 
@@ -52,6 +54,16 @@ QStringList SVideoInputNode::devices(void)
   return SInterfaces::VideoInput::available();
 }
 
+void SVideoInputNode::setMaxBuffers(int maxBuffers)
+{
+  d->maxBuffers = maxBuffers;
+}
+
+int SVideoInputNode::maxBuffers(void) const
+{
+  return d->maxBuffers;
+}
+
 bool SVideoInputNode::start(void)
 {
   SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
@@ -60,10 +72,14 @@ bool SVideoInputNode::start(void)
   d->input = SInterfaces::VideoInput::create(this, d->device);
 
   if (d->input)
-  if (d->input->start())
   {
-    connect(d->input, SIGNAL(produce(const SVideoBuffer &)), SIGNAL(output(const SVideoBuffer &)));
-    return true;
+    d->input->setMaxBuffers(d->maxBuffers);
+
+    if (d->input->start())
+    {
+      connect(d->input, SIGNAL(produce(const SVideoBuffer &)), SIGNAL(output(const SVideoBuffer &)));
+      return true;
+    }
   }
 
   delete d->input;

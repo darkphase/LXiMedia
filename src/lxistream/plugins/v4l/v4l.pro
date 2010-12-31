@@ -9,7 +9,6 @@ HEADERS += videodev.h \
  videodev2.h
 
 HEADERS += module.h \
- v4l1input.h \
 # v4l2device.h \
  v4l2input.h \
 # v4l2tuner.h \
@@ -17,7 +16,6 @@ HEADERS += module.h \
 # vbiinput.h
 
 SOURCES += module.cpp \
- v4l1input.cpp \
 # v4l2device.cpp \
  v4l2input.cpp \
 # v4l2tuner.cpp \
