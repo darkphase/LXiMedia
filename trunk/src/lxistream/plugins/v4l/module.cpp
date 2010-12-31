@@ -18,7 +18,6 @@
  ***************************************************************************/
 
 #include "module.h"
-#include "v4l1input.h"
 #include "v4l2input.h"
 
 namespace LXiStream {
@@ -29,9 +28,6 @@ void Module::registerClasses(void)
 {
   if ((SSystem::initializeFlags() & SSystem::Initialize_Devices) == SSystem::Initialize_Devices)
   {
-    foreach (const SFactory::Scheme &scheme, V4l1Input::listDevices())
-      V4l1Input::registerClass<V4l1Input>(scheme);
-
     foreach (const SFactory::Scheme &scheme, V4l2Input::listDevices())
       V4l2Input::registerClass<V4l2Input>(scheme);
   }

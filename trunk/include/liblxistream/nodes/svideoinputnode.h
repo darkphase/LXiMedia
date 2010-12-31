@@ -32,11 +32,15 @@ class SVideoInputNode : public QObject,
                         public SInterfaces::SourceNode
 {
 Q_OBJECT
+Q_PROPERTY(int maxBuffers READ maxBuffers WRITE setMaxBuffers)
 public:
   explicit                      SVideoInputNode(SGraph *, const QString &device = QString::null);
   virtual                       ~SVideoInputNode();
 
   static QStringList            devices(void);
+
+  void                          setMaxBuffers(int);
+  int                           maxBuffers(void) const;
 
   virtual bool                  start(void);
   virtual void                  stop(void);

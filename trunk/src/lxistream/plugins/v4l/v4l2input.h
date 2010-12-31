@@ -61,6 +61,8 @@ public:
 public: // From SInterfaces::VideoInput
   virtual void                  setFormat(const SVideoFormat &);
   virtual SVideoFormat          format(void);
+  virtual void                  setMaxBuffers(int);
+  virtual int                   maxBuffers(void) const;
 
   virtual bool                  start(void);
   virtual void                  stop(void);
@@ -93,6 +95,8 @@ private:
   mutable QMutex                mutex;
   STimer                        timer;
   SVideoFormat                  outFormat;
+  static const int              defaultOutBuffers = 32;
+  int                           numOutBuffers;
 
   bool                          agc;
   unsigned                      agcCounter;

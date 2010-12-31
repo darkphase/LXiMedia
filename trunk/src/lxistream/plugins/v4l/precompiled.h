@@ -21,7 +21,6 @@ typedef qint16    __s16;
 typedef quint16   __u16;
 typedef qint8     __s8;
 typedef quint8    __u8;
-#include "videodev.h"
 #include "videodev2.h"
 
 #endif
