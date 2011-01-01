@@ -29,6 +29,12 @@ namespace SPixels {
   
 struct RGBAPixel { uint8_t b,  g, r,  a; } __attribute__((packed));
   
+static const struct RGBAPixel RGBAPixel_Black     = { 0x00, 0x00, 0x00, 0xFF };
+static const struct RGBAPixel RGBAPixel_White     = { 0xFF, 0xFF, 0xFF, 0xFF };
+static const struct RGBAPixel RGBAPixel_Red       = { 0x00, 0x00, 0xFF, 0xFF };
+static const struct RGBAPixel RGBAPixel_Green     = { 0x00, 0xFF, 0x00, 0xFF };
+static const struct RGBAPixel RGBAPixel_Blue      = { 0xFF, 0x00, 0x00, 0xFF };
+
 struct YUYVPixel { uint8_t y0, u, y1, v; } __attribute__((packed));
 struct UYVYPixel { uint8_t u, y0, v, y1; } __attribute__((packed));
 

@@ -5,7 +5,7 @@ OBJECTS_DIR = $${LXIMEDIA_DIR}/obj/$${TARGET}
 MOC_DIR = $${OBJECTS_DIR}
 RCC_DIR = $${OBJECTS_DIR}
 INCLUDEPATH += $${LXIMEDIA_DIR}/include/
-DEPENDPATH += $${LXIMEDIA_DIR}/include/
+DEPENDPATH += ./ $${LXIMEDIA_DIR}/include/
 
 # Precompiled header
 exists($$_PRO_FILE_PWD_/precompiled.h) {

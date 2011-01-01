@@ -313,8 +313,11 @@ bool V4l2Input::start(void)
 
 void V4l2Input::stop(void)
 {
-  ::ioctl(devDesc, VIDIOC_STREAMOFF, &bufferRequest.type);
-  streamOn = false;
+  if (streamOn)
+  {
+    ::ioctl(devDesc, VIDIOC_STREAMOFF, &bufferRequest.type);
+    streamOn = false;
+  }
 
   ::v4l2_control control;
   control.id = V4L2_CID_AUDIO_MUTE;

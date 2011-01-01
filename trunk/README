@@ -60,4 +60,4 @@ For the Win32 platform installing the QtSDK and MSys is sufficient, precompiled
 binaries of the dependencies are included in the source package.
 
 When these dependencies are met, extract the source tree somewhere and run
-'qmake' and 'make'
+'qmake -recursive -config release && make'
