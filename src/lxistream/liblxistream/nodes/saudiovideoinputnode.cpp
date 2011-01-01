@@ -29,6 +29,8 @@ namespace LXiStream {
 struct SAudioVideoInputNode::Data
 {
   QString                       device;
+  SVideoFormat                  format;
+  int                           maxBuffers;
   SInterfaces::AudioInput     * audioInput;
   SInterfaces::VideoInput     * videoInput;
 
@@ -42,6 +44,7 @@ SAudioVideoInputNode::SAudioVideoInputNode(SGraph *parent, const QString &device
     d(new Data())
 {
   d->device = device;
+  d->maxBuffers = 0;
   d->audioInput = NULL;
   d->videoInput = NULL;
 }
@@ -57,6 +60,16 @@ SAudioVideoInputNode::~SAudioVideoInputNode()
 QStringList SAudioVideoInputNode::devices(void)
 {
   return SInterfaces::VideoInput::available();
+}
+
+void SAudioVideoInputNode::setFormat(const SVideoFormat &format)
+{
+  d->format = format;
+}
+
+void SAudioVideoInputNode::setMaxBuffers(int maxBuffers)
+{
+  d->maxBuffers = maxBuffers;
 }
 
 bool SAudioVideoInputNode::start(void)
@@ -105,6 +118,12 @@ bool SAudioVideoInputNode::start(void)
         }
       }
     }
+
+    if (!d->format.isNull())
+      d->videoInput->setFormat(d->format);
+
+    if (d->maxBuffers > 0)
+      d->videoInput->setMaxBuffers(d->maxBuffers);
 
     if (d->videoInput->start())
     {

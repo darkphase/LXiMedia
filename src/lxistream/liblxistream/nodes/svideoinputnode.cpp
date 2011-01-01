@@ -28,6 +28,7 @@ namespace LXiStream {
 struct SVideoInputNode::Data
 {
   QString                       device;
+  SVideoFormat                  format;
   int                           maxBuffers;
   SInterfaces::VideoInput     * input;
 };
@@ -54,14 +55,14 @@ QStringList SVideoInputNode::devices(void)
   return SInterfaces::VideoInput::available();
 }
 
+void SVideoInputNode::setFormat(const SVideoFormat &format)
+{
+  d->format = format;
+}
+
 void SVideoInputNode::setMaxBuffers(int maxBuffers)
 {
   d->maxBuffers = maxBuffers;
-}
-
-int SVideoInputNode::maxBuffers(void) const
-{
-  return d->maxBuffers;
 }
 
 bool SVideoInputNode::start(void)
@@ -73,7 +74,11 @@ bool SVideoInputNode::start(void)
 
   if (d->input)
   {
-    d->input->setMaxBuffers(d->maxBuffers);
+    if (!d->format.isNull())
+      d->input->setFormat(d->format);
+
+    if (d->maxBuffers > 0)
+      d->input->setMaxBuffers(d->maxBuffers);
 
     if (d->input->start())
     {

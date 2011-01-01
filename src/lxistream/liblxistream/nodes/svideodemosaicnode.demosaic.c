@@ -36,14 +36,12 @@ void LXiStream_SVideoDemosaicNode_demosaic_GRBG8
 
     for (unsigned x=0; x<srcWidth-1; x+=2)
     {
-      dstLine1[x+0].r = dstLine1[x+1].r =
-      dstLine2[x+0].r = dstLine2[x+1].r = srcLine1[x+1];
-
-      dstLine1[x+0].g = dstLine1[x+1].g = srcLine1[x+0];
-      dstLine2[x+0].g = dstLine2[x+1].g = srcLine2[x+1];
-
-      dstLine1[x+0].b = dstLine1[x+1].b =
-      dstLine2[x+0].b = dstLine2[x+1].b = srcLine2[x+0];
+      dstLine1[x+0].r = dstLine2[x+1].r = srcLine1[x+1];
+      dstLine1[x+0].g = srcLine1[x+0];
+      dstLine2[x+1].g = srcLine2[x+1];
+      dstLine1[x+0].b = dstLine2[x+1].b = srcLine2[x+0];
+      dstLine1[x+0].a = dstLine2[x+1].a = 0xFF;
+      dstLine1[x+1].a = dstLine2[x+0].a = 0x00;
     }
   }
 } __attribute__((nonnull(1, 5)));
@@ -62,14 +60,12 @@ void LXiStream_SVideoDemosaicNode_demosaic_GBRG8
 
     for (unsigned x=0; x<srcWidth-1; x+=2)
     {
-      dstLine1[x+0].r = dstLine1[x+1].r =
-      dstLine2[x+0].r = dstLine2[x+1].r = srcLine2[x+0];
-
-      dstLine1[x+0].g = dstLine1[x+1].g = srcLine1[x+0];
-      dstLine2[x+0].g = dstLine2[x+1].g = srcLine2[x+1];
-
-      dstLine1[x+0].b = dstLine1[x+1].b =
-      dstLine2[x+0].b = dstLine2[x+1].b = srcLine1[x+1];
+      dstLine1[x+0].r = dstLine2[x+1].r = srcLine2[x+0];
+      dstLine1[x+0].g = srcLine1[x+0];
+      dstLine2[x+1].g = srcLine2[x+1];
+      dstLine1[x+0].b = dstLine2[x+1].b = srcLine1[x+1];
+      dstLine1[x+0].a = dstLine2[x+1].a = 0xFF;
+      dstLine1[x+1].a = dstLine2[x+0].a = 0x00;
     }
   }
 } __attribute__((nonnull(1, 5)));
@@ -88,14 +84,12 @@ void LXiStream_SVideoDemosaicNode_demosaic_BGGR8
 
     for (unsigned x=0; x<srcWidth-1; x+=2)
     {
-      dstLine1[x+0].b = dstLine1[x+1].b =
-      dstLine2[x+0].b = dstLine2[x+1].b = srcLine1[x+0];
-
-      dstLine1[x+0].g = dstLine1[x+1].g = srcLine1[x+1];
-      dstLine2[x+0].g = dstLine2[x+1].g = srcLine2[x+0];
-
-      dstLine1[x+0].r = dstLine1[x+1].r =
-      dstLine2[x+0].r = dstLine2[x+1].r = srcLine2[x+1];
+      dstLine1[x+0].r = dstLine2[x+1].r = srcLine2[x+1];
+      dstLine1[x+0].g = srcLine1[x+1];
+      dstLine2[x+1].g = srcLine2[x+0];
+      dstLine1[x+0].b = dstLine2[x+1].b = srcLine1[x+0];
+      dstLine1[x+0].a = dstLine2[x+1].a = 0xFF;
+      dstLine1[x+1].a = dstLine2[x+0].a = 0x00;
     }
   }
 } __attribute__((nonnull(1, 5)));
@@ -114,52 +108,89 @@ void LXiStream_SVideoDemosaicNode_demosaic_RGGB8
 
     for (unsigned x=0; x<srcWidth-1; x+=2)
     {
-      dstLine1[x+0].r = dstLine1[x+1].r =
-      dstLine2[x+0].r = dstLine2[x+1].r = srcLine1[x+0];
-
-      dstLine1[x+0].g = dstLine1[x+1].g = srcLine1[x+1];
-      dstLine2[x+0].g = dstLine2[x+1].g = srcLine2[x+0];
-
-      dstLine1[x+0].b = dstLine1[x+1].b =
-      dstLine2[x+0].b = dstLine2[x+1].b = srcLine2[x+1];
+      dstLine1[x+0].r = dstLine2[x+1].r = srcLine1[x+0];
+      dstLine1[x+0].g = srcLine1[x+1];
+      dstLine2[x+1].g = srcLine2[x+0];
+      dstLine1[x+0].b = dstLine2[x+1].b = srcLine2[x+1];
+      dstLine1[x+0].a = dstLine2[x+1].a = 0xFF;
+      dstLine1[x+1].a = dstLine2[x+0].a = 0x00;
     }
   }
 } __attribute__((nonnull(1, 5)));
 
-void LXiStream_SVideoDemosaicNode_demosaic_postfilter
- (uint8_t * restrict srcData, unsigned srcWidth, unsigned srcStride, unsigned srcNumLines)
+inline int8_t babs(int8_t val)
 {
-  uint8_t backupLineData[srcStride * 2];
-  uint8_t * const backupLine[2] = { backupLineData, backupLineData + srcStride };
-  memcpy(backupLine[0], srcData, srcStride);
+  return val >= 0 ? val : -val;
+}
 
-  if ((srcNumLines > 1) && (srcWidth > 1))
-  for (unsigned y=1; y<srcNumLines-1; y++)
+void LXiStream_SVideoDemosaicNode_demosaic_postfilter
+ (uint8_t * restrict data, unsigned width, unsigned stride, unsigned numLines)
+{
+  const int yo = ((const struct RGBAPixel *)data)->a == 0 ? 1 : 0;
+
+  if ((numLines > 1) && (width > 1))
   {
-    struct RGBAPixel * const restrict bakLine = backupLine[y % 2];
-    struct RGBAPixel * const restrict inLine = srcData + (srcStride * y);
-    memcpy(bakLine, inLine, srcStride);
-
-    const struct RGBAPixel * const restrict srcLine1 = backupLine[(y - 1) % 2];
-    const struct RGBAPixel * const restrict srcLine2 = bakLine;
-    const struct RGBAPixel * const restrict srcLine3 = ((uint8_t *)inLine) + srcStride;
-    struct RGBAPixel * const restrict dstLine = inLine;
-
-    for (unsigned x=1; x<srcWidth-1; x++)
+    for (unsigned y=1; y<numLines-1; y++)
     {
-      dstLine[x].r =
-          (srcLine2[x-1].r >> 2) + (srcLine2[x+1].r >> 2) +
-          (srcLine1[x+0].r >> 2) + (srcLine3[x+0].r >> 2);
+      struct RGBAPixel * const restrict line2 = data + (stride * y);
+      struct RGBAPixel * const restrict line1 = ((uint8_t *)line2) - stride;
+      struct RGBAPixel * const restrict line3 = ((uint8_t *)line2) + stride;
 
-      dstLine[x].g =
-          (srcLine2[x-1].g >> 2) + (srcLine2[x+1].g >> 2) +
-          (srcLine1[x+0].g >> 2) + (srcLine3[x+0].g >> 2);
+      for (unsigned x=1+((y+yo)%2); x<width-1; x+=2)
+      {
+        const int8_t gw = line2[x-1].g >> 1;
+        const int8_t ge = line2[x+1].g >> 1;
+        const int8_t gn = line1[x+0].g >> 1;
+        const int8_t gs = line3[x+0].g >> 1;
 
-      dstLine[x].b =
-          (srcLine2[x-2].b >> 2) + (srcLine2[x+2].b >> 2) +
-          (srcLine1[x+0].b >> 2) + (srcLine3[x+0].b >> 2);
+        if (babs(gw - ge) < babs(gn - gs))
+        {
+          line2[x].r = (line2[x-1].r >> 1) + (line2[x+1].r >> 1);
+          line2[x].g = gw + ge;
+          line2[x].b = (line2[x-1].b >> 1) + (line2[x+1].b >> 1);
+        }
+        else
+        {
+          line2[x].r = (line1[x+0].r >> 1) + (line3[x+0].r >> 1);
+          line2[x].g = gn + gs;
+          line2[x].b = (line1[x+0].b >> 1) + (line3[x+0].b >> 1);
+        }
 
-      dstLine[x].a = 0xFF;
+        line2[x].a = 0xFF;
+      }
+
+      // Side pixels
+      const int n = (((y+yo)%2) == 0) ? (width - 1) : 0;
+      line2[n].r = (line1[n].r >> 1) + (line3[n].r >> 1);
+      line2[n].g = (line1[n].g >> 1) + (line3[n].g >> 1);
+      line2[n].b = (line1[n].b >> 1) + (line3[n].b >> 1);
+      line2[n].a = 0xFF;
     }
+
+    // Top line
+    struct RGBAPixel * const restrict topLine = data;
+    for (unsigned x=1+(yo%2); x<width-1; x+=2)
+    {
+      topLine[x].r = (topLine[x-1].r >> 1) + (topLine[x+1].r >> 1);
+      topLine[x].g = (topLine[x-1].g >> 1) + (topLine[x+1].g >> 1);
+      topLine[x].b = (topLine[x-1].b >> 1) + (topLine[x+1].b >> 1);
+      topLine[x].a = 0xFF;
+    }
+
+    topLine[0]       = topLine[1];
+    topLine[width-1] = topLine[width-2];
+
+    // Bottom line
+    struct RGBAPixel * const restrict botLine = data + (stride * (numLines-1));
+    for (unsigned x=1+(((numLines-1)+yo)%2); x<width-1; x+=2)
+    {
+      botLine[x].r = (botLine[x-1].r >> 1) + (botLine[x+1].r >> 1);
+      botLine[x].g = (botLine[x-1].g >> 1) + (botLine[x+1].g >> 1);
+      botLine[x].b = (botLine[x-1].b >> 1) + (botLine[x+1].b >> 1);
+      botLine[x].a = 0xFF;
+    }
+
+    botLine[0]       = botLine[1];
+    botLine[width-1] = botLine[width-2];
   }
 } __attribute__((nonnull(1)));
