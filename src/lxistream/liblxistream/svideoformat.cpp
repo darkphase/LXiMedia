@@ -18,6 +18,7 @@
  ***************************************************************************/
 
 #include "svideoformat.h"
+#include "spixels.h"
 
 namespace LXiStream {
 
@@ -175,24 +176,21 @@ quint32 SVideoFormat::nullPixelValue(Format format)
 {
   switch (format)
   {
-  case Format_RGB555:
-  case Format_BGR555:
-  case Format_RGB565:
-  case Format_BGR565:
-  case Format_RGB24:
-  case Format_BGR24:
-  case Format_RGB32:
-  case Format_BGR32:
-  case Format_GRAY8:
-  case Format_GRAY16BE:
-  case Format_GRAY16LE:
-    return 0;
+  case Format_RGB32:        return SPixels::RGBAPixel_Black;
+  case Format_BGR32:        return SPixels::BGRAPixel_Black;
+  case Format_RGB24:        return SPixels::RGBPixel_Black;
+  case Format_BGR24:        return SPixels::BGRPixel_Black;
+  case Format_RGB555:       return (quint32(SPixels::RGB555Pixel_Black) << 16) | quint32(SPixels::RGB555Pixel_Black);
+  case Format_BGR555:       return (quint32(SPixels::BGR555Pixel_Black) << 16) | quint32(SPixels::BGR555Pixel_Black);
+  case Format_RGB565:       return (quint32(SPixels::RGB565Pixel_Black) << 16) | quint32(SPixels::RGB565Pixel_Black);
+  case Format_BGR565:       return (quint32(SPixels::BGR565Pixel_Black) << 16) | quint32(SPixels::BGR565Pixel_Black);
 
-  case Format_YUYV422:
-    return 0x7F007F00;
+  case Format_GRAY8:        return 0;
+  case Format_GRAY16BE:     return 0;
+  case Format_GRAY16LE:     return 0;
 
-  case Format_UYVY422:
-    return 0x007F007F;
+  case Format_YUYV422:      return SPixels::YUYVPixel_Black;
+  case Format_UYVY422:      return SPixels::UYVYPixel_Black;
 
   case Format_BGGR8:
   case Format_GBRG8:
@@ -206,8 +204,6 @@ quint32 SVideoFormat::nullPixelValue(Format format)
   case Format_GBRG16:
   case Format_GRBG16:
   case Format_RGGB16:
-    return 0;
-
   default:
     return 0;
   }

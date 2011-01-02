@@ -340,7 +340,7 @@ void CoreTest::VideoFormat(void)
   QCOMPARE(SVideoFormat::numPlanes(SVideoFormat::Format_RGB32), 1);
   QCOMPARE(SVideoFormat::numPlanes(SVideoFormat::Format_YUYV422), 1);
   QCOMPARE(SVideoFormat::numPlanes(SVideoFormat::Format_YUV420P), 3);
-  QCOMPARE(SVideoFormat::nullPixelValue(SVideoFormat::Format_RGB32), quint32(0));
+  QCOMPARE(SVideoFormat::nullPixelValue(SVideoFormat::Format_RGB32), quint32(0xFF000000));
 }
 
 /*! Tests the SVideoCodec class
