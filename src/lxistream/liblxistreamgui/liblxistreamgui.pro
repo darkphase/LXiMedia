@@ -19,7 +19,6 @@ HEADERS += $${LXIMEDIA_DIR}/include/LXiStreamGui \
     $${LXIMEDIA_DIR}/include/liblxistreamgui/svumeter.h
 SOURCES += sdisplay.cpp \
     simage.cpp \
-    simage.convert.c \
     svumeter.cpp
 
 # Platform specific

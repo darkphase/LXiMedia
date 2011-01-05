@@ -23,12 +23,9 @@
 #ifdef __SSE__
   #include <xmmintrin.h>
 #endif
+#include "spixels.h"
 
-struct YUYVPixel { uint8_t y0, u, y1, v; } __attribute__((packed));
-struct UYVYPixel { uint8_t u, y0, v, y1; } __attribute__((packed));
-
-
-unsigned LXiStream_VideoEncoder_convertYUYVtoYUV422P
+unsigned LXiStream_SVideoFormatConvertNode_convertYUYVtoYUV422P
  (const struct YUYVPixel * restrict packed, unsigned numLines, size_t lineStride, uint8_t * restrict y, uint8_t * restrict u, uint8_t * restrict v)
 {
   // Check alignment
@@ -81,7 +78,7 @@ unsigned LXiStream_VideoEncoder_convertYUYVtoYUV422P
 }
 
 
-unsigned LXiStream_VideoEncoder_convertUYVYtoYUV422P
+unsigned LXiStream_SVideoFormatConvertNode_convertUYVYtoYUV422P
  (const struct UYVYPixel * restrict packed, unsigned numLines, size_t lineStride, uint8_t * restrict y, uint8_t * restrict u, uint8_t * restrict v)
 {
   // Check alignment
@@ -134,7 +131,7 @@ unsigned LXiStream_VideoEncoder_convertUYVYtoYUV422P
 }
 
 
-unsigned LXiStream_VideoEncoder_convertYUYVtoYUV420P
+unsigned LXiStream_SVideoFormatConvertNode_convertYUYVtoYUV420P
  (const struct YUYVPixel * restrict packed, unsigned numLines, size_t lineStride, uint8_t * restrict y, uint8_t * restrict u, uint8_t * restrict v)
 {
   // Check alignment
@@ -236,7 +233,7 @@ unsigned LXiStream_VideoEncoder_convertYUYVtoYUV420P
 }
 
 
-unsigned LXiStream_VideoEncoder_convertUYVYtoYUV420P
+unsigned LXiStream_SVideoFormatConvertNode_convertUYVYtoYUV420P
  (const struct UYVYPixel * restrict packed, unsigned numLines, size_t lineStride, uint8_t * restrict y, uint8_t * restrict u, uint8_t * restrict v)
 {
   // Check alignment

@@ -32,6 +32,5 @@ SOURCES += audiodecoder.cpp \
     videodecoder.cpp \
     videoencoder.cpp \
     videoresizer.cpp \
-    videoencoder.convert.c \
     bufferwriter.cpp \
     bufferreader.cpp

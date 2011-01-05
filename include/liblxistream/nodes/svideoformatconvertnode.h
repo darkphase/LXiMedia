@@ -17,8 +17,8 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXISTREAM_SVIDEODEMOSAICNODE_H
-#define LXISTREAM_SVIDEODEMOSAICNODE_H
+#ifndef LXISTREAM_SVIDEOFORMATCONVERTNODE_H
+#define LXISTREAM_SVIDEOFORMATCONVERTNODE_H
 
 #include <QtCore>
 #include "../sinterfaces.h"
@@ -28,15 +28,22 @@ namespace LXiStream {
 class SVideoBuffer;
 
 
-class SVideoDemosaicNode : public QObject,
-                           public SInterfaces::Node
+class SVideoFormatConvertNode : public QObject,
+                                public SInterfaces::Node
 {
 Q_OBJECT
 public:
-  explicit                      SVideoDemosaicNode(SGraph *);
-  virtual                       ~SVideoDemosaicNode();
+  explicit                      SVideoFormatConvertNode(SGraph *);
+  virtual                       ~SVideoFormatConvertNode();
 
+  void                          setFormat(SVideoFormat::Format);
+  SVideoFormat::Format          format(void) const;
+
+  static SVideoBuffer           convertYUVtoRGB(const SVideoBuffer &);
+  static SVideoBuffer           convertBGRtoRGB(const SVideoBuffer &);
   static SVideoBuffer           demosaic(const SVideoBuffer &);
+  static SVideoBuffer           unpackYUVtoYUV420P(const SVideoBuffer &);
+  static SVideoBuffer           unpackYUVtoYUV422P(const SVideoBuffer &);
 
 public slots:
   void                          input(const SVideoBuffer &);

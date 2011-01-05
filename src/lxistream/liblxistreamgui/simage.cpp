@@ -22,14 +22,7 @@
 #include <libexif/exif-utils.h>
 #include <libexif/exif-ifd.h>
 #include <libexif/exif-tag.h>
-#include <liblxistream/nodes/svideodemosaicnode.h>
-
-// Implemented in simage.convert.c
-extern "C" void LXiStreamGui_SImage_convertYUYVtoRGB(void *rgb, const void *yuv, unsigned numPixels);
-extern "C" void LXiStreamGui_SImage_convertUYVYtoRGB(void *rgb, const void *yuv, unsigned numPixels);
-extern "C" void LXiStreamGui_SImage_convertBGRtoRGB(void *rgb, const void *bgr, unsigned numPixels);
-extern "C" void LXiStreamGui_SImage_convertYUV1toRGB(void *rgb, const void *y, const void *u, const void *v, unsigned numPixels);
-extern "C" void LXiStreamGui_SImage_convertYUV2toRGB(void *rgb, const void *y, const void *u, const void *v, unsigned numPixels);
+#include <liblxistream/nodes/svideoformatconvertnode.h>
 
 namespace LXiStreamGui {
 
@@ -38,12 +31,15 @@ using namespace LXiStream;
 SImage::SImage(const SVideoBuffer &inbuffer, bool fast)
   : QImage()
 {
-  SVideoBuffer videoBuffer = inbuffer;
-  if ((videoBuffer.format().format() >= SVideoFormat::Format_BGGR8) &&
-      (videoBuffer.format().format() <= SVideoFormat::Format_RGGB8))
-  {
-    videoBuffer = SVideoDemosaicNode::demosaic(videoBuffer);
-  }
+  SVideoBuffer videoBuffer;
+  if (videoBuffer.format().isYUV())
+    videoBuffer = SVideoFormatConvertNode::convertYUVtoRGB(inbuffer);
+  else if (videoBuffer.format().isBayerArray())
+    videoBuffer = SVideoFormatConvertNode::demosaic(inbuffer);
+  else if (videoBuffer.format() == SVideoFormat::Format_BGR32)
+    videoBuffer = SVideoFormatConvertNode::convertBGRtoRGB(inbuffer);
+  else
+    videoBuffer = inbuffer;
 
   const SSize size = videoBuffer.format().size();
 
@@ -51,13 +47,6 @@ SImage::SImage(const SVideoBuffer &inbuffer, bool fast)
   {
   default:
     return;
-
-  case SVideoFormat::Format_BGR32:
-    *this = QImage(size.size(), QImage::Format_RGB32);
-    for (int y=0; y<size.height(); y++)
-      LXiStreamGui_SImage_convertBGRtoRGB(scanLine(y), videoBuffer.scanLine(y, 0), size.width());
-
-    break;
 
   case SVideoFormat::Format_RGB32:
     *this = QImage(size.size(), QImage::Format_RGB32);
@@ -84,41 +73,6 @@ SImage::SImage(const SVideoBuffer &inbuffer, bool fast)
     *this = QImage(size.size(), QImage::Format_RGB555);
     for (int y=0; y<size.height(); y++)
       memcpy(scanLine(y), videoBuffer.scanLine(y, 0), size.width() * 2);
-
-    break;
-
-  case SVideoFormat::Format_YUYV422:
-    *this = QImage(size.size(), QImage::Format_RGB32);
-    for (int y=0; y<size.height(); y++)
-      LXiStreamGui_SImage_convertYUYVtoRGB(scanLine(y), videoBuffer.scanLine(y, 0), size.width());
-
-    break;
-
-  case SVideoFormat::Format_UYVY422:
-    *this = QImage(size.size(), QImage::Format_RGB32);
-    for (int y=0; y<size.height(); y++)
-      LXiStreamGui_SImage_convertUYVYtoRGB(scanLine(y), videoBuffer.scanLine(y, 0), size.width());
-
-    break;
-
-  case SVideoFormat::Format_YUV420P:
-    *this = QImage(size.size(), QImage::Format_RGB32);
-    for (int y=0; y<size.height(); y++)
-      LXiStreamGui_SImage_convertYUV2toRGB(scanLine(y), videoBuffer.scanLine(y, 0), videoBuffer.scanLine(y >> 1, 1), videoBuffer.scanLine(y >> 1, 2), size.width());
-
-    break;
-
-  case SVideoFormat::Format_YUV422P:
-    *this = QImage(size.size(), QImage::Format_RGB32);
-    for (int y=0; y<size.height(); y++)
-      LXiStreamGui_SImage_convertYUV2toRGB(scanLine(y), videoBuffer.scanLine(y, 0), videoBuffer.scanLine(y, 1), videoBuffer.scanLine(y, 2), size.width());
-
-    break;
-
-  case SVideoFormat::Format_YUV444P:
-    *this = QImage(size.size(), QImage::Format_RGB32);
-    for (int y=0; y<size.height(); y++)
-      LXiStreamGui_SImage_convertYUV1toRGB(scanLine(y), videoBuffer.scanLine(y, 0), videoBuffer.scanLine(y, 1), videoBuffer.scanLine(y, 2), size.width());
 
     break;
   }

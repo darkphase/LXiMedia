@@ -204,10 +204,9 @@ void SVideoView::input(const SVideoBuffer &videoBuffer)
     {
       p->videoBuffers.append(videoBuffer);
     }
-    else if ((videoBuffer.format().format() >= SVideoFormat::Format_BGGR8) &&
-             (videoBuffer.format().format() <= SVideoFormat::Format_RGGB8))
+    else if (videoBuffer.format().isBayerArray())
     {
-      p->videoBuffers.append(SVideoDemosaicNode::demosaic(videoBuffer));
+      p->videoBuffers.append(SVideoFormatConvertNode::demosaic(videoBuffer));
     }
   }
 }
