@@ -20,11 +20,11 @@
 #include "videoencoder.h"
 #include <cmath>
 
-// Implemented in videoencoder.convert.c
-extern "C" void LXiStream_VideoEncoder_convertYUYVtoYUV422P(const void *, unsigned, size_t, quint8 *, quint8 *, quint8 *);
-extern "C" void LXiStream_VideoEncoder_convertUYVYtoYUV422P(const void *, unsigned, size_t, quint8 *, quint8 *, quint8 *);
-extern "C" void LXiStream_VideoEncoder_convertYUYVtoYUV420P(const void *, unsigned, size_t, quint8 *, quint8 *, quint8 *);
-extern "C" void LXiStream_VideoEncoder_convertUYVYtoYUV420P(const void *, unsigned, size_t, quint8 *, quint8 *, quint8 *);
+// Implemented in svideoformatconvertnode.unpack.c
+extern "C" void LXiStream_SVideoFormatConvertNode_convertYUYVtoYUV422P(const void *, unsigned, size_t, quint8 *, quint8 *, quint8 *);
+extern "C" void LXiStream_SVideoFormatConvertNode_convertUYVYtoYUV422P(const void *, unsigned, size_t, quint8 *, quint8 *, quint8 *);
+extern "C" void LXiStream_SVideoFormatConvertNode_convertYUYVtoYUV420P(const void *, unsigned, size_t, quint8 *, quint8 *, quint8 *);
+extern "C" void LXiStream_SVideoFormatConvertNode_convertUYVYtoYUV420P(const void *, unsigned, size_t, quint8 *, quint8 *, quint8 *);
 
 namespace LXiStream {
 namespace FFMpegBackend {
@@ -203,16 +203,16 @@ SEncodedVideoBufferList VideoEncoder::encodeBuffer(const SVideoBuffer &videoBuff
         if ((contextHandle->pix_fmt == PIX_FMT_YUV422P) || (contextHandle->pix_fmt == PIX_FMT_YUVJ422P))
         {
           if (inFormat == SVideoFormat::Format_YUYV422)
-            preprocessFunc = &LXiStream_VideoEncoder_convertYUYVtoYUV422P;
+            preprocessFunc = &LXiStream_SVideoFormatConvertNode_convertYUYVtoYUV422P;
           else if (inFormat == SVideoFormat::Format_UYVY422)
-            preprocessFunc = &LXiStream_VideoEncoder_convertUYVYtoYUV422P;
+            preprocessFunc = &LXiStream_SVideoFormatConvertNode_convertUYVYtoYUV422P;
         }
         else if ((contextHandle->pix_fmt == PIX_FMT_YUV420P) || (contextHandle->pix_fmt == PIX_FMT_YUVJ420P))
         {
           if (inFormat == SVideoFormat::Format_YUYV422)
-            preprocessFunc = &LXiStream_VideoEncoder_convertYUYVtoYUV420P;
+            preprocessFunc = &LXiStream_SVideoFormatConvertNode_convertYUYVtoYUV420P;
           else if (inFormat == SVideoFormat::Format_UYVY422)
-            preprocessFunc = &LXiStream_VideoEncoder_convertUYVYtoYUV420P;
+            preprocessFunc = &LXiStream_SVideoFormatConvertNode_convertUYVYtoYUV420P;
         }
 
         if (preprocessFunc == NULL)

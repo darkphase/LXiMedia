@@ -26,7 +26,7 @@
 
 __inline int bound(int a, int b, int c) { return b < a ? a : (b > c ? c : b); }
 
-void LXiStreamGui_SImage_convertYUYVtoRGB
+void LXiStream_SVideoFormatConvertNode_convertYUYVtoRGB
  (struct RGBAPixel * restrict rgb, const struct YUYVPixel * restrict yuv, unsigned numPixels)
 {
   unsigned i;
@@ -117,7 +117,7 @@ void LXiStreamGui_SImage_convertYUYVtoRGB
 #endif
 }
 
-void LXiStreamGui_SImage_convertUYVYtoRGB
+void LXiStream_SVideoFormatConvertNode_convertUYVYtoRGB
  (struct RGBAPixel * restrict rgb, const struct UYVYPixel * restrict yuv, unsigned numPixels)
 {
   unsigned i;
@@ -208,7 +208,7 @@ void LXiStreamGui_SImage_convertUYVYtoRGB
 #endif
 }
 
-void LXiStreamGui_SImage_convertBGRtoRGB
+void LXiStream_SVideoFormatConvertNode_convertBGRtoRGB
  (uint32_t * restrict dst, const uint32_t * restrict src, unsigned numPixels)
 {
   unsigned i;
@@ -250,7 +250,7 @@ void LXiStreamGui_SImage_convertBGRtoRGB
 #endif
 }
 
-void LXiStreamGui_SImage_convertYUV1toRGB
+void LXiStream_SVideoFormatConvertNode_convertYUV1toRGB
  (struct RGBAPixel * restrict rgb, const uint8_t * restrict iy, const uint8_t * restrict iu, const uint8_t * restrict iv, unsigned numPixels)
 {
   unsigned i;
@@ -275,7 +275,7 @@ void LXiStreamGui_SImage_convertYUV1toRGB
   }
 }
 
-void LXiStreamGui_SImage_convertYUV2toRGB
+void LXiStream_SVideoFormatConvertNode_convertYUV2toRGB
  (struct RGBAPixel * restrict rgb, const uint8_t * restrict iy, const uint8_t * restrict iu, const uint8_t * restrict iv, unsigned numPixels)
 {
   unsigned i;
@@ -364,4 +364,3 @@ void LXiStreamGui_SImage_convertYUV2toRGB
   }
 #endif
 }
-

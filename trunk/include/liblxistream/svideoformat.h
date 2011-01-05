@@ -84,11 +84,19 @@ public:
   inline FieldMode              fieldMode(void) const                           { return d.fieldMode; }
   inline void                   setFieldMode(FieldMode m)                       { d.fieldMode = m; }
 
+  inline bool                   isRGB(void) const                               { return isRGB(format()); }
+  inline bool                   isYUV(void) const                               { return isYUV(format()); }
+  inline bool                   isBayerArray(void) const                        { return isBayerArray(format()); }
+
   inline const char           * formatName(void) const                          { return formatName(format()); }
   inline int                    numPlanes(void) const                           { return numPlanes(format()); }
   inline int                    sampleSize(void) const                          { return sampleSize(format()); }
   inline bool                   planarYUVRatio(int &w, int &h) const            { return planarYUVRatio(format(), w, h); }
   inline quint32                nullPixelValue(void) const                      { return nullPixelValue(format()); }
+
+  static inline bool            isRGB(Format f)                                 { return (f >= 0x2000) && (f < 0x2100); }
+  static inline bool            isYUV(Format f)                                 { return (f >= 0x2100) && (f < 0x2200); }
+  static inline bool            isBayerArray(Format f)                          { return (f >= 0x2200) && (f < 0x2300); }
 
   static int                    sampleSize(Format) __attribute__((pure));
   static int                    numPlanes(Format) __attribute__((pure));

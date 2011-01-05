@@ -104,8 +104,8 @@ HEADERS += $${LXIMEDIA_DIR}/include/liblxistream/nodes/saudiodecodernode.h \
     $${LXIMEDIA_DIR}/include/liblxistream/nodes/svideoboxnode.h \
     $${LXIMEDIA_DIR}/include/liblxistream/nodes/svideodecodernode.h \
     $${LXIMEDIA_DIR}/include/liblxistream/nodes/svideodeinterlacenode.h \
-    $${LXIMEDIA_DIR}/include/liblxistream/nodes/svideodemosaicnode.h \
     $${LXIMEDIA_DIR}/include/liblxistream/nodes/svideoencodernode.h \
+    $${LXIMEDIA_DIR}/include/liblxistream/nodes/svideoformatconvertnode.h \
     $${LXIMEDIA_DIR}/include/liblxistream/nodes/svideoinputnode.h \
     $${LXIMEDIA_DIR}/include/liblxistream/nodes/svideoletterboxdetectnode.h \
     $${LXIMEDIA_DIR}/include/liblxistream/nodes/svideoresizenode.h
@@ -130,9 +130,11 @@ SOURCES += nodes/saudiodecodernode.cpp \
     nodes/svideoboxnode.box.c \
     nodes/svideodecodernode.cpp \
     nodes/svideodeinterlacenode.cpp \
-    nodes/svideodemosaicnode.cpp \
-    nodes/svideodemosaicnode.demosaic.c \
     nodes/svideoencodernode.cpp \
+    nodes/svideoformatconvertnode.cpp \
+    nodes/svideoformatconvertnode.convert.c \
+    nodes/svideoformatconvertnode.demosaic.c \
+    nodes/svideoformatconvertnode.unpack.c \
     nodes/svideoinputnode.cpp \
     nodes/svideoletterboxdetectnode.cpp \
     nodes/svideoresizenode.cpp
