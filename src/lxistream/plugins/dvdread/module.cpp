@@ -17,32 +17,43 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include <QtCore>
-#include <LXiStream>
+#include "module.h"
+#include "discreader.h"
+#include "formatprober.h"
 
-class IOTest : public QObject
+
+namespace LXiStream {
+namespace DVDReadBackend {
+
+
+void Module::registerClasses(void)
 {
-Q_OBJECT
-public:
-  inline explicit               IOTest(QObject *parent) : QObject(parent) { }
+  FormatProber::registerClass<FormatProber>(0);
+  DiscReader::registerClass<DiscReader>(DiscReader::formatName);
+}
 
-private slots:
-  void                          initTestCase(void);
-  void                          cleanupTestCase(void);
+void Module::unload(void)
+{
+}
 
-private slots:
-  void                          MediaFileInfoImage(void);
+QByteArray Module::about(void)
+{
+  const QByteArray text;/* =
+      " <h2>FFMpeg (libavcodec, libavformat, libswscale)</h2>\n"
+      " Versions: " LIBAVCODEC_IDENT ", " LIBAVFORMAT_IDENT ", " LIBSWSCALE_IDENT "<br />\n"
+      " Website: <a href=\"http://www.ffmpeg.org/\">www.ffmpeg.org</a><br />\n"
+      " <br />\n"
+      " Used under the terms of the GNU Lesser General Public License version 2.1\n"
+      " as published by the Free Software Foundation.<br />\n"
+      " <br />\n";*/
 
-  void                          AudioResamplerStereoMono(void);
-  void                          AudioResamplerMonoStereo(void);
-  void                          AudioResamplerHalfRate(void);
-  void                          AudioResamplerDoubleRate(void);
+  return text;
+}
 
-  void                          PsFileLoopback(void);
 
-private slots:
-  void                          receive(const SAudioBuffer &);
+} } // End of namespaces
 
-private:
-  SAudioBufferList              audioBufferList;
-};
+#ifdef PLUGIN_NAME
+#include <QtPlugin>
+Q_EXPORT_PLUGIN2(PLUGIN_NAME, LXiStream::DVDReadBackend::Module);
+#endif

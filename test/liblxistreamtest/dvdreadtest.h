@@ -17,32 +17,17 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include <QtCore>
-#include <LXiStream>
+#define __DVDREADTEST_H
 
-class IOTest : public QObject
+#include <QtCore>
+
+class DVDReadTest : public QObject
 {
 Q_OBJECT
 public:
-  inline explicit               IOTest(QObject *parent) : QObject(parent) { }
+  inline explicit               DVDReadTest(QObject *parent) : QObject(parent) { }
 
 private slots:
   void                          initTestCase(void);
   void                          cleanupTestCase(void);
-
-private slots:
-  void                          MediaFileInfoImage(void);
-
-  void                          AudioResamplerStereoMono(void);
-  void                          AudioResamplerMonoStereo(void);
-  void                          AudioResamplerHalfRate(void);
-  void                          AudioResamplerDoubleRate(void);
-
-  void                          PsFileLoopback(void);
-
-private slots:
-  void                          receive(const SAudioBuffer &);
-
-private:
-  SAudioBufferList              audioBufferList;
 };

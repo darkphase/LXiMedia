@@ -39,7 +39,7 @@ public: // From SInterfaces::BufferWriter
   virtual bool                  openFormat(const QString &);
   virtual bool                  createStreams(const QList<SAudioCodec> &, const QList<SVideoCodec> &, STime);
 
-  virtual bool                  start(Callback *);
+  virtual bool                  start(WriteCallback *);
   virtual void                  stop(void);
   virtual void                  process(const SEncodedAudioBuffer &);
   virtual void                  process(const SEncodedVideoBuffer &);
@@ -52,7 +52,7 @@ private:
   static const quint32          audioStreamId = 0x00010000;
   static const quint32          videoStreamId = 0x00020000;
 
-  Callback                    * callback;
+  WriteCallback               * callback;
   ::AVOutputFormat            * format;
   ::AVFormatContext           * formatContext;
   ::ByteIOContext             * ioContext;

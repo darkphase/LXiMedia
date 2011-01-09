@@ -26,7 +26,7 @@ namespace Common {
 
 
 FormatProber::FormatProber(const QString &, QObject *parent)
-  : SInterfaces::FormatProber(parent)
+  : SInterfaces::FileFormatProber(parent)
 {
 }
 
@@ -34,7 +34,7 @@ FormatProber::~FormatProber()
 {
 }
 
-QList<FormatProber::Format> FormatProber::probeFormat(const QByteArray &data)
+QList<FormatProber::Format> FormatProber::probeFormat(const QByteArray &data, const QString &fileName)
 {
   QList<Format> formats;
 
@@ -44,57 +44,56 @@ QList<FormatProber::Format> FormatProber::probeFormat(const QByteArray &data)
   return formats;
 }
 
-void FormatProber::probeName(ProbeInfo &pi, const QString &path)
+void FormatProber::probeFile(ProbeInfo &pi, ReadCallback *, const QString &path)
 {
-  const QFileInfo info(path);
-  const QString suffix = info.suffix().toLower();
-
-  if (imageSuffixes().contains(suffix))
+  if (!path.isEmpty())
   {
-    pi.imageCodec = SVideoCodec(suffix.toUpper());
-    pi.fileTypeName = imageDescription(suffix);
+    const QFileInfo info(path);
+    const QString suffix = info.suffix().toLower();
+
+    if (imageSuffixes().contains(suffix))
+    {
+      pi.imageCodec = SVideoCodec(suffix.toUpper());
+      pi.fileTypeName = imageDescription(suffix);
+    }
+    else if (audioSuffixes().contains(suffix))
+    {
+      pi.audioStreams = QList<AudioStreamInfo>() << AudioStreamInfo(0, NULL, SAudioCodec(suffix.toUpper()));
+      pi.fileTypeName = audioDescription(suffix);
+    }
+    else if (videoSuffixes().contains(suffix))
+    {
+      pi.audioStreams = QList<AudioStreamInfo>() << AudioStreamInfo(0, NULL, SAudioCodec(suffix.toUpper()));
+      pi.videoStreams = QList<VideoStreamInfo>() << VideoStreamInfo(0, NULL, SVideoCodec(suffix.toUpper()));
+      pi.fileTypeName = videoDescription(suffix);
+    }
+
+    splitFileName(info.completeBaseName(), pi.title, pi.author, pi.album, pi.track);
+
+    QDir dir = info.absoluteDir();
+    QString dirName = dir.dirName();
+
+    if (dirName.contains("season", Qt::CaseInsensitive) &&
+        (dirName.length() < 10))
+    {
+      pi.track = (pi.track % SMediaInfo::tvShowSeason) + (dirName.mid(7).toUInt() * SMediaInfo::tvShowSeason);
+
+      const QString path = dir.absolutePath();
+
+      dir = QDir(path.left(path.length() - dirName.length()));
+      dirName = dir.dirName();
+    }
+
+    if (pi.track > 0)
+    {
+      QString dummy1, dummy2;
+      unsigned dummy3 = 0;
+      splitFileName(dirName, pi.album, dummy1, dummy2, dummy3);
+    }
+
+    if (pi.title.length() <= 3)
+      pi.title = info.completeBaseName();
   }
-  else if (audioSuffixes().contains(suffix))
-  {
-    pi.audioStreams = QList<AudioStreamInfo>() << AudioStreamInfo(0, NULL, SAudioCodec(suffix.toUpper()));
-    pi.fileTypeName = audioDescription(suffix);
-  }
-  else if (videoSuffixes().contains(suffix))
-  {
-    pi.audioStreams = QList<AudioStreamInfo>() << AudioStreamInfo(0, NULL, SAudioCodec(suffix.toUpper()));
-    pi.videoStreams = QList<VideoStreamInfo>() << VideoStreamInfo(0, NULL, SVideoCodec(suffix.toUpper()));
-    pi.fileTypeName = videoDescription(suffix);
-  }
-
-  splitFileName(info.completeBaseName(), pi.title, pi.author, pi.album, pi.track);
-
-  QDir dir = info.absoluteDir();
-  QString dirName = dir.dirName();
-
-  if (dirName.contains("season", Qt::CaseInsensitive) &&
-      (dirName.length() < 10))
-  {
-    pi.track = (pi.track % SMediaInfo::tvShowSeason) + (dirName.mid(7).toUInt() * SMediaInfo::tvShowSeason);
-
-    const QString path = dir.absolutePath();
-
-    dir = QDir(path.left(path.length() - dirName.length()));
-    dirName = dir.dirName();
-  }
-
-  if (pi.track > 0)
-  {
-    QString dummy1, dummy2;
-    unsigned dummy3 = 0;
-    splitFileName(dirName, pi.album, dummy1, dummy2, dummy3);
-  }
-
-  if (pi.title.length() <= 3)
-    pi.title = info.completeBaseName();
-}
-
-void FormatProber::probeFile(ProbeInfo &, QIODevice *)
-{
 }
 
 /*void FormatProber::splitAudioFileName(QString baseName, QString &title, QString &author, unsigned &track)

@@ -221,9 +221,7 @@ MediaDatabase::Node MediaDatabase::readNode(UniqueID uid) const
     node.path = query.value(0).toString();
     node.size = query.value(1).toLongLong();
     node.lastModified = query.value(2).toDateTime();
-    node.mediaInfo.setFile(node.path);
-    node.mediaInfo.setDeepProbe(false);
-    node.mediaInfo.fromByteArray(query.value(3).toByteArray());
+    node.mediaInfo.fromByteArray(query.value(3).toByteArray(), node.path);
 
     return node;
   }

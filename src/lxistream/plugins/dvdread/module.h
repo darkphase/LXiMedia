@@ -17,32 +17,28 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#ifndef DVDREADBACKEND_MODULE_H
+#define DVDREADBACKEND_MODULE_H
+
 #include <QtCore>
 #include <LXiStream>
 
-class IOTest : public QObject
+namespace LXiStream {
+namespace DVDReadBackend {
+
+
+class Module : public QObject,
+               public SInterfaces::Module
 {
 Q_OBJECT
+Q_INTERFACES(LXiStream::SInterfaces::Module)
 public:
-  inline explicit               IOTest(QObject *parent) : QObject(parent) { }
-
-private slots:
-  void                          initTestCase(void);
-  void                          cleanupTestCase(void);
-
-private slots:
-  void                          MediaFileInfoImage(void);
-
-  void                          AudioResamplerStereoMono(void);
-  void                          AudioResamplerMonoStereo(void);
-  void                          AudioResamplerHalfRate(void);
-  void                          AudioResamplerDoubleRate(void);
-
-  void                          PsFileLoopback(void);
-
-private slots:
-  void                          receive(const SAudioBuffer &);
-
-private:
-  SAudioBufferList              audioBufferList;
+  virtual void                  registerClasses(void);
+  virtual void                  unload(void);
+  virtual QByteArray            about(void);
 };
+
+
+} } // End of namespaces
+
+#endif

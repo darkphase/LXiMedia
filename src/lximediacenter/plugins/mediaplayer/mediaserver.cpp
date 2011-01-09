@@ -106,9 +106,9 @@ void MediaServer::addVideoFile(DlnaServerDir *dir, const QList<MediaDatabase::No
     MediaServerFileDir * const fileRootDir = new MediaServerFileDir(dir->server());
     fileRootDir->played = true;
 
-    const QList<SInterfaces::FormatProber::AudioStreamInfo> audioStreams = nodes.first().mediaInfo.audioStreams();
-    const QList<SInterfaces::FormatProber::VideoStreamInfo> videoStreams = nodes.first().mediaInfo.videoStreams();
-    QList<SInterfaces::FormatProber::DataStreamInfo> dataStreams = nodes.first().mediaInfo.dataStreams();
+    const QList<SMediaInfo::AudioStreamInfo> audioStreams = nodes.first().mediaInfo.audioStreams();
+    const QList<SMediaInfo::VideoStreamInfo> videoStreams = nodes.first().mediaInfo.videoStreams();
+    QList<SMediaInfo::DataStreamInfo> dataStreams = nodes.first().mediaInfo.dataStreams();
     dataStreams += SIOInputNode::DataStreamInfo(0xFFFF, NULL, SDataCodec());
 
     for (int a=0, an=audioStreams.count(); a < an; a++)

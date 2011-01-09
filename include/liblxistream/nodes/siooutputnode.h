@@ -29,7 +29,7 @@ namespace LXiStream {
  */
 class SIOOutputNode : public QObject,
                       public SInterfaces::SinkNode,
-                      protected SInterfaces::BufferWriter::Callback
+                      protected SInterfaces::BufferWriter::WriteCallback
 {
 Q_OBJECT
 public:
@@ -49,7 +49,7 @@ public slots:
   void                          input(const SEncodedVideoBuffer &);
   void                          input(const SEncodedDataBuffer &);
 
-protected: // From SInterfaces::BufferReader::Callback
+protected: // From SInterfaces::BufferReader::WriteCallback
   virtual void                  write(const uchar *, qint64);
 
 public:

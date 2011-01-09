@@ -17,32 +17,39 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#ifndef LXISTREAM_SDISCINFO_H
+#define LXISTREAM_SDISCINFO_H
+
 #include <QtCore>
-#include <LXiStream>
+#include <QtXml>
+#include "sinterfaces.h"
+#include "smediainfo.h"
 
-class IOTest : public QObject
+namespace LXiStream {
+
+class SDiscInfo : public SSerializable
 {
-Q_OBJECT
 public:
-  inline explicit               IOTest(QObject *parent) : QObject(parent) { }
+  inline                        SDiscInfo(void) : path(), pi()                  { }
+  inline explicit               SDiscInfo(const QString &path) : path(path), pi() { probe(); }
+  inline                        SDiscInfo(const SDiscInfo &c) : path(c.path), pi(c.pi) { }
+  inline explicit               SDiscInfo(const SInterfaces::DiscFormatProber::ProbeInfo &pi) : path(), pi(pi) { }
 
-private slots:
-  void                          initTestCase(void);
-  void                          cleanupTestCase(void);
+  virtual QDomNode              toXml(QDomDocument &) const;
+  virtual void                  fromXml(const QDomNode &);
 
-private slots:
-  void                          MediaFileInfoImage(void);
-
-  void                          AudioResamplerStereoMono(void);
-  void                          AudioResamplerMonoStereo(void);
-  void                          AudioResamplerHalfRate(void);
-  void                          AudioResamplerDoubleRate(void);
-
-  void                          PsFileLoopback(void);
-
-private slots:
-  void                          receive(const SAudioBuffer &);
+  inline QString                format(void) const                              { return pi.format; }
+  SMediaInfoList                titles(void) const;
 
 private:
-  SAudioBufferList              audioBufferList;
+  void                          probe(void);
+
+private:
+  QString                       path;
+  SInterfaces::DiscFormatProber::ProbeInfo pi;
 };
+
+
+} // End of namespace
+
+#endif

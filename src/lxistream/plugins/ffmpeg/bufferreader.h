@@ -65,7 +65,7 @@ public:
 public: // From SInterfaces::BufferReader
   virtual bool                  openFormat(const QString &);
 
-  virtual bool                  start(Callback *, bool streamed);
+  virtual bool                  start(ReadCallback *, ProduceCallback *, bool streamed);
   virtual void                  stop(void);
   virtual bool                  process(void);
 
@@ -94,7 +94,8 @@ private:
 private:
   static const STime            maxJumpTime;
 
-  Callback                    * callback;
+  ReadCallback                * readCallback;
+  ProduceCallback             * produceCallback;
   ::AVInputFormat             * format;
   ::AVFormatContext           * formatContext;
   ::ByteIOContext             * ioContext;

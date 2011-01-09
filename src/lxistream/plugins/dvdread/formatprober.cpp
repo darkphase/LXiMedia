@@ -18,13 +18,14 @@
  ***************************************************************************/
 
 #include "formatprober.h"
-#include "imagedecoder.h"
+#include "discreader.h"
 
 namespace LXiStream {
-namespace GuiBackend {
+namespace DVDReadBackend {
+
 
 FormatProber::FormatProber(const QString &, QObject *parent)
-  : SInterfaces::FileFormatProber(parent)
+  : SInterfaces::DiscFormatProber(parent)
 {
 }
 
@@ -32,49 +33,70 @@ FormatProber::~FormatProber()
 {
 }
 
-QList<FormatProber::Format> FormatProber::probeFormat(const QByteArray &data, const QString &)
+QList<FormatProber::Format> FormatProber::probeFormat(const QString &path)
 {
   QList<Format> result;
 
-  if ((data[0] == 'B') && (data[1] == 'M'))
-    result += Format("bmp", -1);
-  else if ((data[0] == char(0xFF)) && (data[1] == char(0xD8)))
-    result += Format("jpeg", -1);
-  else if ((data[0] == char(0x89)) && (data[1] == 'P') && (data[2] == 'N') && (data[3] == 'G'))
-    result += Format("png", -1);
+  if (isDisc(path))
+  {
+    DiscReader discReader(QString::null, this);
+    if (discReader.openPath(DiscReader::formatName, path))
+      result += Format(DiscReader::formatName, 0);
+  }
 
   return result;
 }
 
-void FormatProber::probeFile(ProbeInfo &pi, ReadCallback *readCallback, const QString &)
+void FormatProber::probePath(ProbeInfo &pi, const QString &path)
 {
-  const qint64 size = readCallback->seek(0, -1);
-  if ((size > 0) && (size <= (16384 * 1024)))
+  if (isDisc(path))
   {
-    QByteArray data(size, 0);
-    data.resize(readCallback->read(reinterpret_cast<uchar *>(data.data()), data.size()));
-
-    const SImage image = SImage::fromData(data);
-    if (!image.isNull())
+    DiscReader discReader(QString::null, this);
+    if (discReader.openPath(DiscReader::formatName, path))
     {
-      pi.imageCodec = SVideoCodec(pi.imageCodec.codec(), image.size());
-      pi.isProbed = true;
-      pi.isReadable = true;
+      pi.format = DiscReader::formatName;
 
-      if ((pi.imageCodec.size().width() >= 256) && (pi.imageCodec.size().height() >= 256))
+      pi.titles.clear();
+      for (unsigned i=0, n=discReader.numTitles(); i<n; i++)
       {
-        SImage thumbnail;
-        if ((pi.imageCodec.size().width() >= 1024) || (pi.imageCodec.size().height() >= 1024))
-          thumbnail = image.scaled(256, 256, Qt::KeepAspectRatio, Qt::FastTransformation);
-        else
-          thumbnail = image.scaled(256, 256, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+        SInterfaces::FileFormatProber::ProbeInfo fpi;
 
-        QBuffer b;
-        if (thumbnail.save(&b, "JPEG", 50))
-          pi.thumbnails += b.data();
+        SInterfaces::BufferReader::ReadCallback * const readCallback = discReader.openTitle(i);
+        if (readCallback)
+        {
+
+          foreach (SInterfaces::FileFormatProber *prober, SInterfaces::FileFormatProber::create(this))
+          {
+            readCallback->seek(0, SEEK_SET);
+            prober->probeFile(fpi, readCallback);
+
+            delete prober;
+          }
+
+          discReader.closeTitle(readCallback);
+        }
+
+        pi.titles += fpi;
       }
     }
   }
 }
+
+bool FormatProber::isDisc(const QString &path)
+{
+  const QString canonicalPath = QFileInfo(path).canonicalFilePath();
+
+  if (canonicalPath.endsWith(".iso", Qt::CaseInsensitive) ||
+#ifdef Q_OS_UNIX
+      canonicalPath.startsWith("/dev/") ||
+#endif
+      QDir(canonicalPath).entryList().contains("VIDEO_TS", Qt::CaseInsensitive))
+  {
+    return true;
+  }
+
+  return false;
+}
+
 
 } } // End of namespaces

@@ -17,8 +17,8 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXISTREAM_SIOINPUTNODE_H
-#define LXISTREAM_SIOINPUTNODE_H
+#ifndef LXISTREAM_SDISCINPUTNODE_H
+#define LXISTREAM_SDISCINPUTNODE_H
 
 #include <QtCore>
 #include "../sinterfaces.h"
@@ -27,10 +27,9 @@ namespace LXiStream {
 
 /*! This is a generic intput node, reading to a QIODevice.
  */
-class SIOInputNode : public QObject,
-                     public SInterfaces::SourceNode,
-                     protected SInterfaces::BufferReader::ReadCallback,
-                     protected SInterfaces::BufferReader::ProduceCallback
+class SDiscInputNode : public QObject,
+                       public SInterfaces::SourceNode,
+                       protected SInterfaces::BufferReader::ProduceCallback
 {
 Q_OBJECT
 public:
@@ -39,11 +38,12 @@ public:
   typedef SInterfaces::BufferReader::DataStreamInfo  DataStreamInfo;
 
 public:
-  explicit                      SIOInputNode(SGraph *, QIODevice * = NULL);
-  virtual                       ~SIOInputNode();
+  explicit                      SDiscInputNode(SGraph *, const QString &path);
+  virtual                       ~SDiscInputNode();
 
-  void                          setIODevice(QIODevice *);
-  virtual bool                  open(void);
+  unsigned                      numTitles(void) const;
+
+  virtual bool                  openTitle(unsigned title);
 
   virtual STime                 duration(void) const;
   virtual bool                  setPosition(STime);
@@ -64,10 +64,6 @@ signals:
   void                          output(const SEncodedVideoBuffer &);
   void                          output(const SEncodedDataBuffer &);
   void                          finished(void);
-
-protected: // From SInterfaces::BufferReader::ReadCallback
-  virtual qint64                read(uchar *, qint64);
-  virtual qint64                seek(qint64, int);
 
 protected: // From SInterfaces::BufferReader::ProduceCallback
   virtual void                  produce(const SEncodedAudioBuffer &);
