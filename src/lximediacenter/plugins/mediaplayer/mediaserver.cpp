@@ -115,6 +115,7 @@ void MediaServer::addVideoFile(DlnaServerDir *dir, const QList<MediaDatabase::No
     for (int d=0, dn=dataStreams.count(); d < dn; d++)
     {
       DlnaServerDir * const fileDir = ((an + dn) == 2) ? fileRootDir : new DlnaServerDir(fileRootDir->server());
+      DlnaServerDir * const chapterDir = new DlnaServerDir(fileDir->server());
       DlnaServerDir * const seekDir = new DlnaServerDir(fileDir->server());
 
       typedef QPair<QString, MediaDatabase::Node> VideoFile;
@@ -128,6 +129,7 @@ void MediaServer::addVideoFile(DlnaServerDir *dir, const QList<MediaDatabase::No
       else
         videoFiles += VideoFile(tr("Play"), nodes.first());
 
+      int chapterNum = 1;
       int seekSec = 0, seekOfs = 0;
       foreach (const VideoFile &videoFile, videoFiles)
       if (!videoFile.second.isNull())
@@ -145,18 +147,37 @@ void MediaServer::addVideoFile(DlnaServerDir *dir, const QList<MediaDatabase::No
         file.mimeType = "video/mpeg";
         file.played = mediaDatabase->lastPlayed(videoFile.second).isValid();
         //file.description = video.plot;
+        file.sortOrder = 1;
         fileDir->addFile(videoFile.first, file);
 
         fileRootDir->played &= file.played;
 
+        foreach (const SMediaInfo::Chapter &chapter, videoFile.second.mediaInfo.chapters())
+        {
+          DlnaServer::File file(chapterDir->server());
+          file.duration = videoFile.second.mediaInfo.duration() - chapter.begin;
+          file.url = url + (url.contains('?') ? "&position=" : "?position=") +
+                      QString::number(chapter.begin.toSec());
+          file.mimeType = "video/mpeg";
+          file.sortOrder = chapterNum++;
+
+          QString name = tr("Chapter") + " " + QString::number(file.sortOrder);
+          if (!chapter.title.isEmpty())
+            name += ", " + chapter.title;
+
+          chapterDir->addFile(name, file);
+        }
+
         seekOfs += videoFile.second.mediaInfo.duration().toSec();
         for (; seekSec<seekOfs; seekSec+=seekBySecs)
         {
-          DlnaServer::File file(dir->server());
+          DlnaServer::File file(seekDir->server());
           file.duration = videoFile.second.mediaInfo.duration() - STime::fromSec(seekSec);
           file.url = url + (url.contains('?') ? "&position=" : "?position=") +
                       QString::number(seekSec);
           file.mimeType = "video/mpeg";
+          file.sortOrder = seekSec;
+
           seekDir->addFile(tr("Play from") + " " + QString::number(seekSec / 3600) +
                            ":" + ("0" + QString::number((seekSec / 60) % 60)).right(2),
                            file);
@@ -167,8 +188,19 @@ void MediaServer::addVideoFile(DlnaServerDir *dir, const QList<MediaDatabase::No
                       : videoFile.second.lastModified;
       }
 
+      if (chapterDir->count() > 0)
+      {
+        chapterDir->sortOrder = 2;
+        fileDir->addDir(tr("Chapters"), chapterDir);
+      }
+      else
+        delete chapterDir;
+
       if (seekDir->count() > 0)
+      {
+        seekDir->sortOrder = 3;
         fileDir->addDir(tr("Seek"), seekDir);
+      }
       else
         delete seekDir;
 
@@ -261,7 +293,7 @@ bool MediaServer::streamVideo(const QHttpRequestHeader &request, QAbstractSocket
       // Create a new stream
       FileStream *stream = new FileStream(this, socket->peerAddress(), request.path(), node.path, node.uid);
       if (stream->file.open())
-      if (stream->setup(request, socket, &stream->file, node.mediaInfo.duration(), STime::fromSec(url.queryItemValue("position").toInt()), node.title(), thumb))
+      if (stream->setup(request, socket, &stream->file, node.mediaInfo.duration(), node.title(), thumb))
       if (stream->start())
         return true; // The graph owns the socket now.
 

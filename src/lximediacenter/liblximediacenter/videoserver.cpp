@@ -350,7 +350,7 @@ VideoServer::TranscodeStream::TranscodeStream(VideoServer *parent, const QHostAd
   connect(&timeStampResampler, SIGNAL(output(SSubtitleBuffer)), &subtitleRenderer, SLOT(input(SSubtitleBuffer)));
 }
 
-bool VideoServer::TranscodeStream::setup(const QHttpRequestHeader &request, QAbstractSocket *socket, SIOInputNode *input, STime duration, STime pos, const QString &name, const QImage &thumb)
+bool VideoServer::TranscodeStream::setup(const QHttpRequestHeader &request, QAbstractSocket *socket, SIOInputNode *input, STime duration, const QString &name, const QImage &thumb)
 {
   QUrl url(request.path());
   const QStringList file = url.path().mid(url.path().lastIndexOf('/') + 1).split('.');
@@ -397,8 +397,9 @@ bool VideoServer::TranscodeStream::setup(const QHttpRequestHeader &request, QAbs
     const SAudioCodec audioInCodec = audioStreams.first().codec;
     const SVideoCodec videoInCodec = videoStreams.first().codec;
 
-    if (pos > STime::fromSec(1))
+    if (url.hasQueryItem("position"))
     {
+      const STime pos = STime::fromSec(url.queryItemValue("position").toInt());
       input->setPosition(pos);
 
       if (duration > pos)
@@ -602,8 +603,9 @@ bool VideoServer::TranscodeStream::setup(const QHttpRequestHeader &request, QAbs
   {
     const SAudioCodec audioInCodec = audioStreams.first().codec;
 
-    if (pos > STime::fromSec(1))
+    if (url.hasQueryItem("position"))
     {
+      const STime pos = STime::fromSec(url.queryItemValue("position").toInt());
       input->setPosition(pos);
 
       if (duration > pos)

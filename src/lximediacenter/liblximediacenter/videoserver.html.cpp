@@ -428,7 +428,8 @@ QByteArray VideoServer::buildVideoPlayer(const QByteArray &item, const SMediaInf
   QByteArray query =
       "?size=" + QByteArray::number(size.width()) + "x" + QByteArray::number(size.height()) +
       "&language=" + url.queryItemValue("language").toAscii() +
-      "&subtitles=" + url.queryItemValue("subtitles").toAscii();
+      "&subtitles=" + url.queryItemValue("subtitles").toAscii() +
+      "&position=" + url.queryItemValue("position").toAscii();
   htmlParser.setField("QUERYX", "?query=" + query.toHex().toUpper());
   htmlParser.setField("QUERY", query.replace("&", "&amp;"));
 
