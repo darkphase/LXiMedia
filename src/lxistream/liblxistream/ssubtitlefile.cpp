@@ -179,11 +179,23 @@ QStringList SSubtitleFile::findSubtitleFiles(const QString &file)
   const QFileInfo mediaFileInfo(file);
   const QString baseName = SStringParser::toRawName(mediaFileInfo.completeBaseName());
 
+  struct T
+  {
+    static void checkFiles(QStringList &result, const QDir &dir, const QString &baseName)
+    {
+      foreach (const QFileInfo &info, dir.entryInfoList(QDir::Files | QDir::Readable))
+      if (info.suffix().toLower() == "srt")
+      if (SStringParser::toRawName(info.completeBaseName()).startsWith(baseName))
+        result += info.absoluteFilePath();
+    }
+  };
+
   QStringList result;
-  foreach (const QFileInfo &info, mediaFileInfo.absoluteDir().entryInfoList(QDir::NoFilter, QDir::Name))
-  if (info.suffix().toLower() == "srt")
-  if (SStringParser::toRawName(info.completeBaseName()).startsWith(baseName))
-    result += info.absoluteFilePath();
+  T::checkFiles(result, mediaFileInfo.absoluteDir(), baseName);
+
+  foreach (const QFileInfo &info, mediaFileInfo.absoluteDir().entryInfoList(QDir::Dirs))
+  if ((info.fileName().toLower() == "subtitles") || (info.fileName().toLower() == "subs"))
+    T::checkFiles(result, info.absoluteFilePath(), baseName);
 
   return result;
 }

@@ -109,7 +109,18 @@ void SSubtitleRenderNode::setFontRatio(unsigned r)
 void SSubtitleRenderNode::input(const SSubtitleBuffer &subtitleBuffer)
 {
   if (!subtitleBuffer.isNull())
-    d->subtitles.insert(subtitleBuffer.timeStamp(), subtitleBuffer);
+  {
+    if (subtitleBuffer.duration().toSec() <= 10)
+    {
+      d->subtitles.insert(subtitleBuffer.timeStamp(), subtitleBuffer);
+    }
+    else // Prevent showing subtitles too long.
+    {
+      SSubtitleBuffer corrected = subtitleBuffer;
+      corrected.setDuration(STime::fromSec(10));
+      d->subtitles.insert(subtitleBuffer.timeStamp(), corrected);
+    }
+  }
 }
 
 void SSubtitleRenderNode::input(const SVideoBuffer &videoBuffer)
