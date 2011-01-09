@@ -562,7 +562,8 @@ QSet<QString> MediaDatabase::findCategories(const QString &path) const
 
 void MediaDatabase::categorizeMovie(QSqlDatabase &db, qint64 rowId, const QString &path, const SMediaInfo &mediaInfo)
 {
-  if (mediaInfo.containsAudio() && mediaInfo.containsVideo())
+  if (mediaInfo.containsAudio() && mediaInfo.containsVideo() &&
+      (mediaInfo.duration().toMin() >= 5)) // Don't categorize sample files.
   {
     const QString title = QFileInfo(path).completeBaseName();
 
