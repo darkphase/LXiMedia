@@ -30,6 +30,7 @@ HEADERS += $${LXIMEDIA_DIR}/include/LXiStream \
     $${LXIMEDIA_DIR}/include/liblxistream/sbuffer.h \
     $${LXIMEDIA_DIR}/include/liblxistream/sdatacodec.h \
     $${LXIMEDIA_DIR}/include/liblxistream/sdebug.h \
+    $${LXIMEDIA_DIR}/include/liblxistream/sdiscinfo.h \
     $${LXIMEDIA_DIR}/include/liblxistream/sencodedaudiobuffer.h \
     $${LXIMEDIA_DIR}/include/liblxistream/sencodeddatabuffer.h \
     $${LXIMEDIA_DIR}/include/liblxistream/sencodedvideobuffer.h \
@@ -61,14 +62,15 @@ SOURCES += saudiobuffer.cpp \
     sbuffer.cpp \
     sdatacodec.cpp \
     sdebug.cpp \
+    sdiscinfo.cpp \
     sencodedaudiobuffer.cpp \
     sencodeddatabuffer.cpp \
     sencodedvideobuffer.cpp \
     sfactory.cpp \
     sgraph.cpp \
     sinterfaces.cpp \
-    smediainfo.cpp \
     sinterval.cpp \
+    smediainfo.cpp \
     sserializable.cpp \
     sstringparser.cpp \
     sstringparser.iso639.cpp \
@@ -94,6 +96,7 @@ HEADERS += $${LXIMEDIA_DIR}/include/liblxistream/nodes/saudiodecodernode.h \
     $${LXIMEDIA_DIR}/include/liblxistream/nodes/saudioresamplenode.h \
     $${LXIMEDIA_DIR}/include/liblxistream/nodes/saudiovideoinputnode.h \
     $${LXIMEDIA_DIR}/include/liblxistream/nodes/sdatadecodernode.h \
+    $${LXIMEDIA_DIR}/include/liblxistream/nodes/sdiscinputnode.h \
     $${LXIMEDIA_DIR}/include/liblxistream/nodes/sfileinputnode.h \
     $${LXIMEDIA_DIR}/include/liblxistream/nodes/sfileoutputnode.h \
     $${LXIMEDIA_DIR}/include/liblxistream/nodes/sioinputnode.h \
@@ -118,6 +121,7 @@ SOURCES += nodes/saudiodecodernode.cpp \
     nodes/saudioresamplenode.cpp \
     nodes/saudiovideoinputnode.cpp \
     nodes/sdatadecodernode.cpp \
+    nodes/sdiscinputnode.cpp \
     nodes/sfileinputnode.cpp \
     nodes/sfileoutputnode.cpp \
     nodes/sioinputnode.cpp \

@@ -28,7 +28,7 @@ namespace FFMpegBackend {
 
 
 FormatProber::FormatProber(const QString &, QObject *parent)
-  : SInterfaces::FormatProber(parent)
+  : SInterfaces::FileFormatProber(parent)
 {
 }
 
@@ -36,7 +36,7 @@ FormatProber::~FormatProber()
 {
 }
 
-QList<FormatProber::Format> FormatProber::probeFormat(const QByteArray &buffer)
+QList<FormatProber::Format> FormatProber::probeFormat(const QByteArray &buffer, const QString &fileName)
 {
   SDebug::MutexLocker f(FFMpegCommon::mutex(), __FILE__, __LINE__);
 
@@ -52,39 +52,15 @@ QList<FormatProber::Format> FormatProber::probeFormat(const QByteArray &buffer)
   return QList<Format>();
 }
 
-void FormatProber::probeName(ProbeInfo &, const QString &)
+void FormatProber::probeFile(ProbeInfo &pi, ReadCallback *readCallback, const QString &fileName)
 {
-}
-
-void FormatProber::probeFile(ProbeInfo &pi, QIODevice *file)
-{
-  struct Callback : SInterfaces::BufferReader::Callback
+  struct ProduceCallback : SInterfaces::BufferReader::ProduceCallback
   {
-    QIODevice * const file;
     QMap<quint16, SEncodedVideoBufferList> videoBuffers;
     int bufferCount;
 
-    Callback(QIODevice *file) : file(file), bufferCount(0)
+    ProduceCallback(void) : bufferCount(0)
     {
-    }
-
-    virtual qint64 read(uchar *buffer, qint64 size)
-    {
-      return file->read((char *)buffer, size);
-    }
-
-    virtual qint64 seek(qint64 offset, int whence)
-    {
-      if (whence == SEEK_SET)
-        return file->seek(offset) ? 0 : -1;
-      else if (whence == SEEK_SET)
-        return file->seek(file->pos() + offset) ? 0 : -1;
-      else if (whence == SEEK_END)
-        return file->seek(file->size() + offset) ? 0 : -1;
-      else if (whence == -1) // get size
-        return file->size();
-      else
-        return -1;
     }
 
     virtual void produce(const SEncodedAudioBuffer &)
@@ -105,7 +81,10 @@ void FormatProber::probeFile(ProbeInfo &pi, QIODevice *file)
   };
 
   // Detect format.
-  QList<SInterfaces::FormatProber::Format> formats = probeFormat(file->peek(65536));
+  QByteArray data(SInterfaces::FileFormatProber::defaultProbeSize, 0);
+  data.resize(readCallback->read(reinterpret_cast<uchar *>(data.data()), data.size()));
+
+  QList<SInterfaces::FileFormatProber::Format> formats = probeFormat(data, fileName);
   if (!formats.isEmpty())
   {
     pi.format = formats.first().name;
@@ -113,8 +92,10 @@ void FormatProber::probeFile(ProbeInfo &pi, QIODevice *file)
     BufferReader bufferReader(QString::null, this);
     if (bufferReader.openFormat(pi.format))
     {
-      Callback callback(file);
-      if (bufferReader.start(&callback, file->isSequential()))
+      readCallback->seek(0, SEEK_SET);
+
+      ProduceCallback produceCallback;
+      if (bufferReader.start(readCallback, &produceCallback, true))
       {
         pi.title = bestOf(pi.title, SStringParser::removeControl(QString::fromUtf8(bufferReader.context()->title)).trimmed());
         pi.author = bestOf(pi.author, SStringParser::removeControl(QString::fromUtf8(bufferReader.context()->author)).trimmed());
@@ -149,11 +130,11 @@ void FormatProber::probeFile(ProbeInfo &pi, QIODevice *file)
         pi.isReadable = true;
 
         bufferReader.setPosition(qMax(bufferReader.duration() / 8, STime::fromSec(5)));
-        for (unsigned i=0; (i<4096) && (callback.bufferCount<256); i++)
+        for (unsigned i=0; (i<4096) && (produceCallback.bufferCount<256); i++)
           bufferReader.process();
 
-        for (QMap<quint16, SEncodedVideoBufferList>::Iterator i = callback.videoBuffers.begin();
-             i != callback.videoBuffers.end();
+        for (QMap<quint16, SEncodedVideoBufferList>::Iterator i = produceCallback.videoBuffers.begin();
+             i != produceCallback.videoBuffers.end();
              i++)
         if (!i->isEmpty() && !i->first().codec().isNull())
         {

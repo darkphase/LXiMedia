@@ -17,32 +17,32 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include <QtCore>
+#include "dvdreadtest.h"
+#include <QtTest>
 #include <LXiStream>
+#include "lxistream/plugins/dvdread/discreader.h"
+#include "lxistream/plugins/dvdread/module.h"
+#include "lxistream/plugins/ffmpeg/module.h"
 
-class IOTest : public QObject
+
+void DVDReadTest::initTestCase(void)
 {
-Q_OBJECT
-public:
-  inline explicit               IOTest(QObject *parent) : QObject(parent) { }
+  // We only want to initialize common and gui here, not probe for plugins.
+  QVERIFY(SSystem::initialize(SSystem::Initialize_Devices |
+                              SSystem::Initialize_LogToConsole, 0));
 
-private slots:
-  void                          initTestCase(void);
-  void                          cleanupTestCase(void);
+  QVERIFY(SSystem::loadModule(new DVDReadBackend::Module()));
+  QVERIFY(SSystem::loadModule(new FFMpegBackend::Module()));
 
-private slots:
-  void                          MediaFileInfoImage(void);
+//  SDiscInfo discInfo("");
+//  qDebug() << discInfo.titles().count();
 
-  void                          AudioResamplerStereoMono(void);
-  void                          AudioResamplerMonoStereo(void);
-  void                          AudioResamplerHalfRate(void);
-  void                          AudioResamplerDoubleRate(void);
+//  SDiscInputNode discInputNode(NULL, "");
+//  qDebug() << discInputNode.numTitles();
+//  qDebug() << discInputNode.openTitle(0);
+}
 
-  void                          PsFileLoopback(void);
-
-private slots:
-  void                          receive(const SAudioBuffer &);
-
-private:
-  SAudioBufferList              audioBufferList;
-};
+void DVDReadTest::cleanupTestCase(void)
+{
+  SSystem::shutdown();
+}

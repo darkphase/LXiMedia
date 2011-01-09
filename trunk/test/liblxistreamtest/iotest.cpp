@@ -39,45 +39,9 @@ void IOTest::cleanupTestCase(void)
   SSystem::shutdown();
 }
 
-/*! Tests name based image file probe.
- */
-void IOTest::MediaFileInfoImageName(void)
-{
-  SMediaInfo mediaInfo(":/ImageTest.jpeg");
-  mediaInfo.setDeepProbe(false);
-
-  QVERIFY(mediaInfo.audioStreams().isEmpty());
-  QVERIFY(mediaInfo.videoStreams().isEmpty());
-  QVERIFY(!mediaInfo.imageCodec().isNull());
-  QVERIFY(!mediaInfo.containsAudio());
-  QVERIFY(!mediaInfo.containsVideo());
-  QVERIFY(mediaInfo.containsImage());
-  QCOMPARE(mediaInfo.title(), QString("ImageTest"));
-  QVERIFY(mediaInfo.thumbnails().isEmpty());
-}
-
-/*! Tests name based audio file probe.
-
-    \note The deep probe is not tested for audio files as it is not implemented
-          in the common backend.
- */
-void IOTest::MediaFileInfoAudioName(void)
-{
-  SMediaInfo mediaInfo(":/SoundTest.ogg");
-  mediaInfo.setDeepProbe(false);
-
-  QVERIFY(mediaInfo.videoStreams().isEmpty());
-  QVERIFY(mediaInfo.imageCodec().isNull());
-  QVERIFY(mediaInfo.containsAudio());
-  QVERIFY(!mediaInfo.containsVideo());
-  QVERIFY(!mediaInfo.containsImage());
-  QCOMPARE(mediaInfo.title(), QString("SoundTest"));
-  QVERIFY(mediaInfo.thumbnails().isEmpty());
-}
-
 /*! Tests deep image file probe.
  */
-void IOTest::MediaFileInfoImageDeep(void)
+void IOTest::MediaFileInfoImage(void)
 {
   const SMediaInfo mediaInfo(":/ImageTest.jpeg");
 

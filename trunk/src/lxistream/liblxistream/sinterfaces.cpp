@@ -24,9 +24,11 @@
 namespace LXiStream {
 
 // Instantiated SFactorizable templates for the interfaces:
-template class SFactorizable<SInterfaces::FormatProber>;
+template class SFactorizable<SInterfaces::FileFormatProber>;
+template class SFactorizable<SInterfaces::DiscFormatProber>;
 template class SFactorizable<SInterfaces::BufferReader>;
 template class SFactorizable<SInterfaces::BufferWriter>;
+template class SFactorizable<SInterfaces::DiscReader>;
 template class SFactorizable<SInterfaces::AudioDecoder>;
 template class SFactorizable<SInterfaces::VideoDecoder>;
 template class SFactorizable<SInterfaces::DataDecoder>;
@@ -83,12 +85,16 @@ SourceNode::~SourceNode()
   *const_cast<SGraph **>(&graph) = NULL;
 }
 
-/*! Creates all registred format probers.
-    \param parent   The parent object, or NULL if none.
- */
-QList<FormatProber *> FormatProber::create(QObject *parent)
+const unsigned FileFormatProber::defaultProbeSize = 262144;
+
+QList<FileFormatProber *> FileFormatProber::create(QObject *parent)
 {
-  return factory().createObjects<FormatProber>(parent);
+  return factory().createObjects<FileFormatProber>(parent);
+}
+
+QList<DiscFormatProber *> DiscFormatProber::create(QObject *parent)
+{
+  return factory().createObjects<DiscFormatProber>(parent);
 }
 
 /*! Creates a buffer reader for the specified format.
@@ -143,6 +149,35 @@ BufferWriter * BufferWriter::create(QObject *parent, const QString &format, bool
   }
 
   return bufferWriter;
+}
+
+/*! Creates a disc reader for the specified path.
+    \param parent   The parent object, or NULL if none.
+    \param format   The data format of the serialized data (e.g. "dvd").
+    \param path     The path of the disc (e.g. /dev/sdc, disc.iso, or a
+                    directory containing the exctracted ISO).
+    \param nonNull  When true, the default, the method will throw a qFatal() if
+                    the object can not be created, the method is guaranteed not
+                    to return a null pointer in this case. When false, the
+                    method will return a null pointer if the object can not be
+                    created.
+ */
+DiscReader * DiscReader::create(QObject *parent, const QString &format, const QString &path, bool nonNull)
+{
+  DiscReader * discReader =
+      SFactorizable<DiscReader>::create(parent, format, nonNull);
+
+  if (discReader)
+  if (!discReader->openPath(format, path))
+  {
+    delete discReader;
+    discReader = NULL;
+
+    if (nonNull)
+      qFatal("Failed to open disc format \"%s\".", format.toAscii().data());
+  }
+
+  return discReader;
 }
 
 /*! Creates an audio decoder for the specified codec.

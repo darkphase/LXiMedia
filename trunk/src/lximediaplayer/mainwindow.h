@@ -35,9 +35,9 @@ private:
   class PlayerGraph : public SGraph
   {
   public:
-    inline PlayerGraph(const QString &fileName)
+    inline PlayerGraph(const QString &path, bool isDisc)
       : SGraph(),
-        file(this, fileName),
+        source(NULL),
         audioDecoder(this),
         videoDecoder(this),
         dataDecoder(this),
@@ -46,9 +46,14 @@ private:
         sync(this),
         audioOutput(this)
     {
-      connect(&file, SIGNAL(output(SEncodedAudioBuffer)), &audioDecoder, SLOT(input(SEncodedAudioBuffer)));
-      connect(&file, SIGNAL(output(SEncodedVideoBuffer)), &videoDecoder, SLOT(input(SEncodedVideoBuffer)));
-      connect(&file, SIGNAL(output(SEncodedDataBuffer)), &dataDecoder, SLOT(input(SEncodedDataBuffer)));
+      if (isDisc)
+        source = new SDiscInputNode(this, path);
+      else
+        source = new SFileInputNode(this, path);
+
+      connect(source, SIGNAL(output(SEncodedAudioBuffer)), &audioDecoder, SLOT(input(SEncodedAudioBuffer)));
+      connect(source, SIGNAL(output(SEncodedVideoBuffer)), &videoDecoder, SLOT(input(SEncodedVideoBuffer)));
+      connect(source, SIGNAL(output(SEncodedDataBuffer)), &dataDecoder, SLOT(input(SEncodedDataBuffer)));
       connect(&dataDecoder, SIGNAL(output(SSubtitleBuffer)), &subtitleRenderer, SLOT(input(SSubtitleBuffer)));
       connect(&videoDecoder, SIGNAL(output(SVideoBuffer)), &deinterlacer, SLOT(input(SVideoBuffer)));
       connect(&deinterlacer, SIGNAL(output(SVideoBuffer)), &subtitleRenderer, SLOT(input(SVideoBuffer)));
@@ -58,7 +63,7 @@ private:
     }
 
   public:
-    SFileInputNode              file;
+    QObject                   * source;
     SAudioDecoderNode           audioDecoder;
     SVideoDecoderNode           videoDecoder;
     SDataDecoderNode            dataDecoder;
@@ -94,6 +99,7 @@ protected:
 
 private slots:
   bool                          openFile(const QString &, int = -1);
+  bool                          openDisc(const QString &, int = -1);
   void                          selectDir(const QString &);
   void                          fileActivated(QTreeWidgetItem *);
 

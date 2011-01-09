@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010 by A.J. Admiraal                                   *
+ *   Copyright (C) 2007 by A.J. Admiraal                                   *
  *   code@admiraal.dds.nl                                                  *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -17,32 +17,31 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#ifndef __FORMATPROBER_H
+#define __FORMATPROBER_H
+
 #include <QtCore>
 #include <LXiStream>
 
-class IOTest : public QObject
+namespace LXiStream {
+namespace DVDReadBackend {
+
+class FormatProber : public SInterfaces::DiscFormatProber
 {
 Q_OBJECT
 public:
-  inline explicit               IOTest(QObject *parent) : QObject(parent) { }
+                                FormatProber(const QString &, QObject *);
+  virtual                       ~FormatProber();
 
-private slots:
-  void                          initTestCase(void);
-  void                          cleanupTestCase(void);
-
-private slots:
-  void                          MediaFileInfoImage(void);
-
-  void                          AudioResamplerStereoMono(void);
-  void                          AudioResamplerMonoStereo(void);
-  void                          AudioResamplerHalfRate(void);
-  void                          AudioResamplerDoubleRate(void);
-
-  void                          PsFileLoopback(void);
-
-private slots:
-  void                          receive(const SAudioBuffer &);
+public: // From SInterfaces::DiscFormatProber
+  virtual QList<Format>         probeFormat(const QString &);
+  virtual void                  probePath(ProbeInfo &, const QString &path);
 
 private:
-  SAudioBufferList              audioBufferList;
+  static bool                   isDisc(const QString &path);
 };
+
+
+} } // End of namespaces
+
+#endif

@@ -184,7 +184,7 @@ bool BufferWriter::createStreams(const QList<SAudioCodec> &audioCodecs, const QL
   return false;
 }
 
-bool BufferWriter::start(Callback *c)
+bool BufferWriter::start(WriteCallback *c)
 {
   SDebug::MutexLocker f(FFMpegCommon::mutex(), __FILE__, __LINE__);
 

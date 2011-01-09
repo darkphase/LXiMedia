@@ -27,7 +27,8 @@ const STime BufferReader::maxJumpTime = STime::fromSec(10);
 
 BufferReader::BufferReader(const QString &, QObject *parent)
   : SInterfaces::BufferReader(parent),
-    callback(NULL),
+    readCallback(NULL),
+    produceCallback(NULL),
     format(NULL),
     formatContext(NULL),
     ioContext(NULL),
@@ -70,7 +71,7 @@ bool BufferReader::openFormat(const QString &name)
   return format != NULL;
 }
 
-bool BufferReader::start(Callback *c, bool streamed)
+bool BufferReader::start(ReadCallback *rc, ProduceCallback *pc, bool streamed)
 {
   if (format)
   {
@@ -81,7 +82,8 @@ bool BufferReader::start(Callback *c, bool streamed)
 
     static const int ioBufferSize = 65536;
 
-    callback = c;
+    readCallback = rc;
+    produceCallback = pc;
     ioContext =
         ::av_alloc_put_byte((unsigned char *)::av_malloc(ioBufferSize),
                             ioBufferSize,
@@ -258,7 +260,8 @@ void BufferReader::stop(void)
     ioContext = NULL;
   }
 
-  callback = NULL;
+  readCallback = NULL;
+  produceCallback = NULL;
 }
 
 bool BufferReader::process(void)
@@ -320,7 +323,7 @@ bool BufferReader::process(void)
 //                  << ", pts = " << buffer.presentationTimeStamp().toMSec();
 
               if (running)
-                callback->produce(buffer);
+                produceCallback->produce(buffer);
               else
                 audioBuffers += QPair<StreamContext *, SEncodedAudioBuffer>(context, buffer);
             }
@@ -334,7 +337,7 @@ bool BufferReader::process(void)
 //                  << ", pts = " << buffer.presentationTimeStamp().toMSec();
 
               if (running)
-                callback->produce(buffer);
+                produceCallback->produce(buffer);
               else
                 audioBuffers += QPair<StreamContext *, SEncodedAudioBuffer>(context, buffer);
             }
@@ -359,7 +362,7 @@ bool BufferReader::process(void)
 
             if (running)
             {
-              callback->produce(buffer);
+              produceCallback->produce(buffer);
             }
             else
             {
@@ -409,7 +412,7 @@ bool BufferReader::process(void)
 //                << ", duration =" << buffer.duration().toMSec();
 
             if (running)
-              callback->produce(buffer);
+              produceCallback->produce(buffer);
             else
               dataBuffers += QPair<StreamContext *, SEncodedDataBuffer>(context, buffer);
           }
@@ -428,7 +431,7 @@ bool BufferReader::process(void)
       if (dataBuffers.first().first->selected)
       {
         dataBuffers.first().second.setCodec(dataBuffers.first().first->dataCodec);
-        callback->produce(dataBuffers.takeFirst().second);
+        produceCallback->produce(dataBuffers.takeFirst().second);
       }
       else
         dataBuffers.takeFirst();
@@ -440,7 +443,7 @@ bool BufferReader::process(void)
         if (audioBuffers.first().first->selected)
         {
           audioBuffers.first().second.setCodec(audioBuffers.first().first->audioCodec);
-          callback->produce(audioBuffers.takeFirst().second);
+          produceCallback->produce(audioBuffers.takeFirst().second);
         }
         else
           audioBuffers.takeFirst();
@@ -450,7 +453,7 @@ bool BufferReader::process(void)
         if (videoBuffers.first().first->selected)
         {
           videoBuffers.first().second.setCodec(videoBuffers.first().first->videoCodec);
-          callback->produce(videoBuffers.takeFirst().second);
+          produceCallback->produce(videoBuffers.takeFirst().second);
         }
         else
           videoBuffers.takeFirst();
@@ -461,7 +464,7 @@ bool BufferReader::process(void)
       if (audioBuffers.first().first->selected)
       {
         audioBuffers.first().second.setCodec(audioBuffers.first().first->audioCodec);
-        callback->produce(audioBuffers.takeFirst().second);
+        produceCallback->produce(audioBuffers.takeFirst().second);
       }
       else
         audioBuffers.takeFirst();
@@ -471,7 +474,7 @@ bool BufferReader::process(void)
       if (videoBuffers.first().first->selected)
       {
         videoBuffers.first().second.setCodec(videoBuffers.first().first->videoCodec);
-        callback->produce(videoBuffers.takeFirst().second);
+        produceCallback->produce(videoBuffers.takeFirst().second);
       }
       else
         videoBuffers.takeFirst();
@@ -518,8 +521,6 @@ bool BufferReader::setPosition(STime pos)
       if (::av_seek_frame(formatContext, i, timestamp, flags) >= 0)
         return true;
     }
-
-    return ::av_seek_frame(formatContext, -1, pos.toClock(AV_TIME_BASE), 0) >= 0;
   }
 
   return false;
@@ -882,12 +883,12 @@ QPair<STime, STime> BufferReader::correctTimeStampToVideo(const AVPacket &packet
 
 int BufferReader::read(void *opaque, uint8_t *buf, int buf_size)
 {
-  return reinterpret_cast<BufferReader *>(opaque)->callback->read(buf, buf_size);
+  return reinterpret_cast<BufferReader *>(opaque)->readCallback->read(buf, buf_size);
 }
 
 int64_t BufferReader::seek(void *opaque, int64_t offset, int whence)
 {
-  return reinterpret_cast<BufferReader *>(opaque)->callback->seek(offset, (whence == AVSEEK_SIZE) ? -1 : whence);
+  return reinterpret_cast<BufferReader *>(opaque)->readCallback->seek(offset, (whence == AVSEEK_SIZE) ? -1 : whence);
 }
 
 

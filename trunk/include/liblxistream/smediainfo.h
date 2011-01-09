@@ -26,103 +26,70 @@
 
 namespace LXiStream {
 
+class SDiscInfo;
+
 class SMediaInfo : public SSerializable
 {
+friend class SDiscInfo;
 public:
-  typedef SInterfaces::FormatProber::AudioStreamInfo  AudioStreamInfo;
-  typedef SInterfaces::FormatProber::VideoStreamInfo  VideoStreamInfo;
-  typedef SInterfaces::FormatProber::DataStreamInfo   DataStreamInfo;
-  typedef SInterfaces::FormatProber::Chapter          Chapter;
+  typedef SInterfaces::FileFormatProber::AudioStreamInfo  AudioStreamInfo;
+  typedef SInterfaces::FileFormatProber::VideoStreamInfo  VideoStreamInfo;
+  typedef SInterfaces::FileFormatProber::DataStreamInfo   DataStreamInfo;
+  typedef SInterfaces::FileFormatProber::Chapter          Chapter;
 
-  /*  class FingerPrint : public SSerializable
-  {
-  public:
-                                FingerPrint(void);
-                                FingerPrint(const FingerPrint &);
-
-    FingerPrint               & operator=(const FingerPrint &c);
-
-    float                       delta(const FingerPrint &) const;
-    inline float                operator-(const FingerPrint &c) const           { return delta(c); }
-
-    void                        add(const FingerPrint &, float = 1.0f);
-    inline FingerPrint          operator+(const FingerPrint &c) const           { FingerPrint f(*this); f.add(c); return f; }
-    inline FingerPrint        & operator+=(const FingerPrint &c)                { add(c); return *this; }
-
-    bool                        isNull(void) const;
-    const float               * getBins(void) const;
-
-    virtual QDomNode            toXml(QDomDocument &) const;
-    virtual void                fromXml(const QDomNode &);
-
-  public:
-    static const unsigned       numBins = 128;
-    float                       bins[numBins];
-
-  private:
-    unsigned                    summed;
-  };
-*/
 public:
-  inline                        SMediaInfo(void)                                { d.deepProbe = true; }
-  inline explicit               SMediaInfo(const QString &file)                 { d.file = file; d.deepProbe = true; }
-  inline                        SMediaInfo(const SMediaInfo &c)                 { d.file = c.d.file; d.deepProbe = c.d.deepProbe; d.pi = c.d.pi; }
+  inline                        SMediaInfo(void) : path(), pi()                 { }
+  inline explicit               SMediaInfo(const QString &path) : path(path), pi() { probe(); }
+  inline                        SMediaInfo(const SMediaInfo &c) : path(c.path), pi(c.pi) { probeDataStreams(); }
+  inline explicit               SMediaInfo(const SInterfaces::FileFormatProber::ProbeInfo &pi) : path(), pi(pi) { }
 
   virtual QDomNode              toXml(QDomDocument &) const;
-  virtual void                  fromXml(const QDomNode &);
+  inline void                   fromXml(const QDomNode &node, const QString &path) { this->path = path; SMediaInfo::fromXml(node); probeDataStreams(); }
+  inline void                   fromByteArray(const QByteArray &data, const QString &path) { this->path = path; SSerializable::fromByteArray(data); probeDataStreams(); }
 
-  inline void                   setFile(const QString &file)                    { d.file = file; d.pi.isProbed = false; }
-  inline void                   setDeepProbe(bool p)                            { d.deepProbe = p; d.pi.isProbed = false; }
+  inline QString                format(void) const                              { return pi.format; }
 
-  inline QString                file(void) const                                { return d.file; }
+  inline bool                   containsAudio(void) const                       { return !pi.audioStreams.isEmpty(); } //!< True if the resource contains audio data.
+  inline bool                   containsVideo(void) const                       { return !pi.videoStreams.isEmpty(); } //!< True if the resource contains video data.
+  inline bool                   containsImage(void) const                       { return !pi.imageCodec.isNull(); } //!< True if the resource contains an image.
+  inline bool                   isProbed(void) const                            { return pi.isProbed; } //!< True if the resource was deep-probed (i.e. the resource was opened and scanned).
+  inline bool                   isReadable(void) const                          { return pi.isReadable; } //!< True if the resource is readable (is set to true if deep-probe can read it).
 
-  inline QString                format(void) const                              { return d.pi.format; }
+  inline const QString        & fileTypeName(void) const                        { return pi.fileTypeName; } //!< A user-friendly description of the file type.
 
-  inline bool                   containsAudio(void) const                       { probe(); return !d.pi.audioStreams.isEmpty(); } //!< True if the resource contains audio data.
-  inline bool                   containsVideo(void) const                       { probe(); return !d.pi.videoStreams.isEmpty(); } //!< True if the resource contains video data.
-  inline bool                   containsImage(void) const                       { probe(); return !d.pi.imageCodec.isNull(); } //!< True if the resource contains an image.
-  inline bool                   isProbed(void) const                            { probe(); return d.pi.isProbed; } //!< True if the resource was deep-probed (i.e. the resource was opened and scanned).
-  inline bool                   isReadable(void) const                          { probe(); return d.pi.isReadable; } //!< True if the resource is readable (is set to true if deep-probe can read it).
+  inline STime                  duration(void) const                            { return pi.duration; } //!< The duration of the resource, if applicable.
+  inline const QList<AudioStreamInfo> & audioStreams(void) const                { return pi.audioStreams; } //!< The audio streams, if applicable.
+  inline const QList<VideoStreamInfo> & videoStreams(void) const                { return pi.videoStreams; } //!< The video streams, if applicable.
+  inline const QList<DataStreamInfo> & dataStreams(void) const                  { return pi.dataStreams; } //!< The data streams, if applicable.
+  inline const SVideoCodec    & imageCodec(void) const                          { return pi.imageCodec; } //!< The image codec, if applicable.
+  inline const QList<Chapter> & chapters(void) const                            { return pi.chapters; } //!< A list of chapters, if applicable.
 
-  inline const QString        & fileTypeName(void) const                        { probe(); return d.pi.fileTypeName; } //!< A user-friendly description of the file type.
+  inline const QString        & title(void) const                               { return pi.title; } //!< The title (e.g. from ID3).
+  inline const QString        & author(void) const                              { return pi.author; } //!< The author (e.g. from ID3).
+  inline const QString        & copyright(void) const                           { return pi.copyright; } //!< The copyright (e.g. from ID3).
+  inline const QString        & comment(void) const                             { return pi.comment; } //!< The comment (e.g. from ID3).
+  inline const QString        & album(void) const                               { return pi.album; } //!< The album (e.g. from ID3).
+  inline const QString        & genre(void) const                               { return pi.genre; } //!< The genre (e.g. from ID3).
+  inline unsigned               year(void) const                                { return pi.year; } //!< The year (e.g. from ID3).
+  inline unsigned               track(void) const                               { return pi.track; } //!< The track (e.g. from ID3).
 
-  inline STime                  duration(void) const                            { probe(); return d.pi.duration; } //!< The duration of the resource, if applicable.
-  inline const QList<AudioStreamInfo> & audioStreams(void) const                { probe(); return d.pi.audioStreams; } //!< The audio streams, if applicable.
-  inline const QList<VideoStreamInfo> & videoStreams(void) const                { probe(); return d.pi.videoStreams; } //!< The video streams, if applicable.
-  inline const QList<DataStreamInfo> & dataStreams(void) const                  { probeDataStreams(); return d.pi.dataStreams; } //!< The data streams, if applicable.
-  inline const SVideoCodec    & imageCodec(void) const                          { probe(); return d.pi.imageCodec; } //!< The image codec, if applicable.
-  inline const QList<Chapter> & chapters(void) const                            { probe(); return d.pi.chapters; } //!< A list of chapters, if applicable.
-
-  inline const QString        & title(void) const                               { probe(); return d.pi.title; } //!< The title (e.g. from ID3).
-  inline const QString        & author(void) const                              { probe(); return d.pi.author; } //!< The author (e.g. from ID3).
-  inline const QString        & copyright(void) const                           { probe(); return d.pi.copyright; } //!< The copyright (e.g. from ID3).
-  inline const QString        & comment(void) const                             { probe(); return d.pi.comment; } //!< The comment (e.g. from ID3).
-  inline const QString        & album(void) const                               { probe(); return d.pi.album; } //!< The album (e.g. from ID3).
-  inline const QString        & genre(void) const                               { probe(); return d.pi.genre; } //!< The genre (e.g. from ID3).
-  inline unsigned               year(void) const                                { probe(); return d.pi.year; } //!< The year (e.g. from ID3).
-  inline unsigned               track(void) const                               { probe(); return d.pi.track; } //!< The track (e.g. from ID3).
-
-  inline const QList<QByteArray> & thumbnails(void) const                       { probe(); return d.pi.thumbnails; } //!< A thumbnail of the resource, if applicable. In case of an image it is of at most 256x256.
-
-  //FingerPrint                   fingerprint(void) const;
+  inline const QList<QByteArray> & thumbnails(void) const                       { return pi.thumbnails; } //!< A thumbnail of the resource, if applicable. In case of an image it is of at most 256x256.
 
 public:
   static const unsigned         tvShowSeason;
 
 private:
-  void                          probe(void) const;
-  void                          probeDataStreams(void) const;
+  virtual void                  fromXml(const QDomNode &);
+
+  void                          probe(void);
+  void                          probeDataStreams(void);
 
 private:
-  struct
-  {
-    QString                     file;
-    bool                        deepProbe;
-
-    mutable SInterfaces::FormatProber::ProbeInfo pi;
-  }                             d;
+  QString                       path;
+  SInterfaces::FileFormatProber::ProbeInfo pi;
 };
 
+typedef QList<SMediaInfo> SMediaInfoList;
 
 } // End of namespace
 

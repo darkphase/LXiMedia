@@ -30,7 +30,7 @@ namespace LXiMediaCenter {
  */
 class HttpOutputNode : public QObject,
                        public SInterfaces::SinkNode,
-                       private SInterfaces::BufferWriter::Callback
+                       private SInterfaces::BufferWriter::WriteCallback
 {
 Q_OBJECT
 public:
@@ -58,7 +58,7 @@ public slots:
   void                          input(const SEncodedVideoBuffer &);
   void                          input(const SEncodedDataBuffer &);
 
-private: // From SInterfaces::BufferReader::Callback
+private: // From SInterfaces::BufferReader::WriteCallback
   virtual void                  write(const uchar *, qint64);
 
 private:

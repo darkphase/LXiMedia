@@ -17,69 +17,105 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "nodes/sioinputnode.h"
+#include "nodes/sdiscinputnode.h"
 #include "sdebug.h"
 #include "sgraph.h"
 
 namespace LXiStream {
 
-struct SIOInputNode::Data
+struct SDiscInputNode::Data
 {
-  QIODevice                   * ioDevice;
   bool                          opened;
+  SInterfaces::DiscReader     * discReader;
   SInterfaces::BufferReader   * bufferReader;
+  SInterfaces::BufferReader::ReadCallback * readCallback;
 };
 
-SIOInputNode::SIOInputNode(SGraph *parent, QIODevice *ioDevice)
+SDiscInputNode::SDiscInputNode(SGraph *parent, const QString &path)
   : QObject(parent),
     SInterfaces::SourceNode(parent),
     d(new Data())
 {
-  d->ioDevice = ioDevice;
   d->opened = false;
+  d->discReader = NULL;
   d->bufferReader = NULL;
+  d->readCallback = NULL;
+
+  // Detect disc format.
+  QMultiMap<int, QString> formats;
+  foreach (SInterfaces::DiscFormatProber *prober, SInterfaces::DiscFormatProber::create(this))
+  {
+    foreach (const SInterfaces::DiscFormatProber::Format &format, prober->probeFormat(path))
+      formats.insert(-format.confidence, format.name);
+
+    delete prober;
+  }
+
+  // Now try to open a parser.
+  foreach (const QString &format, formats)
+  {
+    d->discReader = SInterfaces::DiscReader::create(this, format, path, false);
+    if (d->discReader)
+      break;
+  }
 }
 
-SIOInputNode::~SIOInputNode()
+SDiscInputNode::~SDiscInputNode()
 {
+  if (d->readCallback && d->discReader)
+    d->discReader->closeTitle(d->readCallback);
+
   delete d->bufferReader;
+  delete d->discReader;
   delete d;
   *const_cast<Data **>(&d) = NULL;
 }
 
-void SIOInputNode::setIODevice(QIODevice *ioDevice)
+unsigned SDiscInputNode::numTitles(void) const
 {
-  d->ioDevice = ioDevice;
+  if (d->discReader)
+    return d->discReader->numTitles();
+
+  return 0;
 }
 
-bool SIOInputNode::open(void)
+bool SDiscInputNode::openTitle(unsigned title)
 {
-  if (d->ioDevice)
-  if (d->ioDevice->isOpen())
+  if (d->discReader)
   {
-    // Detect format.
-    const QByteArray buffer = d->ioDevice->peek(SInterfaces::FileFormatProber::defaultProbeSize);
-
-    QMultiMap<int, QString> formats;
-    foreach (SInterfaces::FileFormatProber *prober, SInterfaces::FileFormatProber::create(this))
+    d->readCallback = d->discReader->openTitle(title);
+    if (d->readCallback)
     {
-      foreach (const SInterfaces::FileFormatProber::Format &format, prober->probeFormat(buffer))
-        formats.insert(-format.confidence, format.name);
-
-      delete prober;
-    }
-
-    // Now try to open a parser.
-    foreach (const QString &format, formats)
-    {
-      d->bufferReader = SInterfaces::BufferReader::create(this, format, false);
-      if (d->bufferReader)
+      // Detect format.
+      QByteArray buffer(SInterfaces::FileFormatProber::defaultProbeSize, 0);
+      const qint64 size = d->readCallback->read(reinterpret_cast<uchar *>(buffer.data()), buffer.size());
+      if (size > 0)
       {
-        if (d->bufferReader->start(this, this, d->ioDevice->isSequential()))
-          return d->opened = true;
+        d->readCallback->seek(0, SEEK_SET);
+        buffer.resize(size);
 
-        delete d->bufferReader;
-        d->bufferReader = NULL;
+        QMultiMap<int, QString> formats;
+        foreach (SInterfaces::FileFormatProber *prober, SInterfaces::FileFormatProber::create(this))
+        {
+          foreach (const SInterfaces::FileFormatProber::Format &format, prober->probeFormat(buffer))
+            formats.insert(-format.confidence, format.name);
+
+          delete prober;
+        }
+
+        // Now try to open a parser.
+        foreach (const QString &format, formats)
+        {
+          d->bufferReader = SInterfaces::BufferReader::create(this, format, false);
+          if (d->bufferReader)
+          {
+            if (d->bufferReader->start(d->readCallback, this, false))
+              return d->opened = true;
+
+            delete d->bufferReader;
+            d->bufferReader = NULL;
+          }
+        }
       }
     }
   }
@@ -87,7 +123,7 @@ bool SIOInputNode::open(void)
   return false;
 }
 
-STime SIOInputNode::duration(void) const
+STime SDiscInputNode::duration(void) const
 {
   SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
 
@@ -97,7 +133,7 @@ STime SIOInputNode::duration(void) const
   return STime();
 }
 
-bool SIOInputNode::setPosition(STime pos)
+bool SDiscInputNode::setPosition(STime pos)
 {
   SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
 
@@ -107,7 +143,7 @@ bool SIOInputNode::setPosition(STime pos)
   return false;
 }
 
-STime SIOInputNode::position(void) const
+STime SDiscInputNode::position(void) const
 {
   SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
 
@@ -117,7 +153,7 @@ STime SIOInputNode::position(void) const
   return STime();
 }
 
-QList<SIOInputNode::AudioStreamInfo> SIOInputNode::audioStreams(void) const
+QList<SDiscInputNode::AudioStreamInfo> SDiscInputNode::audioStreams(void) const
 {
   SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
 
@@ -127,7 +163,7 @@ QList<SIOInputNode::AudioStreamInfo> SIOInputNode::audioStreams(void) const
   return QList<AudioStreamInfo>();
 }
 
-QList<SIOInputNode::VideoStreamInfo> SIOInputNode::videoStreams(void) const
+QList<SDiscInputNode::VideoStreamInfo> SDiscInputNode::videoStreams(void) const
 {
   SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
 
@@ -137,7 +173,7 @@ QList<SIOInputNode::VideoStreamInfo> SIOInputNode::videoStreams(void) const
   return QList<VideoStreamInfo>();
 }
 
-QList<SIOInputNode::DataStreamInfo> SIOInputNode::dataStreams(void) const
+QList<SDiscInputNode::DataStreamInfo> SDiscInputNode::dataStreams(void) const
 {
   SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
 
@@ -147,7 +183,7 @@ QList<SIOInputNode::DataStreamInfo> SIOInputNode::dataStreams(void) const
   return QList<DataStreamInfo>();
 }
 
-void SIOInputNode::selectStreams(const QList<quint16> &streamIds)
+void SDiscInputNode::selectStreams(const QList<quint16> &streamIds)
 {
   SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
 
@@ -155,17 +191,17 @@ void SIOInputNode::selectStreams(const QList<quint16> &streamIds)
     d->bufferReader->selectStreams(streamIds);
 }
 
-bool SIOInputNode::start(void)
+bool SDiscInputNode::start(void)
 {
   SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
 
   if (!d->opened)
-    open();
+    openTitle(0);
 
   return d->opened;
 }
 
-void SIOInputNode::stop(void)
+void SDiscInputNode::stop(void)
 {
   SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
 
@@ -178,13 +214,12 @@ void SIOInputNode::stop(void)
   }
 }
 
-void SIOInputNode::process(void)
+void SDiscInputNode::process(void)
 {
   SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
 
-  if (d->ioDevice && d->bufferReader)
+  if (d->bufferReader)
   {
-    if (!d->ioDevice->atEnd())
     if (d->bufferReader->process())
       return;
 
@@ -201,42 +236,17 @@ void SIOInputNode::process(void)
   }
 }
 
-qint64 SIOInputNode::read(uchar *buffer, qint64 size)
-{
-  if (d->ioDevice)
-    return d->ioDevice->read((char *)buffer, size);
-
-  return -1;
-}
-
-qint64 SIOInputNode::seek(qint64 offset, int whence)
-{
-  if (d->ioDevice)
-  {
-    if (whence == SEEK_SET)
-      return d->ioDevice->seek(offset) ? 0 : -1;
-    else if (whence == SEEK_CUR)
-      return d->ioDevice->seek(d->ioDevice->pos() + offset) ? 0 : -1;
-    else if (whence == SEEK_END)
-      return d->ioDevice->seek(d->ioDevice->size() + offset) ? 0 : -1;
-    else if (whence == -1) // get size
-      return d->ioDevice->size();
-  }
-
-  return -1;
-}
-
-void SIOInputNode::produce(const SEncodedAudioBuffer &buffer)
+void SDiscInputNode::produce(const SEncodedAudioBuffer &buffer)
 {
   emit output(buffer);
 }
 
-void SIOInputNode::produce(const SEncodedVideoBuffer &buffer)
+void SDiscInputNode::produce(const SEncodedVideoBuffer &buffer)
 {
   emit output(buffer);
 }
 
-void SIOInputNode::produce(const SEncodedDataBuffer &buffer)
+void SDiscInputNode::produce(const SEncodedDataBuffer &buffer)
 {
   emit output(buffer);
 }

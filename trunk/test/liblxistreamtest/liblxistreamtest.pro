@@ -8,15 +8,20 @@ TARGET = lxistreamtest
 INCLUDEPATH += $${LXIMEDIA_DIR}/src/
 DEPENDPATH += $${LXIMEDIA_DIR}/src/
 include($${LXIMEDIA_DIR}/include/config.pri)
+include($${LXIMEDIA_DIR}/ext/dvdread/dvdread.pri)
 include($${LXIMEDIA_DIR}/ext/exif/exif.pri)
 include($${LXIMEDIA_DIR}/ext/ffmpeg/ffmpeg.pri)
 include($${LXIMEDIA_DIR}/ext/fftw/fftw.pri)
 
 # Files
 HEADERS += coretest.h \
+    dvdreadtest.h \
+    ffmpegtest.h \
     iotest.h
 SOURCES += main.cpp \
     coretest.cpp \
+    dvdreadtest.cpp \
+    ffmpegtest.cpp \
     iotest.cpp
 #    fingerprinttest.cpp \
 #    graphtest.cpp \
@@ -32,8 +37,10 @@ unix:QMAKE_POST_LINK = $(TARGET) -silent
 FILES_UNDER_TEST = $${LXIMEDIA_DIR}/obj/LXiStream/*.o \
     #$${LXIMEDIA_DIR}/obj/LXiStreamGl/*.o \
     $${LXIMEDIA_DIR}/obj/LXiStreamGui/*.o \
-    $${LXIMEDIA_DIR}/obj/gui/*.o \
-    $${LXIMEDIA_DIR}/obj/fftw/*.o
+    $${LXIMEDIA_DIR}/obj/dvdread/*.o \
+    $${LXIMEDIA_DIR}/obj/ffmpeg/*.o \
+    $${LXIMEDIA_DIR}/obj/fftw/*.o \
+    $${LXIMEDIA_DIR}/obj/gui/*.o
 
 # Platform specific
 unix {
@@ -48,12 +55,6 @@ unix {
     #SOURCES += opengltest.cpp
     #DEFINES += "ENABLE_GLSL"
     #FILES_UNDER_TEST += $${LXIMEDIA_DIR}/obj/opengl/*.o
-    
-    # AVCodec / FFMPEG
-    HEADERS += ffmpegtest.h
-    SOURCES += ffmpegtest.cpp
-    DEFINES += "ENABLE_FFMPEG"
-    FILES_UNDER_TEST += $${LXIMEDIA_DIR}/obj/ffmpeg/*.o
 }
 linux-g++ {
     # ALSA
@@ -75,12 +76,6 @@ linux-g++ {
 }
 win32 { 
     CONFIG += console
-    
-    # AVCodec / FFMPEG
-    HEADERS += ffmpegtest.h
-    SOURCES += ffmpegtest.cpp
-    DEFINES += "ENABLE_FFMPEG"
-    FILES_UNDER_TEST += $${LXIMEDIA_DIR}/obj/ffmpeg/*.o
 }
 QMAKE_LFLAGS += $${FILES_UNDER_TEST}
 POST_TARGETDEPS += $${FILES_UNDER_TEST}

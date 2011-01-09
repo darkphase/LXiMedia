@@ -436,7 +436,7 @@ QByteArray VideoServer::buildVideoPlayer(const QByteArray &item, const SMediaInf
   int count = 1;
   htmlParser.setField("LANGUAGES", QByteArray(""));
   htmlParser.setField("SELECTED", QByteArray(""));
-  foreach (const SInterfaces::FormatProber::AudioStreamInfo &stream, mediaInfo.audioStreams())
+  foreach (const SMediaInfo::AudioStreamInfo &stream, mediaInfo.audioStreams())
   {
     htmlParser.setField("VALUE", QByteArray::number(stream.streamId, 16));
     if (stream.language[0] != 0)
@@ -450,7 +450,7 @@ QByteArray VideoServer::buildVideoPlayer(const QByteArray &item, const SMediaInf
   count = 1;
   htmlParser.setField("SUBTITLES", QByteArray(""));
   htmlParser.setField("SELECTED", QByteArray(""));
-  foreach (const SInterfaces::FormatProber::DataStreamInfo &stream, mediaInfo.dataStreams())
+  foreach (const SMediaInfo::DataStreamInfo &stream, mediaInfo.dataStreams())
   {
     htmlParser.setField("VALUE", QByteArray::number(stream.streamId, 16));
     if (stream.language[0] != 0)

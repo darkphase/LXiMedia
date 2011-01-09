@@ -1,7 +1,7 @@
 TEMPLATE = subdirs
 DESTDIR = .
 
-SUBDIRS += ffmpeg fftw gui #opengl
+SUBDIRS += dvdread ffmpeg fftw gui #opengl
 
 linux-g++ {
   SUBDIRS += alsa pulseaudio v4l #linuxdvb
