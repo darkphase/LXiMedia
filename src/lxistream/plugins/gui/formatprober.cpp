@@ -24,7 +24,7 @@ namespace LXiStream {
 namespace GuiBackend {
 
 FormatProber::FormatProber(const QString &, QObject *parent)
-  : SInterfaces::FileFormatProber(parent)
+  : SInterfaces::FormatProber(parent)
 {
 }
 
@@ -32,7 +32,7 @@ FormatProber::~FormatProber()
 {
 }
 
-QList<FormatProber::Format> FormatProber::probeFormat(const QByteArray &data, const QString &)
+QList<FormatProber::Format> FormatProber::probeFileFormat(const QByteArray &data, const QString &)
 {
   QList<Format> result;
 
@@ -44,6 +44,11 @@ QList<FormatProber::Format> FormatProber::probeFormat(const QByteArray &data, co
     result += Format("png", -1);
 
   return result;
+}
+
+QList<FormatProber::Format> FormatProber::probeDiscFormat(const QString &)
+{
+  return QList<Format>();
 }
 
 void FormatProber::probeFile(ProbeInfo &pi, ReadCallback *readCallback, const QString &)
@@ -75,6 +80,10 @@ void FormatProber::probeFile(ProbeInfo &pi, ReadCallback *readCallback, const QS
       }
     }
   }
+}
+
+void FormatProber::probeDisc(ProbeInfo &, const QString &)
+{
 }
 
 } } // End of namespaces

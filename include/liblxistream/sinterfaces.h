@@ -97,11 +97,11 @@ protected:
   mutable QMutex                mutex;
 };
 
-/*! The FileFormatProber interface can be used to detect the format of a byte
+/*! The FormatProber interface can be used to detect the format of a byte
     stream.
  */
-class FileFormatProber : public QObject,
-                         public SFactorizable<FileFormatProber>
+class FormatProber : public QObject,
+                     public SFactorizable<FormatProber>
 {
 Q_OBJECT
 public:
@@ -133,7 +133,7 @@ public:
     }
 
     quint16                     streamId;
-    char                        language[4]; //!< ISO 639 3-letter language code (empty string if undefined).
+    char                        language[4]; //!< ISO 639-1 or ISO 639-2 language code (empty string if undefined).
   };
 
   struct AudioStreamInfo : StreamInfo
@@ -170,9 +170,10 @@ public:
 
   struct ProbeInfo
   {
-    inline ProbeInfo(void) : isProbed(false), isReadable(false), year(0), track(0) { }
+    inline ProbeInfo(void) : isDisc(false), isProbed(false), isReadable(false), year(0), track(0) { }
 
     QString                     format;
+    bool                        isDisc;
 
     bool                        isProbed;
     bool                        isReadable;
@@ -185,6 +186,8 @@ public:
     QList<DataStreamInfo>       dataStreams;
     SVideoCodec                 imageCodec;
     QList<Chapter>              chapters;
+
+    QList<ProbeInfo>            titles;
 
     QString                     title;
     QString                     author;
@@ -202,10 +205,10 @@ public:
   /*! Creates all registred format probers.
       \param parent   The parent object, or NULL if none.
    */
-  static QList<FileFormatProber *>  create(QObject *parent);
+  static QList<FormatProber *>  create(QObject *parent);
 
 protected:
-  inline explicit               FileFormatProber(QObject *parent) : QObject(parent) { }
+  inline explicit               FormatProber(QObject *parent) : QObject(parent) { }
 
 public:
   /*! Defines the recommended size of the buffer that is provided to
@@ -213,68 +216,28 @@ public:
    */
   static const unsigned         defaultProbeSize;
 
-  /*! Should probe the provided buffer for the container format used (e.g. ogg,
+  /*! Should probe the provided buffer for the container format (e.g. ogg,
       matroska, mpeg-ps, etc.) and return zero or more format names. The
       confidence value can be used to provide a priority. The provided file name
       can optionally be used to detect the format.
    */
-  virtual QList<Format>         probeFormat(const QByteArray &buffer, const QString &fileName = QString::null) = 0;
+  virtual QList<Format>         probeFileFormat(const QByteArray &buffer, const QString &fileName = QString::null) = 0;
+  
+  /*! Should probe the provided device for the disc format (e.g. dvd,
+      cd, etc.) and return zero or more format names. The confidence value can
+      be used to provide a priority.
+   */
+  virtual QList<Format>         probeDiscFormat(const QString &devicePath) = 0;
 
   /*! Should probe the provided file and retrieve as much information from it
       as possible.
    */
   virtual void                  probeFile(ProbeInfo &, ReadCallback *, const QString &fileName = QString::null) = 0;
-};
-
-
-/*! The DiscFormatProber interface can be used to detect the format of a disc.
- */
-class DiscFormatProber : public QObject,
-                         public SFactorizable<DiscFormatProber>
-{
-Q_OBJECT
-public:
-  struct ProbeInfo
-  {
-    inline ProbeInfo(void) : isProbed(false), isReadable(false) { }
-
-    QString                     format;
-
-    bool                        isProbed;
-    bool                        isReadable;
-
-    QList<FileFormatProber::ProbeInfo> titles;
-  };
-
-public:
-  struct Format
-  {
-    inline                      Format(void) : name(), confidence(0) { }
-    inline                      Format(const QString &name, int confidence) : name(name), confidence(confidence) { }
-
-    QString                     name;
-    int                         confidence;
-  };
-
-public:
-  /*! Creates all registred format probers.
-      \param parent   The parent object, or NULL if none.
+  
+  /*! Should probe the provided disc and retrieve as much information from it
+      as possible.
    */
-  static QList<DiscFormatProber *>  create(QObject *parent);
-
-protected:
-  inline explicit               DiscFormatProber(QObject *parent) : QObject(parent) { }
-
-public:
-  /*! Should probe the provided disc image/device for the disc format used
-      (e.g. cd, dvd, etc.).
-   */
-  virtual QList<Format>         probeFormat(const QString &path) = 0;
-
-  /*! Should probe the provided disc image/device and retrieve as much
-      information from it as possible.
-   */
-  virtual void                  probePath(ProbeInfo &, const QString &path) = 0;
+  virtual void                  probeDisc(ProbeInfo &, const QString &devicePath) = 0;
 };
 
 /*! The BufferReader interface can be used to read serialized buffers from a
@@ -285,7 +248,7 @@ class BufferReader : public QObject,
 {
 Q_OBJECT
 public:
-  typedef FileFormatProber::ReadCallback ReadCallback;
+  typedef FormatProber::ReadCallback ReadCallback;
 
   struct ProduceCallback
   {
@@ -294,10 +257,10 @@ public:
     virtual void                produce(const SEncodedDataBuffer &) = 0;
   };
 
-  typedef FileFormatProber::AudioStreamInfo AudioStreamInfo;
-  typedef FileFormatProber::VideoStreamInfo VideoStreamInfo;
-  typedef FileFormatProber::DataStreamInfo  DataStreamInfo;
-  typedef FileFormatProber::Chapter         Chapter;
+  typedef FormatProber::AudioStreamInfo AudioStreamInfo;
+  typedef FormatProber::VideoStreamInfo VideoStreamInfo;
+  typedef FormatProber::DataStreamInfo  DataStreamInfo;
+  typedef FormatProber::Chapter         Chapter;
 
 public:
   static BufferReader         * create(QObject *parent, const QString &format, bool nonNull = true);
@@ -315,12 +278,37 @@ public:
   virtual STime                 duration(void) const = 0;
   virtual bool                  setPosition(STime) = 0;
   virtual STime                 position(void) const = 0;
+  virtual QList<Chapter>        chapters(void) const = 0;
 
   virtual QList<AudioStreamInfo> audioStreams(void) const = 0;
   virtual QList<VideoStreamInfo> videoStreams(void) const = 0;
   virtual QList<DataStreamInfo>  dataStreams(void) const = 0;
   virtual void                  selectStreams(const QList<quint16> &) = 0;
+};
+
+/*! The BufferReaderNode interface is used for nodes that provide access to a
+    BufferReader.
+ */
+class BufferReaderNode
+{
+public:
+  typedef FormatProber::AudioStreamInfo AudioStreamInfo;
+  typedef FormatProber::VideoStreamInfo VideoStreamInfo;
+  typedef FormatProber::DataStreamInfo  DataStreamInfo;
+  typedef FormatProber::Chapter         Chapter;
+
+public:
+  virtual                       ~BufferReaderNode();
+
+  virtual STime                 duration(void) const = 0;
+  virtual bool                  setPosition(STime) = 0;
+  virtual STime                 position(void) const = 0;
   virtual QList<Chapter>        chapters(void) const = 0;
+
+  virtual QList<AudioStreamInfo> audioStreams(void) const = 0;
+  virtual QList<VideoStreamInfo> videoStreams(void) const = 0;
+  virtual QList<DataStreamInfo> dataStreams(void) const = 0;
+  virtual void                  selectStreams(const QList<quint16> &) = 0;
 };
 
 /*! The BufferWriter interface can be used to write serialized buffers to a
@@ -358,9 +346,16 @@ public:
 /*! The DiscReader interface can be used to read from a media disc (e.g. DVD).
  */
 class DiscReader : public QObject,
-                   public SFactorizable<DiscReader>
+                   public SFactorizable<DiscReader>,
+                   public BufferReader::ReadCallback
 {
 Q_OBJECT
+public:
+  typedef FormatProber::AudioStreamInfo AudioStreamInfo;
+  typedef FormatProber::VideoStreamInfo VideoStreamInfo;
+  typedef FormatProber::DataStreamInfo  DataStreamInfo;
+  typedef FormatProber::Chapter         Chapter;
+
 public:
   static DiscReader           * create(QObject *parent, const QString &format, const QString &path, bool nonNull = true);
 
@@ -371,8 +366,16 @@ protected:
 
 public:
   virtual unsigned              numTitles(void) const = 0;
-  virtual BufferReader::ReadCallback * openTitle(unsigned) = 0;
-  virtual void                  closeTitle(BufferReader::ReadCallback *) = 0;
+  virtual bool                  playTitle(unsigned) = 0;
+
+  virtual STime                 duration(void) const = 0;
+  virtual bool                  setPosition(STime) = 0;
+  virtual STime                 position(void) const = 0;
+  virtual void                  annotateChapters(QList<Chapter> &) const = 0;
+
+  virtual void                  annotateAudioStreams(QList<AudioStreamInfo> &) const = 0;
+  virtual void                  annotateVideoStreams(QList<VideoStreamInfo> &) const = 0;
+  virtual void                  annotateDataStreams(QList<DataStreamInfo> &) const = 0;
 };
 
 /*! The AudioDecoder interface can be used to decode audio buffers.

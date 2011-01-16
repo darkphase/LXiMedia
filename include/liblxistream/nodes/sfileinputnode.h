@@ -36,13 +36,15 @@ public:
 
   virtual bool                  open(void);
 
+
+public: // From SInterfaces::SourceNode
+  virtual void                  stop(void);
+
+public: // From SInterfaces::BufferReaderNode
   virtual bool                  setPosition(STime);
 
   virtual QList<DataStreamInfo>  dataStreams(void) const;
   virtual void                  selectStreams(const QList<quint16> &);
-
-public: // From SInterfaces::SourceNode
-  virtual void                  stop(void);
 
 private slots:
   void                          parseSubtitle(const SEncodedVideoBuffer &);

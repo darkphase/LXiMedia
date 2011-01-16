@@ -28,7 +28,6 @@ struct SDiscInputNode::Data
   bool                          opened;
   SInterfaces::DiscReader     * discReader;
   SInterfaces::BufferReader   * bufferReader;
-  SInterfaces::BufferReader::ReadCallback * readCallback;
 };
 
 SDiscInputNode::SDiscInputNode(SGraph *parent, const QString &path)
@@ -39,13 +38,13 @@ SDiscInputNode::SDiscInputNode(SGraph *parent, const QString &path)
   d->opened = false;
   d->discReader = NULL;
   d->bufferReader = NULL;
-  d->readCallback = NULL;
 
-  // Detect disc format.
+  // Detect format.
+  QByteArray empty;
   QMultiMap<int, QString> formats;
-  foreach (SInterfaces::DiscFormatProber *prober, SInterfaces::DiscFormatProber::create(this))
+  foreach (SInterfaces::FormatProber *prober, SInterfaces::FormatProber::create(this))
   {
-    foreach (const SInterfaces::DiscFormatProber::Format &format, prober->probeFormat(path))
+    foreach (const SInterfaces::FormatProber::Format &format, prober->probeDiscFormat(path))
       formats.insert(-format.confidence, format.name);
 
     delete prober;
@@ -62,9 +61,6 @@ SDiscInputNode::SDiscInputNode(SGraph *parent, const QString &path)
 
 SDiscInputNode::~SDiscInputNode()
 {
-  if (d->readCallback && d->discReader)
-    d->discReader->closeTitle(d->readCallback);
-
   delete d->bufferReader;
   delete d->discReader;
   delete d;
@@ -79,42 +75,39 @@ unsigned SDiscInputNode::numTitles(void) const
   return 0;
 }
 
-bool SDiscInputNode::openTitle(unsigned title)
+bool SDiscInputNode::playTitle(unsigned title)
 {
   if (d->discReader)
+  if (d->discReader->playTitle(title))
   {
-    d->readCallback = d->discReader->openTitle(title);
-    if (d->readCallback)
+    // Detect format.
+    QByteArray buffer(SInterfaces::FormatProber::defaultProbeSize, 0);
+    const qint64 size = d->discReader->read(reinterpret_cast<uchar *>(buffer.data()), buffer.size());
+    if (size > 0)
     {
-      // Detect format.
-      QByteArray buffer(SInterfaces::FileFormatProber::defaultProbeSize, 0);
-      const qint64 size = d->readCallback->read(reinterpret_cast<uchar *>(buffer.data()), buffer.size());
-      if (size > 0)
+      //d->discReader->setPosition(STime::null);
+      buffer.resize(size);
+
+      QMultiMap<int, QString> formats;
+      foreach (SInterfaces::FormatProber *prober, SInterfaces::FormatProber::create(this))
       {
-        d->readCallback->seek(0, SEEK_SET);
-        buffer.resize(size);
+        foreach (const SInterfaces::FormatProber::Format &format, prober->probeFileFormat(buffer))
+          formats.insert(-format.confidence, format.name);
 
-        QMultiMap<int, QString> formats;
-        foreach (SInterfaces::FileFormatProber *prober, SInterfaces::FileFormatProber::create(this))
+        delete prober;
+      }
+
+      // Now try to open a parser.
+      foreach (const QString &format, formats)
+      {
+        d->bufferReader = SInterfaces::BufferReader::create(this, format, false);
+        if (d->bufferReader)
         {
-          foreach (const SInterfaces::FileFormatProber::Format &format, prober->probeFormat(buffer))
-            formats.insert(-format.confidence, format.name);
+          if (d->bufferReader->start(d->discReader, this, false))
+            return d->opened = true;
 
-          delete prober;
-        }
-
-        // Now try to open a parser.
-        foreach (const QString &format, formats)
-        {
-          d->bufferReader = SInterfaces::BufferReader::create(this, format, false);
-          if (d->bufferReader)
-          {
-            if (d->bufferReader->start(d->readCallback, this, false))
-              return d->opened = true;
-
-            delete d->bufferReader;
-            d->bufferReader = NULL;
-          }
+          delete d->bufferReader;
+          d->bufferReader = NULL;
         }
       }
     }
@@ -123,80 +116,12 @@ bool SDiscInputNode::openTitle(unsigned title)
   return false;
 }
 
-STime SDiscInputNode::duration(void) const
-{
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
-  if (d->bufferReader)
-    return d->bufferReader->duration();
-
-  return STime();
-}
-
-bool SDiscInputNode::setPosition(STime pos)
-{
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
-  if (d->bufferReader)
-    return d->bufferReader->setPosition(pos);
-
-  return false;
-}
-
-STime SDiscInputNode::position(void) const
-{
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
-  if (d->bufferReader)
-    return d->bufferReader->position();
-
-  return STime();
-}
-
-QList<SDiscInputNode::AudioStreamInfo> SDiscInputNode::audioStreams(void) const
-{
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
-  if (d->bufferReader)
-    return d->bufferReader->audioStreams();
-
-  return QList<AudioStreamInfo>();
-}
-
-QList<SDiscInputNode::VideoStreamInfo> SDiscInputNode::videoStreams(void) const
-{
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
-  if (d->bufferReader)
-    return d->bufferReader->videoStreams();
-
-  return QList<VideoStreamInfo>();
-}
-
-QList<SDiscInputNode::DataStreamInfo> SDiscInputNode::dataStreams(void) const
-{
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
-  if (d->bufferReader)
-    return d->bufferReader->dataStreams();
-
-  return QList<DataStreamInfo>();
-}
-
-void SDiscInputNode::selectStreams(const QList<quint16> &streamIds)
-{
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
-  if (d->bufferReader)
-    d->bufferReader->selectStreams(streamIds);
-}
-
 bool SDiscInputNode::start(void)
 {
   SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
 
   if (!d->opened)
-    openTitle(0);
+    playTitle(0);
 
   return d->opened;
 }
@@ -234,6 +159,108 @@ void SDiscInputNode::process(void)
     emit output(SEncodedDataBuffer());
     emit finished();
   }
+}
+
+STime SDiscInputNode::duration(void) const
+{
+  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+
+  if (d->discReader && d->bufferReader)
+    return qMax(d->discReader->duration(), d->bufferReader->duration());
+
+  return STime();
+}
+
+bool SDiscInputNode::setPosition(STime pos)
+{
+  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+
+  if (d->discReader)
+  if (d->discReader->setPosition(pos))
+    return true;
+
+  if (d->bufferReader)
+    return d->bufferReader->setPosition(pos);
+
+  return false;
+}
+
+STime SDiscInputNode::position(void) const
+{
+  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+
+  if (d->bufferReader)
+    return d->bufferReader->position();
+
+  return STime();
+}
+
+QList<SDiscInputNode::Chapter> SDiscInputNode::chapters(void) const
+{
+  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+
+  if (d->discReader && d->bufferReader)
+  {
+    QList<Chapter> chapters = d->bufferReader->chapters();
+    d->discReader->annotateChapters(chapters);
+
+    return chapters;
+  }
+
+  return QList<Chapter>();
+}
+
+QList<SDiscInputNode::AudioStreamInfo> SDiscInputNode::audioStreams(void) const
+{
+  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+
+  if (d->discReader && d->bufferReader)
+  {
+    QList<AudioStreamInfo> audioStreams = d->bufferReader->audioStreams();
+    d->discReader->annotateAudioStreams(audioStreams);
+
+    return audioStreams;
+  }
+
+  return QList<AudioStreamInfo>();
+}
+
+QList<SDiscInputNode::VideoStreamInfo> SDiscInputNode::videoStreams(void) const
+{
+  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+
+  if (d->discReader && d->bufferReader)
+  {
+    QList<VideoStreamInfo> videoStreams = d->bufferReader->videoStreams();
+    d->discReader->annotateVideoStreams(videoStreams);
+
+    return videoStreams;
+  }
+
+  return QList<VideoStreamInfo>();
+}
+
+QList<SDiscInputNode::DataStreamInfo> SDiscInputNode::dataStreams(void) const
+{
+  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+
+  if (d->discReader && d->bufferReader)
+  {
+    QList<DataStreamInfo> dataStreams = d->bufferReader->dataStreams();
+    d->discReader->annotateDataStreams(dataStreams);
+
+    return dataStreams;
+  }
+
+  return QList<DataStreamInfo>();
+}
+
+void SDiscInputNode::selectStreams(const QList<quint16> &streamIds)
+{
+  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+
+  if (d->bufferReader)
+    d->bufferReader->selectStreams(streamIds);
 }
 
 void SDiscInputNode::produce(const SEncodedAudioBuffer &buffer)

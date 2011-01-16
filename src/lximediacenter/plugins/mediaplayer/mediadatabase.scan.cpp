@@ -317,6 +317,10 @@ void MediaDatabase::updateDir(const QString &path, qint64 parentDir, QuerySet &q
   foreach (const QFileInfo &child, QDir(path).entryInfoList(QDir::Files))
   if (!child.fileName().startsWith('.'))
   {
+    if (path.endsWith("/VIDEO_TS/", Qt::CaseInsensitive) || path.endsWith("/AUDIO_TS/", Qt::CaseInsensitive))
+    if (child.fileName().compare("VIDEO_TS.IFO", Qt::CaseInsensitive) != 0)
+      continue;
+
     const QString childPath =
 #ifndef Q_OS_WIN
         child.canonicalFilePath();
@@ -330,7 +334,7 @@ void MediaDatabase::updateDir(const QString &path, qint64 parentDir, QuerySet &q
     q.request.exec();
     if (!q.request.next())
     {
-      //qDebug() << "New file:" << childPath;
+      qDebug() << "New file:" << childPath;
 
       // Insert the file
       q.insert.bindValue(0, QVariant(QVariant::LongLong));
@@ -420,12 +424,9 @@ void MediaDatabase::probeFiles(void)
 
     l.unlock();
 
-    // Ignore separate DVD chapters.
-    QDir parentDir(path);
-    parentDir.cdUp();
-    if ((parentDir.dirName().toLower() != "video_ts") && (parentDir.dirName().toLower() != "audio_ts"))
+    if (!path.isEmpty())
     {
-      qDebug() << "Scanning:" << path;
+      qDebug() << "Probing:" << path;
 
       const SMediaInfo mediaInfo(path);
       const QByteArray mediaInfoXml = mediaInfo.toByteArray(-1);
@@ -438,7 +439,7 @@ void MediaDatabase::probeFiles(void)
       query.prepare("UPDATE MediaplayerFiles "
                     "SET size = :size, mediaInfo = :mediaInfo "
                     "WHERE path = :path");
-      query.bindValue(0, QFileInfo(path).size());
+      query.bindValue(0, qMax(Q_INT64_C(0), QFileInfo(path).size()));
       query.bindValue(1, mediaInfoXml);
       query.bindValue(2, path);
       query.exec();
@@ -563,7 +564,7 @@ QSet<QString> MediaDatabase::findCategories(const QString &path) const
 void MediaDatabase::categorizeMovie(QSqlDatabase &db, qint64 rowId, const QString &path, const SMediaInfo &mediaInfo)
 {
   if (mediaInfo.containsAudio() && mediaInfo.containsVideo() &&
-      (mediaInfo.duration().toMin() >= 5)) // Don't categorize sample files.
+      ((mediaInfo.duration().toMin() >= 5) || mediaInfo.duration().isNull())) // Don't categorize sample files.
   {
     const QString title = QFileInfo(path).completeBaseName();
 

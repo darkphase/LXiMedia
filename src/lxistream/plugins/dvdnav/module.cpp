@@ -17,28 +17,43 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef DVDREADBACKEND_MODULE_H
-#define DVDREADBACKEND_MODULE_H
+#include "module.h"
+#include "discreader.h"
+#include "formatprober.h"
 
-#include <QtCore>
-#include <LXiStream>
 
 namespace LXiStream {
-namespace DVDReadBackend {
+namespace DVDNavBackend {
 
 
-class Module : public QObject,
-               public SInterfaces::Module
+void Module::registerClasses(void)
 {
-Q_OBJECT
-Q_INTERFACES(LXiStream::SInterfaces::Module)
-public:
-  virtual void                  registerClasses(void);
-  virtual void                  unload(void);
-  virtual QByteArray            about(void);
-};
+  FormatProber::registerClass<FormatProber>(0);
+  DiscReader::registerClass<DiscReader>(DiscReader::formatName);
+}
+
+void Module::unload(void)
+{
+}
+
+QByteArray Module::about(void)
+{
+  const QByteArray text;/* =
+      " <h2>FFMpeg (libavcodec, libavformat, libswscale)</h2>\n"
+      " Versions: " LIBAVCODEC_IDENT ", " LIBAVFORMAT_IDENT ", " LIBSWSCALE_IDENT "<br />\n"
+      " Website: <a href=\"http://www.ffmpeg.org/\">www.ffmpeg.org</a><br />\n"
+      " <br />\n"
+      " Used under the terms of the GNU Lesser General Public License version 2.1\n"
+      " as published by the Free Software Foundation.<br />\n"
+      " <br />\n";*/
+
+  return text;
+}
 
 
 } } // End of namespaces
 
+#ifdef PLUGIN_NAME
+#include <QtPlugin>
+Q_EXPORT_PLUGIN2(PLUGIN_NAME, LXiStream::DVDNavBackend::Module);
 #endif

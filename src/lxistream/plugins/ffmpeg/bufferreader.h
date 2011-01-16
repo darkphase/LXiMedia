@@ -72,12 +72,12 @@ public: // From SInterfaces::BufferReader
   virtual STime                 duration(void) const;
   virtual bool                  setPosition(STime);
   virtual STime                 position(void) const;
+  virtual QList<Chapter>        chapters(void) const;
 
   virtual QList<AudioStreamInfo> audioStreams(void) const;
   virtual QList<VideoStreamInfo> videoStreams(void) const;
   virtual QList<DataStreamInfo>  dataStreams(void) const;
   virtual void                  selectStreams(const QList<quint16> &);
-  virtual QList<Chapter>        chapters(void) const;
 
 private: // DTS framing
   static bool                   isDTS(const uint8_t *, int);

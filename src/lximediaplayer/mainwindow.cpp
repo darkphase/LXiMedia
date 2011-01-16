@@ -185,7 +185,7 @@ bool MainWindow::openDisc(const QString &path, int startPos)
 
   stop();
 
-  const SMediaInfoList titles = SDiscInfo(path).titles();
+  //const SMediaInfoList titles = SDiscInfo(path).titles();
 
   playerGraph = new PlayerGraph(path, true);
   playerGraph->audioOutput.setDelay(STime::fromMSec(250)); // Otherwise video frames may come too late.
@@ -193,17 +193,6 @@ bool MainWindow::openDisc(const QString &path, int startPos)
   connect(&(playerGraph->sync), SIGNAL(output(SVideoBuffer)), ui.videoView, SLOT(input(SVideoBuffer)));
 
   SDiscInputNode * const disc = qobject_cast<SDiscInputNode *>(playerGraph->source);
-  unsigned bestTitle = 0;
-  STime bestTime;
-  for (unsigned i=0, n=titles.count(); i<n; i++)
-  if (!bestTime.isValid() ||
-      ((titles[i].duration() > bestTime) && titles[i].containsAudio() && titles[i].containsVideo()))
-  {
-    bestTitle = i;
-    bestTime = titles[i].duration();
-  }
-
-  if (disc->openTitle(bestTitle))
   if (playerGraph->start())
   {
     this->fileName = fileName;
@@ -271,9 +260,9 @@ void MainWindow::selectDir(const QString &path)
 void MainWindow::fileActivated(QTreeWidgetItem *item)
 {
   const QFileInfo info(item->text(1));
-  const SDiscInfo discInfo(info.absoluteFilePath());
+  const SMediaInfo mediaInfo(info.absoluteFilePath());
 
-  if (!discInfo.format().isEmpty())
+  if (mediaInfo.isDisc())
     openDisc(info.absoluteFilePath());
   else if (info.isDir())
     selectDir(info.absoluteFilePath());

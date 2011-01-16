@@ -60,6 +60,8 @@ private:
       connect(&subtitleRenderer, SIGNAL(output(SVideoBuffer)), &sync, SLOT(input(SVideoBuffer)));
       connect(&audioDecoder, SIGNAL(output(SAudioBuffer)), &sync, SLOT(input(SAudioBuffer)));
       connect(&sync, SIGNAL(output(SAudioBuffer)), &audioOutput, SLOT(input(SAudioBuffer)));
+
+      connect(source, SIGNAL(finished()), SLOT(stop()));
     }
 
   public:

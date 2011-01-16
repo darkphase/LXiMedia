@@ -28,7 +28,7 @@ namespace FFMpegBackend {
 
 
 FormatProber::FormatProber(const QString &, QObject *parent)
-  : SInterfaces::FileFormatProber(parent)
+  : SInterfaces::FormatProber(parent)
 {
 }
 
@@ -36,7 +36,7 @@ FormatProber::~FormatProber()
 {
 }
 
-QList<FormatProber::Format> FormatProber::probeFormat(const QByteArray &buffer, const QString &fileName)
+QList<FormatProber::Format> FormatProber::probeFileFormat(const QByteArray &buffer, const QString &fileName)
 {
   SDebug::MutexLocker f(FFMpegCommon::mutex(), __FILE__, __LINE__);
 
@@ -49,6 +49,11 @@ QList<FormatProber::Format> FormatProber::probeFormat(const QByteArray &buffer, 
   if (format)
     return QList<Format>() << Format(format->name, 0);
 
+  return QList<Format>();
+}
+
+QList<FormatProber::Format> FormatProber::probeDiscFormat(const QString &)
+{
   return QList<Format>();
 }
 
@@ -81,10 +86,10 @@ void FormatProber::probeFile(ProbeInfo &pi, ReadCallback *readCallback, const QS
   };
 
   // Detect format.
-  QByteArray data(SInterfaces::FileFormatProber::defaultProbeSize, 0);
+  QByteArray data(SInterfaces::FormatProber::defaultProbeSize, 0);
   data.resize(readCallback->read(reinterpret_cast<uchar *>(data.data()), data.size()));
 
-  QList<SInterfaces::FileFormatProber::Format> formats = probeFormat(data, fileName);
+  QList<SInterfaces::FormatProber::Format> formats = probeFileFormat(data, fileName);
   if (!formats.isEmpty())
   {
     pi.format = formats.first().name;
@@ -201,6 +206,10 @@ void FormatProber::probeFile(ProbeInfo &pi, ReadCallback *readCallback, const QS
       }
     }
   }
+}
+
+void FormatProber::probeDisc(ProbeInfo &, const QString &)
+{
 }
 
 QString FormatProber::bestOf(const QString &a, const QString &b)

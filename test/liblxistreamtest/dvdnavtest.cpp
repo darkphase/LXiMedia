@@ -17,17 +17,32 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#define __DVDREADTEST_H
+#include "dvdnavtest.h"
+#include <QtTest>
+#include <LXiStream>
+#include "lxistream/plugins/dvdnav/discreader.h"
+#include "lxistream/plugins/dvdnav/module.h"
+#include "lxistream/plugins/ffmpeg/module.h"
 
-#include <QtCore>
 
-class DVDReadTest : public QObject
+void DVDNavTest::initTestCase(void)
 {
-Q_OBJECT
-public:
-  inline explicit               DVDReadTest(QObject *parent) : QObject(parent) { }
+  // We only want to initialize common and gui here, not probe for plugins.
+  QVERIFY(SSystem::initialize(SSystem::Initialize_Devices |
+                              SSystem::Initialize_LogToConsole, 0));
 
-private slots:
-  void                          initTestCase(void);
-  void                          cleanupTestCase(void);
-};
+  QVERIFY(SSystem::loadModule(new DVDNavBackend::Module()));
+  QVERIFY(SSystem::loadModule(new FFMpegBackend::Module()));
+
+//  SDiscInfo discInfo("");
+//  qDebug() << discInfo.titles().count();
+
+//  SDiscInputNode discInputNode(NULL, "");
+//  qDebug() << discInputNode.numTitles();
+//  qDebug() << discInputNode.openTitle(0);
+}
+
+void DVDNavTest::cleanupTestCase(void)
+{
+  SSystem::shutdown();
+}

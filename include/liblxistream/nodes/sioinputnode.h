@@ -25,19 +25,15 @@
 
 namespace LXiStream {
 
-/*! This is a generic intput node, reading to a QIODevice.
+/*! This is a generic input node, reading to a QIODevice.
  */
 class SIOInputNode : public QObject,
                      public SInterfaces::SourceNode,
+                     public SInterfaces::BufferReaderNode,
                      protected SInterfaces::BufferReader::ReadCallback,
                      protected SInterfaces::BufferReader::ProduceCallback
 {
 Q_OBJECT
-public:
-  typedef SInterfaces::BufferReader::AudioStreamInfo AudioStreamInfo;
-  typedef SInterfaces::BufferReader::VideoStreamInfo VideoStreamInfo;
-  typedef SInterfaces::BufferReader::DataStreamInfo  DataStreamInfo;
-
 public:
   explicit                      SIOInputNode(SGraph *, QIODevice * = NULL);
   virtual                       ~SIOInputNode();
@@ -45,19 +41,21 @@ public:
   void                          setIODevice(QIODevice *);
   virtual bool                  open(void);
 
+public: // From SInterfaces::SourceNode
+  virtual bool                  start(void);
+  virtual void                  stop(void);
+  virtual void                  process(void);
+
+public: // From SInterfaces::BufferReaderNode
   virtual STime                 duration(void) const;
   virtual bool                  setPosition(STime);
   virtual STime                 position(void) const;
+  virtual QList<Chapter>        chapters(void) const;
 
   virtual QList<AudioStreamInfo> audioStreams(void) const;
   virtual QList<VideoStreamInfo> videoStreams(void) const;
   virtual QList<DataStreamInfo>  dataStreams(void) const;
   virtual void                  selectStreams(const QList<quint16> &);
-
-public: // From SInterfaces::SourceNode
-  virtual bool                  start(void);
-  virtual void                  stop(void);
-  virtual void                  process(void);
 
 signals:
   void                          output(const SEncodedAudioBuffer &);

@@ -29,6 +29,7 @@ namespace LXiStream {
  */
 class SDiscInputNode : public QObject,
                        public SInterfaces::SourceNode,
+                       public SInterfaces::BufferReaderNode,
                        protected SInterfaces::BufferReader::ProduceCallback
 {
 Q_OBJECT
@@ -42,22 +43,23 @@ public:
   virtual                       ~SDiscInputNode();
 
   unsigned                      numTitles(void) const;
-
-  virtual bool                  openTitle(unsigned title);
-
-  virtual STime                 duration(void) const;
-  virtual bool                  setPosition(STime);
-  virtual STime                 position(void) const;
-
-  virtual QList<AudioStreamInfo> audioStreams(void) const;
-  virtual QList<VideoStreamInfo> videoStreams(void) const;
-  virtual QList<DataStreamInfo>  dataStreams(void) const;
-  virtual void                  selectStreams(const QList<quint16> &);
+  bool                          playTitle(unsigned title);
 
 public: // From SInterfaces::SourceNode
   virtual bool                  start(void);
   virtual void                  stop(void);
   virtual void                  process(void);
+
+public: // From SInterfaces::BufferReaderNode
+  virtual STime                 duration(void) const;
+  virtual bool                  setPosition(STime);
+  virtual STime                 position(void) const;
+  virtual QList<Chapter>        chapters(void) const;
+
+  virtual QList<AudioStreamInfo> audioStreams(void) const;
+  virtual QList<VideoStreamInfo> videoStreams(void) const;
+  virtual QList<DataStreamInfo> dataStreams(void) const;
+  virtual void                  selectStreams(const QList<quint16> &);
 
 signals:
   void                          output(const SEncodedAudioBuffer &);

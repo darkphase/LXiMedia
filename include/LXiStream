@@ -9,7 +9,6 @@
 #include "liblxistream/sdatacodec.h"
 #include "liblxistream/sdebug.h"
 #include "liblxistream/sdigitaltuner.h"
-#include "liblxistream/sdiscinfo.h"
 #include "liblxistream/sencodedaudiobuffer.h"
 #include "liblxistream/sencodeddatabuffer.h"
 #include "liblxistream/sencodedvideobuffer.h"
