@@ -63,6 +63,24 @@ bool SFileInputNode::open(void)
   return false;
 }
 
+void SFileInputNode::stop(void)
+{
+  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+
+  SIOInputNode::stop();
+
+  d->mediaFile.close();
+
+  if (d->subtitleFile)
+  {
+    disconnect(this, SIGNAL(output(const SEncodedVideoBuffer &)), this, SLOT(parseSubtitle(const SEncodedVideoBuffer &)));
+    delete d->subtitleFile;
+    d->subtitleFile = NULL;
+
+    d->nextSubtitle.clear();
+  }
+}
+
 bool SFileInputNode::setPosition(STime pos)
 {
   SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
@@ -122,24 +140,6 @@ void SFileInputNode::selectStreams(const QList<quint16> &streamIds)
     nextStreamIds += id;
 
   SIOInputNode::selectStreams(nextStreamIds);
-}
-
-void SFileInputNode::stop(void)
-{
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
-  SIOInputNode::stop();
-
-  d->mediaFile.close();
-
-  if (d->subtitleFile)
-  {
-    disconnect(this, SIGNAL(output(const SEncodedVideoBuffer &)), this, SLOT(parseSubtitle(const SEncodedVideoBuffer &)));
-    delete d->subtitleFile;
-    d->subtitleFile = NULL;
-
-    d->nextSubtitle.clear();
-  }
 }
 
 void SFileInputNode::parseSubtitle(const SEncodedVideoBuffer &videoBuffer)

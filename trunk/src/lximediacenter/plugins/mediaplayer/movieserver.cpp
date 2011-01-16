@@ -68,7 +68,7 @@ BackendServer::SearchResultList MovieServer::search(const QStringList &query) co
 
 void MovieServer::updateDlnaTask(void)
 {
-  QMap<QString, QMap<QString, MediaDatabase::Node> > movies;
+  QMap<QString, QMap<QString, PlayItem> > movies;
   foreach (const QString &movie, mediaDatabase->allMovies())
   {
     const QList<MediaDatabase::UniqueID> allFiles = mediaDatabase->allMovieFiles(movie);
@@ -85,7 +85,7 @@ void MovieServer::updateDlnaTask(void)
       }
 
       bool isHD = true;
-      QMap<QString, MediaDatabase::Node> nodes;
+      QMap<QString, PlayItem> items;
       foreach (MediaDatabase::UniqueID uid, allFiles)
       {
         const MediaDatabase::Node node = mediaDatabase->readNode(uid);
@@ -99,16 +99,22 @@ void MovieServer::updateDlnaTask(void)
         if (title.isEmpty())
           title = QFileInfo(node.fileName()).completeBaseName();
 
-        nodes.insert(SStringParser::toRawName(node.fileName()), node);
+        if (node.mediaInfo.isDisc())
+        {
+          PlayItem item(node.uid, node.mediaInfo.titles().first(), node.lastModified);
+          items.insert(SStringParser::toRawName(node.fileName()), item);
+        }
+        else
+          items.insert(SStringParser::toRawName(node.fileName()), node);
       }
 
       if (isHD)
         title += ", HD";
 
-      QMap<QString, QMap<QString, MediaDatabase::Node> >::Iterator i = movies.find(title);
+      QMap<QString, QMap<QString, PlayItem> >::Iterator i = movies.find(title);
       if (i == movies.end())
-        i = movies.insert(title, nodes);
-      else for (QMap<QString, MediaDatabase::Node>::Iterator j=nodes.begin(); j!=nodes.end(); j++)
+        i = movies.insert(title, items);
+      else for (QMap<QString, PlayItem>::Iterator j=items.begin(); j!=items.end(); j++)
         i->insert(j.key(), j.value());
     }
   }
@@ -116,7 +122,7 @@ void MovieServer::updateDlnaTask(void)
   SDebug::MutexLocker l(&dlnaDir.server()->mutex, __FILE__, __LINE__);
 
   dlnaDir.clear();
-  for (QMap<QString, QMap<QString, MediaDatabase::Node> >::Iterator i=movies.begin(); i!=movies.end(); i++)
+  for (QMap<QString, QMap<QString, PlayItem> >::Iterator i=movies.begin(); i!=movies.end(); i++)
     addVideoFile(&dlnaDir, i->values(), i.key());
 }
 

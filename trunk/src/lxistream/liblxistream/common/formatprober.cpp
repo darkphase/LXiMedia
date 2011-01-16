@@ -26,7 +26,7 @@ namespace Common {
 
 
 FormatProber::FormatProber(const QString &, QObject *parent)
-  : SInterfaces::FileFormatProber(parent)
+  : SInterfaces::FormatProber(parent)
 {
 }
 
@@ -34,7 +34,7 @@ FormatProber::~FormatProber()
 {
 }
 
-QList<FormatProber::Format> FormatProber::probeFormat(const QByteArray &data, const QString &fileName)
+QList<FormatProber::Format> FormatProber::probeFileFormat(const QByteArray &data, const QString &fileName)
 {
   QList<Format> formats;
 
@@ -42,6 +42,11 @@ QList<FormatProber::Format> FormatProber::probeFormat(const QByteArray &data, co
   //  formats += Format(PsBufferWriter::formatName, 1);
 
   return formats;
+}
+
+QList<FormatProber::Format> FormatProber::probeDiscFormat(const QString &)
+{
+  return QList<Format>();
 }
 
 void FormatProber::probeFile(ProbeInfo &pi, ReadCallback *, const QString &path)
@@ -94,6 +99,10 @@ void FormatProber::probeFile(ProbeInfo &pi, ReadCallback *, const QString &path)
     if (pi.title.length() <= 3)
       pi.title = info.completeBaseName();
   }
+}
+
+void FormatProber::probeDisc(ProbeInfo &, const QString &)
+{
 }
 
 /*void FormatProber::splitAudioFileName(QString baseName, QString &title, QString &author, unsigned &track)

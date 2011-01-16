@@ -62,7 +62,7 @@ protected:
   public:
     explicit                    TranscodeStream(VideoServer *, const QHostAddress &peer, const QString &url);
 
-    bool                        setup(const QHttpRequestHeader &, QAbstractSocket *, SIOInputNode *, STime duration, const QString & = QString::null, const QImage & = QImage());
+    bool                        setup(const QHttpRequestHeader &, QAbstractSocket *, SInterfaces::BufferReaderNode *, STime duration, const QString & = QString::null, const QImage & = QImage());
 
   public:
     SAudioDecoderNode           audioDecoder;

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010 by A.J. Admiraal                                   *
+ *   Copyright (C) 2007 by A.J. Admiraal                                   *
  *   code@admiraal.dds.nl                                                  *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -17,39 +17,30 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXISTREAM_SDISCINFO_H
-#define LXISTREAM_SDISCINFO_H
+#ifndef __FORMATPROBER_H
+#define __FORMATPROBER_H
 
 #include <QtCore>
-#include <QtXml>
-#include "sinterfaces.h"
-#include "smediainfo.h"
+#include <LXiStream>
 
 namespace LXiStream {
+namespace DVDNavBackend {
 
-class SDiscInfo : public SSerializable
+class FormatProber : public SInterfaces::FormatProber
 {
+Q_OBJECT
 public:
-  inline                        SDiscInfo(void) : path(), pi()                  { }
-  inline explicit               SDiscInfo(const QString &path) : path(path), pi() { probe(); }
-  inline                        SDiscInfo(const SDiscInfo &c) : path(c.path), pi(c.pi) { }
-  inline explicit               SDiscInfo(const SInterfaces::DiscFormatProber::ProbeInfo &pi) : path(), pi(pi) { }
+                                FormatProber(const QString &, QObject *);
+  virtual                       ~FormatProber();
 
-  virtual QDomNode              toXml(QDomDocument &) const;
-  virtual void                  fromXml(const QDomNode &);
-
-  inline QString                format(void) const                              { return pi.format; }
-  SMediaInfoList                titles(void) const;
-
-private:
-  void                          probe(void);
-
-private:
-  QString                       path;
-  SInterfaces::DiscFormatProber::ProbeInfo pi;
+public: // From SInterfaces::FormatProber
+  virtual QList<Format>         probeFileFormat(const QByteArray &, const QString &);
+  virtual QList<Format>         probeDiscFormat(const QString &);
+  virtual void                  probeFile(ProbeInfo &, ReadCallback *, const QString &);
+  virtual void                  probeDisc(ProbeInfo &, const QString &);
 };
 
 
-} // End of namespace
+} } // End of namespaces
 
 #endif

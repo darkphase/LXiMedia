@@ -24,8 +24,7 @@
 namespace LXiStream {
 
 // Instantiated SFactorizable templates for the interfaces:
-template class SFactorizable<SInterfaces::FileFormatProber>;
-template class SFactorizable<SInterfaces::DiscFormatProber>;
+template class SFactorizable<SInterfaces::FormatProber>;
 template class SFactorizable<SInterfaces::BufferReader>;
 template class SFactorizable<SInterfaces::BufferWriter>;
 template class SFactorizable<SInterfaces::DiscReader>;
@@ -85,16 +84,11 @@ SourceNode::~SourceNode()
   *const_cast<SGraph **>(&graph) = NULL;
 }
 
-const unsigned FileFormatProber::defaultProbeSize = 262144;
+const unsigned FormatProber::defaultProbeSize = 262144;
 
-QList<FileFormatProber *> FileFormatProber::create(QObject *parent)
+QList<FormatProber *> FormatProber::create(QObject *parent)
 {
-  return factory().createObjects<FileFormatProber>(parent);
-}
-
-QList<DiscFormatProber *> DiscFormatProber::create(QObject *parent)
-{
-  return factory().createObjects<DiscFormatProber>(parent);
+  return factory().createObjects<FormatProber>(parent);
 }
 
 /*! Creates a buffer reader for the specified format.
@@ -122,6 +116,10 @@ BufferReader * BufferReader::create(QObject *parent, const QString &format, bool
   }
 
   return bufferReader;
+}
+
+BufferReaderNode::~BufferReaderNode()
+{
 }
 
 /*! Creates a buffer writer for the specified format.

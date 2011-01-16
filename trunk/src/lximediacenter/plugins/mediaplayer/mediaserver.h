@@ -44,6 +44,29 @@ protected:
     SFileInputNode              file;
   };
 
+  class DiscStream : public TranscodeStream
+  {
+  public:
+                                DiscStream(MediaServer *, const QHostAddress &peer, const QString &url, const QString &fileName, MediaDatabase::UniqueID);
+    virtual                     ~DiscStream();
+
+  public:
+    const QDateTime             startTime;
+    const MediaDatabase::UniqueID uid;
+
+    SDiscInputNode              disc;
+  };
+
+  struct PlayItem
+  {
+    inline PlayItem(MediaDatabase::UniqueID uid, const SMediaInfo &mediaInfo, const QDateTime &lastModified) : uid(uid), mediaInfo(mediaInfo), lastModified(lastModified) { }
+    inline PlayItem(const MediaDatabase::Node &node) : uid(node.uid), mediaInfo(node.mediaInfo), lastModified(node.lastModified) { }
+
+    MediaDatabase::UniqueID     uid;
+    SMediaInfo                  mediaInfo;
+    QDateTime                   lastModified;
+  };
+
 public:
                                 MediaServer(const char *, MediaDatabase *, Plugin *, BackendServer::MasterServer *);
 
@@ -51,8 +74,8 @@ public:
 
 protected:
   void                          enableDlna(void);
-  void                          addVideoFile(DlnaServerDir *, const MediaDatabase::Node &, const QString &, int = 0) const;
-  void                          addVideoFile(DlnaServerDir *, const QList<MediaDatabase::Node> &, const QString &, int = 0) const;
+  void                          addVideoFile(DlnaServerDir *, const PlayItem &, const QString &, int = 0) const;
+  void                          addVideoFile(DlnaServerDir *, const QList<PlayItem> &, const QString &, int = 0) const;
 
   virtual bool                  streamVideo(const QHttpRequestHeader &, QAbstractSocket *);
   virtual bool                  buildPlaylist(const QHttpRequestHeader &, QAbstractSocket *);

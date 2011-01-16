@@ -26,70 +26,77 @@
 
 namespace LXiStream {
 
-class SDiscInfo;
+class SMediaInfo;
+typedef QList<SMediaInfo> SMediaInfoList;
 
 class SMediaInfo : public SSerializable
 {
 friend class SDiscInfo;
 public:
-  typedef SInterfaces::FileFormatProber::AudioStreamInfo  AudioStreamInfo;
-  typedef SInterfaces::FileFormatProber::VideoStreamInfo  VideoStreamInfo;
-  typedef SInterfaces::FileFormatProber::DataStreamInfo   DataStreamInfo;
-  typedef SInterfaces::FileFormatProber::Chapter          Chapter;
+  typedef SInterfaces::FormatProber::AudioStreamInfo  AudioStreamInfo;
+  typedef SInterfaces::FormatProber::VideoStreamInfo  VideoStreamInfo;
+  typedef SInterfaces::FormatProber::DataStreamInfo   DataStreamInfo;
+  typedef SInterfaces::FormatProber::Chapter          Chapter;
 
 public:
-  inline                        SMediaInfo(void) : path(), pi()                 { }
-  inline explicit               SMediaInfo(const QString &path) : path(path), pi() { probe(); }
-  inline                        SMediaInfo(const SMediaInfo &c) : path(c.path), pi(c.pi) { probeDataStreams(); }
-  inline explicit               SMediaInfo(const SInterfaces::FileFormatProber::ProbeInfo &pi) : path(), pi(pi) { }
+                                SMediaInfo(void);
+                                SMediaInfo(const SMediaInfo &);
+  explicit                      SMediaInfo(const QString &path);
+  explicit                      SMediaInfo(const SInterfaces::FormatProber::ProbeInfo &);
+  virtual                       ~SMediaInfo();
+
+  SMediaInfo                  & operator=(const SMediaInfo &);
 
   virtual QDomNode              toXml(QDomDocument &) const;
-  inline void                   fromXml(const QDomNode &node, const QString &path) { this->path = path; SMediaInfo::fromXml(node); probeDataStreams(); }
-  inline void                   fromByteArray(const QByteArray &data, const QString &path) { this->path = path; SSerializable::fromByteArray(data); probeDataStreams(); }
+  void                          fromXml(const QDomNode &node, const QString &path);
+  void                          fromByteArray(const QByteArray &data, const QString &path);
 
-  inline QString                format(void) const                              { return pi.format; }
+  QString                       format(void) const;                             //!< The format name of the media (e.g. matroska, mpeg, dvd, etc.)
+  bool                          isDisc(void) const;                             //!< True if the resource is a disc (e.g. DVD).
 
-  inline bool                   containsAudio(void) const                       { return !pi.audioStreams.isEmpty(); } //!< True if the resource contains audio data.
-  inline bool                   containsVideo(void) const                       { return !pi.videoStreams.isEmpty(); } //!< True if the resource contains video data.
-  inline bool                   containsImage(void) const                       { return !pi.imageCodec.isNull(); } //!< True if the resource contains an image.
-  inline bool                   isProbed(void) const                            { return pi.isProbed; } //!< True if the resource was deep-probed (i.e. the resource was opened and scanned).
-  inline bool                   isReadable(void) const                          { return pi.isReadable; } //!< True if the resource is readable (is set to true if deep-probe can read it).
+  bool                          containsAudio(void) const;                      //!< True if the resource contains audio data.
+  bool                          containsVideo(void) const;                      //!< True if the resource contains video data.
+  bool                          containsImage(void) const;                      //!< True if the resource contains an image.
+  bool                          isProbed(void) const;                           //!< True if the resource was deep-probed (i.e. the resource was opened and scanned).
+  bool                          isReadable(void) const;                         //!< True if the resource is readable (is set to true if deep-probe can read it).
 
-  inline const QString        & fileTypeName(void) const                        { return pi.fileTypeName; } //!< A user-friendly description of the file type.
+  QString                       fileTypeName(void) const;                       //!< A user-friendly description of the file type.
 
-  inline STime                  duration(void) const                            { return pi.duration; } //!< The duration of the resource, if applicable.
-  inline const QList<AudioStreamInfo> & audioStreams(void) const                { return pi.audioStreams; } //!< The audio streams, if applicable.
-  inline const QList<VideoStreamInfo> & videoStreams(void) const                { return pi.videoStreams; } //!< The video streams, if applicable.
-  inline const QList<DataStreamInfo> & dataStreams(void) const                  { return pi.dataStreams; } //!< The data streams, if applicable.
-  inline const SVideoCodec    & imageCodec(void) const                          { return pi.imageCodec; } //!< The image codec, if applicable.
-  inline const QList<Chapter> & chapters(void) const                            { return pi.chapters; } //!< A list of chapters, if applicable.
+  STime                         duration(void) const;                           //!< The duration of the resource, if applicable.
+  QList<AudioStreamInfo>        audioStreams(void) const;                      //!< The audio streams, if applicable.
+  QList<VideoStreamInfo>        videoStreams(void) const;                      //!< The video streams, if applicable.
+  QList<DataStreamInfo>         dataStreams(void) const;                        //!< The data streams, if applicable.
+  SVideoCodec                   imageCodec(void) const;                         //!< The image codec, if applicable.
+  QList<Chapter>                chapters(void) const;                           //!< A list of chapters, if applicable.
 
-  inline const QString        & title(void) const                               { return pi.title; } //!< The title (e.g. from ID3).
-  inline const QString        & author(void) const                              { return pi.author; } //!< The author (e.g. from ID3).
-  inline const QString        & copyright(void) const                           { return pi.copyright; } //!< The copyright (e.g. from ID3).
-  inline const QString        & comment(void) const                             { return pi.comment; } //!< The comment (e.g. from ID3).
-  inline const QString        & album(void) const                               { return pi.album; } //!< The album (e.g. from ID3).
-  inline const QString        & genre(void) const                               { return pi.genre; } //!< The genre (e.g. from ID3).
-  inline unsigned               year(void) const                                { return pi.year; } //!< The year (e.g. from ID3).
-  inline unsigned               track(void) const                               { return pi.track; } //!< The track (e.g. from ID3).
+  SMediaInfoList                titles(void) const;                             //!< A list of titles, if applicable.
 
-  inline const QList<QByteArray> & thumbnails(void) const                       { return pi.thumbnails; } //!< A thumbnail of the resource, if applicable. In case of an image it is of at most 256x256.
+  QString                       title(void) const;                              //!< The title (e.g. from ID3).
+  QString                       author(void) const;                             //!< The author (e.g. from ID3).
+  QString                       copyright(void) const;                          //!< The copyright (e.g. from ID3).
+  QString                       comment(void) const;                            //!< The comment (e.g. from ID3).
+  QString                       album(void) const;                              //!< The album (e.g. from ID3).
+  QString                       genre(void) const;                              //!< The genre (e.g. from ID3).
+  unsigned                      year(void) const;                               //!< The year (e.g. from ID3).
+  unsigned                      track(void) const;                              //!< The track (e.g. from ID3).
+
+  QList<QByteArray>             thumbnails(void) const;                         //!< Thumbnail(s) of the resource, if applicable. In case of an image it is of at most 256x256.
 
 public:
   static const unsigned         tvShowSeason;
 
 private:
   virtual void                  fromXml(const QDomNode &);
+  static QDomNode               toXml(const SInterfaces::FormatProber::ProbeInfo &pi, QDomDocument &);
+  static void                   fromXml(SInterfaces::FormatProber::ProbeInfo &pi, const QDomNode &);
 
   void                          probe(void);
   void                          probeDataStreams(void);
 
 private:
-  QString                       path;
-  SInterfaces::FileFormatProber::ProbeInfo pi;
+  struct Data;
+  Data                  * const d;
 };
-
-typedef QList<SMediaInfo> SMediaInfoList;
 
 } // End of namespace
 

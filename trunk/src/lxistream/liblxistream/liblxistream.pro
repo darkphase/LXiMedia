@@ -30,7 +30,6 @@ HEADERS += $${LXIMEDIA_DIR}/include/LXiStream \
     $${LXIMEDIA_DIR}/include/liblxistream/sbuffer.h \
     $${LXIMEDIA_DIR}/include/liblxistream/sdatacodec.h \
     $${LXIMEDIA_DIR}/include/liblxistream/sdebug.h \
-    $${LXIMEDIA_DIR}/include/liblxistream/sdiscinfo.h \
     $${LXIMEDIA_DIR}/include/liblxistream/sencodedaudiobuffer.h \
     $${LXIMEDIA_DIR}/include/liblxistream/sencodeddatabuffer.h \
     $${LXIMEDIA_DIR}/include/liblxistream/sencodedvideobuffer.h \
@@ -62,7 +61,6 @@ SOURCES += saudiobuffer.cpp \
     sbuffer.cpp \
     sdatacodec.cpp \
     sdebug.cpp \
-    sdiscinfo.cpp \
     sencodedaudiobuffer.cpp \
     sencodeddatabuffer.cpp \
     sencodedvideobuffer.cpp \

@@ -21,11 +21,153 @@
 
 namespace LXiStream {
 
-/*! Returns the translated language name for the ISO 639 language code.
+/*! Returns the translated language name for the ISO 639-1 or ISO 639-2 language
+    code.
  */
 QString SStringParser::iso639Language(const char *lang)
 {
-  if (qstrlen(lang) == 3)
+  const int langLen = qstrlen(lang);
+
+  if (langLen == 2)
+  {
+    if      (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("aa"))  return QObject::tr("Afar");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ab"))  return QObject::tr("Abkhazian");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("af"))  return QObject::tr("Afrikaans");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("am"))  return QObject::tr("Amharic");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ar"))  return QObject::tr("Arabic");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("as"))  return QObject::tr("Assamese");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ay"))  return QObject::tr("Aymara");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("az"))  return QObject::tr("Azerbaijani");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ba"))  return QObject::tr("Bashkir");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("be"))  return QObject::tr("Byelorussian");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("bg"))  return QObject::tr("Bulgarian");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("bh"))  return QObject::tr("Bihari");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("bi"))  return QObject::tr("Bislama");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("bn"))  return QObject::tr("Bengali");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("bo"))  return QObject::tr("Tibetan");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("br"))  return QObject::tr("Breton");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ca"))  return QObject::tr("Catalan");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("co"))  return QObject::tr("Corsican");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("cs"))  return QObject::tr("Czech");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("cy"))  return QObject::tr("Welsh");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("da"))  return QObject::tr("Danish");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("de"))  return QObject::tr("German");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("dz"))  return QObject::tr("Bhutani");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("el"))  return QObject::tr("Greek");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("en"))  return QObject::tr("English");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("eo"))  return QObject::tr("Esperanto");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("es"))  return QObject::tr("Spanish");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("et"))  return QObject::tr("Estonian");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("eu"))  return QObject::tr("Basque");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("fa"))  return QObject::tr("Persian");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("fi"))  return QObject::tr("Finnish");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("fj"))  return QObject::tr("Fiji");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("fo"))  return QObject::tr("Faeroese");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("fr"))  return QObject::tr("French");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("fy"))  return QObject::tr("Frisian");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ga"))  return QObject::tr("Irish");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("gd"))  return QObject::tr("Gaelic");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("gl"))  return QObject::tr("Galician");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("gn"))  return QObject::tr("Guarani");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("gu"))  return QObject::tr("Gujarati");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ha"))  return QObject::tr("Hausa");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("hi"))  return QObject::tr("Hindi");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("hr"))  return QObject::tr("Croatian");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("hu"))  return QObject::tr("Hungarian");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("hy"))  return QObject::tr("Armenian");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ia"))  return QObject::tr("Interlingua");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ie"))  return QObject::tr("Interlingue");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ik"))  return QObject::tr("Inupiak");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("in"))  return QObject::tr("Indonesian");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("is"))  return QObject::tr("Icelandic");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("it"))  return QObject::tr("Italian");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("iw"))  return QObject::tr("Hebrew");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ja"))  return QObject::tr("Japanese");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ji"))  return QObject::tr("Yiddish");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("jw"))  return QObject::tr("Javanese");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ka"))  return QObject::tr("Georgian");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("kk"))  return QObject::tr("Kazakh");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("kl"))  return QObject::tr("Greenlandic");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("km"))  return QObject::tr("Cambodian");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("kn"))  return QObject::tr("Kannada");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ko"))  return QObject::tr("Korean");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ks"))  return QObject::tr("Kashmiri");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ku"))  return QObject::tr("Kurdish");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ky"))  return QObject::tr("Kirghiz");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("la"))  return QObject::tr("Latin");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ln"))  return QObject::tr("Lingala");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("lo"))  return QObject::tr("Laothian");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("lt"))  return QObject::tr("Lithuanian");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("lv"))  return QObject::tr("Latvian");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("mg"))  return QObject::tr("Malagasy");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("mi"))  return QObject::tr("Maori");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("mk"))  return QObject::tr("Macedonian");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ml"))  return QObject::tr("Malayalam");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("mn"))  return QObject::tr("Mongolian");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("mo"))  return QObject::tr("Moldavian");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("mr"))  return QObject::tr("Marathi");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ms"))  return QObject::tr("Malay");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("mt"))  return QObject::tr("Maltese");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("my"))  return QObject::tr("Burmese");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("na"))  return QObject::tr("Nauru");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ne"))  return QObject::tr("Nepali");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("nl"))  return QObject::tr("Dutch");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("no"))  return QObject::tr("Norwegian");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("oc"))  return QObject::tr("Occitan");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("om"))  return QObject::tr("Oromo");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("or"))  return QObject::tr("Oriya");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("pa"))  return QObject::tr("Punjabi");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("pl"))  return QObject::tr("Polish");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ps"))  return QObject::tr("Pashto");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("pt"))  return QObject::tr("Portuguese");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("qu"))  return QObject::tr("Quechua");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("rm"))  return QObject::tr("Rhaeto-Romance");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("rn"))  return QObject::tr("Kirundi");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ro"))  return QObject::tr("Romanian");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ru"))  return QObject::tr("Russian");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("rw"))  return QObject::tr("Kinyarwanda");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("sa"))  return QObject::tr("Sanskrit");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("sd"))  return QObject::tr("Sindhi");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("sg"))  return QObject::tr("Sangro");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("sh"))  return QObject::tr("Serbo-Croatian");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("si"))  return QObject::tr("Singhalese");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("sk"))  return QObject::tr("Slovak");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("sl"))  return QObject::tr("Slovenian");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("sm"))  return QObject::tr("Samoan");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("sn"))  return QObject::tr("Shona");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("so"))  return QObject::tr("Somali");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("sq"))  return QObject::tr("Albanian");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("sr"))  return QObject::tr("Serbian");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ss"))  return QObject::tr("Siswati");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("st"))  return QObject::tr("Sesotho");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("su"))  return QObject::tr("Sudanese");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("sv"))  return QObject::tr("Swedish");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("sw"))  return QObject::tr("Swahili");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ta"))  return QObject::tr("Tamil");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("te"))  return QObject::tr("Tegulu");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("tg"))  return QObject::tr("Tajik");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("th"))  return QObject::tr("Thai");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ti"))  return QObject::tr("Tigrinya");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("tk"))  return QObject::tr("Turkmen");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("tl"))  return QObject::tr("Tagalog");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("tn"))  return QObject::tr("Setswana");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("to"))  return QObject::tr("Tonga");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("tr"))  return QObject::tr("Turkish");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ts"))  return QObject::tr("Tsonga");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("tt"))  return QObject::tr("Tatar");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("tw"))  return QObject::tr("Twi");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("uk"))  return QObject::tr("Ukrainian");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ur"))  return QObject::tr("Urdu");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("uz"))  return QObject::tr("Uzbek");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("vi"))  return QObject::tr("Vietnamese");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("vo"))  return QObject::tr("Volapuk");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("wo"))  return QObject::tr("Wolof");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("xh"))  return QObject::tr("Xhosa");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("yo"))  return QObject::tr("Yoruba");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("zh"))  return QObject::tr("Chinese");
+    else if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("zu"))  return QObject::tr("Zulu");
+  }
+  else if (langLen == 3)
   {
     if      (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("abk")) return QObject::tr("Abkhazian");
     else if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("ace")) return QObject::tr("Achinese");
@@ -455,7 +597,7 @@ QString SStringParser::iso639Language(const char *lang)
     else if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("zul")) return QObject::tr("Zulu");
     else if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("zun")) return QObject::tr("Zuni");
   }
-  
+
   return lang;
 }
 

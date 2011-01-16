@@ -26,9 +26,229 @@ namespace LXiStream {
 
 const unsigned SMediaInfo::tvShowSeason = 100u;
 
+struct SMediaInfo::Data
+{
+  inline Data() : path(), pi() { }
+  inline Data(const QString &path) : path(path), pi() { }
+  inline Data(const SInterfaces::FormatProber::ProbeInfo &pi) : path(), pi(pi) { }
+  inline Data(const Data &from) : path(from.path), pi(from.pi) { }
+
+  QString                       path;
+  SInterfaces::FormatProber::ProbeInfo pi;
+};
+
+SMediaInfo::SMediaInfo(void)
+  : d(new Data())
+{
+}
+
+SMediaInfo::SMediaInfo(const SMediaInfo &from)
+  : d(new Data(*(from.d)))
+{
+}
+
+SMediaInfo::SMediaInfo(const QString &path)
+  : d(new Data(path))
+{
+  probe();
+}
+
+SMediaInfo::SMediaInfo(const SInterfaces::FormatProber::ProbeInfo &pi)
+  : d(new Data(pi))
+{
+}
+
+SMediaInfo::~SMediaInfo()
+{
+  delete d;
+  *const_cast<Data **>(&d) = NULL;
+}
+
+SMediaInfo & SMediaInfo::operator=(const SMediaInfo &from)
+{
+  delete d;
+  *const_cast<Data **>(&d) = new Data(*(from.d));
+
+  return *this;
+}
+
 QDomNode SMediaInfo::toXml(QDomDocument &doc) const
 {
+  return toXml(d->pi, doc);
+}
+
+void SMediaInfo::fromXml(const QDomNode &elm)
+{
+  fromXml(d->pi, elm);
+  probeDataStreams();
+}
+
+void SMediaInfo::fromXml(const QDomNode &elm, const QString &path)
+{
+  d->path = path;
+  fromXml(d->pi, elm);
+  probeDataStreams();
+}
+
+void SMediaInfo::fromByteArray(const QByteArray &data, const QString &path)
+{
+  d->path = path;
+  SSerializable::fromByteArray(data);
+  probeDataStreams();
+}
+
+QString SMediaInfo::format(void) const
+{
+  return d->pi.format;
+}
+
+bool SMediaInfo::isDisc(void) const
+{
+  return d->pi.isDisc;
+}
+
+bool SMediaInfo::containsAudio(void) const
+{
+  foreach (const SInterfaces::FormatProber::ProbeInfo &p, d->pi.titles)
+  if (!p.audioStreams.isEmpty())
+    return true;
+
+  return !d->pi.audioStreams.isEmpty();
+}
+
+bool SMediaInfo::containsVideo(void) const
+{
+  foreach (const SInterfaces::FormatProber::ProbeInfo &p, d->pi.titles)
+  if (!p.videoStreams.isEmpty())
+    return true;
+
+  return !d->pi.videoStreams.isEmpty();
+}
+
+bool SMediaInfo::containsImage(void) const
+{
+  foreach (const SInterfaces::FormatProber::ProbeInfo &p, d->pi.titles)
+  if (!p.imageCodec.isNull())
+    return true;
+
+  return !d->pi.imageCodec.isNull();
+}
+
+bool SMediaInfo::isProbed(void) const
+{
+  return d->pi.isProbed;
+}
+
+bool SMediaInfo::isReadable(void) const
+{
+  return d->pi.isReadable;
+}
+
+QString SMediaInfo::fileTypeName(void) const
+{
+  return d->pi.fileTypeName;
+}
+
+STime SMediaInfo::duration(void) const
+{
+  STime result = d->pi.duration.isValid() ? d->pi.duration : STime::null;
+  foreach (const SInterfaces::FormatProber::ProbeInfo &p, d->pi.titles)
+  if (p.duration.isValid())
+    result += p.duration;
+
+  return result;
+}
+
+QList<SMediaInfo::AudioStreamInfo> SMediaInfo::audioStreams(void) const
+{
+  return d->pi.audioStreams;
+}
+
+QList<SMediaInfo::VideoStreamInfo> SMediaInfo::videoStreams(void) const
+{
+  return d->pi.videoStreams;
+}
+
+QList<SMediaInfo::DataStreamInfo> SMediaInfo::dataStreams(void) const
+{
+  return d->pi.dataStreams;
+}
+
+SVideoCodec SMediaInfo::imageCodec(void) const
+{
+  return d->pi.imageCodec;
+}
+
+QList<SMediaInfo::Chapter> SMediaInfo::chapters(void) const
+{
+  return d->pi.chapters;
+}
+
+SMediaInfoList SMediaInfo::titles(void) const
+{
+  SMediaInfoList result;
+  foreach (const SInterfaces::FormatProber::ProbeInfo &p, d->pi.titles)
+    result += SMediaInfo(p);
+
+  return result;
+}
+
+QString SMediaInfo::title(void) const
+{
+  return d->pi.title;
+}
+
+QString SMediaInfo::author(void) const
+{
+  return d->pi.author;
+}
+
+QString SMediaInfo::copyright(void) const
+{
+  return d->pi.copyright;
+}
+
+QString SMediaInfo::comment(void) const
+{
+  return d->pi.comment;
+}
+
+QString SMediaInfo::album(void) const
+{
+  return d->pi.album;
+}
+
+QString SMediaInfo::genre(void) const
+{
+  return d->pi.genre;
+}
+
+unsigned SMediaInfo::year(void) const
+{
+  return d->pi.year;
+}
+
+unsigned SMediaInfo::track(void) const
+{
+  return d->pi.track;
+}
+
+QList<QByteArray> SMediaInfo::thumbnails(void) const
+{
+  QList<QByteArray> result = d->pi.thumbnails;
+  foreach (const SInterfaces::FormatProber::ProbeInfo &p, d->pi.titles)
+    result += p.thumbnails;
+
+  return result;
+}
+
+QDomNode SMediaInfo::toXml(const SInterfaces::FormatProber::ProbeInfo &pi, QDomDocument &doc)
+{
   QDomElement mediainfo = createElement(doc, "mediainfo");
+
+  mediainfo.setAttribute("format", SStringParser::removeControl(pi.format));
+  if (pi.isDisc)           mediainfo.setAttribute("disc", trueFalse(pi.isDisc));
+
   if (pi.isProbed)         mediainfo.setAttribute("probed", trueFalse(pi.isProbed));
   if (pi.isReadable)       mediainfo.setAttribute("readable", trueFalse(pi.isReadable));
 
@@ -80,6 +300,15 @@ QDomNode SMediaInfo::toXml(QDomDocument &doc) const
     mediainfo.appendChild(elm);
   }
 
+  unsigned titleId = 0;
+  foreach (const SInterfaces::FormatProber::ProbeInfo &title, pi.titles)
+  {
+    QDomElement elm = createElement(doc, "title");
+    elm.setAttribute("id", titleId++);
+    elm.appendChild(toXml(title, doc));
+    mediainfo.appendChild(elm);
+  }
+
   if (!pi.title.isEmpty())     mediainfo.setAttribute("title", SStringParser::removeControl(pi.title));
   if (!pi.author.isEmpty())    mediainfo.setAttribute("author", SStringParser::removeControl(pi.author));
   if (!pi.copyright.isEmpty()) mediainfo.setAttribute("copyright", SStringParser::removeControl(pi.copyright));
@@ -99,12 +328,16 @@ QDomNode SMediaInfo::toXml(QDomDocument &doc) const
   return mediainfo;
 }
 
-void SMediaInfo::fromXml(const QDomNode &elm)
+void SMediaInfo::fromXml(SInterfaces::FormatProber::ProbeInfo &pi, const QDomNode &elm)
 {
   QDomElement mediainfo = findElement(elm, "mediainfo");
 
+  pi.format = mediainfo.attribute("format");
+  pi.isDisc = trueFalse(mediainfo.attribute("disc"));
+
   pi.isProbed = trueFalse(mediainfo.attribute("probed"));
   pi.isReadable = trueFalse(mediainfo.attribute("readable"));
+
   pi.fileTypeName = mediainfo.attribute("type");
 
   const long duration = mediainfo.attribute("duration", "-1").toLong();
@@ -161,6 +394,19 @@ void SMediaInfo::fromXml(const QDomNode &elm)
 
   pi.chapters = chapters.values();
 
+  QMultiMap<unsigned, SInterfaces::FormatProber::ProbeInfo> titles;
+  for (QDomElement elm = mediainfo.firstChildElement("title");
+       !elm.isNull();
+       elm = elm.nextSiblingElement("title"))
+  {
+    SInterfaces::FormatProber::ProbeInfo title;
+    fromXml(title, elm);
+
+    titles.insert(elm.attribute("id").toUInt(), title);
+  }
+
+  pi.titles = titles.values();
+
   pi.title = mediainfo.attribute("title");
   pi.author = mediainfo.attribute("author");
   pi.copyright = mediainfo.attribute("copyright");
@@ -208,61 +454,72 @@ void SMediaInfo::probe(void)
     QIODevice * const file;
   };
 
-  QFile file(path);
-  file.open(QFile::ReadOnly);
+  const QList<SInterfaces::FormatProber *> probers = SInterfaces::FormatProber::create(NULL);
 
-  foreach (SInterfaces::FileFormatProber *prober, SInterfaces::FileFormatProber::create(NULL))
+  foreach (SInterfaces::FormatProber *prober, probers)
+    prober->probeDisc(d->pi, d->path);
+
+  if (!d->pi.isDisc)
   {
+    const QString fileName = QFileInfo(d->path).fileName();
+    QFile file(d->path);
+    if (file.open(QFile::ReadOnly))
+    foreach (SInterfaces::FormatProber *prober, probers)
     if (file.seek(0))
     {
       ReadCallback readCallback(&file);
-      prober->probeFile(pi, &readCallback, path);
+      prober->probeFile(d->pi, &readCallback, fileName);
     }
 
-    delete prober;
+    probeDataStreams();
   }
 
-  pi.isProbed = true;
-  probeDataStreams();
+  d->pi.isProbed = true;
+
+  foreach (SInterfaces::FormatProber *prober, probers)
+    delete prober;
 }
 
 // Subtitles in separate files need to be verified every time
 void SMediaInfo::probeDataStreams(void)
 {
-  // Remove subtitles.
-  QList<SMediaInfo::DataStreamInfo> subs;
-  for (QList<SMediaInfo::DataStreamInfo>::Iterator i=pi.dataStreams.begin(); i!=pi.dataStreams.end(); )
-  if (!i->file.isEmpty())
+  if (!d->pi.isDisc)
   {
-    subs += *i;
-    i = pi.dataStreams.erase(i);
-  }
-  else
-    i++;
-
-  // Add subtitles with new ID (To ensure IDs match SFileInputNode).
-  quint16 nextStreamId = 0xF000;
-  foreach (const QString &fileName, SSubtitleFile::findSubtitleFiles(path))
-  {
-    bool found = false;
-    for (QList<SMediaInfo::DataStreamInfo>::Iterator i=subs.begin(); i!=subs.end(); i++)
-    if (i->file == fileName)
+    // Remove subtitles.
+    QList<SMediaInfo::DataStreamInfo> subs;
+    for (QList<SMediaInfo::DataStreamInfo>::Iterator i=d->pi.dataStreams.begin(); i!=d->pi.dataStreams.end(); )
+    if (!i->file.isEmpty())
     {
-      i->streamId = nextStreamId++;
-      pi.dataStreams += *i;
-
-      found = true;
-      break;
+      subs += *i;
+      i = d->pi.dataStreams.erase(i);
     }
+    else
+      i++;
 
-    if (!found)
+    // Add subtitles with new ID (To ensure IDs match SFileInputNode).
+    quint16 nextStreamId = 0xF000;
+    foreach (const QString &fileName, SSubtitleFile::findSubtitleFiles(d->path))
     {
-      SSubtitleFile file(fileName);
-      if (file.open())
+      bool found = false;
+      for (QList<SMediaInfo::DataStreamInfo>::Iterator i=subs.begin(); i!=subs.end(); i++)
+      if (i->file == fileName)
       {
-        DataStreamInfo stream(nextStreamId++, file.language(), file.codec());
-        stream.file = fileName;
-        pi.dataStreams += stream;
+        i->streamId = nextStreamId++;
+        d->pi.dataStreams += *i;
+
+        found = true;
+        break;
+      }
+
+      if (!found)
+      {
+        SSubtitleFile file(fileName);
+        if (file.open())
+        {
+          DataStreamInfo stream(nextStreamId++, file.language(), file.codec());
+          stream.file = fileName;
+          d->pi.dataStreams += stream;
+        }
       }
     }
   }

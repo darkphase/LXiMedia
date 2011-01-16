@@ -21,11 +21,11 @@
 #include "discreader.h"
 
 namespace LXiStream {
-namespace DVDReadBackend {
+namespace DVDNavBackend {
 
 
 FormatProber::FormatProber(const QString &, QObject *parent)
-  : SInterfaces::DiscFormatProber(parent)
+  : SInterfaces::FormatProber(parent)
 {
 }
 
@@ -33,69 +33,70 @@ FormatProber::~FormatProber()
 {
 }
 
-QList<FormatProber::Format> FormatProber::probeFormat(const QString &path)
+QList<FormatProber::Format> FormatProber::probeFileFormat(const QByteArray &, const QString &)
+{
+  return QList<Format>();
+}
+
+QList<FormatProber::Format> FormatProber::probeDiscFormat(const QString &devicePath)
 {
   QList<Format> result;
 
-  if (isDisc(path))
+  if (DiscReader::isDiscPath(devicePath))
   {
     DiscReader discReader(QString::null, this);
-    if (discReader.openPath(DiscReader::formatName, path))
+    if (discReader.openPath(DiscReader::formatName, devicePath))
       result += Format(DiscReader::formatName, 0);
   }
 
   return result;
 }
 
-void FormatProber::probePath(ProbeInfo &pi, const QString &path)
+void FormatProber::probeFile(ProbeInfo &, ReadCallback *, const QString &)
 {
-  if (isDisc(path))
+}
+
+void FormatProber::probeDisc(ProbeInfo &pi, const QString &devicePath)
+{
+  if (DiscReader::isDiscPath(devicePath))
   {
     DiscReader discReader(QString::null, this);
-    if (discReader.openPath(DiscReader::formatName, path))
+    if (discReader.openPath(DiscReader::formatName, devicePath))
     {
       pi.format = DiscReader::formatName;
+      pi.isDisc = true;
+      pi.isReadable = true;
+
+      pi.title = discReader.title();
 
       pi.titles.clear();
       for (unsigned i=0, n=discReader.numTitles(); i<n; i++)
       {
-        SInterfaces::FileFormatProber::ProbeInfo fpi;
+        SInterfaces::FormatProber::ProbeInfo fpi;
 
-        SInterfaces::BufferReader::ReadCallback * const readCallback = discReader.openTitle(i);
-        if (readCallback)
+        if (discReader.playTitle(i))
         {
-
-          foreach (SInterfaces::FileFormatProber *prober, SInterfaces::FileFormatProber::create(this))
+          foreach (SInterfaces::FormatProber *prober, SInterfaces::FormatProber::create(this))
           {
-            readCallback->seek(0, SEEK_SET);
-            prober->probeFile(fpi, readCallback);
+            discReader.seek(0, SEEK_SET);
+            prober->probeFile(fpi, &discReader);
 
             delete prober;
           }
 
-          discReader.closeTitle(readCallback);
+          discReader.annotateAudioStreams(fpi.audioStreams);
+          discReader.annotateVideoStreams(fpi.videoStreams);
+          discReader.annotateDataStreams(fpi.dataStreams);
+          discReader.annotateChapters(fpi.chapters);
+
+          if (!fpi.duration.isValid() || fpi.duration.isNull())
+            fpi.duration = discReader.duration();
         }
 
         pi.titles += fpi;
       }
     }
   }
-}
-
-bool FormatProber::isDisc(const QString &path)
-{
-  const QString canonicalPath = QFileInfo(path).canonicalFilePath();
-
-  if (canonicalPath.endsWith(".iso", Qt::CaseInsensitive) ||
-#ifdef Q_OS_UNIX
-      canonicalPath.startsWith("/dev/") ||
-#endif
-      QDir(canonicalPath).entryList().contains("VIDEO_TS", Qt::CaseInsensitive))
-  {
-    return true;
-  }
-
-  return false;
 }
 
 

@@ -28,16 +28,18 @@ namespace LXiStream {
 namespace FFMpegBackend {
 
 
-class FormatProber : public SInterfaces::FileFormatProber
+class FormatProber : public SInterfaces::FormatProber
 {
 Q_OBJECT
 public:
                                 FormatProber(const QString &, QObject *);
   virtual                       ~FormatProber();
 
-public: // From SInterfaces::FileFormatProber
-  virtual QList<Format>         probeFormat(const QByteArray &, const QString &);
+public: // From SInterfaces::FormatProber
+  virtual QList<Format>         probeFileFormat(const QByteArray &, const QString &);
+  virtual QList<Format>         probeDiscFormat(const QString &);
   virtual void                  probeFile(ProbeInfo &, ReadCallback *, const QString &);
+  virtual void                  probeDisc(ProbeInfo &, const QString &);
 
 private:
   static QString                bestOf(const QString &a, const QString &b);

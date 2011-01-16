@@ -503,23 +503,13 @@ bool BufferReader::setPosition(STime pos)
       dataBuffers.clear();
     }
 
-    for (unsigned i=0; i<formatContext->nb_streams; i++)
-    if (streamContext[i])
-      streamContext[i]->lastTimeStamp = STime();
-
-    for (unsigned i=0; i<formatContext->nb_streams; i++)
-    if (streamContext[i])
-    if (streamContext[i]->selected && streamContext[i]->lastTimeStamp.isValid() && streamContext[i]->firstTimeStamp.isValid())
+    if (::av_seek_frame(formatContext, -1, pos.toClock(AV_TIME_BASE), 0) >= 0)
     {
-      const STime p = pos + streamContext[i]->firstTimeStamp;
+      for (unsigned i=0; i<formatContext->nb_streams; i++)
+      if (streamContext[i])
+        streamContext[i]->lastTimeStamp = STime();
 
-      const qint64 timestamp =
-        p.toClock(formatContext->streams[i]->time_base.num,
-                  formatContext->streams[i]->time_base.den);
-
-      const int flags = (p < streamContext[i]->lastTimeStamp) ? AVSEEK_FLAG_BACKWARD : 0;
-      if (::av_seek_frame(formatContext, i, timestamp, flags) >= 0)
-        return true;
+      return true;
     }
   }
 
@@ -534,6 +524,29 @@ STime BufferReader::position(void) const
     return streamContext[i]->lastTimeStamp - streamContext[i]->firstTimeStamp;
 
   return STime();
+}
+
+QList<BufferReader::Chapter> BufferReader::chapters(void) const
+{
+  QMultiMap<STime, Chapter> chapters;
+
+  if (formatContext)
+  for (unsigned i=0; i<formatContext->nb_chapters; i++)
+  {
+    const SInterval interval(formatContext->chapters[i]->time_base.num, formatContext->chapters[i]->time_base.den);
+
+    Chapter chapter;
+#if ((LIBAVCODEC_VERSION_INT >> 16) >= 52)
+    if (formatContext->chapters[i]->title)
+      chapter.title = formatContext->chapters[i]->title;
+#endif
+    chapter.begin = STime(formatContext->chapters[i]->start, interval);
+    chapter.end = STime(formatContext->chapters[i]->end, interval);
+
+    chapters.insert(chapter.begin, chapter);
+  }
+
+  return chapters.values();
 }
 
 QList<BufferReader::AudioStreamInfo> BufferReader::audioStreams(void) const
@@ -580,29 +593,6 @@ void BufferReader::selectStreams(const QList<quint16> &streamIds)
   for (unsigned i=0; i<formatContext->nb_streams; i++)
   if (streamContext[i])
     streamContext[i]->selected = streamIds.contains(i);
-}
-
-QList<BufferReader::Chapter> BufferReader::chapters(void) const
-{
-  QMultiMap<STime, Chapter> chapters;
-
-  if (formatContext)
-  for (unsigned i=0; i<formatContext->nb_chapters; i++)
-  {
-    const SInterval interval(formatContext->chapters[i]->time_base.num, formatContext->chapters[i]->time_base.den);
-
-    Chapter chapter;
-#if ((LIBAVCODEC_VERSION_INT >> 16) >= 52)
-    if (formatContext->chapters[i]->title)
-      chapter.title = formatContext->chapters[i]->title;
-#endif
-    chapter.begin = STime(formatContext->chapters[i]->start, interval);
-    chapter.end = STime(formatContext->chapters[i]->end, interval);
-
-    chapters.insert(chapter.begin, chapter);
-  }
-
-  return chapters.values();
 }
 
 /*! Returns true if the data contains DTS data.

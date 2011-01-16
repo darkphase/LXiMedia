@@ -58,12 +58,12 @@ bool SIOInputNode::open(void)
   if (d->ioDevice->isOpen())
   {
     // Detect format.
-    const QByteArray buffer = d->ioDevice->peek(SInterfaces::FileFormatProber::defaultProbeSize);
+    const QByteArray buffer = d->ioDevice->peek(SInterfaces::FormatProber::defaultProbeSize);
 
     QMultiMap<int, QString> formats;
-    foreach (SInterfaces::FileFormatProber *prober, SInterfaces::FileFormatProber::create(this))
+    foreach (SInterfaces::FormatProber *prober, SInterfaces::FormatProber::create(this))
     {
-      foreach (const SInterfaces::FileFormatProber::Format &format, prober->probeFormat(buffer))
+      foreach (const SInterfaces::FormatProber::Format &format, prober->probeFileFormat(buffer))
         formats.insert(-format.confidence, format.name);
 
       delete prober;
@@ -85,74 +85,6 @@ bool SIOInputNode::open(void)
   }
 
   return false;
-}
-
-STime SIOInputNode::duration(void) const
-{
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
-  if (d->bufferReader)
-    return d->bufferReader->duration();
-
-  return STime();
-}
-
-bool SIOInputNode::setPosition(STime pos)
-{
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
-  if (d->bufferReader)
-    return d->bufferReader->setPosition(pos);
-
-  return false;
-}
-
-STime SIOInputNode::position(void) const
-{
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
-  if (d->bufferReader)
-    return d->bufferReader->position();
-
-  return STime();
-}
-
-QList<SIOInputNode::AudioStreamInfo> SIOInputNode::audioStreams(void) const
-{
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
-  if (d->bufferReader)
-    return d->bufferReader->audioStreams();
-
-  return QList<AudioStreamInfo>();
-}
-
-QList<SIOInputNode::VideoStreamInfo> SIOInputNode::videoStreams(void) const
-{
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
-  if (d->bufferReader)
-    return d->bufferReader->videoStreams();
-
-  return QList<VideoStreamInfo>();
-}
-
-QList<SIOInputNode::DataStreamInfo> SIOInputNode::dataStreams(void) const
-{
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
-  if (d->bufferReader)
-    return d->bufferReader->dataStreams();
-
-  return QList<DataStreamInfo>();
-}
-
-void SIOInputNode::selectStreams(const QList<quint16> &streamIds)
-{
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
-  if (d->bufferReader)
-    d->bufferReader->selectStreams(streamIds);
 }
 
 bool SIOInputNode::start(void)
@@ -224,6 +156,84 @@ qint64 SIOInputNode::seek(qint64 offset, int whence)
   }
 
   return -1;
+}
+
+STime SIOInputNode::duration(void) const
+{
+  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+
+  if (d->bufferReader)
+    return d->bufferReader->duration();
+
+  return STime();
+}
+
+bool SIOInputNode::setPosition(STime pos)
+{
+  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+
+  if (d->bufferReader)
+    return d->bufferReader->setPosition(pos);
+
+  return false;
+}
+
+STime SIOInputNode::position(void) const
+{
+  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+
+  if (d->bufferReader)
+    return d->bufferReader->position();
+
+  return STime();
+}
+
+QList<SIOInputNode::Chapter> SIOInputNode::chapters(void) const
+{
+  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+
+  if (d->bufferReader)
+    return d->bufferReader->chapters();
+
+  return QList<Chapter>();
+}
+
+QList<SIOInputNode::AudioStreamInfo> SIOInputNode::audioStreams(void) const
+{
+  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+
+  if (d->bufferReader)
+    return d->bufferReader->audioStreams();
+
+  return QList<AudioStreamInfo>();
+}
+
+QList<SIOInputNode::VideoStreamInfo> SIOInputNode::videoStreams(void) const
+{
+  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+
+  if (d->bufferReader)
+    return d->bufferReader->videoStreams();
+
+  return QList<VideoStreamInfo>();
+}
+
+QList<SIOInputNode::DataStreamInfo> SIOInputNode::dataStreams(void) const
+{
+  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+
+  if (d->bufferReader)
+    return d->bufferReader->dataStreams();
+
+  return QList<DataStreamInfo>();
+}
+
+void SIOInputNode::selectStreams(const QList<quint16> &streamIds)
+{
+  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+
+  if (d->bufferReader)
+    d->bufferReader->selectStreams(streamIds);
 }
 
 void SIOInputNode::produce(const SEncodedAudioBuffer &buffer)

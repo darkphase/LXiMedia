@@ -19,7 +19,7 @@
 
 #include <QtGui>
 #include "coretest.h"
-#include "dvdreadtest.h"
+#include "dvdnavtest.h"
 #include "ffmpegtest.h"
 #include "iotest.h"
 #ifdef ENABLE_GLSL
@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
 
   if (QTest::qExec(new CoreTest(&app), app.arguments()) != 0)     return 1;
   if (QTest::qExec(new IOTest(&app), app.arguments()) != 0)       return 1;
-  if (QTest::qExec(new DVDReadTest(&app), app.arguments()) != 0)  return 1;
+  if (QTest::qExec(new DVDNavTest(&app), app.arguments()) != 0)   return 1;
   if (QTest::qExec(new FFMpegTest(&app), app.arguments()) != 0)   return 1;
 #ifdef ENABLE_GLSL
   if (QTest::qExec(new OpenGLTest(&app), app.arguments()) != 0)   return 1;
