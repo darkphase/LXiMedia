@@ -177,7 +177,13 @@ bool SDiscInputNode::setPosition(STime pos)
 
   if (d->discReader)
   if (d->discReader->setPosition(pos))
+  {
+    // Flush any buffers
+    if (d->bufferReader)
+      d->bufferReader->setPosition(STime());
+
     return true;
+  }
 
   if (d->bufferReader)
     return d->bufferReader->setPosition(pos);

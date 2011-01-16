@@ -133,7 +133,7 @@ void PlaylistNode::nextSong(void)
   {
     const MediaDatabase::UniqueID uid = activePlaylist->checkout();
     if (uid != 0)
-      playSong(mediaDatabase->readNode(uid));
+      playSong(uid, mediaDatabase->readNode(uid));
     else
       break;
   }
@@ -189,15 +189,15 @@ void PlaylistNode::closeInput(Input *input)
   }
 }
 
-void PlaylistNode::playSong(const MediaDatabase::Node &node)
+void PlaylistNode::playSong(const MediaDatabase::UniqueID &uid, const SMediaInfo &node)
 {
   if (!node.isNull())
   {
     mediaDatabase->setLastPlayed(node);
 
     Q_ASSERT(input == NULL);
-    input = new Input(node.uid, node.path);
-    input->duration = node.mediaInfo.duration();
+    input = new Input(uid, node.filePath());
+    input->duration = node.duration();
 
     if (SAudioFormat::numChannels(outFormat.channelSetup()) <= 6)
       input->audioDecoder.setFlags(SInterfaces::AudioDecoder::Flag_DownsampleToStereo);
@@ -215,12 +215,12 @@ void PlaylistNode::playSong(const MediaDatabase::Node &node)
       if (videoEnabled)
       {
         if (graph)
-          graph->runTask(this, &PlaylistNode::computeSplash, node);
+          graph->runTask(this, &PlaylistNode::computeSplash, uid, node);
         else
-          computeSplash(node);
+          computeSplash(uid, node);
       }
 
-      qDebug() << "PlaylistNode: playing file" << node.path;
+      qDebug() << "PlaylistNode: playing file" << node.filePath();
     }
     else
     {
@@ -230,19 +230,19 @@ void PlaylistNode::playSong(const MediaDatabase::Node &node)
   }
 }
 
-void PlaylistNode::computeSplash(const MediaDatabase::Node &node)
+void PlaylistNode::computeSplash(const MediaDatabase::UniqueID &uid, const SMediaInfo &node)
 {
   QImage thumb;
-  if (!node.mediaInfo.thumbnails().isEmpty())
-    thumb = QImage::fromData(node.mediaInfo.thumbnails().first());
+  if (!node.thumbnails().isEmpty())
+    thumb = QImage::fromData(node.thumbnails().first());
 
   if (thumb.isNull())
-  foreach (MediaDatabase::UniqueID uid, mediaDatabase->allFilesInDirOf(node.uid))
+  foreach (MediaDatabase::UniqueID uid, mediaDatabase->allFilesInDirOf(uid))
   {
-    const MediaDatabase::Node node = mediaDatabase->readNode(uid);
-    if (!node.mediaInfo.thumbnails().isEmpty())
+    const SMediaInfo node = mediaDatabase->readNode(uid);
+    if (!node.thumbnails().isEmpty())
     {
-      thumb = QImage::fromData(node.mediaInfo.thumbnails().first());
+      thumb = QImage::fromData(node.thumbnails().first());
       if (!thumb.isNull())
         break;
     }
@@ -321,10 +321,10 @@ void PlaylistNode::computeSplash(const MediaDatabase::Node &node)
   videoBufferText.clear();
   videoBufferText += QString::null;
   videoBufferText += QString::null;
-  videoBufferText += !node.mediaInfo.title().isEmpty() ? node.mediaInfo.title() : node.title();
-  videoBufferText += node.mediaInfo.author();
-  if (!node.mediaInfo.album().isEmpty())
-    videoBufferText.last() += " - " + node.mediaInfo.album();
+  videoBufferText += node.title();
+  videoBufferText += node.author();
+  if (!node.album().isEmpty())
+    videoBufferText.last() += " - " + node.album();
 
   videoBuffer = img.toVideoBuffer(videoSize.aspectRatio(), videoFrameRate);
 }

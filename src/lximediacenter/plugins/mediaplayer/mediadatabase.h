@@ -34,25 +34,6 @@ Q_OBJECT
 public:
   typedef qint64                UniqueID;
 
-  struct Node
-  {
-    inline                      Node(void)
-        : uid(0), path(QString::null), size(0), lastModified(), mediaInfo()
-    {
-    }
-
-    inline bool                 isNull(void) const                              { return uid == 0; }
-    inline bool                 isDir(void) const                               { return path.endsWith('/'); }
-    inline QString              fileName(void) const                            { return QFileInfo(path).fileName(); }
-    inline QString              title(void) const                               { return mediaInfo.title().isEmpty() ? fileName() : mediaInfo.title(); }
-
-    UniqueID                    uid;
-    QString                     path;
-    qint64                      size;
-    QDateTime                   lastModified;
-    SMediaInfo                  mediaInfo;
-  };
-
 private:
   class Task : public QRunnable
   {
@@ -66,6 +47,21 @@ private:
     void                        (MediaDatabase::* const func)(void);
   };
 
+  struct CategoryFunc
+  {
+    const char          * const name;
+    void                        (MediaDatabase::* const invalidate)(void);
+    void                        (MediaDatabase::* const categorize)(QSqlDatabase &, qint64, const QString &, const SMediaInfo &);
+  };
+
+  struct Category
+  {
+    inline                      Category(const CategoryFunc *func, const QString &path) : func(func), path(path) { }
+
+    const CategoryFunc        * func;
+    QString                     path;
+  };
+
   struct QuerySet;
 
 public:
@@ -77,12 +73,12 @@ public:
   static inline UniqueID        fromUidString(const QString &str)               { return UniqueID(str.toULongLong(NULL, 16) & Q_UINT64_C(0x7FFFFFFFFFFFFFFF)); }
 
   UniqueID                      fromPath(const QString &path) const;
-  Node                          readNode(UniqueID) const;
+  SMediaInfo                    readNode(UniqueID) const;
 
   void                          setLastPlayed(UniqueID, const QDateTime & = QDateTime::currentDateTime());
-  void                          setLastPlayed(const Node &, const QDateTime & = QDateTime::currentDateTime());
+  void                          setLastPlayed(const SMediaInfo &, const QDateTime & = QDateTime::currentDateTime());
   QDateTime                     lastPlayed(UniqueID) const;
-  QDateTime                     lastPlayed(const Node &) const;
+  QDateTime                     lastPlayed(const SMediaInfo &) const;
 
   QStringList                   allMovies(void) const;
   QList<UniqueID>               allMovieFiles(const QString &key) const;
@@ -142,18 +138,29 @@ private:
   void                          probeFiles(void);
   void                          matchImdbItems(void);
 
-  QSet<QString>                 findCategories(const QString &) const;
+  QList<Category>               findCategories(const QString &) const;
+
   void                          categorizeMovie(QSqlDatabase &, qint64, const QString &, const SMediaInfo &);
   void                          categorizeTVShow(QSqlDatabase &, qint64, const QString &, const SMediaInfo &);
   void                          categorizeClip(QSqlDatabase &, qint64, const QString &, const SMediaInfo &);
   void                          categorizeMusic(QSqlDatabase &, qint64, const QString &, const SMediaInfo &);
   void                          categorizePhoto(QSqlDatabase &, qint64, const QString &, const SMediaInfo &);
   void                          categorizeHomeVideo(QSqlDatabase &, qint64, const QString &, const SMediaInfo &);
+  static QString                albumPath(const QString &);
+
+  void                          invalidateMovie(void);
+  void                          invalidateTVShow(void);
+  void                          invalidateClip(void);
+  void                          invalidateMusic(void);
+  void                          invalidatePhoto(void);
+  void                          invalidateHomeVideo(void);
 
 public:
   static const int              maxSongDurationMin;
 
 private:
+  static const CategoryFunc     categoryFunc[];
+
   Plugin                * const plugin;
   QThreadPool           * const threadPool;
   mutable QMutex                mutex;

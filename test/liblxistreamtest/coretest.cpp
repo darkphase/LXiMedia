@@ -78,6 +78,13 @@ void CoreTest::StringParser_RawName(void)
   QCOMPARE(SStringParser::toRawName("R&~a%%%W-**n   A#$m@@@__+@e?!!1/{  }2"), QString("RAWNAME12"));
 }
 
+/*! Validates that the SStringParser::toRawPath method functions correctly.
+ */
+void CoreTest::StringParser_RawPath(void)
+{
+  QCOMPARE(SStringParser::toRawPath("/R&~a%%%W-*/ /*n   A#$m@@@__+@e?/!!1{  }2/"), QString("RAW/NAME/12"));
+}
+
 /*! Validates that the SStringParser::findMatch method functions correctly.
  */
 void CoreTest::StringParser_FindMatch(void)

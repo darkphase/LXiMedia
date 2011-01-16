@@ -39,10 +39,10 @@ BackendServer::SearchResultList PhotoServer::search(const QStringList &query) co
 
   foreach (const MediaDatabase::UniqueID &uid, mediaDatabase->queryPhotoAlbums(query))
   {
-    const MediaDatabase::Node node = mediaDatabase->readNode(uid);
+    const SMediaInfo node = mediaDatabase->readNode(uid);
     if (!node.isNull())
     {
-      QDir parentDir(node.path);
+      QDir parentDir(node.filePath());
       parentDir.cdUp();
 
       const QString albumName = parentDir.dirName();
@@ -56,12 +56,12 @@ BackendServer::SearchResultList PhotoServer::search(const QStringList &query) co
         SearchResult result;
         result.relevance = match;
         result.headline = node.title() + " [" + albumName + "] (" + tr("Photo") + ")";
-        result.location = MediaDatabase::toUidString(node.uid) + ".html?album=" +
+        result.location = MediaDatabase::toUidString(uid) + ".html?album=" +
                           rawAlbumName.toLower().toAscii();
-        result.text = node.mediaInfo.fileTypeName() + ", " +
-                      videoFormatString(node.mediaInfo) + ", " +
-                      node.lastModified.toString(searchDateTimeFormat);
-        result.thumbLocation = MediaDatabase::toUidString(node.uid) + "-thumb.jpeg";
+        result.text = node.fileTypeName() + ", " +
+                      videoFormatString(node) + ", " +
+                      node.lastModified().toString(searchDateTimeFormat);
+        result.thumbLocation = MediaDatabase::toUidString(uid) + "-thumb.jpeg";
         results += result;
       }
     }
@@ -104,14 +104,14 @@ void PhotoServer::updateDlnaTask(void)
     const QList<MediaDatabase::UniqueID> files = mediaDatabase->allPhotoFiles(photoAlbum);
     if (files.count() >= minPhotosInAlbum)
     {
-      const MediaDatabase::Node node = mediaDatabase->readNode(files.first());
+      const SMediaInfo node = mediaDatabase->readNode(files.first());
       if (!node.isNull())
       {
-        QDir parentDir(node.path);
+        QDir parentDir(node.filePath());
         parentDir.cdUp();
 
         DlnaServer::File slideShowFile(dlnaDir.server());
-        slideShowFile.date = node.lastModified;
+        slideShowFile.date = node.lastModified();
         slideShowFile.url = httpPath() + SStringParser::toRawName(parentDir.dirName()).toLower() + ".mpeg";
         slideShowFile.mimeType = "video/mpeg";
         slideShowFile.sortOrder = 1;
@@ -147,18 +147,18 @@ bool PhotoServer::streamVideo(const QHttpRequestHeader &request, QAbstractSocket
       QStringList fileNames;
       foreach (const MediaDatabase::UniqueID &item, files)
       {
-        MediaDatabase::Node node = mediaDatabase->readNode(item);
+        const SMediaInfo node = mediaDatabase->readNode(item);
         if (!node.isNull())
         {
           if (fileNames.isEmpty())
-          if (!node.mediaInfo.thumbnails().isEmpty())
-            thumb = QImage::fromData(node.mediaInfo.thumbnails().first());
+          if (!node.thumbnails().isEmpty())
+            thumb = QImage::fromData(node.thumbnails().first());
 
-          fileNames.append(node.path);
+          fileNames.append(node.filePath());
 
           if (title.isEmpty())
           {
-            QDir parentDir(node.path);
+            QDir parentDir(node.filePath());
             parentDir.cdUp();
 
             title = parentDir.dirName();
@@ -183,12 +183,12 @@ bool PhotoServer::streamVideo(const QHttpRequestHeader &request, QAbstractSocket
 
 bool PhotoServer::sendPhoto(QAbstractSocket *socket, MediaDatabase::UniqueID uid, unsigned width, unsigned height) const
 {
-  const MediaDatabase::Node node = mediaDatabase->readNode(uid);
+  const SMediaInfo node = mediaDatabase->readNode(uid);
 
   if (!node.isNull())
-  if (node.mediaInfo.containsImage())
+  if (node.containsImage())
   {
-    SImage image(node.path);
+    SImage image(node.filePath());
     if (!image.isNull())
     {
       QByteArray jpgData;
@@ -323,12 +323,12 @@ const DlnaServerDir::FileMap & PhotoServer::PhotoAlbumDir::listFiles(void)
     {
       foreach (MediaDatabase::UniqueID uid, parent->mediaDatabase->allPhotoFiles(photoAlbum))
       {
-        const MediaDatabase::Node node = parent->mediaDatabase->readNode(uid);
+        const SMediaInfo node = parent->mediaDatabase->readNode(uid);
         if (!node.isNull())
         {
           DlnaServer::File file(server());
-          file.date = node.lastModified;
-          file.url = parent->httpPath() + MediaDatabase::toUidString(node.uid) + ".jpeg";
+          file.date = node.lastModified();
+          file.url = parent->httpPath() + MediaDatabase::toUidString(uid) + ".jpeg";
           file.mimeType = "image/jpeg";
 
           files.insert(node.title(), file);

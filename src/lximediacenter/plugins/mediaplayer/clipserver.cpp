@@ -38,10 +38,10 @@ BackendServer::SearchResultList ClipServer::search(const QStringList &query) con
 
   foreach (const MediaDatabase::UniqueID &uid, mediaDatabase->queryVideoClips(query))
   {
-    const MediaDatabase::Node node = mediaDatabase->readNode(uid);
+    const SMediaInfo node = mediaDatabase->readNode(uid);
     if (!node.isNull())
     {
-      QDir parentDir(node.path);
+      QDir parentDir(node.filePath());
       parentDir.cdUp();
 
       const QString albumName = parentDir.dirName();
@@ -52,18 +52,18 @@ BackendServer::SearchResultList ClipServer::search(const QStringList &query) con
 
       if (match >= minSearchRelevance)
       {
-        const QString time = QTime().addSecs(node.mediaInfo.duration().toSec()).toString(videoTimeFormat);
+        const QString time = QTime().addSecs(node.duration().toSec()).toString(videoTimeFormat);
 
         SearchResult result;
         result.relevance = match;
         result.headline = node.title() + " (" + tr("Video clip") + ")";
-        result.location = MediaDatabase::toUidString(node.uid) + ".html";
-        result.text = time + ", " + node.mediaInfo.fileTypeName() + ", " +
-                      videoFormatString(node.mediaInfo) + ", " +
-                      node.lastModified.toString(searchDateTimeFormat);
+        result.location = MediaDatabase::toUidString(uid) + ".html";
+        result.text = time + ", " + node.fileTypeName() + ", " +
+                      videoFormatString(node) + ", " +
+                      node.lastModified().toString(searchDateTimeFormat);
 
-        if (!node.mediaInfo.thumbnails().isEmpty())
-          result.thumbLocation = MediaDatabase::toUidString(node.uid) + "-thumb.jpeg";
+        if (!node.thumbnails().isEmpty())
+          result.thumbLocation = MediaDatabase::toUidString(uid) + "-thumb.jpeg";
 
         results += result;
       }
@@ -75,46 +75,30 @@ BackendServer::SearchResultList ClipServer::search(const QStringList &query) con
 
 void ClipServer::updateDlnaTask(void)
 {
-  QMultiMap<QString, DlnaServerDir *> subDirs;
-  foreach (const QString &clipAlbum, mediaDatabase->allVideoClipAlbums())
+  QMultiMap<QString, QMultiMap<QString, PlayItem> > albums;
+  foreach (const QString &album, mediaDatabase->allVideoClipAlbums())
   {
-    QString albumName;
-
-    QMultiMap<QString, MediaDatabase::Node> clips;
-    foreach (MediaDatabase::UniqueID uid, mediaDatabase->allVideoClipFiles(clipAlbum))
+    QMultiMap<QString, PlayItem> clips;
+    foreach (MediaDatabase::UniqueID uid, mediaDatabase->allVideoClipFiles(album))
     {
-      const MediaDatabase::Node node = mediaDatabase->readNode(uid);
+      const SMediaInfo node = mediaDatabase->readNode(uid);
       if (!node.isNull())
-      {
-        if (albumName.isEmpty())
-        {
-          QDir parentDir(node.path);
-          parentDir.cdUp();
-          albumName = parentDir.dirName();
-        }
-
-        clips.insert(node.title(), node);
-      }
+        clips.insert(node.title(), PlayItem(uid, node));
     }
 
     if (!clips.isEmpty())
-    {
-      if (albumName.isEmpty())
-        albumName = clipAlbum;
-
-      DlnaServerDir * subDir = new DlnaServerDir(dlnaDir.server());
-      for (QMultiMap<QString, MediaDatabase::Node>::Iterator i=clips.begin(); i!=clips.end(); i++)
-        addVideoFile(subDir, *i, i.key());
-
-      subDirs.insert(albumName, subDir);
-    }
+      albums.insert(album, clips);
   }
 
   SDebug::MutexLocker l(&dlnaDir.server()->mutex, __FILE__, __LINE__);
 
   dlnaDir.clear();
-  for (QMultiMap<QString, DlnaServerDir *>::Iterator i=subDirs.begin(); i!=subDirs.end(); i++)
-    dlnaDir.addDir(i.key(), i.value());
+  for (QMultiMap<QString, QMultiMap<QString, PlayItem> >::Iterator i=albums.begin(); i!=albums.end(); i++)
+  {
+    DlnaServerDir * const dir = getAlbumDir(i.key());
+    for (QMultiMap<QString, PlayItem>::Iterator j=i->begin(); j!=i->end(); j++)
+      addVideoFile(dir, *j, j.key());
+  }
 }
 
 } // End of namespace

@@ -39,6 +39,7 @@ public:
   static QStringList            toCleanName(const QStringList &) __attribute__((pure));
   static QString                toRawName(const QString &) __attribute__((pure));
   static QStringList            toRawName(const QStringList &) __attribute__((pure));
+  static QString                toRawPath(const QString &) __attribute__((pure));
 
   static QString                findMatch(const QString &, const QString &) __attribute__((pure));
   static qreal                  computeMatch(const QString &, const QString &) __attribute__((pure));

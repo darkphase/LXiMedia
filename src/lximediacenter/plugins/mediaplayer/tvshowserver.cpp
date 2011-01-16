@@ -38,28 +38,28 @@ BackendServer::SearchResultList TvShowServer::search(const QStringList &query) c
 
   foreach (const MediaDatabase::UniqueID &uid, mediaDatabase->queryTvShows(query))
   {
-    const MediaDatabase::Node node = mediaDatabase->readNode(uid);
+    const SMediaInfo node = mediaDatabase->readNode(uid);
     if (!node.isNull())
     {
-      const QString showName = node.mediaInfo.album().length() > 0 ? node.mediaInfo.album() : node.title();
+      const QString showName = node.album().length() > 0 ? node.album() : node.title();
       const qreal match =
           qMin(SStringParser::computeMatch(SStringParser::toRawName(node.title()), query) +
                SStringParser::computeMatch(SStringParser::toRawName(showName), query), 1.0);
 
       if (match >= minSearchRelevance)
       {
-        const QString time = QTime().addSecs(node.mediaInfo.duration().toSec()).toString(videoTimeFormat);
+        const QString time = QTime().addSecs(node.duration().toSec()).toString(videoTimeFormat);
 
         SearchResult result;
         result.relevance = match;
         result.headline = node.title() + " [" + showName + "] (" + tr("TV show episode") + ")";
-        result.location = MediaDatabase::toUidString(node.uid) + ".html";
-        result.text = time + ", " + node.mediaInfo.fileTypeName() + ", " +
-                      videoFormatString(node.mediaInfo) + ", " +
-                      node.lastModified.toString(searchDateTimeFormat);
+        result.location = MediaDatabase::toUidString(uid) + ".html";
+        result.text = time + ", " + node.fileTypeName() + ", " +
+                      videoFormatString(node) + ", " +
+                      node.lastModified().toString(searchDateTimeFormat);
 
-        if (!node.mediaInfo.thumbnails().isEmpty())
-          result.thumbLocation = MediaDatabase::toUidString(node.uid) + "-thumb.jpeg";
+        if (!node.thumbnails().isEmpty())
+          result.thumbLocation = MediaDatabase::toUidString(uid) + "-thumb.jpeg";
 
         results += result;
       }
@@ -76,59 +76,59 @@ void TvShowServer::updateDlnaTask(void)
   {
     QString showName, showDirName;
     bool hasSeasons = true;
-    QList<MediaDatabase::Node> nodes;
+    QList<PlayItem> items;
     foreach (MediaDatabase::UniqueID uid, mediaDatabase->allTvShowEpisodes(tvShow))
     {
-      const MediaDatabase::Node node = mediaDatabase->readNode(uid);
+      const SMediaInfo node = mediaDatabase->readNode(uid);
       if (!node.isNull())
       {
-        nodes += node;
+        items += PlayItem(uid, node);
 
-        if (node.mediaInfo.track() > 0)
-          hasSeasons = hasSeasons && (node.mediaInfo.track() > SMediaInfo::tvShowSeason);
+        if (node.track() > 0)
+          hasSeasons = hasSeasons && (node.track() > SMediaInfo::tvShowSeason);
 
         if (showName.isEmpty())
-          showName = node.mediaInfo.album();
+          showName = node.album();
 
         if (showDirName.isEmpty())
         {
-          QDir parentDir(node.path);
+          QDir parentDir(node.filePath());
           parentDir.cdUp();
           showDirName = parentDir.dirName();
         }
       }
     }
 
-    QMap<QString, QMultiMap<QString, MediaDatabase::Node> > dlnaFiles;
-    foreach (const MediaDatabase::Node &node, nodes)
+    QMap<QString, QMultiMap<QString, PlayItem> > dlnaFiles;
+    foreach (const PlayItem &item, items)
     {
       QString seasonName = QString::null;
       if (hasSeasons)
-      if ((node.mediaInfo.track() > 0) && (node.mediaInfo.track() >= SMediaInfo::tvShowSeason))
-        seasonName = tr("Season") + " " + QString::number(node.mediaInfo.track() / SMediaInfo::tvShowSeason);
+      if ((item.mediaInfo.track() > 0) && (item.mediaInfo.track() >= SMediaInfo::tvShowSeason))
+        seasonName = tr("Season") + " " + QString::number(item.mediaInfo.track() / SMediaInfo::tvShowSeason);
 
-      QMap<QString, QMultiMap<QString, MediaDatabase::Node> >::Iterator files;
+      QMap<QString, QMultiMap<QString, PlayItem> >::Iterator files;
       files = dlnaFiles.find(seasonName);
       if (files == dlnaFiles.end())
-        files = dlnaFiles.insert(seasonName, QMultiMap<QString, MediaDatabase::Node>());
+        files = dlnaFiles.insert(seasonName, QMultiMap<QString, PlayItem>());
 
       if (hasSeasons)
       {
-        if (node.mediaInfo.track() > 0)
-          files->insert(toTvShowNumber(node.mediaInfo.track()) + " " + node.title(), node);
+        if (item.mediaInfo.track() > 0)
+          files->insert(toTvShowNumber(item.mediaInfo.track()) + " " + item.mediaInfo.title(), item);
         else
-          files->insert(node.title(), node);
+          files->insert(item.mediaInfo.title(), item);
       }
-      else if (node.mediaInfo.track() > 0)
+      else if (item.mediaInfo.track() > 0)
       {
-        QString episode = QByteArray::number(node.mediaInfo.track());
+        QString episode = QByteArray::number(item.mediaInfo.track());
         while (episode.length() < 3)
           episode = "0" + episode;
 
-        files->insert(episode + " " + node.title(), node);
+        files->insert(episode + " " + item.mediaInfo.title(), item);
       }
       else
-        files->insert(node.title(), node);
+        files->insert(item.mediaInfo.title(), item);
     }
 
     if (!dlnaFiles.isEmpty())
@@ -137,7 +137,7 @@ void TvShowServer::updateDlnaTask(void)
         showName = !showDirName.isEmpty() ? showDirName : tvShow;
 
       DlnaServerDir * subDir = new DlnaServerDir(dlnaDir.server());
-      for (QMap<QString, QMultiMap<QString, MediaDatabase::Node> >::Iterator i=dlnaFiles.begin(); i!=dlnaFiles.end(); i++)
+      for (QMap<QString, QMultiMap<QString, PlayItem> >::Iterator i=dlnaFiles.begin(); i!=dlnaFiles.end(); i++)
       {
         DlnaServerDir * seasonDir = subDir;
         if (!i.key().isEmpty())
@@ -148,7 +148,7 @@ void TvShowServer::updateDlnaTask(void)
           subDir->addDir(i.key(), seasonDir);
         }
 
-        for (QMultiMap<QString, MediaDatabase::Node>::Iterator j=i->begin(); j!=i->end(); j++)
+        for (QMultiMap<QString, PlayItem>::Iterator j=i->begin(); j!=i->end(); j++)
         if (j->mediaInfo.track() > 0)
           addVideoFile(seasonDir, *j, j.key(), j->mediaInfo.track());
         else

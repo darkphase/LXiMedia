@@ -35,6 +35,7 @@ public:
   static const char     * const formatName;
 
   static QString                discPath(const QString &path);
+  static bool                   isExtractedDiscPath(const QString &path);
   static bool                   isDiscPath(const QString &path);
 
   explicit                      DiscReader(const QString &, QObject *);
@@ -70,6 +71,7 @@ private:
   STime                         titleDuration;
 
   static const unsigned         blockSize = 2048;
+  bool                          seekEnabled;
   bool                          playing, skipStill, skipWait;
 };
 

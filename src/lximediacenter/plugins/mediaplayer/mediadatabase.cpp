@@ -25,6 +25,18 @@ namespace LXiMediaCenter {
 
 const int MediaDatabase::maxSongDurationMin = 15;
 
+const MediaDatabase::CategoryFunc MediaDatabase::categoryFunc[] =
+{
+  { "movies",     &MediaDatabase::invalidateMovie,      &MediaDatabase::categorizeMovie },
+  { "tvshows",    &MediaDatabase::invalidateTVShow,     &MediaDatabase::categorizeTVShow },
+  { "clips",      &MediaDatabase::invalidateClip,       &MediaDatabase::categorizeClip },
+  { "music",      &MediaDatabase::invalidateMusic,      &MediaDatabase::categorizeMusic },
+  { "photos",     &MediaDatabase::invalidatePhoto,      &MediaDatabase::categorizePhoto },
+  { "homevideos", &MediaDatabase::invalidateHomeVideo,  &MediaDatabase::categorizeHomeVideo },
+  { NULL, NULL, NULL }
+};
+
+
 MediaDatabase::MediaDatabase(Plugin *plugin, QThreadPool *threadPool)
   : QObject(plugin),
     plugin(plugin),
@@ -45,7 +57,7 @@ MediaDatabase::MediaDatabase(Plugin *plugin, QThreadPool *threadPool)
   QSqlQuery query(db);
 
   // Drop all tables if the database version is outdated.
-  static const int databaseVersion = 1;
+  static const int databaseVersion = 2;
   if (settings.value("DatabaseVersion", 0).toInt() != databaseVersion)
   {
     qDebug() << "Mediaplayer database layout changed, recreating tables.";
@@ -207,26 +219,22 @@ MediaDatabase::UniqueID MediaDatabase::fromPath(const QString &path) const
   return 0;
 }
 
-MediaDatabase::Node MediaDatabase::readNode(UniqueID uid) const
+SMediaInfo MediaDatabase::readNode(UniqueID uid) const
 {
   SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
 
   QSqlQuery query(Database::database());
-  query.exec("SELECT path, size, lastModified, mediaInfo "
+  query.exec("SELECT mediaInfo "
              "FROM MediaplayerFiles WHERE uid = " + QString::number(uid));
   if (query.next())
   {
-    Node node;
-    node.uid = uid;
-    node.path = query.value(0).toString();
-    node.size = query.value(1).toLongLong();
-    node.lastModified = query.value(2).toDateTime();
-    node.mediaInfo.fromByteArray(query.value(3).toByteArray(), node.path);
+    SMediaInfo node;
+    node.fromByteArray(query.value(0).toByteArray());
 
     return node;
   }
 
-  return Node();
+  return SMediaInfo();
 }
 
 void MediaDatabase::setLastPlayed(UniqueID uid, const QDateTime &lastPlayed)
@@ -234,18 +242,21 @@ void MediaDatabase::setLastPlayed(UniqueID uid, const QDateTime &lastPlayed)
   setLastPlayed(readNode(uid), lastPlayed);
 }
 
-void MediaDatabase::setLastPlayed(const Node &node, const QDateTime &lastPlayed)
+void MediaDatabase::setLastPlayed(const SMediaInfo &node, const QDateTime &lastPlayed)
 {
-  QSettings settings(GlobalSettings::applicationDataDir() + "/lastplayed.db", QSettings::IniFormat);
+  if (!node.isNull())
+  {
+    QSettings settings(GlobalSettings::applicationDataDir() + "/lastplayed.db", QSettings::IniFormat);
 
-  QString key = node.path;
-  key.replace('/', '|');
-  key.replace('\\', '|');
+    QString key = node.filePath();
+    key.replace('/', '|');
+    key.replace('\\', '|');
 
-  if (lastPlayed.isValid())
-    settings.setValue(key, lastPlayed);
-  else
-    settings.remove(key);
+    if (lastPlayed.isValid())
+      settings.setValue(key, lastPlayed);
+    else
+      settings.remove(key);
+  }
 }
 
 QDateTime MediaDatabase::lastPlayed(UniqueID uid) const
@@ -253,15 +264,20 @@ QDateTime MediaDatabase::lastPlayed(UniqueID uid) const
   return lastPlayed(readNode(uid));
 }
 
-QDateTime MediaDatabase::lastPlayed(const Node &node) const
+QDateTime MediaDatabase::lastPlayed(const SMediaInfo &node) const
 {
-  QSettings settings(GlobalSettings::applicationDataDir() + "/lastplayed.db", QSettings::IniFormat);
+  if (!node.isNull())
+  {
+    QSettings settings(GlobalSettings::applicationDataDir() + "/lastplayed.db", QSettings::IniFormat);
 
-  QString key = node.path;
-  key.replace('/', '|');
-  key.replace('\\', '|');
+    QString key = node.filePath();
+    key.replace('/', '|');
+    key.replace('\\', '|');
 
-  return settings.value(key, QDateTime()).toDateTime();
+    return settings.value(key, QDateTime()).toDateTime();
+  }
+
+  return QDateTime();
 }
 
 QStringList MediaDatabase::allMovies(void) const

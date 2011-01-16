@@ -38,7 +38,7 @@ public:
 public: // From SInterfaces::FormatProber
   virtual QList<Format>         probeFileFormat(const QByteArray &, const QString &);
   virtual QList<Format>         probeDiscFormat(const QString &);
-  virtual void                  probeFile(ProbeInfo &, ReadCallback *, const QString &);
+  virtual void                  probeFile(ProbeInfo &, ReadCallback *);
   virtual void                  probeDisc(ProbeInfo &, const QString &);
 
 private:

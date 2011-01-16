@@ -52,7 +52,7 @@ QList<FormatProber::Format> FormatProber::probeDiscFormat(const QString &deviceP
   return result;
 }
 
-void FormatProber::probeFile(ProbeInfo &, ReadCallback *, const QString &)
+void FormatProber::probeFile(ProbeInfo &, ReadCallback *)
 {
 }
 
@@ -63,6 +63,9 @@ void FormatProber::probeDisc(ProbeInfo &pi, const QString &devicePath)
     DiscReader discReader(QString::null, this);
     if (discReader.openPath(DiscReader::formatName, devicePath))
     {
+      if (DiscReader::isExtractedDiscPath(devicePath))
+        pi.path = QFileInfo(DiscReader::discPath(devicePath)).path();
+
       pi.format = DiscReader::formatName;
       pi.isDisc = true;
       pi.isReadable = true;

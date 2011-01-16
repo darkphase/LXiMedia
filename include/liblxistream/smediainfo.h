@@ -48,8 +48,15 @@ public:
   SMediaInfo                  & operator=(const SMediaInfo &);
 
   virtual QDomNode              toXml(QDomDocument &) const;
-  void                          fromXml(const QDomNode &node, const QString &path);
-  void                          fromByteArray(const QByteArray &data, const QString &path);
+  virtual void                  fromXml(const QDomNode &);
+
+  bool                          isNull(void) const;                             //!< Returns true if the SMediaInfo is empty.
+
+  QString                       filePath(void) const;                           //!< Returns the file path, including the file name.
+  QString                       fileName(void) const;                           //!< Returns the name of the file, without the path.
+  QString                       path(void) const;                               //!< Returns the path to the file, without the file name.
+  qint64                        size(void) const;                               //!< Returns the file size.
+  QDateTime                     lastModified(void) const;                       //!< Returns the date the file was last modified.
 
   QString                       format(void) const;                             //!< The format name of the media (e.g. matroska, mpeg, dvd, etc.)
   bool                          isDisc(void) const;                             //!< True if the resource is a disc (e.g. DVD).
@@ -86,16 +93,14 @@ public:
   static const unsigned         tvShowSeason;
 
 private:
-  virtual void                  fromXml(const QDomNode &);
   static QDomNode               toXml(const SInterfaces::FormatProber::ProbeInfo &pi, QDomDocument &);
   static void                   fromXml(SInterfaces::FormatProber::ProbeInfo &pi, const QDomNode &);
 
-  void                          probe(void);
+  void                          probe(const QString &);
   void                          probeDataStreams(void);
 
 private:
-  struct Data;
-  Data                  * const d;
+  SInterfaces::FormatProber::ProbeInfo * pi;
 };
 
 } // End of namespace

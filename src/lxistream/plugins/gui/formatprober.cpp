@@ -51,7 +51,7 @@ QList<FormatProber::Format> FormatProber::probeDiscFormat(const QString &)
   return QList<Format>();
 }
 
-void FormatProber::probeFile(ProbeInfo &pi, ReadCallback *readCallback, const QString &)
+void FormatProber::probeFile(ProbeInfo &pi, ReadCallback *readCallback)
 {
   const qint64 size = readCallback->seek(0, -1);
   if ((size > 0) && (size <= (16384 * 1024)))

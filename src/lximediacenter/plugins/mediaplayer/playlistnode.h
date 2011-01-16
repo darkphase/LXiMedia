@@ -82,8 +82,8 @@ private:
 
   void                          computeBuffer(Input *);
   void                          closeInput(Input *);
-  void                          playSong(const MediaDatabase::Node &);
-  void                          computeSplash(const MediaDatabase::Node &);
+  void                          playSong(const MediaDatabase::UniqueID &uid, const SMediaInfo &);
+  void                          computeSplash(const MediaDatabase::UniqueID &uid, const SMediaInfo &);
 
   static const QImage         & defaultBackground(void) __attribute__((pure));
 

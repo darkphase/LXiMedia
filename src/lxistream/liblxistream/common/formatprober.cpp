@@ -34,7 +34,7 @@ FormatProber::~FormatProber()
 {
 }
 
-QList<FormatProber::Format> FormatProber::probeFileFormat(const QByteArray &data, const QString &fileName)
+QList<FormatProber::Format> FormatProber::probeFileFormat(const QByteArray &, const QString &)
 {
   QList<Format> formats;
 
@@ -49,11 +49,11 @@ QList<FormatProber::Format> FormatProber::probeDiscFormat(const QString &)
   return QList<Format>();
 }
 
-void FormatProber::probeFile(ProbeInfo &pi, ReadCallback *, const QString &path)
+void FormatProber::probeFile(ProbeInfo &pi, ReadCallback *)
 {
-  if (!path.isEmpty())
+  if (!pi.filePath.isEmpty())
   {
-    const QFileInfo info(path);
+    const QFileInfo info(pi.filePath);
     const QString suffix = info.suffix().toLower();
 
     if (imageSuffixes().contains(suffix))

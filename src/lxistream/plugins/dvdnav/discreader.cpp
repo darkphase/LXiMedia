@@ -26,9 +26,12 @@ const char * const DiscReader::formatName = "dvd";
 
 QString DiscReader::discPath(const QString &path)
 {
-  return path.endsWith("/VIDEO_TS/VIDEO_TS.IFO", Qt::CaseInsensitive)
-      ? path.left(path.length() - 22)
-      : path;
+  return isExtractedDiscPath(path) ? path.left(path.length() - 22) : path;
+}
+
+bool DiscReader::isExtractedDiscPath(const QString &path)
+{
+  return path.endsWith("/VIDEO_TS/VIDEO_TS.IFO", Qt::CaseInsensitive);
 }
 
 bool DiscReader::isDiscPath(const QString &path)
@@ -53,6 +56,7 @@ DiscReader::DiscReader(const QString &, QObject *parent)
     dvdHandle(NULL),
     currentTitle(0),
     currentChapter(-1),
+    seekEnabled(false),
     playing(false),
     skipStill(false),
     skipWait(false)
@@ -310,9 +314,22 @@ qint64 DiscReader::read(uchar *buffer, qint64 size)
         }
         else
         {
-          qWarning() << dvdnav_err_to_string(dvdHandle);
-          playing = false;
-          break;
+          qWarning() << ::dvdnav_err_to_string(dvdHandle);
+
+          if (seekEnabled)
+          {
+            seekEnabled = false;
+
+            if (currentChapter < 0)
+            {
+              if (::dvdnav_title_play(dvdHandle, currentTitle + 1) != DVDNAV_STATUS_OK)
+                break;
+            }
+            else if (::dvdnav_part_play(dvdHandle, currentTitle + 1, currentChapter + 1) != DVDNAV_STATUS_OK)
+              break;
+          }
+          else
+            break;
         }
       }
 
@@ -325,8 +342,23 @@ qint64 DiscReader::read(uchar *buffer, qint64 size)
   return -1;
 }
 
-qint64 DiscReader::seek(qint64, int)
+qint64 DiscReader::seek(qint64 offset, int whence)
 {
+  if (seekEnabled && dvdHandle && playing)
+  {
+    if (whence != -1)
+    {
+      if (::dvdnav_sector_search(dvdHandle, offset / blockSize, whence) == DVDNAV_STATUS_OK)
+        return 0;
+    }
+    else
+    {
+      uint32_t pos = 0, len = 0;
+      if (::dvdnav_get_position(dvdHandle, &pos, &len) == DVDNAV_STATUS_OK)
+        return qint64(len) * blockSize;
+    }
+  }
+
   return -1;
 }
 

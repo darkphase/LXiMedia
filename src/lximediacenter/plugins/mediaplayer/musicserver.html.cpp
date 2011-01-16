@@ -188,21 +188,21 @@ bool MusicServer::handleHtmlRequest(const QUrl &url, const QString &file, QAbstr
 {
   struct T
   {
-    static void buildItemText(HtmlParser &htmlParser, const MediaDatabase::Node &node)
+    static void buildItemText(HtmlParser &htmlParser, const SMediaInfo &mediaInfo)
     {
       htmlParser.setField("ITEM_TEXT", QByteArray());
 
-      if (node.mediaInfo.duration().isPositive())
-        htmlParser.appendField("ITEM_TEXT", QTime().addSecs(node.mediaInfo.duration().toSec()).toString(audioTimeFormat));
+      if (mediaInfo.duration().isPositive())
+        htmlParser.appendField("ITEM_TEXT", QTime().addSecs(mediaInfo.duration().toSec()).toString(audioTimeFormat));
 
-      if (!node.mediaInfo.author().isEmpty())
-        htmlParser.appendField("ITEM_TEXT", " " + node.mediaInfo.author());
+      if (!mediaInfo.author().isEmpty())
+        htmlParser.appendField("ITEM_TEXT", " " + mediaInfo.author());
 
-      if (!node.mediaInfo.album().isEmpty())
-        htmlParser.appendField("ITEM_TEXT", " - " + node.mediaInfo.album());
+      if (!mediaInfo.album().isEmpty())
+        htmlParser.appendField("ITEM_TEXT", " - " + mediaInfo.album());
 
-      if (node.mediaInfo.year() > 0)
-        htmlParser.appendField("ITEM_TEXT", " " + QByteArray::number(node.mediaInfo.year()));
+      if (mediaInfo.year() > 0)
+        htmlParser.appendField("ITEM_TEXT", " " + QByteArray::number(mediaInfo.year()));
     }
   };
 
@@ -278,9 +278,9 @@ bool MusicServer::handleHtmlRequest(const QUrl &url, const QString &file, QAbstr
       htmlParser.setField("ITEM_NAME", !artist.isEmpty() ? artist.toLower() : tr("Unknown Artist"));
 
       const QList<MediaDatabase::UniqueID> files = mediaDatabase->allMusicArtistFiles(artist);
-      const MediaDatabase::Node node = mediaDatabase->readNode(files.first());
-      if (!node.isNull() && !node.mediaInfo.author().isEmpty())
-        htmlParser.setField("ITEM_NAME", node.mediaInfo.author());
+      const SMediaInfo node = mediaDatabase->readNode(files.first());
+      if (!node.isNull() && !node.author().isEmpty())
+        htmlParser.setField("ITEM_NAME", node.author());
 
       htmlParser.setField("ITEM_TEXT", QString::number(files.count()) + " " + tr("songs"));
 
@@ -303,10 +303,10 @@ bool MusicServer::handleHtmlRequest(const QUrl &url, const QString &file, QAbstr
     int count = 0;
     foreach (MediaDatabase::UniqueID uid, mediaDatabase->allMusicArtistFiles(artist))
     {
-      const MediaDatabase::Node node = mediaDatabase->readNode(uid);
+      const SMediaInfo node = mediaDatabase->readNode(uid);
       if (!node.isNull())
       {
-        htmlParser.setField("ITEM_LINK", target + "&queue=" + MediaDatabase::toUidString(node.uid));
+        htmlParser.setField("ITEM_LINK", target + "&queue=" + MediaDatabase::toUidString(uid));
         htmlParser.setField("ITEM_NAME", node.title());
 
         T::buildItemText(htmlParser, node);
@@ -390,7 +390,7 @@ bool MusicServer::handleHtmlRequest(const QUrl &url, const QString &file, QAbstr
         const MediaDatabase::UniqueID currentSong = (*stream)->playlistNode.currentSong();
         foreach (MediaDatabase::UniqueID uid, (*stream)->playlistNode.playlist()->next())
         {
-          const MediaDatabase::Node node = mediaDatabase->readNode(uid);
+          const SMediaInfo node = mediaDatabase->readNode(uid);
           if (!node.isNull())
           {
             if (uid == currentSong)
@@ -407,7 +407,7 @@ bool MusicServer::handleHtmlRequest(const QUrl &url, const QString &file, QAbstr
             else
             {
               htmlParser.setField("ITEM_NAME", node.title());
-              htmlParser.setField("REMOVE_LINK", target + "&remove=" + MediaDatabase::toUidString(node.uid));
+              htmlParser.setField("REMOVE_LINK", target + "&remove=" + MediaDatabase::toUidString(uid));
               htmlParser.setField("REMOVE_TEXT", tr("Remove"));
 
               T::buildItemText(htmlParser, node);
