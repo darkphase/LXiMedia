@@ -38,10 +38,10 @@ BackendServer::SearchResultList HomeVideoServer::search(const QStringList &query
 
   foreach (const MediaDatabase::UniqueID &uid, mediaDatabase->queryHomeVideos(query))
   {
-    const MediaDatabase::Node node = mediaDatabase->readNode(uid);
+    const SMediaInfo node = mediaDatabase->readNode(uid);
     if (!node.isNull())
     {
-      QDir parentDir(node.path);
+      QDir parentDir(node.filePath());
       parentDir.cdUp();
 
       const QString albumName = parentDir.dirName();
@@ -52,18 +52,18 @@ BackendServer::SearchResultList HomeVideoServer::search(const QStringList &query
 
       if (match >= minSearchRelevance)
       {
-        const QString time = QTime().addSecs(node.mediaInfo.duration().toSec()).toString(videoTimeFormat);
+        const QString time = QTime().addSecs(node.duration().toSec()).toString(videoTimeFormat);
 
         SearchResult result;
         result.relevance = match;
         result.headline = node.title() + " [" + albumName + "] (" + tr("Home video") + ")";
-        result.location = MediaDatabase::toUidString(node.uid) + ".html";
-        result.text = node.mediaInfo.fileTypeName() + ", " +
-                      videoFormatString(node.mediaInfo) + ", " +
-                      node.lastModified.toString(searchDateTimeFormat);
+        result.location = MediaDatabase::toUidString(uid) + ".html";
+        result.text = node.fileTypeName() + ", " +
+                      videoFormatString(node) + ", " +
+                      node.lastModified().toString(searchDateTimeFormat);
 
-        if (!node.mediaInfo.thumbnails().isEmpty())
-          result.thumbLocation = MediaDatabase::toUidString(node.uid) + "-thumb.jpeg";
+        if (!node.thumbnails().isEmpty())
+          result.thumbLocation = MediaDatabase::toUidString(uid) + "-thumb.jpeg";
 
         results += result;
       }
@@ -75,52 +75,30 @@ BackendServer::SearchResultList HomeVideoServer::search(const QStringList &query
 
 void HomeVideoServer::updateDlnaTask(void)
 {
-  QMultiMap<QString, DlnaServerDir *> subDirs;
-  foreach (const QString &homeVideo, mediaDatabase->allHomeVideos())
+  QMultiMap<QString, QMultiMap<QString, PlayItem> > albums;
+  foreach (const QString &album, mediaDatabase->allHomeVideos())
   {
-    QString homeVideoName;
-
-    QMultiMap<QString, DlnaServer::File> dlnaFiles;
-    foreach (MediaDatabase::UniqueID uid, mediaDatabase->allHomeVideoFiles(homeVideo))
+    QMultiMap<QString, PlayItem> clips;
+    foreach (MediaDatabase::UniqueID uid, mediaDatabase->allHomeVideoFiles(album))
     {
-      const MediaDatabase::Node node = mediaDatabase->readNode(uid);
+      const SMediaInfo node = mediaDatabase->readNode(uid);
       if (!node.isNull())
-      {
-        if (homeVideoName.isEmpty())
-        {
-          QDir parentDir(node.path);
-          parentDir.cdUp();
-          homeVideoName = parentDir.dirName();
-        }
-
-        DlnaServer::File clipFile(dlnaDir.server());
-        clipFile.date = node.lastModified;
-        clipFile.url = httpPath() + MediaDatabase::toUidString(node.uid) + ".mpeg";
-        clipFile.iconUrl = httpPath() + MediaDatabase::toUidString(node.uid) + "-thumb.jpeg";
-        clipFile.mimeType = "video/mpeg";
-
-        dlnaFiles.insert(node.title(), clipFile);
-      }
+        clips.insert(node.title(), PlayItem(uid, node));
     }
 
-    if (!dlnaFiles.isEmpty())
-    {
-      if (homeVideoName.isEmpty())
-        homeVideoName = homeVideo;
-
-      DlnaServerDir * subDir = new DlnaServerDir(dlnaDir.server());
-      for (QMultiMap<QString, DlnaServer::File>::Iterator i=dlnaFiles.begin(); i!=dlnaFiles.end(); i++)
-        subDir->addFile(i.key(), i.value());
-
-      subDirs.insert(homeVideoName, subDir);
-    }
+    if (!clips.isEmpty())
+      albums.insert(album, clips);
   }
 
   SDebug::MutexLocker l(&dlnaDir.server()->mutex, __FILE__, __LINE__);
 
   dlnaDir.clear();
-  for (QMultiMap<QString, DlnaServerDir *>::Iterator i=subDirs.begin(); i!=subDirs.end(); i++)
-    dlnaDir.addDir(i.key(), i.value());
+  for (QMultiMap<QString, QMultiMap<QString, PlayItem> >::Iterator i=albums.begin(); i!=albums.end(); i++)
+  {
+    DlnaServerDir * const dir = getAlbumDir(i.key());
+    for (QMultiMap<QString, PlayItem>::Iterator j=i->begin(); j!=i->end(); j++)
+      addVideoFile(dir, *j, j.key());
+  }
 }
 
 } // End of namespace

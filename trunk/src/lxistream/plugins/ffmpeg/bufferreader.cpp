@@ -496,13 +496,16 @@ bool BufferReader::setPosition(STime pos)
 {
   if (formatContext)
   {
-    if (!pos.isNull())
+    if (!pos.isNull() || !pos.isValid())
     {
       audioBuffers.clear();
       videoBuffers.clear();
       dataBuffers.clear();
     }
+    else if (!audioBuffers.isEmpty() || !videoBuffers.isEmpty() || !dataBuffers.isEmpty())
+      return true; // Not started yet and seeking to start.
 
+    if (pos.isValid())
     if (::av_seek_frame(formatContext, -1, pos.toClock(AV_TIME_BASE), 0) >= 0)
     {
       for (unsigned i=0; i<formatContext->nb_streams; i++)

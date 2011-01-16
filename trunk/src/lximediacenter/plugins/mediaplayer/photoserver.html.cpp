@@ -123,7 +123,7 @@ bool PhotoServer::handleHtmlRequest(const QUrl &url, const QString &file, QAbstr
     ThumbnailListItemMap photos;
     foreach (MediaDatabase::UniqueID uid, files)
     {
-      const MediaDatabase::Node node = mediaDatabase->readNode(uid);
+      const SMediaInfo node = mediaDatabase->readNode(uid);
       if (!node.isNull())
       {
         const QString uidString = MediaDatabase::toUidString(uid);
@@ -136,7 +136,7 @@ bool PhotoServer::handleHtmlRequest(const QUrl &url, const QString &file, QAbstr
 
         if (title.isEmpty())
         {
-          QDir parentDir(node.path);
+          QDir parentDir(node.filePath());
           parentDir.cdUp();
 
           title = parentDir.dirName();
@@ -152,18 +152,19 @@ bool PhotoServer::handleHtmlRequest(const QUrl &url, const QString &file, QAbstr
   else if (file.endsWith(".html")) // View photo
   {
     const QString album = SStringParser::toRawName(url.queryItemValue("album"));
-    const MediaDatabase::Node node = mediaDatabase->readNode(MediaDatabase::fromUidString(file.left(16)));
+    const MediaDatabase::UniqueID uid = MediaDatabase::fromUidString(file.left(16));
+    const SMediaInfo node = mediaDatabase->readNode(uid);
 
     HtmlParser htmlParser;
     htmlParser.setField("PHOTO_INFO0", node.fileName());
-    htmlParser.setField("PHOTO_INFO1", node.lastModified.toString(searchDateTimeFormat));
-    htmlParser.setField("PHOTO_INFO2", node.mediaInfo.fileTypeName());
-    htmlParser.setField("PHOTO_INFO3", videoFormatString(node.mediaInfo));
+    htmlParser.setField("PHOTO_INFO1", node.lastModified().toString(searchDateTimeFormat));
+    htmlParser.setField("PHOTO_INFO2", node.fileTypeName());
+    htmlParser.setField("PHOTO_INFO3", videoFormatString(node));
     htmlParser.setField("PHOTO_FINGERPRINT", /*node.fingerPrint.isNull() ?*/ QString("") /*: tr("Find similar")*/);
 
-    htmlParser.setField("PHOTO", MediaDatabase::toUidString(node.uid));
-    htmlParser.setField("PREVIOUS_UID", MediaDatabase::toUidString(node.uid));
-    htmlParser.setField("NEXT_UID", MediaDatabase::toUidString(node.uid));
+    htmlParser.setField("PHOTO", MediaDatabase::toUidString(uid));
+    htmlParser.setField("PREVIOUS_UID", MediaDatabase::toUidString(uid));
+    htmlParser.setField("NEXT_UID", MediaDatabase::toUidString(uid));
     htmlParser.setField("ITEM_ALBUM", album.toLower());
 
     const QList<MediaDatabase::UniqueID> files = mediaDatabase->allPhotoFiles(album);
@@ -172,7 +173,7 @@ bool PhotoServer::handleHtmlRequest(const QUrl &url, const QString &file, QAbstr
       QList<MediaDatabase::UniqueID>::ConstIterator i;
       unsigned photoNumber = 0;
       for (i=files.begin(); i!=files.end(); i++, photoNumber++)
-      if (*i == node.uid)
+      if (*i == uid)
         break;
 
       if (i != files.end())
@@ -201,10 +202,10 @@ bool PhotoServer::handleHtmlRequest(const QUrl &url, const QString &file, QAbstr
         ThumbnailListItem item;
 
         const MediaDatabase::UniqueID uid = files[qrand() % files.count()];
-        const MediaDatabase::Node node = mediaDatabase->readNode(uid);
+        const SMediaInfo node = mediaDatabase->readNode(uid);
         if (!node.isNull())
         {
-          QDir parentDir(node.path);
+          QDir parentDir(node.filePath());
           parentDir.cdUp();
 
          item.title = parentDir.dirName();

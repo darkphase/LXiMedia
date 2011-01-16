@@ -222,6 +222,25 @@ QStringList SStringParser::toRawName(const QStringList &list)
   return result;
 }
 
+/*! Returns the provided string with only basic latin letters, numbers and path
+    separators remaining in upper case, all other characters are replaced by
+    their basic latin equivalent. For example: "/home/test-user/??/test/" becomes
+    "HOME/TESTUSER/TEST".
+
+    \sa toRawName()
+ */
+QString SStringParser::toRawPath(const QString &path)
+{
+  QStringList raw = toRawName(path.split('/', QString::SkipEmptyParts));
+  for (QStringList::Iterator i=raw.begin(); i!=raw.end(); )
+  if (i->isEmpty())
+    i = raw.erase(i);
+  else
+    i++;
+
+  return raw.join("/");
+}
+
 /*! Looks for the biggest possible matching string in a and b.
  */
 QString SStringParser::findMatch(const QString &a, const QString &b)

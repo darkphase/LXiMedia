@@ -170,7 +170,12 @@ public:
 
   struct ProbeInfo
   {
-    inline ProbeInfo(void) : isDisc(false), isProbed(false), isReadable(false), year(0), track(0) { }
+    inline ProbeInfo(void) : size(0), isDisc(false), isProbed(false), isReadable(false), year(0), track(0) { }
+
+    QString                     filePath;
+    QString                     path;                                           //!< Only use this if the path deviates from the filePath.
+    qint64                      size;
+    QDateTime                   lastModified;
 
     QString                     format;
     bool                        isDisc;
@@ -232,7 +237,7 @@ public:
   /*! Should probe the provided file and retrieve as much information from it
       as possible.
    */
-  virtual void                  probeFile(ProbeInfo &, ReadCallback *, const QString &fileName = QString::null) = 0;
+  virtual void                  probeFile(ProbeInfo &, ReadCallback *) = 0;
   
   /*! Should probe the provided disc and retrieve as much information from it
       as possible.

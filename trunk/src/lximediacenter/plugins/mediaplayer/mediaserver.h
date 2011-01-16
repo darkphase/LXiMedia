@@ -59,12 +59,10 @@ protected:
 
   struct PlayItem
   {
-    inline PlayItem(MediaDatabase::UniqueID uid, const SMediaInfo &mediaInfo, const QDateTime &lastModified) : uid(uid), mediaInfo(mediaInfo), lastModified(lastModified) { }
-    inline PlayItem(const MediaDatabase::Node &node) : uid(node.uid), mediaInfo(node.mediaInfo), lastModified(node.lastModified) { }
+    inline PlayItem(MediaDatabase::UniqueID uid, const SMediaInfo &mediaInfo) : uid(uid), mediaInfo(mediaInfo) { }
 
     MediaDatabase::UniqueID     uid;
     SMediaInfo                  mediaInfo;
-    QDateTime                   lastModified;
   };
 
 public:
@@ -74,6 +72,8 @@ public:
 
 protected:
   void                          enableDlna(void);
+  DlnaServerDir               * getAlbumDir(const QString &album);
+
   void                          addVideoFile(DlnaServerDir *, const PlayItem &, const QString &, int = 0) const;
   void                          addVideoFile(DlnaServerDir *, const QList<PlayItem> &, const QString &, int = 0) const;
 
@@ -83,7 +83,7 @@ protected:
   virtual bool                  handleHtmlRequest(const QUrl &, const QString &, QAbstractSocket *);
 
   static QString                videoFormatString(const SMediaInfo &);
-  static QByteArray             buildVideoPlayer(const MediaDatabase::Node &, const QUrl &, const QSize & = QSize(768, 432));
+  static QByteArray             buildVideoPlayer(MediaDatabase::UniqueID, const SMediaInfo &, const QUrl &, const QSize & = QSize(768, 432));
 
 protected:
   static const int              seekBySecs;

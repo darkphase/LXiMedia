@@ -49,25 +49,25 @@ QByteArray MovieServer::frontPageWidget(void) const
 {
   HtmlParser htmlParser;
 
-  QMultiMap<qint64, MediaDatabase::Node> movies;
+  QMultiMap<qint64, PlayItem> movies;
   foreach (const QString &movie, mediaDatabase->allMovies())
   {
     const QList<MediaDatabase::UniqueID> files = mediaDatabase->allMovieFiles(movie);
     if (!files.isEmpty())
     {
-      const MediaDatabase::Node node = mediaDatabase->readNode(files.first());
+      const SMediaInfo node = mediaDatabase->readNode(files.first());
       if (!node.isNull())
-        movies.insert(-qint64(node.lastModified.toTime_t()), node);
+        movies.insert(-qint64(node.lastModified().toTime_t()), PlayItem(files.first(), node));
     }
   }
 
   htmlParser.setField("LATEST_MOVIES", QByteArray(""));
   int count = 0;
-  foreach (const MediaDatabase::Node &node, movies)
+  foreach (const PlayItem &item, movies)
   {
-    const QString uidString = MediaDatabase::toUidString(node.uid);
+    const QString uidString = MediaDatabase::toUidString(item.uid);
 
-    QString title = QFileInfo(node.fileName()).completeBaseName();
+    QString title = QFileInfo(item.mediaInfo.filePath()).completeBaseName();
     const ImdbClient::Entry imdbEntry = mediaDatabase->getMovieImdbEntry(SStringParser::toRawName(title));
     if (!imdbEntry.isNull())
     {

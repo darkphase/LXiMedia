@@ -38,25 +38,25 @@ BackendServer::SearchResultList MovieServer::search(const QStringList &query) co
 
   foreach (const MediaDatabase::UniqueID &uid, mediaDatabase->queryMovieFiles(query))
   {
-    const MediaDatabase::Node node = mediaDatabase->readNode(uid);
+    const SMediaInfo node = mediaDatabase->readNode(uid);
     if (!node.isNull())
     {
-      const QString title = QFileInfo(node.fileName()).completeBaseName();
+      const QString title = QFileInfo(node.filePath()).completeBaseName();
       const qreal match = SStringParser::computeMatch(SStringParser::toRawName(title), query);
       if (match >= minSearchRelevance)
       {
-        const QString time = QTime().addSecs(node.mediaInfo.duration().toSec()).toString(videoTimeFormat);
+        const QString time = QTime().addSecs(node.duration().toSec()).toString(videoTimeFormat);
 
         SearchResult result;
         result.relevance = match;
         result.headline = title + " (" + tr("Movie") + ")";
-        result.location = MediaDatabase::toUidString(node.uid) + ".html";
-        result.text = time + ", " + node.mediaInfo.fileTypeName() + ", " +
-                      videoFormatString(node.mediaInfo) + ", " +
-                      node.lastModified.toString(searchDateTimeFormat);
+        result.location = MediaDatabase::toUidString(uid) + ".html";
+        result.text = time + ", " + node.fileTypeName() + ", " +
+                      videoFormatString(node) + ", " +
+                      node.lastModified().toString(searchDateTimeFormat);
 
-        if (!node.mediaInfo.thumbnails().isEmpty())
-          result.thumbLocation = MediaDatabase::toUidString(node.uid) + "-thumb.jpeg";
+        if (!node.thumbnails().isEmpty())
+          result.thumbLocation = MediaDatabase::toUidString(uid) + "-thumb.jpeg";
 
         results += result;
       }
@@ -88,24 +88,23 @@ void MovieServer::updateDlnaTask(void)
       QMap<QString, PlayItem> items;
       foreach (MediaDatabase::UniqueID uid, allFiles)
       {
-        const MediaDatabase::Node node = mediaDatabase->readNode(uid);
-
-        bool hasHD = false;
-        foreach (const SMediaInfo::VideoStreamInfo &info, node.mediaInfo.videoStreams())
-          hasHD |= info.codec.size().width() >= 1280;
-
-        isHD &= hasHD;
-
-        if (title.isEmpty())
-          title = QFileInfo(node.fileName()).completeBaseName();
-
-        if (node.mediaInfo.isDisc())
+        const SMediaInfo node = mediaDatabase->readNode(uid);
+        if (!node.isNull())
         {
-          PlayItem item(node.uid, node.mediaInfo.titles().first(), node.lastModified);
-          items.insert(SStringParser::toRawName(node.fileName()), item);
+          bool hasHD = false;
+          foreach (const SMediaInfo::VideoStreamInfo &info, node.videoStreams())
+            hasHD |= info.codec.size().width() >= 1280;
+
+          isHD &= hasHD;
+
+          if (title.isEmpty())
+            title = node.title();
+
+          if (node.isDisc())
+            items.insert(SStringParser::toRawName(node.title()), PlayItem(uid, node.titles().first()));
+          else
+            items.insert(SStringParser::toRawName(node.title()), PlayItem(uid, node));
         }
-        else
-          items.insert(SStringParser::toRawName(node.fileName()), node);
       }
 
       if (isHD)

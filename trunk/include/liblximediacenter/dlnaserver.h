@@ -99,7 +99,6 @@ private:
   void                          sendEventMessage(const QUrl &, const QByteArray &);
   
 public:
-  static const quint32          defaultSortOrder;
   static const int              cacheTimeout;
 
 private:
@@ -140,7 +139,7 @@ public:
 public:
   const qint32                  id;
   bool                          played;
-  quint32                       sortOrder;
+  qint32                        sortOrder;
   QDateTime                     date;
 
 protected:

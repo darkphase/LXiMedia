@@ -24,7 +24,6 @@
 namespace LXiMediaCenter {
 
 
-const quint32 DlnaServer::defaultSortOrder = 0x80000000;
 const qint32  DlnaServer::cacheTimeout = 300000;
 
 class DlnaServer::HttpDir : public HttpServerDir
@@ -392,7 +391,7 @@ QMap<qint32, DlnaServer::DirCacheEntry>::Iterator DlnaServer::updateCacheEntry(i
 
     for (DlnaServerDir::FileMap::ConstIterator i=files.begin(); i!=files.end(); i++)
       ce->children.insert(
-          ("00000000" + QString::number(i->sortOrder, 16)).right(8) + i.key().toUpper(),
+          ("00000000" + QString::number(quint32(i->sortOrder + 0x80000000), 16)).right(8) + i.key().toUpper(),
           DirCacheEntry::Item(i.key(), *i));
 
     for (DlnaServerDir::DirMap::ConstIterator i=dirs.begin(); i!=dirs.end(); i++)
@@ -401,7 +400,7 @@ QMap<qint32, DlnaServer::DirCacheEntry>::Iterator DlnaServer::updateCacheEntry(i
       if (dir)
       {
         ce->children.insert(
-            ("00000000" + QString::number(dir->sortOrder, 16)).right(8) + i.key().toUpper(),
+            ("00000000" + QString::number(quint32(dir->sortOrder + 0x80000000), 16)).right(8) + i.key().toUpper(),
             DirCacheEntry::Item(i.key(), dir));
       }
     }
@@ -718,7 +717,7 @@ DlnaServer::File::File(void)
 DlnaServer::File::File(DlnaServer *parent)
     : id(parent->p->idCounter.fetchAndAddOrdered(1) | DlnaServer::FILE_ID_MASK),
       played(false),
-      sortOrder(defaultSortOrder),
+      sortOrder(0),
       music(false)
 {
 }
@@ -914,7 +913,7 @@ DlnaServerDir::DlnaServerDir(DlnaServer *parent)
     : FileServerDir(parent),
       id(parent->p->idCounter.fetchAndAddOrdered(1) | DlnaServer::DIR_ID_MASK),
       played(false),
-      sortOrder(DlnaServer::defaultSortOrder),
+      sortOrder(0),
       updateId(1)
 {
   SDebug::MutexLocker l(&server()->mutex, __FILE__, __LINE__);

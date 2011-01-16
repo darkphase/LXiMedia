@@ -157,25 +157,25 @@ QByteArray Playlist::serialize(void) const
 
   for (int i=0, n=list.count(); i<n; i++)
   {
-    const MediaDatabase::Node node = mediaDatabase->readNode(!allFiles ? list[i].uid : mediaDatabase->getSong(i));
+    const SMediaInfo node = mediaDatabase->readNode(!allFiles ? list[i].uid : mediaDatabase->getSong(i));
     if (!node.isNull())
     {
       data.append("#EXTINF:");
-      if (node.mediaInfo.duration().isPositive())
-        data.append(QByteArray::number(node.mediaInfo.duration().toSec()));
+      if (node.duration().isPositive())
+        data.append(QByteArray::number(node.duration().toSec()));
       else
         data.append("-1");
 
-      if (!node.mediaInfo.author().isEmpty())
-        data.append(',' + node.mediaInfo.author());
+      if (!node.author().isEmpty())
+        data.append(',' + node.author());
       else
         data.append(",");
 
-      if (!node.mediaInfo.title().isEmpty())
-        data.append(" - " + node.mediaInfo.title());
+      if (!node.title().isEmpty())
+        data.append(" - " + node.title());
 
       data.append('\n');
-      data.append(QDir::toNativeSeparators(node.path).toUtf8());
+      data.append(QDir::toNativeSeparators(node.filePath()).toUtf8());
       data.append("\n\n");
     }
   }

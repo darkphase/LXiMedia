@@ -44,28 +44,28 @@ BackendServer::SearchResultList MusicServer::search(const QStringList &query) co
 
   foreach (const MediaDatabase::UniqueID &uid, mediaDatabase->queryMusic(query))
   {
-    const MediaDatabase::Node node = mediaDatabase->readNode(uid);
+    const SMediaInfo node = mediaDatabase->readNode(uid);
     if (!node.isNull())
     {
-      QDir parentDir(node.path);
+      QDir parentDir(node.filePath());
       parentDir.cdUp();
 
       const QString albumName = parentDir.dirName();
       const QString rawAlbumName = SStringParser::toRawName(albumName);
       const qreal match =
           qMin(SStringParser::computeMatch(SStringParser::toRawName(node.title()), query) +
-               SStringParser::computeMatch(SStringParser::toRawName(node.mediaInfo.album()), query) +
-               SStringParser::computeMatch(SStringParser::toRawName(node.mediaInfo.author()), query), 1.0);
+               SStringParser::computeMatch(SStringParser::toRawName(node.album()), query) +
+               SStringParser::computeMatch(SStringParser::toRawName(node.author()), query), 1.0);
 
       if (match >= minSearchRelevance)
       {
         SearchResult result;
         result.relevance = match;
-        result.headline = node.title() + " [" + node.mediaInfo.author() + "] (" + tr("Song") + ")";
-        result.location = MediaDatabase::toUidString(node.uid) + ".html";
-        result.text = tr("Album") + ": " + node.mediaInfo.album() + ", " +
-                      tr("Duration") + ": " + QTime().addSecs(node.mediaInfo.duration().toSec()).toString(audioTimeFormat) + ", " +
-                      tr("Comment") + ": " + node.mediaInfo.comment();
+        result.headline = node.title() + " [" + node.author() + "] (" + tr("Song") + ")";
+        result.location = MediaDatabase::toUidString(uid) + ".html";
+        result.text = tr("Album") + ": " + node.album() + ", " +
+                      tr("Duration") + ": " + QTime().addSecs(node.duration().toSec()).toString(audioTimeFormat) + ", " +
+                      tr("Comment") + ": " + node.comment();
 
         results += result;
       }
@@ -82,16 +82,16 @@ void MusicServer::updateDlnaTask(void)
   {
     QString albumName;
 
-    QMultiMap<QString, MediaDatabase::Node> clips;
+    QMultiMap<QString, PlayItem> clips;
     foreach (MediaDatabase::UniqueID uid, mediaDatabase->allMusicVideoFiles(clipAlbum))
     {
-      const MediaDatabase::Node node = mediaDatabase->readNode(uid);
+      const SMediaInfo node = mediaDatabase->readNode(uid);
       if (!node.isNull())
       {
         if (albumName.isEmpty())
-          albumName = node.mediaInfo.author();
+          albumName = node.author();
 
-        clips.insert(node.title(), node);
+        clips.insert(node.title(), PlayItem(uid, node));
       }
     }
 
@@ -101,10 +101,10 @@ void MusicServer::updateDlnaTask(void)
         albumName = tr("Unknown Artist");
 
       DlnaServerDir * subDir = new DlnaServerDir(dlnaDir.server());
-      for (QMultiMap<QString, MediaDatabase::Node>::Iterator i=clips.begin(); i!=clips.end(); i++)
+      for (QMultiMap<QString, PlayItem>::Iterator i=clips.begin(); i!=clips.end(); i++)
       {
         DlnaServer::File file(subDir->server());
-        file.date = i->lastModified;
+        file.date = i->mediaInfo.lastModified();
         file.url = httpPath() + MediaDatabase::toUidString(i->uid) + ".mpeg";
         file.iconUrl = httpPath() + MediaDatabase::toUidString(i->uid) + "-thumb.jpeg";
         file.mimeType = "video/mpeg";

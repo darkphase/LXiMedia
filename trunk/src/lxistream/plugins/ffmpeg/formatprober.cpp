@@ -57,7 +57,7 @@ QList<FormatProber::Format> FormatProber::probeDiscFormat(const QString &)
   return QList<Format>();
 }
 
-void FormatProber::probeFile(ProbeInfo &pi, ReadCallback *readCallback, const QString &fileName)
+void FormatProber::probeFile(ProbeInfo &pi, ReadCallback *readCallback)
 {
   struct ProduceCallback : SInterfaces::BufferReader::ProduceCallback
   {
@@ -89,7 +89,7 @@ void FormatProber::probeFile(ProbeInfo &pi, ReadCallback *readCallback, const QS
   QByteArray data(SInterfaces::FormatProber::defaultProbeSize, 0);
   data.resize(readCallback->read(reinterpret_cast<uchar *>(data.data()), data.size()));
 
-  QList<SInterfaces::FormatProber::Format> formats = probeFileFormat(data, fileName);
+  QList<SInterfaces::FormatProber::Format> formats = probeFileFormat(data, pi.filePath);
   if (!formats.isEmpty())
   {
     pi.format = formats.first().name;

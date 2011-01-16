@@ -36,6 +36,7 @@ private slots: // SDebug
 private slots: // SStringParser
   void                          StringParser_CleanName(void);
   void                          StringParser_RawName(void);
+  void                          StringParser_RawPath(void);
   void                          StringParser_FindMatch(void);
   void                          StringParser_ComputeMatch(void);
 
