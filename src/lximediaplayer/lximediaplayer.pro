@@ -18,7 +18,7 @@ unix {
 win32 {
   BSOBJECTS_DIR = $$replace(OBJECTS_DIR, /, \\)
   system(if not exist $${BSOBJECTS_DIR} mkdir $${BSOBJECTS_DIR})
-  system(echo \"$${VERSION}\" > $${BSOBJECTS_DIR}\version.h)
+  system(echo \"$${VERSION}\" > $${BSOBJECTS_DIR}\\version.h)
   INCLUDEPATH += $${OBJECTS_DIR}/
 }
 

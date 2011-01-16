@@ -1,0 +1,26 @@
+To compile libdvdnav for Windows follow the steps below, note that for Linux the
+libdvdnav4-dev package should be installed instead.
+
+- Make sure MSYS is installed in the same directory as the QtSDK mingw
+  installation and start a bash shell.
+
+- Configure dlfcn using:
+  ./configure --enable-static
+
+- Run mingw32-make and copy libdl.a to ext/dvdnav/bin.win32.
+
+- Configure libdvdread using:
+  ./configure2 --enable-static --disable-shared --extra-cflags="-I../../dlfcn-win32-r19/ -march=i686 -mmmx -msse -msse2 -mfpmath=sse"
+  Ignore the error "./configure2: line 95: cd: /usr/local/: No such file or directory"
+
+- Run mingw32-make and copy obj/libdvdread.a to ext/dvdnav/bin.win32.
+
+- In the libdvdread source tree; make a copy of the src directory and name it "dvdread".
+ 
+- In the libdvdnav source tree; open the "configure2" file and comment out lines 106-114.
+ 
+- Configure libdvdnav using:
+  ./configure2 --enable-static --disable-shared --extra-cflags="-I../../libdvdread-4.1.3/ -march=i686 -mmmx -msse -msse2 -mfpmath=sse"
+  Ignore the error "./configure2: line 100: cd: /usr/local/: No such file or directory"
+
+- Run mingw32-make and copy obj/libdvdnav.a to ext/dvdnav/bin.win32.

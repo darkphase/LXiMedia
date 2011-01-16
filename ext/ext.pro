@@ -1,5 +1,5 @@
 TEMPLATE = subdirs
 
 win32 {
-  SUBDIRS = exif ffmpeg fftw
+  SUBDIRS = dvdnav exif ffmpeg fftw
 }
