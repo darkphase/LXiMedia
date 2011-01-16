@@ -4,3 +4,4 @@ win32 {
 }
 
 LIBS += -ldvdnav
+win32:LIBS += -ldvdread -ldl
