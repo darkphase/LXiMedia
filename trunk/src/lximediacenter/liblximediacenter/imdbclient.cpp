@@ -283,7 +283,7 @@ QString ImdbClient::findEntry(const QString &title, Type type)
   {
     const unsigned descYear = indexName.right(4).toUInt();
     const qreal match = SStringParser::computeMatch(rawName, indexName) *
-                        (((year == 0) || (descYear == year) ? 1.0 : 0.5) +
+                        ((((year == 0) || (descYear == year)) ? 1.0 : 0.5) +
                          (qreal(descYear) / 10000.0));
 
     if (match > bestMatch)
@@ -293,8 +293,13 @@ QString ImdbClient::findEntry(const QString &title, Type type)
     }
   }
 
-  if (!best.isEmpty() && (bestMatch >= 0.3))
-    return best;
+  if (!best.isEmpty())
+  {
+    qDebug() << "Matching" << title << year << "to IMDB title" << best << "with rating" << bestMatch;
+
+    if (bestMatch >= 0.3)
+      return best;
+  }
 
   return sentinelItem;
 }
