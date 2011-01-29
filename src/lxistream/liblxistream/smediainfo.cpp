@@ -207,7 +207,7 @@ SMediaInfoList SMediaInfo::titles(void) const
 QString SMediaInfo::title(void) const
 {
   if (pi->title.isEmpty())
-    return QFileInfo(pi->filePath).completeBaseName();
+    return SStringParser::toCleanName(QFileInfo(pi->filePath).completeBaseName());
   else
     return pi->title;
 }

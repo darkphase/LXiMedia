@@ -271,7 +271,7 @@ QString SStringParser::findMatch(const QString &a, const QString &b)
 }
 
 /*! Looks for the biggest possible matching string of b in a, returns a
-    real value from 0.0 to 1.0 indicating the amount of b matched.
+    real value from 0.0 to 1.0 indicating the location and amount of b matched.
 
     \note This operation is case sensitive, it may be useful to first pass the
           two arguments through toRawName() or toCleanName().
@@ -279,13 +279,18 @@ QString SStringParser::findMatch(const QString &a, const QString &b)
 qreal SStringParser::computeMatch(const QString &a, const QString &b)
 {
   if (!a.isEmpty() && !b.isEmpty())
-    return qreal(findMatch(a, b).length()) / qreal(b.length());
+  {
+    const QString match = findMatch(a, b);
+
+    return (qreal(match.length()) / qreal(b.length())) *
+           (1.0 - (qreal(a.indexOf(match)) / qreal(a.length())));
+  }
   else
     return 0.0;
 }
 
 /*! Looks for the biggest possible matching strings of b in a, returns a
-    real value from 0.0 to 1.0 indicating the amount of b matched.
+    real value from 0.0 to 1.0 indicating the location and amount of b matched.
 
     \note This operation is case sensitive, it may be useful to first pass the
           two arguments through toRawName() or toCleanName().
