@@ -101,7 +101,7 @@ void MediaDatabase::scanRoots(void)
     }
 
     // Find files that were not probed yet.
-    query.exec("SELECT path FROM MediaplayerFiles WHERE size = -1");
+    query.exec("SELECT path FROM MediaplayerFiles WHERE size < 0");
     while (query.next())
       filesToProbe.insert(query.value(0).toString());
 
@@ -421,41 +421,82 @@ void MediaDatabase::probeFiles(void)
 
     if (!path.isEmpty())
     {
-      qDebug() << "Probing:" << path;
-
-      const SMediaInfo mediaInfo(path);
-      const QByteArray mediaInfoXml = mediaInfo.toByteArray(-1);
-
-      SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
-      QSqlDatabase db = Database::database();
-      db.transaction();
-
-      QSqlQuery query(db);
-      query.prepare("UPDATE MediaplayerFiles "
-                    "SET size = :size, mediaInfo = :mediaInfo "
-                    "WHERE path = :path");
-      query.bindValue(0, qMax(Q_INT64_C(0), mediaInfo.size()));
-      query.bindValue(1, mediaInfoXml);
-      query.bindValue(2, path);
-      query.exec();
-
-      if (mediaInfo.isProbed() && mediaInfo.isReadable())
+      // Only scan files if they can be opened (to prevent scanning files that
+      // are still being copied).
+      if (QFile(path).open(QFile::ReadOnly))
       {
-        // Find the rowId and categorize the file
-        query.prepare("SELECT uid FROM MediaplayerFiles WHERE path = :path");
-        query.bindValue(0, path);
+        qDebug() << "Probing:" << path;
+
+        const SMediaInfo mediaInfo(path);
+        const QByteArray mediaInfoXml = mediaInfo.toByteArray(-1);
+
+        SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
+        QSqlDatabase db = Database::database();
+        db.transaction();
+
+        QSqlQuery query(db);
+        query.prepare("UPDATE MediaplayerFiles "
+                      "SET size = :size, mediaInfo = :mediaInfo "
+                      "WHERE path = :path");
+        query.bindValue(0, qMax(Q_INT64_C(0), mediaInfo.size()));
+        query.bindValue(1, mediaInfoXml);
+        query.bindValue(2, path);
         query.exec();
 
+        if (mediaInfo.isProbed() && mediaInfo.isReadable())
+        {
+          // Find the rowId and categorize the file
+          query.prepare("SELECT uid FROM MediaplayerFiles WHERE path = :path");
+          query.bindValue(0, path);
+          query.exec();
+
+          if (query.next())
+          {
+            const qint64 rowId = query.value(0).toLongLong();
+
+            foreach (const Category &category, findCategories(path))
+              (this->*(category.func->categorize))(db, rowId, category.path, mediaInfo);
+          }
+        }
+
+        db.commit();
+      }
+      else
+      {
+        SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
+        QSqlQuery query(Database::database());
+        query.prepare("SELECT size FROM MediaplayerFiles WHERE path = :path");
+        query.bindValue(0, path);
+        query.exec();
         if (query.next())
         {
-          const qint64 rowId = query.value(0).toLongLong();
+          const qint64 size = query.value(0).toLongLong();
 
-          foreach (const Category &category, findCategories(path))
-            (this->*(category.func->categorize))(db, rowId, category.path, mediaInfo);
+          if (size == -1)
+            qDebug() << "File" << path << "can not be opened, scanning later";
+
+          if (size > -60) // Try 60 times (~1 hour), otherwise fail forever.
+          {
+            query.prepare("UPDATE MediaplayerFiles "
+                          "SET size = :size "
+                          "WHERE path = :path");
+            query.bindValue(0, qMin(size - 1, Q_INT64_C(-1)));
+            query.bindValue(1, path);
+            query.exec();
+          }
+          else // Set the correct size so the file is not probed anymore.
+          {
+            qDebug() << "File" << path << "can not be opened, not scanning at all";
+
+            query.prepare("UPDATE MediaplayerFiles "
+                          "SET size = :size "
+                          "WHERE path = :path");
+            query.bindValue(0, QFileInfo(path).size());
+            query.bindValue(1, path);
+            query.exec();
+          }
         }
       }
-
-      db.commit();
     }
   }
   else if (!imdbItemsToMatch.isEmpty() && !matchingImdbItems)

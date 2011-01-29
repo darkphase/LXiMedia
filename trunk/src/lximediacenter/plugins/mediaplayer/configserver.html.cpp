@@ -20,6 +20,10 @@
 #include "configserver.h"
 #include "mediaplayerbackend.h"
 
+#ifdef Q_OS_WIN
+#include <windows.h>
+#endif
+
 namespace LXiMediaCenter {
 
 const char * const ConfigServer::htmlMain =
@@ -189,15 +193,41 @@ bool ConfigServer::handleHtmlRequest(const QUrl &url, const QString &file, QAbst
 
 void ConfigServer::generateDirs(HtmlParser &htmlParser, const QFileInfoList &dirs, int indent, const QSet<QString> &allopen, const QStringList &rootPaths)
 {
+#ifdef Q_OS_WIN
+  struct T
+  {
+    static QString driveLabel(const QString &drive)
+    {
+      WCHAR szVolumeName[MAX_PATH+1];
+      WCHAR szFileSystemName[MAX_PATH+1];
+      DWORD dwSerialNumber = 0;
+      DWORD dwMaxFileNameLength = MAX_PATH;
+      DWORD dwFileSystemFlags = 0;
+
+      if (::GetVolumeInformationW(reinterpret_cast<const WCHAR *>(drive.utf16()),
+                                  szVolumeName, sizeof(szVolumeName) / sizeof(*szVolumeName),
+                                  &dwSerialNumber,
+                                  &dwMaxFileNameLength,
+                                  &dwFileSystemFlags,
+                                  szFileSystemName, sizeof(szFileSystemName) / sizeof(*szFileSystemName)));
+      {
+        return QString::fromUtf16((const ushort *)szVolumeName).trimmed();
+      }
+
+      return QString::null;
+    }
+  };
+#endif
+
   foreach (const QFileInfo &info, dirs)
-  if (!info.fileName().startsWith('.') && info.isReadable())
+  if (!info.fileName().startsWith('.'))
   {
     const QString canonicalName =
-#ifndef Q_OS_WIN
-        info.canonicalFilePath();
-#else
-        info.canonicalFilePath().toLower();
+        (info.isReadable() ? info.canonicalFilePath() : info.absoluteFilePath())
+#ifdef Q_OS_WIN
+        .toLower()
 #endif
+        ;
 
     if (!hiddenDirs().contains(canonicalName))
     {
@@ -272,10 +302,21 @@ void ConfigServer::generateDirs(HtmlParser &htmlParser, const QFileInfoList &dir
       htmlParser.setField("DIR_CHECK", htmlParser.parse(checkEnabled ? htmlDirTreeCheckLink : htmlDirTreeCheck));
 
       // Name
-      if (!fileName.isEmpty())
-        htmlParser.setField("DIR_NAME", fileName);
-      else
+      if (fileName.isEmpty())
+      {
         htmlParser.setField("DIR_NAME", info.absoluteFilePath());
+#ifdef Q_OS_WIN
+        if (info.isReadable())
+        {
+          const QString label = T::driveLabel(info.absoluteFilePath());
+          if (!label.isEmpty())
+            htmlParser.appendField("DIR_NAME", " (" + label + ")");
+        }
+#endif
+      }
+      else
+        htmlParser.setField("DIR_NAME", fileName);
+
 
       if (info.isSymLink())
         htmlParser.appendField("DIR_NAME", " (" + tr("symbolic link to") + " " + info.symLinkTarget() + ")");
@@ -297,13 +338,7 @@ const QFileInfoList & ConfigServer::drives(bool rescan)
   SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
 
   if (rescan)
-  {
-    driveList.clear();
-    foreach (const QFileInfo &info, QDir::drives())
-    if (info.isDir() && info.isReadable())
-    if (QDir(info.absoluteFilePath()).count() > 0)
-      driveList += info;
-  }
+    driveList = QDir::drives();
 
   return driveList;
 }
