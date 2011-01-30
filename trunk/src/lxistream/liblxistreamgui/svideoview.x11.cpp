@@ -33,7 +33,7 @@ using namespace LXiStream;
 
 struct SVideoView::Private
 {
-  inline Private(void) : mutex(QMutex::Recursive) { }
+  inline Private(void) : mutex(QMutex::Recursive), formatConvert(NULL) { }
 
   QMutex                        mutex;
   bool                          slowUpdate;
@@ -44,6 +44,8 @@ struct SVideoView::Private
 
   QList<SVideoView *>           clones;
   SVideoView                  * source;
+
+  SVideoFormatConvertNode       formatConvert;
 
   bool                          xvEnabled;
   Display                     * display;
@@ -71,6 +73,8 @@ SVideoView::SVideoView(QWidget *parent)
   p->timer = NULL;
 
   p->source = NULL;
+
+  p->formatConvert.setDestFormat(SVideoFormat::Format_RGB32);
 
   p->xvEnabled = false;
   p->display = XOpenDisplay(NULL);
@@ -204,9 +208,11 @@ void SVideoView::input(const SVideoBuffer &videoBuffer)
     {
       p->videoBuffers.append(videoBuffer);
     }
-    else if (videoBuffer.format().isBayerArray())
+    else
     {
-      p->videoBuffers.append(SVideoFormatConvertNode::demosaic(videoBuffer));
+      const SVideoBuffer buffer = p->formatConvert.convert(videoBuffer);
+      if (!buffer.isNull())
+        p->videoBuffers.append(buffer);
     }
   }
 }

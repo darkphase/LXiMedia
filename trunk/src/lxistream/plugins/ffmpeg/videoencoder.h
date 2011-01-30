@@ -59,9 +59,7 @@ private:
   AVFrame                     * pictureHandle;
   SVideoBuffer                  pictureBuffer;
 
-  SVideoFormat                  inFormat;
-  PKtoPLfunc                    preprocessFunc;
-  SwsContext                  * swsContextHandle;
+  SVideoFormatConvertNode       formatConvert;
   QList<STime>                  inputTimeStamps;
   quint32                       lastSubStreamId;
 

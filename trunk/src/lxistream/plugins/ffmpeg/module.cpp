@@ -27,6 +27,7 @@
 #include "formatprober.h"
 #include "videodecoder.h"
 #include "videoencoder.h"
+#include "videoformatconverter.h"
 #include "videoresizer.h"
 
 
@@ -89,6 +90,21 @@ void Module::registerClasses(void)
   VideoResizer::registerClass<VideoResizer>("lanczos");
   VideoResizer::registerClass<VideoResizer>("bicubic");
   VideoResizer::registerClass<VideoResizer>("bilinear");
+
+  // Format converters
+  FFMpegCommon::disableLog(true);
+
+  for (int srcFormat = PIX_FMT_NONE + 1; srcFormat < PIX_FMT_NB; srcFormat++)
+  for (int dstFormat = PIX_FMT_NONE + 1; dstFormat < PIX_FMT_NB; dstFormat++)
+    if ((srcFormat != dstFormat) && VideoFormatConverter::testformat(::PixelFormat(srcFormat), ::PixelFormat(dstFormat)))
+  {
+    VideoFormatConverter::registerClass<VideoFormatConverter>(
+        FFMpegCommon::fromFFMpegPixelFormat(::PixelFormat(srcFormat)),
+        FFMpegCommon::fromFFMpegPixelFormat(::PixelFormat(dstFormat)),
+        -1);
+  }
+
+  FFMpegCommon::disableLog(false);
 }
 
 void Module::unload(void)

@@ -17,43 +17,37 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXISTREAM_SVIDEOFORMATCONVERTNODE_H
-#define LXISTREAM_SVIDEOFORMATCONVERTNODE_H
+#ifndef __VIDEOFORMATCONVERTER_H
+#define __VIDEOFORMATCONVERTER_H
 
 #include <QtCore>
-#include "../sinterfaces.h"
+#include <LXiStream>
+#include "ffmpegcommon.h"
 
 namespace LXiStream {
+namespace FFMpegBackend {
 
-class SVideoBuffer;
-
-
-class SVideoFormatConvertNode : public QObject,
-                                public SInterfaces::Node
+class VideoFormatConverter : public SInterfaces::VideoFormatConverter
 {
-Q_OBJECT
 public:
-  explicit                      SVideoFormatConvertNode(SGraph *);
-  virtual                       ~SVideoFormatConvertNode();
+  explicit                      VideoFormatConverter(const QString &, QObject *);
+  virtual                       ~VideoFormatConverter();
 
-  void                          setDestFormat(SVideoFormat::Format);
-  SVideoFormat::Format          destFormat(void) const;
+  static bool                   testformat(::PixelFormat, ::PixelFormat);
 
-  SVideoBuffer                  convert(const SVideoBuffer &);
-  static SVideoBuffer           convert(const SVideoBuffer &, SVideoFormat::Format);
-
-public slots:
-  void                          input(const SVideoBuffer &);
-
-signals:
-  void                          output(const SVideoBuffer &);
+public: // From SInterfaces::VideoFormatConverter
+  virtual bool                  openFormat(const SVideoFormat &srcFormat, const SVideoFormat &dstFormat);
+  virtual SVideoBuffer          convertBuffer(const SVideoBuffer &);
 
 private:
-  struct Data;
-  Data                  * const d;
+  bool                          openFormat(void);
+
+private:
+  ::SwsContext                * swsContextHandle;
+  SVideoFormat::Format          srcFormat, dstFormat;
+  int                           width, height;
 };
 
-
-} // End of namespace
+} } // End of namespaces
 
 #endif

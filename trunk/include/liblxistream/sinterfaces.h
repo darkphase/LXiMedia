@@ -460,7 +460,7 @@ public:
   virtual SSubtitleBufferList   decodeBuffer(const SEncodedDataBuffer &) = 0;
 };
 
-/*! The BufferEncoder interface can be used to encode buffers.
+/*! The AudioEncoder interface can be used to encode audio buffers.
  */
 class AudioEncoder : public QObject,
                      public SFactorizable<AudioEncoder>
@@ -489,7 +489,7 @@ public:
   virtual SEncodedAudioBufferList encodeBuffer(const SAudioBuffer &) = 0;
 };
 
-/*! The BufferEncoder interface can be used to encode buffers.
+/*! The VideoEncoder interface can be used to encode video buffers.
  */
 class VideoEncoder : public QObject,
                      public SFactorizable<VideoEncoder>
@@ -516,6 +516,31 @@ protected:
 public:
   virtual SVideoCodec           codec(void) const = 0;
   virtual SEncodedVideoBufferList encodeBuffer(const SVideoBuffer &) = 0;
+};
+
+/*! The VideoFormatConverter interface can be used to convert video formats.
+ */
+class VideoFormatConverter : public QObject,
+                             public SFactorizable<VideoFormatConverter>
+{
+Q_OBJECT
+public:
+  static VideoFormatConverter * create(QObject *parent, const SVideoFormat &srcFormat, const SVideoFormat &dstFormat, bool nonNull = true);
+
+  template <class _instance>
+  static inline void registerClass(const SVideoFormat &srcFormat, const SVideoFormat &dstFormat, int priority = 0)
+  {
+    SFactorizable<VideoFormatConverter>::registerClass<_instance>(
+        SFactory::Scheme(priority, QString(srcFormat.formatName()) + "->" + QString(dstFormat.formatName())));
+  }
+
+protected:
+  inline explicit               VideoFormatConverter(QObject *parent) : QObject(parent) { }
+
+  virtual bool                  openFormat(const SVideoFormat &srcFormat, const SVideoFormat &dstFormat) = 0;
+
+public:
+  virtual SVideoBuffer          convertBuffer(const SVideoBuffer &) = 0;
 };
 
 /*! The AudioInput interface can be used to provide audio input devices.

@@ -40,7 +40,7 @@ public:
                                 PcmAudioEncoder(const QString &, QObject *);
   virtual                       ~PcmAudioEncoder();
 
-public: // From SBufferEncoder
+public: // From SInterfaces::AudioEncoder
   virtual bool                  openCodec(const SAudioCodec &, Flags = Flag_None);
   virtual SAudioCodec           codec(void) const;
   virtual SEncodedAudioBufferList encodeBuffer(const SAudioBuffer &);

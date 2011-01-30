@@ -20,12 +20,6 @@
 #include "videoencoder.h"
 #include <cmath>
 
-// Implemented in svideoformatconvertnode.unpack.c
-extern "C" void LXiStream_SVideoFormatConvertNode_convertYUYVtoYUV422P(const void *, unsigned, size_t, quint8 *, quint8 *, quint8 *);
-extern "C" void LXiStream_SVideoFormatConvertNode_convertUYVYtoYUV422P(const void *, unsigned, size_t, quint8 *, quint8 *, quint8 *);
-extern "C" void LXiStream_SVideoFormatConvertNode_convertYUYVtoYUV420P(const void *, unsigned, size_t, quint8 *, quint8 *, quint8 *);
-extern "C" void LXiStream_SVideoFormatConvertNode_convertUYVYtoYUV420P(const void *, unsigned, size_t, quint8 *, quint8 *, quint8 *);
-
 namespace LXiStream {
 namespace FFMpegBackend {
 
@@ -38,9 +32,7 @@ VideoEncoder::VideoEncoder(const QString &, QObject *parent)
     contextHandle(NULL),
     pictureHandle(NULL),
     pictureBuffer(),
-    inFormat(),
-    preprocessFunc(NULL),
-    swsContextHandle(NULL),
+    formatConvert(NULL),
     inputTimeStamps(),
     lastSubStreamId(0),
     fastEncode(false),
@@ -63,9 +55,6 @@ VideoEncoder::~VideoEncoder()
 
   if (pictureHandle)
     av_free(pictureHandle);
-
-  if (swsContextHandle)
-    sws_freeContext(swsContextHandle);
 }
 
 bool VideoEncoder::openCodec(const SVideoCodec &c, Flags flags)
@@ -144,6 +133,8 @@ bool VideoEncoder::openCodec(const SVideoCodec &c, Flags flags)
     return false;
   }
 
+  formatConvert.setDestFormat(FFMpegCommon::fromFFMpegPixelFormat(contextHandle->pix_fmt));
+
   // Determine intermediate buffer size.
   pictureHandle = avcodec_alloc_frame();
   avcodec_get_frame_defaults(pictureHandle);
@@ -184,156 +175,82 @@ SEncodedVideoBufferList VideoEncoder::encodeBuffer(const SVideoBuffer &videoBuff
     }
 #endif
 
-    // Preprocess the image
-    if (inFormat != videoBuffer.format())
-    {
-      inFormat = videoBuffer.format();
-      preprocessFunc = NULL;
-
-      if (swsContextHandle)
-      {
-        sws_freeContext(swsContextHandle);
-        swsContextHandle = NULL;
-      }
-
-      const SVideoFormat outFormat(FFMpegCommon::fromFFMpegPixelFormat(contextHandle->pix_fmt),
-                                   SSize(contextHandle->width, contextHandle->height));
-
-      if (inFormat != outFormat)
-      {
-        if ((contextHandle->pix_fmt == PIX_FMT_YUV422P) || (contextHandle->pix_fmt == PIX_FMT_YUVJ422P))
-        {
-          if (inFormat == SVideoFormat::Format_YUYV422)
-            preprocessFunc = &LXiStream_SVideoFormatConvertNode_convertYUYVtoYUV422P;
-          else if (inFormat == SVideoFormat::Format_UYVY422)
-            preprocessFunc = &LXiStream_SVideoFormatConvertNode_convertUYVYtoYUV422P;
-        }
-        else if ((contextHandle->pix_fmt == PIX_FMT_YUV420P) || (contextHandle->pix_fmt == PIX_FMT_YUVJ420P))
-        {
-          if (inFormat == SVideoFormat::Format_YUYV422)
-            preprocessFunc = &LXiStream_SVideoFormatConvertNode_convertYUYVtoYUV420P;
-          else if (inFormat == SVideoFormat::Format_UYVY422)
-            preprocessFunc = &LXiStream_SVideoFormatConvertNode_convertUYVYtoYUV420P;
-        }
-
-        if (preprocessFunc == NULL)
-        {
-          swsContextHandle = sws_getContext(contextHandle->width, contextHandle->height,
-                                            PixelFormat(FFMpegCommon::toFFMpegPixelFormat(inFormat.format())),
-                                            contextHandle->width, contextHandle->height,
-                                            contextHandle->pix_fmt,
-                                            SWS_POINT,
-                                            NULL, NULL, NULL);
-        }
-
-        pictureBuffer.setFormat(outFormat);
-        for (unsigned i=0; i<4; i++)
-        {
-          pictureHandle->data[i] = (uint8_t *)pictureBuffer.scanLine(0, i);
-          pictureHandle->linesize[i] = pictureBuffer.lineSize(i);
-        }
-      }
-      else
-        pictureBuffer.clear();
-    }
-
-    if (preprocessFunc)
-    {
-      preprocessFunc(videoBuffer.scanLine(0, 0),
-                     contextHandle->height,
-                     contextHandle->width * 2,
-                     pictureHandle->data[0],
-                     pictureHandle->data[1],
-                     pictureHandle->data[2]);
-    }
-    else if (swsContextHandle != NULL)
-    {
-      uint8_t * src[4]     = { (uint8_t *)videoBuffer.scanLine(0, 0),
-                               (uint8_t *)videoBuffer.scanLine(0, 1),
-                               (uint8_t *)videoBuffer.scanLine(0, 2),
-                               (uint8_t *)videoBuffer.scanLine(0, 3) };
-      int       srcInc[4]  = { videoBuffer.lineSize(0),
-                               videoBuffer.lineSize(1),
-                               videoBuffer.lineSize(2),
-                               videoBuffer.lineSize(3)};
-
-      sws_scale(swsContextHandle, src, srcInc, 0, contextHandle->height, pictureHandle->data, pictureHandle->linesize);
-    }
-    else
+    const SVideoBuffer preprocBuffer = formatConvert.convert(videoBuffer);
+    if (!preprocBuffer.isNull())
     {
       for (unsigned i=0; i<4; i++)
       {
-        pictureHandle->data[i] = (uint8_t *)videoBuffer.scanLine(0, i);
-        pictureHandle->linesize[i] = videoBuffer.lineSize(i);
+        pictureHandle->data[i] = (uint8_t *)preprocBuffer.scanLine(0, i);
+        pictureHandle->linesize[i] = preprocBuffer.lineSize(i);
       }
-    }
 
-    if (videoBuffer.format().fieldMode() == SVideoFormat::FieldMode_InterlacedTopFirst)
-    {
-      pictureHandle->interlaced_frame = 1;
-      pictureHandle->top_field_first = 1;
-    }
-    else if (videoBuffer.format().fieldMode() == SVideoFormat::FieldMode_InterlacedBottomFirst)
-    {
-      pictureHandle->interlaced_frame = 1;
-      pictureHandle->top_field_first = 0;
-    }
-
-    inputTimeStamps.append(videoBuffer.timeStamp());
-    pictureHandle->pts = inputTimeStamps.last().toClock(contextHandle->time_base.num, contextHandle->time_base.den);
-
-    int out_size = avcodec_encode_video(contextHandle,
-                                        (uint8_t *)outBuffer.data(),
-                                        outBuffer.size(),
-                                        pictureHandle);
-    if (out_size > 0)
-    {
-      SEncodedVideoBuffer destBuffer(outCodec, outBuffer.data(), out_size);
-      destBuffer.setKeyFrame((!fastEncode && contextHandle->coded_frame)
-                             ? bool(contextHandle->coded_frame->key_frame)
-                             : true);
-
-      STime dts = inputTimeStamps.takeFirst();
-      if (!fastEncode && (contextHandle->coded_frame->pts != AV_NOPTS_VALUE))
+      if (preprocBuffer.format().fieldMode() == SVideoFormat::FieldMode_InterlacedTopFirst)
       {
-        const STime pts = STime::fromClock(contextHandle->coded_frame->pts,
-                                           contextHandle->time_base.num,
-                                           contextHandle->time_base.den);
+        pictureHandle->interlaced_frame = 1;
+        pictureHandle->top_field_first = 1;
+      }
+      else if (preprocBuffer.format().fieldMode() == SVideoFormat::FieldMode_InterlacedBottomFirst)
+      {
+        pictureHandle->interlaced_frame = 1;
+        pictureHandle->top_field_first = 0;
+      }
 
-        if ((contextHandle->max_b_frames > 0) && (contextHandle->gop_size > 0))
+      inputTimeStamps.append(preprocBuffer.timeStamp());
+      pictureHandle->pts = inputTimeStamps.last().toClock(contextHandle->time_base.num, contextHandle->time_base.den);
+
+      int out_size = avcodec_encode_video(contextHandle,
+                                          (uint8_t *)outBuffer.data(),
+                                          outBuffer.size(),
+                                          pictureHandle);
+      if (out_size > 0)
+      {
+        SEncodedVideoBuffer destBuffer(outCodec, outBuffer.data(), out_size);
+        destBuffer.setKeyFrame((!fastEncode && contextHandle->coded_frame)
+                               ? bool(contextHandle->coded_frame->key_frame)
+                               : true);
+
+        STime dts = inputTimeStamps.takeFirst();
+        if (!fastEncode && (contextHandle->coded_frame->pts != AV_NOPTS_VALUE))
         {
-          dts = qMax(STime::null,
-                     dts - STime::fromClock(contextHandle->max_b_frames,
-                                            contextHandle->time_base.num,
-                                            contextHandle->time_base.den));
+          const STime pts = STime::fromClock(contextHandle->coded_frame->pts,
+                                             contextHandle->time_base.num,
+                                             contextHandle->time_base.den);
+
+          if ((contextHandle->max_b_frames > 0) && (contextHandle->gop_size > 0))
+          {
+            dts = qMax(STime::null,
+                       dts - STime::fromClock(contextHandle->max_b_frames,
+                                              contextHandle->time_base.num,
+                                              contextHandle->time_base.den));
+          }
+
+          destBuffer.setPresentationTimeStamp(pts);
+          if (pts < dts)
+            destBuffer.setDecodingTimeStamp(pts);
+          else
+            destBuffer.setDecodingTimeStamp(dts);
+        }
+        else
+        {
+          destBuffer.setPresentationTimeStamp(dts);
+          destBuffer.setDecodingTimeStamp(dts);
         }
 
-        destBuffer.setPresentationTimeStamp(pts);
-        if (pts < dts)
-          destBuffer.setDecodingTimeStamp(pts);
-        else
-          destBuffer.setDecodingTimeStamp(dts);
-      }
-      else
-      {
-        destBuffer.setPresentationTimeStamp(dts);
-        destBuffer.setDecodingTimeStamp(dts);
-      }
+  //      qDebug() << "Output timestamp" << fastEncode
+  //          << "dts =" << destBuffer.decodingTimeStamp().toMSec() << inputTimeStamps.count()
+  //          << ", pts =" << destBuffer.presentationTimeStamp().toMSec()
+  //          << ", size =" << out_size;
 
-//      qDebug() << "Output timestamp" << fastEncode
-//          << "dts =" << destBuffer.decodingTimeStamp().toMSec() << inputTimeStamps.count()
-//          << ", pts =" << destBuffer.presentationTimeStamp().toMSec()
-//          << ", size =" << out_size;
+  #ifdef OPT_RESEND_LAST_FRAME
+        if (fastEncode)
+        {
+          lastInBufferId = videoBuffer.memory()->uid;
+          lastEncodedBuffer = destBuffer;
+        }
+  #endif
 
-#ifdef OPT_RESEND_LAST_FRAME
-      if (fastEncode)
-      {
-        lastInBufferId = videoBuffer.memory()->uid;
-        lastEncodedBuffer = destBuffer;
+        output << destBuffer;
       }
-#endif
-
-      output << destBuffer;
     }
 #ifdef OPT_RESEND_LAST_FRAME
     else if (fastEncode)

@@ -21,49 +21,13 @@
 #include "sgraph.h"
 #include "svideobuffer.h"
 
-// Implemented in svideoformatconvertnode.convert.c
-extern "C" void LXiStream_SVideoFormatConvertNode_convertYUYVtoRGB(
-    void *rgb, const void *yuv, unsigned numPixels);
-extern "C" void LXiStream_SVideoFormatConvertNode_convertUYVYtoRGB(
-    void *rgb, const void *yuv, unsigned numPixels);
-extern "C" void LXiStream_SVideoFormatConvertNode_convertBGRtoRGB(
-    void *rgb, const void *bgr, unsigned numPixels);
-extern "C" void LXiStream_SVideoFormatConvertNode_convertYUV1toRGB(
-    void *rgb, const void *y, const void *u, const void *v, unsigned numPixels);
-extern "C" void LXiStream_SVideoFormatConvertNode_convertYUV2toRGB(
-    void *rgb, const void *y, const void *u, const void *v, unsigned numPixels);
-
-// Implemented in svideoformatconvertnode.demosaic.c
-extern "C" void LXiStream_SVideoFormatConvertNode_demosaic_GRBG8(
-    const void * srcData, unsigned srcWidth, unsigned srcStride, unsigned srcNumLines,
-    void * dstData, unsigned dstStride) __attribute__((nonnull(1, 5)));
-extern "C" void LXiStream_SVideoFormatConvertNode_demosaic_GBRG8(
-    const void * srcData, unsigned srcWidth, unsigned srcStride, unsigned srcNumLines,
-    void * dstData, unsigned dstStride) __attribute__((nonnull(1, 5)));
-extern "C" void LXiStream_SVideoFormatConvertNode_demosaic_RGGB8(
-    const void * srcData, unsigned srcWidth, unsigned srcStride, unsigned srcNumLines,
-    void * dstData, unsigned dstStride) __attribute__((nonnull(1, 5)));
-extern "C" void LXiStream_SVideoFormatConvertNode_demosaic_BGGR8(
-    const void * srcData, unsigned srcWidth, unsigned srcStride, unsigned srcNumLines,
-    void * dstData, unsigned dstStride) __attribute__((nonnull(1, 5)));
-extern "C" void LXiStream_SVideoFormatConvertNode_demosaic_postfilter(
-    void * srcData, unsigned srcWidth, unsigned srcStride, unsigned srcNumLines) __attribute__((nonnull(1)));
-
-// Implemented in svideoformatconvertnode.unpack.c
-extern "C" void LXiStream_SVideoFormatConvertNode_convertYUYVtoYUV422P(
-    const void *, unsigned, size_t, void *, void *, void *);
-extern "C" void LXiStream_SVideoFormatConvertNode_convertUYVYtoYUV422P(
-    const void *, unsigned, size_t, void *, void *, void *);
-extern "C" void LXiStream_SVideoFormatConvertNode_convertYUYVtoYUV420P
-    (const void *, unsigned, size_t, void *, void *, void *);
-extern "C" void LXiStream_SVideoFormatConvertNode_convertUYVYtoYUV420P(
-    const void *, unsigned, size_t, void *, void *, void *);
-
 namespace LXiStream {
 
 struct SVideoFormatConvertNode::Data
 {
-  SVideoFormat::Format          format;
+  SVideoFormat::Format          sourceFormat;
+  SVideoFormat::Format          destFormat;
+  SInterfaces::VideoFormatConverter * converter;
 };
 
 SVideoFormatConvertNode::SVideoFormatConvertNode(SGraph *parent)
@@ -71,273 +35,95 @@ SVideoFormatConvertNode::SVideoFormatConvertNode(SGraph *parent)
     SInterfaces::Node(parent),
     d(new Data())
 {
+  d->sourceFormat = SVideoFormat::Format_Invalid;
+  d->destFormat = SVideoFormat::Format_Invalid;
+  d->converter = NULL;
 }
 
 SVideoFormatConvertNode::~SVideoFormatConvertNode()
 {
+  delete d->converter;
   delete d;
   *const_cast<Data **>(&d) = NULL;
 }
 
-void SVideoFormatConvertNode::setFormat(SVideoFormat::Format format)
+void SVideoFormatConvertNode::setDestFormat(SVideoFormat::Format destFormat)
 {
-  d->format = format;
+  d->destFormat = destFormat;
+  delete d->converter;
+  d->converter = NULL;
 }
 
-SVideoFormat::Format SVideoFormatConvertNode::format(void) const
+SVideoFormat::Format SVideoFormatConvertNode::destFormat(void) const
 {
-  return d->format;
+  return d->destFormat;
 }
 
-SVideoBuffer SVideoFormatConvertNode::convertYUVtoRGB(const SVideoBuffer &videoBuffer)
+/*! Converts the video buffer to the format specified by setDestFormat().
+ */
+SVideoBuffer SVideoFormatConvertNode::convert(const SVideoBuffer &videoBuffer)
 {
-  SVideoBuffer destBuffer(SVideoFormat(SVideoFormat::Format_RGB32,
-                                       videoBuffer.format().size(),
-                                       videoBuffer.format().frameRate(),
-                                       videoBuffer.format().fieldMode()));
-
-  if (videoBuffer.format().format() == SVideoFormat::Format_YUYV422)
+  if (!videoBuffer.isNull())
   {
-    const int w = videoBuffer.format().size().width(), h = videoBuffer.format().size().height();
-    for (int y=0; y<h; y++)
-      LXiStream_SVideoFormatConvertNode_convertYUYVtoRGB(destBuffer.scanLine(y, 0), videoBuffer.scanLine(y, 0), w);
-
-    return destBuffer;
-  }
-  else if (videoBuffer.format().format() == SVideoFormat::Format_UYVY422)
-  {
-    const int w = videoBuffer.format().size().width(), h = videoBuffer.format().size().height();
-    for (int y=0; y<h; y++)
-      LXiStream_SVideoFormatConvertNode_convertUYVYtoRGB(destBuffer.scanLine(y, 0), videoBuffer.scanLine(y, 0), w);
-
-    return destBuffer;
-  }
-  else if (videoBuffer.format().format() == SVideoFormat::Format_YUV420P)
-  {
-    const int w = videoBuffer.format().size().width(), h = videoBuffer.format().size().height();
-    for (int y=0; y<h; y++)
-      LXiStream_SVideoFormatConvertNode_convertYUV2toRGB(destBuffer.scanLine(y, 0), videoBuffer.scanLine(y, 0), videoBuffer.scanLine(y >> 1, 1), videoBuffer.scanLine(y >> 1, 2), w);
-
-    return destBuffer;
-  }
-  else if (videoBuffer.format().format() == SVideoFormat::Format_YUV422P)
-  {
-    const int w = videoBuffer.format().size().width(), h = videoBuffer.format().size().height();
-    for (int y=0; y<h; y++)
-      LXiStream_SVideoFormatConvertNode_convertYUV2toRGB(destBuffer.scanLine(y, 0), videoBuffer.scanLine(y, 0), videoBuffer.scanLine(y, 1), videoBuffer.scanLine(y, 2), w);
-
-    return destBuffer;
-  }
-  else if (videoBuffer.format().format() == SVideoFormat::Format_YUV444P)
-  {
-    const int w = videoBuffer.format().size().width(), h = videoBuffer.format().size().height();
-    for (int y=0; y<h; y++)
-      LXiStream_SVideoFormatConvertNode_convertYUV1toRGB(destBuffer.scanLine(y, 0), videoBuffer.scanLine(y, 0), videoBuffer.scanLine(y, 1), videoBuffer.scanLine(y, 2), w);
-
-    return destBuffer;
-  }
-
-  qWarning() << "SVideoFormatConvertNode::convertYUVtoRGB unimplemented format" << videoBuffer.format().formatName();
-  return videoBuffer;
-}
-
-SVideoBuffer SVideoFormatConvertNode::convertBGRtoRGB(const SVideoBuffer &videoBuffer)
-{
-  if (videoBuffer.format().format() == SVideoFormat::Format_BGR32)
-  {
-    SVideoBuffer destBuffer(SVideoFormat(SVideoFormat::Format_RGB32,
-                                         videoBuffer.format().size(),
-                                         videoBuffer.format().frameRate(),
-                                         videoBuffer.format().fieldMode()));
-
-    const int w = videoBuffer.format().size().width(), h = videoBuffer.format().size().height();
-    for (int y=0; y<h; y++)
-      LXiStream_SVideoFormatConvertNode_convertBGRtoRGB(destBuffer.scanLine(y, 0), videoBuffer.scanLine(y, 0), w);
-
-    return destBuffer;
-  }
-  else if (videoBuffer.format().format() == SVideoFormat::Format_RGB32)
-  {
-    SVideoBuffer destBuffer(SVideoFormat(SVideoFormat::Format_BGR32,
-                                         videoBuffer.format().size(),
-                                         videoBuffer.format().frameRate(),
-                                         videoBuffer.format().fieldMode()));
-
-    const int w = videoBuffer.format().size().width(), h = videoBuffer.format().size().height();
-    for (int y=0; y<h; y++)
-      LXiStream_SVideoFormatConvertNode_convertBGRtoRGB(destBuffer.scanLine(y, 0), videoBuffer.scanLine(y, 0), w);
-
-    return destBuffer;
-  }
-
-  qWarning() << "SVideoFormatConvertNode::convertBGRtoRGB unimplemented format" << videoBuffer.format().formatName();
-  return videoBuffer;
-}
-
-SVideoBuffer SVideoFormatConvertNode::demosaic(const SVideoBuffer &videoBuffer)
-{
-  if ((videoBuffer.format().format() >= SVideoFormat::Format_BGGR8) &&
-      (videoBuffer.format().format() <= SVideoFormat::Format_RGGB8))
-  {
-    SVideoBuffer destBuffer(SVideoFormat(SVideoFormat::Format_RGB32,
-                                         videoBuffer.format().size(),
-                                         videoBuffer.format().frameRate(),
-                                         videoBuffer.format().fieldMode()));
-
-    switch (videoBuffer.format().format())
+    if (videoBuffer.format() != d->sourceFormat)
     {
-    case SVideoFormat::Format_GRBG8:
-      LXiStream_SVideoFormatConvertNode_demosaic_GRBG8(
-          videoBuffer.scanLine(0, 0),
-          videoBuffer.format().size().width(),
-          videoBuffer.lineSize(0),
-          videoBuffer.format().size().height(),
-          destBuffer.scanLine(0, 0),
-          destBuffer.lineSize(0));
-
-      break;
-
-    case SVideoFormat::Format_GBRG8:
-      LXiStream_SVideoFormatConvertNode_demosaic_GBRG8(
-          videoBuffer.scanLine(0, 0),
-          videoBuffer.format().size().width(),
-          videoBuffer.lineSize(0),
-          videoBuffer.format().size().height(),
-          destBuffer.scanLine(0, 0),
-          destBuffer.lineSize(0));
-
-      break;
-
-    case SVideoFormat::Format_RGGB8:
-      LXiStream_SVideoFormatConvertNode_demosaic_RGGB8(
-          videoBuffer.scanLine(0, 0),
-          videoBuffer.format().size().width(),
-          videoBuffer.lineSize(0),
-          videoBuffer.format().size().height(),
-          destBuffer.scanLine(0, 0),
-          destBuffer.lineSize(0));
-
-      break;
-
-    case SVideoFormat::Format_BGGR8:
-      LXiStream_SVideoFormatConvertNode_demosaic_BGGR8(
-          videoBuffer.scanLine(0, 0),
-          videoBuffer.format().size().width(),
-          videoBuffer.lineSize(0),
-          videoBuffer.format().size().height(),
-          destBuffer.scanLine(0, 0),
-          destBuffer.lineSize(0));
-
-      break;
-
-    default:
-      return videoBuffer;
+      d->sourceFormat = videoBuffer.format();
+      delete d->converter;
+      d->converter = NULL;
     }
 
-    LXiStream_SVideoFormatConvertNode_demosaic_postfilter(
-        destBuffer.scanLine(0, 0),
-        destBuffer.format().size().width(),
-        destBuffer.lineSize(0),
-        destBuffer.format().size().height());
+    if (d->sourceFormat == d->destFormat)
+    {
+      return videoBuffer;
+    }
+    else if ((d->converter == NULL) &&
+             (d->sourceFormat != SVideoFormat::Format_Invalid) &&
+             (d->destFormat != SVideoFormat::Format_Invalid))
+    {
+      d->converter = SInterfaces::VideoFormatConverter::create(this, d->sourceFormat, d->destFormat, false);
+    }
 
-    return destBuffer;
+    if (d->converter)
+      return d->converter->convertBuffer(videoBuffer);
   }
 
-  qWarning() << "SVideoFormatConvertNode::demosaic unimplemented format" << videoBuffer.format().formatName();
-  return videoBuffer;
+  return SVideoBuffer();
 }
 
-SVideoBuffer SVideoFormatConvertNode::unpackYUVtoYUV420P(const SVideoBuffer &videoBuffer)
+/*! Converts the video buffer to the format specified by destFormat. Note that
+    this static method will create a new SInterfaces::VideoFormatConverter each
+    time it is invoked. Use a seperate SVideoFormatConvertNode object to convert
+    multiple buffers to/from the same format.
+ */
+SVideoBuffer SVideoFormatConvertNode::convert(const SVideoBuffer &videoBuffer, SVideoFormat::Format destFormat)
 {
-  SVideoBuffer destBuffer(SVideoFormat(SVideoFormat::Format_YUV420P,
-                                       videoBuffer.format().size(),
-                                       videoBuffer.format().frameRate(),
-                                       videoBuffer.format().fieldMode()));
-
-  if (videoBuffer.format().format() == SVideoFormat::Format_YUYV422)
+  if (!videoBuffer.isNull())
   {
-    const int w = videoBuffer.format().size().width(), h = videoBuffer.format().size().height();
-    for (int y=0; y<h; y++)
-      LXiStream_SVideoFormatConvertNode_convertYUYVtoYUV420P(videoBuffer.scanLine(y, 0), h, videoBuffer.lineSize(0), destBuffer.scanLine(y, 0), destBuffer.scanLine(y, 1), destBuffer.scanLine(y, 2));
+    const SVideoFormat::Format sourceFormat = videoBuffer.format();
+    if (sourceFormat == destFormat)
+    {
+      return videoBuffer;
+    }
+    else if ((sourceFormat != SVideoFormat::Format_Invalid) &&
+             (destFormat != SVideoFormat::Format_Invalid))
+    {
+      SInterfaces::VideoFormatConverter * const converter =
+          SInterfaces::VideoFormatConverter::create(NULL, sourceFormat, destFormat, false);
 
-    return destBuffer;
-  }
-  else if (videoBuffer.format().format() == SVideoFormat::Format_UYVY422)
-  {
-    const int w = videoBuffer.format().size().width(), h = videoBuffer.format().size().height();
-    for (int y=0; y<h; y++)
-      LXiStream_SVideoFormatConvertNode_convertUYVYtoYUV420P(videoBuffer.scanLine(y, 0), h, videoBuffer.lineSize(0), destBuffer.scanLine(y, 0), destBuffer.scanLine(y, 1), destBuffer.scanLine(y, 2));
+      SVideoBuffer result = converter ? converter->convertBuffer(videoBuffer) : SVideoBuffer();
 
-    return destBuffer;
-  }
+      delete converter;
 
-  qWarning() << "SVideoFormatConvertNode::unpackYUVtoYUV420P unimplemented format" << videoBuffer.format().formatName();
-  return videoBuffer;
-}
-
-SVideoBuffer SVideoFormatConvertNode::unpackYUVtoYUV422P(const SVideoBuffer &videoBuffer)
-{
-  SVideoBuffer destBuffer(SVideoFormat(SVideoFormat::Format_YUV422P,
-                                       videoBuffer.format().size(),
-                                       videoBuffer.format().frameRate(),
-                                       videoBuffer.format().fieldMode()));
-
-  if (videoBuffer.format().format() == SVideoFormat::Format_YUYV422)
-  {
-    const int w = videoBuffer.format().size().width(), h = videoBuffer.format().size().height();
-    for (int y=0; y<h; y++)
-      LXiStream_SVideoFormatConvertNode_convertYUYVtoYUV422P(videoBuffer.scanLine(y, 0), h, videoBuffer.lineSize(0), destBuffer.scanLine(y, 0), destBuffer.scanLine(y, 1), destBuffer.scanLine(y, 2));
-
-    return destBuffer;
-  }
-  else if (videoBuffer.format().format() == SVideoFormat::Format_UYVY422)
-  {
-    const int w = videoBuffer.format().size().width(), h = videoBuffer.format().size().height();
-    for (int y=0; y<h; y++)
-      LXiStream_SVideoFormatConvertNode_convertUYVYtoYUV422P(videoBuffer.scanLine(y, 0), h, videoBuffer.lineSize(0), destBuffer.scanLine(y, 0), destBuffer.scanLine(y, 1), destBuffer.scanLine(y, 2));
-
-    return destBuffer;
+      return result;
+    }
   }
 
-  qWarning() << "SVideoFormatConvertNode::unpackYUVtoYUV420P unimplemented format" << videoBuffer.format().formatName();
-  return videoBuffer;
+  return SVideoBuffer();
 }
 
 void SVideoFormatConvertNode::input(const SVideoBuffer &videoBuffer)
 {
-  if (!videoBuffer.isNull())
-  {
-    if (d->format == videoBuffer.format())
-    {
-      emit output(videoBuffer);
-    }
-    else if (d->format == SVideoFormat::Format_RGB32)
-    {
-      if (videoBuffer.format().isYUV())
-        emit output(convertYUVtoRGB(videoBuffer));
-      else if (videoBuffer.format().isBayerArray())
-        emit output(demosaic(videoBuffer));
-      else if (videoBuffer.format() == SVideoFormat::Format_BGR32)
-        emit output(convertBGRtoRGB(videoBuffer));
-    }
-    else if (d->format == SVideoFormat::Format_YUV420P)
-    {
-      if ((videoBuffer.format() == SVideoFormat::Format_YUYV422) ||
-          (videoBuffer.format() == SVideoFormat::Format_UYVY422))
-      {
-        emit output(unpackYUVtoYUV420P(videoBuffer));
-      }
-    }
-    else if (d->format == SVideoFormat::Format_YUV422P)
-    {
-      if ((videoBuffer.format() == SVideoFormat::Format_YUYV422) ||
-          (videoBuffer.format() == SVideoFormat::Format_UYVY422))
-      {
-        emit output(unpackYUVtoYUV422P(videoBuffer));
-      }
-    }
-  }
+  emit output(convert(videoBuffer));
 }
-
 
 } // End of namespace

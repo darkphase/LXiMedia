@@ -20,7 +20,8 @@ HEADERS += audiodecoder.h \
     videoencoder.h \
     videoresizer.h \
     bufferwriter.h \
-    bufferreader.h
+    bufferreader.h \
+    videoformatconverter.h
 SOURCES += audiodecoder.cpp \
     audiodecoder.postfilter.c \
     audioencoder.cpp \
@@ -33,4 +34,5 @@ SOURCES += audiodecoder.cpp \
     videoencoder.cpp \
     videoresizer.cpp \
     bufferwriter.cpp \
-    bufferreader.cpp
+    bufferreader.cpp \
+    videoformatconverter.cpp

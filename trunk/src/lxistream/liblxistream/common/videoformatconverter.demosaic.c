@@ -22,7 +22,7 @@
 #include <string.h>
 #include "spixels.h"
 
-void LXiStream_SVideoFormatConvertNode_demosaic_GRBG8
+void LXiStream_Common_VideoFormatConverter_demosaic_GRBG8
  (const uint8_t * restrict srcData, unsigned srcWidth, unsigned srcStride, unsigned srcNumLines,
   uint8_t * restrict dstData, unsigned dstStride)
 {
@@ -46,7 +46,7 @@ void LXiStream_SVideoFormatConvertNode_demosaic_GRBG8
   }
 } __attribute__((nonnull(1, 5)));
 
-void LXiStream_SVideoFormatConvertNode_demosaic_GBRG8
+void LXiStream_Common_VideoFormatConverter_demosaic_GBRG8
  (const uint8_t * restrict srcData, unsigned srcWidth, unsigned srcStride, unsigned srcNumLines,
   uint8_t * restrict dstData, unsigned dstStride)
 {
@@ -70,7 +70,7 @@ void LXiStream_SVideoFormatConvertNode_demosaic_GBRG8
   }
 } __attribute__((nonnull(1, 5)));
 
-void LXiStream_SVideoFormatConvertNode_demosaic_BGGR8
+void LXiStream_Common_VideoFormatConverter_demosaic_BGGR8
  (const uint8_t * restrict srcData, unsigned srcWidth, unsigned srcStride, unsigned srcNumLines,
   uint8_t * restrict dstData, unsigned dstStride)
 {
@@ -94,7 +94,7 @@ void LXiStream_SVideoFormatConvertNode_demosaic_BGGR8
   }
 } __attribute__((nonnull(1, 5)));
 
-void LXiStream_SVideoFormatConvertNode_demosaic_RGGB8
+void LXiStream_Common_VideoFormatConverter_demosaic_RGGB8
  (const uint8_t * restrict srcData, unsigned srcWidth, unsigned srcStride, unsigned srcNumLines,
   uint8_t * restrict dstData, unsigned dstStride)
 {
@@ -123,7 +123,7 @@ inline int8_t babs(int8_t val)
   return val >= 0 ? val : -val;
 }
 
-void LXiStream_SVideoFormatConvertNode_demosaic_postfilter
+void LXiStream_Common_VideoFormatConverter_demosaic_postfilter
  (uint8_t * restrict data, unsigned width, unsigned stride, unsigned numLines)
 {
   const int yo = ((const struct RGBAPixel *)data)->a == 0 ? 1 : 0;

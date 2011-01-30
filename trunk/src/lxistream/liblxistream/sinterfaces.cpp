@@ -318,5 +318,35 @@ VideoEncoder * VideoEncoder::create(QObject *parent, const SVideoCodec &codec, F
   return videoEncoder;
 }
 
+/*! Creates a video format converter for the specified source and destination
+    formats.
+    \param parent   The parent object, or NULL if none.
+    \param srcFormat The source format.
+    \param dstFormat The destination format.
+    \param nonNull  When true, the default, the method will throw a qFatal() if
+                    the object can not be created, the method is guaranteed not
+                    to return a null pointer in this case. When false, the
+                    method will return a null pointer if the object can not be
+                    created.
+ */
+VideoFormatConverter * VideoFormatConverter::create(QObject *parent, const SVideoFormat &srcFormat, const SVideoFormat &dstFormat, bool nonNull)
+{
+  const QString scheme = QString(srcFormat.formatName()) + "->" + QString(dstFormat.formatName());
+  VideoFormatConverter * videoFormatConverter =
+      SFactorizable<VideoFormatConverter>::create(parent, scheme, nonNull);
+
+  if (videoFormatConverter)
+  if (!videoFormatConverter->openFormat(srcFormat, dstFormat))
+  {
+    delete videoFormatConverter;
+    videoFormatConverter = NULL;
+  }
+
+  if (nonNull && (videoFormatConverter == NULL))
+    qFatal("Failed to open video format converter for \"%s\".", scheme.toAscii().data());
+
+  return videoFormatConverter;
+}
+
 
 } } // End of namespaces
