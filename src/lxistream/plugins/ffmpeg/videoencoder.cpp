@@ -92,26 +92,27 @@ bool VideoEncoder::openCodec(const SVideoCodec &c, Flags flags)
   contextHandle->time_base.num = outCodec.frameRate().num();
   contextHandle->time_base.den = outCodec.frameRate().den();
 
+  const int baseRate = ((int(sqrt(contextHandle->width * contextHandle->height)) + 249) / 250) * 250;
   if (flags & Flag_LowQuality)
   {
-    contextHandle->bit_rate = int(sqrt(contextHandle->width * contextHandle->height)) * 5000;
+    contextHandle->bit_rate = baseRate * 4000;
     contextHandle->mb_qmin = contextHandle->qmin = 8;
     contextHandle->mb_qmax = contextHandle->qmax = 63;
-    contextHandle->max_qdiff = 24;
+    contextHandle->max_qdiff = 12;
   }
   else if (flags & Flag_HighQuality)
   {
-    contextHandle->bit_rate = int(sqrt(contextHandle->width * contextHandle->height)) * 20000;
+    contextHandle->bit_rate = baseRate * 16000;
     contextHandle->mb_qmin = contextHandle->qmin = 1;
     contextHandle->mb_qmax = contextHandle->qmax = 31;
-    contextHandle->max_qdiff = 6;
+    contextHandle->max_qdiff = 3;
   }
   else // Normal quality
   {
-    contextHandle->bit_rate = int(sqrt(contextHandle->width * contextHandle->height)) * 10000;
+    contextHandle->bit_rate = baseRate * 8000;
     contextHandle->mb_qmin = contextHandle->qmin = 4;
     contextHandle->mb_qmax = contextHandle->qmax = 63;
-    contextHandle->max_qdiff = 12;
+    contextHandle->max_qdiff = 6;
   }
 
   if (outCodec.bitRate() > 0)
