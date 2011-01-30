@@ -110,10 +110,10 @@ BufferReader * BufferReader::create(QObject *parent, const QString &format, bool
   {
     delete bufferReader;
     bufferReader = NULL;
-
-    if (nonNull)
-      qFatal("Failed to open input format \"%s\".", format.toAscii().data());
   }
+
+  if (nonNull && (bufferReader == NULL))
+    qFatal("Failed to open input format \"%s\".", format.toAscii().data());
 
   return bufferReader;
 }
@@ -141,10 +141,10 @@ BufferWriter * BufferWriter::create(QObject *parent, const QString &format, bool
   {
     delete bufferWriter;
     bufferWriter = NULL;
-
-    if (nonNull)
-      qFatal("Failed to open output format \"%s\".", format.toAscii().data());
   }
+
+  if (nonNull && (bufferWriter == NULL))
+    qFatal("Failed to open output format \"%s\".", format.toAscii().data());
 
   return bufferWriter;
 }
@@ -170,10 +170,10 @@ DiscReader * DiscReader::create(QObject *parent, const QString &format, const QS
   {
     delete discReader;
     discReader = NULL;
-
-    if (nonNull)
-      qFatal("Failed to open disc format \"%s\".", format.toAscii().data());
   }
+
+  if (nonNull && (discReader == NULL))
+    qFatal("Failed to open disc format \"%s\".", format.toAscii().data());
 
   return discReader;
 }
@@ -198,10 +198,10 @@ AudioDecoder * AudioDecoder::create(QObject *parent, const SAudioCodec &codec, F
   {
     delete audioDecoder;
     audioDecoder = NULL;
-
-    if (nonNull)
-      qFatal("Failed to open audio decoder for \"%s\".", codec.codec().toAscii().data());
   }
+
+  if (nonNull && (audioDecoder == NULL))
+    qFatal("Failed to open audio decoder for \"%s\".", codec.codec().toAscii().data());
 
   return audioDecoder;
 }
@@ -226,10 +226,10 @@ VideoDecoder * VideoDecoder::create(QObject *parent, const SVideoCodec &codec, F
   {
     delete videoDecoder;
     videoDecoder = NULL;
-
-    if (nonNull)
-      qFatal("Failed to open video decoder for \"%s\".", codec.codec().toAscii().data());
   }
+
+  if (nonNull && (videoDecoder == NULL))
+    qFatal("Failed to open video decoder for \"%s\".", codec.codec().toAscii().data());
 
   return videoDecoder;
 }
@@ -254,10 +254,10 @@ DataDecoder * DataDecoder::create(QObject *parent, const SDataCodec &codec, Flag
   {
     delete dataDecoder;
     dataDecoder = NULL;
-
-    if (nonNull)
-      qFatal("Failed to open data decoder for \"%s\".", codec.codec().toAscii().data());
   }
+
+  if (nonNull && (dataDecoder == NULL))
+    qFatal("Failed to open data decoder for \"%s\".", codec.codec().toAscii().data());
 
   return dataDecoder;
 }
@@ -282,10 +282,10 @@ AudioEncoder * AudioEncoder::create(QObject *parent, const SAudioCodec &codec, F
   {
     delete audioEncoder;
     audioEncoder = NULL;
-
-    if (nonNull)
-      qFatal("Failed to open audio encoder for \"%s\".", codec.codec().toAscii().data());
   }
+
+  if (nonNull && (audioEncoder == NULL))
+    qFatal("Failed to open audio encoder for \"%s\".", codec.codec().toAscii().data());
 
   return audioEncoder;
 }
@@ -310,10 +310,10 @@ VideoEncoder * VideoEncoder::create(QObject *parent, const SVideoCodec &codec, F
   {
     delete videoEncoder;
     videoEncoder = NULL;
-
-    if (nonNull)
-      qFatal("Failed to open video encoder for \"%s\".", codec.codec().toAscii().data());
   }
+
+  if (nonNull && (videoEncoder == NULL))
+    qFatal("Failed to open video encoder for \"%s\".", codec.codec().toAscii().data());
 
   return videoEncoder;
 }
