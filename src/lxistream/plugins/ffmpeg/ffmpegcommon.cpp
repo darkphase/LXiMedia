@@ -22,7 +22,8 @@
 namespace LXiStream {
 namespace FFMpegBackend {
 
-int FFMpegCommon::logLevel = AV_LOG_QUIET;
+int   FFMpegCommon::logLevel = AV_LOG_QUIET;
+bool  FFMpegCommon::logDisabled = false;
 
 QMutex * FFMpegCommon::mutex(void)
 {
@@ -52,6 +53,11 @@ void FFMpegCommon::init(bool verbose)
     ::av_log_set_callback(&FFMpegCommon::log);
     ::av_register_all();
   }
+}
+
+void FFMpegCommon::disableLog(bool disabled)
+{
+  logDisabled = disabled;
 }
 
 ::CodecID FFMpegCommon::toFFMpegCodecID(const QString &codec)
@@ -680,7 +686,7 @@ SAudioFormat::Channels FFMpegCommon::fromFFMpegChannelLayout(int64_t layout, int
 
 void FFMpegCommon::log(void *, int level, const char *fmt, va_list vl)
 {
-  if (level <= logLevel)
+  if ((level <= logLevel) && !logDisabled)
   {
     //const ::AVClass * const * const c = reinterpret_cast<const ::AVClass * const *>(ptr);
 
@@ -699,6 +705,5 @@ void FFMpegCommon::log(void *, int level, const char *fmt, va_list vl)
       qDebug("FFMpeg: %s", buffer);
   }
 }
-
 
 } } // End of namespaces

@@ -134,9 +134,6 @@ SOURCES += nodes/saudiodecodernode.cpp \
     nodes/svideodeinterlacenode.cpp \
     nodes/svideoencodernode.cpp \
     nodes/svideoformatconvertnode.cpp \
-    nodes/svideoformatconvertnode.convert.c \
-    nodes/svideoformatconvertnode.demosaic.c \
-    nodes/svideoformatconvertnode.unpack.c \
     nodes/svideoinputnode.cpp \
     nodes/svideoletterboxdetectnode.cpp \
     nodes/svideoresizenode.cpp
@@ -159,7 +156,8 @@ HEADERS += common/audiooutput.h \
     common/pcmaudioencoder.h \
     common/psbufferreader.h \
     common/psbufferwriter.h \
-    common/rawsubtitledecoder.h
+    common/rawsubtitledecoder.h \
+    common/videoformatconverter.h
 SOURCES += common/audiooutput.cpp \
     common/audioresampler.cpp \
     common/audioresampler.resample.c \
@@ -172,7 +170,11 @@ SOURCES += common/audiooutput.cpp \
     common/pcmaudio.swap.c \
     common/psbufferreader.cpp \
     common/psbufferwriter.cpp \
-    common/rawsubtitledecoder.cpp
+    common/rawsubtitledecoder.cpp \
+    common/videoformatconverter.cpp \
+    common/videoformatconverter.convert.c \
+    common/videoformatconverter.demosaic.c \
+    common/videoformatconverter.unpack.c
 
 HEADERS += common/module.h
 SOURCES += common/module.cpp

@@ -28,59 +28,56 @@ namespace LXiStreamGui {
 
 using namespace LXiStream;
 
-SImage::SImage(const SVideoBuffer &inbuffer, bool fast)
+SImage::SImage(const SVideoBuffer &inBuffer, bool fast)
   : QImage()
 {
-  SVideoBuffer videoBuffer;
-  if (videoBuffer.format().isYUV())
-    videoBuffer = SVideoFormatConvertNode::convertYUVtoRGB(inbuffer);
-  else if (videoBuffer.format().isBayerArray())
-    videoBuffer = SVideoFormatConvertNode::demosaic(inbuffer);
-  else if (videoBuffer.format() == SVideoFormat::Format_BGR32)
-    videoBuffer = SVideoFormatConvertNode::convertBGRtoRGB(inbuffer);
-  else
-    videoBuffer = inbuffer;
-
-  const SSize size = videoBuffer.format().size();
-
-  switch(videoBuffer.format().format())
+  if (!inBuffer.isNull())
   {
-  default:
-    return;
+    SVideoBuffer videoBuffer = inBuffer;
+    const SSize size = videoBuffer.format().size();
+    switch(videoBuffer.format().format())
+    {
+    default:
+      videoBuffer = SVideoFormatConvertNode::convert(videoBuffer, SVideoFormat::Format_RGB32);
+      if (videoBuffer.isNull())
+        return;
 
-  case SVideoFormat::Format_RGB32:
-    *this = QImage(size.size(), QImage::Format_RGB32);
-    for (int y=0; y<size.height(); y++)
-      memcpy(scanLine(y), videoBuffer.scanLine(y, 0), size.width() * 4);
+      // Deliberately no break.
 
-    break;
+    case SVideoFormat::Format_RGB32:
+      *this = QImage(size.size(), QImage::Format_RGB32);
+      for (int y=0; y<size.height(); y++)
+        memcpy(scanLine(y), videoBuffer.scanLine(y, 0), size.width() * 4);
 
-  case SVideoFormat::Format_RGB24:
-    *this = QImage(size.size(), QImage::Format_RGB888);
-    for (int y=0; y<size.height(); y++)
-      memcpy(scanLine(y), videoBuffer.scanLine(y, 0), size.width() * 3);
+      break;
 
-    break;
+    case SVideoFormat::Format_RGB24:
+      *this = QImage(size.size(), QImage::Format_RGB888);
+      for (int y=0; y<size.height(); y++)
+        memcpy(scanLine(y), videoBuffer.scanLine(y, 0), size.width() * 3);
 
-  case SVideoFormat::Format_RGB565:
-    *this = QImage(size.size(), QImage::Format_RGB16);
-    for (int y=0; y<size.height(); y++)
-      memcpy(scanLine(y), videoBuffer.scanLine(y, 0), size.width() * 2);
+      break;
 
-    break;
+    case SVideoFormat::Format_RGB565:
+      *this = QImage(size.size(), QImage::Format_RGB16);
+      for (int y=0; y<size.height(); y++)
+        memcpy(scanLine(y), videoBuffer.scanLine(y, 0), size.width() * 2);
 
-  case SVideoFormat::Format_RGB555:
-    *this = QImage(size.size(), QImage::Format_RGB555);
-    for (int y=0; y<size.height(); y++)
-      memcpy(scanLine(y), videoBuffer.scanLine(y, 0), size.width() * 2);
+      break;
 
-    break;
+    case SVideoFormat::Format_RGB555:
+      *this = QImage(size.size(), QImage::Format_RGB555);
+      for (int y=0; y<size.height(); y++)
+        memcpy(scanLine(y), videoBuffer.scanLine(y, 0), size.width() * 2);
+
+      break;
+    }
+
+    // Compensate the aspect ratio if needed.
+    if (!qFuzzyCompare(size.aspectRatio(), 1.0f))
+      *this = scaled(size.absoluteSize(), Qt::IgnoreAspectRatio,
+                     fast ? Qt::FastTransformation : Qt::SmoothTransformation);
   }
-
-  // Compensate the aspect ratio if needed.
-  if (!qFuzzyCompare(size.aspectRatio(), 1.0f))
-    *this = scaled(size.absoluteSize(), Qt::IgnoreAspectRatio,
-                   fast ? Qt::FastTransformation : Qt::SmoothTransformation);
 }
 
 SImage::SImage(const QString &fileName, const char *format)

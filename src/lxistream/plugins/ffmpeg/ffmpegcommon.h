@@ -47,6 +47,8 @@ class FFMpegCommon
 public:
   static void                   init(bool verbose = false);
 
+  static void                   disableLog(bool);
+
   static ::CodecID              toFFMpegCodecID(const QString &);
   static const char           * fromFFMpegCodecID(::CodecID);
   static ::PixelFormat          toFFMpegPixelFormat(SVideoFormat::Format);
@@ -64,6 +66,7 @@ public:
 
 private:
   static int                    logLevel;
+  static bool                   logDisabled;
 };
 
 
