@@ -23,6 +23,7 @@
 #include <QtCore>
 #include "saudiobuffer.h"
 #include "saudiocodec.h"
+#include "sdatabuffer.h"
 #include "sdatacodec.h"
 #include "sencodedaudiobuffer.h"
 #include "sencodeddatabuffer.h"
@@ -120,26 +121,43 @@ public:
     int                         confidence;
   };
 
-  struct StreamInfo
+  struct StreamId
   {
-    inline StreamInfo(void) : streamId(0) { }
-    inline StreamInfo(quint16 streamId, const char *language)
-      : streamId(streamId)
+    enum StreamType
     {
+      StreamType_None = 0,
+      StreamType_Audio, StreamType_Video, StreamType_Subtitle,
+    };
+
+    inline StreamId(void) : streamType(StreamType_None), streamId(0) { }
+    inline StreamId(quint32 v) { reinterpret_cast<quint32 &>(streamType) = v; }
+    inline StreamId(StreamType streamType, quint16 streamId) : streamType(streamType), streamId(streamId) { }
+
+    inline                      operator quint32() const                        { return reinterpret_cast<const quint32 &>(streamType); }
+    inline bool                 operator<(StreamId other) const                 { return quint32(*this) < quint32(other); }
+
+    quint16                     streamType;
+    quint16                     streamId;
+  } __attribute__((packed));
+
+  struct StreamInfo : StreamId
+  {
+    inline StreamInfo(void) : StreamId() { memset(language, 0, sizeof(language)); }
+    inline StreamInfo(StreamType streamType, quint16 streamId, const char *language)
+      : StreamId(streamType, streamId)
+    {
+      memset(this->language, 0, sizeof(this->language));
       if (language && (qstrlen(language) > 0))
         qstrncpy(this->language, language, sizeof(this->language));
-      else
-        this->language[0] = 0;
     }
 
-    quint16                     streamId;
     char                        language[4]; //!< ISO 639-1 or ISO 639-2 language code (empty string if undefined).
   };
 
   struct AudioStreamInfo : StreamInfo
   {
     inline AudioStreamInfo(void) : codec() { }
-    inline AudioStreamInfo(quint16 streamId, const char *language, const SAudioCodec &codec) : StreamInfo(streamId, language), codec(codec) { }
+    inline AudioStreamInfo(quint16 streamId, const char *language, const SAudioCodec &codec) : StreamInfo(StreamType_Audio, streamId, language), codec(codec) { }
 
     SAudioCodec                 codec;
   };
@@ -147,7 +165,7 @@ public:
   struct VideoStreamInfo : StreamInfo
   {
     inline VideoStreamInfo(void) : codec() { }
-    inline VideoStreamInfo(quint16 streamId, const char *language, const SVideoCodec &codec) : StreamInfo(streamId, language), codec(codec) { }
+    inline VideoStreamInfo(quint16 streamId, const char *language, const SVideoCodec &codec) : StreamInfo(StreamType_Video, streamId, language), codec(codec) { }
 
     SVideoCodec                 codec;
   };
@@ -155,7 +173,7 @@ public:
   struct DataStreamInfo : StreamInfo
   {
     inline DataStreamInfo(void) : codec() { }
-    inline DataStreamInfo(quint16 streamId, const char *language, const SDataCodec &codec) : StreamInfo(streamId, language), codec(codec) { }
+    inline DataStreamInfo(StreamType streamType, quint16 streamId, const char *language, const SDataCodec &codec) : StreamInfo(streamType, streamId, language), codec(codec) { }
 
     SDataCodec                  codec;
     QString                     file;
@@ -262,6 +280,7 @@ public:
     virtual void                produce(const SEncodedDataBuffer &) = 0;
   };
 
+  typedef FormatProber::StreamId        StreamId;
   typedef FormatProber::AudioStreamInfo AudioStreamInfo;
   typedef FormatProber::VideoStreamInfo VideoStreamInfo;
   typedef FormatProber::DataStreamInfo  DataStreamInfo;
@@ -288,7 +307,7 @@ public:
   virtual QList<AudioStreamInfo> audioStreams(void) const = 0;
   virtual QList<VideoStreamInfo> videoStreams(void) const = 0;
   virtual QList<DataStreamInfo>  dataStreams(void) const = 0;
-  virtual void                  selectStreams(const QList<quint16> &) = 0;
+  virtual void                  selectStreams(const QList<StreamId> &) = 0;
 };
 
 /*! The BufferReaderNode interface is used for nodes that provide access to a
@@ -297,6 +316,7 @@ public:
 class BufferReaderNode
 {
 public:
+  typedef FormatProber::StreamId        StreamId;
   typedef FormatProber::AudioStreamInfo AudioStreamInfo;
   typedef FormatProber::VideoStreamInfo VideoStreamInfo;
   typedef FormatProber::DataStreamInfo  DataStreamInfo;
@@ -313,7 +333,7 @@ public:
   virtual QList<AudioStreamInfo> audioStreams(void) const = 0;
   virtual QList<VideoStreamInfo> videoStreams(void) const = 0;
   virtual QList<DataStreamInfo> dataStreams(void) const = 0;
-  virtual void                  selectStreams(const QList<quint16> &) = 0;
+  virtual void                  selectStreams(const QList<StreamId> &) = 0;
 };
 
 /*! The BufferWriter interface can be used to write serialized buffers to a
@@ -356,6 +376,7 @@ class DiscReader : public QObject,
 {
 Q_OBJECT
 public:
+  typedef FormatProber::StreamId        StreamId;
   typedef FormatProber::AudioStreamInfo AudioStreamInfo;
   typedef FormatProber::VideoStreamInfo VideoStreamInfo;
   typedef FormatProber::DataStreamInfo  DataStreamInfo;
@@ -457,7 +478,7 @@ protected:
   virtual bool                  openCodec(const SDataCodec &, Flags) = 0;
 
 public:
-  virtual SSubtitleBufferList   decodeBuffer(const SEncodedDataBuffer &) = 0;
+  virtual SDataBufferList       decodeBuffer(const SEncodedDataBuffer &) = 0;
 };
 
 /*! The AudioEncoder interface can be used to encode audio buffers.

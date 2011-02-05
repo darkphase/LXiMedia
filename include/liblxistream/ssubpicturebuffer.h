@@ -17,30 +17,49 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXISTREAM_SSUBTITLEBUFFER_H
-#define LXISTREAM_SSUBTITLEBUFFER_H
+#ifndef LXISTREAM_SSUBPICTUREBUFFER_H
+#define LXISTREAM_SSUBPICTUREBUFFER_H
 
 #include <QtCore>
 #include "sbuffer.h"
+#include "spixels.h"
 #include "stime.h"
 
 namespace LXiStream {
 
-/*! This class represents a buffer containing subtitle data.
+/*! This class represents a buffer containing subpicture data.
  */
-class SSubtitleBuffer : public SBuffer
+class SSubpictureBuffer : public SBuffer
 {
 public:
-  inline                        SSubtitleBuffer(void) : SBuffer()               { }
-  inline                        SSubtitleBuffer(const QStringList &s) : SBuffer() { setSubtitle(s); }
+  struct Rect
+  {
+    qint16                      x, y;
+    quint16                     width, height;
+    quint16                     lineStride;
+    quint8                      paletteSize;
+    quint8                      _reserved;
+  } __attribute__((packed));
+
+public:
+                                SSubpictureBuffer(void);
+  explicit                      SSubpictureBuffer(const QList<Rect> &);
 
   inline STime                  timeStamp(void) const                           { return d.timeStamp; }
   inline void                   setTimeStamp(STime t)                           { d.timeStamp = t; }
   inline STime                  duration(void) const                            { return d.duration; }
   inline void                   setDuration(STime t)                            { d.duration = t; }
 
-  inline QStringList            subtitle(void) const                            { return QString::fromUtf8(data(), size()).split('\n'); }
-  inline void                   setSubtitle(const QStringList &s)               { setData(s.join("\n").toUtf8()); }
+  void                          setRects(const QList<Rect> &);
+  QList<Rect>                   rects(void) const;
+
+  const SPixels::RGBAPixel    * palette(int rectId) const;
+  SPixels::RGBAPixel          * palette(int rectId);
+  const quint8                * lines(int rectId) const;
+  quint8                      * lines(int rectId);
+
+private:
+  static int                    rectSize(const Rect &rect);
 
 private:
   struct
@@ -50,10 +69,10 @@ private:
   }                             d;
 };
 
-typedef QList<SSubtitleBuffer>  SSubtitleBufferList;
+typedef QList<SSubpictureBuffer> SSubpictureBufferList;
 
 } // End of namespace
 
-Q_DECLARE_METATYPE(LXiStream::SSubtitleBuffer)
+Q_DECLARE_METATYPE(LXiStream::SSubpictureBuffer)
 
 #endif

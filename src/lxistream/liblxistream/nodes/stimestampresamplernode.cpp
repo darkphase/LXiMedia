@@ -94,6 +94,22 @@ void STimeStampResamplerNode::input(const SVideoBuffer &videoBuffer)
     emit output(videoBuffer);
 }
 
+void STimeStampResamplerNode::input(const SSubpictureBuffer &subpictureBuffer)
+{
+  if (!subpictureBuffer.isNull() && !qFuzzyCompare(d->ratio, 1.0))
+  {
+    SSubpictureBuffer buffer = subpictureBuffer;
+
+    const STime timeStamp = buffer.timeStamp();
+    if (timeStamp.isValid())
+      buffer.setTimeStamp(STime(qint64(timeStamp.count() / d->ratio), timeStamp.interval()));
+
+    emit output(buffer);
+  }
+  else
+    emit output(subpictureBuffer);
+}
+
 void STimeStampResamplerNode::input(const SSubtitleBuffer &subtitleBuffer)
 {
   if (!subtitleBuffer.isNull() && !qFuzzyCompare(d->ratio, 1.0))

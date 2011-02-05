@@ -28,6 +28,7 @@ HEADERS += $${LXIMEDIA_DIR}/include/LXiStream \
     $${LXIMEDIA_DIR}/include/liblxistream/saudiocodec.h \
     $${LXIMEDIA_DIR}/include/liblxistream/saudioformat.h \
     $${LXIMEDIA_DIR}/include/liblxistream/sbuffer.h \
+    $${LXIMEDIA_DIR}/include/liblxistream/sdatabuffer.h \
     $${LXIMEDIA_DIR}/include/liblxistream/sdatacodec.h \
     $${LXIMEDIA_DIR}/include/liblxistream/sdebug.h \
     $${LXIMEDIA_DIR}/include/liblxistream/sencodedaudiobuffer.h \
@@ -44,6 +45,7 @@ HEADERS += $${LXIMEDIA_DIR}/include/LXiStream \
     $${LXIMEDIA_DIR}/include/liblxistream/sserializable.h \
     $${LXIMEDIA_DIR}/include/liblxistream/ssize.h \
     $${LXIMEDIA_DIR}/include/liblxistream/sstringparser.h \
+    $${LXIMEDIA_DIR}/include/liblxistream/ssubpicturebuffer.h \
     $${LXIMEDIA_DIR}/include/liblxistream/ssubtitlebuffer.h \
     $${LXIMEDIA_DIR}/include/liblxistream/ssubtitlefile.h \
     $${LXIMEDIA_DIR}/include/liblxistream/ssystem.h \
@@ -59,6 +61,7 @@ SOURCES += saudiobuffer.cpp \
     saudiocodec.cpp \
     saudioformat.cpp \
     sbuffer.cpp \
+    sdatabuffer.cpp \
     sdatacodec.cpp \
     sdebug.cpp \
     sencodedaudiobuffer.cpp \
@@ -72,6 +75,7 @@ SOURCES += saudiobuffer.cpp \
     sserializable.cpp \
     sstringparser.cpp \
     sstringparser.iso639.cpp \
+    ssubpicturebuffer.cpp \
     ssubtitlebuffer.cpp \
     ssubtitlefile.cpp \
     ssystem.cpp \
@@ -99,6 +103,7 @@ HEADERS += $${LXIMEDIA_DIR}/include/liblxistream/nodes/saudiodecodernode.h \
     $${LXIMEDIA_DIR}/include/liblxistream/nodes/sfileoutputnode.h \
     $${LXIMEDIA_DIR}/include/liblxistream/nodes/sioinputnode.h \
     $${LXIMEDIA_DIR}/include/liblxistream/nodes/siooutputnode.h \
+    $${LXIMEDIA_DIR}/include/liblxistream/nodes/ssubpicturerendernode.h \
     $${LXIMEDIA_DIR}/include/liblxistream/nodes/ssubtitlerendernode.h \
     $${LXIMEDIA_DIR}/include/liblxistream/nodes/stimestampresamplernode.h \
     $${LXIMEDIA_DIR}/include/liblxistream/nodes/stimestampsyncnode.h \
@@ -124,6 +129,8 @@ SOURCES += nodes/saudiodecodernode.cpp \
     nodes/sfileoutputnode.cpp \
     nodes/sioinputnode.cpp \
     nodes/siooutputnode.cpp \
+    nodes/ssubpicturerendernode.cpp \
+    nodes/ssubpicturerendernode.mix.c \
     nodes/ssubtitlerendernode.cpp \
     nodes/ssubtitlerendernode.mix.c \
     nodes/stimestampresamplernode.cpp \

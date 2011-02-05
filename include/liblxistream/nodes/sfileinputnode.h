@@ -44,7 +44,7 @@ public: // From SInterfaces::BufferReaderNode
   virtual bool                  setPosition(STime);
 
   virtual QList<DataStreamInfo>  dataStreams(void) const;
-  virtual void                  selectStreams(const QList<quint16> &);
+  virtual void                  selectStreams(const QList<StreamId> &);
 
 private slots:
   void                          parseSubtitle(const SEncodedVideoBuffer &);

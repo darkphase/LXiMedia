@@ -438,7 +438,7 @@ QByteArray VideoServer::buildVideoPlayer(const QByteArray &item, const SMediaInf
   htmlParser.setField("SELECTED", QByteArray(""));
   foreach (const SMediaInfo::AudioStreamInfo &stream, mediaInfo.audioStreams())
   {
-    htmlParser.setField("VALUE", QByteArray::number(stream.streamId, 16));
+    htmlParser.setField("VALUE", QByteArray::number(stream, 16));
     if (stream.language[0] != 0)
       htmlParser.setField("TEXT", QString::number(count++) + ". " + SStringParser::iso639Language(stream.language));
     else
@@ -452,7 +452,7 @@ QByteArray VideoServer::buildVideoPlayer(const QByteArray &item, const SMediaInf
   htmlParser.setField("SELECTED", QByteArray(""));
   foreach (const SMediaInfo::DataStreamInfo &stream, mediaInfo.dataStreams())
   {
-    htmlParser.setField("VALUE", QByteArray::number(stream.streamId, 16));
+    htmlParser.setField("VALUE", QByteArray::number(stream, 16));
     if (stream.language[0] != 0)
       htmlParser.setField("TEXT", QString::number(count++) + ". " + SStringParser::iso639Language(stream.language));
     else

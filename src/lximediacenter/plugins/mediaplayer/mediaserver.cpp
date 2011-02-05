@@ -128,7 +128,10 @@ void MediaServer::addVideoFile(DlnaServerDir *dir, const QList<PlayItem> &items,
     const QList<SMediaInfo::AudioStreamInfo> audioStreams = items.first().mediaInfo.audioStreams();
     const QList<SMediaInfo::VideoStreamInfo> videoStreams = items.first().mediaInfo.videoStreams();
     QList<SMediaInfo::DataStreamInfo> dataStreams = items.first().mediaInfo.dataStreams();
-    dataStreams += SIOInputNode::DataStreamInfo(0xFFFF, NULL, SDataCodec());
+    dataStreams +=
+        SIOInputNode::DataStreamInfo(
+            SIOInputNode::DataStreamInfo::StreamType_Subtitle, 0xFFFF,
+            NULL, SDataCodec());
 
     for (int a=0, an=audioStreams.count(); a < an; a++)
     for (int d=0, dn=dataStreams.count(); d < dn; d++)
@@ -153,9 +156,9 @@ void MediaServer::addVideoFile(DlnaServerDir *dir, const QList<PlayItem> &items,
       foreach (const VideoFile &videoFile, videoFiles)
       {
         QString url = httpPath() + MediaDatabase::toUidString(videoFile.second.uid) + ".mpeg";
-        url += "?language=" + QString::number(audioStreams[a].streamId, 16) + "&subtitles=";
+        url += "?language=" + QString::number(audioStreams[a], 16) + "&subtitles=";
         if (dataStreams[d].streamId != 0xFFFF)
-          url += QString::number(dataStreams[d].streamId, 16);
+          url += QString::number(dataStreams[d], 16);
 
         DlnaServer::File file(dir->server());
         file.date = videoFile.second.mediaInfo.lastModified();

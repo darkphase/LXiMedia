@@ -38,7 +38,6 @@ private:
     SVideoCodec                 videoCodec;
     SDataCodec                  dataCodec;
     SInterval                   timeBase;
-    bool                        selected;
     bool                        dtsChecked;
     bool                        needsDTSFraming;
 
@@ -77,7 +76,7 @@ public: // From SInterfaces::BufferReader
   virtual QList<AudioStreamInfo> audioStreams(void) const;
   virtual QList<VideoStreamInfo> videoStreams(void) const;
   virtual QList<DataStreamInfo>  dataStreams(void) const;
-  virtual void                  selectStreams(const QList<quint16> &);
+  virtual void                  selectStreams(const QList<StreamId> &);
 
 private: // DTS framing
   static bool                   isDTS(const uint8_t *, int);
@@ -86,7 +85,8 @@ private: // DTS framing
   static SEncodedAudioBufferList parseDTSFrames(StreamContext *, const uint8_t *, int);
 
 private:
-  QPair<STime, STime>           correctTimeStamp(const AVPacket &);
+  static StreamContext        * initStreamContext(const ::AVStream *);
+  QPair<STime, STime>           correctTimeStamp(const ::AVPacket &);
   QPair<STime, STime>           correctTimeStampToVideo(const AVPacket &);
   static int                    read(void *opaque, uint8_t *buf, int buf_size);
   static int64_t                seek(void *opaque, int64_t offset, int whence);
@@ -101,11 +101,12 @@ private:
   ::ByteIOContext             * ioContext;
 
   StreamContext               * streamContext[MAX_STREAMS];
+  QSet<StreamId>                selectedStreams;
   bool                          running;
   static const unsigned         maxBufferCount = StreamContext::measurementSize * 8;
-  QList< QPair<StreamContext *, SEncodedAudioBuffer> > audioBuffers;
-  QList< QPair<StreamContext *, SEncodedVideoBuffer> > videoBuffers;
-  QList< QPair<StreamContext *, SEncodedDataBuffer> >  dataBuffers;
+  QList< QPair<int, SEncodedAudioBuffer> > audioBuffers;
+  QList< QPair<int, SEncodedVideoBuffer> > videoBuffers;
+  QList< QPair<int, SEncodedDataBuffer> >  dataBuffers;
 };
 
 

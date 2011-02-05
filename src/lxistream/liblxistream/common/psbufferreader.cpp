@@ -116,7 +116,7 @@ QList<PsBufferReader::DataStreamInfo> PsBufferReader::dataStreams(void) const
   return streams;
 }
 
-void PsBufferReader::selectStreams(const QList<quint16> &streamIds)
+void PsBufferReader::selectStreams(const QList<StreamId> &streamIds)
 {
 #warning todo
 }

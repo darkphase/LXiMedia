@@ -185,6 +185,13 @@ VideoServer::Stream::Stream(VideoServer *parent, const QHostAddress &peer, const
     parent(parent),
     peer(peer),
     url(url),
+    timeStampResampler(this),
+    audioResampler(this, "linear"),
+    deinterlacer(this),
+    subpictureRenderer(this),
+    letterboxDetectNode(this),
+    videoResizer(this),
+    videoBox(this),
     subtitleRenderer(this),
     sync(this),
     audioEncoder(this),
@@ -194,13 +201,25 @@ VideoServer::Stream::Stream(VideoServer *parent, const QHostAddress &peer, const
   parent->addStream(this);
 
   // Audio
+  connect(&timeStampResampler, SIGNAL(output(SAudioBuffer)), &audioResampler, SLOT(input(SAudioBuffer)));
+  connect(&audioResampler, SIGNAL(output(SAudioBuffer)), &sync, SLOT(input(SAudioBuffer)));
   connect(&sync, SIGNAL(output(SAudioBuffer)), &audioEncoder, SLOT(input(SAudioBuffer)));
   connect(&audioEncoder, SIGNAL(output(SEncodedAudioBuffer)), &output, SLOT(input(SEncodedAudioBuffer)));
 
   // Video
+  connect(&timeStampResampler, SIGNAL(output(SVideoBuffer)), &deinterlacer, SLOT(input(SVideoBuffer)));
+  connect(&deinterlacer, SIGNAL(output(SVideoBuffer)), &subpictureRenderer, SLOT(input(SVideoBuffer)));
+  connect(&subpictureRenderer, SIGNAL(output(SVideoBuffer)), &letterboxDetectNode, SLOT(input(SVideoBuffer)));
+  connect(&letterboxDetectNode, SIGNAL(output(SVideoBuffer)), &videoResizer, SLOT(input(SVideoBuffer)));
+  connect(&videoResizer, SIGNAL(output(SVideoBuffer)), &videoBox, SLOT(input(SVideoBuffer)));
+  connect(&videoBox, SIGNAL(output(SVideoBuffer)), &subtitleRenderer, SLOT(input(SVideoBuffer)));
   connect(&subtitleRenderer, SIGNAL(output(SVideoBuffer)), &sync, SLOT(input(SVideoBuffer)));
   connect(&sync, SIGNAL(output(SVideoBuffer)), &videoEncoder, SLOT(input(SVideoBuffer)));
   connect(&videoEncoder, SIGNAL(output(SEncodedVideoBuffer)), &output, SLOT(input(SEncodedVideoBuffer)));
+
+  // Data
+  connect(&timeStampResampler, SIGNAL(output(SSubpictureBuffer)), &subpictureRenderer, SLOT(input(SSubpictureBuffer)));
+  connect(&timeStampResampler, SIGNAL(output(SSubtitleBuffer)), &subtitleRenderer, SLOT(input(SSubtitleBuffer)));
 }
 
 VideoServer::Stream::~Stream()
@@ -324,30 +343,17 @@ VideoServer::TranscodeStream::TranscodeStream(VideoServer *parent, const QHostAd
   : Stream(parent, peer, url),
     audioDecoder(this),
     videoDecoder(this),
-    dataDecoder(this),
-    timeStampResampler(this),
-    audioResampler(this, "linear"),
-    letterboxDetectNode(this),
-    deinterlacer(this),
-    videoResizer(this),
-    videoBox(this)
+    dataDecoder(this)
 {
   // Audio
   connect(&audioDecoder, SIGNAL(output(SAudioBuffer)), &timeStampResampler, SLOT(input(SAudioBuffer)));
-  connect(&timeStampResampler, SIGNAL(output(SAudioBuffer)), &audioResampler, SLOT(input(SAudioBuffer)));
-  connect(&audioResampler, SIGNAL(output(SAudioBuffer)), &sync, SLOT(input(SAudioBuffer)));
 
   // Video
   connect(&videoDecoder, SIGNAL(output(SVideoBuffer)), &timeStampResampler, SLOT(input(SVideoBuffer)));
-  connect(&timeStampResampler, SIGNAL(output(SVideoBuffer)), &letterboxDetectNode, SLOT(input(SVideoBuffer)));
-  connect(&letterboxDetectNode, SIGNAL(output(SVideoBuffer)), &deinterlacer, SLOT(input(SVideoBuffer)));
-  connect(&deinterlacer, SIGNAL(output(SVideoBuffer)), &videoResizer, SLOT(input(SVideoBuffer)));
-  connect(&videoResizer, SIGNAL(output(SVideoBuffer)), &videoBox, SLOT(input(SVideoBuffer)));
-  connect(&videoBox, SIGNAL(output(SVideoBuffer)), &subtitleRenderer, SLOT(input(SVideoBuffer)));
 
   // Data
+  connect(&dataDecoder, SIGNAL(output(SSubpictureBuffer)), &timeStampResampler, SLOT(input(SSubpictureBuffer)));
   connect(&dataDecoder, SIGNAL(output(SSubtitleBuffer)), &timeStampResampler, SLOT(input(SSubtitleBuffer)));
-  connect(&timeStampResampler, SIGNAL(output(SSubtitleBuffer)), &subtitleRenderer, SLOT(input(SSubtitleBuffer)));
 }
 
 bool VideoServer::TranscodeStream::setup(const QHttpRequestHeader &request, QAbstractSocket *socket, SInterfaces::BufferReaderNode *input, STime duration, const QString &name, const QImage &thumb)
@@ -372,22 +378,22 @@ bool VideoServer::TranscodeStream::setup(const QHttpRequestHeader &request, QAbs
   const QList<SIOInputNode::VideoStreamInfo> videoStreams = input->videoStreams();
   const QList<SIOInputNode::DataStreamInfo>  dataStreams  = input->dataStreams();
 
-  QList<quint16> selectedStreams;
+  QList<SIOInputNode::StreamId> selectedStreams;
   if (url.hasQueryItem("language"))
-    selectedStreams += url.queryItemValue("language").toUShort(NULL, 16);
+    selectedStreams += url.queryItemValue("language").toUInt(NULL, 16);
   else if (!audioStreams.isEmpty())
-    selectedStreams += audioStreams.first().streamId;
+    selectedStreams += audioStreams.first();
 
   if (!videoStreams.isEmpty())
-    selectedStreams += videoStreams.first().streamId;
+    selectedStreams += videoStreams.first();
 
   if (url.hasQueryItem("subtitles"))
   {
     if (!url.queryItemValue("subtitles").isEmpty())
-      selectedStreams += url.queryItemValue("subtitles").toUShort(NULL, 16);
+      selectedStreams += url.queryItemValue("subtitles").toUInt(NULL, 16);
   }
   else if (!dataStreams.isEmpty())
-    selectedStreams += dataStreams.first().streamId;
+    selectedStreams += dataStreams.first();
 
   input->selectStreams(selectedStreams);
 

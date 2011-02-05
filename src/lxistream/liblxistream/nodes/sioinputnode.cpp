@@ -228,7 +228,7 @@ QList<SIOInputNode::DataStreamInfo> SIOInputNode::dataStreams(void) const
   return QList<DataStreamInfo>();
 }
 
-void SIOInputNode::selectStreams(const QList<quint16> &streamIds)
+void SIOInputNode::selectStreams(const QList<StreamId> &streamIds)
 {
   SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
 

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by A.J. Admiraal                                   *
+ *   Copyright (C) 2010 by A.J. Admiraal                                   *
  *   code@admiraal.dds.nl                                                  *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -17,43 +17,38 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXISTREAM_SSUBTITLEBUFFER_H
-#define LXISTREAM_SSUBTITLEBUFFER_H
+#ifndef LXSTREAM_SSUBPICTURERENDERNODE_H
+#define LXSTREAM_SSUBPICTURERENDERNODE_H
 
 #include <QtCore>
-#include "sbuffer.h"
-#include "stime.h"
+#include "../sinterfaces.h"
 
 namespace LXiStream {
 
-/*! This class represents a buffer containing subtitle data.
- */
-class SSubtitleBuffer : public SBuffer
+class SSubpictureRenderNode : public QObject,
+                              public SInterfaces::Node
 {
+Q_OBJECT
 public:
-  inline                        SSubtitleBuffer(void) : SBuffer()               { }
-  inline                        SSubtitleBuffer(const QStringList &s) : SBuffer() { setSubtitle(s); }
+  explicit                      SSubpictureRenderNode(SGraph *);
+  virtual                       ~SSubpictureRenderNode();
 
-  inline STime                  timeStamp(void) const                           { return d.timeStamp; }
-  inline void                   setTimeStamp(STime t)                           { d.timeStamp = t; }
-  inline STime                  duration(void) const                            { return d.duration; }
-  inline void                   setDuration(STime t)                            { d.duration = t; }
+public slots:
+  void                          input(const SSubpictureBuffer &);
+  void                          input(const SVideoBuffer &);
 
-  inline QStringList            subtitle(void) const                            { return QString::fromUtf8(data(), size()).split('\n'); }
-  inline void                   setSubtitle(const QStringList &s)               { setData(s.join("\n").toUtf8()); }
+signals:
+  void                          output(const SVideoBuffer &);
 
 private:
-  struct
-  {
-    STime                       timeStamp;
-    STime                       duration;
-  }                             d;
+  static void                   buildPalette(const SPixels::RGBAPixel *, int, SVideoFormat::Format, QByteArray &);
+
+private:
+  struct Data;
+  Data                  * const d;
 };
 
-typedef QList<SSubtitleBuffer>  SSubtitleBufferList;
 
 } // End of namespace
-
-Q_DECLARE_METATYPE(LXiStream::SSubtitleBuffer)
 
 #endif

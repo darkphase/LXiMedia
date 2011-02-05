@@ -259,15 +259,23 @@ void DiscReader::annotateDataStreams(QList<DataStreamInfo> &dataStreams) const
   SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
 
   if (dvdHandle)
-  for (int i=0; i<dataStreams.count(); i++)
   {
-    const uint16_t lang = ::dvdnav_spu_stream_to_lang(dvdHandle, i);
-    if (lang != 0xFFFF)
+    dataStreams.clear();
+
+    const bool translate = ::dvdnav_get_spu_logical_stream(dvdHandle, 255) == -1;
+
+    for (int i=0; i<0x1F; i++)
     {
-      dataStreams[i].language[0] = (lang >> 8) & 0xFF;
-      dataStreams[i].language[1] = lang & 0xFF;
-      dataStreams[i].language[2] = 0;
-      dataStreams[i].language[3] = 0;
+      const uint16_t lang = ::dvdnav_spu_stream_to_lang(dvdHandle, i);
+      if (lang != 0xFFFF)
+      {
+        const char language[3] = { (lang >> 8) & 0xFF, lang & 0xFF, 0 };
+        const qint8 lid = ::dvdnav_get_spu_logical_stream(dvdHandle, i);
+        const quint16 id = (lid >= 0 ? int(lid) : i) + 0x20;
+
+        dataStreams +=
+            DataStreamInfo(StreamId::StreamType_Subtitle, id, language, SDataCodec("SUB/DVD"));
+      }
     }
   }
 }

@@ -25,10 +25,6 @@
 
 namespace LXiStream {
 
-class SSubtitleBuffer;
-class SVideoBuffer;
-
-
 class SSubtitleRenderNode : public QObject,
                             public SInterfaces::Node
 {

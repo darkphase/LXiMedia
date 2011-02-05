@@ -64,7 +64,7 @@ void SDataDecoderNode::setFlags(SDataDecoderNode::Flags flags)
 void SDataDecoderNode::input(const SEncodedDataBuffer &dataBuffer)
 {
   // Open the correct codec. The previous codec is not deleted as there may
-  // still be tasts that depend on it, it will be deleted by Qt when this object
+  // still be tasks that depend on it, it will be deleted by Qt when this object
   // is destroyed.
   if (!dataBuffer.isNull() && (d->lastCodec != dataBuffer.codec()))
   {
@@ -84,8 +84,20 @@ void SDataDecoderNode::input(const SEncodedDataBuffer &dataBuffer)
 void SDataDecoderNode::process(const SEncodedDataBuffer &dataBuffer, SInterfaces::DataDecoder *decoder)
 {
   if (decoder)
-  foreach (const SSubtitleBuffer &buffer, decoder->decodeBuffer(dataBuffer))
-    emit output(buffer);
+  foreach (const SDataBuffer &buffer, decoder->decodeBuffer(dataBuffer))
+  switch(buffer.type())
+  {
+  case SDataBuffer::Type_None:
+    break;
+
+  case SDataBuffer::Type_SubtitleBuffer:
+    emit output(buffer.subtitleBuffer());
+    break;
+
+  case SDataBuffer::Type_SubpictureBuffer:
+    emit output(buffer.subpictureBuffer());
+    break;
+  }
 }
 
 } // End of namespace

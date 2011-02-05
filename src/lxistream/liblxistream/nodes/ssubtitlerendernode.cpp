@@ -22,7 +22,7 @@
 #include "ssubtitlebuffer.h"
 #include "svideobuffer.h"
 
-// Implemented in subtitlerenderer.mix.c
+// Implemented in ssubtitlerendernode.mix.c
 extern "C" void LXiStream_SSubtitleRenderNode_mixSubtitle8(
     void * srcData, unsigned srcStride, unsigned srcWidth, unsigned srcHeight,
     void * srcU, unsigned uStride, void * srcV, unsigned vStride,
@@ -150,8 +150,6 @@ void SSubtitleRenderNode::input(const SVideoBuffer &videoBuffer)
         d->subtitleVisible = false;
         continue;
       }
-
-      STime t = i.key();
 
       // Render the next subtitle.
       if ((i.key() != d->subtitleTime) && (i.key() <= timeStamp))

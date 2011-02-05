@@ -48,6 +48,7 @@ FileTester::FileTester(const QString &fileName)
     dataDecoder(this),
     timeStampResampler(this),
     audioResampler(this, "linear"),
+    subpictureRenderer(this),
     letterboxDetectNode(this),
     subtitleRenderer(this),
     sync(this)
@@ -65,11 +66,14 @@ FileTester::FileTester(const QString &fileName)
 
   // Video
   connect(&videoDecoder, SIGNAL(output(SVideoBuffer)), &timeStampResampler, SLOT(input(SVideoBuffer)));
-  connect(&timeStampResampler, SIGNAL(output(SVideoBuffer)), &letterboxDetectNode, SLOT(input(SVideoBuffer)));
+  connect(&timeStampResampler, SIGNAL(output(SVideoBuffer)), &subpictureRenderer, SLOT(input(SVideoBuffer)));
+  connect(&subpictureRenderer, SIGNAL(output(SVideoBuffer)), &letterboxDetectNode, SLOT(input(SVideoBuffer)));
   connect(&letterboxDetectNode, SIGNAL(output(SVideoBuffer)), &subtitleRenderer, SLOT(input(SVideoBuffer)));
   connect(&subtitleRenderer, SIGNAL(output(SVideoBuffer)), &sync, SLOT(input(SVideoBuffer)));
 
   // Data
+  connect(&dataDecoder, SIGNAL(output(SSubpictureBuffer)), &timeStampResampler, SLOT(input(SSubpictureBuffer)));
+  connect(&timeStampResampler, SIGNAL(output(SSubpictureBuffer)), &subpictureRenderer, SLOT(input(SSubpictureBuffer)));
   connect(&dataDecoder, SIGNAL(output(SSubtitleBuffer)), &timeStampResampler, SLOT(input(SSubtitleBuffer)));
   connect(&timeStampResampler, SIGNAL(output(SSubtitleBuffer)), &subtitleRenderer, SLOT(input(SSubtitleBuffer)));
 }
@@ -83,15 +87,15 @@ bool FileTester::setup(void)
     const QList<SIOInputNode::VideoStreamInfo> videoStreams = file.videoStreams();
     const QList<SIOInputNode::DataStreamInfo>  dataStreams  = file.dataStreams();
 
-    QList<quint16> selectedStreams;
+    QList<SIOInputNode::StreamId> selectedStreams;
     if (!audioStreams.isEmpty())
-      selectedStreams += audioStreams.first().streamId;
+      selectedStreams += audioStreams.first();
 
     if (!videoStreams.isEmpty())
-      selectedStreams += videoStreams.first().streamId;
+      selectedStreams += videoStreams.first();
 
     if (!dataStreams.isEmpty())
-      selectedStreams += dataStreams.first().streamId;
+      selectedStreams += dataStreams.first();
 
     file.selectStreams(selectedStreams);
 

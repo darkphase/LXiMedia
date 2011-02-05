@@ -49,6 +49,7 @@ public slots:
 
 signals:
   void                          output(const SSubtitleBuffer &);
+  void                          output(const SSubpictureBuffer &);
 
 private:
   void                          process(const SEncodedDataBuffer &, SInterfaces::DataDecoder *decoder);

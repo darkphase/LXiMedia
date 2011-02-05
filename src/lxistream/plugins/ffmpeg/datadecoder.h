@@ -37,7 +37,7 @@ public:
 
 public: // From SBufferDecoder
   virtual bool                  openCodec(const SDataCodec &, Flags = Flag_None);
-  virtual SSubtitleBufferList   decodeBuffer(const SEncodedDataBuffer &);
+  virtual SDataBufferList       decodeBuffer(const SEncodedDataBuffer &);
 
 private:
   SDataCodec                    inCodec;
