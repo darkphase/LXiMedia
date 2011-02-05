@@ -42,6 +42,7 @@ private:
         videoDecoder(this),
         dataDecoder(this),
         deinterlacer(this),
+        subpictureRenderer(this),
         subtitleRenderer(this),
         sync(this),
         audioOutput(this)
@@ -54,9 +55,11 @@ private:
       connect(source, SIGNAL(output(SEncodedAudioBuffer)), &audioDecoder, SLOT(input(SEncodedAudioBuffer)));
       connect(source, SIGNAL(output(SEncodedVideoBuffer)), &videoDecoder, SLOT(input(SEncodedVideoBuffer)));
       connect(source, SIGNAL(output(SEncodedDataBuffer)), &dataDecoder, SLOT(input(SEncodedDataBuffer)));
+      connect(&dataDecoder, SIGNAL(output(SSubpictureBuffer)), &subpictureRenderer, SLOT(input(SSubpictureBuffer)));
       connect(&dataDecoder, SIGNAL(output(SSubtitleBuffer)), &subtitleRenderer, SLOT(input(SSubtitleBuffer)));
       connect(&videoDecoder, SIGNAL(output(SVideoBuffer)), &deinterlacer, SLOT(input(SVideoBuffer)));
-      connect(&deinterlacer, SIGNAL(output(SVideoBuffer)), &subtitleRenderer, SLOT(input(SVideoBuffer)));
+      connect(&deinterlacer, SIGNAL(output(SVideoBuffer)), &subpictureRenderer, SLOT(input(SVideoBuffer)));
+      connect(&subpictureRenderer, SIGNAL(output(SVideoBuffer)), &subtitleRenderer, SLOT(input(SVideoBuffer)));
       connect(&subtitleRenderer, SIGNAL(output(SVideoBuffer)), &sync, SLOT(input(SVideoBuffer)));
       connect(&audioDecoder, SIGNAL(output(SAudioBuffer)), &sync, SLOT(input(SAudioBuffer)));
       connect(&sync, SIGNAL(output(SAudioBuffer)), &audioOutput, SLOT(input(SAudioBuffer)));
@@ -70,6 +73,7 @@ private:
     SVideoDecoderNode           videoDecoder;
     SDataDecoderNode            dataDecoder;
     SVideoDeinterlaceNode       deinterlacer;
+    SSubpictureRenderNode       subpictureRenderer;
     SSubtitleRenderNode         subtitleRenderer;
     STimeStampSyncNode          sync;
     SAudioOutputNode            audioOutput;

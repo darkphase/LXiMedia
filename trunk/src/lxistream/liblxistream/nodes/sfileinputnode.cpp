@@ -31,7 +31,7 @@ struct SFileInputNode::Data
   inline Data(const QString &fileName) : mediaFile(fileName), subtitleFile(NULL) { }
 
   QFile                         mediaFile;
-  QMap<quint16, QString>        subtitleStreams;
+  QMap<StreamId, QString>       subtitleStreams;
   SSubtitleFile               * subtitleFile;
   SEncodedDataBuffer            nextSubtitle;
 };
@@ -104,23 +104,23 @@ QList<SFileInputNode::DataStreamInfo> SFileInputNode::dataStreams(void) const
     SSubtitleFile file(fileName);
     if (file.open())
     {
-      d->subtitleStreams.insert(nextStreamId, fileName);
-
-      DataStreamInfo stream(nextStreamId++, file.language(), file.codec());
+      DataStreamInfo stream(DataStreamInfo::StreamType_Subtitle, nextStreamId++, file.language(), file.codec());
       stream.file = fileName;
       dataStreams += stream;
+
+      d->subtitleStreams.insert(stream, fileName);
     }
   }
 
   return dataStreams;
 }
 
-void SFileInputNode::selectStreams(const QList<quint16> &streamIds)
+void SFileInputNode::selectStreams(const QList<StreamId> &streamIds)
 {
   SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
 
-  QList<quint16> nextStreamIds;
-  foreach (quint16 id, streamIds)
+  QList<StreamId> nextStreamIds;
+  foreach (StreamId id, streamIds)
   if (d->subtitleStreams.contains(id))
   {
     d->subtitleFile = new SSubtitleFile(d->subtitleStreams[id]);

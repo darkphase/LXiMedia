@@ -47,6 +47,13 @@ protected:
     const QHostAddress          peer;
     const QString               url;
 
+    STimeStampResamplerNode     timeStampResampler;
+    SAudioResampleNode          audioResampler;
+    SVideoDeinterlaceNode       deinterlacer;
+    SSubpictureRenderNode       subpictureRenderer;
+    SVideoLetterboxDetectNode   letterboxDetectNode;
+    SVideoResizeNode            videoResizer;
+    SVideoBoxNode               videoBox;
     SSubtitleRenderNode         subtitleRenderer;
     STimeStampSyncNode          sync;
     SAudioEncoderNode           audioEncoder;
@@ -68,12 +75,6 @@ protected:
     SAudioDecoderNode           audioDecoder;
     SVideoDecoderNode           videoDecoder;
     SDataDecoderNode            dataDecoder;
-    STimeStampResamplerNode     timeStampResampler;
-    SAudioResampleNode          audioResampler;
-    SVideoLetterboxDetectNode   letterboxDetectNode;
-    SVideoDeinterlaceNode       deinterlacer;
-    SVideoResizeNode            videoResizer;
-    SVideoBoxNode               videoBox;
   };
 
   struct ThumbnailListItem

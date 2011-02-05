@@ -40,6 +40,7 @@ private:
   SDataDecoderNode              dataDecoder;
   STimeStampResamplerNode       timeStampResampler;
   SAudioResampleNode            audioResampler;
+  SSubpictureRenderNode         subpictureRenderer;
   SVideoLetterboxDetectNode     letterboxDetectNode;
   SSubtitleRenderNode           subtitleRenderer;
   STimeStampSyncNode            sync;

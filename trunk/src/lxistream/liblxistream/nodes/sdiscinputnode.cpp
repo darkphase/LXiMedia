@@ -261,7 +261,7 @@ QList<SDiscInputNode::DataStreamInfo> SDiscInputNode::dataStreams(void) const
   return QList<DataStreamInfo>();
 }
 
-void SDiscInputNode::selectStreams(const QList<quint16> &streamIds)
+void SDiscInputNode::selectStreams(const QList<StreamId> &streamIds)
 {
   SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
 

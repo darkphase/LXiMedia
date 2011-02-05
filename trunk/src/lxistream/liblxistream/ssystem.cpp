@@ -24,6 +24,7 @@
 #include "sencodedaudiobuffer.h"
 #include "sencodeddatabuffer.h"
 #include "sencodedvideobuffer.h"
+#include "ssubpicturebuffer.h"
 #include "ssubtitlebuffer.h"
 #include "svideobuffer.h"
 
@@ -90,6 +91,7 @@ bool SSystem::initialize(InitializeFlags f, const QString &preferredLogDir)
   qRegisterMetaType<SEncodedVideoBuffer>("SEncodedVideoBuffer");
   qRegisterMetaType<SVideoBuffer>("SVideoBuffer");
   qRegisterMetaType<SEncodedDataBuffer>("SEncodedDataBuffer");
+  qRegisterMetaType<SSubpictureBuffer>("SSubpictureBuffer");
   qRegisterMetaType<SSubtitleBuffer>("SSubtitleBuffer");
 
   qRegisterMetaType<SAudioCodec>("SAudioCodec");

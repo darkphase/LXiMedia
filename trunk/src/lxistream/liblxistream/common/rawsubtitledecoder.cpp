@@ -42,16 +42,16 @@ bool RawSubtitleDecoder::openCodec(const SDataCodec &c, Flags)
   return decode != NULL;
 }
 
-SSubtitleBufferList RawSubtitleDecoder::decodeBuffer(const SEncodedDataBuffer &dataBuffer)
+SDataBufferList RawSubtitleDecoder::decodeBuffer(const SEncodedDataBuffer &dataBuffer)
 {
   if (!dataBuffer.isNull())
   {
     const SSubtitleBuffer buffer = decode(dataBuffer);
     if (!buffer.isNull())
-      return SSubtitleBufferList() << buffer;
+      return SDataBufferList() << buffer;
   }
 
-  return SSubtitleBufferList();
+  return SDataBufferList();
 }
 
 SSubtitleBuffer RawSubtitleDecoder::decodeUtf8(const SEncodedDataBuffer &dataBuffer)

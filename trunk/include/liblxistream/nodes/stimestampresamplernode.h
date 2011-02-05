@@ -45,11 +45,13 @@ public:
 public slots:
   void                          input(const SAudioBuffer &);
   void                          input(const SVideoBuffer &);
+  void                          input(const SSubpictureBuffer &);
   void                          input(const SSubtitleBuffer &);
 
 signals:
   void                          output(const SAudioBuffer &);
   void                          output(const SVideoBuffer &);
+  void                          output(const SSubpictureBuffer &);
   void                          output(const SSubtitleBuffer &);
 
 private:

@@ -55,7 +55,7 @@ public: // From SInterfaces::BufferReaderNode
   virtual QList<AudioStreamInfo> audioStreams(void) const;
   virtual QList<VideoStreamInfo> videoStreams(void) const;
   virtual QList<DataStreamInfo>  dataStreams(void) const;
-  virtual void                  selectStreams(const QList<quint16> &);
+  virtual void                  selectStreams(const QList<StreamId> &);
 
 signals:
   void                          output(const SEncodedAudioBuffer &);

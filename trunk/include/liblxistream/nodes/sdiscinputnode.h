@@ -34,6 +34,7 @@ class SDiscInputNode : public QObject,
 {
 Q_OBJECT
 public:
+  typedef SInterfaces::BufferReader::StreamId        StreamId;
   typedef SInterfaces::BufferReader::AudioStreamInfo AudioStreamInfo;
   typedef SInterfaces::BufferReader::VideoStreamInfo VideoStreamInfo;
   typedef SInterfaces::BufferReader::DataStreamInfo  DataStreamInfo;
@@ -59,7 +60,7 @@ public: // From SInterfaces::BufferReaderNode
   virtual QList<AudioStreamInfo> audioStreams(void) const;
   virtual QList<VideoStreamInfo> videoStreams(void) const;
   virtual QList<DataStreamInfo> dataStreams(void) const;
-  virtual void                  selectStreams(const QList<quint16> &);
+  virtual void                  selectStreams(const QList<StreamId> &);
 
 signals:
   void                          output(const SEncodedAudioBuffer &);
