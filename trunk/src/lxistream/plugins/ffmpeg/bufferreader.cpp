@@ -116,21 +116,21 @@ bool BufferReader::start(ReadCallback *rc, ProduceCallback *pc, bool streamed)
           if (stream->codec->codec_type == CODEC_TYPE_AUDIO)
           {
             if (!hasAudio)
-              selectedStreams.insert(StreamId(StreamId::StreamType_Audio, stream->id));
+              selectedStreams.insert(StreamId(StreamId::Type_Audio, stream->id));
 
             hasAudio = true;
           }
           else if (stream->codec->codec_type == CODEC_TYPE_VIDEO)
           {
             if (!hasVideo)
-              selectedStreams.insert(StreamId(StreamId::StreamType_Video, stream->id));
+              selectedStreams.insert(StreamId(StreamId::Type_Video, stream->id));
 
             hasVideo = true;
           }
           else if (stream->codec->codec_type == CODEC_TYPE_SUBTITLE)
           {
             if (!hasSubtitle)
-              selectedStreams.insert(StreamId(StreamId::StreamType_Subtitle, stream->id));
+              selectedStreams.insert(StreamId(StreamId::Type_Subtitle, stream->id));
 
             hasSubtitle = true;
           }
@@ -237,7 +237,7 @@ bool BufferReader::process(void)
         {
           if (stream->codec->codec_type == CODEC_TYPE_AUDIO)
           {
-            if (selectedStreams.contains(StreamId(StreamId::StreamType_Audio, stream->id)) || !running)
+            if (selectedStreams.contains(StreamId(StreamId::Type_Audio, stream->id)) || !running)
             {
               // Detect DTS (Digital Theatre Surround) if needed.
               if (!context->dtsChecked &&
@@ -301,7 +301,7 @@ bool BufferReader::process(void)
           }
           else if (stream->codec->codec_type == CODEC_TYPE_VIDEO)
           {
-            if (selectedStreams.contains(StreamId(StreamId::StreamType_Video, stream->id)) || !running)
+            if (selectedStreams.contains(StreamId(StreamId::Type_Video, stream->id)) || !running)
             {
               SEncodedVideoBuffer buffer(context->videoCodec, packet.size);
 
@@ -352,7 +352,7 @@ bool BufferReader::process(void)
           }
           else if (stream->codec->codec_type == CODEC_TYPE_SUBTITLE)
           {
-            if (selectedStreams.contains(StreamId(StreamId::StreamType_Subtitle, stream->id)) || !running)
+            if (selectedStreams.contains(StreamId(StreamId::Type_Subtitle, stream->id)) || !running)
             {
               SEncodedDataBuffer buffer(context->dataCodec, packet.size);
 
@@ -394,7 +394,7 @@ bool BufferReader::process(void)
       const AVStream * const stream = formatContext->streams[dataBuffers.first().first];
       StreamContext * const context = streamContext[dataBuffers.first().first];
 
-      if (selectedStreams.contains(StreamId(StreamId::StreamType_Subtitle, stream->id)))
+      if (selectedStreams.contains(StreamId(StreamId::Type_Subtitle, stream->id)))
       {
         dataBuffers.first().second.setCodec(context->dataCodec);
         produceCallback->produce(dataBuffers.takeFirst().second);
@@ -409,7 +409,7 @@ bool BufferReader::process(void)
         const AVStream * const stream = formatContext->streams[audioBuffers.first().first];
         StreamContext * const context = streamContext[audioBuffers.first().first];
 
-        if (selectedStreams.contains(StreamId(StreamId::StreamType_Audio, stream->id)))
+        if (selectedStreams.contains(StreamId(StreamId::Type_Audio, stream->id)))
         {
           audioBuffers.first().second.setCodec(context->audioCodec);
           produceCallback->produce(audioBuffers.takeFirst().second);
@@ -422,7 +422,7 @@ bool BufferReader::process(void)
         const AVStream * const stream = formatContext->streams[videoBuffers.first().first];
         StreamContext * const context = streamContext[videoBuffers.first().first];
 
-        if (selectedStreams.contains(StreamId(StreamId::StreamType_Video, stream->id)))
+        if (selectedStreams.contains(StreamId(StreamId::Type_Video, stream->id)))
         {
           videoBuffers.first().second.setCodec(context->videoCodec);
           produceCallback->produce(videoBuffers.takeFirst().second);
@@ -436,7 +436,7 @@ bool BufferReader::process(void)
       const AVStream * const stream = formatContext->streams[audioBuffers.first().first];
       StreamContext * const context = streamContext[audioBuffers.first().first];
 
-      if (selectedStreams.contains(StreamId(StreamId::StreamType_Audio, stream->id)))
+      if (selectedStreams.contains(StreamId(StreamId::Type_Audio, stream->id)))
       {
         audioBuffers.first().second.setCodec(context->audioCodec);
         produceCallback->produce(audioBuffers.takeFirst().second);
@@ -449,7 +449,7 @@ bool BufferReader::process(void)
       const AVStream * const stream = formatContext->streams[videoBuffers.first().first];
       StreamContext * const context = streamContext[videoBuffers.first().first];
 
-      if (selectedStreams.contains(StreamId(StreamId::StreamType_Video, stream->id)))
+      if (selectedStreams.contains(StreamId(StreamId::Type_Video, stream->id)))
       {
         videoBuffers.first().second.setCodec(context->videoCodec);
         produceCallback->produce(videoBuffers.takeFirst().second);
@@ -576,7 +576,7 @@ QList<BufferReader::DataStreamInfo> BufferReader::dataStreams(void) const
   if (streamContext[i])
   {
     streams += DataStreamInfo(
-        DataStreamInfo::StreamType_Subtitle,
+        DataStreamInfo::Type_Subtitle,
         formatContext->streams[i]->id,
         formatContext->streams[i]->language,
         streamContext[i]->dataCodec);

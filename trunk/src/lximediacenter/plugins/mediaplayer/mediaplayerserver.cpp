@@ -130,7 +130,7 @@ void MediaPlayerServer::addVideoFile(DlnaServerDir *dir, const QList<PlayItem> &
     QList<SMediaInfo::DataStreamInfo> dataStreams = items.first().mediaInfo.dataStreams();
     dataStreams +=
         SIOInputNode::DataStreamInfo(
-            SIOInputNode::DataStreamInfo::StreamType_Subtitle, 0xFFFF,
+            SIOInputNode::DataStreamInfo::Type_Subtitle, 0xFFFF,
             NULL, SDataCodec());
 
     for (int a=0, an=audioStreams.count(); a < an; a++)
@@ -157,7 +157,7 @@ void MediaPlayerServer::addVideoFile(DlnaServerDir *dir, const QList<PlayItem> &
       {
         QString url = httpPath() + MediaDatabase::toUidString(videoFile.second.uid) + ".mpeg";
         url += "?language=" + QString::number(audioStreams[a], 16) + "&subtitles=";
-        if (dataStreams[d].streamId != 0xFFFF)
+        if (dataStreams[d].streamId() != 0xFFFF)
           url += QString::number(dataStreams[d], 16);
 
         DlnaServer::File file(dir->server());
@@ -232,7 +232,7 @@ void MediaPlayerServer::addVideoFile(DlnaServerDir *dir, const QList<PlayItem> &
         QString name;
         if (an == 1) // One audio stream
         {
-          if (dataStreams[d].streamId != 0xFFFF)
+          if (dataStreams[d].streamId() != 0xFFFF)
           {
             fileDir->sortOrder -= 1;
             name += tr("With subtitles");
@@ -258,7 +258,7 @@ void MediaPlayerServer::addVideoFile(DlnaServerDir *dir, const QList<PlayItem> &
           else
             name += tr("Unknown");
 
-          if (dataStreams[d].streamId != 0xFFFF)
+          if (dataStreams[d].streamId() != 0xFFFF)
           {
             fileDir->sortOrder -= 1;
             name += " " + tr("with subtitles");
