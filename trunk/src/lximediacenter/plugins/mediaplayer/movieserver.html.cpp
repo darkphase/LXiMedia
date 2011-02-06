@@ -92,7 +92,7 @@ QByteArray MovieServer::frontPageWidget(void) const
     return htmlParser.parse(htmlFrontPageWidget);
   }
   else
-    return MediaServer::frontPageWidget();
+    return MediaPlayerServer::frontPageWidget();
 }
 
 } // End of namespace

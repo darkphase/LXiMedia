@@ -22,7 +22,7 @@
 namespace LXiMediaCenter {
 
 MovieServer::MovieServer(MediaDatabase *mediaDatabase, Plugin *plugin, MasterServer *server)
-            :MediaServer(QT_TR_NOOP("Movies"), mediaDatabase, plugin, server)
+  : MediaPlayerServer(QT_TR_NOOP("Movies"), mediaDatabase, plugin, server)
 {
   enableDlna();
   connect(mediaDatabase, SIGNAL(updatedMovies()), SLOT(startDlnaUpdate()));

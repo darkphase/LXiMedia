@@ -23,12 +23,12 @@
 #include <QtCore>
 #include <LXiMediaCenter>
 #include "mediadatabase.h"
-#include "mediaserver.h"
+#include "mediaplayerserver.h"
 #include "slideshownode.h"
 
 namespace LXiMediaCenter {
 
-class PhotoServer : public MediaServer
+class PhotoServer : public MediaPlayerServer
 {
 Q_OBJECT
 protected:

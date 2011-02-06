@@ -17,9 +17,9 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include <liblximediacenter/plugininterfaces.h>
+#include "plugininterfaces.h"
 
-#include <liblximediacenter/globalsettings.h>
+#include "globalsettings.h"
 
 #ifdef Q_OS_WIN
 #include <windows.h>

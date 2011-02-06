@@ -13,6 +13,8 @@ INCLUDEPATH += $${LXIMEDIA_DIR}/include/
 DEPENDPATH += $${LXIMEDIA_DIR}/include/
 DEFINES += TRAYICON_ONLY
 
+INCLUDEPATH += $${LXIMEDIA_DIR}/include/liblximediacenter
+
 SOURCES += ../liblximediacenter/ssdpclient.cpp \
  ../liblximediacenter/globalsettings.cpp
 

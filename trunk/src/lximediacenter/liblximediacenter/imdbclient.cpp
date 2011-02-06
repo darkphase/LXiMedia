@@ -17,11 +17,12 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include <liblximediacenter/imdbclient.h>
+#include "imdbclient.h"
+
 #include <cstdio>
 #include <QtSql>
-#include <liblximediacenter/database.h>
-#include <liblximediacenter/globalsettings.h>
+#include "database.h"
+#include "globalsettings.h"
 
 // Prevents dependency with zlibg-dev (as Qt already provides zlib).
 extern "C"

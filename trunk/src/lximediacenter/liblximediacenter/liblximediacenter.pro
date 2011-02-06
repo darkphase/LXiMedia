@@ -22,6 +22,8 @@ win32 {
   INCLUDEPATH += $${OBJECTS_DIR}/
 }
 
+INCLUDEPATH += $${LXIMEDIA_DIR}/include/liblximediacenter
+
 # Files
 HEADERS += ../../../include/LXiMediaCenter \
  ../../../include/liblximediacenter/backendserver.h \
@@ -33,12 +35,12 @@ HEADERS += ../../../include/LXiMediaCenter \
  ../../../include/liblximediacenter/httpoutputnode.h \
  ../../../include/liblximediacenter/httpserver.h \
  ../../../include/liblximediacenter/imdbclient.h \
+ ../../../include/liblximediacenter/mediaserver.h \
  ../../../include/liblximediacenter/plugininterfaces.h \
  ../../../include/liblximediacenter/pluginsettings.h \
  ../../../include/liblximediacenter/ssdpclient.h \
  ../../../include/liblximediacenter/ssdpserver.h \
- ../../../include/liblximediacenter/teletext.h \
- ../../../include/liblximediacenter/videoserver.h
+ ../../../include/liblximediacenter/teletext.h
 
 SOURCES += backendserver.cpp \
  backendserver.html.cpp \
@@ -50,13 +52,13 @@ SOURCES += backendserver.cpp \
  httpoutputnode.cpp \
  httpserver.cpp \
  imdbclient.cpp \
+ mediaserver.cpp \
+ mediaserver.html.cpp \
  plugininterfaces.cpp \
  pluginsettings.cpp \
  ssdpclient.cpp \
  ssdpserver.cpp \
- teletext.cpp \
- videoserver.cpp \
- videoserver.html.cpp
+ teletext.cpp
 
 RESOURCES = images/lximediacenter_images.qrc \
  dlnaserver.qrc

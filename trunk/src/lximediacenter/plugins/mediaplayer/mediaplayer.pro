@@ -10,7 +10,7 @@ SOURCES += clipserver.cpp \
     mediaplayerbackend.cpp \
     mediadatabase.cpp \
     mediadatabase.scan.cpp \
-    mediaserver.cpp \
+    mediaplayerserver.cpp \
     movieserver.cpp \
     movieserver.html.cpp \
     musicserver.cpp \
@@ -27,7 +27,7 @@ HEADERS += clipserver.h \
     homevideoserver.h \
     mediaplayerbackend.h \
     mediadatabase.h \
-    mediaserver.h \
+    mediaplayerserver.h \
     movieserver.h \
     musicserver.h \
     photoserver.h \

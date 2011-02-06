@@ -22,7 +22,7 @@
 namespace LXiMediaCenter {
 
 HomeVideoServer::HomeVideoServer(MediaDatabase *mediaDatabase, Plugin *plugin, MasterServer *server)
-    : MediaServer(QT_TR_NOOP("Home videos"), mediaDatabase, plugin, server)
+  : MediaPlayerServer(QT_TR_NOOP("Home videos"), mediaDatabase, plugin, server)
 {
   enableDlna();
   connect(mediaDatabase, SIGNAL(updatedHomeVideos()), SLOT(startDlnaUpdate()));

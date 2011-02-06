@@ -22,7 +22,7 @@
 namespace LXiMediaCenter {
 
 MusicServer::MusicServer(MediaDatabase *mediaDatabase, Plugin *plugin, MasterServer *server)
-  : MediaServer(QT_TR_NOOP("Music"), mediaDatabase, plugin, server),
+  : MediaPlayerServer(QT_TR_NOOP("Music"), mediaDatabase, plugin, server),
     musicVideosDir(NULL),
     playlistDir(GlobalSettings::applicationDataDir() + "/playlists"),
     nextStreamId(1)
@@ -173,7 +173,7 @@ bool MusicServer::streamVideo(const QHttpRequestHeader &request, QAbstractSocket
     return false;
   }
   else
-    return MediaServer::streamVideo(request, socket);
+    return MediaPlayerServer::streamVideo(request, socket);
 }
 
 QStringList MusicServer::playlists(void) const

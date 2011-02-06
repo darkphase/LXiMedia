@@ -17,7 +17,7 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include <liblximediacenter/globalsettings.h>
+#include "globalsettings.h"
 #include <QtGui/QImage>
 
 namespace LXiMediaCenter {

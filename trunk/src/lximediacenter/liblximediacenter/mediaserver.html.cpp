@@ -17,40 +17,40 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include <liblximediacenter/videoserver.h>
-#include <liblximediacenter/htmlparser.h>
+#include "mediaserver.h"
+#include "htmlparser.h"
 
 //#define ENABLE_HTML5_PLAYER
 
 namespace LXiMediaCenter {
 
 
-const unsigned      VideoServer::itemsPerThumbnailPage = 60;
-const char  * const VideoServer::audioTimeFormat = "m:ss";
-const char  * const VideoServer::videoTimeFormat = "h:mm:ss";
+const unsigned      MediaServer::itemsPerThumbnailPage = 60;
+const char  * const MediaServer::audioTimeFormat = "m:ss";
+const char  * const MediaServer::videoTimeFormat = "h:mm:ss";
 
 
-const char * const VideoServer::m3uPlaylist =
+const char * const MediaServer::m3uPlaylist =
     "#EXTM3U\n"
     "\n"
     "{ITEMS}";
 
-const char * const VideoServer::m3uPlaylistItem =
+const char * const MediaServer::m3uPlaylistItem =
     "#EXTINF:{ITEM_LENGTH},{ITEM_NAME}\n"
     "{ITEM_URL}\n";
 
-const char * const VideoServer::htmlPages =
+const char * const MediaServer::htmlPages =
     "<div class=\"pageselector\">\n"
     " {TR_PAGE}:{PAGES}\n"
     "</div>\n";
 
-const char * const VideoServer::htmlPageItem =
+const char * const MediaServer::htmlPageItem =
     " <a class=\"pageselector\" href=\"{ITEM_LINK}\">{ITEM_NAME}</a>";
 
-const char * const VideoServer::htmlPageCurrentItem =
+const char * const MediaServer::htmlPageCurrentItem =
     " {ITEM_NAME}";
 
-const char * const VideoServer::htmlThumbnails =
+const char * const MediaServer::htmlThumbnails =
     " {PAGES}\n"
     " <script language=\"JavaScript\" type=\"text/javascript\">\n"
     "  <!--\n"
@@ -69,12 +69,12 @@ const char * const VideoServer::htmlThumbnails =
     "  </table>\n"
     " </noscript>\n";
 
-const char * const VideoServer::htmlThumbnailItemRow =
+const char * const MediaServer::htmlThumbnailItemRow =
     "   <tr class=\"thumbnaillist\">\n"
     "{ROW_ITEMS}"
     "   </tr>\n";
 
-const char * const VideoServer::htmlThumbnailItem =
+const char * const MediaServer::htmlThumbnailItem =
     "    <td class=\"thumbnaillistitem\">\n"
     "     <center>\n"
     "      <div class=\"{ITEM_CLASS}\">\n"
@@ -93,7 +93,7 @@ const char * const VideoServer::htmlThumbnailItem =
     "     </center>\n"
     "    </td>\n";
 
-const char * const VideoServer::htmlThumbnailItemNoTitle =
+const char * const MediaServer::htmlThumbnailItemNoTitle =
     "    <td class=\"thumbnaillistitem\">\n"
     "     <center>\n"
     "      <div class=\"thumbnaillistitem\">\n"
@@ -104,7 +104,7 @@ const char * const VideoServer::htmlThumbnailItemNoTitle =
     "     </center>\n"
     "    </td>\n";
 
-const char * const VideoServer::htmlPlayer =
+const char * const MediaServer::htmlPlayer =
     " <table class=\"main\">\n"
     "  <tr class=\"main\">\n"
     "   <td class=\"maincenter\" colspan=\"2\">\n"
@@ -122,7 +122,7 @@ const char * const VideoServer::htmlPlayer =
     "  </tr>\n"
     " </table>\n";
 
-const char * const VideoServer::htmlPlayerAudioItem =
+const char * const MediaServer::htmlPlayerAudioItem =
 #ifdef ENABLE_HTML5_PLAYER
     "    <audio src=\"{PLAYER_ITEM}.wav\" autoplay=\"autoplay\" controls=\"controls\">\n"
 #endif
@@ -141,7 +141,7 @@ const char * const VideoServer::htmlPlayerAudioItem =
 #endif
     ;
 
-const char * const VideoServer::htmlPlayerVideoItem =
+const char * const MediaServer::htmlPlayerVideoItem =
 #ifdef ENABLE_HTML5_PLAYER
     "    <video src=\"{PLAYER_ITEM}.ogv{QUERY}\" width=\"{WIDTH}\" height=\"{HEIGHT}\" autoplay=\"autoplay\" controls=\"controls\">\n"
 #endif
@@ -160,7 +160,7 @@ const char * const VideoServer::htmlPlayerVideoItem =
 #endif
     ;
 
-const char * const VideoServer::htmlPlayerThumbItem =
+const char * const MediaServer::htmlPlayerThumbItem =
     "    <center>\n"
     "     <table style=\"padding:0;border-spacing:0;width:{WIDTH}px;height:{HEIGHT}px;background-image:url('{PLAYER_ITEM}-thumb.jpeg?size={WIDTH}x{HEIGHT}');background-position:center;background-repeat:no-repeat;background-color:#000000;\">\n"
     "      <tr style=\"vertical-align:middle;height:{HEIGHT2}px;\"><td>\n"
@@ -223,27 +223,27 @@ const char * const VideoServer::htmlPlayerThumbItem =
     "     </table>\n"
     "    </center>\n";
 
-const char * const VideoServer::htmlPlayerThumbItemOption =
+const char * const MediaServer::htmlPlayerThumbItemOption =
     "           <option value=\"{VALUE}\" {SELECTED}>{TEXT}</option>\n";
 
-const char * const VideoServer::htmlPlayerInfoItem =
+const char * const MediaServer::htmlPlayerInfoItem =
     "    <b>{ITEM_NAME}:</b><br />\n"
     "    {ITEM_VALUE}<br /><br />\n";
 
-const char * const VideoServer::htmlPlayerInfoActionHead =
+const char * const MediaServer::htmlPlayerInfoActionHead =
     "    <b>{ITEM_NAME}:</b><br />\n";
 
-const char * const VideoServer::htmlPlayerInfoAction =
+const char * const MediaServer::htmlPlayerInfoAction =
     "    <a href=\"{ITEM_LINK}\">{ITEM_NAME}</a><br />\n";
 
 
-const char * const VideoServer::headList =
+const char * const MediaServer::headList =
     " <link rel=\"stylesheet\" href=\"/list.css\" type=\"text/css\" media=\"screen, handheld, projection\" />\n";
 
-const char * const VideoServer::headPlayer =
+const char * const MediaServer::headPlayer =
     " <script type=\"text/javascript\" src=\"/swf/flowplayer.js\" />\n";
 
-QByteArray VideoServer::buildThumbnailView(const QString &title, const ThumbnailListItemMap &items, const QUrl &url)
+QByteArray MediaServer::buildThumbnailView(const QString &title, const ThumbnailListItemMap &items, const QUrl &url)
 {
   HtmlParser htmlParser;
   htmlParser.setField("TR_PAGE", tr("Page"));
@@ -399,7 +399,7 @@ QByteArray VideoServer::buildThumbnailView(const QString &title, const Thumbnail
   return htmlParser.parse(htmlThumbnails);
 }
 
-QByteArray VideoServer::buildVideoPlayer(const QByteArray &item, const SMediaInfo &mediaInfo, const QUrl &url, const QSize &size)
+QByteArray MediaServer::buildVideoPlayer(const QByteArray &item, const SMediaInfo &mediaInfo, const QUrl &url, const QSize &size)
 {
   HtmlParser htmlParser;
   htmlParser.setField("TITLE", mediaInfo.title());

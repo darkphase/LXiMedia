@@ -17,9 +17,9 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include <liblximediacenter/dlnaserver.h>
-#include <liblximediacenter/htmlparser.h>
-#include <liblximediacenter/ssdpserver.h>
+#include "dlnaserver.h"
+#include "htmlparser.h"
+#include "ssdpserver.h"
 
 namespace LXiMediaCenter {
 

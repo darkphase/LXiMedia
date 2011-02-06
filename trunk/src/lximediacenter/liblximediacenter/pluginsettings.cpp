@@ -17,13 +17,13 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include <liblximediacenter/pluginsettings.h>
-#include <liblximediacenter/globalsettings.h>
-#include <liblximediacenter/plugininterfaces.h>
+#include "pluginsettings.h"
+
+#include "globalsettings.h"
+#include "plugininterfaces.h"
 
 
 namespace LXiMediaCenter {
-
 
 PluginSettings::PluginSettings(const Plugin *plugin)
                :QSettings(GlobalSettings::settingsFile(), QSettings::IniFormat)

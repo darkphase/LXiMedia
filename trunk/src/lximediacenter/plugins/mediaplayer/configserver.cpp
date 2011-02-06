@@ -28,8 +28,8 @@
 #endif
 
 ConfigServer::ConfigServer(Plugin *plugin, MasterServer *server)
-             :BackendServer(QT_TR_NOOP("Settings"), plugin, server),
-              plugin(plugin)
+  : BackendServer(QT_TR_NOOP("Settings"), plugin, server),
+    plugin(plugin)
 {
   // Ensure static initializers are invoked.
   drives();
