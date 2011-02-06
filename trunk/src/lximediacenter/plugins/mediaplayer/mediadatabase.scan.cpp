@@ -23,6 +23,17 @@
 
 namespace LXiMediaCenter {
 
+const MediaDatabase::CatecoryDesc MediaDatabase::categories[] =
+{
+  { "movies",     MediaDatabase::Category_Movies     },
+  { "tvshows",    MediaDatabase::Category_TVShows    },
+  { "clips",      MediaDatabase::Category_Clips      },
+  { "homevideos", MediaDatabase::Category_HomeVideos },
+  { "photos",     MediaDatabase::Category_Photos     },
+  { "music",      MediaDatabase::Category_Music      },
+  { NULL,         MediaDatabase::Category_None       }
+};
+
 void MediaDatabase::scanRoots(void)
 {
   PluginSettings settings(plugin);
@@ -70,13 +81,6 @@ void MediaDatabase::scanRoots(void)
 
   if (dirsToScan.isEmpty() && filesToProbe.isEmpty() && !matchingImdbItems)
   {
-    if (invalidatedClips > 0)       { invalidatedClips = 0;       emit updatedClips();      }
-    if (invalidatedHomeVideos > 0)  { invalidatedHomeVideos = 0;  emit updatedHomeVideos(); }
-    if (invalidatedMovies > 0)      { invalidatedMovies = 0;      emit updatedMovies();     }
-    if (invalidatedMusic > 0)       { invalidatedMusic = 0;       emit updatedMusic();      }
-    if (invalidatedPhotos > 0)      { invalidatedPhotos = 0;      emit updatedPhotos();     }
-    if (invalidatedTvShows > 0)     { invalidatedTvShows = 0;     emit updatedTvShows();    }
-
     foreach (const QString &root, allRootPaths)
     if (QFileInfo(root).exists())
       dirsToScan.insert(root);
@@ -108,13 +112,17 @@ void MediaDatabase::scanRoots(void)
     // Find IMDB items that still need to be matched.
     if (ImdbClient::isAvailable())
     {
-      query.exec("SELECT rawName FROM MediaplayerMovies WHERE imdbLink ISNULL");
+      query.prepare("SELECT title FROM MediaplayerAlbums WHERE category = :category AND imdbLink ISNULL");
+      query.bindValue(0, categoryName(Category_Movies));
+      query.exec();
       while (query.next())
         imdbItemsToMatch.insert("M" + query.value(0).toString());
 
-      query.exec("SELECT rawName FROM MediaplayerTvShows WHERE imdbLink ISNULL");
-      while (query.next())
-        imdbItemsToMatch.insert("T" + query.value(0).toString());
+//      query.prepare("SELECT title FROM MediaplayerAlbums WHERE category = :category AND imdbLink ISNULL");
+//      query.bindValue(0, categoryName(Category_TVShows));
+//      query.exec();
+//      while (query.next())
+//        imdbItemsToMatch.insert("T" + query.value(0).toString());
     }
 
     db.commit();
@@ -386,9 +394,6 @@ void MediaDatabase::updateDir(const QString &path, qint64 parentDir, QuerySet &q
 
     q.remove.bindValue(0, removePaths);
     q.remove.execBatch();
-
-    foreach (const Category &category, findCategories(path))
-      (this->*(category.func->invalidate))();
   }
 }
 
@@ -454,8 +459,35 @@ void MediaDatabase::probeFiles(void)
           {
             const qint64 rowId = query.value(0).toLongLong();
 
-            foreach (const Category &category, findCategories(path))
-              (this->*(category.func->categorize))(db, rowId, category.path, mediaInfo);
+            const QMap<Category, QString> categories = findCategories(path);
+            for (QMap<Category, QString>::ConstIterator i=categories.begin(); i!=categories.end(); i++)
+            {
+              if ((i.key() == Category_Movies) || (i.key() == Category_HomeVideos) ||
+                  (i.key() == Category_Clips) || (i.key() == Category_TVShows))
+              if (!mediaInfo.containsAudio() || !mediaInfo.containsVideo())
+                continue;
+
+              if (i.key() == Category_Movies)
+              if (mediaInfo.duration().isValid() && (mediaInfo.duration().toMin() < 5))
+                continue;
+
+              if (i.key() == Category_Music)
+              if (!mediaInfo.containsAudio())
+                continue;
+
+              if (i.key() == Category_Photos)
+              if (!mediaInfo.containsImage())
+                continue;
+
+              query.prepare("INSERT INTO MediaplayerAlbums VALUES (:category, :album, :title, :subtitle, :file, :imdbLink)");
+              query.bindValue(0, categoryName(i.key()));
+              query.bindValue(1, i.value());
+              query.bindValue(2, SStringParser::toRawName(mediaInfo.title()));
+              query.bindValue(3, SStringParser::toRawName(mediaInfo.album()));
+              query.bindValue(4, rowId);
+              query.bindValue(5, QVariant(QVariant::String));
+              query.exec();
+            }
           }
         }
 
@@ -522,51 +554,34 @@ void MediaDatabase::matchImdbItems(void)
       SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
       QSqlQuery query(Database::database());
 
+      Category category = Category_None;
       if (item[0] == 'M')
-      {
-        query.prepare("SELECT file FROM MediaplayerMovies WHERE rawName = :rawName");
-        query.bindValue(0, item.mid(1));
-        query.exec();
-
-        if (query.next())
-        {
-          const SMediaInfo node = readNode(query.value(0).toULongLong());
-          if (!node.isNull())
-          {
-            dl.unlock();
-            const QString imdbLink = ImdbClient::findEntry(node.title(), ImdbClient::Type_Movie);
-            dl.relock(__FILE__, __LINE__);
-
-            query.prepare("UPDATE MediaplayerMovies SET imdbLink = :imdbLink WHERE rawName = :rawName");
-            query.bindValue(0, imdbLink);
-            query.bindValue(1, item.mid(1));
-            query.exec();
-
-            invalidatedMovies.ref();
-          }
-        }
-      }
+        category = Category_Movies;
       else if (item[0] == 'T')
-      {
-        query.prepare("SELECT file FROM MediaplayerTvShows WHERE rawName = :rawName");
-        query.bindValue(0, item.mid(1));
-        query.exec();
+        category = Category_TVShows;
 
+      if (category != Category_None)
+      {
+        const ImdbClient::Type imdbType = category == Category_Movies ? ImdbClient::Type_Movie : ImdbClient::Type_TvShow;
+
+        query.prepare("SELECT file FROM MediaplayerAlbums WHERE category = :category AND title = :title");
+        query.bindValue(0, categoryName(category));
+        query.bindValue(1, item.mid(1));
+        query.exec();
         if (query.next())
         {
           const SMediaInfo node = readNode(query.value(0).toULongLong());
           if (!node.isNull())
           {
             dl.unlock();
-            const QString imdbLink = ImdbClient::findEntry(node.title(), ImdbClient::Type_TvShow);
+            const QString imdbLink = ImdbClient::findEntry(node.title(), imdbType);
             dl.relock(__FILE__, __LINE__);
 
-            query.prepare("UPDATE MediaplayerTvShows SET imdbLink = :imdbLink WHERE rawName = :rawName");
+            query.prepare("UPDATE MediaplayerAlbums SET imdbLink = :imdbLink WHERE category = :category AND title = :title");
             query.bindValue(0, imdbLink);
-            query.bindValue(1, item.mid(1));
+            query.bindValue(1, categoryName(category));
+            query.bindValue(2, item.mid(1));
             query.exec();
-
-            invalidatedTvShows.ref();
           }
         }
       }
@@ -580,166 +595,31 @@ void MediaDatabase::matchImdbItems(void)
   }
 }
 
-QList<MediaDatabase::Category> MediaDatabase::findCategories(const QString &path) const
+QMap<MediaDatabase::Category, QString> MediaDatabase::findCategories(const QString &path) const
 {
-  QList<Category> result;
+  QMap<Category, QString> result;
 
-  for (const CategoryFunc *i=categoryFunc; i->name; i++)
+  for (int i=0; categories[i].name; i++)
   {
-    QMap<QString, QStringList>::ConstIterator rootPath = rootPaths.find(i->name);
+    QMap<QString, QStringList>::ConstIterator rootPath = rootPaths.find(categories[i].name);
     if (rootPath != rootPaths.end())
     foreach (const QString &root, *rootPath)
     if (path.startsWith(root))
     {
-      result += Category(i, QFileInfo(path).path().mid(root.length()));
+      QString album = path.mid(root.length());
+      if (album.endsWith("/VIDEO_TS/VIDEO_TS.IFO", Qt::CaseInsensitive))
+        album = album.left(album.length() - 22);
+
+      album = album.left(album.lastIndexOf('/') + 1);
+      album = album.startsWith('/') ? album : ('/' + album);
+
+      result[categories[i].category] = album;
       break;
     }
   }
 
   return result;
 }
-
-void MediaDatabase::categorizeMovie(QSqlDatabase &db, qint64 rowId, const QString &album, const SMediaInfo &mediaInfo)
-{
-  if (mediaInfo.containsAudio() && mediaInfo.containsVideo() &&
-      ((mediaInfo.duration().toMin() >= 5) || mediaInfo.duration().isNull())) // Don't categorize sample files.
-  {
-    QSqlQuery query(db);
-    query.prepare("INSERT INTO MediaplayerMovies VALUES (:rawName, :file, :imdbLink)");
-    query.bindValue(0, SStringParser::toRawName(mediaInfo.title()));
-    query.bindValue(1, rowId);
-    query.bindValue(2, QVariant(QVariant::String));
-    query.exec();
-
-    invalidatedMovies.ref();
-  }
-}
-
-void MediaDatabase::categorizeTVShow(QSqlDatabase &db, qint64 rowId, const QString &album, const SMediaInfo &mediaInfo)
-{
-  if (mediaInfo.containsAudio() && mediaInfo.containsVideo())
-  {
-    QSqlQuery query(db);
-    query.prepare("INSERT INTO MediaplayerTvShows VALUES (:rawName, :rawEpisode, :file, :imdbLink)");
-    query.bindValue(0, albumPath(album));
-    query.bindValue(1, SStringParser::toRawName(mediaInfo.title()));
-    query.bindValue(2, rowId);
-    query.bindValue(3, QVariant(QVariant::String));
-    query.exec();
-
-    invalidatedTvShows.ref();
-  }
-}
-
-void MediaDatabase::categorizeClip(QSqlDatabase &db, qint64 rowId, const QString &album, const SMediaInfo &mediaInfo)
-{
-  if (mediaInfo.containsAudio() && mediaInfo.containsVideo())
-  {
-    QSqlQuery query(db);
-    query.prepare("INSERT INTO MediaplayerVideoClipAlbums VALUES (:rawName, :rawFile, :file)");
-    query.bindValue(0, albumPath(album));
-    query.bindValue(1, SStringParser::toRawName(mediaInfo.title()));
-    query.bindValue(2, rowId);
-    query.exec();
-
-    invalidatedClips.ref();
-  }
-}
-
-void MediaDatabase::categorizeMusic(QSqlDatabase &db, qint64 rowId, const QString &album, const SMediaInfo &mediaInfo)
-{
-  if (mediaInfo.containsAudio())
-  {
-    if (mediaInfo.duration() <= STime::fromMin(maxSongDurationMin))
-    {
-      QSqlQuery query(db);
-      query.prepare("INSERT INTO MediaplayerMusic VALUES (:rawTitle, :rawArtist, :rawGenre, :hasVideo, :file)");
-      query.bindValue(0, SStringParser::toRawName(mediaInfo.title()));
-      query.bindValue(1, SStringParser::toRawName(mediaInfo.author()));
-      query.bindValue(2, SStringParser::toRawName(genreName(mediaInfo.genre())));
-      query.bindValue(3, mediaInfo.containsVideo());
-      query.bindValue(4, rowId);
-      query.exec();
-    }
-    else
-    {
-      QSqlQuery query(db);
-      query.prepare("INSERT INTO MediaplayerMiscAudio VALUES (:rawName, :rawFile, :file)");
-      query.bindValue(0, albumPath(album));
-      query.bindValue(1, SStringParser::toRawName(mediaInfo.title()));
-      query.bindValue(2, rowId);
-      query.exec();
-    }
-
-    invalidatedMusic.ref();
-  }
-}
-
-void MediaDatabase::categorizePhoto(QSqlDatabase &db, qint64 rowId, const QString &album, const SMediaInfo &mediaInfo)
-{
-  if (mediaInfo.containsImage())
-  {
-    QSqlQuery query(db);
-    query.prepare("INSERT INTO MediaplayerPhotoAlbums VALUES (:name, :album, :file)");
-    query.bindValue(0, albumPath(album));
-    query.bindValue(1, SStringParser::toRawName(mediaInfo.title()));
-    query.bindValue(2, rowId);
-    query.exec();
-
-    invalidatedPhotos.ref();
-  }
-}
-
-void MediaDatabase::categorizeHomeVideo(QSqlDatabase &db, qint64 rowId, const QString &album, const SMediaInfo &mediaInfo)
-{
-  if (mediaInfo.containsAudio() && mediaInfo.containsVideo())
-  {
-    QSqlQuery query(db);
-    query.prepare("INSERT INTO MediaplayerHomeVideos VALUES (:rawName, :rawFile, :file)");
-    query.bindValue(0, albumPath(album));
-    query.bindValue(1, SStringParser::toRawName(mediaInfo.title()));
-    query.bindValue(2, rowId);
-    query.exec();
-
-    invalidatedHomeVideos.ref();
-  }
-}
-
-QString MediaDatabase::albumPath(const QString &path)
-{
-  return "/" + path.split('/', QString::SkipEmptyParts).join("/");
-}
-
-void MediaDatabase::invalidateMovie(void)
-{
-  invalidatedMovies.ref();
-}
-
-void MediaDatabase::invalidateTVShow(void)
-{
-  invalidatedTvShows.ref();
-}
-
-void MediaDatabase::invalidateClip(void)
-{
-  invalidatedClips.ref();
-}
-
-void MediaDatabase::invalidateMusic(void)
-{
-  invalidatedMusic.ref();
-}
-
-void MediaDatabase::invalidatePhoto(void)
-{
-  invalidatedPhotos.ref();
-}
-
-void MediaDatabase::invalidateHomeVideo(void)
-{
-  invalidatedHomeVideos.ref();
-}
-
 
 void MediaDatabase::Task::run(void)
 {

@@ -90,7 +90,7 @@ void HomeVideoServer::updateDlnaTask(void)
       albums.insert(album, clips);
   }
 
-  SDebug::MutexLocker l(&dlnaDir.server()->mutex, __FILE__, __LINE__);
+  SDebug::WriteLocker l(&dlnaDir.server()->lock, __FILE__, __LINE__);
 
   dlnaDir.clear();
   for (QMultiMap<QString, QMultiMap<QString, PlayItem> >::Iterator i=albums.begin(); i!=albums.end(); i++)

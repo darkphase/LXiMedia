@@ -23,8 +23,8 @@ namespace LXiMediaCenter {
 
 
 FileServer::FileServer(void)
-           :mutex(QMutex::Recursive),
-            rootDir(NULL)
+  : lock(QReadWriteLock::Recursive),
+    rootDir(NULL)
 {
 }
 
@@ -54,7 +54,7 @@ bool FileServer::addDir(const QString &path, FileServerDir *subDir)
   if (pos < 0)
     return false;
 
-  FileServerDir * const dir = findDir(cleanPath.left(pos + 1));
+  FileServerDirHandle dir = findDir(cleanPath.left(pos + 1));
   if (dir == NULL)
     return false;
 
@@ -78,7 +78,7 @@ bool FileServer::removeDir(const QString &path)
   if (pos < 0)
     return false;
 
-  FileServerDir * const dir = findDir(cleanPath.left(pos + 1));
+  FileServerDirHandle dir = findDir(cleanPath.left(pos + 1));
   if (dir == NULL)
     return false;
 
@@ -90,17 +90,17 @@ bool FileServer::removeDir(const QString &path)
   return true;
 }
 
-FileServerDir * FileServer::findDir(const QString &path)
+FileServerDirHandle FileServer::findDir(const QString &path)
 {
   Q_ASSERT(!path.isEmpty());
 
-  FileServerDir * dir = rootDir;
+  FileServerDirHandle dir = rootDir;
 
   QString cleanPath = path;
   while (cleanPath.startsWith('/'))
     cleanPath = cleanPath.mid(1);
 
-  for (int pos = cleanPath.indexOf('/'); dir && (pos >= 0); pos = cleanPath.indexOf('/'))
+  for (int pos = cleanPath.indexOf('/'); (dir != NULL) && (pos >= 0); pos = cleanPath.indexOf('/'))
   {
     dir = dir->findDir(cleanPath.left(pos));
     cleanPath = cleanPath.mid(pos + 1);
@@ -121,17 +121,19 @@ FileServerDir::FileServerDir(FileServer *parent)
 
 FileServerDir::~FileServerDir()
 {
-  SDebug::MutexLocker l(&parent->mutex, __FILE__, __LINE__);
+  SDebug::WriteLocker l(&parent->lock, __FILE__, __LINE__);
 
   foreach (FileServerDir *parentDir, parentDirs)
   {
-    const DirMap subDirs = parentDir->listDirs();
-    for (DirMap::ConstIterator i=subDirs.begin(); i!=subDirs.end(); i++)
+    for (QMap<QString, FileServerDir *>::ConstIterator i=parentDir->subDirs.begin(); i!=parentDir->subDirs.end(); i++)
     if (i.value() == this)
+    {
       parentDir->removeDir(i.key());
+      break;
+    }
   }
 
-  for (DirMap::Iterator i=subDirs.begin(); i!=subDirs.end(); i++)
+  for (QMap<QString, FileServerDir *>::Iterator i=subDirs.begin(); i!=subDirs.end(); i++)
   {
     (*i)->parentDirs.remove(this);
     if ((*i)->parentDirs.isEmpty())
@@ -144,9 +146,9 @@ void FileServerDir::addDir(const QString &name, FileServerDir *dir)
   Q_ASSERT(!name.isEmpty());
   Q_ASSERT(dir);
 
-  SDebug::MutexLocker l(&parent->mutex, __FILE__, __LINE__);
+  SDebug::WriteLocker l(&parent->lock, __FILE__, __LINE__);
 
-  DirMap::Iterator i = subDirs.find(name);
+  QMap<QString, FileServerDir *>::Iterator i = subDirs.find(name);
   if (i != subDirs.end())
   {
     (*i)->parentDirs.remove(this);
@@ -161,9 +163,9 @@ void FileServerDir::removeDir(const QString &name)
 {
   Q_ASSERT(!name.isEmpty());
 
-  SDebug::MutexLocker l(&parent->mutex, __FILE__, __LINE__);
+  SDebug::WriteLocker l(&parent->lock, __FILE__, __LINE__);
 
-  DirMap::Iterator i = subDirs.find(name);
+  QMap<QString, FileServerDir *>::Iterator i = subDirs.find(name);
   if (i != subDirs.end())
   {
     (*i)->parentDirs.remove(this);
@@ -173,7 +175,7 @@ void FileServerDir::removeDir(const QString &name)
 
 void FileServerDir::clear(void)
 {
-  SDebug::MutexLocker l(&parent->mutex, __FILE__, __LINE__);
+  SDebug::WriteLocker l(&parent->lock, __FILE__, __LINE__);
 
   foreach (FileServerDir *dir, subDirs)
     delete dir;
@@ -183,23 +185,50 @@ void FileServerDir::clear(void)
 
 int FileServerDir::count(void) const
 {
-  SDebug::MutexLocker l(&parent->mutex, __FILE__, __LINE__);
-
   return listDirs().count();
 }
 
-const FileServerDir::DirMap & FileServerDir::listDirs(void)
+QStringList FileServerDir::listDirs(void)
 {
-  return subDirs;
+  SDebug::WriteLocker l(&parent->lock, __FILE__, __LINE__);
+
+  return subDirs.keys();
 }
 
-FileServerDir * FileServerDir::findDir(const QString &name)
+FileServerDirHandle FileServerDir::findDir(const QString &name)
 {
   Q_ASSERT(!name.isEmpty());
 
-  SDebug::MutexLocker l(&parent->mutex, __FILE__, __LINE__);
+  SDebug::WriteLocker l(&parent->lock, __FILE__, __LINE__);
 
-  DirMap::ConstIterator i = subDirs.find(name);
+  QMap<QString, FileServerDir *>::ConstIterator i = subDirs.find(name);
+  if (i == subDirs.end())
+  {
+    // Try to update the dir
+    listDirs();
+    i = subDirs.find(name);
+  }
+
+  if (i != subDirs.end())
+    return *i;
+
+  return NULL;
+}
+
+FileServerConstDirHandle FileServerDir::findDir(const QString &name) const
+{
+  Q_ASSERT(!name.isEmpty());
+
+  SDebug::WriteLocker l(&parent->lock, __FILE__, __LINE__);
+
+  QMap<QString, FileServerDir *>::ConstIterator i = subDirs.find(name);
+  if (i == subDirs.end())
+  {
+    // Try to update the dir
+    listDirs();
+    i = subDirs.find(name);
+  }
+
   if (i != subDirs.end())
     return *i;
 

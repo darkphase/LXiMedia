@@ -29,6 +29,50 @@ namespace LXiMediaCenter {
 class FileServer;
 class FileServerDir;
 
+template<class _type>
+class FileServerHandle
+{
+public:
+  inline                        FileServerHandle(_type *dir) : dir(dir)         { if (dir) dir->server()->lock.lockForWrite(); }
+  inline                        FileServerHandle(const FileServerHandle &from) : dir(from.dir) { if (dir) dir->server()->lock.lockForWrite(); }
+  inline                        ~FileServerHandle()                             { if (dir) dir->server()->lock.unlock(); }
+
+  template<class _casttype>
+  inline FileServerHandle(const FileServerHandle<_casttype> &from)
+    : dir(qobject_cast<_type *>(from.ptr()))
+  {
+    if (dir) dir->server()->lock.lockForWrite();
+  }
+
+  inline FileServerHandle & operator=(const FileServerHandle &from)
+  {
+    if (dir) dir->server()->lock.unlock();
+    dir = from.dir;
+    if (dir) dir->server()->lock.lockForWrite();
+    return *this;
+  }
+
+  template<class _casttype>
+  inline FileServerHandle & operator=(const FileServerHandle<_casttype> &from)
+  {
+    if (dir) dir->server()->lock.unlock();
+    dir = qobject_cast<_type *>(from.ptr());
+    if (dir) dir->server()->lock.lockForWrite();
+  }
+
+  inline bool                   operator==(_type *cmp) const                    { return dir == cmp; }
+  inline bool                   operator!=(_type *cmp) const                    { return dir != cmp; }
+
+  inline _type                * operator->() const                              { return dir; }
+  inline _type                * ptr(void) const                                 { return dir; }
+
+private:
+  _type                       * dir;
+};
+
+typedef FileServerHandle<FileServerDir> FileServerDirHandle;
+typedef FileServerHandle<const FileServerDir> FileServerConstDirHandle;
+
 class FileServer
 {
 friend class FileServerDir;
@@ -40,13 +84,13 @@ public:
   void                          setRoot(FileServerDir *);
   bool                          addDir(const QString &path, FileServerDir *);
   bool                          removeDir(const QString &path);
-  FileServerDir               * findDir(const QString &path);
+  FileServerDirHandle           findDir(const QString &path);
 
 protected:
   inline FileServerDir        * root(void)                                      { return rootDir; }
 
 public:
-  mutable QMutex                mutex;
+  mutable QReadWriteLock        lock;
 
 private:
   FileServerDir               * rootDir;
@@ -56,10 +100,6 @@ class FileServerDir : public QObject
 {
 Q_OBJECT
 public:
-  typedef QMap<QString, FileServerDir *>  DirMap;
-  typedef QMap<QString, const FileServerDir *>  ConstDirMap;
-
-public:
   explicit                      FileServerDir(FileServer *);
   virtual                       ~FileServerDir();
 
@@ -68,21 +108,20 @@ public:
   virtual void                  clear(void);
   virtual int                   count(void) const;
 
-  virtual const DirMap        & listDirs(void);
-  virtual FileServerDir       * findDir(const QString &name);
+  virtual QStringList           listDirs(void);
+  inline QStringList            listDirs(void) const                            { return const_cast<FileServerDir *>(this)->listDirs(); };
+  FileServerDirHandle           findDir(const QString &name);
+  FileServerConstDirHandle      findDir(const QString &name) const;
 
   inline FileServer           * server(void)                                    { return parent; }
   inline const FileServer     * server(void) const                              { return parent; }
   inline bool                   isEmpty(void) const                             { return count() == 0; }
-  inline const ConstDirMap    & listDirs(void) const                            { return reinterpret_cast<const ConstDirMap &>(const_cast<FileServerDir *>(this)->listDirs()); }
-  inline const FileServerDir  * findDir(const QString &name) const              { return const_cast<FileServerDir *>(this)->findDir(name); }
 
 private:
   FileServer            * const parent;
   QSet<FileServerDir *>         parentDirs;
-  DirMap                        subDirs;
+  QMap<QString, FileServerDir *> subDirs;
 };
-
 
 } // End of namespace
 

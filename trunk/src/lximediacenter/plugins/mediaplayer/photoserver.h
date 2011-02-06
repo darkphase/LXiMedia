@@ -43,27 +43,11 @@ protected:
     SlideShowNode               slideShow;
   };
 
-  class PhotoAlbumDir : public DlnaServerDir
-  {
-  public:
-    explicit                      PhotoAlbumDir(DlnaServer *, PhotoServer *, const QString &photoAlbum);
-
-    virtual const FileMap       & listFiles(void);
-
-  private:
-    PhotoServer         * const parent;
-    const QString               photoAlbum;
-    volatile bool               filesAdded;
-  };
-
 public:
-                                PhotoServer(MediaDatabase *, Plugin *, MasterServer *);
+                                PhotoServer(MediaDatabase *, MediaDatabase::Category, const char *, Plugin *, BackendServer::MasterServer *);
   virtual                       ~PhotoServer();
 
-  virtual SearchResultList      search(const QStringList &) const;
   virtual bool                  handleConnection(const QHttpRequestHeader &, QAbstractSocket *);
-
-  virtual void                  updateDlnaTask(void);
 
 protected:
   virtual bool                  streamVideo(const QHttpRequestHeader &, QAbstractSocket *);
@@ -73,10 +57,20 @@ private:
   bool                          handleHtmlRequest(const QUrl &, const QString &, QAbstractSocket *);
 
 private:
-  static const int              minPhotosInAlbum = 8;
-
-private:
   static const char     * const htmlView;
+};
+
+class PhotoServerDir : public MediaPlayerServerDir
+{
+Q_OBJECT
+friend class PhotoServer;
+public:
+  explicit                      PhotoServerDir(MediaPlayerServer *, const QString &albumPath);
+
+  virtual QStringList           listFiles(void);
+
+protected:
+  virtual MediaPlayerServerDir * createDir(MediaPlayerServer *, const QString &albumPath);
 };
 
 } // End of namespace

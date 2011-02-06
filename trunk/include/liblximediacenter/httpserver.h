@@ -28,6 +28,12 @@ namespace LXiMediaCenter {
 
 class HttpServerFile;
 class HttpServerDir;
+class HttpServerFileDir;
+
+typedef FileServerHandle<HttpServerDir> HttpServerDirHandle;
+typedef FileServerHandle<const HttpServerDir> HttpServerConstDirHandle;
+typedef FileServerHandle<HttpServerFileDir> HttpServerFileDirHandle;
+typedef FileServerHandle<const HttpServerFileDir> HttpServerConstFileDirHandle;
 
 class HttpServer : public QThread,
                    public FileServer
@@ -65,10 +71,24 @@ friend class HttpServer;
 public:
   explicit                      HttpServerDir(HttpServer *);
 
-  void                          addFile(const QString &name, const QString &realFile);
-
   inline HttpServer           * server(void)                                    { return static_cast<HttpServer *>(FileServerDir::server()); }
   inline const HttpServer     * server(void) const                              { return static_cast<const HttpServer *>(FileServerDir::server()); }
+
+protected:
+  virtual bool                  handleConnection(const QHttpRequestHeader &, QAbstractSocket *);
+
+private:
+  QMap<QString, QString>        files;
+};
+
+class HttpServerFileDir : public HttpServerDir
+{
+Q_OBJECT
+friend class HttpServer;
+public:
+  explicit                      HttpServerFileDir(HttpServer *);
+
+  void                          addFile(const QString &name, const QString &realFile);
 
 protected:
   virtual bool                  handleConnection(const QHttpRequestHeader &, QAbstractSocket *);

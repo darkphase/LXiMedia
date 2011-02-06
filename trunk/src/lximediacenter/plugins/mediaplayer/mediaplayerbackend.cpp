@@ -18,13 +18,9 @@
  ***************************************************************************/
 
 #include "mediaplayerbackend.h"
-#include "clipserver.h"
 #include "configserver.h"
-#include "homevideoserver.h"
-#include "movieserver.h"
-#include "musicserver.h"
+#include "mediaplayerserver.h"
 #include "photoserver.h"
-#include "tvshowserver.h"
 
 
 Q_EXPORT_PLUGIN2(PLUGIN_NAME, LXiMediaCenter::MediaPlayerBackend);
@@ -63,12 +59,12 @@ QList<BackendServer *> MediaPlayerBackend::createServers(BackendServer::MasterSe
     database = new MediaDatabase(this, server->ioThreadPool());
 
   QList<BackendServer *> servers;
-  servers += new MovieServer(database, this, server);
-  servers += new MusicServer(database, this, server);
-  servers += new PhotoServer(database, this, server);
-  servers += new TvShowServer(database, this, server);
-  servers += new ClipServer(database, this, server);
-  servers += new HomeVideoServer(database, this, server);
+  servers += new MediaPlayerServer(database, MediaDatabase::Category_Movies,      QT_TR_NOOP("Movies"),       this, server);
+  servers += new MediaPlayerServer(database, MediaDatabase::Category_TVShows,     QT_TR_NOOP("TV Shows"),     this, server);
+  servers += new MediaPlayerServer(database, MediaDatabase::Category_Clips,       QT_TR_NOOP("Video clips"),  this, server);
+  servers += new MediaPlayerServer(database, MediaDatabase::Category_HomeVideos,  QT_TR_NOOP("Home videos"),  this, server);
+  servers += new PhotoServer      (database, MediaDatabase::Category_Photos,      QT_TR_NOOP("Photos"),       this, server);
+  servers += new MediaPlayerServer(database, MediaDatabase::Category_Music,       QT_TR_NOOP("Music"),        this, server);
   servers += new ConfigServer(this, server);
 
   return servers;

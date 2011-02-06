@@ -530,7 +530,7 @@ QByteArray MediaServer::buildVideoPlayer(const QByteArray &item, const SMediaInf
   }
   else if (mediaInfo.duration().isValid())
   {
-    for (int i=0, n=mediaInfo.duration().toSec(); i<n; i+=120)
+    for (int i=0, n=mediaInfo.duration().toSec(); i<n; i+=seekBySecs)
     {
       htmlParser.setField("VALUE", QByteArray::number(i));
       htmlParser.setField("TEXT", QTime().addSecs(i).toString(videoTimeFormat));
@@ -540,9 +540,108 @@ QByteArray MediaServer::buildVideoPlayer(const QByteArray &item, const SMediaInf
   else
   {
     htmlParser.setField("VALUE", QByteArray("0"));
-    htmlParser.setField("TEXT", QTime().toString(videoTimeFormat));
+    htmlParser.setField("TEXT", QTime().addSecs(0).toString(videoTimeFormat));
     htmlParser.appendField("CHAPTERS", htmlParser.parse(htmlPlayerThumbItemOption));
   }
+
+  if (url.hasQueryItem("play"))
+    return htmlParser.parse(htmlPlayerVideoItem);
+  else
+    return htmlParser.parse(htmlPlayerThumbItem);
+}
+
+QByteArray MediaServer::buildVideoPlayer(const QByteArray &item, const QString &title, const QUrl &url, const QSize &size)
+{
+  HtmlParser htmlParser;
+  htmlParser.setField("TITLE", title);
+  htmlParser.setField("PLAYER_ITEM", item);
+  htmlParser.setField("TR_PLAY_HERE", tr("Play now"));
+  htmlParser.setField("TR_PLAY_EXTERNAL", tr("Play in external player"));
+  htmlParser.setField("TR_DOWNLOAD", tr("Download file"));
+  htmlParser.setField("TR_LANGUAGE", tr("Language"));
+  htmlParser.setField("TR_SUBTITLES", tr("Subtitles"));
+  htmlParser.setField("TR_START_FROM", tr("Start from"));
+  htmlParser.setField("TR_TRANSCODE_TO", tr("Transcode to"));
+
+  htmlParser.setField("TR_DOWNLOAD_OPTIONS_EXPLAIN",
+    tr("The file can be played in your web browser."));
+
+  htmlParser.setField("TR_TRANSCODE_OPTIONS_EXPLAIN",
+    tr("The file can be transcoded to standard MPEG and placed on a USB stick "
+       "or network storage to be played on a TV or media player."));
+
+  htmlParser.setField("WIDTH", QByteArray::number(size.width()));
+  htmlParser.setField("WIDTH23", QByteArray::number(size.width() * 2 / 3));
+  htmlParser.setField("HEIGHT", QByteArray::number(size.height()));
+  htmlParser.setField("HEIGHT2", QByteArray::number(size.height() / 2));
+  htmlParser.setField("LANGUAGE", url.queryItemValue("language"));
+
+  QByteArray query =
+      "?size=" + QByteArray::number(size.width()) + "x" + QByteArray::number(size.height());
+  htmlParser.setField("QUERYX", "?query=" + query.toHex().toUpper());
+  htmlParser.setField("QUERY", query.replace("&", "&amp;"));
+
+  htmlParser.setField("SELECTED", QByteArray(""));
+
+  htmlParser.setField("VALUE", QByteArray(""));
+  htmlParser.setField("TEXT", "1. " + tr("Unknown"));
+  htmlParser.setField("LANGUAGES", htmlParser.parse(htmlPlayerThumbItemOption));
+
+  htmlParser.setField("VALUE", QByteArray(""));
+  htmlParser.setField("TEXT", tr("None"));
+  htmlParser.appendField("SUBTITLES", htmlParser.parse(htmlPlayerThumbItemOption));
+
+  GlobalSettings settings;
+  settings.beginGroup("DLNA");
+
+  const QString genericTranscodeSize =
+      settings.value("TranscodeSize", settings.defaultTranscodeSizeName()).toString();
+  const QString genericTranscodeChannels =
+      settings.value("TranscodeChannels", settings.defaultTranscodeChannelName()).toString();
+
+  struct T
+  {
+    static void addFormat(HtmlParser &htmlParser, GlobalSettings &settings, const QString &genericTranscodeSize, const GlobalSettings::TranscodeSize &size)
+    {
+      if (settings.value("TranscodeSize", genericTranscodeSize).toString() == size.name)
+        htmlParser.setField("SELECTED", QByteArray("selected=\"selected\""));
+      else
+        htmlParser.setField("SELECTED", QByteArray(""));
+
+      htmlParser.setField("VALUE", QString::number(size.size.width()) +
+                                   "x" + QString::number(size.size.height()) +
+                                   "x" + QString::number(size.size.aspectRatio()));
+      htmlParser.setField("TEXT", size.name +
+                          " (" + QString::number(size.size.width()) +
+                          "x" + QString::number(size.size.height()) + ")");
+      htmlParser.appendField("FORMATS", htmlParser.parse(htmlPlayerThumbItemOption));
+    }
+
+    static void addChannel(HtmlParser &htmlParser, GlobalSettings &settings, const QString &genericTranscodeChannels, const GlobalSettings::TranscodeChannel &channel)
+    {
+      if (settings.value("TranscodeChannels", genericTranscodeChannels).toString() == channel.name)
+        htmlParser.setField("SELECTED", QByteArray("selected=\"selected\""));
+      else
+        htmlParser.setField("SELECTED", QByteArray(""));
+
+      htmlParser.setField("VALUE", QString::number(channel.channels, 16));
+      htmlParser.setField("TEXT", channel.name);
+      htmlParser.appendField("CHANNELS", htmlParser.parse(htmlPlayerThumbItemOption));
+    }
+  };
+
+  htmlParser.setField("FORMATS", QByteArray(""));
+  htmlParser.setField("CHANNELS", QByteArray(""));
+
+  foreach (const GlobalSettings::TranscodeSize &size, settings.allTranscodeSizes())
+    T::addFormat(htmlParser, settings, genericTranscodeSize,  size);
+
+  foreach (const GlobalSettings::TranscodeChannel &channel, settings.allTranscodeChannels())
+    T::addChannel(htmlParser, settings, genericTranscodeChannels, channel);
+
+  htmlParser.setField("VALUE", QByteArray("0"));
+  htmlParser.setField("TEXT", QTime().addSecs(0).toString(videoTimeFormat));
+  htmlParser.setField("CHAPTERS", htmlParser.parse(htmlPlayerThumbItemOption));
 
   if (url.hasQueryItem("play"))
     return htmlParser.parse(htmlPlayerVideoItem);

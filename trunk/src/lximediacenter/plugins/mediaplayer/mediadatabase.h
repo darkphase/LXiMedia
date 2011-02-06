@@ -34,6 +34,13 @@ Q_OBJECT
 public:
   typedef qint64                UniqueID;
 
+  enum Category
+  {
+    Category_None = 0,
+    Category_Movies, Category_TVShows, Category_Clips, Category_HomeVideos,
+    Category_Photos, Category_Music
+  };
+
 private:
   class Task : public QRunnable
   {
@@ -47,24 +54,15 @@ private:
     void                        (MediaDatabase::* const func)(void);
   };
 
-  struct CategoryFunc
+  struct CatecoryDesc
   {
     const char          * const name;
-    void                        (MediaDatabase::* const invalidate)(void);
-    void                        (MediaDatabase::* const categorize)(QSqlDatabase &, qint64, const QString &, const SMediaInfo &);
-  };
-
-  struct Category
-  {
-    inline                      Category(const CategoryFunc *func, const QString &path) : func(func), path(path) { }
-
-    const CategoryFunc        * func;
-    QString                     path;
+    const Category              category;
   };
 
   struct QuerySet;
 
-public:
+public: // In mediadatabase.cpp
                                 MediaDatabase(Plugin *parent, QThreadPool *);
   virtual                       ~MediaDatabase();
 
@@ -80,97 +78,38 @@ public:
   QDateTime                     lastPlayed(UniqueID) const;
   QDateTime                     lastPlayed(const SMediaInfo &) const;
 
-  QStringList                   allMovies(void) const;
-  QList<UniqueID>               allMovieFiles(const QString &key) const;
-  ImdbClient::Entry             getMovieImdbEntry(const QString &key) const;
-  QList<UniqueID>               queryMovieFiles(const QStringList &query) const;
+  QStringList                   allAlbums(Category) const;
+  QList<UniqueID>               allAlbumFiles(Category, const QString &album) const;
+  QList<UniqueID>               queryAlbums(Category, const QStringList &query) const;
 
-  QStringList                   allTvShows(void) const;
-  QList<UniqueID>               allTvShowEpisodes(const QString &key) const;
-  ImdbClient::Entry             getTvShowImdbEntry(const QString &key) const;
-  QList<UniqueID>               queryTvShows(const QStringList &query) const;
-
-  QStringList                   allHomeVideos(void) const;
-  QList<UniqueID>               allHomeVideoFiles(const QString &key) const;
-  QList<UniqueID>               queryHomeVideos(const QStringList &query) const;
-
-  QStringList                   allVideoClipAlbums(void) const;
-  QList<UniqueID>               allVideoClipFiles(const QString &key) const;
-  QList<UniqueID>               queryVideoClips(const QStringList &query) const;
-
-  QStringList                   allPhotoAlbums(void) const;
-  QList<UniqueID>               allPhotoFiles(const QString &key) const;
-  QList<UniqueID>               queryPhotoAlbums(const QStringList &query) const;
-
-  unsigned                      numSongs(void) const;
-  UniqueID                      getSong(unsigned) const;
-  QList<UniqueID>               latestSongs(unsigned count) const;
-  QStringList                   allMusicArtists(void) const;
-  QList<UniqueID>               allMusicArtistFiles(const QString &key) const;
-  QStringList                   allMusicGenres(void) const;
-  QList<UniqueID>               allMusicGenreFiles(const QString &key) const;
-  QStringList                   allMusicVideoAlbums(void) const;
-  QList<UniqueID>               allMusicVideoFiles(const QString &key) const;
-  QList<UniqueID>               queryMusic(const QStringList &query) const;
-  static QString                genreName(const QString &);
-
-  QStringList                   allMiscAudioAlbums(void) const;
-  QList<UniqueID>               allMiscAudioFiles(const QString &key) const;
-  QList<UniqueID>               queryMiscAudioAlbums(const QStringList &query) const;
-
+  ImdbClient::Entry             getImdbEntry(UniqueID) const;
   QList<UniqueID>               allFilesInDirOf(UniqueID) const;
 
-signals:
-  void                          updatedClips(void);
-  void                          updatedHomeVideos(void);
-  void                          updatedMovies(void);
-  void                          updatedMusic(void);
-  void                          updatedPhotos(void);
-  void                          updatedTvShows(void);
+private: // In mediadatabase.cpp
+  static const char           * categoryName(Category category);
 
-private slots:
+private slots: // In mediadatabase.scan.cpp
   void                          scanRoots(void);
 
-private:
+private: // In mediadatabase.scan.cpp
   QString                       findRoot(const QString &, const QStringList &) const;
   void                          scanDirs(void);
   void                          updateDir(const QString &, qint64, QuerySet &);
   void                          probeFiles(void);
   void                          matchImdbItems(void);
 
-  QList<Category>               findCategories(const QString &) const;
-
-  void                          categorizeMovie(QSqlDatabase &, qint64, const QString &, const SMediaInfo &);
-  void                          categorizeTVShow(QSqlDatabase &, qint64, const QString &, const SMediaInfo &);
-  void                          categorizeClip(QSqlDatabase &, qint64, const QString &, const SMediaInfo &);
-  void                          categorizeMusic(QSqlDatabase &, qint64, const QString &, const SMediaInfo &);
-  void                          categorizePhoto(QSqlDatabase &, qint64, const QString &, const SMediaInfo &);
-  void                          categorizeHomeVideo(QSqlDatabase &, qint64, const QString &, const SMediaInfo &);
-  static QString                albumPath(const QString &);
-
-  void                          invalidateMovie(void);
-  void                          invalidateTVShow(void);
-  void                          invalidateClip(void);
-  void                          invalidateMusic(void);
-  void                          invalidatePhoto(void);
-  void                          invalidateHomeVideo(void);
+  QMap<Category, QString>       findCategories(const QString &) const;
 
 public:
   static const int              maxSongDurationMin;
 
 private:
-  static const CategoryFunc     categoryFunc[];
+  static const CatecoryDesc     categories[];
 
   Plugin                * const plugin;
   QThreadPool           * const threadPool;
   mutable QMutex                mutex;
 
-  QAtomicInt                    invalidatedClips;
-  QAtomicInt                    invalidatedHomeVideos;
-  QAtomicInt                    invalidatedMovies;
-  QAtomicInt                    invalidatedMusic;
-  QAtomicInt                    invalidatedPhotos;
-  QAtomicInt                    invalidatedTvShows;
   QTimer                        scanRootsTimer;
   QMap<QString, QStringList>    rootPaths;
   QSet<QString>                 dirsToScan;

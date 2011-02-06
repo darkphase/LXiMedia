@@ -74,7 +74,7 @@ HttpServer::HttpServer(void)
   p->numPendingConnections = 0;
   p->startSem = NULL;
 
-  setRoot(new HttpServerDir(this));
+  setRoot(new HttpServerFileDir(this));
 }
 
 HttpServer::~HttpServer()
@@ -125,13 +125,13 @@ bool HttpServer::addFile(const QString &path, const QString &realFile)
   const int lastSlash = path.lastIndexOf('/');
   if (lastSlash >= 0)
   {
-    const QString dir = path.left(lastSlash + 1);
-    const QString file = path.mid(lastSlash + 1);
+    const QString dirName = path.left(lastSlash + 1);
+    const QString fileName = path.mid(lastSlash + 1);
 
-    HttpServerDir * const d = qobject_cast<HttpServerDir *>(findDir(dir));
-    if (d)
+    HttpServerFileDirHandle dir = findDir(dirName);
+    if (dir != NULL)
     {
-      d->addFile(file, realFile);
+      dir->addFile(fileName, realFile);
       return true;
     }
   }
@@ -269,8 +269,8 @@ void HttpServer::SocketHandler::run()
         {
           const QString path = url.path().left(url.path().lastIndexOf('/') + 1);
 
-          HttpServerDir * const dir = qobject_cast<HttpServerDir *>(parent->findDir(path));
-          if (dir)
+          HttpServerDirHandle dir = parent->findDir(path);
+          if (dir != NULL)
           {
             if (dir->handleConnection(requestHeader, socket))
               socket = NULL; // The file accepted the connection, it is responsible for closing and deleteing it.
@@ -310,17 +310,6 @@ void HttpServer::SocketHandler::run()
 HttpServerDir::HttpServerDir(HttpServer *parent)
   : FileServerDir(parent)
 {
-  Q_ASSERT(parent);
-}
-
-void HttpServerDir::addFile(const QString &name, const QString &realFile)
-{
-  Q_ASSERT(!name.isEmpty());
-  Q_ASSERT(!realFile.isEmpty());
-
-  SDebug::MutexLocker l(&server()->mutex, __FILE__, __LINE__);
-
-  files[name] = realFile;
 }
 
 /*! Is invoked for an incoming HTTP request on this directory when queryFile()
@@ -330,10 +319,38 @@ void HttpServerDir::addFile(const QString &name, const QString &realFile)
  */
 bool HttpServerDir::handleConnection(const QHttpRequestHeader &request, QAbstractSocket *socket)
 {
+  qWarning() << "HttpServer: Failed to find:" << request.path();
+  socket->write(QHttpResponseHeader(404).toString().toUtf8());
+  return false;
+}
+
+
+HttpServerFileDir::HttpServerFileDir(HttpServer *parent)
+  : HttpServerDir(parent)
+{
+}
+
+void HttpServerFileDir::addFile(const QString &name, const QString &realFile)
+{
+  Q_ASSERT(!name.isEmpty());
+  Q_ASSERT(!realFile.isEmpty());
+
+  SDebug::WriteLocker l(&server()->lock, __FILE__, __LINE__);
+
+  files[name] = realFile;
+}
+
+/*! Is invoked for an incoming HTTP request on this directory when queryFile()
+    returns NULL.
+
+    \note Invoked from a thread from the threadpool of the HTTP server.
+ */
+bool HttpServerFileDir::handleConnection(const QHttpRequestHeader &request, QAbstractSocket *socket)
+{
   const QUrl url(request.path());
   const QString file = url.path().mid(url.path().lastIndexOf('/') + 1);
 
-  SDebug::MutexLocker l(&server()->mutex, __FILE__, __LINE__);
+  SDebug::WriteLocker l(&server()->lock, __FILE__, __LINE__);
 
   QMap<QString, QString>::ConstIterator i = files.find(file);
   if (i != files.end())
@@ -359,9 +376,7 @@ bool HttpServerDir::handleConnection(const QHttpRequestHeader &request, QAbstrac
     }
   }
 
-  qDebug() << "HttpServer: Failed to find file:" << request.path();
-  socket->write(QHttpResponseHeader(404).toString().toUtf8());
-  return false;
+  return HttpServerDir::handleConnection(request, socket);
 }
 
 

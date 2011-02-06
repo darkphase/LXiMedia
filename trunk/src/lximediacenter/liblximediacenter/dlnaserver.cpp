@@ -117,7 +117,7 @@ DlnaServer::~DlnaServer()
 {
   QThreadPool::globalInstance()->waitForDone();
 
-  mutex.lock();
+  lock.lockForWrite();
 
   foreach (EventSession *session, p->eventSessions)
     delete session;
@@ -138,7 +138,7 @@ void DlnaServer::initialize(SsdpServer *ssdpServer)
 
 void DlnaServer::close(void)
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+  SDebug::WriteLocker l(&lock, __FILE__, __LINE__);
 
   delete p->httpDir;
   p->httpDir = NULL;
@@ -146,7 +146,7 @@ void DlnaServer::close(void)
 
 void DlnaServer::update(qint32 dirId)
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+  SDebug::WriteLocker l(&lock, __FILE__, __LINE__);
 
   foreach (EventSession *session, p->eventSessions)
     session->update(dirId);
@@ -154,7 +154,7 @@ void DlnaServer::update(qint32 dirId)
 
 DlnaServerDir * DlnaServer::getDir(qint32 dirId)
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+  SDebug::WriteLocker l(&lock, __FILE__, __LINE__);
 
   QMap<int, DlnaServerDir *>::Iterator i = p->idMap.find(dirId);
   if (i != p->idMap.end())
@@ -165,7 +165,7 @@ DlnaServerDir * DlnaServer::getDir(qint32 dirId)
 
 const DlnaServerDir * DlnaServer::getDir(qint32 dirId) const
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+  SDebug::WriteLocker l(&lock, __FILE__, __LINE__);
 
   QMap<int, DlnaServerDir *>::ConstIterator i = p->idMap.find(dirId);
   if (i != p->idMap.end())
@@ -208,7 +208,7 @@ bool DlnaServer::handleConnection(const QHttpRequestHeader &request, QAbstractSo
       { // Update subscription
         const int sid = request.value("SID").toInt(NULL, 16);
 
-        SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+        SDebug::WriteLocker l(&lock, __FILE__, __LINE__);
 
         QMap<int, EventSession *>::Iterator i = p->eventSessions.find(sid);
         if (i != p->eventSessions.end())
@@ -233,7 +233,7 @@ bool DlnaServer::handleConnection(const QHttpRequestHeader &request, QAbstractSo
       }
       else if (request.hasKey("Callback"))
       { // New subscription
-        SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+        SDebug::WriteLocker l(&lock, __FILE__, __LINE__);
 
         // Prevent creating too much sessions.
         if (p->eventSessions.count() < int(EventSession::maxInstances))
@@ -267,7 +267,7 @@ bool DlnaServer::handleConnection(const QHttpRequestHeader &request, QAbstractSo
     {
       const int sid = request.value("SID").toInt(NULL, 16);
 
-      SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+      SDebug::WriteLocker l(&lock, __FILE__, __LINE__);
 
       QMap<int, EventSession *>::Iterator i = p->eventSessions.find(sid);
       if (i != p->eventSessions.end())
@@ -311,7 +311,7 @@ bool DlnaServer::handleConnection(const QHttpRequestHeader &request, QAbstractSo
     return false;
   }
 
-  qDebug() << "DlnaServer: Could not handle request:" << request.method() << request.path();
+  qWarning() << "DlnaServer: Could not handle request:" << request.method() << request.path();
   socket->write(QHttpResponseHeader(404).toString().toUtf8());
   return false;
 }
@@ -320,7 +320,7 @@ void DlnaServer::timerEvent(QTimerEvent *e)
 {
   if (e->timerId() == p->cleanTimer)
   {
-    if (mutex.tryLock(0))
+    if (lock.tryLockForWrite(0))
     {
       // Cleanup old sessions.
       foreach (EventSession *session, p->eventSessions)
@@ -330,7 +330,7 @@ void DlnaServer::timerEvent(QTimerEvent *e)
         delete session;
       }
 
-      mutex.unlock();
+      lock.unlock();
     }
   }
   else
@@ -339,7 +339,7 @@ void DlnaServer::timerEvent(QTimerEvent *e)
 
 QMap<qint32, DlnaServer::DirCacheEntry>::Iterator DlnaServer::updateCacheEntry(int dirId)
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+  SDebug::WriteLocker l(&lock, __FILE__, __LINE__);
 
   qint32 updateId = 0;
 
@@ -378,30 +378,34 @@ QMap<qint32, DlnaServer::DirCacheEntry>::Iterator DlnaServer::updateCacheEntry(i
   {
     ce = p->dirCacheEntries.insert(dirId, DirCacheEntry());
 
-    DlnaServerDir::FileMap files;
-    DlnaServerDir::DirMap dirs;
+    QStringList files;
+    QStringList dirs;
 
     QMap<int, DlnaServerDir *>::Iterator i = p->idMap.find(dirId);
     if (i != p->idMap.end())
     {
-      files = (*i)->listFiles();
       dirs = (*i)->listDirs();
+      files = (*i)->listFiles();
       updateId = (*i)->updateId;
     }
 
-    for (DlnaServerDir::FileMap::ConstIterator i=files.begin(); i!=files.end(); i++)
-      ce->children.insert(
-          ("00000000" + QString::number(quint32(i->sortOrder + 0x80000000), 16)).right(8) + i.key().toUpper(),
-          DirCacheEntry::Item(i.key(), *i));
-
-    for (DlnaServerDir::DirMap::ConstIterator i=dirs.begin(); i!=dirs.end(); i++)
+    foreach (const QString &fileName, files)
     {
-      DlnaServerDir * const dir = qobject_cast<DlnaServerDir *>(*i);
-      if (dir)
+      const File file = (*i)->findFile(fileName);
+
+      ce->children.insert(
+          ("00000000" + QString::number(quint32(file.sortOrder + 0x80000000), 16)).right(8) + fileName.toUpper(),
+          DirCacheEntry::Item(fileName, file));
+    }
+
+    foreach (const QString &dirName, dirs)
+    {
+      DlnaServerConstDirHandle dir = (*i)->findDir(dirName);
+      if (dir != NULL)
       {
         ce->children.insert(
-            ("00000000" + QString::number(quint32(dir->sortOrder + 0x80000000), 16)).right(8) + i.key().toUpper(),
-            DirCacheEntry::Item(i.key(), dir));
+            ("00000000" + QString::number(quint32(dir->sortOrder + 0x80000000), 16)).right(8) + dirName.toUpper(),
+            DirCacheEntry::Item(dirName, dir));
       }
     }
 
@@ -468,7 +472,7 @@ bool DlnaServer::handleBrowse(const QDomElement &elem, const QHttpRequestHeader 
 
   if (browseFlag.text() == "BrowseDirectChildren")
   {
-    SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+    SDebug::WriteLocker l(&lock, __FILE__, __LINE__);
 
     QDomDocument doc;
     QDomElement root = doc.createElementNS(p->didlNS, "DIDL-Lite");
@@ -517,7 +521,7 @@ bool DlnaServer::handleBrowse(const QDomElement &elem, const QHttpRequestHeader 
   }
   else if (browseFlag.text() == "BrowseMetadata")
   {
-    SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+    SDebug::WriteLocker l(&lock, __FILE__, __LINE__);
 
     QDomDocument doc;
     QDomElement root = doc.createElementNS(p->didlNS, "DIDL-Lite");
@@ -525,7 +529,7 @@ bool DlnaServer::handleBrowse(const QDomElement &elem, const QHttpRequestHeader 
     root.setAttribute("xmlns:upnp", p->upnpNS);
     doc.appendChild(root);
 
-    DlnaServerDir::FileMap files;
+    QStringList files;
     QMap<int, DlnaServerDir *>::Iterator i = p->idMap.find(dirId);
     if (i != p->idMap.end())
     {
@@ -534,16 +538,19 @@ bool DlnaServer::handleBrowse(const QDomElement &elem, const QHttpRequestHeader 
     }
 
     const int fileId = objectId.text().split(':').last().toInt(NULL, 16);
-    for (DlnaServerDir::FileMap::ConstIterator i=files.begin(); i!=files.end(); i++)
-    if (i->id == fileId)
+    foreach (const QString &fileName, files)
     {
-      const DirCacheEntry::Item item(i.key(), *i);
-      const QString channels = item.music ? transcodeMusicChannels : transcodeChannels;
+      const File file = (*i)->findFile(fileName);
+      if (file.id == fileId)
+      {
+        const DirCacheEntry::Item item(fileName, file);
+        const QString channels = item.music ? transcodeMusicChannels : transcodeChannels;
 
-      root.appendChild(didlFile(doc, host, transcodeSize, transcodeCrop, encodeMode, channels, item, dirId, true));
+        root.appendChild(didlFile(doc, host, transcodeSize, transcodeCrop, encodeMode, channels, item, dirId, true));
 
-      returned = count = 1;
-      break;
+        returned = count = 1;
+        break;
+      }
     }
 
     result.appendChild(doc.createTextNode(doc.toString(-1) + "\n"));
@@ -607,32 +614,11 @@ QDomElement DlnaServer::didlFile(QDomDocument &doc, const QString &host, const Q
   titleElm.appendChild(doc.createTextNode((item.played ? "*" : "") + item.title));
   itemElm.appendChild(titleElm);
 
-  if (addMeta && item.date.isValid())
-  {
-    QDomElement creatorElm = doc.createElement("dc:date");
-    creatorElm.appendChild(doc.createTextNode(item.date.toString("yyyy-MM-dd")));
-    itemElm.appendChild(creatorElm);
-  }
-
   if (addMeta && !item.iconUrl.isEmpty())
   {
     QDomElement iconElm = doc.createElement("upnp:icon");
     iconElm.appendChild(doc.createTextNode(item.iconUrl));
     itemElm.appendChild(iconElm);
-  }
-
-  if (addMeta && !item.creator.isEmpty())
-  {
-    QDomElement creatorElm = doc.createElement("dc:creator");
-    creatorElm.appendChild(doc.createTextNode(item.creator));
-    itemElm.appendChild(creatorElm);
-  }
-
-  if (addMeta && !item.description.isEmpty())
-  {
-    QDomElement descrElm = doc.createElement("dc:description");
-    descrElm.appendChild(doc.createTextNode(item.description));
-    itemElm.appendChild(descrElm);
   }
 
   QString imageSize = "size=0x0";
@@ -694,11 +680,6 @@ QDomElement DlnaServer::didlFile(QDomDocument &doc, const QString &host, const Q
   QDomElement resElm = doc.createElement("res");
   resElm.setAttribute("protocolInfo", "http-get:*:" + item.mimeType + ":DLNA.ORG_PS=1;DLNA.ORG_CI=0;DLNA.ORG_OP=01;DLNA.ORG_FLAGS=21700000000000000000000000000000");
 
-  if (item.duration.isValid())
-    resElm.setAttribute("duration", QString::number(item.duration.toSec() / 3600) + ":" +
-                                    QString::number((item.duration.toSec() / 60) % 60) + ":" +
-                                    QString::number(item.duration.toSec() % 60));
-
   resElm.appendChild(doc.createTextNode("http://" + host + item.url + postfix));
   itemElm.appendChild(resElm);
 
@@ -709,16 +690,16 @@ QDomElement DlnaServer::didlFile(QDomDocument &doc, const QString &host, const Q
 DlnaServer::File::File(void)
     : id(0),
       played(false),
-      sortOrder(0),
-      music(false)
+      music(false),
+      sortOrder(0)
 {
 }
 
 DlnaServer::File::File(DlnaServer *parent)
     : id(parent->p->idCounter.fetchAndAddOrdered(1) | DlnaServer::FILE_ID_MASK),
       played(false),
-      sortOrder(0),
-      music(false)
+      music(false),
+      sortOrder(0)
 {
 }
 
@@ -760,7 +741,7 @@ DlnaServer::EventSession::~EventSession()
 
 void DlnaServer::EventSession::update(qint32 dirId)
 {
-  SDebug::MutexLocker l(&parent->mutex, __FILE__, __LINE__);
+  SDebug::WriteLocker l(&parent->lock, __FILE__, __LINE__);
 
   updateId++;
   containers += dirId;
@@ -770,7 +751,7 @@ void DlnaServer::EventSession::update(qint32 dirId)
 
 void DlnaServer::EventSession::resubscribe(void)
 {
-  SDebug::MutexLocker l(&parent->mutex, __FILE__, __LINE__);
+  SDebug::WriteLocker l(&parent->lock, __FILE__, __LINE__);
 
   lastSubscribe = QDateTime::currentDateTime();
 }
@@ -779,7 +760,7 @@ bool DlnaServer::EventSession::isActive(void) const
 {
   if (QThread::isRunning())
   {
-    SDebug::MutexLocker l(&parent->mutex, __FILE__, __LINE__);
+    SDebug::WriteLocker l(&parent->lock, __FILE__, __LINE__);
 
     if (lastSubscribe.secsTo(QDateTime::currentDateTime()) < (timeout + 30))
       return true;
@@ -795,7 +776,7 @@ void DlnaServer::EventSession::run(void)
     triggerSem.tryAcquire(1, 2000);
 
     if (running && dirty)
-    if (parent->mutex.tryLock(250))
+    if (parent->lock.tryLockForWrite(250))
     {
       if (lastUpdate.isNull() || (qAbs(lastUpdate.elapsed()) >= 2000)) // Max rate 0.5 Hz
       {
@@ -844,7 +825,7 @@ void DlnaServer::EventSession::run(void)
         header.setContentLength(content.length());
 
         lastUpdate.start();
-        parent->mutex.unlock();
+        parent->lock.unlock();
 
         // Now send the message
         static const int maxRequestTime = 5000;
@@ -875,7 +856,7 @@ void DlnaServer::EventSession::run(void)
                 const QHttpResponseHeader responseHeader(QString::fromUtf8(response));
                 if (responseHeader.statusCode() != 200)
                 {
-                  qDebug() << "DlnaServer: got error response:" << response;
+                  qWarning() << "DlnaServer: got error response:" << response;
                   running = false;
                 }
 
@@ -887,7 +868,7 @@ void DlnaServer::EventSession::run(void)
         }
       }
       else
-        parent->mutex.unlock();
+        parent->lock.unlock();
     }
   }
 }
@@ -899,13 +880,12 @@ DlnaServer::DirCacheEntry::Item::Item(const QString &title, const File &file)
 {
 }
 
-DlnaServer::DirCacheEntry::Item::Item(const QString &title, const DlnaServerDir *dir)                           
+DlnaServer::DirCacheEntry::Item::Item(const QString &title, DlnaServerConstDirHandle dir)
     : title(title)
 {
   id = dir->id;
   played = dir->played;
   sortOrder = dir->sortOrder;
-  date = dir->date;
 }
 
 
@@ -916,25 +896,25 @@ DlnaServerDir::DlnaServerDir(DlnaServer *parent)
       sortOrder(0),
       updateId(1)
 {
-  SDebug::MutexLocker l(&server()->mutex, __FILE__, __LINE__);
+  SDebug::WriteLocker l(&server()->lock, __FILE__, __LINE__);
 
   parent->p->idMap.insert(id, this);
 }
 
 DlnaServerDir::~DlnaServerDir()
 {
-  SDebug::MutexLocker l(&server()->mutex, __FILE__, __LINE__);
+  SDebug::WriteLocker l(&server()->lock, __FILE__, __LINE__);
 
   if (server()->p) // This might already be deleted if this is the root directory.
     server()->p->idMap.remove(id);
 }
 
-void DlnaServerDir::addFile(const QString &name, const DlnaServer::File &file)
+void DlnaServerDir::addFile(const QString &name, const File &file)
 {
   Q_ASSERT(!name.isEmpty());
   Q_ASSERT(file.id != 0);
 
-  SDebug::MutexLocker l(&server()->mutex, __FILE__, __LINE__);
+  SDebug::WriteLocker l(&server()->lock, __FILE__, __LINE__);
 
   files[name] = file;
 
@@ -946,7 +926,7 @@ void DlnaServerDir::removeFile(const QString &name)
 {
   Q_ASSERT(!name.isEmpty());
 
-  SDebug::MutexLocker l(&server()->mutex, __FILE__, __LINE__);
+  SDebug::WriteLocker l(&server()->lock, __FILE__, __LINE__);
 
   files.remove(name);
 
@@ -956,7 +936,7 @@ void DlnaServerDir::removeFile(const QString &name)
 
 void DlnaServerDir::addDir(const QString &name, FileServerDir *dir)
 {
-  SDebug::MutexLocker l(&server()->mutex, __FILE__, __LINE__);
+  SDebug::WriteLocker l(&server()->lock, __FILE__, __LINE__);
 
   FileServerDir::addDir(name, dir);
 
@@ -966,7 +946,7 @@ void DlnaServerDir::addDir(const QString &name, FileServerDir *dir)
 
 void DlnaServerDir::removeDir(const QString &name)
 {
-  SDebug::MutexLocker l(&server()->mutex, __FILE__, __LINE__);
+  SDebug::WriteLocker l(&server()->lock, __FILE__, __LINE__);
 
   FileServerDir::removeDir(name);
 
@@ -976,7 +956,7 @@ void DlnaServerDir::removeDir(const QString &name)
 
 void DlnaServerDir::clear(void)
 {
-  SDebug::MutexLocker l(&server()->mutex, __FILE__, __LINE__);
+  SDebug::WriteLocker l(&server()->lock, __FILE__, __LINE__);
 
   const qint32 newUpdateId = updateId + 1;
 
@@ -990,246 +970,36 @@ void DlnaServerDir::clear(void)
 
 int DlnaServerDir::count(void) const
 {
-  SDebug::MutexLocker l(&server()->mutex, __FILE__, __LINE__);
+  SDebug::WriteLocker l(&server()->lock, __FILE__, __LINE__);
 
   return listFiles().count() + FileServerDir::count();
 }
 
-const DlnaServerDir::FileMap & DlnaServerDir::listFiles(void)
+QStringList DlnaServerDir::listFiles(void)
 {
-  return files;
+  SDebug::WriteLocker l(&server()->lock, __FILE__, __LINE__);
+
+  return files.keys();
 }
 
-DlnaServer::File DlnaServerDir::findFile(const QString &name)
+DlnaServerDir::File DlnaServerDir::findFile(const QString &name)
 {
   Q_ASSERT(!name.isEmpty());
 
-  SDebug::MutexLocker l(&server()->mutex, __FILE__, __LINE__);
+  SDebug::WriteLocker l(&server()->lock, __FILE__, __LINE__);
 
-  FileMap::ConstIterator i = files.find(name);
+  QMap<QString, DlnaServerDir::File>::ConstIterator i = files.find(name);
+  if (i == files.end())
+  {
+    // Try to update the dir
+    listFiles();
+    i = files.find(name);
+  }
+
   if (i != files.end())
     return *i;
 
-  return DlnaServer::File();
-}
-
-QString DlnaServerDir::findIcon(void) const
-{
-  foreach (const DlnaServer::File &file, listFiles())
-  if (!file.iconUrl.isEmpty())
-    return file.iconUrl;
-
-  foreach (const FileServerDir *dir, listDirs())
-  {
-    const DlnaServerDir * const ddir = qobject_cast<const DlnaServerDir *>(dir);
-    if (ddir)
-    {
-      const QString iconUrl = ddir->findIcon();
-      if (!iconUrl.isEmpty())
-        return iconUrl;
-    }
-  }
-
-  return QString::null;
-}
-
-
-DlnaServerAlphaDir::DlnaServerAlphaDir(DlnaServer *parent)
-    : DlnaServerDir(parent),
-      subdirLimit(20),
-      alphaMode(false)
-{
-}
-
-DlnaServerAlphaDir::~DlnaServerAlphaDir()
-{
-}
-
-void DlnaServerAlphaDir::setSubdirLimit(unsigned s)
-{
-  Q_ASSERT(alphaDirs.isEmpty());
-
-  subdirLimit = s;
-}
-
-void DlnaServerAlphaDir::addDir(const QString &name, FileServerDir *dir)
-{
-  Q_ASSERT(!name.isEmpty());
-  Q_ASSERT(qobject_cast<DlnaServerDir *>(dir));
-
-  SDebug::MutexLocker l(&server()->mutex, __FILE__, __LINE__);
-
-  allDirs[name] = dir;
-
-  DirMap::Iterator i = alphaDirs.find(name);
-  if (i != alphaDirs.end())
-    alphaDirs.erase(i);
-
-  if (!alphaMode)
-  {
-    if (alphaDirs.count() < int(subdirLimit))
-    { // Single layer
-      DlnaServerDir::addDir(name, dir);
-      alphaDirs[name] = dir;
-      return;
-    }
-    else
-    { // Move to alpha layer
-      for (DirMap::ConstIterator i=alphaDirs.begin(); i!=alphaDirs.end(); i++)
-        DlnaServerDir::removeDir(i.key());
-
-      Q_ASSERT(DlnaServerDir::listDirs().isEmpty());
-
-      for (DirMap::ConstIterator i=allDirs.begin(); i!=allDirs.end(); i++)
-        addAlphaDir(i.key(), static_cast<DlnaServerDir *>(i.value()));
-
-      alphaMode = true;
-    }
-  }
-
-  addAlphaDir(name, static_cast<DlnaServerDir *>(dir));
-}
-
-void DlnaServerAlphaDir::removeDir(const QString &name)
-{
-  Q_ASSERT(!name.isEmpty());
-
-  SDebug::MutexLocker l(&server()->mutex, __FILE__, __LINE__);
-
-  allDirs.remove(name);
-
-  if (alphaMode)
-  {
-    removeAlphaDir(name);
-
-    if (alphaDirs.count() <= int(subdirLimit))
-    { // Move to single layer
-      for (DirMap::ConstIterator i=alphaDirs.begin(); i!=alphaDirs.end(); i++)
-        removeAlphaDir(i.key());
-
-      Q_ASSERT(DlnaServerDir::listDirs().isEmpty());
-
-      for (DirMap::ConstIterator i=allDirs.begin(); i!=allDirs.end(); i++)
-        DlnaServerDir::addDir(i.key(), i.value());
-
-      alphaMode = false;
-    }
-  }
-  else
-  {
-    DlnaServerDir::removeDir(name);
-    alphaDirs.remove(name);
-  }
-}
-
-void DlnaServerAlphaDir::clear(void)
-{
-  SDebug::MutexLocker l(&server()->mutex, __FILE__, __LINE__);
-
-  foreach (FileServerDir *dir, alphaDirs)
-    delete dir;
-
-  alphaDirs.clear();
-  allDirs.clear();
-
-  if (alphaMode)
-  {
-    const DirMap dirs = DlnaServerDir::listDirs();
-    for (DirMap::ConstIterator i=dirs.begin(); i!=dirs.end(); i++)
-    {
-      DlnaServerDir::removeDir(i.key());
-      delete *i;
-    }
-  }
-
-  DlnaServerDir::clear();
-}
-
-void DlnaServerAlphaDir::addAlphaDir(const QString &name, DlnaServerDir *dir)
-{
-  Q_ASSERT(!name.isEmpty());
-  Q_ASSERT(dir);
-
-  foreach (const QString &firstLetter, toFirstLetters(name))
-  {
-    FileServerDir *letterDir = findDir(firstLetter);
-    if (letterDir == NULL)
-      DlnaServerDir::addDir(firstLetter, letterDir = new DlnaServerDir(server()));
-
-    letterDir->addDir(name, dir);
-  }
-
-  // Update latest items
-  if (name[0].isLetterOrNumber() && dir->date.isValid())
-  {
-    DlnaServerDir *latestDir = static_cast<DlnaServerDir *>(findDir(tr("Latest")));
-    if (latestDir == NULL)
-    {
-      latestDir = new DlnaServerDir(server());
-      latestDir->sortOrder -= 1;
-      DlnaServerDir::addDir(tr("Latest"), latestDir);
-    }
-
-    const DirMap * const subDirs = &(latestDir->listDirs());
-    if (subDirs->count() < 10)
-    {
-      latestDir->addDir(name, dir);
-    }
-    else for (DirMap::ConstIterator i=subDirs->begin(); i!=subDirs->end(); i++)
-    if (static_cast<DlnaServerDir *>(*i)->date < dir->date)
-    {
-      latestDir->removeDir(i.key());
-      latestDir->addDir(name, dir);
-      break;
-    }
-  }
-}
-
-void DlnaServerAlphaDir::removeAlphaDir(const QString &name)
-{
-  Q_ASSERT(!name.isEmpty());
-
-  if (alphaDirs.remove(name) > 0)
-  foreach (const QString &firstLetter, toFirstLetters(name))
-  {
-    FileServerDir * const letterDir = DlnaServerDir::findDir(firstLetter);
-    if (letterDir)
-    {
-      letterDir->removeDir(name);
-      if (letterDir->isEmpty())
-      {
-        DlnaServerDir::removeDir(firstLetter);
-        delete letterDir;
-      }
-    }
-  }
-
-  FileServerDir *latestDir = findDir(tr("Latest"));
-  if (latestDir)
-  {
-    latestDir->removeDir(name);
-    if (latestDir->isEmpty())
-    {
-      DlnaServerDir::removeDir(tr("Latest"));
-      delete latestDir;
-    }
-  }
-}
-
-QSet<QString> DlnaServerAlphaDir::toFirstLetters(const QString &name)
-{
-  Q_ASSERT(!name.isEmpty());
-
-  QSet<QString> firstLetters;
-  foreach (const QString &word, name.simplified().split(' '))
-  if (!word.isEmpty() && word[0].isLetterOrNumber())
-  {
-    const QString firstLetter = SStringParser::toBasicLatin(word[0]).toUpper();
-    if (!firstLetter.isEmpty())
-      firstLetters += firstLetter;
-  }
-
-  return firstLetters;
+  return DlnaServerDir::File();
 }
 
 

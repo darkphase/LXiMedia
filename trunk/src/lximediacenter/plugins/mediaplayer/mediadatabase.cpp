@@ -25,29 +25,11 @@ namespace LXiMediaCenter {
 
 const int MediaDatabase::maxSongDurationMin = 15;
 
-const MediaDatabase::CategoryFunc MediaDatabase::categoryFunc[] =
-{
-  { "movies",     &MediaDatabase::invalidateMovie,      &MediaDatabase::categorizeMovie },
-  { "tvshows",    &MediaDatabase::invalidateTVShow,     &MediaDatabase::categorizeTVShow },
-  { "clips",      &MediaDatabase::invalidateClip,       &MediaDatabase::categorizeClip },
-  { "music",      &MediaDatabase::invalidateMusic,      &MediaDatabase::categorizeMusic },
-  { "photos",     &MediaDatabase::invalidatePhoto,      &MediaDatabase::categorizePhoto },
-  { "homevideos", &MediaDatabase::invalidateHomeVideo,  &MediaDatabase::categorizeHomeVideo },
-  { NULL, NULL, NULL }
-};
-
-
 MediaDatabase::MediaDatabase(Plugin *plugin, QThreadPool *threadPool)
   : QObject(plugin),
     plugin(plugin),
     threadPool(threadPool),
     mutex(QMutex::Recursive),
-    invalidatedClips(1),
-    invalidatedHomeVideos(1),
-    invalidatedMovies(1),
-    invalidatedMusic(1),
-    invalidatedPhotos(1),
-    invalidatedTvShows(1),
     matchingImdbItems(false)
 {
   PluginSettings settings(plugin);
@@ -110,6 +92,26 @@ MediaDatabase::MediaDatabase(Plugin *plugin, QThreadPool *threadPool)
   query.exec("CREATE INDEX IF NOT EXISTS MediaplayerFiles_size "
              "ON MediaplayerFiles(size)");
 
+  query.exec("CREATE TABLE IF NOT EXISTS MediaplayerAlbums ("
+             "category       TEXT NOT NULL,"
+             "album          TEXT NOT NULL,"
+             "title          TEXT,"
+             "subtitle       TEXT,"
+             "file           INTEGER NOT NULL,"
+             "imdbLink       TEXT,"
+             "FOREIGN KEY(file) REFERENCES MediaplayerFiles(uid) ON DELETE CASCADE,"
+             "FOREIGN KEY(imdbLink) REFERENCES ImdbEntries(rawName) ON DELETE SET NULL)");
+
+  query.exec("CREATE INDEX IF NOT EXISTS MediaplayerAlbums_category "
+             "ON MediaplayerAlbums(category)");
+
+  query.exec("CREATE INDEX IF NOT EXISTS MediaplayerAlbums_album "
+             "ON MediaplayerAlbums(album)");
+
+  query.exec("CREATE INDEX IF NOT EXISTS MediaplayerAlbums_title "
+             "ON MediaplayerAlbums(title)");
+
+/*
   query.exec("CREATE TABLE IF NOT EXISTS MediaplayerMovies ("
              "rawName        TEXT NOT NULL,"
              "file           INTEGER NOT NULL,"
@@ -183,7 +185,7 @@ MediaDatabase::MediaDatabase(Plugin *plugin, QThreadPool *threadPool)
 
   query.exec("CREATE INDEX IF NOT EXISTS MediaplayerMiscAudio_rawName "
              "ON MediaplayerMiscAudio(rawName)");
-
+*/
   settings.setValue("DatabaseVersion", databaseVersion);
 
   dl.unlock();
@@ -280,29 +282,32 @@ QDateTime MediaDatabase::lastPlayed(const SMediaInfo &node) const
   return QDateTime();
 }
 
-QStringList MediaDatabase::allMovies(void) const
+QStringList MediaDatabase::allAlbums(Category category) const
 {
   SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
 
   QStringList result;
 
   QSqlQuery query(Database::database());
-  query.exec("SELECT DISTINCT rawName FROM MediaplayerMovies ORDER BY rawName");
+  query.prepare("SELECT DISTINCT album FROM MediaplayerAlbums WHERE category = :category ORDER BY album");
+  query.bindValue(0, categoryName(category));
+  query.exec();
   while (query.next())
     result << query.value(0).toString();
 
   return result;
 }
 
-QList<MediaDatabase::UniqueID> MediaDatabase::allMovieFiles(const QString &key) const
+QList<MediaDatabase::UniqueID> MediaDatabase::allAlbumFiles(Category category, const QString &album) const
 {
   SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
 
   QList<UniqueID> result;
 
   QSqlQuery query(Database::database());
-  query.prepare("SELECT DISTINCT file FROM MediaplayerMovies WHERE rawName = :rawName");
-  query.bindValue(0, key);
+  query.prepare("SELECT DISTINCT file FROM MediaplayerAlbums WHERE category = :category AND album = :album");
+  query.bindValue(0, categoryName(category));
+  query.bindValue(1, album);
   query.exec();
   while (query.next())
     result << query.value(0).toLongLong();
@@ -310,517 +315,50 @@ QList<MediaDatabase::UniqueID> MediaDatabase::allMovieFiles(const QString &key) 
   return result;
 }
 
-ImdbClient::Entry MediaDatabase::getMovieImdbEntry(const QString &key) const
+QList<MediaDatabase::UniqueID> MediaDatabase::queryAlbums(Category category, const QStringList &q) const
+{
+  QList<UniqueID> result;
+
+  QString qs1, qs2;
+  foreach (const QString &item, q)
+  {
+    const QString rawItem = SStringParser::toRawName(item);
+    if (!item.isEmpty())
+    {
+      qs1 += " AND title LIKE '%" + rawItem + "%'";
+      qs2 += " AND subtitle LIKE '%" + rawItem + "%'";
+    }
+  }
+
+  if (!qs1.isEmpty() && !qs2.isEmpty())
+  {
+    SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
+
+    QSqlQuery query(Database::database());
+    query.prepare("SELECT file FROM MediaplayerAlbums WHERE category = :category AND "
+                  "((" + qs1.mid(5) + ") OR (" + qs2.mid(5) + "))");
+    query.bindValue(0, categoryName(category));
+    query.exec();
+    while (query.next())
+      result << query.value(0).toLongLong();
+  }
+
+  return result;
+}
+
+ImdbClient::Entry MediaDatabase::getImdbEntry(UniqueID uid) const
 {
   SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
 
-  QList<UniqueID> result;
-
   QSqlQuery query(Database::database());
-  query.prepare("SELECT imdbLink FROM MediaplayerMovies WHERE rawName = :rawName");
-  query.bindValue(0, key);
+  query.prepare("SELECT imdbLink FROM MediaplayerAlbums WHERE file = :file");
+  query.bindValue(0, uid);
   query.exec();
   while (query.next())
   if (!query.value(0).isNull() && (query.value(0).toString() != ImdbClient::sentinelItem))
     return ImdbClient::readEntry(query.value(0).toString());
 
   return ImdbClient::Entry();
-}
-
-QList<MediaDatabase::UniqueID> MediaDatabase::queryMovieFiles(const QStringList &q) const
-{
-  QList<UniqueID> result;
-
-  QString qs;
-  foreach (const QString &item, q)
-    qs += " AND rawName LIKE '%" + SStringParser::toRawName(item) + "%'";
-
-  if (!qs.isEmpty())
-  {
-    SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
-
-    QSqlQuery query(Database::database());
-    query.exec("SELECT file FROM MediaplayerMovies "
-               "WHERE" + qs.mid(4));
-    while (query.next())
-      result << query.value(0).toLongLong();
-  }
-
-  return result;
-}
-
-QStringList MediaDatabase::allTvShows(void) const
-{
-  SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
-
-  QStringList result;
-
-  QSqlQuery query(Database::database());
-  query.exec("SELECT DISTINCT rawName FROM MediaplayerTvShows ORDER BY rawName");
-  while (query.next())
-    result << query.value(0).toString();
-
-  return result;
-}
-
-QList<MediaDatabase::UniqueID> MediaDatabase::allTvShowEpisodes(const QString &key) const
-{
-  SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
-
-  QList<UniqueID> result;
-
-  QSqlQuery query(Database::database());
-  query.prepare("SELECT DISTINCT file FROM MediaplayerTvShows WHERE rawName = :rawName");
-  query.bindValue(0, key);
-  query.exec();
-  while (query.next())
-    result << query.value(0).toLongLong();
-
-  return result;
-}
-
-ImdbClient::Entry MediaDatabase::getTvShowImdbEntry(const QString &key) const
-{
-  SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
-
-  QList<UniqueID> result;
-
-  QSqlQuery query(Database::database());
-  query.prepare("SELECT imdbLink FROM MediaplayerTvShows WHERE rawName = :rawName");
-  query.bindValue(0, key);
-  query.exec();
-  while (query.next())
-  if (!query.value(0).isNull() && (query.value(0).toString() != ImdbClient::sentinelItem))
-    return ImdbClient::readEntry(query.value(0).toString());
-
-  return ImdbClient::Entry();
-}
-
-QList<MediaDatabase::UniqueID> MediaDatabase::queryTvShows(const QStringList &q) const
-{
-  QList<UniqueID> result;
-
-  QString qs1, qs2;
-  foreach (const QString &item, q)
-  {
-    const QString rawItem = SStringParser::toRawName(item);
-    qs1 += " AND rawName LIKE '%" + rawItem + "%'";
-    qs2 += " AND rawEpisode LIKE '%" + rawItem + "%'";
-  }
-
-  if (!qs1.isEmpty() && !qs2.isEmpty())
-  {
-    SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
-
-    QSqlQuery query(Database::database());
-    query.exec("SELECT file FROM MediaplayerTvShows "
-               "WHERE (" + qs1.mid(5) + ") OR (" + qs2.mid(5) + ")");
-    while (query.next())
-      result << query.value(0).toLongLong();
-  }
-
-  return result;
-}
-
-QStringList MediaDatabase::allHomeVideos(void) const
-{
-  SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
-
-  QStringList result;
-
-  QSqlQuery query(Database::database());
-  query.exec("SELECT DISTINCT rawName FROM MediaplayerHomeVideos ORDER BY rawName");
-  while (query.next())
-    result << query.value(0).toString();
-
-  return result;
-}
-
-QList<MediaDatabase::UniqueID> MediaDatabase::allHomeVideoFiles(const QString &key) const
-{
-  SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
-
-  QList<UniqueID> result;
-
-  QSqlQuery query(Database::database());
-  query.prepare("SELECT DISTINCT file FROM MediaplayerHomeVideos WHERE rawName = :rawName");
-  query.bindValue(0, key);
-  query.exec();
-  while (query.next())
-    result << query.value(0).toLongLong();
-
-  return result;
-}
-
-QList<MediaDatabase::UniqueID> MediaDatabase::queryHomeVideos(const QStringList &q) const
-{
-  QList<UniqueID> result;
-
-  QString qs1, qs2;
-  foreach (const QString &item, q)
-  {
-    const QString rawItem = SStringParser::toRawName(item);
-    qs1 += " AND rawName LIKE '%" + rawItem + "%'";
-    qs2 += " AND rawFile LIKE '%" + rawItem + "%'";
-  }
-
-  if (!qs1.isEmpty() && !qs2.isEmpty())
-  {
-    SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
-
-    QSqlQuery query(Database::database());
-    query.exec("SELECT file FROM MediaplayerHomeVideos "
-               "WHERE (" + qs1.mid(5) + ") OR (" + qs2.mid(5) + ")");
-    while (query.next())
-      result << query.value(0).toLongLong();
-  }
-
-  return result;
-}
-
-QStringList MediaDatabase::allVideoClipAlbums(void) const
-{
-  SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
-
-  QStringList result;
-
-  QSqlQuery query(Database::database());
-  query.exec("SELECT DISTINCT rawName FROM MediaplayerVideoClipAlbums ORDER BY rawName");
-  while (query.next())
-    result << query.value(0).toString();
-
-  return result;
-}
-
-QList<MediaDatabase::UniqueID> MediaDatabase::allVideoClipFiles(const QString &key) const
-{
-  SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
-
-  QList<UniqueID> result;
-
-  QSqlQuery query(Database::database());
-  query.prepare("SELECT DISTINCT file FROM MediaplayerVideoClipAlbums WHERE rawName = :rawName ORDER BY rawFile");
-  query.bindValue(0, key);
-  query.exec();
-  while (query.next())
-    result << query.value(0).toLongLong();
-
-  return result;
-}
-
-QList<MediaDatabase::UniqueID> MediaDatabase::queryVideoClips(const QStringList &q) const
-{
-  QList<UniqueID> result;
-
-  QString qs1, qs2;
-  foreach (const QString &item, q)
-  {
-    const QString rawItem = SStringParser::toRawName(item);
-    qs1 += " AND rawName LIKE '%" + rawItem + "%'";
-    qs2 += " AND rawFile LIKE '%" + rawItem + "%'";
-  }
-
-  if (!qs1.isEmpty() && !qs2.isEmpty())
-  {
-    SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
-
-    QSqlQuery query(Database::database());
-    query.exec("SELECT file FROM MediaplayerVideoClipAlbums "
-               "WHERE (" + qs1.mid(5) + ") OR (" + qs2.mid(5) + ")");
-    while (query.next())
-      result << query.value(0).toLongLong();
-  }
-
-  return result;
-}
-
-QStringList MediaDatabase::allPhotoAlbums(void) const
-{
-  SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
-
-  QStringList result;
-
-  QSqlQuery query(Database::database());
-  query.exec("SELECT DISTINCT rawName FROM MediaplayerPhotoAlbums ORDER BY rawName");
-  while (query.next())
-    result << query.value(0).toString();
-
-  return result;
-}
-
-QList<MediaDatabase::UniqueID> MediaDatabase::allPhotoFiles(const QString &key) const
-{
-  SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
-
-  QList<UniqueID> result;
-
-  QSqlQuery query(Database::database());
-  query.prepare("SELECT DISTINCT file FROM MediaplayerPhotoAlbums WHERE rawName = :rawName ORDER BY rawFile");
-  query.bindValue(0, key);
-  query.exec();
-  while (query.next())
-    result << query.value(0).toLongLong();
-
-  return result;
-}
-
-QList<MediaDatabase::UniqueID> MediaDatabase::queryPhotoAlbums(const QStringList &q) const
-{
-  QList<UniqueID> result;
-
-  QString qs1, qs2;
-  foreach (const QString &item, q)
-  {
-    const QString rawItem = SStringParser::toRawName(item);
-    qs1 += " AND rawName LIKE '%" + rawItem + "%'";
-    qs2 += " AND rawFile LIKE '%" + rawItem + "%'";
-  }
-
-  if (!qs1.isEmpty() && !qs2.isEmpty())
-  {
-    SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
-
-    QSqlQuery query(Database::database());
-    query.exec("SELECT file FROM MediaplayerPhotoAlbums "
-               "WHERE (" + qs1.mid(5) + ") OR (" + qs2.mid(5) + ")");
-    while (query.next())
-      result << query.value(0).toLongLong();
-  }
-
-  return result;
-}
-
-unsigned MediaDatabase::numSongs(void) const
-{
-  SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
-
-  QSqlQuery query(Database::database());
-  query.exec("SELECT COUNT(*) FROM MediaplayerMusic");
-  if (query.next())
-    return query.value(0).toUInt();
-
-  return 0;
-}
-
-MediaDatabase::UniqueID MediaDatabase::getSong(unsigned offset) const
-{
-  SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
-
-  QSqlQuery query(Database::database());
-  query.exec("SELECT file FROM MediaplayerMusic LIMIT 1 OFFSET " + QString::number(offset));
-  if (query.next())
-    return query.value(0).toULongLong();
-
-  return 0;
-}
-
-QList<MediaDatabase::UniqueID> MediaDatabase::latestSongs(unsigned count) const
-{
-  SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
-
-  QList<UniqueID> result;
-
-  QSqlQuery query(Database::database());
-  query.exec("SELECT DISTINCT file FROM "
-             "MediaplayerMusic INNER JOIN MediaplayerFiles ON (MediaplayerMusic.file = MediaplayerFiles.uid) "
-             "ORDER BY lastModified DESC LIMIT " + QString::number(count));
-  while (query.next())
-    result << query.value(0).toLongLong();
-
-  return result;
-}
-
-QStringList MediaDatabase::allMusicArtists(void) const
-{
-  SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
-
-  QStringList result;
-
-  QSqlQuery query(Database::database());
-  query.exec("SELECT DISTINCT rawArtist FROM MediaplayerMusic ORDER BY rawArtist");
-  while (query.next())
-    result << query.value(0).toString();
-
-  return result;
-}
-
-QList<MediaDatabase::UniqueID> MediaDatabase::allMusicArtistFiles(const QString &key) const
-{
-  SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
-
-  QList<UniqueID> result;
-
-  QSqlQuery query(Database::database());
-  query.prepare("SELECT DISTINCT file FROM MediaplayerMusic WHERE rawArtist = :rawArtist");
-  query.bindValue(0, key);
-  query.exec();
-  while (query.next())
-    result << query.value(0).toLongLong();
-
-  return result;
-}
-
-QStringList MediaDatabase::allMusicGenres(void) const
-{
-  SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
-
-  QStringList result;
-
-  QSqlQuery query(Database::database());
-  query.exec("SELECT DISTINCT rawGenre FROM MediaplayerMusic ORDER BY rawGenre");
-  while (query.next())
-    result << query.value(0).toString();
-
-  return result;
-}
-
-QList<MediaDatabase::UniqueID> MediaDatabase::allMusicGenreFiles(const QString &key) const
-{
-  SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
-
-  QList<UniqueID> result;
-
-  QSqlQuery query(Database::database());
-  query.prepare("SELECT DISTINCT file FROM MediaplayerMusic WHERE rawGenre = :rawGenre");
-  query.bindValue(0, key);
-  query.exec();
-  while (query.next())
-    result << query.value(0).toLongLong();
-
-  return result;
-}
-QStringList MediaDatabase::allMusicVideoAlbums(void) const
-{
-  SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
-
-  QStringList result;
-
-  QSqlQuery query(Database::database());
-  query.prepare("SELECT DISTINCT rawArtist FROM MediaplayerMusic WHERE hasVideo = :hasVideo ORDER BY rawArtist");
-  query.bindValue(0, true);
-  query.exec();
-  while (query.next())
-    result << query.value(0).toString();
-
-  return result;
-}
-
-QList<MediaDatabase::UniqueID> MediaDatabase::allMusicVideoFiles(const QString &key) const
-{
-  SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
-
-  QList<UniqueID> result;
-
-  QSqlQuery query(Database::database());
-  query.prepare("SELECT DISTINCT file FROM MediaplayerMusic WHERE hasVideo = :hasVideo AND rawArtist = :rawArtist ORDER BY rawTitle");
-  query.bindValue(0, true);
-  query.bindValue(1, key);
-  query.exec();
-  while (query.next())
-    result << query.value(0).toLongLong();
-
-  return result;
-}
-
-QList<MediaDatabase::UniqueID> MediaDatabase::queryMusic(const QStringList &q) const
-{
-  QList<UniqueID> result;
-
-  QString qs1, qs2, qs3;
-  foreach (const QString &item, q)
-  {
-    const QString rawItem = SStringParser::toRawName(item);
-    qs1 += " AND rawTitle LIKE '%" + rawItem + "%'";
-    qs2 += " AND rawArtist LIKE '%" + rawItem + "%'";
-    qs3 += " AND rawGenre LIKE '%" + rawItem + "%'";
-  }
-
-  if (!qs1.isEmpty() && !qs2.isEmpty() && !qs3.isEmpty())
-  {
-    SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
-
-    QSqlQuery query(Database::database());
-    query.exec("SELECT file FROM MediaplayerMusic "
-               "WHERE (" + qs1.mid(5) + ") OR (" + qs2.mid(5) + ") OR (" + qs3.mid(5) + ")");
-    while (query.next())
-      result << query.value(0).toLongLong();
-  }
-
-  return result;
-}
-
-QString MediaDatabase::genreName(const QString &name)
-{
-  QString result = "";
-  foreach (QChar c, name.simplified())
-  if (c.isLetter() || c.isSpace())
-    result += c;
-
-  result = result.simplified();
-
-  if ((result.length() == 0) || (result.toUpper() == "OTHER") ||
-      (result.toUpper() == "MISC") || (result.toUpper() == "SOUNDTRACK"))
-  {
-   result = "(Other)";
-  }
-
-  return result;
-}
-
-QStringList MediaDatabase::allMiscAudioAlbums(void) const
-{
-  SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
-
-  QStringList result;
-
-  QSqlQuery query(Database::database());
-  query.exec("SELECT DISTINCT rawName FROM MediaplayerMiscAudio ORDER BY rawName");
-  while (query.next())
-    result << query.value(0).toString();
-
-  return result;
-}
-
-QList<MediaDatabase::UniqueID> MediaDatabase::allMiscAudioFiles(const QString &key) const
-{
-  SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
-
-  QList<UniqueID> result;
-
-  QSqlQuery query(Database::database());
-  query.prepare("SELECT DISTINCT file FROM MediaplayerMiscAudio WHERE rawName = :rawName ORDER BY rawFile");
-  query.bindValue(0, key);
-  query.exec();
-  while (query.next())
-    result << query.value(0).toLongLong();
-
-  return result;
-}
-
-QList<MediaDatabase::UniqueID> MediaDatabase::queryMiscAudioAlbums(const QStringList &q) const
-{
-  QList<UniqueID> result;
-
-  QString qs1, qs2;
-  foreach (const QString &item, q)
-  {
-    const QString rawItem = SStringParser::toRawName(item);
-    qs1 += " AND rawName LIKE '%" + rawItem + "%'";
-    qs2 += " AND rawFile LIKE '%" + rawItem + "%'";
-  }
-
-  if (!qs1.isEmpty() && !qs2.isEmpty())
-  {
-    SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
-
-    QSqlQuery query(Database::database());
-    query.exec("SELECT file FROM MediaplayerMiscAudio "
-               "WHERE (" + qs1.mid(5) + ") OR (" + qs2.mid(5) + ")");
-    while (query.next())
-      result << query.value(0).toLongLong();
-  }
-
-  return result;
 }
 
 QList<MediaDatabase::UniqueID> MediaDatabase::allFilesInDirOf(UniqueID uid) const
@@ -837,6 +375,22 @@ QList<MediaDatabase::UniqueID> MediaDatabase::allFilesInDirOf(UniqueID uid) cons
   }
 
   return result;
+}
+
+const char * MediaDatabase::categoryName(Category category)
+{
+  switch (category)
+  {
+  case Category_None:       break;
+  case Category_Movies:     return "Movies";
+  case Category_TVShows:    return "TVShows";
+  case Category_Clips:      return "Clips";
+  case Category_HomeVideos: return "HomeVideos";
+  case Category_Photos:     return "Photos";
+  case Category_Music:      return "Music";
+  }
+
+  return "";
 }
 
 
