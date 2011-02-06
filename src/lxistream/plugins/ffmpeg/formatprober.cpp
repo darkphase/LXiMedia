@@ -174,7 +174,6 @@ void FormatProber::probeFile(ProbeInfo &pi, ReadCallback *readCallback)
             for (QList<VideoStreamInfo>::Iterator j = pi.videoStreams.begin();
                  j != pi.videoStreams.end();
                  j++)
-            if (j->streamId == i.key())
             {
               const SInterval frameRate = bestThumb.format().frameRate();
               if (qAbs(j->codec.frameRate().toFrequency() - frameRate.toFrequency()) > 0.1f)

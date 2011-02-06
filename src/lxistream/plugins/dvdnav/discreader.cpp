@@ -274,7 +274,7 @@ void DiscReader::annotateDataStreams(QList<DataStreamInfo> &dataStreams) const
         const quint16 id = (lid >= 0 ? int(lid) : i) + 0x20;
 
         dataStreams +=
-            DataStreamInfo(StreamId::StreamType_Subtitle, id, language, SDataCodec("SUB/DVD"));
+            DataStreamInfo(StreamId::Type_Subtitle, id, language, SDataCodec("SUB/DVD"));
       }
     }
   }

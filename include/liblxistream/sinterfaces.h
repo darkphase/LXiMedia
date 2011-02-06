@@ -123,28 +123,32 @@ public:
 
   struct StreamId
   {
-    enum StreamType
+    enum Type
     {
-      StreamType_None = 0,
-      StreamType_Audio, StreamType_Video, StreamType_Subtitle,
+      Type_None               = 0x00000,
+      Type_Audio              = 0x10000,
+      Type_Video              = 0x20000,
+      Type_Subtitle           = 0x30000
     };
 
-    inline StreamId(void) : streamType(StreamType_None), streamId(0) { }
-    inline StreamId(quint32 v) { reinterpret_cast<quint32 &>(streamType) = v; }
-    inline StreamId(StreamType streamType, quint16 streamId) : streamType(streamType), streamId(streamId) { }
+    inline StreamId(void) : streamSpec(Type_None)                                 { }
+    inline StreamId(quint32 streamSpec) : streamSpec(streamSpec)                      { }
+    inline StreamId(Type type, quint16 id) : streamSpec(type | quint32(id))       { }
 
-    inline                      operator quint32() const                        { return reinterpret_cast<const quint32 &>(streamType); }
-    inline bool                 operator<(StreamId other) const                 { return quint32(*this) < quint32(other); }
+    inline                      operator quint32() const                        { return streamSpec; }
+    inline bool                 operator<(StreamId other) const                 { return streamSpec < other.streamSpec; }
 
-    quint16                     streamType;
-    quint16                     streamId;
-  } __attribute__((packed));
+    inline Type                 streamType(void) const                          { return Type(streamSpec & 0xFFFF0000u); }
+    inline quint16              streamId(void) const                            { return quint16(streamSpec & 0xFFFF); }
+
+    quint32                     streamSpec;
+  };
 
   struct StreamInfo : StreamId
   {
     inline StreamInfo(void) : StreamId() { memset(language, 0, sizeof(language)); }
-    inline StreamInfo(StreamType streamType, quint16 streamId, const char *language)
-      : StreamId(streamType, streamId)
+    inline StreamInfo(Type type, quint16 id, const char *language)
+      : StreamId(type, id)
     {
       memset(this->language, 0, sizeof(this->language));
       if (language && (qstrlen(language) > 0))
@@ -157,7 +161,7 @@ public:
   struct AudioStreamInfo : StreamInfo
   {
     inline AudioStreamInfo(void) : codec() { }
-    inline AudioStreamInfo(quint16 streamId, const char *language, const SAudioCodec &codec) : StreamInfo(StreamType_Audio, streamId, language), codec(codec) { }
+    inline AudioStreamInfo(quint16 id, const char *language, const SAudioCodec &codec) : StreamInfo(Type_Audio, id, language), codec(codec) { }
 
     SAudioCodec                 codec;
   };
@@ -165,7 +169,7 @@ public:
   struct VideoStreamInfo : StreamInfo
   {
     inline VideoStreamInfo(void) : codec() { }
-    inline VideoStreamInfo(quint16 streamId, const char *language, const SVideoCodec &codec) : StreamInfo(StreamType_Video, streamId, language), codec(codec) { }
+    inline VideoStreamInfo(quint16 id, const char *language, const SVideoCodec &codec) : StreamInfo(Type_Video, id, language), codec(codec) { }
 
     SVideoCodec                 codec;
   };
@@ -173,7 +177,7 @@ public:
   struct DataStreamInfo : StreamInfo
   {
     inline DataStreamInfo(void) : codec() { }
-    inline DataStreamInfo(StreamType streamType, quint16 streamId, const char *language, const SDataCodec &codec) : StreamInfo(streamType, streamId, language), codec(codec) { }
+    inline DataStreamInfo(Type type, quint16 id, const char *language, const SDataCodec &codec) : StreamInfo(type, id, language), codec(codec) { }
 
     SDataCodec                  codec;
     QString                     file;

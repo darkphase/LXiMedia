@@ -277,7 +277,7 @@ QDomNode SMediaInfo::toXml(const SInterfaces::FormatProber::ProbeInfo &pi, QDomD
   foreach (const AudioStreamInfo &audioStream, pi.audioStreams)
   {
     QDomElement elm = createElement(doc, "audiostream");
-    elm.setAttribute("id", audioStream.streamId);
+    elm.setAttribute("id", audioStream.streamId());
     elm.setAttribute("language", audioStream.language);
     elm.appendChild(audioStream.codec.toXml(doc));
     mediainfo.appendChild(elm);
@@ -286,7 +286,7 @@ QDomNode SMediaInfo::toXml(const SInterfaces::FormatProber::ProbeInfo &pi, QDomD
   foreach (const VideoStreamInfo &videoStream, pi.videoStreams)
   {
     QDomElement elm = createElement(doc, "videostream");
-    elm.setAttribute("id", videoStream.streamId);
+    elm.setAttribute("id", videoStream.streamId());
     elm.setAttribute("language", videoStream.language);
     elm.appendChild(videoStream.codec.toXml(doc));
     mediainfo.appendChild(elm);
@@ -295,8 +295,8 @@ QDomNode SMediaInfo::toXml(const SInterfaces::FormatProber::ProbeInfo &pi, QDomD
   foreach (const DataStreamInfo &dataStream, pi.dataStreams)
   {
     QDomElement elm = createElement(doc, "datastream");
-    elm.setAttribute("type", dataStream.streamType);
-    elm.setAttribute("id", dataStream.streamId);
+    elm.setAttribute("type", dataStream.streamType());
+    elm.setAttribute("id", dataStream.streamId());
     elm.setAttribute("language", dataStream.language);
     elm.setAttribute("file", dataStream.file);
     elm.appendChild(dataStream.codec.toXml(doc));
@@ -393,7 +393,7 @@ void SMediaInfo::fromXml(SInterfaces::FormatProber::ProbeInfo &pi, const QDomNod
     SDataCodec codec;
     codec.fromXml(elm);
 
-    DataStreamInfo stream(DataStreamInfo::StreamType(elm.attribute("type").toUShort()), elm.attribute("id").toUShort(), elm.attribute("language").toAscii(), codec);
+    DataStreamInfo stream(DataStreamInfo::Type(elm.attribute("type").toInt()), elm.attribute("id").toUShort(), elm.attribute("language").toAscii(), codec);
     stream.file = elm.attribute("file");
     pi.dataStreams += stream;
   }
@@ -535,7 +535,7 @@ void SMediaInfo::probeDataStreams(void)
       for (QList<SMediaInfo::DataStreamInfo>::Iterator i=subs.begin(); i!=subs.end(); i++)
       if (i->file == fileName)
       {
-        i->streamId = nextStreamId++;
+        i->streamSpec = SMediaInfo::DataStreamInfo::Type_Subtitle | quint32(nextStreamId++);
         pi->dataStreams += *i;
 
         found = true;
@@ -547,7 +547,7 @@ void SMediaInfo::probeDataStreams(void)
         SSubtitleFile file(fileName);
         if (file.open())
         {
-          DataStreamInfo stream(DataStreamInfo::StreamType_Subtitle, nextStreamId++, file.language(), file.codec());
+          DataStreamInfo stream(DataStreamInfo::Type_Subtitle, nextStreamId++, file.language(), file.codec());
           stream.file = fileName;
           pi->dataStreams += stream;
         }
