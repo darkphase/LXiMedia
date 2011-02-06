@@ -17,7 +17,7 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include <liblximediacenter/ssdpserver.h>
+#include "ssdpserver.h"
 
 #if defined(Q_OS_UNIX)
 #include <arpa/inet.h>
@@ -26,8 +26,8 @@
 #elif defined(Q_OS_WIN)
 #include <ws2tcpip.h>
 #endif
-#include <liblximediacenter/globalsettings.h>
-#include <liblximediacenter/httpserver.h>
+#include "globalsettings.h"
+#include "httpserver.h"
 
 namespace LXiMediaCenter {
 

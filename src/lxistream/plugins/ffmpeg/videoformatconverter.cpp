@@ -24,6 +24,7 @@ namespace FFMpegBackend {
 
 VideoFormatConverter::VideoFormatConverter(const QString &, QObject *parent)
   : SInterfaces::VideoFormatConverter(parent),
+    swsContextHandle(NULL),
     srcFormat(SVideoFormat::Format_Invalid),
     dstFormat(SVideoFormat::Format_Invalid),
     width(720),
@@ -63,14 +64,16 @@ bool VideoFormatConverter::openFormat(const SVideoFormat &srcFormat, const SVide
 
 bool VideoFormatConverter::openFormat(void)
 {
+  if (swsContextHandle)
+    ::sws_freeContext(swsContextHandle);
+
   swsContextHandle =
-      ::sws_getCachedContext(swsContextHandle,
-                             width, height,
-                             ::PixelFormat(FFMpegCommon::toFFMpegPixelFormat(srcFormat)),
-                             width, height,
-                             ::PixelFormat(FFMpegCommon::toFFMpegPixelFormat(dstFormat)),
-                             SWS_POINT,
-                             NULL, NULL, NULL);
+      ::sws_getContext(width, height,
+                       ::PixelFormat(FFMpegCommon::toFFMpegPixelFormat(srcFormat)),
+                       width, height,
+                       ::PixelFormat(FFMpegCommon::toFFMpegPixelFormat(dstFormat)),
+                       SWS_POINT,
+                       NULL, NULL, NULL);
 
   return swsContextHandle != NULL;
 }

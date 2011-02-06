@@ -17,8 +17,8 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include <liblximediacenter/backendserver.h>
-#include <liblximediacenter/plugininterfaces.h>
+#include "backendserver.h"
+#include "plugininterfaces.h"
 
 namespace LXiMediaCenter {
 

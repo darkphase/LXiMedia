@@ -17,19 +17,19 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "mediaserver.h"
+#include "mediaplayerserver.h"
 
 namespace LXiMediaCenter {
 
-const int MediaServer::seekBySecs = 120;
+const int MediaPlayerServer::seekBySecs = 120;
 
-MediaServer::MediaServer(const char *name, MediaDatabase *mediaDatabase, Plugin *plugin, BackendServer::MasterServer *server)
-            :VideoServer(name, plugin, server),
-             mediaDatabase(mediaDatabase)
+MediaPlayerServer::MediaPlayerServer(const char *name, MediaDatabase *mediaDatabase, Plugin *plugin, BackendServer::MasterServer *server)
+  : MediaServer(name, plugin, server),
+    mediaDatabase(mediaDatabase)
 {
 }
 
-bool MediaServer::handleConnection(const QHttpRequestHeader &request, QAbstractSocket *socket)
+bool MediaPlayerServer::handleConnection(const QHttpRequestHeader &request, QAbstractSocket *socket)
 {
   const QUrl url(request.path());
   const QString file = url.path().mid(url.path().lastIndexOf('/') + 1);
@@ -73,15 +73,15 @@ bool MediaServer::handleConnection(const QHttpRequestHeader &request, QAbstractS
     return false;
   }
 
-  return VideoServer::handleConnection(request, socket);
+  return MediaServer::handleConnection(request, socket);
 }
 
-void MediaServer::enableDlna(void)
+void MediaPlayerServer::enableDlna(void)
 {
-  VideoServer::enableDlna();
+  MediaServer::enableDlna();
 }
 
-DlnaServerDir * MediaServer::getAlbumDir(const QString &album)
+DlnaServerDir * MediaPlayerServer::getAlbumDir(const QString &album)
 {
   DlnaServerDir * current = &dlnaDir;
   foreach (const QString &name, album.split('/', QString::SkipEmptyParts))
@@ -100,7 +100,7 @@ DlnaServerDir * MediaServer::getAlbumDir(const QString &album)
   return current;
 }
 
-void MediaServer::addVideoFile(DlnaServerDir *dir, const PlayItem &item, const QString &name, int sortOrder) const
+void MediaPlayerServer::addVideoFile(DlnaServerDir *dir, const PlayItem &item, const QString &name, int sortOrder) const
 {
   if (!item.mediaInfo.duration().isValid() || (item.mediaInfo.duration().toSec() < 10 * 60))
   {
@@ -118,7 +118,7 @@ void MediaServer::addVideoFile(DlnaServerDir *dir, const PlayItem &item, const Q
     addVideoFile(dir, QList<PlayItem>() << item, name, sortOrder);
 }
 
-void MediaServer::addVideoFile(DlnaServerDir *dir, const QList<PlayItem> &items, const QString &name, int sortOrder) const
+void MediaPlayerServer::addVideoFile(DlnaServerDir *dir, const QList<PlayItem> &items, const QString &name, int sortOrder) const
 {
   if (!items.isEmpty())
   {
@@ -287,7 +287,7 @@ void MediaServer::addVideoFile(DlnaServerDir *dir, const QList<PlayItem> &items,
   }
 }
 
-bool MediaServer::streamVideo(const QHttpRequestHeader &request, QAbstractSocket *socket)
+bool MediaPlayerServer::streamVideo(const QHttpRequestHeader &request, QAbstractSocket *socket)
 {
   const QUrl url(request.path());
 
@@ -342,7 +342,7 @@ bool MediaServer::streamVideo(const QHttpRequestHeader &request, QAbstractSocket
   return false;
 }
 
-bool MediaServer::buildPlaylist(const QHttpRequestHeader &request, QAbstractSocket *socket)
+bool MediaPlayerServer::buildPlaylist(const QHttpRequestHeader &request, QAbstractSocket *socket)
 {
   const QUrl url(request.path());
   const QStringList file = url.path().mid(url.path().lastIndexOf('/') + 1).split('.');
@@ -382,7 +382,7 @@ bool MediaServer::buildPlaylist(const QHttpRequestHeader &request, QAbstractSock
   return false;
 }
 
-bool MediaServer::handleHtmlRequest(const QUrl &url, const QString &file, QAbstractSocket *socket)
+bool MediaPlayerServer::handleHtmlRequest(const QUrl &url, const QString &file, QAbstractSocket *socket)
 {
   QHttpResponseHeader response(200);
   response.setContentType("text/html;charset=utf-8");
@@ -493,7 +493,7 @@ bool MediaServer::handleHtmlRequest(const QUrl &url, const QString &file, QAbstr
   return false;
 }
 
-QString MediaServer::videoFormatString(const SMediaInfo &mediaInfo)
+QString MediaPlayerServer::videoFormatString(const SMediaInfo &mediaInfo)
 {
   if (!mediaInfo.videoStreams().isEmpty())
   {
@@ -513,16 +513,16 @@ QString MediaServer::videoFormatString(const SMediaInfo &mediaInfo)
   return tr("Unknown");
 }
 
-QByteArray MediaServer::buildVideoPlayer(MediaDatabase::UniqueID uid, const SMediaInfo &node, const QUrl &url, const QSize &size)
+QByteArray MediaPlayerServer::buildVideoPlayer(MediaDatabase::UniqueID uid, const SMediaInfo &node, const QUrl &url, const QSize &size)
 {
   if (node.isDisc())
-    return VideoServer::buildVideoPlayer(MediaDatabase::toUidString(uid), node.titles().first(), url, size);
+    return MediaServer::buildVideoPlayer(MediaDatabase::toUidString(uid), node.titles().first(), url, size);
   else
-    return VideoServer::buildVideoPlayer(MediaDatabase::toUidString(uid), node, url, size);
+    return MediaServer::buildVideoPlayer(MediaDatabase::toUidString(uid), node, url, size);
 }
 
 
-MediaServer::FileStream::FileStream(MediaServer *parent, const QHostAddress &peer, const QString &url, const QString &fileName, MediaDatabase::UniqueID uid)
+MediaPlayerServer::FileStream::FileStream(MediaPlayerServer *parent, const QHostAddress &peer, const QString &url, const QString &fileName, MediaDatabase::UniqueID uid)
   : TranscodeStream(parent, peer, url),
     startTime(QDateTime::currentDateTime()),
     uid(uid),
@@ -535,14 +535,14 @@ MediaServer::FileStream::FileStream(MediaServer *parent, const QHostAddress &pee
   connect(&file, SIGNAL(output(SEncodedDataBuffer)), &dataDecoder, SLOT(input(SEncodedDataBuffer)));
 }
 
-MediaServer::FileStream::~FileStream()
+MediaPlayerServer::FileStream::~FileStream()
 {
   if (startTime.secsTo(QDateTime::currentDateTime()) >= 120)
-    static_cast<MediaServer *>(parent)->mediaDatabase->setLastPlayed(uid);
+    static_cast<MediaPlayerServer *>(parent)->mediaDatabase->setLastPlayed(uid);
 }
 
 
-MediaServer::DiscStream::DiscStream(MediaServer *parent, const QHostAddress &peer, const QString &url, const QString &devicePath, MediaDatabase::UniqueID uid)
+MediaPlayerServer::DiscStream::DiscStream(MediaPlayerServer *parent, const QHostAddress &peer, const QString &url, const QString &devicePath, MediaDatabase::UniqueID uid)
   : TranscodeStream(parent, peer, url),
     startTime(QDateTime::currentDateTime()),
     uid(uid),
@@ -555,10 +555,10 @@ MediaServer::DiscStream::DiscStream(MediaServer *parent, const QHostAddress &pee
   connect(&disc, SIGNAL(output(SEncodedDataBuffer)), &dataDecoder, SLOT(input(SEncodedDataBuffer)));
 }
 
-MediaServer::DiscStream::~DiscStream()
+MediaPlayerServer::DiscStream::~DiscStream()
 {
   if (startTime.secsTo(QDateTime::currentDateTime()) >= 120)
-    static_cast<MediaServer *>(parent)->mediaDatabase->setLastPlayed(uid);
+    static_cast<MediaPlayerServer *>(parent)->mediaDatabase->setLastPlayed(uid);
 }
 
 } // End of namespace

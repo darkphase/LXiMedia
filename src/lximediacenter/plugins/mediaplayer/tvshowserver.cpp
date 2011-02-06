@@ -22,7 +22,7 @@
 namespace LXiMediaCenter {
 
 TvShowServer::TvShowServer(MediaDatabase *mediaDatabase, Plugin *plugin, MasterServer *server)
-             :MediaServer(QT_TR_NOOP("TV Shows"), mediaDatabase, plugin, server)
+  : MediaPlayerServer(QT_TR_NOOP("TV Shows"), mediaDatabase, plugin, server)
 {
   enableDlna();
   connect(mediaDatabase, SIGNAL(updatedTvShows()), SLOT(startDlnaUpdate()));

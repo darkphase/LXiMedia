@@ -428,7 +428,7 @@ bool MusicServer::handleHtmlRequest(const QUrl &url, const QString &file, QAbstr
     return false;
   }
   else
-    return MediaServer::handleHtmlRequest(url, file, socket);
+    return MediaPlayerServer::handleHtmlRequest(url, file, socket);
 }
 
 } // End of namespace

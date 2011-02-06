@@ -28,7 +28,7 @@ namespace LXiMediaCenter {
 
 class TelevisionBackend;
 
-class CameraServer : public VideoServer
+class CameraServer : public MediaServer
 {
 Q_OBJECT
 protected:

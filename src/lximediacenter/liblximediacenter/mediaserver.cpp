@@ -17,15 +17,15 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include <liblximediacenter/videoserver.h>
-#include <liblximediacenter/globalsettings.h>
-#include <liblximediacenter/htmlparser.h>
+#include "mediaserver.h"
+#include "globalsettings.h"
+#include "htmlparser.h"
 #include <LXiStreamGui>
 
 namespace LXiMediaCenter {
 
 
-struct VideoServer::Private
+struct MediaServer::Private
 {
   class StreamEvent : public QEvent
   {
@@ -46,11 +46,11 @@ struct VideoServer::Private
   QList<Stream *>               reusableStreams;
 };
 
-const QEvent::Type VideoServer::Private::startStreamEventType = QEvent::Type(QEvent::registerEventType());
-const QEvent::Type VideoServer::Private::buildPlaylistEventType = QEvent::Type(QEvent::registerEventType());
+const QEvent::Type MediaServer::Private::startStreamEventType = QEvent::Type(QEvent::registerEventType());
+const QEvent::Type MediaServer::Private::buildPlaylistEventType = QEvent::Type(QEvent::registerEventType());
 
 
-VideoServer::VideoServer(const char *name, Plugin *plugin, BackendServer::MasterServer *server)
+MediaServer::MediaServer(const char *name, Plugin *plugin, BackendServer::MasterServer *server)
             :BackendServer(name, plugin, server),
              lock(QReadWriteLock::Recursive),
              p(new Private())
@@ -59,13 +59,13 @@ VideoServer::VideoServer(const char *name, Plugin *plugin, BackendServer::Master
   GlobalSettings::productLogo().bits();
 }
 
-VideoServer::~VideoServer()
+MediaServer::~MediaServer()
 {
   delete p;
   *const_cast<Private **>(&p) = NULL;
 }
 
-bool VideoServer::handleConnection(const QHttpRequestHeader &request, QAbstractSocket *socket)
+bool MediaServer::handleConnection(const QHttpRequestHeader &request, QAbstractSocket *socket)
 {
   const QUrl url(request.path());
 
@@ -94,7 +94,7 @@ bool VideoServer::handleConnection(const QHttpRequestHeader &request, QAbstractS
   return BackendServer::handleConnection(request, socket);
 }
 
-void VideoServer::customEvent(QEvent *e)
+void MediaServer::customEvent(QEvent *e)
 {
   if (e->type() == p->startStreamEventType)
   {
@@ -139,7 +139,7 @@ void VideoServer::customEvent(QEvent *e)
   }
 }
 
-void VideoServer::cleanStreams(void)
+void MediaServer::cleanStreams(void)
 {
   lock.lockForWrite();
 
@@ -157,7 +157,7 @@ void VideoServer::cleanStreams(void)
   lock.unlock();
 }
 
-void VideoServer::addStream(Stream *stream)
+void MediaServer::addStream(Stream *stream)
 {
   SDebug::WriteLocker l(&lock, __FILE__, __LINE__);
 
@@ -167,7 +167,7 @@ void VideoServer::addStream(Stream *stream)
   p->streams += stream;
 }
 
-void VideoServer::removeStream(Stream *stream)
+void MediaServer::removeStream(Stream *stream)
 {
   SDebug::WriteLocker l(&lock, __FILE__, __LINE__);
 
@@ -177,9 +177,9 @@ void VideoServer::removeStream(Stream *stream)
   p->reusableStreams.removeAll(stream);
 }
 
-QAtomicInt VideoServer::Stream::idCounter = 1;
+QAtomicInt MediaServer::Stream::idCounter = 1;
 
-VideoServer::Stream::Stream(VideoServer *parent, const QHostAddress &peer, const QString &url)
+MediaServer::Stream::Stream(MediaServer *parent, const QHostAddress &peer, const QString &url)
   : SGraph(),
     id(idCounter.fetchAndAddRelaxed(1)),
     parent(parent),
@@ -222,12 +222,12 @@ VideoServer::Stream::Stream(VideoServer *parent, const QHostAddress &peer, const
   connect(&timeStampResampler, SIGNAL(output(SSubtitleBuffer)), &subtitleRenderer, SLOT(input(SSubtitleBuffer)));
 }
 
-VideoServer::Stream::~Stream()
+MediaServer::Stream::~Stream()
 {
   parent->removeStream(this);
 }
 
-void VideoServer::Stream::setup(bool addHeader, const QString &name, const QImage &thumb)
+void MediaServer::Stream::setup(bool addHeader, const QString &name, const QImage &thumb)
 {
   const SAudioCodec audioCodec = audioEncoder.codec();
   const SVideoCodec videoCodec = videoEncoder.codec();
@@ -339,7 +339,7 @@ void VideoServer::Stream::setup(bool addHeader, const QString &name, const QImag
 }
 
 
-VideoServer::TranscodeStream::TranscodeStream(VideoServer *parent, const QHostAddress &peer, const QString &url)
+MediaServer::TranscodeStream::TranscodeStream(MediaServer *parent, const QHostAddress &peer, const QString &url)
   : Stream(parent, peer, url),
     audioDecoder(this),
     videoDecoder(this),
@@ -356,7 +356,7 @@ VideoServer::TranscodeStream::TranscodeStream(VideoServer *parent, const QHostAd
   connect(&dataDecoder, SIGNAL(output(SSubtitleBuffer)), &timeStampResampler, SLOT(input(SSubtitleBuffer)));
 }
 
-bool VideoServer::TranscodeStream::setup(const QHttpRequestHeader &request, QAbstractSocket *socket, SInterfaces::BufferReaderNode *input, STime duration, const QString &name, const QImage &thumb)
+bool MediaServer::TranscodeStream::setup(const QHttpRequestHeader &request, QAbstractSocket *socket, SInterfaces::BufferReaderNode *input, STime duration, const QString &name, const QImage &thumb)
 {
   QUrl url(request.path());
   const QStringList file = url.path().mid(url.path().lastIndexOf('/') + 1).split('.');

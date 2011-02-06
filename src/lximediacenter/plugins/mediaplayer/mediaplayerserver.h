@@ -17,8 +17,8 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef MEDIASERVER_H
-#define MEDIASERVER_H
+#ifndef MEDIAPLAYERSERVER_H
+#define MEDIAPLAYERSERVER_H
 
 #include <QtCore>
 #include <LXiStream>
@@ -27,14 +27,14 @@
 
 namespace LXiMediaCenter {
 
-class MediaServer : public VideoServer
+class MediaPlayerServer : public MediaServer
 {
 Q_OBJECT
 protected:
   class FileStream : public TranscodeStream
   {
   public:
-                                FileStream(MediaServer *, const QHostAddress &peer, const QString &url, const QString &fileName, MediaDatabase::UniqueID);
+                                FileStream(MediaPlayerServer *, const QHostAddress &peer, const QString &url, const QString &fileName, MediaDatabase::UniqueID);
     virtual                     ~FileStream();
 
   public:
@@ -47,7 +47,7 @@ protected:
   class DiscStream : public TranscodeStream
   {
   public:
-                                DiscStream(MediaServer *, const QHostAddress &peer, const QString &url, const QString &fileName, MediaDatabase::UniqueID);
+                                DiscStream(MediaPlayerServer *, const QHostAddress &peer, const QString &url, const QString &fileName, MediaDatabase::UniqueID);
     virtual                     ~DiscStream();
 
   public:
@@ -66,7 +66,7 @@ protected:
   };
 
 public:
-                                MediaServer(const char *, MediaDatabase *, Plugin *, BackendServer::MasterServer *);
+                                MediaPlayerServer(const char *, MediaDatabase *, Plugin *, BackendServer::MasterServer *);
 
   virtual bool                  handleConnection(const QHttpRequestHeader &, QAbstractSocket *);
 

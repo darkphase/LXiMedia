@@ -22,7 +22,7 @@
 namespace LXiMediaCenter {
 
 ClipServer::ClipServer(MediaDatabase *mediaDatabase, Plugin *plugin, MasterServer *server)
-           :MediaServer(QT_TR_NOOP("Video clips"), mediaDatabase, plugin, server)
+  : MediaPlayerServer(QT_TR_NOOP("Video clips"), mediaDatabase, plugin, server)
 {
   enableDlna();
   connect(mediaDatabase, SIGNAL(updatedClips()), SLOT(startDlnaUpdate()));

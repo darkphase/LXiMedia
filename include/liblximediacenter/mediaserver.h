@@ -17,8 +17,8 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXMEDIACENTER_VIDEOSERVER_H
-#define LXMEDIACENTER_VIDEOSERVER_H
+#ifndef LXIMEDIACENTER_MEDIASERVER_H
+#define LXIMEDIACENTER_MEDIASERVER_H
 
 #include <QtCore>
 #include <QtNetwork>
@@ -29,21 +29,21 @@
 namespace LXiMediaCenter {
 
 
-class VideoServer : public BackendServer
+class MediaServer : public BackendServer
 {
 Q_OBJECT
 protected:
   class Stream : public SGraph
   {
   public:
-    explicit                    Stream(VideoServer *, const QHostAddress &peer, const QString &url);
+    explicit                    Stream(MediaServer *, const QHostAddress &peer, const QString &url);
     virtual                     ~Stream();
 
     void                        setup(bool, const QString & = QString::null, const QImage & = QImage());
 
   public:
     const int                   id;
-    VideoServer         * const parent;
+    MediaServer         * const parent;
     const QHostAddress          peer;
     const QString               url;
 
@@ -67,7 +67,7 @@ protected:
   class TranscodeStream : public Stream
   {
   public:
-    explicit                    TranscodeStream(VideoServer *, const QHostAddress &peer, const QString &url);
+    explicit                    TranscodeStream(MediaServer *, const QHostAddress &peer, const QString &url);
 
     bool                        setup(const QHttpRequestHeader &, QAbstractSocket *, SInterfaces::BufferReaderNode *, STime duration, const QString & = QString::null, const QImage & = QImage());
 
@@ -92,8 +92,8 @@ protected:
   typedef QMultiMap<QString, ThumbnailListItem> ThumbnailListItemMap;
 
 public:
-                                VideoServer(const char *, Plugin *, BackendServer::MasterServer *);
-  virtual                       ~VideoServer();
+                                MediaServer(const char *, Plugin *, BackendServer::MasterServer *);
+  virtual                       ~MediaServer();
 
   virtual bool                  handleConnection(const QHttpRequestHeader &, QAbstractSocket *);
 

@@ -23,7 +23,7 @@
 namespace LXiMediaCenter {
 
 PhotoServer::PhotoServer(MediaDatabase *mediaDatabase, Plugin *plugin, MasterServer *server)
-            :MediaServer(QT_TR_NOOP("Photos"), mediaDatabase, plugin, server)
+  : MediaPlayerServer(QT_TR_NOOP("Photos"), mediaDatabase, plugin, server)
 {
   enableDlna();
   connect(mediaDatabase, SIGNAL(updatedPhotos()), SLOT(startDlnaUpdate()));
@@ -93,7 +93,7 @@ bool PhotoServer::handleConnection(const QHttpRequestHeader &request, QAbstractS
   else if (file.isEmpty() || file.endsWith(".html"))
     return handleHtmlRequest(url, file, socket);
 
-  return MediaServer::handleConnection(request, socket);
+  return MediaPlayerServer::handleConnection(request, socket);
 }
 
 void PhotoServer::updateDlnaTask(void)

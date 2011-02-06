@@ -17,7 +17,7 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include <liblximediacenter/ssdpclient.h>
+#include "ssdpclient.h"
 
 #if defined(Q_OS_UNIX)
 #include <arpa/inet.h>

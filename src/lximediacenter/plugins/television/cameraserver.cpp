@@ -23,7 +23,7 @@
 namespace LXiMediaCenter {
 
 CameraServer::CameraServer(TelevisionBackend *plugin, MasterServer *server, const QStringList &cameras)
-  : VideoServer(QT_TR_NOOP("Cameras"), plugin, server),
+  : MediaServer(QT_TR_NOOP("Cameras"), plugin, server),
     plugin(plugin),
     cameras(cameras)
 {
@@ -51,7 +51,7 @@ bool CameraServer::handleConnection(const QHttpRequestHeader &request, QAbstract
   if (file.isEmpty() || file.endsWith(".html"))
     return handleHtmlRequest(url, file, socket);
 
-  return VideoServer::handleConnection(request, socket);
+  return MediaServer::handleConnection(request, socket);
 }
 
 bool CameraServer::streamVideo(const QHttpRequestHeader &request, QAbstractSocket *socket)
