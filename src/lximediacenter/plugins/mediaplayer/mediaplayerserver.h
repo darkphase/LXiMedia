@@ -27,9 +27,12 @@
 
 namespace LXiMediaCenter {
 
+class MediaPlayerServerDir;
+
 class MediaPlayerServer : public MediaServer
 {
 Q_OBJECT
+friend class MediaPlayerServerDir;
 protected:
   class FileStream : public TranscodeStream
   {
@@ -66,39 +69,44 @@ protected:
   };
 
 public:
-                                MediaPlayerServer(const char *, MediaDatabase *, Plugin *, BackendServer::MasterServer *);
+                                MediaPlayerServer(MediaDatabase *, MediaDatabase::Category, const char *, Plugin *, BackendServer::MasterServer *);
 
   virtual bool                  handleConnection(const QHttpRequestHeader &, QAbstractSocket *);
 
 protected:
-  void                          enableDlna(void);
-  DlnaServerDir               * getAlbumDir(const QString &album);
-
-  void                          addVideoFile(DlnaServerDir *, const PlayItem &, const QString &, int = 0) const;
-  void                          addVideoFile(DlnaServerDir *, const QList<PlayItem> &, const QString &, int = 0) const;
+  //void                          addVideoFile(DlnaServerDir *, const PlayItem &, const QString &, int = 0) const;
+  //void                          addVideoFile(DlnaServerDir *, const QList<PlayItem> &, const QString &, int = 0) const;
 
   virtual bool                  streamVideo(const QHttpRequestHeader &, QAbstractSocket *);
   virtual bool                  buildPlaylist(const QHttpRequestHeader &, QAbstractSocket *);
 
-  virtual bool                  handleHtmlRequest(const QUrl &, const QString &, QAbstractSocket *);
-
   static QString                videoFormatString(const SMediaInfo &);
   static QByteArray             buildVideoPlayer(MediaDatabase::UniqueID, const SMediaInfo &, const QUrl &, const QSize & = QSize(768, 432));
+  static QByteArray             buildVideoPlayer(const QByteArray &, const QString &, const QUrl &, const QSize & = QSize(768, 432));
 
 protected:
-  static const int              seekBySecs;
-
   MediaDatabase         * const mediaDatabase;
+  const MediaDatabase::Category category;
 };
 
-class MediaServerFileDir : public DlnaServerDir
+class MediaPlayerServerDir : public MediaServerDir
 {
 Q_OBJECT
+friend class MediaPlayerServer;
 public:
-  explicit inline               MediaServerFileDir(DlnaServer *parent) : DlnaServerDir(parent) { }
+  explicit                      MediaPlayerServerDir(MediaPlayerServer *, const QString &albumPath);
 
-public:
-  QList<MediaDatabase::UniqueID> uids;
+  virtual QStringList           listDirs(void);
+  virtual QStringList           listFiles(void);
+
+  inline MediaPlayerServer    * server(void)                                    { return static_cast<MediaPlayerServer *>(MediaServerDir::server()); }
+  inline const MediaPlayerServer * server(void) const                           { return static_cast<const MediaPlayerServer *>(MediaServerDir::server()); }
+
+protected:
+  virtual MediaPlayerServerDir * createDir(MediaPlayerServer *, const QString &albumPath);
+
+protected:
+  const QString                 albumPath;
 };
 
 } // End of namespace

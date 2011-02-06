@@ -56,21 +56,6 @@ public:
 
   typedef QList<SearchResult>   SearchResultList;
 
-protected:
-  class HttpDir : public HttpServerDir
-  {
-  friend class BackendServer;
-  public:
-                                HttpDir(HttpServer *server, BackendServer *parent);
-
-  protected:
-    inline bool                 superHandleConnection(const QHttpRequestHeader &r, QAbstractSocket *s) { return HttpServerDir::handleConnection(r, s); }
-    virtual bool                handleConnection(const QHttpRequestHeader &, QAbstractSocket *);
-
-  private:
-    BackendServer       * const parent;
-  };
-
 public:
                                 BackendServer(const char *name, Plugin *, MasterServer *);
   virtual                       ~BackendServer();
@@ -87,25 +72,12 @@ public:
   bool                          sendReply(QAbstractSocket *, const QString &, const char * = textMime, bool allowCache = false, const QString &redir = QString::null) const __attribute__((nonnull(1, 2)));
   bool                          sendHtmlContent(QAbstractSocket *, const QUrl &, const QHttpResponseHeader &, const QByteArray &content, const QByteArray &head = QByteArray()) const __attribute__((nonnull));
 
-public slots:
-  void                          startDlnaUpdate(void);
-
-protected:
-  void                          enableDlna(void);
-  virtual void                  updateDlnaTask(void);
-
-  virtual bool                  handleConnection(const QHttpRequestHeader &, QAbstractSocket *);
-
 public:
   static const int              maxRequestTime;
   static const qreal            minSearchRelevance;
   static const char     * const searchDateFormat;
   static const char     * const searchTimeFormat;
   static const char     * const searchDateTimeFormat;
-
-protected:
-  HttpDir                       httpDir;
-  DlnaServerAlphaDir            dlnaDir;
 
 private:
   static const char     * const dataMime;

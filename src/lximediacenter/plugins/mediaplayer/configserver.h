@@ -33,6 +33,7 @@ class ConfigServer : public BackendServer
 Q_OBJECT
 public:
                                 ConfigServer(Plugin *, MasterServer *server);
+  virtual                       ~ConfigServer();
 
   virtual bool                  handleConnection(const QHttpRequestHeader &, QAbstractSocket *);
 
@@ -48,6 +49,7 @@ private:
   static const char             dirSplit;
   Plugin                * const plugin;
   mutable QReadWriteLock        lock;
+  HttpServerDir               * httpDir;
 
 private:
   static const char     * const htmlMain;

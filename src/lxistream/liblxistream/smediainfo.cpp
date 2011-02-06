@@ -32,7 +32,7 @@ SMediaInfo::SMediaInfo(void)
 }
 
 SMediaInfo::SMediaInfo(const SMediaInfo &from)
-  : pi(new SInterfaces::FormatProber::ProbeInfo(*(from.pi)))
+  : pi(from.pi ? new SInterfaces::FormatProber::ProbeInfo(*(from.pi)) : NULL)
 {
 }
 
@@ -56,7 +56,7 @@ SMediaInfo::~SMediaInfo()
 SMediaInfo & SMediaInfo::operator=(const SMediaInfo &from)
 {
   delete pi;
-  pi = new SInterfaces::FormatProber::ProbeInfo(*(from.pi));
+  pi = from.pi ? new SInterfaces::FormatProber::ProbeInfo(*(from.pi)) : NULL;
 
   return *this;
 }

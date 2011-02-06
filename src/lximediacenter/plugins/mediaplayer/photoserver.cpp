@@ -22,52 +22,14 @@
 
 namespace LXiMediaCenter {
 
-PhotoServer::PhotoServer(MediaDatabase *mediaDatabase, Plugin *plugin, MasterServer *server)
-  : MediaPlayerServer(QT_TR_NOOP("Photos"), mediaDatabase, plugin, server)
+PhotoServer::PhotoServer(MediaDatabase *mediaDatabase, MediaDatabase::Category category, const char *name, Plugin *plugin, BackendServer::MasterServer *server)
+  : MediaPlayerServer(mediaDatabase, category, name, plugin, server)
 {
-  enableDlna();
-  connect(mediaDatabase, SIGNAL(updatedPhotos()), SLOT(startDlnaUpdate()));
+  setRoot(new PhotoServerDir(this, "/"));
 }
 
 PhotoServer::~PhotoServer()
 {
-}
-
-BackendServer::SearchResultList PhotoServer::search(const QStringList &query) const
-{
-  SearchResultList results;
-
-  foreach (const MediaDatabase::UniqueID &uid, mediaDatabase->queryPhotoAlbums(query))
-  {
-    const SMediaInfo node = mediaDatabase->readNode(uid);
-    if (!node.isNull())
-    {
-      QDir parentDir(node.filePath());
-      parentDir.cdUp();
-
-      const QString albumName = parentDir.dirName();
-      const QString rawAlbumName = SStringParser::toRawName(albumName);
-      const qreal match =
-          qMin(SStringParser::computeMatch(SStringParser::toRawName(node.title()), query) +
-               SStringParser::computeMatch(rawAlbumName, query), 1.0);
-
-      if (match >= minSearchRelevance)
-      {
-        SearchResult result;
-        result.relevance = match;
-        result.headline = node.title() + " [" + albumName + "] (" + tr("Photo") + ")";
-        result.location = MediaDatabase::toUidString(uid) + ".html?album=" +
-                          rawAlbumName.toLower().toAscii();
-        result.text = node.fileTypeName() + ", " +
-                      videoFormatString(node) + ", " +
-                      node.lastModified().toString(searchDateTimeFormat);
-        result.thumbLocation = MediaDatabase::toUidString(uid) + "-thumb.jpeg";
-        results += result;
-      }
-    }
-  }
-
-  return results;
 }
 
 bool PhotoServer::handleConnection(const QHttpRequestHeader &request, QAbstractSocket *socket)
@@ -90,45 +52,10 @@ bool PhotoServer::handleConnection(const QHttpRequestHeader &request, QAbstractS
 
     return sendPhoto(socket, MediaDatabase::fromUidString(file.left(16)), width, height);
   }
-  else if (file.isEmpty() || file.endsWith(".html"))
+  else if (file.endsWith(".html")) // Show player
     return handleHtmlRequest(url, file, socket);
 
   return MediaPlayerServer::handleConnection(request, socket);
-}
-
-void PhotoServer::updateDlnaTask(void)
-{
-  QMultiMap<QString, DlnaServerDir *> subDirs;
-  foreach (const QString &photoAlbum, mediaDatabase->allPhotoAlbums())
-  {
-    const QList<MediaDatabase::UniqueID> files = mediaDatabase->allPhotoFiles(photoAlbum);
-    if (files.count() >= minPhotosInAlbum)
-    {
-      const SMediaInfo node = mediaDatabase->readNode(files.first());
-      if (!node.isNull())
-      {
-        QDir parentDir(node.filePath());
-        parentDir.cdUp();
-
-        DlnaServer::File slideShowFile(dlnaDir.server());
-        slideShowFile.date = node.lastModified();
-        slideShowFile.url = httpPath() + SStringParser::toRawName(parentDir.dirName()).toLower() + ".mpeg";
-        slideShowFile.mimeType = "video/mpeg";
-        slideShowFile.sortOrder = 1;
-
-        DlnaServerDir * subDir = new PhotoAlbumDir(dlnaDir.server(), this, photoAlbum);
-        subDir->addFile(tr("Slideshow"), slideShowFile);
-
-        subDirs.insert(parentDir.dirName(), subDir);
-      }
-    }
-  }
-
-  SDebug::MutexLocker l(&dlnaDir.server()->mutex, __FILE__, __LINE__);
-
-  dlnaDir.clear();
-  for (QMultiMap<QString, DlnaServerDir *>::Iterator i=subDirs.begin(); i!=subDirs.end(); i++)
-    dlnaDir.addDir(i.key(), i.value());
 }
 
 bool PhotoServer::streamVideo(const QHttpRequestHeader &request, QAbstractSocket *socket)
@@ -138,8 +65,8 @@ bool PhotoServer::streamVideo(const QHttpRequestHeader &request, QAbstractSocket
 
   if (file.count() >= 2)
   {
-    const QString album = SStringParser::toRawName(file.first());
-    const QList<MediaDatabase::UniqueID> files = mediaDatabase->allPhotoFiles(album);
+    const QString album = QString::fromUtf8(QByteArray::fromHex(file.first().toAscii()));
+    const QList<MediaDatabase::UniqueID> files = mediaDatabase->allAlbumFiles(MediaDatabase::Category_Photos, album);
     if (!files.isEmpty())
     {
       QString title;
@@ -305,43 +232,37 @@ bool PhotoServer::SlideShowStream::setup(const QHttpRequestHeader &request, QAbs
   return true;
 }
 
-PhotoServer::PhotoAlbumDir::PhotoAlbumDir(DlnaServer *dlnaServer, PhotoServer *parent, const QString &photoAlbum)
-  : DlnaServerDir(dlnaServer),
-    parent(parent),
-    photoAlbum(photoAlbum),
-    filesAdded(false)
+
+PhotoServerDir::PhotoServerDir(MediaPlayerServer *parent, const QString &albumPath)
+  : MediaPlayerServerDir(parent, albumPath)
 {
 }
 
-const DlnaServerDir::FileMap & PhotoServer::PhotoAlbumDir::listFiles(void)
+QStringList PhotoServerDir::listFiles(void)
 {
-  if (!filesAdded)
+  SDebug::WriteLocker l(&server()->lock, __FILE__, __LINE__);
+
+  QStringList files = MediaPlayerServerDir::listFiles();
+  if (!files.isEmpty())
   {
-    SDebug::MutexLocker l(&server()->mutex, __FILE__, __LINE__);
+    const QString fileName = tr("Start Slideshow");
 
-    if (!filesAdded)
-    {
-      foreach (MediaDatabase::UniqueID uid, parent->mediaDatabase->allPhotoFiles(photoAlbum))
-      {
-        const SMediaInfo node = parent->mediaDatabase->readNode(uid);
-        if (!node.isNull())
-        {
-          DlnaServer::File file(server());
-          file.date = node.lastModified();
-          file.url = parent->httpPath() + MediaDatabase::toUidString(uid) + ".jpeg";
-          file.mimeType = "image/jpeg";
+    File file;
+    file.sortOrder = -1;
+    file.mimeType = "video/mpeg";
+    file.url = server()->httpPath() + albumPath.toUtf8().toHex() + ".slideshow.mpeg";
+    file.iconUrl = MediaPlayerServerDir::findFile(files.first()).iconUrl;
 
-          files.insert(node.title(), file);
-        }
-      }
-
-      updateId++;
-      server()->update(id);
-      filesAdded = true;
-    }
+    addFile(fileName, file);
+    files += fileName;
   }
 
-  return DlnaServerDir::listFiles();
+  return files;
+}
+
+MediaPlayerServerDir * PhotoServerDir::createDir(MediaPlayerServer *parent, const QString &albumPath)
+{
+  return new PhotoServerDir(parent, albumPath);
 }
 
 } // End of namespace

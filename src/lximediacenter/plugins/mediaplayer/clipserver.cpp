@@ -26,6 +26,8 @@ ClipServer::ClipServer(MediaDatabase *mediaDatabase, Plugin *plugin, MasterServe
 {
   enableDlna();
   connect(mediaDatabase, SIGNAL(updatedClips()), SLOT(startDlnaUpdate()));
+
+  setRoot(new MediaPlayerServerDir(this, ""));
 }
 
 ClipServer::~ClipServer()
@@ -90,7 +92,7 @@ void ClipServer::updateDlnaTask(void)
       albums.insert(album, clips);
   }
 
-  SDebug::MutexLocker l(&dlnaDir.server()->mutex, __FILE__, __LINE__);
+  SDebug::WriteLocker l(&dlnaDir.server()->lock, __FILE__, __LINE__);
 
   dlnaDir.clear();
   for (QMultiMap<QString, QMultiMap<QString, PlayItem> >::Iterator i=albums.begin(); i!=albums.end(); i++)

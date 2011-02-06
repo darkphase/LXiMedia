@@ -262,8 +262,6 @@ void DiscReader::annotateDataStreams(QList<DataStreamInfo> &dataStreams) const
   {
     dataStreams.clear();
 
-    const bool translate = ::dvdnav_get_spu_logical_stream(dvdHandle, 255) == -1;
-
     for (int i=0; i<0x1F; i++)
     {
       const uint16_t lang = ::dvdnav_spu_stream_to_lang(dvdHandle, i);

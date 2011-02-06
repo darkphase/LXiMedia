@@ -28,10 +28,16 @@
 
 namespace LXiMediaCenter {
 
+class MediaServerDir;
 
-class MediaServer : public BackendServer
+typedef FileServerHandle<MediaServerDir> MediaServerDirHandle;
+typedef FileServerHandle<const MediaServerDir> MediaServerConstDirHandle;
+
+class MediaServer : public BackendServer,
+                    public FileServer
 {
 Q_OBJECT
+friend class MediaServerDir;
 protected:
   class Stream : public SGraph
   {
@@ -91,17 +97,49 @@ protected:
 
   typedef QMultiMap<QString, ThumbnailListItem> ThumbnailListItemMap;
 
+private:
+  class HttpDir : public HttpServerDir
+  {
+  public:
+    explicit                    HttpDir(HttpServer *, MediaServer *, const QString &mediaPath);
+
+    virtual QStringList         listDirs(void);
+
+    virtual bool                handleConnection(const QHttpRequestHeader &, QAbstractSocket *);
+
+  private:
+    MediaServer         * const mediaServer;
+    const QString               mediaPath;
+  };
+
+  class DlnaDir : public DlnaServerDir
+  {
+  public:
+    explicit                    DlnaDir(DlnaServer *, MediaServer *, const QString &mediaPath);
+
+    virtual QStringList         listDirs(void);
+    virtual QStringList         listFiles(void);
+
+  private:
+    MediaServer         * const mediaServer;
+    const QString               mediaPath;
+    QStringList                 plainFiles;
+  };
+
 public:
                                 MediaServer(const char *, Plugin *, BackendServer::MasterServer *);
   virtual                       ~MediaServer();
 
+  void                          setRoot(MediaServerDir *);
+
   virtual bool                  handleConnection(const QHttpRequestHeader &, QAbstractSocket *);
 
 protected:
+  virtual bool                  buildDir(const QUrl &, const QString &, QAbstractSocket *);
+  virtual void                  customEvent(QEvent *);
+
   virtual bool                  streamVideo(const QHttpRequestHeader &, QAbstractSocket *) = 0;
   virtual bool                  buildPlaylist(const QHttpRequestHeader &, QAbstractSocket *) = 0;
-
-  virtual void                  customEvent(QEvent *);
 
 protected slots:
   virtual void                  cleanStreams(void);
@@ -110,8 +148,10 @@ private:
   void                          addStream(Stream *);
   void                          removeStream(Stream *);
 
-protected:
-  mutable QReadWriteLock        lock;
+public:
+  static const qint32           defaultDirSortOrder;
+  static const qint32           defaultFileSortOrder;
+  static const int              seekBySecs;
 
 private:
   struct Private;
@@ -145,6 +185,53 @@ protected:
 
   static QByteArray             buildThumbnailView(const QString &title, const ThumbnailListItemMap &, const QUrl &);
   static QByteArray             buildVideoPlayer(const QByteArray &item, const SMediaInfo &, const QUrl &, const QSize & = QSize(768, 432));
+  static QByteArray             buildVideoPlayer(const QByteArray &item, const QString &title, const QUrl &, const QSize & = QSize(768, 432));
+};
+
+class MediaServerDir : public FileServerDir
+{
+Q_OBJECT
+friend class MediaServer;
+public:
+  struct File
+  {
+    inline File(void) : played(false), music(false), sortOrder(MediaServer::defaultFileSortOrder) { }
+
+    inline bool                 isNull(void) const                              { return url.isEmpty(); }
+
+    bool                        played;
+    bool                        music;
+    qint32                      sortOrder;
+    QString                     mimeType;
+    QString                     url;
+    QString                     iconUrl;
+    SMediaInfo                  mediaInfo;
+  };
+
+public:
+  explicit                      MediaServerDir(MediaServer *);
+
+  virtual void                  addFile(const QString &name, const File &);
+  virtual void                  removeFile(const QString &name);
+  virtual void                  clear(void);
+  virtual int                   count(void) const;
+
+  inline MediaServer          * server(void)                                    { return static_cast<MediaServer *>(FileServerDir::server()); }
+  inline const MediaServer    * server(void) const                              { return static_cast<const MediaServer *>(FileServerDir::server()); }
+
+  virtual QStringList           listFiles(void);
+  virtual File                  findFile(const QString &name);
+
+  inline QStringList            listFiles(void) const                           { return const_cast<MediaServerDir *>(this)->listFiles(); }
+  inline File                   findFile(const QString &name) const             { return const_cast<MediaServerDir *>(this)->findFile(name); }
+
+  QString                       getIcon(void) const;
+
+public:
+  qint32                        sortOrder;
+
+private:
+  QMap<QString, File>           files;
 };
 
 

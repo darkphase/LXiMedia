@@ -217,7 +217,7 @@ bool MusicServer::handleHtmlRequest(const QUrl &url, const QString &file, QAbstr
     const int streamId = url.queryItemValue("stream").toInt();
     if (streamId == 0)
     {
-      SDebug::MutexLocker dl(&dlnaDir.server()->mutex, __FILE__, __LINE__);
+      SDebug::WriteLocker dl(&dlnaDir.server()->lock, __FILE__, __LINE__);
       htmlParser.setField("MUSICVIDEODIR", QByteArray::number(musicVideosDir->id, 16) + "-dir.html");
       dl.unlock();
 

@@ -118,7 +118,7 @@ void MovieServer::updateDlnaTask(void)
     }
   }
 
-  SDebug::MutexLocker l(&dlnaDir.server()->mutex, __FILE__, __LINE__);
+  SDebug::WriteLocker l(&dlnaDir.server()->lock, __FILE__, __LINE__);
 
   dlnaDir.clear();
   for (QMap<QString, QMap<QString, PlayItem> >::Iterator i=movies.begin(); i!=movies.end(); i++)

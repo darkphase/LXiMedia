@@ -28,7 +28,7 @@ class Backend : public BackendServer::MasterServer
 {
 Q_OBJECT
 private:
-  class HttpRootDir : public HttpServerDir
+  class HttpRootDir : public HttpServerFileDir
   {
   public:
                                 HttpRootDir(HttpServer *, Backend *);

@@ -70,162 +70,80 @@ bool PhotoServer::handleHtmlRequest(const QUrl &url, const QString &file, QAbstr
   response.setContentType("text/html;charset=utf-8");
   response.setValue("Cache-Control", "no-cache");
 
-  if (file.endsWith("-similar.html"))
+  if (file.endsWith(".slideshow.html"))
   {
-    /*const MediaDatabase::Node base = mediaDatabase->readNode(MediaDatabase::fromUidString(file.left(16)));
-    if (!base.mediaInfo.fingerPrint().isNull())
+    const QByteArray item = file.left(file.length() - 5).toAscii();
+    const QString album = QString::fromUtf8(QByteArray::fromHex(file.left(file.length() - 15).toAscii()));
+    if (!album.isEmpty())
     {
-      const QString baseName = SStringParser::toRawName(base.mediaProbe.title);
-      const QString album = SStringParser::toRawName(url.queryItemValue("album"));
-      const QString albumLower = album.toLower();
-      const QList<MediaDatabase::UniqueID> files = mediaDatabase->allPhotoFiles(album);
+      const QString albumName = album.mid(album.lastIndexOf('/') + 1);
 
-      QMultiMap<qreal, MediaDatabase::Node> similar;
-      foreach (const MediaDatabase::UniqueID &item, files)
-      {
-        const MediaDatabase::Node node = mediaDatabase->readNode(item);
-        if (!node.fingerPrint.isNull())
-        {
-          const QString nodeName = SStringParser::toRawName(node.mediaProbe.title);
+      QHttpResponseHeader response(200);
+      response.setContentType("text/html;charset=utf-8");
+      response.setValue("Cache-Control", "no-cache");
 
-          qreal delta = base.fingerPrint.delta(node.fingerPrint);
-          if ((baseName.length() >= 8) && (nodeName.length() >= 8))
-            delta = qMin(delta, 1.0 - SStringParser::computeBidirMatch(baseName, nodeName));
+      HtmlParser htmlParser;
 
-          similar.insert(delta, node);
-        }
-      }
+      htmlParser.setField("PLAYER", buildVideoPlayer(item, albumName, url));
 
-      ThumbnailListItemMap photos;
-      foreach (const MediaDatabase::Node &node, similar)
-      {
-        const QString uidString = MediaDatabase::toUidString(node.uid);
+      htmlParser.setField("PLAYER_INFOITEMS", QByteArray(""));
+      htmlParser.setField("ITEM_NAME", tr("Title"));
+      htmlParser.setField("ITEM_VALUE", albumName);
 
-        ThumbnailListItem item;
-        item.iconurl = uidString + "-thumb.jpeg";
-        item.url = uidString + ".html?album=" + albumLower;
-        photos.insert(uidString, item);
+      htmlParser.setField("PLAYER_DESCRIPTION_NAME", QByteArray(""));
+      htmlParser.setField("PLAYER_DESCRIPTION", QByteArray(""));
 
-        if (photos.count() >= int(itemsPerThumbnailPage))
-          break;
-      }
-
-      return sendHtmlContent(socket, url, response, buildThumbnailView(tr("Similar photos"), photos, url), headList);
-    }*/
-  }
-  else if (file.endsWith("-album.html"))
-  {
-    const QString album = SStringParser::toRawName(file.left(file.length() - 11));
-    const QString albumLower = album.toLower();
-    const QList<MediaDatabase::UniqueID> files = mediaDatabase->allPhotoFiles(album);
-
-    QString title;
-    ThumbnailListItemMap photos;
-    foreach (MediaDatabase::UniqueID uid, files)
-    {
-      const SMediaInfo node = mediaDatabase->readNode(uid);
-      if (!node.isNull())
-      {
-        const QString uidString = MediaDatabase::toUidString(uid);
-
-        ThumbnailListItem item;
-        item.iconurl = uidString + "-thumb.jpeg";
-        item.url = uidString + ".html?album=" + albumLower;
-
-        photos.insert(node.fileName(), item);
-
-        if (title.isEmpty())
-        {
-          QDir parentDir(node.filePath());
-          parentDir.cdUp();
-
-          title = parentDir.dirName();
-        }
-      }
+      return sendHtmlContent(socket, url, response, htmlParser.parse(htmlPlayer), headPlayer);
     }
-
-    if (title.isEmpty())
-      title = albumLower;
-
-    return sendHtmlContent(socket, url, response, buildThumbnailView(title, photos, url), headList);
   }
-  else if (file.endsWith(".html")) // View photo
+  else
   {
     const QString album = SStringParser::toRawName(url.queryItemValue("album"));
     const MediaDatabase::UniqueID uid = MediaDatabase::fromUidString(file.left(16));
     const SMediaInfo node = mediaDatabase->readNode(uid);
 
-    HtmlParser htmlParser;
-    htmlParser.setField("PHOTO_INFO0", node.fileName());
-    htmlParser.setField("PHOTO_INFO1", node.lastModified().toString(searchDateTimeFormat));
-    htmlParser.setField("PHOTO_INFO2", node.fileTypeName());
-    htmlParser.setField("PHOTO_INFO3", videoFormatString(node));
-    htmlParser.setField("PHOTO_FINGERPRINT", /*node.fingerPrint.isNull() ?*/ QString("") /*: tr("Find similar")*/);
-
-    htmlParser.setField("PHOTO", MediaDatabase::toUidString(uid));
-    htmlParser.setField("PREVIOUS_UID", MediaDatabase::toUidString(uid));
-    htmlParser.setField("NEXT_UID", MediaDatabase::toUidString(uid));
-    htmlParser.setField("ITEM_ALBUM", album.toLower());
-
-    const QList<MediaDatabase::UniqueID> files = mediaDatabase->allPhotoFiles(album);
-    if (!files.isEmpty())
+    if (!node.isNull())
     {
-      QList<MediaDatabase::UniqueID>::ConstIterator i;
-      unsigned photoNumber = 0;
-      for (i=files.begin(); i!=files.end(); i++, photoNumber++)
-      if (*i == uid)
-        break;
+      HtmlParser htmlParser;
+      htmlParser.setField("PHOTO_INFO0", node.fileName());
+      htmlParser.setField("PHOTO_INFO1", node.lastModified().toString(searchDateTimeFormat));
+      htmlParser.setField("PHOTO_INFO2", node.fileTypeName());
+      htmlParser.setField("PHOTO_INFO3", videoFormatString(node));
+      htmlParser.setField("PHOTO_FINGERPRINT", /*node.fingerPrint.isNull() ?*/ QString("") /*: tr("Find similar")*/);
 
-      if (i != files.end())
+      htmlParser.setField("PHOTO", MediaDatabase::toUidString(uid));
+      htmlParser.setField("PREVIOUS_UID", MediaDatabase::toUidString(uid));
+      htmlParser.setField("NEXT_UID", MediaDatabase::toUidString(uid));
+      htmlParser.setField("ITEM_ALBUM", album.toLower());
+
+      /*const QList<MediaDatabase::UniqueID> files = mediaDatabase->allPhotoFiles(album);
+      if (!files.isEmpty())
       {
-        const QList<MediaDatabase::UniqueID>::ConstIterator previous = i - 1;
-        const QList<MediaDatabase::UniqueID>::ConstIterator next = i + 1;
+        QList<MediaDatabase::UniqueID>::ConstIterator i;
+        unsigned photoNumber = 0;
+        for (i=files.begin(); i!=files.end(); i++, photoNumber++)
+        if (*i == uid)
+          break;
 
-        if ((i != files.begin()) && (previous != files.end()))
-          htmlParser.setField("PREVIOUS_UID", MediaDatabase::toUidString(*previous));
-
-        if (next != files.end())
-          htmlParser.setField("NEXT_UID", MediaDatabase::toUidString(*next));
-      }
-    }
-
-    return sendHtmlContent(socket, url, response, htmlParser.parse(htmlView));
-  }
-  else // View album overview
-  {
-    ThumbnailListItemMap photoAlbums;
-    foreach (const QString &photoAlbum, mediaDatabase->allPhotoAlbums())
-    {
-      const QList<MediaDatabase::UniqueID> files = mediaDatabase->allPhotoFiles(photoAlbum);
-      if (files.count() >= minPhotosInAlbum)
-      {
-        ThumbnailListItem item;
-
-        const MediaDatabase::UniqueID uid = files[qrand() % files.count()];
-        const SMediaInfo node = mediaDatabase->readNode(uid);
-        if (!node.isNull())
+        if (i != files.end())
         {
-          QDir parentDir(node.filePath());
-          parentDir.cdUp();
+          const QList<MediaDatabase::UniqueID>::ConstIterator previous = i - 1;
+          const QList<MediaDatabase::UniqueID>::ConstIterator next = i + 1;
 
-         item.title = parentDir.dirName();
+          if ((i != files.begin()) && (previous != files.end()))
+            htmlParser.setField("PREVIOUS_UID", MediaDatabase::toUidString(*previous));
+
+          if (next != files.end())
+            htmlParser.setField("NEXT_UID", MediaDatabase::toUidString(*next));
         }
-        else
-          item.title = photoAlbum;
+      }*/
 
-        item.subtitle = QString::number(files.count()) + " " + tr("photos");
-        item.iconurl = MediaDatabase::toUidString(uid) + "-thumb.jpeg";
-        item.url = photoAlbum.toLower() + "-album.html";
-
-        photoAlbums.insert(photoAlbum, item);
-      }
+      return sendHtmlContent(socket, url, response, htmlParser.parse(htmlView));
     }
-
-    return sendHtmlContent(socket, url, response, buildThumbnailView(tr("Photo albums"), photoAlbums, url), headList);
   }
 
-  response.setStatusLine(404);
-  socket->write(response.toString().toUtf8());
+  qWarning() << "PhotoServer: Failed to find:" << url.toString();
+  socket->write(QHttpResponseHeader(404).toString().toUtf8());
   return false;
 }
 

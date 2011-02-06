@@ -41,10 +41,8 @@ struct BackendServer::Private
 };
 
 BackendServer::BackendServer(const char *name, Plugin *plugin, MasterServer *server)
-    : QObject(server),
-      httpDir(server->httpServer(), this),
-      dlnaDir(server->dlnaServer()),
-      p(new Private())
+  : QObject(server),
+    p(new Private())
 {
   Q_ASSERT(name);
 
@@ -58,7 +56,7 @@ BackendServer::BackendServer(const char *name, Plugin *plugin, MasterServer *ser
 
   p->httpPath.replace(" ", "");
 
-  p->server->httpServer()->addDir(p->httpPath, &httpDir);
+  p->dlnaPath = "/" + p->name + "/";
 }
 
 BackendServer::~BackendServer()
@@ -137,53 +135,5 @@ bool BackendServer::sendHtmlContent(QAbstractSocket *socket, const QUrl &url, co
 
   return false;
 }
-
-void BackendServer::startDlnaUpdate(void)
-{
-  class Update : public QRunnable
-  {
-  public:
-    inline Update(BackendServer *backendServer) : backendServer(backendServer)  { }
-
-    virtual void run(void)
-    {
-      backendServer->updateDlnaTask();
-    }
-
-  private:
-    BackendServer * const backendServer;
-  };
-
-  if (!p->dlnaUpdateFuture.isStarted() || p->dlnaUpdateFuture.isFinished())
-    masterServer()->ioThreadPool()->start(new Update(this), 0);
-}
-
-void BackendServer::enableDlna(void)
-{
-  p->dlnaPath = "/" + p->name + "/";
-  p->server->dlnaServer()->addDir(p->dlnaPath, &dlnaDir);
-}
-
-void BackendServer::updateDlnaTask(void)
-{
-}
-
-bool BackendServer::handleConnection(const QHttpRequestHeader &request, QAbstractSocket *socket)
-{
-  return httpDir.superHandleConnection(request, socket);
-}
-
-
-BackendServer::HttpDir::HttpDir(HttpServer *server, BackendServer *parent)
-    : HttpServerDir(server),
-      parent(parent)
-{
-}
-
-bool BackendServer::HttpDir::handleConnection(const QHttpRequestHeader &h, QAbstractSocket *s)
-{
-  return parent->handleConnection(h, s);
-}
-
 
 } // End of namespace

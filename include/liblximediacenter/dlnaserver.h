@@ -32,41 +32,38 @@ namespace LXiMediaCenter {
 class SsdpServer;
 class DlnaServerDir;
 
+typedef FileServerHandle<DlnaServerDir> DlnaServerDirHandle;
+typedef FileServerHandle<const DlnaServerDir> DlnaServerConstDirHandle;
+
 class DlnaServer : public QObject,
                    public FileServer
 {
 Q_OBJECT
 friend class DlnaServerDir;
-public:
-  struct File
-  {
-                              File(void);
-    explicit                  File(DlnaServer *);
-
-    qint32                    id;
-    bool                      played;
-    quint32                   sortOrder;
-    QDateTime                 date;
-    STime                     duration;
-    QSize                     resolution;
-    bool                      music;
-    QString                   mimeType;
-    QString                   url;
-    QString                   iconUrl;
-    QString                   creator;
-    QString                   description;
-  };
-
 private:
   class HttpDir;
   class EventSession;
+
+  struct File
+  {
+                                File(void);
+    explicit                    File(DlnaServer *);
+
+    qint32                      id;
+    bool                        played;
+    bool                        music;
+    quint32                     sortOrder;
+    QString                     mimeType;
+    QString                     url;
+    QString                     iconUrl;
+  };
 
   struct DirCacheEntry
   {
     struct Item : File
     {
                                 Item(const QString &title, const File &);
-                                Item(const QString &title, const DlnaServerDir *);
+                                Item(const QString &title, DlnaServerConstDirHandle);
 
       QString                   title;
     };
@@ -115,64 +112,35 @@ class DlnaServerDir : public FileServerDir
 Q_OBJECT
 friend class DlnaServer;
 public:
-  typedef QMap<QString, DlnaServer::File> FileMap;
+  typedef DlnaServer::File      File;
 
 public:
   explicit                      DlnaServerDir(DlnaServer *);
   virtual                       ~DlnaServerDir();
 
-  virtual void                  addFile(const QString &name, const DlnaServer::File &);
+  virtual void                  addFile(const QString &name, const File &);
   virtual void                  removeFile(const QString &name);
   virtual void                  addDir(const QString &name, FileServerDir *);
   virtual void                  removeDir(const QString &name);
   virtual void                  clear(void);
   virtual int                   count(void) const;
 
-  virtual const FileMap       & listFiles(void);
+  virtual QStringList           listFiles(void);
   virtual DlnaServer::File      findFile(const QString &name);
 
   inline DlnaServer           * server(void)                                    { return static_cast<DlnaServer *>(FileServerDir::server()); }
   inline const DlnaServer     * server(void) const                              { return static_cast<const DlnaServer *>(FileServerDir::server()); }
-  inline const FileMap        & listFiles(void) const                           { return const_cast<DlnaServerDir *>(this)->listFiles(); }
-  QString                       findIcon(void) const;
+  inline QStringList            listFiles(void) const                           { return const_cast<DlnaServerDir *>(this)->listFiles(); }
+  inline DlnaServer::File       findFile(const QString &name) const             { return const_cast<DlnaServerDir *>(this)->findFile(name); }
 
 public:
   const qint32                  id;
   bool                          played;
   qint32                        sortOrder;
-  QDateTime                     date;
 
 protected:
   volatile qint32               updateId;
-  FileMap                       files;
-};
-
-
-class DlnaServerAlphaDir : public DlnaServerDir
-{
-Q_OBJECT
-public:
-  explicit                      DlnaServerAlphaDir(DlnaServer *);
-  virtual                       ~DlnaServerAlphaDir();
-
-  void                          setSubdirLimit(unsigned s);
-
-  virtual void                  addDir(const QString &name, FileServerDir *);
-  virtual void                  removeDir(const QString &name);
-  virtual void                  clear(void);
-
-  inline const ConstDirMap    & listAllDirs(void) const                         { return reinterpret_cast<const ConstDirMap &>(allDirs); }
-
-private:
-  void                          addAlphaDir(const QString &name, DlnaServerDir *);
-  void                          removeAlphaDir(const QString &name);
-  static QSet<QString>          toFirstLetters(const QString &);
-
-private:
-  unsigned                      subdirLimit;
-  bool                          alphaMode;
-  DirMap                        alphaDirs;
-  DirMap                        allDirs;
+  QMap<QString, File>           files;
 };
 
 

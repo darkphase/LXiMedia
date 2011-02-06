@@ -29,10 +29,39 @@
 
 ConfigServer::ConfigServer(Plugin *plugin, MasterServer *server)
   : BackendServer(QT_TR_NOOP("Settings"), plugin, server),
-    plugin(plugin)
+    plugin(plugin),
+    httpDir(NULL)
 {
   // Ensure static initializers are invoked.
   drives();
+
+  class HttpDir : public HttpServerDir
+  {
+  public:
+    explicit inline HttpDir(HttpServer *httpServer, ConfigServer *configServer)
+      : HttpServerDir(httpServer), configServer(configServer)
+    {
+    }
+
+    virtual inline bool handleConnection(const QHttpRequestHeader &header, QAbstractSocket *socket)
+    {
+      return configServer->handleConnection(header, socket);
+    }
+
+  private:
+    ConfigServer          * const configServer;
+  };
+
+  HttpServer * const httpServer = server->httpServer();
+
+  SDebug::WriteLocker l(&httpServer->lock, __FILE__, __LINE__);
+
+  httpServer->addDir(httpPath(), httpDir = new HttpDir(httpServer, this));
+}
+
+ConfigServer::~ConfigServer()
+{
+  delete httpDir;
 }
 
 bool ConfigServer::handleConnection(const QHttpRequestHeader &request, QAbstractSocket *socket)
@@ -43,7 +72,9 @@ bool ConfigServer::handleConnection(const QHttpRequestHeader &request, QAbstract
   if (file.isEmpty() || file.endsWith(".html"))
     return handleHtmlRequest(url, file, socket);
 
-  return BackendServer::handleConnection(request, socket);
+  qWarning() << "ConfigServer: Failed to find:" << request.path();
+  socket->write(QHttpResponseHeader(404).toString().toUtf8());
+  return false;
 }
 
 const QSet<QString> & ConfigServer::hiddenDirs(void)

@@ -80,7 +80,7 @@ SVideoBuffer SVideoFormatConvertNode::convert(const SVideoBuffer &videoBuffer)
              (d->sourceFormat != SVideoFormat::Format_Invalid) &&
              (d->destFormat != SVideoFormat::Format_Invalid))
     {
-      d->converter = SInterfaces::VideoFormatConverter::create(this, d->sourceFormat, d->destFormat, false);
+      d->converter = SInterfaces::VideoFormatConverter::create(NULL, d->sourceFormat, d->destFormat, false);
     }
 
     if (d->converter)

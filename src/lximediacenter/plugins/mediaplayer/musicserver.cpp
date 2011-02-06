@@ -134,7 +134,7 @@ void MusicServer::updateDlnaTask(void)
   file.sortOrder -= 1;
   playlistsDir->addFile("(" + tr("All files") + ")", file);
 
-  SDebug::MutexLocker l(&dlnaDir.server()->mutex, __FILE__, __LINE__);
+  SDebug::WriteLocker l(&dlnaDir.server()->lock, __FILE__, __LINE__);
 
   this->musicVideosDir = musicVideosDir;
 

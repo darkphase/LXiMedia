@@ -125,7 +125,7 @@ void Backend::start(void)
   masterHttpServer.addFile("/favicon.ico",                    ":/lximediacenter/appicon.ico");
   masterHttpServer.addFile("/appicon.png",                    ":/lximediacenter/appicon.png");
   masterHttpServer.addFile("/logo.png",                       ":/lximediacenter/logo.png");
-  masterHttpServer.addDir ("/img", new HttpServerDir(&masterHttpServer));
+  masterHttpServer.addDir ("/img", new HttpServerFileDir(&masterHttpServer));
   masterHttpServer.addFile("/img/null.png",                   ":/backend/null.png");
   masterHttpServer.addFile("/img/checknone.png",              ":/backend/checknone.png");
   masterHttpServer.addFile("/img/checkfull.png",              ":/backend/checkfull.png");
@@ -139,7 +139,7 @@ void Backend::start(void)
   masterHttpServer.addFile("/img/stardisabled.png",           ":/backend/stardisabled.png");
   masterHttpServer.addFile("/img/restart.png",                ":/backend/restart.png");
   masterHttpServer.addFile("/img/shutdown.png",               ":/backend/shutdown.png");
-  masterHttpServer.addDir ("/swf", new HttpServerDir(&masterHttpServer));
+  masterHttpServer.addDir ("/swf", new HttpServerFileDir(&masterHttpServer));
   masterHttpServer.addFile("/swf/flowplayer.swf",             ":/flowplayer/flowplayer-3.2.5.swf");
   masterHttpServer.addFile("/swf/flowplayer.controls.swf",    ":/flowplayer/flowplayer.controls-3.2.3.swf");
   masterHttpServer.addFile("/swf/flowplayer.js",              ":/flowplayer/flowplayer-3.2.4.min.js");
@@ -442,8 +442,8 @@ QThreadPool * Backend::ioThreadPool(void)
 
 
 Backend::HttpRootDir::HttpRootDir(HttpServer *httpServer, Backend *parent)
-    : HttpServerDir(httpServer),
-      parent(parent)
+  : HttpServerFileDir(httpServer),
+    parent(parent)
 {
 }
 
@@ -626,5 +626,5 @@ bool Backend::HttpRootDir::handleConnection(const QHttpRequestHeader &request, Q
     return parent->showAbout(url, socket);
   }
 
-  return HttpServerDir::handleConnection(request, socket);
+  return HttpServerFileDir::handleConnection(request, socket);
 }
