@@ -315,6 +315,22 @@ QList<MediaDatabase::UniqueID> MediaDatabase::allAlbumFiles(Category category, c
   return result;
 }
 
+MediaDatabase::UniqueID MediaDatabase::getAlbumFile(Category category, const QString &album, int offset) const
+{
+  SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
+
+  QSqlQuery query(Database::database());
+  query.prepare("SELECT file FROM MediaplayerAlbums WHERE category = :category AND album = :album LIMIT 1 OFFSET :offset");
+  query.bindValue(0, categoryName(category));
+  query.bindValue(1, album);
+  query.bindValue(2, offset);
+  query.exec();
+  if (query.next())
+    return query.value(0).toLongLong();
+
+  return 0;
+}
+
 QList<MediaDatabase::UniqueID> MediaDatabase::queryAlbums(Category category, const QStringList &q) const
 {
   QList<UniqueID> result;

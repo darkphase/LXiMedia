@@ -80,6 +80,7 @@ public: // In mediadatabase.cpp
 
   QStringList                   allAlbums(Category) const;
   QList<UniqueID>               allAlbumFiles(Category, const QString &album) const;
+  UniqueID                      getAlbumFile(Category, const QString &album, int = 0) const;
   QList<UniqueID>               queryAlbums(Category, const QStringList &query) const;
 
   ImdbClient::Entry             getImdbEntry(UniqueID) const;

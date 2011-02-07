@@ -21,149 +21,14 @@
 
 namespace LXiMediaCenter {
 
-TvShowServer::TvShowServer(MediaDatabase *mediaDatabase, Plugin *plugin, MasterServer *server)
-  : MediaPlayerServer(QT_TR_NOOP("TV Shows"), mediaDatabase, plugin, server)
+TvShowServer::TvShowServer(MediaDatabase *mediaDatabase, MediaDatabase::Category category, const char *name, Plugin *plugin, BackendServer::MasterServer *server)
+  : MediaPlayerServer(mediaDatabase, category, name, plugin, server)
 {
-  enableDlna();
-  connect(mediaDatabase, SIGNAL(updatedTvShows()), SLOT(startDlnaUpdate()));
+  setRoot(new Dir(this, "/"));
 }
 
 TvShowServer::~TvShowServer()
 {
-}
-
-BackendServer::SearchResultList TvShowServer::search(const QStringList &query) const
-{
-  SearchResultList results;
-
-  foreach (const MediaDatabase::UniqueID &uid, mediaDatabase->queryTvShows(query))
-  {
-    const SMediaInfo node = mediaDatabase->readNode(uid);
-    if (!node.isNull())
-    {
-      const QString showName = node.album().length() > 0 ? node.album() : node.title();
-      const qreal match =
-          qMin(SStringParser::computeMatch(SStringParser::toRawName(node.title()), query) +
-               SStringParser::computeMatch(SStringParser::toRawName(showName), query), 1.0);
-
-      if (match >= minSearchRelevance)
-      {
-        const QString time = QTime().addSecs(node.duration().toSec()).toString(videoTimeFormat);
-
-        SearchResult result;
-        result.relevance = match;
-        result.headline = node.title() + " [" + showName + "] (" + tr("TV show episode") + ")";
-        result.location = MediaDatabase::toUidString(uid) + ".html";
-        result.text = time + ", " + node.fileTypeName() + ", " +
-                      videoFormatString(node) + ", " +
-                      node.lastModified().toString(searchDateTimeFormat);
-
-        if (!node.thumbnails().isEmpty())
-          result.thumbLocation = MediaDatabase::toUidString(uid) + "-thumb.jpeg";
-
-        results += result;
-      }
-    }
-  }
-
-  return results;
-}
-
-void TvShowServer::updateDlnaTask(void)
-{
-  QMultiMap<QString, DlnaServerDir *> subDirs;
-  foreach (const QString &tvShow, mediaDatabase->allTvShows())
-  {
-    QString showName, showDirName;
-    bool hasSeasons = true;
-    QList<PlayItem> items;
-    foreach (MediaDatabase::UniqueID uid, mediaDatabase->allTvShowEpisodes(tvShow))
-    {
-      const SMediaInfo node = mediaDatabase->readNode(uid);
-      if (!node.isNull())
-      {
-        items += PlayItem(uid, node);
-
-        if (node.track() > 0)
-          hasSeasons = hasSeasons && (node.track() > SMediaInfo::tvShowSeason);
-
-        if (showName.isEmpty())
-          showName = node.album();
-
-        if (showDirName.isEmpty())
-        {
-          QDir parentDir(node.filePath());
-          parentDir.cdUp();
-          showDirName = parentDir.dirName();
-        }
-      }
-    }
-
-    QMap<QString, QMultiMap<QString, PlayItem> > dlnaFiles;
-    foreach (const PlayItem &item, items)
-    {
-      QString seasonName = QString::null;
-      if (hasSeasons)
-      if ((item.mediaInfo.track() > 0) && (item.mediaInfo.track() >= SMediaInfo::tvShowSeason))
-        seasonName = tr("Season") + " " + QString::number(item.mediaInfo.track() / SMediaInfo::tvShowSeason);
-
-      QMap<QString, QMultiMap<QString, PlayItem> >::Iterator files;
-      files = dlnaFiles.find(seasonName);
-      if (files == dlnaFiles.end())
-        files = dlnaFiles.insert(seasonName, QMultiMap<QString, PlayItem>());
-
-      if (hasSeasons)
-      {
-        if (item.mediaInfo.track() > 0)
-          files->insert(toTvShowNumber(item.mediaInfo.track()) + " " + item.mediaInfo.title(), item);
-        else
-          files->insert(item.mediaInfo.title(), item);
-      }
-      else if (item.mediaInfo.track() > 0)
-      {
-        QString episode = QByteArray::number(item.mediaInfo.track());
-        while (episode.length() < 3)
-          episode = "0" + episode;
-
-        files->insert(episode + " " + item.mediaInfo.title(), item);
-      }
-      else
-        files->insert(item.mediaInfo.title(), item);
-    }
-
-    if (!dlnaFiles.isEmpty())
-    {
-      if (showName.isEmpty())
-        showName = !showDirName.isEmpty() ? showDirName : tvShow;
-
-      DlnaServerDir * subDir = new DlnaServerDir(dlnaDir.server());
-      for (QMap<QString, QMultiMap<QString, PlayItem> >::Iterator i=dlnaFiles.begin(); i!=dlnaFiles.end(); i++)
-      {
-        DlnaServerDir * seasonDir = subDir;
-        if (!i.key().isEmpty())
-        {
-          seasonDir = new DlnaServerDir(dlnaDir.server());
-          seasonDir->sortOrder = i.key().split(' ').last().toInt() + SMediaInfo::tvShowSeason;
-
-          subDir->addDir(i.key(), seasonDir);
-        }
-
-        for (QMultiMap<QString, PlayItem>::Iterator j=i->begin(); j!=i->end(); j++)
-        if (j->mediaInfo.track() > 0)
-          addVideoFile(seasonDir, *j, j.key(), j->mediaInfo.track());
-        else
-          addVideoFile(seasonDir, *j, j.key(), SMediaInfo::tvShowSeason * 100);
-      }
-
-      subDirs.insert(showName, subDir);
-    }
-  }
-
-  SDebug::WriteLocker l(&dlnaDir.server()->lock, __FILE__, __LINE__);
-
-  dlnaDir.clear();
-  for (QMultiMap<QString, DlnaServerDir *>::Iterator i=subDirs.begin(); i!=subDirs.end(); i++)
-    dlnaDir.addDir(i.key(), i.value());
 }
 
 QString TvShowServer::toTvShowNumber(unsigned episode)
@@ -173,6 +38,210 @@ QString TvShowServer::toTvShowNumber(unsigned episode)
     text = "0" + text;
 
   return QString::number(episode / SMediaInfo::tvShowSeason) + "x" + text;
+}
+
+
+TvShowServer::Dir::Dir(MediaPlayerServer *parent, const QString &albumPath)
+  : MediaPlayerServerDir(parent, albumPath)
+{
+}
+
+QStringList TvShowServer::Dir::listDirs(void)
+{
+  const QString seasonText = tr("Season");
+
+  QSet<QString> albums;
+  foreach (const QString &album, server()->mediaDatabase->allAlbums(server()->category))
+  if (album.startsWith(albumPath))
+  {
+    const QString subAlbum = album.mid(albumPath.length()).split('/').first();
+    if (!subAlbum.isEmpty())
+      albums.insert(subAlbum);
+  }
+
+  SDebug::WriteLocker l(&server()->lock, __FILE__, __LINE__);
+
+  categorizeSeasons();
+  for (QMap<unsigned, QMap<QString, File> >::ConstIterator i=seasons.begin(); i!=seasons.end(); i++)
+  if (i.key() > 0)
+    albums.insert(seasonText + " " + QString::number(i.key()));
+
+  QStringList addAlbums = albums.toList();
+  QStringList delAlbums;
+
+  foreach (const QString &dirName, MediaServerDir::listDirs())
+  {
+    if (!albums.contains(dirName))
+      delAlbums.append(dirName);
+    else
+      addAlbums.removeAll(dirName);
+  }
+
+  foreach (const QString &album, delAlbums)
+    removeDir(album);
+
+  foreach (const QString &album, addAlbums)
+  {
+    if (album.startsWith(seasonText))
+    {
+      const int season = album.mid(seasonText.length() + 1).toInt();
+      SeasonDir * const dir = new SeasonDir(server(), seasons[season]);
+      dir->sortOrder += season;
+
+      addDir(album, dir);
+    }
+    else
+      addDir(album, createDir(server(), albumPath + album));
+  }
+
+  return MediaServerDir::listDirs();
+}
+
+QStringList TvShowServer::Dir::listFiles(void)
+{
+  SDebug::WriteLocker l(&server()->lock, __FILE__, __LINE__);
+
+  if (seasons.isEmpty())
+  {
+    QMap<QString, File> files;
+    foreach (MediaDatabase::UniqueID uid, server()->mediaDatabase->allAlbumFiles(server()->category, albumPath))
+    {
+      const SMediaInfo node = server()->mediaDatabase->readNode(uid);
+      const SMediaInfo titleNode = (!node.isNull() && node.isDisc()) ? node.titles().first() : node;
+
+      if (!node.isNull() && !titleNode.isNull())
+      {
+        File file;
+        if (titleNode.containsAudio() || titleNode.containsVideo())
+          file.mimeType = "video/mpeg";
+        else
+          file.mimeType = "image/jpeg";
+
+        if (!file.mimeType.isEmpty())
+        {
+          file.played = server()->mediaDatabase->lastPlayed(uid).isValid();
+          file.url = server()->httpPath() + MediaDatabase::toUidString(uid) + "." + file.mimeType.right(4);
+          file.iconUrl = server()->httpPath() + MediaDatabase::toUidString(uid) + "-thumb.jpeg";
+          file.mediaInfo = titleNode;
+
+          QString title = node.title();
+          if (node.track() > 0)
+            title = toTvShowNumber(node.track()) + " " + title;
+
+          files.insert(title, file);
+        }
+      }
+    }
+
+    QStringList addFiles = files.keys();
+    QStringList delFiles;
+
+    foreach (const QString &fileName, MediaServerDir::listFiles())
+    {
+      if (!files.contains(fileName))
+        delFiles.append(fileName);
+      else
+        addFiles.removeAll(fileName);
+    }
+
+    foreach (const QString &fileName, delFiles)
+      removeFile(fileName);
+
+    foreach (const QString &fileName, addFiles)
+      addFile(fileName, files[fileName]);
+
+    return MediaServerDir::listFiles();
+  }
+  else
+  {
+    QMap<unsigned, QMap<QString, File> >::Iterator nullSeason = seasons.find(0);
+    if (nullSeason != seasons.end())
+    {
+      QStringList addFiles = nullSeason->keys();
+      QStringList delFiles;
+
+      foreach (const QString &fileName, MediaServerDir::listFiles())
+      {
+        if (!nullSeason->contains(fileName))
+          delFiles.append(fileName);
+        else
+          addFiles.removeAll(fileName);
+      }
+
+      foreach (const QString &fileName, delFiles)
+        removeFile(fileName);
+
+      foreach (const QString &fileName, addFiles)
+        addFile(fileName, (*nullSeason)[fileName]);
+
+      return MediaServerDir::listFiles();
+    }
+    else
+      return QStringList();
+  }
+}
+
+void TvShowServer::Dir::categorizeSeasons(void)
+{
+  seasons.clear();
+
+  foreach (MediaDatabase::UniqueID uid, server()->mediaDatabase->allAlbumFiles(server()->category, albumPath))
+  {
+    const SMediaInfo node = server()->mediaDatabase->readNode(uid);
+    const SMediaInfo titleNode = (!node.isNull() && node.isDisc()) ? node.titles().first() : node;
+
+    if (!node.isNull() && !titleNode.isNull())
+    {
+      File file;
+      file.played = server()->mediaDatabase->lastPlayed(uid).isValid();
+      file.mimeType = "video/mpeg";
+      file.url = server()->httpPath() + MediaDatabase::toUidString(uid) + "." + file.mimeType.right(4);
+      file.iconUrl = server()->httpPath() + MediaDatabase::toUidString(uid) + "-thumb.jpeg";
+      file.mediaInfo = titleNode;
+
+      QString title = node.title();
+      if (node.track() > 0)
+        title = toTvShowNumber(node.track()) + " " + title;
+
+      seasons[node.track() / SMediaInfo::tvShowSeason].insert(title, file);
+    }
+  }
+}
+
+MediaPlayerServerDir * TvShowServer::Dir::createDir(MediaPlayerServer *parent, const QString &albumPath)
+{
+  return new Dir(parent, albumPath);
+}
+
+
+TvShowServer::SeasonDir::SeasonDir(TvShowServer *parent, const QMap<QString, File> &episodes)
+  : MediaServerDir(parent),
+    episodes(episodes)
+{
+}
+
+QStringList TvShowServer::SeasonDir::listFiles(void)
+{
+  SDebug::WriteLocker l(&server()->lock, __FILE__, __LINE__);
+
+  QStringList addFiles = episodes.keys();
+  QStringList delFiles;
+
+  foreach (const QString &fileName, MediaServerDir::listFiles())
+  {
+    if (!episodes.contains(fileName))
+      delFiles.append(fileName);
+    else
+      addFiles.removeAll(fileName);
+  }
+
+  foreach (const QString &fileName, delFiles)
+    removeFile(fileName);
+
+  foreach (const QString &fileName, addFiles)
+    addFile(fileName, episodes[fileName]);
+
+  return MediaServerDir::listFiles();
 }
 
 } // End of namespace

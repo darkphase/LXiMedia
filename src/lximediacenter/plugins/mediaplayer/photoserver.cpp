@@ -25,7 +25,7 @@ namespace LXiMediaCenter {
 PhotoServer::PhotoServer(MediaDatabase *mediaDatabase, MediaDatabase::Category category, const char *name, Plugin *plugin, BackendServer::MasterServer *server)
   : MediaPlayerServer(mediaDatabase, category, name, plugin, server)
 {
-  setRoot(new PhotoServerDir(this, "/"));
+  setRoot(new Dir(this, "/"));
 }
 
 PhotoServer::~PhotoServer()
@@ -233,12 +233,12 @@ bool PhotoServer::SlideShowStream::setup(const QHttpRequestHeader &request, QAbs
 }
 
 
-PhotoServerDir::PhotoServerDir(MediaPlayerServer *parent, const QString &albumPath)
+PhotoServer::Dir::Dir(MediaPlayerServer *parent, const QString &albumPath)
   : MediaPlayerServerDir(parent, albumPath)
 {
 }
 
-QStringList PhotoServerDir::listFiles(void)
+QStringList PhotoServer::Dir::listFiles(void)
 {
   SDebug::WriteLocker l(&server()->lock, __FILE__, __LINE__);
 
@@ -260,9 +260,9 @@ QStringList PhotoServerDir::listFiles(void)
   return files;
 }
 
-MediaPlayerServerDir * PhotoServerDir::createDir(MediaPlayerServer *parent, const QString &albumPath)
+MediaPlayerServerDir * PhotoServer::Dir::createDir(MediaPlayerServer *parent, const QString &albumPath)
 {
-  return new PhotoServerDir(parent, albumPath);
+  return new Dir(parent, albumPath);
 }
 
 } // End of namespace

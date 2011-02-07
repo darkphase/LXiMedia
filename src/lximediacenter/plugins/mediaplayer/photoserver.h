@@ -43,6 +43,20 @@ protected:
     SlideShowNode               slideShow;
   };
 
+  class Dir : public MediaPlayerServerDir
+  {
+  public:
+    explicit                    Dir(MediaPlayerServer *, const QString &albumPath);
+
+    virtual QStringList         listFiles(void);
+
+    inline PhotoServer        * server(void)                                    { return static_cast<PhotoServer *>(MediaPlayerServerDir::server()); }
+    inline const PhotoServer  * server(void) const                              { return static_cast<const PhotoServer *>(MediaPlayerServerDir::server()); }
+
+  protected:
+    virtual MediaPlayerServerDir * createDir(MediaPlayerServer *, const QString &albumPath);
+  };
+
 public:
                                 PhotoServer(MediaDatabase *, MediaDatabase::Category, const char *, Plugin *, BackendServer::MasterServer *);
   virtual                       ~PhotoServer();
@@ -58,19 +72,6 @@ private:
 
 private:
   static const char     * const htmlView;
-};
-
-class PhotoServerDir : public MediaPlayerServerDir
-{
-Q_OBJECT
-friend class PhotoServer;
-public:
-  explicit                      PhotoServerDir(MediaPlayerServer *, const QString &albumPath);
-
-  virtual QStringList           listFiles(void);
-
-protected:
-  virtual MediaPlayerServerDir * createDir(MediaPlayerServer *, const QString &albumPath);
 };
 
 } // End of namespace

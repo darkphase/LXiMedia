@@ -388,117 +388,6 @@ bool MediaPlayerServer::buildPlaylist(const QHttpRequestHeader &request, QAbstra
   return false;
 }
 
-/*bool MediaPlayerServer::handleHtmlRequest(const QUrl &url, const QString &file, QAbstractSocket *socket)
-{
-  QHttpResponseHeader response(200);
-  response.setContentType("text/html;charset=utf-8");
-  response.setValue("Cache-Control", "no-cache");
-
-  HtmlParser htmlParser;
-
-  SDebug::WriteLocker l(&dlnaDir.server()->lock, __FILE__, __LINE__);
-
-  if (file.isEmpty() || file.endsWith("-dir.html"))
-  {
-    const DlnaServerDir *dir = &dlnaDir;
-    if (!file.isEmpty())
-      dir = dir->server()->getDir(file.left(file.length() - 9).toInt(NULL, 16));
-
-    if (dir)
-    {
-      ThumbnailListItemMap items;
-
-      const DlnaServerDir::ConstDirMap *dirMap = &(dir->listDirs());
-      const DlnaServerAlphaDir * const alphaDir = qobject_cast<const DlnaServerAlphaDir *>(dir);
-      if (alphaDir)
-        dirMap = &(alphaDir->listAllDirs());
-
-      for (DlnaServerDir::ConstDirMap::ConstIterator i=dirMap->begin(); i!=dirMap->end(); i++)
-      {
-        const MediaServerFileDir * const mediaFileDir = qobject_cast<const MediaServerFileDir *>(*i);
-        if (mediaFileDir)
-        {
-          int count = 0;
-          foreach (MediaDatabase::UniqueID uid, mediaFileDir->uids)
-          {
-            ThumbnailListItem item;
-            item.title = i.key();
-            item.iconurl = MediaDatabase::toUidString(uid) + "-thumb.jpeg";
-            item.url = MediaDatabase::toUidString(uid) + ".html";
-            item.played = mediaFileDir->played;
-
-            if (mediaFileDir->uids.count() > 1)
-              item.title += ", " + tr("Part") + " " + QString::number(++count);
-
-            items.insert(("00000000" + QString::number(quint32(dir->sortOrder + 0x80000000), 16)).right(8) + item.title.toUpper() + MediaDatabase::toUidString(uid), item);
-          }
-        }
-        else
-        {
-          const DlnaServerDir * const subDir = qobject_cast<const DlnaServerDir *>(*i);
-          if (subDir)
-          {
-            ThumbnailListItem item;
-            item.title = i.key();
-            item.subtitle = QString::number(subDir->count()) + " " + tr("items");
-            item.iconurl = subDir->findIcon();
-            item.url = QString::number(subDir->id, 16) + "-dir.html";
-            item.played = subDir->played;
-
-            items.insert(("00000000" + QString::number(quint32(subDir->sortOrder + 0x80000000), 16)).right(8) + item.title.toUpper(), item);
-          }
-        }
-      }
-
-      const DlnaServerDir::FileMap &fileMap = dir->listFiles();
-      for (DlnaServerDir::FileMap::ConstIterator i=fileMap.begin(); i!=fileMap.end(); i++)
-      {
-        ThumbnailListItem item;
-        item.title = i.key();
-        item.iconurl = i->iconUrl;
-        item.url = i->url + ".html";
-        item.played = i->played;
-
-        items.insert(("00000000" + QString::number(quint32(i->sortOrder + 0x80000000), 16)).right(8) + item.title.toUpper(), item);
-      }
-
-      return sendHtmlContent(socket, url, response, buildThumbnailView("", items, url), headList);
-    }
-  }
-  else if (file.endsWith(".html")) // Show player
-  {
-    const MediaDatabase::UniqueID uid = MediaDatabase::fromUidString(file.left(16));
-    const SMediaInfo node = mediaDatabase->readNode(uid);
-    if (!node.isNull())
-    {
-      htmlParser.setField("PLAYER", buildVideoPlayer(uid, node, url));
-
-      htmlParser.setField("PLAYER_INFOITEMS", QByteArray(""));
-      htmlParser.setField("ITEM_NAME", tr("Title"));
-      htmlParser.setField("ITEM_VALUE", node.title());
-      htmlParser.appendField("PLAYER_INFOITEMS", htmlParser.parse(htmlPlayerInfoItem));
-      htmlParser.setField("ITEM_NAME", tr("Duration"));
-      htmlParser.setField("ITEM_VALUE", QTime().addSecs(node.duration().toSec()).toString(videoTimeFormat));
-      htmlParser.appendField("PLAYER_INFOITEMS", htmlParser.parse(htmlPlayerInfoItem));
-      htmlParser.setField("ITEM_NAME", tr("Format"));
-      htmlParser.setField("ITEM_VALUE", videoFormatString(node));
-      htmlParser.appendField("PLAYER_INFOITEMS", htmlParser.parse(htmlPlayerInfoItem));
-      htmlParser.setField("ITEM_NAME", tr("Filename"));
-      htmlParser.setField("ITEM_VALUE", node.fileName());
-      htmlParser.appendField("PLAYER_INFOITEMS", htmlParser.parse(htmlPlayerInfoItem));
-
-      htmlParser.setField("PLAYER_DESCRIPTION_NAME", tr("Description"));
-      htmlParser.setField("PLAYER_DESCRIPTION", node.comment());
-
-      return sendHtmlContent(socket, url, response, htmlParser.parse(htmlPlayer), headPlayer);
-    }
-  }
-
-  response.setStatusLine(404);
-  socket->write(response.toString().toUtf8());
-  return false;
-}*/
-
 QString MediaPlayerServer::videoFormatString(const SMediaInfo &mediaInfo)
 {
   if (!mediaInfo.videoStreams().isEmpty())
@@ -660,6 +549,20 @@ QStringList MediaPlayerServerDir::listFiles(void)
     addFile(fileName, files[fileName]);
 
   return MediaServerDir::listFiles();
+}
+
+QString MediaPlayerServerDir::getIcon(void) const
+{
+  for (unsigned i=0; i<16; i++)
+  {
+    const MediaDatabase::UniqueID uid = server()->mediaDatabase->getAlbumFile(server()->category, albumPath, i);
+    if (uid == 0)
+      break;
+    else if (!server()->mediaDatabase->readNode(uid).isNull())
+      return server()->httpPath() + MediaDatabase::toUidString(uid) + "-thumb.jpeg";
+  }
+
+  return QString::null;
 }
 
 MediaPlayerServerDir * MediaPlayerServerDir::createDir(MediaPlayerServer *parent, const QString &albumPath)

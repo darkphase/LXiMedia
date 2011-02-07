@@ -154,7 +154,6 @@ bool MediaServer::buildDir(const QUrl &url, const QString &path, QAbstractSocket
       {
         ThumbnailListItem item;
         item.title = subDirName;
-        item.subtitle = QString::number(subDir->count()) + " " + tr("items");
         item.iconurl = subDir->getIcon();
         item.url = subDirName + '/';
 
