@@ -12,13 +12,15 @@ SOURCES += configserver.cpp \
     photoserver.cpp \
     photoserver.html.cpp \
     slideshownode.cpp \
-    slideshownode.blend.c
+    slideshownode.blend.c \
+    tvshowserver.cpp
 HEADERS += configserver.h \
     mediaplayerbackend.h \
     mediadatabase.h \
     mediaplayerserver.h \
     photoserver.h \
-    slideshownode.h
+    slideshownode.h \
+    tvshowserver.h
 
 RESOURCES = images/mediaplayer_images.qrc
 
@@ -36,6 +38,5 @@ RESOURCES = images/mediaplayer_images.qrc
     #homevideoserver.h \
     #movieserver.h \
     #musicserver.h \
-    #tvshowserver.h \
     #playlist.h \
     #playlistnode.h

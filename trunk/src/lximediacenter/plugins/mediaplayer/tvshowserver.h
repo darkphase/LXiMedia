@@ -31,13 +31,45 @@ namespace LXiMediaCenter {
 class TvShowServer : public MediaPlayerServer
 {
 Q_OBJECT
+protected:
+  class Dir : public MediaPlayerServerDir
+  {
+  public:
+    explicit                    Dir(MediaPlayerServer *, const QString &albumPath);
+
+    virtual QStringList         listDirs(void);
+    virtual QStringList         listFiles(void);
+
+    inline TvShowServer       * server(void)                                    { return static_cast<TvShowServer *>(MediaPlayerServerDir::server()); }
+    inline const TvShowServer * server(void) const                              { return static_cast<const TvShowServer *>(MediaPlayerServerDir::server()); }
+
+  private:
+    void                        categorizeSeasons(void);
+
+  protected:
+    virtual MediaPlayerServerDir * createDir(MediaPlayerServer *, const QString &albumPath);
+
+  private:
+    QMap<unsigned, QMap<QString, File> > seasons;
+  };
+
+  class SeasonDir : public MediaServerDir
+  {
+  public:
+    explicit                    SeasonDir(TvShowServer *, const QMap<QString, File> &episodes);
+
+    virtual QStringList         listFiles(void);
+
+    inline TvShowServer       * server(void)                                    { return static_cast<TvShowServer *>(MediaServerDir::server()); }
+    inline const TvShowServer * server(void) const                              { return static_cast<const TvShowServer *>(MediaServerDir::server()); }
+
+  private:
+    const QMap<QString, File>   episodes;
+  };
+
 public:
-                                TvShowServer(MediaDatabase *, Plugin *, MasterServer *);
+                                TvShowServer(MediaDatabase *, MediaDatabase::Category, const char *, Plugin *, BackendServer::MasterServer *);
   virtual                       ~TvShowServer();
-
-  virtual SearchResultList      search(const QStringList &) const;
-
-  virtual void                  updateDlnaTask(void);
 
 private:
   static QString                toTvShowNumber(unsigned);

@@ -98,6 +98,7 @@ public:
 
   virtual QStringList           listDirs(void);
   virtual QStringList           listFiles(void);
+  virtual QString               getIcon(void) const;
 
   inline MediaPlayerServer    * server(void)                                    { return static_cast<MediaPlayerServer *>(MediaServerDir::server()); }
   inline const MediaPlayerServer * server(void) const                           { return static_cast<const MediaPlayerServer *>(MediaServerDir::server()); }

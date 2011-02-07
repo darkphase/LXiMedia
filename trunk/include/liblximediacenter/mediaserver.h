@@ -225,7 +225,7 @@ public:
   inline QStringList            listFiles(void) const                           { return const_cast<MediaServerDir *>(this)->listFiles(); }
   inline File                   findFile(const QString &name) const             { return const_cast<MediaServerDir *>(this)->findFile(name); }
 
-  QString                       getIcon(void) const;
+  virtual QString               getIcon(void) const;
 
 public:
   qint32                        sortOrder;
