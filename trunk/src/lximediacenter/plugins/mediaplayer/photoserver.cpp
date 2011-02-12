@@ -25,17 +25,16 @@ namespace LXiMediaCenter {
 PhotoServer::PhotoServer(MediaDatabase *mediaDatabase, MediaDatabase::Category category, const char *name, Plugin *plugin, BackendServer::MasterServer *server)
   : MediaPlayerServer(mediaDatabase, category, name, plugin, server)
 {
-  setRoot(new Dir(this, "/"));
 }
 
 PhotoServer::~PhotoServer()
 {
 }
 
-bool PhotoServer::handleConnection(const QHttpRequestHeader &request, QAbstractSocket *socket)
+HttpServer::SocketOp PhotoServer::handleHttpRequest(const HttpServer::RequestHeader &request, QAbstractSocket *socket)
 {
   const QUrl url(request.path());
-  const QString file = url.path().mid(url.path().lastIndexOf('/') + 1);
+  const QString file = request.file();
 
   if (file.endsWith(".jpeg") && !file.endsWith("-thumb.jpeg"))
   {
@@ -55,10 +54,10 @@ bool PhotoServer::handleConnection(const QHttpRequestHeader &request, QAbstractS
   else if (file.endsWith(".html")) // Show player
     return handleHtmlRequest(url, file, socket);
 
-  return MediaPlayerServer::handleConnection(request, socket);
+  return MediaPlayerServer::handleHttpRequest(request, socket);
 }
 
-bool PhotoServer::streamVideo(const QHttpRequestHeader &request, QAbstractSocket *socket)
+HttpServer::SocketOp PhotoServer::streamVideo(const HttpServer::RequestHeader &request, QAbstractSocket *socket)
 {
   const QUrl url(request.path());
   const QStringList file = url.path().mid(url.path().lastIndexOf('/') + 1).split('.');
@@ -66,15 +65,15 @@ bool PhotoServer::streamVideo(const QHttpRequestHeader &request, QAbstractSocket
   if (file.count() >= 2)
   {
     const QString album = QString::fromUtf8(QByteArray::fromHex(file.first().toAscii()));
-    const QList<MediaDatabase::UniqueID> files = mediaDatabase->allAlbumFiles(MediaDatabase::Category_Photos, album);
+    const QList<MediaDatabase::File> files = mediaDatabase->getAlbumFiles(MediaDatabase::Category_Photos, album);
     if (!files.isEmpty())
     {
       QString title;
       QImage thumb;
       QStringList fileNames;
-      foreach (const MediaDatabase::UniqueID &item, files)
+      foreach (const MediaDatabase::File &file, files)
       {
-        const SMediaInfo node = mediaDatabase->readNode(item);
+        const SMediaInfo node = mediaDatabase->readNode(file.uid);
         if (!node.isNull())
         {
           if (fileNames.isEmpty())
@@ -96,19 +95,69 @@ bool PhotoServer::streamVideo(const QHttpRequestHeader &request, QAbstractSocket
       SlideShowStream *stream = new SlideShowStream(this, socket->peerAddress(), request.path(), fileNames);
       if (stream->setup(request, socket, stream->slideShow.duration(), title, thumb))
       if (stream->start())
-        return true; // The graph owns the socket now.
+        return HttpServer::SocketOp_LeaveOpen; // The graph owns the socket now.
 
       delete stream;
     }
   }
 
-  socket->write(QHttpResponseHeader(404).toString().toUtf8());
-
-  qWarning() << "Failed to start stream" << file.first();
-  return false;
+  qWarning() << "Failed to start stream" << request.path();
+  socket->write(HttpServer::ResponseHeader(HttpServer::Status_NotFound));
+  return HttpServer::SocketOp_Close;
 }
 
-bool PhotoServer::sendPhoto(QAbstractSocket *socket, MediaDatabase::UniqueID uid, unsigned width, unsigned height) const
+int PhotoServer::countItems(const QString &path)
+{
+  if (mediaDatabase->countAlbumFiles(category, path) > 0)
+    return MediaPlayerServer::countItems(path) + 1;
+  else
+    return MediaPlayerServer::countItems(path);
+}
+
+QList<PhotoServer::Item> PhotoServer::listItems(const QString &path, unsigned start, unsigned count)
+{
+  if (mediaDatabase->countAlbumFiles(category, path) > 0)
+  {
+    if (start == 0)
+    {
+      QList<Item> result;
+      if (count > 1)
+        result = MediaPlayerServer::listItems(path, start, count - 1);
+      else if (count == 0)
+        result = MediaPlayerServer::listItems(path, start, count);
+
+      Item item;
+      item.title = tr("Start Slideshow");
+      item.mimeType = "video/mpeg";
+      item.url = httpPath() + path.toUtf8().toHex() + ".slideshow.mpeg";
+
+      if (result.isEmpty())
+      {
+        const QList<Item> first = MediaPlayerServer::listItems(path, 0, 1);
+        if (!first.isEmpty())
+        {
+          item.iconUrl = first.first().iconUrl;
+          item.iconUrl.addQueryItem("overlay", "slideshow");
+        }
+      }
+      else
+      {
+        item.iconUrl = result.first().iconUrl;
+        item.iconUrl.addQueryItem("overlay", "slideshow");
+      }
+
+      result.prepend(item);
+
+      return result;
+    }
+    else
+      return MediaPlayerServer::listItems(path, start - 1, count);
+  }
+  else
+    return MediaPlayerServer::listItems(path, start, count);
+}
+
+HttpServer::SocketOp PhotoServer::sendPhoto(QAbstractSocket *socket, MediaDatabase::UniqueID uid, unsigned width, unsigned height) const
 {
   const SMediaInfo node = mediaDatabase->readNode(uid);
 
@@ -136,8 +185,8 @@ bool PhotoServer::sendPhoto(QAbstractSocket *socket, MediaDatabase::UniqueID uid
     }
   }
 
-  socket->write(QHttpResponseHeader(404).toString().toUtf8());
-  return false;
+  socket->write(HttpServer::ResponseHeader(HttpServer::Status_NotFound));
+  return HttpServer::SocketOp_Close;
 }
 
 
@@ -150,7 +199,7 @@ PhotoServer::SlideShowStream::SlideShowStream(PhotoServer *parent, const QHostAd
   connect(&slideShow, SIGNAL(output(SVideoBuffer)), &subtitleRenderer, SLOT(input(SVideoBuffer)));
 }
 
-bool PhotoServer::SlideShowStream::setup(const QHttpRequestHeader &request, QAbstractSocket *socket, STime duration, const QString &name, const QImage &thumb)
+bool PhotoServer::SlideShowStream::setup(const HttpServer::RequestHeader &request, QAbstractSocket *socket, STime duration, const QString &name, const QImage &thumb)
 {
   const QUrl url(request.path());
   const QStringList file = url.path().mid(url.path().lastIndexOf('/') + 1).split('.');
@@ -177,8 +226,8 @@ bool PhotoServer::SlideShowStream::setup(const QHttpRequestHeader &request, QAbs
   const SInterfaces::AudioEncoder::Flags audioEncodeFlags = SInterfaces::AudioEncoder::Flag_Fast;
   const SInterfaces::VideoEncoder::Flags videoEncodeFlags = SInterfaces::VideoEncoder::Flag_Fast;
 
-  QHttpResponseHeader header(200);
-  header.setValue("Cache-Control", "no-cache");
+  HttpServer::ResponseHeader header(HttpServer::Status_Ok);
+  header.setField("Cache-Control", "no-cache");
 
   if ((file.last().toLower() == "mpeg") || (file.last().toLower() == "mpg"))
   {
@@ -227,42 +276,9 @@ bool PhotoServer::SlideShowStream::setup(const QHttpRequestHeader &request, QAbs
 
   Stream::setup(url.queryItemValue("header") == "true", name, thumb);
 
-  output.setHeader(header.toString().toUtf8());
+  output.setHeader(header);
   output.addSocket(socket);
   return true;
-}
-
-
-PhotoServer::Dir::Dir(MediaPlayerServer *parent, const QString &albumPath)
-  : MediaPlayerServerDir(parent, albumPath)
-{
-}
-
-QStringList PhotoServer::Dir::listFiles(void)
-{
-  SDebug::WriteLocker l(&server()->lock, __FILE__, __LINE__);
-
-  QStringList files = MediaPlayerServerDir::listFiles();
-  if (!files.isEmpty())
-  {
-    const QString fileName = tr("Start Slideshow");
-
-    File file;
-    file.sortOrder = -1;
-    file.mimeType = "video/mpeg";
-    file.url = server()->httpPath() + albumPath.toUtf8().toHex() + ".slideshow.mpeg";
-    file.iconUrl = MediaPlayerServerDir::findFile(files.first()).iconUrl;
-
-    addFile(fileName, file);
-    files += fileName;
-  }
-
-  return files;
-}
-
-MediaPlayerServerDir * PhotoServer::Dir::createDir(MediaPlayerServer *parent, const QString &albumPath)
-{
-  return new Dir(parent, albumPath);
 }
 
 } // End of namespace

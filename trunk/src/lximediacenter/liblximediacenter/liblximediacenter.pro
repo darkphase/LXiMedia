@@ -23,13 +23,13 @@ win32 {
 }
 
 INCLUDEPATH += $${LXIMEDIA_DIR}/include/liblximediacenter
+DEPENDPATH += $${LXIMEDIA_DIR}/include/liblximediacenter
 
 # Files
 HEADERS += ../../../include/LXiMediaCenter \
  ../../../include/liblximediacenter/backendserver.h \
  ../../../include/liblximediacenter/database.h \
  ../../../include/liblximediacenter/dlnaserver.h \
- ../../../include/liblximediacenter/fileserver.h \
  ../../../include/liblximediacenter/globalsettings.h \
  ../../../include/liblximediacenter/htmlparser.h \
  ../../../include/liblximediacenter/httpoutputnode.h \
@@ -46,7 +46,6 @@ SOURCES += backendserver.cpp \
  backendserver.html.cpp \
  database.cpp \
  dlnaserver.cpp \
- fileserver.cpp \
  globalsettings.cpp \
  htmlparser.cpp \
  httpoutputnode.cpp \

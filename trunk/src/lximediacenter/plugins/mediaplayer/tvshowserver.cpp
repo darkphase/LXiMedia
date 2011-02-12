@@ -22,13 +22,156 @@
 namespace LXiMediaCenter {
 
 TvShowServer::TvShowServer(MediaDatabase *mediaDatabase, MediaDatabase::Category category, const char *name, Plugin *plugin, BackendServer::MasterServer *server)
-  : MediaPlayerServer(mediaDatabase, category, name, plugin, server)
+  : MediaPlayerServer(mediaDatabase, category, name, plugin, server),
+    seasonText(tr("Season"))
 {
-  setRoot(new Dir(this, "/"));
 }
 
 TvShowServer::~TvShowServer()
 {
+}
+
+int TvShowServer::countItems(const QString &path)
+{
+  if (!mediaDatabase->hasAlbum(category, path))
+  {
+    const QString dir = path.mid(path.left(path.length() - 1).lastIndexOf('/'));
+    if (dir.startsWith("/" + seasonText + " "))
+    {
+      const unsigned season = dir.mid(seasonText.length() + 1, dir.length() - seasonText.length() - 2).toUInt();
+
+      QMap<unsigned, QVector<MediaDatabase::UniqueID> > seasons;
+      bool useSeasons;
+      categorizeSeasons(path.left(path.length() - dir.length() + 1), seasons, useSeasons);
+
+      const QMap<unsigned, QVector<MediaDatabase::UniqueID> >::ConstIterator s = seasons.find(season);
+      if (s != seasons.end())
+        return s->count();
+      else
+        return 0;
+    }
+  }
+
+  QMap<unsigned, QVector<MediaDatabase::UniqueID> > seasons;
+  bool useSeasons;
+  categorizeSeasons(path, seasons, useSeasons);
+
+  const QMap<unsigned, QVector<MediaDatabase::UniqueID> >::ConstIterator r = seasons.find(0);
+  if (r != seasons.end())
+    return countAlbums(path) + (seasons.count() - 1) + r->count();
+  else
+    return countAlbums(path) + seasons.count();
+}
+
+QList<TvShowServer::Item> TvShowServer::listItems(const QString &path, unsigned start, unsigned count)
+{
+  const bool returnAll = count == 0;
+
+  if (!mediaDatabase->hasAlbum(category, path))
+  {
+    const QString dir = path.mid(path.left(path.length() - 1).lastIndexOf('/'));
+    if (dir.startsWith("/" + seasonText + " "))
+    {
+      const unsigned season = dir.mid(seasonText.length() + 1, dir.length() - seasonText.length() - 2).toUInt();
+
+      QList<Item> result;
+
+      QMap<unsigned, QVector<MediaDatabase::UniqueID> > seasons;
+      bool useSeasons;
+      categorizeSeasons(path.left(path.length() - dir.length() + 1), seasons, useSeasons);
+
+      const QMap<unsigned, QVector<MediaDatabase::UniqueID> >::ConstIterator s = seasons.find(season);
+      if (s != seasons.end())
+      for (int i=start, n=0; (i<s->count()) && (returnAll || (n<int(count))); i++, n++)
+        result.append(makeSeasonItem(s->at(i)));
+
+      return result;
+    }
+  }
+
+  QList<Item> result = listAlbums(path, start, count);
+
+  QMap<unsigned, QVector<MediaDatabase::UniqueID> > seasons;
+  bool useSeasons;
+  categorizeSeasons(path, seasons, useSeasons);
+
+  for (QMap<unsigned, QVector<MediaDatabase::UniqueID> >::ConstIterator i=seasons.begin(); i!=seasons.end(); i++)
+  if ((i.key() != 0) && !i.value().isEmpty())
+  {
+    if (start == 0)
+    {
+      if (returnAll || (count > 0))
+      {
+        Item item;
+        item.isDir = true;
+        item.title = seasonText + " " + QString::number(i.key());
+        item.iconUrl = MediaDatabase::toUidString(i.value().first()) + "-thumb.jpeg?overlay=folder-video";
+        result.append(item);
+
+        if (count > 0)
+          count--;
+      }
+    }
+    else
+      start--;
+  }
+
+  const QMap<unsigned, QVector<MediaDatabase::UniqueID> >::ConstIterator r = seasons.find(0);
+  if (r != seasons.end())
+  for (int i=start, n=0; (i<r->count()) && (returnAll || (n<int(count))); i++, n++)
+    result.append(useSeasons ? makeSeasonItem(r->at(i)) : makePlainItem(r->at(i)));
+
+  return result;
+}
+
+void TvShowServer::categorizeSeasons(const QString &path, QMap<unsigned, QVector<MediaDatabase::UniqueID> > &seasons, bool &useSeasons)
+{
+  const QList<MediaDatabase::File> files = mediaDatabase->allAlbumFiles(category, path);
+
+  seasons.clear();
+  useSeasons = true;
+  foreach (const MediaDatabase::File &file, files)
+  {
+    const unsigned track = file.name.left(10).toUInt();
+    if ((track > 0) && (track < SMediaInfo::tvShowSeason))
+    {
+      // Don't use seasons
+      seasons.clear();
+      useSeasons = false;
+      foreach (const MediaDatabase::File &file, files)
+        seasons[0].append(file.uid);
+
+      return;
+    }
+
+    seasons[track / SMediaInfo::tvShowSeason].append(file.uid);
+  }
+
+  if (seasons.count() == 1)
+  {
+    // Only one season
+    const QVector<MediaDatabase::UniqueID> s = *(seasons.begin());
+    seasons.erase(seasons.begin());
+    seasons[0] = s;
+  }
+}
+
+TvShowServer::Item TvShowServer::makePlainItem(MediaDatabase::UniqueID uid)
+{
+  Item item = makeItem(uid);
+  if (item.mediaInfo.track() > 0)
+    item.title = QString::number(item.mediaInfo.track()) + " " + item.title;
+
+  return item;
+}
+
+TvShowServer::Item TvShowServer::makeSeasonItem(MediaDatabase::UniqueID uid)
+{
+  Item item = makeItem(uid);
+  if (item.mediaInfo.track() > 0)
+    item.title = toTvShowNumber(item.mediaInfo.track()) + " " + item.title;
+
+  return item;
 }
 
 QString TvShowServer::toTvShowNumber(unsigned episode)
@@ -38,210 +181,6 @@ QString TvShowServer::toTvShowNumber(unsigned episode)
     text = "0" + text;
 
   return QString::number(episode / SMediaInfo::tvShowSeason) + "x" + text;
-}
-
-
-TvShowServer::Dir::Dir(MediaPlayerServer *parent, const QString &albumPath)
-  : MediaPlayerServerDir(parent, albumPath)
-{
-}
-
-QStringList TvShowServer::Dir::listDirs(void)
-{
-  const QString seasonText = tr("Season");
-
-  QSet<QString> albums;
-  foreach (const QString &album, server()->mediaDatabase->allAlbums(server()->category))
-  if (album.startsWith(albumPath))
-  {
-    const QString subAlbum = album.mid(albumPath.length()).split('/').first();
-    if (!subAlbum.isEmpty())
-      albums.insert(subAlbum);
-  }
-
-  SDebug::WriteLocker l(&server()->lock, __FILE__, __LINE__);
-
-  categorizeSeasons();
-  for (QMap<unsigned, QMap<QString, File> >::ConstIterator i=seasons.begin(); i!=seasons.end(); i++)
-  if (i.key() > 0)
-    albums.insert(seasonText + " " + QString::number(i.key()));
-
-  QStringList addAlbums = albums.toList();
-  QStringList delAlbums;
-
-  foreach (const QString &dirName, MediaServerDir::listDirs())
-  {
-    if (!albums.contains(dirName))
-      delAlbums.append(dirName);
-    else
-      addAlbums.removeAll(dirName);
-  }
-
-  foreach (const QString &album, delAlbums)
-    removeDir(album);
-
-  foreach (const QString &album, addAlbums)
-  {
-    if (album.startsWith(seasonText))
-    {
-      const int season = album.mid(seasonText.length() + 1).toInt();
-      SeasonDir * const dir = new SeasonDir(server(), seasons[season]);
-      dir->sortOrder += season;
-
-      addDir(album, dir);
-    }
-    else
-      addDir(album, createDir(server(), albumPath + album));
-  }
-
-  return MediaServerDir::listDirs();
-}
-
-QStringList TvShowServer::Dir::listFiles(void)
-{
-  SDebug::WriteLocker l(&server()->lock, __FILE__, __LINE__);
-
-  if (seasons.isEmpty())
-  {
-    QMap<QString, File> files;
-    foreach (MediaDatabase::UniqueID uid, server()->mediaDatabase->allAlbumFiles(server()->category, albumPath))
-    {
-      const SMediaInfo node = server()->mediaDatabase->readNode(uid);
-      const SMediaInfo titleNode = (!node.isNull() && node.isDisc()) ? node.titles().first() : node;
-
-      if (!node.isNull() && !titleNode.isNull())
-      {
-        File file;
-        if (titleNode.containsAudio() || titleNode.containsVideo())
-          file.mimeType = "video/mpeg";
-        else
-          file.mimeType = "image/jpeg";
-
-        if (!file.mimeType.isEmpty())
-        {
-          file.played = server()->mediaDatabase->lastPlayed(uid).isValid();
-          file.url = server()->httpPath() + MediaDatabase::toUidString(uid) + "." + file.mimeType.right(4);
-          file.iconUrl = server()->httpPath() + MediaDatabase::toUidString(uid) + "-thumb.jpeg";
-          file.mediaInfo = titleNode;
-
-          QString title = node.title();
-          if (node.track() > 0)
-            title = toTvShowNumber(node.track()) + " " + title;
-
-          files.insert(title, file);
-        }
-      }
-    }
-
-    QStringList addFiles = files.keys();
-    QStringList delFiles;
-
-    foreach (const QString &fileName, MediaServerDir::listFiles())
-    {
-      if (!files.contains(fileName))
-        delFiles.append(fileName);
-      else
-        addFiles.removeAll(fileName);
-    }
-
-    foreach (const QString &fileName, delFiles)
-      removeFile(fileName);
-
-    foreach (const QString &fileName, addFiles)
-      addFile(fileName, files[fileName]);
-
-    return MediaServerDir::listFiles();
-  }
-  else
-  {
-    QMap<unsigned, QMap<QString, File> >::Iterator nullSeason = seasons.find(0);
-    if (nullSeason != seasons.end())
-    {
-      QStringList addFiles = nullSeason->keys();
-      QStringList delFiles;
-
-      foreach (const QString &fileName, MediaServerDir::listFiles())
-      {
-        if (!nullSeason->contains(fileName))
-          delFiles.append(fileName);
-        else
-          addFiles.removeAll(fileName);
-      }
-
-      foreach (const QString &fileName, delFiles)
-        removeFile(fileName);
-
-      foreach (const QString &fileName, addFiles)
-        addFile(fileName, (*nullSeason)[fileName]);
-
-      return MediaServerDir::listFiles();
-    }
-    else
-      return QStringList();
-  }
-}
-
-void TvShowServer::Dir::categorizeSeasons(void)
-{
-  seasons.clear();
-
-  foreach (MediaDatabase::UniqueID uid, server()->mediaDatabase->allAlbumFiles(server()->category, albumPath))
-  {
-    const SMediaInfo node = server()->mediaDatabase->readNode(uid);
-    const SMediaInfo titleNode = (!node.isNull() && node.isDisc()) ? node.titles().first() : node;
-
-    if (!node.isNull() && !titleNode.isNull())
-    {
-      File file;
-      file.played = server()->mediaDatabase->lastPlayed(uid).isValid();
-      file.mimeType = "video/mpeg";
-      file.url = server()->httpPath() + MediaDatabase::toUidString(uid) + "." + file.mimeType.right(4);
-      file.iconUrl = server()->httpPath() + MediaDatabase::toUidString(uid) + "-thumb.jpeg";
-      file.mediaInfo = titleNode;
-
-      QString title = node.title();
-      if (node.track() > 0)
-        title = toTvShowNumber(node.track()) + " " + title;
-
-      seasons[node.track() / SMediaInfo::tvShowSeason].insert(title, file);
-    }
-  }
-}
-
-MediaPlayerServerDir * TvShowServer::Dir::createDir(MediaPlayerServer *parent, const QString &albumPath)
-{
-  return new Dir(parent, albumPath);
-}
-
-
-TvShowServer::SeasonDir::SeasonDir(TvShowServer *parent, const QMap<QString, File> &episodes)
-  : MediaServerDir(parent),
-    episodes(episodes)
-{
-}
-
-QStringList TvShowServer::SeasonDir::listFiles(void)
-{
-  SDebug::WriteLocker l(&server()->lock, __FILE__, __LINE__);
-
-  QStringList addFiles = episodes.keys();
-  QStringList delFiles;
-
-  foreach (const QString &fileName, MediaServerDir::listFiles())
-  {
-    if (!episodes.contains(fileName))
-      delFiles.append(fileName);
-    else
-      addFiles.removeAll(fileName);
-  }
-
-  foreach (const QString &fileName, delFiles)
-    removeFile(fileName);
-
-  foreach (const QString &fileName, addFiles)
-    addFile(fileName, episodes[fileName]);
-
-  return MediaServerDir::listFiles();
 }
 
 } // End of namespace

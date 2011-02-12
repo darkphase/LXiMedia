@@ -4,7 +4,6 @@
 #include "liblximediacenter/backendserver.h"
 #include "liblximediacenter/database.h"
 #include "liblximediacenter/dlnaserver.h"
-#include "liblximediacenter/fileserver.h"
 #include "liblximediacenter/globalsettings.h"
 #include "liblximediacenter/htmlparser.h"
 #include "liblximediacenter/httpoutputnode.h"

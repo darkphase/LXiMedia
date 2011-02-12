@@ -190,7 +190,7 @@ public:
     STime                       end;
   };
 
-  struct ProbeInfo
+  struct ProbeInfo : QSharedData
   {
     inline ProbeInfo(void) : size(0), isDisc(false), isProbed(false), isReadable(false), year(0), track(0) { }
 
@@ -214,7 +214,7 @@ public:
     SVideoCodec                 imageCodec;
     QList<Chapter>              chapters;
 
-    QList<ProbeInfo>            titles;
+    QList< QSharedDataPointer<ProbeInfo> > titles;
 
     QString                     title;
     QString                     author;

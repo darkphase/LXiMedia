@@ -64,11 +64,11 @@ const char * const PhotoServer::htmlView =
     " </tr>\n"
     "</table></td></tr></table>\n";
 
-bool PhotoServer::handleHtmlRequest(const QUrl &url, const QString &file, QAbstractSocket *socket)
+HttpServer::SocketOp PhotoServer::handleHtmlRequest(const QUrl &url, const QString &file, QAbstractSocket *socket)
 {
-  QHttpResponseHeader response(200);
+  HttpServer::ResponseHeader response(HttpServer::Status_Ok);
   response.setContentType("text/html;charset=utf-8");
-  response.setValue("Cache-Control", "no-cache");
+  response.setField("Cache-Control", "no-cache");
 
   if (file.endsWith(".slideshow.html"))
   {
@@ -77,10 +77,6 @@ bool PhotoServer::handleHtmlRequest(const QUrl &url, const QString &file, QAbstr
     if (!album.isEmpty())
     {
       const QString albumName = album.mid(album.lastIndexOf('/') + 1);
-
-      QHttpResponseHeader response(200);
-      response.setContentType("text/html;charset=utf-8");
-      response.setValue("Cache-Control", "no-cache");
 
       HtmlParser htmlParser;
 
@@ -143,8 +139,8 @@ bool PhotoServer::handleHtmlRequest(const QUrl &url, const QString &file, QAbstr
   }
 
   qWarning() << "PhotoServer: Failed to find:" << url.toString();
-  socket->write(QHttpResponseHeader(404).toString().toUtf8());
-  return false;
+  socket->write(HttpServer::ResponseHeader(HttpServer::Status_NotFound));
+  return HttpServer::SocketOp_Close;
 }
 
 } // End of namespace

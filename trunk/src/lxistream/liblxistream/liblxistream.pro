@@ -20,6 +20,7 @@ win32 {
 }
 
 INCLUDEPATH += $${LXIMEDIA_DIR}/include/liblxistream
+DEPENDPATH += $${LXIMEDIA_DIR}/include/liblxistream
 
 # Files
 HEADERS += $${LXIMEDIA_DIR}/include/LXiStream \

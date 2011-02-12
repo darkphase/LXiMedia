@@ -35,8 +35,6 @@ Backend::Backend()
          masterHttpServer(),
          masterSsdpServer(),
          masterDlnaServer(&masterHttpServer),
-         httpRootDir(new HttpRootDir(&masterHttpServer, this)),
-//         dlnaServiceDir(&masterDlnaServer),
          cssParser(),
          htmlParser(),
          backendPlugins(),
@@ -121,28 +119,7 @@ void Backend::start(void)
     portFile.write(QByteArray::number(masterHttpServer.serverPort(QHostAddress::LocalHost)));
 
   // Setup HTTP server
-  masterHttpServer.setRoot(httpRootDir);
-  masterHttpServer.addFile("/favicon.ico",                    ":/lximediacenter/appicon.ico");
-  masterHttpServer.addFile("/appicon.png",                    ":/lximediacenter/appicon.png");
-  masterHttpServer.addFile("/logo.png",                       ":/lximediacenter/logo.png");
-  masterHttpServer.addDir ("/img", new HttpServerFileDir(&masterHttpServer));
-  masterHttpServer.addFile("/img/null.png",                   ":/backend/null.png");
-  masterHttpServer.addFile("/img/checknone.png",              ":/backend/checknone.png");
-  masterHttpServer.addFile("/img/checkfull.png",              ":/backend/checkfull.png");
-  masterHttpServer.addFile("/img/checksome.png",              ":/backend/checksome.png");
-  masterHttpServer.addFile("/img/checknonedisabled.png",      ":/backend/checknonedisabled.png");
-  masterHttpServer.addFile("/img/checkfulldisabled.png",      ":/backend/checkfulldisabled.png");
-  masterHttpServer.addFile("/img/checksomedisabled.png",      ":/backend/checksomedisabled.png");
-  masterHttpServer.addFile("/img/treeopen.png",               ":/backend/treeopen.png");
-  masterHttpServer.addFile("/img/treeclose.png",              ":/backend/treeclose.png");
-  masterHttpServer.addFile("/img/starenabled.png",            ":/backend/starenabled.png");
-  masterHttpServer.addFile("/img/stardisabled.png",           ":/backend/stardisabled.png");
-  masterHttpServer.addFile("/img/restart.png",                ":/backend/restart.png");
-  masterHttpServer.addFile("/img/shutdown.png",               ":/backend/shutdown.png");
-  masterHttpServer.addDir ("/swf", new HttpServerFileDir(&masterHttpServer));
-  masterHttpServer.addFile("/swf/flowplayer.swf",             ":/flowplayer/flowplayer-3.2.5.swf");
-  masterHttpServer.addFile("/swf/flowplayer.controls.swf",    ":/flowplayer/flowplayer.controls-3.2.3.swf");
-  masterHttpServer.addFile("/swf/flowplayer.js",              ":/flowplayer/flowplayer-3.2.4.min.js");
+  masterHttpServer.registerCallback("/", this);
 
   // Setup default palette.
   HtmlParser::Palette palette;
@@ -202,10 +179,6 @@ void Backend::start(void)
              << "by" << backendPlugin->authorName()
              << "version" << backendPlugin->pluginVersion();
 
-    QString pluginDir = backendPlugin->pluginName().toLower();
-    pluginDir.replace(" ", "");
-    masterHttpServer.addDir("/" + pluginDir, new HttpServerDir(&masterHttpServer));
-
     const QList<BackendServer *> servers = backendPlugin->createServers(this);
     if (!servers.isEmpty())
     {
@@ -228,7 +201,7 @@ void Backend::start(void)
   masterSsdpServer.publish(GlobalSettings::productAbbr() + QString(":server"), &masterHttpServer, "/");
 
   // Setup DLNA server
-  masterDlnaServer.initialize(&masterSsdpServer);
+  masterDlnaServer.initialize(&masterHttpServer, &masterSsdpServer);
 
 //  DlnaServer::File shutdown(dlnaServiceDir.server());
 //  shutdown.url = "/?shutdown=shutdown";
@@ -355,6 +328,228 @@ void Backend::customEvent(QEvent *e)
   }
 }
 
+HttpServer::SocketOp Backend::handleHttpRequest(const HttpServer::RequestHeader &request, QAbstractSocket *socket)
+{
+  const QUrl url(request.path());
+  const QString path = url.path();
+  const QString file = path.mid(path.lastIndexOf('/') + 1);
+
+  if (path.left(path.lastIndexOf('/') + 1) == "/")
+  {
+    if (url.hasQueryItem("exit"))
+    {
+      QCoreApplication::postEvent(this, new QEvent(exitEventType));
+
+      socket->write(HttpServer::ResponseHeader(HttpServer::Status_NoContent));
+      return HttpServer::SocketOp_Close;
+    }
+    else if (url.hasQueryItem("restart"))
+    {
+      QCoreApplication::postEvent(this, new QEvent(restartEventType));
+
+      socket->write(HttpServer::ResponseHeader(HttpServer::Status_NoContent));
+      return HttpServer::SocketOp_Close;
+    }
+    else if (url.hasQueryItem("shutdown"))
+    {
+      QCoreApplication::postEvent(this, new QEvent(shutdownEventType));
+
+      socket->write(HttpServer::ResponseHeader(HttpServer::Status_NoContent));
+      return HttpServer::SocketOp_Close;
+    }
+    else if (url.hasQueryItem("dismisserrors"))
+    {
+      GlobalSettings().setValue("DismissedErrors", SDebug::LogFile::errorLogFiles());
+
+      return handleHtmlRequest(url, file, socket);
+    }
+    else if (file == "traystatus.xml")
+    {
+      QDomDocument doc("");
+      QDomElement root = doc.createElement("traystatus");
+      doc.appendChild(root);
+
+      // Hostinfo
+      QDomElement hostInfo = doc.createElement("hostinfo");
+      root.appendChild(hostInfo);
+      hostInfo.setAttribute("hostname", QHostInfo::localHostName());
+
+      // DLNA clients
+      GlobalSettings settings;
+      settings.beginGroup("DLNA");
+
+      foreach (const QString &group, settings.childGroups())
+      if (group.startsWith("Client_"))
+      {
+        QDomElement dlnaClient = doc.createElement("dlnaclient");
+        root.appendChild(dlnaClient);
+        dlnaClient.setAttribute("name", group.mid(7));
+        dlnaClient.setAttribute("useragent", settings.value("UserAgent", tr("Unknown")).toString());
+        dlnaClient.setAttribute("lastseen", settings.value("LastSeen").toDateTime().toString(Qt::ISODate));
+      }
+
+      settings.endGroup();
+
+      // Active log file
+      QDomElement activeLogFile = doc.createElement("activelogfile");
+      root.appendChild(activeLogFile);
+      activeLogFile.setAttribute("name", QFileInfo(SDebug::LogFile::activeLogFile()).fileName());
+
+      // Error logs
+      const QSet<QString> dismissedFiles =
+          QSet<QString>::fromList(settings.value("DismissedErrors").toStringList());
+
+      QStringList errorLogFiles;
+      foreach (const QString &file, SDebug::LogFile::errorLogFiles())
+      if (!dismissedFiles.contains(file))
+        errorLogFiles += file;
+
+      foreach (const QString &file, errorLogFiles)
+      {
+        QDomElement errorLogFile = doc.createElement("errorlogfile");
+        root.appendChild(errorLogFile);
+        errorLogFile.setAttribute("name", QFileInfo(file).fileName());
+      }
+
+      HttpServer::ResponseHeader response(HttpServer::Status_Ok);
+      response.setContentType("text/xml;charset=utf-8");
+      response.setField("Cache-Control", "no-cache");
+      socket->write(response);
+      socket->write(doc.toByteArray());
+      return HttpServer::SocketOp_Close;
+    }
+    else if (file.endsWith(".css"))
+    {
+      return handleCssRequest(url, file, socket);
+    }
+    else if (url.hasQueryItem("q"))
+    {
+      return handleHtmlSearch(url, file, socket);
+    }
+    else if (request.path() == "/")
+    {
+      return handleHtmlRequest(url, file, socket);
+    }
+    else if (file.endsWith(".log"))
+    {
+      static const char * const logHead = " <link rel=\"stylesheet\" href=\"/log.css\" type=\"text/css\" media=\"screen, handheld, projection\" />\n";
+
+      QString logFileName;
+      if (file == "main.log")
+      {
+        logFileName = SDebug::LogFile::activeLogFile();
+      }
+      else foreach (const QString &f, SDebug::LogFile::allLogFiles())
+      if (f.endsWith("/" + file))
+      {
+        logFileName = f;
+        break;
+      }
+
+      SDebug::LogFile logFile(logFileName);
+      if (logFile.open(SDebug::LogFile::ReadOnly))
+      {
+        HtmlParser htmlParser(this->htmlParser);
+        htmlParser.setField("TR_DATE", tr("Date"));
+        htmlParser.setField("TR_TYPE", tr("Type"));
+        htmlParser.setField("TR_MESSAGE", tr("Message"));
+
+        htmlParser.setField("LOG_MESSAGES", QByteArray(""));
+
+        for (SDebug::LogFile::Message msg=logFile.readMessage();
+             msg.date.isValid();
+             msg=logFile.readMessage())
+        {
+          const bool mr = !msg.message.isEmpty();
+
+          htmlParser.setField("ITEM_ROWS", QByteArray::number(mr ? 2 : 1));
+
+          if (msg.type == "INF")
+            htmlParser.setField("ITEM_CLASS", QByteArray("loginf"));
+          else if (msg.type == "WRN")
+            htmlParser.setField("ITEM_CLASS", QByteArray("logwrn"));
+          else if ((msg.type == "CRT") || (msg.type == "EXC"))
+            htmlParser.setField("ITEM_CLASS", QByteArray("logerr"));
+          else
+            htmlParser.setField("ITEM_CLASS", QByteArray("logdbg"));
+
+          htmlParser.setField("ITEM_ROWS", QByteArray::number(mr ? 2 : 1));
+          htmlParser.setField("ITEM_DATE", msg.date.toString("yyyy-MM-dd/hh:mm:ss"));
+          htmlParser.setField("ITEM_TYPE", msg.type);
+          htmlParser.setField("ITEM_PID", QByteArray::number(msg.pid));
+          htmlParser.setField("ITEM_TID", QByteArray::number(msg.tid));
+          htmlParser.setField("ITEM_TYPE", msg.type);
+          htmlParser.setField("ITEM_HEADLINE", msg.headline);
+          htmlParser.appendField("LOG_MESSAGES", htmlParser.parse(htmlLogFileHeadline));
+
+          if (mr)
+          {
+            htmlParser.setField("ITEM_MESSAGE", msg.message.replace('\n', "<br />\n"));
+            htmlParser.appendField("LOG_MESSAGES", htmlParser.parse(htmlLogFileMessage));
+          }
+        }
+
+        HttpServer::ResponseHeader response(HttpServer::Status_Ok);
+        response.setContentType("text/html;charset=utf-8");
+        response.setField("Cache-Control", "no-cache");
+        if (logFileName == SDebug::LogFile::activeLogFile())
+          response.setField("Refresh", "10;URL=#bottom");
+
+        socket->write(response);
+        socket->write(parseHtmlContent(url, htmlParser.parse(htmlLogFile), logHead));
+        return HttpServer::SocketOp_Close;
+      }
+    }
+    else if (file == "settings.html")
+    {
+      return handleHtmlConfig(url, socket);
+    }
+    else if (file == "about.html")
+    {
+      return showAbout(url, socket);
+    }
+  }
+  else
+  {
+    QString file;
+    if      (path == "/favicon.ico")                file = ":/lximediacenter/appicon.ico";
+    else if (path == "/appicon.png")                file = ":/lximediacenter/appicon.png";
+    else if (path == "/logo.png")                   file = ":/lximediacenter/logo.png";
+
+    else if (path == "/img/null.png")               file = ":/backend/null.png";
+    else if (path == "/img/checknone.png")          file = ":/backend/checknone.png";
+    else if (path == "/img/checkfull.png")          file = ":/backend/checkfull.png";
+    else if (path == "/img/checksome.png")          file = ":/backend/checksome.png";
+    else if (path == "/img/checknonedisabled.png")  file = ":/backend/checknonedisabled.png";
+    else if (path == "/img/checkfulldisabled.png")  file = ":/backend/checkfulldisabled.png";
+    else if (path == "/img/checksomedisabled.png")  file = ":/backend/checksomedisabled.png";
+    else if (path == "/img/treeopen.png")           file = ":/backend/treeopen.png";
+    else if (path == "/img/treeclose.png")          file = ":/backend/treeclose.png";
+    else if (path == "/img/starenabled.png")        file = ":/backend/starenabled.png";
+    else if (path == "/img/stardisabled.png")       file = ":/backend/stardisabled.png";
+    else if (path == "/img/restart.png")            file = ":/backend/restart.png";
+    else if (path == "/img/shutdown.png")           file = ":/backend/shutdown.png";
+
+    else if (path == "/swf/flowplayer.swf")         file = ":/flowplayer/flowplayer-3.2.5.swf";
+    else if (path == "/swf/flowplayer.controls.swf")file = ":/flowplayer/flowplayer.controls-3.2.3.swf";
+    else if (path == "/swf/flowplayer.js")          file = ":/flowplayer/flowplayer-3.2.4.min.js";
+
+    QFile f(file);
+    if (f.open(QFile::ReadOnly))
+    {
+      HttpServer::ResponseHeader response(HttpServer::Status_Ok);
+      response.setContentLength(f.size());
+      response.setContentType(HttpServer::toMimeType(file));
+      socket->write(response);
+      socket->write(f.readAll());
+      return HttpServer::SocketOp_Close;
+    }
+  }
+
+  socket->write(HttpServer::ResponseHeader(HttpServer::Status_NotFound));
+  return HttpServer::SocketOp_Close;
+}
+
 QByteArray Backend::parseHtmlContent(const QUrl &url, const QByteArray &content, const QByteArray &head) const
 {
   HtmlParser localParser(htmlParser);
@@ -438,193 +633,4 @@ DlnaServer * Backend::dlnaServer(void)
 QThreadPool * Backend::ioThreadPool(void)
 {
   return &threadPool;
-}
-
-
-Backend::HttpRootDir::HttpRootDir(HttpServer *httpServer, Backend *parent)
-  : HttpServerFileDir(httpServer),
-    parent(parent)
-{
-}
-
-bool Backend::HttpRootDir::handleConnection(const QHttpRequestHeader &request, QAbstractSocket *socket)
-{
-  const QUrl url(request.path());
-  const QString file = url.path().mid(url.path().lastIndexOf('/') + 1);
-
-  if (url.hasQueryItem("exit"))
-  {
-    QCoreApplication::postEvent(parent, new QEvent(exitEventType));
-
-    socket->write(QHttpResponseHeader(204).toString().toUtf8());
-    return false;
-  }
-  else if (url.hasQueryItem("restart"))
-  {
-    QCoreApplication::postEvent(parent, new QEvent(restartEventType));
-
-    socket->write(QHttpResponseHeader(204).toString().toUtf8());
-    return false;
-  }
-  else if (url.hasQueryItem("shutdown"))
-  {
-    QCoreApplication::postEvent(parent, new QEvent(shutdownEventType));
-
-    socket->write(QHttpResponseHeader(204).toString().toUtf8());
-    return false;
-  }
-  else if (url.hasQueryItem("dismisserrors"))
-  {
-    GlobalSettings().setValue("DismissedErrors", SDebug::LogFile::errorLogFiles());
-
-    return parent->handleHtmlRequest(url, file, socket);
-  }
-  else if (file == "traystatus.xml")
-  {
-    QDomDocument doc("");
-    QDomElement root = doc.createElement("traystatus");
-    doc.appendChild(root);
-
-    // Hostinfo
-    QDomElement hostInfo = doc.createElement("hostinfo");
-    root.appendChild(hostInfo);
-    hostInfo.setAttribute("hostname", QHostInfo::localHostName());
-
-    // DLNA clients
-    GlobalSettings settings;
-    settings.beginGroup("DLNA");
-
-    foreach (const QString &group, settings.childGroups())
-    if (group.startsWith("Client_"))
-    {
-      QDomElement dlnaClient = doc.createElement("dlnaclient");
-      root.appendChild(dlnaClient);
-      dlnaClient.setAttribute("name", group.mid(7));
-      dlnaClient.setAttribute("useragent", settings.value("UserAgent", tr("Unknown")).toString());
-      dlnaClient.setAttribute("lastseen", settings.value("LastSeen").toDateTime().toString(Qt::ISODate));
-    }
-
-    settings.endGroup();
-
-    // Active log file
-    QDomElement activeLogFile = doc.createElement("activelogfile");
-    root.appendChild(activeLogFile);
-    activeLogFile.setAttribute("name", QFileInfo(SDebug::LogFile::activeLogFile()).fileName());
-
-    // Error logs
-    const QSet<QString> dismissedFiles =
-        QSet<QString>::fromList(settings.value("DismissedErrors").toStringList());
-
-    QStringList errorLogFiles;
-    foreach (const QString &file, SDebug::LogFile::errorLogFiles())
-    if (!dismissedFiles.contains(file))
-      errorLogFiles += file;
-
-    foreach (const QString &file, errorLogFiles)
-    {
-      QDomElement errorLogFile = doc.createElement("errorlogfile");
-      root.appendChild(errorLogFile);
-      errorLogFile.setAttribute("name", QFileInfo(file).fileName());
-    }
-
-    QHttpResponseHeader response(200);
-    response.setContentType("text/xml;charset=utf-8");
-    response.setValue("Cache-Control", "no-cache");
-
-    socket->write(response.toString().toUtf8());
-    socket->write(doc.toByteArray());
-    return false;
-  }
-  else if (file.endsWith(".css"))
-  {
-    return parent->handleCssRequest(url, file, socket);
-  }
-  else if (url.hasQueryItem("q"))
-  {
-    return parent->handleHtmlSearch(url, file, socket);
-  }
-  else if (request.path() == "/")
-  {
-    return parent->handleHtmlRequest(url, file, socket);
-  }
-  else if (file.endsWith(".log"))
-  {
-    static const char * const logHead = " <link rel=\"stylesheet\" href=\"/log.css\" type=\"text/css\" media=\"screen, handheld, projection\" />\n";
-
-    QString logFileName;
-    if (file == "main.log")
-    {
-      logFileName = SDebug::LogFile::activeLogFile();
-    }
-    else foreach (const QString &f, SDebug::LogFile::allLogFiles())
-    if (f.endsWith("/" + file))
-    {
-      logFileName = f;
-      break;
-    }
-
-    SDebug::LogFile logFile(logFileName);
-    if (logFile.open(SDebug::LogFile::ReadOnly))
-    {
-      HtmlParser htmlParser(parent->htmlParser);
-      htmlParser.setField("TR_DATE", tr("Date"));
-      htmlParser.setField("TR_TYPE", tr("Type"));
-      htmlParser.setField("TR_MESSAGE", tr("Message"));
-
-      htmlParser.setField("LOG_MESSAGES", QByteArray(""));
-
-      for (SDebug::LogFile::Message msg=logFile.readMessage();
-           msg.date.isValid();
-           msg=logFile.readMessage())
-      {
-        const bool mr = !msg.message.isEmpty();
-
-        htmlParser.setField("ITEM_ROWS", QByteArray::number(mr ? 2 : 1));
-
-        if (msg.type == "INF")
-          htmlParser.setField("ITEM_CLASS", QByteArray("loginf"));
-        else if (msg.type == "WRN")
-          htmlParser.setField("ITEM_CLASS", QByteArray("logwrn"));
-        else if ((msg.type == "CRT") || (msg.type == "EXC"))
-          htmlParser.setField("ITEM_CLASS", QByteArray("logerr"));
-        else
-          htmlParser.setField("ITEM_CLASS", QByteArray("logdbg"));
-
-        htmlParser.setField("ITEM_ROWS", QByteArray::number(mr ? 2 : 1));
-        htmlParser.setField("ITEM_DATE", msg.date.toString("yyyy-MM-dd/hh:mm:ss"));
-        htmlParser.setField("ITEM_TYPE", msg.type);
-        htmlParser.setField("ITEM_PID", QByteArray::number(msg.pid));
-        htmlParser.setField("ITEM_TID", QByteArray::number(msg.tid));
-        htmlParser.setField("ITEM_TYPE", msg.type);
-        htmlParser.setField("ITEM_HEADLINE", msg.headline);
-        htmlParser.appendField("LOG_MESSAGES", htmlParser.parse(htmlLogFileHeadline));
-
-        if (mr)
-        {
-          htmlParser.setField("ITEM_MESSAGE", msg.message.replace('\n', "<br />\n"));
-          htmlParser.appendField("LOG_MESSAGES", htmlParser.parse(htmlLogFileMessage));
-        }
-      }
-
-      QHttpResponseHeader response(200);
-      response.setContentType("text/html;charset=utf-8");
-      response.setValue("Cache-Control", "no-cache");
-      if (logFileName == SDebug::LogFile::activeLogFile())
-        response.setValue("Refresh", "10;URL=#bottom");
-
-      socket->write(response.toString().toUtf8());
-      socket->write(parent->parseHtmlContent(url, htmlParser.parse(htmlLogFile), logHead));
-      return false;
-    }
-  }
-  else if (file == "settings.html")
-  {
-    return parent->handleHtmlConfig(url, socket);
-  }
-  else if (file == "about.html")
-  {
-    return parent->showAbout(url, socket);
-  }
-
-  return HttpServerFileDir::handleConnection(request, socket);
 }

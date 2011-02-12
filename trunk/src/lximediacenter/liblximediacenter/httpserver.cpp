@@ -23,6 +23,10 @@
 
 namespace LXiMediaCenter {
 
+const char  * const HttpServer::fieldContentLength  = "Content-Length";
+const char  * const HttpServer::fieldContentType    = "Content-Type";
+const char  * const HttpServer::fieldHost           = "Host";
+
 class HttpServer::Interface : public QTcpServer
 {
 public:
@@ -56,13 +60,14 @@ struct HttpServer::Private
 {
   static const int              maxThreads = 50;
 
-  QMutex                        mutex;
+  QReadWriteLock                lock;
   QList<QHostAddress>           addresses;
   quint16                       port;
   QMap<QString, Interface *>    interfaces;
   QThreadPool                   threadPool;
   QAtomicInt                    numPendingConnections;
   QSemaphore                  * startSem;
+  QMap<QString, Callback *>     callbacks;
 };
 
 
@@ -73,8 +78,6 @@ HttpServer::HttpServer(void)
   p->threadPool.setMaxThreadCount(Private::maxThreads);
   p->numPendingConnections = 0;
   p->startSem = NULL;
-
-  setRoot(new HttpServerFileDir(this));
 }
 
 HttpServer::~HttpServer()
@@ -106,7 +109,7 @@ void HttpServer::close(void)
 
 quint16 HttpServer::serverPort(const QHostAddress &address) const
 {
-  SDebug::MutexLocker l(&(p->mutex), __FILE__, __LINE__);
+  SDebug::WriteLocker l(&(p->lock), __FILE__, __LINE__);
 
   QMap<QString, Interface *>::ConstIterator i = p->interfaces.find(address.toString());
   if (i != p->interfaces.end())
@@ -115,31 +118,25 @@ quint16 HttpServer::serverPort(const QHostAddress &address) const
   return 0;
 }
 
-bool HttpServer::addFile(const QString &path, const QString &realFile)
+void HttpServer::registerCallback(const QString &path, Callback *callback)
 {
-  SDebug::MutexLocker l(&(p->mutex), __FILE__, __LINE__);
+  SDebug::WriteLocker l(&(p->lock), __FILE__, __LINE__);
 
-  Q_ASSERT(!path.isEmpty());
-  Q_ASSERT(!realFile.isEmpty());
-
-  const int lastSlash = path.lastIndexOf('/');
-  if (lastSlash >= 0)
-  {
-    const QString dirName = path.left(lastSlash + 1);
-    const QString fileName = path.mid(lastSlash + 1);
-
-    HttpServerFileDirHandle dir = findDir(dirName);
-    if (dir != NULL)
-    {
-      dir->addFile(fileName, realFile);
-      return true;
-    }
-  }
-
-  return false;
+  p->callbacks.insert(path, callback);
 }
 
-QString HttpServer::toMimeType(const QString &fileName)
+void HttpServer::unregisterCallback(Callback *callback)
+{
+  SDebug::WriteLocker l(&(p->lock), __FILE__, __LINE__);
+
+  for (QMap<QString, Callback *>::Iterator i=p->callbacks.begin(); i!=p->callbacks.end(); )
+  if (i.value() == callback)
+    i = p->callbacks.erase(i);
+  else
+    i++;
+}
+
+const char * HttpServer::toMimeType(const QString &fileName)
 {
   const QString ext = QFileInfo(fileName).suffix().toLower();
 
@@ -182,10 +179,63 @@ QString HttpServer::toMimeType(const QString &fileName)
   else                      return "application/octet-stream";
 }
 
+const char * HttpServer::statusText(int code)
+{
+  switch (code)
+  {
+  case 100: return "Continue";
+  case 101: return "Switching Protocols";
+
+  case 200: return "OK";
+  case 201: return "Created";
+  case 202: return "Accepted";
+  case 203: return "Non-Authoritative Information";
+  case 204: return "No Content";
+  case 205: return "Reset Content";
+  case 206: return "Partial Content";
+
+  case 300: return "Multiple Choices";
+  case 301: return "Moved Permanently";
+  case 302: return "Found";
+  case 303: return "See Other";
+  case 304: return "Not Modified";
+  case 305: return "Use Proxy";
+  case 307: return "Temporary Redirect";
+
+  case 400: return "Bad Request";
+  case 401: return "Unauthorized";
+  case 402: return "Payment Required";
+  case 403: return "Forbidden";
+  case 404: return "Not Found";
+  case 405: return "Method Not Allowed";
+  case 406: return "Not Acceptable";
+  case 407: return "Proxy Authentication Required";
+  case 408: return "Request Time-out";
+  case 409: return "Conflict";
+  case 410: return "Gone";
+  case 411: return "Length Required";
+  case 412: return "Precondition Failed";
+  case 413: return "Request Entity Too Large";
+  case 414: return "Request-URI Too Large";
+  case 415: return "Unsupported Media Type";
+  case 416: return "Requested range not satisfiable";
+  case 417: return "Expectation Failed";
+
+  case 500: return "Internal Server Error";
+  case 501: return "Not Implemented";
+  case 502: return "Bad Gateway";
+  case 503: return "Service Unavailable";
+  case 504: return "Gateway Time-out";
+  case 505: return "HTTP Version not supported";
+  }
+
+  return "";
+}
+
 void HttpServer::run(void)
 {
   {
-    SDebug::MutexLocker l(&(p->mutex), __FILE__, __LINE__);
+    SDebug::WriteLocker l(&(p->lock), __FILE__, __LINE__);
 
     foreach (const QHostAddress &address, p->addresses)
       p->interfaces[address.toString()] = new Interface(address, p->port, this);
@@ -196,7 +246,7 @@ void HttpServer::run(void)
   exec();
 
   {
-    SDebug::MutexLocker l(&(p->mutex), __FILE__, __LINE__);
+    SDebug::WriteLocker l(&(p->lock), __FILE__, __LINE__);
 
     foreach (Interface *iface, p->interfaces)
       delete iface;
@@ -261,28 +311,31 @@ void HttpServer::SocketHandler::run()
     {
       response += line;
 
-      const QHttpRequestHeader requestHeader(QString::fromUtf8(response));
-      if (requestHeader.isValid())
+      const RequestHeader request(response);
+      if (request.isValid())
       {
-        const QUrl url(requestHeader.path());
-        if (!url.path().isEmpty())
-        {
-          const QString path = url.path().left(url.path().lastIndexOf('/') + 1);
+        SDebug::ReadLocker l(&(parent->p->lock), __FILE__, __LINE__);
 
-          HttpServerDirHandle dir = parent->findDir(path);
-          if (dir != NULL)
-          {
-            if (dir->handleConnection(requestHeader, socket))
-              socket = NULL; // The file accepted the connection, it is responsible for closing and deleteing it.
-          }
-          else
-            socket->write(QHttpResponseHeader(404).toString().toUtf8());
+        const QString path = QUrl(request.path()).path();
+
+        QString dir = path.left(path.lastIndexOf('/') + 1);
+        QMap<QString, Callback *>::ConstIterator callback = parent->p->callbacks.find(dir);
+        while ((callback == parent->p->callbacks.end()) && !dir.isEmpty())
+        {
+          dir = dir.left(dir.left(dir.length() - 1).lastIndexOf('/') + 1);
+          callback = parent->p->callbacks.find(dir);
+        }
+
+        if ((callback != parent->p->callbacks.end()) && dir.startsWith(callback.key()))
+        {
+          if ((*callback)->handleHttpRequest(request, socket) == SocketOp_LeaveOpen)
+            socket = NULL; // The file accepted the connection, it is responsible for closing and deleteing it.
         }
         else
-          socket->write(QHttpResponseHeader(404).toString().toUtf8());
+          socket->write(ResponseHeader(Status_NotFound));
       }
       else
-        socket->write(QHttpResponseHeader(400).toString().toUtf8());
+        socket->write(ResponseHeader(Status_BadRequest));
 
       // Finished.
       if (socket)
@@ -307,76 +360,85 @@ void HttpServer::SocketHandler::run()
 }
 
 
-HttpServerDir::HttpServerDir(HttpServer *parent)
-  : FileServerDir(parent)
+HttpServer::Header::Header(const QByteArray &header)
 {
-}
+  QList<QByteArray> lines = header.split('\r');
+  if (!lines.isEmpty())
+    head = lines.takeFirst().split(' ');
 
-/*! Is invoked for an incoming HTTP request on this directory when queryFile()
-    returns NULL.
-
-    \note Invoked from a thread from the threadpool of the HTTP server.
- */
-bool HttpServerDir::handleConnection(const QHttpRequestHeader &request, QAbstractSocket *socket)
-{
-  qWarning() << "HttpServer: Failed to find:" << request.path();
-  socket->write(QHttpResponseHeader(404).toString().toUtf8());
-  return false;
-}
-
-
-HttpServerFileDir::HttpServerFileDir(HttpServer *parent)
-  : HttpServerDir(parent)
-{
-}
-
-void HttpServerFileDir::addFile(const QString &name, const QString &realFile)
-{
-  Q_ASSERT(!name.isEmpty());
-  Q_ASSERT(!realFile.isEmpty());
-
-  SDebug::WriteLocker l(&server()->lock, __FILE__, __LINE__);
-
-  files[name] = realFile;
-}
-
-/*! Is invoked for an incoming HTTP request on this directory when queryFile()
-    returns NULL.
-
-    \note Invoked from a thread from the threadpool of the HTTP server.
- */
-bool HttpServerFileDir::handleConnection(const QHttpRequestHeader &request, QAbstractSocket *socket)
-{
-  const QUrl url(request.path());
-  const QString file = url.path().mid(url.path().lastIndexOf('/') + 1);
-
-  SDebug::WriteLocker l(&server()->lock, __FILE__, __LINE__);
-
-  QMap<QString, QString>::ConstIterator i = files.find(file);
-  if (i != files.end())
+  foreach (const QByteArray &line, lines) // Note: each line starts with a \n.
   {
-    QFile file(*i);
-    if (file.open(QFile::ReadOnly))
+    const int colon = line.indexOf(':');
+    if (colon > 0)
     {
-      QHttpResponseHeader response(200);
-      response.setContentType(HttpServer::toMimeType(file.fileName()));
-      response.setContentLength(file.size());
-
-      socket->write(response.toString().toUtf8());
-      for (QByteArray data=file.read(65536); !data.isEmpty(); data=file.read(65536))
-      {
-        if (socket->waitForBytesWritten())
-          socket->write(data);
-        else
-          break;
-      }
-
-      file.close();
-      return false;
+      fields.insert(
+          QString::fromUtf8(line.mid(1, colon - 1)).trimmed(),
+          QString::fromUtf8(line.mid(colon + 1)).trimmed());
     }
   }
+}
 
-  return HttpServerDir::handleConnection(request, socket);
+QByteArray HttpServer::Header::toUtf8(void) const
+{
+  QByteArray result;
+  if (isValid())
+  {
+    result = head[0] + ' ' + head[1] + ' ' + head[2] + "\r\n";
+
+    for (QMap<QString, QString>::ConstIterator i=fields.begin(); i!=fields.end(); i++)
+      result += i.key().toUtf8() + ": " + i.value().toUtf8() + "\r\n";
+
+    result += "\r\n";
+  }
+
+  return result;
+}
+
+
+HttpServer::RequestHeader::RequestHeader(void)
+{
+  head << "GET" << "/" << "HTTP/1.1";
+}
+
+QString HttpServer::RequestHeader::file(void) const
+{
+  QByteArray result = path();
+
+  const int q = result.indexOf('?');
+  if (q >= 0)
+    result = result.left(q);
+
+  const int s = result.lastIndexOf('/');
+  if (s > 0)
+    result = result.mid(s + 1);
+
+  return QString::fromUtf8(QByteArray::fromPercentEncoding(result));
+}
+
+HttpServer::ResponseHeader::ResponseHeader(Status status)
+{
+  head << "HTTP/1.1" << QByteArray::number(status) << statusText(status);
+}
+
+HttpServer::ResponseHeader::ResponseHeader(const QByteArray &header)
+  : Header(header)
+{
+  while (head.count() > 3)
+    head[2] += " " + head.takeAt(3);
+
+}
+
+void HttpServer::ResponseHeader::setStatus(Status status)
+{
+  if (head.size() > 1)
+    head[1] = QByteArray::number(status);
+  else
+    head.append(QByteArray::number(status));
+
+  if (head.size() > 2)
+    head[2] = statusText(status);
+  else
+    head.append(statusText(status));
 }
 
 

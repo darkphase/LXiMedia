@@ -479,10 +479,14 @@ void MediaDatabase::probeFiles(void)
               if (!mediaInfo.containsImage())
                 continue;
 
+              QString rawTitle = SStringParser::toRawName(mediaInfo.title());
+              if ((i.key() == Category_TVShows) || (i.key() == Category_Music))
+                rawTitle = ("000000000" + QString::number(mediaInfo.track())).right(10) + rawTitle;
+
               query.prepare("INSERT INTO MediaplayerAlbums VALUES (:category, :album, :title, :subtitle, :file, :imdbLink)");
               query.bindValue(0, categoryName(i.key()));
               query.bindValue(1, i.value());
-              query.bindValue(2, SStringParser::toRawName(mediaInfo.title()));
+              query.bindValue(2, rawTitle);
               query.bindValue(3, SStringParser::toRawName(mediaInfo.album()));
               query.bindValue(4, rowId);
               query.bindValue(5, QVariant(QVariant::String));

@@ -8,8 +8,8 @@ include($${LXIMEDIA_DIR}/include/liblxistream/linklxistream.pri)
 include($${LXIMEDIA_DIR}/ext/exif/exif.pri)
 QT += gui
 
-INCLUDEPATH += $${LXIMEDIA_DIR}/include/liblxistream
-INCLUDEPATH += $${LXIMEDIA_DIR}/include/liblxistreamgui
+INCLUDEPATH += $${LXIMEDIA_DIR}/include/liblxistream $${LXIMEDIA_DIR}/include/liblxistreamgui
+DEPENDPATH += $${LXIMEDIA_DIR}/include/liblxistream $${LXIMEDIA_DIR}/include/liblxistreamgui
 
 # Files
 HEADERS += $${LXIMEDIA_DIR}/include/LXiStreamGui \

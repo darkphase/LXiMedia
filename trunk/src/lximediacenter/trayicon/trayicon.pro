@@ -9,11 +9,9 @@ QT += network xml
 OBJECTS_DIR = $${LXIMEDIA_DIR}/obj/$${TARGET}
 MOC_DIR = $${OBJECTS_DIR}
 RCC_DIR = $${OBJECTS_DIR}
-INCLUDEPATH += $${LXIMEDIA_DIR}/include/
-DEPENDPATH += $${LXIMEDIA_DIR}/include/
+INCLUDEPATH += $${LXIMEDIA_DIR}/include/ $${LXIMEDIA_DIR}/include/liblximediacenter
+DEPENDPATH += $${LXIMEDIA_DIR}/include/ $${LXIMEDIA_DIR}/include/liblximediacenter
 DEFINES += TRAYICON_ONLY
-
-INCLUDEPATH += $${LXIMEDIA_DIR}/include/liblximediacenter
 
 SOURCES += ../liblximediacenter/ssdpclient.cpp \
  ../liblximediacenter/globalsettings.cpp

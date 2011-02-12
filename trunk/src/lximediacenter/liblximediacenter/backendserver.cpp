@@ -97,14 +97,13 @@ const QString & BackendServer::dlnaPath(void) const
   return p->dlnaPath;
 }
 
-bool BackendServer::sendReply(QAbstractSocket *socket, const QByteArray &data, const char *mime, bool allowCache, const QString &redir) const
+HttpServer::SocketOp BackendServer::sendReply(QAbstractSocket *socket, const QByteArray &data, const char *mime, bool allowCache, const QString &redir) const
 {
-  QHttpResponseHeader response((redir.length() == 0) ? 200 : 301);
-
+  HttpServer::ResponseHeader response((redir.length() == 0) ? HttpServer::Status_Ok : HttpServer::Status_MovedPermanently);
   if (!allowCache)
-    response.setValue("Cache-Control", "no-cache");
+    response.setField("Cache-Control", "no-cache");
   else
-    response.setValue("Cache-Control", "max-age=1800");
+    response.setField("Cache-Control", "max-age=1800");
 
   if (redir.length() == 0)
   {
@@ -115,25 +114,24 @@ bool BackendServer::sendReply(QAbstractSocket *socket, const QByteArray &data, c
       response.setContentLength(data.length());
   }
   else
-    response.setValue("Location", redir);
+    response.setField("Location", redir);
 
-  socket->write(response.toString().toUtf8());
+  socket->write(response);
   socket->write(data);
-
-  return false;
+  return HttpServer::SocketOp_Close;
 }
 
-bool BackendServer::sendReply(QAbstractSocket *socket, const QString &data, const char *mime, bool allowCache, const QString &redir) const
+HttpServer::SocketOp BackendServer::sendReply(QAbstractSocket *socket, const QString &data, const char *mime, bool allowCache, const QString &redir) const
 {
   return sendReply(socket, data.toUtf8(), mime, allowCache, redir);
 }
 
-bool BackendServer::sendHtmlContent(QAbstractSocket *socket, const QUrl &url, const QHttpResponseHeader &response, const QByteArray &content, const QByteArray &head) const
+HttpServer::SocketOp BackendServer::sendHtmlContent(QAbstractSocket *socket, const QUrl &url, const HttpServer::ResponseHeader &response, const QByteArray &content, const QByteArray &head) const
 {
-  socket->write(response.toString().toUtf8());
+  socket->write(response);
   socket->write(p->server->parseHtmlContent(url, content, head));
 
-  return false;
+  return HttpServer::SocketOp_Close;
 }
 
 } // End of namespace

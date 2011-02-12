@@ -14,6 +14,7 @@ SOURCES += configserver.cpp \
     slideshownode.cpp \
     slideshownode.blend.c \
     tvshowserver.cpp
+
 HEADERS += configserver.h \
     mediaplayerbackend.h \
     mediadatabase.h \

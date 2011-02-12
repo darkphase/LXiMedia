@@ -24,22 +24,11 @@
 #include <LXiMediaCenter>
 
 
-class Backend : public BackendServer::MasterServer
+class Backend : public BackendServer::MasterServer,
+                protected HttpServer::Callback
 {
 Q_OBJECT
 private:
-  class HttpRootDir : public HttpServerFileDir
-  {
-  public:
-                                HttpRootDir(HttpServer *, Backend *);
-
-  protected:
-    virtual bool                handleConnection(const QHttpRequestHeader &, QAbstractSocket *);
-
-  private:
-    Backend             * const parent;
-  };
-
   struct SearchCacheEntry
   {
     QMultiMap<qreal, BackendServer::SearchResult> results;
@@ -56,6 +45,9 @@ public:
 protected:
   virtual void                  customEvent(QEvent *);
 
+protected: // From HttpServer::Callback
+  virtual HttpServer::SocketOp  handleHttpRequest(const HttpServer::RequestHeader &, QAbstractSocket *);
+
 private:
   SearchCacheEntry              search(const QString &) const;
 
@@ -65,13 +57,11 @@ private:
   virtual DlnaServer          * dlnaServer(void);
   virtual QThreadPool         * ioThreadPool(void);
 
-  bool                          handleCssRequest(const QUrl &, const QString &, QAbstractSocket *);
-  bool                          handleHtmlSearch(const QUrl &, const QString &, QAbstractSocket *);
-  bool                          handleHtmlRequest(const QUrl &, const QString &, QAbstractSocket *);
-  bool                          showAbout(const QUrl &, QAbstractSocket *);
-  bool                          handleHtmlConfig(const QUrl &, QAbstractSocket *);
-
-  static QUrl                   bugReportHandler(const char *, const QByteArray &);
+  HttpServer::SocketOp          handleCssRequest(const QUrl &, const QString &, QAbstractSocket *);
+  HttpServer::SocketOp          handleHtmlSearch(const QUrl &, const QString &, QAbstractSocket *);
+  HttpServer::SocketOp          handleHtmlRequest(const QUrl &, const QString &, QAbstractSocket *);
+  HttpServer::SocketOp          showAbout(const QUrl &, QAbstractSocket *);
+  HttpServer::SocketOp          handleHtmlConfig(const QUrl &, QAbstractSocket *);
 
 public:
   static const quint8           haltExitCode;
@@ -86,8 +76,6 @@ private:
   SsdpServer                    masterSsdpServer;
   DlnaServer                    masterDlnaServer;
   mutable QThreadPool           threadPool;
-  HttpRootDir           * const httpRootDir;
-  //DlnaServerDir                 dlnaServiceDir;
   HtmlParser                    cssParser;
   HtmlParser                    htmlParser;
   QList<BackendPlugin *>        backendPlugins;

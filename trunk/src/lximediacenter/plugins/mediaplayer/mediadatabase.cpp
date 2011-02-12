@@ -111,81 +111,6 @@ MediaDatabase::MediaDatabase(Plugin *plugin, QThreadPool *threadPool)
   query.exec("CREATE INDEX IF NOT EXISTS MediaplayerAlbums_title "
              "ON MediaplayerAlbums(title)");
 
-/*
-  query.exec("CREATE TABLE IF NOT EXISTS MediaplayerMovies ("
-             "rawName        TEXT NOT NULL,"
-             "file           INTEGER NOT NULL,"
-             "imdbLink       TEXT,"
-             "FOREIGN KEY(file) REFERENCES MediaplayerFiles(uid) ON DELETE CASCADE,"
-             "FOREIGN KEY(imdbLink) REFERENCES ImdbEntries(rawName) ON DELETE SET NULL)");
-
-  query.exec("CREATE TABLE IF NOT EXISTS MediaplayerTvShows ("
-             "rawName        TEXT NOT NULL,"
-             "rawEpisode     TEXT NOT NULL,"
-             "file           INTEGER NOT NULL,"
-             "imdbLink       TEXT,"
-             "FOREIGN KEY(file) REFERENCES MediaplayerFiles(uid) ON DELETE CASCADE,"
-             "FOREIGN KEY(imdbLink) REFERENCES ImdbEntries(rawName) ON DELETE SET NULL)");
-
-  query.exec("CREATE INDEX IF NOT EXISTS MediaplayerTvShows_rawName "
-             "ON MediaplayerTvShows(rawName)");
-
-  query.exec("CREATE TABLE IF NOT EXISTS MediaplayerHomeVideos ("
-             "rawName        TEXT NOT NULL,"
-             "rawFile        TEXT NOT NULL,"
-             "file           INTEGER NOT NULL,"
-             "FOREIGN KEY(file) REFERENCES MediaplayerFiles(uid) ON DELETE CASCADE)");
-
-  query.exec("CREATE INDEX IF NOT EXISTS MediaplayerHomeVideos_rawName "
-             "ON MediaplayerHomeVideos(rawName)");
-
-  query.exec("CREATE TABLE IF NOT EXISTS MediaplayerVideoClipAlbums ("
-             "rawName        TEXT NOT NULL,"
-             "rawFile        TEXT NOT NULL,"
-             "file           INTEGER NOT NULL,"
-             "FOREIGN KEY(file) REFERENCES MediaplayerFiles(uid) ON DELETE CASCADE)");
-
-  query.exec("CREATE INDEX IF NOT EXISTS MediaplayerVideoClipAlbums_rawName "
-             "ON MediaplayerVideoClipAlbums(rawName)");
-
-  query.exec("CREATE TABLE IF NOT EXISTS MediaplayerPhotoAlbums ("
-             "rawName        TEXT NOT NULL,"
-             "rawFile        TEXT NOT NULL,"
-             "file           INTEGER NOT NULL,"
-             "FOREIGN KEY(file) REFERENCES MediaplayerFiles(uid) ON DELETE CASCADE)");
-
-  query.exec("CREATE INDEX IF NOT EXISTS MediaplayerPhotoAlbums_rawName "
-             "ON MediaplayerPhotoAlbums(rawName)");
-
-  query.exec("CREATE TABLE IF NOT EXISTS MediaplayerMusic ("
-             "rawTitle       TEXT NOT NULL,"
-             "rawArtist      TEXT NOT NULL,"
-             "rawGenre       TEXT NOT NULL,"
-             "hasVideo       BIT NOT NULL,"
-             "file           INTEGER NOT NULL,"
-             "FOREIGN KEY(file) REFERENCES MediaplayerFiles(uid) ON DELETE CASCADE)");
-
-  query.exec("CREATE INDEX IF NOT EXISTS MediaplayerMusic_rawTitle "
-             "ON MediaplayerMusic(rawTitle)");
-
-  query.exec("CREATE INDEX IF NOT EXISTS MediaplayerMusic_rawArtist "
-             "ON MediaplayerMusic(rawArtist)");
-
-  query.exec("CREATE INDEX IF NOT EXISTS MediaplayerMusic_rawGenre "
-             "ON MediaplayerMusic(rawGenre)");
-
-  query.exec("CREATE INDEX IF NOT EXISTS MediaplayerMusic_hasVideo "
-             "ON MediaplayerMusic(hasVideo)");
-
-  query.exec("CREATE TABLE IF NOT EXISTS MediaplayerMiscAudio ("
-             "rawName        TEXT NOT NULL,"
-             "rawFile        TEXT NOT NULL,"
-             "file           INTEGER NOT NULL,"
-             "FOREIGN KEY(file) REFERENCES MediaplayerFiles(uid) ON DELETE CASCADE)");
-
-  query.exec("CREATE INDEX IF NOT EXISTS MediaplayerMiscAudio_rawName "
-             "ON MediaplayerMiscAudio(rawName)");
-*/
   settings.setValue("DatabaseVersion", databaseVersion);
 
   dl.unlock();
@@ -298,42 +223,86 @@ QStringList MediaDatabase::allAlbums(Category category) const
   return result;
 }
 
-QList<MediaDatabase::UniqueID> MediaDatabase::allAlbumFiles(Category category, const QString &album) const
-{
-  SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
-
-  QList<UniqueID> result;
-
-  QSqlQuery query(Database::database());
-  query.prepare("SELECT DISTINCT file FROM MediaplayerAlbums WHERE category = :category AND album = :album");
-  query.bindValue(0, categoryName(category));
-  query.bindValue(1, album);
-  query.exec();
-  while (query.next())
-    result << query.value(0).toLongLong();
-
-  return result;
-}
-
-MediaDatabase::UniqueID MediaDatabase::getAlbumFile(Category category, const QString &album, int offset) const
+int MediaDatabase::countAlbumFiles(Category category, const QString &album) const
 {
   SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
 
   QSqlQuery query(Database::database());
-  query.prepare("SELECT file FROM MediaplayerAlbums WHERE category = :category AND album = :album LIMIT 1 OFFSET :offset");
+  query.prepare("SELECT COUNT(*) FROM MediaplayerAlbums WHERE category = :category AND album = :album");
   query.bindValue(0, categoryName(category));
   query.bindValue(1, album);
-  query.bindValue(2, offset);
   query.exec();
   if (query.next())
-    return query.value(0).toLongLong();
+    return query.value(0).toInt();
 
   return 0;
 }
 
-QList<MediaDatabase::UniqueID> MediaDatabase::queryAlbums(Category category, const QStringList &q) const
+QList<MediaDatabase::File> MediaDatabase::allAlbumFiles(Category category, const QString &album) const
 {
-  QList<UniqueID> result;
+  QList<File> result;
+
+  SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
+
+  QSqlQuery query(Database::database());
+  query.prepare("SELECT title, file FROM MediaplayerAlbums "
+                "WHERE category = :category AND album = :album "
+                "ORDER BY title");
+  query.bindValue(0, categoryName(category));
+  query.bindValue(1, album);
+  query.exec();
+  while (query.next())
+    result << File(query.value(0).toString(), query.value(1).toLongLong());
+
+  return result;
+}
+
+bool MediaDatabase::hasAlbum(Category category, const QString &album) const
+{
+  SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
+
+  QSqlQuery query(Database::database());
+  query.prepare("SELECT COUNT(*) FROM MediaplayerAlbums "
+                "WHERE category = :category AND album = :album");
+  query.bindValue(0, categoryName(category));
+  query.bindValue(1, album);
+  query.exec();
+  if (query.next())
+    return query.value(0).toInt() > 0;
+
+  return false;
+}
+
+QList<MediaDatabase::File> MediaDatabase::getAlbumFiles(Category category, const QString &album, unsigned start, unsigned count) const
+{
+  SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
+
+  QString limit;
+  if (count > 0)
+  {
+    limit += " LIMIT " + QString::number(count);
+    if (start > 0)
+      limit += " OFFSET " + QString::number(start);
+  }
+
+  QList<File> result;
+
+  QSqlQuery query(Database::database());
+  query.prepare("SELECT title, file FROM MediaplayerAlbums "
+                "WHERE category = :category AND album = :album "
+                "ORDER BY title" + limit);
+  query.bindValue(0, categoryName(category));
+  query.bindValue(1, album);
+  query.exec();
+  while (query.next())
+    result << File(query.value(0).toString(), query.value(1).toLongLong());
+
+  return result;
+}
+
+QList<MediaDatabase::File> MediaDatabase::queryAlbums(Category category, const QStringList &q) const
+{
+  QList<File> result;
 
   QString qs1, qs2;
   foreach (const QString &item, q)
@@ -351,12 +320,12 @@ QList<MediaDatabase::UniqueID> MediaDatabase::queryAlbums(Category category, con
     SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
 
     QSqlQuery query(Database::database());
-    query.prepare("SELECT file FROM MediaplayerAlbums WHERE category = :category AND "
+    query.prepare("SELECT title, file FROM MediaplayerAlbums WHERE category = :category AND "
                   "((" + qs1.mid(5) + ") OR (" + qs2.mid(5) + "))");
     query.bindValue(0, categoryName(category));
     query.exec();
     while (query.next())
-      result << query.value(0).toLongLong();
+      result << File(query.value(0).toString(), query.value(1).toLongLong());
   }
 
   return result;

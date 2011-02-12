@@ -23,21 +23,6 @@
 
 namespace LXiMediaCenter {
 
-
-const qint32  DlnaServer::cacheTimeout = 300000;
-
-class DlnaServer::HttpDir : public HttpServerDir
-{
-public:
-  explicit                      HttpDir(HttpServer *server, DlnaServer *parent);
-
-protected:
-  virtual bool                  handleConnection(const QHttpRequestHeader &, QAbstractSocket *);
-
-private:
-  DlnaServer       * const parent;
-};
-
 class DlnaServer::EventSession : protected QThread
 {
 public:
@@ -60,7 +45,7 @@ public:
 
 private:
   static QAtomicInt             sidCounter;
-  const qint32                  sid;
+  const int                     sid;
 
   DlnaServer            * const parent;
   const QUrl                    eventUrl;
@@ -73,21 +58,43 @@ private:
   QTime                         lastUpdate;
 };
 
-struct DlnaServer::Private
+struct DlnaServer::StreamSettings
 {
+  QString                       host;
+  QString                       transcodeSize;
+  QString                       transcodeCrop;
+  QString                       encodeMode;
+  QString                       transcodeChannels;
+  QString                       transcodeMusicChannels;
+};
+
+struct DlnaServer::ItemData
+{
+  inline                        ItemData(void) : updateId(0)                    { }
+
+  QString                       path;
+  Item                          item;
+  QVector<ItemID>               children;
+  unsigned                      updateId;
+};
+
+struct DlnaServer::Private : DlnaServer::Callback
+{
+  inline                        Private(void) : lock(QReadWriteLock::Recursive) { }
+
+  virtual int                   countDlnaItems(const QString &path);
+  virtual QList<Item>           listDlnaItems(const QString &path, unsigned start, unsigned count);
+
   static const QString          upnpNS, evntNS, cdirNS, soapNS, didlNS, dcNS;
 
   HttpServer                  * httpServer;
-  HttpDir                     * httpDir;
 
-  QMap<int, DlnaServerDir *>    idMap;
-  QAtomicInt                    idCounter;
-
-  int                           cleanTimer;
+  QReadWriteLock                lock;
   QMap<int, EventSession *>     eventSessions;
-  QMap<int, DirCacheEntry>      dirCacheEntries;
-  QSet<int>                     dirsToUpdate;
-  QAtomicInt                    updateTasksRunning;
+  int                           cleanTimer;
+  QMap<ItemID, ItemData>        itemData;
+  volatile ItemID               idCounter;
+  QMap<QString, Callback *>     callbacks;
 };
 
 const QString DlnaServer::Private::upnpNS   = "urn:schemas-upnp-org:metadata-1-0/upnp/";
@@ -98,26 +105,31 @@ const QString DlnaServer::Private::didlNS   = "urn:schemas-upnp-org:metadata-1-0
 const QString DlnaServer::Private::dcNS     = "http://purl.org/dc/elements/1.1/";
 QAtomicInt DlnaServer::EventSession::sidCounter = 0x10000000;
 
+const unsigned  DlnaServer::seekSec = 120;
 
-DlnaServer::DlnaServer(HttpServer *httpServer, QObject *parent)
+DlnaServer::DlnaServer(QObject *parent)
     : QObject(parent),
       p(new Private())
 {
-  p->httpServer = httpServer;
-  p->httpDir = NULL;
-  p->idCounter = 1;
+  p->httpServer = NULL;
   p->cleanTimer = startTimer((EventSession::timeout * 1000) / 2);
+  p->idCounter = 1;
 
-  DlnaServerDir * const rootDir = new DlnaServerDir(this);
-  setRoot(rootDir);
-  p->idMap.insert(0, rootDir);
+  // Add the root path.
+  ItemData itemData;
+  itemData.path = "/";
+  itemData.item.isDir = true;
+
+  p->itemData.insert(0, itemData);
+  p->callbacks.insert(itemData.path, p);
 }
 
 DlnaServer::~DlnaServer()
 {
-  QThreadPool::globalInstance()->waitForDone();
+  if (p->httpServer)
+    p->httpServer->unregisterCallback(this);
 
-  lock.lockForWrite();
+  p->lock.lockForWrite();
 
   foreach (EventSession *session, p->eventSessions)
     delete session;
@@ -126,55 +138,72 @@ DlnaServer::~DlnaServer()
   *const_cast<Private **>(&p) = NULL;
 }
 
-void DlnaServer::initialize(SsdpServer *ssdpServer)
+void DlnaServer::initialize(HttpServer *httpServer, SsdpServer *ssdpServer)
 {
-  p->httpDir = new HttpDir(p->httpServer, this);
-  p->httpServer->addDir("/upnp", p->httpDir);
+  p->httpServer = httpServer;
+  httpServer->registerCallback("/upnp/", this);
 
-  ssdpServer->publish("upnp:rootdevice", p->httpServer, "/upnp/devicedescr.xml");
-  ssdpServer->publish("urn:schemas-upnp-org:device:MediaServer:1", p->httpServer, "/upnp/devicedescr.xml");
-  ssdpServer->publish("urn:schemas-upnp-org:service:ContentDirectory:1", p->httpServer, "/upnp/devicedescr.xml");
+  ssdpServer->publish("upnp:rootdevice", httpServer, "/upnp/devicedescr.xml");
+  ssdpServer->publish("urn:schemas-upnp-org:device:MediaServer:1", httpServer, "/upnp/devicedescr.xml");
+  ssdpServer->publish("urn:schemas-upnp-org:service:ContentDirectory:1", httpServer, "/upnp/devicedescr.xml");
 }
 
 void DlnaServer::close(void)
 {
-  SDebug::WriteLocker l(&lock, __FILE__, __LINE__);
-
-  delete p->httpDir;
-  p->httpDir = NULL;
+  if (p->httpServer)
+    p->httpServer->unregisterCallback(this);
 }
 
-void DlnaServer::update(qint32 dirId)
+void DlnaServer::registerCallback(const QString &path, Callback *callback)
 {
-  SDebug::WriteLocker l(&lock, __FILE__, __LINE__);
+  SDebug::WriteLocker l(&p->lock, __FILE__, __LINE__);
 
+  p->callbacks.insert(path, callback);
+}
+
+void DlnaServer::unregisterCallback(Callback *callback)
+{
+  SDebug::WriteLocker l(&p->lock, __FILE__, __LINE__);
+
+  for (QMap<QString, Callback *>::Iterator i=p->callbacks.begin(); i!=p->callbacks.end(); )
+  if (i.value() == callback)
+    i = p->callbacks.erase(i);
+  else
+    i++;
+}
+
+void DlnaServer::update(const QString &path)
+{
+  SDebug::WriteLocker l(&p->lock, __FILE__, __LINE__);
+
+  for (QMap<ItemID, ItemData>::ConstIterator i=p->itemData.begin(); i!=p->itemData.end(); i++)
+  if (i->path == path)
   foreach (EventSession *session, p->eventSessions)
-    session->update(dirId);
+    session->update(i.key());
 }
 
-DlnaServerDir * DlnaServer::getDir(qint32 dirId)
+void DlnaServer::timerEvent(QTimerEvent *e)
 {
-  SDebug::WriteLocker l(&lock, __FILE__, __LINE__);
+  if (e->timerId() == p->cleanTimer)
+  {
+    if (p->lock.tryLockForWrite(0))
+    {
+      // Cleanup old sessions.
+      foreach (EventSession *session, p->eventSessions)
+      if (!session->isActive())
+      {
+        p->eventSessions.remove(session->sessionId());
+        delete session;
+      }
 
-  QMap<int, DlnaServerDir *>::Iterator i = p->idMap.find(dirId);
-  if (i != p->idMap.end())
-    return *i;
-
-  return NULL;
+      p->lock.unlock();
+    }
+  }
+  else
+    QObject::timerEvent(e);
 }
 
-const DlnaServerDir * DlnaServer::getDir(qint32 dirId) const
-{
-  SDebug::WriteLocker l(&lock, __FILE__, __LINE__);
-
-  QMap<int, DlnaServerDir *>::ConstIterator i = p->idMap.find(dirId);
-  if (i != p->idMap.end())
-    return *i;
-
-  return NULL;
-}
-
-bool DlnaServer::handleConnection(const QHttpRequestHeader &request, QAbstractSocket *socket)
+HttpServer::SocketOp DlnaServer::handleHttpRequest(const HttpServer::RequestHeader &request, QAbstractSocket *socket)
 {
   if ((request.path() == "/upnp/contentdircontrol") && (request.method() == "POST"))
   {
@@ -182,7 +211,7 @@ bool DlnaServer::handleConnection(const QHttpRequestHeader &request, QAbstractSo
     timer.start();
 
     QByteArray data = socket->readAll();
-    while ((data.count() < int(request.contentLength())) && (qAbs(timer.elapsed()) < 250))
+    while ((data.count() < int(request.contentLength())) && (qAbs(timer.elapsed()) < 5000))
     if (socket->waitForReadyRead())
       data += socket->readAll();
 
@@ -204,11 +233,11 @@ bool DlnaServer::handleConnection(const QHttpRequestHeader &request, QAbstractSo
   {
     if (request.method() == "SUBSCRIBE")
     {
-      if (request.hasKey("SID"))
+      if (request.hasField("SID"))
       { // Update subscription
-        const int sid = request.value("SID").toInt(NULL, 16);
+        const int sid = request.field("SID").toInt(NULL, 16);
 
-        SDebug::WriteLocker l(&lock, __FILE__, __LINE__);
+        SDebug::WriteLocker l(&p->lock, __FILE__, __LINE__);
 
         QMap<int, EventSession *>::Iterator i = p->eventSessions.find(sid);
         if (i != p->eventSessions.end())
@@ -216,58 +245,58 @@ bool DlnaServer::handleConnection(const QHttpRequestHeader &request, QAbstractSo
           (*i)->resubscribe();
           l.unlock();
 
-          QHttpResponseHeader response(200);
-          response.setValue("SID", QString::number(sid, 16));
-          response.setValue("Timeout", "Second-" + QString::number(EventSession::timeout));
-          response.setValue("Server", SsdpServer::getServerId());
-          socket->write(response.toString().toUtf8());
-          return false;
+          HttpServer::ResponseHeader response(HttpServer::Status_Ok);
+          response.setField("SID", QString::number(sid, 16));
+          response.setField("Timeout", "Second-" + QString::number(EventSession::timeout));
+          response.setField("Server", SsdpServer::getServerId());
+          socket->write(response);
+          return HttpServer::SocketOp_Close;
         }
         else
         {
           l.unlock();
 
-          socket->write(QHttpResponseHeader(404).toString().toUtf8());
-          return false;
+          socket->write(HttpServer::ResponseHeader(HttpServer::Status_NotFound));
+          return HttpServer::SocketOp_Close;
         }
       }
-      else if (request.hasKey("Callback"))
+      else if (request.hasField("Callback"))
       { // New subscription
-        SDebug::WriteLocker l(&lock, __FILE__, __LINE__);
+        SDebug::WriteLocker l(&p->lock, __FILE__, __LINE__);
 
         // Prevent creating too much sessions.
         if (p->eventSessions.count() < int(EventSession::maxInstances))
         {
           EventSession * const session =
-              new EventSession(this, request.value("Callback").replace('<', "").replace('>', ""));
+              new EventSession(this, request.field("Callback").replace('<', "").replace('>', ""));
           p->eventSessions[session->sessionId()] = session;
 
           l.unlock();
 
-          QHttpResponseHeader response(200);
-          response.setValue("SID", QString::number(session->sessionId(), 16));
-          response.setValue("Timeout", "Second-" + QString::number(EventSession::timeout));
-          response.setValue("Server", SsdpServer::getServerId());
-          socket->write(response.toString().toUtf8());
+          HttpServer::ResponseHeader response(HttpServer::Status_Ok);
+          response.setField("SID", QString::number(session->sessionId(), 16));
+          response.setField("Timeout", "Second-" + QString::number(EventSession::timeout));
+          response.setField("Server", SsdpServer::getServerId());
+          socket->write(response);
           if (socket->waitForBytesWritten(5000))
             session->triggerEvent();
 
-          return false;
+          return HttpServer::SocketOp_Close;
         }
         else
         {
           l.unlock();
 
-          socket->write(QHttpResponseHeader(500).toString().toUtf8());
-          return false;
+          socket->write(HttpServer::ResponseHeader(HttpServer::Status_InternalServerError));
+          return HttpServer::SocketOp_Close;
         }
       }
     }
     else if (request.method() == "UNSUBSCRIBE")
     {
-      const int sid = request.value("SID").toInt(NULL, 16);
+      const int sid = request.field("SID").toInt(NULL, 16);
 
-      SDebug::WriteLocker l(&lock, __FILE__, __LINE__);
+      SDebug::WriteLocker l(&p->lock, __FILE__, __LINE__);
 
       QMap<int, EventSession *>::Iterator i = p->eventSessions.find(sid);
       if (i != p->eventSessions.end())
@@ -277,148 +306,48 @@ bool DlnaServer::handleConnection(const QHttpRequestHeader &request, QAbstractSo
 
         l.unlock();
 
-        QHttpResponseHeader response(200);
+        HttpServer::ResponseHeader response(HttpServer::Status_Ok);
         response.setContentType("text/xml;charset=utf-8");
-        response.setValue("Server", SsdpServer::getServerId());
-        socket->write(response.toString().toUtf8());
-        return false;
+        response.setField("Server", SsdpServer::getServerId());
+        socket->write(response);
+        return HttpServer::SocketOp_Close;
       }
       else
       {
         l.unlock();
 
-        socket->write(QHttpResponseHeader(404).toString().toUtf8());
-        return false;
+        socket->write(HttpServer::ResponseHeader(HttpServer::Status_NotFound));
+        return HttpServer::SocketOp_Close;
       }
     }
   }
-  else if ((request.path() == "/upnp/devicedescr.xml") || (request.path() == "/upnp/contentdirdescr.xml"))
+  else if ((request.path() == "/upnp/devicedescr.xml") ||
+           (request.path() == "/upnp/contentdirdescr.xml"))
   {
-    QHttpResponseHeader response(200);
+    HttpServer::ResponseHeader response(HttpServer::Status_Ok);
     response.setContentType("text/xml;charset=utf-8");
-    response.setValue("Cache-Control", "no-cache");
-    response.setValue("Accept-Ranges", "bytes");
-    response.setValue("Connection", "close");
-    response.setValue("contentFeatures.dlna.org", "");
-    response.setValue("Server", SsdpServer::getServerId());
-    socket->write(response.toString().toUtf8());
+    response.setField("Cache-Control", "no-cache");
+    response.setField("Accept-Ranges", "bytes");
+    response.setField("Connection", "close");
+    response.setField("contentFeatures.dlna.org", "");
+    response.setField("Server", SsdpServer::getServerId());
+    socket->write(response);
 
     HtmlParser localParser;
     localParser.setField("UUID", SsdpServer::getUuid());
-    localParser.setField("BASEURL", "http://" + request.value("Host") + "/");
+    localParser.setField("BASEURL", "http://" + request.host() + "/");
     socket->write(localParser.parseFile(":" + request.path()));
 
-    return false;
+    return HttpServer::SocketOp_Close;
   }
 
   qWarning() << "DlnaServer: Could not handle request:" << request.method() << request.path();
-  socket->write(QHttpResponseHeader(404).toString().toUtf8());
-  return false;
+  socket->write(HttpServer::ResponseHeader(HttpServer::Status_NotFound));
+  return HttpServer::SocketOp_Close;
 }
 
-void DlnaServer::timerEvent(QTimerEvent *e)
+HttpServer::SocketOp DlnaServer::handleBrowse(const QDomElement &elem, const HttpServer::RequestHeader &request, QAbstractSocket *socket)
 {
-  if (e->timerId() == p->cleanTimer)
-  {
-    if (lock.tryLockForWrite(0))
-    {
-      // Cleanup old sessions.
-      foreach (EventSession *session, p->eventSessions)
-      if (!session->isActive())
-      {
-        p->eventSessions.remove(session->sessionId());
-        delete session;
-      }
-
-      lock.unlock();
-    }
-  }
-  else
-    QObject::timerEvent(e);
-}
-
-QMap<qint32, DlnaServer::DirCacheEntry>::Iterator DlnaServer::updateCacheEntry(int dirId)
-{
-  SDebug::WriteLocker l(&lock, __FILE__, __LINE__);
-
-  qint32 updateId = 0;
-
-  // Update the cache entry for this directory
-  QMap<qint32, DirCacheEntry>::Iterator ce = p->dirCacheEntries.find(dirId);
-  if (ce != p->dirCacheEntries.end())
-  {
-    qint32 u = ce->updateId;
-    QMap<qint32, DlnaServerDir *>::Iterator dir = p->idMap.find(dirId);
-    if (dir != p->idMap.end())
-      u = (*dir)->updateId;
-
-    if ((qAbs(ce->update.elapsed()) >= cacheTimeout) || (ce->updateId != u))
-    {
-      p->dirCacheEntries.erase(ce);
-
-      // Remove other obsolete cache items
-      for (QMap<qint32, DirCacheEntry>::Iterator i=p->dirCacheEntries.begin(); i!=p->dirCacheEntries.end(); )
-      {
-        qint32 u = i->updateId;
-        QMap<qint32, DlnaServerDir *>::Iterator dir = p->idMap.find(i.key());
-        if (dir != p->idMap.end())
-          u = (*dir)->updateId;
-
-        if ((qAbs(i->update.elapsed()) >= cacheTimeout) || (i->updateId != u))
-          i = p->dirCacheEntries.erase(i);
-        else
-          i++;
-      }
-
-      ce = p->dirCacheEntries.end();
-    }
-  }
-
-  if ((ce == p->dirCacheEntries.end()) || (ce->children.isEmpty()))
-  {
-    ce = p->dirCacheEntries.insert(dirId, DirCacheEntry());
-
-    QStringList files;
-    QStringList dirs;
-
-    QMap<int, DlnaServerDir *>::Iterator i = p->idMap.find(dirId);
-    if (i != p->idMap.end())
-    {
-      dirs = (*i)->listDirs();
-      files = (*i)->listFiles();
-      updateId = (*i)->updateId;
-    }
-
-    foreach (const QString &fileName, files)
-    {
-      const File file = (*i)->findFile(fileName);
-
-      ce->children.insert(
-          ("00000000" + QString::number(quint32(file.sortOrder + 0x80000000), 16)).right(8) + fileName.toUpper(),
-          DirCacheEntry::Item(fileName, file));
-    }
-
-    foreach (const QString &dirName, dirs)
-    {
-      DlnaServerConstDirHandle dir = (*i)->findDir(dirName);
-      if (dir != NULL)
-      {
-        ce->children.insert(
-            ("00000000" + QString::number(quint32(dir->sortOrder + 0x80000000), 16)).right(8) + dirName.toUpper(),
-            DirCacheEntry::Item(dirName, dir));
-      }
-    }
-
-    ce->updateId = updateId;
-    ce->update.start();
-  }
-
-  return ce;
-}
-
-bool DlnaServer::handleBrowse(const QDomElement &elem, const QHttpRequestHeader &request, QAbstractSocket *socket)
-{
-  const QString host = request.value("Host");
   const QDomElement objectId = elem.firstChildElement("ObjectID");
   const QDomElement browseFlag = elem.firstChildElement("BrowseFlag");
   //const QDomElement filter = elem.firstChildElement("Filter");
@@ -442,17 +371,27 @@ bool DlnaServer::handleBrowse(const QDomElement &elem, const QHttpRequestHeader 
 
   settings.beginGroup("Client_" + socket->peerAddress().toString());
   settings.setValue("LastSeen", QDateTime::currentDateTime());
-  if (request.hasKey("User-Agent"))
-    settings.setValue("UserAgent", request.value("User-Agent"));
+  if (request.hasField("User-Agent"))
+    settings.setValue("UserAgent", request.field("User-Agent"));
 
-  const QString transcodeSize = settings.value("TranscodeSize", genericTranscodeSize).toString();
-  const QString transcodeCrop = settings.value("TranscodeCrop", genericTranscodeCrop).toString();
-  const QString encodeMode = settings.value("EncodeMode", genericEncodeMode).toString();
-  const QString transcodeChannels = settings.value("TranscodeChannels", genericTranscodeChannels).toString();
-  const QString transcodeMusicChannels = settings.value("TranscodeMusicChannels", genericTranscodeMusicChannels).toString();
+  StreamSettings streamSettings;
+  streamSettings.host = request.host();
+  streamSettings.transcodeSize = settings.value("TranscodeSize", genericTranscodeSize).toString();
+  streamSettings.transcodeCrop = settings.value("TranscodeCrop", genericTranscodeCrop).toString();
+  streamSettings.encodeMode = settings.value("EncodeMode", genericEncodeMode).toString();
+  streamSettings.transcodeChannels = settings.value("TranscodeChannels", genericTranscodeChannels).toString();
+  streamSettings.transcodeMusicChannels = settings.value("TranscodeMusicChannels", genericTranscodeMusicChannels).toString();
 
   // Find requested directory
-  const int dirId = objectId.text().split(':').first().toInt(NULL, 16);
+  SDebug::WriteLocker l(&p->lock, __FILE__, __LINE__);
+
+  const ItemID pathId = fromIDString(objectId.text());
+  QMap<ItemID, ItemData>::Iterator itemData = p->itemData.find(pathId);
+  if (itemData == p->itemData.end())
+  {
+    socket->write(HttpServer::ResponseHeader(HttpServer::Status_NotFound));
+    return HttpServer::SocketOp_Close;
+  }
 
   QDomDocument doc;
   QDomElement root = doc.createElementNS(p->soapNS, "s:Envelope");
@@ -463,137 +402,320 @@ bool DlnaServer::handleBrowse(const QDomElement &elem, const QHttpRequestHeader 
   QDomElement browseResponse = doc.createElementNS(p->cdirNS, "u:BrowseResponse");
   body.appendChild(browseResponse);
 
-  // Build result
-  const int start = qMax(0, startingIndex.text().toInt());
-  const int end = start + qMax(0, requestedCount.text().toInt());
-  int count = 0, returned = 0;
-  qint32 upid = 0;
-  QDomElement result = doc.createElement("Result");
-
-  if (browseFlag.text() == "BrowseDirectChildren")
+  if (itemData->item.isDir)
   {
-    SDebug::WriteLocker l(&lock, __FILE__, __LINE__);
-
-    QDomDocument doc;
-    QDomElement root = doc.createElementNS(p->didlNS, "DIDL-Lite");
-    root.setAttribute("xmlns:dc", p->dcNS);
-    root.setAttribute("xmlns:upnp", p->upnpNS);
-    doc.appendChild(root);
-
-    // Find or build the cache entry for this directory
-    QMap<qint32, DirCacheEntry>::Iterator ce = updateCacheEntry(dirId);
-    upid = ce->updateId;
-
-    // Append the relevant entries for this directory
-    foreach (const DirCacheEntry::Item &item, ce->children)
+    QString dir = itemData->path;
+    QMap<QString, Callback *>::Iterator callback = p->callbacks.find(dir);
+    while ((callback == p->callbacks.end()) && !dir.isEmpty())
     {
-      if ((count >= start) && (count < end))
-      {
-        if ((item.id & DIR_ID_MASK) != 0)
-        {
-          root.appendChild(didlDirectory(doc, item, dirId));
-        }
-        else if ((item.id & FILE_ID_MASK) != 0)
-        {
-          const QString channels = item.music ? transcodeMusicChannels : transcodeChannels;
-
-          root.appendChild(didlFile(doc, host, transcodeSize, transcodeCrop, encodeMode, channels, item, dirId, false));
-        }
-
-        returned++;
-      }
-
-      count++;
+      dir = dir.left(dir.left(dir.length() - 1).lastIndexOf('/') + 1);
+      callback = p->callbacks.find(dir);
     }
 
-    // Prevent the cache from becoming too big
-    if (p->dirCacheEntries.count() > 64)
-    for (QMap<int, DirCacheEntry>::Iterator i=p->dirCacheEntries.begin();
-         (p->dirCacheEntries.count()>32) && (i!=p->dirCacheEntries.end()); )
+    if ((callback == p->callbacks.end()) || !itemData->path.startsWith(callback.key()))
     {
-      if (i.key() == dirId)
-        i++;
-      else
-        i = p->dirCacheEntries.erase(i);
+      socket->write(HttpServer::ResponseHeader(HttpServer::Status_NotFound));
+      return HttpServer::SocketOp_Close;
     }
 
-    result.appendChild(doc.createTextNode(doc.toString(-1) + "\n"));
+    browseDir(
+        doc, browseResponse,
+        pathId, *itemData, *callback, streamSettings,
+        browseFlag.text(), startingIndex.text().toUInt(), requestedCount.text().toUInt());
   }
-  else if (browseFlag.text() == "BrowseMetadata")
+  else
   {
-    SDebug::WriteLocker l(&lock, __FILE__, __LINE__);
-
-    QDomDocument doc;
-    QDomElement root = doc.createElementNS(p->didlNS, "DIDL-Lite");
-    root.setAttribute("xmlns:dc", p->dcNS);
-    root.setAttribute("xmlns:upnp", p->upnpNS);
-    doc.appendChild(root);
-
-    QStringList files;
-    QMap<int, DlnaServerDir *>::Iterator i = p->idMap.find(dirId);
-    if (i != p->idMap.end())
-    {
-      files = (*i)->listFiles();
-      upid = (*i)->updateId;
-    }
-
-    const int fileId = objectId.text().split(':').last().toInt(NULL, 16);
-    foreach (const QString &fileName, files)
-    {
-      const File file = (*i)->findFile(fileName);
-      if (file.id == fileId)
-      {
-        const DirCacheEntry::Item item(fileName, file);
-        const QString channels = item.music ? transcodeMusicChannels : transcodeChannels;
-
-        root.appendChild(didlFile(doc, host, transcodeSize, transcodeCrop, encodeMode, channels, item, dirId, true));
-
-        returned = count = 1;
-        break;
-      }
-    }
-
-    result.appendChild(doc.createTextNode(doc.toString(-1) + "\n"));
+    browseFile(
+        doc, browseResponse,
+        pathId, *itemData, streamSettings,
+        browseFlag.text(), startingIndex.text().toUInt(), requestedCount.text().toUInt());
   }
 
-  browseResponse.appendChild(result);
-  QDomElement numReturned = doc.createElement("NumberReturned");
-  numReturned.appendChild(doc.createTextNode(QString::number(returned)));
-  browseResponse.appendChild(numReturned);
-  QDomElement totalMatches = doc.createElement("TotalMatches");
-  totalMatches.appendChild(doc.createTextNode(QString::number(count)));
-  browseResponse.appendChild(totalMatches);
-  QDomElement updateID = doc.createElement("UpdateID");
-  updateID.appendChild(doc.createTextNode(QString::number(upid)));
-  browseResponse.appendChild(updateID);
+  QDomElement updateIDElm = doc.createElement("UpdateID");
+  updateIDElm.appendChild(doc.createTextNode(QString::number(itemData->updateId)));
+  browseResponse.appendChild(updateIDElm);
 
   const QByteArray content = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + doc.toString(-1).toUtf8();
 
-  QHttpResponseHeader response(200);
+  HttpServer::ResponseHeader response(HttpServer::Status_Ok);
   response.setContentType("text/xml;charset=utf-8");
   response.setContentLength(content.length());
-  response.setValue("Cache-Control", "no-cache");
-  response.setValue("Accept-Ranges", "bytes");
-  response.setValue("Connection", "close");
-  response.setValue("contentFeatures.dlna.org", "");
-  response.setValue("Server", SsdpServer::getServerId());
+  response.setField("Cache-Control", "no-cache");
+  response.setField("Accept-Ranges", "bytes");
+  response.setField("Connection", "close");
+  response.setField("contentFeatures.dlna.org", "");
+  response.setField("Server", SsdpServer::getServerId());
 
-  socket->write(response.toString().toUtf8());
+  socket->write(response);
   socket->write(content);
-
-  return false;
+  return HttpServer::SocketOp_Close;
 }
 
-QDomElement DlnaServer::didlDirectory(QDomDocument &doc, const DirCacheEntry::Item &item, int parentId)
+void DlnaServer::browseDir(QDomDocument &doc, QDomElement &browseResponse, ItemID pathId, ItemData &itemData, Callback *callback, const StreamSettings &streamSettings, const QString &browseFlag, unsigned start, unsigned count)
+{
+  QDomElement result = doc.createElement("Result");
+  int totalMatches = 0, totalReturned = 0;
+
+  if (browseFlag == "BrowseDirectChildren")
+  {
+    QDomDocument subDoc;
+    QDomElement root = subDoc.createElementNS(p->didlNS, "DIDL-Lite");
+    root.setAttribute("xmlns:dc", p->dcNS);
+    root.setAttribute("xmlns:upnp", p->upnpNS);
+    subDoc.appendChild(root);
+
+    foreach (const Item &item, callback->listDlnaItems(itemData.path, start, count))
+    {
+      if (!item.isDir && (item.mediaInfo.isNull() || !item.mimeType.startsWith("video")))
+        root.appendChild(didlFile(subDoc, streamSettings, item, addChildItem(itemData, item, true), pathId));
+      else
+        root.appendChild(didlDirectory(subDoc, item, addChildItem(itemData, item, true), pathId));
+
+      totalReturned++;
+    }
+
+    totalMatches = callback->countDlnaItems(itemData.path);
+
+    result.appendChild(doc.createTextNode(subDoc.toString(-1) + "\n"));
+  }
+  else if (browseFlag == "BrowseMetadata")
+  {
+    QDomDocument subDoc;
+    QDomElement root = subDoc.createElementNS(p->didlNS, "DIDL-Lite");
+    root.setAttribute("xmlns:dc", p->dcNS);
+    root.setAttribute("xmlns:upnp", p->upnpNS);
+    subDoc.appendChild(root);
+
+    if (!itemData.item.isDir && (itemData.item.mediaInfo.isNull() || !itemData.item.mimeType.startsWith("video")))
+      root.appendChild(didlFile(subDoc, streamSettings, itemData.item, pathId));
+    else
+      root.appendChild(didlDirectory(subDoc, itemData.item, pathId));
+
+    totalMatches = totalReturned = 1;
+
+    result.appendChild(doc.createTextNode(subDoc.toString(-1) + "\n"));
+  }
+
+  browseResponse.appendChild(result);
+  QDomElement numReturnedElm = doc.createElement("NumberReturned");
+  numReturnedElm.appendChild(doc.createTextNode(QString::number(totalReturned)));
+  browseResponse.appendChild(numReturnedElm);
+  QDomElement totalMatchesElm = doc.createElement("TotalMatches");
+  totalMatchesElm.appendChild(doc.createTextNode(QString::number(totalMatches)));
+  browseResponse.appendChild(totalMatchesElm);
+}
+
+void DlnaServer::browseFile(QDomDocument &doc, QDomElement &browseResponse, ItemID pathId, ItemData &itemData, const StreamSettings &streamSettings, const QString &browseFlag, unsigned start, unsigned count)
+{
+  QDomElement result = doc.createElement("Result");
+  int totalMatches = 0, totalReturned = 0;
+
+  if (browseFlag == "BrowseDirectChildren")
+  {
+    QDomDocument subDoc;
+    QDomElement root = subDoc.createElementNS(p->didlNS, "DIDL-Lite");
+    root.setAttribute("xmlns:dc", p->dcNS);
+    root.setAttribute("xmlns:upnp", p->upnpNS);
+    subDoc.appendChild(root);
+
+    QVector<ItemID> all;
+    switch (itemData.item.mode)
+    {
+    case 0: // Root
+      if (!itemData.item.mediaInfo.isNull())
+      {
+        const QList<SMediaInfo::AudioStreamInfo> audioStreams = itemData.item.mediaInfo.audioStreams();
+        const QList<SMediaInfo::DataStreamInfo> dataStreams =
+            itemData.item.mediaInfo.dataStreams() <<
+            SIOInputNode::DataStreamInfo(SIOInputNode::DataStreamInfo::Type_Subtitle, 0xFFFF, NULL, SDataCodec());
+
+        if ((audioStreams.count() > 1) || (dataStreams.count() > 1))
+        {
+          for (int a=0, an=audioStreams.count(); a < an; a++)
+          for (int d=0, dn=dataStreams.count(); d < dn; d++)
+          {
+            Item item = itemData.item;
+            item.played = false;
+            item.mode = 1;
+
+            item.title = QString::number(a + 1) + ". ";
+            if (audioStreams[a].language[0])
+              item.title += SStringParser::iso639Language(audioStreams[a].language);
+            else
+              item.title += tr("Unknown");
+
+            item.url.addQueryItem("language", QString::number(audioStreams[a], 16));
+
+            if (dataStreams[d].streamId() != 0xFFFF)
+            {
+              item.title += ", " + QString::number(d + 1) + ". ";
+              if (dataStreams[d].language[0])
+                item.title += SStringParser::iso639Language(dataStreams[d].language);
+              else
+                item.title += tr("Unknown");
+
+              item.url.addQueryItem("subtitles", QString::number(dataStreams[d], 16));
+            }
+
+            all += addChildItem(itemData, item, true);
+          }
+
+          break;
+        }
+      }
+      // Deliberately no break.
+
+    case 1: // Play/seek
+      {
+        Item playItem = itemData.item;
+        playItem.played = false;
+        playItem.mode = 100;
+        playItem.title = tr("Play");
+        all += addChildItem(itemData, playItem, false);
+
+        if (!itemData.item.mediaInfo.isNull())
+        {
+          if (itemData.item.mediaInfo.duration().isValid())
+          {
+            Item seekItem = itemData.item;
+            seekItem.played = false;
+            seekItem.mode = 2;
+            seekItem.title = tr("Seek");
+            all += addChildItem(itemData, seekItem, true);
+          }
+
+          if (itemData.item.mediaInfo.chapters().count() > 1)
+          {
+            Item seekItem = itemData.item;
+            seekItem.played = false;
+            seekItem.mode = 3;
+            seekItem.title = tr("Chapters");
+            all += addChildItem(itemData, seekItem, true);
+          }
+        }
+      }
+      break;
+
+    case 2: // Seek
+      if (!itemData.item.mediaInfo.isNull())
+      for (STime i=STime::fromSec(0); i<itemData.item.mediaInfo.duration(); i+=STime::fromSec(seekSec))
+      {
+        Item item = itemData.item;
+        item.played = false;
+        item.mode = 100;
+        item.title = tr("Play from") + " " + QTime().addSecs(i.toSec()).toString("h:mm");
+        item.url.addQueryItem("position", QString::number(i.toSec()));
+        all += addChildItem(itemData, item, false);
+      }
+      break;
+
+    case 3: // Chapters
+      if (!itemData.item.mediaInfo.isNull())
+      {
+        int chapterNum = 1;
+        foreach (const SMediaInfo::Chapter &chapter, itemData.item.mediaInfo.chapters())
+        {
+          Item item = itemData.item;
+          item.played = false;
+          item.mode = 100;
+
+          item.title = tr("Chapter") + " " + QString::number(chapterNum++);
+          if (!chapter.title.isEmpty())
+            item.title += ", " + chapter.title;
+
+          item.url.addQueryItem("position", QString::number(chapter.begin.toSec()));
+          all += addChildItem(itemData, item, false);
+        }
+      }
+      break;
+    }
+
+    // Only select the items that were requested.
+    for (int i=start, n=0; (i<all.count()) && ((count == 0) || (n<int(count))); i++, n++)
+    {
+      QMap<ItemID, ItemData>::Iterator childData = p->itemData.find(all[i]);
+
+      if (childData->item.mode < 100)
+        root.appendChild(didlDirectory(subDoc, childData->item, childData.key(), pathId));
+      else
+        root.appendChild(didlFile(subDoc, streamSettings, childData->item, childData.key(), pathId));
+
+      totalReturned++;
+    }
+
+    totalMatches = all.count();
+
+    result.appendChild(doc.createTextNode(subDoc.toString(-1) + "\n"));
+  }
+  else if (browseFlag == "BrowseMetadata")
+  {
+    QDomDocument subDoc;
+    QDomElement root = subDoc.createElementNS(p->didlNS, "DIDL-Lite");
+    root.setAttribute("xmlns:dc", p->dcNS);
+    root.setAttribute("xmlns:upnp", p->upnpNS);
+    subDoc.appendChild(root);
+
+    if (itemData.item.mode < 100)
+      root.appendChild(didlDirectory(subDoc, itemData.item, pathId));
+    else
+      root.appendChild(didlFile(subDoc, streamSettings, itemData.item, pathId));
+
+    totalMatches = totalReturned = 1;
+
+    result.appendChild(doc.createTextNode(subDoc.toString(-1) + "\n"));
+  }
+
+  browseResponse.appendChild(result);
+  QDomElement numReturnedElm = doc.createElement("NumberReturned");
+  numReturnedElm.appendChild(doc.createTextNode(QString::number(totalReturned)));
+  browseResponse.appendChild(numReturnedElm);
+  QDomElement totalMatchesElm = doc.createElement("TotalMatches");
+  totalMatchesElm.appendChild(doc.createTextNode(QString::number(totalMatches)));
+  browseResponse.appendChild(totalMatchesElm);
+}
+
+DlnaServer::ItemID DlnaServer::addChildItem(ItemData &itemData, const Item &item, bool asDir)
+{
+  SDebug::WriteLocker l(&p->lock, __FILE__, __LINE__);
+
+  const QString fullPath = itemData.path + item.title + (asDir ? "/" : "");
+
+  // Find existing child
+  foreach (ItemID childId, itemData.children)
+  {
+    QMap<ItemID, ItemData>::Iterator childData = p->itemData.find(childId);
+    if (childData != p->itemData.end())
+    if (childData->path == fullPath)
+    {
+      childData->item = item;
+      return childId;
+    }
+  }
+
+  // Add new child
+  const ItemID childId = p->idCounter++;
+  ItemData childData;
+  childData.path = fullPath;
+  childData.item = item;
+  p->itemData.insert(childId, childData);
+
+  itemData.children.append(childId);
+
+  return childId;
+}
+
+QDomElement DlnaServer::didlDirectory(QDomDocument &doc, const Item &dir, ItemID id, ItemID parentId)
 {
   QDomElement containerElm = doc.createElement("container");
-  containerElm.setAttribute("id", QString::number(item.id, 16));
+  containerElm.setAttribute("id", toIDString(id));
   containerElm.setAttribute("searchable", "false");
-  containerElm.setAttribute("parentID", QString::number(parentId, 16));
   containerElm.setAttribute("restricted", "false");
 
+  if (parentId != 0)
+    containerElm.setAttribute("parentID", toIDString(parentId));
+
   QDomElement titleElm = doc.createElement("dc:title");
-  titleElm.appendChild(doc.createTextNode((item.played ? "*" : "") + item.title));
+  titleElm.appendChild(doc.createTextNode((dir.played ? "*" : "") + dir.title));
   containerElm.appendChild(titleElm);
 
   QDomElement upnpClassElm = doc.createElement("upnp:class");
@@ -603,118 +725,83 @@ QDomElement DlnaServer::didlDirectory(QDomDocument &doc, const DirCacheEntry::It
   return containerElm;
 }
 
-QDomElement DlnaServer::didlFile(QDomDocument &doc, const QString &host, const QString &transcodeSize, const QString &transcodeCrop, const QString &encodeMode, const QString &transcodeChannels, const DirCacheEntry::Item &item, int parentId, bool addMeta)
+QDomElement DlnaServer::didlFile(QDomDocument &doc, const StreamSettings &streamSettings, const Item &item, ItemID id, ItemID parentId)
 {
   QDomElement itemElm = doc.createElement("item");
-  itemElm.setAttribute("id", QString::number(parentId, 16) + ":" + QString::number(item.id, 16));
-  itemElm.setAttribute("parentID", QString::number(parentId, 16));
+  itemElm.setAttribute("id", toIDString(id));
   itemElm.setAttribute("restricted", "false");
+
+  if (parentId != 0)
+    itemElm.setAttribute("parentID", toIDString(parentId));
 
   QDomElement titleElm = doc.createElement("dc:title");
   titleElm.appendChild(doc.createTextNode((item.played ? "*" : "") + item.title));
   itemElm.appendChild(titleElm);
 
-  if (addMeta && !item.iconUrl.isEmpty())
+  if (!item.iconUrl.isEmpty())
   {
     QDomElement iconElm = doc.createElement("upnp:icon");
-    iconElm.appendChild(doc.createTextNode(item.iconUrl));
+    iconElm.appendChild(doc.createTextNode(item.iconUrl.toString()));
     itemElm.appendChild(iconElm);
   }
 
-  QString imageSize = "size=0x0";
+  QUrl url = item.url;
+  url.setScheme("http");
+  url.setAuthority(streamSettings.host);
+
   foreach (const GlobalSettings::TranscodeSize &size, GlobalSettings::allTranscodeSizes())
-  if (size.name == transcodeSize)
+  if (size.name == streamSettings.transcodeSize)
   {
-    imageSize = "size=" + QString::number(size.size.width()) +
-                "x" + QString::number(size.size.height()) +
-                "x" + QString::number(size.size.aspectRatio(), 'f', 3);
+    QString sizeStr =
+        QString::number(size.size.width()) + "x" +
+        QString::number(size.size.height()) + "x" +
+        QString::number(size.size.aspectRatio(), 'f', 3);
+
+    if (!streamSettings.transcodeCrop.isEmpty())
+      sizeStr += "/" + streamSettings.transcodeCrop.toLower();
+
+    url.addQueryItem("size", sizeStr);
     break;
   }
 
-  if (!transcodeCrop.isEmpty())
-    imageSize += "/" + transcodeCrop.toLower();
-
-  QString channelSetup = "requestchannels=0";
+  const QString transcodeChannels = item.music ? streamSettings.transcodeMusicChannels : streamSettings.transcodeChannels;
   foreach (const GlobalSettings::TranscodeChannel &channel, GlobalSettings::allTranscodeChannels())
   if (channel.name == transcodeChannels)
   {
     if (item.music)
-      channelSetup = "forcechannels=" + QString::number(channel.channels, 16);
+      url.addQueryItem("forcechannels", QString::number(channel.channels, 16));
     else
-      channelSetup = "requestchannels=" + QString::number(channel.channels, 16);
+      url.addQueryItem("requestchannels", QString::number(channel.channels, 16));
 
     break;
   }
 
-  QString encode = "encode=fast";
-  if (!encodeMode.isEmpty())
-    encode = "encode=" + encodeMode.toLower();
-
-  encode += "&priority=high";
+  url.addQueryItem("priority", "high");
+  if (!streamSettings.encodeMode.isEmpty())
+    url.addQueryItem("encode", streamSettings.encodeMode.toLower());
+  else
+    url.addQueryItem("encode", "fast");
 
   QDomElement upnpClassElm = doc.createElement("upnp:class");
-  QString postfix = item.url.contains('?') ? "&" : "?";
   if (item.mimeType.startsWith("video/"))
-  {
     upnpClassElm.appendChild(doc.createTextNode("object.item.videoItem"));
-    postfix += imageSize + "&" + channelSetup + "&" + encode + "&header=false";
-  }
   else if (item.mimeType.startsWith("audio/"))
-  {
     upnpClassElm.appendChild(doc.createTextNode("object.item.audioItem"));
-    postfix += channelSetup + "&" + encode;
-  }
   else if (item.mimeType.startsWith("image/"))
-  {
     upnpClassElm.appendChild(doc.createTextNode("object.item.imageItem"));
-    postfix += imageSize + "&" + encode;
-  }
   else
-  {
     upnpClassElm.appendChild(doc.createTextNode("object.item"));
-    postfix = "";
-  }
 
   itemElm.appendChild(upnpClassElm);
 
   QDomElement resElm = doc.createElement("res");
   resElm.setAttribute("protocolInfo", "http-get:*:" + item.mimeType + ":DLNA.ORG_PS=1;DLNA.ORG_CI=0;DLNA.ORG_OP=01;DLNA.ORG_FLAGS=21700000000000000000000000000000");
 
-  resElm.appendChild(doc.createTextNode("http://" + host + item.url + postfix));
+  resElm.appendChild(doc.createTextNode(url.toString()));
   itemElm.appendChild(resElm);
 
   return itemElm;
 }
-
-
-DlnaServer::File::File(void)
-    : id(0),
-      played(false),
-      music(false),
-      sortOrder(0)
-{
-}
-
-DlnaServer::File::File(DlnaServer *parent)
-    : id(parent->p->idCounter.fetchAndAddOrdered(1) | DlnaServer::FILE_ID_MASK),
-      played(false),
-      music(false),
-      sortOrder(0)
-{
-}
-
-
-DlnaServer::HttpDir::HttpDir(HttpServer *server, DlnaServer *parent)
-    : HttpServerDir(server),
-      parent(parent)
-{
-}
-
-bool DlnaServer::HttpDir::handleConnection(const QHttpRequestHeader &h, QAbstractSocket *s)
-{
-  return parent->handleConnection(h, s);
-}
-
 
 const unsigned  DlnaServer::EventSession::maxInstances = 64;
 const int       DlnaServer::EventSession::timeout = 180;
@@ -741,7 +828,7 @@ DlnaServer::EventSession::~EventSession()
 
 void DlnaServer::EventSession::update(qint32 dirId)
 {
-  SDebug::WriteLocker l(&parent->lock, __FILE__, __LINE__);
+  SDebug::WriteLocker l(&parent->p->lock, __FILE__, __LINE__);
 
   updateId++;
   containers += dirId;
@@ -751,7 +838,7 @@ void DlnaServer::EventSession::update(qint32 dirId)
 
 void DlnaServer::EventSession::resubscribe(void)
 {
-  SDebug::WriteLocker l(&parent->lock, __FILE__, __LINE__);
+  SDebug::WriteLocker l(&parent->p->lock, __FILE__, __LINE__);
 
   lastSubscribe = QDateTime::currentDateTime();
 }
@@ -760,7 +847,7 @@ bool DlnaServer::EventSession::isActive(void) const
 {
   if (QThread::isRunning())
   {
-    SDebug::WriteLocker l(&parent->lock, __FILE__, __LINE__);
+    SDebug::WriteLocker l(&parent->p->lock, __FILE__, __LINE__);
 
     if (lastSubscribe.secsTo(QDateTime::currentDateTime()) < (timeout + 30))
       return true;
@@ -776,7 +863,7 @@ void DlnaServer::EventSession::run(void)
     triggerSem.tryAcquire(1, 2000);
 
     if (running && dirty)
-    if (parent->lock.tryLockForWrite(250))
+    if (parent->p->lock.tryLockForWrite(250))
     {
       if (lastUpdate.isNull() || (qAbs(lastUpdate.elapsed()) >= 2000)) // Max rate 0.5 Hz
       {
@@ -806,9 +893,9 @@ void DlnaServer::EventSession::run(void)
         QString updateIds;
         foreach (qint32 containerId, containers)
         {
-          QMap<int, DlnaServerDir *>::ConstIterator i = parent->p->idMap.find(containerId);
-          if (i != parent->p->idMap.end())
-            updateIds += QString::number(containerId, 16) + "," + QString::number((*i)->updateId) + ",";
+          QMap<ItemID, ItemData>::ConstIterator i = parent->p->itemData.find(containerId);
+          if (i != parent->p->itemData.end())
+            updateIds += toIDString(containerId) + "," + QString::number(i->updateId) + ",";
         }
 
         if (!updateIds.isEmpty())
@@ -825,7 +912,7 @@ void DlnaServer::EventSession::run(void)
         header.setContentLength(content.length());
 
         lastUpdate.start();
-        parent->lock.unlock();
+        parent->p->lock.unlock();
 
         // Now send the message
         static const int maxRequestTime = 5000;
@@ -868,139 +955,52 @@ void DlnaServer::EventSession::run(void)
         }
       }
       else
-        parent->lock.unlock();
+        parent->p->lock.unlock();
     }
   }
 }
 
-
-DlnaServer::DirCacheEntry::Item::Item(const QString &title, const File &file)                           
-    : File(file),
-      title(title)
+int DlnaServer::Private::countDlnaItems(const QString &)
 {
+  return callbacks.count() - 1;
 }
 
-DlnaServer::DirCacheEntry::Item::Item(const QString &title, DlnaServerConstDirHandle dir)
-    : title(title)
+QList<DlnaServer::Item> DlnaServer::Private::listDlnaItems(const QString &, unsigned start, unsigned count)
 {
-  id = dir->id;
-  played = dir->played;
-  sortOrder = dir->sortOrder;
-}
+  QList<DlnaServer::Item> result;
 
-
-DlnaServerDir::DlnaServerDir(DlnaServer *parent)
-    : FileServerDir(parent),
-      id(parent->p->idCounter.fetchAndAddOrdered(1) | DlnaServer::DIR_ID_MASK),
-      played(false),
-      sortOrder(0),
-      updateId(1)
-{
-  SDebug::WriteLocker l(&server()->lock, __FILE__, __LINE__);
-
-  parent->p->idMap.insert(id, this);
-}
-
-DlnaServerDir::~DlnaServerDir()
-{
-  SDebug::WriteLocker l(&server()->lock, __FILE__, __LINE__);
-
-  if (server()->p) // This might already be deleted if this is the root directory.
-    server()->p->idMap.remove(id);
-}
-
-void DlnaServerDir::addFile(const QString &name, const File &file)
-{
-  Q_ASSERT(!name.isEmpty());
-  Q_ASSERT(file.id != 0);
-
-  SDebug::WriteLocker l(&server()->lock, __FILE__, __LINE__);
-
-  files[name] = file;
-
-  updateId++;
-  server()->update(id);
-}
-
-void DlnaServerDir::removeFile(const QString &name)
-{
-  Q_ASSERT(!name.isEmpty());
-
-  SDebug::WriteLocker l(&server()->lock, __FILE__, __LINE__);
-
-  files.remove(name);
-
-  updateId++;
-  server()->update(id);
-}
-
-void DlnaServerDir::addDir(const QString &name, FileServerDir *dir)
-{
-  SDebug::WriteLocker l(&server()->lock, __FILE__, __LINE__);
-
-  FileServerDir::addDir(name, dir);
-
-  updateId++;
-  server()->update(id);
-}
-
-void DlnaServerDir::removeDir(const QString &name)
-{
-  SDebug::WriteLocker l(&server()->lock, __FILE__, __LINE__);
-
-  FileServerDir::removeDir(name);
-
-  updateId++;
-  server()->update(id);
-}
-
-void DlnaServerDir::clear(void)
-{
-  SDebug::WriteLocker l(&server()->lock, __FILE__, __LINE__);
-
-  const qint32 newUpdateId = updateId + 1;
-
-  files.clear();
-
-  FileServerDir::clear();
-
-  updateId = newUpdateId;
-  server()->update(id);
-}
-
-int DlnaServerDir::count(void) const
-{
-  SDebug::WriteLocker l(&server()->lock, __FILE__, __LINE__);
-
-  return listFiles().count() + FileServerDir::count();
-}
-
-QStringList DlnaServerDir::listFiles(void)
-{
-  SDebug::WriteLocker l(&server()->lock, __FILE__, __LINE__);
-
-  return files.keys();
-}
-
-DlnaServerDir::File DlnaServerDir::findFile(const QString &name)
-{
-  Q_ASSERT(!name.isEmpty());
-
-  SDebug::WriteLocker l(&server()->lock, __FILE__, __LINE__);
-
-  QMap<QString, DlnaServerDir::File>::ConstIterator i = files.find(name);
-  if (i == files.end())
+  for (QMap<QString, Callback *>::ConstIterator i=callbacks.begin(); i!=callbacks.end(); i++)
+  if (i.key() != "/")
   {
-    // Try to update the dir
-    listFiles();
-    i = files.find(name);
+    DlnaServer::Item item;
+    item.isDir = true;
+    item.title = i.key();
+    item.title = item.title.startsWith('/') ? item.title.mid(1) : item.title;
+    item.title = item.title.endsWith('/') ? item.title.left(item.title.length() - 1) : item.title;
+
+    result += item;
   }
 
-  if (i != files.end())
-    return *i;
+  if (count > 0)
+  {
+    while ((start > 0) && !result.isEmpty())
+    {
+      result.takeFirst();
+      start--;
+    }
 
-  return DlnaServerDir::File();
+    if (result.count() >= int(count))
+    {
+      while (result.count() > int(count))
+        result.takeAt(count);
+
+      count = 0;
+    }
+    else
+      count -= result.count();
+  }
+
+  return result;
 }
-
 
 } // End of namespace

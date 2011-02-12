@@ -17,7 +17,6 @@ include($${LXIMEDIA_DIR}/ext/fftw/fftw.pri)
 HEADERS += commontest.h
 SOURCES += main.cpp \
     commontest.cpp
-RESOURCES = test.qrc
 LIBS += -lbfd \
     -liberty
 
