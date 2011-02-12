@@ -30,23 +30,23 @@ struct MediaServer::Private
   class StreamEvent : public QEvent
   {
   public:
-    inline                      StreamEvent(QEvent::Type type, const QHttpRequestHeader &request, QAbstractSocket *socket, QSemaphore *sem)
+    inline                      StreamEvent(QEvent::Type type, const HttpServer::RequestHeader &request, QAbstractSocket *socket, QSemaphore *sem)
         : QEvent(type), request(request), socket(socket), sem(sem) { }
 
-    const QHttpRequestHeader    request;
+    const HttpServer::RequestHeader request;
     QAbstractSocket     * const socket;
     QSemaphore          * const sem;
   };
+
+  inline                        Private(void) : mutex(QMutex::Recursive)        { }
 
   static const QEvent::Type     startStreamEventType;
   static const QEvent::Type     buildPlaylistEventType;
   static const int              maxStreams = 64;
 
+  QMutex                        mutex;
   QList<Stream *>               streams;
   QList<Stream *>               reusableStreams;
-
-  HttpServerDir               * httpDir;
-  DlnaServerDir               * dlnaDir;
 };
 
 const QEvent::Type MediaServer::Private::startStreamEventType = QEvent::Type(QEvent::registerEventType());
@@ -59,135 +59,30 @@ const int     MediaServer::seekBySecs = 120;
 
 MediaServer::MediaServer(const char *name, Plugin *plugin, BackendServer::MasterServer *server)
   : BackendServer(name, plugin, server),
-    FileServer(),
     p(new Private())
 {
-  p->httpDir = NULL;
-  p->dlnaDir = NULL;
-
   // Ensure the logo is loaded.
   GlobalSettings::productLogo().bits();
+
+  masterServer()->httpServer()->registerCallback(httpPath(), this);
+  masterServer()->dlnaServer()->registerCallback(dlnaPath(), this);
 }
 
 MediaServer::~MediaServer()
 {
-  delete p->httpDir;
-  delete p->dlnaDir;
+  masterServer()->httpServer()->unregisterCallback(this);
+  masterServer()->dlnaServer()->unregisterCallback(this);
+
   delete p;
   *const_cast<Private **>(&p) = NULL;
-}
-
-void MediaServer::setRoot(MediaServerDir *root)
-{
-  FileServer::setRoot(root);
-
-  HttpServer * const httpServer = masterServer()->httpServer();
-
-  SDebug::WriteLocker hl(&httpServer->lock, __FILE__, __LINE__);
-  httpServer->addDir(httpPath(), p->httpDir = new HttpDir(httpServer, this, "/"));
-  hl.unlock();
-
-  DlnaServer * const dlnaServer = masterServer()->dlnaServer();
-
-  SDebug::WriteLocker dl(&dlnaServer->lock, __FILE__, __LINE__);
-  dlnaServer->addDir(dlnaPath(), p->dlnaDir = new DlnaDir(dlnaServer, this, "/"));
-  dl.unlock();
-}
-
-bool MediaServer::handleConnection(const QHttpRequestHeader &request, QAbstractSocket *socket)
-{
-  const QUrl url(request.path());
-  const QString file = url.path().mid(url.path().lastIndexOf('/') + 1);
-
-  if (file.isEmpty())
-  {
-    QString path = url.path().mid(httpPath().length());
-    path = path.startsWith('/') ? path : ('/' + path);
-
-    return buildDir(url, path, socket);
-  }
-  else
-  {
-    const QString mime = HttpServer::toMimeType(url.path());
-    if (mime.endsWith("/x-mpegurl"))
-    {
-      QSemaphore sem(0);
-
-      socket->moveToThread(QObject::thread());
-      QCoreApplication::postEvent(this, new Private::StreamEvent(Private::buildPlaylistEventType, request, socket, &sem));
-
-      sem.acquire();
-      return true; // Socket will be closed by event handler
-    }
-    else if (mime.startsWith("audio/") || mime.startsWith("video/"))
-    {
-      QSemaphore sem(0);
-
-      socket->moveToThread(QObject::thread());
-      QCoreApplication::postEvent(this, new Private::StreamEvent(Private::startStreamEventType, request, socket, &sem));
-
-      sem.acquire();
-      return true; // Socket will be closed by event handler
-    }
-  }
-
-  qWarning() << "MediaServer: Failed to find:" << request.path();
-  socket->write(QHttpResponseHeader(404).toString().toUtf8());
-  return false;
-}
-
-bool MediaServer::buildDir(const QUrl &url, const QString &path, QAbstractSocket *socket)
-{
-  MediaServerConstDirHandle dir = findDir(path);
-  if (dir != NULL)
-  {
-    QHttpResponseHeader response(200);
-    response.setContentType("text/html;charset=utf-8");
-    response.setValue("Cache-Control", "no-cache");
-
-    ThumbnailListItemMap items;
-
-    foreach (const QString &subDirName, dir->listDirs())
-    {
-      MediaServerConstDirHandle subDir = dir->findDir(subDirName);
-      if (subDir != NULL)
-      {
-        ThumbnailListItem item;
-        item.title = subDirName;
-        item.iconurl = subDir->getIcon();
-        item.url = subDirName + '/';
-
-        items.insert(("00000000" + QString::number(quint32(subDir->sortOrder + 0x80000000), 16)).right(8) + item.title.toUpper(), item);
-      }
-    }
-
-    foreach (const QString &fileName, dir->listFiles())
-    {
-      const MediaServerDir::File file = dir->findFile(fileName);
-      if (!file.isNull())
-      {
-        ThumbnailListItem item;
-        item.title = fileName;
-        item.iconurl = file.iconUrl;
-        item.url = file.url.left(file.url.lastIndexOf('.')) + ".html";
-        item.played = file.played;
-
-        items.insert(("00000000" + QString::number(quint32(file.sortOrder + 0x80000000), 16)).right(8) + item.title.toUpper(), item);
-      }
-    }
-
-    return sendHtmlContent(socket, url, response, buildThumbnailView("", items, url), headList);
-  }
-
-  qWarning() << "MediaServer: Failed to find:" << url.toString();
-  socket->write(QHttpResponseHeader(404).toString().toUtf8());
-  return false;
 }
 
 void MediaServer::customEvent(QEvent *e)
 {
   if (e->type() == p->startStreamEventType)
   {
+    SDebug::MutexLocker l(&p->mutex, __FILE__, __LINE__);
+
     Private::StreamEvent * const event = static_cast<Private::StreamEvent *>(e);
     const QHostAddress peer = event->socket->peerAddress();
     const QString url = event->request.path();
@@ -200,7 +95,7 @@ void MediaServer::customEvent(QEvent *e)
       return;
     }
 
-    if (!streamVideo(event->request, event->socket))
+    if (streamVideo(event->request, event->socket) == HttpServer::SocketOp_Close)
     {
       event->socket->disconnectFromHost();
       if (event->socket->state() != QAbstractSocket::UnconnectedState)
@@ -215,7 +110,7 @@ void MediaServer::customEvent(QEvent *e)
   else if (e->type() == p->buildPlaylistEventType)
   {
     Private::StreamEvent * const event = static_cast<Private::StreamEvent *>(e);
-    if (!buildPlaylist(event->request, event->socket))
+    if (buildPlaylist(event->request, event->socket) == HttpServer::SocketOp_Close)
     {
       event->socket->disconnectFromHost();
       if (event->socket->state() != QAbstractSocket::UnconnectedState)
@@ -231,7 +126,7 @@ void MediaServer::customEvent(QEvent *e)
 
 void MediaServer::cleanStreams(void)
 {
-  lock.lockForWrite();
+  SDebug::MutexLocker l(&p->mutex, __FILE__, __LINE__);
 
   QList<Stream *> obsolete;
   foreach (Stream *stream, p->streams)
@@ -243,13 +138,111 @@ void MediaServer::cleanStreams(void)
     stream->stop();
     delete stream;
   }
+}
 
-  lock.unlock();
+HttpServer::SocketOp MediaServer::handleHttpRequest(const HttpServer::RequestHeader &request, QAbstractSocket *socket)
+{
+  const QUrl url(request.path());
+  const QString file = request.file();
+
+  if (file.isEmpty())
+  {
+    HttpServer::ResponseHeader response(HttpServer::Status_Ok);
+    response.setContentType("text/html;charset=utf-8");
+    response.setField("Cache-Control", "no-cache");
+
+    QString path = url.path().mid(httpPath().length());
+    path = path.startsWith('/') ? path : ('/' + path);
+
+    ThumbnailListItemList thumbItems;
+
+    foreach (const DlnaServer::Item &item, listItems(path))
+    {
+      if (item.isDir)
+      {
+        ThumbnailListItem thumbItem;
+        thumbItem.title = item.title;
+        thumbItem.iconurl = item.iconUrl;
+        thumbItem.url = item.title + '/';
+
+        thumbItems.append(thumbItem);
+      }
+      else
+      {
+        ThumbnailListItem thumbItem;
+        thumbItem.title = item.title;
+        thumbItem.iconurl = item.iconUrl;
+        thumbItem.url = item.url;
+
+        QString path = thumbItem.url.path();
+        path = path.left(path.lastIndexOf('.')) + ".html";
+        thumbItem.url.setPath(path);
+
+        thumbItem.played = item.played;
+
+        thumbItems.append(thumbItem);
+      }
+    }
+
+    return sendHtmlContent(socket, url, response, buildThumbnailView("", thumbItems, url), headList);
+  }
+  else
+  {
+    const QString mime = HttpServer::toMimeType(url.path());
+    if (mime.endsWith("/x-mpegurl"))
+    {
+      QSemaphore sem(0);
+
+      socket->moveToThread(QObject::thread());
+      QCoreApplication::postEvent(this, new Private::StreamEvent(Private::buildPlaylistEventType, request, socket, &sem));
+
+      sem.acquire();
+      return HttpServer::SocketOp_LeaveOpen; // Socket will be closed by event handler
+    }
+    else if (mime.startsWith("audio/") || mime.startsWith("video/"))
+    {
+      QSemaphore sem(0);
+
+      socket->moveToThread(QObject::thread());
+      QCoreApplication::postEvent(this, new Private::StreamEvent(Private::startStreamEventType, request, socket, &sem));
+
+      sem.acquire();
+      return HttpServer::SocketOp_LeaveOpen; // Socket will be closed by event handler
+    }
+  }
+
+  qWarning() << "MediaServer: Failed to find:" << request.path();
+  socket->write(HttpServer::ResponseHeader(HttpServer::Status_NotFound));
+  return HttpServer::SocketOp_Close;
+}
+
+int MediaServer::countDlnaItems(const QString &path)
+{
+  QString subPath = path.mid(dlnaPath().length());
+  subPath = subPath.startsWith('/') ? subPath : ('/' + subPath);
+
+  return countItems(subPath);
+}
+
+QList<DlnaServer::Item> MediaServer::listDlnaItems(const QString &path, unsigned start, unsigned count)
+{
+  QString subPath = path.mid(dlnaPath().length());
+  subPath = subPath.startsWith('/') ? subPath : ('/' + subPath);
+
+  QList<DlnaServer::Item> result;
+  foreach (Item item, listItems(subPath, start, count))
+  {
+    item.url.setPath(httpPath() + item.url.path());
+    item.iconUrl.setPath(httpPath() + item.iconUrl.path());
+    result += item;
+  }
+
+  return result;
 }
 
 void MediaServer::addStream(Stream *stream)
 {
-  SDebug::WriteLocker l(&lock, __FILE__, __LINE__);
+  SDebug::MutexLocker l(&p->mutex, __FILE__, __LINE__);
 
   connect(stream, SIGNAL(finished()), SLOT(cleanStreams()), Qt::QueuedConnection);
   connect(&(stream->output), SIGNAL(disconnected()), SLOT(cleanStreams()), Qt::QueuedConnection);
@@ -259,7 +252,7 @@ void MediaServer::addStream(Stream *stream)
 
 void MediaServer::removeStream(Stream *stream)
 {
-  SDebug::WriteLocker l(&lock, __FILE__, __LINE__);
+  SDebug::MutexLocker l(&p->mutex, __FILE__, __LINE__);
 
   qDebug() << "Closed stream" << stream->id;
 
@@ -446,10 +439,10 @@ MediaServer::TranscodeStream::TranscodeStream(MediaServer *parent, const QHostAd
   connect(&dataDecoder, SIGNAL(output(SSubtitleBuffer)), &timeStampResampler, SLOT(input(SSubtitleBuffer)));
 }
 
-bool MediaServer::TranscodeStream::setup(const QHttpRequestHeader &request, QAbstractSocket *socket, SInterfaces::BufferReaderNode *input, STime duration, const QString &name, const QImage &thumb)
+bool MediaServer::TranscodeStream::setup(const HttpServer::RequestHeader &request, QAbstractSocket *socket, SInterfaces::BufferReaderNode *input, STime duration, const QString &name, const QImage &thumb)
 {
   QUrl url(request.path());
-  const QStringList file = url.path().mid(url.path().lastIndexOf('/') + 1).split('.');
+  const QStringList file = request.file().split('.');
 
   if (url.hasQueryItem("query"))
     url = url.toEncoded(QUrl::RemoveQuery) + QByteArray::fromHex(url.queryItemValue("query").toAscii());
@@ -800,375 +793,6 @@ bool MediaServer::TranscodeStream::setup(const QHttpRequestHeader &request, QAbs
   }
 
   return false;
-}
-
-
-MediaServer::HttpDir::HttpDir(HttpServer *parent, MediaServer *mediaServer, const QString &mediaPath)
-  : HttpServerDir(parent),
-    mediaServer(mediaServer),
-    mediaPath(mediaPath.endsWith('/') ? mediaPath : (mediaPath + '/'))
-{
-}
-
-QStringList MediaServer::HttpDir::listDirs(void)
-{
-  MediaServerDirHandle mediaDir = mediaServer->findDir(mediaPath);
-  if (mediaDir != NULL)
-  {
-    QSet<QString> dirs = QSet<QString>::fromList(mediaDir->listDirs());
-    QStringList addDirs = dirs.toList();
-    QStringList delDirs;
-
-    foreach (const QString &dirName, HttpServerDir::listDirs())
-    {
-      if (!dirs.contains(dirName))
-        delDirs.append(dirName);
-      else
-        addDirs.removeAll(dirName);
-    }
-
-    foreach (const QString &dirName, delDirs)
-      removeDir(dirName);
-
-    foreach (const QString &dirName, addDirs)
-    {
-      addDir(dirName, new HttpDir(
-          server(), mediaServer,
-          (mediaPath.endsWith('/') ? mediaPath : (mediaPath + '/')) + dirName));
-    }
-  }
-
-  return HttpServerDir::listDirs();
-}
-
-bool MediaServer::HttpDir::handleConnection(const QHttpRequestHeader &header, QAbstractSocket *socket)
-{
-  return mediaServer->handleConnection(header, socket);
-}
-
-
-MediaServer::DlnaDir::DlnaDir(DlnaServer *parent, MediaServer *mediaServer, const QString &mediaPath)
-  : DlnaServerDir(parent),
-    mediaServer(mediaServer),
-    mediaPath(mediaPath.endsWith('/') ? mediaPath : (mediaPath + '/')),
-    plainFiles()
-{
-  MediaServerDirHandle mediaDir = mediaServer->findDir(mediaPath);
-  if (mediaDir != NULL)
-    sortOrder = mediaDir->sortOrder;
-}
-
-QStringList MediaServer::DlnaDir::listDirs(void)
-{
-  MediaServerDirHandle mediaDir = mediaServer->findDir(mediaPath);
-  if (mediaDir != NULL)
-  {
-    plainFiles.clear();
-
-    QSet<QString> dirs;
-    foreach (const QString &dir, mediaDir->listDirs())
-      dirs.insert('+' + dir);
-
-    QSet<QString> files = QSet<QString>::fromList(mediaDir->listFiles());
-
-    QStringList addDirs = dirs.toList();
-    QStringList addFiles = files.toList();
-    QStringList delDirs;
-
-    foreach (const QString &dirName, DlnaServerDir::listDirs())
-    {
-      if (!dirs.contains(dirName) && !files.contains(dirName))
-      {
-        delDirs.append(dirName);
-      }
-      else
-      {
-        addDirs.removeAll(dirName);
-        addFiles.removeAll(dirName);
-      }
-    }
-
-    foreach (const QString &dirName, delDirs)
-      removeDir(dirName);
-
-    foreach (const QString &dirName, addDirs)
-    {
-      addDir(dirName, new DlnaDir(
-          server(), mediaServer,
-          (mediaPath.endsWith('/') ? mediaPath : (mediaPath + '/')) + dirName.mid(1)));
-    }
-
-    foreach (const QString &fileName, addFiles)
-    {
-      const MediaServerDir::File srcFile = mediaDir->findFile(fileName);
-      if (!srcFile.isNull())
-      {
-        if ((srcFile.mimeType == "video/mpeg") && !srcFile.mediaInfo.isNull() &&
-            (srcFile.mediaInfo.duration().toMin() >= 10))
-        {
-          DlnaServerDir * const fileRootDir = new DlnaServerDir(server());
-          fileRootDir->played = srcFile.played;
-          fileRootDir->sortOrder = srcFile.sortOrder;
-
-          const QList<SMediaInfo::AudioStreamInfo> audioStreams = srcFile.mediaInfo.audioStreams();
-          const QList<SMediaInfo::DataStreamInfo> dataStreams =
-              srcFile.mediaInfo.dataStreams() <<
-              SIOInputNode::DataStreamInfo(SIOInputNode::DataStreamInfo::Type_Subtitle, 0xFFFF, NULL, SDataCodec());
-
-          for (int a=0, an=audioStreams.count(); a < an; a++)
-          for (int d=0, dn=dataStreams.count(); d < dn; d++)
-          {
-            DlnaServerDir * const fileDir = ((an + dn) == 2) ? fileRootDir : new DlnaServerDir(fileRootDir->server());
-            DlnaServerDir * const chapterDir = new DlnaServerDir(fileDir->server());
-            DlnaServerDir * const seekDir = new DlnaServerDir(fileDir->server());
-
-            QString url = srcFile.url;
-            url += "?language=" + QString::number(audioStreams[a], 16) + "&subtitles=";
-            if (dataStreams[d].streamId() != 0xFFFF)
-              url += QString::number(dataStreams[d], 16);
-
-            File file(server());
-            file.sortOrder = 1;
-            file.mimeType = srcFile.mimeType;
-            file.url = url;
-            file.iconUrl = srcFile.iconUrl;
-            fileDir->addFile(tr("Play"), file);
-
-            int chapterNum = 1;
-            foreach (const SMediaInfo::Chapter &chapter, srcFile.mediaInfo.chapters())
-            {
-              File file(chapterDir->server());
-              file.sortOrder = chapterNum++;
-              file.mimeType = srcFile.mimeType;
-              file.url = url + (url.contains('?') ? "&position=" : "?position=") +
-                          QString::number(chapter.begin.toSec());
-
-              QString name = tr("Chapter") + " " + QString::number(file.sortOrder);
-              if (!chapter.title.isEmpty())
-                name += ", " + chapter.title;
-
-              chapterDir->addFile(name, file);
-            }
-
-            for (int i=0, n=srcFile.mediaInfo.duration().toSec(); i<n; i+=seekBySecs)
-            {
-              File file(seekDir->server());
-              file.sortOrder = i;
-              file.mimeType = srcFile.mimeType;
-              file.url = url + (url.contains('?') ? "&position=" : "?position=") + QString::number(i);
-
-              seekDir->addFile(tr("Play from") + " " + QString::number(i / 3600) +
-                               ":" + ("0" + QString::number((i / 60) % 60)).right(2),
-                               file);
-            }
-
-            if (chapterDir->count() > 0)
-            {
-              chapterDir->sortOrder = 2;
-              fileDir->addDir(tr("Chapters"), chapterDir);
-            }
-            else
-              delete chapterDir;
-
-            if (seekDir->count() > 0)
-            {
-              seekDir->sortOrder = 3;
-              fileDir->addDir(tr("Seek"), seekDir);
-            }
-            else
-              delete seekDir;
-
-            if (fileDir != fileRootDir)
-            {
-              fileDir->sortOrder = (a + 1) * 2;
-              QString name;
-              if (an == 1) // One audio stream
-              {
-                if (dataStreams[d].streamId() != 0xFFFF)
-                {
-                  fileDir->sortOrder -= 1;
-                  name += tr("With subtitles");
-                  if (dataStreams[d].language[0])
-                  {
-                    name += " (";
-                    if (dn > 2)
-                      name += QString::number(d + 1) + ". ";
-
-                    name += SStringParser::iso639Language(dataStreams[d].language) + ")";
-                  }
-                  else if (dn > 2)
-                    name += " (" + QString::number(d + 1) + ")";
-                }
-                else
-                  name += tr("Without subtitles");
-              }
-              else
-              {
-                name += QString::number(a + 1) + ". ";
-                if (audioStreams[a].language[0])
-                  name += SStringParser::iso639Language(audioStreams[a].language);
-                else
-                  name += tr("Unknown");
-
-                if (dataStreams[d].streamId() != 0xFFFF)
-                {
-                  fileDir->sortOrder -= 1;
-                  name += " " + tr("with subtitles");
-                  if (dataStreams[d].language[0])
-                  {
-                    name += " (";
-                    if (dn > 2)
-                      name += QString::number(d + 1) + ". ";
-
-                    name += SStringParser::iso639Language(dataStreams[d].language) + ")";
-                  }
-                  else if (dn > 2)
-                    name += " (" + QString::number(d + 1) + ")";
-                }
-              }
-
-              fileRootDir->addDir(name, fileDir);
-            }
-          }
-
-          addDir(fileName, fileRootDir);
-        }
-        else
-          plainFiles.append(fileName);
-      }
-    }
-  }
-
-  return DlnaServerDir::listDirs();
-}
-
-QStringList MediaServer::DlnaDir::listFiles(void)
-{
-  MediaServerDirHandle mediaDir = mediaServer->findDir(mediaPath);
-  if (mediaDir != NULL)
-  {
-    QSet<QString> files = QSet<QString>::fromList(plainFiles);
-    QStringList addFiles = files.toList();
-    QStringList delFiles;
-
-    foreach (const QString &fileName, DlnaServerDir::listFiles())
-    {
-      if (!files.contains(fileName))
-        delFiles.append(fileName);
-      else
-        addFiles.removeAll(fileName);
-    }
-
-    foreach (const QString &fileName, delFiles)
-      removeFile(fileName);
-
-    foreach (const QString &fileName, addFiles)
-    {
-      const MediaServerDir::File srcFile = mediaDir->findFile(fileName);
-      if (!srcFile.isNull())
-      {
-        File file(server());
-        file.sortOrder = srcFile.sortOrder;
-        file.mimeType = srcFile.mimeType;
-        file.url = srcFile.url;
-        file.iconUrl = srcFile.iconUrl;
-
-        addFile(fileName, file);
-      }
-    }
-  }
-
-  return DlnaServerDir::listFiles();
-}
-
-
-MediaServerDir::MediaServerDir(MediaServer *parent)
-  : FileServerDir(parent),
-    sortOrder(MediaServer::defaultDirSortOrder)
-{
-}
-
-void MediaServerDir::addFile(const QString &name, const File &file)
-{
-  Q_ASSERT(!name.isEmpty());
-
-  SDebug::WriteLocker l(&server()->lock, __FILE__, __LINE__);
-
-  files[name] = file;
-}
-
-void MediaServerDir::removeFile(const QString &name)
-{
-  Q_ASSERT(!name.isEmpty());
-
-  SDebug::WriteLocker l(&server()->lock, __FILE__, __LINE__);
-
-  files.remove(name);
-}
-
-void MediaServerDir::clear(void)
-{
-  SDebug::WriteLocker l(&server()->lock, __FILE__, __LINE__);
-
-  files.clear();
-  FileServerDir::clear();
-}
-
-int MediaServerDir::count(void) const
-{
-  SDebug::WriteLocker l(&server()->lock, __FILE__, __LINE__);
-
-  return listFiles().count() + FileServerDir::count();
-}
-
-QStringList MediaServerDir::listFiles(void)
-{
-  SDebug::WriteLocker l(&server()->lock, __FILE__, __LINE__);
-
-  return files.keys();
-}
-
-MediaServerDir::File MediaServerDir::findFile(const QString &name)
-{
-  Q_ASSERT(!name.isEmpty());
-
-  SDebug::WriteLocker l(&server()->lock, __FILE__, __LINE__);
-
-  QMap<QString, File>::ConstIterator i = files.find(name);
-  if (i == files.end())
-  {
-    // Try to update the dir
-    listFiles();
-    i = files.find(name);
-  }
-
-  if (i != files.end())
-    return *i;
-
-  return File();
-}
-
-QString MediaServerDir::getIcon(void) const
-{
-  foreach (const QString &fileName, listFiles())
-  {
-    const File file = findFile(fileName);
-    if (!file.iconUrl.isEmpty())
-      return file.iconUrl;
-  }
-
-  foreach (const QString &dirName, listDirs())
-  {
-    MediaServerConstDirHandle dir = findDir(dirName);
-    if (dir != NULL)
-    {
-      const QString iconUrl = dir->getIcon();
-      if (!iconUrl.isEmpty())
-        return iconUrl;
-    }
-  }
-
-  return QString::null;
 }
 
 } // End of namespace

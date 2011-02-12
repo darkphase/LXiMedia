@@ -5,5 +5,8 @@
        of a Lawson EQ-CQ Stereo Parametric Equalizer by CJ Sorg.
     -->
   <file>music-background.jpeg</file>
+  <file>folder-video.png</file>
+  <file>slideshow.png</file>
+  <file>mediafile.png</file>
 </qresource>
 </RCC>

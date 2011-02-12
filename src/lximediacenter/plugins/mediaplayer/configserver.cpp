@@ -29,52 +29,30 @@
 
 ConfigServer::ConfigServer(Plugin *plugin, MasterServer *server)
   : BackendServer(QT_TR_NOOP("Settings"), plugin, server),
-    plugin(plugin),
-    httpDir(NULL)
+    plugin(plugin)
 {
   // Ensure static initializers are invoked.
   drives();
 
-  class HttpDir : public HttpServerDir
-  {
-  public:
-    explicit inline HttpDir(HttpServer *httpServer, ConfigServer *configServer)
-      : HttpServerDir(httpServer), configServer(configServer)
-    {
-    }
-
-    virtual inline bool handleConnection(const QHttpRequestHeader &header, QAbstractSocket *socket)
-    {
-      return configServer->handleConnection(header, socket);
-    }
-
-  private:
-    ConfigServer          * const configServer;
-  };
-
-  HttpServer * const httpServer = server->httpServer();
-
-  SDebug::WriteLocker l(&httpServer->lock, __FILE__, __LINE__);
-
-  httpServer->addDir(httpPath(), httpDir = new HttpDir(httpServer, this));
+  masterServer()->httpServer()->registerCallback(httpPath(), this);
 }
 
 ConfigServer::~ConfigServer()
 {
-  delete httpDir;
+  masterServer()->httpServer()->unregisterCallback(this);
 }
 
-bool ConfigServer::handleConnection(const QHttpRequestHeader &request, QAbstractSocket *socket)
+HttpServer::SocketOp ConfigServer::handleHttpRequest(const HttpServer::RequestHeader &request, QAbstractSocket *socket)
 {
   const QUrl url(request.path());
-  const QString file = url.path().mid(url.path().lastIndexOf('/') + 1);
+  const QString file = request.file();
 
   if (file.isEmpty() || file.endsWith(".html"))
     return handleHtmlRequest(url, file, socket);
 
   qWarning() << "ConfigServer: Failed to find:" << request.path();
-  socket->write(QHttpResponseHeader(404).toString().toUtf8());
-  return false;
+  socket->write(HttpServer::ResponseHeader(HttpServer::Status_NotFound));
+  return HttpServer::SocketOp_Close;
 }
 
 const QSet<QString> & ConfigServer::hiddenDirs(void)

@@ -39,18 +39,39 @@ void CommonTest::HttpServer(void)
 {
   static const QHostAddress localhost = QHostAddress("127.0.0.1");
 
+  struct Callback : LXiMediaCenter::HttpServer::Callback
+  {
+    virtual HttpServer::SocketOp handleHttpRequest(const HttpServer::RequestHeader &request, QAbstractSocket *socket)
+    {
+      if (request.path() == "/test.txt")
+      {
+        const QString text = "hello world\n";
+
+        HttpServer::ResponseHeader response(HttpServer::Status_Ok);
+        response.setContentLength(text.size());
+        response.setContentType(HttpServer::toMimeType(".txt"));
+        socket->write(response);
+        socket->write(text.toUtf8());
+        return HttpServer::SocketOp_Close;
+      }
+
+      socket->write(HttpServer::ResponseHeader(HttpServer::Status_NotFound));
+      return HttpServer::SocketOp_Close;
+    }
+  } callback;
+
   LXiMediaCenter::HttpServer httpServer;
   httpServer.initialize(QList<QHostAddress>() << localhost);
   QVERIFY(httpServer.serverPort(localhost) > 0);
 
-  QVERIFY(httpServer.addFile("/main.cpp", ":/main.cpp"));
+  httpServer.registerCallback("/", &callback);
 
   gotHttpServerReply = false;
   QNetworkAccessManager manager;
   connect(&manager, SIGNAL(finished(QNetworkReply *)), this, SLOT(HttpServerReply(QNetworkReply *)));
 
   // An existing file
-  manager.get(QNetworkRequest(QUrl("http://127.0.0.1:" + QString::number(httpServer.serverPort(localhost)) + "/main.cpp")));
+  manager.get(QNetworkRequest(QUrl("http://127.0.0.1:" + QString::number(httpServer.serverPort(localhost)) + "/test.txt")));
 
   for (unsigned i=0; (i<20) && (gotHttpServerReply==false); i++)
     QTest::qWait(100);
@@ -64,6 +85,8 @@ void CommonTest::HttpServer(void)
     QTest::qWait(100);
 
   QVERIFY(gotHttpServerReply == false);
+
+  httpServer.unregisterCallback(&callback);
 }
 
 void CommonTest::HttpServerReply(QNetworkReply *reply)

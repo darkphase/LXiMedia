@@ -31,48 +31,22 @@ namespace LXiMediaCenter {
 class TvShowServer : public MediaPlayerServer
 {
 Q_OBJECT
-protected:
-  class Dir : public MediaPlayerServerDir
-  {
-  public:
-    explicit                    Dir(MediaPlayerServer *, const QString &albumPath);
-
-    virtual QStringList         listDirs(void);
-    virtual QStringList         listFiles(void);
-
-    inline TvShowServer       * server(void)                                    { return static_cast<TvShowServer *>(MediaPlayerServerDir::server()); }
-    inline const TvShowServer * server(void) const                              { return static_cast<const TvShowServer *>(MediaPlayerServerDir::server()); }
-
-  private:
-    void                        categorizeSeasons(void);
-
-  protected:
-    virtual MediaPlayerServerDir * createDir(MediaPlayerServer *, const QString &albumPath);
-
-  private:
-    QMap<unsigned, QMap<QString, File> > seasons;
-  };
-
-  class SeasonDir : public MediaServerDir
-  {
-  public:
-    explicit                    SeasonDir(TvShowServer *, const QMap<QString, File> &episodes);
-
-    virtual QStringList         listFiles(void);
-
-    inline TvShowServer       * server(void)                                    { return static_cast<TvShowServer *>(MediaServerDir::server()); }
-    inline const TvShowServer * server(void) const                              { return static_cast<const TvShowServer *>(MediaServerDir::server()); }
-
-  private:
-    const QMap<QString, File>   episodes;
-  };
-
 public:
                                 TvShowServer(MediaDatabase *, MediaDatabase::Category, const char *, Plugin *, BackendServer::MasterServer *);
   virtual                       ~TvShowServer();
 
+protected:
+  virtual int                   countItems(const QString &path);
+  virtual QList<Item>           listItems(const QString &path, unsigned start, unsigned count);
+
 private:
+  void                          categorizeSeasons(const QString &path, QMap<unsigned, QVector<MediaDatabase::UniqueID> > &, bool &);
+  Item                          makePlainItem(MediaDatabase::UniqueID);
+  Item                          makeSeasonItem(MediaDatabase::UniqueID);
   static QString                toTvShowNumber(unsigned);
+
+private:
+  const QString                 seasonText;
 };
 
 } // End of namespace

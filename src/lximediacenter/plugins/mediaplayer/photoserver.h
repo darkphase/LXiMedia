@@ -37,38 +37,27 @@ protected:
   public:
                                 SlideShowStream(PhotoServer *, const QHostAddress &peer, const QString &url, const QStringList &fileNames);
 
-    bool                        setup(const QHttpRequestHeader &, QAbstractSocket *, STime, const QString &, const QImage & = QImage());
+    bool                        setup(const HttpServer::RequestHeader &, QAbstractSocket *, STime, const QString &, const QImage & = QImage());
 
   public:
     SlideShowNode               slideShow;
-  };
-
-  class Dir : public MediaPlayerServerDir
-  {
-  public:
-    explicit                    Dir(MediaPlayerServer *, const QString &albumPath);
-
-    virtual QStringList         listFiles(void);
-
-    inline PhotoServer        * server(void)                                    { return static_cast<PhotoServer *>(MediaPlayerServerDir::server()); }
-    inline const PhotoServer  * server(void) const                              { return static_cast<const PhotoServer *>(MediaPlayerServerDir::server()); }
-
-  protected:
-    virtual MediaPlayerServerDir * createDir(MediaPlayerServer *, const QString &albumPath);
   };
 
 public:
                                 PhotoServer(MediaDatabase *, MediaDatabase::Category, const char *, Plugin *, BackendServer::MasterServer *);
   virtual                       ~PhotoServer();
 
-  virtual bool                  handleConnection(const QHttpRequestHeader &, QAbstractSocket *);
+  virtual HttpServer::SocketOp  handleHttpRequest(const HttpServer::RequestHeader &, QAbstractSocket *);
 
 protected:
-  virtual bool                  streamVideo(const QHttpRequestHeader &, QAbstractSocket *);
+  virtual HttpServer::SocketOp  streamVideo(const HttpServer::RequestHeader &, QAbstractSocket *);
+
+  virtual int                   countItems(const QString &path);
+  virtual QList<Item>           listItems(const QString &path, unsigned start, unsigned count);
 
 private:
-  bool                          sendPhoto(QAbstractSocket *, MediaDatabase::UniqueID, unsigned = 0, unsigned = 0) const;
-  bool                          handleHtmlRequest(const QUrl &, const QString &, QAbstractSocket *);
+  HttpServer::SocketOp          sendPhoto(QAbstractSocket *, MediaDatabase::UniqueID, unsigned = 0, unsigned = 0) const;
+  HttpServer::SocketOp          handleHtmlRequest(const QUrl &, const QString &, QAbstractSocket *);
 
 private:
   static const char     * const htmlView;

@@ -34,6 +34,14 @@ Q_OBJECT
 public:
   typedef qint64                UniqueID;
 
+  struct File
+  {
+    inline                      File(const QString &name, UniqueID uid) : name(name), uid(uid) { }
+
+    QString                     name;
+    UniqueID                    uid;
+  };
+
   enum Category
   {
     Category_None = 0,
@@ -79,9 +87,11 @@ public: // In mediadatabase.cpp
   QDateTime                     lastPlayed(const SMediaInfo &) const;
 
   QStringList                   allAlbums(Category) const;
-  QList<UniqueID>               allAlbumFiles(Category, const QString &album) const;
-  UniqueID                      getAlbumFile(Category, const QString &album, int = 0) const;
-  QList<UniqueID>               queryAlbums(Category, const QStringList &query) const;
+  bool                          hasAlbum(Category, const QString &album) const;
+  int                           countAlbumFiles(Category, const QString &album) const;
+  QList<File>                   allAlbumFiles(Category, const QString &album) const;
+  QList<File>                   getAlbumFiles(Category, const QString &album, unsigned start = 0, unsigned count = 0) const;
+  QList<File>                   queryAlbums(Category, const QStringList &query) const;
 
   ImdbClient::Entry             getImdbEntry(UniqueID) const;
   QList<UniqueID>               allFilesInDirOf(UniqueID) const;

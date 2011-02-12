@@ -243,7 +243,7 @@ const char * const MediaServer::headList =
 const char * const MediaServer::headPlayer =
     " <script type=\"text/javascript\" src=\"/swf/flowplayer.js\" />\n";
 
-QByteArray MediaServer::buildThumbnailView(const QString &title, const ThumbnailListItemMap &items, const QUrl &url)
+QByteArray MediaServer::buildThumbnailView(const QString &title, const ThumbnailListItemList &items, const QUrl &url)
 {
   HtmlParser htmlParser;
   htmlParser.setField("TR_PAGE", tr("Page"));
@@ -308,8 +308,8 @@ QByteArray MediaServer::buildThumbnailView(const QString &title, const Thumbnail
         htmlParser.setField("ITEM_TITLE", item.title);
         htmlParser.setField("ITEM_RAW_TITLE", SStringParser::toRawName(item.title));
         htmlParser.setField("ITEM_SUBTITLE", item.subtitle);
-        htmlParser.setField("ITEM_ICONURL", item.iconurl);
-        htmlParser.setField("ITEM_URL", item.url);
+        htmlParser.setField("ITEM_ICONURL", item.iconurl.toString());
+        htmlParser.setField("ITEM_URL", item.url.toString());
         htmlParser.appendField("ROW_ITEMS", htmlParser.parse(item.title.isEmpty() ? htmlThumbnailItemNoTitle : htmlThumbnailItem));
 
         if (++col == 3 + cls)
@@ -374,8 +374,8 @@ QByteArray MediaServer::buildThumbnailView(const QString &title, const Thumbnail
         htmlParser.setField("ITEM_TITLE", item.title);
         htmlParser.setField("ITEM_RAW_TITLE", SStringParser::toRawName(item.title));
         htmlParser.setField("ITEM_SUBTITLE", item.subtitle);
-        htmlParser.setField("ITEM_ICONURL", item.iconurl);
-        htmlParser.setField("ITEM_URL", item.url);
+        htmlParser.setField("ITEM_ICONURL", item.iconurl.toString());
+        htmlParser.setField("ITEM_URL", item.url.toString());
         htmlParser.appendField("ROW_ITEMS", htmlParser.parse(item.title.isEmpty() ? htmlThumbnailItemNoTitle : htmlThumbnailItem));
 
         if (++col == 3 + cls)

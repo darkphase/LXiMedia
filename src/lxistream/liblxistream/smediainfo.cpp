@@ -32,7 +32,7 @@ SMediaInfo::SMediaInfo(void)
 }
 
 SMediaInfo::SMediaInfo(const SMediaInfo &from)
-  : pi(from.pi ? new SInterfaces::FormatProber::ProbeInfo(*(from.pi)) : NULL)
+  : pi(from.pi)
 {
 }
 
@@ -42,21 +42,18 @@ SMediaInfo::SMediaInfo(const QString &path)
   probe(path);
 }
 
-SMediaInfo::SMediaInfo(const SInterfaces::FormatProber::ProbeInfo &pi)
-  : pi(new SInterfaces::FormatProber::ProbeInfo(pi))
+SMediaInfo::SMediaInfo(const QSharedDataPointer<SInterfaces::FormatProber::ProbeInfo> &pi)
+  : pi(pi)
 {
 }
 
 SMediaInfo::~SMediaInfo()
 {
-  delete pi;
-  pi = NULL;
 }
 
 SMediaInfo & SMediaInfo::operator=(const SMediaInfo &from)
 {
-  delete pi;
-  pi = from.pi ? new SInterfaces::FormatProber::ProbeInfo(*(from.pi)) : NULL;
+  pi = from.pi;
 
   return *this;
 }
@@ -68,7 +65,6 @@ QDomNode SMediaInfo::toXml(QDomDocument &doc) const
 
 void SMediaInfo::fromXml(const QDomNode &elm)
 {
-  delete pi;
   pi = new SInterfaces::FormatProber::ProbeInfo();
 
   fromXml(*pi, elm);
@@ -120,8 +116,8 @@ bool SMediaInfo::isDisc(void) const
 
 bool SMediaInfo::containsAudio(void) const
 {
-  foreach (const SInterfaces::FormatProber::ProbeInfo &p, pi->titles)
-  if (!p.audioStreams.isEmpty())
+  foreach (const QSharedDataPointer<SInterfaces::FormatProber::ProbeInfo> &p, pi->titles)
+  if (!p->audioStreams.isEmpty())
     return true;
 
   return !pi->audioStreams.isEmpty();
@@ -129,8 +125,8 @@ bool SMediaInfo::containsAudio(void) const
 
 bool SMediaInfo::containsVideo(void) const
 {
-  foreach (const SInterfaces::FormatProber::ProbeInfo &p, pi->titles)
-  if (!p.videoStreams.isEmpty())
+  foreach (const QSharedDataPointer<SInterfaces::FormatProber::ProbeInfo> &p, pi->titles)
+  if (!p->videoStreams.isEmpty())
     return true;
 
   return !pi->videoStreams.isEmpty();
@@ -138,8 +134,8 @@ bool SMediaInfo::containsVideo(void) const
 
 bool SMediaInfo::containsImage(void) const
 {
-  foreach (const SInterfaces::FormatProber::ProbeInfo &p, pi->titles)
-  if (!p.imageCodec.isNull())
+  foreach (const QSharedDataPointer<SInterfaces::FormatProber::ProbeInfo> &p, pi->titles)
+  if (!p->imageCodec.isNull())
     return true;
 
   return !pi->imageCodec.isNull();
@@ -163,9 +159,9 @@ QString SMediaInfo::fileTypeName(void) const
 STime SMediaInfo::duration(void) const
 {
   STime result = pi->duration.isValid() ? pi->duration : STime::null;
-  foreach (const SInterfaces::FormatProber::ProbeInfo &p, pi->titles)
-  if (p.duration.isValid())
-    result += p.duration;
+  foreach (const QSharedDataPointer<SInterfaces::FormatProber::ProbeInfo> &p, pi->titles)
+  if (p->duration.isValid())
+    result += p->duration;
 
   return result;
 }
@@ -198,7 +194,7 @@ QList<SMediaInfo::Chapter> SMediaInfo::chapters(void) const
 SMediaInfoList SMediaInfo::titles(void) const
 {
   SMediaInfoList result;
-  foreach (const SInterfaces::FormatProber::ProbeInfo &p, pi->titles)
+  foreach (const QSharedDataPointer<SInterfaces::FormatProber::ProbeInfo> &p, pi->titles)
     result += SMediaInfo(p);
 
   return result;
@@ -250,8 +246,8 @@ unsigned SMediaInfo::track(void) const
 QList<QByteArray> SMediaInfo::thumbnails(void) const
 {
   QList<QByteArray> result = pi->thumbnails;
-  foreach (const SInterfaces::FormatProber::ProbeInfo &p, pi->titles)
-    result += p.thumbnails;
+  foreach (const QSharedDataPointer<SInterfaces::FormatProber::ProbeInfo> &p, pi->titles)
+    result += p->thumbnails;
 
   return result;
 }
@@ -320,11 +316,11 @@ QDomNode SMediaInfo::toXml(const SInterfaces::FormatProber::ProbeInfo &pi, QDomD
   }
 
   unsigned titleId = 0;
-  foreach (const SInterfaces::FormatProber::ProbeInfo &title, pi.titles)
+  foreach (const QSharedDataPointer<SInterfaces::FormatProber::ProbeInfo> &title, pi.titles)
   {
     QDomElement elm = createElement(doc, "title");
     elm.setAttribute("id", titleId++);
-    elm.appendChild(toXml(title, doc));
+    elm.appendChild(toXml(*title, doc));
     mediainfo.appendChild(elm);
   }
 
@@ -417,13 +413,13 @@ void SMediaInfo::fromXml(SInterfaces::FormatProber::ProbeInfo &pi, const QDomNod
 
   pi.chapters = chapters.values();
 
-  QMultiMap<unsigned, SInterfaces::FormatProber::ProbeInfo> titles;
+  QMultiMap<unsigned, QSharedDataPointer<SInterfaces::FormatProber::ProbeInfo> > titles;
   for (QDomElement elm = mediainfo.firstChildElement("title");
        !elm.isNull();
        elm = elm.nextSiblingElement("title"))
   {
-    SInterfaces::FormatProber::ProbeInfo title;
-    fromXml(title, elm);
+    QSharedDataPointer<SInterfaces::FormatProber::ProbeInfo> title(new SInterfaces::FormatProber::ProbeInfo());
+    fromXml(*title, elm);
 
     titles.insert(elm.attribute("id").toUInt(), title);
   }

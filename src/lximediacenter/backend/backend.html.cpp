@@ -371,14 +371,14 @@ const char * const Backend::headSearchResults =
     " <link rel=\"stylesheet\" href=\"/list.css\" type=\"text/css\" media=\"screen, handheld, projection\" />\n";
 
 
-bool Backend::handleHtmlRequest(const QUrl &url, const QString &, QAbstractSocket *socket)
+HttpServer::SocketOp Backend::handleHtmlRequest(const QUrl &url, const QString &, QAbstractSocket *socket)
 {
   HtmlParser htmlParser(this->htmlParser);
   htmlParser.setField("TR_SEARCH", tr("Search"));
 
-  QHttpResponseHeader response(200);
+  HttpServer::ResponseHeader response(HttpServer::Status_Ok);
   response.setContentType("text/html;charset=utf-8");
-  response.setValue("Cache-Control", "no-cache");
+  response.setField("Cache-Control", "no-cache");
 
   htmlParser.setField("WIDGET_ROWS", QByteArray(""));
   htmlParser.setField("WIDGETS", QByteArray(""));
@@ -473,12 +473,12 @@ bool Backend::handleHtmlRequest(const QUrl &url, const QString &, QAbstractSocke
     htmlParser.setField("WIDGETS", QByteArray(""));
   }
 
-  socket->write(response.toString().toUtf8());
+  socket->write(response);
   socket->write(parseHtmlContent(url, htmlParser.parse(htmlMain), ""));
-  return false;
+  return HttpServer::SocketOp_Close;
 }
 
-bool Backend::handleHtmlSearch(const QUrl &url, const QString &, QAbstractSocket *socket)
+HttpServer::SocketOp Backend::handleHtmlSearch(const QUrl &url, const QString &, QAbstractSocket *socket)
 {
   static const int resultsPerPage = 30;
 
@@ -490,9 +490,9 @@ bool Backend::handleHtmlSearch(const QUrl &url, const QString &, QAbstractSocket
   htmlParser.setField("TR_SEARCH", tr("Search"));
   htmlParser.setField("TR_SECONDS", tr("seconds"));
 
-  QHttpResponseHeader response(200);
+  HttpServer::ResponseHeader response(HttpServer::Status_Ok);
   response.setContentType("text/html;charset=utf-8");
-  response.setValue("Cache-Control", "no-cache");
+  response.setField("Cache-Control", "no-cache");
 
   const QString queryValue = url.queryItemValue("q");
   const QString queryString = QByteArray::fromPercentEncoding(queryValue.toAscii().replace('+', ' '));
@@ -555,33 +555,33 @@ bool Backend::handleHtmlSearch(const QUrl &url, const QString &, QAbstractSocket
     htmlParser.appendField("PAGES", htmlParser.parse(htmlSearchResultsPage));
   }
 
-  socket->write(response.toString().toUtf8());
+  socket->write(response);
   socket->write(parseHtmlContent(url, htmlParser.parse(htmlSearchResults), headSearchResults));
-  return false;
+  return HttpServer::SocketOp_Close;
 }
 
-bool Backend::showAbout(const QUrl &url, QAbstractSocket *socket)
+HttpServer::SocketOp Backend::showAbout(const QUrl &url, QAbstractSocket *socket)
 {
   HtmlParser htmlParser(this->htmlParser);
 
-  QHttpResponseHeader response(200);
+  HttpServer::ResponseHeader response(HttpServer::Status_Ok);
   response.setContentType("text/html;charset=utf-8");
-  response.setValue("Cache-Control", "no-cache");
+  response.setField("Cache-Control", "no-cache");
 
   htmlParser.setField("VERSION", QByteArray(GlobalSettings::version()));
   htmlParser.setField("ABOUT_LXISTREAM", SSystem::about());
   htmlParser.setField("QT_VERSION", QByteArray(qVersion()));
 
-  socket->write(response.toString().toUtf8());
+  socket->write(response);
   socket->write(parseHtmlContent(url, htmlParser.parse(htmlAbout),""));
-  return false;
+  return HttpServer::SocketOp_Close;
 }
 
-bool Backend::handleHtmlConfig(const QUrl &url, QAbstractSocket *socket)
+HttpServer::SocketOp Backend::handleHtmlConfig(const QUrl &url, QAbstractSocket *socket)
 {
-  QHttpResponseHeader response(200);
+  HttpServer::ResponseHeader response(HttpServer::Status_Ok);
   response.setContentType("text/html;charset=utf-8");
-  response.setValue("Cache-Control", "no-cache");
+  response.setField("Cache-Control", "no-cache");
 
   GlobalSettings settings;
 
@@ -891,7 +891,7 @@ bool Backend::handleHtmlConfig(const QUrl &url, QAbstractSocket *socket)
     htmlParser.appendField("CLIENT_ROWS", htmlParser.parse(htmlConfigDlnaClientRow));
   }
 
-  socket->write(response.toString().toUtf8());
+  socket->write(response);
   socket->write(parseHtmlContent(url, htmlParser.parse(htmlConfigMain), ""));
-  return false;
+  return HttpServer::SocketOp_Close;
 }

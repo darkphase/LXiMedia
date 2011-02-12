@@ -118,15 +118,13 @@ const char * const ConfigServer::htmlDirTreeCheckLink =
     "<img src=\"/img/check{DIR_CHECKED}.png\" width=\"16\" height=\"16\" />"
     "</a>";
 
-bool ConfigServer::handleHtmlRequest(const QUrl &url, const QString &file, QAbstractSocket *socket)
+HttpServer::SocketOp ConfigServer::handleHtmlRequest(const QUrl &url, const QString &file, QAbstractSocket *socket)
 {
-  QHttpResponseHeader response(200);
+  HttpServer::ResponseHeader response(HttpServer::Status_Ok);
   response.setContentType("text/html;charset=utf-8");
-  response.setValue("Cache-Control", "no-cache");
+  response.setField("Cache-Control", "no-cache");
 
   HtmlParser htmlParser;
-
-  const QString view = url.queryItemValue("view");
 
   if (file.endsWith("-tree.html"))
   {
@@ -161,9 +159,9 @@ bool ConfigServer::handleHtmlRequest(const QUrl &url, const QString &file, QAbst
     htmlParser.setField("DIRS", QByteArray(""));
     generateDirs(htmlParser, drives(), 0, allopen, rootPaths);
 
-    socket->write(response.toString().toUtf8());
+    socket->write(response);
     socket->write(htmlParser.parse(htmlDirTreeIndex));
-    return false;
+    return HttpServer::SocketOp_Close;
   }
   else
   {

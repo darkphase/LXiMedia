@@ -42,7 +42,7 @@ public:
                                 SMediaInfo(void);
                                 SMediaInfo(const SMediaInfo &);
   explicit                      SMediaInfo(const QString &path);
-  explicit                      SMediaInfo(const SInterfaces::FormatProber::ProbeInfo &);
+  explicit                      SMediaInfo(const QSharedDataPointer<SInterfaces::FormatProber::ProbeInfo> &);
   virtual                       ~SMediaInfo();
 
   SMediaInfo                  & operator=(const SMediaInfo &);
@@ -70,8 +70,8 @@ public:
   QString                       fileTypeName(void) const;                       //!< A user-friendly description of the file type.
 
   STime                         duration(void) const;                           //!< The duration of the resource, if applicable.
-  QList<AudioStreamInfo>        audioStreams(void) const;                      //!< The audio streams, if applicable.
-  QList<VideoStreamInfo>        videoStreams(void) const;                      //!< The video streams, if applicable.
+  QList<AudioStreamInfo>        audioStreams(void) const;                       //!< The audio streams, if applicable.
+  QList<VideoStreamInfo>        videoStreams(void) const;                       //!< The video streams, if applicable.
   QList<DataStreamInfo>         dataStreams(void) const;                        //!< The data streams, if applicable.
   SVideoCodec                   imageCodec(void) const;                         //!< The image codec, if applicable.
   QList<Chapter>                chapters(void) const;                           //!< A list of chapters, if applicable.
@@ -100,7 +100,7 @@ private:
   void                          probeDataStreams(void);
 
 private:
-  SInterfaces::FormatProber::ProbeInfo * pi;
+  QSharedDataPointer<SInterfaces::FormatProber::ProbeInfo> pi;
 };
 
 } // End of namespace

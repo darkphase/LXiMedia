@@ -71,14 +71,21 @@ protected:
 public:
                                 MediaPlayerServer(MediaDatabase *, MediaDatabase::Category, const char *, Plugin *, BackendServer::MasterServer *);
 
-  virtual bool                  handleConnection(const QHttpRequestHeader &, QAbstractSocket *);
-
 protected:
   //void                          addVideoFile(DlnaServerDir *, const PlayItem &, const QString &, int = 0) const;
   //void                          addVideoFile(DlnaServerDir *, const QList<PlayItem> &, const QString &, int = 0) const;
 
-  virtual bool                  streamVideo(const QHttpRequestHeader &, QAbstractSocket *);
-  virtual bool                  buildPlaylist(const QHttpRequestHeader &, QAbstractSocket *);
+  virtual HttpServer::SocketOp  streamVideo(const HttpServer::RequestHeader &, QAbstractSocket *);
+  virtual HttpServer::SocketOp  buildPlaylist(const HttpServer::RequestHeader &, QAbstractSocket *);
+
+  virtual int                   countItems(const QString &path);
+  virtual QList<Item>           listItems(const QString &path, unsigned start, unsigned count);
+
+  int                           countAlbums(const QString &path);
+  QList<Item>                   listAlbums(const QString &path, unsigned &start, unsigned &count);
+  Item                          makeItem(MediaDatabase::UniqueID);
+
+  virtual HttpServer::SocketOp  handleHttpRequest(const HttpServer::RequestHeader &, QAbstractSocket *);
 
   static QString                videoFormatString(const SMediaInfo &);
   static QByteArray             buildVideoPlayer(MediaDatabase::UniqueID, const SMediaInfo &, const QUrl &, const QSize & = QSize(768, 432));
@@ -87,27 +94,6 @@ protected:
 protected:
   MediaDatabase         * const mediaDatabase;
   const MediaDatabase::Category category;
-};
-
-class MediaPlayerServerDir : public MediaServerDir
-{
-Q_OBJECT
-friend class MediaPlayerServer;
-public:
-  explicit                      MediaPlayerServerDir(MediaPlayerServer *, const QString &albumPath);
-
-  virtual QStringList           listDirs(void);
-  virtual QStringList           listFiles(void);
-  virtual QString               getIcon(void) const;
-
-  inline MediaPlayerServer    * server(void)                                    { return static_cast<MediaPlayerServer *>(MediaServerDir::server()); }
-  inline const MediaPlayerServer * server(void) const                           { return static_cast<const MediaPlayerServer *>(MediaServerDir::server()); }
-
-protected:
-  virtual MediaPlayerServerDir * createDir(MediaPlayerServer *, const QString &albumPath);
-
-protected:
-  const QString                 albumPath;
 };
 
 } // End of namespace

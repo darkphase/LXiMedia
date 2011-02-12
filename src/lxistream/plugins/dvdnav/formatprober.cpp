@@ -75,25 +75,25 @@ void FormatProber::probeDisc(ProbeInfo &pi, const QString &devicePath)
       pi.titles.clear();
       for (unsigned i=0, n=discReader.numTitles(); i<n; i++)
       {
-        SInterfaces::FormatProber::ProbeInfo fpi;
+        QSharedDataPointer<SInterfaces::FormatProber::ProbeInfo> fpi(new SInterfaces::FormatProber::ProbeInfo());
 
         if (discReader.playTitle(i))
         {
           foreach (SInterfaces::FormatProber *prober, SInterfaces::FormatProber::create(this))
           {
             discReader.seek(0, SEEK_SET);
-            prober->probeFile(fpi, &discReader);
+            prober->probeFile(*fpi, &discReader);
 
             delete prober;
           }
 
-          discReader.annotateAudioStreams(fpi.audioStreams);
-          discReader.annotateVideoStreams(fpi.videoStreams);
-          discReader.annotateDataStreams(fpi.dataStreams);
-          discReader.annotateChapters(fpi.chapters);
+          discReader.annotateAudioStreams(fpi->audioStreams);
+          discReader.annotateVideoStreams(fpi->videoStreams);
+          discReader.annotateDataStreams(fpi->dataStreams);
+          discReader.annotateChapters(fpi->chapters);
 
-          if (!fpi.duration.isValid() || fpi.duration.isNull())
-            fpi.duration = discReader.duration();
+          if (!fpi->duration.isValid() || fpi->duration.isNull())
+            fpi->duration = discReader.duration();
         }
 
         pi.titles += fpi;
