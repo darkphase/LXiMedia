@@ -18,6 +18,7 @@
  ***************************************************************************/
 
 #include "httpoutputnode.h"
+#include "httpserver.h"
 
 namespace LXiMediaCenter {
 
@@ -59,9 +60,9 @@ HttpOutputNode::HttpOutputNode(SGraph *parent)
   d->caching = true;
 
   // Default header.
-  QHttpResponseHeader header(200);
-  header.setValue("Cache-Control", "no-cache");
-  d->header = header.toString().toUtf8();
+  HttpServer::ResponseHeader header(HttpServer::Status_Ok);
+  header.setField("Cache-Control", "no-cache");
+  d->header = header;
 }
 
 HttpOutputNode::~HttpOutputNode()

@@ -83,7 +83,6 @@ protected:
   {
     inline ThumbnailListItem(void) : played(false) { }
 
-    QString                     page;
     QString                     title;
     QString                     subtitle;
     QUrl                        iconurl;
@@ -92,6 +91,18 @@ protected:
   };
 
   typedef QList<ThumbnailListItem> ThumbnailListItemList;
+
+  struct DetailedListItem
+  {
+    inline DetailedListItem(void) : played(false) { }
+
+    QStringList                 columns;
+    QUrl                        iconurl;
+    QUrl                        url;
+    bool                        played;
+  };
+
+  typedef QList<DetailedListItem> DetailedListItemList;
 
   typedef DlnaServer::Item      Item;
 
@@ -131,7 +142,7 @@ private:
   struct Private;
   Private               * const p;
 
-protected:
+protected: // Implemented in mediaserver.html.cpp
   static const unsigned         itemsPerThumbnailPage;
   static const char     * const audioTimeFormat;
   static const char     * const videoTimeFormat;
@@ -145,6 +156,12 @@ protected:
   static const char     * const htmlThumbnailItemRow;
   static const char     * const htmlThumbnailItem;
   static const char     * const htmlThumbnailItemNoTitle;
+  static const char     * const htmlDetailedList;
+  static const char     * const htmlDetailedListRow;
+  static const char     * const htmlDetailedListHead;
+  static const char     * const htmlDetailedListIcon;
+  static const char     * const htmlDetailedListColumn;
+  static const char     * const htmlDetailedListColumnLink;
   static const char     * const htmlPlayer;
   static const char     * const htmlPlayerAudioItem;
   static const char     * const htmlPlayerVideoItem;
@@ -157,7 +174,8 @@ protected:
   static const char     * const headList;
   static const char     * const headPlayer;
 
-  static QByteArray             buildThumbnailView(const QString &title, const ThumbnailListItemList &, const QUrl &);
+  QByteArray                    buildThumbnailView(const QString &path, const ThumbnailListItemList &, int, int);
+  QByteArray                    buildDetailedView(const QString &path, const QStringList &columns, const DetailedListItemList &);
   static QByteArray             buildVideoPlayer(const QByteArray &item, const SMediaInfo &, const QUrl &, const QSize & = QSize(768, 432));
   static QByteArray             buildVideoPlayer(const QByteArray &item, const QString &title, const QUrl &, const QSize & = QSize(768, 432));
 };

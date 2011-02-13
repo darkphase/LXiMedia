@@ -41,7 +41,7 @@ public:
   void                          publish(const QString &nt, const HttpServer *, const QString &url);
 
 protected:
-  virtual void                  parsePacket(SsdpClientInterface *, const QHttpRequestHeader &, const QHostAddress &, quint16);
+  virtual void                  parsePacket(SsdpClientInterface *, const HttpServer::RequestHeader &, const QHostAddress &, quint16);
 
   static void                   sendAlive(SsdpClientInterface *, const QString &nt, const QString &url);
   static void                   sendByeBye(SsdpClientInterface *, const QString &nt);

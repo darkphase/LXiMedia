@@ -15,6 +15,11 @@
   <file>starenabled.png</file>
   <file>stardisabled.png</file>
 
+  <file>directory.png</file>
+  <file>audio-file.png</file>
+  <file>video-file.png</file>
+  <file>image-file.png</file>
+
   <file>restart.png</file>
   <file>shutdown.png</file>
 </qresource>

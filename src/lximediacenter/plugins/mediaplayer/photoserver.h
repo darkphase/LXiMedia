@@ -44,16 +44,15 @@ protected:
   };
 
 public:
-                                PhotoServer(MediaDatabase *, MediaDatabase::Category, const char *, Plugin *, BackendServer::MasterServer *);
+                                PhotoServer(MediaDatabase *, MediaDatabase::Category, const char *, Plugin *, MasterServer *);
   virtual                       ~PhotoServer();
-
-  virtual HttpServer::SocketOp  handleHttpRequest(const HttpServer::RequestHeader &, QAbstractSocket *);
 
 protected:
   virtual HttpServer::SocketOp  streamVideo(const HttpServer::RequestHeader &, QAbstractSocket *);
 
   virtual int                   countItems(const QString &path);
   virtual QList<Item>           listItems(const QString &path, unsigned start, unsigned count);
+  virtual HttpServer::SocketOp  handleHttpRequest(const HttpServer::RequestHeader &, QAbstractSocket *);
 
 private:
   HttpServer::SocketOp          sendPhoto(QAbstractSocket *, MediaDatabase::UniqueID, unsigned = 0, unsigned = 0) const;

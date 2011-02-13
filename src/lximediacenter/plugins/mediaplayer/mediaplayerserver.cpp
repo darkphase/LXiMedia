@@ -28,193 +28,6 @@ MediaPlayerServer::MediaPlayerServer(MediaDatabase *mediaDatabase, MediaDatabase
 {
 }
 
-/*void MediaPlayerServer::addVideoFile(DlnaServerDir *dir, const PlayItem &item, const QString &name, int sortOrder) const
-{
-  if (!item.mediaInfo.duration().isValid() || (item.mediaInfo.duration().toSec() < 10 * 60))
-  {
-    DlnaServer::File file(dir->server());
-    file.date = item.mediaInfo.lastModified();
-    file.url = httpPath() + MediaDatabase::toUidString(item.uid) + ".mpeg";
-    file.iconUrl = httpPath() + MediaDatabase::toUidString(item.uid) + "-thumb.jpeg";
-    file.mimeType = "video/mpeg";
-    file.sortOrder = sortOrder;
-    file.played = mediaDatabase->lastPlayed(item.uid).isValid();
-
-    dir->addFile(name, file);
-  }
-  else
-    addVideoFile(dir, QList<PlayItem>() << item, name, sortOrder);
-}
-
-void MediaPlayerServer::addVideoFile(DlnaServerDir *dir, const QList<PlayItem> &items, const QString &name, int sortOrder) const
-{
-  if (!items.isEmpty())
-  {
-    MediaServerFileDir * const fileRootDir = new MediaServerFileDir(dir->server());
-    fileRootDir->played = true;
-
-    const QList<SMediaInfo::AudioStreamInfo> audioStreams = items.first().mediaInfo.audioStreams();
-    const QList<SMediaInfo::VideoStreamInfo> videoStreams = items.first().mediaInfo.videoStreams();
-    QList<SMediaInfo::DataStreamInfo> dataStreams = items.first().mediaInfo.dataStreams();
-    dataStreams +=
-        SIOInputNode::DataStreamInfo(
-            SIOInputNode::DataStreamInfo::Type_Subtitle, 0xFFFF,
-            NULL, SDataCodec());
-
-    for (int a=0, an=audioStreams.count(); a < an; a++)
-    for (int d=0, dn=dataStreams.count(); d < dn; d++)
-    {
-      DlnaServerDir * const fileDir = ((an + dn) == 2) ? fileRootDir : new DlnaServerDir(fileRootDir->server());
-      DlnaServerDir * const chapterDir = new DlnaServerDir(fileDir->server());
-      DlnaServerDir * const seekDir = new DlnaServerDir(fileDir->server());
-
-      typedef QPair<QString, PlayItem> VideoFile;
-      QList<VideoFile> videoFiles;
-      if (items.count() > 1)
-      {
-        unsigned i = 1;
-        foreach (const PlayItem &item, items)
-          videoFiles += VideoFile(tr("Play part") + " " + QString::number(i++), item);
-      }
-      else
-        videoFiles += VideoFile(tr("Play"), items.first());
-
-      int chapterNum = 1;
-      int seekSec = 0, seekOfs = 0;
-      foreach (const VideoFile &videoFile, videoFiles)
-      {
-        QString url = httpPath() + MediaDatabase::toUidString(videoFile.second.uid) + ".mpeg";
-        url += "?language=" + QString::number(audioStreams[a], 16) + "&subtitles=";
-        if (dataStreams[d].streamId() != 0xFFFF)
-          url += QString::number(dataStreams[d], 16);
-
-        DlnaServer::File file(dir->server());
-        file.date = videoFile.second.mediaInfo.lastModified();
-        file.duration = videoFile.second.mediaInfo.duration();
-        file.url = url;
-        file.iconUrl = httpPath() + MediaDatabase::toUidString(videoFile.second.uid) + "-thumb.jpeg";
-        file.mimeType = "video/mpeg";
-        //file.description = video.plot;
-        file.sortOrder = 1;
-        fileDir->addFile(videoFile.first, file);
-
-        fileRootDir->played &= mediaDatabase->lastPlayed(videoFile.second.uid).isValid();
-
-        foreach (const SMediaInfo::Chapter &chapter, videoFile.second.mediaInfo.chapters())
-        {
-          DlnaServer::File file(chapterDir->server());
-          file.date = videoFile.second.mediaInfo.lastModified();
-          file.duration = videoFile.second.mediaInfo.duration() - chapter.begin;
-          file.url = url + (url.contains('?') ? "&position=" : "?position=") +
-                      QString::number(chapter.begin.toSec());
-          file.mimeType = "video/mpeg";
-          file.sortOrder = chapterNum++;
-
-          QString name = tr("Chapter") + " " + QString::number(file.sortOrder);
-          if (!chapter.title.isEmpty())
-            name += ", " + chapter.title;
-
-          chapterDir->addFile(name, file);
-        }
-
-        seekOfs += videoFile.second.mediaInfo.duration().toSec();
-        for (; seekSec<seekOfs; seekSec+=seekBySecs)
-        {
-          DlnaServer::File file(seekDir->server());
-          file.date = videoFile.second.mediaInfo.lastModified();
-          file.duration = videoFile.second.mediaInfo.duration() - STime::fromSec(seekSec);
-          file.url = url + (url.contains('?') ? "&position=" : "?position=") +
-                      QString::number(seekSec);
-          file.mimeType = "video/mpeg";
-          file.sortOrder = seekSec;
-
-          seekDir->addFile(tr("Play from") + " " + QString::number(seekSec / 3600) +
-                           ":" + ("0" + QString::number((seekSec / 60) % 60)).right(2),
-                           file);
-        }
-
-        fileDir->date = fileDir->date.isValid()
-                      ? qMax(fileDir->date, videoFile.second.mediaInfo.lastModified())
-                      : videoFile.second.mediaInfo.lastModified();
-      }
-
-      if (chapterDir->count() > 0)
-      {
-        chapterDir->sortOrder = 2;
-        fileDir->addDir(tr("Chapters"), chapterDir);
-      }
-      else
-        delete chapterDir;
-
-      if (seekDir->count() > 0)
-      {
-        seekDir->sortOrder = 3;
-        fileDir->addDir(tr("Seek"), seekDir);
-      }
-      else
-        delete seekDir;
-
-      if (fileDir != fileRootDir)
-      {
-        fileDir->sortOrder = (a + 1) * 2;
-        QString name;
-        if (an == 1) // One audio stream
-        {
-          if (dataStreams[d].streamId() != 0xFFFF)
-          {
-            fileDir->sortOrder -= 1;
-            name += tr("With subtitles");
-            if (dataStreams[d].language[0])
-            {
-              name += " (";
-              if (dn > 2)
-                name += QString::number(d + 1) + ". ";
-
-              name += SStringParser::iso639Language(dataStreams[d].language) + ")";
-            }
-            else if (dn > 2)
-              name += " (" + QString::number(d + 1) + ")";
-          }
-          else
-            name += tr("Without subtitles");
-        }
-        else
-        {
-          name += QString::number(a + 1) + ". ";
-          if (audioStreams[a].language[0])
-            name += SStringParser::iso639Language(audioStreams[a].language);
-          else
-            name += tr("Unknown");
-
-          if (dataStreams[d].streamId() != 0xFFFF)
-          {
-            fileDir->sortOrder -= 1;
-            name += " " + tr("with subtitles");
-            if (dataStreams[d].language[0])
-            {
-              name += " (";
-              if (dn > 2)
-                name += QString::number(d + 1) + ". ";
-
-              name += SStringParser::iso639Language(dataStreams[d].language) + ")";
-            }
-            else if (dn > 2)
-              name += " (" + QString::number(d + 1) + ")";
-          }
-        }
-
-        fileRootDir->addDir(name, fileDir);
-      }
-    }
-
-    foreach (const PlayItem &item, items)
-      fileRootDir->uids += item.uid;
-
-    fileRootDir->sortOrder = sortOrder;
-    dir->addDir(name, fileRootDir);
-  }
-}*/
-
 HttpServer::SocketOp MediaPlayerServer::streamVideo(const HttpServer::RequestHeader &request, QAbstractSocket *socket)
 {
   const QUrl url(request.path());
@@ -347,7 +160,6 @@ QList<MediaPlayerServer::Item> MediaPlayerServer::listAlbums(const QString &path
     item.title = album.mid(path.length(), album.length() - path.length() - 1);
 
     foreach (const MediaDatabase::File &file, mediaDatabase->getAlbumFiles(category, album, 0, 8))
-    if (!mediaDatabase->readNode(file.uid).thumbnails().isEmpty())
     {
       item.iconUrl = httpPath() + MediaDatabase::toUidString(file.uid) + "-thumb.jpeg?overlay=folder-video";
       break;
@@ -386,16 +198,18 @@ MediaPlayerServer::Item MediaPlayerServer::makeItem(MediaDatabase::UniqueID uid)
 
   if (!node.isNull() && !titleNode.isNull())
   {
-    if (titleNode.containsAudio() || titleNode.containsVideo())
+    if (titleNode.containsAudio() && titleNode.containsVideo())
       item.mimeType = "video/mpeg";
-    else
+    else if (titleNode.containsAudio())
+      item.mimeType = "audio/mpeg";
+    else if (titleNode.containsImage())
       item.mimeType = "image/jpeg";
 
     if (!item.mimeType.isEmpty())
     {
       item.played = mediaDatabase->lastPlayed(uid).isValid();
       item.title = node.title();
-      item.url = MediaDatabase::toUidString(uid) + "." + item.mimeType.right(4);
+      item.url = MediaDatabase::toUidString(uid);
       item.iconUrl = MediaDatabase::toUidString(uid) + "-thumb.jpeg";
       item.mediaInfo = titleNode;
 

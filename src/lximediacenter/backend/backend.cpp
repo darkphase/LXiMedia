@@ -175,11 +175,16 @@ void Backend::start(void)
   foreach (BackendPlugin *backendPlugin, backendPlugins)
   if (backendPlugin)
   {
+    wl.unlock();
+
     qDebug() << "Loading backend:" << backendPlugin->pluginName()
              << "by" << backendPlugin->authorName()
              << "version" << backendPlugin->pluginVersion();
 
     const QList<BackendServer *> servers = backendPlugin->createServers(this);
+
+    wl.relock(__FILE__, __LINE__);
+
     if (!servers.isEmpty())
     {
       QList<QPair<QString, QString> > menu;
@@ -527,6 +532,10 @@ HttpServer::SocketOp Backend::handleHttpRequest(const HttpServer::RequestHeader 
     else if (path == "/img/treeclose.png")          file = ":/backend/treeclose.png";
     else if (path == "/img/starenabled.png")        file = ":/backend/starenabled.png";
     else if (path == "/img/stardisabled.png")       file = ":/backend/stardisabled.png";
+    else if (path == "/img/directory.png")          file = ":/backend/directory.png";
+    else if (path == "/img/audio-file.png")         file = ":/backend/audio-file.png";
+    else if (path == "/img/video-file.png")         file = ":/backend/video-file.png";
+    else if (path == "/img/image-file.png")         file = ":/backend/image-file.png";
     else if (path == "/img/restart.png")            file = ":/backend/restart.png";
     else if (path == "/img/shutdown.png")           file = ":/backend/shutdown.png";
 

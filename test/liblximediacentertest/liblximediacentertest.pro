@@ -21,7 +21,7 @@ LIBS += -lbfd \
     -liberty
 
 # Run tests after link
-unix:QMAKE_POST_LINK = $(TARGET) -silent
+#unix:QMAKE_POST_LINK = $(TARGET) -silent
 #win32:QMAKE_POST_LINK = $(DESTDIR)$(TARGET) -silent
 
 # Prevent dependency with .so files

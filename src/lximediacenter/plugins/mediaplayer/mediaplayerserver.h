@@ -79,7 +79,7 @@ protected:
   virtual HttpServer::SocketOp  buildPlaylist(const HttpServer::RequestHeader &, QAbstractSocket *);
 
   virtual int                   countItems(const QString &path);
-  virtual QList<Item>           listItems(const QString &path, unsigned start, unsigned count);
+  virtual QList<Item>           listItems(const QString &path, unsigned start = 0, unsigned count = 0);
 
   int                           countAlbums(const QString &path);
   QList<Item>                   listAlbums(const QString &path, unsigned &start, unsigned &count);

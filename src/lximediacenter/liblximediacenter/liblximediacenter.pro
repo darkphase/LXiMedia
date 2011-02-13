@@ -50,6 +50,7 @@ SOURCES += backendserver.cpp \
  htmlparser.cpp \
  httpoutputnode.cpp \
  httpserver.cpp \
+ httpserver.header.cpp \
  imdbclient.cpp \
  mediaserver.cpp \
  mediaserver.html.cpp \

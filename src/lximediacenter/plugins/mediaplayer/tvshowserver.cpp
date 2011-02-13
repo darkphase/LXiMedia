@@ -21,7 +21,7 @@
 
 namespace LXiMediaCenter {
 
-TvShowServer::TvShowServer(MediaDatabase *mediaDatabase, MediaDatabase::Category category, const char *name, Plugin *plugin, BackendServer::MasterServer *server)
+TvShowServer::TvShowServer(MediaDatabase *mediaDatabase, MediaDatabase::Category category, const char *name, Plugin *plugin, MasterServer *server)
   : MediaPlayerServer(mediaDatabase, category, name, plugin, server),
     seasonText(tr("Season"))
 {
@@ -126,7 +126,7 @@ QList<TvShowServer::Item> TvShowServer::listItems(const QString &path, unsigned 
 
 void TvShowServer::categorizeSeasons(const QString &path, QMap<unsigned, QVector<MediaDatabase::UniqueID> > &seasons, bool &useSeasons)
 {
-  const QList<MediaDatabase::File> files = mediaDatabase->allAlbumFiles(category, path);
+  const QList<MediaDatabase::File> files = mediaDatabase->getAlbumFiles(category, path);
 
   seasons.clear();
   useSeasons = true;

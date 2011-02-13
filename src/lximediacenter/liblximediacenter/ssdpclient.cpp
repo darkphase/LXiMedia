@@ -147,11 +147,11 @@ const QList<SsdpClientInterface *> & SsdpClient::interfaces(void) const
   return p->interfaces;
 }
 
-void SsdpClient::parsePacket(SsdpClientInterface *, const QHttpRequestHeader &header, const QHostAddress &, quint16)
+void SsdpClient::parsePacket(SsdpClientInterface *, const HttpServer::RequestHeader &header, const QHostAddress &, quint16)
 {
   if (header.method().toUpper() == "NOTIFY")
   {
-    const QString nts = header.value("NTS");
+    const QString nts = header.field("NTS");
 
     if (nts == "ssdp:alive")
       addNode(header, "NT");
@@ -160,33 +160,33 @@ void SsdpClient::parsePacket(SsdpClientInterface *, const QHttpRequestHeader &he
   }
 }
 
-void SsdpClient::parsePacket(SsdpClientInterface *, const QHttpResponseHeader &header, const QHostAddress &, quint16)
+void SsdpClient::parsePacket(SsdpClientInterface *, const HttpServer::ResponseHeader &header, const QHostAddress &, quint16)
 {
   addNode(header, "ST");
 }
 
-void SsdpClient::sendDatagram(SsdpClientInterface *iface, const QHttpHeader &header, const QHostAddress &address, quint16 port)
+void SsdpClient::sendDatagram(SsdpClientInterface *iface, const QByteArray &datagram, const QHostAddress &address, quint16 port)
 {
-  iface->privateSocket.writeDatagram(header.toString().toUtf8(), address, port);
+  iface->privateSocket.writeDatagram(datagram, address, port);
 }
 
 void SsdpClient::sendSearch(SsdpClientInterface *iface, const QString &st)
 {
-  QHttpRequestHeader request;
-  request.setRequest("M-SEARCH", "*", 1, 1);
-  request.setValue("HOST", SsdpClient::ssdpAddressIPv4.toString() + ":" + QString::number(SsdpClient::ssdpPort));
-  request.setValue("MAN", "ssdp:discover");
-  request.setValue("ST", st);
-  request.setValue("MX", "3");
+  HttpServer::RequestHeader request;
+  request.setRequest("M-SEARCH", "*", "HTTP/1.1");
+  request.setField("HOST", SsdpClient::ssdpAddressIPv4.toString() + ":" + QString::number(SsdpClient::ssdpPort));
+  request.setField("MAN", "ssdp:discover");
+  request.setField("ST", st);
+  request.setField("MX", "3");
 
   sendDatagram(iface, request, ssdpAddressIPv4, ssdpPort);
 }
 
-void SsdpClient::addNode(const QHttpHeader &header, const QString &tagName)
+void SsdpClient::addNode(const HttpServer::Header &header, const QString &tagName)
 {
-  const QString tag = header.value(tagName);
-  const QString location = header.value("LOCATION");
-  const QString uuid = header.value("USN").split("::").first();
+  const QString tag = header.field(tagName);
+  const QString location = header.field("LOCATION");
+  const QString uuid = header.field("USN").split("::").first();
   if (!tag.isEmpty() && !location.isEmpty() && !uuid.isEmpty())
   {
     const Node entry(uuid, location);
@@ -198,12 +198,12 @@ void SsdpClient::addNode(const QHttpHeader &header, const QString &tagName)
   }
 }
 
-void SsdpClient::removeNode(const QHttpHeader &header)
+void SsdpClient::removeNode(const HttpServer::Header &header)
 {
   bool updated = false;
 
-  const QString tag = header.value("NT");
-  const QString uuid = header.value("USN").split("::").first();
+  const QString tag = header.field("NT");
+  const QString uuid = header.field("USN").split("::").first();
   if (!tag.isEmpty() && !uuid.isEmpty())
   {
     for (QMultiMap<QString, Node>::Iterator i = p->nodes.lowerBound(tag);
@@ -296,7 +296,7 @@ void SsdpClientInterface::ssdpDatagramReady(void)
     const qint64 size = ssdpSocket.readDatagram(buffer, sizeof(buffer), &sourceAddress, &sourcePort);
 
     if (size > 0)
-      parent->parsePacket(this, QHttpRequestHeader(QString::fromUtf8(buffer, size)), sourceAddress, sourcePort);
+      parent->parsePacket(this, HttpServer::RequestHeader(QByteArray(buffer, size)), sourceAddress, sourcePort);
   }
 }
 
@@ -311,9 +311,9 @@ void SsdpClientInterface::privateDatagramReady(void)
 
     if (size > 0)
     {
-      const QString txt = QString::fromUtf8(buffer, size);
+      const QByteArray txt(buffer, size);
       if (txt.startsWith("HTTP"))
-        parent->parsePacket(this, QHttpResponseHeader(txt), sourceAddress, sourcePort);
+        parent->parsePacket(this, HttpServer::ResponseHeader(txt), sourceAddress, sourcePort);
     }
     else if (size < 0)
       break;

@@ -22,7 +22,7 @@
 
 namespace LXiMediaCenter {
 
-PhotoServer::PhotoServer(MediaDatabase *mediaDatabase, MediaDatabase::Category category, const char *name, Plugin *plugin, BackendServer::MasterServer *server)
+PhotoServer::PhotoServer(MediaDatabase *mediaDatabase, MediaDatabase::Category category, const char *name, Plugin *plugin, MasterServer *server)
   : MediaPlayerServer(mediaDatabase, category, name, plugin, server)
 {
 }
@@ -31,40 +31,14 @@ PhotoServer::~PhotoServer()
 {
 }
 
-HttpServer::SocketOp PhotoServer::handleHttpRequest(const HttpServer::RequestHeader &request, QAbstractSocket *socket)
-{
-  const QUrl url(request.path());
-  const QString file = request.file();
-
-  if (file.endsWith(".jpeg") && !file.endsWith("-thumb.jpeg"))
-  {
-    unsigned width = 0, height = 0;
-    if (url.hasQueryItem("size"))
-    {
-      const QStringList size = url.queryItemValue("size").split('x');
-      if (size.count() >= 2)
-      {
-        width = qMax(0, size[0].toInt());
-        height = qMax(0, size[1].toInt());
-      }
-    }
-
-    return sendPhoto(socket, MediaDatabase::fromUidString(file.left(16)), width, height);
-  }
-  else if (file.endsWith(".html")) // Show player
-    return handleHtmlRequest(url, file, socket);
-
-  return MediaPlayerServer::handleHttpRequest(request, socket);
-}
-
 HttpServer::SocketOp PhotoServer::streamVideo(const HttpServer::RequestHeader &request, QAbstractSocket *socket)
 {
   const QUrl url(request.path());
   const QStringList file = url.path().mid(url.path().lastIndexOf('/') + 1).split('.');
 
-  if (file.count() >= 2)
+  if (file.first().endsWith("-slideshow"))
   {
-    const QString album = QString::fromUtf8(QByteArray::fromHex(file.first().toAscii()));
+    const QString album = QString::fromUtf8(QByteArray::fromHex(file.first().left(file.first().length() - 10).toAscii()));
     const QList<MediaDatabase::File> files = mediaDatabase->getAlbumFiles(MediaDatabase::Category_Photos, album);
     if (!files.isEmpty())
     {
@@ -116,20 +90,22 @@ int PhotoServer::countItems(const QString &path)
 
 QList<PhotoServer::Item> PhotoServer::listItems(const QString &path, unsigned start, unsigned count)
 {
+  QList<Item> result;
+
   if (mediaDatabase->countAlbumFiles(category, path) > 0)
   {
     if (start == 0)
     {
-      QList<Item> result;
       if (count > 1)
         result = MediaPlayerServer::listItems(path, start, count - 1);
       else if (count == 0)
         result = MediaPlayerServer::listItems(path, start, count);
 
       Item item;
-      item.title = tr("Start Slideshow");
+      item.mode = Item::Mode_Direct;
+      item.title = tr("Slideshow");
       item.mimeType = "video/mpeg";
-      item.url = httpPath() + path.toUtf8().toHex() + ".slideshow.mpeg";
+      item.url = httpPath() + path.toUtf8().toHex() + "-slideshow";
 
       if (result.isEmpty())
       {
@@ -147,14 +123,47 @@ QList<PhotoServer::Item> PhotoServer::listItems(const QString &path, unsigned st
       }
 
       result.prepend(item);
-
-      return result;
     }
     else
-      return MediaPlayerServer::listItems(path, start - 1, count);
+      result = MediaPlayerServer::listItems(path, start - 1, count);
   }
   else
-    return MediaPlayerServer::listItems(path, start, count);
+    result = MediaPlayerServer::listItems(path, start, count);
+
+  for (int i=0; i<result.count(); i++)
+  if (!result[i].isDir)
+  {
+    result[i].played = false; // Not useful for photos.
+    result[i].mode = Item::Mode_Direct;
+  }
+
+  return result;
+}
+
+HttpServer::SocketOp PhotoServer::handleHttpRequest(const HttpServer::RequestHeader &request, QAbstractSocket *socket)
+{
+  const QUrl url(request.path());
+  const QString file = request.file();
+
+  if (file.endsWith(".jpeg") && !file.endsWith("-thumb.jpeg"))
+  {
+    unsigned width = 0, height = 0;
+    if (url.hasQueryItem("size"))
+    {
+      const QStringList size = url.queryItemValue("size").split('x');
+      if (size.count() >= 2)
+      {
+        width = qMax(0, size[0].toInt());
+        height = qMax(0, size[1].toInt());
+      }
+    }
+
+    return sendPhoto(socket, MediaDatabase::fromUidString(file.left(16)), width, height);
+  }
+  else if (file.endsWith(".html")) // Show player
+    return handleHtmlRequest(url, file, socket);
+
+  return MediaPlayerServer::handleHttpRequest(request, socket);
 }
 
 HttpServer::SocketOp PhotoServer::sendPhoto(QAbstractSocket *socket, MediaDatabase::UniqueID uid, unsigned width, unsigned height) const
