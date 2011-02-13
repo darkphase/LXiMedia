@@ -54,6 +54,7 @@ public:
 
   QString                       filePath(void) const;                           //!< Returns the file path, including the file name.
   QString                       fileName(void) const;                           //!< Returns the name of the file, without the path.
+  QString                       baseName(void) const;                           //!< Returns the name of the file, without the path and extension.
   QString                       path(void) const;                               //!< Returns the path to the file, without the file name.
   qint64                        size(void) const;                               //!< Returns the file size.
   QDateTime                     lastModified(void) const;                       //!< Returns the date the file was last modified.

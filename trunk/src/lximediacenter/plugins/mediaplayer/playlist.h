@@ -55,8 +55,6 @@ public:
   QByteArray                    serialize(void) const;
   bool                          deserialize(const QByteArray &);
 
-  static Playlist             * createAllFiles(MediaDatabase *, QObject * = NULL);
-
 private:
   MediaDatabase::UniqueID       random(void);
 
@@ -66,7 +64,6 @@ private:
   mutable QMutex                mutex;
   QVector<Entry>                list;
   QList<MediaDatabase::UniqueID> pending;
-  bool                          allFiles;
   int                           played;
 };
 

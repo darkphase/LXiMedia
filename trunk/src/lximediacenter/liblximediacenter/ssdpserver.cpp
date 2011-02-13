@@ -97,12 +97,12 @@ void SsdpServer::publish(const QString &nt, const HttpServer *httpServer, const 
   QTimer::singleShot(1000, this, SLOT(publishServices()));
 }
 
-void SsdpServer::parsePacket(SsdpClientInterface *iface, const QHttpRequestHeader &header, const QHostAddress &sourceAddress, quint16 sourcePort)
+void SsdpServer::parsePacket(SsdpClientInterface *iface, const HttpServer::RequestHeader &header, const QHostAddress &sourceAddress, quint16 sourcePort)
 {
   if ((header.method().toUpper() == "M-SEARCH") && !sourceAddress.isNull() && sourcePort)
   {
     const QMultiMap<QString, QPair<const HttpServer *, QString> >::ConstIterator i =
-        p->published.find(header.value("ST"));
+        p->published.find(header.field("ST"));
     if (i != p->published.end())
     {
       const quint16 port = i.value().first->serverPort(iface->interfaceAddr);
@@ -121,45 +121,42 @@ void SsdpServer::parsePacket(SsdpClientInterface *iface, const QHttpRequestHeade
 
 void SsdpServer::sendAlive(SsdpClientInterface *iface, const QString &nt, const QString &url)
 {
-  QHttpRequestHeader request;
-  request.setRequest("NOTIFY", "*", 1, 1);
-  request.setValue("SERVER", SsdpServer::getServerId());
-  request.setValue("USN", "uuid:" + SsdpServer::getUuid() + "::" + nt);
-  request.setValue("CACHE-CONTROL", "max-age=" + QString::number((SsdpServer::cacheTimeout / 1000) + 30));
-  request.setValue("LOCATION", url);
-  request.setValue("NTS", "ssdp:alive");
-  request.setValue("HOST", SsdpServer::ssdpAddressIPv4.toString() + ":" + QString::number(SsdpServer::ssdpPort));
-  request.setValue("NT", nt);
+  HttpServer::RequestHeader request;
+  request.setRequest("NOTIFY", "*", "HTTP/1.1");
+  request.setField("SERVER", SsdpServer::getServerId());
+  request.setField("USN", "uuid:" + SsdpServer::getUuid() + "::" + nt);
+  request.setField("CACHE-CONTROL", "max-age=" + QString::number((SsdpServer::cacheTimeout / 1000) + 30));
+  request.setField("LOCATION", url);
+  request.setField("NTS", "ssdp:alive");
+  request.setField("HOST", SsdpServer::ssdpAddressIPv4.toString() + ":" + QString::number(SsdpServer::ssdpPort));
+  request.setField("NT", nt);
 
-  sendDatagram(iface, request, ssdpAddressIPv4, ssdpPort);
-  sendDatagram(iface, request, ssdpAddressIPv4, ssdpPort);
   sendDatagram(iface, request, ssdpAddressIPv4, ssdpPort);
 }
 
 void SsdpServer::sendByeBye(SsdpClientInterface *iface, const QString &nt)
 {
-  QHttpRequestHeader request;
-  request.setRequest("NOTIFY", "*", 1, 1);
-  request.setValue("SERVER", SsdpServer::getServerId());
-  request.setValue("USN", "uuid:" + SsdpServer::getUuid() + "::" + nt);
-  request.setValue("NTS", "ssdp:byebye");
-  request.setValue("HOST", SsdpServer::ssdpAddressIPv4.toString() + ":" + QString::number(SsdpServer::ssdpPort));
-  request.setValue("NT", nt);
+  HttpServer::RequestHeader request;
+  request.setRequest("NOTIFY", "*", "HTTP/1.1");
+  request.setField("SERVER", SsdpServer::getServerId());
+  request.setField("USN", "uuid:" + SsdpServer::getUuid() + "::" + nt);
+  request.setField("NTS", "ssdp:byebye");
+  request.setField("HOST", SsdpServer::ssdpAddressIPv4.toString() + ":" + QString::number(SsdpServer::ssdpPort));
+  request.setField("NT", nt);
 
-  sendDatagram(iface, request, ssdpAddressIPv4, ssdpPort);
-  sendDatagram(iface, request, ssdpAddressIPv4, ssdpPort);
   sendDatagram(iface, request, ssdpAddressIPv4, ssdpPort);
 }
 
 void SsdpServer::sendSearchResponse(SsdpClientInterface *iface, const QString &nt, const QString &url, const QHostAddress &toAddr, quint16 toPort)
 {
-  QHttpResponseHeader response(200, "OK", 1, 1);
-  response.setValue("SERVER", SsdpServer::getServerId());
-  response.setValue("S", "uuid:" + SsdpServer::getUuid());
-  response.setValue("USN", "uuid:" + SsdpServer::getUuid() + "::" + nt);
-  response.setValue("CACHE-CONTROL", "max-age=" + QString::number((SsdpServer::cacheTimeout / 1000) + 30));
-  response.setValue("LOCATION", url);
-  response.setValue("ST", nt);
+  HttpServer::ResponseHeader response;
+  response.setResponse(HttpServer::Status_Ok, "HTTP/1.1");
+  response.setField("SERVER", SsdpServer::getServerId());
+  response.setField("S", "uuid:" + SsdpServer::getUuid());
+  response.setField("USN", "uuid:" + SsdpServer::getUuid() + "::" + nt);
+  response.setField("CACHE-CONTROL", "max-age=" + QString::number((SsdpServer::cacheTimeout / 1000) + 30));
+  response.setField("LOCATION", url);
+  response.setField("ST", nt);
 
   sendDatagram(iface, response, toAddr, toPort);
 }

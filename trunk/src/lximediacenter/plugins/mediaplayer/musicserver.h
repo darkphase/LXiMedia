@@ -26,57 +26,26 @@
 #include "mediadatabase.h"
 #include "mediaplayerserver.h"
 #include "playlist.h"
-#include "playlistnode.h"
 
 namespace LXiMediaCenter {
 
 class MusicServer : public MediaPlayerServer
 {
 Q_OBJECT
-protected:
-  class PlaylistStream : public Stream
-  {
-  public:
-                                PlaylistStream(MusicServer *, int id, const QHostAddress &peer, const QString &url, MediaDatabase *, Playlist *, const QString &);
-    virtual                     ~PlaylistStream();
-
-    bool                        setup(const QHttpRequestHeader &, QAbstractSocket *);
-
-  public:
-    static const int            frameRate = 25;
-    MusicServer         * const parent;
-    const int                   id;
-    const QString               name;
-
-    PlaylistNode                playlistNode;
-  };
-
 public:
-                                MusicServer(MediaDatabase *, Plugin *, MasterServer *);
+                                MusicServer(MediaDatabase *, MediaDatabase::Category, const char *, Plugin *, MasterServer *);
   virtual                       ~MusicServer();
 
-  virtual SearchResultList      search(const QStringList &) const;
-
-  virtual void                  updateDlnaTask(void);
-
 protected:
-  virtual bool                  streamVideo(const QHttpRequestHeader &, QAbstractSocket *);
-
-  virtual bool                  handleHtmlRequest(const QUrl &, const QString &, QAbstractSocket *);
+  virtual QList<Item>           listItems(const QString &path, unsigned start = 0, unsigned count = 0);
+  virtual HttpServer::SocketOp  handleHttpRequest(const HttpServer::RequestHeader &, QAbstractSocket *);
 
   QStringList                   playlists(void) const;
   Playlist                    * createPlaylist(const QString &);
   void                          storePlaylist(Playlist *, const QString &);
-  int                           createStream(const QString &, const QHostAddress &, const QString &);
 
 private:
-
-private:
-  DlnaServerDir               * musicVideosDir;
-
   QDir                          playlistDir;
-  QAtomicInt                    nextStreamId;
-  QMap<int, PlaylistStream *>   streams;
 
 private:
   static const char     * const htmlMusicStreams;

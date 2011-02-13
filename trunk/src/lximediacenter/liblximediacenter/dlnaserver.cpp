@@ -466,7 +466,7 @@ void DlnaServer::browseDir(QDomDocument &doc, QDomElement &browseResponse, ItemI
 
     foreach (const Item &item, callback->listDlnaItems(itemData.path, start, count))
     {
-      if (!item.isDir && (item.mediaInfo.isNull() || !item.mimeType.startsWith("video")))
+      if (!item.isDir && (item.mode == Item::Mode_Direct))
         root.appendChild(didlFile(subDoc, streamSettings, item, addChildItem(itemData, item, true), pathId));
       else
         root.appendChild(didlDirectory(subDoc, item, addChildItem(itemData, item, true), pathId));
@@ -519,9 +519,9 @@ void DlnaServer::browseFile(QDomDocument &doc, QDomElement &browseResponse, Item
     subDoc.appendChild(root);
 
     QVector<ItemID> all;
-    switch (itemData.item.mode)
+    switch (Item::Mode(itemData.item.mode))
     {
-    case 0: // Root
+    case Item::Mode_Default:
       if (!itemData.item.mediaInfo.isNull())
       {
         const QList<SMediaInfo::AudioStreamInfo> audioStreams = itemData.item.mediaInfo.audioStreams();
@@ -536,7 +536,7 @@ void DlnaServer::browseFile(QDomDocument &doc, QDomElement &browseResponse, Item
           {
             Item item = itemData.item;
             item.played = false;
-            item.mode = 1;
+            item.mode = Item::Mode_PlaySeek;
 
             item.title = QString::number(a + 1) + ". ";
             if (audioStreams[a].language[0])
@@ -565,11 +565,11 @@ void DlnaServer::browseFile(QDomDocument &doc, QDomElement &browseResponse, Item
       }
       // Deliberately no break.
 
-    case 1: // Play/seek
+    case Item::Mode_PlaySeek:
       {
         Item playItem = itemData.item;
         playItem.played = false;
-        playItem.mode = 100;
+        playItem.mode = Item::Mode_Direct;
         playItem.title = tr("Play");
         all += addChildItem(itemData, playItem, false);
 
@@ -579,7 +579,7 @@ void DlnaServer::browseFile(QDomDocument &doc, QDomElement &browseResponse, Item
           {
             Item seekItem = itemData.item;
             seekItem.played = false;
-            seekItem.mode = 2;
+            seekItem.mode = Item::Mode_Seek;
             seekItem.title = tr("Seek");
             all += addChildItem(itemData, seekItem, true);
           }
@@ -588,7 +588,7 @@ void DlnaServer::browseFile(QDomDocument &doc, QDomElement &browseResponse, Item
           {
             Item seekItem = itemData.item;
             seekItem.played = false;
-            seekItem.mode = 3;
+            seekItem.mode = Item::Mode_Chapters;
             seekItem.title = tr("Chapters");
             all += addChildItem(itemData, seekItem, true);
           }
@@ -596,20 +596,20 @@ void DlnaServer::browseFile(QDomDocument &doc, QDomElement &browseResponse, Item
       }
       break;
 
-    case 2: // Seek
+    case Item::Mode_Seek:
       if (!itemData.item.mediaInfo.isNull())
       for (STime i=STime::fromSec(0); i<itemData.item.mediaInfo.duration(); i+=STime::fromSec(seekSec))
       {
         Item item = itemData.item;
         item.played = false;
-        item.mode = 100;
+        item.mode = Item::Mode_Direct;
         item.title = tr("Play from") + " " + QTime().addSecs(i.toSec()).toString("h:mm");
         item.url.addQueryItem("position", QString::number(i.toSec()));
         all += addChildItem(itemData, item, false);
       }
       break;
 
-    case 3: // Chapters
+    case Item::Mode_Chapters:
       if (!itemData.item.mediaInfo.isNull())
       {
         int chapterNum = 1;
@@ -617,7 +617,7 @@ void DlnaServer::browseFile(QDomDocument &doc, QDomElement &browseResponse, Item
         {
           Item item = itemData.item;
           item.played = false;
-          item.mode = 100;
+          item.mode = Item::Mode_Direct;
 
           item.title = tr("Chapter") + " " + QString::number(chapterNum++);
           if (!chapter.title.isEmpty())
@@ -628,6 +628,9 @@ void DlnaServer::browseFile(QDomDocument &doc, QDomElement &browseResponse, Item
         }
       }
       break;
+
+    case Item::Mode_Direct:
+      break;
     }
 
     // Only select the items that were requested.
@@ -635,7 +638,7 @@ void DlnaServer::browseFile(QDomDocument &doc, QDomElement &browseResponse, Item
     {
       QMap<ItemID, ItemData>::Iterator childData = p->itemData.find(all[i]);
 
-      if (childData->item.mode < 100)
+      if (childData->item.mode != Item::Mode_Direct)
         root.appendChild(didlDirectory(subDoc, childData->item, childData.key(), pathId));
       else
         root.appendChild(didlFile(subDoc, streamSettings, childData->item, childData.key(), pathId));
@@ -655,7 +658,7 @@ void DlnaServer::browseFile(QDomDocument &doc, QDomElement &browseResponse, Item
     root.setAttribute("xmlns:upnp", p->upnpNS);
     subDoc.appendChild(root);
 
-    if (itemData.item.mode < 100)
+    if (itemData.item.mode != Item::Mode_Direct)
       root.appendChild(didlDirectory(subDoc, itemData.item, pathId));
     else
       root.appendChild(didlFile(subDoc, streamSettings, itemData.item, pathId));
@@ -738,6 +741,28 @@ QDomElement DlnaServer::didlFile(QDomDocument &doc, const StreamSettings &stream
   titleElm.appendChild(doc.createTextNode((item.played ? "*" : "") + item.title));
   itemElm.appendChild(titleElm);
 
+  if (!item.mediaInfo.isNull())
+  {
+    QDomElement artistElm = doc.createElement("upnp:artist");
+    artistElm.appendChild(doc.createTextNode(item.mediaInfo.author()));
+    itemElm.appendChild(artistElm);
+
+    QDomElement actorElm = doc.createElement("upnp:actor");
+    actorElm.appendChild(doc.createTextNode(item.mediaInfo.author()));
+    itemElm.appendChild(actorElm);
+
+    QDomElement albumElm = doc.createElement("upnp:album");
+    albumElm.appendChild(doc.createTextNode(item.mediaInfo.album()));
+    itemElm.appendChild(albumElm);
+
+    if (item.mediaInfo.year() > 0)
+    {
+      QDomElement dateElm = doc.createElement("dc:date");
+      dateElm.appendChild(doc.createTextNode(QString::number(item.mediaInfo.year())));
+      itemElm.appendChild(dateElm);
+    }
+  }
+
   if (!item.iconUrl.isEmpty())
   {
     QDomElement iconElm = doc.createElement("upnp:icon");
@@ -782,23 +807,68 @@ QDomElement DlnaServer::didlFile(QDomDocument &doc, const StreamSettings &stream
   else
     url.addQueryItem("encode", "fast");
 
+  QList<QByteArray> formats;
   QDomElement upnpClassElm = doc.createElement("upnp:class");
   if (item.mimeType.startsWith("video/"))
+  {
     upnpClassElm.appendChild(doc.createTextNode("object.item.videoItem"));
+    formats += "video/mpeg.mpeg";
+    //formats += "video/ogg.ogv";
+    formats += "video/x-flv.flv";
+  }
   else if (item.mimeType.startsWith("audio/"))
+  {
     upnpClassElm.appendChild(doc.createTextNode("object.item.audioItem"));
+    formats += "audio/mpeg.mpa";
+    //formats += "audio/ogg.oga";
+    formats += "audio/wave.wav";
+    formats += "video/x-flv.flv";
+  }
   else if (item.mimeType.startsWith("image/"))
+  {
     upnpClassElm.appendChild(doc.createTextNode("object.item.imageItem"));
+    formats += "image/jpeg.jpeg";
+  }
   else
     upnpClassElm.appendChild(doc.createTextNode("object.item"));
 
   itemElm.appendChild(upnpClassElm);
 
-  QDomElement resElm = doc.createElement("res");
-  resElm.setAttribute("protocolInfo", "http-get:*:" + item.mimeType + ":DLNA.ORG_PS=1;DLNA.ORG_CI=0;DLNA.ORG_OP=01;DLNA.ORG_FLAGS=21700000000000000000000000000000");
+  /* DLNA.ORG_FLAGS, padded with 24 trailing 0s
+   *     80000000  31  senderPaced
+   *     40000000  30  lsopTimeBasedSeekSupported
+   *     20000000  29  lsopByteBasedSeekSupported
+   *     10000000  28  playcontainerSupported
+   *      8000000  27  s0IncreasingSupported
+   *      4000000  26  sNIncreasingSupported
+   *      2000000  25  rtspPauseSupported
+   *      1000000  24  streamingTransferModeSupported
+   *       800000  23  interactiveTransferModeSupported
+   *       400000  22  backgroundTransferModeSupported
+   *       200000  21  connectionStallingSupported
+   *       100000  20  dlnaVersion15Supported
+   *
+   *     Example: (1 << 24) | (1 << 22) | (1 << 21) | (1 << 20)
+   *       DLNA.ORG_FLAGS=01700000[000000000000000000000000] // [] show padding
+   */
+  foreach (const QByteArray &format, formats)
+  {
+    const QByteArray mime = format.left(format.indexOf('.'));
+    const QByteArray suffix = format.mid(format.indexOf('.'));
 
-  resElm.appendChild(doc.createTextNode(url.toString()));
-  itemElm.appendChild(resElm);
+    QDomElement resElm = doc.createElement("res");
+    resElm.setAttribute("protocolInfo", QString::fromAscii("http-get:*:" + mime + ":DLNA.ORG_PS=1;DLNA.ORG_CI=0;DLNA.ORG_OP=01;DLNA.ORG_FLAGS=01700000000000000000000000000000"));
+
+    if (!item.mediaInfo.isNull() && item.mediaInfo.duration().isValid())
+      resElm.setAttribute("duration", QTime().addSecs(item.mediaInfo.duration().toSec()).toString("h:mm:ss.zzz"));
+
+    QUrl u = url;
+    u.setPath(u.path() + suffix);
+    //qDebug() << resElm.attribute("protocolInfo") << u.toString();
+
+    resElm.appendChild(doc.createTextNode(u.toString()));
+    itemElm.appendChild(resElm);
+  }
 
   return itemElm;
 }
@@ -940,8 +1010,8 @@ void DlnaServer::EventSession::run(void)
               {
                 response += line;
 
-                const QHttpResponseHeader responseHeader(QString::fromUtf8(response));
-                if (responseHeader.statusCode() != 200)
+                const HttpServer::ResponseHeader responseHeader(response);
+                if (responseHeader.status() != HttpServer::Status_Ok)
                 {
                   qWarning() << "DlnaServer: got error response:" << response;
                   running = false;

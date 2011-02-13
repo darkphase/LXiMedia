@@ -87,6 +87,7 @@ void CommonTest::HttpServer(void)
   QVERIFY(gotHttpServerReply == false);
 
   httpServer.unregisterCallback(&callback);
+  httpServer.close();
 }
 
 void CommonTest::HttpServerReply(QNetworkReply *reply)

@@ -41,7 +41,7 @@ const char * const MediaServer::m3uPlaylistItem =
 
 const char * const MediaServer::htmlPages =
     "<div class=\"pageselector\">\n"
-    " {TR_PAGE}:{PAGES}\n"
+    " {PAGES}\n"
     "</div>\n";
 
 const char * const MediaServer::htmlPageItem =
@@ -103,6 +103,39 @@ const char * const MediaServer::htmlThumbnailItemNoTitle =
     "      </div>\n"
     "     </center>\n"
     "    </td>\n";
+
+const char * const MediaServer::htmlDetailedList =
+    " {PAGES}\n"
+    " <table class=\"list\">\n"
+    "{LIST}"
+    " </table>\n";
+
+const char * const MediaServer::htmlDetailedListRow =
+    "  <tr class=\"{ROW_CLASS}\">\n"
+    "{COLUMNS}"
+    "  </tr>\n";
+
+const char * const MediaServer::htmlDetailedListHead =
+    "   <th class=\"{ROW_CLASS}\">\n"
+    "    {ITEM_TITLE}\n"
+    "   </th>\n";
+
+const char * const MediaServer::htmlDetailedListIcon =
+    "   <td class=\"{ROW_CLASS}\" width=\"0%\">\n"
+    "    <img src=\"{ITEM_ICONURL}\" alt=\"{ITEM_TITLE}\" />\n"
+    "   </td>\n";
+
+const char * const MediaServer::htmlDetailedListColumn =
+    "   <td class=\"{ROW_CLASS}\">\n"
+    "    {ITEM_TITLE}\n"
+    "   </td>\n";
+
+const char * const MediaServer::htmlDetailedListColumnLink =
+    "   <td class=\"{ROW_CLASS}\">\n"
+    "    <a class=\"listitem\" title=\"{ITEM_TITLE}\" href=\"{ITEM_URL}\">\n"
+    "     {ITEM_TITLE}\n"
+    "    </a>\n"
+    "   </td>\n";
 
 const char * const MediaServer::htmlPlayer =
     " <table class=\"main\">\n"
@@ -243,160 +276,160 @@ const char * const MediaServer::headList =
 const char * const MediaServer::headPlayer =
     " <script type=\"text/javascript\" src=\"/swf/flowplayer.js\" />\n";
 
-QByteArray MediaServer::buildThumbnailView(const QString &title, const ThumbnailListItemList &items, const QUrl &url)
+QByteArray MediaServer::buildThumbnailView(const QString &path, const ThumbnailListItemList &items, int start, int total)
 {
   HtmlParser htmlParser;
-  htmlParser.setField("TR_PAGE", tr("Page"));
 
-  QStringList pageNames;
+  // Build the page selector
+  htmlParser.setField("PAGES", QByteArray(""));
+
+  const QStringList dirs = path.split('/', QString::SkipEmptyParts);
+
+  QString fullPath = httpPath();
+  htmlParser.setField("ITEM_LINK", fullPath);
+  htmlParser.setField("ITEM_NAME", name());
+  htmlParser.appendField("PAGES", htmlParser.parse(dirs.isEmpty() ? htmlPageCurrentItem : htmlPageItem));
+
+  for (int i=0; i<dirs.count(); i++)
   {
-    QSet<QString> names;
-    foreach (const ThumbnailListItem &item, items)
-      names.insert(item.page);
+    htmlParser.setField("ITEM_NAME", QByteArray(">"));
+    htmlParser.appendField("PAGES", htmlParser.parse(htmlPageCurrentItem));
 
-    pageNames = names.toList();
-    qSort(pageNames);
+    fullPath += dirs[i] + "/";
+    htmlParser.setField("ITEM_LINK", fullPath);
+    htmlParser.setField("ITEM_NAME", dirs[i]);
+    htmlParser.appendField("PAGES", htmlParser.parse(i == (dirs.count() - 1) ? htmlPageCurrentItem : htmlPageItem));
   }
 
-  if (pageNames.isEmpty() || pageNames.first().isEmpty())
-  {
-    // Build the page selector
-    const unsigned numPages = (items.count() + (itemsPerThumbnailPage - 1)) / itemsPerThumbnailPage;
-    unsigned selectedPage = url.queryItemValue("page").toUInt();
-    if (selectedPage == 0)
-      selectedPage = 1;
+  const unsigned numPages = (total + (itemsPerThumbnailPage - 1)) / itemsPerThumbnailPage;
+  const unsigned selectedPage = start / itemsPerThumbnailPage;
 
-    htmlParser.setField("PAGES", QByteArray(""));
+  if (numPages > 1)
+  {
+    htmlParser.setField("ITEM_NAME", QByteArray("("));
+    htmlParser.appendField("PAGES", htmlParser.parse(htmlPageCurrentItem));
+
     for (unsigned i=0; i<numPages; i++)
     {
-      htmlParser.setField("ITEM_LINK", "?page=" + QString::number(i+1));
+      htmlParser.setField("ITEM_LINK", "?start=" + QString::number(i * itemsPerThumbnailPage));
       htmlParser.setField("ITEM_NAME", QString::number(i+1));
 
-      if (i != (selectedPage - 1))
+      if (i != selectedPage)
         htmlParser.appendField("PAGES", htmlParser.parse(htmlPageItem));
       else
         htmlParser.appendField("PAGES", htmlParser.parse(htmlPageCurrentItem));
     }
 
-    if (selectedPage < numPages)
-    {
-      htmlParser.setField("ITEM_LINK", "?page=" + QString::number(selectedPage+1));
-      htmlParser.setField("ITEM_NAME", tr("Next"));
-      htmlParser.appendField("PAGES", htmlParser.parse(htmlPageItem));
-    }
-
-    if (numPages > 1)
-      htmlParser.setField("PAGES", htmlParser.parse(htmlPages));
-    else
-      htmlParser.setField("PAGES", QByteArray(""));
-
-    // Build the content for the selected page
-    const unsigned pageBegin = (selectedPage - 1) * itemsPerThumbnailPage;
-    const unsigned pageEnd = pageBegin + itemsPerThumbnailPage;
-
-    htmlParser.setField("LIST0", QByteArray(""));
-    htmlParser.setField("LIST1", QByteArray(""));
-    htmlParser.setField("LIST2", QByteArray(""));
-    for (unsigned cls=0; cls<3; cls++)
-    {
-      htmlParser.setField("ROW_ITEMS", QByteArray(""));
-      unsigned col = 0, i = -1;
-      foreach (const ThumbnailListItem &item, items)
-      if ((++i >= pageBegin) && (i < pageEnd))
-      {
-        htmlParser.setField("ITEM_CLASS", QByteArray(item.played ? "thumbnaillistitemplayed" : "thumbnaillistitem"));
-        htmlParser.setField("ITEM_TITLE", item.title);
-        htmlParser.setField("ITEM_RAW_TITLE", SStringParser::toRawName(item.title));
-        htmlParser.setField("ITEM_SUBTITLE", item.subtitle);
-        htmlParser.setField("ITEM_ICONURL", item.iconurl.toString());
-        htmlParser.setField("ITEM_URL", item.url.toString());
-        htmlParser.appendField("ROW_ITEMS", htmlParser.parse(item.title.isEmpty() ? htmlThumbnailItemNoTitle : htmlThumbnailItem));
-
-        if (++col == 3 + cls)
-        {
-          htmlParser.appendField("LIST" + QByteArray::number(cls), htmlParser.parse(htmlThumbnailItemRow));
-          htmlParser.setField("ROW_ITEMS", QByteArray(""));
-          col = 0;
-        }
-      }
-
-      if (col > 0)
-        htmlParser.appendField("LIST" + QByteArray::number(cls), htmlParser.parse(htmlThumbnailItemRow));
-
-      QByteArray esc = htmlParser.field("LIST" + QByteArray::number(cls));
-      htmlParser.setField("LIST" + QByteArray::number(cls) + "_ESC", esc.replace('\\', "\\\\").replace('\"', "\\\"").simplified());
-    }
-
-    htmlParser.setField("TITLE", title);
+    htmlParser.setField("ITEM_NAME", QByteArray(")"));
+    htmlParser.appendField("PAGES", htmlParser.parse(htmlPageCurrentItem));
   }
-  else
+
+  htmlParser.setField("PAGES", htmlParser.parse(htmlPages));
+
+  // Build the content
+  htmlParser.setField("LIST0", QByteArray(""));
+  htmlParser.setField("LIST1", QByteArray(""));
+  htmlParser.setField("LIST2", QByteArray(""));
+  for (unsigned cls=0; cls<3; cls++)
   {
-    // Build the page selector
-    QString selectedPage = url.queryItemValue("page").toUpper();
-    if (selectedPage.isEmpty())
-      selectedPage = SStringParser::toRawName(pageNames.first());
-
-    QString selectedPageName = selectedPage;
-    htmlParser.setField("PAGES", QByteArray(""));
-    foreach (const QString &pageName, pageNames)
+    htmlParser.setField("ROW_ITEMS", QByteArray(""));
+    unsigned col = 0;
+    foreach (const ThumbnailListItem &item, items)
     {
-      const QString rawPageName = SStringParser::toRawName(pageName);
-      htmlParser.setField("ITEM_LINK", "?page=" + rawPageName.toLower());
-      htmlParser.setField("ITEM_NAME", pageName);
+      htmlParser.setField("ITEM_CLASS", QByteArray(item.played ? "thumbnaillistitemplayed" : "thumbnaillistitem"));
+      htmlParser.setField("ITEM_TITLE", item.title);
+      htmlParser.setField("ITEM_RAW_TITLE", SStringParser::toRawName(item.title));
+      htmlParser.setField("ITEM_SUBTITLE", item.subtitle);
+      htmlParser.setField("ITEM_ICONURL", item.iconurl.toString());
+      htmlParser.setField("ITEM_URL", item.url.toString());
+      htmlParser.appendField("ROW_ITEMS", htmlParser.parse(item.title.isEmpty() ? htmlThumbnailItemNoTitle : htmlThumbnailItem));
 
-      if (rawPageName == selectedPage)
+      if (++col == 3 + cls)
       {
-        selectedPageName = pageName;
-        htmlParser.appendField("PAGES", htmlParser.parse(htmlPageCurrentItem));
-      }
-      else
-        htmlParser.appendField("PAGES", htmlParser.parse(htmlPageItem));
-    }
-
-    if (pageNames.count() > 1)
-      htmlParser.setField("PAGES", htmlParser.parse(htmlPages));
-    else
-      htmlParser.setField("PAGES", QByteArray(""));
-
-    // Build the content for the selected page
-    htmlParser.setField("LIST0", QByteArray(""));
-    htmlParser.setField("LIST1", QByteArray(""));
-    htmlParser.setField("LIST2", QByteArray(""));
-    for (unsigned cls=0; cls<3; cls++)
-    {
-      htmlParser.setField("ROW_TITLES", QByteArray(""));
-      htmlParser.setField("ROW_ITEMS", QByteArray(""));
-      unsigned col = 0;
-      foreach (const ThumbnailListItem &item, items)
-      if (SStringParser::toRawName(item.page) == selectedPage)
-      {
-        htmlParser.setField("ITEM_CLASS", QByteArray(item.played ? "thumbnaillistitemplayed" : "thumbnaillistitem"));
-        htmlParser.setField("ITEM_TITLE", item.title);
-        htmlParser.setField("ITEM_RAW_TITLE", SStringParser::toRawName(item.title));
-        htmlParser.setField("ITEM_SUBTITLE", item.subtitle);
-        htmlParser.setField("ITEM_ICONURL", item.iconurl.toString());
-        htmlParser.setField("ITEM_URL", item.url.toString());
-        htmlParser.appendField("ROW_ITEMS", htmlParser.parse(item.title.isEmpty() ? htmlThumbnailItemNoTitle : htmlThumbnailItem));
-
-        if (++col == 3 + cls)
-        {
-          htmlParser.appendField("LIST" + QByteArray::number(cls), htmlParser.parse(htmlThumbnailItemRow));
-          htmlParser.setField("ROW_ITEMS", QByteArray(""));
-          col = 0;
-        }
-      }
-
-      if (col > 0)
         htmlParser.appendField("LIST" + QByteArray::number(cls), htmlParser.parse(htmlThumbnailItemRow));
-
-      QByteArray esc = htmlParser.field("LIST" + QByteArray::number(cls));
-      htmlParser.setField("LIST" + QByteArray::number(cls) + "_ESC", esc.replace('\\', "\\\\").replace('\"', "\\\"").simplified());
+        htmlParser.setField("ROW_ITEMS", QByteArray(""));
+        col = 0;
+      }
     }
 
-    htmlParser.setField("TITLE", title + " - " + selectedPageName);
+    if (col > 0)
+      htmlParser.appendField("LIST" + QByteArray::number(cls), htmlParser.parse(htmlThumbnailItemRow));
+
+    QByteArray esc = htmlParser.field("LIST" + QByteArray::number(cls));
+    htmlParser.setField("LIST" + QByteArray::number(cls) + "_ESC", esc.replace('\\', "\\\\").replace('\"', "\\\"").simplified());
   }
 
   return htmlParser.parse(htmlThumbnails);
+}
+
+QByteArray MediaServer::buildDetailedView(const QString &path, const QStringList &columns, const DetailedListItemList &items)
+{
+  HtmlParser htmlParser;
+
+  // Build the page selector
+  htmlParser.setField("PAGES", QByteArray(""));
+
+  const QStringList dirs = path.split('/', QString::SkipEmptyParts);
+
+  QString fullPath = httpPath();
+  htmlParser.setField("ITEM_LINK", fullPath);
+  htmlParser.setField("ITEM_NAME", name());
+  htmlParser.appendField("PAGES", htmlParser.parse(dirs.isEmpty() ? htmlPageCurrentItem : htmlPageItem));
+
+  for (int i=0; i<dirs.count(); i++)
+  {
+    htmlParser.setField("ITEM_NAME", QByteArray(">"));
+    htmlParser.appendField("PAGES", htmlParser.parse(htmlPageCurrentItem));
+
+    fullPath += dirs[i] + "/";
+    htmlParser.setField("ITEM_LINK", fullPath);
+    htmlParser.setField("ITEM_NAME", dirs[i]);
+    htmlParser.appendField("PAGES", htmlParser.parse(i == (dirs.count() - 1) ? htmlPageCurrentItem : htmlPageItem));
+  }
+
+  htmlParser.setField("PAGES", htmlParser.parse(htmlPages));
+
+  // Build the table head
+  htmlParser.setField("LIST", QByteArray(""));
+  htmlParser.setField("COLUMNS", QByteArray(""));
+  htmlParser.setField("ROW_CLASS", QByteArray("listitem"));
+
+  htmlParser.setField("ITEM_TITLE", QByteArray(""));
+  htmlParser.appendField("COLUMNS", htmlParser.parse(htmlDetailedListHead)); // Icon column
+
+  foreach (const QString &column, columns)
+  {
+    htmlParser.setField("ITEM_TITLE", column);
+    htmlParser.appendField("COLUMNS", htmlParser.parse(htmlDetailedListHead));
+  }
+
+  htmlParser.appendField("LIST", htmlParser.parse(htmlDetailedListRow));
+
+  // Build the content
+  int itemNum = 0;
+  foreach (const DetailedListItem &item, items)
+  {
+    htmlParser.setField("COLUMNS", QByteArray(""));
+    htmlParser.setField("ROW_CLASS", QByteArray((itemNum++ & 1) ? "listaltitem" : "listitem"));
+
+    for (int i=0; i<item.columns.count(); i++)
+    {
+      htmlParser.setField("ITEM_TITLE", item.columns[i]);
+      if (i == 0)
+      {
+        htmlParser.setField("ITEM_ICONURL", item.iconurl.toString());
+        htmlParser.setField("ITEM_URL", item.url.toString());
+        htmlParser.appendField("COLUMNS", htmlParser.parse(htmlDetailedListIcon));
+        htmlParser.appendField("COLUMNS", htmlParser.parse(htmlDetailedListColumnLink));
+      }
+      else
+        htmlParser.appendField("COLUMNS", htmlParser.parse(htmlDetailedListColumn));
+    }
+
+    htmlParser.appendField("LIST", htmlParser.parse(htmlDetailedListRow));
+  }
+
+  return htmlParser.parse(htmlDetailedList);
 }
 
 QByteArray MediaServer::buildVideoPlayer(const QByteArray &item, const SMediaInfo &mediaInfo, const QUrl &url, const QSize &size)

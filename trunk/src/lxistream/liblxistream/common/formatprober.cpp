@@ -65,35 +65,39 @@ void FormatProber::probeFile(ProbeInfo &pi, ReadCallback *)
     {
       pi.audioStreams = QList<AudioStreamInfo>() << AudioStreamInfo(0, NULL, SAudioCodec(suffix.toUpper()));
       pi.fileTypeName = audioDescription(suffix);
+
+      splitFileName(info.completeBaseName(), pi.title, pi.author, pi.album, pi.track);
     }
     else if (videoSuffixes().contains(suffix))
     {
       pi.audioStreams = QList<AudioStreamInfo>() << AudioStreamInfo(0, NULL, SAudioCodec(suffix.toUpper()));
       pi.videoStreams = QList<VideoStreamInfo>() << VideoStreamInfo(0, NULL, SVideoCodec(suffix.toUpper()));
       pi.fileTypeName = videoDescription(suffix);
-    }
 
-    splitFileName(info.completeBaseName(), pi.title, pi.author, pi.album, pi.track);
+      splitFileName(info.completeBaseName(), pi.title, pi.author, pi.album, pi.track);
 
-    QDir dir = info.absoluteDir();
-    QString dirName = dir.dirName();
+      QDir dir = info.absoluteDir();
+      QString dirName = dir.dirName();
 
-    if (dirName.contains("season", Qt::CaseInsensitive) &&
-        (dirName.length() < 10))
-    {
-      pi.track = (pi.track % SMediaInfo::tvShowSeason) + (dirName.mid(7).toUInt() * SMediaInfo::tvShowSeason);
+      if (dirName.contains("season", Qt::CaseInsensitive) &&
+          (dirName.length() < 10))
+      {
+        pi.track = (pi.track % SMediaInfo::tvShowSeason) + (dirName.mid(7).toUInt() * SMediaInfo::tvShowSeason);
 
-      const QString path = dir.absolutePath();
+        const QString path = dir.absolutePath();
 
-      dir = QDir(path.left(path.length() - dirName.length()));
-      dirName = dir.dirName();
-    }
+        dir = QDir(path.left(path.length() - dirName.length()));
+        dirName = dir.dirName();
+      }
 
-    if (pi.track > 0)
-    {
-      QString dummy1, dummy2;
-      unsigned dummy3 = 0;
-      splitFileName(dirName, pi.album, dummy1, dummy2, dummy3);
+      if (pi.track > 0)
+      {
+        QString dummy1, dummy2;
+        unsigned dummy3 = 0;
+        splitFileName(dirName, pi.album, dummy1, dummy2, dummy3);
+      }
+      else
+        pi.title = info.completeBaseName();
     }
 
     if (pi.title.length() <= 3)
@@ -104,71 +108,6 @@ void FormatProber::probeFile(ProbeInfo &pi, ReadCallback *)
 void FormatProber::probeDisc(ProbeInfo &, const QString &)
 {
 }
-
-/*void FormatProber::splitAudioFileName(QString baseName, QString &title, QString &author, unsigned &track)
-{
-  static const QString audioChars = " &-[]()";
-
-  if (baseName.length() > 0)
-  {
-    for (QString::Iterator c=baseName.begin(); c!=baseName.end(); c++)
-    if (!c->isLetterOrNumber() && !audioChars.contains(*c))
-      *c = ' ';
-
-    if (baseName[0].isNumber())
-    {
-      int trackLen = 1;
-
-      for (; trackLen<baseName.length(); trackLen++)
-      if (!baseName[trackLen].isNumber())
-        break;
-
-      if (track == 0)
-        track = baseName.left(trackLen).toUInt();
-
-      for (; trackLen<baseName.length(); trackLen++)
-      if (baseName[trackLen].isLetter())
-        break;
-
-      baseName = baseName.mid(trackLen);
-    }
-
-    const int bracketOpen = baseName.indexOf('[');
-    const int bracketClose = baseName.indexOf(']', bracketOpen);
-
-    if ((bracketOpen >= 0) && (bracketClose > bracketOpen))
-    {
-      if (author.length() == 0)
-        author = baseName.mid(bracketOpen + 1, (bracketClose - bracketOpen) - 1).simplified();
-
-      if (title.length() == 0)
-        title = (baseName.left(bracketOpen - 1) + " " + baseName.mid(bracketClose + 1)).simplified();
-    }
-    else if (baseName.contains('-'))
-    {
-      QStringList list = baseName.split(" - ");
-
-      if (list.count() <= 1)
-        list = baseName.split('-');
-
-      if ((list.count() >= 1) && (author.length() == 0))
-        author = list[0].simplified();
-
-      if ((list.count() >= 2) && (title.length() == 0))
-        title = list[list.count() - 1].simplified();
-
-      if (track == 0)
-      foreach (QString i, list)
-      if (i.toUInt() > 0)
-      {
-        track = i.toUInt();
-        break;
-      }
-    }
-    else if (title.length() == 0)
-      title = baseName.simplified();
-  }
-}*/
 
 void FormatProber::splitFileName(QString baseName, QString &title, QString &author, QString &album, unsigned &episode)
 {

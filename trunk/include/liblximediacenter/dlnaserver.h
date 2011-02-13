@@ -38,8 +38,17 @@ Q_OBJECT
 public:
   struct Item
   {
+    enum Mode
+    {
+      Mode_Default              = 0,
+      Mode_PlaySeek,
+      Mode_Seek,
+      Mode_Chapters,
+      Mode_Direct               = 255
+    };
+
     inline Item(void)
-      : isDir(false), played(false), music(false), mode(0)
+      : isDir(false), played(false), music(false), mode(Mode_Default)
     {
     }
 

@@ -22,6 +22,7 @@
 
 #include <QtCore>
 #include <QtNetwork>
+#include "httpserver.h"
 
 namespace LXiMediaCenter {
 
@@ -61,15 +62,15 @@ public:
 
 protected:
   const QList<SsdpClientInterface *> & interfaces(void) const;
-  virtual void                  parsePacket(SsdpClientInterface *, const QHttpRequestHeader &, const QHostAddress &, quint16);
-  virtual void                  parsePacket(SsdpClientInterface *, const QHttpResponseHeader &, const QHostAddress &, quint16);
+  virtual void                  parsePacket(SsdpClientInterface *, const HttpServer::RequestHeader &, const QHostAddress &, quint16);
+  virtual void                  parsePacket(SsdpClientInterface *, const HttpServer::ResponseHeader &, const QHostAddress &, quint16);
 
-  static void                   sendDatagram(SsdpClientInterface *, const QHttpHeader &, const QHostAddress &, quint16);
+  static void                   sendDatagram(SsdpClientInterface *, const QByteArray &, const QHostAddress &, quint16);
   static void                   sendSearch(SsdpClientInterface *, const QString &st);
 
 private:
-  void                          addNode(const QHttpHeader &, const QString &);
-  void                          removeNode(const QHttpHeader &);
+  void                          addNode(const HttpServer::Header &, const QString &);
+  void                          removeNode(const HttpServer::Header &);
 
 public:
   static const QHostAddress     ssdpAddressIPv4;

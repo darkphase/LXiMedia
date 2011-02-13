@@ -29,35 +29,6 @@ namespace LXiMediaCenter {
 class HttpServer : public QThread
 {
 Q_OBJECT
-protected:
-  class Header
-  {
-  protected:
-    inline                      Header(void)                                    { }
-    explicit                    Header(const QByteArray &);
-
-  public:
-    inline bool                 isValid(void) const                             { return head.count() == 3; }
-
-    inline bool                 hasField(const QString &name) const             { return fields.contains(name); }
-    inline QString              field(const QString &name) const                { QMap<QString, QString>::ConstIterator i = fields.find(name); return (i != fields.end()) ? *i : QString::null; }
-    inline void                 setField(const QString &name, const QString &value) { fields.insert(name, value); }
-
-    inline qint64               contentLength(void) const                       { return field(fieldContentLength).toLongLong(); }
-    inline void                 setContentLength(qint64 len)                    { setField(fieldContentLength, QString::number(len)); }
-    inline QString              contentType(void) const                         { return field(fieldContentType); }
-    inline void                 setContentType(const QString &type)             { setField(fieldContentType, type); }
-    inline QString              host(void) const                                { return field(fieldHost); }
-    inline void                 setHost(const QString &type)                    { setField(fieldHost, type); }
-
-    QByteArray                  toUtf8(void) const;
-    inline                      operator QByteArray() const                     { return toUtf8(); }
-
-  protected:
-    QList<QByteArray>           head;
-    QMap<QString, QString>      fields;
-  };
-
 public:
   enum SocketOp               { SocketOp_Close, SocketOp_LeaveOpen };
 
@@ -73,6 +44,41 @@ public:
     Status_InternalServerError= 500
   };
 
+  class Header
+  {
+  protected:
+    inline                      Header(void)                                    { }
+    explicit                    Header(const QByteArray &);
+
+  public:
+    inline bool                 isValid(void) const                             { return head.count() == 3; }
+
+    inline bool                 hasField(const QString &name) const             { return fields.contains(name); }
+    inline QString              field(const QString &name) const                { QMap<QString, QString>::ConstIterator i = fields.find(name); return (i != fields.end()) ? *i : QString::null; }
+    void                        setField(const QString &name, const QString &value);
+
+    inline qint64               contentLength(void) const                       { return field(fieldContentLength).toLongLong(); }
+    inline void                 setContentLength(qint64 len)                    { setField(fieldContentLength, QString::number(len)); }
+    inline QString              contentType(void) const                         { return field(fieldContentType); }
+    inline void                 setContentType(const QString &type)             { setField(fieldContentType, type); }
+    inline QString              host(void) const                                { return field(fieldHost); }
+    inline void                 setHost(const QString &type)                    { setField(fieldHost, type); }
+
+    QByteArray                  toUtf8(void) const;
+    inline                      operator QByteArray() const                     { return toUtf8(); }
+
+  protected:
+    static const char   * const fieldContentLength;
+    static const char   * const fieldContentType;
+    static const char   * const fieldHost;
+
+    QList<QByteArray>           head;
+
+  private:
+    QMap<QString, QString>      fields;
+    QStringList                 fieldOrder;
+  };
+
   class RequestHeader : public Header
   {
   public:
@@ -86,19 +92,28 @@ public:
     inline QByteArray           version(void) const                             { return isValid() ? head[2] : QByteArray(); }
     inline void                 setVersion(const QByteArray &version)           { if (head.size() > 2) head[2] = version; else head.append(version); }
 
+    inline void                 setRequest(const QByteArray &method, const QByteArray &path) { setMethod(method); setPath(path);  }
+    inline void                 setRequest(const QByteArray &method, const QByteArray &path, const QByteArray &version) { setMethod(method); setPath(path); setVersion(version); }
+
     QString                     file(void) const;
   };
 
   class ResponseHeader : public Header
   {
   public:
-                                ResponseHeader(Status = Status_Ok);
+                                ResponseHeader(void);
+                                ResponseHeader(Status);
     explicit                    ResponseHeader(const QByteArray &header);
 
     inline QByteArray           version(void) const                             { return isValid() ? head[0] : QByteArray(); }
     inline void                 setVersion(const QByteArray &version)           { if (head.size() > 0) head[0] = version; else head.append(version); }
     inline Status               status(void) const                              { return isValid() ? Status(head[1].toInt()) : Status_None; }
     void                        setStatus(Status status);
+
+    inline void                 setResponse(Status status)                      { setStatus(status); }
+    inline void                 setResponse(Status status, const QByteArray &version) { setStatus(status); setVersion(version); }
+
+    static const char         * statusText(int) __attribute__((pure));
   };
 
   struct Callback
@@ -120,15 +135,9 @@ public:
 
 public:
   static const char           * toMimeType(const QString &fileName) __attribute__((pure));
-  static const char           * statusText(int) __attribute__((pure));
 
 private:
   virtual void                  run(void);
-
-private:
-  static const char     * const fieldContentLength;
-  static const char     * const fieldContentType;
-  static const char     * const fieldHost;
 
 private:
   class Interface;

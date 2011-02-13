@@ -36,17 +36,21 @@ public:
 
   struct File
   {
-    inline                      File(const QString &name, UniqueID uid) : name(name), uid(uid) { }
+    inline                      File(UniqueID uid, const QString &name) : uid(uid), name(name) { }
 
-    QString                     name;
     UniqueID                    uid;
+    QString                     name;
   };
 
   enum Category
   {
-    Category_None = 0,
-    Category_Movies, Category_TVShows, Category_Clips, Category_HomeVideos,
-    Category_Photos, Category_Music
+    Category_None             =  0,
+    Category_Movies           = 10,
+    Category_TVShows          = 20,
+    Category_Clips            = 30,
+    Category_HomeVideos       = 40,
+    Category_Photos           = 50,
+    Category_Music            = 60
   };
 
 private:
@@ -70,7 +74,7 @@ private:
 
   struct QuerySet;
 
-public: // In mediadatabase.cpp
+public:
                                 MediaDatabase(Plugin *parent, QThreadPool *);
   virtual                       ~MediaDatabase();
 
@@ -89,20 +93,16 @@ public: // In mediadatabase.cpp
   QStringList                   allAlbums(Category) const;
   bool                          hasAlbum(Category, const QString &album) const;
   int                           countAlbumFiles(Category, const QString &album) const;
-  QList<File>                   allAlbumFiles(Category, const QString &album) const;
   QList<File>                   getAlbumFiles(Category, const QString &album, unsigned start = 0, unsigned count = 0) const;
-  QList<File>                   queryAlbums(Category, const QStringList &query) const;
+  QList<File>                   queryAlbums(Category, const QStringList &query, unsigned start = 0, unsigned count = 0) const;
 
   ImdbClient::Entry             getImdbEntry(UniqueID) const;
   QList<UniqueID>               allFilesInDirOf(UniqueID) const;
 
-private: // In mediadatabase.cpp
-  static const char           * categoryName(Category category);
-
-private slots: // In mediadatabase.scan.cpp
+private slots:
   void                          scanRoots(void);
 
-private: // In mediadatabase.scan.cpp
+private:
   QString                       findRoot(const QString &, const QStringList &) const;
   void                          scanDirs(void);
   void                          updateDir(const QString &, qint64, QuerySet &);

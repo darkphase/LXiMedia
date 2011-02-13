@@ -86,6 +86,11 @@ QString SMediaInfo::fileName(void) const
   return QFileInfo(pi->filePath).fileName();
 }
 
+QString SMediaInfo::baseName(void) const
+{
+  return QFileInfo(pi->filePath).completeBaseName();
+}
+
 QString SMediaInfo::path(void) const
 {
   if (pi->path.isEmpty())

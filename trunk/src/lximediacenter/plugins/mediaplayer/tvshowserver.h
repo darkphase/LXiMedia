@@ -32,7 +32,7 @@ class TvShowServer : public MediaPlayerServer
 {
 Q_OBJECT
 public:
-                                TvShowServer(MediaDatabase *, MediaDatabase::Category, const char *, Plugin *, BackendServer::MasterServer *);
+                                TvShowServer(MediaDatabase *, MediaDatabase::Category, const char *, Plugin *, MasterServer *);
   virtual                       ~TvShowServer();
 
 protected:
