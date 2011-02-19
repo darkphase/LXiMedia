@@ -58,6 +58,8 @@ signals:
   void                          output(const SEncodedVideoBuffer &);
   void                          output(const SEncodedDataBuffer &);
   void                          finished(void);
+  void                          opened(const QString &);
+  void                          closed(const QString &);
 
 private:
   void                          processTask(void);

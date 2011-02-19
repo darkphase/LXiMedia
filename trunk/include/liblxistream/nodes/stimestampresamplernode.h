@@ -40,7 +40,7 @@ public:
   explicit                      STimeStampResamplerNode(SGraph *);
   virtual                       ~STimeStampResamplerNode();
 
-  void                          setFrameRate(SInterval frameRate);
+  void                          setFrameRate(SInterval frameRate, double maxRatio = 0.08);
 
 public slots:
   void                          input(const SAudioBuffer &);

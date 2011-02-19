@@ -187,16 +187,20 @@ SMediaInfo MediaDatabase::readNode(UniqueID uid) const
 
 void MediaDatabase::setLastPlayed(UniqueID uid, const QDateTime &lastPlayed)
 {
-  setLastPlayed(readNode(uid), lastPlayed);
+  const SMediaInfo node = readNode(uid);
+  if (!node.isNull())
+    setLastPlayed(node.filePath(), lastPlayed);
 }
 
-void MediaDatabase::setLastPlayed(const SMediaInfo &node, const QDateTime &lastPlayed)
+void MediaDatabase::setLastPlayed(const QString &filePath, const QDateTime &lastPlayed)
 {
-  if (!node.isNull())
+  if (!filePath.isEmpty())
   {
+    SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+
     QSettings settings(GlobalSettings::applicationDataDir() + "/lastplayed.db", QSettings::IniFormat);
 
-    QString key = node.filePath();
+    QString key = filePath;
     key.replace('/', '|');
     key.replace('\\', '|');
 
@@ -209,16 +213,22 @@ void MediaDatabase::setLastPlayed(const SMediaInfo &node, const QDateTime &lastP
 
 QDateTime MediaDatabase::lastPlayed(UniqueID uid) const
 {
-  return lastPlayed(readNode(uid));
+  const SMediaInfo node = readNode(uid);
+  if (!node.isNull())
+    return lastPlayed(node.filePath());
+
+  return QDateTime();
 }
 
-QDateTime MediaDatabase::lastPlayed(const SMediaInfo &node) const
+QDateTime MediaDatabase::lastPlayed(const QString &filePath) const
 {
-  if (!node.isNull())
+  if (!filePath.isEmpty())
   {
+    SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+
     QSettings settings(GlobalSettings::applicationDataDir() + "/lastplayed.db", QSettings::IniFormat);
 
-    QString key = node.filePath();
+    QString key = filePath;
     key.replace('/', '|');
     key.replace('\\', '|');
 

@@ -27,6 +27,25 @@
 
 namespace LXiMediaCenter {
 
+class PlaylistServer;
+
+class PlaylistServerStreamHelper : public QObject
+{
+Q_OBJECT
+public:
+                                PlaylistServerStreamHelper(QObject *parent, MediaDatabase *);
+  virtual                       ~PlaylistServerStreamHelper();
+
+public slots:
+  void                          opened(const QString &);
+  void                          closed(const QString &);
+
+private:
+  MediaDatabase         * const mediaDatabase;
+  QString                       currentFile;
+  QDateTime                     startTime;
+};
+
 class PlaylistServer : public MediaPlayerServer
 {
 Q_OBJECT
@@ -35,11 +54,15 @@ protected:
   {
   public:
                                 PlaylistStream(PlaylistServer *, const QHostAddress &peer, const QString &url, const SMediaInfoList &files);
+    virtual                     ~PlaylistStream();
 
     bool                        setup(const HttpServer::RequestHeader &, QAbstractSocket *);
 
   public:
     SPlaylistNode               playlistNode;
+
+  private:
+    PlaylistServerStreamHelper  streamHelper;
   };
 
 public:
