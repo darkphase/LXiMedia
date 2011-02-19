@@ -73,6 +73,9 @@ protected: // From SInterfaces::BufferReader::ProduceCallback
   virtual void                  produce(const SEncodedDataBuffer &);
 
 private:
+  void                          processTask(void);
+
+private:
   struct Data;
   Data                  * const d;
 };

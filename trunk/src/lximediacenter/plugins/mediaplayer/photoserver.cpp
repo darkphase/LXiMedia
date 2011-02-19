@@ -23,7 +23,7 @@
 namespace LXiMediaCenter {
 
 PhotoServer::PhotoServer(MediaDatabase *mediaDatabase, MediaDatabase::Category category, const char *name, Plugin *plugin, MasterServer *server)
-  : MediaPlayerServer(mediaDatabase, category, name, plugin, server)
+  : PlaylistServer(mediaDatabase, category, name, plugin, server, tr("Slideshow"))
 {
 }
 
@@ -33,111 +33,53 @@ PhotoServer::~PhotoServer()
 
 HttpServer::SocketOp PhotoServer::streamVideo(const HttpServer::RequestHeader &request, QAbstractSocket *socket)
 {
-  const QUrl url(request.path());
-  const QStringList file = url.path().mid(url.path().lastIndexOf('/') + 1).split('.');
+  const QStringList file = request.file().split('.');
 
-  if (file.first().endsWith("-slideshow"))
+  if ((file.count() > 1) && (file[1] == "playlist"))
   {
-    const QString album = QString::fromUtf8(QByteArray::fromHex(file.first().left(file.first().length() - 10).toAscii()));
+    const QString album = QString::fromUtf8(QByteArray::fromHex(file.first().toAscii()));
     const QList<MediaDatabase::File> files = mediaDatabase->getAlbumFiles(MediaDatabase::Category_Photos, album);
     if (!files.isEmpty())
     {
-      QString title;
-      QImage thumb;
       QStringList fileNames;
       foreach (const MediaDatabase::File &file, files)
       {
         const SMediaInfo node = mediaDatabase->readNode(file.uid);
         if (!node.isNull())
-        {
-          if (fileNames.isEmpty())
-          if (!node.thumbnails().isEmpty())
-            thumb = QImage::fromData(node.thumbnails().first());
-
           fileNames.append(node.filePath());
-
-          if (title.isEmpty())
-          {
-            QDir parentDir(node.filePath());
-            parentDir.cdUp();
-
-            title = parentDir.dirName();
-          }
-        }
       }
 
       SlideShowStream *stream = new SlideShowStream(this, socket->peerAddress(), request.path(), fileNames);
-      if (stream->setup(request, socket, stream->slideShow.duration(), title, thumb))
+      if (stream->setup(request, socket))
       if (stream->start())
         return HttpServer::SocketOp_LeaveOpen; // The graph owns the socket now.
 
       delete stream;
     }
+
+    qWarning() << "Failed to start stream" << request.path();
+    socket->write(HttpServer::ResponseHeader(HttpServer::Status_NotFound));
+    return HttpServer::SocketOp_Close;
   }
-
-  qWarning() << "Failed to start stream" << request.path();
-  socket->write(HttpServer::ResponseHeader(HttpServer::Status_NotFound));
-  return HttpServer::SocketOp_Close;
-}
-
-int PhotoServer::countItems(const QString &path)
-{
-  if (mediaDatabase->countAlbumFiles(category, path) > 0)
-    return MediaPlayerServer::countItems(path) + 1;
   else
-    return MediaPlayerServer::countItems(path);
+    return MediaPlayerServer::streamVideo(request, socket);
 }
 
 QList<PhotoServer::Item> PhotoServer::listItems(const QString &path, unsigned start, unsigned count)
 {
-  QList<Item> result;
-
-  if (mediaDatabase->countAlbumFiles(category, path) > 0)
+  QList<Item> items;
+  foreach (Item item, PlaylistServer::listItems(path, start, count))
   {
-    if (start == 0)
+    if (!item.isDir)
     {
-      if (count > 1)
-        result = MediaPlayerServer::listItems(path, start, count - 1);
-      else if (count == 0)
-        result = MediaPlayerServer::listItems(path, start, count);
-
-      Item item;
+      item.played = false; // Not useful for photos.
       item.mode = Item::Mode_Direct;
-      item.title = tr("Slideshow");
-      item.mimeType = "video/mpeg";
-      item.url = httpPath() + path.toUtf8().toHex() + "-slideshow";
-
-      if (result.isEmpty())
-      {
-        const QList<Item> first = MediaPlayerServer::listItems(path, 0, 1);
-        if (!first.isEmpty())
-        {
-          item.iconUrl = first.first().iconUrl;
-          item.iconUrl.addQueryItem("overlay", "slideshow");
-        }
-      }
-      else
-      {
-        item.iconUrl = result.first().iconUrl;
-        item.iconUrl.addQueryItem("overlay", "slideshow");
-      }
-
-      result.prepend(item);
     }
-    else
-      result = MediaPlayerServer::listItems(path, start - 1, count);
-  }
-  else
-    result = MediaPlayerServer::listItems(path, start, count);
 
-  for (int i=0; i<result.count(); i++)
-  if (!result[i].isDir)
-  {
-    result[i].played = false; // Not useful for photos.
-    result[i].mode = Item::Mode_Direct;
+    items += item;
   }
 
-  return result;
+  return items;
 }
 
 HttpServer::SocketOp PhotoServer::handleHttpRequest(const HttpServer::RequestHeader &request, QAbstractSocket *socket)
@@ -160,10 +102,10 @@ HttpServer::SocketOp PhotoServer::handleHttpRequest(const HttpServer::RequestHea
 
     return sendPhoto(socket, MediaDatabase::fromUidString(file.left(16)), width, height);
   }
-  else if (file.endsWith(".html")) // Show player
+  else if (file.endsWith(".html") && !file.endsWith(".playlist.html")) // Show photo
     return handleHtmlRequest(url, file, socket);
 
-  return MediaPlayerServer::handleHttpRequest(request, socket);
+  return PlaylistServer::handleHttpRequest(request, socket);
 }
 
 HttpServer::SocketOp PhotoServer::sendPhoto(QAbstractSocket *socket, MediaDatabase::UniqueID uid, unsigned width, unsigned height) const
@@ -208,86 +150,19 @@ PhotoServer::SlideShowStream::SlideShowStream(PhotoServer *parent, const QHostAd
   connect(&slideShow, SIGNAL(output(SVideoBuffer)), &subtitleRenderer, SLOT(input(SVideoBuffer)));
 }
 
-bool PhotoServer::SlideShowStream::setup(const HttpServer::RequestHeader &request, QAbstractSocket *socket, STime duration, const QString &name, const QImage &thumb)
+bool PhotoServer::SlideShowStream::setup(const HttpServer::RequestHeader &request, QAbstractSocket *socket)
 {
-  const QUrl url(request.path());
-  const QStringList file = url.path().mid(url.path().lastIndexOf('/') + 1).split('.');
-
-  const SInterval frameRate = SInterval::fromFrequency(slideShow.frameRate);
-
-  SSize size = slideShow.size();
-  if (url.hasQueryItem("size"))
+  if (Stream::setup(request, socket,
+                    slideShow.duration(),
+                    SInterval::fromFrequency(slideShow.frameRate), slideShow.size(),
+                    SAudioFormat::Channel_Stereo))
   {
-    const QStringList sizeTxt = url.queryItemValue("size").split('/').first().split('x');
-    if (sizeTxt.count() >= 2)
-    {
-      size.setWidth(sizeTxt[0].toInt());
-      size.setHeight(sizeTxt[1].toInt());
-      if (sizeTxt.count() >= 3)
-        size.setAspectRatio(sizeTxt[2].toFloat());
-      else
-        size.setAspectRatio(1.0f);
+    slideShow.setSize(videoResizer.size());
 
-      slideShow.setSize(size);
-    }
-  }
-
-  const SInterfaces::AudioEncoder::Flags audioEncodeFlags = SInterfaces::AudioEncoder::Flag_Fast;
-  const SInterfaces::VideoEncoder::Flags videoEncodeFlags = SInterfaces::VideoEncoder::Flag_Fast;
-
-  HttpServer::ResponseHeader header(HttpServer::Status_Ok);
-  header.setField("Cache-Control", "no-cache");
-
-  if ((file.last().toLower() == "mpeg") || (file.last().toLower() == "mpg"))
-  {
-    header.setContentType("video/MP2P");
-
-    const SAudioCodec audioOutCodec("MP2", SAudioFormat::Channel_Stereo, 48000);
-    if (!audioEncoder.openCodec(audioOutCodec, audioEncodeFlags))
-      return false;
-
-    if (!videoEncoder.openCodec(SVideoCodec("MPEG2", size, frameRate), videoEncodeFlags))
-    if (!videoEncoder.openCodec(SVideoCodec("MPEG1", size, frameRate), videoEncodeFlags))
-      return false;
-
-    output.openFormat("vob", audioEncoder.codec(), videoEncoder.codec(), duration);
-  }
-  else if ((file.last().toLower() == "ogg") || (file.last().toLower() == "ogv"))
-  {
-    header.setContentType("video/ogg");
-
-    const SAudioCodec audioOutCodec("FLAC", SAudioFormat::Channel_Stereo, 44100);
-    if (!audioEncoder.openCodec(audioOutCodec, audioEncodeFlags))
-      return false;
-
-    const SVideoCodec videoOutCodec("THEORA", size, frameRate);
-    if (!videoEncoder.openCodec(videoOutCodec, videoEncodeFlags))
-      return false;
-
-    output.openFormat("ogg", audioEncoder.codec(), videoEncoder.codec(), duration);
-  }
-  else if (file.last().toLower() == "flv")
-  {
-    header.setContentType("video/x-flv");
-
-    const SAudioCodec audioOutCodec("PCM/S16LE", SAudioFormat::Channel_Stereo, 44100);
-    if (!audioEncoder.openCodec(audioOutCodec, audioEncodeFlags))
-      return false;
-
-    const SVideoCodec videoOutCodec("FLV1", size, frameRate);
-    if (!videoEncoder.openCodec(videoOutCodec, videoEncodeFlags))
-      return false;
-
-    output.openFormat("flv", audioEncoder.codec(), videoEncoder.codec(), duration);
+    return true;
   }
   else
     return false;
-
-  Stream::setup(url.queryItemValue("header") == "true", name, thumb);
-
-  output.setHeader(header);
-  output.addSocket(socket);
-  return true;
 }
 
 } // End of namespace

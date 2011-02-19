@@ -51,7 +51,10 @@ public:
   inline SSize                & operator=(const SSize &c)                       { w = c.w; h = c.h; a = c.a; return *this; }
   inline bool                   operator==(const SSize &c) const                { return (w == c.w) && (h == c.h) && (a == c.a); }
   inline bool                   operator!=(const SSize &c) const                { return !operator==(c); }
-  inline bool                   operator<(const SSize &c) const                 { return (absoluteWidth() * absoluteHeight()) < (c.absoluteWidth() * c.absoluteHeight()); }
+  inline bool                   operator<(const SSize &c) const                 { return (absoluteWidth() * absoluteHeight()) <  (c.absoluteWidth() * c.absoluteHeight()); }
+  inline bool                   operator<=(const SSize &c) const                { return (absoluteWidth() * absoluteHeight()) <= (c.absoluteWidth() * c.absoluteHeight()); }
+  inline bool                   operator>(const SSize &c) const                 { return (absoluteWidth() * absoluteHeight()) >  (c.absoluteWidth() * c.absoluteHeight()); }
+  inline bool                   operator>=(const SSize &c) const                { return (absoluteWidth() * absoluteHeight()) >= (c.absoluteWidth() * c.absoluteHeight()); }
 
   inline int                    width(void) const                               { return w; }
   inline void                   setWidth(int nw)                                { w = nw; }

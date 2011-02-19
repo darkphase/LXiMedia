@@ -22,7 +22,7 @@
 namespace LXiMediaCenter {
 
 MusicServer::MusicServer(MediaDatabase *mediaDatabase, MediaDatabase::Category category, const char *name, Plugin *plugin, MasterServer *server)
-  : MediaPlayerServer(mediaDatabase, category, name, plugin, server),
+  : PlaylistServer(mediaDatabase, category, name, plugin, server),
     playlistDir(GlobalSettings::applicationDataDir() + "/playlists")
 {
   if (!playlistDir.exists())
@@ -36,13 +36,14 @@ MusicServer::~MusicServer()
 QList<MusicServer::Item> MusicServer::listItems(const QString &path, unsigned start, unsigned count)
 {
   QList<Item> items;
-  foreach (Item item, MediaPlayerServer::listItems(path, start, count))
+  foreach (Item item, PlaylistServer::listItems(path, start, count))
   {
     if (!item.isDir)
     {
       item.played = false; // Not useful for music.
       item.mode = Item::Mode_Direct;
 
+      if (!item.mediaInfo.isNull())
       if (!item.mediaInfo.author().isEmpty())
         item.title += " [" + item.mediaInfo.author() + "]";
     }
@@ -89,13 +90,21 @@ HttpServer::SocketOp MusicServer::handleHttpRequest(const HttpServer::RequestHea
         detailedItem.columns += item.mediaInfo.author();
         detailedItem.columns += QTime().addSecs(item.mediaInfo.duration().toSec()).toString("mm:ss");
         detailedItem.url = item.url;
+        detailedItem.url.setPath(detailedItem.url.path() + ".html");
         detailedItem.iconurl = item.mediaInfo.containsVideo() ? "/img/video-file.png" : "/img/audio-file.png";
-
-        QString path = detailedItem.url.path();
-        path = path.left(path.lastIndexOf('.')) + ".html";
-        detailedItem.url.setPath(path);
-
         detailedItem.played = item.played;
+
+        detailedItems.append(detailedItem);
+      }
+      else
+      {
+        DetailedListItem detailedItem;
+        detailedItem.columns += item.title;
+        detailedItem.columns += "";
+        detailedItem.columns += "";
+        detailedItem.url = item.url;
+        detailedItem.url.setPath(detailedItem.url.path() + ".html");
+        detailedItem.iconurl = "/img/playlist-file.png";
 
         detailedItems.append(detailedItem);
       }
@@ -106,7 +115,7 @@ HttpServer::SocketOp MusicServer::handleHttpRequest(const HttpServer::RequestHea
     return sendHtmlContent(socket, url, response, buildDetailedView(path, columns, detailedItems), headList);
   }
 
-  return MediaPlayerServer::handleHttpRequest(request, socket);
+  return PlaylistServer::handleHttpRequest(request, socket);
 }
 
 QStringList MusicServer::playlists(void) const

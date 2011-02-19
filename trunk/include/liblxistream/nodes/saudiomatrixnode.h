@@ -58,7 +58,7 @@ signals:
   void                          output(const SAudioBuffer &);
 
 private:
-  void                          process(const SAudioBuffer &);
+  void                          processTask(const SAudioBuffer &);
 
   static Channel                getChannel(Mode, unsigned);
   static Mode                   getMode(unsigned);

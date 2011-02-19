@@ -29,8 +29,6 @@ class SlideShowNode : public QObject,
                       public SInterfaces::SourceNode
 {
 Q_OBJECT
-Q_PROPERTY(QSize size READ __internal_size WRITE __internal_setSize)
-Q_PROPERTY(float aspectRatio READ __internal_aspectRatio WRITE __internal_setAspectRatio)
 public:
                                 SlideShowNode(SGraph *parent, const QStringList &pictures);
   virtual                       ~SlideShowNode();
@@ -51,11 +49,6 @@ signals:
   void                          finished(void);
 
 private:
-  inline QSize                  __internal_size(void) const                     { return size().size(); }
-  inline void                   __internal_setSize(const QSize &s)              { setSize(s); }
-  inline float                  __internal_aspectRatio(void) const              { return size().aspectRatio(); }
-  inline void                   __internal_setAspectRatio(float a)              { SSize t = size(); t.setAspectRatio(a); setSize(t); }
-
   void                          loadImage(const int &);
   void                          computeVideoBuffer(void);
   void                          sendFlush(void);

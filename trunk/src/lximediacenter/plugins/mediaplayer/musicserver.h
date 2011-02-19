@@ -24,12 +24,12 @@
 #include <LXiMediaCenter>
 #include <LXiStream>
 #include "mediadatabase.h"
-#include "mediaplayerserver.h"
 #include "playlist.h"
+#include "playlistserver.h"
 
 namespace LXiMediaCenter {
 
-class MusicServer : public MediaPlayerServer
+class MusicServer : public PlaylistServer
 {
 Q_OBJECT
 public:

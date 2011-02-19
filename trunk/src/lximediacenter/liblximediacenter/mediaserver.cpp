@@ -309,115 +309,318 @@ MediaServer::Stream::~Stream()
   parent->removeStream(this);
 }
 
-void MediaServer::Stream::setup(bool addHeader, const QString &name, const QImage &thumb)
+bool MediaServer::Stream::setup(const HttpServer::RequestHeader &request, QAbstractSocket *socket, STime duration, SInterval frameRate, SSize size, SAudioFormat::Channels channels)
 {
-  const SAudioCodec audioCodec = audioEncoder.codec();
-  const SVideoCodec videoCodec = videoEncoder.codec();
+  QUrl url(request.path());
+  if (url.hasQueryItem("query"))
+    url = url.toEncoded(QUrl::RemoveQuery) + QByteArray::fromHex(url.queryItemValue("query").toAscii());
 
-  if (!videoCodec.isNull())
-    sync.setFrameRate(videoCodec.frameRate());
+  QStringList file = request.file().split('.');
+  if (file.count() <= 1)
+    file += "mpeg"; // Default to mpeg file
 
-  // Build test card
-  if (addHeader && !audioCodec.isNull() && !videoCodec.isNull())
+  // Stream priority
+  if (url.queryItemValue("priority") == "lowest")
+    setPriority(Priority_Lowest);
+  else if (url.queryItemValue("priority") == "low")
+    setPriority(Priority_Low);
+  else if (url.queryItemValue("priority") == "high")
+    setPriority(Priority_High);
+  else if (url.queryItemValue("priority") == "highest")
+    setPriority(Priority_Highest);
+
+  // Set stream properties
+  const double freq = frameRate.toFrequency();
+  const double d15 = freq - 15.0;
+  const double d24 = freq - 24.0;
+  const double d25 = freq - 25.0;
+  const double d30 = freq - 30.0;
+  const double d50 = freq - 50.0;
+  const double d60 = freq - 60.0;
+
+  if ((d15 > -3.0) && (d15 < 3.0))
   {
-    SAudioBuffer audioBuffer(SAudioFormat(SAudioFormat::Format_PCM_S16,
-                                          audioCodec.channelSetup(),
-                                          audioCodec.sampleRate()),
-                             int(audioCodec.sampleRate() / videoCodec.frameRate().toFrequency()));
-    memset(audioBuffer.data(), 0, audioBuffer.size());
-
-    QImage darkThumb;
-    if (!thumb.isNull())
-    {
-      darkThumb = thumb;
-      QPainter p;
-      p.begin(&darkThumb);
-        p.fillRect(darkThumb.rect(), QColor(0, 0, 0, 192));
-      p.end();
-    }
-
-    SImage img(videoCodec.size().size(), QImage::Format_RGB32);
-    QPainter p;
-    p.begin(&img);
-      p.fillRect(img.rect(), Qt::black);
-
-      const qreal ar = videoCodec.size().aspectRatio();
-
-      if (!darkThumb.isNull())
-      {
-        QSize size = darkThumb.size();
-        size.scale(int(img.width() * ar), img.height(), Qt::KeepAspectRatio);
-        darkThumb = darkThumb.scaled(int(size.width() / ar), size.height(), Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
-
-        const QPoint pos((img.width() / 2) - (darkThumb.width() / 2), (img.height() / 2) - (darkThumb.height() / 2));
-        p.drawImage(pos, darkThumb);
-      }
-
-      const int bsv = qMin(img.width() / 16, img.height() / 16), bsvi = bsv / 8;
-      const int bsh = int(bsv / ar), bshi = int(bsvi / ar);
-
-      const QColor bc(255, 255, 255, 64);
-      p.fillRect(0, 0, bsh * 4, bsv * 2, bc);
-      p.fillRect(0, 0, bsh * 2, bsv * 4, bc);
-      p.fillRect(img.width(), img.height(), -bsh * 4, -bsv * 2, bc);
-      p.fillRect(img.width(), img.height(), -bsh * 2, -bsv * 4, bc);
-
-      const int dv = qMin(img.width(), img.height()) - bsv, dh = int(dv / ar);
-      p.setRenderHint(QPainter::Antialiasing, true);
-      p.setPen(QPen(Qt::white, 4.0));
-      p.setBrush(QColor(0, 16, 32, 160));
-      p.drawEllipse(QRect((img.width() / 2) - (dh / 2), (img.height() / 2) - (dv / 2), dh, dv));
-      p.setRenderHint(QPainter::Antialiasing, false);
-
-      QImage logo = GlobalSettings::productLogo();
-      if ((img.height() < 1080) || !qFuzzyCompare(ar, 1.0))
-      {
-        logo = logo.scaled(int((logo.width() * img.height() / 1080) / ar),
-                           logo.height() * img.height() / 1080,
-                           Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
-      }
-
-      const QPoint pos((img.width() / 2) - (logo.width() / 2), (img.height() / 2) - (logo.height() / 2));
-      p.drawImage(pos, logo);
-
-      for (int i=0; i<8; i++)
-      {
-        const int c = qBound(0, 256 - (i * 32), 255);
-        const int xPos = ((img.width() / 2) - (bsh * 4)) + (bsh * i);
-        const int yPos = bsv * 4;
-        p.fillRect(xPos, yPos, bsh, bsv, QColor(c, c, c));
-      }
-    p.end();
-
-    static const int duration = 4; // Seconds
-    SVideoBufferList buffers;
-    for (int i=0; i<duration; i++)
-    {
-      p.begin(&img);
-        const int xPos = ((img.width() / 2) + (bsh * (duration / 2))) - (bsh * i) - bshi;
-        const int yPos = img.height() - (bsv * 4) - bsvi;
-        p.fillRect(xPos, yPos, -(bsh - (bshi * 2)), -(bsv - (bsvi * 2)), Qt::white);
-      p.end();
-
-      // The subtitle renderer is used here to render the text as on Unix fonts
-      // are not available if X is not loaded.
-      QStringList text;
-      text += name;
-      text += QString::null;
-
-      buffers.prepend(SSubtitleRenderNode::renderSubtitles(img.toVideoBuffer(ar, videoCodec.frameRate()), text));
-    }
-
-    sync.setHeader(audioBuffer, buffers, STime::fromSec(buffers.count()));
+    duration *= (15.0 / freq);
+    frameRate = SInterval::fromFrequency(15);
   }
+  else if ((d24 > -2.0) && (d24 < 0.6))
+  {
+    duration *= (24.0 / freq);
+    frameRate = SInterval::fromFrequency(24);
+  }
+  else if ((d25 > -2.0) && (d25 < 2.1))
+  {
+    duration *= (25.0 / freq);
+    frameRate = SInterval::fromFrequency(25);
+  }
+  else if ((d30 > -3.0) && (d30 < 4.0))
+  {
+    duration *= (30.0 / freq);
+    frameRate = SInterval::fromFrequency(30);
+  }
+  else if ((d50 > -5.0) && (d50 < 5.0))
+  {
+    duration *= (50.0 / freq);
+    frameRate = SInterval::fromFrequency(50);
+  }
+  else if ((d60 > -5.0) && (d60 < 5.0))
+  {
+    duration *= (60.0 / freq);
+    frameRate = SInterval::fromFrequency(60);
+  }
+  else
+    frameRate = SInterval::fromFrequency(25);
+
+  timeStampResampler.setFrameRate(frameRate);
+  sync.setFrameRate(frameRate);
+
+  Qt::AspectRatioMode aspectRatioMode = Qt::KeepAspectRatio;
+  if (url.hasQueryItem("size"))
+  {
+    const QStringList formatTxt = url.queryItemValue("size").split('/');
+
+    const QStringList sizeTxt = formatTxt.first().split('x');
+    if (sizeTxt.count() >= 2)
+    {
+      size.setWidth(sizeTxt[0].toInt());
+      size.setHeight(sizeTxt[1].toInt());
+      if (sizeTxt.count() >= 3)
+        size.setAspectRatio(sizeTxt[2].toFloat());
+      else
+        size.setAspectRatio(1.0f);
+    }
+
+    if (formatTxt.count() >= 2)
+    {
+      if (formatTxt[1] == "box")
+        aspectRatioMode = Qt::KeepAspectRatio;
+      else if (formatTxt[1] == "zoom")
+        aspectRatioMode = Qt::KeepAspectRatioByExpanding;
+    }
+  }
+
+  if (url.hasQueryItem("requestchannels"))
+  {
+    const SAudioFormat::Channels c =
+        SAudioFormat::Channels(url.queryItemValue("requestchannels").toUInt(NULL, 16));
+
+    if ((SAudioFormat::numChannels(c) > 0) &&
+        (SAudioFormat::numChannels(channels) > SAudioFormat::numChannels(c)))
+    {
+      channels = c;
+    }
+  }
+  else if (url.hasQueryItem("forcechannels"))
+    channels = SAudioFormat::Channels(url.queryItemValue("forcechannels").toUInt(NULL, 16));
+
+  SInterfaces::AudioEncoder::Flags audioEncodeFlags = SInterfaces::AudioEncoder::Flag_Fast;
+  SInterfaces::VideoEncoder::Flags videoEncodeFlags = SInterfaces::VideoEncoder::Flag_Fast;
+  if (url.queryItemValue("encode") == "slow")
+  {
+    audioEncodeFlags = SInterfaces::AudioEncoder::Flag_None;
+    videoEncodeFlags = SInterfaces::VideoEncoder::Flag_None;
+    videoResizer.setHighQuality(true);
+  }
+  else
+    videoResizer.setHighQuality(false);
+
+  HttpServer::ResponseHeader header(HttpServer::Status_Ok);
+  header.setField("Cache-Control", "no-cache");
+
+  if ((file.last().toLower() == "mpeg") || (file.last().toLower() == "mpg"))
+  {
+    header.setContentType("video/MP2P");
+
+    if (SAudioFormat::numChannels(channels) <= 2)
+    {
+      const SAudioCodec audioOutCodec("MP2", SAudioFormat::Channel_Stereo, 48000);
+      audioResampler.setChannels(audioOutCodec.channelSetup());
+      audioResampler.setSampleRate(audioOutCodec.sampleRate());
+      if (!audioEncoder.openCodec(audioOutCodec, audioEncodeFlags))
+        return false;
+    }
+    else if (SAudioFormat::numChannels(channels) == 4)
+    {
+      const SAudioCodec audioOutCodec("AC3", SAudioFormat::Channel_Quadraphonic, 48000);
+      audioResampler.setChannels(audioOutCodec.channelSetup());
+      audioResampler.setSampleRate(audioOutCodec.sampleRate());
+      if (!audioEncoder.openCodec(audioOutCodec, audioEncodeFlags))
+        return false;
+    }
+    else
+    {
+      const SAudioCodec audioOutCodec("AC3", SAudioFormat::Channel_Surround_5_1, 48000);
+      audioResampler.setChannels(audioOutCodec.channelSetup());
+      audioResampler.setSampleRate(audioOutCodec.sampleRate());
+      if (!audioEncoder.openCodec(audioOutCodec, audioEncodeFlags))
+        return false;
+    }
+
+    if (!videoEncoder.openCodec(SVideoCodec("MPEG2", size, frameRate), videoEncodeFlags))
+    if (!videoEncoder.openCodec(SVideoCodec("MPEG1", size, frameRate), videoEncodeFlags))
+      return false;
+
+    output.openFormat("vob", audioEncoder.codec(), videoEncoder.codec(), duration);
+  }
+  /*else if ((file.last().toLower() == "ogg") || (file.last().toLower() == "ogv"))
+  {
+    header.setContentType("video/ogg");
+
+    const SAudioCodec audioOutCodec("FLAC", SAudioFormat::Channel_Stereo, 44100);
+    audioDecoder.setFlags(SInterfaces::AudioDecoder::Flag_DownsampleToStereo);
+    audioResampler.setChannels(audioOutCodec.channelSetup());
+    audioResampler.setSampleRate(audioOutCodec.sampleRate());
+    if (!audioEncoder.openCodec(audioOutCodec, audioEncodeFlags))
+      return false;
+
+    const SVideoCodec videoOutCodec("THEORA", size, frameRate);
+    if (!videoEncoder.openCodec(videoOutCodec, videoEncodeFlags))
+      return false;
+
+    output.enablePseudoStreaming(1.1f);
+    output.openFormat("ogg", audioEncoder.codec(), videoEncoder.codec(), duration);
+  }*/
+  else if (file.last().toLower() == "flv")
+  {
+    header.setContentType("video/x-flv");
+
+    const SAudioCodec audioOutCodec("PCM/S16LE", SAudioFormat::Channel_Stereo, 44100);
+    audioResampler.setChannels(audioOutCodec.channelSetup());
+    audioResampler.setSampleRate(audioOutCodec.sampleRate());
+    if (!audioEncoder.openCodec(audioOutCodec, audioEncodeFlags))
+      return false;
+
+    const SVideoCodec videoOutCodec("FLV1", size, frameRate);
+    if (!videoEncoder.openCodec(videoOutCodec, videoEncodeFlags))
+      return false;
+
+    output.enablePseudoStreaming(1.1f);
+    output.openFormat("flv", audioEncoder.codec(), videoEncoder.codec(), duration);
+  }
+  else
+    return false;
+
+  videoResizer.setSize(size);
+  videoResizer.setAspectRatioMode(aspectRatioMode);
+  videoBox.setSize(size);
+
+  output.setHeader(header);
+  output.addSocket(socket);
 
   //enableTrace("/tmp/test.svg");
 
-  qDebug() << "Started stream" << id << ":"
-      << videoCodec.size().width() << "x" << videoCodec.size().height()
-      << "@" << videoCodec.frameRate().toFrequency() << videoEncoder.codec().codec()
+  qDebug() << "Started video stream" << id << ":"
+      << size.width() << "x" << size.height()
+      << "@" << frameRate.toFrequency() << videoEncoder.codec().codec()
       << SAudioFormat::channelSetupName(audioEncoder.codec().channelSetup())
       << audioEncoder.codec().sampleRate() << audioEncoder.codec().codec();
+
+  return true;
+}
+
+bool MediaServer::Stream::setup(const HttpServer::RequestHeader &request, QAbstractSocket *socket, STime duration, SAudioFormat::Channels channels)
+{
+  QUrl url(request.path());
+  if (url.hasQueryItem("query"))
+    url = url.toEncoded(QUrl::RemoveQuery) + QByteArray::fromHex(url.queryItemValue("query").toAscii());
+
+  QStringList file = request.file().split('.');
+  if (file.count() <= 1)
+    file += "mpa"; // Default to mpeg file
+
+  // Stream priority
+  if (url.queryItemValue("priority") == "lowest")
+    setPriority(Priority_Lowest);
+  else if (url.queryItemValue("priority") == "low")
+    setPriority(Priority_Low);
+  else if (url.queryItemValue("priority") == "high")
+    setPriority(Priority_High);
+  else if (url.queryItemValue("priority") == "highest")
+    setPriority(Priority_Highest);
+
+  // Set stream properties
+  if (url.hasQueryItem("requestchannels"))
+  {
+    const SAudioFormat::Channels c =
+        SAudioFormat::Channels(url.queryItemValue("requestchannels").toUInt(NULL, 16));
+
+    if ((SAudioFormat::numChannels(c) > 0) &&
+        (SAudioFormat::numChannels(channels) > SAudioFormat::numChannels(c)))
+    {
+      channels = c;
+    }
+  }
+  else if (url.hasQueryItem("forcechannels"))
+    channels = SAudioFormat::Channels(url.queryItemValue("forcechannels").toUInt(NULL, 16));
+
+  SInterfaces::AudioEncoder::Flags audioEncodeFlags = SInterfaces::AudioEncoder::Flag_Fast;
+  if (url.queryItemValue("encode") == "slow")
+    audioEncodeFlags = SInterfaces::AudioEncoder::Flag_None;
+
+  HttpServer::ResponseHeader header(HttpServer::Status_Ok);
+  header.setField("Cache-Control", "no-cache");
+
+  if (file.last().toLower() == "mpa")
+  {
+    header.setContentType("audio/mpeg");
+
+    const SAudioCodec audioOutCodec("MP2", SAudioFormat::Channel_Stereo, 48000);
+    audioResampler.setChannels(audioOutCodec.channelSetup());
+    audioResampler.setSampleRate(audioOutCodec.sampleRate());
+    audioEncoder.openCodec(audioOutCodec, audioEncodeFlags);
+
+    output.openFormat("mp2", audioEncoder.codec(), SVideoCodec(), duration);
+  }
+  /*else if ((file.last().toLower() == "ogg") || (file.last().toLower() == "oga"))
+  {
+    header.setContentType("audio/ogg");
+
+    const SAudioCodec audioOutCodec("FLAC", SAudioFormat::Channel_Stereo, 44100);
+    audioDecoder.setFlags(SInterfaces::AudioDecoder::Flag_DownsampleToStereo);
+    audioResampler.setChannels(audioOutCodec.channelSetup());
+    audioResampler.setSampleRate(audioOutCodec.sampleRate());
+    audioEncoder.openCodec(audioOutCodec, audioEncodeFlags);
+
+    output.enablePseudoStreaming(1.1f);
+    output.openFormat("ogg", audioEncoder.codec(), SVideoCodec(), duration);
+  }*/
+  else if (file.last().toLower() == "wav")
+  {
+    header.setContentType("audio/wave");
+
+    const SAudioCodec audioOutCodec("PCM/S16LE", SAudioFormat::Channel_Stereo, 44100);
+    audioResampler.setChannels(audioOutCodec.channelSetup());
+    audioResampler.setSampleRate(audioOutCodec.sampleRate());
+    audioEncoder.openCodec(audioOutCodec, audioEncodeFlags);
+
+    output.enablePseudoStreaming(1.1f);
+    output.openFormat("wav", audioEncoder.codec(), SVideoCodec(), duration);
+  }
+  else if (file.last().toLower() == "flv")
+  {
+    header.setContentType("video/x-flv");
+
+    const SAudioCodec audioOutCodec("PCM/S16LE", SAudioFormat::Channel_Stereo, 44100);
+    audioResampler.setChannels(audioOutCodec.channelSetup());
+    audioResampler.setSampleRate(audioOutCodec.sampleRate());
+    audioEncoder.openCodec(audioOutCodec, audioEncodeFlags);
+
+    output.enablePseudoStreaming(1.1f);
+    output.openFormat("flv", audioEncoder.codec(), SVideoCodec(), duration);
+  }
+  else
+    return false;
+
+  output.setHeader(header);
+  output.addSocket(socket);
+
+  //enableTrace("/tmp/test.svg");
+
+  qDebug() << "Started audio stream" << id << ":"
+      << SAudioFormat::channelSetupName(audioEncoder.codec().channelSetup())
+      << audioEncoder.codec().sampleRate() << audioEncoder.codec().codec();
+
+  return true;
 }
 
 
@@ -438,24 +641,11 @@ MediaServer::TranscodeStream::TranscodeStream(MediaServer *parent, const QHostAd
   connect(&dataDecoder, SIGNAL(output(SSubtitleBuffer)), &timeStampResampler, SLOT(input(SSubtitleBuffer)));
 }
 
-bool MediaServer::TranscodeStream::setup(const HttpServer::RequestHeader &request, QAbstractSocket *socket, SInterfaces::BufferReaderNode *input, STime duration, const QString &name, const QImage &thumb)
+bool MediaServer::TranscodeStream::setup(const HttpServer::RequestHeader &request, QAbstractSocket *socket, SInterfaces::BufferReaderNode *input, STime duration)
 {
   QUrl url(request.path());
-  QStringList file = request.file().split('.');
-  if (file.count() <= 1)
-    file += "mpeg"; // Default to mpeg file
-
   if (url.hasQueryItem("query"))
     url = url.toEncoded(QUrl::RemoveQuery) + QByteArray::fromHex(url.queryItemValue("query").toAscii());
-
-  if (url.queryItemValue("priority") == "lowest")
-    setPriority(Priority_Lowest);
-  else if (url.queryItemValue("priority") == "low")
-    setPriority(Priority_Low);
-  else if (url.queryItemValue("priority") == "high")
-    setPriority(Priority_High);
-  else if (url.queryItemValue("priority") == "highest")
-    setPriority(Priority_Highest);
 
   // Select streams
   const QList<SIOInputNode::AudioStreamInfo> audioStreams = input->audioStreams();
@@ -481,312 +671,51 @@ bool MediaServer::TranscodeStream::setup(const HttpServer::RequestHeader &reques
 
   input->selectStreams(selectedStreams);
 
+  // Seek to start
+  if (!duration.isValid())
+    duration = input->duration();
+
+  if (url.hasQueryItem("position"))
+  {
+    const STime pos = STime::fromSec(url.queryItemValue("position").toInt());
+    input->setPosition(pos);
+
+    if (duration > pos)
+      duration -= pos;
+    else
+      duration = STime::null;
+  }
+
   // Set stream properties
   if (!audioStreams.isEmpty() && !videoStreams.isEmpty())
   {
     const SAudioCodec audioInCodec = audioStreams.first().codec;
     const SVideoCodec videoInCodec = videoStreams.first().codec;
 
-    if (url.hasQueryItem("position"))
+    if (Stream::setup(request, socket,
+                      duration,
+                      videoInCodec.frameRate(), videoInCodec.size(),
+                      audioInCodec.channelSetup()))
     {
-      const STime pos = STime::fromSec(url.queryItemValue("position").toInt());
-      input->setPosition(pos);
-
-      if (duration > pos)
-        duration -= pos;
-      else
-        duration = STime::null;
-    }
-
-    // Graph options.
-    SInterval frameRate = videoInCodec.frameRate();
-    if (frameRate.isValid())
-    {
-      const double freq = frameRate.toFrequency();
-      const double d15 = freq - 15.0;
-      const double d24 = freq - 24.0;
-      const double d25 = freq - 25.0;
-      const double d30 = freq - 30.0;
-      const double d50 = freq - 50.0;
-      const double d60 = freq - 60.0;
-
-      if ((d15 > -3.0) && (d15 < 3.0))
-      {
-        duration *= (15.0 / freq);
-        frameRate = SInterval::fromFrequency(15);
-      }
-      else if ((d24 > -2.0) && (d24 < 0.6))
-      {
-        duration *= (24.0 / freq);
-        frameRate = SInterval::fromFrequency(24);
-      }
-      else if ((d25 > -2.0) && (d25 < 2.1))
-      {
-        duration *= (25.0 / freq);
-        frameRate = SInterval::fromFrequency(25);
-      }
-      else if ((d30 > -3.0) && (d30 < 4.0))
-      {
-        duration *= (30.0 / freq);
-        frameRate = SInterval::fromFrequency(30);
-      }
-      else if ((d50 > -5.0) && (d50 < 5.0))
-      {
-        duration *= (50.0 / freq);
-        frameRate = SInterval::fromFrequency(50);
-      }
-      else if ((d60 > -5.0) && (d60 < 5.0))
-      {
-        duration *= (60.0 / freq);
-        frameRate = SInterval::fromFrequency(60);
-      }
-      else
-        frameRate = SInterval::fromFrequency(25);
-
-      timeStampResampler.setFrameRate(frameRate);
-    }
-    else
-      frameRate = SInterval::fromFrequency(25);
-
-    SSize size = videoInCodec.size();
-    Qt::AspectRatioMode aspectRatioMode = Qt::KeepAspectRatio;
-    if (url.hasQueryItem("size"))
-    {
-      const QStringList formatTxt = url.queryItemValue("size").split('/');
-
-      const QStringList sizeTxt = formatTxt.first().split('x');
-      if (sizeTxt.count() >= 2)
-      {
-        size.setWidth(sizeTxt[0].toInt());
-        size.setHeight(sizeTxt[1].toInt());
-        if (sizeTxt.count() >= 3)
-          size.setAspectRatio(sizeTxt[2].toFloat());
-        else
-          size.setAspectRatio(1.0f);
-      }
-
-      if (formatTxt.count() >= 2)
-      {
-        if (formatTxt[1] == "box")
-          aspectRatioMode = Qt::KeepAspectRatio;
-        else if (formatTxt[1] == "zoom")
-          aspectRatioMode = Qt::KeepAspectRatioByExpanding;
-      }
-    }
-
-    SAudioFormat::Channels channels = audioInCodec.channelSetup();
-    if (url.hasQueryItem("requestchannels"))
-    {
-      const SAudioFormat::Channels c =
-          SAudioFormat::Channels(url.queryItemValue("requestchannels").toUInt(NULL, 16));
-
-      if ((SAudioFormat::numChannels(c) > 0) &&
-          (SAudioFormat::numChannels(channels) > SAudioFormat::numChannels(c)))
-      {
-        channels = c;
-      }
-    }
-    else if (url.hasQueryItem("forcechannels"))
-      channels = SAudioFormat::Channels(url.queryItemValue("forcechannels").toUInt(NULL, 16));
-
-    SInterfaces::AudioEncoder::Flags audioEncodeFlags = SInterfaces::AudioEncoder::Flag_Fast;
-    SInterfaces::VideoEncoder::Flags videoEncodeFlags = SInterfaces::VideoEncoder::Flag_Fast;
-    if (url.queryItemValue("encode") == "slow")
-    {
-      audioEncodeFlags = SInterfaces::AudioEncoder::Flag_None;
-      videoEncodeFlags = SInterfaces::VideoEncoder::Flag_None;
-      videoResizer.setHighQuality(true);
-    }
-    else
-      videoResizer.setHighQuality(false);
-
-    HttpServer::ResponseHeader header(HttpServer::Status_Ok);
-    header.setField("Cache-Control", "no-cache");
-
-    if ((file.last().toLower() == "mpeg") || (file.last().toLower() == "mpg"))
-    {
-      header.setContentType("video/MP2P");
-
-      if (SAudioFormat::numChannels(channels) <= 2)
-      {
-        const SAudioCodec audioOutCodec("MP2", SAudioFormat::Channel_Stereo, 48000);
+      if (audioResampler.channels() == SAudioFormat::Channel_Stereo)
         audioDecoder.setFlags(SInterfaces::AudioDecoder::Flag_DownsampleToStereo);
-        audioResampler.setChannels(audioOutCodec.channelSetup());
-        audioResampler.setSampleRate(audioOutCodec.sampleRate());
-        if (!audioEncoder.openCodec(audioOutCodec, audioEncodeFlags))
-          return false;
-      }
-      else if (SAudioFormat::numChannels(channels) == 4)
-      {
-        const SAudioCodec audioOutCodec("AC3", SAudioFormat::Channel_Quadraphonic, 48000);
-        audioResampler.setChannels(audioOutCodec.channelSetup());
-        audioResampler.setSampleRate(audioOutCodec.sampleRate());
-        if (!audioEncoder.openCodec(audioOutCodec, audioEncodeFlags))
-          return false;
-      }
-      else
-      {
-        const SAudioCodec audioOutCodec("AC3", SAudioFormat::Channel_Surround_5_1, 48000);
-        audioResampler.setChannels(audioOutCodec.channelSetup());
-        audioResampler.setSampleRate(audioOutCodec.sampleRate());
-        if (!audioEncoder.openCodec(audioOutCodec, audioEncodeFlags))
-          return false;
-      }
 
-      if (!videoEncoder.openCodec(SVideoCodec("MPEG2", size, frameRate), videoEncodeFlags))
-      if (!videoEncoder.openCodec(SVideoCodec("MPEG1", size, frameRate), videoEncodeFlags))
-        return false;
-
-      output.openFormat("vob", audioEncoder.codec(), videoEncoder.codec(), duration);
+      return true;
     }
-    /*else if ((file.last().toLower() == "ogg") || (file.last().toLower() == "ogv"))
-    {
-      header.setContentType("video/ogg");
-
-      const SAudioCodec audioOutCodec("FLAC", SAudioFormat::Channel_Stereo, 44100);
-      audioDecoder.setFlags(SInterfaces::AudioDecoder::Flag_DownsampleToStereo);
-      audioResampler.setChannels(audioOutCodec.channelSetup());
-      audioResampler.setSampleRate(audioOutCodec.sampleRate());
-      if (!audioEncoder.openCodec(audioOutCodec, audioEncodeFlags))
-        return false;
-
-      const SVideoCodec videoOutCodec("THEORA", size, frameRate);
-      if (!videoEncoder.openCodec(videoOutCodec, videoEncodeFlags))
-        return false;
-
-      output.enablePseudoStreaming(1.1f);
-      output.openFormat("ogg", audioEncoder.codec(), videoEncoder.codec(), duration);
-    }*/
-    else if (file.last().toLower() == "flv")
-    {
-      header.setContentType("video/x-flv");
-
-      const SAudioCodec audioOutCodec("PCM/S16LE", SAudioFormat::Channel_Stereo, 44100);
-      audioDecoder.setFlags(SInterfaces::AudioDecoder::Flag_DownsampleToStereo);
-      audioResampler.setChannels(audioOutCodec.channelSetup());
-      audioResampler.setSampleRate(audioOutCodec.sampleRate());
-      if (!audioEncoder.openCodec(audioOutCodec, audioEncodeFlags))
-        return false;
-
-      const SVideoCodec videoOutCodec("FLV1", size, frameRate);
-      if (!videoEncoder.openCodec(videoOutCodec, videoEncodeFlags))
-        return false;
-
-      output.enablePseudoStreaming(1.1f);
-      output.openFormat("flv", audioEncoder.codec(), videoEncoder.codec(), duration);
-    }
-    else
-      return false;
-
-    videoResizer.setSize(size);
-    videoResizer.setAspectRatioMode(aspectRatioMode);
-    videoBox.setSize(size);
-
-    Stream::setup(url.queryItemValue("header") == "true", name, thumb);
-
-    output.setHeader(header);
-    output.addSocket(socket);
-
-    return true;
   }
   else if (!audioStreams.isEmpty())
   {
     const SAudioCodec audioInCodec = audioStreams.first().codec;
 
-    if (url.hasQueryItem("position"))
+    if (Stream::setup(request, socket,
+                      duration,
+                      audioInCodec.channelSetup()))
     {
-      const STime pos = STime::fromSec(url.queryItemValue("position").toInt());
-      input->setPosition(pos);
+      if (audioResampler.channels() == SAudioFormat::Channel_Stereo)
+        audioDecoder.setFlags(SInterfaces::AudioDecoder::Flag_DownsampleToStereo);
 
-      if (duration > pos)
-        duration -= pos;
-      else
-        duration = STime::null;
+      return true;
     }
-
-    // Graph options.
-    SInterfaces::AudioEncoder::Flags audioEncodeFlags = SInterfaces::AudioEncoder::Flag_Fast;
-    if (url.hasQueryItem("encode") && (url.queryItemValue("encode") == "slow"))
-      audioEncodeFlags = SInterfaces::AudioEncoder::Flag_None;
-
-    SAudioFormat::Channels channels = audioInCodec.channelSetup();
-    if (url.hasQueryItem("requestchannels"))
-    {
-      const SAudioFormat::Channels c =
-          SAudioFormat::Channels(url.queryItemValue("requestchannels").toUInt(NULL, 16));
-
-      if ((SAudioFormat::numChannels(c) > 0) &&
-          (SAudioFormat::numChannels(channels) > SAudioFormat::numChannels(c)))
-      {
-        channels = c;
-      }
-    }
-    else if (url.hasQueryItem("forcechannels"))
-      channels = SAudioFormat::Channels(url.queryItemValue("forcechannels").toUInt(NULL, 16));
-
-    HttpServer::ResponseHeader header(HttpServer::Status_Ok);
-    header.setField("Cache-Control", "no-cache");
-
-    if ((file.last().toLower() == "mpeg") || (file.last().toLower() == "mpg") || (file.last().toLower() == "mpa"))
-    {
-      header.setContentType("audio/mpeg");
-
-      const SAudioCodec audioOutCodec("MP2", SAudioFormat::Channel_Stereo, 48000);
-      audioDecoder.setFlags(SInterfaces::AudioDecoder::Flag_DownsampleToStereo);
-      audioResampler.setChannels(audioOutCodec.channelSetup());
-      audioResampler.setSampleRate(audioOutCodec.sampleRate());
-      audioEncoder.openCodec(audioOutCodec, audioEncodeFlags);
-
-      output.openFormat("mp2", audioEncoder.codec(), SVideoCodec(), duration);
-    }
-    /*else if ((file.last().toLower() == "ogg") || (file.last().toLower() == "oga"))
-    {
-      header.setContentType("audio/ogg");
-
-      const SAudioCodec audioOutCodec("FLAC", SAudioFormat::Channel_Stereo, 44100);
-      audioDecoder.setFlags(SInterfaces::AudioDecoder::Flag_DownsampleToStereo);
-      audioResampler.setChannels(audioOutCodec.channelSetup());
-      audioResampler.setSampleRate(audioOutCodec.sampleRate());
-      audioEncoder.openCodec(audioOutCodec, audioEncodeFlags);
-
-      output.enablePseudoStreaming(1.1f);
-      output.openFormat("ogg", audioEncoder.codec(), SVideoCodec(), duration);
-    }*/
-    else if (file.last().toLower() == "wav")
-    {
-      header.setContentType("audio/wave");
-
-      const SAudioCodec audioOutCodec("PCM/S16LE", SAudioFormat::Channel_Stereo, 44100);
-      audioDecoder.setFlags(SInterfaces::AudioDecoder::Flag_DownsampleToStereo);
-      audioResampler.setChannels(audioOutCodec.channelSetup());
-      audioResampler.setSampleRate(audioOutCodec.sampleRate());
-      audioEncoder.openCodec(audioOutCodec, audioEncodeFlags);
-
-      output.enablePseudoStreaming(1.1f);
-      output.openFormat("wav", audioEncoder.codec(), SVideoCodec(), duration);
-    }
-    else if (file.last().toLower() == "flv")
-    {
-      header.setContentType("video/x-flv");
-
-      const SAudioCodec audioOutCodec("PCM/S16LE", SAudioFormat::Channel_Stereo, 44100);
-      audioDecoder.setFlags(SInterfaces::AudioDecoder::Flag_DownsampleToStereo);
-      audioResampler.setChannels(audioOutCodec.channelSetup());
-      audioResampler.setSampleRate(audioOutCodec.sampleRate());
-      audioEncoder.openCodec(audioOutCodec, audioEncodeFlags);
-
-      output.enablePseudoStreaming(1.1f);
-      output.openFormat("flv", audioEncoder.codec(), SVideoCodec(), duration);
-    }
-    else
-      return false;
-
-    Stream::setup(false, name);
-
-    output.setHeader(header);
-    output.addSocket(socket);
-
-    return true;
   }
 
   return false;

@@ -129,15 +129,15 @@ void SVideoResizeNode::input(const SVideoBuffer &videoBuffer)
     }
 
     if (graph)
-      graph->runTask(this, &SVideoResizeNode::process, videoBuffer, resizer);
+      graph->runTask(this, &SVideoResizeNode::processTask, videoBuffer, resizer);
     else
-      process(videoBuffer, resizer);
+      processTask(videoBuffer, resizer);
   }
   else
     emit output(videoBuffer);
 }
 
-void SVideoResizeNode::process(const SVideoBuffer &videoBuffer, SInterfaces::VideoResizer *resizer)
+void SVideoResizeNode::processTask(const SVideoBuffer &videoBuffer, SInterfaces::VideoResizer *resizer)
 {
   emit output(resizer->processBuffer(videoBuffer));
 }

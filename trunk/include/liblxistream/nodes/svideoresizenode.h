@@ -54,7 +54,7 @@ signals:
   void                          output(const SVideoBuffer &);
 
 private:
-  void                          process(const SVideoBuffer &, SInterfaces::VideoResizer *);
+  void                          processTask(const SVideoBuffer &, SInterfaces::VideoResizer *);
 
 private:
   inline void                   __internal_setSize(const QSize &s)              { setSize(s); }

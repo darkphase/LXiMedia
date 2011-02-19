@@ -69,13 +69,13 @@ void SAudioEncoderNode::input(const SAudioBuffer &audioBuffer)
   if (d->encoder)
   {
     if (graph)
-      graph->runTask(this, &SAudioEncoderNode::process, audioBuffer);
+      graph->runTask(this, &SAudioEncoderNode::processTask, audioBuffer);
     else
-      process(audioBuffer);
+      processTask(audioBuffer);
   }
 }
 
-void SAudioEncoderNode::process(const SAudioBuffer &audioBuffer)
+void SAudioEncoderNode::processTask(const SAudioBuffer &audioBuffer)
 {
   foreach (const SEncodedAudioBuffer &buffer, d->encoder->encodeBuffer(audioBuffer))
     emit output(buffer);

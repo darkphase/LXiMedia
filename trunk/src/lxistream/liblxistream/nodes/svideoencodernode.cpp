@@ -68,13 +68,13 @@ void SVideoEncoderNode::input(const SVideoBuffer &videoBuffer)
   if (d->encoder)
   {
     if (graph)
-      graph->runTask(this, &SVideoEncoderNode::process, videoBuffer);
+      graph->runTask(this, &SVideoEncoderNode::processTask, videoBuffer);
     else
-      process(videoBuffer);
+      processTask(videoBuffer);
   }
 }
 
-void SVideoEncoderNode::process(const SVideoBuffer &videoBuffer)
+void SVideoEncoderNode::processTask(const SVideoBuffer &videoBuffer)
 {
   foreach (const SEncodedVideoBuffer &buffer, d->encoder->encodeBuffer(videoBuffer))
     emit output(buffer);

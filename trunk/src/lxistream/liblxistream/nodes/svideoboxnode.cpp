@@ -68,67 +68,70 @@ void SVideoBoxNode::input(const SVideoBuffer &videoBuffer)
   if (!videoBuffer.isNull())
   {
     if (videoBuffer.format().size() == d->destSize)
-    {
       emit output(videoBuffer);
-    }
+    else if (graph)
+      graph->runTask(this, &SVideoBoxNode::processTask, videoBuffer);
     else
-    {
-      const SSize size = videoBuffer.format().size();
-
-      SVideoBuffer destBuffer(SVideoFormat(videoBuffer.format().format(),
-                                           d->destSize,
-                                           videoBuffer.format().frameRate(),
-                                           videoBuffer.format().fieldMode()));
-
-      if (destBuffer.format().sampleSize() == 1)
-      {
-        int wr = 1, hr = 1;
-        videoBuffer.format().planarYUVRatio(wr, hr);
-
-        if (destBuffer.lineSize(0) > 0)
-          LXiStream_SVideoBoxNode_boxVideo8(videoBuffer.scanLine(0, 0),
-                                      size.width(), videoBuffer.lineSize(0),
-                                      size.height(), destBuffer.scanLine(0, 0),
-                                      d->destSize.width(), destBuffer.lineSize(0),
-                                      d->destSize.height(), 0);
-
-        if (destBuffer.lineSize(1) > 0)
-          LXiStream_SVideoBoxNode_boxVideo8(videoBuffer.scanLine(0, 1),
-                                      size.width() / wr, videoBuffer.lineSize(1),
-                                      size.height() / hr, destBuffer.scanLine(0, 1),
-                                      d->destSize.width() / wr, destBuffer.lineSize(1),
-                                      d->destSize.height() / hr, 127);
-
-        if (destBuffer.lineSize(2) > 0)
-          LXiStream_SVideoBoxNode_boxVideo8(videoBuffer.scanLine(0, 2),
-                                      size.width() / wr, videoBuffer.lineSize(2),
-                                      size.height() / hr, destBuffer.scanLine(0, 2),
-                                      d->destSize.width() / wr, destBuffer.lineSize(2),
-                                      d->destSize.height() / hr, 127);
-      }
-      if (destBuffer.format().sampleSize() == 2)
-      {
-        if (destBuffer.lineSize(0) > 0)
-          LXiStream_SVideoBoxNode_boxVideo32(videoBuffer.scanLine(0, 0),
-                                       size.width() / 2, videoBuffer.lineSize(0),
-                                       size.height(), destBuffer.scanLine(0, 0),
-                                       d->destSize.width() / 2, destBuffer.lineSize(0),
-                                       d->destSize.height(), videoBuffer.format().nullPixelValue());
-      }
-      if (destBuffer.format().sampleSize() == 4)
-      {
-        if (destBuffer.lineSize(0) > 0)
-          LXiStream_SVideoBoxNode_boxVideo32(videoBuffer.scanLine(0, 0),
-                                       size.width(), videoBuffer.lineSize(0),
-                                       size.height(), destBuffer.scanLine(0, 0),
-                                       d->destSize.width(), destBuffer.lineSize(0),
-                                       d->destSize.height(), videoBuffer.format().nullPixelValue());
-      }
-
-      destBuffer.setTimeStamp(videoBuffer.timeStamp());
-      emit output(destBuffer);
-    }
+      processTask(videoBuffer);
   }
+}
+
+void SVideoBoxNode::processTask(const SVideoBuffer &videoBuffer)
+{
+  const SSize size = videoBuffer.format().size();
+
+  SVideoBuffer destBuffer(SVideoFormat(videoBuffer.format().format(),
+                                       d->destSize,
+                                       videoBuffer.format().frameRate(),
+                                       videoBuffer.format().fieldMode()));
+
+  if (destBuffer.format().sampleSize() == 1)
+  {
+    int wr = 1, hr = 1;
+    videoBuffer.format().planarYUVRatio(wr, hr);
+
+    if (destBuffer.lineSize(0) > 0)
+      LXiStream_SVideoBoxNode_boxVideo8(videoBuffer.scanLine(0, 0),
+                                  size.width(), videoBuffer.lineSize(0),
+                                  size.height(), destBuffer.scanLine(0, 0),
+                                  d->destSize.width(), destBuffer.lineSize(0),
+                                  d->destSize.height(), 0);
+
+    if (destBuffer.lineSize(1) > 0)
+      LXiStream_SVideoBoxNode_boxVideo8(videoBuffer.scanLine(0, 1),
+                                  size.width() / wr, videoBuffer.lineSize(1),
+                                  size.height() / hr, destBuffer.scanLine(0, 1),
+                                  d->destSize.width() / wr, destBuffer.lineSize(1),
+                                  d->destSize.height() / hr, 127);
+
+    if (destBuffer.lineSize(2) > 0)
+      LXiStream_SVideoBoxNode_boxVideo8(videoBuffer.scanLine(0, 2),
+                                  size.width() / wr, videoBuffer.lineSize(2),
+                                  size.height() / hr, destBuffer.scanLine(0, 2),
+                                  d->destSize.width() / wr, destBuffer.lineSize(2),
+                                  d->destSize.height() / hr, 127);
+  }
+  if (destBuffer.format().sampleSize() == 2)
+  {
+    if (destBuffer.lineSize(0) > 0)
+      LXiStream_SVideoBoxNode_boxVideo32(videoBuffer.scanLine(0, 0),
+                                   size.width() / 2, videoBuffer.lineSize(0),
+                                   size.height(), destBuffer.scanLine(0, 0),
+                                   d->destSize.width() / 2, destBuffer.lineSize(0),
+                                   d->destSize.height(), videoBuffer.format().nullPixelValue());
+  }
+  if (destBuffer.format().sampleSize() == 4)
+  {
+    if (destBuffer.lineSize(0) > 0)
+      LXiStream_SVideoBoxNode_boxVideo32(videoBuffer.scanLine(0, 0),
+                                   size.width(), videoBuffer.lineSize(0),
+                                   size.height(), destBuffer.scanLine(0, 0),
+                                   d->destSize.width(), destBuffer.lineSize(0),
+                                   d->destSize.height(), videoBuffer.format().nullPixelValue());
+  }
+
+  destBuffer.setTimeStamp(videoBuffer.timeStamp());
+  emit output(destBuffer);
 }
 
 

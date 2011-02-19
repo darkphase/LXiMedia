@@ -141,24 +141,10 @@ void SDiscInputNode::stop(void)
 
 void SDiscInputNode::process(void)
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
-  if (d->bufferReader)
-  {
-    if (d->bufferReader->process())
-      return;
-
-    // Finished; close input.
-    d->bufferReader->stop();
-
-    delete d->bufferReader;
-    d->bufferReader = NULL;
-
-    emit output(SEncodedAudioBuffer());
-    emit output(SEncodedVideoBuffer());
-    emit output(SEncodedDataBuffer());
-    emit finished();
-  }
+  if (graph)
+    graph->runTask(this, &SDiscInputNode::processTask);
+  else
+    processTask();
 }
 
 STime SDiscInputNode::duration(void) const
@@ -282,6 +268,28 @@ void SDiscInputNode::produce(const SEncodedVideoBuffer &buffer)
 void SDiscInputNode::produce(const SEncodedDataBuffer &buffer)
 {
   emit output(buffer);
+}
+
+void SDiscInputNode::processTask(void)
+{
+  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+
+  if (d->bufferReader)
+  {
+    if (d->bufferReader->process())
+      return;
+
+    // Finished; close input.
+    d->bufferReader->stop();
+
+    delete d->bufferReader;
+    d->bufferReader = NULL;
+
+    emit output(SEncodedAudioBuffer());
+    emit output(SEncodedVideoBuffer());
+    emit output(SEncodedDataBuffer());
+    emit finished();
+  }
 }
 
 

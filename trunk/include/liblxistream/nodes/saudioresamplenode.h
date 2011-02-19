@@ -51,7 +51,7 @@ signals:
   void                          output(const SAudioBuffer &);
 
 private:
-  void                          process(const SAudioBuffer &);
+  void                          processTask(const SAudioBuffer &);
 
 private:
   inline quint32                __internal_channels(void) const                 { return quint32(channels()); }

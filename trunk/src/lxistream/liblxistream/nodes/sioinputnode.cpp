@@ -112,25 +112,10 @@ void SIOInputNode::stop(void)
 
 void SIOInputNode::process(void)
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
-  if (d->ioDevice && d->bufferReader)
-  {
-    if (!d->ioDevice->atEnd())
-    if (d->bufferReader->process())
-      return;
-
-    // Finished; close input.
-    d->bufferReader->stop();
-
-    delete d->bufferReader;
-    d->bufferReader = NULL;
-
-    emit output(SEncodedAudioBuffer());
-    emit output(SEncodedVideoBuffer());
-    emit output(SEncodedDataBuffer());
-    emit finished();
-  }
+  if (graph)
+    graph->runTask(this, &SIOInputNode::processTask);
+  else
+    processTask();
 }
 
 qint64 SIOInputNode::read(uchar *buffer, qint64 size)
@@ -249,6 +234,29 @@ void SIOInputNode::produce(const SEncodedVideoBuffer &buffer)
 void SIOInputNode::produce(const SEncodedDataBuffer &buffer)
 {
   emit output(buffer);
+}
+
+void SIOInputNode::processTask(void)
+{
+  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+
+  if (d->ioDevice && d->bufferReader)
+  {
+    if (!d->ioDevice->atEnd())
+    if (d->bufferReader->process())
+      return;
+
+    // Finished; close input.
+    d->bufferReader->stop();
+
+    delete d->bufferReader;
+    d->bufferReader = NULL;
+
+    emit output(SEncodedAudioBuffer());
+    emit output(SEncodedVideoBuffer());
+    emit output(SEncodedDataBuffer());
+    emit finished();
+  }
 }
 
 

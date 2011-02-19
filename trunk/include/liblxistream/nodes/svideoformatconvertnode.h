@@ -49,6 +49,9 @@ signals:
   void                          output(const SVideoBuffer &);
 
 private:
+  void                          processTask(const SVideoBuffer &);
+
+private:
   struct Data;
   Data                  * const d;
 };

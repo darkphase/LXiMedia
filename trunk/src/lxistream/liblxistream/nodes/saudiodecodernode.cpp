@@ -76,12 +76,12 @@ void SAudioDecoderNode::input(const SEncodedAudioBuffer &audioBuffer)
   }
 
   if (graph)
-    graph->runTask(this, &SAudioDecoderNode::process, audioBuffer, d->decoder);
+    graph->runTask(this, &SAudioDecoderNode::processTask, audioBuffer, d->decoder);
   else
-    process(audioBuffer, d->decoder);
+    processTask(audioBuffer, d->decoder);
 }
 
-void SAudioDecoderNode::process(const SEncodedAudioBuffer &audioBuffer, SInterfaces::AudioDecoder *decoder)
+void SAudioDecoderNode::processTask(const SEncodedAudioBuffer &audioBuffer, SInterfaces::AudioDecoder *decoder)
 {
   if (decoder)
   foreach (const SAudioBuffer &buffer, decoder->decodeBuffer(audioBuffer))

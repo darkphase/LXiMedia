@@ -23,12 +23,12 @@
 #include <QtCore>
 #include <LXiMediaCenter>
 #include "mediadatabase.h"
-#include "mediaplayerserver.h"
+#include "playlistserver.h"
 #include "slideshownode.h"
 
 namespace LXiMediaCenter {
 
-class PhotoServer : public MediaPlayerServer
+class PhotoServer : public PlaylistServer
 {
 Q_OBJECT
 protected:
@@ -37,7 +37,7 @@ protected:
   public:
                                 SlideShowStream(PhotoServer *, const QHostAddress &peer, const QString &url, const QStringList &fileNames);
 
-    bool                        setup(const HttpServer::RequestHeader &, QAbstractSocket *, STime, const QString &, const QImage & = QImage());
+    bool                        setup(const HttpServer::RequestHeader &, QAbstractSocket *);
 
   public:
     SlideShowNode               slideShow;
@@ -50,7 +50,6 @@ public:
 protected:
   virtual HttpServer::SocketOp  streamVideo(const HttpServer::RequestHeader &, QAbstractSocket *);
 
-  virtual int                   countItems(const QString &path);
   virtual QList<Item>           listItems(const QString &path, unsigned start, unsigned count);
   virtual HttpServer::SocketOp  handleHttpRequest(const HttpServer::RequestHeader &, QAbstractSocket *);
 

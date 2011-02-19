@@ -70,72 +70,46 @@ HttpServer::SocketOp PhotoServer::handleHtmlRequest(const QUrl &url, const QStri
   response.setContentType("text/html;charset=utf-8");
   response.setField("Cache-Control", "no-cache");
 
-  if (file.endsWith(".slideshow.html"))
+  const QString album = SStringParser::toRawName(url.queryItemValue("album"));
+  const MediaDatabase::UniqueID uid = MediaDatabase::fromUidString(file.left(16));
+  const SMediaInfo node = mediaDatabase->readNode(uid);
+  if (!node.isNull())
   {
-    const QByteArray item = file.left(file.length() - 5).toAscii();
-    const QString album = QString::fromUtf8(QByteArray::fromHex(file.left(file.length() - 15).toAscii()));
-    if (!album.isEmpty())
+    HtmlParser htmlParser;
+    htmlParser.setField("PHOTO_INFO0", node.fileName());
+    htmlParser.setField("PHOTO_INFO1", node.lastModified().toString(searchDateTimeFormat));
+    htmlParser.setField("PHOTO_INFO2", node.fileTypeName());
+    htmlParser.setField("PHOTO_INFO3", videoFormatString(node));
+    htmlParser.setField("PHOTO_FINGERPRINT", /*node.fingerPrint.isNull() ?*/ QString("") /*: tr("Find similar")*/);
+
+    htmlParser.setField("PHOTO", MediaDatabase::toUidString(uid));
+    htmlParser.setField("PREVIOUS_UID", MediaDatabase::toUidString(uid));
+    htmlParser.setField("NEXT_UID", MediaDatabase::toUidString(uid));
+    htmlParser.setField("ITEM_ALBUM", album.toLower());
+
+    /*const QList<MediaDatabase::UniqueID> files = mediaDatabase->allPhotoFiles(album);
+    if (!files.isEmpty())
     {
-      const QString albumName = album.mid(album.lastIndexOf('/') + 1);
+      QList<MediaDatabase::UniqueID>::ConstIterator i;
+      unsigned photoNumber = 0;
+      for (i=files.begin(); i!=files.end(); i++, photoNumber++)
+      if (*i == uid)
+        break;
 
-      HtmlParser htmlParser;
-
-      htmlParser.setField("PLAYER", buildVideoPlayer(item, albumName, url));
-
-      htmlParser.setField("PLAYER_INFOITEMS", QByteArray(""));
-      htmlParser.setField("ITEM_NAME", tr("Title"));
-      htmlParser.setField("ITEM_VALUE", albumName);
-
-      htmlParser.setField("PLAYER_DESCRIPTION_NAME", QByteArray(""));
-      htmlParser.setField("PLAYER_DESCRIPTION", QByteArray(""));
-
-      return sendHtmlContent(socket, url, response, htmlParser.parse(htmlPlayer), headPlayer);
-    }
-  }
-  else
-  {
-    const QString album = SStringParser::toRawName(url.queryItemValue("album"));
-    const MediaDatabase::UniqueID uid = MediaDatabase::fromUidString(file.left(16));
-    const SMediaInfo node = mediaDatabase->readNode(uid);
-
-    if (!node.isNull())
-    {
-      HtmlParser htmlParser;
-      htmlParser.setField("PHOTO_INFO0", node.fileName());
-      htmlParser.setField("PHOTO_INFO1", node.lastModified().toString(searchDateTimeFormat));
-      htmlParser.setField("PHOTO_INFO2", node.fileTypeName());
-      htmlParser.setField("PHOTO_INFO3", videoFormatString(node));
-      htmlParser.setField("PHOTO_FINGERPRINT", /*node.fingerPrint.isNull() ?*/ QString("") /*: tr("Find similar")*/);
-
-      htmlParser.setField("PHOTO", MediaDatabase::toUidString(uid));
-      htmlParser.setField("PREVIOUS_UID", MediaDatabase::toUidString(uid));
-      htmlParser.setField("NEXT_UID", MediaDatabase::toUidString(uid));
-      htmlParser.setField("ITEM_ALBUM", album.toLower());
-
-      /*const QList<MediaDatabase::UniqueID> files = mediaDatabase->allPhotoFiles(album);
-      if (!files.isEmpty())
+      if (i != files.end())
       {
-        QList<MediaDatabase::UniqueID>::ConstIterator i;
-        unsigned photoNumber = 0;
-        for (i=files.begin(); i!=files.end(); i++, photoNumber++)
-        if (*i == uid)
-          break;
+        const QList<MediaDatabase::UniqueID>::ConstIterator previous = i - 1;
+        const QList<MediaDatabase::UniqueID>::ConstIterator next = i + 1;
 
-        if (i != files.end())
-        {
-          const QList<MediaDatabase::UniqueID>::ConstIterator previous = i - 1;
-          const QList<MediaDatabase::UniqueID>::ConstIterator next = i + 1;
+        if ((i != files.begin()) && (previous != files.end()))
+          htmlParser.setField("PREVIOUS_UID", MediaDatabase::toUidString(*previous));
 
-          if ((i != files.begin()) && (previous != files.end()))
-            htmlParser.setField("PREVIOUS_UID", MediaDatabase::toUidString(*previous));
+        if (next != files.end())
+          htmlParser.setField("NEXT_UID", MediaDatabase::toUidString(*next));
+      }
+    }*/
 
-          if (next != files.end())
-            htmlParser.setField("NEXT_UID", MediaDatabase::toUidString(*next));
-        }
-      }*/
-
-      return sendHtmlContent(socket, url, response, htmlParser.parse(htmlView));
-    }
+    return sendHtmlContent(socket, url, response, htmlParser.parse(htmlView));
   }
 
   qWarning() << "PhotoServer: Failed to find:" << url.toString();

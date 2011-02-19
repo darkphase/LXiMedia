@@ -51,7 +51,7 @@ signals:
   void                          output(const SAudioBuffer &);
 
 private:
-  void                          process(const SEncodedAudioBuffer &, SInterfaces::AudioDecoder *decoder);
+  void                          processTask(const SEncodedAudioBuffer &, SInterfaces::AudioDecoder *decoder);
 
 private:
   struct Data;
