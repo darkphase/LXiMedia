@@ -51,7 +51,7 @@ signals:
   void                          output(const SVideoBuffer &);
 
 private:
-  void                          process(const SEncodedVideoBuffer &, SInterfaces::VideoDecoder *decoder);
+  void                          processTask(const SEncodedVideoBuffer &, SInterfaces::VideoDecoder *decoder);
 
 private:
   struct Data;

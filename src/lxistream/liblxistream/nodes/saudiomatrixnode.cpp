@@ -122,15 +122,15 @@ void SAudioMatrixNode::input(const SAudioBuffer &audioBuffer)
     }
 
     if (graph)
-      graph->runTask(this, &SAudioMatrixNode::process, audioBuffer);
+      graph->runTask(this, &SAudioMatrixNode::processTask, audioBuffer);
     else
-      process(audioBuffer);
+      processTask(audioBuffer);
   }
   else
     emit output(audioBuffer);
 }
 
-void SAudioMatrixNode::process(const SAudioBuffer &audioBuffer)
+void SAudioMatrixNode::processTask(const SAudioBuffer &audioBuffer)
 {
   SAudioBuffer destBuffer(audioBuffer.format(), audioBuffer.numSamples());
 

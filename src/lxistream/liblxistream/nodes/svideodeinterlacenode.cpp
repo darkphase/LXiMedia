@@ -57,9 +57,9 @@ void SVideoDeinterlaceNode::input(const SVideoBuffer &videoBuffer)
         (fieldMode == SVideoFormat::FieldMode_InterlacedBottomFirst))
     {
       if (graph)
-        graph->runTask(this, &SVideoDeinterlaceNode::process, videoBuffer);
+        graph->runTask(this, &SVideoDeinterlaceNode::processTask, videoBuffer);
       else
-        process(videoBuffer);
+        processTask(videoBuffer);
     }
     else
       emit output(videoBuffer);
@@ -68,7 +68,7 @@ void SVideoDeinterlaceNode::input(const SVideoBuffer &videoBuffer)
     emit output(videoBuffer);
 }
 
-void SVideoDeinterlaceNode::process(const SVideoBuffer &videoBuffer)
+void SVideoDeinterlaceNode::processTask(const SVideoBuffer &videoBuffer)
 {
   foreach (const SVideoBuffer &buffer, d->deinterlacer->processBuffer(videoBuffer))
     emit output(buffer);

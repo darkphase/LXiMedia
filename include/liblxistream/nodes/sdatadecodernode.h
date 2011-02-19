@@ -52,7 +52,7 @@ signals:
   void                          output(const SSubpictureBuffer &);
 
 private:
-  void                          process(const SEncodedDataBuffer &, SInterfaces::DataDecoder *decoder);
+  void                          processTask(const SEncodedDataBuffer &, SInterfaces::DataDecoder *decoder);
 
 private:
   struct Data;

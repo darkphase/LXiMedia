@@ -28,6 +28,7 @@ struct STimeStampResamplerNode::Data
 {
   SInterval                     frameRate;
   double                        ratio;
+  bool                          resample;
 };
 
 STimeStampResamplerNode::STimeStampResamplerNode(SGraph *parent)
@@ -36,6 +37,7 @@ STimeStampResamplerNode::STimeStampResamplerNode(SGraph *parent)
     d(new Data())
 {
   d->ratio = 1.0;
+  d->resample = false;
 }
 
 STimeStampResamplerNode::~STimeStampResamplerNode()
@@ -47,11 +49,13 @@ STimeStampResamplerNode::~STimeStampResamplerNode()
 void STimeStampResamplerNode::setFrameRate(SInterval frameRate)
 {
   d->frameRate = frameRate;
+  d->ratio = 1.0;
+  d->resample = false;
 }
 
 void STimeStampResamplerNode::input(const SAudioBuffer &audioBuffer)
 {
-  if (!audioBuffer.isNull() && !qFuzzyCompare(d->ratio, 1.0))
+  if (!audioBuffer.isNull() && d->resample)
   {
     SAudioBuffer buffer = audioBuffer;
 
@@ -75,28 +79,40 @@ void STimeStampResamplerNode::input(const SVideoBuffer &videoBuffer)
 {
   if (!videoBuffer.isNull() && d->frameRate.isValid())
   {
-    SVideoBuffer buffer = videoBuffer;
+    const SInterval srcInterval = videoBuffer.format().frameRate();
+    const double srcRate = srcInterval.toFrequency();
+    const double dstRate = d->frameRate.toFrequency();
 
-    SVideoFormat f = buffer.format();
-    const SInterval oldFrameRate = f.frameRate();
-    f.setFrameRate(d->frameRate);
-    buffer.setFormat(f);
+    d->ratio = dstRate / srcRate;
 
-    const STime timeStamp = buffer.timeStamp();
-    if (timeStamp.isValid())
-      buffer.setTimeStamp(STime::fromClock(timeStamp.toClock(oldFrameRate), d->frameRate));
+    // Only resample if needed and below 8%.
+    d->resample = !qFuzzyCompare(d->ratio, 1.0) && (qAbs(d->ratio - 1.0) < 0.08);
+    if (d->resample)
+    {
+      SVideoBuffer buffer = videoBuffer;
 
-    d->ratio = d->frameRate.toFrequency() / oldFrameRate.toFrequency();
+      SVideoFormat f = buffer.format();
+      f.setFrameRate(d->frameRate);
+      buffer.setFormat(f);
 
-    emit output(buffer);
+      const STime timeStamp = buffer.timeStamp();
+      if (timeStamp.isValid())
+      {
+        qint64 clock = timeStamp.toClock(srcInterval);
+        buffer.setTimeStamp(STime::fromClock(clock, d->frameRate));
+      }
+
+      emit output(buffer);
+      return;
+    }
   }
-  else
-    emit output(videoBuffer);
+
+  emit output(videoBuffer);
 }
 
 void STimeStampResamplerNode::input(const SSubpictureBuffer &subpictureBuffer)
 {
-  if (!subpictureBuffer.isNull() && !qFuzzyCompare(d->ratio, 1.0))
+  if (!subpictureBuffer.isNull() && d->resample)
   {
     SSubpictureBuffer buffer = subpictureBuffer;
 
@@ -112,7 +128,7 @@ void STimeStampResamplerNode::input(const SSubpictureBuffer &subpictureBuffer)
 
 void STimeStampResamplerNode::input(const SSubtitleBuffer &subtitleBuffer)
 {
-  if (!subtitleBuffer.isNull() && !qFuzzyCompare(d->ratio, 1.0))
+  if (!subtitleBuffer.isNull() && d->resample)
   {
     SSubtitleBuffer buffer = subtitleBuffer;
 

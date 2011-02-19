@@ -80,4 +80,17 @@ SInterval SInterval::fromFrequency(double hz)
     return SInterval(1000, qint32(hz * 1000.0)).simplified();
 }
 
+qint64 SInterval::comp(const SInterval &a, const SInterval &b)
+{
+  const bool av = a.isValid(), bv = b.isValid();
+  if (!av && !bv) // Both not valid
+    return 0;
+  else if (av != bv) // One of both not valid
+    return av ? 1 : -1;
+  else if ((a.d.num == b.d.num) && (a.d.den == b.d.den))
+    return 0;
+  else
+    return (a.d.num * b.d.den) - (b.d.num * a.d.den);
+}
+
 } // End of namespace

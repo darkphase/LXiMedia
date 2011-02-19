@@ -41,7 +41,8 @@ protected:
     explicit                    Stream(MediaServer *, const QHostAddress &peer, const QString &url);
     virtual                     ~Stream();
 
-    void                        setup(bool, const QString & = QString::null, const QImage & = QImage());
+    bool                        setup(const HttpServer::RequestHeader &, QAbstractSocket *, STime duration, SInterval frameRate, SSize size, SAudioFormat::Channels channels);
+    bool                        setup(const HttpServer::RequestHeader &, QAbstractSocket *, STime duration, SAudioFormat::Channels channels);
 
   public:
     const int                   id;
@@ -71,7 +72,7 @@ protected:
   public:
     explicit                    TranscodeStream(MediaServer *, const QHostAddress &peer, const QString &url);
 
-    bool                        setup(const HttpServer::RequestHeader &, QAbstractSocket *, SInterfaces::BufferReaderNode *, STime duration, const QString & = QString::null, const QImage & = QImage());
+    bool                        setup(const HttpServer::RequestHeader &, QAbstractSocket *, SInterfaces::BufferReaderNode *, STime duration = STime());
 
   public:
     SAudioDecoderNode           audioDecoder;

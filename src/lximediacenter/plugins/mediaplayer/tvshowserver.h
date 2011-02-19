@@ -24,11 +24,11 @@
 #include <LXiMediaCenter>
 #include <LXiStream>
 #include "mediadatabase.h"
-#include "mediaplayerserver.h"
+#include "playlistserver.h"
 
 namespace LXiMediaCenter {
 
-class TvShowServer : public MediaPlayerServer
+class TvShowServer : public PlaylistServer
 {
 Q_OBJECT
 public:
@@ -36,6 +36,8 @@ public:
   virtual                       ~TvShowServer();
 
 protected:
+  virtual HttpServer::SocketOp  streamVideo(const HttpServer::RequestHeader &, QAbstractSocket *);
+
   virtual int                   countItems(const QString &path);
   virtual QList<Item>           listItems(const QString &path, unsigned start, unsigned count);
 

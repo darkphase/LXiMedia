@@ -76,12 +76,12 @@ void SDataDecoderNode::input(const SEncodedDataBuffer &dataBuffer)
   }
 
   if (graph)
-    graph->runTask(this, &SDataDecoderNode::process, dataBuffer, d->decoder);
+    graph->runTask(this, &SDataDecoderNode::processTask, dataBuffer, d->decoder);
   else
-    process(dataBuffer, d->decoder);
+    processTask(dataBuffer, d->decoder);
 }
 
-void SDataDecoderNode::process(const SEncodedDataBuffer &dataBuffer, SInterfaces::DataDecoder *decoder)
+void SDataDecoderNode::processTask(const SEncodedDataBuffer &dataBuffer, SInterfaces::DataDecoder *decoder)
 {
   if (decoder)
   foreach (const SDataBuffer &buffer, decoder->decodeBuffer(dataBuffer))

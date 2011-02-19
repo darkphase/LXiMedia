@@ -12,6 +12,7 @@ SOURCES += configserver.cpp \
     photoserver.cpp \
     photoserver.html.cpp \
     playlist.cpp \
+    playlistserver.cpp \
     slideshownode.cpp \
     slideshownode.blend.c \
     tvshowserver.cpp
@@ -23,6 +24,7 @@ HEADERS += configserver.h \
     musicserver.h \
     photoserver.h \
     playlist.h \
+    playlistserver.h \
     slideshownode.h \
     tvshowserver.h
 

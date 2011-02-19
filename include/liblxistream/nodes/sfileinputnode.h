@@ -36,7 +36,6 @@ public:
 
   virtual bool                  open(void);
 
-
 public: // From SInterfaces::SourceNode
   virtual void                  stop(void);
 

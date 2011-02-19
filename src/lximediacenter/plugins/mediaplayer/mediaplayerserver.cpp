@@ -58,7 +58,7 @@ HttpServer::SocketOp MediaPlayerServer::streamVideo(const HttpServer::RequestHea
       {
         DiscStream *stream = new DiscStream(this, socket->peerAddress(), request.path(), node.filePath(), uid);
         if (stream->disc.playTitle(0))
-        if (stream->setup(request, socket, &stream->disc, node.duration(), node.title(), thumb))
+        if (stream->setup(request, socket, &stream->disc, node.duration()))
         if (stream->start())
           return HttpServer::SocketOp_LeaveOpen; // The graph owns the socket now.
 
@@ -68,7 +68,7 @@ HttpServer::SocketOp MediaPlayerServer::streamVideo(const HttpServer::RequestHea
       {
         FileStream *stream = new FileStream(this, socket->peerAddress(), request.path(), node.filePath(), uid);
         if (stream->file.open())
-        if (stream->setup(request, socket, &stream->file, node.duration(), node.title(), thumb))
+        if (stream->setup(request, socket, &stream->file, node.duration()))
         if (stream->start())
           return HttpServer::SocketOp_LeaveOpen; // The graph owns the socket now.
 
@@ -300,7 +300,7 @@ HttpServer::SocketOp MediaPlayerServer::handleHttpRequest(const HttpServer::Requ
       }
     }
 
-    QImage image(":/mediaplayer/mediafile.png");
+    QImage image(":/mediaplayer/video-template.png");
     if (!image.isNull())
     {
       if (url.hasQueryItem("size"))

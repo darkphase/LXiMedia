@@ -17,42 +17,49 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXSTREAM_SVIDEOENCODERNODE_H
-#define LXSTREAM_SVIDEOENCODERNODE_H
+#ifndef PLAYLISTSERVER_H
+#define PLAYLISTSERVER_H
 
 #include <QtCore>
-#include "../sinterfaces.h"
+#include <LXiMediaCenter>
+#include "mediadatabase.h"
+#include "mediaplayerserver.h"
 
-namespace LXiStream {
+namespace LXiMediaCenter {
 
-class SVideoEncoderNode : public QObject,
-                          public SInterfaces::Node
+class PlaylistServer : public MediaPlayerServer
 {
 Q_OBJECT
-public:
-  typedef SInterfaces::VideoEncoder::Flags Flags;
+protected:
+  class PlaylistStream : public TranscodeStream
+  {
+  public:
+                                PlaylistStream(PlaylistServer *, const QHostAddress &peer, const QString &url, const SMediaInfoList &files);
+
+    bool                        setup(const HttpServer::RequestHeader &, QAbstractSocket *);
+
+  public:
+    SPlaylistNode               playlistNode;
+  };
 
 public:
-  explicit                      SVideoEncoderNode(SGraph *);
-  virtual                       ~SVideoEncoderNode();
+                                PlaylistServer(MediaDatabase *, MediaDatabase::Category, const char *, Plugin *, MasterServer *, const QString & = tr("Play all"));
+  virtual                       ~PlaylistServer();
 
-  static QStringList            codecs(void);
+protected:
+  virtual HttpServer::SocketOp  streamVideo(const HttpServer::RequestHeader &, QAbstractSocket *);
 
-  bool                          openCodec(const SVideoCodec &, Flags = SInterfaces::VideoEncoder::Flag_None);
-  SVideoCodec                   codec(void) const;
+  virtual int                   countItems(const QString &path);
+  virtual QList<Item>           listItems(const QString &path, unsigned start, unsigned count);
+  virtual HttpServer::SocketOp  handleHttpRequest(const HttpServer::RequestHeader &, QAbstractSocket *);
 
-public slots:
-  void                          input(const SVideoBuffer &);
-
-signals:
-  void                          output(const SEncodedVideoBuffer &);
+  QList<Item>                   listPlayAllItem(const QString &path,  unsigned &start, unsigned &count, MediaDatabase::UniqueID = 0);
 
 private:
-  void                          processTask(const SVideoBuffer &);
+  const QString                 itemTitle;
 
 private:
-  struct Data;
-  Data                  * const d;
+  static const char     * const htmlView;
 };
 
 } // End of namespace

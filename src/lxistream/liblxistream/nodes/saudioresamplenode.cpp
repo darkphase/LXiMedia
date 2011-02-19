@@ -90,13 +90,13 @@ void SAudioResampleNode::input(const SAudioBuffer &audioBuffer)
   if (d->resampler)
   {
     if (graph)
-      graph->runTask(this, &SAudioResampleNode::process, audioBuffer);
+      graph->runTask(this, &SAudioResampleNode::processTask, audioBuffer);
     else
-      process(audioBuffer);
+      processTask(audioBuffer);
   }
 }
 
-void SAudioResampleNode::process(const SAudioBuffer &audioBuffer)
+void SAudioResampleNode::processTask(const SAudioBuffer &audioBuffer)
 {
   emit output(d->resampler->processBuffer(audioBuffer));
 }

@@ -22,13 +22,67 @@
 namespace LXiMediaCenter {
 
 TvShowServer::TvShowServer(MediaDatabase *mediaDatabase, MediaDatabase::Category category, const char *name, Plugin *plugin, MasterServer *server)
-  : MediaPlayerServer(mediaDatabase, category, name, plugin, server),
+  : PlaylistServer(mediaDatabase, category, name, plugin, server),
     seasonText(tr("Season"))
 {
 }
 
 TvShowServer::~TvShowServer()
 {
+}
+
+HttpServer::SocketOp TvShowServer::streamVideo(const HttpServer::RequestHeader &request, QAbstractSocket *socket)
+{
+  const QStringList file = request.file().split('.');
+
+  if ((file.count() > 1) && (file[1] == "playlist"))
+  {
+    const QString path = QString::fromUtf8(QByteArray::fromHex(file.first().toAscii()));
+    if (!mediaDatabase->hasAlbum(category, path))
+    {
+      const QString dir = path.mid(path.left(path.length() - 1).lastIndexOf('/'));
+      if (dir.startsWith("/" + seasonText + " "))
+      {
+        const unsigned season = dir.mid(seasonText.length() + 1, dir.length() - seasonText.length() - 2).toUInt();
+
+        QMap<unsigned, QVector<MediaDatabase::UniqueID> > seasons;
+        bool useSeasons;
+        categorizeSeasons(path.left(path.length() - dir.length() + 1), seasons, useSeasons);
+
+        QMultiMap<QString, SMediaInfo> files;
+
+        const QMap<unsigned, QVector<MediaDatabase::UniqueID> >::ConstIterator s = seasons.find(season);
+        if (s != seasons.end())
+        for (QVector<MediaDatabase::UniqueID>::ConstIterator i=s->begin(); i!=s->end(); i++)
+        {
+          const SMediaInfo node = mediaDatabase->readNode(*i);
+          if (!node.isNull())
+          {
+            const QDateTime lastPlayed = mediaDatabase->lastPlayed(node);
+            const QString key =
+                (lastPlayed.isValid() ? lastPlayed.toString("yyyyMMddhhmmss") : QString("00000000000000")) +
+                ("000000000" + QString::number(node.track())).right(10) +
+                SStringParser::toRawName(node.title());
+
+            files.insert(key, node);
+          }
+        }
+
+        PlaylistStream *stream = new PlaylistStream(this, socket->peerAddress(), request.path(), files.values());
+        if (stream->setup(request, socket))
+        if (stream->start())
+          return HttpServer::SocketOp_LeaveOpen; // The graph owns the socket now.
+
+        delete stream;
+      }
+
+      qWarning() << "Failed to start stream" << request.path();
+      socket->write(HttpServer::ResponseHeader(HttpServer::Status_NotFound));
+      return HttpServer::SocketOp_Close;
+    }
+  }
+
+  return PlaylistServer::streamVideo(request, socket);
 }
 
 int TvShowServer::countItems(const QString &path)
@@ -74,52 +128,68 @@ QList<TvShowServer::Item> TvShowServer::listItems(const QString &path, unsigned 
     {
       const unsigned season = dir.mid(seasonText.length() + 1, dir.length() - seasonText.length() - 2).toUInt();
 
-      QList<Item> result;
-
       QMap<unsigned, QVector<MediaDatabase::UniqueID> > seasons;
       bool useSeasons;
       categorizeSeasons(path.left(path.length() - dir.length() + 1), seasons, useSeasons);
 
       const QMap<unsigned, QVector<MediaDatabase::UniqueID> >::ConstIterator s = seasons.find(season);
-      if (s != seasons.end())
-      for (int i=start, n=0; (i<s->count()) && (returnAll || (n<int(count))); i++, n++)
-        result.append(makeSeasonItem(s->at(i)));
+      if ((s != seasons.end()) && !s->isEmpty())
+      {
+        QList<Item> result = listPlayAllItem(path, start, count, s->first());
 
-      return result;
+        if (returnAll || (count > 0))
+        for (int i=start, n=0; (i<s->count()) && (returnAll || (n<int(count))); i++, n++)
+          result.append(makeSeasonItem(s->at(i)));
+
+        return result;
+      }
     }
+
+    return QList<Item>();
   }
 
   QList<Item> result = listAlbums(path, start, count);
 
-  QMap<unsigned, QVector<MediaDatabase::UniqueID> > seasons;
-  bool useSeasons;
-  categorizeSeasons(path, seasons, useSeasons);
-
-  for (QMap<unsigned, QVector<MediaDatabase::UniqueID> >::ConstIterator i=seasons.begin(); i!=seasons.end(); i++)
-  if ((i.key() != 0) && !i.value().isEmpty())
+  if (returnAll || (count > 0))
   {
-    if (start == 0)
+    QMap<unsigned, QVector<MediaDatabase::UniqueID> > seasons;
+    bool useSeasons;
+    categorizeSeasons(path, seasons, useSeasons);
+
+    for (QMap<unsigned, QVector<MediaDatabase::UniqueID> >::ConstIterator i=seasons.begin(); i!=seasons.end(); i++)
+    if ((i.key() != 0) && !i.value().isEmpty())
     {
+      if (start == 0)
+      {
+        if (returnAll || (count > 0))
+        {
+          Item item;
+          item.isDir = true;
+          item.title = seasonText + " " + QString::number(i.key());
+          item.iconUrl = MediaDatabase::toUidString(i.value().first()) + "-thumb.jpeg?overlay=folder-video";
+          result.append(item);
+
+          if (count > 0)
+            count--;
+        }
+      }
+      else
+        start--;
+    }
+
+    if (returnAll || (count > 0))
+    {
+      result += listPlayAllItem(path, start, count);
+
       if (returnAll || (count > 0))
       {
-        Item item;
-        item.isDir = true;
-        item.title = seasonText + " " + QString::number(i.key());
-        item.iconUrl = MediaDatabase::toUidString(i.value().first()) + "-thumb.jpeg?overlay=folder-video";
-        result.append(item);
-
-        if (count > 0)
-          count--;
+        const QMap<unsigned, QVector<MediaDatabase::UniqueID> >::ConstIterator r = seasons.find(0);
+        if (r != seasons.end())
+        for (int i=start, n=0; (i<r->count()) && (returnAll || (n<int(count))); i++, n++)
+          result.append(useSeasons ? makeSeasonItem(r->at(i)) : makePlainItem(r->at(i)));
       }
     }
-    else
-      start--;
   }
-
-  const QMap<unsigned, QVector<MediaDatabase::UniqueID> >::ConstIterator r = seasons.find(0);
-  if (r != seasons.end())
-  for (int i=start, n=0; (i<r->count()) && (returnAll || (n<int(count))); i++, n++)
-    result.append(useSeasons ? makeSeasonItem(r->at(i)) : makePlainItem(r->at(i)));
 
   return result;
 }

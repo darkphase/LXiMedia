@@ -41,8 +41,12 @@ public:
   inline bool                   isValid(void) const                             { return (d.num > 0) && (d.den > 0); }
 
   inline SInterval            & operator=(const SInterval &from)                { d.num = from.d.num; d.den = from.d.den; return *this; }
-
-  inline bool                   operator==(const SInterval &c) const            { return (d.num == c.d.num) && (d.den == c.d.den); }
+  inline bool                   operator==(const SInterval &c) const            { return comp(*this, c) == 0; }
+  inline bool                   operator!=(const SInterval &c) const            { return comp(*this, c) != 0; }
+  inline bool                   operator> (const SInterval &c) const            { return comp(*this, c) > 0; }
+  inline bool                   operator>=(const SInterval &c) const            { return comp(*this, c) >= 0; }
+  inline bool                   operator< (const SInterval &c) const            { return comp(*this, c) < 0; }
+  inline bool                   operator<=(const SInterval &c) const            { return comp(*this, c) <= 0; }
 
   inline SInterval              operator+(const SInterval &f) const             { return SInterval((d.num * f.d.den) + (f.d.num * d.den), d.den * f.d.den); }
   inline SInterval              operator-(const SInterval &f) const             { return SInterval((d.num * f.d.den) - (f.d.num * d.den), d.den * f.d.den); }
@@ -71,6 +75,9 @@ public:
   static inline SInterval       fromFrequency(int hz)                           { return SInterval(1, hz); }
   static SInterval              fromFrequency(float hz);
   static SInterval              fromFrequency(double hz);
+
+private:
+  static qint64                 comp(const SInterval &, const SInterval &);
 
 private:
   struct

@@ -123,6 +123,19 @@ SVideoBuffer SVideoFormatConvertNode::convert(const SVideoBuffer &videoBuffer, S
 
 void SVideoFormatConvertNode::input(const SVideoBuffer &videoBuffer)
 {
+  if (!videoBuffer.isNull())
+  {
+    if (videoBuffer.format() == d->destFormat)
+      emit output(videoBuffer);
+    else if (graph)
+      graph->runTask(this, &SVideoFormatConvertNode::processTask, videoBuffer);
+    else
+      processTask(videoBuffer);
+  }
+}
+
+void SVideoFormatConvertNode::processTask(const SVideoBuffer &videoBuffer)
+{
   emit output(convert(videoBuffer));
 }
 

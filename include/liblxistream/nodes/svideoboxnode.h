@@ -55,6 +55,9 @@ private:
   inline void                   __internal_setAspectRatio(float a)              { SSize t = size(); t.setAspectRatio(a); setSize(t); }
 
 private:
+  void                          processTask(const SVideoBuffer &);
+
+private:
   struct Data;
   Data                  * const d;
 };

@@ -17,43 +17,60 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXSTREAM_SVIDEOENCODERNODE_H
-#define LXSTREAM_SVIDEOENCODERNODE_H
+#ifndef LXISTREAM_SPLAYLISTNODE_H
+#define LXISTREAM_SPLAYLISTNODE_H
 
 #include <QtCore>
-#include "../sinterfaces.h"
+#include "sioinputnode.h"
+#include "../smediainfo.h"
 
 namespace LXiStream {
 
-class SVideoEncoderNode : public QObject,
-                          public SInterfaces::Node
+class SPlaylistNode : public QObject,
+                      public SInterfaces::SourceNode,
+                      public SInterfaces::BufferReaderNode
 {
 Q_OBJECT
 public:
-  typedef SInterfaces::VideoEncoder::Flags Flags;
+  explicit                      SPlaylistNode(SGraph *, const SMediaInfoList &files);
+  virtual                       ~SPlaylistNode();
 
-public:
-  explicit                      SVideoEncoderNode(SGraph *);
-  virtual                       ~SVideoEncoderNode();
+  virtual bool                  open(void);
 
-  static QStringList            codecs(void);
+public: // From SInterfaces::SourceNode
+  virtual bool                  start(void);
+  virtual void                  stop(void);
+  virtual void                  process(void);
 
-  bool                          openCodec(const SVideoCodec &, Flags = SInterfaces::VideoEncoder::Flag_None);
-  SVideoCodec                   codec(void) const;
+public: // From SInterfaces::BufferReaderNode
+  virtual STime                 duration(void) const;
+  virtual bool                  setPosition(STime);
+  virtual STime                 position(void) const;
+  virtual QList<Chapter>        chapters(void) const;
 
-public slots:
-  void                          input(const SVideoBuffer &);
+  virtual QList<AudioStreamInfo> audioStreams(void) const;
+  virtual QList<VideoStreamInfo> videoStreams(void) const;
+  virtual QList<DataStreamInfo>  dataStreams(void) const;
+  virtual void                  selectStreams(const QList<StreamId> &);
 
 signals:
+  void                          output(const SEncodedAudioBuffer &);
   void                          output(const SEncodedVideoBuffer &);
+  void                          output(const SEncodedDataBuffer &);
+  void                          finished(void);
 
 private:
-  void                          processTask(const SVideoBuffer &);
+  void                          processTask(void);
+  bool                          openFile(const QString &);
+
+private slots:
+  void                          openNext(void);
 
 private:
   struct Data;
   Data                  * const d;
 };
+
 
 } // End of namespace
 

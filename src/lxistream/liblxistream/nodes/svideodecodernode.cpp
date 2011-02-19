@@ -76,12 +76,12 @@ void SVideoDecoderNode::input(const SEncodedVideoBuffer &videoBuffer)
   }
 
   if (graph)
-    graph->runTask(this, &SVideoDecoderNode::process, videoBuffer, d->decoder);
+    graph->runTask(this, &SVideoDecoderNode::processTask, videoBuffer, d->decoder);
   else
-    process(videoBuffer, d->decoder);
+    processTask(videoBuffer, d->decoder);
 }
 
-void SVideoDecoderNode::process(const SEncodedVideoBuffer &videoBuffer, SInterfaces::VideoDecoder *decoder)
+void SVideoDecoderNode::processTask(const SEncodedVideoBuffer &videoBuffer, SInterfaces::VideoDecoder *decoder)
 {
   if (decoder)
   foreach (const SVideoBuffer &buffer, decoder->decodeBuffer(videoBuffer))

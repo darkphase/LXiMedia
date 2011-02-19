@@ -42,8 +42,8 @@ qint64 STime::comp(const STime &a, const STime &b)
   else
   {
     return
-        (a.d.count * qint64(a.d.interval.num()) * qint64(b.d.interval.den())) -
-        (b.d.count * qint64(b.d.interval.num()) * qint64(a.d.interval.den()));
+        (a.d.count * a.d.interval.num() * b.d.interval.den()) -
+        (b.d.count * b.d.interval.num() * a.d.interval.den());
   }
 }
 

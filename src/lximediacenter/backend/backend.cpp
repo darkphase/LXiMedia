@@ -533,6 +533,7 @@ HttpServer::SocketOp Backend::handleHttpRequest(const HttpServer::RequestHeader 
     else if (path == "/img/starenabled.png")        file = ":/backend/starenabled.png";
     else if (path == "/img/stardisabled.png")       file = ":/backend/stardisabled.png";
     else if (path == "/img/directory.png")          file = ":/backend/directory.png";
+    else if (path == "/img/playlist-file.png")      file = ":/backend/playlist-file.png";
     else if (path == "/img/audio-file.png")         file = ":/backend/audio-file.png";
     else if (path == "/img/video-file.png")         file = ":/backend/video-file.png";
     else if (path == "/img/image-file.png")         file = ":/backend/image-file.png";
