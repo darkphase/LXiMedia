@@ -87,6 +87,12 @@ SPlaylistNode::SPlaylistNode(SGraph *parent, const SMediaInfoList &files)
 
 SPlaylistNode::~SPlaylistNode()
 {
+  if (d->file)
+  {
+    d->file->stop();
+    delete d->file;
+  }
+
   delete d;
   *const_cast<Data **>(&d) = NULL;
 }
@@ -206,9 +212,15 @@ bool SPlaylistNode::openFile(const QString &fileName)
 
 void SPlaylistNode::openNext(void)
 {
+  if (d->currentFile < d->fileNames.count())
+    emit closed(d->fileNames[d->currentFile]);
+
   for (d->currentFile++; d->currentFile < d->fileNames.count(); d->currentFile++)
   if (openFile(d->fileNames[d->currentFile]))
+  {
+    emit opened(d->fileNames[d->currentFile]);
     return;
+  }
 
   emit finished();
 }

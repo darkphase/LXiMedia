@@ -41,6 +41,7 @@ QList<MusicServer::Item> MusicServer::listItems(const QString &path, unsigned st
     if (!item.isDir)
     {
       item.played = false; // Not useful for music.
+      item.music = true;
       item.mode = Item::Mode_Direct;
 
       if (!item.mediaInfo.isNull())

@@ -86,9 +86,9 @@ public:
   SMediaInfo                    readNode(UniqueID) const;
 
   void                          setLastPlayed(UniqueID, const QDateTime & = QDateTime::currentDateTime());
-  void                          setLastPlayed(const SMediaInfo &, const QDateTime & = QDateTime::currentDateTime());
+  void                          setLastPlayed(const QString &filePath, const QDateTime & = QDateTime::currentDateTime());
   QDateTime                     lastPlayed(UniqueID) const;
-  QDateTime                     lastPlayed(const SMediaInfo &) const;
+  QDateTime                     lastPlayed(const QString &filePath) const;
 
   QStringList                   allAlbums(Category) const;
   bool                          hasAlbum(Category, const QString &album) const;

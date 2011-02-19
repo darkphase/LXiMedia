@@ -41,6 +41,8 @@ signals:
   void                          output(const SVideoBuffer &);
 
 private:
+  void                          processTask(const SSubpictureBuffer &);
+  void                          processTask(const SVideoBuffer &);
   static void                   buildPalette(const SPixels::RGBAPixel *, int, SVideoFormat::Format, QByteArray &);
 
 private:

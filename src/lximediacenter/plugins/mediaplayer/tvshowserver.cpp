@@ -58,7 +58,7 @@ HttpServer::SocketOp TvShowServer::streamVideo(const HttpServer::RequestHeader &
           const SMediaInfo node = mediaDatabase->readNode(*i);
           if (!node.isNull())
           {
-            const QDateTime lastPlayed = mediaDatabase->lastPlayed(node);
+            const QDateTime lastPlayed = mediaDatabase->lastPlayed(node.filePath());
             const QString key =
                 (lastPlayed.isValid() ? lastPlayed.toString("yyyyMMddhhmmss") : QString("00000000000000")) +
                 ("000000000" + QString::number(node.track())).right(10) +
@@ -100,7 +100,7 @@ int TvShowServer::countItems(const QString &path)
 
       const QMap<unsigned, QVector<MediaDatabase::UniqueID> >::ConstIterator s = seasons.find(season);
       if (s != seasons.end())
-        return s->count();
+        return s->count() + 1;
       else
         return 0;
     }
@@ -112,9 +112,9 @@ int TvShowServer::countItems(const QString &path)
 
   const QMap<unsigned, QVector<MediaDatabase::UniqueID> >::ConstIterator r = seasons.find(0);
   if (r != seasons.end())
-    return countAlbums(path) + (seasons.count() - 1) + r->count();
+    return countAlbums(path) + (seasons.count() - 1) + r->count() + 1;
   else
-    return countAlbums(path) + seasons.count();
+    return countAlbums(path) + seasons.count() + 1;
 }
 
 QList<TvShowServer::Item> TvShowServer::listItems(const QString &path, unsigned start, unsigned count)

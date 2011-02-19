@@ -74,6 +74,8 @@ void SVideoBoxNode::input(const SVideoBuffer &videoBuffer)
     else
       processTask(videoBuffer);
   }
+  else
+    emit output(videoBuffer);
 }
 
 void SVideoBoxNode::processTask(const SVideoBuffer &videoBuffer)

@@ -27,6 +27,7 @@ namespace LXiStream {
 struct STimeStampResamplerNode::Data
 {
   SInterval                     frameRate;
+  double                        maxRatio;
   double                        ratio;
   bool                          resample;
 };
@@ -36,6 +37,7 @@ STimeStampResamplerNode::STimeStampResamplerNode(SGraph *parent)
     SInterfaces::Node(parent),
     d(new Data())
 {
+  d->maxRatio = 0.0;
   d->ratio = 1.0;
   d->resample = false;
 }
@@ -46,9 +48,10 @@ STimeStampResamplerNode::~STimeStampResamplerNode()
   *const_cast<Data **>(&d) = NULL;
 }
 
-void STimeStampResamplerNode::setFrameRate(SInterval frameRate)
+void STimeStampResamplerNode::setFrameRate(SInterval frameRate, double maxRatio)
 {
   d->frameRate = frameRate;
+  d->maxRatio = maxRatio;
   d->ratio = 1.0;
   d->resample = false;
 }
@@ -85,8 +88,8 @@ void STimeStampResamplerNode::input(const SVideoBuffer &videoBuffer)
 
     d->ratio = dstRate / srcRate;
 
-    // Only resample if needed and below 8%.
-    d->resample = !qFuzzyCompare(d->ratio, 1.0) && (qAbs(d->ratio - 1.0) < 0.08);
+    // Only resample if needed and below maxRatio.
+    d->resample = !qFuzzyCompare(d->ratio, 1.0) && (qAbs(d->ratio - 1.0) < d->maxRatio);
     if (d->resample)
     {
       SVideoBuffer buffer = videoBuffer;

@@ -18,6 +18,7 @@
  ***************************************************************************/
 
 #include "nodes/ssubtitlerendernode.h"
+#include "sdebug.h"
 #include "sgraph.h"
 #include "ssubtitlebuffer.h"
 #include "svideobuffer.h"
@@ -67,7 +68,9 @@ SSubtitleRenderNode::FontLoader SSubtitleRenderNode::fontLoader;
 
 struct SSubtitleRenderNode::Data
 {
+  QMutex                        mutex;
   unsigned                      ratio;
+  volatile bool                 enabled;
   QMap<STime, SSubtitleBuffer>  subtitles;
   QMap<int, QVector<Char *> >::ConstIterator font;
   Lines                       * subtitle;
@@ -84,6 +87,7 @@ SSubtitleRenderNode::SSubtitleRenderNode(SGraph *parent)
   Q_ASSERT(!characters.isEmpty());
 
   d->ratio = 16;
+  d->enabled = false;
   d->font = characters.end();
   d->subtitle = new Lines();
   d->subtitleVisible = false;
@@ -110,95 +114,24 @@ void SSubtitleRenderNode::input(const SSubtitleBuffer &subtitleBuffer)
 {
   if (!subtitleBuffer.isNull())
   {
-    if (subtitleBuffer.duration().toSec() <= 10)
-    {
-      d->subtitles.insert(subtitleBuffer.timeStamp(), subtitleBuffer);
-    }
-    else // Prevent showing subtitles too long.
-    {
-      SSubtitleBuffer corrected = subtitleBuffer;
-      corrected.setDuration(STime::fromSec(10));
-      d->subtitles.insert(subtitleBuffer.timeStamp(), corrected);
-    }
+    if (graph)
+      graph->runTask(this, &SSubtitleRenderNode::processTask, subtitleBuffer);
+    else
+      processTask(subtitleBuffer);
   }
 }
 
 void SSubtitleRenderNode::input(const SVideoBuffer &videoBuffer)
 {
-  if (!videoBuffer.isNull())
+  if (!videoBuffer.isNull() && d->enabled)
   {
-    for (QMap<STime, SSubtitleBuffer>::Iterator i=d->subtitles.begin(); i!=d->subtitles.end(); )
-    {
-      const STime timeStamp = videoBuffer.timeStamp();
-
-      // Can the current subtitle be removed.
-      if (d->subtitleVisible && ((i.key() + i->duration()) < timeStamp))
-      {
-        i = d->subtitles.erase(i);
-        d->subtitleTime = STime();
-        d->subtitleVisible = false;
-        continue;
-      }
-
-      // Can the next subtitle be displayed yet.
-      QMap<STime, SSubtitleBuffer>::Iterator n = i + 1;
-      if (n != d->subtitles.end())
-      if ((n.key() != d->subtitleTime) && (n.key() <= timeStamp))
-      {
-        i = d->subtitles.erase(i);
-        d->subtitleTime = STime();
-        d->subtitleVisible = false;
-        continue;
-      }
-
-      // Render the next subtitle.
-      if ((i.key() != d->subtitleTime) && (i.key() <= timeStamp))
-      {
-        d->font = characters.lowerBound(videoBuffer.format().size().height() / d->ratio);
-        if (d->font == characters.end())
-          d->font--;
-
-        const QStringList lines = i->subtitle();
-
-        memset(d->subtitle, 0, sizeof(*d->subtitle));
-        for (int j=0; (j<lines.count()) && (j<4); j++)
-        {
-          QString line = lines[j];
-          if (line.contains("<i>", Qt::CaseInsensitive))
-            d->font = characters.find(-(d->font->first()->height));
-
-          line.replace("<i>", "", Qt::CaseInsensitive);
-          line.replace("</i>", "", Qt::CaseInsensitive);
-          line.replace("<b>", "", Qt::CaseInsensitive);
-          line.replace("</b>", "", Qt::CaseInsensitive);
-          line.replace("<u>", "", Qt::CaseInsensitive);
-          line.replace("</u>", "", Qt::CaseInsensitive);
-
-          const int ln = j + qMax(0, 4 - lines.count());
-          const QByteArray latin1 = line.toLatin1();
-          memset(d->subtitle->l[ln], 0, sizeof(d->subtitle->l[ln]));
-          qstrncpy(reinterpret_cast<char *>(d->subtitle->l[ln]),
-                   latin1.data(),
-                   sizeof(d->subtitle->l[ln]));
-        }
-
-        d->subtitleVisible = true;
-        d->subtitleTime = i.key();
-      }
-
-      break;
-    }
-
-    if (d->subtitleVisible)
-    {
-      SVideoBuffer buffer = videoBuffer;
-      renderSubtitles(buffer, d->subtitle, &(d->font->first()));
-
-      emit output(buffer);
-    }
+    if (graph)
+      graph->runTask(this, &SSubtitleRenderNode::processTask, videoBuffer);
     else
-      emit output(videoBuffer);
+      processTask(videoBuffer);
   }
+  else
+    emit output(videoBuffer);
 }
 
 SVideoBuffer SSubtitleRenderNode::renderSubtitles(const SVideoBuffer &videoBuffer, const QStringList &lines, unsigned ratio)
@@ -235,6 +168,101 @@ SVideoBuffer SSubtitleRenderNode::renderSubtitles(const SVideoBuffer &videoBuffe
   renderSubtitles(buffer, &subtitle, &(font->first()));
 
   return buffer;
+}
+
+void SSubtitleRenderNode::processTask(const SSubtitleBuffer &subtitleBuffer)
+{
+  SDebug::MutexLocker l(&d->mutex, __FILE__, __LINE__);
+
+  if (subtitleBuffer.duration().toSec() <= 10)
+  {
+    d->subtitles.insert(subtitleBuffer.timeStamp(), subtitleBuffer);
+  }
+  else // Prevent showing subtitles too long.
+  {
+    SSubtitleBuffer corrected = subtitleBuffer;
+    corrected.setDuration(STime::fromSec(10));
+    d->subtitles.insert(subtitleBuffer.timeStamp(), corrected);
+  }
+
+  d->enabled = true;
+}
+
+void SSubtitleRenderNode::processTask(const SVideoBuffer &videoBuffer)
+{
+  SDebug::MutexLocker l(&d->mutex, __FILE__, __LINE__);
+
+  for (QMap<STime, SSubtitleBuffer>::Iterator i=d->subtitles.begin(); i!=d->subtitles.end(); )
+  {
+    const STime timeStamp = videoBuffer.timeStamp();
+
+    // Can the current subtitle be removed.
+    if (d->subtitleVisible && ((i.key() + i->duration()) < timeStamp))
+    {
+      i = d->subtitles.erase(i);
+      d->subtitleTime = STime();
+      d->subtitleVisible = false;
+      continue;
+    }
+
+    // Can the next subtitle be displayed yet.
+    QMap<STime, SSubtitleBuffer>::Iterator n = i + 1;
+    if (n != d->subtitles.end())
+    if ((n.key() != d->subtitleTime) && (n.key() <= timeStamp))
+    {
+      i = d->subtitles.erase(i);
+      d->subtitleTime = STime();
+      d->subtitleVisible = false;
+      continue;
+    }
+
+    // Render the next subtitle.
+    if ((i.key() != d->subtitleTime) && (i.key() <= timeStamp))
+    {
+      d->font = characters.lowerBound(videoBuffer.format().size().height() / d->ratio);
+      if (d->font == characters.end())
+        d->font--;
+
+      const QStringList lines = i->subtitle();
+
+      memset(d->subtitle, 0, sizeof(*d->subtitle));
+      for (int j=0; (j<lines.count()) && (j<4); j++)
+      {
+        QString line = lines[j];
+        if (line.contains("<i>", Qt::CaseInsensitive))
+          d->font = characters.find(-(d->font->first()->height));
+
+        line.replace("<i>", "", Qt::CaseInsensitive);
+        line.replace("</i>", "", Qt::CaseInsensitive);
+        line.replace("<b>", "", Qt::CaseInsensitive);
+        line.replace("</b>", "", Qt::CaseInsensitive);
+        line.replace("<u>", "", Qt::CaseInsensitive);
+        line.replace("</u>", "", Qt::CaseInsensitive);
+
+        const int ln = j + qMax(0, 4 - lines.count());
+        const QByteArray latin1 = line.toLatin1();
+        memset(d->subtitle->l[ln], 0, sizeof(d->subtitle->l[ln]));
+        qstrncpy(reinterpret_cast<char *>(d->subtitle->l[ln]),
+                 latin1.data(),
+                 sizeof(d->subtitle->l[ln]));
+      }
+
+      d->subtitleVisible = true;
+      d->subtitleTime = i.key();
+    }
+
+    break;
+  }
+
+  if (d->subtitleVisible)
+  {
+    SVideoBuffer buffer = videoBuffer;
+    renderSubtitles(buffer, d->subtitle, &(d->font->first()));
+
+    emit output(buffer);
+  }
+  else
+    emit output(videoBuffer);
 }
 
 void SSubtitleRenderNode::renderSubtitles(SVideoBuffer &buffer, const Lines *subtitle, const Char * const *font)

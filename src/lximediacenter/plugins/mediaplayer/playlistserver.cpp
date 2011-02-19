@@ -51,7 +51,7 @@ HttpServer::SocketOp PlaylistServer::streamVideo(const HttpServer::RequestHeader
         const SMediaInfo node = mediaDatabase->readNode(file.uid);
         if (!node.isNull())
         {
-          const QDateTime lastPlayed = mediaDatabase->lastPlayed(node);
+          const QDateTime lastPlayed = mediaDatabase->lastPlayed(node.filePath());
           const QString key =
               (lastPlayed.isValid() ? lastPlayed.toString("yyyyMMddhhmmss") : QString("00000000000000")) +
               path +
@@ -181,18 +181,53 @@ QList<PlaylistServer::Item> PlaylistServer::listPlayAllItem(const QString &path,
 
 
 PlaylistServer::PlaylistStream::PlaylistStream(PlaylistServer *parent, const QHostAddress &peer, const QString &url, const SMediaInfoList &files)
-  : TranscodeStream(parent, peer, url),
-    playlistNode(this, files)
+  : MediaPlayerServer::TranscodeStream(parent, peer, url),
+    playlistNode(this, files),
+    streamHelper(this, static_cast<PlaylistServer *>(parent)->mediaDatabase)
 {
   connect(&playlistNode, SIGNAL(finished()), SLOT(stop()));
+  connect(&playlistNode, SIGNAL(opened(QString)), &streamHelper, SLOT(opened(QString)));
+  connect(&playlistNode, SIGNAL(closed(QString)), &streamHelper, SLOT(closed(QString)));
   connect(&playlistNode, SIGNAL(output(SEncodedAudioBuffer)), &audioDecoder, SLOT(input(SEncodedAudioBuffer)));
   connect(&playlistNode, SIGNAL(output(SEncodedVideoBuffer)), &videoDecoder, SLOT(input(SEncodedVideoBuffer)));
   connect(&playlistNode, SIGNAL(output(SEncodedDataBuffer)), &dataDecoder, SLOT(input(SEncodedDataBuffer)));
 }
 
+PlaylistServer::PlaylistStream::~PlaylistStream()
+{
+}
+
 bool PlaylistServer::PlaylistStream::setup(const HttpServer::RequestHeader &request, QAbstractSocket *socket)
 {
   return TranscodeStream::setup(request, socket, &playlistNode);
+}
+
+
+PlaylistServerStreamHelper::PlaylistServerStreamHelper(QObject *parent, MediaDatabase *mediaDatabase)
+  : QObject(parent),
+    mediaDatabase(mediaDatabase)
+{
+}
+
+PlaylistServerStreamHelper::~PlaylistServerStreamHelper()
+{
+  if (!currentFile.isEmpty())
+  if (startTime.secsTo(QDateTime::currentDateTime()) >= 120)
+    mediaDatabase->setLastPlayed(currentFile);
+}
+
+void PlaylistServerStreamHelper::opened(const QString &filePath)
+{
+  currentFile = filePath;
+  startTime = QDateTime::currentDateTime();
+}
+
+void PlaylistServerStreamHelper::closed(const QString &filePath)
+{
+  mediaDatabase->setLastPlayed(filePath);
+
+  if (currentFile == filePath)
+    currentFile = QString::null;
 }
 
 } // End of namespace

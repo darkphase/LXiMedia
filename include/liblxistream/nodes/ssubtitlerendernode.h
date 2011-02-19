@@ -53,6 +53,8 @@ public:
   static SVideoBuffer           renderSubtitles(const SVideoBuffer &, const QStringList &, unsigned ratio = 16);
 
 private:
+  void                          processTask(const SSubtitleBuffer &);
+  void                          processTask(const SVideoBuffer &);
   static void                   renderSubtitles(SVideoBuffer &, const Lines *, const Char * const *);
 
 private:
