@@ -62,43 +62,40 @@ public:
   };
 
 public:
-  static void                   initialize(QThreadPool *);
-  static void                   shutdown(void);
+                                ImdbClient(QObject *parent);
+  virtual                       ~ImdbClient();
 
-  static void                   obtainIMDBFiles(void);
+  void                          obtainIMDBFiles(void);
 
-  static bool                   isDownloading(void);
-  static bool                   isAvailable(void);
-  static bool                   needUpdate(void);
+  bool                          isDownloading(void);
+  bool                          isAvailable(void);
+  bool                          needUpdate(void);
 
-  static QString                findEntry(const QString &title, Type);
-  static Entry                  readEntry(const QString &rawName);
+  QString                       findEntry(const QString &title, Type);
+  Entry                         readEntry(const QString &rawName);
 
   static const char     * const sentinelItem;
 
+protected:
+  virtual void                  customEvent(QEvent *);
+
 private:
-  struct Files;
-  class Task;
-  class MainThreadObject;
+  void                          importIMDBDatabase(void);
 
-  static void                   importIMDBDatabase(void);
-  static void                   readIMDBMoviesListLines(qint64);
-  static void                   readIMDBPlotListLines(qint64);
-  static void                   readIMDBRatingListLines(qint64);
+  struct MoviesListLines;
+  void                          readIMDBMoviesListLines(qint64);
+  void                          insertIMDBMoviesListLines(const MoviesListLines &);
+
+  struct PlotListLines;
+  void                          readIMDBPlotListLines(qint64);
+  void                          insertIMDBPlotListLines(const PlotListLines &);
+
+  struct RatingListLines;
+  void                          readIMDBRatingListLines(qint64);
+  void                          insertIMDBRatingListLines(const RatingListLines &);
+  void                          insertSentinelItem(void);
+
   static Entry                  decodeEntry(const QByteArray &);
-
-  static QMutex               & mutex(void);
-  static Files                & files(void) __attribute__((pure));
-  static const unsigned         readChunkSize;
-  static const int              maxAge;
-  static QThreadPool          * threadPool;
-  static MainThreadObject     * mainThreadObject;
-  static bool                   running;
-  static int                    downloading;
-  static int                    available;
-
-  explicit                      ImdbClient(QList<QFile *>);
-  virtual                       ~ImdbClient();
 
 private slots:
   void                          tryMirror(void);
@@ -107,6 +104,20 @@ private slots:
 
 private:
   static const char     * const mirrors[];
+  static const unsigned         readChunkSize;
+  static const int              maxAge;
+  static const int              basePriority = INT_MIN + 1;
+  static const QEvent::Type     tryMirrorEventType;
+
+  SThreadPool           * const threadPool;
+  SDependency                   mutex;
+  QDir                          cacheDir;
+  QFile                         moviesFile;
+  QFile                         plotFile;
+  QFile                         ratingFile;
+  int                           downloading;
+  int                           available;
+
   QList<QFile *>                obtainFiles;
   unsigned                      useMirror, useAttempt;
   bool                          failed;

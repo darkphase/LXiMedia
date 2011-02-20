@@ -25,6 +25,7 @@ namespace LXiStream {
 
 struct SVideoDecoderNode::Data
 {
+  SDependency                 * dependency;
   SVideoDecoderNode::Flags      flags;
   SVideoCodec                   lastCodec;
   SInterfaces::VideoDecoder   * decoder;
@@ -35,12 +36,14 @@ SVideoDecoderNode::SVideoDecoderNode(SGraph *parent, Flags flags)
     SInterfaces::Node(parent),
     d(new Data())
 {
+  d->dependency = parent ? new SDependency() : NULL;
   d->flags = flags;
   d->decoder = NULL;
 }
 
 SVideoDecoderNode::~SVideoDecoderNode()
 {
+  delete d->dependency;
   delete d->decoder;
   delete d;
   *const_cast<Data **>(&d) = NULL;
@@ -76,7 +79,7 @@ void SVideoDecoderNode::input(const SEncodedVideoBuffer &videoBuffer)
   }
 
   if (graph)
-    graph->runTask(this, &SVideoDecoderNode::processTask, videoBuffer, d->decoder);
+    graph->queue(this, &SVideoDecoderNode::processTask, videoBuffer, d->decoder, d->dependency);
   else
     processTask(videoBuffer, d->decoder);
 }

@@ -36,6 +36,7 @@ namespace LXiStream {
 
 struct SVideoBoxNode::Data
 {
+  SDependency                 * dependency;
   SSize                         destSize;
 };
 
@@ -44,11 +45,13 @@ SVideoBoxNode::SVideoBoxNode(SGraph *parent)
     SInterfaces::Node(parent),
     d(new Data())
 {
+  d->dependency = parent ? new SDependency() : NULL;
   d->destSize = SSize(768, 576);
 }
 
 SVideoBoxNode::~SVideoBoxNode()
 {
+  delete d->dependency;
   delete d;
   *const_cast<Data **>(&d) = NULL;
 }
@@ -70,7 +73,7 @@ void SVideoBoxNode::input(const SVideoBuffer &videoBuffer)
     if (videoBuffer.format().size() == d->destSize)
       emit output(videoBuffer);
     else if (graph)
-      graph->runTask(this, &SVideoBoxNode::processTask, videoBuffer);
+      graph->queue(this, &SVideoBoxNode::processTask, videoBuffer, d->dependency);
     else
       processTask(videoBuffer);
   }

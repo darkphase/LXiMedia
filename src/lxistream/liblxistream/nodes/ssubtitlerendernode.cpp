@@ -68,6 +68,7 @@ SSubtitleRenderNode::FontLoader SSubtitleRenderNode::fontLoader;
 
 struct SSubtitleRenderNode::Data
 {
+  SDependency                 * dependency;
   QMutex                        mutex;
   unsigned                      ratio;
   volatile bool                 enabled;
@@ -86,6 +87,7 @@ SSubtitleRenderNode::SSubtitleRenderNode(SGraph *parent)
   // loadFont() should be invoked before a SSubtitleRenderNode can be constructed.
   Q_ASSERT(!characters.isEmpty());
 
+  d->dependency = parent ? new SDependency() : NULL;
   d->ratio = 16;
   d->enabled = false;
   d->font = characters.end();
@@ -95,6 +97,7 @@ SSubtitleRenderNode::SSubtitleRenderNode(SGraph *parent)
 
 SSubtitleRenderNode::~SSubtitleRenderNode()
 {
+  delete d->dependency;
   delete d->subtitle;
   delete d;
   *const_cast<Data **>(&d) = NULL;
@@ -115,7 +118,7 @@ void SSubtitleRenderNode::input(const SSubtitleBuffer &subtitleBuffer)
   if (!subtitleBuffer.isNull())
   {
     if (graph)
-      graph->runTask(this, &SSubtitleRenderNode::processTask, subtitleBuffer);
+      graph->queue(this, &SSubtitleRenderNode::processTask, subtitleBuffer, d->dependency);
     else
       processTask(subtitleBuffer);
   }
@@ -126,7 +129,7 @@ void SSubtitleRenderNode::input(const SVideoBuffer &videoBuffer)
   if (!videoBuffer.isNull() && d->enabled)
   {
     if (graph)
-      graph->runTask(this, &SSubtitleRenderNode::processTask, videoBuffer);
+      graph->queue(this, &SSubtitleRenderNode::processTask, videoBuffer, d->dependency);
     else
       processTask(videoBuffer);
   }

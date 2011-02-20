@@ -95,7 +95,7 @@ void SlideShowNode::process(void)
   if (currentPicture == 0)
   {
     if (graph)
-      graph->runTask(this, &SlideShowNode::loadImage, currentPicture++);
+      graph->queue(this, &SlideShowNode::loadImage, currentPicture++, &mutex);
     else
       loadImage(currentPicture++);
   }
@@ -103,19 +103,19 @@ void SlideShowNode::process(void)
   {
     for (int i=0; i<slideFrameCount; i++)
     if (graph)
-      graph->runTask(this, &SlideShowNode::computeVideoBuffer);
+      graph->queue(this, &SlideShowNode::computeVideoBuffer, &mutex);
     else
       computeVideoBuffer();
 
     if (graph)
-      graph->runTask(this, &SlideShowNode::loadImage, currentPicture++);
+      graph->queue(this, &SlideShowNode::loadImage, currentPicture++, &mutex);
     else
       loadImage(currentPicture++);
   }
   else
   {
     if (graph)
-      graph->runTask(this, &SlideShowNode::sendFlush);
+      graph->queue(this, &SlideShowNode::sendFlush, &mutex);
     else
       sendFlush();
   }

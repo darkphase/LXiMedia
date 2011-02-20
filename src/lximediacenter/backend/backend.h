@@ -55,7 +55,7 @@ private:
   virtual HttpServer          * httpServer(void);
   virtual SsdpServer          * ssdpServer(void);
   virtual DlnaServer          * dlnaServer(void);
-  virtual QThreadPool         * ioThreadPool(void);
+  virtual ImdbClient          * imdbClient(void);
 
   HttpServer::SocketOp          handleCssRequest(const QUrl &, const QString &, QAbstractSocket *);
   HttpServer::SocketOp          handleHtmlSearch(const QUrl &, const QString &, QAbstractSocket *);
@@ -77,7 +77,7 @@ private:
   HttpServer                    masterHttpServer;
   SsdpServer                    masterSsdpServer;
   DlnaServer                    masterDlnaServer;
-  mutable QThreadPool           threadPool;
+  ImdbClient                  * masterImdbClient;
   HtmlParser                    cssParser;
   HtmlParser                    htmlParser;
   QList<BackendPlugin *>        backendPlugins;

@@ -22,6 +22,7 @@
 
 #include <QtCore>
 #include <QtSql>
+#include <LXiStream>
 
 namespace LXiMediaCenter {
 
@@ -31,7 +32,7 @@ public:
   static void                   initialize(void);
   static void                   shutdown(void);
 
-  static QMutex               & mutex(void);
+  static SDependency          * mutex(void);
   static QSqlDatabase         & database(void) __attribute__((pure));
 
   static void                   handleError(const ::QSqlQuery &, const QString & = QString::null);

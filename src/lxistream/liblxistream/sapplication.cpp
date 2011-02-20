@@ -25,6 +25,7 @@
 #include "sencodedvideobuffer.h"
 #include "ssubpicturebuffer.h"
 #include "ssubtitlebuffer.h"
+#include "sthreadpool.h"
 #include "svideobuffer.h"
 
 #include "private/exceptionhandler.h"
@@ -56,10 +57,13 @@ SApplication * SApplication::self = NULL;
     \returns True if initialization succeeded.
     \sa shutdown()
  */
-SApplication::SApplication(InitializeFlags f, const QString &preferredLogDir)
+SApplication::SApplication(InitializeFlags flags, const QString &preferredLogDir)
+  : flags(flags)
 {
+  if (self != NULL)
+    qFatal("Only one instance of the SApplication class is allowed.");
+
   self = this;
-  flags = f;
 
   static bool firsttime = true;
   if (firsttime)
@@ -67,6 +71,7 @@ SApplication::SApplication(InitializeFlags f, const QString &preferredLogDir)
     firsttime = false;
 
     // Ensure static initializers have been initialized.
+    SThreadPool::globalInstance();
     SDebug::Locker::initialize();
 
     // Register metatypes.
@@ -104,6 +109,15 @@ SApplication::SApplication(InitializeFlags f, const QString &preferredLogDir)
 SApplication::~SApplication(void)
 {
   Q_ASSERT(QThread::currentThread() == thread());
+
+  // Wait for all tasks to finish
+  do
+  {
+    SThreadPool::globalInstance()->waitForDone();
+    QThreadPool::globalInstance()->waitForDone();
+    QCoreApplication::processEvents();
+  } while ((SThreadPool::globalInstance()->activeThreadCount() > 0) ||
+           (QThreadPool::globalInstance()->activeThreadCount() > 0));
 
   foreach (SFactory *factory, factories())
     factory->clear();

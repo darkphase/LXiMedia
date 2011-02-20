@@ -50,7 +50,8 @@ HEADERS += $${LXIMEDIA_DIR}/include/LXiStream \
     $${LXIMEDIA_DIR}/include/liblxistream/ssubpicturebuffer.h \
     $${LXIMEDIA_DIR}/include/liblxistream/ssubtitlebuffer.h \
     $${LXIMEDIA_DIR}/include/liblxistream/ssubtitlefile.h \
-    $${LXIMEDIA_DIR}/include/liblxistream/staskrunner.h \
+    $${LXIMEDIA_DIR}/include/liblxistream/sthreadpool.h \
+    $${LXIMEDIA_DIR}/include/liblxistream/sthreadpool.hpp \
     $${LXIMEDIA_DIR}/include/liblxistream/stime.h \
     $${LXIMEDIA_DIR}/include/liblxistream/stimer.h \
     $${LXIMEDIA_DIR}/include/liblxistream/stuner.h \
@@ -79,7 +80,7 @@ SOURCES += sapplication.cpp \
     ssubpicturebuffer.cpp \
     ssubtitlebuffer.cpp \
     ssubtitlefile.cpp \
-    staskrunner.cpp \
+    sthreadpool.cpp \
     stime.cpp \
     stimer.cpp \
     svideobuffer.cpp \

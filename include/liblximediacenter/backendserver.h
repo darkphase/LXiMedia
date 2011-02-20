@@ -22,6 +22,7 @@
 
 #include <QtCore>
 #include "dlnaserver.h"
+#include "imdbclient.h"
 #include "httpserver.h"
 
 namespace LXiMediaCenter {
@@ -40,7 +41,7 @@ public:
     virtual HttpServer        * httpServer(void) = 0;
     virtual SsdpServer        * ssdpServer(void) = 0;
     virtual DlnaServer        * dlnaServer(void) = 0;
-    virtual QThreadPool       * ioThreadPool(void) = 0;
+    virtual ImdbClient        * imdbClient(void) = 0;
   };
 
   struct SearchResult
