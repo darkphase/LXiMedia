@@ -84,7 +84,7 @@ SourceNode::~SourceNode()
   *const_cast<SGraph **>(&graph) = NULL;
 }
 
-const unsigned FormatProber::defaultProbeSize = 262144;
+const unsigned FormatProber::defaultProbeSize = 16384;
 
 QList<FormatProber *> FormatProber::create(QObject *parent)
 {

@@ -36,12 +36,16 @@ FormatProber::~FormatProber()
 {
 }
 
-QList<FormatProber::Format> FormatProber::probeFileFormat(const QByteArray &buffer, const QString &fileName)
+QList<FormatProber::Format> FormatProber::probeFileFormat(const QByteArray &buffer, const QString &filePath)
 {
   SDebug::MutexLocker f(FFMpegCommon::mutex(), __FILE__, __LINE__);
 
+  QByteArray fileName("");
+  if (!filePath.isEmpty())
+    fileName = QFileInfo(filePath).fileName().toUtf8();
+
   ::AVProbeData probeData;
-  probeData.filename = "";
+  probeData.filename = fileName.data();
   probeData.buf = (uchar *)buffer.data();
   probeData.buf_size = buffer.size();
 

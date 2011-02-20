@@ -59,29 +59,34 @@ SApplication * SApplication::self = NULL;
 SApplication::SApplication(InitializeFlags f, const QString &preferredLogDir)
 {
   self = this;
-
-  // Ensure static initializers have been initialized.
-  SDebug::Locker::initialize();
-
   flags = f;
+
+  static bool firsttime = true;
+  if (firsttime)
+  {
+    firsttime = false;
+
+    // Ensure static initializers have been initialized.
+    SDebug::Locker::initialize();
+
+    // Register metatypes.
+    qRegisterMetaType<SEncodedAudioBuffer>("SEncodedAudioBuffer");
+    qRegisterMetaType<SAudioBuffer>("SAudioBuffer");
+    qRegisterMetaType<SEncodedVideoBuffer>("SEncodedVideoBuffer");
+    qRegisterMetaType<SVideoBuffer>("SVideoBuffer");
+    qRegisterMetaType<SEncodedDataBuffer>("SEncodedDataBuffer");
+    qRegisterMetaType<SSubpictureBuffer>("SSubpictureBuffer");
+    qRegisterMetaType<SSubtitleBuffer>("SSubtitleBuffer");
+
+    qRegisterMetaType<SAudioCodec>("SAudioCodec");
+    qRegisterMetaType<SVideoCodec>("SVideoCodec");
+    qRegisterMetaType<SDataCodec>("SDataCodec");
+  }
 
   Private::Log::initialize(preferredLogDir);
 
   if ((flags & Initialize_HandleFaults) == Initialize_HandleFaults)
     Private::ExceptionHandler::initialize();
-
-  // Register metatypes.
-  qRegisterMetaType<SEncodedAudioBuffer>("SEncodedAudioBuffer");
-  qRegisterMetaType<SAudioBuffer>("SAudioBuffer");
-  qRegisterMetaType<SEncodedVideoBuffer>("SEncodedVideoBuffer");
-  qRegisterMetaType<SVideoBuffer>("SVideoBuffer");
-  qRegisterMetaType<SEncodedDataBuffer>("SEncodedDataBuffer");
-  qRegisterMetaType<SSubpictureBuffer>("SSubpictureBuffer");
-  qRegisterMetaType<SSubtitleBuffer>("SSubtitleBuffer");
-
-  qRegisterMetaType<SAudioCodec>("SAudioCodec");
-  qRegisterMetaType<SVideoCodec>("SVideoCodec");
-  qRegisterMetaType<SDataCodec>("SDataCodec");
 
   // Always load the Common module.
   loadModule<LXiStream::Common::Module>();
@@ -98,6 +103,11 @@ SApplication::SApplication(InitializeFlags f, const QString &preferredLogDir)
  */
 SApplication::~SApplication(void)
 {
+  Q_ASSERT(QThread::currentThread() == thread());
+
+  foreach (SFactory *factory, factories())
+    factory->clear();
+
   foreach (const Module &module, moduleList)
   {
     module.module->unload();
@@ -140,6 +150,8 @@ const char * SApplication::version(void)
  */
 bool SApplication::loadModule(SInterfaces::Module *module)
 {
+  Q_ASSERT(QThread::currentThread() == thread());
+
   static bool probedPlugins = false;
 
   if (module)
@@ -229,7 +241,14 @@ QByteArray SApplication::about(void) const
   return text;
 }
 
+QList<SFactory *> & SApplication::factories(void)
+{
+  Q_ASSERT((self == NULL) || (QThread::currentThread() == self->thread()));
 
+  static QList<SFactory *> l;
+
+  return l;
+}
 
 } // End of namespace
 

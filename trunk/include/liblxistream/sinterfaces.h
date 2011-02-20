@@ -245,10 +245,10 @@ public:
 
   /*! Should probe the provided buffer for the container format (e.g. ogg,
       matroska, mpeg-ps, etc.) and return zero or more format names. The
-      confidence value can be used to provide a priority. The provided file name
+      confidence value can be used to provide a priority. The provided file path
       can optionally be used to detect the format.
    */
-  virtual QList<Format>         probeFileFormat(const QByteArray &buffer, const QString &fileName = QString::null) = 0;
+  virtual QList<Format>         probeFileFormat(const QByteArray &buffer, const QString &filePath) = 0;
   
   /*! Should probe the provided device for the disc format (e.g. dvd,
       cd, etc.) and return zero or more format names. The confidence value can

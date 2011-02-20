@@ -60,10 +60,15 @@ bool SIOInputNode::open(void)
     // Detect format.
     const QByteArray buffer = d->ioDevice->peek(SInterfaces::FormatProber::defaultProbeSize);
 
+    QString fileName = QString::null;
+    QFile *file = qobject_cast<QFile *>(d->ioDevice);
+    if (file)
+      fileName = file->fileName();
+
     QMultiMap<int, QString> formats;
     foreach (SInterfaces::FormatProber *prober, SInterfaces::FormatProber::create(this))
     {
-      foreach (const SInterfaces::FormatProber::Format &format, prober->probeFileFormat(buffer))
+      foreach (const SInterfaces::FormatProber::Format &format, prober->probeFileFormat(buffer, fileName))
         formats.insert(-format.confidence, format.name);
 
       delete prober;
