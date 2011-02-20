@@ -1,6 +1,7 @@
 #ifndef LXISTREAM_MODULE_H
 #define LXISTREAM_MODULE_H
 
+#include "liblxistream/sapplication.h"
 #include "liblxistream/sanalogtuner.h"
 #include "liblxistream/saudiobuffer.h"
 #include "liblxistream/saudiocodec.h"
@@ -23,8 +24,6 @@
 #include "liblxistream/ssubpicturebuffer.h"
 #include "liblxistream/ssubtitlebuffer.h"
 #include "liblxistream/ssubtitlefile.h"
-#include "liblxistream/ssystem.h"
-#include "liblxistream/sterminal.h"
 #include "liblxistream/stime.h"
 #include "liblxistream/stimer.h"
 #include "liblxistream/stuner.h"

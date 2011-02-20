@@ -550,6 +550,10 @@ QByteArray MediaServer::buildVideoPlayer(const QByteArray &item, const SMediaInf
   htmlParser.setField("SELECTED", QByteArray(""));
   if (!mediaInfo.chapters().isEmpty())
   {
+    htmlParser.setField("VALUE", QByteArray::number(0));
+    htmlParser.setField("TEXT", tr("Begin") + ", " + QTime().addSecs(0).toString(videoTimeFormat));
+    htmlParser.appendField("CHAPTERS", htmlParser.parse(htmlPlayerThumbItemOption));
+
     int chapterNum = 1;
     foreach (const SMediaInfo::Chapter &chapter, mediaInfo.chapters())
     {

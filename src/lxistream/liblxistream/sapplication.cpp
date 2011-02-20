@@ -17,9 +17,8 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "ssystem.h"
+#include "sapplication.h"
 #include "sdebug.h"
-#include "sterminal.h"
 #include "saudiobuffer.h"
 #include "sencodedaudiobuffer.h"
 #include "sencodeddatabuffer.h"
@@ -38,33 +37,17 @@
 
 namespace LXiStream {
 
-const SSystem::InitializeFlag SSystem::Initialize_Default =
-    SSystem::InitializeFlag(
-      int(SSystem::Initialize_Modules) |
-      int(SSystem::Initialize_Devices) |
-      int(SSystem::Initialize_LogToFile) |
-      int(SSystem::Initialize_LogToConsole) |
-      int(SSystem::Initialize_HandleFaults));
+const SApplication::InitializeFlag SApplication::Initialize_Default =
+    SApplication::InitializeFlag(
+      int(SApplication::Initialize_Modules) |
+      int(SApplication::Initialize_Devices) |
+      int(SApplication::Initialize_LogToFile) |
+      int(SApplication::Initialize_LogToConsole) |
+      int(SApplication::Initialize_HandleFaults));
 
-SSystem::InitializeFlags  SSystem::flags;
+SApplication * SApplication::self = NULL;
 
-/*! Returns a name string for LXiStream.
- */
-const char * SSystem::name(void)
-{
-  return "LXiStream";
-}
-
-/*! Returns the version identifier for the active build of LXiStream.
- */
-const char * SSystem::version(void)
-{
-  return
-#include "version.h"
-      " (" __DATE__ " " __TIME__")";
-}
-
-/*! This is the main initialization method for LXiStream. When invoked without
+/*! This is the main initialization for LXiStream. When invoked without
     arguments; it tries to load all available plugins. If a specific module is
     provided; it will only load this module, the provided mopdule object may be
     destroyed after this method returns. This method may be invoked multiple
@@ -73,8 +56,10 @@ const char * SSystem::version(void)
     \returns True if initialization succeeded.
     \sa shutdown()
  */
-bool SSystem::initialize(InitializeFlags f, const QString &preferredLogDir)
+SApplication::SApplication(InitializeFlags f, const QString &preferredLogDir)
 {
+  self = this;
+
   // Ensure static initializers have been initialized.
   SDebug::Locker::initialize();
 
@@ -103,19 +88,17 @@ bool SSystem::initialize(InitializeFlags f, const QString &preferredLogDir)
 
   if ((flags & Initialize_Modules) == Initialize_Modules)
     loadModule(NULL); // Loads all modules
-
-  return true;
 }
 
-/*! \fn void SSystem::shutdown(void)
+/*! \fn void SApplication::shutdown(void)
     This waits for all graphs to finish and cleans up any terminals allocated by
     LXiStream.
 
     \note Do not invoke initialize() again after shutting down.
  */
-void SSystem::shutdown(void)
+SApplication::~SApplication(void)
 {
-  foreach (const Module &module, moduleList())
+  foreach (const Module &module, moduleList)
   {
     module.module->unload();
     if (module.loader)
@@ -127,24 +110,42 @@ void SSystem::shutdown(void)
       delete module.module;
   }
 
-  moduleList().clear();
+  moduleList.clear();
+
+  self = NULL;
+}
+
+/*! Returns a name string for LXiStream.
+ */
+const char * SApplication::name(void)
+{
+  return "LXiStream";
+}
+
+/*! Returns the version identifier for the active build of LXiStream.
+ */
+const char * SApplication::version(void)
+{
+  return
+#include "version.h"
+      " (" __DATE__ " " __TIME__")";
 }
 
 /*! When invoked with NULL; it will attempt to load all available plugins. If a
     specific module is provided; it will only load this module. The ownership of
-    the provided module will be transferred to SSystem, the module will be
+    the provided module will be transferred to SApplication, the module will be
     deleted when shutdown() is invoked.
 
     \returns True if loading succeeded.
  */
-bool SSystem::loadModule(SInterfaces::Module *module)
+bool SApplication::loadModule(SInterfaces::Module *module)
 {
   static bool probedPlugins = false;
 
   if (module)
   {
     module->registerClasses();
-    moduleList() += Module(NULL, module);
+    moduleList += Module(NULL, module);
   }
   else if (!probedPlugins)
   {
@@ -184,7 +185,7 @@ bool SSystem::loadModule(SInterfaces::Module *module)
       if (module)
       {
         module->registerClasses();
-        moduleList() += Module(loader, module);
+        moduleList += Module(loader, module);
       }
       else
       {
@@ -202,16 +203,9 @@ bool SSystem::loadModule(SInterfaces::Module *module)
   return true;
 }
 
-QList<SSystem::Module> & SSystem::moduleList(void)
-{
-  static QList<Module> m;
-
-  return m;
-}
-
 /*! Returns the about text with minimal XHTML markup.
  */
-QByteArray SSystem::about(void)
+QByteArray SApplication::about(void) const
 {
   QByteArray text =
       " <h1>" + QByteArray(name()) + "</h1>\n"
@@ -229,7 +223,7 @@ QByteArray SSystem::about(void)
       " FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.<br />\n"
       " <br />\n";
 
-  foreach (const SSystem::Module &module, moduleList())
+  foreach (const SApplication::Module &module, moduleList)
     text += module.module->about();
 
   return text;

@@ -28,15 +28,16 @@
 void IOTest::initTestCase(void)
 {
   // We only want to initialize common and gui here, not probe for plugins.
-  QVERIFY(SSystem::initialize(SSystem::Initialize_Devices |
-                              SSystem::Initialize_LogToConsole, 0));
+  streamApp = new SApplication(SApplication::Initialize_Devices |
+                               SApplication::Initialize_LogToConsole);
 
-  QVERIFY(SSystem::loadModule(new GuiBackend::Module()));
+  QVERIFY(streamApp->loadModule(new GuiBackend::Module()));
 }
 
 void IOTest::cleanupTestCase(void)
 {
-  SSystem::shutdown();
+  delete streamApp;
+  streamApp = NULL;
 }
 
 /*! Tests deep image file probe.

@@ -19,7 +19,6 @@
 
 #include "dvdnavtest.h"
 #include <QtTest>
-#include <LXiStream>
 #include "lxistream/plugins/dvdnav/discreader.h"
 #include "lxistream/plugins/dvdnav/module.h"
 #include "lxistream/plugins/ffmpeg/module.h"
@@ -28,11 +27,11 @@
 void DVDNavTest::initTestCase(void)
 {
   // We only want to initialize common and gui here, not probe for plugins.
-  QVERIFY(SSystem::initialize(SSystem::Initialize_Devices |
-                              SSystem::Initialize_LogToConsole, 0));
+  streamApp = new SApplication(SApplication::Initialize_Devices |
+                               SApplication::Initialize_LogToConsole);
 
-  QVERIFY(SSystem::loadModule(new DVDNavBackend::Module()));
-  QVERIFY(SSystem::loadModule(new FFMpegBackend::Module()));
+  QVERIFY(streamApp->loadModule(new DVDNavBackend::Module()));
+  QVERIFY(streamApp->loadModule(new FFMpegBackend::Module()));
 
 //  SDiscInfo discInfo("");
 //  qDebug() << discInfo.titles().count();
@@ -44,5 +43,6 @@ void DVDNavTest::initTestCase(void)
 
 void DVDNavTest::cleanupTestCase(void)
 {
-  SSystem::shutdown();
+  delete streamApp;
+  streamApp = NULL;
 }

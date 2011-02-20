@@ -19,12 +19,13 @@
 
 #include <QtCore>
 #include <QtNetwork>
+#include <LXiStream>
 
 class CommonTest : public QObject
 {
 Q_OBJECT
 public:
-  inline explicit               CommonTest(QObject *parent) : QObject(parent) { }
+  inline explicit               CommonTest(QObject *parent) : QObject(parent), streamApp(NULL) { }
 
 private slots:
   void                          initTestCase(void);
@@ -34,5 +35,6 @@ private slots:
   void                          HttpServerReply(QNetworkReply *);
 
 private:
+  SApplication                * streamApp;
   bool                          gotHttpServerReply;
 };

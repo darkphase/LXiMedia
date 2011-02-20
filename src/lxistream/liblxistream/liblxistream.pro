@@ -24,6 +24,7 @@ DEPENDPATH += $${LXIMEDIA_DIR}/include/liblxistream
 
 # Files
 HEADERS += $${LXIMEDIA_DIR}/include/LXiStream \
+    $${LXIMEDIA_DIR}/include/liblxistream/sapplication.h \
     $${LXIMEDIA_DIR}/include/liblxistream/sanalogtuner.h \
     $${LXIMEDIA_DIR}/include/liblxistream/saudiobuffer.h \
     $${LXIMEDIA_DIR}/include/liblxistream/saudiocodec.h \
@@ -49,16 +50,15 @@ HEADERS += $${LXIMEDIA_DIR}/include/LXiStream \
     $${LXIMEDIA_DIR}/include/liblxistream/ssubpicturebuffer.h \
     $${LXIMEDIA_DIR}/include/liblxistream/ssubtitlebuffer.h \
     $${LXIMEDIA_DIR}/include/liblxistream/ssubtitlefile.h \
-    $${LXIMEDIA_DIR}/include/liblxistream/ssystem.h \
     $${LXIMEDIA_DIR}/include/liblxistream/staskrunner.h \
-    $${LXIMEDIA_DIR}/include/liblxistream/sterminal.h \
     $${LXIMEDIA_DIR}/include/liblxistream/stime.h \
     $${LXIMEDIA_DIR}/include/liblxistream/stimer.h \
     $${LXIMEDIA_DIR}/include/liblxistream/stuner.h \
     $${LXIMEDIA_DIR}/include/liblxistream/svideobuffer.h \
     $${LXIMEDIA_DIR}/include/liblxistream/svideocodec.h \
     $${LXIMEDIA_DIR}/include/liblxistream/svideoformat.h
-SOURCES += saudiobuffer.cpp \
+SOURCES += sapplication.cpp \
+    saudiobuffer.cpp \
     saudiocodec.cpp \
     saudioformat.cpp \
     sbuffer.cpp \
@@ -79,9 +79,7 @@ SOURCES += saudiobuffer.cpp \
     ssubpicturebuffer.cpp \
     ssubtitlebuffer.cpp \
     ssubtitlefile.cpp \
-    ssystem.cpp \
     staskrunner.cpp \
-    sterminal.cpp \
     stime.cpp \
     stimer.cpp \
     svideobuffer.cpp \

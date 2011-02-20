@@ -23,14 +23,15 @@
 
 void CommonTest::initTestCase(void)
 {
-  SSystem::initialize(SSystem::Initialize_Modules |
-                      SSystem::Initialize_Devices |
-                      SSystem::Initialize_LogToConsole);
+  streamApp = new SApplication(SApplication::Initialize_Modules |
+                               SApplication::Initialize_Devices |
+                               SApplication::Initialize_LogToConsole);
 }
 
 void CommonTest::cleanupTestCase(void)
 {
-  SSystem::shutdown();
+  delete streamApp;
+  streamApp = NULL;
 }
 
 /*! Tests the HTTP server.

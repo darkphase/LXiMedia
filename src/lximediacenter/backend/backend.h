@@ -72,6 +72,8 @@ private:
   static const QEvent::Type     shutdownEventType;
   static const QUrl             submitErrorUrl;
 
+  SApplication                * streamApp;
+
   HttpServer                    masterHttpServer;
   SsdpServer                    masterSsdpServer;
   DlnaServer                    masterDlnaServer;

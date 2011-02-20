@@ -31,21 +31,22 @@ const QEvent::Type  Backend::shutdownEventType = QEvent::Type(QEvent::registerEv
 const QUrl          Backend::submitErrorUrl("http://www.admiraal.dds.nl/submitlog.php");
 
 Backend::Backend()
-        :BackendServer::MasterServer(),
-         masterHttpServer(),
-         masterSsdpServer(),
-         masterDlnaServer(&masterHttpServer),
-         cssParser(),
-         htmlParser(),
-         backendPlugins(),
-         backendServers()
+  : BackendServer::MasterServer(),
+    streamApp(NULL),
+    masterHttpServer(),
+    masterSsdpServer(),
+    masterDlnaServer(&masterHttpServer),
+    cssParser(),
+    htmlParser(),
+    backendPlugins(),
+    backendServers()
 {
   // Initialize LXiStream
   QDir logDir(GlobalSettings::applicationDataDir() + "/log");
   if (!logDir.exists())
     logDir.mkpath(logDir.absolutePath());
 
-  SSystem::initialize(SSystem::Initialize_Default, logDir.absolutePath());
+  streamApp = new SApplication(SApplication::Initialize_Default, logDir.absolutePath());
 
   // Seed the random number generator.
   qsrand(int(QDateTime::currentDateTime().toTime_t()));
@@ -100,7 +101,7 @@ Backend::~Backend()
   qDebug() << "LXiMediaCenter backend stopped.";
 
   // Shutdown LXiStream
-  SSystem::shutdown();
+  delete streamApp;
 
   // Close database
   Database::shutdown();

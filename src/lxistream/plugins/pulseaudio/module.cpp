@@ -28,7 +28,7 @@ namespace PulseAudioBackend {
 
 void Module::registerClasses(void)
 {
-  if ((SSystem::initializeFlags() & SSystem::Initialize_Devices) == SSystem::Initialize_Devices)
+  if ((SApplication::instance()->initializeFlags() & SApplication::Initialize_Devices) == SApplication::Initialize_Devices)
   {
     if (qobject_cast<QApplication *>(QCoreApplication::instance()) == NULL)
       return; // Non-gui application
@@ -39,7 +39,7 @@ void Module::registerClasses(void)
     sampleSpec.channels = 2;
 
     pa_simple * const handle = pa_simple_new(NULL,
-                                             SSystem::name(),
+                                             SApplication::name(),
                                              PA_STREAM_PLAYBACK,
                                              NULL,
                                              "PulseAudioDevice::listDevices",

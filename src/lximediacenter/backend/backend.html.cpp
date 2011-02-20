@@ -569,7 +569,7 @@ HttpServer::SocketOp Backend::showAbout(const QUrl &url, QAbstractSocket *socket
   response.setField("Cache-Control", "no-cache");
 
   htmlParser.setField("VERSION", QByteArray(GlobalSettings::version()));
-  htmlParser.setField("ABOUT_LXISTREAM", SSystem::about());
+  htmlParser.setField("ABOUT_LXISTREAM", SApplication::instance()->about());
   htmlParser.setField("QT_VERSION", QByteArray(qVersion()));
 
   socket->write(response);
