@@ -27,13 +27,16 @@
 namespace LXiStream {
 
 class SCodec;
+class SFactory;
 class SGraph;
 class SNode;
 class SProber;
 class STerminal;
 
-class SApplication
+class SApplication : public QObject
 {
+Q_OBJECT
+friend class SFactory;
 friend class SGraph;
 public:
   enum InitializeFlag
@@ -68,7 +71,7 @@ private:
 
 public:
   explicit                      SApplication(InitializeFlags = Initialize_Default, const QString &preferredLogDir = QString::null);
-                                ~SApplication();
+  virtual                       ~SApplication();
 
   static const char           * name(void) __attribute__((pure));
   static const char           * version(void) __attribute__((pure));
@@ -80,6 +83,8 @@ public:
   inline static SApplication  * instance(void)                                  { return self; }
 
 private:
+  static QList<SFactory *>    & factories(void);
+
   template <class _module>
   inline void                   loadModule(void);
 

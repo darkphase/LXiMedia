@@ -91,7 +91,7 @@ bool SDiscInputNode::playTitle(unsigned title)
       QMultiMap<int, QString> formats;
       foreach (SInterfaces::FormatProber *prober, SInterfaces::FormatProber::create(this))
       {
-        foreach (const SInterfaces::FormatProber::Format &format, prober->probeFileFormat(buffer))
+        foreach (const SInterfaces::FormatProber::Format &format, prober->probeFileFormat(buffer, QString::null))
           formats.insert(-format.confidence, format.name);
 
         delete prober;

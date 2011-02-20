@@ -18,9 +18,19 @@
  ***************************************************************************/
 
 #include "sfactory.h"
+#include "sapplication.h"
 
 namespace LXiStream {
 
+SFactory::SFactory(void)
+{
+  SApplication::factories().append(this);
+}
+
+SFactory::~SFactory()
+{
+  SApplication::factories().removeAll(this);
+}
 
 void SFactory::registerClass(const QMetaObject &metaObject, CreateFunc createFunc, const Scheme &scheme)
 {
@@ -46,6 +56,11 @@ SFactory::SchemeList SFactory::registredSchemes(const char *className)
     return i->keys();
 
   return SchemeList();
+}
+
+void SFactory::clear(void)
+{
+  classMap.clear();
 }
 
 QObject * SFactory::createObject(const char *className, QObject *parent, const QString &scheme, bool nonNull) const

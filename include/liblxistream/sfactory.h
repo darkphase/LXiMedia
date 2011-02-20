@@ -60,6 +60,9 @@ private:
   typedef QMap< QByteArray, QMultiMap<Scheme, CreateFunc> > ClassMap;
 
 public:
+                                SFactory(void);
+                                ~SFactory();
+
   template <class _class>
   inline void                   registerClass(const Scheme &);
   void                          registerClass(const QMetaObject &, CreateFunc, const Scheme &);
@@ -69,6 +72,8 @@ public:
   template <class _class>
   inline SchemeList             registredSchemes(void);
   SchemeList                    registredSchemes(const char *);
+
+  void                          clear(void);
 
   template <class _interface>
   inline _interface           * createObject(QObject *, const QString &, bool nonNull = true) const;
