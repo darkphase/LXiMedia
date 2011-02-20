@@ -27,6 +27,8 @@ namespace LXiStream {
 
 struct SPlaylistNode::Data
 {
+  SDependency                 * dependency;
+
   QStringList                   fileNames;
   int                           currentFile;
   SFileInputNode              * file;
@@ -41,6 +43,8 @@ SPlaylistNode::SPlaylistNode(SGraph *parent, const SMediaInfoList &files)
     SInterfaces::SourceNode(parent),
     d(new Data())
 {
+  d->dependency = parent ? new SDependency() : NULL;
+
   d->currentFile = 0;
   d->file = NULL;
 
@@ -93,6 +97,7 @@ SPlaylistNode::~SPlaylistNode()
     delete d->file;
   }
 
+  delete d->dependency;
   delete d;
   *const_cast<Data **>(&d) = NULL;
 }
@@ -125,7 +130,7 @@ void SPlaylistNode::stop(void)
 void SPlaylistNode::process(void)
 {
   if (graph)
-    graph->runTask(this, &SPlaylistNode::processTask);
+    graph->queue(this, &SPlaylistNode::processTask, d->dependency);
   else
     processTask();
 }

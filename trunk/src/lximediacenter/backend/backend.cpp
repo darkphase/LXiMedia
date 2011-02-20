@@ -36,6 +36,7 @@ Backend::Backend()
     masterHttpServer(),
     masterSsdpServer(),
     masterDlnaServer(&masterHttpServer),
+    masterImdbClient(NULL),
     cssParser(),
     htmlParser(),
     backendPlugins(),
@@ -79,8 +80,6 @@ Backend::~Backend()
 {
   qDebug() << "LXiMediaCenter backend stopping.";
 
-  ImdbClient::shutdown();
-
   masterDlnaServer.close();
   masterSsdpServer.close();
   masterHttpServer.close();
@@ -92,6 +91,9 @@ Backend::~Backend()
     delete plugin;
 
   QThreadPool::globalInstance()->waitForDone();
+
+  delete masterImdbClient;
+  masterImdbClient = NULL;
 
   // Remove backup settings
   const QString settingsFile = GlobalSettings::settingsFile();
@@ -159,7 +161,7 @@ void Backend::start(void)
   wl.unlock();
 
   // This call may take a while if the database needs to be updated ...
-  ImdbClient::initialize(&threadPool);
+  masterImdbClient = new ImdbClient(this);
 
   wl.relock(__FILE__, __LINE__);
 
@@ -241,7 +243,7 @@ Backend::SearchCacheEntry Backend::search(const QString &query) const
   timer.start();
 
   // Start parallel searches
-  class Query : public QRunnable
+  class Query : public SRunnable
   {
   public:
     inline Query(const BackendServer *backendServer, const QStringList &query)
@@ -251,7 +253,7 @@ Backend::SearchCacheEntry Backend::search(const QString &query) const
       setAutoDelete(false);
     }
 
-    virtual void run(void)
+    virtual void run(SThreadPool *)
     {
       result = backendServer->search(query);
       finished.release(1);
@@ -265,17 +267,17 @@ Backend::SearchCacheEntry Backend::search(const QString &query) const
     QSemaphore finished;
   };
 
-  QList<QRunnable *> tasks;
+  QList<SRunnable *> tasks;
   foreach (const BackendServer *backendServer, backendServers)
   {
-    QRunnable * const q = new Query(backendServer, queryRaw);
-    threadPool.start(q, 1); // High priority since these need to be responsive.
+    SRunnable * const q = new Query(backendServer, queryRaw);
+    SThreadPool::globalInstance()->start(q, 1); // High priority since these need to be responsive.
     tasks += q;
   }
 
   // Gather all results, this will block until the tasks are ready.
   SearchCacheEntry entry;
-  foreach (QRunnable *r, tasks)
+  foreach (SRunnable *r, tasks)
   {
     Query * const q = static_cast<Query *>(r);
     q->finished.acquire(1);
@@ -641,7 +643,7 @@ DlnaServer * Backend::dlnaServer(void)
   return &masterDlnaServer;
 }
 
-QThreadPool * Backend::ioThreadPool(void)
+ImdbClient * Backend::imdbClient(void)
 {
-  return &threadPool;
+  return masterImdbClient;
 }

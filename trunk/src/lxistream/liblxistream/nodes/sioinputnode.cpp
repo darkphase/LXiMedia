@@ -25,6 +25,7 @@ namespace LXiStream {
 
 struct SIOInputNode::Data
 {
+  SDependency                 * dependency;
   QIODevice                   * ioDevice;
   bool                          opened;
   SInterfaces::BufferReader   * bufferReader;
@@ -35,6 +36,7 @@ SIOInputNode::SIOInputNode(SGraph *parent, QIODevice *ioDevice)
     SInterfaces::SourceNode(parent),
     d(new Data())
 {
+  d->dependency = parent ? new SDependency() : NULL;
   d->ioDevice = ioDevice;
   d->opened = false;
   d->bufferReader = NULL;
@@ -42,6 +44,7 @@ SIOInputNode::SIOInputNode(SGraph *parent, QIODevice *ioDevice)
 
 SIOInputNode::~SIOInputNode()
 {
+  delete d->dependency;
   delete d->bufferReader;
   delete d;
   *const_cast<Data **>(&d) = NULL;
@@ -118,7 +121,7 @@ void SIOInputNode::stop(void)
 void SIOInputNode::process(void)
 {
   if (graph)
-    graph->runTask(this, &SIOInputNode::processTask);
+    graph->queue(this, &SIOInputNode::processTask, d->dependency);
   else
     processTask();
 }

@@ -142,7 +142,7 @@ void SDiscInputNode::stop(void)
 void SDiscInputNode::process(void)
 {
   if (graph)
-    graph->runTask(this, &SDiscInputNode::processTask);
+    graph->queue(this, &SDiscInputNode::processTask);
   else
     processTask();
 }

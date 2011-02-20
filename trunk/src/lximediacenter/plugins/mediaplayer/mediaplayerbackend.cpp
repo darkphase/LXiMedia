@@ -58,7 +58,7 @@ QString MediaPlayerBackend::authorName(void) const
 QList<BackendServer *> MediaPlayerBackend::createServers(BackendServer::MasterServer *server)
 {
   if (database == NULL)
-    database = new MediaDatabase(this, server->ioThreadPool());
+    database = new MediaDatabase(this, server->imdbClient());
 
   QList<BackendServer *> servers;
   servers += new MediaPlayerServer(database, MediaDatabase::Category_Movies,      QT_TR_NOOP("Movies"),       this, server);

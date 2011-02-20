@@ -54,18 +54,6 @@ public:
   };
 
 private:
-  class Task : public QRunnable
-  {
-  public:
-    inline                      Task(MediaDatabase *parent, void(MediaDatabase::* func)(void)) : parent(parent), func(func) { }
-
-    virtual void                run(void);
-
-  private:
-    MediaDatabase       * const parent;
-    void                        (MediaDatabase::* const func)(void);
-  };
-
   struct CatecoryDesc
   {
     const char          * const name;
@@ -75,7 +63,7 @@ private:
   struct QuerySet;
 
 public:
-                                MediaDatabase(Plugin *parent, QThreadPool *);
+                                MediaDatabase(Plugin *parent, ImdbClient *);
   virtual                       ~MediaDatabase();
 
   static inline QByteArray      toUidString(UniqueID uid)                       { return QByteArray::number(quint64(uid) | Q_UINT64_C(0x8000000000000000), 16); }
@@ -104,29 +92,32 @@ private slots:
 
 private:
   QString                       findRoot(const QString &, const QStringList &) const;
-  void                          scanDirs(void);
+  void                          scanDir(const QString &);
   void                          updateDir(const QString &, qint64, QuerySet &);
-  void                          probeFiles(void);
-  void                          matchImdbItems(void);
+  void                          probeFile(const QString &);
+  void                          insertFile(const SMediaInfo &, const QByteArray &);
+  void                          delayFile(const QString &);
+  void                          matchImdbItem(const QString &, Category);
 
+  bool                          isHidden(const QString &);
   QMap<Category, QString>       findCategories(const QString &) const;
 
 public:
   static const int              maxSongDurationMin;
+  static const int              basePriority = INT_MIN + 1;
+  static const int              scanDirPriority = basePriority + 1;
+  static const int              probeFilePriority = basePriority + 2;
+  static const int              matchImdbItemPriority = basePriority;
 
 private:
   static const CatecoryDesc     categories[];
 
   Plugin                * const plugin;
-  QThreadPool           * const threadPool;
-  mutable QMutex                mutex;
+  ImdbClient            * const imdbClient;
+  SThreadPool           * const threadPool;
 
   QTimer                        scanRootsTimer;
   QMap<QString, QStringList>    rootPaths;
-  QSet<QString>                 dirsToScan;
-  QSet<QString>                 filesToProbe;
-  QSet<QString>                 imdbItemsToMatch;
-  bool                          matchingImdbItems;
 };
 
 

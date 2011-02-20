@@ -24,6 +24,8 @@
 #include "sfactory.h"
 #include "sinterfaces.h"
 
+#define sApp (SApplication::instance())
+
 namespace LXiStream {
 
 class SCodec;
@@ -32,6 +34,7 @@ class SGraph;
 class SNode;
 class SProber;
 class STerminal;
+class SThreadPool;
 
 class SApplication : public QObject
 {
@@ -76,11 +79,11 @@ public:
   static const char           * name(void) __attribute__((pure));
   static const char           * version(void) __attribute__((pure));
 
+  inline static SApplication  * instance(void)                                  { return self; }
+  inline InitializeFlags        initializeFlags(void) const                     { return flags; }
+
   bool                          loadModule(SInterfaces::Module *);
   QByteArray                    about(void) const;
-
-  inline InitializeFlags        initializeFlags(void)                           { return flags; }
-  inline static SApplication  * instance(void)                                  { return self; }
 
 private:
   static QList<SFactory *>    & factories(void);
@@ -91,7 +94,8 @@ private:
 private:
   static SApplication         * self;
 
-  InitializeFlags               flags;
+  const InitializeFlags         flags;
+
   QList<Module>                 moduleList;
 };
 

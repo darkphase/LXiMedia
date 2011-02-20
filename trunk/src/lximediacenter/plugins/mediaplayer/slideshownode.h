@@ -61,6 +61,7 @@ public:
 private:
   const QStringList             pictures;
 
+  SDependency                   mutex;
   SSize                         outSize;
   SAudioBuffer                  audioBuffer;
   SVideoBuffer                  videoBuffer;

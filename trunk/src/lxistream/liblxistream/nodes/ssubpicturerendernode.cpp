@@ -32,6 +32,8 @@ namespace LXiStream {
 
 struct SSubpictureRenderNode::Data
 {
+  SDependency                 * dependency;
+
   QMutex                        mutex;
   volatile bool                 enabled;
   QMap<STime, SSubpictureBuffer> subpictures;
@@ -59,12 +61,14 @@ SSubpictureRenderNode::SSubpictureRenderNode(SGraph *parent)
     SInterfaces::Node(parent),
     d(new Data())
 {
+  d->dependency = parent ? new SDependency() : NULL;
   d->enabled = false;
   d->subpictureVisible = false;
 }
 
 SSubpictureRenderNode::~SSubpictureRenderNode()
 {
+  delete d->dependency;
   delete d;
   *const_cast<Data **>(&d) = NULL;
 }
@@ -74,7 +78,7 @@ void SSubpictureRenderNode::input(const SSubpictureBuffer &subpictureBuffer)
   if (!subpictureBuffer.isNull())
   {
     if (graph)
-      graph->runTask(this, &SSubpictureRenderNode::processTask, subpictureBuffer);
+      graph->queue(this, &SSubpictureRenderNode::processTask, subpictureBuffer, d->dependency);
     else
       processTask(subpictureBuffer);
   }
@@ -85,7 +89,7 @@ void SSubpictureRenderNode::input(const SVideoBuffer &videoBuffer)
   if (!videoBuffer.isNull() && d->enabled)
   {
     if (graph)
-      graph->runTask(this, &SSubpictureRenderNode::processTask, videoBuffer);
+      graph->queue(this, &SSubpictureRenderNode::processTask, videoBuffer, d->dependency);
     else
       processTask(videoBuffer);
   }

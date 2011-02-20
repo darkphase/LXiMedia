@@ -27,6 +27,7 @@ namespace LXiStream {
 
 struct SAudioMatrixNode::Data
 {
+  SDependency                 * dependency;
   QList<qreal>                  requestedMatrix;
   float                       * appliedMatrix;
   SAudioFormat::Channels        inChannelSetup;
@@ -40,6 +41,7 @@ SAudioMatrixNode::SAudioMatrixNode(SGraph *parent)
     SInterfaces::Node(parent),
     d(new Data())
 {
+  d->dependency = parent ? new SDependency() : NULL;
   d->appliedMatrix = NULL;
   d->inChannelSetup = SAudioFormat::Channel_Stereo;
   d->inNumChannels = SAudioFormat::numChannels(d->inChannelSetup);
@@ -49,6 +51,7 @@ SAudioMatrixNode::SAudioMatrixNode(SGraph *parent)
 
 SAudioMatrixNode::~SAudioMatrixNode()
 {
+  delete d->dependency;
   delete [] d->appliedMatrix;
   delete d;
   *const_cast<Data **>(&d) = NULL;
@@ -122,7 +125,7 @@ void SAudioMatrixNode::input(const SAudioBuffer &audioBuffer)
     }
 
     if (graph)
-      graph->runTask(this, &SAudioMatrixNode::processTask, audioBuffer);
+      graph->queue(this, &SAudioMatrixNode::processTask, audioBuffer, d->dependency);
     else
       processTask(audioBuffer);
   }

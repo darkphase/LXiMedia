@@ -50,7 +50,7 @@ void Log::initialize(const QString &preferredLogDir)
 {
   pid = QCoreApplication::applicationPid();
 
-  if ((SApplication::instance()->initializeFlags() & SApplication::Initialize_LogToFile) == SApplication::Initialize_LogToFile)
+  if ((sApp->initializeFlags() & SApplication::Initialize_LogToFile) == SApplication::Initialize_LogToFile)
   {
     useFile = true;
     if (!preferredLogDir.isEmpty())
@@ -78,7 +78,7 @@ void Log::initialize(const QString &preferredLogDir)
       defaultMsgHandler = NULL;
   }
 
-  if ((SApplication::instance()->initializeFlags() & SApplication::Initialize_LogToConsole) == SApplication::Initialize_LogToConsole)
+  if ((sApp->initializeFlags() & SApplication::Initialize_LogToConsole) == SApplication::Initialize_LogToConsole)
     useStderr = defaultMsgHandler == NULL;
 
 #ifdef Q_OS_UNIX

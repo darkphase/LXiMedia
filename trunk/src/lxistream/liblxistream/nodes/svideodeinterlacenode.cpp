@@ -25,6 +25,7 @@ namespace LXiStream {
 
 struct SVideoDeinterlaceNode::Data
 {
+  SDependency                 * dependency;
   SInterfaces::VideoDeinterlacer * deinterlacer;
 };
 
@@ -33,11 +34,13 @@ SVideoDeinterlaceNode::SVideoDeinterlaceNode(SGraph *parent, const QString &algo
     SInterfaces::Node(parent),
     d(new Data())
 {
+  d->dependency = parent ? new SDependency() : NULL;
   d->deinterlacer = SInterfaces::VideoDeinterlacer::create(this, algo);
 }
 
 SVideoDeinterlaceNode::~SVideoDeinterlaceNode()
 {
+  delete d->dependency;
   delete d->deinterlacer;
   delete d;
   *const_cast<Data **>(&d) = NULL;
@@ -57,7 +60,7 @@ void SVideoDeinterlaceNode::input(const SVideoBuffer &videoBuffer)
         (fieldMode == SVideoFormat::FieldMode_InterlacedBottomFirst))
     {
       if (graph)
-        graph->runTask(this, &SVideoDeinterlaceNode::processTask, videoBuffer);
+        graph->queue(this, &SVideoDeinterlaceNode::processTask, videoBuffer, d->dependency);
       else
         processTask(videoBuffer);
     }

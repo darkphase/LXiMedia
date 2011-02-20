@@ -25,6 +25,7 @@ namespace LXiStream {
 
 struct SVideoResizeNode::Data
 {
+  SDependency                 * dependency;
   QString                       algo;
   SInterfaces::VideoResizer   * resizer;
   SInterfaces::VideoResizer   * lanczosResizer;
@@ -35,6 +36,7 @@ SVideoResizeNode::SVideoResizeNode(SGraph *parent, const QString &algo)
     SInterfaces::Node(parent),
     d(new Data())
 {
+  d->dependency = parent ? new SDependency() : NULL;
   d->algo = algo;
   d->lanczosResizer = NULL;
 
@@ -49,6 +51,7 @@ SVideoResizeNode::SVideoResizeNode(SGraph *parent, const QString &algo)
 
 SVideoResizeNode::~SVideoResizeNode()
 {
+  delete d->dependency;
   delete d->resizer;
   delete d->lanczosResizer;
   delete d;
@@ -129,7 +132,7 @@ void SVideoResizeNode::input(const SVideoBuffer &videoBuffer)
     }
 
     if (graph)
-      graph->runTask(this, &SVideoResizeNode::processTask, videoBuffer, resizer);
+      graph->queue(this, &SVideoResizeNode::processTask, videoBuffer, resizer, d->dependency);
     else
       processTask(videoBuffer, resizer);
   }

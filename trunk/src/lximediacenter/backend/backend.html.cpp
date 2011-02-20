@@ -569,7 +569,7 @@ HttpServer::SocketOp Backend::showAbout(const QUrl &url, QAbstractSocket *socket
   response.setField("Cache-Control", "no-cache");
 
   htmlParser.setField("VERSION", QByteArray(GlobalSettings::version()));
-  htmlParser.setField("ABOUT_LXISTREAM", SApplication::instance()->about());
+  htmlParser.setField("ABOUT_LXISTREAM", sApp->about());
   htmlParser.setField("QT_VERSION", QByteArray(qVersion()));
 
   socket->write(response);
@@ -602,9 +602,9 @@ HttpServer::SocketOp Backend::handleHtmlConfig(const QUrl &url, QAbstractSocket 
   htmlParser.setField("HTTPPORT", settings.value("HttpPort", settings.defaultBackendHttpPort()).toString());
 
   // IMDB
-  if (url.hasQueryItem("imdbsettings") && url.hasQueryItem("download"))
+  if (masterImdbClient && url.hasQueryItem("imdbsettings") && url.hasQueryItem("download"))
   {
-    ImdbClient::obtainIMDBFiles();
+    masterImdbClient->obtainIMDBFiles();
   }
 
   htmlParser.setField("TR_IMDB_SETTINGS", tr("IMDb settings"));
@@ -613,19 +613,21 @@ HttpServer::SocketOp Backend::handleHtmlConfig(const QUrl &url, QAbstractSocket 
        "provide additional information on the media files that are available. "
        "Downloading and parsing the files will take several minutes."));
 
-  if (ImdbClient::isAvailable() && !ImdbClient::needUpdate())
+  if (masterImdbClient && masterImdbClient->isAvailable() && !masterImdbClient->needUpdate())
   {
     htmlParser.setField("IMDB_ACTION", "    <b>" + tr("IMDb files are available") + "</b>\n");
   }
-  else if (ImdbClient::isDownloading() || !ImdbClient::needUpdate())
+  else if (masterImdbClient && (masterImdbClient->isDownloading() || !masterImdbClient->needUpdate()))
   {
     htmlParser.setField("IMDB_ACTION", "    <b>" + tr("Downloading and parsing IMBb files") + " ...</b>\n");
   }
-  else
+  else if (masterImdbClient)
   {
-    htmlParser.setField("TR_DOWNLOAD_IMDB", ImdbClient::needUpdate() ? tr("Update IMDb files") : tr("Download IMDb files"));
+    htmlParser.setField("TR_DOWNLOAD_IMDB", masterImdbClient->needUpdate() ? tr("Update IMDb files") : tr("Download IMDb files"));
     htmlParser.setField("IMDB_ACTION", htmlParser.parse(htmlConfigImdbDownload));
   }
+  else
+    htmlParser.setField("IMDB_ACTION", QByteArray(""));
 
   // DLNA
   settings.beginGroup("DLNA");

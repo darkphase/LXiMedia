@@ -36,16 +36,15 @@ const MediaDatabase::CatecoryDesc MediaDatabase::categories[] =
   { NULL,         MediaDatabase::Category_None       }
 };
 
-MediaDatabase::MediaDatabase(Plugin *plugin, QThreadPool *threadPool)
+MediaDatabase::MediaDatabase(Plugin *plugin, ImdbClient *imdbClient)
   : QObject(plugin),
     plugin(plugin),
-    threadPool(threadPool),
-    mutex(QMutex::Recursive),
-    matchingImdbItems(false)
+    imdbClient(imdbClient),
+    threadPool(SThreadPool::globalInstance())
 {
   PluginSettings settings(plugin);
 
-  SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
+  SDebug::MutexLocker dl(Database::mutex(), __FILE__, __LINE__);
   QSqlDatabase db = Database::database();
   QSqlQuery query(db);
 
@@ -144,18 +143,12 @@ MediaDatabase::MediaDatabase(Plugin *plugin, QThreadPool *threadPool)
 
 MediaDatabase::~MediaDatabase()
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-  dirsToScan.clear();
-  filesToProbe.clear();
-  imdbItemsToMatch.clear();
-  l.unlock();
-
-  QThreadPool::globalInstance()->waitForDone();
+  threadPool->waitForDone();
 }
 
 MediaDatabase::UniqueID MediaDatabase::fromPath(const QString &path) const
 {
-  SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
+  SDebug::MutexLocker dl(Database::mutex(), __FILE__, __LINE__);
 
   QSqlQuery query(Database::database());
   query.prepare("SELECT uid FROM MediaplayerFiles WHERE path = :path");
@@ -169,15 +162,18 @@ MediaDatabase::UniqueID MediaDatabase::fromPath(const QString &path) const
 
 SMediaInfo MediaDatabase::readNode(UniqueID uid) const
 {
-  SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
+  SDebug::MutexLocker dl(Database::mutex(), __FILE__, __LINE__);
 
   QSqlQuery query(Database::database());
   query.exec("SELECT mediaInfo "
              "FROM MediaplayerFiles WHERE uid = " + QString::number(uid));
   if (query.next())
   {
+    const QByteArray value = query.value(0).toByteArray();
+    dl.unlock();
+
     SMediaInfo node;
-    node.fromByteArray(query.value(0).toByteArray());
+    node.fromByteArray(value);
 
     return node;
   }
@@ -196,7 +192,7 @@ void MediaDatabase::setLastPlayed(const QString &filePath, const QDateTime &last
 {
   if (!filePath.isEmpty())
   {
-    SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+    SDebug::MutexLocker l(Database::mutex(), __FILE__, __LINE__);
 
     QSettings settings(GlobalSettings::applicationDataDir() + "/lastplayed.db", QSettings::IniFormat);
 
@@ -224,8 +220,6 @@ QDateTime MediaDatabase::lastPlayed(const QString &filePath) const
 {
   if (!filePath.isEmpty())
   {
-    SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
     QSettings settings(GlobalSettings::applicationDataDir() + "/lastplayed.db", QSettings::IniFormat);
 
     QString key = filePath;
@@ -240,7 +234,7 @@ QDateTime MediaDatabase::lastPlayed(const QString &filePath) const
 
 QStringList MediaDatabase::allAlbums(Category category) const
 {
-  SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
+  SDebug::MutexLocker dl(Database::mutex(), __FILE__, __LINE__);
 
   QStringList result;
 
@@ -258,7 +252,7 @@ QStringList MediaDatabase::allAlbums(Category category) const
 
 int MediaDatabase::countAlbumFiles(Category category, const QString &album) const
 {
-  SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
+  SDebug::MutexLocker dl(Database::mutex(), __FILE__, __LINE__);
 
   QSqlQuery query(Database::database());
   query.prepare("SELECT COUNT(*) FROM MediaplayerItems "
@@ -276,7 +270,7 @@ int MediaDatabase::countAlbumFiles(Category category, const QString &album) cons
 
 bool MediaDatabase::hasAlbum(Category category, const QString &album) const
 {
-  SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
+  SDebug::MutexLocker dl(Database::mutex(), __FILE__, __LINE__);
 
   QSqlQuery query(Database::database());
   query.prepare("SELECT COUNT(*) FROM MediaplayerAlbums "
@@ -292,7 +286,7 @@ bool MediaDatabase::hasAlbum(Category category, const QString &album) const
 
 QList<MediaDatabase::File> MediaDatabase::getAlbumFiles(Category category, const QString &album, unsigned start, unsigned count) const
 {
-  SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
+  SDebug::MutexLocker dl(Database::mutex(), __FILE__, __LINE__);
 
   QString limit;
   if (count > 0)
@@ -344,7 +338,7 @@ QList<MediaDatabase::File> MediaDatabase::queryAlbums(Category category, const Q
 
   if (!qs1.isEmpty() && !qs2.isEmpty())
   {
-    SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
+    SDebug::MutexLocker dl(Database::mutex(), __FILE__, __LINE__);
 
     QSqlQuery query(Database::database());
     query.prepare("SELECT file, title FROM MediaplayerItems "
@@ -364,15 +358,18 @@ QList<MediaDatabase::File> MediaDatabase::queryAlbums(Category category, const Q
 
 ImdbClient::Entry MediaDatabase::getImdbEntry(UniqueID uid) const
 {
-  SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
+  if (imdbClient)
+  {
+    SDebug::MutexLocker dl(Database::mutex(), __FILE__, __LINE__);
 
-  QSqlQuery query(Database::database());
-  query.prepare("SELECT imdbLink FROM MediaplayerItems WHERE file = :file");
-  query.bindValue(0, uid);
-  query.exec();
-  while (query.next())
-  if (!query.value(0).isNull() && (query.value(0).toString() != ImdbClient::sentinelItem))
-    return ImdbClient::readEntry(query.value(0).toString());
+    QSqlQuery query(Database::database());
+    query.prepare("SELECT imdbLink FROM MediaplayerItems WHERE file = :file");
+    query.bindValue(0, uid);
+    query.exec();
+    while (query.next())
+    if (!query.value(0).isNull() && (query.value(0).toString() != ImdbClient::sentinelItem))
+      return imdbClient->readEntry(query.value(0).toString());
+  }
 
   return ImdbClient::Entry();
 }
@@ -404,30 +401,8 @@ void MediaDatabase::scanRoots(void)
 
     QStringList paths;
     foreach (const QString &root, settings.value("Paths").toStringList())
-    if (!root.trimmed().isEmpty())
-    {
-      const QFileInfo info(root);
-      if (info.exists())
-      {
-        bool hide = false;
-        const QString canonicalPath =
-#ifndef Q_OS_WIN
-            info.canonicalFilePath();
-#else
-            info.canonicalFilePath().toLower();
-#endif
-
-        foreach (const QString &hidden, ConfigServer::hiddenDirs())
-        if ((canonicalPath == hidden) || canonicalPath.startsWith(hidden + "/"))
-        {
-          hide = true;
-          break;
-        }
-
-        if (!hide)
-          paths.append(canonicalPath);
-      }
-    }
+    if (!root.trimmed().isEmpty() && !isHidden(root) && QFileInfo(root).exists())
+      paths.append(root);
 
     settings.setValue("Paths", paths);
     rootPaths[group] = paths;
@@ -436,18 +411,18 @@ void MediaDatabase::scanRoots(void)
     settings.endGroup();
   }
 
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
-  if (dirsToScan.isEmpty() && filesToProbe.isEmpty() && !matchingImdbItems)
+  // Only start scan if no threads active with other things.
+  if (threadPool->activeThreadCount() == 0)
   {
-    foreach (const QString &root, allRootPaths)
-    if (QFileInfo(root).exists())
-      dirsToScan.insert(root);
+    SDebug::MutexLocker dl(Database::mutex(), __FILE__, __LINE__);
 
-    SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
     QSqlDatabase db = Database::database();
     db.transaction();
     QSqlQuery query(db);
+
+    // Scan all root paths recursively
+    foreach (const QString &path, allRootPaths)
+      threadPool->queue(this, &MediaDatabase::scanDir, path, Database::mutex(), scanDirPriority);
 
     // Find roots that are no longer roots and remove them
     query.exec("SELECT path FROM MediaplayerFiles WHERE parentDir ISNULL");
@@ -466,10 +441,11 @@ void MediaDatabase::scanRoots(void)
     // Find files that were not probed yet.
     query.exec("SELECT path FROM MediaplayerFiles WHERE size < 0");
     while (query.next())
-      filesToProbe.insert(query.value(0).toString());
+      threadPool->queue(this, &MediaDatabase::probeFile, query.value(0).toString(), NULL, probeFilePriority);
 
     // Find IMDB items that still need to be matched.
-    if (ImdbClient::isAvailable())
+    if (imdbClient)
+    if (imdbClient->isAvailable())
     {
       query.prepare("SELECT title FROM MediaplayerItems "
                     "WHERE album IN ("
@@ -479,7 +455,7 @@ void MediaDatabase::scanRoots(void)
       query.bindValue(0, Category_Movies);
       query.exec();
       while (query.next())
-        imdbItemsToMatch.insert("M" + query.value(0).toString());
+        threadPool->queue(this, &MediaDatabase::matchImdbItem, query.value(0).toString(), Category_Movies, Database::mutex(), matchImdbItemPriority);
 
 //      query.prepare("SELECT title FROM MediaplayerItems "
 //                    "WHERE album IN ("
@@ -489,20 +465,10 @@ void MediaDatabase::scanRoots(void)
 //      query.bindValue(0, Category_TVShows);
 //      query.exec();
 //      while (query.next())
-//        imdbItemsToMatch.insert("T" + query.value(0).toString());
+//        threadPool->run(this, &MediaDatabase::matchImdbItem, query.value(0).toString(), Category_TVShows, Database::mutex(), matchImdbItemPriority);
     }
 
     db.commit();
-
-    if (!dirsToScan.isEmpty())
-      threadPool->start(new Task(this, &MediaDatabase::scanDirs), -1);
-    else if (!filesToProbe.isEmpty())
-      threadPool->start(new Task(this, &MediaDatabase::probeFiles), -1);
-    else if (!imdbItemsToMatch.isEmpty())
-    {
-      matchingImdbItems = true;
-      threadPool->start(new Task(this, &MediaDatabase::matchImdbItems), -1);
-    }
   }
 }
 
@@ -511,19 +477,19 @@ QString MediaDatabase::findRoot(const QString &path, const QStringList &allRootP
   const QFileInfo info(path);
 
 #ifndef Q_OS_WIN
-  const QString canonicalPath = info.exists() ? info.canonicalFilePath() : info.absoluteFilePath();
+  const QString absoluteFilePath = info.absoluteFilePath();
 #else
-  const QString canonicalPath = QDir::toNativeSeparators(info.exists() ? info.canonicalFilePath() : info.absoluteFilePath()).toLower();
+  const QString absoluteFilePath = QDir::toNativeSeparators(info.absoluteFilePath()).toLower();
 #endif
 
   foreach (const QString &root, allRootPaths)
 #ifndef Q_OS_WIN
-  if ((root == canonicalPath) || canonicalPath.startsWith(root + "/"))
+  if ((root == absoluteFilePath) || absoluteFilePath.startsWith(root + "/"))
     return root.endsWith('/') ? root : (root + '/');
 #else
   {
     const QString croot = QDir::toNativeSeparators(root).toLower();
-    if ((croot == canonicalPath) || canonicalPath.startsWith(croot + "\\"))
+    if ((croot == absoluteFilePath) || absoluteFilePath.startsWith(croot + "\\"))
       return root.endsWith('/') ? root : (root + '/');
   }
 #endif
@@ -545,23 +511,20 @@ struct MediaDatabase::QuerySet
   QSqlQuery remove;
 };
 
-void MediaDatabase::scanDirs(void)
+void MediaDatabase::scanDir(const QString &_path)
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+  Q_ASSERT(!Database::mutex()->tryLock()); // Mutex should be locked by the caller.
 
-  if (!dirsToScan.isEmpty())
-  {
-    QSet<QString>::Iterator i = dirsToScan.begin();
-    QString path =
-#ifndef Q_OS_WIN
-        *i;
-#else
-        i->toLower();
+  // Ensure directories end with a '/'
+  const QString path =
+      (_path.endsWith('/') ? _path : (_path + '/'))
+#ifdef Q_OS_WIN
+      .toLower()
 #endif
-    dirsToScan.erase(i);
-    l.unlock();
+      ;
 
-    SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
+  if (!isHidden(path))
+  {
     QSqlDatabase db = Database::database();
     db.transaction();
 
@@ -581,13 +544,7 @@ void MediaDatabase::scanDirs(void)
 
     q.remove.prepare("DELETE FROM MediaplayerFiles WHERE path = :path");
 
-    // Ensure directories end with a '/'
-    if (!path.endsWith('/'))
-      path += '/';
-
     const QFileInfo info(path);
-
-    l.relock(__FILE__, __LINE__);
 
     q.request.bindValue(0, path);
     q.request.exec();
@@ -615,7 +572,7 @@ void MediaDatabase::scanDirs(void)
       {
         foreach (const QFileInfo &child, dir.entryInfoList(QDir::Dirs))
         if (!child.fileName().startsWith('.'))
-          dirsToScan.insert(child.canonicalFilePath());
+          threadPool->queue(this, &MediaDatabase::scanDir, child.absoluteFilePath(), Database::mutex(), scanDirPriority);
       }
     }
     else if (info.isDir())
@@ -631,25 +588,18 @@ void MediaDatabase::scanDirs(void)
       q.insert.bindValue(5, QVariant(QVariant::ByteArray));
       q.insert.exec();
 
-      dirsToScan.insert(path); // Scan again.
+      // Scan again.
+      threadPool->queue(this, &MediaDatabase::scanDir, path, Database::mutex(), scanDirPriority);
     }
 
     db.commit();
-  }
-
-  if (!dirsToScan.isEmpty())
-    threadPool->start(new Task(this, &MediaDatabase::scanDirs), -1);
-  else if (!filesToProbe.isEmpty())
-    threadPool->start(new Task(this, &MediaDatabase::probeFiles), -1);
-  else if (!imdbItemsToMatch.isEmpty() && !matchingImdbItems)
-  {
-    matchingImdbItems = true;
-    threadPool->start(new Task(this, &MediaDatabase::matchImdbItems), -1);
   }
 }
 
 void MediaDatabase::updateDir(const QString &path, qint64 parentDir, QuerySet &q)
 {
+  Q_ASSERT(!Database::mutex()->tryLock()); // Mutex should be locked by the caller.
+
   qDebug() << "Scanning:" << path;
 
   QSet<QString> childPaths;
@@ -658,12 +608,11 @@ void MediaDatabase::updateDir(const QString &path, qint64 parentDir, QuerySet &q
   foreach (const QFileInfo &child, QDir(path).entryInfoList(QDir::Dirs))
   if (!child.fileName().startsWith('.'))
   {
-    QString childPath =
-#ifndef Q_OS_WIN
-        child.canonicalFilePath();
-#else
-        child.canonicalFilePath().toLower();
+    QString childPath = child.absoluteFilePath()
+#ifdef Q_OS_WIN
+        .toLower()
 #endif
+        ;
 
     // Ensure directories end with a '/'
     if (!childPath.endsWith('/'))
@@ -685,7 +634,7 @@ void MediaDatabase::updateDir(const QString &path, qint64 parentDir, QuerySet &q
       q.insert.exec();
     }
 
-    dirsToScan.insert(childPath);
+    threadPool->queue(this, &MediaDatabase::scanDir, childPath, Database::mutex(), scanDirPriority);
   }
 
   // Update existing and add new files.
@@ -698,9 +647,9 @@ void MediaDatabase::updateDir(const QString &path, qint64 parentDir, QuerySet &q
 
     const QString childPath =
 #ifndef Q_OS_WIN
-        child.canonicalFilePath();
+        child.absoluteFilePath();
 #else
-        child.canonicalFilePath().toLower();
+        child.absoluteFilePath().toLower();
 #endif
 
     childPaths.insert(childPath);
@@ -720,7 +669,7 @@ void MediaDatabase::updateDir(const QString &path, qint64 parentDir, QuerySet &q
       q.insert.bindValue(5, QVariant(QVariant::ByteArray));
       q.insert.exec();
 
-      filesToProbe.insert(childPath);
+      threadPool->queue(this, &MediaDatabase::probeFile, childPath, NULL, probeFilePriority);
     }
     else if ((child.size() != q.request.value(2).toLongLong()) ||
              (child.lastModified() > q.request.value(3).toDateTime().addSecs(2)))
@@ -734,7 +683,7 @@ void MediaDatabase::updateDir(const QString &path, qint64 parentDir, QuerySet &q
       q.update.bindValue(3, childPath);
       q.update.exec();
 
-      filesToProbe.insert(childPath);
+      threadPool->queue(this, &MediaDatabase::probeFile, childPath, NULL, probeFilePriority);
     }
   }
 
@@ -764,246 +713,230 @@ void MediaDatabase::updateDir(const QString &path, qint64 parentDir, QuerySet &q
   }
 }
 
-void MediaDatabase::probeFiles(void)
+void MediaDatabase::probeFile(const QString &_path)
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
-  if (!filesToProbe.isEmpty())
-  {
-    QSet<QString>::Iterator i = filesToProbe.begin();
-    const QString path =
+  // Ensure directories end with a '/'
 #ifndef Q_OS_WIN
-        *i;
+#define path _path
 #else
-        i->toLower();
+  const QString path = _path.toLower();
 #endif
 
-    filesToProbe.erase(i);
-    if (!filesToProbe.isEmpty())
+  if (!path.isEmpty() && !isHidden(path))
+  {
+    // Only scan files if they can be opened (to prevent scanning files that
+    // are still being copied).
+    if (QFile(path).open(QFile::ReadOnly))
     {
-      threadPool->start(new Task(this, &MediaDatabase::probeFiles), -1);
-    }
-    else if (!imdbItemsToMatch.isEmpty() && !matchingImdbItems)
-    {
-      matchingImdbItems = true;
-      threadPool->start(new Task(this, &MediaDatabase::matchImdbItems), -1);
-    }
+      qDebug() << "Probing:" << path;
 
-    l.unlock();
+      const SMediaInfo mediaInfo(path);
+      const QByteArray mediaInfoXml = mediaInfo.toByteArray(-1);
 
-    if (!path.isEmpty())
+      threadPool->queue(this, &MediaDatabase::insertFile, mediaInfo, mediaInfoXml, Database::mutex(), probeFilePriority + 1);
+    }
+    else
+      threadPool->queue(this, &MediaDatabase::delayFile, path, Database::mutex(), probeFilePriority + 1);
+  }
+
+#ifndef Q_OS_WIN
+#undef path
+#endif
+}
+
+void MediaDatabase::insertFile(const SMediaInfo &mediaInfo, const QByteArray &mediaInfoXml)
+{
+  Q_ASSERT(!Database::mutex()->tryLock()); // Mutex should be locked by the caller.
+
+  QSqlDatabase db = Database::database();
+  db.transaction();
+
+  QSqlQuery query(db);
+  query.prepare("UPDATE MediaplayerFiles "
+                "SET size = :size, mediaInfo = :mediaInfo "
+                "WHERE path = :path");
+  query.bindValue(0, qMax(Q_INT64_C(0), mediaInfo.size()));
+  query.bindValue(1, mediaInfoXml);
+  query.bindValue(2, mediaInfo.filePath());
+  query.exec();
+
+  if (mediaInfo.isProbed() && mediaInfo.isReadable())
+  {
+    // Find the rowId and categorize the file
+    query.prepare("SELECT uid, parentDir FROM MediaplayerFiles WHERE path = :path");
+    query.bindValue(0, mediaInfo.filePath());
+    query.exec();
+
+    if (query.next())
     {
-      // Only scan files if they can be opened (to prevent scanning files that
-      // are still being copied).
-      if (QFile(path).open(QFile::ReadOnly))
+      const qint64 rowId = query.value(0).toLongLong();
+      const qint64 parentDirId = query.value(1).toLongLong();
+
+      const QMap<Category, QString> categories = findCategories(mediaInfo.filePath());
+      for (QMap<Category, QString>::ConstIterator i=categories.begin(); i!=categories.end(); i++)
       {
-        qDebug() << "Probing:" << path;
+        if ((i.key() == Category_Movies) || (i.key() == Category_HomeVideos) ||
+            (i.key() == Category_Clips) || (i.key() == Category_TVShows))
+        if (!mediaInfo.containsAudio() || !mediaInfo.containsVideo())
+          continue;
 
-        const SMediaInfo mediaInfo(path);
-        const QByteArray mediaInfoXml = mediaInfo.toByteArray(-1);
+        if (i.key() == Category_Movies)
+        if (mediaInfo.duration().isValid() && (mediaInfo.duration().toMin() < 5))
+          continue;
 
-        SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
-        QSqlDatabase db = Database::database();
-        db.transaction();
+        if (i.key() == Category_Music)
+        if (!mediaInfo.containsAudio())
+          continue;
 
-        QSqlQuery query(db);
-        query.prepare("UPDATE MediaplayerFiles "
-                      "SET size = :size, mediaInfo = :mediaInfo "
-                      "WHERE path = :path");
-        query.bindValue(0, qMax(Q_INT64_C(0), mediaInfo.size()));
-        query.bindValue(1, mediaInfoXml);
-        query.bindValue(2, path);
+        if (i.key() == Category_Photos)
+        if (!mediaInfo.containsImage())
+          continue;
+
+        // Find or create the album id.
+        qint64 albumId = -1;
+        query.prepare("SELECT id FROM MediaplayerAlbums "
+                      "WHERE name = :name AND category = :category");
+        query.bindValue(0, i.value());
+        query.bindValue(1, i.key());
         query.exec();
-
-        if (mediaInfo.isProbed() && mediaInfo.isReadable())
+        if (!query.next())
         {
-          // Find the rowId and categorize the file
-          query.prepare("SELECT uid, parentDir FROM MediaplayerFiles WHERE path = :path");
-          query.bindValue(0, path);
+          query.prepare("INSERT INTO MediaplayerAlbums "
+                        "VALUES (:id, :parentDir, :category, :name)");
+          query.bindValue(0, QVariant(QVariant::LongLong));
+          query.bindValue(1, parentDirId);
+          query.bindValue(2, i.key());
+          query.bindValue(3, i.value());
           query.exec();
 
+          query.prepare("SELECT id FROM MediaplayerAlbums "
+                        "WHERE name = :name AND category = :category");
+          query.bindValue(0, i.value());
+          query.bindValue(1, i.key());
+          query.exec();
           if (query.next())
-          {
-            const qint64 rowId = query.value(0).toLongLong();
-            const qint64 parentDirId = query.value(1).toLongLong();
-
-            const QMap<Category, QString> categories = findCategories(path);
-            for (QMap<Category, QString>::ConstIterator i=categories.begin(); i!=categories.end(); i++)
-            {
-              if ((i.key() == Category_Movies) || (i.key() == Category_HomeVideos) ||
-                  (i.key() == Category_Clips) || (i.key() == Category_TVShows))
-              if (!mediaInfo.containsAudio() || !mediaInfo.containsVideo())
-                continue;
-
-              if (i.key() == Category_Movies)
-              if (mediaInfo.duration().isValid() && (mediaInfo.duration().toMin() < 5))
-                continue;
-
-              if (i.key() == Category_Music)
-              if (!mediaInfo.containsAudio())
-                continue;
-
-              if (i.key() == Category_Photos)
-              if (!mediaInfo.containsImage())
-                continue;
-
-              // Find or create the album id.
-              qint64 albumId = -1;
-              query.prepare("SELECT id FROM MediaplayerAlbums "
-                            "WHERE name = :name AND category = :category");
-              query.bindValue(0, i.value());
-              query.bindValue(1, i.key());
-              query.exec();
-              if (!query.next())
-              {
-                query.prepare("INSERT INTO MediaplayerAlbums "
-                              "VALUES (:id, :parentDir, :category, :name)");
-                query.bindValue(0, QVariant(QVariant::LongLong));
-                query.bindValue(1, parentDirId);
-                query.bindValue(2, i.key());
-                query.bindValue(3, i.value());
-                query.exec();
-
-                query.prepare("SELECT id FROM MediaplayerAlbums "
-                              "WHERE name = :name AND category = :category");
-                query.bindValue(0, i.value());
-                query.bindValue(1, i.key());
-                query.exec();
-                if (query.next())
-                  albumId = query.value(0).toLongLong();
-              }
-              else
-                albumId = query.value(0).toLongLong();
-
-              if (albumId != -1)
-              {
-                QString rawTitle = SStringParser::toRawName(mediaInfo.title());
-                if ((i.key() == Category_TVShows) || (i.key() == Category_Music))
-                  rawTitle = ("000000000" + QString::number(mediaInfo.track())).right(10) + rawTitle;
-
-                query.prepare("INSERT INTO MediaplayerItems "
-                              "VALUES (:file, :album, :title, :subtitle, :imdbLink)");
-                query.bindValue(0, rowId);
-                query.bindValue(1, albumId);
-                query.bindValue(2, rawTitle);
-                query.bindValue(3, SStringParser::toRawName(mediaInfo.album()));
-                query.bindValue(4, QVariant(QVariant::String));
-                query.exec();
-              }
-            }
-          }
+            albumId = query.value(0).toLongLong();
         }
+        else
+          albumId = query.value(0).toLongLong();
 
-        db.commit();
-      }
-      else
-      {
-        SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
-        QSqlQuery query(Database::database());
-        query.prepare("SELECT size FROM MediaplayerFiles WHERE path = :path");
-        query.bindValue(0, path);
-        query.exec();
-        if (query.next())
+        if (albumId != -1)
         {
-          const qint64 size = query.value(0).toLongLong();
+          QString rawTitle = SStringParser::toRawName(mediaInfo.title());
+          if ((i.key() == Category_TVShows) || (i.key() == Category_Music))
+            rawTitle = ("000000000" + QString::number(mediaInfo.track())).right(10) + rawTitle;
 
-          if (size == -1)
-            qDebug() << "File" << path << "can not be opened, scanning later";
-
-          if (size > -60) // Try 60 times (~1 hour), otherwise fail forever.
-          {
-            query.prepare("UPDATE MediaplayerFiles "
-                          "SET size = :size "
-                          "WHERE path = :path");
-            query.bindValue(0, qMin(size - 1, Q_INT64_C(-1)));
-            query.bindValue(1, path);
-            query.exec();
-          }
-          else // Set the correct size so the file is not probed anymore.
-          {
-            qDebug() << "File" << path << "can not be opened, not scanning at all";
-
-            query.prepare("UPDATE MediaplayerFiles "
-                          "SET size = :size "
-                          "WHERE path = :path");
-            query.bindValue(0, QFileInfo(path).size());
-            query.bindValue(1, path);
-            query.exec();
-          }
+          query.prepare("INSERT INTO MediaplayerItems "
+                        "VALUES (:file, :album, :title, :subtitle, :imdbLink)");
+          query.bindValue(0, rowId);
+          query.bindValue(1, albumId);
+          query.bindValue(2, rawTitle);
+          query.bindValue(3, SStringParser::toRawName(mediaInfo.album()));
+          query.bindValue(4, QVariant(QVariant::String));
+          query.exec();
         }
       }
     }
   }
-  else if (!imdbItemsToMatch.isEmpty() && !matchingImdbItems)
+
+  db.commit();
+}
+
+void MediaDatabase::delayFile(const QString &path)
+{
+  Q_ASSERT(!Database::mutex()->tryLock()); // Mutex should be locked by the caller.
+
+  QSqlQuery query(Database::database());
+  query.prepare("SELECT size FROM MediaplayerFiles WHERE path = :path");
+  query.bindValue(0, path);
+  query.exec();
+  if (query.next())
   {
-    matchingImdbItems = true;
-    threadPool->start(new Task(this, &MediaDatabase::matchImdbItems), -1);
+    const qint64 size = query.value(0).toLongLong();
+
+    if (size == -1)
+      qDebug() << "File" << path << "can not be opened, scanning later";
+
+    if (size > -60) // Try 60 times (~1 hour), otherwise fail forever.
+    {
+      query.prepare("UPDATE MediaplayerFiles "
+                    "SET size = :size "
+                    "WHERE path = :path");
+      query.bindValue(0, qMin(size - 1, Q_INT64_C(-1)));
+      query.bindValue(1, path);
+      query.exec();
+    }
+    else // Set the correct size so the file is not probed anymore.
+    {
+      qDebug() << "File" << path << "can not be opened, not scanning at all";
+
+      query.prepare("UPDATE MediaplayerFiles "
+                    "SET size = :size "
+                    "WHERE path = :path");
+      query.bindValue(0, QFileInfo(path).size());
+      query.bindValue(1, path);
+      query.exec();
+    }
   }
 }
 
-void MediaDatabase::matchImdbItems(void)
+void MediaDatabase::matchImdbItem(const QString &item, Category category)
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+  Q_ASSERT(!Database::mutex()->tryLock()); // Mutex should be locked by the caller.
 
-  if (!imdbItemsToMatch.isEmpty())
+  QSqlQuery query(Database::database());
+
+  if (category != Category_None)
   {
-    QSet<QString>::Iterator i = imdbItemsToMatch.begin();
-    const QString item = *i;
-    imdbItemsToMatch.erase(i);
-    l.unlock();
+    const ImdbClient::Type imdbType = category == Category_Movies ? ImdbClient::Type_Movie : ImdbClient::Type_TvShow;
 
-    if (ImdbClient::isAvailable() && (item.length() >= 2))
+    query.prepare("SELECT file FROM MediaplayerItems "
+                  "WHERE album IN ("
+                    "SELECT id FROM MediaplayerAlbums "
+                    "WHERE category = :category) "
+                  "AND title = :title");
+    query.bindValue(0, category);
+    query.bindValue(1, item);
+    query.exec();
+    if (query.next())
     {
-      SDebug::MutexLocker dl(&(Database::mutex()), __FILE__, __LINE__);
-      QSqlQuery query(Database::database());
-
-      Category category = Category_None;
-      if (item[0] == 'M')
-        category = Category_Movies;
-      else if (item[0] == 'T')
-        category = Category_TVShows;
-
-      if (category != Category_None)
+      const SMediaInfo node = readNode(query.value(0).toULongLong());
+      if (!node.isNull())
       {
-        const ImdbClient::Type imdbType = category == Category_Movies ? ImdbClient::Type_Movie : ImdbClient::Type_TvShow;
+        const QString imdbLink = imdbClient->findEntry(node.title(), imdbType);
 
-        query.prepare("SELECT file FROM MediaplayerItems "
+        query.prepare("UPDATE MediaplayerItems SET imdbLink = :imdbLink "
                       "WHERE album IN ("
                         "SELECT id FROM MediaplayerAlbums "
                         "WHERE category = :category) "
                       "AND title = :title");
-        query.bindValue(0, category);
-        query.bindValue(1, item.mid(1));
+        query.bindValue(0, imdbLink);
+        query.bindValue(1, category);
+        query.bindValue(2, item);
         query.exec();
-        if (query.next())
-        {
-          const SMediaInfo node = readNode(query.value(0).toULongLong());
-          if (!node.isNull())
-          {
-            dl.unlock();
-            const QString imdbLink = ImdbClient::findEntry(node.title(), imdbType);
-            dl.relock(__FILE__, __LINE__);
-
-            query.prepare("UPDATE MediaplayerItems SET imdbLink = :imdbLink "
-                          "WHERE album IN ("
-                            "SELECT id FROM MediaplayerAlbums "
-                            "WHERE category = :category) "
-                          "AND title = :title");
-            query.bindValue(0, imdbLink);
-            query.bindValue(1, category);
-            query.bindValue(2, item.mid(1));
-            query.exec();
-          }
-        }
       }
     }
-
-    l.relock(__FILE__, __LINE__);
-    if (!imdbItemsToMatch.isEmpty())
-      threadPool->start(new Task(this, &MediaDatabase::matchImdbItems), -1);
-    else
-      matchingImdbItems = false;
   }
+}
+
+bool MediaDatabase::isHidden(const QString &absoluteFilePath)
+{
+  const QFileInfo info(absoluteFilePath);
+  const QString canonicalFilePath =
+      (info.exists() ? info.canonicalFilePath() : absoluteFilePath)
+#ifdef Q_OS_WIN
+      .toLower()
+#endif
+      ;
+
+  foreach (const QString &hidden, ConfigServer::hiddenDirs())
+  if ((absoluteFilePath == hidden) || absoluteFilePath.startsWith(hidden + "/") ||
+      (canonicalFilePath == hidden) || canonicalFilePath.startsWith(hidden + "/"))
+  {
+    return true;
+  }
+
+  return false;
 }
 
 QMap<MediaDatabase::Category, QString> MediaDatabase::findCategories(const QString &path) const
@@ -1030,11 +963,6 @@ QMap<MediaDatabase::Category, QString> MediaDatabase::findCategories(const QStri
   }
 
   return result;
-}
-
-void MediaDatabase::Task::run(void)
-{
-  (parent->*func)();
 }
 
 } // End of namespace

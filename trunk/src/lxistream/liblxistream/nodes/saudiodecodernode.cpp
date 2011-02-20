@@ -25,6 +25,7 @@ namespace LXiStream {
 
 struct SAudioDecoderNode::Data
 {
+  SDependency                 * dependency;
   SAudioDecoderNode::Flags      flags;
   SAudioCodec                   lastCodec;
   SInterfaces::AudioDecoder   * decoder;
@@ -35,12 +36,14 @@ SAudioDecoderNode::SAudioDecoderNode(SGraph *parent, Flags flags)
     SInterfaces::Node(parent),
     d(new Data())
 {
+  d->dependency = parent ? new SDependency() : NULL;
   d->flags = flags;
   d->decoder = NULL;
 }
 
 SAudioDecoderNode::~SAudioDecoderNode()
 {
+  delete d->dependency;
   delete d->decoder;
   delete d;
   *const_cast<Data **>(&d) = NULL;
@@ -76,7 +79,7 @@ void SAudioDecoderNode::input(const SEncodedAudioBuffer &audioBuffer)
   }
 
   if (graph)
-    graph->runTask(this, &SAudioDecoderNode::processTask, audioBuffer, d->decoder);
+    graph->queue(this, &SAudioDecoderNode::processTask, audioBuffer, d->decoder, d->dependency);
   else
     processTask(audioBuffer, d->decoder);
 }

@@ -25,6 +25,7 @@ namespace LXiStream {
 
 struct SVideoFormatConvertNode::Data
 {
+  SDependency                 * dependency;
   SVideoFormat::Format          sourceFormat;
   SVideoFormat::Format          destFormat;
   SInterfaces::VideoFormatConverter * converter;
@@ -35,6 +36,7 @@ SVideoFormatConvertNode::SVideoFormatConvertNode(SGraph *parent)
     SInterfaces::Node(parent),
     d(new Data())
 {
+  d->dependency = parent ? new SDependency() : NULL;
   d->sourceFormat = SVideoFormat::Format_Invalid;
   d->destFormat = SVideoFormat::Format_Invalid;
   d->converter = NULL;
@@ -42,6 +44,7 @@ SVideoFormatConvertNode::SVideoFormatConvertNode(SGraph *parent)
 
 SVideoFormatConvertNode::~SVideoFormatConvertNode()
 {
+  delete d->dependency;
   delete d->converter;
   delete d;
   *const_cast<Data **>(&d) = NULL;
@@ -128,7 +131,7 @@ void SVideoFormatConvertNode::input(const SVideoBuffer &videoBuffer)
     if (videoBuffer.format() == d->destFormat)
       emit output(videoBuffer);
     else if (graph)
-      graph->runTask(this, &SVideoFormatConvertNode::processTask, videoBuffer);
+      graph->queue(this, &SVideoFormatConvertNode::processTask, videoBuffer, d->dependency);
     else
       processTask(videoBuffer);
   }

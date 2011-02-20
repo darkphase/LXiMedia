@@ -24,8 +24,8 @@ namespace LXiStream {
 
 struct SAudioResampleNode::Data
 {
+  SDependency                 * dependency;
   SInterfaces::AudioResampler * resampler;
-  QFuture<SAudioBuffer>         future;
 };
 
 SAudioResampleNode::SAudioResampleNode(SGraph *parent, const QString &algo)
@@ -33,12 +33,13 @@ SAudioResampleNode::SAudioResampleNode(SGraph *parent, const QString &algo)
     SInterfaces::Node(parent),
     d(new Data())
 {
+  d->dependency = parent ? new SDependency() : NULL;
   d->resampler = SInterfaces::AudioResampler::create(this, algo);
 }
 
 SAudioResampleNode::~SAudioResampleNode()
 {
-  d->future.waitForFinished();
+  delete d->dependency;
   delete d->resampler;
   delete d;
   *const_cast<Data **>(&d) = NULL;
@@ -90,7 +91,7 @@ void SAudioResampleNode::input(const SAudioBuffer &audioBuffer)
   if (d->resampler)
   {
     if (graph)
-      graph->runTask(this, &SAudioResampleNode::processTask, audioBuffer);
+      graph->queue(this, &SAudioResampleNode::processTask, audioBuffer, d->dependency);
     else
       processTask(audioBuffer);
   }

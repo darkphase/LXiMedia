@@ -24,6 +24,7 @@
 #include "liblxistream/ssubpicturebuffer.h"
 #include "liblxistream/ssubtitlebuffer.h"
 #include "liblxistream/ssubtitlefile.h"
+#include "liblxistream/sthreadpool.h"
 #include "liblxistream/stime.h"
 #include "liblxistream/stimer.h"
 #include "liblxistream/stuner.h"

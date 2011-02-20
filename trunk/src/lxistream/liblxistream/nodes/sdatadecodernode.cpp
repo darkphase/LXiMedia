@@ -25,6 +25,7 @@ namespace LXiStream {
 
 struct SDataDecoderNode::Data
 {
+  SDependency                 * dependency;
   SDataDecoderNode::Flags       flags;
   SDataCodec                    lastCodec;
   SInterfaces::DataDecoder    * decoder;
@@ -35,12 +36,14 @@ SDataDecoderNode::SDataDecoderNode(SGraph *parent, Flags flags)
     SInterfaces::Node(parent),
     d(new Data())
 {
+  d->dependency = parent ? new SDependency() : NULL;
   d->flags = flags;
   d->decoder = NULL;
 }
 
 SDataDecoderNode::~SDataDecoderNode()
 {
+  delete d->dependency;
   delete d->decoder;
   delete d;
   *const_cast<Data **>(&d) = NULL;
@@ -76,7 +79,7 @@ void SDataDecoderNode::input(const SEncodedDataBuffer &dataBuffer)
   }
 
   if (graph)
-    graph->runTask(this, &SDataDecoderNode::processTask, dataBuffer, d->decoder);
+    graph->queue(this, &SDataDecoderNode::processTask, dataBuffer, d->decoder, d->dependency);
   else
     processTask(dataBuffer, d->decoder);
 }

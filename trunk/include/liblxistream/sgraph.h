@@ -22,12 +22,12 @@
 
 #include <QtCore>
 #include "sinterfaces.h"
-#include "staskrunner.h"
+#include "sthreadpool.h"
 
 namespace LXiStream {
 
 class SGraph : public QThread,
-               public STaskRunner
+               public SFunctionRunner
 {
 Q_OBJECT
 Q_DISABLE_COPY(SGraph)
@@ -52,7 +52,7 @@ public:
   void                          addNode(SInterfaces::SinkNode *);
 
   void                          setPriority(Priority);
-  bool                          enableTrace(const QString &fileName);
+  Priority                      priority(void) const;
 
   bool                          isRunning(void) const;
 
@@ -60,18 +60,13 @@ public slots:
   virtual bool                  start(void);
   virtual void                  stop(void);
 
+protected: // From SFunctionRunner
+  virtual void                  start(SRunnable *runnable, int priority = 0);
+
 protected: // From QThread and QObject
   virtual void                  run(void);
-  virtual bool                  event(QEvent *);
   virtual void                  customEvent(QEvent *);
   virtual void                  timerEvent(QTimerEvent *);
-
-protected: // From STaskRunner
-  static QThreadPool          * threadPool(void) __attribute__((pure));
-  virtual void                  run(Task *);
-  virtual void                  start(Task *);
-  virtual void                  finish(Task *);
-  void                          traceTask(STime, STime, const QByteArray &);
 
 private:
   struct Private;
