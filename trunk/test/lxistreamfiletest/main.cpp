@@ -29,8 +29,10 @@ int main(int argc, char *argv[])
   QApplication app(argc, argv);
   if (app.arguments().count() >= 2)
   {
-    SSystem::initialize(SSystem::Initialize_Devices | SSystem::Initialize_LogToConsole, 0);
-    SSystem::loadModule(new FFMpegBackend::Module());
+    SApplication streamApp(SApplication::Initialize_Devices |
+                           SApplication::Initialize_LogToConsole);
+
+    streamApp.loadModule(new FFMpegBackend::Module());
 
     QDir dir(app.arguments()[1]);
     std::cout << "Testing all files in directory " << dir.absolutePath().toAscii().data() << std::endl;
@@ -42,7 +44,6 @@ int main(int argc, char *argv[])
     // Wait for all tasks to finish
     QThreadPool::globalInstance()->waitForDone();
 
-    SSystem::shutdown();
     return 0;
   }
   else

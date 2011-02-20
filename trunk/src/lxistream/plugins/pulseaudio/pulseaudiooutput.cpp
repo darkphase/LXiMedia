@@ -94,7 +94,7 @@ void PulseAudioOutput::openCodec(const SAudioFormat &reqFormat)
     sampleSpec.channels = reqFormat.numChannels();
 
     handle = pa_simple_new(server.isEmpty() ? NULL : server.toAscii().data(),
-                           SSystem::name(),
+                           SApplication::name(),
                            PA_STREAM_PLAYBACK,
                            NULL,
                            "PulseAudioOutput",

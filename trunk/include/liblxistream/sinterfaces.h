@@ -42,7 +42,7 @@ namespace SInterfaces {
 
 /*! The Module interface is used to register modules.
 
-    \sa SSystem::loadModule()
+    \sa SApplication::loadModule()
  */
 class Module
 {

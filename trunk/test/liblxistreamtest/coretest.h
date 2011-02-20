@@ -18,12 +18,13 @@
  ***************************************************************************/
 
 #include <QtCore>
+#include <LXiStream>
 
 class CoreTest : public QObject
 {
 Q_OBJECT
 public:
-  inline explicit               CoreTest(QObject *parent) : QObject(parent) { }
+  inline explicit               CoreTest(QObject *parent) : QObject(parent), streamApp(NULL) { }
 
 private slots:
   void                          initTestCase(void);
@@ -55,4 +56,7 @@ private slots: // Engine
 
 private:
   static void                   fillBuffer(char *, int);
+
+private:
+  SApplication                * streamApp;
 };

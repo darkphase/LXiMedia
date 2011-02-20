@@ -17,8 +17,8 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXSTREAM_SSYSTEM_H
-#define LXSTREAM_SSYSTEM_H
+#ifndef LXISTREAM_SAPPLICATION_H
+#define LXISTREAM_SAPPLICATION_H
 
 #include <QtCore>
 #include "sfactory.h"
@@ -32,7 +32,7 @@ class SNode;
 class SProber;
 class STerminal;
 
-class SSystem
+class SApplication
 {
 friend class SGraph;
 public:
@@ -67,39 +67,43 @@ private:
   };
 
 public:
+  explicit                      SApplication(InitializeFlags = Initialize_Default, const QString &preferredLogDir = QString::null);
+                                ~SApplication();
+
   static const char           * name(void) __attribute__((pure));
   static const char           * version(void) __attribute__((pure));
-  static bool                   initialize(InitializeFlags = Initialize_Default, const QString &preferredLogDir = QString::null);
-  static void                   shutdown(void);
-  static bool                   loadModule(SInterfaces::Module *);
-  static QByteArray             about(void);
 
-  static inline InitializeFlags initializeFlags(void)                           { return flags; }
+  bool                          loadModule(SInterfaces::Module *);
+  QByteArray                    about(void) const;
+
+  inline InitializeFlags        initializeFlags(void)                           { return flags; }
+  inline static SApplication  * instance(void)                                  { return self; }
 
 private:
-                                SSystem();
-
   template <class _module>
-  static inline void            loadModule(void);
-  static QList<Module>        & moduleList(void) __attribute__((pure));
+  inline void                   loadModule(void);
 
-  static InitializeFlags        flags;
+private:
+  static SApplication         * self;
+
+  InitializeFlags               flags;
+  QList<Module>                 moduleList;
 };
 
 
 /*! Loads the classes from the specified module.
  */
 template <class _module>
-void SSystem::loadModule(void)
+void SApplication::loadModule(void)
 {
   _module * const module = new _module();
   module->registerClasses();
 
-  moduleList() += Module(NULL, module);
+  moduleList += Module(NULL, module);
 }
 
 } // End of namespace
 
-Q_DECLARE_OPERATORS_FOR_FLAGS(LXiStream::SSystem::InitializeFlags)
+Q_DECLARE_OPERATORS_FOR_FLAGS(LXiStream::SApplication::InitializeFlags)
 
 #endif

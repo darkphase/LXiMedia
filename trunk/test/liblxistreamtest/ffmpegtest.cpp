@@ -32,11 +32,10 @@
 
 void FFMpegTest::initTestCase(void)
 {
-  // We only want to initialize common and gui here, not probe for plugins.
-  QVERIFY(SSystem::initialize(SSystem::Initialize_Devices |
-                              SSystem::Initialize_LogToConsole, 0));
+  streamApp = new SApplication(SApplication::Initialize_Devices |
+                               SApplication::Initialize_LogToConsole);
 
-  QVERIFY(SSystem::loadModule(new FFMpegBackend::Module()));
+  QVERIFY(streamApp->loadModule(new FFMpegBackend::Module()));
 
 //  const SMediaInfo mediaInfo("");
 //  qDebug() << mediaInfo.videoStreams().first().codec.frameRate().toFrequency() << mediaInfo.chapters().count();
@@ -48,7 +47,8 @@ void FFMpegTest::initTestCase(void)
 
 void FFMpegTest::cleanupTestCase(void)
 {
-  SSystem::shutdown();
+  delete streamApp;
+  streamApp = NULL;
 }
 
 /*! Tests deep audio file probe.

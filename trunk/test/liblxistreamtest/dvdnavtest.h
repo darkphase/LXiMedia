@@ -20,14 +20,18 @@
 #define __DVDREADTEST_H
 
 #include <QtCore>
+#include <LXiStream>
 
 class DVDNavTest : public QObject
 {
 Q_OBJECT
 public:
-  inline explicit               DVDNavTest(QObject *parent) : QObject(parent) { }
+  inline explicit               DVDNavTest(QObject *parent) : QObject(parent), streamApp(NULL) { }
 
 private slots:
   void                          initTestCase(void);
   void                          cleanupTestCase(void);
+
+private:
+  SApplication                * streamApp;
 };

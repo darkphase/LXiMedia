@@ -26,6 +26,7 @@
 #include <unistd.h>
 #endif
 #include "exceptionhandler.h"
+#include "sapplication.h"
 
 // Prevents dependency with zlibg-dev (as Qt already provides zlib).
 extern "C"
@@ -49,7 +50,7 @@ void Log::initialize(const QString &preferredLogDir)
 {
   pid = QCoreApplication::applicationPid();
 
-  if ((SSystem::initializeFlags() & SSystem::Initialize_LogToFile) == SSystem::Initialize_LogToFile)
+  if ((SApplication::instance()->initializeFlags() & SApplication::Initialize_LogToFile) == SApplication::Initialize_LogToFile)
   {
     useFile = true;
     if (!preferredLogDir.isEmpty())
@@ -77,7 +78,7 @@ void Log::initialize(const QString &preferredLogDir)
       defaultMsgHandler = NULL;
   }
 
-  if ((SSystem::initializeFlags() & SSystem::Initialize_LogToConsole) == SSystem::Initialize_LogToConsole)
+  if ((SApplication::instance()->initializeFlags() & SApplication::Initialize_LogToConsole) == SApplication::Initialize_LogToConsole)
     useStderr = defaultMsgHandler == NULL;
 
 #ifdef Q_OS_UNIX

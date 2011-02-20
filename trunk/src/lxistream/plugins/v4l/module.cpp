@@ -26,7 +26,7 @@ namespace V4lBackend {
 
 void Module::registerClasses(void)
 {
-  if ((SSystem::initializeFlags() & SSystem::Initialize_Devices) == SSystem::Initialize_Devices)
+  if ((SApplication::instance()->initializeFlags() & SApplication::Initialize_Devices) == SApplication::Initialize_Devices)
   {
     foreach (const SFactory::Scheme &scheme, V4l2Input::listDevices())
       V4l2Input::registerClass<V4l2Input>(scheme);

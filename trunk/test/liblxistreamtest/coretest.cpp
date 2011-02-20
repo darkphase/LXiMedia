@@ -20,18 +20,18 @@
 #include "coretest.h"
 #include <QtGui>
 #include <QtTest>
-#include <LXiStream>
 
 void CoreTest::initTestCase(void)
 {
   // We only want to initialize common and gui here, not probe for plugins.
-  QVERIFY(SSystem::initialize(SSystem::Initialize_Devices |
-                              SSystem::Initialize_LogToConsole, 0));
+  streamApp = new SApplication(SApplication::Initialize_Devices |
+                               SApplication::Initialize_LogToConsole);
 }
 
 void CoreTest::cleanupTestCase(void)
 {
-  SSystem::shutdown();
+  delete streamApp;
+  streamApp = NULL;
 }
 
 void CoreTest::SDebug_Log(void)

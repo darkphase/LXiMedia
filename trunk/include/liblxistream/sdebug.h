@@ -76,7 +76,6 @@ public:
 
 class Locker
 {
-friend class SSystem;
 private:
   struct LockDesc
   {

@@ -22,7 +22,6 @@
 
 #include <QtCore>
 #include "sdebug.h"
-#include "ssystem.h"
 
 namespace LXiStream {
 namespace Private {

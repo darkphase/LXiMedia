@@ -27,7 +27,7 @@ namespace AlsaBackend {
 
 void Module::registerClasses(void)
 {
-  if ((SSystem::initializeFlags() & SSystem::Initialize_Devices) == SSystem::Initialize_Devices)
+  if ((SApplication::instance()->initializeFlags() & SApplication::Initialize_Devices) == SApplication::Initialize_Devices)
   {
     int card = -1;
     if (snd_card_next(&card) >= 0)

@@ -61,7 +61,7 @@ bool PulseAudioInput::start(void)
   sampleSpec.channels = outFormat.numChannels();
 
   handle = pa_simple_new(server.isEmpty() ? NULL : server.toAscii().data(),
-                         SSystem::name(),
+                         SApplication::name(),
                          PA_STREAM_RECORD,
                          NULL,
                          "PulseAudioInput",
