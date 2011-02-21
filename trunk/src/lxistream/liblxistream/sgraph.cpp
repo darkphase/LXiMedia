@@ -169,7 +169,16 @@ void SGraph::stop(void)
     p->stopping = true;
 
   if (p->stopping && (QThread::currentThread() != this))
-    QThread::wait();
+  {
+    if (QThread::currentThread() == p->threadPool->thread())
+    {
+      // Let the threadpool handle schedule events while waiting for it.
+      while (!QThread::wait(100))
+        QCoreApplication::sendPostedEvents(p->threadPool, 0);
+    }
+    else
+      QThread::wait();
+  }
 }
 
 void SGraph::start(SRunnable *runnable, int priority)
