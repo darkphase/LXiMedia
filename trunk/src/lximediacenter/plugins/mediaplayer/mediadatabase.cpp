@@ -163,15 +163,11 @@ MediaDatabase::UniqueID MediaDatabase::fromPath(const QString &path) const
 SMediaInfo MediaDatabase::readNode(UniqueID uid) const
 {
   SDebug::MutexLocker dl(Database::mutex(), __FILE__, __LINE__);
+  const QByteArray value = readNodeData(uid);
+  dl.unlock();
 
-  QSqlQuery query(Database::database());
-  query.exec("SELECT mediaInfo "
-             "FROM MediaplayerFiles WHERE uid = " + QString::number(uid));
-  if (query.next())
+  if (!value.isEmpty())
   {
-    const QByteArray value = query.value(0).toByteArray();
-    dl.unlock();
-
     SMediaInfo node;
     node.fromByteArray(value);
 
@@ -179,6 +175,17 @@ SMediaInfo MediaDatabase::readNode(UniqueID uid) const
   }
 
   return SMediaInfo();
+}
+
+QByteArray MediaDatabase::readNodeData(UniqueID uid) const
+{
+  QSqlQuery query(Database::database());
+  query.exec("SELECT mediaInfo "
+             "FROM MediaplayerFiles WHERE uid = " + QString::number(uid));
+  if (query.next())
+    return query.value(0).toByteArray();
+
+  return QByteArray();
 }
 
 void MediaDatabase::setLastPlayed(UniqueID uid, const QDateTime &lastPlayed)
@@ -834,6 +841,9 @@ void MediaDatabase::insertFile(const SMediaInfo &mediaInfo, const QByteArray &me
           query.bindValue(3, SStringParser::toRawName(mediaInfo.album()));
           query.bindValue(4, QVariant(QVariant::String));
           query.exec();
+
+          if (i.key() == Category_Movies)
+            threadPool->queue(this, &MediaDatabase::matchImdbItem, rawTitle, i.key(), Database::mutex(), matchImdbItemPriority);
         }
       }
     }
@@ -900,20 +910,25 @@ void MediaDatabase::matchImdbItem(const QString &item, Category category)
     query.exec();
     if (query.next())
     {
-      const SMediaInfo node = readNode(query.value(0).toULongLong());
-      if (!node.isNull())
+      const QByteArray value = readNodeData(query.value(0).toULongLong());
+      if (!value.isEmpty())
       {
-        const QString imdbLink = imdbClient->findEntry(node.title(), imdbType);
+        SMediaInfo node;
+        node.fromByteArray(value);
+        if (!node.isNull())
+        {
+          const QString imdbLink = imdbClient->findEntry(node.title(), imdbType);
 
-        query.prepare("UPDATE MediaplayerItems SET imdbLink = :imdbLink "
-                      "WHERE album IN ("
-                        "SELECT id FROM MediaplayerAlbums "
-                        "WHERE category = :category) "
-                      "AND title = :title");
-        query.bindValue(0, imdbLink);
-        query.bindValue(1, category);
-        query.bindValue(2, item);
-        query.exec();
+          query.prepare("UPDATE MediaplayerItems SET imdbLink = :imdbLink "
+                        "WHERE album IN ("
+                          "SELECT id FROM MediaplayerAlbums "
+                          "WHERE category = :category) "
+                        "AND title = :title");
+          query.bindValue(0, imdbLink);
+          query.bindValue(1, category);
+          query.bindValue(2, item);
+          query.exec();
+        }
       }
     }
   }

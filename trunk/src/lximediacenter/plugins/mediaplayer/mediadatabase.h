@@ -91,6 +91,7 @@ private slots:
   void                          scanRoots(void);
 
 private:
+  QByteArray                    readNodeData(UniqueID) const;
   QString                       findRoot(const QString &, const QStringList &) const;
   void                          scanDir(const QString &);
   void                          updateDir(const QString &, qint64, QuerySet &);
