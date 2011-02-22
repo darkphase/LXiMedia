@@ -4,5 +4,6 @@
 
 #ifdef __cplusplus
 
+#include <LXiStream>
 
 #endif

@@ -2,6 +2,8 @@
 // system headers in this file to prevent ugly issues with compile dependencies.
 #ifdef __cplusplus
 
+#include <LXiStream>
+
 #include <QtGlobal>
 #include <QtCore>
 #include <QtGui>

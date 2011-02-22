@@ -4,6 +4,8 @@
 
 #ifdef __cplusplus
 
+#include <LXiStream>
+
 #include <sstream>
 #include <iostream>
 #include <stdio.h>

@@ -211,70 +211,6 @@ bool ImdbClient::needUpdate(void)
   return true;
 }
 
-QString ImdbClient::findEntry(const QString &title, Type type)
-{
-  Q_ASSERT(!Database::mutex()->tryLock()); // Mutex should be locked by the caller.
-
-  static const int minWordLength = 5;
-
-  const QString rawName = SStringParser::toRawName(title);
-  const QStringList words = SStringParser::toCleanName(title).split(' ', QString::SkipEmptyParts);
-
-  unsigned year = 0;
-  foreach (const QString &word, words)
-  if (word.length() == 4)
-  {
-    const unsigned y = word.toUInt();
-    if (y >= 1800)
-    {
-      year = y;
-      break;
-    }
-  }
-
-  QSet<QString> matches;
-  foreach (const QString &word, words)
-  {
-    const QString rawWord = SStringParser::toRawName(word);
-    if (rawWord.length() >= minWordLength)
-    {
-      QSqlQuery query(Database::database());
-      query.exec("SELECT rawName, year FROM ImdbEntries "
-                 "WHERE type = " + QString::number(type) + " "
-                 "AND rawName LIKE '%" + rawWord + "%' ");
-
-      while (query.next())
-        matches.insert(query.value(0).toString() + ("000" + QString::number(query.value(1).toInt())).right(4));
-    }
-  }
-
-  qreal bestMatch = 0.0;
-  QString best = "";
-  foreach (const QString &indexName, matches)
-  {
-    const unsigned descYear = indexName.right(4).toUInt();
-    const qreal match = SStringParser::computeMatch(rawName, indexName) *
-                        ((((year == 0) || (descYear == year)) ? 1.0 : 0.5) +
-                         (qreal(descYear) / 10000.0));
-
-    if (match > bestMatch)
-    {
-      best = indexName.left(indexName.length() - 4);
-      bestMatch = match;
-    }
-  }
-
-  if (!best.isEmpty())
-  {
-    qDebug() << "Matching" << title << year << "to IMDB title" << best << "with rating" << bestMatch;
-
-    if (bestMatch >= 0.3)
-      return best;
-  }
-
-  return sentinelItem;
-}
-
 ImdbClient::Entry ImdbClient::readEntry(const QString &rawName)
 {
   Q_ASSERT(!Database::mutex()->tryLock()); // Mutex should be locked by the caller.
@@ -306,6 +242,81 @@ ImdbClient::Entry ImdbClient::readEntry(const QString &rawName)
   }
 
   return Entry();
+}
+
+QStringList ImdbClient::findSimilar(const QString &title, Type type)
+{
+  Q_ASSERT(!Database::mutex()->tryLock()); // Mutex should be locked by the caller.
+
+  static const int minWordLength = 5;
+  const QStringList words = SStringParser::toCleanName(title).split(' ', QString::SkipEmptyParts);
+
+  QString q;
+  foreach (const QString &word, words)
+  {
+    const QString rawWord = SStringParser::toRawName(word);
+    if (rawWord.length() >= minWordLength)
+      q += "OR rawName LIKE '%" + rawWord + "%' ";
+  }
+
+  q = q.length() > 3 ? q.mid(3) : QString::null;
+
+  QStringList result;
+  if (!q.isEmpty())
+  {
+    QSqlQuery query(Database::database());
+    query.exec("SELECT rawName, year FROM ImdbEntries "
+               "WHERE type = " + QString::number(type) + " "
+               "AND (" + q + ")");
+    while (query.next())
+      result += query.value(0).toString() + ("000" + QString::number(query.value(1).toInt())).right(4);
+  }
+
+  return result;
+}
+
+QString ImdbClient::findBest(const QString &title, const QStringList &matches)
+{
+  const QString rawName = SStringParser::toRawName(title);
+  const QStringList words = SStringParser::toCleanName(title).split(' ', QString::SkipEmptyParts);
+
+  unsigned year = 0;
+  foreach (const QString &word, words)
+  if (word.length() == 4)
+  {
+    const unsigned y = word.toUInt();
+    if (y >= 1800)
+    {
+      year = y;
+      break;
+    }
+  }
+
+  qreal bestMatch = 0.0;
+  QString best = "";
+  foreach (const QString &indexName, matches)
+  {
+    const unsigned descYear = indexName.right(4).toUInt();
+    const qreal match = SStringParser::computeMatch(rawName, indexName) *
+                        ((((year == 0) || (descYear == year)) ? 1.0 : 0.5) +
+                         (qreal(descYear) / 10000.0));
+
+    if (match > bestMatch)
+    {
+      best = indexName.left(indexName.length() - 4);
+      bestMatch = match;
+    }
+  }
+
+  if (!best.isEmpty())
+  {
+    qDebug() << "Matching" << title << year << "to IMDB title" << best << "with rating" << bestMatch;
+
+    if (bestMatch >= 0.3)
+      return best;
+  }
+
+  return sentinelItem;
 }
 
 void ImdbClient::customEvent(QEvent *e)

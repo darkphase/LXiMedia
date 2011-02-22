@@ -19,6 +19,7 @@
 
 #include "sthreadpool.h"
 #include "sdebug.h"
+#include <cxxabi.h>
 
 namespace LXiStream {
 
@@ -66,6 +67,8 @@ SThreadPool::SThreadPool(QObject *parent)
 
 SThreadPool::~SThreadPool()
 {
+  stopTrace();
+
   delete d;
   *const_cast<Data **>(&d) = NULL;
 }
@@ -281,15 +284,17 @@ void SThreadPool::traceTask(STime startTime, STime stopTime, const QByteArray &t
   d->traceFile->flush();
 }
 
-SRunnable::SRunnable(void)
+SRunnable::SRunnable(const char *name)
   : QRunnable(),
+    name(name ? name : typeid(*this).name()),
     depends(NULL),
     threadPool(NULL)
 {
 }
 
-SRunnable::SRunnable(SDependency *depends)
+SRunnable::SRunnable(SDependency *depends, const char *name)
   : QRunnable(),
+    name(name ? name : typeid(*this).name()),
     depends(depends),
     threadPool(NULL)
 {
@@ -297,6 +302,7 @@ SRunnable::SRunnable(SDependency *depends)
 
 SRunnable::SRunnable(SRunnable *from)
   : QRunnable(),
+    name(from->name),
     depends(from->depends),
     threadPool(from->threadPool)
 {
@@ -321,7 +327,13 @@ void SRunnable::run(void)
     run(threadPool);
 
     const STime endTime = threadPool->d->traceTimer.timeStamp();
-    threadPool->traceTask(startTime, endTime, threadPool->metaObject()->className());
+
+    char demangled[256];
+    size_t demangledSize = sizeof(demangled);
+    if (abi::__cxa_demangle(name, demangled, &demangledSize, NULL) != NULL)
+      threadPool->traceTask(startTime, endTime, demangled);
+    else
+      threadPool->traceTask(startTime, endTime, name);
   }
   else
     run(threadPool);

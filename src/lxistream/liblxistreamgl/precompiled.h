@@ -8,6 +8,8 @@
 
 #include <QtGui>
 #include <QtOpenGL>
+#include <LXiStream>
+
 #include <GL/glu.h>
 
 #endif

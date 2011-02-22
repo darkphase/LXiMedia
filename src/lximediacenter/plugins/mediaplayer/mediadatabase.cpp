@@ -462,7 +462,7 @@ void MediaDatabase::scanRoots(void)
       query.bindValue(0, Category_Movies);
       query.exec();
       while (query.next())
-        threadPool->queue(this, &MediaDatabase::matchImdbItem, query.value(0).toString(), Category_Movies, Database::mutex(), matchImdbItemPriority);
+        threadPool->queue(this, &MediaDatabase::queryImdbItem, query.value(0).toString(), Category_Movies, Database::mutex(), matchImdbItemPriority);
 
 //      query.prepare("SELECT title FROM MediaplayerItems "
 //                    "WHERE album IN ("
@@ -472,7 +472,7 @@ void MediaDatabase::scanRoots(void)
 //      query.bindValue(0, Category_TVShows);
 //      query.exec();
 //      while (query.next())
-//        threadPool->run(this, &MediaDatabase::matchImdbItem, query.value(0).toString(), Category_TVShows, Database::mutex(), matchImdbItemPriority);
+//        threadPool->run(this, &MediaDatabase::queryImdbItem, query.value(0).toString(), Category_TVShows, Database::mutex(), matchImdbItemPriority);
     }
 
     db.commit();
@@ -843,7 +843,7 @@ void MediaDatabase::insertFile(const SMediaInfo &mediaInfo, const QByteArray &me
           query.exec();
 
           if (i.key() == Category_Movies)
-            threadPool->queue(this, &MediaDatabase::matchImdbItem, rawTitle, i.key(), Database::mutex(), matchImdbItemPriority);
+            threadPool->queue(this, &MediaDatabase::queryImdbItem, rawTitle, i.key(), Database::mutex(), matchImdbItemPriority);
         }
       }
     }
@@ -890,7 +890,7 @@ void MediaDatabase::delayFile(const QString &path)
   }
 }
 
-void MediaDatabase::matchImdbItem(const QString &item, Category category)
+void MediaDatabase::queryImdbItem(const QString &item, Category category)
 {
   Q_ASSERT(!Database::mutex()->tryLock()); // Mutex should be locked by the caller.
 
@@ -917,21 +917,37 @@ void MediaDatabase::matchImdbItem(const QString &item, Category category)
         node.fromByteArray(value);
         if (!node.isNull())
         {
-          const QString imdbLink = imdbClient->findEntry(node.title(), imdbType);
-
-          query.prepare("UPDATE MediaplayerItems SET imdbLink = :imdbLink "
-                        "WHERE album IN ("
-                          "SELECT id FROM MediaplayerAlbums "
-                          "WHERE category = :category) "
-                        "AND title = :title");
-          query.bindValue(0, imdbLink);
-          query.bindValue(1, category);
-          query.bindValue(2, item);
-          query.exec();
+          const QStringList similar = imdbClient->findSimilar(node.title(), imdbType);
+          if (!similar.isEmpty())
+            threadPool->queue(this, &MediaDatabase::matchImdbItem, item, node.title(), similar, category, NULL, matchImdbItemPriority + 1);
         }
       }
     }
   }
+}
+
+void MediaDatabase::matchImdbItem(const QString &item, const QString &title, const QStringList &similar, Category category)
+{
+  const QString imdbLink = imdbClient->findBest(title, similar);
+
+  threadPool->queue(this, &MediaDatabase::storeImdbItem, item, imdbLink, category, Database::mutex(), matchImdbItemPriority + 1);
+}
+
+void MediaDatabase::storeImdbItem(const QString &item, const QString &imdbLink, Category category)
+{
+  Q_ASSERT(!Database::mutex()->tryLock()); // Mutex should be locked by the caller.
+
+  QSqlQuery query(Database::database());
+
+  query.prepare("UPDATE MediaplayerItems SET imdbLink = :imdbLink "
+                "WHERE album IN ("
+                  "SELECT id FROM MediaplayerAlbums "
+                  "WHERE category = :category) "
+                "AND title = :title");
+  query.bindValue(0, imdbLink);
+  query.bindValue(1, category);
+  query.bindValue(2, item);
+  query.exec();
 }
 
 bool MediaDatabase::isHidden(const QString &absoluteFilePath)

@@ -4,6 +4,8 @@
 
 #ifdef __cplusplus
 
+#include <LXiStream>
+
 #include <alsa/asoundlib.h>
 
 #endif

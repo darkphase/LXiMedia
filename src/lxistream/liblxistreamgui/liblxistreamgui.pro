@@ -25,7 +25,9 @@ SOURCES += sdisplay.cpp \
 unix { 
     SOURCES += sdisplay.x11.cpp \
         svideoview.x11.cpp
-    LIBS += -lXrandr \
+    LIBS += -lX11 \
+        -lXext \
+        -lXrandr \
         -lXtst \
         -lXv
     target.path = /usr/lib

@@ -21,6 +21,7 @@
 #define LXISTREAM_STHREADPOOL_H
 
 #include <QtCore>
+#include <typeinfo>
 #include "stimer.h"
 
 namespace LXiStream {
@@ -32,8 +33,8 @@ class SRunnable : public QRunnable
 {
 friend class SThreadPool;
 public:
-                                SRunnable(void);
-  explicit                      SRunnable(SDependency *depends);
+  explicit                      SRunnable(const char *name = NULL);
+  explicit                      SRunnable(SDependency *depends, const char *name = NULL);
   explicit                      SRunnable(SRunnable *from);
   virtual                       ~SRunnable();
 
@@ -43,6 +44,7 @@ private:
   virtual void                  run(void);
 
 private:
+  const char            * const name;
   SDependency                 * depends;
   SThreadPool                 * threadPool;
 };

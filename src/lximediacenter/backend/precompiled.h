@@ -4,4 +4,6 @@
 
 #ifdef __cplusplus
 
+#include <LXiMediaCenter>
+
 #endif
