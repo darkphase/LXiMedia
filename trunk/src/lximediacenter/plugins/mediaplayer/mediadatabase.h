@@ -98,7 +98,9 @@ private:
   void                          probeFile(const QString &);
   void                          insertFile(const SMediaInfo &, const QByteArray &);
   void                          delayFile(const QString &);
-  void                          matchImdbItem(const QString &, Category);
+  void                          queryImdbItem(const QString &, Category);
+  void                          matchImdbItem(const QString &, const QString &, const QStringList &, Category);
+  void                          storeImdbItem(const QString &, const QString &, Category);
 
   bool                          isHidden(const QString &);
   QMap<Category, QString>       findCategories(const QString &) const;

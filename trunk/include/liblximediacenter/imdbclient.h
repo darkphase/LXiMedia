@@ -71,8 +71,9 @@ public:
   bool                          isAvailable(void);
   bool                          needUpdate(void);
 
-  QString                       findEntry(const QString &title, Type);
   Entry                         readEntry(const QString &rawName);
+  QStringList                   findSimilar(const QString &title, Type);
+  QString                       findBest(const QString &title, const QStringList &);
 
   static const char     * const sentinelItem;
 

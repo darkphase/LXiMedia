@@ -33,9 +33,12 @@ FILES_UNDER_TEST = $${LXIMEDIA_DIR}/obj/LXiStream/*.o \
 unix { 
     LIBS += -lbfd \
         -liberty \
+        -lX11 \
+        -lXext \
         -lXrandr \
         -lXtst \
-        -lXv
+        -lXv \
+        -lz
     QMAKE_LFLAGS += -z \
         muldefs
 }

@@ -44,7 +44,9 @@ FILES_UNDER_TEST = $${LXIMEDIA_DIR}/obj/LXiStream/*.o \
 
 # Platform specific
 unix {
-    LIBS += -lXrandr \
+    LIBS += -lX11 \
+        -lXext \
+        -lXrandr \
         -lXtst \
         -lXv
     QMAKE_LFLAGS += -z \

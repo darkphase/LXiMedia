@@ -64,6 +64,7 @@ RESOURCES = images/lximediacenter_images.qrc \
  dlnaserver.qrc
 
 unix {
+    LIBS += -lz
     target.path = /usr/lib
     INSTALLS += target
 }

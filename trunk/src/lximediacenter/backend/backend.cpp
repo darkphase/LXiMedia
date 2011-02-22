@@ -49,6 +49,8 @@ Backend::Backend()
 
   streamApp = new SApplication(SApplication::Initialize_Default, logDir.absolutePath());
 
+  //SThreadPool::globalInstance()->enableTrace("/tmp/threadpool.svg");
+
   // Seed the random number generator.
   qsrand(int(QDateTime::currentDateTime().toTime_t()));
 

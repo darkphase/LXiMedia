@@ -4,6 +4,8 @@
 
 #ifdef __cplusplus
 
+#include <LXiStream>
+
 #include <pulse/simple.h>
 
 #endif
