@@ -31,8 +31,8 @@ void LXiStream_Common_VideoFormatConverter_demosaic_GRBG8
   {
     const uint8_t * const restrict srcLine1 = srcData + (srcStride * y);
     const uint8_t * const restrict srcLine2 = srcLine1 + srcStride;
-    struct RGBAPixel * const restrict dstLine1 = dstData + (dstStride * y);
-    struct RGBAPixel * const restrict dstLine2 = ((uint8_t *)dstLine1) + dstStride;
+    RGBAPixel * const restrict dstLine1 = dstData + (dstStride * y);
+    RGBAPixel * const restrict dstLine2 = ((uint8_t *)dstLine1) + dstStride;
 
     for (unsigned x=0; x<srcWidth-1; x+=2)
     {
@@ -55,8 +55,8 @@ void LXiStream_Common_VideoFormatConverter_demosaic_GBRG8
   {
     const uint8_t * const restrict srcLine1 = srcData + (srcStride * y);
     const uint8_t * const restrict srcLine2 = srcLine1 + srcStride;
-    struct RGBAPixel * const restrict dstLine1 = dstData + (dstStride * y);
-    struct RGBAPixel * const restrict dstLine2 = ((uint8_t *)dstLine1) + dstStride;
+    RGBAPixel * const restrict dstLine1 = dstData + (dstStride * y);
+    RGBAPixel * const restrict dstLine2 = ((uint8_t *)dstLine1) + dstStride;
 
     for (unsigned x=0; x<srcWidth-1; x+=2)
     {
@@ -79,8 +79,8 @@ void LXiStream_Common_VideoFormatConverter_demosaic_BGGR8
   {
     const uint8_t * const restrict srcLine1 = srcData + (srcStride * y);
     const uint8_t * const restrict srcLine2 = srcLine1 + srcStride;
-    struct RGBAPixel * const restrict dstLine1 = dstData + (dstStride * y);
-    struct RGBAPixel * const restrict dstLine2 = ((uint8_t *)dstLine1) + dstStride;
+    RGBAPixel * const restrict dstLine1 = dstData + (dstStride * y);
+    RGBAPixel * const restrict dstLine2 = ((uint8_t *)dstLine1) + dstStride;
 
     for (unsigned x=0; x<srcWidth-1; x+=2)
     {
@@ -103,8 +103,8 @@ void LXiStream_Common_VideoFormatConverter_demosaic_RGGB8
   {
     const uint8_t * const restrict srcLine1 = srcData + (srcStride * y);
     const uint8_t * const restrict srcLine2 = srcLine1 + srcStride;
-    struct RGBAPixel * const restrict dstLine1 = dstData + (dstStride * y);
-    struct RGBAPixel * const restrict dstLine2 = ((uint8_t *)dstLine1) + dstStride;
+    RGBAPixel * const restrict dstLine1 = dstData + (dstStride * y);
+    RGBAPixel * const restrict dstLine2 = ((uint8_t *)dstLine1) + dstStride;
 
     for (unsigned x=0; x<srcWidth-1; x+=2)
     {
@@ -126,15 +126,15 @@ inline int8_t babs(int8_t val)
 void LXiStream_Common_VideoFormatConverter_demosaic_postfilter
  (uint8_t * restrict data, unsigned width, unsigned stride, unsigned numLines)
 {
-  const int yo = ((const struct RGBAPixel *)data)->a == 0 ? 1 : 0;
+  const int yo = ((const RGBAPixel *)data)->a == 0 ? 1 : 0;
 
   if ((numLines > 1) && (width > 1))
   {
     for (unsigned y=1; y<numLines-1; y++)
     {
-      struct RGBAPixel * const restrict line2 = data + (stride * y);
-      struct RGBAPixel * const restrict line1 = ((uint8_t *)line2) - stride;
-      struct RGBAPixel * const restrict line3 = ((uint8_t *)line2) + stride;
+      RGBAPixel * const restrict line2 = data + (stride * y);
+      RGBAPixel * const restrict line1 = ((uint8_t *)line2) - stride;
+      RGBAPixel * const restrict line3 = ((uint8_t *)line2) + stride;
 
       for (unsigned x=1+((y+yo)%2); x<width-1; x+=2)
       {
@@ -168,7 +168,7 @@ void LXiStream_Common_VideoFormatConverter_demosaic_postfilter
     }
 
     // Top line
-    struct RGBAPixel * const restrict topLine = data;
+    RGBAPixel * const restrict topLine = data;
     for (unsigned x=1+(yo%2); x<width-1; x+=2)
     {
       topLine[x].r = (topLine[x-1].r >> 1) + (topLine[x+1].r >> 1);
@@ -181,7 +181,7 @@ void LXiStream_Common_VideoFormatConverter_demosaic_postfilter
     topLine[width-1] = topLine[width-2];
 
     // Bottom line
-    struct RGBAPixel * const restrict botLine = data + (stride * (numLines-1));
+    RGBAPixel * const restrict botLine = data + (stride * (numLines-1));
     for (unsigned x=1+(((numLines-1)+yo)%2); x<width-1; x+=2)
     {
       botLine[x].r = (botLine[x-1].r >> 1) + (botLine[x+1].r >> 1);

@@ -27,7 +27,7 @@
 __inline int bound(int a, int b, int c) { return b < a ? a : (b > c ? c : b); }
 
 void LXiStream_Common_VideoFormatConverter_convertYUYVtoRGB
- (struct RGBAPixel * restrict rgb, const struct YUYVPixel * restrict yuv, unsigned numPixels)
+ (RGBAPixel * restrict rgb, const YUYVPixel * restrict yuv, unsigned numPixels)
 {
   unsigned i;
 
@@ -118,7 +118,7 @@ void LXiStream_Common_VideoFormatConverter_convertYUYVtoRGB
 }
 
 void LXiStream_Common_VideoFormatConverter_convertUYVYtoRGB
- (struct RGBAPixel * restrict rgb, const struct UYVYPixel * restrict yuv, unsigned numPixels)
+ (RGBAPixel * restrict rgb, const UYVYPixel * restrict yuv, unsigned numPixels)
 {
   unsigned i;
 
@@ -251,7 +251,7 @@ void LXiStream_Common_VideoFormatConverter_convertBGRtoRGB
 }
 
 void LXiStream_Common_VideoFormatConverter_convertYUV1toRGB
- (struct RGBAPixel * restrict rgb, const uint8_t * restrict iy, const uint8_t * restrict iu, const uint8_t * restrict iv, unsigned numPixels)
+ (RGBAPixel * restrict rgb, const uint8_t * restrict iy, const uint8_t * restrict iu, const uint8_t * restrict iv, unsigned numPixels)
 {
   unsigned i;
 
@@ -276,7 +276,7 @@ void LXiStream_Common_VideoFormatConverter_convertYUV1toRGB
 }
 
 void LXiStream_Common_VideoFormatConverter_convertYUV2toRGB
- (struct RGBAPixel * restrict rgb, const uint8_t * restrict iy, const uint8_t * restrict iu, const uint8_t * restrict iv, unsigned numPixels)
+ (RGBAPixel * restrict rgb, const uint8_t * restrict iy, const uint8_t * restrict iu, const uint8_t * restrict iv, unsigned numPixels)
 {
   unsigned i;
 

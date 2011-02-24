@@ -194,8 +194,7 @@ void SSubpictureRenderNode::processTask(const SVideoBuffer &videoBuffer)
       case SVideoFormat::Format_YUV422P:
       case SVideoFormat::Format_YUV444P:
         LXiStream_SSubpictureRenderNode_mixSubpictureYUV(
-            SPixels::YUVData::fromVideoBuffer(buffer),
-            &rect, rect.palette.data(), rect.palette.size());
+            buffer, &rect, rect.palette.data(), rect.palette.size());
 
         break;
 

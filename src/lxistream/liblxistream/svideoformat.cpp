@@ -178,8 +178,8 @@ quint32 SVideoFormat::nullPixelValue(Format format)
   {
   case Format_RGB32:        return SPixels::RGBAPixel_Black;
   case Format_BGR32:        return SPixels::BGRAPixel_Black;
-  case Format_RGB24:        return SPixels::RGBPixel_Black;
-  case Format_BGR24:        return SPixels::BGRPixel_Black;
+  case Format_RGB24:        return 0;//SPixels::RGBPixel_Black;
+  case Format_BGR24:        return 0;//SPixels::BGRPixel_Black;
   case Format_RGB555:       return (quint32(SPixels::RGB555Pixel_Black) << 16) | quint32(SPixels::RGB555Pixel_Black);
   case Format_BGR555:       return (quint32(SPixels::BGR555Pixel_Black) << 16) | quint32(SPixels::BGR555Pixel_Black);
   case Format_RGB565:       return (quint32(SPixels::RGB565Pixel_Black) << 16) | quint32(SPixels::RGB565Pixel_Black);

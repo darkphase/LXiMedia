@@ -26,7 +26,7 @@
 #include "spixels.h"
 
 unsigned LXiStream_Common_VideoFormatConverter_convertYUYVtoYUV422P
-    (const struct YUYVPixel * restrict packed, size_t lineStride, unsigned width, unsigned numLines,
+    (const YUYVPixel * restrict packed, size_t lineStride, unsigned width, unsigned numLines,
      uint8_t * restrict y, size_t yStride, uint8_t * restrict u, size_t uStride,
      uint8_t * restrict v, size_t vStride)
 {
@@ -42,23 +42,23 @@ unsigned LXiStream_Common_VideoFormatConverter_convertYUYVtoYUV422P
 
   for (unsigned l=0; l<numLines; l++)
   {
-    const struct YUYVPixel * restrict packedl = ((const uint8_t *)packed) + (lineStride * l);
+    const YUYVPixel * restrict packedl = ((const uint8_t *)packed) + (lineStride * l);
     uint8_t * restrict yl = y + (yStride * l);
     uint8_t * restrict ul = u + (uStride * l);
     uint8_t * restrict vl = v + (vStride * l);
     unsigned i = width / 2;
 
 #ifdef __SSE__
-    while (i >= ((sizeof(__m128i) * 4) / sizeof(struct YUYVPixel)))
+    while (i >= ((sizeof(__m128i) * 4) / sizeof(YUYVPixel)))
     {
-      i -= (sizeof(__m128i) * 4) / sizeof(struct YUYVPixel);
+      i -= (sizeof(__m128i) * 4) / sizeof(YUYVPixel);
 
       // i1 = VYUY.VYUY.VYUY.VYUY ... i4 = VYUY.VYUY.VYUY.VYUY
       __m128i i1 = _mm_load_si128((__m128i *)(packedl));
       __m128i i2 = _mm_load_si128((__m128i *)(packedl + 4));
       __m128i i3 = _mm_load_si128((__m128i *)(packedl + 8));
       __m128i i4 = _mm_load_si128((__m128i *)(packedl + 12));
-      packedl += (sizeof(__m128i) * 4) / sizeof(struct YUYVPixel);
+      packedl += (sizeof(__m128i) * 4) / sizeof(YUYVPixel);
 
       // Grab the Y values
       _mm_store_si128((__m128i *)yl, _mm_packus_epi16(_mm_srli_epi16(_mm_slli_epi16(i1, 8), 8),
@@ -97,7 +97,7 @@ unsigned LXiStream_Common_VideoFormatConverter_convertYUYVtoYUV422P
 
 
 unsigned LXiStream_Common_VideoFormatConverter_convertUYVYtoYUV422P
-    (const struct YUYVPixel * restrict packed, size_t lineStride, unsigned width, unsigned numLines,
+    (const YUYVPixel * restrict packed, size_t lineStride, unsigned width, unsigned numLines,
      uint8_t * restrict y, size_t yStride, uint8_t * restrict u, size_t uStride,
      uint8_t * restrict v, size_t vStride)
 {
@@ -113,23 +113,23 @@ unsigned LXiStream_Common_VideoFormatConverter_convertUYVYtoYUV422P
 
   for (unsigned l=0; l<numLines; l++)
   {
-    const struct YUYVPixel * restrict packedl = ((const uint8_t *)packed) + (lineStride * l);
+    const YUYVPixel * restrict packedl = ((const uint8_t *)packed) + (lineStride * l);
     uint8_t * restrict yl = y + (yStride * l);
     uint8_t * restrict ul = u + (uStride * l);
     uint8_t * restrict vl = v + (vStride * l);
     unsigned i = width / 2;
 
 #ifdef __SSE__
-    while (i >= ((sizeof(__m128i) * 4) / sizeof(struct YUYVPixel)))
+    while (i >= ((sizeof(__m128i) * 4) / sizeof(YUYVPixel)))
     {
-      i -= (sizeof(__m128i) * 4) / sizeof(struct YUYVPixel);
+      i -= (sizeof(__m128i) * 4) / sizeof(YUYVPixel);
 
       // i1 = YVYU.YVYU.YVYU.YVYU ... i4 = YVYU.YVYU.YVYU.YVYU
       __m128i i1 = _mm_load_si128((__m128i *)(packedl));
       __m128i i2 = _mm_load_si128((__m128i *)(packedl + 4));
       __m128i i3 = _mm_load_si128((__m128i *)(packedl + 8));
       __m128i i4 = _mm_load_si128((__m128i *)(packedl + 12));
-      packedl += (sizeof(__m128i) * 4) / sizeof(struct YUYVPixel);
+      packedl += (sizeof(__m128i) * 4) / sizeof(YUYVPixel);
 
       // Grab the Y values
       _mm_store_si128((__m128i *)yl, _mm_packus_epi16(_mm_srli_epi16(i1, 8),
@@ -168,7 +168,7 @@ unsigned LXiStream_Common_VideoFormatConverter_convertUYVYtoYUV422P
 
 
 unsigned LXiStream_Common_VideoFormatConverter_convertYUYVtoYUV420P
-    (const struct YUYVPixel * restrict packed, size_t lineStride, unsigned width, unsigned numLines,
+    (const YUYVPixel * restrict packed, size_t lineStride, unsigned width, unsigned numLines,
      uint8_t * restrict y, size_t yStride, uint8_t * restrict u, size_t uStride,
      uint8_t * restrict v, size_t vStride)
 {
@@ -184,23 +184,23 @@ unsigned LXiStream_Common_VideoFormatConverter_convertYUYVtoYUV420P
 
   for (unsigned l=0, n=numLines/2; l<n; l++)
   {
-    const struct YUYVPixel * restrict packedl = ((const uint8_t *)packed) + (lineStride * l * 2);
+    const YUYVPixel * restrict packedl = ((const uint8_t *)packed) + (lineStride * l * 2);
     uint8_t * restrict yl = y + (yStride * l * 2);
     uint8_t * restrict ul = u + (uStride * l);
     uint8_t * restrict vl = v + (vStride * l);
     unsigned i = width / 2;
 
 #ifdef __SSE__
-    while (i >= ((sizeof(__m128i) * 4) / sizeof(struct YUYVPixel)))
+    while (i >= ((sizeof(__m128i) * 4) / sizeof(YUYVPixel)))
     {
-      i -= (sizeof(__m128i) * 4) / sizeof(struct YUYVPixel);
+      i -= (sizeof(__m128i) * 4) / sizeof(YUYVPixel);
 
       // i1 = VYUY.VYUY.VYUY.VYUY ... i4 = VYUY.VYUY.VYUY.VYUY
       __m128i i1 = _mm_load_si128((__m128i *)(packedl));
       __m128i i2 = _mm_load_si128((__m128i *)(packedl + 4));
       __m128i i3 = _mm_load_si128((__m128i *)(packedl + 8));
       __m128i i4 = _mm_load_si128((__m128i *)(packedl + 12));
-      packedl += (sizeof(__m128i) * 4) / sizeof(struct YUYVPixel);
+      packedl += (sizeof(__m128i) * 4) / sizeof(YUYVPixel);
 
       // Grab the Y values
       _mm_store_si128((__m128i *)yl, _mm_packus_epi16(_mm_srli_epi16(_mm_slli_epi16(i1, 8), 8),
@@ -237,19 +237,19 @@ unsigned LXiStream_Common_VideoFormatConverter_convertYUYVtoYUV420P
 
     packedl = ((const uint8_t *)packed) + (lineStride * ((l * 2) + 1));
     yl = y + (yStride * ((l * 2) + 1));
-    i = lineStride / sizeof(struct YUYVPixel);
+    i = lineStride / sizeof(YUYVPixel);
 
 #ifdef __SSE__
-    while (i >= ((sizeof(__m128i) * 4) / sizeof(struct YUYVPixel)))
+    while (i >= ((sizeof(__m128i) * 4) / sizeof(YUYVPixel)))
     {
-      i -= (sizeof(__m128i) * 4) / sizeof(struct YUYVPixel);
+      i -= (sizeof(__m128i) * 4) / sizeof(YUYVPixel);
 
       // i1 = VYUY.VYUY.VYUY.VYUY ... i4 = VYUY.VYUY.VYUY.VYUY
       __m128i i1 = _mm_load_si128((__m128i *)(packedl));
       __m128i i2 = _mm_load_si128((__m128i *)(packedl + 4));
       __m128i i3 = _mm_load_si128((__m128i *)(packedl + 8));
       __m128i i4 = _mm_load_si128((__m128i *)(packedl + 12));
-      packedl += (sizeof(__m128i) * 4) / sizeof(struct YUYVPixel);
+      packedl += (sizeof(__m128i) * 4) / sizeof(YUYVPixel);
 
       // Grab the Y values
       _mm_store_si128((__m128i *)yl, _mm_packus_epi16(_mm_srli_epi16(_mm_slli_epi16(i1, 8), 8),
@@ -272,7 +272,7 @@ unsigned LXiStream_Common_VideoFormatConverter_convertYUYVtoYUV420P
 
 
 unsigned LXiStream_Common_VideoFormatConverter_convertUYVYtoYUV420P
-    (const struct YUYVPixel * restrict packed, size_t lineStride, unsigned width, unsigned numLines,
+    (const YUYVPixel * restrict packed, size_t lineStride, unsigned width, unsigned numLines,
      uint8_t * restrict y, size_t yStride, uint8_t * restrict u, size_t uStride,
      uint8_t * restrict v, size_t vStride)
 {
@@ -288,23 +288,23 @@ unsigned LXiStream_Common_VideoFormatConverter_convertUYVYtoYUV420P
 
   for (unsigned l=0, n=numLines/2; l<n; l++)
   {
-    const struct YUYVPixel * restrict packedl = ((const uint8_t *)packed) + (lineStride * l * 2);
+    const YUYVPixel * restrict packedl = ((const uint8_t *)packed) + (lineStride * l * 2);
     uint8_t * restrict yl = y + (yStride * l * 2);
     uint8_t * restrict ul = u + (uStride * l);
     uint8_t * restrict vl = v + (vStride * l);
     unsigned i = width / 2;
 
 #ifdef __SSE__
-    while (i >= ((sizeof(__m128i) * 4) / sizeof(struct YUYVPixel)))
+    while (i >= ((sizeof(__m128i) * 4) / sizeof(YUYVPixel)))
     {
-      i -= (sizeof(__m128i) * 4) / sizeof(struct YUYVPixel);
+      i -= (sizeof(__m128i) * 4) / sizeof(YUYVPixel);
 
       // i1 = YVYU.YVYU.YVYU.YVYU ... i4 = YVYU.YVYU.YVYU.YVYU
       __m128i i1 = _mm_load_si128((__m128i *)(packedl));
       __m128i i2 = _mm_load_si128((__m128i *)(packedl + 4));
       __m128i i3 = _mm_load_si128((__m128i *)(packedl + 8));
       __m128i i4 = _mm_load_si128((__m128i *)(packedl + 12));
-      packedl += (sizeof(__m128i) * 4) / sizeof(struct YUYVPixel);
+      packedl += (sizeof(__m128i) * 4) / sizeof(YUYVPixel);
 
       // Grab the Y values
       _mm_store_si128((__m128i *)yl, _mm_packus_epi16(_mm_srli_epi16(i1, 8),
@@ -341,19 +341,19 @@ unsigned LXiStream_Common_VideoFormatConverter_convertUYVYtoYUV420P
 
     packedl = ((const uint8_t *)packed) + (lineStride * ((l * 2) + 1));
     yl = y + (yStride * ((l * 2) + 1));
-    i = lineStride / sizeof(struct YUYVPixel);
+    i = lineStride / sizeof(YUYVPixel);
 
 #ifdef __SSE__
-    while (i >= ((sizeof(__m128i) * 4) / sizeof(struct YUYVPixel)))
+    while (i >= ((sizeof(__m128i) * 4) / sizeof(YUYVPixel)))
     {
-      i -= (sizeof(__m128i) * 4) / sizeof(struct YUYVPixel);
+      i -= (sizeof(__m128i) * 4) / sizeof(YUYVPixel);
 
       // i1 = YVYU.YVYU.YVYU.YVYU ... i4 = YVYU.YVYU.YVYU.YVYU
       __m128i i1 = _mm_load_si128((__m128i *)(packedl));
       __m128i i2 = _mm_load_si128((__m128i *)(packedl + 4));
       __m128i i3 = _mm_load_si128((__m128i *)(packedl + 8));
       __m128i i4 = _mm_load_si128((__m128i *)(packedl + 12));
-      packedl += (sizeof(__m128i) * 4) / sizeof(struct YUYVPixel);
+      packedl += (sizeof(__m128i) * 4) / sizeof(YUYVPixel);
 
       // Grab the Y values
       _mm_store_si128((__m128i *)yl, _mm_packus_epi16(_mm_srli_epi16(i1, 8),
