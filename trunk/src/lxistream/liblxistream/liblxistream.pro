@@ -80,6 +80,8 @@ SOURCES += sapplication.cpp \
     ssubpicturebuffer.cpp \
     ssubtitlebuffer.cpp \
     ssubtitlefile.cpp \
+    spixels.cpp \
+    spixels.convert.c \
     sthreadpool.cpp \
     stime.cpp \
     stimer.cpp \

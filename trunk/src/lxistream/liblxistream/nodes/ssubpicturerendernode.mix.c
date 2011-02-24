@@ -43,9 +43,9 @@ void LXiStream_SSubpictureRenderNode_mixSubpictureYUV
     uint8_t * restrict dstLine = yuvData->y + (yuvData->yStride * yp);
     const uint8_t * restrict srcLine = rect->lines + (rect->lineStride * y);
     for (unsigned x=0; x<rect->width; x++)
-    if (srcLine[x] * sizeof(struct YUVAPixel) < paletteSize)
+    if (srcLine[x] * sizeof(YUVAPixel) < paletteSize)
     {
-      const struct YUVAPixel pixel = ((struct YUVAPixel *)palette)[srcLine[x]];
+      const YUVAPixel pixel = ((YUVAPixel *)palette)[srcLine[x]];
       const unsigned xp = rect->x + x;
 
       dstLine[xp] = (uint8_t)((
@@ -62,9 +62,9 @@ void LXiStream_SSubpictureRenderNode_mixSubpictureYUV
     uint8_t * restrict dstLineV = yuvData->v + (yuvData->vStride * yp);
     const uint8_t * restrict srcLine = rect->lines + (rect->lineStride * y);
     for (unsigned x=0; x<rect->width; x+=yuvData->wr)
-    if (srcLine[x] * sizeof(struct YUVAPixel) < paletteSize)
+    if (srcLine[x] * sizeof(YUVAPixel) < paletteSize)
     {
-      const struct YUVAPixel pixel = ((struct YUVAPixel *)palette)[srcLine[x]];
+      const YUVAPixel pixel = ((YUVAPixel *)palette)[srcLine[x]];
       const unsigned xp = (rect->x + x) / yuvData->wr;
 
       dstLineU[xp] = (uint8_t)((

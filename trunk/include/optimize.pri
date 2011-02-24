@@ -25,6 +25,11 @@ linux-g++|win32-g++ {
   QMAKE_CFLAGS += -O3
 }
 
+linux-g++ {
+  # Used for performance analysis.
+  #QMAKE_CFLAGS += -Wa,-ahl=/tmp/assembly-debug.s
+}
+
 win32-g++ {
   # Required for 32-bit Windows/MingW to prevent crashing SSE code on unaligned
   # stack data.
