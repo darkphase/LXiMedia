@@ -106,15 +106,19 @@ ImdbClient::ImdbClient(QObject *parent)
           indices += name;
       }
 
+      query.exec("PRAGMA foreign_keys = OFF");
+
       db.transaction();
 
       foreach (const QString &name, indices)
-        query.exec("DROP INDEX " + name);
+        query.exec("DROP INDEX IF EXISTS " + name);
 
       foreach (const QString &name, tables)
-        query.exec("DROP TABLE " + name);
+        query.exec("DROP TABLE IF EXISTS " + name);
 
       db.commit();
+
+      query.exec("PRAGMA foreign_keys = ON");
     }
 
     // Create tables that don't exist
