@@ -96,8 +96,6 @@ bool SIOInputNode::open(void)
 
 bool SIOInputNode::start(void)
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
   if (!d->opened)
     open();
 
@@ -106,8 +104,6 @@ bool SIOInputNode::start(void)
 
 void SIOInputNode::stop(void)
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
   if (d->bufferReader)
   {
     d->bufferReader->stop();
@@ -119,7 +115,23 @@ void SIOInputNode::stop(void)
 
 void SIOInputNode::process(void)
 {
-  schedule(&SIOInputNode::processTask, d->dependency);
+  if (d->bufferReader)
+  {
+    if (!d->ioDevice->atEnd())
+    if (d->bufferReader->process())
+      return;
+
+    // Finished; close input.
+    d->bufferReader->stop();
+
+    delete d->bufferReader;
+    d->bufferReader = NULL;
+
+    emit output(SEncodedAudioBuffer());
+    emit output(SEncodedVideoBuffer());
+    emit output(SEncodedDataBuffer());
+    emit finished();
+  }
 }
 
 qint64 SIOInputNode::read(uchar *buffer, qint64 size)
@@ -149,8 +161,6 @@ qint64 SIOInputNode::seek(qint64 offset, int whence)
 
 STime SIOInputNode::duration(void) const
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
   if (d->bufferReader)
     return d->bufferReader->duration();
 
@@ -159,8 +169,6 @@ STime SIOInputNode::duration(void) const
 
 bool SIOInputNode::setPosition(STime pos)
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
   if (d->bufferReader)
     return d->bufferReader->setPosition(pos);
 
@@ -169,8 +177,6 @@ bool SIOInputNode::setPosition(STime pos)
 
 STime SIOInputNode::position(void) const
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
   if (d->bufferReader)
     return d->bufferReader->position();
 
@@ -179,8 +185,6 @@ STime SIOInputNode::position(void) const
 
 QList<SIOInputNode::Chapter> SIOInputNode::chapters(void) const
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
   if (d->bufferReader)
     return d->bufferReader->chapters();
 
@@ -189,8 +193,6 @@ QList<SIOInputNode::Chapter> SIOInputNode::chapters(void) const
 
 QList<SIOInputNode::AudioStreamInfo> SIOInputNode::audioStreams(void) const
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
   if (d->bufferReader)
     return d->bufferReader->audioStreams();
 
@@ -199,8 +201,6 @@ QList<SIOInputNode::AudioStreamInfo> SIOInputNode::audioStreams(void) const
 
 QList<SIOInputNode::VideoStreamInfo> SIOInputNode::videoStreams(void) const
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
   if (d->bufferReader)
     return d->bufferReader->videoStreams();
 
@@ -209,8 +209,6 @@ QList<SIOInputNode::VideoStreamInfo> SIOInputNode::videoStreams(void) const
 
 QList<SIOInputNode::DataStreamInfo> SIOInputNode::dataStreams(void) const
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
   if (d->bufferReader)
     return d->bufferReader->dataStreams();
 
@@ -219,8 +217,6 @@ QList<SIOInputNode::DataStreamInfo> SIOInputNode::dataStreams(void) const
 
 void SIOInputNode::selectStreams(const QList<StreamId> &streamIds)
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
   if (d->bufferReader)
     d->bufferReader->selectStreams(streamIds);
 }
@@ -238,29 +234,6 @@ void SIOInputNode::produce(const SEncodedVideoBuffer &buffer)
 void SIOInputNode::produce(const SEncodedDataBuffer &buffer)
 {
   emit output(buffer);
-}
-
-void SIOInputNode::processTask(void)
-{
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
-  if (d->ioDevice && d->bufferReader)
-  {
-    if (!d->ioDevice->atEnd())
-    if (d->bufferReader->process())
-      return;
-
-    // Finished; close input.
-    d->bufferReader->stop();
-
-    delete d->bufferReader;
-    d->bufferReader = NULL;
-
-    emit output(SEncodedAudioBuffer());
-    emit output(SEncodedVideoBuffer());
-    emit output(SEncodedDataBuffer());
-    emit finished();
-  }
 }
 
 

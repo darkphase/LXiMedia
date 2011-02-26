@@ -400,7 +400,7 @@ void ImdbClient::readIMDBMoviesListLines(qint64 pos)
       }
 
       if (!lines.rawName.isEmpty())
-        sApp->schedule(this, &ImdbClient::insertIMDBMoviesListLines, lines, Database::mutex(), basePriority + 10);
+        sApp->schedule(this, &ImdbClient::insertIMDBMoviesListLines, lines, Database::mutex(), insertPriority);
 
       if (finished)
       {
@@ -487,7 +487,7 @@ void ImdbClient::readIMDBPlotListLines(qint64 pos)
 
       // Insert/update results
       if (!lines.rawName.isEmpty())
-        sApp->schedule(this, &ImdbClient::insertIMDBPlotListLines, lines, Database::mutex(), basePriority + 9);
+        sApp->schedule(this, &ImdbClient::insertIMDBPlotListLines, lines, Database::mutex(), insertPriority);
 
       if (finished)
       {
@@ -557,12 +557,12 @@ void ImdbClient::readIMDBRatingListLines(qint64 pos)
 
       // Insert/update results
       if (!lines.rawName.isEmpty())
-        sApp->schedule(this, &ImdbClient::insertIMDBRatingListLines, lines, Database::mutex(), basePriority + 8);
+        sApp->schedule(this, &ImdbClient::insertIMDBRatingListLines, lines, Database::mutex(), insertPriority);
 
       if (finished)
       {
         qDebug() << "IMDB import: Finished parsing ratings.list";
-        sApp->schedule(this, &ImdbClient::insertSentinelItem, Database::mutex(), basePriority + 7);
+        sApp->schedule(this, &ImdbClient::insertSentinelItem, Database::mutex(), insertPriority);
       }
       else
         sApp->schedule(this, &ImdbClient::readIMDBRatingListLines, ratingFile.pos(), &mutex, basePriority);

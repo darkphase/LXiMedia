@@ -29,6 +29,17 @@ namespace LXiStream {
 class SScheduler
 {
 public:
+  enum Priority
+  {
+    Priority_Idle             = -1000,
+    Priority_Lowest           = -100,
+    Priority_Low              = -10,
+    Priority_Normal           = 0,
+    Priority_High             = 10,
+    Priority_Highest          = 100,
+    Priority_TimeCritical     = 1000
+  };
+
   /*! A task dependency ensures only one task of a set sharing a dependency can
       run simultaneously. It also ensures that tasks sharing a dependency are
       scheduled in the order that they were presented to the scheduler.
@@ -104,6 +115,9 @@ private:
   typedef QList< QPair<Runnable *, int> > TaskQueue;
 
 public:
+  void                          setPriority(Priority);
+  Priority                      priority(void) const;
+
   bool                          enableTrace(const QString &fileName);
   void                          stopTrace(void);
 
@@ -135,7 +149,7 @@ protected:
   void                          schedule(Dependency *);
 
 private:
-  void                          start(Runnable *runnable, int priority = 0);
+  void                          start(Runnable *runnable, Priority = Priority_Normal);
   void                          traceTask(STime, STime, const QByteArray &);
 
 protected:

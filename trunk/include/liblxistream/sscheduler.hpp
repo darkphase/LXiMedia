@@ -55,7 +55,7 @@
 #ifdef PROXY_METHODS
 
   inline void schedule(void(* func)(void),
-           Dependency *depends = NULL, int priority = 0)
+           Dependency *depends = NULL, Priority priority = Priority_Normal)
   {
     if (scheduler == NULL)
     {
@@ -71,7 +71,7 @@
   template<typename _type1> \
   inline void schedule(void(* func)(A1), \
            A1 arg1, \
-           Dependency *depends = NULL, int priority = 0) \
+           Dependency *depends = NULL, Priority priority = Priority_Normal) \
   { \
     if (scheduler == NULL) \
     { \
@@ -90,7 +90,7 @@ LOOPTYPES1(FUNC)
   template<typename _type1, typename _type2> \
   inline void schedule(void(* func)(A1, A2), \
            A1 arg1, A2 arg2, \
-           Dependency *depends = NULL, int priority = 0) \
+           Dependency *depends = NULL, Priority priority = Priority_Normal) \
   { \
     if (scheduler == NULL) \
     { \
@@ -109,7 +109,7 @@ LOOPTYPES2(FUNC)
   template<typename _type1, typename _type2, typename _type3> \
   inline void schedule(void(* func)(A1, A2, A3), \
            A1 arg1, A2 arg2, A3 arg3, \
-           Dependency *depends = NULL, int priority = 0) \
+           Dependency *depends = NULL, Priority priority = Priority_Normal) \
   { \
     if (scheduler == NULL) \
     { \
@@ -128,7 +128,7 @@ LOOPTYPES3(FUNC)
   template<typename _type1, typename _type2, typename _type3, typename _type4> \
   inline void schedule(void(* func)(A1, A2, A3, A4), \
            A1 arg1, A2 arg2, A3 arg3, A4 arg4, \
-           Dependency *depends = NULL, int priority = 0) \
+           Dependency *depends = NULL, Priority priority = Priority_Normal) \
   { \
     if (scheduler == NULL) \
     { \
@@ -145,7 +145,7 @@ LOOPTYPES4(FUNC)
 
   template<class _base>
   inline void schedule(void(_base::* func)(void),
-                  Dependency *depends = NULL, int priority = 0)
+                  Dependency *depends = NULL, Priority priority = Priority_Normal)
   {
     if (scheduler == NULL)
     {
@@ -161,7 +161,7 @@ LOOPTYPES4(FUNC)
   template<class _base, typename _type1> \
   inline void schedule(void(_base::* func)(A1), \
            A1 arg1, \
-           Dependency *depends = NULL, int priority = 0) \
+           Dependency *depends = NULL, Priority priority = Priority_Normal) \
   { \
     if (scheduler == NULL) \
     { \
@@ -180,7 +180,7 @@ LOOPTYPES1(FUNC)
   template<class _base, typename _type1, typename _type2> \
   inline void schedule(void(_base::* func)(A1, A2), \
            A1 arg1, A2 arg2, \
-           Dependency *depends = NULL, int priority = 0) \
+           Dependency *depends = NULL, Priority priority = Priority_Normal) \
   { \
     if (scheduler == NULL) \
     { \
@@ -199,7 +199,7 @@ LOOPTYPES2(FUNC)
   template<class _base, typename _type1, typename _type2, typename _type3> \
   inline void schedule(void(_base::* func)(A1, A2, A3), \
            A1 arg1, A2 arg2, A3 arg3, \
-           Dependency *depends = NULL, int priority = 0) \
+           Dependency *depends = NULL, Priority priority = Priority_Normal) \
   { \
     if (scheduler == NULL) \
     { \
@@ -218,7 +218,7 @@ LOOPTYPES3(FUNC)
   template<class _base, typename _type1, typename _type2, typename _type3, typename _type4> \
   inline void schedule(void(_base::* func)(A1, A2, A3, A4), \
            A1 arg1, A2 arg2, A3 arg3, A4 arg4, \
-           Dependency *depends = NULL, int priority = 0) \
+           Dependency *depends = NULL, Priority priority = Priority_Normal) \
   { \
     if (scheduler == NULL) \
     { \
@@ -236,7 +236,7 @@ LOOPTYPES4(FUNC)
 
   template<class _base>
   inline void schedule(_base *object, void(_base::* func)(void),
-                  Dependency *depends = NULL, int priority = 0)
+                  Dependency *depends = NULL, Priority priority = Priority_Normal)
   {
     if (scheduler == NULL)
     {
@@ -252,7 +252,7 @@ LOOPTYPES4(FUNC)
   template<class _base, typename _type1> \
   inline void schedule(_base *object, void(_base::* func)(A1), \
            A1 arg1, \
-           Dependency *depends = NULL, int priority = 0) \
+           Dependency *depends = NULL, Priority priority = Priority_Normal) \
   { \
     if (scheduler == NULL) \
     { \
@@ -271,7 +271,7 @@ LOOPTYPES1(FUNC)
   template<class _base, typename _type1, typename _type2> \
   inline void schedule(_base *object, void(_base::* func)(A1, A2), \
            A1 arg1, A2 arg2, \
-           Dependency *depends = NULL, int priority = 0) \
+           Dependency *depends = NULL, Priority priority = Priority_Normal) \
   { \
     if (scheduler == NULL) \
     { \
@@ -290,7 +290,7 @@ LOOPTYPES2(FUNC)
   template<class _base, typename _type1, typename _type2, typename _type3> \
   inline void schedule(_base *object, void(_base::* func)(A1, A2, A3), \
            A1 arg1, A2 arg2, A3 arg3, \
-           Dependency *depends = NULL, int priority = 0) \
+           Dependency *depends = NULL, Priority priority = Priority_Normal) \
   { \
     if (scheduler == NULL) \
     { \
@@ -309,7 +309,7 @@ LOOPTYPES3(FUNC)
   template<class _base, typename _type1, typename _type2, typename _type3, typename _type4> \
   inline void schedule(_base *object, void(_base::* func)(A1, A2, A3, A4), \
            A1 arg1, A2 arg2, A3 arg3, A4 arg4, \
-           Dependency *depends = NULL, int priority = 0) \
+           Dependency *depends = NULL, Priority priority = Priority_Normal) \
   { \
     if (scheduler == NULL) \
     { \
@@ -329,7 +329,7 @@ LOOPTYPES3(FUNC)
 #ifdef SCHEDULE_METHODS
 
   inline void schedule(void(* func)(void),
-           Dependency *depends = NULL, int priority = 0)
+           Dependency *depends = NULL, Priority priority = Priority_Normal)
   {
     struct T : Runnable
     {
@@ -349,7 +349,7 @@ LOOPTYPES3(FUNC)
   template<typename _type1> \
   inline void schedule(void(* func)(A1), \
            A1 arg1, \
-           Dependency *depends = NULL, int priority = 0) \
+           Dependency *depends = NULL, Priority priority = Priority_Normal) \
   { \
     struct T : Runnable  \
     { \
@@ -375,7 +375,7 @@ LOOPTYPES1(FUNC)
   template<typename _type1, typename _type2> \
   inline void schedule(void(* func)(A1, A2), \
            A1 arg1, A2 arg2, \
-           Dependency *depends = NULL, int priority = 0) \
+           Dependency *depends = NULL, Priority priority = Priority_Normal) \
   { \
     struct T : Runnable  \
     { \
@@ -401,7 +401,7 @@ LOOPTYPES2(FUNC)
   template<typename _type1, typename _type2, typename _type3> \
   inline void schedule(void(* func)(A1, A2, A3), \
            A1 arg1, A2 arg2, A3 arg3, \
-           Dependency *depends = NULL, int priority = 0) \
+           Dependency *depends = NULL, Priority priority = Priority_Normal) \
   { \
     struct T : Runnable  \
     { \
@@ -427,7 +427,7 @@ LOOPTYPES3(FUNC)
   template<typename _type1, typename _type2, typename _type3, typename _type4> \
   inline void schedule(void(* func)(A1, A2, A3, A4), \
            A1 arg1, A2 arg2, A3 arg3, A4 arg4, \
-           Dependency *depends = NULL, int priority = 0) \
+           Dependency *depends = NULL, Priority priority = Priority_Normal) \
   { \
     struct T : Runnable  \
     { \
@@ -451,7 +451,7 @@ LOOPTYPES4(FUNC)
 
   template<class _base>
   inline void schedule(_base *object, void(_base::* func)(void),
-           Dependency *depends = NULL, int priority = 0)
+           Dependency *depends = NULL, Priority priority = Priority_Normal)
   {
     struct T : Runnable
     {
@@ -471,7 +471,7 @@ LOOPTYPES4(FUNC)
   template<class _base, typename _type1> \
   inline void schedule(_base *object, void(_base::* func)(A1), \
            A1 arg1, \
-           Dependency *depends = NULL, int priority = 0) \
+           Dependency *depends = NULL, Priority priority = Priority_Normal) \
   { \
     struct T : Runnable  \
     { \
@@ -498,7 +498,7 @@ LOOPTYPES1(FUNC)
   template<class _base, typename _type1, typename _type2> \
   inline void schedule(_base *object, void(_base::* func)(A1, A2), \
            A1 arg1, A2 arg2, \
-           Dependency *depends = NULL, int priority = 0) \
+           Dependency *depends = NULL, Priority priority = Priority_Normal) \
   { \
     struct T : Runnable  \
     { \
@@ -525,7 +525,7 @@ LOOPTYPES2(FUNC)
   template<class _base, typename _type1, typename _type2, typename _type3> \
   inline void schedule(_base *object, void(_base::* func)(A1, A2, A3), \
            A1 arg1, A2 arg2, A3 arg3, \
-           Dependency *depends = NULL, int priority = 0) \
+           Dependency *depends = NULL, Priority priority = Priority_Normal) \
   { \
     struct T : Runnable  \
     { \
@@ -552,7 +552,7 @@ LOOPTYPES3(FUNC)
   template<class _base, typename _type1, typename _type2, typename _type3, typename _type4> \
   inline void schedule(_base *object, void(_base::* func)(A1, A2, A3, A4), \
            A1 arg1, A2 arg2, A3 arg3, A4 arg4, \
-           Dependency *depends = NULL, int priority = 0) \
+           Dependency *depends = NULL, Priority priority = Priority_Normal) \
   { \
     struct T : Runnable  \
     { \

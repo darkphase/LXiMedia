@@ -30,6 +30,7 @@ struct SScheduler::Data
   inline Data(void) : mutex(QMutex::Recursive) { }
 
   QThreadPool                 * threadPool;
+  int                           priority;
   QMutex                        mutex;
   QMap<Dependency *, TaskQueue> taskQueues;
   QAtomicInt                    taskCount;
@@ -46,6 +47,7 @@ SScheduler::SScheduler(QThreadPool *threadPool)
   : d(new Data())
 {
   d->threadPool = threadPool;
+  d->priority = 0;
   d->taskCount = 0;
   d->traceFile = NULL;
   d->traceWidth = 0;
@@ -57,6 +59,16 @@ SScheduler::~SScheduler()
 
   delete d;
   *const_cast<Data **>(&d) = NULL;
+}
+
+void SScheduler::setPriority(Priority priority)
+{
+  d->priority = int(priority);
+}
+
+SScheduler::Priority SScheduler::priority(void) const
+{
+  return Priority(d->priority);
 }
 
 bool SScheduler::enableTrace(const QString &fileName)
@@ -133,10 +145,12 @@ inline bool operator<(const QPair<SScheduler::Runnable *, int> &p, int priority)
     return priority < p.second;
 }
 
-void SScheduler::start(Runnable *runnable, int priority)
+void SScheduler::start(Runnable *runnable, Priority priority)
 {
   d->taskCount.ref();
   runnable->scheduler = this;
+
+  const int prio = d->priority + int(priority);
 
   if (runnable->depends != NULL)
   {
@@ -150,7 +164,7 @@ void SScheduler::start(Runnable *runnable, int priority)
     {
       if (runnable->depends->tryLock())
       {
-        d->threadPool->start(runnable, priority);
+        d->threadPool->start(runnable, prio);
         return;
       }
 
@@ -160,18 +174,18 @@ void SScheduler::start(Runnable *runnable, int priority)
     {
       if (runnable->depends->tryLock())
       {
-        d->threadPool->start(runnable, priority);
+        d->threadPool->start(runnable, prio);
         return;
       }
     }
 
-    TaskQueue::Iterator at = qUpperBound(i->begin(), i->end(), priority);
-    i->insert(at, qMakePair(runnable, priority));
+    TaskQueue::Iterator at = qUpperBound(i->begin(), i->end(), prio);
+    i->insert(at, qMakePair(runnable, prio));
 
     queueSchedule(runnable->depends);
   }
   else
-    d->threadPool->start(runnable, priority);
+    d->threadPool->start(runnable, prio);
 }
 
 void SScheduler::schedule(Dependency *depends)

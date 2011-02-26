@@ -743,10 +743,10 @@ void MediaDatabase::probeFile(const QString &_path)
       const SMediaInfo mediaInfo(path);
       const QByteArray mediaInfoXml = mediaInfo.toByteArray(-1);
 
-      sApp->schedule(this, &MediaDatabase::insertFile, mediaInfo, mediaInfoXml, Database::mutex(), probeFilePriority + 1);
+      sApp->schedule(this, &MediaDatabase::insertFile, mediaInfo, mediaInfoXml, Database::mutex(), insertFilePriority);
     }
     else
-      sApp->schedule(this, &MediaDatabase::delayFile, path, Database::mutex(), probeFilePriority + 1);
+      sApp->schedule(this, &MediaDatabase::delayFile, path, Database::mutex(), insertFilePriority);
   }
 
 #ifndef Q_OS_WIN
@@ -922,7 +922,7 @@ void MediaDatabase::queryImdbItem(const QString &item, Category category)
         {
           const QStringList similar = imdbClient->findSimilar(node.title(), imdbType);
           if (!similar.isEmpty())
-            sApp->schedule(this, &MediaDatabase::matchImdbItem, item, node.title(), similar, category, NULL, matchImdbItemPriority + 1);
+            sApp->schedule(this, &MediaDatabase::matchImdbItem, item, node.title(), similar, category, NULL, storeImdbItemPriority);
         }
       }
     }
@@ -933,7 +933,7 @@ void MediaDatabase::matchImdbItem(const QString &item, const QString &title, con
 {
   const QString imdbLink = imdbClient->findBest(title, similar);
 
-  sApp->schedule(this, &MediaDatabase::storeImdbItem, item, imdbLink, category, Database::mutex(), matchImdbItemPriority + 1);
+  sApp->schedule(this, &MediaDatabase::storeImdbItem, item, imdbLink, category, Database::mutex(), storeImdbItemPriority);
 }
 
 void MediaDatabase::storeImdbItem(const QString &item, const QString &imdbLink, Category category)

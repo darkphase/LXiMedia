@@ -49,27 +49,27 @@ signals:
   void                          finished(void);
 
 private:
-  void                          loadImage(const int &);
-  void                          computeVideoBuffer(void);
+  void                          loadImage(int);
+  void                          computeVideoBuffer(const SVideoBuffer &, const SVideoBuffer &, int);
   void                          sendFlush(void);
   SVideoBuffer                  blackBuffer(void) const;
 
 public:
-  static const int              frameRate = 25;
-  static const int              slideFrameCount = 190;
+  static const int              frameRate = 24;
+  static const int              slideFrameCount = 180;
 
 private:
   const QStringList             pictures;
 
-  SScheduler::Dependency * const dependency;
+  SScheduler::Dependency * const loadDependency;
+  SScheduler::Dependency * const procDependency;
   SSize                         outSize;
   SAudioBuffer                  audioBuffer;
-  SVideoBuffer                  videoBuffer;
   STime                         time;
   int                           currentPicture;
-  SVideoBuffer                  current;
-  SVideoBuffer                  next;
-  int                           fade;
+  int                           currentFrame;
+  SVideoBuffer                  lastBuffer, currentBuffer, nextBuffer;
+  QSemaphore                    nextBufferReady;
 };
 
 } // End of namespace

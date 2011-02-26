@@ -65,8 +65,6 @@ bool SFileInputNode::open(void)
 
 void SFileInputNode::stop(void)
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
   SIOInputNode::stop();
 
   d->mediaFile.close();
@@ -83,8 +81,6 @@ void SFileInputNode::stop(void)
 
 bool SFileInputNode::setPosition(STime pos)
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
   if (d->subtitleFile)
     d->subtitleFile->reset();
 
@@ -93,8 +89,6 @@ bool SFileInputNode::setPosition(STime pos)
 
 QList<SFileInputNode::DataStreamInfo> SFileInputNode::dataStreams(void) const
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
   QList<DataStreamInfo> dataStreams = SIOInputNode::dataStreams();
 
   // Add subtitles.
@@ -117,8 +111,6 @@ QList<SFileInputNode::DataStreamInfo> SFileInputNode::dataStreams(void) const
 
 void SFileInputNode::selectStreams(const QList<StreamId> &streamIds)
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
   QList<StreamId> nextStreamIds;
   foreach (StreamId id, streamIds)
   if (d->subtitleStreams.contains(id))

@@ -30,16 +30,7 @@ class SGraph : public QThread,
 {
 Q_OBJECT
 public:
-  enum Priority
-  {
-    Priority_Idle             = INT_MIN,
-    Priority_Lowest           = -100,
-    Priority_Low              = -10,
-    Priority_Normal           = 0,
-    Priority_High             = 10,
-    Priority_Highest          = 100,
-    Priority_TimeCritical     = INT_MAX
-  };
+  typedef SScheduler::Priority Priority;
 
   /*! The Node abstract class is used for processing nodes.
    */
@@ -73,23 +64,19 @@ public:
     virtual bool                  start(void) = 0;
     virtual void                  stop(void) = 0;
     virtual void                  process(void) = 0;
-
-  protected:
-    mutable QMutex                mutex;
   };
 
 public:
   explicit                      SGraph(void);
   virtual                       ~SGraph();
 
-  void                          setPriority(Priority);
-  Priority                      priority(void) const;
-
   bool                          isRunning(void) const;
 
   void                          addNode(Node *);
   void                          addNode(SourceNode *);
   void                          addNode(SinkNode *);
+
+  inline void                   setPriority(Priority priority)                  { SScheduler::setPriority(priority); }
 
 public slots:
   virtual bool                  start(void);

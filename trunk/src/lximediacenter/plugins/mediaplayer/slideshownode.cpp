@@ -32,17 +32,19 @@ SlideShowNode::SlideShowNode(SGraph *parent, const QStringList &pictures)
   : QObject(parent),
     SGraph::SourceNode(parent),
     pictures(pictures),
-    dependency(parent ? new SScheduler::Dependency(parent) : NULL),
+    loadDependency(parent ? new SScheduler::Dependency(parent) : NULL),
+    procDependency(parent ? new SScheduler::Dependency(parent) : NULL),
     outSize(768, 576),
     time(STime::null),
     currentPicture(-1),
-    fade(0)
+    currentFrame(-1)
 {
 }
 
 SlideShowNode::~SlideShowNode()
 {
-  delete dependency;
+  delete loadDependency;
+  delete procDependency;
 }
 
 SSize SlideShowNode::size(void) const
@@ -74,9 +76,13 @@ bool SlideShowNode::start(void)
   memset(audioBuffer.data(), 0, audioBuffer.size());
 
   // Create a black video buffer
-  videoBuffer = current = next = blackBuffer();
+  lastBuffer = blackBuffer();
+
+  while (nextBufferReady.available() > 0)
+    nextBufferReady.tryAcquire();
 
   currentPicture = 0;
+  currentFrame = 0;
 
   return true;
 }
@@ -84,29 +90,55 @@ bool SlideShowNode::start(void)
 void SlideShowNode::stop(void)
 {
   audioBuffer.clear();
-  videoBuffer.clear();
-  current.clear();
-  next.clear();
+  lastBuffer.clear();
+  currentBuffer.clear();
+  nextBuffer.clear();
+
+  time = STime::null;
+  currentPicture = -1;
+  currentFrame = -1;
 }
 
 void SlideShowNode::process(void)
 {
   if (currentPicture == 0)
   {
-    schedule(&SlideShowNode::loadImage, currentPicture++, dependency);
+    loadImage(currentPicture++);
+    currentFrame = 0;
   }
-  else if (currentPicture <= pictures.count()) // <= because last picture is black.
-  {
-    for (int i=0; i<slideFrameCount; i++)
-      schedule(&SlideShowNode::computeVideoBuffer, dependency);
 
-    schedule(&SlideShowNode::loadImage, currentPicture++, dependency);
+  if ((currentPicture >= 0) && (currentFrame == 0))
+  {
+    nextBufferReady.acquire();
+    currentBuffer = nextBuffer;
+
+    // Start loading next
+    if (currentPicture <= pictures.count()) // <= because last picture is black.
+      schedule(&SlideShowNode::loadImage, currentPicture++, loadDependency, SScheduler::Priority_Low);
+    else
+      currentPicture = -1;
   }
-  else
-    schedule(&SlideShowNode::sendFlush, dependency);
+
+  if (currentFrame >= 0)
+  {
+    const int fade = qMin(255, (++currentFrame) * 256 / frameRate);
+
+    schedule(&SlideShowNode::computeVideoBuffer, lastBuffer, currentBuffer, fade, procDependency);
+
+    if (currentFrame >= slideFrameCount)
+    {
+      if (currentPicture >= 0)
+      {
+        lastBuffer = currentBuffer;
+        currentFrame = 0;
+      }
+      else
+        schedule(&SlideShowNode::sendFlush, procDependency);
+    }
+  }
 }
 
-void SlideShowNode::loadImage(const int &index)
+void SlideShowNode::loadImage(int index)
 {
   SImage img(outSize.size(), QImage::Format_RGB32);
 
@@ -130,31 +162,25 @@ void SlideShowNode::loadImage(const int &index)
     }
   p.end();
 
-  next = img.toVideoBuffer(ar, SInterval::fromFrequency(frameRate));
-
-  if (index > 0)
-    fade = 256;
-  else
-    videoBuffer = current = next;
+  nextBuffer = img.toVideoBuffer(ar, SInterval::fromFrequency(frameRate));
+  nextBufferReady.release();
 }
 
-void SlideShowNode::computeVideoBuffer(void)
+void SlideShowNode::computeVideoBuffer(const SVideoBuffer &a, const SVideoBuffer &b, int fade)
 {
-  if (fade > 0)
+  SVideoBuffer videoBuffer;
+  if (fade <= 0)
+    videoBuffer = a;
+  else if (fade >= 255)
+    videoBuffer = b;
+  else
   {
-    fade -= 16;
-
-    if (fade > 0)
-    {
-      videoBuffer = SVideoBuffer(next.format());
-      LXiMediaCenter_SlideShowNode_blendImages(videoBuffer.data(),
-                                               next.data(),
-                                               current.data(),
-                                               videoBuffer.size(),
-                                               fade);
-    }
-    else
-      videoBuffer = current = next;
+    videoBuffer = SVideoBuffer(a.format());
+    LXiMediaCenter_SlideShowNode_blendImages(videoBuffer.data(),
+                                             a.data(),
+                                             b.data(),
+                                             videoBuffer.size(),
+                                             fade);
   }
 
   videoBuffer.setTimeStamp(time);

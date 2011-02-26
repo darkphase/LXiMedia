@@ -117,8 +117,6 @@ bool SDiscInputNode::playTitle(unsigned title)
 
 bool SDiscInputNode::start(void)
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
   if (!d->opened)
     playTitle(0);
 
@@ -127,8 +125,6 @@ bool SDiscInputNode::start(void)
 
 void SDiscInputNode::stop(void)
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
   if (d->bufferReader)
   {
     d->bufferReader->stop();
@@ -145,8 +141,6 @@ void SDiscInputNode::process(void)
 
 STime SDiscInputNode::duration(void) const
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
   if (d->discReader && d->bufferReader)
     return qMax(d->discReader->duration(), d->bufferReader->duration());
 
@@ -155,8 +149,6 @@ STime SDiscInputNode::duration(void) const
 
 bool SDiscInputNode::setPosition(STime pos)
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
   if (d->discReader)
   if (d->discReader->setPosition(pos))
   {
@@ -175,8 +167,6 @@ bool SDiscInputNode::setPosition(STime pos)
 
 STime SDiscInputNode::position(void) const
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
   if (d->bufferReader)
     return d->bufferReader->position();
 
@@ -185,8 +175,6 @@ STime SDiscInputNode::position(void) const
 
 QList<SDiscInputNode::Chapter> SDiscInputNode::chapters(void) const
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
   if (d->discReader && d->bufferReader)
   {
     QList<Chapter> chapters = d->bufferReader->chapters();
@@ -200,8 +188,6 @@ QList<SDiscInputNode::Chapter> SDiscInputNode::chapters(void) const
 
 QList<SDiscInputNode::AudioStreamInfo> SDiscInputNode::audioStreams(void) const
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
   if (d->discReader && d->bufferReader)
   {
     QList<AudioStreamInfo> audioStreams = d->bufferReader->audioStreams();
@@ -215,8 +201,6 @@ QList<SDiscInputNode::AudioStreamInfo> SDiscInputNode::audioStreams(void) const
 
 QList<SDiscInputNode::VideoStreamInfo> SDiscInputNode::videoStreams(void) const
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
   if (d->discReader && d->bufferReader)
   {
     QList<VideoStreamInfo> videoStreams = d->bufferReader->videoStreams();
@@ -230,8 +214,6 @@ QList<SDiscInputNode::VideoStreamInfo> SDiscInputNode::videoStreams(void) const
 
 QList<SDiscInputNode::DataStreamInfo> SDiscInputNode::dataStreams(void) const
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
   if (d->discReader && d->bufferReader)
   {
     QList<DataStreamInfo> dataStreams = d->bufferReader->dataStreams();
@@ -245,8 +227,6 @@ QList<SDiscInputNode::DataStreamInfo> SDiscInputNode::dataStreams(void) const
 
 void SDiscInputNode::selectStreams(const QList<StreamId> &streamIds)
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
   if (d->bufferReader)
     d->bufferReader->selectStreams(streamIds);
 }
@@ -268,8 +248,6 @@ void SDiscInputNode::produce(const SEncodedDataBuffer &buffer)
 
 void SDiscInputNode::processTask(void)
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
   if (d->bufferReader)
   {
     if (d->bufferReader->process())
