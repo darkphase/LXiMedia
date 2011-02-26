@@ -52,7 +52,7 @@ struct HttpOutputNode::Data
 
 HttpOutputNode::HttpOutputNode(SGraph *parent)
   : QObject(parent),
-    SInterfaces::SinkNode(parent),
+    SGraph::SinkNode(parent),
     d(new Data())
 {
   d->streamingSpeed = 0.0f;

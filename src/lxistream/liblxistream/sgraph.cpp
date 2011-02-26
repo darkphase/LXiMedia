@@ -29,20 +29,18 @@ struct SGraph::Private
 {
   inline Private(void) : mutex(QMutex::Recursive) { }
 
-  QVector<SInterfaces::Node *>       nodes;
-  QVector<SInterfaces::SourceNode *> sourceNodes;
-  QVector<SInterfaces::SinkNode *>   sinkNodes;
+  QVector<Node *>               nodes;
+  QVector<SourceNode *>         sourceNodes;
+  QVector<SinkNode *>           sinkNodes;
 
-  SThreadPool                 * threadPool;
   QThread                     * parentThread;
-  int                           processTimer;
   STimer                        timer;
+  int                           minTaskCount;
   bool                          started;
   bool                          stopping;
   bool                          stopped;
   int                           stopTimer;
   int                           stopCounter;
-  QAtomicInt                    taskCount;
 
   QMutex                        mutex;
   int                           priority;
@@ -58,15 +56,13 @@ SGraph::SGraph(void)
        :QThread(NULL),
         p(new Private())
 {
-  p->threadPool = SThreadPool::globalInstance();
   p->parentThread = QThread::thread();
-  p->processTimer = -1;
+  p->minTaskCount = QThread::idealThreadCount();
   p->started = false;
   p->stopping = false;
   p->stopped = true;
   p->stopTimer = -1;
   p->stopCounter = 0;
-  p->taskCount = 0;
   p->priority = 0;
 }
 
@@ -77,21 +73,6 @@ SGraph::~SGraph()
 
   delete p;
   *const_cast<Private **>(&p) = NULL;
-}
-
-void SGraph::addNode(SInterfaces::Node *node)
-{
-  p->nodes += node;
-}
-
-void SGraph::addNode(SInterfaces::SourceNode *node)
-{
-  p->sourceNodes += node;
-}
-
-void SGraph::addNode(SInterfaces::SinkNode *node)
-{
-  p->sinkNodes += node;
 }
 
 void SGraph::setPriority(Priority priority)
@@ -109,6 +90,21 @@ bool SGraph::isRunning(void) const
   return p->started;
 }
 
+void SGraph::addNode(Node *node)
+{
+  p->nodes += node;
+}
+
+void SGraph::addNode(SourceNode *node)
+{
+  p->sourceNodes += node;
+}
+
+void SGraph::addNode(SinkNode *node)
+{
+  p->sinkNodes += node;
+}
+
 bool SGraph::start(void)
 {
   if (!p->started)
@@ -117,33 +113,33 @@ bool SGraph::start(void)
     p->stopped = false;
     p->timer.reset();
 
-    QVector<SInterfaces::SourceNode *> startedSources;
-    QVector<SInterfaces::SinkNode *> startedSinks;
+    QVector<SourceNode *> startedSources;
+    QVector<SinkNode *> startedSinks;
 
-    foreach (SInterfaces::SourceNode *source, p->sourceNodes)
+    foreach (SourceNode *source, p->sourceNodes)
     if (source->start())
     {
       startedSources += source;
     }
     else
     {
-      foreach (SInterfaces::SourceNode *source, startedSources)
+      foreach (SourceNode *source, startedSources)
         source->stop();
 
       return false;
     }
 
-    foreach (SInterfaces::SinkNode *sink, p->sinkNodes)
+    foreach (SinkNode *sink, p->sinkNodes)
     if (sink->start(&(p->timer)))
     {
       startedSinks += sink;
     }
     else
     {
-      foreach (SInterfaces::SourceNode *source, startedSources)
+      foreach (SourceNode *source, startedSources)
         source->stop();
 
-      foreach (SInterfaces::SinkNode *sink, startedSinks)
+      foreach (SinkNode *sink, startedSinks)
         sink->stop();
 
       return false;
@@ -169,50 +165,12 @@ void SGraph::stop(void)
     p->stopping = true;
 
   if (p->stopping && (QThread::currentThread() != this))
-  {
-    if (QThread::currentThread() == p->threadPool->thread())
-    {
-      // Let the threadpool handle schedule events while waiting for it.
-      while (!QThread::wait(100))
-        QCoreApplication::sendPostedEvents(p->threadPool, 0);
-    }
-    else
-      QThread::wait();
-  }
+    QThread::wait();
 }
 
-void SGraph::start(SRunnable *runnable, int priority)
+void SGraph::queueSchedule(Dependency *depends)
 {
-  class Runnable : public SRunnable
-  {
-  public:
-    Runnable(SRunnable *parent, SGraph *graph)
-      : SRunnable(parent), parent(parent), graph(graph)
-    {
-      graph->p->taskCount.ref();
-    }
-
-    virtual ~Runnable()
-    {
-      graph->p->taskCount.deref();
-      delete parent;
-
-      QCoreApplication::postEvent(graph, new QEvent(graph->p->scheduleSourceEventType), INT_MIN);
-    }
-
-  protected:
-    virtual void run(SThreadPool *pool)
-    {
-      parent->run(pool);
-    }
-
-  private:
-    SRunnable             * const parent;
-    SGraph                * const graph;
-  };
-
-  if (p->started && !p->stopping)
-    p->threadPool->start(new Runnable(runnable, this), priority == 0 ? p->priority : priority);
+  QCoreApplication::postEvent(this, new ScheduleEvent(depends));
 }
 
 void SGraph::run(void)
@@ -221,10 +179,10 @@ void SGraph::run(void)
 
   QThread::exec();
 
-  foreach (SInterfaces::SourceNode *source, p->sourceNodes)
+  foreach (SourceNode *source, p->sourceNodes)
     source->stop();
 
-  foreach (SInterfaces::SinkNode *sink, p->sinkNodes)
+  foreach (SinkNode *sink, p->sinkNodes)
     sink->stop();
 
   p->stopped = true;
@@ -237,7 +195,14 @@ void SGraph::run(void)
 
 void SGraph::customEvent(QEvent *e)
 {
-  if (e->type() == p->scheduleSourceEventType)
+  if (e->type() == scheduleEventType)
+  {
+    schedule(static_cast<ScheduleEvent *>(e)->depends);
+
+    if (numTasksQueued() < p->minTaskCount)
+      QCoreApplication::postEvent(this, new QEvent(p->scheduleSourceEventType), INT_MIN);
+  }
+  else if (e->type() == p->scheduleSourceEventType)
   {
     SDebug::MutexLocker l(&(p->mutex), __FILE__, __LINE__);
 
@@ -245,18 +210,18 @@ void SGraph::customEvent(QEvent *e)
     {
       if (!p->stopping)
       {
-        if (p->taskCount < 3)
+        if (numTasksQueued() < p->minTaskCount)
         {
           l.unlock();
 
-          foreach (SInterfaces::SourceNode *source, p->sourceNodes)
+          foreach (SourceNode *source, p->sourceNodes)
             source->process();
 
           QCoreApplication::postEvent(this, new QEvent(p->scheduleSourceEventType), INT_MIN);
           return;
         }
       }
-      else if (p->taskCount == 0) // Graph is stopping and no more tasks queued
+      else if (numTasksQueued() == 0) // Graph is stopping and no more tasks queued
       {
         if (p->stopTimer == -1)
         {
@@ -287,6 +252,43 @@ void SGraph::timerEvent(QTimerEvent *e)
   }
   else
     QThread::timerEvent(e);
+}
+
+
+SGraph::Node::Node(SGraph *graph)
+  : SScheduler::Proxy(graph)
+{
+  if (graph)
+    graph->addNode(this);
+}
+
+SGraph::Node::~Node()
+{
+}
+
+
+SGraph::SinkNode::SinkNode(SGraph *graph)
+  : SScheduler::Proxy(graph)
+{
+  if (graph)
+    graph->addNode(this);
+}
+
+SGraph::SinkNode::~SinkNode()
+{
+}
+
+
+SGraph::SourceNode::SourceNode(SGraph *graph)
+  : SScheduler::Proxy(graph),
+    mutex(QMutex::Recursive)
+{
+  if (graph)
+    graph->addNode(this);
+}
+
+SGraph::SourceNode::~SourceNode()
+{
 }
 
 } // End of namespace

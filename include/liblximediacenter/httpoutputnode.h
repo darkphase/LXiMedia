@@ -29,7 +29,7 @@ namespace LXiMediaCenter {
 /*! This is a generic output node, writing to a QIODevice.
  */
 class HttpOutputNode : public QObject,
-                       public SInterfaces::SinkNode,
+                       public SGraph::SinkNode,
                        private SInterfaces::BufferWriter::WriteCallback
 {
 Q_OBJECT

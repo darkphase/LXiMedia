@@ -18,14 +18,13 @@
  ***************************************************************************/
 
 #include "nodes/svideoresizenode.h"
-#include "sgraph.h"
 #include "svideobuffer.h"
 
 namespace LXiStream {
 
 struct SVideoResizeNode::Data
 {
-  SDependency                 * dependency;
+  SScheduler::Dependency      * dependency;
   QString                       algo;
   SInterfaces::VideoResizer   * resizer;
   SInterfaces::VideoResizer   * lanczosResizer;
@@ -33,10 +32,10 @@ struct SVideoResizeNode::Data
 
 SVideoResizeNode::SVideoResizeNode(SGraph *parent, const QString &algo)
   : QObject(parent),
-    SInterfaces::Node(parent),
+    SGraph::Node(parent),
     d(new Data())
 {
-  d->dependency = parent ? new SDependency() : NULL;
+  d->dependency = parent ? new SScheduler::Dependency(parent) : NULL;
   d->algo = algo;
   d->lanczosResizer = NULL;
 
@@ -131,10 +130,7 @@ void SVideoResizeNode::input(const SVideoBuffer &videoBuffer)
       resizer = d->lanczosResizer;
     }
 
-    if (graph)
-      graph->queue(this, &SVideoResizeNode::processTask, videoBuffer, resizer, d->dependency);
-    else
-      processTask(videoBuffer, resizer);
+    schedule(&SVideoResizeNode::processTask, videoBuffer, resizer, d->dependency);
   }
   else
     emit output(videoBuffer);

@@ -104,11 +104,11 @@ Backend::~Backend()
 
   qDebug() << "LXiMediaCenter backend stopped.";
 
-  // Shutdown LXiStream
-  delete streamApp;
-
   // Close database
   Database::shutdown();
+
+  // Shutdown LXiStream
+  delete streamApp;
 }
 
 void Backend::start(void)
@@ -245,7 +245,7 @@ Backend::SearchCacheEntry Backend::search(const QString &query) const
   timer.start();
 
   // Start parallel searches
-  class Query : public SRunnable
+  class Query : public QRunnable
   {
   public:
     inline Query(const BackendServer *backendServer, const QStringList &query)
@@ -255,7 +255,7 @@ Backend::SearchCacheEntry Backend::search(const QString &query) const
       setAutoDelete(false);
     }
 
-    virtual void run(SThreadPool *)
+    virtual void run(void)
     {
       result = backendServer->search(query);
       finished.release(1);
@@ -269,17 +269,17 @@ Backend::SearchCacheEntry Backend::search(const QString &query) const
     QSemaphore finished;
   };
 
-  QList<SRunnable *> tasks;
+  QList<QRunnable *> tasks;
   foreach (const BackendServer *backendServer, backendServers)
   {
-    SRunnable * const q = new Query(backendServer, queryRaw);
-    SThreadPool::globalInstance()->start(q, 1); // High priority since these need to be responsive.
+    QRunnable * const q = new Query(backendServer, queryRaw);
+    QThreadPool::globalInstance()->start(q, 1); // High priority since these need to be responsive.
     tasks += q;
   }
 
   // Gather all results, this will block until the tasks are ready.
   SearchCacheEntry entry;
-  foreach (SRunnable *r, tasks)
+  foreach (QRunnable *r, tasks)
   {
     Query * const q = static_cast<Query *>(r);
     q->finished.acquire(1);

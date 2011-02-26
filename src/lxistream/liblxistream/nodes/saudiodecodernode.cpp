@@ -19,13 +19,12 @@
 
 #include "nodes/saudiodecodernode.h"
 #include "saudiobuffer.h"
-#include "sgraph.h"
 
 namespace LXiStream {
 
 struct SAudioDecoderNode::Data
 {
-  SDependency                 * dependency;
+  SScheduler::Dependency      * dependency;
   SAudioDecoderNode::Flags      flags;
   SAudioCodec                   lastCodec;
   SInterfaces::AudioDecoder   * decoder;
@@ -33,10 +32,10 @@ struct SAudioDecoderNode::Data
 
 SAudioDecoderNode::SAudioDecoderNode(SGraph *parent, Flags flags)
   : QObject(parent),
-    SInterfaces::Node(parent),
+    SGraph::Node(parent),
     d(new Data())
 {
-  d->dependency = parent ? new SDependency() : NULL;
+  d->dependency = parent ? new SScheduler::Dependency(parent) : NULL;
   d->flags = flags;
   d->decoder = NULL;
 }
@@ -78,10 +77,7 @@ void SAudioDecoderNode::input(const SEncodedAudioBuffer &audioBuffer)
       qWarning() << "Failed to find audio decoder for codec" << d->lastCodec.codec();
   }
 
-  if (graph)
-    graph->queue(this, &SAudioDecoderNode::processTask, audioBuffer, d->decoder, d->dependency);
-  else
-    processTask(audioBuffer, d->decoder);
+  schedule(&SAudioDecoderNode::processTask, audioBuffer, d->decoder, d->dependency);
 }
 
 void SAudioDecoderNode::processTask(const SEncodedAudioBuffer &audioBuffer, SInterfaces::AudioDecoder *decoder)

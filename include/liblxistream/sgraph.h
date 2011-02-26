@@ -21,16 +21,14 @@
 #define LXSTREAM_SGRAPH_H
 
 #include <QtCore>
-#include "sinterfaces.h"
-#include "sthreadpool.h"
+#include "sscheduler.h"
 
 namespace LXiStream {
 
 class SGraph : public QThread,
-               public SFunctionRunner
+               public SScheduler
 {
 Q_OBJECT
-Q_DISABLE_COPY(SGraph)
 public:
   enum Priority
   {
@@ -43,25 +41,62 @@ public:
     Priority_TimeCritical     = INT_MAX
   };
 
+  /*! The Node abstract class is used for processing nodes.
+   */
+  class Node : public SScheduler::Proxy
+  {
+  public:
+    explicit                      Node(SGraph *);
+    virtual                       ~Node();
+  };
+
+  /*! The SinkNode abstract class is used for sink nodes.
+   */
+  class SinkNode : public SScheduler::Proxy
+  {
+  public:
+    explicit                      SinkNode(SGraph *);
+    virtual                       ~SinkNode();
+
+    virtual bool                  start(STimer *) = 0;
+    virtual void                  stop(void) = 0;
+  };
+
+  /*! The SourceNode abstract class is used for source nodes.
+   */
+  class SourceNode : public SScheduler::Proxy
+  {
+  public:
+    explicit                      SourceNode(SGraph *);
+    virtual                       ~SourceNode();
+
+    virtual bool                  start(void) = 0;
+    virtual void                  stop(void) = 0;
+    virtual void                  process(void) = 0;
+
+  protected:
+    mutable QMutex                mutex;
+  };
+
 public:
   explicit                      SGraph(void);
   virtual                       ~SGraph();
-
-  void                          addNode(SInterfaces::Node *);
-  void                          addNode(SInterfaces::SourceNode *);
-  void                          addNode(SInterfaces::SinkNode *);
 
   void                          setPriority(Priority);
   Priority                      priority(void) const;
 
   bool                          isRunning(void) const;
 
+  void                          addNode(Node *);
+  void                          addNode(SourceNode *);
+  void                          addNode(SinkNode *);
+
 public slots:
   virtual bool                  start(void);
   virtual void                  stop(void);
 
-protected: // From SFunctionRunner
-  virtual void                  start(SRunnable *runnable, int priority = 0);
+protected: // From SScheduler
+  virtual void                  queueSchedule(Dependency *);
 
 protected: // From QThread and QObject
   virtual void                  run(void);
@@ -74,5 +109,9 @@ private:
 };
 
 } // End of namespace
+
+Q_DECLARE_INTERFACE(LXiStream::SGraph::Node, "nl.dds.admiraal.www.LXiStream.SGraph.Node/1.0")
+Q_DECLARE_INTERFACE(LXiStream::SGraph::SinkNode, "nl.dds.admiraal.www.LXiStream.SGraph.SinkNode/1.0")
+Q_DECLARE_INTERFACE(LXiStream::SGraph::SourceNode, "nl.dds.admiraal.www.LXiStream.SGraph.SourceNode/1.0")
 
 #endif

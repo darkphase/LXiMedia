@@ -26,7 +26,7 @@
 namespace LXiMediaCenter {
 
 class SlideShowNode : public QObject,
-                      public SInterfaces::SourceNode
+                      public SGraph::SourceNode
 {
 Q_OBJECT
 public:
@@ -61,18 +61,15 @@ public:
 private:
   const QStringList             pictures;
 
-  SDependency                   mutex;
+  SScheduler::Dependency * const dependency;
   SSize                         outSize;
   SAudioBuffer                  audioBuffer;
   SVideoBuffer                  videoBuffer;
   STime                         time;
   int                           currentPicture;
   SVideoBuffer                  current;
-  STime                         nextTime;
   SVideoBuffer                  next;
   int                           fade;
-
-  QFuture<SVideoBuffer>         loadFuture;
 };
 
 } // End of namespace

@@ -19,7 +19,6 @@
 
 #include "nodes/stimestampresamplernode.h"
 #include "saudiobuffer.h"
-#include "sgraph.h"
 #include "svideobuffer.h"
 
 namespace LXiStream {
@@ -34,7 +33,7 @@ struct STimeStampResamplerNode::Data
 
 STimeStampResamplerNode::STimeStampResamplerNode(SGraph *parent)
   : QObject(parent),
-    SInterfaces::Node(parent),
+    SGraph::Node(parent),
     d(new Data())
 {
   d->maxRatio = 0.0;

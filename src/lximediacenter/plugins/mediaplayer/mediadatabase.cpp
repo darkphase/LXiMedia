@@ -39,12 +39,11 @@ const MediaDatabase::CatecoryDesc MediaDatabase::categories[] =
 MediaDatabase::MediaDatabase(Plugin *plugin, ImdbClient *imdbClient)
   : QObject(plugin),
     plugin(plugin),
-    imdbClient(imdbClient),
-    threadPool(SThreadPool::globalInstance())
+    imdbClient(imdbClient)
 {
   PluginSettings settings(plugin);
 
-  SDebug::MutexLocker dl(Database::mutex(), __FILE__, __LINE__);
+  SDebug::_MutexLocker<SScheduler::Dependency> dl(Database::mutex(), __FILE__, __LINE__);
   QSqlDatabase db = Database::database();
   QSqlQuery query(db);
 
@@ -147,12 +146,12 @@ MediaDatabase::MediaDatabase(Plugin *plugin, ImdbClient *imdbClient)
 
 MediaDatabase::~MediaDatabase()
 {
-  threadPool->waitForDone();
+  sApp->waitForDone();
 }
 
 MediaDatabase::UniqueID MediaDatabase::fromPath(const QString &path) const
 {
-  SDebug::MutexLocker dl(Database::mutex(), __FILE__, __LINE__);
+  SDebug::_MutexLocker<SScheduler::Dependency> dl(Database::mutex(), __FILE__, __LINE__);
 
   QSqlQuery query(Database::database());
   query.prepare("SELECT uid FROM MediaplayerFiles WHERE path = :path");
@@ -166,7 +165,7 @@ MediaDatabase::UniqueID MediaDatabase::fromPath(const QString &path) const
 
 SMediaInfo MediaDatabase::readNode(UniqueID uid) const
 {
-  SDebug::MutexLocker dl(Database::mutex(), __FILE__, __LINE__);
+  SDebug::_MutexLocker<SScheduler::Dependency> dl(Database::mutex(), __FILE__, __LINE__);
   const QByteArray value = readNodeData(uid);
   dl.unlock();
 
@@ -203,7 +202,7 @@ void MediaDatabase::setLastPlayed(const QString &filePath, const QDateTime &last
 {
   if (!filePath.isEmpty())
   {
-    SDebug::MutexLocker l(Database::mutex(), __FILE__, __LINE__);
+    SDebug::_MutexLocker<SScheduler::Dependency> l(Database::mutex(), __FILE__, __LINE__);
 
     QSettings settings(GlobalSettings::applicationDataDir() + "/lastplayed.db", QSettings::IniFormat);
 
@@ -245,7 +244,7 @@ QDateTime MediaDatabase::lastPlayed(const QString &filePath) const
 
 QStringList MediaDatabase::allAlbums(Category category) const
 {
-  SDebug::MutexLocker dl(Database::mutex(), __FILE__, __LINE__);
+  SDebug::_MutexLocker<SScheduler::Dependency> dl(Database::mutex(), __FILE__, __LINE__);
 
   QStringList result;
 
@@ -263,7 +262,7 @@ QStringList MediaDatabase::allAlbums(Category category) const
 
 int MediaDatabase::countAlbumFiles(Category category, const QString &album) const
 {
-  SDebug::MutexLocker dl(Database::mutex(), __FILE__, __LINE__);
+  SDebug::_MutexLocker<SScheduler::Dependency> dl(Database::mutex(), __FILE__, __LINE__);
 
   QSqlQuery query(Database::database());
   query.prepare("SELECT COUNT(*) FROM MediaplayerItems "
@@ -281,7 +280,7 @@ int MediaDatabase::countAlbumFiles(Category category, const QString &album) cons
 
 bool MediaDatabase::hasAlbum(Category category, const QString &album) const
 {
-  SDebug::MutexLocker dl(Database::mutex(), __FILE__, __LINE__);
+  SDebug::_MutexLocker<SScheduler::Dependency> dl(Database::mutex(), __FILE__, __LINE__);
 
   QSqlQuery query(Database::database());
   query.prepare("SELECT COUNT(*) FROM MediaplayerAlbums "
@@ -297,7 +296,7 @@ bool MediaDatabase::hasAlbum(Category category, const QString &album) const
 
 QList<MediaDatabase::File> MediaDatabase::getAlbumFiles(Category category, const QString &album, unsigned start, unsigned count) const
 {
-  SDebug::MutexLocker dl(Database::mutex(), __FILE__, __LINE__);
+  SDebug::_MutexLocker<SScheduler::Dependency> dl(Database::mutex(), __FILE__, __LINE__);
 
   QString limit;
   if (count > 0)
@@ -349,7 +348,7 @@ QList<MediaDatabase::File> MediaDatabase::queryAlbums(Category category, const Q
 
   if (!qs1.isEmpty() && !qs2.isEmpty())
   {
-    SDebug::MutexLocker dl(Database::mutex(), __FILE__, __LINE__);
+    SDebug::_MutexLocker<SScheduler::Dependency> dl(Database::mutex(), __FILE__, __LINE__);
 
     QSqlQuery query(Database::database());
     query.prepare("SELECT file, title FROM MediaplayerItems "
@@ -371,7 +370,7 @@ ImdbClient::Entry MediaDatabase::getImdbEntry(UniqueID uid) const
 {
   if (imdbClient)
   {
-    SDebug::MutexLocker dl(Database::mutex(), __FILE__, __LINE__);
+    SDebug::_MutexLocker<SScheduler::Dependency> dl(Database::mutex(), __FILE__, __LINE__);
 
     QSqlQuery query(Database::database());
     query.prepare("SELECT imdbLink FROM MediaplayerItems WHERE file = :file");
@@ -423,9 +422,9 @@ void MediaDatabase::scanRoots(void)
   }
 
   // Only start scan if no threads active with other things.
-  if (threadPool->activeThreadCount() == 0)
+  if (sApp->activeThreadCount() == 0)
   {
-    SDebug::MutexLocker dl(Database::mutex(), __FILE__, __LINE__);
+    SDebug::_MutexLocker<SScheduler::Dependency> dl(Database::mutex(), __FILE__, __LINE__);
 
     QSqlDatabase db = Database::database();
     db.transaction();
@@ -433,7 +432,7 @@ void MediaDatabase::scanRoots(void)
 
     // Scan all root paths recursively
     foreach (const QString &path, allRootPaths)
-      threadPool->queue(this, &MediaDatabase::scanDir, path, Database::mutex(), scanDirPriority);
+      sApp->schedule(this, &MediaDatabase::scanDir, path, Database::mutex(), scanDirPriority);
 
     // Find roots that are no longer roots and remove them
     query.exec("SELECT path FROM MediaplayerFiles WHERE parentDir ISNULL");
@@ -452,7 +451,7 @@ void MediaDatabase::scanRoots(void)
     // Find files that were not probed yet.
     query.exec("SELECT path FROM MediaplayerFiles WHERE size < 0");
     while (query.next())
-      threadPool->queue(this, &MediaDatabase::probeFile, query.value(0).toString(), NULL, probeFilePriority);
+      sApp->schedule(this, &MediaDatabase::probeFile, query.value(0).toString(), NULL, probeFilePriority);
 
     // Find IMDB items that still need to be matched.
     if (imdbClient)
@@ -466,7 +465,7 @@ void MediaDatabase::scanRoots(void)
       query.bindValue(0, Category_Movies);
       query.exec();
       while (query.next())
-        threadPool->queue(this, &MediaDatabase::queryImdbItem, query.value(0).toString(), Category_Movies, Database::mutex(), matchImdbItemPriority);
+        sApp->schedule(this, &MediaDatabase::queryImdbItem, query.value(0).toString(), Category_Movies, Database::mutex(), matchImdbItemPriority);
 
 //      query.prepare("SELECT title FROM MediaplayerItems "
 //                    "WHERE album IN ("
@@ -476,7 +475,7 @@ void MediaDatabase::scanRoots(void)
 //      query.bindValue(0, Category_TVShows);
 //      query.exec();
 //      while (query.next())
-//        threadPool->run(this, &MediaDatabase::queryImdbItem, query.value(0).toString(), Category_TVShows, Database::mutex(), matchImdbItemPriority);
+//        sApp->run(this, &MediaDatabase::queryImdbItem, query.value(0).toString(), Category_TVShows, Database::mutex(), matchImdbItemPriority);
     }
 
     db.commit();
@@ -583,7 +582,7 @@ void MediaDatabase::scanDir(const QString &_path)
       {
         foreach (const QFileInfo &child, dir.entryInfoList(QDir::Dirs))
         if (!child.fileName().startsWith('.'))
-          threadPool->queue(this, &MediaDatabase::scanDir, child.absoluteFilePath(), Database::mutex(), scanDirPriority);
+          sApp->schedule(this, &MediaDatabase::scanDir, child.absoluteFilePath(), Database::mutex(), scanDirPriority);
       }
     }
     else if (info.isDir())
@@ -600,7 +599,7 @@ void MediaDatabase::scanDir(const QString &_path)
       q.insert.exec();
 
       // Scan again.
-      threadPool->queue(this, &MediaDatabase::scanDir, path, Database::mutex(), scanDirPriority);
+      sApp->schedule(this, &MediaDatabase::scanDir, path, Database::mutex(), scanDirPriority);
     }
 
     db.commit();
@@ -645,7 +644,7 @@ void MediaDatabase::updateDir(const QString &path, qint64 parentDir, QuerySet &q
       q.insert.exec();
     }
 
-    threadPool->queue(this, &MediaDatabase::scanDir, childPath, Database::mutex(), scanDirPriority);
+    sApp->schedule(this, &MediaDatabase::scanDir, childPath, Database::mutex(), scanDirPriority);
   }
 
   // Update existing and add new files.
@@ -680,7 +679,7 @@ void MediaDatabase::updateDir(const QString &path, qint64 parentDir, QuerySet &q
       q.insert.bindValue(5, QVariant(QVariant::ByteArray));
       q.insert.exec();
 
-      threadPool->queue(this, &MediaDatabase::probeFile, childPath, NULL, probeFilePriority);
+      sApp->schedule(this, &MediaDatabase::probeFile, childPath, NULL, probeFilePriority);
     }
     else if ((child.size() != q.request.value(2).toLongLong()) ||
              (child.lastModified() > q.request.value(3).toDateTime().addSecs(2)))
@@ -694,7 +693,7 @@ void MediaDatabase::updateDir(const QString &path, qint64 parentDir, QuerySet &q
       q.update.bindValue(3, childPath);
       q.update.exec();
 
-      threadPool->queue(this, &MediaDatabase::probeFile, childPath, NULL, probeFilePriority);
+      sApp->schedule(this, &MediaDatabase::probeFile, childPath, NULL, probeFilePriority);
     }
   }
 
@@ -744,10 +743,10 @@ void MediaDatabase::probeFile(const QString &_path)
       const SMediaInfo mediaInfo(path);
       const QByteArray mediaInfoXml = mediaInfo.toByteArray(-1);
 
-      threadPool->queue(this, &MediaDatabase::insertFile, mediaInfo, mediaInfoXml, Database::mutex(), probeFilePriority + 1);
+      sApp->schedule(this, &MediaDatabase::insertFile, mediaInfo, mediaInfoXml, Database::mutex(), probeFilePriority + 1);
     }
     else
-      threadPool->queue(this, &MediaDatabase::delayFile, path, Database::mutex(), probeFilePriority + 1);
+      sApp->schedule(this, &MediaDatabase::delayFile, path, Database::mutex(), probeFilePriority + 1);
   }
 
 #ifndef Q_OS_WIN
@@ -847,7 +846,7 @@ void MediaDatabase::insertFile(const SMediaInfo &mediaInfo, const QByteArray &me
           query.exec();
 
           if (i.key() == Category_Movies)
-            threadPool->queue(this, &MediaDatabase::queryImdbItem, rawTitle, i.key(), Database::mutex(), matchImdbItemPriority);
+            sApp->schedule(this, &MediaDatabase::queryImdbItem, rawTitle, i.key(), Database::mutex(), matchImdbItemPriority);
         }
       }
     }
@@ -923,7 +922,7 @@ void MediaDatabase::queryImdbItem(const QString &item, Category category)
         {
           const QStringList similar = imdbClient->findSimilar(node.title(), imdbType);
           if (!similar.isEmpty())
-            threadPool->queue(this, &MediaDatabase::matchImdbItem, item, node.title(), similar, category, NULL, matchImdbItemPriority + 1);
+            sApp->schedule(this, &MediaDatabase::matchImdbItem, item, node.title(), similar, category, NULL, matchImdbItemPriority + 1);
         }
       }
     }
@@ -934,7 +933,7 @@ void MediaDatabase::matchImdbItem(const QString &item, const QString &title, con
 {
   const QString imdbLink = imdbClient->findBest(title, similar);
 
-  threadPool->queue(this, &MediaDatabase::storeImdbItem, item, imdbLink, category, Database::mutex(), matchImdbItemPriority + 1);
+  sApp->schedule(this, &MediaDatabase::storeImdbItem, item, imdbLink, category, Database::mutex(), matchImdbItemPriority + 1);
 }
 
 void MediaDatabase::storeImdbItem(const QString &item, const QString &imdbLink, Category category)

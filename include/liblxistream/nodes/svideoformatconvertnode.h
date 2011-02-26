@@ -21,7 +21,8 @@
 #define LXISTREAM_SVIDEOFORMATCONVERTNODE_H
 
 #include <QtCore>
-#include "../sinterfaces.h"
+#include "../sgraph.h"
+#include "../svideobuffer.h"
 
 namespace LXiStream {
 
@@ -29,7 +30,7 @@ class SVideoBuffer;
 
 
 class SVideoFormatConvertNode : public QObject,
-                                public SInterfaces::Node
+                                public SGraph::Node
 {
 Q_OBJECT
 public:

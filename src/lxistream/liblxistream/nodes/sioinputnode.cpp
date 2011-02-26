@@ -19,13 +19,12 @@
 
 #include "nodes/sioinputnode.h"
 #include "sdebug.h"
-#include "sgraph.h"
 
 namespace LXiStream {
 
 struct SIOInputNode::Data
 {
-  SDependency                 * dependency;
+  SScheduler::Dependency      * dependency;
   QIODevice                   * ioDevice;
   bool                          opened;
   SInterfaces::BufferReader   * bufferReader;
@@ -33,10 +32,10 @@ struct SIOInputNode::Data
 
 SIOInputNode::SIOInputNode(SGraph *parent, QIODevice *ioDevice)
   : QObject(parent),
-    SInterfaces::SourceNode(parent),
+    SGraph::SourceNode(parent),
     d(new Data())
 {
-  d->dependency = parent ? new SDependency() : NULL;
+  d->dependency = parent ? new SScheduler::Dependency(parent) : NULL;
   d->ioDevice = ioDevice;
   d->opened = false;
   d->bufferReader = NULL;
@@ -120,10 +119,7 @@ void SIOInputNode::stop(void)
 
 void SIOInputNode::process(void)
 {
-  if (graph)
-    graph->queue(this, &SIOInputNode::processTask, d->dependency);
-  else
-    processTask();
+  schedule(&SIOInputNode::processTask, d->dependency);
 }
 
 qint64 SIOInputNode::read(uchar *buffer, qint64 size)

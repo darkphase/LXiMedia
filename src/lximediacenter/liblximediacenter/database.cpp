@@ -24,7 +24,7 @@ namespace LXiMediaCenter {
 
 void Database::initialize(void)
 {
-  SDebug::MutexLocker l(mutex(), __FILE__, __LINE__);
+  SDebug::_MutexLocker<SScheduler::Dependency> l(mutex(), __FILE__, __LINE__);
 
   database() = QSqlDatabase::addDatabase("QSQLITE", "LXiMediaCenter");
   database().setDatabaseName(GlobalSettings::databaseFile());
@@ -54,16 +54,16 @@ void Database::initialize(void)
 
 void Database::shutdown(void)
 {
-  SDebug::MutexLocker l(mutex(), __FILE__, __LINE__);
+  SDebug::_MutexLocker<SScheduler::Dependency> l(mutex(), __FILE__, __LINE__);
 
   database().close();
   database() = QSqlDatabase();
   QSqlDatabase::removeDatabase("LXiMediaCenter");
 }
 
-SDependency * Database::mutex(void)
+SScheduler::Dependency * Database::mutex(void)
 {
-  static SDependency m;
+  static SScheduler::Dependency m(sApp);
 
   return &m;
 }

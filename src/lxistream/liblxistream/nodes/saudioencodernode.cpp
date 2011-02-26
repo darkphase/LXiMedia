@@ -19,22 +19,21 @@
 
 #include "nodes/saudioencodernode.h"
 #include "saudiobuffer.h"
-#include "sgraph.h"
 
 namespace LXiStream {
 
 struct SAudioEncoderNode::Data
 {
-  SDependency                 * dependency;
+  SScheduler::Dependency      * dependency;
   SInterfaces::AudioEncoder   * encoder;
 };
 
 SAudioEncoderNode::SAudioEncoderNode(SGraph *parent)
   : QObject(parent),
-    SInterfaces::Node(parent),
+    SGraph::Node(parent),
     d(new Data())
 {
-  d->dependency = parent ? new SDependency() : NULL;
+  d->dependency = parent ? new SScheduler::Dependency(parent) : NULL;
   d->encoder = NULL;
 }
 
@@ -70,12 +69,7 @@ SAudioCodec SAudioEncoderNode::codec(void) const
 void SAudioEncoderNode::input(const SAudioBuffer &audioBuffer)
 {
   if (d->encoder)
-  {
-    if (graph)
-      graph->queue(this, &SAudioEncoderNode::processTask, audioBuffer, d->dependency);
-    else
-      processTask(audioBuffer);
-  }
+    schedule(&SAudioEncoderNode::processTask, audioBuffer, d->dependency);
 }
 
 void SAudioEncoderNode::processTask(const SAudioBuffer &audioBuffer)

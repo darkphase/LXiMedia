@@ -21,12 +21,13 @@
 #define LXSTREAM_SVIDEOENCODERNODE_H
 
 #include <QtCore>
+#include "../sgraph.h"
 #include "../sinterfaces.h"
 
 namespace LXiStream {
 
 class SVideoEncoderNode : public QObject,
-                          public SInterfaces::Node
+                          public SGraph::Node
 {
 Q_OBJECT
 public:

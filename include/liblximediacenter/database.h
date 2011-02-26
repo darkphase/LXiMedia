@@ -32,7 +32,7 @@ public:
   static void                   initialize(void);
   static void                   shutdown(void);
 
-  static SDependency          * mutex(void);
+  static SScheduler::Dependency * mutex(void);
   static QSqlDatabase         & database(void) __attribute__((pure));
 
   static void                   handleError(const ::QSqlQuery &, const QString & = QString::null);

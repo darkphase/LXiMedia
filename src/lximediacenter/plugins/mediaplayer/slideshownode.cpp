@@ -30,19 +30,19 @@ namespace LXiMediaCenter {
 
 SlideShowNode::SlideShowNode(SGraph *parent, const QStringList &pictures)
   : QObject(parent),
-    SInterfaces::SourceNode(parent),
+    SGraph::SourceNode(parent),
     pictures(pictures),
+    dependency(parent ? new SScheduler::Dependency(parent) : NULL),
     outSize(768, 576),
     time(STime::null),
     currentPicture(-1),
-    nextTime(STime::null),
     fade(0)
 {
 }
 
 SlideShowNode::~SlideShowNode()
 {
-  loadFuture.waitForFinished();
+  delete dependency;
 }
 
 SSize SlideShowNode::size(void) const
@@ -76,7 +76,6 @@ bool SlideShowNode::start(void)
   // Create a black video buffer
   videoBuffer = current = next = blackBuffer();
 
-  nextTime = time;
   currentPicture = 0;
 
   return true;
@@ -94,31 +93,17 @@ void SlideShowNode::process(void)
 {
   if (currentPicture == 0)
   {
-    if (graph)
-      graph->queue(this, &SlideShowNode::loadImage, currentPicture++, &mutex);
-    else
-      loadImage(currentPicture++);
+    schedule(&SlideShowNode::loadImage, currentPicture++, dependency);
   }
   else if (currentPicture <= pictures.count()) // <= because last picture is black.
   {
     for (int i=0; i<slideFrameCount; i++)
-    if (graph)
-      graph->queue(this, &SlideShowNode::computeVideoBuffer, &mutex);
-    else
-      computeVideoBuffer();
+      schedule(&SlideShowNode::computeVideoBuffer, dependency);
 
-    if (graph)
-      graph->queue(this, &SlideShowNode::loadImage, currentPicture++, &mutex);
-    else
-      loadImage(currentPicture++);
+    schedule(&SlideShowNode::loadImage, currentPicture++, dependency);
   }
   else
-  {
-    if (graph)
-      graph->queue(this, &SlideShowNode::sendFlush, &mutex);
-    else
-      sendFlush();
-  }
+    schedule(&SlideShowNode::sendFlush, dependency);
 }
 
 void SlideShowNode::loadImage(const int &index)

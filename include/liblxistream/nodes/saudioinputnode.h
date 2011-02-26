@@ -21,7 +21,8 @@
 #define LXISTREAM_SAUDIOINPUTNODE_H
 
 #include <QtCore>
-#include "../sinterfaces.h"
+#include "../saudiobuffer.h"
+#include "../sgraph.h"
 
 namespace LXiStream {
 
@@ -29,7 +30,7 @@ namespace LXiStream {
     from an audio device such as a audio capture card.
  */
 class SAudioInputNode : public QObject,
-                        public SInterfaces::SourceNode
+                        public SGraph::SourceNode
 {
 Q_OBJECT
 public:

@@ -19,7 +19,6 @@
 
 #include "nodes/ssubtitlerendernode.h"
 #include "sdebug.h"
-#include "sgraph.h"
 #include "ssubtitlebuffer.h"
 #include "svideobuffer.h"
 
@@ -68,7 +67,7 @@ SSubtitleRenderNode::FontLoader SSubtitleRenderNode::fontLoader;
 
 struct SSubtitleRenderNode::Data
 {
-  SDependency                 * dependency;
+  SScheduler::Dependency      * dependency;
   QMutex                        mutex;
   unsigned                      ratio;
   volatile bool                 enabled;
@@ -81,13 +80,13 @@ struct SSubtitleRenderNode::Data
 
 SSubtitleRenderNode::SSubtitleRenderNode(SGraph *parent)
   : QObject(parent),
-    SInterfaces::Node(parent),
+    SGraph::Node(parent),
     d(new Data())
 {
   // loadFont() should be invoked before a SSubtitleRenderNode can be constructed.
   Q_ASSERT(!characters.isEmpty());
 
-  d->dependency = parent ? new SDependency() : NULL;
+  d->dependency = parent ? new SScheduler::Dependency(parent) : NULL;
   d->ratio = 16;
   d->enabled = false;
   d->font = characters.end();
@@ -116,23 +115,13 @@ void SSubtitleRenderNode::setFontRatio(unsigned r)
 void SSubtitleRenderNode::input(const SSubtitleBuffer &subtitleBuffer)
 {
   if (!subtitleBuffer.isNull())
-  {
-    if (graph)
-      graph->queue(this, &SSubtitleRenderNode::processTask, subtitleBuffer, d->dependency);
-    else
-      processTask(subtitleBuffer);
-  }
+    schedule(this, &SSubtitleRenderNode::processTask, subtitleBuffer, d->dependency);
 }
 
 void SSubtitleRenderNode::input(const SVideoBuffer &videoBuffer)
 {
   if (!videoBuffer.isNull() && d->enabled)
-  {
-    if (graph)
-      graph->queue(this, &SSubtitleRenderNode::processTask, videoBuffer, d->dependency);
-    else
-      processTask(videoBuffer);
-  }
+    schedule(this, &SSubtitleRenderNode::processTask, videoBuffer, d->dependency);
   else
     emit output(videoBuffer);
 }

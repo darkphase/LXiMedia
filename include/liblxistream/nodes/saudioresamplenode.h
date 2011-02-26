@@ -22,17 +22,15 @@
 
 #include <QtCore>
 #include "../saudiobuffer.h"
-#include "../sinterfaces.h"
+#include "../sgraph.h"
 
 namespace LXiStream {
 
 
 class SAudioResampleNode : public QObject,
-                           public SInterfaces::Node
+                           public SGraph::Node
 {
 Q_OBJECT
-Q_PROPERTY(quint32 channels READ __internal_channels WRITE __internal_setChannels)
-Q_PROPERTY(unsigned sampleRate READ sampleRate WRITE setSampleRate)
 public:
   explicit                      SAudioResampleNode(SGraph *, const QString &algo = QString::null);
   virtual                       ~SAudioResampleNode();
@@ -52,10 +50,6 @@ signals:
 
 private:
   void                          processTask(const SAudioBuffer &);
-
-private:
-  inline quint32                __internal_channels(void) const                 { return quint32(channels()); }
-  inline void                   __internal_setChannels(quint32 c)               { setChannels(SAudioFormat::Channels(c)); }
 
 private:
   struct Data;

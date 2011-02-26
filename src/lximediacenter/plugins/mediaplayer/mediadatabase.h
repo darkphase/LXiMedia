@@ -117,7 +117,6 @@ private:
 
   Plugin                * const plugin;
   ImdbClient            * const imdbClient;
-  SThreadPool           * const threadPool;
 
   QTimer                        scanRootsTimer;
   QMap<QString, QStringList>    rootPaths;

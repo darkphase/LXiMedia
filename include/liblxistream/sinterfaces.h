@@ -29,13 +29,13 @@
 #include "sencodeddatabuffer.h"
 #include "sencodedvideobuffer.h"
 #include "sfactory.h"
+#include "ssubpicturebuffer.h"
 #include "ssubtitlebuffer.h"
 #include "svideobuffer.h"
 #include "svideocodec.h"
 
 namespace LXiStream {
 
-class SGraph;
 class STimer;
 
 namespace SInterfaces {
@@ -52,50 +52,6 @@ public:
   virtual void                  registerClasses(void) = 0;
   virtual void                  unload(void) = 0;
   virtual QByteArray            about(void) = 0;
-};
-
-/*! The Node interface is used for processing nodes.
- */
-class Node
-{
-public:
-  explicit                      Node(SGraph *);
-  virtual                       ~Node();
-
-protected:
-  SGraph                * const graph;
-};
-
-/*! The SinkNode interface is used for sink nodes.
- */
-class SinkNode
-{
-public:
-  explicit                      SinkNode(SGraph *);
-  virtual                       ~SinkNode();
-
-  virtual bool                  start(STimer *) = 0;
-  virtual void                  stop(void) = 0;
-
-protected:
-  SGraph                * const graph;
-};
-
-/*! The SourceNode interface is used for source nodes.
- */
-class SourceNode
-{
-public:
-  explicit                      SourceNode(SGraph *);
-  virtual                       ~SourceNode();
-
-  virtual bool                  start(void) = 0;
-  virtual void                  stop(void) = 0;
-  virtual void                  process(void) = 0;
-
-protected:
-  SGraph                * const graph;
-  mutable QMutex                mutex;
 };
 
 /*! The FormatProber interface can be used to detect the format of a byte
@@ -687,8 +643,5 @@ Q_DECLARE_OPERATORS_FOR_FLAGS(LXiStream::SInterfaces::AudioEncoder::Flags)
 Q_DECLARE_OPERATORS_FOR_FLAGS(LXiStream::SInterfaces::VideoEncoder::Flags)
 
 Q_DECLARE_INTERFACE(LXiStream::SInterfaces::Module, "nl.dds.admiraal.www.LXiStream.SInterfaces.Module/1.0")
-Q_DECLARE_INTERFACE(LXiStream::SInterfaces::Node, "nl.dds.admiraal.www.LXiStream.SInterfaces.Node/1.0")
-Q_DECLARE_INTERFACE(LXiStream::SInterfaces::SinkNode, "nl.dds.admiraal.www.LXiStream.SInterfaces.SinkNode/1.0")
-Q_DECLARE_INTERFACE(LXiStream::SInterfaces::SourceNode, "nl.dds.admiraal.www.LXiStream.SInterfaces.SourceNode/1.0")
 
 #endif

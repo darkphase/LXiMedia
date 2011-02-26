@@ -18,22 +18,22 @@
  ***************************************************************************/
 
 #include "nodes/saudioresamplenode.h"
-#include "sgraph.h"
+#include "sinterfaces.h"
 
 namespace LXiStream {
 
 struct SAudioResampleNode::Data
 {
-  SDependency                 * dependency;
+  SScheduler::Dependency      * dependency;
   SInterfaces::AudioResampler * resampler;
 };
 
 SAudioResampleNode::SAudioResampleNode(SGraph *parent, const QString &algo)
   : QObject(parent),
-    SInterfaces::Node(parent),
+    SGraph::Node(parent),
     d(new Data())
 {
-  d->dependency = parent ? new SDependency() : NULL;
+  d->dependency = parent ? new SScheduler::Dependency(parent) : NULL;
   d->resampler = SInterfaces::AudioResampler::create(this, algo);
 }
 
@@ -89,12 +89,7 @@ void SAudioResampleNode::setSampleRate(unsigned s)
 void SAudioResampleNode::input(const SAudioBuffer &audioBuffer)
 {
   if (d->resampler)
-  {
-    if (graph)
-      graph->queue(this, &SAudioResampleNode::processTask, audioBuffer, d->dependency);
-    else
-      processTask(audioBuffer);
-  }
+    schedule(&SAudioResampleNode::processTask, audioBuffer, d->dependency);
 }
 
 void SAudioResampleNode::processTask(const SAudioBuffer &audioBuffer)

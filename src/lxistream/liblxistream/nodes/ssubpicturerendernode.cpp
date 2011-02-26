@@ -19,7 +19,6 @@
 
 #include "nodes/ssubpicturerendernode.h"
 #include "sdebug.h"
-#include "sgraph.h"
 #include "ssubpicturebuffer.h"
 #include "svideobuffer.h"
 
@@ -32,7 +31,7 @@ namespace LXiStream {
 
 struct SSubpictureRenderNode::Data
 {
-  SDependency                 * dependency;
+  SScheduler::Dependency      * dependency;
 
   QMutex                        mutex;
   volatile bool                 enabled;
@@ -58,10 +57,10 @@ struct SSubpictureRenderNode::Data
 
 SSubpictureRenderNode::SSubpictureRenderNode(SGraph *parent)
   : QObject(parent),
-    SInterfaces::Node(parent),
+    SGraph::Node(parent),
     d(new Data())
 {
-  d->dependency = parent ? new SDependency() : NULL;
+  d->dependency = parent ? new SScheduler::Dependency(parent) : NULL;
   d->enabled = false;
   d->subpictureVisible = false;
 }
@@ -76,23 +75,13 @@ SSubpictureRenderNode::~SSubpictureRenderNode()
 void SSubpictureRenderNode::input(const SSubpictureBuffer &subpictureBuffer)
 {
   if (!subpictureBuffer.isNull())
-  {
-    if (graph)
-      graph->queue(this, &SSubpictureRenderNode::processTask, subpictureBuffer, d->dependency);
-    else
-      processTask(subpictureBuffer);
-  }
+    schedule(this, &SSubpictureRenderNode::processTask, subpictureBuffer, d->dependency);
 }
 
 void SSubpictureRenderNode::input(const SVideoBuffer &videoBuffer)
 {
   if (!videoBuffer.isNull() && d->enabled)
-  {
-    if (graph)
-      graph->queue(this, &SSubpictureRenderNode::processTask, videoBuffer, d->dependency);
-    else
-      processTask(videoBuffer);
-  }
+    schedule(this, &SSubpictureRenderNode::processTask, videoBuffer, d->dependency);
   else
     emit output(videoBuffer);
 }

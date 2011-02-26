@@ -18,7 +18,6 @@
  ***************************************************************************/
 
 #include "nodes/saudiomatrixnode.h"
-#include "sgraph.h"
 
 // Implemented in channelmatrix.mix.c
 extern "C" void LXiStream_SAudioMatrixNode_mixMatrix(const qint16 *, unsigned, unsigned, unsigned, qint16 *, const float *, unsigned);
@@ -27,7 +26,7 @@ namespace LXiStream {
 
 struct SAudioMatrixNode::Data
 {
-  SDependency                 * dependency;
+  SScheduler::Dependency      * dependency;
   QList<qreal>                  requestedMatrix;
   float                       * appliedMatrix;
   SAudioFormat::Channels        inChannelSetup;
@@ -38,10 +37,10 @@ struct SAudioMatrixNode::Data
 
 SAudioMatrixNode::SAudioMatrixNode(SGraph *parent)
   : QObject(parent),
-    SInterfaces::Node(parent),
+    SGraph::Node(parent),
     d(new Data())
 {
-  d->dependency = parent ? new SDependency() : NULL;
+  d->dependency = parent ? new SScheduler::Dependency(parent) : NULL;
   d->appliedMatrix = NULL;
   d->inChannelSetup = SAudioFormat::Channel_Stereo;
   d->inNumChannels = SAudioFormat::numChannels(d->inChannelSetup);
@@ -124,10 +123,7 @@ void SAudioMatrixNode::input(const SAudioBuffer &audioBuffer)
       }
     }
 
-    if (graph)
-      graph->queue(this, &SAudioMatrixNode::processTask, audioBuffer, d->dependency);
-    else
-      processTask(audioBuffer);
+    schedule(&SAudioMatrixNode::processTask, audioBuffer, d->dependency);
   }
   else
     emit output(audioBuffer);

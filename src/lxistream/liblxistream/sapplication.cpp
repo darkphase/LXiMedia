@@ -25,7 +25,6 @@
 #include "sencodedvideobuffer.h"
 #include "ssubpicturebuffer.h"
 #include "ssubtitlebuffer.h"
-#include "sthreadpool.h"
 #include "svideobuffer.h"
 
 #include "private/exceptionhandler.h"
@@ -71,7 +70,6 @@ SApplication::SApplication(InitializeFlags flags, const QString &preferredLogDir
     firsttime = false;
 
     // Ensure static initializers have been initialized.
-    SThreadPool::globalInstance();
     SDebug::Locker::initialize();
 
     // Register metatypes.
@@ -111,13 +109,7 @@ SApplication::~SApplication(void)
   Q_ASSERT(QThread::currentThread() == thread());
 
   // Wait for all tasks to finish
-  do
-  {
-    SThreadPool::globalInstance()->waitForDone();
-    QThreadPool::globalInstance()->waitForDone();
-    QCoreApplication::processEvents();
-  } while ((SThreadPool::globalInstance()->activeThreadCount() > 0) ||
-           (QThreadPool::globalInstance()->activeThreadCount() > 0));
+  SScheduler::waitForDone();
 
   foreach (SFactory *factory, factories())
     factory->clear();
@@ -253,6 +245,19 @@ QByteArray SApplication::about(void) const
     text += module.module->about();
 
   return text;
+}
+
+void SApplication::customEvent(QEvent *e)
+{
+  if (e->type() == scheduleEventType)
+    schedule(static_cast<ScheduleEvent *>(e)->depends);
+  else
+    return QObject::customEvent(e);
+}
+
+void SApplication::queueSchedule(Dependency *depends)
+{
+  QCoreApplication::postEvent(this, new ScheduleEvent(depends));
 }
 
 QList<SFactory *> & SApplication::factories(void)

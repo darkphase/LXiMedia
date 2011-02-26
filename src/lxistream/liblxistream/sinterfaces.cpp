@@ -19,7 +19,6 @@
 
 #include "sinterfaces.h"
 #include "sfactory.hpp"
-#include "sgraph.h"
 
 namespace LXiStream {
 
@@ -45,43 +44,6 @@ namespace SInterfaces {
 
 Module::~Module()
 {
-}
-
-Node::Node(SGraph *graph)
-  : graph(graph)
-{
-  if (graph)
-    graph->addNode(this);
-}
-
-Node::~Node()
-{
-  *const_cast<SGraph **>(&graph) = NULL;
-}
-
-SinkNode::SinkNode(SGraph *graph)
-  : graph(graph)
-{
-  if (graph)
-    graph->addNode(this);
-}
-
-SinkNode::~SinkNode()
-{
-  *const_cast<SGraph **>(&graph) = NULL;
-}
-
-SourceNode::SourceNode(SGraph *graph)
-  : graph(graph),
-    mutex(QMutex::Recursive)
-{
-  if (graph)
-    graph->addNode(this);
-}
-
-SourceNode::~SourceNode()
-{
-  *const_cast<SGraph **>(&graph) = NULL;
 }
 
 const unsigned FormatProber::defaultProbeSize = 16384;

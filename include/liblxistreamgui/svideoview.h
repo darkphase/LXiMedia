@@ -15,7 +15,7 @@ namespace LXiStreamGui {
     underlying hardware.
  */
 class SVideoView : public QWidget,
-                   public SInterfaces::SinkNode
+                   public SGraph::SinkNode
 {
 Q_OBJECT
 public:

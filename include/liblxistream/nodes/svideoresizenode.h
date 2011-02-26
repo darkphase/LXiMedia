@@ -21,19 +21,16 @@
 #define LXSTREAM_SVIDEORESIZENODE_H
 
 #include <QtCore>
+#include "../sgraph.h"
 #include "../sinterfaces.h"
 
 namespace LXiStream {
 
 
 class SVideoResizeNode : public QObject,
-                         public SInterfaces::Node
+                         public SGraph::Node
 {
 Q_OBJECT
-Q_PROPERTY(bool highQuality READ highQuality WRITE setHighQuality)
-Q_PROPERTY(QSize size READ __internal_size WRITE __internal_setSize)
-Q_PROPERTY(float aspectRatio READ __internal_aspectRatio WRITE __internal_setAspectRatio)
-Q_PROPERTY(Qt::AspectRatioMode aspectRatioMode READ aspectRatioMode WRITE setAspectRatioMode)
 public:
   explicit                      SVideoResizeNode(SGraph *, const QString &algo = QString::null);
   virtual                       ~SVideoResizeNode();
@@ -55,12 +52,6 @@ signals:
 
 private:
   void                          processTask(const SVideoBuffer &, SInterfaces::VideoResizer *);
-
-private:
-  inline void                   __internal_setSize(const QSize &s)              { setSize(s); }
-  inline QSize                  __internal_size(void) const                     { return size().size(); }
-  inline void                   __internal_setAspectRatio(float a)              { SSize t = size(); t.setAspectRatio(a); setSize(t); }
-  inline float                  __internal_aspectRatio(void) const              { return size().aspectRatio(); }
 
 private:
   struct Data;

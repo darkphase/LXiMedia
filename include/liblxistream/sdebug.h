@@ -129,13 +129,15 @@ private:
 protected:
   static const int              maxLockTime;
   static const char     * const nullType;
+  static const char     * const type;
 };
 
 
-class MutexLocker : private Locker
+template<class _mutex>
+class _MutexLocker : private Locker
 {
 public:
-  inline explicit MutexLocker(QMutex *m, const char *file, unsigned line)
+  inline explicit _MutexLocker(_mutex *m, const char *file, unsigned line)
       : mtx(m)
   {
     Q_ASSERT_X((val & quintptr(1u)) == quintptr(0),
@@ -143,7 +145,7 @@ public:
     relock(file, line);
   }
 
-  inline ~MutexLocker()
+  inline ~_MutexLocker()
   {
     unlock();
   }
@@ -181,28 +183,29 @@ public:
     }
   }
 
-  inline QMutex *mutex() const
+  inline _mutex *mutex() const
   {
-    return reinterpret_cast<QMutex *>(val & ~quintptr(1u));
+    return reinterpret_cast<_mutex *>(val & ~quintptr(1u));
   }
 
 private:
-  Q_DISABLE_COPY(MutexLocker)
-
-  static const char * const type;
+  Q_DISABLE_COPY(_MutexLocker)
 
   union
   {
-    QMutex *mtx;
+    _mutex *mtx;
     quintptr val;
   };
 };
 
+typedef _MutexLocker<QMutex> MutexLocker;
 
-class ReadLocker : private Locker
+
+template<class _lock>
+class _ReadLocker : private Locker
 {
 public:
-  inline ReadLocker(QReadWriteLock *areadWriteLock, const char *file, unsigned line)
+  inline _ReadLocker(_lock *areadWriteLock, const char *file, unsigned line)
     : q_lock(areadWriteLock)
   {
     Q_ASSERT_X((q_val & quintptr(1u)) == quintptr(0),
@@ -210,7 +213,7 @@ public:
     relock(file, line);
   }
 
-  inline ~ReadLocker()
+  inline ~_ReadLocker()
   {
     unlock();
   }
@@ -248,26 +251,27 @@ public:
     }
   }
 
-  inline QReadWriteLock *readWriteLock() const
-  { return reinterpret_cast<QReadWriteLock *>(q_val & ~quintptr(1u)); }
+  inline _lock *readWriteLock() const
+  { return reinterpret_cast<_lock *>(q_val & ~quintptr(1u)); }
 
 private:
-  Q_DISABLE_COPY(ReadLocker)
-
-  static const char * const type;
+  Q_DISABLE_COPY(_ReadLocker)
 
   union
   {
-    QReadWriteLock *q_lock;
+    _lock *q_lock;
     quintptr q_val;
   };
 };
 
+typedef _ReadLocker<QReadWriteLock> ReadLocker;
 
-class WriteLocker : private Locker
+
+template<class _lock>
+class _WriteLocker : private Locker
 {
 public:
-  inline WriteLocker(QReadWriteLock *areadWriteLock, const char *file, unsigned line)
+  inline _WriteLocker(_lock *areadWriteLock, const char *file, unsigned line)
     : q_lock(areadWriteLock)
   {
     Q_ASSERT_X((q_val & quintptr(1u)) == quintptr(0),
@@ -275,7 +279,7 @@ public:
     relock(file, line);
   }
 
-  inline ~WriteLocker()
+  inline ~_WriteLocker()
   {
     unlock();
   }
@@ -313,22 +317,22 @@ public:
     }
   }
 
-  inline QReadWriteLock *readWriteLock() const
+  inline _lock *readWriteLock() const
   {
-    return reinterpret_cast<QReadWriteLock *>(q_val & ~quintptr(1u));
+    return reinterpret_cast<_lock *>(q_val & ~quintptr(1u));
   }
 
 private:
-  Q_DISABLE_COPY(WriteLocker)
-
-  static const char * const type;
+  Q_DISABLE_COPY(_WriteLocker)
 
   union
   {
-    QReadWriteLock *q_lock;
+    _lock *q_lock;
     quintptr q_val;
   };
 };
+
+typedef _WriteLocker<QReadWriteLock> WriteLocker;
 
 
 inline ExceptionHandler::StackFrame ExceptionHandler::currentStackFrame(void)

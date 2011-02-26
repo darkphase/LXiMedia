@@ -22,12 +22,13 @@
 
 #include <QtCore>
 #include "sioinputnode.h"
+#include "../sgraph.h"
 #include "../smediainfo.h"
 
 namespace LXiStream {
 
 class SPlaylistNode : public QObject,
-                      public SInterfaces::SourceNode,
+                      public SGraph::SourceNode,
                       public SInterfaces::BufferReaderNode
 {
 Q_OBJECT

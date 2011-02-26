@@ -17,19 +17,22 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "sthreadpool.h"
+#include "sscheduler.h"
 #include "sdebug.h"
 #include <cxxabi.h>
 
 namespace LXiStream {
 
-struct SThreadPool::Data
+const QEvent::Type  SScheduler::scheduleEventType = QEvent::Type(QEvent::registerEventType());
+
+struct SScheduler::Data
 {
   inline Data(void) : mutex(QMutex::Recursive) { }
 
+  QThreadPool                 * threadPool;
   QMutex                        mutex;
-  QMap<SDependency *, TaskQueue> taskQueues;
-  int                           scheduleTimer;
+  QMap<Dependency *, TaskQueue> taskQueues;
+  QAtomicInt                    taskCount;
 
   QFile                       * traceFile;
   QMap<QThread *, int>          traceThreadMap;
@@ -37,35 +40,18 @@ struct SThreadPool::Data
   qint64                        traceWidth;
   static const int              traceLineHeight = 20;
   static const int              traceSecWidth = 10000;
-
-  static const QEvent::Type     scheduleEventType;
-  static const QEvent::Type     startTimerEventType;
 };
 
-const QEvent::Type  SThreadPool::Data::startTimerEventType = QEvent::Type(QEvent::registerEventType());
-const QEvent::Type  SThreadPool::Data::scheduleEventType = QEvent::Type(QEvent::registerEventType());
-
-class SThreadPool::ScheduleEvent : public QEvent
+SScheduler::SScheduler(QThreadPool *threadPool)
+  : d(new Data())
 {
-public:
-  inline ScheduleEvent(SDependency *depends)
-    : QEvent(Data::scheduleEventType), depends(depends)
-  {
-  }
-
-  SDependency * const depends;
-};
-
-SThreadPool::SThreadPool(QObject *parent)
-  : QThreadPool(parent),
-    d(new Data())
-{
-  d->scheduleTimer = -1;
+  d->threadPool = threadPool;
+  d->taskCount = 0;
   d->traceFile = NULL;
   d->traceWidth = 0;
 }
 
-SThreadPool::~SThreadPool()
+SScheduler::~SScheduler()
 {
   stopTrace();
 
@@ -73,9 +59,9 @@ SThreadPool::~SThreadPool()
   *const_cast<Data **>(&d) = NULL;
 }
 
-bool SThreadPool::enableTrace(const QString &fileName)
+bool SScheduler::enableTrace(const QString &fileName)
 {
-  d->traceFile = new QFile(fileName, this);
+  d->traceFile = new QFile(fileName);
   if (!d->traceFile->open(QFile::WriteOnly))
   {
     delete d->traceFile;
@@ -93,7 +79,7 @@ bool SThreadPool::enableTrace(const QString &fileName)
   return true;
 }
 
-void SThreadPool::stopTrace(void)
+void SScheduler::stopTrace(void)
 {
   if (d->traceFile)
   {
@@ -117,136 +103,99 @@ void SThreadPool::stopTrace(void)
   }
 }
 
-inline bool operator<(int priority, const QPair<SRunnable *, int> &p)
+int SScheduler::numTasksQueued(void) const
+{
+  return d->taskCount;
+}
+
+int SScheduler::activeThreadCount(void) const
+{
+  return d->threadPool->activeThreadCount();
+}
+
+void SScheduler::waitForDone(void)
+{
+  // Wait for all tasks to finish
+  do
+  {
+    d->threadPool->waitForDone();
+    QCoreApplication::processEvents();
+  } while (d->threadPool->activeThreadCount() > 0);
+}
+
+inline bool operator<(int priority, const QPair<SScheduler::Runnable *, int> &p)
 {
     return p.second < priority;
 }
 
-inline bool operator<(const QPair<SRunnable *, int> &p, int priority)
+inline bool operator<(const QPair<SScheduler::Runnable *, int> &p, int priority)
 {
     return priority < p.second;
 }
 
-void SThreadPool::start(SRunnable *runnable, int priority)
+void SScheduler::start(Runnable *runnable, int priority)
 {
-  runnable->threadPool = this;
+  d->taskCount.ref();
+  runnable->scheduler = this;
 
   if (runnable->depends != NULL)
   {
+    if (__builtin_expect(runnable->depends->scheduler != this, false))
+      qFatal("The specified task dependency is not created for this scheduler.");
+
     SDebug::MutexLocker l(&d->mutex, __FILE__, __LINE__);
 
-    QMap<SDependency *, TaskQueue>::Iterator i = d->taskQueues.find(runnable->depends);
+    QMap<Dependency *, TaskQueue>::Iterator i = d->taskQueues.find(runnable->depends);
     if (i == d->taskQueues.end())
     {
       if (runnable->depends->tryLock())
       {
-        QThreadPool::start(runnable, priority);
+        d->threadPool->start(runnable, priority);
         return;
       }
-      else
-        i = d->taskQueues.insert(runnable->depends, TaskQueue());
+
+      i = d->taskQueues.insert(runnable->depends, TaskQueue());
+    }
+    else if (i->isEmpty())
+    {
+      if (runnable->depends->tryLock())
+      {
+        d->threadPool->start(runnable, priority);
+        return;
+      }
     }
 
     TaskQueue::Iterator at = qUpperBound(i->begin(), i->end(), priority);
     i->insert(at, qMakePair(runnable, priority));
 
-    if (d->scheduleTimer == -1)
-      QCoreApplication::postEvent(this, new QEvent(d->startTimerEventType));
+    queueSchedule(runnable->depends);
   }
   else
-    QThreadPool::start(runnable, priority);
+    d->threadPool->start(runnable, priority);
 }
 
-SThreadPool * SThreadPool::globalInstance(void)
-{
-  static SThreadPool globalPool;
-
-  return &globalPool;
-}
-
-void SThreadPool::timerEvent(QTimerEvent *e)
-{
-  if (e->timerId() == d->scheduleTimer)
-  {
-    if (d->mutex.tryLock())
-    {
-      schedule();
-      d->mutex.unlock();
-    }
-  }
-  else
-    QObject::timerEvent(e);
-}
-
-void SThreadPool::customEvent(QEvent *e)
-{
-  if (e->type() == d->scheduleEventType)
-  {
-    schedule(static_cast<ScheduleEvent *>(e)->depends);
-  }
-  else if (e->type() == d->startTimerEventType)
-  {
-    SDebug::MutexLocker l(&d->mutex, __FILE__, __LINE__);
-
-    if (d->scheduleTimer == -1)
-      d->scheduleTimer = startTimer(250);
-  }
-  else
-    QObject::customEvent(e);
-}
-
-bool SThreadPool::tryStart(SRunnable *)
-{
-  return false;
-}
-
-void SThreadPool::schedule(void)
+void SScheduler::schedule(Dependency *depends)
 {
   SDebug::MutexLocker l(&d->mutex, __FILE__, __LINE__);
 
-  for (QMap<SDependency *, TaskQueue>::Iterator i=d->taskQueues.begin(); i!=d->taskQueues.end(); )
-  if (!i->isEmpty())
-  {
-    schedule(i);
-    i++;
-  }
-  else
-    i = d->taskQueues.erase(i);
-
-  if (d->taskQueues.isEmpty())
-  {
-    killTimer(d->scheduleTimer);
-    d->scheduleTimer = -1;
-  }
-}
-
-void SThreadPool::schedule(SDependency *depends)
-{
-  SDebug::MutexLocker l(&d->mutex, __FILE__, __LINE__);
-
-  QMap<SDependency *, TaskQueue>::Iterator i=d->taskQueues.find(depends);
+  QMap<Dependency *, TaskQueue>::Iterator i=d->taskQueues.find(depends);
   if (i!=d->taskQueues.end())
   {
     if (!i->isEmpty())
-      schedule(i);
+    {
+      if (i.key()->tryLock())
+      {
+        TaskQueue::Iterator task = i->begin();
+        d->threadPool->start(task->first, task->second);
+        i->erase(task);
+      }
+    }
     else
       d->taskQueues.erase(i);
   }
 }
 
-void SThreadPool::schedule(const QMap<SDependency *, TaskQueue>::Iterator &queue)
-{
-  SDebug::MutexLocker l(&d->mutex, __FILE__, __LINE__);
-
-  if (queue.key()->tryLock())
-  {
-    TaskQueue::Iterator task = queue->begin();
-    QThreadPool::start(task->first, 1); // Priority 1 is used as the mutex is already locked.
-    queue->erase(task);
-  }
-}
-
-void SThreadPool::traceTask(STime startTime, STime stopTime, const QByteArray &taskName)
+void SScheduler::traceTask(STime startTime, STime stopTime, const QByteArray &taskName)
 {
   SDebug::MutexLocker l(&d->mutex, __FILE__, __LINE__);
 
@@ -284,59 +233,80 @@ void SThreadPool::traceTask(STime startTime, STime stopTime, const QByteArray &t
   d->traceFile->flush();
 }
 
-SRunnable::SRunnable(const char *name)
+
+SScheduler::Dependency::Dependency(SScheduler *scheduler)
+  : scheduler(scheduler),
+    mutex(QMutex::NonRecursive)
+{
+}
+
+void SScheduler::Dependency::lock(void)
+{
+  mutex.lock();
+}
+
+bool SScheduler::Dependency::tryLock(void)
+{
+  return mutex.tryLock();
+}
+
+bool SScheduler::Dependency::tryLock(int timeout)
+{
+  return mutex.tryLock(timeout);
+}
+
+void SScheduler::Dependency::unlock(void)
+{
+  mutex.unlock();
+  if (scheduler)
+    scheduler->queueSchedule(this);
+}
+
+
+SScheduler::Runnable::Runnable(const char *name)
   : QRunnable(),
     name(name ? name : typeid(*this).name()),
     depends(NULL),
-    threadPool(NULL)
+    scheduler(NULL)
 {
 }
 
-SRunnable::SRunnable(SDependency *depends, const char *name)
+SScheduler::Runnable::Runnable(Dependency *depends, const char *name)
   : QRunnable(),
     name(name ? name : typeid(*this).name()),
     depends(depends),
-    threadPool(NULL)
+    scheduler(NULL)
 {
 }
 
-SRunnable::SRunnable(SRunnable *from)
-  : QRunnable(),
-    name(from->name),
-    depends(from->depends),
-    threadPool(from->threadPool)
-{
-  from->depends = NULL;
-}
-
-SRunnable::~SRunnable()
+SScheduler::Runnable::~Runnable()
 {
   if (depends)
-  {
     depends->unlock();
-    QCoreApplication::postEvent(threadPool, new SThreadPool::ScheduleEvent(depends));
-  }
+
+  if (scheduler)
+    scheduler->d->taskCount.deref();
 }
 
-void SRunnable::run(void)
+void SScheduler::Runnable::run(void)
 {
-  if (threadPool->d->traceFile)
+  if (scheduler->d->traceFile)
   {
-    const STime startTime = threadPool->d->traceTimer.timeStamp();
+    const STime startTime = scheduler->d->traceTimer.timeStamp();
 
-    run(threadPool);
+    run(scheduler);
 
-    const STime endTime = threadPool->d->traceTimer.timeStamp();
+    const STime endTime = scheduler->d->traceTimer.timeStamp();
 
     char demangled[256];
     size_t demangledSize = sizeof(demangled);
     if (abi::__cxa_demangle(name, demangled, &demangledSize, NULL) != NULL)
-      threadPool->traceTask(startTime, endTime, demangled);
+      scheduler->traceTask(startTime, endTime, demangled);
     else
-      threadPool->traceTask(startTime, endTime, name);
+      scheduler->traceTask(startTime, endTime, name);
   }
   else
-    run(threadPool);
+    run(scheduler);
 }
 
 } // End of namespace

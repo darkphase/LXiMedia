@@ -21,8 +21,10 @@
 #define LXSTREAM_STIMESTAMPSYNCNODE_H
 
 #include <QtCore>
-#include "../sinterfaces.h"
+#include "../saudiobuffer.h"
+#include "../sgraph.h"
 #include "../stime.h"
+#include "../svideobuffer.h"
 
 namespace LXiStream {
 
@@ -32,7 +34,7 @@ class SVideoBuffer;
 
 
 class STimeStampSyncNode : public QObject,
-                           public SInterfaces::Node
+                           public SGraph::Node
 {
 Q_OBJECT
 public:
