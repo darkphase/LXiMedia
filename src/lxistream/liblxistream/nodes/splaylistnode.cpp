@@ -26,11 +26,14 @@ namespace LXiStream {
 
 struct SPlaylistNode::Data
 {
-  SScheduler::Dependency      * dependency;
+  SScheduler::Dependency      * loadDependency;
 
   QStringList                   fileNames;
-  int                           currentFile;
+  int                           fileId;
+  int                           nextFileId;
   SFileInputNode              * file;
+  SFileInputNode              * nextFile;
+  QSemaphore                    nextFileReady;
 
   AudioStreamInfo               audioStreamInfo;
   bool                          hasVideo;
@@ -42,10 +45,12 @@ SPlaylistNode::SPlaylistNode(SGraph *parent, const SMediaInfoList &files)
     SGraph::SourceNode(parent),
     d(new Data())
 {
-  d->dependency = parent ? new SScheduler::Dependency(parent) : NULL;
+  d->loadDependency = parent ? new SScheduler::Dependency(parent) : NULL;
 
-  d->currentFile = 0;
+  d->fileId = -1;
+  d->nextFileId = -1;
   d->file = NULL;
+  d->nextFile = NULL;
 
   d->audioStreamInfo.codec = SAudioCodec("*", SAudioFormat::Channel_Stereo, 48000);
   d->hasVideo = true;
@@ -96,39 +101,82 @@ SPlaylistNode::~SPlaylistNode()
     delete d->file;
   }
 
-  delete d->dependency;
+  if (d->nextFile)
+  {
+    d->nextFile->stop();
+    delete d->nextFile;
+  }
+
+  delete d->loadDependency;
   delete d;
   *const_cast<Data **>(&d) = NULL;
 }
 
 bool SPlaylistNode::open(void)
 {
-  for (d->currentFile = 0; d->currentFile < d->fileNames.count(); d->currentFile++)
-  if (openFile(d->fileNames[d->currentFile]))
-    return true;
-
-  return false;
+  return !d->fileNames.isEmpty();
 }
 
 bool SPlaylistNode::start(void)
 {
-  if (d->file == NULL)
-    return open();
+  d->fileId = -1;
+  d->nextFileId = -1;
 
   return true;
 }
 
 void SPlaylistNode::stop(void)
 {
-  delete d->file;
-  d->file = NULL;
+  if (d->file)
+  {
+    d->file->stop();
+    delete d->file;
+    d->file = NULL;
+  }
 
-  d->currentFile = 0;
+  if (d->nextFile)
+  {
+    d->nextFile->stop();
+    delete d->nextFile;
+    d->nextFile = NULL;
+  }
+
+  d->fileId = -1;
+  d->nextFileId = -1;
 }
 
 void SPlaylistNode::process(void)
 {
-  schedule(&SPlaylistNode::processTask, d->dependency);
+  if (d->nextFileId == -1)
+    openNext();
+
+  if (d->file == NULL)
+  {
+    if (d->nextFileId == -2)
+    {
+      emit finished();
+      return;
+    }
+
+    d->nextFileReady.acquire();
+    d->fileId = d->nextFileId;
+    d->file = d->nextFile;
+
+    // Start loading next
+    if ((d->nextFileId >= 0) && (d->nextFileId < d->fileNames.count()))
+      schedule(&SPlaylistNode::openNext, d->loadDependency, SScheduler::Priority_Low);
+    else
+      d->nextFileId = -2;
+
+    if ((d->fileId >= 0) && (d->fileId < d->fileNames.count()))
+    {
+      qDebug() << "SPlaylistNode playing next file:" << d->fileNames[d->fileId];
+      emit opened(d->fileNames[d->fileId]);
+    }
+  }
+
+  if (d->file)
+    d->file->process();
 }
 
 STime SPlaylistNode::duration(void) const
@@ -173,57 +221,53 @@ void SPlaylistNode::selectStreams(const QList<StreamId> &)
 {
 }
 
-void SPlaylistNode::processTask(void)
+SFileInputNode * SPlaylistNode::openFile(const QString &fileName)
 {
-  if (d->file == NULL)
-    openNext();
-
-  if (d->file)
-    d->file->process();
-}
-
-bool SPlaylistNode::openFile(const QString &fileName)
-{
-  if (d->file)
+  SFileInputNode * const file = new SFileInputNode(NULL, fileName);
+  if (file->open() && file->start())
   {
-    d->file->stop();
-    delete d->file;
+    connect(file, SIGNAL(output(SEncodedAudioBuffer)), SIGNAL(output(SEncodedAudioBuffer)));
+    connect(file, SIGNAL(output(SEncodedVideoBuffer)), SIGNAL(output(SEncodedVideoBuffer)));
+    connect(file, SIGNAL(output(SEncodedDataBuffer)), SIGNAL(output(SEncodedDataBuffer)));
+    connect(file, SIGNAL(finished()), SLOT(closeFile()), Qt::QueuedConnection);
+
+    return file;
   }
 
-  d->file = new SFileInputNode(NULL, fileName);
-  if (d->file->open() && d->file->start())
-  {
-    qDebug() << "Playing next file:" << fileName;
-
-    connect(d->file, SIGNAL(output(SEncodedAudioBuffer)), SIGNAL(output(SEncodedAudioBuffer)));
-    connect(d->file, SIGNAL(output(SEncodedVideoBuffer)), SIGNAL(output(SEncodedVideoBuffer)));
-    connect(d->file, SIGNAL(output(SEncodedDataBuffer)), SIGNAL(output(SEncodedDataBuffer)));
-    connect(d->file, SIGNAL(finished()), SLOT(openNext()), Qt::QueuedConnection);
-
-    return true;
-  }
-  else
-  {
-    delete d->file;
-    d->file = NULL;
-
-    return false;
-  }
+  delete file;
+  return NULL;
 }
 
 void SPlaylistNode::openNext(void)
 {
-  if (d->currentFile < d->fileNames.count())
-    emit closed(d->fileNames[d->currentFile]);
-
-  for (d->currentFile++; d->currentFile < d->fileNames.count(); d->currentFile++)
-  if (openFile(d->fileNames[d->currentFile]))
+  for (d->nextFileId++; d->nextFileId < d->fileNames.count(); d->nextFileId++)
   {
-    emit opened(d->fileNames[d->currentFile]);
-    return;
+    SFileInputNode * const file = openFile(d->fileNames[d->nextFileId]);
+    if (file)
+    {
+      d->nextFile = file;
+      d->nextFileReady.release();
+
+      return;
+    }
   }
 
-  emit finished();
+  d->nextFile = NULL;
+  d->nextFileId = -2;
+  d->nextFileReady.release();
+}
+
+void SPlaylistNode::closeFile(void)
+{
+  if ((d->fileId >= 0) && (d->fileId < d->fileNames.count()))
+    emit closed(d->fileNames[d->fileId]);
+
+  if (d->file)
+  {
+    d->file->stop();
+    delete d->file;
+    d->file = NULL;
+  }
 }
 
 } // End of namespace

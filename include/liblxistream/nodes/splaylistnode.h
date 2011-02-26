@@ -27,6 +27,8 @@
 
 namespace LXiStream {
 
+class SFileInputNode;
+
 class SPlaylistNode : public QObject,
                       public SGraph::SourceNode,
                       public SInterfaces::BufferReaderNode
@@ -63,11 +65,11 @@ signals:
   void                          closed(const QString &);
 
 private:
-  void                          processTask(void);
-  bool                          openFile(const QString &);
+  SFileInputNode              * openFile(const QString &);
+  void                          openNext(void);
 
 private slots:
-  void                          openNext(void);
+  void                          closeFile(void);
 
 private:
   struct Data;

@@ -27,8 +27,6 @@ namespace LXiStream {
 
 struct SGraph::Private
 {
-  inline Private(void) : mutex(QMutex::Recursive) { }
-
   QVector<Node *>               nodes;
   QVector<SourceNode *>         sourceNodes;
   QVector<SinkNode *>           sinkNodes;
@@ -41,9 +39,6 @@ struct SGraph::Private
   bool                          stopped;
   int                           stopTimer;
   int                           stopCounter;
-
-  QMutex                        mutex;
-  int                           priority;
 
   static const QEvent::Type     scheduleSourceEventType;
   static const QEvent::Type     stopEventloopEventType;
@@ -63,7 +58,6 @@ SGraph::SGraph(void)
   p->stopped = true;
   p->stopTimer = -1;
   p->stopCounter = 0;
-  p->priority = 0;
 }
 
 SGraph::~SGraph()
@@ -73,16 +67,6 @@ SGraph::~SGraph()
 
   delete p;
   *const_cast<Private **>(&p) = NULL;
-}
-
-void SGraph::setPriority(Priority priority)
-{
-  p->priority = priority;
-}
-
-SGraph::Priority SGraph::priority(void) const
-{
-  return Priority(p->priority);
 }
 
 bool SGraph::isRunning(void) const
@@ -204,16 +188,12 @@ void SGraph::customEvent(QEvent *e)
   }
   else if (e->type() == p->scheduleSourceEventType)
   {
-    SDebug::MutexLocker l(&(p->mutex), __FILE__, __LINE__);
-
     if (!p->stopped)
     {
       if (!p->stopping)
       {
         if (numTasksQueued() < p->minTaskCount)
         {
-          l.unlock();
-
           foreach (SourceNode *source, p->sourceNodes)
             source->process();
 
@@ -280,8 +260,7 @@ SGraph::SinkNode::~SinkNode()
 
 
 SGraph::SourceNode::SourceNode(SGraph *graph)
-  : SScheduler::Proxy(graph),
-    mutex(QMutex::Recursive)
+  : SScheduler::Proxy(graph)
 {
   if (graph)
     graph->addNode(this);

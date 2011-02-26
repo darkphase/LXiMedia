@@ -66,8 +66,6 @@ void SVideoInputNode::setMaxBuffers(int maxBuffers)
 
 bool SVideoInputNode::start(void)
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
   delete d->input;
   d->input = SInterfaces::VideoInput::create(this, d->device);
 
@@ -95,8 +93,6 @@ bool SVideoInputNode::start(void)
 
 void SVideoInputNode::stop(void)
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
   if (d->input)
   {
     d->input->stop();
@@ -108,8 +104,6 @@ void SVideoInputNode::stop(void)
 
 void SVideoInputNode::process(void)
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
   if (d->input)
     d->input->process();
 }

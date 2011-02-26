@@ -53,8 +53,6 @@ QStringList SAudioInputNode::devices(void)
 
 bool SAudioInputNode::start(void)
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
   delete d->input;
   d->input = SInterfaces::AudioInput::create(this, d->device);
 
@@ -74,8 +72,6 @@ bool SAudioInputNode::start(void)
 
 void SAudioInputNode::stop(void)
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
   if (d->input)
   {
     d->input->stop();
@@ -87,8 +83,6 @@ void SAudioInputNode::stop(void)
 
 void SAudioInputNode::process(void)
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
   if (d->input)
     d->input->process();
 }

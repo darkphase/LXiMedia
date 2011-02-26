@@ -107,10 +107,12 @@ private:
 
 public:
   static const int              maxSongDurationMin;
-  static const int              basePriority = INT_MIN + 1;
-  static const int              scanDirPriority = basePriority + 1;
-  static const int              probeFilePriority = basePriority + 2;
-  static const int              matchImdbItemPriority = basePriority;
+  static const SScheduler::Priority basePriority = SScheduler::Priority_Idle;
+  static const SScheduler::Priority scanDirPriority = SScheduler::Priority(basePriority + 1);
+  static const SScheduler::Priority probeFilePriority = SScheduler::Priority(basePriority + 2);
+  static const SScheduler::Priority insertFilePriority = SScheduler::Priority(probeFilePriority + 1);
+  static const SScheduler::Priority matchImdbItemPriority = basePriority;
+  static const SScheduler::Priority storeImdbItemPriority = SScheduler::Priority(matchImdbItemPriority + 1);
 
 private:
   static const CatecoryDesc     categories[];

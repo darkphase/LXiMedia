@@ -73,8 +73,6 @@ void SAudioVideoInputNode::setMaxBuffers(int maxBuffers)
 
 bool SAudioVideoInputNode::start(void)
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
   delete d->audioInput;
   d->audioInput = NULL;
   d->audioTime = STime::null;
@@ -141,8 +139,6 @@ bool SAudioVideoInputNode::start(void)
 
 void SAudioVideoInputNode::stop(void)
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
   if (d->audioInput)
   {
     d->audioInput->stop();
@@ -162,8 +158,6 @@ void SAudioVideoInputNode::stop(void)
 
 void SAudioVideoInputNode::process(void)
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
   if (d->audioInput && d->videoInput)
   {
     if (d->audioTime <= d->videoTime)
@@ -177,15 +171,11 @@ void SAudioVideoInputNode::process(void)
 
 void SAudioVideoInputNode::produced(const SAudioBuffer &buffer)
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
   d->audioTime = buffer.timeStamp();
 }
 
 void SAudioVideoInputNode::produced(const SVideoBuffer &buffer)
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
-
   d->videoTime = buffer.timeStamp();
 }
 

@@ -54,8 +54,6 @@ private:
 
 struct HttpServer::Private
 {
-  static const int              maxThreads = 50;
-
   QReadWriteLock                lock;
   QList<QHostAddress>           addresses;
   quint16                       port;
@@ -71,7 +69,12 @@ HttpServer::HttpServer(void)
   : QThread(),
     p(new Private())
 {
-  p->threadPool.setMaxThreadCount(Private::maxThreads);
+#ifdef QT_NO_DEBUG
+  p->threadPool.setMaxThreadCount(50);
+#else // Limited to one thread in debug mode.
+  p->threadPool.setMaxThreadCount(1);
+#endif
+
   p->numPendingConnections = 0;
   p->startSem = NULL;
 }

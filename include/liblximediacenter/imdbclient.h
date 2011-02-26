@@ -107,7 +107,8 @@ private:
   static const char     * const mirrors[];
   static const unsigned         readChunkSize;
   static const int              maxAge;
-  static const int              basePriority = INT_MIN + 1;
+  static const SScheduler::Priority basePriority = SScheduler::Priority_Idle;
+  static const SScheduler::Priority insertPriority = SScheduler::Priority(basePriority + 1);
   static const QEvent::Type     tryMirrorEventType;
 
   SScheduler::Dependency        mutex;
