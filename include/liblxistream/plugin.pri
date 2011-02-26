@@ -1,6 +1,4 @@
 # Plugin build description
-include($${LXIMEDIA_DIR}/include/liblxistream/linklxistream-internal.pri)
-
 TEMPLATE = lib
 CONFIG += plugin
 CONFIG += qt thread warn_on

@@ -1,6 +1,7 @@
 PLUGIN_NAME = mediaplayer
 LXIMEDIA_DIR = ../../../..
 include($${LXIMEDIA_DIR}/include/liblximediacenter/plugin.pri)
+include($${LXIMEDIA_DIR}/include/liblximediacenter/linklximediacenter-internal.pri)
 
 # Files
 SOURCES += configserver.cpp \

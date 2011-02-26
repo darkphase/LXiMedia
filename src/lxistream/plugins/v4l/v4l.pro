@@ -2,6 +2,7 @@
 PLUGIN_NAME = v4l
 LXIMEDIA_DIR = ../../../..
 include($${LXIMEDIA_DIR}/include/liblxistream/plugin.pri)
+include($${LXIMEDIA_DIR}/include/liblxistream/linklxistream-internal.pri)
 
 # Files
 HEADERS += videodev.h \
