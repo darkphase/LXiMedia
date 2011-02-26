@@ -5,8 +5,6 @@ DESTDIR = $${LXIMEDIA_DIR}/bin
 TARGET = LXiMediaCenter
 include($${LXIMEDIA_DIR}/include/config.pri)
 QT += sql
-include($${LXIMEDIA_DIR}/include/liblxistream/linklxistream.pri)
-include($${LXIMEDIA_DIR}/include/liblxistreamgui/linklxistreamgui.pri)
 
 # Generate version.h
 unix {
@@ -24,6 +22,15 @@ win32 {
 
 INCLUDEPATH += $${LXIMEDIA_DIR}/include/liblximediacenter
 DEPENDPATH += $${LXIMEDIA_DIR}/include/liblximediacenter
+
+linux-g++|win32-g++ {
+  # Generate/Use precompiled header
+  CONFIG += precompile_header
+  PRECOMPILED_HEADER = $${LXIMEDIA_DIR}/include/LXiMediaCenter
+}
+
+include($${LXIMEDIA_DIR}/include/liblxistream/linklxistream.pri)
+include($${LXIMEDIA_DIR}/include/liblxistreamgui/linklxistreamgui.pri)
 
 # Files
 HEADERS += ../../../include/LXiMediaCenter \

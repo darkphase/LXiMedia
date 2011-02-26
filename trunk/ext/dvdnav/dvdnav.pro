@@ -1,4 +1,5 @@
 TEMPLATE = subdirs
+CONFIG += ordered
 
 DVDREAD_VERSION = libdvdread-4.1.3
 DVDREAD_HEADERS = $${DVDREAD_VERSION}/src/dvd_reader.h \

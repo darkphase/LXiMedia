@@ -25,8 +25,6 @@
 #include "playlistserver.h"
 #include "tvshowserver.h"
 
-Q_EXPORT_PLUGIN2(PLUGIN_NAME, LXiMediaCenter::MediaPlayerBackend);
-
 namespace LXiMediaCenter {
 
 MediaPlayerBackend::MediaPlayerBackend(QObject *parent)
@@ -75,3 +73,6 @@ QList<BackendServer *> MediaPlayerBackend::createServers(BackendServer::MasterSe
 
 
 } // End of namespace
+
+#include <QtPlugin>
+Q_EXPORT_PLUGIN2("mediaplayer", LXiMediaCenter::MediaPlayerBackend);

@@ -18,6 +18,7 @@
  ***************************************************************************/
 
 #include <QtGui>
+#include <QTest>
 #include "coretest.h"
 #include "dvdnavtest.h"
 #include "ffmpegtest.h"

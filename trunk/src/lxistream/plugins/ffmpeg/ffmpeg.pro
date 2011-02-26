@@ -1,8 +1,6 @@
 PLUGIN_NAME = ffmpeg
 LXIMEDIA_DIR = ../../../..
 include($${LXIMEDIA_DIR}/include/liblxistream/plugin.pri)
-include($${LXIMEDIA_DIR}/include/liblxistream/linklxistream.pri)
-include($${LXIMEDIA_DIR}/include/liblxistreamgui/linklxistreamgui.pri)
 include($${LXIMEDIA_DIR}/ext/ffmpeg/ffmpeg.pri)
 QT += gui \
     network \

@@ -1,4 +1,5 @@
 TEMPLATE = subdirs
+CONFIG += ordered
 
 EXIF_VERSION = libexif-0.6.19
 EXIF_HEADERS = $${EXIF_VERSION}/libexif/_stdint.h \

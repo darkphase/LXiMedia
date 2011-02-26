@@ -1,4 +1,7 @@
 # Linking the lximediacenter library
+include($${LXIMEDIA_DIR}/include/liblxistream/linklxistream.pri)
+include($${LXIMEDIA_DIR}/include/liblxistreamgui/linklxistreamgui.pri)
+
 LXIMEDIACENTER_VERSION_MAJOR = $$system(cat ../../VERSION)
 LXIMEDIACENTER_VERSION_MAJOR ~= s/\\.[0-9]+.+/
 

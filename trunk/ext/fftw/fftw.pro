@@ -1,4 +1,5 @@
 TEMPLATE = subdirs
+CONFIG += ordered
 
 FFTW_VERSION = fftw-3.2.2
 FFTW_HEADERS = $${FFTW_VERSION}/api/fftw3.h

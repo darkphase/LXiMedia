@@ -22,6 +22,10 @@
  ***************************************************************************/
 
 #include "exceptionhandler.h"
+
+#define LIBCWD_THREAD_SAFE
+#define CWDEBUG
+
 #if defined(Q_OS_UNIX)
 #include <bfd.h>
 #elif defined(Q_OS_WIN)

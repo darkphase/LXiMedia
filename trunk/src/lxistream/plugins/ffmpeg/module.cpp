@@ -128,7 +128,5 @@ QByteArray Module::about(void)
 
 } } // End of namespaces
 
-#ifdef PLUGIN_NAME
 #include <QtPlugin>
-Q_EXPORT_PLUGIN2(PLUGIN_NAME, LXiStream::FFMpegBackend::Module);
-#endif
+Q_EXPORT_PLUGIN2("ffmpeg", LXiStream::FFMpegBackend::Module);

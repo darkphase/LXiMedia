@@ -7,13 +7,6 @@ RCC_DIR = $${OBJECTS_DIR}
 INCLUDEPATH += $${LXIMEDIA_DIR}/include/
 DEPENDPATH += ./ $${LXIMEDIA_DIR}/include/
 
-# Precompiled header
-exists($$_PRO_FILE_PWD_/precompiled.h) {
-  CONFIG += precompile_header
-  PRECOMPILED_HEADER = precompiled.h
-  QMAKE_CXXFLAGS += -include precompiled.h
-}
-
 # Version number
 unix|win32-g++ {
   VERSION = $$system(cat ../VERSION)

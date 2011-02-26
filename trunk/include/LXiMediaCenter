@@ -1,6 +1,12 @@
 #ifndef LXMEDIACENTER_MODULE_H
 #define LXMEDIACENTER_MODULE_H
 
+#include <LXiStream>
+
+#ifdef __cplusplus
+
+#include <QtSql>
+
 #include "liblximediacenter/backendserver.h"
 #include "liblximediacenter/database.h"
 #include "liblximediacenter/dlnaserver.h"
@@ -17,5 +23,7 @@
 #include "liblximediacenter/teletext.h"
 
 using namespace LXiMediaCenter;
+
+#endif
 
 #endif

@@ -18,6 +18,10 @@
  ***************************************************************************/
 
 #include "v4l2input.h"
+#include <fcntl.h>
+#include <stropts.h>
+#include <sys/ioctl.h>
+#include <sys/mman.h>
 
 namespace LXiStream {
 namespace V4lBackend {
