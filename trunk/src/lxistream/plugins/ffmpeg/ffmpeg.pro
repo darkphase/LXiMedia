@@ -1,10 +1,9 @@
 PLUGIN_NAME = ffmpeg
 LXIMEDIA_DIR = ../../../..
 include($${LXIMEDIA_DIR}/include/liblxistream/plugin.pri)
+unix:include($${LXIMEDIA_DIR}/include/liblxistream/linklxistream-internal.pri)
+win32:include($${LXIMEDIA_DIR}/include/liblxistream/linklxistream.pri) # Because of -mstackrealign
 include($${LXIMEDIA_DIR}/ext/ffmpeg/ffmpeg.pri)
-QT += gui \
-    network \
-    xml
 
 # Files
 HEADERS += audiodecoder.h \
