@@ -161,18 +161,42 @@ bool BufferReader::start(ReadCallback *rc, ProduceCallback *pc, bool streamed)
             if (streamContext[i]->measurement.count() >= streamContext[i]->measurementSize)
             {
               qSort(streamContext[i]->measurement);
-//              for (unsigned j=7; j<=streamContext[i]->measurementSize-6; j++)
-//                qDebug() << "Delta" << (streamContext[i]->measurement[j] - streamContext[i]->measurement[j-1]).toUSec();
 
-              const STime delta =
-                  streamContext[i]->measurement[streamContext[i]->measurementSize - 6] -
-                  streamContext[i]->measurement[6];
-              const SInterval refFrameRate = streamContext[i]->videoCodec.frameRate();
-              const STime frameTime = delta / (streamContext[i]->measurementSize - 12);
-              const SInterval frameRate(frameTime.count() * frameTime.interval().num(), frameTime.interval().den());
+              QList<qint64> intervals;
+              for (int j=1; j<streamContext[i]->measurementSize; j++)
+                intervals += (streamContext[i]->measurement[j] - streamContext[i]->measurement[j-1]).toUSec();
 
-              if (qAbs(refFrameRate.toFrequency() - frameRate.toFrequency()) > 2.0f)
-                streamContext[i]->videoCodec.setFrameRate(frameRate);
+              qSort(intervals);
+              const qint64 median = intervals[intervals.count() / 2];
+              for (QList<qint64>::Iterator j=intervals.begin(); j!=intervals.end();)
+              if (qAbs(*j - median) < (median / 2))
+                j++;
+              else
+                j = intervals.erase(j);
+
+              while ((intervals.count() % 6) != 0)
+                intervals.takeLast();
+
+//              foreach (int interval, intervals)
+//                qDebug() << "Interval" << interval;
+
+              if (intervals.count() > 0)
+              {
+                qint64 sum = 0;
+                foreach (int interval, intervals)
+                  sum += interval;
+
+                const SInterval refFrameRate = streamContext[i]->videoCodec.frameRate();
+                SInterval frameRate(sum, intervals.count() * 1000000);
+
+                // Check if a 1/1, 1/2, 1/3 or 1/4 of the refFrameRate is a better match.
+                for (int j=1; j<=4; j++)
+                if (qAbs((refFrameRate.toFrequency() / j) - frameRate.toFrequency()) < 0.5)
+                  frameRate = SInterval(refFrameRate.num() * j, refFrameRate.den());
+
+//                qDebug() << "Framerate" << frameRate.toFrequency() << refFrameRate.toFrequency();
+                streamContext[i]->videoCodec.setFrameRate(frameRate.simplified());
+              }
             }
 
             streamContext[i]->measurement.clear();
