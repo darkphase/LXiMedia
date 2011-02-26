@@ -1,4 +1,5 @@
 TEMPLATE = subdirs
+CONFIG += ordered
 
 FFMPEG_VERSION = ffmpeg-0.5.2
 FFMPEG_HEADERS = $${FFMPEG_VERSION}/libavcodec/avcodec.h \

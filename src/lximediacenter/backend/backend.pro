@@ -3,8 +3,6 @@ LXIMEDIA_DIR = ../../..
 DESTDIR = $${LXIMEDIA_DIR}/bin
 TARGET = lximcbackend
 include($${LXIMEDIA_DIR}/include/config.pri)
-include($${LXIMEDIA_DIR}/include/liblxistream/linklxistream.pri)
-include($${LXIMEDIA_DIR}/include/liblxistreamgui/linklxistreamgui.pri)
 include($${LXIMEDIA_DIR}/include/liblximediacenter/linklximediacenter.pri)
 unix { 
     system(mkdir -p $${OBJECTS_DIR})

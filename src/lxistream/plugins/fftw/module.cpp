@@ -62,7 +62,5 @@ QMutex & Module::fftwMutex(void)
 
 } } // End of namespaces
 
-#ifdef PLUGIN_NAME
 #include <QtPlugin>
-Q_EXPORT_PLUGIN2(PLUGIN_NAME, LXiStream::FFTWBackend::Module);
-#endif
+Q_EXPORT_PLUGIN2("fftw", LXiStream::FFTWBackend::Module);

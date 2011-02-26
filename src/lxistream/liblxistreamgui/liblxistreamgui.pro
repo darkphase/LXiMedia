@@ -4,9 +4,8 @@ LXIMEDIA_DIR = ../../..
 DESTDIR = $${LXIMEDIA_DIR}/bin
 TARGET = LXiStreamGui
 include($${LXIMEDIA_DIR}/include/config.pri)
-include($${LXIMEDIA_DIR}/include/liblxistream/linklxistream.pri)
+include($${LXIMEDIA_DIR}/include/liblxistream/linklxistream-internal.pri)
 include($${LXIMEDIA_DIR}/ext/exif/exif.pri)
-QT += gui
 
 INCLUDEPATH += $${LXIMEDIA_DIR}/include/liblxistream $${LXIMEDIA_DIR}/include/liblxistreamgui
 DEPENDPATH += $${LXIMEDIA_DIR}/include/liblxistream $${LXIMEDIA_DIR}/include/liblxistreamgui

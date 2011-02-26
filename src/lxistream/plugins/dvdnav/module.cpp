@@ -53,7 +53,5 @@ QByteArray Module::about(void)
 
 } } // End of namespaces
 
-#ifdef PLUGIN_NAME
 #include <QtPlugin>
-Q_EXPORT_PLUGIN2(PLUGIN_NAME, LXiStream::DVDNavBackend::Module);
-#endif
+Q_EXPORT_PLUGIN2("dvdnav", LXiStream::DVDNavBackend::Module);

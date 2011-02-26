@@ -1,6 +1,5 @@
 TEMPLATE = lib
 CONFIG += dll
-QT -= gui
 LXIMEDIA_DIR = ../../..
 DESTDIR = $${LXIMEDIA_DIR}/bin
 TARGET = LXiStream
@@ -21,6 +20,12 @@ win32 {
 
 INCLUDEPATH += $${LXIMEDIA_DIR}/include/liblxistream
 DEPENDPATH += $${LXIMEDIA_DIR}/include/liblxistream
+
+linux-g++|win32-g++ {
+  # Generate/Use precompiled header
+  CONFIG += precompile_header
+  PRECOMPILED_HEADER = $${LXIMEDIA_DIR}/include/LXiStream
+}
 
 # Files
 HEADERS += $${LXIMEDIA_DIR}/include/LXiStream \
@@ -192,8 +197,6 @@ SOURCES += common/module.cpp
 
 # Platform specific
 unix {
-    DEFINES += LIBCWD_THREAD_SAFE \
-        CWDEBUG
     target.path = /usr/lib
     INSTALLS += target
 }
