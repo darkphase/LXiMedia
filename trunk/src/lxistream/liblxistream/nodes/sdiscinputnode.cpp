@@ -19,7 +19,6 @@
 
 #include "nodes/sdiscinputnode.h"
 #include "sdebug.h"
-#include "sgraph.h"
 
 namespace LXiStream {
 
@@ -32,7 +31,7 @@ struct SDiscInputNode::Data
 
 SDiscInputNode::SDiscInputNode(SGraph *parent, const QString &path)
   : QObject(parent),
-    SInterfaces::SourceNode(parent),
+    SGraph::SourceNode(parent),
     d(new Data())
 {
   d->opened = false;
@@ -141,10 +140,7 @@ void SDiscInputNode::stop(void)
 
 void SDiscInputNode::process(void)
 {
-  if (graph)
-    graph->queue(this, &SDiscInputNode::processTask);
-  else
-    processTask();
+  schedule(&SDiscInputNode::processTask);
 }
 
 STime SDiscInputNode::duration(void) const

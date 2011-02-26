@@ -18,7 +18,6 @@
  ***************************************************************************/
 
 #include "nodes/svideoboxnode.h"
-#include "sgraph.h"
 #include "svideobuffer.h"
 
 // Implemented in svideobox.box.c
@@ -36,16 +35,16 @@ namespace LXiStream {
 
 struct SVideoBoxNode::Data
 {
-  SDependency                 * dependency;
+  SScheduler::Dependency      * dependency;
   SSize                         destSize;
 };
 
 SVideoBoxNode::SVideoBoxNode(SGraph *parent)
   : QObject(parent),
-    SInterfaces::Node(parent),
+    SGraph::Node(parent),
     d(new Data())
 {
-  d->dependency = parent ? new SDependency() : NULL;
+  d->dependency = parent ? new SScheduler::Dependency(parent) : NULL;
   d->destSize = SSize(768, 576);
 }
 
@@ -72,10 +71,8 @@ void SVideoBoxNode::input(const SVideoBuffer &videoBuffer)
   {
     if (videoBuffer.format().size() == d->destSize)
       emit output(videoBuffer);
-    else if (graph)
-      graph->queue(this, &SVideoBoxNode::processTask, videoBuffer, d->dependency);
     else
-      processTask(videoBuffer);
+      schedule(&SVideoBoxNode::processTask, videoBuffer, d->dependency);
   }
   else
     emit output(videoBuffer);

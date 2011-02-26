@@ -18,23 +18,22 @@
  ***************************************************************************/
 
 #include "nodes/svideodeinterlacenode.h"
-#include "sgraph.h"
-#include "svideobuffer.h"
+#include "sinterfaces.h"
 
 namespace LXiStream {
 
 struct SVideoDeinterlaceNode::Data
 {
-  SDependency                 * dependency;
+  SScheduler::Dependency      * dependency;
   SInterfaces::VideoDeinterlacer * deinterlacer;
 };
 
 SVideoDeinterlaceNode::SVideoDeinterlaceNode(SGraph *parent, const QString &algo)
   : QObject(parent),
-    SInterfaces::Node(parent),
+    SGraph::Node(parent),
     d(new Data())
 {
-  d->dependency = parent ? new SDependency() : NULL;
+  d->dependency = parent ? new SScheduler::Dependency(parent) : NULL;
   d->deinterlacer = SInterfaces::VideoDeinterlacer::create(this, algo);
 }
 
@@ -59,10 +58,7 @@ void SVideoDeinterlaceNode::input(const SVideoBuffer &videoBuffer)
     if ((fieldMode == SVideoFormat::FieldMode_InterlacedTopFirst) ||
         (fieldMode == SVideoFormat::FieldMode_InterlacedBottomFirst))
     {
-      if (graph)
-        graph->queue(this, &SVideoDeinterlaceNode::processTask, videoBuffer, d->dependency);
-      else
-        processTask(videoBuffer);
+      schedule(&SVideoDeinterlaceNode::processTask, videoBuffer, d->dependency);
     }
     else
       emit output(videoBuffer);

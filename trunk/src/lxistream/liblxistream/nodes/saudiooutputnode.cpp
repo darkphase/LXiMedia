@@ -18,7 +18,7 @@
  ***************************************************************************/
 
 #include "nodes/saudiooutputnode.h"
-#include "sgraph.h"
+#include "sinterfaces.h"
 #include "stimer.h"
 
 namespace LXiStream {
@@ -35,7 +35,7 @@ struct SAudioOutputNode::Data
 
 SAudioOutputNode::SAudioOutputNode(SGraph *parent, const QString &device)
   : QObject(parent),
-    SInterfaces::SinkNode(parent),
+    SGraph::SinkNode(parent),
     d(new Data())
 {
   d->device = device;

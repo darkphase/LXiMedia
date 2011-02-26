@@ -19,7 +19,6 @@
 
 #include "nodes/stimestampsyncnode.h"
 #include "saudiobuffer.h"
-#include "sgraph.h"
 #include "svideobuffer.h"
 
 namespace LXiStream {
@@ -58,7 +57,7 @@ struct STimeStampSyncNode::Data
 
 STimeStampSyncNode::STimeStampSyncNode(SGraph *parent)
   : QObject(parent),
-    SInterfaces::Node(parent),
+    SGraph::Node(parent),
     d(new Data())
 {
   d->frameRate = SInterval::fromFrequency(25);

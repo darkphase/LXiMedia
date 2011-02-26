@@ -26,9 +26,7 @@ namespace SDebug {
 
 const int           Locker::maxLockTime = 60000;
 const char * const  Locker::nullType = "null";
-const char * const  MutexLocker::type = "MutexLocker";
-const char * const  ReadLocker::type = "ReadLocker";
-const char * const  WriteLocker::type = "WriteLocker";
+const char * const  Locker::type = "Locker";
 
 void Locker::initialize(void)
 {

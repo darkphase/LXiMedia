@@ -18,23 +18,22 @@
  ***************************************************************************/
 
 #include "nodes/svideoencodernode.h"
-#include "sgraph.h"
 #include "svideobuffer.h"
 
 namespace LXiStream {
 
 struct SVideoEncoderNode::Data
 {
-  SDependency                 * dependency;
+  SScheduler::Dependency      * dependency;
   SInterfaces::VideoEncoder   * encoder;
 };
 
 SVideoEncoderNode::SVideoEncoderNode(SGraph *parent)
   : QObject(parent),
-    SInterfaces::Node(parent),
+    SGraph::Node(parent),
     d(new Data())
 {
-  d->dependency = parent ? new SDependency() : NULL;
+  d->dependency = parent ? new SScheduler::Dependency(parent) : NULL;
 }
 
 SVideoEncoderNode::~SVideoEncoderNode()
@@ -69,12 +68,7 @@ SVideoCodec SVideoEncoderNode::codec(void) const
 void SVideoEncoderNode::input(const SVideoBuffer &videoBuffer)
 {
   if (d->encoder)
-  {
-    if (graph)
-      graph->queue(this, &SVideoEncoderNode::processTask, videoBuffer, d->dependency);
-    else
-      processTask(videoBuffer);
-  }
+    schedule(&SVideoEncoderNode::processTask, videoBuffer, d->dependency);
 }
 
 void SVideoEncoderNode::processTask(const SVideoBuffer &videoBuffer)

@@ -17,8 +17,7 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include <liblxistream/nodes/siooutputnode.h>
-#include <liblxistream/sgraph.h>
+#include "nodes/siooutputnode.h"
 
 namespace LXiStream {
 
@@ -33,7 +32,7 @@ struct SIOOutputNode::Data
 
 SIOOutputNode::SIOOutputNode(SGraph *parent, QIODevice *ioDevice)
   : QObject(parent),
-    SInterfaces::SinkNode(parent),
+    SGraph::SinkNode(parent),
     d(new Data())
 {
   d->ioDevice = ioDevice;

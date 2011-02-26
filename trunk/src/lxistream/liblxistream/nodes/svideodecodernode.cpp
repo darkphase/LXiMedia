@@ -18,14 +18,13 @@
  ***************************************************************************/
 
 #include "nodes/svideodecodernode.h"
-#include "sgraph.h"
 #include "svideobuffer.h"
 
 namespace LXiStream {
 
 struct SVideoDecoderNode::Data
 {
-  SDependency                 * dependency;
+  SScheduler::Dependency      * dependency;
   SVideoDecoderNode::Flags      flags;
   SVideoCodec                   lastCodec;
   SInterfaces::VideoDecoder   * decoder;
@@ -33,10 +32,10 @@ struct SVideoDecoderNode::Data
 
 SVideoDecoderNode::SVideoDecoderNode(SGraph *parent, Flags flags)
   : QObject(parent),
-    SInterfaces::Node(parent),
+    SGraph::Node(parent),
     d(new Data())
 {
-  d->dependency = parent ? new SDependency() : NULL;
+  d->dependency = parent ? new SScheduler::Dependency(parent) : NULL;
   d->flags = flags;
   d->decoder = NULL;
 }
@@ -78,10 +77,7 @@ void SVideoDecoderNode::input(const SEncodedVideoBuffer &videoBuffer)
       qWarning() << "Failed to find video decoder for codec" << d->lastCodec.codec();
   }
 
-  if (graph)
-    graph->queue(this, &SVideoDecoderNode::processTask, videoBuffer, d->decoder, d->dependency);
-  else
-    processTask(videoBuffer, d->decoder);
+  schedule(&SVideoDecoderNode::processTask, videoBuffer, d->decoder, d->dependency);
 }
 
 void SVideoDecoderNode::processTask(const SEncodedVideoBuffer &videoBuffer, SInterfaces::VideoDecoder *decoder)

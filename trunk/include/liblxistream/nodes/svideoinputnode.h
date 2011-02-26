@@ -21,7 +21,8 @@
 #define LXISTREAM_SVIDEOINPUTNODE_H
 
 #include <QtCore>
-#include "../sinterfaces.h"
+#include "../sgraph.h"
+#include "../svideobuffer.h"
 
 namespace LXiStream {
 
@@ -29,7 +30,7 @@ namespace LXiStream {
     from a video device such as a webcam or video capture card.
  */
 class SVideoInputNode : public QObject,
-                        public SInterfaces::SourceNode
+                        public SGraph::SourceNode
 {
 Q_OBJECT
 public:

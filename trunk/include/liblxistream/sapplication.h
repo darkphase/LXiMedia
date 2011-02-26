@@ -23,6 +23,7 @@
 #include <QtCore>
 #include "sfactory.h"
 #include "sinterfaces.h"
+#include "sscheduler.h"
 
 #define sApp (SApplication::instance())
 
@@ -34,9 +35,9 @@ class SGraph;
 class SNode;
 class SProber;
 class STerminal;
-class SThreadPool;
 
-class SApplication : public QObject
+class SApplication : public QObject,
+                     public SScheduler
 {
 Q_OBJECT
 friend class SFactory;
@@ -84,6 +85,12 @@ public:
 
   bool                          loadModule(SInterfaces::Module *);
   QByteArray                    about(void) const;
+
+protected: // From QObject
+  virtual void                  customEvent(QEvent *);
+
+protected: // From SScheduler
+  virtual void                  queueSchedule(Dependency *);
 
 private:
   static QList<SFactory *>    & factories(void);

@@ -20,7 +20,6 @@
 #include "nodes/saudiovideoinputnode.h"
 #include "sdebug.h"
 #include "sinterfaces.h"
-#include "sgraph.h"
 #include "sstringparser.h"
 
 namespace LXiStream {
@@ -40,7 +39,7 @@ struct SAudioVideoInputNode::Data
 
 SAudioVideoInputNode::SAudioVideoInputNode(SGraph *parent, const QString &device)
   : QObject(parent),
-    SInterfaces::SourceNode(parent),
+    SGraph::SourceNode(parent),
     d(new Data())
 {
   d->device = device;

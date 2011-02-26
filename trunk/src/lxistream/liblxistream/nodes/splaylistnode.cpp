@@ -20,14 +20,13 @@
 #include "nodes/splaylistnode.h"
 #include "nodes/sfileinputnode.h"
 #include "sdebug.h"
-#include "sgraph.h"
 
 namespace LXiStream {
 
 
 struct SPlaylistNode::Data
 {
-  SDependency                 * dependency;
+  SScheduler::Dependency      * dependency;
 
   QStringList                   fileNames;
   int                           currentFile;
@@ -40,10 +39,10 @@ struct SPlaylistNode::Data
 
 SPlaylistNode::SPlaylistNode(SGraph *parent, const SMediaInfoList &files)
   : QObject(parent),
-    SInterfaces::SourceNode(parent),
+    SGraph::SourceNode(parent),
     d(new Data())
 {
-  d->dependency = parent ? new SDependency() : NULL;
+  d->dependency = parent ? new SScheduler::Dependency(parent) : NULL;
 
   d->currentFile = 0;
   d->file = NULL;
@@ -129,10 +128,7 @@ void SPlaylistNode::stop(void)
 
 void SPlaylistNode::process(void)
 {
-  if (graph)
-    graph->queue(this, &SPlaylistNode::processTask, d->dependency);
-  else
-    processTask();
+  schedule(&SPlaylistNode::processTask, d->dependency);
 }
 
 STime SPlaylistNode::duration(void) const

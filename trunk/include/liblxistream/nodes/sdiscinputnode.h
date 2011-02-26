@@ -21,6 +21,7 @@
 #define LXISTREAM_SDISCINPUTNODE_H
 
 #include <QtCore>
+#include "../sgraph.h"
 #include "../sinterfaces.h"
 
 namespace LXiStream {
@@ -28,7 +29,7 @@ namespace LXiStream {
 /*! This is a generic intput node, reading to a QIODevice.
  */
 class SDiscInputNode : public QObject,
-                       public SInterfaces::SourceNode,
+                       public SGraph::SourceNode,
                        public SInterfaces::BufferReaderNode,
                        protected SInterfaces::BufferReader::ProduceCallback
 {

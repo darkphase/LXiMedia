@@ -64,7 +64,7 @@ struct SVideoView::Private
 
 SVideoView::SVideoView(QWidget *parent)
   : QWidget(parent),
-    SInterfaces::SinkNode(NULL),
+    SGraph::SinkNode(NULL),
     p(new Private())
 {
   p->slowUpdate = false;

@@ -110,8 +110,7 @@ private:
   static const int              basePriority = INT_MIN + 1;
   static const QEvent::Type     tryMirrorEventType;
 
-  SThreadPool           * const threadPool;
-  SDependency                   mutex;
+  SScheduler::Dependency        mutex;
   QDir                          cacheDir;
   QFile                         moviesFile;
   QFile                         plotFile;

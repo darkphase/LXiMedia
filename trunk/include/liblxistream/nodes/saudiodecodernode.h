@@ -22,13 +22,14 @@
 
 #include <QtCore>
 #include "../sinterfaces.h"
+#include "../sgraph.h"
 
 namespace LXiStream {
 
 class SAudioBuffer;
 
 class SAudioDecoderNode : public QObject,
-                          public SInterfaces::Node
+                          public SGraph::Node
 {
 Q_OBJECT
 Q_PROPERTY(LXiStream::SInterfaces::AudioDecoder::Flags flags READ flags WRITE setFlags)

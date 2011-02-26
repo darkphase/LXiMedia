@@ -21,7 +21,8 @@
 #define LXISTREAM_SAUDIOMATRIXNODE_H
 
 #include <QtCore>
-#include "../sinterfaces.h"
+#include "../saudiobuffer.h"
+#include "../sgraph.h"
 
 namespace LXiStream {
 
@@ -33,7 +34,7 @@ namespace LXiStream {
     channel for the center speaker and the subwoofer.
  */
 class SAudioMatrixNode : public QObject,
-                         public SInterfaces::Node
+                         public SGraph::Node
 {
 Q_OBJECT
 public:

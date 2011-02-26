@@ -18,14 +18,13 @@
  ***************************************************************************/
 
 #include "nodes/svideoformatconvertnode.h"
-#include "sgraph.h"
-#include "svideobuffer.h"
+#include "sinterfaces.h"
 
 namespace LXiStream {
 
 struct SVideoFormatConvertNode::Data
 {
-  SDependency                 * dependency;
+  SScheduler::Dependency      * dependency;
   SVideoFormat::Format          sourceFormat;
   SVideoFormat::Format          destFormat;
   SInterfaces::VideoFormatConverter * converter;
@@ -33,10 +32,10 @@ struct SVideoFormatConvertNode::Data
 
 SVideoFormatConvertNode::SVideoFormatConvertNode(SGraph *parent)
   : QObject(parent),
-    SInterfaces::Node(parent),
+    SGraph::Node(parent),
     d(new Data())
 {
-  d->dependency = parent ? new SDependency() : NULL;
+  d->dependency = parent ? new SScheduler::Dependency(parent) : NULL;
   d->sourceFormat = SVideoFormat::Format_Invalid;
   d->destFormat = SVideoFormat::Format_Invalid;
   d->converter = NULL;
@@ -130,10 +129,8 @@ void SVideoFormatConvertNode::input(const SVideoBuffer &videoBuffer)
   {
     if (videoBuffer.format() == d->destFormat)
       emit output(videoBuffer);
-    else if (graph)
-      graph->queue(this, &SVideoFormatConvertNode::processTask, videoBuffer, d->dependency);
     else
-      processTask(videoBuffer);
+      schedule(&SVideoFormatConvertNode::processTask, videoBuffer, d->dependency);
   }
 }
 

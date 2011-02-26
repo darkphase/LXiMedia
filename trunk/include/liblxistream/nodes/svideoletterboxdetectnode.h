@@ -21,14 +21,15 @@
 #define LXSTREAM_SVIDEOLETTERBOXDETECTNODE_H
 
 #include <QtCore>
-#include "../sinterfaces.h"
+#include "../sgraph.h"
+#include "../svideobuffer.h"
 
 namespace LXiStream {
 
 class SVideoBuffer;
 
 class SVideoLetterboxDetectNode : public QObject,
-                                  public SInterfaces::Node
+                                  public SGraph::Node
 {
 Q_OBJECT
 Q_PROPERTY(unsigned delayFrames READ delayFrames WRITE setDelayFrames)

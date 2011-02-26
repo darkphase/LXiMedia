@@ -21,8 +21,9 @@
 #define LXISTREAM_SVIDEOBOXNODE_H
 
 #include <QtCore>
-#include "../sinterfaces.h"
+#include "../sgraph.h"
 #include "../ssize.h"
+#include "../svideobuffer.h"
 
 namespace LXiStream {
 
@@ -30,7 +31,7 @@ class SVideoBuffer;
 
 
 class SVideoBoxNode : public QObject,
-                      public SInterfaces::Node
+                      public SGraph::Node
 {
 Q_OBJECT
 Q_PROPERTY(QSize size READ __internal_size WRITE __internal_setSize)

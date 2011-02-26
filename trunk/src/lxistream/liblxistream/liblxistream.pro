@@ -44,14 +44,14 @@ HEADERS += $${LXIMEDIA_DIR}/include/LXiStream \
     $${LXIMEDIA_DIR}/include/liblxistream/sinterval.h \
     $${LXIMEDIA_DIR}/include/liblxistream/smediainfo.h \
     $${LXIMEDIA_DIR}/include/liblxistream/spixels.h \
+    $${LXIMEDIA_DIR}/include/liblxistream/sscheduler.h \
+    $${LXIMEDIA_DIR}/include/liblxistream/sscheduler.hpp \
     $${LXIMEDIA_DIR}/include/liblxistream/sserializable.h \
     $${LXIMEDIA_DIR}/include/liblxistream/ssize.h \
     $${LXIMEDIA_DIR}/include/liblxistream/sstringparser.h \
     $${LXIMEDIA_DIR}/include/liblxistream/ssubpicturebuffer.h \
     $${LXIMEDIA_DIR}/include/liblxistream/ssubtitlebuffer.h \
     $${LXIMEDIA_DIR}/include/liblxistream/ssubtitlefile.h \
-    $${LXIMEDIA_DIR}/include/liblxistream/sthreadpool.h \
-    $${LXIMEDIA_DIR}/include/liblxistream/sthreadpool.hpp \
     $${LXIMEDIA_DIR}/include/liblxistream/stime.h \
     $${LXIMEDIA_DIR}/include/liblxistream/stimer.h \
     $${LXIMEDIA_DIR}/include/liblxistream/stuner.h \
@@ -74,6 +74,7 @@ SOURCES += sapplication.cpp \
     sinterfaces.cpp \
     sinterval.cpp \
     smediainfo.cpp \
+    sscheduler.cpp \
     sserializable.cpp \
     sstringparser.cpp \
     sstringparser.iso639.cpp \
@@ -82,7 +83,6 @@ SOURCES += sapplication.cpp \
     ssubtitlefile.cpp \
     spixels.cpp \
     spixels.convert.c \
-    sthreadpool.cpp \
     stime.cpp \
     stimer.cpp \
     svideobuffer.cpp \

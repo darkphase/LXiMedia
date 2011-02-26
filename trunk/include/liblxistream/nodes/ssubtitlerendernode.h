@@ -21,12 +21,15 @@
 #define LXSTREAM_SSUBTITLERENDERNODE_H
 
 #include <QtCore>
-#include "../sinterfaces.h"
+#include "../sgraph.h"
+#include "../spixels.h"
+#include "../ssubtitlebuffer.h"
+#include "../svideobuffer.h"
 
 namespace LXiStream {
 
 class SSubtitleRenderNode : public QObject,
-                            public SInterfaces::Node
+                            public SGraph::Node
 {
 Q_OBJECT
 Q_PROPERTY(unsigned fontRatio READ fontRatio WRITE setFontRatio)

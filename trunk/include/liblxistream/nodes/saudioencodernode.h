@@ -22,11 +22,12 @@
 
 #include <QtCore>
 #include "../sinterfaces.h"
+#include "../sgraph.h"
 
 namespace LXiStream {
 
 class SAudioEncoderNode : public QObject,
-                          public SInterfaces::Node
+                          public SGraph::Node
 {
 Q_OBJECT
 public:

@@ -19,13 +19,12 @@
 
 #include "nodes/sdatadecodernode.h"
 #include "ssubtitlebuffer.h"
-#include "sgraph.h"
 
 namespace LXiStream {
 
 struct SDataDecoderNode::Data
 {
-  SDependency                 * dependency;
+  SScheduler::Dependency      * dependency;
   SDataDecoderNode::Flags       flags;
   SDataCodec                    lastCodec;
   SInterfaces::DataDecoder    * decoder;
@@ -33,10 +32,10 @@ struct SDataDecoderNode::Data
 
 SDataDecoderNode::SDataDecoderNode(SGraph *parent, Flags flags)
   : QObject(parent),
-    SInterfaces::Node(parent),
+    SGraph::Node(parent),
     d(new Data())
 {
-  d->dependency = parent ? new SDependency() : NULL;
+  d->dependency = parent ? new SScheduler::Dependency(parent) : NULL;
   d->flags = flags;
   d->decoder = NULL;
 }
@@ -78,10 +77,7 @@ void SDataDecoderNode::input(const SEncodedDataBuffer &dataBuffer)
       qWarning() << "Failed to find data decoder for codec" << d->lastCodec.codec();
   }
 
-  if (graph)
-    graph->queue(this, &SDataDecoderNode::processTask, dataBuffer, d->decoder, d->dependency);
-  else
-    processTask(dataBuffer, d->decoder);
+  schedule(&SDataDecoderNode::processTask, dataBuffer, d->decoder, d->dependency);
 }
 
 void SDataDecoderNode::processTask(const SEncodedDataBuffer &dataBuffer, SInterfaces::DataDecoder *decoder)

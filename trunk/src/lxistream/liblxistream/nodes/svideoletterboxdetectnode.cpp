@@ -18,7 +18,6 @@
  ***************************************************************************/
 
 #include "nodes/svideoletterboxdetectnode.h"
-#include "sgraph.h"
 #include "svideobuffer.h"
 
 namespace LXiStream {
@@ -33,7 +32,7 @@ struct SVideoLetterboxDetectNode::Data
 
 SVideoLetterboxDetectNode::SVideoLetterboxDetectNode(SGraph *parent)
   : QObject(parent),
-    SInterfaces::Node(parent),
+    SGraph::Node(parent),
     d(new Data())
 {
   d->numFrames = 2;
