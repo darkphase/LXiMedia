@@ -17,11 +17,12 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef SLIDESHOWSOURCE_H
-#define SLIDESHOWSOURCE_H
+#ifndef SLIDESHOWNODE_H
+#define SLIDESHOWNODE_H
 
 #include <QtCore>
 #include <LXiStream>
+#include "mediadatabase.h"
 
 namespace LXiMediaCenter {
 
@@ -30,7 +31,7 @@ class SlideShowNode : public QObject,
 {
 Q_OBJECT
 public:
-                                SlideShowNode(SGraph *parent, const QStringList &pictures);
+                                SlideShowNode(SGraph *parent, const QList<MediaDatabase::File> &files, MediaDatabase *);
   virtual                       ~SlideShowNode();
 
   SSize                         size(void) const;
@@ -49,7 +50,7 @@ signals:
   void                          finished(void);
 
 private:
-  void                          loadImage(int);
+  void                          loadImage(const QString &);
   void                          computeVideoBuffer(const SVideoBuffer &, const SVideoBuffer &, int);
   void                          sendFlush(void);
   SVideoBuffer                  blackBuffer(void) const;
@@ -59,7 +60,8 @@ public:
   static const int              slideFrameCount = 180;
 
 private:
-  const QStringList             pictures;
+  const QList<MediaDatabase::File> files;
+  MediaDatabase          * const mediaDatabase;
 
   SScheduler::Dependency * const loadDependency;
   SScheduler::Dependency * const procDependency;

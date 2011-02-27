@@ -41,15 +41,7 @@ HttpServer::SocketOp PhotoServer::streamVideo(const HttpServer::RequestHeader &r
     const QList<MediaDatabase::File> files = mediaDatabase->getAlbumFiles(MediaDatabase::Category_Photos, album);
     if (!files.isEmpty())
     {
-      QStringList fileNames;
-      foreach (const MediaDatabase::File &file, files)
-      {
-        const SMediaInfo node = mediaDatabase->readNode(file.uid);
-        if (!node.isNull())
-          fileNames.append(node.filePath());
-      }
-
-      SlideShowStream *stream = new SlideShowStream(this, socket->peerAddress(), request.path(), fileNames);
+      SlideShowStream *stream = new SlideShowStream(this, socket->peerAddress(), request.path(), files);
       if (stream->setup(request, socket))
       if (stream->start())
         return HttpServer::SocketOp_LeaveOpen; // The graph owns the socket now.
@@ -141,9 +133,9 @@ HttpServer::SocketOp PhotoServer::sendPhoto(QAbstractSocket *socket, MediaDataba
 }
 
 
-PhotoServer::SlideShowStream::SlideShowStream(PhotoServer *parent, const QHostAddress &peer, const QString &url, const QStringList &fileNames)
+PhotoServer::SlideShowStream::SlideShowStream(PhotoServer *parent, const QHostAddress &peer, const QString &url, const QList<MediaDatabase::File> &files)
   : Stream(parent, peer, url),
-    slideShow(this, fileNames)
+    slideShow(this, files, parent->mediaDatabase)
 {
   connect(&slideShow, SIGNAL(finished()), SLOT(stop()));
   connect(&slideShow, SIGNAL(output(SAudioBuffer)), &sync, SLOT(input(SAudioBuffer)));

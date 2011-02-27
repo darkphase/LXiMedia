@@ -58,29 +58,41 @@ SPlaylistNode::SPlaylistNode(SGraph *parent, const SMediaInfoList &files)
   d->file = NULL;
   d->nextFile = NULL;
 
-  d->audioStreamInfo.codec = SAudioCodec("*", SAudioFormat::Channel_Stereo, 48000);
   d->hasVideo = true;
-  d->videoStreamInfo.codec = SVideoCodec("*");
 
-  int fps15 = 0, fps25 = 0, fps30 = 0;
-  SSize size;
+  bool surround = true;
+  int fps15 = 0, fps24 = 0, fps25 = 0, fps30 = 0;
+  int sizeSD = 0, size720 = 0, size1080 = 0;
+  SSize maxSize;
   foreach (const SMediaInfo &file, files)
   {
-    d->hasVideo &= file.containsVideo();
+    if (surround && file.containsAudio())
+    foreach (const AudioStreamInfo &info, file.audioStreams())
+      surround &= info.codec.numChannels() >= 5;
 
+    d->hasVideo &= file.containsVideo();
     if (d->hasVideo)
     foreach (const VideoStreamInfo &info, file.videoStreams())
     {
       const double frameRate = info.codec.frameRate().toFrequency();
-      if (frameRate < 20.0)
+      if (frameRate < 23.0)
         fps15++;
-      else if ((frameRate < 27.5) || ((frameRate >= 40.0) && (frameRate < 55.0)))
+      else if ((frameRate < 24.5) || ((frameRate >= 44.0) && (frameRate < 49.0)))
+        fps24++;
+      else if ((frameRate < 27.5) || ((frameRate >= 44.0) && (frameRate < 55.0)))
         fps25++;
-      else if ((frameRate < 40.0) || ((frameRate >= 55.0) && (frameRate < 65.0)))
+      else if ((frameRate < 32.5) || ((frameRate >= 55.0) && (frameRate < 65.0)))
         fps30++;
 
-      if (size.isNull() || (info.codec.size() > size))
-        size = info.codec.size();
+      if (info.codec.size().width() < 1280)
+        sizeSD++;
+      else if (info.codec.size().width() < 1920)
+        size720++;
+      else
+        size1080++;
+
+      if (maxSize.isNull() || (info.codec.size() > maxSize))
+        maxSize = info.codec.size();
     }
 
     d->fileNames += file.filePath();
@@ -88,16 +100,32 @@ SPlaylistNode::SPlaylistNode(SGraph *parent, const SMediaInfoList &files)
     d->duration += file.duration();
   }
 
+  if (surround)
+    d->audioStreamInfo.codec = SAudioCodec("*", SAudioFormat::Channel_Surround_5_1, 48000);
+  else
+    d->audioStreamInfo.codec = SAudioCodec("*", SAudioFormat::Channel_Stereo, 48000);
+
   if (d->hasVideo)
   {
-    if ((fps15 > fps25) && (fps15 > fps30))
+    d->videoStreamInfo.codec = SVideoCodec("*");
+
+    if ((fps15 > fps24) && (fps15 > fps25) && (fps15 > fps30))
       d->videoStreamInfo.codec.setFrameRate(SInterval::fromFrequency(15));
-    else if ((fps30 > fps25) && (fps30 > fps15))
+    else if ((fps24 > fps15) && (fps24 > fps25) && (fps24 > fps30))
+      d->videoStreamInfo.codec.setFrameRate(SInterval::fromFrequency(24));
+    else if ((fps25 > fps15) && (fps25 > fps24) && (fps25 > fps30))
+      d->videoStreamInfo.codec.setFrameRate(SInterval::fromFrequency(25));
+    else if ((fps30 > fps15) && (fps30 > fps24) && (fps30 > fps25))
       d->videoStreamInfo.codec.setFrameRate(SInterval::fromFrequency(30));
-    else
+    else // Default
       d->videoStreamInfo.codec.setFrameRate(SInterval::fromFrequency(25));
 
-    d->videoStreamInfo.codec.setSize(size);
+    if ((size720 == 0) && (size1080 == 0))
+      d->videoStreamInfo.codec.setSize(maxSize);
+    else if (size1080 > size720)
+      d->videoStreamInfo.codec.setSize(SSize(1920, 1080));
+    else
+      d->videoStreamInfo.codec.setSize(SSize(1280, 720));
   }
 }
 
