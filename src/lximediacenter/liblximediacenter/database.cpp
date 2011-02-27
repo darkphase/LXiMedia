@@ -78,11 +78,14 @@ QSqlDatabase & Database::database(void)
 void Database::handleError(const ::QSqlQuery &query, const QString &q)
 {
   const QString error = query.lastError().text();
-  if (error.contains("database disk image is malformed", Qt::CaseInsensitive))
+  if (error.contains("database disk image is malformed", Qt::CaseInsensitive) ||
+      error.contains("unsupported file format", Qt::CaseInsensitive))
   { // Big trouble here ...
     qCritical() << "Fatal database error" << error << "attempting to recover.";
 
-    shutdown();
+    database().close();
+    database() = QSqlDatabase();
+    QSqlDatabase::removeDatabase("LXiMediaCenter");
 
     const QString corruptFile = GlobalSettings::databaseFile() + ".corrupt";
     QFile::remove(corruptFile);
