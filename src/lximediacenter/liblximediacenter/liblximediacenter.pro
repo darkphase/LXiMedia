@@ -67,8 +67,7 @@ SOURCES += backendserver.cpp \
  ssdpserver.cpp \
  teletext.cpp
 
-RESOURCES = images/lximediacenter_images.qrc \
- dlnaserver.qrc
+RESOURCES = images/lximediacenter_images.qrc
 
 unix {
     LIBS += -lz

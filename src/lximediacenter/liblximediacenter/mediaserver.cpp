@@ -560,19 +560,16 @@ bool MediaServer::Stream::setup(const HttpServer::RequestHeader &request, QAbstr
 
   if (file.last().toLower() == "mpa")
   {
-    header.setContentType("audio/mpeg");
-
     const SAudioCodec audioOutCodec("MP2", SAudioFormat::Channel_Stereo, 48000);
     audioResampler.setChannels(audioOutCodec.channelSetup());
     audioResampler.setSampleRate(audioOutCodec.sampleRate());
     audioEncoder.openCodec(audioOutCodec, audioEncodeFlags);
 
     output.openFormat("mp2", audioEncoder.codec(), SVideoCodec(), duration);
+    header.setContentType("audio/mpeg");
   }
   /*else if ((file.last().toLower() == "ogg") || (file.last().toLower() == "oga"))
   {
-    header.setContentType("audio/ogg");
-
     const SAudioCodec audioOutCodec("FLAC", SAudioFormat::Channel_Stereo, 44100);
     audioDecoder.setFlags(SInterfaces::AudioDecoder::Flag_DownsampleToStereo);
     audioResampler.setChannels(audioOutCodec.channelSetup());
@@ -581,11 +578,10 @@ bool MediaServer::Stream::setup(const HttpServer::RequestHeader &request, QAbstr
 
     output.enablePseudoStreaming(1.1f);
     output.openFormat("ogg", audioEncoder.codec(), SVideoCodec(), duration);
+    header.setContentType("audio/ogg");
   }*/
   else if (file.last().toLower() == "wav")
   {
-    header.setContentType("audio/wave");
-
     const SAudioCodec audioOutCodec("PCM/S16LE", SAudioFormat::Channel_Stereo, 44100);
     audioResampler.setChannels(audioOutCodec.channelSetup());
     audioResampler.setSampleRate(audioOutCodec.sampleRate());
@@ -593,11 +589,10 @@ bool MediaServer::Stream::setup(const HttpServer::RequestHeader &request, QAbstr
 
     output.enablePseudoStreaming(1.1f);
     output.openFormat("wav", audioEncoder.codec(), SVideoCodec(), duration);
+    header.setContentType("audio/wave");
   }
   else if (file.last().toLower() == "flv")
   {
-    header.setContentType("video/x-flv");
-
     const SAudioCodec audioOutCodec("PCM/S16LE", SAudioFormat::Channel_Stereo, 44100);
     audioResampler.setChannels(audioOutCodec.channelSetup());
     audioResampler.setSampleRate(audioOutCodec.sampleRate());
@@ -605,6 +600,7 @@ bool MediaServer::Stream::setup(const HttpServer::RequestHeader &request, QAbstr
 
     output.enablePseudoStreaming(1.1f);
     output.openFormat("flv", audioEncoder.codec(), SVideoCodec(), duration);
+    header.setContentType("video/x-flv");
   }
   else
     return false;
