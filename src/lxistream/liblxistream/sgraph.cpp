@@ -149,7 +149,8 @@ void SGraph::stop(void)
     p->stopping = true;
 
   if (p->stopping && (QThread::currentThread() != this))
-    QThread::wait();
+  while (!QThread::wait(250))
+    QCoreApplication::postEvent(this, new QEvent(p->scheduleSourceEventType));
 }
 
 void SGraph::queueSchedule(Dependency *depends)

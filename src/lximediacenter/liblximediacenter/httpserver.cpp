@@ -166,6 +166,7 @@ const char * HttpServer::toMimeType(const QString &fileName)
   else if (ext == "xml")    return "text/xml;charset=utf-8";
   else if (ext == "mpeg")   return "video/mpeg";
   else if (ext == "mpg")    return "video/mpeg";
+  else if (ext == "mp4")    return "video/mpeg";
   else if (ext == "ogv")    return "video/ogg";
   else if (ext == "ogx")    return "video/ogg";
   else if (ext == "spx")    return "video/ogg";

@@ -29,6 +29,9 @@ struct STimeStampResamplerNode::Data
   double                        maxRatio;
   double                        ratio;
   bool                          resample;
+
+  STime                         highestTimeStamp;
+  QList<STime>                  outputOffset;
 };
 
 STimeStampResamplerNode::STimeStampResamplerNode(SGraph *parent)
@@ -39,6 +42,9 @@ STimeStampResamplerNode::STimeStampResamplerNode(SGraph *parent)
   d->maxRatio = 0.0;
   d->ratio = 1.0;
   d->resample = false;
+
+  d->highestTimeStamp = STime::null;
+  d->outputOffset.append(STime::null);
 }
 
 STimeStampResamplerNode::~STimeStampResamplerNode()
@@ -57,19 +63,26 @@ void STimeStampResamplerNode::setFrameRate(SInterval frameRate, double maxRatio)
 
 void STimeStampResamplerNode::input(const SAudioBuffer &audioBuffer)
 {
-  if (!audioBuffer.isNull() && d->resample)
+  Q_ASSERT(QThread::currentThread() == thread());
+
+  if (!audioBuffer.isNull())
   {
     SAudioBuffer buffer = audioBuffer;
 
-    SAudioFormat f = buffer.format();
-    const unsigned oldSampleRate = f.sampleRate();
-    const unsigned sampleRate = unsigned(oldSampleRate * d->ratio) & ~1u;
-    f.setSampleRate(sampleRate);
-    buffer.setFormat(f);
+    if (d->resample)
+    {
+      SAudioFormat f = buffer.format();
+      const unsigned oldSampleRate = f.sampleRate();
+      const unsigned sampleRate = unsigned(oldSampleRate * d->ratio) & ~1u;
+      f.setSampleRate(sampleRate);
+      buffer.setFormat(f);
 
-    const STime timeStamp = buffer.timeStamp();
-    if (timeStamp.isValid())
-      buffer.setTimeStamp(STime(qint64(timeStamp.count() / d->ratio), timeStamp.interval()));
+      const STime timeStamp = buffer.timeStamp();
+      if (timeStamp.isValid())
+        buffer.setTimeStamp(correct(STime(qint64(timeStamp.count() / d->ratio), timeStamp.interval())));
+    }
+    else
+      buffer.setTimeStamp(correct(buffer.timeStamp()));
 
     emit output(buffer);
   }
@@ -79,6 +92,8 @@ void STimeStampResamplerNode::input(const SAudioBuffer &audioBuffer)
 
 void STimeStampResamplerNode::input(const SVideoBuffer &videoBuffer)
 {
+  Q_ASSERT(QThread::currentThread() == thread());
+
   if (!videoBuffer.isNull() && d->frameRate.isValid())
   {
     const SInterval srcInterval = videoBuffer.format().frameRate();
@@ -87,12 +102,12 @@ void STimeStampResamplerNode::input(const SVideoBuffer &videoBuffer)
 
     d->ratio = dstRate / srcRate;
 
+    SVideoBuffer buffer = videoBuffer;
+
     // Only resample if needed and below maxRatio.
     d->resample = !qFuzzyCompare(d->ratio, 1.0) && (qAbs(d->ratio - 1.0) < d->maxRatio);
     if (d->resample)
     {
-      SVideoBuffer buffer = videoBuffer;
-
       SVideoFormat f = buffer.format();
       f.setFrameRate(d->frameRate);
       buffer.setFormat(f);
@@ -101,26 +116,34 @@ void STimeStampResamplerNode::input(const SVideoBuffer &videoBuffer)
       if (timeStamp.isValid())
       {
         qint64 clock = timeStamp.toClock(srcInterval);
-        buffer.setTimeStamp(STime::fromClock(clock, d->frameRate));
+        buffer.setTimeStamp(correct(STime::fromClock(clock, d->frameRate)));
       }
-
-      emit output(buffer);
-      return;
     }
-  }
+    else
+      buffer.setTimeStamp(correct(buffer.timeStamp()));
 
-  emit output(videoBuffer);
+    emit output(buffer);
+  }
+  else
+    emit output(videoBuffer);
 }
 
 void STimeStampResamplerNode::input(const SSubpictureBuffer &subpictureBuffer)
 {
-  if (!subpictureBuffer.isNull() && d->resample)
+  Q_ASSERT(QThread::currentThread() == thread());
+
+  if (!subpictureBuffer.isNull())
   {
     SSubpictureBuffer buffer = subpictureBuffer;
 
-    const STime timeStamp = buffer.timeStamp();
-    if (timeStamp.isValid())
-      buffer.setTimeStamp(STime(qint64(timeStamp.count() / d->ratio), timeStamp.interval()));
+    if (d->resample)
+    {
+      const STime timeStamp = buffer.timeStamp();
+      if (timeStamp.isValid())
+        buffer.setTimeStamp(correct(STime(qint64(timeStamp.count() / d->ratio), timeStamp.interval())));
+    }
+    else
+      buffer.setTimeStamp(correct(buffer.timeStamp()));
 
     emit output(buffer);
   }
@@ -130,13 +153,20 @@ void STimeStampResamplerNode::input(const SSubpictureBuffer &subpictureBuffer)
 
 void STimeStampResamplerNode::input(const SSubtitleBuffer &subtitleBuffer)
 {
-  if (!subtitleBuffer.isNull() && d->resample)
+  Q_ASSERT(QThread::currentThread() == thread());
+
+  if (!subtitleBuffer.isNull())
   {
     SSubtitleBuffer buffer = subtitleBuffer;
 
-    const STime timeStamp = buffer.timeStamp();
-    if (timeStamp.isValid())
-      buffer.setTimeStamp(STime(qint64(timeStamp.count() / d->ratio), timeStamp.interval()));
+    if (d->resample)
+    {
+      const STime timeStamp = buffer.timeStamp();
+      if (timeStamp.isValid())
+        buffer.setTimeStamp(correct(STime(qint64(timeStamp.count() / d->ratio), timeStamp.interval())));
+    }
+    else
+      buffer.setTimeStamp(correct(buffer.timeStamp()));
 
     emit output(buffer);
   }
@@ -144,5 +174,40 @@ void STimeStampResamplerNode::input(const SSubtitleBuffer &subtitleBuffer)
     emit output(subtitleBuffer);
 }
 
+STime STimeStampResamplerNode::correct(const STime &timeStamp)
+{
+  if (timeStamp.isValid())
+  {
+    QMap<STime, STime> corrected;
+    foreach (const STime &offset, d->outputOffset)
+    {
+      const STime result = timeStamp + offset;
+      corrected.insert(d->highestTimeStamp - result, result);
+    }
+
+    STime result = corrected.begin().value();
+    if (qAbs(corrected.begin().key()) > STime::fromSec(10)) // No suitable offset found.
+    {
+      result += corrected.begin().key();
+
+      const STime offset = result - timeStamp;
+      for (QList<STime>::Iterator i=d->outputOffset.begin(); i!=d->outputOffset.end();)
+      if (qAbs(*i - offset) < STime::fromSec(5))
+        i++;
+      else
+        i = d->outputOffset.erase(i);
+
+      d->outputOffset.prepend(offset);
+      if (d->outputOffset.count() > numChannels)
+        d->outputOffset.takeLast();
+    }
+
+    d->highestTimeStamp = qMax(d->highestTimeStamp, result);
+
+    return result;
+  }
+
+  return timeStamp;
+}
 
 } // End of namespace
