@@ -54,8 +54,8 @@ HttpServer::SocketOp PlaylistServer::streamVideo(const HttpServer::RequestHeader
           const QDateTime lastPlayed = mediaDatabase->lastPlayed(node.filePath());
           const QString key =
               (lastPlayed.isValid() ? lastPlayed.toString("yyyyMMddhhmmss") : QString("00000000000000")) +
-              path +
               ("000000000" + QString::number(node.track())).right(10) +
+              path +
               SStringParser::toRawName(node.title());
 
           files.insert(key, node);
