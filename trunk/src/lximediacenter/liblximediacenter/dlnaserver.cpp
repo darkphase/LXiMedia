@@ -321,9 +321,38 @@ HttpServer::SocketOp DlnaServer::handleHttpRequest(const HttpServer::RequestHead
       }
     }
   }
-  else if ((request.path() == "/upnp/devicedescr.xml") ||
-           (request.path() == "/upnp/contentdirdescr.xml"))
+  else if (request.path() == "/upnp/devicedescr.xml")
   {
+    static const char * const devicedescr =
+        "<?xml version=\"1.0\"?>\n"
+        "<root xmlns=\"urn:schemas-upnp-org:device-1-0\">\n"
+        " <specVersion><major>1</major><minor>0</minor></specVersion>\n"
+        " <URLBase>{BASEURL}</URLBase>\n"
+        " <device>\n"
+        "  <deviceType>urn:schemas-upnp-org:device:MediaServer:1</deviceType>\n"
+        "  <friendlyName>{_HOSTNAME}, {_PRODUCT}</friendlyName>\n"
+        "  <manufacturer>LeX-Interactive</manufacturer>\n"
+        "  <manufacturerURL>http://lximedia.sf.net/</manufacturerURL>\n"
+        "  <modelDescription></modelDescription>\n"
+        "  <modelName>LXiMediaCenter</modelName>\n"
+        "  <modelNumber></modelNumber>\n"
+        "  <modelURL></modelURL>\n"
+        "  <serialNumber></serialNumber>\n"
+        "  <UDN>uuid:{UUID}</UDN>\n"
+        "  <presentationURL>/</presentationURL>\n"
+        "  <dlna:X_DLNADOC>DMS-1.00</dlna:X_DLNADOC>\n"
+        "  <serviceList>\n"
+        "   <service>\n"
+        "    <serviceType>urn:schemas-upnp-org:service:ContentDirectory:1</serviceType>\n"
+        "    <serviceId>urn:upnp-org:serviceId:ContentDirectory</serviceId>\n"
+        "    <SCPDURL>/upnp/contentdirdescr.xml</SCPDURL>\n"
+        "    <controlURL>/upnp/contentdircontrol</controlURL>\n"
+        "    <eventSubURL>/upnp/contentdireventsub</eventSubURL>\n"
+        "   </service>\n"
+        "  </serviceList>\n"
+        " </device>\n"
+        "</root>";
+
     HttpServer::ResponseHeader response(HttpServer::Status_Ok);
     response.setContentType("text/xml;charset=utf-8");
     response.setField("Cache-Control", "no-cache");
@@ -336,7 +365,64 @@ HttpServer::SocketOp DlnaServer::handleHttpRequest(const HttpServer::RequestHead
     HtmlParser localParser;
     localParser.setField("UUID", SsdpServer::getUuid());
     localParser.setField("BASEURL", "http://" + request.host() + "/");
-    socket->write(localParser.parseFile(":" + request.path()));
+    socket->write(localParser.parse(devicedescr));
+
+    return HttpServer::SocketOp_Close;
+  }
+  else if (request.path() == "/upnp/contentdirdescr.xml")
+  {
+    static const char * const contentdirdescr =
+        "<?xml version=\"1.0\"?>\n"
+        "<scpd xmlns=\"urn:schemas-upnp-org:service-1-0\">\n"
+        " <specVersion><major>1</major><minor>0</minor></specVersion>\n"
+        " <actionList>\n"
+        "  <action>\n"
+        "   <name>Browse</name>\n"
+        "   <argumentList>\n"
+        "    <argument><name>ObjectID</name><direction>in</direction><relatedStateVariable>A_ARG_TYPE_ObjectID</relatedStateVariable></argument>\n"
+        "    <argument><name>BrowseFlag</name><direction>in</direction><relatedStateVariable>A_ARG_TYPE_BrowseFlag</relatedStateVariable></argument>\n"
+        "    <argument><name>Filter</name><direction>in</direction><relatedStateVariable>A_ARG_TYPE_Filter</relatedStateVariable></argument>\n"
+        "    <argument><name>StartingIndex</name><direction>in</direction><relatedStateVariable>A_ARG_TYPE_Index</relatedStateVariable></argument>\n"
+        "    <argument><name>RequestedCount</name><direction>in</direction><relatedStateVariable>A_ARG_TYPE_Count</relatedStateVariable></argument>\n"
+        "    <argument><name>SortCriteria</name><direction>in</direction><relatedStateVariable>A_ARG_TYPE_SortCriteria</relatedStateVariable></argument>\n"
+        "    <argument><name>Result</name><direction>out</direction><relatedStateVariable>A_ARG_TYPE_Result</relatedStateVariable></argument>\n"
+        "    <argument><name>NumberReturned</name><direction>out</direction><relatedStateVariable>A_ARG_TYPE_Count</relatedStateVariable></argument>\n"
+        "    <argument><name>TotalMatches</name><direction>out</direction><relatedStateVariable>A_ARG_TYPE_Count</relatedStateVariable></argument>\n"
+        "    <argument><name>UpdateID</name><direction>out</direction><relatedStateVariable>A_ARG_TYPE_UpdateID</relatedStateVariable></argument>\n"
+        "   </argumentList>\n"
+        "  </action>\n"
+        " </actionList>\n"
+        " <serviceStateTable>\n"
+        "  <stateVariable sendEvents=\"no\"><name>A_ARG_TYPE_ObjectID</name><dataType>string</dataType></stateVariable>\n"
+        "  <stateVariable sendEvents=\"no\"><name>A_ARG_TYPE_Result</name><dataType>string</dataType></stateVariable>\n"
+        "  <stateVariable sendEvents=\"no\"><name>A_ARG_TYPE_BrowseFlag</name><dataType>string</dataType>\n"
+        "   <allowedValueList>\n"
+        "    <allowedValue>BrowseMetadata</allowedValue>\n"
+        "    <allowedValue>BrowseDirectChildren</allowedValue>\n"
+        "   </allowedValueList>\n"
+        "  </stateVariable>\n"
+        "  <stateVariable sendEvents=\"no\"><name>A_ARG_TYPE_Filter</name><dataType>string</dataType></stateVariable>\n"
+        "  <stateVariable sendEvents=\"no\"><name>A_ARG_TYPE_SortCriteria</name><dataType>string</dataType></stateVariable>\n"
+        "  <stateVariable sendEvents=\"no\"><name>A_ARG_TYPE_Index</name><dataType>ui4</dataType></stateVariable>\n"
+        "  <stateVariable sendEvents=\"no\"><name>A_ARG_TYPE_Count</name><dataType>ui4</dataType></stateVariable>\n"
+        "  <stateVariable sendEvents=\"no\"><name>A_ARG_TYPE_UpdateID</name><dataType>ui4</dataType></stateVariable>\n"
+        "  <stateVariable sendEvents=\"no\"><name>SortCapabilities</name><dataType>string</dataType></stateVariable>\n"
+        "  <stateVariable sendEvents=\"yes\"><name>SystemUpdateID</name><dataType>ui4</dataType></stateVariable>\n"
+        "  <stateVariable sendEvents=\"yes\"><name>ContainerUpdateIDs</name><dataType>string</dataType></stateVariable>\n"
+        " </serviceStateTable>\n"
+        "</scpd>";
+
+    HttpServer::ResponseHeader response(HttpServer::Status_Ok);
+    response.setContentType("text/xml;charset=utf-8");
+    response.setField("Cache-Control", "no-cache");
+    response.setField("Accept-Ranges", "bytes");
+    response.setField("Connection", "close");
+    response.setField("contentFeatures.dlna.org", "");
+    response.setField("Server", SsdpServer::getServerId());
+    socket->write(response);
+
+    HtmlParser localParser;
+    socket->write(localParser.parse(contentdirdescr));
 
     return HttpServer::SocketOp_Close;
   }
