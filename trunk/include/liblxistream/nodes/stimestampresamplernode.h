@@ -60,6 +60,11 @@ signals:
   void                          output(const SSubtitleBuffer &);
 
 private:
+  STime                         correct(const STime &);
+
+private:
+  static const int              numChannels = 4;
+
   struct Data;
   Data                  * const d;
 };

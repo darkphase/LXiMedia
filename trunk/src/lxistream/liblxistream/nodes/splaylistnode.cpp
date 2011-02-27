@@ -29,6 +29,9 @@ struct SPlaylistNode::Data
   SScheduler::Dependency      * loadDependency;
 
   QStringList                   fileNames;
+  QList<STime>                  fileOffsets;
+  STime                         duration;
+  STime                         firstFileOffset;
   int                           fileId;
   int                           nextFileId;
   SFileInputNode              * file;
@@ -46,6 +49,9 @@ SPlaylistNode::SPlaylistNode(SGraph *parent, const SMediaInfoList &files)
     d(new Data())
 {
   d->loadDependency = parent ? new SScheduler::Dependency(parent) : NULL;
+
+  d->duration = STime::null;
+  d->firstFileOffset = STime();
 
   d->fileId = -1;
   d->nextFileId = -1;
@@ -78,6 +84,8 @@ SPlaylistNode::SPlaylistNode(SGraph *parent, const SMediaInfoList &files)
     }
 
     d->fileNames += file.filePath();
+    d->fileOffsets += d->duration;
+    d->duration += file.duration();
   }
 
   if (d->hasVideo)
@@ -148,7 +156,12 @@ void SPlaylistNode::stop(void)
 void SPlaylistNode::process(void)
 {
   if (d->nextFileId == -1)
+  {
     openNext();
+
+    if (d->nextFile && d->firstFileOffset.isValid())
+      d->nextFile->setPosition(d->firstFileOffset);
+  }
 
   if (d->file == NULL)
   {
@@ -181,11 +194,34 @@ void SPlaylistNode::process(void)
 
 STime SPlaylistNode::duration(void) const
 {
-  return STime();
+  return d->duration;
 }
 
-bool SPlaylistNode::setPosition(STime)
+bool SPlaylistNode::setPosition(STime pos)
 {
+  if (d->nextFileId == -1)
+  {
+    STime curPos = pos;
+    while (!d->fileNames.isEmpty() && !d->fileOffsets.isEmpty())
+    {
+      if (d->fileOffsets.count() > 1)
+      if (curPos > d->fileOffsets[1])
+      {
+        d->fileNames.takeFirst();
+        d->fileOffsets.takeFirst();
+        curPos = pos - d->fileOffsets.first();
+        continue;
+      }
+
+      break;
+    }
+
+    if (!d->fileNames.isEmpty() && !d->fileOffsets.isEmpty())
+      d->firstFileOffset = curPos;
+
+    return true;
+  }
+
   return false;
 }
 

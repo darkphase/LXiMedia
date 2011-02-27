@@ -429,8 +429,6 @@ bool MediaServer::Stream::setup(const HttpServer::RequestHeader &request, QAbstr
 
   if ((file.last().toLower() == "mpeg") || (file.last().toLower() == "mpg"))
   {
-    header.setContentType("video/MP2P");
-
     if (SAudioFormat::numChannels(channels) <= 2)
     {
       const SAudioCodec audioOutCodec("MP2", SAudioFormat::Channel_Stereo, 48000);
@@ -456,16 +454,16 @@ bool MediaServer::Stream::setup(const HttpServer::RequestHeader &request, QAbstr
         return false;
     }
 
+
     if (!videoEncoder.openCodec(SVideoCodec("MPEG2", size, frameRate), videoEncodeFlags))
     if (!videoEncoder.openCodec(SVideoCodec("MPEG1", size, frameRate), videoEncodeFlags))
       return false;
 
     output.openFormat("vob", audioEncoder.codec(), videoEncoder.codec(), duration);
+    header.setContentType("video/MP2P");
   }
   /*else if ((file.last().toLower() == "ogg") || (file.last().toLower() == "ogv"))
   {
-    header.setContentType("video/ogg");
-
     const SAudioCodec audioOutCodec("FLAC", SAudioFormat::Channel_Stereo, 44100);
     audioDecoder.setFlags(SInterfaces::AudioDecoder::Flag_DownsampleToStereo);
     audioResampler.setChannels(audioOutCodec.channelSetup());
@@ -479,11 +477,10 @@ bool MediaServer::Stream::setup(const HttpServer::RequestHeader &request, QAbstr
 
     output.enablePseudoStreaming(1.1f);
     output.openFormat("ogg", audioEncoder.codec(), videoEncoder.codec(), duration);
+    header.setContentType("video/ogg");
   }*/
   else if (file.last().toLower() == "flv")
   {
-    header.setContentType("video/x-flv");
-
     const SAudioCodec audioOutCodec("PCM/S16LE", SAudioFormat::Channel_Stereo, 44100);
     audioResampler.setChannels(audioOutCodec.channelSetup());
     audioResampler.setSampleRate(audioOutCodec.sampleRate());
@@ -496,6 +493,7 @@ bool MediaServer::Stream::setup(const HttpServer::RequestHeader &request, QAbstr
 
     output.enablePseudoStreaming(1.1f);
     output.openFormat("flv", audioEncoder.codec(), videoEncoder.codec(), duration);
+    header.setContentType("video/x-flv");
   }
   else
     return false;

@@ -104,6 +104,10 @@ bool VideoEncoder::openCodec(const SVideoCodec &c, Flags flags)
     contextHandle->max_qdiff = 6;
   }
 
+  // Fix for MPEG2 1080p quality
+  if ((contextHandle->height > 720) && ((outCodec == "MPEG2") || (outCodec == "MPEG1")))
+    contextHandle->bit_rate *= 2;
+
   if (outCodec.bitRate() > 0)
     contextHandle->bit_rate = outCodec.bitRate();
 
