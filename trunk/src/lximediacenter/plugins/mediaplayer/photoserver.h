@@ -35,7 +35,7 @@ protected:
   class SlideShowStream : public Stream
   {
   public:
-                                SlideShowStream(PhotoServer *, const QHostAddress &peer, const QString &url, const QStringList &fileNames);
+                                SlideShowStream(PhotoServer *, const QHostAddress &peer, const QString &url, const QList<MediaDatabase::File> &);
 
     bool                        setup(const HttpServer::RequestHeader &, QAbstractSocket *);
 

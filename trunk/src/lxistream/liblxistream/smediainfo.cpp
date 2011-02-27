@@ -515,7 +515,7 @@ void SMediaInfo::probe(const QString &filePath)
 // Subtitles in separate files need to be verified every time
 void SMediaInfo::probeDataStreams(void)
 {
-  if (!pi->isDisc)
+  if (!pi->isDisc && !pi->videoStreams.isEmpty())
   {
     // Remove subtitles.
     QList<SMediaInfo::DataStreamInfo> subs;

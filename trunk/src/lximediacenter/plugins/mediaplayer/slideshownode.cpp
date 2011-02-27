@@ -28,10 +28,11 @@ extern "C" void LXiMediaCenter_SlideShowNode_blendImages(
 
 namespace LXiMediaCenter {
 
-SlideShowNode::SlideShowNode(SGraph *parent, const QStringList &pictures)
+SlideShowNode::SlideShowNode(SGraph *parent, const QList<MediaDatabase::File> &files, MediaDatabase *mediaDatabase)
   : QObject(parent),
     SGraph::SourceNode(parent),
-    pictures(pictures),
+    files(files),
+    mediaDatabase(mediaDatabase),
     loadDependency(parent ? new SScheduler::Dependency(parent) : NULL),
     procDependency(parent ? new SScheduler::Dependency(parent) : NULL),
     outSize(768, 576),
@@ -59,7 +60,7 @@ void SlideShowNode::setSize(const SSize &size)
 
 STime SlideShowNode::duration(void) const
 {
-  return STime::fromClock(pictures.count() * slideFrameCount, frameRate);
+  return STime::fromClock(files.count() * slideFrameCount, frameRate);
 }
 
 bool SlideShowNode::start(void)
@@ -103,7 +104,22 @@ void SlideShowNode::process(void)
 {
   if (currentPicture == 0)
   {
-    loadImage(currentPicture++);
+    if (currentPicture < files.count())
+    {
+      const SMediaInfo node = mediaDatabase->readNode(files[currentPicture++].uid);
+      if (!node.isNull())
+      {
+        loadImage(node.filePath());
+      }
+      else
+      {
+        nextBuffer = blackBuffer();
+        nextBufferReady.release();
+      }
+    }
+    else
+      currentPicture = -1;
+
     currentFrame = 0;
   }
 
@@ -113,8 +129,25 @@ void SlideShowNode::process(void)
     currentBuffer = nextBuffer;
 
     // Start loading next
-    if (currentPicture <= pictures.count()) // <= because last picture is black.
-      schedule(&SlideShowNode::loadImage, currentPicture++, loadDependency, SScheduler::Priority_Low);
+    if (currentPicture < files.count())
+    {
+      const SMediaInfo node = mediaDatabase->readNode(files[currentPicture++].uid);
+      if (!node.isNull())
+      {
+        schedule(&SlideShowNode::loadImage, node.filePath(), loadDependency, SScheduler::Priority_Low);
+      }
+      else
+      {
+        nextBuffer = blackBuffer();
+        nextBufferReady.release();
+      }
+    }
+    else if (currentPicture == files.count())
+    {
+      nextBuffer = blackBuffer();
+      nextBufferReady.release();
+      currentPicture++;
+    }
     else
       currentPicture = -1;
   }
@@ -138,7 +171,7 @@ void SlideShowNode::process(void)
   }
 }
 
-void SlideShowNode::loadImage(int index)
+void SlideShowNode::loadImage(const QString &fileName)
 {
   SImage img(outSize.size(), QImage::Format_RGB32);
 
@@ -147,18 +180,15 @@ void SlideShowNode::loadImage(int index)
     p.fillRect(img.rect(), Qt::black);
     const qreal ar = outSize.aspectRatio();
 
-    if (index < pictures.count())
+    SImage src(fileName);
+    if (!src.isNull())
     {
-      SImage src(pictures[index]);
-      if (!src.isNull())
-      {
-        QSize size = src.size();
-        size.scale(int(img.width() * ar), img.height(), Qt::KeepAspectRatio);
-        src = src.scaled(int(size.width() / ar), size.height(), Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
-        p.drawImage((img.width() / 2) - (src.width() / 2),
-                    (img.height() / 2) - (src.height() / 2),
-                    src);
-      }
+      QSize size = src.size();
+      size.scale(int(img.width() * ar), img.height(), Qt::KeepAspectRatio);
+      src = src.scaled(int(size.width() / ar), size.height(), Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+      p.drawImage((img.width() / 2) - (src.width() / 2),
+                  (img.height() / 2) - (src.height() / 2),
+                  src);
     }
   p.end();
 

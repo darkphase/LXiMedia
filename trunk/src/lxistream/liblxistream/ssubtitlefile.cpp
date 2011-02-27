@@ -183,8 +183,7 @@ QStringList SSubtitleFile::findSubtitleFiles(const QString &file)
   {
     static void checkFiles(QStringList &result, const QDir &dir, const QString &baseName)
     {
-      foreach (const QFileInfo &info, dir.entryInfoList(QDir::Files | QDir::Readable))
-      if (info.suffix().toLower() == "srt")
+      foreach (const QFileInfo &info, dir.entryInfoList(QStringList() << "*.srt", QDir::Files | QDir::Readable))
       if (SStringParser::toRawName(info.completeBaseName()).startsWith(baseName))
         result += info.absoluteFilePath();
     }
