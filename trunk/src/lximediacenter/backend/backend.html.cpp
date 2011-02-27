@@ -613,6 +613,8 @@ HttpServer::SocketOp Backend::handleHtmlConfig(const QUrl &url, QAbstractSocket 
        "provide additional information on the media files that are available. "
        "Downloading and parsing the files will take several minutes."));
 
+  SDebug::_MutexLocker<SScheduler::Dependency> dl(Database::mutex(), __FILE__, __LINE__);
+
   if (masterImdbClient && masterImdbClient->isAvailable() && !masterImdbClient->needUpdate())
   {
     htmlParser.setField("IMDB_ACTION", "    <b>" + tr("IMDb files are available") + "</b>\n");
@@ -628,6 +630,8 @@ HttpServer::SocketOp Backend::handleHtmlConfig(const QUrl &url, QAbstractSocket 
   }
   else
     htmlParser.setField("IMDB_ACTION", QByteArray(""));
+
+  dl.unlock();
 
   // DLNA
   settings.beginGroup("DLNA");

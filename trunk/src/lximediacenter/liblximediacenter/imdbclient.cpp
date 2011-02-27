@@ -142,10 +142,14 @@ ImdbClient::ImdbClient(QObject *parent)
   plotFile.setFileName(cacheDir.absoluteFilePath("plot.list"));
   ratingFile.setFileName(cacheDir.absoluteFilePath("ratings.list"));
 
+  SDebug::_MutexLocker<SScheduler::Dependency> dl(Database::mutex(), __FILE__, __LINE__);
+
   if (!isAvailable() &&
       moviesFile.exists() && plotFile.exists() && ratingFile.exists() &&
       (moviesFile.size() > 0) && (plotFile.size() > 0) && (ratingFile.size() > 0))
   {
+    dl.unlock();
+
     importIMDBDatabase();
   }
 }
@@ -180,10 +184,10 @@ bool ImdbClient::isDownloading(void)
 
 bool ImdbClient::isAvailable(void)
 {
+  Q_ASSERT(!Database::mutex()->tryLock()); // Mutex should be locked by the caller.
+
   if (available == 0)
   {
-    SDebug::_MutexLocker<SScheduler::Dependency> dl(Database::mutex(), __FILE__, __LINE__);
-
     // Check for the sentinel entry indicating the last import has completed.
     QSqlQuery query(Database::database());
     query.exec("SELECT title FROM ImdbEntries WHERE rawName = '#SENTINEL'");
