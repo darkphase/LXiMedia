@@ -87,7 +87,10 @@ HttpServer::SocketOp TvShowServer::streamVideo(const HttpServer::RequestHeader &
 
 int TvShowServer::countItems(const QString &path)
 {
-  if (!mediaDatabase->hasAlbum(category, path))
+  const bool hasAlbum = mediaDatabase->hasAlbum(category, path);
+  const int numAlbums = countAlbums(path);
+
+  if ((numAlbums == 0) && !hasAlbum)
   {
     const QString dir = path.mid(path.left(path.length() - 1).lastIndexOf('/'));
     if (dir.startsWith("/" + seasonText + " "))
@@ -106,22 +109,29 @@ int TvShowServer::countItems(const QString &path)
     }
   }
 
-  QMap<unsigned, QVector<MediaDatabase::UniqueID> > seasons;
-  bool useSeasons;
-  categorizeSeasons(path, seasons, useSeasons);
+  if (hasAlbum)
+  {
+    QMap<unsigned, QVector<MediaDatabase::UniqueID> > seasons;
+    bool useSeasons;
+    categorizeSeasons(path, seasons, useSeasons);
 
-  const QMap<unsigned, QVector<MediaDatabase::UniqueID> >::ConstIterator r = seasons.find(0);
-  if (r != seasons.end())
-    return countAlbums(path) + (seasons.count() - 1) + r->count() + 1;
+    const QMap<unsigned, QVector<MediaDatabase::UniqueID> >::ConstIterator r = seasons.find(0);
+    if (r != seasons.end())
+      return numAlbums + (seasons.count() - 1) + r->count() + 1;
+    else
+      return numAlbums + seasons.count() + 1;
+  }
   else
-    return countAlbums(path) + seasons.count() + 1;
+    return numAlbums;
 }
 
 QList<TvShowServer::Item> TvShowServer::listItems(const QString &path, unsigned start, unsigned count)
 {
   const bool returnAll = count == 0;
+  const bool hasAlbum = mediaDatabase->hasAlbum(category, path);
+  QList<Item> result = listAlbums(path, start, count);
 
-  if (!mediaDatabase->hasAlbum(category, path))
+  if (result.isEmpty() && !hasAlbum)
   {
     const QString dir = path.mid(path.left(path.length() - 1).lastIndexOf('/'));
     if (dir.startsWith("/" + seasonText + " "))
@@ -148,9 +158,7 @@ QList<TvShowServer::Item> TvShowServer::listItems(const QString &path, unsigned 
     return QList<Item>();
   }
 
-  QList<Item> result = listAlbums(path, start, count);
-
-  if (returnAll || (count > 0))
+  if (hasAlbum && (returnAll || (count > 0)))
   {
     QMap<unsigned, QVector<MediaDatabase::UniqueID> > seasons;
     bool useSeasons;
