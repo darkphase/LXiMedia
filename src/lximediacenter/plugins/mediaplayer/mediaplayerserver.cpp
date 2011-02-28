@@ -150,41 +150,40 @@ int MediaPlayerServer::countAlbums(const QString &path)
 
 QList<MediaPlayerServer::Item> MediaPlayerServer::listAlbums(const QString &path,  unsigned &start, unsigned &count)
 {
-  QList<Item> result;
+  const bool returnAll = count == 0;
 
+  QSet<QString> names;
+  QStringList albums, paths;
   foreach (const QString &album, mediaDatabase->allAlbums(category))
-  if (album.startsWith(path) && (album.mid(path.length()).count('/') == 1))
+  if (album.startsWith(path))
+  {
+    const QString sub = album.mid(path.length());
+    const int slash = sub.indexOf('/');
+    if (slash > 0)
+    {
+      const QString name = sub.left(slash);
+      if (!names.contains(name))
+      {
+        albums += name;
+        names.insert(name);
+      }
+    }
+  }
+
+  QList<Item> result;
+  for (int i=start, n=0; (i<albums.count()) && (returnAll || (n<int(count))); i++, n++)
   {
     Item item;
     item.isDir = true;
-    item.title = album.mid(path.length(), album.length() - path.length() - 1);
+    item.title = albums[i];
 
-    foreach (const MediaDatabase::File &file, mediaDatabase->getAlbumFiles(category, album, 0, 8))
+    foreach (const MediaDatabase::File &file, mediaDatabase->getAlbumFiles(category, path + item.title + '/', 0, 8))
     {
       item.iconUrl = httpPath() + MediaDatabase::toUidString(file.uid) + "-thumb.jpeg?overlay=folder-video";
       break;
     }
 
     result += item;
-  }
-
-  if (count > 0)
-  {
-    while ((start > 0) && !result.isEmpty())
-    {
-      result.takeFirst();
-      start--;
-    }
-
-    if (result.count() >= int(count))
-    {
-      while (result.count() > int(count))
-        result.takeAt(count);
-
-      count = 0;
-    }
-    else
-      count -= result.count();
   }
 
   return result;
