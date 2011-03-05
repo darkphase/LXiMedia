@@ -25,7 +25,8 @@ unix:QMAKE_POST_LINK = $(TARGET) -silent
 #win32:QMAKE_POST_LINK = $(DESTDIR)$(TARGET) -silent
 
 # Prevent dependency with .so files
-FILES_UNDER_TEST = $${LXIMEDIA_DIR}/obj/LXiStream/*.o \
+FILES_UNDER_TEST = $${LXIMEDIA_DIR}/obj/LXiServer/*.o \
+    $${LXIMEDIA_DIR}/obj/LXiStream/*.o \
     $${LXIMEDIA_DIR}/obj/LXiStreamGui/*.o \
     $${LXIMEDIA_DIR}/obj/LXiMediaCenter/*.o
 
@@ -49,5 +50,6 @@ win32 {
         -lws2_32
     QMAKE_LFLAGS += -Wl,-allow-multiple-definition
 }
+
 QMAKE_LFLAGS += $${FILES_UNDER_TEST}
 POST_TARGETDEPS += $${FILES_UNDER_TEST}

@@ -17,14 +17,13 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXMEDIACENTER_HTTPSERVER_H
-#define LXMEDIACENTER_HTTPSERVER_H
+#ifndef LXISERVER_HTTPSERVER_H
+#define LXISERVER_HTTPSERVER_H
 
 #include <QtCore>
 #include <QtNetwork>
-#include <LXiStream>
 
-namespace LXiMediaCenter {
+namespace LXiServer {
 
 class HttpServer : public QThread
 {

@@ -21,12 +21,11 @@
 #define LXMEDIACENTER_BACKENDSERVER_H
 
 #include <QtCore>
-#include "dlnaserver.h"
-#include "imdbclient.h"
-#include "httpserver.h"
+#include <LXiServer>
 
 namespace LXiMediaCenter {
 
+class ImdbClient;
 class Plugin;
 
 class BackendServer : public QObject
@@ -40,7 +39,7 @@ public:
 
     virtual HttpServer        * httpServer(void) = 0;
     virtual SsdpServer        * ssdpServer(void) = 0;
-    virtual DlnaServer        * dlnaServer(void) = 0;
+    virtual UPnPContentDirectory * contentDirectory(void) = 0;
     virtual ImdbClient        * imdbClient(void) = 0;
   };
 
@@ -67,7 +66,7 @@ public:
   MasterServer                * masterServer(void) const;
   const QString               & name(void) const;
   const QString               & httpPath(void) const;
-  const QString               & dlnaPath(void) const;
+  const QString               & contentDirPath(void) const;
 
   HttpServer::SocketOp          sendReply(QAbstractSocket *, const QByteArray &, const char * = dataMime, bool allowCache = false, const QString &redir = QString::null) const __attribute__((nonnull(1, 2)));
   HttpServer::SocketOp          sendReply(QAbstractSocket *, const QString &, const char * = textMime, bool allowCache = false, const QString &redir = QString::null) const __attribute__((nonnull(1, 2)));

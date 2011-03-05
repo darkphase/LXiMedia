@@ -35,7 +35,7 @@ struct BackendServer::Private
   MasterServer                * server;
   QString                       name;
   QString                       httpPath;
-  QString                       dlnaPath;
+  QString                       contentDirPath;
 
   QFuture<void>                 dlnaUpdateFuture;
 };
@@ -56,7 +56,7 @@ BackendServer::BackendServer(const char *name, Plugin *plugin, MasterServer *ser
 
   p->httpPath.replace(" ", "");
 
-  p->dlnaPath = "/" + p->name + "/";
+  p->contentDirPath = "/" + p->name + "/";
 }
 
 BackendServer::~BackendServer()
@@ -92,9 +92,9 @@ const QString & BackendServer::httpPath(void) const
   return p->httpPath;
 }
 
-const QString & BackendServer::dlnaPath(void) const
+const QString & BackendServer::contentDirPath(void) const
 {
-  return p->dlnaPath;
+  return p->contentDirPath;
 }
 
 HttpServer::SocketOp BackendServer::sendReply(QAbstractSocket *socket, const QByteArray &data, const char *mime, bool allowCache, const QString &redir) const

@@ -87,6 +87,9 @@ public:
   ImdbClient::Entry             getImdbEntry(UniqueID) const;
   QList<UniqueID>               allFilesInDirOf(UniqueID) const;
 
+signals:
+  void                          modified(void);
+
 private slots:
   void                          scanRoots(void);
 

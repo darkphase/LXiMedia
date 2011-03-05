@@ -210,7 +210,27 @@ MediaPlayerServer::Item MediaPlayerServer::makeItem(MediaDatabase::UniqueID uid)
       item.title = node.title();
       item.url = MediaDatabase::toUidString(uid);
       item.iconUrl = MediaDatabase::toUidString(uid) + "-thumb.jpeg";
-      item.mediaInfo = titleNode;
+
+      if (!titleNode.isNull())
+      {
+        item.artist = titleNode.author();
+        item.album = titleNode.album();
+        item.track = titleNode.track();
+
+        foreach (const SMediaInfo::AudioStreamInfo &stream, titleNode.audioStreams())
+          item.audioStreams += Item::Stream(stream, SStringParser::iso639Language(stream.language));
+
+        foreach (const SMediaInfo::VideoStreamInfo &stream, titleNode.videoStreams())
+          item.videoStreams += Item::Stream(stream, SStringParser::iso639Language(stream.language));
+
+        foreach (const SMediaInfo::DataStreamInfo &stream, titleNode.dataStreams())
+          item.subtitleStreams += Item::Stream(stream, SStringParser::iso639Language(stream.language));
+
+        item.duration = titleNode.duration().toSec();
+
+        foreach (const SMediaInfo::Chapter &chapter, titleNode.chapters())
+          item.chapters += Item::Chapter(chapter.title, chapter.begin.toSec());
+      }
 
       const ImdbClient::Entry imdbEntry = mediaDatabase->getImdbEntry(uid);
       if (!imdbEntry.isNull())

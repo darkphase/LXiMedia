@@ -22,6 +22,7 @@
 
 #include <QtCore>
 #include <QtNetwork>
+#include <LXiServer>
 #include <LXiStream>
 #include "backendserver.h"
 #include "httpoutputnode.h"
@@ -30,7 +31,7 @@ namespace LXiMediaCenter {
 
 class MediaServer : public BackendServer,
                     protected HttpServer::Callback,
-                    private DlnaServer::Callback
+                    private UPnPContentDirectory::Callback
 {
 Q_OBJECT
 friend class MediaServerDir;
@@ -105,7 +106,7 @@ protected:
 
   typedef QList<DetailedListItem> DetailedListItemList;
 
-  typedef DlnaServer::Item      Item;
+  typedef UPnPContentDirectory::Item Item;
 
 public:
                                 MediaServer(const char *, Plugin *, BackendServer::MasterServer *);
@@ -128,7 +129,7 @@ protected: // From HttpServer::Callback
 
 private: // From DlnaServer::Callback
   virtual int                   countDlnaItems(const QString &path);
-  virtual QList<DlnaServer::Item> listDlnaItems(const QString &path, unsigned start, unsigned count);
+  virtual QList<UPnPContentDirectory::Item> listDlnaItems(const QString &path, unsigned start, unsigned count);
 
 private:
   void                          addStream(Stream *);

@@ -36,6 +36,14 @@ Standards-Version: 3.8.4
 Section: libs
 Homepage: http://lximedia.sourceforge.net/
 
+Package: liblxiserver-dev
+Section: libdevel
+Architecture: any
+Depends: liblxiserver1 (= ${binary:Version})
+Description: Development files for liblxiserver
+ liblxiserver is a media server library that provides HTTP, SSDP and a UPnP
+ ConnectionManager, ContentDirectory and MediaServer.
+
 Package: liblxistream-dev
 Section: libdevel
 Architecture: any
@@ -47,12 +55,25 @@ Description: Development files for liblxistream
 Package: liblximediacenter-dev
 Section: libdevel
 Architecture: any
-Depends: liblxistream-dev (= ${binary:Version}), 
+Depends: liblxiserver-dev (= ${binary:Version}), 
+         liblxistream-dev (= ${binary:Version}), 
          liblximediacenter1 (= ${binary:Version}), 
          liblxistream1 (= ${binary:Version}), 
          liblxistreamgui1 (= ${binary:Version})
 Description: Development files for liblxistream
  liblxistream is a streaming media library.
+
+Package: liblxiserver1
+Section: libs
+Architecture: any
+Depends: ${misc:Depends},
+         libqtcore4,
+         libqtgui4,
+         libqt4-network,
+         libqt4-xml
+Description: A streaming media server library
+ Provides a platform independent abstraction for different multimedia server
+ protocols.
 
 Package: liblxistream1
 Section: libs
@@ -96,6 +117,7 @@ Package: liblximediacenter1
 Section: libs
 Architecture: any
 Depends: ${misc:Depends},
+         liblxiserver1 (= ${binary:Version}), 
          liblxistream1 (= ${binary:Version}), 
          liblxistreamgui1 (= ${binary:Version}),
          libqtcore4,
@@ -110,6 +132,7 @@ Package: lximediacenter1
 Section: multimedia
 Architecture: any
 Depends: ${misc:Depends},
+         liblxiserver1 (= ${binary:Version}), 
          liblxistream1 (= ${binary:Version}), 
          liblxistreamgui1 (= ${binary:Version}),
          liblximediacenter1 (= ${binary:Version}), 
@@ -143,7 +166,8 @@ Depends: ${misc:Depends},
          libxext6,
          libxtst6,
          libxv1
-Provides: liblxistream1,
+Provides: liblxiserver1,
+          liblxistream1,
           liblxistreamgui1,
           liblximediacenter1
 Description: A DLNA based transcoding media server

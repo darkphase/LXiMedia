@@ -54,7 +54,7 @@ private:
   virtual QByteArray            parseHtmlContent(const QUrl &, const QByteArray &content, const QByteArray &head) const;
   virtual HttpServer          * httpServer(void);
   virtual SsdpServer          * ssdpServer(void);
-  virtual DlnaServer          * dlnaServer(void);
+  virtual UPnPContentDirectory* contentDirectory(void);
   virtual ImdbClient          * imdbClient(void);
 
   HttpServer::SocketOp          handleCssRequest(const QUrl &, const QString &, QAbstractSocket *);
@@ -62,6 +62,8 @@ private:
   HttpServer::SocketOp          handleHtmlRequest(const QUrl &, const QString &, QAbstractSocket *);
   HttpServer::SocketOp          showAbout(const QUrl &, QAbstractSocket *);
   HttpServer::SocketOp          handleHtmlConfig(const QUrl &, QAbstractSocket *);
+
+  void                          setContentDirectoryQueryItems(void);
 
 public:
   static const quint8           haltExitCode;
@@ -76,7 +78,9 @@ private:
 
   HttpServer                    masterHttpServer;
   SsdpServer                    masterSsdpServer;
-  DlnaServer                    masterDlnaServer;
+  UPnPMediaServer               masterMediaServer;
+  UPnPConnectionManager         masterConnectionManager;
+  UPnPContentDirectory          masterContentDirectory;
   ImdbClient                  * masterImdbClient;
   HtmlParser                    cssParser;
   HtmlParser                    htmlParser;

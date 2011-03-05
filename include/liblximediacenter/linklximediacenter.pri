@@ -1,4 +1,5 @@
 # Linking the lximediacenter library
+include($${LXIMEDIA_DIR}/include/liblxiserver/linklxiserver.pri)
 include($${LXIMEDIA_DIR}/include/liblxistream/linklxistream.pri)
 include($${LXIMEDIA_DIR}/include/liblxistreamgui/linklxistreamgui.pri)
 

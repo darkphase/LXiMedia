@@ -17,19 +17,47 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "commontest.h"
-#include <QtTest>
-#include <LXiMediaCenter>
+#ifndef LXISERVER_SSDPSERVER_H
+#define LXISERVER_SSDPSERVER_H
 
-void CommonTest::initTestCase(void)
-{
-  streamApp = new SApplication(SApplication::Initialize_Modules |
-                               SApplication::Initialize_Devices |
-                               SApplication::Initialize_LogToConsole);
-}
+#include <QtCore>
+#include <QtNetwork>
+#include "ssdpclient.h"
 
-void CommonTest::cleanupTestCase(void)
+namespace LXiServer {
+
+class HttpServer;
+
+class SsdpServer : public SsdpClient
 {
-  delete streamApp;
-  streamApp = NULL;
-}
+Q_OBJECT
+public:
+  explicit                      SsdpServer(const QUuid &serverUuid, const QString &serverId = QString::null);
+  virtual                       ~SsdpServer();
+
+  const QString               & serverId(void) const;
+
+  virtual void                  initialize(const QList<QHostAddress> &interfaces);
+  virtual void                  close(void);
+
+  void                          publish(const QString &nt, const HttpServer *, const QString &url);
+
+protected:
+  virtual void                  parsePacket(SsdpClientInterface *, const HttpServer::RequestHeader &, const QHostAddress &, quint16);
+
+  void                          sendAlive(SsdpClientInterface *, const QString &nt, const QString &url) const;
+  void                          sendByeBye(SsdpClientInterface *, const QString &nt) const;
+  void                          sendSearchResponse(SsdpClientInterface *, const QString &st, const QString &url, const QHostAddress &, quint16) const;
+
+private slots:
+  void                          publishServices(void);
+
+private:
+  struct Private;
+  Private               * const p;
+};
+
+
+} // End of namespace
+
+#endif

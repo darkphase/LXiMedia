@@ -17,22 +17,18 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXMEDIACENTER_DLNASERVER_H
-#define LXMEDIACENTER_DLNASERVER_H
+#ifndef LXISERVER_UPNPCONTENTDIRECTORY_H
+#define LXISERVER_UPNPCONTENTDIRECTORY_H
 
 #include <QtCore>
 #include <QtNetwork>
 #include <QtXml>
-#include <LXiStream>
 #include "httpserver.h"
-#include "globalsettings.h"
+#include "upnpbase.h"
 
-namespace LXiMediaCenter {
+namespace LXiServer {
 
-class SsdpServer;
-
-class DlnaServer : public QObject,
-                   protected HttpServer::Callback
+class UPnPContentDirectory : public UPnPBase
 {
 Q_OBJECT
 public:
@@ -47,8 +43,30 @@ public:
       Mode_Direct               = 255
     };
 
+    struct Stream
+    {
+      inline Stream(quint32 id = 0, const QString &lang = QString::null)
+        : id(id), lang(lang)
+      {
+      }
+
+      quint32                   id;
+      QString                   lang;
+    };
+
+    struct Chapter
+    {
+      inline Chapter(const QString &title = QString::null, unsigned position = 0)
+        : title(title), position(position)
+      {
+      }
+
+      QString                   title;
+      unsigned                  position;
+    };
+
     inline Item(void)
-      : isDir(false), played(false), music(false), mode(Mode_Default)
+      : isDir(false), played(false), music(false), mode(Mode_Default), duration(0)
     {
     }
 
@@ -62,7 +80,17 @@ public:
     QString                     mimeType;
     QUrl                        url;
     QUrl                        iconUrl;
-    SMediaInfo                  mediaInfo;
+
+    QString                     artist;
+    QString                     album;
+    int                         track;
+
+    QList<Stream>               audioStreams;
+    QList<Stream>               videoStreams;
+    QList<Stream>               subtitleStreams;
+
+    unsigned                    duration; //!< In seconds
+    QList<Chapter>              chapters;
   };
 
   struct Callback
@@ -74,45 +102,44 @@ public:
 private:
   typedef quint64               ItemID;
 
-  class EventSession;
-  struct StreamSettings;
   struct ItemData;
 
 public:
-  explicit                      DlnaServer(QObject * = NULL);
-  virtual                       ~DlnaServer();
+  explicit                      UPnPContentDirectory(QObject * = NULL);
+  virtual                       ~UPnPContentDirectory();
 
-  void                          initialize(HttpServer *, SsdpServer *);
-  void                          close(void);
+  void                          setFormats(const QByteArray &type, const QList<QByteArray> &formats);
+  void                          setQueryItems(const QString &peer, const QMap<QString, QString> &);
+  QMap<QString, QString>        activeClients(void) const;
 
   void                          registerCallback(const QString &path, Callback *);
   void                          unregisterCallback(Callback *);
 
-  void                          update(const QString &path);
-
-protected:
-  virtual void                  timerEvent(QTimerEvent *);
-
-protected: // From HttpServer::Callback
-  virtual HttpServer::SocketOp  handleHttpRequest(const HttpServer::RequestHeader &, QAbstractSocket *);
+protected: // From UPnPBase
+  virtual void                  emitEvent(void);
+  virtual void                  buildDescription(QDomDocument &, QDomElement &);
+  virtual void                  handleSoapMessage(const QDomElement &, QDomDocument &, QDomElement &, const HttpServer::RequestHeader &, const QHostAddress &);
+  virtual void                  addEventProperties(QDomDocument &, QDomElement &);
 
 private:
-  HttpServer::SocketOp          handleBrowse(const QDomElement &, const HttpServer::RequestHeader &, QAbstractSocket *);
-  void                          browseDir(QDomDocument &, QDomElement &, ItemID, ItemData &, Callback *, const StreamSettings &, const QString &, unsigned, unsigned);
-  void                          browseFile(QDomDocument &, QDomElement &, ItemID, ItemData &, const StreamSettings &, const QString &, unsigned, unsigned);
+  void                          handleBrowse(const QDomElement &, QDomDocument &, QDomElement &, const HttpServer::RequestHeader &, const QHostAddress &);
+  void                          browseDir(QDomDocument &, QDomElement &, ItemID, ItemData &, Callback *, const QString &peer, const QString &host, const QString &, unsigned, unsigned);
+  void                          browseFile(QDomDocument &, QDomElement &, ItemID, ItemData &, const QString &peer, const QString &host, const QString &, unsigned, unsigned);
   ItemID                        addChildItem(ItemData &, const Item &item, bool asDir);
-  static QDomElement            didlDirectory(QDomDocument &, const Item &, ItemID, ItemID = 0);
-  static QDomElement            didlFile(QDomDocument &doc, const StreamSettings &, const Item &, ItemID, ItemID = 0);
-  void                          sendEventMessage(const QUrl &, const QByteArray &);
+  QDomElement                   didlDirectory(QDomDocument &, const Item &, ItemID, ItemID = 0) const;
+  QDomElement                   didlFile(QDomDocument &doc, const QString &peer, const QString &, const Item &, ItemID, ItemID = 0) const;
   
   static QString                toIDString(ItemID id)                           { return QString::number(id | Q_UINT64_C(0x8000000000000000), 16); }
   static ItemID                 fromIDString(const QString &str)                { return str.toULongLong(NULL, 16) & Q_UINT64_C(0x7FFFFFFFFFFFFFFF); }
 
+public:
+  static const char     * const contentDirectoryNS;
+
 private:
   static const unsigned         seekSec;
 
-  struct Private;
-  Private               * const p;
+  struct Data;
+  Data                  * const d;
 };
 
 

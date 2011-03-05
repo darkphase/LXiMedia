@@ -17,48 +17,14 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXMEDIACENTER_SSDPSERVER_H
-#define LXMEDIACENTER_SSDPSERVER_H
+#include <QTest>
+#include "httpservertest.h"
 
-#include <QtCore>
-#include <QtNetwork>
-#include <liblximediacenter/ssdpclient.h>
-
-namespace LXiMediaCenter {
-
-class HttpServer;
-
-class SsdpServer : public SsdpClient
+int main(int argc, char *argv[])
 {
-Q_OBJECT
-public:
-  explicit                      SsdpServer(void);
-  virtual                       ~SsdpServer();
+  QCoreApplication app(argc, argv);
 
-  virtual void                  initialize(const QList<QHostAddress> &interfaces);
-  virtual void                  close(void);
+  if (QTest::qExec(new HttpServerTest(&app), app.arguments()) != 0)     return 1;
 
-  void                          publish(const QString &nt, const HttpServer *, const QString &url);
-
-protected:
-  virtual void                  parsePacket(SsdpClientInterface *, const HttpServer::RequestHeader &, const QHostAddress &, quint16);
-
-  static void                   sendAlive(SsdpClientInterface *, const QString &nt, const QString &url);
-  static void                   sendByeBye(SsdpClientInterface *, const QString &nt);
-  static void                   sendSearchResponse(SsdpClientInterface *, const QString &st, const QString &url, const QHostAddress &, quint16);
-
-public:
-  static QString                getServerId(void);
-
-private slots:
-  void                          publishServices(void);
-
-private:
-  struct Private;
-  Private               * const p;
-};
-
-
-} // End of namespace
-
-#endif
+  return 0;
+}

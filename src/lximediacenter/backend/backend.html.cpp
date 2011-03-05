@@ -716,6 +716,8 @@ HttpServer::SocketOp Backend::handleHtmlConfig(const QUrl &url, QAbstractSocket 
 
       settings.endGroup();
     }
+
+    setContentDirectoryQueryItems();
   }
   else if (url.hasQueryItem("dlnasettings") && url.hasQueryItem("defaults"))
   {
@@ -724,12 +726,16 @@ HttpServer::SocketOp Backend::handleHtmlConfig(const QUrl &url, QAbstractSocket 
     settings.remove("EncodeMode");
     settings.remove("TranscodeChannels");
     settings.remove("TranscodeMusicChannels");
+
+    setContentDirectoryQueryItems();
   }
   else if (url.hasQueryItem("dlnasettings"))
   {
     foreach (const QString &group, settings.childGroups())
     if (group.startsWith("Client_") && url.hasQueryItem("erase-" + group.mid(7)))
       settings.remove(group);
+
+    setContentDirectoryQueryItems();
   }
 
   const QString genericTranscodeSize =
@@ -850,6 +856,14 @@ HttpServer::SocketOp Backend::handleHtmlConfig(const QUrl &url, QAbstractSocket 
   htmlParser.appendField("CLIENT_ROWS", htmlParser.parse(htmlConfigDlnaDefaultRow));
 
   // DLNA clients
+  const QMap<QString, QString> activeClients = masterContentDirectory.activeClients();
+  for (QMap<QString, QString>::ConstIterator i=activeClients.begin(); i!=activeClients.end(); i++)
+  {
+    settings.beginGroup("Client_" + i.key());
+    settings.setValue("UserAgent", i.value());
+    settings.endGroup();
+  }
+
   foreach (const QString &group, settings.childGroups())
   if (group.startsWith("Client_"))
   {

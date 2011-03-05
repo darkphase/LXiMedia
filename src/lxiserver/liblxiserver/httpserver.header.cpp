@@ -21,7 +21,7 @@
 
 #include <QtNetwork>
 
-namespace LXiMediaCenter {
+namespace LXiServer {
 
 const char  * const HttpServer::Header::fieldContentLength  = "Content-Length";
 const char  * const HttpServer::Header::fieldContentType    = "Content-Type";

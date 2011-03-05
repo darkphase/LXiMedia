@@ -23,10 +23,7 @@
 #include <QtCore>
 #include <QtGui>
 #include <QtNetwork>
-#include <liblximediacenter/ssdpclient.h>
-
-using namespace LXiMediaCenter;
-
+#include <LXiServer>
 
 class TrayIcon : public QObject
 {
@@ -88,6 +85,5 @@ private:
   QNetworkAccessManager         networkAccessManager;
   QMessageBox                 * aboutBox;
 };
-
 
 #endif

@@ -17,10 +17,13 @@ install: build build-doxy
 	dh_installdirs -ptmp usr/share/doc/lximedia-doc/html
 	install -m 644 -D doc/html/* debian/tmp/usr/share/doc/lximedia-doc/html/
 	dh_installdirs -ptmp usr/include/liblximediacenter
+	dh_installdirs -ptmp usr/include/liblxiserver
 	dh_installdirs -ptmp usr/include/liblxistream
 	dh_installdirs -ptmp usr/include/liblxistreamgui
 	install -m 644 -D include/liblximediacenter/*.h debian/tmp/usr/include/liblximediacenter/
 	install -m 644 -D include/LXiMediaCenter debian/tmp/usr/include/
+	install -m 644 -D include/liblxiserver/*.h debian/tmp/usr/include/liblxiserver/
+	install -m 644 -D include/LXiServer debian/tmp/usr/include/
 	install -m 644 -D include/liblxistream/*.h debian/tmp/usr/include/liblxistream/
 	install -m 644 -D include/LXiStream debian/tmp/usr/include/
 	install -m 644 -D include/liblxistreamgui/*.h debian/tmp/usr/include/liblxistreamgui/

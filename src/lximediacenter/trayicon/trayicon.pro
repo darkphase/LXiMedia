@@ -13,12 +13,8 @@ INCLUDEPATH += $${LXIMEDIA_DIR}/include/ $${LXIMEDIA_DIR}/include/liblximediacen
 DEPENDPATH += $${LXIMEDIA_DIR}/include/ $${LXIMEDIA_DIR}/include/liblximediacenter
 DEFINES += TRAYICON_ONLY
 
-SOURCES += ../liblximediacenter/httpserver.header.cpp \
- ../liblximediacenter/ssdpclient.cpp \
- ../liblximediacenter/globalsettings.cpp
-
-HEADERS += $${LXIMEDIA_DIR}/include/liblximediacenter/ssdpclient.h \
- $${LXIMEDIA_DIR}/include/liblximediacenter/globalsettings.h
+SOURCES += ../liblximediacenter/globalsettings.cpp
+HEADERS += $${LXIMEDIA_DIR}/include/liblximediacenter/globalsettings.h
 
 linux-g++|win32-g++ {
   # Optimize for size instead of speed
@@ -46,9 +42,7 @@ win32 {
   INCLUDEPATH += $${OBJECTS_DIR}/
 }
 
-win32 {
-  LIBS += -lws2_32
-}
+include($${LXIMEDIA_DIR}/include/liblxiserver/linklxiserver.pri)
 
 # Files
 SOURCES += main.cpp \
@@ -64,6 +58,7 @@ unix {
 }
 
 win32 {
+  LIBS += -lws2_32
   CONFIG += windows
   RC_FILE = trayicon.rc
 }

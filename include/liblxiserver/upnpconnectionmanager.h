@@ -17,19 +17,47 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "commontest.h"
-#include <QtTest>
-#include <LXiMediaCenter>
+#ifndef LXISERVER_UPNPCONNECTIONMANAGER_H
+#define LXISERVER_UPNPCONNECTIONMANAGER_H
 
-void CommonTest::initTestCase(void)
-{
-  streamApp = new SApplication(SApplication::Initialize_Modules |
-                               SApplication::Initialize_Devices |
-                               SApplication::Initialize_LogToConsole);
-}
+#include <QtCore>
+#include <QtNetwork>
+#include <QtXml>
+#include "httpserver.h"
+#include "upnpbase.h"
 
-void CommonTest::cleanupTestCase(void)
+namespace LXiServer {
+
+class UPnPMediaServer;
+
+class UPnPConnectionManager : public UPnPBase
 {
-  delete streamApp;
-  streamApp = NULL;
-}
+Q_OBJECT
+public:
+  explicit                      UPnPConnectionManager(QObject * = NULL);
+  virtual                       ~UPnPConnectionManager();
+
+  void                          setSourceProtocols(const QMap<QByteArray, QList<QByteArray> > &);
+  void                          setSinkProtocols(const QMap<QByteArray, QList<QByteArray> > &);
+
+protected: // From UPnPBase
+  virtual void                  buildDescription(QDomDocument &, QDomElement &);
+  virtual void                  handleSoapMessage(const QDomElement &, QDomDocument &, QDomElement &, const HttpServer::RequestHeader &, const QHostAddress &);
+  virtual void                  addEventProperties(QDomDocument &, QDomElement &);
+
+private:
+  QByteArray                    listSourceProtocols(void) const;
+  QByteArray                    listSinkProtocols(void) const;
+
+public:
+  static const char     * const connectionManagerNS;
+
+private:
+  struct Data;
+  Data                  * const d;
+};
+
+
+} // End of namespace
+
+#endif

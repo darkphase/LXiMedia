@@ -720,6 +720,8 @@ void MediaDatabase::updateDir(const QString &path, qint64 parentDir, QuerySet &q
 
     q.remove.bindValue(0, removePaths);
     q.remove.execBatch();
+
+    emit modified();
   }
 }
 
@@ -847,6 +849,8 @@ void MediaDatabase::insertFile(const SMediaInfo &mediaInfo, const QByteArray &me
 
           if (i.key() == Category_Movies)
             sApp->schedule(this, &MediaDatabase::queryImdbItem, rawTitle, i.key(), Database::mutex(), matchImdbItemPriority);
+
+          emit modified();
         }
       }
     }
@@ -951,6 +955,8 @@ void MediaDatabase::storeImdbItem(const QString &item, const QString &imdbLink, 
   query.bindValue(1, category);
   query.bindValue(2, item);
   query.exec();
+
+  emit modified();
 }
 
 bool MediaDatabase::isHidden(const QString &absoluteFilePath)
