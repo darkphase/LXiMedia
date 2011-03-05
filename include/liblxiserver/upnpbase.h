@@ -44,6 +44,7 @@ public slots:
   virtual void                  emitEvent(void);
 
 protected:
+  virtual void                  customEvent(QEvent *);
   virtual void                  timerEvent(QTimerEvent *);
 
 protected: // From HttpServer::Callback
@@ -81,6 +82,8 @@ public:
   static const char     * const soapNS;
 
 private:
+  static const QEvent::Type     scheduleEventType;
+
   class EventSession;
   struct Data;
   Data                  * const d;

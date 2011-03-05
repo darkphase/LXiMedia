@@ -45,16 +45,34 @@ HttpServer::Header::Header(const QByteArray &header)
   }
 }
 
+bool HttpServer::Header::hasField(const QString &name) const
+{
+  for (QList< QPair<QString, QString> >::ConstIterator i=fields.begin(); i!=fields.end(); i++)
+  if (i->first.compare(name, Qt::CaseInsensitive) == 0)
+    return true;
+
+  return false;
+}
+
+QString HttpServer::Header::field(const QString &name) const
+{
+  for (QList< QPair<QString, QString> >::ConstIterator i=fields.begin(); i!=fields.end(); i++)
+  if (i->first.compare(name, Qt::CaseInsensitive) == 0)
+    return i->second;
+
+  return QString::null;
+}
+
 void HttpServer::Header::setField(const QString &name, const QString &value)
 {
-  QMap<QString, QString>::Iterator i = fields.find(name);
-  if (i == fields.end())
+  for (QList< QPair<QString, QString> >::Iterator i=fields.begin(); i!=fields.end(); i++)
+  if (i->first.compare(name, Qt::CaseInsensitive) == 0)
   {
-    fields.insert(name, value);
-    fieldOrder.append(name);
+    i->second = value;
+    return;
   }
-  else
-    *i = value;
+
+  fields += qMakePair(name, value);
 }
 
 QByteArray HttpServer::Header::toUtf8(void) const
@@ -63,8 +81,8 @@ QByteArray HttpServer::Header::toUtf8(void) const
   if (isValid())
   {
     result = head[0] + ' ' + head[1] + ' ' + head[2] + "\r\n";
-    foreach (const QString &name, fieldOrder)
-      result += name.toUtf8() + ": " + fields[name].toUtf8() + "\r\n";
+    for (QList< QPair<QString, QString> >::ConstIterator i=fields.begin(); i!=fields.end(); i++)
+      result += i->first.toUtf8() + ": " + i->second.toUtf8() + "\r\n";
 
     result += "\r\n";
   }
