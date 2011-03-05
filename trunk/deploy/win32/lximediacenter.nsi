@@ -38,6 +38,7 @@ Section "-Shared Files" SecShared
   File ..\..\bin\mingwm10.dll
   File ..\..\bin\Qt*.dll
   File ..\..\bin\LXiMediaCenter?.dll
+  File ..\..\bin\LXiServer?.dll
   File ..\..\bin\LXiStream?.dll
   File ..\..\bin\LXiStreamGui?.dll
 

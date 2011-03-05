@@ -17,19 +17,53 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "commontest.h"
-#include <QtTest>
-#include <LXiMediaCenter>
+#ifndef LXISERVER_UPNPMEDIASERVER_H
+#define LXISERVER_UPNPMEDIASERVER_H
 
-void CommonTest::initTestCase(void)
-{
-  streamApp = new SApplication(SApplication::Initialize_Modules |
-                               SApplication::Initialize_Devices |
-                               SApplication::Initialize_LogToConsole);
-}
+#include <QtCore>
+#include <QtNetwork>
+#include "upnpbase.h"
 
-void CommonTest::cleanupTestCase(void)
+namespace LXiServer {
+
+class SsdpServer;
+
+class UPnPMediaServer : public QObject,
+                        protected HttpServer::Callback
 {
-  delete streamApp;
-  streamApp = NULL;
-}
+Q_OBJECT
+public:
+  struct Service
+  {
+    QString                     serviceType;
+    QString                     serviceId;
+    QString                     descriptionUrl;
+    QString                     controlURL;
+    QString                     eventSubURL;
+  };
+
+public:
+  explicit                      UPnPMediaServer(QObject * = NULL);
+  virtual                       ~UPnPMediaServer();
+
+  void                          initialize(HttpServer *, SsdpServer *);
+  void                          close(void);
+
+  const QString               & serverId(void) const;
+  const QUuid                 & serverUuid(void) const;
+  void                          registerService(const Service &);
+
+protected: // From HttpServer::Callback
+  virtual HttpServer::SocketOp  handleHttpRequest(const HttpServer::RequestHeader &, QAbstractSocket *);
+
+private:
+  static const char     * const deviceType;
+
+  struct Data;
+  Data                  * const d;
+};
+
+
+} // End of namespace
+
+#endif

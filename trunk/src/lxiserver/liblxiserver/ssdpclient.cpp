@@ -26,13 +26,13 @@
 #elif defined(Q_OS_WIN)
 #include <ws2tcpip.h>
 #endif
-#include <liblximediacenter/globalsettings.h>
 
-namespace LXiMediaCenter {
+namespace LXiServer {
 
 
 struct SsdpClient::Private
 {
+  QUuid                         serverUuid;
   QList<SsdpClientInterface *>  interfaces;
   QMultiMap<QString, Node>      nodes;
   QTimer                        updateTimer;
@@ -44,10 +44,11 @@ const quint16       SsdpClient::ssdpPort = 1900;
 const int           SsdpClient::cacheTimeout = 300000;
 
 
-SsdpClient::SsdpClient(void)
+SsdpClient::SsdpClient(const QUuid &serverUuid)
            :QObject(),
             p(new Private())
 {
+  p->serverUuid = serverUuid;
   p->updateTimer.setSingleShot(true);
   connect(&p->updateTimer, SIGNAL(timeout()), SIGNAL(searchUpdated()));
 }
@@ -56,6 +57,11 @@ SsdpClient::~SsdpClient()
 {
   delete p;
   *const_cast<Private **>(&p) = NULL;
+}
+
+const QUuid & SsdpClient::serverUuid(void) const
+{
+  return p->serverUuid;
 }
 
 void SsdpClient::initialize(const QList<QHostAddress> &interfaces)
@@ -125,21 +131,6 @@ QList<SsdpClient::Node> SsdpClient::searchResults(const QString &st) const
   }
 
   return result;
-}
-
-QString SsdpClient::getUuid(void)
-{
-  QString uuid = "00000000-0000-0000-0000-000000000000";
-
-  GlobalSettings settings;
-  settings.beginGroup("SSDP");
-
-  if (settings.contains("UUID"))
-    return settings.value("UUID", uuid).toString();
-
-  uuid = QUuid::createUuid();
-  settings.setValue("UUID", uuid);
-  return uuid;
 }
 
 const QList<SsdpClientInterface *> & SsdpClient::interfaces(void) const

@@ -34,8 +34,10 @@ Backend::Backend()
   : BackendServer::MasterServer(),
     streamApp(NULL),
     masterHttpServer(),
-    masterSsdpServer(),
-    masterDlnaServer(&masterHttpServer),
+    masterSsdpServer(GlobalSettings::ssdpUuid()),
+    masterMediaServer(),
+    masterConnectionManager(),
+    masterContentDirectory(),
     masterImdbClient(NULL),
     cssParser(),
     htmlParser(),
@@ -82,7 +84,9 @@ Backend::~Backend()
 {
   qDebug() << "LXiMediaCenter backend stopping.";
 
-  masterDlnaServer.close();
+  masterContentDirectory.close();
+  masterConnectionManager.close();
+  masterMediaServer.close();
   masterSsdpServer.close();
   masterHttpServer.close();
 
@@ -211,7 +215,34 @@ void Backend::start(void)
   masterSsdpServer.publish(GlobalSettings::productAbbr() + QString(":server"), &masterHttpServer, "/");
 
   // Setup DLNA server
-  masterDlnaServer.initialize(&masterHttpServer, &masterSsdpServer);
+  masterMediaServer.initialize(&masterHttpServer, &masterSsdpServer);
+  masterConnectionManager.initialize(&masterHttpServer, &masterMediaServer);
+  masterContentDirectory.initialize(&masterHttpServer, &masterMediaServer);
+
+  QMap<QByteArray, QList<QByteArray> > sourceProtocols;
+  sourceProtocols["http-get"] = QList<QByteArray>()
+      << "video/mpeg"
+      //<< "video/ogg"
+      << "video/x-flv"
+      << "audio/mpeg"
+      //<< "audio/ogg"
+      << "audio/wave"
+      << "image/jpeg";
+  masterConnectionManager.setSourceProtocols(sourceProtocols);
+
+  masterContentDirectory.setFormats("video", QList<QByteArray>()
+      << "video/mpeg.mpeg"
+      //<< "video/ogg.ogv"
+      << "video/x-flv.flv");
+  masterContentDirectory.setFormats("audio", QList<QByteArray>()
+      << "audio/mpeg.mpa"
+      //<< "audio/ogg.oga"
+      << "audio/wave.wav"
+      << "video/x-flv.flv");
+  masterContentDirectory.setFormats("image", QList<QByteArray>()
+      << "image/jpeg.jpeg");
+
+  setContentDirectoryQueryItems();
 
 //  DlnaServer::File shutdown(dlnaServiceDir.server());
 //  shutdown.url = "/?shutdown=shutdown";
@@ -640,12 +671,82 @@ SsdpServer * Backend::ssdpServer(void)
   return &masterSsdpServer;
 }
 
-DlnaServer * Backend::dlnaServer(void)
+UPnPContentDirectory * Backend::contentDirectory(void)
 {
-  return &masterDlnaServer;
+  return &masterContentDirectory;
 }
 
 ImdbClient * Backend::imdbClient(void)
 {
   return masterImdbClient;
+}
+
+void Backend::setContentDirectoryQueryItems(void)
+{
+  GlobalSettings settings;
+  settings.beginGroup("DLNA");
+
+  const QString genericTranscodeSize =
+      settings.value("TranscodeSize", settings.defaultTranscodeSizeName()).toString();
+  const QString genericTranscodeCrop =
+      settings.value("TranscodeCrop", settings.defaultTranscodeCropName()).toString();
+  const QString genericEncodeMode =
+      settings.value("EncodeMode", settings.defaultEncodeModeName()).toString();
+  const QString genericTranscodeChannels =
+      settings.value("TranscodeChannels", settings.defaultTranscodeChannelName()).toString();
+  const QString genericTranscodeMusicChannels =
+      settings.value("TranscodeMusicChannels", settings.defaultTranscodeMusicChannelName()).toString();
+
+  foreach (const QString &group, settings.childGroups() << QString::null)
+  if (group.isEmpty() || group.startsWith("Client_"))
+  {
+    settings.beginGroup(group);
+
+    QMap<QString, QString> queryItems;
+
+    const QString transcodeSize = settings.value("TranscodeSize", genericTranscodeSize).toString();
+    const QString transcodeCrop = settings.value("TranscodeCrop", genericTranscodeCrop).toString();
+    foreach (const GlobalSettings::TranscodeSize &size, GlobalSettings::allTranscodeSizes())
+    if (size.name == transcodeSize)
+    {
+      QString sizeStr =
+          QString::number(size.size.width()) + "x" +
+          QString::number(size.size.height()) + "x" +
+          QString::number(size.size.aspectRatio(), 'f', 3);
+
+      if (!transcodeCrop.isEmpty())
+        sizeStr += "/" + transcodeCrop.toLower();
+
+      queryItems["size"] = sizeStr;
+      break;
+    }
+
+    const QString transcodeChannels = settings.value("TranscodeChannels", genericTranscodeChannels).toString();
+    foreach (const GlobalSettings::TranscodeChannel &channel, GlobalSettings::allTranscodeChannels())
+    if (channel.name == transcodeChannels)
+    {
+      queryItems["channels"] = QString::number(channel.channels, 16);
+      break;
+    }
+
+    const QString transcodeMusicChannels = settings.value("TranscodeMusicChannels", genericTranscodeMusicChannels).toString();
+    foreach (const GlobalSettings::TranscodeChannel &channel, GlobalSettings::allTranscodeChannels())
+    if (channel.name == transcodeMusicChannels)
+    {
+      queryItems["musicchannels"] = QString::number(channel.channels, 16);
+      break;
+    }
+
+    queryItems["priority"] = "high";
+
+    const QString encodeMode = settings.value("EncodeMode", genericEncodeMode).toString();
+    if (!encodeMode.isEmpty())
+      queryItems["encode"] = encodeMode.toLower();
+    else
+      queryItems["encode"] = "fast";
+
+    masterContentDirectory.setQueryItems(QString::null, queryItems);
+
+    settings.endGroup();
+  }
 }

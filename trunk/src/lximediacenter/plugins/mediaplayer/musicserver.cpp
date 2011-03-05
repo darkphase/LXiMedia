@@ -44,9 +44,8 @@ QList<MusicServer::Item> MusicServer::listItems(const QString &path, unsigned st
       item.music = true;
       item.mode = Item::Mode_Direct;
 
-      if (!item.mediaInfo.isNull())
-      if (!item.mediaInfo.author().isEmpty())
-        item.title += " [" + item.mediaInfo.author() + "]";
+      if (!item.artist.isEmpty())
+        item.title += " [" + item.artist + "]";
     }
 
     items += item;
@@ -71,7 +70,7 @@ HttpServer::SocketOp MusicServer::handleHttpRequest(const HttpServer::RequestHea
 
     DetailedListItemList detailedItems;
 
-    foreach (const DlnaServer::Item &item, listItems(path))
+    foreach (const UPnPContentDirectory::Item &item, PlaylistServer::listItems(path))
     {
       if (item.isDir)
       {
@@ -84,15 +83,15 @@ HttpServer::SocketOp MusicServer::handleHttpRequest(const HttpServer::RequestHea
 
         detailedItems.append(detailedItem);
       }
-      else if (!item.mediaInfo.isNull())
+      else if (item.duration > 0)
       {
         DetailedListItem detailedItem;
-        detailedItem.columns += item.mediaInfo.title();
-        detailedItem.columns += item.mediaInfo.author();
-        detailedItem.columns += QTime().addSecs(item.mediaInfo.duration().toSec()).toString("mm:ss");
+        detailedItem.columns += item.title;
+        detailedItem.columns += item.artist;
+        detailedItem.columns += QTime().addSecs(item.duration).toString("mm:ss");
         detailedItem.url = item.url;
         detailedItem.url.setPath(detailedItem.url.path() + ".html");
-        detailedItem.iconurl = item.mediaInfo.containsVideo() ? "/img/video-file.png" : "/img/audio-file.png";
+        detailedItem.iconurl = item.videoStreams.isEmpty() ? "/img/audio-file.png" : "/img/video-file.png";
         detailedItem.played = item.played;
 
         detailedItems.append(detailedItem);

@@ -34,11 +34,13 @@ cp lximediacenter1.init /${OUTDIR}/${PKGNAME}/debian/lximediacenter1-allinone.in
 cp lximediacenter1.postinst /${OUTDIR}/${PKGNAME}/debian/lximediacenter1-allinone.postinst
 cp lximediacenter1.postrm /${OUTDIR}/${PKGNAME}/debian/lximediacenter1-allinone.postrm
 
+cat liblxiserver1.dirs > /${OUTDIR}/${PKGNAME}/debian/lximediacenter1-allinone.dirs
 cat liblxistream1.dirs > /${OUTDIR}/${PKGNAME}/debian/lximediacenter1-allinone.dirs
 cat liblxistreamgui1.dirs >> /${OUTDIR}/${PKGNAME}/debian/lximediacenter1-allinone.dirs
 cat liblximediacenter1.dirs >> /${OUTDIR}/${PKGNAME}/debian/lximediacenter1-allinone.dirs
 cat lximediacenter1.dirs >> /${OUTDIR}/${PKGNAME}/debian/lximediacenter1-allinone.dirs
 
+cat liblxiserver1.install > /${OUTDIR}/${PKGNAME}/debian/lximediacenter1-allinone.install
 cat liblxistream1.install > /${OUTDIR}/${PKGNAME}/debian/lximediacenter1-allinone.install
 cat liblxistreamgui1.install >> /${OUTDIR}/${PKGNAME}/debian/lximediacenter1-allinone.install
 cat liblximediacenter1.install >> /${OUTDIR}/${PKGNAME}/debian/lximediacenter1-allinone.install

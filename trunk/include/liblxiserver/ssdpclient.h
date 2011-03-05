@@ -17,14 +17,14 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXMEDIACENTER_SSDPCLIENT_H
-#define LXMEDIACENTER_SSDPCLIENT_H
+#ifndef LXISERVER_SSDPCLIENT_H
+#define LXISERVER_SSDPCLIENT_H
 
 #include <QtCore>
 #include <QtNetwork>
 #include "httpserver.h"
 
-namespace LXiMediaCenter {
+namespace LXiServer {
 
 class SsdpClientInterface;
 
@@ -45,8 +45,10 @@ public:
   };
 
 public:
-  explicit                      SsdpClient(void);
+  explicit                      SsdpClient(const QUuid &serverUuid);
   virtual                       ~SsdpClient();
+
+  const QUuid                 & serverUuid(void) const;
 
   virtual void                  initialize(const QList<QHostAddress> &interfaces);
   virtual void                  close(void);
@@ -56,9 +58,6 @@ public:
 
 signals:
   void                          searchUpdated(void);
-
-public:
-  static QString                getUuid(void);
 
 protected:
   const QList<SsdpClientInterface *> & interfaces(void) const;

@@ -79,6 +79,21 @@ quint16 GlobalSettings::defaultBackendHttpPort(void)
   return 4280;
 }
 
+QUuid GlobalSettings::ssdpUuid(void)
+{
+  QString uuid = "00000000-0000-0000-0000-000000000000";
+
+  GlobalSettings settings;
+  settings.beginGroup("SSDP");
+
+  if (settings.contains("UUID"))
+    return settings.value("UUID", uuid).toString();
+
+  uuid = QUuid::createUuid();
+  settings.setValue("UUID", uuid);
+  return uuid;
+}
+
 QString GlobalSettings::settingsFile(void)
 {
 #if defined(Q_OS_UNIX)

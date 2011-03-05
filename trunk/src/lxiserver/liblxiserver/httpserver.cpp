@@ -21,7 +21,7 @@
 
 #include <QtNetwork>
 
-namespace LXiMediaCenter {
+namespace LXiServer {
 
 class HttpServer::Interface : public QTcpServer
 {
@@ -108,7 +108,7 @@ void HttpServer::close(void)
 
 quint16 HttpServer::serverPort(const QHostAddress &address) const
 {
-  SDebug::WriteLocker l(&(p->lock), __FILE__, __LINE__);
+  QWriteLocker l(&p->lock);
 
   QMap<QString, Interface *>::ConstIterator i = p->interfaces.find(address.toString());
   if (i != p->interfaces.end())
@@ -119,14 +119,14 @@ quint16 HttpServer::serverPort(const QHostAddress &address) const
 
 void HttpServer::registerCallback(const QString &path, Callback *callback)
 {
-  SDebug::WriteLocker l(&(p->lock), __FILE__, __LINE__);
+  QWriteLocker l(&p->lock);
 
   p->callbacks.insert(path, callback);
 }
 
 void HttpServer::unregisterCallback(Callback *callback)
 {
-  SDebug::WriteLocker l(&(p->lock), __FILE__, __LINE__);
+  QWriteLocker l(&p->lock);
 
   for (QMap<QString, Callback *>::Iterator i=p->callbacks.begin(); i!=p->callbacks.end(); )
   if (i.value() == callback)
@@ -182,7 +182,7 @@ const char * HttpServer::toMimeType(const QString &fileName)
 void HttpServer::run(void)
 {
   {
-    SDebug::WriteLocker l(&(p->lock), __FILE__, __LINE__);
+    QWriteLocker l(&p->lock);
 
     foreach (const QHostAddress &address, p->addresses)
       p->interfaces[address.toString()] = new Interface(address, p->port, this);
@@ -193,7 +193,7 @@ void HttpServer::run(void)
   exec();
 
   {
-    SDebug::WriteLocker l(&(p->lock), __FILE__, __LINE__);
+    QWriteLocker l(&p->lock);
 
     foreach (Interface *iface, p->interfaces)
       delete iface;
@@ -261,7 +261,7 @@ void HttpServer::SocketHandler::run()
       const RequestHeader request(response);
       if (request.isValid())
       {
-        SDebug::ReadLocker l(&(parent->p->lock), __FILE__, __LINE__);
+        QReadLocker l(&parent->p->lock);
 
         const QString path = QUrl(request.path()).path();
 

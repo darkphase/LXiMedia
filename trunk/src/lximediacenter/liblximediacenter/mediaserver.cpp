@@ -65,13 +65,13 @@ MediaServer::MediaServer(const char *name, Plugin *plugin, BackendServer::Master
   GlobalSettings::productLogo().bits();
 
   masterServer()->httpServer()->registerCallback(httpPath(), this);
-  masterServer()->dlnaServer()->registerCallback(dlnaPath(), this);
+  masterServer()->contentDirectory()->registerCallback(contentDirPath(), this);
 }
 
 MediaServer::~MediaServer()
 {
   masterServer()->httpServer()->unregisterCallback(this);
-  masterServer()->dlnaServer()->unregisterCallback(this);
+  masterServer()->contentDirectory()->unregisterCallback(this);
 
   delete p;
   *const_cast<Private **>(&p) = NULL;
@@ -159,7 +159,7 @@ HttpServer::SocketOp MediaServer::handleHttpRequest(const HttpServer::RequestHea
 
     ThumbnailListItemList thumbItems;
 
-    foreach (const DlnaServer::Item &item, listItems(path, start, itemsPerThumbnailPage))
+    foreach (const UPnPContentDirectory::Item &item, listItems(path, start, itemsPerThumbnailPage))
     {
       if (item.isDir)
       {
@@ -217,18 +217,18 @@ HttpServer::SocketOp MediaServer::handleHttpRequest(const HttpServer::RequestHea
 
 int MediaServer::countDlnaItems(const QString &path)
 {
-  QString subPath = path.mid(dlnaPath().length());
+  QString subPath = path.mid(contentDirPath().length());
   subPath = subPath.startsWith('/') ? subPath : ('/' + subPath);
 
   return countItems(subPath);
 }
 
-QList<DlnaServer::Item> MediaServer::listDlnaItems(const QString &path, unsigned start, unsigned count)
+QList<UPnPContentDirectory::Item> MediaServer::listDlnaItems(const QString &path, unsigned start, unsigned count)
 {
-  QString subPath = path.mid(dlnaPath().length());
+  QString subPath = path.mid(contentDirPath().length());
   subPath = subPath.startsWith('/') ? subPath : ('/' + subPath);
 
-  QList<DlnaServer::Item> result;
+  QList<UPnPContentDirectory::Item> result;
   foreach (Item item, listItems(subPath, start, count))
   {
     item.url.setPath(httpPath() + item.url.path());
@@ -399,19 +399,24 @@ bool MediaServer::Stream::setup(const HttpServer::RequestHeader &request, QAbstr
     }
   }
 
-  if (url.hasQueryItem("requestchannels"))
+  if (url.hasQueryItem("channels"))
   {
-    const SAudioFormat::Channels c =
-        SAudioFormat::Channels(url.queryItemValue("requestchannels").toUInt(NULL, 16));
-
-    if ((SAudioFormat::numChannels(c) > 0) &&
-        (SAudioFormat::numChannels(channels) > SAudioFormat::numChannels(c)))
+    if (url.queryItemValue("music") == "true")
     {
-      channels = c;
+      channels = SAudioFormat::Channels(url.queryItemValue("channels").toUInt(NULL, 16));
+    }
+    else
+    {
+      const SAudioFormat::Channels c =
+          SAudioFormat::Channels(url.queryItemValue("channels").toUInt(NULL, 16));
+
+      if ((SAudioFormat::numChannels(c) > 0) &&
+          (SAudioFormat::numChannels(channels) > SAudioFormat::numChannels(c)))
+      {
+        channels = c;
+      }
     }
   }
-  else if (url.hasQueryItem("forcechannels"))
-    channels = SAudioFormat::Channels(url.queryItemValue("forcechannels").toUInt(NULL, 16));
 
   SInterfaces::AudioEncoder::Flags audioEncodeFlags = SInterfaces::AudioEncoder::Flag_Fast;
   SInterfaces::VideoEncoder::Flags videoEncodeFlags = SInterfaces::VideoEncoder::Flag_Fast;

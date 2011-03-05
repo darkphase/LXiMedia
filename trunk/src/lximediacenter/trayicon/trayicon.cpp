@@ -21,6 +21,8 @@
 #include <QtXml>
 #include <liblximediacenter/globalsettings.h>
 
+using namespace LXiMediaCenter;
+
 #if defined(Q_OS_WIN)
 const int   TrayIcon::iconSize = 16;
 #elif defined(Q_OS_UNIX)
@@ -32,7 +34,7 @@ TrayIcon::TrayIcon()
     : QObject(),
       icon(":/lximediacenter/appicon.png"),
       trayIcon(),
-      ssdpClient(),
+      ssdpClient(GlobalSettings::ssdpUuid()),
       aboutBox(NULL)
 {
   connect(&updateStatusTimer, SIGNAL(timeout()), SLOT(updateStatus()));

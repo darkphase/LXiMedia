@@ -73,7 +73,7 @@ protected:
   virtual HttpServer::SocketOp  streamVideo(const HttpServer::RequestHeader &, QAbstractSocket *);
 
   virtual int                   countItems(const QString &path);
-  virtual QList<Item>           listItems(const QString &path, unsigned start, unsigned count);
+  virtual QList<Item>           listItems(const QString &path, unsigned start = 0, unsigned count = 0);
   virtual HttpServer::SocketOp  handleHttpRequest(const HttpServer::RequestHeader &, QAbstractSocket *);
 
   QList<Item>                   listPlayAllItem(const QString &path,  unsigned &start, unsigned &count, MediaDatabase::UniqueID = 0);

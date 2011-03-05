@@ -237,8 +237,8 @@ void TvShowServer::categorizeSeasons(const QString &path, QMap<unsigned, QVector
 TvShowServer::Item TvShowServer::makePlainItem(MediaDatabase::UniqueID uid)
 {
   Item item = makeItem(uid);
-  if (item.mediaInfo.track() > 0)
-    item.title = QString::number(item.mediaInfo.track()) + " " + item.title;
+  if (item.track > 0)
+    item.title = QString::number(item.track) + " " + item.title;
 
   return item;
 }
@@ -246,8 +246,8 @@ TvShowServer::Item TvShowServer::makePlainItem(MediaDatabase::UniqueID uid)
 TvShowServer::Item TvShowServer::makeSeasonItem(MediaDatabase::UniqueID uid)
 {
   Item item = makeItem(uid);
-  if (item.mediaInfo.track() > 0)
-    item.title = toTvShowNumber(item.mediaInfo.track()) + " " + item.title;
+  if (item.track > 0)
+    item.title = toTvShowNumber(item.track) + " " + item.title;
 
   return item;
 }

@@ -31,10 +31,6 @@ private slots:
   void                          initTestCase(void);
   void                          cleanupTestCase(void);
 
-  void                          HttpServer(void);
-  void                          HttpServerReply(QNetworkReply *);
-
 private:
   SApplication                * streamApp;
-  bool                          gotHttpServerReply;
 };

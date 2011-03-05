@@ -18,7 +18,7 @@
  ***************************************************************************/
 
 #include "httpoutputnode.h"
-#include "httpserver.h"
+#include <LXiServer>
 
 namespace LXiMediaCenter {
 

@@ -17,19 +17,22 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "commontest.h"
-#include <QtTest>
-#include <LXiMediaCenter>
+#include <QtCore>
+#include <QtNetwork>
 
-void CommonTest::initTestCase(void)
+class HttpServerTest : public QObject
 {
-  streamApp = new SApplication(SApplication::Initialize_Modules |
-                               SApplication::Initialize_Devices |
-                               SApplication::Initialize_LogToConsole);
-}
+Q_OBJECT
+public:
+  inline explicit               HttpServerTest(QObject *parent) : QObject(parent), gotHttpServerReply(false) { }
 
-void CommonTest::cleanupTestCase(void)
-{
-  delete streamApp;
-  streamApp = NULL;
-}
+private slots:
+  void                          initTestCase(void);
+  void                          cleanupTestCase(void);
+
+  void                          Server(void);
+  void                          ServerReply(QNetworkReply *);
+
+private:
+  bool                          gotHttpServerReply;
+};
