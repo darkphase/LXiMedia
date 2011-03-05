@@ -27,6 +27,7 @@ const char  * const UPnPBase::dublinCoreNS  = "http://purl.org/dc/elements/1.1/"
 const char  * const UPnPBase::eventNS       = "urn:schemas-upnp-org:event-1-0";
 const char  * const UPnPBase::metadataNS    = "urn:schemas-upnp-org:metadata-1-0";
 const char  * const UPnPBase::soapNS        = "http://schemas.xmlsoap.org/soap/envelope/";
+const QEvent::Type  UPnPBase::scheduleEventType = QEvent::Type(QEvent::registerEventType());
 
 class UPnPBase::EventSession : public QRunnable
 {
@@ -40,7 +41,7 @@ public:
   bool                          isActive(void) const;
   inline bool                   isDirty(void) const                             { return dirty && !scheduled; }
   inline void                   resetDirty(void)                                { dirty = false; scheduled = true; }
-  inline void                   emitEvent(void)                                 { dirty = true; }
+  inline void                   setDirty(void)                                  { dirty = true; }
 
   static QThreadPool          & threadPool(void);
 
@@ -75,7 +76,6 @@ struct UPnPBase::Data
   HttpServer                  * httpServer;
   UPnPMediaServer             * mediaServer;
 
-  int                           eventTimer;
   int                           cleanTimer;
   QMap<int, EventSession *>     eventSessions;
 };
@@ -89,7 +89,6 @@ UPnPBase::UPnPBase(const QString &basePath, const QString &serviceType, const QS
   d->serviceId = serviceId;
   d->httpServer = NULL;
   d->mediaServer = NULL;
-  d->eventTimer = startTimer(EventSession::interval * 1000);
   d->cleanTimer = startTimer((EventSession::timeout * 1000) / 2);
 
   // The threads that emit events simultaneously is managed by this threadpool.
@@ -147,7 +146,9 @@ void UPnPBase::emitEvent(void)
   QReadLocker l(lock());
 
   foreach (EventSession *session, d->eventSessions)
-    session->emitEvent();
+    session->setDirty();
+
+  QCoreApplication::postEvent(this, new QEvent(scheduleEventType));
 }
 
 HttpServer::SocketOp UPnPBase::handleHttpRequest(const HttpServer::RequestHeader &request, QAbstractSocket *socket)
@@ -246,6 +247,7 @@ HttpServer::SocketOp UPnPBase::handleEventSub(const HttpServer::RequestHeader &r
       {
         EventSession * const session =
             new EventSession(this, request.field("Callback").replace('<', "").replace('>', ""));
+
         d->eventSessions[session->sessionId()] = session;
 
         l.unlock();
@@ -256,7 +258,10 @@ HttpServer::SocketOp UPnPBase::handleEventSub(const HttpServer::RequestHeader &r
         response.setField("Server", d->mediaServer->serverId());
         socket->write(response);
         if (socket->waitForBytesWritten(5000))
-          session->emitEvent();
+        {
+          session->resetDirty();
+          EventSession::threadPool().start(session);
+        }
 
         return HttpServer::SocketOp_Close;
       }
@@ -329,23 +334,26 @@ HttpServer::SocketOp UPnPBase::handleDescription(const HttpServer::RequestHeader
   return HttpServer::SocketOp_Close;
 }
 
-void UPnPBase::timerEvent(QTimerEvent *e)
+void UPnPBase::customEvent(QEvent *e)
 {
-  if (e->timerId() == d->eventTimer)
+  if (e->type() == scheduleEventType)
   {
-    if (d->lock.tryLockForWrite(0))
-    {
-      foreach (EventSession *session, d->eventSessions)
-      if (session->isActive() && session->isDirty())
-      {
-        session->resetDirty();
-        EventSession::threadPool().start(session);
-      }
+    QWriteLocker l(&d->lock);
 
-      d->lock.unlock();
+    foreach (EventSession *session, d->eventSessions)
+    if (session->isActive() && session->isDirty())
+    {
+      session->resetDirty();
+      EventSession::threadPool().start(session);
     }
   }
-  else if (e->timerId() == d->cleanTimer)
+  else
+    QObject::customEvent(e);
+}
+
+void UPnPBase::timerEvent(QTimerEvent *e)
+{
+  if (e->timerId() == d->cleanTimer)
   {
     if (d->lock.tryLockForWrite(0))
     {

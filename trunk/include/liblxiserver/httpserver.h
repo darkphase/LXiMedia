@@ -52,8 +52,8 @@ public:
   public:
     inline bool                 isValid(void) const                             { return head.count() == 3; }
 
-    inline bool                 hasField(const QString &name) const             { return fields.contains(name); }
-    inline QString              field(const QString &name) const                { QMap<QString, QString>::ConstIterator i = fields.find(name); return (i != fields.end()) ? *i : QString::null; }
+    bool                        hasField(const QString &name) const;
+    QString                     field(const QString &name) const;
     void                        setField(const QString &name, const QString &value);
 
     inline qint64               contentLength(void) const                       { return field(fieldContentLength).toLongLong(); }
@@ -74,8 +74,7 @@ public:
     QList<QByteArray>           head;
 
   private:
-    QMap<QString, QString>      fields;
-    QStringList                 fieldOrder;
+    QList< QPair<QString, QString> > fields;
   };
 
   class RequestHeader : public Header
