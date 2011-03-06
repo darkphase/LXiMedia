@@ -121,6 +121,15 @@ HttpServer::SocketOp MediaPlayerServer::buildPlaylist(const HttpServer::RequestH
   return HttpServer::SocketOp_Close;
 }
 
+bool MediaPlayerServer::isEmpty(const QString &path)
+{
+  if (mediaDatabase->countAlbumFiles(category, path) == 0)
+  if (countAlbums(path) == 0)
+    return true;
+
+  return false;
+}
+
 int MediaPlayerServer::countItems(const QString &path)
 {
   return countAlbums(path) + mediaDatabase->countAlbumFiles(category, path);
@@ -198,13 +207,15 @@ MediaPlayerServer::Item MediaPlayerServer::makeItem(MediaDatabase::UniqueID uid)
   if (!node.isNull() && !titleNode.isNull())
   {
     if (titleNode.containsAudio() && titleNode.containsVideo())
-      item.mimeType = "video/mpeg";
+      item.type = UPnPContentDirectory::Item::Type_Video;
     else if (titleNode.containsAudio())
-      item.mimeType = "audio/mpeg";
+      item.type = UPnPContentDirectory::Item::Type_Audio;
     else if (titleNode.containsImage())
-      item.mimeType = "image/jpeg";
+      item.type = UPnPContentDirectory::Item::Type_Image;
+    else
+      item.type = UPnPContentDirectory::Item::Type_None;
 
-    if (!item.mimeType.isEmpty())
+    if (item.type != UPnPContentDirectory::Item::Type_None)
     {
       item.played = mediaDatabase->lastPlayed(uid).isValid();
       item.title = node.title();

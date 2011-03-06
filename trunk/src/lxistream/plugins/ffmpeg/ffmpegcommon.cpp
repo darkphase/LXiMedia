@@ -102,7 +102,6 @@ void FFMpegCommon::disableLog(bool disabled)
   else if (codec == "APE")                  return CODEC_ID_APE;
   else if (codec == "NELLYMOSER")           return CODEC_ID_NELLYMOSER;
   else if (codec == "MUSEPACK8")            return CODEC_ID_MUSEPACK8;
-#if ((LIBAVCODEC_VERSION_INT >> 16) >= 52)
   else if (codec == "SPEEX")                return CODEC_ID_SPEEX;
   else if (codec == "WMAVOICE")             return CODEC_ID_WMAVOICE;
   else if (codec == "WMAPRO")               return CODEC_ID_WMAPRO;
@@ -111,7 +110,6 @@ void FFMpegCommon::disableLog(bool disabled)
   else if (codec == "EAC3")                 return CODEC_ID_EAC3;
   else if (codec == "SIPR")                 return CODEC_ID_SIPR;
   else if (codec == "MP1")                  return CODEC_ID_MP1;
-#endif
 
   ////////////////////////////////////////////////////////////////////////////
   // Video codecs
@@ -228,7 +226,6 @@ void FFMpegCommon::disableLog(bool disabled)
   else if (codec == "VB")                   return CODEC_ID_VB;
   else if (codec == "PCX")                  return CODEC_ID_PCX;
   else if (codec == "SUNRAST")              return CODEC_ID_SUNRAST;
-#if ((LIBAVCODEC_VERSION_INT >> 16) >= 52)
   else if (codec == "INDEO4")               return CODEC_ID_INDEO4;
   else if (codec == "INDEO5")               return CODEC_ID_INDEO5;
   else if (codec == "MIMIC")                return CODEC_ID_MIMIC;
@@ -243,7 +240,6 @@ void FFMpegCommon::disableLog(bool disabled)
   else if (codec == "TGV")                  return CODEC_ID_TGV;
   else if (codec == "TGQ")                  return CODEC_ID_TGQ;
   else if (codec == "TQI")                  return CODEC_ID_TQI;
-#endif
 
   ////////////////////////////////////////////////////////////////////////////
   // Audio formats
@@ -266,13 +262,11 @@ void FFMpegCommon::disableLog(bool disabled)
   else if (codec == "PCM/S24DAUD")          return CODEC_ID_PCM_S24DAUD;
   else if (codec == "PCM/ZORK")             return CODEC_ID_PCM_ZORK;
   else if (codec == "PCM/S16LEP")           return CODEC_ID_PCM_S16LE_PLANAR;
-#if ((LIBAVCODEC_VERSION_INT >> 16) >= 52)
   else if (codec == "PCM/DVD")              return CODEC_ID_PCM_DVD;
   else if (codec == "PCM/F32BE")            return CODEC_ID_PCM_F32BE;
   else if (codec == "PCM/F32LE")            return CODEC_ID_PCM_F32LE;
   else if (codec == "PCM/F64BE")            return CODEC_ID_PCM_F64BE;
   else if (codec == "PCM/F64LE")            return CODEC_ID_PCM_F64LE;
-#endif
 
   //////////////////////////////////////////////////////////////////////////////
   // Subtitle codecs
@@ -333,7 +327,6 @@ const char * FFMpegCommon::fromFFMpegCodecID(::CodecID id)
   case CODEC_ID_APE:                return "APE";
   case CODEC_ID_NELLYMOSER:         return "NELLYMOSER";
   case CODEC_ID_MUSEPACK8:          return "MUSEPACK8";
-#if ((LIBAVCODEC_VERSION_INT >> 16) >= 52)
   case CODEC_ID_SPEEX:              return "SPEEX";
   case CODEC_ID_WMAVOICE:           return "WMAVOICE";
   case CODEC_ID_WMAPRO:             return "WMAPRO";
@@ -342,7 +335,6 @@ const char * FFMpegCommon::fromFFMpegCodecID(::CodecID id)
   case CODEC_ID_EAC3:               return "EAC3";
   case CODEC_ID_SIPR:               return "SIPR";
   case CODEC_ID_MP1:                return "MP1";
-#endif
 
   //////////////////////////////////////////////////////////////////////////////
   // Video codecs
@@ -459,7 +451,6 @@ const char * FFMpegCommon::fromFFMpegCodecID(::CodecID id)
   case CODEC_ID_VB:                 return "VB";
   case CODEC_ID_PCX:                return "PCX";
   case CODEC_ID_SUNRAST:            return "SUNRAST";
-#if ((LIBAVCODEC_VERSION_INT >> 16) >= 52)
   case CODEC_ID_INDEO4:             return "INDEO4";
   case CODEC_ID_INDEO5:             return "INDEO5";
   case CODEC_ID_MIMIC:              return "MIMIC";
@@ -474,7 +465,6 @@ const char * FFMpegCommon::fromFFMpegCodecID(::CodecID id)
   case CODEC_ID_TGV:                return "TGV";
   case CODEC_ID_TGQ:                return "TGQ";
   case CODEC_ID_TQI:                return "TQI";
-#endif
 
   //////////////////////////////////////////////////////////////////////////////
   // Audio formats
@@ -497,13 +487,11 @@ const char * FFMpegCommon::fromFFMpegCodecID(::CodecID id)
   case CODEC_ID_PCM_S24DAUD:        return "PCM/S24DAUD";
   case CODEC_ID_PCM_ZORK:           return "PCM/ZORK";
   case CODEC_ID_PCM_S16LE_PLANAR:   return "PCM/S16LEP";
-#if ((LIBAVCODEC_VERSION_INT >> 16) >= 52)
   case CODEC_ID_PCM_DVD:            return "PCM/DVD";
   case CODEC_ID_PCM_F32BE:          return "PCM/F32BE";
   case CODEC_ID_PCM_F32LE:          return "PCM/F32LE";
   case CODEC_ID_PCM_F64BE:          return "PCM/F64BE";
   case CODEC_ID_PCM_F64LE:          return "PCM/F64LE";
-#endif
 
   //////////////////////////////////////////////////////////////////////////////
   // Subtitle codecs
@@ -573,7 +561,6 @@ SVideoFormat::Format FFMpegCommon::fromFFMpegPixelFormat(::PixelFormat pf)
   }
 }
 
-#if ((LIBAVCODEC_VERSION_INT >> 16) >= 52)
 int64_t FFMpegCommon::toFFMpegChannelLayout(SAudioFormat::Channels channels)
 {
   switch (channels)
@@ -620,9 +607,7 @@ int64_t FFMpegCommon::toFFMpegChannelLayout(SAudioFormat::Channels channels)
     }
   }
 }
-#endif
 
-#if ((LIBAVCODEC_VERSION_INT >> 16) >= 52)
 SAudioFormat::Channels FFMpegCommon::fromFFMpegChannelLayout(int64_t layout, int channels)
 {
 #ifndef CH_LAYOUT_4POINT0
@@ -682,7 +667,6 @@ SAudioFormat::Channels FFMpegCommon::fromFFMpegChannelLayout(int64_t layout, int
     }
   }
 }
-#endif
 
 void FFMpegCommon::log(void *, int level, const char *fmt, va_list vl)
 {

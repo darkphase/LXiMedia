@@ -143,8 +143,8 @@ const char * SApplication::name(void)
 const char * SApplication::version(void)
 {
   return
-#include "version.h"
-      " (" __DATE__ " " __TIME__")";
+#include "_version.h"
+      ;
 }
 
 /*! When invoked with NULL; it will attempt to load all available plugins. If a

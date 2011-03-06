@@ -54,6 +54,8 @@ private:
 
 struct HttpServer::Private
 {
+  inline Private(void) : lock(QReadWriteLock::Recursive) { }
+
   QReadWriteLock                lock;
   QList<QHostAddress>           addresses;
   quint16                       port;
@@ -108,7 +110,7 @@ void HttpServer::close(void)
 
 quint16 HttpServer::serverPort(const QHostAddress &address) const
 {
-  QWriteLocker l(&p->lock);
+  QReadLocker l(&p->lock);
 
   QMap<QString, Interface *>::ConstIterator i = p->interfaces.find(address.toString());
   if (i != p->interfaces.end())
@@ -153,6 +155,7 @@ const char * HttpServer::toMimeType(const QString &fileName)
   else if (ext == "oga")    return "audio/ogg";
   else if (ext == "ogg")    return "audio/ogg";
   else if (ext == "wav")    return "audio/x-wav";
+  else if (ext == "lpcm")   return "audio/L16;rate=48000;channels=2";
   else if (ext == "jpeg")   return "image/jpeg";
   else if (ext == "jpg")    return "image/jpeg";
   else if (ext == "png")    return "image/png";
@@ -167,6 +170,7 @@ const char * HttpServer::toMimeType(const QString &fileName)
   else if (ext == "mpeg")   return "video/mpeg";
   else if (ext == "mpg")    return "video/mpeg";
   else if (ext == "mp4")    return "video/mpeg";
+  else if (ext == "ts")     return "video/mpeg";
   else if (ext == "ogv")    return "video/ogg";
   else if (ext == "ogx")    return "video/ogg";
   else if (ext == "spx")    return "video/ogg";

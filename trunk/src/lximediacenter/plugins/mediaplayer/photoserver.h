@@ -54,7 +54,7 @@ protected:
   virtual HttpServer::SocketOp  handleHttpRequest(const HttpServer::RequestHeader &, QAbstractSocket *);
 
 private:
-  HttpServer::SocketOp          sendPhoto(QAbstractSocket *, MediaDatabase::UniqueID, unsigned = 0, unsigned = 0) const;
+  HttpServer::SocketOp          sendPhoto(QAbstractSocket *, MediaDatabase::UniqueID, const QString &format, unsigned = 0, unsigned = 0) const;
   HttpServer::SocketOp          handleHtmlRequest(const QUrl &, const QString &, QAbstractSocket *);
 
 private:

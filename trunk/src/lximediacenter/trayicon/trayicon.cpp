@@ -61,7 +61,7 @@ void TrayIcon::show(void)
 void TrayIcon::startSSdp(void)
 {
   ssdpClient.initialize(GlobalSettings::defaultBackendInterfaces());
-  ssdpClient.sendSearch(GlobalSettings::productAbbr() + QString(":server"));
+  ssdpClient.sendSearch(qApp->applicationName() + QString(":server"));
 
   connect(&ssdpClient, SIGNAL(searchUpdated()), SLOT(updateMenu()));
 
@@ -76,9 +76,7 @@ void TrayIcon::showAbout(void)
     aboutBox->setWindowTitle(tr("About") + " " + QCoreApplication::applicationName());
     aboutBox->setIconPixmap(icon.pixmap(64, QIcon::Normal));
     aboutBox->setText(
-        "<big><b>" + QCoreApplication::applicationName() + " "
-#include "version.h"
-        "</b></big><br /><br />"
+        "<big><b>" + qApp->applicationName() + " " + qApp->applicationVersion() + "</b></big><br /><br />"
         "Built on " __DATE__ " at " __TIME__ "<br /><br />"
         "Copyright (c) 2010 A.J. Admiraal<br /><br />"
         "This program is free software; you can redistribute it and/or modify<br />"
@@ -99,7 +97,7 @@ void TrayIcon::showAbout(void)
 void TrayIcon::updateMenu(void)
 {
   QSet<QString> uuids;
-  foreach (const SsdpClient::Node &result, ssdpClient.searchResults(GlobalSettings::productAbbr() + QString(":server")))
+  foreach (const SsdpClient::Node &result, ssdpClient.searchResults(qApp->applicationName() + QString(":server")))
   {
     QMap<QString, Server>::Iterator i = servers.find(result.uuid);
     if (i == servers.end())

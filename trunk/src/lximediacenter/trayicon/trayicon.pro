@@ -28,20 +28,6 @@ unix|win32-g++ {
   VERSION_MAJOR ~= s/\\.[0-9]+.+/
 }
 
-# Generate version.h
-unix {
-  system(mkdir -p $${OBJECTS_DIR})
-  system(echo \\\"$${VERSION}\\\" > $${OBJECTS_DIR}/version.h)
-  INCLUDEPATH += $${OBJECTS_DIR}/
-}
-
-win32 {
-  BSOBJECTS_DIR = $$replace(OBJECTS_DIR, /, \\)
-  system(if not exist $${BSOBJECTS_DIR} mkdir $${BSOBJECTS_DIR})
-  system(echo \"$${VERSION}\" > $${BSOBJECTS_DIR}\\version.h)
-  INCLUDEPATH += $${OBJECTS_DIR}/
-}
-
 include($${LXIMEDIA_DIR}/include/liblxiserver/linklxiserver.pri)
 
 # Files

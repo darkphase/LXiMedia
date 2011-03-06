@@ -6,7 +6,7 @@
 # conffiles have been removed.
 
 USER=lximediacenter
-HOME=/var/lib/lximc
+HOME=/var/lib/$USER
 
 case "$1" in
 	remove|disappear|upgrade|failed-upgrade|abort-install|abort-upgrade)

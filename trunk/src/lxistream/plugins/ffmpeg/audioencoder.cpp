@@ -84,9 +84,7 @@ bool AudioEncoder::openCodec(const SAudioCodec &c, Flags flags)
   contextHandle = avcodec_alloc_context();
   contextHandle->sample_rate = outCodec.sampleRate();
   contextHandle->channels = outCodec.numChannels();
-#if ((LIBAVCODEC_VERSION_INT >> 16) >= 52)
   contextHandle->channel_layout = FFMpegCommon::toFFMpegChannelLayout(outCodec.channelSetup());
-#endif
   contextHandle->bit_rate = (outCodec.bitRate() > 0) ? outCodec.bitRate() : (96000 * contextHandle->channels);
 
   if (outCodec == "AC3")

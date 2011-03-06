@@ -37,8 +37,8 @@ public:
   explicit                      UPnPConnectionManager(QObject * = NULL);
   virtual                       ~UPnPConnectionManager();
 
-  void                          setSourceProtocols(const QMap<QByteArray, QList<QByteArray> > &);
-  void                          setSinkProtocols(const QMap<QByteArray, QList<QByteArray> > &);
+  void                          setSourceProtocols(const ProtocolList &);
+  void                          setSinkProtocols(const ProtocolList &);
 
 protected: // From UPnPBase
   virtual void                  buildDescription(QDomDocument &, QDomElement &);
@@ -46,8 +46,8 @@ protected: // From UPnPBase
   virtual void                  addEventProperties(QDomDocument &, QDomElement &);
 
 private:
-  QByteArray                    listSourceProtocols(void) const;
-  QByteArray                    listSinkProtocols(void) const;
+  QString                       listSourceProtocols(void) const;
+  QString                       listSinkProtocols(void) const;
 
 public:
   static const char     * const connectionManagerNS;

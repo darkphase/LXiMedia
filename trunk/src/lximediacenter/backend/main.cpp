@@ -69,10 +69,11 @@
   {
     QCoreApplication app(argc, argv);
     app.setOrganizationName("LeX-Interactive");
+    app.setOrganizationDomain("lximedia.sf.net");
     app.setApplicationName("LXiMediaCenter");
     app.setApplicationVersion(
-#include "version.h"
-        " (" __DATE__ " " __TIME__")");
+#include "_version.h"
+        );
 
     BackendDeamon *deamon = new BackendDeamon();
 
@@ -219,10 +220,11 @@
     {
         QCoreApplication app(argc, argv);
         app.setOrganizationName("LeX-Interactive");
+        app.setOrganizationDomain("lximedia.sf.net");
         app.setApplicationName("LXiMediaCenter");
         app.setApplicationVersion(
-#include "version.h"
-            " (" __DATE__ " " __TIME__")");
+#include "_version.h"
+            );
 
         int exitCode = 0;
         do
@@ -254,10 +256,11 @@
   {
     QCoreApplication app(argc, argv);
     app.setOrganizationName("LeX-Interactive");
+    app.setOrganizationDomain("lximedia.sf.net");
     app.setApplicationName("LXiMediaCenter");
     app.setApplicationVersion(
-#include "version.h"
-        " (" __DATE__ " " __TIME__")");
+#include "_version.h"
+        );
 
     int exitCode = 0;
     do

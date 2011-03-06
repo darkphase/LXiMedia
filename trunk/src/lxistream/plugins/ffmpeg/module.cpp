@@ -49,6 +49,18 @@ void Module::registerClasses(void)
   FormatProber::registerClass<FormatProber>(0);
 
   // Codecs
+  const QSet<QString> buggyDecoders = QSet<QString>()
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(52, 72, 0)
+      << "FLAC" << "THEORA"
+#endif
+      ;
+
+  const QSet<QString> buggyEncoders = QSet<QString>()
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(60, 0, 0)
+      << "FLAC" << "THEORA"
+#endif
+      ;
+
   for (::AVCodec *codec=::av_codec_next(NULL); codec; codec=::av_codec_next(codec))
   {
     const char * const name = FFMpegCommon::fromFFMpegCodecID(codec->id);
@@ -56,33 +68,38 @@ void Module::registerClasses(void)
     {
       if (codec->type == CODEC_TYPE_AUDIO)
       {
-        if (codec->decode)
+        if (codec->decode && !buggyDecoders.contains(name))
           AudioDecoder::registerClass<AudioDecoder>(name);
 
-        if (codec->encode)
+        if (codec->encode && !buggyEncoders.contains(name))
           AudioEncoder::registerClass<AudioEncoder>(name);
       }
       else if (codec->type == CODEC_TYPE_VIDEO)
       {
-        if (codec->decode)
+        if (codec->decode && !buggyDecoders.contains(name))
           VideoDecoder::registerClass<VideoDecoder>(name);
 
-        if (codec->encode)
+        if (codec->encode && !buggyEncoders.contains(name))
           VideoEncoder::registerClass<VideoEncoder>(name);
       }
       else if (codec->type == CODEC_TYPE_SUBTITLE)
       {
-        if (codec->decode)
+        if (codec->decode && !buggyDecoders.contains(name))
           DataDecoder::registerClass<DataDecoder>(name);
       }
     }
   }
 
   // Formats
+  const QSet<QString> buggyOutFormats = QSet<QString>()
+      << "mpegts" << "asf"
+      ;
+
   for (::AVInputFormat *format=::av_iformat_next(NULL); format; format=::av_iformat_next(format))
     BufferReader::registerClass<BufferReader>(format->name);
 
   for (::AVOutputFormat *format=::av_oformat_next(NULL); format; format=::av_oformat_next(format))
+  if (!buggyOutFormats.contains(format->name))
     BufferWriter::registerClass<BufferWriter>(format->name);
 
   // Filters

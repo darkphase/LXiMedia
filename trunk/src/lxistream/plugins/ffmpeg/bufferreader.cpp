@@ -100,6 +100,7 @@ bool BufferReader::start(ReadCallback *rc, ProduceCallback *pc, bool streamed)
 
     if (::av_open_input_stream(&formatContext, ioContext, "", format, &ap) == 0)
     {
+      formatContext->flags |= AVFMT_FLAG_GENPTS;
       formatContext->max_analyze_duration = 30 * AV_TIME_BASE;
       if (::av_find_stream_info(formatContext) >= 0)
       {
@@ -276,12 +277,8 @@ bool BufferReader::process(void)
 
                   context->audioCodec =
                       SAudioCodec("DTS",
-#if ((LIBAVCODEC_VERSION_INT >> 16) >= 52)
                                   FFMpegCommon::fromFFMpegChannelLayout(stream->codec->channel_layout,
                                                                         stream->codec->channels),
-#else
-                                  SAudioFormat::guessChannels(stream->codec->channels),
-#endif
                                   stream->codec->sample_rate);
                 }
 
@@ -386,11 +383,7 @@ bool BufferReader::process(void)
               const QPair<STime, STime> ts = correctTimeStampToVideo(packet);
               buffer.setPresentationTimeStamp(ts.first);
               buffer.setDecodingTimeStamp(ts.second);
-#if ((LIBAVCODEC_VERSION_INT >> 16) >= 52)
               buffer.setDuration(STime(packet.convergence_duration, context->timeBase));
-#else
-              buffer.setDuration(STime(packet.duration, context->timeBase));
-#endif
 
   //            qDebug() << "Data timestamp" << packet.stream_index
   //                << ", dts =" << buffer.decodingTimeStamp().toMSec()
@@ -541,10 +534,9 @@ QList<BufferReader::Chapter> BufferReader::chapters(void) const
     const SInterval interval(formatContext->chapters[i]->time_base.num, formatContext->chapters[i]->time_base.den);
 
     Chapter chapter;
-#if ((LIBAVCODEC_VERSION_INT >> 16) >= 52)
     if (formatContext->chapters[i]->title)
       chapter.title = formatContext->chapters[i]->title;
-#endif
+
     chapter.begin = STime(formatContext->chapters[i]->start, interval);
     chapter.end = STime(formatContext->chapters[i]->end, interval);
 
@@ -786,11 +778,7 @@ BufferReader::StreamContext * BufferReader::initStreamContext(const ::AVStream *
   {
     streamContext->audioCodec =
         SAudioCodec(FFMpegCommon::fromFFMpegCodecID(stream->codec->codec_id),
-#if ((LIBAVCODEC_VERSION_INT >> 16) >= 52)
                     FFMpegCommon::fromFFMpegChannelLayout(stream->codec->channel_layout, stream->codec->channels),
-#else
-                    SAudioFormat::guessChannels(stream->codec->channels),
-#endif
                     stream->codec->sample_rate,
                     stream->codec->bit_rate);
 

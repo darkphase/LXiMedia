@@ -37,7 +37,12 @@ BufferWriter::BufferWriter(const QString &, QObject *parent)
 BufferWriter::~BufferWriter()
 {
   if (formatContext)
+  {
+    for (unsigned i=0; i<formatContext->nb_streams; i++)
+      ::av_free(formatContext->streams[i]);
+
     ::av_free(formatContext);
+  }
 
   if (ioContext)
   {
@@ -53,11 +58,7 @@ bool BufferWriter::openFormat(const QString &name)
   format = ::guess_stream_format(name.toAscii().data(), NULL, NULL);
   if (format)
   {
-#if ((LIBAVCODEC_VERSION_INT >> 16) >= 52)
     formatContext = ::avformat_alloc_context();
-#else
-    formatContext = ::av_alloc_format_context();
-#endif
     formatContext->oformat = format;
     formatContext->preload = AV_TIME_BASE / 100;
     formatContext->max_delay = AV_TIME_BASE / 100;
@@ -84,7 +85,7 @@ bool BufferWriter::createStreams(const QList<SAudioCodec> &audioCodecs, const QL
       if (sampleRate == 0)
       {
         stream->time_base.num = 1;
-        stream->time_base.den = 1000;
+        stream->time_base.den = 90000;
       }
       else
       {
@@ -104,9 +105,7 @@ bool BufferWriter::createStreams(const QList<SAudioCodec> &audioCodecs, const QL
       stream->codec->bit_rate = qMax(64000, codec.bitRate());
       stream->codec->sample_rate = sampleRate;
       stream->codec->channels = codec.numChannels();
-#if ((LIBAVCODEC_VERSION_INT >> 16) >= 52)
       stream->codec->channel_layout = FFMpegCommon::toFFMpegChannelLayout(codec.channelSetup());
-#endif
 
       stream->codec->extradata_size = codec.extraData().size();
       if (stream->codec->extradata_size > 0)
@@ -131,7 +130,7 @@ bool BufferWriter::createStreams(const QList<SAudioCodec> &audioCodecs, const QL
       if (!frameRate.isValid())
       {
         stream->time_base.num = 1;
-        stream->time_base.den = 1000;
+        stream->time_base.den = 90000;
       }
       else
       {
@@ -252,15 +251,19 @@ void BufferWriter::process(const SEncodedAudioBuffer &buffer)
     packet.size = buffer.size();
     packet.data = (uint8_t *)buffer.data();
     packet.stream_index = (*stream)->index;
+    packet.pos = -1;
 
     packet.pts = buffer.presentationTimeStamp().isValid()
                  ? buffer.presentationTimeStamp().toClock((*stream)->time_base.num, (*stream)->time_base.den)
                  : AV_NOPTS_VALUE;
     packet.dts = buffer.decodingTimeStamp().isValid()
                  ? buffer.decodingTimeStamp().toClock((*stream)->time_base.num, (*stream)->time_base.den)
-                 : AV_NOPTS_VALUE;
+                 : packet.pts;
+    
+    if (packet.dts > packet.pts) 
+      packet.pts = packet.dts;
 
-//    qDebug() << "A:" << packet.pts << packet.dts;
+    //qDebug() << "A:" << buffer.presentationTimeStamp().toMSec() << packet.pts << packet.dts;
 
     packet.flags |= PKT_FLAG_KEY;
 
@@ -279,15 +282,19 @@ void BufferWriter::process(const SEncodedVideoBuffer &buffer)
     packet.size = buffer.size();
     packet.data = (uint8_t *)buffer.data();
     packet.stream_index = (*stream)->index;
+    packet.pos = -1;
 
     packet.pts = buffer.presentationTimeStamp().isValid()
                  ? buffer.presentationTimeStamp().toClock((*stream)->time_base.num, (*stream)->time_base.den)
                  : AV_NOPTS_VALUE;
     packet.dts = buffer.decodingTimeStamp().isValid()
                  ? buffer.decodingTimeStamp().toClock((*stream)->time_base.num, (*stream)->time_base.den)
-                 : AV_NOPTS_VALUE;
+                 : packet.pts;
+    
+    if (packet.dts > packet.pts) 
+      packet.pts = packet.dts;
 
-//    qDebug() << "V:" << packet.pts << packet.dts;
+    //qDebug() << "V:" << buffer.presentationTimeStamp().toMSec() << packet.pts << packet.dts;
 
     if (buffer.isKeyFrame())
       packet.flags |= PKT_FLAG_KEY;
@@ -306,6 +313,5 @@ int BufferWriter::write(void *opaque, uint8_t *buf, int buf_size)
 
   return 0;
 }
-
 
 } } // End of namespaces

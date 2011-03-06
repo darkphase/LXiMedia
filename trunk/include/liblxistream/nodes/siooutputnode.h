@@ -37,6 +37,8 @@ public:
   explicit                      SIOOutputNode(SGraph *, QIODevice * = NULL);
   virtual                       ~SIOOutputNode();
 
+  static QStringList            formats(void);
+
   void                          setIODevice(QIODevice *);
   bool                          openFormat(const QString &, const SAudioCodec &, STime);
   bool                          openFormat(const QString &, const SAudioCodec &, const SVideoCodec &, STime);

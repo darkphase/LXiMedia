@@ -27,32 +27,6 @@ GlobalSettings::GlobalSettings(void)
 {
 }
 
-const char * GlobalSettings::productAbbr(void)
-{
-  return "lximc";
-}
-
-const char * GlobalSettings::productUri(void)
-{
-  return "https://sourceforge.net/projects/lximedia/";
-}
-
-const QImage & GlobalSettings::productLogo(void)
-{
-  static const QImage logo(":/lximediacenter/appicon-large.png");
-
-  return logo;
-}
-
-/*! Returns the version identifier for the active build of LXiMediaCenter.
- */
-const char * GlobalSettings::version(void)
-{
-  return
-#include "version.h"
-      " (" __DATE__ " " __TIME__")";
-}
-
 QList<QHostAddress> GlobalSettings::defaultBackendInterfaces(void)
 {
   QList<QHostAddress> interfaces;
@@ -137,24 +111,24 @@ QString GlobalSettings::applicationDataDir(void)
     return dir;
 
 #if defined(Q_OS_UNIX)
-  if (QDir::home().dirName() == productAbbr()) // homedir of the lximediacenter user
+  if (QDir::home().dirName() == qApp->applicationName().toLower()) // homedir of the lximediacenter user
     dir = QDir::cleanPath(QDir::homePath());
   else
-    dir = QDir::cleanPath(QDir::homePath() + "/." + productAbbr());
+    dir = QDir::cleanPath(QDir::homePath() + "/." + qApp->applicationName().toLower());
 #elif defined(Q_OS_WIN)
   foreach (const QString &var, QProcess::systemEnvironment())
   if (var.startsWith("ALLUSERSPROFILE=", Qt::CaseInsensitive))
   {
-    dir = QDir::cleanPath(QDir::fromNativeSeparators(var.mid(16)) + "/Application Data/" + productAbbr());
+    dir = QDir::cleanPath(QDir::fromNativeSeparators(var.mid(16)) + "/Application Data/" + qApp->applicationName());
     break;
   }
 
   // We use Local Settings here because the backend is storing large databases
   // in this directory; this is not preferable in a roaming profile.
   if (dir.length() == 0)
-    dir = QDir::cleanPath(QDir::homePath() + "/Local Settings/Application Data/" + productAbbr());
+    dir = QDir::cleanPath(QDir::homePath() + "/Local Settings/Application Data/" + qApp->applicationName());
 #else
-  dir = QDir::cleanPath(QDir::homePath() + "/." + productAbbr());
+  dir = QDir::cleanPath(QDir::homePath() + "/." + qApp->applicationName().toLower());
 #endif
 
   if (!QDir(dir).exists())

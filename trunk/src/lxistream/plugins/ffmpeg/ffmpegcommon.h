@@ -53,10 +53,8 @@ public:
   static const char           * fromFFMpegCodecID(::CodecID);
   static ::PixelFormat          toFFMpegPixelFormat(SVideoFormat::Format);
   static SVideoFormat::Format   fromFFMpegPixelFormat(::PixelFormat);
-#if ((LIBAVCODEC_VERSION_INT >> 16) >= 52)
   static int64_t                toFFMpegChannelLayout(SAudioFormat::Channels);
   static SAudioFormat::Channels fromFFMpegChannelLayout(int64_t, int);
-#endif
 
 private:
   static void                   log(void * ptr, int level, const char* fmt, va_list vl);

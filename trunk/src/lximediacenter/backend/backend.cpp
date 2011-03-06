@@ -212,35 +212,94 @@ void Backend::start(void)
 
   // Setup SSDP server
   masterSsdpServer.initialize(settings.defaultBackendInterfaces());
-  masterSsdpServer.publish(GlobalSettings::productAbbr() + QString(":server"), &masterHttpServer, "/");
+  masterSsdpServer.publish(qApp->applicationName() + QString(":server"), &masterHttpServer, "/");
 
   // Setup DLNA server
   masterMediaServer.initialize(&masterHttpServer, &masterSsdpServer);
   masterConnectionManager.initialize(&masterHttpServer, &masterMediaServer);
   masterContentDirectory.initialize(&masterHttpServer, &masterMediaServer);
 
-  QMap<QByteArray, QList<QByteArray> > sourceProtocols;
-  sourceProtocols["http-get"] = QList<QByteArray>()
-      << "video/mpeg"
-      //<< "video/ogg"
-      << "video/x-flv"
-      << "audio/mpeg"
-      //<< "audio/ogg"
-      << "audio/wave"
-      << "image/jpeg";
-  masterConnectionManager.setSourceProtocols(sourceProtocols);
+  // Supported DLNA protocols
+  const QStringList outAudioCodecs = SAudioEncoderNode::codecs();
+  const QStringList outVideoCodecs = SVideoEncoderNode::codecs();
+  const QStringList outFormats = SIOOutputNode::formats();
 
-  masterContentDirectory.setFormats("video", QList<QByteArray>()
-      << "video/mpeg.mpeg"
-      //<< "video/ogg.ogv"
-      << "video/x-flv.flv");
-  masterContentDirectory.setFormats("audio", QList<QByteArray>()
-      << "audio/mpeg.mpa"
-      //<< "audio/ogg.oga"
-      << "audio/wave.wav"
-      << "video/x-flv.flv");
-  masterContentDirectory.setFormats("image", QList<QByteArray>()
-      << "image/jpeg.jpeg");
+  UPnPBase::ProtocolList audioProtocols;
+  {
+    if (outFormats.contains("s16be") && outAudioCodecs.contains("PCM/S16BE"))
+      audioProtocols += UPnPBase::Protocol("http-get", "audio/L16;rate=48000;channels=2", true, "DLNA.ORG_PN=LPCM", ".lpcm");
+
+    if (outFormats.contains("mp3") && outAudioCodecs.contains("MP3"))
+      audioProtocols += UPnPBase::Protocol("http-get", "audio/mpeg", true, "DLNA.ORG_PN=MP3", ".mp3");
+
+    if (outFormats.contains("mp2") && outAudioCodecs.contains("MP2"))
+      audioProtocols += UPnPBase::Protocol("http-get", "audio/mpeg", true, QString::null, ".mpa");
+
+    if (outFormats.contains("wav") && outAudioCodecs.contains("PCM/S16LE"))
+      audioProtocols += UPnPBase::Protocol("http-get", "audio/wave", true, QString::null, ".wav");
+
+    if (outFormats.contains("ogg") && outAudioCodecs.contains("FLAC"))
+      audioProtocols += UPnPBase::Protocol("http-get", "audio/ogg", true, QString::null, ".oga");
+
+    if (outFormats.contains("flv") && outAudioCodecs.contains("PCM/S16LE"))
+      audioProtocols += UPnPBase::Protocol("http-get", "video/x-flv", true, QString::null, ".flv");
+  }
+
+  UPnPBase::ProtocolList videoProtocols;
+  {
+    if ((outVideoCodecs.contains("MPEG1") || outVideoCodecs.contains("MPEG2")) &&
+        outAudioCodecs.contains("MP2"))
+    {
+      if (outFormats.contains("mpegts"))
+      {
+        videoProtocols += UPnPBase::Protocol("http-get", "video/mpeg", true, "DLNA.ORG_PN=MPEG_TS_HD_EU", ".ts");
+        videoProtocols += UPnPBase::Protocol("http-get", "video/mpeg", true, "DLNA.ORG_PN=MPEG_TS_HD_JP", ".ts");
+        videoProtocols += UPnPBase::Protocol("http-get", "video/mpeg", true, "DLNA.ORG_PN=MPEG_TS_HD_NA", ".ts");
+        videoProtocols += UPnPBase::Protocol("http-get", "video/mpeg", true, "DLNA.ORG_PN=MPEG_TS_HD_KO", ".ts");
+      }
+      else if (outFormats.contains("vob"))
+      {
+        videoProtocols += UPnPBase::Protocol("http-get", "video/mpeg", true, QString::null, ".mpeg");
+      }
+
+      if (outFormats.contains("vob"))
+      {
+        QMap<QString, QString> pal;
+        pal["size"]   = "720x576x1.42222/box";
+        pal["channels"]   = QString::number(SAudioFormat::Channel_Stereo, 16);
+
+        QMap<QString, QString> ntsc;
+        ntsc["size"]  = "704x480x1.21307/box";
+        ntsc["channels"]  = QString::number(SAudioFormat::Channel_Stereo, 16);
+
+        videoProtocols += UPnPBase::Protocol("http-get", "video/mpeg", true, "DLNA.ORG_PN=MPEG_PS_PAL",  ".mpeg", pal);
+        videoProtocols += UPnPBase::Protocol("http-get", "video/mpeg", true, "DLNA.ORG_PN=MPEG_PS_NTSC", ".mpeg", ntsc);
+      }
+    }
+
+    if (outFormats.contains("ogg") &&
+        outVideoCodecs.contains("THEORA") && outAudioCodecs.contains("FLAC"))
+    {
+      videoProtocols += UPnPBase::Protocol("http-get", "video/ogg", true, QString::null, ".ogv");
+    }
+
+    if (outFormats.contains("flv") &&
+        outVideoCodecs.contains("FLV1") && outAudioCodecs.contains("PCM/S16LE"))
+    {
+      videoProtocols += UPnPBase::Protocol("http-get", "video/x-flv", true, QString::null, ".flv");
+    }
+  }
+
+  UPnPBase::ProtocolList imageProtocols = UPnPBase::ProtocolList()
+      << UPnPBase::Protocol("http-get", "image/jpeg",  true, "DLNA.ORG_PN=JPEG_LRG", ".jpeg")
+      << UPnPBase::Protocol("http-get", "image/jpeg",  true, "DLNA.ORG_PN=JPEG_TN", "-thumb.jpeg")
+      << UPnPBase::Protocol("http-get", "image/jpeg",  true, "DLNA.ORG_PN=JPEG_SM", "-thumb.jpeg")
+      << UPnPBase::Protocol("http-get", "image/png",   true, "DLNA.ORG_PN=PNG_LRG", ".png");
+
+  masterConnectionManager.setSourceProtocols(audioProtocols + videoProtocols + imageProtocols);
+  masterContentDirectory.setProtocols(UPnPContentDirectory::Item::Type_Audio, audioProtocols);
+  masterContentDirectory.setProtocols(UPnPContentDirectory::Item::Type_Video, videoProtocols);
+  masterContentDirectory.setProtocols(UPnPContentDirectory::Item::Type_Image, imageProtocols);
 
   setContentDirectoryQueryItems();
 

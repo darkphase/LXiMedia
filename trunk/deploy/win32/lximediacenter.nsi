@@ -106,7 +106,7 @@ Section "Uninstall"
   DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\LXiMediaCenter"
   
 	MessageBox MB_YESNO "Would you like to keep the existing settings and databases? Note that building a new database might take several hours." /SD IDYES IDYES noRemoveDb
-	  RMDir /r "$%ALLUSERSPROFILE%\Application Data\lximc"
+	  RMDir /r "$%ALLUSERSPROFILE%\Application Data\LXiMediaCenter"
 	noRemoveDb:
   
 SectionEnd
