@@ -99,7 +99,7 @@ QList<PlaylistServer::Item> PlaylistServer::listItems(const QString &path, unsig
 
   if (returnAll || (count > 0))
   {
-    result += listPlayAllItem(path, start, count);
+    result += listPlayAllItem(path, start, count, 0, result);
 
     if (returnAll || (count > 0))
     foreach (const MediaDatabase::File &file, mediaDatabase->getAlbumFiles(category, path, start, count))
@@ -144,7 +144,7 @@ HttpServer::SocketOp PlaylistServer::handleHttpRequest(const HttpServer::Request
   return MediaPlayerServer::handleHttpRequest(request, socket);
 }
 
-QList<PlaylistServer::Item> PlaylistServer::listPlayAllItem(const QString &path,  unsigned &start, unsigned &count, MediaDatabase::UniqueID thumbUid)
+QList<PlaylistServer::Item> PlaylistServer::listPlayAllItem(const QString &path,  unsigned &start, unsigned &count, MediaDatabase::UniqueID thumbUid, const QList<Item> &thumbs)
 {
   QList<Item> result;
 
@@ -169,6 +169,14 @@ QList<PlaylistServer::Item> PlaylistServer::listPlayAllItem(const QString &path,
       {
         item.iconUrl = makeItem(thumbUid).iconUrl;
         item.iconUrl.addQueryItem("overlay", "arrow-right");
+      }
+      else foreach (const Item &thumb, thumbs)
+      if (!thumb.iconUrl.isEmpty())
+      {
+        item.iconUrl = thumb.iconUrl;
+        item.iconUrl.removeQueryItem("overlay");
+        item.iconUrl.addQueryItem("overlay", "arrow-right");
+        break;
       }
 
       result.append(item);
