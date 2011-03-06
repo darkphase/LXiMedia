@@ -187,7 +187,7 @@ QList<TvShowServer::Item> TvShowServer::listItems(const QString &path, unsigned 
 
     if (returnAll || (count > 0))
     {
-      result += listPlayAllItem(path, start, count);
+      result += listPlayAllItem(path, start, count, 0, result);
 
       if (returnAll || (count > 0))
       {

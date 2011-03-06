@@ -76,7 +76,7 @@ protected:
   virtual QList<Item>           listItems(const QString &path, unsigned start = 0, unsigned count = 0);
   virtual HttpServer::SocketOp  handleHttpRequest(const HttpServer::RequestHeader &, QAbstractSocket *);
 
-  QList<Item>                   listPlayAllItem(const QString &path,  unsigned &start, unsigned &count, MediaDatabase::UniqueID = 0);
+  QList<Item>                   listPlayAllItem(const QString &path,  unsigned &start, unsigned &count, MediaDatabase::UniqueID = 0, const QList<Item> &thumbs = QList<Item>());
 
 private:
   const QString                 itemTitle;

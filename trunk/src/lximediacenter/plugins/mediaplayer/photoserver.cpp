@@ -37,11 +37,25 @@ HttpServer::SocketOp PhotoServer::streamVideo(const HttpServer::RequestHeader &r
 
   if ((file.count() > 1) && (file[1] == "playlist"))
   {
-    const QString album = QString::fromUtf8(QByteArray::fromHex(file.first().toAscii()));
-    const QList<MediaDatabase::File> files = mediaDatabase->getAlbumFiles(MediaDatabase::Category_Photos, album);
+    QStringList albums;
+    albums += QString::fromUtf8(QByteArray::fromHex(file.first().toAscii()));
+
+    QMultiMap<QString, MediaDatabase::File> files;
+    while (!albums.isEmpty())
+    {
+      const QString path = albums.takeFirst();
+
+      foreach (const MediaDatabase::File &file, mediaDatabase->getAlbumFiles(MediaDatabase::Category_Photos, path))
+        files.insert(path + file.name, file);
+
+      foreach (const QString &album, mediaDatabase->allAlbums(MediaDatabase::Category_Photos))
+      if (album.startsWith(path) && (album.mid(path.length()).count('/') == 1))
+        albums += album;
+    }
+
     if (!files.isEmpty())
     {
-      SlideShowStream *stream = new SlideShowStream(this, socket->peerAddress(), request.path(), files);
+      SlideShowStream *stream = new SlideShowStream(this, socket->peerAddress(), request.path(), files.values());
       if (stream->setup(request, socket))
       if (stream->start())
         return HttpServer::SocketOp_LeaveOpen; // The graph owns the socket now.
