@@ -94,19 +94,11 @@ bool AudioDecoder::openCodec(const SAudioCodec &c, Flags flags)
   if (inCodec.channelSetup() != SAudioFormat::Channel_None)
   {
     contextHandle->channels = inCodec.numChannels();
-#if ((LIBAVCODEC_VERSION_INT >> 16) >= 52)
     contextHandle->channel_layout = FFMpegCommon::toFFMpegChannelLayout(inCodec.channelSetup());
-#endif
   }
 
   if ((flags & Flag_DownsampleToStereo) && (contextHandle->channels != 2))
-  {
-#if ((LIBAVCODEC_VERSION_INT >> 16) >= 52)
     contextHandle->request_channel_layout = FFMpegCommon::toFFMpegChannelLayout(SAudioFormat::Channel_Stereo);
-#else
-    contextHandle->channels = 2;
-#endif
-  }
 
   contextHandle->bit_rate = inCodec.bitRate();
 
@@ -178,11 +170,7 @@ SAudioBufferList AudioDecoder::decodeBuffer(const SEncodedAudioBuffer &audioBuff
           if (outSize > 0)
           {
             const SAudioFormat outFormat(SAudioFormat::Format_PCM_S16,
-#if ((LIBAVCODEC_VERSION_INT >> 16) >= 52)
                                          FFMpegCommon::fromFFMpegChannelLayout(contextHandle->channel_layout, contextHandle->channels),
-#else
-                                         SAudioFormat::guessChannels(contextHandle->channels),
-#endif
                                          contextHandle->sample_rate);
             SAudioBuffer destBuffer(outFormat, outSize / (outFormat.sampleSize() * outFormat.numChannels()));
             destBuffer.setTimeStamp(timeStamp);

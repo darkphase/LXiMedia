@@ -6,20 +6,6 @@ TARGET = LXiMediaCenter
 include($${LXIMEDIA_DIR}/include/config.pri)
 QT += sql
 
-# Generate version.h
-unix {
-  system(mkdir -p $${OBJECTS_DIR})
-  system(echo \\\"$${VERSION}\\\" > $${OBJECTS_DIR}/version.h)
-  INCLUDEPATH += $${OBJECTS_DIR}/
-}
-
-win32 {
-  BSOBJECTS_DIR = $$replace(OBJECTS_DIR, /, \\)
-  system(if not exist $${BSOBJECTS_DIR} mkdir $${BSOBJECTS_DIR})
-  system(echo \"$${VERSION}\" > $${BSOBJECTS_DIR}\\version.h)
-  INCLUDEPATH += $${OBJECTS_DIR}/
-}
-
 INCLUDEPATH += $${LXIMEDIA_DIR}/include/liblximediacenter
 DEPENDPATH += $${LXIMEDIA_DIR}/include/liblximediacenter
 

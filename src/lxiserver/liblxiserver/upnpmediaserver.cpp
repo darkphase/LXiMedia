@@ -101,11 +101,11 @@ HttpServer::SocketOp UPnPMediaServer::handleHttpRequest(const HttpServer::Reques
     UPnPBase::addTextElm(doc, deviceElm, "deviceType", deviceType);
     UPnPBase::addTextElm(doc, deviceElm, "friendlyName", QHostInfo::localHostName() + ", " + qApp->applicationName());
     UPnPBase::addTextElm(doc, deviceElm, "manufacturer", qApp->organizationName());
-    UPnPBase::addTextElm(doc, deviceElm, "manufacturerURL", qApp->organizationDomain());
+    UPnPBase::addTextElm(doc, deviceElm, "manufacturerURL", "http://" + qApp->organizationDomain() + "/");
     UPnPBase::addTextElm(doc, deviceElm, "modelDescription", qApp->applicationName());
     UPnPBase::addTextElm(doc, deviceElm, "modelName", qApp->applicationName());
     UPnPBase::addTextElm(doc, deviceElm, "modelNumber", qApp->applicationVersion());
-    UPnPBase::addTextElm(doc, deviceElm, "modelURL", qApp->organizationDomain());
+    UPnPBase::addTextElm(doc, deviceElm, "modelURL", "http://" + qApp->organizationDomain() + "/");
     UPnPBase::addTextElm(doc, deviceElm, "serialNumber", qApp->applicationVersion());
     UPnPBase::addTextElm(doc, deviceElm, "UDN", "uuid:" + serverUuid());
     UPnPBase::addTextElm(doc, deviceElm, "UPC", "");
@@ -130,7 +130,7 @@ HttpServer::SocketOp UPnPMediaServer::handleHttpRequest(const HttpServer::Reques
     rootElm.appendChild(deviceElm);
     doc.appendChild(rootElm);
 
-    const QByteArray content = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + doc.toByteArray();
+    const QByteArray content = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n" + doc.toByteArray();
     HttpServer::ResponseHeader response(HttpServer::Status_Ok);
     response.setContentType("text/xml;charset=utf-8");
     response.setContentLength(content.length());

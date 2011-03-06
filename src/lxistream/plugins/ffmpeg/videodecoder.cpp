@@ -73,9 +73,7 @@ bool VideoDecoder::openCodec(const SVideoCodec &c, Flags flags)
   avcodec_get_frame_defaults(pictureHandle);
 
   contextHandle = avcodec_alloc_context();
-#if ((LIBAVCODEC_VERSION_INT >> 16) >= 52)
   contextHandle->error_recognition = FF_ER_COMPLIANT;
-#endif
   contextHandle->error_concealment = FF_EC_DEBLOCK;
   contextHandle->flags2 |= CODEC_FLAG2_CHUNKS;
 
@@ -109,33 +107,6 @@ bool VideoDecoder::openCodec(const SVideoCodec &c, Flags flags)
   else
     contextHandle->extradata = NULL;
 
-#if ((LIBAVCODEC_VERSION_INT >> 16) < 52)
-  struct T
-  {
-    static int get_buffer(struct AVCodecContext *c, AVFrame *pic)
-    {
-      int ret = ::avcodec_default_get_buffer(c, pic);
-
-      if (c->opaque)
-        pic->opaque = new qint64(*reinterpret_cast<const qint64 *>(c->opaque));
-
-      return ret;
-    }
-
-    static void release_buffer(struct AVCodecContext *c, AVFrame *pic)
-    {
-      if (pic)
-      if (pic->opaque)
-        delete reinterpret_cast<qint64 *>(pic->opaque);
-
-      ::avcodec_default_release_buffer(c, pic);
-    }
-  };
-
-  contextHandle->get_buffer = &T::get_buffer;
-  contextHandle->release_buffer = &T::release_buffer;
-#endif
-
   if (avcodec_open(contextHandle, codecHandle) < 0)
   {
     qCritical() << "VideoDecoder: Could not open video codec " << inCodec.codec();
@@ -168,11 +139,7 @@ SVideoBufferList VideoDecoder::decodeBuffer(const SEncodedVideoBuffer &videoBuff
         ? videoBuffer.presentationTimeStamp().toClock(contextHandle->time_base.num, contextHandle->time_base.den)
         : AV_NOPTS_VALUE;
 
-#if ((LIBAVCODEC_VERSION_INT >> 16) >= 52)
     contextHandle->reordered_opaque = inputPts;
-#else
-    contextHandle->opaque = new qint64(inputPts);
-#endif
 
     size_t sourceSize = videoBuffer.size();
     uint8_t *sourcePtr = (uint8_t *)videoBuffer.data();
@@ -240,17 +207,10 @@ SVideoBufferList VideoDecoder::decodeBuffer(const SEncodedVideoBuffer &videoBuff
         }
 
         // Determine correct timestamp
-#if ((LIBAVCODEC_VERSION_INT >> 16) >= 52)
         const STime rpts =
             (pictureHandle->reordered_opaque != AV_NOPTS_VALUE)
             ? STime::fromClock(pictureHandle->reordered_opaque, contextHandle->time_base.num, contextHandle->time_base.den)
             : STime();
-#else
-        const STime rpts =
-            (*reinterpret_cast<const qint64 *>(pictureHandle->opaque) != AV_NOPTS_VALUE)
-            ? STime::fromClock(*reinterpret_cast<const qint64 *>(pictureHandle->opaque), contextHandle->time_base.num, contextHandle->time_base.den)
-            : STime();
-#endif
 
         STime ts;
         if (rpts.isValid())
@@ -300,11 +260,6 @@ SVideoBufferList VideoDecoder::decodeBuffer(const SEncodedVideoBuffer &videoBuff
       else
         break;
     }
-
-#if ((LIBAVCODEC_VERSION_INT >> 16) < 52)
-    delete reinterpret_cast<qint64 *>(contextHandle->opaque);
-    contextHandle->opaque = NULL;
-#endif
   }
   else if (codecHandle)
   {

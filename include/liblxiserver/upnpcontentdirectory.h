@@ -43,6 +43,15 @@ public:
       Mode_Direct               = 255
     };
 
+    enum Type
+    {
+      Type_None                 = 0,
+      Type_Audio,
+      Type_Video,
+      Type_Image,
+      Type_FlagMusic            = 0x80
+    };
+
     struct Stream
     {
       inline Stream(quint32 id = 0, const QString &lang = QString::null)
@@ -66,7 +75,8 @@ public:
     };
 
     inline Item(void)
-      : isDir(false), played(false), music(false), mode(Mode_Default), duration(0)
+      : isDir(false), played(false), mode(Mode_Default), type(Type_None),
+        duration(0)
     {
     }
 
@@ -74,10 +84,9 @@ public:
 
     bool                        isDir;
     bool                        played;
-    bool                        music;
     quint8                      mode;
+    quint8                      type;
     QString                     title;
-    QString                     mimeType;
     QUrl                        url;
     QUrl                        iconUrl;
 
@@ -108,7 +117,7 @@ public:
   explicit                      UPnPContentDirectory(QObject * = NULL);
   virtual                       ~UPnPContentDirectory();
 
-  void                          setFormats(const QByteArray &type, const QList<QByteArray> &formats);
+  void                          setProtocols(Item::Type, const ProtocolList &);
   void                          setQueryItems(const QString &peer, const QMap<QString, QString> &);
   QMap<QString, QString>        activeClients(void) const;
 
@@ -120,6 +129,7 @@ protected: // From UPnPBase
   virtual void                  buildDescription(QDomDocument &, QDomElement &);
   virtual void                  handleSoapMessage(const QDomElement &, QDomDocument &, QDomElement &, const HttpServer::RequestHeader &, const QHostAddress &);
   virtual void                  addEventProperties(QDomDocument &, QDomElement &);
+  virtual void                  flushData(void);
 
 private:
   void                          handleBrowse(const QDomElement &, QDomDocument &, QDomElement &, const HttpServer::RequestHeader &, const QHostAddress &);

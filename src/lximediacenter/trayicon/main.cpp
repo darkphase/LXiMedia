@@ -24,10 +24,11 @@ int main(int argc, char *argv[])
 {
   QApplication app(argc, argv);
   app.setOrganizationName("LeX-Interactive");
+  app.setOrganizationDomain("lximedia.sf.net");
   app.setApplicationName("LXiMediaCenter");
   app.setApplicationVersion(
-#include "version.h"
-      " (" __DATE__ " " __TIME__")");
+#include "_version.h"
+      );
 
   app.setQuitOnLastWindowClosed(false);
 

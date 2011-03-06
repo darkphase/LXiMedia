@@ -46,6 +46,11 @@ SIOOutputNode::~SIOOutputNode()
   *const_cast<Data **>(&d) = NULL;
 }
 
+QStringList SIOOutputNode::formats(void)
+{
+  return SInterfaces::BufferWriter::available();
+}
+
 void SIOOutputNode::setIODevice(QIODevice *ioDevice)
 {
   d->ioDevice = ioDevice;

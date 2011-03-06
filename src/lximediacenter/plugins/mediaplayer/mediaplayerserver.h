@@ -78,6 +78,7 @@ protected:
   virtual HttpServer::SocketOp  streamVideo(const HttpServer::RequestHeader &, QAbstractSocket *);
   virtual HttpServer::SocketOp  buildPlaylist(const HttpServer::RequestHeader &, QAbstractSocket *);
 
+  bool                          isEmpty(const QString &path);
   virtual int                   countItems(const QString &path);
   virtual QList<Item>           listItems(const QString &path, unsigned start = 0, unsigned count = 0);
 

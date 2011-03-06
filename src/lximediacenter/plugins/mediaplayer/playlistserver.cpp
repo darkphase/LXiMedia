@@ -87,10 +87,9 @@ HttpServer::SocketOp PlaylistServer::streamVideo(const HttpServer::RequestHeader
 
 int PlaylistServer::countItems(const QString &path)
 {
-  if (mediaDatabase->countAlbumFiles(category, path) > 0)
-    return MediaPlayerServer::countItems(path) + 1;
-  else
-    return MediaPlayerServer::countItems(path);
+  const int result = MediaPlayerServer::countItems(path);
+
+  return (result > 0) ? (result + 1) : 0;
 }
 
 QList<PlaylistServer::Item> PlaylistServer::listItems(const QString &path, unsigned start, unsigned count)
@@ -149,32 +148,35 @@ QList<PlaylistServer::Item> PlaylistServer::listPlayAllItem(const QString &path,
 {
   QList<Item> result;
 
-  if (start == 0)
+  if (!MediaPlayerServer::isEmpty(path) > 0)
   {
-    Item item;
-    item.mode = Item::Mode_Direct;
-    item.title = itemTitle;
-    item.mimeType = "video/mpeg";
-    item.url = httpPath() + path.toUtf8().toHex() + ".playlist";
-
-    if (thumbUid == 0)
+    if (start == 0)
     {
-      const QList<MediaDatabase::File> first = mediaDatabase->getAlbumFiles(category, path, 0, 1);
-      if (!first.isEmpty())
-        thumbUid = first.first().uid;
-    }
+      Item item;
+      item.mode = Item::Mode_Direct;
+      item.type = UPnPContentDirectory::Item::Type_Video;
+      item.title = itemTitle;
+      item.url = httpPath() + path.toUtf8().toHex() + ".playlist";
 
-    if (thumbUid != 0)
-    {
-      item.iconUrl = makeItem(thumbUid).iconUrl;
-      item.iconUrl.addQueryItem("overlay", "arrow-right");
-    }
+      if (thumbUid == 0)
+      {
+        const QList<MediaDatabase::File> first = mediaDatabase->getAlbumFiles(category, path, 0, 1);
+        if (!first.isEmpty())
+          thumbUid = first.first().uid;
+      }
 
-    result.append(item);
-    count--;
+      if (thumbUid != 0)
+      {
+        item.iconUrl = makeItem(thumbUid).iconUrl;
+        item.iconUrl.addQueryItem("overlay", "arrow-right");
+      }
+
+      result.append(item);
+      count--;
+    }
+    else
+      start--;
   }
-  else
-    start--;
 
   return result;
 }

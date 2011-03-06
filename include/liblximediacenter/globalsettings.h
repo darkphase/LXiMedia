@@ -26,9 +26,7 @@
 #include <LXiStream>
 #endif
 
-
 namespace LXiMediaCenter {
-
 
 class GlobalSettings : public QSettings
 {
@@ -57,11 +55,6 @@ public:
                                 GlobalSettings(void);
 
 public:
-  static const char           * productAbbr(void) __attribute__((pure));
-  static const char           * productUri(void) __attribute__((pure));
-  static const QImage         & productLogo(void) __attribute__((pure));
-  static const char           * version(void) __attribute__((pure));
-
   static QList<QHostAddress>    defaultBackendInterfaces(void) __attribute__((pure));
   static quint16                defaultBackendHttpPort(void) __attribute__((pure));
 
@@ -80,7 +73,6 @@ public:
   static QString                defaultTranscodeMusicChannelName(void) __attribute__((pure));
 #endif
 };
-
 
 } // End of namespace
 

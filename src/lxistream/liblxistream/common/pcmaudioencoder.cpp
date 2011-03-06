@@ -145,6 +145,7 @@ SEncodedAudioBuffer PcmAudioEncoder::swapBuffer16(const SAudioBuffer &buffer, co
                              buffer.format().sampleRate());
 
   SEncodedAudioBuffer dstBuffer(dstCodec, buffer.size());
+  dstBuffer.resize(buffer.size());
 
   LXiStream_Common_PcmAudio_swap16(dstBuffer.data(), buffer.data(), dstBuffer.size());
 
@@ -158,6 +159,7 @@ SEncodedAudioBuffer PcmAudioEncoder::swapBuffer32(const SAudioBuffer &buffer, co
                              buffer.format().sampleRate());
 
   SEncodedAudioBuffer dstBuffer(dstCodec, buffer.size());
+  dstBuffer.resize(buffer.size());
 
   LXiStream_Common_PcmAudio_swap32(dstBuffer.data(), buffer.data(), dstBuffer.size());
 
@@ -171,6 +173,7 @@ SEncodedAudioBuffer PcmAudioEncoder::swapBuffer64(const SAudioBuffer &buffer, co
                              buffer.format().sampleRate());
 
   SEncodedAudioBuffer dstBuffer(dstCodec, buffer.size());
+  dstBuffer.resize(buffer.size());
 
   LXiStream_Common_PcmAudio_swap64(dstBuffer.data(), buffer.data(), dstBuffer.size());
 

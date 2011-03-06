@@ -25,8 +25,8 @@ const char  * const UPnPConnectionManager::connectionManagerNS = "urn:schemas-up
 
 struct UPnPConnectionManager::Data
 {
-  QMap<QByteArray, QList<QByteArray> > sourceProtocols;
-  QMap<QByteArray, QList<QByteArray> > sinkProtocols;
+  ProtocolList sourceProtocols;
+  ProtocolList sinkProtocols;
 };
 
 UPnPConnectionManager::UPnPConnectionManager(QObject *parent)
@@ -44,7 +44,7 @@ UPnPConnectionManager::~UPnPConnectionManager()
   *const_cast<Data **>(&d) = NULL;
 }
 
-void UPnPConnectionManager::setSourceProtocols(const QMap<QByteArray, QList<QByteArray> > &sourceProtocols)
+void UPnPConnectionManager::setSourceProtocols(const ProtocolList &sourceProtocols)
 {
   QWriteLocker l(lock());
     d->sourceProtocols = sourceProtocols;
@@ -53,7 +53,7 @@ void UPnPConnectionManager::setSourceProtocols(const QMap<QByteArray, QList<QByt
   emitEvent();
 }
 
-void UPnPConnectionManager::setSinkProtocols(const QMap<QByteArray, QList<QByteArray> > &sinkProtocols)
+void UPnPConnectionManager::setSinkProtocols(const ProtocolList &sinkProtocols)
 {
   QWriteLocker l(lock());
     d->sinkProtocols = sinkProtocols;
@@ -62,34 +62,24 @@ void UPnPConnectionManager::setSinkProtocols(const QMap<QByteArray, QList<QByteA
   emitEvent();
 }
 
-QByteArray UPnPConnectionManager::listSourceProtocols(void) const
+QString UPnPConnectionManager::listSourceProtocols(void) const
 {
   QReadLocker l(lock());
 
-  QByteArray result;
-  for (QMap<QByteArray, QList<QByteArray> >::ConstIterator i = d->sourceProtocols.begin();
-       i != d->sourceProtocols.end();
-       i++)
-  {
-    foreach (const QByteArray &mime, i.value())
-      result += "," + i.key() + ":*:" + mime + ":*";
-  }
+  QString result;
+  foreach (const Protocol &protocol, d->sourceProtocols)
+    result += "," + protocol.toString(true);
 
   return result.isEmpty() ? result : result.mid(1);
 }
 
-QByteArray UPnPConnectionManager::listSinkProtocols(void) const
+QString UPnPConnectionManager::listSinkProtocols(void) const
 {
   QReadLocker l(lock());
 
-  QByteArray result;
-  for (QMap<QByteArray, QList<QByteArray> >::ConstIterator i = d->sinkProtocols.begin();
-       i != d->sinkProtocols.end();
-       i++)
-  {
-    foreach (const QByteArray &mime, i.value())
-      result += "," + i.key() + ":*:" + mime + ":*";
-  }
+  QString result;
+  foreach (const Protocol &protocol, d->sinkProtocols)
+    result += "," + protocol.toString(true);
 
   return result.isEmpty() ? result : result.mid(1);
 }
@@ -147,19 +137,19 @@ void UPnPConnectionManager::buildDescription(QDomDocument &doc, QDomElement &scp
 
 void UPnPConnectionManager::handleSoapMessage(const QDomElement &body, QDomDocument &responseDoc, QDomElement &responseBody, const HttpServer::RequestHeader &, const QHostAddress &)
 {
-  const QDomElement getProtocolInfoElem = body.firstChildElement("u:GetProtocolInfo");
+  const QDomElement getProtocolInfoElem = firstChildElementNS(body, connectionManagerNS, "GetProtocolInfo");
   if (!getProtocolInfoElem.isNull())
   {
-    QDomElement response = responseDoc.createElementNS(connectionManagerNS, "u:GetProtocolInfoResponse");
+    QDomElement response = createElementNS(responseDoc, getProtocolInfoElem, "GetProtocolInfoResponse");
     addTextElm(responseDoc, response, "Source", listSourceProtocols());
     addTextElm(responseDoc, response, "Sink", listSinkProtocols());
     responseBody.appendChild(response);
   }
 
-  const QDomElement getCurrentConnectionIDsElem = body.firstChildElement("u:GetCurrentConnectionIDs");
+  const QDomElement getCurrentConnectionIDsElem = firstChildElementNS(body, connectionManagerNS, "GetCurrentConnectionIDs");
   if (!getCurrentConnectionIDsElem.isNull())
   {
-    QDomElement response = responseDoc.createElementNS(connectionManagerNS, "u:GetCurrentConnectionIDsResponse");
+    QDomElement response = createElementNS(responseDoc, getCurrentConnectionIDsElem, "GetCurrentConnectionIDsResponse");
     addTextElm(responseDoc, response, "ConnectionIDs", QString::null);
     responseBody.appendChild(response);
   }
@@ -167,15 +157,15 @@ void UPnPConnectionManager::handleSoapMessage(const QDomElement &body, QDomDocum
 
 void UPnPConnectionManager::addEventProperties(QDomDocument &doc, QDomElement &propertySet)
 {
-  QDomElement property = doc.createElementNS(eventNS, "e:property");
+  QDomElement property = createElementNS(doc, propertySet, "property");
   addTextElm(doc, property, "SourceProtocolInfo", listSourceProtocols());
   propertySet.appendChild(property);
 
-  property = doc.createElementNS(eventNS, "e:property");
+  property = createElementNS(doc, propertySet, "property");
   addTextElm(doc, property, "SinkProtocolInfo", listSinkProtocols());
   propertySet.appendChild(property);
 
-  property = doc.createElementNS(eventNS, "e:property");
+  property = createElementNS(doc, propertySet, "property");
   addTextElm(doc, property, "CurrentConnectionIDs", QString::null);
   propertySet.appendChild(property);
 }

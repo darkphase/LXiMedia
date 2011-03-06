@@ -20,12 +20,17 @@
 #include "upnpbase.h"
 #include "upnpmediaserver.h"
 
+#ifdef QT_NO_DEBUG
+#define PERMISSIVE
+#endif
+
 namespace LXiServer {
 
+const char  * const UPnPBase::dlnaNS        = "urn:schemas-dlna-org:metadata-1-0/";
 const char  * const UPnPBase::didlNS        = "urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/";
 const char  * const UPnPBase::dublinCoreNS  = "http://purl.org/dc/elements/1.1/";
 const char  * const UPnPBase::eventNS       = "urn:schemas-upnp-org:event-1-0";
-const char  * const UPnPBase::metadataNS    = "urn:schemas-upnp-org:metadata-1-0";
+const char  * const UPnPBase::metadataNS    = "urn:schemas-upnp-org:metadata-1-0/upnp/";
 const char  * const UPnPBase::soapNS        = "http://schemas.xmlsoap.org/soap/envelope/";
 const QEvent::Type  UPnPBase::scheduleEventType = QEvent::Type(QEvent::registerEventType());
 
@@ -45,7 +50,7 @@ public:
 
   static QThreadPool          & threadPool(void);
 
-protected:
+//protected:
   virtual void                  run(void);
 
 public:
@@ -77,6 +82,7 @@ struct UPnPBase::Data
   UPnPMediaServer             * mediaServer;
 
   int                           cleanTimer;
+  int                           flushCounter;
   QMap<int, EventSession *>     eventSessions;
 };
 
@@ -90,6 +96,7 @@ UPnPBase::UPnPBase(const QString &basePath, const QString &serviceType, const QS
   d->httpServer = NULL;
   d->mediaServer = NULL;
   d->cleanTimer = startTimer((EventSession::timeout * 1000) / 2);
+  d->flushCounter = -1;
 
   // The threads that emit events simultaneously is managed by this threadpool.
 #ifdef QT_NO_DEBUG
@@ -182,7 +189,7 @@ HttpServer::SocketOp UPnPBase::handleControl(const HttpServer::RequestHeader &re
     if (!body.isNull())
     {
       QDomDocument responseDoc;
-      QDomElement responseBody = makeSoapMessage(responseDoc);
+      QDomElement responseBody = makeSoapMessage(responseDoc, body);
 
       handleSoapMessage(body, responseDoc, responseBody, request, socket->peerAddress());
 
@@ -221,6 +228,7 @@ HttpServer::SocketOp UPnPBase::handleEventSub(const HttpServer::RequestHeader &r
       if (i != d->eventSessions.end())
       {
         (*i)->resubscribe();
+        d->flushCounter = -1;
         l.unlock();
 
         HttpServer::ResponseHeader response(HttpServer::Status_Ok);
@@ -249,6 +257,7 @@ HttpServer::SocketOp UPnPBase::handleEventSub(const HttpServer::RequestHeader &r
             new EventSession(this, request.field("Callback").replace('<', "").replace('>', ""));
 
         d->eventSessions[session->sessionId()] = session;
+        d->flushCounter = -1;
 
         l.unlock();
 
@@ -285,6 +294,7 @@ HttpServer::SocketOp UPnPBase::handleEventSub(const HttpServer::RequestHeader &r
     {
       delete *i;
       d->eventSessions.erase(i);
+      d->flushCounter = d->eventSessions.isEmpty() ? 0 : -1;
 
       l.unlock();
 
@@ -319,7 +329,7 @@ HttpServer::SocketOp UPnPBase::handleDescription(const HttpServer::RequestHeader
 
   doc.appendChild(scpdElm);
 
-  const QByteArray content = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n" + doc.toByteArray();
+  const QByteArray content = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n" + doc.toByteArray();
   HttpServer::ResponseHeader response(HttpServer::Status_Ok);
   response.setContentType("text/xml;charset=utf-8");
   response.setContentLength(content.length());
@@ -334,6 +344,10 @@ HttpServer::SocketOp UPnPBase::handleDescription(const HttpServer::RequestHeader
   return HttpServer::SocketOp_Close;
 }
 
+void UPnPBase::flushData(void)
+{
+}
+
 void UPnPBase::customEvent(QEvent *e)
 {
   if (e->type() == scheduleEventType)
@@ -344,7 +358,8 @@ void UPnPBase::customEvent(QEvent *e)
     if (session->isActive() && session->isDirty())
     {
       session->resetDirty();
-      EventSession::threadPool().start(session);
+      //EventSession::threadPool().start(session);
+      session->run();
     }
   }
   else
@@ -363,6 +378,15 @@ void UPnPBase::timerEvent(QTimerEvent *e)
       {
         d->eventSessions.remove(session->sessionId());
         delete session;
+        d->flushCounter = d->eventSessions.isEmpty() ? 0 : -1;
+      }
+
+      // clear the cached data ff all sessions have been closed for 10 minutes.
+      if (d->flushCounter >= 0)
+      if (d->flushCounter++ >= (600 / (EventSession::timeout / 2)))
+      {
+        d->flushCounter = -1;
+        flushData();
       }
 
       d->lock.unlock();
@@ -431,12 +455,27 @@ void UPnPBase::addStateVariable(QDomDocument &doc, QDomElement &elm, bool sendEv
   elm.appendChild(stateVariableElm);
 }
 
-QDomElement UPnPBase::makeSoapMessage(QDomDocument &doc)
+QDomElement UPnPBase::createElementNS(QDomDocument &doc, const QDomElement &nsElm, const QString &localName)
 {
-  QDomElement root = doc.createElementNS(soapNS, "s:Envelope");
-  root.setAttributeNS(soapNS, "s:encodingStyle", "http://schemas.xmlsoap.org/soap/encoding/");
+  if (!nsElm.isNull())
+  if (!nsElm.prefix().isEmpty() && !nsElm.namespaceURI().isEmpty())
+    return doc.createElementNS(nsElm.namespaceURI(), nsElm.prefix() + ":" + localName);
+
+  return doc.createElement(localName);
+}
+
+QDomElement UPnPBase::makeSoapMessage(QDomDocument &doc, const QDomElement &nsElm)
+{
+  QDomElement root = createElementNS(doc, nsElm, "Envelope");
+
+  if (!nsElm.isNull() && !nsElm.prefix().isEmpty() && !nsElm.namespaceURI().isEmpty())
+    root.setAttributeNS(nsElm.namespaceURI(), nsElm.prefix() + ":" + "encodingStyle", "http://schemas.xmlsoap.org/soap/encoding/");
+  else
+    root.setAttribute("encodingStyle", "http://schemas.xmlsoap.org/soap/encoding/");
+
   doc.appendChild(root);
-  QDomElement body = doc.createElementNS(soapNS, "s:Body");
+
+  QDomElement body = createElementNS(doc, nsElm, "Body");
   root.appendChild(body);
 
   return body;
@@ -444,16 +483,56 @@ QDomElement UPnPBase::makeSoapMessage(QDomDocument &doc)
 
 QByteArray UPnPBase::serializeSoapMessage(const QDomDocument &doc)
 {
-  return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" + doc.toByteArray(-1);
+  return "<?xml version=\"1.0\" encoding=\"utf-8\"?>" + doc.toByteArray(-1);
+}
+
+QDomElement UPnPBase::firstChildElementNS(const QDomElement &elm, const QString &nsURI, const QString &localName)
+{
+  for (QDomNode i=elm.firstChild(); !i.isNull(); i=i.nextSibling())
+  if ((i.localName() == localName) && (i.namespaceURI() == nsURI) && !i.toElement().isNull())
+    return i.toElement();
+
+#ifdef PERMISSIVE
+  // Ok, none found, check if an element with the same localname but a
+  // different namespace is present.
+  for (QDomNode i=elm.firstChild(); !i.isNull(); i=i.nextSibling())
+  if ((i.localName() == localName) && !i.toElement().isNull())
+    return i.toElement();
+#endif
+
+  return QDomElement();
 }
 
 QDomElement UPnPBase::parseSoapMessage(QDomDocument &doc, const QByteArray &data)
 {
   doc = QDomDocument("Envelope");
-  if (doc.setContent(data))
-    return doc.documentElement().firstChildElement("s:Body");
+  if (doc.setContent(data, true))
+    return firstChildElementNS(doc.documentElement(), soapNS, "Body");
 
   return QDomElement();
+}
+
+QString UPnPBase::Protocol::toString(bool brief) const
+{
+  QString result = protocol + ":" + network + ":" + contentFormat + ":";
+  if (!brief)
+  {
+    if (!profile.isEmpty())
+      result += profile + ";";
+
+    result +=
+        "DLNA.ORG_PS=" + QString::number(playSpeed ? 1 : 0) + ";"
+        "DLNA.ORG_CI=" + QString::number(conversionIndicator ? 1 : 0) + ";"
+        "DLNA.ORG_OP=" + QString::number(operationsTimeSeek ? 1 : 0) +
+                         QString::number(operationsRange ? 1 : 0);
+
+    if (!flags.isEmpty())
+      result += ";DLNA.ORG_FLAGS=" + flags;
+  }
+  else
+    result += !profile.isEmpty() ? profile : "*";
+
+  return result;
 }
 
 const unsigned  UPnPBase::EventSession::maxInstances = 256;

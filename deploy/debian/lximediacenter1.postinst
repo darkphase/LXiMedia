@@ -1,7 +1,7 @@
 #!/bin/sh -e
 
 USER=lximediacenter
-HOME=/var/lib/lximc
+HOME=/var/lib/$USER
 
 case "$1" in
 	configure)

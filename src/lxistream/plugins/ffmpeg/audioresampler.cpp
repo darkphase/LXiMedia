@@ -83,15 +83,10 @@ SAudioBuffer AudioResampler::processBuffer(const SAudioBuffer &audioBuffer)
         inNumChannels = audioBuffer.format().numChannels();
         inSampleRate = audioBuffer.format().sampleRate();
 
-#if ((LIBAVCODEC_VERSION_INT >> 16) >= 52)
         reSampleContext = av_audio_resample_init(outNumChannels, inNumChannels,
                                                  outSampleRate, inSampleRate,
                                                  SAMPLE_FMT_S16, SAMPLE_FMT_S16,
                                                  16, 10, 1, 0.95);
-#else
-        reSampleContext = audio_resample_init(outNumChannels, inNumChannels,
-                                              outSampleRate, inSampleRate);
-#endif
       }
 
       if (reSampleContext)

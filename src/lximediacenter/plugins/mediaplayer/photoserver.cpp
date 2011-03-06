@@ -79,7 +79,7 @@ HttpServer::SocketOp PhotoServer::handleHttpRequest(const HttpServer::RequestHea
   const QUrl url(request.path());
   const QString file = request.file();
 
-  if (file.endsWith(".jpeg") && !file.endsWith("-thumb.jpeg"))
+  if ((file.endsWith(".jpeg") && !file.endsWith("-thumb.jpeg")) || file.endsWith(".png"))
   {
     unsigned width = 0, height = 0;
     if (url.hasQueryItem("size"))
@@ -92,7 +92,7 @@ HttpServer::SocketOp PhotoServer::handleHttpRequest(const HttpServer::RequestHea
       }
     }
 
-    return sendPhoto(socket, MediaDatabase::fromUidString(file.left(16)), width, height);
+    return sendPhoto(socket, MediaDatabase::fromUidString(file.left(16)), file.split('.').last(), width, height);
   }
   else if (file.endsWith(".html") && !file.endsWith(".playlist.html")) // Show photo
     return handleHtmlRequest(url, file, socket);
@@ -100,7 +100,7 @@ HttpServer::SocketOp PhotoServer::handleHttpRequest(const HttpServer::RequestHea
   return PlaylistServer::handleHttpRequest(request, socket);
 }
 
-HttpServer::SocketOp PhotoServer::sendPhoto(QAbstractSocket *socket, MediaDatabase::UniqueID uid, unsigned width, unsigned height) const
+HttpServer::SocketOp PhotoServer::sendPhoto(QAbstractSocket *socket, MediaDatabase::UniqueID uid, const QString &format, unsigned width, unsigned height) const
 {
   const SMediaInfo node = mediaDatabase->readNode(uid);
 
@@ -121,10 +121,10 @@ HttpServer::SocketOp PhotoServer::sendPhoto(QAbstractSocket *socket, MediaDataba
         image = image.scaled(width, height, Qt::KeepAspectRatio, Qt::SmoothTransformation);
       }
 
-      image.save(&buffer, "JPEG", 80);
+      image.save(&buffer, format.toUpper().toAscii(), 80);
       buffer.close();
 
-      return sendReply(socket, buffer.data(), "image/jpeg", true);
+      return sendReply(socket, buffer.data(), ("image/" + format.toLower()).toAscii(), true);
     }
   }
 
