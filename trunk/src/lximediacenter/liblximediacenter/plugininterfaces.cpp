@@ -47,7 +47,7 @@ QStringList Plugin::getPluginPaths(void)
   paths += "/usr/lib/lximediacenter/";
   paths += "/usr/local/lib/lximediacenter/";
 #else
-  const QByteArray myDll = "LXiMediaCenter" + QByteArray(GlobalSettings::version()).split('.').first() + ".dll";
+  const QByteArray myDll = "LXiMediaCenter" + qApp->applicationVersion().toAscii().split('.').first() + ".dll";
   HMODULE myModule = ::GetModuleHandleA(myDll.data());
   char fileName[MAX_PATH];
   if (::GetModuleFileNameA(myModule, fileName, MAX_PATH) > 0)
