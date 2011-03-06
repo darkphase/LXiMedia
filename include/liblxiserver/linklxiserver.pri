@@ -15,8 +15,8 @@ LXISERVER_VERSION_MAJOR ~= s/\\.[0-9]+.+/
     }
 
     win32-g++ {
-      POST_TARGETDEPS += $${LXIMEDIA_DIR}/bin/LXiServer$${LXISTREAM_VERSION_MAJOR}.dll
-      LIBS += -L$${LXIMEDIA_DIR}/bin -lLXiServer$${LXISTREAM_VERSION_MAJOR}
+      POST_TARGETDEPS += $${LXIMEDIA_DIR}/bin/LXiServer$${LXISERVER_VERSION_MAJOR}.dll
+      LIBS += -L$${LXIMEDIA_DIR}/bin -lLXiServer$${LXISERVER_VERSION_MAJOR}
     }
   }
 }
