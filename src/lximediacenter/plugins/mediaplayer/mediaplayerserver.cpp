@@ -149,12 +149,17 @@ QList<MediaPlayerServer::Item> MediaPlayerServer::listItems(const QString &path,
 
 int MediaPlayerServer::countAlbums(const QString &path)
 {
-  int albums = 0;
+  QSet<QString> names;
   foreach (const QString &album, mediaDatabase->allAlbums(category))
-  if (album.startsWith(path) && (album.mid(path.length()).count('/') == 1))
-    albums++;
+  if (album.startsWith(path))
+  {
+    const QString sub = album.mid(path.length());
+    const int slash = sub.indexOf('/');
+    if (slash > 0)
+      names.insert(sub.left(slash));
+  }
 
-  return albums;
+  return names.count();
 }
 
 QList<MediaPlayerServer::Item> MediaPlayerServer::listAlbums(const QString &path,  unsigned &start, unsigned &count)
