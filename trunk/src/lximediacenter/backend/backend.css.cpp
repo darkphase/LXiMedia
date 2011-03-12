@@ -807,7 +807,7 @@ const char * const Backend::csslog =
     "}\n";
 
 
-HttpServer::SocketOp Backend::handleCssRequest(const QUrl &, const QString &file, QAbstractSocket *socket)
+HttpServer::SocketOp Backend::handleCssRequest(const HttpServer::RequestHeader &request, QAbstractSocket *socket, const QString &file)
 {
   const char * cssFile = NULL;
   if (file == "main.css")
@@ -823,7 +823,7 @@ HttpServer::SocketOp Backend::handleCssRequest(const QUrl &, const QString &file
 
   if (cssFile)
   {
-    HttpServer::ResponseHeader response(HttpServer::Status_Ok);
+    HttpServer::ResponseHeader response(request, HttpServer::Status_Ok);
     response.setContentType("text/css;charset=utf-8");
     response.setField("Cache-Control", "max-age=1800");
 
@@ -831,7 +831,7 @@ HttpServer::SocketOp Backend::handleCssRequest(const QUrl &, const QString &file
     socket->write(cssParser.parse(cssFile));
   }
   else
-    socket->write(HttpServer::ResponseHeader(HttpServer::Status_NotFound));
+    return HttpServer::sendResponse(request, socket, HttpServer::Status_NotFound, this);
 
   return HttpServer::SocketOp_Close;
 }

@@ -57,11 +57,11 @@ private:
   virtual UPnPContentDirectory* contentDirectory(void);
   virtual ImdbClient          * imdbClient(void);
 
-  HttpServer::SocketOp          handleCssRequest(const QUrl &, const QString &, QAbstractSocket *);
-  HttpServer::SocketOp          handleHtmlSearch(const QUrl &, const QString &, QAbstractSocket *);
-  HttpServer::SocketOp          handleHtmlRequest(const QUrl &, const QString &, QAbstractSocket *);
-  HttpServer::SocketOp          showAbout(const QUrl &, QAbstractSocket *);
-  HttpServer::SocketOp          handleHtmlConfig(const QUrl &, QAbstractSocket *);
+  HttpServer::SocketOp          handleCssRequest(const HttpServer::RequestHeader &, QAbstractSocket *, const QString &);
+  HttpServer::SocketOp          handleHtmlSearch(const HttpServer::RequestHeader &, QAbstractSocket *, const QString &);
+  HttpServer::SocketOp          handleHtmlRequest(const HttpServer::RequestHeader &, QAbstractSocket *, const QString &);
+  HttpServer::SocketOp          showAbout(const HttpServer::RequestHeader &, QAbstractSocket *);
+  HttpServer::SocketOp          handleHtmlConfig(const HttpServer::RequestHeader &, QAbstractSocket *);
 
   void                          setContentDirectoryQueryItems(void);
 

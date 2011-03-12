@@ -17,44 +17,55 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXISERVER_SSDPSERVER_H
-#define LXISERVER_SSDPSERVER_H
+#ifndef LXISERVER_UPNPGENASERVER_H
+#define LXISERVER_UPNPGENASERVER_H
 
 #include <QtCore>
 #include <QtNetwork>
-#include "ssdpclient.h"
+#include <QtXml>
+#include "httpserver.h"
 
 namespace LXiServer {
 
-class HttpServer;
-
-class SsdpServer : public SsdpClient
+class UPnPGenaServer : public QObject,
+                       protected HttpServer::Callback
 {
 Q_OBJECT
 public:
-  explicit                      SsdpServer(const HttpServer *);
-  virtual                       ~SsdpServer();
+                                UPnPGenaServer(const QString &basePath, QObject * = NULL);
+  virtual                       ~UPnPGenaServer();
 
-  virtual void                  initialize(const QList<QHostAddress> &interfaces);
-  virtual void                  close(void);
+  QString                       path(void) const;
 
-  void                          publish(const QString &nt, const QString &relativeUrl, unsigned msgCount);
+  void                          initialize(HttpServer *);
+  void                          close(void);
+
+public slots:
+  void                          emitEvent(const QDomDocument &doc);
 
 protected:
-  virtual void                  parsePacket(SsdpClientInterface *, const HttpServer::RequestHeader &, const QHostAddress &, quint16);
+  virtual void                  customEvent(QEvent *);
+  virtual void                  timerEvent(QTimerEvent *);
 
-  void                          sendAlive(SsdpClientInterface *, const QString &nt, const QString &url) const;
-  void                          sendByeBye(SsdpClientInterface *, const QString &nt) const;
-  void                          sendSearchResponse(SsdpClientInterface *, const QString &st, const QString &url, const QHostAddress &, quint16) const;
+protected: // From HttpServer::Callback
+  virtual HttpServer::SocketOp  handleHttpRequest(const HttpServer::RequestHeader &, QAbstractSocket *);
 
 private slots:
-  void                          publishServices(void);
+  void                          emitEvents(void);
 
 private:
-  struct Private;
-  Private               * const p;
-};
+  QString                       makeSid(void);
 
+public:
+  static const char     * const eventNS;
+
+private:
+  static const QEvent::Type     scheduleEventType;
+
+  class EventSession;
+  struct Data;
+  Data                  * const d;
+};
 
 } // End of namespace
 

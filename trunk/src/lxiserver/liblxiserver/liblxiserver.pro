@@ -22,6 +22,7 @@ HEADERS += ../../../include/LXiServer \
  ../../../include/liblxiserver/upnpbase.h \
  ../../../include/liblxiserver/upnpconnectionmanager.h \
  ../../../include/liblxiserver/upnpcontentdirectory.h \
+ ../../../include/liblxiserver/upnpgenaserver.h \
  ../../../include/liblxiserver/upnpmediaserver.h
 
 SOURCES += httpserver.cpp \
@@ -31,6 +32,7 @@ SOURCES += httpserver.cpp \
  upnpbase.cpp \
  upnpconnectionmanager.cpp \
  upnpcontentdirectory.cpp \
+ upnpgenaserver.cpp \
  upnpmediaserver.cpp
 
 unix {

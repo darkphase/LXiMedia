@@ -53,7 +53,7 @@ quint16 GlobalSettings::defaultBackendHttpPort(void)
   return 4280;
 }
 
-QUuid GlobalSettings::ssdpUuid(void)
+QUuid GlobalSettings::serverUuid(void)
 {
   QString uuid = "00000000-0000-0000-0000-000000000000";
 

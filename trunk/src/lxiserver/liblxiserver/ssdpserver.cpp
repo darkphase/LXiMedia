@@ -22,7 +22,6 @@
 #if defined(Q_OS_UNIX)
 #include <arpa/inet.h>
 #include <sys/socket.h>
-#include <sys/utsname.h>
 #elif defined(Q_OS_WIN)
 #include <ws2tcpip.h>
 #endif
@@ -30,40 +29,36 @@
 
 namespace LXiServer {
 
-
 struct SsdpServer::Private
 {
-  static const int              publishTime = 300;
+  struct Service
+  {
+    inline Service(const QString &relativeUrl = QString::null, unsigned msgCount = 0)
+      : relativeUrl(relativeUrl), msgCount(msgCount)
+    {
+    }
 
-  QString                       serverId;
-  QMultiMap<QString, QPair<const HttpServer *, QString> > published;
-  QTimer                        publishTimer;
+    QString                     relativeUrl;
+    unsigned                    msgCount;
+  };
+
+  inline Private(void) : lock(QReadWriteLock::Recursive) { }
+
+  QReadWriteLock                lock;
+  const HttpServer            * httpServer;
+  QMultiMap<QString, Service>   published;
+  QTimer                        publishTimer, autoPublishTimer;
 };
 
-
-SsdpServer::SsdpServer(const QUuid &serverUuid, const QString &serverId)
-           :SsdpClient(serverUuid),
+SsdpServer::SsdpServer(const HttpServer *httpServer)
+           :SsdpClient(httpServer->serverUdn()),
             p(new Private())
 {
-  if (serverId.isEmpty())
-  {
-#if defined(Q_OS_UNIX)
-    struct utsname osname;
-    if (uname(&osname) >= 0)
-      p->serverId = QString(osname.sysname) + "/" + QString(osname.release);
-    else
-      p->serverId = "Unix";
-#elif defined(Q_OS_WIN)
-    p->serverId = "Windows";
-#endif
+  p->httpServer = httpServer;
 
-    p->serverId += ", UPnP/1.0";
-    p->serverId += ", " + qApp->applicationName() + "/" + qApp->applicationVersion();
-  }
-  else
-    p->serverId = serverId;
-
+  p->publishTimer.setSingleShot(true);
   connect(&(p->publishTimer), SIGNAL(timeout()), SLOT(publishServices()));
+  connect(&(p->autoPublishTimer), SIGNAL(timeout()), SLOT(publishServices()));
 }
 
 SsdpServer::~SsdpServer()
@@ -76,46 +71,55 @@ void SsdpServer::initialize(const QList<QHostAddress> &interfaces)
 {
   SsdpClient::initialize(interfaces);
 
-  p->publishTimer.start(p->publishTime * 1000 / 2);
+  p->autoPublishTimer.start(((cacheTimeout / 2) - 300) * 1000);
 }
 
 void SsdpServer::close(void)
 {
-  for (QMultiMap<QString, QPair<const HttpServer *, QString> >::ConstIterator i = p->published.begin();
+  for (QMultiMap<QString, Private::Service>::ConstIterator i = p->published.begin();
        i != p->published.end();
        i++)
   {
+    for (unsigned j=0; j<i->msgCount; j++)
     foreach (SsdpClientInterface *iface, interfaces())
       sendByeBye(iface, i.key());
   }
 
+  p->autoPublishTimer.stop();
+
   SsdpClient::close();
 }
 
-void SsdpServer::publish(const QString &nt, const HttpServer *httpServer, const QString &url)
+void SsdpServer::publish(const QString &nt, const QString &relativeUrl, unsigned msgCount)
 {
-  p->published.insert(nt, QPair<const HttpServer *, QString>(httpServer, url));
-  QTimer::singleShot(1000, this, SLOT(publishServices()));
+  QWriteLocker l(&p->lock);
+
+  p->published.insert(nt, Private::Service(relativeUrl, msgCount));
+  p->publishTimer.start(5000);
 }
 
 void SsdpServer::parsePacket(SsdpClientInterface *iface, const HttpServer::RequestHeader &header, const QHostAddress &sourceAddress, quint16 sourcePort)
 {
-  if ((header.method().toUpper() == "M-SEARCH") && !sourceAddress.isNull() && sourcePort)
+  QWriteLocker l(&p->lock);
+
+  if ((header.method().toUpper() == "M-SEARCH") && header.hasField("MX") &&
+      !sourceAddress.isNull() && sourcePort)
   {
     const QString st = header.field("ST");
-    const bool findAll = st == "ssdp:all";
+    const bool findAll = (st == "ssdp:all");
 
-    for (QMultiMap<QString, QPair<const HttpServer *, QString> >::ConstIterator i = !findAll ? p->published.find(st) : p->published.begin();
+    for (QMultiMap<QString, Private::Service>::ConstIterator i = !findAll ? p->published.find(st) : p->published.begin();
          (i != p->published.end()) && (findAll || (i.key() == st));
          i++)
     {
-      const quint16 port = i.value().first->serverPort(iface->interfaceAddr);
+      const quint16 port = p->httpServer->serverPort(iface->interfaceAddr);
       if (port > 0)
       {
         const QString url = "http://" + iface->interfaceAddr.toString() + ":" +
-                            QString::number(port) + i.value().second;
+                            QString::number(port) + i->relativeUrl;
 
-        sendSearchResponse(iface, i.key(), url, sourceAddress, sourcePort);
+        for (unsigned j=0; j<(findAll ? i->msgCount : 1); j++)
+          sendSearchResponse(iface, i.key(), url, sourceAddress, sourcePort);
       }
     }
   }
@@ -125,64 +129,60 @@ void SsdpServer::parsePacket(SsdpClientInterface *iface, const HttpServer::Reque
 
 void SsdpServer::sendAlive(SsdpClientInterface *iface, const QString &nt, const QString &url) const
 {
-  HttpServer::RequestHeader request;
-  request.setRequest("NOTIFY", "*", "HTTP/1.1");
-  request.setField("SERVER", p->serverId);
-  request.setField("USN", "uuid:" + serverUuid() + "::" + nt);
-  request.setField("CACHE-CONTROL", "max-age=" + QString::number((SsdpServer::cacheTimeout / 1000) + 30));
-  request.setField("LOCATION", url);
-  request.setField("NTS", "ssdp:alive");
+  HttpServer::RequestHeader request(p->httpServer);
+  request.setRequest("NOTIFY", "*", HttpServer::httpVersion);
+  request.setServer();
   request.setField("HOST", SsdpServer::ssdpAddressIPv4.toString() + ":" + QString::number(SsdpServer::ssdpPort));
+  request.setField("USN", serverUdn() + (!nt.startsWith("uuid:") ? ("::" + nt) : QString::null));
+  request.setField("CACHE-CONTROL", "max-age=" + QString::number(SsdpServer::cacheTimeout));
+  request.setField("LOCATION", url);
   request.setField("NT", nt);
+  request.setField("NTS", "ssdp:alive");
 
   sendDatagram(iface, request, ssdpAddressIPv4, ssdpPort);
 }
 
 void SsdpServer::sendByeBye(SsdpClientInterface *iface, const QString &nt) const
 {
-  HttpServer::RequestHeader request;
-  request.setRequest("NOTIFY", "*", "HTTP/1.1");
-  request.setField("SERVER", p->serverId);
-  request.setField("USN", "uuid:" + serverUuid() + "::" + nt);
-  request.setField("NTS", "ssdp:byebye");
+  HttpServer::RequestHeader request(p->httpServer);
+  request.setRequest("NOTIFY", "*", HttpServer::httpVersion);
   request.setField("HOST", SsdpServer::ssdpAddressIPv4.toString() + ":" + QString::number(SsdpServer::ssdpPort));
+  request.setField("USN", serverUdn() + (!nt.startsWith("uuid:") ? ("::" + nt) : QString::null));
   request.setField("NT", nt);
+  request.setField("NTS", "ssdp:byebye");
 
   sendDatagram(iface, request, ssdpAddressIPv4, ssdpPort);
 }
 
 void SsdpServer::sendSearchResponse(SsdpClientInterface *iface, const QString &nt, const QString &url, const QHostAddress &toAddr, quint16 toPort) const
 {
-  HttpServer::ResponseHeader response;
-  response.setResponse(HttpServer::Status_Ok, "HTTP/1.1");
-  response.setField("SERVER", p->serverId);
-  response.setField("S", "uuid:" + serverUuid());
-  response.setField("USN", "uuid:" + serverUuid() + "::" + nt);
-  response.setField("CACHE-CONTROL", "max-age=" + QString::number((SsdpServer::cacheTimeout / 1000) + 30));
+  HttpServer::ResponseHeader response(p->httpServer);
+  response.setResponse(HttpServer::Status_Ok, HttpServer::httpVersion);
+  response.setField("USN", serverUdn() + (!nt.startsWith("uuid:") ? ("::" + nt) : QString::null));
+  response.setField("CACHE-CONTROL", "max-age=" + QString::number(SsdpServer::cacheTimeout));
+  response.setField("EXT", QString::null);
   response.setField("LOCATION", url);
   response.setField("ST", nt);
 
   sendDatagram(iface, response, toAddr, toPort);
 }
 
-const QString & SsdpServer::serverId(void) const
-{
-  return p->serverId;
-}
-
 void SsdpServer::publishServices(void)
 {
-  for (QMultiMap<QString, QPair<const HttpServer *, QString> >::ConstIterator i = p->published.begin();
+  QWriteLocker l(&p->lock);
+
+  for (QMultiMap<QString, Private::Service>::ConstIterator i = p->published.begin();
        i != p->published.end();
        i++)
   {
+    for (unsigned j=0; j<i->msgCount; j++)
     foreach (SsdpClientInterface *iface, interfaces())
     {
-      const quint16 port = i.value().first->serverPort(iface->interfaceAddr);
+      const quint16 port = p->httpServer->serverPort(iface->interfaceAddr);
       if (port > 0)
       {
         const QString url = "http://" + iface->interfaceAddr.toString() + ":" +
-                            QString::number(port) + i.value().second;
+                            QString::number(port) + i->relativeUrl;
 
         sendAlive(iface, i.key(), url);
       }

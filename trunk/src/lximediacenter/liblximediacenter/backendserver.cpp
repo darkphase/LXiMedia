@@ -97,9 +97,9 @@ const QString & BackendServer::contentDirPath(void) const
   return p->contentDirPath;
 }
 
-HttpServer::SocketOp BackendServer::sendReply(QAbstractSocket *socket, const QByteArray &data, const char *mime, bool allowCache, const QString &redir) const
+HttpServer::SocketOp BackendServer::sendResponse(const HttpServer::RequestHeader &request, QAbstractSocket *socket, const QByteArray &data, const char *mime, bool allowCache, const QString &redir) const
 {
-  HttpServer::ResponseHeader response((redir.length() == 0) ? HttpServer::Status_Ok : HttpServer::Status_MovedPermanently);
+  HttpServer::ResponseHeader response(request, (redir.length() == 0) ? HttpServer::Status_Ok : HttpServer::Status_MovedPermanently);
   if (!allowCache)
     response.setField("Cache-Control", "no-cache");
   else
@@ -121,9 +121,9 @@ HttpServer::SocketOp BackendServer::sendReply(QAbstractSocket *socket, const QBy
   return HttpServer::SocketOp_Close;
 }
 
-HttpServer::SocketOp BackendServer::sendReply(QAbstractSocket *socket, const QString &data, const char *mime, bool allowCache, const QString &redir) const
+HttpServer::SocketOp BackendServer::sendResponse(const HttpServer::RequestHeader &request, QAbstractSocket *socket, const QString &data, const char *mime, bool allowCache, const QString &redir) const
 {
-  return sendReply(socket, data.toUtf8(), mime, allowCache, redir);
+  return sendResponse(request, socket, data.toUtf8(), mime, allowCache, redir);
 }
 
 HttpServer::SocketOp BackendServer::sendHtmlContent(QAbstractSocket *socket, const QUrl &url, const HttpServer::ResponseHeader &response, const QByteArray &content, const QByteArray &head) const

@@ -43,7 +43,7 @@ void HttpServerTest::Server(void)
       {
         const QString text = "hello world\n";
 
-        HttpServer::ResponseHeader response(HttpServer::Status_Ok);
+        HttpServer::ResponseHeader response(request, HttpServer::Status_Ok);
         response.setContentLength(text.size());
         response.setContentType(HttpServer::toMimeType(".txt"));
         socket->write(response);
@@ -51,12 +51,11 @@ void HttpServerTest::Server(void)
         return HttpServer::SocketOp_Close;
       }
 
-      socket->write(HttpServer::ResponseHeader(HttpServer::Status_NotFound));
-      return HttpServer::SocketOp_Close;
+      return HttpServer::sendResponse(request, socket, HttpServer::Status_NotFound);
     }
   } callback;
 
-  HttpServer httpServer;
+  HttpServer httpServer("TEST/1.0", QUuid::createUuid());
   httpServer.initialize(QList<QHostAddress>() << localhost);
   QVERIFY(httpServer.serverPort(localhost) > 0);
 

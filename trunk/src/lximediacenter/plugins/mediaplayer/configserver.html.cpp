@@ -118,12 +118,13 @@ const char * const ConfigServer::htmlDirTreeCheckLink =
     "<img src=\"/img/check{DIR_CHECKED}.png\" width=\"16\" height=\"16\" />"
     "</a>";
 
-HttpServer::SocketOp ConfigServer::handleHtmlRequest(const QUrl &url, const QString &file, QAbstractSocket *socket)
+HttpServer::SocketOp ConfigServer::handleHtmlRequest(const HttpServer::RequestHeader &request, QAbstractSocket *socket, const QString &file)
 {
-  HttpServer::ResponseHeader response(HttpServer::Status_Ok);
+  HttpServer::ResponseHeader response(request, HttpServer::Status_Ok);
   response.setContentType("text/html;charset=utf-8");
   response.setField("Cache-Control", "no-cache");
 
+  const QUrl url(request.path());
   HtmlParser htmlParser;
 
   if (file.endsWith("-tree.html"))

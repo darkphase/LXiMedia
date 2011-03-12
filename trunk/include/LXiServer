@@ -14,6 +14,7 @@
 #include "liblxiserver/upnpbase.h"
 #include "liblxiserver/upnpconnectionmanager.h"
 #include "liblxiserver/upnpcontentdirectory.h"
+#include "liblxiserver/upnpgenaserver.h"
 #include "liblxiserver/upnpmediaserver.h"
 
 using namespace LXiServer;

@@ -34,7 +34,7 @@ TrayIcon::TrayIcon()
     : QObject(),
       icon(":/lximediacenter/appicon.png"),
       trayIcon(),
-      ssdpClient(GlobalSettings::ssdpUuid()),
+      ssdpClient(QString("uuid:" + GlobalSettings::serverUuid().toString()).replace("{", "").replace("}", "")),
       aboutBox(NULL)
 {
   connect(&updateStatusTimer, SIGNAL(timeout()), SLOT(updateStatus()));

@@ -61,7 +61,7 @@ HttpServer::SocketOp MusicServer::handleHttpRequest(const HttpServer::RequestHea
 
   if (file.isEmpty())
   {
-    HttpServer::ResponseHeader response(HttpServer::Status_Ok);
+    HttpServer::ResponseHeader response(request, HttpServer::Status_Ok);
     response.setContentType("text/html;charset=utf-8");
     response.setField("Cache-Control", "no-cache");
 

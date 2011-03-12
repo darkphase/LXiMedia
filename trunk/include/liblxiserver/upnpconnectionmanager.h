@@ -34,8 +34,11 @@ class UPnPConnectionManager : public UPnPBase
 {
 Q_OBJECT
 public:
-  explicit                      UPnPConnectionManager(QObject * = NULL);
+  explicit                      UPnPConnectionManager(const QString &basePath, QObject * = NULL);
   virtual                       ~UPnPConnectionManager();
+
+  void                          initialize(HttpServer *, UPnPMediaServer *);
+  void                          close(void);
 
   void                          setSourceProtocols(const ProtocolList &);
   void                          setSinkProtocols(const ProtocolList &);
@@ -43,9 +46,9 @@ public:
 protected: // From UPnPBase
   virtual void                  buildDescription(QDomDocument &, QDomElement &);
   virtual void                  handleSoapMessage(const QDomElement &, QDomDocument &, QDomElement &, const HttpServer::RequestHeader &, const QHostAddress &);
-  virtual void                  addEventProperties(QDomDocument &, QDomElement &);
 
 private:
+  void                          emitEvent(void);
   QString                       listSourceProtocols(void) const;
   QString                       listSinkProtocols(void) const;
 

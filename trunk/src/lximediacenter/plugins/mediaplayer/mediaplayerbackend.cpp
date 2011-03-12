@@ -58,7 +58,7 @@ QList<BackendServer *> MediaPlayerBackend::createServers(BackendServer::MasterSe
   if (database == NULL)
   {
     database = new MediaDatabase(this, server->imdbClient());
-    connect(database, SIGNAL(modified()), server->contentDirectory(), SLOT(emitEvent()), Qt::QueuedConnection);
+    connect(database, SIGNAL(modified()), server->contentDirectory(), SLOT(modified()));
   }
 
   QList<BackendServer *> servers;

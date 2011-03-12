@@ -63,9 +63,7 @@ HttpServer::SocketOp PhotoServer::streamVideo(const HttpServer::RequestHeader &r
       delete stream;
     }
 
-    qWarning() << "Failed to start stream" << request.path();
-    socket->write(HttpServer::ResponseHeader(HttpServer::Status_NotFound));
-    return HttpServer::SocketOp_Close;
+    return HttpServer::sendResponse(request, socket, HttpServer::Status_NotFound, this);
   }
   else
     return MediaPlayerServer::streamVideo(request, socket);
@@ -94,27 +92,14 @@ HttpServer::SocketOp PhotoServer::handleHttpRequest(const HttpServer::RequestHea
   const QString file = request.file();
 
   if ((file.endsWith(".jpeg") && !file.endsWith("-thumb.jpeg")) || file.endsWith(".png"))
-  {
-    unsigned width = 0, height = 0;
-    if (url.hasQueryItem("size"))
-    {
-      const QStringList size = url.queryItemValue("size").split('x');
-      if (size.count() >= 2)
-      {
-        width = qMax(0, size[0].toInt());
-        height = qMax(0, size[1].toInt());
-      }
-    }
-
-    return sendPhoto(socket, MediaDatabase::fromUidString(file.left(16)), file.split('.').last(), width, height);
-  }
+    return sendPhoto(request, socket, MediaDatabase::fromUidString(file.left(16)), file.split('.').last());
   else if (file.endsWith(".html") && !file.endsWith(".playlist.html")) // Show photo
-    return handleHtmlRequest(url, file, socket);
+    return handleHtmlRequest(request, socket, file);
 
   return PlaylistServer::handleHttpRequest(request, socket);
 }
 
-HttpServer::SocketOp PhotoServer::sendPhoto(QAbstractSocket *socket, MediaDatabase::UniqueID uid, const QString &format, unsigned width, unsigned height) const
+HttpServer::SocketOp PhotoServer::sendPhoto(const HttpServer::RequestHeader &request, QAbstractSocket *socket, MediaDatabase::UniqueID uid, const QString &format) const
 {
   const SMediaInfo node = mediaDatabase->readNode(uid);
 
@@ -128,6 +113,18 @@ HttpServer::SocketOp PhotoServer::sendPhoto(QAbstractSocket *socket, MediaDataba
       QBuffer buffer(&jpgData);
       buffer.open(QIODevice::WriteOnly);
 
+      unsigned width = 0, height = 0;
+      const QUrl url(request.path());
+      if (url.hasQueryItem("size"))
+      {
+        const QStringList size = url.queryItemValue("size").split('x');
+        if (size.count() >= 2)
+        {
+          width = qMax(0, size[0].toInt());
+          height = qMax(0, size[1].toInt());
+        }
+      }
+
       if ((width > 0) && (height > 0) &&
           ((width < unsigned(image.width())) ||
            (height < unsigned(image.height()))))
@@ -138,12 +135,11 @@ HttpServer::SocketOp PhotoServer::sendPhoto(QAbstractSocket *socket, MediaDataba
       image.save(&buffer, format.toUpper().toAscii(), 80);
       buffer.close();
 
-      return sendReply(socket, buffer.data(), ("image/" + format.toLower()).toAscii(), true);
+      return sendResponse(request, socket, buffer.data(), ("image/" + format.toLower()).toAscii(), true);
     }
   }
 
-  socket->write(HttpServer::ResponseHeader(HttpServer::Status_NotFound));
-  return HttpServer::SocketOp_Close;
+  return HttpServer::sendResponse(request, socket, HttpServer::Status_NotFound, this);
 }
 
 

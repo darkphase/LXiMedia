@@ -42,7 +42,7 @@ protected: // From HttpServer::Callback
   virtual HttpServer::SocketOp  handleHttpRequest(const HttpServer::RequestHeader &, QAbstractSocket *);
 
 private:
-  HttpServer::SocketOp          handleHtmlRequest(const QUrl &, const QString &, QAbstractSocket *);
+  HttpServer::SocketOp          handleHtmlRequest(const HttpServer::RequestHeader &, QAbstractSocket *, const QString &);
   void                          generateDirs(HtmlParser &, const QFileInfoList &, int, const QSet<QString> &, const QStringList &);
 
   static const QFileInfoList  & drives(bool rescan = false);
