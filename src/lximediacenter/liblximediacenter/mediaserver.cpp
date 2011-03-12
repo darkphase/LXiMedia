@@ -145,7 +145,7 @@ HttpServer::SocketOp MediaServer::handleHttpRequest(const HttpServer::RequestHea
 
   if (file.isEmpty())
   {
-    HttpServer::ResponseHeader response(HttpServer::Status_Ok);
+    HttpServer::ResponseHeader response(request, HttpServer::Status_Ok);
     response.setContentType("text/html;charset=utf-8");
     response.setField("Cache-Control", "no-cache");
 
@@ -208,9 +208,7 @@ HttpServer::SocketOp MediaServer::handleHttpRequest(const HttpServer::RequestHea
     }
   }
 
-  qWarning() << "MediaServer: Failed to find:" << request.path();
-  socket->write(HttpServer::ResponseHeader(HttpServer::Status_NotFound));
-  return HttpServer::SocketOp_Close;
+  return HttpServer::sendResponse(request, socket, HttpServer::Status_NotFound, this);
 }
 
 int MediaServer::countDlnaItems(const QString &path)
@@ -431,7 +429,7 @@ bool MediaServer::Stream::setup(const HttpServer::RequestHeader &request, QAbstr
   else
     videoResizer.setHighQuality(false);
 
-  HttpServer::ResponseHeader header(HttpServer::Status_Ok);
+  HttpServer::ResponseHeader header(request, HttpServer::Status_Ok);
   header.setField("Cache-Control", "no-cache");
 
   if ((file.last().toLower() == "mpeg") || (file.last().toLower() == "mpg") || (file.last().toLower() == "ts"))
@@ -569,7 +567,7 @@ bool MediaServer::Stream::setup(const HttpServer::RequestHeader &request, QAbstr
   if (url.queryItemValue("encode") == "slow")
     audioEncodeFlags = SInterfaces::AudioEncoder::Flag_None;
 
-  HttpServer::ResponseHeader header(HttpServer::Status_Ok);
+  HttpServer::ResponseHeader header(request, HttpServer::Status_Ok);
   header.setField("Cache-Control", "no-cache");
 
   if (file.last().toLower() == "mpa")

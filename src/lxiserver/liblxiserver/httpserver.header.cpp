@@ -23,11 +23,21 @@
 
 namespace LXiServer {
 
-const char  * const HttpServer::Header::fieldContentLength  = "Content-Length";
-const char  * const HttpServer::Header::fieldContentType    = "Content-Type";
-const char  * const HttpServer::Header::fieldHost           = "Host";
+const char  * const HttpServer::Header::fieldConnection     = "CONNECTION";
+const char  * const HttpServer::Header::fieldContentLength  = "CONTENT-LENGTH";
+const char  * const HttpServer::Header::fieldContentType    = "CONTENT-TYPE";
+const char  * const HttpServer::Header::fieldDate           = "DATE";
+const char  * const HttpServer::Header::fieldHost           = "HOST";
+const char  * const HttpServer::Header::fieldServer         = "SERVER";
+const char  * const HttpServer::Header::dateFormat          = "ddd, dd MMM yyyy hh:mm:ss 'GMT'";
 
-HttpServer::Header::Header(const QByteArray &header)
+HttpServer::Header::Header(const HttpServer *httpServer)
+  : httpServer(httpServer)
+{
+}
+
+HttpServer::Header::Header(const QByteArray &header, const HttpServer *httpServer)
+  : httpServer(httpServer)
 {
   QList<QByteArray> lines = header.split('\r');
   if (!lines.isEmpty())
@@ -75,6 +85,14 @@ void HttpServer::Header::setField(const QString &name, const QString &value)
   fields += qMakePair(name, value);
 }
 
+QDateTime HttpServer::Header::date(void) const
+{
+  QDateTime date = QDateTime::fromString(field(fieldDate), dateFormat);
+  date.setTimeSpec(Qt::UTC);
+
+  return date.toLocalTime();
+}
+
 QByteArray HttpServer::Header::toUtf8(void) const
 {
   QByteArray result;
@@ -91,9 +109,15 @@ QByteArray HttpServer::Header::toUtf8(void) const
 }
 
 
-HttpServer::RequestHeader::RequestHeader(void)
+HttpServer::RequestHeader::RequestHeader(const HttpServer *httpServer)
+  : Header(httpServer)
 {
-  head << "GET" << "/" << "HTTP/1.1";
+  head << "GET" << "/" << httpVersion;
+}
+
+HttpServer::RequestHeader::RequestHeader(const QByteArray &header, const HttpServer *httpServer)
+  : Header(header, httpServer)
+{
 }
 
 QString HttpServer::RequestHeader::file(void) const
@@ -111,22 +135,35 @@ QString HttpServer::RequestHeader::file(void) const
   return QString::fromUtf8(QByteArray::fromPercentEncoding(result));
 }
 
-HttpServer::ResponseHeader::ResponseHeader(void)
+HttpServer::ResponseHeader::ResponseHeader(const HttpServer *httpServer)
+  : Header(httpServer)
 {
-  head << "HTTP/1.1" << "200" << "OK";
+  head << httpVersion << "200" << "OK";
+  setDate();
+  setServer();
 }
 
-HttpServer::ResponseHeader::ResponseHeader(Status status)
+HttpServer::ResponseHeader::ResponseHeader(const RequestHeader &request)
+  : Header(request.httpServer)
 {
-  head << "HTTP/1.1" << QByteArray::number(status) << statusText(status);
+  head << qMin(request.version(), QByteArray(httpVersion)) << "200" << "OK";
+  setDate();
+  setServer();
 }
 
-HttpServer::ResponseHeader::ResponseHeader(const QByteArray &header)
-  : Header(header)
+HttpServer::ResponseHeader::ResponseHeader(const RequestHeader &request, Status status)
+  : Header(request.httpServer)
+{
+  head << qMin(request.version(), QByteArray(httpVersion)) << QByteArray::number(status) << statusText(status);
+  setDate();
+  setServer();
+}
+
+HttpServer::ResponseHeader::ResponseHeader(const QByteArray &header, const HttpServer *httpServer)
+  : Header(header, httpServer)
 {
   while (head.count() > 3)
     head[2] += " " + head.takeAt(3);
-
 }
 
 void HttpServer::ResponseHeader::setStatus(Status status)

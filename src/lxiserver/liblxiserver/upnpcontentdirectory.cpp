@@ -18,23 +18,19 @@
  ***************************************************************************/
 
 #include "upnpcontentdirectory.h"
+#include "upnpgenaserver.h"
 
 namespace LXiServer {
 
 const char  * const UPnPContentDirectory::contentDirectoryNS = "urn:schemas-upnp-org:service:ContentDirectory:1";
 const unsigned  UPnPContentDirectory::seekSec = 120;
 
-struct UPnPContentDirectory::ItemData
-{
-  QString                       path;
-  Item                          item;
-  QVector<ItemID>               children;
-};
-
 struct UPnPContentDirectory::Data : UPnPContentDirectory::Callback
 {
   virtual int                   countDlnaItems(const QString &path);
   virtual QList<Item>           listDlnaItems(const QString &path, unsigned start, unsigned count);
+
+  UPnPGenaServer              * genaServer;
 
   QMap<Item::Type, ProtocolList> protocols;
   QMap<QString, QMap<QString, QString> > queryItems;
@@ -46,29 +42,49 @@ struct UPnPContentDirectory::Data : UPnPContentDirectory::Callback
   QAtomicInt                    systemUpdateId;
 };
 
-UPnPContentDirectory::UPnPContentDirectory(QObject *parent)
-    : UPnPBase("/upnp/contentdirectory/",
-               contentDirectoryNS,
-               "urn:upnp-org:serviceId:ContentDirectory",
-               parent),
+UPnPContentDirectory::UPnPContentDirectory(const QString &basePath, QObject *parent)
+    : UPnPBase(basePath + "contentdirectory/", parent),
       d(new Data())
 {
-  d->idCounter = 1;
+  d->genaServer = new UPnPGenaServer(UPnPBase::basePath(), this);
+
+  d->idCounter = Q_UINT64_C(0x8000000000000001); // First object ID
   d->systemUpdateId = 1;
 
   // Add the root path.
   ItemData itemData;
   itemData.path = "/";
+  itemData.itemID = 0;
   itemData.item.isDir = true;
 
-  d->itemData.insert(0, itemData);
+  d->itemData.insert(itemData.itemID, itemData);
   d->callbacks.insert(itemData.path, d);
 }
 
 UPnPContentDirectory::~UPnPContentDirectory()
 {
+  delete d->genaServer;
   delete d;
   *const_cast<Data **>(&d) = NULL;
+}
+
+void UPnPContentDirectory::initialize(HttpServer *httpServer, UPnPMediaServer *mediaServer)
+{
+  d->genaServer->initialize(httpServer);
+  emitEvent(false); // To build the initial event message
+
+  UPnPMediaServer::Service service;
+  UPnPBase::initialize(httpServer, service);
+  service.serviceType = contentDirectoryNS;
+  service.serviceId = "urn:upnp-org:serviceId:ContentDirectory";
+  service.eventSubURL = d->genaServer->path();
+  mediaServer->registerService(service);
+}
+
+void UPnPContentDirectory::close(void)
+{
+  UPnPBase::close();
+  d->genaServer->close();
 }
 
 void UPnPContentDirectory::setProtocols(Item::Type type, const ProtocolList &protocols)
@@ -114,11 +130,9 @@ void UPnPContentDirectory::unregisterCallback(Callback *callback)
     i++;
 }
 
-void UPnPContentDirectory::emitEvent(void)
+void UPnPContentDirectory::modified(void)
 {
-  d->systemUpdateId.ref();
-
-  UPnPBase::emitEvent();
+  emitEvent(true);
 }
 
 void UPnPContentDirectory::buildDescription(QDomDocument &doc, QDomElement &scpdElm)
@@ -213,29 +227,6 @@ void UPnPContentDirectory::handleSoapMessage(const QDomElement &body, QDomDocume
   }
 }
 
-void UPnPContentDirectory::addEventProperties(QDomDocument &doc, QDomElement &propertySet)
-{
-  QDomElement property = createElementNS(doc, propertySet, "property");
-  addTextElm(doc, property, "SystemUpdateID", QString::number(d->systemUpdateId));
-  propertySet.appendChild(property);
-}
-
-void UPnPContentDirectory::flushData(void)
-{
-  QWriteLocker l(lock());
-
-  // Remove all cached items except the root item (0).
-  for (QMap<ItemID, ItemData>::Iterator i=d->itemData.begin(); i!=d->itemData.end(); )
-  if (i.key() != 0)
-    i = d->itemData.erase(i);
-  else
-    i++;
-
-  d->idCounter = 1;
-
-  UPnPBase::flushData();
-}
-
 void UPnPContentDirectory::handleBrowse(const QDomElement &elem, QDomDocument &doc, QDomElement &body, const HttpServer::RequestHeader &request, const QHostAddress &peerAddress)
 {
   const QDomElement objectId = elem.firstChildElement("ObjectID");
@@ -249,7 +240,7 @@ void UPnPContentDirectory::handleBrowse(const QDomElement &elem, QDomDocument &d
 
   d->activeClients[peerAddress.toString()] = request.field("User-Agent");
 
-  const ItemID pathId = fromIDString(objectId.text());
+  const ItemID pathId = fromIDString(objectId.text().trimmed());
   QMap<ItemID, ItemData>::Iterator itemData = d->itemData.find(pathId);
   if (itemData == d->itemData.end())
     return;
@@ -272,21 +263,21 @@ void UPnPContentDirectory::handleBrowse(const QDomElement &elem, QDomDocument &d
 
     browseDir(
         doc, browseResponse,
-        pathId, *itemData, *callback, peerAddress.toString(), request.host(),
+        *itemData, *callback, peerAddress.toString(), request.host(),
         browseFlag.text(), startingIndex.text().toUInt(), requestedCount.text().toUInt());
   }
   else
   {
     browseFile(
         doc, browseResponse,
-        pathId, *itemData, peerAddress.toString(), request.host(),
+        *itemData, peerAddress.toString(), request.host(),
         browseFlag.text(), startingIndex.text().toUInt(), requestedCount.text().toUInt());
   }
 
   body.appendChild(browseResponse);
 }
 
-void UPnPContentDirectory::browseDir(QDomDocument &doc, QDomElement &browseResponse, ItemID pathId, ItemData &itemData, Callback *callback, const QString &peer, const QString &host, const QString &browseFlag, unsigned start, unsigned count)
+void UPnPContentDirectory::browseDir(QDomDocument &doc, QDomElement &browseResponse, ItemData &itemData, Callback *callback, const QString &peer, const QString &host, const QString &browseFlag, unsigned start, unsigned count)
 {
   QDomElement result = doc.createElement("Result");
   int totalMatches = 0, totalReturned = 0;
@@ -302,9 +293,9 @@ void UPnPContentDirectory::browseDir(QDomDocument &doc, QDomElement &browseRespo
     foreach (const Item &item, callback->listDlnaItems(itemData.path, start, count))
     {
       if (!item.isDir && (item.mode == Item::Mode_Direct))
-        root.appendChild(didlFile(subDoc, peer, host, item, addChildItem(itemData, item, true), pathId));
+        root.appendChild(didlFile(subDoc, peer, host, addChildItem(itemData, item, true)));
       else
-        root.appendChild(didlDirectory(subDoc, item, addChildItem(itemData, item, true), pathId));
+        root.appendChild(didlDirectory(subDoc, addChildItem(itemData, item, true)));
 
       totalReturned++;
     }
@@ -329,10 +320,10 @@ void UPnPContentDirectory::browseDir(QDomDocument &doc, QDomElement &browseRespo
           itemData.item.subtitleStreams.isEmpty()) ||
          ((itemData.item.type & 0x7F) != Item::Type_Video)))
     {
-      root.appendChild(didlFile(subDoc, peer, host, itemData.item, pathId));
+      root.appendChild(didlFile(subDoc, peer, host, itemData));
     }
     else
-      root.appendChild(didlDirectory(subDoc, itemData.item, pathId));
+      root.appendChild(didlDirectory(subDoc, itemData));
 
     totalMatches = totalReturned = 1;
 
@@ -344,7 +335,7 @@ void UPnPContentDirectory::browseDir(QDomDocument &doc, QDomElement &browseRespo
   addTextElm(doc, browseResponse, "TotalMatches", QString::number(totalMatches));
 }
 
-void UPnPContentDirectory::browseFile(QDomDocument &doc, QDomElement &browseResponse, ItemID pathId, ItemData &itemData, const QString &peer, const QString &host, const QString &browseFlag, unsigned start, unsigned count)
+void UPnPContentDirectory::browseFile(QDomDocument &doc, QDomElement &browseResponse, ItemData &itemData, const QString &peer, const QString &host, const QString &browseFlag, unsigned start, unsigned count)
 {
   QDomElement result = doc.createElement("Result");
   int totalMatches = 0, totalReturned = 0;
@@ -358,7 +349,7 @@ void UPnPContentDirectory::browseFile(QDomDocument &doc, QDomElement &browseResp
     root.setAttribute("xmlns:upnp", metadataNS);
     subDoc.appendChild(root);
 
-    QVector<ItemID> all;
+    QVector<ItemData> all;
     switch (Item::Mode(itemData.item.mode))
     {
     case Item::Mode_Default:
@@ -473,12 +464,10 @@ void UPnPContentDirectory::browseFile(QDomDocument &doc, QDomElement &browseResp
     // Only select the items that were requested.
     for (int i=start, n=0; (i<all.count()) && ((count == 0) || (n<int(count))); i++, n++)
     {
-      QMap<ItemID, ItemData>::Iterator childData = d->itemData.find(all[i]);
-
-      if (childData->item.mode != Item::Mode_Direct)
-        root.appendChild(didlDirectory(subDoc, childData->item, childData.key(), pathId));
+      if (all[i].item.mode != Item::Mode_Direct)
+        root.appendChild(didlDirectory(subDoc, all[i]));
       else
-        root.appendChild(didlFile(subDoc, peer, host, childData->item, childData.key(), pathId));
+        root.appendChild(didlFile(subDoc, peer, host, all[i]));
 
       totalReturned++;
     }
@@ -497,9 +486,9 @@ void UPnPContentDirectory::browseFile(QDomDocument &doc, QDomElement &browseResp
     subDoc.appendChild(root);
 
     if (itemData.item.mode != Item::Mode_Direct)
-      root.appendChild(didlDirectory(subDoc, itemData.item, pathId));
+      root.appendChild(didlDirectory(subDoc, itemData));
     else
-      root.appendChild(didlFile(subDoc, peer, host, itemData.item, pathId));
+      root.appendChild(didlFile(subDoc, peer, host, itemData));
 
     totalMatches = totalReturned = 1;
 
@@ -511,7 +500,7 @@ void UPnPContentDirectory::browseFile(QDomDocument &doc, QDomElement &browseResp
   addTextElm(doc, browseResponse, "TotalMatches", QString::number(totalMatches));
 }
 
-UPnPContentDirectory::ItemID UPnPContentDirectory::addChildItem(ItemData &itemData, const Item &item, bool asDir)
+UPnPContentDirectory::ItemData UPnPContentDirectory::addChildItem(ItemData &itemData, const Item &item, bool asDir)
 {
   QWriteLocker l(lock());
 
@@ -525,54 +514,53 @@ UPnPContentDirectory::ItemID UPnPContentDirectory::addChildItem(ItemData &itemDa
     if (childData->path == fullPath)
     {
       childData->item = item;
-      return childId;
+      return *childData;
     }
   }
 
   // Add new child
-  const ItemID childId = d->idCounter++;
   ItemData childData;
   childData.path = fullPath;
+  childData.itemID = d->idCounter++;
+  childData.parentID = itemData.itemID;
   childData.item = item;
-  d->itemData.insert(childId, childData);
+  d->itemData.insert(childData.itemID, childData);
 
-  itemData.children.append(childId);
+  itemData.children.append(childData.itemID);
 
-  return childId;
+  return childData;
 }
 
-QDomElement UPnPContentDirectory::didlDirectory(QDomDocument &doc, const Item &dir, ItemID id, ItemID parentId) const
+QDomElement UPnPContentDirectory::didlDirectory(QDomDocument &doc, const ItemData &dir) const
 {
   QDomElement containerElm = doc.createElement("container");
-  containerElm.setAttribute("id", toIDString(id));
+  containerElm.setAttribute("id", toIDString(dir.itemID));
   containerElm.setAttribute("restricted", "true");
+  containerElm.setAttribute("parentID", toIDString(dir.parentID));
 
-  if (parentId != 0)
-    containerElm.setAttribute("parentID", toIDString(parentId));
-
-  addTextElm(doc, containerElm, "dc:title", (dir.played ? "*" : "") + dir.title);
+  addTextElm(doc, containerElm, "dc:title", (dir.item.played ? "*" : "") + dir.item.title);
   addTextElm(doc, containerElm, "upnp:class", "object.container.storageFolder");
 
   return containerElm;
 }
 
-QDomElement UPnPContentDirectory::didlFile(QDomDocument &doc, const QString &peer, const QString &host, const Item &item, ItemID id, ItemID parentId) const
+QDomElement UPnPContentDirectory::didlFile(QDomDocument &doc, const QString &peer, const QString &host, const ItemData &file) const
 {
   QDomElement itemElm = doc.createElement("item");
-  itemElm.setAttribute("id", toIDString(id));
+  itemElm.setAttribute("id", toIDString(file.itemID));
   itemElm.setAttribute("restricted", "true");
-  if (parentId != 0)
-    itemElm.setAttribute("parentID", toIDString(parentId));
+  itemElm.setAttribute("parentID", toIDString(file.parentID));
 
-                                addTextElm(doc, itemElm, "dc:title", (item.played ? "*" : "") + item.title);
-  if (!item.artist.isEmpty())   addTextElm(doc, itemElm, "upnp:artist", item.artist);
-  if (!item.album.isEmpty())    addTextElm(doc, itemElm, "upnp:album", item.album);
-  if (!item.iconUrl.isEmpty())  addTextElm(doc, itemElm, "upnp:icon", item.iconUrl.toString());
+  addTextElm(doc, itemElm, "dc:title", (file.item.played ? "*" : "") + file.item.title);
 
-  QUrl url = item.url;
+  if (!file.item.artist.isEmpty())   addTextElm(doc, itemElm, "upnp:artist", file.item.artist);
+  if (!file.item.album.isEmpty())    addTextElm(doc, itemElm, "upnp:album", file.item.album);
+  if (!file.item.iconUrl.isEmpty())  addTextElm(doc, itemElm, "upnp:icon", file.item.iconUrl.toString());
+
+  QUrl url = file.item.url;
   url.setScheme("http");
   url.setAuthority(host);
-  url.addQueryItem("music", (item.type & Item::Type_FlagMusic) ? "true" : "false");
+  url.addQueryItem("music", (file.item.type & Item::Type_FlagMusic) ? "true" : "false");
 
   QMap<QString, QMap<QString, QString> >::ConstIterator peerItems = d->queryItems.find(peer);
   if (peerItems == d->queryItems.end())
@@ -583,7 +571,7 @@ QDomElement UPnPContentDirectory::didlFile(QDomDocument &doc, const QString &pee
     url.addQueryItem(i.key(), i.value());
 
   QList<Item::Type> types;
-  switch (Item::Type(item.type & 0x7f))
+  switch (Item::Type(file.item.type & 0x7f))
   {
   case Item::Type_Audio:
     addTextElm(doc, itemElm, "upnp:class", "object.item.audioItem");
@@ -594,7 +582,7 @@ QDomElement UPnPContentDirectory::didlFile(QDomDocument &doc, const QString &pee
     addTextElm(doc, itemElm, "upnp:class", "object.item.videoItem");
     types += Item::Type_Video;
 
-    if (item.type & Item::Type_FlagMusic)
+    if (file.item.type & Item::Type_FlagMusic)
       types += Item::Type_Audio;
 
     break;
@@ -615,8 +603,8 @@ QDomElement UPnPContentDirectory::didlFile(QDomDocument &doc, const QString &pee
     QDomElement resElm = doc.createElement("res");
     resElm.setAttribute("protocolInfo", protocol.toString());
 
-    if (item.duration > 0)
-      resElm.setAttribute("duration", QTime().addSecs(item.duration).toString("h:mm:ss.zzz"));
+    if (file.item.duration > 0)
+      resElm.setAttribute("duration", QTime().addSecs(file.item.duration).toString("h:mm:ss.zzz"));
 
     QUrl u = url;
     u.setPath(u.path() + protocol.suffix);
@@ -634,6 +622,36 @@ QDomElement UPnPContentDirectory::didlFile(QDomDocument &doc, const QString &pee
   }
 
   return itemElm;
+}
+
+void UPnPContentDirectory::emitEvent(bool dirty)
+{
+  QDomDocument doc;
+  QDomElement propertySet = doc.createElementNS(d->genaServer->eventNS, "e:propertyset");
+
+  QDomElement property = createElementNS(doc, propertySet, "property");
+  addTextElm(doc, property, "SystemUpdateID", QString::number(d->systemUpdateId.fetchAndAddRelaxed(dirty ? 1 : 0)));
+  propertySet.appendChild(property);
+
+  doc.appendChild(propertySet);
+
+  d->genaServer->emitEvent(doc);
+}
+
+QString UPnPContentDirectory::toIDString(ItemID id)
+{
+  if (id != ItemID(Q_INT64_C(-1)))
+    return QString::number(id, 16);
+
+  return "-1";
+}
+
+UPnPContentDirectory::ItemID UPnPContentDirectory::fromIDString(const QString &id)
+{
+  if (id != "-1")
+    return id.toULongLong(NULL, 16);
+
+  return ItemID(Q_INT64_C(-1));
 }
 
 int UPnPContentDirectory::Data::countDlnaItems(const QString &)

@@ -77,9 +77,7 @@ HttpServer::SocketOp PlaylistServer::streamVideo(const HttpServer::RequestHeader
       delete stream;
     }
 
-    qWarning() << "Failed to start stream" << request.path();
-    socket->write(HttpServer::ResponseHeader(HttpServer::Status_NotFound));
-    return HttpServer::SocketOp_Close;
+    return HttpServer::sendResponse(request, socket, HttpServer::Status_NotFound, this);
   }
   else
     return MediaPlayerServer::streamVideo(request, socket);
@@ -120,7 +118,7 @@ HttpServer::SocketOp PlaylistServer::handleHttpRequest(const HttpServer::Request
     const QString album = QString::fromUtf8(QByteArray::fromHex(file.left(file.length() - 15).toAscii()));
     if (!album.isEmpty())
     {
-      HttpServer::ResponseHeader response(HttpServer::Status_Ok);
+      HttpServer::ResponseHeader response(request, HttpServer::Status_Ok);
       response.setContentType("text/html;charset=utf-8");
       response.setField("Cache-Control", "no-cache");
 

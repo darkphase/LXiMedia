@@ -68,9 +68,9 @@ public:
   const QString               & httpPath(void) const;
   const QString               & contentDirPath(void) const;
 
-  HttpServer::SocketOp          sendReply(QAbstractSocket *, const QByteArray &, const char * = dataMime, bool allowCache = false, const QString &redir = QString::null) const __attribute__((nonnull(1, 2)));
-  HttpServer::SocketOp          sendReply(QAbstractSocket *, const QString &, const char * = textMime, bool allowCache = false, const QString &redir = QString::null) const __attribute__((nonnull(1, 2)));
-  HttpServer::SocketOp          sendHtmlContent(QAbstractSocket *, const QUrl &, const HttpServer::ResponseHeader &, const QByteArray &content, const QByteArray &head = QByteArray()) const __attribute__((nonnull));
+  HttpServer::SocketOp          sendResponse(const HttpServer::RequestHeader &, QAbstractSocket *, const QByteArray &, const char * = dataMime, bool allowCache = false, const QString &redir = QString::null) const;
+  HttpServer::SocketOp          sendResponse(const HttpServer::RequestHeader &, QAbstractSocket *, const QString &, const char * = textMime, bool allowCache = false, const QString &redir = QString::null) const;
+  HttpServer::SocketOp          sendHtmlContent(QAbstractSocket *, const QUrl &, const HttpServer::ResponseHeader &, const QByteArray &content, const QByteArray &head = QByteArray()) const;
 
 public:
   static const int              maxRequestTime;

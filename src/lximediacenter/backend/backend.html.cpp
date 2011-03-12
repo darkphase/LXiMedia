@@ -371,12 +371,12 @@ const char * const Backend::headSearchResults =
     " <link rel=\"stylesheet\" href=\"/list.css\" type=\"text/css\" media=\"screen, handheld, projection\" />\n";
 
 
-HttpServer::SocketOp Backend::handleHtmlRequest(const QUrl &url, const QString &, QAbstractSocket *socket)
+HttpServer::SocketOp Backend::handleHtmlRequest(const HttpServer::RequestHeader &request, QAbstractSocket *socket, const QString &)
 {
   HtmlParser htmlParser(this->htmlParser);
   htmlParser.setField("TR_SEARCH", tr("Search"));
 
-  HttpServer::ResponseHeader response(HttpServer::Status_Ok);
+  HttpServer::ResponseHeader response(request, HttpServer::Status_Ok);
   response.setContentType("text/html;charset=utf-8");
   response.setField("Cache-Control", "no-cache");
 
@@ -474,11 +474,11 @@ HttpServer::SocketOp Backend::handleHtmlRequest(const QUrl &url, const QString &
   }
 
   socket->write(response);
-  socket->write(parseHtmlContent(url, htmlParser.parse(htmlMain), ""));
+  socket->write(parseHtmlContent(QUrl(request.path()), htmlParser.parse(htmlMain), ""));
   return HttpServer::SocketOp_Close;
 }
 
-HttpServer::SocketOp Backend::handleHtmlSearch(const QUrl &url, const QString &, QAbstractSocket *socket)
+HttpServer::SocketOp Backend::handleHtmlSearch(const HttpServer::RequestHeader &request, QAbstractSocket *socket, const QString &)
 {
   static const int resultsPerPage = 30;
 
@@ -490,10 +490,11 @@ HttpServer::SocketOp Backend::handleHtmlSearch(const QUrl &url, const QString &,
   htmlParser.setField("TR_SEARCH", tr("Search"));
   htmlParser.setField("TR_SECONDS", tr("seconds"));
 
-  HttpServer::ResponseHeader response(HttpServer::Status_Ok);
+  HttpServer::ResponseHeader response(request, HttpServer::Status_Ok);
   response.setContentType("text/html;charset=utf-8");
   response.setField("Cache-Control", "no-cache");
 
+  const QUrl url(request.path());
   const QString queryValue = url.queryItemValue("q");
   const QString queryString = QByteArray::fromPercentEncoding(queryValue.toAscii().replace('+', ' '));
   htmlParser.setField("QUERY", queryString);
@@ -560,11 +561,11 @@ HttpServer::SocketOp Backend::handleHtmlSearch(const QUrl &url, const QString &,
   return HttpServer::SocketOp_Close;
 }
 
-HttpServer::SocketOp Backend::showAbout(const QUrl &url, QAbstractSocket *socket)
+HttpServer::SocketOp Backend::showAbout(const HttpServer::RequestHeader &request, QAbstractSocket *socket)
 {
   HtmlParser htmlParser(this->htmlParser);
 
-  HttpServer::ResponseHeader response(HttpServer::Status_Ok);
+  HttpServer::ResponseHeader response(request, HttpServer::Status_Ok);
   response.setContentType("text/html;charset=utf-8");
   response.setField("Cache-Control", "no-cache");
 
@@ -573,19 +574,20 @@ HttpServer::SocketOp Backend::showAbout(const QUrl &url, QAbstractSocket *socket
   htmlParser.setField("QT_VERSION", QByteArray(qVersion()));
 
   socket->write(response);
-  socket->write(parseHtmlContent(url, htmlParser.parse(htmlAbout),""));
+  socket->write(parseHtmlContent(QUrl(request.path()), htmlParser.parse(htmlAbout), ""));
   return HttpServer::SocketOp_Close;
 }
 
-HttpServer::SocketOp Backend::handleHtmlConfig(const QUrl &url, QAbstractSocket *socket)
+HttpServer::SocketOp Backend::handleHtmlConfig(const HttpServer::RequestHeader &request, QAbstractSocket *socket)
 {
-  HttpServer::ResponseHeader response(HttpServer::Status_Ok);
+  HttpServer::ResponseHeader response(request, HttpServer::Status_Ok);
   response.setContentType("text/html;charset=utf-8");
   response.setField("Cache-Control", "no-cache");
 
   GlobalSettings settings;
 
   // HTTP server
+  const QUrl url(request.path());
   if (url.hasQueryItem("httpsettings") && url.hasQueryItem("httpport"))
   {
     const int portValue = url.queryItemValue("httpport").toInt();

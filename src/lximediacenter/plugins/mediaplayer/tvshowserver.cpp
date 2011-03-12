@@ -76,9 +76,7 @@ HttpServer::SocketOp TvShowServer::streamVideo(const HttpServer::RequestHeader &
         delete stream;
       }
 
-      qWarning() << "Failed to start stream" << request.path();
-      socket->write(HttpServer::ResponseHeader(HttpServer::Status_NotFound));
-      return HttpServer::SocketOp_Close;
+      return HttpServer::sendResponse(request, socket, HttpServer::Status_NotFound, this);
     }
   }
 

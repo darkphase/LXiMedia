@@ -18,6 +18,7 @@
  ***************************************************************************/
 
 #include "upnpconnectionmanager.h"
+#include "upnpgenaserver.h"
 
 namespace LXiServer {
 
@@ -25,23 +26,43 @@ const char  * const UPnPConnectionManager::connectionManagerNS = "urn:schemas-up
 
 struct UPnPConnectionManager::Data
 {
-  ProtocolList sourceProtocols;
-  ProtocolList sinkProtocols;
+  UPnPGenaServer              * genaServer;
+
+  ProtocolList                  sourceProtocols;
+  ProtocolList                  sinkProtocols;
 };
 
-UPnPConnectionManager::UPnPConnectionManager(QObject *parent)
-  : UPnPBase("/upnp/connectionmanager/",
-             connectionManagerNS,
-             "urn:upnp-org:serviceId:ConnectionManager",
-             parent),
+UPnPConnectionManager::UPnPConnectionManager(const QString &basePath, QObject *parent)
+  : UPnPBase(basePath + "connectionmanager/", parent),
     d(new Data())
 {
+  d->genaServer = new UPnPGenaServer(UPnPBase::basePath(), this);
 }
 
 UPnPConnectionManager::~UPnPConnectionManager()
 {
+  delete d->genaServer;
   delete d;
   *const_cast<Data **>(&d) = NULL;
+}
+
+void UPnPConnectionManager::initialize(HttpServer *httpServer, UPnPMediaServer *mediaServer)
+{
+  d->genaServer->initialize(httpServer);
+  emitEvent(); // To build the initial event message
+
+  UPnPMediaServer::Service service;
+  UPnPBase::initialize(httpServer, service);
+  service.serviceType = connectionManagerNS;
+  service.serviceId = "urn:upnp-org:serviceId:ConnectionManager";
+  service.eventSubURL = d->genaServer->path();
+  mediaServer->registerService(service);
+}
+
+void UPnPConnectionManager::close(void)
+{
+  UPnPBase::close();
+  d->genaServer->close();
 }
 
 void UPnPConnectionManager::setSourceProtocols(const ProtocolList &sourceProtocols)
@@ -60,6 +81,28 @@ void UPnPConnectionManager::setSinkProtocols(const ProtocolList &sinkProtocols)
   l.unlock();
 
   emitEvent();
+}
+
+void UPnPConnectionManager::emitEvent(void)
+{
+  QDomDocument doc;
+  QDomElement propertySet = doc.createElementNS(d->genaServer->eventNS, "e:propertyset");
+
+  QDomElement property = createElementNS(doc, propertySet, "property");
+  addTextElm(doc, property, "SourceProtocolInfo", listSourceProtocols());
+  propertySet.appendChild(property);
+
+  property = createElementNS(doc, propertySet, "property");
+  addTextElm(doc, property, "SinkProtocolInfo", listSinkProtocols());
+  propertySet.appendChild(property);
+
+  property = createElementNS(doc, propertySet, "property");
+  addTextElm(doc, property, "CurrentConnectionIDs", QString::null);
+  propertySet.appendChild(property);
+
+  doc.appendChild(propertySet);
+
+  d->genaServer->emitEvent(doc);
 }
 
 QString UPnPConnectionManager::listSourceProtocols(void) const
@@ -153,21 +196,6 @@ void UPnPConnectionManager::handleSoapMessage(const QDomElement &body, QDomDocum
     addTextElm(responseDoc, response, "ConnectionIDs", QString::null);
     responseBody.appendChild(response);
   }
-}
-
-void UPnPConnectionManager::addEventProperties(QDomDocument &doc, QDomElement &propertySet)
-{
-  QDomElement property = createElementNS(doc, propertySet, "property");
-  addTextElm(doc, property, "SourceProtocolInfo", listSourceProtocols());
-  propertySet.appendChild(property);
-
-  property = createElementNS(doc, propertySet, "property");
-  addTextElm(doc, property, "SinkProtocolInfo", listSinkProtocols());
-  propertySet.appendChild(property);
-
-  property = createElementNS(doc, propertySet, "property");
-  addTextElm(doc, property, "CurrentConnectionIDs", QString::null);
-  propertySet.appendChild(property);
 }
 
 } // End of namespace

@@ -22,7 +22,6 @@
 #if defined(Q_OS_UNIX)
 #include <arpa/inet.h>
 #include <sys/socket.h>
-#include <sys/utsname.h>
 #elif defined(Q_OS_WIN)
 #include <ws2tcpip.h>
 #endif
@@ -32,7 +31,7 @@ namespace LXiServer {
 
 struct SsdpClient::Private
 {
-  QUuid                         serverUuid;
+  QString                       serverUdn;
   QList<SsdpClientInterface *>  interfaces;
   QMultiMap<QString, Node>      nodes;
   QTimer                        updateTimer;
@@ -41,14 +40,14 @@ struct SsdpClient::Private
 const QHostAddress  SsdpClient::ssdpAddressIPv4("239.255.255.250");
 const QHostAddress  SsdpClient::ssdpAddressIPv6("FF02::C");
 const quint16       SsdpClient::ssdpPort = 1900;
-const int           SsdpClient::cacheTimeout = 300000;
+const int           SsdpClient::cacheTimeout = 7200; // Alive messages are broadcast every (cacheTimeout/2)-300 seconds.
 
 
-SsdpClient::SsdpClient(const QUuid &serverUuid)
+SsdpClient::SsdpClient(const QString &serverUdn)
            :QObject(),
             p(new Private())
 {
-  p->serverUuid = serverUuid;
+  p->serverUdn = serverUdn;
   p->updateTimer.setSingleShot(true);
   connect(&p->updateTimer, SIGNAL(timeout()), SIGNAL(searchUpdated()));
 }
@@ -57,11 +56,6 @@ SsdpClient::~SsdpClient()
 {
   delete p;
   *const_cast<Private **>(&p) = NULL;
-}
-
-const QUuid & SsdpClient::serverUuid(void) const
-{
-  return p->serverUuid;
 }
 
 void SsdpClient::initialize(const QList<QHostAddress> &interfaces)
@@ -78,8 +72,9 @@ void SsdpClient::close(void)
   p->interfaces.clear();
 }
 
-void SsdpClient::sendSearch(const QString &st)
+void SsdpClient::sendSearch(const QString &st, unsigned msgCount)
 {
+  for (unsigned i=0; i<msgCount; i++)
   foreach (SsdpClientInterface *iface, interfaces())
     sendSearch(iface, st);
 }
@@ -133,6 +128,11 @@ QList<SsdpClient::Node> SsdpClient::searchResults(const QString &st) const
   return result;
 }
 
+const QString & SsdpClient::serverUdn(void) const
+{
+  return p->serverUdn;
+}
+
 const QList<SsdpClientInterface *> & SsdpClient::interfaces(void) const
 {
   return p->interfaces;
@@ -161,14 +161,14 @@ void SsdpClient::sendDatagram(SsdpClientInterface *iface, const QByteArray &data
   iface->privateSocket.writeDatagram(datagram, address, port);
 }
 
-void SsdpClient::sendSearch(SsdpClientInterface *iface, const QString &st)
+void SsdpClient::sendSearch(SsdpClientInterface *iface, const QString &st, unsigned mx)
 {
-  HttpServer::RequestHeader request;
-  request.setRequest("M-SEARCH", "*", "HTTP/1.1");
+  HttpServer::RequestHeader request(NULL);
+  request.setRequest("M-SEARCH", "*", HttpServer::httpVersion);
   request.setField("HOST", SsdpClient::ssdpAddressIPv4.toString() + ":" + QString::number(SsdpClient::ssdpPort));
-  request.setField("MAN", "ssdp:discover");
+  request.setField("MAN", "\"ssdp:discover\"");
+  request.setField("MX", QString::number(mx));
   request.setField("ST", st);
-  request.setField("MX", "3");
 
   sendDatagram(iface, request, ssdpAddressIPv4, ssdpPort);
 }
@@ -287,7 +287,7 @@ void SsdpClientInterface::ssdpDatagramReady(void)
     const qint64 size = ssdpSocket.readDatagram(buffer, sizeof(buffer), &sourceAddress, &sourcePort);
 
     if (size > 0)
-      parent->parsePacket(this, HttpServer::RequestHeader(QByteArray(buffer, size)), sourceAddress, sourcePort);
+      parent->parsePacket(this, HttpServer::RequestHeader(QByteArray(buffer, size), NULL), sourceAddress, sourcePort);
   }
 }
 
@@ -304,7 +304,7 @@ void SsdpClientInterface::privateDatagramReady(void)
     {
       const QByteArray txt(buffer, size);
       if (txt.startsWith("HTTP"))
-        parent->parsePacket(this, HttpServer::ResponseHeader(txt), sourceAddress, sourcePort);
+        parent->parsePacket(this, HttpServer::ResponseHeader(txt, NULL), sourceAddress, sourcePort);
     }
     else if (size < 0)
       break;

@@ -77,9 +77,7 @@ HttpServer::SocketOp MediaPlayerServer::streamVideo(const HttpServer::RequestHea
     }
   }
 
-  qWarning() << "Failed to start stream" << request.path();
-  socket->write(HttpServer::ResponseHeader(HttpServer::Status_NotFound));
-  return HttpServer::SocketOp_Close;
+  return HttpServer::sendResponse(request, socket, HttpServer::Status_NotFound, this);
 }
 
 HttpServer::SocketOp MediaPlayerServer::buildPlaylist(const HttpServer::RequestHeader &request, QAbstractSocket *socket)
@@ -113,7 +111,7 @@ HttpServer::SocketOp MediaPlayerServer::buildPlaylist(const HttpServer::RequestH
     htmlParser.appendField("ITEMS", htmlParser.parse(m3uPlaylistItem));
   }
 
-  HttpServer::ResponseHeader response(HttpServer::Status_Ok);
+  HttpServer::ResponseHeader response(request, HttpServer::Status_Ok);
   response.setContentType("audio/x-mpegurl");
   response.setField("Cache-Control", "no-cache");
   socket->write(response);
@@ -287,7 +285,7 @@ HttpServer::SocketOp MediaPlayerServer::handleHttpRequest(const HttpServer::Requ
     {
       if (!url.hasQueryItem("size") && !url.hasQueryItem("overlay"))
       {
-        return sendReply(socket, node.thumbnails().first(), "image/jpeg", true);
+        return sendResponse(request, socket, node.thumbnails().first(), "image/jpeg", true);
       }
       else
       {
@@ -331,7 +329,7 @@ HttpServer::SocketOp MediaPlayerServer::handleHttpRequest(const HttpServer::Requ
         QBuffer b;
         image.save(&b, "PNG");
 
-        return sendReply(socket, b.data(), "image/png", true);
+        return sendResponse(request, socket, b.data(), "image/png", true);
       }
     }
 
@@ -361,13 +359,10 @@ HttpServer::SocketOp MediaPlayerServer::handleHttpRequest(const HttpServer::Requ
       QBuffer b;
       sum.save(&b, "PNG");
 
-      return sendReply(socket, b.data(), "image/png", true);
+      return sendResponse(request, socket, b.data(), "image/png", true);
     }
 
-    HttpServer::ResponseHeader response(HttpServer::Status_MovedPermanently);
-    response.setField("Location", "http://" + request.host() + "/img/null.png");
-    socket->write(response);
-    return HttpServer::SocketOp_Close;
+    return HttpServer::sendRedirect(request, socket, "http://" + request.host() + "/img/null.png");
   }
   else if (file.endsWith(".html")) // Show player
   {
@@ -375,7 +370,7 @@ HttpServer::SocketOp MediaPlayerServer::handleHttpRequest(const HttpServer::Requ
     const SMediaInfo node = mediaDatabase->readNode(uid);
     if (!node.isNull())
     {
-      HttpServer::ResponseHeader response(HttpServer::Status_Ok);
+      HttpServer::ResponseHeader response(request, HttpServer::Status_Ok);
       response.setContentType("text/html;charset=utf-8");
       response.setField("Cache-Control", "no-cache");
 

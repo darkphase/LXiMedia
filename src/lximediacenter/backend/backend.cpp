@@ -33,11 +33,11 @@ const QUrl          Backend::submitErrorUrl("http://www.admiraal.dds.nl/submitlo
 Backend::Backend()
   : BackendServer::MasterServer(),
     streamApp(NULL),
-    masterHttpServer(),
-    masterSsdpServer(GlobalSettings::ssdpUuid()),
-    masterMediaServer(),
-    masterConnectionManager(),
-    masterContentDirectory(),
+    masterHttpServer(UPnPBase::protocol(), GlobalSettings::serverUuid()),
+    masterSsdpServer(&masterHttpServer),
+    masterMediaServer("/upnp/"),
+    masterConnectionManager("/upnp/"),
+    masterContentDirectory("/upnp/"),
     masterImdbClient(NULL),
     cssParser(),
     htmlParser(),
@@ -212,12 +212,16 @@ void Backend::start(void)
 
   // Setup SSDP server
   masterSsdpServer.initialize(settings.defaultBackendInterfaces());
-  masterSsdpServer.publish(qApp->applicationName() + QString(":server"), &masterHttpServer, "/");
+  masterSsdpServer.publish(qApp->applicationName() + QString(":server"), "/", 1);
 
   // Setup DLNA server
   masterMediaServer.initialize(&masterHttpServer, &masterSsdpServer);
   masterConnectionManager.initialize(&masterHttpServer, &masterMediaServer);
   masterContentDirectory.initialize(&masterHttpServer, &masterMediaServer);
+
+  const QImage icon(":/lximediacenter/appicon.png");
+  if (!icon.isNull())
+    masterMediaServer.addIcon("/appicon.png", icon.width(), icon.height(), icon.depth());
 
   // Supported DLNA protocols
   const QStringList outAudioCodecs = SAudioEncoderNode::codecs();
@@ -440,28 +444,25 @@ HttpServer::SocketOp Backend::handleHttpRequest(const HttpServer::RequestHeader 
     {
       QCoreApplication::postEvent(this, new QEvent(exitEventType));
 
-      socket->write(HttpServer::ResponseHeader(HttpServer::Status_NoContent));
-      return HttpServer::SocketOp_Close;
+      return HttpServer::sendResponse(request, socket, HttpServer::Status_NoContent, this);
     }
     else if (url.hasQueryItem("restart"))
     {
       QCoreApplication::postEvent(this, new QEvent(restartEventType));
 
-      socket->write(HttpServer::ResponseHeader(HttpServer::Status_NoContent));
-      return HttpServer::SocketOp_Close;
+      return HttpServer::sendResponse(request, socket, HttpServer::Status_NoContent, this);
     }
     else if (url.hasQueryItem("shutdown"))
     {
       QCoreApplication::postEvent(this, new QEvent(shutdownEventType));
 
-      socket->write(HttpServer::ResponseHeader(HttpServer::Status_NoContent));
-      return HttpServer::SocketOp_Close;
+      return HttpServer::sendResponse(request, socket, HttpServer::Status_NoContent, this);
     }
     else if (url.hasQueryItem("dismisserrors"))
     {
       GlobalSettings().setValue("DismissedErrors", SDebug::LogFile::errorLogFiles());
 
-      return handleHtmlRequest(url, file, socket);
+      return handleHtmlRequest(request, socket, file);
     }
     else if (file == "traystatus.xml")
     {
@@ -511,7 +512,7 @@ HttpServer::SocketOp Backend::handleHttpRequest(const HttpServer::RequestHeader 
         errorLogFile.setAttribute("name", QFileInfo(file).fileName());
       }
 
-      HttpServer::ResponseHeader response(HttpServer::Status_Ok);
+      HttpServer::ResponseHeader response(request, HttpServer::Status_Ok);
       response.setContentType("text/xml;charset=utf-8");
       response.setField("Cache-Control", "no-cache");
       socket->write(response);
@@ -520,15 +521,15 @@ HttpServer::SocketOp Backend::handleHttpRequest(const HttpServer::RequestHeader 
     }
     else if (file.endsWith(".css"))
     {
-      return handleCssRequest(url, file, socket);
+      return handleCssRequest(request, socket, file);
     }
     else if (url.hasQueryItem("q"))
     {
-      return handleHtmlSearch(url, file, socket);
+      return handleHtmlSearch(request, socket, file);
     }
     else if (request.path() == "/")
     {
-      return handleHtmlRequest(url, file, socket);
+      return handleHtmlRequest(request, socket, file);
     }
     else if (file.endsWith(".log"))
     {
@@ -589,7 +590,7 @@ HttpServer::SocketOp Backend::handleHttpRequest(const HttpServer::RequestHeader 
           }
         }
 
-        HttpServer::ResponseHeader response(HttpServer::Status_Ok);
+        HttpServer::ResponseHeader response(request, HttpServer::Status_Ok);
         response.setContentType("text/html;charset=utf-8");
         response.setField("Cache-Control", "no-cache");
         if (logFileName == SDebug::LogFile::activeLogFile())
@@ -602,57 +603,56 @@ HttpServer::SocketOp Backend::handleHttpRequest(const HttpServer::RequestHeader 
     }
     else if (file == "settings.html")
     {
-      return handleHtmlConfig(url, socket);
+      return handleHtmlConfig(request, socket);
     }
     else if (file == "about.html")
     {
-      return showAbout(url, socket);
+      return showAbout(request, socket);
     }
-  }
-  else
-  {
-    QString file;
-    if      (path == "/favicon.ico")                file = ":/lximediacenter/appicon.ico";
-    else if (path == "/appicon.png")                file = ":/lximediacenter/appicon.png";
-    else if (path == "/logo.png")                   file = ":/lximediacenter/logo.png";
-
-    else if (path == "/img/null.png")               file = ":/backend/null.png";
-    else if (path == "/img/checknone.png")          file = ":/backend/checknone.png";
-    else if (path == "/img/checkfull.png")          file = ":/backend/checkfull.png";
-    else if (path == "/img/checksome.png")          file = ":/backend/checksome.png";
-    else if (path == "/img/checknonedisabled.png")  file = ":/backend/checknonedisabled.png";
-    else if (path == "/img/checkfulldisabled.png")  file = ":/backend/checkfulldisabled.png";
-    else if (path == "/img/checksomedisabled.png")  file = ":/backend/checksomedisabled.png";
-    else if (path == "/img/treeopen.png")           file = ":/backend/treeopen.png";
-    else if (path == "/img/treeclose.png")          file = ":/backend/treeclose.png";
-    else if (path == "/img/starenabled.png")        file = ":/backend/starenabled.png";
-    else if (path == "/img/stardisabled.png")       file = ":/backend/stardisabled.png";
-    else if (path == "/img/directory.png")          file = ":/backend/directory.png";
-    else if (path == "/img/playlist-file.png")      file = ":/backend/playlist-file.png";
-    else if (path == "/img/audio-file.png")         file = ":/backend/audio-file.png";
-    else if (path == "/img/video-file.png")         file = ":/backend/video-file.png";
-    else if (path == "/img/image-file.png")         file = ":/backend/image-file.png";
-    else if (path == "/img/restart.png")            file = ":/backend/restart.png";
-    else if (path == "/img/shutdown.png")           file = ":/backend/shutdown.png";
-
-    else if (path == "/swf/flowplayer.swf")         file = ":/flowplayer/flowplayer-3.2.5.swf";
-    else if (path == "/swf/flowplayer.controls.swf")file = ":/flowplayer/flowplayer.controls-3.2.3.swf";
-    else if (path == "/swf/flowplayer.js")          file = ":/flowplayer/flowplayer-3.2.4.min.js";
-
-    QFile f(file);
-    if (f.open(QFile::ReadOnly))
+    else
     {
-      HttpServer::ResponseHeader response(HttpServer::Status_Ok);
-      response.setContentLength(f.size());
-      response.setContentType(HttpServer::toMimeType(file));
-      socket->write(response);
-      socket->write(f.readAll());
-      return HttpServer::SocketOp_Close;
+      QString file;
+      if      (path == "/favicon.ico")                file = ":/lximediacenter/appicon.ico";
+      else if (path == "/appicon.png")                file = ":/lximediacenter/appicon.png";
+      else if (path == "/logo.png")                   file = ":/lximediacenter/logo.png";
+
+      else if (path == "/img/null.png")               file = ":/backend/null.png";
+      else if (path == "/img/checknone.png")          file = ":/backend/checknone.png";
+      else if (path == "/img/checkfull.png")          file = ":/backend/checkfull.png";
+      else if (path == "/img/checksome.png")          file = ":/backend/checksome.png";
+      else if (path == "/img/checknonedisabled.png")  file = ":/backend/checknonedisabled.png";
+      else if (path == "/img/checkfulldisabled.png")  file = ":/backend/checkfulldisabled.png";
+      else if (path == "/img/checksomedisabled.png")  file = ":/backend/checksomedisabled.png";
+      else if (path == "/img/treeopen.png")           file = ":/backend/treeopen.png";
+      else if (path == "/img/treeclose.png")          file = ":/backend/treeclose.png";
+      else if (path == "/img/starenabled.png")        file = ":/backend/starenabled.png";
+      else if (path == "/img/stardisabled.png")       file = ":/backend/stardisabled.png";
+      else if (path == "/img/directory.png")          file = ":/backend/directory.png";
+      else if (path == "/img/playlist-file.png")      file = ":/backend/playlist-file.png";
+      else if (path == "/img/audio-file.png")         file = ":/backend/audio-file.png";
+      else if (path == "/img/video-file.png")         file = ":/backend/video-file.png";
+      else if (path == "/img/image-file.png")         file = ":/backend/image-file.png";
+      else if (path == "/img/restart.png")            file = ":/backend/restart.png";
+      else if (path == "/img/shutdown.png")           file = ":/backend/shutdown.png";
+
+      else if (path == "/swf/flowplayer.swf")         file = ":/flowplayer/flowplayer-3.2.5.swf";
+      else if (path == "/swf/flowplayer.controls.swf")file = ":/flowplayer/flowplayer.controls-3.2.3.swf";
+      else if (path == "/swf/flowplayer.js")          file = ":/flowplayer/flowplayer-3.2.4.min.js";
+
+      QFile f(file);
+      if (f.open(QFile::ReadOnly))
+      {
+        HttpServer::ResponseHeader response(request, HttpServer::Status_Ok);
+        response.setContentLength(f.size());
+        response.setContentType(HttpServer::toMimeType(file));
+        socket->write(response);
+        socket->write(f.readAll());
+        return HttpServer::SocketOp_Close;
+      }
     }
   }
 
-  socket->write(HttpServer::ResponseHeader(HttpServer::Status_NotFound));
-  return HttpServer::SocketOp_Close;
+  return HttpServer::sendResponse(request, socket, HttpServer::Status_NotFound, this);
 }
 
 QByteArray Backend::parseHtmlContent(const QUrl &url, const QByteArray &content, const QByteArray &head) const

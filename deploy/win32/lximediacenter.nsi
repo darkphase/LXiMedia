@@ -54,6 +54,8 @@ Section "-Shared Files" SecShared
   SetOverwrite ifnewer
   File ..\..\bin\liblxistream\*.dll
 
+;  Rename "$%ALLUSERSPROFILE%\Application Data\lximc" "$%ALLUSERSPROFILE%\Application Data\LXiMediaCenter"
+
   WriteUninstaller "$INSTDIR\Uninstall.exe"
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\LXiMediaCenter" "DisplayName" "LeX-Interactive MediaCenter"
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\LXiMediaCenter" "UninstallString" '"$INSTDIR\Uninstall.exe"'
@@ -68,7 +70,7 @@ Section "Backend service" SecBackend
   SetOverwrite ifnewer
   File ..\..\bin\lximediacenter\*.dll
 
-	nsisFirewall::AddAuthorizedApplication "$INSTDIR\lximcbackend.exe" "LeX-Interactive MediaCenter - Backend service"
+  nsisFirewall::AddAuthorizedApplication "$INSTDIR\lximcbackend.exe" "LeX-Interactive MediaCenter - Backend service"
 
   ExecWait '"$INSTDIR\lximcbackend.exe" --install'
   ExecWait 'net start "LXiMediaCenter Backend"'
@@ -81,7 +83,7 @@ Section "Systemtray icon" SecTrayIcon
   SetOverwrite ifnewer
   File ..\..\bin\lximctrayicon.exe
 
-	nsisFirewall::AddAuthorizedApplication "$INSTDIR\lximctrayicon.exe" "LeX-Interactive MediaCenter - Tray icon"
+  nsisFirewall::AddAuthorizedApplication "$INSTDIR\lximctrayicon.exe" "LeX-Interactive MediaCenter - Tray icon"
 
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "LXiMediaCenterTrayIcon" '"$INSTDIR\lximctrayicon.exe"'
   Exec '"$INSTDIR\lximctrayicon.exe"'
@@ -105,8 +107,8 @@ Section "Uninstall"
 
   DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\LXiMediaCenter"
   
-	MessageBox MB_YESNO "Would you like to keep the existing settings and databases? Note that building a new database might take several hours." /SD IDYES IDYES noRemoveDb
-	  RMDir /r "$%ALLUSERSPROFILE%\Application Data\LXiMediaCenter"
-	noRemoveDb:
+  MessageBox MB_YESNO "Would you like to keep the existing settings and databases? Note that building a new database might take several hours." /SD IDYES IDYES noRemoveDb
+    RMDir /r "$%ALLUSERSPROFILE%\Application Data\LXiMediaCenter"
+  noRemoveDb:
   
 SectionEnd

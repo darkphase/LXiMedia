@@ -64,12 +64,13 @@ const char * const PhotoServer::htmlView =
     " </tr>\n"
     "</table></td></tr></table>\n";
 
-HttpServer::SocketOp PhotoServer::handleHtmlRequest(const QUrl &url, const QString &file, QAbstractSocket *socket)
+HttpServer::SocketOp PhotoServer::handleHtmlRequest(const HttpServer::RequestHeader &request, QAbstractSocket *socket, const QString &file)
 {
-  HttpServer::ResponseHeader response(HttpServer::Status_Ok);
+  HttpServer::ResponseHeader response(request, HttpServer::Status_Ok);
   response.setContentType("text/html;charset=utf-8");
   response.setField("Cache-Control", "no-cache");
 
+  const QUrl url(request.path());
   const QString album = SStringParser::toRawName(url.queryItemValue("album"));
   const MediaDatabase::UniqueID uid = MediaDatabase::fromUidString(file.left(16));
   const SMediaInfo node = mediaDatabase->readNode(uid);
@@ -112,9 +113,7 @@ HttpServer::SocketOp PhotoServer::handleHtmlRequest(const QUrl &url, const QStri
     return sendHtmlContent(socket, url, response, htmlParser.parse(htmlView));
   }
 
-  qWarning() << "PhotoServer: Failed to find:" << url.toString();
-  socket->write(HttpServer::ResponseHeader(HttpServer::Status_NotFound));
-  return HttpServer::SocketOp_Close;
+  return HttpServer::sendResponse(request, socket, HttpServer::Status_NotFound, this);
 }
 
 } // End of namespace

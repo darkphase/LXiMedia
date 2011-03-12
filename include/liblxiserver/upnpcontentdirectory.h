@@ -86,10 +86,10 @@ public:
     bool                        played;
     quint8                      mode;
     quint8                      type;
-    QString                     title;
     QUrl                        url;
     QUrl                        iconUrl;
 
+    QString                     title;
     QString                     artist;
     QString                     album;
     int                         track;
@@ -111,11 +111,23 @@ public:
 private:
   typedef quint64               ItemID;
 
-  struct ItemData;
+  struct ItemData
+  {
+    inline ItemData(void) : itemID(Q_INT64_C(-1)), parentID(Q_INT64_C(-1)) { }
+
+    QString                     path;
+    Item                        item;
+    ItemID                      itemID;
+    ItemID                      parentID;
+    QVector<ItemID>             children;
+  };
 
 public:
-  explicit                      UPnPContentDirectory(QObject * = NULL);
+  explicit                      UPnPContentDirectory(const QString &basePath, QObject * = NULL);
   virtual                       ~UPnPContentDirectory();
+
+  void                          initialize(HttpServer *, UPnPMediaServer *);
+  void                          close(void);
 
   void                          setProtocols(Item::Type, const ProtocolList &);
   void                          setQueryItems(const QString &peer, const QMap<QString, QString> &);
@@ -124,23 +136,24 @@ public:
   void                          registerCallback(const QString &path, Callback *);
   void                          unregisterCallback(Callback *);
 
+public slots:
+  void                          modified(void);
+
 protected: // From UPnPBase
-  virtual void                  emitEvent(void);
   virtual void                  buildDescription(QDomDocument &, QDomElement &);
   virtual void                  handleSoapMessage(const QDomElement &, QDomDocument &, QDomElement &, const HttpServer::RequestHeader &, const QHostAddress &);
-  virtual void                  addEventProperties(QDomDocument &, QDomElement &);
-  virtual void                  flushData(void);
 
 private:
   void                          handleBrowse(const QDomElement &, QDomDocument &, QDomElement &, const HttpServer::RequestHeader &, const QHostAddress &);
-  void                          browseDir(QDomDocument &, QDomElement &, ItemID, ItemData &, Callback *, const QString &peer, const QString &host, const QString &, unsigned, unsigned);
-  void                          browseFile(QDomDocument &, QDomElement &, ItemID, ItemData &, const QString &peer, const QString &host, const QString &, unsigned, unsigned);
-  ItemID                        addChildItem(ItemData &, const Item &item, bool asDir);
-  QDomElement                   didlDirectory(QDomDocument &, const Item &, ItemID, ItemID = 0) const;
-  QDomElement                   didlFile(QDomDocument &doc, const QString &peer, const QString &, const Item &, ItemID, ItemID = 0) const;
-  
-  static QString                toIDString(ItemID id)                           { return QString::number(id | Q_UINT64_C(0x8000000000000000), 16); }
-  static ItemID                 fromIDString(const QString &str)                { return str.toULongLong(NULL, 16) & Q_UINT64_C(0x7FFFFFFFFFFFFFFF); }
+  void                          browseDir(QDomDocument &, QDomElement &, ItemData &, Callback *, const QString &peer, const QString &host, const QString &, unsigned, unsigned);
+  void                          browseFile(QDomDocument &, QDomElement &, ItemData &, const QString &peer, const QString &host, const QString &, unsigned, unsigned);
+  ItemData                      addChildItem(ItemData &, const Item &item, bool asDir);
+  QDomElement                   didlDirectory(QDomDocument &, const ItemData &) const;
+  QDomElement                   didlFile(QDomDocument &doc, const QString &peer, const QString &, const ItemData &) const;
+  void                          emitEvent(bool dirty);
+
+  static QString                toIDString(ItemID);
+  static ItemID                 fromIDString(const QString &);
 
 public:
   static const char     * const contentDirectoryNS;

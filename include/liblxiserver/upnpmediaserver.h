@@ -22,7 +22,7 @@
 
 #include <QtCore>
 #include <QtNetwork>
-#include "upnpbase.h"
+#include "httpserver.h"
 
 namespace LXiServer {
 
@@ -43,18 +43,21 @@ public:
   };
 
 public:
-  explicit                      UPnPMediaServer(QObject * = NULL);
+  explicit                      UPnPMediaServer(const QString &basePath, QObject * = NULL);
   virtual                       ~UPnPMediaServer();
 
   void                          initialize(HttpServer *, SsdpServer *);
   void                          close(void);
 
-  const QString               & serverId(void) const;
-  const QUuid                 & serverUuid(void) const;
+  void                          addIcon(const QString &url, unsigned width, unsigned height, unsigned depth);
+
   void                          registerService(const Service &);
 
 protected: // From HttpServer::Callback
   virtual HttpServer::SocketOp  handleHttpRequest(const HttpServer::RequestHeader &, QAbstractSocket *);
+
+public:
+  static const char     * const dlnaDeviceNS;
 
 private:
   static const char     * const deviceType;

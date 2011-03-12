@@ -45,27 +45,26 @@ public:
   };
 
 public:
-  explicit                      SsdpClient(const QUuid &serverUuid);
+  explicit                      SsdpClient(const QString &serverUdn);
   virtual                       ~SsdpClient();
-
-  const QUuid                 & serverUuid(void) const;
 
   virtual void                  initialize(const QList<QHostAddress> &interfaces);
   virtual void                  close(void);
 
-  void                          sendSearch(const QString &st);
+  void                          sendSearch(const QString &st, unsigned msgCount = 3);
   QList<Node>                   searchResults(const QString &st) const;
 
 signals:
   void                          searchUpdated(void);
 
 protected:
+  const QString               & serverUdn(void) const;
   const QList<SsdpClientInterface *> & interfaces(void) const;
   virtual void                  parsePacket(SsdpClientInterface *, const HttpServer::RequestHeader &, const QHostAddress &, quint16);
   virtual void                  parsePacket(SsdpClientInterface *, const HttpServer::ResponseHeader &, const QHostAddress &, quint16);
 
   static void                   sendDatagram(SsdpClientInterface *, const QByteArray &, const QHostAddress &, quint16);
-  static void                   sendSearch(SsdpClientInterface *, const QString &st);
+  static void                   sendSearch(SsdpClientInterface *, const QString &st, unsigned mx = 5);
 
 private:
   void                          addNode(const HttpServer::Header &, const QString &);

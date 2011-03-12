@@ -48,11 +48,9 @@ HttpServer::SocketOp ConfigServer::handleHttpRequest(const HttpServer::RequestHe
   const QString file = request.file();
 
   if (file.isEmpty() || file.endsWith(".html"))
-    return handleHtmlRequest(url, file, socket);
+    return handleHtmlRequest(request, socket, file);
 
-  qWarning() << "ConfigServer: Failed to find:" << request.path();
-  socket->write(HttpServer::ResponseHeader(HttpServer::Status_NotFound));
-  return HttpServer::SocketOp_Close;
+  return HttpServer::sendResponse(request, socket, HttpServer::Status_NotFound, this);
 }
 
 const QSet<QString> & ConfigServer::hiddenDirs(void)

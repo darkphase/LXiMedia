@@ -58,11 +58,7 @@ HttpOutputNode::HttpOutputNode(SGraph *parent)
   d->streamingSpeed = 0.0f;
   d->bufferWriter = NULL;
   d->caching = true;
-
-  // Default header.
-  HttpServer::ResponseHeader header(HttpServer::Status_Ok);
-  header.setField("Cache-Control", "no-cache");
-  d->header = header;
+  d->header = "HTTP/1.0 200 OK\r\n\r\n";
 }
 
 HttpOutputNode::~HttpOutputNode()

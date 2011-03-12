@@ -58,7 +58,7 @@ public:
   static QList<QHostAddress>    defaultBackendInterfaces(void) __attribute__((pure));
   static quint16                defaultBackendHttpPort(void) __attribute__((pure));
 
-  static QUuid                  ssdpUuid(void) __attribute__((pure));
+  static QUuid                  serverUuid(void) __attribute__((pure));
   static QString                settingsFile(void) __attribute__((pure));
   static QString                databaseFile(void) __attribute__((pure));
   static QString                applicationDataDir(void) __attribute__((pure));

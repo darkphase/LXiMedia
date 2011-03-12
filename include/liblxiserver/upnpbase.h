@@ -24,6 +24,7 @@
 #include <QtNetwork>
 #include <QtXml>
 #include "httpserver.h"
+#include "upnpmediaserver.h"
 
 namespace LXiServer {
 
@@ -87,40 +88,33 @@ public:
   typedef QList<Protocol>       ProtocolList;
 
 public:
-                                UPnPBase(const QString &basePath, const QString &serviceType, const QString &serviceId, QObject * = NULL);
+  explicit                      UPnPBase(const QString &basePath, QObject * = NULL);
   virtual                       ~UPnPBase();
 
-  virtual void                  initialize(HttpServer *, UPnPMediaServer *);
-  virtual void                  close(void);
-
-public slots:
-  virtual void                  emitEvent(void);
-
-protected:
-  virtual void                  customEvent(QEvent *);
-  virtual void                  timerEvent(QTimerEvent *);
+  void                          initialize(HttpServer *, UPnPMediaServer::Service &);
+  void                          close(void);
 
 protected: // From HttpServer::Callback
   virtual HttpServer::SocketOp  handleHttpRequest(const HttpServer::RequestHeader &, QAbstractSocket *);
 
 protected:
   virtual HttpServer::SocketOp  handleControl(const HttpServer::RequestHeader &, QAbstractSocket *);
-  virtual HttpServer::SocketOp  handleEventSub(const HttpServer::RequestHeader &, QAbstractSocket *);
   virtual HttpServer::SocketOp  handleDescription(const HttpServer::RequestHeader &, QAbstractSocket *);
 
   virtual void                  buildDescription(QDomDocument &, QDomElement &) = 0;
   virtual void                  handleSoapMessage(const QDomElement &, QDomDocument &, QDomElement &, const HttpServer::RequestHeader &, const QHostAddress &) = 0;
-  virtual void                  addEventProperties(QDomDocument &, QDomElement &) = 0;
-  virtual void                  flushData(void);
 
 protected:
   QReadWriteLock              * lock(void) const;
+  const QString               & basePath(void) const;
   HttpServer                  * httpServer(void) const;
-  UPnPMediaServer             * mediaServer(void) const;
 
 public:
+  static QString                protocol(void);
+
   static void                   addTextElm(QDomDocument &doc, QDomElement &elm, const QString &name, const QString &value);
-  static void                   addSpecVersion(QDomDocument &doc, QDomElement &elm, int major = 1, int minor = 0);
+  static void                   addTextElmNS(QDomDocument &doc, QDomElement &elm, const QString &name, const QString &nsUri, const QString &value);
+  static void                   addSpecVersion(QDomDocument &doc, QDomElement &elm);
   static void                   addActionArgument(QDomDocument &doc, QDomElement &elm, const QString &name, const QString &direction, const QString &relatedStateVariable);
   static void                   addStateVariable(QDomDocument &doc, QDomElement &elm, bool sendEvents, const QString &name, const QString &dataType, const QStringList &allowedValues = QStringList());
 
@@ -132,17 +126,17 @@ public:
   static QDomElement            parseSoapMessage(QDomDocument &doc, const QByteArray &data);
 
 public:
+  static const int              majorVersion, minorVersion;
+  static const int              responseTimeout;
+  static const char     * const xmlDeclaration;
+  static const char     * const xmlContentType;
   static const char     * const dlnaNS;
   static const char     * const didlNS;
   static const char     * const dublinCoreNS;
-  static const char     * const eventNS;
   static const char     * const metadataNS;
   static const char     * const soapNS;
 
 private:
-  static const QEvent::Type     scheduleEventType;
-
-  class EventSession;
   struct Data;
   Data                  * const d;
 };

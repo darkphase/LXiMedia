@@ -19,9 +19,14 @@
 
 #include "httpserver.h"
 
-#include <QtNetwork>
+#if defined(Q_OS_UNIX)
+#include <sys/utsname.h>
+#endif
 
 namespace LXiServer {
+
+const char  * const HttpServer::httpVersion = "HTTP/1.1";
+
 
 class HttpServer::Interface : public QTcpServer
 {
@@ -59,6 +64,8 @@ struct HttpServer::Private
   QReadWriteLock                lock;
   QList<QHostAddress>           addresses;
   quint16                       port;
+  QString                       serverId;
+  QString                       serverUdn;
   QMap<QString, Interface *>    interfaces;
   QThreadPool                   threadPool;
   QAtomicInt                    numPendingConnections;
@@ -67,7 +74,7 @@ struct HttpServer::Private
 };
 
 
-HttpServer::HttpServer(void)
+HttpServer::HttpServer(const QString &protocol, const QUuid &serverUuid)
   : QThread(),
     p(new Private())
 {
@@ -79,6 +86,23 @@ HttpServer::HttpServer(void)
 
   p->numPendingConnections = 0;
   p->startSem = NULL;
+
+#if defined(Q_OS_UNIX)
+  struct utsname osname;
+  if (uname(&osname) >= 0)
+    p->serverId = QString(osname.sysname) + "/" + QString(osname.release);
+  else
+    p->serverId = "Unix";
+#elif defined(Q_OS_WIN)
+  p->serverId = "Windows";
+#endif
+
+  if (!protocol.isEmpty())
+    p->serverId += " " + protocol;
+
+  p->serverId += " " + qApp->applicationName() + "/" + qApp->applicationVersion();
+
+  p->serverUdn = QString("uuid:" + serverUuid.toString()).replace("{", "").replace("}", "");
 }
 
 HttpServer::~HttpServer()
@@ -108,6 +132,11 @@ void HttpServer::close(void)
   wait();
 }
 
+QThreadPool * HttpServer::threadPool(void)
+{
+  return isRunning() ? &p->threadPool : NULL;
+}
+
 quint16 HttpServer::serverPort(const QHostAddress &address) const
 {
   QReadLocker l(&p->lock);
@@ -117,6 +146,16 @@ quint16 HttpServer::serverPort(const QHostAddress &address) const
     return (*i)->serverPort();
 
   return 0;
+}
+
+const QString & HttpServer::serverId(void) const
+{
+  return p->serverId;
+}
+
+const QString & HttpServer::serverUdn(void) const
+{
+  return p->serverUdn;
 }
 
 void HttpServer::registerCallback(const QString &path, Callback *callback)
@@ -135,6 +174,30 @@ void HttpServer::unregisterCallback(Callback *callback)
     i = p->callbacks.erase(i);
   else
     i++;
+}
+
+HttpServer::SocketOp HttpServer::sendResponse(const RequestHeader &request, QAbstractSocket *socket, Status status, const QObject *object)
+{
+  if (status >= 400)
+  {
+    qDebug() << "HTTP response:" << int(status) << "\""
+        << ResponseHeader::statusText(status) << "\" for request:"
+        << request.method() << request.path() << "from object: \""
+        << (object ? object->metaObject()->className() : "NULL") << "\"";
+  }
+
+  ResponseHeader response(request, status);
+  response.setContentLength(0);
+  socket->write(response);
+  return SocketOp_Close;
+}
+
+HttpServer::SocketOp HttpServer::sendRedirect(const RequestHeader &request, QAbstractSocket *socket, const QString &newUrl)
+{
+  HttpServer::ResponseHeader response(request, HttpServer::Status_TemporaryRedirect);
+  response.setField("LOCATION", newUrl);
+  socket->write(response);
+  return SocketOp_Close;
 }
 
 const char * HttpServer::toMimeType(const QString &fileName)
@@ -262,7 +325,7 @@ void HttpServer::SocketHandler::run()
     {
       response += line;
 
-      const RequestHeader request(response);
+      const RequestHeader request(response, parent);
       if (request.isValid())
       {
         QReadLocker l(&parent->p->lock);
@@ -283,10 +346,10 @@ void HttpServer::SocketHandler::run()
             socket = NULL; // The file accepted the connection, it is responsible for closing and deleteing it.
         }
         else
-          socket->write(ResponseHeader(Status_NotFound));
+          socket->write(ResponseHeader(request, Status_NotFound));
       }
       else
-        socket->write(ResponseHeader(Status_BadRequest));
+        socket->write(ResponseHeader(request, Status_BadRequest));
 
       // Finished.
       if (socket)
