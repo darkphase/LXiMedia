@@ -87,6 +87,14 @@ public:
 
   typedef QList<Protocol>       ProtocolList;
 
+  enum ProtocolType
+  {
+    ProtocolType_None         = 0,
+    ProtocolType_Audio,
+    ProtocolType_Video,
+    ProtocolType_Image
+  };
+
 public:
   explicit                      UPnPBase(const QString &basePath, QObject * = NULL);
   virtual                       ~UPnPBase();

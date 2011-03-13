@@ -135,6 +135,21 @@ QString HttpServer::RequestHeader::file(void) const
   return QString::fromUtf8(QByteArray::fromPercentEncoding(result));
 }
 
+QString HttpServer::RequestHeader::directory(void) const
+{
+  QByteArray result = path();
+
+  const int q = result.indexOf('?');
+  if (q >= 0)
+    result = result.left(q);
+
+  const int s = result.lastIndexOf('/');
+  if (s >= 0)
+    result = result.left(s + 1);
+
+  return QString::fromUtf8(QByteArray::fromPercentEncoding(result));
+}
+
 HttpServer::ResponseHeader::ResponseHeader(const HttpServer *httpServer)
   : Header(httpServer)
 {

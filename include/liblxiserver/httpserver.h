@@ -113,6 +113,7 @@ public:
     inline void                 setRequest(const QByteArray &method, const QByteArray &path, const QByteArray &version) { setMethod(method); setPath(path); setVersion(version); }
 
     QString                     file(void) const;
+    QString                     directory(void) const;
   };
 
   class ResponseHeader : public Header

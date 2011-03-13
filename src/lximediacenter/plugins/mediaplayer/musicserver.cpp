@@ -41,8 +41,7 @@ QList<MusicServer::Item> MusicServer::listItems(const QString &path, unsigned st
     if (!item.isDir)
     {
       item.played = false; // Not useful for music.
-      item.type |= UPnPContentDirectory::Item::Type_FlagMusic;
-      item.mode = Item::Mode_Direct;
+      item.direct = true;
 
       if (!item.artist.isEmpty())
         item.title += " [" + item.artist + "]";
