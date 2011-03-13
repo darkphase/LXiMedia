@@ -125,7 +125,7 @@ HttpServer::SocketOp UPnPMediaServer::handleHttpRequest(const HttpServer::Reques
     UPnPBase::addTextElm(doc, deviceElm, "modelURL", "http://" + qApp->organizationDomain() + "/");
     UPnPBase::addTextElm(doc, deviceElm, "serialNumber", qApp->applicationVersion());
     UPnPBase::addTextElm(doc, deviceElm, "UDN", d->httpServer->serverUdn());
-    UPnPBase::addTextElmNS(doc, deviceElm, "dlna:X_DLNADOC", dlnaDeviceNS, "DMS-1.50");
+    UPnPBase::addTextElmNS(doc, deviceElm, "dlna:X_DLNADOC", dlnaDeviceNS, "DMS-1.00");
 
     QString host = request.host();
     if (!host.isEmpty())

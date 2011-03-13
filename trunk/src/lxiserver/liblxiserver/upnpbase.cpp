@@ -177,7 +177,7 @@ QString UPnPBase::protocol(void)
 {
   return
       "UPnP/" + QString::number(majorVersion) + "." + QString::number(minorVersion) +
-      " DLNADOC/1.50";
+      " DLNADOC/1.00";
 }
 
 void UPnPBase::addTextElm(QDomDocument &doc, QDomElement &elm, const QString &name, const QString &value)

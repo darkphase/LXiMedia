@@ -34,22 +34,23 @@ Q_OBJECT
 public:
   struct Item
   {
-    enum Mode
-    {
-      Mode_Default              = 0,
-      Mode_PlaySeek,
-      Mode_Seek,
-      Mode_Chapters,
-      Mode_Direct               = 255
-    };
-
     enum Type
     {
       Type_None                 = 0,
-      Type_Audio,
-      Type_Video,
-      Type_Image,
-      Type_FlagMusic            = 0x80
+      Type_Playlist,
+
+      Type_Audio                = 10,
+      Type_Music,
+      Type_AudioBroadcast,
+      Type_AudioBook,
+
+      Type_Video                = 20,
+      Type_Movie,
+      Type_VideoBroadcast,
+      Type_MusicVideo,
+
+      Type_Image                = 30,
+      Type_Photo
     };
 
     struct Stream
@@ -75,8 +76,7 @@ public:
     };
 
     inline Item(void)
-      : isDir(false), played(false), mode(Mode_Default), type(Type_None),
-        duration(0)
+      : isDir(false), played(false), direct(false), type(Type_None), duration(0)
     {
     }
 
@@ -84,7 +84,7 @@ public:
 
     bool                        isDir;
     bool                        played;
-    quint8                      mode;
+    bool                        direct;
     quint8                      type;
     QUrl                        url;
     QUrl                        iconUrl;
@@ -104,22 +104,8 @@ public:
 
   struct Callback
   {
-    virtual int                 countDlnaItems(const QString &path) = 0;
-    virtual QList<Item>         listDlnaItems(const QString &path, unsigned start = 0, unsigned count = 0) = 0;
-  };
-
-private:
-  typedef quint64               ItemID;
-
-  struct ItemData
-  {
-    inline ItemData(void) : itemID(Q_INT64_C(-1)), parentID(Q_INT64_C(-1)) { }
-
-    QString                     path;
-    Item                        item;
-    ItemID                      itemID;
-    ItemID                      parentID;
-    QVector<ItemID>             children;
+    virtual int                 countContentDirItems(const QString &path) = 0;
+    virtual QList<Item>         listContentDirItems(const QString &path, unsigned start = 0, unsigned count = 0) = 0;
   };
 
 public:
@@ -129,7 +115,7 @@ public:
   void                          initialize(HttpServer *, UPnPMediaServer *);
   void                          close(void);
 
-  void                          setProtocols(Item::Type, const ProtocolList &);
+  void                          setProtocols(ProtocolType, const ProtocolList &);
   void                          setQueryItems(const QString &peer, const QMap<QString, QString> &);
   QMap<QString, QString>        activeClients(void) const;
 
@@ -145,15 +131,21 @@ protected: // From UPnPBase
 
 private:
   void                          handleBrowse(const QDomElement &, QDomDocument &, QDomElement &, const HttpServer::RequestHeader &, const QHostAddress &);
-  void                          browseDir(QDomDocument &, QDomElement &, ItemData &, Callback *, const QString &peer, const QString &host, const QString &, unsigned, unsigned);
-  void                          browseFile(QDomDocument &, QDomElement &, ItemData &, const QString &peer, const QString &host, const QString &, unsigned, unsigned);
-  ItemData                      addChildItem(ItemData &, const Item &item, bool asDir);
-  QDomElement                   didlDirectory(QDomDocument &, const ItemData &) const;
-  QDomElement                   didlFile(QDomDocument &doc, const QString &peer, const QString &, const ItemData &) const;
+  QDomElement                   didlDirectory(QDomDocument &, Item::Type, const QString &path, const QString &title = QString::null);
+  QDomElement                   didlFile(QDomDocument &doc, const QString &peer, const QString &host, const Item &, const QString &path, const QString &title = QString::null);
   void                          emitEvent(bool dirty);
 
-  static QString                toIDString(ItemID);
-  static ItemID                 fromIDString(const QString &);
+  static QStringList            streamItems(const Item &);
+  static QStringList            playSeekItems(const Item &);
+  static QStringList            seekItems(const Item &);
+  static QStringList            chapterItems(const Item &);
+  static QStringList            splitItemProps(const QString &);
+  static Item                   makePlayItem(const Item &, const QStringList &);
+
+  static QString                baseDir(const QString &);
+  static QString                parentDir(const QString &);
+  QString                       toObjectID(const QString &path);
+  QString                       fromObjectID(const QString &id);
 
 public:
   static const char     * const contentDirectoryNS;

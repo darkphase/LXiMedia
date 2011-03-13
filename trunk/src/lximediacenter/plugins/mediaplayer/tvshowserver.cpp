@@ -34,10 +34,9 @@ TvShowServer::~TvShowServer()
 HttpServer::SocketOp TvShowServer::streamVideo(const HttpServer::RequestHeader &request, QAbstractSocket *socket)
 {
   const QStringList file = request.file().split('.');
-
-  if ((file.count() > 1) && (file[1] == "playlist"))
+  if (file.first() == "playlist")
   {
-    const QString path = QString::fromUtf8(QByteArray::fromHex(file.first().toAscii()));
+    const QString path = request.directory().mid(httpPath().length() - 1);
     if (!mediaDatabase->hasAlbum(category, path))
     {
       const QString dir = path.mid(path.left(path.length() - 1).lastIndexOf('/'));
@@ -171,8 +170,9 @@ QList<TvShowServer::Item> TvShowServer::listItems(const QString &path, unsigned 
         {
           Item item;
           item.isDir = true;
+          item.type = defaultItemType();
           item.title = seasonText + " " + QString::number(i.key());
-          item.iconUrl = MediaDatabase::toUidString(i.value().first()) + "-thumb.jpeg?overlay=folder-video";
+          item.iconUrl = MediaDatabase::toUidString(i.value().first()) + "-thumb.png?overlay=folder-video";
           result.append(item);
 
           if (count > 0)

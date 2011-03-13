@@ -182,16 +182,19 @@ QList<MediaPlayerServer::Item> MediaPlayerServer::listAlbums(const QString &path
     }
   }
 
+  const Item::Type itemType = defaultItemType();
+
   QList<Item> result;
   for (int i=start, n=0; (i<albums.count()) && (returnAll || (n<int(count))); i++, n++)
   {
     Item item;
     item.isDir = true;
+    item.type = itemType;
     item.title = albums[i];
 
     foreach (const MediaDatabase::File &file, mediaDatabase->getAlbumFiles(category, path + item.title + '/', 0, 8))
     {
-      item.iconUrl = httpPath() + MediaDatabase::toUidString(file.uid) + "-thumb.jpeg?overlay=folder-video";
+      item.iconUrl = httpPath() + MediaDatabase::toUidString(file.uid) + "-thumb.png?overlay=folder-video";
       break;
     }
 
@@ -221,9 +224,9 @@ MediaPlayerServer::Item MediaPlayerServer::makeItem(MediaDatabase::UniqueID uid)
     if (item.type != UPnPContentDirectory::Item::Type_None)
     {
       item.played = mediaDatabase->lastPlayed(uid).isValid();
+      item.type = defaultItemType(Item::Type(item.type));
       item.title = node.title();
       item.url = MediaDatabase::toUidString(uid);
-      item.iconUrl = MediaDatabase::toUidString(uid) + "-thumb.jpeg";
 
       if (!titleNode.isNull())
       {
@@ -244,6 +247,9 @@ MediaPlayerServer::Item MediaPlayerServer::makeItem(MediaDatabase::UniqueID uid)
 
         foreach (const SMediaInfo::Chapter &chapter, titleNode.chapters())
           item.chapters += Item::Chapter(chapter.title, chapter.begin.toSec());
+
+        if (!titleNode.thumbnails().isEmpty())
+          item.iconUrl = MediaDatabase::toUidString(uid) + "-thumb.jpeg";
       }
 
       const ImdbClient::Entry imdbEntry = mediaDatabase->getImdbEntry(uid);
@@ -262,12 +268,45 @@ MediaPlayerServer::Item MediaPlayerServer::makeItem(MediaDatabase::UniqueID uid)
   return item;
 }
 
+MediaPlayerServer::Item::Type MediaPlayerServer::defaultItemType(Item::Type type) const
+{
+  switch (category)
+  {
+  default:
+  case MediaDatabase::Category_None:
+    return Item::Type_None;
+
+  case MediaDatabase::Category_Movies:
+    return ((type == Item::Type_None) || (type == Item::Type_Video)) ? Item::Type_Movie : type;
+
+  case MediaDatabase::Category_TVShows:
+    return ((type == Item::Type_None) || (type == Item::Type_Video)) ? Item::Type_VideoBroadcast : type;
+
+  case MediaDatabase::Category_Clips:
+    return (type == Item::Type_None) ? Item::Type_Video : type;
+
+  case MediaDatabase::Category_HomeVideos:
+    return (type == Item::Type_None) ? Item::Type_Video : type;
+
+  case MediaDatabase::Category_Photos:
+    return ((type == Item::Type_None) || (type == Item::Type_Image)) ? Item::Type_Photo : type;
+
+  case MediaDatabase::Category_Music:
+    if ((type == Item::Type_None) || (type == Item::Type_Audio))
+      return Item::Type_Music;
+    else if (type == Item::Type_Video)
+      return Item::Type_MusicVideo;
+    else
+      return type;
+  }
+}
+
 HttpServer::SocketOp MediaPlayerServer::handleHttpRequest(const HttpServer::RequestHeader &request, QAbstractSocket *socket)
 {
   const QUrl url(request.path());
   const QString file = request.file();
 
-  if (file.endsWith("-thumb.jpeg"))
+  if (file.endsWith("-thumb.jpeg") || file.endsWith("-thumb.png"))
   {
     QSize size(256, 256);
     if (url.hasQueryItem("size"))
@@ -283,7 +322,7 @@ HttpServer::SocketOp MediaPlayerServer::handleHttpRequest(const HttpServer::Requ
     if (!node.isNull())
     if (!node.thumbnails().isEmpty())
     {
-      if (!url.hasQueryItem("size") && !url.hasQueryItem("overlay"))
+      if (!url.hasQueryItem("size") && !url.hasQueryItem("overlay") && !file.endsWith(".png"))
       {
         return sendResponse(request, socket, node.thumbnails().first(), "image/jpeg", true);
       }

@@ -211,7 +211,7 @@ HttpServer::SocketOp MediaServer::handleHttpRequest(const HttpServer::RequestHea
   return HttpServer::sendResponse(request, socket, HttpServer::Status_NotFound, this);
 }
 
-int MediaServer::countDlnaItems(const QString &path)
+int MediaServer::countContentDirItems(const QString &path)
 {
   QString subPath = path.mid(contentDirPath().length());
   subPath = subPath.startsWith('/') ? subPath : ('/' + subPath);
@@ -219,20 +219,27 @@ int MediaServer::countDlnaItems(const QString &path)
   return countItems(subPath);
 }
 
-QList<UPnPContentDirectory::Item> MediaServer::listDlnaItems(const QString &path, unsigned start, unsigned count)
+QList<UPnPContentDirectory::Item> MediaServer::listContentDirItems(const QString &path, unsigned start, unsigned count)
 {
   QString subPath = path.mid(contentDirPath().length());
   subPath = subPath.startsWith('/') ? subPath : ('/' + subPath);
 
   QString basePath = httpPath();
   basePath = basePath.endsWith('/') ? basePath.left(basePath.length() - 1) : basePath;
+  basePath += subPath;
+  basePath = basePath.endsWith('/') ? basePath.left(basePath.length() - 1) : basePath;
 
   QList<UPnPContentDirectory::Item> result;
   foreach (Item item, listItems(subPath, start, count))
   {
     const QString itemPath = item.url.path(), iconPath = item.iconUrl.path();
-    item.url.setPath(basePath + (itemPath.startsWith('/') ? itemPath : ('/' + itemPath)));
-    item.iconUrl.setPath(basePath + (iconPath.startsWith('/') ? iconPath : ('/' + iconPath)));
+
+    if (!itemPath.isEmpty())
+      item.url.setPath(basePath + (itemPath.startsWith('/') ? itemPath : ('/' + itemPath)));
+
+    if (!iconPath.isEmpty())
+      item.iconUrl.setPath(basePath + (iconPath.startsWith('/') ? iconPath : ('/' + iconPath)));
+
     result += item;
   }
 

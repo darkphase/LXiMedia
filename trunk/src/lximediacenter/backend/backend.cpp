@@ -298,12 +298,13 @@ void Backend::start(void)
       << UPnPBase::Protocol("http-get", "image/jpeg",  true, "DLNA.ORG_PN=JPEG_LRG", ".jpeg")
       << UPnPBase::Protocol("http-get", "image/jpeg",  true, "DLNA.ORG_PN=JPEG_TN", "-thumb.jpeg")
       << UPnPBase::Protocol("http-get", "image/jpeg",  true, "DLNA.ORG_PN=JPEG_SM", "-thumb.jpeg")
-      << UPnPBase::Protocol("http-get", "image/png",   true, "DLNA.ORG_PN=PNG_LRG", ".png");
+      << UPnPBase::Protocol("http-get", "image/png",   true, "DLNA.ORG_PN=PNG_LRG", ".png")
+      << UPnPBase::Protocol("http-get", "image/png",   true, "DLNA.ORG_PN=PNG_SM", "-thumb.png");
 
   masterConnectionManager.setSourceProtocols(audioProtocols + videoProtocols + imageProtocols);
-  masterContentDirectory.setProtocols(UPnPContentDirectory::Item::Type_Audio, audioProtocols);
-  masterContentDirectory.setProtocols(UPnPContentDirectory::Item::Type_Video, videoProtocols);
-  masterContentDirectory.setProtocols(UPnPContentDirectory::Item::Type_Image, imageProtocols);
+  masterContentDirectory.setProtocols(UPnPContentDirectory::ProtocolType_Audio, audioProtocols);
+  masterContentDirectory.setProtocols(UPnPContentDirectory::ProtocolType_Video, videoProtocols);
+  masterContentDirectory.setProtocols(UPnPContentDirectory::ProtocolType_Image, imageProtocols);
 
   setContentDirectoryQueryItems();
 
@@ -609,46 +610,47 @@ HttpServer::SocketOp Backend::handleHttpRequest(const HttpServer::RequestHeader 
     {
       return showAbout(request, socket);
     }
-    else
+  }
+
+  QString sendFile;
+  if      (path == "/favicon.ico")                sendFile = ":/lximediacenter/appicon.ico";
+  else if (path == "/appicon.png")                sendFile = ":/lximediacenter/appicon.png";
+  else if (path == "/logo.png")                   sendFile = ":/lximediacenter/logo.png";
+
+  else if (path == "/img/null.png")               sendFile = ":/backend/null.png";
+  else if (path == "/img/checknone.png")          sendFile = ":/backend/checknone.png";
+  else if (path == "/img/checkfull.png")          sendFile = ":/backend/checkfull.png";
+  else if (path == "/img/checksome.png")          sendFile = ":/backend/checksome.png";
+  else if (path == "/img/checknonedisabled.png")  sendFile = ":/backend/checknonedisabled.png";
+  else if (path == "/img/checkfulldisabled.png")  sendFile = ":/backend/checkfulldisabled.png";
+  else if (path == "/img/checksomedisabled.png")  sendFile = ":/backend/checksomedisabled.png";
+  else if (path == "/img/treeopen.png")           sendFile = ":/backend/treeopen.png";
+  else if (path == "/img/treeclose.png")          sendFile = ":/backend/treeclose.png";
+  else if (path == "/img/starenabled.png")        sendFile = ":/backend/starenabled.png";
+  else if (path == "/img/stardisabled.png")       sendFile = ":/backend/stardisabled.png";
+  else if (path == "/img/directory.png")          sendFile = ":/backend/directory.png";
+  else if (path == "/img/playlist-file.png")      sendFile = ":/backend/playlist-file.png";
+  else if (path == "/img/audio-file.png")         sendFile = ":/backend/audio-file.png";
+  else if (path == "/img/video-file.png")         sendFile = ":/backend/video-file.png";
+  else if (path == "/img/image-file.png")         sendFile = ":/backend/image-file.png";
+  else if (path == "/img/restart.png")            sendFile = ":/backend/restart.png";
+  else if (path == "/img/shutdown.png")           sendFile = ":/backend/shutdown.png";
+
+  else if (path == "/swf/flowplayer.swf")         sendFile = ":/flowplayer/flowplayer-3.2.5.swf";
+  else if (path == "/swf/flowplayer.controls.swf")sendFile = ":/flowplayer/flowplayer.controls-3.2.3.swf";
+  else if (path == "/swf/flowplayer.js")          sendFile = ":/flowplayer/flowplayer-3.2.4.min.js";
+
+  if (!sendFile.isEmpty())
+  {
+    QFile file(sendFile);
+    if (file.open(QFile::ReadOnly))
     {
-      QString file;
-      if      (path == "/favicon.ico")                file = ":/lximediacenter/appicon.ico";
-      else if (path == "/appicon.png")                file = ":/lximediacenter/appicon.png";
-      else if (path == "/logo.png")                   file = ":/lximediacenter/logo.png";
-
-      else if (path == "/img/null.png")               file = ":/backend/null.png";
-      else if (path == "/img/checknone.png")          file = ":/backend/checknone.png";
-      else if (path == "/img/checkfull.png")          file = ":/backend/checkfull.png";
-      else if (path == "/img/checksome.png")          file = ":/backend/checksome.png";
-      else if (path == "/img/checknonedisabled.png")  file = ":/backend/checknonedisabled.png";
-      else if (path == "/img/checkfulldisabled.png")  file = ":/backend/checkfulldisabled.png";
-      else if (path == "/img/checksomedisabled.png")  file = ":/backend/checksomedisabled.png";
-      else if (path == "/img/treeopen.png")           file = ":/backend/treeopen.png";
-      else if (path == "/img/treeclose.png")          file = ":/backend/treeclose.png";
-      else if (path == "/img/starenabled.png")        file = ":/backend/starenabled.png";
-      else if (path == "/img/stardisabled.png")       file = ":/backend/stardisabled.png";
-      else if (path == "/img/directory.png")          file = ":/backend/directory.png";
-      else if (path == "/img/playlist-file.png")      file = ":/backend/playlist-file.png";
-      else if (path == "/img/audio-file.png")         file = ":/backend/audio-file.png";
-      else if (path == "/img/video-file.png")         file = ":/backend/video-file.png";
-      else if (path == "/img/image-file.png")         file = ":/backend/image-file.png";
-      else if (path == "/img/restart.png")            file = ":/backend/restart.png";
-      else if (path == "/img/shutdown.png")           file = ":/backend/shutdown.png";
-
-      else if (path == "/swf/flowplayer.swf")         file = ":/flowplayer/flowplayer-3.2.5.swf";
-      else if (path == "/swf/flowplayer.controls.swf")file = ":/flowplayer/flowplayer.controls-3.2.3.swf";
-      else if (path == "/swf/flowplayer.js")          file = ":/flowplayer/flowplayer-3.2.4.min.js";
-
-      QFile f(file);
-      if (f.open(QFile::ReadOnly))
-      {
-        HttpServer::ResponseHeader response(request, HttpServer::Status_Ok);
-        response.setContentLength(f.size());
-        response.setContentType(HttpServer::toMimeType(file));
-        socket->write(response);
-        socket->write(f.readAll());
-        return HttpServer::SocketOp_Close;
-      }
+      HttpServer::ResponseHeader response(request, HttpServer::Status_Ok);
+      response.setContentLength(file.size());
+      response.setContentType(HttpServer::toMimeType(sendFile));
+      socket->write(response);
+      socket->write(file.readAll());
+      return HttpServer::SocketOp_Close;
     }
   }
 

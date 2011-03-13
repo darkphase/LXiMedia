@@ -127,9 +127,9 @@ protected slots:
 protected: // From HttpServer::Callback
   virtual HttpServer::SocketOp  handleHttpRequest(const HttpServer::RequestHeader &, QAbstractSocket *);
 
-private: // From DlnaServer::Callback
-  virtual int                   countDlnaItems(const QString &path);
-  virtual QList<UPnPContentDirectory::Item> listDlnaItems(const QString &path, unsigned start, unsigned count);
+private: // From UPnPContentDirectory::Callback
+  virtual int                   countContentDirItems(const QString &path);
+  virtual QList<UPnPContentDirectory::Item> listContentDirItems(const QString &path, unsigned start, unsigned count);
 
 private:
   void                          addStream(Stream *);

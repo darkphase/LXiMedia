@@ -195,7 +195,7 @@ const char * const MediaServer::htmlPlayerVideoItem =
 
 const char * const MediaServer::htmlPlayerThumbItem =
     "    <center>\n"
-    "     <table style=\"padding:0;border-spacing:0;width:{WIDTH}px;height:{HEIGHT}px;background-image:url('{PLAYER_ITEM}-thumb.jpeg?size={WIDTH}x{HEIGHT}');background-position:center;background-repeat:no-repeat;background-color:#000000;\">\n"
+    "     <table style=\"padding:0;border-spacing:0;width:{WIDTH}px;height:{HEIGHT}px;background-image:url('{PLAYER_ITEM}-thumb.png?size={WIDTH}x{HEIGHT}');background-position:center;background-repeat:no-repeat;background-color:#000000;\">\n"
     "      <tr style=\"vertical-align:middle;height:{HEIGHT2}px;\"><td>\n"
     "       <center>\n"
     "        <div style=\"padding:1em;background-color:rgba(255,255,255,0.7);width:{WIDTH23}px;\">\n"

@@ -35,11 +35,10 @@ PlaylistServer::~PlaylistServer()
 HttpServer::SocketOp PlaylistServer::streamVideo(const HttpServer::RequestHeader &request, QAbstractSocket *socket)
 {
   const QStringList file = request.file().split('.');
-
-  if ((file.count() > 1) && (file[1] == "playlist"))
+  if (file.first() == "playlist")
   {
     QStringList albums;
-    albums += QString::fromUtf8(QByteArray::fromHex(file.first().toAscii()));
+    albums += request.directory().mid(httpPath().length() - 1);
 
     QMultiMap<QString, SMediaInfo> files;
     while (!albums.isEmpty())
@@ -112,10 +111,9 @@ HttpServer::SocketOp PlaylistServer::handleHttpRequest(const HttpServer::Request
   const QUrl url(request.path());
   const QString file = request.file();
 
-  if (file.endsWith(".playlist.html")) // Show player
+  if (file == "playlist.html") // Show player
   {
-    const QByteArray item = file.left(file.length() - 5).toAscii();
-    const QString album = QString::fromUtf8(QByteArray::fromHex(file.left(file.length() - 15).toAscii()));
+    const QString album = QUrl(request.path().mid(httpPath().length() - 1)).path();
     if (!album.isEmpty())
     {
       HttpServer::ResponseHeader response(request, HttpServer::Status_Ok);
@@ -126,7 +124,7 @@ HttpServer::SocketOp PlaylistServer::handleHttpRequest(const HttpServer::Request
 
       HtmlParser htmlParser;
 
-      htmlParser.setField("PLAYER", buildVideoPlayer(item, albumName, url));
+      htmlParser.setField("PLAYER", buildVideoPlayer("playlist", albumName, url));
 
       htmlParser.setField("PLAYER_INFOITEMS", QByteArray(""));
       htmlParser.setField("ITEM_NAME", tr("Title"));
@@ -151,10 +149,14 @@ QList<PlaylistServer::Item> PlaylistServer::listPlayAllItem(const QString &path,
     if (start == 0)
     {
       Item item;
-      item.mode = Item::Mode_Direct;
-      item.type = UPnPContentDirectory::Item::Type_Video;
+      item.direct = true;
+
+      item.type = defaultItemType();
+      if ((item.type == Item::Type_Image) || (item.type == Item::Type_Photo))
+        item.type = Item::Type_Video;
+
       item.title = itemTitle;
-      item.url = httpPath() + path.toUtf8().toHex() + ".playlist";
+      item.url = "playlist";
 
       if (thumbUid == 0)
       {

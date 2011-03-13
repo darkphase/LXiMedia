@@ -34,11 +34,10 @@ PhotoServer::~PhotoServer()
 HttpServer::SocketOp PhotoServer::streamVideo(const HttpServer::RequestHeader &request, QAbstractSocket *socket)
 {
   const QStringList file = request.file().split('.');
-
-  if ((file.count() > 1) && (file[1] == "playlist"))
+  if (file.first() == "playlist")
   {
     QStringList albums;
-    albums += QString::fromUtf8(QByteArray::fromHex(file.first().toAscii()));
+    albums += request.directory().mid(httpPath().length() - 1);
 
     QMultiMap<QString, MediaDatabase::File> files;
     while (!albums.isEmpty())
@@ -77,7 +76,7 @@ QList<PhotoServer::Item> PhotoServer::listItems(const QString &path, unsigned st
     if (!item.isDir)
     {
       item.played = false; // Not useful for photos.
-      item.mode = Item::Mode_Direct;
+      item.direct = true;
     }
 
     items += item;
@@ -91,9 +90,12 @@ HttpServer::SocketOp PhotoServer::handleHttpRequest(const HttpServer::RequestHea
   const QUrl url(request.path());
   const QString file = request.file();
 
-  if ((file.endsWith(".jpeg") && !file.endsWith("-thumb.jpeg")) || file.endsWith(".png"))
+  if ((file.endsWith(".jpeg") && !file.endsWith("-thumb.jpeg")) ||
+      (file.endsWith(".png") && !file.endsWith("-thumb.png")))
+  {
     return sendPhoto(request, socket, MediaDatabase::fromUidString(file.left(16)), file.split('.').last());
-  else if (file.endsWith(".html") && !file.endsWith(".playlist.html")) // Show photo
+  }
+  else if (file.endsWith(".html") && (file != "playlist.html")) // Show photo
     return handleHtmlRequest(request, socket, file);
 
   return PlaylistServer::handleHttpRequest(request, socket);
