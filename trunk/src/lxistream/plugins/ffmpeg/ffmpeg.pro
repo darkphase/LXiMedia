@@ -20,7 +20,6 @@ HEADERS += audiodecoder.h \
     bufferreader.h \
     videoformatconverter.h
 SOURCES += audiodecoder.cpp \
-    audiodecoder.postfilter.c \
     audioencoder.cpp \
     audioresampler.cpp \
     datadecoder.cpp \

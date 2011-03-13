@@ -19,13 +19,8 @@
 
 #include "audiodecoder.h"
 
-// Implemented in audiodecoder.postfilter.c
-extern "C" void LXiStream_FFMpegBackend_AudioDecoder_postFilterDts(qint16 *, const qint16 *, size_t, unsigned);
-extern "C" void LXiStream_FFMpegBackend_AudioDecoder_postFilterAac(qint16 *, const qint16 *, size_t, unsigned);
-
 namespace LXiStream {
 namespace FFMpegBackend {
-
 
 AudioDecoder::AudioDecoder(const QString &, QObject *parent)
   : SInterfaces::AudioDecoder(parent),
@@ -119,11 +114,52 @@ bool AudioDecoder::openCodec(const SAudioCodec &c, Flags flags)
     return false;
   }
 
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(52, 72, 0)
+  struct PostFilter
+  {
+    static void Dts(qint16 *dst, const qint16 *src, size_t numBytes, unsigned numChannels)
+    {
+      if (numChannels == 6)
+      {
+        for (unsigned i=0, n=numBytes/sizeof(qint16); i<n; i+=6)
+        {
+          dst[i+0] = src[i+0];
+          dst[i+1] = src[i+2];
+          dst[i+2] = src[i+1];
+          dst[i+3] = src[i+4];
+          dst[i+4] = src[i+5];
+          dst[i+5] = src[i+3];
+        }
+      }
+      else
+        memcpy(dst, src, numBytes);
+    }
+    
+    static void Aac(qint16 *dst, const qint16 *src, size_t numBytes, unsigned numChannels)
+    {
+      if (numChannels == 6)
+      {
+        for (unsigned i=0, n=numBytes/sizeof(qint16); i<n; i+=6)
+        {
+          dst[i+0] = src[i+1];
+          dst[i+1] = src[i+0];
+          dst[i+2] = src[i+2];
+          dst[i+3] = src[i+3];
+          dst[i+4] = src[i+4];
+          dst[i+5] = src[i+5];
+        }
+      }
+      else
+        memcpy(dst, src, numBytes);
+    }
+  };
+  
   if (inCodec == "DTS")
-    postFilter = &LXiStream_FFMpegBackend_AudioDecoder_postFilterDts;
+    postFilter = &PostFilter::Dts;
   else if (inCodec == "AAC")
-    postFilter = &LXiStream_FFMpegBackend_AudioDecoder_postFilterAac;
+    postFilter = &PostFilter::Aac;
   else
+#endif
     postFilter = PostFilterFunc(&memcpy);
 
   return true;
