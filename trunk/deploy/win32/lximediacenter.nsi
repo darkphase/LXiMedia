@@ -54,7 +54,8 @@ Section "-Shared Files" SecShared
   SetOverwrite ifnewer
   File ..\..\bin\liblxistream\*.dll
 
-;  Rename "$%ALLUSERSPROFILE%\Application Data\lximc" "$%ALLUSERSPROFILE%\Application Data\LXiMediaCenter"
+  ; For backwards compatibility with 0.1.x versions, can be removed in the future.
+  Rename "$%ALLUSERSPROFILE%\Application Data\lximc" "$%ALLUSERSPROFILE%\Application Data\LXiMediaCenter"
 
   WriteUninstaller "$INSTDIR\Uninstall.exe"
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\LXiMediaCenter" "DisplayName" "LeX-Interactive MediaCenter"
