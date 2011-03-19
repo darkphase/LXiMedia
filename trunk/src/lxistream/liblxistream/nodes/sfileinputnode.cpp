@@ -28,7 +28,7 @@ namespace LXiStream {
 
 struct SFileInputNode::Data
 {
-  inline Data(const QString &fileName) : mediaFile(fileName), subtitleFile(NULL) { }
+  inline Data(const QString &path) : mediaFile(path), subtitleFile(NULL) { }
 
   QFile                         mediaFile;
   QMap<StreamId, QString>       subtitleStreams;
@@ -36,11 +36,10 @@ struct SFileInputNode::Data
   SEncodedDataBuffer            nextSubtitle;
 };
 
-SFileInputNode::SFileInputNode(SGraph *parent, const QString &fileName)
-  : SIOInputNode(parent, NULL),
-    d(new Data(fileName))
+SFileInputNode::SFileInputNode(SGraph *parent, const QString &path)
+  : SIOInputNode(parent, NULL, path),
+    d(new Data(path))
 {
-  SIOInputNode::setIODevice(&d->mediaFile);
 }
 
 SFileInputNode::~SFileInputNode()
@@ -50,15 +49,19 @@ SFileInputNode::~SFileInputNode()
   *const_cast<Data **>(&d) = NULL;
 }
 
-bool SFileInputNode::open(void)
+bool SFileInputNode::open(unsigned programId)
 {
   if (d->mediaFile.open(QIODevice::ReadOnly))
   {
-    if (SIOInputNode::open())
+    SIOInputNode::setIODevice(&d->mediaFile);
+
+    if (SIOInputNode::open(programId))
       return true;
 
     d->mediaFile.close();
   }
+  else if (SIOInputNode::open(programId))
+    return true;
 
   return false;
 }
@@ -67,6 +70,7 @@ void SFileInputNode::stop(void)
 {
   SIOInputNode::stop();
 
+  SIOInputNode::setIODevice(NULL);
   d->mediaFile.close();
 
   if (d->subtitleFile)

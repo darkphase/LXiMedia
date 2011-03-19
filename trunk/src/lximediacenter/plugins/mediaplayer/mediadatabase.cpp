@@ -793,7 +793,7 @@ void MediaDatabase::insertFile(const SMediaInfo &mediaInfo, const QByteArray &me
           continue;
 
         if (i.key() == Category_Movies)
-        if (mediaInfo.duration().isValid() && (mediaInfo.duration().toMin() < 5))
+        if (mediaInfo.totalDuration().isValid() && (mediaInfo.totalDuration().toMin() < 5))
           continue;
 
         if (i.key() == Category_Music)

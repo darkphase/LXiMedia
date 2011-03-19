@@ -36,11 +36,11 @@ class SIOInputNode : public QObject,
 {
 Q_OBJECT
 public:
-  explicit                      SIOInputNode(SGraph *, QIODevice * = NULL);
+  explicit                      SIOInputNode(SGraph *, QIODevice * = NULL, const QString &path = QString::null);
   virtual                       ~SIOInputNode();
 
   void                          setIODevice(QIODevice *);
-  virtual bool                  open(void);
+  virtual bool                  open(unsigned programId);
 
 public: // From SInterfaces::SourceNode
   virtual bool                  start(void);

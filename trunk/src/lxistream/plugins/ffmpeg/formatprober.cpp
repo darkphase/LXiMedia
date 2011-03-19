@@ -36,7 +36,7 @@ FormatProber::~FormatProber()
 {
 }
 
-QList<FormatProber::Format> FormatProber::probeFileFormat(const QByteArray &buffer, const QString &filePath)
+QList<FormatProber::Format> FormatProber::probeFormat(const QByteArray &buffer, const QString &filePath)
 {
   SDebug::MutexLocker f(FFMpegCommon::mutex(), __FILE__, __LINE__);
 
@@ -56,12 +56,7 @@ QList<FormatProber::Format> FormatProber::probeFileFormat(const QByteArray &buff
   return QList<Format>();
 }
 
-QList<FormatProber::Format> FormatProber::probeDiscFormat(const QString &)
-{
-  return QList<Format>();
-}
-
-void FormatProber::probeFile(ProbeInfo &pi, ReadCallback *readCallback)
+void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *readCallback)
 {
   struct ProduceCallback : SInterfaces::BufferReader::ProduceCallback
   {
@@ -89,130 +84,135 @@ void FormatProber::probeFile(ProbeInfo &pi, ReadCallback *readCallback)
     }
   };
 
-  // Detect format.
-  QByteArray data(SInterfaces::FormatProber::defaultProbeSize, 0);
-  data.resize(readCallback->read(reinterpret_cast<uchar *>(data.data()), data.size()));
-
-  QList<SInterfaces::FormatProber::Format> formats = probeFileFormat(data, pi.filePath);
-  if (!formats.isEmpty())
+  if (readCallback)
   {
-    pi.format = formats.first().name;
+    // Detect format.
+    QByteArray data(SInterfaces::FormatProber::defaultProbeSize, 0);
+    data.resize(readCallback->read(reinterpret_cast<uchar *>(data.data()), data.size()));
 
-    BufferReader bufferReader(QString::null, this);
-    if (bufferReader.openFormat(pi.format))
+    QList<SInterfaces::FormatProber::Format> formats = probeFormat(data, readCallback->path);
+    if (!formats.isEmpty())
     {
-      readCallback->seek(0, SEEK_SET);
+      pi.format = formats.first().name;
 
-      ProduceCallback produceCallback;
-      if (bufferReader.start(readCallback, &produceCallback, true))
+      BufferReader bufferReader(QString::null, this);
+      if (bufferReader.openFormat(pi.format))
       {
-        pi.title = bestOf(pi.title, SStringParser::removeControl(QString::fromUtf8(bufferReader.context()->title)).trimmed());
-        pi.author = bestOf(pi.author, SStringParser::removeControl(QString::fromUtf8(bufferReader.context()->author)).trimmed());
-        pi.copyright = bestOf(pi.copyright, SStringParser::removeControl(QString::fromUtf8(bufferReader.context()->copyright)).trimmed());
-        pi.comment = bestOf(pi.comment, SStringParser::removeControl(QString::fromUtf8(bufferReader.context()->comment)).trimmed());
-        pi.album = bestOf(pi.album, SStringParser::removeControl(QString::fromUtf8(bufferReader.context()->album)).trimmed());
-        pi.genre = bestOf(pi.genre, SStringParser::removeControl(QString::fromUtf8(bufferReader.context()->genre)).trimmed());
-        pi.year = bestOf(pi.year, bufferReader.context()->year);
-        pi.track = bestOf(pi.track, bufferReader.context()->track);
+        readCallback->seek(0, SEEK_SET);
 
-        const STime duration = bufferReader.duration();
-        if (duration.isValid())
-          pi.duration = duration;
-
-        const QList<AudioStreamInfo> audioStreams = bufferReader.audioStreams();
-        if (!audioStreams.isEmpty())
-          pi.audioStreams = audioStreams;
-
-        const QList<VideoStreamInfo> videoStreams = bufferReader.videoStreams();
-        if (!videoStreams.isEmpty())
-          pi.videoStreams = videoStreams;
-
-        const QList<DataStreamInfo> dataStreams = bufferReader.dataStreams();
-        if (!dataStreams.isEmpty())
-          pi.dataStreams = dataStreams;
-
-        const QList<Chapter> chapters = bufferReader.chapters();
-        if (!chapters.isEmpty())
-          pi.chapters = chapters;
-
-        pi.isProbed = true;
-        pi.isReadable = true;
-
-        bufferReader.setPosition(qMax(bufferReader.duration() / 8, STime::fromSec(5)));
-        for (unsigned i=0; (i<4096) && (produceCallback.bufferCount<256); i++)
-          bufferReader.process();
-
-        for (QMap<quint16, SEncodedVideoBufferList>::Iterator i = produceCallback.videoBuffers.begin();
-             i != produceCallback.videoBuffers.end();
-             i++)
-        if (!i->isEmpty() && !i->first().codec().isNull())
+        ProduceCallback produceCallback;
+        if (bufferReader.start(readCallback, &produceCallback, 0, true))
         {
-          VideoDecoder videoDecoder(QString::null, this);
-          if (videoDecoder.openCodec(i->first().codec()))
+          pi.title = bestOf(pi.title, SStringParser::removeControl(QString::fromUtf8(bufferReader.context()->title)).trimmed());
+          pi.author = bestOf(pi.author, SStringParser::removeControl(QString::fromUtf8(bufferReader.context()->author)).trimmed());
+          pi.copyright = bestOf(pi.copyright, SStringParser::removeControl(QString::fromUtf8(bufferReader.context()->copyright)).trimmed());
+          pi.comment = bestOf(pi.comment, SStringParser::removeControl(QString::fromUtf8(bufferReader.context()->comment)).trimmed());
+          pi.album = bestOf(pi.album, SStringParser::removeControl(QString::fromUtf8(bufferReader.context()->album)).trimmed());
+          pi.genre = bestOf(pi.genre, SStringParser::removeControl(QString::fromUtf8(bufferReader.context()->genre)).trimmed());
+          pi.year = bestOf(pi.year, bufferReader.context()->year);
+          pi.track = bestOf(pi.track, bufferReader.context()->track);
+
+          if (pi.programs.isEmpty())
+            pi.programs.append(ProbeInfo::Program());
+
+          ProbeInfo::Program &program = pi.programs.first();
+
+          const STime duration = bufferReader.duration();
+          if (duration.isValid())
+            program.duration = duration;
+
+          const QList<Chapter> chapters = bufferReader.chapters();
+          if (!chapters.isEmpty())
+            program.chapters = chapters;
+
+          const QList<AudioStreamInfo> audioStreams = bufferReader.audioStreams();
+          if (!audioStreams.isEmpty())
+            program.audioStreams = audioStreams;
+
+          const QList<VideoStreamInfo> videoStreams = bufferReader.videoStreams();
+          if (!videoStreams.isEmpty())
+            program.videoStreams = videoStreams;
+
+          const QList<DataStreamInfo> dataStreams = bufferReader.dataStreams();
+          if (!dataStreams.isEmpty())
+            program.dataStreams = dataStreams;
+
+          pi.isProbed = true;
+          pi.isReadable = true;
+
+          bufferReader.setPosition(qMax(bufferReader.duration() / 8, STime::fromSec(5)));
+          for (unsigned i=0; (i<4096) && (produceCallback.bufferCount<256); i++)
+            bufferReader.process();
+
+          for (QMap<quint16, SEncodedVideoBufferList>::Iterator i = produceCallback.videoBuffers.begin();
+               i != produceCallback.videoBuffers.end();
+               i++)
+          if (!i->isEmpty() && !i->first().codec().isNull())
           {
-            SVideoBuffer bestThumb;
-            int bestDist = 0;
-
-            foreach (const SEncodedVideoBuffer &coded, *i)
-            foreach (const SVideoBuffer &thumb, videoDecoder.decodeBuffer(coded))
+            VideoDecoder videoDecoder(QString::null, this);
+            if (videoDecoder.openCodec(i->first().codec()))
             {
-              // Get all greyvalues
-              QVector<quint8> pixels;
-              pixels.reserve(4096);
-              for (unsigned y=0, n=thumb.format().size().height(), i=n/64; y<n; y+=i)
+              SVideoBuffer bestThumb;
+              int bestDist = 0;
+
+              foreach (const SEncodedVideoBuffer &coded, *i)
+              foreach (const SVideoBuffer &thumb, videoDecoder.decodeBuffer(coded))
               {
-                const quint8 * const line = reinterpret_cast<const quint8 *>(thumb.scanLine(y, 0));
-                for (int x=0, n=thumb.format().size().width(), i=n/64; x<n; x+=i)
-                  pixels += line[x];
+                // Get all greyvalues
+                QVector<quint8> pixels;
+                pixels.reserve(4096);
+                for (unsigned y=0, n=thumb.format().size().height(), i=n/64; y<n; y+=i)
+                {
+                  const quint8 * const line = reinterpret_cast<const quint8 *>(thumb.scanLine(y, 0));
+                  for (int x=0, n=thumb.format().size().width(), i=n/64; x<n; x+=i)
+                    pixels += line[x];
+                }
+
+                qSort(pixels);
+                const int dist = int(pixels[pixels.count() * 3 / 4]) - int(pixels[pixels.count() / 4]);
+                if (dist >= bestDist)
+                {
+                  bestThumb = thumb;
+                  bestDist = dist;
+                }
               }
 
-              qSort(pixels);
-              const int dist = int(pixels[pixels.count() * 3 / 4]) - int(pixels[pixels.count() / 4]);
-              if (dist >= bestDist)
+              for (QList<VideoStreamInfo>::Iterator j = program.videoStreams.begin();
+                   j != program.videoStreams.end();
+                   j++)
               {
-                bestThumb = thumb;
-                bestDist = dist;
+                const SInterval frameRate = bestThumb.format().frameRate();
+                if (qAbs(j->codec.frameRate().toFrequency() - frameRate.toFrequency()) > 0.1f)
+                  j->codec.setFrameRate(frameRate);
               }
-            }
 
-            for (QList<VideoStreamInfo>::Iterator j = pi.videoStreams.begin();
-                 j != pi.videoStreams.end();
-                 j++)
-            {
-              const SInterval frameRate = bestThumb.format().frameRate();
-              if (qAbs(j->codec.frameRate().toFrequency() - frameRate.toFrequency()) > 0.1f)
-                j->codec.setFrameRate(frameRate);
-            }
-
-            // Build thumbnail
-            if (!bestThumb.isNull())
-            {
-              VideoResizer videoResizer("bicubic", this);
-              videoResizer.setSize(SSize(256, 256));
-              videoResizer.setAspectRatioMode(Qt::KeepAspectRatio);
-              bestThumb = videoResizer.processBuffer(bestThumb);
-
-              VideoEncoder videoEncoder(QString::null, this);
-              if (videoEncoder.openCodec(SVideoCodec("MJPEG", bestThumb.format().size(), SInterval::fromFrequency(25)),
-                                         SInterfaces::VideoEncoder::Flag_LowQuality))
+              // Build thumbnail
+              if (!bestThumb.isNull())
               {
-                const SEncodedVideoBufferList thumbnail = videoEncoder.encodeBuffer(bestThumb);
-                if (!thumbnail.isEmpty())
-                  pi.thumbnails += QByteArray((const char *)thumbnail.first().data(),
-                                              thumbnail.first().size());
+                VideoResizer videoResizer("bicubic", this);
+                videoResizer.setSize(SSize(256, 256));
+                videoResizer.setAspectRatioMode(Qt::KeepAspectRatio);
+                bestThumb = videoResizer.processBuffer(bestThumb);
+
+                VideoEncoder videoEncoder(QString::null, this);
+                if (videoEncoder.openCodec(SVideoCodec("MJPEG", bestThumb.format().size(), SInterval::fromFrequency(25)),
+                                           SInterfaces::VideoEncoder::Flag_LowQuality))
+                {
+                  const SEncodedVideoBufferList thumbnail = videoEncoder.encodeBuffer(bestThumb);
+                  if (!thumbnail.isEmpty())
+                    program.thumbnail = QByteArray((const char *)thumbnail.first().data(), thumbnail.first().size());
+                }
               }
             }
           }
-        }
 
-        bufferReader.stop();
+          program.title = pi.title;
+
+          bufferReader.stop();
+        }
       }
     }
   }
-}
-
-void FormatProber::probeDisc(ProbeInfo &, const QString &)
-{
 }
 
 QString FormatProber::bestOf(const QString &a, const QString &b)

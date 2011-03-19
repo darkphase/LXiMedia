@@ -18,7 +18,7 @@
  ***************************************************************************/
 
 #include "module.h"
-#include "discreader.h"
+#include "bufferreader.h"
 #include "formatprober.h"
 
 
@@ -29,7 +29,7 @@ namespace DVDNavBackend {
 void Module::registerClasses(void)
 {
   FormatProber::registerClass<FormatProber>(0);
-  DiscReader::registerClass<DiscReader>(DiscReader::formatName);
+  BufferReader::registerClass<BufferReader>(BufferReader::formatName);
 }
 
 void Module::unload(void)

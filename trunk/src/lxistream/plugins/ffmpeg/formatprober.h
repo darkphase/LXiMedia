@@ -36,10 +36,8 @@ public:
   virtual                       ~FormatProber();
 
 public: // From SInterfaces::FormatProber
-  virtual QList<Format>         probeFileFormat(const QByteArray &, const QString &);
-  virtual QList<Format>         probeDiscFormat(const QString &);
-  virtual void                  probeFile(ProbeInfo &, ReadCallback *);
-  virtual void                  probeDisc(ProbeInfo &, const QString &);
+  virtual QList<Format>         probeFormat(const QByteArray &, const QString &);
+  virtual void                  probeMetadata(ProbeInfo &, ReadCallback *);
 
 private:
   static QString                bestOf(const QString &a, const QString &b);

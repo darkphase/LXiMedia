@@ -31,7 +31,7 @@ LIBS += -lbfd \
     -liberty
 
 # Run tests after link
-unix:QMAKE_POST_LINK = $(TARGET) -silent
+#unix:QMAKE_POST_LINK = $(TARGET) -silent
 #win32:QMAKE_POST_LINK = $(TARGET) -silent
 # Prevent dependency with .so files
 FILES_UNDER_TEST = $${LXIMEDIA_DIR}/obj/LXiStream/*.o \

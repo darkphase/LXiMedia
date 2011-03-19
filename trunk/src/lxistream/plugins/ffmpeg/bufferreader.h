@@ -64,7 +64,7 @@ public:
 public: // From SInterfaces::BufferReader
   virtual bool                  openFormat(const QString &);
 
-  virtual bool                  start(ReadCallback *, ProduceCallback *, bool streamed);
+  virtual bool                  start(ReadCallback *, ProduceCallback *, unsigned programId, bool streamed);
   virtual void                  stop(void);
   virtual bool                  process(void);
 
@@ -103,6 +103,7 @@ private:
   StreamContext               * streamContext[MAX_STREAMS];
   QSet<StreamId>                selectedStreams;
   bool                          running;
+  
   static const unsigned         maxBufferCount = StreamContext::measurementSize * 8;
   QList< QPair<int, SEncodedAudioBuffer> > audioBuffers;
   QList< QPair<int, SEncodedVideoBuffer> > videoBuffers;

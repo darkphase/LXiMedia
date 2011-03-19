@@ -108,11 +108,7 @@ QMap<QString, QString> UPnPContentDirectory::activeClients(void) const
 {
   QReadLocker l(lock());
 
-  QMap<QString, QString> result = d->activeClients;
-
-  d->activeClients.clear();
-
-  return result;
+  return d->activeClients;
 }
 
 void UPnPContentDirectory::registerCallback(const QString &path, Callback *callback)

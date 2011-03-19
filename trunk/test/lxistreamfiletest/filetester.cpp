@@ -81,7 +81,7 @@ FileTester::FileTester(const QString &fileName)
 bool FileTester::setup(void)
 {
   // Select streams
-  if (file.open())
+  if (file.open(0))
   {
     const QList<SIOInputNode::AudioStreamInfo> audioStreams = file.audioStreams();
     const QList<SIOInputNode::VideoStreamInfo> videoStreams = file.videoStreams();

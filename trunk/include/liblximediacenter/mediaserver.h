@@ -178,7 +178,7 @@ protected: // Implemented in mediaserver.html.cpp
 
   QByteArray                    buildThumbnailView(const QString &path, const ThumbnailListItemList &, int, int);
   QByteArray                    buildDetailedView(const QString &path, const QStringList &columns, const DetailedListItemList &);
-  static QByteArray             buildVideoPlayer(const QByteArray &item, const SMediaInfo &, const QUrl &, const QSize & = QSize(768, 432));
+  static QByteArray             buildVideoPlayer(const QByteArray &item, const SMediaInfo::Program &, const QUrl &, const QSize & = QSize(768, 432));
   static QByteArray             buildVideoPlayer(const QByteArray &item, const QString &title, const QUrl &, const QSize & = QSize(768, 432));
 };
 

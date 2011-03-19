@@ -28,7 +28,7 @@ struct SPlaylistNode::Data
 {
   SScheduler::Dependency      * loadDependency;
 
-  QStringList                   fileNames;
+  QList< QPair<QString, unsigned> > fileNames;
   QList<STime>                  fileOffsets;
   STime                         duration;
   STime                         firstFileOffset;
@@ -66,38 +66,41 @@ SPlaylistNode::SPlaylistNode(SGraph *parent, const SMediaInfoList &files)
   SSize maxSize;
   foreach (const SMediaInfo &file, files)
   {
-    if (surround && file.containsAudio())
-    foreach (const AudioStreamInfo &info, file.audioStreams())
-      surround &= info.codec.numChannels() >= 5;
-
-    d->hasVideo &= file.containsVideo();
-    if (d->hasVideo)
-    foreach (const VideoStreamInfo &info, file.videoStreams())
+    unsigned programId = 0;
+    foreach (const SMediaInfo::Program &program, file.programs())
     {
-      const double frameRate = info.codec.frameRate().toFrequency();
-      if (frameRate < 23.0)
-        fps15++;
-      else if ((frameRate < 24.5) || ((frameRate >= 44.0) && (frameRate < 49.0)))
-        fps24++;
-      else if ((frameRate < 27.5) || ((frameRate >= 44.0) && (frameRate < 55.0)))
-        fps25++;
-      else if ((frameRate < 32.5) || ((frameRate >= 55.0) && (frameRate < 65.0)))
-        fps30++;
+      foreach (const AudioStreamInfo &info, program.audioStreams)
+        surround &= info.codec.numChannels() >= 5;
 
-      if (info.codec.size().width() < 1280)
-        sizeSD++;
-      else if (info.codec.size().width() < 1920)
-        size720++;
-      else
-        size1080++;
+      d->hasVideo &= !program.videoStreams.isEmpty();
+      if (d->hasVideo)
+      foreach (const VideoStreamInfo &info, program.videoStreams)
+      {
+        const double frameRate = info.codec.frameRate().toFrequency();
+        if (frameRate < 23.0)
+          fps15++;
+        else if ((frameRate < 24.5) || ((frameRate >= 44.0) && (frameRate < 49.0)))
+          fps24++;
+        else if ((frameRate < 27.5) || ((frameRate >= 44.0) && (frameRate < 55.0)))
+          fps25++;
+        else if ((frameRate < 32.5) || ((frameRate >= 55.0) && (frameRate < 65.0)))
+          fps30++;
 
-      if (maxSize.isNull() || (info.codec.size() > maxSize))
-        maxSize = info.codec.size();
+        if (info.codec.size().width() < 1280)
+          sizeSD++;
+        else if (info.codec.size().width() < 1920)
+          size720++;
+        else
+          size1080++;
+
+        if (maxSize.isNull() || (info.codec.size() > maxSize))
+          maxSize = info.codec.size();
+      }
+
+      d->fileNames += qMakePair(file.filePath(), programId++);
+      d->fileOffsets += d->duration;
+      d->duration += program.duration;
     }
-
-    d->fileNames += file.filePath();
-    d->fileOffsets += d->duration;
-    d->duration += file.duration();
   }
 
   if (surround)
@@ -211,8 +214,8 @@ void SPlaylistNode::process(void)
 
     if ((d->fileId >= 0) && (d->fileId < d->fileNames.count()))
     {
-      qDebug() << "SPlaylistNode playing next file:" << d->fileNames[d->fileId];
-      emit opened(d->fileNames[d->fileId]);
+      qDebug() << "SPlaylistNode playing next file:" << d->fileNames[d->fileId].first << d->fileNames[d->fileId].second;
+      emit opened(d->fileNames[d->fileId].first, d->fileNames[d->fileId].second);
     }
   }
 
@@ -285,10 +288,10 @@ void SPlaylistNode::selectStreams(const QList<StreamId> &)
 {
 }
 
-SFileInputNode * SPlaylistNode::openFile(const QString &fileName)
+SFileInputNode * SPlaylistNode::openFile(const QString &fileName, unsigned programId)
 {
   SFileInputNode * const file = new SFileInputNode(NULL, fileName);
-  if (file->open() && file->start())
+  if (file->open(programId) && file->start())
   {
     connect(file, SIGNAL(output(SEncodedAudioBuffer)), SIGNAL(output(SEncodedAudioBuffer)));
     connect(file, SIGNAL(output(SEncodedVideoBuffer)), SIGNAL(output(SEncodedVideoBuffer)));
@@ -306,7 +309,7 @@ void SPlaylistNode::openNext(void)
 {
   for (d->nextFileId++; d->nextFileId < d->fileNames.count(); d->nextFileId++)
   {
-    SFileInputNode * const file = openFile(d->fileNames[d->nextFileId]);
+    SFileInputNode * const file = openFile(d->fileNames[d->nextFileId].first, d->fileNames[d->nextFileId].second);
     if (file)
     {
       d->nextFile = file;
@@ -324,7 +327,7 @@ void SPlaylistNode::openNext(void)
 void SPlaylistNode::closeFile(void)
 {
   if ((d->fileId >= 0) && (d->fileId < d->fileNames.count()))
-    emit closed(d->fileNames[d->fileId]);
+    emit closed(d->fileNames[d->fileId].first, d->fileNames[d->fileId].second);
 
   if (d->file)
   {

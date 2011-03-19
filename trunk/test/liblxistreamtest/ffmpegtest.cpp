@@ -65,11 +65,11 @@ void FFMpegTest::MediaFileInfoAudioDeep(void)
   QVERIFY(!mediaInfo.containsVideo());
   QVERIFY(!mediaInfo.containsImage());
   QCOMPARE(mediaInfo.title(), QString("SoundTest"));
-  QVERIFY(mediaInfo.thumbnails().isEmpty());
-  QCOMPARE(mediaInfo.audioStreams().first().codec.codec(), QString("VORBIS"));
-  QVERIFY(mediaInfo.videoStreams().isEmpty());
+  QCOMPARE(mediaInfo.programs().first().audioStreams.first().codec.codec(), QString("VORBIS"));
+  QVERIFY(mediaInfo.programs().first().videoStreams.isEmpty());
+  QVERIFY(mediaInfo.programs().first().thumbnail.isEmpty());
 
-  QCOMPARE(mediaInfo.duration().toSec(), 3);
+  QCOMPARE(mediaInfo.programs().first().duration.toSec(), 3);
 }
 
 /*! Tests encoding and decoding audio samples.

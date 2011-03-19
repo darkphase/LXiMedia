@@ -19,7 +19,7 @@
 
 #include "dvdnavtest.h"
 #include <QtTest>
-#include "lxistream/plugins/dvdnav/discreader.h"
+#include "lxistream/plugins/dvdnav/bufferreader.h"
 #include "lxistream/plugins/dvdnav/module.h"
 #include "lxistream/plugins/ffmpeg/module.h"
 
@@ -33,12 +33,8 @@ void DVDNavTest::initTestCase(void)
   QVERIFY(streamApp->loadModule(new DVDNavBackend::Module()));
   QVERIFY(streamApp->loadModule(new FFMpegBackend::Module()));
 
-//  SDiscInfo discInfo("");
-//  qDebug() << discInfo.titles().count();
-
-//  SDiscInputNode discInputNode(NULL, "");
-//  qDebug() << discInputNode.numTitles();
-//  qDebug() << discInputNode.openTitle(0);
+  //SMediaInfo info("");
+  //qDebug() << info.programs().count();
 }
 
 void DVDNavTest::cleanupTestCase(void)
