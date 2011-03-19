@@ -99,15 +99,11 @@ void MainWindow::timerEvent(QTimerEvent *e)
   {
     if (playerGraph)
     {
-      SFileInputNode * const file = qobject_cast<SFileInputNode *>(playerGraph->source);
-      if (file)
+      lastPos = playerGraph->fileInput.position().toSec();
+      if (seekPos < 0)
       {
-        lastPos = file->position().toSec();
-        if (seekPos < 0)
-        {
-          ui.timeSlider->setValue(lastPos);
-          ui.timeLabel->setText(QTime(0, 0).addSecs(lastPos).toString("h:mm:ss"));
-        }
+        ui.timeSlider->setValue(lastPos);
+        ui.timeLabel->setText(QTime(0, 0).addSecs(lastPos).toString("h:mm:ss"));
       }
     }
   }
@@ -133,67 +129,11 @@ bool MainWindow::openFile(const QString &fileName, int startPos)
 
   stop();
 
-  playerGraph = new PlayerGraph(fileName, false);
+  playerGraph = new PlayerGraph(fileName);
   playerGraph->audioOutput.setDelay(STime::fromMSec(250)); // Otherwise video frames may come too late.
   playerGraph->addNode(ui.videoView);
   connect(&(playerGraph->sync), SIGNAL(output(SVideoBuffer)), ui.videoView, SLOT(input(SVideoBuffer)));
 
-  if (playerGraph->start())
-  {
-    SFileInputNode * const file = qobject_cast<SFileInputNode *>(playerGraph->source);
-
-    this->fileName = fileName;
-    ui.stopButton->setEnabled(true);
-    ui.pauseButton->setEnabled(true);
-    ui.timeSlider->setEnabled(true);
-    ui.fullscreenButton->setEnabled(true);
-    ui.fullscreenSecButton->setEnabled(true);
-
-    const int secs = file->duration().toSec();
-    ui.timeSlider->setMaximum(secs);
-    ui.durationLabel->setText(QTime(0, 0).addSecs(secs).toString("h:mm:ss"));
-
-    if (startPos >= 0)
-      file->setPosition(STime::fromSec(startPos));
-
-    display.blockScreenSaver(true);
-
-    if (refreshTimer == -1)
-      refreshTimer = startTimer(1000);
-
-    return true;
-  }
-
-  delete playerGraph;
-  playerGraph = NULL;
-
-  ui.stopButton->setEnabled(false);
-  ui.pauseButton->setEnabled(false);
-  ui.timeSlider->setEnabled(false);
-  ui.fullscreenButton->setEnabled(false);
-  ui.fullscreenSecButton->setEnabled(false);
-
-  return false;
-}
-
-bool MainWindow::openDisc(const QString &path, int startPos)
-{
-  QSettings settings;
-
-  QDir lastDir(path);
-  lastDir.cdUp();
-  settings.setValue("LastOpenDir", lastDir.absolutePath());
-
-  stop();
-
-  //const SMediaInfoList titles = SDiscInfo(path).titles();
-
-  playerGraph = new PlayerGraph(path, true);
-  playerGraph->audioOutput.setDelay(STime::fromMSec(250)); // Otherwise video frames may come too late.
-  playerGraph->addNode(ui.videoView);
-  connect(&(playerGraph->sync), SIGNAL(output(SVideoBuffer)), ui.videoView, SLOT(input(SVideoBuffer)));
-
-  SDiscInputNode * const disc = qobject_cast<SDiscInputNode *>(playerGraph->source);
   if (playerGraph->start())
   {
     this->fileName = fileName;
@@ -203,12 +143,12 @@ bool MainWindow::openDisc(const QString &path, int startPos)
     ui.fullscreenButton->setEnabled(true);
     ui.fullscreenSecButton->setEnabled(true);
 
-    const int secs = disc->duration().toSec();
+    const int secs = playerGraph->fileInput.duration().toSec();
     ui.timeSlider->setMaximum(secs);
     ui.durationLabel->setText(QTime(0, 0).addSecs(secs).toString("h:mm:ss"));
 
     if (startPos >= 0)
-      disc->setPosition(STime::fromSec(startPos));
+      playerGraph->fileInput.setPosition(STime::fromSec(startPos));
 
     display.blockScreenSaver(true);
 
@@ -263,12 +203,10 @@ void MainWindow::fileActivated(QTreeWidgetItem *item)
   const QFileInfo info(item->text(1));
   const SMediaInfo mediaInfo(info.absoluteFilePath());
 
-  if (mediaInfo.isDisc())
-    openDisc(info.absoluteFilePath());
+  if (!mediaInfo.isNull())
+    openFile(info.absoluteFilePath());
   else if (info.isDir())
     selectDir(info.absoluteFilePath());
-  else
-    openFile(info.absoluteFilePath());
 }
 
 void MainWindow::selectCaptureDevice(int id)
@@ -466,13 +404,6 @@ void MainWindow::seek(int pos)
 
 void MainWindow::applySeek(void)
 {
-  SFileInputNode * const file = qobject_cast<SFileInputNode *>(playerGraph->source);
-  if (file)
-    file->setPosition(STime::fromSec(seekPos));
-
-  SDiscInputNode * const disc = qobject_cast<SDiscInputNode *>(playerGraph->source);
-  if (disc)
-    disc->setPosition(STime::fromSec(seekPos));
-
+  playerGraph->fileInput.setPosition(STime::fromSec(seekPos));
   seekPos = -1;
 }

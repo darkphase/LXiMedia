@@ -17,8 +17,8 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef __DISCREADER_H
-#define __DISCREADER_H
+#ifndef __BUFFERREADER_H
+#define __BUFFERREADER_H
 
 #include <QtCore>
 #include <LXiStream>
@@ -28,7 +28,8 @@ namespace LXiStream {
 namespace DVDNavBackend {
 
 
-class DiscReader : public SInterfaces::DiscReader
+class BufferReader : public SInterfaces::BufferReader,
+                     public SInterfaces::BufferReader::ReadCallback
 {
 Q_OBJECT
 public:
@@ -38,25 +39,30 @@ public:
   static bool                   isExtractedDiscPath(const QString &path);
   static bool                   isDiscPath(const QString &path);
 
-  explicit                      DiscReader(const QString &, QObject *);
-  virtual                       ~DiscReader();
+  explicit                      BufferReader(const QString &, QObject *);
+  virtual                       ~BufferReader();
 
-  QString                       title(void) const;
+  bool                          openFile(const QString &);
+  QString                       discTitle(void) const;
+  unsigned                      numTitles(void) const;
+  bool                          selectTitle(SInterfaces::BufferReader::ProduceCallback *, unsigned);
 
-public: // From SInterfaces::DiscReader
-  virtual bool                  openPath(const QString &format, const QString &path);
+public: // From SInterfaces::BufferReader
+  virtual bool                  openFormat(const QString &);
 
-  virtual unsigned              numTitles(void) const;
-  virtual bool                  playTitle(unsigned);
+  virtual bool                  start(SInterfaces::BufferReader::ReadCallback *, SInterfaces::BufferReader::ProduceCallback *, unsigned programId, bool streamed);
+  virtual void                  stop(void);
+  virtual bool                  process(void);
 
   virtual STime                 duration(void) const;
   virtual bool                  setPosition(STime);
   virtual STime                 position(void) const;
-  virtual void                  annotateChapters(QList<Chapter> &) const;
+  virtual QList<Chapter>        chapters(void) const;
 
-  virtual void                  annotateAudioStreams(QList<AudioStreamInfo> &) const;
-  virtual void                  annotateVideoStreams(QList<VideoStreamInfo> &) const;
-  virtual void                  annotateDataStreams(QList<DataStreamInfo> &) const;
+  virtual QList<AudioStreamInfo> audioStreams(void) const;
+  virtual QList<VideoStreamInfo> videoStreams(void) const;
+  virtual QList<DataStreamInfo>  dataStreams(void) const;
+  virtual void                  selectStreams(const QList<StreamId> &);
 
 public: // From SInterfaces::BufferReader::ReadCallback
   virtual qint64                read(uchar *buffer, qint64 size);
@@ -65,13 +71,16 @@ public: // From SInterfaces::BufferReader::ReadCallback
 private:
   mutable QMutex                mutex;
   ::dvdnav_t                  * dvdHandle;
+
   unsigned                      currentTitle;
   int                           currentChapter;
   QList<STime>                  titleChapters;
   STime                         titleDuration;
 
+  SInterfaces::BufferReader   * bufferReader;
+
   static const unsigned         blockSize = 2048;
-  bool                          seekEnabled;
+  bool                          seekEnabled, flushing;
   bool                          playing, skipStill, skipWait;
 };
 

@@ -47,7 +47,6 @@
 #include "liblxistream/nodes/saudioresamplenode.h"
 #include "liblxistream/nodes/saudiovideoinputnode.h"
 #include "liblxistream/nodes/sdatadecodernode.h"
-#include "liblxistream/nodes/sdiscinputnode.h"
 #include "liblxistream/nodes/sfileinputnode.h"
 #include "liblxistream/nodes/sfileoutputnode.h"
 #include "liblxistream/nodes/siooutputnode.h"

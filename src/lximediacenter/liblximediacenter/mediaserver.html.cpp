@@ -432,10 +432,10 @@ QByteArray MediaServer::buildDetailedView(const QString &path, const QStringList
   return htmlParser.parse(htmlDetailedList);
 }
 
-QByteArray MediaServer::buildVideoPlayer(const QByteArray &item, const SMediaInfo &mediaInfo, const QUrl &url, const QSize &size)
+QByteArray MediaServer::buildVideoPlayer(const QByteArray &item, const SMediaInfo::Program &program, const QUrl &url, const QSize &size)
 {
   HtmlParser htmlParser;
-  htmlParser.setField("TITLE", mediaInfo.title());
+  htmlParser.setField("TITLE", program.title);
   htmlParser.setField("PLAYER_ITEM", item);
   htmlParser.setField("TR_PLAY_HERE", tr("Play now"));
   htmlParser.setField("TR_PLAY_EXTERNAL", tr("Play in external player"));
@@ -469,7 +469,7 @@ QByteArray MediaServer::buildVideoPlayer(const QByteArray &item, const SMediaInf
   int count = 1;
   htmlParser.setField("LANGUAGES", QByteArray(""));
   htmlParser.setField("SELECTED", QByteArray(""));
-  foreach (const SMediaInfo::AudioStreamInfo &stream, mediaInfo.audioStreams())
+  foreach (const SMediaInfo::AudioStreamInfo &stream, program.audioStreams)
   {
     htmlParser.setField("VALUE", QByteArray::number(stream, 16));
     if (stream.language[0] != 0)
@@ -483,7 +483,7 @@ QByteArray MediaServer::buildVideoPlayer(const QByteArray &item, const SMediaInf
   count = 1;
   htmlParser.setField("SUBTITLES", QByteArray(""));
   htmlParser.setField("SELECTED", QByteArray(""));
-  foreach (const SMediaInfo::DataStreamInfo &stream, mediaInfo.dataStreams())
+  foreach (const SMediaInfo::DataStreamInfo &stream, program.dataStreams)
   {
     htmlParser.setField("VALUE", QByteArray::number(stream, 16));
     if (stream.language[0] != 0)
@@ -548,14 +548,14 @@ QByteArray MediaServer::buildVideoPlayer(const QByteArray &item, const SMediaInf
 
   htmlParser.setField("CHAPTERS", QByteArray(""));
   htmlParser.setField("SELECTED", QByteArray(""));
-  if (!mediaInfo.chapters().isEmpty())
+  if (!program.chapters.isEmpty())
   {
     htmlParser.setField("VALUE", QByteArray::number(0));
     htmlParser.setField("TEXT", tr("Begin") + ", " + QTime().addSecs(0).toString(videoTimeFormat));
     htmlParser.appendField("CHAPTERS", htmlParser.parse(htmlPlayerThumbItemOption));
 
     int chapterNum = 1;
-    foreach (const SMediaInfo::Chapter &chapter, mediaInfo.chapters())
+    foreach (const SMediaInfo::Chapter &chapter, program.chapters)
     {
       htmlParser.setField("VALUE", QByteArray::number(chapter.begin.toSec()));
       htmlParser.setField("TEXT", tr("Chapter") + " " + QString::number(chapterNum++));
@@ -565,9 +565,9 @@ QByteArray MediaServer::buildVideoPlayer(const QByteArray &item, const SMediaInf
       htmlParser.appendField("CHAPTERS", htmlParser.parse(htmlPlayerThumbItemOption));
     }
   }
-  else if (mediaInfo.duration().isValid())
+  else if (program.duration.isValid())
   {
-    for (int i=0, n=mediaInfo.duration().toSec(); i<n; i+=seekBySecs)
+    for (int i=0, n=program.duration.toSec(); i<n; i+=seekBySecs)
     {
       htmlParser.setField("VALUE", QByteArray::number(i));
       htmlParser.setField("TEXT", QTime().addSecs(i).toString(videoTimeFormat));

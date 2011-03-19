@@ -7,7 +7,7 @@ include($${LXIMEDIA_DIR}/ext/dvdnav/dvdnav.pri)
 # Files
 HEADERS += formatprober.h \
     module.h \
-    discreader.h
+    bufferreader.h
 SOURCES += formatprober.cpp \
     module.cpp \
-    discreader.cpp
+    bufferreader.cpp

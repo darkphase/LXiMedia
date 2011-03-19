@@ -32,12 +32,13 @@ Q_OBJECT
 private:
   struct Entry
   {
-    inline Entry(MediaDatabase::UniqueID uid = 0, bool played = false)
-      : uid(uid), played(played)
+    inline explicit Entry(MediaDatabase::UniqueID uid = 0, unsigned programId = 0, bool played = false)
+      : uid(uid), programId(programId), played(played)
     {
     }
     
     MediaDatabase::UniqueID     uid;
+    unsigned                    programId;
     bool                        played;
   };
 
@@ -45,8 +46,8 @@ public:
                                 Playlist(MediaDatabase *, QObject * = NULL);
   virtual                       ~Playlist();
 
-  void                          append(MediaDatabase::UniqueID);
-  void                          remove(MediaDatabase::UniqueID);
+  void                          append(MediaDatabase::UniqueID, unsigned programId);
+  void                          remove(MediaDatabase::UniqueID, unsigned programId);
   void                          clear(void);
   int                           count(void) const;
   MediaDatabase::UniqueID       checkout(void);

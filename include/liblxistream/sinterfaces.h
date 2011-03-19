@@ -64,6 +64,9 @@ Q_OBJECT
 public:
   struct ReadCallback
   {
+    inline explicit             ReadCallback(const QString &path) : path(path)  { }
+
+    const QString               path;
     virtual qint64              read(uchar *, qint64) = 0;
     virtual qint64              seek(qint64, int) = 0;
   };
@@ -148,7 +151,7 @@ public:
 
   struct ProbeInfo : QSharedData
   {
-    inline ProbeInfo(void) : size(0), isDisc(false), isProbed(false), isReadable(false), year(0), track(0) { }
+    inline ProbeInfo(void) : size(0), isProbed(false), isReadable(false), year(0), track(0) { }
 
     QString                     filePath;
     QString                     path;                                           //!< Only use this if the path deviates from the filePath.
@@ -156,21 +159,27 @@ public:
     QDateTime                   lastModified;
 
     QString                     format;
-    bool                        isDisc;
 
     bool                        isProbed;
     bool                        isReadable;
 
     QString                     fileTypeName;
 
-    STime                       duration;
-    QList<AudioStreamInfo>      audioStreams;
-    QList<VideoStreamInfo>      videoStreams;
-    QList<DataStreamInfo>       dataStreams;
-    SVideoCodec                 imageCodec;
-    QList<Chapter>              chapters;
+    struct Program
+    {
+      QString                   title;
+      STime                     duration;
+      QList<Chapter>            chapters;
 
-    QList< QSharedDataPointer<ProbeInfo> > titles;
+      QList<AudioStreamInfo>    audioStreams;
+      QList<VideoStreamInfo>    videoStreams;
+      QList<DataStreamInfo>     dataStreams;
+      SVideoCodec               imageCodec;
+
+      QByteArray                thumbnail;
+    };
+
+    QList<Program>              programs;
 
     QString                     title;
     QString                     author;
@@ -180,8 +189,6 @@ public:
     QString                     genre;
     unsigned                    year;
     unsigned                    track;
-
-    QList<QByteArray>           thumbnails;
   };
 
 public:
@@ -200,27 +207,34 @@ public:
   static const unsigned         defaultProbeSize;
 
   /*! Should probe the provided buffer for the container format (e.g. ogg,
-      matroska, mpeg-ps, etc.) and return zero or more format names. The
+      matroska, mpeg-ps, dvd, etc.) and return zero or more format names. The
       confidence value can be used to provide a priority. The provided file path
       can optionally be used to detect the format.
-   */
-  virtual QList<Format>         probeFileFormat(const QByteArray &buffer, const QString &filePath) = 0;
-  
-  /*! Should probe the provided device for the disc format (e.g. dvd,
-      cd, etc.) and return zero or more format names. The confidence value can
-      be used to provide a priority.
-   */
-  virtual QList<Format>         probeDiscFormat(const QString &devicePath) = 0;
 
-  /*! Should probe the provided file and retrieve as much information from it
-      as possible.
+      \param buffer             The buffer to probe, can be empty if only the
+                                filename should be used to determine the format.
+      \param filePath           The filename to probe, the file should not be
+                                opened as the provided buffer should be used to
+                                determine the format. One exception is when a
+                                device path is provided to probe the format of a
+                                disc.
    */
-  virtual void                  probeFile(ProbeInfo &, ReadCallback *) = 0;
-  
-  /*! Should probe the provided disc and retrieve as much information from it
+  virtual QList<Format>         probeFormat(const QByteArray &buffer, const QString &filePath) = 0;
+
+  /*! Should probe the provided object and retrieve as much information from it
       as possible.
+
+      \param probeInfo          The ProbeInfo structure that needs to be filled
+                                with data.
+      \param callback           The callback interface that is to be used to
+                                read data from the object.
+      \param filePath           The filename of the object to probe, the file
+                                should not be opened as the provided callback
+                                should be used to determine the format. One
+                                exception is when a device path is provided to
+                                probe the metadata of a disc.
    */
-  virtual void                  probeDisc(ProbeInfo &, const QString &devicePath) = 0;
+  virtual void                  probeMetadata(ProbeInfo &probeInfo, ReadCallback *callback) = 0;
 };
 
 /*! The BufferReader interface can be used to read serialized buffers from a
@@ -255,7 +269,7 @@ protected:
   virtual bool                  openFormat(const QString &) = 0;
 
 public:
-  virtual bool                  start(ReadCallback *, ProduceCallback *, bool streamed) = 0;
+  virtual bool                  start(ReadCallback *, ProduceCallback *, unsigned programId, bool streamed) = 0;
   virtual void                  stop(void) = 0;
   virtual bool                  process(void) = 0;
 
@@ -326,42 +340,6 @@ public:
   virtual void                  process(const SEncodedAudioBuffer &) = 0;
   virtual void                  process(const SEncodedVideoBuffer &) = 0;
   virtual void                  process(const SEncodedDataBuffer &) = 0;
-};
-
-/*! The DiscReader interface can be used to read from a media disc (e.g. DVD).
- */
-class DiscReader : public QObject,
-                   public SFactorizable<DiscReader>,
-                   public BufferReader::ReadCallback
-{
-Q_OBJECT
-public:
-  typedef FormatProber::StreamId        StreamId;
-  typedef FormatProber::AudioStreamInfo AudioStreamInfo;
-  typedef FormatProber::VideoStreamInfo VideoStreamInfo;
-  typedef FormatProber::DataStreamInfo  DataStreamInfo;
-  typedef FormatProber::Chapter         Chapter;
-
-public:
-  static DiscReader           * create(QObject *parent, const QString &format, const QString &path, bool nonNull = true);
-
-protected:
-  inline explicit               DiscReader(QObject *parent) : QObject(parent) { }
-
-  virtual bool                  openPath(const QString &format, const QString &path) = 0;
-
-public:
-  virtual unsigned              numTitles(void) const = 0;
-  virtual bool                  playTitle(unsigned) = 0;
-
-  virtual STime                 duration(void) const = 0;
-  virtual bool                  setPosition(STime) = 0;
-  virtual STime                 position(void) const = 0;
-  virtual void                  annotateChapters(QList<Chapter> &) const = 0;
-
-  virtual void                  annotateAudioStreams(QList<AudioStreamInfo> &) const = 0;
-  virtual void                  annotateVideoStreams(QList<VideoStreamInfo> &) const = 0;
-  virtual void                  annotateDataStreams(QList<DataStreamInfo> &) const = 0;
 };
 
 /*! The AudioDecoder interface can be used to decode audio buffers.

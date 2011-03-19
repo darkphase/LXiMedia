@@ -34,7 +34,7 @@ FormatProber::~FormatProber()
 {
 }
 
-QList<FormatProber::Format> FormatProber::probeFileFormat(const QByteArray &, const QString &)
+QList<FormatProber::Format> FormatProber::probeFormat(const QByteArray &, const QString &)
 {
   QList<Format> formats;
 
@@ -44,34 +44,34 @@ QList<FormatProber::Format> FormatProber::probeFileFormat(const QByteArray &, co
   return formats;
 }
 
-QList<FormatProber::Format> FormatProber::probeDiscFormat(const QString &)
+void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *callback)
 {
-  return QList<Format>();
-}
-
-void FormatProber::probeFile(ProbeInfo &pi, ReadCallback *)
-{
-  if (!pi.filePath.isEmpty())
+  if (callback)
+  if (!callback->path.isEmpty())
   {
-    const QFileInfo info(pi.filePath);
+    const QFileInfo info(callback->path);
     const QString suffix = info.suffix().toLower();
 
+    if (pi.programs.isEmpty())
+      pi.programs.append(ProbeInfo::Program());
+
+    ProbeInfo::Program &program = pi.programs.first();
     if (imageSuffixes().contains(suffix))
     {
-      pi.imageCodec = SVideoCodec(suffix.toUpper());
+      program.imageCodec = SVideoCodec(suffix.toUpper());
       pi.fileTypeName = imageDescription(suffix);
     }
     else if (audioSuffixes().contains(suffix))
     {
-      pi.audioStreams = QList<AudioStreamInfo>() << AudioStreamInfo(0, NULL, SAudioCodec(suffix.toUpper()));
+      program.audioStreams = QList<AudioStreamInfo>() << AudioStreamInfo(0, NULL, SAudioCodec(suffix.toUpper()));
       pi.fileTypeName = audioDescription(suffix);
 
       splitFileName(info.completeBaseName(), pi.title, pi.author, pi.album, pi.track);
     }
     else if (videoSuffixes().contains(suffix))
     {
-      pi.audioStreams = QList<AudioStreamInfo>() << AudioStreamInfo(0, NULL, SAudioCodec(suffix.toUpper()));
-      pi.videoStreams = QList<VideoStreamInfo>() << VideoStreamInfo(0, NULL, SVideoCodec(suffix.toUpper()));
+      program.audioStreams = QList<AudioStreamInfo>() << AudioStreamInfo(0, NULL, SAudioCodec(suffix.toUpper()));
+      program.videoStreams = QList<VideoStreamInfo>() << VideoStreamInfo(0, NULL, SVideoCodec(suffix.toUpper()));
       pi.fileTypeName = videoDescription(suffix);
 
       splitFileName(info.completeBaseName(), pi.title, pi.author, pi.album, pi.track);
@@ -102,11 +102,9 @@ void FormatProber::probeFile(ProbeInfo &pi, ReadCallback *)
 
     if (pi.title.length() <= 3)
       pi.title = info.completeBaseName();
-  }
-}
 
-void FormatProber::probeDisc(ProbeInfo &, const QString &)
-{
+    program.title = pi.title;
+  }
 }
 
 void FormatProber::splitFileName(QString baseName, QString &title, QString &author, QString &album, unsigned &episode)

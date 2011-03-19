@@ -75,12 +75,15 @@ HttpServer::SocketOp PhotoServer::handleHtmlRequest(const HttpServer::RequestHea
   const MediaDatabase::UniqueID uid = MediaDatabase::fromUidString(file.left(16));
   const SMediaInfo node = mediaDatabase->readNode(uid);
   if (!node.isNull())
+  if (!node.programs().isEmpty())
   {
+    const SMediaInfo::Program program = node.programs().first();
+
     HtmlParser htmlParser;
     htmlParser.setField("PHOTO_INFO0", node.fileName());
     htmlParser.setField("PHOTO_INFO1", node.lastModified().toString(searchDateTimeFormat));
     htmlParser.setField("PHOTO_INFO2", node.fileTypeName());
-    htmlParser.setField("PHOTO_INFO3", videoFormatString(node));
+    htmlParser.setField("PHOTO_INFO3", videoFormatString(program));
     htmlParser.setField("PHOTO_FINGERPRINT", /*node.fingerPrint.isNull() ?*/ QString("") /*: tr("Find similar")*/);
 
     htmlParser.setField("PHOTO", MediaDatabase::toUidString(uid));

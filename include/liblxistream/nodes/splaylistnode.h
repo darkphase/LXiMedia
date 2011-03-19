@@ -61,11 +61,11 @@ signals:
   void                          output(const SEncodedVideoBuffer &);
   void                          output(const SEncodedDataBuffer &);
   void                          finished(void);
-  void                          opened(const QString &);
-  void                          closed(const QString &);
+  void                          opened(const QString &, unsigned);
+  void                          closed(const QString &, unsigned);
 
 private:
-  SFileInputNode              * openFile(const QString &);
+  SFileInputNode              * openFile(const QString &, unsigned);
   void                          openNext(void);
 
 private slots:

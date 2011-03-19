@@ -46,19 +46,19 @@ void IOTest::MediaFileInfoImage(void)
 {
   const SMediaInfo mediaInfo(":/ImageTest.jpeg");
 
-  QVERIFY(mediaInfo.audioStreams().isEmpty());
-  QVERIFY(mediaInfo.videoStreams().isEmpty());
-  QVERIFY(!mediaInfo.imageCodec().isNull());
-  QCOMPARE(mediaInfo.imageCodec().size().width(), 570);
-  QCOMPARE(mediaInfo.imageCodec().size().height(), 717);
-  QVERIFY(qFuzzyCompare(mediaInfo.imageCodec().size().aspectRatio(), 1.0f));
+  QVERIFY(mediaInfo.programs().first().audioStreams.isEmpty());
+  QVERIFY(mediaInfo.programs().first().videoStreams.isEmpty());
+  QVERIFY(!mediaInfo.programs().first().imageCodec.isNull());
+  QCOMPARE(mediaInfo.programs().first().imageCodec.size().width(), 570);
+  QCOMPARE(mediaInfo.programs().first().imageCodec.size().height(), 717);
+  QVERIFY(qFuzzyCompare(mediaInfo.programs().first().imageCodec.size().aspectRatio(), 1.0f));
   QVERIFY(!mediaInfo.containsAudio());
   QVERIFY(!mediaInfo.containsVideo());
   QVERIFY(mediaInfo.containsImage());
   QCOMPARE(mediaInfo.title(), QString("ImageTest"));
-  QVERIFY(!mediaInfo.thumbnails().isEmpty());
+  QVERIFY(!mediaInfo.programs().first().thumbnail.isEmpty());
 
-  const QImage image = QImage::fromData(mediaInfo.thumbnails().first());
+  const QImage image = QImage::fromData(mediaInfo.programs().first().thumbnail);
   QVERIFY(image.width() <= 256);
   QVERIFY(image.width() > 128);
   QVERIFY(image.height() <= 256);

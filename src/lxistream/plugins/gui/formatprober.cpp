@@ -32,58 +32,61 @@ FormatProber::~FormatProber()
 {
 }
 
-QList<FormatProber::Format> FormatProber::probeFileFormat(const QByteArray &data, const QString &)
+QList<FormatProber::Format> FormatProber::probeFormat(const QByteArray &data, const QString &)
 {
   QList<Format> result;
 
-  if ((data[0] == 'B') && (data[1] == 'M'))
-    result += Format("bmp", -1);
-  else if ((data[0] == char(0xFF)) && (data[1] == char(0xD8)))
-    result += Format("jpeg", -1);
-  else if ((data[0] == char(0x89)) && (data[1] == 'P') && (data[2] == 'N') && (data[3] == 'G'))
-    result += Format("png", -1);
+  if (data.size() >= 4)
+  {
+    if ((data[0] == 'B') && (data[1] == 'M'))
+      result += Format("bmp", -1);
+    else if ((data[0] == char(0xFF)) && (data[1] == char(0xD8)))
+      result += Format("jpeg", -1);
+    else if ((data[0] == char(0x89)) && (data[1] == 'P') && (data[2] == 'N') && (data[3] == 'G'))
+      result += Format("png", -1);
+  }
 
   return result;
 }
 
-QList<FormatProber::Format> FormatProber::probeDiscFormat(const QString &)
+void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *readCallback)
 {
-  return QList<Format>();
-}
-
-void FormatProber::probeFile(ProbeInfo &pi, ReadCallback *readCallback)
-{
-  const qint64 size = readCallback->seek(0, -1);
-  if ((size > 0) && (size <= (16384 * 1024)))
+  if (readCallback)
   {
-    QByteArray data(size, 0);
-    data.resize(readCallback->read(reinterpret_cast<uchar *>(data.data()), data.size()));
-
-    const SImage image = SImage::fromData(data);
-    if (!image.isNull())
+    const qint64 size = readCallback->seek(0, -1);
+    if ((size > 0) && (size <= (16384 * 1024)))
     {
-      pi.imageCodec = SVideoCodec(pi.imageCodec.codec(), image.size());
-      pi.isProbed = true;
-      pi.isReadable = true;
+      QByteArray data(size, 0);
+      data.resize(readCallback->read(reinterpret_cast<uchar *>(data.data()), data.size()));
 
-      if ((pi.imageCodec.size().width() >= 256) && (pi.imageCodec.size().height() >= 256))
+      const SImage image = SImage::fromData(data);
+      if (!image.isNull())
       {
-        SImage thumbnail;
-        if ((pi.imageCodec.size().width() >= 1024) || (pi.imageCodec.size().height() >= 1024))
-          thumbnail = image.scaled(256, 256, Qt::KeepAspectRatio, Qt::FastTransformation);
-        else
-          thumbnail = image.scaled(256, 256, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+        pi.isProbed = true;
+        pi.isReadable = true;
 
-        QBuffer b;
-        if (thumbnail.save(&b, "JPEG", 50))
-          pi.thumbnails += b.data();
+        if (pi.programs.isEmpty())
+          pi.programs.append(ProbeInfo::Program());
+
+        ProbeInfo::Program &program = pi.programs.first();
+
+        program.imageCodec = SVideoCodec(program.imageCodec.codec(), image.size());
+
+        if ((program.imageCodec.size().width() >= 256) && (program.imageCodec.size().height() >= 256))
+        {
+          SImage thumbnail;
+          if ((program.imageCodec.size().width() >= 1024) || (program.imageCodec.size().height() >= 1024))
+            thumbnail = image.scaled(256, 256, Qt::KeepAspectRatio, Qt::FastTransformation);
+          else
+            thumbnail = image.scaled(256, 256, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+
+          QBuffer b;
+          if (thumbnail.save(&b, "JPEG", 50))
+            program.thumbnail = b.data();
+        }
       }
     }
   }
-}
-
-void FormatProber::probeDisc(ProbeInfo &, const QString &)
-{
 }
 
 } } // End of namespaces

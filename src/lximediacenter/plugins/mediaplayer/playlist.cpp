@@ -35,19 +35,19 @@ Playlist::~Playlist()
 {
 }
 
-void Playlist::append(MediaDatabase::UniqueID uid)
+void Playlist::append(MediaDatabase::UniqueID uid, unsigned programId)
 {
   SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
 
-  list.append(uid);
+  list.append(Entry(uid, programId));
 }
 
-void Playlist::remove(MediaDatabase::UniqueID uid)
+void Playlist::remove(MediaDatabase::UniqueID uid, unsigned programId)
 {
   SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
 
   for (QVector<Entry>::Iterator i=list.begin(); i!=list.end(); )
-  if (i->uid == uid)
+  if ((i->uid == uid) && (i->programId == programId))
   {
     if (i->played)
       played--;
@@ -122,10 +122,13 @@ QByteArray Playlist::serialize(void) const
   {
     const SMediaInfo node = mediaDatabase->readNode(list[i].uid);
     if (!node.isNull())
+    if (list[i].programId < unsigned(node.programs().count()))
     {
+      const SMediaInfo::Program program = node.programs().at(list[i].programId);
+
       data.append("#EXTINF:");
-      if (node.duration().isPositive())
-        data.append(QByteArray::number(node.duration().toSec()));
+      if (program.duration.isPositive())
+        data.append(QByteArray::number(program.duration.toSec()));
       else
         data.append("-1");
 
@@ -134,7 +137,9 @@ QByteArray Playlist::serialize(void) const
       else
         data.append(",");
 
-      if (!node.title().isEmpty())
+      if (!program.title.isEmpty())
+        data.append(" - " + program.title);
+      else if (!node.title().isEmpty())
         data.append(" - " + node.title());
 
       data.append('\n');
@@ -163,7 +168,7 @@ bool Playlist::deserialize(const QByteArray &data)
     {
       const MediaDatabase::UniqueID uid = mediaDatabase->fromPath(QDir::fromNativeSeparators(QString::fromUtf8(line)));
       if (uid != 0)
-        list.append(uid);
+        list.append(Entry(uid));
     }
   }
 

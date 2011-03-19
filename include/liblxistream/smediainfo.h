@@ -33,10 +33,11 @@ class SMediaInfo : public SSerializable
 {
 friend class SDiscInfo;
 public:
-  typedef SInterfaces::FormatProber::AudioStreamInfo  AudioStreamInfo;
-  typedef SInterfaces::FormatProber::VideoStreamInfo  VideoStreamInfo;
-  typedef SInterfaces::FormatProber::DataStreamInfo   DataStreamInfo;
-  typedef SInterfaces::FormatProber::Chapter          Chapter;
+  typedef SInterfaces::FormatProber::ProbeInfo::Program Program;
+  typedef SInterfaces::FormatProber::Chapter            Chapter;
+  typedef SInterfaces::FormatProber::AudioStreamInfo    AudioStreamInfo;
+  typedef SInterfaces::FormatProber::VideoStreamInfo    VideoStreamInfo;
+  typedef SInterfaces::FormatProber::DataStreamInfo     DataStreamInfo;
 
 public:
                                 SMediaInfo(void);
@@ -60,8 +61,8 @@ public:
   QDateTime                     lastModified(void) const;                       //!< Returns the date the file was last modified.
 
   QString                       format(void) const;                             //!< The format name of the media (e.g. matroska, mpeg, dvd, etc.)
-  bool                          isDisc(void) const;                             //!< True if the resource is a disc (e.g. DVD).
 
+  STime                         totalDuration(void) const;                      //!< Returns the total duration of all programs, if available.
   bool                          containsAudio(void) const;                      //!< True if the resource contains audio data.
   bool                          containsVideo(void) const;                      //!< True if the resource contains video data.
   bool                          containsImage(void) const;                      //!< True if the resource contains an image.
@@ -70,14 +71,7 @@ public:
 
   QString                       fileTypeName(void) const;                       //!< A user-friendly description of the file type.
 
-  STime                         duration(void) const;                           //!< The duration of the resource, if applicable.
-  QList<AudioStreamInfo>        audioStreams(void) const;                       //!< The audio streams, if applicable.
-  QList<VideoStreamInfo>        videoStreams(void) const;                       //!< The video streams, if applicable.
-  QList<DataStreamInfo>         dataStreams(void) const;                        //!< The data streams, if applicable.
-  SVideoCodec                   imageCodec(void) const;                         //!< The image codec, if applicable.
-  QList<Chapter>                chapters(void) const;                           //!< A list of chapters, if applicable.
-
-  SMediaInfoList                titles(void) const;                             //!< A list of titles, if applicable.
+  const QList<Program>        & programs(void) const;                           //!< The programs available in the resource, if applicable.
 
   QString                       title(void) const;                              //!< The title (e.g. from ID3).
   QString                       author(void) const;                             //!< The author (e.g. from ID3).
@@ -87,8 +81,6 @@ public:
   QString                       genre(void) const;                              //!< The genre (e.g. from ID3).
   unsigned                      year(void) const;                               //!< The year (e.g. from ID3).
   unsigned                      track(void) const;                              //!< The track (e.g. from ID3).
-
-  QList<QByteArray>             thumbnails(void) const;                         //!< Thumbnail(s) of the resource, if applicable. In case of an image it is of at most 256x256.
 
 public:
   static const unsigned         tvShowSeason;

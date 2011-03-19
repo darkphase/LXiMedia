@@ -30,9 +30,10 @@ struct SIOInputNode::Data
   SInterfaces::BufferReader   * bufferReader;
 };
 
-SIOInputNode::SIOInputNode(SGraph *parent, QIODevice *ioDevice)
+SIOInputNode::SIOInputNode(SGraph *parent, QIODevice *ioDevice, const QString &path)
   : QObject(parent),
     SGraph::SourceNode(parent),
+    SInterfaces::BufferReader::ReadCallback(path),
     d(new Data())
 {
   d->dependency = parent ? new SScheduler::Dependency(parent) : NULL;
@@ -54,40 +55,37 @@ void SIOInputNode::setIODevice(QIODevice *ioDevice)
   d->ioDevice = ioDevice;
 }
 
-bool SIOInputNode::open(void)
+bool SIOInputNode::open(unsigned programId)
 {
-  if (d->ioDevice)
-  if (d->ioDevice->isOpen())
+  QByteArray buffer;
+  bool sequential = true;
+
+  if (d->ioDevice && d->ioDevice->isOpen())
   {
-    // Detect format.
-    const QByteArray buffer = d->ioDevice->peek(SInterfaces::FormatProber::defaultProbeSize);
+    buffer = d->ioDevice->peek(SInterfaces::FormatProber::defaultProbeSize);
+    sequential = d->ioDevice->isSequential();
+  }
 
-    QString fileName = QString::null;
-    QFile *file = qobject_cast<QFile *>(d->ioDevice);
-    if (file)
-      fileName = file->fileName();
+  QMultiMap<int, QString> formats;
+  foreach (SInterfaces::FormatProber *prober, SInterfaces::FormatProber::create(this))
+  {
+    foreach (const SInterfaces::FormatProber::Format &format, prober->probeFormat(buffer, path))
+      formats.insert(-format.confidence, format.name);
 
-    QMultiMap<int, QString> formats;
-    foreach (SInterfaces::FormatProber *prober, SInterfaces::FormatProber::create(this))
+    delete prober;
+  }
+
+  // Now try to open a parser.
+  foreach (const QString &format, formats)
+  {
+    d->bufferReader = SInterfaces::BufferReader::create(this, format, false);
+    if (d->bufferReader)
     {
-      foreach (const SInterfaces::FormatProber::Format &format, prober->probeFileFormat(buffer, fileName))
-        formats.insert(-format.confidence, format.name);
+      if (d->bufferReader->start(this, this, programId, sequential))
+        return d->opened = true;
 
-      delete prober;
-    }
-
-    // Now try to open a parser.
-    foreach (const QString &format, formats)
-    {
-      d->bufferReader = SInterfaces::BufferReader::create(this, format, false);
-      if (d->bufferReader)
-      {
-        if (d->bufferReader->start(this, this, d->ioDevice->isSequential()))
-          return d->opened = true;
-
-        delete d->bufferReader;
-        d->bufferReader = NULL;
-      }
+      delete d->bufferReader;
+      d->bufferReader = NULL;
     }
   }
 
@@ -97,7 +95,7 @@ bool SIOInputNode::open(void)
 bool SIOInputNode::start(void)
 {
   if (!d->opened)
-    open();
+    open(0);
 
   return d->opened;
 }

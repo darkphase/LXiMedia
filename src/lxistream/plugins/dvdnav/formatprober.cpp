@@ -18,7 +18,7 @@
  ***************************************************************************/
 
 #include "formatprober.h"
-#include "discreader.h"
+#include "bufferreader.h"
 
 namespace LXiStream {
 namespace DVDNavBackend {
@@ -33,70 +33,67 @@ FormatProber::~FormatProber()
 {
 }
 
-QList<FormatProber::Format> FormatProber::probeFileFormat(const QByteArray &, const QString &)
-{
-  return QList<Format>();
-}
-
-QList<FormatProber::Format> FormatProber::probeDiscFormat(const QString &devicePath)
+QList<FormatProber::Format> FormatProber::probeFormat(const QByteArray &, const QString &filePath)
 {
   QList<Format> result;
 
-  if (DiscReader::isDiscPath(devicePath))
+  if (BufferReader::isDiscPath(filePath))
   {
-    DiscReader discReader(QString::null, this);
-    if (discReader.openPath(DiscReader::formatName, devicePath))
-      result += Format(DiscReader::formatName, 0);
+    BufferReader bufferReader(QString::null, this);
+    if (bufferReader.openFile(filePath))
+      result += Format(BufferReader::formatName, 0);
   }
 
   return result;
 }
 
-void FormatProber::probeFile(ProbeInfo &, ReadCallback *)
+void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *callback)
 {
-}
-
-void FormatProber::probeDisc(ProbeInfo &pi, const QString &devicePath)
-{
-  if (DiscReader::isDiscPath(devicePath))
+  if (callback)
+  if (BufferReader::isDiscPath(callback->path))
   {
-    DiscReader discReader(QString::null, this);
-    if (discReader.openPath(DiscReader::formatName, devicePath))
+    BufferReader bufferReader(QString::null, this);
+    if (bufferReader.openFile(callback->path))
     {
-      if (DiscReader::isExtractedDiscPath(devicePath))
-        pi.path = QFileInfo(DiscReader::discPath(devicePath)).path();
+      if (BufferReader::isExtractedDiscPath(callback->path))
+        pi.path = QFileInfo(BufferReader::discPath(callback->path)).path();
 
-      pi.format = DiscReader::formatName;
-      pi.isDisc = true;
+      pi.format = BufferReader::formatName;
       pi.isReadable = true;
 
-      pi.title = discReader.title();
+      pi.title = bufferReader.discTitle();
 
-      pi.titles.clear();
-      for (unsigned i=0, n=discReader.numTitles(); i<n; i++)
+      pi.programs.clear();
+      for (unsigned i=0, n=bufferReader.numTitles(); i<n; i++)
       {
-        QSharedDataPointer<SInterfaces::FormatProber::ProbeInfo> fpi(new SInterfaces::FormatProber::ProbeInfo());
-
-        if (discReader.playTitle(i))
+        ProbeInfo::Program program;
+        if (bufferReader.selectTitle(NULL, i))
         {
-          foreach (SInterfaces::FormatProber *prober, SInterfaces::FormatProber::create(this))
+          ProbeInfo fpi;
+          foreach (SInterfaces::FormatProber *prober, SInterfaces::FormatProber::create(NULL))
           {
-            discReader.seek(0, SEEK_SET);
-            prober->probeFile(*fpi, &discReader);
+            if (qobject_cast<FormatProber *>(prober) == NULL)
+            {
+              bufferReader.setPosition(STime::null);
+              prober->probeMetadata(fpi, &bufferReader);
+            }
 
             delete prober;
           }
 
-          discReader.annotateAudioStreams(fpi->audioStreams);
-          discReader.annotateVideoStreams(fpi->videoStreams);
-          discReader.annotateDataStreams(fpi->dataStreams);
-          discReader.annotateChapters(fpi->chapters);
+          if (!fpi.programs.isEmpty())
+            program = fpi.programs.first();
 
-          if (!fpi->duration.isValid() || fpi->duration.isNull())
-            fpi->duration = discReader.duration();
+          program.title = pi.title;
+          program.duration = bufferReader.duration();
+          program.chapters = bufferReader.chapters();
+
+          program.audioStreams = bufferReader.audioStreams();
+          program.videoStreams = bufferReader.videoStreams();
+          program.dataStreams = bufferReader.dataStreams();
         }
 
-        pi.titles += fpi;
+        pi.programs.append(program);
       }
     }
   }

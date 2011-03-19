@@ -132,9 +132,11 @@ void UPnPGenaServer::close(void)
 
 void UPnPGenaServer::emitEvent(const QDomDocument &doc)
 {
+  const QByteArray content = QByteArray(UPnPBase::xmlDeclaration) + '\n' + doc.toByteArray();
+
   QWriteLocker l(&d->lock);
 
-  d->eventMessage = QByteArray(UPnPBase::xmlDeclaration) + '\n' + doc.toByteArray();
+  d->eventMessage = content;
 
   QCoreApplication::postEvent(this, new QEvent(scheduleEventType));
 }
@@ -214,14 +216,16 @@ HttpServer::SocketOp UPnPGenaServer::handleHttpRequest(const HttpServer::Request
         response.setContentLength(0);
         response.setField("TIMEOUT", "Second-" + QString::number((*session)->timeout));
 
-        l.unlock();
-
         socket->write(response);
 
         if ((*session)->currentEventKey() == 0) // Need to send initial event?
         {
+          EventSession * const s = *session;
+
+          l.unlock();
+
           socket->waitForBytesWritten(UPnPBase::responseTimeout * 1000);
-          d->httpServer->threadPool()->start(*session, 1);
+          d->httpServer->threadPool()->start(s, 1);
         }
 
         return HttpServer::SocketOp_Close;
@@ -319,7 +323,7 @@ bool UPnPGenaServer::EventSession::isActive(void) const
 
 void UPnPGenaServer::EventSession::run(void)
 {
-  QReadLocker l(&parent->d->lock);
+  QWriteLocker l(&parent->d->lock);
 
   if (!lastSubscribe.isValid())
     return;

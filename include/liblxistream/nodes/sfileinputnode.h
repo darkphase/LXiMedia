@@ -34,7 +34,7 @@ public:
   explicit                      SFileInputNode(SGraph *, const QString &fileName);
   virtual                       ~SFileInputNode();
 
-  virtual bool                  open(void);
+  virtual bool                  open(unsigned programId);
 
 public: // From SInterfaces::SourceNode
   virtual void                  stop(void);
