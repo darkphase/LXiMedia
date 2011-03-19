@@ -324,7 +324,6 @@ void SMediaInfo::fromXml(SInterfaces::FormatProber::ProbeInfo &pi, const QDomNod
        programElm = programElm.nextSiblingElement("program"))
   {
     Program program;
-
     program.title = programElm.attribute("title");
 
     const long duration = programElm.attribute("duration", "-1").toLong();

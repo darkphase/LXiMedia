@@ -102,8 +102,6 @@ void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *callback)
 
     if (pi.title.length() <= 3)
       pi.title = info.completeBaseName();
-
-    program.title = pi.title;
   }
 }
 

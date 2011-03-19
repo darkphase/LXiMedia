@@ -32,7 +32,16 @@ class MediaDatabase : public QObject
 {
 Q_OBJECT
 public:
-  typedef qint64                UniqueID;
+  struct UniqueID
+  {
+    inline                      UniqueID(qint64 fid = 0, quint16 pid = 0) : fid(fid), pid(pid) { }
+
+    inline bool                 operator==(const UniqueID &other) const         { return (fid == other.fid) && (pid == other.pid); }
+    inline bool                 operator!=(const UniqueID &other) const         { return !operator==(other); }
+
+    qint64                      fid;  //!< Uniquely identifies a file.
+    quint16                     pid;  //!< Uniquely identifies a program in a file.
+  };
 
   struct File
   {
@@ -66,9 +75,9 @@ public:
                                 MediaDatabase(Plugin *parent, ImdbClient *);
   virtual                       ~MediaDatabase();
 
-  static inline QByteArray      toUidString(UniqueID uid)                       { return QByteArray::number(quint64(uid) | Q_UINT64_C(0x8000000000000000), 16); }
-  static inline UniqueID        fromUidString(const QByteArray &str)            { return UniqueID(str.toULongLong(NULL, 16) & Q_UINT64_C(0x7FFFFFFFFFFFFFFF)); }
-  static inline UniqueID        fromUidString(const QString &str)               { return UniqueID(str.toULongLong(NULL, 16) & Q_UINT64_C(0x7FFFFFFFFFFFFFFF)); }
+  static QByteArray             toUidString(UniqueID uid);
+  static UniqueID               fromUidString(const QByteArray &str);
+  static UniqueID               fromUidString(const QString &str);
 
   UniqueID                      fromPath(const QString &path) const;
   SMediaInfo                    readNode(UniqueID) const;

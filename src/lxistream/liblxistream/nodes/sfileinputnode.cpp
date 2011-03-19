@@ -49,7 +49,7 @@ SFileInputNode::~SFileInputNode()
   *const_cast<Data **>(&d) = NULL;
 }
 
-bool SFileInputNode::open(unsigned programId)
+bool SFileInputNode::open(quint16 programId)
 {
   if (d->mediaFile.open(QIODevice::ReadOnly))
   {

@@ -84,7 +84,6 @@ void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *callback)
           if (!fpi.programs.isEmpty())
             program = fpi.programs.first();
 
-          program.title = pi.title;
           program.duration = bufferReader.duration();
           program.chapters = bufferReader.chapters();
 

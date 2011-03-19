@@ -93,7 +93,7 @@ HttpServer::SocketOp PhotoServer::handleHttpRequest(const HttpServer::RequestHea
   if ((file.endsWith(".jpeg") && !file.endsWith("-thumb.jpeg")) ||
       (file.endsWith(".png") && !file.endsWith("-thumb.png")))
   {
-    return sendPhoto(request, socket, MediaDatabase::fromUidString(file.left(16)), file.split('.').last());
+    return sendPhoto(request, socket, MediaDatabase::fromUidString(file), file.split('.').last());
   }
   else if (file.endsWith(".html") && (file != "playlist.html")) // Show photo
     return handleHtmlRequest(request, socket, file);

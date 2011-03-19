@@ -206,8 +206,6 @@ void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *readCallback)
             }
           }
 
-          program.title = pi.title;
-
           bufferReader.stop();
         }
       }

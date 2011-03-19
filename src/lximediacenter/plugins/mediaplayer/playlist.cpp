@@ -35,19 +35,19 @@ Playlist::~Playlist()
 {
 }
 
-void Playlist::append(MediaDatabase::UniqueID uid, unsigned programId)
+void Playlist::append(MediaDatabase::UniqueID uid)
 {
   SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
 
-  list.append(Entry(uid, programId));
+  list.append(Entry(uid));
 }
 
-void Playlist::remove(MediaDatabase::UniqueID uid, unsigned programId)
+void Playlist::remove(MediaDatabase::UniqueID uid)
 {
   SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
 
   for (QVector<Entry>::Iterator i=list.begin(); i!=list.end(); )
-  if ((i->uid == uid) && (i->programId == programId))
+  if (i->uid == uid)
   {
     if (i->played)
       played--;
@@ -122,9 +122,9 @@ QByteArray Playlist::serialize(void) const
   {
     const SMediaInfo node = mediaDatabase->readNode(list[i].uid);
     if (!node.isNull())
-    if (list[i].programId < unsigned(node.programs().count()))
+    if (list[i].uid.pid < unsigned(node.programs().count()))
     {
-      const SMediaInfo::Program program = node.programs().at(list[i].programId);
+      const SMediaInfo::Program program = node.programs().at(list[i].uid.pid);
 
       data.append("#EXTINF:");
       if (program.duration.isPositive())

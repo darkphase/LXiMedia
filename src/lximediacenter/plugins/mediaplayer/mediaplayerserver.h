@@ -71,7 +71,7 @@ protected:
 
   int                           countAlbums(const QString &path);
   QList<Item>                   listAlbums(const QString &path, unsigned &start, unsigned &count);
-  Item                          makeItem(MediaDatabase::UniqueID);
+  Item                          makeItem(MediaDatabase::UniqueID, bool recursePrograms = true);
   Item::Type                    defaultItemType(Item::Type = Item::Type_None) const;
 
   virtual HttpServer::SocketOp  handleHttpRequest(const HttpServer::RequestHeader &, QAbstractSocket *);

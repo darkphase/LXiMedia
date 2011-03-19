@@ -45,12 +45,12 @@ public:
   bool                          openFile(const QString &);
   QString                       discTitle(void) const;
   unsigned                      numTitles(void) const;
-  bool                          selectTitle(SInterfaces::BufferReader::ProduceCallback *, unsigned);
+  bool                          selectTitle(SInterfaces::BufferReader::ProduceCallback *, quint16);
 
 public: // From SInterfaces::BufferReader
   virtual bool                  openFormat(const QString &);
 
-  virtual bool                  start(SInterfaces::BufferReader::ReadCallback *, SInterfaces::BufferReader::ProduceCallback *, unsigned programId, bool streamed);
+  virtual bool                  start(SInterfaces::BufferReader::ReadCallback *, SInterfaces::BufferReader::ProduceCallback *, quint16 programId, bool streamed);
   virtual void                  stop(void);
   virtual bool                  process(void);
 

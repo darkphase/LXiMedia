@@ -123,7 +123,7 @@ unsigned BufferReader::numTitles(void) const
   return 0;
 }
 
-bool BufferReader::selectTitle(SInterfaces::BufferReader::ProduceCallback *pc, unsigned programId)
+bool BufferReader::selectTitle(SInterfaces::BufferReader::ProduceCallback *pc, quint16 programId)
 {
   if (::dvdnav_title_play(dvdHandle, programId + 1) == DVDNAV_STATUS_OK)
   {
@@ -166,7 +166,7 @@ bool BufferReader::selectTitle(SInterfaces::BufferReader::ProduceCallback *pc, u
   return false;
 }
 
-bool BufferReader::start(SInterfaces::BufferReader::ReadCallback *rc, SInterfaces::BufferReader::ProduceCallback *pc, unsigned programId, bool)
+bool BufferReader::start(SInterfaces::BufferReader::ReadCallback *rc, SInterfaces::BufferReader::ProduceCallback *pc, quint16 programId, bool)
 {
   SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
 

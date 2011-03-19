@@ -64,7 +64,7 @@ public:
 public: // From SInterfaces::BufferReader
   virtual bool                  openFormat(const QString &);
 
-  virtual bool                  start(ReadCallback *, ProduceCallback *, unsigned programId, bool streamed);
+  virtual bool                  start(ReadCallback *, ProduceCallback *, quint16 programId, bool streamed);
   virtual void                  stop(void);
   virtual bool                  process(void);
 
