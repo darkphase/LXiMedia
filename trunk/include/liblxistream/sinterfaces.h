@@ -269,7 +269,7 @@ protected:
   virtual bool                  openFormat(const QString &) = 0;
 
 public:
-  virtual bool                  start(ReadCallback *, ProduceCallback *, unsigned programId, bool streamed) = 0;
+  virtual bool                  start(ReadCallback *, ProduceCallback *, quint16 programId, bool streamed) = 0;
   virtual void                  stop(void) = 0;
   virtual bool                  process(void) = 0;
 

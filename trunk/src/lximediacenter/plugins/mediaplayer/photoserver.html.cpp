@@ -72,12 +72,12 @@ HttpServer::SocketOp PhotoServer::handleHtmlRequest(const HttpServer::RequestHea
 
   const QUrl url(request.path());
   const QString album = SStringParser::toRawName(url.queryItemValue("album"));
-  const MediaDatabase::UniqueID uid = MediaDatabase::fromUidString(file.left(16));
+  const MediaDatabase::UniqueID uid = MediaDatabase::fromUidString(file);
   const SMediaInfo node = mediaDatabase->readNode(uid);
   if (!node.isNull())
-  if (!node.programs().isEmpty())
+  if (uid.pid < node.programs().count())
   {
-    const SMediaInfo::Program program = node.programs().first();
+    const SMediaInfo::Program program = node.programs().at(uid.pid);
 
     HtmlParser htmlParser;
     htmlParser.setField("PHOTO_INFO0", node.fileName());

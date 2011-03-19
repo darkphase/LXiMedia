@@ -28,7 +28,7 @@ struct SPlaylistNode::Data
 {
   SScheduler::Dependency      * loadDependency;
 
-  QList< QPair<QString, unsigned> > fileNames;
+  QList< QPair<QString, quint16> > fileNames;
   QList<STime>                  fileOffsets;
   STime                         duration;
   STime                         firstFileOffset;
@@ -66,7 +66,7 @@ SPlaylistNode::SPlaylistNode(SGraph *parent, const SMediaInfoList &files)
   SSize maxSize;
   foreach (const SMediaInfo &file, files)
   {
-    unsigned programId = 0;
+    quint16 programId = 0;
     foreach (const SMediaInfo::Program &program, file.programs())
     {
       foreach (const AudioStreamInfo &info, program.audioStreams)
@@ -288,7 +288,7 @@ void SPlaylistNode::selectStreams(const QList<StreamId> &)
 {
 }
 
-SFileInputNode * SPlaylistNode::openFile(const QString &fileName, unsigned programId)
+SFileInputNode * SPlaylistNode::openFile(const QString &fileName, quint16 programId)
 {
   SFileInputNode * const file = new SFileInputNode(NULL, fileName);
   if (file->open(programId) && file->start())

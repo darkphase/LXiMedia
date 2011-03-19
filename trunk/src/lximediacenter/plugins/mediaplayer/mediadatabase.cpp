@@ -149,6 +149,37 @@ MediaDatabase::~MediaDatabase()
   sApp->waitForDone();
 }
 
+QByteArray MediaDatabase::toUidString(UniqueID uid)
+{
+  return
+      QByteArray::number(quint64(uid.fid) | Q_UINT64_C(0x8000000000000000), 16) +
+      '-' + ("000" + QByteArray::number(uid.pid, 16)).right(4);
+}
+
+MediaDatabase::UniqueID MediaDatabase::fromUidString(const QByteArray &str)
+{
+  UniqueID result;
+  if ((str.length() >= 21) && (str[16] == '-'))
+  {
+    result.fid = str.left(16).toULongLong(NULL, 16) & Q_UINT64_C(0x7FFFFFFFFFFFFFFF);
+    result.pid = str.mid(17, 4).toUShort(NULL, 16);
+  }
+
+  return result;
+}
+
+MediaDatabase::UniqueID MediaDatabase::fromUidString(const QString &str)
+{
+  UniqueID result;
+  if ((str.length() >= 21) && (str[16] == '-'))
+  {
+    result.fid = str.left(16).toULongLong(NULL, 16) & Q_UINT64_C(0x7FFFFFFFFFFFFFFF);
+    result.pid = str.mid(17, 4).toUShort(NULL, 16);
+  }
+
+  return result;
+}
+
 MediaDatabase::UniqueID MediaDatabase::fromPath(const QString &path) const
 {
   SDebug::_MutexLocker<SScheduler::Dependency> dl(Database::mutex(), __FILE__, __LINE__);
@@ -184,7 +215,7 @@ QByteArray MediaDatabase::readNodeData(UniqueID uid) const
 {
   QSqlQuery query(Database::database());
   query.exec("SELECT mediaInfo "
-             "FROM MediaplayerFiles WHERE uid = " + QString::number(uid));
+             "FROM MediaplayerFiles WHERE uid = " + QString::number(uid.fid));
   if (query.next())
     return query.value(0).toByteArray();
 
@@ -374,7 +405,7 @@ ImdbClient::Entry MediaDatabase::getImdbEntry(UniqueID uid) const
 
     QSqlQuery query(Database::database());
     query.prepare("SELECT imdbLink FROM MediaplayerItems WHERE file = :file");
-    query.bindValue(0, uid);
+    query.bindValue(0, uid.fid);
     query.exec();
     while (query.next())
     if (!query.value(0).isNull() && (query.value(0).toString() != ImdbClient::sentinelItem))
@@ -389,7 +420,7 @@ QList<MediaDatabase::UniqueID> MediaDatabase::allFilesInDirOf(UniqueID uid) cons
   QList<UniqueID> result;
 
   QSqlQuery query(Database::database());
-  query.exec("SELECT parentDir FROM MediaplayerFiles WHERE uid = " + QString::number(uid));
+  query.exec("SELECT parentDir FROM MediaplayerFiles WHERE uid = " + QString::number(uid.fid));
   if (query.next())
   {
     query.exec("SELECT uid FROM MediaplayerFiles WHERE parentDir = " + QString::number(query.value(0).toLongLong()));

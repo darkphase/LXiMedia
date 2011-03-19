@@ -71,7 +71,7 @@ bool BufferReader::openFormat(const QString &name)
   return format != NULL;
 }
 
-bool BufferReader::start(ReadCallback *rc, ProduceCallback *pc, unsigned programId, bool streamed)
+bool BufferReader::start(ReadCallback *rc, ProduceCallback *pc, quint16 programId, bool streamed)
 {
   if (format)
   {

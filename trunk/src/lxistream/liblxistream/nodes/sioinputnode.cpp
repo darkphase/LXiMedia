@@ -55,7 +55,7 @@ void SIOInputNode::setIODevice(QIODevice *ioDevice)
   d->ioDevice = ioDevice;
 }
 
-bool SIOInputNode::open(unsigned programId)
+bool SIOInputNode::open(quint16 programId)
 {
   QByteArray buffer;
   bool sequential = true;

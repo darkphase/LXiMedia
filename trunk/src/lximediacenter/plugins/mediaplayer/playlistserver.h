@@ -37,8 +37,8 @@ public:
   virtual                       ~PlaylistServerStreamHelper();
 
 public slots:
-  void                          opened(const QString &);
-  void                          closed(const QString &);
+  void                          opened(const QString &, quint16);
+  void                          closed(const QString &, quint16);
 
 private:
   MediaDatabase         * const mediaDatabase;

@@ -155,8 +155,9 @@ QList<PlaylistServer::Item> PlaylistServer::listPlayAllItem(const QString &path,
       if ((item.type == Item::Type_Image) || (item.type == Item::Type_Photo))
         item.type = Item::Type_Video;
 
-      item.title = itemTitle;
       item.url = "playlist";
+
+      item.title = itemTitle;
 
       if (thumbUid == 0)
       {
@@ -196,8 +197,8 @@ PlaylistServer::PlaylistStream::PlaylistStream(PlaylistServer *parent, const QHo
     streamHelper(this, static_cast<PlaylistServer *>(parent)->mediaDatabase)
 {
   connect(&playlistNode, SIGNAL(finished()), SLOT(stop()));
-  connect(&playlistNode, SIGNAL(opened(QString)), &streamHelper, SLOT(opened(QString)));
-  connect(&playlistNode, SIGNAL(closed(QString)), &streamHelper, SLOT(closed(QString)));
+  connect(&playlistNode, SIGNAL(opened(QString, quint16)), &streamHelper, SLOT(opened(QString, quint16)));
+  connect(&playlistNode, SIGNAL(closed(QString, quint16)), &streamHelper, SLOT(closed(QString, quint16)));
   connect(&playlistNode, SIGNAL(output(SEncodedAudioBuffer)), &audioDecoder, SLOT(input(SEncodedAudioBuffer)));
   connect(&playlistNode, SIGNAL(output(SEncodedVideoBuffer)), &videoDecoder, SLOT(input(SEncodedVideoBuffer)));
   connect(&playlistNode, SIGNAL(output(SEncodedDataBuffer)), &dataDecoder, SLOT(input(SEncodedDataBuffer)));
@@ -226,13 +227,13 @@ PlaylistServerStreamHelper::~PlaylistServerStreamHelper()
     mediaDatabase->setLastPlayed(currentFile);
 }
 
-void PlaylistServerStreamHelper::opened(const QString &filePath)
+void PlaylistServerStreamHelper::opened(const QString &filePath, quint16 programId)
 {
   currentFile = filePath;
   startTime = QDateTime::currentDateTime();
 }
 
-void PlaylistServerStreamHelper::closed(const QString &filePath)
+void PlaylistServerStreamHelper::closed(const QString &filePath, quint16 programId)
 {
   mediaDatabase->setLastPlayed(filePath);
 

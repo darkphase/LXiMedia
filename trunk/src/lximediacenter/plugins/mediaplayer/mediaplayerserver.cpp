@@ -32,7 +32,7 @@ HttpServer::SocketOp MediaPlayerServer::streamVideo(const HttpServer::RequestHea
 {
   const QUrl url(request.path());
 
-  MediaDatabase::UniqueID uid = 0;
+  MediaDatabase::UniqueID uid;
   if (url.hasQueryItem("item"))
   {
     uid = MediaDatabase::fromUidString(url.queryItemValue("item"));
@@ -44,14 +44,13 @@ HttpServer::SocketOp MediaPlayerServer::streamVideo(const HttpServer::RequestHea
       uid = MediaDatabase::fromUidString(file.first());
   }
 
-  if (uid != 0)
+  if (uid.fid != 0)
   {
     const SMediaInfo node = mediaDatabase->readNode(uid);
     if (!node.isNull())
-    if (!node.programs().isEmpty())
+    if (uid.pid < node.programs().count())
     {
-      const unsigned programId = 0;
-      const SMediaInfo::Program program = node.programs().at(programId);
+      const SMediaInfo::Program program = node.programs().at(uid.pid);
 
       QImage thumb;
       if (!program.thumbnail.isEmpty())
@@ -59,7 +58,7 @@ HttpServer::SocketOp MediaPlayerServer::streamVideo(const HttpServer::RequestHea
 
       // Create a new stream
       FileStream *stream = new FileStream(this, socket->peerAddress(), request.path(), node.filePath(), uid);
-      if (stream->file.open(programId))
+      if (stream->file.open(uid.pid))
       if (stream->setup(request, socket, &stream->file, program.duration))
       if (stream->start())
         return HttpServer::SocketOp_LeaveOpen; // The graph owns the socket now.
@@ -85,11 +84,10 @@ HttpServer::SocketOp MediaPlayerServer::buildPlaylist(const HttpServer::RequestH
   {
     const MediaDatabase::UniqueID uid = MediaDatabase::fromUidString(file.first());
     const SMediaInfo node = mediaDatabase->readNode(uid);
-
     if (!node.isNull())
-    if (!node.programs().isEmpty())
+    if (uid.pid < node.programs().count())
     {
-      const SMediaInfo::Program program = node.programs().first();
+      const SMediaInfo::Program program = node.programs().at(uid.pid);
 
       htmlParser.setField("ITEM_LENGTH", QTime().addSecs(program.duration.toSec()).toString(videoTimeFormat));
 
@@ -127,13 +125,53 @@ bool MediaPlayerServer::isEmpty(const QString &path)
 
 int MediaPlayerServer::countItems(const QString &path)
 {
-  return countAlbums(path) + mediaDatabase->countAlbumFiles(category, path);
+  const bool hasAlbum = mediaDatabase->hasAlbum(category, path);
+  int result = countAlbums(path) + mediaDatabase->countAlbumFiles(category, path);
+
+  if ((result == 0) && !hasAlbum)
+  {
+    const QString dir = path.mid(path.left(path.length() - 1).lastIndexOf('/'));
+    const QString basePath = path.left(path.left(path.length() - 1).lastIndexOf('/') + 1);
+    foreach (const MediaDatabase::File &file, mediaDatabase->getAlbumFiles(category, basePath))
+    if (makeItem(file.uid).title == dir.mid(1, dir.length() - 2))
+    {
+      const SMediaInfo node = mediaDatabase->readNode(file.uid);
+      if (!node.isNull())
+        return node.programs().count();
+
+      break;
+    }
+  }
+
+  return result;
 }
 
 QList<MediaPlayerServer::Item> MediaPlayerServer::listItems(const QString &path, unsigned start, unsigned count)
 {
   const bool returnAll = count == 0;
+  const bool hasAlbum = mediaDatabase->hasAlbum(category, path);
   QList<Item> result = listAlbums(path, start, count);
+
+  if (result.isEmpty() && !hasAlbum)
+  {
+    const QString dir = path.mid(path.left(path.length() - 1).lastIndexOf('/'));
+    const QString basePath = path.left(path.left(path.length() - 1).lastIndexOf('/') + 1);
+    foreach (const MediaDatabase::File &file, mediaDatabase->getAlbumFiles(category, basePath))
+    if (makeItem(file.uid).title == dir.mid(1, dir.length() - 2))
+    {
+      const SMediaInfo node = mediaDatabase->readNode(file.uid);
+      if (!node.isNull())
+      {
+        if (returnAll || (count > 0))
+        for (int i=start, n=0; (i<node.programs().count()) && (returnAll || (n<int(count))); i++, n++)
+          result.append(makeItem(MediaDatabase::UniqueID(file.uid.fid, i), false));
+      }
+
+      break;
+    }
+
+    return result;
+  }
 
   if (returnAll || (count > 0))
   foreach (const MediaDatabase::File &file, mediaDatabase->getAlbumFiles(category, path, start, count))
@@ -201,53 +239,65 @@ QList<MediaPlayerServer::Item> MediaPlayerServer::listAlbums(const QString &path
   return result;
 }
 
-MediaPlayerServer::Item MediaPlayerServer::makeItem(MediaDatabase::UniqueID uid)
+MediaPlayerServer::Item MediaPlayerServer::makeItem(MediaDatabase::UniqueID uid, bool recursePrograms)
 {
   Item item;
+
   const SMediaInfo node = mediaDatabase->readNode(uid);
-
   if (!node.isNull())
-  if (!node.programs().isEmpty())
   {
-    const SMediaInfo::Program program = node.programs().first();
-
-    if (!program.audioStreams.isEmpty() && !program.videoStreams.isEmpty())
-      item.type = UPnPContentDirectory::Item::Type_Video;
-    else if (!program.audioStreams.isEmpty())
-      item.type = UPnPContentDirectory::Item::Type_Audio;
-    else if (!program.imageCodec.isNull())
-      item.type = UPnPContentDirectory::Item::Type_Image;
-    else
-      item.type = UPnPContentDirectory::Item::Type_None;
-
-    if (item.type != UPnPContentDirectory::Item::Type_None)
+    if ((uid.pid < node.programs().count()) && (!recursePrograms || (node.programs().count() == 1)))
     {
-      item.played = mediaDatabase->lastPlayed(uid).isValid();
-      item.type = defaultItemType(Item::Type(item.type));
+      const SMediaInfo::Program program = node.programs().at(uid.pid);
+
+      if (!program.audioStreams.isEmpty() && !program.videoStreams.isEmpty())
+        item.type = UPnPContentDirectory::Item::Type_Video;
+      else if (!program.audioStreams.isEmpty())
+        item.type = UPnPContentDirectory::Item::Type_Audio;
+      else if (!program.imageCodec.isNull())
+        item.type = UPnPContentDirectory::Item::Type_Image;
+      else
+        item.type = UPnPContentDirectory::Item::Type_None;
+
+      if (item.type != UPnPContentDirectory::Item::Type_None)
+      {
+        item.played = mediaDatabase->lastPlayed(uid).isValid();
+        item.type = defaultItemType(Item::Type(item.type));
+        item.url = MediaDatabase::toUidString(uid);
+
+        item.title = !program.title.isEmpty() ? program.title : (tr("Title") + " " + QString::number(uid.pid + 1));
+        item.artist = node.author();
+        item.album = node.album();
+        item.track = node.track();
+
+        item.duration = program.duration.toSec();
+
+        foreach (const SMediaInfo::Chapter &chapter, program.chapters)
+          item.chapters += Item::Chapter(chapter.title, chapter.begin.toSec());
+
+        foreach (const SMediaInfo::AudioStreamInfo &stream, program.audioStreams)
+          item.audioStreams += Item::Stream(stream, SStringParser::iso639Language(stream.language));
+
+        foreach (const SMediaInfo::VideoStreamInfo &stream, program.videoStreams)
+          item.videoStreams += Item::Stream(stream, SStringParser::iso639Language(stream.language));
+
+        foreach (const SMediaInfo::DataStreamInfo &stream, program.dataStreams)
+          item.subtitleStreams += Item::Stream(stream, SStringParser::iso639Language(stream.language));
+
+        if (!program.thumbnail.isEmpty())
+          item.iconUrl = MediaDatabase::toUidString(uid) + "-thumb.jpeg";
+      }
+    }
+    else if (!node.programs().isEmpty())
+    {
+      item.isDir = true;
+      item.type = defaultItemType();
       item.title = node.title();
-      item.url = MediaDatabase::toUidString(uid);
+      item.iconUrl = MediaDatabase::toUidString(uid) + "-thumb.png?overlay=folder-video";
+    }
 
-      item.artist = node.author();
-      item.album = node.album();
-      item.track = node.track();
-
-      item.duration = program.duration.toSec();
-
-      foreach (const SMediaInfo::Chapter &chapter, program.chapters)
-        item.chapters += Item::Chapter(chapter.title, chapter.begin.toSec());
-
-      foreach (const SMediaInfo::AudioStreamInfo &stream, program.audioStreams)
-        item.audioStreams += Item::Stream(stream, SStringParser::iso639Language(stream.language));
-
-      foreach (const SMediaInfo::VideoStreamInfo &stream, program.videoStreams)
-        item.videoStreams += Item::Stream(stream, SStringParser::iso639Language(stream.language));
-
-      foreach (const SMediaInfo::DataStreamInfo &stream, program.dataStreams)
-        item.subtitleStreams += Item::Stream(stream, SStringParser::iso639Language(stream.language));
-
-      if (!program.thumbnail.isEmpty())
-        item.iconUrl = MediaDatabase::toUidString(uid) + "-thumb.jpeg";
-
+    if (recursePrograms)
+    {
       const ImdbClient::Entry imdbEntry = mediaDatabase->getImdbEntry(uid);
       if (!imdbEntry.isNull())
       {
@@ -258,6 +308,8 @@ MediaPlayerServer::Item MediaPlayerServer::makeItem(MediaDatabase::UniqueID uid)
         if (imdbEntry.rating > 0)
           item.title += " [" + QString::number(imdbEntry.rating, 'f', 1) + "]";
       }
+      else
+        item.title = node.title();
     }
   }
 
@@ -314,11 +366,12 @@ HttpServer::SocketOp MediaPlayerServer::handleHttpRequest(const HttpServer::Requ
         size = QSize(sizeTxt[0].toInt(), sizeTxt[0].toInt());
     }
 
-    const SMediaInfo node = mediaDatabase->readNode(MediaDatabase::fromUidString(file.left(16)));
+    const MediaDatabase::UniqueID uid = MediaDatabase::fromUidString(file);
+    const SMediaInfo node = mediaDatabase->readNode(uid);
     if (!node.isNull())
-    if (!node.programs().isEmpty())
+    if (uid.pid < node.programs().count())
     {
-      const SMediaInfo::Program program = node.programs().first();
+      const SMediaInfo::Program program = node.programs().at(uid.pid);
       if (!program.thumbnail.isEmpty())
       {
         if (!url.hasQueryItem("size") && !url.hasQueryItem("overlay") && !file.endsWith(".png"))
@@ -405,12 +458,12 @@ HttpServer::SocketOp MediaPlayerServer::handleHttpRequest(const HttpServer::Requ
   }
   else if (file.endsWith(".html")) // Show player
   {
-    const MediaDatabase::UniqueID uid = MediaDatabase::fromUidString(file.left(16));
+    const MediaDatabase::UniqueID uid = MediaDatabase::fromUidString(file);
     const SMediaInfo node = mediaDatabase->readNode(uid);
     if (!node.isNull())
-    if (!node.programs().isEmpty())
+    if (uid.pid < node.programs().count())
     {
-      const SMediaInfo::Program program = node.programs().first();
+      const SMediaInfo::Program program = node.programs().at(uid.pid);
 
       HttpServer::ResponseHeader response(request, HttpServer::Status_Ok);
       response.setContentType("text/html;charset=utf-8");
