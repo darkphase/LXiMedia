@@ -17,45 +17,40 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "httpserver.h"
+#include "httpengine.h"
 
 #include <QtNetwork>
 
 namespace LXiServer {
 
-const char  * const HttpServer::Header::fieldConnection     = "CONNECTION";
-const char  * const HttpServer::Header::fieldContentLength  = "CONTENT-LENGTH";
-const char  * const HttpServer::Header::fieldContentType    = "CONTENT-TYPE";
-const char  * const HttpServer::Header::fieldDate           = "DATE";
-const char  * const HttpServer::Header::fieldHost           = "HOST";
-const char  * const HttpServer::Header::fieldServer         = "SERVER";
-const char  * const HttpServer::Header::dateFormat          = "ddd, dd MMM yyyy hh:mm:ss 'GMT'";
-
-HttpServer::Header::Header(const HttpServer *httpServer)
-  : httpServer(httpServer)
+HttpEngine::Header::Header(const HttpEngine *httpEngine)
+  : httpEngine(httpEngine)
 {
 }
 
-HttpServer::Header::Header(const QByteArray &header, const HttpServer *httpServer)
-  : httpServer(httpServer)
+HttpEngine::Header::Header(const QByteArray &header, const HttpEngine *httpEngine)
+  : httpEngine(httpEngine)
 {
-  QList<QByteArray> lines = header.split('\r');
-  if (!lines.isEmpty())
-    head = lines.takeFirst().split(' ');
-
-  foreach (const QByteArray &line, lines) // Note: each line starts with a \n.
+  if (header.contains("\r\n\r\n"))
   {
-    const int colon = line.indexOf(':');
-    if (colon > 0)
+    QList<QByteArray> lines = header.split('\r');
+    if (!lines.isEmpty())
+      head = lines.takeFirst().split(' ');
+
+    foreach (const QByteArray &line, lines) // Note: each line starts with a \n.
     {
-      setField(
-          QString::fromUtf8(line.mid(1, colon - 1)).trimmed(),
-          QString::fromUtf8(line.mid(colon + 1)).trimmed());
+      const int colon = line.indexOf(':');
+      if (colon > 0)
+      {
+        setField(
+            QString::fromUtf8(line.mid(1, colon - 1)).trimmed(),
+            QString::fromUtf8(line.mid(colon + 1)).trimmed());
+      }
     }
   }
 }
 
-bool HttpServer::Header::hasField(const QString &name) const
+bool HttpEngine::Header::hasField(const QString &name) const
 {
   for (QList< QPair<QString, QString> >::ConstIterator i=fields.begin(); i!=fields.end(); i++)
   if (i->first.compare(name, Qt::CaseInsensitive) == 0)
@@ -64,7 +59,7 @@ bool HttpServer::Header::hasField(const QString &name) const
   return false;
 }
 
-QString HttpServer::Header::field(const QString &name) const
+QString HttpEngine::Header::field(const QString &name) const
 {
   for (QList< QPair<QString, QString> >::ConstIterator i=fields.begin(); i!=fields.end(); i++)
   if (i->first.compare(name, Qt::CaseInsensitive) == 0)
@@ -73,7 +68,7 @@ QString HttpServer::Header::field(const QString &name) const
   return QString::null;
 }
 
-void HttpServer::Header::setField(const QString &name, const QString &value)
+void HttpEngine::Header::setField(const QString &name, const QString &value)
 {
   for (QList< QPair<QString, QString> >::Iterator i=fields.begin(); i!=fields.end(); i++)
   if (i->first.compare(name, Qt::CaseInsensitive) == 0)
@@ -85,7 +80,7 @@ void HttpServer::Header::setField(const QString &name, const QString &value)
   fields += qMakePair(name, value);
 }
 
-QDateTime HttpServer::Header::date(void) const
+QDateTime HttpEngine::Header::date(void) const
 {
   QDateTime date = QDateTime::fromString(field(fieldDate), dateFormat);
   date.setTimeSpec(Qt::UTC);
@@ -93,7 +88,7 @@ QDateTime HttpServer::Header::date(void) const
   return date.toLocalTime();
 }
 
-QByteArray HttpServer::Header::toUtf8(void) const
+QByteArray HttpEngine::Header::toByteArray(void) const
 {
   QByteArray result;
   if (isValid())
@@ -109,18 +104,21 @@ QByteArray HttpServer::Header::toUtf8(void) const
 }
 
 
-HttpServer::RequestHeader::RequestHeader(const HttpServer *httpServer)
-  : Header(httpServer)
+HttpEngine::RequestHeader::RequestHeader(const HttpEngine *httpEngine)
+  : Header(httpEngine)
 {
   head << "GET" << "/" << httpVersion;
+
+  if (httpEngine)
+    setField(httpEngine->senderType(), httpEngine->senderId());
 }
 
-HttpServer::RequestHeader::RequestHeader(const QByteArray &header, const HttpServer *httpServer)
-  : Header(header, httpServer)
+HttpEngine::RequestHeader::RequestHeader(const QByteArray &header, const HttpEngine *httpEngine)
+  : Header(header, httpEngine)
 {
 }
 
-QString HttpServer::RequestHeader::file(void) const
+QString HttpEngine::RequestHeader::file(void) const
 {
   QByteArray result = path();
 
@@ -135,7 +133,7 @@ QString HttpServer::RequestHeader::file(void) const
   return QString::fromUtf8(QByteArray::fromPercentEncoding(result));
 }
 
-QString HttpServer::RequestHeader::directory(void) const
+QString HttpEngine::RequestHeader::directory(void) const
 {
   QByteArray result = path();
 
@@ -150,38 +148,44 @@ QString HttpServer::RequestHeader::directory(void) const
   return QString::fromUtf8(QByteArray::fromPercentEncoding(result));
 }
 
-HttpServer::ResponseHeader::ResponseHeader(const HttpServer *httpServer)
-  : Header(httpServer)
+HttpEngine::ResponseHeader::ResponseHeader(const HttpEngine *httpEngine)
+  : Header(httpEngine)
 {
   head << httpVersion << "200" << "OK";
   setDate();
-  setServer();
+
+  if (httpEngine)
+    setField(httpEngine->senderType(), httpEngine->senderId());
 }
 
-HttpServer::ResponseHeader::ResponseHeader(const RequestHeader &request)
-  : Header(request.httpServer)
+HttpEngine::ResponseHeader::ResponseHeader(const RequestHeader &request)
+  : Header(request.httpEngine)
 {
   head << qMin(request.version(), QByteArray(httpVersion)) << "200" << "OK";
   setDate();
-  setServer();
+
+  if (httpEngine)
+    setField(httpEngine->senderType(), httpEngine->senderId());
 }
 
-HttpServer::ResponseHeader::ResponseHeader(const RequestHeader &request, Status status)
-  : Header(request.httpServer)
+HttpEngine::ResponseHeader::ResponseHeader(const RequestHeader &request, Status status)
+  : Header(request.httpEngine)
 {
   head << qMin(request.version(), QByteArray(httpVersion)) << QByteArray::number(status) << statusText(status);
   setDate();
-  setServer();
+
+  if (httpEngine)
+    setField(httpEngine->senderType(), httpEngine->senderId());
 }
 
-HttpServer::ResponseHeader::ResponseHeader(const QByteArray &header, const HttpServer *httpServer)
-  : Header(header, httpServer)
+HttpEngine::ResponseHeader::ResponseHeader(const QByteArray &header, const HttpEngine *httpEngine)
+  : Header(header, httpEngine)
 {
   while (head.count() > 3)
     head[2] += " " + head.takeAt(3);
 }
 
-void HttpServer::ResponseHeader::setStatus(Status status)
+void HttpEngine::ResponseHeader::setStatus(Status status)
 {
   if (head.size() > 1)
     head[1] = QByteArray::number(status);
@@ -194,7 +198,7 @@ void HttpServer::ResponseHeader::setStatus(Status status)
     head.append(statusText(status));
 }
 
-const char * HttpServer::ResponseHeader::statusText(int code)
+const char * HttpEngine::ResponseHeader::statusText(int code)
 {
   switch (code)
   {
@@ -245,6 +249,34 @@ const char * HttpServer::ResponseHeader::statusText(int code)
   }
 
   return "";
+}
+
+
+HttpEngine::RequestMessage::RequestMessage(const QByteArray &message, const HttpEngine *server)
+  : RequestHeader(message, server)
+{
+  const int eoh = message.indexOf("\r\n\r\n");
+  if (eoh >= 0)
+    data = message.mid(eoh + 4);
+}
+
+QByteArray HttpEngine::RequestMessage::toByteArray(void) const
+{
+  return RequestHeader::toByteArray() + data;
+}
+
+
+HttpEngine::ResponseMessage::ResponseMessage(const QByteArray &message, const HttpEngine *server)
+  : ResponseHeader(message, server)
+{
+  const int eoh = message.indexOf("\r\n\r\n");
+  if (eoh >= 0)
+    data = message.mid(eoh + 4);
+}
+
+QByteArray HttpEngine::ResponseMessage::toByteArray(void) const
+{
+  return ResponseHeader::toByteArray() + data;
 }
 
 

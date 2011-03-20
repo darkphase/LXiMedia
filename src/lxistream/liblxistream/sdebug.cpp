@@ -211,4 +211,12 @@ QString LogFile::activeLogFile(void)
   return Private::Log::logFileName();
 }
 
+void LogFile::logLineToActiveLogFile(const QString &line)
+{
+  QMutexLocker l(&Private::Log::logMutex());
+
+  Private::Log::write(line.trimmed().toUtf8());
+  Private::Log::endLogMsg();
+}
+
 } } // End of namespaces

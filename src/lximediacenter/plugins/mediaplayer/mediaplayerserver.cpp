@@ -28,7 +28,7 @@ MediaPlayerServer::MediaPlayerServer(MediaDatabase *mediaDatabase, MediaDatabase
 {
 }
 
-HttpServer::SocketOp MediaPlayerServer::streamVideo(const HttpServer::RequestHeader &request, QAbstractSocket *socket)
+HttpServer::SocketOp MediaPlayerServer::streamVideo(const HttpServer::RequestHeader &request, QIODevice *socket)
 {
   const QUrl url(request.path());
 
@@ -57,7 +57,7 @@ HttpServer::SocketOp MediaPlayerServer::streamVideo(const HttpServer::RequestHea
         thumb = QImage::fromData(program.thumbnail);
 
       // Create a new stream
-      FileStream *stream = new FileStream(this, socket->peerAddress(), request.path(), node.filePath(), uid);
+      FileStream *stream = new FileStream(this, request.path(), node.filePath(), uid);
       if (stream->file.open(uid.pid))
       if (stream->setup(request, socket, &stream->file, program.duration))
       if (stream->start())
@@ -70,7 +70,7 @@ HttpServer::SocketOp MediaPlayerServer::streamVideo(const HttpServer::RequestHea
   return HttpServer::sendResponse(request, socket, HttpServer::Status_NotFound, this);
 }
 
-HttpServer::SocketOp MediaPlayerServer::buildPlaylist(const HttpServer::RequestHeader &request, QAbstractSocket *socket)
+HttpServer::SocketOp MediaPlayerServer::buildPlaylist(const HttpServer::RequestHeader &request, QIODevice *socket)
 {
   const QUrl url(request.path());
   const QStringList file = request.file().split('.');
@@ -349,7 +349,7 @@ MediaPlayerServer::Item::Type MediaPlayerServer::defaultItemType(Item::Type type
   }
 }
 
-HttpServer::SocketOp MediaPlayerServer::handleHttpRequest(const HttpServer::RequestHeader &request, QAbstractSocket *socket)
+HttpServer::SocketOp MediaPlayerServer::handleHttpRequest(const HttpServer::RequestHeader &request, QIODevice *socket)
 {
   const QUrl url(request.path());
   const QString file = request.file();
@@ -528,8 +528,8 @@ QByteArray MediaPlayerServer::buildVideoPlayer(const QByteArray &item, const QSt
 }
 
 
-MediaPlayerServer::FileStream::FileStream(MediaPlayerServer *parent, const QHostAddress &peer, const QString &url, const QString &fileName, MediaDatabase::UniqueID uid)
-  : TranscodeStream(parent, peer, url),
+MediaPlayerServer::FileStream::FileStream(MediaPlayerServer *parent, const QString &url, const QString &fileName, MediaDatabase::UniqueID uid)
+  : TranscodeStream(parent, url),
     startTime(QDateTime::currentDateTime()),
     uid(uid),
     file(this, fileName)

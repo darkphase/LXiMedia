@@ -37,7 +37,7 @@ protected:
   class FileStream : public TranscodeStream
   {
   public:
-                                FileStream(MediaPlayerServer *, const QHostAddress &peer, const QString &url, const QString &fileName, MediaDatabase::UniqueID);
+                                FileStream(MediaPlayerServer *, const QString &url, const QString &fileName, MediaDatabase::UniqueID);
     virtual                     ~FileStream();
 
   public:
@@ -62,8 +62,8 @@ protected:
   //void                          addVideoFile(DlnaServerDir *, const PlayItem &, const QString &, int = 0) const;
   //void                          addVideoFile(DlnaServerDir *, const QList<PlayItem> &, const QString &, int = 0) const;
 
-  virtual HttpServer::SocketOp  streamVideo(const HttpServer::RequestHeader &, QAbstractSocket *);
-  virtual HttpServer::SocketOp  buildPlaylist(const HttpServer::RequestHeader &, QAbstractSocket *);
+  virtual HttpServer::SocketOp  streamVideo(const HttpServer::RequestHeader &, QIODevice *);
+  virtual HttpServer::SocketOp  buildPlaylist(const HttpServer::RequestHeader &, QIODevice *);
 
   bool                          isEmpty(const QString &path);
   virtual int                   countItems(const QString &path);
@@ -74,7 +74,7 @@ protected:
   Item                          makeItem(MediaDatabase::UniqueID, bool recursePrograms = true);
   Item::Type                    defaultItemType(Item::Type = Item::Type_None) const;
 
-  virtual HttpServer::SocketOp  handleHttpRequest(const HttpServer::RequestHeader &, QAbstractSocket *);
+  virtual HttpServer::SocketOp  handleHttpRequest(const HttpServer::RequestHeader &, QIODevice *);
 
   static QString                videoFormatString(const SMediaInfo::Program &);
   static QByteArray             buildVideoPlayer(MediaDatabase::UniqueID, const SMediaInfo::Program &, const QUrl &, const QSize & = QSize(768, 432));

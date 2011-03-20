@@ -39,16 +39,15 @@ protected:
   class Stream : public SGraph
   {
   public:
-    explicit                    Stream(MediaServer *, const QHostAddress &peer, const QString &url);
+    explicit                    Stream(MediaServer *, const QString &url);
     virtual                     ~Stream();
 
-    bool                        setup(const HttpServer::RequestHeader &, QAbstractSocket *, STime duration, SInterval frameRate, SSize size, SAudioFormat::Channels channels);
-    bool                        setup(const HttpServer::RequestHeader &, QAbstractSocket *, STime duration, SAudioFormat::Channels channels);
+    bool                        setup(const HttpServer::RequestHeader &, QIODevice *, STime duration, SInterval frameRate, SSize size, SAudioFormat::Channels channels);
+    bool                        setup(const HttpServer::RequestHeader &, QIODevice *, STime duration, SAudioFormat::Channels channels);
 
   public:
     const int                   id;
     MediaServer         * const parent;
-    const QHostAddress          peer;
     const QString               url;
 
     STimeStampResamplerNode     timeStampResampler;
@@ -71,9 +70,9 @@ protected:
   class TranscodeStream : public Stream
   {
   public:
-    explicit                    TranscodeStream(MediaServer *, const QHostAddress &peer, const QString &url);
+    explicit                    TranscodeStream(MediaServer *, const QString &url);
 
-    bool                        setup(const HttpServer::RequestHeader &, QAbstractSocket *, SInterfaces::BufferReaderNode *, STime duration = STime());
+    bool                        setup(const HttpServer::RequestHeader &, QIODevice *, SInterfaces::BufferReaderNode *, STime duration = STime());
 
   public:
     SAudioDecoderNode           audioDecoder;
@@ -115,8 +114,8 @@ public:
 protected:
   virtual void                  customEvent(QEvent *);
 
-  virtual HttpServer::SocketOp  streamVideo(const HttpServer::RequestHeader &, QAbstractSocket *) = 0;
-  virtual HttpServer::SocketOp  buildPlaylist(const HttpServer::RequestHeader &, QAbstractSocket *) = 0;
+  virtual HttpServer::SocketOp  streamVideo(const HttpServer::RequestHeader &, QIODevice *) = 0;
+  virtual HttpServer::SocketOp  buildPlaylist(const HttpServer::RequestHeader &, QIODevice *) = 0;
 
   virtual int                   countItems(const QString &path) = 0;
   virtual QList<Item>           listItems(const QString &path, unsigned start = 0, unsigned count = 0) = 0;
@@ -125,7 +124,7 @@ protected slots:
   virtual void                  cleanStreams(void);
 
 protected: // From HttpServer::Callback
-  virtual HttpServer::SocketOp  handleHttpRequest(const HttpServer::RequestHeader &, QAbstractSocket *);
+  virtual HttpServer::SocketOp  handleHttpRequest(const HttpServer::RequestHeader &, QIODevice *);
 
 private: // From UPnPContentDirectory::Callback
   virtual int                   countContentDirItems(const QString &path);

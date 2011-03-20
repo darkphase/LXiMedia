@@ -64,7 +64,7 @@ const char * const PhotoServer::htmlView =
     " </tr>\n"
     "</table></td></tr></table>\n";
 
-HttpServer::SocketOp PhotoServer::handleHtmlRequest(const HttpServer::RequestHeader &request, QAbstractSocket *socket, const QString &file)
+HttpServer::SocketOp PhotoServer::handleHtmlRequest(const HttpServer::RequestHeader &request, QIODevice *socket, const QString &file)
 {
   HttpServer::ResponseHeader response(request, HttpServer::Status_Ok);
   response.setContentType("text/html;charset=utf-8");

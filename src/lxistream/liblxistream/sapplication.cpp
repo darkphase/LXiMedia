@@ -41,7 +41,6 @@ const SApplication::InitializeFlag SApplication::Initialize_Default =
     SApplication::InitializeFlag(
       int(SApplication::Initialize_Modules) |
       int(SApplication::Initialize_Devices) |
-      int(SApplication::Initialize_LogToFile) |
       int(SApplication::Initialize_LogToConsole) |
       int(SApplication::Initialize_HandleFaults));
 

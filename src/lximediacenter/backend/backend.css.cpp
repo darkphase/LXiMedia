@@ -807,7 +807,7 @@ const char * const Backend::csslog =
     "}\n";
 
 
-HttpServer::SocketOp Backend::handleCssRequest(const HttpServer::RequestHeader &request, QAbstractSocket *socket, const QString &file)
+HttpServer::SocketOp Backend::handleCssRequest(const HttpServer::RequestHeader &request, QIODevice *socket, const QString &file)
 {
   const char * cssFile = NULL;
   if (file == "main.css")

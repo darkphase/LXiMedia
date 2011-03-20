@@ -17,55 +17,37 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXISERVER_UPNPMEDIASERVER_H
-#define LXISERVER_UPNPMEDIASERVER_H
+#ifndef LXISERVER_SANDBOXSERVER_H
+#define LXISERVER_SANDBOXSERVER_H
 
 #include <QtCore>
-#include <QtNetwork>
-#include "httpserver.h"
+#include "httpengine.h"
 
 namespace LXiServer {
 
-class SsdpServer;
-
-class UPnPMediaServer : public QObject,
-                        protected HttpServer::Callback
+class SandboxServer : public HttpServerEngine
 {
 Q_OBJECT
 public:
-  struct Service
-  {
-    QString                     serviceType;
-    QString                     serviceId;
-    QString                     descriptionUrl;
-    QString                     controlURL;
-    QString                     eventSubURL;
-  };
+  explicit                      SandboxServer(QObject * = NULL);
+  virtual                       ~SandboxServer();
 
-public:
-  explicit                      UPnPMediaServer(const QString &basePath, QObject * = NULL);
-  virtual                       ~UPnPMediaServer();
-
-  void                          initialize(HttpServer *, SsdpServer *);
+  void                          initialize(const QString &name, const QString &mode);
   void                          close(void);
 
-  void                          addIcon(const QString &url, unsigned width, unsigned height, unsigned depth);
+signals:
+  void                          busy(void);
+  void                          idle(void);
 
-  void                          registerService(const Service &);
-
-protected: // From HttpServer::Callback
-  virtual HttpServer::SocketOp  handleHttpRequest(const HttpServer::RequestHeader &, QIODevice *);
-
-public:
-  static const char     * const dlnaDeviceNS;
+protected: // From HttpServerEngine
+  virtual QIODevice           * openSocket(quintptr, int timeout);
+  virtual void                  closeSocket(QIODevice *, bool canReuse, int timeout);
 
 private:
-  static const char     * const deviceType;
-
-  struct Data;
-  Data                  * const d;
+  class Server;
+  struct Private;
+  Private               * const p;
 };
-
 
 } // End of namespace
 

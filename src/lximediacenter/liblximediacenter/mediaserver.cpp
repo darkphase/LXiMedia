@@ -30,11 +30,11 @@ struct MediaServer::Private
   class StreamEvent : public QEvent
   {
   public:
-    inline                      StreamEvent(QEvent::Type type, const HttpServer::RequestHeader &request, QAbstractSocket *socket, QSemaphore *sem)
+    inline                      StreamEvent(QEvent::Type type, const HttpServer::RequestHeader &request, QIODevice *socket, QSemaphore *sem)
         : QEvent(type), request(request), socket(socket), sem(sem) { }
 
     const HttpServer::RequestHeader request;
-    QAbstractSocket     * const socket;
+    QIODevice     * const socket;
     QSemaphore          * const sem;
   };
 
@@ -82,11 +82,10 @@ void MediaServer::customEvent(QEvent *e)
     SDebug::MutexLocker l(&p->mutex, __FILE__, __LINE__);
 
     Private::StreamEvent * const event = static_cast<Private::StreamEvent *>(e);
-    const QHostAddress peer = event->socket->peerAddress();
     const QString url = event->request.path();
 
     foreach (Stream *stream, p->streams)
-    if ((stream->peer == peer) && (stream->url == url))
+    if (stream->url == url)
     if (stream->output.addSocket(event->socket))
     {
       event->sem->release();
@@ -94,14 +93,7 @@ void MediaServer::customEvent(QEvent *e)
     }
 
     if (streamVideo(event->request, event->socket) == HttpServer::SocketOp_Close)
-    {
-      event->socket->disconnectFromHost();
-      if (event->socket->state() != QAbstractSocket::UnconnectedState)
-      if (!event->socket->waitForDisconnected(BackendServer::maxRequestTime))
-        event->socket->abort();
-
-      delete event->socket;
-    }
+      HttpServer::closeSocket(event->socket);
 
     event->sem->release();
   }
@@ -109,14 +101,7 @@ void MediaServer::customEvent(QEvent *e)
   {
     Private::StreamEvent * const event = static_cast<Private::StreamEvent *>(e);
     if (buildPlaylist(event->request, event->socket) == HttpServer::SocketOp_Close)
-    {
-      event->socket->disconnectFromHost();
-      if (event->socket->state() != QAbstractSocket::UnconnectedState)
-      if (!event->socket->waitForDisconnected(BackendServer::maxRequestTime))
-        event->socket->abort();
-
-      delete event->socket;
-    }
+      HttpServer::closeSocket(event->socket);
 
     event->sem->release();
   }
@@ -138,7 +123,7 @@ void MediaServer::cleanStreams(void)
   }
 }
 
-HttpServer::SocketOp MediaServer::handleHttpRequest(const HttpServer::RequestHeader &request, QAbstractSocket *socket)
+HttpServer::SocketOp MediaServer::handleHttpRequest(const HttpServer::RequestHeader &request, QIODevice *socket)
 {
   const QUrl url(request.path());
   const QString file = request.file();
@@ -268,11 +253,10 @@ void MediaServer::removeStream(Stream *stream)
 
 QAtomicInt MediaServer::Stream::idCounter = 1;
 
-MediaServer::Stream::Stream(MediaServer *parent, const QHostAddress &peer, const QString &url)
+MediaServer::Stream::Stream(MediaServer *parent, const QString &url)
   : SGraph(),
     id(idCounter.fetchAndAddRelaxed(1)),
     parent(parent),
-    peer(peer),
     url(url),
     timeStampResampler(this),
     audioResampler(this, "linear"),
@@ -316,7 +300,7 @@ MediaServer::Stream::~Stream()
   parent->removeStream(this);
 }
 
-bool MediaServer::Stream::setup(const HttpServer::RequestHeader &request, QAbstractSocket *socket, STime duration, SInterval frameRate, SSize size, SAudioFormat::Channels channels)
+bool MediaServer::Stream::setup(const HttpServer::RequestHeader &request, QIODevice *socket, STime duration, SInterval frameRate, SSize size, SAudioFormat::Channels channels)
 {
   QUrl url(request.path());
   if (url.hasQueryItem("query"))
@@ -535,7 +519,7 @@ bool MediaServer::Stream::setup(const HttpServer::RequestHeader &request, QAbstr
   return true;
 }
 
-bool MediaServer::Stream::setup(const HttpServer::RequestHeader &request, QAbstractSocket *socket, STime duration, SAudioFormat::Channels channels)
+bool MediaServer::Stream::setup(const HttpServer::RequestHeader &request, QIODevice *socket, STime duration, SAudioFormat::Channels channels)
 {
   QUrl url(request.path());
   if (url.hasQueryItem("query"))
@@ -658,8 +642,8 @@ bool MediaServer::Stream::setup(const HttpServer::RequestHeader &request, QAbstr
 }
 
 
-MediaServer::TranscodeStream::TranscodeStream(MediaServer *parent, const QHostAddress &peer, const QString &url)
-  : Stream(parent, peer, url),
+MediaServer::TranscodeStream::TranscodeStream(MediaServer *parent, const QString &url)
+  : Stream(parent, url),
     audioDecoder(this),
     videoDecoder(this),
     dataDecoder(this)
@@ -675,7 +659,7 @@ MediaServer::TranscodeStream::TranscodeStream(MediaServer *parent, const QHostAd
   connect(&dataDecoder, SIGNAL(output(SSubtitleBuffer)), &timeStampResampler, SLOT(input(SSubtitleBuffer)));
 }
 
-bool MediaServer::TranscodeStream::setup(const HttpServer::RequestHeader &request, QAbstractSocket *socket, SInterfaces::BufferReaderNode *input, STime duration)
+bool MediaServer::TranscodeStream::setup(const HttpServer::RequestHeader &request, QIODevice *socket, SInterfaces::BufferReaderNode *input, STime duration)
 {
   QUrl url(request.path());
   if (url.hasQueryItem("query"))

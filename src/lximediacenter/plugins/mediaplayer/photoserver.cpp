@@ -31,7 +31,7 @@ PhotoServer::~PhotoServer()
 {
 }
 
-HttpServer::SocketOp PhotoServer::streamVideo(const HttpServer::RequestHeader &request, QAbstractSocket *socket)
+HttpServer::SocketOp PhotoServer::streamVideo(const HttpServer::RequestHeader &request, QIODevice *socket)
 {
   const QStringList file = request.file().split('.');
   if (file.first() == "playlist")
@@ -54,7 +54,7 @@ HttpServer::SocketOp PhotoServer::streamVideo(const HttpServer::RequestHeader &r
 
     if (!files.isEmpty())
     {
-      SlideShowStream *stream = new SlideShowStream(this, socket->peerAddress(), request.path(), files.values());
+      SlideShowStream *stream = new SlideShowStream(this, request.path(), files.values());
       if (stream->setup(request, socket))
       if (stream->start())
         return HttpServer::SocketOp_LeaveOpen; // The graph owns the socket now.
@@ -85,7 +85,7 @@ QList<PhotoServer::Item> PhotoServer::listItems(const QString &path, unsigned st
   return items;
 }
 
-HttpServer::SocketOp PhotoServer::handleHttpRequest(const HttpServer::RequestHeader &request, QAbstractSocket *socket)
+HttpServer::SocketOp PhotoServer::handleHttpRequest(const HttpServer::RequestHeader &request, QIODevice *socket)
 {
   const QUrl url(request.path());
   const QString file = request.file();
@@ -101,7 +101,7 @@ HttpServer::SocketOp PhotoServer::handleHttpRequest(const HttpServer::RequestHea
   return PlaylistServer::handleHttpRequest(request, socket);
 }
 
-HttpServer::SocketOp PhotoServer::sendPhoto(const HttpServer::RequestHeader &request, QAbstractSocket *socket, MediaDatabase::UniqueID uid, const QString &format) const
+HttpServer::SocketOp PhotoServer::sendPhoto(const HttpServer::RequestHeader &request, QIODevice *socket, MediaDatabase::UniqueID uid, const QString &format) const
 {
   const SMediaInfo node = mediaDatabase->readNode(uid);
 
@@ -145,8 +145,8 @@ HttpServer::SocketOp PhotoServer::sendPhoto(const HttpServer::RequestHeader &req
 }
 
 
-PhotoServer::SlideShowStream::SlideShowStream(PhotoServer *parent, const QHostAddress &peer, const QString &url, const QList<MediaDatabase::File> &files)
-  : Stream(parent, peer, url),
+PhotoServer::SlideShowStream::SlideShowStream(PhotoServer *parent, const QString &url, const QList<MediaDatabase::File> &files)
+  : Stream(parent, url),
     slideShow(this, files, parent->mediaDatabase)
 {
   connect(&slideShow, SIGNAL(finished()), SLOT(stop()));
@@ -154,7 +154,7 @@ PhotoServer::SlideShowStream::SlideShowStream(PhotoServer *parent, const QHostAd
   connect(&slideShow, SIGNAL(output(SVideoBuffer)), &subtitleRenderer, SLOT(input(SVideoBuffer)));
 }
 
-bool PhotoServer::SlideShowStream::setup(const HttpServer::RequestHeader &request, QAbstractSocket *socket)
+bool PhotoServer::SlideShowStream::setup(const HttpServer::RequestHeader &request, QIODevice *socket)
 {
   if (Stream::setup(request, socket,
                     slideShow.duration(),

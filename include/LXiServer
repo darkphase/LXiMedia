@@ -8,7 +8,10 @@
 #include <QtNetwork>
 #include <QtXml>
 
+#include "liblxiserver/httpengine.h"
 #include "liblxiserver/httpserver.h"
+#include "liblxiserver/sandboxclient.h"
+#include "liblxiserver/sandboxserver.h"
 #include "liblxiserver/ssdpclient.h"
 #include "liblxiserver/ssdpserver.h"
 #include "liblxiserver/upnpbase.h"

@@ -46,7 +46,7 @@ protected:
   virtual void                  customEvent(QEvent *);
 
 protected: // From HttpServer::Callback
-  virtual HttpServer::SocketOp  handleHttpRequest(const HttpServer::RequestHeader &, QAbstractSocket *);
+  virtual HttpServer::SocketOp  handleHttpRequest(const HttpServer::RequestHeader &, QIODevice *);
 
 private:
   SearchCacheEntry              search(const QString &) const;
@@ -57,11 +57,11 @@ private:
   virtual UPnPContentDirectory* contentDirectory(void);
   virtual ImdbClient          * imdbClient(void);
 
-  HttpServer::SocketOp          handleCssRequest(const HttpServer::RequestHeader &, QAbstractSocket *, const QString &);
-  HttpServer::SocketOp          handleHtmlSearch(const HttpServer::RequestHeader &, QAbstractSocket *, const QString &);
-  HttpServer::SocketOp          handleHtmlRequest(const HttpServer::RequestHeader &, QAbstractSocket *, const QString &);
-  HttpServer::SocketOp          showAbout(const HttpServer::RequestHeader &, QAbstractSocket *);
-  HttpServer::SocketOp          handleHtmlConfig(const HttpServer::RequestHeader &, QAbstractSocket *);
+  HttpServer::SocketOp          handleCssRequest(const HttpServer::RequestHeader &, QIODevice *, const QString &);
+  HttpServer::SocketOp          handleHtmlSearch(const HttpServer::RequestHeader &, QIODevice *, const QString &);
+  HttpServer::SocketOp          handleHtmlRequest(const HttpServer::RequestHeader &, QIODevice *, const QString &);
+  HttpServer::SocketOp          showAbout(const HttpServer::RequestHeader &, QIODevice *);
+  HttpServer::SocketOp          handleHtmlConfig(const HttpServer::RequestHeader &, QIODevice *);
 
   void                          setContentDirectoryQueryItems(void);
 

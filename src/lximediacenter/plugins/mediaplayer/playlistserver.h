@@ -53,10 +53,10 @@ protected:
   class PlaylistStream : public TranscodeStream
   {
   public:
-                                PlaylistStream(PlaylistServer *, const QHostAddress &peer, const QString &url, const SMediaInfoList &files);
+                                PlaylistStream(PlaylistServer *, const QString &url, const SMediaInfoList &files);
     virtual                     ~PlaylistStream();
 
-    bool                        setup(const HttpServer::RequestHeader &, QAbstractSocket *);
+    bool                        setup(const HttpServer::RequestHeader &, QIODevice *);
 
   public:
     SPlaylistNode               playlistNode;
@@ -70,11 +70,11 @@ public:
   virtual                       ~PlaylistServer();
 
 protected:
-  virtual HttpServer::SocketOp  streamVideo(const HttpServer::RequestHeader &, QAbstractSocket *);
+  virtual HttpServer::SocketOp  streamVideo(const HttpServer::RequestHeader &, QIODevice *);
 
   virtual int                   countItems(const QString &path);
   virtual QList<Item>           listItems(const QString &path, unsigned start = 0, unsigned count = 0);
-  virtual HttpServer::SocketOp  handleHttpRequest(const HttpServer::RequestHeader &, QAbstractSocket *);
+  virtual HttpServer::SocketOp  handleHttpRequest(const HttpServer::RequestHeader &, QIODevice *);
 
   QList<Item>                   listPlayAllItem(const QString &path,  unsigned &start, unsigned &count, MediaDatabase::UniqueID = 0, const QList<Item> &thumbs = QList<Item>());
 

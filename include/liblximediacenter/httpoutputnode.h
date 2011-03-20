@@ -21,7 +21,6 @@
 #define LXMEDIACENTER_HTTPOUTPUTNODE_H
 
 #include <QtCore>
-#include <QtNetwork>
 #include <LXiStream>
 
 namespace LXiMediaCenter {
@@ -39,7 +38,7 @@ public:
 
   void                          setHeader(const QByteArray &);
   void                          enablePseudoStreaming(float speed, STime preload = STime::fromSec(10));
-  bool                          addSocket(QAbstractSocket *);
+  bool                          addSocket(QIODevice *);
 
   bool                          openFormat(const QString &, const SAudioCodec &, STime);
   bool                          openFormat(const QString &, const SAudioCodec &, const SVideoCodec &, STime);

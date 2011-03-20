@@ -131,7 +131,7 @@ void SsdpServer::sendAlive(SsdpClientInterface *iface, const QString &nt, const 
 {
   HttpServer::RequestHeader request(p->httpServer);
   request.setRequest("NOTIFY", "*", HttpServer::httpVersion);
-  request.setServer();
+  request.setField(p->httpServer->senderType(), p->httpServer->senderId());
   request.setField("HOST", SsdpServer::ssdpAddressIPv4.toString() + ":" + QString::number(SsdpServer::ssdpPort));
   request.setField("USN", serverUdn() + (!nt.startsWith("uuid:") ? ("::" + nt) : QString::null));
   request.setField("CACHE-CONTROL", "max-age=" + QString::number(SsdpServer::cacheTimeout));

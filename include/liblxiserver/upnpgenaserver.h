@@ -48,7 +48,7 @@ protected:
   virtual void                  timerEvent(QTimerEvent *);
 
 protected: // From HttpServer::Callback
-  virtual HttpServer::SocketOp  handleHttpRequest(const HttpServer::RequestHeader &, QAbstractSocket *);
+  virtual HttpServer::SocketOp  handleHttpRequest(const HttpServer::RequestHeader &, QIODevice *);
 
 private slots:
   void                          emitEvents(void);

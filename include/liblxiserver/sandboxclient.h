@@ -17,55 +17,65 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXISERVER_UPNPMEDIASERVER_H
-#define LXISERVER_UPNPMEDIASERVER_H
+#ifndef LXISERVER_SANDBOXCLIENT_H
+#define LXISERVER_SANDBOXCLIENT_H
 
 #include <QtCore>
-#include <QtNetwork>
-#include "httpserver.h"
+#include "httpengine.h"
 
 namespace LXiServer {
 
-class SsdpServer;
-
-class UPnPMediaServer : public QObject,
-                        protected HttpServer::Callback
+class SandboxClient : public HttpClientEngine
 {
 Q_OBJECT
 public:
-  struct Service
+  enum Mode
   {
-    QString                     serviceType;
-    QString                     serviceId;
-    QString                     descriptionUrl;
-    QString                     controlURL;
-    QString                     eventSubURL;
+    Mode_Normal               = 0,
+    Mode_Nice
+  };
+
+private:
+  class StartServerEvent : public QEvent
+  {
+  public:
+    inline StartServerEvent(QSemaphore *sem, int timeout)
+      : QEvent(startServerEventType), sem(sem), timeout(timeout)
+    {
+    }
+
+    QSemaphore          * const sem;
+    int                         timeout;
   };
 
 public:
-  explicit                      UPnPMediaServer(const QString &basePath, QObject * = NULL);
-  virtual                       ~UPnPMediaServer();
+  explicit                      SandboxClient(Mode, QObject * = NULL);
+  virtual                       ~SandboxClient();
 
-  void                          initialize(HttpServer *, SsdpServer *);
-  void                          close(void);
+  inline ResponseMessage        sendRequest(const RequestMessage &request, int timeout = maxTTL) { return HttpClientEngine::sendRequest(request, timeout); }
+  QByteArray                    sendRequest(const QByteArray &, int timeout = maxTTL);
 
-  void                          addIcon(const QString &url, unsigned width, unsigned height, unsigned depth);
+signals:
+  void                          consoleLine(const QString &);
 
-  void                          registerService(const Service &);
+protected:
+  virtual void                  customEvent(QEvent *);
 
-protected: // From HttpServer::Callback
-  virtual HttpServer::SocketOp  handleHttpRequest(const HttpServer::RequestHeader &, QIODevice *);
+protected: // From HttpClientEngine
+  virtual QIODevice           * openSocket(const QString &host, int timeout);
+  virtual void                  closeSocket(QIODevice *, bool canReuse, int timeout);
 
-public:
-  static const char     * const dlnaDeviceNS;
+private slots:
+  void                          startServer(int timeout);
+  void                          readConsole(void);
+  void                          serverFinished(int, QProcess::ExitStatus);
 
 private:
-  static const char     * const deviceType;
+  static const QEvent::Type     startServerEventType;
 
-  struct Data;
-  Data                  * const d;
+  struct Private;
+  Private               * const p;
 };
-
 
 } // End of namespace
 

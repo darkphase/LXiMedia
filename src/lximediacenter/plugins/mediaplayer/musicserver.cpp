@@ -53,7 +53,7 @@ QList<MusicServer::Item> MusicServer::listItems(const QString &path, unsigned st
   return items;
 }
 
-HttpServer::SocketOp MusicServer::handleHttpRequest(const HttpServer::RequestHeader &request, QAbstractSocket *socket)
+HttpServer::SocketOp MusicServer::handleHttpRequest(const HttpServer::RequestHeader &request, QIODevice *socket)
 {
   const QUrl url(request.path());
   const QString file = request.file();

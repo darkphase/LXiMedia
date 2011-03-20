@@ -105,7 +105,7 @@ void UPnPMediaServer::registerService(const Service &service)
   d->ssdpServer->publish(service.serviceType, service.descriptionUrl, 1);
 }
 
-HttpServer::SocketOp UPnPMediaServer::handleHttpRequest(const HttpServer::RequestHeader &request, QAbstractSocket *socket)
+HttpServer::SocketOp UPnPMediaServer::handleHttpRequest(const HttpServer::RequestHeader &request, QIODevice *socket)
 {
   if (request.path() == "/upnp/mediaserver/description.xml")
   {

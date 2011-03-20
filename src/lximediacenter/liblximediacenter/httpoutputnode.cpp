@@ -79,22 +79,27 @@ void HttpOutputNode::enablePseudoStreaming(float speed, STime preload)
   d->streamingPreload = preload;
 }
 
-bool HttpOutputNode::addSocket(QAbstractSocket *socket)
+bool HttpOutputNode::addSocket(QIODevice *socket)
 {
   SDebug::MutexLocker l(&d->mutex, __FILE__, __LINE__);
 
   if (d->caching || d->sockets.isEmpty())
   {
     Data::Socket s;
-    s.socket = socket;
+    s.socket = qobject_cast<QAbstractSocket *>(socket);
     s.sendCache = true;
 
-    s.socket->moveToThread(thread());
-    s.socket->setParent(this);
+    if (s.socket)
+    {
+      s.socket->moveToThread(thread());
+      s.socket->setParent(this);
 
-    d->sockets += s;
+      d->sockets += s;
 
-    return true;
+      return true;
+    }
+    else
+      qFatal("Assigned incompatible socket: %s", socket->metaObject()->className());
   }
 
   return false;

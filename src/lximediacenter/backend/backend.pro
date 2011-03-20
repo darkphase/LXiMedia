@@ -9,8 +9,10 @@ include($${LXIMEDIA_DIR}/include/liblximediacenter/linklximediacenter.pri)
 SOURCES += main.cpp \
     backend.cpp \
     backend.css.cpp \
-    backend.html.cpp
-HEADERS += backend.h
+    backend.html.cpp \
+    sandbox.cpp
+HEADERS += backend.h \
+    sandbox.h
 RESOURCES = images/backend_images.qrc \
     ../../../ext/flowplayer/flowplayer.qrc
 
