@@ -94,7 +94,7 @@ bool BufferReader::start(ReadCallback *rc, ProduceCallback *pc, quint16 programI
     if (::av_open_input_stream(&formatContext, ioContext, "", format, NULL) == 0)
     {
       formatContext->flags |= AVFMT_FLAG_GENPTS;
-      formatContext->max_analyze_duration = 30 * AV_TIME_BASE;
+      formatContext->max_analyze_duration = 3 * AV_TIME_BASE;
       if (::av_find_stream_info(formatContext) >= 0)
       {
         //::dump_format(formatContext, 0, "", false);

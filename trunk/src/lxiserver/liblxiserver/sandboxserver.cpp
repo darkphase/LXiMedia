@@ -22,6 +22,7 @@
 #include <iostream>
 #if defined(Q_OS_UNIX)
 #include <unistd.h>
+#include <sched.h>
 #elif defined(Q_OS_WIN)
 #include <windows.h>
 #endif
@@ -74,6 +75,9 @@ void SandboxServer::initialize(const QString &name, const QString &mode)
   if (mode == "nice")
   {
 #if defined(Q_OS_UNIX)
+    ::sched_param param = { 0 };
+    ::sched_setscheduler(::getpid(), SCHED_BATCH, &param);
+
     ::nice(15);
 #elif defined(Q_OS_WIN)
     ::SetPriorityClass(::GetCurrentProcess(), BELOW_NORMAL_PRIORITY_CLASS);
