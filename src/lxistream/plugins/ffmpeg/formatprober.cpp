@@ -38,8 +38,6 @@ FormatProber::~FormatProber()
 
 QList<FormatProber::Format> FormatProber::probeFormat(const QByteArray &buffer, const QString &filePath)
 {
-  SDebug::MutexLocker f(FFMpegCommon::mutex(), __FILE__, __LINE__);
-
   QByteArray fileName("");
   if (!filePath.isEmpty())
     fileName = QFileInfo(filePath).fileName().toUtf8();

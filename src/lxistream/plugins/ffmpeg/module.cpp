@@ -37,8 +37,6 @@ namespace FFMpegBackend {
 
 void Module::registerClasses(void)
 {
-  SDebug::MutexLocker f(FFMpegCommon::mutex(), __FILE__, __LINE__);
-
 #ifdef QT_NO_DEBUG
   FFMpegCommon::init();
 #else

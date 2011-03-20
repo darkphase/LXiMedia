@@ -35,8 +35,6 @@ AudioDecoder::AudioDecoder(const QString &, QObject *parent)
 
 AudioDecoder::~AudioDecoder()
 {
-  SDebug::MutexLocker f(FFMpegCommon::mutex(), __FILE__, __LINE__);
-
   if (codecHandle && contextHandle)
     avcodec_close(contextHandle);
 
@@ -53,8 +51,6 @@ bool AudioDecoder::openCodec(const SAudioCodec &c, Flags flags)
 {
   if (contextHandle)
     qFatal("AudioDecoder already opened a codec.");
-
-  SDebug::MutexLocker f(FFMpegCommon::mutex(), __FILE__, __LINE__);
 
   passThrough = false;
   inCodec = c;

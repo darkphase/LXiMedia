@@ -33,8 +33,6 @@ DataDecoder::DataDecoder(const QString &, QObject *parent)
 
 DataDecoder::~DataDecoder()
 {
-  SDebug::MutexLocker f(FFMpegCommon::mutex(), __FILE__, __LINE__);
-
   if (codecHandle && contextHandle)
     avcodec_close(contextHandle);
 
@@ -51,8 +49,6 @@ bool DataDecoder::openCodec(const SDataCodec &c, Flags)
 {
   if (contextHandle)
     qFatal("DataDecoder already opened a codec.");
-
-  SDebug::MutexLocker f(FFMpegCommon::mutex(), __FILE__, __LINE__);
 
   inCodec = c;
 

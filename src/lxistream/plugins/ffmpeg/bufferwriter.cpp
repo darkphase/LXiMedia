@@ -53,8 +53,6 @@ BufferWriter::~BufferWriter()
 
 bool BufferWriter::openFormat(const QString &name)
 {
-  SDebug::MutexLocker f(FFMpegCommon::mutex(), __FILE__, __LINE__);
-
   format = ::guess_stream_format(name.toAscii().data(), NULL, NULL);
   if (format)
   {
@@ -71,8 +69,6 @@ bool BufferWriter::openFormat(const QString &name)
 
 bool BufferWriter::createStreams(const QList<SAudioCodec> &audioCodecs, const QList<SVideoCodec> &videoCodecs, STime duration)
 {
-  SDebug::MutexLocker f(FFMpegCommon::mutex(), __FILE__, __LINE__);
-
   if (formatContext)
   {
     foreach (const SAudioCodec &codec, audioCodecs)
@@ -185,8 +181,6 @@ bool BufferWriter::createStreams(const QList<SAudioCodec> &audioCodecs, const QL
 
 bool BufferWriter::start(WriteCallback *c)
 {
-  SDebug::MutexLocker f(FFMpegCommon::mutex(), __FILE__, __LINE__);
-
   static const int ioBufferSize = 65536;
 
   callback = c;
@@ -214,8 +208,6 @@ bool BufferWriter::start(WriteCallback *c)
 
 void BufferWriter::stop(void)
 {
-  SDebug::MutexLocker f(FFMpegCommon::mutex(), __FILE__, __LINE__);
-
   ::av_write_trailer(formatContext);
 
   foreach (::AVStream *stream, streams)

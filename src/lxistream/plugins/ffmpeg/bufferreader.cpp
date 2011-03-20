@@ -59,8 +59,6 @@ BufferReader::~BufferReader()
 
 bool BufferReader::openFormat(const QString &name)
 {
-  SDebug::MutexLocker f(FFMpegCommon::mutex(), __FILE__, __LINE__);
-
   format = ::av_find_input_format(name.toAscii().data());
 
   // Do not allow redirecting.
@@ -77,8 +75,6 @@ bool BufferReader::start(ReadCallback *rc, ProduceCallback *pc, quint16 programI
   {
     if (ioContext)
       qFatal("BufferReader already opened a stream.");
-
-    SDebug::MutexLocker f(FFMpegCommon::mutex(), __FILE__, __LINE__);
 
     static const int ioBufferSize = 65536;
 
@@ -214,8 +210,6 @@ bool BufferReader::start(ReadCallback *rc, ProduceCallback *pc, quint16 programI
 
 void BufferReader::stop(void)
 {
-  SDebug::MutexLocker f(FFMpegCommon::mutex(), __FILE__, __LINE__);
-
   for (unsigned i=0; i<MAX_STREAMS; i++)
   if (streamContext[i])
   {

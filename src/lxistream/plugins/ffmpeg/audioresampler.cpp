@@ -35,8 +35,6 @@ AudioResampler::AudioResampler(const QString &, QObject *parent)
 
 AudioResampler::~AudioResampler()
 {
-  SDebug::MutexLocker f(FFMpegCommon::mutex(), __FILE__, __LINE__);
-
   if (reSampleContext)
   {
     audio_resample_close(reSampleContext);
@@ -72,8 +70,6 @@ SAudioBuffer AudioResampler::processBuffer(const SAudioBuffer &audioBuffer)
       if ((inSampleRate != audioBuffer.format().sampleRate()) ||
           (inNumChannels != audioBuffer.format().numChannels()))
       {
-        SDebug::MutexLocker f(FFMpegCommon::mutex(), __FILE__, __LINE__);
-
         if (reSampleContext)
         {
           audio_resample_close(reSampleContext);
