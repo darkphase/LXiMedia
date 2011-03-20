@@ -39,9 +39,10 @@ void FFMpegTest::initTestCase(void)
 
 //  const QDir probeDir("");
 //  foreach (const QString &file, probeDir.entryList())
+//  if (!file.startsWith('.'))
 //  {
 //    const SMediaInfo mediaInfo(probeDir.absoluteFilePath(file));
-//    qDebug() << file << mediaInfo.format() << mediaInfo.thumbnails().count();
+//    qDebug() << file << mediaInfo.format();
 //  }
 //
 //  QFile file("/tmp/test.jpeg");

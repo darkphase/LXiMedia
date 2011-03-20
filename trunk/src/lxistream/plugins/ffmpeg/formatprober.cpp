@@ -99,7 +99,7 @@ void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *readCallback)
         readCallback->seek(0, SEEK_SET);
 
         ProduceCallback produceCallback;
-        if (bufferReader.start(readCallback, &produceCallback, 0, true))
+        if (bufferReader.start(readCallback, &produceCallback, 0, false))
         {
           pi.title = bestOf(pi.title, SStringParser::removeControl(QString::fromUtf8(bufferReader.context()->title)).trimmed());
           pi.author = bestOf(pi.author, SStringParser::removeControl(QString::fromUtf8(bufferReader.context()->author)).trimmed());

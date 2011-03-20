@@ -41,7 +41,7 @@ Sandbox::Sandbox()
   // Seed the random number generator.
   qsrand(int(QDateTime::currentDateTime().toTime_t()));
 
-  qDebug() << "Starting sandbox" << qApp->applicationPid();
+  qDebug() << "Starting sandbox process" << qApp->applicationPid();
 
   stopTimer.setSingleShot(true);
   stopTimer.setInterval(30000);
@@ -52,14 +52,14 @@ Sandbox::Sandbox()
 
 Sandbox::~Sandbox()
 {
-  qDebug() << "Stopping sandbox" << qApp->applicationPid();
+  qDebug() << "Stopping sandbox process" << qApp->applicationPid();
 
   foreach (BackendPlugin *plugin, backendPlugins)
     delete plugin;
 
   QThreadPool::globalInstance()->waitForDone();
 
-  qDebug() << "Stopped sandbox" << qApp->applicationPid();
+  qDebug() << "Stopped sandbox process" << qApp->applicationPid();
 
   // Shutdown LXiStream
   delete streamApp;
@@ -75,17 +75,11 @@ void Sandbox::start(const QString &name, const QString &mode)
   backendPlugins = BackendPlugin::loadPlugins();
   foreach (BackendPlugin *backendPlugin, backendPlugins)
   if (backendPlugin)
-  {
-    qDebug() << "Loading backend:" << backendPlugin->pluginName()
-             << "by" << backendPlugin->authorName()
-             << "version" << backendPlugin->pluginVersion();
-
     backendPlugin->registerSandbox(&sandboxServer);
-  }
 
   stopTimer.start();
 
-  qDebug() << "Finished initialization.";
+  qDebug() << "Finished initialization of sandbox process" << qApp->applicationPid();
 }
 
 void Sandbox::stop(void)
