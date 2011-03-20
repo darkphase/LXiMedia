@@ -37,7 +37,7 @@ void HttpServerTest::Server(void)
 
   struct Callback : HttpServer::Callback
   {
-    virtual HttpServer::SocketOp handleHttpRequest(const HttpServer::RequestHeader &request, QAbstractSocket *socket)
+    virtual HttpServer::SocketOp handleHttpRequest(const HttpServer::RequestHeader &request, QIODevice *socket)
     {
       if (request.path() == "/test.txt")
       {

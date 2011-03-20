@@ -49,7 +49,10 @@ Backend::Backend()
   if (!logDir.exists())
     logDir.mkpath(logDir.absolutePath());
 
-  streamApp = new SApplication(SApplication::Initialize_Default, logDir.absolutePath());
+  streamApp =
+      new SApplication(
+          SApplication::Initialize_Default | SApplication::Initialize_LogToFile,
+          logDir.absolutePath());
 
   //SThreadPool::globalInstance()->enableTrace("/tmp/threadpool.svg");
 
@@ -60,21 +63,22 @@ Backend::Backend()
 
   // Check and backup settings file
   const QString settingsFile = GlobalSettings::settingsFile();
-  if (QFile::exists(settingsFile + ".bak"))
+  const QString bakSettingsFile = settingsFile + ".bak";
+  if (QFile::exists(bakSettingsFile))
   {
     if (!QFile::exists(settingsFile) || (QFileInfo(settingsFile).size() == 0))
     {
-      qDebug() << "Using backup settings " << settingsFile + ".bak";
+      qDebug() << "Using backup settings " << bakSettingsFile;
 
       // Backup exists, use it.
       QFile::remove(settingsFile);
-      QFile::rename(settingsFile + ".bak", settingsFile);
+      QFile::rename(bakSettingsFile, settingsFile);
     }
     else
-      QFile::remove(settingsFile + ".bak");
+      QFile::remove(bakSettingsFile);
   }
 
-  QFile::copy(settingsFile, settingsFile + ".bak");
+  QFile::copy(settingsFile, bakSettingsFile);
 
   // Open database
   Database::initialize();
@@ -433,7 +437,7 @@ void Backend::customEvent(QEvent *e)
   }
 }
 
-HttpServer::SocketOp Backend::handleHttpRequest(const HttpServer::RequestHeader &request, QAbstractSocket *socket)
+HttpServer::SocketOp Backend::handleHttpRequest(const HttpServer::RequestHeader &request, QIODevice *socket)
 {
   const QUrl url(request.path());
   const QString path = url.path();

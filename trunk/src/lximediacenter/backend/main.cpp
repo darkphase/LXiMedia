@@ -20,10 +20,11 @@
 #include <iostream>
 
 #include "backend.h"
+#include "sandbox.h"
 #if defined(Q_OS_UNIX)
-  #include "unixdaemon.h"
+#include "unixdaemon.h"
 #elif defined(Q_OS_WIN)
-  #include "windowsservice.h"
+#include "windowsservice.h"
 #endif
 
 
@@ -78,17 +79,28 @@
     BackendDeamon *deamon = new BackendDeamon();
 
     if (argc < 2)
+    {
       std::cout << "Specify --help for more information." << std::endl;
-
+    }
     else if ((strcmp(argv[1], "--start") == 0) || (strcmp(argv[1], "-s") == 0))
+    {
       deamon->start();
-
+    }
     else if ((strcmp(argv[1], "--stop") == 0) || (strcmp(argv[1], "-q") == 0))
+    {
       deamon->stop();
-
+    }
     else if ((strcmp(argv[1], "--run") == 0) || (strcmp(argv[1], "-r") == 0))
+    {
       return deamon->run();
+    }
+    else if ((argc >= 4) && (strcmp(argv[1], "--sandbox") == 0))
+    {
+      Sandbox sandbox;
+      sandbox.start(argv[2], argv[3]);
 
+      return app.exec();
+    }
     else
     {
       std::cout << "LXiMediaCenter Backend deamon" << std::endl
@@ -216,17 +228,20 @@
     else if ((strcmp(argv[1], "--uninstall") == 0) || (strcmp(argv[1], "-u") == 0))
       BackendService::instance->uninstall();
 
-    else if ((strcmp(argv[1], "--run") == 0) || (strcmp(argv[1], "-r") == 0))
+    else
     {
-        QCoreApplication app(argc, argv);
-        app.setOrganizationName("LeX-Interactive");
-        app.setOrganizationDomain("lximedia.sf.net");
-        app.setApplicationName("LXiMediaCenter");
-        app.setApplicationVersion(
+      QCoreApplication app(argc, argv);
+      app.setOrganizationName("LeX-Interactive");
+      app.setOrganizationDomain("lximedia.sf.net");
+      app.setApplicationName("LXiMediaCenter");
+      app.setApplicationVersion(
 #include "_version.h"
-            );
+          );
 
-        int exitCode = 0;
+      int exitCode = 0;
+
+      if ((strcmp(argv[1], "--run") == 0) || (strcmp(argv[1], "-r") == 0))
+      {
         do
         {
           Backend backend;
@@ -235,17 +250,25 @@
           exitCode = app.exec();
         }
         while (exitCode == -1);
+      }
+      else if ((argc >= 4) && (strcmp(argv[1], "--sandbox") == 0))
+      {
+        Sandbox sandbox;
+        sandbox.start(argv[2], argv[3]);
 
-        return exitCode;
-    }
-    else
-    {
-      std::cout << "LXiMediaCenter Backend service" << std::endl
-                << "Usage: " << argv[0] << " --install | -i    (Installs the service)"  << std::endl
-                << "       " << argv[0] << " --uninstall | -u  (Uninstalls the service)"  << std::endl
-                << "       " << argv[0] << " --run | -r        (Starts the backend from this executable)" << std::endl;
+        exitCode = app.exec();
+      }
+      else
+      {
+        std::cout << "LXiMediaCenter Backend service" << std::endl
+                  << "Usage: " << argv[0] << " --install | -i    (Installs the service)"  << std::endl
+                  << "       " << argv[0] << " --uninstall | -u  (Uninstalls the service)"  << std::endl
+                  << "       " << argv[0] << " --run | -r        (Starts the backend from this executable)" << std::endl;
 
-      return 1;
+        return 1;
+      }
+
+      return exitCode;
     }
 
     return 0;
@@ -263,14 +286,32 @@
         );
 
     int exitCode = 0;
-    do
+
+    if ((strcmp(argv[1], "--run") == 0) || (strcmp(argv[1], "-r") == 0))
     {
-      Backend backend;
-      backend.start();
+      do
+      {
+        Backend backend;
+        backend.start();
+
+        exitCode = app.exec();
+      }
+      while (exitCode  == -1);
+    }
+    else if ((argc >= 4) && (strcmp(argv[1], "--sandbox") == 0))
+    {
+      Sandbox sandbox;
+      sandbox.start(argv[2], argv[3]);
 
       exitCode = app.exec();
     }
-    while (exitCode  == -1);
+    else
+    {
+      std::cout << "LXiMediaCenter Backend service" << std::endl
+                << "Usage: " << argv[0] << " --run | -r        (Starts the backend from this executable)" << std::endl;
+
+      return 1;
+    }
 
     return exitCode;
   }

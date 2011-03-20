@@ -84,7 +84,7 @@ void UPnPBase::close(void)
   d->httpServer = NULL;
 }
 
-HttpServer::SocketOp UPnPBase::handleHttpRequest(const HttpServer::RequestHeader &request, QAbstractSocket *socket)
+HttpServer::SocketOp UPnPBase::handleHttpRequest(const HttpServer::RequestHeader &request, QIODevice *socket)
 {
   if ((request.path() == d->basePath + "control") && (request.method() == "POST"))
     return handleControl(request, socket);
@@ -94,14 +94,14 @@ HttpServer::SocketOp UPnPBase::handleHttpRequest(const HttpServer::RequestHeader
   return HttpServer::sendResponse(request, socket, HttpServer::Status_NotFound, this);
 }
 
-HttpServer::SocketOp UPnPBase::handleControl(const HttpServer::RequestHeader &request, QAbstractSocket *socket)
+HttpServer::SocketOp UPnPBase::handleControl(const HttpServer::RequestHeader &request, QIODevice *socket)
 {
   QTime timer;
   timer.start();
 
   QByteArray data = socket->readAll();
   while ((data.count() < int(request.contentLength())) && (qAbs(timer.elapsed()) < 5000))
-  if (socket->waitForReadyRead())
+  if (socket->waitForReadyRead(qMax(5000 - qAbs(timer.elapsed()), 0)))
     data += socket->readAll();
 
   if (data.count() > 0)
@@ -113,7 +113,12 @@ HttpServer::SocketOp UPnPBase::handleControl(const HttpServer::RequestHeader &re
       QDomDocument responseDoc;
       QDomElement responseBody = makeSoapMessage(responseDoc, body);
 
-      handleSoapMessage(body, responseDoc, responseBody, request, socket->peerAddress());
+      QHostAddress peerAddress;
+      QAbstractSocket * const abstractSocket = qobject_cast<QAbstractSocket *>(socket);
+      if (abstractSocket)
+        peerAddress = abstractSocket->peerAddress();
+
+      handleSoapMessage(body, responseDoc, responseBody, request, peerAddress);
 
       const QByteArray content = serializeSoapMessage(responseDoc);
       HttpServer::ResponseHeader response(request, HttpServer::Status_Ok);
@@ -133,7 +138,7 @@ HttpServer::SocketOp UPnPBase::handleControl(const HttpServer::RequestHeader &re
   return HttpServer::sendResponse(request, socket, HttpServer::Status_NotFound, this);
 }
 
-HttpServer::SocketOp UPnPBase::handleDescription(const HttpServer::RequestHeader &request, QAbstractSocket *socket)
+HttpServer::SocketOp UPnPBase::handleDescription(const HttpServer::RequestHeader &request, QIODevice *socket)
 {
   QDomDocument doc;
   QDomElement scpdElm = doc.createElement("scpd");

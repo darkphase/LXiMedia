@@ -72,9 +72,9 @@ QString GlobalSettings::settingsFile(void)
 {
 #if defined(Q_OS_UNIX)
   return QDir(applicationDataDir()).absoluteFilePath(
-      QDir(QCoreApplication::applicationFilePath()).dirName() + ".conf");
+      QFileInfo(QCoreApplication::applicationFilePath()).fileName() + ".conf");
 #elif defined(Q_OS_WIN)
-  const QString appName = QDir(QCoreApplication::applicationFilePath()).dirName();
+  const QString appName = QFileInfo(QCoreApplication::applicationFilePath()).fileName();
 
   return QDir(applicationDataDir()).absoluteFilePath(
       appName.left(appName.length() - 4) + ".conf"); // remove .exe

@@ -32,7 +32,7 @@ PlaylistServer::~PlaylistServer()
 {
 }
 
-HttpServer::SocketOp PlaylistServer::streamVideo(const HttpServer::RequestHeader &request, QAbstractSocket *socket)
+HttpServer::SocketOp PlaylistServer::streamVideo(const HttpServer::RequestHeader &request, QIODevice *socket)
 {
   const QStringList file = request.file().split('.');
   if (file.first() == "playlist")
@@ -68,7 +68,7 @@ HttpServer::SocketOp PlaylistServer::streamVideo(const HttpServer::RequestHeader
 
     if (!files.isEmpty())
     {
-      PlaylistStream *stream = new PlaylistStream(this, socket->peerAddress(), request.path(), files.values());
+      PlaylistStream *stream = new PlaylistStream(this, request.path(), files.values());
       if (stream->setup(request, socket))
       if (stream->start())
         return HttpServer::SocketOp_LeaveOpen; // The graph owns the socket now.
@@ -106,7 +106,7 @@ QList<PlaylistServer::Item> PlaylistServer::listItems(const QString &path, unsig
   return result;
 }
 
-HttpServer::SocketOp PlaylistServer::handleHttpRequest(const HttpServer::RequestHeader &request, QAbstractSocket *socket)
+HttpServer::SocketOp PlaylistServer::handleHttpRequest(const HttpServer::RequestHeader &request, QIODevice *socket)
 {
   const QUrl url(request.path());
   const QString file = request.file();
@@ -191,8 +191,8 @@ QList<PlaylistServer::Item> PlaylistServer::listPlayAllItem(const QString &path,
 }
 
 
-PlaylistServer::PlaylistStream::PlaylistStream(PlaylistServer *parent, const QHostAddress &peer, const QString &url, const SMediaInfoList &files)
-  : MediaPlayerServer::TranscodeStream(parent, peer, url),
+PlaylistServer::PlaylistStream::PlaylistStream(PlaylistServer *parent, const QString &url, const SMediaInfoList &files)
+  : MediaPlayerServer::TranscodeStream(parent, url),
     playlistNode(this, files),
     streamHelper(this, static_cast<PlaylistServer *>(parent)->mediaDatabase)
 {
@@ -208,7 +208,7 @@ PlaylistServer::PlaylistStream::~PlaylistStream()
 {
 }
 
-bool PlaylistServer::PlaylistStream::setup(const HttpServer::RequestHeader &request, QAbstractSocket *socket)
+bool PlaylistServer::PlaylistStream::setup(const HttpServer::RequestHeader &request, QIODevice *socket)
 {
   return TranscodeStream::setup(request, socket, &playlistNode);
 }

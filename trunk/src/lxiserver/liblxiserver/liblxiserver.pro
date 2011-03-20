@@ -16,7 +16,10 @@ linux-g++|win32-g++ {
 
 # Files
 HEADERS += ../../../include/LXiServer \
+ ../../../include/liblxiserver/httpengine.h \
  ../../../include/liblxiserver/httpserver.h \
+ ../../../include/liblxiserver/sandboxclient.h \
+ ../../../include/liblxiserver/sandboxserver.h \
  ../../../include/liblxiserver/ssdpclient.h \
  ../../../include/liblxiserver/ssdpserver.h \
  ../../../include/liblxiserver/upnpbase.h \
@@ -25,8 +28,11 @@ HEADERS += ../../../include/LXiServer \
  ../../../include/liblxiserver/upnpgenaserver.h \
  ../../../include/liblxiserver/upnpmediaserver.h
 
-SOURCES += httpserver.cpp \
- httpserver.header.cpp \
+SOURCES += httpengine.cpp \
+ httpengine.header.cpp \
+ httpserver.cpp \
+ sandboxclient.cpp \
+ sandboxserver.cpp \
  ssdpclient.cpp \
  ssdpserver.cpp \
  upnpbase.cpp \

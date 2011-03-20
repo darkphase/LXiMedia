@@ -68,6 +68,20 @@ SScheduler::Dependency * Database::mutex(void)
   return &m;
 }
 
+void Database::transaction(void)
+{
+  Q_ASSERT(!mutex()->tryLock());
+
+  database().transaction();
+}
+
+void Database::commit(void)
+{
+  Q_ASSERT(!mutex()->tryLock());
+
+  database().commit();
+}
+
 QSqlDatabase & Database::database(void)
 {
   static QSqlDatabase d;
@@ -100,29 +114,74 @@ void Database::handleError(const ::QSqlQuery &query, const QString &q)
 }
 
 
-void QSqlQuery::exec(const QString &q)
+Database::Query::Query(void)
+  : QSqlQuery(database())
 {
-  if (!::QSqlQuery::exec(q))
+  Q_ASSERT(!mutex()->tryLock());
+}
+
+Database::Query::Query(QSqlResult *r)
+  : QSqlQuery(r)
+{
+  Q_ASSERT(!mutex()->tryLock());
+}
+
+Database::Query::Query(const QString &query)
+  : QSqlQuery(query, database())
+{
+  Q_ASSERT(!mutex()->tryLock());
+}
+
+Database::Query::Query(const QSqlQuery &other)
+  : QSqlQuery(other)
+{
+  Q_ASSERT(!mutex()->tryLock());
+}
+
+Database::Query & Database::Query::operator=(const ::QSqlQuery &other)
+{
+  Q_ASSERT(!mutex()->tryLock());
+
+  QSqlQuery::operator=(other);
+
+  return *this;
+}
+
+Database::Query::~Query()
+{
+  Q_ASSERT(!mutex()->tryLock());
+}
+
+void Database::Query::exec(const QString &q)
+{
+  Q_ASSERT(!mutex()->tryLock());
+
+  if (!QSqlQuery::exec(q))
     Database::handleError(*this, q);
 }
 
-void QSqlQuery::exec(void)
+void Database::Query::exec(void)
 {
-  if (!::QSqlQuery::exec())
+  Q_ASSERT(!mutex()->tryLock());
+
+  if (!QSqlQuery::exec())
     Database::handleError(*this);
 }
 
-void QSqlQuery::execBatch(BatchExecutionMode mode)
+void Database::Query::execBatch(BatchExecutionMode mode)
 {
-  if (!::QSqlQuery::execBatch(mode))
+  Q_ASSERT(!mutex()->tryLock());
+
+  if (!QSqlQuery::execBatch(mode))
     Database::handleError(*this);
 }
 
-void QSqlQuery::prepare(const QString &q)
+void Database::Query::prepare(const QString &q)
 {
-  if (!::QSqlQuery::prepare(q))
+  Q_ASSERT(!mutex()->tryLock());
+
+  if (!QSqlQuery::prepare(q))
     Database::handleError(*this, q);
 }
-
 
 } // End of namespace

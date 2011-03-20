@@ -74,6 +74,27 @@ QList<BackendServer *> MediaPlayerBackend::createServers(BackendServer::MasterSe
   return servers;
 }
 
+void MediaPlayerBackend::registerSandbox(SandboxServer *server)
+{
+  server->registerCallback("/mediaprobe/", this);
+}
+
+SandboxServer::SocketOp MediaPlayerBackend::handleHttpRequest(const SandboxServer::RequestHeader &request, QIODevice *socket)
+{
+  const QUrl url(request.path());
+
+  if (url.hasQueryItem("probe"))
+  {
+    const QString probeFile = QString::fromUtf8(QByteArray::fromBase64(url.queryItemValue("probe").toAscii()));
+
+    SMediaInfo mediaInfo(probeFile);
+    if (!mediaInfo.isNull())
+      return SandboxServer::sendResponse(request, socket, SandboxServer::Status_Ok, mediaInfo.toByteArray(-1), this);
+  }
+
+  return SandboxServer::sendResponse(request, socket, SandboxServer::Status_NotFound, this);
+}
+
 
 } // End of namespace
 

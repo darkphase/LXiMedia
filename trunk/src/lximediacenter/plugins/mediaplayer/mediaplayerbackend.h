@@ -25,7 +25,8 @@
 
 namespace LXiMediaCenter {
 
-class MediaPlayerBackend : public BackendPlugin
+class MediaPlayerBackend : public BackendPlugin,
+                           protected SandboxServer::Callback
 {
 Q_OBJECT
 public:
@@ -37,6 +38,10 @@ public:
   virtual QString               authorName(void) const;
 
   virtual QList<BackendServer *> createServers(BackendServer::MasterServer *);
+  virtual void                  registerSandbox(SandboxServer *);
+
+protected: // From SandboxServer::Callback
+  virtual SandboxServer::SocketOp handleHttpRequest(const SandboxServer::RequestHeader &, QIODevice *);
 
 private:
   MediaDatabase               * database;

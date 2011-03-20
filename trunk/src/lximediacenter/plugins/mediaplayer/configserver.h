@@ -39,10 +39,10 @@ public:
   static const QSet<QString>  & hiddenDirs(void) __attribute__((pure));
 
 protected: // From HttpServer::Callback
-  virtual HttpServer::SocketOp  handleHttpRequest(const HttpServer::RequestHeader &, QAbstractSocket *);
+  virtual HttpServer::SocketOp  handleHttpRequest(const HttpServer::RequestHeader &, QIODevice *);
 
 private:
-  HttpServer::SocketOp          handleHtmlRequest(const HttpServer::RequestHeader &, QAbstractSocket *, const QString &);
+  HttpServer::SocketOp          handleHtmlRequest(const HttpServer::RequestHeader &, QIODevice *, const QString &);
   void                          generateDirs(HtmlParser &, const QFileInfoList &, int, const QSet<QString> &, const QStringList &);
 
   static const QFileInfoList  & drives(bool rescan = false);

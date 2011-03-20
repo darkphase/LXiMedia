@@ -1,0 +1,390 @@
+/***************************************************************************
+ *   Copyright (C) 2010 by A.J. Admiraal                                   *
+ *   code@admiraal.dds.nl                                                  *
+ *                                                                         *
+ *   This program is free software; you can redistribute it and/or modify  *
+ *   it under the terms of the GNU General Public License version 2 as     *
+ *   published by the Free Software Foundation.                            *
+ *                                                                         *
+ *   This program is distributed in the hope that it will be useful,       *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
+ *   GNU General Public License for more details.                          *
+ *                                                                         *
+ *   You should have received a copy of the GNU General Public License     *
+ *   along with this program; if not, write to the                         *
+ *   Free Software Foundation, Inc.,                                       *
+ *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
+ ***************************************************************************/
+
+#include "httpengine.h"
+#include <QtNetwork>
+
+#if defined(Q_OS_UNIX)
+#include <sys/utsname.h>
+#endif
+
+namespace LXiServer {
+
+const char  * const HttpEngine::httpVersion         = "HTTP/1.1";
+const int           HttpEngine::maxTTL              = 300000;
+const char  * const HttpEngine::fieldConnection     = "CONNECTION";
+const char  * const HttpEngine::fieldContentLength  = "CONTENT-LENGTH";
+const char  * const HttpEngine::fieldContentType    = "CONTENT-TYPE";
+const char  * const HttpEngine::fieldDate           = "DATE";
+const char  * const HttpEngine::fieldHost           = "HOST";
+const char  * const HttpEngine::fieldServer         = "SERVER";
+const char  * const HttpEngine::fieldUserAgent      = "USER-AGENT";
+const char  * const HttpEngine::dateFormat          = "ddd, dd MMM yyyy hh:mm:ss 'GMT'";
+
+HttpEngine::HttpEngine(void)
+{
+}
+
+HttpEngine::~HttpEngine()
+{
+}
+
+const char * HttpEngine::toMimeType(const QString &fileName)
+{
+  const QString ext = QFileInfo(fileName).suffix().toLower();
+
+  if      (ext == "js")     return "application/javascript";
+  else if (ext == "pdf")    return "application/pdf";
+  else if (ext == "xhtml")  return "application/xhtml+xml";
+  else if (ext == "dtd")    return "application/xml-dtd";
+  else if (ext == "zip")    return "application/zip";
+  else if (ext == "m3u")    return "audio/x-mpegurl";
+  else if (ext == "mpa")    return "audio/mpeg";
+  else if (ext == "mp2")    return "audio/mpeg";
+  else if (ext == "mp3")    return "audio/mpeg";
+  else if (ext == "ac3")    return "audio/mpeg";
+  else if (ext == "dts")    return "audio/mpeg";
+  else if (ext == "oga")    return "audio/ogg";
+  else if (ext == "ogg")    return "audio/ogg";
+  else if (ext == "wav")    return "audio/x-wav";
+  else if (ext == "lpcm")   return "audio/L16;rate=48000;channels=2";
+  else if (ext == "jpeg")   return "image/jpeg";
+  else if (ext == "jpg")    return "image/jpeg";
+  else if (ext == "png")    return "image/png";
+  else if (ext == "svg")    return "image/svg+xml";
+  else if (ext == "tiff")   return "image/tiff";
+  else if (ext == "css")    return "text/css;charset=utf-8";
+  else if (ext == "html")   return "text/html;charset=utf-8";
+  else if (ext == "htm")    return "text/html;charset=utf-8";
+  else if (ext == "txt")    return "text/plain;charset=utf-8";
+  else if (ext == "log")    return "text/plain;charset=utf-8";
+  else if (ext == "xml")    return "text/xml;charset=utf-8";
+  else if (ext == "mpeg")   return "video/mpeg";
+  else if (ext == "mpg")    return "video/mpeg";
+  else if (ext == "mp4")    return "video/mpeg";
+  else if (ext == "ts")     return "video/mpeg";
+  else if (ext == "ogv")    return "video/ogg";
+  else if (ext == "ogx")    return "video/ogg";
+  else if (ext == "spx")    return "video/ogg";
+  else if (ext == "qt")     return "video/quicktime";
+  else if (ext == "flv")    return "video/x-flv";
+
+  // For licenses
+  else if (fileName.startsWith("COPYING")) return "text/plain";
+
+  else                      return "application/octet-stream";
+}
+
+
+class HttpServerEngine::SocketHandler : public QRunnable
+{
+public:
+                                SocketHandler(HttpServerEngine *, quintptr);
+
+protected:
+  virtual void                  run();
+
+private:
+  HttpServerEngine      * const parent;
+  const quintptr                socketDescriptor;
+  QTime                         timer;
+  QByteArray                    response;
+};
+
+struct HttpServerEngine::Private
+{
+  inline Private(void) : lock(QReadWriteLock::Recursive) { }
+
+  QReadWriteLock                lock;
+  QString                       senderId;
+  QThreadPool                   threadPool;
+  static const int              maxPendingConnections = 1024;
+  QAtomicInt                    numPendingConnections;
+  QMap<QString, Callback *>     callbacks;
+};
+
+HttpServerEngine::HttpServerEngine(const QString &protocol, QObject *parent)
+  : QObject(parent),
+    p(new Private())
+{
+#if defined(Q_OS_UNIX)
+  struct utsname osname;
+  if (uname(&osname) >= 0)
+    p->senderId = QString(osname.sysname) + "/" + QString(osname.release);
+  else
+    p->senderId = "Unix";
+#elif defined(Q_OS_WIN)
+  p->senderId = "Windows";
+#endif
+
+  if (!protocol.isEmpty())
+    p->senderId += " " + protocol;
+
+  p->senderId += " " + qApp->applicationName() + "/" + qApp->applicationVersion();
+
+  p->threadPool.setMaxThreadCount(qMax(p->maxPendingConnections / 16, QThread::idealThreadCount()));
+  p->numPendingConnections = 0;
+}
+
+HttpServerEngine::~HttpServerEngine()
+{
+  p->threadPool.waitForDone();
+
+  delete p;
+  *const_cast<Private **>(&p) = NULL;
+}
+
+void HttpServerEngine::registerCallback(const QString &path, Callback *callback)
+{
+  QWriteLocker l(&p->lock);
+
+  p->callbacks.insert(path, callback);
+}
+
+void HttpServerEngine::unregisterCallback(Callback *callback)
+{
+  QWriteLocker l(&p->lock);
+
+  for (QMap<QString, Callback *>::Iterator i=p->callbacks.begin(); i!=p->callbacks.end(); )
+  if (i.value() == callback)
+    i = p->callbacks.erase(i);
+  else
+    i++;
+}
+
+QThreadPool * HttpServerEngine::threadPool(void)
+{
+  return &p->threadPool;
+}
+
+const char * HttpServerEngine::senderType(void) const
+{
+  return fieldServer;
+}
+
+const QString & HttpServerEngine::senderId(void) const
+{
+  return p->senderId;
+}
+
+HttpServerEngine::SocketOp HttpServerEngine::sendResponse(const RequestHeader &request, QIODevice *socket, Status status, const QByteArray &content, const QObject *object)
+{
+  if (status >= 400)
+  {
+    qDebug() << "HTTP response:" << int(status) << "\""
+        << ResponseHeader::statusText(status) << "\" for request:"
+        << request.method() << request.path() << "from object: \""
+        << (object ? object->metaObject()->className() : "NULL") << "\"";
+  }
+
+  ResponseHeader response(request, status);
+  response.setContentLength(content.size());
+  socket->write(response);
+  socket->write(content);
+  return SocketOp_Close;
+}
+
+HttpServerEngine::SocketOp HttpServerEngine::sendResponse(const RequestHeader &request, QIODevice *socket, Status status, const QObject *object)
+{
+  return sendResponse(request, socket, status, QByteArray(), object);
+}
+
+HttpServerEngine::SocketOp HttpServerEngine::sendRedirect(const RequestHeader &request, QIODevice *socket, const QString &newUrl)
+{
+  HttpEngine::ResponseHeader response(request, HttpEngine::Status_TemporaryRedirect);
+  response.setField("LOCATION", newUrl);
+  socket->write(response);
+  return SocketOp_Close;
+}
+
+QReadWriteLock * HttpServerEngine::lock(void) const
+{
+  return &p->lock;
+}
+
+bool HttpServerEngine::handleConnection(quintptr socketDescriptor)
+{
+  if (p->numPendingConnections < p->maxPendingConnections)
+  {
+    p->threadPool.start(new SocketHandler(this, socketDescriptor));
+    return true;
+  }
+  else
+    return false;
+}
+
+
+HttpServerEngine::SocketHandler::SocketHandler(HttpServerEngine *parent, quintptr socketDescriptor)
+  : parent(parent),
+    socketDescriptor(socketDescriptor)
+{
+  parent->p->numPendingConnections.ref();
+  timer.start();
+}
+
+void HttpServerEngine::SocketHandler::run()
+{
+  parent->p->numPendingConnections.deref();
+
+  QIODevice *socket = parent->openSocket(socketDescriptor, qMax(maxTTL - qAbs(timer.elapsed()), 0));
+  if (socket)
+  while (socket->canReadLine() || socket->waitForReadyRead(qMax(maxTTL - qAbs(timer.elapsed()), 0)))
+  {
+    const QByteArray line = socket->readLine();
+
+    if (line.trimmed().length() > 0)
+    {
+      response += line;
+    }
+    else // Header complete
+    {
+      response += line;
+
+      const RequestHeader request(response, parent);
+      if (request.isValid())
+      {
+        QReadLocker l(&parent->p->lock);
+
+        const QString path = QUrl(request.path()).path();
+
+        QString dir = path.left(path.lastIndexOf('/') + 1);
+        QMap<QString, Callback *>::ConstIterator callback = parent->p->callbacks.find(dir);
+        while ((callback == parent->p->callbacks.end()) && !dir.isEmpty())
+        {
+          dir = dir.left(dir.left(dir.length() - 1).lastIndexOf('/') + 1);
+          callback = parent->p->callbacks.find(dir);
+        }
+
+        if ((callback != parent->p->callbacks.end()) && dir.startsWith(callback.key()))
+        {
+          if ((*callback)->handleHttpRequest(request, socket) == SocketOp_LeaveOpen)
+            socket = NULL; // The callback took over the socket, it is responsible for closing and deleteing it.
+        }
+        else
+          socket->write(ResponseHeader(request, Status_NotFound));
+      }
+      else
+        socket->write(ResponseHeader(request, Status_BadRequest));
+
+      // Finished.
+      if (socket)
+        parent->closeSocket(socket, false, qMax(maxTTL - qAbs(timer.elapsed()), 0));
+
+      return;
+    }
+  }
+
+  if (socket)
+    parent->closeSocket(socket, false, qMax(maxTTL - qAbs(timer.elapsed()), 0));
+}
+
+
+struct HttpClientEngine::Private
+{
+  QString                       senderId;
+};
+
+HttpClientEngine::HttpClientEngine(QObject *parent)
+  : QObject(parent),
+    p(new Private())
+{
+  p->senderId = qApp->applicationName() + "/" + qApp->applicationVersion();
+
+#if defined(Q_OS_UNIX)
+  struct utsname osname;
+  if (uname(&osname) >= 0)
+    p->senderId += " " + QString(osname.sysname) + "/" + QString(osname.release);
+  else
+    p->senderId += " Unix";
+#elif defined(Q_OS_WIN)
+  p->senderId += " Windows";
+#endif
+}
+
+HttpClientEngine::~HttpClientEngine()
+{
+  delete p;
+  *const_cast<Private **>(&p) = NULL;
+}
+
+const char * HttpClientEngine::senderType(void) const
+{
+  return fieldUserAgent;
+}
+
+const QString & HttpClientEngine::senderId(void) const
+{
+  return p->senderId;
+}
+
+HttpClientEngine::ResponseMessage HttpClientEngine::sendRequest(const RequestMessage &request, int timeout)
+{
+  QTime timer;
+  timer.start();
+
+  QIODevice * const socket = openSocket(request.host(), qMax(maxTTL - qAbs(timer.elapsed()), 0));
+  if (socket)
+  {
+    socket->write(request);
+    while (socket->bytesToWrite() > 0)
+    if (!socket->waitForBytesWritten(qMax(timeout - qAbs(timer.elapsed()), 0)))
+    {
+      qWarning() << "HttpClientEngine: Timeout while writing request";
+      break;
+    }
+
+    QByteArray data;
+    while ((socket->bytesAvailable() > 0) || socket->waitForReadyRead(qMax(timeout - qAbs(timer.elapsed()), 0)))
+    {
+      data += socket->readAll();
+
+      ResponseMessage response(data, this);
+      if (response.isValid() && (response.content().size() >= response.contentLength()))
+      {
+        closeSocket(socket, true, qMax(timeout - qAbs(timer.elapsed()), 0));
+        return response;
+      }
+    }
+
+    qWarning() << "HttpClientEngine: Timeout while reading response for" << request.path();
+
+    closeSocket(socket, true, qMax(timeout - qAbs(timer.elapsed()), 0));
+  }
+
+  return ResponseMessage(request, Status_InternalServerError);
+}
+
+QByteArray HttpClientEngine::sendRequest(const QUrl &url, int timeout)
+{
+  RequestMessage request;
+  request.setRequest("GET", url.encodedPath());
+  request.setHost(url.encodedHost());
+
+  const ResponseMessage response = sendRequest(request, timeout);
+  if (response.status() < Status_MultipleChoices)
+    return response.content();
+
+  qDebug()
+      << "HTTP request" << url.toString()
+      << "failed with status: " << ResponseHeader::statusText(response.status());
+
+  return QByteArray();
+}
+
+} // End of namespace

@@ -39,13 +39,13 @@ const MediaDatabase::CatecoryDesc MediaDatabase::categories[] =
 MediaDatabase::MediaDatabase(Plugin *plugin, ImdbClient *imdbClient)
   : QObject(plugin),
     plugin(plugin),
-    imdbClient(imdbClient)
+    imdbClient(imdbClient),
+    probeSandbox(SandboxClient::Mode_Nice, this)
 {
   PluginSettings settings(plugin);
 
   SDebug::_MutexLocker<SScheduler::Dependency> dl(Database::mutex(), __FILE__, __LINE__);
-  QSqlDatabase db = Database::database();
-  QSqlQuery query(db);
+  Database::Query query;
 
   // Drop all tables if the database version is outdated.
   static const int databaseVersion = 2;
@@ -73,7 +73,7 @@ MediaDatabase::MediaDatabase(Plugin *plugin, ImdbClient *imdbClient)
 
     query.exec("PRAGMA foreign_keys = OFF");
 
-    db.transaction();
+    Database::transaction();
 
     foreach (const QString &name, indices)
       query.exec("DROP INDEX IF EXISTS " + name);
@@ -81,7 +81,7 @@ MediaDatabase::MediaDatabase(Plugin *plugin, ImdbClient *imdbClient)
     foreach (const QString &name, tables)
       query.exec("DROP TABLE IF EXISTS " + name);
 
-    db.commit();
+    Database::commit();
 
     query.exec("PRAGMA foreign_keys = ON");
   }
@@ -136,7 +136,7 @@ MediaDatabase::MediaDatabase(Plugin *plugin, ImdbClient *imdbClient)
 
   settings.setValue("DatabaseVersion", databaseVersion);
 
-  dl.unlock();
+  connect(&probeSandbox, SIGNAL(consoleLine(QString)), SLOT(consoleLine(QString)));
 
   connect(&scanRootsTimer, SIGNAL(timeout()), SLOT(scanRoots()));
 
@@ -184,7 +184,7 @@ MediaDatabase::UniqueID MediaDatabase::fromPath(const QString &path) const
 {
   SDebug::_MutexLocker<SScheduler::Dependency> dl(Database::mutex(), __FILE__, __LINE__);
 
-  QSqlQuery query(Database::database());
+  Database::Query query;
   query.prepare("SELECT uid FROM MediaplayerFiles WHERE path = :path");
   query.bindValue(0, path);
   query.exec();
@@ -213,7 +213,7 @@ SMediaInfo MediaDatabase::readNode(UniqueID uid) const
 
 QByteArray MediaDatabase::readNodeData(UniqueID uid) const
 {
-  QSqlQuery query(Database::database());
+  Database::Query query;
   query.exec("SELECT mediaInfo "
              "FROM MediaplayerFiles WHERE uid = " + QString::number(uid.fid));
   if (query.next())
@@ -279,7 +279,7 @@ QStringList MediaDatabase::allAlbums(Category category) const
 
   QStringList result;
 
-  QSqlQuery query(Database::database());
+  Database::Query query;
   query.prepare("SELECT name FROM MediaplayerAlbums "
                 "WHERE category = :category "
                 "ORDER BY name");
@@ -295,7 +295,7 @@ int MediaDatabase::countAlbumFiles(Category category, const QString &album) cons
 {
   SDebug::_MutexLocker<SScheduler::Dependency> dl(Database::mutex(), __FILE__, __LINE__);
 
-  QSqlQuery query(Database::database());
+  Database::Query query;
   query.prepare("SELECT COUNT(*) FROM MediaplayerItems "
                 "WHERE album IN ("
                   "SELECT id FROM MediaplayerAlbums "
@@ -313,7 +313,7 @@ bool MediaDatabase::hasAlbum(Category category, const QString &album) const
 {
   SDebug::_MutexLocker<SScheduler::Dependency> dl(Database::mutex(), __FILE__, __LINE__);
 
-  QSqlQuery query(Database::database());
+  Database::Query query;
   query.prepare("SELECT COUNT(*) FROM MediaplayerAlbums "
                 "WHERE name = :name AND category = :category");
   query.bindValue(0, album);
@@ -339,7 +339,7 @@ QList<MediaDatabase::File> MediaDatabase::getAlbumFiles(Category category, const
 
   QList<File> result;
 
-  QSqlQuery query(Database::database());
+  Database::Query query;
   query.prepare("SELECT file, title FROM MediaplayerItems "
                 "WHERE album IN ("
                   "SELECT id FROM MediaplayerAlbums "
@@ -381,7 +381,7 @@ QList<MediaDatabase::File> MediaDatabase::queryAlbums(Category category, const Q
   {
     SDebug::_MutexLocker<SScheduler::Dependency> dl(Database::mutex(), __FILE__, __LINE__);
 
-    QSqlQuery query(Database::database());
+    Database::Query query;
     query.prepare("SELECT file, title FROM MediaplayerItems "
                   "WHERE album IN ("
                     "SELECT id FROM MediaplayerAlbums "
@@ -403,7 +403,7 @@ ImdbClient::Entry MediaDatabase::getImdbEntry(UniqueID uid) const
   {
     SDebug::_MutexLocker<SScheduler::Dependency> dl(Database::mutex(), __FILE__, __LINE__);
 
-    QSqlQuery query(Database::database());
+    Database::Query query;
     query.prepare("SELECT imdbLink FROM MediaplayerItems WHERE file = :file");
     query.bindValue(0, uid.fid);
     query.exec();
@@ -419,7 +419,7 @@ QList<MediaDatabase::UniqueID> MediaDatabase::allFilesInDirOf(UniqueID uid) cons
 {
   QList<UniqueID> result;
 
-  QSqlQuery query(Database::database());
+  Database::Query query;
   query.exec("SELECT parentDir FROM MediaplayerFiles WHERE uid = " + QString::number(uid.fid));
   if (query.next())
   {
@@ -457,9 +457,8 @@ void MediaDatabase::scanRoots(void)
   {
     SDebug::_MutexLocker<SScheduler::Dependency> dl(Database::mutex(), __FILE__, __LINE__);
 
-    QSqlDatabase db = Database::database();
-    db.transaction();
-    QSqlQuery query(db);
+    Database::transaction();
+    Database::Query query;
 
     // Scan all root paths recursively
     foreach (const QString &path, allRootPaths)
@@ -509,8 +508,13 @@ void MediaDatabase::scanRoots(void)
 //        sApp->run(this, &MediaDatabase::queryImdbItem, query.value(0).toString(), Category_TVShows, Database::mutex(), matchImdbItemPriority);
     }
 
-    db.commit();
+    Database::commit();
   }
+}
+
+void MediaDatabase::consoleLine(const QString &line)
+{
+  SDebug::LogFile::logLineToActiveLogFile(line);
 }
 
 QString MediaDatabase::findRoot(const QString &path, const QStringList &allRootPaths) const
@@ -540,16 +544,11 @@ QString MediaDatabase::findRoot(const QString &path, const QStringList &allRootP
 
 struct MediaDatabase::QuerySet
 {
-  inline QuerySet(const QSqlDatabase &db)
-    : request(db), insert(db), update(db), children(db), remove(db)
-  {
-  }
-
-  QSqlQuery request;
-  QSqlQuery insert;
-  QSqlQuery update;
-  QSqlQuery children;
-  QSqlQuery remove;
+  Database::Query request;
+  Database::Query insert;
+  Database::Query update;
+  Database::Query children;
+  Database::Query remove;
 };
 
 void MediaDatabase::scanDir(const QString &_path)
@@ -566,10 +565,9 @@ void MediaDatabase::scanDir(const QString &_path)
 
   if (!isHidden(path))
   {
-    QSqlDatabase db = Database::database();
-    db.transaction();
+    Database::transaction();
 
-    QuerySet q(db);
+    QuerySet q;
     q.request.prepare("SELECT uid, parentDir, size, lastModified "
                       "FROM MediaplayerFiles WHERE path = :path");
 
@@ -633,7 +631,7 @@ void MediaDatabase::scanDir(const QString &_path)
       sApp->schedule(this, &MediaDatabase::scanDir, path, Database::mutex(), scanDirPriority);
     }
 
-    db.commit();
+    Database::commit();
   }
 }
 
@@ -773,13 +771,18 @@ void MediaDatabase::probeFile(const QString &_path)
     {
       qDebug() << "Probing:" << path;
 
-      const SMediaInfo mediaInfo(path);
-      const QByteArray mediaInfoXml = mediaInfo.toByteArray(-1);
+      const QByteArray mediaInfoXml = probeSandbox.sendRequest("/mediaprobe/?probe=" + path.toUtf8().toBase64());
+      if (!mediaInfoXml.isEmpty())
+      {
+        SMediaInfo mediaInfo;
+        mediaInfo.fromByteArray(mediaInfoXml);
 
-      sApp->schedule(this, &MediaDatabase::insertFile, mediaInfo, mediaInfoXml, Database::mutex(), insertFilePriority);
+        sApp->schedule(this, &MediaDatabase::insertFile, mediaInfo, mediaInfoXml, Database::mutex(), insertFilePriority);
+        return;
+      }
     }
-    else
-      sApp->schedule(this, &MediaDatabase::delayFile, path, Database::mutex(), insertFilePriority);
+
+    sApp->schedule(this, &MediaDatabase::delayFile, path, Database::mutex(), insertFilePriority);
   }
 
 #ifndef Q_OS_WIN
@@ -791,10 +794,9 @@ void MediaDatabase::insertFile(const SMediaInfo &mediaInfo, const QByteArray &me
 {
   Q_ASSERT(!Database::mutex()->tryLock()); // Mutex should be locked by the caller.
 
-  QSqlDatabase db = Database::database();
-  db.transaction();
+  Database::transaction();
 
-  QSqlQuery query(db);
+  Database::Query query;
   query.prepare("UPDATE MediaplayerFiles "
                 "SET size = :size, mediaInfo = :mediaInfo "
                 "WHERE path = :path");
@@ -887,14 +889,14 @@ void MediaDatabase::insertFile(const SMediaInfo &mediaInfo, const QByteArray &me
     }
   }
 
-  db.commit();
+  Database::commit();
 }
 
 void MediaDatabase::delayFile(const QString &path)
 {
   Q_ASSERT(!Database::mutex()->tryLock()); // Mutex should be locked by the caller.
 
-  QSqlQuery query(Database::database());
+  Database::Query query;
   query.prepare("SELECT size FROM MediaplayerFiles WHERE path = :path");
   query.bindValue(0, path);
   query.exec();
@@ -932,7 +934,7 @@ void MediaDatabase::queryImdbItem(const QString &item, Category category)
 {
   Q_ASSERT(!Database::mutex()->tryLock()); // Mutex should be locked by the caller.
 
-  QSqlQuery query(Database::database());
+  Database::Query query;
 
   if (category != Category_None)
   {
@@ -975,7 +977,7 @@ void MediaDatabase::storeImdbItem(const QString &item, const QString &imdbLink, 
 {
   Q_ASSERT(!Database::mutex()->tryLock()); // Mutex should be locked by the caller.
 
-  QSqlQuery query(Database::database());
+  Database::Query query;
 
   query.prepare("UPDATE MediaplayerItems SET imdbLink = :imdbLink "
                 "WHERE album IN ("

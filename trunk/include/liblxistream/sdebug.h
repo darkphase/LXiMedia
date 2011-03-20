@@ -71,6 +71,7 @@ public:
   static QStringList            errorLogFiles(void);
   static QStringList            allLogFiles(void);
   static QString                activeLogFile(void);
+  static void                   logLineToActiveLogFile(const QString &line);
 };
 
 

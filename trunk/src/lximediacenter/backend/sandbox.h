@@ -17,56 +17,40 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXISERVER_UPNPMEDIASERVER_H
-#define LXISERVER_UPNPMEDIASERVER_H
+#ifndef __SANDBOX_H
+#define __SANDBOX_H
 
 #include <QtCore>
-#include <QtNetwork>
-#include "httpserver.h"
+#include <LXiMediaCenter>
 
-namespace LXiServer {
-
-class SsdpServer;
-
-class UPnPMediaServer : public QObject,
-                        protected HttpServer::Callback
+class Sandbox : public QObject,
+                protected SandboxServer::Callback
 {
 Q_OBJECT
 public:
-  struct Service
-  {
-    QString                     serviceType;
-    QString                     serviceId;
-    QString                     descriptionUrl;
-    QString                     controlURL;
-    QString                     eventSubURL;
-  };
+                                Sandbox(void);
+  virtual                       ~Sandbox();
 
-public:
-  explicit                      UPnPMediaServer(const QString &basePath, QObject * = NULL);
-  virtual                       ~UPnPMediaServer();
+  void                          start(const QString &name, const QString &mode);
 
-  void                          initialize(HttpServer *, SsdpServer *);
-  void                          close(void);
+public slots:
+  void                          stop(void);
 
-  void                          addIcon(const QString &url, unsigned width, unsigned height, unsigned depth);
+protected:
+  virtual void                  customEvent(QEvent *);
 
-  void                          registerService(const Service &);
-
-protected: // From HttpServer::Callback
-  virtual HttpServer::SocketOp  handleHttpRequest(const HttpServer::RequestHeader &, QIODevice *);
-
-public:
-  static const char     * const dlnaDeviceNS;
+protected: // From SandboxServer::Callback
+  virtual SandboxServer::SocketOp handleHttpRequest(const SandboxServer::RequestHeader &, QIODevice *);
 
 private:
-  static const char     * const deviceType;
+  static const QEvent::Type     exitEventType;
 
-  struct Data;
-  Data                  * const d;
+  SandboxServer                 sandboxServer;
+  SApplication                * streamApp;
+
+  QList<BackendPlugin *>        backendPlugins;
+
+  QTimer                        stopTimer;
 };
-
-
-} // End of namespace
 
 #endif

@@ -172,7 +172,7 @@ void UPnPGenaServer::timerEvent(QTimerEvent *e)
     QObject::timerEvent(e);
 }
 
-HttpServer::SocketOp UPnPGenaServer::handleHttpRequest(const HttpServer::RequestHeader &request, QAbstractSocket *socket)
+HttpServer::SocketOp UPnPGenaServer::handleHttpRequest(const HttpServer::RequestHeader &request, QIODevice *socket)
 {
   if (request.path() == path())
   {

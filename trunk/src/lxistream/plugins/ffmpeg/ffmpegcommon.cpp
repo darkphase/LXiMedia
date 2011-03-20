@@ -666,13 +666,20 @@ void FFMpegCommon::log(void *, int level, const char *fmt, va_list vl)
   {
     //const ::AVClass * const * const c = reinterpret_cast<const ::AVClass * const *>(ptr);
 
-    char buffer[4096];
+    char buffer[4096] = { '\0' };
     ::vsnprintf(buffer, sizeof(buffer), fmt, vl);
+
+    // Trim trailing whitespace.
+    for (int i=strnlen(buffer, sizeof(buffer)); i>=0; i--)
+    if ((buffer[i] >= '\0') && (buffer[i] <= ' '))
+      buffer[i] = '\0';
+    else
+      break;
 
     if (level >= AV_LOG_INFO)
       qDebug("FFMpeg: %s", buffer);
     else if (level >= AV_LOG_FATAL)
-      qDebug("FFMpeg: %s", buffer);
+      qWarning("FFMpeg: %s", buffer);
 #ifdef AV_LOG_PANIC
     else if (level >= AV_LOG_PANIC)
       qFatal("FFMpeg: %s", buffer);

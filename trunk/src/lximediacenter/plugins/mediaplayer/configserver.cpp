@@ -42,7 +42,7 @@ ConfigServer::~ConfigServer()
   masterServer()->httpServer()->unregisterCallback(this);
 }
 
-HttpServer::SocketOp ConfigServer::handleHttpRequest(const HttpServer::RequestHeader &request, QAbstractSocket *socket)
+HttpServer::SocketOp ConfigServer::handleHttpRequest(const HttpServer::RequestHeader &request, QIODevice *socket)
 {
   const QUrl url(request.path());
   const QString file = request.file();

@@ -101,6 +101,7 @@ signals:
 
 private slots:
   void                          scanRoots(void);
+  void                          consoleLine(const QString &);
 
 private:
   QByteArray                    readNodeData(UniqueID) const;
@@ -131,6 +132,8 @@ private:
 
   Plugin                * const plugin;
   ImdbClient            * const imdbClient;
+
+  SandboxClient                 probeSandbox;
 
   QTimer                        scanRootsTimer;
   QMap<QString, QStringList>    rootPaths;

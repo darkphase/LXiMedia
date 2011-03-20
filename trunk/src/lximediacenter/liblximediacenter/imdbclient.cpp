@@ -78,8 +78,7 @@ ImdbClient::ImdbClient(QObject *parent)
     }
 
     SDebug::_MutexLocker<SScheduler::Dependency> dl(Database::mutex(), __FILE__, __LINE__);
-    QSqlDatabase db = Database::database();
-    QSqlQuery query(db);
+    Database::Query query;
 
     // Drop all tables if the database version is outdated.
     static const int imdbDatabaseVersion = 1;
@@ -107,7 +106,7 @@ ImdbClient::ImdbClient(QObject *parent)
 
       query.exec("PRAGMA foreign_keys = OFF");
 
-      db.transaction();
+      Database::transaction();
 
       foreach (const QString &name, indices)
         query.exec("DROP INDEX IF EXISTS " + name);
@@ -115,7 +114,7 @@ ImdbClient::ImdbClient(QObject *parent)
       foreach (const QString &name, tables)
         query.exec("DROP TABLE IF EXISTS " + name);
 
-      db.commit();
+      Database::commit();
 
       query.exec("PRAGMA foreign_keys = ON");
     }
@@ -189,7 +188,7 @@ bool ImdbClient::isAvailable(void)
   if (available == 0)
   {
     // Check for the sentinel entry indicating the last import has completed.
-    QSqlQuery query(Database::database());
+    Database::Query query;
     query.exec("SELECT title FROM ImdbEntries WHERE rawName = '#SENTINEL'");
     if (!query.next())
     {
@@ -224,8 +223,7 @@ ImdbClient::Entry ImdbClient::readEntry(const QString &rawName)
 
   if (rawName != sentinelItem)
   {
-    QSqlQuery query(Database::database());
-
+    Database::Query query;
     query.prepare("SELECT rawName, title, type, year, episodeName, "
                   "       episodeNumber, seasonNumber, plot, rating "
                   "FROM ImdbEntries WHERE rawName = :rawName");
@@ -271,7 +269,7 @@ QStringList ImdbClient::findSimilar(const QString &title, Type type)
   QStringList result;
   if (!q.isEmpty())
   {
-    QSqlQuery query(Database::database());
+    Database::Query query;
     query.exec("SELECT rawName, year FROM ImdbEntries "
                "WHERE type = " + QString::number(type) + " "
                "AND (" + q + ")");
@@ -339,14 +337,13 @@ void ImdbClient::customEvent(QEvent *e)
 void ImdbClient::importIMDBDatabase(void)
 {
   // Remove the sentinel entry indicating the last import has completed.
-  SDebug::_MutexLocker<SScheduler::Dependency> dl(Database::mutex(), __FILE__, __LINE__);
+  {
+    SDebug::_MutexLocker<SScheduler::Dependency> dl(Database::mutex(), __FILE__, __LINE__);
 
-  available = 0;
+    available = 0;
 
-  QSqlQuery query(Database::database());
-  query.exec("DELETE FROM ImdbEntries WHERE rawName = '#SENTINEL'");
-
-  dl.unlock();
+    Database::Query("DELETE FROM ImdbEntries WHERE rawName = '#SENTINEL'").exec();
+  }
 
   SDebug::_MutexLocker<SScheduler::Dependency> l(&mutex, __FILE__, __LINE__);
   if (moviesFile.open(QIODevice::ReadOnly) &&
@@ -421,10 +418,9 @@ void ImdbClient::insertIMDBMoviesListLines(const MoviesListLines &lines)
 {
   Q_ASSERT(!Database::mutex()->tryLock()); // Mutex should be locked by the caller.
 
-  QSqlDatabase db = Database::database();
-  db.transaction();
+  Database::transaction();
 
-  QSqlQuery query(db);
+  Database::Query query;
   query.prepare("INSERT OR REPLACE INTO ImdbEntries VALUES ("
                 ":rawName, :title, :type, :year, :episodeName, "
                 ":episodeNumber, :seasonNumber, :plot, :rating)");
@@ -439,7 +435,7 @@ void ImdbClient::insertIMDBMoviesListLines(const MoviesListLines &lines)
   query.bindValue(8, lines.rating);
   query.execBatch();
 
-  db.commit();
+  Database::commit();
 }
 
 struct ImdbClient::PlotListLines
@@ -508,16 +504,15 @@ void ImdbClient::insertIMDBPlotListLines(const PlotListLines &lines)
 {
   Q_ASSERT(!Database::mutex()->tryLock()); // Mutex should be locked by the caller.
 
-  QSqlDatabase db = Database::database();
-  db.transaction();
+  Database::transaction();
 
-  QSqlQuery query(db);
+  Database::Query query;
   query.prepare("UPDATE ImdbEntries SET plot = :plot WHERE rawName = :rawName");
   query.bindValue(0, lines.plot);
   query.bindValue(1, lines.rawName);
   query.execBatch();
 
-  db.commit();
+  Database::commit();
 }
 
 struct ImdbClient::RatingListLines
@@ -578,24 +573,22 @@ void ImdbClient::insertIMDBRatingListLines(const RatingListLines &lines)
 {
   Q_ASSERT(!Database::mutex()->tryLock()); // Mutex should be locked by the caller.
 
-  QSqlDatabase db = Database::database();
-  db.transaction();
+  Database::transaction();
 
-  QSqlQuery query(db);
+  Database::Query query;
   query.prepare("UPDATE ImdbEntries SET rating = :rating WHERE rawName = :rawName");
   query.bindValue(0, lines.rating);
   query.bindValue(1, lines.rawName);
   query.execBatch();
 
-  db.commit();
+  Database::commit();
 }
 
 void ImdbClient::insertSentinelItem(void)
 {
   Q_ASSERT(!Database::mutex()->tryLock()); // Mutex should be locked by the caller.
 
-  QSqlQuery query(Database::database());
-  query.exec("INSERT INTO ImdbEntries VALUES ('#SENTINEL', '', 0, 0, '', 0, 0, '', 0.0)");
+  Database::Query("INSERT INTO ImdbEntries VALUES ('#SENTINEL', '', 0, 0, '', 0, 0, '', 0.0)").exec();
 }
 
 ImdbClient::Entry ImdbClient::decodeEntry(const QByteArray &line)
