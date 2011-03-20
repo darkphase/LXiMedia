@@ -58,9 +58,7 @@ public:
 
 private:
   static void                   log(void * ptr, int level, const char* fmt, va_list vl);
-
-public:
-  static QMutex               * mutex(void);
+  static int                    lock(void **mutex, AVLockOp op);
 
 private:
   static int                    logLevel;

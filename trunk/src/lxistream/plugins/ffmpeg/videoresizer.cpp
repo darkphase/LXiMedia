@@ -37,8 +37,6 @@ VideoResizer::VideoResizer(const QString &scheme, QObject *parent)
 
 VideoResizer::~VideoResizer()
 {
-  SDebug::MutexLocker f(FFMpegCommon::mutex(), __FILE__, __LINE__);
-
   if (swsContext)
   {
     sws_freeContext(swsContext);

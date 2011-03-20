@@ -25,13 +25,6 @@ namespace FFMpegBackend {
 int   FFMpegCommon::logLevel = AV_LOG_QUIET;
 bool  FFMpegCommon::logDisabled = false;
 
-QMutex * FFMpegCommon::mutex(void)
-{
-  static QMutex m(QMutex::Recursive);
-
-  return &m;
-}
-
 void FFMpegCommon::init(bool verbose)
 {
   static bool initialized = false;
@@ -48,9 +41,8 @@ void FFMpegCommon::init(bool verbose)
   {
     initialized = true;
 
-    mutex();
-
     ::av_log_set_callback(&FFMpegCommon::log);
+    ::av_lockmgr_register(&FFMpegCommon::lock);
     ::av_register_all();
   }
 }
@@ -680,7 +672,7 @@ void FFMpegCommon::log(void *, int level, const char *fmt, va_list vl)
     if (level >= AV_LOG_INFO)
       qDebug("FFMpeg: %s", buffer);
     else if (level >= AV_LOG_FATAL)
-      qWarning("FFMpeg: %s", buffer);
+      qDebug("FFMpeg: %s", buffer);
 #ifdef AV_LOG_PANIC
     else if (level >= AV_LOG_PANIC)
       qFatal("FFMpeg: %s", buffer);
@@ -688,6 +680,30 @@ void FFMpegCommon::log(void *, int level, const char *fmt, va_list vl)
     else
       qDebug("FFMpeg: %s", buffer);
   }
+}
+
+int FFMpegCommon::lock(void **mutex, AVLockOp op)
+{
+  switch (op)
+  {
+  case AV_LOCK_CREATE:
+    *mutex = new QMutex();
+    return 0;
+
+  case AV_LOCK_OBTAIN:
+    static_cast<QMutex *>(*mutex)->lock();
+    return 0;
+
+  case AV_LOCK_RELEASE:
+    static_cast<QMutex *>(*mutex)->unlock();
+    return 0;
+
+  case AV_LOCK_DESTROY:
+    delete static_cast<QMutex *>(*mutex);
+    return 0;
+  }
+
+  return -1;
 }
 
 } } // End of namespaces

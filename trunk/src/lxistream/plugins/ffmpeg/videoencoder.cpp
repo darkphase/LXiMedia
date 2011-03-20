@@ -45,8 +45,6 @@ VideoEncoder::VideoEncoder(const QString &, QObject *parent)
 
 VideoEncoder::~VideoEncoder()
 {
-  SDebug::MutexLocker f(FFMpegCommon::mutex(), __FILE__, __LINE__);
-
   if (codecHandle && contextHandle)
     avcodec_close(contextHandle);
 
@@ -61,8 +59,6 @@ bool VideoEncoder::openCodec(const SVideoCodec &c, Flags flags)
 {
   if (contextHandle)
     qFatal("VideoEncoder already opened a codec.");
-
-  SDebug::MutexLocker f(FFMpegCommon::mutex(), __FILE__, __LINE__);
 
   outCodec = c;
 

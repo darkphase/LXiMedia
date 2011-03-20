@@ -172,9 +172,6 @@ void Log::logMessage(QtMsgType type, const char *msg)
   if (defaultMsgHandler)
     defaultMsgHandler(type, msg);
 
-  // In debug mode, all messages except a debug message crash the application so
-  // that it can be debugged easily. In release mode only fatal messages crash
-  // the application.
   if (type == QtFatalMsg)
     *((int *)0) = 0; // Deliberate crash
 }
