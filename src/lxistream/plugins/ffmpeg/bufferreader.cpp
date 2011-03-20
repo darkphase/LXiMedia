@@ -91,10 +91,7 @@ bool BufferReader::start(ReadCallback *rc, ProduceCallback *pc, quint16 programI
 
     ioContext->is_streamed = streamed;
 
-    ::AVFormatParameters ap;
-    memset(&ap, 0, sizeof(ap));
-
-    if (::av_open_input_stream(&formatContext, ioContext, "", format, &ap) == 0)
+    if (::av_open_input_stream(&formatContext, ioContext, "", format, NULL) == 0)
     {
       formatContext->flags |= AVFMT_FLAG_GENPTS;
       formatContext->max_analyze_duration = 30 * AV_TIME_BASE;

@@ -189,7 +189,7 @@ bool ImdbClient::isAvailable(void)
   {
     // Check for the sentinel entry indicating the last import has completed.
     Database::Query query;
-    query.exec("SELECT title FROM ImdbEntries WHERE rawName = '#SENTINEL'");
+    query.exec("SELECT title FROM ImdbEntries WHERE rawName = '" + QString(sentinelItem) + "'");
     if (!query.next())
     {
       available = -1;
@@ -342,7 +342,7 @@ void ImdbClient::importIMDBDatabase(void)
 
     available = 0;
 
-    Database::Query("DELETE FROM ImdbEntries WHERE rawName = '#SENTINEL'").exec();
+    Database::Query("DELETE FROM ImdbEntries WHERE rawName = '" + QString(sentinelItem) + "'").exec();
   }
 
   SDebug::_MutexLocker<SScheduler::Dependency> l(&mutex, __FILE__, __LINE__);
@@ -405,7 +405,7 @@ void ImdbClient::readIMDBMoviesListLines(qint64 pos)
 
       if (finished)
       {
-        qDebug() << "IMDB import: Finished parsing movies.list, Parsing plot.list";
+        qDebug() << "IMDB import: Finished parsing movies.list, parsing plot.list";
         sApp->schedule(this, &ImdbClient::readIMDBPlotListLines, Q_INT64_C(0), &mutex, basePriority);
       }
       else
@@ -491,7 +491,7 @@ void ImdbClient::readIMDBPlotListLines(qint64 pos)
 
       if (finished)
       {
-        qDebug() << "IMDB import: Finished parsing plot.list, Parsing ratings.list";
+        qDebug() << "IMDB import: Finished parsing plot.list, parsing ratings.list";
         sApp->schedule(this, &ImdbClient::readIMDBRatingListLines, Q_INT64_C(0), &mutex, basePriority);
       }
       else
@@ -560,7 +560,7 @@ void ImdbClient::readIMDBRatingListLines(qint64 pos)
 
       if (finished)
       {
-        qDebug() << "IMDB import: Finished parsing ratings.list";
+        qDebug() << "IMDB import: Finished parsing ratings.list, storing data.";
         sApp->schedule(this, &ImdbClient::insertSentinelItem, Database::mutex(), insertPriority);
       }
       else
@@ -587,8 +587,11 @@ void ImdbClient::insertIMDBRatingListLines(const RatingListLines &lines)
 void ImdbClient::insertSentinelItem(void)
 {
   Q_ASSERT(!Database::mutex()->tryLock()); // Mutex should be locked by the caller.
+  Q_ASSERT(!isAvailable());
 
-  Database::Query("INSERT INTO ImdbEntries VALUES ('#SENTINEL', '', 0, 0, '', 0, 0, '', 0.0)").exec();
+  qDebug() << "IMDB import: Finished storing data.";
+
+  Database::Query("INSERT INTO ImdbEntries VALUES ('" + QString(sentinelItem) + "', '', 0, 0, '', 0, 0, '', 0.0)").exec();
 }
 
 ImdbClient::Entry ImdbClient::decodeEntry(const QByteArray &line)
