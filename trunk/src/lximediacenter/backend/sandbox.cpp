@@ -61,6 +61,8 @@ Sandbox::~Sandbox()
 
   qDebug() << "Stopped sandbox process" << qApp->applicationPid();
 
+  sandboxServer.close();
+
   // Shutdown LXiStream
   delete streamApp;
 }

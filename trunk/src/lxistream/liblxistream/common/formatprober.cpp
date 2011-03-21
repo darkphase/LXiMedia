@@ -99,6 +99,11 @@ void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *callback)
       else
         pi.title = info.completeBaseName();
     }
+    else if (rawImageSuffixes().contains(suffix))
+    {
+      pi.fileTypeName = imageDescription(suffix);
+      pi.isProbed = true; // Don't probe RAW image formats.
+    }
 
     if (pi.title.length() <= 3)
       pi.title = info.completeBaseName();
@@ -441,8 +446,6 @@ const QSet<QString> & FormatProber::imageSuffixes(void)
     suffixes += "svg";
     suffixes += "tif";
     suffixes += "tiff";
-
-    suffixes += rawImageSuffixes();
   }
 
   return suffixes;

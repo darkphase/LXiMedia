@@ -44,7 +44,7 @@ void Module::registerClasses(void)
 #endif
 
   // Format prober
-  FormatProber::registerClass<FormatProber>(0);
+  FormatProber::registerClass<FormatProber>(-1); // A very expensive prober, try a cheaper one first.
 
   // Codecs
   const QSet<QString> buggyDecoders = QSet<QString>()

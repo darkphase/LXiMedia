@@ -451,8 +451,12 @@ void SMediaInfo::probe(const QString &filePath)
     Callback callback(filePath);
     foreach (SInterfaces::FormatProber *prober, SInterfaces::FormatProber::create(NULL))
     {
-      callback.seek(0, SEEK_SET);
-      prober->probeMetadata(*pi, &callback);
+      if (!pi->isProbed)
+      {
+        callback.seek(0, SEEK_SET);
+        prober->probeMetadata(*pi, &callback);
+      }
+
       delete prober;
     }
 

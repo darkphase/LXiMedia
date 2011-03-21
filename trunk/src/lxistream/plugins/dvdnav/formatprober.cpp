@@ -60,6 +60,7 @@ void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *callback)
 
       pi.format = BufferReader::formatName;
       pi.isReadable = true;
+      pi.isProbed = true;
 
       pi.title = bufferReader.discTitle();
 
@@ -72,7 +73,7 @@ void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *callback)
           ProbeInfo fpi;
           foreach (SInterfaces::FormatProber *prober, SInterfaces::FormatProber::create(NULL))
           {
-            if (qobject_cast<FormatProber *>(prober) == NULL)
+            if ((qobject_cast<FormatProber *>(prober) == NULL) && !fpi.isProbed)
             {
               bufferReader.setPosition(STime::null);
               prober->probeMetadata(fpi, &bufferReader);

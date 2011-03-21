@@ -88,7 +88,7 @@ void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *readCallback)
     QByteArray data(SInterfaces::FormatProber::defaultProbeSize, 0);
     data.resize(readCallback->read(reinterpret_cast<uchar *>(data.data()), data.size()));
 
-    QList<SInterfaces::FormatProber::Format> formats = probeFormat(data, readCallback->path);
+    QList<SInterfaces::FormatProber::Format> formats = FormatProber::probeFormat(data, readCallback->path);
     if (!formats.isEmpty())
     {
       pi.format = formats.first().name;

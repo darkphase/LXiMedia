@@ -56,33 +56,39 @@ void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *readCallback)
     const qint64 size = readCallback->seek(0, -1);
     if ((size > 0) && (size <= (16384 * 1024)))
     {
-      QByteArray data(size, 0);
-      data.resize(readCallback->read(reinterpret_cast<uchar *>(data.data()), data.size()));
+      QByteArray data;
+      data.reserve(qMax(Q_INT64_C(4), size) + 1); // Terminating \0.
+      data.resize(readCallback->read(reinterpret_cast<uchar *>(data.data()), 4));
 
-      const SImage image = SImage::fromData(data);
-      if (!image.isNull())
+      if (!FormatProber::probeFormat(data, readCallback->path).isEmpty())
       {
-        pi.isProbed = true;
-        pi.isReadable = true;
+        data.resize(readCallback->read(reinterpret_cast<uchar *>(data.data() + 4), data.capacity() - 5));
 
-        if (pi.programs.isEmpty())
-          pi.programs.append(ProbeInfo::Program());
-
-        ProbeInfo::Program &program = pi.programs.first();
-
-        program.imageCodec = SVideoCodec(program.imageCodec.codec(), image.size());
-
-        if ((program.imageCodec.size().width() >= 256) && (program.imageCodec.size().height() >= 256))
+        const SImage image = SImage::fromData(data);
+        if (!image.isNull())
         {
-          SImage thumbnail;
-          if ((program.imageCodec.size().width() >= 1024) || (program.imageCodec.size().height() >= 1024))
-            thumbnail = image.scaled(256, 256, Qt::KeepAspectRatio, Qt::FastTransformation);
-          else
-            thumbnail = image.scaled(256, 256, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+          pi.isProbed = true;
+          pi.isReadable = true;
 
-          QBuffer b;
-          if (thumbnail.save(&b, "JPEG", 50))
-            program.thumbnail = b.data();
+          if (pi.programs.isEmpty())
+            pi.programs.append(ProbeInfo::Program());
+
+          ProbeInfo::Program &program = pi.programs.first();
+
+          program.imageCodec = SVideoCodec(program.imageCodec.codec(), image.size());
+
+          if ((program.imageCodec.size().width() >= 256) && (program.imageCodec.size().height() >= 256))
+          {
+            SImage thumbnail;
+            if ((program.imageCodec.size().width() >= 1024) || (program.imageCodec.size().height() >= 1024))
+              thumbnail = image.scaled(256, 256, Qt::KeepAspectRatio, Qt::FastTransformation);
+            else
+              thumbnail = image.scaled(256, 256, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+
+            QBuffer b;
+            if (thumbnail.save(&b, "JPEG", 50))
+              program.thumbnail = b.data();
+          }
         }
       }
     }

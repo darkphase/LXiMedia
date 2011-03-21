@@ -222,7 +222,9 @@ public:
   virtual QList<Format>         probeFormat(const QByteArray &buffer, const QString &filePath) = 0;
 
   /*! Should probe the provided object and retrieve as much information from it
-      as possible.
+      as possible. Note that for probing a file, probeMetadata() should be
+      invoked on all probers returned by create() until probeInfo.isProbed is
+      set to true.
 
       \param probeInfo          The ProbeInfo structure that needs to be filled
                                 with data.
