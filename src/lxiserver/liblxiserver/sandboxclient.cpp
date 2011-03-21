@@ -30,7 +30,7 @@ struct SandboxClient::Private
   QString                       name;
   QString                       mode;
 
-  QProcess                      serverProcess;
+  QProcess                    * serverProcess;
   bool                          serverStarted;
 };
 
@@ -46,18 +46,24 @@ SandboxClient::SandboxClient(Mode mode, QObject *parent)
   case Mode_Nice:   p->mode = "nice";   break;
   }
 
+  p->serverProcess = NULL;
   p->serverStarted = false;
 }
 
 SandboxClient::~SandboxClient()
 {
-  if (p->serverProcess.state() != QProcess::NotRunning)
+  if (p->serverProcess)
   {
-    sendRequest("/?exit", 250);
-    p->serverProcess.waitForFinished(250);
-    p->serverProcess.kill();
+    if (p->serverProcess->state() != QProcess::NotRunning)
+    {
+      sendRequest("/?exit", 250);
+      p->serverProcess->waitForFinished(250);
+    }
+
+    p->serverProcess->kill();
   }
 
+  delete p->serverProcess;
   delete p;
   *const_cast<Private **>(&p) = NULL;
 }
@@ -84,37 +90,51 @@ void SandboxClient::customEvent(QEvent *e)
     HttpClientEngine::customEvent(e);
 }
 
-QIODevice * SandboxClient::openSocket(const QString &host, int timeout)
+QIODevice * SandboxClient::openSocket(const QString &host, int maxTimeout)
 {
   Q_ASSERT(host == p->name);
 
+  const int timeout = qMin(10000, maxTimeout); // Should take no more than 10 seconds
   QTime timer;
   timer.start();
 
-  QMutexLocker l(&p->mutex);
-
-  if (p->serverProcess.state() != QProcess::Running)
+  for (unsigned i=0; i<3; i++)
   {
-    if (QThread::currentThread() != thread())
+    QMutexLocker l(&p->mutex);
+
+    if ((p->serverProcess == NULL) || (p->serverProcess->state() != QProcess::Running))
     {
-      QSemaphore sem;
-      QCoreApplication::postEvent(this, new StartServerEvent(&sem, qMax(timeout - qAbs(timer.elapsed()), 0)));
-      sem.acquire(1);
+      if (QThread::currentThread() != thread())
+      {
+        QSemaphore sem;
+        QCoreApplication::postEvent(this, new StartServerEvent(&sem, qMax(timeout - qAbs(timer.elapsed()), 0)));
+        sem.acquire(1);
+      }
+      else
+        startServer(5000);
     }
-    else
-      startServer(qMax(timeout - qAbs(timer.elapsed()), 0));
-  }
 
-  if (p->serverProcess.state() == QProcess::Running)
-  {
-    l.unlock();
+    if (p->serverProcess && (p->serverProcess->state() == QProcess::Running))
+    {
+      l.unlock();
 
-    QLocalSocket * const socket = new QLocalSocket();
-    socket->connectToServer(p->name);
-    if (socket->waitForConnected(qMax(timeout - qAbs(timer.elapsed()), 0)))
-      return socket;
+      QLocalSocket * const socket = new QLocalSocket();
+      socket->connectToServer(p->name);
+      if (socket->waitForConnected(qMax(timeout - qAbs(timer.elapsed()), 0)))
+        return socket;
 
-    delete socket;
+      if (timeout - qAbs(timer.elapsed()) > 0)
+      {
+        l.relock();
+
+        // There is something wrong with the server, kill it and try again ...
+        p->serverProcess->kill();
+        delete p->serverProcess;
+        p->serverProcess = NULL;
+      }
+
+      delete socket;
+    }
   }
 
   return NULL;
@@ -140,34 +160,44 @@ void SandboxClient::closeSocket(QIODevice *device, bool, int timeout)
 
 void SandboxClient::startServer(int timeout)
 {
+  Q_ASSERT(!p->mutex.tryLock()); //Should be locked by the caller.
+  Q_ASSERT(QThread::currentThread() == thread());
+
   QTime timer;
   timer.start();
 
-  if (p->serverProcess.state() == QProcess::NotRunning)
+  if (p->serverProcess == NULL)
   {
-    p->serverProcess.start(
+    p->serverProcess = new QProcess(this);
+
+    connect(p->serverProcess, SIGNAL(finished(int, QProcess::ExitStatus)), SLOT(serverFinished(int, QProcess::ExitStatus)));
+  }
+
+  if (p->serverProcess->state() == QProcess::NotRunning)
+  {
+    p->serverProcess->start(
         qApp->applicationFilePath(),
         QStringList() << "--sandbox" << p->name << p->mode);
 
     p->serverStarted = false;
   }
 
-  if (p->serverProcess.state() == QProcess::Starting)
+  if (p->serverProcess->state() == QProcess::Starting)
   {
-    p->serverProcess.waitForStarted(qMax(timeout - qAbs(timer.elapsed()), 0));
+    p->serverProcess->waitForStarted(qMax(timeout - qAbs(timer.elapsed()), 0));
   }
 
   if (!p->serverStarted)
   {
-    p->serverProcess.setReadChannel(QProcess::StandardError);
-    while (p->serverProcess.waitForReadyRead(qMax(timeout - qAbs(timer.elapsed()), 0)))
-    while (p->serverProcess.canReadLine())
+    p->serverProcess->setReadChannel(QProcess::StandardError);
+    while (p->serverProcess->waitForReadyRead(qMax(timeout - qAbs(timer.elapsed()), 0)))
+    while (p->serverProcess->canReadLine())
     {
-      const QByteArray line = p->serverProcess.readLine();
+      const QByteArray line = p->serverProcess->readLine();
       if (line.startsWith("##READY"))
       {
-        connect(&p->serverProcess, SIGNAL(readyRead()), this, SLOT(readConsole()));
-        readConsole();
+        connect(p->serverProcess, SIGNAL(readyRead()), SLOT(readConsole()));
+        QTimer::singleShot(15, this, SLOT(readConsole()));
 
         p->serverStarted = true;
         return;
@@ -180,18 +210,40 @@ void SandboxClient::startServer(int timeout)
 
 void SandboxClient::readConsole(void)
 {
-  if (p->serverProcess.state() == QProcess::Running)
-  while (p->serverProcess.canReadLine())
-    emit consoleLine(QString::fromUtf8(p->serverProcess.readLine()));
+  QMutexLocker l(&p->mutex);
+
+  if (p->serverProcess && (p->serverProcess->state() == QProcess::Running))
+  while (p->serverProcess->canReadLine())
+  {
+    const QByteArray line = p->serverProcess->readLine();
+    if (line.startsWith("##STOP"))
+    {
+      qDebug() << "Sandbox process" << p->serverProcess->pid() << "was closed";
+
+      // Let the process terminate by itself
+      disconnect(p->serverProcess, SIGNAL(readyRead()), this, SLOT(readConsole()));
+      disconnect(p->serverProcess, SIGNAL(finished(int, QProcess::ExitStatus)), this, SLOT(serverFinished(int, QProcess::ExitStatus)));
+      QTimer::singleShot(250, p->serverProcess, SLOT(kill()));
+      QTimer::singleShot(1000, p->serverProcess, SLOT(deleteLater()));
+      p->serverProcess = NULL;
+      return;
+    }
+    else
+      emit consoleLine(QString::fromUtf8(line));
+  }
 }
 
-void SandboxClient::serverFinished(int, QProcess::ExitStatus exitStatus)
+void SandboxClient::serverFinished(int exitCode, QProcess::ExitStatus)
 {
-  disconnect(&p->serverProcess, SIGNAL(readyRead()), this, SLOT(readConsole()));
+  QMutexLocker l(&p->mutex);
 
-  // Restart on crash
-  if (exitStatus == QProcess::CrashExit)
-    startServer(0);
+  if (p->serverProcess)
+  {
+    qDebug() << "Sandbox process" << p->serverProcess->pid() << "terminated with exit code" << exitCode;
+
+    p->serverProcess->deleteLater();
+    p->serverProcess = NULL;
+  }
 }
 
 } // End of namespace

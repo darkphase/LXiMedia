@@ -41,7 +41,7 @@ void Module::registerClasses(void)
   FormatProber::videoSuffixes();
   FormatProber::imageSuffixes();
   FormatProber::rawImageSuffixes();
-  FormatProber::registerClass<FormatProber>(1);
+  FormatProber::registerClass<FormatProber>(INT_MAX); // This one always first.
 
   // Codecs
   PcmAudioDecoder::registerClass<PcmAudioDecoder>(SFactory::Scheme(1, "PCM/S16LE"));

@@ -93,6 +93,8 @@ void SandboxServer::close(void)
   p->server = NULL;
 
   threadPool()->waitForDone();
+
+  std::cerr << "##STOP" << std::endl;
 }
 
 QIODevice * SandboxServer::openSocket(quintptr socketDescriptor, int)
