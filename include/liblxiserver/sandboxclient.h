@@ -49,6 +49,9 @@ private:
   };
 
 public:
+  static QString              & sandboxApplication(void);
+
+public:
   explicit                      SandboxClient(Mode, QObject * = NULL);
   virtual                       ~SandboxClient();
 

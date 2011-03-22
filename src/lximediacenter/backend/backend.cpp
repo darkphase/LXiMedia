@@ -44,6 +44,8 @@ Backend::Backend()
     backendPlugins(),
     backendServers()
 {
+  SandboxClient::sandboxApplication() = "\"" + qApp->applicationFilePath() + "\" --sandbox";
+
   // Initialize LXiStream
   QDir logDir(GlobalSettings::applicationDataDir() + "/log");
   if (!logDir.exists())

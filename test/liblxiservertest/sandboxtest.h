@@ -17,36 +17,27 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef __SANDBOX_H
-#define __SANDBOX_H
-
 #include <QtCore>
-#include <LXiMediaCenter>
+#include <QtNetwork>
 
-class Sandbox : public QObject
+namespace LXiServer { class SandboxClient; }
+
+class SandboxTest : public QObject
 {
 Q_OBJECT
 public:
-                                Sandbox(void);
-  virtual                       ~Sandbox();
+  static int                    startSandbox(const QString &, const QString &);
 
-  void                          start(const QString &name, const QString &mode);
+public:
+  inline explicit               SandboxTest(QObject *parent) : QObject(parent), sandboxClient(NULL) { }
 
-public slots:
-  void                          stop(void);
+private slots:
+  void                          initTestCase(void);
+  void                          cleanupTestCase(void);
 
-protected:
-  virtual void                  customEvent(QEvent *);
+  void                          sendRequest(void);
+  void                          sendRequestMultiThreaded(void);
 
 private:
-  static const QEvent::Type     exitEventType;
-
-  SandboxServer                 sandboxServer;
-  SApplication                * streamApp;
-
-  QList<BackendPlugin *>        backendPlugins;
-
-  QTimer                        stopTimer;
+  LXiServer::SandboxClient    * sandboxClient;
 };
-
-#endif

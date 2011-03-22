@@ -19,12 +19,17 @@
 
 #include <QTest>
 #include "httpservertest.h"
+#include "sandboxtest.h"
 
 int main(int argc, char *argv[])
 {
   QCoreApplication app(argc, argv);
 
+  if ((argc >= 4) && (strcmp(argv[1], "--sandbox") == 0))
+    return SandboxTest::startSandbox(argv[2], argv[3]);
+
   if (QTest::qExec(new HttpServerTest(&app), app.arguments()) != 0)     return 1;
+  if (QTest::qExec(new SandboxTest(&app), app.arguments()) != 0)        return 1;
 
   return 0;
 }

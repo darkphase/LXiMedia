@@ -71,8 +71,6 @@ void Sandbox::start(const QString &name, const QString &mode)
 {
   sandboxServer.initialize(name, mode);
 
-  sandboxServer.registerCallback("/", this);
-
   // Load plugins
   backendPlugins = BackendPlugin::loadPlugins();
   foreach (BackendPlugin *backendPlugin, backendPlugins)
@@ -95,23 +93,4 @@ void Sandbox::customEvent(QEvent *e)
     stop();
   else
     QObject::customEvent(e);
-}
-
-SandboxServer::SocketOp Sandbox::handleHttpRequest(const SandboxServer::RequestHeader &request, QIODevice *socket)
-{
-  const QUrl url(request.path());
-  const QString path = url.path();
-  const QString file = path.mid(path.lastIndexOf('/') + 1);
-
-  if (path.left(path.lastIndexOf('/') + 1) == "/")
-  {
-    if (url.hasQueryItem("exit"))
-    {
-      QCoreApplication::postEvent(this, new QEvent(exitEventType));
-
-      return SandboxServer::sendResponse(request, socket, HttpServer::Status_NoContent, this);
-    }
-  }
-
-  return SandboxServer::sendResponse(request, socket, HttpServer::Status_NotFound, this);
 }
