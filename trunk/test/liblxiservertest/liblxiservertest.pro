@@ -10,9 +10,11 @@ DEPENDPATH += $${LXIMEDIA_DIR}/src/
 include($${LXIMEDIA_DIR}/include/config.pri)
 
 # Files
-HEADERS += httpservertest.h
+HEADERS += httpservertest.h \
+    sandboxtest.h
 SOURCES += main.cpp \
-    httpservertest.cpp
+    httpservertest.cpp \
+    sandboxtest.cpp
 
 # Run tests after link
 unix:QMAKE_POST_LINK = $(TARGET) -silent

@@ -26,6 +26,8 @@ const QEvent::Type  SandboxClient::startServerEventType = QEvent::Type(QEvent::r
 
 struct SandboxClient::Private
 {
+  inline Private(void) : mutex(QMutex::Recursive) { }
+
   QMutex                        mutex;
   QString                       name;
   QString                       mode;
@@ -33,6 +35,13 @@ struct SandboxClient::Private
   QProcess                    * serverProcess;
   bool                          serverStarted;
 };
+
+QString & SandboxClient::sandboxApplication(void)
+{
+  static QString a;
+
+  return a;
+}
 
 SandboxClient::SandboxClient(Mode mode, QObject *parent)
   : HttpClientEngine(parent),
@@ -52,15 +61,17 @@ SandboxClient::SandboxClient(Mode mode, QObject *parent)
 
 SandboxClient::~SandboxClient()
 {
-  if (p->serverProcess)
+  p->mutex.lock();
+
+  if (p->serverProcess && (p->serverProcess->state() != QProcess::NotRunning))
   {
-    if (p->serverProcess->state() != QProcess::NotRunning)
+    p->serverProcess->terminate();
+    if (!p->serverProcess->waitForFinished(250))
+    if (p->serverProcess) // Could have been set to NULL by a slot
     {
-      sendRequest("/?exit", 250);
+      p->serverProcess->kill();
       p->serverProcess->waitForFinished(250);
     }
-
-    p->serverProcess->kill();
   }
 
   delete p->serverProcess;
@@ -160,7 +171,6 @@ void SandboxClient::closeSocket(QIODevice *device, bool, int timeout)
 
 void SandboxClient::startServer(int timeout)
 {
-  Q_ASSERT(!p->mutex.tryLock()); //Should be locked by the caller.
   Q_ASSERT(QThread::currentThread() == thread());
 
   QTime timer;
@@ -175,10 +185,7 @@ void SandboxClient::startServer(int timeout)
 
   if (p->serverProcess->state() == QProcess::NotRunning)
   {
-    p->serverProcess->start(
-        qApp->applicationFilePath(),
-        QStringList() << "--sandbox" << p->name << p->mode);
-
+    p->serverProcess->start(sandboxApplication() + " " + p->name + " " + p->mode);
     p->serverStarted = false;
   }
 
@@ -239,7 +246,7 @@ void SandboxClient::serverFinished(int exitCode, QProcess::ExitStatus)
 
   if (p->serverProcess)
   {
-    qDebug() << "Sandbox process" << p->serverProcess->pid() << "terminated with exit code" << exitCode;
+    qDebug() << "Sandbox process terminated with exit code" << exitCode;
 
     p->serverProcess->deleteLater();
     p->serverProcess = NULL;
