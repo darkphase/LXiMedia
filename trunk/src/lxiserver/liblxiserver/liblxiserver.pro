@@ -16,30 +16,30 @@ linux-g++|win32-g++ {
 
 # Files
 HEADERS += ../../../include/LXiServer \
- ../../../include/liblxiserver/httpengine.h \
- ../../../include/liblxiserver/httpserver.h \
- ../../../include/liblxiserver/sandboxclient.h \
- ../../../include/liblxiserver/sandboxserver.h \
- ../../../include/liblxiserver/ssdpclient.h \
- ../../../include/liblxiserver/ssdpserver.h \
- ../../../include/liblxiserver/upnpbase.h \
- ../../../include/liblxiserver/upnpconnectionmanager.h \
- ../../../include/liblxiserver/upnpcontentdirectory.h \
- ../../../include/liblxiserver/upnpgenaserver.h \
- ../../../include/liblxiserver/upnpmediaserver.h
+ ../../../include/liblxiserver/shttpengine.h \
+ ../../../include/liblxiserver/shttpserver.h \
+ ../../../include/liblxiserver/ssandboxclient.h \
+ ../../../include/liblxiserver/ssandboxserver.h \
+ ../../../include/liblxiserver/sssdpclient.h \
+ ../../../include/liblxiserver/sssdpserver.h \
+ ../../../include/liblxiserver/supnpbase.h \
+ ../../../include/liblxiserver/supnpconnectionmanager.h \
+ ../../../include/liblxiserver/supnpcontentdirectory.h \
+ ../../../include/liblxiserver/supnpgenaserver.h \
+ ../../../include/liblxiserver/supnpmediaserver.h
 
-SOURCES += httpengine.cpp \
- httpengine.header.cpp \
- httpserver.cpp \
- sandboxclient.cpp \
- sandboxserver.cpp \
- ssdpclient.cpp \
- ssdpserver.cpp \
- upnpbase.cpp \
- upnpconnectionmanager.cpp \
- upnpcontentdirectory.cpp \
- upnpgenaserver.cpp \
- upnpmediaserver.cpp
+SOURCES += shttpengine.cpp \
+ shttpengine.header.cpp \
+ shttpserver.cpp \
+ ssandboxclient.cpp \
+ ssandboxserver.cpp \
+ sssdpclient.cpp \
+ sssdpserver.cpp \
+ supnpbase.cpp \
+ supnpconnectionmanager.cpp \
+ supnpcontentdirectory.cpp \
+ supnpgenaserver.cpp \
+ supnpmediaserver.cpp
 
 unix {
     target.path = /usr/lib

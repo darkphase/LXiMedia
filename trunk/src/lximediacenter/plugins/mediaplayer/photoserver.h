@@ -37,7 +37,7 @@ protected:
   public:
                                 SlideShowStream(PhotoServer *, const QString &url, const QList<MediaDatabase::File> &);
 
-    bool                        setup(const HttpServer::RequestHeader &, QIODevice *);
+    bool                        setup(const SHttpServer::RequestHeader &, QIODevice *);
 
   public:
     SlideShowNode               slideShow;
@@ -48,14 +48,14 @@ public:
   virtual                       ~PhotoServer();
 
 protected:
-  virtual HttpServer::SocketOp  streamVideo(const HttpServer::RequestHeader &, QIODevice *);
+  virtual SHttpServer::SocketOp streamVideo(const SHttpServer::RequestHeader &, QIODevice *);
 
   virtual QList<Item>           listItems(const QString &path, unsigned start, unsigned count);
-  virtual HttpServer::SocketOp  handleHttpRequest(const HttpServer::RequestHeader &, QIODevice *);
+  virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestHeader &, QIODevice *);
 
 private:
-  HttpServer::SocketOp          sendPhoto(const HttpServer::RequestHeader &, QIODevice *, MediaDatabase::UniqueID, const QString &format) const;
-  HttpServer::SocketOp          handleHtmlRequest(const HttpServer::RequestHeader &, QIODevice *, const QString &);
+  SHttpServer::SocketOp         sendPhoto(const SHttpServer::RequestHeader &, QIODevice *, MediaDatabase::UniqueID, const QString &format) const;
+  SHttpServer::SocketOp         handleHtmlRequest(const SHttpServer::RequestHeader &, QIODevice *, const QString &);
 
 private:
   static const char     * const htmlView;

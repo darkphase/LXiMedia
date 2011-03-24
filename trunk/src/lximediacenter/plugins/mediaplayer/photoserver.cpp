@@ -31,7 +31,7 @@ PhotoServer::~PhotoServer()
 {
 }
 
-HttpServer::SocketOp PhotoServer::streamVideo(const HttpServer::RequestHeader &request, QIODevice *socket)
+SHttpServer::SocketOp PhotoServer::streamVideo(const SHttpServer::RequestHeader &request, QIODevice *socket)
 {
   const QStringList file = request.file().split('.');
   if (file.first() == "playlist")
@@ -57,12 +57,12 @@ HttpServer::SocketOp PhotoServer::streamVideo(const HttpServer::RequestHeader &r
       SlideShowStream *stream = new SlideShowStream(this, request.path(), files.values());
       if (stream->setup(request, socket))
       if (stream->start())
-        return HttpServer::SocketOp_LeaveOpen; // The graph owns the socket now.
+        return SHttpServer::SocketOp_LeaveOpen; // The graph owns the socket now.
 
       delete stream;
     }
 
-    return HttpServer::sendResponse(request, socket, HttpServer::Status_NotFound, this);
+    return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);
   }
   else
     return MediaPlayerServer::streamVideo(request, socket);
@@ -85,7 +85,7 @@ QList<PhotoServer::Item> PhotoServer::listItems(const QString &path, unsigned st
   return items;
 }
 
-HttpServer::SocketOp PhotoServer::handleHttpRequest(const HttpServer::RequestHeader &request, QIODevice *socket)
+SHttpServer::SocketOp PhotoServer::handleHttpRequest(const SHttpServer::RequestHeader &request, QIODevice *socket)
 {
   const QUrl url(request.path());
   const QString file = request.file();
@@ -101,7 +101,7 @@ HttpServer::SocketOp PhotoServer::handleHttpRequest(const HttpServer::RequestHea
   return PlaylistServer::handleHttpRequest(request, socket);
 }
 
-HttpServer::SocketOp PhotoServer::sendPhoto(const HttpServer::RequestHeader &request, QIODevice *socket, MediaDatabase::UniqueID uid, const QString &format) const
+SHttpServer::SocketOp PhotoServer::sendPhoto(const SHttpServer::RequestHeader &request, QIODevice *socket, MediaDatabase::UniqueID uid, const QString &format) const
 {
   const SMediaInfo node = mediaDatabase->readNode(uid);
 
@@ -141,7 +141,7 @@ HttpServer::SocketOp PhotoServer::sendPhoto(const HttpServer::RequestHeader &req
     }
   }
 
-  return HttpServer::sendResponse(request, socket, HttpServer::Status_NotFound, this);
+  return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);
 }
 
 
@@ -154,7 +154,7 @@ PhotoServer::SlideShowStream::SlideShowStream(PhotoServer *parent, const QString
   connect(&slideShow, SIGNAL(output(SVideoBuffer)), &subtitleRenderer, SLOT(input(SVideoBuffer)));
 }
 
-bool PhotoServer::SlideShowStream::setup(const HttpServer::RequestHeader &request, QIODevice *socket)
+bool PhotoServer::SlideShowStream::setup(const SHttpServer::RequestHeader &request, QIODevice *socket)
 {
   if (Stream::setup(request, socket,
                     slideShow.duration(),

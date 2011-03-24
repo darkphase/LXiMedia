@@ -17,14 +17,14 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXISERVER_HTTPENGINE_H
-#define LXISERVER_HTTPENGINE_H
+#ifndef LXISERVER_SHTTPENGINE_H
+#define LXISERVER_SHTTPENGINE_H
 
 #include <QtCore>
 
 namespace LXiServer {
 
-class HttpEngine
+class SHttpEngine
 {
 public:
   enum Status
@@ -47,8 +47,8 @@ public:
   class Header
   {
   protected:
-    explicit                    Header(const HttpEngine *);
-                                Header(const QByteArray &, const HttpEngine *);
+    explicit                    Header(const SHttpEngine *);
+                                Header(const QByteArray &, const SHttpEngine *);
 
   public:
     inline bool                 isValid(void) const                             { return head.count() == 3; }
@@ -77,7 +77,7 @@ public:
     inline                      operator QByteArray() const                     { return toByteArray(); }
 
   public:
-    const HttpEngine    * const httpEngine;
+    const SHttpEngine    * const httpEngine;
 
   protected:
     QList<QByteArray>           head;
@@ -89,8 +89,8 @@ public:
   class RequestHeader : public Header
   {
   public:
-    explicit                    RequestHeader(const HttpEngine *);
-                                RequestHeader(const QByteArray &, const HttpEngine *);
+    explicit                    RequestHeader(const SHttpEngine *);
+                                RequestHeader(const QByteArray &, const SHttpEngine *);
 
     inline QByteArray           method(void) const                              { return isValid() ? head[0] : QByteArray(); }
     inline void                 setMethod(const QByteArray &method)             { if (head.size() > 0) head[0] = method; else head.append(method); }
@@ -109,10 +109,10 @@ public:
   class ResponseHeader : public Header
   {
   public:
-    explicit                    ResponseHeader(const HttpEngine *);
+    explicit                    ResponseHeader(const SHttpEngine *);
     explicit                    ResponseHeader(const RequestHeader &);
                                 ResponseHeader(const RequestHeader &, Status);
-                                ResponseHeader(const QByteArray &, const HttpEngine *);
+                                ResponseHeader(const QByteArray &, const SHttpEngine *);
 
     inline QByteArray           version(void) const                             { return isValid() ? head[0] : QByteArray(); }
     inline void                 setVersion(const QByteArray &version)           { if (head.size() > 0) head[0] = version; else head.append(version); }
@@ -128,8 +128,8 @@ public:
   class RequestMessage : public RequestHeader
   {
   public:
-    inline explicit             RequestMessage(const HttpEngine *httpEngine = NULL) : RequestHeader(httpEngine) { }
-                                RequestMessage(const QByteArray &, const HttpEngine * = NULL);
+    inline explicit             RequestMessage(const SHttpEngine *httpEngine = NULL) : RequestHeader(httpEngine) { }
+                                RequestMessage(const QByteArray &, const SHttpEngine * = NULL);
 
     inline const QByteArray   & content(void) const                             { return data; }
     inline void                 setContent(const QByteArray &content)           { data = content; }
@@ -144,10 +144,10 @@ public:
   class ResponseMessage : public ResponseHeader
   {
   public:
-    inline explicit             ResponseMessage(const HttpEngine *httpEngine = NULL) : ResponseHeader(httpEngine) { }
+    inline explicit             ResponseMessage(const SHttpEngine *httpEngine = NULL) : ResponseHeader(httpEngine) { }
     inline explicit             ResponseMessage(const RequestHeader &request) : ResponseHeader(request) { }
     inline                      ResponseMessage(const RequestHeader &request, Status status) : ResponseHeader(request, status) { }
-                                ResponseMessage(const QByteArray &, const HttpEngine * = NULL);
+                                ResponseMessage(const QByteArray &, const SHttpEngine * = NULL);
 
     inline const QByteArray   & content(void) const                             { return data; }
     inline void                 setContent(const QByteArray &content)           { data = content; }
@@ -160,8 +160,8 @@ public:
   };
 
 public:
-                                HttpEngine(void);
-  virtual                       ~HttpEngine();
+                                SHttpEngine(void);
+  virtual                       ~SHttpEngine();
 
   virtual const char          * senderType(void) const = 0;
   virtual const QString       & senderId(void) const = 0;
@@ -183,8 +183,8 @@ public:
 };
 
 
-class HttpServerEngine : public QObject,
-                         public HttpEngine
+class SHttpServerEngine : public QObject,
+                          public SHttpEngine
 {
 Q_OBJECT
 public:
@@ -196,8 +196,8 @@ public:
   };
 
 public:
-  explicit                      HttpServerEngine(const QString &protocol, QObject * = NULL);
-  virtual                       ~HttpServerEngine();
+  explicit                      SHttpServerEngine(const QString &protocol, QObject * = NULL);
+  virtual                       ~SHttpServerEngine();
 
   void                          registerCallback(const QString &path, Callback *);
   void                          unregisterCallback(Callback *);
@@ -226,13 +226,13 @@ private:
 };
 
 
-class HttpClientEngine : public QObject,
-                         public HttpEngine
+class SHttpClientEngine : public QObject,
+                          public SHttpEngine
 {
 Q_OBJECT
 public:
-  explicit                      HttpClientEngine(QObject * = NULL);
-  virtual                       ~HttpClientEngine();
+  explicit                      SHttpClientEngine(QObject * = NULL);
+  virtual                       ~SHttpClientEngine();
 
   virtual const char          * senderType(void) const;
   virtual const QString       & senderId(void) const;

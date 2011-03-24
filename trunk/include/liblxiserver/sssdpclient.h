@@ -17,18 +17,18 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXISERVER_SSDPCLIENT_H
-#define LXISERVER_SSDPCLIENT_H
+#ifndef LXISERVER_SSSDPCLIENT_H
+#define LXISERVER_SSSDPCLIENT_H
 
 #include <QtCore>
 #include <QtNetwork>
-#include "httpserver.h"
+#include "shttpserver.h"
 
 namespace LXiServer {
 
 class SsdpClientInterface;
 
-class SsdpClient : public QObject
+class SSsdpClient : public QObject
 {
 Q_OBJECT
 friend class SsdpClientInterface;
@@ -45,8 +45,8 @@ public:
   };
 
 public:
-  explicit                      SsdpClient(const QString &serverUdn);
-  virtual                       ~SsdpClient();
+  explicit                      SSsdpClient(const QString &serverUdn);
+  virtual                       ~SSsdpClient();
 
   virtual void                  initialize(const QList<QHostAddress> &interfaces);
   virtual void                  close(void);
@@ -60,15 +60,15 @@ signals:
 protected:
   const QString               & serverUdn(void) const;
   const QList<SsdpClientInterface *> & interfaces(void) const;
-  virtual void                  parsePacket(SsdpClientInterface *, const HttpServer::RequestHeader &, const QHostAddress &, quint16);
-  virtual void                  parsePacket(SsdpClientInterface *, const HttpServer::ResponseHeader &, const QHostAddress &, quint16);
+  virtual void                  parsePacket(SsdpClientInterface *, const SHttpServer::RequestHeader &, const QHostAddress &, quint16);
+  virtual void                  parsePacket(SsdpClientInterface *, const SHttpServer::ResponseHeader &, const QHostAddress &, quint16);
 
   static void                   sendDatagram(SsdpClientInterface *, const QByteArray &, const QHostAddress &, quint16);
   static void                   sendSearch(SsdpClientInterface *, const QString &st, unsigned mx = 5);
 
 private:
-  void                          addNode(const HttpServer::Header &, const QString &);
-  void                          removeNode(const HttpServer::Header &);
+  void                          addNode(const SHttpServer::Header &, const QString &);
+  void                          removeNode(const SHttpServer::Header &);
 
 public:
   static const QHostAddress     ssdpAddressIPv4;
@@ -85,9 +85,9 @@ private:
 class SsdpClientInterface : public QObject
 {
 Q_OBJECT
-friend class SsdpClient;
+friend class SSsdpClient;
 private:
-                                SsdpClientInterface(const QHostAddress &, SsdpClient *);
+                                SsdpClientInterface(const QHostAddress &, SSsdpClient *);
 
   bool                          joinMulticastGroup(QUdpSocket &, const QHostAddress &);
 
@@ -96,7 +96,7 @@ private slots:
   void                          privateDatagramReady(void);
 
 public:
-  SsdpClient            * const parent;
+  SSsdpClient            * const parent;
   const QHostAddress            interfaceAddr;
 
 private:

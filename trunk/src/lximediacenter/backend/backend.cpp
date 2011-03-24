@@ -33,7 +33,7 @@ const QUrl          Backend::submitErrorUrl("http://www.admiraal.dds.nl/submitlo
 Backend::Backend()
   : BackendServer::MasterServer(),
     streamApp(NULL),
-    masterHttpServer(UPnPBase::protocol(), GlobalSettings::serverUuid()),
+    masterHttpServer(SUPnPBase::protocol(), GlobalSettings::serverUuid()),
     masterSsdpServer(&masterHttpServer),
     masterMediaServer("/upnp/"),
     masterConnectionManager("/upnp/"),
@@ -44,7 +44,7 @@ Backend::Backend()
     backendPlugins(),
     backendServers()
 {
-  SandboxClient::sandboxApplication() = "\"" + qApp->applicationFilePath() + "\" --sandbox";
+  SSandboxClient::sandboxApplication() = "\"" + qApp->applicationFilePath() + "\" --sandbox";
 
   // Initialize LXiStream
   QDir logDir(GlobalSettings::applicationDataDir() + "/log");
@@ -234,42 +234,42 @@ void Backend::start(void)
   const QStringList outVideoCodecs = SVideoEncoderNode::codecs();
   const QStringList outFormats = SIOOutputNode::formats();
 
-  UPnPBase::ProtocolList audioProtocols;
+  SUPnPBase::ProtocolList audioProtocols;
   {
     if (outFormats.contains("s16be") && outAudioCodecs.contains("PCM/S16BE"))
-      audioProtocols += UPnPBase::Protocol("http-get", "audio/L16;rate=48000;channels=2", true, "DLNA.ORG_PN=LPCM", ".lpcm");
+      audioProtocols += SUPnPBase::Protocol("http-get", "audio/L16;rate=48000;channels=2", true, "DLNA.ORG_PN=LPCM", ".lpcm");
 
     if (outFormats.contains("mp3") && outAudioCodecs.contains("MP3"))
-      audioProtocols += UPnPBase::Protocol("http-get", "audio/mpeg", true, "DLNA.ORG_PN=MP3", ".mp3");
+      audioProtocols += SUPnPBase::Protocol("http-get", "audio/mpeg", true, "DLNA.ORG_PN=MP3", ".mp3");
 
     if (outFormats.contains("mp2") && outAudioCodecs.contains("MP2"))
-      audioProtocols += UPnPBase::Protocol("http-get", "audio/mpeg", true, QString::null, ".mpa");
+      audioProtocols += SUPnPBase::Protocol("http-get", "audio/mpeg", true, QString::null, ".mpa");
 
     if (outFormats.contains("wav") && outAudioCodecs.contains("PCM/S16LE"))
-      audioProtocols += UPnPBase::Protocol("http-get", "audio/wave", true, QString::null, ".wav");
+      audioProtocols += SUPnPBase::Protocol("http-get", "audio/wave", true, QString::null, ".wav");
 
     if (outFormats.contains("ogg") && outAudioCodecs.contains("FLAC"))
-      audioProtocols += UPnPBase::Protocol("http-get", "audio/ogg", true, QString::null, ".oga");
+      audioProtocols += SUPnPBase::Protocol("http-get", "audio/ogg", true, QString::null, ".oga");
 
     if (outFormats.contains("flv") && outAudioCodecs.contains("PCM/S16LE"))
-      audioProtocols += UPnPBase::Protocol("http-get", "video/x-flv", true, QString::null, ".flv");
+      audioProtocols += SUPnPBase::Protocol("http-get", "video/x-flv", true, QString::null, ".flv");
   }
 
-  UPnPBase::ProtocolList videoProtocols;
+  SUPnPBase::ProtocolList videoProtocols;
   {
     if ((outVideoCodecs.contains("MPEG1") || outVideoCodecs.contains("MPEG2")) &&
         outAudioCodecs.contains("MP2"))
     {
       if (outFormats.contains("mpegts"))
       {
-        videoProtocols += UPnPBase::Protocol("http-get", "video/mpeg", true, "DLNA.ORG_PN=MPEG_TS_HD_EU", ".ts");
-        videoProtocols += UPnPBase::Protocol("http-get", "video/mpeg", true, "DLNA.ORG_PN=MPEG_TS_HD_JP", ".ts");
-        videoProtocols += UPnPBase::Protocol("http-get", "video/mpeg", true, "DLNA.ORG_PN=MPEG_TS_HD_NA", ".ts");
-        videoProtocols += UPnPBase::Protocol("http-get", "video/mpeg", true, "DLNA.ORG_PN=MPEG_TS_HD_KO", ".ts");
+        videoProtocols += SUPnPBase::Protocol("http-get", "video/mpeg", true, "DLNA.ORG_PN=MPEG_TS_HD_EU", ".ts");
+        videoProtocols += SUPnPBase::Protocol("http-get", "video/mpeg", true, "DLNA.ORG_PN=MPEG_TS_HD_JP", ".ts");
+        videoProtocols += SUPnPBase::Protocol("http-get", "video/mpeg", true, "DLNA.ORG_PN=MPEG_TS_HD_NA", ".ts");
+        videoProtocols += SUPnPBase::Protocol("http-get", "video/mpeg", true, "DLNA.ORG_PN=MPEG_TS_HD_KO", ".ts");
       }
       else if (outFormats.contains("vob"))
       {
-        videoProtocols += UPnPBase::Protocol("http-get", "video/mpeg", true, QString::null, ".mpeg");
+        videoProtocols += SUPnPBase::Protocol("http-get", "video/mpeg", true, QString::null, ".mpeg");
       }
 
       if (outFormats.contains("vob"))
@@ -282,35 +282,35 @@ void Backend::start(void)
         ntsc["size"]  = "704x480x1.21307/box";
         ntsc["channels"]  = QString::number(SAudioFormat::Channel_Stereo, 16);
 
-        videoProtocols += UPnPBase::Protocol("http-get", "video/mpeg", true, "DLNA.ORG_PN=MPEG_PS_PAL",  ".mpeg", pal);
-        videoProtocols += UPnPBase::Protocol("http-get", "video/mpeg", true, "DLNA.ORG_PN=MPEG_PS_NTSC", ".mpeg", ntsc);
+        videoProtocols += SUPnPBase::Protocol("http-get", "video/mpeg", true, "DLNA.ORG_PN=MPEG_PS_PAL",  ".mpeg", pal);
+        videoProtocols += SUPnPBase::Protocol("http-get", "video/mpeg", true, "DLNA.ORG_PN=MPEG_PS_NTSC", ".mpeg", ntsc);
       }
     }
 
     if (outFormats.contains("ogg") &&
         outVideoCodecs.contains("THEORA") && outAudioCodecs.contains("FLAC"))
     {
-      videoProtocols += UPnPBase::Protocol("http-get", "video/ogg", true, QString::null, ".ogv");
+      videoProtocols += SUPnPBase::Protocol("http-get", "video/ogg", true, QString::null, ".ogv");
     }
 
     if (outFormats.contains("flv") &&
         outVideoCodecs.contains("FLV1") && outAudioCodecs.contains("PCM/S16LE"))
     {
-      videoProtocols += UPnPBase::Protocol("http-get", "video/x-flv", true, QString::null, ".flv");
+      videoProtocols += SUPnPBase::Protocol("http-get", "video/x-flv", true, QString::null, ".flv");
     }
   }
 
-  UPnPBase::ProtocolList imageProtocols = UPnPBase::ProtocolList()
-      << UPnPBase::Protocol("http-get", "image/jpeg",  true, "DLNA.ORG_PN=JPEG_LRG", ".jpeg")
-      << UPnPBase::Protocol("http-get", "image/jpeg",  true, "DLNA.ORG_PN=JPEG_TN", "-thumb.jpeg")
-      << UPnPBase::Protocol("http-get", "image/jpeg",  true, "DLNA.ORG_PN=JPEG_SM", "-thumb.jpeg")
-      << UPnPBase::Protocol("http-get", "image/png",   true, "DLNA.ORG_PN=PNG_LRG", ".png")
-      << UPnPBase::Protocol("http-get", "image/png",   true, "DLNA.ORG_PN=PNG_SM", "-thumb.png");
+  SUPnPBase::ProtocolList imageProtocols = SUPnPBase::ProtocolList()
+      << SUPnPBase::Protocol("http-get", "image/jpeg",  true, "DLNA.ORG_PN=JPEG_LRG", ".jpeg")
+      << SUPnPBase::Protocol("http-get", "image/jpeg",  true, "DLNA.ORG_PN=JPEG_TN", "-thumb.jpeg")
+      << SUPnPBase::Protocol("http-get", "image/jpeg",  true, "DLNA.ORG_PN=JPEG_SM", "-thumb.jpeg")
+      << SUPnPBase::Protocol("http-get", "image/png",   true, "DLNA.ORG_PN=PNG_LRG", ".png")
+      << SUPnPBase::Protocol("http-get", "image/png",   true, "DLNA.ORG_PN=PNG_SM", "-thumb.png");
 
   masterConnectionManager.setSourceProtocols(audioProtocols + videoProtocols + imageProtocols);
-  masterContentDirectory.setProtocols(UPnPContentDirectory::ProtocolType_Audio, audioProtocols);
-  masterContentDirectory.setProtocols(UPnPContentDirectory::ProtocolType_Video, videoProtocols);
-  masterContentDirectory.setProtocols(UPnPContentDirectory::ProtocolType_Image, imageProtocols);
+  masterContentDirectory.setProtocols(SUPnPContentDirectory::ProtocolType_Audio, audioProtocols);
+  masterContentDirectory.setProtocols(SUPnPContentDirectory::ProtocolType_Video, videoProtocols);
+  masterContentDirectory.setProtocols(SUPnPContentDirectory::ProtocolType_Image, imageProtocols);
 
   setContentDirectoryQueryItems();
 
@@ -439,7 +439,7 @@ void Backend::customEvent(QEvent *e)
   }
 }
 
-HttpServer::SocketOp Backend::handleHttpRequest(const HttpServer::RequestHeader &request, QIODevice *socket)
+SHttpServer::SocketOp Backend::handleHttpRequest(const SHttpServer::RequestHeader &request, QIODevice *socket)
 {
   const QUrl url(request.path());
   const QString path = url.path();
@@ -451,19 +451,19 @@ HttpServer::SocketOp Backend::handleHttpRequest(const HttpServer::RequestHeader 
     {
       QCoreApplication::postEvent(this, new QEvent(exitEventType));
 
-      return HttpServer::sendResponse(request, socket, HttpServer::Status_NoContent, this);
+      return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NoContent, this);
     }
     else if (url.hasQueryItem("restart"))
     {
       QCoreApplication::postEvent(this, new QEvent(restartEventType));
 
-      return HttpServer::sendResponse(request, socket, HttpServer::Status_NoContent, this);
+      return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NoContent, this);
     }
     else if (url.hasQueryItem("shutdown"))
     {
       QCoreApplication::postEvent(this, new QEvent(shutdownEventType));
 
-      return HttpServer::sendResponse(request, socket, HttpServer::Status_NoContent, this);
+      return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NoContent, this);
     }
     else if (url.hasQueryItem("dismisserrors"))
     {
@@ -519,12 +519,12 @@ HttpServer::SocketOp Backend::handleHttpRequest(const HttpServer::RequestHeader 
         errorLogFile.setAttribute("name", QFileInfo(file).fileName());
       }
 
-      HttpServer::ResponseHeader response(request, HttpServer::Status_Ok);
+      SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
       response.setContentType("text/xml;charset=utf-8");
       response.setField("Cache-Control", "no-cache");
       socket->write(response);
       socket->write(doc.toByteArray());
-      return HttpServer::SocketOp_Close;
+      return SHttpServer::SocketOp_Close;
     }
     else if (file.endsWith(".css"))
     {
@@ -597,7 +597,7 @@ HttpServer::SocketOp Backend::handleHttpRequest(const HttpServer::RequestHeader 
           }
         }
 
-        HttpServer::ResponseHeader response(request, HttpServer::Status_Ok);
+        SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
         response.setContentType("text/html;charset=utf-8");
         response.setField("Cache-Control", "no-cache");
         if (logFileName == SDebug::LogFile::activeLogFile())
@@ -605,7 +605,7 @@ HttpServer::SocketOp Backend::handleHttpRequest(const HttpServer::RequestHeader 
 
         socket->write(response);
         socket->write(parseHtmlContent(url, htmlParser.parse(htmlLogFile), logHead));
-        return HttpServer::SocketOp_Close;
+        return SHttpServer::SocketOp_Close;
       }
     }
     else if (file == "settings.html")
@@ -651,16 +651,16 @@ HttpServer::SocketOp Backend::handleHttpRequest(const HttpServer::RequestHeader 
     QFile file(sendFile);
     if (file.open(QFile::ReadOnly))
     {
-      HttpServer::ResponseHeader response(request, HttpServer::Status_Ok);
+      SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
       response.setContentLength(file.size());
-      response.setContentType(HttpServer::toMimeType(sendFile));
+      response.setContentType(SHttpServer::toMimeType(sendFile));
       socket->write(response);
       socket->write(file.readAll());
-      return HttpServer::SocketOp_Close;
+      return SHttpServer::SocketOp_Close;
     }
   }
 
-  return HttpServer::sendResponse(request, socket, HttpServer::Status_NotFound, this);
+  return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);
 }
 
 QByteArray Backend::parseHtmlContent(const QUrl &url, const QByteArray &content, const QByteArray &head) const
@@ -728,17 +728,17 @@ QByteArray Backend::parseHtmlContent(const QUrl &url, const QByteArray &content,
   return localParser.parse(htmlIndex);
 }
 
-HttpServer * Backend::httpServer(void)
+SHttpServer * Backend::httpServer(void)
 {
   return &masterHttpServer;
 }
 
-SsdpServer * Backend::ssdpServer(void)
+SSsdpServer * Backend::ssdpServer(void)
 {
   return &masterSsdpServer;
 }
 
-UPnPContentDirectory * Backend::contentDirectory(void)
+SUPnPContentDirectory * Backend::contentDirectory(void)
 {
   return &masterContentDirectory;
 }

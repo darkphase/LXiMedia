@@ -25,7 +25,7 @@
 
 
 class Backend : public BackendServer::MasterServer,
-                protected HttpServer::Callback
+                protected SHttpServer::Callback
 {
 Q_OBJECT
 private:
@@ -45,23 +45,23 @@ public:
 protected:
   virtual void                  customEvent(QEvent *);
 
-protected: // From HttpServer::Callback
-  virtual HttpServer::SocketOp  handleHttpRequest(const HttpServer::RequestHeader &, QIODevice *);
+protected: // From SHttpServer::Callback
+  virtual SHttpServer::SocketOp  handleHttpRequest(const SHttpServer::RequestHeader &, QIODevice *);
 
 private:
   SearchCacheEntry              search(const QString &) const;
 
   virtual QByteArray            parseHtmlContent(const QUrl &, const QByteArray &content, const QByteArray &head) const;
-  virtual HttpServer          * httpServer(void);
-  virtual SsdpServer          * ssdpServer(void);
-  virtual UPnPContentDirectory* contentDirectory(void);
+  virtual SHttpServer         * httpServer(void);
+  virtual SSsdpServer         * ssdpServer(void);
+  virtual SUPnPContentDirectory * contentDirectory(void);
   virtual ImdbClient          * imdbClient(void);
 
-  HttpServer::SocketOp          handleCssRequest(const HttpServer::RequestHeader &, QIODevice *, const QString &);
-  HttpServer::SocketOp          handleHtmlSearch(const HttpServer::RequestHeader &, QIODevice *, const QString &);
-  HttpServer::SocketOp          handleHtmlRequest(const HttpServer::RequestHeader &, QIODevice *, const QString &);
-  HttpServer::SocketOp          showAbout(const HttpServer::RequestHeader &, QIODevice *);
-  HttpServer::SocketOp          handleHtmlConfig(const HttpServer::RequestHeader &, QIODevice *);
+  SHttpServer::SocketOp          handleCssRequest(const SHttpServer::RequestHeader &, QIODevice *, const QString &);
+  SHttpServer::SocketOp          handleHtmlSearch(const SHttpServer::RequestHeader &, QIODevice *, const QString &);
+  SHttpServer::SocketOp          handleHtmlRequest(const SHttpServer::RequestHeader &, QIODevice *, const QString &);
+  SHttpServer::SocketOp          showAbout(const SHttpServer::RequestHeader &, QIODevice *);
+  SHttpServer::SocketOp          handleHtmlConfig(const SHttpServer::RequestHeader &, QIODevice *);
 
   void                          setContentDirectoryQueryItems(void);
 
@@ -76,11 +76,11 @@ private:
 
   SApplication                * streamApp;
 
-  HttpServer                    masterHttpServer;
-  SsdpServer                    masterSsdpServer;
-  UPnPMediaServer               masterMediaServer;
-  UPnPConnectionManager         masterConnectionManager;
-  UPnPContentDirectory          masterContentDirectory;
+  SHttpServer                   masterHttpServer;
+  SSsdpServer                   masterSsdpServer;
+  SUPnPMediaServer              masterMediaServer;
+  SUPnPConnectionManager        masterConnectionManager;
+  SUPnPContentDirectory         masterContentDirectory;
   ImdbClient                  * masterImdbClient;
   HtmlParser                    cssParser;
   HtmlParser                    htmlParser;

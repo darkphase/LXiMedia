@@ -17,37 +17,55 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXISERVER_SANDBOXSERVER_H
-#define LXISERVER_SANDBOXSERVER_H
+#ifndef LXISERVER_SUPNPMEDIASERVER_H
+#define LXISERVER_SUPNPMEDIASERVER_H
 
 #include <QtCore>
-#include "httpengine.h"
+#include <QtNetwork>
+#include "shttpserver.h"
 
 namespace LXiServer {
 
-class SandboxServer : public HttpServerEngine
+class SSsdpServer;
+
+class SUPnPMediaServer : public QObject,
+                         protected SHttpServer::Callback
 {
 Q_OBJECT
 public:
-  explicit                      SandboxServer(QObject * = NULL);
-  virtual                       ~SandboxServer();
+  struct Service
+  {
+    QString                     serviceType;
+    QString                     serviceId;
+    QString                     descriptionUrl;
+    QString                     controlURL;
+    QString                     eventSubURL;
+  };
 
-  void                          initialize(const QString &name, const QString &mode);
+public:
+  explicit                      SUPnPMediaServer(const QString &basePath, QObject * = NULL);
+  virtual                       ~SUPnPMediaServer();
+
+  void                          initialize(SHttpServer *, SSsdpServer *);
   void                          close(void);
 
-signals:
-  void                          busy(void);
-  void                          idle(void);
+  void                          addIcon(const QString &url, unsigned width, unsigned height, unsigned depth);
 
-protected: // From HttpServerEngine
-  virtual QIODevice           * openSocket(quintptr, int timeout);
-  virtual void                  closeSocket(QIODevice *, bool canReuse, int timeout);
+  void                          registerService(const Service &);
+
+protected: // From SHttpServer::Callback
+  virtual SHttpServer::SocketOp  handleHttpRequest(const SHttpServer::RequestHeader &, QIODevice *);
+
+public:
+  static const char     * const dlnaDeviceNS;
 
 private:
-  class Server;
-  struct Private;
-  Private               * const p;
+  static const char     * const deviceType;
+
+  struct Data;
+  Data                  * const d;
 };
+
 
 } // End of namespace
 

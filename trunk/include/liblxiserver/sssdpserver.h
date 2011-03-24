@@ -17,53 +17,42 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXISERVER_UPNPMEDIASERVER_H
-#define LXISERVER_UPNPMEDIASERVER_H
+#ifndef LXISERVER_SSSDPSERVER_H
+#define LXISERVER_SSSDPSERVER_H
 
 #include <QtCore>
 #include <QtNetwork>
-#include "httpserver.h"
+#include "sssdpclient.h"
 
 namespace LXiServer {
 
-class SsdpServer;
+class SHttpServer;
 
-class UPnPMediaServer : public QObject,
-                        protected HttpServer::Callback
+class SSsdpServer : public SSsdpClient
 {
 Q_OBJECT
 public:
-  struct Service
-  {
-    QString                     serviceType;
-    QString                     serviceId;
-    QString                     descriptionUrl;
-    QString                     controlURL;
-    QString                     eventSubURL;
-  };
+  explicit                      SSsdpServer(const SHttpServer *);
+  virtual                       ~SSsdpServer();
 
-public:
-  explicit                      UPnPMediaServer(const QString &basePath, QObject * = NULL);
-  virtual                       ~UPnPMediaServer();
+  virtual void                  initialize(const QList<QHostAddress> &interfaces);
+  virtual void                  close(void);
 
-  void                          initialize(HttpServer *, SsdpServer *);
-  void                          close(void);
+  void                          publish(const QString &nt, const QString &relativeUrl, unsigned msgCount);
 
-  void                          addIcon(const QString &url, unsigned width, unsigned height, unsigned depth);
+protected:
+  virtual void                  parsePacket(SsdpClientInterface *, const SHttpServer::RequestHeader &, const QHostAddress &, quint16);
 
-  void                          registerService(const Service &);
+  void                          sendAlive(SsdpClientInterface *, const QString &nt, const QString &url) const;
+  void                          sendByeBye(SsdpClientInterface *, const QString &nt) const;
+  void                          sendSearchResponse(SsdpClientInterface *, const QString &st, const QString &url, const QHostAddress &, quint16) const;
 
-protected: // From HttpServer::Callback
-  virtual HttpServer::SocketOp  handleHttpRequest(const HttpServer::RequestHeader &, QIODevice *);
-
-public:
-  static const char     * const dlnaDeviceNS;
+private slots:
+  void                          publishServices(void);
 
 private:
-  static const char     * const deviceType;
-
-  struct Data;
-  Data                  * const d;
+  struct Private;
+  Private               * const p;
 };
 
 

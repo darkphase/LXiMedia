@@ -17,21 +17,21 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXISERVER_UPNPBASE_H
-#define LXISERVER_UPNPBASE_H
+#ifndef LXISERVER_SUPNPBASE_H
+#define LXISERVER_SUPNPBASE_H
 
 #include <QtCore>
 #include <QtNetwork>
 #include <QtXml>
-#include "httpserver.h"
-#include "upnpmediaserver.h"
+#include "shttpserver.h"
+#include "supnpmediaserver.h"
 
 namespace LXiServer {
 
-class UPnPMediaServer;
+class SUPnPMediaServer;
 
-class UPnPBase : public QObject,
-                 protected HttpServer::Callback
+class SUPnPBase : public QObject,
+                 protected SHttpServer::Callback
 {
 Q_OBJECT
 public:
@@ -96,26 +96,26 @@ public:
   };
 
 public:
-  explicit                      UPnPBase(const QString &basePath, QObject * = NULL);
-  virtual                       ~UPnPBase();
+  explicit                      SUPnPBase(const QString &basePath, QObject * = NULL);
+  virtual                       ~SUPnPBase();
 
-  void                          initialize(HttpServer *, UPnPMediaServer::Service &);
+  void                          initialize(SHttpServer *, SUPnPMediaServer::Service &);
   void                          close(void);
 
-protected: // From HttpServer::Callback
-  virtual HttpServer::SocketOp  handleHttpRequest(const HttpServer::RequestHeader &, QIODevice *);
+protected: // From SHttpServer::Callback
+  virtual SHttpServer::SocketOp  handleHttpRequest(const SHttpServer::RequestHeader &, QIODevice *);
 
 protected:
-  virtual HttpServer::SocketOp  handleControl(const HttpServer::RequestHeader &, QIODevice *);
-  virtual HttpServer::SocketOp  handleDescription(const HttpServer::RequestHeader &, QIODevice *);
+  virtual SHttpServer::SocketOp  handleControl(const SHttpServer::RequestHeader &, QIODevice *);
+  virtual SHttpServer::SocketOp  handleDescription(const SHttpServer::RequestHeader &, QIODevice *);
 
   virtual void                  buildDescription(QDomDocument &, QDomElement &) = 0;
-  virtual void                  handleSoapMessage(const QDomElement &, QDomDocument &, QDomElement &, const HttpServer::RequestHeader &, const QHostAddress &) = 0;
+  virtual void                  handleSoapMessage(const QDomElement &, QDomDocument &, QDomElement &, const SHttpServer::RequestHeader &, const QHostAddress &) = 0;
 
 protected:
   QReadWriteLock              * lock(void) const;
   const QString               & basePath(void) const;
-  HttpServer                  * httpServer(void) const;
+  SHttpServer                  * httpServer(void) const;
 
 public:
   static QString                protocol(void);

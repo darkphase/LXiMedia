@@ -17,15 +17,15 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXISERVER_SANDBOXCLIENT_H
-#define LXISERVER_SANDBOXCLIENT_H
+#ifndef LXISERVER_SSANDBOXCLIENT_H
+#define LXISERVER_SSANDBOXCLIENT_H
 
 #include <QtCore>
-#include "httpengine.h"
+#include "shttpengine.h"
 
 namespace LXiServer {
 
-class SandboxClient : public HttpClientEngine
+class SSandboxClient : public SHttpClientEngine
 {
 Q_OBJECT
 public:
@@ -52,10 +52,10 @@ public:
   static QString              & sandboxApplication(void);
 
 public:
-  explicit                      SandboxClient(Mode, QObject * = NULL);
-  virtual                       ~SandboxClient();
+  explicit                      SSandboxClient(Mode, QObject * = NULL);
+  virtual                       ~SSandboxClient();
 
-  inline ResponseMessage        sendRequest(const RequestMessage &request, int timeout = maxTTL) { return HttpClientEngine::sendRequest(request, timeout); }
+  inline ResponseMessage        sendRequest(const RequestMessage &request, int timeout = maxTTL) { return SHttpClientEngine::sendRequest(request, timeout); }
   QByteArray                    sendRequest(const QByteArray &, int timeout = maxTTL);
 
 signals:

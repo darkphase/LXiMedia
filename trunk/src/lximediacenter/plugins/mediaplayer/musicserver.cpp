@@ -53,14 +53,14 @@ QList<MusicServer::Item> MusicServer::listItems(const QString &path, unsigned st
   return items;
 }
 
-HttpServer::SocketOp MusicServer::handleHttpRequest(const HttpServer::RequestHeader &request, QIODevice *socket)
+SHttpServer::SocketOp MusicServer::handleHttpRequest(const SHttpServer::RequestHeader &request, QIODevice *socket)
 {
   const QUrl url(request.path());
   const QString file = request.file();
 
   if (file.isEmpty())
   {
-    HttpServer::ResponseHeader response(request, HttpServer::Status_Ok);
+    SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
     response.setContentType("text/html;charset=utf-8");
     response.setField("Cache-Control", "no-cache");
 
@@ -69,7 +69,7 @@ HttpServer::SocketOp MusicServer::handleHttpRequest(const HttpServer::RequestHea
 
     DetailedListItemList detailedItems;
 
-    foreach (const UPnPContentDirectory::Item &item, PlaylistServer::listItems(path))
+    foreach (const SUPnPContentDirectory::Item &item, PlaylistServer::listItems(path))
     {
       if (item.isDir)
       {

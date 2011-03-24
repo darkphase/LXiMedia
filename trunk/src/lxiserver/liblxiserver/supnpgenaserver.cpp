@@ -17,18 +17,18 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "upnpgenaserver.h"
-#include "upnpbase.h"
+#include "supnpgenaserver.h"
+#include "supnpbase.h"
 
 namespace LXiServer {
 
-const char  * const UPnPGenaServer::eventNS       = "urn:schemas-upnp-org:event-1-0";
-const QEvent::Type  UPnPGenaServer::scheduleEventType = QEvent::Type(QEvent::registerEventType());
+const char  * const SUPnPGenaServer::eventNS       = "urn:schemas-upnp-org:event-1-0";
+const QEvent::Type  SUPnPGenaServer::scheduleEventType = QEvent::Type(QEvent::registerEventType());
 
-class UPnPGenaServer::EventSession : public QRunnable
+class SUPnPGenaServer::EventSession : public QRunnable
 {
 public:
-                                EventSession(UPnPGenaServer *, const QStringList &eventUrls, int timeout = 0);
+                                EventSession(SUPnPGenaServer *, const QStringList &eventUrls, int timeout = 0);
   virtual                       ~EventSession();
 
   void                          resubscribe(void);
@@ -53,18 +53,18 @@ public:
   QAtomicInt                    queued;
 
 private:
-  UPnPGenaServer              * const parent;
+  SUPnPGenaServer              * const parent;
   quint32                       eventKey;
   QDateTime                     lastSubscribe;
 };
 
-struct UPnPGenaServer::Data
+struct SUPnPGenaServer::Data
 {
   inline                        Data(void) : lock(QReadWriteLock::Recursive) { }
 
   QReadWriteLock                lock;
   QString                       path;
-  HttpServer                  * httpServer;
+  SHttpServer                  * httpServer;
 
   QUuid                         sidBase;
   QAtomicInt                    sidCounter;
@@ -75,7 +75,7 @@ struct UPnPGenaServer::Data
   QTimer                        eventTimer;
 };
 
-UPnPGenaServer::UPnPGenaServer(const QString &basePath, QObject *parent)
+SUPnPGenaServer::SUPnPGenaServer(const QString &basePath, QObject *parent)
   : QObject(parent),
     d(new Data())
 {
@@ -89,18 +89,18 @@ UPnPGenaServer::UPnPGenaServer(const QString &basePath, QObject *parent)
   connect(&d->eventTimer, SIGNAL(timeout()), SLOT(emitEvents()));
 }
 
-UPnPGenaServer::~UPnPGenaServer()
+SUPnPGenaServer::~SUPnPGenaServer()
 {
   delete d;
   *const_cast<Data **>(&d) = NULL;
 }
 
-QString UPnPGenaServer::path(void) const
+QString SUPnPGenaServer::path(void) const
 {
   return d->path + "control";
 }
 
-void UPnPGenaServer::initialize(HttpServer *httpServer)
+void SUPnPGenaServer::initialize(SHttpServer *httpServer)
 {
   QWriteLocker l(&d->lock);
 
@@ -109,7 +109,7 @@ void UPnPGenaServer::initialize(HttpServer *httpServer)
   httpServer->registerCallback(d->path, this);
 }
 
-void UPnPGenaServer::close(void)
+void SUPnPGenaServer::close(void)
 {
   if (d->httpServer)
     d->httpServer->threadPool()->waitForDone();
@@ -130,9 +130,9 @@ void UPnPGenaServer::close(void)
   d->httpServer = NULL;
 }
 
-void UPnPGenaServer::emitEvent(const QDomDocument &doc)
+void SUPnPGenaServer::emitEvent(const QDomDocument &doc)
 {
-  const QByteArray content = QByteArray(UPnPBase::xmlDeclaration) + '\n' + doc.toByteArray();
+  const QByteArray content = QByteArray(SUPnPBase::xmlDeclaration) + '\n' + doc.toByteArray();
 
   QWriteLocker l(&d->lock);
 
@@ -141,7 +141,7 @@ void UPnPGenaServer::emitEvent(const QDomDocument &doc)
   QCoreApplication::postEvent(this, new QEvent(scheduleEventType));
 }
 
-void UPnPGenaServer::customEvent(QEvent *e)
+void SUPnPGenaServer::customEvent(QEvent *e)
 {
   if (e->type() == scheduleEventType)
     d->eventTimer.start(EventSession::minInterval * 1000);
@@ -149,7 +149,7 @@ void UPnPGenaServer::customEvent(QEvent *e)
     QObject::customEvent(e);
 }
 
-void UPnPGenaServer::timerEvent(QTimerEvent *e)
+void SUPnPGenaServer::timerEvent(QTimerEvent *e)
 {
   if (e->timerId() == d->cleanTimer)
   {
@@ -172,7 +172,7 @@ void UPnPGenaServer::timerEvent(QTimerEvent *e)
     QObject::timerEvent(e);
 }
 
-HttpServer::SocketOp UPnPGenaServer::handleHttpRequest(const HttpServer::RequestHeader &request, QIODevice *socket)
+SHttpServer::SocketOp SUPnPGenaServer::handleHttpRequest(const SHttpServer::RequestHeader &request, QIODevice *socket)
 {
   if (request.path() == path())
   {
@@ -207,11 +207,11 @@ HttpServer::SocketOp UPnPGenaServer::handleHttpRequest(const HttpServer::Request
         session = d->eventSessions.insert(s->sid, s);
       }
       else
-        return HttpServer::sendResponse(request, socket, HttpServer::Status_BadRequest, this);
+        return SHttpServer::sendResponse(request, socket, SHttpServer::Status_BadRequest, this);
 
       if (session != d->eventSessions.end())
       {
-        HttpServer::ResponseHeader response(request, HttpServer::Status_Ok);
+        SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
         response.setField("SID", (*session)->sid);
         response.setContentLength(0);
         response.setField("TIMEOUT", "Second-" + QString::number((*session)->timeout));
@@ -224,11 +224,11 @@ HttpServer::SocketOp UPnPGenaServer::handleHttpRequest(const HttpServer::Request
 
           l.unlock();
 
-          socket->waitForBytesWritten(UPnPBase::responseTimeout * 1000);
+          socket->waitForBytesWritten(SUPnPBase::responseTimeout * 1000);
           d->httpServer->threadPool()->start(s, 1);
         }
 
-        return HttpServer::SocketOp_Close;
+        return SHttpServer::SocketOp_Close;
       }
     }
     else if (request.method() == "UNSUBSCRIBE")
@@ -241,20 +241,20 @@ HttpServer::SocketOp UPnPGenaServer::handleHttpRequest(const HttpServer::Request
         if (session != d->eventSessions.end())
         {
           (*session)->unsubscribe();
-          return HttpServer::sendResponse(request, socket, HttpServer::Status_Ok, this);
+          return SHttpServer::sendResponse(request, socket, SHttpServer::Status_Ok, this);
         }
       }
       else
-        return HttpServer::sendResponse(request, socket, HttpServer::Status_BadRequest, this);
+        return SHttpServer::sendResponse(request, socket, SHttpServer::Status_BadRequest, this);
     }
 
-    return HttpServer::sendResponse(request, socket, HttpServer::Status_PreconditionFailed, this);
+    return SHttpServer::sendResponse(request, socket, SHttpServer::Status_PreconditionFailed, this);
   }
 
-  return HttpServer::sendResponse(request, socket, HttpServer::Status_NotFound, this);
+  return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);
 }
 
-void UPnPGenaServer::emitEvents(void)
+void SUPnPGenaServer::emitEvents(void)
 {
   QWriteLocker l(&d->lock);
 
@@ -263,7 +263,7 @@ void UPnPGenaServer::emitEvents(void)
     d->httpServer->threadPool()->start(session, -1); // Lower priority than handling incoming requests
 }
 
-QString UPnPGenaServer::makeSid(void)
+QString SUPnPGenaServer::makeSid(void)
 {
   QString sid = "uuid:" + QUuid(
       d->sidBase.data1 + uint(d->sidCounter.fetchAndAddRelaxed(1)),
@@ -275,13 +275,13 @@ QString UPnPGenaServer::makeSid(void)
 }
 
 
-const unsigned  UPnPGenaServer::EventSession::maxInstances = 256;
-const int       UPnPGenaServer::EventSession::minInterval = 2;
-const int       UPnPGenaServer::EventSession::minTimeout = 30;
-const int       UPnPGenaServer::EventSession::maxTimeout = 1800;
-const int       UPnPGenaServer::EventSession::defaultTimeout = 180;
+const unsigned  SUPnPGenaServer::EventSession::maxInstances = 256;
+const int       SUPnPGenaServer::EventSession::minInterval = 2;
+const int       SUPnPGenaServer::EventSession::minTimeout = 30;
+const int       SUPnPGenaServer::EventSession::maxTimeout = 1800;
+const int       SUPnPGenaServer::EventSession::defaultTimeout = 180;
 
-UPnPGenaServer::EventSession::EventSession(UPnPGenaServer *parent, const QStringList &eventUrls, int timeout)
+SUPnPGenaServer::EventSession::EventSession(SUPnPGenaServer *parent, const QStringList &eventUrls, int timeout)
     : sid(parent->makeSid()),
       timeout(qBound(minTimeout, (timeout > 0) ? timeout : defaultTimeout, maxTimeout)),
       eventUrls(eventUrls),
@@ -293,25 +293,25 @@ UPnPGenaServer::EventSession::EventSession(UPnPGenaServer *parent, const QString
   QRunnable::setAutoDelete(false);
 }
 
-UPnPGenaServer::EventSession::~EventSession()
+SUPnPGenaServer::EventSession::~EventSession()
 {
 }
 
-void UPnPGenaServer::EventSession::resubscribe(void)
+void SUPnPGenaServer::EventSession::resubscribe(void)
 {
   QWriteLocker l(&parent->d->lock);
 
   lastSubscribe = QDateTime::currentDateTime();
 }
 
-void UPnPGenaServer::EventSession::unsubscribe(void)
+void SUPnPGenaServer::EventSession::unsubscribe(void)
 {
   QWriteLocker l(&parent->d->lock);
 
   lastSubscribe = QDateTime();
 }
 
-bool UPnPGenaServer::EventSession::isActive(void) const
+bool SUPnPGenaServer::EventSession::isActive(void) const
 {
   QWriteLocker l(&parent->d->lock);
 
@@ -321,7 +321,7 @@ bool UPnPGenaServer::EventSession::isActive(void) const
   return false;
 }
 
-void UPnPGenaServer::EventSession::run(void)
+void SUPnPGenaServer::EventSession::run(void)
 {
   QWriteLocker l(&parent->d->lock);
 
@@ -330,8 +330,8 @@ void UPnPGenaServer::EventSession::run(void)
 
   // Build the message
   const QByteArray content = parent->d->eventMessage;
-  HttpServer::RequestHeader header(NULL);
-  header.setContentType(UPnPBase::xmlContentType);
+  SHttpServer::RequestHeader header(NULL);
+  header.setContentType(SUPnPBase::xmlContentType);
   header.setContentLength(content.length());
   header.setField("NT", "upnp:event");
   header.setField("NTS", "upnp:propchange");
@@ -343,7 +343,7 @@ void UPnPGenaServer::EventSession::run(void)
 
   l.unlock();
 
-  static const int maxRequestTime = UPnPBase::responseTimeout * 1000;
+  static const int maxRequestTime = SUPnPBase::responseTimeout * 1000;
   QTime timer; timer.start();
 
   // Try the eventUrls until one succeeds
@@ -375,15 +375,15 @@ void UPnPGenaServer::EventSession::run(void)
             response += line;
             socket.close();
 
-            const HttpServer::ResponseHeader responseHeader(response, parent->d->httpServer);
-            if (responseHeader.status() == HttpServer::Status_Ok)
+            const SHttpServer::ResponseHeader responseHeader(response, parent->d->httpServer);
+            if (responseHeader.status() == SHttpServer::Status_Ok)
             {
               queued.deref();
               return; // Event delivered.
             }
             else
             {
-              qDebug() << "UPnPGenaServer::EventSession: got error response:" << response;
+              qDebug() << "SUPnPGenaServer::EventSession: got error response:" << response;
 
               break; // Failed, try next URL.
             }

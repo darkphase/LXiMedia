@@ -17,49 +17,37 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXISERVER_UPNPCONNECTIONMANAGER_H
-#define LXISERVER_UPNPCONNECTIONMANAGER_H
+#ifndef LXISERVER_SSANDBOXSERVER_H
+#define LXISERVER_SSANDBOXSERVER_H
 
 #include <QtCore>
-#include <QtNetwork>
-#include <QtXml>
-#include "httpserver.h"
-#include "upnpbase.h"
+#include "shttpengine.h"
 
 namespace LXiServer {
 
-class UPnPMediaServer;
-
-class UPnPConnectionManager : public UPnPBase
+class SSandboxServer : public SHttpServerEngine
 {
 Q_OBJECT
 public:
-  explicit                      UPnPConnectionManager(const QString &basePath, QObject * = NULL);
-  virtual                       ~UPnPConnectionManager();
+  explicit                      SSandboxServer(QObject * = NULL);
+  virtual                       ~SSandboxServer();
 
-  void                          initialize(HttpServer *, UPnPMediaServer *);
+  void                          initialize(const QString &name, const QString &mode);
   void                          close(void);
 
-  void                          setSourceProtocols(const ProtocolList &);
-  void                          setSinkProtocols(const ProtocolList &);
+signals:
+  void                          busy(void);
+  void                          idle(void);
 
-protected: // From UPnPBase
-  virtual void                  buildDescription(QDomDocument &, QDomElement &);
-  virtual void                  handleSoapMessage(const QDomElement &, QDomDocument &, QDomElement &, const HttpServer::RequestHeader &, const QHostAddress &);
-
-private:
-  void                          emitEvent(void);
-  QString                       listSourceProtocols(void) const;
-  QString                       listSinkProtocols(void) const;
-
-public:
-  static const char     * const connectionManagerNS;
+protected: // From HttpServerEngine
+  virtual QIODevice           * openSocket(quintptr, int timeout);
+  virtual void                  closeSocket(QIODevice *, bool canReuse, int timeout);
 
 private:
-  struct Data;
-  Data                  * const d;
+  class Server;
+  struct Private;
+  Private               * const p;
 };
-
 
 } // End of namespace
 

@@ -118,9 +118,9 @@ const char * const ConfigServer::htmlDirTreeCheckLink =
     "<img src=\"/img/check{DIR_CHECKED}.png\" width=\"16\" height=\"16\" />"
     "</a>";
 
-HttpServer::SocketOp ConfigServer::handleHtmlRequest(const HttpServer::RequestHeader &request, QIODevice *socket, const QString &file)
+SHttpServer::SocketOp ConfigServer::handleHtmlRequest(const SHttpServer::RequestHeader &request, QIODevice *socket, const QString &file)
 {
-  HttpServer::ResponseHeader response(request, HttpServer::Status_Ok);
+  SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
   response.setContentType("text/html;charset=utf-8");
   response.setField("Cache-Control", "no-cache");
 
@@ -162,7 +162,7 @@ HttpServer::SocketOp ConfigServer::handleHtmlRequest(const HttpServer::RequestHe
 
     socket->write(response);
     socket->write(htmlParser.parse(htmlDirTreeIndex));
-    return HttpServer::SocketOp_Close;
+    return SHttpServer::SocketOp_Close;
   }
   else
   {

@@ -17,7 +17,7 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "sandboxserver.h"
+#include "ssandboxserver.h"
 #include <QtNetwork>
 #include <iostream>
 #if defined(Q_OS_UNIX)
@@ -29,40 +29,40 @@
 
 namespace LXiServer {
 
-class SandboxServer::Server : public QLocalServer
+class SSandboxServer::Server : public QLocalServer
 {
 public:
-  explicit                      Server(const QString &, SandboxServer *parent);
+  explicit                      Server(const QString &, SSandboxServer *parent);
 
 protected:
   virtual void                  incomingConnection(quintptr);
 
 private:
-  SandboxServer         * const parent;
+  SSandboxServer         * const parent;
 };
 
-struct SandboxServer::Private
+struct SSandboxServer::Private
 {
   Server                      * server;
   QAtomicInt                    clients;
 };
 
-SandboxServer::SandboxServer(QObject *parent)
-  : HttpServerEngine("Sandbox/1.0", parent),
+SSandboxServer::SSandboxServer(QObject *parent)
+  : SHttpServerEngine("Sandbox/1.0", parent),
     p(new Private())
 {
   p->server = NULL;
   p->clients = 0;
 }
 
-SandboxServer::~SandboxServer()
+SSandboxServer::~SSandboxServer()
 {
   delete p->server;
   delete p;
   *const_cast<Private **>(&p) = NULL;
 }
 
-void SandboxServer::initialize(const QString &name, const QString &mode)
+void SSandboxServer::initialize(const QString &name, const QString &mode)
 {
   QWriteLocker l(lock());
 
@@ -85,7 +85,7 @@ void SandboxServer::initialize(const QString &name, const QString &mode)
   }
 }
 
-void SandboxServer::close(void)
+void SSandboxServer::close(void)
 {
   QWriteLocker l(lock());
 
@@ -97,7 +97,7 @@ void SandboxServer::close(void)
   std::cerr << "##STOP" << std::endl;
 }
 
-QIODevice * SandboxServer::openSocket(quintptr socketDescriptor, int)
+QIODevice * SSandboxServer::openSocket(quintptr socketDescriptor, int)
 {
   QLocalSocket * const socket = new QLocalSocket();
   if (socket->setSocketDescriptor(socketDescriptor))
@@ -112,7 +112,7 @@ QIODevice * SandboxServer::openSocket(quintptr socketDescriptor, int)
   return NULL;
 }
 
-void SandboxServer::closeSocket(QIODevice *device, bool, int timeout)
+void SSandboxServer::closeSocket(QIODevice *device, bool, int timeout)
 {
   QLocalSocket * const socket = static_cast<QLocalSocket *>(device);
 
@@ -134,7 +134,7 @@ void SandboxServer::closeSocket(QIODevice *device, bool, int timeout)
 }
 
 
-SandboxServer::Server::Server(const QString &name, SandboxServer *parent)
+SSandboxServer::Server::Server(const QString &name, SSandboxServer *parent)
   : QLocalServer(),
     parent(parent)
 {
@@ -149,7 +149,7 @@ SandboxServer::Server::Server(const QString &name, SandboxServer *parent)
   qWarning() << "Failed to bind local socket" << name;
 }
 
-void SandboxServer::Server::incomingConnection(quintptr socketDescriptor)
+void SSandboxServer::Server::incomingConnection(quintptr socketDescriptor)
 {
   if (!parent->handleConnection(socketDescriptor))
   {

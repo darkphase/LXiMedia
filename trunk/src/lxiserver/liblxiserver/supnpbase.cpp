@@ -17,8 +17,8 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "upnpbase.h"
-#include "upnpmediaserver.h"
+#include "supnpbase.h"
+#include "supnpmediaserver.h"
 
 #ifdef QT_NO_DEBUG
 #define PERMISSIVE
@@ -26,26 +26,26 @@
 
 namespace LXiServer {
 
-const int           UPnPBase::majorVersion = 1, UPnPBase::minorVersion = 0;
-const int           UPnPBase::responseTimeout = 30; // Seconds
-const char  * const UPnPBase::xmlDeclaration  = "<?xml version=\"1.0\" encoding=\"utf-8\"?>";
-const char  * const UPnPBase::xmlContentType  = "text/xml; charset=\"utf-8\" ";
-const char  * const UPnPBase::dlnaNS          = "urn:schemas-dlna-org:metadata-1-0/";
-const char  * const UPnPBase::didlNS          = "urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/";
-const char  * const UPnPBase::dublinCoreNS    = "http://purl.org/dc/elements/1.1/";
-const char  * const UPnPBase::metadataNS      = "urn:schemas-upnp-org:metadata-1-0/upnp/";
-const char  * const UPnPBase::soapNS          = "http://schemas.xmlsoap.org/soap/envelope/";
+const int           SUPnPBase::majorVersion = 1, SUPnPBase::minorVersion = 0;
+const int           SUPnPBase::responseTimeout = 30; // Seconds
+const char  * const SUPnPBase::xmlDeclaration  = "<?xml version=\"1.0\" encoding=\"utf-8\"?>";
+const char  * const SUPnPBase::xmlContentType  = "text/xml; charset=\"utf-8\" ";
+const char  * const SUPnPBase::dlnaNS          = "urn:schemas-dlna-org:metadata-1-0/";
+const char  * const SUPnPBase::didlNS          = "urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/";
+const char  * const SUPnPBase::dublinCoreNS    = "http://purl.org/dc/elements/1.1/";
+const char  * const SUPnPBase::metadataNS      = "urn:schemas-upnp-org:metadata-1-0/upnp/";
+const char  * const SUPnPBase::soapNS          = "http://schemas.xmlsoap.org/soap/envelope/";
 
-struct UPnPBase::Data
+struct SUPnPBase::Data
 {
   inline                        Data(void) : lock(QReadWriteLock::Recursive) { }
 
   QReadWriteLock                lock;
   QString                       basePath;
-  HttpServer                  * httpServer;
+  SHttpServer                  * httpServer;
 };
 
-UPnPBase::UPnPBase(const QString &basePath, QObject *parent)
+SUPnPBase::SUPnPBase(const QString &basePath, QObject *parent)
   : QObject(parent),
     d(new Data())
 {
@@ -53,7 +53,7 @@ UPnPBase::UPnPBase(const QString &basePath, QObject *parent)
   d->httpServer = NULL;
 }
 
-UPnPBase::~UPnPBase()
+SUPnPBase::~SUPnPBase()
 {
   if (d->httpServer)
     d->httpServer->unregisterCallback(this);
@@ -62,7 +62,7 @@ UPnPBase::~UPnPBase()
   *const_cast<Data **>(&d) = NULL;
 }
 
-void UPnPBase::initialize(HttpServer *httpServer, UPnPMediaServer::Service &service)
+void SUPnPBase::initialize(SHttpServer *httpServer, SUPnPMediaServer::Service &service)
 {
   QWriteLocker l(&d->lock);
 
@@ -74,7 +74,7 @@ void UPnPBase::initialize(HttpServer *httpServer, UPnPMediaServer::Service &serv
   service.controlURL = d->basePath + "control";
 }
 
-void UPnPBase::close(void)
+void SUPnPBase::close(void)
 {
   QWriteLocker l(&d->lock);
 
@@ -84,17 +84,17 @@ void UPnPBase::close(void)
   d->httpServer = NULL;
 }
 
-HttpServer::SocketOp UPnPBase::handleHttpRequest(const HttpServer::RequestHeader &request, QIODevice *socket)
+SHttpServer::SocketOp SUPnPBase::handleHttpRequest(const SHttpServer::RequestHeader &request, QIODevice *socket)
 {
   if ((request.path() == d->basePath + "control") && (request.method() == "POST"))
     return handleControl(request, socket);
   else if (request.path() == d->basePath + "description.xml")
     return handleDescription(request, socket);
 
-  return HttpServer::sendResponse(request, socket, HttpServer::Status_NotFound, this);
+  return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);
 }
 
-HttpServer::SocketOp UPnPBase::handleControl(const HttpServer::RequestHeader &request, QIODevice *socket)
+SHttpServer::SocketOp SUPnPBase::handleControl(const SHttpServer::RequestHeader &request, QIODevice *socket)
 {
   QTime timer;
   timer.start();
@@ -121,7 +121,7 @@ HttpServer::SocketOp UPnPBase::handleControl(const HttpServer::RequestHeader &re
       handleSoapMessage(body, responseDoc, responseBody, request, peerAddress);
 
       const QByteArray content = serializeSoapMessage(responseDoc);
-      HttpServer::ResponseHeader response(request, HttpServer::Status_Ok);
+      SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
       response.setContentType(xmlContentType);
       response.setContentLength(content.length());
       response.setField("Cache-Control", "no-cache");
@@ -131,14 +131,14 @@ HttpServer::SocketOp UPnPBase::handleControl(const HttpServer::RequestHeader &re
       socket->write(response);
       socket->write(content);
 
-      return HttpServer::SocketOp_Close;
+      return SHttpServer::SocketOp_Close;
     }
   }
 
-  return HttpServer::sendResponse(request, socket, HttpServer::Status_NotFound, this);
+  return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);
 }
 
-HttpServer::SocketOp UPnPBase::handleDescription(const HttpServer::RequestHeader &request, QIODevice *socket)
+SHttpServer::SocketOp SUPnPBase::handleDescription(const SHttpServer::RequestHeader &request, QIODevice *socket)
 {
   QDomDocument doc;
   QDomElement scpdElm = doc.createElement("scpd");
@@ -150,7 +150,7 @@ HttpServer::SocketOp UPnPBase::handleDescription(const HttpServer::RequestHeader
   doc.appendChild(scpdElm);
 
   const QByteArray content = QByteArray(xmlDeclaration) + '\n' + doc.toByteArray();
-  HttpServer::ResponseHeader response(request, HttpServer::Status_Ok);
+  SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
   response.setContentType(xmlContentType);
   response.setContentLength(content.length());
   response.setField("Cache-Control", "no-cache");
@@ -160,46 +160,46 @@ HttpServer::SocketOp UPnPBase::handleDescription(const HttpServer::RequestHeader
   socket->write(response);
   socket->write(content);
 
-  return HttpServer::SocketOp_Close;
+  return SHttpServer::SocketOp_Close;
 }
 
-QReadWriteLock * UPnPBase::lock(void) const
+QReadWriteLock * SUPnPBase::lock(void) const
 {
   return &d->lock;
 }
 
-const QString & UPnPBase::basePath(void) const
+const QString & SUPnPBase::basePath(void) const
 {
   return d->basePath;
 }
 
-HttpServer * UPnPBase::httpServer(void) const
+SHttpServer * SUPnPBase::httpServer(void) const
 {
   return d->httpServer;
 }
 
-QString UPnPBase::protocol(void)
+QString SUPnPBase::protocol(void)
 {
   return
       "UPnP/" + QString::number(majorVersion) + "." + QString::number(minorVersion) +
       " DLNADOC/1.00";
 }
 
-void UPnPBase::addTextElm(QDomDocument &doc, QDomElement &elm, const QString &name, const QString &value)
+void SUPnPBase::addTextElm(QDomDocument &doc, QDomElement &elm, const QString &name, const QString &value)
 {
   QDomElement subElm = doc.createElement(name);
   subElm.appendChild(doc.createTextNode(value));
   elm.appendChild(subElm);
 }
 
-void UPnPBase::addTextElmNS(QDomDocument &doc, QDomElement &elm, const QString &name, const QString &nsUri, const QString &value)
+void SUPnPBase::addTextElmNS(QDomDocument &doc, QDomElement &elm, const QString &name, const QString &nsUri, const QString &value)
 {
   QDomElement subElm = doc.createElementNS(nsUri, name);
   subElm.appendChild(doc.createTextNode(value));
   elm.appendChild(subElm);
 }
 
-void UPnPBase::addSpecVersion(QDomDocument &doc, QDomElement &elm)
+void SUPnPBase::addSpecVersion(QDomDocument &doc, QDomElement &elm)
 {
   QDomElement specVersionElm = doc.createElement("specVersion");
   addTextElm(doc, specVersionElm, "major", QString::number(majorVersion));
@@ -207,7 +207,7 @@ void UPnPBase::addSpecVersion(QDomDocument &doc, QDomElement &elm)
   elm.appendChild(specVersionElm);
 }
 
-void UPnPBase::addActionArgument(QDomDocument &doc, QDomElement &elm, const QString &name, const QString &direction, const QString &relatedStateVariable)
+void SUPnPBase::addActionArgument(QDomDocument &doc, QDomElement &elm, const QString &name, const QString &direction, const QString &relatedStateVariable)
 {
   QDomElement argumentElm = doc.createElement("argument");
   addTextElm(doc, argumentElm, "name", name);
@@ -216,7 +216,7 @@ void UPnPBase::addActionArgument(QDomDocument &doc, QDomElement &elm, const QStr
   elm.appendChild(argumentElm);
 }
 
-void UPnPBase::addStateVariable(QDomDocument &doc, QDomElement &elm, bool sendEvents, const QString &name, const QString &dataType, const QStringList &allowedValues)
+void SUPnPBase::addStateVariable(QDomDocument &doc, QDomElement &elm, bool sendEvents, const QString &name, const QString &dataType, const QStringList &allowedValues)
 {
   QDomElement stateVariableElm = doc.createElement("stateVariable");
   stateVariableElm.setAttribute("sendEvents", sendEvents ? "yes" : "no");
@@ -236,7 +236,7 @@ void UPnPBase::addStateVariable(QDomDocument &doc, QDomElement &elm, bool sendEv
   elm.appendChild(stateVariableElm);
 }
 
-QDomElement UPnPBase::createElementNS(QDomDocument &doc, const QDomElement &nsElm, const QString &localName)
+QDomElement SUPnPBase::createElementNS(QDomDocument &doc, const QDomElement &nsElm, const QString &localName)
 {
   if (!nsElm.isNull())
   if (!nsElm.prefix().isEmpty() && !nsElm.namespaceURI().isEmpty())
@@ -245,7 +245,7 @@ QDomElement UPnPBase::createElementNS(QDomDocument &doc, const QDomElement &nsEl
   return doc.createElement(localName);
 }
 
-QDomElement UPnPBase::makeSoapMessage(QDomDocument &doc, const QDomElement &nsElm)
+QDomElement SUPnPBase::makeSoapMessage(QDomDocument &doc, const QDomElement &nsElm)
 {
   QDomElement root = createElementNS(doc, nsElm, "Envelope");
 
@@ -262,12 +262,12 @@ QDomElement UPnPBase::makeSoapMessage(QDomDocument &doc, const QDomElement &nsEl
   return body;
 }
 
-QByteArray UPnPBase::serializeSoapMessage(const QDomDocument &doc)
+QByteArray SUPnPBase::serializeSoapMessage(const QDomDocument &doc)
 {
   return xmlDeclaration + doc.toByteArray(-1);
 }
 
-QDomElement UPnPBase::firstChildElementNS(const QDomElement &elm, const QString &nsURI, const QString &localName)
+QDomElement SUPnPBase::firstChildElementNS(const QDomElement &elm, const QString &nsURI, const QString &localName)
 {
   for (QDomNode i=elm.firstChild(); !i.isNull(); i=i.nextSibling())
   if ((i.localName() == localName) && (i.namespaceURI() == nsURI) && !i.toElement().isNull())
@@ -284,7 +284,7 @@ QDomElement UPnPBase::firstChildElementNS(const QDomElement &elm, const QString 
   return QDomElement();
 }
 
-QDomElement UPnPBase::parseSoapMessage(QDomDocument &doc, const QByteArray &data)
+QDomElement SUPnPBase::parseSoapMessage(QDomDocument &doc, const QByteArray &data)
 {
   doc = QDomDocument("Envelope");
   if (doc.setContent(data, true))
@@ -293,7 +293,7 @@ QDomElement UPnPBase::parseSoapMessage(QDomDocument &doc, const QByteArray &data
   return QDomElement();
 }
 
-QString UPnPBase::Protocol::toString(bool brief) const
+QString SUPnPBase::Protocol::toString(bool brief) const
 {
   QString result = protocol + ":" + network + ":" + contentFormat + ":";
   if (!brief)

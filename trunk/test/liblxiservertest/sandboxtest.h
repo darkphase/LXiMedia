@@ -20,7 +20,7 @@
 #include <QtCore>
 #include <QtNetwork>
 
-namespace LXiServer { class SandboxClient; }
+namespace LXiServer { class SSandboxClient; }
 
 class SandboxTest : public QObject
 {
@@ -39,5 +39,5 @@ private slots:
   void                          sendRequestMultiThreaded(void);
 
 private:
-  LXiServer::SandboxClient    * sandboxClient;
+  LXiServer::SSandboxClient   * sandboxClient;
 };

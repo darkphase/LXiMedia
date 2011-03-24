@@ -35,27 +35,27 @@ void HttpServerTest::Server(void)
 {
   static const QHostAddress localhost = QHostAddress("127.0.0.1");
 
-  struct Callback : HttpServer::Callback
+  struct Callback : SHttpServer::Callback
   {
-    virtual HttpServer::SocketOp handleHttpRequest(const HttpServer::RequestHeader &request, QIODevice *socket)
+    virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestHeader &request, QIODevice *socket)
     {
       if (request.path() == "/test.txt")
       {
         const QString text = "hello world\n";
 
-        HttpServer::ResponseHeader response(request, HttpServer::Status_Ok);
+        SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
         response.setContentLength(text.size());
-        response.setContentType(HttpServer::toMimeType(".txt"));
+        response.setContentType(SHttpServer::toMimeType(".txt"));
         socket->write(response);
         socket->write(text.toUtf8());
-        return HttpServer::SocketOp_Close;
+        return SHttpServer::SocketOp_Close;
       }
 
-      return HttpServer::sendResponse(request, socket, HttpServer::Status_NotFound);
+      return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound);
     }
   } callback;
 
-  HttpServer httpServer("TEST/1.0", QUuid::createUuid());
+  SHttpServer httpServer("TEST/1.0", QUuid::createUuid());
   httpServer.initialize(QList<QHostAddress>() << localhost);
   QVERIFY(httpServer.serverPort(localhost) > 0);
 

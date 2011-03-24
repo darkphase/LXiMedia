@@ -17,17 +17,17 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "upnpmediaserver.h"
+#include "supnpmediaserver.h"
 #include <QtXml>
-#include "ssdpserver.h"
-#include "upnpbase.h"
+#include "sssdpserver.h"
+#include "supnpbase.h"
 
 namespace LXiServer {
 
-const char  * const UPnPMediaServer::dlnaDeviceNS = "urn:schemas-dlna-org:device-1-0";
-const char  * const UPnPMediaServer::deviceType   = "urn:schemas-upnp-org:device:MediaServer:1";
+const char  * const SUPnPMediaServer::dlnaDeviceNS = "urn:schemas-dlna-org:device-1-0";
+const char  * const SUPnPMediaServer::deviceType   = "urn:schemas-upnp-org:device:MediaServer:1";
 
-struct UPnPMediaServer::Data
+struct SUPnPMediaServer::Data
 {
   struct Icon
   {
@@ -42,13 +42,13 @@ struct UPnPMediaServer::Data
 
   QReadWriteLock                lock;
   QString                       basePath;
-  HttpServer                  * httpServer;
-  SsdpServer                  * ssdpServer;
+  SHttpServer                 * httpServer;
+  SSsdpServer                  * ssdpServer;
   QList<Service>                services;
   QList<Icon>                   icons;
 };
 
-UPnPMediaServer::UPnPMediaServer(const QString &basePath, QObject *parent)
+SUPnPMediaServer::SUPnPMediaServer(const QString &basePath, QObject *parent)
     : QObject(parent),
       d(new Data())
 {
@@ -57,7 +57,7 @@ UPnPMediaServer::UPnPMediaServer(const QString &basePath, QObject *parent)
   d->ssdpServer = NULL;
 }
 
-UPnPMediaServer::~UPnPMediaServer()
+SUPnPMediaServer::~SUPnPMediaServer()
 {
   if (d->httpServer)
     d->httpServer->unregisterCallback(this);
@@ -66,7 +66,7 @@ UPnPMediaServer::~UPnPMediaServer()
   *const_cast<Data **>(&d) = NULL;
 }
 
-void UPnPMediaServer::initialize(HttpServer *httpServer, SsdpServer *ssdpServer)
+void SUPnPMediaServer::initialize(SHttpServer *httpServer, SSsdpServer *ssdpServer)
 {
   d->httpServer = httpServer;
   d->ssdpServer = ssdpServer;
@@ -77,7 +77,7 @@ void UPnPMediaServer::initialize(HttpServer *httpServer, SsdpServer *ssdpServer)
   ssdpServer->publish("urn:schemas-upnp-org:device:MediaServer:1", "/upnp/mediaserver/description.xml", 2);
 }
 
-void UPnPMediaServer::close(void)
+void SUPnPMediaServer::close(void)
 {
   QWriteLocker l(&d->lock);
 
@@ -85,7 +85,7 @@ void UPnPMediaServer::close(void)
     d->httpServer->unregisterCallback(this);
 }
 
-void UPnPMediaServer::addIcon(const QString &url, unsigned width, unsigned height, unsigned depth)
+void SUPnPMediaServer::addIcon(const QString &url, unsigned width, unsigned height, unsigned depth)
 {
   Data::Icon icon;
   icon.url = url;
@@ -97,7 +97,7 @@ void UPnPMediaServer::addIcon(const QString &url, unsigned width, unsigned heigh
   d->icons += icon;
 }
 
-void UPnPMediaServer::registerService(const Service &service)
+void SUPnPMediaServer::registerService(const Service &service)
 {
   QWriteLocker l(&d->lock);
 
@@ -105,31 +105,31 @@ void UPnPMediaServer::registerService(const Service &service)
   d->ssdpServer->publish(service.serviceType, service.descriptionUrl, 1);
 }
 
-HttpServer::SocketOp UPnPMediaServer::handleHttpRequest(const HttpServer::RequestHeader &request, QIODevice *socket)
+SHttpServer::SocketOp SUPnPMediaServer::handleHttpRequest(const SHttpServer::RequestHeader &request, QIODevice *socket)
 {
   if (request.path() == "/upnp/mediaserver/description.xml")
   {
     QDomDocument doc;
     QDomElement rootElm = doc.createElement("root");
     rootElm.setAttribute("xmlns", "urn:schemas-upnp-org:device-1-0");
-    UPnPBase::addSpecVersion(doc, rootElm);
+    SUPnPBase::addSpecVersion(doc, rootElm);
 
     QDomElement deviceElm = doc.createElement("device");
-    UPnPBase::addTextElm(doc, deviceElm, "deviceType", deviceType);
-    UPnPBase::addTextElm(doc, deviceElm, "friendlyName", QHostInfo::localHostName() + ": " + qApp->applicationName());
-    UPnPBase::addTextElm(doc, deviceElm, "manufacturer", qApp->organizationName());
-    UPnPBase::addTextElm(doc, deviceElm, "manufacturerURL", "http://" + qApp->organizationDomain() + "/");
-    UPnPBase::addTextElm(doc, deviceElm, "modelDescription", qApp->applicationName());
-    UPnPBase::addTextElm(doc, deviceElm, "modelName", qApp->applicationName());
-    UPnPBase::addTextElm(doc, deviceElm, "modelNumber", qApp->applicationVersion());
-    UPnPBase::addTextElm(doc, deviceElm, "modelURL", "http://" + qApp->organizationDomain() + "/");
-    UPnPBase::addTextElm(doc, deviceElm, "serialNumber", qApp->applicationVersion());
-    UPnPBase::addTextElm(doc, deviceElm, "UDN", d->httpServer->serverUdn());
-    UPnPBase::addTextElmNS(doc, deviceElm, "dlna:X_DLNADOC", dlnaDeviceNS, "DMS-1.00");
+    SUPnPBase::addTextElm(doc, deviceElm, "deviceType", deviceType);
+    SUPnPBase::addTextElm(doc, deviceElm, "friendlyName", QHostInfo::localHostName() + ": " + qApp->applicationName());
+    SUPnPBase::addTextElm(doc, deviceElm, "manufacturer", qApp->organizationName());
+    SUPnPBase::addTextElm(doc, deviceElm, "manufacturerURL", "http://" + qApp->organizationDomain() + "/");
+    SUPnPBase::addTextElm(doc, deviceElm, "modelDescription", qApp->applicationName());
+    SUPnPBase::addTextElm(doc, deviceElm, "modelName", qApp->applicationName());
+    SUPnPBase::addTextElm(doc, deviceElm, "modelNumber", qApp->applicationVersion());
+    SUPnPBase::addTextElm(doc, deviceElm, "modelURL", "http://" + qApp->organizationDomain() + "/");
+    SUPnPBase::addTextElm(doc, deviceElm, "serialNumber", qApp->applicationVersion());
+    SUPnPBase::addTextElm(doc, deviceElm, "UDN", d->httpServer->serverUdn());
+    SUPnPBase::addTextElmNS(doc, deviceElm, "dlna:X_DLNADOC", dlnaDeviceNS, "DMS-1.00");
 
     QString host = request.host();
     if (!host.isEmpty())
-      UPnPBase::addTextElm(doc, deviceElm, "presentationURL", "http://" + request.host() + "/");
+      SUPnPBase::addTextElm(doc, deviceElm, "presentationURL", "http://" + request.host() + "/");
 
     QReadLocker l(&d->lock);
 
@@ -139,11 +139,11 @@ HttpServer::SocketOp UPnPMediaServer::handleHttpRequest(const HttpServer::Reques
       foreach (const Data::Icon &icon, d->icons)
       {
         QDomElement iconElm = doc.createElement("icon");
-        UPnPBase::addTextElm(doc, iconElm, "url", icon.url);
-        UPnPBase::addTextElm(doc, iconElm, "mimetype", icon.mimetype);
-        UPnPBase::addTextElm(doc, iconElm, "width", QString::number(icon.width));
-        UPnPBase::addTextElm(doc, iconElm, "height", QString::number(icon.height));
-        UPnPBase::addTextElm(doc, iconElm, "depth", QString::number(icon.depth));
+        SUPnPBase::addTextElm(doc, iconElm, "url", icon.url);
+        SUPnPBase::addTextElm(doc, iconElm, "mimetype", icon.mimetype);
+        SUPnPBase::addTextElm(doc, iconElm, "width", QString::number(icon.width));
+        SUPnPBase::addTextElm(doc, iconElm, "height", QString::number(icon.height));
+        SUPnPBase::addTextElm(doc, iconElm, "depth", QString::number(icon.depth));
         iconListElm.appendChild(iconElm);
       }
       deviceElm.appendChild(iconListElm);
@@ -153,11 +153,11 @@ HttpServer::SocketOp UPnPMediaServer::handleHttpRequest(const HttpServer::Reques
     foreach (const Service &service, d->services)
     {
       QDomElement serviceElm = doc.createElement("service");
-      UPnPBase::addTextElm(doc, serviceElm, "serviceType", service.serviceType);
-      UPnPBase::addTextElm(doc, serviceElm, "serviceId", service.serviceId);
-      UPnPBase::addTextElm(doc, serviceElm, "SCPDURL", service.descriptionUrl);
-      UPnPBase::addTextElm(doc, serviceElm, "controlURL", service.controlURL);
-      UPnPBase::addTextElm(doc, serviceElm, "eventSubURL", service.eventSubURL);
+      SUPnPBase::addTextElm(doc, serviceElm, "serviceType", service.serviceType);
+      SUPnPBase::addTextElm(doc, serviceElm, "serviceId", service.serviceId);
+      SUPnPBase::addTextElm(doc, serviceElm, "SCPDURL", service.descriptionUrl);
+      SUPnPBase::addTextElm(doc, serviceElm, "controlURL", service.controlURL);
+      SUPnPBase::addTextElm(doc, serviceElm, "eventSubURL", service.eventSubURL);
       serviceListElm.appendChild(serviceElm);
     }
     deviceElm.appendChild(serviceListElm);
@@ -167,9 +167,9 @@ HttpServer::SocketOp UPnPMediaServer::handleHttpRequest(const HttpServer::Reques
     rootElm.appendChild(deviceElm);
     doc.appendChild(rootElm);
 
-    const QByteArray content = QByteArray(UPnPBase::xmlDeclaration) + '\n' + doc.toByteArray();
-    HttpServer::ResponseHeader response(request, HttpServer::Status_Ok);
-    response.setContentType(UPnPBase::xmlContentType);
+    const QByteArray content = QByteArray(SUPnPBase::xmlDeclaration) + '\n' + doc.toByteArray();
+    SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
+    response.setContentType(SUPnPBase::xmlContentType);
     response.setContentLength(content.length());
     response.setField("Cache-Control", "no-cache");
     response.setField("Accept-Ranges", "bytes");
@@ -177,11 +177,11 @@ HttpServer::SocketOp UPnPMediaServer::handleHttpRequest(const HttpServer::Reques
     response.setField("contentFeatures.dlna.org", "");
     socket->write(response);
     socket->write(content);
-    return HttpServer::SocketOp_Close;
+    return SHttpServer::SocketOp_Close;
   }
 
 
-  return HttpServer::sendResponse(request, socket, HttpServer::Status_NotFound, this);
+  return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);
 }
 
 } // End of namespace

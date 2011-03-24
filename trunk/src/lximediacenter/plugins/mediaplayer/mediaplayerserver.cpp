@@ -28,7 +28,7 @@ MediaPlayerServer::MediaPlayerServer(MediaDatabase *mediaDatabase, MediaDatabase
 {
 }
 
-HttpServer::SocketOp MediaPlayerServer::streamVideo(const HttpServer::RequestHeader &request, QIODevice *socket)
+SHttpServer::SocketOp MediaPlayerServer::streamVideo(const SHttpServer::RequestHeader &request, QIODevice *socket)
 {
   const QUrl url(request.path());
 
@@ -61,16 +61,16 @@ HttpServer::SocketOp MediaPlayerServer::streamVideo(const HttpServer::RequestHea
       if (stream->file.open(uid.pid))
       if (stream->setup(request, socket, &stream->file, program.duration))
       if (stream->start())
-        return HttpServer::SocketOp_LeaveOpen; // The graph owns the socket now.
+        return SHttpServer::SocketOp_LeaveOpen; // The graph owns the socket now.
 
       delete stream;
     }
   }
 
-  return HttpServer::sendResponse(request, socket, HttpServer::Status_NotFound, this);
+  return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);
 }
 
-HttpServer::SocketOp MediaPlayerServer::buildPlaylist(const HttpServer::RequestHeader &request, QIODevice *socket)
+SHttpServer::SocketOp MediaPlayerServer::buildPlaylist(const SHttpServer::RequestHeader &request, QIODevice *socket)
 {
   const QUrl url(request.path());
   const QStringList file = request.file().split('.');
@@ -106,12 +106,12 @@ HttpServer::SocketOp MediaPlayerServer::buildPlaylist(const HttpServer::RequestH
     }
   }
 
-  HttpServer::ResponseHeader response(request, HttpServer::Status_Ok);
+  SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
   response.setContentType("audio/x-mpegurl");
   response.setField("Cache-Control", "no-cache");
   socket->write(response);
   socket->write(htmlParser.parse(m3uPlaylist));
-  return HttpServer::SocketOp_Close;
+  return SHttpServer::SocketOp_Close;
 }
 
 bool MediaPlayerServer::isEmpty(const QString &path)
@@ -251,15 +251,15 @@ MediaPlayerServer::Item MediaPlayerServer::makeItem(MediaDatabase::UniqueID uid,
       const SMediaInfo::Program program = node.programs().at(uid.pid);
 
       if (!program.audioStreams.isEmpty() && !program.videoStreams.isEmpty())
-        item.type = UPnPContentDirectory::Item::Type_Video;
+        item.type = SUPnPContentDirectory::Item::Type_Video;
       else if (!program.audioStreams.isEmpty())
-        item.type = UPnPContentDirectory::Item::Type_Audio;
+        item.type = SUPnPContentDirectory::Item::Type_Audio;
       else if (!program.imageCodec.isNull())
-        item.type = UPnPContentDirectory::Item::Type_Image;
+        item.type = SUPnPContentDirectory::Item::Type_Image;
       else
-        item.type = UPnPContentDirectory::Item::Type_None;
+        item.type = SUPnPContentDirectory::Item::Type_None;
 
-      if (item.type != UPnPContentDirectory::Item::Type_None)
+      if (item.type != SUPnPContentDirectory::Item::Type_None)
       {
         item.played = mediaDatabase->lastPlayed(uid).isValid();
         item.type = defaultItemType(Item::Type(item.type));
@@ -349,7 +349,7 @@ MediaPlayerServer::Item::Type MediaPlayerServer::defaultItemType(Item::Type type
   }
 }
 
-HttpServer::SocketOp MediaPlayerServer::handleHttpRequest(const HttpServer::RequestHeader &request, QIODevice *socket)
+SHttpServer::SocketOp MediaPlayerServer::handleHttpRequest(const SHttpServer::RequestHeader &request, QIODevice *socket)
 {
   const QUrl url(request.path());
   const QString file = request.file();
@@ -454,7 +454,7 @@ HttpServer::SocketOp MediaPlayerServer::handleHttpRequest(const HttpServer::Requ
       return sendResponse(request, socket, b.data(), "image/png", true);
     }
 
-    return HttpServer::sendRedirect(request, socket, "http://" + request.host() + "/img/null.png");
+    return SHttpServer::sendRedirect(request, socket, "http://" + request.host() + "/img/null.png");
   }
   else if (file.endsWith(".html")) // Show player
   {
@@ -465,7 +465,7 @@ HttpServer::SocketOp MediaPlayerServer::handleHttpRequest(const HttpServer::Requ
     {
       const SMediaInfo::Program program = node.programs().at(uid.pid);
 
-      HttpServer::ResponseHeader response(request, HttpServer::Status_Ok);
+      SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
       response.setContentType("text/html;charset=utf-8");
       response.setField("Cache-Control", "no-cache");
 

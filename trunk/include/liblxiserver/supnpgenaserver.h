@@ -17,27 +17,27 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXISERVER_UPNPGENASERVER_H
-#define LXISERVER_UPNPGENASERVER_H
+#ifndef LXISERVER_SUPNPGENASERVER_H
+#define LXISERVER_SUPNPGENASERVER_H
 
 #include <QtCore>
 #include <QtNetwork>
 #include <QtXml>
-#include "httpserver.h"
+#include "shttpserver.h"
 
 namespace LXiServer {
 
-class UPnPGenaServer : public QObject,
-                       protected HttpServer::Callback
+class SUPnPGenaServer : public QObject,
+                        protected SHttpServer::Callback
 {
 Q_OBJECT
 public:
-                                UPnPGenaServer(const QString &basePath, QObject * = NULL);
-  virtual                       ~UPnPGenaServer();
+                                SUPnPGenaServer(const QString &basePath, QObject * = NULL);
+  virtual                       ~SUPnPGenaServer();
 
   QString                       path(void) const;
 
-  void                          initialize(HttpServer *);
+  void                          initialize(SHttpServer *);
   void                          close(void);
 
 public slots:
@@ -47,8 +47,8 @@ protected:
   virtual void                  customEvent(QEvent *);
   virtual void                  timerEvent(QTimerEvent *);
 
-protected: // From HttpServer::Callback
-  virtual HttpServer::SocketOp  handleHttpRequest(const HttpServer::RequestHeader &, QIODevice *);
+protected: // From SHttpServer::Callback
+  virtual SHttpServer::SocketOp  handleHttpRequest(const SHttpServer::RequestHeader &, QIODevice *);
 
 private slots:
   void                          emitEvents(void);

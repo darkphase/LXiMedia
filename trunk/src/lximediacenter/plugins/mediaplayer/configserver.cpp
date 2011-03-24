@@ -42,7 +42,7 @@ ConfigServer::~ConfigServer()
   masterServer()->httpServer()->unregisterCallback(this);
 }
 
-HttpServer::SocketOp ConfigServer::handleHttpRequest(const HttpServer::RequestHeader &request, QIODevice *socket)
+SHttpServer::SocketOp ConfigServer::handleHttpRequest(const SHttpServer::RequestHeader &request, QIODevice *socket)
 {
   const QUrl url(request.path());
   const QString file = request.file();
@@ -50,7 +50,7 @@ HttpServer::SocketOp ConfigServer::handleHttpRequest(const HttpServer::RequestHe
   if (file.isEmpty() || file.endsWith(".html"))
     return handleHtmlRequest(request, socket, file);
 
-  return HttpServer::sendResponse(request, socket, HttpServer::Status_NotFound, this);
+  return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);
 }
 
 const QSet<QString> & ConfigServer::hiddenDirs(void)
