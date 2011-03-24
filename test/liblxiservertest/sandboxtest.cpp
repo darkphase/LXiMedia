@@ -23,9 +23,9 @@
 
 int SandboxTest::startSandbox(const QString &name, const QString &mode)
 {
-  struct Callback : SandboxServer::Callback
+  struct Callback : SSandboxServer::Callback
   {
-    virtual SandboxServer::SocketOp handleHttpRequest(const SandboxServer::RequestHeader &request, QIODevice *socket)
+    virtual SSandboxServer::SocketOp handleHttpRequest(const SSandboxServer::RequestHeader &request, QIODevice *socket)
     {
       const QUrl url(request.path());
       const QString path = url.path();
@@ -34,14 +34,14 @@ int SandboxTest::startSandbox(const QString &name, const QString &mode)
       if (path.left(path.lastIndexOf('/') + 1) == "/")
       {
         if (url.hasQueryItem("echo"))
-          return SandboxServer::sendResponse(request, socket, HttpServer::Status_NoContent, url.queryItemValue("echo").toAscii());
+          return SSandboxServer::sendResponse(request, socket, SHttpServer::Status_NoContent, url.queryItemValue("echo").toAscii());
       }
 
-      return SandboxServer::sendResponse(request, socket, HttpServer::Status_NotFound);
+      return SSandboxServer::sendResponse(request, socket, SHttpServer::Status_NotFound);
     }
   };
 
-  SandboxServer sandboxServer;
+  SSandboxServer sandboxServer;
   sandboxServer.initialize(name, mode);
 
   Callback callback;
@@ -56,9 +56,9 @@ int SandboxTest::startSandbox(const QString &name, const QString &mode)
 
 void SandboxTest::initTestCase(void)
 {
-  SandboxClient::sandboxApplication() = "\"" + qApp->applicationFilePath() + "\" --sandbox";
+  SSandboxClient::sandboxApplication() = "\"" + qApp->applicationFilePath() + "\" --sandbox";
 
-  sandboxClient = new SandboxClient(SandboxClient::Mode_Normal, this);
+  sandboxClient = new SSandboxClient(SSandboxClient::Mode_Normal, this);
 }
 
 void SandboxTest::cleanupTestCase(void)

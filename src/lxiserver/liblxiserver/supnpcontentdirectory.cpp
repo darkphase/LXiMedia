@@ -17,22 +17,22 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "upnpcontentdirectory.h"
-#include "upnpgenaserver.h"
+#include "supnpcontentdirectory.h"
+#include "supnpgenaserver.h"
 
 #define USE_SMALL_OBJECTIDS
 
 namespace LXiServer {
 
-const char  * const UPnPContentDirectory::contentDirectoryNS = "urn:schemas-upnp-org:service:ContentDirectory:1";
-const unsigned  UPnPContentDirectory::seekSec = 120;
+const char  * const SUPnPContentDirectory::contentDirectoryNS = "urn:schemas-upnp-org:service:ContentDirectory:1";
+const unsigned  SUPnPContentDirectory::seekSec = 120;
 
-struct UPnPContentDirectory::Data : UPnPContentDirectory::Callback
+struct SUPnPContentDirectory::Data : SUPnPContentDirectory::Callback
 {
   virtual int                   countContentDirItems(const QString &path);
   virtual QList<Item>           listContentDirItems(const QString &path, unsigned start, unsigned count);
 
-  UPnPGenaServer              * genaServer;
+  SUPnPGenaServer             * genaServer;
 
   QMap<ProtocolType, ProtocolList> protocols;
   QMap<QString, QMap<QString, QString> > queryItems;
@@ -47,11 +47,11 @@ struct UPnPContentDirectory::Data : UPnPContentDirectory::Callback
 #endif
 };
 
-UPnPContentDirectory::UPnPContentDirectory(const QString &basePath, QObject *parent)
-    : UPnPBase(basePath + "contentdirectory/", parent),
+SUPnPContentDirectory::SUPnPContentDirectory(const QString &basePath, QObject *parent)
+    : SUPnPBase(basePath + "contentdirectory/", parent),
       d(new Data())
 {
-  d->genaServer = new UPnPGenaServer(UPnPBase::basePath(), this);
+  d->genaServer = new SUPnPGenaServer(SUPnPBase::basePath(), this);
 
   d->systemUpdateId = 1;
 
@@ -64,61 +64,61 @@ UPnPContentDirectory::UPnPContentDirectory(const QString &basePath, QObject *par
 #endif
 }
 
-UPnPContentDirectory::~UPnPContentDirectory()
+SUPnPContentDirectory::~SUPnPContentDirectory()
 {
   delete d->genaServer;
   delete d;
   *const_cast<Data **>(&d) = NULL;
 }
 
-void UPnPContentDirectory::initialize(HttpServer *httpServer, UPnPMediaServer *mediaServer)
+void SUPnPContentDirectory::initialize(SHttpServer *httpServer, SUPnPMediaServer *mediaServer)
 {
   d->genaServer->initialize(httpServer);
   emitEvent(false); // To build the initial event message
 
-  UPnPMediaServer::Service service;
-  UPnPBase::initialize(httpServer, service);
+  SUPnPMediaServer::Service service;
+  SUPnPBase::initialize(httpServer, service);
   service.serviceType = contentDirectoryNS;
   service.serviceId = "urn:upnp-org:serviceId:ContentDirectory";
   service.eventSubURL = d->genaServer->path();
   mediaServer->registerService(service);
 }
 
-void UPnPContentDirectory::close(void)
+void SUPnPContentDirectory::close(void)
 {
-  UPnPBase::close();
+  SUPnPBase::close();
   d->genaServer->close();
 }
 
-void UPnPContentDirectory::setProtocols(ProtocolType type, const ProtocolList &protocols)
+void SUPnPContentDirectory::setProtocols(ProtocolType type, const ProtocolList &protocols)
 {
   QWriteLocker l(lock());
 
   d->protocols[type] = protocols;
 }
 
-void UPnPContentDirectory::setQueryItems(const QString &peer, const QMap<QString, QString> &queryItems)
+void SUPnPContentDirectory::setQueryItems(const QString &peer, const QMap<QString, QString> &queryItems)
 {
   QWriteLocker l(lock());
 
   d->queryItems[peer] = queryItems;
 }
 
-QMap<QString, QString> UPnPContentDirectory::activeClients(void) const
+QMap<QString, QString> SUPnPContentDirectory::activeClients(void) const
 {
   QReadLocker l(lock());
 
   return d->activeClients;
 }
 
-void UPnPContentDirectory::registerCallback(const QString &path, Callback *callback)
+void SUPnPContentDirectory::registerCallback(const QString &path, Callback *callback)
 {
   QWriteLocker l(lock());
 
   d->callbacks.insert(path, callback);
 }
 
-void UPnPContentDirectory::unregisterCallback(Callback *callback)
+void SUPnPContentDirectory::unregisterCallback(Callback *callback)
 {
   QWriteLocker l(lock());
 
@@ -129,12 +129,12 @@ void UPnPContentDirectory::unregisterCallback(Callback *callback)
     i++;
 }
 
-void UPnPContentDirectory::modified(void)
+void SUPnPContentDirectory::modified(void)
 {
   emitEvent(true);
 }
 
-void UPnPContentDirectory::buildDescription(QDomDocument &doc, QDomElement &scpdElm)
+void SUPnPContentDirectory::buildDescription(QDomDocument &doc, QDomElement &scpdElm)
 {
   QDomElement actionListElm = doc.createElement("actionList");
   {
@@ -195,7 +195,7 @@ void UPnPContentDirectory::buildDescription(QDomDocument &doc, QDomElement &scpd
   scpdElm.appendChild(serviceStateTableElm);
 }
 
-void UPnPContentDirectory::handleSoapMessage(const QDomElement &body, QDomDocument &responseDoc, QDomElement &responseBody, const HttpServer::RequestHeader &request, const QHostAddress &peerAddress)
+void SUPnPContentDirectory::handleSoapMessage(const QDomElement &body, QDomDocument &responseDoc, QDomElement &responseBody, const SHttpServer::RequestHeader &request, const QHostAddress &peerAddress)
 {
   const QDomElement browseElm = firstChildElementNS(body, contentDirectoryNS, "Browse");
   if (!browseElm.isNull())
@@ -226,7 +226,7 @@ void UPnPContentDirectory::handleSoapMessage(const QDomElement &body, QDomDocume
   }
 }
 
-void UPnPContentDirectory::handleBrowse(const QDomElement &elem, QDomDocument &doc, QDomElement &body, const HttpServer::RequestHeader &request, const QHostAddress &peerAddress)
+void SUPnPContentDirectory::handleBrowse(const QDomElement &elem, QDomDocument &doc, QDomElement &body, const SHttpServer::RequestHeader &request, const QHostAddress &peerAddress)
 {
   const QString path = fromObjectID(elem.firstChildElement("ObjectID").text());
   const QString browseFlag = elem.firstChildElement("BrowseFlag").text();
@@ -250,7 +250,7 @@ void UPnPContentDirectory::handleBrowse(const QDomElement &elem, QDomDocument &d
 
   if ((callback == d->callbacks.end()) || !path.startsWith(callback.key()))
   {
-    qDebug() << "UPnPContentDirectory: could not find callback for path:" << path;
+    qDebug() << "SUPnPContentDirectory: could not find callback for path:" << path;
     return;
   }
 
@@ -322,7 +322,7 @@ void UPnPContentDirectory::handleBrowse(const QDomElement &elem, QDomDocument &d
 
     if (item.isNull())
     {
-      qDebug() << "UPnPContentDirectory: could not find item" << itemIndex << "in path:" << basePath;
+      qDebug() << "SUPnPContentDirectory: could not find item" << itemIndex << "in path:" << basePath;
       return;
     }
 
@@ -391,7 +391,7 @@ void UPnPContentDirectory::handleBrowse(const QDomElement &elem, QDomDocument &d
   body.appendChild(browseResponse);
 }
 
-QDomElement UPnPContentDirectory::didlDirectory(QDomDocument &doc, Item::Type type, const QString &path, const QString &title)
+QDomElement SUPnPContentDirectory::didlDirectory(QDomDocument &doc, Item::Type type, const QString &path, const QString &title)
 {
   const QString parentPath = parentDir(path);
   const QString dcTitle =
@@ -430,7 +430,7 @@ QDomElement UPnPContentDirectory::didlDirectory(QDomDocument &doc, Item::Type ty
   return containerElm;
 }
 
-QDomElement UPnPContentDirectory::didlFile(QDomDocument &doc, const QString &peer, const QString &host, const Item &item, const QString &path, const QString &title)
+QDomElement SUPnPContentDirectory::didlFile(QDomDocument &doc, const QString &peer, const QString &host, const Item &item, const QString &path, const QString &title)
 {
   QDomElement itemElm = doc.createElement("item");
   itemElm.setAttribute("id", toObjectID(path));
@@ -543,7 +543,7 @@ QDomElement UPnPContentDirectory::didlFile(QDomDocument &doc, const QString &pee
   return itemElm;
 }
 
-void UPnPContentDirectory::emitEvent(bool dirty)
+void SUPnPContentDirectory::emitEvent(bool dirty)
 {
   QDomDocument doc;
   QDomElement propertySet = doc.createElementNS(d->genaServer->eventNS, "e:propertyset");
@@ -557,7 +557,7 @@ void UPnPContentDirectory::emitEvent(bool dirty)
   d->genaServer->emitEvent(doc);
 }
 
-QStringList UPnPContentDirectory::streamItems(const Item &item)
+QStringList SUPnPContentDirectory::streamItems(const Item &item)
 {
   if (!item.audioStreams.isEmpty() ||
       !item.videoStreams.isEmpty() ||
@@ -605,7 +605,7 @@ QStringList UPnPContentDirectory::streamItems(const Item &item)
   return playSeekItems(item);
 }
 
-QStringList UPnPContentDirectory::playSeekItems(const Item &item)
+QStringList SUPnPContentDirectory::playSeekItems(const Item &item)
 {
   QStringList result;
 
@@ -620,7 +620,7 @@ QStringList UPnPContentDirectory::playSeekItems(const Item &item)
   return result;
 }
 
-QStringList UPnPContentDirectory::seekItems(const Item &item)
+QStringList SUPnPContentDirectory::seekItems(const Item &item)
 {
   QStringList result;
 
@@ -634,7 +634,7 @@ QStringList UPnPContentDirectory::seekItems(const Item &item)
   return result;
 }
 
-QStringList UPnPContentDirectory::chapterItems(const Item &item)
+QStringList SUPnPContentDirectory::chapterItems(const Item &item)
 {
   QStringList result;
 
@@ -651,7 +651,7 @@ QStringList UPnPContentDirectory::chapterItems(const Item &item)
   return result;
 }
 
-QStringList UPnPContentDirectory::splitItemProps(const QString &text)
+QStringList SUPnPContentDirectory::splitItemProps(const QString &text)
 {
   QStringList itemProps = QStringList() << QString::null << QString::null << QString::null << QString::null;
   foreach (const QString &section, text.split('|'))
@@ -670,7 +670,7 @@ QStringList UPnPContentDirectory::splitItemProps(const QString &text)
   return itemProps;
 }
 
-UPnPContentDirectory::Item UPnPContentDirectory::makePlayItem(const Item &baseItem, const QStringList &itemProps)
+SUPnPContentDirectory::Item SUPnPContentDirectory::makePlayItem(const Item &baseItem, const QStringList &itemProps)
 {
   Item item = baseItem;
 
@@ -688,12 +688,12 @@ UPnPContentDirectory::Item UPnPContentDirectory::makePlayItem(const Item &baseIt
   return item;
 }
 
-QString UPnPContentDirectory::baseDir(const QString &dir)
+QString SUPnPContentDirectory::baseDir(const QString &dir)
 {
   return dir.left(dir.lastIndexOf('/') + 1);
 }
 
-QString UPnPContentDirectory::parentDir(const QString &dir)
+QString SUPnPContentDirectory::parentDir(const QString &dir)
 {
   if (!dir.isEmpty())
   {
@@ -708,7 +708,7 @@ QString UPnPContentDirectory::parentDir(const QString &dir)
   return QString::null;
 }
 
-QString UPnPContentDirectory::toObjectID(const QString &path)
+QString SUPnPContentDirectory::toObjectID(const QString &path)
 {
   if (path == "/")
   {
@@ -738,7 +738,7 @@ QString UPnPContentDirectory::toObjectID(const QString &path)
   }
 }
 
-QString UPnPContentDirectory::fromObjectID(const QString &idStr)
+QString SUPnPContentDirectory::fromObjectID(const QString &idStr)
 {
   if (idStr == "0")
   {
@@ -764,19 +764,19 @@ QString UPnPContentDirectory::fromObjectID(const QString &idStr)
   }
 }
 
-int UPnPContentDirectory::Data::countContentDirItems(const QString &)
+int SUPnPContentDirectory::Data::countContentDirItems(const QString &)
 {
   return callbacks.count() - 1;
 }
 
-QList<UPnPContentDirectory::Item> UPnPContentDirectory::Data::listContentDirItems(const QString &, unsigned start, unsigned count)
+QList<SUPnPContentDirectory::Item> SUPnPContentDirectory::Data::listContentDirItems(const QString &, unsigned start, unsigned count)
 {
-  QList<UPnPContentDirectory::Item> result;
+  QList<SUPnPContentDirectory::Item> result;
 
   for (QMap<QString, Callback *>::ConstIterator i=callbacks.begin(); i!=callbacks.end(); i++)
   if (i.key() != "/")
   {
-    UPnPContentDirectory::Item item;
+    SUPnPContentDirectory::Item item;
     item.isDir = true;
     item.title = i.key();
     item.title = item.title.startsWith('/') ? item.title.mid(1) : item.title;

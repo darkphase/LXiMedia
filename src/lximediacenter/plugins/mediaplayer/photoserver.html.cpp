@@ -64,9 +64,9 @@ const char * const PhotoServer::htmlView =
     " </tr>\n"
     "</table></td></tr></table>\n";
 
-HttpServer::SocketOp PhotoServer::handleHtmlRequest(const HttpServer::RequestHeader &request, QIODevice *socket, const QString &file)
+SHttpServer::SocketOp PhotoServer::handleHtmlRequest(const SHttpServer::RequestHeader &request, QIODevice *socket, const QString &file)
 {
-  HttpServer::ResponseHeader response(request, HttpServer::Status_Ok);
+  SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
   response.setContentType("text/html;charset=utf-8");
   response.setField("Cache-Control", "no-cache");
 
@@ -116,7 +116,7 @@ HttpServer::SocketOp PhotoServer::handleHtmlRequest(const HttpServer::RequestHea
     return sendHtmlContent(socket, url, response, htmlParser.parse(htmlView));
   }
 
-  return HttpServer::sendResponse(request, socket, HttpServer::Status_NotFound, this);
+  return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);
 }
 
 } // End of namespace

@@ -30,10 +30,10 @@ struct MediaServer::Private
   class StreamEvent : public QEvent
   {
   public:
-    inline                      StreamEvent(QEvent::Type type, const HttpServer::RequestHeader &request, QIODevice *socket, QSemaphore *sem)
+    inline                      StreamEvent(QEvent::Type type, const SHttpServer::RequestHeader &request, QIODevice *socket, QSemaphore *sem)
         : QEvent(type), request(request), socket(socket), sem(sem) { }
 
-    const HttpServer::RequestHeader request;
+    const SHttpServer::RequestHeader request;
     QIODevice     * const socket;
     QSemaphore          * const sem;
   };
@@ -92,16 +92,16 @@ void MediaServer::customEvent(QEvent *e)
       return;
     }
 
-    if (streamVideo(event->request, event->socket) == HttpServer::SocketOp_Close)
-      HttpServer::closeSocket(event->socket);
+    if (streamVideo(event->request, event->socket) == SHttpServer::SocketOp_Close)
+      SHttpServer::closeSocket(event->socket);
 
     event->sem->release();
   }
   else if (e->type() == p->buildPlaylistEventType)
   {
     Private::StreamEvent * const event = static_cast<Private::StreamEvent *>(e);
-    if (buildPlaylist(event->request, event->socket) == HttpServer::SocketOp_Close)
-      HttpServer::closeSocket(event->socket);
+    if (buildPlaylist(event->request, event->socket) == SHttpServer::SocketOp_Close)
+      SHttpServer::closeSocket(event->socket);
 
     event->sem->release();
   }
@@ -123,14 +123,14 @@ void MediaServer::cleanStreams(void)
   }
 }
 
-HttpServer::SocketOp MediaServer::handleHttpRequest(const HttpServer::RequestHeader &request, QIODevice *socket)
+SHttpServer::SocketOp MediaServer::handleHttpRequest(const SHttpServer::RequestHeader &request, QIODevice *socket)
 {
   const QUrl url(request.path());
   const QString file = request.file();
 
   if (file.isEmpty())
   {
-    HttpServer::ResponseHeader response(request, HttpServer::Status_Ok);
+    SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
     response.setContentType("text/html;charset=utf-8");
     response.setField("Cache-Control", "no-cache");
 
@@ -142,7 +142,7 @@ HttpServer::SocketOp MediaServer::handleHttpRequest(const HttpServer::RequestHea
 
     ThumbnailListItemList thumbItems;
 
-    foreach (const UPnPContentDirectory::Item &item, listItems(path, start, itemsPerThumbnailPage))
+    foreach (const SUPnPContentDirectory::Item &item, listItems(path, start, itemsPerThumbnailPage))
     {
       if (item.isDir)
       {
@@ -170,7 +170,7 @@ HttpServer::SocketOp MediaServer::handleHttpRequest(const HttpServer::RequestHea
   }
   else
   {
-    const QString mime = HttpServer::toMimeType(url.path());
+    const QString mime = SHttpServer::toMimeType(url.path());
     if (mime.endsWith("/x-mpegurl"))
     {
       QSemaphore sem(0);
@@ -179,7 +179,7 @@ HttpServer::SocketOp MediaServer::handleHttpRequest(const HttpServer::RequestHea
       QCoreApplication::postEvent(this, new Private::StreamEvent(Private::buildPlaylistEventType, request, socket, &sem));
 
       sem.acquire();
-      return HttpServer::SocketOp_LeaveOpen; // Socket will be closed by event handler
+      return SHttpServer::SocketOp_LeaveOpen; // Socket will be closed by event handler
     }
     else if (mime.startsWith("audio/") || mime.startsWith("video/"))
     {
@@ -189,11 +189,11 @@ HttpServer::SocketOp MediaServer::handleHttpRequest(const HttpServer::RequestHea
       QCoreApplication::postEvent(this, new Private::StreamEvent(Private::startStreamEventType, request, socket, &sem));
 
       sem.acquire();
-      return HttpServer::SocketOp_LeaveOpen; // Socket will be closed by event handler
+      return SHttpServer::SocketOp_LeaveOpen; // Socket will be closed by event handler
     }
   }
 
-  return HttpServer::sendResponse(request, socket, HttpServer::Status_NotFound, this);
+  return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);
 }
 
 int MediaServer::countContentDirItems(const QString &path)
@@ -204,7 +204,7 @@ int MediaServer::countContentDirItems(const QString &path)
   return countItems(subPath);
 }
 
-QList<UPnPContentDirectory::Item> MediaServer::listContentDirItems(const QString &path, unsigned start, unsigned count)
+QList<SUPnPContentDirectory::Item> MediaServer::listContentDirItems(const QString &path, unsigned start, unsigned count)
 {
   QString subPath = path.mid(contentDirPath().length());
   subPath = subPath.startsWith('/') ? subPath : ('/' + subPath);
@@ -214,7 +214,7 @@ QList<UPnPContentDirectory::Item> MediaServer::listContentDirItems(const QString
   basePath += subPath;
   basePath = basePath.endsWith('/') ? basePath.left(basePath.length() - 1) : basePath;
 
-  QList<UPnPContentDirectory::Item> result;
+  QList<SUPnPContentDirectory::Item> result;
   foreach (Item item, listItems(subPath, start, count))
   {
     const QString itemPath = item.url.path(), iconPath = item.iconUrl.path();
@@ -300,7 +300,7 @@ MediaServer::Stream::~Stream()
   parent->removeStream(this);
 }
 
-bool MediaServer::Stream::setup(const HttpServer::RequestHeader &request, QIODevice *socket, STime duration, SInterval frameRate, SSize size, SAudioFormat::Channels channels)
+bool MediaServer::Stream::setup(const SHttpServer::RequestHeader &request, QIODevice *socket, STime duration, SInterval frameRate, SSize size, SAudioFormat::Channels channels)
 {
   QUrl url(request.path());
   if (url.hasQueryItem("query"))
@@ -420,7 +420,7 @@ bool MediaServer::Stream::setup(const HttpServer::RequestHeader &request, QIODev
   else
     videoResizer.setHighQuality(false);
 
-  HttpServer::ResponseHeader header(request, HttpServer::Status_Ok);
+  SHttpServer::ResponseHeader header(request, SHttpServer::Status_Ok);
   header.setField("Cache-Control", "no-cache");
 
   if ((file.last().toLower() == "mpeg") || (file.last().toLower() == "mpg") || (file.last().toLower() == "ts"))
@@ -519,7 +519,7 @@ bool MediaServer::Stream::setup(const HttpServer::RequestHeader &request, QIODev
   return true;
 }
 
-bool MediaServer::Stream::setup(const HttpServer::RequestHeader &request, QIODevice *socket, STime duration, SAudioFormat::Channels channels)
+bool MediaServer::Stream::setup(const SHttpServer::RequestHeader &request, QIODevice *socket, STime duration, SAudioFormat::Channels channels)
 {
   QUrl url(request.path());
   if (url.hasQueryItem("query"))
@@ -558,7 +558,7 @@ bool MediaServer::Stream::setup(const HttpServer::RequestHeader &request, QIODev
   if (url.queryItemValue("encode") == "slow")
     audioEncodeFlags = SInterfaces::AudioEncoder::Flag_None;
 
-  HttpServer::ResponseHeader header(request, HttpServer::Status_Ok);
+  SHttpServer::ResponseHeader header(request, SHttpServer::Status_Ok);
   header.setField("Cache-Control", "no-cache");
 
   if (file.last().toLower() == "mpa")
@@ -659,7 +659,7 @@ MediaServer::TranscodeStream::TranscodeStream(MediaServer *parent, const QString
   connect(&dataDecoder, SIGNAL(output(SSubtitleBuffer)), &timeStampResampler, SLOT(input(SSubtitleBuffer)));
 }
 
-bool MediaServer::TranscodeStream::setup(const HttpServer::RequestHeader &request, QIODevice *socket, SInterfaces::BufferReaderNode *input, STime duration)
+bool MediaServer::TranscodeStream::setup(const SHttpServer::RequestHeader &request, QIODevice *socket, SInterfaces::BufferReaderNode *input, STime duration)
 {
   QUrl url(request.path());
   if (url.hasQueryItem("query"))

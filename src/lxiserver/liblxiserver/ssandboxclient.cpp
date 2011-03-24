@@ -17,14 +17,14 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "sandboxclient.h"
+#include "ssandboxclient.h"
 #include <QtNetwork>
 
 namespace LXiServer {
 
-const QEvent::Type  SandboxClient::startServerEventType = QEvent::Type(QEvent::registerEventType());
+const QEvent::Type  SSandboxClient::startServerEventType = QEvent::Type(QEvent::registerEventType());
 
-struct SandboxClient::Private
+struct SSandboxClient::Private
 {
   inline Private(void) : mutex(QMutex::Recursive) { }
 
@@ -36,15 +36,15 @@ struct SandboxClient::Private
   bool                          serverStarted;
 };
 
-QString & SandboxClient::sandboxApplication(void)
+QString & SSandboxClient::sandboxApplication(void)
 {
   static QString a;
 
   return a;
 }
 
-SandboxClient::SandboxClient(Mode mode, QObject *parent)
-  : HttpClientEngine(parent),
+SSandboxClient::SSandboxClient(Mode mode, QObject *parent)
+  : SHttpClientEngine(parent),
     p(new Private())
 {
   p->name = "sandbox_" + QUuid::createUuid().toString().replace("{", "").replace("}", "");
@@ -59,7 +59,7 @@ SandboxClient::SandboxClient(Mode mode, QObject *parent)
   p->serverStarted = false;
 }
 
-SandboxClient::~SandboxClient()
+SSandboxClient::~SSandboxClient()
 {
   p->mutex.lock();
 
@@ -79,16 +79,16 @@ SandboxClient::~SandboxClient()
   *const_cast<Private **>(&p) = NULL;
 }
 
-QByteArray SandboxClient::sendRequest(const QByteArray &path, int timeout)
+QByteArray SSandboxClient::sendRequest(const QByteArray &path, int timeout)
 {
   QUrl url;
   url.setEncodedPath(path);
   url.setHost(p->name);
 
-  return HttpClientEngine::sendRequest(url, timeout);
+  return SHttpClientEngine::sendRequest(url, timeout);
 }
 
-void SandboxClient::customEvent(QEvent *e)
+void SSandboxClient::customEvent(QEvent *e)
 {
   if (e->type() == startServerEventType)
   {
@@ -98,10 +98,10 @@ void SandboxClient::customEvent(QEvent *e)
     event->sem->release(1);
   }
   else
-    HttpClientEngine::customEvent(e);
+    SHttpClientEngine::customEvent(e);
 }
 
-QIODevice * SandboxClient::openSocket(const QString &host, int maxTimeout)
+QIODevice * SSandboxClient::openSocket(const QString &host, int maxTimeout)
 {
   Q_ASSERT(host == p->name);
 
@@ -151,7 +151,7 @@ QIODevice * SandboxClient::openSocket(const QString &host, int maxTimeout)
   return NULL;
 }
 
-void SandboxClient::closeSocket(QIODevice *device, bool, int timeout)
+void SSandboxClient::closeSocket(QIODevice *device, bool, int timeout)
 {
   QLocalSocket * const socket = static_cast<QLocalSocket *>(device);
 
@@ -169,7 +169,7 @@ void SandboxClient::closeSocket(QIODevice *device, bool, int timeout)
   delete socket;
 }
 
-void SandboxClient::startServer(int timeout)
+void SSandboxClient::startServer(int timeout)
 {
   Q_ASSERT(QThread::currentThread() == thread());
 
@@ -215,7 +215,7 @@ void SandboxClient::startServer(int timeout)
   }
 }
 
-void SandboxClient::readConsole(void)
+void SSandboxClient::readConsole(void)
 {
   QMutexLocker l(&p->mutex);
 
@@ -240,7 +240,7 @@ void SandboxClient::readConsole(void)
   }
 }
 
-void SandboxClient::serverFinished(int exitCode, QProcess::ExitStatus)
+void SSandboxClient::serverFinished(int exitCode, QProcess::ExitStatus)
 {
   QMutexLocker l(&p->mutex);
 

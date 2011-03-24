@@ -17,44 +17,39 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXISERVER_SSDPSERVER_H
-#define LXISERVER_SSDPSERVER_H
+#ifndef LXISERVER_SHTTPSERVER_H
+#define LXISERVER_SHTTPSERVER_H
 
 #include <QtCore>
 #include <QtNetwork>
-#include "ssdpclient.h"
+#include "shttpengine.h"
 
 namespace LXiServer {
 
-class HttpServer;
-
-class SsdpServer : public SsdpClient
+class SHttpServer : public SHttpServerEngine
 {
 Q_OBJECT
 public:
-  explicit                      SsdpServer(const HttpServer *);
-  virtual                       ~SsdpServer();
+                                SHttpServer(const QString &protocol, const QUuid &serverUuid, QObject * = NULL);
+  virtual                       ~SHttpServer();
 
-  virtual void                  initialize(const QList<QHostAddress> &interfaces);
-  virtual void                  close(void);
+  void                          initialize(const QList<QHostAddress> &addresses, quint16 port = 0);
+  void                          close(void);
 
-  void                          publish(const QString &nt, const QString &relativeUrl, unsigned msgCount);
+  quint16                       serverPort(const QHostAddress &) const;
+  const QString               & serverUdn(void) const;
 
-protected:
-  virtual void                  parsePacket(SsdpClientInterface *, const HttpServer::RequestHeader &, const QHostAddress &, quint16);
+  static void                   closeSocket(QIODevice *, int timeout = maxTTL / 4);
 
-  void                          sendAlive(SsdpClientInterface *, const QString &nt, const QString &url) const;
-  void                          sendByeBye(SsdpClientInterface *, const QString &nt) const;
-  void                          sendSearchResponse(SsdpClientInterface *, const QString &st, const QString &url, const QHostAddress &, quint16) const;
-
-private slots:
-  void                          publishServices(void);
+protected: // From HttpServerEngine
+  virtual QIODevice           * openSocket(quintptr, int);
+  virtual void                  closeSocket(QIODevice *, bool canReuse, int timeout);
 
 private:
+  class Interface;
   struct Private;
   Private               * const p;
 };
-
 
 } // End of namespace
 

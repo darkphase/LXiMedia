@@ -17,7 +17,7 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "httpserver.h"
+#include "shttpserver.h"
 
 #if defined(Q_OS_UNIX)
 #include <sys/utsname.h>
@@ -25,19 +25,19 @@
 
 namespace LXiServer {
 
-class HttpServer::Interface : public QTcpServer
+class SHttpServer::Interface : public QTcpServer
 {
 public:
-  explicit                      Interface(const QHostAddress &, quint16, HttpServer *parent);
+  explicit                      Interface(const QHostAddress &, quint16, SHttpServer *parent);
 
 protected:
   virtual void                  incomingConnection(int);
 
 private:
-  HttpServer            * const parent;
+  SHttpServer            * const parent;
 };
 
-struct HttpServer::Private
+struct SHttpServer::Private
 {
   QList<QHostAddress>           addresses;
   quint16                       port;
@@ -46,20 +46,20 @@ struct HttpServer::Private
 };
 
 
-HttpServer::HttpServer(const QString &protocol, const QUuid &serverUuid, QObject *parent)
-  : HttpServerEngine(protocol, parent),
+SHttpServer::SHttpServer(const QString &protocol, const QUuid &serverUuid, QObject *parent)
+  : SHttpServerEngine(protocol, parent),
     p(new Private())
 {
   p->serverUdn = QString("uuid:" + serverUuid.toString()).replace("{", "").replace("}", "");
 }
 
-HttpServer::~HttpServer()
+SHttpServer::~SHttpServer()
 {
   delete p;
   *const_cast<Private **>(&p) = NULL;
 }
 
-void HttpServer::initialize(const QList<QHostAddress> &addresses, quint16 port)
+void SHttpServer::initialize(const QList<QHostAddress> &addresses, quint16 port)
 {
   QWriteLocker l(lock());
 
@@ -67,7 +67,7 @@ void HttpServer::initialize(const QList<QHostAddress> &addresses, quint16 port)
     p->interfaces.insert(address.toString(), new Interface(address, port, this));
 }
 
-void HttpServer::close(void)
+void SHttpServer::close(void)
 {
   QWriteLocker l(lock());
 
@@ -81,7 +81,7 @@ void HttpServer::close(void)
   threadPool()->waitForDone();
 }
 
-quint16 HttpServer::serverPort(const QHostAddress &address) const
+quint16 SHttpServer::serverPort(const QHostAddress &address) const
 {
   QReadLocker l(lock());
 
@@ -92,12 +92,12 @@ quint16 HttpServer::serverPort(const QHostAddress &address) const
   return 0;
 }
 
-const QString & HttpServer::serverUdn(void) const
+const QString & SHttpServer::serverUdn(void) const
 {
   return p->serverUdn;
 }
 
-void HttpServer::closeSocket(QIODevice *device, int timeout)
+void SHttpServer::closeSocket(QIODevice *device, int timeout)
 {
   QTcpSocket * const socket = static_cast<QTcpSocket *>(device);
 
@@ -115,7 +115,7 @@ void HttpServer::closeSocket(QIODevice *device, int timeout)
   delete socket;
 }
 
-QIODevice * HttpServer::openSocket(quintptr socketDescriptor, int)
+QIODevice * SHttpServer::openSocket(quintptr socketDescriptor, int)
 {
   QTcpSocket * const socket = new QTcpSocket();
   if (socket->setSocketDescriptor(socketDescriptor))
@@ -125,13 +125,13 @@ QIODevice * HttpServer::openSocket(quintptr socketDescriptor, int)
   return NULL;
 }
 
-void HttpServer::closeSocket(QIODevice *socket, bool, int timeout)
+void SHttpServer::closeSocket(QIODevice *socket, bool, int timeout)
 {
   closeSocket(socket, timeout);
 }
 
 
-HttpServer::Interface::Interface(const QHostAddress &interfaceAddr, quint16 port, HttpServer *parent)
+SHttpServer::Interface::Interface(const QHostAddress &interfaceAddr, quint16 port, SHttpServer *parent)
   : QTcpServer(),
     parent(parent)
 {
@@ -143,7 +143,7 @@ HttpServer::Interface::Interface(const QHostAddress &interfaceAddr, quint16 port
     qWarning() << "Failed to bind interface" << interfaceAddr.toString();
 }
 
-void HttpServer::Interface::incomingConnection(int socketDescriptor)
+void SHttpServer::Interface::incomingConnection(int socketDescriptor)
 {
   if (!parent->handleConnection(socketDescriptor))
   {

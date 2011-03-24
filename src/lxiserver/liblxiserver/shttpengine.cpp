@@ -17,7 +17,7 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "httpengine.h"
+#include "shttpengine.h"
 #include <QtNetwork>
 
 #if defined(Q_OS_UNIX)
@@ -26,26 +26,26 @@
 
 namespace LXiServer {
 
-const char  * const HttpEngine::httpVersion         = "HTTP/1.1";
-const int           HttpEngine::maxTTL              = 300000;
-const char  * const HttpEngine::fieldConnection     = "CONNECTION";
-const char  * const HttpEngine::fieldContentLength  = "CONTENT-LENGTH";
-const char  * const HttpEngine::fieldContentType    = "CONTENT-TYPE";
-const char  * const HttpEngine::fieldDate           = "DATE";
-const char  * const HttpEngine::fieldHost           = "HOST";
-const char  * const HttpEngine::fieldServer         = "SERVER";
-const char  * const HttpEngine::fieldUserAgent      = "USER-AGENT";
-const char  * const HttpEngine::dateFormat          = "ddd, dd MMM yyyy hh:mm:ss 'GMT'";
+const char  * const SHttpEngine::httpVersion         = "HTTP/1.1";
+const int           SHttpEngine::maxTTL              = 300000;
+const char  * const SHttpEngine::fieldConnection     = "CONNECTION";
+const char  * const SHttpEngine::fieldContentLength  = "CONTENT-LENGTH";
+const char  * const SHttpEngine::fieldContentType    = "CONTENT-TYPE";
+const char  * const SHttpEngine::fieldDate           = "DATE";
+const char  * const SHttpEngine::fieldHost           = "HOST";
+const char  * const SHttpEngine::fieldServer         = "SERVER";
+const char  * const SHttpEngine::fieldUserAgent      = "USER-AGENT";
+const char  * const SHttpEngine::dateFormat          = "ddd, dd MMM yyyy hh:mm:ss 'GMT'";
 
-HttpEngine::HttpEngine(void)
+SHttpEngine::SHttpEngine(void)
 {
 }
 
-HttpEngine::~HttpEngine()
+SHttpEngine::~SHttpEngine()
 {
 }
 
-const char * HttpEngine::toMimeType(const QString &fileName)
+const char * SHttpEngine::toMimeType(const QString &fileName)
 {
   const QString ext = QFileInfo(fileName).suffix().toLower();
 
@@ -92,22 +92,22 @@ const char * HttpEngine::toMimeType(const QString &fileName)
 }
 
 
-class HttpServerEngine::SocketHandler : public QRunnable
+class SHttpServerEngine::SocketHandler : public QRunnable
 {
 public:
-                                SocketHandler(HttpServerEngine *, quintptr);
+                                SocketHandler(SHttpServerEngine *, quintptr);
 
 protected:
   virtual void                  run();
 
 private:
-  HttpServerEngine      * const parent;
+  SHttpServerEngine      * const parent;
   const quintptr                socketDescriptor;
   QTime                         timer;
   QByteArray                    response;
 };
 
-struct HttpServerEngine::Private
+struct SHttpServerEngine::Private
 {
   inline Private(void) : lock(QReadWriteLock::Recursive) { }
 
@@ -119,7 +119,7 @@ struct HttpServerEngine::Private
   QMap<QString, Callback *>     callbacks;
 };
 
-HttpServerEngine::HttpServerEngine(const QString &protocol, QObject *parent)
+SHttpServerEngine::SHttpServerEngine(const QString &protocol, QObject *parent)
   : QObject(parent),
     p(new Private())
 {
@@ -142,7 +142,7 @@ HttpServerEngine::HttpServerEngine(const QString &protocol, QObject *parent)
   p->numPendingConnections = 0;
 }
 
-HttpServerEngine::~HttpServerEngine()
+SHttpServerEngine::~SHttpServerEngine()
 {
   p->threadPool.waitForDone();
 
@@ -150,14 +150,14 @@ HttpServerEngine::~HttpServerEngine()
   *const_cast<Private **>(&p) = NULL;
 }
 
-void HttpServerEngine::registerCallback(const QString &path, Callback *callback)
+void SHttpServerEngine::registerCallback(const QString &path, Callback *callback)
 {
   QWriteLocker l(&p->lock);
 
   p->callbacks.insert(path, callback);
 }
 
-void HttpServerEngine::unregisterCallback(Callback *callback)
+void SHttpServerEngine::unregisterCallback(Callback *callback)
 {
   QWriteLocker l(&p->lock);
 
@@ -168,22 +168,22 @@ void HttpServerEngine::unregisterCallback(Callback *callback)
     i++;
 }
 
-QThreadPool * HttpServerEngine::threadPool(void)
+QThreadPool * SHttpServerEngine::threadPool(void)
 {
   return &p->threadPool;
 }
 
-const char * HttpServerEngine::senderType(void) const
+const char * SHttpServerEngine::senderType(void) const
 {
   return fieldServer;
 }
 
-const QString & HttpServerEngine::senderId(void) const
+const QString & SHttpServerEngine::senderId(void) const
 {
   return p->senderId;
 }
 
-HttpServerEngine::SocketOp HttpServerEngine::sendResponse(const RequestHeader &request, QIODevice *socket, Status status, const QByteArray &content, const QObject *object)
+SHttpServerEngine::SocketOp SHttpServerEngine::sendResponse(const RequestHeader &request, QIODevice *socket, Status status, const QByteArray &content, const QObject *object)
 {
   if (status >= 400)
   {
@@ -200,25 +200,25 @@ HttpServerEngine::SocketOp HttpServerEngine::sendResponse(const RequestHeader &r
   return SocketOp_Close;
 }
 
-HttpServerEngine::SocketOp HttpServerEngine::sendResponse(const RequestHeader &request, QIODevice *socket, Status status, const QObject *object)
+SHttpServerEngine::SocketOp SHttpServerEngine::sendResponse(const RequestHeader &request, QIODevice *socket, Status status, const QObject *object)
 {
   return sendResponse(request, socket, status, QByteArray(), object);
 }
 
-HttpServerEngine::SocketOp HttpServerEngine::sendRedirect(const RequestHeader &request, QIODevice *socket, const QString &newUrl)
+SHttpServerEngine::SocketOp SHttpServerEngine::sendRedirect(const RequestHeader &request, QIODevice *socket, const QString &newUrl)
 {
-  HttpEngine::ResponseHeader response(request, HttpEngine::Status_TemporaryRedirect);
+  SHttpEngine::ResponseHeader response(request, SHttpEngine::Status_TemporaryRedirect);
   response.setField("LOCATION", newUrl);
   socket->write(response);
   return SocketOp_Close;
 }
 
-QReadWriteLock * HttpServerEngine::lock(void) const
+QReadWriteLock * SHttpServerEngine::lock(void) const
 {
   return &p->lock;
 }
 
-bool HttpServerEngine::handleConnection(quintptr socketDescriptor)
+bool SHttpServerEngine::handleConnection(quintptr socketDescriptor)
 {
   if (p->numPendingConnections < p->maxPendingConnections)
   {
@@ -230,7 +230,7 @@ bool HttpServerEngine::handleConnection(quintptr socketDescriptor)
 }
 
 
-HttpServerEngine::SocketHandler::SocketHandler(HttpServerEngine *parent, quintptr socketDescriptor)
+SHttpServerEngine::SocketHandler::SocketHandler(SHttpServerEngine *parent, quintptr socketDescriptor)
   : parent(parent),
     socketDescriptor(socketDescriptor)
 {
@@ -238,7 +238,7 @@ HttpServerEngine::SocketHandler::SocketHandler(HttpServerEngine *parent, quintpt
   timer.start();
 }
 
-void HttpServerEngine::SocketHandler::run()
+void SHttpServerEngine::SocketHandler::run()
 {
   parent->p->numPendingConnections.deref();
 
@@ -295,12 +295,12 @@ void HttpServerEngine::SocketHandler::run()
 }
 
 
-struct HttpClientEngine::Private
+struct SHttpClientEngine::Private
 {
   QString                       senderId;
 };
 
-HttpClientEngine::HttpClientEngine(QObject *parent)
+SHttpClientEngine::SHttpClientEngine(QObject *parent)
   : QObject(parent),
     p(new Private())
 {
@@ -317,23 +317,23 @@ HttpClientEngine::HttpClientEngine(QObject *parent)
 #endif
 }
 
-HttpClientEngine::~HttpClientEngine()
+SHttpClientEngine::~SHttpClientEngine()
 {
   delete p;
   *const_cast<Private **>(&p) = NULL;
 }
 
-const char * HttpClientEngine::senderType(void) const
+const char * SHttpClientEngine::senderType(void) const
 {
   return fieldUserAgent;
 }
 
-const QString & HttpClientEngine::senderId(void) const
+const QString & SHttpClientEngine::senderId(void) const
 {
   return p->senderId;
 }
 
-HttpClientEngine::ResponseMessage HttpClientEngine::sendRequest(const RequestMessage &request, int timeout)
+SHttpClientEngine::ResponseMessage SHttpClientEngine::sendRequest(const RequestMessage &request, int timeout)
 {
   QTime timer;
   timer.start();
@@ -345,7 +345,7 @@ HttpClientEngine::ResponseMessage HttpClientEngine::sendRequest(const RequestMes
     while (socket->bytesToWrite() > 0)
     if (!socket->waitForBytesWritten(qMax(timeout - qAbs(timer.elapsed()), 0)))
     {
-      qWarning() << "HttpClientEngine: Timeout while writing request";
+      qWarning() << "SHttpClientEngine: Timeout while writing request";
       break;
     }
 
@@ -362,7 +362,7 @@ HttpClientEngine::ResponseMessage HttpClientEngine::sendRequest(const RequestMes
       }
     }
 
-    qWarning() << "HttpClientEngine: Timeout while reading response for" << request.path();
+    qWarning() << "SHttpClientEngine: Timeout while reading response for" << request.path();
 
     closeSocket(socket, true, qMax(timeout - qAbs(timer.elapsed()), 0));
   }
@@ -370,7 +370,7 @@ HttpClientEngine::ResponseMessage HttpClientEngine::sendRequest(const RequestMes
   return ResponseMessage(request, Status_InternalServerError);
 }
 
-QByteArray HttpClientEngine::sendRequest(const QUrl &url, int timeout)
+QByteArray SHttpClientEngine::sendRequest(const QUrl &url, int timeout)
 {
   RequestMessage request;
   request.setRequest("GET", url.encodedPath());

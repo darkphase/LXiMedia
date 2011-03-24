@@ -76,7 +76,7 @@ private:
   const QIcon                   icon;
   QSystemTrayIcon               trayIcon;
   QMenu                         menu;
-  SsdpClient                    ssdpClient;
+  SSsdpClient                   ssdpClient;
   QMap<QString, Server>         servers;
   QUrl                          messageUrl;
 

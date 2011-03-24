@@ -40,7 +40,7 @@ MediaDatabase::MediaDatabase(Plugin *plugin, ImdbClient *imdbClient)
   : QObject(plugin),
     plugin(plugin),
     imdbClient(imdbClient),
-    probeSandbox(SandboxClient::Mode_Nice, this)
+    probeSandbox(SSandboxClient::Mode_Nice, this)
 {
   PluginSettings settings(plugin);
 

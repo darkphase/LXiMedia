@@ -17,39 +17,49 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXISERVER_HTTPSERVER_H
-#define LXISERVER_HTTPSERVER_H
+#ifndef LXISERVER_SUPNPCONNECTIONMANAGER_H
+#define LXISERVER_SUPNPCONNECTIONMANAGER_H
 
 #include <QtCore>
 #include <QtNetwork>
-#include "httpengine.h"
+#include <QtXml>
+#include "shttpserver.h"
+#include "supnpbase.h"
 
 namespace LXiServer {
 
-class HttpServer : public HttpServerEngine
+class SUPnPMediaServer;
+
+class SUPnPConnectionManager : public SUPnPBase
 {
 Q_OBJECT
 public:
-                                HttpServer(const QString &protocol, const QUuid &serverUuid, QObject * = NULL);
-  virtual                       ~HttpServer();
+  explicit                      SUPnPConnectionManager(const QString &basePath, QObject * = NULL);
+  virtual                       ~SUPnPConnectionManager();
 
-  void                          initialize(const QList<QHostAddress> &addresses, quint16 port = 0);
+  void                          initialize(SHttpServer *, SUPnPMediaServer *);
   void                          close(void);
 
-  quint16                       serverPort(const QHostAddress &) const;
-  const QString               & serverUdn(void) const;
+  void                          setSourceProtocols(const ProtocolList &);
+  void                          setSinkProtocols(const ProtocolList &);
 
-  static void                   closeSocket(QIODevice *, int timeout = maxTTL / 4);
-
-protected: // From HttpServerEngine
-  virtual QIODevice           * openSocket(quintptr, int);
-  virtual void                  closeSocket(QIODevice *, bool canReuse, int timeout);
+protected: // From SUPnPBase
+  virtual void                  buildDescription(QDomDocument &, QDomElement &);
+  virtual void                  handleSoapMessage(const QDomElement &, QDomDocument &, QDomElement &, const SHttpServer::RequestHeader &, const QHostAddress &);
 
 private:
-  class Interface;
-  struct Private;
-  Private               * const p;
+  void                          emitEvent(void);
+  QString                       listSourceProtocols(void) const;
+  QString                       listSinkProtocols(void) const;
+
+public:
+  static const char     * const connectionManagerNS;
+
+private:
+  struct Data;
+  Data                  * const d;
 };
+
 
 } // End of namespace
 

@@ -37,9 +37,9 @@ public:
   public:
     virtual QByteArray          parseHtmlContent(const QUrl &url, const QByteArray &content, const QByteArray &head) const = 0;
 
-    virtual HttpServer        * httpServer(void) = 0;
-    virtual SsdpServer        * ssdpServer(void) = 0;
-    virtual UPnPContentDirectory * contentDirectory(void) = 0;
+    virtual SHttpServer       * httpServer(void) = 0;
+    virtual SSsdpServer       * ssdpServer(void) = 0;
+    virtual SUPnPContentDirectory * contentDirectory(void) = 0;
     virtual ImdbClient        * imdbClient(void) = 0;
   };
 
@@ -68,9 +68,9 @@ public:
   const QString               & httpPath(void) const;
   const QString               & contentDirPath(void) const;
 
-  HttpServer::SocketOp          sendResponse(const HttpServer::RequestHeader &, QIODevice *, const QByteArray &, const char * = dataMime, bool allowCache = false, const QString &redir = QString::null) const;
-  HttpServer::SocketOp          sendResponse(const HttpServer::RequestHeader &, QIODevice *, const QString &, const char * = textMime, bool allowCache = false, const QString &redir = QString::null) const;
-  HttpServer::SocketOp          sendHtmlContent(QIODevice *, const QUrl &, const HttpServer::ResponseHeader &, const QByteArray &content, const QByteArray &head = QByteArray()) const;
+  SHttpServer::SocketOp         sendResponse(const SHttpServer::RequestHeader &, QIODevice *, const QByteArray &, const char * = dataMime, bool allowCache = false, const QString &redir = QString::null) const;
+  SHttpServer::SocketOp         sendResponse(const SHttpServer::RequestHeader &, QIODevice *, const QString &, const char * = textMime, bool allowCache = false, const QString &redir = QString::null) const;
+  SHttpServer::SocketOp         sendHtmlContent(QIODevice *, const QUrl &, const SHttpServer::ResponseHeader &, const QByteArray &content, const QByteArray &head = QByteArray()) const;
 
 public:
   static const int              maxRequestTime;

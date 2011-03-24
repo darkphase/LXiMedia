@@ -74,12 +74,12 @@ QList<BackendServer *> MediaPlayerBackend::createServers(BackendServer::MasterSe
   return servers;
 }
 
-void MediaPlayerBackend::registerSandbox(SandboxServer *server)
+void MediaPlayerBackend::registerSandbox(SSandboxServer *server)
 {
   server->registerCallback("/mediaprobe/", this);
 }
 
-SandboxServer::SocketOp MediaPlayerBackend::handleHttpRequest(const SandboxServer::RequestHeader &request, QIODevice *socket)
+SSandboxServer::SocketOp MediaPlayerBackend::handleHttpRequest(const SSandboxServer::RequestHeader &request, QIODevice *socket)
 {
   const QUrl url(request.path());
 
@@ -89,10 +89,10 @@ SandboxServer::SocketOp MediaPlayerBackend::handleHttpRequest(const SandboxServe
 
     SMediaInfo mediaInfo(probeFile);
     if (!mediaInfo.isNull())
-      return SandboxServer::sendResponse(request, socket, SandboxServer::Status_Ok, mediaInfo.toByteArray(-1), this);
+      return SSandboxServer::sendResponse(request, socket, SSandboxServer::Status_Ok, mediaInfo.toByteArray(-1), this);
   }
 
-  return SandboxServer::sendResponse(request, socket, SandboxServer::Status_NotFound, this);
+  return SSandboxServer::sendResponse(request, socket, SSandboxServer::Status_NotFound, this);
 }
 
 

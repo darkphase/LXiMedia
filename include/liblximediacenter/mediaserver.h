@@ -30,8 +30,8 @@
 namespace LXiMediaCenter {
 
 class MediaServer : public BackendServer,
-                    protected HttpServer::Callback,
-                    private UPnPContentDirectory::Callback
+                    protected SHttpServer::Callback,
+                    private SUPnPContentDirectory::Callback
 {
 Q_OBJECT
 friend class MediaServerDir;
@@ -42,8 +42,8 @@ protected:
     explicit                    Stream(MediaServer *, const QString &url);
     virtual                     ~Stream();
 
-    bool                        setup(const HttpServer::RequestHeader &, QIODevice *, STime duration, SInterval frameRate, SSize size, SAudioFormat::Channels channels);
-    bool                        setup(const HttpServer::RequestHeader &, QIODevice *, STime duration, SAudioFormat::Channels channels);
+    bool                        setup(const SHttpServer::RequestHeader &, QIODevice *, STime duration, SInterval frameRate, SSize size, SAudioFormat::Channels channels);
+    bool                        setup(const SHttpServer::RequestHeader &, QIODevice *, STime duration, SAudioFormat::Channels channels);
 
   public:
     const int                   id;
@@ -72,7 +72,7 @@ protected:
   public:
     explicit                    TranscodeStream(MediaServer *, const QString &url);
 
-    bool                        setup(const HttpServer::RequestHeader &, QIODevice *, SInterfaces::BufferReaderNode *, STime duration = STime());
+    bool                        setup(const SHttpServer::RequestHeader &, QIODevice *, SInterfaces::BufferReaderNode *, STime duration = STime());
 
   public:
     SAudioDecoderNode           audioDecoder;
@@ -105,7 +105,7 @@ protected:
 
   typedef QList<DetailedListItem> DetailedListItemList;
 
-  typedef UPnPContentDirectory::Item Item;
+  typedef SUPnPContentDirectory::Item Item;
 
 public:
                                 MediaServer(const char *, Plugin *, BackendServer::MasterServer *);
@@ -114,8 +114,8 @@ public:
 protected:
   virtual void                  customEvent(QEvent *);
 
-  virtual HttpServer::SocketOp  streamVideo(const HttpServer::RequestHeader &, QIODevice *) = 0;
-  virtual HttpServer::SocketOp  buildPlaylist(const HttpServer::RequestHeader &, QIODevice *) = 0;
+  virtual SHttpServer::SocketOp  streamVideo(const SHttpServer::RequestHeader &, QIODevice *) = 0;
+  virtual SHttpServer::SocketOp  buildPlaylist(const SHttpServer::RequestHeader &, QIODevice *) = 0;
 
   virtual int                   countItems(const QString &path) = 0;
   virtual QList<Item>           listItems(const QString &path, unsigned start = 0, unsigned count = 0) = 0;
@@ -123,12 +123,12 @@ protected:
 protected slots:
   virtual void                  cleanStreams(void);
 
-protected: // From HttpServer::Callback
-  virtual HttpServer::SocketOp  handleHttpRequest(const HttpServer::RequestHeader &, QIODevice *);
+protected: // From SHttpServer::Callback
+  virtual SHttpServer::SocketOp  handleHttpRequest(const SHttpServer::RequestHeader &, QIODevice *);
 
 private: // From UPnPContentDirectory::Callback
   virtual int                   countContentDirItems(const QString &path);
-  virtual QList<UPnPContentDirectory::Item> listContentDirItems(const QString &path, unsigned start, unsigned count);
+  virtual QList<SUPnPContentDirectory::Item> listContentDirItems(const QString &path, unsigned start, unsigned count);
 
 private:
   void                          addStream(Stream *);

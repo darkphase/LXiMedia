@@ -17,7 +17,7 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "ssdpserver.h"
+#include "sssdpserver.h"
 
 #if defined(Q_OS_UNIX)
 #include <arpa/inet.h>
@@ -25,11 +25,11 @@
 #elif defined(Q_OS_WIN)
 #include <ws2tcpip.h>
 #endif
-#include "httpserver.h"
+#include "shttpserver.h"
 
 namespace LXiServer {
 
-struct SsdpServer::Private
+struct SSsdpServer::Private
 {
   struct Service
   {
@@ -45,14 +45,14 @@ struct SsdpServer::Private
   inline Private(void) : lock(QReadWriteLock::Recursive) { }
 
   QReadWriteLock                lock;
-  const HttpServer            * httpServer;
+  const SHttpServer            * httpServer;
   QMultiMap<QString, Service>   published;
   QTimer                        publishTimer, autoPublishTimer;
 };
 
-SsdpServer::SsdpServer(const HttpServer *httpServer)
-           :SsdpClient(httpServer->serverUdn()),
-            p(new Private())
+SSsdpServer::SSsdpServer(const SHttpServer *httpServer)
+  : SSsdpClient(httpServer->serverUdn()),
+    p(new Private())
 {
   p->httpServer = httpServer;
 
@@ -61,20 +61,20 @@ SsdpServer::SsdpServer(const HttpServer *httpServer)
   connect(&(p->autoPublishTimer), SIGNAL(timeout()), SLOT(publishServices()));
 }
 
-SsdpServer::~SsdpServer()
+SSsdpServer::~SSsdpServer()
 {
   delete p;
   *const_cast<Private **>(&p) = NULL;
 }
 
-void SsdpServer::initialize(const QList<QHostAddress> &interfaces)
+void SSsdpServer::initialize(const QList<QHostAddress> &interfaces)
 {
-  SsdpClient::initialize(interfaces);
+  SSsdpClient::initialize(interfaces);
 
   p->autoPublishTimer.start(((cacheTimeout / 2) - 300) * 1000);
 }
 
-void SsdpServer::close(void)
+void SSsdpServer::close(void)
 {
   for (QMultiMap<QString, Private::Service>::ConstIterator i = p->published.begin();
        i != p->published.end();
@@ -87,10 +87,10 @@ void SsdpServer::close(void)
 
   p->autoPublishTimer.stop();
 
-  SsdpClient::close();
+  SSsdpClient::close();
 }
 
-void SsdpServer::publish(const QString &nt, const QString &relativeUrl, unsigned msgCount)
+void SSsdpServer::publish(const QString &nt, const QString &relativeUrl, unsigned msgCount)
 {
   QWriteLocker l(&p->lock);
 
@@ -98,7 +98,7 @@ void SsdpServer::publish(const QString &nt, const QString &relativeUrl, unsigned
   p->publishTimer.start(5000);
 }
 
-void SsdpServer::parsePacket(SsdpClientInterface *iface, const HttpServer::RequestHeader &header, const QHostAddress &sourceAddress, quint16 sourcePort)
+void SSsdpServer::parsePacket(SsdpClientInterface *iface, const SHttpServer::RequestHeader &header, const QHostAddress &sourceAddress, quint16 sourcePort)
 {
   QWriteLocker l(&p->lock);
 
@@ -124,17 +124,17 @@ void SsdpServer::parsePacket(SsdpClientInterface *iface, const HttpServer::Reque
     }
   }
   else
-    SsdpClient::parsePacket(iface, header, sourceAddress, sourcePort);
+    SSsdpClient::parsePacket(iface, header, sourceAddress, sourcePort);
 }
 
-void SsdpServer::sendAlive(SsdpClientInterface *iface, const QString &nt, const QString &url) const
+void SSsdpServer::sendAlive(SsdpClientInterface *iface, const QString &nt, const QString &url) const
 {
-  HttpServer::RequestHeader request(p->httpServer);
-  request.setRequest("NOTIFY", "*", HttpServer::httpVersion);
+  SHttpServer::RequestHeader request(p->httpServer);
+  request.setRequest("NOTIFY", "*", SHttpServer::httpVersion);
   request.setField(p->httpServer->senderType(), p->httpServer->senderId());
-  request.setField("HOST", SsdpServer::ssdpAddressIPv4.toString() + ":" + QString::number(SsdpServer::ssdpPort));
+  request.setField("HOST", SSsdpServer::ssdpAddressIPv4.toString() + ":" + QString::number(SSsdpServer::ssdpPort));
   request.setField("USN", serverUdn() + (!nt.startsWith("uuid:") ? ("::" + nt) : QString::null));
-  request.setField("CACHE-CONTROL", "max-age=" + QString::number(SsdpServer::cacheTimeout));
+  request.setField("CACHE-CONTROL", "max-age=" + QString::number(SSsdpServer::cacheTimeout));
   request.setField("LOCATION", url);
   request.setField("NT", nt);
   request.setField("NTS", "ssdp:alive");
@@ -142,11 +142,11 @@ void SsdpServer::sendAlive(SsdpClientInterface *iface, const QString &nt, const 
   sendDatagram(iface, request, ssdpAddressIPv4, ssdpPort);
 }
 
-void SsdpServer::sendByeBye(SsdpClientInterface *iface, const QString &nt) const
+void SSsdpServer::sendByeBye(SsdpClientInterface *iface, const QString &nt) const
 {
-  HttpServer::RequestHeader request(p->httpServer);
-  request.setRequest("NOTIFY", "*", HttpServer::httpVersion);
-  request.setField("HOST", SsdpServer::ssdpAddressIPv4.toString() + ":" + QString::number(SsdpServer::ssdpPort));
+  SHttpServer::RequestHeader request(p->httpServer);
+  request.setRequest("NOTIFY", "*", SHttpServer::httpVersion);
+  request.setField("HOST", SSsdpServer::ssdpAddressIPv4.toString() + ":" + QString::number(SSsdpServer::ssdpPort));
   request.setField("USN", serverUdn() + (!nt.startsWith("uuid:") ? ("::" + nt) : QString::null));
   request.setField("NT", nt);
   request.setField("NTS", "ssdp:byebye");
@@ -154,12 +154,12 @@ void SsdpServer::sendByeBye(SsdpClientInterface *iface, const QString &nt) const
   sendDatagram(iface, request, ssdpAddressIPv4, ssdpPort);
 }
 
-void SsdpServer::sendSearchResponse(SsdpClientInterface *iface, const QString &nt, const QString &url, const QHostAddress &toAddr, quint16 toPort) const
+void SSsdpServer::sendSearchResponse(SsdpClientInterface *iface, const QString &nt, const QString &url, const QHostAddress &toAddr, quint16 toPort) const
 {
-  HttpServer::ResponseHeader response(p->httpServer);
-  response.setResponse(HttpServer::Status_Ok, HttpServer::httpVersion);
+  SHttpServer::ResponseHeader response(p->httpServer);
+  response.setResponse(SHttpServer::Status_Ok, SHttpServer::httpVersion);
   response.setField("USN", serverUdn() + (!nt.startsWith("uuid:") ? ("::" + nt) : QString::null));
-  response.setField("CACHE-CONTROL", "max-age=" + QString::number(SsdpServer::cacheTimeout));
+  response.setField("CACHE-CONTROL", "max-age=" + QString::number(SSsdpServer::cacheTimeout));
   response.setField("EXT", QString::null);
   response.setField("LOCATION", url);
   response.setField("ST", nt);
@@ -167,7 +167,7 @@ void SsdpServer::sendSearchResponse(SsdpClientInterface *iface, const QString &n
   sendDatagram(iface, response, toAddr, toPort);
 }
 
-void SsdpServer::publishServices(void)
+void SSsdpServer::publishServices(void)
 {
   QWriteLocker l(&p->lock);
 

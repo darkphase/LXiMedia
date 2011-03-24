@@ -133,7 +133,7 @@ private:
   Plugin                * const plugin;
   ImdbClient            * const imdbClient;
 
-  SandboxClient                 probeSandbox;
+  SSandboxClient                probeSandbox;
 
   QTimer                        scanRootsTimer;
   QMap<QString, QStringList>    rootPaths;

@@ -56,7 +56,7 @@ protected:
                                 PlaylistStream(PlaylistServer *, const QString &url, const SMediaInfoList &files);
     virtual                     ~PlaylistStream();
 
-    bool                        setup(const HttpServer::RequestHeader &, QIODevice *);
+    bool                        setup(const SHttpServer::RequestHeader &, QIODevice *);
 
   public:
     SPlaylistNode               playlistNode;
@@ -70,11 +70,11 @@ public:
   virtual                       ~PlaylistServer();
 
 protected:
-  virtual HttpServer::SocketOp  streamVideo(const HttpServer::RequestHeader &, QIODevice *);
+  virtual SHttpServer::SocketOp streamVideo(const SHttpServer::RequestHeader &, QIODevice *);
 
   virtual int                   countItems(const QString &path);
   virtual QList<Item>           listItems(const QString &path, unsigned start = 0, unsigned count = 0);
-  virtual HttpServer::SocketOp  handleHttpRequest(const HttpServer::RequestHeader &, QIODevice *);
+  virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestHeader &, QIODevice *);
 
   QList<Item>                   listPlayAllItem(const QString &path,  unsigned &start, unsigned &count, MediaDatabase::UniqueID = 0, const QList<Item> &thumbs = QList<Item>());
 

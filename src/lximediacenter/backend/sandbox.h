@@ -41,7 +41,7 @@ protected:
 private:
   static const QEvent::Type     exitEventType;
 
-  SandboxServer                 sandboxServer;
+  SSandboxServer                sandboxServer;
   SApplication                * streamApp;
 
   QList<BackendPlugin *>        backendPlugins;

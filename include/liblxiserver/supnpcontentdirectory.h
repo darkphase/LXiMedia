@@ -17,18 +17,18 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXISERVER_UPNPCONTENTDIRECTORY_H
-#define LXISERVER_UPNPCONTENTDIRECTORY_H
+#ifndef LXISERVER_SUPNPCONTENTDIRECTORY_H
+#define LXISERVER_SUPNPCONTENTDIRECTORY_H
 
 #include <QtCore>
 #include <QtNetwork>
 #include <QtXml>
-#include "httpserver.h"
-#include "upnpbase.h"
+#include "shttpserver.h"
+#include "supnpbase.h"
 
 namespace LXiServer {
 
-class UPnPContentDirectory : public UPnPBase
+class SUPnPContentDirectory : public SUPnPBase
 {
 Q_OBJECT
 public:
@@ -109,10 +109,10 @@ public:
   };
 
 public:
-  explicit                      UPnPContentDirectory(const QString &basePath, QObject * = NULL);
-  virtual                       ~UPnPContentDirectory();
+  explicit                      SUPnPContentDirectory(const QString &basePath, QObject * = NULL);
+  virtual                       ~SUPnPContentDirectory();
 
-  void                          initialize(HttpServer *, UPnPMediaServer *);
+  void                          initialize(SHttpServer *, SUPnPMediaServer *);
   void                          close(void);
 
   void                          setProtocols(ProtocolType, const ProtocolList &);
@@ -125,12 +125,12 @@ public:
 public slots:
   void                          modified(void);
 
-protected: // From UPnPBase
+protected: // From SUPnPBase
   virtual void                  buildDescription(QDomDocument &, QDomElement &);
-  virtual void                  handleSoapMessage(const QDomElement &, QDomDocument &, QDomElement &, const HttpServer::RequestHeader &, const QHostAddress &);
+  virtual void                  handleSoapMessage(const QDomElement &, QDomDocument &, QDomElement &, const SHttpServer::RequestHeader &, const QHostAddress &);
 
 private:
-  void                          handleBrowse(const QDomElement &, QDomDocument &, QDomElement &, const HttpServer::RequestHeader &, const QHostAddress &);
+  void                          handleBrowse(const QDomElement &, QDomDocument &, QDomElement &, const SHttpServer::RequestHeader &, const QHostAddress &);
   QDomElement                   didlDirectory(QDomDocument &, Item::Type, const QString &path, const QString &title = QString::null);
   QDomElement                   didlFile(QDomDocument &doc, const QString &peer, const QString &host, const Item &, const QString &path, const QString &title = QString::null);
   void                          emitEvent(bool dirty);

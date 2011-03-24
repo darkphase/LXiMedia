@@ -97,7 +97,7 @@ void TrayIcon::showAbout(void)
 void TrayIcon::updateMenu(void)
 {
   QSet<QString> uuids;
-  foreach (const SsdpClient::Node &result, ssdpClient.searchResults(qApp->applicationName() + QString(":server")))
+  foreach (const SSsdpClient::Node &result, ssdpClient.searchResults(qApp->applicationName() + QString(":server")))
   {
     QMap<QString, Server>::Iterator i = servers.find(result.uuid);
     if (i == servers.end())

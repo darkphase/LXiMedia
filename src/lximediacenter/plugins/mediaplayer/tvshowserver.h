@@ -36,7 +36,7 @@ public:
   virtual                       ~TvShowServer();
 
 protected:
-  virtual HttpServer::SocketOp  streamVideo(const HttpServer::RequestHeader &, QIODevice *);
+  virtual SHttpServer::SocketOp streamVideo(const SHttpServer::RequestHeader &, QIODevice *);
 
   virtual int                   countItems(const QString &path);
   virtual QList<Item>           listItems(const QString &path, unsigned start, unsigned count);

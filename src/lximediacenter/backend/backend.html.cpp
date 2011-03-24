@@ -371,12 +371,12 @@ const char * const Backend::headSearchResults =
     " <link rel=\"stylesheet\" href=\"/list.css\" type=\"text/css\" media=\"screen, handheld, projection\" />\n";
 
 
-HttpServer::SocketOp Backend::handleHtmlRequest(const HttpServer::RequestHeader &request, QIODevice *socket, const QString &)
+SHttpServer::SocketOp Backend::handleHtmlRequest(const SHttpServer::RequestHeader &request, QIODevice *socket, const QString &)
 {
   HtmlParser htmlParser(this->htmlParser);
   htmlParser.setField("TR_SEARCH", tr("Search"));
 
-  HttpServer::ResponseHeader response(request, HttpServer::Status_Ok);
+  SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
   response.setContentType("text/html;charset=utf-8");
   response.setField("Cache-Control", "no-cache");
 
@@ -475,10 +475,10 @@ HttpServer::SocketOp Backend::handleHtmlRequest(const HttpServer::RequestHeader 
 
   socket->write(response);
   socket->write(parseHtmlContent(QUrl(request.path()), htmlParser.parse(htmlMain), ""));
-  return HttpServer::SocketOp_Close;
+  return SHttpServer::SocketOp_Close;
 }
 
-HttpServer::SocketOp Backend::handleHtmlSearch(const HttpServer::RequestHeader &request, QIODevice *socket, const QString &)
+SHttpServer::SocketOp Backend::handleHtmlSearch(const SHttpServer::RequestHeader &request, QIODevice *socket, const QString &)
 {
   static const int resultsPerPage = 30;
 
@@ -490,7 +490,7 @@ HttpServer::SocketOp Backend::handleHtmlSearch(const HttpServer::RequestHeader &
   htmlParser.setField("TR_SEARCH", tr("Search"));
   htmlParser.setField("TR_SECONDS", tr("seconds"));
 
-  HttpServer::ResponseHeader response(request, HttpServer::Status_Ok);
+  SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
   response.setContentType("text/html;charset=utf-8");
   response.setField("Cache-Control", "no-cache");
 
@@ -558,14 +558,14 @@ HttpServer::SocketOp Backend::handleHtmlSearch(const HttpServer::RequestHeader &
 
   socket->write(response);
   socket->write(parseHtmlContent(url, htmlParser.parse(htmlSearchResults), headSearchResults));
-  return HttpServer::SocketOp_Close;
+  return SHttpServer::SocketOp_Close;
 }
 
-HttpServer::SocketOp Backend::showAbout(const HttpServer::RequestHeader &request, QIODevice *socket)
+SHttpServer::SocketOp Backend::showAbout(const SHttpServer::RequestHeader &request, QIODevice *socket)
 {
   HtmlParser htmlParser(this->htmlParser);
 
-  HttpServer::ResponseHeader response(request, HttpServer::Status_Ok);
+  SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
   response.setContentType("text/html;charset=utf-8");
   response.setField("Cache-Control", "no-cache");
 
@@ -575,12 +575,12 @@ HttpServer::SocketOp Backend::showAbout(const HttpServer::RequestHeader &request
 
   socket->write(response);
   socket->write(parseHtmlContent(QUrl(request.path()), htmlParser.parse(htmlAbout), ""));
-  return HttpServer::SocketOp_Close;
+  return SHttpServer::SocketOp_Close;
 }
 
-HttpServer::SocketOp Backend::handleHtmlConfig(const HttpServer::RequestHeader &request, QIODevice *socket)
+SHttpServer::SocketOp Backend::handleHtmlConfig(const SHttpServer::RequestHeader &request, QIODevice *socket)
 {
-  HttpServer::ResponseHeader response(request, HttpServer::Status_Ok);
+  SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
   response.setContentType("text/html;charset=utf-8");
   response.setField("Cache-Control", "no-cache");
 
@@ -915,5 +915,5 @@ HttpServer::SocketOp Backend::handleHtmlConfig(const HttpServer::RequestHeader &
 
   socket->write(response);
   socket->write(parseHtmlContent(url, htmlParser.parse(htmlConfigMain), ""));
-  return HttpServer::SocketOp_Close;
+  return SHttpServer::SocketOp_Close;
 }

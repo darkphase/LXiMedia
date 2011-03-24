@@ -97,9 +97,9 @@ const QString & BackendServer::contentDirPath(void) const
   return p->contentDirPath;
 }
 
-HttpServer::SocketOp BackendServer::sendResponse(const HttpServer::RequestHeader &request, QIODevice *socket, const QByteArray &data, const char *mime, bool allowCache, const QString &redir) const
+SHttpServer::SocketOp BackendServer::sendResponse(const SHttpServer::RequestHeader &request, QIODevice *socket, const QByteArray &data, const char *mime, bool allowCache, const QString &redir) const
 {
-  HttpServer::ResponseHeader response(request, (redir.length() == 0) ? HttpServer::Status_Ok : HttpServer::Status_MovedPermanently);
+  SHttpServer::ResponseHeader response(request, (redir.length() == 0) ? SHttpServer::Status_Ok : SHttpServer::Status_MovedPermanently);
   if (!allowCache)
     response.setField("Cache-Control", "no-cache");
   else
@@ -118,20 +118,20 @@ HttpServer::SocketOp BackendServer::sendResponse(const HttpServer::RequestHeader
 
   socket->write(response);
   socket->write(data);
-  return HttpServer::SocketOp_Close;
+  return SHttpServer::SocketOp_Close;
 }
 
-HttpServer::SocketOp BackendServer::sendResponse(const HttpServer::RequestHeader &request, QIODevice *socket, const QString &data, const char *mime, bool allowCache, const QString &redir) const
+SHttpServer::SocketOp BackendServer::sendResponse(const SHttpServer::RequestHeader &request, QIODevice *socket, const QString &data, const char *mime, bool allowCache, const QString &redir) const
 {
   return sendResponse(request, socket, data.toUtf8(), mime, allowCache, redir);
 }
 
-HttpServer::SocketOp BackendServer::sendHtmlContent(QIODevice *socket, const QUrl &url, const HttpServer::ResponseHeader &response, const QByteArray &content, const QByteArray &head) const
+SHttpServer::SocketOp BackendServer::sendHtmlContent(QIODevice *socket, const QUrl &url, const SHttpServer::ResponseHeader &response, const QByteArray &content, const QByteArray &head) const
 {
   socket->write(response);
   socket->write(p->server->parseHtmlContent(url, content, head));
 
-  return HttpServer::SocketOp_Close;
+  return SHttpServer::SocketOp_Close;
 }
 
 } // End of namespace

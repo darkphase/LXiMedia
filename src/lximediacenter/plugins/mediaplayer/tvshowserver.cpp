@@ -31,7 +31,7 @@ TvShowServer::~TvShowServer()
 {
 }
 
-HttpServer::SocketOp TvShowServer::streamVideo(const HttpServer::RequestHeader &request, QIODevice *socket)
+SHttpServer::SocketOp TvShowServer::streamVideo(const SHttpServer::RequestHeader &request, QIODevice *socket)
 {
   const QStringList file = request.file().split('.');
   if (file.first() == "playlist")
@@ -70,12 +70,12 @@ HttpServer::SocketOp TvShowServer::streamVideo(const HttpServer::RequestHeader &
         PlaylistStream *stream = new PlaylistStream(this, request.path(), files.values());
         if (stream->setup(request, socket))
         if (stream->start())
-          return HttpServer::SocketOp_LeaveOpen; // The graph owns the socket now.
+          return SHttpServer::SocketOp_LeaveOpen; // The graph owns the socket now.
 
         delete stream;
       }
 
-      return HttpServer::sendResponse(request, socket, HttpServer::Status_NotFound, this);
+      return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);
     }
   }
 

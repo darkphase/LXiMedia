@@ -29,7 +29,7 @@ namespace LXiMediaCenter {
 class MediaPlayerBackend;
 
 class ConfigServer : public BackendServer,
-                     protected HttpServer::Callback
+                     protected SHttpServer::Callback
 {
 Q_OBJECT
 public:
@@ -38,11 +38,11 @@ public:
 
   static const QSet<QString>  & hiddenDirs(void) __attribute__((pure));
 
-protected: // From HttpServer::Callback
-  virtual HttpServer::SocketOp  handleHttpRequest(const HttpServer::RequestHeader &, QIODevice *);
+protected: // From SHttpServer::Callback
+  virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestHeader &, QIODevice *);
 
 private:
-  HttpServer::SocketOp          handleHtmlRequest(const HttpServer::RequestHeader &, QIODevice *, const QString &);
+  SHttpServer::SocketOp         handleHtmlRequest(const SHttpServer::RequestHeader &, QIODevice *, const QString &);
   void                          generateDirs(HtmlParser &, const QFileInfoList &, int, const QSet<QString> &, const QStringList &);
 
   static const QFileInfoList  & drives(bool rescan = false);

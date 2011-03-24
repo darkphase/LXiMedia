@@ -70,7 +70,7 @@ public:
   virtual                       ~BackendPlugin();
 
   virtual QList<BackendServer *> createServers(BackendServer::MasterServer *) = 0; //!< Should create one or more servers that handles requests.
-  virtual void                  registerSandbox(SandboxServer *) = 0;           //!< should register zero or more sandbox commands.
+  virtual void                  registerSandbox(SSandboxServer *) = 0;          //!< should register zero or more sandbox commands.
 };
 
 
