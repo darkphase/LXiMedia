@@ -18,6 +18,18 @@
  ***************************************************************************/
 
 #include "ffmpegcommon.h"
+#include <cstring>
+
+#if defined(Q_OS_WIN) && defined(_GLIBCXX_CSTRING)
+inline size_t strnlen(const char *s, size_t maxlen)
+{
+    for (size_t i=0; i<maxlen; i++)
+    if (s[i] == '\0')
+        return i;
+
+    return maxlen;
+}
+#endif
 
 namespace LXiStream {
 namespace FFMpegBackend {
