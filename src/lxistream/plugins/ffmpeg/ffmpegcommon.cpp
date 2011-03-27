@@ -691,7 +691,7 @@ void FFMpegCommon::log(void *, int level, const char *fmt, va_list vl)
     if (level >= AV_LOG_INFO)
       qDebug("FFMpeg: %s", buffer);
     else if (level >= AV_LOG_FATAL)
-      qWarning("FFMpeg: %s", buffer);
+      qDebug("FFMpeg: %s", buffer);
 #ifdef AV_LOG_PANIC
     else if (level >= AV_LOG_PANIC)
       qFatal("FFMpeg: %s", buffer);

@@ -57,7 +57,7 @@ public:
 
   private:
     SScheduler          * const scheduler;
-    QMutex                      mutex;
+    QSemaphore                  semaphore;
   };
 
   /*! A proxy class that can be used to add the schedule() methods to another
