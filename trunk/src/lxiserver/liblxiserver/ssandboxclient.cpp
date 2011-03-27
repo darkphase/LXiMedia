@@ -47,7 +47,7 @@ SSandboxClient::SSandboxClient(Mode mode, QObject *parent)
   : SHttpClientEngine(parent),
     p(new Private())
 {
-  p->name = "sandbox_" + QUuid::createUuid().toString().replace("{", "").replace("}", "");
+  p->name = QUuid::createUuid().toString().replace("{", "").replace("}", "").replace("-", ".") + ".lxisandbox";
 
   switch(mode)
   {
@@ -160,7 +160,9 @@ void SSandboxClient::closeSocket(QIODevice *device, bool, int timeout)
     QTime timer;
     timer.start();
 
-    socket->waitForBytesWritten(qMax(timeout - qAbs(timer.elapsed()), 0));
+    if (socket->bytesToWrite() > 0)
+      socket->waitForBytesWritten(qMax(timeout - qAbs(timer.elapsed()), 0));
+
     socket->disconnectFromServer();
     if (socket->state() != QLocalSocket::UnconnectedState)
       socket->waitForDisconnected(qMax(timeout - qAbs(timer.elapsed()), 0));
@@ -225,7 +227,7 @@ void SSandboxClient::readConsole(void)
     const QByteArray line = p->serverProcess->readLine();
     if (line.startsWith("##STOP"))
     {
-      qDebug() << "Sandbox process" << p->serverProcess->pid() << "was closed";
+      qDebug() << "Sandbox process was closed";
 
       // Let the process terminate by itself
       disconnect(p->serverProcess, SIGNAL(readyRead()), this, SLOT(readConsole()));

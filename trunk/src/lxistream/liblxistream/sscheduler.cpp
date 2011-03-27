@@ -250,28 +250,28 @@ void SScheduler::traceTask(STime startTime, STime stopTime, const QByteArray &ta
 
 SScheduler::Dependency::Dependency(SScheduler *scheduler)
   : scheduler(scheduler),
-    mutex(QMutex::NonRecursive)
+    semaphore(1)
 {
 }
 
 void SScheduler::Dependency::lock(void)
 {
-  mutex.lock();
+  semaphore.acquire(1);
 }
 
 bool SScheduler::Dependency::tryLock(void)
 {
-  return mutex.tryLock();
+  return semaphore.tryAcquire(1);
 }
 
 bool SScheduler::Dependency::tryLock(int timeout)
 {
-  return mutex.tryLock(timeout);
+  return semaphore.tryAcquire(1, timeout);
 }
 
 void SScheduler::Dependency::unlock(void)
 {
-  mutex.unlock();
+  semaphore.release(1);
   if (scheduler)
     scheduler->queueSchedule(this);
 }
