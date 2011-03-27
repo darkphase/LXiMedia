@@ -25,6 +25,9 @@
 #include <sched.h>
 #elif defined(Q_OS_WIN)
 #include <windows.h>
+#ifndef PROCESS_MODE_BACKGROUND_BEGIN
+#define PROCESS_MODE_BACKGROUND_BEGIN 0x00100000
+#endif
 #endif
 
 namespace LXiServer {
@@ -80,7 +83,9 @@ void SSandboxServer::initialize(const QString &name, const QString &mode)
 
     ::nice(15);
 #elif defined(Q_OS_WIN)
-    ::SetPriorityClass(::GetCurrentProcess(), BELOW_NORMAL_PRIORITY_CLASS);
+    ::SetPriorityClass(::GetCurrentProcess(), IDLE_PRIORITY_CLASS);
+
+    ::SetPriorityClass(::GetCurrentProcess(), PROCESS_MODE_BACKGROUND_BEGIN);
 #endif
   }
 }

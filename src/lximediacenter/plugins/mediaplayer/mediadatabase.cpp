@@ -84,6 +84,8 @@ MediaDatabase::MediaDatabase(Plugin *plugin, ImdbClient *imdbClient)
     Database::commit();
 
     query.exec("PRAGMA foreign_keys = ON");
+
+    query.exec("VACUUM");
   }
 
   // Create tables that don't exist

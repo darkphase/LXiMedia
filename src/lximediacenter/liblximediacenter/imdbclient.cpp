@@ -117,6 +117,8 @@ ImdbClient::ImdbClient(QObject *parent)
       Database::commit();
 
       query.exec("PRAGMA foreign_keys = ON");
+
+      query.exec("VACUUM");
     }
 
     // Create tables that don't exist
