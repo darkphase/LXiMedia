@@ -25,9 +25,10 @@
 #include <LXiServer>
 #include <LXiStream>
 #include "backendserver.h"
-#include "httpoutputnode.h"
 
 namespace LXiMediaCenter {
+
+class MediaStream;
 
 class MediaServer : public BackendServer,
                     protected SHttpServer::Callback,
@@ -35,49 +36,17 @@ class MediaServer : public BackendServer,
 {
 Q_OBJECT
 friend class MediaServerDir;
-protected:
-  class Stream : public SGraph
+public:
+  class Stream
   {
   public:
-    explicit                    Stream(MediaServer *, const QString &url);
+                                Stream(MediaServer *parent, const QString &url);
     virtual                     ~Stream();
 
-    bool                        setup(const SHttpServer::RequestHeader &, QIODevice *, STime duration, SInterval frameRate, SSize size, SAudioFormat::Channels channels);
-    bool                        setup(const SHttpServer::RequestHeader &, QIODevice *, STime duration, SAudioFormat::Channels channels);
-
   public:
-    const int                   id;
     MediaServer         * const parent;
     const QString               url;
-
-    STimeStampResamplerNode     timeStampResampler;
-    SAudioResampleNode          audioResampler;
-    SVideoDeinterlaceNode       deinterlacer;
-    SSubpictureRenderNode       subpictureRenderer;
-    SVideoLetterboxDetectNode   letterboxDetectNode;
-    SVideoResizeNode            videoResizer;
-    SVideoBoxNode               videoBox;
-    SSubtitleRenderNode         subtitleRenderer;
-    STimeStampSyncNode          sync;
-    SAudioEncoderNode           audioEncoder;
-    SVideoEncoderNode           videoEncoder;
-    HttpOutputNode              output;
-
-  private:
-    static QAtomicInt           idCounter;
-  };
-
-  class TranscodeStream : public Stream
-  {
-  public:
-    explicit                    TranscodeStream(MediaServer *, const QString &url);
-
-    bool                        setup(const SHttpServer::RequestHeader &, QIODevice *, SInterfaces::BufferReaderNode *, STime duration = STime());
-
-  public:
-    SAudioDecoderNode           audioDecoder;
-    SVideoDecoderNode           videoDecoder;
-    SDataDecoderNode            dataDecoder;
+    SHttpProxy                  proxy;
   };
 
   struct ThumbnailListItem
@@ -114,8 +83,7 @@ public:
 protected:
   virtual void                  customEvent(QEvent *);
 
-  virtual SHttpServer::SocketOp  streamVideo(const SHttpServer::RequestHeader &, QIODevice *) = 0;
-  virtual SHttpServer::SocketOp  buildPlaylist(const SHttpServer::RequestHeader &, QIODevice *) = 0;
+  virtual Stream              * streamVideo(const SHttpServer::RequestHeader &) = 0;
 
   virtual int                   countItems(const QString &path) = 0;
   virtual QList<Item>           listItems(const QString &path, unsigned start = 0, unsigned count = 0) = 0;

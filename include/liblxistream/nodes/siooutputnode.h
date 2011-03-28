@@ -44,8 +44,13 @@ public:
   bool                          openFormat(const QString &, const SAudioCodec &, const SVideoCodec &, STime);
   bool                          openFormat(const QString &, const QList<SAudioCodec> &, const QList<SVideoCodec> &, STime);
 
+  void                          enablePseudoStreaming(float speed, STime preload = STime::fromSec(10));
+
   virtual bool                  start(STimer *);
   virtual void                  stop(void);
+
+signals:
+  void                          disconnected(void);
 
 public slots:
   void                          input(const SEncodedAudioBuffer &);
@@ -55,9 +60,11 @@ public slots:
 protected: // From SInterfaces::BufferReader::WriteCallback
   virtual void                  write(const uchar *, qint64);
 
+private:
+  void                          blockUntil(STime);
+
 public:
   static const int              outBufferSize;
-  static const int              outBufferDelay;
 
 private:
   struct Data;

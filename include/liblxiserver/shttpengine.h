@@ -240,6 +240,9 @@ public:
   ResponseMessage               sendRequest(const RequestMessage &, int timeout = maxTTL);
   QByteArray                    sendRequest(const QUrl &, int timeout = maxTTL);
 
+  QIODevice                   * openRequest(const RequestHeader &, int timeout = maxTTL);
+  void                          closeRequest(QIODevice *, int timeout = maxTTL);
+
 protected:
   virtual QIODevice           * openSocket(const QString &host, int timeout) = 0;
   virtual void                  closeSocket(QIODevice *, bool canReuse, int timeout) = 0;

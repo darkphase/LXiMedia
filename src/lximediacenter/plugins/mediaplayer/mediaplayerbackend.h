@@ -21,9 +21,11 @@
 #define MEDIAPLAYERBACKEND_H
 
 #include <LXiMediaCenter>
-#include "mediadatabase.h"
 
 namespace LXiMediaCenter {
+
+class MediaDatabase;
+class MediaPlayerSandbox;
 
 class MediaPlayerBackend : public BackendPlugin,
                            protected SSandboxServer::Callback
@@ -45,6 +47,7 @@ protected: // From SandboxServer::Callback
 
 private:
   MediaDatabase               * database;
+  MediaPlayerSandbox          * sandbox;
 };
 
 } // End of namespace

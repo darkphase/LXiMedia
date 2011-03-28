@@ -19,6 +19,7 @@
 
 #include "photoserver.h"
 #include <LXiStreamGui>
+#include "mediaplayersandbox.h"
 
 namespace LXiMediaCenter {
 
@@ -31,11 +32,15 @@ PhotoServer::~PhotoServer()
 {
 }
 
-SHttpServer::SocketOp PhotoServer::streamVideo(const SHttpServer::RequestHeader &request, QIODevice *socket)
+PhotoServer::Stream * PhotoServer::streamVideo(const SHttpServer::RequestHeader &request)
 {
   const QStringList file = request.file().split('.');
   if (file.first() == "playlist")
   {
+    QUrl url(request.path());
+    if (url.hasQueryItem("query"))
+      url = url.toEncoded(QUrl::RemoveQuery) + QByteArray::fromHex(url.queryItemValue("query").toAscii());
+
     QStringList albums;
     albums += request.directory().mid(httpPath().length() - 1);
 
@@ -54,18 +59,25 @@ SHttpServer::SocketOp PhotoServer::streamVideo(const SHttpServer::RequestHeader 
 
     if (!files.isEmpty())
     {
-      SlideShowStream *stream = new SlideShowStream(this, request.path(), files.values());
-      if (stream->setup(request, socket))
-      if (stream->start())
-        return SHttpServer::SocketOp_LeaveOpen; // The graph owns the socket now.
+      QUrl rurl;
+      rurl.setPath(MediaPlayerSandbox::path);
+      //rurl.addQueryItem("playslideshow", node.filePath().toUtf8().toHex());
+      //rurl.addQueryItem("pid", QString::number(uid.pid));
+      typedef QPair<QString, QString> QStringPair;
+      foreach (const QStringPair &queryItem, url.queryItems())
+        rurl.addQueryItem(queryItem.first, queryItem.second);
+
+      Stream *stream = new Stream(this, request.path());
+      if (stream->setup(rurl))
+        return stream;
 
       delete stream;
     }
 
-    return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);
+    return NULL;
   }
   else
-    return MediaPlayerServer::streamVideo(request, socket);
+    return MediaPlayerServer::streamVideo(request);
 }
 
 QList<PhotoServer::Item> PhotoServer::listItems(const QString &path, unsigned start, unsigned count)
@@ -142,31 +154,6 @@ SHttpServer::SocketOp PhotoServer::sendPhoto(const SHttpServer::RequestHeader &r
   }
 
   return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);
-}
-
-
-PhotoServer::SlideShowStream::SlideShowStream(PhotoServer *parent, const QString &url, const QList<MediaDatabase::File> &files)
-  : Stream(parent, url),
-    slideShow(this, files, parent->mediaDatabase)
-{
-  connect(&slideShow, SIGNAL(finished()), SLOT(stop()));
-  connect(&slideShow, SIGNAL(output(SAudioBuffer)), &sync, SLOT(input(SAudioBuffer)));
-  connect(&slideShow, SIGNAL(output(SVideoBuffer)), &subtitleRenderer, SLOT(input(SVideoBuffer)));
-}
-
-bool PhotoServer::SlideShowStream::setup(const SHttpServer::RequestHeader &request, QIODevice *socket)
-{
-  if (Stream::setup(request, socket,
-                    slideShow.duration(),
-                    SInterval::fromFrequency(slideShow.frameRate), slideShow.size(),
-                    SAudioFormat::Channel_Stereo))
-  {
-    slideShow.setSize(videoResizer.size());
-
-    return true;
-  }
-  else
-    return false;
 }
 
 } // End of namespace

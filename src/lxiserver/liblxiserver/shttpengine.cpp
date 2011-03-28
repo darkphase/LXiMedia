@@ -373,7 +373,7 @@ SHttpClientEngine::ResponseMessage SHttpClientEngine::sendRequest(const RequestM
 QByteArray SHttpClientEngine::sendRequest(const QUrl &url, int timeout)
 {
   RequestMessage request;
-  request.setRequest("GET", url.encodedPath());
+  request.setRequest("GET", url.toEncoded(QUrl::RemoveScheme | QUrl::RemoveAuthority));
   request.setHost(url.encodedHost());
 
   const ResponseMessage response = sendRequest(request, timeout);
@@ -386,5 +386,33 @@ QByteArray SHttpClientEngine::sendRequest(const QUrl &url, int timeout)
 
   return QByteArray();
 }
+
+QIODevice * SHttpClientEngine::openRequest(const RequestHeader &request, int timeout)
+{
+  QTime timer;
+  timer.start();
+
+  QIODevice * const socket = openSocket(request.host(), qMax(timeout - qAbs(timer.elapsed()), 0));
+  if (socket)
+  {
+    socket->write(request);
+    while (socket->bytesToWrite() > 0)
+    if (!socket->waitForBytesWritten(qMax(timeout - qAbs(timer.elapsed()), 0)))
+    {
+      qWarning() << "SHttpClientEngine: Timeout while writing request";
+      break;
+    }
+
+    return socket;
+  }
+
+  return NULL;
+}
+
+void SHttpClientEngine::closeRequest(QIODevice *socket, int timeout)
+{
+  closeSocket(socket, false, timeout);
+}
+
 
 } // End of namespace

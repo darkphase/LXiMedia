@@ -9,6 +9,7 @@
 #include <QtXml>
 
 #include "liblxiserver/shttpengine.h"
+#include "liblxiserver/shttpproxy.h"
 #include "liblxiserver/shttpserver.h"
 #include "liblxiserver/ssandboxclient.h"
 #include "liblxiserver/ssandboxserver.h"

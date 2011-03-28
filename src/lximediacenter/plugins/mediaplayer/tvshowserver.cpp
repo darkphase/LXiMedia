@@ -18,6 +18,7 @@
  ***************************************************************************/
 
 #include "tvshowserver.h"
+#include "mediaplayersandbox.h"
 
 namespace LXiMediaCenter {
 
@@ -31,11 +32,15 @@ TvShowServer::~TvShowServer()
 {
 }
 
-SHttpServer::SocketOp TvShowServer::streamVideo(const SHttpServer::RequestHeader &request, QIODevice *socket)
+TvShowServer::Stream * TvShowServer::streamVideo(const SHttpServer::RequestHeader &request)
 {
   const QStringList file = request.file().split('.');
   if (file.first() == "playlist")
   {
+    QUrl url(request.path());
+    if (url.hasQueryItem("query"))
+      url = url.toEncoded(QUrl::RemoveQuery) + QByteArray::fromHex(url.queryItemValue("query").toAscii());
+
     const QString path = request.directory().mid(httpPath().length() - 1);
     if (!mediaDatabase->hasAlbum(category, path))
     {
@@ -67,19 +72,26 @@ SHttpServer::SocketOp TvShowServer::streamVideo(const SHttpServer::RequestHeader
           }
         }
 
-        PlaylistStream *stream = new PlaylistStream(this, request.path(), files.values());
-        if (stream->setup(request, socket))
-        if (stream->start())
-          return SHttpServer::SocketOp_LeaveOpen; // The graph owns the socket now.
+        QUrl rurl;
+        rurl.setPath(MediaPlayerSandbox::path);
+        //rurl.addQueryItem("playlist", node.filePath().toUtf8().toHex());
+        //rurl.addQueryItem("pid", QString::number(uid.pid));
+        typedef QPair<QString, QString> QStringPair;
+        foreach (const QStringPair &queryItem, url.queryItems())
+          rurl.addQueryItem(queryItem.first, queryItem.second);
+
+        Stream *stream = new Stream(this, request.path());
+        if (stream->setup(rurl))
+          return stream;
 
         delete stream;
       }
 
-      return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);
+      return NULL;
     }
   }
 
-  return PlaylistServer::streamVideo(request, socket);
+  return PlaylistServer::streamVideo(request);
 }
 
 int TvShowServer::countItems(const QString &path)

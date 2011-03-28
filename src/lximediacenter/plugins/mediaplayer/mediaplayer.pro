@@ -6,8 +6,9 @@ include($${LXIMEDIA_DIR}/include/liblximediacenter/linklximediacenter-internal.p
 # Files
 SOURCES += configserver.cpp \
     configserver.html.cpp \
-    mediaplayerbackend.cpp \
     mediadatabase.cpp \
+    mediaplayerbackend.cpp \
+    mediaplayersandbox.cpp \
     mediaplayerserver.cpp \
     musicserver.cpp \
     photoserver.cpp \
@@ -19,8 +20,9 @@ SOURCES += configserver.cpp \
     tvshowserver.cpp
 
 HEADERS += configserver.h \
-    mediaplayerbackend.h \
     mediadatabase.h \
+    mediaplayerbackend.h \
+    mediaplayersandbox.h \
     mediaplayerserver.h \
     musicserver.h \
     photoserver.h \

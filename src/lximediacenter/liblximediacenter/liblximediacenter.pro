@@ -25,9 +25,9 @@ HEADERS += ../../../include/LXiMediaCenter \
  ../../../include/liblximediacenter/database.h \
  ../../../include/liblximediacenter/globalsettings.h \
  ../../../include/liblximediacenter/htmlparser.h \
- ../../../include/liblximediacenter/httpoutputnode.h \
  ../../../include/liblximediacenter/imdbclient.h \
  ../../../include/liblximediacenter/mediaserver.h \
+ ../../../include/liblximediacenter/mediastream.h \
  ../../../include/liblximediacenter/plugininterfaces.h \
  ../../../include/liblximediacenter/pluginsettings.h \
  ../../../include/liblximediacenter/teletext.h
@@ -37,10 +37,10 @@ SOURCES += backendserver.cpp \
  database.cpp \
  globalsettings.cpp \
  htmlparser.cpp \
- httpoutputnode.cpp \
  imdbclient.cpp \
  mediaserver.cpp \
  mediaserver.html.cpp \
+ mediastream.cpp \
  plugininterfaces.cpp \
  pluginsettings.cpp \
  teletext.cpp

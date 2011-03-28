@@ -106,7 +106,10 @@ void SHttpServer::closeSocket(QIODevice *device, int timeout)
     QTime timer;
     timer.start();
 
-    socket->waitForBytesWritten(qMax(timeout - qAbs(timer.elapsed()), 0));
+    while (socket->bytesToWrite() > 0)
+    if (!socket->waitForBytesWritten(qMax(timeout - qAbs(timer.elapsed()), 0)))
+      break;
+
     socket->disconnectFromHost();
     if (socket->state() != QAbstractSocket::UnconnectedState)
       socket->waitForDisconnected(qMax(timeout - qAbs(timer.elapsed()), 0));

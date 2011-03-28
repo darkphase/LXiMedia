@@ -18,6 +18,7 @@
  ***************************************************************************/
 
 #include "mediaplayerserver.h"
+#include "mediaplayersandbox.h"
 
 namespace LXiMediaCenter {
 
@@ -28,9 +29,11 @@ MediaPlayerServer::MediaPlayerServer(MediaDatabase *mediaDatabase, MediaDatabase
 {
 }
 
-SHttpServer::SocketOp MediaPlayerServer::streamVideo(const SHttpServer::RequestHeader &request, QIODevice *socket)
+MediaPlayerServer::Stream * MediaPlayerServer::streamVideo(const SHttpServer::RequestHeader &request)
 {
-  const QUrl url(request.path());
+  QUrl url(request.path());
+  if (url.hasQueryItem("query"))
+    url = url.toEncoded(QUrl::RemoveQuery) + QByteArray::fromHex(url.queryItemValue("query").toAscii());
 
   MediaDatabase::UniqueID uid;
   if (url.hasQueryItem("item"))
@@ -50,68 +53,23 @@ SHttpServer::SocketOp MediaPlayerServer::streamVideo(const SHttpServer::RequestH
     if (!node.isNull())
     if (uid.pid < node.programs().count())
     {
-      const SMediaInfo::Program program = node.programs().at(uid.pid);
+      QUrl rurl;
+      rurl.setPath(MediaPlayerSandbox::path + request.file());
+      rurl.addQueryItem("playfile", node.filePath().toUtf8().toHex());
+      rurl.addQueryItem("pid", QString::number(uid.pid));
+      typedef QPair<QString, QString> QStringPair;
+      foreach (const QStringPair &queryItem, url.queryItems())
+        rurl.addQueryItem(queryItem.first, queryItem.second);
 
-      QImage thumb;
-      if (!program.thumbnail.isEmpty())
-        thumb = QImage::fromData(program.thumbnail);
-
-      // Create a new stream
-      FileStream *stream = new FileStream(this, request.path(), node.filePath(), uid);
-      if (stream->file.open(uid.pid))
-      if (stream->setup(request, socket, &stream->file, program.duration))
-      if (stream->start())
-        return SHttpServer::SocketOp_LeaveOpen; // The graph owns the socket now.
+      FileStream *stream = new FileStream(this, request.path(), uid);
+      if (stream->setup(rurl))
+        return stream; // The graph owns the socket now.
 
       delete stream;
     }
   }
 
-  return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);
-}
-
-SHttpServer::SocketOp MediaPlayerServer::buildPlaylist(const SHttpServer::RequestHeader &request, QIODevice *socket)
-{
-  const QUrl url(request.path());
-  const QStringList file = request.file().split('.');
-
-  HtmlParser htmlParser;
-  htmlParser.setField("ITEMS", QByteArray(""));
-
-  const QString server = "http://" + request.host() + httpPath();
-
-  if (file.count() >= 2)
-  {
-    const MediaDatabase::UniqueID uid = MediaDatabase::fromUidString(file.first());
-    const SMediaInfo node = mediaDatabase->readNode(uid);
-    if (!node.isNull())
-    if (uid.pid < node.programs().count())
-    {
-      const SMediaInfo::Program program = node.programs().at(uid.pid);
-
-      htmlParser.setField("ITEM_LENGTH", QTime().addSecs(program.duration.toSec()).toString(videoTimeFormat));
-
-      if (!program.title.isEmpty())
-      {
-        if (!node.author().isEmpty())
-          htmlParser.setField("ITEM_NAME", program.title + " [" + node.author() + "]");
-        else
-          htmlParser.setField("ITEM_NAME", program.title);
-      }
-      else
-        htmlParser.setField("ITEM_NAME", node.fileName());
-
-      htmlParser.setField("ITEM_URL", server.toAscii() + MediaDatabase::toUidString(uid) + ".mpeg");
-      htmlParser.appendField("ITEMS", htmlParser.parse(m3uPlaylistItem));
-    }
-  }
-
-  SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
-  response.setContentType("audio/x-mpegurl");
-  response.setField("Cache-Control", "no-cache");
-  socket->write(response);
-  socket->write(htmlParser.parse(m3uPlaylist));
-  return SHttpServer::SocketOp_Close;
+  return NULL;
 }
 
 bool MediaPlayerServer::isEmpty(const QString &path)
@@ -528,17 +486,43 @@ QByteArray MediaPlayerServer::buildVideoPlayer(const QByteArray &item, const QSt
 }
 
 
-MediaPlayerServer::FileStream::FileStream(MediaPlayerServer *parent, const QString &url, const QString &fileName, MediaDatabase::UniqueID uid)
-  : TranscodeStream(parent, url),
-    startTime(QDateTime::currentDateTime()),
-    uid(uid),
-    file(this, fileName)
+MediaPlayerServer::Stream::Stream(MediaPlayerServer *parent, const QString &url)
+  : MediaServer::Stream(parent, url),
+    sandbox(SSandboxClient::Mode_Normal),
+    request(NULL)
 {
-  connect(&file, SIGNAL(finished()), SLOT(stop()));
+  sandbox.setLogFunc(&SDebug::LogFile::logLineToActiveLogFile);
+}
 
-  connect(&file, SIGNAL(output(SEncodedAudioBuffer)), &audioDecoder, SLOT(input(SEncodedAudioBuffer)));
-  connect(&file, SIGNAL(output(SEncodedVideoBuffer)), &videoDecoder, SLOT(input(SEncodedVideoBuffer)));
-  connect(&file, SIGNAL(output(SEncodedDataBuffer)), &dataDecoder, SLOT(input(SEncodedDataBuffer)));
+MediaPlayerServer::Stream::~Stream()
+{
+  if (request)
+    sandbox.closeRequest(request);
+}
+
+bool MediaPlayerServer::Stream::setup(const QUrl &url)
+{
+  SSandboxClient::RequestHeader header(&sandbox);
+  header.setRequest("GET", url.toEncoded(QUrl::RemoveScheme | QUrl::RemoveAuthority));
+  header.setHost(sandbox.serverName());
+  header.setContentLength(0);
+
+  request = sandbox.openRequest(header);
+  if (request)
+  {
+    proxy.setSource(request);
+    return true;
+  }
+
+  return false;
+}
+
+
+MediaPlayerServer::FileStream::FileStream(MediaPlayerServer *parent, const QString &url, MediaDatabase::UniqueID uid)
+  : Stream(parent, url),
+    startTime(QDateTime::currentDateTime()),
+    uid(uid)
+{
 }
 
 MediaPlayerServer::FileStream::~FileStream()

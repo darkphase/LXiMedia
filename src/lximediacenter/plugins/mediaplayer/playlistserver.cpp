@@ -19,6 +19,7 @@
 
 #include "playlistserver.h"
 #include <LXiStreamGui>
+#include "mediaplayersandbox.h"
 
 namespace LXiMediaCenter {
 
@@ -32,11 +33,15 @@ PlaylistServer::~PlaylistServer()
 {
 }
 
-SHttpServer::SocketOp PlaylistServer::streamVideo(const SHttpServer::RequestHeader &request, QIODevice *socket)
+PlaylistServer::Stream * PlaylistServer::streamVideo(const SHttpServer::RequestHeader &request)
 {
   const QStringList file = request.file().split('.');
   if (file.first() == "playlist")
   {
+    QUrl url(request.path());
+    if (url.hasQueryItem("query"))
+      url = url.toEncoded(QUrl::RemoveQuery) + QByteArray::fromHex(url.queryItemValue("query").toAscii());
+
     QStringList albums;
     albums += request.directory().mid(httpPath().length() - 1);
 
@@ -68,18 +73,25 @@ SHttpServer::SocketOp PlaylistServer::streamVideo(const SHttpServer::RequestHead
 
     if (!files.isEmpty())
     {
-      PlaylistStream *stream = new PlaylistStream(this, request.path(), files.values());
-      if (stream->setup(request, socket))
-      if (stream->start())
-        return SHttpServer::SocketOp_LeaveOpen; // The graph owns the socket now.
+      QUrl rurl;
+      rurl.setPath(MediaPlayerSandbox::path);
+      //rurl.addQueryItem("playlist", node.filePath().toUtf8().toHex());
+      //rurl.addQueryItem("pid", QString::number(uid.pid));
+      typedef QPair<QString, QString> QStringPair;
+      foreach (const QStringPair &queryItem, url.queryItems())
+        rurl.addQueryItem(queryItem.first, queryItem.second);
+
+      Stream *stream = new Stream(this, request.path());
+      if (stream->setup(rurl))
+        return stream;
 
       delete stream;
     }
 
-    return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);
+    return NULL;
   }
   else
-    return MediaPlayerServer::streamVideo(request, socket);
+    return MediaPlayerServer::streamVideo(request);
 }
 
 int PlaylistServer::countItems(const QString &path)
@@ -188,57 +200,6 @@ QList<PlaylistServer::Item> PlaylistServer::listPlayAllItem(const QString &path,
   }
 
   return result;
-}
-
-
-PlaylistServer::PlaylistStream::PlaylistStream(PlaylistServer *parent, const QString &url, const SMediaInfoList &files)
-  : MediaPlayerServer::TranscodeStream(parent, url),
-    playlistNode(this, files),
-    streamHelper(this, static_cast<PlaylistServer *>(parent)->mediaDatabase)
-{
-  connect(&playlistNode, SIGNAL(finished()), SLOT(stop()));
-  connect(&playlistNode, SIGNAL(opened(QString, quint16)), &streamHelper, SLOT(opened(QString, quint16)));
-  connect(&playlistNode, SIGNAL(closed(QString, quint16)), &streamHelper, SLOT(closed(QString, quint16)));
-  connect(&playlistNode, SIGNAL(output(SEncodedAudioBuffer)), &audioDecoder, SLOT(input(SEncodedAudioBuffer)));
-  connect(&playlistNode, SIGNAL(output(SEncodedVideoBuffer)), &videoDecoder, SLOT(input(SEncodedVideoBuffer)));
-  connect(&playlistNode, SIGNAL(output(SEncodedDataBuffer)), &dataDecoder, SLOT(input(SEncodedDataBuffer)));
-}
-
-PlaylistServer::PlaylistStream::~PlaylistStream()
-{
-}
-
-bool PlaylistServer::PlaylistStream::setup(const SHttpServer::RequestHeader &request, QIODevice *socket)
-{
-  return TranscodeStream::setup(request, socket, &playlistNode);
-}
-
-
-PlaylistServerStreamHelper::PlaylistServerStreamHelper(QObject *parent, MediaDatabase *mediaDatabase)
-  : QObject(parent),
-    mediaDatabase(mediaDatabase)
-{
-}
-
-PlaylistServerStreamHelper::~PlaylistServerStreamHelper()
-{
-  if (!currentFile.isEmpty())
-  if (startTime.secsTo(QDateTime::currentDateTime()) >= 120)
-    mediaDatabase->setLastPlayed(currentFile);
-}
-
-void PlaylistServerStreamHelper::opened(const QString &filePath, quint16 programId)
-{
-  currentFile = filePath;
-  startTime = QDateTime::currentDateTime();
-}
-
-void PlaylistServerStreamHelper::closed(const QString &filePath, quint16 programId)
-{
-  mediaDatabase->setLastPlayed(filePath);
-
-  if (currentFile == filePath)
-    currentFile = QString::null;
 }
 
 } // End of namespace

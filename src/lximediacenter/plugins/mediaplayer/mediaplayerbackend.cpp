@@ -19,6 +19,8 @@
 
 #include "mediaplayerbackend.h"
 #include "configserver.h"
+#include "mediadatabase.h"
+#include "mediaplayersandbox.h"
 #include "mediaplayerserver.h"
 #include "musicserver.h"
 #include "photoserver.h"
@@ -29,13 +31,15 @@ namespace LXiMediaCenter {
 
 MediaPlayerBackend::MediaPlayerBackend(QObject *parent)
   : BackendPlugin(parent),
-    database(NULL)
+    database(NULL),
+    sandbox(NULL)
 {
 }
 
 MediaPlayerBackend::~MediaPlayerBackend()
 {
   delete database;
+  delete sandbox;
 }
 
 QString MediaPlayerBackend::pluginName(void) const
@@ -55,11 +59,8 @@ QString MediaPlayerBackend::authorName(void) const
 
 QList<BackendServer *> MediaPlayerBackend::createServers(BackendServer::MasterServer *server)
 {
-  if (database == NULL)
-  {
-    database = new MediaDatabase(this, server->imdbClient());
-    connect(database, SIGNAL(modified()), server->contentDirectory(), SLOT(modified()));
-  }
+  database = new MediaDatabase(this, server->imdbClient());
+  connect(database, SIGNAL(modified()), server->contentDirectory(), SLOT(modified()));
 
   QList<BackendServer *> servers;
   servers += new MediaPlayerServer(database, MediaDatabase::Category_Movies,      QT_TR_NOOP("Movies"),       this, server);
@@ -76,7 +77,9 @@ QList<BackendServer *> MediaPlayerBackend::createServers(BackendServer::MasterSe
 
 void MediaPlayerBackend::registerSandbox(SSandboxServer *server)
 {
-  server->registerCallback("/mediaprobe/", this);
+  sandbox = new MediaPlayerSandbox(this);
+
+  server->registerCallback(sandbox->path, sandbox);
 }
 
 SSandboxServer::SocketOp MediaPlayerBackend::handleHttpRequest(const SSandboxServer::RequestHeader &request, QIODevice *socket)

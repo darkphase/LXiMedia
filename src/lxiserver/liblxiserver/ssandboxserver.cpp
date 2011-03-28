@@ -126,7 +126,10 @@ void SSandboxServer::closeSocket(QIODevice *device, bool, int timeout)
     QTime timer;
     timer.start();
 
-    socket->waitForBytesWritten(qMax(timeout - qAbs(timer.elapsed()), 0));
+    while (socket->bytesToWrite() > 0)
+    if (!socket->waitForBytesWritten(qMax(timeout - qAbs(timer.elapsed()), 0)))
+      break;
+
     socket->disconnectFromServer();
     if (socket->state() != QLocalSocket::UnconnectedState)
       socket->waitForDisconnected(qMax(timeout - qAbs(timer.elapsed()), 0));

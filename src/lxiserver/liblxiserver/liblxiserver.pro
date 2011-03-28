@@ -17,6 +17,7 @@ linux-g++|win32-g++ {
 # Files
 HEADERS += ../../../include/LXiServer \
  ../../../include/liblxiserver/shttpengine.h \
+ ../../../include/liblxiserver/shttpproxy.h \
  ../../../include/liblxiserver/shttpserver.h \
  ../../../include/liblxiserver/ssandboxclient.h \
  ../../../include/liblxiserver/ssandboxserver.h \
@@ -30,6 +31,7 @@ HEADERS += ../../../include/LXiServer \
 
 SOURCES += shttpengine.cpp \
  shttpengine.header.cpp \
+ shttpproxy.cpp \
  shttpserver.cpp \
  ssandboxclient.cpp \
  ssandboxserver.cpp \
