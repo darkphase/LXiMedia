@@ -21,13 +21,16 @@
 
 namespace LXiStream {
 
-const int SIOOutputNode::outBufferSize = 2097152;
-const int SIOOutputNode::outBufferDelay = outBufferSize / (1048576 / 1000); // msec
+const int SIOOutputNode::outBufferSize = 262144;
 
 struct SIOOutputNode::Data
 {
   QIODevice                   * ioDevice;
   SInterfaces::BufferWriter   * bufferWriter;
+
+  float                         streamingSpeed;
+  STime                         streamingPreload;
+  STimer                        streamTimer;
 };
 
 SIOOutputNode::SIOOutputNode(SGraph *parent, QIODevice *ioDevice)
@@ -37,6 +40,8 @@ SIOOutputNode::SIOOutputNode(SGraph *parent, QIODevice *ioDevice)
 {
   d->ioDevice = ioDevice;
   d->bufferWriter = NULL;
+
+  d->streamingSpeed = 0.0f;
 }
 
 SIOOutputNode::~SIOOutputNode()
@@ -83,6 +88,12 @@ bool SIOOutputNode::openFormat(const QString &format, const QList<SAudioCodec> &
   return false;
 }
 
+void SIOOutputNode::enablePseudoStreaming(float speed, STime preload)
+{
+  d->streamingSpeed = speed;
+  d->streamingPreload = preload;
+}
+
 bool SIOOutputNode::start(STimer *)
 {
   if (d->ioDevice && d->bufferWriter)
@@ -101,24 +112,33 @@ void SIOOutputNode::stop(void)
 
   if (d->ioDevice)
   while (d->ioDevice->bytesToWrite() > 0)
-  if (!d->ioDevice->waitForBytesWritten(outBufferDelay))
+  if (!d->ioDevice->waitForBytesWritten(1000))
     break;
 }
 
 void SIOOutputNode::input(const SEncodedAudioBuffer &buffer)
 {
+  if (!qFuzzyCompare(d->streamingSpeed, 0.0f))
+    blockUntil(buffer.decodingTimeStamp().isValid() ? buffer.decodingTimeStamp() : buffer.presentationTimeStamp());
+
   if (d->bufferWriter)
     d->bufferWriter->process(buffer);
 }
 
 void SIOOutputNode::input(const SEncodedVideoBuffer &buffer)
 {
+  if (!qFuzzyCompare(d->streamingSpeed, 0.0f))
+    blockUntil(buffer.decodingTimeStamp().isValid() ? buffer.decodingTimeStamp() : buffer.presentationTimeStamp());
+
   if (d->bufferWriter)
     d->bufferWriter->process(buffer);
 }
 
 void SIOOutputNode::input(const SEncodedDataBuffer &buffer)
 {
+  if (!qFuzzyCompare(d->streamingSpeed, 0.0f))
+    blockUntil(buffer.decodingTimeStamp().isValid() ? buffer.decodingTimeStamp() : buffer.presentationTimeStamp());
+
   if (d->bufferWriter)
     d->bufferWriter->process(buffer);
 }
@@ -135,10 +155,34 @@ void SIOOutputNode::write(const uchar *buffer, qint64 size)
     {
       const qint64 r = d->ioDevice->write((char *)buffer + i, size - i);
       if (r > 0)
+      {
         i += r;
+      }
       else
+      {
+        emit disconnected();
         break;
+      }
     }
+  }
+}
+
+void SIOOutputNode::blockUntil(STime timeStamp)
+{
+  // Hack to get access to msleep()
+  struct T : QThread { static inline void msleep(unsigned long msec) { QThread::msleep(msec); } };
+
+  static const int maxDelay = 250;
+
+  if (timeStamp >= d->streamingPreload)
+  {
+    const STime correctedTime = STime::fromMSec(qint64(float(timeStamp.toMSec()) / d->streamingSpeed));
+
+    // This blocks the thread until it is time to process the buffer. The
+    // timestamp is divided by 2 to allow processing 2 times realtime.
+    const STime duration = d->streamTimer.correctOffset(correctedTime, STime::fromMSec(maxDelay));
+    if (duration.isPositive())
+      T::msleep(qBound(0, int(duration.toMSec()), maxDelay));
   }
 }
 

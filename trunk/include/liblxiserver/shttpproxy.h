@@ -17,53 +17,35 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXMEDIACENTER_HTTPOUTPUTNODE_H
-#define LXMEDIACENTER_HTTPOUTPUTNODE_H
+#ifndef LXMEDIACENTER_HTTPPROXY_H
+#define LXMEDIACENTER_HTTPPROXY_H
 
 #include <QtCore>
-#include <LXiStream>
 
-namespace LXiMediaCenter {
+namespace LXiServer {
 
 /*! This is a generic output node, writing to a QIODevice.
  */
-class HttpOutputNode : public QObject,
-                       public SGraph::SinkNode,
-                       private SInterfaces::BufferWriter::WriteCallback
+class SHttpProxy : public QObject
 {
 Q_OBJECT
 public:
-  explicit                      HttpOutputNode(SGraph *);
-  virtual                       ~HttpOutputNode();
+  explicit                      SHttpProxy(QObject * = NULL);
+  virtual                       ~SHttpProxy();
 
-  void                          setHeader(const QByteArray &);
-  void                          enablePseudoStreaming(float speed, STime preload = STime::fromSec(10));
+  bool                          setSource(QIODevice *);
   bool                          addSocket(QIODevice *);
-
-  bool                          openFormat(const QString &, const SAudioCodec &, STime);
-  bool                          openFormat(const QString &, const SAudioCodec &, const SVideoCodec &, STime);
-  bool                          openFormat(const QString &, const QList<SAudioCodec> &, const QList<SVideoCodec> &, STime);
-
-  virtual bool                  start(STimer *);
-  virtual void                  stop(void);
-
   bool                          isConnected(void) const;
 
 signals:
   void                          disconnected(void);
 
-public slots:
-  void                          input(const SEncodedAudioBuffer &);
-  void                          input(const SEncodedVideoBuffer &);
-  void                          input(const SEncodedDataBuffer &);
-
-private: // From SInterfaces::BufferReader::WriteCallback
-  virtual void                  write(const uchar *, qint64);
+private slots:
+  void                          processData(void);
 
 private:
-  void                          blockUntil(STime);
+  static const int              outBufferSize;
 
-private:
   struct Data;
   Data                  * const d;
 };

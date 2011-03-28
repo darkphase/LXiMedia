@@ -101,7 +101,6 @@ signals:
 
 private slots:
   void                          scanRoots(void);
-  void                          consoleLine(const QString &);
 
 private:
   QByteArray                    readNodeData(UniqueID) const;

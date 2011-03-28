@@ -34,17 +34,28 @@ class MediaPlayerServer : public MediaServer
 Q_OBJECT
 friend class MediaPlayerServerDir;
 protected:
-  class FileStream : public TranscodeStream
+  class Stream : public MediaServer::Stream
   {
   public:
-                                FileStream(MediaPlayerServer *, const QString &url, const QString &fileName, MediaDatabase::UniqueID);
+                                Stream(MediaPlayerServer *, const QString &url);
+    virtual                     ~Stream();
+
+    bool                        setup(const QUrl &request);
+
+  public:
+    SSandboxClient              sandbox;
+    QIODevice                 * request;
+  };
+
+  class FileStream : public Stream
+  {
+  public:
+                                FileStream(MediaPlayerServer *, const QString &url, MediaDatabase::UniqueID);
     virtual                     ~FileStream();
 
   public:
     const QDateTime             startTime;
     const MediaDatabase::UniqueID uid;
-
-    SFileInputNode              file;
   };
 
   struct PlayItem
@@ -62,8 +73,7 @@ protected:
   //void                          addVideoFile(DlnaServerDir *, const PlayItem &, const QString &, int = 0) const;
   //void                          addVideoFile(DlnaServerDir *, const QList<PlayItem> &, const QString &, int = 0) const;
 
-  virtual SHttpServer::SocketOp streamVideo(const SHttpServer::RequestHeader &, QIODevice *);
-  virtual SHttpServer::SocketOp buildPlaylist(const SHttpServer::RequestHeader &, QIODevice *);
+  virtual Stream              * streamVideo(const SHttpServer::RequestHeader &);
 
   bool                          isEmpty(const QString &path);
   virtual int                   countItems(const QString &path);

@@ -35,6 +35,8 @@ public:
     Mode_Nice
   };
 
+  typedef void (* LogFunc)(const QString &);
+
 private:
   class StartServerEvent : public QEvent
   {
@@ -55,11 +57,11 @@ public:
   explicit                      SSandboxClient(Mode, QObject * = NULL);
   virtual                       ~SSandboxClient();
 
+  void                          setLogFunc(LogFunc);
+  const QString               & serverName(void) const;
+
   inline ResponseMessage        sendRequest(const RequestMessage &request, int timeout = maxTTL) { return SHttpClientEngine::sendRequest(request, timeout); }
   QByteArray                    sendRequest(const QByteArray &, int timeout = maxTTL);
-
-signals:
-  void                          consoleLine(const QString &);
 
 protected:
   virtual void                  customEvent(QEvent *);

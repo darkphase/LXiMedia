@@ -31,6 +31,7 @@ struct SSandboxClient::Private
   QMutex                        mutex;
   QString                       name;
   QString                       mode;
+  LogFunc                       logFunc;
 
   QProcess                    * serverProcess;
   bool                          serverStarted;
@@ -55,6 +56,8 @@ SSandboxClient::SSandboxClient(Mode mode, QObject *parent)
   case Mode_Nice:   p->mode = "nice";   break;
   }
 
+  p->logFunc = NULL;
+
   p->serverProcess = NULL;
   p->serverStarted = false;
 }
@@ -77,6 +80,16 @@ SSandboxClient::~SSandboxClient()
   delete p->serverProcess;
   delete p;
   *const_cast<Private **>(&p) = NULL;
+}
+
+void SSandboxClient::setLogFunc(LogFunc logFunc)
+{
+  p->logFunc = logFunc;
+}
+
+const QString & SSandboxClient::serverName(void) const
+{
+  return p->name;
 }
 
 QByteArray SSandboxClient::sendRequest(const QByteArray &path, int timeout)
@@ -105,7 +118,7 @@ QIODevice * SSandboxClient::openSocket(const QString &host, int maxTimeout)
 {
   Q_ASSERT(host == p->name);
 
-  const int timeout = qMin(10000, maxTimeout); // Should take no more than 10 seconds
+  const int timeout = qMin(30000, maxTimeout); // Should take no more than 30 seconds
   QTime timer;
   timer.start();
 
@@ -122,7 +135,7 @@ QIODevice * SSandboxClient::openSocket(const QString &host, int maxTimeout)
         sem.acquire(1);
       }
       else
-        startServer(5000);
+        startServer(qMax(timeout - qAbs(timer.elapsed()), 0));
     }
 
     if (p->serverProcess && (p->serverProcess->state() == QProcess::Running))
@@ -130,20 +143,12 @@ QIODevice * SSandboxClient::openSocket(const QString &host, int maxTimeout)
       l.unlock();
 
       QLocalSocket * const socket = new QLocalSocket();
+      socket->setReadBufferSize(262144);
       socket->connectToServer(p->name);
       if (socket->waitForConnected(qMax(timeout - qAbs(timer.elapsed()), 0)))
         return socket;
 
-      if (timeout - qAbs(timer.elapsed()) > 0)
-      {
-        l.relock();
-
-        // There is something wrong with the server, kill it and try again ...
-        p->serverProcess->kill();
-        delete p->serverProcess;
-        p->serverProcess = NULL;
-      }
-
+      qDebug() << "Failed to connect to sandbox server.";
       delete socket;
     }
   }
@@ -160,8 +165,9 @@ void SSandboxClient::closeSocket(QIODevice *device, bool, int timeout)
     QTime timer;
     timer.start();
 
-    if (socket->bytesToWrite() > 0)
-      socket->waitForBytesWritten(qMax(timeout - qAbs(timer.elapsed()), 0));
+    while (socket->bytesToWrite() > 0)
+    if (!socket->waitForBytesWritten(qMax(timeout - qAbs(timer.elapsed()), 0)))
+      break;
 
     socket->disconnectFromServer();
     if (socket->state() != QLocalSocket::UnconnectedState)
@@ -211,8 +217,8 @@ void SSandboxClient::startServer(int timeout)
         p->serverStarted = true;
         return;
       }
-      else
-        emit consoleLine(QString::fromUtf8(line));
+      else if (p->logFunc)
+        p->logFunc(QString::fromUtf8(line));
     }
   }
 }
@@ -237,8 +243,8 @@ void SSandboxClient::readConsole(void)
       p->serverProcess = NULL;
       return;
     }
-    else
-      emit consoleLine(QString::fromUtf8(line));
+    else if (p->logFunc)
+      p->logFunc(QString::fromUtf8(line));
   }
 }
 

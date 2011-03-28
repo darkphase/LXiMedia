@@ -52,7 +52,7 @@ SGraph::SGraph(void)
         p(new Private())
 {
   p->parentThread = QThread::thread();
-  p->minTaskCount = QThread::idealThreadCount();
+  p->minTaskCount = qMax(QThread::idealThreadCount() + 1, 2); // Need at least 2.
   p->started = false;
   p->stopping = false;
   p->stopped = true;

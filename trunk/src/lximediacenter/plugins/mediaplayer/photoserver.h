@@ -24,31 +24,18 @@
 #include <LXiMediaCenter>
 #include "mediadatabase.h"
 #include "playlistserver.h"
-#include "slideshownode.h"
 
 namespace LXiMediaCenter {
 
 class PhotoServer : public PlaylistServer
 {
 Q_OBJECT
-protected:
-  class SlideShowStream : public Stream
-  {
-  public:
-                                SlideShowStream(PhotoServer *, const QString &url, const QList<MediaDatabase::File> &);
-
-    bool                        setup(const SHttpServer::RequestHeader &, QIODevice *);
-
-  public:
-    SlideShowNode               slideShow;
-  };
-
 public:
                                 PhotoServer(MediaDatabase *, MediaDatabase::Category, const char *, Plugin *, MasterServer *);
   virtual                       ~PhotoServer();
 
 protected:
-  virtual SHttpServer::SocketOp streamVideo(const SHttpServer::RequestHeader &, QIODevice *);
+  virtual Stream              * streamVideo(const SHttpServer::RequestHeader &);
 
   virtual QList<Item>           listItems(const QString &path, unsigned start, unsigned count);
   virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestHeader &, QIODevice *);

@@ -17,38 +17,52 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef TVSHOWSERVER_H
-#define TVSHOWSERVER_H
+#ifndef LXIMEDIACENTER_MEDIASTREAM_H
+#define LXIMEDIACENTER_MEDIASTREAM_H
 
 #include <QtCore>
-#include <LXiMediaCenter>
+#include <QtNetwork>
+#include <LXiServer>
 #include <LXiStream>
-#include "mediadatabase.h"
-#include "playlistserver.h"
+#include "backendserver.h"
 
 namespace LXiMediaCenter {
 
-class TvShowServer : public PlaylistServer
+class MediaStream : public SGraph
 {
 Q_OBJECT
 public:
-                                TvShowServer(MediaDatabase *, MediaDatabase::Category, const char *, Plugin *, MasterServer *);
-  virtual                       ~TvShowServer();
+  explicit                      MediaStream(void);
+
+  bool                          setup(const SHttpServer::RequestHeader &, QIODevice *, STime duration, SInterval frameRate, SSize size, SAudioFormat::Channels channels);
+  bool                          setup(const SHttpServer::RequestHeader &, QIODevice *, STime duration, SAudioFormat::Channels channels);
 
 protected:
-  virtual Stream              * streamVideo(const SHttpServer::RequestHeader &);
+  STimeStampResamplerNode       timeStampResampler;
+  SAudioResampleNode            audioResampler;
+  SVideoDeinterlaceNode         deinterlacer;
+  SSubpictureRenderNode         subpictureRenderer;
+  SVideoLetterboxDetectNode     letterboxDetectNode;
+  SVideoResizeNode              videoResizer;
+  SVideoBoxNode                 videoBox;
+  SSubtitleRenderNode           subtitleRenderer;
+  STimeStampSyncNode            sync;
+  SAudioEncoderNode             audioEncoder;
+  SVideoEncoderNode             videoEncoder;
+  SIOOutputNode                 output;
+};
 
-  virtual int                   countItems(const QString &path);
-  virtual QList<Item>           listItems(const QString &path, unsigned start, unsigned count);
+class MediaTranscodeStream : public MediaStream
+{
+public:
+  explicit                      MediaTranscodeStream(void);
 
-private:
-  void                          categorizeSeasons(const QString &path, QMap<unsigned, QVector<MediaDatabase::UniqueID> > &, bool &);
-  Item                          makePlainItem(MediaDatabase::UniqueID);
-  Item                          makeSeasonItem(MediaDatabase::UniqueID);
-  static QString                toTvShowNumber(unsigned);
+  bool                          setup(const SHttpServer::RequestHeader &, QIODevice *, SInterfaces::BufferReaderNode *, STime duration = STime());
 
-private:
-  const QString                 seasonText;
+public:
+  SAudioDecoderNode             audioDecoder;
+  SVideoDecoderNode             videoDecoder;
+  SDataDecoderNode              dataDecoder;
 };
 
 } // End of namespace

@@ -19,6 +19,7 @@
 
 #include "mediadatabase.h"
 #include "configserver.h"
+#include "mediaplayersandbox.h"
 #include <LXiStreamGui>
 
 namespace LXiMediaCenter {
@@ -138,7 +139,7 @@ MediaDatabase::MediaDatabase(Plugin *plugin, ImdbClient *imdbClient)
 
   settings.setValue("DatabaseVersion", databaseVersion);
 
-  connect(&probeSandbox, SIGNAL(consoleLine(QString)), SLOT(consoleLine(QString)));
+  probeSandbox.setLogFunc(&SDebug::LogFile::logLineToActiveLogFile);
 
   connect(&scanRootsTimer, SIGNAL(timeout()), SLOT(scanRoots()));
 
@@ -514,11 +515,6 @@ void MediaDatabase::scanRoots(void)
   }
 }
 
-void MediaDatabase::consoleLine(const QString &line)
-{
-  SDebug::LogFile::logLineToActiveLogFile(line);
-}
-
 QString MediaDatabase::findRoot(const QString &path, const QStringList &allRootPaths) const
 {
   const QFileInfo info(path);
@@ -756,12 +752,14 @@ void MediaDatabase::updateDir(const QString &path, qint64 parentDir, QuerySet &q
   }
 }
 
-void MediaDatabase::probeFile(const QString &_path)
-{
-  // Ensure directories end with a '/'
+// Ensure directories end with a '/'
+void MediaDatabase::probeFile(
 #ifndef Q_OS_WIN
-#define path _path
+    const QString &path)
+{
 #else
+    const QString &_path)
+{
   const QString path = _path.toLower();
 #endif
 
@@ -773,7 +771,7 @@ void MediaDatabase::probeFile(const QString &_path)
     {
       qDebug() << "Probing:" << path;
 
-      const QByteArray mediaInfoXml = probeSandbox.sendRequest("/mediaprobe/?probe=" + path.toUtf8().toBase64());
+      const QByteArray mediaInfoXml = probeSandbox.sendRequest(QByteArray(MediaPlayerSandbox::path) + "?probe=" + path.toUtf8().toBase64());
       if (!mediaInfoXml.isEmpty())
       {
         SMediaInfo mediaInfo;
@@ -786,10 +784,6 @@ void MediaDatabase::probeFile(const QString &_path)
 
     sApp->schedule(this, &MediaDatabase::delayFile, path, Database::mutex(), insertFilePriority);
   }
-
-#ifndef Q_OS_WIN
-#undef path
-#endif
 }
 
 void MediaDatabase::insertFile(const SMediaInfo &mediaInfo, const QByteArray &mediaInfoXml)
