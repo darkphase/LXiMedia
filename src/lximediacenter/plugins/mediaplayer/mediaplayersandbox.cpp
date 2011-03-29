@@ -24,14 +24,16 @@ namespace LXiMediaCenter {
 const char  * const MediaPlayerSandbox::path = "/mediaplayer/";
 
 MediaPlayerSandbox::MediaPlayerSandbox(QObject *parent)
-  : QObject(parent)
+  : QObject(parent),
+    mutex(QMutex::Recursive)
 {
+  connect(&cleanStreamsTimer, SIGNAL(timeout()), SLOT(cleanStreams()));
+  cleanStreamsTimer.start(5000);
 }
 
 SSandboxServer::SocketOp MediaPlayerSandbox::handleHttpRequest(const SSandboxServer::RequestHeader &request, QIODevice *socket)
 {
   const QUrl url(request.path());
-  qDebug() << request.path();
 
   if (url.hasQueryItem("probe"))
   {
@@ -49,12 +51,36 @@ SSandboxServer::SocketOp MediaPlayerSandbox::handleHttpRequest(const SSandboxSer
     if (stream->file.open(url.queryItemValue("pid").toUShort()))
     if (stream->setup(request, socket))
     if (stream->start())
+    {
+      QMutexLocker l(&mutex);
+
+      streams.append(stream);
       return SSandboxServer::SocketOp_LeaveOpen;
+    }
+
+    delete stream;
 
     return SSandboxServer::sendResponse(request, socket, SSandboxServer::Status_InternalServerError, this);
   }
 
   return SSandboxServer::sendResponse(request, socket, SSandboxServer::Status_NotFound, this);
+}
+
+void MediaPlayerSandbox::cleanStreams(void)
+{
+  if (mutex.tryLock(0))
+  {
+    for (QList<MediaStream *>::Iterator i=streams.begin(); i!=streams.end(); )
+    if (!(*i)->isRunning())
+    {
+      delete *i;
+      i = streams.erase(i);
+    }
+    else
+      i++;
+
+    mutex.unlock();
+  }
 }
 
 

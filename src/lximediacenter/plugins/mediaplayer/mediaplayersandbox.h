@@ -36,8 +36,16 @@ public:
 public: // From SandboxServer::Callback
   virtual SSandboxServer::SocketOp handleHttpRequest(const SSandboxServer::RequestHeader &, QIODevice *);
 
+private slots:
+  void                          cleanStreams(void);
+
 public:
   static const char     * const path;
+
+private:
+  QMutex                        mutex;
+  QList<MediaStream *>          streams;
+  QTimer                        cleanStreamsTimer;
 };
 
 class SandboxFileStream : public MediaTranscodeStream

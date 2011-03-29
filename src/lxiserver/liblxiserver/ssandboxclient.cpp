@@ -143,7 +143,7 @@ QIODevice * SSandboxClient::openSocket(const QString &host, int maxTimeout)
       l.unlock();
 
       QLocalSocket * const socket = new QLocalSocket();
-      socket->setReadBufferSize(262144);
+      socket->setReadBufferSize(65536);
       socket->connectToServer(p->name);
       if (socket->waitForConnected(qMax(timeout - qAbs(timer.elapsed()), 0)))
         return socket;
