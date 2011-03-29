@@ -39,7 +39,7 @@ public:
 
   static QStringList            formats(void);
 
-  void                          setIODevice(QIODevice *);
+  void                          setIODevice(QIODevice *, bool autoClose = false);
   bool                          openFormat(const QString &, const SAudioCodec &, STime);
   bool                          openFormat(const QString &, const SAudioCodec &, const SVideoCodec &, STime);
   bool                          openFormat(const QString &, const QList<SAudioCodec> &, const QList<SVideoCodec> &, STime);

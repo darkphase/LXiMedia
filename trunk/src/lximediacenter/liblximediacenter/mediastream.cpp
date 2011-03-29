@@ -37,6 +37,8 @@ MediaStream::MediaStream(void)
     videoEncoder(this),
     output(this)
 {
+  connect(&output, SIGNAL(disconnected()), SLOT(stop()));
+
   // Audio
   connect(&timeStampResampler, SIGNAL(output(SAudioBuffer)), &audioResampler, SLOT(input(SAudioBuffer)));
   connect(&audioResampler, SIGNAL(output(SAudioBuffer)), &sync, SLOT(input(SAudioBuffer)));
@@ -267,7 +269,7 @@ bool MediaStream::setup(const SHttpServer::RequestHeader &request, QIODevice *so
   videoBox.setSize(size);
 
   socket->write(header);
-  output.setIODevice(socket);
+  output.setIODevice(socket, true);
 
   //enableTrace("/tmp/test.svg");
 
@@ -394,7 +396,7 @@ bool MediaStream::setup(const SHttpServer::RequestHeader &request, QIODevice *so
   }
 
   socket->write(header);
-  output.setIODevice(socket);
+  output.setIODevice(socket, true);
 
   //enableTrace("/tmp/test.svg");
 

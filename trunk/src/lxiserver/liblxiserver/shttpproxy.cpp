@@ -35,10 +35,10 @@ struct SHttpProxy::Data
   QMutex                        mutex;
   QIODevice                   * source;
   QVector<Socket>               sockets;
+  QTimer                        socketTimer;
 
   bool                          caching;
   QByteArray                    cache;
-  QTime                         cacheTimer;
 };
 
 const int SHttpProxy::outBufferSize = 2097152;
@@ -64,7 +64,9 @@ bool SHttpProxy::setSource(QIODevice *source)
   d->source->setParent(this);
 
   connect(d->source, SIGNAL(readyRead()), SLOT(processData()));
-  connect(d->source, SIGNAL(aboutToClose()), SIGNAL(disconnected()));
+  
+  connect(&d->socketTimer, SIGNAL(timeout()), SLOT(processData()));
+  d->socketTimer.start(250);
 
   return true;
 }
@@ -103,6 +105,16 @@ bool SHttpProxy::isConnected(void) const
 {
   QMutexLocker l(&d->mutex);
 
+  if (!d->source->isOpen())
+  {
+    foreach (const Data::Socket &s, d->sockets)
+    if (s.socket->state() == QAbstractSocket::ConnectedState)
+    if (s.socket->bytesToWrite() > 0)
+      return true;
+
+    return false;
+  }
+
   if (d->caching)
     return true;
 
@@ -135,8 +147,7 @@ void SHttpProxy::processData(void)
         s->sendCache = false;
       }
 
-      if ((qAbs(d->cacheTimer.elapsed()) < 5000) &&
-          ((d->cache.size() + buffer.size()) < (outBufferSize * 8)))
+      if ((d->cache.size() + buffer.size()) < (outBufferSize * 4))
       {
         d->cache.append(buffer);
       }

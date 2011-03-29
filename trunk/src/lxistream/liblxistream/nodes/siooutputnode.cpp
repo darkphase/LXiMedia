@@ -21,12 +21,13 @@
 
 namespace LXiStream {
 
-const int SIOOutputNode::outBufferSize = 262144;
+const int SIOOutputNode::outBufferSize = 65536;
 
 struct SIOOutputNode::Data
 {
   QIODevice                   * ioDevice;
   SInterfaces::BufferWriter   * bufferWriter;
+  bool                          autoClose;
 
   float                         streamingSpeed;
   STime                         streamingPreload;
@@ -40,6 +41,7 @@ SIOOutputNode::SIOOutputNode(SGraph *parent, QIODevice *ioDevice)
 {
   d->ioDevice = ioDevice;
   d->bufferWriter = NULL;
+  d->autoClose = false;
 
   d->streamingSpeed = 0.0f;
 }
@@ -56,9 +58,10 @@ QStringList SIOOutputNode::formats(void)
   return SInterfaces::BufferWriter::available();
 }
 
-void SIOOutputNode::setIODevice(QIODevice *ioDevice)
+void SIOOutputNode::setIODevice(QIODevice *ioDevice, bool autoClose)
 {
   d->ioDevice = ioDevice;
+  d->autoClose = autoClose;
 }
 
 bool SIOOutputNode::openFormat(const QString &format, const SAudioCodec &audioCodec, STime duration)
@@ -111,9 +114,21 @@ void SIOOutputNode::stop(void)
     d->bufferWriter->stop();
 
   if (d->ioDevice)
-  while (d->ioDevice->bytesToWrite() > 0)
-  if (!d->ioDevice->waitForBytesWritten(1000))
-    break;
+  {
+    QTime timer;
+    timer.start();
+
+    while (d->ioDevice->bytesToWrite() > 0)
+    if (!d->ioDevice->waitForBytesWritten(qMax(5000 - timer.elapsed(), 0)))
+      break;
+
+    if (d->autoClose)
+    {
+      d->ioDevice->close();
+      delete d->ioDevice;
+      d->ioDevice = NULL;
+    }
+  }
 }
 
 void SIOOutputNode::input(const SEncodedAudioBuffer &buffer)
@@ -149,7 +164,10 @@ void SIOOutputNode::write(const uchar *buffer, qint64 size)
   {
     while (d->ioDevice->bytesToWrite() >= outBufferSize)
     if (!d->ioDevice->waitForBytesWritten(-1))
-      return; // Error, don't write anything.
+    {
+      emit disconnected();
+      return;
+    }
 
     for (qint64 i=0; i<size; )
     {
