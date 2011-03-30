@@ -92,6 +92,26 @@ const char * SHttpEngine::toMimeType(const QString &fileName)
 }
 
 
+SHttpEngine::SocketPtr & SHttpEngine::SocketPtr::operator=(QIODevice *socket)
+{
+  this->socket = socket;
+  this->abstractSocket = qobject_cast<QAbstractSocket *>(socket);
+  this->localSocket = qobject_cast<QLocalSocket *>(socket);
+
+  return *this;
+}
+
+bool SHttpEngine::SocketPtr::isConnected(void) const
+{
+  if (abstractSocket)
+    return abstractSocket->state() == QAbstractSocket::ConnectedState;
+  else if (localSocket)
+    return localSocket->state() == QLocalSocket::ConnectedState;
+  else
+    return !socket->atEnd();
+}
+
+
 class SHttpServerEngine::SocketHandler : public QRunnable
 {
 public:

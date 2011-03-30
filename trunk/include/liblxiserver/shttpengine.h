@@ -22,6 +22,9 @@
 
 #include <QtCore>
 
+class QAbstractSocket;
+class QLocalSocket;
+
 namespace LXiServer {
 
 class SHttpEngine
@@ -157,6 +160,28 @@ public:
 
   private:
     QByteArray                  data;
+  };
+
+public:
+  class SocketPtr
+  {
+  public:
+    inline                      SocketPtr(QIODevice * socket = NULL)            { operator=(socket); }
+
+    SocketPtr                 & operator=(QIODevice *);
+
+    inline                      operator bool() const                           { return socket; }
+    inline const QIODevice    * operator->() const                              { return socket; }
+    inline QIODevice          * operator->()                                    { return socket; }
+    inline                      operator const QIODevice *() const              { return socket; }
+    inline                      operator QIODevice *()                          { return socket; }
+
+    bool                        isConnected(void) const;
+
+  private:
+    QIODevice                 * socket;
+    QAbstractSocket           * abstractSocket;
+    QLocalSocket              * localSocket;
   };
 
 public:
