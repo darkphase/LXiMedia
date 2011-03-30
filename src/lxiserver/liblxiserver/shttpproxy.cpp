@@ -18,7 +18,7 @@
  ***************************************************************************/
 
 #include "shttpproxy.h"
-#include <QtNetwork>
+#include "shttpengine.h"
 
 namespace LXiServer {
 
@@ -26,14 +26,14 @@ struct SHttpProxy::Data
 {
   struct Socket
   {
-    QAbstractSocket           * socket;
+    SHttpEngine::SocketPtr      socket;
     bool                        sendCache;
   };
 
   inline Data(void) : mutex(QMutex::Recursive) { }
 
   QMutex                        mutex;
-  QIODevice                   * source;
+  SHttpEngine::SocketPtr        source;
   QVector<Socket>               sockets;
   QTimer                        socketTimer;
 
@@ -47,7 +47,6 @@ SHttpProxy::SHttpProxy(QObject *parent)
   : QObject(parent),
     d(new Data())
 {
-  d->source = NULL;
   d->caching = true;
 }
 
@@ -64,7 +63,7 @@ bool SHttpProxy::setSource(QIODevice *source)
   d->source->setParent(this);
 
   connect(d->source, SIGNAL(readyRead()), SLOT(processData()));
-  
+
   connect(&d->socketTimer, SIGNAL(timeout()), SLOT(processData()));
   d->socketTimer.start(250);
 
@@ -78,7 +77,7 @@ bool SHttpProxy::addSocket(QIODevice *socket)
   if (d->caching || d->sockets.isEmpty())
   {
     Data::Socket s;
-    s.socket = qobject_cast<QAbstractSocket *>(socket);
+    s.socket = socket;
     s.sendCache = true;
 
     if (s.socket)
@@ -105,10 +104,10 @@ bool SHttpProxy::isConnected(void) const
 {
   QMutexLocker l(&d->mutex);
 
-  if (!d->source->isOpen())
+  if (!d->source.isConnected())
   {
     foreach (const Data::Socket &s, d->sockets)
-    if (s.socket->state() == QAbstractSocket::ConnectedState)
+    if (s.socket.isConnected())
     if (s.socket->bytesToWrite() > 0)
       return true;
 
@@ -119,7 +118,7 @@ bool SHttpProxy::isConnected(void) const
     return true;
 
   foreach (const Data::Socket &s, d->sockets)
-  if (s.socket->state() == QAbstractSocket::ConnectedState)
+  if (s.socket.isConnected())
     return true;
 
   return false;
@@ -131,7 +130,7 @@ void SHttpProxy::processData(void)
   while (d->source->bytesAvailable() > 0)
   {
     for (QVector<Data::Socket>::Iterator s=d->sockets.begin(); s!=d->sockets.end(); s++)
-    if (s->socket->state() == QAbstractSocket::ConnectedState)
+    if (s->socket.isConnected())
     if (s->socket->bytesToWrite() >= outBufferSize)
       return; // Blocked, wait a bit.
 
@@ -140,7 +139,7 @@ void SHttpProxy::processData(void)
     if (d->caching)
     {
       for (QVector<Data::Socket>::Iterator s=d->sockets.begin(); s!=d->sockets.end(); s++)
-      if (s->sendCache && (s->socket->state() == QAbstractSocket::ConnectedState))
+      if (s->sendCache && s->socket.isConnected())
       {
         //qDebug() << "Reuse" << d->cache.size();
         s->socket->write(d->cache);
@@ -159,9 +158,9 @@ void SHttpProxy::processData(void)
     }
 
     for (QVector<Data::Socket>::Iterator s=d->sockets.begin(); s!=d->sockets.end(); )
-    if (s->socket->state() == QAbstractSocket::ConnectedState)
+    if (s->socket.isConnected())
     {
-      if (!s->sendCache && (s->socket->state() == QAbstractSocket::ConnectedState))
+      if (!s->sendCache && s->socket.isConnected())
       for (qint64 i=0; i<buffer.size(); )
       {
         const qint64 r = s->socket->write(buffer.data() + i, buffer.size() - i);
