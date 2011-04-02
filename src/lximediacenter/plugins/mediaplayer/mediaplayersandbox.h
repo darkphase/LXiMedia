@@ -50,13 +50,17 @@ private:
 
 class SandboxFileStream : public MediaTranscodeStream
 {
+Q_OBJECT
 public:
-  explicit                    SandboxFileStream(const QString &fileName);
+  explicit                      SandboxFileStream(const QString &fileName);
+  virtual                       ~SandboxFileStream();
 
-  bool                        setup(const SHttpServer::RequestHeader &, QIODevice *);
+  bool                          setup(const SHttpServer::RequestHeader &, QIODevice *);
 
 public:
-  SFileInputNode              file;
+  const QString                 fileName;
+  const QDateTime               startTime;
+  SFileInputNode                file;
 };
 
 class SandboxPlaylistStream : public MediaTranscodeStream
@@ -79,13 +83,14 @@ private:
 
 class SandboxSlideShowStream : public MediaStream
 {
+Q_OBJECT
 public:
-                              SandboxSlideShowStream(MediaDatabase *mediaDatabase, const QList<MediaDatabase::File> &);
+  explicit                      SandboxSlideShowStream(const SMediaInfoList &files);
 
-  bool                        setup(const SHttpServer::RequestHeader &, QIODevice *);
+  bool                          setup(const SHttpServer::RequestHeader &, QIODevice *);
 
 public:
-  SlideShowNode               slideShow;
+  SlideShowNode                 slideShow;
 };
 
 

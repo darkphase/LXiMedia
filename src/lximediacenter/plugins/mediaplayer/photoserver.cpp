@@ -44,13 +44,17 @@ PhotoServer::Stream * PhotoServer::streamVideo(const SHttpServer::RequestHeader 
     QStringList albums;
     albums += request.directory().mid(httpPath().length() - 1);
 
-    QMultiMap<QString, MediaDatabase::File> files;
+    QMultiMap<QString, QByteArray> files;
     while (!albums.isEmpty())
     {
       const QString path = albums.takeFirst();
 
       foreach (const MediaDatabase::File &file, mediaDatabase->getAlbumFiles(MediaDatabase::Category_Photos, path))
-        files.insert(path + file.name, file);
+      {
+        const SMediaInfo node = mediaDatabase->readNode(file.uid);
+        if (!node.isNull())
+          files.insert(path + file.name, node.toByteArray(-1));
+      }
 
       foreach (const QString &album, mediaDatabase->allAlbums(MediaDatabase::Category_Photos))
       if (album.startsWith(path) && (album.mid(path.length()).count('/') == 1))
@@ -61,14 +65,17 @@ PhotoServer::Stream * PhotoServer::streamVideo(const SHttpServer::RequestHeader 
     {
       QUrl rurl;
       rurl.setPath(MediaPlayerSandbox::path);
-      //rurl.addQueryItem("playslideshow", node.filePath().toUtf8().toHex());
-      //rurl.addQueryItem("pid", QString::number(uid.pid));
+      rurl.addQueryItem("playslideshow", QString::null);
       typedef QPair<QString, QString> QStringPair;
       foreach (const QStringPair &queryItem, url.queryItems())
         rurl.addQueryItem(queryItem.first, queryItem.second);
 
+      QByteArray content;
+      foreach (const QByteArray &line, files)
+        content += line + '\n';
+
       Stream *stream = new Stream(this, request.path());
-      if (stream->setup(rurl))
+      if (stream->setup(rurl, content))
         return stream;
 
       delete stream;

@@ -27,10 +27,9 @@ struct SSandboxClient::Private
 {
   QString                       name;
   QString                       mode;
-  LogFunc                       logFunc;
 
   SandboxProcess              * serverProcess;
-  QList<SandboxHeaderRequest *> requests;
+  QList<SandboxMessageRequest *> requests;
 };
 
 QString & SSandboxClient::sandboxApplication(void)
@@ -52,8 +51,6 @@ SSandboxClient::SSandboxClient(Mode mode, QObject *parent)
   case Mode_Nice:   p->mode = "nice";   break;
   }
 
-  p->logFunc = NULL;
-
   p->serverProcess = NULL;
 }
 
@@ -64,29 +61,24 @@ SSandboxClient::~SSandboxClient()
   *const_cast<Private **>(&p) = NULL;
 }
 
-void SSandboxClient::setLogFunc(LogFunc logFunc)
-{
-  p->logFunc = logFunc;
-}
-
 const QString & SSandboxClient::serverName(void) const
 {
   return p->name;
 }
 
-void SSandboxClient::openRequest(const SHttpEngine::RequestHeader &header, QObject *receiver, const char *slot)
+void SSandboxClient::openRequest(const RequestMessage &message, QObject *receiver, const char *slot)
 {
-  if (header.host() != p->name)
-    qFatal("SSandboxClient::openRequest() header.host() should be equal to "
+  if (message.host() != p->name)
+    qFatal("SSandboxClient::openRequest() message.host() should be equal to "
            "SSandboxClient::serverName().");
 
   if (QThread::currentThread() != thread())
     qFatal("SSandboxClient::openRequest() should be invoked from the thread "
            "that owns the SSandboxClient object.");
 
-  SandboxHeaderRequest * const headerRequest = new SandboxHeaderRequest(header);
-  connect(headerRequest, SIGNAL(headerSent(QIODevice *)), receiver, slot);
-  p->requests.append(headerRequest);
+  SandboxMessageRequest * const messageRequest = new SandboxMessageRequest(message);
+  connect(messageRequest, SIGNAL(headerSent(QIODevice *)), receiver, slot);
+  p->requests.append(messageRequest);
 
   if (p->serverProcess == NULL)
   {
@@ -96,7 +88,7 @@ void SSandboxClient::openRequest(const SHttpEngine::RequestHeader &header, QObje
     connect(p->serverProcess, SIGNAL(ready()), SLOT(openSockets()));
     connect(p->serverProcess, SIGNAL(stop()), SLOT(stop()));
     connect(p->serverProcess, SIGNAL(finished()), SLOT(finished()));
-    connect(p->serverProcess, SIGNAL(consoleLine(QString)), SLOT(consoleLine(QString)));
+    connect(p->serverProcess, SIGNAL(consoleLine(QString)), SIGNAL(consoleLine(QString)));
   }
   else if (p->requests.count() == 1)
     openSockets();
@@ -120,7 +112,7 @@ void SSandboxClient::stop(void)
     disconnect(p->serverProcess, SIGNAL(ready()), this, SLOT(openSockets()));
     disconnect(p->serverProcess, SIGNAL(stop()), this, SLOT(stop()));
     disconnect(p->serverProcess, SIGNAL(finished()), this, SLOT(finished()));
-    disconnect(p->serverProcess, SIGNAL(consoleLine(QString)), this, SLOT(consoleLine(QString)));
+    disconnect(p->serverProcess, SIGNAL(consoleLine(QString)), this, SIGNAL(consoleLine(QString)));
 
     QTimer::singleShot(250, p->serverProcess, SLOT(kill()));
     QTimer::singleShot(1000, p->serverProcess, SLOT(deleteLater()));
@@ -141,12 +133,6 @@ void SSandboxClient::finished(void)
     while (!p->requests.isEmpty())
       p->requests.takeFirst()->connected(NULL);
   }
-}
-
-void SSandboxClient::consoleLine(const QString &line)
-{
-  if (p->logFunc)
-    p->logFunc(line);
 }
 
 } // End of namespace

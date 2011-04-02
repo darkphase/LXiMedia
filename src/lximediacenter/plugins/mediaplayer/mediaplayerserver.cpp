@@ -55,14 +55,14 @@ MediaPlayerServer::Stream * MediaPlayerServer::streamVideo(const SHttpServer::Re
     {
       QUrl rurl;
       rurl.setPath(MediaPlayerSandbox::path + request.file());
-      rurl.addQueryItem("playfile", node.filePath().toUtf8().toHex());
+      rurl.addQueryItem("playfile", QString::null);
       rurl.addQueryItem("pid", QString::number(uid.pid));
       typedef QPair<QString, QString> QStringPair;
       foreach (const QStringPair &queryItem, url.queryItems())
         rurl.addQueryItem(queryItem.first, queryItem.second);
 
-      FileStream *stream = new FileStream(this, request.path(), uid);
-      if (stream->setup(rurl))
+      Stream *stream = new Stream(this, request.path());
+      if (stream->setup(rurl, node.toByteArray(-1)))
         return stream; // The graph owns the socket now.
 
       delete stream;
@@ -485,42 +485,36 @@ QByteArray MediaPlayerServer::buildVideoPlayer(const QByteArray &item, const QSt
   return MediaServer::buildVideoPlayer(item, title, url, size);
 }
 
+void MediaPlayerServer::consoleLine(const QString &line)
+{
+  if (!line.startsWith('%'))
+    SDebug::LogFile::logLineToActiveLogFile(line);
+  else
+    mediaDatabase->setLastPlayed(QString::fromUtf8(QByteArray::fromHex(line.mid(1).toAscii())));
+}
+
 
 MediaPlayerServer::Stream::Stream(MediaPlayerServer *parent, const QString &url)
   : MediaServer::Stream(parent, url),
     sandbox(SSandboxClient::Mode_Normal)
 {
-  sandbox.setLogFunc(&SDebug::LogFile::logLineToActiveLogFile);
+  connect(&sandbox, SIGNAL(consoleLine(QString)), parent, SLOT(consoleLine(QString)));
 }
 
 MediaPlayerServer::Stream::~Stream()
 {
 }
 
-bool MediaPlayerServer::Stream::setup(const QUrl &url)
+bool MediaPlayerServer::Stream::setup(const QUrl &url, const QByteArray &content)
 {
-  SHttpEngine::RequestHeader header(&sandbox);
-  header.setRequest("GET", url.toEncoded(QUrl::RemoveScheme | QUrl::RemoveAuthority));
-  header.setHost(sandbox.serverName());
-  header.setContentLength(0);
+  SHttpEngine::RequestMessage message(&sandbox);
+  message.setRequest("POST", url.toEncoded(QUrl::RemoveScheme | QUrl::RemoveAuthority));
+  message.setHost(sandbox.serverName());
+  message.setContent(content);
 
-  sandbox.openRequest(header, &proxy, SLOT(setSource(QIODevice *)));
+  sandbox.openRequest(message, &proxy, SLOT(setSource(QIODevice *)));
 
   return true;
-}
-
-
-MediaPlayerServer::FileStream::FileStream(MediaPlayerServer *parent, const QString &url, MediaDatabase::UniqueID uid)
-  : Stream(parent, url),
-    startTime(QDateTime::currentDateTime()),
-    uid(uid)
-{
-}
-
-MediaPlayerServer::FileStream::~FileStream()
-{
-  if (startTime.secsTo(QDateTime::currentDateTime()) >= 120)
-    static_cast<MediaPlayerServer *>(parent)->mediaDatabase->setLastPlayed(uid);
 }
 
 } // End of namespace

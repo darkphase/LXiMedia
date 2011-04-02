@@ -45,7 +45,7 @@ PlaylistServer::Stream * PlaylistServer::streamVideo(const SHttpServer::RequestH
     QStringList albums;
     albums += request.directory().mid(httpPath().length() - 1);
 
-    QMultiMap<QString, SMediaInfo> files;
+    QMultiMap<QString, QByteArray> files;
     while (!albums.isEmpty())
     {
       const QString path = albums.takeFirst();
@@ -62,7 +62,7 @@ PlaylistServer::Stream * PlaylistServer::streamVideo(const SHttpServer::RequestH
               path +
               SStringParser::toRawName(node.title());
 
-          files.insert(key, node);
+          files.insert(key, node.toByteArray(-1));
         }
       }
 
@@ -75,14 +75,17 @@ PlaylistServer::Stream * PlaylistServer::streamVideo(const SHttpServer::RequestH
     {
       QUrl rurl;
       rurl.setPath(MediaPlayerSandbox::path);
-      //rurl.addQueryItem("playlist", node.filePath().toUtf8().toHex());
-      //rurl.addQueryItem("pid", QString::number(uid.pid));
+      rurl.addQueryItem("playlist", QString::null);
       typedef QPair<QString, QString> QStringPair;
       foreach (const QStringPair &queryItem, url.queryItems())
         rurl.addQueryItem(queryItem.first, queryItem.second);
 
+      QByteArray content;
+      foreach (const QByteArray &line, files)
+        content += line + '\n';
+
       Stream *stream = new Stream(this, request.path());
-      if (stream->setup(rurl))
+      if (stream->setup(rurl, content))
         return stream;
 
       delete stream;

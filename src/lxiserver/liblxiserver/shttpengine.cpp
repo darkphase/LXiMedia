@@ -209,6 +209,29 @@ const QString & SHttpServerEngine::senderId(void) const
   return p->senderId;
 }
 
+QByteArray SHttpServerEngine::readContent(const RequestHeader &request, QIODevice *socket)
+{
+  QTime timer;
+  timer.start();
+
+  QByteArray content=socket->readAll();
+
+  const qint64 length = request.contentLength();
+  if (length > 0)
+  {
+    for (; content.length() < length; content += socket->readAll())
+    if (!socket->waitForReadyRead(qMax(maxTTL - qAbs(timer.elapsed()), 0)))
+      return QByteArray();
+  }
+  else
+  {
+    while (socket->waitForReadyRead(qMin(2000, qMax(maxTTL - qAbs(timer.elapsed()), 0))))
+      content += socket->readAll();
+  }
+
+  return content;
+}
+
 SHttpServerEngine::SocketOp SHttpServerEngine::sendResponse(const RequestHeader &request, QIODevice *socket, Status status, const QByteArray &content, const QObject *object)
 {
   if (status >= 400)
