@@ -27,7 +27,7 @@
 class UnixDaemon
 {
 public:
-                                UnixDaemon(const QString &name, const QString &pidFile, bool autoRecover);
+                                UnixDaemon(const QString &name, const QString &pidFile);
   virtual                       ~UnixDaemon();
 
   virtual pid_t                 start(void);
@@ -35,10 +35,9 @@ public:
 
 protected:
   virtual int                   run(void) = 0;
-  virtual bool                  terminate(void);
+  virtual bool                  quit(void);
 
 private:
-  bool                          startAutoRecover(void);
   int                           startChild(void);
   static void                   termHandler(int);
 
@@ -46,9 +45,7 @@ private:
   static UnixDaemon           * instance;
   const QString                 name;
   const QString                 pidFile;
-  const bool                    autoRecover;
   pid_t                         sessionID;
-  pid_t                         childID;
 };
 
 

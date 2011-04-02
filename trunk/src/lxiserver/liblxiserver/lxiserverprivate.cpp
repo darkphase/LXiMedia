@@ -201,19 +201,19 @@ void SandboxSocketRequest::bytesWritten(void)
 }
 
 
-SandboxHeaderRequest::SandboxHeaderRequest(const SHttpEngine::RequestHeader &header)
-  : header(header)
+SandboxMessageRequest::SandboxMessageRequest(const SHttpEngine::RequestMessage &message)
+  : message(message)
 {
 }
 
-SandboxHeaderRequest::~SandboxHeaderRequest()
+SandboxMessageRequest::~SandboxMessageRequest()
 {
 }
 
-void SandboxHeaderRequest::connected(QIODevice *socket)
+void SandboxMessageRequest::connected(QIODevice *socket)
 {
   if (socket)
-    socket->write(header);
+    socket->write(message);
 
   emit headerSent(socket);
 

@@ -41,7 +41,7 @@ public:
 protected:
   virtual void                  interrogate(void);
   virtual void                  shutdown(void);
-  virtual void                  stop(void);
+  virtual void                  quit(void);
   virtual void                  pause(void);
   virtual void                  resume(void);
   virtual void                  user(quint32);

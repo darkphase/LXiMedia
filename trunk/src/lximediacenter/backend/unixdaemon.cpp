@@ -32,12 +32,10 @@
 
 UnixDaemon * UnixDaemon::instance = NULL;
 
-UnixDaemon::UnixDaemon(const QString &name, const QString &pidFile, bool autoRecover)
+UnixDaemon::UnixDaemon(const QString &name, const QString &pidFile)
            :name(name),
             pidFile(pidFile),
-            autoRecover(autoRecover),
-            sessionID(0),
-            childID(0)
+            sessionID(0)
 {
   instance = this;
 }
@@ -70,20 +68,7 @@ pid_t UnixDaemon::start(void)
   /////////////////////////////////////////////////////////////////////////////
   // The code below is only executed in the forked process, this actually
   // starts the deamon code.
-  if (autoRecover)
-  {
-    // Specify a signal action handler so we can cleanly exit
-    struct sigaction act;
-    act.sa_handler = &termHandler;
-    sigemptyset(&act.sa_mask);
-    act.sa_flags = 0;
-    sigaction(SIGTERM, &act, NULL);
-
-    while (!startAutoRecover())
-      sleep(10); // Wait 10 seconds to prevent blocking the system in case of a problem.
-  }
-  else
-    startChild();
+  startChild();
 
   return 0;
 }
@@ -121,46 +106,9 @@ bool UnixDaemon::stop(void)
   return false;
 }
 
-bool UnixDaemon::terminate(void)
+bool UnixDaemon::quit(void)
 {
   return false;
-}
-
-bool UnixDaemon::startAutoRecover(void)
-{
-  childID = fork();
-
-  if (childID > 0) // Succeeded
-  {
-    int exitCode = 0;
-    while (wait(&exitCode) != childID)
-      continue;
-
-    childID = 0;
-
-    if (WEXITSTATUS(exitCode) == Backend::haltExitCode) // Need to halt the system
-    {
-      QProcess process;
-      process.start("/sbin/halt");
-      process.waitForStarted();
-      process.waitForFinished();
-
-      return true;
-    }
-    else
-      return exitCode == 0;
-  }
-  else if (childID < 0)
-    return false; // Failed
-
-  /////////////////////////////////////////////////////////////////////////////
-  // The code below is only executed in the forked process, this actually
-  // starts the deamon code.
-
-  int ec = startChild();
-    std::cout << "BexitCode " << ec << std::endl;
-
-  exit(ec);
 }
 
 int UnixDaemon::startChild(void)
@@ -191,32 +139,13 @@ int UnixDaemon::startChild(void)
 void UnixDaemon::termHandler(int)
 {
   if (instance)
+  if (instance->sessionID > 0)
   {
-    if (instance->sessionID > 0)
-    {
-      if (!instance->pidFile.isEmpty())
-        QFile(instance->pidFile).remove();
+    if (!instance->pidFile.isEmpty())
+      QFile(instance->pidFile).remove();
 
-      if (instance->terminate())
-        return; // The application will quit nicely.
-    }
-    else if (instance->childID > 0)
-    {
-      kill(instance->childID, SIGTERM);
-
-      int exitCode = 0, exited = 0;
-      for (int i=0; i<5; i++)
-      if (waitpid(-1, &exitCode, WNOHANG) != 0)
-      {
-        exited = 1;
-        break;
-      }
-      else
-        sleep(1);
-
-      if (exited == 0)
-        kill(instance->childID, SIGKILL);
-    }
+    if (instance->quit())
+      return; // The application will quit nicely.
   }
 
   exit(0);

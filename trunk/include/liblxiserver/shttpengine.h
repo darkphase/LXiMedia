@@ -234,6 +234,7 @@ public:
   virtual const QString       & senderId(void) const;
 
 public:
+  static QByteArray             readContent(const RequestHeader &, QIODevice *);
   static SocketOp               sendResponse(const RequestHeader &, QIODevice *, Status, const QByteArray &content, const QObject * = NULL);
   static SocketOp               sendResponse(const RequestHeader &, QIODevice *, Status, const QObject * = NULL);
   static SocketOp               sendRedirect(const RequestHeader &, QIODevice *, const QString &);
@@ -263,7 +264,7 @@ public:
   virtual const char          * senderType(void) const;
   virtual const QString       & senderId(void) const;
 
-  virtual void                  openRequest(const SHttpEngine::RequestHeader &header, QObject *receiver, const char *slot) = 0;
+  virtual void                  openRequest(const RequestMessage &message, QObject *receiver, const char *slot) = 0;
   virtual void                  closeRequest(QIODevice *, bool canReuse = false) = 0;
 
   void                          sendRequest(const RequestMessage &);

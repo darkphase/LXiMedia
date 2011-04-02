@@ -40,21 +40,10 @@ protected:
                                 Stream(MediaPlayerServer *, const QString &url);
     virtual                     ~Stream();
 
-    bool                        setup(const QUrl &request);
+    bool                        setup(const QUrl &request, const QByteArray &content);
 
   public:
     SSandboxClient              sandbox;
-  };
-
-  class FileStream : public Stream
-  {
-  public:
-                                FileStream(MediaPlayerServer *, const QString &url, MediaDatabase::UniqueID);
-    virtual                     ~FileStream();
-
-  public:
-    const QDateTime             startTime;
-    const MediaDatabase::UniqueID uid;
   };
 
   struct PlayItem
@@ -88,6 +77,9 @@ protected:
   static QString                videoFormatString(const SMediaInfo::Program &);
   static QByteArray             buildVideoPlayer(MediaDatabase::UniqueID, const SMediaInfo::Program &, const QUrl &, const QSize & = QSize(768, 432));
   static QByteArray             buildVideoPlayer(const QByteArray &, const QString &, const QUrl &, const QSize & = QSize(768, 432));
+
+private slots:
+  void                          consoleLine(const QString &);
 
 protected:
   MediaDatabase         * const mediaDatabase;

@@ -18,6 +18,7 @@
  ***************************************************************************/
 
 #include "mediaplayersandbox.h"
+#include <iostream>
 
 namespace LXiMediaCenter {
 
@@ -45,9 +46,10 @@ SSandboxServer::SocketOp MediaPlayerSandbox::handleHttpRequest(const SSandboxSer
   }
   else if (url.hasQueryItem("playfile"))
   {
-    const QString file = QString::fromUtf8(QByteArray::fromHex(url.queryItemValue("playfile").toAscii()));
+    SMediaInfo file;
+    file.fromByteArray(SHttpServer::readContent(request, socket));
 
-    SandboxFileStream * const stream = new SandboxFileStream(file);
+    SandboxFileStream * const stream = new SandboxFileStream(file.filePath());
     if (stream->file.open(url.queryItemValue("pid").toUShort()))
     if (stream->setup(request, socket))
     if (stream->start())
@@ -59,7 +61,54 @@ SSandboxServer::SocketOp MediaPlayerSandbox::handleHttpRequest(const SSandboxSer
     }
 
     delete stream;
+    return SSandboxServer::sendResponse(request, socket, SSandboxServer::Status_InternalServerError, this);
+  }
+  else if (url.hasQueryItem("playlist"))
+  {
+    SMediaInfoList files;
+    foreach (const QByteArray &node, SHttpServer::readContent(request, socket).split('\n'))
+    {
+      SMediaInfo file;
+      file.fromByteArray(node);
 
+      files.append(file);
+    }
+
+    SandboxPlaylistStream * const stream = new SandboxPlaylistStream(files);
+    if (stream->setup(request, socket))
+    if (stream->start())
+    {
+      QMutexLocker l(&mutex);
+
+      streams.append(stream);
+      return SSandboxServer::SocketOp_LeaveOpen;
+    }
+
+    delete stream;
+    return SSandboxServer::sendResponse(request, socket, SSandboxServer::Status_InternalServerError, this);
+  }
+  else if (url.hasQueryItem("playslideshow"))
+  {
+    SMediaInfoList files;
+    foreach (const QByteArray &node, SHttpServer::readContent(request, socket).split('\n'))
+    {
+      SMediaInfo file;
+      file.fromByteArray(node);
+
+      files.append(file);
+    }
+
+    SandboxSlideShowStream * const stream = new SandboxSlideShowStream(files);
+    if (stream->setup(request, socket))
+    if (stream->start())
+    {
+      QMutexLocker l(&mutex);
+
+      streams.append(stream);
+      return SSandboxServer::SocketOp_LeaveOpen;
+    }
+
+    delete stream;
     return SSandboxServer::sendResponse(request, socket, SSandboxServer::Status_InternalServerError, this);
   }
 
@@ -86,6 +135,8 @@ void MediaPlayerSandbox::cleanStreams(void)
 
 SandboxFileStream::SandboxFileStream(const QString &fileName)
   : MediaTranscodeStream(),
+    fileName(fileName),
+    startTime(QDateTime::currentDateTime()),
     file(this, fileName)
 {
   connect(&file, SIGNAL(finished()), SLOT(stop()));
@@ -95,10 +146,18 @@ SandboxFileStream::SandboxFileStream(const QString &fileName)
   connect(&file, SIGNAL(output(SEncodedDataBuffer)), &dataDecoder, SLOT(input(SEncodedDataBuffer)));
 }
 
+SandboxFileStream::~SandboxFileStream()
+{
+  // Mark as played:
+  if (startTime.secsTo(QDateTime::currentDateTime()) >= 120)
+    std::cerr << ('%' + fileName.toUtf8().toHex()).data() << std::endl;
+}
+
 bool SandboxFileStream::setup(const SHttpServer::RequestHeader &request, QIODevice *socket)
 {
   return MediaTranscodeStream::setup(request, socket, &file);
 }
+
 
 SandboxPlaylistStream::SandboxPlaylistStream(const SMediaInfoList &files)
   : MediaTranscodeStream(),
@@ -125,16 +184,18 @@ void SandboxPlaylistStream::opened(const QString &filePath, quint16 programId)
 
 void SandboxPlaylistStream::closed(const QString &filePath, quint16 programId)
 {
-  //mediaDatabase->setLastPlayed(filePath);
+  // Mark as played:
+  if (startTime.secsTo(QDateTime::currentDateTime()) >= 120)
+    std::cerr << ('%' + filePath.toUtf8().toHex()).data() << std::endl;
 
   if (currentFile == filePath)
     currentFile = QString::null;
 }
 
 
-SandboxSlideShowStream::SandboxSlideShowStream(MediaDatabase *mediaDatabase, const QList<MediaDatabase::File> &files)
+SandboxSlideShowStream::SandboxSlideShowStream(const SMediaInfoList &files)
   : MediaStream(),
-    slideShow(this, files, mediaDatabase)
+    slideShow(this, files)
 {
   connect(&slideShow, SIGNAL(finished()), SLOT(stop()));
   connect(&slideShow, SIGNAL(output(SAudioBuffer)), &sync, SLOT(input(SAudioBuffer)));

@@ -31,7 +31,7 @@ class SlideShowNode : public QObject,
 {
 Q_OBJECT
 public:
-                                SlideShowNode(SGraph *parent, const QList<MediaDatabase::File> &files, MediaDatabase *);
+                                SlideShowNode(SGraph *parent, const SMediaInfoList &files);
   virtual                       ~SlideShowNode();
 
   SSize                         size(void) const;
@@ -57,11 +57,10 @@ private:
 
 public:
   static const int              frameRate = 24;
-  static const int              slideFrameCount = 180;
+  static const int              slideFrameCount = 120;
 
 private:
-  const QList<MediaDatabase::File> files;
-  MediaDatabase          * const mediaDatabase;
+  const SMediaInfoList          files;
 
   SScheduler::Dependency * const loadDependency;
   SScheduler::Dependency * const procDependency;

@@ -94,7 +94,7 @@ void WINAPI WindowsService::serviceControlHandler(DWORD controlCode)
 
   // The service is stopping
   case SERVICE_CONTROL_STOP:
-    instance->stop();
+    instance->quit();
 
     serviceStatus.dwCurrentState = SERVICE_STOP_PENDING;
     ::SetServiceStatus(serviceStatusHandle, &serviceStatus);
@@ -250,7 +250,7 @@ void WindowsService::shutdown(void)
 {
 }
 
-void WindowsService::stop(void)
+void WindowsService::quit(void)
 {
 }
 

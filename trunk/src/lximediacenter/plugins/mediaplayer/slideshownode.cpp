@@ -28,11 +28,10 @@ extern "C" void LXiMediaCenter_SlideShowNode_blendImages(
 
 namespace LXiMediaCenter {
 
-SlideShowNode::SlideShowNode(SGraph *parent, const QList<MediaDatabase::File> &files, MediaDatabase *mediaDatabase)
+SlideShowNode::SlideShowNode(SGraph *parent, const SMediaInfoList &files)
   : QObject(parent),
     SGraph::SourceNode(parent),
     files(files),
-    mediaDatabase(mediaDatabase),
     loadDependency(parent ? new SScheduler::Dependency(parent) : NULL),
     procDependency(parent ? new SScheduler::Dependency(parent) : NULL),
     outSize(768, 576),
@@ -106,7 +105,7 @@ void SlideShowNode::process(void)
   {
     if (currentPicture < files.count())
     {
-      const SMediaInfo node = mediaDatabase->readNode(files[currentPicture++].uid);
+      const SMediaInfo node = files[currentPicture++];
       if (!node.isNull())
       {
         loadImage(node.filePath());
@@ -131,7 +130,7 @@ void SlideShowNode::process(void)
     // Start loading next
     if (currentPicture < files.count())
     {
-      const SMediaInfo node = mediaDatabase->readNode(files[currentPicture++].uid);
+      const SMediaInfo node = files[currentPicture++];
       if (!node.isNull())
       {
         schedule(&SlideShowNode::loadImage, node.filePath(), loadDependency, SScheduler::Priority_Low);

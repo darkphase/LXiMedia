@@ -142,7 +142,7 @@ MediaDatabase::MediaDatabase(Plugin *plugin, ImdbClient *imdbClient)
 
   settings.setValue("DatabaseVersion", databaseVersion);
 
-  probeSandbox.setLogFunc(&SDebug::LogFile::logLineToActiveLogFile);
+  connect(&probeSandbox, SIGNAL(consoleLine(QString)), SLOT(consoleLine(QString)));
   connect(&probeSandbox, SIGNAL(response(SHttpEngine::ResponseMessage)), SLOT(probeFinished(SHttpEngine::ResponseMessage)));
 
   connect(&scanRootsTimer, SIGNAL(timeout()), SLOT(scanRoots()));
@@ -436,6 +436,11 @@ QList<MediaDatabase::UniqueID> MediaDatabase::allFilesInDirOf(UniqueID uid) cons
   }
 
   return result;
+}
+
+void MediaDatabase::consoleLine(const QString &line)
+{
+  SDebug::LogFile::logLineToActiveLogFile(line);
 }
 
 void MediaDatabase::scanRoots(void)

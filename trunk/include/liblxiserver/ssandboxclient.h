@@ -35,8 +35,6 @@ public:
     Mode_Nice
   };
 
-  typedef void (* LogFunc)(const QString &);
-
 public:
   static QString              & sandboxApplication(void);
 
@@ -44,18 +42,19 @@ public:
   explicit                      SSandboxClient(Mode, QObject * = NULL);
   virtual                       ~SSandboxClient();
 
-  void                          setLogFunc(LogFunc);
   const QString               & serverName(void) const;
 
 public: // From HttpClientEngine
-  virtual void                  openRequest(const SHttpEngine::RequestHeader &header, QObject *receiver, const char *slot);
+  virtual void                  openRequest(const RequestMessage &header, QObject *receiver, const char *slot);
   virtual void                  closeRequest(QIODevice *, bool canReuse = false);
+
+signals:
+  void                          consoleLine(const QString &);
 
 private slots:
   void                          openSockets(void);
   void                          stop(void);
   void                          finished(void);
-  void                          consoleLine(const QString &);
 
 private:
   struct Private;

@@ -53,7 +53,7 @@ TvShowServer::Stream * TvShowServer::streamVideo(const SHttpServer::RequestHeade
         bool useSeasons;
         categorizeSeasons(path.left(path.length() - dir.length() + 1), seasons, useSeasons);
 
-        QMultiMap<QString, SMediaInfo> files;
+        QMultiMap<QString, QByteArray> files;
 
         const QMap<unsigned, QVector<MediaDatabase::UniqueID> >::ConstIterator s = seasons.find(season);
         if (s != seasons.end())
@@ -68,20 +68,23 @@ TvShowServer::Stream * TvShowServer::streamVideo(const SHttpServer::RequestHeade
                 ("000000000" + QString::number(node.track())).right(10) +
                 SStringParser::toRawName(node.title());
 
-            files.insert(key, node);
+            files.insert(key, node.toByteArray(-1));
           }
         }
 
         QUrl rurl;
         rurl.setPath(MediaPlayerSandbox::path);
-        //rurl.addQueryItem("playlist", node.filePath().toUtf8().toHex());
-        //rurl.addQueryItem("pid", QString::number(uid.pid));
+        rurl.addQueryItem("playlist", QString::null);
         typedef QPair<QString, QString> QStringPair;
         foreach (const QStringPair &queryItem, url.queryItems())
           rurl.addQueryItem(queryItem.first, queryItem.second);
 
+        QByteArray content;
+        foreach (const QByteArray &line, files)
+          content += line + '\n';
+
         Stream *stream = new Stream(this, request.path());
-        if (stream->setup(rurl))
+        if (stream->setup(rurl, content))
           return stream;
 
         delete stream;

@@ -101,12 +101,12 @@ private:
   QTimer                        deleteTimer;
 };
 
-class SandboxHeaderRequest : public QObject
+class SandboxMessageRequest : public QObject
 {
 Q_OBJECT
 public:
-                                SandboxHeaderRequest(const SHttpEngine::RequestHeader &);
-  virtual                       ~SandboxHeaderRequest();
+                                SandboxMessageRequest(const SHttpEngine::RequestMessage &);
+  virtual                       ~SandboxMessageRequest();
 
 public slots:
   void                          connected(QIODevice *);
@@ -115,7 +115,7 @@ signals:
   void                          headerSent(QIODevice *);
 
 private:
-  const QByteArray              header;
+  const QByteArray              message;
 };
 
 #endif

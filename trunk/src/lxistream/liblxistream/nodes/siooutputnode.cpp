@@ -124,8 +124,7 @@ void SIOOutputNode::stop(void)
 
     if (d->autoClose)
     {
-      d->ioDevice->close();
-      delete d->ioDevice;
+      d->ioDevice->deleteLater();
       d->ioDevice = NULL;
     }
   }

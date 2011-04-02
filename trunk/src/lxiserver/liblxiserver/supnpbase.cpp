@@ -99,15 +99,11 @@ SHttpServer::SocketOp SUPnPBase::handleControl(const SHttpServer::RequestHeader 
   QTime timer;
   timer.start();
 
-  QByteArray data = socket->readAll();
-  while ((data.count() < int(request.contentLength())) && (qAbs(timer.elapsed()) < 5000))
-  if (socket->waitForReadyRead(qMax(5000 - qAbs(timer.elapsed()), 0)))
-    data += socket->readAll();
-
-  if (data.count() > 0)
+  const QByteArray content = SHttpServer::readContent(request, socket);
+  if (!content.isEmpty())
   {
     QDomDocument doc;
-    const QDomElement body = parseSoapMessage(doc, data);
+    const QDomElement body = parseSoapMessage(doc, content);
     if (!body.isNull())
     {
       QDomDocument responseDoc;
