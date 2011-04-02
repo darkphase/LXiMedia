@@ -488,33 +488,25 @@ QByteArray MediaPlayerServer::buildVideoPlayer(const QByteArray &item, const QSt
 
 MediaPlayerServer::Stream::Stream(MediaPlayerServer *parent, const QString &url)
   : MediaServer::Stream(parent, url),
-    sandbox(SSandboxClient::Mode_Normal),
-    request(NULL)
+    sandbox(SSandboxClient::Mode_Normal)
 {
   sandbox.setLogFunc(&SDebug::LogFile::logLineToActiveLogFile);
 }
 
 MediaPlayerServer::Stream::~Stream()
 {
-  if (request)
-    sandbox.closeRequest(request);
 }
 
 bool MediaPlayerServer::Stream::setup(const QUrl &url)
 {
-  SSandboxClient::RequestHeader header(&sandbox);
+  SHttpEngine::RequestHeader header(&sandbox);
   header.setRequest("GET", url.toEncoded(QUrl::RemoveScheme | QUrl::RemoveAuthority));
   header.setHost(sandbox.serverName());
   header.setContentLength(0);
 
-  request = sandbox.openRequest(header);
-  if (request)
-  {
-    proxy.setSource(request);
-    return true;
-  }
+  sandbox.openRequest(header, &proxy, SLOT(setSource(QIODevice *)));
 
-  return false;
+  return true;
 }
 
 

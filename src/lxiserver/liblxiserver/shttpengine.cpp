@@ -18,6 +18,7 @@
  ***************************************************************************/
 
 #include "shttpengine.h"
+#include "lxiserverprivate.h"
 #include <QtNetwork>
 
 #if defined(Q_OS_UNIX)
@@ -133,7 +134,7 @@ struct SHttpServerEngine::Private
 
   QReadWriteLock                lock;
   QString                       senderId;
-  QThreadPool                   threadPool;
+  QThreadPool                 * threadPool;
   static const int              maxPendingConnections = 1024;
   QAtomicInt                    numPendingConnections;
   QMap<QString, Callback *>     callbacks;
@@ -158,16 +159,26 @@ SHttpServerEngine::SHttpServerEngine(const QString &protocol, QObject *parent)
 
   p->senderId += " " + qApp->applicationName() + "/" + qApp->applicationVersion();
 
-  p->threadPool.setMaxThreadCount(qMax(p->maxPendingConnections / 16, QThread::idealThreadCount()));
+  p->threadPool = QThreadPool::globalInstance();
   p->numPendingConnections = 0;
 }
 
 SHttpServerEngine::~SHttpServerEngine()
 {
-  p->threadPool.waitForDone();
+  p->threadPool->waitForDone();
 
   delete p;
   *const_cast<Private **>(&p) = NULL;
+}
+
+void SHttpServerEngine::setThreadPool(QThreadPool *threadPool)
+{
+  p->threadPool = threadPool ? threadPool : QThreadPool::globalInstance();
+}
+
+QThreadPool * SHttpServerEngine::threadPool(void)
+{
+  return p->threadPool;
 }
 
 void SHttpServerEngine::registerCallback(const QString &path, Callback *callback)
@@ -186,11 +197,6 @@ void SHttpServerEngine::unregisterCallback(Callback *callback)
     i = p->callbacks.erase(i);
   else
     i++;
-}
-
-QThreadPool * SHttpServerEngine::threadPool(void)
-{
-  return &p->threadPool;
 }
 
 const char * SHttpServerEngine::senderType(void) const
@@ -242,7 +248,7 @@ bool SHttpServerEngine::handleConnection(quintptr socketDescriptor)
 {
   if (p->numPendingConnections < p->maxPendingConnections)
   {
-    p->threadPool.start(new SocketHandler(this, socketDescriptor));
+    p->threadPool->start(new SocketHandler(this, socketDescriptor));
     return true;
   }
   else
@@ -317,8 +323,25 @@ void SHttpServerEngine::SocketHandler::run()
 
 struct SHttpClientEngine::Private
 {
+  static const QEvent::Type     requestEventType;
+
+  class RequestEvent : public QEvent
+  {
+  public:
+    explicit RequestEvent(const SHttpEngine::RequestMessage &request)
+      : QEvent(requestEventType),
+        request(request)
+    {
+    }
+
+  public:
+    const SHttpEngine::RequestMessage request;
+  };
+
   QString                       senderId;
 };
+
+const QEvent::Type  SHttpClientEngine::Private::requestEventType = QEvent::Type(QEvent::registerEventType());
 
 SHttpClientEngine::SHttpClientEngine(QObject *parent)
   : QObject(parent),
@@ -353,86 +376,24 @@ const QString & SHttpClientEngine::senderId(void) const
   return p->senderId;
 }
 
-SHttpClientEngine::ResponseMessage SHttpClientEngine::sendRequest(const RequestMessage &request, int timeout)
+void SHttpClientEngine::sendRequest(const SHttpEngine::RequestMessage &request)
 {
-  QTime timer;
-  timer.start();
+  if (QThread::currentThread() == thread())
+    openRequest(request, new HttpClientRequest(this, request), SLOT(start(QIODevice *)));
+  else
+    QCoreApplication::postEvent(this, new Private::RequestEvent(request));
+}
 
-  QIODevice * const socket = openSocket(request.host(), qMax(maxTTL - qAbs(timer.elapsed()), 0));
-  if (socket)
+void SHttpClientEngine::customEvent(QEvent *e)
+{
+  if (e->type() == Private::requestEventType)
   {
-    socket->write(request);
-    while (socket->bytesToWrite() > 0)
-    if (!socket->waitForBytesWritten(qMax(timeout - qAbs(timer.elapsed()), 0)))
-    {
-      qWarning() << "SHttpClientEngine: Timeout while writing request";
-      break;
-    }
+    Private::RequestEvent * const event = static_cast<Private::RequestEvent *>(e);
 
-    QByteArray data;
-    while ((socket->bytesAvailable() > 0) || socket->waitForReadyRead(qMax(timeout - qAbs(timer.elapsed()), 0)))
-    {
-      data += socket->readAll();
-
-      ResponseMessage response(data, this);
-      if (response.isValid() && (response.content().size() >= response.contentLength()))
-      {
-        closeSocket(socket, true, qMax(timeout - qAbs(timer.elapsed()), 0));
-        return response;
-      }
-    }
-
-    qWarning() << "SHttpClientEngine: Timeout while reading response for" << request.path();
-
-    closeSocket(socket, true, qMax(timeout - qAbs(timer.elapsed()), 0));
+    openRequest(event->request, new HttpClientRequest(this, event->request), SLOT(start(QIODevice *)));
   }
-
-  return ResponseMessage(request, Status_InternalServerError);
+  else
+    QObject::customEvent(e);
 }
-
-QByteArray SHttpClientEngine::sendRequest(const QUrl &url, int timeout)
-{
-  RequestMessage request;
-  request.setRequest("GET", url.toEncoded(QUrl::RemoveScheme | QUrl::RemoveAuthority));
-  request.setHost(url.encodedHost());
-
-  const ResponseMessage response = sendRequest(request, timeout);
-  if (response.status() < Status_MultipleChoices)
-    return response.content();
-
-  qDebug()
-      << "HTTP request" << url.toString()
-      << "failed with status: " << ResponseHeader::statusText(response.status());
-
-  return QByteArray();
-}
-
-QIODevice * SHttpClientEngine::openRequest(const RequestHeader &request, int timeout)
-{
-  QTime timer;
-  timer.start();
-
-  QIODevice * const socket = openSocket(request.host(), qMax(timeout - qAbs(timer.elapsed()), 0));
-  if (socket)
-  {
-    socket->write(request);
-    while (socket->bytesToWrite() > 0)
-    if (!socket->waitForBytesWritten(qMax(timeout - qAbs(timer.elapsed()), 0)))
-    {
-      qWarning() << "SHttpClientEngine: Timeout while writing request";
-      break;
-    }
-
-    return socket;
-  }
-
-  return NULL;
-}
-
-void SHttpClientEngine::closeRequest(QIODevice *socket, int timeout)
-{
-  closeSocket(socket, false, timeout);
-}
-
 
 } // End of namespace

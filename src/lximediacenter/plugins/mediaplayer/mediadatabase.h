@@ -101,14 +101,16 @@ signals:
 
 private slots:
   void                          scanRoots(void);
+  void                          probeFinished(const SHttpEngine::ResponseMessage &);
 
 private:
   QByteArray                    readNodeData(UniqueID) const;
   QString                       findRoot(const QString &, const QStringList &) const;
+
   void                          scanDir(const QString &);
   void                          updateDir(const QString &, qint64, QuerySet &);
-  void                          probeFile(const QString &);
   void                          insertFile(const SMediaInfo &, const QByteArray &);
+  void                          probeFile(const QString &);
   void                          delayFile(const QString &);
   void                          queryImdbItem(const QString &, Category);
   void                          matchImdbItem(const QString &, const QString &, const QStringList &, Category);
@@ -133,6 +135,10 @@ private:
   ImdbClient            * const imdbClient;
 
   SSandboxClient                probeSandbox;
+  SScheduler::Dependency        probeMutex;
+  QStringList                   probeQueue;
+  const unsigned                maxProbeCount;
+  unsigned                      probeCount;
 
   QTimer                        scanRootsTimer;
   QMap<QString, QStringList>    rootPaths;

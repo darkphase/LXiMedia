@@ -41,7 +41,10 @@ MediaDatabase::MediaDatabase(Plugin *plugin, ImdbClient *imdbClient)
   : QObject(plugin),
     plugin(plugin),
     imdbClient(imdbClient),
-    probeSandbox(SSandboxClient::Mode_Nice, this)
+    probeSandbox(SSandboxClient::Mode_Nice, this),
+    probeMutex(sApp),
+    maxProbeCount(QThread::idealThreadCount() * 2),
+    probeCount(0)
 {
   PluginSettings settings(plugin);
 
@@ -140,6 +143,7 @@ MediaDatabase::MediaDatabase(Plugin *plugin, ImdbClient *imdbClient)
   settings.setValue("DatabaseVersion", databaseVersion);
 
   probeSandbox.setLogFunc(&SDebug::LogFile::logLineToActiveLogFile);
+  connect(&probeSandbox, SIGNAL(response(SHttpEngine::ResponseMessage)), SLOT(probeFinished(SHttpEngine::ResponseMessage)));
 
   connect(&scanRootsTimer, SIGNAL(timeout()), SLOT(scanRoots()));
 
@@ -484,7 +488,7 @@ void MediaDatabase::scanRoots(void)
     // Find files that were not probed yet.
     query.exec("SELECT path FROM MediaplayerFiles WHERE size < 0");
     while (query.next())
-      sApp->schedule(this, &MediaDatabase::probeFile, query.value(0).toString(), NULL, probeFilePriority);
+      sApp->schedule(this, &MediaDatabase::probeFile, query.value(0).toString(), &probeMutex, probeFilePriority);
 
     // Find IMDB items that still need to be matched.
     if (imdbClient)
@@ -513,6 +517,35 @@ void MediaDatabase::scanRoots(void)
 
     Database::commit();
   }
+}
+
+void MediaDatabase::probeFinished(const SHttpEngine::ResponseMessage &message)
+{
+  if ((message.status() == SHttpEngine::Status_Ok) && !message.content().isEmpty())
+  {
+    SMediaInfo mediaInfo;
+    mediaInfo.fromByteArray(message.content());
+
+    sApp->schedule(this, &MediaDatabase::insertFile, mediaInfo, message.content(), Database::mutex(), insertFilePriority);
+  }
+  else
+  {
+    qDebug() << "probeFinished" << message.status();
+  }
+
+  SDebug::_MutexLocker<SScheduler::Dependency> l(&probeMutex, __FILE__, __LINE__);
+
+  if (!probeQueue.isEmpty())
+  {
+    qDebug() << "Probing:" << probeQueue.first();
+
+    SSandboxClient::RequestMessage request(&probeSandbox);
+    request.setRequest("GET", QByteArray(MediaPlayerSandbox::path) + "?probe=" + probeQueue.takeFirst().toUtf8().toHex());
+    request.setHost(probeSandbox.serverName());
+    probeSandbox.sendRequest(request);
+  }
+  else
+    probeCount--;
 }
 
 QString MediaDatabase::findRoot(const QString &path, const QStringList &allRootPaths) const
@@ -706,7 +739,7 @@ void MediaDatabase::updateDir(const QString &path, qint64 parentDir, QuerySet &q
       q.insert.bindValue(5, QVariant(QVariant::ByteArray));
       q.insert.exec();
 
-      sApp->schedule(this, &MediaDatabase::probeFile, childPath, NULL, probeFilePriority);
+      sApp->schedule(this, &MediaDatabase::probeFile, childPath, &probeMutex, probeFilePriority);
     }
     else if ((child.size() != q.request.value(2).toLongLong()) ||
              (child.lastModified() > q.request.value(3).toDateTime().addSecs(2)))
@@ -720,7 +753,7 @@ void MediaDatabase::updateDir(const QString &path, qint64 parentDir, QuerySet &q
       q.update.bindValue(3, childPath);
       q.update.exec();
 
-      sApp->schedule(this, &MediaDatabase::probeFile, childPath, NULL, probeFilePriority);
+      sApp->schedule(this, &MediaDatabase::probeFile, childPath, &probeMutex, probeFilePriority);
     }
   }
 
@@ -749,40 +782,6 @@ void MediaDatabase::updateDir(const QString &path, qint64 parentDir, QuerySet &q
     q.remove.execBatch();
 
     emit modified();
-  }
-}
-
-// Ensure directories end with a '/'
-void MediaDatabase::probeFile(
-#ifndef Q_OS_WIN
-    const QString &path)
-{
-#else
-    const QString &_path)
-{
-  const QString path = _path.toLower();
-#endif
-
-  if (!path.isEmpty() && !isHidden(path))
-  {
-    // Only scan files if they can be opened (to prevent scanning files that
-    // are still being copied).
-    if (QFile(path).open(QFile::ReadOnly))
-    {
-      qDebug() << "Probing:" << path;
-
-      const QByteArray mediaInfoXml = probeSandbox.sendRequest(QByteArray(MediaPlayerSandbox::path) + "?probe=" + path.toUtf8().toBase64());
-      if (!mediaInfoXml.isEmpty())
-      {
-        SMediaInfo mediaInfo;
-        mediaInfo.fromByteArray(mediaInfoXml);
-
-        sApp->schedule(this, &MediaDatabase::insertFile, mediaInfo, mediaInfoXml, Database::mutex(), insertFilePriority);
-        return;
-      }
-    }
-
-    sApp->schedule(this, &MediaDatabase::delayFile, path, Database::mutex(), insertFilePriority);
   }
 }
 
@@ -886,6 +885,44 @@ void MediaDatabase::insertFile(const SMediaInfo &mediaInfo, const QByteArray &me
   }
 
   Database::commit();
+}
+
+// Ensure directories end with a '/'
+void MediaDatabase::probeFile(
+#ifndef Q_OS_WIN
+    const QString &path)
+{
+#else
+    const QString &_path)
+{
+  const QString path = _path.toLower();
+#endif
+
+  Q_ASSERT(!probeMutex.tryLock()); // Mutex should be locked by the caller.
+
+  if (!path.isEmpty() && !isHidden(path))
+  {
+    // Only scan files if they can be opened (to prevent scanning files that
+    // are still being copied).
+    if (QFile(path).open(QFile::ReadOnly))
+    {
+      if (probeCount < maxProbeCount)
+      {
+        qDebug() << "Probing:" << path;
+
+        SSandboxClient::RequestMessage request(&probeSandbox);
+        request.setRequest("GET", QByteArray(MediaPlayerSandbox::path) + "?probe=" + path.toUtf8().toHex());
+        request.setHost(probeSandbox.serverName());
+        probeSandbox.sendRequest(request);
+
+        probeCount++;
+      }
+      else
+        probeQueue.append(path);
+    }
+    else
+      sApp->schedule(this, &MediaDatabase::delayFile, path, Database::mutex(), insertFilePriority);
+  }
 }
 
 void MediaDatabase::delayFile(const QString &path)

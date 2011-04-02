@@ -33,8 +33,15 @@ int SandboxTest::startSandbox(const QString &name, const QString &mode)
 
       if (path.left(path.lastIndexOf('/') + 1) == "/")
       {
-        if (url.hasQueryItem("echo"))
-          return SSandboxServer::sendResponse(request, socket, SHttpServer::Status_NoContent, url.queryItemValue("echo").toAscii());
+        if (url.hasQueryItem("nop"))
+        {
+          return SSandboxServer::sendResponse(request, socket, SHttpServer::Status_NoContent);
+        }
+        else if (url.hasQueryItem("stop"))
+        {
+          qApp->exit(0);
+          return SSandboxServer::SocketOp_LeaveOpen;
+        }
       }
 
       return SSandboxServer::sendResponse(request, socket, SHttpServer::Status_NotFound);
@@ -59,6 +66,7 @@ void SandboxTest::initTestCase(void)
   SSandboxClient::sandboxApplication() = "\"" + qApp->applicationFilePath() + "\" --sandbox";
 
   sandboxClient = new SSandboxClient(SSandboxClient::Mode_Normal, this);
+  connect(sandboxClient, SIGNAL(response(SHttpEngine::ResponseMessage)), SLOT(handleResponse(SHttpEngine::ResponseMessage)), Qt::DirectConnection);
 }
 
 void SandboxTest::cleanupTestCase(void)
@@ -67,19 +75,55 @@ void SandboxTest::cleanupTestCase(void)
   sandboxClient = NULL;
 }
 
-void SandboxTest::sendRequest(void)
+void SandboxTest::sendRequests(void)
 {
-  const int value = qrand();
-  QVERIFY(sandboxClient->sendRequest("/?echo=" + QByteArray::number(value)).toInt() == value);
+  responseCount = 0;
+
+  SSandboxClient::RequestMessage nopMessage(sandboxClient);
+  nopMessage.setRequest("GET", "/?nop");
+  nopMessage.setHost(sandboxClient->serverName());
+
+  for (int i=0; i<numResponses/2; i++)
+    sandboxClient->sendRequest(nopMessage);
+
+  for (int i=0; (i<20) && (responseCount<numResponses/2); i++)
+    QTest::qWait(100);
+
+  for (int i=0; i<numResponses/2; i++)
+    sandboxClient->sendRequest(nopMessage);
+
+  for (int i=0; (i<20) && (responseCount<numResponses); i++)
+    QTest::qWait(100);
+
+  QVERIFY(responseCount == numResponses);
 }
 
-void SandboxTest::sendRequestMultiThreaded(void)
+void SandboxTest::sendTerminate(void)
 {
-  QThreadPool::globalInstance()->setMaxThreadCount(10);
+  responseCount = 0;
 
-  for (unsigned i=0; i<100; i++)
-    QtConcurrent::run(this, &SandboxTest::sendRequest);
+  SSandboxClient::RequestMessage nopMessage(sandboxClient);
+  nopMessage.setRequest("GET", "/?nop");
+  nopMessage.setHost(sandboxClient->serverName());
+  sandboxClient->sendRequest(nopMessage);
 
-  QThreadPool::globalInstance()->waitForDone();
-  QThreadPool::globalInstance()->setMaxThreadCount(QThread::idealThreadCount());
+  SSandboxClient::RequestMessage stopMessage(sandboxClient);
+  stopMessage.setRequest("GET", "/?stop");
+  stopMessage.setHost(sandboxClient->serverName());
+  sandboxClient->sendRequest(stopMessage);
+
+  for (int i=0; (i<20) && (responseCount<2); i++)
+    QTest::qWait(100);
+
+  sandboxClient->sendRequest(nopMessage);
+
+  for (int i=0; (i<20) && (responseCount<3); i++)
+    QTest::qWait(100);
+
+  QVERIFY(responseCount == 3);
+}
+
+void SandboxTest::handleResponse(const SHttpEngine::ResponseMessage &)
+{
+  responseCount.ref();
 }

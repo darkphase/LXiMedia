@@ -43,6 +43,10 @@ SOURCES += shttpengine.cpp \
  supnpgenaserver.cpp \
  supnpmediaserver.cpp
 
+HEADERS += lxiserverprivate.h
+
+SOURCES += lxiserverprivate.cpp
+
 unix {
     target.path = /usr/lib
     INSTALLS += target

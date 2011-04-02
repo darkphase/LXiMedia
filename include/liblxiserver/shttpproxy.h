@@ -33,9 +33,11 @@ public:
   explicit                      SHttpProxy(QObject * = NULL);
   virtual                       ~SHttpProxy();
 
+  bool                          isConnected(void) const;
+
+public slots:
   bool                          setSource(QIODevice *);
   bool                          addSocket(QIODevice *);
-  bool                          isConnected(void) const;
 
 signals:
   void                          disconnected(void);
