@@ -19,8 +19,7 @@
 
 #include <QtCore>
 #include <QtNetwork>
-
-namespace LXiServer { class SSandboxClient; }
+#include <LXiServer>
 
 class SandboxTest : public QObject
 {
@@ -35,9 +34,13 @@ private slots:
   void                          initTestCase(void);
   void                          cleanupTestCase(void);
 
-  void                          sendRequest(void);
-  void                          sendRequestMultiThreaded(void);
+  void                          sendRequests(void);
+  void                          sendTerminate(void);
+
+  void                          handleResponse(const SHttpEngine::ResponseMessage &);
 
 private:
   LXiServer::SSandboxClient   * sandboxClient;
+  static const int              numResponses = 100;
+  QAtomicInt                    responseCount;
 };

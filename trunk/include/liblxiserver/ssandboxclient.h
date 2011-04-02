@@ -37,19 +37,6 @@ public:
 
   typedef void (* LogFunc)(const QString &);
 
-private:
-  class StartServerEvent : public QEvent
-  {
-  public:
-    inline StartServerEvent(QSemaphore *sem, int timeout)
-      : QEvent(startServerEventType), sem(sem), timeout(timeout)
-    {
-    }
-
-    QSemaphore          * const sem;
-    int                         timeout;
-  };
-
 public:
   static QString              & sandboxApplication(void);
 
@@ -60,24 +47,17 @@ public:
   void                          setLogFunc(LogFunc);
   const QString               & serverName(void) const;
 
-  inline ResponseMessage        sendRequest(const RequestMessage &request, int timeout = maxTTL) { return SHttpClientEngine::sendRequest(request, timeout); }
-  QByteArray                    sendRequest(const QByteArray &, int timeout = maxTTL);
-
-protected:
-  virtual void                  customEvent(QEvent *);
-
-protected: // From HttpClientEngine
-  virtual QIODevice           * openSocket(const QString &host, int timeout);
-  virtual void                  closeSocket(QIODevice *, bool canReuse, int timeout);
+public: // From HttpClientEngine
+  virtual void                  openRequest(const SHttpEngine::RequestHeader &header, QObject *receiver, const char *slot);
+  virtual void                  closeRequest(QIODevice *, bool canReuse = false);
 
 private slots:
-  void                          startServer(int timeout);
-  void                          readConsole(void);
-  void                          serverFinished(int, QProcess::ExitStatus);
+  void                          openSockets(void);
+  void                          stop(void);
+  void                          finished(void);
+  void                          consoleLine(const QString &);
 
 private:
-  static const QEvent::Type     startServerEventType;
-
   struct Private;
   Private               * const p;
 };

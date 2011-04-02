@@ -37,7 +37,7 @@ SSandboxServer::SocketOp MediaPlayerSandbox::handleHttpRequest(const SSandboxSer
 
   if (url.hasQueryItem("probe"))
   {
-    const QString file = QString::fromUtf8(QByteArray::fromBase64(url.queryItemValue("probe").toAscii()));
+    const QString file = QString::fromUtf8(QByteArray::fromHex(url.queryItemValue("probe").toAscii()));
 
     SMediaInfo mediaInfo(file);
     if (!mediaInfo.isNull())

@@ -44,7 +44,6 @@ protected:
 
   public:
     SSandboxClient              sandbox;
-    QIODevice                 * request;
   };
 
   class FileStream : public Stream

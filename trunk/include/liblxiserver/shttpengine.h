@@ -224,10 +224,11 @@ public:
   explicit                      SHttpServerEngine(const QString &protocol, QObject * = NULL);
   virtual                       ~SHttpServerEngine();
 
+  void                          setThreadPool(QThreadPool *);
+  QThreadPool                 * threadPool(void);
+
   void                          registerCallback(const QString &path, Callback *);
   void                          unregisterCallback(Callback *);
-
-  QThreadPool                 * threadPool(void);
 
   virtual const char          * senderType(void) const;
   virtual const QString       & senderId(void) const;
@@ -262,15 +263,17 @@ public:
   virtual const char          * senderType(void) const;
   virtual const QString       & senderId(void) const;
 
-  ResponseMessage               sendRequest(const RequestMessage &, int timeout = maxTTL);
-  QByteArray                    sendRequest(const QUrl &, int timeout = maxTTL);
+  virtual void                  openRequest(const SHttpEngine::RequestHeader &header, QObject *receiver, const char *slot) = 0;
+  virtual void                  closeRequest(QIODevice *, bool canReuse = false) = 0;
 
-  QIODevice                   * openRequest(const RequestHeader &, int timeout = maxTTL);
-  void                          closeRequest(QIODevice *, int timeout = maxTTL);
+  void                          sendRequest(const RequestMessage &);
+
+signals:
+  void                          response(const SHttpEngine::ResponseMessage &);
+  void                          opened(QIODevice *);
 
 protected:
-  virtual QIODevice           * openSocket(const QString &host, int timeout) = 0;
-  virtual void                  closeSocket(QIODevice *, bool canReuse, int timeout) = 0;
+  virtual void                  customEvent(QEvent *);
 
 private:
   class SocketHandler;
