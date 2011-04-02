@@ -291,7 +291,7 @@ void SHttpServerEngine::SocketHandler::run()
 {
   parent->p->numPendingConnections.deref();
 
-  QIODevice *socket = parent->openSocket(socketDescriptor, qMax(maxTTL - qAbs(timer.elapsed()), 0));
+  QIODevice *socket = parent->openSocket(socketDescriptor);
   if (socket)
   while (socket->canReadLine() || socket->waitForReadyRead(qMax(maxTTL - qAbs(timer.elapsed()), 0)))
   {
@@ -333,14 +333,14 @@ void SHttpServerEngine::SocketHandler::run()
 
       // Finished.
       if (socket)
-        parent->closeSocket(socket, false, qMax(maxTTL - qAbs(timer.elapsed()), 0));
+        parent->closeSocket(socket, false);
 
       return;
     }
   }
 
   if (socket)
-    parent->closeSocket(socket, false, qMax(maxTTL - qAbs(timer.elapsed()), 0));
+    parent->closeSocket(socket, false);
 }
 
 

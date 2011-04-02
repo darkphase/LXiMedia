@@ -102,6 +102,9 @@ bool SIOOutputNode::start(STimer *)
   if (d->ioDevice && d->bufferWriter)
   if (d->ioDevice->isOpen())
   {
+    d->ioDevice->moveToThread(thread());
+    d->ioDevice->setParent(this);
+
     return d->bufferWriter->start(this);
   }
 
@@ -124,7 +127,7 @@ void SIOOutputNode::stop(void)
 
     if (d->autoClose)
     {
-      d->ioDevice->deleteLater();
+      d->ioDevice->close();
       d->ioDevice = NULL;
     }
   }

@@ -99,7 +99,7 @@ void MediaServer::customEvent(QEvent *e)
     else
     {
       SHttpServer::sendResponse(event->request, event->socket, SHttpServer::Status_NotFound, this);
-      SHttpServer::closeSocket(event->socket);
+      event->socket->close();
     }
 
     event->sem->release();

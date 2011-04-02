@@ -63,9 +63,7 @@ int SandboxTest::startSandbox(const QString &name, const QString &mode)
 
 void SandboxTest::initTestCase(void)
 {
-  SSandboxClient::sandboxApplication() = "\"" + qApp->applicationFilePath() + "\" --sandbox";
-
-  sandboxClient = new SSandboxClient(SSandboxClient::Mode_Normal, this);
+  sandboxClient = new SSandboxClient("\"" + qApp->applicationFilePath() + "\" --sandbox", SSandboxClient::Mode_Normal, this);
   connect(sandboxClient, SIGNAL(response(SHttpEngine::ResponseMessage)), SLOT(handleResponse(SHttpEngine::ResponseMessage)), Qt::DirectConnection);
 }
 

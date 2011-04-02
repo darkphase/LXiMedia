@@ -43,7 +43,7 @@ protected:
     bool                        setup(const QUrl &request, const QByteArray &content);
 
   public:
-    SSandboxClient              sandbox;
+    SSandboxClient            * sandbox;
   };
 
   struct PlayItem

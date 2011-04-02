@@ -230,7 +230,7 @@ const char * const MediaServer::htmlPlayerThumbItem =
     "         <form name=\"dlnasettings\" action=\"{TITLE}.mpeg\" method=\"get\">\n"
     "          <input type=\"hidden\" name=\"item\" value=\"{PLAYER_ITEM}\" />\n"
     "          <input type=\"hidden\" name=\"encode\" value=\"slow\" />\n"
-    "          <input type=\"hidden\" name=\"priority\" value=\"lowest\" />\n"
+    "          <input type=\"hidden\" name=\"priority\" value=\"low\" />\n"
     "          {TR_LANGUAGE}:\n"
     "          <select name=\"language\">\n"
     "{LANGUAGES}"

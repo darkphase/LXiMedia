@@ -18,6 +18,7 @@
  ***************************************************************************/
 
 #include "ssandboxserver.h"
+#include "lxiserverprivate.h"
 #include <QtNetwork>
 #include <iostream>
 #if defined(Q_OS_UNIX)
@@ -31,6 +32,17 @@
 #endif
 
 namespace LXiServer {
+
+class SSandboxServer::Socket : public QLocalSocket
+{
+public:
+  explicit                      Socket(SSandboxServer *parent);
+
+  virtual void                  close(void);
+
+private:
+  SSandboxServer        * const parent;
+};
 
 class SSandboxServer::Server : public QLocalServer
 {
@@ -102,9 +114,9 @@ void SSandboxServer::close(void)
   std::cerr << "##STOP" << std::endl;
 }
 
-QIODevice * SSandboxServer::openSocket(quintptr socketDescriptor, int)
+QIODevice * SSandboxServer::openSocket(quintptr socketDescriptor)
 {
-  QLocalSocket * const socket = new QLocalSocket();
+  QLocalSocket * const socket = new Socket(this);
   if (socket->setSocketDescriptor(socketDescriptor))
   {
     if (p->clients.fetchAndAddRelaxed(1) == 0)
@@ -117,28 +129,24 @@ QIODevice * SSandboxServer::openSocket(quintptr socketDescriptor, int)
   return NULL;
 }
 
-void SSandboxServer::closeSocket(QIODevice *device, bool, int timeout)
+void SSandboxServer::closeSocket(QIODevice *socket, bool)
 {
-  QLocalSocket * const socket = static_cast<QLocalSocket *>(device);
-
-  if (socket->state() == QLocalSocket::ConnectedState)
-  {
-    QTime timer;
-    timer.start();
-
-    while (socket->bytesToWrite() > 0)
-    if (!socket->waitForBytesWritten(qMax(timeout - qAbs(timer.elapsed()), 0)))
-      break;
-
-    socket->disconnectFromServer();
-    if (socket->state() != QLocalSocket::UnconnectedState)
-      socket->waitForDisconnected(qMax(timeout - qAbs(timer.elapsed()), 0));
-  }
+  new SocketCloseRequest(socket);
 
   if (p->clients.fetchAndAddRelaxed(-1) == 1)
     emit idle();
+}
 
-  delete socket;
+
+SSandboxServer::Socket::Socket(SSandboxServer *parent)
+  : QLocalSocket(),
+    parent(parent)
+{
+}
+
+void SSandboxServer::Socket::close(void)
+{
+  parent->closeSocket(this, false);
 }
 
 

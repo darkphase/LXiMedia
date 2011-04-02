@@ -160,26 +160,6 @@ SandboxSocketRequest::SandboxSocketRequest(SSandboxClient *parent)
   deleteTimer.start(maxTTL);
 }
 
-SandboxSocketRequest::SandboxSocketRequest(QIODevice *socket)
-  : parent(NULL),
-    socket(static_cast<QLocalSocket *>(socket))
-{
-  connect(socket, SIGNAL(disconnected()), SLOT(deleteLater()));
-  if (socket->bytesToWrite() > 0)
-    connect(socket, SIGNAL(bytesWritten(qint64)), SLOT(bytesWritten()));
-  else
-    bytesWritten();
-
-  connect(&deleteTimer, SIGNAL(timeout()), SLOT(deleteLater()));
-  deleteTimer.setSingleShot(true);
-  deleteTimer.start(maxTTL);
-}
-
-SandboxSocketRequest::~SandboxSocketRequest()
-{
-  delete socket;
-}
-
 void SandboxSocketRequest::failed(void)
 {
   socket = NULL;
@@ -192,12 +172,6 @@ void SandboxSocketRequest::connected(void)
   emit connected(socket);
   socket = NULL;
   deleteLater();
-}
-
-void SandboxSocketRequest::bytesWritten(void)
-{
-  if (socket->bytesToWrite() <= 0)
-    socket->disconnectFromServer();
 }
 
 
@@ -218,4 +192,79 @@ void SandboxMessageRequest::connected(QIODevice *socket)
   emit headerSent(socket);
 
   deleteLater();
+}
+
+
+SocketCloseRequest::SocketCloseRequest(QIODevice *socket)
+  : localSocket(qobject_cast<QLocalSocket *>(socket)),
+    tcpSocket(qobject_cast<QTcpSocket *>(socket))
+{
+  if ((QThread::currentThread() == socket->thread()) && (socket->thread() != qApp->thread()))
+  {
+    // Blocking close
+    QTime timer;
+    timer.start();
+
+    while (socket->bytesToWrite() > 0)
+    if (!socket->waitForBytesWritten(qMax(maxTTL- timer.elapsed(), 0)))
+      break;
+
+    if (localSocket)
+    {
+      localSocket->disconnectFromServer();
+      if (localSocket->state() != QLocalSocket::UnconnectedState)
+        localSocket->waitForDisconnected(qMax(maxTTL- timer.elapsed(), 0));
+    }
+    else if (tcpSocket)
+    {
+      tcpSocket->disconnectFromHost();
+      if (tcpSocket->state() != QTcpSocket::UnconnectedState)
+        tcpSocket->waitForDisconnected(qMax(maxTTL- timer.elapsed(), 0));
+    }
+
+    delete this;
+  }
+  else
+  {
+    if (localSocket)
+    {
+      connect(localSocket, SIGNAL(disconnected()), SLOT(deleteLater()));
+      if (localSocket->bytesToWrite() > 0)
+        connect(localSocket, SIGNAL(bytesWritten(qint64)), SLOT(bytesWritten()));
+      else
+        bytesWritten();
+    }
+    else if (tcpSocket)
+    {
+      connect(tcpSocket, SIGNAL(disconnected()), SLOT(deleteLater()));
+      if (tcpSocket->bytesToWrite() > 0)
+        connect(tcpSocket, SIGNAL(bytesWritten(qint64)), SLOT(bytesWritten()));
+      else
+        bytesWritten();
+    }
+
+    connect(&deleteTimer, SIGNAL(timeout()), SLOT(deleteLater()));
+    deleteTimer.setSingleShot(true);
+    deleteTimer.start(maxTTL);
+  }
+}
+
+SocketCloseRequest::~SocketCloseRequest()
+{
+  delete localSocket;
+  delete tcpSocket;
+}
+
+void SocketCloseRequest::bytesWritten(void)
+{
+  if (localSocket)
+  {
+    if (localSocket->bytesToWrite() <= 0)
+      localSocket->disconnectFromServer();
+  }
+  else if (tcpSocket)
+  {
+    if (tcpSocket->bytesToWrite() <= 0)
+      tcpSocket->disconnectFromHost();
+  }
 }

@@ -39,13 +39,12 @@ Backend::Backend()
     masterConnectionManager("/upnp/"),
     masterContentDirectory("/upnp/"),
     masterImdbClient(NULL),
+    sandboxApplication("\"" + qApp->applicationFilePath() + "\" --sandbox"),
     cssParser(),
     htmlParser(),
     backendPlugins(),
     backendServers()
 {
-  SSandboxClient::sandboxApplication() = "\"" + qApp->applicationFilePath() + "\" --sandbox";
-
   // Initialize LXiStream
   QDir logDir(GlobalSettings::applicationDataDir() + "/log");
   if (!logDir.exists())
@@ -53,7 +52,9 @@ Backend::Backend()
 
   streamApp =
       new SApplication(
-          SApplication::Initialize_Default | SApplication::Initialize_LogToFile,
+          SApplication::Initialize_LogToFile |
+              SApplication::Initialize_LogToConsole |
+              SApplication::Initialize_HandleFaults,
           logDir.absolutePath());
 
   //SThreadPool::globalInstance()->enableTrace("/tmp/threadpool.svg");
@@ -746,6 +747,24 @@ SUPnPContentDirectory * Backend::contentDirectory(void)
 ImdbClient * Backend::imdbClient(void)
 {
   return masterImdbClient;
+}
+
+SSandboxClient * Backend::createSandbox(SSandboxClient::Mode mode)
+{
+  SDebug::WriteLocker l(&lock, __FILE__, __LINE__);
+
+  QMap<SSandboxClient::Mode, QList<SSandboxClient *> >::Iterator i = sandboxClients.find(mode);
+  if ((i == sandboxClients.end()) || i->isEmpty())
+    return new SSandboxClient(sandboxApplication, mode);
+  else
+    return i->takeLast();
+}
+
+void Backend::recycleSandbox(SSandboxClient *sandboxClient)
+{
+  SDebug::WriteLocker l(&lock, __FILE__, __LINE__);
+
+  sandboxClients[sandboxClient->mode()].append(sandboxClient);
 }
 
 void Backend::setContentDirectoryQueryItems(void)

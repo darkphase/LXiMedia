@@ -83,8 +83,6 @@ class SandboxSocketRequest : public QObject
 Q_OBJECT
 public:
   explicit                      SandboxSocketRequest(SSandboxClient *);
-  explicit                      SandboxSocketRequest(QIODevice *);
-  virtual                       ~SandboxSocketRequest();
 
 signals:
   void                          connected(QIODevice *);
@@ -92,7 +90,6 @@ signals:
 private slots:
   void                          connected(void);
   void                          failed(void);
-  void                          bytesWritten(void);
 
 private:
   static const int              maxTTL = 15000;
@@ -116,6 +113,24 @@ signals:
 
 private:
   const QByteArray              message;
+};
+
+
+class SocketCloseRequest : public QObject
+{
+Q_OBJECT
+public:
+  explicit                      SocketCloseRequest(QIODevice *);
+  virtual                       ~SocketCloseRequest();
+
+private slots:
+  void                          bytesWritten(void);
+
+private:
+  static const int              maxTTL = 15000;
+  QLocalSocket          * const localSocket;
+  QTcpSocket            * const tcpSocket;
+  QTimer                        deleteTimer;
 };
 
 #endif

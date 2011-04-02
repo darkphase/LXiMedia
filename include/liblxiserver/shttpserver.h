@@ -39,13 +39,12 @@ public:
   quint16                       serverPort(const QHostAddress &) const;
   const QString               & serverUdn(void) const;
 
-  static void                   closeSocket(QIODevice *, int timeout = maxTTL / 4);
-
 protected: // From HttpServerEngine
-  virtual QIODevice           * openSocket(quintptr, int);
-  virtual void                  closeSocket(QIODevice *, bool canReuse, int timeout);
+  virtual QIODevice           * openSocket(quintptr);
+  virtual void                  closeSocket(QIODevice *, bool canReuse);
 
 private:
+  class Socket;
   class Interface;
   struct Private;
   Private               * const p;

@@ -496,23 +496,38 @@ void MediaPlayerServer::consoleLine(const QString &line)
 
 MediaPlayerServer::Stream::Stream(MediaPlayerServer *parent, const QString &url)
   : MediaServer::Stream(parent, url),
-    sandbox(SSandboxClient::Mode_Normal)
+    sandbox(NULL)
 {
-  connect(&sandbox, SIGNAL(consoleLine(QString)), parent, SLOT(consoleLine(QString)));
 }
 
 MediaPlayerServer::Stream::~Stream()
 {
+  if (sandbox)
+  {
+    disconnect(sandbox, SIGNAL(consoleLine(QString)), parent, SLOT(consoleLine(QString)));
+    parent->masterServer()->recycleSandbox(sandbox);
+  }
 }
 
 bool MediaPlayerServer::Stream::setup(const QUrl &url, const QByteArray &content)
 {
-  SHttpEngine::RequestMessage message(&sandbox);
+  if (sandbox)
+  {
+    disconnect(sandbox, SIGNAL(consoleLine(QString)), parent, SLOT(consoleLine(QString)));
+    parent->masterServer()->recycleSandbox(sandbox);
+  }
+
+  sandbox = parent->masterServer()->createSandbox(
+      (url.queryItemValue("priority") == "low") ? SSandboxClient::Mode_Nice : SSandboxClient::Mode_Normal);
+
+  connect(sandbox, SIGNAL(consoleLine(QString)), parent, SLOT(consoleLine(QString)));
+
+  SHttpEngine::RequestMessage message(sandbox);
   message.setRequest("POST", url.toEncoded(QUrl::RemoveScheme | QUrl::RemoveAuthority));
-  message.setHost(sandbox.serverName());
+  message.setHost(sandbox->serverName());
   message.setContent(content);
 
-  sandbox.openRequest(message, &proxy, SLOT(setSource(QIODevice *)));
+  sandbox->openRequest(message, &proxy, SLOT(setSource(QIODevice *)));
 
   return true;
 }
