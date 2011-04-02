@@ -36,13 +36,11 @@ public:
   };
 
 public:
-  static QString              & sandboxApplication(void);
-
-public:
-  explicit                      SSandboxClient(Mode, QObject * = NULL);
+                                SSandboxClient(const QString &application, Mode, QObject * = NULL);
   virtual                       ~SSandboxClient();
 
   const QString               & serverName(void) const;
+  Mode                          mode(void) const;
 
 public: // From HttpClientEngine
   virtual void                  openRequest(const RequestMessage &header, QObject *receiver, const char *slot);

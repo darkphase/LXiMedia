@@ -57,11 +57,14 @@ private:
   virtual SUPnPContentDirectory * contentDirectory(void);
   virtual ImdbClient          * imdbClient(void);
 
-  SHttpServer::SocketOp          handleCssRequest(const SHttpServer::RequestHeader &, QIODevice *, const QString &);
-  SHttpServer::SocketOp          handleHtmlSearch(const SHttpServer::RequestHeader &, QIODevice *, const QString &);
-  SHttpServer::SocketOp          handleHtmlRequest(const SHttpServer::RequestHeader &, QIODevice *, const QString &);
-  SHttpServer::SocketOp          showAbout(const SHttpServer::RequestHeader &, QIODevice *);
-  SHttpServer::SocketOp          handleHtmlConfig(const SHttpServer::RequestHeader &, QIODevice *);
+  virtual SSandboxClient      * createSandbox(SSandboxClient::Mode);
+  virtual void                  recycleSandbox(SSandboxClient *);
+
+  SHttpServer::SocketOp         handleCssRequest(const SHttpServer::RequestHeader &, QIODevice *, const QString &);
+  SHttpServer::SocketOp         handleHtmlSearch(const SHttpServer::RequestHeader &, QIODevice *, const QString &);
+  SHttpServer::SocketOp         handleHtmlRequest(const SHttpServer::RequestHeader &, QIODevice *, const QString &);
+  SHttpServer::SocketOp         showAbout(const SHttpServer::RequestHeader &, QIODevice *);
+  SHttpServer::SocketOp         handleHtmlConfig(const SHttpServer::RequestHeader &, QIODevice *);
 
   void                          setContentDirectoryQueryItems(void);
 
@@ -82,6 +85,10 @@ private:
   SUPnPConnectionManager        masterConnectionManager;
   SUPnPContentDirectory         masterContentDirectory;
   ImdbClient                  * masterImdbClient;
+
+  const QString                 sandboxApplication;
+  QMap<SSandboxClient::Mode, QList<SSandboxClient *> > sandboxClients;
+
   HtmlParser                    cssParser;
   HtmlParser                    htmlParser;
   QList<BackendPlugin *>        backendPlugins;

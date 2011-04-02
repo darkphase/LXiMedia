@@ -72,7 +72,7 @@ private:
   struct QuerySet;
 
 public:
-                                MediaDatabase(Plugin *parent, ImdbClient *);
+                                MediaDatabase(Plugin *parent, ImdbClient *, SSandboxClient *);
   virtual                       ~MediaDatabase();
 
   static QByteArray             toUidString(UniqueID uid);
@@ -134,8 +134,8 @@ private:
 
   Plugin                * const plugin;
   ImdbClient            * const imdbClient;
+  SSandboxClient        * const probeSandbox;
 
-  SSandboxClient                probeSandbox;
   SScheduler::Dependency        probeMutex;
   QStringList                   probeQueue;
   const unsigned                maxProbeCount;

@@ -25,30 +25,27 @@ namespace LXiServer {
 
 struct SSandboxClient::Private
 {
+  QString                       application;
   QString                       name;
-  QString                       mode;
+  Mode                          mode;
+  QString                       modeText;
 
   SandboxProcess              * serverProcess;
   QList<SandboxMessageRequest *> requests;
 };
 
-QString & SSandboxClient::sandboxApplication(void)
-{
-  static QString a;
-
-  return a;
-}
-
-SSandboxClient::SSandboxClient(Mode mode, QObject *parent)
+SSandboxClient::SSandboxClient(const QString &application, Mode mode, QObject *parent)
   : SHttpClientEngine(parent),
     p(new Private())
 {
+  p->application = application;
   p->name = QUuid::createUuid().toString().replace("{", "").replace("}", "").replace("-", ".") + ".lxisandbox";
+  p->mode = mode;
 
   switch(mode)
   {
-  case Mode_Normal: p->mode = "normal"; break;
-  case Mode_Nice:   p->mode = "nice";   break;
+  case Mode_Normal: p->modeText = "normal"; break;
+  case Mode_Nice:   p->modeText = "nice";   break;
   }
 
   p->serverProcess = NULL;
@@ -64,6 +61,11 @@ SSandboxClient::~SSandboxClient()
 const QString & SSandboxClient::serverName(void) const
 {
   return p->name;
+}
+
+SSandboxClient::Mode SSandboxClient::mode(void) const
+{
+  return p->mode;
 }
 
 void SSandboxClient::openRequest(const RequestMessage &message, QObject *receiver, const char *slot)
@@ -83,7 +85,7 @@ void SSandboxClient::openRequest(const RequestMessage &message, QObject *receive
   if (p->serverProcess == NULL)
   {
     stop();
-    p->serverProcess = new SandboxProcess(this, sandboxApplication() + " " + p->name + " " + p->mode);
+    p->serverProcess = new SandboxProcess(this, p->application + " " + p->name + " " + p->modeText);
 
     connect(p->serverProcess, SIGNAL(ready()), SLOT(openSockets()));
     connect(p->serverProcess, SIGNAL(stop()), SLOT(stop()));
@@ -96,7 +98,7 @@ void SSandboxClient::openRequest(const RequestMessage &message, QObject *receive
 
 void SSandboxClient::closeRequest(QIODevice *socket, bool canReuse)
 {
-  new SandboxSocketRequest(socket);
+  new SocketCloseRequest(socket);
 }
 
 void SSandboxClient::openSockets(void)

@@ -37,11 +37,11 @@ const MediaDatabase::CatecoryDesc MediaDatabase::categories[] =
   { NULL,         MediaDatabase::Category_None       }
 };
 
-MediaDatabase::MediaDatabase(Plugin *plugin, ImdbClient *imdbClient)
+MediaDatabase::MediaDatabase(Plugin *plugin, ImdbClient *imdbClient, SSandboxClient *probeSandbox)
   : QObject(plugin),
     plugin(plugin),
     imdbClient(imdbClient),
-    probeSandbox(SSandboxClient::Mode_Nice, this),
+    probeSandbox(probeSandbox),
     probeMutex(sApp),
     maxProbeCount(QThread::idealThreadCount() * 2),
     probeCount(0)
@@ -142,8 +142,8 @@ MediaDatabase::MediaDatabase(Plugin *plugin, ImdbClient *imdbClient)
 
   settings.setValue("DatabaseVersion", databaseVersion);
 
-  connect(&probeSandbox, SIGNAL(consoleLine(QString)), SLOT(consoleLine(QString)));
-  connect(&probeSandbox, SIGNAL(response(SHttpEngine::ResponseMessage)), SLOT(probeFinished(SHttpEngine::ResponseMessage)));
+  connect(probeSandbox, SIGNAL(consoleLine(QString)), SLOT(consoleLine(QString)));
+  connect(probeSandbox, SIGNAL(response(SHttpEngine::ResponseMessage)), SLOT(probeFinished(SHttpEngine::ResponseMessage)));
 
   connect(&scanRootsTimer, SIGNAL(timeout()), SLOT(scanRoots()));
 
@@ -154,6 +154,7 @@ MediaDatabase::MediaDatabase(Plugin *plugin, ImdbClient *imdbClient)
 MediaDatabase::~MediaDatabase()
 {
   sApp->waitForDone();
+  delete probeSandbox;
 }
 
 QByteArray MediaDatabase::toUidString(UniqueID uid)
@@ -544,10 +545,10 @@ void MediaDatabase::probeFinished(const SHttpEngine::ResponseMessage &message)
   {
     qDebug() << "Probing:" << probeQueue.first();
 
-    SSandboxClient::RequestMessage request(&probeSandbox);
+    SSandboxClient::RequestMessage request(probeSandbox);
     request.setRequest("GET", QByteArray(MediaPlayerSandbox::path) + "?probe=" + probeQueue.takeFirst().toUtf8().toHex());
-    request.setHost(probeSandbox.serverName());
-    probeSandbox.sendRequest(request);
+    request.setHost(probeSandbox->serverName());
+    probeSandbox->sendRequest(request);
   }
   else
     probeCount--;
@@ -915,10 +916,10 @@ void MediaDatabase::probeFile(
       {
         qDebug() << "Probing:" << path;
 
-        SSandboxClient::RequestMessage request(&probeSandbox);
+        SSandboxClient::RequestMessage request(probeSandbox);
         request.setRequest("GET", QByteArray(MediaPlayerSandbox::path) + "?probe=" + path.toUtf8().toHex());
-        request.setHost(probeSandbox.serverName());
-        probeSandbox.sendRequest(request);
+        request.setHost(probeSandbox->serverName());
+        probeSandbox->sendRequest(request);
 
         probeCount++;
       }

@@ -243,8 +243,8 @@ protected:
   QReadWriteLock              * lock(void) const;
   bool                          handleConnection(quintptr);
 
-  virtual QIODevice           * openSocket(quintptr, int timeout) = 0;
-  virtual void                  closeSocket(QIODevice *, bool canReuse, int timeout) = 0;
+  virtual QIODevice           * openSocket(quintptr) = 0;
+  virtual void                  closeSocket(QIODevice *, bool canReuse) = 0;
 
 private:
   class SocketHandler;

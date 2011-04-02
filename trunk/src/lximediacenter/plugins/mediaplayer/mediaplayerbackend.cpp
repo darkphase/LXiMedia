@@ -59,7 +59,7 @@ QString MediaPlayerBackend::authorName(void) const
 
 QList<BackendServer *> MediaPlayerBackend::createServers(BackendServer::MasterServer *server)
 {
-  database = new MediaDatabase(this, server->imdbClient());
+  database = new MediaDatabase(this, server->imdbClient(), server->createSandbox(SSandboxClient::Mode_Nice));
   connect(database, SIGNAL(modified()), server->contentDirectory(), SLOT(modified()));
 
   QList<BackendServer *> servers;

@@ -41,6 +41,9 @@ public:
     virtual SSsdpServer       * ssdpServer(void) = 0;
     virtual SUPnPContentDirectory * contentDirectory(void) = 0;
     virtual ImdbClient        * imdbClient(void) = 0;
+
+    virtual SSandboxClient    * createSandbox(SSandboxClient::Mode) = 0;
+    virtual void                recycleSandbox(SSandboxClient *) = 0;
   };
 
   struct SearchResult

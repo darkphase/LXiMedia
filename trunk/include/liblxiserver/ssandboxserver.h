@@ -40,10 +40,11 @@ signals:
   void                          idle(void);
 
 protected: // From HttpServerEngine
-  virtual QIODevice           * openSocket(quintptr, int timeout);
-  virtual void                  closeSocket(QIODevice *, bool canReuse, int timeout);
+  virtual QIODevice           * openSocket(quintptr);
+  virtual void                  closeSocket(QIODevice *, bool canReuse);
 
 private:
+  class Socket;
   class Server;
   struct Private;
   Private               * const p;

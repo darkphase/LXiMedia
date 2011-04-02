@@ -52,14 +52,10 @@ Sandbox::Sandbox()
 
 Sandbox::~Sandbox()
 {
-  qDebug() << "Stopping sandbox process" << qApp->applicationPid();
-
   foreach (BackendPlugin *plugin, backendPlugins)
     delete plugin;
 
   QThreadPool::globalInstance()->waitForDone();
-
-  qDebug() << "Stopped sandbox process" << qApp->applicationPid();
 
   sandboxServer.close();
 
@@ -84,6 +80,8 @@ void Sandbox::start(const QString &name, const QString &mode)
 
 void Sandbox::stop(void)
 {
+  qDebug() << "Stopping sandbox process" << qApp->applicationPid();
+
   qApp->exit(0);
 }
 

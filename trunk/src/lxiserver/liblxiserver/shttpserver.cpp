@@ -18,12 +18,23 @@
  ***************************************************************************/
 
 #include "shttpserver.h"
-
+#include "lxiserverprivate.h"
 #if defined(Q_OS_UNIX)
 #include <sys/utsname.h>
 #endif
 
 namespace LXiServer {
+
+class SHttpServer::Socket : public QTcpSocket
+{
+public:
+  explicit                      Socket(SHttpServer *parent);
+
+  virtual void                  close(void);
+
+private:
+  SHttpServer           * const parent;
+};
 
 class SHttpServer::Interface : public QTcpServer
 {
@@ -97,30 +108,9 @@ const QString & SHttpServer::serverUdn(void) const
   return p->serverUdn;
 }
 
-void SHttpServer::closeSocket(QIODevice *device, int timeout)
+QIODevice * SHttpServer::openSocket(quintptr socketDescriptor)
 {
-  QTcpSocket * const socket = static_cast<QTcpSocket *>(device);
-
-  if (socket->state() == QAbstractSocket::ConnectedState)
-  {
-    QTime timer;
-    timer.start();
-
-    while (socket->bytesToWrite() > 0)
-    if (!socket->waitForBytesWritten(qMax(timeout - qAbs(timer.elapsed()), 0)))
-      break;
-
-    socket->disconnectFromHost();
-    if (socket->state() != QAbstractSocket::UnconnectedState)
-      socket->waitForDisconnected(qMax(timeout - qAbs(timer.elapsed()), 0));
-  }
-
-  delete socket;
-}
-
-QIODevice * SHttpServer::openSocket(quintptr socketDescriptor, int)
-{
-  QTcpSocket * const socket = new QTcpSocket();
+  QTcpSocket * const socket = new Socket(this);
   if (socket->setSocketDescriptor(socketDescriptor))
     return socket;
 
@@ -128,9 +118,21 @@ QIODevice * SHttpServer::openSocket(quintptr socketDescriptor, int)
   return NULL;
 }
 
-void SHttpServer::closeSocket(QIODevice *socket, bool, int timeout)
+void SHttpServer::closeSocket(QIODevice *socket, bool)
 {
-  closeSocket(socket, timeout);
+  new SocketCloseRequest(socket);
+}
+
+
+SHttpServer::Socket::Socket(SHttpServer *parent)
+  : QTcpSocket(),
+    parent(parent)
+{
+}
+
+void SHttpServer::Socket::close(void)
+{
+  parent->closeSocket(this, false);
 }
 
 

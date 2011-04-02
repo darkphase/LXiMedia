@@ -72,14 +72,10 @@ bool MediaStream::setup(const SHttpServer::RequestHeader &request, QIODevice *so
     file += "mpeg"; // Default to mpeg file
 
   // Stream priority
-  if (url.queryItemValue("priority") == "lowest")
-    setPriority(Priority_Lowest);
-  else if (url.queryItemValue("priority") == "low")
+  if (url.queryItemValue("priority") == "low")
     setPriority(Priority_Low);
   else if (url.queryItemValue("priority") == "high")
     setPriority(Priority_High);
-  else if (url.queryItemValue("priority") == "highest")
-    setPriority(Priority_Highest);
 
   // Set stream properties
   const double freq = frameRate.toFrequency();
@@ -294,14 +290,10 @@ bool MediaStream::setup(const SHttpServer::RequestHeader &request, QIODevice *so
     file += "mpa"; // Default to mpeg file
 
   // Stream priority
-  if (url.queryItemValue("priority") == "lowest")
-    setPriority(Priority_Lowest);
-  else if (url.queryItemValue("priority") == "low")
+  if (url.queryItemValue("priority") == "low")
     setPriority(Priority_Low);
   else if (url.queryItemValue("priority") == "high")
     setPriority(Priority_High);
-  else if (url.queryItemValue("priority") == "highest")
-    setPriority(Priority_Highest);
 
   // Set stream properties
   if (url.hasQueryItem("requestchannels"))
