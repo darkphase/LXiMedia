@@ -41,14 +41,14 @@ public:
 protected:
   virtual void                  interrogate(void);
   virtual void                  shutdown(void);
-  virtual void                  quit(void);
+  virtual bool                  quit(void);
   virtual void                  pause(void);
   virtual void                  resume(void);
   virtual void                  user(quint32);
   virtual void                  unrecognised(quint32);
 
   virtual void                  init(int, const char *[]);
-  virtual void                  run(void) = 0;
+  virtual int                   run(void) = 0;
   virtual void                  close(void);
 
 private:

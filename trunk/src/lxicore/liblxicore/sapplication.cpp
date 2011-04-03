@@ -19,6 +19,9 @@
 
 #include "sapplication.h"
 #include "smodule.h"
+#if defined(Q_OS_WIN)
+#include <windows.h>
+#endif
 #include <cstdio>
 
 namespace LXiCore {
