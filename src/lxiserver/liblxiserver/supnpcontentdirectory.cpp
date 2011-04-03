@@ -734,6 +734,7 @@ QString SUPnPContentDirectory::toObjectID(const QString &path)
     return QString::number(d->objectIdList.count() - 1);
 #else
     return QString::fromAscii(qCompress(path.toUtf8(), 9).toBase64());
+    //return path;
 #endif
   }
 }
@@ -760,48 +761,60 @@ QString SUPnPContentDirectory::fromObjectID(const QString &idStr)
     return QString::null;
 #else
     return QString::fromUtf8(qUncompress(QByteArray::fromBase64(idStr.toAscii())));
+    //return idStr;
 #endif
   }
 }
 
-int SUPnPContentDirectory::Data::countContentDirItems(const QString &)
+int SUPnPContentDirectory::Data::countContentDirItems(const QString &path)
 {
-  return callbacks.count() - 1;
-}
-
-QList<SUPnPContentDirectory::Item> SUPnPContentDirectory::Data::listContentDirItems(const QString &, unsigned start, unsigned count)
-{
-  QList<SUPnPContentDirectory::Item> result;
+  QSet<QString> subDirs;
 
   for (QMap<QString, Callback *>::ConstIterator i=callbacks.begin(); i!=callbacks.end(); i++)
-  if (i.key() != "/")
+  if (i.key().startsWith(path))
   {
-    SUPnPContentDirectory::Item item;
-    item.isDir = true;
-    item.title = i.key();
-    item.title = item.title.startsWith('/') ? item.title.mid(1) : item.title;
-    item.title = item.title.endsWith('/') ? item.title.left(item.title.length() - 1) : item.title;
-
-    result += item;
+    QString sub = i.key().mid(path.length() - 1);
+    sub = sub.left(sub.indexOf('/', 1) + 1);
+    if (sub.length() > 1)
+      subDirs.insert(sub);
   }
 
-  if (count > 0)
+  return subDirs.count();
+}
+
+QList<SUPnPContentDirectory::Item> SUPnPContentDirectory::Data::listContentDirItems(const QString &path, unsigned start, unsigned count)
+{
+  const bool returnAll = count == 0;
+  QList<SUPnPContentDirectory::Item> result;
+  QSet<QString> names;
+
+  for (QMap<QString, Callback *>::ConstIterator i=callbacks.begin(); i!=callbacks.end(); i++)
+  if (i.key().startsWith(path))
   {
-    while ((start > 0) && !result.isEmpty())
+    QString sub = i.key().mid(path.length() - 1);
+    sub = sub.left(sub.indexOf('/', 1) + 1);
+    if ((sub.length() > 1) && !names.contains(sub))
     {
-      result.takeFirst();
-      start--;
-    }
+      names.insert(sub);
 
-    if (result.count() >= int(count))
-    {
-      while (result.count() > int(count))
-        result.takeAt(count);
+      if (returnAll || (count > 0))
+      {
+        if (start == 0)
+        {
+          Item item;
+          item.isDir = true;
+          item.title = sub;
+          item.title = item.title.startsWith('/') ? item.title.mid(1) : item.title;
+          item.title = item.title.endsWith('/') ? item.title.left(item.title.length() - 1) : item.title;
 
-      count = 0;
+          result += item;
+          if (count > 0)
+            count--;
+        }
+        else
+          start--;
+      }
     }
-    else
-      count -= result.count();
   }
 
   return result;

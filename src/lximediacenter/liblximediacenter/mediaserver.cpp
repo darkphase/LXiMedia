@@ -215,10 +215,10 @@ QList<SUPnPContentDirectory::Item> MediaServer::listContentDirItems(const QStrin
     const QString itemPath = item.url.path(), iconPath = item.iconUrl.path();
 
     if (!itemPath.isEmpty())
-      item.url.setPath(basePath + (itemPath.startsWith('/') ? itemPath : ('/' + itemPath)));
+      item.url.setPath(itemPath.startsWith('/') ? itemPath : (basePath + '/' + itemPath));
 
     if (!iconPath.isEmpty())
-      item.iconUrl.setPath(basePath + (iconPath.startsWith('/') ? iconPath : ('/' + iconPath)));
+      item.iconUrl.setPath(iconPath.startsWith('/') ? iconPath : (basePath + '/' + iconPath));
 
     result += item;
   }

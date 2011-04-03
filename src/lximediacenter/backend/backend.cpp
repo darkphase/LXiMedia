@@ -31,7 +31,7 @@ const QUrl          Backend::submitErrorUrl("http://www.admiraal.dds.nl/submitlo
 
 Backend::Backend()
   : BackendServer::MasterServer(),
-    mediaApp(QStringList() << "LXiMediaCenter", createLogDir()),
+    mediaApp(QStringList() << "LXiStream" << "LXiMediaCenter", createLogDir()),
     masterHttpServer(SUPnPBase::protocol(), GlobalSettings::serverUuid()),
     masterSsdpServer(&masterHttpServer),
     masterMediaServer("/upnp/"),
