@@ -250,8 +250,9 @@ void WindowsService::shutdown(void)
 {
 }
 
-void WindowsService::quit(void)
+bool WindowsService::quit(void)
 {
+    return false;
 }
 
 void WindowsService::pause(void)

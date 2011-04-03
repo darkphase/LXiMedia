@@ -19,6 +19,7 @@
 
 #include "sapplication.h"
 #include <cstdio>
+#include <ctime>
 #include <iostream>
 
 namespace LXiCore {
