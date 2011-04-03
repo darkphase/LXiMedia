@@ -18,8 +18,6 @@
  ***************************************************************************/
 
 #include "sgraph.h"
-#include "sapplication.h"
-#include "sdebug.h"
 #include "stimer.h"
 
 namespace LXiStream {

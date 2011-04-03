@@ -14,9 +14,10 @@ linux-g++|win32-g++ {
   PRECOMPILED_HEADER = $${LXIMEDIA_DIR}/include/LXiStream
 }
 
+include($${LXIMEDIA_DIR}/include/liblxicore/linklxicore.pri)
+
 # Files
 HEADERS += $${LXIMEDIA_DIR}/include/LXiStream \
-    $${LXIMEDIA_DIR}/include/liblxistream/sapplication.h \
     $${LXIMEDIA_DIR}/include/liblxistream/sanalogtuner.h \
     $${LXIMEDIA_DIR}/include/liblxistream/saudiobuffer.h \
     $${LXIMEDIA_DIR}/include/liblxistream/saudiocodec.h \
@@ -24,23 +25,16 @@ HEADERS += $${LXIMEDIA_DIR}/include/LXiStream \
     $${LXIMEDIA_DIR}/include/liblxistream/sbuffer.h \
     $${LXIMEDIA_DIR}/include/liblxistream/sdatabuffer.h \
     $${LXIMEDIA_DIR}/include/liblxistream/sdatacodec.h \
-    $${LXIMEDIA_DIR}/include/liblxistream/sdebug.h \
     $${LXIMEDIA_DIR}/include/liblxistream/sencodedaudiobuffer.h \
     $${LXIMEDIA_DIR}/include/liblxistream/sencodeddatabuffer.h \
     $${LXIMEDIA_DIR}/include/liblxistream/sencodedvideobuffer.h \
     $${LXIMEDIA_DIR}/include/liblxistream/sdigitaltuner.h \
-    $${LXIMEDIA_DIR}/include/liblxistream/sfactory.h \
-    $${LXIMEDIA_DIR}/include/liblxistream/sfactory.hpp \
     $${LXIMEDIA_DIR}/include/liblxistream/sgraph.h \
     $${LXIMEDIA_DIR}/include/liblxistream/sinterfaces.h \
     $${LXIMEDIA_DIR}/include/liblxistream/sinterval.h \
     $${LXIMEDIA_DIR}/include/liblxistream/smediainfo.h \
     $${LXIMEDIA_DIR}/include/liblxistream/spixels.h \
-    $${LXIMEDIA_DIR}/include/liblxistream/sscheduler.h \
-    $${LXIMEDIA_DIR}/include/liblxistream/sscheduler.hpp \
-    $${LXIMEDIA_DIR}/include/liblxistream/sserializable.h \
     $${LXIMEDIA_DIR}/include/liblxistream/ssize.h \
-    $${LXIMEDIA_DIR}/include/liblxistream/sstringparser.h \
     $${LXIMEDIA_DIR}/include/liblxistream/ssubpicturebuffer.h \
     $${LXIMEDIA_DIR}/include/liblxistream/ssubtitlebuffer.h \
     $${LXIMEDIA_DIR}/include/liblxistream/ssubtitlefile.h \
@@ -50,26 +44,19 @@ HEADERS += $${LXIMEDIA_DIR}/include/LXiStream \
     $${LXIMEDIA_DIR}/include/liblxistream/svideobuffer.h \
     $${LXIMEDIA_DIR}/include/liblxistream/svideocodec.h \
     $${LXIMEDIA_DIR}/include/liblxistream/svideoformat.h
-SOURCES += sapplication.cpp \
-    saudiobuffer.cpp \
+SOURCES += saudiobuffer.cpp \
     saudiocodec.cpp \
     saudioformat.cpp \
     sbuffer.cpp \
     sdatabuffer.cpp \
     sdatacodec.cpp \
-    sdebug.cpp \
     sencodedaudiobuffer.cpp \
     sencodeddatabuffer.cpp \
     sencodedvideobuffer.cpp \
-    sfactory.cpp \
     sgraph.cpp \
     sinterfaces.cpp \
     sinterval.cpp \
     smediainfo.cpp \
-    sscheduler.cpp \
-    sserializable.cpp \
-    sstringparser.cpp \
-    sstringparser.iso639.cpp \
     ssubpicturebuffer.cpp \
     ssubtitlebuffer.cpp \
     ssubtitlefile.cpp \
@@ -80,8 +67,6 @@ SOURCES += sapplication.cpp \
     svideobuffer.cpp \
     svideocodec.cpp \
     svideoformat.cpp
-LIBS += -lbfd \
-    -liberty
 
 # Nodes
 HEADERS += $${LXIMEDIA_DIR}/include/liblxistream/nodes/saudiodecodernode.h \
@@ -139,13 +124,8 @@ SOURCES += nodes/saudiodecodernode.cpp \
     nodes/svideoletterboxdetectnode.cpp \
     nodes/svideoresizenode.cpp
 
-# Private classes
-HEADERS += private/powermanager.h \
-    private/exceptionhandler.h \
-    private/log.h
-SOURCES += private/powermanager.cpp \
-    private/exceptionhandler.cpp \
-    private/log.cpp
+HEADERS += lxistreamprivate.h
+SOURCES += lxistreamprivate.cpp
 
 # Common backend classes
 HEADERS += common/audiooutput.h \
@@ -192,7 +172,6 @@ win32-g++ {
     release { 
         system(cp -u $$(QTDIR)/bin/QtCore4.dll -t $${LXIMEDIA_DIR}/bin)
         system(cp -u $$(QTDIR)/bin/QtNetwork4.dll -t $${LXIMEDIA_DIR}/bin)
-        system(cp -u $$(QTDIR)/bin/QtOpenGL4.dll -t $${LXIMEDIA_DIR}/bin)
         system(cp -u $$(QTDIR)/bin/QtXml4.dll -t $${LXIMEDIA_DIR}/bin)
     }
 }

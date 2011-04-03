@@ -21,9 +21,11 @@
 #define LXSTREAM_SGRAPH_H
 
 #include <QtCore>
-#include "sscheduler.h"
+#include <LXiCore>
 
 namespace LXiStream {
+
+class STimer;
 
 class SGraph : public QThread,
                public SScheduler

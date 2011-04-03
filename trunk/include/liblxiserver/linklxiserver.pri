@@ -1,4 +1,6 @@
-# Linking the lxistream library
+# Linking the lxiserver library
+include($${LXIMEDIA_DIR}/include/liblxicore/linklxicore.pri)
+
 LXISERVER_VERSION_MAJOR = $$system(cat ../../VERSION)
 LXISERVER_VERSION_MAJOR ~= s/\\.[0-9]+.+/
 

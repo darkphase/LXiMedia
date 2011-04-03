@@ -18,10 +18,9 @@
  ***************************************************************************/
 
 #include "nodes/sfileinputnode.h"
-#include "sdebug.h"
-#include "sstringparser.h"
 #include "ssubtitlefile.h"
 #include "svideobuffer.h"
+#include <LXiCore>
 
 namespace LXiStream {
 

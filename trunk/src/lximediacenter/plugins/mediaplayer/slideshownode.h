@@ -25,6 +25,7 @@
 #include "mediadatabase.h"
 
 namespace LXiMediaCenter {
+namespace MediaPlayerBackend {
 
 class SlideShowNode : public QObject,
                       public SGraph::SourceNode
@@ -73,6 +74,6 @@ private:
   QSemaphore                    nextBufferReady;
 };
 
-} // End of namespace
+} } // End of namespaces
 
 #endif

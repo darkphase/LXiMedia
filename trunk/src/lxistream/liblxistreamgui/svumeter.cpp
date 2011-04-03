@@ -18,7 +18,6 @@
  ***************************************************************************/
 
 #include "svumeter.h"
-#include "sdebug.h"
 #include <cmath>
 
 namespace LXiStreamGui {
@@ -47,7 +46,7 @@ SVuMeter::~SVuMeter()
 
 SAudioFormat SVuMeter::inputFormat(void) const
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+  QMutexLocker l(&mutex);
 
   return format;
 }
@@ -92,7 +91,7 @@ void SVuMeter::input(const SAudioBuffer &audioBuffer)
         rms[i] = sqrt(rms[i] / qreal(numSamples)) / 32768.0;
 
       // Update peaks and store latest RMS values.
-      SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+      QMutexLocker l(&mutex);
 
       while (peaks.count() < int(channels))
         peaks.append(QQueue<qreal>());
@@ -161,7 +160,7 @@ void SVuMeter::timerEvent(QTimerEvent *)
 {
   if (needsUpdate)
   {
-    SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+    QMutexLocker l(&mutex);
 
     if (lastRms.isEmpty() || rms.isEmpty())
     {

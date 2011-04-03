@@ -18,9 +18,8 @@
  ***************************************************************************/
 
 #include "nodes/saudiovideoinputnode.h"
-#include "sdebug.h"
 #include "sinterfaces.h"
-#include "sstringparser.h"
+#include <LXiCore>
 
 namespace LXiStream {
 

@@ -36,10 +36,18 @@ Standards-Version: 3.8.4
 Section: libs
 Homepage: http://lximedia.sourceforge.net/
 
+Package: liblxicore-dev
+Section: libdevel
+Architecture: any
+Depends: liblxicore1 (= ${binary:Version})
+Description: Development files for liblxicore
+ liblxicore is the core library containing the shared functions of LXiMedia.
+
 Package: liblxiserver-dev
 Section: libdevel
 Architecture: any
-Depends: liblxiserver1 (= ${binary:Version})
+Depends: liblxicore-dev (= ${binary:Version}),
+         liblxiserver1 (= ${binary:Version})
 Description: Development files for liblxiserver
  liblxiserver is a media server library that provides HTTP, SSDP and a UPnP
  ConnectionManager, ContentDirectory and MediaServer.
@@ -47,7 +55,8 @@ Description: Development files for liblxiserver
 Package: liblxistream-dev
 Section: libdevel
 Architecture: any
-Depends: liblxistream1 (= ${binary:Version}), 
+Depends: liblxicore-dev (= ${binary:Version}),
+         liblxistream1 (= ${binary:Version}), 
          liblxistreamgui1 (= ${binary:Version})
 Description: Development files for liblxistream
  liblxistream is a streaming media library.
@@ -55,7 +64,8 @@ Description: Development files for liblxistream
 Package: liblximediacenter-dev
 Section: libdevel
 Architecture: any
-Depends: liblxiserver-dev (= ${binary:Version}), 
+Depends: liblxicore-dev (= ${binary:Version}),
+         liblxiserver-dev (= ${binary:Version}), 
          liblxistream-dev (= ${binary:Version}), 
          liblximediacenter1 (= ${binary:Version}), 
          liblxistream1 (= ${binary:Version}), 
@@ -63,10 +73,20 @@ Depends: liblxiserver-dev (= ${binary:Version}),
 Description: Development files for liblxistream
  liblxistream is a streaming media library.
 
+Package: liblxicore1
+Section: libs
+Architecture: any
+Depends: ${misc:Depends},
+         libqtcore4,
+         libqt4-xml
+Description: A streaming media server library
+ Provides the shared functions of LXiMedia.
+
 Package: liblxiserver1
 Section: libs
 Architecture: any
 Depends: ${misc:Depends},
+         liblxicore1 (= ${binary:Version}), 
          libqtcore4,
          libqtgui4,
          libqt4-network,
@@ -79,6 +99,7 @@ Package: liblxistream1
 Section: libs
 Architecture: any
 Depends: ${misc:Depends},
+         liblxicore1 (= ${binary:Version}), 
          binutils,
          libasound2,
          libavcodec52 | libavcodec51,
@@ -101,6 +122,7 @@ Package: liblxistreamgui1
 Section: libs
 Architecture: any
 Depends: ${misc:Depends},
+         liblxicore1 (= ${binary:Version}), 
          liblxistream1 (= ${binary:Version}), 
          libqtcore4,
          libqtgui4,
@@ -117,6 +139,7 @@ Package: liblximediacenter1
 Section: libs
 Architecture: any
 Depends: ${misc:Depends},
+         liblxicore1 (= ${binary:Version}), 
          liblxiserver1 (= ${binary:Version}), 
          liblxistream1 (= ${binary:Version}), 
          liblxistreamgui1 (= ${binary:Version}),
@@ -132,6 +155,7 @@ Package: lximediacenter1
 Section: multimedia
 Architecture: any
 Depends: ${misc:Depends},
+         liblxicore1 (= ${binary:Version}), 
          liblxiserver1 (= ${binary:Version}), 
          liblxistream1 (= ${binary:Version}), 
          liblxistreamgui1 (= ${binary:Version}),
@@ -166,7 +190,8 @@ Depends: ${misc:Depends},
          libxext6,
          libxtst6,
          libxv1
-Provides: liblxiserver1,
+Provides: liblxicore1,
+          liblxiserver1,
           liblxistream1,
           liblxistreamgui1,
           liblximediacenter1

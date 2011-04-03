@@ -31,8 +31,7 @@
 namespace LXiStream {
 namespace Common {
 
-
-void Module::registerClasses(void)
+bool Module::registerClasses(void)
 {
   AudioResampler::registerClass<AudioResampler>(SFactory::Scheme(-1, "linear"));
 
@@ -98,6 +97,8 @@ void Module::registerClasses(void)
   VideoFormatConverter_Format_UYVY422_Format_YUV420P::registerClass<VideoFormatConverter_Format_UYVY422_Format_YUV420P>();
   VideoFormatConverter_Format_YUYV422_Format_YUV422P::registerClass<VideoFormatConverter_Format_YUYV422_Format_YUV422P>();
   VideoFormatConverter_Format_UYVY422_Format_YUV422P::registerClass<VideoFormatConverter_Format_UYVY422_Format_YUV422P>();
+
+  return true;
 }
 
 void Module::unload(void)
@@ -108,6 +109,5 @@ QByteArray Module::about(void)
 {
   return QByteArray();
 }
-
 
 } } // End of namespaces

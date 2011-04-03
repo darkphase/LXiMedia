@@ -18,13 +18,13 @@
  ***************************************************************************/
 
 #include "configserver.h"
-#include "mediaplayerbackend.h"
 
 #ifdef Q_OS_WIN
 #include <windows.h>
 #endif
 
 namespace LXiMediaCenter {
+namespace MediaPlayerBackend {
 
 const char * const ConfigServer::htmlMain =
     " <table class=\"widgetsfull\">\n"
@@ -129,7 +129,7 @@ SHttpServer::SocketOp ConfigServer::handleHtmlRequest(const SHttpServer::Request
 
   if (file.endsWith("-tree.html"))
   {
-    PluginSettings settings(plugin);
+    PluginSettings settings(pluginName());
     settings.beginGroup(file.left(file.length() - 10));
 
     QStringList rootPaths = settings.value("Paths").toStringList();
@@ -143,7 +143,7 @@ SHttpServer::SocketOp ConfigServer::handleHtmlRequest(const SHttpServer::Request
     const QString checkoff = QString::fromUtf8(QByteArray::fromHex(url.queryItemValue("checkoff").toAscii()));
     if (!checkon.isEmpty() || !checkoff.isEmpty())
     {
-      SDebug::WriteLocker l(&lock, __FILE__, __LINE__);
+      QWriteLocker l(&lock);
 
       if (!checkon.isEmpty())
         rootPaths.append(checkon);
@@ -154,7 +154,7 @@ SHttpServer::SocketOp ConfigServer::handleHtmlRequest(const SHttpServer::Request
       settings.setValue("Paths", rootPaths);
     }
 
-    SDebug::ReadLocker l(&lock, __FILE__, __LINE__);
+    QReadLocker l(&lock);
 
     htmlParser.setField("FILE", file);
     htmlParser.setField("DIRS", QByteArray(""));
@@ -334,7 +334,7 @@ const QFileInfoList & ConfigServer::drives(bool rescan)
   static QFileInfoList driveList;
   static QMutex mutex;
 
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+  QMutexLocker l(&mutex);
 
   if (rescan)
     driveList = QDir::drives();
@@ -343,4 +343,4 @@ const QFileInfoList & ConfigServer::drives(bool rescan)
 }
 
 
-} // End of namespace
+} } // End of namespaces

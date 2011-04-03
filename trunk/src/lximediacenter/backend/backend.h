@@ -49,6 +49,8 @@ protected: // From SHttpServer::Callback
   virtual SHttpServer::SocketOp  handleHttpRequest(const SHttpServer::RequestHeader &, QIODevice *);
 
 private:
+  static QString                createLogDir(void);
+
   SearchCacheEntry              search(const QString &) const;
 
   virtual QByteArray            parseHtmlContent(const QUrl &, const QByteArray &content, const QByteArray &head) const;
@@ -68,16 +70,13 @@ private:
 
   void                          setContentDirectoryQueryItems(void);
 
-public:
-  static const quint8           haltExitCode;
-
 private:
   static const QEvent::Type     exitEventType;
   static const QEvent::Type     restartEventType;
   static const QEvent::Type     shutdownEventType;
   static const QUrl             submitErrorUrl;
 
-  SApplication                * streamApp;
+  SApplication                  mediaApp;
 
   SHttpServer                   masterHttpServer;
   SSsdpServer                   masterSsdpServer;
@@ -91,7 +90,6 @@ private:
 
   HtmlParser                    cssParser;
   HtmlParser                    htmlParser;
-  QList<BackendPlugin *>        backendPlugins;
   QList<BackendServer *>        backendServers;
   QMap<QString, QList<QPair<QString, QString> > > submenuItems;
 

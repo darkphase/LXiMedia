@@ -78,7 +78,7 @@ void SVideoView::setSlow(bool s)
 
 void SVideoView::addClone(SVideoView *clone)
 {
-  SDebug::MutexLocker l(&p->mutex, __FILE__, __LINE__);
+  QMutexLocker l(&p->mutex);
 
   p->clones += clone;
   clone->setSource(this);
@@ -86,7 +86,7 @@ void SVideoView::addClone(SVideoView *clone)
 
 void SVideoView::removeClone(SVideoView *clone)
 {
-  SDebug::MutexLocker l(&p->mutex, __FILE__, __LINE__);
+  QMutexLocker l(&p->mutex);
 
   p->clones.removeAll(clone);
   clone->setSource(NULL);
@@ -103,7 +103,7 @@ bool SVideoView::start(STimer *timer)
 
 void SVideoView::stop(void)
 {
-  SDebug::MutexLocker l(&p->mutex, __FILE__, __LINE__);
+  QMutexLocker l(&p->mutex);
 
   p->timer = NULL;
   p->videoBuffers.clear();
@@ -119,7 +119,7 @@ void SVideoView::stop(void)
 
 void SVideoView::input(const SVideoBuffer &videoBuffer)
 {
-  SDebug::MutexLocker l(&p->mutex, __FILE__, __LINE__);
+  QMutexLocker l(&p->mutex);
 
   if (!videoBuffer.isNull())
     p->videoBuffers.append(videoBuffer);
@@ -131,7 +131,7 @@ void SVideoView::paintEvent(QPaintEvent *)
   painter.begin(this);
   painter.setCompositionMode(QPainter::CompositionMode_Source); // Ignore alpha
 
-  SDebug::MutexLocker l(&p->mutex, __FILE__, __LINE__);
+  QMutexLocker l(&p->mutex);
 
   /*SImageBuffer imageBuffer;
   if (p->source && !p->source->p->videoBuffers.isEmpty())
@@ -167,7 +167,7 @@ void SVideoView::timerEvent(QTimerEvent *e)
 {
   if (e->timerId() == p->updateTimerId)
   {
-    SDebug::MutexLocker l(&p->mutex, __FILE__, __LINE__);
+    QMutexLocker l(&p->mutex);
 
     const STime now = p->timer ? (p->timer->timeStamp()) : STime();
     bool updateRequired = false;
@@ -199,7 +199,7 @@ void SVideoView::blitVideo(void)
 
 void SVideoView::setSource(SVideoView *source)
 {
-  SDebug::MutexLocker l(&p->mutex, __FILE__, __LINE__);
+  QMutexLocker l(&p->mutex);
 
   p->source = source;
 }

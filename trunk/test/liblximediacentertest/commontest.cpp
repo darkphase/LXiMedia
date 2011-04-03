@@ -23,13 +23,11 @@
 
 void CommonTest::initTestCase(void)
 {
-  streamApp = new SApplication(SApplication::Initialize_Modules |
-                               SApplication::Initialize_Devices |
-                               SApplication::Initialize_LogToConsole);
+  mediaApp = SApplication::createForQTest(this);
 }
 
 void CommonTest::cleanupTestCase(void)
 {
-  delete streamApp;
-  streamApp = NULL;
+  delete mediaApp;
+  mediaApp = NULL;
 }

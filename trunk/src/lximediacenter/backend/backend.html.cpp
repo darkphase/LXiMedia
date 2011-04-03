@@ -420,7 +420,7 @@ SHttpServer::SocketOp Backend::handleHtmlRequest(const SHttpServer::RequestHeade
       QSet<QString>::fromList(GlobalSettings().value("DismissedErrors").toStringList());
 
   QStringList errorLogFiles;
-  foreach (const QString &file, SDebug::LogFile::errorLogFiles())
+  foreach (const QString &file, mediaApp.errorLogFiles())
   if (!dismissedFiles.contains(file))
     errorLogFiles += file;
 
@@ -615,7 +615,7 @@ SHttpServer::SocketOp Backend::handleHtmlConfig(const SHttpServer::RequestHeader
        "provide additional information on the media files that are available. "
        "Downloading and parsing the files will take several minutes."));
 
-  SDebug::_MutexLocker<SScheduler::Dependency> dl(Database::mutex(), __FILE__, __LINE__);
+  SScheduler::DependencyLocker dl(Database::dependency());
 
   if (masterImdbClient && masterImdbClient->isAvailable() && !masterImdbClient->needUpdate())
   {

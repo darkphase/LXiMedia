@@ -25,8 +25,7 @@
 
 namespace LXiMediaCenter {
 
-
-struct MediaServer::Private
+struct MediaServer::Data
 {
   class StreamEvent : public QEvent
   {
@@ -39,51 +38,65 @@ struct MediaServer::Private
     QSemaphore          * const sem;
   };
 
-  inline                        Private(void) : mutex(QMutex::Recursive)        { }
+  inline                        Data(void) : mutex(QMutex::Recursive)        { }
 
   static const QEvent::Type     startStreamEventType;
   static const int              maxStreams = 64;
 
+  MasterServer                * masterServer;
   QMutex                        mutex;
   QList<Stream *>               streams;
   QList<Stream *>               reusableStreams;
 };
 
-const QEvent::Type MediaServer::Private::startStreamEventType = QEvent::Type(QEvent::registerEventType());
+const QEvent::Type MediaServer::Data::startStreamEventType = QEvent::Type(QEvent::registerEventType());
 
 const qint32  MediaServer::defaultDirSortOrder  = -65536;
 const qint32  MediaServer::defaultFileSortOrder = 0;
 const int     MediaServer::seekBySecs = 120;
 
 
-MediaServer::MediaServer(const char *name, Plugin *plugin, BackendServer::MasterServer *server)
-  : BackendServer(name, plugin, server),
-    p(new Private())
+MediaServer::MediaServer(QObject *parent)
+  : BackendServer(parent),
+    d(new Data())
 {
-  // Ensure the logo is loaded.
-  masterServer()->httpServer()->registerCallback(httpPath(), this);
-  masterServer()->contentDirectory()->registerCallback(contentDirPath(), this);
+  d->masterServer = NULL;
 }
 
 MediaServer::~MediaServer()
 {
-  masterServer()->httpServer()->unregisterCallback(this);
-  masterServer()->contentDirectory()->unregisterCallback(this);
+  delete d;
+  *const_cast<Data **>(&d) = NULL;
+}
 
-  delete p;
-  *const_cast<Private **>(&p) = NULL;
+void MediaServer::initialize(MasterServer *masterServer)
+{
+  d->masterServer = masterServer;
+
+  BackendServer::initialize(masterServer);
+
+  d->masterServer->httpServer()->registerCallback(serverPath(), this);
+  d->masterServer->contentDirectory()->registerCallback(serverPath(), this);
+}
+
+void MediaServer::close(void)
+{
+  BackendServer::close();
+
+  d->masterServer->httpServer()->unregisterCallback(this);
+  d->masterServer->contentDirectory()->unregisterCallback(this);
 }
 
 void MediaServer::customEvent(QEvent *e)
 {
-  if (e->type() == p->startStreamEventType)
+  if (e->type() == d->startStreamEventType)
   {
-    SDebug::MutexLocker l(&p->mutex, __FILE__, __LINE__);
+    QMutexLocker l(&d->mutex);
 
-    Private::StreamEvent * const event = static_cast<Private::StreamEvent *>(e);
+    Data::StreamEvent * const event = static_cast<Data::StreamEvent *>(e);
     const QString url = event->request.path();
 
-    foreach (Stream *stream, p->streams)
+    foreach (Stream *stream, d->streams)
     if (stream->url == url)
     if (stream->proxy.addSocket(event->socket))
     {
@@ -108,10 +121,10 @@ void MediaServer::customEvent(QEvent *e)
 
 void MediaServer::cleanStreams(void)
 {
-  SDebug::MutexLocker l(&p->mutex, __FILE__, __LINE__);
+  QMutexLocker l(&d->mutex);
 
   QList<Stream *> obsolete;
-  foreach (Stream *stream, p->streams)
+  foreach (Stream *stream, d->streams)
   if (!stream->proxy.isConnected())
     obsolete += stream;
 
@@ -130,15 +143,15 @@ SHttpServer::SocketOp MediaServer::handleHttpRequest(const SHttpServer::RequestH
     response.setContentType("text/html;charset=utf-8");
     response.setField("Cache-Control", "no-cache");
 
-    QString path = url.path().mid(httpPath().length());
-    path = path.startsWith('/') ? path : ('/' + path);
+    QString basePath = url.path().mid(serverPath().length());
+    basePath = basePath.startsWith('/') ? basePath : ('/' + basePath);
 
-    const int total = countItems(path);
+    const int total = countItems(basePath);
     const int start = url.queryItemValue("start").toInt();
 
     ThumbnailListItemList thumbItems;
 
-    foreach (const SUPnPContentDirectory::Item &item, listItems(path, start, itemsPerThumbnailPage))
+    foreach (const SUPnPContentDirectory::Item &item, listItems(basePath, start, itemsPerThumbnailPage))
     {
       if (item.isDir)
       {
@@ -162,14 +175,14 @@ SHttpServer::SocketOp MediaServer::handleHttpRequest(const SHttpServer::RequestH
       }
     }
 
-    return sendHtmlContent(socket, url, response, buildThumbnailView(path, thumbItems, start, total), headList);
+    return sendHtmlContent(socket, url, response, buildThumbnailView(basePath, thumbItems, start, total), headList);
   }
   else
   {
     QSemaphore sem(0);
 
     socket->moveToThread(QObject::thread());
-    QCoreApplication::postEvent(this, new Private::StreamEvent(Private::startStreamEventType, request, socket, &sem));
+    QCoreApplication::postEvent(this, new Data::StreamEvent(Data::startStreamEventType, request, socket, &sem));
 
     sem.acquire();
     return SHttpServer::SocketOp_LeaveOpen; // Socket will be closed by event handler
@@ -178,20 +191,20 @@ SHttpServer::SocketOp MediaServer::handleHttpRequest(const SHttpServer::RequestH
   return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);
 }
 
-int MediaServer::countContentDirItems(const QString &path)
+int MediaServer::countContentDirItems(const QString &dirPath)
 {
-  QString subPath = path.mid(contentDirPath().length());
+  QString subPath = dirPath.mid(serverPath().length());
   subPath = subPath.startsWith('/') ? subPath : ('/' + subPath);
 
   return countItems(subPath);
 }
 
-QList<SUPnPContentDirectory::Item> MediaServer::listContentDirItems(const QString &path, unsigned start, unsigned count)
+QList<SUPnPContentDirectory::Item> MediaServer::listContentDirItems(const QString &dirPath, unsigned start, unsigned count)
 {
-  QString subPath = path.mid(contentDirPath().length());
+  QString subPath = dirPath.mid(serverPath().length());
   subPath = subPath.startsWith('/') ? subPath : ('/' + subPath);
 
-  QString basePath = httpPath();
+  QString basePath = serverPath();
   basePath = basePath.endsWith('/') ? basePath.left(basePath.length() - 1) : basePath;
   basePath += subPath;
   basePath = basePath.endsWith('/') ? basePath.left(basePath.length() - 1) : basePath;
@@ -215,19 +228,19 @@ QList<SUPnPContentDirectory::Item> MediaServer::listContentDirItems(const QStrin
 
 void MediaServer::addStream(Stream *stream)
 {
-  SDebug::MutexLocker l(&p->mutex, __FILE__, __LINE__);
+  QMutexLocker l(&d->mutex);
 
   connect(&stream->proxy, SIGNAL(disconnected()), SLOT(cleanStreams()), Qt::QueuedConnection);
 
-  p->streams += stream;
+  d->streams += stream;
 }
 
 void MediaServer::removeStream(Stream *stream)
 {
-  SDebug::MutexLocker l(&p->mutex, __FILE__, __LINE__);
+  QMutexLocker l(&d->mutex);
 
-  p->streams.removeAll(stream);
-  p->reusableStreams.removeAll(stream);
+  d->streams.removeAll(stream);
+  d->reusableStreams.removeAll(stream);
 }
 
 MediaServer::Stream::Stream(MediaServer *parent, const QString &url)

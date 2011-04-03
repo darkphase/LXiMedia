@@ -27,12 +27,13 @@
 #include "playlistserver.h"
 
 namespace LXiMediaCenter {
+namespace MediaPlayerBackend {
 
 class TvShowServer : public PlaylistServer
 {
 Q_OBJECT
 public:
-                                TvShowServer(MediaDatabase *, MediaDatabase::Category, const char *, Plugin *, MasterServer *);
+                                TvShowServer(MediaDatabase::Category, QObject *);
   virtual                       ~TvShowServer();
 
 protected:
@@ -51,6 +52,6 @@ private:
   const QString                 seasonText;
 };
 
-} // End of namespace
+} } // End of namespaces
 
 #endif

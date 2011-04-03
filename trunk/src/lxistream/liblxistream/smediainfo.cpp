@@ -19,8 +19,8 @@
 
 #include "smediainfo.h"
 #include "sinterfaces.h"
-#include "sstringparser.h"
 #include "ssubtitlefile.h"
+#include <LXiCore>
 
 namespace LXiStream {
 

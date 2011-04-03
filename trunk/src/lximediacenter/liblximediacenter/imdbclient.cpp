@@ -49,7 +49,7 @@ const char * const ImdbClient::mirrors[] =
 
 ImdbClient::ImdbClient(QObject *parent)
   : QObject(parent),
-    mutex(sApp),
+    dependency(sApp),
     cacheDir(GlobalSettings::applicationDataDir() + "/imdb"),
     moviesFile(),
     plotFile(),
@@ -68,7 +68,7 @@ ImdbClient::ImdbClient(QObject *parent)
   {
     firsttime = false;
 
-    SDebug::_MutexLocker<SScheduler::Dependency> l(&mutex, __FILE__, __LINE__);
+    SScheduler::DependencyLocker l(&dependency);
     
     if (!cacheDir.exists())
     if (!cacheDir.mkpath(cacheDir.absolutePath()))
@@ -77,7 +77,7 @@ ImdbClient::ImdbClient(QObject *parent)
       return;
     }
 
-    SDebug::_MutexLocker<SScheduler::Dependency> dl(Database::mutex(), __FILE__, __LINE__);
+    SScheduler::DependencyLocker dl(Database::dependency());
     Database::Query query;
 
     // Drop all tables if the database version is outdated.
@@ -143,7 +143,7 @@ ImdbClient::ImdbClient(QObject *parent)
   plotFile.setFileName(cacheDir.absoluteFilePath("plot.list"));
   ratingFile.setFileName(cacheDir.absoluteFilePath("ratings.list"));
 
-  SDebug::_MutexLocker<SScheduler::Dependency> dl(Database::mutex(), __FILE__, __LINE__);
+  SScheduler::DependencyLocker dl(Database::dependency());
 
   if (!isAvailable() &&
       moviesFile.exists() && plotFile.exists() && ratingFile.exists() &&
@@ -163,7 +163,7 @@ ImdbClient::~ImdbClient(void)
 
 void ImdbClient::obtainIMDBFiles(void)
 {
-  SDebug::_MutexLocker<SScheduler::Dependency> l(&mutex, __FILE__, __LINE__);
+  SScheduler::DependencyLocker l(&dependency);
 
   if (moviesFile.open(QIODevice::ReadWrite) &&
       plotFile.open(QIODevice::ReadWrite) &&
@@ -178,14 +178,14 @@ void ImdbClient::obtainIMDBFiles(void)
 
 bool ImdbClient::isDownloading(void)
 {
-  SDebug::_MutexLocker<SScheduler::Dependency> l(&mutex, __FILE__, __LINE__);
+  SScheduler::DependencyLocker l(&dependency);
 
   return downloading > 0;
 }
 
 bool ImdbClient::isAvailable(void)
 {
-  Q_ASSERT(!Database::mutex()->tryLock()); // Mutex should be locked by the caller.
+  Q_ASSERT(!Database::dependency()->tryLock()); // Mutex should be locked by the caller.
 
   if (available == 0)
   {
@@ -221,7 +221,7 @@ bool ImdbClient::needUpdate(void)
 
 ImdbClient::Entry ImdbClient::readEntry(const QString &rawName)
 {
-  Q_ASSERT(!Database::mutex()->tryLock()); // Mutex should be locked by the caller.
+  Q_ASSERT(!Database::dependency()->tryLock()); // Mutex should be locked by the caller.
 
   if (rawName != sentinelItem)
   {
@@ -253,7 +253,7 @@ ImdbClient::Entry ImdbClient::readEntry(const QString &rawName)
 
 QStringList ImdbClient::findSimilar(const QString &title, Type type)
 {
-  Q_ASSERT(!Database::mutex()->tryLock()); // Mutex should be locked by the caller.
+  Q_ASSERT(!Database::dependency()->tryLock()); // Mutex should be locked by the caller.
 
   static const int minWordLength = 5;
   const QStringList words = SStringParser::toCleanName(title).split(' ', QString::SkipEmptyParts);
@@ -340,14 +340,15 @@ void ImdbClient::importIMDBDatabase(void)
 {
   // Remove the sentinel entry indicating the last import has completed.
   {
-    SDebug::_MutexLocker<SScheduler::Dependency> dl(Database::mutex(), __FILE__, __LINE__);
+    SScheduler::DependencyLocker dl(Database::dependency());
 
     available = 0;
 
     Database::Query("DELETE FROM ImdbEntries WHERE rawName = '" + QString(sentinelItem) + "'").exec();
   }
 
-  SDebug::_MutexLocker<SScheduler::Dependency> l(&mutex, __FILE__, __LINE__);
+  SScheduler::DependencyLocker l(&dependency);
+
   if (moviesFile.open(QIODevice::ReadOnly) &&
       plotFile.open(QIODevice::ReadOnly) &&
       ratingFile.open(QIODevice::ReadOnly))
@@ -355,7 +356,7 @@ void ImdbClient::importIMDBDatabase(void)
     l.unlock();
     qDebug() << "IMDB import: Parsing movies.list";
 
-    sApp->schedule(this, &ImdbClient::readIMDBMoviesListLines, Q_INT64_C(0), &mutex, basePriority);
+    sApp->schedule(this, &ImdbClient::readIMDBMoviesListLines, Q_INT64_C(0), &dependency, basePriority);
   }
 }
 
@@ -367,7 +368,7 @@ struct ImdbClient::MoviesListLines
 
 void ImdbClient::readIMDBMoviesListLines(qint64 pos)
 {
-  Q_ASSERT(!mutex.tryLock()); // Mutex should be locked by the caller.
+  Q_ASSERT(!dependency.tryLock()); // Mutex should be locked by the caller.
 
   if (pos >= 0)
   {
@@ -403,22 +404,22 @@ void ImdbClient::readIMDBMoviesListLines(qint64 pos)
       }
 
       if (!lines.rawName.isEmpty())
-        sApp->schedule(this, &ImdbClient::insertIMDBMoviesListLines, lines, Database::mutex(), insertPriority);
+        sApp->schedule(this, &ImdbClient::insertIMDBMoviesListLines, lines, Database::dependency(), insertPriority);
 
       if (finished)
       {
         qDebug() << "IMDB import: Finished parsing movies.list, parsing plot.list";
-        sApp->schedule(this, &ImdbClient::readIMDBPlotListLines, Q_INT64_C(0), &mutex, basePriority);
+        sApp->schedule(this, &ImdbClient::readIMDBPlotListLines, Q_INT64_C(0), &dependency, basePriority);
       }
       else
-        sApp->schedule(this, &ImdbClient::readIMDBMoviesListLines, moviesFile.pos(), &mutex, basePriority);
+        sApp->schedule(this, &ImdbClient::readIMDBMoviesListLines, moviesFile.pos(), &dependency, basePriority);
     }
   }
 }
 
 void ImdbClient::insertIMDBMoviesListLines(const MoviesListLines &lines)
 {
-  Q_ASSERT(!Database::mutex()->tryLock()); // Mutex should be locked by the caller.
+  Q_ASSERT(!Database::dependency()->tryLock()); // Mutex should be locked by the caller.
 
   Database::transaction();
 
@@ -447,7 +448,7 @@ struct ImdbClient::PlotListLines
 
 void ImdbClient::readIMDBPlotListLines(qint64 pos)
 {
-  Q_ASSERT(!mutex.tryLock()); // Mutex should be locked by the caller.
+  Q_ASSERT(!dependency.tryLock()); // Mutex should be locked by the caller.
 
   if (pos >= 0)
   {
@@ -489,22 +490,22 @@ void ImdbClient::readIMDBPlotListLines(qint64 pos)
 
       // Insert/update results
       if (!lines.rawName.isEmpty())
-        sApp->schedule(this, &ImdbClient::insertIMDBPlotListLines, lines, Database::mutex(), insertPriority);
+        sApp->schedule(this, &ImdbClient::insertIMDBPlotListLines, lines, Database::dependency(), insertPriority);
 
       if (finished)
       {
         qDebug() << "IMDB import: Finished parsing plot.list, parsing ratings.list";
-        sApp->schedule(this, &ImdbClient::readIMDBRatingListLines, Q_INT64_C(0), &mutex, basePriority);
+        sApp->schedule(this, &ImdbClient::readIMDBRatingListLines, Q_INT64_C(0), &dependency, basePriority);
       }
       else
-        sApp->schedule(this, &ImdbClient::readIMDBPlotListLines, plotFile.pos(), &mutex, basePriority);
+        sApp->schedule(this, &ImdbClient::readIMDBPlotListLines, plotFile.pos(), &dependency, basePriority);
     }
   }
 }
 
 void ImdbClient::insertIMDBPlotListLines(const PlotListLines &lines)
 {
-  Q_ASSERT(!Database::mutex()->tryLock()); // Mutex should be locked by the caller.
+  Q_ASSERT(!Database::dependency()->tryLock()); // Mutex should be locked by the caller.
 
   Database::transaction();
 
@@ -524,7 +525,7 @@ struct ImdbClient::RatingListLines
 
 void ImdbClient::readIMDBRatingListLines(qint64 pos)
 {
-  Q_ASSERT(!mutex.tryLock()); // Mutex should be locked by the caller.
+  Q_ASSERT(!dependency.tryLock()); // Mutex should be locked by the caller.
 
   if (pos >= 0)
   {
@@ -558,22 +559,22 @@ void ImdbClient::readIMDBRatingListLines(qint64 pos)
 
       // Insert/update results
       if (!lines.rawName.isEmpty())
-        sApp->schedule(this, &ImdbClient::insertIMDBRatingListLines, lines, Database::mutex(), insertPriority);
+        sApp->schedule(this, &ImdbClient::insertIMDBRatingListLines, lines, Database::dependency(), insertPriority);
 
       if (finished)
       {
         qDebug() << "IMDB import: Finished parsing ratings.list, storing data.";
-        sApp->schedule(this, &ImdbClient::insertSentinelItem, Database::mutex(), insertPriority);
+        sApp->schedule(this, &ImdbClient::insertSentinelItem, Database::dependency(), insertPriority);
       }
       else
-        sApp->schedule(this, &ImdbClient::readIMDBRatingListLines, ratingFile.pos(), &mutex, basePriority);
+        sApp->schedule(this, &ImdbClient::readIMDBRatingListLines, ratingFile.pos(), &dependency, basePriority);
     }
   }
 }
 
 void ImdbClient::insertIMDBRatingListLines(const RatingListLines &lines)
 {
-  Q_ASSERT(!Database::mutex()->tryLock()); // Mutex should be locked by the caller.
+  Q_ASSERT(!Database::dependency()->tryLock()); // Mutex should be locked by the caller.
 
   Database::transaction();
 
@@ -588,7 +589,7 @@ void ImdbClient::insertIMDBRatingListLines(const RatingListLines &lines)
 
 void ImdbClient::insertSentinelItem(void)
 {
-  Q_ASSERT(!Database::mutex()->tryLock()); // Mutex should be locked by the caller.
+  Q_ASSERT(!Database::dependency()->tryLock()); // Mutex should be locked by the caller.
   Q_ASSERT(!isAvailable());
 
   qDebug() << "IMDB import: Finished storing data.";
@@ -686,7 +687,7 @@ ImdbClient::Entry ImdbClient::decodeEntry(const QByteArray &line)
 
 void ImdbClient::tryMirror(void)
 {
-  SDebug::_MutexLocker<SScheduler::Dependency> l(&mutex, __FILE__, __LINE__);
+  SScheduler::DependencyLocker l(&dependency);
 
   if (!obtainFiles.isEmpty() && (useMirror < (sizeof(mirrors) / sizeof(mirrors[0]))))
   {

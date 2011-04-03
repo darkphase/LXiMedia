@@ -22,9 +22,10 @@
 #include "mediaplayersandbox.h"
 
 namespace LXiMediaCenter {
+namespace MediaPlayerBackend {
 
-PhotoServer::PhotoServer(MediaDatabase *mediaDatabase, MediaDatabase::Category category, const char *name, Plugin *plugin, MasterServer *server)
-  : PlaylistServer(mediaDatabase, category, name, plugin, server, tr("Slideshow"))
+PhotoServer::PhotoServer(MediaDatabase::Category category, QObject *parent)
+  : PlaylistServer(category, parent, tr("Slideshow"))
 {
 }
 
@@ -42,7 +43,7 @@ PhotoServer::Stream * PhotoServer::streamVideo(const SHttpServer::RequestHeader 
       url = url.toEncoded(QUrl::RemoveQuery) + QByteArray::fromHex(url.queryItemValue("query").toAscii());
 
     QStringList albums;
-    albums += request.directory().mid(httpPath().length() - 1);
+    albums += request.directory().mid(serverPath().length() - 1);
 
     QMultiMap<QString, QByteArray> files;
     while (!albums.isEmpty())
@@ -163,4 +164,4 @@ SHttpServer::SocketOp PhotoServer::sendPhoto(const SHttpServer::RequestHeader &r
   return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);
 }
 
-} // End of namespace
+} } // End of namespaces

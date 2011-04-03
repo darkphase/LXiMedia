@@ -1,4 +1,6 @@
 # Linking the lxistream library
+include($${LXIMEDIA_DIR}/include/liblxicore/linklxicore.pri)
+
 LXISTREAM_VERSION_MAJOR = $$system(cat ../../VERSION)
 LXISTREAM_VERSION_MAJOR ~= s/\\.[0-9]+.+/
 

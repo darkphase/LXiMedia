@@ -19,14 +19,35 @@
 
 #include "mediaplayerserver.h"
 #include "mediaplayersandbox.h"
+#include "module.h"
 
 namespace LXiMediaCenter {
+namespace MediaPlayerBackend {
 
-MediaPlayerServer::MediaPlayerServer(MediaDatabase *mediaDatabase, MediaDatabase::Category category, const char *name, Plugin *plugin, BackendServer::MasterServer *server)
-  : MediaServer(name, plugin, server),
-    mediaDatabase(mediaDatabase),
-    category(category)
+MediaPlayerServer::MediaPlayerServer(MediaDatabase::Category category, QObject *parent)
+  : MediaServer(parent),
+    category(category),
+    masterServer(NULL),
+    mediaDatabase(NULL)
 {
+}
+
+void MediaPlayerServer::initialize(MasterServer *masterServer)
+{
+  this->masterServer = masterServer;
+  this->mediaDatabase = MediaDatabase::createInstance(masterServer);
+
+  MediaServer::initialize(masterServer);
+}
+
+void MediaPlayerServer::close(void)
+{
+  MediaServer::close();
+}
+
+QString MediaPlayerServer::pluginName(void) const
+{
+  return Module::pluginName;
 }
 
 MediaPlayerServer::Stream * MediaPlayerServer::streamVideo(const SHttpServer::RequestHeader &request)
@@ -187,7 +208,7 @@ QList<MediaPlayerServer::Item> MediaPlayerServer::listAlbums(const QString &path
 
     foreach (const MediaDatabase::File &file, mediaDatabase->getAlbumFiles(category, path + item.title + '/', 0, 8))
     {
-      item.iconUrl = httpPath() + MediaDatabase::toUidString(file.uid) + "-thumb.png?overlay=folder-video";
+      item.iconUrl = serverPath() + MediaDatabase::toUidString(file.uid) + "-thumb.png?overlay=folder-video";
       break;
     }
 
@@ -488,7 +509,7 @@ QByteArray MediaPlayerServer::buildVideoPlayer(const QByteArray &item, const QSt
 void MediaPlayerServer::consoleLine(const QString &line)
 {
   if (!line.startsWith('%'))
-    SDebug::LogFile::logLineToActiveLogFile(line);
+    sApp->logLineToActiveLogFile(line);
   else
     mediaDatabase->setLastPlayed(QString::fromUtf8(QByteArray::fromHex(line.mid(1).toAscii())));
 }
@@ -505,7 +526,7 @@ MediaPlayerServer::Stream::~Stream()
   if (sandbox)
   {
     disconnect(sandbox, SIGNAL(consoleLine(QString)), parent, SLOT(consoleLine(QString)));
-    parent->masterServer()->recycleSandbox(sandbox);
+    static_cast<MediaPlayerServer *>(parent)->masterServer->recycleSandbox(sandbox);
   }
 }
 
@@ -514,10 +535,10 @@ bool MediaPlayerServer::Stream::setup(const QUrl &url, const QByteArray &content
   if (sandbox)
   {
     disconnect(sandbox, SIGNAL(consoleLine(QString)), parent, SLOT(consoleLine(QString)));
-    parent->masterServer()->recycleSandbox(sandbox);
+    static_cast<MediaPlayerServer *>(parent)->masterServer->recycleSandbox(sandbox);
   }
 
-  sandbox = parent->masterServer()->createSandbox(
+  sandbox = static_cast<MediaPlayerServer *>(parent)->masterServer->createSandbox(
       (url.queryItemValue("priority") == "low") ? SSandboxClient::Mode_Nice : SSandboxClient::Mode_Normal);
 
   connect(sandbox, SIGNAL(consoleLine(QString)), parent, SLOT(consoleLine(QString)));
@@ -532,4 +553,4 @@ bool MediaPlayerServer::Stream::setup(const QUrl &url, const QByteArray &content
   return true;
 }
 
-} // End of namespace
+} } // End of namespaces

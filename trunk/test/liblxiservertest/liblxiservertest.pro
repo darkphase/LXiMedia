@@ -15,13 +15,16 @@ HEADERS += httpservertest.h \
 SOURCES += main.cpp \
     httpservertest.cpp \
     sandboxtest.cpp
+LIBS += -lbfd \
+    -liberty
 
 # Run tests after link
 unix:QMAKE_POST_LINK = $(TARGET) -silent
 #win32:QMAKE_POST_LINK = $(DESTDIR)$(TARGET) -silent
 
 # Prevent dependency with .so files
-FILES_UNDER_TEST = $${LXIMEDIA_DIR}/obj/LXiServer/*.o
+FILES_UNDER_TEST = $${LXIMEDIA_DIR}/obj/LXiCore/*.o \
+    $${LXIMEDIA_DIR}/obj/LXiServer/*.o
 
 # Platform specific
 unix { 

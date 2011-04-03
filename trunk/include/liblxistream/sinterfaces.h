@@ -21,6 +21,7 @@
 #define LXSTREAM_SINTERFACES_H
 
 #include <QtCore>
+#include <LXiCore>
 #include "saudiobuffer.h"
 #include "saudiocodec.h"
 #include "sdatabuffer.h"
@@ -28,7 +29,6 @@
 #include "sencodedaudiobuffer.h"
 #include "sencodeddatabuffer.h"
 #include "sencodedvideobuffer.h"
-#include "sfactory.h"
 #include "ssubpicturebuffer.h"
 #include "ssubtitlebuffer.h"
 #include "svideobuffer.h"
@@ -39,20 +39,6 @@ namespace LXiStream {
 class STimer;
 
 namespace SInterfaces {
-
-/*! The Module interface is used to register modules.
-
-    \sa SApplication::loadModule()
- */
-class Module
-{
-public:
-  virtual                       ~Module();
-
-  virtual void                  registerClasses(void) = 0;
-  virtual void                  unload(void) = 0;
-  virtual QByteArray            about(void) = 0;
-};
 
 /*! The FormatProber interface can be used to detect the format of a byte
     stream.
@@ -90,9 +76,9 @@ public:
       Type_Subtitle           = 0x30000
     };
 
-    inline StreamId(void) : streamSpec(Type_None)                                 { }
-    inline StreamId(quint32 streamSpec) : streamSpec(streamSpec)                      { }
-    inline StreamId(Type type, quint16 id) : streamSpec(type | quint32(id))       { }
+    inline StreamId(void) : streamSpec(Type_None)                               { }
+    inline StreamId(quint32 streamSpec) : streamSpec(streamSpec)                { }
+    inline StreamId(Type type, quint16 id) : streamSpec(type | quint32(id))     { }
 
     inline                      operator quint32() const                        { return streamSpec; }
     inline bool                 operator<(StreamId other) const                 { return streamSpec < other.streamSpec; }
@@ -621,7 +607,5 @@ Q_DECLARE_OPERATORS_FOR_FLAGS(LXiStream::SInterfaces::AudioDecoder::Flags)
 Q_DECLARE_OPERATORS_FOR_FLAGS(LXiStream::SInterfaces::VideoDecoder::Flags)
 Q_DECLARE_OPERATORS_FOR_FLAGS(LXiStream::SInterfaces::AudioEncoder::Flags)
 Q_DECLARE_OPERATORS_FOR_FLAGS(LXiStream::SInterfaces::VideoEncoder::Flags)
-
-Q_DECLARE_INTERFACE(LXiStream::SInterfaces::Module, "nl.dds.admiraal.www.LXiStream.SInterfaces.Module/1.0")
 
 #endif

@@ -25,28 +25,35 @@
 namespace LXiStream {
 namespace PulseAudioBackend {
 
-
-void Module::registerClasses(void)
+bool Module::registerClasses(void)
 {
-  if ((sApp->initializeFlags() & SApplication::Initialize_Devices) == SApplication::Initialize_Devices)
+  int result = false;
+  if (loadDevices)
   {
     if (qobject_cast<QApplication *>(QCoreApplication::instance()) == NULL)
-      return; // Non-gui application
+    {
+      qWarning() <<
+          "Not loading PulseAudio because this is a non-gui application (i.e. "
+          "a QCoreApplication is used instead of a QApplication)";
+
+      return false; // Non-gui application
+    }
 
     pa_sample_spec sampleSpec;
     sampleSpec.format = PA_SAMPLE_S16LE;
     sampleSpec.rate = 48000;
     sampleSpec.channels = 2;
 
-    pa_simple * const handle = pa_simple_new(NULL,
-                                             SApplication::name(),
-                                             PA_STREAM_PLAYBACK,
-                                             NULL,
-                                             "PulseAudioDevice::listDevices",
-                                             &sampleSpec,
-                                             NULL,
-                                             NULL,
-                                             NULL);
+    pa_simple * const handle = pa_simple_new(
+        NULL,
+        SApplication::name(),
+        PA_STREAM_PLAYBACK,
+        NULL,
+        "PulseAudioDevice::listDevices",
+        &sampleSpec,
+        NULL,
+        NULL,
+        NULL);
 
     if (handle)
     {
@@ -54,8 +61,12 @@ void Module::registerClasses(void)
 
       PulseAudioInput::registerClass<PulseAudioInput>(1);
       PulseAudioOutput::registerClass<PulseAudioOutput>(1);
+
+      result = true;
     }
   }
+
+  return result;
 }
 
 void Module::unload(void)
@@ -67,8 +78,7 @@ QByteArray Module::about(void)
   return QByteArray();
 }
 
-
 } } // End of namespaces
 
 #include <QtPlugin>
-Q_EXPORT_PLUGIN2("pulseaudio", LXiStream::PulseAudioBackend::Module);
+Q_EXPORT_PLUGIN2(lxistream.pulseaudio, LXiStream::PulseAudioBackend::Module);

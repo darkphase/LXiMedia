@@ -92,7 +92,7 @@ bool BufferReader::openFile(const QString &filePath)
 
 QString BufferReader::discTitle(void) const
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+  QMutexLocker l(&mutex);
 
   if (dvdHandle)
   {
@@ -111,7 +111,7 @@ QString BufferReader::discTitle(void) const
 
 unsigned BufferReader::numTitles(void) const
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+  QMutexLocker l(&mutex);
 
   if (dvdHandle)
   {
@@ -168,7 +168,7 @@ bool BufferReader::selectTitle(SInterfaces::BufferReader::ProduceCallback *pc, q
 
 bool BufferReader::start(SInterfaces::BufferReader::ReadCallback *rc, SInterfaces::BufferReader::ProduceCallback *pc, quint16 programId, bool)
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+  QMutexLocker l(&mutex);
 
   if (dvdHandle)
     qFatal("BufferReader already opened a stream.");
@@ -211,14 +211,14 @@ bool BufferReader::process(void)
 
 STime BufferReader::duration(void) const
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+  QMutexLocker l(&mutex);
 
   return titleDuration;
 }
 
 bool BufferReader::setPosition(STime pos)
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+  QMutexLocker l(&mutex);
 
   if (dvdHandle)
   {
@@ -273,7 +273,7 @@ bool BufferReader::setPosition(STime pos)
 
 STime BufferReader::position(void) const
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+  QMutexLocker l(&mutex);
 
   if (dvdHandle)
     return STime(::dvdnav_get_current_time(dvdHandle), SInterval(1, 90000));
@@ -283,7 +283,7 @@ STime BufferReader::position(void) const
 
 QList<BufferReader::Chapter> BufferReader::chapters(void) const
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+  QMutexLocker l(&mutex);
 
   QList<Chapter> chapters;
   foreach (const STime &time, titleChapters)
@@ -299,7 +299,7 @@ QList<BufferReader::Chapter> BufferReader::chapters(void) const
 
 QList<BufferReader::AudioStreamInfo> BufferReader::audioStreams(void) const
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+  QMutexLocker l(&mutex);
 
   QList<AudioStreamInfo> result = bufferReader->audioStreams();
 
@@ -321,14 +321,14 @@ QList<BufferReader::AudioStreamInfo> BufferReader::audioStreams(void) const
 
 QList<BufferReader::VideoStreamInfo> BufferReader::videoStreams(void) const
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+  QMutexLocker l(&mutex);
 
   return bufferReader->videoStreams();
 }
 
 QList<BufferReader::DataStreamInfo> BufferReader::dataStreams(void) const
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+  QMutexLocker l(&mutex);
 
   if (dvdHandle)
   {
@@ -360,7 +360,7 @@ void BufferReader::selectStreams(const QList<StreamId> &streams)
 
 qint64 BufferReader::read(uchar *buffer, qint64 size)
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+  QMutexLocker l(&mutex);
 
   if (dvdHandle)
   {

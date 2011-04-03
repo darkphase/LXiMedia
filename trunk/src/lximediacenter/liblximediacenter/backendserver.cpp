@@ -18,9 +18,15 @@
  ***************************************************************************/
 
 #include "backendserver.h"
-#include "plugininterfaces.h"
+
+template class LXiCore::SFactorizable<LXiMediaCenter::BackendServer>;
 
 namespace LXiMediaCenter {
+
+struct BackendServer::Data
+{
+  MasterServer                * masterServer;
+};
 
 const int          BackendServer::maxRequestTime = 1000;
 const qreal        BackendServer::minSearchRelevance = 0.1;
@@ -30,41 +36,36 @@ const char * const BackendServer::searchDateTimeFormat = "ddd, MMM d yyyy hh:mm"
 const char * const BackendServer::dataMime = "application/octet-stream";
 const char * const BackendServer::textMime = "text/plain;charset=utf-8";
 
-struct BackendServer::Private
+QList<BackendServer *> BackendServer::create(QObject *parent)
 {
-  MasterServer                * server;
-  QString                       name;
-  QString                       httpPath;
-  QString                       contentDirPath;
+  return factory().createObjects<BackendServer>(parent);
+}
 
-  QFuture<void>                 dlnaUpdateFuture;
-};
-
-BackendServer::BackendServer(const char *name, Plugin *plugin, MasterServer *server)
-  : QObject(server),
-    p(new Private())
+BackendServer::BackendServer(QObject *parent)
+  : QObject(parent),
+    d(new Data())
 {
-  Q_ASSERT(name);
-
-  p->server = server;
-  p->name = tr(name);
-
-  if (plugin)
-    p->httpPath = "/" + plugin->pluginName().toLower() + "/" + SStringParser::toRawName(name).toLower() + "/";
-  else
-    p->httpPath = "/" + SStringParser::toRawName(name).toLower() + "/";
-
-  p->httpPath.replace(" ", "");
-
-  p->contentDirPath = "/" + p->name + "/";
+  d->masterServer = NULL;
 }
 
 BackendServer::~BackendServer()
 {
-  p->dlnaUpdateFuture.waitForFinished();
+  delete d;
+  *const_cast<Data **>(&d) = NULL;
+}
 
-  delete p;
-  *const_cast<Private **>(&p) = NULL;
+void BackendServer::initialize(MasterServer *masterServer)
+{
+  d->masterServer = masterServer;
+}
+
+void BackendServer::close(void)
+{
+}
+
+QString BackendServer::serverPath(void) const
+{
+  return '/' + pluginName() + '/' + serverName() + '/';
 }
 
 QByteArray BackendServer::frontPageWidget(void) const
@@ -75,26 +76,6 @@ QByteArray BackendServer::frontPageWidget(void) const
 BackendServer::SearchResultList BackendServer::search(const QStringList &) const
 {
   return SearchResultList();
-}
-
-BackendServer::MasterServer * BackendServer::masterServer(void) const
-{
-  return p->server;
-}
-
-const QString & BackendServer::name(void) const
-{
-  return p->name;
-}
-
-const QString & BackendServer::httpPath(void) const
-{
-  return p->httpPath;
-}
-
-const QString & BackendServer::contentDirPath(void) const
-{
-  return p->contentDirPath;
 }
 
 SHttpServer::SocketOp BackendServer::sendResponse(const SHttpServer::RequestHeader &request, QIODevice *socket, const QByteArray &data, const char *mime, bool allowCache, const QString &redir) const
@@ -129,7 +110,7 @@ SHttpServer::SocketOp BackendServer::sendResponse(const SHttpServer::RequestHead
 SHttpServer::SocketOp BackendServer::sendHtmlContent(QIODevice *socket, const QUrl &url, const SHttpServer::ResponseHeader &response, const QByteArray &content, const QByteArray &head) const
 {
   socket->write(response);
-  socket->write(p->server->parseHtmlContent(url, content, head));
+  socket->write(d->masterServer->parseHtmlContent(url, content, head));
 
   return SHttpServer::SocketOp_Close;
 }

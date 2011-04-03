@@ -32,10 +32,9 @@
 
 void FFMpegTest::initTestCase(void)
 {
-  streamApp = new SApplication(SApplication::Initialize_Devices |
-                               SApplication::Initialize_LogToConsole);
+  mediaApp = SApplication::createForQTest(this);
 
-  QVERIFY(streamApp->loadModule(new FFMpegBackend::Module()));
+  QVERIFY(mediaApp->loadModule(new FFMpegBackend::Module()));
 
 //  const QDir probeDir("");
 //  foreach (const QString &file, probeDir.entryList())
@@ -52,8 +51,8 @@ void FFMpegTest::initTestCase(void)
 
 void FFMpegTest::cleanupTestCase(void)
 {
-  delete streamApp;
-  streamApp = NULL;
+  delete mediaApp;
+  mediaApp = NULL;
 }
 
 /*! Tests deep audio file probe.

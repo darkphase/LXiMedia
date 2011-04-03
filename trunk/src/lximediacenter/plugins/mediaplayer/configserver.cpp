@@ -18,28 +18,56 @@
  ***************************************************************************/
 
 #include "configserver.h"
-#include "mediaplayerbackend.h"
+#include "module.h"
 
+namespace LXiMediaCenter {
+namespace MediaPlayerBackend {
 
-#ifndef Q_OS_WIN
-  const char        ConfigServer::dirSplit = ':';
+const char  ConfigServer::dirSplit =
+#if defined(Q_OS_UNIX)
+    ':';
+#elif  defined(Q_OS_WIN)
+    ';';
 #else
-  const char        ConfigServer::dirSplit = ';';
+#error Not implemented.
 #endif
 
-ConfigServer::ConfigServer(Plugin *plugin, MasterServer *server)
-  : BackendServer(QT_TR_NOOP("Settings"), plugin, server),
-    plugin(plugin)
+ConfigServer::ConfigServer(const QString &, QObject *parent)
+  : BackendServer(parent),
+    masterServer(NULL)
 {
   // Ensure static initializers are invoked.
   drives();
-
-  masterServer()->httpServer()->registerCallback(httpPath(), this);
 }
 
 ConfigServer::~ConfigServer()
 {
-  masterServer()->httpServer()->unregisterCallback(this);
+}
+
+void ConfigServer::initialize(MasterServer *masterServer)
+{
+  this->masterServer = masterServer;
+
+  BackendServer::initialize(masterServer);
+
+  masterServer->httpServer()->registerCallback(serverPath(), this);
+}
+
+void ConfigServer::close(void)
+{
+  BackendServer::close();
+
+  masterServer->httpServer()->unregisterCallback(this);
+}
+
+QString ConfigServer::pluginName(void) const
+{
+  return Module::pluginName;
+}
+
+QString ConfigServer::serverName(void) const
+{
+  return QT_TR_NOOP("Settings");
 }
 
 SHttpServer::SocketOp ConfigServer::handleHttpRequest(const SHttpServer::RequestHeader &request, QIODevice *socket)
@@ -92,3 +120,5 @@ const QSet<QString> & ConfigServer::hiddenDirs(void)
 
   return h;
 }
+
+} } // End of namespaces

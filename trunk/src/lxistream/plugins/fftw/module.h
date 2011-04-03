@@ -28,12 +28,12 @@ namespace FFTWBackend {
 
 
 class Module : public QObject,
-               public SInterfaces::Module
+               public SModule
 {
 Q_OBJECT
-Q_INTERFACES(LXiStream::SInterfaces::Module)
+Q_INTERFACES(LXiCore::SModule)
 public:
-  virtual void                  registerClasses(void);
+  virtual bool                  registerClasses(void);
   virtual void                  unload(void);
   virtual QByteArray            about(void);
 

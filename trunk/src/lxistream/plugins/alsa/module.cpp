@@ -24,10 +24,10 @@
 namespace LXiStream {
 namespace AlsaBackend {
 
-
-void Module::registerClasses(void)
+bool Module::registerClasses(void)
 {
-  if ((sApp->initializeFlags() & SApplication::Initialize_Devices) == SApplication::Initialize_Devices)
+  int result = false;
+  if (loadDevices)
   {
     int card = -1;
     if (snd_card_next(&card) >= 0)
@@ -70,6 +70,8 @@ void Module::registerClasses(void)
                     AlsaOutput::registerClass<AlsaOutput>(SFactory::Scheme(-card, longName + ", hw:" + QString::number(card)));
 
                   AlsaInput::registerClass<AlsaInput>(SFactory::Scheme(-card, longName + ", hw:" + QString::number(card)));
+
+                  result = true;
                 }
                 else if (name == "iec958:") // Iec958 (S/PDIF) output
                 {
@@ -77,6 +79,8 @@ void Module::registerClasses(void)
                     AlsaOutput::registerClass<AlsaOutput>(SFactory::Scheme(-card, longName + ", iec958:" + QString::number(card)));
 
                   AlsaInput::registerClass<AlsaInput>(SFactory::Scheme(-card, longName + ", iec958:" + QString::number(card)));
+
+                  result = true;
                 }
               }
             }
@@ -98,6 +102,8 @@ void Module::registerClasses(void)
         break;
     }
   }
+
+  return result;
 }
 
 void Module::unload(void)
@@ -109,8 +115,7 @@ QByteArray Module::about(void)
   return QByteArray();
 }
 
-
 } } // End of namespaces
 
 #include <QtPlugin>
-Q_EXPORT_PLUGIN2("alsa", LXiStream::AlsaBackend::Module);
+Q_EXPORT_PLUGIN2(lxistream.alsa, LXiStream::AlsaBackend::Module);

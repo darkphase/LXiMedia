@@ -25,12 +25,12 @@ class CommonTest : public QObject
 {
 Q_OBJECT
 public:
-  inline explicit               CommonTest(QObject *parent) : QObject(parent), streamApp(NULL) { }
+  inline explicit               CommonTest(QObject *parent) : QObject(parent), mediaApp(NULL) { }
 
 private slots:
   void                          initTestCase(void);
   void                          cleanupTestCase(void);
 
 private:
-  SApplication                * streamApp;
+  SApplication                * mediaApp;
 };

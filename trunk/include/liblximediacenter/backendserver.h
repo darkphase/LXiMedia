@@ -26,9 +26,9 @@
 namespace LXiMediaCenter {
 
 class ImdbClient;
-class Plugin;
 
-class BackendServer : public QObject
+class BackendServer : public QObject,
+                      public SFactorizable<BackendServer>
 {
 Q_OBJECT
 public:
@@ -60,17 +60,26 @@ public:
   typedef QList<SearchResult>   SearchResultList;
 
 public:
-                                BackendServer(const char *name, Plugin *, MasterServer *);
+  /*! Creates all registred BackendServers.
+      \param parent   The parent object, or NULL if none.
+   */
+  static QList<BackendServer *> create(QObject *parent);
+
+public:
+  explicit                      BackendServer(QObject * = NULL);
   virtual                       ~BackendServer();
+
+  virtual void                  initialize(MasterServer *);
+  virtual void                  close(void);
+
+  virtual QString               pluginName(void) const = 0;
+  virtual QString               serverName(void) const = 0;
+  virtual QString               serverPath(void) const;
 
   virtual QByteArray            frontPageWidget(void) const;
   virtual SearchResultList      search(const QStringList &) const;
 
-  MasterServer                * masterServer(void) const;
-  const QString               & name(void) const;
-  const QString               & httpPath(void) const;
-  const QString               & contentDirPath(void) const;
-
+public:
   SHttpServer::SocketOp         sendResponse(const SHttpServer::RequestHeader &, QIODevice *, const QByteArray &, const char * = dataMime, bool allowCache = false, const QString &redir = QString::null) const;
   SHttpServer::SocketOp         sendResponse(const SHttpServer::RequestHeader &, QIODevice *, const QString &, const char * = textMime, bool allowCache = false, const QString &redir = QString::null) const;
   SHttpServer::SocketOp         sendHtmlContent(QIODevice *, const QUrl &, const SHttpServer::ResponseHeader &, const QByteArray &content, const QByteArray &head = QByteArray()) const;
@@ -86,13 +95,13 @@ private:
   static const char     * const dataMime;
   static const char     * const textMime;
 
-  struct Private;
-  Private               * const p;
-
 protected:
   static const char     * const htmlFrontPageWidget;
-};
 
+private:
+  struct Data;
+  Data                  * const d;
+};
 
 } // End of namespace
 

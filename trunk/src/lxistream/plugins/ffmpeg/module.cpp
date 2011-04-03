@@ -34,8 +34,7 @@
 namespace LXiStream {
 namespace FFMpegBackend {
 
-
-void Module::registerClasses(void)
+bool Module::registerClasses(void)
 {
 #ifdef QT_NO_DEBUG
   FFMpegCommon::init();
@@ -120,6 +119,8 @@ void Module::registerClasses(void)
   }
 
   FFMpegCommon::disableLog(false);
+
+  return true;
 }
 
 void Module::unload(void)
@@ -140,8 +141,7 @@ QByteArray Module::about(void)
   return text;
 }
 
-
 } } // End of namespaces
 
 #include <QtPlugin>
-Q_EXPORT_PLUGIN2("ffmpeg", LXiStream::FFMpegBackend::Module);
+Q_EXPORT_PLUGIN2(lxistream.ffmpeg, LXiStream::FFMpegBackend::Module);

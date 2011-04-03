@@ -20,6 +20,7 @@
 #include "playlist.h"
 
 namespace LXiMediaCenter {
+namespace MediaPlayerBackend {
 
 Playlist::Playlist(MediaDatabase *mediaDatabase, QObject *parent)
   : QObject(parent),
@@ -37,14 +38,14 @@ Playlist::~Playlist()
 
 void Playlist::append(MediaDatabase::UniqueID uid)
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+  QMutexLocker l(&mutex);
 
   list.append(Entry(uid));
 }
 
 void Playlist::remove(MediaDatabase::UniqueID uid)
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+  QMutexLocker l(&mutex);
 
   for (QVector<Entry>::Iterator i=list.begin(); i!=list.end(); )
   if (i->uid == uid)
@@ -60,7 +61,7 @@ void Playlist::remove(MediaDatabase::UniqueID uid)
 
 void Playlist::clear(void)
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+  QMutexLocker l(&mutex);
 
   list.clear();
   played = 0;
@@ -68,21 +69,21 @@ void Playlist::clear(void)
 
 int Playlist::count(void) const
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+  QMutexLocker l(&mutex);
 
   return list.count();
 }
 
 MediaDatabase::UniqueID Playlist::checkout(void)
 {
-  SDebug::MutexLocker ml(&mutex, __FILE__, __LINE__);
+  QMutexLocker ml(&mutex);
 
   return random();
 }
 
 QList<MediaDatabase::UniqueID> Playlist::next(void)
 {
-  SDebug::MutexLocker ml(&mutex, __FILE__, __LINE__);
+  QMutexLocker ml(&mutex);
 
   QList<MediaDatabase::UniqueID> result;
 
@@ -114,7 +115,7 @@ MediaDatabase::UniqueID Playlist::random(void)
 
 QByteArray Playlist::serialize(void) const
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+  QMutexLocker l(&mutex);
 
   QByteArray data = "#EXTM3U\n\n";
 
@@ -153,7 +154,7 @@ QByteArray Playlist::serialize(void) const
 
 bool Playlist::deserialize(const QByteArray &data)
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+  QMutexLocker l(&mutex);
 
   clear();
 
@@ -175,4 +176,4 @@ bool Playlist::deserialize(const QByteArray &data)
   return !list.isEmpty();
 }
 
-} // End of namespace
+} } // End of namespaces

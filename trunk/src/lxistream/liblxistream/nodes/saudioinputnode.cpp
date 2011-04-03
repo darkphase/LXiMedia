@@ -18,7 +18,6 @@
  ***************************************************************************/
 
 #include "nodes/saudioinputnode.h"
-#include "sdebug.h"
 #include "sinterfaces.h"
 
 namespace LXiStream {

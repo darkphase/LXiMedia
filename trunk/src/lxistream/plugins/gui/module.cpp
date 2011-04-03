@@ -25,8 +25,7 @@
 namespace LXiStream {
 namespace GuiBackend {
 
-
-void Module::registerClasses(void)
+bool Module::registerClasses(void)
 {
   FormatProber::registerClass<FormatProber>(0);
 
@@ -45,6 +44,8 @@ void Module::registerClasses(void)
   ImageEncoder::registerClass<ImageEncoder>("PNG");
   ImageEncoder::registerClass<ImageEncoder>("PPM");
   ImageEncoder::registerClass<ImageEncoder>("TIFF");
+
+  return true;
 }
 
 void Module::unload(void)
@@ -64,8 +65,7 @@ QByteArray Module::about(void)
   return text;
 }
 
-
 } } // End of namespaces
 
 #include <QtPlugin>
-Q_EXPORT_PLUGIN2("gui", LXiStream::GuiBackend::Module);
+Q_EXPORT_PLUGIN2(lxistream.gui, LXiStream::GuiBackend::Module);

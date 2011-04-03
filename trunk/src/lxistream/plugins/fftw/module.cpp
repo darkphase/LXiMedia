@@ -24,10 +24,11 @@
 namespace LXiStream {
 namespace FFTWBackend {
 
-
-void Module::registerClasses(void)
+bool Module::registerClasses(void)
 {
   fftwMutex();
+
+  return true;
 }
 
 void Module::unload(void)
@@ -59,8 +60,7 @@ QMutex & Module::fftwMutex(void)
   return m;
 }
 
-
 } } // End of namespaces
 
 #include <QtPlugin>
-Q_EXPORT_PLUGIN2("fftw", LXiStream::FFTWBackend::Module);
+Q_EXPORT_PLUGIN2(lxistream.fftw, LXiStream::FFTWBackend::Module);

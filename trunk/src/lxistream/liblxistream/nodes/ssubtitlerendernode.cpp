@@ -18,7 +18,6 @@
  ***************************************************************************/
 
 #include "nodes/ssubtitlerendernode.h"
-#include "sdebug.h"
 #include "ssubtitlebuffer.h"
 #include "svideobuffer.h"
 
@@ -164,7 +163,7 @@ SVideoBuffer SSubtitleRenderNode::renderSubtitles(const SVideoBuffer &videoBuffe
 
 void SSubtitleRenderNode::processTask(const SSubtitleBuffer &subtitleBuffer)
 {
-  SDebug::MutexLocker l(&d->mutex, __FILE__, __LINE__);
+  QMutexLocker l(&d->mutex);
 
   if (subtitleBuffer.duration().toSec() <= 10)
   {
@@ -182,7 +181,7 @@ void SSubtitleRenderNode::processTask(const SSubtitleBuffer &subtitleBuffer)
 
 void SSubtitleRenderNode::processTask(const SVideoBuffer &videoBuffer)
 {
-  SDebug::MutexLocker l(&d->mutex, __FILE__, __LINE__);
+  QMutexLocker l(&d->mutex);
 
   for (QMap<STime, SSubtitleBuffer>::Iterator i=d->subtitles.begin(); i!=d->subtitles.end(); )
   {

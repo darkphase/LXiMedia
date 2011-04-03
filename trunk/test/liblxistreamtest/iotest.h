@@ -24,7 +24,7 @@ class IOTest : public QObject
 {
 Q_OBJECT
 public:
-  inline explicit               IOTest(QObject *parent) : QObject(parent), streamApp(NULL) { }
+  inline explicit               IOTest(QObject *parent) : QObject(parent), mediaApp(NULL) { }
 
 private slots:
   void                          initTestCase(void);
@@ -44,6 +44,6 @@ private slots:
   void                          receive(const SAudioBuffer &);
 
 private:
-  SApplication                * streamApp;
+  SApplication                * mediaApp;
   SAudioBufferList              audioBufferList;
 };

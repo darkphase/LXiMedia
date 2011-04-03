@@ -118,7 +118,7 @@ private slots:
 private:
   struct PlayerGraph;
 
-  SApplication                * streamApp;
+  SApplication                * mediaApp;
 
   Ui_mainWindow                 ui;
 

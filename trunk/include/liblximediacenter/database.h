@@ -53,7 +53,7 @@ public:
   static void                   initialize(void);
   static void                   shutdown(void);
 
-  static SScheduler::Dependency * mutex(void);
+  static SScheduler::Dependency * dependency(void);
 
   static void                   transaction(void);
   static void                   commit(void);

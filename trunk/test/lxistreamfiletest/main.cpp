@@ -21,6 +21,7 @@
 #include <QtGui>
 #include <LXiStream>
 #include <iostream>
+#include "lxistream/plugins/dvdnav/module.h"
 #include "lxistream/plugins/ffmpeg/module.h"
 #include "filetester.h"
 
@@ -29,10 +30,9 @@ int main(int argc, char *argv[])
   QApplication app(argc, argv);
   if (app.arguments().count() >= 2)
   {
-    SApplication streamApp(SApplication::Initialize_Devices |
-                           SApplication::Initialize_LogToConsole);
-
-    streamApp.loadModule(new FFMpegBackend::Module());
+    SApplication mediaApp;
+    mediaApp.loadModule(new DVDNavBackend::Module());
+    mediaApp.loadModule(new FFMpegBackend::Module());
 
     QDir dir(app.arguments()[1]);
     std::cout << "Testing all files in directory " << dir.absolutePath().toAscii().data() << std::endl;

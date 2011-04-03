@@ -26,15 +26,13 @@
 #include "mediaplayerserver.h"
 
 namespace LXiMediaCenter {
-
-class PlaylistServer;
-
+namespace MediaPlayerBackend {
 
 class PlaylistServer : public MediaPlayerServer
 {
 Q_OBJECT
 public:
-                                PlaylistServer(MediaDatabase *, MediaDatabase::Category, const char *, Plugin *, MasterServer *, const QString & = tr("Play all"));
+                                PlaylistServer(MediaDatabase::Category, QObject *, const QString & = tr("Play all"));
   virtual                       ~PlaylistServer();
 
 protected:
@@ -53,6 +51,6 @@ private:
   static const char     * const htmlView;
 };
 
-} // End of namespace
+} } // End of namespaces
 
 #endif

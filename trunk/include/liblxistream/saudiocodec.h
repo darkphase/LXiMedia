@@ -21,8 +21,8 @@
 #define LXSTREAM_SAUDIOCODEC_H
 
 #include <QtCore>
+#include <LXiCore>
 #include "saudioformat.h"
-#include "sserializable.h"
 
 namespace LXiStream {
 

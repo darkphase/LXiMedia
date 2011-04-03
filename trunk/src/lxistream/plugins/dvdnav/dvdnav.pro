@@ -1,6 +1,6 @@
-PLUGIN_NAME = dvdnav
+MODULE_NAME = lxistream.dvdnav
 LXIMEDIA_DIR = ../../../..
-include($${LXIMEDIA_DIR}/include/liblxistream/plugin.pri)
+include($${LXIMEDIA_DIR}/include/liblxicore/module.pri)
 include($${LXIMEDIA_DIR}/include/liblxistream/linklxistream-internal.pri)
 include($${LXIMEDIA_DIR}/ext/dvdnav/dvdnav.pri)
 

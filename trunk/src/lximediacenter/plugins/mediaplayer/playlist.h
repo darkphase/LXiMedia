@@ -25,6 +25,7 @@
 #include "mediadatabase.h"
 
 namespace LXiMediaCenter {
+namespace MediaPlayerBackend {
 
 class Playlist : public QObject
 {
@@ -67,6 +68,6 @@ private:
   int                           played;
 };
 
-} // End of namespace
+} } // End of namespaces
 
 #endif
