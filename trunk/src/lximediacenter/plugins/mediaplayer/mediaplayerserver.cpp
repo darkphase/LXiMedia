@@ -177,9 +177,10 @@ int MediaPlayerServer::countAlbums(const QString &path)
 QList<MediaPlayerServer::Item> MediaPlayerServer::listAlbums(const QString &path,  unsigned &start, unsigned &count)
 {
   const bool returnAll = count == 0;
-
+  const Item::Type itemType = defaultItemType();
+  QList<Item> result;
   QSet<QString> names;
-  QStringList albums, paths;
+
   foreach (const QString &album, mediaDatabase->allAlbums(category))
   if (album.startsWith(path))
   {
@@ -190,29 +191,32 @@ QList<MediaPlayerServer::Item> MediaPlayerServer::listAlbums(const QString &path
       const QString name = sub.left(slash);
       if (!names.contains(name))
       {
-        albums += name;
         names.insert(name);
+
+        if (returnAll || (count > 0))
+        {
+          if (start == 0)
+          {
+            Item item;
+            item.isDir = true;
+            item.type = itemType;
+            item.title = name;
+
+            foreach (const MediaDatabase::File &file, mediaDatabase->getAlbumFiles(category, path + item.title + '/', 0, 8))
+            {
+              item.iconUrl = serverPath() + MediaDatabase::toUidString(file.uid) + "-thumb.png?overlay=folder-video";
+              break;
+            }
+
+            result += item;
+            if (count > 0)
+              count--;
+          }
+          else
+            start--;
+        }
       }
     }
-  }
-
-  const Item::Type itemType = defaultItemType();
-
-  QList<Item> result;
-  for (int i=start, n=0; (i<albums.count()) && (returnAll || (n<int(count))); i++, n++)
-  {
-    Item item;
-    item.isDir = true;
-    item.type = itemType;
-    item.title = albums[i];
-
-    foreach (const MediaDatabase::File &file, mediaDatabase->getAlbumFiles(category, path + item.title + '/', 0, 8))
-    {
-      item.iconUrl = serverPath() + MediaDatabase::toUidString(file.uid) + "-thumb.png?overlay=folder-video";
-      break;
-    }
-
-    result += item;
   }
 
   return result;

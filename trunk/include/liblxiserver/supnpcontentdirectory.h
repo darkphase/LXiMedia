@@ -76,7 +76,8 @@ public:
     };
 
     inline Item(void)
-      : isDir(false), played(false), direct(false), type(Type_None), duration(0)
+      : isDir(false), played(false), direct(false), type(Type_None),
+        track(0), duration(0)
     {
     }
 
