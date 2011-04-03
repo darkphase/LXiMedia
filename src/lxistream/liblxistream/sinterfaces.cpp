@@ -18,32 +18,24 @@
  ***************************************************************************/
 
 #include "sinterfaces.h"
-#include "sfactory.hpp"
+
+template class LXiCore::SFactorizable<LXiStream::SInterfaces::FormatProber>;
+template class LXiCore::SFactorizable<LXiStream::SInterfaces::BufferReader>;
+template class LXiCore::SFactorizable<LXiStream::SInterfaces::BufferWriter>;
+template class LXiCore::SFactorizable<LXiStream::SInterfaces::AudioDecoder>;
+template class LXiCore::SFactorizable<LXiStream::SInterfaces::VideoDecoder>;
+template class LXiCore::SFactorizable<LXiStream::SInterfaces::DataDecoder>;
+template class LXiCore::SFactorizable<LXiStream::SInterfaces::AudioEncoder>;
+template class LXiCore::SFactorizable<LXiStream::SInterfaces::VideoEncoder>;
+template class LXiCore::SFactorizable<LXiStream::SInterfaces::AudioInput>;
+template class LXiCore::SFactorizable<LXiStream::SInterfaces::AudioOutput>;
+template class LXiCore::SFactorizable<LXiStream::SInterfaces::AudioResampler>;
+template class LXiCore::SFactorizable<LXiStream::SInterfaces::VideoDeinterlacer>;
+template class LXiCore::SFactorizable<LXiStream::SInterfaces::VideoInput>;
+template class LXiCore::SFactorizable<LXiStream::SInterfaces::VideoResizer>;
 
 namespace LXiStream {
-
-// Instantiated SFactorizable templates for the interfaces:
-template class SFactorizable<SInterfaces::FormatProber>;
-template class SFactorizable<SInterfaces::BufferReader>;
-template class SFactorizable<SInterfaces::BufferWriter>;
-template class SFactorizable<SInterfaces::AudioDecoder>;
-template class SFactorizable<SInterfaces::VideoDecoder>;
-template class SFactorizable<SInterfaces::DataDecoder>;
-template class SFactorizable<SInterfaces::AudioEncoder>;
-template class SFactorizable<SInterfaces::VideoEncoder>;
-template class SFactorizable<SInterfaces::AudioInput>;
-template class SFactorizable<SInterfaces::AudioOutput>;
-template class SFactorizable<SInterfaces::AudioResampler>;
-template class SFactorizable<SInterfaces::VideoDeinterlacer>;
-template class SFactorizable<SInterfaces::VideoInput>;
-template class SFactorizable<SInterfaces::VideoResizer>;
-
 namespace SInterfaces {
-
-
-Module::~Module()
-{
-}
 
 const unsigned FormatProber::defaultProbeSize = 16384;
 

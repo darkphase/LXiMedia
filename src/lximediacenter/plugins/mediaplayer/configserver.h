@@ -25,16 +25,21 @@
 #include <LXiStream>
 
 namespace LXiMediaCenter {
-
-class MediaPlayerBackend;
+namespace MediaPlayerBackend {
 
 class ConfigServer : public BackendServer,
                      protected SHttpServer::Callback
 {
 Q_OBJECT
 public:
-                                ConfigServer(Plugin *, MasterServer *server);
+                                ConfigServer(const QString &, QObject * = NULL);
   virtual                       ~ConfigServer();
+
+  virtual void                  initialize(MasterServer *);
+  virtual void                  close(void);
+
+  virtual QString               pluginName(void) const;
+  virtual QString               serverName(void) const;
 
   static const QSet<QString>  & hiddenDirs(void) __attribute__((pure));
 
@@ -49,7 +54,7 @@ private:
 
 private:
   static const char             dirSplit;
-  Plugin                * const plugin;
+  MasterServer                * masterServer;
   mutable QReadWriteLock        lock;
 
 private:
@@ -62,6 +67,6 @@ private:
   static const char     * const htmlDirTreeCheckLink;
 };
 
-} // End of namespace
+} } // End of namespaces
 
 #endif

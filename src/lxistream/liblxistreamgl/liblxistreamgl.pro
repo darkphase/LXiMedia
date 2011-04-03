@@ -5,6 +5,11 @@ LXIMEDIA_DIR = ../../..
 DESTDIR = $${LXIMEDIA_DIR}/bin
 TARGET = LXiStreamGl
 include($${LXIMEDIA_DIR}/include/config.pri)
+
+INCLUDEPATH += $${LXIMEDIA_DIR}/include/liblxistream $${LXIMEDIA_DIR}/include/liblxistreamgl
+DEPENDPATH += $${LXIMEDIA_DIR}/include/liblxistream $${LXIMEDIA_DIR}/include/liblxistreamgl
+
+include($${LXIMEDIA_DIR}/include/liblxicore/linklxicore.pri)
 include($${LXIMEDIA_DIR}/include/liblxistream/linklxistream.pri)
 
 # Files

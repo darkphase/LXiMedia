@@ -48,9 +48,6 @@ public: // From SBufferEncoder
   virtual SEncodedVideoBufferList encodeBuffer(const SVideoBuffer &);
 
 private:
-  void                          determinePreprocessfunc(const SCodec &codec);
-
-private:
   static const int              bufferSize;
 
   SVideoCodec                   outCodec;

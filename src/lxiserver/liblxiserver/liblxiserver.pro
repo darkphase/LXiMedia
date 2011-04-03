@@ -14,6 +14,8 @@ linux-g++|win32-g++ {
   PRECOMPILED_HEADER = $${LXIMEDIA_DIR}/include/LXiServer
 }
 
+include($${LXIMEDIA_DIR}/include/liblxicore/linklxicore.pri)
+
 # Files
 HEADERS += ../../../include/LXiServer \
  ../../../include/liblxiserver/shttpengine.h \
@@ -44,7 +46,6 @@ SOURCES += shttpengine.cpp \
  supnpmediaserver.cpp
 
 HEADERS += lxiserverprivate.h
-
 SOURCES += lxiserverprivate.cpp
 
 unix {

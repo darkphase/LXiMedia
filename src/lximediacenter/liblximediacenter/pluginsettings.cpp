@@ -18,18 +18,14 @@
  ***************************************************************************/
 
 #include "pluginsettings.h"
-
 #include "globalsettings.h"
-#include "plugininterfaces.h"
-
 
 namespace LXiMediaCenter {
 
-PluginSettings::PluginSettings(const Plugin *plugin)
+PluginSettings::PluginSettings(const QString &name)
                :QSettings(GlobalSettings::settingsFile(), QSettings::IniFormat)
 {
-  beginGroup(SStringParser::toRawName(plugin->pluginName()).toLower());
+  beginGroup(SStringParser::toRawName(name).toLower());
 }
-
 
 } // End of namespace

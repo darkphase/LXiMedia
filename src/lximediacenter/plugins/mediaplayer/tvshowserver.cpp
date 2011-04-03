@@ -21,9 +21,10 @@
 #include "mediaplayersandbox.h"
 
 namespace LXiMediaCenter {
+namespace MediaPlayerBackend {
 
-TvShowServer::TvShowServer(MediaDatabase *mediaDatabase, MediaDatabase::Category category, const char *name, Plugin *plugin, MasterServer *server)
-  : PlaylistServer(mediaDatabase, category, name, plugin, server),
+TvShowServer::TvShowServer(MediaDatabase::Category category, QObject *parent)
+  : PlaylistServer(category, parent),
     seasonText(tr("Season"))
 {
 }
@@ -41,7 +42,7 @@ TvShowServer::Stream * TvShowServer::streamVideo(const SHttpServer::RequestHeade
     if (url.hasQueryItem("query"))
       url = url.toEncoded(QUrl::RemoveQuery) + QByteArray::fromHex(url.queryItemValue("query").toAscii());
 
-    const QString path = request.directory().mid(httpPath().length() - 1);
+    const QString path = request.directory().mid(serverPath().length() - 1);
     if (!mediaDatabase->hasAlbum(category, path))
     {
       const QString dir = path.mid(path.left(path.length() - 1).lastIndexOf('/'));
@@ -274,4 +275,4 @@ QString TvShowServer::toTvShowNumber(unsigned episode)
   return QString::number(episode / SMediaInfo::tvShowSeason) + "x" + text;
 }
 
-} // End of namespace
+} } // End of namespaces

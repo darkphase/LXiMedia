@@ -41,10 +41,10 @@ protected:
 private:
   static const QEvent::Type     exitEventType;
 
+  SApplication                  mediaApp;
   SSandboxServer                sandboxServer;
-  SApplication                * streamApp;
 
-  QList<BackendPlugin *>        backendPlugins;
+  QList<BackendSandbox *>       backendSandboxes;
 
   QTimer                        stopTimer;
 };

@@ -19,6 +19,7 @@
 
 #include <QtCore>
 #include <QtNetwork>
+#include <LXiServer>
 
 class HttpServerTest : public QObject
 {
@@ -35,4 +36,7 @@ private slots:
 
 private:
   bool                          gotHttpServerReply;
+
+private:
+  SApplication                * mediaApp;
 };

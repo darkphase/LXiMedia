@@ -14,12 +14,12 @@ include($${LXIMEDIA_DIR}/ext/ffmpeg/ffmpeg.pri)
 include($${LXIMEDIA_DIR}/ext/fftw/fftw.pri)
 
 # Files
-HEADERS += coretest.h \
+HEADERS += streamtest.h \
     dvdnavtest.h \
     ffmpegtest.h \
     iotest.h
 SOURCES += main.cpp \
-    coretest.cpp \
+    streamtest.cpp \
     dvdnavtest.cpp \
     ffmpegtest.cpp \
     iotest.cpp
@@ -34,13 +34,14 @@ LIBS += -lbfd \
 unix:QMAKE_POST_LINK = $(TARGET) -silent
 #win32:QMAKE_POST_LINK = $(TARGET) -silent
 # Prevent dependency with .so files
-FILES_UNDER_TEST = $${LXIMEDIA_DIR}/obj/LXiStream/*.o \
+FILES_UNDER_TEST = $${LXIMEDIA_DIR}/obj/LXiCore/*.o \
+    $${LXIMEDIA_DIR}/obj/LXiStream/*.o \
     #$${LXIMEDIA_DIR}/obj/LXiStreamGl/*.o \
     $${LXIMEDIA_DIR}/obj/LXiStreamGui/*.o \
-    $${LXIMEDIA_DIR}/obj/dvdnav/*.o \
-    $${LXIMEDIA_DIR}/obj/ffmpeg/*.o \
-    $${LXIMEDIA_DIR}/obj/fftw/*.o \
-    $${LXIMEDIA_DIR}/obj/gui/*.o
+    $${LXIMEDIA_DIR}/obj/lxistream.dvdnav/*.o \
+    $${LXIMEDIA_DIR}/obj/lxistream.ffmpeg/*.o \
+    $${LXIMEDIA_DIR}/obj/lxistream.fftw/*.o \
+    $${LXIMEDIA_DIR}/obj/lxistream.gui/*.o
 
 # Platform specific
 unix {

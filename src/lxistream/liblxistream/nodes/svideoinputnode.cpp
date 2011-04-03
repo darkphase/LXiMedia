@@ -18,7 +18,6 @@
  ***************************************************************************/
 
 #include "nodes/svideoinputnode.h"
-#include "sdebug.h"
 #include "sinterfaces.h"
 
 namespace LXiStream {

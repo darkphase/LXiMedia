@@ -22,7 +22,7 @@
 
 MainWindow::MainWindow(void)
   : QMainWindow(),
-    streamApp(NULL),
+    mediaApp(NULL),
     playerGraph(NULL),
     refreshTimer(-1),
     seekPos(-1),
@@ -59,7 +59,8 @@ MainWindow::MainWindow(void)
   ui.tuneDownButton->setIcon(style->standardIcon(QStyle::SP_MediaSeekBackward));
   ui.tuneUpButton->setIcon(style->standardIcon(QStyle::SP_MediaSeekForward));
 
-  streamApp = new SApplication(/*SSystem::Initialize_Default | SSystem::Initialize_AllowUntrusted*/);
+  SModule::loadDevices = true;
+  mediaApp = new SApplication(QStringList() << "LXiStream");
 
   ui.captureDevices->addItem(tr("Select"));
   foreach (const QString &device, SVideoInputNode::devices())
@@ -88,7 +89,7 @@ MainWindow::MainWindow(void)
 MainWindow::~MainWindow()
 {
   stop();
-  delete streamApp;
+  delete mediaApp;
 
   QSettings().setValue("LastGeometry", geometry());
 }

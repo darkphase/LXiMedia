@@ -21,7 +21,7 @@
 #define LXSTREAM_SDATACODEC_H
 
 #include <QtCore>
-#include "sserializable.h"
+#include <LXiCore>
 
 namespace LXiStream {
 

@@ -25,13 +25,16 @@
 #include "slideshownode.h"
 
 namespace LXiMediaCenter {
+namespace MediaPlayerBackend {
 
-class MediaPlayerSandbox : public QObject,
-                           public SSandboxServer::Callback
+class MediaPlayerSandbox : public BackendSandbox
 {
 Q_OBJECT
 public:
-  explicit                      MediaPlayerSandbox(QObject *parent = NULL);
+  explicit                      MediaPlayerSandbox(const QString &, QObject *parent = NULL);
+
+  virtual void                  initialize(SSandboxServer *);
+  virtual void                  close(void);
 
 public: // From SandboxServer::Callback
   virtual SSandboxServer::SocketOp handleHttpRequest(const SSandboxServer::RequestHeader &, QIODevice *);
@@ -43,6 +46,7 @@ public:
   static const char     * const path;
 
 private:
+  SSandboxServer              * server;
   QMutex                        mutex;
   QList<MediaStream *>          streams;
   QTimer                        cleanStreamsTimer;
@@ -94,6 +98,6 @@ public:
 };
 
 
-} // End of namespace
+} } // End of namespaces
 
 #endif

@@ -40,6 +40,7 @@ private slots:
   void                          handleResponse(const SHttpEngine::ResponseMessage &);
 
 private:
+  SApplication                * mediaApp;
   LXiServer::SSandboxClient   * sandboxClient;
   static const int              numResponses = 100;
   QAtomicInt                    responseCount;

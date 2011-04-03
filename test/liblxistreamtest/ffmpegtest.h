@@ -26,7 +26,7 @@ class FFMpegTest : public QObject
 {
 Q_OBJECT
 public:
-  inline explicit               FFMpegTest(QObject *parent) : QObject(parent), streamApp(NULL) { }
+  inline explicit               FFMpegTest(QObject *parent) : QObject(parent), mediaApp(NULL) { }
 
 private slots:
   void                          initTestCase(void);
@@ -41,5 +41,5 @@ private:
   void                          VideoEncodeDecode(const char *);
 
 private:
-  SApplication                * streamApp;
+  SApplication                * mediaApp;
 };

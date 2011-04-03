@@ -18,7 +18,7 @@
  ***************************************************************************/
 
 #include "ssubtitlefile.h"
-#include "sstringparser.h"
+#include <LXiCore>
 
 namespace LXiStream {
 

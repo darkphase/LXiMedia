@@ -276,18 +276,18 @@ const char * const MediaServer::headList =
 const char * const MediaServer::headPlayer =
     " <script type=\"text/javascript\" src=\"/swf/flowplayer.js\" />\n";
 
-QByteArray MediaServer::buildThumbnailView(const QString &path, const ThumbnailListItemList &items, int start, int total)
+QByteArray MediaServer::buildThumbnailView(const QString &dirPath, const ThumbnailListItemList &items, int start, int total)
 {
   HtmlParser htmlParser;
 
   // Build the page selector
   htmlParser.setField("PAGES", QByteArray(""));
 
-  const QStringList dirs = path.split('/', QString::SkipEmptyParts);
+  const QStringList dirs = dirPath.split('/', QString::SkipEmptyParts);
 
-  QString fullPath = httpPath();
+  QString fullPath = serverPath();
   htmlParser.setField("ITEM_LINK", fullPath);
-  htmlParser.setField("ITEM_NAME", name());
+  htmlParser.setField("ITEM_NAME", serverName());
   htmlParser.appendField("PAGES", htmlParser.parse(dirs.isEmpty() ? htmlPageCurrentItem : htmlPageItem));
 
   for (int i=0; i<dirs.count(); i++)
@@ -362,18 +362,18 @@ QByteArray MediaServer::buildThumbnailView(const QString &path, const ThumbnailL
   return htmlParser.parse(htmlThumbnails);
 }
 
-QByteArray MediaServer::buildDetailedView(const QString &path, const QStringList &columns, const DetailedListItemList &items)
+QByteArray MediaServer::buildDetailedView(const QString &dirPath, const QStringList &columns, const DetailedListItemList &items)
 {
   HtmlParser htmlParser;
 
   // Build the page selector
   htmlParser.setField("PAGES", QByteArray(""));
 
-  const QStringList dirs = path.split('/', QString::SkipEmptyParts);
+  const QStringList dirs = dirPath.split('/', QString::SkipEmptyParts);
 
-  QString fullPath = httpPath();
+  QString fullPath = serverPath();
   htmlParser.setField("ITEM_LINK", fullPath);
-  htmlParser.setField("ITEM_NAME", name());
+  htmlParser.setField("ITEM_NAME", serverName());
   htmlParser.appendField("PAGES", htmlParser.parse(dirs.isEmpty() ? htmlPageCurrentItem : htmlPageItem));
 
   for (int i=0; i<dirs.count(); i++)

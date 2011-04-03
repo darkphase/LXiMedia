@@ -15,12 +15,14 @@ linux-g++|win32-g++ {
   PRECOMPILED_HEADER = $${LXIMEDIA_DIR}/include/LXiMediaCenter
 }
 
+include($${LXIMEDIA_DIR}/include/liblxicore/linklxicore.pri)
 include($${LXIMEDIA_DIR}/include/liblxiserver/linklxiserver.pri)
 include($${LXIMEDIA_DIR}/include/liblxistream/linklxistream.pri)
 include($${LXIMEDIA_DIR}/include/liblxistreamgui/linklxistreamgui.pri)
 
 # Files
 HEADERS += ../../../include/LXiMediaCenter \
+ ../../../include/liblximediacenter/backendsandbox.h \
  ../../../include/liblximediacenter/backendserver.h \
  ../../../include/liblximediacenter/database.h \
  ../../../include/liblximediacenter/globalsettings.h \
@@ -28,11 +30,11 @@ HEADERS += ../../../include/LXiMediaCenter \
  ../../../include/liblximediacenter/imdbclient.h \
  ../../../include/liblximediacenter/mediaserver.h \
  ../../../include/liblximediacenter/mediastream.h \
- ../../../include/liblximediacenter/plugininterfaces.h \
  ../../../include/liblximediacenter/pluginsettings.h \
  ../../../include/liblximediacenter/teletext.h
 
-SOURCES += backendserver.cpp \
+SOURCES += backendsandbox.cpp \
+ backendserver.cpp \
  backendserver.html.cpp \
  database.cpp \
  globalsettings.cpp \
@@ -41,7 +43,6 @@ SOURCES += backendserver.cpp \
  mediaserver.cpp \
  mediaserver.html.cpp \
  mediastream.cpp \
- plugininterfaces.cpp \
  pluginsettings.cpp \
  teletext.cpp
 

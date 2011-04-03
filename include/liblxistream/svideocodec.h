@@ -21,9 +21,8 @@
 #define LXISTREAM_SVIDEOCODEC_H
 
 #include <QtCore>
-#include <QtGlobal>
+#include <LXiCore>
 #include "sinterval.h"
-#include "sserializable.h"
 #include "ssize.h"
 
 namespace LXiStream {

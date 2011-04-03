@@ -19,7 +19,7 @@
 
 #include <QtGui>
 #include <QTest>
-#include "coretest.h"
+#include "streamtest.h"
 #include "dvdnavtest.h"
 #include "ffmpegtest.h"
 #include "iotest.h"
@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
 {
   QCoreApplication app(argc, argv);
 
-  if (QTest::qExec(new CoreTest(&app), app.arguments()) != 0)     return 1;
+  if (QTest::qExec(new StreamTest(&app), app.arguments()) != 0)   return 1;
   if (QTest::qExec(new IOTest(&app), app.arguments()) != 0)       return 1;
   if (QTest::qExec(new DVDNavTest(&app), app.arguments()) != 0)   return 1;
   if (QTest::qExec(new FFMpegTest(&app), app.arguments()) != 0)   return 1;

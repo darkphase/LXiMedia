@@ -19,7 +19,6 @@
 
 #include "nodes/splaylistnode.h"
 #include "nodes/sfileinputnode.h"
-#include "sdebug.h"
 
 namespace LXiStream {
 

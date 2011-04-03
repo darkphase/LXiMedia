@@ -2,6 +2,9 @@ TEMPLATE = subdirs
 CONFIG += ordered
 DESTDIR = .
 
+# LXiCore
+SUBDIRS += lxicore
+
 # LXiServer
 SUBDIRS += lxiserver
 

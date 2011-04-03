@@ -50,12 +50,14 @@ Section "-Shared Files" SecShared
   SetOverwrite ifnewer
   File ..\..\bin\sqldrivers\*.dll
 
-  SetOutPath $INSTDIR\liblxistream
+  SetOutPath $INSTDIR\lximedia
   SetOverwrite ifnewer
-  File ..\..\bin\liblxistream\*.dll
+  File ..\..\bin\lximedia\*.dll
 
   ; For backwards compatibility with 0.1.x versions, can be removed in the future.
   Rename "$%ALLUSERSPROFILE%\Application Data\lximc" "$%ALLUSERSPROFILE%\Application Data\LXiMediaCenter"
+  RMDir /r /REBOOTOK "$INSTDIR\liblxistream"
+  RMDir /r /REBOOTOK "$INSTDIR\lximediacenter"
 
   WriteUninstaller "$INSTDIR\Uninstall.exe"
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\LXiMediaCenter" "DisplayName" "LeX-Interactive MediaCenter"
@@ -66,10 +68,6 @@ Section "Backend service" SecBackend
   SetOutPath $INSTDIR
   SetOverwrite ifnewer
   File ..\..\bin\lximcbackend.exe
-
-  SetOutPath $INSTDIR\lximediacenter
-  SetOverwrite ifnewer
-  File ..\..\bin\lximediacenter\*.dll
 
   nsisFirewall::AddAuthorizedApplication "$INSTDIR\lximcbackend.exe" "LeX-Interactive MediaCenter - Backend service"
 

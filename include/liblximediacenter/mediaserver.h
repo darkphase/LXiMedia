@@ -77,12 +77,13 @@ public:
   typedef SUPnPContentDirectory::Item Item;
 
 public:
-                                MediaServer(const char *, Plugin *, BackendServer::MasterServer *);
+  explicit                      MediaServer(QObject * = NULL);
   virtual                       ~MediaServer();
 
-protected:
-  virtual void                  customEvent(QEvent *);
+  virtual void                  initialize(MasterServer *);
+  virtual void                  close(void);
 
+protected:
   virtual Stream              * streamVideo(const SHttpServer::RequestHeader &) = 0;
 
   virtual int                   countItems(const QString &path) = 0;
@@ -90,6 +91,9 @@ protected:
 
 protected slots:
   virtual void                  cleanStreams(void);
+
+protected: // From QObject
+  virtual void                  customEvent(QEvent *);
 
 protected: // From SHttpServer::Callback
   virtual SHttpServer::SocketOp  handleHttpRequest(const SHttpServer::RequestHeader &, QIODevice *);
@@ -108,8 +112,8 @@ public:
   static const int              seekBySecs;
 
 private:
-  struct Private;
-  Private               * const p;
+  struct Data;
+  Data                  * const d;
 
 protected: // Implemented in mediaserver.html.cpp
   static const unsigned         itemsPerThumbnailPage;

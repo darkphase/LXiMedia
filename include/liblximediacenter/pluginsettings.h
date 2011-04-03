@@ -24,12 +24,10 @@
 
 namespace LXiMediaCenter {
 
-class Plugin;
-
 class PluginSettings : public QSettings
 {
 public:
-  explicit                      PluginSettings(const Plugin *) __attribute__((nonnull(1)));
+  explicit                      PluginSettings(const QString &name);
 };
 
 

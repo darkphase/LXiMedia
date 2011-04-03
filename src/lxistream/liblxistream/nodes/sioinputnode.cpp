@@ -18,7 +18,6 @@
  ***************************************************************************/
 
 #include "nodes/sioinputnode.h"
-#include "sdebug.h"
 
 namespace LXiStream {
 

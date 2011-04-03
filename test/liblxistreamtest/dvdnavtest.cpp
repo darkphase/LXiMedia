@@ -26,12 +26,10 @@
 
 void DVDNavTest::initTestCase(void)
 {
-  // We only want to initialize common and gui here, not probe for plugins.
-  streamApp = new SApplication(SApplication::Initialize_Devices |
-                               SApplication::Initialize_LogToConsole);
+  mediaApp = SApplication::createForQTest(this);
 
-  QVERIFY(streamApp->loadModule(new DVDNavBackend::Module()));
-  QVERIFY(streamApp->loadModule(new FFMpegBackend::Module()));
+  QVERIFY(mediaApp->loadModule(new DVDNavBackend::Module()));
+  QVERIFY(mediaApp->loadModule(new FFMpegBackend::Module()));
 
   //SMediaInfo info("");
   //qDebug() << info.programs().count();
@@ -39,6 +37,6 @@ void DVDNavTest::initTestCase(void)
 
 void DVDNavTest::cleanupTestCase(void)
 {
-  delete streamApp;
-  streamApp = NULL;
+  delete mediaApp;
+  mediaApp = NULL;
 }

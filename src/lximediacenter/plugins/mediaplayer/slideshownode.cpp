@@ -21,12 +21,12 @@
 #include <LXiStreamGui>
 
 // Implemented in slideshowsource.blend.c
-extern "C" void LXiMediaCenter_SlideShowNode_blendImages(
+extern "C" void LXiMediaCenter_MediaPlayerBackend_SlideShowNode_blendImages(
     void * dstData, const void * srcDataA, const void * srcDataB,
     unsigned numPixels, int factor) __attribute__((nonnull));
 
-
 namespace LXiMediaCenter {
+namespace MediaPlayerBackend {
 
 SlideShowNode::SlideShowNode(SGraph *parent, const SMediaInfoList &files)
   : QObject(parent),
@@ -205,11 +205,12 @@ void SlideShowNode::computeVideoBuffer(const SVideoBuffer &a, const SVideoBuffer
   else
   {
     videoBuffer = SVideoBuffer(a.format());
-    LXiMediaCenter_SlideShowNode_blendImages(videoBuffer.data(),
-                                             a.data(),
-                                             b.data(),
-                                             videoBuffer.size(),
-                                             fade);
+    LXiMediaCenter_MediaPlayerBackend_SlideShowNode_blendImages(
+        videoBuffer.data(),
+        a.data(),
+        b.data(),
+        videoBuffer.size(),
+        fade);
   }
 
   videoBuffer.setTimeStamp(time);
@@ -240,4 +241,4 @@ SVideoBuffer SlideShowNode::blackBuffer(void) const
   return img.toVideoBuffer(outSize.aspectRatio(), SInterval::fromFrequency(frameRate));
 }
 
-} // End of namespace
+} } // End of namespaces

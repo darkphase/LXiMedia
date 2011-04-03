@@ -26,6 +26,7 @@
 #include "mediadatabase.h"
 
 namespace LXiMediaCenter {
+namespace MediaPlayerBackend {
 
 class MediaPlayerServerDir;
 
@@ -55,7 +56,12 @@ protected:
   };
 
 public:
-                                MediaPlayerServer(MediaDatabase *, MediaDatabase::Category, const char *, Plugin *, BackendServer::MasterServer *);
+                                MediaPlayerServer(MediaDatabase::Category, QObject *);
+
+  virtual void                  initialize(MasterServer *);
+  virtual void                  close(void);
+
+  virtual QString               pluginName(void) const;
 
 protected:
   //void                          addVideoFile(DlnaServerDir *, const PlayItem &, const QString &, int = 0) const;
@@ -82,10 +88,11 @@ private slots:
   void                          consoleLine(const QString &);
 
 protected:
-  MediaDatabase         * const mediaDatabase;
   const MediaDatabase::Category category;
+  MasterServer                * masterServer;
+  MediaDatabase               * mediaDatabase;
 };
 
-} // End of namespace
+} } // End of namespaces
 
 #endif

@@ -1,6 +1,6 @@
-PLUGIN_NAME = alsa
+MODULE_NAME = lxistream.alsa
 LXIMEDIA_DIR = ../../../..
-include($${LXIMEDIA_DIR}/include/liblxistream/plugin.pri)
+include($${LXIMEDIA_DIR}/include/liblxicore/module.pri)
 include($${LXIMEDIA_DIR}/include/liblxistream/linklxistream-internal.pri)
 
 # Files

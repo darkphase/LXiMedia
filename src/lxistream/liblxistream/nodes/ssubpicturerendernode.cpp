@@ -18,7 +18,6 @@
  ***************************************************************************/
 
 #include "nodes/ssubpicturerendernode.h"
-#include "sdebug.h"
 #include "ssubpicturebuffer.h"
 #include "svideobuffer.h"
 
@@ -88,7 +87,7 @@ void SSubpictureRenderNode::input(const SVideoBuffer &videoBuffer)
 
 void SSubpictureRenderNode::processTask(const SSubpictureBuffer &subpictureBuffer)
 {
-  SDebug::MutexLocker l(&d->mutex, __FILE__, __LINE__);
+  QMutexLocker l(&d->mutex);
 
   if (subpictureBuffer.duration().toSec() <= 10)
   {
@@ -106,7 +105,7 @@ void SSubpictureRenderNode::processTask(const SSubpictureBuffer &subpictureBuffe
 
 void SSubpictureRenderNode::processTask(const SVideoBuffer &videoBuffer)
 {
-  SDebug::MutexLocker l(&d->mutex, __FILE__, __LINE__);
+  QMutexLocker l(&d->mutex);
 
   for (QMap<STime, SSubpictureBuffer>::Iterator i=d->subpictures.begin(); i!=d->subpictures.end(); )
   {

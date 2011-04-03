@@ -1,0 +1,20 @@
+#ifndef LXICORE_MODULE_H
+#define LXICORE_MODULE_H
+
+#ifdef __cplusplus
+
+#include <QtCore>
+#include <QtXml>
+
+#include "liblxicore/sapplication.h"
+#include "liblxicore/sfactory.h"
+#include "liblxicore/smodule.h"
+#include "liblxicore/sscheduler.h"
+#include "liblxicore/sserializable.h"
+#include "liblxicore/sstringparser.h"
+
+using namespace LXiCore;
+
+#endif
+
+#endif

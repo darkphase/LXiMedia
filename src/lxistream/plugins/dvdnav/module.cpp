@@ -25,11 +25,12 @@
 namespace LXiStream {
 namespace DVDNavBackend {
 
-
-void Module::registerClasses(void)
+bool Module::registerClasses(void)
 {
   FormatProber::registerClass<FormatProber>(0);
   BufferReader::registerClass<BufferReader>(BufferReader::formatName);
+
+  return true;
 }
 
 void Module::unload(void)
@@ -50,8 +51,7 @@ QByteArray Module::about(void)
   return text;
 }
 
-
 } } // End of namespaces
 
 #include <QtPlugin>
-Q_EXPORT_PLUGIN2("dvdnav", LXiStream::DVDNavBackend::Module);
+Q_EXPORT_PLUGIN2(lxistream.dvdnav, LXiStream::DVDNavBackend::Module);

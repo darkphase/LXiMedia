@@ -389,12 +389,12 @@ void V4l2Input::process(void)
         qDebug() << "V4l2Input: Failed waiting for next image; attempting to recover stream.";
 
         // Stop the stream
-        SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+        QMutexLocker l(&mutex);
         ::ioctl(devDesc, VIDIOC_STREAMOFF, &bufferRequest.type);
         l.unlock();
 
         // Start it again
-        l.relock(__FILE__, __LINE__);
+        l.relock();
         if (::ioctl(devDesc, VIDIOC_STREAMON, &bufferRequest.type) >= 0)
         {
           for (int i=0; i<mappedBuffers; i++)
@@ -425,12 +425,12 @@ void V4l2Input::process(void)
         qDebug() << "V4l2Input: Failed to read from device; attempting to recover stream.";
 
         // Stop the stream
-        SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+        QMutexLocker l(&mutex);
         ::ioctl(devDesc, VIDIOC_STREAMOFF, &bufferRequest.type);
         l.unlock();
 
         // Start it again
-        l.relock(__FILE__, __LINE__);
+        l.relock();
         if (::ioctl(devDesc, VIDIOC_STREAMON, &bufferRequest.type) >= 0)
         {
           for (int i=0; i<mappedBuffers; i++)
@@ -480,7 +480,7 @@ void V4l2Input::process(void)
 
 qreal V4l2Input::control(quint32 id) const
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+  QMutexLocker l(&mutex);
 
   v4l2_queryctrl query;
   query.id = id;
@@ -500,7 +500,7 @@ qreal V4l2Input::control(quint32 id) const
 
 bool V4l2Input::setControl(quint32 id, qreal value)
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+  QMutexLocker l(&mutex);
 
   v4l2_queryctrl query;
   memset(&query, 0, sizeof(query));
@@ -669,7 +669,7 @@ V4l2Input::Memory * V4l2Input::nextImage(void)
   n = select(devDesc + 1, &rdset, 0, 0, &timeout);
   if (n != -1)
   {
-    SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+    QMutexLocker l(&mutex);
 
     v4l2_buffer cur_buf;
     memset(&cur_buf, 0, sizeof(cur_buf));
@@ -693,7 +693,7 @@ V4l2Input::Memory * V4l2Input::nextImage(void)
 
 void V4l2Input::queueBuffer(int index)
 {
-  SDebug::MutexLocker l(&mutex, __FILE__, __LINE__);
+  QMutexLocker l(&mutex);
 
   if (index < mappedBuffers)
   {

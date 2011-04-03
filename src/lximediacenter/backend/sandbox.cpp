@@ -23,20 +23,10 @@ const QEvent::Type  Sandbox::exitEventType = QEvent::Type(QEvent::registerEventT
 
 Sandbox::Sandbox()
   : QObject(),
-    sandboxServer(),
-    streamApp(NULL)
+    mediaApp(QStringList() << "LXiStream" << "LXiMediaCenter"),
+    sandboxServer()
 {
-  // Initialize LXiStream
-  QDir logDir(GlobalSettings::applicationDataDir() + "/log");
-  if (!logDir.exists())
-    logDir.mkpath(logDir.absolutePath());
-
-  streamApp =
-      new SApplication(
-          SApplication::Initialize_Default | SApplication::Initialize_LogToConsole,
-          logDir.absolutePath());
-
-  //SThreadPool::globalInstance()->enableTrace("/tmp/threadpool.svg");
+  mediaApp.installExcpetionHandler();
 
   // Seed the random number generator.
   qsrand(int(QDateTime::currentDateTime().toTime_t()));
@@ -52,15 +42,9 @@ Sandbox::Sandbox()
 
 Sandbox::~Sandbox()
 {
-  foreach (BackendPlugin *plugin, backendPlugins)
-    delete plugin;
-
   QThreadPool::globalInstance()->waitForDone();
 
   sandboxServer.close();
-
-  // Shutdown LXiStream
-  delete streamApp;
 }
 
 void Sandbox::start(const QString &name, const QString &mode)
@@ -68,10 +52,9 @@ void Sandbox::start(const QString &name, const QString &mode)
   sandboxServer.initialize(name, mode);
 
   // Load plugins
-  backendPlugins = BackendPlugin::loadPlugins();
-  foreach (BackendPlugin *backendPlugin, backendPlugins)
-  if (backendPlugin)
-    backendPlugin->registerSandbox(&sandboxServer);
+  backendSandboxes = BackendSandbox::create(this);
+  foreach (BackendSandbox *sandbox, backendSandboxes)
+    sandbox->initialize(&sandboxServer);
 
   stopTimer.start();
 
@@ -80,6 +63,14 @@ void Sandbox::start(const QString &name, const QString &mode)
 
 void Sandbox::stop(void)
 {
+  foreach (BackendSandbox *sandbox, backendSandboxes)
+  {
+    sandbox->close();
+    delete sandbox;
+  }
+
+  backendSandboxes.clear();
+
   qDebug() << "Stopping sandbox process" << qApp->applicationPid();
 
   qApp->exit(0);

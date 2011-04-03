@@ -23,10 +23,13 @@
 
 void HttpServerTest::initTestCase(void)
 {
+  mediaApp = SApplication::createForQTest(this);
 }
 
 void HttpServerTest::cleanupTestCase(void)
 {
+  delete mediaApp;
+  mediaApp = NULL;
 }
 
 /*! Tests the HTTP server.

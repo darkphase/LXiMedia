@@ -1,6 +1,7 @@
 #ifndef LXMEDIACENTER_MODULE_H
 #define LXMEDIACENTER_MODULE_H
 
+#include <LXiCore>
 #include <LXiServer>
 #include <LXiStream>
 
@@ -8,6 +9,7 @@
 
 #include <QtSql>
 
+#include "liblximediacenter/backendsandbox.h"
 #include "liblximediacenter/backendserver.h"
 #include "liblximediacenter/database.h"
 #include "liblximediacenter/globalsettings.h"
@@ -15,7 +17,6 @@
 #include "liblximediacenter/imdbclient.h"
 #include "liblximediacenter/mediaserver.h"
 #include "liblximediacenter/mediastream.h"
-#include "liblximediacenter/plugininterfaces.h"
 #include "liblximediacenter/pluginsettings.h"
 #include "liblximediacenter/teletext.h"
 

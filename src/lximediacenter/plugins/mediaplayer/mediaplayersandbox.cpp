@@ -21,15 +21,33 @@
 #include <iostream>
 
 namespace LXiMediaCenter {
+namespace MediaPlayerBackend {
 
 const char  * const MediaPlayerSandbox::path = "/mediaplayer/";
 
-MediaPlayerSandbox::MediaPlayerSandbox(QObject *parent)
-  : QObject(parent),
+MediaPlayerSandbox::MediaPlayerSandbox(const QString &, QObject *parent)
+  : BackendSandbox(parent),
+    server(NULL),
     mutex(QMutex::Recursive)
 {
   connect(&cleanStreamsTimer, SIGNAL(timeout()), SLOT(cleanStreams()));
   cleanStreamsTimer.start(5000);
+}
+
+void MediaPlayerSandbox::initialize(SSandboxServer *server)
+{
+  this->server = server;
+
+  BackendSandbox::initialize(server);
+
+  server->registerCallback("/mediaplayer/", this);
+}
+
+void MediaPlayerSandbox::close(void)
+{
+  BackendSandbox::close();
+
+  server->unregisterCallback(this);
 }
 
 SSandboxServer::SocketOp MediaPlayerSandbox::handleHttpRequest(const SSandboxServer::RequestHeader &request, QIODevice *socket)
@@ -218,4 +236,4 @@ bool SandboxSlideShowStream::setup(const SHttpServer::RequestHeader &request, QI
     return false;
 }
 
-} // End of namespace
+} } // End of namespaces

@@ -20,6 +20,7 @@
 #include "photoserver.h"
 
 namespace LXiMediaCenter {
+namespace MediaPlayerBackend {
 
 const char * const PhotoServer::htmlView =
     "<table class=\"full\"><tr><td><table width=\"100%\">\n"
@@ -119,4 +120,4 @@ SHttpServer::SocketOp PhotoServer::handleHtmlRequest(const SHttpServer::RequestH
   return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);
 }
 
-} // End of namespace
+} } // End of namespaces

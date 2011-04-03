@@ -22,9 +22,10 @@
 #include "mediaplayersandbox.h"
 
 namespace LXiMediaCenter {
+namespace MediaPlayerBackend {
 
-PlaylistServer::PlaylistServer(MediaDatabase *mediaDatabase, MediaDatabase::Category category, const char *name, Plugin *plugin, MasterServer *server, const QString &itemTitle)
-  : MediaPlayerServer(mediaDatabase, category, name, plugin, server),
+PlaylistServer::PlaylistServer(MediaDatabase::Category category, QObject *parent, const QString &itemTitle)
+  : MediaPlayerServer(category, parent),
     itemTitle(itemTitle)
 {
 }
@@ -43,7 +44,7 @@ PlaylistServer::Stream * PlaylistServer::streamVideo(const SHttpServer::RequestH
       url = url.toEncoded(QUrl::RemoveQuery) + QByteArray::fromHex(url.queryItemValue("query").toAscii());
 
     QStringList albums;
-    albums += request.directory().mid(httpPath().length() - 1);
+    albums += request.directory().mid(serverPath().length() - 1);
 
     QMultiMap<QString, QByteArray> files;
     while (!albums.isEmpty())
@@ -128,7 +129,7 @@ SHttpServer::SocketOp PlaylistServer::handleHttpRequest(const SHttpServer::Reque
 
   if (file == "playlist.html") // Show player
   {
-    const QString album = QUrl(request.path().mid(httpPath().length() - 1)).path();
+    const QString album = QUrl(request.path().mid(serverPath().length() - 1)).path();
     if (!album.isEmpty())
     {
       SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
@@ -205,4 +206,4 @@ QList<PlaylistServer::Item> PlaylistServer::listPlayAllItem(const QString &path,
   return result;
 }
 
-} // End of namespace
+} } // End of namespaces

@@ -2,7 +2,8 @@ TEMPLATE = subdirs
 CONFIG += ordered
 DESTDIR = .
 
-SUBDIRS += liblxiservertest \
+SUBDIRS += liblxicoretest \
+  liblxiservertest \
   liblxistreamtest \
   liblximediacentertest \
   lxistreamfiletest

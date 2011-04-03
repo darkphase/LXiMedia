@@ -20,9 +20,10 @@
 #include "musicserver.h"
 
 namespace LXiMediaCenter {
+namespace MediaPlayerBackend {
 
-MusicServer::MusicServer(MediaDatabase *mediaDatabase, MediaDatabase::Category category, const char *name, Plugin *plugin, MasterServer *server)
-  : PlaylistServer(mediaDatabase, category, name, plugin, server),
+MusicServer::MusicServer(MediaDatabase::Category category, QObject *parent)
+  : PlaylistServer(category, parent),
     playlistDir(GlobalSettings::applicationDataDir() + "/playlists")
 {
   if (!playlistDir.exists())
@@ -64,7 +65,7 @@ SHttpServer::SocketOp MusicServer::handleHttpRequest(const SHttpServer::RequestH
     response.setContentType("text/html;charset=utf-8");
     response.setField("Cache-Control", "no-cache");
 
-    QString path = url.path().mid(httpPath().length());
+    QString path = url.path().mid(serverPath().length());
     path = path.startsWith('/') ? path : ('/' + path);
 
     DetailedListItemList detailedItems;
@@ -149,4 +150,4 @@ void MusicServer::storePlaylist(Playlist *playlist, const QString &name)
     file.write(playlist->serialize());
 }
 
-} // End of namespace
+} } // End of namespaces

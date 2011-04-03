@@ -23,14 +23,20 @@
 namespace LXiStream {
 namespace V4lBackend {
 
-
-void Module::registerClasses(void)
+bool Module::registerClasses(void)
 {
-  if ((sApp->initializeFlags() & SApplication::Initialize_Devices) == SApplication::Initialize_Devices)
+  int result = false;
+  if (loadDevices)
   {
     foreach (const SFactory::Scheme &scheme, V4l2Input::listDevices())
+    {
       V4l2Input::registerClass<V4l2Input>(scheme);
+
+      result = true;
+    }
   }
+
+  return result;
 }
 
 void Module::unload(void)
@@ -42,8 +48,7 @@ QByteArray Module::about(void)
   return QByteArray();
 }
 
-
 } } // End of namespaces
 
 #include <QtPlugin>
-Q_EXPORT_PLUGIN2("v4l", LXiStream::V4lBackend::Module);
+Q_EXPORT_PLUGIN2(lxistream.v4l, LXiStream::V4lBackend::Module);

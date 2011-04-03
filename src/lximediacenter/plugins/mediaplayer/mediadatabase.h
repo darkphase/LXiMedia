@@ -27,6 +27,7 @@
 #include <LXiStream>
 
 namespace LXiMediaCenter {
+namespace MediaPlayerBackend {
 
 class MediaDatabase : public QObject
 {
@@ -72,9 +73,14 @@ private:
   struct QuerySet;
 
 public:
-                                MediaDatabase(Plugin *parent, ImdbClient *, SSandboxClient *);
+  static MediaDatabase        * createInstance(BackendServer::MasterServer *);
+  static void                   destroyInstance(void);
+
+private:
+                                MediaDatabase(BackendServer::MasterServer *, QObject *parent = NULL);
   virtual                       ~MediaDatabase();
 
+public:
   static QByteArray             toUidString(UniqueID uid);
   static UniqueID               fromUidString(const QByteArray &str);
   static UniqueID               fromUidString(const QString &str);
@@ -131,12 +137,12 @@ public:
 
 private:
   static const CatecoryDesc     categories[];
+  static MediaDatabase        * self;
 
-  Plugin                * const plugin;
   ImdbClient            * const imdbClient;
   SSandboxClient        * const probeSandbox;
 
-  SScheduler::Dependency        probeMutex;
+  SScheduler::Dependency        probeDependency;
   QStringList                   probeQueue;
   const unsigned                maxProbeCount;
   unsigned                      probeCount;
@@ -146,6 +152,6 @@ private:
 };
 
 
-} // End of namespace
+} } // End of namespaces
 
 #endif

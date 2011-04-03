@@ -24,7 +24,7 @@
   #include <xmmintrin.h>
 #endif
 
-void LXiMediaCenter_SlideShowNode_blendImages
+void LXiMediaCenter_MediaPlayerBackend_SlideShowNode_blendImages
  (uint8_t * restrict dstData, const uint8_t * restrict srcDataA, const uint8_t * restrict srcDataB, unsigned numPixels, int factor)
 {
   #ifndef __SSE__

@@ -1,6 +1,6 @@
-PLUGIN_NAME = ffmpeg
+MODULE_NAME = lxistream.ffmpeg
 LXIMEDIA_DIR = ../../../..
-include($${LXIMEDIA_DIR}/include/liblxistream/plugin.pri)
+include($${LXIMEDIA_DIR}/include/liblxicore/module.pri)
 unix:include($${LXIMEDIA_DIR}/include/liblxistream/linklxistream-internal.pri)
 win32:include($${LXIMEDIA_DIR}/include/liblxistream/linklxistream.pri) # Because of -mstackrealign
 include($${LXIMEDIA_DIR}/ext/ffmpeg/ffmpeg.pri)

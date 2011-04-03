@@ -24,7 +24,6 @@
 #include "unixdaemon.h"
 #endif
 
-const quint8        Backend::haltExitCode = 0x33;
 const QEvent::Type  Backend::exitEventType = QEvent::Type(QEvent::registerEventType());
 const QEvent::Type  Backend::restartEventType = QEvent::Type(QEvent::registerEventType());
 const QEvent::Type  Backend::shutdownEventType = QEvent::Type(QEvent::registerEventType());
@@ -32,7 +31,7 @@ const QUrl          Backend::submitErrorUrl("http://www.admiraal.dds.nl/submitlo
 
 Backend::Backend()
   : BackendServer::MasterServer(),
-    streamApp(NULL),
+    mediaApp(QStringList() << "LXiMediaCenter", createLogDir()),
     masterHttpServer(SUPnPBase::protocol(), GlobalSettings::serverUuid()),
     masterSsdpServer(&masterHttpServer),
     masterMediaServer("/upnp/"),
@@ -42,22 +41,9 @@ Backend::Backend()
     sandboxApplication("\"" + qApp->applicationFilePath() + "\" --sandbox"),
     cssParser(),
     htmlParser(),
-    backendPlugins(),
     backendServers()
 {
-  // Initialize LXiStream
-  QDir logDir(GlobalSettings::applicationDataDir() + "/log");
-  if (!logDir.exists())
-    logDir.mkpath(logDir.absolutePath());
-
-  streamApp =
-      new SApplication(
-          SApplication::Initialize_LogToFile |
-              SApplication::Initialize_LogToConsole |
-              SApplication::Initialize_HandleFaults,
-          logDir.absolutePath());
-
-  //SThreadPool::globalInstance()->enableTrace("/tmp/threadpool.svg");
+  mediaApp.installExcpetionHandler();
 
   // Seed the random number generator.
   qsrand(int(QDateTime::currentDateTime().toTime_t()));
@@ -98,10 +84,10 @@ Backend::~Backend()
   masterHttpServer.close();
 
   foreach (BackendServer *server, backendServers)
+  {
+    server->close();
     delete server;
-
-  foreach (BackendPlugin *plugin, backendPlugins)
-    delete plugin;
+  }
 
   QThreadPool::globalInstance()->waitForDone();
 
@@ -117,9 +103,6 @@ Backend::~Backend()
 
   // Close database
   Database::shutdown();
-
-  // Shutdown LXiStream
-  delete streamApp;
 }
 
 void Backend::start(void)
@@ -162,7 +145,7 @@ void Backend::start(void)
   htmlParser.setField("TR_CENTER",              tr("Center"));
   htmlParser.setField("TR_LOGO",                tr("<span class=\"logoa\">LX</span><span class=\"logob\">i</span><span class=\"logoc\">Media</span><span class=\"logoa\">Center</span>"));
 
-  SDebug::WriteLocker wl(&lock, __FILE__, __LINE__);
+  QWriteLocker wl(&lock);
 
   // A minimal general menu
   QList<QPair<QString, QString> > generalMenu;
@@ -176,7 +159,7 @@ void Backend::start(void)
   // This call may take a while if the database needs to be updated ...
   masterImdbClient = new ImdbClient(this);
 
-  wl.relock(__FILE__, __LINE__);
+  wl.relock();
 
   // The full general menu
   generalMenu.clear();
@@ -187,35 +170,20 @@ void Backend::start(void)
   submenuItems[tr("General")] = generalMenu;
 
   // Load plugins
-  backendPlugins = BackendPlugin::loadPlugins();
-  foreach (BackendPlugin *backendPlugin, backendPlugins)
-  if (backendPlugin)
-  {
-    wl.unlock();
-
-    qDebug() << "Loading backend:" << backendPlugin->pluginName()
-             << "by" << backendPlugin->authorName()
-             << "version" << backendPlugin->pluginVersion();
-
-    const QList<BackendServer *> servers = backendPlugin->createServers(this);
-
-    wl.relock(__FILE__, __LINE__);
-
-    if (!servers.isEmpty())
-    {
-      QList<QPair<QString, QString> > menu;
-      foreach (BackendServer *server, servers)
-      {
-        backendServers += server;
-
-        menu += QPair<QString, QString>(server->name(), server->httpPath());
-      }
-
-      submenuItems[backendPlugin->pluginName()] = menu;
-    }
-  }
-
   wl.unlock();
+
+  backendServers = BackendServer::create(this);
+  foreach (BackendServer *server, backendServers)
+  {
+    server->initialize(this);
+
+    wl.relock();
+
+    submenuItems[server->pluginName()] +=
+        QPair<QString, QString>(server->serverName(), server->serverPath());
+
+    wl.unlock();
+  }
 
   // Setup SSDP server
   masterSsdpServer.initialize(settings.defaultBackendInterfaces());
@@ -333,7 +301,7 @@ Backend::SearchCacheEntry Backend::search(const QString &query) const
   const QString queryText = query.simplified();
   const QStringList queryRaw = SStringParser::toRawName(queryText.split(' '));
 
-  SDebug::ReadLocker rl(&lock, __FILE__, __LINE__);
+  QReadLocker rl(&lock);
 
   // Look for a cache entry
   QMap<QString, SearchCacheEntry>::ConstIterator i = searchCache.find(queryText);
@@ -388,7 +356,7 @@ Backend::SearchCacheEntry Backend::search(const QString &query) const
 
     foreach (BackendServer::SearchResult result, q->result)
     {
-      const QByteArray baseUrl = q->backendServer->httpPath().toUtf8();
+      const QByteArray baseUrl = q->backendServer->serverPath().toUtf8();
 
       if (!result.location.isEmpty())
         result.location = baseUrl + result.location;
@@ -404,7 +372,7 @@ Backend::SearchCacheEntry Backend::search(const QString &query) const
 
   entry.duration = timer.elapsed();
 
-  SDebug::WriteLocker wl(&lock, __FILE__, __LINE__);
+  QWriteLocker wl(&lock);
 
   while (searchCache.count() > 64)
     searchCache.erase(searchCache.begin());
@@ -435,8 +403,7 @@ void Backend::customEvent(QEvent *e)
   }
   else if (e->type() == shutdownEventType)
   {
-    // This exitcode instructs the UnixDaemon to initiate a system halt.
-    qApp->exit(haltExitCode);
+    qApp->exit(0);
   }
 }
 
@@ -468,7 +435,7 @@ SHttpServer::SocketOp Backend::handleHttpRequest(const SHttpServer::RequestHeade
     }
     else if (url.hasQueryItem("dismisserrors"))
     {
-      GlobalSettings().setValue("DismissedErrors", SDebug::LogFile::errorLogFiles());
+      GlobalSettings().setValue("DismissedErrors", mediaApp.errorLogFiles());
 
       return handleHtmlRequest(request, socket, file);
     }
@@ -502,14 +469,14 @@ SHttpServer::SocketOp Backend::handleHttpRequest(const SHttpServer::RequestHeade
       // Active log file
       QDomElement activeLogFile = doc.createElement("activelogfile");
       root.appendChild(activeLogFile);
-      activeLogFile.setAttribute("name", QFileInfo(SDebug::LogFile::activeLogFile()).fileName());
+      activeLogFile.setAttribute("name", QFileInfo(mediaApp.activeLogFile()).fileName());
 
       // Error logs
       const QSet<QString> dismissedFiles =
           QSet<QString>::fromList(settings.value("DismissedErrors").toStringList());
 
       QStringList errorLogFiles;
-      foreach (const QString &file, SDebug::LogFile::errorLogFiles())
+      foreach (const QString &file, mediaApp.errorLogFiles())
       if (!dismissedFiles.contains(file))
         errorLogFiles += file;
 
@@ -546,17 +513,17 @@ SHttpServer::SocketOp Backend::handleHttpRequest(const SHttpServer::RequestHeade
       QString logFileName;
       if (file == "main.log")
       {
-        logFileName = SDebug::LogFile::activeLogFile();
+        logFileName = mediaApp.activeLogFile();
       }
-      else foreach (const QString &f, SDebug::LogFile::allLogFiles())
+      else foreach (const QString &f, mediaApp.allLogFiles())
       if (f.endsWith("/" + file))
       {
         logFileName = f;
         break;
       }
 
-      SDebug::LogFile logFile(logFileName);
-      if (logFile.open(SDebug::LogFile::ReadOnly))
+      SApplication::LogFile logFile(logFileName);
+      if (logFile.open(SApplication::LogFile::ReadOnly))
       {
         HtmlParser htmlParser(this->htmlParser);
         htmlParser.setField("TR_DATE", tr("Date"));
@@ -565,7 +532,7 @@ SHttpServer::SocketOp Backend::handleHttpRequest(const SHttpServer::RequestHeade
 
         htmlParser.setField("LOG_MESSAGES", QByteArray(""));
 
-        for (SDebug::LogFile::Message msg=logFile.readMessage();
+        for (SApplication::LogFile::Message msg=logFile.readMessage();
              msg.date.isValid();
              msg=logFile.readMessage())
         {
@@ -601,7 +568,7 @@ SHttpServer::SocketOp Backend::handleHttpRequest(const SHttpServer::RequestHeade
         SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
         response.setContentType("text/html;charset=utf-8");
         response.setField("Cache-Control", "no-cache");
-        if (logFileName == SDebug::LogFile::activeLogFile())
+        if (logFileName == mediaApp.activeLogFile())
           response.setField("Refresh", "10;URL=#bottom");
 
         socket->write(response);
@@ -664,13 +631,22 @@ SHttpServer::SocketOp Backend::handleHttpRequest(const SHttpServer::RequestHeade
   return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);
 }
 
+QString Backend::createLogDir(void)
+{
+  QDir logDir(GlobalSettings::applicationDataDir() + "/log");
+  if (!logDir.exists())
+    logDir.mkpath(logDir.absolutePath());
+
+  return logDir.absolutePath();
+}
+
 QByteArray Backend::parseHtmlContent(const QUrl &url, const QByteArray &content, const QByteArray &head) const
 {
   HtmlParser localParser(htmlParser);
   localParser.setField("HEAD", head);
 
   // Build menus
-  SDebug::ReadLocker rl(&lock, __FILE__, __LINE__);
+  QReadLocker rl(&lock);
 
   QString pluginPath = url.path(), pagePath;
   const int s2 = pluginPath.indexOf('/', 1);
@@ -751,7 +727,7 @@ ImdbClient * Backend::imdbClient(void)
 
 SSandboxClient * Backend::createSandbox(SSandboxClient::Mode mode)
 {
-  SDebug::WriteLocker l(&lock, __FILE__, __LINE__);
+  QWriteLocker l(&lock);
 
   QMap<SSandboxClient::Mode, QList<SSandboxClient *> >::Iterator i = sandboxClients.find(mode);
   if ((i == sandboxClients.end()) || i->isEmpty())
@@ -762,7 +738,7 @@ SSandboxClient * Backend::createSandbox(SSandboxClient::Mode mode)
 
 void Backend::recycleSandbox(SSandboxClient *sandboxClient)
 {
-  SDebug::WriteLocker l(&lock, __FILE__, __LINE__);
+  QWriteLocker l(&lock);
 
   sandboxClients[sandboxClient->mode()].append(sandboxClient);
 }

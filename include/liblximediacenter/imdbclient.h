@@ -111,7 +111,7 @@ private:
   static const SScheduler::Priority insertPriority = SScheduler::Priority(basePriority + 1);
   static const QEvent::Type     tryMirrorEventType;
 
-  SScheduler::Dependency        mutex;
+  SScheduler::Dependency        dependency;
   QDir                          cacheDir;
   QFile                         moviesFile;
   QFile                         plotFile;

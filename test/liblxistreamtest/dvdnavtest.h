@@ -26,12 +26,12 @@ class DVDNavTest : public QObject
 {
 Q_OBJECT
 public:
-  inline explicit               DVDNavTest(QObject *parent) : QObject(parent), streamApp(NULL) { }
+  inline explicit               DVDNavTest(QObject *parent) : QObject(parent), mediaApp(NULL) { }
 
 private slots:
   void                          initTestCase(void);
   void                          cleanupTestCase(void);
 
 private:
-  SApplication                * streamApp;
+  SApplication                * mediaApp;
 };
