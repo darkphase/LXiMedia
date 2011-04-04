@@ -17,6 +17,7 @@ linux-g++|win32-g++ {
 # Files
 HEADERS += $${LXIMEDIA_DIR}/include/LXiCore \
     $${LXIMEDIA_DIR}/include/liblxicore/sapplication.h \
+    $${LXIMEDIA_DIR}/include/liblxicore/sdaemon.h \
     $${LXIMEDIA_DIR}/include/liblxicore/sfactory.h \
     $${LXIMEDIA_DIR}/include/liblxicore/sfactory.hpp \
     $${LXIMEDIA_DIR}/include/liblxicore/smodule.h \
@@ -38,8 +39,13 @@ LIBS += -lbfd \
 
 # Platform specific
 unix {
+    SOURCES += sdaemon.unix.cpp
+
     target.path = /usr/lib
     INSTALLS += target
+}
+win32 {
+    SOURCES += sdaemon.win.cpp
 }
 win32-g++ { 
     system(mkdir ..\\..\\..\\bin\\ > NUL 2>&1)

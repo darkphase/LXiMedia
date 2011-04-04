@@ -17,50 +17,29 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef WINDOWSSERVICE_H
-#define WINDOWSSERVICE_H
+#ifndef LXICORE_SDAEMON_H
+#define LXICORE_SDAEMON_H
 
-#include <windows.h>
-#include <tchar.h>
 #include <QtCore>
 
+namespace LXiCore {
 
-class WindowsService
+class SDaemon
 {
 public:
-                                WindowsService(const QString &);
-  virtual                       ~WindowsService();
+  explicit                      SDaemon(const QString &name);
+  virtual                       ~SDaemon();
 
-  virtual bool                  install(bool = true);
-  virtual bool                  uninstall(void);
-
-  virtual void                  waitForStopSignal(void);
-  virtual bool                  waitForStopSignal(unsigned);
-  virtual void                  startServiceDispatcher(void);
+  int                           main(int argc, char *argv[]);
 
 protected:
-  virtual void                  interrogate(void);
-  virtual void                  shutdown(void);
-  virtual bool                  quit(void);
-  virtual void                  pause(void);
-  virtual void                  resume(void);
-  virtual void                  user(quint32);
-  virtual void                  unrecognised(quint32);
-
-  virtual void                  init(int, const char *[]);
   virtual int                   run(void) = 0;
-  virtual void                  close(void);
+  virtual void                  quit(void) = 0;
 
 private:
-  static void WINAPI            serviceControlHandler(DWORD);
-  static void WINAPI            serviceMain(DWORD, TCHAR*[]);
-
-  static WindowsService       * instance;
-  static TCHAR                  serviceName[512];
-  static SERVICE_STATUS         serviceStatus;
-  static SERVICE_STATUS_HANDLE  serviceStatusHandle;
-  static HANDLE                 stopServiceEvent;
+  struct Data;
 };
 
+} // End of namespace
 
 #endif
