@@ -20,12 +20,14 @@
 #include "sdaemon.h"
 #include <windows.h>
 #include <tchar.h>
+#include <iostream>
 
 namespace LXiCore {
 
 struct SDaemon::Data
 {
   static SDaemon              * instance;
+  static char                   name[256];
   static TCHAR                  serviceName[512];
   static SERVICE_STATUS         serviceStatus;
   static SERVICE_STATUS_HANDLE  serviceStatusHandle;
@@ -39,21 +41,25 @@ struct SDaemon::Data
 };
 
 SDaemon                       * SDaemon::Data::instance = NULL;
+char                            SDaemon::Data::name[256] = { '\0' };
 TCHAR                           SDaemon::Data::serviceName[512];
 SERVICE_STATUS                  SDaemon::Data::serviceStatus;
 SERVICE_STATUS_HANDLE           SDaemon::Data::serviceStatusHandle = NULL;
 
 SDaemon::SDaemon(const QString &name)
 {
-  Data::instance = this;
+  qstrncpy(Data::name, name.toAscii(), sizeof(Data::name));
   memcpy(Data::serviceName, name.unicode(), qMin((name.length() + 1) * sizeof(*Data::serviceName), sizeof(Data::serviceName)));
   Data::serviceName[(sizeof(Data::serviceName) / sizeof(*Data::serviceName)) - 1] = 0;
   Data::serviceStatusHandle = NULL;
+  Data::instance = this;
 }
 
 SDaemon::~SDaemon()
 {
   Data::instance = NULL;
+  Data::name[0] = '\0';
+  Data::serviceStatusHandle = NULL;
 }
 
 int SDaemon::main(int argc, char *argv[])
@@ -231,11 +237,8 @@ void WINAPI SDaemon::Data::serviceControlHandler(DWORD controlCode)
   case SERVICE_CONTROL_SHUTDOWN:  // Windows is shutting down.
   case SERVICE_CONTROL_STOP:      // The service is stopping.
     instance->quit();
-
     serviceStatus.dwCurrentState = SERVICE_STOP_PENDING;
-    ::SetServiceStatus(serviceStatusHandle, &serviceStatus);
-
-    return;
+    break;
 
   case SERVICE_CONTROL_PAUSE:
     break;
