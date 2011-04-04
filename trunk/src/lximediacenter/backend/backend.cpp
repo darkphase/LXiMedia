@@ -19,10 +19,6 @@
 
 #include "backend.h"
 #include <iostream>
-#ifdef Q_OS_UNIX
-#include <unistd.h>
-#include "unixdaemon.h"
-#endif
 
 const QEvent::Type  Backend::exitEventType = QEvent::Type(QEvent::registerEventType());
 const QEvent::Type  Backend::restartEventType = QEvent::Type(QEvent::registerEventType());

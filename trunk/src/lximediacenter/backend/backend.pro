@@ -18,13 +18,9 @@ RESOURCES = images/backend_images.qrc \
 
 # Platform specific
 unix { 
-    SOURCES += unixdaemon.cpp
-    HEADERS += unixdaemon.h
     target.path = /usr/bin
     INSTALLS += target
 }
 win32 { 
     CONFIG += console
-    SOURCES += windowsservice.cpp
-    HEADERS += windowsservice.h
 }
