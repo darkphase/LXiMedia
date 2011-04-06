@@ -19,6 +19,10 @@ linux-g++|win32-g++ {
   QMAKE_CXXFLAGS += -fno-math-errno -fno-signed-zeros
   QMAKE_CFLAGS += -fno-math-errno -fno-signed-zeros -fno-common -ffast-math
 
+  # Reduce export symbol table size and binary size.
+  QMAKE_CXXFLAGS += -fvisibility-inlines-hidden
+  QMAKE_CFLAGS += -fvisibility=hidden
+
   # All "hot" code is placed in plain old C files; these need to be fully
   # optimized, also in debug mode.
   QMAKE_CFLAGS_RELEASE -= -O2
