@@ -609,14 +609,12 @@ void MediaDatabase::customEvent(QEvent *e)
             const QStringList similar = imdbClient->findSimilar(node.title(), imdbType);
             if (!similar.isEmpty())
             {
-              const QString imdbLink = imdbClient->findBest(node.title(), similar);
-
               query.prepare("UPDATE MediaplayerItems SET imdbLink = :imdbLink "
                             "WHERE album IN ("
                               "SELECT id FROM MediaplayerAlbums "
                               "WHERE category = :category) "
                             "AND title = :title");
-              query.bindValue(0, (imdbLink != imdbClient->sentinelItem) ? QVariant(imdbLink) : QVariant(QVariant::String));
+              query.bindValue(0, imdbClient->findBest(node.title(), similar));
               query.bindValue(1, event->category);
               query.bindValue(2, event->title);
               query.exec();

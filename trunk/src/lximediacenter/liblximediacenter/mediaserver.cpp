@@ -171,6 +171,12 @@ SHttpServer::SocketOp MediaServer::handleHttpRequest(const SHttpServer::RequestH
         thumbItem.url.setPath(thumbItem.url.path() + ".html");
         thumbItem.played = item.played;
 
+        if (item.played)
+        {
+          thumbItem.iconurl.removeQueryItem("overlay");
+          thumbItem.iconurl.addQueryItem("overlay", "played");
+        }
+
         thumbItems.append(thumbItem);
       }
     }
