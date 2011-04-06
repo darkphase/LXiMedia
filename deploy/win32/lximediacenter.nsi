@@ -52,7 +52,7 @@ Section "-Shared Files" SecShared
 
   SetOutPath $INSTDIR\lximedia
   SetOverwrite ifnewer
-  File ..\..\bin\lximedia\*.dll
+  File ..\..\bin\lximedia\liblxistream_*.dll
 
   ; For backwards compatibility with 0.1.x versions, can be removed in the future.
   Rename "$%ALLUSERSPROFILE%\Application Data\lximc" "$%ALLUSERSPROFILE%\Application Data\LXiMediaCenter"
@@ -73,6 +73,10 @@ Section "Backend service" SecBackend
 
   ExecWait '"$INSTDIR\lximcbackend.exe" --install'
   ExecWait 'net start "LXiMediaCenter Backend"'
+
+  SetOutPath $INSTDIR\lximedia
+  SetOverwrite ifnewer
+  File ..\..\bin\lximedia\liblximediacenter_*.dll
 SectionEnd
 
 Section "Systemtray icon" SecTrayIcon

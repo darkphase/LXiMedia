@@ -23,16 +23,18 @@
 #include <QtCore>
 #include <LXiMediaCenter>
 
+#ifndef QT_PLUGIN
+#define QT_PLUGIN
+#endif
+
 namespace LXiMediaCenter {
 namespace MediaPlayerBackend {
 
 class MediaDatabase;
 
-class Module : public QObject,
-               public SModule
+class Module : public SModule
 {
 Q_OBJECT
-Q_INTERFACES(LXiCore::SModule)
 public:
   virtual bool                  registerClasses(void);
   virtual void                  unload(void);

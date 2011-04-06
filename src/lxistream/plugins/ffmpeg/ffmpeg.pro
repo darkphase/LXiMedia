@@ -1,4 +1,4 @@
-MODULE_NAME = lxistream.ffmpeg
+MODULE_NAME = lxistream_ffmpeg
 LXIMEDIA_DIR = ../../../..
 include($${LXIMEDIA_DIR}/include/liblxicore/module.pri)
 unix:include($${LXIMEDIA_DIR}/include/liblxistream/linklxistream-internal.pri)

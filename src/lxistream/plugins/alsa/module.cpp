@@ -118,4 +118,4 @@ QByteArray Module::about(void)
 } } // End of namespaces
 
 #include <QtPlugin>
-Q_EXPORT_PLUGIN2(lxistream.alsa, LXiStream::AlsaBackend::Module);
+Q_EXPORT_PLUGIN2(lxistream_alsa, LXiStream::AlsaBackend::Module);

@@ -26,8 +26,9 @@ namespace LXiCore {
 
 /*! The SModule interface is used to register modules to the factories.
  */
-class SModule
+class SModule : public QObject
 {
+Q_OBJECT
 public:
   virtual                         ~SModule();
 
@@ -45,7 +46,5 @@ public:
 };
 
 } // End of namespace
-
-Q_DECLARE_INTERFACE(LXiCore::SModule, "nl.dds.admiraal.www.LXiCore::SModule/1.0")
 
 #endif

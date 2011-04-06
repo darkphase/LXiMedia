@@ -22,21 +22,21 @@
 
 #include <LXiStream>
 
+#ifndef QT_PLUGIN
+#define QT_PLUGIN
+#endif
+
 namespace LXiStream {
 namespace GuiBackend {
 
-
-class Module : public QObject,
-               public SModule
+class Module : public SModule
 {
 Q_OBJECT
-Q_INTERFACES(LXiCore::SModule)
 public:
   virtual bool                  registerClasses(void);
   virtual void                  unload(void);
   virtual QByteArray            about(void);
 };
-
 
 } } // End of namespaces
 

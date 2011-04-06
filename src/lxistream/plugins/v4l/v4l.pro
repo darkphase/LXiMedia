@@ -1,4 +1,4 @@
-MODULE_NAME = lxistream.v4l
+MODULE_NAME = lxistream_v4l
 LXIMEDIA_DIR = ../../../..
 include($${LXIMEDIA_DIR}/include/liblxicore/module.pri)
 include($${LXIMEDIA_DIR}/include/liblxistream/linklxistream-internal.pri)

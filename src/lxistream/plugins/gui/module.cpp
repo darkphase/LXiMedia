@@ -68,4 +68,4 @@ QByteArray Module::about(void)
 } } // End of namespaces
 
 #include <QtPlugin>
-Q_EXPORT_PLUGIN2(lxistream.gui, LXiStream::GuiBackend::Module);
+Q_EXPORT_PLUGIN2(lxistream_gui, LXiStream::GuiBackend::Module);
