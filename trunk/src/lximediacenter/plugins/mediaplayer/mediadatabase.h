@@ -106,7 +106,6 @@ signals:
   void                          modified(void);
 
 private slots:
-  void                          consoleLine(const QString &);
   void                          scanRoots(void);
   void                          probeFinished(const SHttpEngine::ResponseMessage &);
 
