@@ -27,6 +27,8 @@
 namespace LXiMediaCenter {
 namespace MediaPlayerBackend {
 
+class MediaDatabase;
+
 class ConfigServer : public BackendServer,
                      protected SHttpServer::Callback
 {
@@ -55,6 +57,7 @@ private:
 private:
   static const char             dirSplit;
   MasterServer                * masterServer;
+  MediaDatabase               * mediaDatabase;
   mutable QReadWriteLock        lock;
 
 private:

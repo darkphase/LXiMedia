@@ -26,7 +26,64 @@
 namespace LXiMediaCenter {
 namespace MediaPlayerBackend {
 
+struct MediaDatabase::QuerySet
+{
+  Database::Query request;
+  Database::Query insert;
+  Database::Query update;
+  Database::Query children;
+  Database::Query remove;
+};
+
+class MediaDatabase::ScanDirEvent : public QEvent
+{
+public:
+  inline ScanDirEvent(MediaDatabase *parent, const QString &path)
+    : QEvent(scanDirEventType), parent(parent),
+      path((path.endsWith('/') ? path : (path + '/'))
+#ifdef Q_OS_WIN
+           .toLower()
+#endif
+           )
+  {
+    parent->scanning.ref();
+  }
+
+  inline virtual ~ScanDirEvent()
+  {
+    parent->scanning.deref();
+  }
+
+public:
+  MediaDatabase * const parent;
+  const QString path;
+};
+
+class MediaDatabase::QueryImdbItemEvent : public QEvent
+{
+public:
+  inline QueryImdbItemEvent(MediaDatabase *parent, const QString &title, Category category)
+    : QEvent(queryImdbItemEventType), parent(parent), title(title), category(category)
+  {
+    parent->scanning.ref();
+  }
+
+  inline virtual ~QueryImdbItemEvent()
+  {
+    parent->scanning.deref();
+  }
+
+public:
+  MediaDatabase * const parent;
+  const QString title;
+  const Category category;
+};
+
+
 const int MediaDatabase::maxSongDurationMin = 15;
+
+const QEvent::Type  MediaDatabase::scanDirEventType = QEvent::Type(QEvent::registerEventType());
+const QEvent::Type  MediaDatabase::queryImdbItemEventType = QEvent::Type(QEvent::registerEventType());
 
 const MediaDatabase::CatecoryDesc MediaDatabase::categories[] =
 {
@@ -58,13 +115,11 @@ MediaDatabase::MediaDatabase(BackendServer::MasterServer *masterServer, QObject 
   : QObject(parent),
     imdbClient(masterServer->imdbClient()),
     probeSandbox(masterServer->createSandbox(SSandboxClient::Mode_Nice)),
-    probeDependency(sApp),
     maxProbeCount(QThread::idealThreadCount() * 2),
     probeCount(0)
 {
   PluginSettings settings(Module::pluginName);
 
-  SScheduler::DependencyLocker dl(Database::dependency());
   Database::Query query;
 
   // Drop all tables if the database version is outdated.
@@ -159,17 +214,19 @@ MediaDatabase::MediaDatabase(BackendServer::MasterServer *masterServer, QObject 
   settings.setValue("DatabaseVersion", databaseVersion);
 
   connect(probeSandbox, SIGNAL(response(SHttpEngine::ResponseMessage)), SLOT(probeFinished(SHttpEngine::ResponseMessage)));
-
   connect(&fileSystemWatcher, SIGNAL(directoryChanged(QString)), SLOT(directoryChanged(QString)));
-  
-  QTimer::singleShot(3000, this, SLOT(initialize()));
+  connect(&scanRootTimer, SIGNAL(timeout()), SLOT(scanRoots()));
+  connect(&scanRootSingleTimer, SIGNAL(timeout()), SLOT(scanRoots()));
+
+  scanRootTimer.start(300000);
+  scanRootSingleTimer.setSingleShot(true);
+  scanRootSingleTimer.start(15000);
 }
 
 MediaDatabase::~MediaDatabase()
 {
   self = NULL;
 
-  sApp->waitForDone();
   delete probeSandbox;
 }
 
@@ -206,8 +263,6 @@ MediaDatabase::UniqueID MediaDatabase::fromUidString(const QString &str)
 
 MediaDatabase::UniqueID MediaDatabase::fromPath(const QString &path) const
 {
-  SScheduler::DependencyLocker dl(Database::dependency());
-
   Database::Query query;
   query.prepare("SELECT uid FROM MediaplayerFiles WHERE path = :path");
   query.bindValue(0, path);
@@ -220,10 +275,7 @@ MediaDatabase::UniqueID MediaDatabase::fromPath(const QString &path) const
 
 SMediaInfo MediaDatabase::readNode(UniqueID uid) const
 {
-  SScheduler::DependencyLocker dl(Database::dependency());
   const QByteArray value = readNodeData(uid);
-  dl.unlock();
-
   if (!value.isEmpty())
   {
     SMediaInfo node;
@@ -257,8 +309,6 @@ void MediaDatabase::setLastPlayed(const QString &filePath, const QDateTime &last
 {
   if (!filePath.isEmpty())
   {
-    SScheduler::DependencyLocker dl(Database::dependency());
-
     QSettings settings(GlobalSettings::applicationDataDir() + "/lastplayed.db", QSettings::IniFormat);
 
     QString key = filePath;
@@ -299,8 +349,6 @@ QDateTime MediaDatabase::lastPlayed(const QString &filePath) const
 
 QStringList MediaDatabase::allAlbums(Category category) const
 {
-  SScheduler::DependencyLocker dl(Database::dependency());
-
   QStringList result;
 
   Database::Query query;
@@ -317,8 +365,6 @@ QStringList MediaDatabase::allAlbums(Category category) const
 
 int MediaDatabase::countAlbumFiles(Category category, const QString &album) const
 {
-  SScheduler::DependencyLocker dl(Database::dependency());
-
   Database::Query query;
   query.prepare("SELECT COUNT(*) FROM MediaplayerItems "
                 "WHERE album IN ("
@@ -335,8 +381,6 @@ int MediaDatabase::countAlbumFiles(Category category, const QString &album) cons
 
 bool MediaDatabase::hasAlbum(Category category, const QString &album) const
 {
-  SScheduler::DependencyLocker dl(Database::dependency());
-
   Database::Query query;
   query.prepare("SELECT COUNT(*) FROM MediaplayerAlbums "
                 "WHERE name = :name AND category = :category");
@@ -351,8 +395,6 @@ bool MediaDatabase::hasAlbum(Category category, const QString &album) const
 
 QList<MediaDatabase::File> MediaDatabase::getAlbumFiles(Category category, const QString &album, unsigned start, unsigned count) const
 {
-  SScheduler::DependencyLocker dl(Database::dependency());
-
   QString limit;
   if (count > 0)
   {
@@ -403,8 +445,6 @@ QList<MediaDatabase::File> MediaDatabase::queryAlbums(Category category, const Q
 
   if (!qs1.isEmpty() && !qs2.isEmpty())
   {
-    SScheduler::DependencyLocker dl(Database::dependency());
-
     Database::Query query;
     query.prepare("SELECT file, title FROM MediaplayerItems "
                   "WHERE album IN ("
@@ -425,8 +465,6 @@ ImdbClient::Entry MediaDatabase::getImdbEntry(UniqueID uid) const
 {
   if (imdbClient)
   {
-    SScheduler::DependencyLocker dl(Database::dependency());
-
     Database::Query query;
     query.prepare("SELECT imdbLink FROM MediaplayerItems WHERE file = :file");
     query.bindValue(0, uid.fid);
@@ -455,86 +493,228 @@ QList<MediaDatabase::UniqueID> MediaDatabase::allFilesInDirOf(UniqueID uid) cons
   return result;
 }
 
-void MediaDatabase::initialize(void)
+void MediaDatabase::rescanRoots(void)
 {
-  PluginSettings settings(Module::pluginName);
+  qApp->postEvent(this, new QEvent(scanRootsEventType));
+}
 
-  QStringList allRootPaths;
-  foreach (const QString &group, settings.childGroups())
+void MediaDatabase::customEvent(QEvent *e)
+{
+  if (e->type() == scanDirEventType)
   {
-    settings.beginGroup(group);
+    const ScanDirEvent * const event = static_cast<const ScanDirEvent *>(e);
+    if (!isHidden(event->path))
+    {
+      Database::transaction();
 
-    QStringList paths;
-    foreach (const QString &root, settings.value("Paths").toStringList())
-    if (!root.trimmed().isEmpty() && !isHidden(root) && QFileInfo(root).exists())
-      paths.append(root);
+      QuerySet q;
+      q.request.prepare("SELECT uid, parentDir, size, lastModified "
+                        "FROM MediaplayerFiles WHERE path = :path");
 
-    settings.setValue("Paths", paths);
-    rootPaths[group] = paths;
-    allRootPaths += paths;
+      q.insert.prepare("INSERT INTO MediaplayerFiles "
+                       "VALUES (:uid, :parentDir, :path, :size, :lastModified, :mediaInfo)");
 
-    settings.endGroup();
+      q.update.prepare("UPDATE MediaplayerFiles "
+                       "SET size = :size, lastModified = :lastModified, mediaInfo = :mediaInfo "
+                       "WHERE path = :path");
+
+      q.children.prepare("SELECT path FROM MediaplayerFiles "
+                         "WHERE parentDir = :parentDir");
+
+      q.remove.prepare("DELETE FROM MediaplayerFiles WHERE path = :path");
+
+      const QFileInfo info(event->path);
+
+      q.request.bindValue(0, event->path);
+      q.request.exec();
+      if (q.request.next()) // Directory is in the database
+      {
+        const qint64 rowId = q.request.value(0).toLongLong();
+        const qint64 size = q.request.value(2).toLongLong();
+        const QDateTime lastModified = q.request.value(3).toDateTime();
+
+        const QDir dir(event->path);
+        if ((dir.count() != unsigned(size)) || (info.lastModified() > lastModified.addSecs(2)))
+        {
+          //qDebug() << "Updated dir:" << event->path << dir.count() << size << info.lastModified() << lastModified.addSecs(2);
+
+          // Update the dir
+          q.update.bindValue(0, dir.count());
+          q.update.bindValue(1, info.lastModified());
+          q.update.bindValue(2, QVariant(QVariant::ByteArray));
+          q.update.bindValue(3, event->path);
+          q.update.exec();
+
+          if (!fileSystemWatcher.directories().contains(event->path))
+            fileSystemWatcher.addPath(event->path);
+
+          updateDir(event->path, rowId, q);
+        }
+        else if (!fileSystemWatcher.directories().contains(event->path))
+        {
+          fileSystemWatcher.addPath(event->path);
+
+          foreach (const QFileInfo &child, dir.entryInfoList(QDir::Dirs))
+          if (!child.fileName().startsWith('.'))
+            qApp->postEvent(this, new ScanDirEvent(this, child.absoluteFilePath()), scanDirPriority);
+        }
+      }
+      else if (info.isDir())
+      {
+        qDebug() << "New root dir:" << event->path;
+
+        // Insert the dir
+        q.insert.bindValue(0, QVariant(QVariant::LongLong));
+        q.insert.bindValue(1, QVariant(QVariant::LongLong));
+        q.insert.bindValue(2, event->path);
+        q.insert.bindValue(3, -1); // Size will be set when scanned
+        q.insert.bindValue(4, info.lastModified());
+        q.insert.bindValue(5, QVariant(QVariant::ByteArray));
+        q.insert.exec();
+
+        // Scan again.
+        qApp->postEvent(this, new ScanDirEvent(this, event->path), scanDirPriority);
+      }
+
+      Database::commit();
+    }
   }
-
-  SScheduler::DependencyLocker dl(Database::dependency());
-
-  Database::transaction();
-  Database::Query query;
-
-  // Scan all root paths recursively
-  foreach (const QString &path, allRootPaths)
-    sApp->schedule(this, &MediaDatabase::scanDir, path, Database::dependency(), scanDirPriority);
-
-  // Find roots that are no longer roots and remove them
-  query.exec("SELECT path FROM MediaplayerFiles WHERE parentDir ISNULL");
-  QVariantList removePaths;
-  while (query.next())
-  if (findRoot(query.value(0).toString(), allRootPaths).isEmpty())
-    removePaths << query.value(0);
-
-  if (!removePaths.isEmpty())
+  else if (e->type() == queryImdbItemEventType)
   {
-    query.prepare("DELETE FROM MediaplayerFiles WHERE path = :path");
-    query.bindValue(0, removePaths);
-    query.execBatch();
+    const QueryImdbItemEvent * const event = static_cast<const QueryImdbItemEvent *>(e);
+    if (imdbClient->isAvailable() && (event->category != Category_None))
+    {
+      Database::Query query;
+
+      const ImdbClient::Type imdbType = event->category == Category_Movies ? ImdbClient::Type_Movie : ImdbClient::Type_TvShow;
+
+      query.prepare("SELECT file FROM MediaplayerItems "
+                    "WHERE album IN ("
+                      "SELECT id FROM MediaplayerAlbums "
+                      "WHERE category = :category) "
+                    "AND title = :title");
+      query.bindValue(0, event->category);
+      query.bindValue(1, event->title);
+      query.exec();
+      if (query.next())
+      {
+        const QByteArray value = readNodeData(query.value(0).toULongLong());
+        if (!value.isEmpty())
+        {
+          SMediaInfo node;
+          node.fromByteArray(value);
+          if (!node.isNull())
+          {
+            const QStringList similar = imdbClient->findSimilar(node.title(), imdbType);
+            if (!similar.isEmpty())
+            {
+              const QString imdbLink = imdbClient->findBest(node.title(), similar);
+
+              query.prepare("UPDATE MediaplayerItems SET imdbLink = :imdbLink "
+                            "WHERE album IN ("
+                              "SELECT id FROM MediaplayerAlbums "
+                              "WHERE category = :category) "
+                            "AND title = :title");
+              query.bindValue(0, (imdbLink != imdbClient->sentinelItem) ? QVariant(imdbLink) : QVariant(QVariant::String));
+              query.bindValue(1, event->category);
+              query.bindValue(2, event->title);
+              query.exec();
+
+              emit modified();
+            }
+          }
+        }
+      }
+    }
   }
+  else if (e->type() == scanRootsEventType)
+    scanRootSingleTimer.start(15000);
+  else
+    QObject::customEvent(e);
+}
 
-  // Find files that were not probed yet.
-  query.exec("SELECT path FROM MediaplayerFiles WHERE size < 0");
-  while (query.next())
-    sApp->schedule(this, &MediaDatabase::probeFile, query.value(0).toString(), &probeDependency, probeFilePriority);
-
-  // Find IMDB items that still need to be matched.
-  if (imdbClient)
-  if (imdbClient->isAvailable())
+void MediaDatabase::scanRoots(void)
+{
+  if (scanning == 0)
   {
-    query.prepare("SELECT title FROM MediaplayerItems "
-                  "WHERE album IN ("
-                    "SELECT id FROM MediaplayerAlbums "
-                    "WHERE category = :category) "
-                  "AND imdbLink ISNULL");
-    query.bindValue(0, Category_Movies);
-    query.exec();
+    PluginSettings settings(Module::pluginName);
+
+    QStringList allRootPaths;
+    foreach (const QString &group, settings.childGroups())
+    {
+      settings.beginGroup(group);
+
+      QStringList paths;
+      foreach (const QString &root, settings.value("Paths").toStringList())
+      if (!root.trimmed().isEmpty() && !isHidden(root) && QFileInfo(root).exists())
+        paths.append(root);
+
+      settings.setValue("Paths", paths);
+      rootPaths[group] = paths;
+      allRootPaths += paths;
+
+      settings.endGroup();
+    }
+
+    Database::transaction();
+    Database::Query query;
+
+    // Scan all root paths recursively
+    foreach (const QString &path, allRootPaths)
+    if (!fileSystemWatcher.directories().contains(path))
+      qApp->postEvent(this, new ScanDirEvent(this, path), scanDirPriority);
+
+    // Find roots that are no longer roots and remove them
+    query.exec("SELECT path FROM MediaplayerFiles WHERE parentDir ISNULL");
+    QVariantList removePaths;
     while (query.next())
-      sApp->schedule(this, &MediaDatabase::queryImdbItem, query.value(0).toString(), Category_Movies, Database::dependency(), matchImdbItemPriority);
+    if (findRoot(query.value(0).toString(), allRootPaths).isEmpty())
+      removePaths << query.value(0);
 
-//      query.prepare("SELECT title FROM MediaplayerItems "
-//                    "WHERE album IN ("
-//                      "SELECT id FROM MediaplayerAlbums "
-//                      "WHERE category = :category) "
-//                    "AND imdbLink ISNULL");
-//      query.bindValue(0, Category_TVShows);
-//      query.exec();
-//      while (query.next())
-//        sApp->run(this, &MediaDatabase::queryImdbItem, query.value(0).toString(), Category_TVShows, Database::dependency(), matchImdbItemPriority);
+    if (!removePaths.isEmpty())
+    {
+      query.prepare("DELETE FROM MediaplayerFiles WHERE path = :path");
+      query.bindValue(0, removePaths);
+      query.execBatch();
+    }
+
+    // Find files that were not probed yet.
+    query.exec("SELECT path FROM MediaplayerFiles WHERE size < 0");
+    while (query.next())
+      probeFile(query.value(0).toString());
+
+    // Find IMDB items that still need to be matched.
+    if (imdbClient)
+    if (imdbClient->isAvailable())
+    {
+      query.prepare("SELECT title FROM MediaplayerItems "
+                    "WHERE album IN ("
+                      "SELECT id FROM MediaplayerAlbums "
+                      "WHERE category = :category) "
+                    "AND imdbLink ISNULL");
+      query.bindValue(0, Category_Movies);
+      query.exec();
+      while (query.next())
+        qApp->postEvent(this, new QueryImdbItemEvent(this, query.value(0).toString(), Category_Movies), matchImdbItemPriority);
+
+  //      query.prepare("SELECT title FROM MediaplayerItems "
+  //                    "WHERE album IN ("
+  //                      "SELECT id FROM MediaplayerAlbums "
+  //                      "WHERE category = :category) "
+  //                    "AND imdbLink ISNULL");
+  //      query.bindValue(0, Category_TVShows);
+  //      query.exec();
+  //      while (query.next())
+  //        qApp->postEvent(this, new QueryImdbItemEvent(query.value(0).toString(), Category_TVShows), matchImdbItemPriority);
+    }
+
+    Database::commit();
   }
-
-  Database::commit();
 }
 
 void MediaDatabase::directoryChanged(const QString &path)
 {
-  sApp->schedule(this, &MediaDatabase::scanDir, path, Database::dependency(), scanDirPriority);
+  qApp->postEvent(this, new ScanDirEvent(this, path), scanDirPriority);
 }
 
 void MediaDatabase::probeFinished(const SHttpEngine::ResponseMessage &message)
@@ -544,14 +724,107 @@ void MediaDatabase::probeFinished(const SHttpEngine::ResponseMessage &message)
     SMediaInfo mediaInfo;
     mediaInfo.fromByteArray(message.content());
 
-    sApp->schedule(this, &MediaDatabase::insertFile, mediaInfo, message.content(), Database::dependency(), insertFilePriority);
+    Database::transaction();
+
+    Database::Query query;
+    query.prepare("UPDATE MediaplayerFiles "
+                  "SET size = :size, mediaInfo = :mediaInfo "
+                  "WHERE path = :path");
+    query.bindValue(0, qMax(Q_INT64_C(0), mediaInfo.size()));
+    query.bindValue(1, message.content());
+    query.bindValue(2, mediaInfo.filePath());
+    query.exec();
+
+    if (mediaInfo.isProbed() && mediaInfo.isReadable())
+    {
+      // Find the rowId and categorize the file
+      query.prepare("SELECT uid, parentDir FROM MediaplayerFiles WHERE path = :path");
+      query.bindValue(0, mediaInfo.filePath());
+      query.exec();
+
+      if (query.next())
+      {
+        const qint64 rowId = query.value(0).toLongLong();
+        const qint64 parentDirId = query.value(1).toLongLong();
+
+        const QMap<Category, QString> categories = findCategories(mediaInfo.filePath());
+        for (QMap<Category, QString>::ConstIterator i=categories.begin(); i!=categories.end(); i++)
+        {
+          if ((i.key() == Category_Movies) || (i.key() == Category_HomeVideos) ||
+              (i.key() == Category_Clips) || (i.key() == Category_TVShows))
+          if (!mediaInfo.containsAudio() || !mediaInfo.containsVideo())
+            continue;
+
+          if (i.key() == Category_Movies)
+          if (mediaInfo.totalDuration().isValid() && (mediaInfo.totalDuration().toMin() < 5))
+            continue;
+
+          if (i.key() == Category_Music)
+          if (!mediaInfo.containsAudio())
+            continue;
+
+          if (i.key() == Category_Photos)
+          if (!mediaInfo.containsImage())
+            continue;
+
+          // Find or create the album id.
+          qint64 albumId = -1;
+          query.prepare("SELECT id FROM MediaplayerAlbums "
+                        "WHERE name = :name AND category = :category");
+          query.bindValue(0, i.value());
+          query.bindValue(1, i.key());
+          query.exec();
+          if (!query.next())
+          {
+            query.prepare("INSERT INTO MediaplayerAlbums "
+                          "VALUES (:id, :parentDir, :category, :name)");
+            query.bindValue(0, QVariant(QVariant::LongLong));
+            query.bindValue(1, parentDirId);
+            query.bindValue(2, i.key());
+            query.bindValue(3, i.value());
+            query.exec();
+
+            query.prepare("SELECT id FROM MediaplayerAlbums "
+                          "WHERE name = :name AND category = :category");
+            query.bindValue(0, i.value());
+            query.bindValue(1, i.key());
+            query.exec();
+            if (query.next())
+              albumId = query.value(0).toLongLong();
+          }
+          else
+            albumId = query.value(0).toLongLong();
+
+          if (albumId != -1)
+          {
+            QString rawTitle = SStringParser::toRawName(mediaInfo.title());
+            if ((i.key() == Category_TVShows) || (i.key() == Category_Music))
+              rawTitle = ("000000000" + QString::number(mediaInfo.track())).right(10) + rawTitle;
+
+            query.prepare("INSERT INTO MediaplayerItems "
+                          "VALUES (:file, :album, :title, :subtitle, :imdbLink)");
+            query.bindValue(0, rowId);
+            query.bindValue(1, albumId);
+            query.bindValue(2, rawTitle);
+            query.bindValue(3, SStringParser::toRawName(mediaInfo.album()));
+            query.bindValue(4, QVariant(QVariant::String));
+            query.exec();
+
+            if (imdbClient->isAvailable() && (i.key() == Category_Movies))
+              qApp->postEvent(this, new QueryImdbItemEvent(this, rawTitle, i.key()), matchImdbItemPriority);
+
+            emit modified();
+          }
+        }
+      }
+    }
+
+    Database::commit();
   }
   else
   {
     qDebug() << "probeFinished" << message.status();
   }
-
-  SScheduler::DependencyLocker l(&probeDependency);
 
   if (!probeQueue.isEmpty())
   {
@@ -591,108 +864,8 @@ QString MediaDatabase::findRoot(const QString &path, const QStringList &allRootP
   return QString::null;
 }
 
-struct MediaDatabase::QuerySet
-{
-  Database::Query request;
-  Database::Query insert;
-  Database::Query update;
-  Database::Query children;
-  Database::Query remove;
-};
-
-void MediaDatabase::scanDir(const QString &_path)
-{
-  Q_ASSERT(!Database::dependency()->tryLock()); // Mutex should be locked by the caller.
-
-  // Ensure directories end with a '/'
-  const QString path =
-      (_path.endsWith('/') ? _path : (_path + '/'))
-#ifdef Q_OS_WIN
-      .toLower()
-#endif
-      ;
-
-  if (!isHidden(path))
-  {
-    Database::transaction();
-
-    QuerySet q;
-    q.request.prepare("SELECT uid, parentDir, size, lastModified "
-                      "FROM MediaplayerFiles WHERE path = :path");
-
-    q.insert.prepare("INSERT INTO MediaplayerFiles "
-                     "VALUES (:uid, :parentDir, :path, :size, :lastModified, :mediaInfo)");
-
-    q.update.prepare("UPDATE MediaplayerFiles "
-                     "SET size = :size, lastModified = :lastModified, mediaInfo = :mediaInfo "
-                     "WHERE path = :path");
-
-    q.children.prepare("SELECT path FROM MediaplayerFiles "
-                       "WHERE parentDir = :parentDir");
-
-    q.remove.prepare("DELETE FROM MediaplayerFiles WHERE path = :path");
-
-    const QFileInfo info(path);
-
-    q.request.bindValue(0, path);
-    q.request.exec();
-    if (q.request.next()) // Directory is in the database
-    {
-      const qint64 rowId = q.request.value(0).toLongLong();
-      const qint64 size = q.request.value(2).toLongLong();
-      const QDateTime lastModified = q.request.value(3).toDateTime();
-
-      const QDir dir(path);
-      if ((dir.count() != unsigned(size)) || (info.lastModified() > lastModified.addSecs(2)))
-      {
-        //qDebug() << "Updated dir:" << path << dir.count() << size << info.lastModified() << lastModified.addSecs(2);
-
-        // Update the dir
-        q.update.bindValue(0, dir.count());
-        q.update.bindValue(1, info.lastModified());
-        q.update.bindValue(2, QVariant(QVariant::ByteArray));
-        q.update.bindValue(3, path);
-        q.update.exec();
-
-        if (!fileSystemWatcher.directories().contains(path))
-          fileSystemWatcher.addPath(path);
-
-        updateDir(path, rowId, q);
-      }
-      else if (!fileSystemWatcher.directories().contains(path))
-      {
-        fileSystemWatcher.addPath(path);
-
-        foreach (const QFileInfo &child, dir.entryInfoList(QDir::Dirs))
-        if (!child.fileName().startsWith('.'))
-          sApp->schedule(this, &MediaDatabase::scanDir, child.absoluteFilePath(), Database::dependency(), scanDirPriority);
-      }
-    }
-    else if (info.isDir())
-    {
-      qDebug() << "New root dir:" << path;
-
-      // Insert the dir
-      q.insert.bindValue(0, QVariant(QVariant::LongLong));
-      q.insert.bindValue(1, QVariant(QVariant::LongLong));
-      q.insert.bindValue(2, path);
-      q.insert.bindValue(3, -1); // Size will be set when scanned
-      q.insert.bindValue(4, info.lastModified());
-      q.insert.bindValue(5, QVariant(QVariant::ByteArray));
-      q.insert.exec();
-
-      // Scan again.
-      sApp->schedule(this, &MediaDatabase::scanDir, path, Database::dependency(), scanDirPriority);
-    }
-
-    Database::commit();
-  }
-}
-
 void MediaDatabase::updateDir(const QString &path, qint64 parentDir, QuerySet &q)
 {
-  Q_ASSERT(!Database::dependency()->tryLock()); // Mutex should be locked by the caller.
-
   qDebug() << "Scanning:" << path;
 
   QSet<QString> childPaths;
@@ -727,7 +900,7 @@ void MediaDatabase::updateDir(const QString &path, qint64 parentDir, QuerySet &q
       q.insert.exec();
     }
 
-    sApp->schedule(this, &MediaDatabase::scanDir, childPath, Database::dependency(), scanDirPriority);
+    qApp->postEvent(this, new ScanDirEvent(this, childPath), scanDirPriority);
   }
 
   // Update existing and add new files.
@@ -762,7 +935,7 @@ void MediaDatabase::updateDir(const QString &path, qint64 parentDir, QuerySet &q
       q.insert.bindValue(5, QVariant(QVariant::ByteArray));
       q.insert.exec();
 
-      sApp->schedule(this, &MediaDatabase::probeFile, childPath, &probeDependency, probeFilePriority);
+      probeFile(childPath);
     }
     else if ((child.size() != q.request.value(2).toLongLong()) ||
              (child.lastModified() > q.request.value(3).toDateTime().addSecs(2)))
@@ -776,7 +949,7 @@ void MediaDatabase::updateDir(const QString &path, qint64 parentDir, QuerySet &q
       q.update.bindValue(3, childPath);
       q.update.exec();
 
-      sApp->schedule(this, &MediaDatabase::probeFile, childPath, &probeDependency, probeFilePriority);
+      probeFile(childPath);
     }
   }
 
@@ -808,108 +981,6 @@ void MediaDatabase::updateDir(const QString &path, qint64 parentDir, QuerySet &q
   }
 }
 
-void MediaDatabase::insertFile(const SMediaInfo &mediaInfo, const QByteArray &mediaInfoXml)
-{
-  Q_ASSERT(!Database::dependency()->tryLock()); // Mutex should be locked by the caller.
-
-  Database::transaction();
-
-  Database::Query query;
-  query.prepare("UPDATE MediaplayerFiles "
-                "SET size = :size, mediaInfo = :mediaInfo "
-                "WHERE path = :path");
-  query.bindValue(0, qMax(Q_INT64_C(0), mediaInfo.size()));
-  query.bindValue(1, mediaInfoXml);
-  query.bindValue(2, mediaInfo.filePath());
-  query.exec();
-
-  if (mediaInfo.isProbed() && mediaInfo.isReadable())
-  {
-    // Find the rowId and categorize the file
-    query.prepare("SELECT uid, parentDir FROM MediaplayerFiles WHERE path = :path");
-    query.bindValue(0, mediaInfo.filePath());
-    query.exec();
-
-    if (query.next())
-    {
-      const qint64 rowId = query.value(0).toLongLong();
-      const qint64 parentDirId = query.value(1).toLongLong();
-
-      const QMap<Category, QString> categories = findCategories(mediaInfo.filePath());
-      for (QMap<Category, QString>::ConstIterator i=categories.begin(); i!=categories.end(); i++)
-      {
-        if ((i.key() == Category_Movies) || (i.key() == Category_HomeVideos) ||
-            (i.key() == Category_Clips) || (i.key() == Category_TVShows))
-        if (!mediaInfo.containsAudio() || !mediaInfo.containsVideo())
-          continue;
-
-        if (i.key() == Category_Movies)
-        if (mediaInfo.totalDuration().isValid() && (mediaInfo.totalDuration().toMin() < 5))
-          continue;
-
-        if (i.key() == Category_Music)
-        if (!mediaInfo.containsAudio())
-          continue;
-
-        if (i.key() == Category_Photos)
-        if (!mediaInfo.containsImage())
-          continue;
-
-        // Find or create the album id.
-        qint64 albumId = -1;
-        query.prepare("SELECT id FROM MediaplayerAlbums "
-                      "WHERE name = :name AND category = :category");
-        query.bindValue(0, i.value());
-        query.bindValue(1, i.key());
-        query.exec();
-        if (!query.next())
-        {
-          query.prepare("INSERT INTO MediaplayerAlbums "
-                        "VALUES (:id, :parentDir, :category, :name)");
-          query.bindValue(0, QVariant(QVariant::LongLong));
-          query.bindValue(1, parentDirId);
-          query.bindValue(2, i.key());
-          query.bindValue(3, i.value());
-          query.exec();
-
-          query.prepare("SELECT id FROM MediaplayerAlbums "
-                        "WHERE name = :name AND category = :category");
-          query.bindValue(0, i.value());
-          query.bindValue(1, i.key());
-          query.exec();
-          if (query.next())
-            albumId = query.value(0).toLongLong();
-        }
-        else
-          albumId = query.value(0).toLongLong();
-
-        if (albumId != -1)
-        {
-          QString rawTitle = SStringParser::toRawName(mediaInfo.title());
-          if ((i.key() == Category_TVShows) || (i.key() == Category_Music))
-            rawTitle = ("000000000" + QString::number(mediaInfo.track())).right(10) + rawTitle;
-
-          query.prepare("INSERT INTO MediaplayerItems "
-                        "VALUES (:file, :album, :title, :subtitle, :imdbLink)");
-          query.bindValue(0, rowId);
-          query.bindValue(1, albumId);
-          query.bindValue(2, rawTitle);
-          query.bindValue(3, SStringParser::toRawName(mediaInfo.album()));
-          query.bindValue(4, QVariant(QVariant::String));
-          query.exec();
-
-          if (i.key() == Category_Movies)
-            sApp->schedule(this, &MediaDatabase::queryImdbItem, rawTitle, i.key(), Database::dependency(), matchImdbItemPriority);
-
-          emit modified();
-        }
-      }
-    }
-  }
-
-  Database::commit();
-}
-
 // Ensure directories end with a '/'
 void MediaDatabase::probeFile(
 #ifndef Q_OS_WIN
@@ -920,8 +991,6 @@ void MediaDatabase::probeFile(
 {
   const QString path = _path.toLower();
 #endif
-
-  Q_ASSERT(!probeDependency.tryLock()); // Mutex should be locked by the caller.
 
   if (!path.isEmpty() && !isHidden(path))
   {
@@ -944,108 +1013,41 @@ void MediaDatabase::probeFile(
         probeQueue.append(path);
     }
     else
-      sApp->schedule(this, &MediaDatabase::delayFile, path, Database::dependency(), insertFilePriority);
-  }
-}
-
-void MediaDatabase::delayFile(const QString &path)
-{
-  Q_ASSERT(!Database::dependency()->tryLock()); // Mutex should be locked by the caller.
-
-  Database::Query query;
-  query.prepare("SELECT size FROM MediaplayerFiles WHERE path = :path");
-  query.bindValue(0, path);
-  query.exec();
-  if (query.next())
-  {
-    const qint64 size = query.value(0).toLongLong();
-
-    if (size == -1)
-      qDebug() << "File" << path << "can not be opened, scanning later";
-
-    if (size > -60) // Try 60 times (~1 hour), otherwise fail forever.
     {
-      query.prepare("UPDATE MediaplayerFiles "
-                    "SET size = :size "
-                    "WHERE path = :path");
-      query.bindValue(0, qMin(size - 1, Q_INT64_C(-1)));
-      query.bindValue(1, path);
+      Database::Query query;
+      query.prepare("SELECT size FROM MediaplayerFiles WHERE path = :path");
+      query.bindValue(0, path);
       query.exec();
-    }
-    else // Set the correct size so the file is not probed anymore.
-    {
-      qDebug() << "File" << path << "can not be opened, not scanning at all";
-
-      query.prepare("UPDATE MediaplayerFiles "
-                    "SET size = :size "
-                    "WHERE path = :path");
-      query.bindValue(0, QFileInfo(path).size());
-      query.bindValue(1, path);
-      query.exec();
-    }
-  }
-}
-
-void MediaDatabase::queryImdbItem(const QString &item, Category category)
-{
-  Q_ASSERT(!Database::dependency()->tryLock()); // Mutex should be locked by the caller.
-
-  Database::Query query;
-
-  if (category != Category_None)
-  {
-    const ImdbClient::Type imdbType = category == Category_Movies ? ImdbClient::Type_Movie : ImdbClient::Type_TvShow;
-
-    query.prepare("SELECT file FROM MediaplayerItems "
-                  "WHERE album IN ("
-                    "SELECT id FROM MediaplayerAlbums "
-                    "WHERE category = :category) "
-                  "AND title = :title");
-    query.bindValue(0, category);
-    query.bindValue(1, item);
-    query.exec();
-    if (query.next())
-    {
-      const QByteArray value = readNodeData(query.value(0).toULongLong());
-      if (!value.isEmpty())
+      if (query.next())
       {
-        SMediaInfo node;
-        node.fromByteArray(value);
-        if (!node.isNull())
+        const qint64 size = query.value(0).toLongLong();
+
+        if (size == -1)
+          qDebug() << "File" << path << "can not be opened, scanning later";
+
+        if (size > -60) // Try 60 times (~1 hour), otherwise fail forever.
         {
-          const QStringList similar = imdbClient->findSimilar(node.title(), imdbType);
-          if (!similar.isEmpty())
-            sApp->schedule(this, &MediaDatabase::matchImdbItem, item, node.title(), similar, category, NULL, storeImdbItemPriority);
+          query.prepare("UPDATE MediaplayerFiles "
+                        "SET size = :size "
+                        "WHERE path = :path");
+          query.bindValue(0, qMin(size - 1, Q_INT64_C(-1)));
+          query.bindValue(1, path);
+          query.exec();
+        }
+        else // Set the correct size so the file is not probed anymore.
+        {
+          qDebug() << "File" << path << "can not be opened, not scanning at all";
+
+          query.prepare("UPDATE MediaplayerFiles "
+                        "SET size = :size "
+                        "WHERE path = :path");
+          query.bindValue(0, QFileInfo(path).size());
+          query.bindValue(1, path);
+          query.exec();
         }
       }
     }
   }
-}
-
-void MediaDatabase::matchImdbItem(const QString &item, const QString &title, const QStringList &similar, Category category)
-{
-  const QString imdbLink = imdbClient->findBest(title, similar);
-
-  sApp->schedule(this, &MediaDatabase::storeImdbItem, item, imdbLink, category, Database::dependency(), storeImdbItemPriority);
-}
-
-void MediaDatabase::storeImdbItem(const QString &item, const QString &imdbLink, Category category)
-{
-  Q_ASSERT(!Database::dependency()->tryLock()); // Mutex should be locked by the caller.
-
-  Database::Query query;
-
-  query.prepare("UPDATE MediaplayerItems SET imdbLink = :imdbLink "
-                "WHERE album IN ("
-                  "SELECT id FROM MediaplayerAlbums "
-                  "WHERE category = :category) "
-                "AND title = :title");
-  query.bindValue(0, imdbLink);
-  query.bindValue(1, category);
-  query.bindValue(2, item);
-  query.exec();
-
-  emit modified();
 }
 
 bool MediaDatabase::isHidden(const QString &absoluteFilePath)

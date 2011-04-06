@@ -35,10 +35,75 @@ extern "C"
 
 namespace LXiMediaCenter {
 
+class ImdbClient::ReadMoviesListEvent : public QEvent
+{
+public:
+  inline ReadMoviesListEvent(qint64 pos)
+    : QEvent(readMoviesListEventType), pos(pos)
+  {
+  }
+
+public:
+  const qint64 pos;
+};
+
+class ImdbClient::ReadPlotListEvent : public QEvent
+{
+public:
+  inline ReadPlotListEvent(qint64 pos)
+    : QEvent(readPlotListEventType), pos(pos)
+  {
+  }
+
+public:
+  const qint64 pos;
+};
+
+class ImdbClient::ReadRatingListEvent : public QEvent
+{
+public:
+  inline ReadRatingListEvent(qint64 pos)
+    : QEvent(readRatingListEventType), pos(pos)
+  {
+  }
+
+public:
+  const qint64 pos;
+};
+
+struct ImdbClient::Data
+{
+  static const unsigned         readChunkSize;
+  static const int              maxAge;
+  static const int              basePriority;
+
+  QDir                          cacheDir;
+  QFile                         moviesFile;
+  QFile                         plotFile;
+  QFile                         ratingFile;
+  int                           downloading;
+  int                           available;
+
+  QList<QFile *>                obtainFiles;
+  unsigned                      useMirror, useAttempt;
+  bool                          failed;
+  QNetworkAccessManager       * manager;
+  QNetworkReply               * reply;
+};
+
 const char  * const ImdbClient::sentinelItem = "#SENTINEL";
-const unsigned      ImdbClient::readChunkSize = 3000;
-const int           ImdbClient::maxAge = 120;
 const QEvent::Type  ImdbClient::tryMirrorEventType = QEvent::Type(QEvent::registerEventType());
+const QEvent::Type  ImdbClient::readMoviesListEventType = QEvent::Type(QEvent::registerEventType());
+const QEvent::Type  ImdbClient::readPlotListEventType = QEvent::Type(QEvent::registerEventType());
+const QEvent::Type  ImdbClient::readRatingListEventType = QEvent::Type(QEvent::registerEventType());
+
+#if defined(Q_OS_UNIX)
+const unsigned      ImdbClient::Data::readChunkSize = 3000;
+#else
+const unsigned      ImdbClient::Data::readChunkSize = 500;
+#endif
+const int           ImdbClient::Data::maxAge = 120;
+const int           ImdbClient::Data::basePriority = INT_MIN;
 
 const char * const ImdbClient::mirrors[] =
 {
@@ -49,35 +114,31 @@ const char * const ImdbClient::mirrors[] =
 
 ImdbClient::ImdbClient(QObject *parent)
   : QObject(parent),
-    dependency(sApp),
-    cacheDir(GlobalSettings::applicationDataDir() + "/imdb"),
-    moviesFile(),
-    plotFile(),
-    ratingFile(),
-    downloading(0),
-    available(0),
-    useMirror(qrand() % (sizeof(mirrors) / sizeof(mirrors[0]))), useAttempt(0),
-    failed(false),
-    manager(new QNetworkAccessManager(this)),
-    reply(NULL)
+    d(new Data())
 {
   GlobalSettings settings;
+
+  d->cacheDir = QDir(settings.applicationDataDir() + "/imdb");
+  d->downloading = 0;
+  d->available = 0;
+  d->useMirror = qrand() % (sizeof(mirrors) / sizeof(mirrors[0]));
+  d->useAttempt = 0;
+  d->failed = false;
+  d->manager = new QNetworkAccessManager(this);
+  d->reply = NULL;
 
   static bool firsttime = true;
   if (firsttime)
   {
     firsttime = false;
 
-    SScheduler::DependencyLocker l(&dependency);
-    
-    if (!cacheDir.exists())
-    if (!cacheDir.mkpath(cacheDir.absolutePath()))
+    if (!d->cacheDir.exists())
+    if (!d->cacheDir.mkpath(d->cacheDir.absolutePath()))
     {
-      qWarning() << "Failed to create IMDB cache directory:" << cacheDir.absolutePath();
+      qWarning() << "Failed to create IMDB cache directory:" << d->cacheDir.absolutePath();
       return;
     }
 
-    SScheduler::DependencyLocker dl(Database::dependency());
     Database::Query query;
 
     // Drop all tables if the database version is outdated.
@@ -139,81 +200,73 @@ ImdbClient::ImdbClient(QObject *parent)
     settings.setValue("ImdbDatabaseVersion", imdbDatabaseVersion);
   }
 
-  moviesFile.setFileName(cacheDir.absoluteFilePath("movies.list"));
-  plotFile.setFileName(cacheDir.absoluteFilePath("plot.list"));
-  ratingFile.setFileName(cacheDir.absoluteFilePath("ratings.list"));
-
-  SScheduler::DependencyLocker dl(Database::dependency());
+  d->moviesFile.setFileName(d->cacheDir.absoluteFilePath("movies.list"));
+  d->plotFile.setFileName(d->cacheDir.absoluteFilePath("plot.list"));
+  d->ratingFile.setFileName(d->cacheDir.absoluteFilePath("ratings.list"));
 
   if (!isAvailable() &&
-      moviesFile.exists() && plotFile.exists() && ratingFile.exists() &&
-      (moviesFile.size() > 0) && (plotFile.size() > 0) && (ratingFile.size() > 0))
+      d->moviesFile.exists() && d->plotFile.exists() && d->ratingFile.exists() &&
+      (d->moviesFile.size() > 0) && (d->plotFile.size() > 0) && (d->ratingFile.size() > 0))
   {
-    dl.unlock();
-
     importIMDBDatabase();
   }
 }
 
 ImdbClient::~ImdbClient(void)
 {
-  delete reply;
-  delete manager;
+  delete d->reply;
+  delete d->manager;
+  delete d;
+  *const_cast<Data **>(&d) = NULL;
 }
 
 void ImdbClient::obtainIMDBFiles(void)
 {
-  SScheduler::DependencyLocker l(&dependency);
-
-  if (moviesFile.open(QIODevice::ReadWrite) &&
-      plotFile.open(QIODevice::ReadWrite) &&
-      ratingFile.open(QIODevice::ReadWrite))
+  if (d->moviesFile.open(QIODevice::ReadWrite) &&
+      d->plotFile.open(QIODevice::ReadWrite) &&
+      d->ratingFile.open(QIODevice::ReadWrite))
   {
-    obtainFiles.clear();
-    obtainFiles << &moviesFile << &plotFile << &ratingFile;
+    d->obtainFiles.clear();
+    d->obtainFiles << &d->moviesFile << &d->plotFile << &d->ratingFile;
 
     QCoreApplication::postEvent(this, new QEvent(tryMirrorEventType));
   }
 }
 
-bool ImdbClient::isDownloading(void)
+bool ImdbClient::isDownloading(void) const
 {
-  SScheduler::DependencyLocker l(&dependency);
-
-  return downloading > 0;
+  return d->downloading > 0;
 }
 
-bool ImdbClient::isAvailable(void)
+bool ImdbClient::isAvailable(void) const
 {
-  Q_ASSERT(!Database::dependency()->tryLock()); // Mutex should be locked by the caller.
-
-  if (available == 0)
+  if (d->available == 0)
   {
     // Check for the sentinel entry indicating the last import has completed.
     Database::Query query;
     query.exec("SELECT title FROM ImdbEntries WHERE rawName = '" + QString(sentinelItem) + "'");
     if (!query.next())
     {
-      available = -1;
+      d->available = -1;
       return false;
     }
 
-    available = 1;
+    d->available = 1;
     return true;
   }
 
-  return available == 1;
+  return d->available == 1;
 }
 
-bool ImdbClient::needUpdate(void)
+bool ImdbClient::needUpdate(void) const
 {
   const QDateTime now = QDateTime::currentDateTime();
 
-  if (moviesFile.exists() && plotFile.exists() && ratingFile.exists())
+  if (d->moviesFile.exists() && d->plotFile.exists() && d->ratingFile.exists())
   {
-    return ((QFileInfo(moviesFile).lastModified().daysTo(now) > maxAge) ||
-            (QFileInfo(plotFile).lastModified().daysTo(now) > maxAge) ||
-            (QFileInfo(ratingFile).lastModified().daysTo(now) > maxAge));
+    return ((QFileInfo(d->moviesFile).lastModified().daysTo(now) > d->maxAge) ||
+            (QFileInfo(d->plotFile).lastModified().daysTo(now) > d->maxAge) ||
+            (QFileInfo(d->ratingFile).lastModified().daysTo(now) > d->maxAge));
   }
 
   return true;
@@ -221,8 +274,6 @@ bool ImdbClient::needUpdate(void)
 
 ImdbClient::Entry ImdbClient::readEntry(const QString &rawName)
 {
-  Q_ASSERT(!Database::dependency()->tryLock()); // Mutex should be locked by the caller.
-
   if (rawName != sentinelItem)
   {
     Database::Query query;
@@ -253,8 +304,6 @@ ImdbClient::Entry ImdbClient::readEntry(const QString &rawName)
 
 QStringList ImdbClient::findSimilar(const QString &title, Type type)
 {
-  Q_ASSERT(!Database::dependency()->tryLock()); // Mutex should be locked by the caller.
-
   static const int minWordLength = 5;
   const QStringList words = SStringParser::toCleanName(title).split(' ', QString::SkipEmptyParts);
 
@@ -328,10 +377,199 @@ QString ImdbClient::findBest(const QString &title, const QStringList &matches)
 
 void ImdbClient::customEvent(QEvent *e)
 {
-  if (e->type() == tryMirrorEventType)
+  if (e->type() == readMoviesListEventType)
   {
-    tryMirror();
+    const ReadMoviesListEvent * const event = static_cast<const ReadMoviesListEvent *>(e);
+    if (event->pos >= 0)
+    {
+      QVariantList rawName, title, type, year, episodeName, episodeNumber,
+                   seasonNumber, plot, rating;
+
+      if (d->moviesFile.seek(event->pos))
+      {
+        bool finished = false;
+        for (unsigned i=0; (i<d->readChunkSize) && !finished; i++)
+        {
+          const QByteArray line = d->moviesFile.readLine(1024);
+          if (!line.isEmpty())
+          {
+            if (line.contains("\t"))
+            {
+              const Entry entry = decodeEntry(line.left(line.length() - 5));
+              if (entry.rawName.length() > 0)
+              {
+                rawName << entry.rawName;
+                title << entry.title;
+                type << entry.type;
+                year << entry.year;
+                episodeName << entry.episodeName;
+                episodeNumber << entry.episodeNumber;
+                seasonNumber << entry.seasonNumber;
+                plot << entry.plot;
+                rating << entry.rating;
+              }
+            }
+          }
+          else // Finished
+            finished = true;
+        }
+
+        if (!rawName.isEmpty())
+        {
+          Database::transaction();
+
+          Database::Query query;
+          query.prepare("INSERT OR REPLACE INTO ImdbEntries VALUES ("
+                        ":rawName, :title, :type, :year, :episodeName, "
+                        ":episodeNumber, :seasonNumber, :plot, :rating)");
+          query.bindValue(0, rawName);
+          query.bindValue(1, title);
+          query.bindValue(2, type);
+          query.bindValue(3, year);
+          query.bindValue(4, episodeName);
+          query.bindValue(5, episodeNumber);
+          query.bindValue(6, seasonNumber);
+          query.bindValue(7, plot);
+          query.bindValue(8, rating);
+          query.execBatch();
+
+          Database::commit();
+        }
+
+        if (finished)
+        {
+          qDebug() << "IMDB import: Finished parsing movies.list, parsing plot.list";
+          qApp->postEvent(this, new ReadPlotListEvent(0), d->basePriority);
+        }
+        else
+          qApp->postEvent(this, new ReadMoviesListEvent(d->moviesFile.pos()), d->basePriority);
+      }
+    }
   }
+  else if (e->type() == readPlotListEventType)
+  {
+    const ReadPlotListEvent * const event = static_cast<const ReadPlotListEvent *>(e);
+    if (event->pos >= 0)
+    {
+      QVariantList rawName, plot;
+
+      if (d->plotFile.seek(event->pos))
+      {
+        bool finished = false;
+        for (unsigned i=0; (i<d->readChunkSize) && !finished; i++)
+        {
+          const QByteArray line = d->plotFile.readLine(1024);
+          if (!line.isEmpty())
+          {
+            if (line.startsWith("MV:"))
+            {
+              Entry entry = decodeEntry(line.mid(4));
+              if (entry.rawName.length() > 0)
+              {
+                for (QByteArray line = d->plotFile.readLine(1024);
+                     !line.isEmpty();
+                     line = d->plotFile.readLine(1024))
+                {
+                  if (line.startsWith("PL:"))
+                    entry.plot += QString::fromUtf8(line.mid(4)) + " ";
+                  else if (line.startsWith("BY:") || line.startsWith("----"))
+                    break;
+                }
+
+                entry.plot = entry.plot.simplified();
+
+                rawName << entry.rawName;
+                plot << entry.plot;
+              }
+            }
+          }
+          else // Finished
+            finished = true;
+        }
+
+        // Insert/update results
+        if (!rawName.isEmpty())
+        {
+          Database::transaction();
+
+          Database::Query query;
+          query.prepare("UPDATE ImdbEntries SET plot = :plot WHERE rawName = :rawName");
+          query.bindValue(0, plot);
+          query.bindValue(1, rawName);
+          query.execBatch();
+
+          Database::commit();
+        }
+
+        if (finished)
+        {
+          qDebug() << "IMDB import: Finished parsing plot.list, parsing ratings.list";
+          qApp->postEvent(this, new ReadRatingListEvent(0), d->basePriority);
+        }
+        else
+          qApp->postEvent(this, new ReadPlotListEvent(d->plotFile.pos()), d->basePriority);
+      }
+    }
+  }
+  else if (e->type() == readRatingListEventType)
+  {
+    const ReadRatingListEvent * const event = static_cast<const ReadRatingListEvent *>(e);
+    if (event->pos >= 0)
+    {
+      QVariantList rawName, rating;
+
+      if (d->ratingFile.seek(event->pos))
+      {
+        bool finished = false;
+        for (unsigned i=0; (i<d->readChunkSize) && !finished; i++)
+        {
+          const QByteArray line = d->ratingFile.readLine(1024);
+          if (!line.isEmpty())
+          {
+            if (line.startsWith("      "))
+            {
+              const float r = line.mid(26, 5).trimmed().toFloat();
+              if ((r > 0.9f) && (r < 10.1f))
+              {
+                const Entry entry = decodeEntry(line.mid(32));
+                if (entry.rawName.length() > 0)
+                {
+                  rawName << entry.rawName;
+                  rating << r;
+                }
+              }
+            }
+          }
+          else // Finished
+            finished = true;
+        }
+
+        // Insert/update results
+        if (!rawName.isEmpty())
+        {
+          Database::transaction();
+
+          Database::Query query;
+          query.prepare("UPDATE ImdbEntries SET rating = :rating WHERE rawName = :rawName");
+          query.bindValue(0, rating);
+          query.bindValue(1, rawName);
+          query.execBatch();
+
+          Database::commit();
+        }
+
+        if (finished)
+        {
+          qDebug() << "IMDB import: Finished.";
+          Database::Query("INSERT OR IGNORE INTO ImdbEntries VALUES ('" + QString(sentinelItem) + "', '', 0, 0, '', 0, 0, '', 0.0)").exec();
+        }
+        else
+          qApp->postEvent(this, new ReadRatingListEvent(d->ratingFile.pos()), d->basePriority);
+      }
+    }
+  }
+  else if (e->type() == tryMirrorEventType)
+    tryMirror();
   else
     QObject::customEvent(e);
 }
@@ -339,262 +577,17 @@ void ImdbClient::customEvent(QEvent *e)
 void ImdbClient::importIMDBDatabase(void)
 {
   // Remove the sentinel entry indicating the last import has completed.
+  d->available = 0;
+  Database::Query("DELETE FROM ImdbEntries WHERE rawName = '" + QString(sentinelItem) + "'").exec();
+
+  if (d->moviesFile.open(QIODevice::ReadOnly) &&
+      d->plotFile.open(QIODevice::ReadOnly) &&
+      d->ratingFile.open(QIODevice::ReadOnly))
   {
-    SScheduler::DependencyLocker dl(Database::dependency());
-
-    available = 0;
-
-    Database::Query("DELETE FROM ImdbEntries WHERE rawName = '" + QString(sentinelItem) + "'").exec();
-  }
-
-  SScheduler::DependencyLocker l(&dependency);
-
-  if (moviesFile.open(QIODevice::ReadOnly) &&
-      plotFile.open(QIODevice::ReadOnly) &&
-      ratingFile.open(QIODevice::ReadOnly))
-  {
-    l.unlock();
     qDebug() << "IMDB import: Parsing movies.list";
 
-    sApp->schedule(this, &ImdbClient::readIMDBMoviesListLines, Q_INT64_C(0), &dependency, basePriority);
+    qApp->postEvent(this, new ReadMoviesListEvent(0), d->basePriority);
   }
-}
-
-struct ImdbClient::MoviesListLines
-{
-  QVariantList rawName, title, type, year, episodeName, episodeNumber,
-               seasonNumber, plot, rating;
-};
-
-void ImdbClient::readIMDBMoviesListLines(qint64 pos)
-{
-  Q_ASSERT(!dependency.tryLock()); // Mutex should be locked by the caller.
-
-  if (pos >= 0)
-  {
-    MoviesListLines lines;
-
-    if (moviesFile.seek(pos))
-    {
-      bool finished = false;
-      for (unsigned i=0; (i<readChunkSize) && !finished; i++)
-      {
-        const QByteArray line = moviesFile.readLine(1024);
-        if (!line.isEmpty())
-        {
-          if (line.contains("\t"))
-          {
-            const Entry entry = decodeEntry(line.left(line.length() - 5));
-            if (entry.rawName.length() > 0)
-            {
-              lines.rawName << entry.rawName;
-              lines.title << entry.title;
-              lines.type << entry.type;
-              lines.year << entry.year;
-              lines.episodeName << entry.episodeName;
-              lines.episodeNumber << entry.episodeNumber;
-              lines.seasonNumber << entry.seasonNumber;
-              lines.plot << entry.plot;
-              lines.rating << entry.rating;
-            }
-          }
-        }
-        else // Finished
-          finished = true;
-      }
-
-      if (!lines.rawName.isEmpty())
-        sApp->schedule(this, &ImdbClient::insertIMDBMoviesListLines, lines, Database::dependency(), insertPriority);
-
-      if (finished)
-      {
-        qDebug() << "IMDB import: Finished parsing movies.list, parsing plot.list";
-        sApp->schedule(this, &ImdbClient::readIMDBPlotListLines, Q_INT64_C(0), &dependency, basePriority);
-      }
-      else
-        sApp->schedule(this, &ImdbClient::readIMDBMoviesListLines, moviesFile.pos(), &dependency, basePriority);
-    }
-  }
-}
-
-void ImdbClient::insertIMDBMoviesListLines(const MoviesListLines &lines)
-{
-  Q_ASSERT(!Database::dependency()->tryLock()); // Mutex should be locked by the caller.
-
-  Database::transaction();
-
-  Database::Query query;
-  query.prepare("INSERT OR REPLACE INTO ImdbEntries VALUES ("
-                ":rawName, :title, :type, :year, :episodeName, "
-                ":episodeNumber, :seasonNumber, :plot, :rating)");
-  query.bindValue(0, lines.rawName);
-  query.bindValue(1, lines.title);
-  query.bindValue(2, lines.type);
-  query.bindValue(3, lines.year);
-  query.bindValue(4, lines.episodeName);
-  query.bindValue(5, lines.episodeNumber);
-  query.bindValue(6, lines.seasonNumber);
-  query.bindValue(7, lines.plot);
-  query.bindValue(8, lines.rating);
-  query.execBatch();
-
-  Database::commit();
-}
-
-struct ImdbClient::PlotListLines
-{
-  QVariantList rawName, plot;
-};
-
-void ImdbClient::readIMDBPlotListLines(qint64 pos)
-{
-  Q_ASSERT(!dependency.tryLock()); // Mutex should be locked by the caller.
-
-  if (pos >= 0)
-  {
-    PlotListLines lines;
-
-    if (plotFile.seek(pos))
-    {
-      bool finished = false;
-      for (unsigned i=0; (i<readChunkSize) && !finished; i++)
-      {
-        const QByteArray line = plotFile.readLine(1024);
-        if (!line.isEmpty())
-        {
-          if (line.startsWith("MV:"))
-          {
-            Entry entry = decodeEntry(line.mid(4));
-            if (entry.rawName.length() > 0)
-            {
-              for (QByteArray line = plotFile.readLine(1024);
-                   !line.isEmpty();
-                   line = plotFile.readLine(1024))
-              {
-                if (line.startsWith("PL:"))
-                  entry.plot += QString::fromUtf8(line.mid(4)) + " ";
-                else if (line.startsWith("BY:") || line.startsWith("----"))
-                  break;
-              }
-
-              entry.plot = entry.plot.simplified();
-
-              lines.rawName << entry.rawName;
-              lines.plot << entry.plot;
-            }
-          }
-        }
-        else // Finished
-          finished = true;
-      }
-
-      // Insert/update results
-      if (!lines.rawName.isEmpty())
-        sApp->schedule(this, &ImdbClient::insertIMDBPlotListLines, lines, Database::dependency(), insertPriority);
-
-      if (finished)
-      {
-        qDebug() << "IMDB import: Finished parsing plot.list, parsing ratings.list";
-        sApp->schedule(this, &ImdbClient::readIMDBRatingListLines, Q_INT64_C(0), &dependency, basePriority);
-      }
-      else
-        sApp->schedule(this, &ImdbClient::readIMDBPlotListLines, plotFile.pos(), &dependency, basePriority);
-    }
-  }
-}
-
-void ImdbClient::insertIMDBPlotListLines(const PlotListLines &lines)
-{
-  Q_ASSERT(!Database::dependency()->tryLock()); // Mutex should be locked by the caller.
-
-  Database::transaction();
-
-  Database::Query query;
-  query.prepare("UPDATE ImdbEntries SET plot = :plot WHERE rawName = :rawName");
-  query.bindValue(0, lines.plot);
-  query.bindValue(1, lines.rawName);
-  query.execBatch();
-
-  Database::commit();
-}
-
-struct ImdbClient::RatingListLines
-{
-  QVariantList rawName, rating;
-};
-
-void ImdbClient::readIMDBRatingListLines(qint64 pos)
-{
-  Q_ASSERT(!dependency.tryLock()); // Mutex should be locked by the caller.
-
-  if (pos >= 0)
-  {
-    RatingListLines lines;
-
-    if (ratingFile.seek(pos))
-    {
-      bool finished = false;
-      for (unsigned i=0; (i<readChunkSize) && !finished; i++)
-      {
-        const QByteArray line = ratingFile.readLine(1024);
-        if (!line.isEmpty())
-        {
-          if (line.startsWith("      "))
-          {
-            const float r = line.mid(26, 5).trimmed().toFloat();
-            if ((r > 0.9f) && (r < 10.1f))
-            {
-              const Entry entry = decodeEntry(line.mid(32));
-              if (entry.rawName.length() > 0)
-              {
-                lines.rawName << entry.rawName;
-                lines.rating << r;
-              }
-            }
-          }
-        }
-        else // Finished
-          finished = true;
-      }
-
-      // Insert/update results
-      if (!lines.rawName.isEmpty())
-        sApp->schedule(this, &ImdbClient::insertIMDBRatingListLines, lines, Database::dependency(), insertPriority);
-
-      if (finished)
-      {
-        qDebug() << "IMDB import: Finished parsing ratings.list, storing data.";
-        sApp->schedule(this, &ImdbClient::insertSentinelItem, Database::dependency(), insertPriority);
-      }
-      else
-        sApp->schedule(this, &ImdbClient::readIMDBRatingListLines, ratingFile.pos(), &dependency, basePriority);
-    }
-  }
-}
-
-void ImdbClient::insertIMDBRatingListLines(const RatingListLines &lines)
-{
-  Q_ASSERT(!Database::dependency()->tryLock()); // Mutex should be locked by the caller.
-
-  Database::transaction();
-
-  Database::Query query;
-  query.prepare("UPDATE ImdbEntries SET rating = :rating WHERE rawName = :rawName");
-  query.bindValue(0, lines.rating);
-  query.bindValue(1, lines.rawName);
-  query.execBatch();
-
-  Database::commit();
-}
-
-void ImdbClient::insertSentinelItem(void)
-{
-  Q_ASSERT(!Database::dependency()->tryLock()); // Mutex should be locked by the caller.
-  Q_ASSERT(!isAvailable());
-
-  qDebug() << "IMDB import: Finished storing data.";
-
-  Database::Query("INSERT INTO ImdbEntries VALUES ('" + QString(sentinelItem) + "', '', 0, 0, '', 0, 0, '', 0.0)").exec();
 }
 
 ImdbClient::Entry ImdbClient::decodeEntry(const QByteArray &line)
@@ -687,34 +680,32 @@ ImdbClient::Entry ImdbClient::decodeEntry(const QByteArray &line)
 
 void ImdbClient::tryMirror(void)
 {
-  SScheduler::DependencyLocker l(&dependency);
-
-  if (!obtainFiles.isEmpty() && (useMirror < (sizeof(mirrors) / sizeof(mirrors[0]))))
+  if (!d->obtainFiles.isEmpty() && (d->useMirror < (sizeof(mirrors) / sizeof(mirrors[0]))))
   {
-    const QUrl url(mirrors[useMirror] + QDir(obtainFiles.first()->fileName()).dirName() + ".gz");
+    const QUrl url(mirrors[d->useMirror] + QDir(d->obtainFiles.first()->fileName()).dirName() + ".gz");
     qDebug() << "ImdbClient attempting to obtain" << url.toString();
   
     QNetworkRequest request;
     request.setUrl(url);
   
-    reply = manager->get(request);
-    connect(reply, SIGNAL(finished()), SLOT(finished()));
-    connect(reply, SIGNAL(error(QNetworkReply::NetworkError)), SLOT(error()));
+    d->reply = d->manager->get(request);
+    connect(d->reply, SIGNAL(finished()), SLOT(finished()));
+    connect(d->reply, SIGNAL(error(QNetworkReply::NetworkError)), SLOT(error()));
 
-    failed = false;
+    d->failed = false;
   }
 }
 
 void ImdbClient::finished(void)
 {
-  if (!failed)
+  if (!d->failed)
   {
-    qDebug() << "ImdbClient successfully obtained" << reply->url().toString();
+    qDebug() << "ImdbClient successfully obtained" << d->reply->url().toString();
 
-    QFile compressedFile(obtainFiles.first()->fileName() + ".gz");
+    QFile compressedFile(d->obtainFiles.first()->fileName() + ".gz");
     if (compressedFile.open(QFile::WriteOnly | QFile::Truncate))
     {
-      compressedFile.write(reply->readAll());
+      compressedFile.write(d->reply->readAll());
       compressedFile.close();
 
       FILE * const f = fopen(compressedFile.fileName().toUtf8().data(), "rb");
@@ -725,13 +716,13 @@ void ImdbClient::finished(void)
         {
           char buffer[65536];
 
-          if (obtainFiles.first()->seek(0))
+          if (d->obtainFiles.first()->seek(0))
           {
             for (int n=gzread(gf, buffer, sizeof(buffer)); n>0; n=gzread(gf, buffer, sizeof(buffer)))
-              obtainFiles.first()->write(buffer, n);
+              d->obtainFiles.first()->write(buffer, n);
 
-            obtainFiles.first()->flush();
-            obtainFiles.first()->resize(obtainFiles.first()->pos());
+            d->obtainFiles.first()->flush();
+            d->obtainFiles.first()->resize(d->obtainFiles.first()->pos());
           }
 
           gzclose(gf);
@@ -743,22 +734,22 @@ void ImdbClient::finished(void)
       compressedFile.remove();
     }
 
-    if (obtainFiles.first()->size() > 0)
-      obtainFiles.takeFirst()->close();
+    if (d->obtainFiles.first()->size() > 0)
+      d->obtainFiles.takeFirst()->close();
     else
-      obtainFiles.takeFirst()->remove();
+      d->obtainFiles.takeFirst()->remove();
 
     // Next file or finished.
-    if (obtainFiles.count() > 0)
+    if (d->obtainFiles.count() > 0)
       tryMirror();
     else
       importIMDBDatabase();
   }
   else
   {
-    if (++useAttempt < (sizeof(mirrors) / sizeof(mirrors[0])))
+    if (++d->useAttempt < (sizeof(mirrors) / sizeof(mirrors[0])))
     {
-      useMirror++;
+      d->useMirror++;
       tryMirror();
     }
   }
@@ -766,8 +757,8 @@ void ImdbClient::finished(void)
 
 void ImdbClient::error(void)
 {
-  qWarning() << reply->errorString();
-  failed = true;
+  qWarning() << d->reply->errorString();
+  d->failed = true;
 }
 
 } // End of namespace

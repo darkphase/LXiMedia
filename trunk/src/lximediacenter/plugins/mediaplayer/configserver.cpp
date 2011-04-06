@@ -18,6 +18,7 @@
  ***************************************************************************/
 
 #include "configserver.h"
+#include "mediadatabase.h"
 #include "module.h"
 
 namespace LXiMediaCenter {
@@ -47,6 +48,7 @@ ConfigServer::~ConfigServer()
 void ConfigServer::initialize(MasterServer *masterServer)
 {
   this->masterServer = masterServer;
+  this->mediaDatabase = MediaDatabase::createInstance(masterServer);
 
   BackendServer::initialize(masterServer);
 

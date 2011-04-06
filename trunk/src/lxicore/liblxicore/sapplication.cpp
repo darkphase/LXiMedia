@@ -126,9 +126,6 @@ SApplication::~SApplication(void)
 {
   Q_ASSERT(QThread::currentThread() == thread());
 
-  // Wait for all tasks to finish
-  SScheduler::waitForDone();
-
   for (Initializer *i = initializers; i; i = i->next)
     i->shutdown();
 
@@ -233,19 +230,6 @@ SApplication::SApplication(QObject *parent)
 
   for (Initializer *i = initializers; i; i = i->next)
     i->startup();
-}
-
-void SApplication::customEvent(QEvent *e)
-{
-  if (e->type() == scheduleEventType)
-    schedule(static_cast<ScheduleEvent *>(e)->depends);
-  else
-    return QObject::customEvent(e);
-}
-
-void SApplication::queueSchedule(Dependency *depends)
-{
-  QCoreApplication::postEvent(this, new ScheduleEvent(depends));
 }
 
 QList<SFactory *> & SApplication::factories(void)
