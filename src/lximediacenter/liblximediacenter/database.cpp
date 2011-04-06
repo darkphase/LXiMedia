@@ -24,7 +24,7 @@ namespace LXiMediaCenter {
 
 void Database::initialize(void)
 {
-  SScheduler::DependencyLocker l(dependency());
+  QMutexLocker l(&mutex());
 
   database() = QSqlDatabase::addDatabase("QSQLITE", "LXiMediaCenter");
   database().setDatabaseName(GlobalSettings::databaseFile());
@@ -54,32 +54,30 @@ void Database::initialize(void)
 
 void Database::shutdown(void)
 {
-  SScheduler::DependencyLocker l(dependency());
+  QMutexLocker l(&mutex());
 
   database().close();
   database() = QSqlDatabase();
   QSqlDatabase::removeDatabase("LXiMediaCenter");
 }
 
-SScheduler::Dependency * Database::dependency(void)
+QMutex & Database::mutex(void)
 {
-  static SScheduler::Dependency d(sApp);
+  static QMutex m(QMutex::Recursive);
 
-  return &d;
+  return m;
 }
 
 void Database::transaction(void)
 {
-  Q_ASSERT(!dependency()->tryLock());
-
+  mutex().lock();
   database().transaction();
 }
 
 void Database::commit(void)
 {
-  Q_ASSERT(!dependency()->tryLock());
-
   database().commit();
+  mutex().unlock();
 }
 
 QSqlDatabase & Database::database(void)
@@ -117,31 +115,29 @@ void Database::handleError(const ::QSqlQuery &query, const QString &q)
 Database::Query::Query(void)
   : QSqlQuery(database())
 {
-  Q_ASSERT(!dependency()->tryLock());
+  mutex().lock();
 }
 
 Database::Query::Query(QSqlResult *r)
   : QSqlQuery(r)
 {
-  Q_ASSERT(!dependency()->tryLock());
+  mutex().lock();
 }
 
 Database::Query::Query(const QString &query)
   : QSqlQuery(query, database())
 {
-  Q_ASSERT(!dependency()->tryLock());
+  mutex().lock();
 }
 
 Database::Query::Query(const QSqlQuery &other)
   : QSqlQuery(other)
 {
-  Q_ASSERT(!dependency()->tryLock());
+  mutex().lock();
 }
 
 Database::Query & Database::Query::operator=(const ::QSqlQuery &other)
 {
-  Q_ASSERT(!dependency()->tryLock());
-
   QSqlQuery::operator=(other);
 
   return *this;
@@ -149,37 +145,29 @@ Database::Query & Database::Query::operator=(const ::QSqlQuery &other)
 
 Database::Query::~Query()
 {
-  Q_ASSERT(!dependency()->tryLock());
+  mutex().unlock();
 }
 
 void Database::Query::exec(const QString &q)
 {
-  Q_ASSERT(!dependency()->tryLock());
-
   if (!QSqlQuery::exec(q))
     Database::handleError(*this, q);
 }
 
 void Database::Query::exec(void)
 {
-  Q_ASSERT(!dependency()->tryLock());
-
   if (!QSqlQuery::exec())
     Database::handleError(*this);
 }
 
 void Database::Query::execBatch(BatchExecutionMode mode)
 {
-  Q_ASSERT(!dependency()->tryLock());
-
   if (!QSqlQuery::execBatch(mode))
     Database::handleError(*this);
 }
 
 void Database::Query::prepare(const QString &q)
 {
-  Q_ASSERT(!dependency()->tryLock());
-
   if (!QSqlQuery::prepare(q))
     Database::handleError(*this, q);
 }

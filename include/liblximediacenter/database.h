@@ -53,12 +53,11 @@ public:
   static void                   initialize(void);
   static void                   shutdown(void);
 
-  static SScheduler::Dependency * dependency(void);
-
   static void                   transaction(void);
   static void                   commit(void);
 
-protected:
+private:
+  static QMutex               & mutex(void) __attribute__((pure));
   static QSqlDatabase         & database(void) __attribute__((pure));
 
   static void                   handleError(const ::QSqlQuery &, const QString & = QString::null);

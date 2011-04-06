@@ -30,8 +30,7 @@ namespace LXiCore {
 class SFactory;
 class SModule;
 
-class SApplication : public QObject,
-                     public SScheduler
+class SApplication : public QObject
 {
 Q_OBJECT
 friend class SFactory;
@@ -105,12 +104,6 @@ public: // Logging
 
 public:
   static SApplication         * createForQTest(QObject *);
-
-protected: // From QObject
-  virtual void                  customEvent(QEvent *);
-
-protected: // From SScheduler
-  virtual void                  queueSchedule(Dependency *);
 
 private:
   explicit                      SApplication(QObject *);

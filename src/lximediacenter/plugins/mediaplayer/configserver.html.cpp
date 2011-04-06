@@ -18,6 +18,7 @@
  ***************************************************************************/
 
 #include "configserver.h"
+#include "mediadatabase.h"
 
 #ifdef Q_OS_WIN
 #include <windows.h>
@@ -152,6 +153,8 @@ SHttpServer::SocketOp ConfigServer::handleHtmlRequest(const SHttpServer::Request
         rootPaths.removeAll(checkoff);
 
       settings.setValue("Paths", rootPaths);
+
+      mediaDatabase->rescanRoots();
     }
 
     QReadLocker l(&lock);

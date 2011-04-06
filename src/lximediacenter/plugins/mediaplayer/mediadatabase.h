@@ -71,6 +71,8 @@ private:
   };
 
   struct QuerySet;
+  class ScanDirEvent;
+  class QueryImdbItemEvent;
 
 public:
   static MediaDatabase        * createInstance(BackendServer::MasterServer *);
@@ -102,11 +104,16 @@ public:
   ImdbClient::Entry             getImdbEntry(UniqueID) const;
   QList<UniqueID>               allFilesInDirOf(UniqueID) const;
 
+  void                          rescanRoots(void);
+
 signals:
   void                          modified(void);
 
+protected:
+  virtual void                  customEvent(QEvent *);
+
 private slots:
-  void                          initialize(void);
+  void                          scanRoots(void);
   void                          directoryChanged(const QString &);
   void                          probeFinished(const SHttpEngine::ResponseMessage &);
 
@@ -114,41 +121,37 @@ private:
   QByteArray                    readNodeData(UniqueID) const;
   QString                       findRoot(const QString &, const QStringList &) const;
 
-  void                          scanDir(const QString &);
   void                          updateDir(const QString &, qint64, QuerySet &);
-  void                          insertFile(const SMediaInfo &, const QByteArray &);
   void                          probeFile(const QString &);
-  void                          delayFile(const QString &);
-  void                          queryImdbItem(const QString &, Category);
-  void                          matchImdbItem(const QString &, const QString &, const QStringList &, Category);
-  void                          storeImdbItem(const QString &, const QString &, Category);
 
   bool                          isHidden(const QString &);
   QMap<Category, QString>       findCategories(const QString &) const;
 
 public:
   static const int              maxSongDurationMin;
-  static const SScheduler::Priority basePriority = SScheduler::Priority_Idle;
-  static const SScheduler::Priority scanDirPriority = SScheduler::Priority(basePriority + 1);
-  static const SScheduler::Priority probeFilePriority = SScheduler::Priority(basePriority + 2);
-  static const SScheduler::Priority insertFilePriority = SScheduler::Priority(probeFilePriority + 1);
-  static const SScheduler::Priority matchImdbItemPriority = basePriority;
-  static const SScheduler::Priority storeImdbItemPriority = SScheduler::Priority(matchImdbItemPriority + 1);
+  static const int              scanDirPriority = INT_MIN;
+  static const int              matchImdbItemPriority = scanDirPriority + 1;
 
 private:
+  static const QEvent::Type     scanDirEventType;
+  static const QEvent::Type     queryImdbItemEventType;
+  static const QEvent::Type     scanRootsEventType;
+
   static const CatecoryDesc     categories[];
   static MediaDatabase        * self;
 
   ImdbClient            * const imdbClient;
   SSandboxClient        * const probeSandbox;
 
-  SScheduler::Dependency        probeDependency;
   QStringList                   probeQueue;
   const unsigned                maxProbeCount;
   unsigned                      probeCount;
 
   QFileSystemWatcher            fileSystemWatcher;
   QMap<QString, QStringList>    rootPaths;
+  QTimer                        scanRootTimer;
+  QTimer                        scanRootSingleTimer;
+  QAtomicInt                    scanning;
 };
 
 

@@ -615,8 +615,6 @@ SHttpServer::SocketOp Backend::handleHtmlConfig(const SHttpServer::RequestHeader
        "provide additional information on the media files that are available. "
        "Downloading and parsing the files will take several minutes."));
 
-  SScheduler::DependencyLocker dl(Database::dependency());
-
   if (masterImdbClient && masterImdbClient->isAvailable() && !masterImdbClient->needUpdate())
   {
     htmlParser.setField("IMDB_ACTION", "    <b>" + tr("IMDb files are available") + "</b>\n");
@@ -632,8 +630,6 @@ SHttpServer::SocketOp Backend::handleHtmlConfig(const SHttpServer::RequestHeader
   }
   else
     htmlParser.setField("IMDB_ACTION", QByteArray(""));
-
-  dl.unlock();
 
   // DLNA
   settings.beginGroup("DLNA");

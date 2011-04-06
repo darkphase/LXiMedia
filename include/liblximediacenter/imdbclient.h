@@ -61,15 +61,20 @@ public:
     qreal                       rating;
   };
 
+private:
+  class ReadMoviesListEvent;
+  class ReadPlotListEvent;
+  class ReadRatingListEvent;
+
 public:
                                 ImdbClient(QObject *parent);
   virtual                       ~ImdbClient();
 
   void                          obtainIMDBFiles(void);
 
-  bool                          isDownloading(void);
-  bool                          isAvailable(void);
-  bool                          needUpdate(void);
+  bool                          isDownloading(void) const;
+  bool                          isAvailable(void) const;
+  bool                          needUpdate(void) const;
 
   Entry                         readEntry(const QString &rawName);
   QStringList                   findSimilar(const QString &title, Type);
@@ -83,19 +88,6 @@ protected:
 private:
   void                          importIMDBDatabase(void);
 
-  struct MoviesListLines;
-  void                          readIMDBMoviesListLines(qint64);
-  void                          insertIMDBMoviesListLines(const MoviesListLines &);
-
-  struct PlotListLines;
-  void                          readIMDBPlotListLines(qint64);
-  void                          insertIMDBPlotListLines(const PlotListLines &);
-
-  struct RatingListLines;
-  void                          readIMDBRatingListLines(qint64);
-  void                          insertIMDBRatingListLines(const RatingListLines &);
-  void                          insertSentinelItem(void);
-
   static Entry                  decodeEntry(const QByteArray &);
 
 private slots:
@@ -105,25 +97,13 @@ private slots:
 
 private:
   static const char     * const mirrors[];
-  static const unsigned         readChunkSize;
-  static const int              maxAge;
-  static const SScheduler::Priority basePriority = SScheduler::Priority_Idle;
-  static const SScheduler::Priority insertPriority = SScheduler::Priority(basePriority + 1);
   static const QEvent::Type     tryMirrorEventType;
+  static const QEvent::Type     readMoviesListEventType;
+  static const QEvent::Type     readPlotListEventType;
+  static const QEvent::Type     readRatingListEventType;
 
-  SScheduler::Dependency        dependency;
-  QDir                          cacheDir;
-  QFile                         moviesFile;
-  QFile                         plotFile;
-  QFile                         ratingFile;
-  int                           downloading;
-  int                           available;
-
-  QList<QFile *>                obtainFiles;
-  unsigned                      useMirror, useAttempt;
-  bool                          failed;
-  QNetworkAccessManager * const manager;
-  QNetworkReply               * reply;
+  struct Data;
+  Data                  * const d;
 };
 
 
