@@ -18,6 +18,7 @@
  ***************************************************************************/
 
 #include "lxiserverprivate.h"
+#include <LXiCore>
 
 HttpClientRequest::HttpClientRequest(SHttpClientEngine *parent, const SHttpEngine::RequestMessage &message)
   : parent(parent),
@@ -132,9 +133,11 @@ void SandboxProcess::readyRead()
           emit ready();
         else if (line.startsWith("##STOP"))
           emit stop();
+        else
+          emit consoleLine(QString::fromUtf8(line.trimmed()));
       }
       else
-        emit consoleLine(QString::fromUtf8(line.trimmed()));
+        sApp->logLineToActiveLogFile(line.trimmed());
     }
   }
 }

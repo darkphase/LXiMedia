@@ -62,8 +62,6 @@ public:
   bool                          setup(const SHttpServer::RequestHeader &, QIODevice *);
 
 public:
-  const QString                 fileName;
-  const QDateTime               startTime;
   SFileInputNode                file;
 };
 
@@ -81,7 +79,6 @@ public slots:
 
 private:
   QString                       currentFile;
-  QDateTime                     startTime;
   SPlaylistNode                 playlistNode;
 };
 

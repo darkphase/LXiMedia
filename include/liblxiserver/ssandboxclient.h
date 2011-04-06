@@ -47,6 +47,10 @@ public: // From HttpClientEngine
   virtual void                  closeRequest(QIODevice *, bool canReuse = false);
 
 signals:
+  /*! This signal is emitted when a line is written to stderr that starts with
+      '#'. Other lines written to stderr are routed to
+      SApplication::logLineToActiveLogFile().
+   */
   void                          consoleLine(const QString &);
 
 private slots:

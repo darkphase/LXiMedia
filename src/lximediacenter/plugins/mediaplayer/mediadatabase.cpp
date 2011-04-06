@@ -158,7 +158,6 @@ MediaDatabase::MediaDatabase(BackendServer::MasterServer *masterServer, QObject 
 
   settings.setValue("DatabaseVersion", databaseVersion);
 
-  connect(probeSandbox, SIGNAL(consoleLine(QString)), SLOT(consoleLine(QString)));
   connect(probeSandbox, SIGNAL(response(SHttpEngine::ResponseMessage)), SLOT(probeFinished(SHttpEngine::ResponseMessage)));
 
   connect(&scanRootsTimer, SIGNAL(timeout()), SLOT(scanRoots()));
@@ -455,11 +454,6 @@ QList<MediaDatabase::UniqueID> MediaDatabase::allFilesInDirOf(UniqueID uid) cons
   }
 
   return result;
-}
-
-void MediaDatabase::consoleLine(const QString &line)
-{
-  sApp->logLineToActiveLogFile(line);
 }
 
 void MediaDatabase::scanRoots(void)

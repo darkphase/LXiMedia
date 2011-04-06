@@ -153,8 +153,6 @@ void MediaPlayerSandbox::cleanStreams(void)
 
 SandboxFileStream::SandboxFileStream(const QString &fileName)
   : MediaTranscodeStream(),
-    fileName(fileName),
-    startTime(QDateTime::currentDateTime()),
     file(this, fileName)
 {
   connect(&file, SIGNAL(finished()), SLOT(stop()));
@@ -162,13 +160,13 @@ SandboxFileStream::SandboxFileStream(const QString &fileName)
   connect(&file, SIGNAL(output(SEncodedAudioBuffer)), &audioDecoder, SLOT(input(SEncodedAudioBuffer)));
   connect(&file, SIGNAL(output(SEncodedVideoBuffer)), &videoDecoder, SLOT(input(SEncodedVideoBuffer)));
   connect(&file, SIGNAL(output(SEncodedDataBuffer)), &dataDecoder, SLOT(input(SEncodedDataBuffer)));
+
+  // Mark as played:
+  std::cerr << ("#PLAYED:" + fileName.toUtf8().toHex()).data() << std::endl;
 }
 
 SandboxFileStream::~SandboxFileStream()
 {
-  // Mark as played:
-  if (startTime.secsTo(QDateTime::currentDateTime()) >= 120)
-    std::cerr << ('%' + fileName.toUtf8().toHex()).data() << std::endl;
 }
 
 bool SandboxFileStream::setup(const SHttpServer::RequestHeader &request, QIODevice *socket)
@@ -196,16 +194,14 @@ bool SandboxPlaylistStream::setup(const SHttpServer::RequestHeader &request, QIO
 
 void SandboxPlaylistStream::opened(const QString &filePath, quint16 programId)
 {
+  // Mark as played:
+  std::cerr << ("#PLAYED:" + filePath.toUtf8().toHex()).data() << std::endl;
+
   currentFile = filePath;
-  startTime = QDateTime::currentDateTime();
 }
 
 void SandboxPlaylistStream::closed(const QString &filePath, quint16 programId)
 {
-  // Mark as played:
-  if (startTime.secsTo(QDateTime::currentDateTime()) >= 120)
-    std::cerr << ('%' + filePath.toUtf8().toHex()).data() << std::endl;
-
   if (currentFile == filePath)
     currentFile = QString::null;
 }

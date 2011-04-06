@@ -512,10 +512,8 @@ QByteArray MediaPlayerServer::buildVideoPlayer(const QByteArray &item, const QSt
 
 void MediaPlayerServer::consoleLine(const QString &line)
 {
-  if (!line.startsWith('%'))
-    sApp->logLineToActiveLogFile(line);
-  else
-    mediaDatabase->setLastPlayed(QString::fromUtf8(QByteArray::fromHex(line.mid(1).toAscii())));
+  if (line.startsWith("#PLAYED:"))
+    mediaDatabase->setLastPlayed(QString::fromUtf8(QByteArray::fromHex(line.mid(8).toAscii())));
 }
 
 
