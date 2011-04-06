@@ -1,7 +1,2 @@
 usr/lib/libLXiStream.so*
-usr/lib/lximedia/liblxistream.alsa.so
-usr/lib/lximedia/liblxistream.dvdnav.so
-usr/lib/lximedia/liblxistream.ffmpeg.so
-usr/lib/lximedia/liblxistream.fftw.so
-usr/lib/lximedia/liblxistream.pulseaudio.so
-usr/lib/lximedia/liblxistream.v4l.so
+usr/lib/lximedia/liblxistream_*.so

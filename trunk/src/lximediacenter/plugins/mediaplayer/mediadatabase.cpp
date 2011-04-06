@@ -84,6 +84,7 @@ const int MediaDatabase::maxSongDurationMin = 15;
 
 const QEvent::Type  MediaDatabase::scanDirEventType = QEvent::Type(QEvent::registerEventType());
 const QEvent::Type  MediaDatabase::queryImdbItemEventType = QEvent::Type(QEvent::registerEventType());
+const QEvent::Type  MediaDatabase::scanRootsEventType = QEvent::Type(QEvent::registerEventType());
 
 const MediaDatabase::CatecoryDesc MediaDatabase::categories[] =
 {

@@ -38,10 +38,10 @@ FILES_UNDER_TEST = $${LXIMEDIA_DIR}/obj/LXiCore/*.o \
     $${LXIMEDIA_DIR}/obj/LXiStream/*.o \
     #$${LXIMEDIA_DIR}/obj/LXiStreamGl/*.o \
     $${LXIMEDIA_DIR}/obj/LXiStreamGui/*.o \
-    $${LXIMEDIA_DIR}/obj/lxistream.dvdnav/*.o \
-    $${LXIMEDIA_DIR}/obj/lxistream.ffmpeg/*.o \
-    $${LXIMEDIA_DIR}/obj/lxistream.fftw/*.o \
-    $${LXIMEDIA_DIR}/obj/lxistream.gui/*.o
+    $${LXIMEDIA_DIR}/obj/lxistream_dvdnav/*.o \
+    $${LXIMEDIA_DIR}/obj/lxistream_ffmpeg/*.o \
+    $${LXIMEDIA_DIR}/obj/lxistream_fftw/*.o \
+    $${LXIMEDIA_DIR}/obj/lxistream_gui/*.o
 
 # Platform specific
 unix {

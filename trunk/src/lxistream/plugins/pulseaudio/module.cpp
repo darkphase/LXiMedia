@@ -81,4 +81,4 @@ QByteArray Module::about(void)
 } } // End of namespaces
 
 #include <QtPlugin>
-Q_EXPORT_PLUGIN2(lxistream.pulseaudio, LXiStream::PulseAudioBackend::Module);
+Q_EXPORT_PLUGIN2(lxistream_pulseaudio, LXiStream::PulseAudioBackend::Module);

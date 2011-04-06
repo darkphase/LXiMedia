@@ -103,11 +103,18 @@ SApplication::SApplication(const QStringList &moduleFilter, const QString &logDi
       {
         modules.insert(fileInfo.fileName());
 
-        QPluginLoader *loader = new QPluginLoader(fileInfo.absoluteFilePath());
+        QPluginLoader * const loader = new QPluginLoader(fileInfo.absoluteFilePath());
         SModule * const module = qobject_cast<SModule *>(loader->instance());
         if (module)
         if (loadModule(module, loader))
+        {
+          qDebug() << "Loaded" << fileInfo.absoluteFilePath();
           continue;
+        }
+
+        const QString error = loader->errorString();
+        if (!error.isEmpty())
+          qWarning() << loader->errorString();
 
         loader->unload();
         delete loader;

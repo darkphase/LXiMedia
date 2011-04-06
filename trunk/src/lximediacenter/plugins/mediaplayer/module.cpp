@@ -65,6 +65,8 @@ bool Module::registerClasses(void)
 
   MediaPlayerSandbox::registerClass<MediaPlayerSandbox>(0);
 
+  qDebug() << "MediaPlayerBackend";
+
   return true;
 }
 
@@ -81,4 +83,4 @@ QByteArray Module::about(void)
 } } // End of namespaces
 
 #include <QtPlugin>
-Q_EXPORT_PLUGIN2(lximediacenter.mediaplayer, LXiMediaCenter::MediaPlayerBackend::Module);
+Q_EXPORT_PLUGIN2(lximediacenter_mediaplayer, LXiMediaCenter::MediaPlayerBackend::Module);

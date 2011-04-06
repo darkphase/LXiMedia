@@ -1,4 +1,4 @@
-MODULE_NAME = lximediacenter.mediaplayer
+MODULE_NAME = lximediacenter_mediaplayer
 LXIMEDIA_DIR = ../../../..
 include($${LXIMEDIA_DIR}/include/liblxicore/module.pri)
 include($${LXIMEDIA_DIR}/include/liblximediacenter/linklximediacenter-internal.pri)

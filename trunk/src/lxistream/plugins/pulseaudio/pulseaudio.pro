@@ -1,4 +1,4 @@
-MODULE_NAME = lxistream.pulseaudio
+MODULE_NAME = lxistream_pulseaudio
 LXIMEDIA_DIR = ../../../..
 include($${LXIMEDIA_DIR}/include/liblxicore/module.pri)
 include($${LXIMEDIA_DIR}/include/liblxistream/linklxistream-internal.pri)
