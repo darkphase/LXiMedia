@@ -106,7 +106,8 @@ signals:
   void                          modified(void);
 
 private slots:
-  void                          scanRoots(void);
+  void                          initialize(void);
+  void                          directoryChanged(const QString &);
   void                          probeFinished(const SHttpEngine::ResponseMessage &);
 
 private:
@@ -146,7 +147,7 @@ private:
   const unsigned                maxProbeCount;
   unsigned                      probeCount;
 
-  QTimer                        scanRootsTimer;
+  QFileSystemWatcher            fileSystemWatcher;
   QMap<QString, QStringList>    rootPaths;
 };
 
