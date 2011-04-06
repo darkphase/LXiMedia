@@ -65,8 +65,6 @@ bool Module::registerClasses(void)
 
   MediaPlayerSandbox::registerClass<MediaPlayerSandbox>(0);
 
-  qDebug() << "MediaPlayerBackend";
-
   return true;
 }
 
