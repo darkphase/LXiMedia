@@ -42,11 +42,6 @@ QList<BackendServer *> BackendServer::create(QObject *parent)
   return factory().createObjects<BackendServer>(parent);
 }
 
-void BackendServer::test(void)
-{
-  qDebug() << "BackendServer::test" << (void *)&(factory());
-}
-
 BackendServer::BackendServer(QObject *parent)
   : QObject(parent),
     d(new Data())
