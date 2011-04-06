@@ -160,10 +160,9 @@ MediaDatabase::MediaDatabase(BackendServer::MasterServer *masterServer, QObject 
 
   connect(probeSandbox, SIGNAL(response(SHttpEngine::ResponseMessage)), SLOT(probeFinished(SHttpEngine::ResponseMessage)));
 
-  connect(&scanRootsTimer, SIGNAL(timeout()), SLOT(scanRoots()));
-
-  scanRootsTimer.start(60000);
-  QTimer::singleShot(3000, this, SLOT(scanRoots()));
+  connect(&fileSystemWatcher, SIGNAL(directoryChanged(QString)), SLOT(directoryChanged(QString)));
+  
+  QTimer::singleShot(3000, this, SLOT(initialize()));
 }
 
 MediaDatabase::~MediaDatabase()
@@ -456,7 +455,7 @@ QList<MediaDatabase::UniqueID> MediaDatabase::allFilesInDirOf(UniqueID uid) cons
   return result;
 }
 
-void MediaDatabase::scanRoots(void)
+void MediaDatabase::initialize(void)
 {
   PluginSettings settings(Module::pluginName);
 
@@ -477,50 +476,47 @@ void MediaDatabase::scanRoots(void)
     settings.endGroup();
   }
 
-  // Only start scan if no threads active with other things.
-  if (sApp->activeThreadCount() == 0)
+  SScheduler::DependencyLocker dl(Database::dependency());
+
+  Database::transaction();
+  Database::Query query;
+
+  // Scan all root paths recursively
+  foreach (const QString &path, allRootPaths)
+    sApp->schedule(this, &MediaDatabase::scanDir, path, Database::dependency(), scanDirPriority);
+
+  // Find roots that are no longer roots and remove them
+  query.exec("SELECT path FROM MediaplayerFiles WHERE parentDir ISNULL");
+  QVariantList removePaths;
+  while (query.next())
+  if (findRoot(query.value(0).toString(), allRootPaths).isEmpty())
+    removePaths << query.value(0);
+
+  if (!removePaths.isEmpty())
   {
-    SScheduler::DependencyLocker dl(Database::dependency());
+    query.prepare("DELETE FROM MediaplayerFiles WHERE path = :path");
+    query.bindValue(0, removePaths);
+    query.execBatch();
+  }
 
-    Database::transaction();
-    Database::Query query;
+  // Find files that were not probed yet.
+  query.exec("SELECT path FROM MediaplayerFiles WHERE size < 0");
+  while (query.next())
+    sApp->schedule(this, &MediaDatabase::probeFile, query.value(0).toString(), &probeDependency, probeFilePriority);
 
-    // Scan all root paths recursively
-    foreach (const QString &path, allRootPaths)
-      sApp->schedule(this, &MediaDatabase::scanDir, path, Database::dependency(), scanDirPriority);
-
-    // Find roots that are no longer roots and remove them
-    query.exec("SELECT path FROM MediaplayerFiles WHERE parentDir ISNULL");
-    QVariantList removePaths;
+  // Find IMDB items that still need to be matched.
+  if (imdbClient)
+  if (imdbClient->isAvailable())
+  {
+    query.prepare("SELECT title FROM MediaplayerItems "
+                  "WHERE album IN ("
+                    "SELECT id FROM MediaplayerAlbums "
+                    "WHERE category = :category) "
+                  "AND imdbLink ISNULL");
+    query.bindValue(0, Category_Movies);
+    query.exec();
     while (query.next())
-    if (findRoot(query.value(0).toString(), allRootPaths).isEmpty())
-      removePaths << query.value(0);
-
-    if (!removePaths.isEmpty())
-    {
-      query.prepare("DELETE FROM MediaplayerFiles WHERE path = :path");
-      query.bindValue(0, removePaths);
-      query.execBatch();
-    }
-
-    // Find files that were not probed yet.
-    query.exec("SELECT path FROM MediaplayerFiles WHERE size < 0");
-    while (query.next())
-      sApp->schedule(this, &MediaDatabase::probeFile, query.value(0).toString(), &probeDependency, probeFilePriority);
-
-    // Find IMDB items that still need to be matched.
-    if (imdbClient)
-    if (imdbClient->isAvailable())
-    {
-      query.prepare("SELECT title FROM MediaplayerItems "
-                    "WHERE album IN ("
-                      "SELECT id FROM MediaplayerAlbums "
-                      "WHERE category = :category) "
-                    "AND imdbLink ISNULL");
-      query.bindValue(0, Category_Movies);
-      query.exec();
-      while (query.next())
-        sApp->schedule(this, &MediaDatabase::queryImdbItem, query.value(0).toString(), Category_Movies, Database::dependency(), matchImdbItemPriority);
+      sApp->schedule(this, &MediaDatabase::queryImdbItem, query.value(0).toString(), Category_Movies, Database::dependency(), matchImdbItemPriority);
 
 //      query.prepare("SELECT title FROM MediaplayerItems "
 //                    "WHERE album IN ("
@@ -531,10 +527,14 @@ void MediaDatabase::scanRoots(void)
 //      query.exec();
 //      while (query.next())
 //        sApp->run(this, &MediaDatabase::queryImdbItem, query.value(0).toString(), Category_TVShows, Database::dependency(), matchImdbItemPriority);
-    }
-
-    Database::commit();
   }
+
+  Database::commit();
+}
+
+void MediaDatabase::directoryChanged(const QString &path)
+{
+  sApp->schedule(this, &MediaDatabase::scanDir, path, Database::dependency(), scanDirPriority);
 }
 
 void MediaDatabase::probeFinished(const SHttpEngine::ResponseMessage &message)
@@ -654,10 +654,15 @@ void MediaDatabase::scanDir(const QString &_path)
         q.update.bindValue(3, path);
         q.update.exec();
 
+        if (!fileSystemWatcher.directories().contains(path))
+          fileSystemWatcher.addPath(path);
+
         updateDir(path, rowId, q);
       }
-      else // Dir is up-to-date, only scan child dirs
+      else if (!fileSystemWatcher.directories().contains(path))
       {
+        fileSystemWatcher.addPath(path);
+
         foreach (const QFileInfo &child, dir.entryInfoList(QDir::Dirs))
         if (!child.fileName().startsWith('.'))
           sApp->schedule(this, &MediaDatabase::scanDir, child.absoluteFilePath(), Database::dependency(), scanDirPriority);
