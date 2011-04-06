@@ -18,6 +18,7 @@
  ***************************************************************************/
 
 #include "backendsandbox.h"
+#include <liblxicore/sfactory.hpp>
 
 template class LXiCore::SFactorizable<LXiMediaCenter::BackendSandbox>;
 

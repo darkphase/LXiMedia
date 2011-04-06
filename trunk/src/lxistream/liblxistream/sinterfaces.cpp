@@ -18,6 +18,7 @@
  ***************************************************************************/
 
 #include "sinterfaces.h"
+#include <liblxicore/sfactory.hpp>
 
 template class LXiCore::SFactorizable<LXiStream::SInterfaces::FormatProber>;
 template class LXiCore::SFactorizable<LXiStream::SInterfaces::BufferReader>;

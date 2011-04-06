@@ -150,6 +150,4 @@ void SFactorizable<_interface>::registerClass(const SFactory::Scheme &scheme)
 
 } // End of namespace
 
-#include "sfactory.hpp"
-
 #endif
