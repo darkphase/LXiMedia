@@ -21,6 +21,7 @@
 #define LXSTREAM_SENCODEDVIDEOBUFFER_H
 
 #include <QtGui/QImage>
+#include <LXiCore>
 #include "svideocodec.h"
 #include "sbuffer.h"
 #include "ssize.h"
@@ -30,7 +31,7 @@ namespace LXiStream {
 
 /*! This class represents a buffer containing encoded video data.
  */
-class SEncodedVideoBuffer : public SBuffer
+class S_DSO_PUBLIC SEncodedVideoBuffer : public SBuffer
 {
 public:
   inline                        SEncodedVideoBuffer(void) : SBuffer()     { }

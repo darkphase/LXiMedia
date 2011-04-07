@@ -3,12 +3,12 @@
 
 #include <QtCore>
 #include <QtGui>
+#include <LXiCore>
 #include <LXiStream>
 
 namespace LXiStreamGui {
 
-
-class SVuMeter : public QFrame
+class S_DSO_PUBLIC SVuMeter : public QFrame
 {
 Q_OBJECT
 public:
@@ -44,7 +44,6 @@ private:
   QVector< QQueue<qreal> >      lastPeaks;
   LXiStream::SAudioFormat       format;
 };
-
 
 } // End of namespace
 

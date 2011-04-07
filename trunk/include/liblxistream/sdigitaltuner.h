@@ -21,11 +21,12 @@
 #define LXSTREAMFRONTEND_SDIGITALTUNER_H
 
 #include <QtCore>
+#include <LXiCore>
 #include "stuner.h"
 
 namespace LXiStream {
 
-class SDigitalTuner : public STuner
+class S_DSO_PUBLIC SDigitalTuner : public STuner
 {
 Q_OBJECT
 public:

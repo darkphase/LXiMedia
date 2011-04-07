@@ -22,10 +22,11 @@
 
 #include <QtCore>
 #include <typeinfo>
+#include "sglobal.h"
 
 namespace LXiCore {
 
-class SScheduler
+class S_DSO_PUBLIC SScheduler
 {
 Q_DISABLE_COPY(SScheduler)
 public:

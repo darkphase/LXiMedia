@@ -21,6 +21,7 @@
 #define LXISTREAM_SPLAYLISTNODE_H
 
 #include <QtCore>
+#include <LXiCore>
 #include "sioinputnode.h"
 #include "../sgraph.h"
 #include "../smediainfo.h"
@@ -29,9 +30,9 @@ namespace LXiStream {
 
 class SFileInputNode;
 
-class SPlaylistNode : public QObject,
-                      public SGraph::SourceNode,
-                      public SInterfaces::BufferReaderNode
+class S_DSO_PUBLIC SPlaylistNode : public QObject,
+                                   public SGraph::SourceNode,
+                                   public SInterfaces::BufferReaderNode
 {
 Q_OBJECT
 public:

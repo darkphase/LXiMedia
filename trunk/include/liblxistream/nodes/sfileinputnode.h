@@ -21,13 +21,14 @@
 #define LXSTREAM_SFILEINPUTNODE_H
 
 #include <QtCore>
+#include <LXiCore>
 #include "sioinputnode.h"
 
 namespace LXiStream {
 
 class SEncodedVideoBuffer;
 
-class SFileInputNode : public SIOInputNode
+class S_DSO_PUBLIC SFileInputNode : public SIOInputNode
 {
 Q_OBJECT
 public:

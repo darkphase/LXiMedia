@@ -26,7 +26,7 @@
 
 namespace LXiMediaCenter {
 
-class Database
+class S_DSO_PUBLIC Database
 {
 public:
   /*! This class is used to reduce error handling code, and tests threading in

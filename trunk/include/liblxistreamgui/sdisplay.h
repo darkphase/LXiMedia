@@ -2,11 +2,11 @@
 #define LXSTREAM_SDISPLAY_H
 
 #include <QtCore>
+#include <LXiCore>
 
 namespace LXiStreamGui {
 
-
-class SDisplay : public QObject
+class S_DSO_PUBLIC SDisplay : public QObject
 {
 Q_OBJECT
 public:
@@ -39,7 +39,6 @@ private:
   struct Private;
   Private               * const p;
 };
-
 
 } // End of namespace
 

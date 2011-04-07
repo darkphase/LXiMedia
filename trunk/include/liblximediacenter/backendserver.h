@@ -27,12 +27,12 @@ namespace LXiMediaCenter {
 
 class ImdbClient;
 
-class BackendServer : public QObject,
-                      public SFactorizable<BackendServer>
+class S_DSO_PUBLIC BackendServer : public QObject,
+                                   public SFactorizable<BackendServer>
 {
 Q_OBJECT
 public:
-  class MasterServer : public QObject
+  class S_DSO_PUBLIC MasterServer : public QObject
   {
   public:
     virtual QByteArray          parseHtmlContent(const QUrl &url, const QByteArray &content, const QByteArray &head) const = 0;

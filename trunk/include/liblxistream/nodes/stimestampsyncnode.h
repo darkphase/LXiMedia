@@ -21,6 +21,7 @@
 #define LXSTREAM_STIMESTAMPSYNCNODE_H
 
 #include <QtCore>
+#include <LXiCore>
 #include "../saudiobuffer.h"
 #include "../sgraph.h"
 #include "../stime.h"
@@ -32,9 +33,8 @@ class SAudioBuffer;
 class SDataBuffer;
 class SVideoBuffer;
 
-
-class STimeStampSyncNode : public QObject,
-                           public SGraph::Node
+class S_DSO_PUBLIC STimeStampSyncNode : public QObject,
+                                        public SGraph::Node
 {
 Q_OBJECT
 public:
@@ -62,7 +62,6 @@ private:
   struct Data;
   Data                  * const d;
 };
-
 
 } // End of namespace
 

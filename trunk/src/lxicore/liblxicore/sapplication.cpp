@@ -181,6 +181,11 @@ const char * SApplication::version(void)
       ;
 }
 
+SApplication  * SApplication::instance(void)
+{
+  return self;
+}
+
 bool SApplication::loadModule(SModule *module, QPluginLoader *loader)
 {
   Q_ASSERT(QThread::currentThread() == thread());

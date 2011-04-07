@@ -21,12 +21,13 @@
 #define LXMEDIACENTER_HTTPPROXY_H
 
 #include <QtCore>
+#include <LXiCore>
 
 namespace LXiServer {
 
 /*! This is a generic output node, writing to a QIODevice.
  */
-class SHttpProxy : public QObject
+class S_DSO_PUBLIC SHttpProxy : public QObject
 {
 Q_OBJECT
 public:

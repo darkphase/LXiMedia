@@ -21,10 +21,11 @@
 #define LXSTREAM_SAUDIOFORMAT_H
 
 #include <QtCore>
+#include <LXiCore>
 
 namespace LXiStream {
 
-class SAudioFormat
+class S_DSO_PUBLIC SAudioFormat
 {
 public:
   /*! Specifies the format in which data is stored.

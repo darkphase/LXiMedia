@@ -22,13 +22,14 @@
 
 #include <QtCore>
 #include <QtNetwork>
+#include <LXiCore>
 #include "sssdpclient.h"
 
 namespace LXiServer {
 
 class SHttpServer;
 
-class SSsdpServer : public SSsdpClient
+class S_DSO_PUBLIC SSsdpServer : public SSsdpClient
 {
 Q_OBJECT
 public:

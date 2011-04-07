@@ -21,11 +21,11 @@
 #define LXMEDIACENTER_HTMLPARSER_H
 
 #include <QtCore>
+#include <LXiCore>
 
 namespace LXiMediaCenter {
 
-
-class HtmlParser
+class S_DSO_PUBLIC HtmlParser
 {
 public:
   struct Palette
@@ -72,7 +72,6 @@ private:
 private:
   QMap<QByteArray, QByteArray>  fields;
 };
-
 
 } // End of namespace
 

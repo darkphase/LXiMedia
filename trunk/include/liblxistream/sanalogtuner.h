@@ -21,11 +21,12 @@
 #define LXSTREAMFRONTEND_SANALOGTUNER_H
 
 #include <QtCore>
+#include <LXiCore>
 #include "stuner.h"
 
 namespace LXiStream {
 
-class SAnalogTuner : public STuner
+class S_DSO_PUBLIC SAnalogTuner : public STuner
 {
 Q_OBJECT
 Q_PROPERTY(AudioStandard audioStandard READ audioStandard WRITE setAudioStandard)

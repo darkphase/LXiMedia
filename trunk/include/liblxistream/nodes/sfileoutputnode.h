@@ -21,12 +21,12 @@
 #define LXSTREAM_SFILEOUTPUTNODE_H
 
 #include <QtCore>
+#include <LXiCore>
 #include "siooutputnode.h"
 
 namespace LXiStream {
 
-
-class SFileOutputNode : public SIOOutputNode
+class S_DSO_PUBLIC SFileOutputNode : public SIOOutputNode
 {
 Q_OBJECT
 public:
@@ -40,7 +40,6 @@ private:
   struct Data;
   Data                  * const d;
 };
-
 
 } // End of namespace
 

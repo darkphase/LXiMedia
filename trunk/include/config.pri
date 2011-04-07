@@ -19,8 +19,8 @@ include($${LXIMEDIA_DIR}/include/optimize.pri)
 
 # Reduce export symbol table size and binary size.
 linux-g++ {
-  QMAKE_CXXFLAGS += -fvisibility-inlines-hidden
-  QMAKE_CFLAGS += -fvisibility=hidden
+  QMAKE_CXXFLAGS += -fvisibility=hidden -fvisibility-inlines-hidden
+  QMAKE_CFLAGS += -fvisibility=hidden -fvisibility-inlines-hidden
 }
 
 # Debug information is added in release to make stack tracing possible.

@@ -21,6 +21,7 @@
 #define LXSTREAM_SDATABUFFER_H
 
 #include <QtCore>
+#include <LXiCore>
 #include "ssubpicturebuffer.h"
 #include "ssubtitlebuffer.h"
 
@@ -28,7 +29,7 @@ namespace LXiStream {
 
 /*! This class represents a buffer containing data.
  */
-class SDataBuffer
+class S_DSO_PUBLIC SDataBuffer
 {
 public:
   enum Type

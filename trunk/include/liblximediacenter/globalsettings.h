@@ -28,7 +28,7 @@
 
 namespace LXiMediaCenter {
 
-class GlobalSettings : public QSettings
+class S_DSO_PUBLIC GlobalSettings : public QSettings
 {
 public:
 #ifndef TRAYICON_ONLY

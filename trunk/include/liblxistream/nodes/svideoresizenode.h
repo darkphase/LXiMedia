@@ -21,14 +21,14 @@
 #define LXSTREAM_SVIDEORESIZENODE_H
 
 #include <QtCore>
+#include <LXiCore>
 #include "../sgraph.h"
 #include "../sinterfaces.h"
 
 namespace LXiStream {
 
-
-class SVideoResizeNode : public QObject,
-                         public SGraph::Node
+class S_DSO_PUBLIC SVideoResizeNode : public QObject,
+                                      public SGraph::Node
 {
 Q_OBJECT
 public:
@@ -57,7 +57,6 @@ private:
   struct Data;
   Data                  * const d;
 };
-
 
 } // End of namespace
 

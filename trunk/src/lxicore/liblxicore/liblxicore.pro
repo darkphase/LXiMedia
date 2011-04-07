@@ -20,6 +20,7 @@ HEADERS += $${LXIMEDIA_DIR}/include/LXiCore \
     $${LXIMEDIA_DIR}/include/liblxicore/sdaemon.h \
     $${LXIMEDIA_DIR}/include/liblxicore/sfactory.h \
     $${LXIMEDIA_DIR}/include/liblxicore/sfactory.hpp \
+    $${LXIMEDIA_DIR}/include/liblxicore/sglobal.h \
     $${LXIMEDIA_DIR}/include/liblxicore/smodule.h \
     $${LXIMEDIA_DIR}/include/liblxicore/sscheduler.h \
     $${LXIMEDIA_DIR}/include/liblxicore/sscheduler.hpp \

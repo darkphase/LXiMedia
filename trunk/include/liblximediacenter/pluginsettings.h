@@ -21,10 +21,11 @@
 #define LXMEDIACENTER_PLUGINSETTINGS_H
 
 #include <QtCore>
+#include <LXiCore>
 
 namespace LXiMediaCenter {
 
-class PluginSettings : public QSettings
+class S_DSO_PUBLIC PluginSettings : public QSettings
 {
 public:
   explicit                      PluginSettings(const QString &name);

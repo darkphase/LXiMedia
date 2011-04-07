@@ -21,10 +21,11 @@
 #define LXICORE_SSTRINGPARSER_H
 
 #include <QtCore>
+#include "sglobal.h"
 
 namespace LXiCore {
 
-class SStringParser
+class S_DSO_PUBLIC SStringParser
 {
 public:
   static bool                   isUtf8(const QByteArray &) __attribute__((pure));

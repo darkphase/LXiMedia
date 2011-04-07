@@ -17,40 +17,17 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXISERVER_SSANDBOXSERVER_H
-#define LXISERVER_SSANDBOXSERVER_H
+#ifndef LXICORE_SGLOBAL_H
+#define LXICORE_SGLOBAL_H
 
-#include <QtCore>
-#include <LXiCore>
-#include "shttpengine.h"
-
-namespace LXiServer {
-
-class S_DSO_PUBLIC SSandboxServer : public SHttpServerEngine
-{
-Q_OBJECT
-public:
-  explicit                      SSandboxServer(QObject * = NULL);
-  virtual                       ~SSandboxServer();
-
-  void                          initialize(const QString &name, const QString &mode);
-  void                          close(void);
-
-signals:
-  void                          busy(void);
-  void                          idle(void);
-
-protected: // From HttpServerEngine
-  virtual QIODevice           * openSocket(quintptr);
-  virtual void                  closeSocket(QIODevice *, bool canReuse);
-
-private:
-  class Socket;
-  class Server;
-  struct Private;
-  Private               * const p;
-};
-
-} // End of namespace
+#if defined(Q_OS_UNIX) && defined(__GNUC__)
+# define S_DSO_PUBLIC  __attribute__((visibility("default")))
+# define S_DSO_PRIVATE __attribute__((visibility("hidden")))
+# define S_FUNC_PURE   __attribute__((pure))
+#else
+# define S_DSO_PUBLIC
+# define S_DSO_PRIVATE
+# define S_FUNC_PURE
+#endif
 
 #endif

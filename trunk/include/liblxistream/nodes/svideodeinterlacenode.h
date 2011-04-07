@@ -21,14 +21,14 @@
 #define LXSTREAM_SVIDEODEINTERLACENODE_H
 
 #include <QtCore>
+#include <LXiCore>
 #include "../sgraph.h"
 #include "../svideobuffer.h"
 
 namespace LXiStream {
 
-
-class SVideoDeinterlaceNode : public QObject,
-                              public SGraph::Node
+class S_DSO_PUBLIC SVideoDeinterlaceNode : public QObject,
+                                           public SGraph::Node
 {
 Q_OBJECT
 public:
@@ -50,7 +50,6 @@ private:
   struct Data;
   Data                  * const d;
 };
-
 
 } // End of namespace
 

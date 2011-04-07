@@ -23,12 +23,13 @@
 #include <QtCore>
 #include <QtNetwork>
 #include <QtXml>
+#include <LXiCore>
 #include "shttpserver.h"
 #include "supnpbase.h"
 
 namespace LXiServer {
 
-class SUPnPContentDirectory : public SUPnPBase
+class S_DSO_PUBLIC SUPnPContentDirectory : public SUPnPBase
 {
 Q_OBJECT
 public:

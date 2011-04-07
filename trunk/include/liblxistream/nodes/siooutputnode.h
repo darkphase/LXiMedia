@@ -21,6 +21,7 @@
 #define LXSTREAM_SOUTPUTNODE_H
 
 #include <QtCore>
+#include <LXiCore>
 #include "../sgraph.h"
 #include "../sinterfaces.h"
 
@@ -28,9 +29,9 @@ namespace LXiStream {
 
 /*! This is a generic output node, writing to a QIODevice.
  */
-class SIOOutputNode : public QObject,
-                      public SGraph::SinkNode,
-                      protected SInterfaces::BufferWriter::WriteCallback
+class S_DSO_PUBLIC SIOOutputNode : public QObject,
+                                   public SGraph::SinkNode,
+                                   protected SInterfaces::BufferWriter::WriteCallback
 {
 Q_OBJECT
 public:

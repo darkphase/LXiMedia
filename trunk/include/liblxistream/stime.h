@@ -20,8 +20,9 @@
 #ifndef LXSTREAM_STIME_H
 #define LXSTREAM_STIME_H
 
-#include "sinterval.h"
 #include <QtGlobal>
+#include <LXiCore>
+#include "sinterval.h"
 
 namespace LXiStream {
 
@@ -32,7 +33,7 @@ namespace LXiStream {
 
     \sa SInterval
  */
-class STime
+class S_DSO_PUBLIC STime
 {
 public:
   inline                        STime(void)                                     { d.count = 0; }

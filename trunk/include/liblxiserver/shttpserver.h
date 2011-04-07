@@ -22,11 +22,12 @@
 
 #include <QtCore>
 #include <QtNetwork>
+#include <LXiCore>
 #include "shttpengine.h"
 
 namespace LXiServer {
 
-class SHttpServer : public SHttpServerEngine
+class S_DSO_PUBLIC SHttpServer : public SHttpServerEngine
 {
 Q_OBJECT
 public:

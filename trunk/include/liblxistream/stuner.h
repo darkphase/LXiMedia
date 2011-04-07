@@ -21,10 +21,11 @@
 #define LXSTREAMFRONTEND_STUNER_H
 
 #include <QtCore>
+#include <LXiCore>
 
 namespace LXiStream {
 
-class STuner : public QObject
+class S_DSO_PUBLIC STuner : public QObject
 {
 Q_OBJECT
 Q_PROPERTY(quint64 frequency READ frequency WRITE setFrequency)

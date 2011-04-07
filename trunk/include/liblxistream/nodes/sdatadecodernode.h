@@ -21,6 +21,7 @@
 #define LXSTREAM_SDATADECODERNODE_H
 
 #include <QtCore>
+#include <LXiCore>
 #include "../sgraph.h"
 #include "../sinterfaces.h"
 
@@ -28,8 +29,8 @@ namespace LXiStream {
 
 class SSubtitleBuffer;
 
-class SDataDecoderNode : public QObject,
-                         public SGraph::Node
+class S_DSO_PUBLIC SDataDecoderNode : public QObject,
+                                      public SGraph::Node
 {
 Q_OBJECT
 Q_PROPERTY(LXiStream::SInterfaces::DataDecoder::Flags flags READ flags WRITE setFlags)

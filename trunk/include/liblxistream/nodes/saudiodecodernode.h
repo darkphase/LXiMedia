@@ -21,6 +21,7 @@
 #define LXSTREAM_SAUDIODECODERNODE_H
 
 #include <QtCore>
+#include <LXiCore>
 #include "../sinterfaces.h"
 #include "../sgraph.h"
 
@@ -28,8 +29,8 @@ namespace LXiStream {
 
 class SAudioBuffer;
 
-class SAudioDecoderNode : public QObject,
-                          public SGraph::Node
+class S_DSO_PUBLIC SAudioDecoderNode : public QObject,
+                                       public SGraph::Node
 {
 Q_OBJECT
 Q_PROPERTY(LXiStream::SInterfaces::AudioDecoder::Flags flags READ flags WRITE setFlags)

@@ -21,10 +21,11 @@
 #define LXICORE_SFACTORY_H
 
 #include <QtCore>
+#include "sglobal.h"
 
 namespace LXiCore {
 
-class SFactory
+class S_DSO_PUBLIC SFactory
 {
 public:
   class Scheme
@@ -91,7 +92,7 @@ private:
 
 
 template <class _interface>
-class SFactorizable
+class S_DSO_PUBLIC SFactorizable
 {
 public:
   template <class _instance>

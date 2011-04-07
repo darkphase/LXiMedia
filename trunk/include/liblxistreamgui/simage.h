@@ -2,13 +2,14 @@
 #define LXSTREAM_SIMAGE_H
 
 #include <QtCore>
+#include <LXiCore>
 #include <liblxistream/sinterval.h>
 #include <liblxistream/ssize.h>
 #include <liblxistream/svideobuffer.h>
 
 namespace LXiStreamGui {
 
-class SImage : public QImage
+class S_DSO_PUBLIC SImage : public QImage
 {
 public:
   inline                        SImage(void) : QImage()                         { }
