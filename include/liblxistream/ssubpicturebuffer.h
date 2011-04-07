@@ -21,6 +21,7 @@
 #define LXISTREAM_SSUBPICTUREBUFFER_H
 
 #include <QtCore>
+#include <LXiCore>
 #include "sbuffer.h"
 #include "spixels.h"
 #include "stime.h"
@@ -29,7 +30,7 @@ namespace LXiStream {
 
 /*! This class represents a buffer containing subpicture data.
  */
-class SSubpictureBuffer : public SBuffer
+class S_DSO_PUBLIC SSubpictureBuffer : public SBuffer
 {
 public:
   struct Rect

@@ -21,6 +21,7 @@
 #define LXSTREAM_SENCODEDDATABUFFER_H
 
 #include <QtCore>
+#include <LXiCore>
 #include "sdatacodec.h"
 #include "sbuffer.h"
 #include "stime.h"
@@ -29,7 +30,7 @@ namespace LXiStream {
 
 /*! This class represents a buffer containing encoded misc data.
  */
-class SEncodedDataBuffer : public SBuffer
+class S_DSO_PUBLIC SEncodedDataBuffer : public SBuffer
 {
 public:
   inline                        SEncodedDataBuffer(void) : SBuffer()     { }

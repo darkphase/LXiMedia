@@ -25,9 +25,9 @@
 
 namespace LXiMediaCenter {
 
-class BackendSandbox : public QObject,
-                       public SFactorizable<BackendSandbox>,
-                       public SSandboxServer::Callback
+class S_DSO_PUBLIC BackendSandbox : public QObject,
+                                    public SFactorizable<BackendSandbox>,
+                                    public SSandboxServer::Callback
 {
 Q_OBJECT
 public:

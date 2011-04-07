@@ -21,14 +21,15 @@
 #define LXSTREAM_SAUDIORESAMPLENODE_H
 
 #include <QtCore>
+#include <LXiCore>
 #include "../saudiobuffer.h"
 #include "../sgraph.h"
 
 namespace LXiStream {
 
 
-class SAudioResampleNode : public QObject,
-                           public SGraph::Node
+class S_DSO_PUBLIC SAudioResampleNode : public QObject,
+                                        public SGraph::Node
 {
 Q_OBJECT
 public:

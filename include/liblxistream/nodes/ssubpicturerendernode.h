@@ -21,6 +21,7 @@
 #define LXSTREAM_SSUBPICTURERENDERNODE_H
 
 #include <QtCore>
+#include <LXiCore>
 #include "../sgraph.h"
 #include "../spixels.h"
 #include "../ssubpicturebuffer.h"
@@ -28,8 +29,8 @@
 
 namespace LXiStream {
 
-class SSubpictureRenderNode : public QObject,
-                              public SGraph::Node
+class S_DSO_PUBLIC SSubpictureRenderNode : public QObject,
+                                           public SGraph::Node
 {
 Q_OBJECT
 public:

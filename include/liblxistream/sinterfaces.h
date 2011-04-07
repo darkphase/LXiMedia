@@ -43,8 +43,8 @@ namespace SInterfaces {
 /*! The FormatProber interface can be used to detect the format of a byte
     stream.
  */
-class FormatProber : public QObject,
-                     public SFactorizable<FormatProber>
+class S_DSO_PUBLIC FormatProber : public QObject,
+                                  public SFactorizable<FormatProber>
 {
 Q_OBJECT
 public:
@@ -228,8 +228,8 @@ public:
 /*! The BufferReader interface can be used to read serialized buffers from a
     byte stream.
  */
-class BufferReader : public QObject,
-                     public SFactorizable<BufferReader>
+class S_DSO_PUBLIC BufferReader : public QObject,
+                                  public SFactorizable<BufferReader>
 {
 Q_OBJECT
 public:
@@ -275,7 +275,7 @@ public:
 /*! The BufferReaderNode interface is used for nodes that provide access to a
     BufferReader.
  */
-class BufferReaderNode
+class S_DSO_PUBLIC BufferReaderNode
 {
 public:
   typedef FormatProber::StreamId        StreamId;
@@ -301,8 +301,8 @@ public:
 /*! The BufferWriter interface can be used to write serialized buffers to a
     byte stream.
  */
-class BufferWriter : public QObject,
-                     public SFactorizable<BufferWriter>
+class S_DSO_PUBLIC BufferWriter : public QObject,
+                                  public SFactorizable<BufferWriter>
 {
 Q_OBJECT
 public:
@@ -332,8 +332,8 @@ public:
 
 /*! The AudioDecoder interface can be used to decode audio buffers.
  */
-class AudioDecoder : public QObject,
-                     public SFactorizable<AudioDecoder>
+class S_DSO_PUBLIC AudioDecoder : public QObject,
+                                  public SFactorizable<AudioDecoder>
 {
 Q_OBJECT
 public:
@@ -358,8 +358,8 @@ public:
 
 /*! The VideoDecoder interface can be used to decode audio buffers.
  */
-class VideoDecoder : public QObject,
-                     public SFactorizable<VideoDecoder>
+class S_DSO_PUBLIC VideoDecoder : public QObject,
+                                  public SFactorizable<VideoDecoder>
 {
 Q_OBJECT
 public:
@@ -384,8 +384,8 @@ public:
 
 /*! The SubtitleDecoder interface can be used to decode subtitle buffers.
  */
-class DataDecoder : public QObject,
-                    public SFactorizable<DataDecoder>
+class S_DSO_PUBLIC DataDecoder : public QObject,
+                                 public SFactorizable<DataDecoder>
 {
 Q_OBJECT
 public:
@@ -409,8 +409,8 @@ public:
 
 /*! The AudioEncoder interface can be used to encode audio buffers.
  */
-class AudioEncoder : public QObject,
-                     public SFactorizable<AudioEncoder>
+class S_DSO_PUBLIC AudioEncoder : public QObject,
+                                  public SFactorizable<AudioEncoder>
 {
 Q_OBJECT
 public:
@@ -438,8 +438,8 @@ public:
 
 /*! The VideoEncoder interface can be used to encode video buffers.
  */
-class VideoEncoder : public QObject,
-                     public SFactorizable<VideoEncoder>
+class S_DSO_PUBLIC VideoEncoder : public QObject,
+                                  public SFactorizable<VideoEncoder>
 {
 Q_OBJECT
 public:
@@ -467,8 +467,8 @@ public:
 
 /*! The VideoFormatConverter interface can be used to convert video formats.
  */
-class VideoFormatConverter : public QObject,
-                             public SFactorizable<VideoFormatConverter>
+class S_DSO_PUBLIC VideoFormatConverter : public QObject,
+                                          public SFactorizable<VideoFormatConverter>
 {
 Q_OBJECT
 public:
@@ -492,8 +492,8 @@ public:
 
 /*! The AudioInput interface can be used to provide audio input devices.
  */
-class AudioInput : public QObject,
-                   public SFactorizable<AudioInput>
+class S_DSO_PUBLIC AudioInput : public QObject,
+                                public SFactorizable<AudioInput>
 {
 Q_OBJECT
 protected:
@@ -513,8 +513,8 @@ signals:
 
 /*! The AudioOutput interface can be used to provide audio output devices.
  */
-class AudioOutput : public QObject,
-                    public SFactorizable<AudioOutput>
+class S_DSO_PUBLIC AudioOutput : public QObject,
+                                 public SFactorizable<AudioOutput>
 {
 Q_OBJECT
 protected:
@@ -531,8 +531,8 @@ public slots:
 
 /*! The VideoInput interface can be used to provide video input devices.
  */
-class VideoInput : public QObject,
-                   public SFactorizable<VideoInput>
+class S_DSO_PUBLIC VideoInput : public QObject,
+                                public SFactorizable<VideoInput>
 {
 Q_OBJECT
 protected:
@@ -554,8 +554,8 @@ signals:
 
 /*! The AudioResampler interface can be used to provide resampling algorithms.
  */
-class AudioResampler : public QObject,
-                       public SFactorizable<AudioResampler>
+class S_DSO_PUBLIC AudioResampler : public QObject,
+                                    public SFactorizable<AudioResampler>
 {
 Q_OBJECT
 protected:
@@ -571,8 +571,8 @@ public:
 /*! The VideoDeinterlacer interface can be used to provide deinterlacing
     algorithms.
  */
-class VideoDeinterlacer : public QObject,
-                          public SFactorizable<VideoDeinterlacer>
+class S_DSO_PUBLIC VideoDeinterlacer : public QObject,
+                                       public SFactorizable<VideoDeinterlacer>
 {
 Q_OBJECT
 protected:
@@ -584,8 +584,8 @@ public:
 
 /*! The VideoResizer interface can be used to provide scaling algorithms.
  */
-class VideoResizer : public QObject,
-                     public SFactorizable<VideoResizer>
+class S_DSO_PUBLIC VideoResizer : public QObject,
+                                  public SFactorizable<VideoResizer>
 {
 Q_OBJECT
 protected:

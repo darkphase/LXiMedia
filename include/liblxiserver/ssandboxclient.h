@@ -21,11 +21,12 @@
 #define LXISERVER_SSANDBOXCLIENT_H
 
 #include <QtCore>
+#include <LXiCore>
 #include "shttpengine.h"
 
 namespace LXiServer {
 
-class SSandboxClient : public SHttpClientEngine
+class S_DSO_PUBLIC SSandboxClient : public SHttpClientEngine
 {
 Q_OBJECT
 public:

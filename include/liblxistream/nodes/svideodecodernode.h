@@ -21,6 +21,7 @@
 #define LXSTREAM_SVIDEODECODERNODE_H
 
 #include <QtCore>
+#include <LXiCore>
 #include "../sgraph.h"
 #include "../sinterfaces.h"
 
@@ -28,8 +29,8 @@ namespace LXiStream {
 
 class SVideoBuffer;
 
-class SVideoDecoderNode : public QObject,
-                          public SGraph::Node
+class S_DSO_PUBLIC SVideoDecoderNode : public QObject,
+                                       public SGraph::Node
 {
 Q_OBJECT
 Q_PROPERTY(LXiStream::SInterfaces::VideoDecoder::Flags flags READ flags WRITE setFlags)

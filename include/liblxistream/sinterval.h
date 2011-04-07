@@ -21,6 +21,7 @@
 #define LXSTREAM_SINTERVAL_H
 
 #include <QtGlobal>
+#include <LXiCore>
 
 namespace LXiStream {
 
@@ -31,7 +32,7 @@ namespace LXiStream {
 
     \sa STime
  */
-class SInterval
+class S_DSO_PUBLIC SInterval
 {
 public:
   inline                        SInterval(void)                                 { d.num = d.den = 0; }

@@ -21,6 +21,7 @@
 #define LXISTREAM_SBUFFER_H
 
 #include <QtCore>
+#include <LXiCore>
 
 namespace LXiStream {
 
@@ -43,7 +44,7 @@ namespace LXiStream {
     Usually the SBuffer class is not used directly, but a more specific one like
     SAudioBuffer, SVideoBuffer, SEncodedAudioBuffer or SEncodedVideoBuffer.
  */
-class SBuffer
+class S_DSO_PUBLIC SBuffer
 {
 public:
   /*! This class manages a block of memory. This class is usually only used by
@@ -51,7 +52,7 @@ public:
       specific block of memory needs to be managed by an SBuffer (e.g. a
       buffer from a capture device).
    */
-  class Memory : public QSharedData
+  class S_DSO_PUBLIC Memory : public QSharedData
   {
   friend class SBuffer;
   public:

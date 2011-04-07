@@ -30,14 +30,14 @@ namespace LXiMediaCenter {
 
 class MediaStream;
 
-class MediaServer : public BackendServer,
-                    protected SHttpServer::Callback,
-                    private SUPnPContentDirectory::Callback
+class S_DSO_PUBLIC MediaServer : public BackendServer,
+                                 protected SHttpServer::Callback,
+                                 private SUPnPContentDirectory::Callback
 {
 Q_OBJECT
 friend class MediaServerDir;
 public:
-  class Stream
+  class S_DSO_PUBLIC Stream
   {
   public:
                                 Stream(MediaServer *parent, const QString &url);

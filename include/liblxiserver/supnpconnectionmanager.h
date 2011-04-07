@@ -23,6 +23,7 @@
 #include <QtCore>
 #include <QtNetwork>
 #include <QtXml>
+#include <LXiCore>
 #include "shttpserver.h"
 #include "supnpbase.h"
 
@@ -30,7 +31,7 @@ namespace LXiServer {
 
 class SUPnPMediaServer;
 
-class SUPnPConnectionManager : public SUPnPBase
+class S_DSO_PUBLIC SUPnPConnectionManager : public SUPnPBase
 {
 Q_OBJECT
 public:

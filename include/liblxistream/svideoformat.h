@@ -22,12 +22,13 @@
 
 #include <QtCore>
 #include <QtGlobal>
+#include <LXiCore>
 #include "sinterval.h"
 #include "ssize.h"
 
 namespace LXiStream {
 
-class SVideoFormat
+class S_DSO_PUBLIC SVideoFormat
 {
 public:
   /*! Specifies the format in which data is stored.

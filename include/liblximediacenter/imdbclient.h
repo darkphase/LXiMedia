@@ -27,7 +27,7 @@
 namespace LXiMediaCenter {
 
 
-class ImdbClient : public QObject
+class S_DSO_PUBLIC ImdbClient : public QObject
 {
 Q_OBJECT
 public:

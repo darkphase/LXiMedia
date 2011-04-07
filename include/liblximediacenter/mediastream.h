@@ -28,7 +28,7 @@
 
 namespace LXiMediaCenter {
 
-class MediaStream : public SGraph
+class S_DSO_PUBLIC MediaStream : public SGraph
 {
 Q_OBJECT
 public:
@@ -52,7 +52,7 @@ protected:
   SIOOutputNode                 output;
 };
 
-class MediaTranscodeStream : public MediaStream
+class S_DSO_PUBLIC MediaTranscodeStream : public MediaStream
 {
 public:
   explicit                      MediaTranscodeStream(void);

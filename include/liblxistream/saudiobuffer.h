@@ -21,6 +21,7 @@
 #define LXSTREAM_SAUDIOBUFFER_H
 
 #include <QtCore>
+#include <LXiCore>
 #include "saudioformat.h"
 #include "sbuffer.h"
 #include "stime.h"
@@ -32,7 +33,7 @@ typedef QList<SAudioBuffer>     SAudioBufferList;
 
 /*! This class represents a buffer containing raw audio samples.
  */
-class SAudioBuffer : public SBuffer
+class S_DSO_PUBLIC SAudioBuffer : public SBuffer
 {
 public:
   inline                        SAudioBuffer(void) : SBuffer()            { }

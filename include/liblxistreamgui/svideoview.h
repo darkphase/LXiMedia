@@ -3,10 +3,10 @@
 
 #include <QtCore>
 #include <QtGui>
+#include <LXiCore>
 #include <LXiStream>
 
 namespace LXiStreamGui {
-
 
 /*! \brief The SVideoView class provides a widget for rendering video.
 
@@ -14,8 +14,8 @@ namespace LXiStreamGui {
     to the widget. The video rendering may be accellerated depending on the
     underlying hardware.
  */
-class SVideoView : public QWidget,
-                   public SGraph::SinkNode
+class S_DSO_PUBLIC SVideoView : public QWidget,
+                                public SGraph::SinkNode
 {
 Q_OBJECT
 public:
@@ -48,7 +48,6 @@ private:
   struct Private;
   Private               * const p;
 };
-
 
 } // End of namespace
 

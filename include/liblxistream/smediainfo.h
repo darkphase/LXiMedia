@@ -22,6 +22,7 @@
 
 #include <QtCore>
 #include <QtXml>
+#include <LXiCore>
 #include "sinterfaces.h"
 
 namespace LXiStream {
@@ -29,7 +30,7 @@ namespace LXiStream {
 class SMediaInfo;
 typedef QList<SMediaInfo> SMediaInfoList;
 
-class SMediaInfo : public SSerializable
+class S_DSO_PUBLIC SMediaInfo : public SSerializable
 {
 friend class SDiscInfo;
 public:

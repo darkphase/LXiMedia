@@ -21,6 +21,7 @@
 #define LXISTREAM_SSUBTITLEBUFFER_H
 
 #include <QtCore>
+#include <LXiCore>
 #include "sbuffer.h"
 #include "stime.h"
 
@@ -28,7 +29,7 @@ namespace LXiStream {
 
 /*! This class represents a buffer containing subtitle data.
  */
-class SSubtitleBuffer : public SBuffer
+class S_DSO_PUBLIC SSubtitleBuffer : public SBuffer
 {
 public:
   inline                        SSubtitleBuffer(void) : SBuffer()               { }

@@ -30,7 +30,7 @@ namespace LXiStream {
 
     \sa SVideoCodec, SDataCodec
  */
-class SAudioCodec : public SSerializable
+class S_DSO_PUBLIC SAudioCodec : public SSerializable
 {
 public:
                                 SAudioCodec(void);

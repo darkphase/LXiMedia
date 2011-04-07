@@ -21,6 +21,7 @@
 #define LXISTREAM_SVIDEOBUFFER_H
 
 #include <QtGui/QImage>
+#include <LXiCore>
 #include "svideoformat.h"
 #include "sbuffer.h"
 #include "ssize.h"
@@ -30,7 +31,7 @@ namespace LXiStream {
 
 /*! This class represents a buffer containing raw video pixels.
  */
-class SVideoBuffer : public SBuffer
+class S_DSO_PUBLIC SVideoBuffer : public SBuffer
 {
 public:
                                 SVideoBuffer(void);

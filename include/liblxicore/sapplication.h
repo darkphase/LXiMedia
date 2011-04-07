@@ -21,6 +21,7 @@
 #define LXICORE_SAPPLICATION_H
 
 #include <QtCore>
+#include "sglobal.h"
 #include "sscheduler.h"
 
 #define sApp (SApplication::instance())
@@ -30,12 +31,12 @@ namespace LXiCore {
 class SFactory;
 class SModule;
 
-class SApplication : public QObject
+class S_DSO_PUBLIC SApplication : public QObject
 {
 Q_OBJECT
 friend class SFactory;
 public:
-  class Initializer
+  class S_DSO_PUBLIC Initializer
   {
   friend class SApplication;
   protected:
@@ -57,7 +58,7 @@ public:
     void                      * framePointer;
   };
 
-  class LogFile : public QFile
+  class S_DSO_PUBLIC LogFile : public QFile
   {
   public:
     struct Message
@@ -80,10 +81,9 @@ public:
   explicit                      SApplication(const QStringList &moduleFilter = QStringList(), const QString &logDir = QString::null, QObject * = NULL);
   virtual                       ~SApplication();
 
-  static const char           * name(void) __attribute__((pure));
-  static const char           * version(void) __attribute__((pure));
-
-  inline static SApplication  * instance(void)                                  { return self; }
+  static const char           * name(void) S_FUNC_PURE;
+  static const char           * version(void) S_FUNC_PURE;
+  static SApplication  *        instance(void) S_FUNC_PURE;
 
   bool                          loadModule(SModule *, QPluginLoader * = NULL);
   QByteArray                    about(void) const;
@@ -106,13 +106,13 @@ public:
   static SApplication         * createForQTest(QObject *);
 
 private:
-  explicit                      SApplication(QObject *);
+  explicit                      SApplication(QObject *) S_DSO_PRIVATE;
 
-  static QList<SFactory *>    & factories(void);
+  static QList<SFactory *>    & factories(void) S_DSO_PRIVATE;
 
 private:
-  static Initializer          * initializers;
-  static SApplication         * self;
+  static Initializer          * initializers S_DSO_PRIVATE;
+  static SApplication         * self S_DSO_PRIVATE;
 
   struct Data;
   Data                  * const d;

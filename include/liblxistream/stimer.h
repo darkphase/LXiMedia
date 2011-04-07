@@ -21,12 +21,13 @@
 #define LXSTREAM_STIMER_H
 
 #include <QtGlobal>
+#include <LXiCore>
 #include "stime.h"
 
 namespace LXiStream {
 
 
-class STimer
+class S_DSO_PUBLIC STimer
 {
 Q_DISABLE_COPY(STimer)
 public:

@@ -6,6 +6,8 @@
 #include <QtCore>
 #include <QtXml>
 
+#include "liblxicore/sglobal.h"
+
 #include "liblxicore/sapplication.h"
 #include "liblxicore/sdaemon.h"
 #include "liblxicore/sfactory.h"

@@ -21,6 +21,7 @@
 #define LXISTREAM_STIMESTAMPRESAMPLERNODE_H
 
 #include <QtCore>
+#include <LXiCore>
 #include "../saudiobuffer.h"
 #include "../sgraph.h"
 #include "../spixels.h"
@@ -34,11 +35,10 @@ class SAudioBuffer;
 class SDataBuffer;
 class SVideoBuffer;
 
-
 /*! This filter can be used to resample the timestamps in a stream.
  */
-class STimeStampResamplerNode : public QObject,
-                                public SGraph::Node
+class S_DSO_PUBLIC STimeStampResamplerNode : public QObject,
+                                             public SGraph::Node
 {
 Q_OBJECT
 public:
@@ -68,7 +68,6 @@ private:
   struct Data;
   Data                  * const d;
 };
-
 
 } // End of namespace
 

@@ -21,13 +21,14 @@
 #define LXSTREAM_SAUDIOENCODERNODE_H
 
 #include <QtCore>
+#include <LXiCore>
 #include "../sinterfaces.h"
 #include "../sgraph.h"
 
 namespace LXiStream {
 
-class SAudioEncoderNode : public QObject,
-                          public SGraph::Node
+class S_DSO_PUBLIC SAudioEncoderNode : public QObject,
+                                       public SGraph::Node
 {
 Q_OBJECT
 public:

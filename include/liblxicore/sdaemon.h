@@ -21,10 +21,11 @@
 #define LXICORE_SDAEMON_H
 
 #include <QtCore>
+#include "sglobal.h"
 
 namespace LXiCore {
 
-class SDaemon
+class S_DSO_PUBLIC SDaemon
 {
 public:
   explicit                      SDaemon(const QString &name);

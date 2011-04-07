@@ -21,6 +21,7 @@
 #define LXISTREAM_SVIDEOFORMATCONVERTNODE_H
 
 #include <QtCore>
+#include <LXiCore>
 #include "../sgraph.h"
 #include "../svideobuffer.h"
 
@@ -28,9 +29,8 @@ namespace LXiStream {
 
 class SVideoBuffer;
 
-
-class SVideoFormatConvertNode : public QObject,
-                                public SGraph::Node
+class S_DSO_PUBLIC SVideoFormatConvertNode : public QObject,
+                                             public SGraph::Node
 {
 Q_OBJECT
 public:
@@ -56,7 +56,6 @@ private:
   struct Data;
   Data                  * const d;
 };
-
 
 } // End of namespace
 

@@ -23,12 +23,13 @@
 #include <QtCore>
 #include <QtNetwork>
 #include <QtXml>
+#include <LXiCore>
 #include "shttpserver.h"
 
 namespace LXiServer {
 
-class SUPnPGenaServer : public QObject,
-                        protected SHttpServer::Callback
+class S_DSO_PUBLIC SUPnPGenaServer : public QObject,
+                                     protected SHttpServer::Callback
 {
 Q_OBJECT
 public:

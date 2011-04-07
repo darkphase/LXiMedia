@@ -21,6 +21,7 @@
 #define LXISTREAM_SAUDIOOUTPUTNODE_H
 
 #include <QtCore>
+#include <LXiCore>
 #include "../saudiobuffer.h"
 #include "../sgraph.h"
 
@@ -28,8 +29,8 @@ namespace LXiStream {
 
 /*! This is a generic decoder node wich decodes audio and video buffers.
  */
-class SAudioOutputNode : public QObject,
-                         public SGraph::SinkNode
+class S_DSO_PUBLIC SAudioOutputNode : public QObject,
+                                      public SGraph::SinkNode
 {
 Q_OBJECT
 public:

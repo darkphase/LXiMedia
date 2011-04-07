@@ -21,13 +21,14 @@
 #define LXISERVER_SHTTPENGINE_H
 
 #include <QtCore>
+#include <LXiCore>
 
 class QAbstractSocket;
 class QLocalSocket;
 
 namespace LXiServer {
 
-class SHttpEngine
+class S_DSO_PUBLIC SHttpEngine
 {
 public:
   enum Status
@@ -47,7 +48,7 @@ public:
     Status_InternalServerError= 500
   };
 
-  class Header
+  class S_DSO_PUBLIC Header
   {
   protected:
     explicit                    Header(const SHttpEngine *);
@@ -89,7 +90,7 @@ public:
     QList< QPair<QString, QString> > fields;
   };
 
-  class RequestHeader : public Header
+  class S_DSO_PUBLIC RequestHeader : public Header
   {
   public:
     explicit                    RequestHeader(const SHttpEngine *);
@@ -109,7 +110,7 @@ public:
     QString                     directory(void) const;
   };
 
-  class ResponseHeader : public Header
+  class S_DSO_PUBLIC ResponseHeader : public Header
   {
   public:
     explicit                    ResponseHeader(const SHttpEngine *);
@@ -128,7 +129,7 @@ public:
     static const char         * statusText(int) __attribute__((pure));
   };
 
-  class RequestMessage : public RequestHeader
+  class S_DSO_PUBLIC RequestMessage : public RequestHeader
   {
   public:
     inline explicit             RequestMessage(const SHttpEngine *httpEngine = NULL) : RequestHeader(httpEngine) { }
@@ -144,7 +145,7 @@ public:
     QByteArray                  data;
   };
 
-  class ResponseMessage : public ResponseHeader
+  class S_DSO_PUBLIC ResponseMessage : public ResponseHeader
   {
   public:
     inline explicit             ResponseMessage(const SHttpEngine *httpEngine = NULL) : ResponseHeader(httpEngine) { }
@@ -163,7 +164,7 @@ public:
   };
 
 public:
-  class SocketPtr
+  class S_DSO_PUBLIC SocketPtr
   {
   public:
     inline                      SocketPtr(QIODevice * socket = NULL)            { operator=(socket); }
@@ -208,8 +209,8 @@ public:
 };
 
 
-class SHttpServerEngine : public QObject,
-                          public SHttpEngine
+class S_DSO_PUBLIC SHttpServerEngine : public QObject,
+                                     public SHttpEngine
 {
 Q_OBJECT
 public:
@@ -253,8 +254,8 @@ private:
 };
 
 
-class SHttpClientEngine : public QObject,
-                          public SHttpEngine
+class S_DSO_PUBLIC SHttpClientEngine : public QObject,
+                                     public SHttpEngine
 {
 Q_OBJECT
 public:

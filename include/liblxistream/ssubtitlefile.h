@@ -20,6 +20,7 @@
 #ifndef LXSTREAM_SSUBTITLEFILE_H
 #define LXSTREAM_SSUBTITLEFILE_H
 
+#include <LXiCore>
 #include "sdatacodec.h"
 #include "sencodeddatabuffer.h"
 
@@ -29,7 +30,7 @@ namespace LXiStream {
     internally by SMediaInfo and SFileInputNode to transparently support
     separate subtitle files (they are added as separate data streams).
  */
-class SSubtitleFile
+class S_DSO_PUBLIC SSubtitleFile
 {
 public:
                                 SSubtitleFile(const QString &name);

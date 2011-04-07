@@ -22,13 +22,14 @@
 
 #include <QtCore>
 #include <QtNetwork>
+#include <LXiCore>
 #include "shttpserver.h"
 
 namespace LXiServer {
 
 class SsdpClientInterface;
 
-class SSsdpClient : public QObject
+class S_DSO_PUBLIC SSsdpClient : public QObject
 {
 Q_OBJECT
 friend class SsdpClientInterface;
@@ -82,7 +83,7 @@ private:
 };
 
 
-class SsdpClientInterface : public QObject
+class S_DSO_PUBLIC SsdpClientInterface : public QObject
 {
 Q_OBJECT
 friend class SSsdpClient;

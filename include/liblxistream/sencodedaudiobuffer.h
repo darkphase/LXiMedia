@@ -21,6 +21,7 @@
 #define LXSTREAM_SENCODEDAUDIOBUFFER_H
 
 #include <QtCore>
+#include <LXiCore>
 #include "saudiocodec.h"
 #include "sbuffer.h"
 #include "stime.h"
@@ -29,7 +30,7 @@ namespace LXiStream {
 
 /*! This class represents a buffer containing encoded audio data.
  */
-class SEncodedAudioBuffer : public SBuffer
+class S_DSO_PUBLIC SEncodedAudioBuffer : public SBuffer
 {
 public:
   inline                        SEncodedAudioBuffer(void) : SBuffer()     { }

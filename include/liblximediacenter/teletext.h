@@ -22,16 +22,15 @@
 
 #include <QtCore>
 #include <QtGui>
+#include <LXiCore>
 
 namespace LXiMediaCenter {
 
-
-class Teletext
+class S_DSO_PUBLIC Teletext
 {
 public:
   static void                   drawGraphics(QPainter &, const QRect &, int, char);
 };
-
 
 } // End of namespace
 
