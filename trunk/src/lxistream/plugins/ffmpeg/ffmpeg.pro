@@ -5,6 +5,13 @@ unix:include($${LXIMEDIA_DIR}/include/liblxistream/linklxistream-internal.pri)
 win32:include($${LXIMEDIA_DIR}/include/liblxistream/linklxistream.pri) # Because of -mstackrealign
 include($${LXIMEDIA_DIR}/ext/ffmpeg/ffmpeg.pri)
 
+# For win32-g++ we need to make a new precompiled header, for linux-g++ the
+# existing one is re-used.
+win32-g++ {
+  CONFIG += precompile_header
+  PRECOMPILED_HEADER = $${LXIMEDIA_DIR}/include/LXiStream
+}
+
 # Files
 HEADERS += audiodecoder.h \
     audioencoder.h \

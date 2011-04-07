@@ -17,6 +17,12 @@ unix|win32-g++ {
 # Optimizations
 include($${LXIMEDIA_DIR}/include/optimize.pri)
 
+# Reduce export symbol table size and binary size.
+linux-g++ {
+  QMAKE_CXXFLAGS += -fvisibility-inlines-hidden
+  QMAKE_CFLAGS += -fvisibility=hidden
+}
+
 # Debug information is added in release to make stack tracing possible.
 linux-g++|win32-g++ {
   !contains(QMAKE_CXXFLAGS_RELEASE, -g) {
