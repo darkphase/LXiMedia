@@ -5,6 +5,11 @@ TARGET = lximcbackend
 include($${LXIMEDIA_DIR}/include/config.pri)
 include($${LXIMEDIA_DIR}/include/liblximediacenter/linklximediacenter.pri)
 
+linux-g++|win32-g++ {
+  CONFIG += precompile_header
+  PRECOMPILED_HEADER = $${LXIMEDIA_DIR}/include/LXiMediaCenter
+}
+
 # Files
 SOURCES += main.cpp \
     backend.cpp \

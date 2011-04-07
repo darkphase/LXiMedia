@@ -30,6 +30,11 @@ unix|win32-g++ {
 
 include($${LXIMEDIA_DIR}/include/liblxiserver/linklxiserver.pri)
 
+linux-g++|win32-g++ {
+  CONFIG += precompile_header
+  PRECOMPILED_HEADER = $${LXIMEDIA_DIR}/include/LXiServer
+}
+
 # Files
 SOURCES += main.cpp \
  trayicon.cpp

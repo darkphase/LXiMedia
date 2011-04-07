@@ -13,6 +13,11 @@ include($${LXIMEDIA_DIR}/ext/exif/exif.pri)
 include($${LXIMEDIA_DIR}/ext/ffmpeg/ffmpeg.pri)
 include($${LXIMEDIA_DIR}/ext/fftw/fftw.pri)
 
+linux-g++|win32-g++ {
+  CONFIG += precompile_header
+  PRECOMPILED_HEADER = $${LXIMEDIA_DIR}/include/LXiStream
+}
+
 # Files
 HEADERS += streamtest.h \
     dvdnavtest.h \
@@ -32,7 +37,7 @@ LIBS += -lbfd \
 
 # Run tests after link
 unix:QMAKE_POST_LINK = $(TARGET) -silent
-#win32:QMAKE_POST_LINK = $(TARGET) -silent
+win32:QMAKE_POST_LINK = $${DESTDIR}/$${TARGET} -silent
 # Prevent dependency with .so files
 FILES_UNDER_TEST = $${LXIMEDIA_DIR}/obj/LXiCore/*.o \
     $${LXIMEDIA_DIR}/obj/LXiStream/*.o \
