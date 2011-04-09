@@ -51,7 +51,7 @@ signals:
   void                          output(const SEncodedAudioBuffer &);
 
 private:
-  internal void                 processTask(const SAudioBuffer &);
+  __internal void               processTask(const SAudioBuffer &);
 
 private:
   struct Data;

@@ -100,17 +100,17 @@ protected: // From SHttpServer::Callback
   virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestHeader &, QIODevice *);
 
 private: // From UPnPContentDirectory::Callback
-  internal virtual int          countContentDirItems(const QString &path);
-  internal virtual QList<SUPnPContentDirectory::Item> listContentDirItems(const QString &path, unsigned start, unsigned count);
+  virtual int                   countContentDirItems(const QString &path);
+  virtual QList<SUPnPContentDirectory::Item> listContentDirItems(const QString &path, unsigned start, unsigned count);
 
 private:
-  internal void                 addStream(Stream *);
-  internal void                 removeStream(Stream *);
+  __internal void               addStream(Stream *);
+  __internal void               removeStream(Stream *);
 
 public:
-  internal static const qint32  defaultDirSortOrder;
-  internal static const qint32  defaultFileSortOrder;
-  internal static const int     seekBySecs;
+  __internal static const qint32 defaultDirSortOrder;
+  __internal static const qint32 defaultFileSortOrder;
+  __internal static const int   seekBySecs;
 
 private:
   struct Data;

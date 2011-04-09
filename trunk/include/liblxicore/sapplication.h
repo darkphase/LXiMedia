@@ -86,9 +86,9 @@ public:
   explicit                      SApplication(const QStringList &moduleFilter = QStringList(), const QString &logDir = QString::null, QObject * = NULL);
   virtual                       ~SApplication();
 
-  pure static const char      * name(void);
-  pure static const char      * version(void);
-  pure static SApplication    * instance(void);
+  __pure static const char    * name(void);
+  __pure static const char    * version(void);
+  __pure static SApplication  * instance(void);
 
   bool                          loadModule(SModule *, QPluginLoader * = NULL);
   QByteArray                    about(void) const;
@@ -111,13 +111,13 @@ public:
   static SApplication         * createForQTest(QObject *);
 
 private:
-  internal explicit           SApplication(QObject *);
+  __internal explicit           SApplication(QObject *);
 
-  internal static QList<SFactory *> & factories(void);
+  __internal static QList<SFactory *> & factories(void);
 
 private:
-  internal static Initializer * initializers;
-  internal static SApplication * self;
+  __internal static Initializer * initializers;
+  __internal static SApplication * self;
 
   struct Data;
   Data                  * const d;

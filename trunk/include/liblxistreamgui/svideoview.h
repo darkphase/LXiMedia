@@ -43,7 +43,7 @@ protected:
   void                          blitVideo(void);
 
 private:
-  internal void                 setSource(SVideoView *);
+  __internal void               setSource(SVideoView *);
 
 private:
   struct Private;

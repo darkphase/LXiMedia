@@ -50,7 +50,7 @@ protected:
   void                          sendSearchResponse(SsdpClientInterface *, const QString &st, const QString &url, const QHostAddress &, quint16) const;
 
 private slots:
-  internal void                 publishServices(void);
+  __internal void               publishServices(void);
 
 private:
   struct Private;

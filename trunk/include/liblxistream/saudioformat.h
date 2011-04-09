@@ -171,11 +171,11 @@ public:
 
   static inline int             numChannels(Channels c)                         { return __builtin_popcount(quint32(c)); }
   static Channels               guessChannels(unsigned numChannels);
-  pure static int               sampleSize(Format);
-  pure static const char      * formatName(Format);
-  pure static const char      * channelName(Channel);
-  pure static QString           channelNames(Channels);
-  pure static const char      * channelSetupName(Channels);
+  __pure static int             sampleSize(Format);
+  __pure static const char    * formatName(Format);
+  __pure static const char    * channelName(Channel);
+  __pure static QString         channelNames(Channels);
+  __pure static const char    * channelSetupName(Channels);
 
 private:
   struct

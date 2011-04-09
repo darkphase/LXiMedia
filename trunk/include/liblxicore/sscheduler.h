@@ -172,8 +172,8 @@ protected:
   void                          schedule(Dependency *);
 
 private:
-  internal void                 start(Runnable *runnable, Priority = Priority_Normal);
-  internal void                 traceTask(int, int, const QByteArray &);
+  void                          start(Runnable *runnable, Priority = Priority_Normal);
+  __internal void               traceTask(int, int, const QByteArray &);
 
 protected:
   static const QEvent::Type     scheduleEventType;

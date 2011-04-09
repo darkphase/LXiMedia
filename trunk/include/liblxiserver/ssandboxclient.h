@@ -56,9 +56,9 @@ signals:
   void                          consoleLine(const QString &);
 
 private slots:
-  internal void                 openSockets(void);
-  internal void                 stop(void);
-  internal void                 finished(void);
+  __internal void               openSockets(void);
+  __internal void               stop(void);
+  __internal void               finished(void);
 
 private:
   struct Private;

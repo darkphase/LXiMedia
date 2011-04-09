@@ -61,10 +61,10 @@ signals:
   void                          output(const SSubtitleBuffer &);
 
 private:
-  internal STime                correct(const STime &);
+  __internal STime              correct(const STime &);
 
 private:
-  internal static const int     numChannels = 4;
+  __internal static const int   numChannels = 4;
 
   struct Data;
   Data                  * const d;

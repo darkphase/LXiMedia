@@ -50,9 +50,9 @@ protected: // From SUPnPBase
   virtual void                  handleSoapMessage(const QDomElement &, QDomDocument &, QDomElement &, const SHttpServer::RequestHeader &, const QHostAddress &);
 
 private:
-  internal void                 emitEvent(void);
-  internal QString              listSourceProtocols(void) const;
-  internal QString              listSinkProtocols(void) const;
+  __internal void               emitEvent(void);
+  __internal QString            listSourceProtocols(void) const;
+  __internal QString            listSinkProtocols(void) const;
 
 public:
   static const char     * const connectionManagerNS;

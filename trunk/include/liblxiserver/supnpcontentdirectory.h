@@ -133,28 +133,28 @@ protected: // From SUPnPBase
   virtual void                  handleSoapMessage(const QDomElement &, QDomDocument &, QDomElement &, const SHttpServer::RequestHeader &, const QHostAddress &);
 
 private:
-  internal void                 handleBrowse(const QDomElement &, QDomDocument &, QDomElement &, const SHttpServer::RequestHeader &, const QHostAddress &);
-  internal QDomElement          didlDirectory(QDomDocument &, Item::Type, const QString &path, const QString &title = QString::null);
-  internal QDomElement          didlFile(QDomDocument &doc, const QString &peer, const QString &host, const Item &, const QString &path, const QString &title = QString::null);
-  internal void                 emitEvent(bool dirty);
+  __internal void               handleBrowse(const QDomElement &, QDomDocument &, QDomElement &, const SHttpServer::RequestHeader &, const QHostAddress &);
+  __internal QDomElement        didlDirectory(QDomDocument &, Item::Type, const QString &path, const QString &title = QString::null);
+  __internal QDomElement        didlFile(QDomDocument &doc, const QString &peer, const QString &host, const Item &, const QString &path, const QString &title = QString::null);
+  __internal void               emitEvent(bool dirty);
 
-  internal static QStringList   streamItems(const Item &);
-  internal static QStringList   playSeekItems(const Item &);
-  internal static QStringList   seekItems(const Item &);
-  internal static QStringList   chapterItems(const Item &);
-  internal static QStringList   splitItemProps(const QString &);
-  internal static Item          makePlayItem(const Item &, const QStringList &);
+  __internal static QStringList streamItems(const Item &);
+  __internal static QStringList playSeekItems(const Item &);
+  __internal static QStringList seekItems(const Item &);
+  __internal static QStringList chapterItems(const Item &);
+  __internal static QStringList splitItemProps(const QString &);
+  __internal static Item        makePlayItem(const Item &, const QStringList &);
 
-  internal static QString       baseDir(const QString &);
-  internal static QString       parentDir(const QString &);
-  internal QString              toObjectID(const QString &path);
-  internal QString              fromObjectID(const QString &id);
+  __internal static QString     baseDir(const QString &);
+  __internal static QString     parentDir(const QString &);
+  __internal QString            toObjectID(const QString &path);
+  __internal QString            fromObjectID(const QString &id);
 
 public:
   static const char     * const contentDirectoryNS;
 
 private:
-  internal static const unsigned seekSec;
+  __internal static const unsigned seekSec;
 
   struct Data;
   Data                  * const d;

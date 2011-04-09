@@ -21,16 +21,16 @@
 #define LXICORE_SPLATFORM_H
 
 #if defined(Q_OS_UNIX) && defined(__GNUC__)
-# define internal               __attribute__((visibility("hidden")))
-# define pure                   __attribute__((pure))
+# define __internal             __attribute__((visibility("hidden")))
+# define __pure                 __attribute__((const))
 
 #elif defined(Q_OS_WIN) && defined(__GNUC__)
-# define internal
-# define pure                   __attribute__((pure))
+# define __internal
+# define __pure                 __attribute__((const))
 
 #else
-# define internal
-# define pure
+# define __internal
+# define __pure
 #endif
 
 #endif

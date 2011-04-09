@@ -69,8 +69,8 @@ protected:
   static void                   sendSearch(SsdpClientInterface *, const QString &st, unsigned mx = 5);
 
 private:
-  internal void                 addNode(const SHttpServer::Header &, const QString &);
-  internal void                 removeNode(const SHttpServer::Header &);
+  __internal void               addNode(const SHttpServer::Header &, const QString &);
+  __internal void               removeNode(const SHttpServer::Header &);
 
 public:
   static const QHostAddress     ssdpAddressIPv4;

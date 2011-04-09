@@ -62,7 +62,7 @@ public:
   static const char     * const dlnaDeviceNS;
 
 private:
-  internal static const char * const deviceType;
+  __internal static const char * const deviceType;
 
   struct Data;
   Data                  * const d;

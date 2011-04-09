@@ -88,11 +88,11 @@ public:
   static const unsigned         tvShowSeason;
 
 private:
-  internal static QDomNode      toXml(const SInterfaces::FormatProber::ProbeInfo &pi, QDomDocument &);
-  internal static void          fromXml(SInterfaces::FormatProber::ProbeInfo &pi, const QDomNode &);
+  __internal static QDomNode    toXml(const SInterfaces::FormatProber::ProbeInfo &pi, QDomDocument &);
+  __internal static void        fromXml(SInterfaces::FormatProber::ProbeInfo &pi, const QDomNode &);
 
-  internal void                 probe(const QString &);
-  internal void                 probeDataStreams(void);
+  __internal void               probe(const QString &);
+  __internal void               probeDataStreams(void);
 
 private:
   QSharedDataPointer<SInterfaces::FormatProber::ProbeInfo> pi;
