@@ -41,6 +41,10 @@ public:
   quint16                       serverPort(const QHostAddress &) const;
   const QString               & serverUdn(void) const;
 
+signals:
+  void                          busy(void);
+  void                          idle(void);
+
 public: // From HttpServerEngine
   virtual void                  closeSocket(QIODevice *, bool canReuse);
 

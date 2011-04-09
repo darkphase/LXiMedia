@@ -37,8 +37,12 @@ class SSandboxServer::Socket : public QLocalSocket
 {
 public:
   explicit                      Socket(SSandboxServer *parent);
+  virtual                       ~Socket();
 
   virtual void                  close(void);
+
+public:
+  bool                          closing;
 
 private:
   SSandboxServer        * const parent;
@@ -59,7 +63,7 @@ private:
 struct SSandboxServer::Private
 {
   Server                      * server;
-  int                           clients;
+  int                           sockets;
 };
 
 SSandboxServer::SSandboxServer(QObject *parent)
@@ -67,7 +71,7 @@ SSandboxServer::SSandboxServer(QObject *parent)
     p(new Private())
 {
   p->server = NULL;
-  p->clients = 0;
+  p->sockets = 0;
 }
 
 SSandboxServer::~SSandboxServer()
@@ -110,17 +114,27 @@ void SSandboxServer::close(void)
 
 void SSandboxServer::closeSocket(QIODevice *socket, bool)
 {
-  new SocketCloseRequest(socket);
-
-  if (--p->clients == 0)
-    emit idle();
+  if (!static_cast<Socket *>(socket)->closing)
+  {
+    static_cast<Socket *>(socket)->closing = true;
+    new SocketCloseRequest(socket);
+  }
 }
 
 
 SSandboxServer::Socket::Socket(SSandboxServer *parent)
   : QLocalSocket(),
+    closing(false),
     parent(parent)
 {
+  if (parent->p->sockets++ == 0)
+    emit parent->busy();
+}
+
+SSandboxServer::Socket::~Socket()
+{
+  if (--parent->p->sockets == 0)
+    emit parent->idle();
 }
 
 void SSandboxServer::Socket::close(void)
@@ -148,12 +162,7 @@ void SSandboxServer::Server::incomingConnection(quintptr socketDescriptor)
 {
   QLocalSocket * const socket = new Socket(parent);
   if (socket->setSocketDescriptor(socketDescriptor))
-  {
-    if (parent->p->clients++ == 0)
-      emit parent->busy();
-
     (new HttpServerRequest(parent))->start(socket);
-  }
   else
     delete socket;
 }

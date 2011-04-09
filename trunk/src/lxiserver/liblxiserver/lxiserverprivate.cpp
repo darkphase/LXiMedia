@@ -134,10 +134,10 @@ void HttpServerRequest::readyRead()
       SHttpEngine::RequestHeader request(data, parent);
       if (request.isValid())
       {
-        emit handleHttpRequest(request, socket);
-
         disconnect(socket, SIGNAL(readyRead()), this, SLOT(readyRead()));
         disconnect(socket, SIGNAL(readChannelFinished()), this, SLOT(deleteLater()));
+
+        emit handleHttpRequest(request, socket);
 
         socket = NULL;
       }
@@ -213,9 +213,10 @@ SandboxProcess::~SandboxProcess()
   if (process->state() != QProcess::NotRunning)
   {
     process->terminate();
+    if (!process->waitForFinished(250))
+      process->kill();
 
-    QTimer::singleShot(1000, process, SLOT(kill()));
-    QTimer::singleShot(2000, process, SLOT(deleteLater()));
+    QTimer::singleShot(1000, process, SLOT(deleteLater()));
   }
   else
     delete process;
@@ -279,18 +280,23 @@ SandboxSocketRequest::~SandboxSocketRequest()
 
 void SandboxSocketRequest::connected(void)
 {
-  disconnect(socket, SIGNAL(connected()), this, SLOT(connected()));
-  disconnect(socket, SIGNAL(error(QLocalSocket::LocalSocketError)), this, SLOT(failed()));
+  if (socket)
+  {
+    disconnect(socket, SIGNAL(connected()), this, SLOT(connected()));
+    disconnect(socket, SIGNAL(error(QLocalSocket::LocalSocketError)), this, SLOT(failed()));
 
-  emit connected(socket);
+    emit connected(socket);
+    socket = NULL;
+  }
 
-  socket = NULL;
   deleteLater();
 }
 
 void SandboxSocketRequest::failed(void)
 {
-  delete socket;
+  qWarning() << "SandboxSocketRequest failed" << socket->errorString();
+
+  socket->deleteLater();
   socket = NULL;
 
   QMetaObject::invokeMethod(this, "connected", Qt::QueuedConnection);

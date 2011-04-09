@@ -4,7 +4,7 @@ QT += network \
     xml
 LXIMEDIA_DIR = ../..
 DESTDIR = $${LXIMEDIA_DIR}/bin
-TARGET = liblxiservertest
+TARGET = lxiservertest
 INCLUDEPATH += $${LXIMEDIA_DIR}/src/
 DEPENDPATH += $${LXIMEDIA_DIR}/src/
 include($${LXIMEDIA_DIR}/include/config.pri)
@@ -37,7 +37,7 @@ LIBS += -lbfd \
 
 # Run tests after link
 unix:QMAKE_POST_LINK = $(TARGET) -silent
-#win32:QMAKE_POST_LINK = $${DESTDIR}/$${TARGET} -silent
+win32:QMAKE_POST_LINK = $${DESTDIR}/$${TARGET} -silent
 
 # Platform specific
 unix { 

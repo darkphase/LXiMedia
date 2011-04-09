@@ -104,11 +104,7 @@ void SSandboxClient::closeRequest(QIODevice *socket, bool canReuse)
 void SSandboxClient::openSockets(void)
 {
   while (!p->requests.isEmpty())
-  {
-    SandboxSocketRequest * const socketRequest = new SandboxSocketRequest(this);
-    connect(socketRequest, SIGNAL(connected(QIODevice *)), SLOT(socketOpened(QIODevice *)));
-    connect(socketRequest, SIGNAL(connected(QIODevice *)), p->requests.takeFirst(), SLOT(connected(QIODevice *)));
-  }
+    connect(new SandboxSocketRequest(this), SIGNAL(connected(QIODevice *)), p->requests.takeFirst(), SLOT(connected(QIODevice *)));
 }
 
 void SSandboxClient::stop(void)

@@ -42,6 +42,6 @@ private slots:
 private:
   SApplication                * mediaApp;
   LXiServer::SSandboxClient   * sandboxClient;
-  static const int              numResponses = 100;
+  static const int              numResponses = 50;
   QAtomicInt                    responseCount;
 };

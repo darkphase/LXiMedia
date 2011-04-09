@@ -5,7 +5,7 @@ QT += network \
     xml
 LXIMEDIA_DIR = ../..
 DESTDIR = $${LXIMEDIA_DIR}/bin
-TARGET = liblximediacentertest
+TARGET = lximediacentertest
 INCLUDEPATH += $${LXIMEDIA_DIR}/src/
 DEPENDPATH += $${LXIMEDIA_DIR}/src/
 include($${LXIMEDIA_DIR}/include/config.pri)

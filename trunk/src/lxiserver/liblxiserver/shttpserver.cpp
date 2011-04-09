@@ -29,8 +29,12 @@ class SHttpServer::Socket : public QTcpSocket
 {
 public:
   explicit                      Socket(SHttpServer *parent);
+  virtual                       ~Socket();
 
   virtual void                  close(void);
+
+public:
+  bool                          closing;
 
 private:
   SHttpServer           * const parent;
@@ -54,6 +58,7 @@ struct SHttpServer::Private
   quint16                       port;
   QString                       serverUdn;
   QMultiMap<QString, Server *>  servers;
+  int                           sockets;
 };
 
 
@@ -62,6 +67,7 @@ SHttpServer::SHttpServer(const QString &protocol, const QUuid &serverUuid, QObje
     p(new Private())
 {
   p->serverUdn = QString("uuid:" + serverUuid.toString()).replace("{", "").replace("}", "");
+  p->sockets = 0;
 }
 
 SHttpServer::~SHttpServer()
@@ -100,14 +106,27 @@ const QString & SHttpServer::serverUdn(void) const
 
 void SHttpServer::closeSocket(QIODevice *socket, bool)
 {
-  new SocketCloseRequest(socket);
+  if (!static_cast<Socket *>(socket)->closing)
+  {
+    static_cast<Socket *>(socket)->closing = true;
+    new SocketCloseRequest(socket);
+  }
 }
 
 
 SHttpServer::Socket::Socket(SHttpServer *parent)
   : QTcpSocket(),
+    closing(false),
     parent(parent)
 {
+  if (parent->p->sockets++ == 0)
+    emit parent->busy();
+}
+
+SHttpServer::Socket::~Socket()
+{
+  if (--parent->p->sockets == 0)
+    emit parent->idle();
 }
 
 void SHttpServer::Socket::close(void)
