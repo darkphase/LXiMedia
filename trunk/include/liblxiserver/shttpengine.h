@@ -82,7 +82,7 @@ public:
     inline                      operator QByteArray() const                     { return toByteArray(); }
 
   public:
-    const SHttpEngine    * const httpEngine;
+    const SHttpEngine         * httpEngine;
 
   protected:
     QList<QByteArray>           head;
@@ -211,7 +211,7 @@ public:
 
 
 class LXISERVER_PUBLIC SHttpServerEngine : public QObject,
-                                     public SHttpEngine
+                                           public SHttpEngine
 {
 Q_OBJECT
 public:
@@ -226,14 +226,13 @@ public:
   explicit                      SHttpServerEngine(const QString &protocol, QObject * = NULL);
   virtual                       ~SHttpServerEngine();
 
-  void                          setThreadPool(QThreadPool *);
-  QThreadPool                 * threadPool(void);
-
   void                          registerCallback(const QString &path, Callback *);
   void                          unregisterCallback(Callback *);
 
   virtual const char          * senderType(void) const;
   virtual const QString       & senderId(void) const;
+
+  virtual void                  closeSocket(QIODevice *, bool canReuse) = 0;
 
 public:
   static QByteArray             readContent(const RequestHeader &, QIODevice *);
@@ -241,22 +240,17 @@ public:
   static SocketOp               sendResponse(const RequestHeader &, QIODevice *, Status, const QObject * = NULL);
   static SocketOp               sendRedirect(const RequestHeader &, QIODevice *, const QString &);
 
-protected:
-  QReadWriteLock              * lock(void) const;
-  bool                          handleConnection(quintptr);
-
-  virtual QIODevice           * openSocket(quintptr) = 0;
-  virtual void                  closeSocket(QIODevice *, bool canReuse) = 0;
+private slots:
+  __internal void               handleHttpRequest(const SHttpEngine::RequestHeader &, QIODevice *);
 
 private:
-  class SocketHandler;
   struct Private;
   Private               * const p;
 };
 
 
 class LXISERVER_PUBLIC SHttpClientEngine : public QObject,
-                                     public SHttpEngine
+                                           public SHttpEngine
 {
 Q_OBJECT
 public:
@@ -275,8 +269,11 @@ signals:
   void                          response(const SHttpEngine::ResponseMessage &);
   void                          opened(QIODevice *);
 
-protected:
+protected: // From QObject
   virtual void                  customEvent(QEvent *);
+
+protected slots:
+  virtual void                  handleResponse(const SHttpEngine::ResponseMessage &);
 
 private:
   class SocketHandler;

@@ -93,9 +93,6 @@ protected:
 protected slots:
   virtual void                  cleanStreams(void);
 
-protected: // From QObject
-  virtual void                  customEvent(QEvent *);
-
 protected: // From SHttpServer::Callback
   virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestHeader &, QIODevice *);
 

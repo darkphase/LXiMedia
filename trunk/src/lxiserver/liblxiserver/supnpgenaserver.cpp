@@ -18,6 +18,7 @@
  ***************************************************************************/
 
 #include "supnpgenaserver.h"
+#include "shttpclient.h"
 #include "supnpbase.h"
 
 namespace LXiServer {
@@ -25,7 +26,7 @@ namespace LXiServer {
 const char  * const SUPnPGenaServer::eventNS       = "urn:schemas-upnp-org:event-1-0";
 const QEvent::Type  SUPnPGenaServer::scheduleEventType = QEvent::Type(QEvent::registerEventType());
 
-class SUPnPGenaServer::EventSession : public QRunnable
+class SUPnPGenaServer::EventSession : public SHttpClient
 {
 public:
                                 EventSession(SUPnPGenaServer *, const QStringList &eventUrls, int timeout = 0);
@@ -36,8 +37,10 @@ public:
   bool                          isActive(void) const;
   inline quint32                currentEventKey(void) const                     { return eventKey; }
 
+  void                          sendEvent(void);
+
 protected:
-  virtual void                  run(void);
+  virtual void                  handleResponse(const SHttpEngine::ResponseMessage &);
 
 public:
   static const unsigned         maxInstances;
@@ -50,21 +53,19 @@ public:
   const QString                 sid;
   const int                     timeout;
   const QStringList             eventUrls;
-  QAtomicInt                    queued;
+  int                           queued;
 
 private:
-  SUPnPGenaServer              * const parent;
+  SUPnPGenaServer             * const parent;
   quint32                       eventKey;
   QDateTime                     lastSubscribe;
+  QList<SHttpServer::RequestMessage> pendingRequests;
 };
 
 struct SUPnPGenaServer::Data
 {
-  inline                        Data(void) : lock(QReadWriteLock::Recursive) { }
-
-  QReadWriteLock                lock;
   QString                       path;
-  SHttpServer                  * httpServer;
+  SHttpServer                 * httpServer;
 
   QUuid                         sidBase;
   QAtomicInt                    sidCounter;
@@ -102,8 +103,6 @@ QString SUPnPGenaServer::path(void) const
 
 void SUPnPGenaServer::initialize(SHttpServer *httpServer)
 {
-  QWriteLocker l(&d->lock);
-
   d->httpServer = httpServer;
 
   httpServer->registerCallback(d->path, this);
@@ -111,11 +110,6 @@ void SUPnPGenaServer::initialize(SHttpServer *httpServer)
 
 void SUPnPGenaServer::close(void)
 {
-  if (d->httpServer)
-    d->httpServer->threadPool()->waitForDone();
-
-  QWriteLocker l(&d->lock);
-
   for (QMap<QString, EventSession *>::Iterator i = d->eventSessions.begin();
        i != d->eventSessions.end();
        i = d->eventSessions.erase(i))
@@ -134,8 +128,6 @@ void SUPnPGenaServer::emitEvent(const QDomDocument &doc)
 {
   const QByteArray content = QByteArray(SUPnPBase::xmlDeclaration) + '\n' + doc.toByteArray();
 
-  QWriteLocker l(&d->lock);
-
   d->eventMessage = content;
 
   QCoreApplication::postEvent(this, new QEvent(scheduleEventType));
@@ -153,20 +145,15 @@ void SUPnPGenaServer::timerEvent(QTimerEvent *e)
 {
   if (e->timerId() == d->cleanTimer)
   {
-    if (d->lock.tryLockForWrite(0))
+    // Cleanup old sessions.
+    for (QMap<QString, EventSession *>::Iterator i=d->eventSessions.begin(); i!=d->eventSessions.end(); )
+    if (!(*i)->isActive() && ((*i)->queued == 0))
     {
-      // Cleanup old sessions.
-      for (QMap<QString, EventSession *>::Iterator i=d->eventSessions.begin(); i!=d->eventSessions.end(); )
-      if (!(*i)->isActive() && (*i)->queued.testAndSetRelaxed(0, -1))
-      {
-        delete *i;
-        i = d->eventSessions.erase(i);
-      }
-      else
-        i++;
-
-      d->lock.unlock();
+      delete *i;
+      i = d->eventSessions.erase(i);
     }
+    else
+      i++;
   }
   else
     QObject::timerEvent(e);
@@ -178,8 +165,6 @@ SHttpServer::SocketOp SUPnPGenaServer::handleHttpRequest(const SHttpServer::Requ
   {
     if (request.method() == "SUBSCRIBE")
     {
-      QWriteLocker l(&d->lock);
-
       QMap<QString, EventSession *>::Iterator session = d->eventSessions.end();
       if (request.hasField("SID"))
       { // Update subscription
@@ -220,12 +205,9 @@ SHttpServer::SocketOp SUPnPGenaServer::handleHttpRequest(const SHttpServer::Requ
 
         if ((*session)->currentEventKey() == 0) // Need to send initial event?
         {
-          EventSession * const s = *session;
-
-          l.unlock();
-
           socket->waitForBytesWritten(SUPnPBase::responseTimeout * 1000);
-          d->httpServer->threadPool()->start(s, 1);
+
+          (*session)->sendEvent();
         }
 
         return SHttpServer::SocketOp_Close;
@@ -233,8 +215,6 @@ SHttpServer::SocketOp SUPnPGenaServer::handleHttpRequest(const SHttpServer::Requ
     }
     else if (request.method() == "UNSUBSCRIBE")
     {
-      QWriteLocker l(&d->lock);
-
       if (!request.hasField("CALLBACK") && !request.hasField("NT"))
       {
         QMap<QString, EventSession *>::Iterator session = d->eventSessions.find(request.field("SID").trimmed());
@@ -256,11 +236,12 @@ SHttpServer::SocketOp SUPnPGenaServer::handleHttpRequest(const SHttpServer::Requ
 
 void SUPnPGenaServer::emitEvents(void)
 {
-  QWriteLocker l(&d->lock);
-
   foreach (EventSession *session, d->eventSessions)
-  if (session->queued.testAndSetRelaxed(0, 1))
-    d->httpServer->threadPool()->start(session, -1); // Lower priority than handling incoming requests
+  if (session->queued == 0)
+  {
+    session->queued = 1;
+    session->sendEvent();
+  }
 }
 
 QString SUPnPGenaServer::makeSid(void)
@@ -282,15 +263,15 @@ const int       SUPnPGenaServer::EventSession::maxTimeout = 1800;
 const int       SUPnPGenaServer::EventSession::defaultTimeout = 180;
 
 SUPnPGenaServer::EventSession::EventSession(SUPnPGenaServer *parent, const QStringList &eventUrls, int timeout)
-    : sid(parent->makeSid()),
-      timeout(qBound(minTimeout, (timeout > 0) ? timeout : defaultTimeout, maxTimeout)),
-      eventUrls(eventUrls),
-      queued(0),
-      parent(parent),
-      eventKey(0),
-      lastSubscribe(QDateTime::currentDateTime())
+  : SHttpClient(parent),
+    sid(parent->makeSid()),
+    timeout(qBound(minTimeout, (timeout > 0) ? timeout : defaultTimeout, maxTimeout)),
+    eventUrls(eventUrls),
+    queued(0),
+    parent(parent),
+    eventKey(0),
+    lastSubscribe(QDateTime::currentDateTime())
 {
-  QRunnable::setAutoDelete(false);
 }
 
 SUPnPGenaServer::EventSession::~EventSession()
@@ -299,104 +280,60 @@ SUPnPGenaServer::EventSession::~EventSession()
 
 void SUPnPGenaServer::EventSession::resubscribe(void)
 {
-  QWriteLocker l(&parent->d->lock);
-
   lastSubscribe = QDateTime::currentDateTime();
 }
 
 void SUPnPGenaServer::EventSession::unsubscribe(void)
 {
-  QWriteLocker l(&parent->d->lock);
-
   lastSubscribe = QDateTime();
 }
 
 bool SUPnPGenaServer::EventSession::isActive(void) const
 {
-  QWriteLocker l(&parent->d->lock);
-
   if (lastSubscribe.isValid())
     return lastSubscribe.secsTo(QDateTime::currentDateTime()) < (timeout + 30);
 
   return false;
 }
 
-void SUPnPGenaServer::EventSession::run(void)
+void SUPnPGenaServer::EventSession::sendEvent(void)
 {
-  QWriteLocker l(&parent->d->lock);
-
   if (!lastSubscribe.isValid())
     return;
 
   // Build the message
   const QByteArray content = parent->d->eventMessage;
-  SHttpServer::RequestHeader header(NULL);
-  header.setContentType(SUPnPBase::xmlContentType);
-  header.setContentLength(content.length());
-  header.setField("NT", "upnp:event");
-  header.setField("NTS", "upnp:propchange");
-  header.setField("SID", sid);
-  header.setField("SEQ", QString::number(eventKey));
+  SHttpServer::RequestMessage request(NULL);
+  request.setContentType(SUPnPBase::xmlContentType);
+  request.setContentLength(content.length());
+  request.setField("NT", "upnp:event");
+  request.setField("NTS", "upnp:propchange");
+  request.setField("SID", sid);
+  request.setField("SEQ", QString::number(eventKey));
+
+  request.setContent(content);
 
   // Make sure the eventKey does not overflow to 0.
   if (++eventKey == 0) eventKey = 1;
 
-  l.unlock();
-
-  static const int maxRequestTime = SUPnPBase::responseTimeout * 1000;
-  QTime timer; timer.start();
-
   // Try the eventUrls until one succeeds
   foreach (const QUrl url, eventUrls)
   {
-    header.setRequest("NOTIFY", url.path().toUtf8());
-    header.setHost(url.host() + ":" + QString::number(url.port(80)));
+    request.setRequest("NOTIFY", url.path().toUtf8());
+    request.setHost(url.host() + ":" + QString::number(url.port(80)));
 
-    QTcpSocket socket;
-    socket.connectToHost(url.host(), url.port(80));
-    if (socket.waitForConnected(qMax(maxRequestTime - timer.elapsed(), 10)))
-    {
-      socket.write(header + content);
-      if (socket.waitForBytesWritten(qMax(maxRequestTime - timer.elapsed(), 10)))
-      {
-        QByteArray response;
-
-        while (socket.waitForReadyRead(qMax(maxRequestTime - timer.elapsed(), 10)))
-        while (socket.canReadLine())
-        {
-          const QByteArray line = socket.readLine();
-
-          if (line.trimmed().length() > 0)
-          {
-            response += line;
-          }
-          else // Header complete
-          {
-            response += line;
-            socket.close();
-
-            const SHttpServer::ResponseHeader responseHeader(response, parent->d->httpServer);
-            if (responseHeader.status() == SHttpServer::Status_Ok)
-            {
-              queued.deref();
-              return; // Event delivered.
-            }
-            else
-            {
-              qDebug() << "SUPnPGenaServer::EventSession: got error response:" << response;
-
-              break; // Failed, try next URL.
-            }
-          }
-        }
-      }
-    }
-
-    if (timer.elapsed() > maxRequestTime)
-      break;
+    pendingRequests.append(request);
   }
 
-  queued.deref();
+  sendRequest(pendingRequests.takeFirst());
+}
+
+void SUPnPGenaServer::EventSession::handleResponse(const SHttpEngine::ResponseMessage &response)
+{
+  if ((response.status() != SHttpEngine::Status_Ok) && !pendingRequests.isEmpty())
+    sendRequest(pendingRequests.takeFirst());
+  else
+    queued = 0;
 }
 
 } // End of namespace

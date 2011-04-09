@@ -113,30 +113,9 @@ bool SHttpEngine::SocketPtr::isConnected(void) const
 }
 
 
-class SHttpServerEngine::SocketHandler : public QRunnable
-{
-public:
-                                SocketHandler(SHttpServerEngine *, quintptr);
-
-protected:
-  virtual void                  run();
-
-private:
-  SHttpServerEngine      * const parent;
-  const quintptr                socketDescriptor;
-  QTime                         timer;
-  QByteArray                    response;
-};
-
 struct SHttpServerEngine::Private
 {
-  inline Private(void) : lock(QReadWriteLock::Recursive) { }
-
-  QReadWriteLock                lock;
   QString                       senderId;
-  QThreadPool                 * threadPool;
-  static const int              maxPendingConnections = 1024;
-  QAtomicInt                    numPendingConnections;
   QMap<QString, Callback *>     callbacks;
 };
 
@@ -158,40 +137,21 @@ SHttpServerEngine::SHttpServerEngine(const QString &protocol, QObject *parent)
     p->senderId += " " + protocol;
 
   p->senderId += " " + qApp->applicationName() + "/" + qApp->applicationVersion();
-
-  p->threadPool = QThreadPool::globalInstance();
-  p->numPendingConnections = 0;
 }
 
 SHttpServerEngine::~SHttpServerEngine()
 {
-  p->threadPool->waitForDone();
-
   delete p;
   *const_cast<Private **>(&p) = NULL;
 }
 
-void SHttpServerEngine::setThreadPool(QThreadPool *threadPool)
-{
-  p->threadPool = threadPool ? threadPool : QThreadPool::globalInstance();
-}
-
-QThreadPool * SHttpServerEngine::threadPool(void)
-{
-  return p->threadPool;
-}
-
 void SHttpServerEngine::registerCallback(const QString &path, Callback *callback)
 {
-  QWriteLocker l(&p->lock);
-
   p->callbacks.insert(path, callback);
 }
 
 void SHttpServerEngine::unregisterCallback(Callback *callback)
 {
-  QWriteLocker l(&p->lock);
-
   for (QMap<QString, Callback *>::Iterator i=p->callbacks.begin(); i!=p->callbacks.end(); )
   if (i.value() == callback)
     i = p->callbacks.erase(i);
@@ -262,85 +222,28 @@ SHttpServerEngine::SocketOp SHttpServerEngine::sendRedirect(const RequestHeader 
   return SocketOp_Close;
 }
 
-QReadWriteLock * SHttpServerEngine::lock(void) const
+void SHttpServerEngine::handleHttpRequest(const SHttpEngine::RequestHeader &request, QIODevice *socket)
 {
-  return &p->lock;
-}
+  const QString path = QUrl(request.path()).path();
 
-bool SHttpServerEngine::handleConnection(quintptr socketDescriptor)
-{
-  if (p->numPendingConnections < p->maxPendingConnections)
+  QString dir = path.left(path.lastIndexOf('/') + 1);
+  QMap<QString, Callback *>::ConstIterator callback = p->callbacks.find(dir);
+  while ((callback == p->callbacks.end()) && !dir.isEmpty())
   {
-    p->threadPool->start(new SocketHandler(this, socketDescriptor));
-    return true;
+    dir = dir.left(dir.left(dir.length() - 1).lastIndexOf('/') + 1);
+    callback = p->callbacks.find(dir);
+  }
+
+  if ((callback != p->callbacks.end()) && dir.startsWith(callback.key()))
+  {
+    if ((*callback)->handleHttpRequest(request, socket) == SocketOp_LeaveOpen)
+      socket = NULL; // The callback took over the socket, it is responsible for closing and deleteing it.
   }
   else
-    return false;
-}
-
-
-SHttpServerEngine::SocketHandler::SocketHandler(SHttpServerEngine *parent, quintptr socketDescriptor)
-  : parent(parent),
-    socketDescriptor(socketDescriptor)
-{
-  parent->p->numPendingConnections.ref();
-  timer.start();
-}
-
-void SHttpServerEngine::SocketHandler::run()
-{
-  parent->p->numPendingConnections.deref();
-
-  QIODevice *socket = parent->openSocket(socketDescriptor);
-  if (socket)
-  while (socket->canReadLine() || socket->waitForReadyRead(qMax(maxTTL - qAbs(timer.elapsed()), 0)))
-  {
-    const QByteArray line = socket->readLine();
-
-    if (line.trimmed().length() > 0)
-    {
-      response += line;
-    }
-    else // Header complete
-    {
-      response += line;
-
-      const RequestHeader request(response, parent);
-      if (request.isValid())
-      {
-        QReadLocker l(&parent->p->lock);
-
-        const QString path = QUrl(request.path()).path();
-
-        QString dir = path.left(path.lastIndexOf('/') + 1);
-        QMap<QString, Callback *>::ConstIterator callback = parent->p->callbacks.find(dir);
-        while ((callback == parent->p->callbacks.end()) && !dir.isEmpty())
-        {
-          dir = dir.left(dir.left(dir.length() - 1).lastIndexOf('/') + 1);
-          callback = parent->p->callbacks.find(dir);
-        }
-
-        if ((callback != parent->p->callbacks.end()) && dir.startsWith(callback.key()))
-        {
-          if ((*callback)->handleHttpRequest(request, socket) == SocketOp_LeaveOpen)
-            socket = NULL; // The callback took over the socket, it is responsible for closing and deleteing it.
-        }
-        else
-          socket->write(ResponseHeader(request, Status_NotFound));
-      }
-      else
-        socket->write(ResponseHeader(request, Status_BadRequest));
-
-      // Finished.
-      if (socket)
-        parent->closeSocket(socket, false);
-
-      return;
-    }
-  }
+    socket->write(ResponseHeader(request, Status_NotFound));
 
   if (socket)
-    parent->closeSocket(socket, false);
+    closeSocket(socket, false);
 }
 
 
@@ -417,6 +320,11 @@ void SHttpClientEngine::customEvent(QEvent *e)
   }
   else
     QObject::customEvent(e);
+}
+
+void SHttpClientEngine::handleResponse(const SHttpEngine::ResponseMessage &message)
+{
+  emit response(message);
 }
 
 } // End of namespace

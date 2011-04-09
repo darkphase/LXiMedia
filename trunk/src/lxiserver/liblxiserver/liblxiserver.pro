@@ -21,6 +21,7 @@ include($${LXIMEDIA_DIR}/include/liblxicore/linklxicore.pri)
 # Files
 HEADERS += ../../../include/LXiServer \
  ../../../include/liblxiserver/export.h \
+ ../../../include/liblxiserver/shttpclient.h \
  ../../../include/liblxiserver/shttpengine.h \
  ../../../include/liblxiserver/shttpproxy.h \
  ../../../include/liblxiserver/shttpserver.h \
@@ -34,7 +35,8 @@ HEADERS += ../../../include/LXiServer \
  ../../../include/liblxiserver/supnpgenaserver.h \
  ../../../include/liblxiserver/supnpmediaserver.h
 
-SOURCES += shttpengine.cpp \
+SOURCES += shttpclient.cpp \
+ shttpengine.cpp \
  shttpengine.header.cpp \
  shttpproxy.cpp \
  shttpserver.cpp \

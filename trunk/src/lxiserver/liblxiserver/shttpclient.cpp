@@ -17,40 +17,39 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXISERVER_SHTTPSERVER_H
-#define LXISERVER_SHTTPSERVER_H
-
-#include <QtCore>
+#include "shttpclient.h"
+#include "lxiserverprivate.h"
 #include <QtNetwork>
-#include <LXiCore>
-#include "shttpengine.h"
-#include "export.h"
 
 namespace LXiServer {
 
-class LXISERVER_PUBLIC SHttpServer : public SHttpServerEngine
+struct SHttpClient::Private
 {
-Q_OBJECT
-public:
-                                SHttpServer(const QString &protocol, const QUuid &serverUuid, QObject * = NULL);
-  virtual                       ~SHttpServer();
-
-  void                          initialize(const QList<QHostAddress> &addresses, quint16 port = 0);
-  void                          close(void);
-
-  quint16                       serverPort(const QHostAddress &) const;
-  const QString               & serverUdn(void) const;
-
-public: // From HttpServerEngine
-  virtual void                  closeSocket(QIODevice *, bool canReuse);
-
-private:
-  class Socket;
-  class Server;
-  struct Private;
-  Private               * const p;
 };
 
-} // End of namespace
+SHttpClient::SHttpClient(QObject *parent)
+  : SHttpClientEngine(parent),
+    p(new Private())
+{
+}
 
-#endif
+SHttpClient::~SHttpClient()
+{
+  delete p;
+  *const_cast<Private **>(&p) = NULL;
+}
+
+void SHttpClient::openRequest(const RequestMessage &message, QObject *receiver, const char *slot)
+{
+  const QStringList host = message.host().split(':');
+
+  if (!host.isEmpty())
+    connect(new HttpSocketRequest(host.first(), (host.count() > 1) ? host[1].toUShort() : 80), SIGNAL(connected(QIODevice *)), receiver, slot);
+}
+
+void SHttpClient::closeRequest(QIODevice *socket, bool canReuse)
+{
+  new SocketCloseRequest(socket);
+}
+
+} // End of namespace

@@ -92,36 +92,26 @@ void SUPnPContentDirectory::close(void)
 
 void SUPnPContentDirectory::setProtocols(ProtocolType type, const ProtocolList &protocols)
 {
-  QWriteLocker l(lock());
-
   d->protocols[type] = protocols;
 }
 
 void SUPnPContentDirectory::setQueryItems(const QString &peer, const QMap<QString, QString> &queryItems)
 {
-  QWriteLocker l(lock());
-
   d->queryItems[peer] = queryItems;
 }
 
 QMap<QString, QString> SUPnPContentDirectory::activeClients(void) const
 {
-  QReadLocker l(lock());
-
   return d->activeClients;
 }
 
 void SUPnPContentDirectory::registerCallback(const QString &path, Callback *callback)
 {
-  QWriteLocker l(lock());
-
   d->callbacks.insert(path, callback);
 }
 
 void SUPnPContentDirectory::unregisterCallback(Callback *callback)
 {
-  QWriteLocker l(lock());
-
   for (QMap<QString, Callback *>::Iterator i=d->callbacks.begin(); i!=d->callbacks.end(); )
   if (i.value() == callback)
     i = d->callbacks.erase(i);
@@ -236,8 +226,6 @@ void SUPnPContentDirectory::handleBrowse(const QDomElement &elem, QDomDocument &
   const QString host = request.host();
 
   // Find requested directory
-  QWriteLocker l(lock());
-
   d->activeClients[peer] = request.field("User-Agent");
 
   QDomElement browseResponse = createElementNS(doc, elem, "BrowseResponse");
@@ -721,8 +709,6 @@ QString SUPnPContentDirectory::toObjectID(const QString &path)
   else
   {
 #ifdef USE_SMALL_OBJECTIDS
-    QWriteLocker l(lock());
-
     QHash<QString, qint32>::ConstIterator i = d->objectIdHash.find(path);
     if (i != d->objectIdHash.end())
       return QString::number(*i);
@@ -752,8 +738,6 @@ QString SUPnPContentDirectory::fromObjectID(const QString &idStr)
   else
   {
 #ifdef USE_SMALL_OBJECTIDS
-    QReadLocker l(lock());
-
     const qint32 id = idStr.toInt();
     if (id < d->objectIdList.count())
       return d->objectIdList[id];

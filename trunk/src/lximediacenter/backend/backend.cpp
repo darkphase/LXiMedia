@@ -141,8 +141,6 @@ void Backend::start(void)
   htmlParser.setField("TR_CENTER",              tr("Center"));
   htmlParser.setField("TR_LOGO",                tr("<span class=\"logoa\">LX</span><span class=\"logob\">i</span><span class=\"logoc\">Media</span><span class=\"logoa\">Center</span>"));
 
-  QWriteLocker wl(&lock);
-
   // A minimal general menu
   QList<QPair<QString, QString> > generalMenu;
   generalMenu += QPair<QString, QString>(tr("Main"), "/");
@@ -150,12 +148,8 @@ void Backend::start(void)
   generalMenu += QPair<QString, QString>(tr("About"),  "/about.html");
   submenuItems[tr("General")] = generalMenu;
 
-  wl.unlock();
-
   // This call may take a while if the database needs to be updated ...
   masterImdbClient = new ImdbClient(this);
-
-  wl.relock();
 
   // The full general menu
   generalMenu.clear();
@@ -165,20 +159,13 @@ void Backend::start(void)
   generalMenu += QPair<QString, QString>(tr("About"),  "/about.html");
   submenuItems[tr("General")] = generalMenu;
 
-  // Load plugins
-  wl.unlock();
-
   backendServers = BackendServer::create(this);
   foreach (BackendServer *server, backendServers)
   {
     server->initialize(this);
 
-    wl.relock();
-
     submenuItems[server->pluginName()] +=
         QPair<QString, QString>(server->serverName(), server->serverPath());
-
-    wl.unlock();
   }
 
   // Setup SSDP server
@@ -297,21 +284,17 @@ Backend::SearchCacheEntry Backend::search(const QString &query) const
   const QString queryText = query.simplified();
   const QStringList queryRaw = SStringParser::toRawName(queryText.split(' '));
 
-  QReadLocker rl(&lock);
-
   // Look for a cache entry
   QMap<QString, SearchCacheEntry>::ConstIterator i = searchCache.find(queryText);
   if (i != searchCache.end())
   if (i->update.elapsed() < 60000)
     return *i;
 
-  rl.unlock();
-
   QTime timer;
   timer.start();
 
   // Start parallel searches
-  class Query : public QRunnable
+  /*class Query : public QRunnable
   {
   public:
     inline Query(const BackendServer *backendServer, const QStringList &query)
@@ -368,8 +351,6 @@ Backend::SearchCacheEntry Backend::search(const QString &query) const
 
   entry.duration = timer.elapsed();
 
-  QWriteLocker wl(&lock);
-
   while (searchCache.count() > 64)
     searchCache.erase(searchCache.begin());
 
@@ -383,7 +364,8 @@ Backend::SearchCacheEntry Backend::search(const QString &query) const
   else
     i++;
 
-  return entry;
+  return entry;*/
+  return SearchCacheEntry();
 }
 
 void Backend::customEvent(QEvent *e)
@@ -642,8 +624,6 @@ QByteArray Backend::parseHtmlContent(const QUrl &url, const QByteArray &content,
   localParser.setField("HEAD", head);
 
   // Build menus
-  QReadLocker rl(&lock);
-
   QString pluginPath = url.path(), pagePath;
   const int s2 = pluginPath.indexOf('/', 1);
   if (s2 > 1)
@@ -694,8 +674,6 @@ QByteArray Backend::parseHtmlContent(const QUrl &url, const QByteArray &content,
     localParser.appendField("HEAD_MENUITEMS", localParser.parse(selected ? htmlMenuItemSel : htmlMenuItem));
   }
 
-  rl.unlock();
-
   localParser.setField("CONTENT", content);
 
   return localParser.parse(htmlIndex);
@@ -723,8 +701,6 @@ ImdbClient * Backend::imdbClient(void)
 
 SSandboxClient * Backend::createSandbox(SSandboxClient::Mode mode)
 {
-  QWriteLocker l(&lock);
-
   QMap<SSandboxClient::Mode, QList<SSandboxClient *> >::Iterator i = sandboxClients.find(mode);
   if ((i == sandboxClients.end()) || i->isEmpty())
     return new SSandboxClient(sandboxApplication, mode);
@@ -734,8 +710,6 @@ SSandboxClient * Backend::createSandbox(SSandboxClient::Mode mode)
 
 void Backend::recycleSandbox(SSandboxClient *sandboxClient)
 {
-  QWriteLocker l(&lock);
-
   sandboxClients[sandboxClient->mode()].append(sandboxClient);
 }
 

@@ -67,18 +67,14 @@ void SUPnPConnectionManager::close(void)
 
 void SUPnPConnectionManager::setSourceProtocols(const ProtocolList &sourceProtocols)
 {
-  QWriteLocker l(lock());
-    d->sourceProtocols = sourceProtocols;
-  l.unlock();
+  d->sourceProtocols = sourceProtocols;
 
   emitEvent();
 }
 
 void SUPnPConnectionManager::setSinkProtocols(const ProtocolList &sinkProtocols)
 {
-  QWriteLocker l(lock());
-    d->sinkProtocols = sinkProtocols;
-  l.unlock();
+  d->sinkProtocols = sinkProtocols;
 
   emitEvent();
 }
@@ -107,8 +103,6 @@ void SUPnPConnectionManager::emitEvent(void)
 
 QString SUPnPConnectionManager::listSourceProtocols(void) const
 {
-  QReadLocker l(lock());
-
   QString result;
   foreach (const Protocol &protocol, d->sourceProtocols)
     result += "," + protocol.toString(true);
@@ -118,8 +112,6 @@ QString SUPnPConnectionManager::listSourceProtocols(void) const
 
 QString SUPnPConnectionManager::listSinkProtocols(void) const
 {
-  QReadLocker l(lock());
-
   QString result;
   foreach (const Protocol &protocol, d->sinkProtocols)
     result += "," + protocol.toString(true);

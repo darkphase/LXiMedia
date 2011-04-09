@@ -25,7 +25,6 @@ namespace MediaPlayerBackend {
 Playlist::Playlist(MediaDatabase *mediaDatabase, QObject *parent)
   : QObject(parent),
     mediaDatabase(mediaDatabase),
-    mutex(QMutex::Recursive),
     played(0)
 {
   // Seed the random number generator.
@@ -38,15 +37,11 @@ Playlist::~Playlist()
 
 void Playlist::append(MediaDatabase::UniqueID uid)
 {
-  QMutexLocker l(&mutex);
-
   list.append(Entry(uid));
 }
 
 void Playlist::remove(MediaDatabase::UniqueID uid)
 {
-  QMutexLocker l(&mutex);
-
   for (QVector<Entry>::Iterator i=list.begin(); i!=list.end(); )
   if (i->uid == uid)
   {
@@ -61,30 +56,22 @@ void Playlist::remove(MediaDatabase::UniqueID uid)
 
 void Playlist::clear(void)
 {
-  QMutexLocker l(&mutex);
-
   list.clear();
   played = 0;
 }
 
 int Playlist::count(void) const
 {
-  QMutexLocker l(&mutex);
-
   return list.count();
 }
 
 MediaDatabase::UniqueID Playlist::checkout(void)
 {
-  QMutexLocker ml(&mutex);
-
   return random();
 }
 
 QList<MediaDatabase::UniqueID> Playlist::next(void)
 {
-  QMutexLocker ml(&mutex);
-
   QList<MediaDatabase::UniqueID> result;
 
   for (int i=0, n=list.count(); i<n; i++)
@@ -115,8 +102,6 @@ MediaDatabase::UniqueID Playlist::random(void)
 
 QByteArray Playlist::serialize(void) const
 {
-  QMutexLocker l(&mutex);
-
   QByteArray data = "#EXTM3U\n\n";
 
   for (int i=0, n=list.count(); i<n; i++)
@@ -154,8 +139,6 @@ QByteArray Playlist::serialize(void) const
 
 bool Playlist::deserialize(const QByteArray &data)
 {
-  QMutexLocker l(&mutex);
-
   clear();
 
   foreach (QByteArray line, data.split('\n'))

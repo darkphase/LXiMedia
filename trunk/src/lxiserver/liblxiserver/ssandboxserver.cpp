@@ -59,7 +59,7 @@ private:
 struct SSandboxServer::Private
 {
   Server                      * server;
-  QAtomicInt                    clients;
+  int                           clients;
 };
 
 SSandboxServer::SSandboxServer(QObject *parent)
@@ -79,8 +79,6 @@ SSandboxServer::~SSandboxServer()
 
 void SSandboxServer::initialize(const QString &name, const QString &mode)
 {
-  QWriteLocker l(lock());
-
   p->server = new Server(name, this);
 
   std::cerr << "##READY" << std::endl;
@@ -104,36 +102,17 @@ void SSandboxServer::initialize(const QString &name, const QString &mode)
 
 void SSandboxServer::close(void)
 {
-  QWriteLocker l(lock());
-
   delete p->server;
   p->server = NULL;
 
-  threadPool()->waitForDone();
-
   std::cerr << "##STOP" << std::endl;
-}
-
-QIODevice * SSandboxServer::openSocket(quintptr socketDescriptor)
-{
-  QLocalSocket * const socket = new Socket(this);
-  if (socket->setSocketDescriptor(socketDescriptor))
-  {
-    if (p->clients.fetchAndAddRelaxed(1) == 0)
-      emit busy();
-
-    return socket;
-  }
-
-  delete socket;
-  return NULL;
 }
 
 void SSandboxServer::closeSocket(QIODevice *socket, bool)
 {
   new SocketCloseRequest(socket);
 
-  if (p->clients.fetchAndAddRelaxed(-1) == 1)
+  if (--p->clients == 0)
     emit idle();
 }
 
@@ -167,12 +146,16 @@ SSandboxServer::Server::Server(const QString &name, SSandboxServer *parent)
 
 void SSandboxServer::Server::incomingConnection(quintptr socketDescriptor)
 {
-  if (!parent->handleConnection(socketDescriptor))
+  QLocalSocket * const socket = new Socket(parent);
+  if (socket->setSocketDescriptor(socketDescriptor))
   {
-    QLocalSocket socket;
-    if (socket.setSocketDescriptor(socketDescriptor))
-      socket.abort();
+    if (parent->p->clients++ == 0)
+      emit parent->busy();
+
+    (new HttpServerRequest(parent))->start(socket);
   }
+  else
+    delete socket;
 }
 
 } // End of namespace

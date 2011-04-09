@@ -30,6 +30,21 @@ namespace MediaPlayerBackend {
 class MediaPlayerSandbox : public BackendSandbox
 {
 Q_OBJECT
+private:
+  class ProbeResponseEvent : public QEvent
+  {
+  public:
+    inline ProbeResponseEvent(const SSandboxServer::RequestHeader &request, QIODevice *socket, const QByteArray &data)
+      : QEvent(probeResponseEventType), request(request), socket(socket), data(data)
+    {
+    }
+
+  public:
+    const SSandboxServer::RequestHeader request;
+    QIODevice           * const socket;
+    const QByteArray            data;
+  };
+
 public:
   explicit                      MediaPlayerSandbox(const QString &, QObject *parent = NULL);
 
@@ -39,6 +54,12 @@ public:
 public: // From SandboxServer::Callback
   virtual SSandboxServer::SocketOp handleHttpRequest(const SSandboxServer::RequestHeader &, QIODevice *);
 
+protected: // From QObject
+  virtual void                  customEvent(QEvent *);
+
+private:
+  void                          probe(const SSandboxServer::RequestHeader &request, QIODevice *socket, const QString &file);
+
 private slots:
   void                          cleanStreams(void);
 
@@ -46,8 +67,9 @@ public:
   static const char     * const path;
 
 private:
+  static const QEvent::Type     probeResponseEventType;
+
   SSandboxServer              * server;
-  QMutex                        mutex;
   QList<MediaStream *>          streams;
   QTimer                        cleanStreamsTimer;
 };

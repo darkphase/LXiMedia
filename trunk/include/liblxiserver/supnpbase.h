@@ -115,7 +115,6 @@ protected:
   virtual void                  handleSoapMessage(const QDomElement &, QDomDocument &, QDomElement &, const SHttpServer::RequestHeader &, const QHostAddress &) = 0;
 
 protected:
-  QReadWriteLock              * lock(void) const;
   const QString               & basePath(void) const;
   SHttpServer                 * httpServer(void) const;
 

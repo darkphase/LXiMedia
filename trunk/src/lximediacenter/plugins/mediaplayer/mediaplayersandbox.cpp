@@ -18,17 +18,18 @@
  ***************************************************************************/
 
 #include "mediaplayersandbox.h"
+#include <QtConcurrentRun>
 #include <iostream>
 
 namespace LXiMediaCenter {
 namespace MediaPlayerBackend {
 
 const char  * const MediaPlayerSandbox::path = "/mediaplayer/";
+const QEvent::Type  MediaPlayerSandbox::probeResponseEventType = QEvent::Type(QEvent::registerEventType());
 
 MediaPlayerSandbox::MediaPlayerSandbox(const QString &, QObject *parent)
   : BackendSandbox(parent),
-    server(NULL),
-    mutex(QMutex::Recursive)
+    server(NULL)
 {
   connect(&cleanStreamsTimer, SIGNAL(timeout()), SLOT(cleanStreams()));
   cleanStreamsTimer.start(5000);
@@ -56,11 +57,9 @@ SSandboxServer::SocketOp MediaPlayerSandbox::handleHttpRequest(const SSandboxSer
 
   if (url.hasQueryItem("probe"))
   {
-    const QString file = QString::fromUtf8(QByteArray::fromHex(url.queryItemValue("probe").toAscii()));
+    QtConcurrent::run(this, &MediaPlayerSandbox::probe, request, socket, QString::fromUtf8(QByteArray::fromHex(url.queryItemValue("probe").toAscii())));
 
-    SMediaInfo mediaInfo(file);
-    if (!mediaInfo.isNull())
-      return SSandboxServer::sendResponse(request, socket, SSandboxServer::Status_Ok, mediaInfo.toByteArray(-1), this);
+    return SSandboxServer::SocketOp_LeaveOpen;
   }
   else if (url.hasQueryItem("playfile"))
   {
@@ -72,8 +71,6 @@ SSandboxServer::SocketOp MediaPlayerSandbox::handleHttpRequest(const SSandboxSer
     if (stream->setup(request, socket))
     if (stream->start())
     {
-      QMutexLocker l(&mutex);
-
       streams.append(stream);
       return SSandboxServer::SocketOp_LeaveOpen;
     }
@@ -96,8 +93,6 @@ SSandboxServer::SocketOp MediaPlayerSandbox::handleHttpRequest(const SSandboxSer
     if (stream->setup(request, socket))
     if (stream->start())
     {
-      QMutexLocker l(&mutex);
-
       streams.append(stream);
       return SSandboxServer::SocketOp_LeaveOpen;
     }
@@ -120,8 +115,6 @@ SSandboxServer::SocketOp MediaPlayerSandbox::handleHttpRequest(const SSandboxSer
     if (stream->setup(request, socket))
     if (stream->start())
     {
-      QMutexLocker l(&mutex);
-
       streams.append(stream);
       return SSandboxServer::SocketOp_LeaveOpen;
     }
@@ -133,21 +126,42 @@ SSandboxServer::SocketOp MediaPlayerSandbox::handleHttpRequest(const SSandboxSer
   return SSandboxServer::sendResponse(request, socket, SSandboxServer::Status_NotFound, this);
 }
 
+void MediaPlayerSandbox::customEvent(QEvent *e)
+{
+  if (e->type() == probeResponseEventType)
+  {
+    const ProbeResponseEvent * const event = static_cast<ProbeResponseEvent *>(e);
+
+    if (!event->data.isEmpty())
+      SSandboxServer::sendResponse(event->request, event->socket, SSandboxServer::Status_Ok, event->data, this);
+    else
+      SSandboxServer::sendResponse(event->request, event->socket, SSandboxServer::Status_NotFound, this);
+
+    server->closeSocket(event->socket, true);
+  }
+  else
+    BackendSandbox::customEvent(e);
+}
+
+void MediaPlayerSandbox::probe(const SSandboxServer::RequestHeader &request, QIODevice *socket, const QString &file)
+{
+  SMediaInfo mediaInfo(file);
+  if (!mediaInfo.isNull())
+    qApp->postEvent(this, new ProbeResponseEvent(request, socket, mediaInfo.toByteArray(-1)));
+  else
+    qApp->postEvent(this, new ProbeResponseEvent(request, socket, QByteArray()));
+}
+
 void MediaPlayerSandbox::cleanStreams(void)
 {
-  if (mutex.tryLock(0))
+  for (QList<MediaStream *>::Iterator i=streams.begin(); i!=streams.end(); )
+  if (!(*i)->isRunning())
   {
-    for (QList<MediaStream *>::Iterator i=streams.begin(); i!=streams.end(); )
-    if (!(*i)->isRunning())
-    {
-      delete *i;
-      i = streams.erase(i);
-    }
-    else
-      i++;
-
-    mutex.unlock();
+    delete *i;
+    i = streams.erase(i);
   }
+  else
+    i++;
 }
 
 
