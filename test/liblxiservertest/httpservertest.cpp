@@ -76,14 +76,6 @@ void HttpServerTest::Server(void)
 
   QVERIFY(gotHttpServerReply == true);
 
-  // A non-existing file
-  manager.get(QNetworkRequest(QUrl("http://127.0.0.1:" + QString::number(httpServer.serverPort(localhost)) + "/dummy")));
-
-  for (unsigned i=0; (i<20) && (gotHttpServerReply==true); i++)
-    QTest::qWait(100);
-
-  QVERIFY(gotHttpServerReply == false);
-
   httpServer.unregisterCallback(&callback);
   httpServer.close();
 }

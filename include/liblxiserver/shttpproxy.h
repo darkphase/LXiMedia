@@ -46,6 +46,7 @@ signals:
 
 private slots:
   __internal void               processData(void);
+  __internal void               flushData(void);
 
 private:
   __internal static const int   outBufferSize;

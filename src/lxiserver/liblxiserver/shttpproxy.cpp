@@ -31,6 +31,7 @@ struct SHttpProxy::Data
   };
 
   SHttpEngine::SocketPtr        source;
+  bool                          sourceFinished;
   QVector<Socket>               sockets;
   QTimer                        socketTimer;
 
@@ -44,6 +45,7 @@ SHttpProxy::SHttpProxy(QObject *parent)
   : QObject(parent),
     d(new Data())
 {
+  d->sourceFinished = false;
   d->caching = true;
 }
 
@@ -55,22 +57,25 @@ SHttpProxy::~SHttpProxy()
 
 bool SHttpProxy::isConnected(void) const
 {
-  if (!d->source.isConnected())
+  if (!d->sourceFinished)
   {
-    foreach (const Data::Socket &s, d->sockets)
-    if (s.socket.isConnected())
-    if (s.socket->bytesToWrite() > 0)
+    if (!d->source.isConnected())
+    {
+      foreach (const Data::Socket &s, d->sockets)
+      if (s.socket.isConnected())
+      if (s.socket->bytesToWrite() > 0)
+        return true;
+
+      return false;
+    }
+
+    if (d->caching)
       return true;
 
-    return false;
+    foreach (const Data::Socket &s, d->sockets)
+    if (s.socket.isConnected())
+      return true;
   }
-
-  if (d->caching)
-    return true;
-
-  foreach (const Data::Socket &s, d->sockets)
-  if (s.socket.isConnected())
-    return true;
 
   return false;
 }
@@ -80,7 +85,7 @@ bool SHttpProxy::setSource(QIODevice *source)
   d->source = source;
 
   connect(d->source, SIGNAL(readyRead()), SLOT(processData()));
-  connect(d->source, SIGNAL(readChannelFinished()), SLOT(processData()));
+  connect(d->source, SIGNAL(readChannelFinished()), SLOT(flushData()));
 
   connect(&d->socketTimer, SIGNAL(timeout()), SLOT(processData()));
   d->socketTimer.start(250);
@@ -113,7 +118,7 @@ bool SHttpProxy::addSocket(QIODevice *socket)
 
 void SHttpProxy::processData(void)
 {
-  if (d->source)
+  if (d->source && !d->sourceFinished)
   {
     while (d->source->bytesAvailable() > 0)
     {
@@ -148,7 +153,7 @@ void SHttpProxy::processData(void)
       for (QVector<Data::Socket>::Iterator s=d->sockets.begin(); s!=d->sockets.end(); )
       if (s->socket.isConnected())
       {
-        if (!s->sendCache && s->socket.isConnected())
+        if (!s->sendCache)
         for (qint64 i=0; i<buffer.size(); )
         {
           const qint64 r = s->socket->write(buffer.data() + i, buffer.size() - i);
@@ -165,7 +170,42 @@ void SHttpProxy::processData(void)
     }
 
     if (!isConnected())
+    {
+      d->sourceFinished = true;
       emit disconnected();
+    }
+  }
+}
+
+void SHttpProxy::flushData(void)
+{
+  if (d->source && !d->sourceFinished)
+  {
+    while (d->source->bytesAvailable() > 0)
+    {
+      const QByteArray buffer = d->source->read(65536);
+
+      for (QVector<Data::Socket>::Iterator s=d->sockets.begin(); s!=d->sockets.end(); )
+      if (s->socket.isConnected())
+      {
+        if (!s->sendCache)
+        for (qint64 i=0; i<buffer.size(); )
+        {
+          const qint64 r = s->socket->write(buffer.data() + i, buffer.size() - i);
+          if (r > 0)
+            i += r;
+          else
+            break;
+        }
+
+        s++;
+      }
+      else
+        s = d->sockets.erase(s);
+    }
+
+    d->sourceFinished = true;
+    emit disconnected();
   }
 }
 
