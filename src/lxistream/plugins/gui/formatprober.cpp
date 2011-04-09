@@ -62,7 +62,7 @@ void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *readCallback)
 
       if (!FormatProber::probeFormat(data, readCallback->path).isEmpty())
       {
-        data.resize(readCallback->read(reinterpret_cast<uchar *>(data.data() + 4), data.capacity() - 5));
+        data.resize(readCallback->read(reinterpret_cast<uchar *>(data.data() + 4), data.capacity() - 5) + 4);
 
         const SImage image = SImage::fromData(data);
         if (!image.isNull())
