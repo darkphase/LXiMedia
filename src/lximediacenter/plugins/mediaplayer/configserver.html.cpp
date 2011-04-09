@@ -144,8 +144,6 @@ SHttpServer::SocketOp ConfigServer::handleHtmlRequest(const SHttpServer::Request
     const QString checkoff = QString::fromUtf8(QByteArray::fromHex(url.queryItemValue("checkoff").toAscii()));
     if (!checkon.isEmpty() || !checkoff.isEmpty())
     {
-      QWriteLocker l(&lock);
-
       if (!checkon.isEmpty())
         rootPaths.append(checkon);
 
@@ -156,8 +154,6 @@ SHttpServer::SocketOp ConfigServer::handleHtmlRequest(const SHttpServer::Request
 
       mediaDatabase->rescanRoots();
     }
-
-    QReadLocker l(&lock);
 
     htmlParser.setField("FILE", file);
     htmlParser.setField("DIRS", QByteArray(""));
@@ -335,10 +331,6 @@ void ConfigServer::generateDirs(HtmlParser &htmlParser, const QFileInfoList &dir
 const QFileInfoList & ConfigServer::drives(bool rescan)
 {
   static QFileInfoList driveList;
-  static QMutex mutex;
-
-  QMutexLocker l(&mutex);
-
   if (rescan)
     driveList = QDir::drives();
 

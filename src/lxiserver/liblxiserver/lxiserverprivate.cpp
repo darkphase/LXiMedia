@@ -26,7 +26,7 @@ HttpClientRequest::HttpClientRequest(SHttpClientEngine *parent, const SHttpEngin
     socket(NULL),
     responded(false)
 {
-  connect(this, SIGNAL(response(SHttpEngine::ResponseMessage)), parent, SIGNAL(response(SHttpEngine::ResponseMessage)));
+  connect(this, SIGNAL(response(SHttpEngine::ResponseMessage)), parent, SLOT(handleResponse(SHttpEngine::ResponseMessage)));
 
   connect(&closeTimer, SIGNAL(timeout()), SLOT(close()));
   closeTimer.setSingleShot(true);
@@ -88,6 +88,112 @@ void HttpClientRequest::close()
   }
 
   deleteLater();
+}
+
+
+HttpServerRequest::HttpServerRequest(SHttpServerEngine *parent)
+  : parent(parent),
+    socket(NULL)
+{
+  connect(this, SIGNAL(handleHttpRequest(SHttpEngine::RequestHeader, QIODevice *)), parent, SLOT(handleHttpRequest(SHttpEngine::RequestHeader, QIODevice *)));
+
+  connect(&closeTimer, SIGNAL(timeout()), SLOT(deleteLater()));
+  closeTimer.setSingleShot(true);
+}
+
+HttpServerRequest::~HttpServerRequest()
+{
+  if (socket)
+    parent->closeSocket(socket, false);
+}
+
+void HttpServerRequest::start(QIODevice *socket)
+{
+  if (socket)
+  {
+    this->socket = socket;
+
+    connect(socket, SIGNAL(readyRead()), SLOT(readyRead()));
+    connect(socket, SIGNAL(readChannelFinished()), SLOT(deleteLater()));
+
+    closeTimer.start(SHttpEngine::maxTTL);
+
+    readyRead();
+  }
+  else
+    deleteLater();
+}
+
+void HttpServerRequest::readyRead()
+{
+  while (socket->canReadLine())
+  {
+    data += socket->readLine();
+    if (data.endsWith("\r\n\r\n"))
+    {
+      SHttpEngine::RequestHeader request(data, parent);
+      if (request.isValid())
+      {
+        emit handleHttpRequest(request, socket);
+
+        disconnect(socket, SIGNAL(readyRead()), this, SLOT(readyRead()));
+        disconnect(socket, SIGNAL(readChannelFinished()), this, SLOT(deleteLater()));
+
+        socket = NULL;
+      }
+      else
+      {
+        socket->write(SHttpEngine::ResponseHeader(request, SHttpEngine::Status_BadRequest));
+
+        deleteLater();
+      }
+
+      break;
+    }
+  }
+}
+
+
+HttpSocketRequest::HttpSocketRequest(const QString &host, quint16 port)
+  : port(port),
+    socket(new QTcpSocket())
+{
+  connect(socket, SIGNAL(connected()), SLOT(connected()), Qt::QueuedConnection);
+  connect(socket, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(failed()), Qt::DirectConnection);
+
+  QHostInfo::lookupHost(host, this, SLOT(connectToHost(QHostInfo)));
+
+  connect(&deleteTimer, SIGNAL(timeout()), SLOT(deleteLater()));
+  deleteTimer.setSingleShot(true);
+  deleteTimer.start(maxTTL);
+}
+
+HttpSocketRequest::~HttpSocketRequest()
+{
+  delete socket;
+}
+
+void HttpSocketRequest::connectToHost(const QHostInfo &hostInfo)
+{
+  if (!hostInfo.addresses().isEmpty())
+    socket->connectToHost(hostInfo.addresses().first(), port);
+  else
+    deleteLater();
+}
+
+void HttpSocketRequest::connected(void)
+{
+  emit connected(socket);
+  socket = NULL;
+  deleteLater();
+}
+
+void HttpSocketRequest::failed(void)
+{
+  delete socket;
+  socket = NULL;
+
+  QMetaObject::invokeMethod(this, "connected", Qt::QueuedConnection);
 }
 
 
@@ -163,11 +269,9 @@ SandboxSocketRequest::SandboxSocketRequest(SSandboxClient *parent)
   deleteTimer.start(maxTTL);
 }
 
-void SandboxSocketRequest::failed(void)
+SandboxSocketRequest::~SandboxSocketRequest()
 {
-  socket = NULL;
-
-  QMetaObject::invokeMethod(this, "connected", Qt::QueuedConnection);
+  delete socket;
 }
 
 void SandboxSocketRequest::connected(void)
@@ -175,6 +279,14 @@ void SandboxSocketRequest::connected(void)
   emit connected(socket);
   socket = NULL;
   deleteLater();
+}
+
+void SandboxSocketRequest::failed(void)
+{
+  delete socket;
+  socket = NULL;
+
+  QMetaObject::invokeMethod(this, "connected", Qt::QueuedConnection);
 }
 
 

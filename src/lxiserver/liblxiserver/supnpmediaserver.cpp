@@ -38,9 +38,6 @@ struct SUPnPMediaServer::Data
     unsigned                    depth;
   };
 
-  inline                        Data(void) : lock(QReadWriteLock::Recursive) { }
-
-  QReadWriteLock                lock;
   QString                       basePath;
   SHttpServer                 * httpServer;
   SSsdpServer                  * ssdpServer;
@@ -79,8 +76,6 @@ void SUPnPMediaServer::initialize(SHttpServer *httpServer, SSsdpServer *ssdpServ
 
 void SUPnPMediaServer::close(void)
 {
-  QWriteLocker l(&d->lock);
-
   if (d->httpServer)
     d->httpServer->unregisterCallback(this);
 }
@@ -99,8 +94,6 @@ void SUPnPMediaServer::addIcon(const QString &url, unsigned width, unsigned heig
 
 void SUPnPMediaServer::registerService(const Service &service)
 {
-  QWriteLocker l(&d->lock);
-
   d->services += service;
   d->ssdpServer->publish(service.serviceType, service.descriptionUrl, 1);
 }
@@ -131,8 +124,6 @@ SHttpServer::SocketOp SUPnPMediaServer::handleHttpRequest(const SHttpServer::Req
     if (!host.isEmpty())
       SUPnPBase::addTextElm(doc, deviceElm, "presentationURL", "http://" + request.host() + "/");
 
-    QReadLocker l(&d->lock);
-
     if (!d->icons.isEmpty())
     {
       QDomElement iconListElm = doc.createElement("iconList");
@@ -162,8 +153,6 @@ SHttpServer::SocketOp SUPnPMediaServer::handleHttpRequest(const SHttpServer::Req
     }
     deviceElm.appendChild(serviceListElm);
 
-    l.unlock();
-
     rootElm.appendChild(deviceElm);
     doc.appendChild(rootElm);
 
@@ -179,7 +168,6 @@ SHttpServer::SocketOp SUPnPMediaServer::handleHttpRequest(const SHttpServer::Req
     socket->write(content);
     return SHttpServer::SocketOp_Close;
   }
-
 
   return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);
 }

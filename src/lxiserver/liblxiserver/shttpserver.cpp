@@ -36,10 +36,10 @@ private:
   SHttpServer           * const parent;
 };
 
-class SHttpServer::Interface : public QTcpServer
+class SHttpServer::Server : public QTcpServer
 {
 public:
-  explicit                      Interface(const QHostAddress &, quint16, SHttpServer *parent);
+  explicit                      Server(const QHostAddress &, quint16, SHttpServer *parent);
 
 protected:
   virtual void                  incomingConnection(int);
@@ -53,7 +53,7 @@ struct SHttpServer::Private
   QList<QHostAddress>           addresses;
   quint16                       port;
   QString                       serverUdn;
-  QMultiMap<QString, Interface *> interfaces;
+  QMultiMap<QString, Server *>  servers;
 };
 
 
@@ -72,32 +72,22 @@ SHttpServer::~SHttpServer()
 
 void SHttpServer::initialize(const QList<QHostAddress> &addresses, quint16 port)
 {
-  QWriteLocker l(lock());
-
   foreach (const QHostAddress &address, addresses)
-    p->interfaces.insert(address.toString(), new Interface(address, port, this));
+    p->servers.insert(address.toString(), new Server(address, port, this));
 }
 
 void SHttpServer::close(void)
 {
-  QWriteLocker l(lock());
-
-  foreach (Interface *iface, p->interfaces)
+  foreach (Server *iface, p->servers)
     delete iface;
 
-  p->interfaces.clear();
-
-  l.unlock();
-
-  threadPool()->waitForDone();
+  p->servers.clear();
 }
 
 quint16 SHttpServer::serverPort(const QHostAddress &address) const
 {
-  QReadLocker l(lock());
-
-  QMultiMap<QString, Interface *>::ConstIterator i = p->interfaces.find(address.toString());
-  if (i != p->interfaces.end())
+  QMultiMap<QString, Server *>::ConstIterator i = p->servers.find(address.toString());
+  if (i != p->servers.end())
     return (*i)->serverPort();
 
   return 0;
@@ -106,16 +96,6 @@ quint16 SHttpServer::serverPort(const QHostAddress &address) const
 const QString & SHttpServer::serverUdn(void) const
 {
   return p->serverUdn;
-}
-
-QIODevice * SHttpServer::openSocket(quintptr socketDescriptor)
-{
-  QTcpSocket * const socket = new Socket(this);
-  if (socket->setSocketDescriptor(socketDescriptor))
-    return socket;
-
-  delete socket;
-  return NULL;
 }
 
 void SHttpServer::closeSocket(QIODevice *socket, bool)
@@ -136,7 +116,7 @@ void SHttpServer::Socket::close(void)
 }
 
 
-SHttpServer::Interface::Interface(const QHostAddress &interfaceAddr, quint16 port, SHttpServer *parent)
+SHttpServer::Server::Server(const QHostAddress &interfaceAddr, quint16 port, SHttpServer *parent)
   : QTcpServer(),
     parent(parent)
 {
@@ -148,14 +128,13 @@ SHttpServer::Interface::Interface(const QHostAddress &interfaceAddr, quint16 por
     qWarning() << "Failed to bind interface" << interfaceAddr.toString();
 }
 
-void SHttpServer::Interface::incomingConnection(int socketDescriptor)
+void SHttpServer::Server::incomingConnection(int socketDescriptor)
 {
-  if (!parent->handleConnection(socketDescriptor))
-  {
-    QTcpSocket socket;
-    if (socket.setSocketDescriptor(socketDescriptor))
-      socket.abort();
-  }
+  QTcpSocket * const socket = new Socket(parent);
+  if (socket->setSocketDescriptor(socketDescriptor))
+    (new HttpServerRequest(parent))->start(socket);
+  else
+    delete socket;
 }
 
 } // End of namespace

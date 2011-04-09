@@ -38,9 +38,6 @@ const char  * const SUPnPBase::soapNS          = "http://schemas.xmlsoap.org/soa
 
 struct SUPnPBase::Data
 {
-  inline                        Data(void) : lock(QReadWriteLock::Recursive) { }
-
-  QReadWriteLock                lock;
   QString                       basePath;
   SHttpServer                  * httpServer;
 };
@@ -64,8 +61,6 @@ SUPnPBase::~SUPnPBase()
 
 void SUPnPBase::initialize(SHttpServer *httpServer, SUPnPMediaServer::Service &service)
 {
-  QWriteLocker l(&d->lock);
-
   d->httpServer = httpServer;
 
   httpServer->registerCallback(d->basePath, this);
@@ -76,8 +71,6 @@ void SUPnPBase::initialize(SHttpServer *httpServer, SUPnPMediaServer::Service &s
 
 void SUPnPBase::close(void)
 {
-  QWriteLocker l(&d->lock);
-
   if (d->httpServer)
     d->httpServer->unregisterCallback(this);
 
@@ -157,11 +150,6 @@ SHttpServer::SocketOp SUPnPBase::handleDescription(const SHttpServer::RequestHea
   socket->write(content);
 
   return SHttpServer::SocketOp_Close;
-}
-
-QReadWriteLock * SUPnPBase::lock(void) const
-{
-  return &d->lock;
 }
 
 const QString & SUPnPBase::basePath(void) const

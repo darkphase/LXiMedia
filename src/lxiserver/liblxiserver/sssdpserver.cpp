@@ -42,9 +42,6 @@ struct SSsdpServer::Private
     unsigned                    msgCount;
   };
 
-  inline Private(void) : lock(QReadWriteLock::Recursive) { }
-
-  QReadWriteLock                lock;
   const SHttpServer            * httpServer;
   QMultiMap<QString, Service>   published;
   QTimer                        publishTimer, autoPublishTimer;
@@ -92,16 +89,12 @@ void SSsdpServer::close(void)
 
 void SSsdpServer::publish(const QString &nt, const QString &relativeUrl, unsigned msgCount)
 {
-  QWriteLocker l(&p->lock);
-
   p->published.insert(nt, Private::Service(relativeUrl, msgCount));
   p->publishTimer.start(5000);
 }
 
 void SSsdpServer::parsePacket(SsdpClientInterface *iface, const SHttpServer::RequestHeader &header, const QHostAddress &sourceAddress, quint16 sourcePort)
 {
-  QWriteLocker l(&p->lock);
-
   if ((header.method().toUpper() == "M-SEARCH") && header.hasField("MX") &&
       !sourceAddress.isNull() && sourcePort)
   {
@@ -169,8 +162,6 @@ void SSsdpServer::sendSearchResponse(SsdpClientInterface *iface, const QString &
 
 void SSsdpServer::publishServices(void)
 {
-  QWriteLocker l(&p->lock);
-
   for (QMultiMap<QString, Private::Service>::ConstIterator i = p->published.begin();
        i != p->published.end();
        i++)

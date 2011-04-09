@@ -23,6 +23,7 @@
 #include <QtCore>
 #include <QtNetwork>
 #include "shttpengine.h"
+#include "shttpclient.h"
 #include "ssandboxclient.h"
 
 using namespace LXiServer;
@@ -51,6 +52,51 @@ private:
   QByteArray                    data;
   QTimer                        closeTimer;
   bool                          responded;
+};
+
+class HttpServerRequest : public QObject
+{
+Q_OBJECT
+public:
+  explicit                      HttpServerRequest(SHttpServerEngine *);
+  virtual                       ~HttpServerRequest();
+
+public slots:
+  void                          start(QIODevice *);
+
+signals:
+  void                          handleHttpRequest(const SHttpEngine::RequestHeader &, QIODevice *);
+
+private slots:
+  void                          readyRead();
+
+private:
+  SHttpServerEngine     * const parent;
+  QIODevice                   * socket;
+  QByteArray                    data;
+  QTimer                        closeTimer;
+};
+
+class HttpSocketRequest : public QObject
+{
+Q_OBJECT
+public:
+  explicit                      HttpSocketRequest(const QString &host, quint16 port);
+  virtual                       ~HttpSocketRequest();
+
+signals:
+  void                          connected(QIODevice *);
+
+private slots:
+  void                          connectToHost(const QHostInfo &);
+  void                          connected(void);
+  void                          failed(void);
+
+private:
+  static const int              maxTTL = 15000;
+  const quint16                 port;
+  QTcpSocket                  * socket;
+  QTimer                        deleteTimer;
 };
 
 class SandboxProcess : public QObject
@@ -83,6 +129,7 @@ class SandboxSocketRequest : public QObject
 Q_OBJECT
 public:
   explicit                      SandboxSocketRequest(SSandboxClient *);
+  virtual                       ~SandboxSocketRequest();
 
 signals:
   void                          connected(QIODevice *);

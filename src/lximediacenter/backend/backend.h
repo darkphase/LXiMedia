@@ -93,7 +93,6 @@ private:
   QList<BackendServer *>        backendServers;
   QMap<QString, QList<QPair<QString, QString> > > submenuItems;
 
-  mutable QReadWriteLock        lock;
   mutable QMap<QString, SearchCacheEntry> searchCache;
 
 private:

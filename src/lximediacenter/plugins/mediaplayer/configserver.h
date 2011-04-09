@@ -58,7 +58,6 @@ private:
   static const char             dirSplit;
   MasterServer                * masterServer;
   MediaDatabase               * mediaDatabase;
-  mutable QReadWriteLock        lock;
 
 private:
   static const char     * const htmlMain;

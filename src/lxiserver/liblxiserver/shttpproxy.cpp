@@ -30,9 +30,6 @@ struct SHttpProxy::Data
     bool                        sendCache;
   };
 
-  inline Data(void) : mutex(QMutex::Recursive) { }
-
-  QMutex                        mutex;
   SHttpEngine::SocketPtr        source;
   QVector<Socket>               sockets;
   QTimer                        socketTimer;
@@ -58,8 +55,6 @@ SHttpProxy::~SHttpProxy()
 
 bool SHttpProxy::isConnected(void) const
 {
-  QMutexLocker l(&d->mutex);
-
   if (!d->source.isConnected())
   {
     foreach (const Data::Socket &s, d->sockets)
@@ -83,8 +78,6 @@ bool SHttpProxy::isConnected(void) const
 bool SHttpProxy::setSource(QIODevice *source)
 {
   d->source = source;
-  d->source->moveToThread(thread());
-  d->source->setParent(this);
 
   connect(d->source, SIGNAL(readyRead()), SLOT(processData()));
   connect(d->source, SIGNAL(readChannelFinished()), SLOT(processData()));
@@ -97,8 +90,6 @@ bool SHttpProxy::setSource(QIODevice *source)
 
 bool SHttpProxy::addSocket(QIODevice *socket)
 {
-  QMutexLocker l(&d->mutex);
-
   if (d->caching || d->sockets.isEmpty())
   {
     Data::Socket s;
@@ -107,9 +98,6 @@ bool SHttpProxy::addSocket(QIODevice *socket)
 
     if (s.socket)
     {
-      s.socket->moveToThread(thread());
-      s.socket->setParent(this);
-
       d->sockets += s;
 
       connect(s.socket, SIGNAL(bytesWritten(qint64)), SLOT(processData()));
@@ -125,8 +113,6 @@ bool SHttpProxy::addSocket(QIODevice *socket)
 
 void SHttpProxy::processData(void)
 {
-  QMutexLocker l(&d->mutex);
-
   if (d->source)
   {
     while (d->source->bytesAvailable() > 0)

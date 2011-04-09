@@ -41,8 +41,7 @@ signals:
   void                          busy(void);
   void                          idle(void);
 
-protected: // From HttpServerEngine
-  virtual QIODevice           * openSocket(quintptr);
+public: // From HttpServerEngine
   virtual void                  closeSocket(QIODevice *, bool canReuse);
 
 private:

@@ -62,7 +62,6 @@ private:
 private:
   MediaDatabase         * const mediaDatabase;
 
-  mutable QMutex                mutex;
   QVector<Entry>                list;
   QList<MediaDatabase::UniqueID> pending;
   int                           played;

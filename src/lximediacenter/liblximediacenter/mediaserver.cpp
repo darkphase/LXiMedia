@@ -27,29 +27,12 @@ namespace LXiMediaCenter {
 
 struct MediaServer::Data
 {
-  class StreamEvent : public QEvent
-  {
-  public:
-    inline                      StreamEvent(QEvent::Type type, const SHttpServer::RequestHeader &request, QIODevice *socket, QSemaphore *sem)
-        : QEvent(type), request(request), socket(socket), sem(sem) { }
-
-    const SHttpServer::RequestHeader request;
-    QIODevice     * const socket;
-    QSemaphore          * const sem;
-  };
-
-  inline                        Data(void) : mutex(QMutex::Recursive)        { }
-
-  static const QEvent::Type     startStreamEventType;
   static const int              maxStreams = 64;
 
   MasterServer                * masterServer;
-  QMutex                        mutex;
   QList<Stream *>               streams;
   QList<Stream *>               reusableStreams;
 };
-
-const QEvent::Type MediaServer::Data::startStreamEventType = QEvent::Type(QEvent::registerEventType());
 
 const qint32  MediaServer::defaultDirSortOrder  = -65536;
 const qint32  MediaServer::defaultFileSortOrder = 0;
@@ -87,42 +70,8 @@ void MediaServer::close(void)
   d->masterServer->contentDirectory()->unregisterCallback(this);
 }
 
-void MediaServer::customEvent(QEvent *e)
-{
-  if (e->type() == d->startStreamEventType)
-  {
-    QMutexLocker l(&d->mutex);
-
-    Data::StreamEvent * const event = static_cast<Data::StreamEvent *>(e);
-    const QString url = event->request.path();
-
-    foreach (Stream *stream, d->streams)
-    if (stream->url == url)
-    if (stream->proxy.addSocket(event->socket))
-    {
-      event->sem->release();
-      return;
-    }
-
-    Stream * const stream = streamVideo(event->request);
-    if (stream)
-    {
-      stream->proxy.addSocket(event->socket);
-    }
-    else
-    {
-      SHttpServer::sendResponse(event->request, event->socket, SHttpServer::Status_NotFound, this);
-      event->socket->close();
-    }
-
-    event->sem->release();
-  }
-}
-
 void MediaServer::cleanStreams(void)
 {
-  QMutexLocker l(&d->mutex);
-
   QList<Stream *> obsolete;
   foreach (Stream *stream, d->streams)
   if (!stream->proxy.isConnected())
@@ -185,13 +134,21 @@ SHttpServer::SocketOp MediaServer::handleHttpRequest(const SHttpServer::RequestH
   }
   else
   {
-    QSemaphore sem(0);
+    const QString url = request.path();
 
-    socket->moveToThread(QObject::thread());
-    QCoreApplication::postEvent(this, new Data::StreamEvent(Data::startStreamEventType, request, socket, &sem));
+    foreach (Stream *stream, d->streams)
+    if (stream->url == url)
+    if (stream->proxy.addSocket(socket))
+      return SHttpServer::SocketOp_LeaveOpen;
 
-    sem.acquire();
-    return SHttpServer::SocketOp_LeaveOpen; // Socket will be closed by event handler
+    Stream * const stream = streamVideo(request);
+    if (stream)
+    {
+      stream->proxy.addSocket(socket);
+      return SHttpServer::SocketOp_LeaveOpen;
+    }
+    else
+      return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);
   }
 
   return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);
@@ -234,8 +191,6 @@ QList<SUPnPContentDirectory::Item> MediaServer::listContentDirItems(const QStrin
 
 void MediaServer::addStream(Stream *stream)
 {
-  QMutexLocker l(&d->mutex);
-
   connect(&stream->proxy, SIGNAL(disconnected()), SLOT(cleanStreams()), Qt::QueuedConnection);
 
   d->streams += stream;
@@ -243,8 +198,6 @@ void MediaServer::addStream(Stream *stream)
 
 void MediaServer::removeStream(Stream *stream)
 {
-  QMutexLocker l(&d->mutex);
-
   d->streams.removeAll(stream);
   d->reusableStreams.removeAll(stream);
 }
