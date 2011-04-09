@@ -9,6 +9,13 @@ include($${LXIMEDIA_DIR}/ext/exif/exif.pri)
 INCLUDEPATH += $${LXIMEDIA_DIR}/include/liblxistream $${LXIMEDIA_DIR}/include/liblxistreamgui
 DEPENDPATH += $${LXIMEDIA_DIR}/include/liblxistream $${LXIMEDIA_DIR}/include/liblxistreamgui
 
+DEFINES += S_BUILD_LIBLXISTREAMGUI
+
+linux-g++|win32-g++ {
+  CONFIG += precompile_header
+  PRECOMPILED_HEADER = $${LXIMEDIA_DIR}/include/LXiStreamGui
+}
+
 include($${LXIMEDIA_DIR}/include/liblxicore/linklxicore.pri)
 include($${LXIMEDIA_DIR}/include/liblxistream/linklxistream.pri)
 

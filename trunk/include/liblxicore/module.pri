@@ -12,8 +12,3 @@ unix {
     target.path = /usr/lib/lximedia
     INSTALLS += target
 }
-
-linux-g++|win32-g++ {
-  # To make precompiled headers work properly
-  QMAKE_CXXFLAGS += -UQT_PLUGIN
-}

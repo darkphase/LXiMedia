@@ -8,6 +8,8 @@ include($${LXIMEDIA_DIR}/include/config.pri)
 INCLUDEPATH += $${LXIMEDIA_DIR}/include/liblxicore
 DEPENDPATH += $${LXIMEDIA_DIR}/include/liblxicore
 
+DEFINES += S_BUILD_LIBLXICORE
+
 linux-g++|win32-g++ {
   # Generate/Use precompiled header
   CONFIG += precompile_header

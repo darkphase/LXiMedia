@@ -9,8 +9,9 @@ QT += sql
 INCLUDEPATH += $${LXIMEDIA_DIR}/include/liblximediacenter
 DEPENDPATH += $${LXIMEDIA_DIR}/include/liblximediacenter
 
+DEFINES += S_BUILD_LIBLXIMEDIACENTER
+
 linux-g++|win32-g++ {
-  # Generate/Use precompiled header
   CONFIG += precompile_header
   PRECOMPILED_HEADER = $${LXIMEDIA_DIR}/include/LXiMediaCenter
 }

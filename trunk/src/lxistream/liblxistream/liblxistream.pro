@@ -8,6 +8,8 @@ include($${LXIMEDIA_DIR}/include/config.pri)
 INCLUDEPATH += $${LXIMEDIA_DIR}/include/liblxistream
 DEPENDPATH += $${LXIMEDIA_DIR}/include/liblxistream
 
+DEFINES += S_BUILD_LIBLXISTREAM
+
 linux-g++|win32-g++ {
   CONFIG += precompile_header
   PRECOMPILED_HEADER = $${LXIMEDIA_DIR}/include/LXiStream
