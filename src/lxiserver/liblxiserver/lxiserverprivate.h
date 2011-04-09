@@ -128,7 +128,7 @@ class SandboxSocketRequest : public QObject
 {
 Q_OBJECT
 public:
-  explicit                      SandboxSocketRequest(SSandboxClient *);
+  explicit                      SandboxSocketRequest(SSandboxClient *, QLocalSocket * = NULL);
   virtual                       ~SandboxSocketRequest();
 
 signals:
@@ -169,6 +169,9 @@ Q_OBJECT
 public:
   explicit                      SocketCloseRequest(QIODevice *);
   virtual                       ~SocketCloseRequest();
+
+signals:
+  void                          closed(void);
 
 private slots:
   void                          bytesWritten(void);

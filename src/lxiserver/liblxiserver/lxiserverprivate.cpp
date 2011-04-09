@@ -254,15 +254,18 @@ void SandboxProcess::finished(int, QProcess::ExitStatus)
 }
 
 
-SandboxSocketRequest::SandboxSocketRequest(SSandboxClient *parent)
+SandboxSocketRequest::SandboxSocketRequest(SSandboxClient *parent, QLocalSocket *reuse)
   : parent(parent),
-    socket(new QLocalSocket())
+    socket(reuse ? reuse : new QLocalSocket())
 {
   connect(socket, SIGNAL(connected()), SLOT(connected()), Qt::QueuedConnection);
   connect(socket, SIGNAL(error(QLocalSocket::LocalSocketError)), SLOT(failed()), Qt::DirectConnection);
 
-  socket->setReadBufferSize(65536);
-  socket->connectToServer(parent->serverName());
+  if (reuse == NULL)
+  {
+    socket->setReadBufferSize(65536);
+    socket->connectToServer(parent->serverName());
+  }
 
   connect(&deleteTimer, SIGNAL(timeout()), SLOT(deleteLater()));
   deleteTimer.setSingleShot(true);
@@ -276,7 +279,11 @@ SandboxSocketRequest::~SandboxSocketRequest()
 
 void SandboxSocketRequest::connected(void)
 {
+  disconnect(socket, SIGNAL(connected()), this, SLOT(connected()));
+  disconnect(socket, SIGNAL(error(QLocalSocket::LocalSocketError)), this, SLOT(failed()));
+
   emit connected(socket);
+
   socket = NULL;
   deleteLater();
 }
@@ -368,6 +375,8 @@ SocketCloseRequest::~SocketCloseRequest()
 {
   delete localSocket;
   delete tcpSocket;
+
+  emit closed();
 }
 
 void SocketCloseRequest::bytesWritten(void)

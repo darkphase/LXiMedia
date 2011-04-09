@@ -32,6 +32,9 @@ struct SSandboxClient::Private
 
   SandboxProcess              * serverProcess;
   QList<SandboxMessageRequest *> requests;
+
+  int                           numOpenSockets;
+  int                           maxOpenSockets;
 };
 
 SSandboxClient::SSandboxClient(const QString &application, Mode mode, QObject *parent)
@@ -49,6 +52,9 @@ SSandboxClient::SSandboxClient(const QString &application, Mode mode, QObject *p
   }
 
   p->serverProcess = NULL;
+
+  p->numOpenSockets = 0;
+  p->maxOpenSockets = QThread::idealThreadCount() * 2;
 }
 
 SSandboxClient::~SSandboxClient()
@@ -98,13 +104,19 @@ void SSandboxClient::openRequest(const RequestMessage &message, QObject *receive
 
 void SSandboxClient::closeRequest(QIODevice *socket, bool canReuse)
 {
-  new SocketCloseRequest(socket);
+  connect(new SocketCloseRequest(socket), SIGNAL(closed()), SLOT(socketClosed()));
 }
 
 void SSandboxClient::openSockets(void)
 {
-  while (!p->requests.isEmpty())
-    connect(new SandboxSocketRequest(this), SIGNAL(connected(QIODevice *)), p->requests.takeFirst(), SLOT(connected(QIODevice *)));
+  while (!p->requests.isEmpty() && (p->numOpenSockets < p->maxOpenSockets))
+  {
+    SandboxSocketRequest * const socketRequest = new SandboxSocketRequest(this);
+    connect(socketRequest, SIGNAL(connected(QIODevice *)), SLOT(socketOpened(QIODevice *)));
+    connect(socketRequest, SIGNAL(connected(QIODevice *)), p->requests.takeFirst(), SLOT(connected(QIODevice *)));
+
+    p->numOpenSockets++;
+  }
 }
 
 void SSandboxClient::stop(void)
@@ -135,6 +147,19 @@ void SSandboxClient::finished(void)
     while (!p->requests.isEmpty())
       p->requests.takeFirst()->connected(NULL);
   }
+}
+
+void SSandboxClient::socketOpened(QIODevice *socket)
+{
+  if (socket == NULL)
+    socketClosed();
+}
+
+void SSandboxClient::socketClosed(void)
+{
+  p->numOpenSockets--;
+
+  openSockets();
 }
 
 } // End of namespace
