@@ -26,12 +26,13 @@
 #include "sbuffer.h"
 #include "ssize.h"
 #include "stime.h"
+#include "export.h"
 
 namespace LXiStream {
 
 /*! This class represents a buffer containing raw video pixels.
  */
-class S_DSO_PUBLIC SVideoBuffer : public SBuffer
+class LXISTREAM_PUBLIC SVideoBuffer : public SBuffer
 {
 public:
                                 SVideoBuffer(void);

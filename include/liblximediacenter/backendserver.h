@@ -22,17 +22,18 @@
 
 #include <QtCore>
 #include <LXiServer>
+#include "export.h"
 
 namespace LXiMediaCenter {
 
 class ImdbClient;
 
-class S_DSO_PUBLIC BackendServer : public QObject,
-                                   public SFactorizable<BackendServer>
+class LXIMEDIACENTER_PUBLIC BackendServer : public QObject
 {
 Q_OBJECT
+S_FACTORIZABLE(BackendServer)
 public:
-  class S_DSO_PUBLIC MasterServer : public QObject
+  class LXIMEDIACENTER_PUBLIC MasterServer : public QObject
   {
   public:
     virtual QByteArray          parseHtmlContent(const QUrl &url, const QByteArray &content, const QByteArray &head) const = 0;
@@ -92,8 +93,8 @@ public:
   static const char     * const searchDateTimeFormat;
 
 private:
-  static const char     * const dataMime;
-  static const char     * const textMime;
+  internal static const char * const dataMime;
+  internal static const char * const textMime;
 
 protected:
   static const char     * const htmlFrontPageWidget;

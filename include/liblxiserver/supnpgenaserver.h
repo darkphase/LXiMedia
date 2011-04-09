@@ -25,11 +25,12 @@
 #include <QtXml>
 #include <LXiCore>
 #include "shttpserver.h"
+#include "export.h"
 
 namespace LXiServer {
 
-class S_DSO_PUBLIC SUPnPGenaServer : public QObject,
-                                     protected SHttpServer::Callback
+class LXISERVER_PUBLIC SUPnPGenaServer : public QObject,
+                                         protected SHttpServer::Callback
 {
 Q_OBJECT
 public:
@@ -52,16 +53,16 @@ protected: // From SHttpServer::Callback
   virtual SHttpServer::SocketOp  handleHttpRequest(const SHttpServer::RequestHeader &, QIODevice *);
 
 private slots:
-  void                          emitEvents(void);
+  internal void                 emitEvents(void);
 
 private:
-  QString                       makeSid(void);
+  internal QString              makeSid(void);
 
 public:
   static const char     * const eventNS;
 
 private:
-  static const QEvent::Type     scheduleEventType;
+  internal static const QEvent::Type scheduleEventType;
 
   class EventSession;
   struct Data;

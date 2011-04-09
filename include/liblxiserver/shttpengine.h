@@ -22,13 +22,14 @@
 
 #include <QtCore>
 #include <LXiCore>
+#include "export.h"
 
 class QAbstractSocket;
 class QLocalSocket;
 
 namespace LXiServer {
 
-class S_DSO_PUBLIC SHttpEngine
+class LXISERVER_PUBLIC SHttpEngine
 {
 public:
   enum Status
@@ -48,7 +49,7 @@ public:
     Status_InternalServerError= 500
   };
 
-  class S_DSO_PUBLIC Header
+  class LXISERVER_PUBLIC Header
   {
   protected:
     explicit                    Header(const SHttpEngine *);
@@ -90,7 +91,7 @@ public:
     QList< QPair<QString, QString> > fields;
   };
 
-  class S_DSO_PUBLIC RequestHeader : public Header
+  class LXISERVER_PUBLIC RequestHeader : public Header
   {
   public:
     explicit                    RequestHeader(const SHttpEngine *);
@@ -110,7 +111,7 @@ public:
     QString                     directory(void) const;
   };
 
-  class S_DSO_PUBLIC ResponseHeader : public Header
+  class LXISERVER_PUBLIC ResponseHeader : public Header
   {
   public:
     explicit                    ResponseHeader(const SHttpEngine *);
@@ -126,10 +127,10 @@ public:
     inline void                 setResponse(Status status)                      { setStatus(status); }
     inline void                 setResponse(Status status, const QByteArray &version) { setStatus(status); setVersion(version); }
 
-    static const char         * statusText(int) __attribute__((pure));
+    pure static const char    * statusText(int);
   };
 
-  class S_DSO_PUBLIC RequestMessage : public RequestHeader
+  class LXISERVER_PUBLIC RequestMessage : public RequestHeader
   {
   public:
     inline explicit             RequestMessage(const SHttpEngine *httpEngine = NULL) : RequestHeader(httpEngine) { }
@@ -145,7 +146,7 @@ public:
     QByteArray                  data;
   };
 
-  class S_DSO_PUBLIC ResponseMessage : public ResponseHeader
+  class LXISERVER_PUBLIC ResponseMessage : public ResponseHeader
   {
   public:
     inline explicit             ResponseMessage(const SHttpEngine *httpEngine = NULL) : ResponseHeader(httpEngine) { }
@@ -164,7 +165,7 @@ public:
   };
 
 public:
-  class S_DSO_PUBLIC SocketPtr
+  class LXISERVER_PUBLIC SocketPtr
   {
   public:
     inline                      SocketPtr(QIODevice * socket = NULL)            { operator=(socket); }
@@ -192,7 +193,7 @@ public:
   virtual const char          * senderType(void) const = 0;
   virtual const QString       & senderId(void) const = 0;
 
-  static const char           * toMimeType(const QString &fileName) __attribute__((pure));
+  pure static const char      * toMimeType(const QString &fileName);
 
 public:
   static const char     * const httpVersion;
@@ -209,7 +210,7 @@ public:
 };
 
 
-class S_DSO_PUBLIC SHttpServerEngine : public QObject,
+class LXISERVER_PUBLIC SHttpServerEngine : public QObject,
                                      public SHttpEngine
 {
 Q_OBJECT
@@ -254,7 +255,7 @@ private:
 };
 
 
-class S_DSO_PUBLIC SHttpClientEngine : public QObject,
+class LXISERVER_PUBLIC SHttpClientEngine : public QObject,
                                      public SHttpEngine
 {
 Q_OBJECT

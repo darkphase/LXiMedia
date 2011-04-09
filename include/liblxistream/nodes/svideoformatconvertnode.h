@@ -24,13 +24,14 @@
 #include <LXiCore>
 #include "../sgraph.h"
 #include "../svideobuffer.h"
+#include "../export.h"
 
 namespace LXiStream {
 
 class SVideoBuffer;
 
-class S_DSO_PUBLIC SVideoFormatConvertNode : public QObject,
-                                             public SGraph::Node
+class LXISTREAM_PUBLIC SVideoFormatConvertNode : public QObject,
+                                                 public SGraph::Node
 {
 Q_OBJECT
 public:
@@ -50,7 +51,7 @@ signals:
   void                          output(const SVideoBuffer &);
 
 private:
-  void                          processTask(const SVideoBuffer &);
+  internal void                 processTask(const SVideoBuffer &);
 
 private:
   struct Data;

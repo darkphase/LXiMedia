@@ -24,16 +24,17 @@
 #include <LXiCore>
 #include "../sgraph.h"
 #include "../sinterfaces.h"
+#include "../export.h"
 
 namespace LXiStream {
 
 /*! This is a generic input node, reading to a QIODevice.
  */
-class S_DSO_PUBLIC SIOInputNode : public QObject,
-                                  public SGraph::SourceNode,
-                                  public SInterfaces::BufferReaderNode,
-                                  protected SInterfaces::BufferReader::ReadCallback,
-                                  protected SInterfaces::BufferReader::ProduceCallback
+class LXISTREAM_PUBLIC SIOInputNode : public QObject,
+                                      public SGraph::SourceNode,
+                                      public SInterfaces::BufferReaderNode,
+                                      protected SInterfaces::BufferReader::ReadCallback,
+                                      protected SInterfaces::BufferReader::ProduceCallback
 {
 Q_OBJECT
 public:

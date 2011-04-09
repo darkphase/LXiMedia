@@ -24,12 +24,13 @@
 #include <LXiCore>
 #include "../saudiobuffer.h"
 #include "../sgraph.h"
+#include "../export.h"
 
 namespace LXiStream {
 
 
-class S_DSO_PUBLIC SAudioResampleNode : public QObject,
-                                        public SGraph::Node
+class LXISTREAM_PUBLIC SAudioResampleNode : public QObject,
+                                            public SGraph::Node
 {
 Q_OBJECT
 public:
@@ -50,7 +51,7 @@ signals:
   void                          output(const SAudioBuffer &);
 
 private:
-  void                          processTask(const SAudioBuffer &);
+  internal void                 processTask(const SAudioBuffer &);
 
 private:
   struct Data;

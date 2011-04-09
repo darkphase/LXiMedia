@@ -31,4 +31,3 @@ linux-g++|win32-g++ {
     QMAKE_LFLAGS_RELEASE -= -Wl,-s
   }
 }
-

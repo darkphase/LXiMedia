@@ -22,10 +22,11 @@
 
 #include <QtCore>
 #include <LXiCore>
+#include "export.h"
 
 namespace LXiStream {
 
-class S_DSO_PUBLIC SAudioFormat
+class LXISTREAM_PUBLIC SAudioFormat
 {
 public:
   /*! Specifies the format in which data is stored.
@@ -170,11 +171,11 @@ public:
 
   static inline int             numChannels(Channels c)                         { return __builtin_popcount(quint32(c)); }
   static Channels               guessChannels(unsigned numChannels);
-  static int                    sampleSize(Format) __attribute__((pure));
-  static const char           * formatName(Format) __attribute__((pure));
-  static const char           * channelName(Channel) __attribute__((pure));
-  static QString                channelNames(Channels) __attribute__((pure));
-  static const char           * channelSetupName(Channels) __attribute__((pure));
+  pure static int               sampleSize(Format);
+  pure static const char      * formatName(Format);
+  pure static const char      * channelName(Channel);
+  pure static QString           channelNames(Channels);
+  pure static const char      * channelSetupName(Channels);
 
 private:
   struct

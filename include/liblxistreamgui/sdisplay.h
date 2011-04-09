@@ -3,10 +3,11 @@
 
 #include <QtCore>
 #include <LXiCore>
+#include "export.h"
 
 namespace LXiStreamGui {
 
-class S_DSO_PUBLIC SDisplay : public QObject
+class LXISTREAMGUI_PUBLIC SDisplay : public QObject
 {
 Q_OBJECT
 public:

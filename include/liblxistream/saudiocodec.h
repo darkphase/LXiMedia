@@ -23,6 +23,7 @@
 #include <QtCore>
 #include <LXiCore>
 #include "saudioformat.h"
+#include "export.h"
 
 namespace LXiStream {
 
@@ -30,7 +31,7 @@ namespace LXiStream {
 
     \sa SVideoCodec, SDataCodec
  */
-class S_DSO_PUBLIC SAudioCodec : public SSerializable
+class LXISTREAM_PUBLIC SAudioCodec : public SSerializable
 {
 public:
                                 SAudioCodec(void);

@@ -23,10 +23,11 @@
 #include <QtCore>
 #include <LXiCore>
 #include "shttpengine.h"
+#include "export.h"
 
 namespace LXiServer {
 
-class S_DSO_PUBLIC SSandboxServer : public SHttpServerEngine
+class LXISERVER_PUBLIC SSandboxServer : public SHttpServerEngine
 {
 Q_OBJECT
 public:

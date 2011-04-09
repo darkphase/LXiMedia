@@ -21,8 +21,9 @@
 #define LXICORE_SAPPLICATION_H
 
 #include <QtCore>
-#include "sglobal.h"
+#include "splatform.h"
 #include "sscheduler.h"
+#include "export.h"
 
 #define sApp (SApplication::instance())
 
@@ -35,12 +36,12 @@ class SModule;
     required to use most of the LXiMedia classes (unless documented otherwise).
     Once the instance is destroyed LXiMedia is uninitialized.
  */
-class S_DSO_PUBLIC SApplication : public QObject
+class LXICORE_PUBLIC SApplication : public QObject
 {
 Q_OBJECT
 friend class SFactory;
 public:
-  class S_DSO_PUBLIC Initializer
+  class LXICORE_PUBLIC Initializer
   {
   friend class SApplication;
   protected:
@@ -62,7 +63,7 @@ public:
     void                      * framePointer;
   };
 
-  class S_DSO_PUBLIC LogFile : public QFile
+  class LXICORE_PUBLIC LogFile : public QFile
   {
   public:
     struct Message
@@ -85,9 +86,9 @@ public:
   explicit                      SApplication(const QStringList &moduleFilter = QStringList(), const QString &logDir = QString::null, QObject * = NULL);
   virtual                       ~SApplication();
 
-  static const char           * name(void) S_FUNC_PURE;
-  static const char           * version(void) S_FUNC_PURE;
-  static SApplication  *        instance(void) S_FUNC_PURE;
+  pure static const char      * name(void);
+  pure static const char      * version(void);
+  pure static SApplication    * instance(void);
 
   bool                          loadModule(SModule *, QPluginLoader * = NULL);
   QByteArray                    about(void) const;
@@ -110,13 +111,13 @@ public:
   static SApplication         * createForQTest(QObject *);
 
 private:
-  explicit                      SApplication(QObject *) S_DSO_PRIVATE;
+  internal explicit           SApplication(QObject *);
 
-  static QList<SFactory *>    & factories(void) S_DSO_PRIVATE;
+  internal static QList<SFactory *> & factories(void);
 
 private:
-  static Initializer          * initializers S_DSO_PRIVATE;
-  static SApplication         * self S_DSO_PRIVATE;
+  internal static Initializer * initializers;
+  internal static SApplication * self;
 
   struct Data;
   Data                  * const d;

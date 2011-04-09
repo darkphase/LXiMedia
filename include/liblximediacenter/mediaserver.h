@@ -25,19 +25,20 @@
 #include <LXiServer>
 #include <LXiStream>
 #include "backendserver.h"
+#include "export.h"
 
 namespace LXiMediaCenter {
 
 class MediaStream;
 
-class S_DSO_PUBLIC MediaServer : public BackendServer,
+class LXIMEDIACENTER_PUBLIC MediaServer : public BackendServer,
                                  protected SHttpServer::Callback,
                                  private SUPnPContentDirectory::Callback
 {
 Q_OBJECT
 friend class MediaServerDir;
 public:
-  class S_DSO_PUBLIC Stream
+  class LXIMEDIACENTER_PUBLIC Stream
   {
   public:
                                 Stream(MediaServer *parent, const QString &url);
@@ -96,20 +97,20 @@ protected: // From QObject
   virtual void                  customEvent(QEvent *);
 
 protected: // From SHttpServer::Callback
-  virtual SHttpServer::SocketOp  handleHttpRequest(const SHttpServer::RequestHeader &, QIODevice *);
+  virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestHeader &, QIODevice *);
 
 private: // From UPnPContentDirectory::Callback
-  virtual int                   countContentDirItems(const QString &path);
-  virtual QList<SUPnPContentDirectory::Item> listContentDirItems(const QString &path, unsigned start, unsigned count);
+  internal virtual int          countContentDirItems(const QString &path);
+  internal virtual QList<SUPnPContentDirectory::Item> listContentDirItems(const QString &path, unsigned start, unsigned count);
 
 private:
-  void                          addStream(Stream *);
-  void                          removeStream(Stream *);
+  internal void                 addStream(Stream *);
+  internal void                 removeStream(Stream *);
 
 public:
-  static const qint32           defaultDirSortOrder;
-  static const qint32           defaultFileSortOrder;
-  static const int              seekBySecs;
+  internal static const qint32  defaultDirSortOrder;
+  internal static const qint32  defaultFileSortOrder;
+  internal static const int     seekBySecs;
 
 private:
   struct Data;

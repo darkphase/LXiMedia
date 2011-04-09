@@ -26,11 +26,12 @@
 #include "../spixels.h"
 #include "../ssubpicturebuffer.h"
 #include "../svideobuffer.h"
+#include "../export.h"
 
 namespace LXiStream {
 
-class S_DSO_PUBLIC SSubpictureRenderNode : public QObject,
-                                           public SGraph::Node
+class LXISTREAM_PUBLIC SSubpictureRenderNode : public QObject,
+                                               public SGraph::Node
 {
 Q_OBJECT
 public:
@@ -45,9 +46,9 @@ signals:
   void                          output(const SVideoBuffer &);
 
 private:
-  void                          processTask(const SSubpictureBuffer &);
-  void                          processTask(const SVideoBuffer &);
-  static void                   buildPalette(const SPixels::RGBAPixel *, int, SVideoFormat::Format, QByteArray &);
+  internal void                 processTask(const SSubpictureBuffer &);
+  internal void                 processTask(const SVideoBuffer &);
+  internal static void          buildPalette(const SPixels::RGBAPixel *, int, SVideoFormat::Format, QByteArray &);
 
 private:
   struct Data;

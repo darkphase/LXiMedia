@@ -21,14 +21,15 @@
 #define LXICORE_SFACTORY_H
 
 #include <QtCore>
-#include "sglobal.h"
+#include "splatform.h"
+#include "export.h"
 
 namespace LXiCore {
 
-class S_DSO_PUBLIC SFactory
+class LXICORE_PUBLIC SFactory
 {
 public:
-  class Scheme
+  class LXICORE_PUBLIC Scheme
   {
   public:
                                 Scheme(const char *name);
@@ -91,22 +92,6 @@ private:
 };
 
 
-template <class _interface>
-class S_DSO_PUBLIC SFactorizable
-{
-public:
-  template <class _instance>
-  inline static void            registerClass(const SFactory::Scheme &);
-
-public: // Implemented in sfactory.hpp; instantiate only when needed.
-  static _interface           * create(QObject *, const QString &, bool nonNull = true);
-  static QStringList            available(void);
-
-protected: // Implemented in sfactory.hpp; instantiate only when needed.
-  static SFactory             & factory(void);
-};
-
-
 template <class _class>
 void SFactory::registerClass(const Scheme &scheme)
 {
@@ -141,14 +126,43 @@ QObject * SFactory::createFunc(const QString &scheme, QObject *parent)
   return new _class(scheme, parent);
 }
 
-
-template <class _interface>
-template <class _instance>
-void SFactorizable<_interface>::registerClass(const SFactory::Scheme &scheme)
-{
-  factory().registerClass<_instance>(scheme);
-}
-
 } // End of namespace
+
+#define S_FACTORIZABLE_NO_CREATE(_interface) \
+  public: \
+    template <class _instance> \
+    inline static void registerClass(const ::LXiCore::SFactory::Scheme &scheme) \
+    { \
+      factory().registerClass<_instance>(scheme); \
+    } \
+  \
+    inline static QStringList available(void) \
+    { \
+      QStringList result; \
+      foreach (const ::LXiCore::SFactory::Scheme &scheme, factory().registredSchemes(staticMetaObject.className())) \
+        result += scheme.name(); \
+      \
+      return result; \
+    } \
+  \
+  private: \
+    pure static ::LXiCore::SFactory & factory(void);
+
+#define S_FACTORIZABLE(_interface) \
+  public: \
+    inline static _interface * create(QObject *parent, const QString &scheme, bool nonNull = true) \
+    { \
+      return static_cast<_interface *>(factory().createObject(staticMetaObject.className(), parent, scheme, nonNull)); \
+    } \
+  \
+  S_FACTORIZABLE_NO_CREATE(_interface)
+
+#define S_FACTORIZABLE_INSTANCE(_interface) \
+  ::LXiCore::SFactory & _interface::factory(void) \
+  { \
+    static ::LXiCore::SFactory f; \
+    \
+    return f; \
+  }
 
 #endif

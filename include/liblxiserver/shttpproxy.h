@@ -22,12 +22,13 @@
 
 #include <QtCore>
 #include <LXiCore>
+#include "export.h"
 
 namespace LXiServer {
 
 /*! This is a generic output node, writing to a QIODevice.
  */
-class S_DSO_PUBLIC SHttpProxy : public QObject
+class LXISERVER_PUBLIC SHttpProxy : public QObject
 {
 Q_OBJECT
 public:
@@ -44,10 +45,10 @@ signals:
   void                          disconnected(void);
 
 private slots:
-  void                          processData(void);
+  internal void                 processData(void);
 
 private:
-  static const int              outBufferSize;
+  internal static const int     outBufferSize;
 
   struct Data;
   Data                  * const d;

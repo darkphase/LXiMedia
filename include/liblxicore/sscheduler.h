@@ -22,11 +22,12 @@
 
 #include <QtCore>
 #include <typeinfo>
-#include "sglobal.h"
+#include "splatform.h"
+#include "export.h"
 
 namespace LXiCore {
 
-class S_DSO_PUBLIC SScheduler
+class LXICORE_PUBLIC SScheduler
 {
 Q_DISABLE_COPY(SScheduler)
 public:
@@ -45,7 +46,7 @@ public:
       run simultaneously. It also ensures that tasks sharing a dependency are
       scheduled in the order that they were presented to the scheduler.
    */
-  class Dependency
+  class LXICORE_PUBLIC Dependency
   {
   Q_DISABLE_COPY(Dependency)
   friend class SScheduler;
@@ -65,7 +66,7 @@ public:
   /*! The DependencyLocker class is a convenience class that simplifies locking
       and unlocking Dependency instances. Behavior is similar to QMutexLocker.
    */
-  class DependencyLocker
+  class LXICORE_PUBLIC DependencyLocker
   {
   Q_DISABLE_COPY(DependencyLocker)
   public:
@@ -84,7 +85,7 @@ public:
   /*! A proxy class that can be used to add the schedule() methods to another
       class.
    */
-  class Proxy
+  class LXICORE_PUBLIC Proxy
   {
   Q_DISABLE_COPY(Proxy)
   public:
@@ -112,7 +113,7 @@ public:
   };
 
 private:
-  class Runnable : public QRunnable
+  class LXICORE_PUBLIC Runnable : public QRunnable
   {
   friend class SScheduler;
   public:
@@ -171,8 +172,8 @@ protected:
   void                          schedule(Dependency *);
 
 private:
-  void                          start(Runnable *runnable, Priority = Priority_Normal);
-  void                          traceTask(int, int, const QByteArray &);
+  internal void                 start(Runnable *runnable, Priority = Priority_Normal);
+  internal void                 traceTask(int, int, const QByteArray &);
 
 protected:
   static const QEvent::Type     scheduleEventType;

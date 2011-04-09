@@ -24,13 +24,14 @@
 #include <QtXml>
 #include <LXiCore>
 #include "sinterfaces.h"
+#include "export.h"
 
 namespace LXiStream {
 
 class SMediaInfo;
 typedef QList<SMediaInfo> SMediaInfoList;
 
-class S_DSO_PUBLIC SMediaInfo : public SSerializable
+class LXISTREAM_PUBLIC SMediaInfo : public SSerializable
 {
 friend class SDiscInfo;
 public:
@@ -87,11 +88,11 @@ public:
   static const unsigned         tvShowSeason;
 
 private:
-  static QDomNode               toXml(const SInterfaces::FormatProber::ProbeInfo &pi, QDomDocument &);
-  static void                   fromXml(SInterfaces::FormatProber::ProbeInfo &pi, const QDomNode &);
+  internal static QDomNode      toXml(const SInterfaces::FormatProber::ProbeInfo &pi, QDomDocument &);
+  internal static void          fromXml(SInterfaces::FormatProber::ProbeInfo &pi, const QDomNode &);
 
-  void                          probe(const QString &);
-  void                          probeDataStreams(void);
+  internal void                 probe(const QString &);
+  internal void                 probeDataStreams(void);
 
 private:
   QSharedDataPointer<SInterfaces::FormatProber::ProbeInfo> pi;

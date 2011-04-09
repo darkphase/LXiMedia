@@ -23,10 +23,11 @@
 #include <QtCore>
 #include <LXiCore>
 #include "stuner.h"
+#include "export.h"
 
 namespace LXiStream {
 
-class S_DSO_PUBLIC SDigitalTuner : public STuner
+class LXISTREAM_PUBLIC SDigitalTuner : public STuner
 {
 Q_OBJECT
 public:

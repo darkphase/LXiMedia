@@ -18,25 +18,25 @@
  ***************************************************************************/
 
 #include "sinterfaces.h"
-#include <liblxicore/sfactory.hpp>
-
-template class LXiCore::SFactorizable<LXiStream::SInterfaces::FormatProber>;
-template class LXiCore::SFactorizable<LXiStream::SInterfaces::BufferReader>;
-template class LXiCore::SFactorizable<LXiStream::SInterfaces::BufferWriter>;
-template class LXiCore::SFactorizable<LXiStream::SInterfaces::AudioDecoder>;
-template class LXiCore::SFactorizable<LXiStream::SInterfaces::VideoDecoder>;
-template class LXiCore::SFactorizable<LXiStream::SInterfaces::DataDecoder>;
-template class LXiCore::SFactorizable<LXiStream::SInterfaces::AudioEncoder>;
-template class LXiCore::SFactorizable<LXiStream::SInterfaces::VideoEncoder>;
-template class LXiCore::SFactorizable<LXiStream::SInterfaces::AudioInput>;
-template class LXiCore::SFactorizable<LXiStream::SInterfaces::AudioOutput>;
-template class LXiCore::SFactorizable<LXiStream::SInterfaces::AudioResampler>;
-template class LXiCore::SFactorizable<LXiStream::SInterfaces::VideoDeinterlacer>;
-template class LXiCore::SFactorizable<LXiStream::SInterfaces::VideoInput>;
-template class LXiCore::SFactorizable<LXiStream::SInterfaces::VideoResizer>;
 
 namespace LXiStream {
 namespace SInterfaces {
+
+S_FACTORIZABLE_INSTANCE(FormatProber);
+S_FACTORIZABLE_INSTANCE(BufferReader);
+S_FACTORIZABLE_INSTANCE(BufferWriter);
+S_FACTORIZABLE_INSTANCE(AudioDecoder);
+S_FACTORIZABLE_INSTANCE(VideoDecoder);
+S_FACTORIZABLE_INSTANCE(DataDecoder);
+S_FACTORIZABLE_INSTANCE(AudioEncoder);
+S_FACTORIZABLE_INSTANCE(VideoEncoder);
+S_FACTORIZABLE_INSTANCE(VideoFormatConverter);
+S_FACTORIZABLE_INSTANCE(AudioInput);
+S_FACTORIZABLE_INSTANCE(AudioOutput);
+S_FACTORIZABLE_INSTANCE(AudioResampler);
+S_FACTORIZABLE_INSTANCE(VideoDeinterlacer);
+S_FACTORIZABLE_INSTANCE(VideoInput);
+S_FACTORIZABLE_INSTANCE(VideoResizer);
 
 const unsigned FormatProber::defaultProbeSize = 16384;
 
@@ -57,7 +57,7 @@ QList<FormatProber *> FormatProber::create(QObject *parent)
 BufferReader * BufferReader::create(QObject *parent, const QString &format, bool nonNull)
 {
   BufferReader * bufferReader =
-      SFactorizable<BufferReader>::create(parent, format, nonNull);
+      static_cast<BufferReader *>(factory().createObject(staticMetaObject.className(), parent, format, nonNull));
 
   if (bufferReader)
   if (!bufferReader->openFormat(format))
@@ -88,7 +88,7 @@ BufferReaderNode::~BufferReaderNode()
 BufferWriter * BufferWriter::create(QObject *parent, const QString &format, bool nonNull)
 {
   BufferWriter * bufferWriter =
-      SFactorizable<BufferWriter>::create(parent, format, nonNull);
+      static_cast<BufferWriter *>(factory().createObject(staticMetaObject.className(), parent, format, nonNull));
 
   if (bufferWriter)
   if (!bufferWriter->openFormat(format))
@@ -116,7 +116,7 @@ BufferWriter * BufferWriter::create(QObject *parent, const QString &format, bool
 AudioDecoder * AudioDecoder::create(QObject *parent, const SAudioCodec &codec, Flags flags, bool nonNull)
 {
   AudioDecoder * audioDecoder =
-      SFactorizable<AudioDecoder>::create(parent, codec.codec(), nonNull);
+      static_cast<AudioDecoder *>(factory().createObject(staticMetaObject.className(), parent, codec.codec(), nonNull));
 
   if (audioDecoder)
   if (!audioDecoder->openCodec(codec, flags))
@@ -144,7 +144,7 @@ AudioDecoder * AudioDecoder::create(QObject *parent, const SAudioCodec &codec, F
 VideoDecoder * VideoDecoder::create(QObject *parent, const SVideoCodec &codec, Flags flags, bool nonNull)
 {
   VideoDecoder * videoDecoder =
-      SFactorizable<VideoDecoder>::create(parent, codec.codec(), nonNull);
+      static_cast<VideoDecoder *>(factory().createObject(staticMetaObject.className(), parent, codec.codec(), nonNull));
 
   if (videoDecoder)
   if (!videoDecoder->openCodec(codec, flags))
@@ -172,7 +172,7 @@ VideoDecoder * VideoDecoder::create(QObject *parent, const SVideoCodec &codec, F
 DataDecoder * DataDecoder::create(QObject *parent, const SDataCodec &codec, Flags flags, bool nonNull)
 {
   DataDecoder * dataDecoder =
-      SFactorizable<DataDecoder>::create(parent, codec.codec(), nonNull);
+      static_cast<DataDecoder *>(factory().createObject(staticMetaObject.className(), parent, codec.codec(), nonNull));
 
   if (dataDecoder)
   if (!dataDecoder->openCodec(codec, flags))
@@ -200,7 +200,7 @@ DataDecoder * DataDecoder::create(QObject *parent, const SDataCodec &codec, Flag
 AudioEncoder * AudioEncoder::create(QObject *parent, const SAudioCodec &codec, Flags flags, bool nonNull)
 {
   AudioEncoder * audioEncoder =
-      SFactorizable<AudioEncoder>::create(parent, codec.codec(), nonNull);
+      static_cast<AudioEncoder *>(factory().createObject(staticMetaObject.className(), parent, codec.codec(), nonNull));
 
   if (audioEncoder)
   if (!audioEncoder->openCodec(codec, flags))
@@ -228,7 +228,7 @@ AudioEncoder * AudioEncoder::create(QObject *parent, const SAudioCodec &codec, F
 VideoEncoder * VideoEncoder::create(QObject *parent, const SVideoCodec &codec, Flags flags, bool nonNull)
 {
   VideoEncoder * videoEncoder =
-      SFactorizable<VideoEncoder>::create(parent, codec.codec(), nonNull);
+      static_cast<VideoEncoder *>(factory().createObject(staticMetaObject.className(), parent, codec.codec(), nonNull));
 
   if (videoEncoder)
   if (!videoEncoder->openCodec(codec, flags))
@@ -258,7 +258,7 @@ VideoFormatConverter * VideoFormatConverter::create(QObject *parent, const SVide
 {
   const QString scheme = QString(srcFormat.formatName()) + "->" + QString(dstFormat.formatName());
   VideoFormatConverter * videoFormatConverter =
-      SFactorizable<VideoFormatConverter>::create(parent, scheme, nonNull);
+      static_cast<VideoFormatConverter *>(factory().createObject(staticMetaObject.className(), parent, scheme, nonNull));
 
   if (videoFormatConverter)
   if (!videoFormatConverter->openFormat(srcFormat, dstFormat))

@@ -22,12 +22,13 @@
 
 #include <QtCore>
 #include <LXiCore>
+#include "export.h"
 
 namespace LXiStream {
 
 class STimer;
 
-class S_DSO_PUBLIC SGraph : public QThread,
+class LXISTREAM_PUBLIC SGraph : public QThread,
                             public SScheduler
 {
 Q_OBJECT
@@ -36,7 +37,7 @@ public:
 
   /*! The Node abstract class is used for processing nodes.
    */
-  class S_DSO_PUBLIC Node : public SScheduler::Proxy
+  class LXISTREAM_PUBLIC Node : public SScheduler::Proxy
   {
   public:
     explicit                      Node(SGraph *);
@@ -45,7 +46,7 @@ public:
 
   /*! The SinkNode abstract class is used for sink nodes.
    */
-  class S_DSO_PUBLIC SinkNode : public SScheduler::Proxy
+  class LXISTREAM_PUBLIC SinkNode : public SScheduler::Proxy
   {
   public:
     explicit                      SinkNode(SGraph *);
@@ -57,7 +58,7 @@ public:
 
   /*! The SourceNode abstract class is used for source nodes.
    */
-  class S_DSO_PUBLIC SourceNode : public SScheduler::Proxy
+  class LXISTREAM_PUBLIC SourceNode : public SScheduler::Proxy
   {
   public:
     explicit                      SourceNode(SGraph *);

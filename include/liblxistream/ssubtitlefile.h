@@ -23,6 +23,7 @@
 #include <LXiCore>
 #include "sdatacodec.h"
 #include "sencodeddatabuffer.h"
+#include "export.h"
 
 namespace LXiStream {
 
@@ -30,7 +31,7 @@ namespace LXiStream {
     internally by SMediaInfo and SFileInputNode to transparently support
     separate subtitle files (they are added as separate data streams).
  */
-class S_DSO_PUBLIC SSubtitleFile
+class LXISTREAM_PUBLIC SSubtitleFile
 {
 public:
                                 SSubtitleFile(const QString &name);

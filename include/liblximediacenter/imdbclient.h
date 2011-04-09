@@ -23,11 +23,11 @@
 #include <QtCore>
 #include <QtNetwork>
 #include <LXiStream>
+#include "export.h"
 
 namespace LXiMediaCenter {
 
-
-class S_DSO_PUBLIC ImdbClient : public QObject
+class LXIMEDIACENTER_PUBLIC ImdbClient : public QObject
 {
 Q_OBJECT
 public:
@@ -86,26 +86,25 @@ protected:
   virtual void                  customEvent(QEvent *);
 
 private:
-  void                          importIMDBDatabase(void);
+  internal void                 importIMDBDatabase(void);
 
-  static Entry                  decodeEntry(const QByteArray &);
+  internal static Entry         decodeEntry(const QByteArray &);
 
 private slots:
-  void                          tryMirror(void);
-  void                          finished(void);
-  void                          error(void);
+  internal void                 tryMirror(void);
+  internal void                 finished(void);
+  internal void                 error(void);
 
 private:
-  static const char     * const mirrors[];
-  static const QEvent::Type     tryMirrorEventType;
-  static const QEvent::Type     readMoviesListEventType;
-  static const QEvent::Type     readPlotListEventType;
-  static const QEvent::Type     readRatingListEventType;
+  internal static const char * const mirrors[];
+  internal static const QEvent::Type tryMirrorEventType;
+  internal static const QEvent::Type readMoviesListEventType;
+  internal static const QEvent::Type readPlotListEventType;
+  internal static const QEvent::Type readRatingListEventType;
 
   struct Data;
   Data                  * const d;
 };
-
 
 } // End of namespace
 

@@ -23,10 +23,11 @@
 #include <QtCore>
 #include <LXiCore>
 #include "stuner.h"
+#include "export.h"
 
 namespace LXiStream {
 
-class S_DSO_PUBLIC SAnalogTuner : public STuner
+class LXISTREAM_PUBLIC SAnalogTuner : public STuner
 {
 Q_OBJECT
 Q_PROPERTY(AudioStandard audioStandard READ audioStandard WRITE setAudioStandard)

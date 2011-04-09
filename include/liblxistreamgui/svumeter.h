@@ -5,10 +5,11 @@
 #include <QtGui>
 #include <LXiCore>
 #include <LXiStream>
+#include "export.h"
 
 namespace LXiStreamGui {
 
-class S_DSO_PUBLIC SVuMeter : public QFrame
+class LXISTREAMGUI_PUBLIC SVuMeter : public QFrame
 {
 Q_OBJECT
 public:
@@ -28,10 +29,10 @@ protected:
   virtual void                  timerEvent(QTimerEvent *);
 
 private:
-  QVector<int>                  determinePos(const QVector<qreal> &, const QVector< QQueue<qreal> > &) const;
+  internal QVector<int>         determinePos(const QVector<qreal> &, const QVector< QQueue<qreal> > &) const;
 
 private:
-  static const qreal            maxRms;
+  internal static const qreal   maxRms;
 
   mutable QMutex                mutex;
   bool                          slowUpdate;

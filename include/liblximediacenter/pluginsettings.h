@@ -22,10 +22,11 @@
 
 #include <QtCore>
 #include <LXiCore>
+#include "export.h"
 
 namespace LXiMediaCenter {
 
-class S_DSO_PUBLIC PluginSettings : public QSettings
+class LXIMEDIACENTER_PUBLIC PluginSettings : public QSettings
 {
 public:
   explicit                      PluginSettings(const QString &name);

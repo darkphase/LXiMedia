@@ -26,14 +26,14 @@
 #include "../spixels.h"
 #include "../ssubtitlebuffer.h"
 #include "../svideobuffer.h"
+#include "../export.h"
 
 namespace LXiStream {
 
-class S_DSO_PUBLIC SSubtitleRenderNode : public QObject,
-                                         public SGraph::Node
+class LXISTREAM_PUBLIC SSubtitleRenderNode : public QObject,
+                                             public SGraph::Node
 {
 Q_OBJECT
-Q_PROPERTY(unsigned fontRatio READ fontRatio WRITE setFontRatio)
 private:
   struct                        FontLoader { FontLoader(void); ~FontLoader(); };
   struct                        Lines;
@@ -57,14 +57,14 @@ public:
   static SVideoBuffer           renderSubtitles(const SVideoBuffer &, const QStringList &, unsigned ratio = 16);
 
 private:
-  void                          processTask(const SSubtitleBuffer &);
-  void                          processTask(const SVideoBuffer &);
-  static void                   renderSubtitles(SVideoBuffer &, const Lines *, const Char * const *);
+  internal void                 processTask(const SSubtitleBuffer &);
+  internal void                 processTask(const SVideoBuffer &);
+  internal static void          renderSubtitles(SVideoBuffer &, const Lines *, const Char * const *);
 
 private:
-  static const unsigned char    subFontsData[];
-  static QMap<int, QVector<Char *> > characters;
-  static FontLoader             fontLoader;
+  internal static const unsigned char subFontsData[];
+  internal static QMap<int, QVector<Char *> > characters;
+  internal static FontLoader    fontLoader;
 
   struct Data;
   Data                  * const d;

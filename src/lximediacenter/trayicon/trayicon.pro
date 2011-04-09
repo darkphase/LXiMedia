@@ -12,6 +12,7 @@ RCC_DIR = $${OBJECTS_DIR}
 INCLUDEPATH += $${LXIMEDIA_DIR}/include/ $${LXIMEDIA_DIR}/include/liblximediacenter
 DEPENDPATH += $${LXIMEDIA_DIR}/include/ $${LXIMEDIA_DIR}/include/liblximediacenter
 DEFINES += TRAYICON_ONLY
+DEFINES += S_BUILD_LIBLXIMEDIACENTER
 
 SOURCES += ../liblximediacenter/globalsettings.cpp
 HEADERS += $${LXIMEDIA_DIR}/include/liblximediacenter/globalsettings.h

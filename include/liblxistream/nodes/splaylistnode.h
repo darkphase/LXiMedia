@@ -25,14 +25,15 @@
 #include "sioinputnode.h"
 #include "../sgraph.h"
 #include "../smediainfo.h"
+#include "../export.h"
 
 namespace LXiStream {
 
 class SFileInputNode;
 
-class S_DSO_PUBLIC SPlaylistNode : public QObject,
-                                   public SGraph::SourceNode,
-                                   public SInterfaces::BufferReaderNode
+class LXISTREAM_PUBLIC SPlaylistNode : public QObject,
+                                       public SGraph::SourceNode,
+                                       public SInterfaces::BufferReaderNode
 {
 Q_OBJECT
 public:
@@ -66,11 +67,11 @@ signals:
   void                          closed(const QString &, quint16);
 
 private:
-  SFileInputNode              * openFile(const QString &, quint16);
-  void                          openNext(void);
+  internal SFileInputNode     * openFile(const QString &, quint16);
+  internal void                 openNext(void);
 
 private slots:
-  void                          closeFile(void);
+  internal void                 closeFile(void);
 
 private:
   struct Data;

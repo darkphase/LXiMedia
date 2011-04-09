@@ -23,10 +23,11 @@
 #include <QtCore>
 #include <LXiCore>
 #include "shttpengine.h"
+#include "export.h"
 
 namespace LXiServer {
 
-class S_DSO_PUBLIC SSandboxClient : public SHttpClientEngine
+class LXISERVER_PUBLIC SSandboxClient : public SHttpClientEngine
 {
 Q_OBJECT
 public:
@@ -55,9 +56,9 @@ signals:
   void                          consoleLine(const QString &);
 
 private slots:
-  void                          openSockets(void);
-  void                          stop(void);
-  void                          finished(void);
+  internal void                 openSockets(void);
+  internal void                 stop(void);
+  internal void                 finished(void);
 
 private:
   struct Private;

@@ -23,6 +23,7 @@
 #include <QtCore>
 #include <QtGlobal>
 #include <LXiCore>
+#include "export.h"
 
 namespace LXiStream {
 
@@ -38,7 +39,7 @@ class SSize; // For QtCreator autocompletion.
           exception of the absolute* methods that do a floating point
           computation.
  */
-class S_DSO_PUBLIC SSize
+class LXISTREAM_PUBLIC SSize
 {
 public:
   inline                        SSize(void) : w(0), h(0), a(1.0f)               { }

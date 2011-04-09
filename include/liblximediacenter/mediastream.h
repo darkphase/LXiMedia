@@ -25,10 +25,11 @@
 #include <LXiServer>
 #include <LXiStream>
 #include "backendserver.h"
+#include "export.h"
 
 namespace LXiMediaCenter {
 
-class S_DSO_PUBLIC MediaStream : public SGraph
+class LXIMEDIACENTER_PUBLIC MediaStream : public SGraph
 {
 Q_OBJECT
 public:
@@ -52,7 +53,7 @@ protected:
   SIOOutputNode                 output;
 };
 
-class S_DSO_PUBLIC MediaTranscodeStream : public MediaStream
+class LXIMEDIACENTER_PUBLIC MediaTranscodeStream : public MediaStream
 {
 public:
   explicit                      MediaTranscodeStream(void);

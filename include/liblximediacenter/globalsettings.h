@@ -22,13 +22,15 @@
 
 #include <QtCore>
 #include <QtNetwork>
+#include <LXiCore>
 #ifndef TRAYICON_ONLY
 #include <LXiStream>
 #endif
+#include "export.h"
 
 namespace LXiMediaCenter {
 
-class S_DSO_PUBLIC GlobalSettings : public QSettings
+class LXIMEDIACENTER_PUBLIC GlobalSettings : public QSettings
 {
 public:
 #ifndef TRAYICON_ONLY
@@ -55,22 +57,22 @@ public:
                                 GlobalSettings(void);
 
 public:
-  static QList<QHostAddress>    defaultBackendInterfaces(void) __attribute__((pure));
-  static quint16                defaultBackendHttpPort(void) __attribute__((pure));
+  pure static QList<QHostAddress> defaultBackendInterfaces(void);
+  pure static quint16           defaultBackendHttpPort(void);
 
-  static QUuid                  serverUuid(void) __attribute__((pure));
-  static QString                settingsFile(void) __attribute__((pure));
-  static QString                databaseFile(void) __attribute__((pure));
-  static QString                applicationDataDir(void) __attribute__((pure));
+  pure static QUuid             serverUuid(void);
+  pure static QString           settingsFile(void);
+  pure static QString           databaseFile(void);
+  pure static QString           applicationDataDir(void);
 
 #ifndef TRAYICON_ONLY
-  static QList<TranscodeSize>   allTranscodeSizes(void) __attribute__((pure));
-  static QString                defaultTranscodeSizeName(void) __attribute__((pure));
-  static QString                defaultTranscodeCropName(void) __attribute__((pure));
-  static QString                defaultEncodeModeName(void) __attribute__((pure));
-  static QList<TranscodeChannel> allTranscodeChannels(void) __attribute__((pure));
-  static QString                defaultTranscodeChannelName(void) __attribute__((pure));
-  static QString                defaultTranscodeMusicChannelName(void) __attribute__((pure));
+  pure static QList<TranscodeSize> allTranscodeSizes(void);
+  pure static QString           defaultTranscodeSizeName(void);
+  pure static QString           defaultTranscodeCropName(void);
+  pure static QString           defaultEncodeModeName(void);
+  pure static QList<TranscodeChannel> allTranscodeChannels(void);
+  pure static QString           defaultTranscodeChannelName(void);
+  pure static QString           defaultTranscodeMusicChannelName(void);
 #endif
 };
 

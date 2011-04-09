@@ -24,16 +24,16 @@
 #include <LXiCore>
 #include "../sgraph.h"
 #include "../sinterfaces.h"
+#include "../export.h"
 
 namespace LXiStream {
 
 class SSubtitleBuffer;
 
-class S_DSO_PUBLIC SDataDecoderNode : public QObject,
-                                      public SGraph::Node
+class LXISTREAM_PUBLIC SDataDecoderNode : public QObject,
+                                          public SGraph::Node
 {
 Q_OBJECT
-Q_PROPERTY(LXiStream::SInterfaces::DataDecoder::Flags flags READ flags WRITE setFlags)
 public:
   typedef SInterfaces::DataDecoder::Flags Flags;
 
@@ -54,7 +54,7 @@ signals:
   void                          output(const SSubpictureBuffer &);
 
 private:
-  void                          processTask(const SEncodedDataBuffer &, SInterfaces::DataDecoder *decoder);
+  internal void                 processTask(const SEncodedDataBuffer &, SInterfaces::DataDecoder *decoder);
 
 private:
   struct Data;

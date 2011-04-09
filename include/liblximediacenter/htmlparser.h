@@ -22,10 +22,11 @@
 
 #include <QtCore>
 #include <LXiCore>
+#include "export.h"
 
 namespace LXiMediaCenter {
 
-class S_DSO_PUBLIC HtmlParser
+class LXIMEDIACENTER_PUBLIC HtmlParser
 {
 public:
   struct Palette
@@ -67,7 +68,7 @@ protected:
   static QByteArray             parseAmp(QByteArray);
 
 private:
-  static Palette              & palette(void) __attribute__((pure));
+  pure internal static Palette & palette(void);
   
 private:
   QMap<QByteArray, QByteArray>  fields;

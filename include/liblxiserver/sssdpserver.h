@@ -24,12 +24,13 @@
 #include <QtNetwork>
 #include <LXiCore>
 #include "sssdpclient.h"
+#include "export.h"
 
 namespace LXiServer {
 
 class SHttpServer;
 
-class S_DSO_PUBLIC SSsdpServer : public SSsdpClient
+class LXISERVER_PUBLIC SSsdpServer : public SSsdpClient
 {
 Q_OBJECT
 public:
@@ -49,7 +50,7 @@ protected:
   void                          sendSearchResponse(SsdpClientInterface *, const QString &st, const QString &url, const QHostAddress &, quint16) const;
 
 private slots:
-  void                          publishServices(void);
+  internal void                 publishServices(void);
 
 private:
   struct Private;

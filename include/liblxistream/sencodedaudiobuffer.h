@@ -25,12 +25,13 @@
 #include "saudiocodec.h"
 #include "sbuffer.h"
 #include "stime.h"
+#include "export.h"
 
 namespace LXiStream {
 
 /*! This class represents a buffer containing encoded audio data.
  */
-class S_DSO_PUBLIC SEncodedAudioBuffer : public SBuffer
+class LXISTREAM_PUBLIC SEncodedAudioBuffer : public SBuffer
 {
 public:
   inline                        SEncodedAudioBuffer(void) : SBuffer()     { }

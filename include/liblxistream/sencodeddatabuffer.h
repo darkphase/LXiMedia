@@ -25,12 +25,13 @@
 #include "sdatacodec.h"
 #include "sbuffer.h"
 #include "stime.h"
+#include "export.h"
 
 namespace LXiStream {
 
 /*! This class represents a buffer containing encoded misc data.
  */
-class S_DSO_PUBLIC SEncodedDataBuffer : public SBuffer
+class LXISTREAM_PUBLIC SEncodedDataBuffer : public SBuffer
 {
 public:
   inline                        SEncodedDataBuffer(void) : SBuffer()     { }

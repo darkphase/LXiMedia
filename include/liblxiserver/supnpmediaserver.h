@@ -24,13 +24,14 @@
 #include <QtNetwork>
 #include <LXiCore>
 #include "shttpserver.h"
+#include "export.h"
 
 namespace LXiServer {
 
 class SSsdpServer;
 
-class S_DSO_PUBLIC SUPnPMediaServer : public QObject,
-                                      protected SHttpServer::Callback
+class LXISERVER_PUBLIC SUPnPMediaServer : public QObject,
+                                          protected SHttpServer::Callback
 {
 Q_OBJECT
 public:
@@ -61,7 +62,7 @@ public:
   static const char     * const dlnaDeviceNS;
 
 private:
-  static const char     * const deviceType S_DSO_PRIVATE;
+  internal static const char * const deviceType;
 
   struct Data;
   Data                  * const d;

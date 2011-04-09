@@ -24,16 +24,16 @@
 #include <LXiCore>
 #include "../sinterfaces.h"
 #include "../sgraph.h"
+#include "../export.h"
 
 namespace LXiStream {
 
 class SAudioBuffer;
 
-class S_DSO_PUBLIC SAudioDecoderNode : public QObject,
-                                       public SGraph::Node
+class LXISTREAM_PUBLIC SAudioDecoderNode : public QObject,
+                                           public SGraph::Node
 {
 Q_OBJECT
-Q_PROPERTY(LXiStream::SInterfaces::AudioDecoder::Flags flags READ flags WRITE setFlags)
 public:
   typedef SInterfaces::AudioDecoder::Flags Flags;
 
@@ -53,7 +53,7 @@ signals:
   void                          output(const SAudioBuffer &);
 
 private:
-  void                          processTask(const SEncodedAudioBuffer &, SInterfaces::AudioDecoder *decoder);
+  internal void                 processTask(const SEncodedAudioBuffer &, SInterfaces::AudioDecoder *decoder);
 
 private:
   struct Data;

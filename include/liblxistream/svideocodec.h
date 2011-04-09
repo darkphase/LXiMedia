@@ -24,6 +24,7 @@
 #include <LXiCore>
 #include "sinterval.h"
 #include "ssize.h"
+#include "export.h"
 
 namespace LXiStream {
 
@@ -31,7 +32,7 @@ namespace LXiStream {
 
     \sa SAudioCodec, SDataCodec
  */
-class S_DSO_PUBLIC SVideoCodec : public SSerializable
+class LXISTREAM_PUBLIC SVideoCodec : public SSerializable
 {
 public:
                                 SVideoCodec(void);

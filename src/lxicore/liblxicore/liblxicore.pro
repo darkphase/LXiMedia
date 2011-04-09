@@ -18,12 +18,12 @@ linux-g++|win32-g++ {
 
 # Files
 HEADERS += $${LXIMEDIA_DIR}/include/LXiCore \
+    $${LXIMEDIA_DIR}/include/liblxicore/export.h \
     $${LXIMEDIA_DIR}/include/liblxicore/sapplication.h \
     $${LXIMEDIA_DIR}/include/liblxicore/sdaemon.h \
     $${LXIMEDIA_DIR}/include/liblxicore/sfactory.h \
-    $${LXIMEDIA_DIR}/include/liblxicore/sfactory.hpp \
-    $${LXIMEDIA_DIR}/include/liblxicore/sglobal.h \
     $${LXIMEDIA_DIR}/include/liblxicore/smodule.h \
+    $${LXIMEDIA_DIR}/include/liblxicore/splatform.h \
     $${LXIMEDIA_DIR}/include/liblxicore/sscheduler.h \
     $${LXIMEDIA_DIR}/include/liblxicore/sscheduler.hpp \
     $${LXIMEDIA_DIR}/include/liblxicore/sserializable.h \

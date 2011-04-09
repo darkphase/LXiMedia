@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010 by A.J. Admiraal                                   *
+ *   Copyright (C) 2011 by A.J. Admiraal                                   *
  *   code@admiraal.dds.nl                                                  *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -17,17 +17,22 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXICORE_SGLOBAL_H
-#define LXICORE_SGLOBAL_H
+#ifndef LXISTREAMGUI_EXPORT_H
+#define LXISTREAMGUI_EXPORT_H
 
 #if defined(Q_OS_UNIX) && defined(__GNUC__)
-# define S_DSO_PUBLIC  __attribute__((visibility("default")))
-# define S_DSO_PRIVATE __attribute__((visibility("hidden")))
-# define S_FUNC_PURE   __attribute__((pure))
+# define LXISTREAMGUI_PUBLIC    __attribute__((visibility("default")))
+
+#elif defined(Q_OS_WIN) && defined(__GNUC__)
+# if defined(S_BUILD_LIBLXISTREAMGUI)
+#  define LXISTREAMGUI_PUBLIC   __attribute__((dllexport))
+# else
+#  define LXISTREAMGUI_PUBLIC   __attribute__((dllimport))
+# endif
+
 #else
-# define S_DSO_PUBLIC
-# define S_DSO_PRIVATE
-# define S_FUNC_PURE
+# define LXISTREAMGUI_PUBLIC
+
 #endif
 
 #endif

@@ -18,11 +18,10 @@
  ***************************************************************************/
 
 #include "backendsandbox.h"
-#include <liblxicore/sfactory.hpp>
-
-template class LXiCore::SFactorizable<LXiMediaCenter::BackendSandbox>;
 
 namespace LXiMediaCenter {
+
+S_FACTORIZABLE_INSTANCE(BackendSandbox)
 
 QList<BackendSandbox *> BackendSandbox::create(QObject *parent)
 {

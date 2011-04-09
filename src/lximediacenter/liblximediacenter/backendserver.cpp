@@ -18,11 +18,10 @@
  ***************************************************************************/
 
 #include "backendserver.h"
-#include <liblxicore/sfactory.hpp>
-
-template class LXiCore::SFactorizable<LXiMediaCenter::BackendServer>;
 
 namespace LXiMediaCenter {
+
+S_FACTORIZABLE_INSTANCE(BackendServer)
 
 struct BackendServer::Data
 {
