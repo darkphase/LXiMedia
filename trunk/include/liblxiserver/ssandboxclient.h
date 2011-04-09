@@ -60,6 +60,9 @@ private slots:
   __internal void               stop(void);
   __internal void               finished(void);
 
+  __internal void               socketOpened(QIODevice *);
+  __internal void               socketClosed(void);
+
 private:
   struct Private;
   Private               * const p;
