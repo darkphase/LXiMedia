@@ -31,6 +31,10 @@ namespace LXiCore {
 class SFactory;
 class SModule;
 
+/*! The SApplication class initializes LXiMedia. An instance of SApplication is
+    required to use most of the LXiMedia classes (unless documented otherwise).
+    Once the instance is destroyed LXiMedia is uninitialized.
+ */
 class S_DSO_PUBLIC SApplication : public QObject
 {
 Q_OBJECT
