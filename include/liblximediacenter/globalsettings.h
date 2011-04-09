@@ -57,22 +57,22 @@ public:
                                 GlobalSettings(void);
 
 public:
-  pure static QList<QHostAddress> defaultBackendInterfaces(void);
-  pure static quint16           defaultBackendHttpPort(void);
+  __pure static QList<QHostAddress> defaultBackendInterfaces(void);
+  __pure static quint16         defaultBackendHttpPort(void);
 
-  pure static QUuid             serverUuid(void);
-  pure static QString           settingsFile(void);
-  pure static QString           databaseFile(void);
-  pure static QString           applicationDataDir(void);
+  __pure static QUuid           serverUuid(void);
+  __pure static QString         settingsFile(void);
+  __pure static QString         databaseFile(void);
+  __pure static QString         applicationDataDir(void);
 
 #ifndef TRAYICON_ONLY
-  pure static QList<TranscodeSize> allTranscodeSizes(void);
-  pure static QString           defaultTranscodeSizeName(void);
-  pure static QString           defaultTranscodeCropName(void);
-  pure static QString           defaultEncodeModeName(void);
-  pure static QList<TranscodeChannel> allTranscodeChannels(void);
-  pure static QString           defaultTranscodeChannelName(void);
-  pure static QString           defaultTranscodeMusicChannelName(void);
+  __pure static QList<TranscodeSize> allTranscodeSizes(void);
+  __pure static QString         defaultTranscodeSizeName(void);
+  __pure static QString         defaultTranscodeCropName(void);
+  __pure static QString         defaultEncodeModeName(void);
+  __pure static QList<TranscodeChannel> allTranscodeChannels(void);
+  __pure static QString         defaultTranscodeChannelName(void);
+  __pure static QString         defaultTranscodeMusicChannelName(void);
 #endif
 };
 

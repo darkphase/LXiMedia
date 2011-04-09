@@ -61,11 +61,11 @@ signals:
   void                          output(const SAudioBuffer &);
 
 private:
-  internal void                 processTask(const SAudioBuffer &);
+  __internal void               processTask(const SAudioBuffer &);
 
-  internal static Channel       getChannel(Mode, unsigned);
-  internal static Mode          getMode(unsigned);
-  internal void                 prepareMatrix(unsigned);
+  __internal static Channel     getChannel(Mode, unsigned);
+  __internal static Mode        getMode(unsigned);
+  __internal void               prepareMatrix(unsigned);
 
 private:
   struct Data;

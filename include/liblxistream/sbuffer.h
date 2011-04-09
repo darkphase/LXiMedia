@@ -62,10 +62,10 @@ public:
     virtual                     ~Memory();
 
   private:
-    internal                    Memory(void);
-    internal explicit           Memory(int capacity);
-    internal                    Memory(const char *data, int size);
-    internal                    Memory(const QByteArray &data);
+                                Memory(void);
+    explicit                    Memory(int capacity);
+                                Memory(const char *data, int size);
+                                Memory(const QByteArray &data);
 
   public:
     /*! Unique identifier of the memory block. This ID can be used if two
@@ -150,7 +150,7 @@ public: // Alignment methods
   static const int              numPaddingBytes;
 
 private:
-  internal static QAtomicInt    uidCounter;
+  __internal static QAtomicInt  uidCounter;
 
   MemoryPtr                     d;
 };

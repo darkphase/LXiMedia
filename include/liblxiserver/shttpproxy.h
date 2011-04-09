@@ -45,10 +45,10 @@ signals:
   void                          disconnected(void);
 
 private slots:
-  internal void                 processData(void);
+  __internal void               processData(void);
 
 private:
-  internal static const int     outBufferSize;
+  __internal static const int   outBufferSize;
 
   struct Data;
   Data                  * const d;

@@ -44,11 +44,11 @@ public: // From SInterfaces::SourceNode
 public: // From SInterfaces::BufferReaderNode
   virtual bool                  setPosition(STime);
 
-  virtual QList<DataStreamInfo>  dataStreams(void) const;
+  virtual QList<DataStreamInfo> dataStreams(void) const;
   virtual void                  selectStreams(const QList<StreamId> &);
 
 private slots:
-  internal void                 parseSubtitle(const SEncodedVideoBuffer &);
+  __internal void               parseSubtitle(const SEncodedVideoBuffer &);
 
 private:
   struct Data;

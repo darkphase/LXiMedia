@@ -58,14 +58,14 @@ public:
   static void                   commit(void);
 
 private:
-  pure internal static QMutex & mutex(void);
-  pure internal static QSqlDatabase & database(void);
+  __pure __internal static QMutex & mutex(void);
+  __pure __internal static QSqlDatabase & database(void);
 
-  internal static void          handleError(const ::QSqlQuery &, const QString & = QString::null);
+  __internal static void        handleError(const ::QSqlQuery &, const QString & = QString::null);
 
 private:
-  internal                      Database(void);
-  internal                      ~Database();
+  __internal                    Database(void);
+  __internal                    ~Database();
 };
 
 } // End of namespace

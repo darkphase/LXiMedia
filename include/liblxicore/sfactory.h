@@ -146,7 +146,7 @@ QObject * SFactory::createFunc(const QString &scheme, QObject *parent)
     } \
   \
   private: \
-    pure static ::LXiCore::SFactory & factory(void);
+    __pure static ::LXiCore::SFactory & factory(void);
 
 #define S_FACTORIZABLE(_interface) \
   public: \

@@ -127,7 +127,7 @@ public:
     inline void                 setResponse(Status status)                      { setStatus(status); }
     inline void                 setResponse(Status status, const QByteArray &version) { setStatus(status); setVersion(version); }
 
-    pure static const char    * statusText(int);
+    __pure static const char  * statusText(int);
   };
 
   class LXISERVER_PUBLIC RequestMessage : public RequestHeader
@@ -193,7 +193,7 @@ public:
   virtual const char          * senderType(void) const = 0;
   virtual const QString       & senderId(void) const = 0;
 
-  pure static const char      * toMimeType(const QString &fileName);
+  __pure static const char    * toMimeType(const QString &fileName);
 
 public:
   static const char     * const httpVersion;

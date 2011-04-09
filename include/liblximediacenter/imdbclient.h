@@ -86,21 +86,21 @@ protected:
   virtual void                  customEvent(QEvent *);
 
 private:
-  internal void                 importIMDBDatabase(void);
+  __internal void               importIMDBDatabase(void);
 
-  internal static Entry         decodeEntry(const QByteArray &);
+  __internal static Entry       decodeEntry(const QByteArray &);
 
 private slots:
-  internal void                 tryMirror(void);
-  internal void                 finished(void);
-  internal void                 error(void);
+  __internal void               tryMirror(void);
+  __internal void               finished(void);
+  __internal void               error(void);
 
 private:
-  internal static const char * const mirrors[];
-  internal static const QEvent::Type tryMirrorEventType;
-  internal static const QEvent::Type readMoviesListEventType;
-  internal static const QEvent::Type readPlotListEventType;
-  internal static const QEvent::Type readRatingListEventType;
+  __internal static const char * const mirrors[];
+  __internal static const QEvent::Type tryMirrorEventType;
+  __internal static const QEvent::Type readMoviesListEventType;
+  __internal static const QEvent::Type readPlotListEventType;
+  __internal static const QEvent::Type readRatingListEventType;
 
   struct Data;
   Data                  * const d;

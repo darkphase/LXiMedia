@@ -53,8 +53,8 @@ public:
   inline const SSubpictureBuffer &subpictureBuffer(void) const                  { return *static_cast<const SSubpictureBuffer *>(d.buffer); }
 
 private:
-  internal void                 assign(const SDataBuffer &);
-  internal void                 destroy(void);
+  void                          assign(const SDataBuffer &);
+  void                          destroy(void);
 
 private:
   struct

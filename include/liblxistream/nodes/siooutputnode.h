@@ -63,7 +63,7 @@ protected: // From SInterfaces::BufferReader::WriteCallback
   virtual void                  write(const uchar *, qint64);
 
 private:
-  internal void                 blockUntil(STime);
+  __internal void               blockUntil(STime);
 
 public:
   static const int              outBufferSize;

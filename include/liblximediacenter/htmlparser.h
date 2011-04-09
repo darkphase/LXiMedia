@@ -68,7 +68,7 @@ protected:
   static QByteArray             parseAmp(QByteArray);
 
 private:
-  pure internal static Palette & palette(void);
+  __pure __internal static Palette & palette(void);
   
 private:
   QMap<QByteArray, QByteArray>  fields;
