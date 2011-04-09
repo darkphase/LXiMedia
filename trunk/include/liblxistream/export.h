@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010 by A.J. Admiraal                                   *
+ *   Copyright (C) 2011 by A.J. Admiraal                                   *
  *   code@admiraal.dds.nl                                                  *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -17,45 +17,22 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXISTREAM_SVIDEOBOXNODE_H
-#define LXISTREAM_SVIDEOBOXNODE_H
+#ifndef LXISTREAM_EXPORT_H
+#define LXISTREAM_EXPORT_H
 
-#include <QtCore>
-#include <LXiCore>
-#include "../sgraph.h"
-#include "../ssize.h"
-#include "../svideobuffer.h"
-#include "../export.h"
+#if defined(Q_OS_UNIX) && defined(__GNUC__)
+# define LXISTREAM_PUBLIC       __attribute__((visibility("default")))
 
-namespace LXiStream {
+#elif defined(Q_OS_WIN) && defined(__GNUC__)
+# if defined(S_BUILD_LIBLXISTREAM)
+#  define LXISTREAM_PUBLIC      __attribute__((dllexport))
+# else
+#  define LXISTREAM_PUBLIC      __attribute__((dllimport))
+# endif
 
-class SVideoBuffer;
+#else
+# define LXISTREAM_PUBLIC
 
-class LXISTREAM_PUBLIC SVideoBoxNode : public QObject,
-                                       public SGraph::Node
-{
-Q_OBJECT
-public:
-  explicit                      SVideoBoxNode(SGraph *);
-  virtual                       ~SVideoBoxNode();
-
-  SSize                         size(void) const;
-  void                          setSize(const SSize &s);
-
-public slots:
-  void                          input(const SVideoBuffer &);
-
-signals:
-  void                          output(const SVideoBuffer &);
-
-private:
-  internal void                 processTask(const SVideoBuffer &);
-
-private:
-  struct Data;
-  Data                  * const d;
-};
-
-} // End of namespace
+#endif
 
 #endif

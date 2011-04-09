@@ -23,6 +23,7 @@
 #include <QtGlobal>
 #include <LXiCore>
 #include "sinterval.h"
+#include "export.h"
 
 namespace LXiStream {
 
@@ -33,7 +34,7 @@ namespace LXiStream {
 
     \sa SInterval
  */
-class S_DSO_PUBLIC STime
+class LXISTREAM_PUBLIC STime
 {
 public:
   inline                        STime(void)                                     { d.count = 0; }

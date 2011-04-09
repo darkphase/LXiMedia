@@ -6,12 +6,11 @@
 #include <QtCore>
 #include <QtXml>
 
-#include "liblxicore/sglobal.h"
-
 #include "liblxicore/sapplication.h"
 #include "liblxicore/sdaemon.h"
 #include "liblxicore/sfactory.h"
 #include "liblxicore/smodule.h"
+#include "liblxicore/splatform.h"
 #include "liblxicore/sscheduler.h"
 #include "liblxicore/sserializable.h"
 #include "liblxicore/sstringparser.h"

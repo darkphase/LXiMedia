@@ -13,6 +13,27 @@ include($${LXIMEDIA_DIR}/ext/exif/exif.pri)
 include($${LXIMEDIA_DIR}/ext/ffmpeg/ffmpeg.pri)
 include($${LXIMEDIA_DIR}/ext/fftw/fftw.pri)
 
+unix {
+  # Prevent dependency with .so files
+  QMAKE_LFLAGS += $${LXIMEDIA_DIR}/obj/LXiCore/*.o \
+    $${LXIMEDIA_DIR}/obj/LXiServer/*.o \
+    $${LXIMEDIA_DIR}/obj/LXiStream/*.o \
+    $${LXIMEDIA_DIR}/obj/LXiStreamGui/*.o \
+    $${LXIMEDIA_DIR}/obj/LXiMediaCenter/*.o
+
+  POST_TARGETDEPS += $${LXIMEDIA_DIR}/obj/LXiCore/*.o \
+    $${LXIMEDIA_DIR}/obj/LXiServer/*.o \
+    $${LXIMEDIA_DIR}/obj/LXiStream/*.o \
+    $${LXIMEDIA_DIR}/obj/LXiStreamGui/*.o \
+    $${LXIMEDIA_DIR}/obj/LXiMediaCenter/*.o
+} else {
+  include($${LXIMEDIA_DIR}/include/liblxicore/linklxicore.pri)
+  include($${LXIMEDIA_DIR}/include/liblxiserver/linklxiserver.pri)
+  include($${LXIMEDIA_DIR}/include/liblxistream/linklxistream.pri)
+  include($${LXIMEDIA_DIR}/include/liblxistreamgui/linklxistreamgui.pri)
+  include($${LXIMEDIA_DIR}/include/liblximediacenter/linklximediacenter.pri)
+}
+
 linux-g++|win32-g++ {
   CONFIG += precompile_header
   PRECOMPILED_HEADER = $${LXIMEDIA_DIR}/include/LXiMediaCenter
@@ -28,13 +49,6 @@ LIBS += -lbfd \
 # Run tests after link
 unix:QMAKE_POST_LINK = $(TARGET) -silent
 win32:QMAKE_POST_LINK = $${DESTDIR}/$${TARGET} -silent
-
-# Prevent dependency with .so files
-FILES_UNDER_TEST = $${LXIMEDIA_DIR}/obj/LXiCore/*.o \
-    $${LXIMEDIA_DIR}/obj/LXiServer/*.o \
-    $${LXIMEDIA_DIR}/obj/LXiStream/*.o \
-    $${LXIMEDIA_DIR}/obj/LXiStreamGui/*.o \
-    $${LXIMEDIA_DIR}/obj/LXiMediaCenter/*.o
 
 # Platform specific
 unix { 

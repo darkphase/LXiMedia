@@ -24,12 +24,13 @@
 #include <LXiCore>
 #include "sbuffer.h"
 #include "stime.h"
+#include "export.h"
 
 namespace LXiStream {
 
 /*! This class represents a buffer containing subtitle data.
  */
-class S_DSO_PUBLIC SSubtitleBuffer : public SBuffer
+class LXISTREAM_PUBLIC SSubtitleBuffer : public SBuffer
 {
 public:
   inline                        SSubtitleBuffer(void) : SBuffer()               { }

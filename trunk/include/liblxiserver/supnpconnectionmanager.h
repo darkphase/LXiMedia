@@ -26,12 +26,13 @@
 #include <LXiCore>
 #include "shttpserver.h"
 #include "supnpbase.h"
+#include "export.h"
 
 namespace LXiServer {
 
 class SUPnPMediaServer;
 
-class S_DSO_PUBLIC SUPnPConnectionManager : public SUPnPBase
+class LXISERVER_PUBLIC SUPnPConnectionManager : public SUPnPBase
 {
 Q_OBJECT
 public:
@@ -49,9 +50,9 @@ protected: // From SUPnPBase
   virtual void                  handleSoapMessage(const QDomElement &, QDomDocument &, QDomElement &, const SHttpServer::RequestHeader &, const QHostAddress &);
 
 private:
-  void                          emitEvent(void);
-  QString                       listSourceProtocols(void) const;
-  QString                       listSinkProtocols(void) const;
+  internal void                 emitEvent(void);
+  internal QString              listSourceProtocols(void) const;
+  internal QString              listSinkProtocols(void) const;
 
 public:
   static const char     * const connectionManagerNS;

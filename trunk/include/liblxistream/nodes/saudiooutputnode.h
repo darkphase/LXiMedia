@@ -24,13 +24,14 @@
 #include <LXiCore>
 #include "../saudiobuffer.h"
 #include "../sgraph.h"
+#include "../export.h"
 
 namespace LXiStream {
 
 /*! This is a generic decoder node wich decodes audio and video buffers.
  */
-class S_DSO_PUBLIC SAudioOutputNode : public QObject,
-                                      public SGraph::SinkNode
+class LXISTREAM_PUBLIC SAudioOutputNode : public QObject,
+                                          public SGraph::SinkNode
 {
 Q_OBJECT
 public:

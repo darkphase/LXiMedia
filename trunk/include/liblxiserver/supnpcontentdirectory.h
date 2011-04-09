@@ -26,10 +26,11 @@
 #include <LXiCore>
 #include "shttpserver.h"
 #include "supnpbase.h"
+#include "export.h"
 
 namespace LXiServer {
 
-class S_DSO_PUBLIC SUPnPContentDirectory : public SUPnPBase
+class LXISERVER_PUBLIC SUPnPContentDirectory : public SUPnPBase
 {
 Q_OBJECT
 public:
@@ -132,28 +133,28 @@ protected: // From SUPnPBase
   virtual void                  handleSoapMessage(const QDomElement &, QDomDocument &, QDomElement &, const SHttpServer::RequestHeader &, const QHostAddress &);
 
 private:
-  void                          handleBrowse(const QDomElement &, QDomDocument &, QDomElement &, const SHttpServer::RequestHeader &, const QHostAddress &);
-  QDomElement                   didlDirectory(QDomDocument &, Item::Type, const QString &path, const QString &title = QString::null);
-  QDomElement                   didlFile(QDomDocument &doc, const QString &peer, const QString &host, const Item &, const QString &path, const QString &title = QString::null);
-  void                          emitEvent(bool dirty);
+  internal void                 handleBrowse(const QDomElement &, QDomDocument &, QDomElement &, const SHttpServer::RequestHeader &, const QHostAddress &);
+  internal QDomElement          didlDirectory(QDomDocument &, Item::Type, const QString &path, const QString &title = QString::null);
+  internal QDomElement          didlFile(QDomDocument &doc, const QString &peer, const QString &host, const Item &, const QString &path, const QString &title = QString::null);
+  internal void                 emitEvent(bool dirty);
 
-  static QStringList            streamItems(const Item &);
-  static QStringList            playSeekItems(const Item &);
-  static QStringList            seekItems(const Item &);
-  static QStringList            chapterItems(const Item &);
-  static QStringList            splitItemProps(const QString &);
-  static Item                   makePlayItem(const Item &, const QStringList &);
+  internal static QStringList   streamItems(const Item &);
+  internal static QStringList   playSeekItems(const Item &);
+  internal static QStringList   seekItems(const Item &);
+  internal static QStringList   chapterItems(const Item &);
+  internal static QStringList   splitItemProps(const QString &);
+  internal static Item          makePlayItem(const Item &, const QStringList &);
 
-  static QString                baseDir(const QString &);
-  static QString                parentDir(const QString &);
-  QString                       toObjectID(const QString &path);
-  QString                       fromObjectID(const QString &id);
+  internal static QString       baseDir(const QString &);
+  internal static QString       parentDir(const QString &);
+  internal QString              toObjectID(const QString &path);
+  internal QString              fromObjectID(const QString &id);
 
 public:
   static const char     * const contentDirectoryNS;
 
 private:
-  static const unsigned         seekSec;
+  internal static const unsigned seekSec;
 
   struct Data;
   Data                  * const d;

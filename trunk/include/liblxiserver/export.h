@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010 by A.J. Admiraal                                   *
+ *   Copyright (C) 2011 by A.J. Admiraal                                   *
  *   code@admiraal.dds.nl                                                  *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -17,32 +17,22 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "sfactory.h"
+#ifndef LXISERVER_EXPORT_H
+#define LXISERVER_EXPORT_H
 
-namespace LXiCore {
+#if defined(Q_OS_UNIX) && defined(__GNUC__)
+# define LXISERVER_PUBLIC       __attribute__((visibility("default")))
 
-template <class _interface>
-    _interface * SFactorizable<_interface>::create(QObject *parent, const QString &scheme, bool nonNull)
-{
-  return static_cast<_interface *>(factory().createObject(_interface::staticMetaObject.className(), parent, scheme, nonNull));
-}
+#elif defined(Q_OS_WIN) && defined(__GNUC__)
+# if defined(S_BUILD_LIBLXISERVER)
+#  define LXISERVER_PUBLIC      __attribute__((dllexport))
+# else
+#  define LXISERVER_PUBLIC      __attribute__((dllimport))
+# endif
 
-template <class _interface>
-QStringList SFactorizable<_interface>::available(void)
-{
-  QStringList result;
-  foreach (const SFactory::Scheme &scheme, factory().registredSchemes(_interface::staticMetaObject.className()))
-    result += scheme.name();
+#else
+# define LXISERVER_PUBLIC
 
-  return result;
-}
+#endif
 
-template <class _interface>
-SFactory & SFactorizable<_interface>::factory(void)
-{
-  static SFactory f;
-
-  return f;
-}
-
-} // End of namespace
+#endif

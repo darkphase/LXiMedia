@@ -9,6 +9,14 @@ INCLUDEPATH += $${LXIMEDIA_DIR}/src/
 DEPENDPATH += $${LXIMEDIA_DIR}/src/
 include($${LXIMEDIA_DIR}/include/config.pri)
 
+unix {
+  # Prevent dependency with .so files
+  QMAKE_LFLAGS += $${LXIMEDIA_DIR}/obj/LXiCore/*.o
+  POST_TARGETDEPS += $${LXIMEDIA_DIR}/obj/LXiCore/*.o
+} else {
+  include($${LXIMEDIA_DIR}/include/liblxicore/linklxicore.pri)
+}
+
 linux-g++|win32-g++ {
   CONFIG += precompile_header
   PRECOMPILED_HEADER = $${LXIMEDIA_DIR}/include/LXiCore
@@ -24,8 +32,6 @@ LIBS += -lbfd \
 # Run tests after link
 unix:QMAKE_POST_LINK = $(TARGET) -silent
 win32:QMAKE_POST_LINK = $${DESTDIR}/$${TARGET} -silent
-# Prevent dependency with .so files
-FILES_UNDER_TEST = $${LXIMEDIA_DIR}/obj/LXiCore/*.o
 
 # Platform specific
 unix {
@@ -35,5 +41,3 @@ unix {
 win32 { 
     CONFIG += console
 }
-QMAKE_LFLAGS += $${FILES_UNDER_TEST}
-POST_TARGETDEPS += $${FILES_UNDER_TEST}

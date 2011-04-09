@@ -23,11 +23,11 @@
 #include <QtGlobal>
 #include <LXiCore>
 #include "stime.h"
+#include "export.h"
 
 namespace LXiStream {
 
-
-class S_DSO_PUBLIC STimer
+class LXISTREAM_PUBLIC STimer
 {
 Q_DISABLE_COPY(STimer)
 public:
@@ -54,7 +54,6 @@ private:
   struct IntervalData;
   IntervalData                * id;
 };
-
 
 } // End of namespace
 

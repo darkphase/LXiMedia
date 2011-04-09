@@ -24,12 +24,13 @@
 #include <LXiCore>
 #include "ssubpicturebuffer.h"
 #include "ssubtitlebuffer.h"
+#include "export.h"
 
 namespace LXiStream {
 
 /*! This class represents a buffer containing data.
  */
-class S_DSO_PUBLIC SDataBuffer
+class LXISTREAM_PUBLIC SDataBuffer
 {
 public:
   enum Type
@@ -52,8 +53,8 @@ public:
   inline const SSubpictureBuffer &subpictureBuffer(void) const                  { return *static_cast<const SSubpictureBuffer *>(d.buffer); }
 
 private:
-  void                          assign(const SDataBuffer &);
-  void                          destroy(void);
+  internal void                 assign(const SDataBuffer &);
+  internal void                 destroy(void);
 
 private:
   struct

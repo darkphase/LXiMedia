@@ -24,6 +24,7 @@
 #include <LXiCore>
 #include "../saudiobuffer.h"
 #include "../sgraph.h"
+#include "../export.h"
 
 namespace LXiStream {
 
@@ -34,8 +35,8 @@ namespace LXiStream {
     and rear channels. It can also mix the left and right channels into one
     channel for the center speaker and the subwoofer.
  */
-class S_DSO_PUBLIC SAudioMatrixNode : public QObject,
-                                      public SGraph::Node
+class LXISTREAM_PUBLIC SAudioMatrixNode : public QObject,
+                                          public SGraph::Node
 {
 Q_OBJECT
 public:
@@ -60,11 +61,11 @@ signals:
   void                          output(const SAudioBuffer &);
 
 private:
-  void                          processTask(const SAudioBuffer &);
+  internal void                 processTask(const SAudioBuffer &);
 
-  static Channel                getChannel(Mode, unsigned);
-  static Mode                   getMode(unsigned);
-  void                          prepareMatrix(unsigned);
+  internal static Channel       getChannel(Mode, unsigned);
+  internal static Mode          getMode(unsigned);
+  internal void                 prepareMatrix(unsigned);
 
 private:
   struct Data;

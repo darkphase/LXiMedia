@@ -21,13 +21,13 @@
 #define LXICORE_SMODULE_H
 
 #include <QtCore>
-#include "sglobal.h"
+#include "export.h"
 
 namespace LXiCore {
 
 /*! The SModule interface is used to register modules to the factories.
  */
-class S_DSO_PUBLIC SModule : public QObject
+class LXICORE_PUBLIC SModule : public QObject
 {
 Q_OBJECT
 public:

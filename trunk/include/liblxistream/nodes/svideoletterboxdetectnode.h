@@ -24,16 +24,16 @@
 #include <LXiCore>
 #include "../sgraph.h"
 #include "../svideobuffer.h"
+#include "../export.h"
 
 namespace LXiStream {
 
 class SVideoBuffer;
 
-class S_DSO_PUBLIC SVideoLetterboxDetectNode : public QObject,
-                                               public SGraph::Node
+class LXISTREAM_PUBLIC SVideoLetterboxDetectNode : public QObject,
+                                                   public SGraph::Node
 {
 Q_OBJECT
-Q_PROPERTY(unsigned delayFrames READ delayFrames WRITE setDelayFrames)
 public:
   explicit                      SVideoLetterboxDetectNode(SGraph *);
   virtual                       ~SVideoLetterboxDetectNode();
@@ -48,7 +48,7 @@ signals:
   void                          output(const SVideoBuffer &);
 
 private:
-  qreal                         determineAspectRatio(const SVideoBuffer &) const;
+  internal qreal                determineAspectRatio(const SVideoBuffer &) const;
 
 private:
   struct Data;

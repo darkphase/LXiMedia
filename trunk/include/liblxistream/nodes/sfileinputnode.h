@@ -23,12 +23,13 @@
 #include <QtCore>
 #include <LXiCore>
 #include "sioinputnode.h"
+#include "../export.h"
 
 namespace LXiStream {
 
 class SEncodedVideoBuffer;
 
-class S_DSO_PUBLIC SFileInputNode : public SIOInputNode
+class LXISTREAM_PUBLIC SFileInputNode : public SIOInputNode
 {
 Q_OBJECT
 public:
@@ -47,7 +48,7 @@ public: // From SInterfaces::BufferReaderNode
   virtual void                  selectStreams(const QList<StreamId> &);
 
 private slots:
-  void                          parseSubtitle(const SEncodedVideoBuffer &);
+  internal void                 parseSubtitle(const SEncodedVideoBuffer &);
 
 private:
   struct Data;

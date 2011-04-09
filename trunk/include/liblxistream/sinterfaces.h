@@ -33,6 +33,7 @@
 #include "ssubtitlebuffer.h"
 #include "svideobuffer.h"
 #include "svideocodec.h"
+#include "export.h"
 
 namespace LXiStream {
 
@@ -43,10 +44,10 @@ namespace SInterfaces {
 /*! The FormatProber interface can be used to detect the format of a byte
     stream.
  */
-class S_DSO_PUBLIC FormatProber : public QObject,
-                                  public SFactorizable<FormatProber>
+class LXISTREAM_PUBLIC FormatProber : public QObject
 {
 Q_OBJECT
+S_FACTORIZABLE_NO_CREATE(FormatProber)
 public:
   struct ReadCallback
   {
@@ -228,10 +229,10 @@ public:
 /*! The BufferReader interface can be used to read serialized buffers from a
     byte stream.
  */
-class S_DSO_PUBLIC BufferReader : public QObject,
-                                  public SFactorizable<BufferReader>
+class LXISTREAM_PUBLIC BufferReader : public QObject
 {
 Q_OBJECT
+S_FACTORIZABLE_NO_CREATE(BufferReader)
 public:
   typedef FormatProber::ReadCallback ReadCallback;
 
@@ -275,7 +276,7 @@ public:
 /*! The BufferReaderNode interface is used for nodes that provide access to a
     BufferReader.
  */
-class S_DSO_PUBLIC BufferReaderNode
+class LXISTREAM_PUBLIC BufferReaderNode
 {
 public:
   typedef FormatProber::StreamId        StreamId;
@@ -301,10 +302,10 @@ public:
 /*! The BufferWriter interface can be used to write serialized buffers to a
     byte stream.
  */
-class S_DSO_PUBLIC BufferWriter : public QObject,
-                                  public SFactorizable<BufferWriter>
+class LXISTREAM_PUBLIC BufferWriter : public QObject
 {
 Q_OBJECT
+S_FACTORIZABLE_NO_CREATE(BufferWriter)
 public:
   struct WriteCallback
   {
@@ -332,10 +333,10 @@ public:
 
 /*! The AudioDecoder interface can be used to decode audio buffers.
  */
-class S_DSO_PUBLIC AudioDecoder : public QObject,
-                                  public SFactorizable<AudioDecoder>
+class LXISTREAM_PUBLIC AudioDecoder : public QObject
 {
 Q_OBJECT
+S_FACTORIZABLE_NO_CREATE(AudioDecoder)
 public:
   enum Flag
   {
@@ -358,10 +359,10 @@ public:
 
 /*! The VideoDecoder interface can be used to decode audio buffers.
  */
-class S_DSO_PUBLIC VideoDecoder : public QObject,
-                                  public SFactorizable<VideoDecoder>
+class LXISTREAM_PUBLIC VideoDecoder : public QObject
 {
 Q_OBJECT
+S_FACTORIZABLE_NO_CREATE(VideoDecoder)
 public:
   enum Flag
   {
@@ -384,10 +385,10 @@ public:
 
 /*! The SubtitleDecoder interface can be used to decode subtitle buffers.
  */
-class S_DSO_PUBLIC DataDecoder : public QObject,
-                                 public SFactorizable<DataDecoder>
+class LXISTREAM_PUBLIC DataDecoder : public QObject
 {
 Q_OBJECT
+S_FACTORIZABLE_NO_CREATE(DataDecoder)
 public:
   enum Flag
   {
@@ -409,10 +410,10 @@ public:
 
 /*! The AudioEncoder interface can be used to encode audio buffers.
  */
-class S_DSO_PUBLIC AudioEncoder : public QObject,
-                                  public SFactorizable<AudioEncoder>
+class LXISTREAM_PUBLIC AudioEncoder : public QObject
 {
 Q_OBJECT
+S_FACTORIZABLE_NO_CREATE(AudioEncoder)
 public:
   enum Flag
   {
@@ -438,10 +439,10 @@ public:
 
 /*! The VideoEncoder interface can be used to encode video buffers.
  */
-class S_DSO_PUBLIC VideoEncoder : public QObject,
-                                  public SFactorizable<VideoEncoder>
+class LXISTREAM_PUBLIC VideoEncoder : public QObject
 {
 Q_OBJECT
+S_FACTORIZABLE_NO_CREATE(VideoEncoder)
 public:
   enum Flag
   {
@@ -467,18 +468,20 @@ public:
 
 /*! The VideoFormatConverter interface can be used to convert video formats.
  */
-class S_DSO_PUBLIC VideoFormatConverter : public QObject,
-                                          public SFactorizable<VideoFormatConverter>
+class LXISTREAM_PUBLIC VideoFormatConverter : public QObject
 {
 Q_OBJECT
+S_FACTORIZABLE_NO_CREATE(VideoFormatConverter)
 public:
   static VideoFormatConverter * create(QObject *parent, const SVideoFormat &srcFormat, const SVideoFormat &dstFormat, bool nonNull = true);
 
   template <class _instance>
   static inline void registerClass(const SVideoFormat &srcFormat, const SVideoFormat &dstFormat, int priority = 0)
   {
-    SFactorizable<VideoFormatConverter>::registerClass<_instance>(
-        SFactory::Scheme(priority, QString(srcFormat.formatName()) + "->" + QString(dstFormat.formatName())));
+    registerClass<_instance>(
+        SFactory::Scheme(
+            priority,
+            QString(srcFormat.formatName()) + "->" + QString(dstFormat.formatName())));
   }
 
 protected:
@@ -492,10 +495,10 @@ public:
 
 /*! The AudioInput interface can be used to provide audio input devices.
  */
-class S_DSO_PUBLIC AudioInput : public QObject,
-                                public SFactorizable<AudioInput>
+class LXISTREAM_PUBLIC AudioInput : public QObject
 {
 Q_OBJECT
+S_FACTORIZABLE(AudioInput)
 protected:
   inline explicit               AudioInput(QObject *parent) : QObject(parent) { }
 
@@ -513,10 +516,10 @@ signals:
 
 /*! The AudioOutput interface can be used to provide audio output devices.
  */
-class S_DSO_PUBLIC AudioOutput : public QObject,
-                                 public SFactorizable<AudioOutput>
+class LXISTREAM_PUBLIC AudioOutput : public QObject
 {
 Q_OBJECT
+S_FACTORIZABLE(AudioOutput)
 protected:
   inline explicit               AudioOutput(QObject *parent) : QObject(parent) { }
 
@@ -531,10 +534,10 @@ public slots:
 
 /*! The VideoInput interface can be used to provide video input devices.
  */
-class S_DSO_PUBLIC VideoInput : public QObject,
-                                public SFactorizable<VideoInput>
+class LXISTREAM_PUBLIC VideoInput : public QObject
 {
 Q_OBJECT
+S_FACTORIZABLE(VideoInput)
 protected:
   inline explicit               VideoInput(QObject *parent) : QObject(parent) { }
 
@@ -554,10 +557,10 @@ signals:
 
 /*! The AudioResampler interface can be used to provide resampling algorithms.
  */
-class S_DSO_PUBLIC AudioResampler : public QObject,
-                                    public SFactorizable<AudioResampler>
+class LXISTREAM_PUBLIC AudioResampler : public QObject
 {
 Q_OBJECT
+S_FACTORIZABLE(AudioResampler)
 protected:
   inline explicit               AudioResampler(QObject *parent) : QObject(parent) { }
 
@@ -571,10 +574,10 @@ public:
 /*! The VideoDeinterlacer interface can be used to provide deinterlacing
     algorithms.
  */
-class S_DSO_PUBLIC VideoDeinterlacer : public QObject,
-                                       public SFactorizable<VideoDeinterlacer>
+class LXISTREAM_PUBLIC VideoDeinterlacer : public QObject
 {
 Q_OBJECT
+S_FACTORIZABLE(VideoDeinterlacer)
 protected:
   inline explicit               VideoDeinterlacer(QObject *parent) : QObject(parent) { }
 
@@ -584,10 +587,10 @@ public:
 
 /*! The VideoResizer interface can be used to provide scaling algorithms.
  */
-class S_DSO_PUBLIC VideoResizer : public QObject,
-                                  public SFactorizable<VideoResizer>
+class LXISTREAM_PUBLIC VideoResizer : public QObject
 {
 Q_OBJECT
+S_FACTORIZABLE(VideoResizer)
 protected:
   inline explicit               VideoResizer(QObject *parent) : QObject(parent) { }
 

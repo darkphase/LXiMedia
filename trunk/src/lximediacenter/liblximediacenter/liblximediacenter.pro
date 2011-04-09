@@ -23,6 +23,7 @@ include($${LXIMEDIA_DIR}/include/liblxistreamgui/linklxistreamgui.pri)
 
 # Files
 HEADERS += ../../../include/LXiMediaCenter \
+ ../../../include/liblximediacenter/export.h \
  ../../../include/liblximediacenter/backendsandbox.h \
  ../../../include/liblximediacenter/backendserver.h \
  ../../../include/liblximediacenter/database.h \

@@ -23,10 +23,11 @@
 #include <QtCore>
 #include <LXiCore>
 #include "siooutputnode.h"
+#include "../export.h"
 
 namespace LXiStream {
 
-class S_DSO_PUBLIC SFileOutputNode : public SIOOutputNode
+class LXISTREAM_PUBLIC SFileOutputNode : public SIOOutputNode
 {
 Q_OBJECT
 public:

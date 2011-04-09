@@ -26,13 +26,14 @@
 #include <LXiCore>
 #include "shttpserver.h"
 #include "supnpmediaserver.h"
+#include "export.h"
 
 namespace LXiServer {
 
 class SUPnPMediaServer;
 
-class S_DSO_PUBLIC SUPnPBase : public QObject,
-                               protected SHttpServer::Callback
+class LXISERVER_PUBLIC SUPnPBase : public QObject,
+                                   protected SHttpServer::Callback
 {
 Q_OBJECT
 public:
@@ -116,7 +117,7 @@ protected:
 protected:
   QReadWriteLock              * lock(void) const;
   const QString               & basePath(void) const;
-  SHttpServer                  * httpServer(void) const;
+  SHttpServer                 * httpServer(void) const;
 
 public:
   static QString                protocol(void);

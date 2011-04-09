@@ -22,10 +22,11 @@
 
 #include <QtCore>
 #include <LXiCore>
+#include "export.h"
 
 namespace LXiStream {
 
-class S_DSO_PUBLIC STuner : public QObject
+class LXISTREAM_PUBLIC STuner : public QObject
 {
 Q_OBJECT
 Q_PROPERTY(quint64 frequency READ frequency WRITE setFrequency)

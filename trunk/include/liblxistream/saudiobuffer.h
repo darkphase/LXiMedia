@@ -25,6 +25,7 @@
 #include "saudioformat.h"
 #include "sbuffer.h"
 #include "stime.h"
+#include "export.h"
 
 namespace LXiStream {
 
@@ -33,7 +34,7 @@ typedef QList<SAudioBuffer>     SAudioBufferList;
 
 /*! This class represents a buffer containing raw audio samples.
  */
-class S_DSO_PUBLIC SAudioBuffer : public SBuffer
+class LXISTREAM_PUBLIC SAudioBuffer : public SBuffer
 {
 public:
   inline                        SAudioBuffer(void) : SBuffer()            { }

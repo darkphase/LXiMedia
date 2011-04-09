@@ -23,10 +23,11 @@
 #include <QtCore>
 #include <QtGui>
 #include <LXiCore>
+#include "export.h"
 
 namespace LXiMediaCenter {
 
-class S_DSO_PUBLIC Teletext
+class LXIMEDIACENTER_PUBLIC Teletext
 {
 public:
   static void                   drawGraphics(QPainter &, const QRect &, int, char);

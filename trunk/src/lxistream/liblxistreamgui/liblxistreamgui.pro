@@ -21,6 +21,7 @@ include($${LXIMEDIA_DIR}/include/liblxistream/linklxistream.pri)
 
 # Files
 HEADERS += $${LXIMEDIA_DIR}/include/LXiStreamGui \
+    $${LXIMEDIA_DIR}/include/liblxistreamgui/export.h \
     $${LXIMEDIA_DIR}/include/liblxistreamgui/sdisplay.h \
     $${LXIMEDIA_DIR}/include/liblxistreamgui/simage.h \
     $${LXIMEDIA_DIR}/include/liblxistreamgui/svideoview.h \

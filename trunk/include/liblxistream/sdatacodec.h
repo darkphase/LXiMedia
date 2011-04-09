@@ -22,6 +22,7 @@
 
 #include <QtCore>
 #include <LXiCore>
+#include "export.h"
 
 namespace LXiStream {
 
@@ -29,7 +30,7 @@ namespace LXiStream {
 
     \sa SAudioCodec, SVideoCodec
  */
-class S_DSO_PUBLIC SDataCodec : public SSerializable
+class LXISTREAM_PUBLIC SDataCodec : public SSerializable
 {
 public:
                                 SDataCodec(void);

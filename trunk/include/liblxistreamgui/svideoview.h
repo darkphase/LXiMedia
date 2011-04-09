@@ -5,6 +5,7 @@
 #include <QtGui>
 #include <LXiCore>
 #include <LXiStream>
+#include "export.h"
 
 namespace LXiStreamGui {
 
@@ -14,8 +15,8 @@ namespace LXiStreamGui {
     to the widget. The video rendering may be accellerated depending on the
     underlying hardware.
  */
-class S_DSO_PUBLIC SVideoView : public QWidget,
-                                public SGraph::SinkNode
+class LXISTREAMGUI_PUBLIC SVideoView : public QWidget,
+                                       public SGraph::SinkNode
 {
 Q_OBJECT
 public:
@@ -42,7 +43,7 @@ protected:
   void                          blitVideo(void);
 
 private:
-  void                          setSource(SVideoView *);
+  internal void                 setSource(SVideoView *);
 
 private:
   struct Private;

@@ -25,10 +25,11 @@
 #include <LXiCore>
 #include "sinterval.h"
 #include "ssize.h"
+#include "export.h"
 
 namespace LXiStream {
 
-class S_DSO_PUBLIC SVideoFormat
+class LXISTREAM_PUBLIC SVideoFormat
 {
 public:
   /*! Specifies the format in which data is stored.
@@ -99,11 +100,11 @@ public:
   static inline bool            isYUV(Format f)                                 { return (f >= 0x2100) && (f < 0x2200); }
   static inline bool            isBayerArray(Format f)                          { return (f >= 0x2200) && (f < 0x2300); }
 
-  static int                    sampleSize(Format) __attribute__((pure));
-  static int                    numPlanes(Format) __attribute__((pure));
-  static bool                   planarYUVRatio(Format, int &w, int &h);
-  static quint32                nullPixelValue(Format) __attribute__((pure));
-  static const char           * formatName(Format) __attribute__((pure));
+  pure static int               sampleSize(Format);
+  pure static int               numPlanes(Format);
+  pure static bool              planarYUVRatio(Format, int &w, int &h);
+  pure static quint32           nullPixelValue(Format);
+  pure static const char      * formatName(Format);
 
 private:
   struct

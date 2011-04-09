@@ -22,11 +22,11 @@
 
 #include <QtCore>
 #include <QtXml>
-#include "sglobal.h"
+#include "export.h"
 
 namespace LXiCore {
 
-class S_DSO_PUBLIC SSerializable
+class LXICORE_PUBLIC SSerializable
 {
 public:
   virtual                       ~SSerializable();
@@ -52,8 +52,8 @@ protected:
 /*! This list template adds a toXml() and fromXml() feature to QList.
  */
 template <typename _type>
-class S_DSO_PUBLIC SSerializableList : public QList<_type>,
-                                     public SSerializable
+class LXICORE_PUBLIC SSerializableList : public QList<_type>,
+                                         public SSerializable
 {
 public:
   inline                        SSerializableList(void) : QList<_type>() { }

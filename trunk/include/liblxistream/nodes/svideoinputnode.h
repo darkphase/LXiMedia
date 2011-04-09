@@ -24,14 +24,15 @@
 #include <LXiCore>
 #include "../sgraph.h"
 #include "../svideobuffer.h"
+#include "../export.h"
 
 namespace LXiStream {
 
 /*! This is a generic video input node that can be used to obtain video data
     from a video device such as a webcam or video capture card.
  */
-class S_DSO_PUBLIC SVideoInputNode : public QObject,
-                                     public SGraph::SourceNode
+class LXISTREAM_PUBLIC SVideoInputNode : public QObject,
+                                         public SGraph::SourceNode
 {
 Q_OBJECT
 public:

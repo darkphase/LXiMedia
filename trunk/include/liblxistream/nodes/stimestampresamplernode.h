@@ -28,6 +28,7 @@
 #include "../ssubpicturebuffer.h"
 #include "../ssubtitlebuffer.h"
 #include "../svideobuffer.h"
+#include "../export.h"
 
 namespace LXiStream {
 
@@ -37,8 +38,8 @@ class SVideoBuffer;
 
 /*! This filter can be used to resample the timestamps in a stream.
  */
-class S_DSO_PUBLIC STimeStampResamplerNode : public QObject,
-                                             public SGraph::Node
+class LXISTREAM_PUBLIC STimeStampResamplerNode : public QObject,
+                                                 public SGraph::Node
 {
 Q_OBJECT
 public:
@@ -60,10 +61,10 @@ signals:
   void                          output(const SSubtitleBuffer &);
 
 private:
-  STime                         correct(const STime &);
+  internal STime                correct(const STime &);
 
 private:
-  static const int              numChannels = 4;
+  internal static const int     numChannels = 4;
 
   struct Data;
   Data                  * const d;

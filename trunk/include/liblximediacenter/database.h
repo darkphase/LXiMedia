@@ -23,16 +23,17 @@
 #include <QtCore>
 #include <QtSql>
 #include <LXiStream>
+#include "export.h"
 
 namespace LXiMediaCenter {
 
-class S_DSO_PUBLIC Database
+class LXIMEDIACENTER_PUBLIC Database
 {
 public:
   /*! This class is used to reduce error handling code, and tests threading in
       debug mode
    */
-  class Query : public QSqlQuery
+  class LXIMEDIACENTER_PUBLIC Query : public QSqlQuery
   {
   public:
                                 Query(void);
@@ -57,31 +58,15 @@ public:
   static void                   commit(void);
 
 private:
-  static QMutex               & mutex(void) __attribute__((pure));
-  static QSqlDatabase         & database(void) __attribute__((pure));
+  pure internal static QMutex & mutex(void);
+  pure internal static QSqlDatabase & database(void);
 
-  static void                   handleError(const ::QSqlQuery &, const QString & = QString::null);
+  internal static void          handleError(const ::QSqlQuery &, const QString & = QString::null);
 
 private:
-                                Database(void);
-                                ~Database();
+  internal                      Database(void);
+  internal                      ~Database();
 };
-/*
-// This wrapper class is used to reduce error handling code.
-class QSqlQuery : public ::QSqlQuery
-{
-public:
-  inline                      QSqlQuery(QSqlResult *r) : ::QSqlQuery(r) { }
-  inline                      QSqlQuery(const QString& query = QString(), QSqlDatabase db = QSqlDatabase()) : ::QSqlQuery(query, db) { }
-  inline explicit             QSqlQuery(const QSqlDatabase &db) : ::QSqlQuery(db) { }
-  inline                      QSqlQuery(const ::QSqlQuery& other) : ::QSqlQuery(other) { }
-  inline QSqlQuery          & operator=(const ::QSqlQuery& other) { ::QSqlQuery::operator=(other); return *this; }
-
-  void                        exec(const QString &);
-  void                        exec(void);
-  void                        execBatch(BatchExecutionMode = ValuesAsRows);
-  void                        prepare(const QString &);
-};*/
 
 } // End of namespace
 

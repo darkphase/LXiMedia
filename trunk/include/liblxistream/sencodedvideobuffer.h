@@ -26,12 +26,13 @@
 #include "sbuffer.h"
 #include "ssize.h"
 #include "stime.h"
+#include "export.h"
 
 namespace LXiStream {
 
 /*! This class represents a buffer containing encoded video data.
  */
-class S_DSO_PUBLIC SEncodedVideoBuffer : public SBuffer
+class LXISTREAM_PUBLIC SEncodedVideoBuffer : public SBuffer
 {
 public:
   inline                        SEncodedVideoBuffer(void) : SBuffer()     { }

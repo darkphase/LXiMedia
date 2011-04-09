@@ -24,16 +24,16 @@
 #include <LXiCore>
 #include "../sgraph.h"
 #include "../sinterfaces.h"
+#include "../export.h"
 
 namespace LXiStream {
 
 class SVideoBuffer;
 
-class S_DSO_PUBLIC SVideoDecoderNode : public QObject,
-                                       public SGraph::Node
+class LXISTREAM_PUBLIC SVideoDecoderNode : public QObject,
+                                           public SGraph::Node
 {
 Q_OBJECT
-Q_PROPERTY(LXiStream::SInterfaces::VideoDecoder::Flags flags READ flags WRITE setFlags)
 public:
   typedef SInterfaces::VideoDecoder::Flags Flags;
 
@@ -53,7 +53,7 @@ signals:
   void                          output(const SVideoBuffer &);
 
 private:
-  void                          processTask(const SEncodedVideoBuffer &, SInterfaces::VideoDecoder *decoder);
+  internal void                 processTask(const SEncodedVideoBuffer &, SInterfaces::VideoDecoder *decoder);
 
 private:
   struct Data;

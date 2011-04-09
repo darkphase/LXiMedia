@@ -24,11 +24,12 @@
 #include <LXiCore>
 #include "../sgraph.h"
 #include "../sinterfaces.h"
+#include "../export.h"
 
 namespace LXiStream {
 
-class S_DSO_PUBLIC SVideoResizeNode : public QObject,
-                                      public SGraph::Node
+class LXISTREAM_PUBLIC SVideoResizeNode : public QObject,
+                                          public SGraph::Node
 {
 Q_OBJECT
 public:
@@ -51,7 +52,7 @@ signals:
   void                          output(const SVideoBuffer &);
 
 private:
-  void                          processTask(const SVideoBuffer &, SInterfaces::VideoResizer *);
+  internal void                 processTask(const SVideoBuffer &, SInterfaces::VideoResizer *);
 
 private:
   struct Data;

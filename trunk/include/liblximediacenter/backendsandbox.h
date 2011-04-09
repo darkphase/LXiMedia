@@ -22,14 +22,15 @@
 
 #include <QtCore>
 #include <LXiServer>
+#include "export.h"
 
 namespace LXiMediaCenter {
 
-class S_DSO_PUBLIC BackendSandbox : public QObject,
-                                    public SFactorizable<BackendSandbox>,
-                                    public SSandboxServer::Callback
+class LXIMEDIACENTER_PUBLIC BackendSandbox : public QObject,
+                                             public SSandboxServer::Callback
 {
 Q_OBJECT
+S_FACTORIZABLE(BackendSandbox)
 public:
   /*! Creates all registred BackendSandboxes.
       \param parent   The parent object, or NULL if none.

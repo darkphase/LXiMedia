@@ -26,6 +26,7 @@
 #include "../sgraph.h"
 #include "../stime.h"
 #include "../svideobuffer.h"
+#include "../export.h"
 
 namespace LXiStream {
 
@@ -33,8 +34,8 @@ class SAudioBuffer;
 class SDataBuffer;
 class SVideoBuffer;
 
-class S_DSO_PUBLIC STimeStampSyncNode : public QObject,
-                                        public SGraph::Node
+class LXISTREAM_PUBLIC STimeStampSyncNode : public QObject,
+                                            public SGraph::Node
 {
 Q_OBJECT
 public:
@@ -55,7 +56,7 @@ signals:
   void                          output(const SVideoBuffer &);
 
 private:
-  void                          output(void);
+  internal void                 output(void);
 
 private:
   template <class _buffer> struct Queue;

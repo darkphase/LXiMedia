@@ -19,6 +19,7 @@ include($${LXIMEDIA_DIR}/include/liblxicore/linklxicore.pri)
 
 # Files
 HEADERS += $${LXIMEDIA_DIR}/include/LXiStream \
+    $${LXIMEDIA_DIR}/include/liblxistream/export.h \
     $${LXIMEDIA_DIR}/include/liblxistream/sanalogtuner.h \
     $${LXIMEDIA_DIR}/include/liblxistream/saudiobuffer.h \
     $${LXIMEDIA_DIR}/include/liblxistream/saudiocodec.h \

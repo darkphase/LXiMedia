@@ -6,10 +6,11 @@
 #include <liblxistream/sinterval.h>
 #include <liblxistream/ssize.h>
 #include <liblxistream/svideobuffer.h>
+#include "export.h"
 
 namespace LXiStreamGui {
 
-class S_DSO_PUBLIC SImage : public QImage
+class LXISTREAMGUI_PUBLIC SImage : public QImage
 {
 public:
   inline                        SImage(void) : QImage()                         { }

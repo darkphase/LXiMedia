@@ -20,6 +20,7 @@ include($${LXIMEDIA_DIR}/include/liblxicore/linklxicore.pri)
 
 # Files
 HEADERS += ../../../include/LXiServer \
+ ../../../include/liblxiserver/export.h \
  ../../../include/liblxiserver/shttpengine.h \
  ../../../include/liblxiserver/shttpproxy.h \
  ../../../include/liblxiserver/shttpserver.h \

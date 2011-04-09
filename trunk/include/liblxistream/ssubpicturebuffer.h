@@ -25,12 +25,13 @@
 #include "sbuffer.h"
 #include "spixels.h"
 #include "stime.h"
+#include "export.h"
 
 namespace LXiStream {
 
 /*! This class represents a buffer containing subpicture data.
  */
-class S_DSO_PUBLIC SSubpictureBuffer : public SBuffer
+class LXISTREAM_PUBLIC SSubpictureBuffer : public SBuffer
 {
 public:
   struct Rect
@@ -60,7 +61,7 @@ public:
   quint8                      * lines(int rectId);
 
 private:
-  static int                    rectSize(const Rect &rect);
+  internal static int           rectSize(const Rect &rect);
 
 private:
   struct

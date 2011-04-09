@@ -21,35 +21,36 @@
 #define LXICORE_SSTRINGPARSER_H
 
 #include <QtCore>
-#include "sglobal.h"
+#include "splatform.h"
+#include "export.h"
 
 namespace LXiCore {
 
-class S_DSO_PUBLIC SStringParser
+class LXICORE_PUBLIC SStringParser
 {
 public:
-  static bool                   isUtf8(const QByteArray &) __attribute__((pure));
+  pure static bool              isUtf8(const QByteArray &);
 
-  static QString                removeControl(const QString &) __attribute__((pure));
-  static QStringList            removeControl(const QStringList &) __attribute__((pure));
-  static QString                toBasicLatin(const QString &) __attribute__((pure));
-  static QString                toBasicLatin(QChar) __attribute__((pure));
-  static QStringList            toBasicLatin(const QStringList &) __attribute__((pure));
-  static QString                toCleanName(const QString &) __attribute__((pure));
-  static QStringList            toCleanName(const QStringList &) __attribute__((pure));
-  static QString                toRawName(const QString &) __attribute__((pure));
-  static QStringList            toRawName(const QStringList &) __attribute__((pure));
-  static QString                toRawPath(const QString &) __attribute__((pure));
+  pure static QString           removeControl(const QString &);
+  pure static QStringList       removeControl(const QStringList &);
+  pure static QString           toBasicLatin(const QString &);
+  pure static QString           toBasicLatin(QChar);
+  pure static QStringList       toBasicLatin(const QStringList &);
+  pure static QString           toCleanName(const QString &);
+  pure static QStringList       toCleanName(const QStringList &);
+  pure static QString           toRawName(const QString &);
+  pure static QStringList       toRawName(const QStringList &);
+  pure static QString           toRawPath(const QString &);
 
-  static QString                findMatch(const QString &, const QString &) __attribute__((pure));
-  static qreal                  computeMatch(const QString &, const QString &) __attribute__((pure));
-  static qreal                  computeMatch(const QString &, const QStringList &) __attribute__((pure));
-  static qreal                  computeBidirMatch(const QString &, const QString &) __attribute__((pure));
+  pure static QString           findMatch(const QString &, const QString &);
+  pure static qreal             computeMatch(const QString &, const QString &);
+  pure static qreal             computeMatch(const QString &, const QStringList &);
+  pure static qreal             computeBidirMatch(const QString &, const QString &);
 
-  static unsigned               numWords(const QString &) __attribute__((pure));
+  pure static unsigned          numWords(const QString &);
 
-  static const char           * languageOf(const QString &) __attribute__((pure));
-  static QString                iso639Language(const char *) __attribute__((pure));
+  pure static const char      * languageOf(const QString &);
+  pure static QString           iso639Language(const char *);
 };
 
 } // End of namespaces

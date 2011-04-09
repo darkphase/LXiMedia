@@ -22,6 +22,7 @@
 
 #include <QtCore>
 #include <LXiCore>
+#include "export.h"
 
 namespace LXiStream {
 
@@ -44,7 +45,7 @@ namespace LXiStream {
     Usually the SBuffer class is not used directly, but a more specific one like
     SAudioBuffer, SVideoBuffer, SEncodedAudioBuffer or SEncodedVideoBuffer.
  */
-class S_DSO_PUBLIC SBuffer
+class LXISTREAM_PUBLIC SBuffer
 {
 public:
   /*! This class manages a block of memory. This class is usually only used by
@@ -52,7 +53,7 @@ public:
       specific block of memory needs to be managed by an SBuffer (e.g. a
       buffer from a capture device).
    */
-  class S_DSO_PUBLIC Memory : public QSharedData
+  class LXISTREAM_PUBLIC Memory : public QSharedData
   {
   friend class SBuffer;
   public:
@@ -61,10 +62,10 @@ public:
     virtual                     ~Memory();
 
   private:
-                                Memory(void);
-    explicit                    Memory(int capacity);
-                                Memory(const char *data, int size);
-                                Memory(const QByteArray &data);
+    internal                    Memory(void);
+    internal explicit           Memory(int capacity);
+    internal                    Memory(const char *data, int size);
+    internal                    Memory(const QByteArray &data);
 
   public:
     /*! Unique identifier of the memory block. This ID can be used if two
@@ -149,7 +150,7 @@ public: // Alignment methods
   static const int              numPaddingBytes;
 
 private:
-  static QAtomicInt             uidCounter;
+  internal static QAtomicInt    uidCounter;
 
   MemoryPtr                     d;
 };

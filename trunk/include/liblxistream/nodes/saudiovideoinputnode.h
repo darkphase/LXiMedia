@@ -25,14 +25,15 @@
 #include "../saudiobuffer.h"
 #include "../sgraph.h"
 #include "../svideobuffer.h"
+#include "../export.h"
 
 namespace LXiStream {
 
 /*! This is a generic audio/video input node that can be used to obtain audio
     and video data from a capture device such as a video capture card.
  */
-class S_DSO_PUBLIC SAudioVideoInputNode : public QObject,
-                                          public SGraph::SourceNode
+class LXISTREAM_PUBLIC SAudioVideoInputNode : public QObject,
+                                              public SGraph::SourceNode
 {
 Q_OBJECT
 public:
@@ -53,8 +54,8 @@ signals:
   void                          output(const SVideoBuffer &);
 
 private slots:
-  void                          produced(const SAudioBuffer &);
-  void                          produced(const SVideoBuffer &);
+  internal void                 produced(const SAudioBuffer &);
+  internal void                 produced(const SVideoBuffer &);
 
 private:
   struct Data;

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010 by A.J. Admiraal                                   *
+ *   Copyright (C) 2011 by A.J. Admiraal                                   *
  *   code@admiraal.dds.nl                                                  *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -17,45 +17,20 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXISTREAM_SVIDEOBOXNODE_H
-#define LXISTREAM_SVIDEOBOXNODE_H
+#ifndef LXICORE_SPLATFORM_H
+#define LXICORE_SPLATFORM_H
 
-#include <QtCore>
-#include <LXiCore>
-#include "../sgraph.h"
-#include "../ssize.h"
-#include "../svideobuffer.h"
-#include "../export.h"
+#if defined(Q_OS_UNIX) && defined(__GNUC__)
+# define internal               __attribute__((visibility("hidden")))
+# define pure                   __attribute__((pure))
 
-namespace LXiStream {
+#elif defined(Q_OS_WIN) && defined(__GNUC__)
+# define internal
+# define pure                   __attribute__((pure))
 
-class SVideoBuffer;
-
-class LXISTREAM_PUBLIC SVideoBoxNode : public QObject,
-                                       public SGraph::Node
-{
-Q_OBJECT
-public:
-  explicit                      SVideoBoxNode(SGraph *);
-  virtual                       ~SVideoBoxNode();
-
-  SSize                         size(void) const;
-  void                          setSize(const SSize &s);
-
-public slots:
-  void                          input(const SVideoBuffer &);
-
-signals:
-  void                          output(const SVideoBuffer &);
-
-private:
-  internal void                 processTask(const SVideoBuffer &);
-
-private:
-  struct Data;
-  Data                  * const d;
-};
-
-} // End of namespace
+#else
+# define internal
+# define pure
+#endif
 
 #endif
