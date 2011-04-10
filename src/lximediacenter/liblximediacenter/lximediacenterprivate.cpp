@@ -17,61 +17,25 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "lxistreamprivate.h"
-#include "saudiobuffer.h"
-#include "saudiocodec.h"
-#include "sdatacodec.h"
-#include "sencodedaudiobuffer.h"
-#include "sencodeddatabuffer.h"
-#include "sencodedvideobuffer.h"
-#include "ssubpicturebuffer.h"
-#include "ssubtitlebuffer.h"
-#include "svideobuffer.h"
-#include "svideocodec.h"
+#include "lximediacenterprivate.h"
 
-#include "common/module.h"
-
-class LXiStreamInit : public LXiCore::SApplication::Initializer
+class LXiMediaCenterInit : public LXiCore::SApplication::Initializer
 {
 public:
   virtual void                  startup(void);
   virtual void                  shutdown(void);
 
 private:
-  static LXiStreamInit          self;
+  static LXiMediaCenterInit     self;
 };
 
-LXiStreamInit LXiStreamInit::self;
+LXiMediaCenterInit LXiMediaCenterInit::self;
 
-void LXiStreamInit::startup(void)
+void LXiMediaCenterInit::startup(void)
 {
-  static bool firsttime = true;
-  if (firsttime)
-  {
-    firsttime = false;
-
-    // Register metatypes.
-    qRegisterMetaType<SEncodedAudioBuffer>("SEncodedAudioBuffer");
-    qRegisterMetaType<SAudioBuffer>("SAudioBuffer");
-    qRegisterMetaType<SEncodedVideoBuffer>("SEncodedVideoBuffer");
-    qRegisterMetaType<SVideoBuffer>("SVideoBuffer");
-    qRegisterMetaType<SEncodedDataBuffer>("SEncodedDataBuffer");
-    qRegisterMetaType<SSubpictureBuffer>("SSubpictureBuffer");
-    qRegisterMetaType<SSubtitleBuffer>("SSubtitleBuffer");
-
-    qRegisterMetaType<SAudioCodec>("SAudioCodec");
-    qRegisterMetaType<SVideoCodec>("SVideoCodec");
-    qRegisterMetaType<SDataCodec>("SDataCodec");
-  }
-
-  sApp->addModuleFilter("lxistream");
-
-  // Always load the Common module.
-  Common::Module * const module = new Common::Module();
-  if (!sApp->loadModule(module))
-    delete module;
+  sApp->addModuleFilter("lximediacenter");
 }
 
-void LXiStreamInit::shutdown(void)
+void LXiMediaCenterInit::shutdown(void)
 {
 }

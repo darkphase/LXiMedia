@@ -29,6 +29,7 @@ namespace LXiCore {
 struct SApplication::Data
 {
   QString                       logDir;
+  QStringList                   moduleFilter;
   QList< QPair<QPluginLoader *, SModule *> > modules;
 };
 
@@ -37,14 +38,11 @@ SApplication              * SApplication::self = NULL;
 
 /*! Initializes all LXiMedia components.
 
-    \param moduleFilters    Loads all modules with the filter names in part of
-                            the filename before the first '.'. Use "LXiStream"
-                            to load all LXiStream modules.
     \param logDir           The directory where to store log files, no log files
                             are written if this is an empty string.
     \param parent           The parent QObject.
  */
-SApplication::SApplication(const QStringList &moduleFilter, const QString &logDir, QObject *parent)
+SApplication::SApplication(const QString &logDir, QObject *parent)
   : QObject(parent),
     d(new Data())
 {
@@ -58,7 +56,7 @@ SApplication::SApplication(const QStringList &moduleFilter, const QString &logDi
   for (Initializer *i = initializers; i; i = i->next)
     i->startup();
 
-  if (!moduleFilter.isEmpty())
+  if (!d->moduleFilter.isEmpty())
   {
     // And now load the plugins
     QStringList paths;
@@ -89,10 +87,10 @@ SApplication::SApplication(const QStringList &moduleFilter, const QString &logDi
 #endif
     if (!modules.contains(fileInfo.fileName()))
     {
-      const QString filterName = fileInfo.fileName().split('.').first();
+      const QString filterName = fileInfo.fileName().split('_').first();
 
       bool load = false;
-      foreach (const QString &filter, moduleFilter)
+      foreach (const QString &filter, d->moduleFilter)
       if (filterName.contains(filter, Qt::CaseInsensitive))
       {
         load = true;
@@ -184,6 +182,11 @@ const char * SApplication::version(void)
 SApplication  * SApplication::instance(void)
 {
   return self;
+}
+
+void SApplication::addModuleFilter(const QString &filter)
+{
+  d->moduleFilter.append(filter);
 }
 
 bool SApplication::loadModule(SModule *module, QPluginLoader *loader)

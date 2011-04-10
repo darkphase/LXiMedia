@@ -83,13 +83,14 @@ public:
   };
 
 public:
-  explicit                      SApplication(const QStringList &moduleFilter = QStringList(), const QString &logDir = QString::null, QObject * = NULL);
+  explicit                      SApplication(const QString &logDir = QString::null, QObject * = NULL);
   virtual                       ~SApplication();
 
   __pure static const char    * name(void);
   __pure static const char    * version(void);
   __pure static SApplication  * instance(void);
 
+  void                          addModuleFilter(const QString &);
   bool                          loadModule(SModule *, QPluginLoader * = NULL);
   QByteArray                    about(void) const;
 

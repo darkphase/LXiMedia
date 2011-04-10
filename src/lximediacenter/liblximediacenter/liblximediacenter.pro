@@ -48,6 +48,9 @@ SOURCES += backendsandbox.cpp \
  pluginsettings.cpp \
  teletext.cpp
 
+HEADERS += lximediacenterprivate.h
+SOURCES += lximediacenterprivate.cpp
+
 RESOURCES = images/lximediacenter_images.qrc
 
 unix {
