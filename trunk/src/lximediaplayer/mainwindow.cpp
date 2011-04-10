@@ -60,7 +60,7 @@ MainWindow::MainWindow(void)
   ui.tuneUpButton->setIcon(style->standardIcon(QStyle::SP_MediaSeekForward));
 
   SModule::loadDevices = true;
-  mediaApp = new SApplication(QStringList() << "LXiStream");
+  mediaApp = new SApplication();
 
   ui.captureDevices->addItem(tr("Select"));
   foreach (const QString &device, SVideoInputNode::devices())

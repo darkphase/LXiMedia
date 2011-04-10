@@ -23,7 +23,7 @@ const QEvent::Type  Sandbox::exitEventType = QEvent::Type(QEvent::registerEventT
 
 Sandbox::Sandbox()
   : QObject(),
-    mediaApp(QStringList() << "LXiStream" << "LXiMediaCenter"),
+    mediaApp(),
     sandboxServer()
 {
   mediaApp.installExcpetionHandler();
