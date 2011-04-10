@@ -92,24 +92,38 @@ const char * SHttpEngine::toMimeType(const QString &fileName)
   else                      return "application/octet-stream";
 }
 
-
-SHttpEngine::SocketPtr & SHttpEngine::SocketPtr::operator=(QIODevice *socket)
+bool SHttpEngine::splitHost(const QString &host, QString &hostname, quint16 &port)
 {
-  this->socket = socket;
-  this->abstractSocket = qobject_cast<QAbstractSocket *>(socket);
-  this->localSocket = qobject_cast<QLocalSocket *>(socket);
+  bool result = false;
 
-  return *this;
-}
+  const int openBr = host.indexOf('[');
+  const int closeBr = host.indexOf(']', openBr);
 
-bool SHttpEngine::SocketPtr::isConnected(void) const
-{
-  if (abstractSocket)
-    return abstractSocket->state() == QAbstractSocket::ConnectedState;
-  else if (localSocket)
-    return localSocket->state() == QLocalSocket::ConnectedState;
+  if ((openBr >= 0) && (closeBr > openBr))
+  {
+    hostname = host.mid(openBr + 1, closeBr - openBr - 1);
+    result = true;
+
+    const int colon = host.indexOf(':', closeBr);
+    if (colon > closeBr)
+      port = host.mid(colon + 1).toUShort(&result);
+  }
   else
-    return !socket->atEnd();
+  {
+    const int colon = host.indexOf(':');
+    if (colon >= 0)
+    {
+      hostname = host.left(colon);
+      port = host.mid(colon + 1).toUShort(&result);
+    }
+    else
+    {
+      hostname = host;
+      result = true;
+    }
+  }
+
+  return result;
 }
 
 
@@ -169,7 +183,7 @@ const QString & SHttpServerEngine::senderId(void) const
   return p->senderId;
 }
 
-QByteArray SHttpServerEngine::readContent(const RequestHeader &request, QIODevice *socket)
+QByteArray SHttpServerEngine::readContent(const RequestHeader &request, QAbstractSocket *socket)
 {
   QTime timer;
   timer.start();
@@ -192,7 +206,7 @@ QByteArray SHttpServerEngine::readContent(const RequestHeader &request, QIODevic
   return content;
 }
 
-SHttpServerEngine::SocketOp SHttpServerEngine::sendResponse(const RequestHeader &request, QIODevice *socket, Status status, const QByteArray &content, const QObject *object)
+SHttpServerEngine::SocketOp SHttpServerEngine::sendResponse(const RequestHeader &request, QAbstractSocket *socket, Status status, const QByteArray &content, const QObject *object)
 {
   if (status >= 400)
   {
@@ -209,12 +223,12 @@ SHttpServerEngine::SocketOp SHttpServerEngine::sendResponse(const RequestHeader 
   return SocketOp_Close;
 }
 
-SHttpServerEngine::SocketOp SHttpServerEngine::sendResponse(const RequestHeader &request, QIODevice *socket, Status status, const QObject *object)
+SHttpServerEngine::SocketOp SHttpServerEngine::sendResponse(const RequestHeader &request, QAbstractSocket *socket, Status status, const QObject *object)
 {
   return sendResponse(request, socket, status, QByteArray(), object);
 }
 
-SHttpServerEngine::SocketOp SHttpServerEngine::sendRedirect(const RequestHeader &request, QIODevice *socket, const QString &newUrl)
+SHttpServerEngine::SocketOp SHttpServerEngine::sendRedirect(const RequestHeader &request, QAbstractSocket *socket, const QString &newUrl)
 {
   SHttpEngine::ResponseHeader response(request, SHttpEngine::Status_TemporaryRedirect);
   response.setField("LOCATION", newUrl);
@@ -222,7 +236,7 @@ SHttpServerEngine::SocketOp SHttpServerEngine::sendRedirect(const RequestHeader 
   return SocketOp_Close;
 }
 
-void SHttpServerEngine::handleHttpRequest(const SHttpEngine::RequestHeader &request, QIODevice *socket)
+void SHttpServerEngine::handleHttpRequest(const SHttpEngine::RequestHeader &request, QAbstractSocket *socket)
 {
   const QString path = QUrl(request.path()).path();
 
@@ -249,25 +263,8 @@ void SHttpServerEngine::handleHttpRequest(const SHttpEngine::RequestHeader &requ
 
 struct SHttpClientEngine::Private
 {
-  static const QEvent::Type     requestEventType;
-
-  class RequestEvent : public QEvent
-  {
-  public:
-    explicit RequestEvent(const SHttpEngine::RequestMessage &request)
-      : QEvent(requestEventType),
-        request(request)
-    {
-    }
-
-  public:
-    const SHttpEngine::RequestMessage request;
-  };
-
   QString                       senderId;
 };
-
-const QEvent::Type  SHttpClientEngine::Private::requestEventType = QEvent::Type(QEvent::registerEventType());
 
 SHttpClientEngine::SHttpClientEngine(QObject *parent)
   : QObject(parent),
@@ -304,22 +301,10 @@ const QString & SHttpClientEngine::senderId(void) const
 
 void SHttpClientEngine::sendRequest(const SHttpEngine::RequestMessage &request)
 {
-  if (QThread::currentThread() == thread())
-    openRequest(request, new HttpClientRequest(this, request), SLOT(start(QIODevice *)));
-  else
-    QCoreApplication::postEvent(this, new Private::RequestEvent(request));
-}
+  HttpClientRequest * const clientRequest = new HttpClientRequest(this);
 
-void SHttpClientEngine::customEvent(QEvent *e)
-{
-  if (e->type() == Private::requestEventType)
-  {
-    Private::RequestEvent * const event = static_cast<Private::RequestEvent *>(e);
-
-    openRequest(event->request, new HttpClientRequest(this, event->request), SLOT(start(QIODevice *)));
-  }
-  else
-    QObject::customEvent(e);
+  connect(clientRequest, SIGNAL(response(SHttpEngine::ResponseMessage)), SLOT(handleResponse(SHttpEngine::ResponseMessage)));
+  openRequest(request, clientRequest, SLOT(start(QAbstractSocket *)));
 }
 
 void SHttpClientEngine::handleResponse(const SHttpEngine::ResponseMessage &message)

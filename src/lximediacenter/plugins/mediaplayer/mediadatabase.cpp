@@ -831,7 +831,6 @@ void MediaDatabase::probeFinished(const SHttpEngine::ResponseMessage &message)
 
     SSandboxClient::RequestMessage request(probeSandbox);
     request.setRequest("GET", QByteArray(MediaPlayerSandbox::path) + "?probe=" + probeQueue.takeFirst().toUtf8().toHex());
-    request.setHost(probeSandbox->serverName());
     probeSandbox->sendRequest(request);
   }
   else
@@ -1003,7 +1002,6 @@ void MediaDatabase::probeFile(
 
         SSandboxClient::RequestMessage request(probeSandbox);
         request.setRequest("GET", QByteArray(MediaPlayerSandbox::path) + "?probe=" + path.toUtf8().toHex());
-        request.setHost(probeSandbox->serverName());
         probeSandbox->sendRequest(request);
 
         probeCount++;

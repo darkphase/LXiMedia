@@ -27,10 +27,10 @@ linux-g++|win32-g++ {
 }
 
 # Files
-HEADERS += httpservertest.h \
+HEADERS += httpenginetest.h \
     sandboxtest.h
 SOURCES += main.cpp \
-    httpservertest.cpp \
+    httpenginetest.cpp \
     sandboxtest.cpp
 LIBS += -lbfd \
     -liberty

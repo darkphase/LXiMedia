@@ -41,13 +41,17 @@ SHttpClient::~SHttpClient()
 
 void SHttpClient::openRequest(const RequestMessage &message, QObject *receiver, const char *slot)
 {
-  const QStringList host = message.host().split(':');
+  if (QThread::currentThread() != thread())
+    qFatal("SHttpClient::openRequest() should be invoked from the thread "
+           "that owns the SHttpClient object.");
 
-  if (!host.isEmpty())
-    connect(new HttpSocketRequest(host.first(), (host.count() > 1) ? host[1].toUShort() : 80), SIGNAL(connected(QIODevice *)), receiver, slot);
+  QString hostname;
+  quint16 port = 80;
+  if (splitHost(message.host(), hostname, port))
+    connect(new HttpSocketRequest(hostname, port, message), SIGNAL(connected(QAbstractSocket *)), receiver, slot);
 }
 
-void SHttpClient::closeRequest(QIODevice *socket, bool canReuse)
+void SHttpClient::closeRequest(QAbstractSocket *socket, bool canReuse)
 {
   new SocketCloseRequest(socket);
 }

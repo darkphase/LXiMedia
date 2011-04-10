@@ -23,117 +23,128 @@
 
 namespace LXiServer {
 
-struct SSandboxClient::Private
+struct SSandboxClient::Data
 {
+  struct Request
+  {
+    inline Request(const QByteArray &message, QObject *receiver, const char *slot)
+      : message(message), receiver(receiver), slot(slot)
+    {
+    }
+
+    QByteArray                  message;
+    QObject                   * receiver;
+    const char                * slot;
+  };
+
   QString                       application;
-  QString                       name;
   Mode                          mode;
   QString                       modeText;
 
+  QHostAddress                  address;
+  quint16                       port;
+
   SandboxProcess              * serverProcess;
-  QList<SandboxMessageRequest *> requests;
+  QList<Request>                requests;
 };
 
 SSandboxClient::SSandboxClient(const QString &application, Mode mode, QObject *parent)
   : SHttpClientEngine(parent),
-    p(new Private())
+    d(new Data())
 {
-  p->application = application;
-  p->name = QUuid::createUuid().toString().replace("{", "").replace("}", "").replace("-", ".") + ".lxisandbox";
-  p->mode = mode;
+  d->application = application;
+  d->mode = mode;
 
   switch(mode)
   {
-  case Mode_Normal: p->modeText = "normal"; break;
-  case Mode_Nice:   p->modeText = "nice";   break;
+  case Mode_Normal: d->modeText = "normal"; break;
+  case Mode_Nice:   d->modeText = "nice";   break;
   }
 
-  p->serverProcess = NULL;
+  d->serverProcess = NULL;
 }
 
 SSandboxClient::~SSandboxClient()
 {
-  delete p->serverProcess;
-  delete p;
-  *const_cast<Private **>(&p) = NULL;
-}
-
-const QString & SSandboxClient::serverName(void) const
-{
-  return p->name;
+  delete d->serverProcess;
+  delete d;
+  *const_cast<Data **>(&d) = NULL;
 }
 
 SSandboxClient::Mode SSandboxClient::mode(void) const
 {
-  return p->mode;
+  return d->mode;
 }
 
 void SSandboxClient::openRequest(const RequestMessage &message, QObject *receiver, const char *slot)
 {
-  if (message.host() != p->name)
-    qFatal("SSandboxClient::openRequest() message.host() should be equal to "
-           "SSandboxClient::serverName().");
-
   if (QThread::currentThread() != thread())
     qFatal("SSandboxClient::openRequest() should be invoked from the thread "
            "that owns the SSandboxClient object.");
 
-  SandboxMessageRequest * const messageRequest = new SandboxMessageRequest(message);
-  connect(messageRequest, SIGNAL(headerSent(QIODevice *)), receiver, slot);
-  p->requests.append(messageRequest);
+  d->requests.append(Data::Request(message, receiver, slot));
 
-  if (p->serverProcess == NULL)
+  if (d->serverProcess == NULL)
   {
     stop();
-    p->serverProcess = new SandboxProcess(this, p->application + " " + p->name + " " + p->modeText);
+    d->serverProcess = new SandboxProcess(this, d->application + " " + d->modeText);
 
-    connect(p->serverProcess, SIGNAL(ready()), SLOT(openSockets()));
-    connect(p->serverProcess, SIGNAL(stop()), SLOT(stop()));
-    connect(p->serverProcess, SIGNAL(finished()), SLOT(finished()));
-    connect(p->serverProcess, SIGNAL(consoleLine(QString)), SIGNAL(consoleLine(QString)));
+    connect(d->serverProcess, SIGNAL(ready(QHostAddress, quint16)), SLOT(processStarted(QHostAddress, quint16)));
+    connect(d->serverProcess, SIGNAL(stop()), SLOT(stop()));
+    connect(d->serverProcess, SIGNAL(finished()), SLOT(finished()));
+    connect(d->serverProcess, SIGNAL(consoleLine(QString)), SIGNAL(consoleLine(QString)));
   }
-  else if (p->requests.count() == 1)
+  else if (d->requests.count() == 1)
     openSockets();
 }
 
-void SSandboxClient::closeRequest(QIODevice *socket, bool canReuse)
+void SSandboxClient::closeRequest(QAbstractSocket *socket, bool canReuse)
 {
   new SocketCloseRequest(socket);
 }
 
+void SSandboxClient::processStarted(const QHostAddress &address, quint16 port)
+{
+  d->address = address;
+  d->port = port;
+
+  openSockets();
+}
+
 void SSandboxClient::openSockets(void)
 {
-  while (!p->requests.isEmpty())
-    connect(new SandboxSocketRequest(this), SIGNAL(connected(QIODevice *)), p->requests.takeFirst(), SLOT(connected(QIODevice *)));
+  while (!d->requests.isEmpty())
+  {
+    const Data::Request request = d->requests.takeFirst();
+
+    connect(new HttpSocketRequest(d->address, d->port, request.message), SIGNAL(connected(QAbstractSocket *)), request.receiver, request.slot);
+  }
 }
 
 void SSandboxClient::stop(void)
 {
-  if (p->serverProcess)
+  if (d->serverProcess)
   {
-    disconnect(p->serverProcess, SIGNAL(ready()), this, SLOT(openSockets()));
-    disconnect(p->serverProcess, SIGNAL(stop()), this, SLOT(stop()));
-    disconnect(p->serverProcess, SIGNAL(finished()), this, SLOT(finished()));
-    disconnect(p->serverProcess, SIGNAL(consoleLine(QString)), this, SIGNAL(consoleLine(QString)));
+    disconnect(d->serverProcess, SIGNAL(ready(QHostAddress, quint16)), this, SLOT(processStarted(QHostAddress, quint16)));
+    disconnect(d->serverProcess, SIGNAL(stop()), this, SLOT(stop()));
+    disconnect(d->serverProcess, SIGNAL(finished()), this, SLOT(finished()));
+    disconnect(d->serverProcess, SIGNAL(consoleLine(QString)), this, SIGNAL(consoleLine(QString)));
 
-    QTimer::singleShot(250, p->serverProcess, SLOT(kill()));
-    QTimer::singleShot(1000, p->serverProcess, SLOT(deleteLater()));
+    QTimer::singleShot(250, d->serverProcess, SLOT(kill()));
+    QTimer::singleShot(1000, d->serverProcess, SLOT(deleteLater()));
 
-    p->serverProcess = NULL;
+    d->serverProcess = NULL;
   }
 }
 
 void SSandboxClient::finished(void)
 {
-  if (p->serverProcess)
+  if (d->serverProcess)
   {
     qDebug() << "Sandbox process terminated.";
 
-    p->serverProcess->deleteLater();
-    p->serverProcess = NULL;
-
-    while (!p->requests.isEmpty())
-      p->requests.takeFirst()->connected(NULL);
+    d->serverProcess->deleteLater();
+    d->serverProcess = NULL;
   }
 }
 

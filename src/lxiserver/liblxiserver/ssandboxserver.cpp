@@ -33,28 +33,23 @@
 
 namespace LXiServer {
 
-class SSandboxServer::Socket : public QLocalSocket
+class SSandboxServer::Socket : public QTcpSocket
 {
 public:
   explicit                      Socket(SSandboxServer *parent);
   virtual                       ~Socket();
 
-  virtual void                  close(void);
-
-public:
-  bool                          closing;
-
 private:
   SSandboxServer        * const parent;
 };
 
-class SSandboxServer::Server : public QLocalServer
+class SSandboxServer::Server : public QTcpServer
 {
 public:
-  explicit                      Server(const QString &, SSandboxServer *parent);
+  explicit                      Server(SSandboxServer *parent);
 
 protected:
-  virtual void                  incomingConnection(quintptr);
+  virtual void                  incomingConnection(int);
 
 private:
   SSandboxServer         * const parent;
@@ -81,11 +76,13 @@ SSandboxServer::~SSandboxServer()
   *const_cast<Private **>(&p) = NULL;
 }
 
-void SSandboxServer::initialize(const QString &name, const QString &mode)
+void SSandboxServer::initialize(const QString &mode)
 {
-  p->server = new Server(name, this);
+  p->server = new Server(this);
 
-  std::cerr << "##READY" << std::endl;
+  std::cerr << "##READY "
+      << p->server->serverAddress().toString().toAscii().data() << " "
+      << p->server->serverPort() << std::endl;
 
   // This is performed after initialization to prevent priority inversion with
   // the process that is waiting for this one to start.
@@ -112,19 +109,14 @@ void SSandboxServer::close(void)
   std::cerr << "##STOP" << std::endl;
 }
 
-void SSandboxServer::closeSocket(QIODevice *socket, bool)
+void SSandboxServer::closeSocket(QAbstractSocket *socket, bool)
 {
-  if (!static_cast<Socket *>(socket)->closing)
-  {
-    static_cast<Socket *>(socket)->closing = true;
-    new SocketCloseRequest(socket);
-  }
+  new SocketCloseRequest(socket);
 }
 
 
 SSandboxServer::Socket::Socket(SSandboxServer *parent)
-  : QLocalSocket(),
-    closing(false),
+  : QTcpSocket(),
     parent(parent)
 {
   if (parent->p->sockets++ == 0)
@@ -137,30 +129,20 @@ SSandboxServer::Socket::~Socket()
     emit parent->idle();
 }
 
-void SSandboxServer::Socket::close(void)
-{
-  parent->closeSocket(this, false);
-}
 
-
-SSandboxServer::Server::Server(const QString &name, SSandboxServer *parent)
-  : QLocalServer(),
+SSandboxServer::Server::Server(SSandboxServer *parent)
+  : QTcpServer(),
     parent(parent)
 {
-  if (!name.isEmpty())
-  {
-    QLocalServer::removeServer(name);
-
-    if (QLocalServer::listen(name))
-      return;
-  }
-
-  qWarning() << "Failed to bind local socket" << name;
+  // First try IPv6, then IPv4
+  if (!QTcpServer::listen(QHostAddress::LocalHostIPv6))
+  if (!QTcpServer::listen(QHostAddress::LocalHost))
+    qWarning() << "SSandboxServer Failed to bind localhost interface";
 }
 
-void SSandboxServer::Server::incomingConnection(quintptr socketDescriptor)
+void SSandboxServer::Server::incomingConnection(int socketDescriptor)
 {
-  QLocalSocket * const socket = new Socket(parent);
+  QTcpSocket * const socket = new Socket(parent);
   if (socket->setSocketDescriptor(socketDescriptor))
     (new HttpServerRequest(parent))->start(socket);
   else

@@ -9,6 +9,7 @@
 #include <QtNetwork>
 #include <QtXml>
 
+#include "liblxiserver/shttpclient.h"
 #include "liblxiserver/shttpengine.h"
 #include "liblxiserver/shttpproxy.h"
 #include "liblxiserver/shttpserver.h"

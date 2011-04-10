@@ -31,8 +31,6 @@ public:
   explicit                      Socket(SHttpServer *parent);
   virtual                       ~Socket();
 
-  virtual void                  close(void);
-
 public:
   bool                          closing;
 
@@ -104,7 +102,7 @@ const QString & SHttpServer::serverUdn(void) const
   return p->serverUdn;
 }
 
-void SHttpServer::closeSocket(QIODevice *socket, bool)
+void SHttpServer::closeSocket(QAbstractSocket *socket, bool)
 {
   if (!static_cast<Socket *>(socket)->closing)
   {
@@ -129,11 +127,6 @@ SHttpServer::Socket::~Socket()
     emit parent->idle();
 }
 
-void SHttpServer::Socket::close(void)
-{
-  parent->closeSocket(this, false);
-}
-
 
 SHttpServer::Server::Server(const QHostAddress &interfaceAddr, quint16 port, SHttpServer *parent)
   : QTcpServer(),
@@ -144,7 +137,7 @@ SHttpServer::Server::Server(const QHostAddress &interfaceAddr, quint16 port, SHt
     return;
 
   if (!QTcpServer::listen(interfaceAddr))
-    qWarning() << "Failed to bind interface" << interfaceAddr.toString();
+    qWarning() << "SHttpServer Failed to bind interface" << interfaceAddr.toString();
 }
 
 void SHttpServer::Server::incomingConnection(int socketDescriptor)

@@ -34,6 +34,7 @@ class LXIMEDIACENTER_PUBLIC MediaStream : public SGraph
 Q_OBJECT
 public:
   explicit                      MediaStream(void);
+  virtual                       ~MediaStream();
 
   bool                          setup(const SHttpServer::RequestHeader &, QIODevice *, STime duration, SInterval frameRate, SSize size, SAudioFormat::Channels channels);
   bool                          setup(const SHttpServer::RequestHeader &, QIODevice *, STime duration, SAudioFormat::Channels channels);

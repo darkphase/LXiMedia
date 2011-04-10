@@ -61,6 +61,11 @@ MediaStream::MediaStream(void)
   connect(&timeStampResampler, SIGNAL(output(SSubtitleBuffer)), &subtitleRenderer, SLOT(input(SSubtitleBuffer)));
 }
 
+MediaStream::~MediaStream()
+{
+  qDebug() << "Stopped stream";
+}
+
 bool MediaStream::setup(const SHttpServer::RequestHeader &request, QIODevice *socket, STime duration, SInterval frameRate, SSize size, SAudioFormat::Channels channels)
 {
   QUrl url(request.path());

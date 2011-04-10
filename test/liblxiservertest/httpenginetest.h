@@ -21,22 +21,37 @@
 #include <QtNetwork>
 #include <LXiServer>
 
-class HttpServerTest : public QObject
+class HttpEngineTest : public QObject
 {
 Q_OBJECT
 public:
-  inline explicit               HttpServerTest(QObject *parent) : QObject(parent), gotHttpServerReply(false) { }
+  inline explicit               HttpEngineTest(QObject *parent) : QObject(parent), gotHttpServerReply(false), httpServer(NULL) { }
 
 private slots:
   void                          initTestCase(void);
   void                          cleanupTestCase(void);
 
-  void                          Server(void);
-  void                          ServerReply(QNetworkReply *);
+  void                          HttpServerIPv4(void);
+  void                          HttpServerIPv6(void);
+
+  void                          HttpClientIPv4(void);
+  void                          HttpClientIPv6(void);
+
+private:
+  bool                          startServer(const QHostAddress &);
+  void                          stopServer(void);
+
+  void                          testQtClient(const QHostAddress &);
+  void                          testHttpClient(const QHostAddress &);
+
+private slots:
+  void                          serverReply(QNetworkReply *);
+  void                          handleResponse(const SHttpEngine::ResponseMessage &);
 
 private:
   bool                          gotHttpServerReply;
 
 private:
   SApplication                * mediaApp;
+  SHttpServer                 * httpServer;
 };

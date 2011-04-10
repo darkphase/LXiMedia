@@ -21,11 +21,11 @@
 #include <QtTest>
 #include <LXiServer>
 
-int SandboxTest::startSandbox(const QString &name, const QString &mode)
+int SandboxTest::startSandbox(const QString &mode)
 {
   struct Callback : SSandboxServer::Callback
   {
-    virtual SSandboxServer::SocketOp handleHttpRequest(const SSandboxServer::RequestHeader &request, QIODevice *socket)
+    virtual SSandboxServer::SocketOp handleHttpRequest(const SSandboxServer::RequestHeader &request, QAbstractSocket *socket)
     {
       const QUrl url(request.path());
       const QString path = url.path();
@@ -49,7 +49,7 @@ int SandboxTest::startSandbox(const QString &name, const QString &mode)
   };
 
   SSandboxServer sandboxServer;
-  sandboxServer.initialize(name, mode);
+  sandboxServer.initialize(mode);
 
   Callback callback;
   sandboxServer.registerCallback("/", &callback);
@@ -84,7 +84,6 @@ void SandboxTest::sendRequests(void)
 
   SSandboxClient::RequestMessage nopMessage(sandboxClient);
   nopMessage.setRequest("GET", "/?nop");
-  nopMessage.setHost(sandboxClient->serverName());
 
   for (int i=0; i<numResponses/2; i++)
     sandboxClient->sendRequest(nopMessage);
@@ -107,12 +106,10 @@ void SandboxTest::sendTerminate(void)
 
   SSandboxClient::RequestMessage nopMessage(sandboxClient);
   nopMessage.setRequest("GET", "/?nop");
-  nopMessage.setHost(sandboxClient->serverName());
   sandboxClient->sendRequest(nopMessage);
 
   SSandboxClient::RequestMessage stopMessage(sandboxClient);
   stopMessage.setRequest("GET", "/?stop");
-  stopMessage.setHost(sandboxClient->serverName());
   sandboxClient->sendRequest(stopMessage);
 
   for (int i=0; (i<20) && (responseCount<2); i++)

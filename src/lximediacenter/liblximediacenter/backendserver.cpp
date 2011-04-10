@@ -78,7 +78,7 @@ BackendServer::SearchResultList BackendServer::search(const QStringList &) const
   return SearchResultList();
 }
 
-SHttpServer::SocketOp BackendServer::sendResponse(const SHttpServer::RequestHeader &request, QIODevice *socket, const QByteArray &data, const char *mime, bool allowCache, const QString &redir) const
+SHttpServer::SocketOp BackendServer::sendResponse(const SHttpServer::RequestHeader &request, QAbstractSocket *socket, const QByteArray &data, const char *mime, bool allowCache, const QString &redir) const
 {
   SHttpServer::ResponseHeader response(request, (redir.length() == 0) ? SHttpServer::Status_Ok : SHttpServer::Status_MovedPermanently);
   if (!allowCache)
@@ -102,12 +102,12 @@ SHttpServer::SocketOp BackendServer::sendResponse(const SHttpServer::RequestHead
   return SHttpServer::SocketOp_Close;
 }
 
-SHttpServer::SocketOp BackendServer::sendResponse(const SHttpServer::RequestHeader &request, QIODevice *socket, const QString &data, const char *mime, bool allowCache, const QString &redir) const
+SHttpServer::SocketOp BackendServer::sendResponse(const SHttpServer::RequestHeader &request, QAbstractSocket *socket, const QString &data, const char *mime, bool allowCache, const QString &redir) const
 {
   return sendResponse(request, socket, data.toUtf8(), mime, allowCache, redir);
 }
 
-SHttpServer::SocketOp BackendServer::sendHtmlContent(QIODevice *socket, const QUrl &url, const SHttpServer::ResponseHeader &response, const QByteArray &content, const QByteArray &head) const
+SHttpServer::SocketOp BackendServer::sendHtmlContent(QAbstractSocket *socket, const QUrl &url, const SHttpServer::ResponseHeader &response, const QByteArray &content, const QByteArray &head) const
 {
   socket->write(response);
   socket->write(d->masterServer->parseHtmlContent(url, content, head));

@@ -46,7 +46,7 @@ signals:
   void                          idle(void);
 
 public: // From HttpServerEngine
-  virtual void                  closeSocket(QIODevice *, bool canReuse);
+  virtual void                  closeSocket(QAbstractSocket *, bool canReuse);
 
 private:
   class Socket;

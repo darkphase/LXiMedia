@@ -34,7 +34,7 @@ public:
   explicit                      SSandboxServer(QObject * = NULL);
   virtual                       ~SSandboxServer();
 
-  void                          initialize(const QString &name, const QString &mode);
+  void                          initialize(const QString &mode);
   void                          close(void);
 
 signals:
@@ -42,7 +42,7 @@ signals:
   void                          idle(void);
 
 public: // From HttpServerEngine
-  virtual void                  closeSocket(QIODevice *, bool canReuse);
+  virtual void                  closeSocket(QAbstractSocket *, bool canReuse);
 
 private:
   class Socket;

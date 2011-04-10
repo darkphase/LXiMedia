@@ -32,11 +32,11 @@ class HttpClientRequest : public QObject
 {
 Q_OBJECT
 public:
-  explicit                      HttpClientRequest(SHttpClientEngine *, const SHttpEngine::RequestMessage &);
+  explicit                      HttpClientRequest(SHttpClientEngine *);
   virtual                       ~HttpClientRequest();
 
 public slots:
-  void                          start(QIODevice *);
+  void                          start(QAbstractSocket *);
 
 signals:
   void                          response(const SHttpEngine::ResponseMessage &);
@@ -48,7 +48,7 @@ private slots:
 private:
   SHttpClientEngine     * const parent;
   const SHttpEngine::RequestMessage message;
-  QIODevice                   * socket;
+  QAbstractSocket             * socket;
   QByteArray                    data;
   QTimer                        closeTimer;
   bool                          responded;
@@ -62,17 +62,17 @@ public:
   virtual                       ~HttpServerRequest();
 
 public slots:
-  void                          start(QIODevice *);
+  void                          start(QAbstractSocket *);
 
 signals:
-  void                          handleHttpRequest(const SHttpEngine::RequestHeader &, QIODevice *);
+  void                          handleHttpRequest(const SHttpEngine::RequestHeader &, QAbstractSocket *);
 
 private slots:
   void                          readyRead();
 
 private:
   SHttpServerEngine     * const parent;
-  QIODevice                   * socket;
+  QAbstractSocket             * socket;
   QByteArray                    data;
   QTimer                        closeTimer;
 };
@@ -81,11 +81,12 @@ class HttpSocketRequest : public QObject
 {
 Q_OBJECT
 public:
-  explicit                      HttpSocketRequest(const QString &host, quint16 port);
+  explicit                      HttpSocketRequest(const QHostAddress &host, quint16 port, const QByteArray &message = QByteArray());
+  explicit                      HttpSocketRequest(const QString &host, quint16 port, const QByteArray &message = QByteArray());
   virtual                       ~HttpSocketRequest();
 
 signals:
-  void                          connected(QIODevice *);
+  void                          connected(QAbstractSocket *);
 
 private slots:
   void                          connectToHost(const QHostInfo &);
@@ -95,6 +96,7 @@ private slots:
 private:
   static const int              maxTTL = 15000;
   const quint16                 port;
+  const QByteArray              message;
   QTcpSocket                  * socket;
   QTimer                        deleteTimer;
 };
@@ -110,7 +112,7 @@ public slots:
   void                          kill(void);
 
 signals:
-  void                          ready(void);
+  void                          ready(const QHostAddress &, quint16);
   void                          stop(void);
   void                          finished(void);
   void                          consoleLine(const QString &);
@@ -124,50 +126,11 @@ private:
   QProcess              * const process;
 };
 
-class SandboxSocketRequest : public QObject
-{
-Q_OBJECT
-public:
-  explicit                      SandboxSocketRequest(SSandboxClient *, QLocalSocket * = NULL);
-  virtual                       ~SandboxSocketRequest();
-
-signals:
-  void                          connected(QIODevice *);
-
-private slots:
-  void                          connected(void);
-  void                          failed(void);
-
-private:
-  static const int              maxTTL = 15000;
-  SSandboxClient        * const parent;
-  QLocalSocket                * socket;
-  QTimer                        deleteTimer;
-};
-
-class SandboxMessageRequest : public QObject
-{
-Q_OBJECT
-public:
-                                SandboxMessageRequest(const SHttpEngine::RequestMessage &);
-  virtual                       ~SandboxMessageRequest();
-
-public slots:
-  void                          connected(QIODevice *);
-
-signals:
-  void                          headerSent(QIODevice *);
-
-private:
-  const QByteArray              message;
-};
-
-
 class SocketCloseRequest : public QObject
 {
 Q_OBJECT
 public:
-  explicit                      SocketCloseRequest(QIODevice *);
+  explicit                      SocketCloseRequest(QAbstractSocket *);
   virtual                       ~SocketCloseRequest();
 
 signals:
@@ -178,8 +141,7 @@ private slots:
 
 private:
   static const int              maxTTL = 15000;
-  QLocalSocket          * const localSocket;
-  QTcpSocket            * const tcpSocket;
+  QAbstractSocket       * const socket;
   QTimer                        deleteTimer;
 };
 

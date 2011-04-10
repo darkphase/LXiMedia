@@ -46,7 +46,7 @@ protected:
   virtual void                  customEvent(QEvent *);
 
 protected: // From SHttpServer::Callback
-  virtual SHttpServer::SocketOp  handleHttpRequest(const SHttpServer::RequestHeader &, QIODevice *);
+  virtual SHttpServer::SocketOp  handleHttpRequest(const SHttpServer::RequestHeader &, QAbstractSocket *);
 
 private:
   static QString                createLogDir(void);
@@ -62,11 +62,11 @@ private:
   virtual SSandboxClient      * createSandbox(SSandboxClient::Mode);
   virtual void                  recycleSandbox(SSandboxClient *);
 
-  SHttpServer::SocketOp         handleCssRequest(const SHttpServer::RequestHeader &, QIODevice *, const QString &);
-  SHttpServer::SocketOp         handleHtmlSearch(const SHttpServer::RequestHeader &, QIODevice *, const QString &);
-  SHttpServer::SocketOp         handleHtmlRequest(const SHttpServer::RequestHeader &, QIODevice *, const QString &);
-  SHttpServer::SocketOp         showAbout(const SHttpServer::RequestHeader &, QIODevice *);
-  SHttpServer::SocketOp         handleHtmlConfig(const SHttpServer::RequestHeader &, QIODevice *);
+  SHttpServer::SocketOp         handleCssRequest(const SHttpServer::RequestHeader &, QAbstractSocket *, const QString &);
+  SHttpServer::SocketOp         handleHtmlSearch(const SHttpServer::RequestHeader &, QAbstractSocket *, const QString &);
+  SHttpServer::SocketOp         handleHtmlRequest(const SHttpServer::RequestHeader &, QAbstractSocket *, const QString &);
+  SHttpServer::SocketOp         showAbout(const SHttpServer::RequestHeader &, QAbstractSocket *);
+  SHttpServer::SocketOp         handleHtmlConfig(const SHttpServer::RequestHeader &, QAbstractSocket *);
 
   void                          setContentDirectoryQueryItems(void);
 

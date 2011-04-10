@@ -36,7 +36,7 @@ public:
 
 public: // From HttpClientEngine
   virtual void                  openRequest(const RequestMessage &header, QObject *receiver, const char *slot);
-  virtual void                  closeRequest(QIODevice *, bool canReuse = false);
+  virtual void                  closeRequest(QAbstractSocket *, bool canReuse = false);
 
 private:
   struct Private;

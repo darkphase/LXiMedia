@@ -21,11 +21,9 @@
 #define LXISERVER_SHTTPENGINE_H
 
 #include <QtCore>
+#include <QtNetwork>
 #include <LXiCore>
 #include "export.h"
-
-class QAbstractSocket;
-class QLocalSocket;
 
 namespace LXiServer {
 
@@ -72,7 +70,8 @@ public:
     inline void                 setDate(const QDateTime &date)                  { setField(fieldDate, date.toUTC().toString(dateFormat)); }
     inline void                 setDate(void)                                   { setDate(QDateTime::currentDateTime()); }
     inline QString              host(void) const                                { return field(fieldHost); }
-    inline void                 setHost(const QString &type)                    { setField(fieldHost, type); }
+    inline void                 setHost(const QString &host)                    { setField(fieldHost, host); }
+    void                        setHost(const QHostAddress &, quint16 = 0);
     inline QString              server(void) const                              { return field(fieldServer); }
     inline void                 setServer(const QString &server)                { setField(fieldServer, server); }
     inline QString              userAgent(void) const                           { return field(fieldUserAgent); }
@@ -165,28 +164,6 @@ public:
   };
 
 public:
-  class LXISERVER_PUBLIC SocketPtr
-  {
-  public:
-    inline                      SocketPtr(QIODevice * socket = NULL)            { operator=(socket); }
-
-    SocketPtr                 & operator=(QIODevice *);
-
-    inline                      operator bool() const                           { return socket; }
-    inline const QIODevice    * operator->() const                              { return socket; }
-    inline QIODevice          * operator->()                                    { return socket; }
-    inline                      operator const QIODevice *() const              { return socket; }
-    inline                      operator QIODevice *()                          { return socket; }
-
-    bool                        isConnected(void) const;
-
-  private:
-    QIODevice                 * socket;
-    QAbstractSocket           * abstractSocket;
-    QLocalSocket              * localSocket;
-  };
-
-public:
                                 SHttpEngine(void);
   virtual                       ~SHttpEngine();
 
@@ -194,6 +171,7 @@ public:
   virtual const QString       & senderId(void) const = 0;
 
   __pure static const char    * toMimeType(const QString &fileName);
+  __pure static bool            splitHost(const QString &host, QString &hostname, quint16 &port);
 
 public:
   static const char     * const httpVersion;
@@ -219,7 +197,7 @@ public:
 
   struct Callback
   {
-    virtual SocketOp            handleHttpRequest(const RequestHeader &, QIODevice *) = 0;
+    virtual SocketOp            handleHttpRequest(const RequestHeader &, QAbstractSocket *) = 0;
   };
 
 public:
@@ -232,16 +210,16 @@ public:
   virtual const char          * senderType(void) const;
   virtual const QString       & senderId(void) const;
 
-  virtual void                  closeSocket(QIODevice *, bool canReuse) = 0;
+  virtual void                  closeSocket(QAbstractSocket *, bool canReuse) = 0;
 
 public:
-  static QByteArray             readContent(const RequestHeader &, QIODevice *);
-  static SocketOp               sendResponse(const RequestHeader &, QIODevice *, Status, const QByteArray &content, const QObject * = NULL);
-  static SocketOp               sendResponse(const RequestHeader &, QIODevice *, Status, const QObject * = NULL);
-  static SocketOp               sendRedirect(const RequestHeader &, QIODevice *, const QString &);
+  static QByteArray             readContent(const RequestHeader &, QAbstractSocket *);
+  static SocketOp               sendResponse(const RequestHeader &, QAbstractSocket *, Status, const QByteArray &content, const QObject * = NULL);
+  static SocketOp               sendResponse(const RequestHeader &, QAbstractSocket *, Status, const QObject * = NULL);
+  static SocketOp               sendRedirect(const RequestHeader &, QAbstractSocket *, const QString &);
 
 private slots:
-  __internal void               handleHttpRequest(const SHttpEngine::RequestHeader &, QIODevice *);
+  __internal void               handleHttpRequest(const SHttpEngine::RequestHeader &, QAbstractSocket *);
 
 private:
   struct Private;
@@ -261,16 +239,13 @@ public:
   virtual const QString       & senderId(void) const;
 
   virtual void                  openRequest(const RequestMessage &message, QObject *receiver, const char *slot) = 0;
-  virtual void                  closeRequest(QIODevice *, bool canReuse = false) = 0;
+  virtual void                  closeRequest(QAbstractSocket *, bool canReuse = false) = 0;
 
   void                          sendRequest(const RequestMessage &);
 
 signals:
   void                          response(const SHttpEngine::ResponseMessage &);
-  void                          opened(QIODevice *);
-
-protected: // From QObject
-  virtual void                  customEvent(QEvent *);
+  void                          opened(QAbstractSocket *);
 
 protected slots:
   virtual void                  handleResponse(const SHttpEngine::ResponseMessage &);

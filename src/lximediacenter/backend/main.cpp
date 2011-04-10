@@ -72,10 +72,10 @@ int main(int argc, char *argv[])
 #include "_version.h"
       );
 
-  if ((argc >= 4) && (strcmp(argv[1], "--sandbox") == 0))
+  if ((argc >= 3) && (strcmp(argv[1], "--sandbox") == 0))
   {
     Sandbox sandbox;
-    sandbox.start(argv[2], argv[3]);
+    sandbox.start(argv[2]);
 
     return qApp->exec();
   }
