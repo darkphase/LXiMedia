@@ -21,6 +21,7 @@
 #define LXMEDIACENTER_HTTPPROXY_H
 
 #include <QtCore>
+#include <QtNetwork>
 #include <LXiCore>
 #include "export.h"
 
@@ -38,11 +39,14 @@ public:
   bool                          isConnected(void) const;
 
 public slots:
-  bool                          setSource(QIODevice *);
-  bool                          addSocket(QIODevice *);
+  bool                          setSource(QAbstractSocket *);
+  bool                          addSocket(QAbstractSocket *);
 
 signals:
   void                          disconnected(void);
+
+private:
+  __internal void               disconnectAllSockets(void);
 
 private slots:
   __internal void               processData(void);

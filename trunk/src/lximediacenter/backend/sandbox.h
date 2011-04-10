@@ -30,7 +30,7 @@ public:
                                 Sandbox(void);
   virtual                       ~Sandbox();
 
-  void                          start(const QString &name, const QString &mode);
+  void                          start(const QString &mode);
 
 public slots:
   void                          stop(void);

@@ -119,7 +119,7 @@ const char * const ConfigServer::htmlDirTreeCheckLink =
     "<img src=\"/img/check{DIR_CHECKED}.png\" width=\"16\" height=\"16\" />"
     "</a>";
 
-SHttpServer::SocketOp ConfigServer::handleHtmlRequest(const SHttpServer::RequestHeader &request, QIODevice *socket, const QString &file)
+SHttpServer::SocketOp ConfigServer::handleHtmlRequest(const SHttpServer::RequestHeader &request, QAbstractSocket *socket, const QString &file)
 {
   SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
   response.setContentType("text/html;charset=utf-8");

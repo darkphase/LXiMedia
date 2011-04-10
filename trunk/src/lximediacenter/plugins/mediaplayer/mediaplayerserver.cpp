@@ -332,7 +332,7 @@ MediaPlayerServer::Item::Type MediaPlayerServer::defaultItemType(Item::Type type
   }
 }
 
-SHttpServer::SocketOp MediaPlayerServer::handleHttpRequest(const SHttpServer::RequestHeader &request, QIODevice *socket)
+SHttpServer::SocketOp MediaPlayerServer::handleHttpRequest(const SHttpServer::RequestHeader &request, QAbstractSocket *socket)
 {
   const QUrl url(request.path());
   const QString file = request.file();
@@ -547,10 +547,9 @@ bool MediaPlayerServer::Stream::setup(const QUrl &url, const QByteArray &content
 
   SHttpEngine::RequestMessage message(sandbox);
   message.setRequest("POST", url.toEncoded(QUrl::RemoveScheme | QUrl::RemoveAuthority));
-  message.setHost(sandbox->serverName());
   message.setContent(content);
 
-  sandbox->openRequest(message, &proxy, SLOT(setSource(QIODevice *)));
+  sandbox->openRequest(message, &proxy, SLOT(setSource(QAbstractSocket *)));
 
   return true;
 }

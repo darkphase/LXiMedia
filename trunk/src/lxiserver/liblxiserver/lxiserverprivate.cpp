@@ -20,14 +20,11 @@
 #include "lxiserverprivate.h"
 #include <LXiCore>
 
-HttpClientRequest::HttpClientRequest(SHttpClientEngine *parent, const SHttpEngine::RequestMessage &message)
+HttpClientRequest::HttpClientRequest(SHttpClientEngine *parent)
   : parent(parent),
-    message(message),
     socket(NULL),
     responded(false)
 {
-  connect(this, SIGNAL(response(SHttpEngine::ResponseMessage)), parent, SLOT(handleResponse(SHttpEngine::ResponseMessage)));
-
   connect(&closeTimer, SIGNAL(timeout()), SLOT(close()));
   closeTimer.setSingleShot(true);
 }
@@ -38,7 +35,7 @@ HttpClientRequest::~HttpClientRequest()
     parent->closeRequest(socket, false);
 }
 
-void HttpClientRequest::start(QIODevice *socket)
+void HttpClientRequest::start(QAbstractSocket *socket)
 {
   if (socket)
   {
@@ -46,8 +43,6 @@ void HttpClientRequest::start(QIODevice *socket)
 
     connect(socket, SIGNAL(readyRead()), SLOT(readyRead()));
     connect(socket, SIGNAL(readChannelFinished()), SLOT(close()));
-
-    socket->write(message.content());
 
     closeTimer.start(SHttpEngine::maxTTL);
   }
@@ -95,7 +90,7 @@ HttpServerRequest::HttpServerRequest(SHttpServerEngine *parent)
   : parent(parent),
     socket(NULL)
 {
-  connect(this, SIGNAL(handleHttpRequest(SHttpEngine::RequestHeader, QIODevice *)), parent, SLOT(handleHttpRequest(SHttpEngine::RequestHeader, QIODevice *)));
+  connect(this, SIGNAL(handleHttpRequest(SHttpEngine::RequestHeader, QAbstractSocket *)), parent, SLOT(handleHttpRequest(SHttpEngine::RequestHeader, QAbstractSocket *)));
 
   connect(&closeTimer, SIGNAL(timeout()), SLOT(deleteLater()));
   closeTimer.setSingleShot(true);
@@ -107,7 +102,7 @@ HttpServerRequest::~HttpServerRequest()
     parent->closeSocket(socket, false);
 }
 
-void HttpServerRequest::start(QIODevice *socket)
+void HttpServerRequest::start(QAbstractSocket *socket)
 {
   if (socket)
   {
@@ -154,8 +149,25 @@ void HttpServerRequest::readyRead()
 }
 
 
-HttpSocketRequest::HttpSocketRequest(const QString &host, quint16 port)
+HttpSocketRequest::HttpSocketRequest(const QHostAddress &host, quint16 port, const QByteArray &message)
   : port(port),
+    message(message),
+    socket(new QTcpSocket())
+{
+  connect(socket, SIGNAL(connected()), SLOT(connected()), Qt::QueuedConnection);
+  connect(socket, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(failed()), Qt::DirectConnection);
+
+  socket->connectToHost(host, port);
+  socket->setReadBufferSize(65536);
+
+  connect(&deleteTimer, SIGNAL(timeout()), SLOT(deleteLater()));
+  deleteTimer.setSingleShot(true);
+  deleteTimer.start(maxTTL);
+}
+
+HttpSocketRequest::HttpSocketRequest(const QString &host, quint16 port, const QByteArray &message)
+  : port(port),
+    message(message),
     socket(new QTcpSocket())
 {
   connect(socket, SIGNAL(connected()), SLOT(connected()), Qt::QueuedConnection);
@@ -176,13 +188,19 @@ HttpSocketRequest::~HttpSocketRequest()
 void HttpSocketRequest::connectToHost(const QHostInfo &hostInfo)
 {
   if (!hostInfo.addresses().isEmpty())
+  {
     socket->connectToHost(hostInfo.addresses().first(), port);
+    socket->setReadBufferSize(65536);
+  }
   else
     deleteLater();
 }
 
 void HttpSocketRequest::connected(void)
 {
+  if (socket && !message.isEmpty())
+    socket->write(message);
+
   emit connected(socket);
   socket = NULL;
   deleteLater();
@@ -237,7 +255,11 @@ void SandboxProcess::readyRead()
       if (line[0] == '#')
       {
         if (line.startsWith("##READY"))
-          emit ready();
+        {
+          const QList<QByteArray> items = line.simplified().split(' ');
+          if (items.count() >= 3)
+            emit ready(QHostAddress(QString::fromAscii(items[1])), items[2].toUShort());
+        }
         else if (line.startsWith("##STOP"))
           emit stop();
         else
@@ -255,77 +277,8 @@ void SandboxProcess::finished(int, QProcess::ExitStatus)
 }
 
 
-SandboxSocketRequest::SandboxSocketRequest(SSandboxClient *parent, QLocalSocket *reuse)
-  : parent(parent),
-    socket(reuse ? reuse : new QLocalSocket())
-{
-  connect(socket, SIGNAL(connected()), SLOT(connected()), Qt::QueuedConnection);
-  connect(socket, SIGNAL(error(QLocalSocket::LocalSocketError)), SLOT(failed()), Qt::DirectConnection);
-
-  if (reuse == NULL)
-  {
-    socket->setReadBufferSize(65536);
-    socket->connectToServer(parent->serverName());
-  }
-
-  connect(&deleteTimer, SIGNAL(timeout()), SLOT(deleteLater()));
-  deleteTimer.setSingleShot(true);
-  deleteTimer.start(maxTTL);
-}
-
-SandboxSocketRequest::~SandboxSocketRequest()
-{
-  delete socket;
-}
-
-void SandboxSocketRequest::connected(void)
-{
-  if (socket)
-  {
-    disconnect(socket, SIGNAL(connected()), this, SLOT(connected()));
-    disconnect(socket, SIGNAL(error(QLocalSocket::LocalSocketError)), this, SLOT(failed()));
-
-    emit connected(socket);
-    socket = NULL;
-  }
-
-  deleteLater();
-}
-
-void SandboxSocketRequest::failed(void)
-{
-  qWarning() << "SandboxSocketRequest failed" << socket->errorString();
-
-  socket->deleteLater();
-  socket = NULL;
-
-  QMetaObject::invokeMethod(this, "connected", Qt::QueuedConnection);
-}
-
-
-SandboxMessageRequest::SandboxMessageRequest(const SHttpEngine::RequestMessage &message)
-  : message(message)
-{
-}
-
-SandboxMessageRequest::~SandboxMessageRequest()
-{
-}
-
-void SandboxMessageRequest::connected(QIODevice *socket)
-{
-  if (socket)
-    socket->write(message);
-
-  emit headerSent(socket);
-
-  deleteLater();
-}
-
-
-SocketCloseRequest::SocketCloseRequest(QIODevice *socket)
-  : localSocket(qobject_cast<QLocalSocket *>(socket)),
-    tcpSocket(qobject_cast<QTcpSocket *>(socket))
+SocketCloseRequest::SocketCloseRequest(QAbstractSocket *socket)
+  : socket(socket)
 {
   if ((QThread::currentThread() == socket->thread()) && (socket->thread() != qApp->thread()))
   {
@@ -337,39 +290,19 @@ SocketCloseRequest::SocketCloseRequest(QIODevice *socket)
     if (!socket->waitForBytesWritten(qMax(maxTTL- timer.elapsed(), 0)))
       break;
 
-    if (localSocket)
-    {
-      localSocket->disconnectFromServer();
-      if (localSocket->state() != QLocalSocket::UnconnectedState)
-        localSocket->waitForDisconnected(qMax(maxTTL- timer.elapsed(), 0));
-    }
-    else if (tcpSocket)
-    {
-      tcpSocket->disconnectFromHost();
-      if (tcpSocket->state() != QTcpSocket::UnconnectedState)
-        tcpSocket->waitForDisconnected(qMax(maxTTL- timer.elapsed(), 0));
-    }
+    socket->disconnectFromHost();
+    if (socket->state() != QAbstractSocket::UnconnectedState)
+      socket->waitForDisconnected(qMax(maxTTL- timer.elapsed(), 0));
 
     delete this;
   }
   else
   {
-    if (localSocket)
-    {
-      connect(localSocket, SIGNAL(disconnected()), SLOT(deleteLater()));
-      if (localSocket->bytesToWrite() > 0)
-        connect(localSocket, SIGNAL(bytesWritten(qint64)), SLOT(bytesWritten()));
-      else
-        bytesWritten();
-    }
-    else if (tcpSocket)
-    {
-      connect(tcpSocket, SIGNAL(disconnected()), SLOT(deleteLater()));
-      if (tcpSocket->bytesToWrite() > 0)
-        connect(tcpSocket, SIGNAL(bytesWritten(qint64)), SLOT(bytesWritten()));
-      else
-        bytesWritten();
-    }
+    connect(socket, SIGNAL(disconnected()), SLOT(deleteLater()));
+    if (socket->bytesToWrite() > 0)
+      connect(socket, SIGNAL(bytesWritten(qint64)), SLOT(bytesWritten()));
+    else
+      bytesWritten();
 
     connect(&deleteTimer, SIGNAL(timeout()), SLOT(deleteLater()));
     deleteTimer.setSingleShot(true);
@@ -379,22 +312,13 @@ SocketCloseRequest::SocketCloseRequest(QIODevice *socket)
 
 SocketCloseRequest::~SocketCloseRequest()
 {
-  delete localSocket;
-  delete tcpSocket;
+  delete socket;
 
   emit closed();
 }
 
 void SocketCloseRequest::bytesWritten(void)
 {
-  if (localSocket)
-  {
-    if (localSocket->bytesToWrite() <= 0)
-      localSocket->disconnectFromServer();
-  }
-  else if (tcpSocket)
-  {
-    if (tcpSocket->bytesToWrite() <= 0)
-      tcpSocket->disconnectFromHost();
-  }
+  if (socket->bytesToWrite() <= 0)
+    socket->disconnectFromHost();
 }

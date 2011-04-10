@@ -94,7 +94,7 @@ protected slots:
   virtual void                  cleanStreams(void);
 
 protected: // From SHttpServer::Callback
-  virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestHeader &, QIODevice *);
+  virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestHeader &, QAbstractSocket *);
 
 private: // From UPnPContentDirectory::Callback
   virtual int                   countContentDirItems(const QString &path);

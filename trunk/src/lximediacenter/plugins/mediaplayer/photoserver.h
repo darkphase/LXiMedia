@@ -39,11 +39,11 @@ protected:
   virtual Stream              * streamVideo(const SHttpServer::RequestHeader &);
 
   virtual QList<Item>           listItems(const QString &path, unsigned start, unsigned count);
-  virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestHeader &, QIODevice *);
+  virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestHeader &, QAbstractSocket *);
 
 private:
-  SHttpServer::SocketOp         sendPhoto(const SHttpServer::RequestHeader &, QIODevice *, MediaDatabase::UniqueID, const QString &format) const;
-  SHttpServer::SocketOp         handleHtmlRequest(const SHttpServer::RequestHeader &, QIODevice *, const QString &);
+  SHttpServer::SocketOp         sendPhoto(const SHttpServer::RequestHeader &, QAbstractSocket *, MediaDatabase::UniqueID, const QString &format) const;
+  SHttpServer::SocketOp         handleHtmlRequest(const SHttpServer::RequestHeader &, QAbstractSocket *, const QString &);
 
 private:
   static const char     * const htmlView;

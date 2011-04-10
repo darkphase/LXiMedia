@@ -51,7 +51,7 @@ void MediaPlayerSandbox::close(void)
   server->unregisterCallback(this);
 }
 
-SSandboxServer::SocketOp MediaPlayerSandbox::handleHttpRequest(const SSandboxServer::RequestHeader &request, QIODevice *socket)
+SSandboxServer::SocketOp MediaPlayerSandbox::handleHttpRequest(const SSandboxServer::RequestHeader &request, QAbstractSocket *socket)
 {
   const QUrl url(request.path());
 
@@ -143,7 +143,7 @@ void MediaPlayerSandbox::customEvent(QEvent *e)
     BackendSandbox::customEvent(e);
 }
 
-void MediaPlayerSandbox::probe(const SSandboxServer::RequestHeader &request, QIODevice *socket, const QString &file)
+void MediaPlayerSandbox::probe(const SSandboxServer::RequestHeader &request, QAbstractSocket *socket, const QString &file)
 {
   SMediaInfo mediaInfo(file);
   if (!mediaInfo.isNull())
@@ -183,7 +183,7 @@ SandboxFileStream::~SandboxFileStream()
 {
 }
 
-bool SandboxFileStream::setup(const SHttpServer::RequestHeader &request, QIODevice *socket)
+bool SandboxFileStream::setup(const SHttpServer::RequestHeader &request, QAbstractSocket *socket)
 {
   return MediaTranscodeStream::setup(request, socket, &file);
 }
@@ -201,7 +201,7 @@ SandboxPlaylistStream::SandboxPlaylistStream(const SMediaInfoList &files)
   connect(&playlistNode, SIGNAL(output(SEncodedDataBuffer)), &dataDecoder, SLOT(input(SEncodedDataBuffer)));
 }
 
-bool SandboxPlaylistStream::setup(const SHttpServer::RequestHeader &request, QIODevice *socket)
+bool SandboxPlaylistStream::setup(const SHttpServer::RequestHeader &request, QAbstractSocket *socket)
 {
   return MediaTranscodeStream::setup(request, socket, &playlistNode);
 }
@@ -230,7 +230,7 @@ SandboxSlideShowStream::SandboxSlideShowStream(const SMediaInfoList &files)
   connect(&slideShow, SIGNAL(output(SVideoBuffer)), &subtitleRenderer, SLOT(input(SVideoBuffer)));
 }
 
-bool SandboxSlideShowStream::setup(const SHttpServer::RequestHeader &request, QIODevice *socket)
+bool SandboxSlideShowStream::setup(const SHttpServer::RequestHeader &request, QAbstractSocket *socket)
 {
   if (MediaStream::setup(
           request, socket,

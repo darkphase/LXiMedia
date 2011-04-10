@@ -72,7 +72,7 @@ QString ConfigServer::serverName(void) const
   return QT_TR_NOOP("Settings");
 }
 
-SHttpServer::SocketOp ConfigServer::handleHttpRequest(const SHttpServer::RequestHeader &request, QIODevice *socket)
+SHttpServer::SocketOp ConfigServer::handleHttpRequest(const SHttpServer::RequestHeader &request, QAbstractSocket *socket)
 {
   const QUrl url(request.path());
   const QString file = request.file();

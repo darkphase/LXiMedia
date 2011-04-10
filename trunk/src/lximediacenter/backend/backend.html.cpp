@@ -371,7 +371,7 @@ const char * const Backend::headSearchResults =
     " <link rel=\"stylesheet\" href=\"/list.css\" type=\"text/css\" media=\"screen, handheld, projection\" />\n";
 
 
-SHttpServer::SocketOp Backend::handleHtmlRequest(const SHttpServer::RequestHeader &request, QIODevice *socket, const QString &)
+SHttpServer::SocketOp Backend::handleHtmlRequest(const SHttpServer::RequestHeader &request, QAbstractSocket *socket, const QString &)
 {
   HtmlParser htmlParser(this->htmlParser);
   htmlParser.setField("TR_SEARCH", tr("Search"));
@@ -478,7 +478,7 @@ SHttpServer::SocketOp Backend::handleHtmlRequest(const SHttpServer::RequestHeade
   return SHttpServer::SocketOp_Close;
 }
 
-SHttpServer::SocketOp Backend::handleHtmlSearch(const SHttpServer::RequestHeader &request, QIODevice *socket, const QString &)
+SHttpServer::SocketOp Backend::handleHtmlSearch(const SHttpServer::RequestHeader &request, QAbstractSocket *socket, const QString &)
 {
   static const int resultsPerPage = 30;
 
@@ -561,7 +561,7 @@ SHttpServer::SocketOp Backend::handleHtmlSearch(const SHttpServer::RequestHeader
   return SHttpServer::SocketOp_Close;
 }
 
-SHttpServer::SocketOp Backend::showAbout(const SHttpServer::RequestHeader &request, QIODevice *socket)
+SHttpServer::SocketOp Backend::showAbout(const SHttpServer::RequestHeader &request, QAbstractSocket *socket)
 {
   HtmlParser htmlParser(this->htmlParser);
 
@@ -578,7 +578,7 @@ SHttpServer::SocketOp Backend::showAbout(const SHttpServer::RequestHeader &reque
   return SHttpServer::SocketOp_Close;
 }
 
-SHttpServer::SocketOp Backend::handleHtmlConfig(const SHttpServer::RequestHeader &request, QIODevice *socket)
+SHttpServer::SocketOp Backend::handleHtmlConfig(const SHttpServer::RequestHeader &request, QAbstractSocket *socket)
 {
   SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
   response.setContentType("text/html;charset=utf-8");

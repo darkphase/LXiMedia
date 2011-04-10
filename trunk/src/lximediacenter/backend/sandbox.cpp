@@ -31,10 +31,10 @@ Sandbox::Sandbox()
   // Seed the random number generator.
   qsrand(int(QDateTime::currentDateTime().toTime_t()));
 
-  qDebug() << "Starting sandbox process" << qApp->applicationPid();
-
   stopTimer.setSingleShot(true);
   stopTimer.setInterval(30000);
+  stopTimer.start();
+
   connect(&stopTimer, SIGNAL(timeout()), SLOT(stop()));
   connect(&sandboxServer, SIGNAL(busy()), &stopTimer, SLOT(stop()));
   connect(&sandboxServer, SIGNAL(idle()), &stopTimer, SLOT(start()));
@@ -47,9 +47,9 @@ Sandbox::~Sandbox()
   sandboxServer.close();
 }
 
-void Sandbox::start(const QString &name, const QString &mode)
+void Sandbox::start(const QString &mode)
 {
-  sandboxServer.initialize(name, mode);
+  sandboxServer.initialize(mode);
 
   // Load plugins
   backendSandboxes = BackendSandbox::create(this);

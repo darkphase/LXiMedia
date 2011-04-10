@@ -25,7 +25,7 @@ class SandboxTest : public QObject
 {
 Q_OBJECT
 public:
-  static int                    startSandbox(const QString &, const QString &);
+  static int                    startSandbox(const QString &);
 
 public:
   inline explicit               SandboxTest(QObject *parent) : QObject(parent), sandboxClient(NULL) { }

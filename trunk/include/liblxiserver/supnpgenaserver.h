@@ -50,7 +50,7 @@ protected:
   virtual void                  timerEvent(QTimerEvent *);
 
 protected: // From SHttpServer::Callback
-  virtual SHttpServer::SocketOp  handleHttpRequest(const SHttpServer::RequestHeader &, QIODevice *);
+  virtual SHttpServer::SocketOp  handleHttpRequest(const SHttpServer::RequestHeader &, QAbstractSocket *);
 
 private slots:
   __internal void               emitEvents(void);

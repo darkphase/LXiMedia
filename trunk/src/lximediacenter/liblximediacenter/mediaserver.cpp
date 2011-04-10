@@ -81,7 +81,7 @@ void MediaServer::cleanStreams(void)
     delete stream;
 }
 
-SHttpServer::SocketOp MediaServer::handleHttpRequest(const SHttpServer::RequestHeader &request, QIODevice *socket)
+SHttpServer::SocketOp MediaServer::handleHttpRequest(const SHttpServer::RequestHeader &request, QAbstractSocket *socket)
 {
   const QUrl url(request.path());
   const QString file = request.file();

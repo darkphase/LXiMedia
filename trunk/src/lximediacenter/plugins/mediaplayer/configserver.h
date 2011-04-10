@@ -46,10 +46,10 @@ public:
   __pure static const QSet<QString> & hiddenDirs(void);
 
 protected: // From SHttpServer::Callback
-  virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestHeader &, QIODevice *);
+  virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestHeader &, QAbstractSocket *);
 
 private:
-  SHttpServer::SocketOp         handleHtmlRequest(const SHttpServer::RequestHeader &, QIODevice *, const QString &);
+  SHttpServer::SocketOp         handleHtmlRequest(const SHttpServer::RequestHeader &, QAbstractSocket *, const QString &);
   void                          generateDirs(HtmlParser &, const QFileInfoList &, int, const QSet<QString> &, const QStringList &);
 
   static const QFileInfoList  & drives(bool rescan = false);
