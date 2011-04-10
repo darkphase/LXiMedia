@@ -96,16 +96,10 @@ bool SHttpProxy::addSocket(QAbstractSocket *socket)
     s.socket = socket;
     s.sendCache = true;
 
-    if (s.socket)
-    {
-      d->sockets += s;
+    d->sockets += s;
+    connect(s.socket, SIGNAL(bytesWritten(qint64)), SLOT(processData()));
 
-      connect(s.socket, SIGNAL(bytesWritten(qint64)), SLOT(processData()));
-
-      return true;
-    }
-    else
-      qFatal("Assigned incompatible socket: %s", socket->metaObject()->className());
+    return true;
   }
 
   return false;

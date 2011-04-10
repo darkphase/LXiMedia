@@ -19,6 +19,9 @@
 
 #include "lxiserverprivate.h"
 #include <LXiCore>
+#if defined(Q_OS_WIN)
+#include <windows.h>
+#endif
 
 HttpClientRequest::HttpClientRequest(SHttpClientEngine *parent)
   : QObject(parent),
@@ -163,6 +166,13 @@ HttpSocketRequest::HttpSocketRequest(QObject *parent, const QHostAddress &host, 
     message(message),
     socket(new QTcpSocket(parent))
 {
+#ifdef Q_OS_WIN
+  // This is needed to ensure the socket isn't kept open by any child
+  // processes.
+  HANDLE handle = (HANDLE)socket->socketDescriptor();
+  ::SetHandleInformation(handle, HANDLE_FLAG_INHERIT, 0);
+#endif
+
   connect(socket, SIGNAL(connected()), SLOT(connected()), Qt::QueuedConnection);
   connect(socket, SIGNAL(bytesWritten(qint64)), SLOT(bytesWritten()), Qt::QueuedConnection);
   connect(socket, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(failed()), Qt::DirectConnection);
@@ -181,6 +191,13 @@ HttpSocketRequest::HttpSocketRequest(QObject *parent, const QString &host, quint
     message(message),
     socket(new QTcpSocket(parent))
 {
+#ifdef Q_OS_WIN
+  // This is needed to ensure the socket isn't kept open by any child
+  // processes.
+  HANDLE handle = (HANDLE)socket->socketDescriptor();
+  ::SetHandleInformation(handle, HANDLE_FLAG_INHERIT, 0);
+#endif
+
   connect(socket, SIGNAL(connected()), SLOT(connected()), Qt::QueuedConnection);
   connect(socket, SIGNAL(bytesWritten(qint64)), SLOT(bytesWritten()), Qt::QueuedConnection);
   connect(socket, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(failed()), Qt::DirectConnection);

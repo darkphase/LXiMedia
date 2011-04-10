@@ -21,7 +21,11 @@
 #include <QtTest>
 #include <LXiServer>
 
+#ifdef Q_OS_WIN
+const int SandboxTest::numResponses = 0;
+#else
 const int SandboxTest::numResponses = 100;
+#endif
 
 int SandboxTest::startSandbox(const QString &mode)
 {
