@@ -21,7 +21,6 @@
 #define LXSTREAM_SMEDIAINFO_H
 
 #include <QtCore>
-#include <QtXml>
 #include <LXiCore>
 #include "sinterfaces.h"
 #include "export.h"
@@ -31,10 +30,10 @@ namespace LXiStream {
 class SMediaInfo;
 typedef QList<SMediaInfo> SMediaInfoList;
 
-class LXISTREAM_PUBLIC SMediaInfo : public SSerializable
+class LXISTREAM_PUBLIC SMediaInfo
 {
-friend class SDiscInfo;
 public:
+  typedef SInterfaces::FormatProber::ProbeInfo          ProbeInfo;
   typedef SInterfaces::FormatProber::ProbeInfo::Program Program;
   typedef SInterfaces::FormatProber::Chapter            Chapter;
   typedef SInterfaces::FormatProber::AudioStreamInfo    AudioStreamInfo;
@@ -45,13 +44,10 @@ public:
                                 SMediaInfo(void);
                                 SMediaInfo(const SMediaInfo &);
   explicit                      SMediaInfo(const QString &path);
-  explicit                      SMediaInfo(const QSharedDataPointer<SInterfaces::FormatProber::ProbeInfo> &);
+  explicit                      SMediaInfo(const QSharedDataPointer<ProbeInfo> &);
   virtual                       ~SMediaInfo();
 
   SMediaInfo                  & operator=(const SMediaInfo &);
-
-  virtual QDomNode              toXml(QDomDocument &) const;
-  virtual void                  fromXml(const QDomNode &);
 
   bool                          isNull(void) const;                             //!< Returns true if the SMediaInfo is empty.
 
@@ -84,18 +80,19 @@ public:
   unsigned                      year(void) const;                               //!< The year (e.g. from ID3).
   unsigned                      track(void) const;                              //!< The track (e.g. from ID3).
 
+protected:
+  inline const ProbeInfo      & probeInfo(void) const                           { return *pi; }
+  inline ProbeInfo            & probeInfo(void)                                 { return *pi; }
+
 public:
   static const unsigned         tvShowSeason;
 
 private:
-  __internal static QDomNode    toXml(const SInterfaces::FormatProber::ProbeInfo &pi, QDomDocument &);
-  __internal static void        fromXml(SInterfaces::FormatProber::ProbeInfo &pi, const QDomNode &);
-
   __internal void               probe(const QString &);
   __internal void               probeDataStreams(void);
 
 private:
-  QSharedDataPointer<SInterfaces::FormatProber::ProbeInfo> pi;
+  QSharedDataPointer<ProbeInfo> pi;
 };
 
 } // End of namespace

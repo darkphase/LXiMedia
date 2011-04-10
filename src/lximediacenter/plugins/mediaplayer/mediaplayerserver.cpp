@@ -70,7 +70,7 @@ MediaPlayerServer::Stream * MediaPlayerServer::streamVideo(const SHttpServer::Re
 
   if (uid.fid != 0)
   {
-    const SMediaInfo node = mediaDatabase->readNode(uid);
+    const FileNode node = mediaDatabase->readNode(uid);
     if (!node.isNull())
     if (uid.pid < node.programs().count())
     {
@@ -114,7 +114,7 @@ int MediaPlayerServer::countItems(const QString &path)
     foreach (const MediaDatabase::File &file, mediaDatabase->getAlbumFiles(category, basePath))
     if (makeItem(file.uid).title == dir.mid(1, dir.length() - 2))
     {
-      const SMediaInfo node = mediaDatabase->readNode(file.uid);
+      const FileNode node = mediaDatabase->readNode(file.uid);
       if (!node.isNull())
         return node.programs().count();
 
@@ -138,7 +138,7 @@ QList<MediaPlayerServer::Item> MediaPlayerServer::listItems(const QString &path,
     foreach (const MediaDatabase::File &file, mediaDatabase->getAlbumFiles(category, basePath))
     if (makeItem(file.uid).title == dir.mid(1, dir.length() - 2))
     {
-      const SMediaInfo node = mediaDatabase->readNode(file.uid);
+      const FileNode node = mediaDatabase->readNode(file.uid);
       if (!node.isNull())
       {
         if (returnAll || (count > 0))
@@ -226,7 +226,7 @@ MediaPlayerServer::Item MediaPlayerServer::makeItem(MediaDatabase::UniqueID uid,
 {
   Item item;
 
-  const SMediaInfo node = mediaDatabase->readNode(uid);
+  const FileNode node = mediaDatabase->readNode(uid);
   if (!node.isNull())
   {
     if ((uid.pid < node.programs().count()) && (!recursePrograms || (node.programs().count() == 1)))
@@ -350,7 +350,7 @@ SHttpServer::SocketOp MediaPlayerServer::handleHttpRequest(const SHttpServer::Re
     }
 
     const MediaDatabase::UniqueID uid = MediaDatabase::fromUidString(file);
-    const SMediaInfo node = mediaDatabase->readNode(uid);
+    const FileNode node = mediaDatabase->readNode(uid);
     if (!node.isNull())
     if (uid.pid < node.programs().count())
     {
@@ -442,7 +442,7 @@ SHttpServer::SocketOp MediaPlayerServer::handleHttpRequest(const SHttpServer::Re
   else if (file.endsWith(".html")) // Show player
   {
     const MediaDatabase::UniqueID uid = MediaDatabase::fromUidString(file);
-    const SMediaInfo node = mediaDatabase->readNode(uid);
+    const FileNode node = mediaDatabase->readNode(uid);
     if (!node.isNull())
     if (uid.pid < node.programs().count())
     {

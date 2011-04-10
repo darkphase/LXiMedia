@@ -25,6 +25,7 @@
 #include <QtXml>
 #include <LXiMediaCenter>
 #include <LXiStream>
+#include "filenode.h"
 
 namespace LXiMediaCenter {
 namespace MediaPlayerBackend {
@@ -88,7 +89,7 @@ public:
   static UniqueID               fromUidString(const QString &str);
 
   UniqueID                      fromPath(const QString &path) const;
-  SMediaInfo                    readNode(UniqueID) const;
+  FileNode                      readNode(UniqueID) const;
 
   void                          setLastPlayed(UniqueID, const QDateTime & = QDateTime::currentDateTime());
   void                          setLastPlayed(const QString &filePath, const QDateTime & = QDateTime::currentDateTime());

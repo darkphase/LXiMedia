@@ -1,10 +1,10 @@
 TEMPLATE = lib
 CONFIG += dll
+QT += network xml sql
 LXIMEDIA_DIR = ../../..
 DESTDIR = $${LXIMEDIA_DIR}/bin
 TARGET = LXiMediaCenter
 include($${LXIMEDIA_DIR}/include/config.pri)
-QT += sql
 
 INCLUDEPATH += $${LXIMEDIA_DIR}/include/liblximediacenter
 DEPENDPATH += $${LXIMEDIA_DIR}/include/liblximediacenter
@@ -68,7 +68,15 @@ win32-g++ {
   system(mkdir ..\\..\\..\\bin\\sqldrivers\\ > NUL 2>&1)
 
   release {
+    system(cp -u $$(QTDIR)/bin/QtCore4.dll -t $${LXIMEDIA_DIR}/bin)
     system(cp -u $$(QTDIR)/bin/QtSql4.dll -t $${LXIMEDIA_DIR}/bin)
+    system(cp -u $$(QTDIR)/bin/QtXml4.dll -t $${LXIMEDIA_DIR}/bin)
     system(cp -u $$(QTDIR)/plugins/sqldrivers/qsqlite4.dll -t $${LXIMEDIA_DIR}/bin/sqldrivers)
+  }
+  debug {
+    system(cp -u $$(QTDIR)/bin/QtCored4.dll -t $${LXIMEDIA_DIR}/bin)
+    system(cp -u $$(QTDIR)/bin/QtSqld4.dll -t $${LXIMEDIA_DIR}/bin)
+    system(cp -u $$(QTDIR)/bin/QtXmld4.dll -t $${LXIMEDIA_DIR}/bin)
+    system(cp -u $$(QTDIR)/plugins/sqldrivers/qsqlited4.dll -t $${LXIMEDIA_DIR}/bin/sqldrivers)
   }
 }

@@ -46,7 +46,7 @@ private slots:
   void                          close();
 
 private:
-  SHttpClientEngine     * const parent;
+  const QPointer<SHttpClientEngine> parent;
   const SHttpEngine::RequestMessage message;
   QAbstractSocket             * socket;
   QByteArray                    data;
@@ -71,7 +71,7 @@ private slots:
   void                          readyRead();
 
 private:
-  SHttpServerEngine     * const parent;
+  const QPointer<SHttpServerEngine> parent;
   QAbstractSocket             * socket;
   QByteArray                    data;
   QTimer                        closeTimer;
@@ -81,8 +81,8 @@ class HttpSocketRequest : public QObject
 {
 Q_OBJECT
 public:
-  explicit                      HttpSocketRequest(const QHostAddress &host, quint16 port, const QByteArray &message = QByteArray());
-  explicit                      HttpSocketRequest(const QString &host, quint16 port, const QByteArray &message = QByteArray());
+  explicit                      HttpSocketRequest(QObject *, const QHostAddress &host, quint16 port, const QByteArray &message = QByteArray());
+  explicit                      HttpSocketRequest(QObject *, const QString &host, quint16 port, const QByteArray &message = QByteArray());
   virtual                       ~HttpSocketRequest();
 
 signals:
@@ -91,12 +91,13 @@ signals:
 private slots:
   void                          connectToHost(const QHostInfo &);
   void                          connected(void);
+  void                          bytesWritten(void);
   void                          failed(void);
 
 private:
   static const int              maxTTL = 15000;
   const quint16                 port;
-  const QByteArray              message;
+  QByteArray                    message;
   QTcpSocket                  * socket;
   QTimer                        deleteTimer;
 };
@@ -122,7 +123,7 @@ private slots:
   void                          readyRead();
 
 private:
-  SSandboxClient        * const parent;
+  const QPointer<SSandboxClient> parent;
   QProcess              * const process;
 };
 
@@ -130,7 +131,7 @@ class SocketCloseRequest : public QObject
 {
 Q_OBJECT
 public:
-  explicit                      SocketCloseRequest(QAbstractSocket *);
+  explicit                      SocketCloseRequest(QObject *, QAbstractSocket *);
   virtual                       ~SocketCloseRequest();
 
 signals:

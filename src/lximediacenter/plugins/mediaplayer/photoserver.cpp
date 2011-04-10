@@ -52,7 +52,7 @@ PhotoServer::Stream * PhotoServer::streamVideo(const SHttpServer::RequestHeader 
 
       foreach (const MediaDatabase::File &file, mediaDatabase->getAlbumFiles(MediaDatabase::Category_Photos, path))
       {
-        const SMediaInfo node = mediaDatabase->readNode(file.uid);
+        const FileNode node = mediaDatabase->readNode(file.uid);
         if (!node.isNull())
           files.insert(path + file.name, node.toByteArray(-1));
       }
@@ -123,7 +123,7 @@ SHttpServer::SocketOp PhotoServer::handleHttpRequest(const SHttpServer::RequestH
 
 SHttpServer::SocketOp PhotoServer::sendPhoto(const SHttpServer::RequestHeader &request, QAbstractSocket *socket, MediaDatabase::UniqueID uid, const QString &format) const
 {
-  const SMediaInfo node = mediaDatabase->readNode(uid);
+  const FileNode node = mediaDatabase->readNode(uid);
 
   if (!node.isNull())
   if (node.containsImage())

@@ -30,7 +30,7 @@ namespace LXiStream {
 
     \sa SAudioCodec, SVideoCodec
  */
-class LXISTREAM_PUBLIC SDataCodec : public SSerializable
+class LXISTREAM_PUBLIC SDataCodec
 {
 public:
                                 SDataCodec(void);
@@ -50,9 +50,8 @@ public:
   inline const QByteArray     & extraData(void) const                           { return d.extraData; }
   inline void                   setExtraData(const QByteArray &data)            { d.extraData = data; }
 
-public: // From SSerializable
-  virtual QDomNode              toXml(QDomDocument &) const;
-  virtual void                  fromXml(const QDomNode &);
+  QString                       toString(bool addExtraData = true) const;
+  static SDataCodec             fromString(const QString &);
 
 private:
   struct

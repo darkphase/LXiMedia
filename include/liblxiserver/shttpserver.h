@@ -51,8 +51,8 @@ public: // From HttpServerEngine
 private:
   class Socket;
   class Server;
-  struct Private;
-  Private               * const p;
+  struct Data;
+  Data                  * const d;
 };
 
 } // End of namespace

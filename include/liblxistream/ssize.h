@@ -70,6 +70,9 @@ public:
   inline int                    absoluteHeight(void) const                      { return (a < 1.0f) ? int(h * (1.0f / a)) : h; }
   inline QSize                  absoluteSize(void) const                        { return QSize(absoluteWidth(), absoluteHeight()); }
 
+  inline QString                toString(void) const                            { return QString::number(w) + 'x' + QString::number(h) + 'x' + QString::number(a); }
+  inline static SSize           fromString(const QString &str)                  { const QStringList l = str.split('x'); return SSize(l.count() >= 1 ? l[0].toInt() : 0, l.count() >= 2 ? l[1].toInt() : 0, l.count() >= 3 ? l[2].toFloat() : 1.0f); }
+
 private:
   int                           w, h;
   float                         a;

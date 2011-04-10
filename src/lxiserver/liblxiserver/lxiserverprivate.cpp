@@ -21,7 +21,8 @@
 #include <LXiCore>
 
 HttpClientRequest::HttpClientRequest(SHttpClientEngine *parent)
-  : parent(parent),
+  : QObject(parent),
+    parent(parent),
     socket(NULL),
     responded(false)
 {
@@ -31,7 +32,7 @@ HttpClientRequest::HttpClientRequest(SHttpClientEngine *parent)
 
 HttpClientRequest::~HttpClientRequest()
 {
-  if (socket)
+  if (socket && parent)
     parent->closeRequest(socket, false);
 }
 
@@ -65,7 +66,9 @@ void HttpClientRequest::readyRead()
         responded = true;
         emit response(message);
 
-        parent->closeRequest(socket, true);
+        if (parent)
+          parent->closeRequest(socket, true);
+
         socket = NULL;
 
         deleteLater();
@@ -87,7 +90,8 @@ void HttpClientRequest::close()
 
 
 HttpServerRequest::HttpServerRequest(SHttpServerEngine *parent)
-  : parent(parent),
+  : QObject(parent),
+    parent(parent),
     socket(NULL)
 {
   connect(this, SIGNAL(handleHttpRequest(SHttpEngine::RequestHeader, QAbstractSocket *)), parent, SLOT(handleHttpRequest(SHttpEngine::RequestHeader, QAbstractSocket *)));
@@ -98,7 +102,7 @@ HttpServerRequest::HttpServerRequest(SHttpServerEngine *parent)
 
 HttpServerRequest::~HttpServerRequest()
 {
-  if (socket)
+  if (socket && parent)
     parent->closeSocket(socket, false);
 }
 
@@ -109,7 +113,7 @@ void HttpServerRequest::start(QAbstractSocket *socket)
     this->socket = socket;
 
     connect(socket, SIGNAL(readyRead()), SLOT(readyRead()));
-    connect(socket, SIGNAL(readChannelFinished()), SLOT(deleteLater()));
+    connect(socket, SIGNAL(disconnected()), SLOT(deleteLater()));
 
     closeTimer.start(SHttpEngine::maxTTL);
 
@@ -121,6 +125,7 @@ void HttpServerRequest::start(QAbstractSocket *socket)
 
 void HttpServerRequest::readyRead()
 {
+  if (socket)
   while (socket->canReadLine())
   {
     data += socket->readLine();
@@ -130,7 +135,7 @@ void HttpServerRequest::readyRead()
       if (request.isValid())
       {
         disconnect(socket, SIGNAL(readyRead()), this, SLOT(readyRead()));
-        disconnect(socket, SIGNAL(readChannelFinished()), this, SLOT(deleteLater()));
+        disconnect(socket, SIGNAL(disconnected()), this, SLOT(deleteLater()));
 
         emit handleHttpRequest(request, socket);
 
@@ -139,6 +144,11 @@ void HttpServerRequest::readyRead()
       else
       {
         socket->write(SHttpEngine::ResponseHeader(request, SHttpEngine::Status_BadRequest));
+
+        if (parent)
+          parent->closeSocket(socket, true);
+
+        socket = NULL;
 
         deleteLater();
       }
@@ -149,12 +159,14 @@ void HttpServerRequest::readyRead()
 }
 
 
-HttpSocketRequest::HttpSocketRequest(const QHostAddress &host, quint16 port, const QByteArray &message)
-  : port(port),
+HttpSocketRequest::HttpSocketRequest(QObject *parent, const QHostAddress &host, quint16 port, const QByteArray &message)
+  : QObject(parent),
+    port(port),
     message(message),
-    socket(new QTcpSocket())
+    socket(new QTcpSocket(parent))
 {
   connect(socket, SIGNAL(connected()), SLOT(connected()), Qt::QueuedConnection);
+  connect(socket, SIGNAL(bytesWritten(qint64)), SLOT(bytesWritten()), Qt::QueuedConnection);
   connect(socket, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(failed()), Qt::DirectConnection);
 
   socket->connectToHost(host, port);
@@ -165,12 +177,14 @@ HttpSocketRequest::HttpSocketRequest(const QHostAddress &host, quint16 port, con
   deleteTimer.start(maxTTL);
 }
 
-HttpSocketRequest::HttpSocketRequest(const QString &host, quint16 port, const QByteArray &message)
-  : port(port),
+HttpSocketRequest::HttpSocketRequest(QObject *parent, const QString &host, quint16 port, const QByteArray &message)
+  : QObject(parent),
+    port(port),
     message(message),
-    socket(new QTcpSocket())
+    socket(new QTcpSocket(parent))
 {
   connect(socket, SIGNAL(connected()), SLOT(connected()), Qt::QueuedConnection);
+  connect(socket, SIGNAL(bytesWritten(qint64)), SLOT(bytesWritten()), Qt::QueuedConnection);
   connect(socket, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(failed()), Qt::DirectConnection);
 
   QHostInfo::lookupHost(host, this, SLOT(connectToHost(QHostInfo)));
@@ -199,16 +213,35 @@ void HttpSocketRequest::connectToHost(const QHostInfo &hostInfo)
 void HttpSocketRequest::connected(void)
 {
   if (socket && !message.isEmpty())
+  {
     socket->write(message);
+    message.clear();
+  }
+  else
+  {
+    if (socket)
+    {
+      disconnect(socket, SIGNAL(connected()), this, SLOT(connected()));
+      disconnect(socket, SIGNAL(bytesWritten(qint64)), this, SLOT(bytesWritten()));
+      disconnect(socket, SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(failed()));
+    }
 
-  emit connected(socket);
-  socket = NULL;
-  deleteLater();
+    emit connected(socket);
+    socket = NULL;
+    deleteLater();
+  }
+}
+
+void HttpSocketRequest::bytesWritten(void)
+{
+  if (socket)
+  if (socket->bytesToWrite() == 0)
+    connected();
 }
 
 void HttpSocketRequest::failed(void)
 {
-  delete socket;
+  socket->deleteLater();
   socket = NULL;
 
   QMetaObject::invokeMethod(this, "connected", Qt::QueuedConnection);
@@ -216,8 +249,9 @@ void HttpSocketRequest::failed(void)
 
 
 SandboxProcess::SandboxProcess(SSandboxClient *parent, const QString &cmd)
-  : parent(parent),
-    process(new QProcess())
+  : QObject(parent),
+    parent(parent),
+    process(new QProcess(parent))
 {
   connect(process, SIGNAL(readyRead()), SLOT(readyRead()));
   connect(process, SIGNAL(finished(int, QProcess::ExitStatus)), SLOT(finished(int, QProcess::ExitStatus)));
@@ -277,8 +311,9 @@ void SandboxProcess::finished(int, QProcess::ExitStatus)
 }
 
 
-SocketCloseRequest::SocketCloseRequest(QAbstractSocket *socket)
-  : socket(socket)
+SocketCloseRequest::SocketCloseRequest(QObject *parent, QAbstractSocket *socket)
+  : QObject(parent),
+    socket(socket)
 {
   if ((QThread::currentThread() == socket->thread()) && (socket->thread() != qApp->thread()))
   {

@@ -1,5 +1,6 @@
 TEMPLATE = lib
 CONFIG += dll
+QT -= gui
 LXIMEDIA_DIR = ../../..
 DESTDIR = $${LXIMEDIA_DIR}/bin
 TARGET = LXiCore
@@ -26,7 +27,6 @@ HEADERS += $${LXIMEDIA_DIR}/include/LXiCore \
     $${LXIMEDIA_DIR}/include/liblxicore/splatform.h \
     $${LXIMEDIA_DIR}/include/liblxicore/sscheduler.h \
     $${LXIMEDIA_DIR}/include/liblxicore/sscheduler.hpp \
-    $${LXIMEDIA_DIR}/include/liblxicore/sserializable.h \
     $${LXIMEDIA_DIR}/include/liblxicore/sstringparser.h
 SOURCES += sapplication.cpp \
     sapplication.exchandler.cpp \
@@ -34,7 +34,6 @@ SOURCES += sapplication.cpp \
     sfactory.cpp \
     smodule.cpp \
     sscheduler.cpp \
-    sserializable.cpp \
     sstringparser.cpp \
     sstringparser.iso639.cpp
 LIBS += -lbfd \
@@ -57,5 +56,9 @@ win32-g++ {
     release { 
         system(cp -u $$(QTDIR)/bin/QtCore4.dll -t $${LXIMEDIA_DIR}/bin)
         system(cp -u $$(QTDIR)/bin/QtXml4.dll -t $${LXIMEDIA_DIR}/bin)
+    }
+    debug {
+        system(cp -u $$(QTDIR)/bin/QtCored4.dll -t $${LXIMEDIA_DIR}/bin)
+        system(cp -u $$(QTDIR)/bin/QtXmld4.dll -t $${LXIMEDIA_DIR}/bin)
     }
 }

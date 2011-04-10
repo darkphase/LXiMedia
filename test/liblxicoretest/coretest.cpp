@@ -18,7 +18,6 @@
  ***************************************************************************/
 
 #include "coretest.h"
-#include <QtGui>
 #include <QtTest>
 
 void CoreTest::initTestCase(void)

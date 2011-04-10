@@ -100,11 +100,13 @@ void SSandboxClient::openRequest(const RequestMessage &message, QObject *receive
 
 void SSandboxClient::closeRequest(QAbstractSocket *socket, bool canReuse)
 {
-  new SocketCloseRequest(socket);
+  new SocketCloseRequest(this, socket);
 }
 
 void SSandboxClient::processStarted(const QHostAddress &address, quint16 port)
 {
+  qDebug() << "SSandboxClient::processStarted" << address.toString() << port;
+
   d->address = address;
   d->port = port;
 
@@ -117,7 +119,7 @@ void SSandboxClient::openSockets(void)
   {
     const Data::Request request = d->requests.takeFirst();
 
-    connect(new HttpSocketRequest(d->address, d->port, request.message), SIGNAL(connected(QAbstractSocket *)), request.receiver, request.slot);
+    connect(new HttpSocketRequest(this, d->address, d->port, request.message), SIGNAL(connected(QAbstractSocket *)), request.receiver, request.slot);
   }
 }
 

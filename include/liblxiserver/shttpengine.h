@@ -222,8 +222,8 @@ private slots:
   __internal void               handleHttpRequest(const SHttpEngine::RequestHeader &, QAbstractSocket *);
 
 private:
-  struct Private;
-  Private               * const p;
+  struct Data;
+  Data                  * const d;
 };
 
 
@@ -252,8 +252,8 @@ protected slots:
 
 private:
   class SocketHandler;
-  struct Private;
-  Private               * const p;
+  struct Data;
+  Data                  * const d;
 };
 
 } // End of namespace

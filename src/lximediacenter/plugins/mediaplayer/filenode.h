@@ -17,67 +17,34 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "sserializable.h"
+#ifndef __FILENODE_H
+#define __FILENODE_H
 
+#include <QtCore>
+#include <LXiStream>
 
-namespace LXiCore {
+namespace LXiMediaCenter {
+namespace MediaPlayerBackend {
 
+class FileNode;
+typedef QList<FileNode> FileNodeList;
 
-SSerializable::SSerializable(void)
+class FileNode : public SMediaInfo
 {
-}
+public:
+  inline                        FileNode(void) : SMediaInfo() { }
+  inline                        FileNode(const FileNode &from) : SMediaInfo(from) { }
+  inline                        FileNode(const SMediaInfo &from) : SMediaInfo(from) { }
+  inline explicit               FileNode(const QString &path) : SMediaInfo(path) { }
+  inline explicit               FileNode(const QSharedDataPointer<ProbeInfo> &pi) : SMediaInfo(pi) { }
 
-SSerializable::~SSerializable()
-{
-}
+  inline FileNode             & operator=(const FileNode &from) { SMediaInfo::operator=(from); return *this; }
+  inline FileNode             & operator=(const SMediaInfo &from) { SMediaInfo::operator=(from); return *this; }
 
-QDomElement SSerializable::createElement(QDomDocument &doc, const QString &name)
-{
-  return doc.createElement(name);
-}
+  QByteArray                    toByteArray(int = 1) const;
+  static FileNode               fromByteArray(const QByteArray &);
+};
 
-QDomElement SSerializable::findElement(const QDomNode &elm, const QString &name)
-{
-  if (elm.isElement())
-  {
-    const QDomElement e = elm.toElement();
+} } // End of namespaces
 
-    return (e.tagName() == name) ? e : e.firstChildElement(name);
-  }
-  else
-    return elm.firstChildElement(name);
-}
-
-void SSerializable::addElement(QDomDocument &doc, QDomNode &elm, const QString &name, const QString &value)
-{
-  QDomElement e = doc.createElement(name);
-  e.appendChild(doc.createTextNode(value));
-  elm.appendChild(e);
-}
-
-QString SSerializable::element(const QDomNode &elm, const QString &name)
-{
-  const QDomElement te = elm.firstChildElement(name);
-
-  if (!te.isNull())
-    return te.text();
-  else
-    return QString::null;
-}
-
-QByteArray SSerializable::toByteArray(int indent) const
-{
-  QDomDocument doc("");
-  doc.appendChild(toXml(doc));
-
-  return doc.toByteArray(indent);
-}
-
-void SSerializable::fromByteArray(const QByteArray &text)
-{
-  QDomDocument doc("");
-  doc.setContent(text);
-  fromXml(doc.documentElement());
-}
-
-} // End of namespace
+#endif

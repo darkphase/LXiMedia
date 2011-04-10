@@ -20,7 +20,6 @@
 #ifndef LXSTREAM_SENCODEDVIDEOBUFFER_H
 #define LXSTREAM_SENCODEDVIDEOBUFFER_H
 
-#include <QtGui/QImage>
 #include <LXiCore>
 #include "svideocodec.h"
 #include "sbuffer.h"

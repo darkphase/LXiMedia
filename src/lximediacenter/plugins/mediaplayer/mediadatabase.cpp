@@ -274,18 +274,13 @@ MediaDatabase::UniqueID MediaDatabase::fromPath(const QString &path) const
   return 0;
 }
 
-SMediaInfo MediaDatabase::readNode(UniqueID uid) const
+FileNode MediaDatabase::readNode(UniqueID uid) const
 {
   const QByteArray value = readNodeData(uid);
   if (!value.isEmpty())
-  {
-    SMediaInfo node;
-    node.fromByteArray(value);
+    return FileNode::fromByteArray(value);
 
-    return node;
-  }
-
-  return SMediaInfo();
+  return FileNode();
 }
 
 QByteArray MediaDatabase::readNodeData(UniqueID uid) const
@@ -301,7 +296,7 @@ QByteArray MediaDatabase::readNodeData(UniqueID uid) const
 
 void MediaDatabase::setLastPlayed(UniqueID uid, const QDateTime &lastPlayed)
 {
-  const SMediaInfo node = readNode(uid);
+  const FileNode node = readNode(uid);
   if (!node.isNull())
     setLastPlayed(node.filePath(), lastPlayed);
 }
@@ -325,7 +320,7 @@ void MediaDatabase::setLastPlayed(const QString &filePath, const QDateTime &last
 
 QDateTime MediaDatabase::lastPlayed(UniqueID uid) const
 {
-  const SMediaInfo node = readNode(uid);
+  const FileNode node = readNode(uid);
   if (!node.isNull())
     return lastPlayed(node.filePath());
 
@@ -602,8 +597,7 @@ void MediaDatabase::customEvent(QEvent *e)
         const QByteArray value = readNodeData(query.value(0).toULongLong());
         if (!value.isEmpty())
         {
-          SMediaInfo node;
-          node.fromByteArray(value);
+          const FileNode node = FileNode::fromByteArray(value);
           if (!node.isNull())
           {
             const QStringList similar = imdbClient->findSimilar(node.title(), imdbType);
@@ -720,8 +714,7 @@ void MediaDatabase::probeFinished(const SHttpEngine::ResponseMessage &message)
 {
   if ((message.status() == SHttpEngine::Status_Ok) && !message.content().isEmpty())
   {
-    SMediaInfo mediaInfo;
-    mediaInfo.fromByteArray(message.content());
+    const FileNode mediaInfo = FileNode::fromByteArray(message.content());
 
     Database::transaction();
 

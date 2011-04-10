@@ -36,7 +36,11 @@ Section "-Shared Files" SecShared
   File ..\..\README
   File ..\..\bin\libgcc_s_dw2-1.dll
   File ..\..\bin\mingwm10.dll
-  File ..\..\bin\Qt*.dll
+  File ..\..\bin\QtCore4.dll
+  File ..\..\bin\QtGui4.dll
+  File ..\..\bin\QtNetwork4.dll
+  File ..\..\bin\QtSql4.dll
+  File ..\..\bin\QtXml4.dll
   File ..\..\bin\LXiMediaCenter?.dll
   File ..\..\bin\LXiServer?.dll
   File ..\..\bin\LXiStream?.dll
@@ -44,11 +48,12 @@ Section "-Shared Files" SecShared
 
   SetOutPath $INSTDIR\imageformats
   SetOverwrite ifnewer
-  File ..\..\bin\imageformats\*.dll
+  File ..\..\bin\imageformats\qjpeg4.dll
+  File ..\..\bin\imageformats\qtiff4.dll
 
   SetOutPath $INSTDIR\sqldrivers
   SetOverwrite ifnewer
-  File ..\..\bin\sqldrivers\*.dll
+  File ..\..\bin\sqldrivers\qsqlite4.dll
 
   SetOutPath $INSTDIR\lximedia
   SetOverwrite ifnewer

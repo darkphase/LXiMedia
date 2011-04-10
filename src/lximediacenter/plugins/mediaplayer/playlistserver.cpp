@@ -53,7 +53,7 @@ PlaylistServer::Stream * PlaylistServer::streamVideo(const SHttpServer::RequestH
 
       foreach (const MediaDatabase::File &file, mediaDatabase->getAlbumFiles(category, path))
       {
-        const SMediaInfo node = mediaDatabase->readNode(file.uid);
+        const FileNode node = mediaDatabase->readNode(file.uid);
         if (!node.isNull())
         {
           const QDateTime lastPlayed = mediaDatabase->lastPlayed(node.filePath());

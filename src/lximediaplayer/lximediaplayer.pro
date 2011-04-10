@@ -1,4 +1,5 @@
 TEMPLATE = app
+QT += xml
 LXIMEDIA_DIR = ../..
 DESTDIR = $${LXIMEDIA_DIR}/bin
 TARGET = lximediaplayer
