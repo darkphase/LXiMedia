@@ -19,7 +19,8 @@
 
 #include "httpenginetest.h"
 #include <QtTest>
-#include <LXiServer>
+
+const int HttpEngineTest::numResponses = 1;
 
 void HttpEngineTest::initTestCase(void)
 {
@@ -40,9 +41,15 @@ void HttpEngineTest::cleanupTestCase(void)
 void HttpEngineTest::HttpServerIPv4(void)
 {
   if (startServer(QHostAddress::LocalHost))
+  {
     testQtClient(QHostAddress::LocalHost);
-
-  stopServer();
+    stopServer();
+  }
+  else
+  {
+    stopServer();
+    QSKIP("IPv4 not available.", SkipSingle);
+  }
 }
 
 /*! Tests the HTTP server on IPv6.
@@ -50,9 +57,15 @@ void HttpEngineTest::HttpServerIPv4(void)
 void HttpEngineTest::HttpServerIPv6(void)
 {
   if (startServer(QHostAddress::LocalHostIPv6))
+  {
     testQtClient(QHostAddress::LocalHostIPv6);
-
-  stopServer();
+    stopServer();
+  }
+  else
+  {
+    stopServer();
+    QSKIP("IPv6 not available.", SkipSingle);
+  }
 }
 
 /*! Tests the HTTP client on IPv4.
@@ -120,7 +133,8 @@ void HttpEngineTest::stopServer(void)
 
 void HttpEngineTest::testQtClient(const QHostAddress &address)
 {
-  gotHttpServerReply = false;
+  responseCount = 0;
+
   QNetworkAccessManager manager;
   connect(&manager, SIGNAL(finished(QNetworkReply *)), this, SLOT(serverReply(QNetworkReply *)));
 
@@ -133,17 +147,18 @@ void HttpEngineTest::testQtClient(const QHostAddress &address)
   url += ':' + QString::number(httpServer->serverPort(address));
   url += "/test.txt";
 
-  manager.get(QNetworkRequest(url));
+  for (int i=0; i<numResponses; i++)
+    manager.get(QNetworkRequest(url));
 
-  for (unsigned i=0; (i<20) && (gotHttpServerReply==false); i++)
+  for (unsigned i=0; (i<20) && (responseCount<numResponses); i++)
     QTest::qWait(100);
 
-  QVERIFY(gotHttpServerReply == true);
+  QCOMPARE(responseCount, numResponses);
 }
 
 void HttpEngineTest::testHttpClient(const QHostAddress &address)
 {
-  gotHttpServerReply = false;
+  responseCount = 0;
 
   SHttpClient httpClient;
   connect(&httpClient, SIGNAL(response(SHttpEngine::ResponseMessage)), SLOT(handleResponse(SHttpEngine::ResponseMessage)));
@@ -152,22 +167,25 @@ void HttpEngineTest::testHttpClient(const QHostAddress &address)
   request.setRequest("GET", "/test.txt");
   request.setHost(address, httpServer->serverPort(address));
 
-  httpClient.sendRequest(request);
+  for (int i=0; i<numResponses; i++)
+    httpClient.sendRequest(request);
 
-  for (unsigned i=0; (i<20) && (gotHttpServerReply==false); i++)
+  for (unsigned i=0; (i<20) && (responseCount<numResponses); i++)
     QTest::qWait(100);
 
-  QVERIFY(gotHttpServerReply == true);
+  QCOMPARE(responseCount, numResponses);
 }
 
 void HttpEngineTest::serverReply(QNetworkReply *reply)
 {
-  gotHttpServerReply = (reply->error() == QNetworkReply::NoError);
+  if (reply->error() == QNetworkReply::NoError)
+    responseCount++;
 
   reply->deleteLater();
 }
 
 void HttpEngineTest::handleResponse(const SHttpEngine::ResponseMessage &response)
 {
-  gotHttpServerReply = response.status() == SHttpEngine::Status_Ok;
+  if (response.status() == SHttpEngine::Status_Ok)
+    responseCount++;
 }

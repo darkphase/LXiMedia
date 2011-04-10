@@ -28,7 +28,7 @@ public:
   static int                    startSandbox(const QString &);
 
 public:
-  inline explicit               SandboxTest(QObject *parent) : QObject(parent), sandboxClient(NULL) { }
+  inline explicit               SandboxTest(QObject *parent) : QObject(parent), sandboxClient(NULL), responseCount(0) { }
 
 private slots:
   void                          initTestCase(void);
@@ -42,6 +42,6 @@ private slots:
 private:
   SApplication                * mediaApp;
   LXiServer::SSandboxClient   * sandboxClient;
-  static const int              numResponses = 50;
-  QAtomicInt                    responseCount;
+  static const int              numResponses;
+  int                           responseCount;
 };

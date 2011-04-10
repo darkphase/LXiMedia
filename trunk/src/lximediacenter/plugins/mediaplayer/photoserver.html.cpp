@@ -74,7 +74,7 @@ SHttpServer::SocketOp PhotoServer::handleHtmlRequest(const SHttpServer::RequestH
   const QUrl url(request.path());
   const QString album = SStringParser::toRawName(url.queryItemValue("album"));
   const MediaDatabase::UniqueID uid = MediaDatabase::fromUidString(file);
-  const SMediaInfo node = mediaDatabase->readNode(uid);
+  const FileNode node = mediaDatabase->readNode(uid);
   if (!node.isNull())
   if (uid.pid < node.programs().count())
   {

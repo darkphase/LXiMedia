@@ -1,4 +1,5 @@
 TEMPLATE = app
+QT += network xml
 LXIMEDIA_DIR = ../../..
 DESTDIR = $${LXIMEDIA_DIR}/bin
 TARGET = lximcbackend

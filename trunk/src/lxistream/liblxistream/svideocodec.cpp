@@ -56,40 +56,36 @@ void SVideoCodec::setCodec(const QString &codec, SSize size, SInterval frameRate
   d.bitRate = bitRate;
 }
 
-QDomNode SVideoCodec::toXml(QDomDocument &doc) const
+QString SVideoCodec::toString(bool addExtraData) const
 {
-  QDomElement codecElm = createElement(doc, "videocodec");
+  QString result = d.codec + ';' +
+    d.size.toString() + ';' +
+    QString::number(d.frameRate.toFrequency()) + ';' +
+    QString::number(d.bitRate);
 
-  if (!d.codec.isEmpty())
-    codecElm.setAttribute("codec", QString(d.codec));
+  if (addExtraData && !d.extraData.isEmpty())
+    result += ';' + QString::fromAscii(d.extraData.toBase64());
 
-  codecElm.setAttribute("width", d.size.width());
-  codecElm.setAttribute("height", d.size.height());
-  codecElm.setAttribute("aspectratio", d.size.aspectRatio());
-  codecElm.setAttribute("framerate", d.frameRate.toFrequency());
-  codecElm.setAttribute("bitrate", d.bitRate);
-
-  if (!d.extraData.isEmpty())
-    codecElm.setAttribute("extradata", QString(d.extraData.toBase64()));
-
-  return codecElm;
+  return result;
 }
 
-void SVideoCodec::fromXml(const QDomNode &elm)
+SVideoCodec SVideoCodec::fromString(const QString &str)
 {
-  QDomElement codecElm = findElement(elm, "videocodec");
+  const QStringList items = str.split(';');
+  SVideoCodec result;
 
-  if (codecElm.hasAttribute("codec"))
-    d.codec = codecElm.attribute("codec").toAscii();
+  if (items.count() >= 4)
+  {
+    result.d.codec = items[0].toAscii();
+    result.d.size = SSize::fromString(items[1]);
+    result.d.frameRate = SInterval::fromFrequency(items[2].toFloat());
+    result.d.bitRate = items[3].toInt();
+  }
 
-  d.size.setWidth(codecElm.attribute("width").toInt());
-  d.size.setHeight(codecElm.attribute("height").toInt());
-  d.size.setAspectRatio(codecElm.attribute("aspectratio").toFloat());
-  d.frameRate = SInterval::fromFrequency(codecElm.attribute("framerate").toDouble());
-  d.bitRate = codecElm.attribute("bitrate").toInt();
+  if (items.count() >= 5)
+    result.d.extraData = QByteArray::fromBase64(items[4].toAscii());
 
-  if (codecElm.hasAttribute("extradata"))
-    d.extraData = QByteArray::fromBase64(codecElm.attribute("extradata").toAscii());
+  return result;
 }
 
 } // End of namespace

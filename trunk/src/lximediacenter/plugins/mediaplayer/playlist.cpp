@@ -106,7 +106,7 @@ QByteArray Playlist::serialize(void) const
 
   for (int i=0, n=list.count(); i<n; i++)
   {
-    const SMediaInfo node = mediaDatabase->readNode(list[i].uid);
+    const FileNode node = mediaDatabase->readNode(list[i].uid);
     if (!node.isNull())
     if (list[i].uid.pid < unsigned(node.programs().count()))
     {

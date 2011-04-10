@@ -60,7 +60,7 @@ TvShowServer::Stream * TvShowServer::streamVideo(const SHttpServer::RequestHeade
         if (s != seasons.end())
         for (QVector<MediaDatabase::UniqueID>::ConstIterator i=s->begin(); i!=s->end(); i++)
         {
-          const SMediaInfo node = mediaDatabase->readNode(*i);
+          const FileNode node = mediaDatabase->readNode(*i);
           if (!node.isNull())
           {
             const QDateTime lastPlayed = mediaDatabase->lastPlayed(node.filePath());

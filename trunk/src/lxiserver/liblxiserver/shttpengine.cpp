@@ -127,7 +127,7 @@ bool SHttpEngine::splitHost(const QString &host, QString &hostname, quint16 &por
 }
 
 
-struct SHttpServerEngine::Private
+struct SHttpServerEngine::Data
 {
   QString                       senderId;
   QMap<QString, Callback *>     callbacks;
@@ -135,40 +135,40 @@ struct SHttpServerEngine::Private
 
 SHttpServerEngine::SHttpServerEngine(const QString &protocol, QObject *parent)
   : QObject(parent),
-    p(new Private())
+    d(new Data())
 {
 #if defined(Q_OS_UNIX)
   struct utsname osname;
   if (uname(&osname) >= 0)
-    p->senderId = QString(osname.sysname) + "/" + QString(osname.release);
+    d->senderId = QString(osname.sysname) + "/" + QString(osname.release);
   else
-    p->senderId = "Unix";
+    d->senderId = "Unix";
 #elif defined(Q_OS_WIN)
-  p->senderId = "Windows";
+  d->senderId = "Windows";
 #endif
 
   if (!protocol.isEmpty())
-    p->senderId += " " + protocol;
+    d->senderId += " " + protocol;
 
-  p->senderId += " " + qApp->applicationName() + "/" + qApp->applicationVersion();
+  d->senderId += " " + qApp->applicationName() + "/" + qApp->applicationVersion();
 }
 
 SHttpServerEngine::~SHttpServerEngine()
 {
-  delete p;
-  *const_cast<Private **>(&p) = NULL;
+  delete d;
+  *const_cast<Data **>(&d) = NULL;
 }
 
 void SHttpServerEngine::registerCallback(const QString &path, Callback *callback)
 {
-  p->callbacks.insert(path, callback);
+  d->callbacks.insert(path, callback);
 }
 
 void SHttpServerEngine::unregisterCallback(Callback *callback)
 {
-  for (QMap<QString, Callback *>::Iterator i=p->callbacks.begin(); i!=p->callbacks.end(); )
+  for (QMap<QString, Callback *>::Iterator i=d->callbacks.begin(); i!=d->callbacks.end(); )
   if (i.value() == callback)
-    i = p->callbacks.erase(i);
+    i = d->callbacks.erase(i);
   else
     i++;
 }
@@ -180,7 +180,7 @@ const char * SHttpServerEngine::senderType(void) const
 
 const QString & SHttpServerEngine::senderId(void) const
 {
-  return p->senderId;
+  return d->senderId;
 }
 
 QByteArray SHttpServerEngine::readContent(const RequestHeader &request, QAbstractSocket *socket)
@@ -241,14 +241,14 @@ void SHttpServerEngine::handleHttpRequest(const SHttpEngine::RequestHeader &requ
   const QString path = QUrl(request.path()).path();
 
   QString dir = path.left(path.lastIndexOf('/') + 1);
-  QMap<QString, Callback *>::ConstIterator callback = p->callbacks.find(dir);
-  while ((callback == p->callbacks.end()) && !dir.isEmpty())
+  QMap<QString, Callback *>::ConstIterator callback = d->callbacks.find(dir);
+  while ((callback == d->callbacks.end()) && !dir.isEmpty())
   {
     dir = dir.left(dir.left(dir.length() - 1).lastIndexOf('/') + 1);
-    callback = p->callbacks.find(dir);
+    callback = d->callbacks.find(dir);
   }
 
-  if ((callback != p->callbacks.end()) && dir.startsWith(callback.key()))
+  if ((callback != d->callbacks.end()) && dir.startsWith(callback.key()))
   {
     if ((*callback)->handleHttpRequest(request, socket) == SocketOp_LeaveOpen)
       socket = NULL; // The callback took over the socket, it is responsible for closing and deleteing it.
@@ -261,32 +261,32 @@ void SHttpServerEngine::handleHttpRequest(const SHttpEngine::RequestHeader &requ
 }
 
 
-struct SHttpClientEngine::Private
+struct SHttpClientEngine::Data
 {
   QString                       senderId;
 };
 
 SHttpClientEngine::SHttpClientEngine(QObject *parent)
   : QObject(parent),
-    p(new Private())
+    d(new Data())
 {
-  p->senderId = qApp->applicationName() + "/" + qApp->applicationVersion();
+  d->senderId = qApp->applicationName() + "/" + qApp->applicationVersion();
 
 #if defined(Q_OS_UNIX)
   struct utsname osname;
   if (uname(&osname) >= 0)
-    p->senderId += " " + QString(osname.sysname) + "/" + QString(osname.release);
+    d->senderId += " " + QString(osname.sysname) + "/" + QString(osname.release);
   else
-    p->senderId += " Unix";
+    d->senderId += " Unix";
 #elif defined(Q_OS_WIN)
-  p->senderId += " Windows";
+  d->senderId += " Windows";
 #endif
 }
 
 SHttpClientEngine::~SHttpClientEngine()
 {
-  delete p;
-  *const_cast<Private **>(&p) = NULL;
+  delete d;
+  *const_cast<Data **>(&d) = NULL;
 }
 
 const char * SHttpClientEngine::senderType(void) const
@@ -296,7 +296,7 @@ const char * SHttpClientEngine::senderType(void) const
 
 const QString & SHttpClientEngine::senderId(void) const
 {
-  return p->senderId;
+  return d->senderId;
 }
 
 void SHttpClientEngine::sendRequest(const SHttpEngine::RequestMessage &request)

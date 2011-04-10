@@ -37,12 +37,12 @@ SMediaInfo::SMediaInfo(const SMediaInfo &from)
 }
 
 SMediaInfo::SMediaInfo(const QString &path)
-  : pi(new SInterfaces::FormatProber::ProbeInfo())
+  : pi(new ProbeInfo())
 {
   probe(path);
 }
 
-SMediaInfo::SMediaInfo(const QSharedDataPointer<SInterfaces::FormatProber::ProbeInfo> &pi)
+SMediaInfo::SMediaInfo(const QSharedDataPointer<ProbeInfo> &pi)
   : pi(pi)
 {
 }
@@ -56,19 +56,6 @@ SMediaInfo & SMediaInfo::operator=(const SMediaInfo &from)
   pi = from.pi;
 
   return *this;
-}
-
-QDomNode SMediaInfo::toXml(QDomDocument &doc) const
-{
-  return toXml(*pi, doc);
-}
-
-void SMediaInfo::fromXml(const QDomNode &elm)
-{
-  pi = new SInterfaces::FormatProber::ProbeInfo();
-
-  fromXml(*pi, elm);
-  probeDataStreams();
 }
 
 bool SMediaInfo::isNull(void) const
@@ -215,195 +202,6 @@ unsigned SMediaInfo::track(void) const
   return pi->track;
 }
 
-QDomNode SMediaInfo::toXml(const SInterfaces::FormatProber::ProbeInfo &pi, QDomDocument &doc)
-{
-  QDomElement mediaInfoElm = createElement(doc, "mediainfo");
-
-  mediaInfoElm.setAttribute("filePath", pi.filePath);
-  mediaInfoElm.setAttribute("size", pi.size);
-  mediaInfoElm.setAttribute("lastModified", pi.lastModified.toString(Qt::ISODate));
-
-  mediaInfoElm.setAttribute("format", SStringParser::removeControl(pi.format));
-
-  if (pi.isProbed)         mediaInfoElm.setAttribute("probed", trueFalse(pi.isProbed));
-  if (pi.isReadable)       mediaInfoElm.setAttribute("readable", trueFalse(pi.isReadable));
-
-  mediaInfoElm.setAttribute("type", SStringParser::removeControl(pi.fileTypeName));
-
-  foreach (const Program &program, pi.programs)
-  {
-    QDomElement programElm = createElement(doc, "program");
-
-    if (!program.title.isEmpty())
-      programElm.setAttribute("title", SStringParser::removeControl(program.title));
-
-    if (program.duration.isValid())
-      programElm.setAttribute("duration", QString::number(program.duration.toMSec()));
-
-    foreach (const Chapter &chapter, program.chapters)
-    {
-      QDomElement elm = createElement(doc, "chapter");
-      elm.setAttribute("title", chapter.title);
-      elm.setAttribute("begin", chapter.begin.toUSec());
-      elm.setAttribute("end", chapter.end.toUSec());
-      programElm.appendChild(elm);
-    }
-
-    foreach (const AudioStreamInfo &audioStream, program.audioStreams)
-    {
-      QDomElement elm = createElement(doc, "audiostream");
-      elm.setAttribute("id", audioStream.streamId());
-      elm.setAttribute("language", audioStream.language);
-      elm.appendChild(audioStream.codec.toXml(doc));
-      programElm.appendChild(elm);
-    }
-
-    foreach (const VideoStreamInfo &videoStream, program.videoStreams)
-    {
-      QDomElement elm = createElement(doc, "videostream");
-      elm.setAttribute("id", videoStream.streamId());
-      elm.setAttribute("language", videoStream.language);
-      elm.appendChild(videoStream.codec.toXml(doc));
-      programElm.appendChild(elm);
-    }
-
-    foreach (const DataStreamInfo &dataStream, program.dataStreams)
-    {
-      QDomElement elm = createElement(doc, "datastream");
-      elm.setAttribute("type", dataStream.streamType());
-      elm.setAttribute("id", dataStream.streamId());
-      elm.setAttribute("language", dataStream.language);
-      elm.setAttribute("file", dataStream.file);
-      elm.appendChild(dataStream.codec.toXml(doc));
-      programElm.appendChild(elm);
-    }
-
-    if (!program.imageCodec.isNull())
-    {
-      QDomElement elm = createElement(doc, "imagecodec");
-      elm.appendChild(program.imageCodec.toXml(doc));
-      programElm.appendChild(elm);
-    }
-
-    QDomElement thumbElm = doc.createElement("thumbnail");
-    thumbElm.appendChild(doc.createTextNode(program.thumbnail.toBase64()));
-    programElm.appendChild(thumbElm);
-
-    mediaInfoElm.appendChild(programElm);
-  }
-
-  if (!pi.title.isEmpty())     mediaInfoElm.setAttribute("title", SStringParser::removeControl(pi.title));
-  if (!pi.author.isEmpty())    mediaInfoElm.setAttribute("author", SStringParser::removeControl(pi.author));
-  if (!pi.copyright.isEmpty()) mediaInfoElm.setAttribute("copyright", SStringParser::removeControl(pi.copyright));
-  if (!pi.comment.isEmpty())   mediaInfoElm.setAttribute("comment", SStringParser::removeControl(pi.comment));
-  if (!pi.album.isEmpty())     mediaInfoElm.setAttribute("album", SStringParser::removeControl(pi.album));
-  if (!pi.genre.isEmpty())     mediaInfoElm.setAttribute("genre", SStringParser::removeControl(pi.genre));
-  if (pi.year != 0)            mediaInfoElm.setAttribute("year", pi.year);
-  if (pi.track != 0)           mediaInfoElm.setAttribute("track", pi.track);
-
-  return mediaInfoElm;
-}
-
-void SMediaInfo::fromXml(SInterfaces::FormatProber::ProbeInfo &pi, const QDomNode &elm)
-{
-  QDomElement mediaInfoElm = findElement(elm, "mediainfo");
-
-  pi.filePath = mediaInfoElm.attribute("filePath");
-  pi.size = mediaInfoElm.attribute("size").toLongLong();
-  pi.lastModified = QDateTime::fromString(mediaInfoElm.attribute("lastModified"), Qt::ISODate);
-
-  pi.format = mediaInfoElm.attribute("format");
-
-  pi.isProbed = trueFalse(mediaInfoElm.attribute("probed"));
-  pi.isReadable = trueFalse(mediaInfoElm.attribute("readable"));
-
-  pi.fileTypeName = mediaInfoElm.attribute("type");
-
-  for (QDomElement programElm = mediaInfoElm.firstChildElement("program");
-       !programElm.isNull();
-       programElm = programElm.nextSiblingElement("program"))
-  {
-    Program program;
-    program.title = programElm.attribute("title");
-
-    const long duration = programElm.attribute("duration", "-1").toLong();
-    program.duration = duration >= 0 ? STime::fromMSec(duration) : STime();
-
-    for (QDomElement elm = programElm.firstChildElement("chapter");
-         !elm.isNull();
-         elm = elm.nextSiblingElement("chapter"))
-    {
-      Chapter chapter;
-      chapter.title = elm.attribute("title");
-      chapter.begin = STime::fromUSec(elm.attribute("begin").toLongLong());
-      chapter.end = STime::fromUSec(elm.attribute("end").toLongLong());
-
-      program.chapters.append(chapter);
-    }
-
-    for (QDomElement elm = programElm.firstChildElement("audiostream");
-         !elm.isNull();
-         elm = elm.nextSiblingElement("audiostream"))
-    {
-      SAudioCodec codec;
-      codec.fromXml(elm);
-
-      program.audioStreams.append(
-          AudioStreamInfo(
-              elm.attribute("id").toUShort(),
-              elm.attribute("language").toAscii(), codec));
-    }
-
-    for (QDomElement elm = programElm.firstChildElement("videostream");
-         !elm.isNull();
-         elm = elm.nextSiblingElement("videostream"))
-    {
-      SVideoCodec codec;
-      codec.fromXml(elm);
-
-      program.videoStreams.append(
-          VideoStreamInfo(
-              elm.attribute("id").toUShort(),
-              elm.attribute("language").toAscii(), codec));
-    }
-
-    for (QDomElement elm = programElm.firstChildElement("datastream");
-         !elm.isNull();
-         elm = elm.nextSiblingElement("datastream"))
-    {
-      SDataCodec codec;
-      codec.fromXml(elm);
-
-      DataStreamInfo stream(
-          DataStreamInfo::Type(elm.attribute("type").toInt()),
-          elm.attribute("id").toUShort(),
-          elm.attribute("language").toAscii(), codec);
-
-      stream.file = elm.attribute("file");
-      program.dataStreams.append(stream);
-    }
-
-    QDomElement imgElm = programElm.firstChildElement("imagecodec");
-    if (!imgElm.isNull())
-      program.imageCodec.fromXml(imgElm);
-
-    QDomElement thumbElm = programElm.firstChildElement("thumbnail");
-    if (!thumbElm.isNull())
-      program.thumbnail = QByteArray::fromBase64(thumbElm.text().toAscii());
-
-    pi.programs.append(program);
-  }
-
-  pi.title = mediaInfoElm.attribute("title");
-  pi.author = mediaInfoElm.attribute("author");
-  pi.copyright = mediaInfoElm.attribute("copyright");
-  pi.comment = mediaInfoElm.attribute("comment");
-  pi.album = mediaInfoElm.attribute("album");
-  pi.genre = mediaInfoElm.attribute("genre");
-  pi.year = mediaInfoElm.attribute("year").toUInt();
-  pi.track = mediaInfoElm.attribute("track").toUInt();
-}
-
 void SMediaInfo::probe(const QString &filePath)
 {
   struct Callback : SInterfaces::BufferReader::ReadCallback
@@ -520,6 +318,5 @@ void SMediaInfo::probeDataStreams(void)
     }
   }
 }
-
 
 } // End of namespace

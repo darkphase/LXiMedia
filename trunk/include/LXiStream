@@ -6,9 +6,6 @@
 #ifdef __cplusplus
 
 #include <QtCore>
-#include <QtGui>
-#include <QtNetwork>
-#include <QtXml>
 
 #include "liblxistream/sanalogtuner.h"
 #include "liblxistream/saudiobuffer.h"

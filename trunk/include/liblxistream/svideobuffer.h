@@ -20,7 +20,6 @@
 #ifndef LXISTREAM_SVIDEOBUFFER_H
 #define LXISTREAM_SVIDEOBUFFER_H
 
-#include <QtGui/QImage>
 #include <LXiCore>
 #include "svideoformat.h"
 #include "sbuffer.h"

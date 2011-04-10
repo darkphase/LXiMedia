@@ -1,6 +1,5 @@
 # Default build settings for LXiMedia
 CONFIG += qt thread warn_on
-QT += network xml
 OBJECTS_DIR = $${LXIMEDIA_DIR}/obj/$${TARGET}
 MOC_DIR = $${OBJECTS_DIR}
 RCC_DIR = $${OBJECTS_DIR}

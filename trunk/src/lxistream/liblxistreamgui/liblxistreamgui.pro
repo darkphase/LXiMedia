@@ -44,12 +44,23 @@ unix {
 }
 win32:SOURCES += sdisplay.win.cpp \
     svideoview.win.cpp
-win32-g++ { 
+win32-g++ {
     system(mkdir ..\\..\\..\\bin\\ > NUL 2>&1)
     system(mkdir ..\\..\\..\\bin\\imageformats\\ > NUL 2>&1)
-    release { 
+    system(cp -u $$(QTDIR)/bin/libgcc_s_dw2-1.dll -t $${LXIMEDIA_DIR}/bin/)
+    system(cp -u $$(QTDIR)/bin/mingwm10.dll -t $${LXIMEDIA_DIR}/bin)
+    release {
+        system(cp -u $$(QTDIR)/bin/QtCore4.dll -t $${LXIMEDIA_DIR}/bin)
         system(cp -u $$(QTDIR)/bin/QtGui4.dll -t $${LXIMEDIA_DIR}/bin)
+        system(cp -u $$(QTDIR)/bin/QtXml4.dll -t $${LXIMEDIA_DIR}/bin)
         system(cp -u $$(QTDIR)/plugins/imageformats/qjpeg4.dll -t $${LXIMEDIA_DIR}/bin/imageformats)
         system(cp -u $$(QTDIR)/plugins/imageformats/qtiff4.dll -t $${LXIMEDIA_DIR}/bin/imageformats)
+    }
+    debug {
+        system(cp -u $$(QTDIR)/bin/QtCored4.dll -t $${LXIMEDIA_DIR}/bin)
+        system(cp -u $$(QTDIR)/bin/QtGuid4.dll -t $${LXIMEDIA_DIR}/bin)
+        system(cp -u $$(QTDIR)/bin/QtXmld4.dll -t $${LXIMEDIA_DIR}/bin)
+        system(cp -u $$(QTDIR)/plugins/imageformats/qjpegd4.dll -t $${LXIMEDIA_DIR}/bin/imageformats)
+        system(cp -u $$(QTDIR)/plugins/imageformats/qtiffd4.dll -t $${LXIMEDIA_DIR}/bin/imageformats)
     }
 }

@@ -25,7 +25,7 @@ class HttpEngineTest : public QObject
 {
 Q_OBJECT
 public:
-  inline explicit               HttpEngineTest(QObject *parent) : QObject(parent), gotHttpServerReply(false), httpServer(NULL) { }
+  inline explicit               HttpEngineTest(QObject *parent) : QObject(parent), httpServer(NULL), responseCount(0) { }
 
 private slots:
   void                          initTestCase(void);
@@ -49,9 +49,8 @@ private slots:
   void                          handleResponse(const SHttpEngine::ResponseMessage &);
 
 private:
-  bool                          gotHttpServerReply;
-
-private:
   SApplication                * mediaApp;
   SHttpServer                 * httpServer;
+  static const int              numResponses;
+  int                           responseCount;
 };

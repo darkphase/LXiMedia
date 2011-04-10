@@ -43,28 +43,30 @@ void SDataCodec::setCodec(const QString &codec)
   d.codec = codec;
 }
 
-QDomNode SDataCodec::toXml(QDomDocument &doc) const
+QString SDataCodec::toString(bool addExtraData) const
 {
-  QDomElement codecElm = createElement(doc, "datacodec");
+  QString result = d.codec;
 
-  if (!d.codec.isEmpty())
-    codecElm.setAttribute("codec", QString(d.codec));
+  if (addExtraData && !d.extraData.isEmpty())
+    result += ';' + QString::fromAscii(d.extraData.toBase64());
 
-  if (!d.extraData.isEmpty())
-    codecElm.setAttribute("extradata", QString(d.extraData.toBase64()));
-
-  return codecElm;
+  return result;
 }
 
-void SDataCodec::fromXml(const QDomNode &elm)
+SDataCodec SDataCodec::fromString(const QString &str)
 {
-  QDomElement codecElm = findElement(elm, "datacodec");
+  const QStringList items = str.split(';');
+  SDataCodec result;
 
-  if (codecElm.hasAttribute("codec"))
-    d.codec = codecElm.attribute("codec").toAscii();
+  if (items.count() >= 1)
+  {
+    result.d.codec = items[0].toAscii();
+  }
 
-  if (codecElm.hasAttribute("extradata"))
-    d.extraData = QByteArray::fromBase64(codecElm.attribute("extradata").toAscii());
+  if (items.count() >= 2)
+    result.d.extraData = QByteArray::fromBase64(items[1].toAscii());
+
+  return result;
 }
 
 } // End of namespace

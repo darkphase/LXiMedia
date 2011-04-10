@@ -48,12 +48,12 @@ void SHttpClient::openRequest(const RequestMessage &message, QObject *receiver, 
   QString hostname;
   quint16 port = 80;
   if (splitHost(message.host(), hostname, port))
-    connect(new HttpSocketRequest(hostname, port, message), SIGNAL(connected(QAbstractSocket *)), receiver, slot);
+    connect(new HttpSocketRequest(this, hostname, port, message), SIGNAL(connected(QAbstractSocket *)), receiver, slot);
 }
 
 void SHttpClient::closeRequest(QAbstractSocket *socket, bool canReuse)
 {
-  new SocketCloseRequest(socket);
+  new SocketCloseRequest(this, socket);
 }
 
 } // End of namespace

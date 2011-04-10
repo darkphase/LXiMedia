@@ -72,36 +72,36 @@ void SAudioCodec::setCodec(const QString &codec, SAudioFormat::Channels channels
   d.bitRate = bitRate;
 }
 
-QDomNode SAudioCodec::toXml(QDomDocument &doc) const
+QString SAudioCodec::toString(bool addExtraData) const
 {
-  QDomElement codecElm = createElement(doc, "audiocodec");
+  QString result = d.codec + ';' +
+    QString::number(d.channels) + ';' +
+    QString::number(d.sampleRate) + ';' +
+    QString::number(d.bitRate);
 
-  if (!d.codec.isEmpty())
-    codecElm.setAttribute("codec", QString(d.codec));
+  if (addExtraData && !d.extraData.isEmpty())
+    result += ';' + QString::fromAscii(d.extraData.toBase64());
 
-  codecElm.setAttribute("channels", d.channels);
-  codecElm.setAttribute("samplerate", d.sampleRate);
-  codecElm.setAttribute("bitrate", d.bitRate);
-
-  if (!d.extraData.isEmpty())
-    codecElm.setAttribute("extradata", QString(d.extraData.toBase64()));
-
-  return codecElm;
+  return result;
 }
 
-void SAudioCodec::fromXml(const QDomNode &elm)
+SAudioCodec SAudioCodec::fromString(const QString &str)
 {
-  QDomElement codecElm = findElement(elm, "audiocodec");
+  const QStringList items = str.split(';');
+  SAudioCodec result;
 
-  if (codecElm.hasAttribute("codec"))
-    d.codec = codecElm.attribute("codec").toAscii();
+  if (items.count() >= 4)
+  {
+    result.d.codec = items[0].toAscii();
+    result.d.channels = SAudioFormat::Channels(items[1].toInt());
+    result.d.sampleRate = items[2].toInt();
+    result.d.bitRate = items[3].toInt();
+  }
 
-  d.channels = SAudioFormat::Channels(codecElm.attribute("channels").toUInt());
-  d.sampleRate = codecElm.attribute("samplerate").toInt();
-  d.bitRate = codecElm.attribute("bitrate").toInt();
+  if (items.count() >= 5)
+    result.d.extraData = QByteArray::fromBase64(items[4].toAscii());
 
-  if (codecElm.hasAttribute("extradata"))
-    d.extraData = QByteArray::fromBase64(codecElm.attribute("extradata").toAscii());
+  return result;
 }
 
 } // End of namespace

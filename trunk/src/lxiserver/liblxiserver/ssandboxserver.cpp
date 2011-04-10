@@ -33,56 +33,90 @@
 
 namespace LXiServer {
 
+struct SSandboxServer::Data
+{
+  QTcpServer                  * server;
+  int                           openSockets;
+  QQueue<int>                   pendingSockets;
+};
+
 class SSandboxServer::Socket : public QTcpSocket
 {
 public:
-  explicit                      Socket(SSandboxServer *parent);
-  virtual                       ~Socket();
+  explicit Socket(SSandboxServer *parent)
+    : QTcpSocket(parent), parent(parent)
+  {
+    if (parent->d->openSockets++ == 0)
+      emit parent->busy();
+  }
+
+  virtual ~Socket()
+  {
+    if (parent)
+    if (parent->d)
+    if (--parent->d->openSockets == 0)
+      emit parent->idle();
+  }
 
 private:
-  SSandboxServer        * const parent;
+  const QPointer<SSandboxServer> parent;
 };
 
 class SSandboxServer::Server : public QTcpServer
 {
 public:
-  explicit                      Server(SSandboxServer *parent);
+  explicit Server(SSandboxServer *parent)
+    : QTcpServer(parent), parent(parent)
+  {
+  }
 
 protected:
-  virtual void                  incomingConnection(int);
+  virtual void incomingConnection(int socketDescriptor)
+  {
+    if (parent)
+    {
+      QTcpSocket * const socket = new Socket(parent);
+      if (socket->setSocketDescriptor(socketDescriptor))
+        (new HttpServerRequest(parent))->start(socket);
+      else
+        delete socket;
+    }
+  }
 
 private:
-  SSandboxServer         * const parent;
-};
-
-struct SSandboxServer::Private
-{
-  Server                      * server;
-  int                           sockets;
+  const QPointer<SSandboxServer> parent;
 };
 
 SSandboxServer::SSandboxServer(QObject *parent)
   : SHttpServerEngine("Sandbox/1.0", parent),
-    p(new Private())
+    d(new Data())
 {
-  p->server = NULL;
-  p->sockets = 0;
+  d->server = NULL;
+  d->openSockets = 0;
 }
 
 SSandboxServer::~SSandboxServer()
 {
-  delete p->server;
-  delete p;
-  *const_cast<Private **>(&p) = NULL;
+  delete d->server;
+  delete d;
+  *const_cast<Data **>(&d) = NULL;
 }
 
-void SSandboxServer::initialize(const QString &mode)
+bool SSandboxServer::initialize(const QString &mode)
 {
-  p->server = new Server(this);
+  d->server = new Server(this);
+
+  // First try IPv6, then IPv4
+  if (!d->server->listen(QHostAddress::LocalHostIPv6))
+  if (!d->server->listen(QHostAddress::LocalHost))
+  {
+    qWarning() << "SSandboxServer Failed to bind localhost interface";
+    return false;
+  }
 
   std::cerr << "##READY "
-      << p->server->serverAddress().toString().toAscii().data() << " "
-      << p->server->serverPort() << std::endl;
+      << d->server->serverAddress().toString().toAscii().data() << " "
+      << d->server->serverPort() << std::endl;
 
   // This is performed after initialization to prevent priority inversion with
   // the process that is waiting for this one to start.
@@ -99,54 +133,22 @@ void SSandboxServer::initialize(const QString &mode)
     ::SetPriorityClass(::GetCurrentProcess(), PROCESS_MODE_BACKGROUND_BEGIN);
 #endif
   }
+
+  return true;
 }
 
 void SSandboxServer::close(void)
 {
-  delete p->server;
-  p->server = NULL;
+  d->server->close();
+  delete d->server;
+  d->server = NULL;
 
   std::cerr << "##STOP" << std::endl;
 }
 
 void SSandboxServer::closeSocket(QAbstractSocket *socket, bool)
 {
-  new SocketCloseRequest(socket);
-}
-
-
-SSandboxServer::Socket::Socket(SSandboxServer *parent)
-  : QTcpSocket(),
-    parent(parent)
-{
-  if (parent->p->sockets++ == 0)
-    emit parent->busy();
-}
-
-SSandboxServer::Socket::~Socket()
-{
-  if (--parent->p->sockets == 0)
-    emit parent->idle();
-}
-
-
-SSandboxServer::Server::Server(SSandboxServer *parent)
-  : QTcpServer(),
-    parent(parent)
-{
-  // First try IPv6, then IPv4
-  if (!QTcpServer::listen(QHostAddress::LocalHostIPv6))
-  if (!QTcpServer::listen(QHostAddress::LocalHost))
-    qWarning() << "SSandboxServer Failed to bind localhost interface";
-}
-
-void SSandboxServer::Server::incomingConnection(int socketDescriptor)
-{
-  QTcpSocket * const socket = new Socket(parent);
-  if (socket->setSocketDescriptor(socketDescriptor))
-    (new HttpServerRequest(parent))->start(socket);
-  else
-    delete socket;
+  new SocketCloseRequest(this, socket);
 }
 
 } // End of namespace

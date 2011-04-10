@@ -34,7 +34,7 @@ public:
   explicit                      SSandboxServer(QObject * = NULL);
   virtual                       ~SSandboxServer();
 
-  void                          initialize(const QString &mode);
+  bool                          initialize(const QString &mode);
   void                          close(void);
 
 signals:
@@ -47,8 +47,8 @@ public: // From HttpServerEngine
 private:
   class Socket;
   class Server;
-  struct Private;
-  Private               * const p;
+  struct Data;
+  Data                  * const d;
 };
 
 } // End of namespace

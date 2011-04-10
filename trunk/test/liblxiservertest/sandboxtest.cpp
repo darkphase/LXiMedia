@@ -21,6 +21,8 @@
 #include <QtTest>
 #include <LXiServer>
 
+const int SandboxTest::numResponses = 0;
+
 int SandboxTest::startSandbox(const QString &mode)
 {
   struct Callback : SSandboxServer::Callback
@@ -35,7 +37,7 @@ int SandboxTest::startSandbox(const QString &mode)
       {
         if (url.hasQueryItem("nop"))
         {
-          return SSandboxServer::sendResponse(request, socket, SHttpServer::Status_NoContent);
+          return SSandboxServer::sendResponse(request, socket, SHttpServer::Status_Ok);
         }
         else if (url.hasQueryItem("stop"))
         {
@@ -82,48 +84,45 @@ void SandboxTest::sendRequests(void)
 {
   responseCount = 0;
 
-  SSandboxClient::RequestMessage nopMessage(sandboxClient);
-  nopMessage.setRequest("GET", "/?nop");
+  SSandboxClient::RequestMessage nopRequest(sandboxClient);
+  nopRequest.setRequest("GET", "/?nop");
 
-  for (int i=0; i<numResponses/2; i++)
-    sandboxClient->sendRequest(nopMessage);
-
-  for (int i=0; (i<20) && (responseCount<numResponses/2); i++)
-    QTest::qWait(100);
-
-  for (int i=0; i<numResponses/2; i++)
-    sandboxClient->sendRequest(nopMessage);
+  for (int i=0; i<numResponses; i++)
+    sandboxClient->sendRequest(nopRequest);
 
   for (int i=0; (i<20) && (responseCount<numResponses); i++)
     QTest::qWait(100);
 
-  QVERIFY(responseCount == numResponses);
+  QCOMPARE(responseCount, numResponses);
 }
 
 void SandboxTest::sendTerminate(void)
 {
-  responseCount = 0;
+  if (numResponses > 0)
+  {
+    responseCount = 0;
 
-  SSandboxClient::RequestMessage nopMessage(sandboxClient);
-  nopMessage.setRequest("GET", "/?nop");
-  sandboxClient->sendRequest(nopMessage);
+    SSandboxClient::RequestMessage nopRequest(sandboxClient);
+    nopRequest.setRequest("GET", "/?nop");
+    sandboxClient->sendRequest(nopRequest);
 
-  SSandboxClient::RequestMessage stopMessage(sandboxClient);
-  stopMessage.setRequest("GET", "/?stop");
-  sandboxClient->sendRequest(stopMessage);
+    SSandboxClient::RequestMessage stopRequest(sandboxClient);
+    stopRequest.setRequest("GET", "/?stop");
+    sandboxClient->sendRequest(stopRequest);
 
-  for (int i=0; (i<20) && (responseCount<2); i++)
     QTest::qWait(100);
 
-  sandboxClient->sendRequest(nopMessage);
+    sandboxClient->sendRequest(nopRequest);
 
-  for (int i=0; (i<20) && (responseCount<3); i++)
-    QTest::qWait(100);
+    for (int i=0; (i<20) && (responseCount<2); i++)
+      QTest::qWait(100);
 
-  QVERIFY(responseCount == 3);
+    QCOMPARE(responseCount, 2);
+  }
 }
 
-void SandboxTest::handleResponse(const SHttpEngine::ResponseMessage &)
+void SandboxTest::handleResponse(const SHttpEngine::ResponseMessage &response)
 {
-  responseCount.ref();
+  if (response.status() == SHttpEngine::Status_Ok)
+    responseCount++;
 }

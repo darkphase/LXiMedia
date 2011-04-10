@@ -1,7 +1,6 @@
 TEMPLATE = app
 CONFIG += qtestlib
-QT += network \
-    xml
+Qt -= gui
 LXIMEDIA_DIR = ../..
 DESTDIR = $${LXIMEDIA_DIR}/bin
 TARGET = lxistreamtest
@@ -95,6 +94,23 @@ linux-g++ {
 }
 win32 { 
     CONFIG += console
+}
+win32-g++ {
+    system(mkdir ..\\..\\bin\\ > NUL 2>&1)
+    system(cp -u $$(QTDIR)/bin/libgcc_s_dw2-1.dll -t $${LXIMEDIA_DIR}/bin/)
+    system(cp -u $$(QTDIR)/bin/mingwm10.dll -t $${LXIMEDIA_DIR}/bin)
+    release {
+        system(cp -u $$(QTDIR)/bin/QtCore4.dll -t $${LXIMEDIA_DIR}/bin)
+        system(cp -u $$(QTDIR)/bin/QtGui4.dll -t $${LXIMEDIA_DIR}/bin)
+        system(cp -u $$(QTDIR)/bin/QtTest4.dll -t $${LXIMEDIA_DIR}/bin)
+        system(cp -u $$(QTDIR)/bin/QtXml4.dll -t $${LXIMEDIA_DIR}/bin)
+    }
+    debug {
+        system(cp -u $$(QTDIR)/bin/QtCored4.dll -t $${LXIMEDIA_DIR}/bin)
+        system(cp -u $$(QTDIR)/bin/QtGuid4.dll -t $${LXIMEDIA_DIR}/bin)
+        system(cp -u $$(QTDIR)/bin/QtTestd4.dll -t $${LXIMEDIA_DIR}/bin)
+        system(cp -u $$(QTDIR)/bin/QtXmld4.dll -t $${LXIMEDIA_DIR}/bin)
+    }
 }
 
 QMAKE_LFLAGS += $${FILES_UNDER_TEST}

@@ -20,6 +20,7 @@
 #include "mediaplayersandbox.h"
 #include <QtConcurrentRun>
 #include <iostream>
+#include "filenode.h"
 
 namespace LXiMediaCenter {
 namespace MediaPlayerBackend {
@@ -63,8 +64,7 @@ SSandboxServer::SocketOp MediaPlayerSandbox::handleHttpRequest(const SSandboxSer
   }
   else if (url.hasQueryItem("playfile"))
   {
-    SMediaInfo file;
-    file.fromByteArray(SHttpServer::readContent(request, socket));
+    const SMediaInfo file = FileNode::fromByteArray(SHttpServer::readContent(request, socket));
 
     SandboxFileStream * const stream = new SandboxFileStream(file.filePath());
     if (stream->file.open(url.queryItemValue("pid").toUShort()))
@@ -82,12 +82,7 @@ SSandboxServer::SocketOp MediaPlayerSandbox::handleHttpRequest(const SSandboxSer
   {
     SMediaInfoList files;
     foreach (const QByteArray &node, SHttpServer::readContent(request, socket).split('\n'))
-    {
-      SMediaInfo file;
-      file.fromByteArray(node);
-
-      files.append(file);
-    }
+      files.append(FileNode::fromByteArray(node));
 
     SandboxPlaylistStream * const stream = new SandboxPlaylistStream(files);
     if (stream->setup(request, socket))
@@ -104,12 +99,7 @@ SSandboxServer::SocketOp MediaPlayerSandbox::handleHttpRequest(const SSandboxSer
   {
     SMediaInfoList files;
     foreach (const QByteArray &node, SHttpServer::readContent(request, socket).split('\n'))
-    {
-      SMediaInfo file;
-      file.fromByteArray(node);
-
-      files.append(file);
-    }
+      files.append(FileNode::fromByteArray(node));
 
     SandboxSlideShowStream * const stream = new SandboxSlideShowStream(files);
     if (stream->setup(request, socket))
@@ -145,9 +135,9 @@ void MediaPlayerSandbox::customEvent(QEvent *e)
 
 void MediaPlayerSandbox::probe(const SSandboxServer::RequestHeader &request, QAbstractSocket *socket, const QString &file)
 {
-  SMediaInfo mediaInfo(file);
-  if (!mediaInfo.isNull())
-    qApp->postEvent(this, new ProbeResponseEvent(request, socket, mediaInfo.toByteArray(-1)));
+  FileNode fileNode(file);
+  if (!fileNode.isNull())
+    qApp->postEvent(this, new ProbeResponseEvent(request, socket, fileNode.toByteArray(-1)));
   else
     qApp->postEvent(this, new ProbeResponseEvent(request, socket, QByteArray()));
 }
