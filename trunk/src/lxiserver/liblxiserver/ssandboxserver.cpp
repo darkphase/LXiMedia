@@ -146,9 +146,4 @@ void SSandboxServer::close(void)
   std::cerr << "##STOP" << std::endl;
 }
 
-void SSandboxServer::closeSocket(QAbstractSocket *socket, bool)
-{
-  new SocketCloseRequest(this, socket);
-}
-
 } // End of namespace

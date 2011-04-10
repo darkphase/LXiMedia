@@ -210,8 +210,6 @@ public:
   virtual const char          * senderType(void) const;
   virtual const QString       & senderId(void) const;
 
-  virtual void                  closeSocket(QAbstractSocket *, bool canReuse) = 0;
-
 public:
   static QByteArray             readContent(const RequestHeader &, QAbstractSocket *);
   static SocketOp               sendResponse(const RequestHeader &, QAbstractSocket *, Status, const QByteArray &content, const QObject * = NULL);
@@ -239,7 +237,6 @@ public:
   virtual const QString       & senderId(void) const;
 
   virtual void                  openRequest(const RequestMessage &message, QObject *receiver, const char *slot) = 0;
-  virtual void                  closeRequest(QAbstractSocket *, bool canReuse = false) = 0;
 
   void                          sendRequest(const RequestMessage &);
 

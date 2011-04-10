@@ -36,11 +36,13 @@ public:
 
 public: // From HttpClientEngine
   virtual void                  openRequest(const RequestMessage &header, QObject *receiver, const char *slot);
-  virtual void                  closeRequest(QAbstractSocket *, bool canReuse = false);
+
+private slots:
+  __internal void               openRequest(void);
 
 private:
-  struct Private;
-  Private               * const p;
+  struct Data;
+  Data                  * const d;
 };
 
 } // End of namespace

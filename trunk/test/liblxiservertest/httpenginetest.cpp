@@ -20,7 +20,7 @@
 #include "httpenginetest.h"
 #include <QtTest>
 
-const int HttpEngineTest::numResponses = 1;
+const int HttpEngineTest::numResponses = 100;
 
 void HttpEngineTest::initTestCase(void)
 {
@@ -29,8 +29,12 @@ void HttpEngineTest::initTestCase(void)
 
 void HttpEngineTest::cleanupTestCase(void)
 {
-  delete httpServer;
-  httpServer = NULL;
+  if (httpServer)
+  {
+    httpServer->close();
+    delete httpServer;
+    httpServer = NULL;
+  }
 
   delete mediaApp;
   mediaApp = NULL;
@@ -73,9 +77,15 @@ void HttpEngineTest::HttpServerIPv6(void)
 void HttpEngineTest::HttpClientIPv4(void)
 {
   if (startServer(QHostAddress::LocalHost))
+  {
     testHttpClient(QHostAddress::LocalHost);
-
-  stopServer();
+    stopServer();
+  }
+  else
+  {
+    stopServer();
+    QSKIP("IPv4 not available.", SkipSingle);
+  }
 }
 
 /*! Tests the HTTP client on IPv6.
@@ -83,9 +93,15 @@ void HttpEngineTest::HttpClientIPv4(void)
 void HttpEngineTest::HttpClientIPv6(void)
 {
   if (startServer(QHostAddress::LocalHostIPv6))
+  {
     testHttpClient(QHostAddress::LocalHostIPv6);
-
-  stopServer();
+    stopServer();
+  }
+  else
+  {
+    stopServer();
+    QSKIP("IPv6 not available.", SkipSingle);
+  }
 }
 
 bool HttpEngineTest::startServer(const QHostAddress &address)

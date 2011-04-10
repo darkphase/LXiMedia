@@ -257,7 +257,10 @@ void SHttpServerEngine::handleHttpRequest(const SHttpEngine::RequestHeader &requ
     socket->write(ResponseHeader(request, Status_NotFound));
 
   if (socket)
-    closeSocket(socket, false);
+  {
+    connect(socket, SIGNAL(disconnected()), socket, SLOT(deleteLater()));
+    socket->disconnectFromHost();
+  }
 }
 
 

@@ -23,20 +23,37 @@
 
 namespace LXiServer {
 
-struct SHttpClient::Private
+struct SHttpClient::Data
 {
+  struct Request
+  {
+    inline Request(const QString &hostname, quint16 port, const QByteArray &message, QObject *receiver, const char *slot)
+      : hostname(hostname), port(port), message(message), receiver(receiver), slot(slot)
+    {
+    }
+
+    QString                     hostname;
+    quint16                     port;
+    QByteArray                  message;
+    QObject                   * receiver;
+    const char                * slot;
+  };
+
+  QList<Request>                requests;
+  bool                          requestPending;
 };
 
 SHttpClient::SHttpClient(QObject *parent)
   : SHttpClientEngine(parent),
-    p(new Private())
+    d(new Data())
 {
+  d->requestPending = false;
 }
 
 SHttpClient::~SHttpClient()
 {
-  delete p;
-  *const_cast<Private **>(&p) = NULL;
+  delete d;
+  *const_cast<Data **>(&d) = NULL;
 }
 
 void SHttpClient::openRequest(const RequestMessage &message, QObject *receiver, const char *slot)
@@ -48,12 +65,27 @@ void SHttpClient::openRequest(const RequestMessage &message, QObject *receiver, 
   QString hostname;
   quint16 port = 80;
   if (splitHost(message.host(), hostname, port))
-    connect(new HttpSocketRequest(this, hostname, port, message), SIGNAL(connected(QAbstractSocket *)), receiver, slot);
+  {
+    d->requests.append(Data::Request(hostname, port, message, receiver, slot));
+    if (!d->requestPending)
+      openRequest();
+  }
 }
 
-void SHttpClient::closeRequest(QAbstractSocket *socket, bool canReuse)
+void SHttpClient::openRequest(void)
 {
-  new SocketCloseRequest(this, socket);
+  if (!d->requests.isEmpty())
+  {
+    d->requestPending = true;
+
+    const Data::Request request = d->requests.takeFirst();
+    HttpSocketRequest * const socketRequest = new HttpSocketRequest(this, request.hostname, request.port, request.message);
+
+    connect(socketRequest, SIGNAL(connected(QAbstractSocket *)), request.receiver, request.slot);
+    connect(socketRequest, SIGNAL(connected(QAbstractSocket *)), SLOT(openRequest()));
+  }
+  else
+    d->requestPending = false;
 }
 
 } // End of namespace
