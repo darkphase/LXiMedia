@@ -57,25 +57,24 @@ SHttpProxy::~SHttpProxy()
 
 bool SHttpProxy::isConnected(void) const
 {
-  if (!d->sourceFinished)
+  if (d->sourceFinished || !d->source.isConnected())
   {
-    if (!d->source.isConnected())
-    {
-      foreach (const Data::Socket &s, d->sockets)
-      if (s.socket.isConnected())
-      if (s.socket->bytesToWrite() > 0)
-        return true;
-
-      return false;
-    }
-
-    if (d->caching)
-      return true;
+    d->sourceFinished = true;
 
     foreach (const Data::Socket &s, d->sockets)
     if (s.socket.isConnected())
+    if (s.socket->bytesToWrite() > 0)
       return true;
+
+    return false;
   }
+
+  if (d->caching)
+    return true;
+
+  foreach (const Data::Socket &s, d->sockets)
+  if (s.socket.isConnected())
+    return true;
 
   return false;
 }
@@ -168,12 +167,15 @@ void SHttpProxy::processData(void)
       else
         s = d->sockets.erase(s);
     }
+  }
 
-    if (!isConnected())
-    {
-      d->sourceFinished = true;
-      emit disconnected();
-    }
+  if (!isConnected())
+  {
+    for (QVector<Data::Socket>::Iterator s=d->sockets.begin(); s!=d->sockets.end(); s=d->sockets.erase(s))
+    if (s->socket.isConnected())
+      s->socket->close();
+
+    emit disconnected();
   }
 }
 
@@ -205,7 +207,6 @@ void SHttpProxy::flushData(void)
     }
 
     d->sourceFinished = true;
-    emit disconnected();
   }
 }
 
