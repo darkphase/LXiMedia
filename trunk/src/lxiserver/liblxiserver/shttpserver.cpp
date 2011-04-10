@@ -21,6 +21,8 @@
 #include "lxiserverprivate.h"
 #if defined(Q_OS_UNIX)
 #include <sys/utsname.h>
+#elif defined(Q_OS_WIN)
+#include <windows.h>
 #endif
 
 namespace LXiServer {
@@ -71,7 +73,15 @@ protected:
     {
       QTcpSocket * const socket = new Socket(parent);
       if (socket->setSocketDescriptor(socketDescriptor))
+      {
+#ifdef Q_OS_WIN
+        // This is needed to ensure the socket isn't kept open by any child
+        // processes.
+        HANDLE handle = (HANDLE)socket->socketDescriptor();
+        ::SetHandleInformation(handle, HANDLE_FLAG_INHERIT, 0);
+#endif
         (new HttpServerRequest(parent))->start(socket);
+      }
       else
         delete socket;
     }
