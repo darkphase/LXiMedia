@@ -46,6 +46,7 @@ struct SSandboxClient::Data
 
   SandboxProcess              * serverProcess;
   QList<Request>                requests;
+  bool                          requestPending;
 };
 
 SSandboxClient::SSandboxClient(const QString &application, Mode mode, QObject *parent)
@@ -62,6 +63,7 @@ SSandboxClient::SSandboxClient(const QString &application, Mode mode, QObject *p
   }
 
   d->serverProcess = NULL;
+  d->requestPending = false;
 }
 
 SSandboxClient::~SSandboxClient()
@@ -83,44 +85,44 @@ void SSandboxClient::openRequest(const RequestMessage &message, QObject *receive
            "that owns the SSandboxClient object.");
 
   d->requests.append(Data::Request(message, receiver, slot));
-
-  if (d->serverProcess == NULL)
-  {
-    stop();
-    d->serverProcess = new SandboxProcess(this, d->application + " " + d->modeText);
-
-    connect(d->serverProcess, SIGNAL(ready(QHostAddress, quint16)), SLOT(processStarted(QHostAddress, quint16)));
-    connect(d->serverProcess, SIGNAL(stop()), SLOT(stop()));
-    connect(d->serverProcess, SIGNAL(finished()), SLOT(finished()));
-    connect(d->serverProcess, SIGNAL(consoleLine(QString)), SIGNAL(consoleLine(QString)));
-  }
-  else if (d->requests.count() == 1)
-    openSockets();
-}
-
-void SSandboxClient::closeRequest(QAbstractSocket *socket, bool canReuse)
-{
-  new SocketCloseRequest(this, socket);
+  if (!d->requestPending)
+    openRequest();
 }
 
 void SSandboxClient::processStarted(const QHostAddress &address, quint16 port)
 {
-  qDebug() << "SSandboxClient::processStarted" << address.toString() << port;
-
   d->address = address;
   d->port = port;
 
-  openSockets();
+  openRequest();
 }
 
-void SSandboxClient::openSockets(void)
+void SSandboxClient::openRequest(void)
 {
-  while (!d->requests.isEmpty())
+  if (!d->requests.isEmpty())
   {
-    const Data::Request request = d->requests.takeFirst();
+    d->requestPending = true;
 
-    connect(new HttpSocketRequest(this, d->address, d->port, request.message), SIGNAL(connected(QAbstractSocket *)), request.receiver, request.slot);
+    if (d->serverProcess != NULL)
+    {
+      const Data::Request request = d->requests.takeFirst();
+      HttpSocketRequest * const socketRequest = new HttpSocketRequest(this, d->address, d->port, request.message);
+
+      connect(socketRequest, SIGNAL(connected(QAbstractSocket *)), request.receiver, request.slot);
+      connect(socketRequest, SIGNAL(connected(QAbstractSocket *)), SLOT(openRequest()));
+    }
+    else
+    {
+      d->serverProcess = new SandboxProcess(this, d->application + " " + d->modeText);
+
+      connect(d->serverProcess, SIGNAL(ready(QHostAddress, quint16)), SLOT(processStarted(QHostAddress, quint16)));
+      connect(d->serverProcess, SIGNAL(stop()), SLOT(stop()));
+      connect(d->serverProcess, SIGNAL(finished()), SLOT(finished()));
+      connect(d->serverProcess, SIGNAL(consoleLine(QString)), SIGNAL(consoleLine(QString)));
+    }
   }
+  else
+    d->requestPending = false;
 }
 
 void SSandboxClient::stop(void)
@@ -147,6 +149,9 @@ void SSandboxClient::finished(void)
 
     d->serverProcess->deleteLater();
     d->serverProcess = NULL;
+
+    if (!d->requests.isEmpty())
+      openRequest();
   }
 }
 

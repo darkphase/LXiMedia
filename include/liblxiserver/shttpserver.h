@@ -45,9 +45,6 @@ signals:
   void                          busy(void);
   void                          idle(void);
 
-public: // From HttpServerEngine
-  virtual void                  closeSocket(QAbstractSocket *, bool canReuse);
-
 private:
   class Socket;
   class Server;

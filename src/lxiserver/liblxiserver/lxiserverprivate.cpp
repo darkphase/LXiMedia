@@ -22,7 +22,6 @@
 
 HttpClientRequest::HttpClientRequest(SHttpClientEngine *parent)
   : QObject(parent),
-    parent(parent),
     socket(NULL),
     responded(false)
 {
@@ -32,8 +31,7 @@ HttpClientRequest::HttpClientRequest(SHttpClientEngine *parent)
 
 HttpClientRequest::~HttpClientRequest()
 {
-  if (socket && parent)
-    parent->closeRequest(socket, false);
+  delete socket;
 }
 
 void HttpClientRequest::start(QAbstractSocket *socket)
@@ -43,7 +41,7 @@ void HttpClientRequest::start(QAbstractSocket *socket)
     this->socket = socket;
 
     connect(socket, SIGNAL(readyRead()), SLOT(readyRead()));
-    connect(socket, SIGNAL(readChannelFinished()), SLOT(close()));
+    connect(socket, SIGNAL(disconnected()), SLOT(close()));
 
     closeTimer.start(SHttpEngine::maxTTL);
   }
@@ -66,9 +64,7 @@ void HttpClientRequest::readyRead()
         responded = true;
         emit response(message);
 
-        if (parent)
-          parent->closeRequest(socket, true);
-
+        socket->deleteLater();
         socket = NULL;
 
         deleteLater();
@@ -102,8 +98,11 @@ HttpServerRequest::HttpServerRequest(SHttpServerEngine *parent)
 
 HttpServerRequest::~HttpServerRequest()
 {
-  if (socket && parent)
-    parent->closeSocket(socket, false);
+  if (socket)
+  {
+    connect(socket, SIGNAL(disconnected()), socket, SLOT(deleteLater()));
+    socket->disconnectFromHost();
+  }
 }
 
 void HttpServerRequest::start(QAbstractSocket *socket)
@@ -145,9 +144,8 @@ void HttpServerRequest::readyRead()
       {
         socket->write(SHttpEngine::ResponseHeader(request, SHttpEngine::Status_BadRequest));
 
-        if (parent)
-          parent->closeSocket(socket, true);
-
+        connect(socket, SIGNAL(disconnected()), socket, SLOT(deleteLater()));
+        socket->disconnectFromHost();
         socket = NULL;
 
         deleteLater();
@@ -241,6 +239,8 @@ void HttpSocketRequest::bytesWritten(void)
 
 void HttpSocketRequest::failed(void)
 {
+  qDebug() << "HTTP request failed" << socket->errorString();
+
   socket->deleteLater();
   socket = NULL;
 
@@ -308,52 +308,4 @@ void SandboxProcess::readyRead()
 void SandboxProcess::finished(int, QProcess::ExitStatus)
 {
   emit finished();
-}
-
-
-SocketCloseRequest::SocketCloseRequest(QObject *parent, QAbstractSocket *socket)
-  : QObject(parent),
-    socket(socket)
-{
-  if ((QThread::currentThread() == socket->thread()) && (socket->thread() != qApp->thread()))
-  {
-    // Blocking close
-    QTime timer;
-    timer.start();
-
-    while (socket->bytesToWrite() > 0)
-    if (!socket->waitForBytesWritten(qMax(maxTTL- timer.elapsed(), 0)))
-      break;
-
-    socket->disconnectFromHost();
-    if (socket->state() != QAbstractSocket::UnconnectedState)
-      socket->waitForDisconnected(qMax(maxTTL- timer.elapsed(), 0));
-
-    delete this;
-  }
-  else
-  {
-    connect(socket, SIGNAL(disconnected()), SLOT(deleteLater()));
-    if (socket->bytesToWrite() > 0)
-      connect(socket, SIGNAL(bytesWritten(qint64)), SLOT(bytesWritten()));
-    else
-      bytesWritten();
-
-    connect(&deleteTimer, SIGNAL(timeout()), SLOT(deleteLater()));
-    deleteTimer.setSingleShot(true);
-    deleteTimer.start(maxTTL);
-  }
-}
-
-SocketCloseRequest::~SocketCloseRequest()
-{
-  delete socket;
-
-  emit closed();
-}
-
-void SocketCloseRequest::bytesWritten(void)
-{
-  if (socket->bytesToWrite() <= 0)
-    socket->disconnectFromHost();
 }

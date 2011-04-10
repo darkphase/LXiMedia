@@ -140,9 +140,4 @@ const QString & SHttpServer::serverUdn(void) const
   return d->serverUdn;
 }
 
-void SHttpServer::closeSocket(QAbstractSocket *socket, bool)
-{
-  new SocketCloseRequest(this, socket);
-}
-
 } // End of namespace

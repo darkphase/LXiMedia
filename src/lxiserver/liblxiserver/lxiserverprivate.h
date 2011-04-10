@@ -46,7 +46,6 @@ private slots:
   void                          close();
 
 private:
-  const QPointer<SHttpClientEngine> parent;
   const SHttpEngine::RequestMessage message;
   QAbstractSocket             * socket;
   QByteArray                    data;
@@ -125,25 +124,6 @@ private slots:
 private:
   const QPointer<SSandboxClient> parent;
   QProcess              * const process;
-};
-
-class SocketCloseRequest : public QObject
-{
-Q_OBJECT
-public:
-  explicit                      SocketCloseRequest(QObject *, QAbstractSocket *);
-  virtual                       ~SocketCloseRequest();
-
-signals:
-  void                          closed(void);
-
-private slots:
-  void                          bytesWritten(void);
-
-private:
-  static const int              maxTTL = 15000;
-  QAbstractSocket       * const socket;
-  QTimer                        deleteTimer;
 };
 
 #endif

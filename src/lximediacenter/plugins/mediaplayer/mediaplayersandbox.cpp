@@ -127,7 +127,8 @@ void MediaPlayerSandbox::customEvent(QEvent *e)
     else
       SSandboxServer::sendResponse(event->request, event->socket, SSandboxServer::Status_NotFound, this);
 
-    server->closeSocket(event->socket, true);
+    connect(event->socket, SIGNAL(disconnected()), event->socket, SLOT(deleteLater()));
+    event->socket->disconnectFromHost();
   }
   else
     BackendSandbox::customEvent(e);

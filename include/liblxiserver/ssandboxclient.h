@@ -46,7 +46,6 @@ public:
 
 public: // From HttpClientEngine
   virtual void                  openRequest(const RequestMessage &header, QObject *receiver, const char *slot);
-  virtual void                  closeRequest(QAbstractSocket *, bool canReuse = false);
 
 signals:
   /*! This signal is emitted when a line is written to stderr that starts with
@@ -57,7 +56,7 @@ signals:
 
 private slots:
   __internal void               processStarted(const QHostAddress &, quint16);
-  __internal void               openSockets(void);
+  __internal void               openRequest(void);
   __internal void               stop(void);
   __internal void               finished(void);
 
