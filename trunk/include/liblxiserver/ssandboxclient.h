@@ -58,7 +58,7 @@ private slots:
   __internal void               processStarted(const QHostAddress &, quint16);
   __internal void               openRequest(void);
   __internal void               stop(void);
-  __internal void               finished(void);
+  __internal void               finished(QProcess::ExitStatus);
 
 private:
   struct Data;
