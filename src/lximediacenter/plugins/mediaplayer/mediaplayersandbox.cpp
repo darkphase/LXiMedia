@@ -128,6 +128,7 @@ void MediaPlayerSandbox::customEvent(QEvent *e)
       SSandboxServer::sendResponse(event->request, event->socket, SSandboxServer::Status_NotFound, this);
 
     connect(event->socket, SIGNAL(disconnected()), event->socket, SLOT(deleteLater()));
+    QTimer::singleShot(30000, event->socket, SLOT(deleteLater()));
     event->socket->disconnectFromHost();
   }
   else

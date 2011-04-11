@@ -98,7 +98,7 @@ private:
   const quint16                 port;
   QByteArray                    message;
   QTcpSocket                  * socket;
-  QTimer                        deleteTimer;
+  QTimer                        failTimer;
 };
 
 class SandboxProcess : public QObject
@@ -114,7 +114,7 @@ public slots:
 signals:
   void                          ready(const QHostAddress &, quint16);
   void                          stop(void);
-  void                          finished(void);
+  void                          finished(QProcess::ExitStatus);
   void                          consoleLine(const QString &);
 
 private slots:

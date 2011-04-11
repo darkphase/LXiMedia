@@ -117,7 +117,7 @@ void SSandboxClient::openRequest(void)
 
       connect(d->serverProcess, SIGNAL(ready(QHostAddress, quint16)), SLOT(processStarted(QHostAddress, quint16)));
       connect(d->serverProcess, SIGNAL(stop()), SLOT(stop()));
-      connect(d->serverProcess, SIGNAL(finished()), SLOT(finished()));
+      connect(d->serverProcess, SIGNAL(finished(QProcess::ExitStatus)), SLOT(finished(QProcess::ExitStatus)));
       connect(d->serverProcess, SIGNAL(consoleLine(QString)), SIGNAL(consoleLine(QString)));
     }
   }
@@ -131,7 +131,7 @@ void SSandboxClient::stop(void)
   {
     disconnect(d->serverProcess, SIGNAL(ready(QHostAddress, quint16)), this, SLOT(processStarted(QHostAddress, quint16)));
     disconnect(d->serverProcess, SIGNAL(stop()), this, SLOT(stop()));
-    disconnect(d->serverProcess, SIGNAL(finished()), this, SLOT(finished()));
+    disconnect(d->serverProcess, SIGNAL(finished(QProcess::ExitStatus)), this, SLOT(finished(QProcess::ExitStatus)));
     disconnect(d->serverProcess, SIGNAL(consoleLine(QString)), this, SIGNAL(consoleLine(QString)));
 
     QTimer::singleShot(250, d->serverProcess, SLOT(kill()));
@@ -141,11 +141,12 @@ void SSandboxClient::stop(void)
   }
 }
 
-void SSandboxClient::finished(void)
+void SSandboxClient::finished(QProcess::ExitStatus status)
 {
   if (d->serverProcess)
   {
-    qDebug() << "Sandbox process terminated.";
+    if (status == QProcess::CrashExit)
+      qWarning() << "Sandbox process terminated unexpectedly.";
 
     d->serverProcess->deleteLater();
     d->serverProcess = NULL;

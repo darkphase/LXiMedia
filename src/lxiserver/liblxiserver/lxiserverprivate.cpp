@@ -23,22 +23,38 @@
 #include <windows.h>
 #endif
 
+#ifndef QT_NO_DEBUG
+#define TRACE_CONNECTIONS
+#endif
+
 HttpClientRequest::HttpClientRequest(SHttpClientEngine *parent)
   : QObject(parent),
     socket(NULL),
     responded(false)
 {
+#ifdef TRACE_CONNECTIONS
+  qDebug() << this << "HttpClientRequest::HttpClientRequest";
+#endif
+
   connect(&closeTimer, SIGNAL(timeout()), SLOT(close()));
   closeTimer.setSingleShot(true);
 }
 
 HttpClientRequest::~HttpClientRequest()
 {
+#ifdef TRACE_CONNECTIONS
+  qDebug() << this << "HttpClientRequest::~HttpClientRequest";
+#endif
+
   delete socket;
 }
 
 void HttpClientRequest::start(QAbstractSocket *socket)
 {
+#ifdef TRACE_CONNECTIONS
+  qDebug() << this << "HttpClientRequest::start" << socket;
+#endif
+
   if (socket)
   {
     this->socket = socket;
@@ -64,6 +80,10 @@ void HttpClientRequest::readyRead()
       SHttpEngine::ResponseMessage message(data);
       if (message.isValid() && (message.content().size() >= message.contentLength()))
       {
+#ifdef TRACE_CONNECTIONS
+        qDebug() << this << "HttpClientRequest::readyRead emit response";
+#endif
+
         responded = true;
         emit response(message);
 
@@ -78,6 +98,10 @@ void HttpClientRequest::readyRead()
 
 void HttpClientRequest::close()
 {
+#ifdef TRACE_CONNECTIONS
+  qDebug() << this << "HttpClientRequest::readyRead close" << responded;
+#endif
+
   if (!responded)
   {
     responded = true;
@@ -93,6 +117,10 @@ HttpServerRequest::HttpServerRequest(SHttpServerEngine *parent)
     parent(parent),
     socket(NULL)
 {
+#ifdef TRACE_CONNECTIONS
+  qDebug() << this << "HttpServerRequest::HttpServerRequest";
+#endif
+
   connect(this, SIGNAL(handleHttpRequest(SHttpEngine::RequestHeader, QAbstractSocket *)), parent, SLOT(handleHttpRequest(SHttpEngine::RequestHeader, QAbstractSocket *)));
 
   connect(&closeTimer, SIGNAL(timeout()), SLOT(deleteLater()));
@@ -101,15 +129,24 @@ HttpServerRequest::HttpServerRequest(SHttpServerEngine *parent)
 
 HttpServerRequest::~HttpServerRequest()
 {
+#ifdef TRACE_CONNECTIONS
+  qDebug() << this << "HttpServerRequest::~HttpServerRequest" << socket;
+#endif
+
   if (socket)
   {
     connect(socket, SIGNAL(disconnected()), socket, SLOT(deleteLater()));
+    QTimer::singleShot(30000, socket, SLOT(deleteLater()));
     socket->disconnectFromHost();
   }
 }
 
 void HttpServerRequest::start(QAbstractSocket *socket)
 {
+#ifdef TRACE_CONNECTIONS
+  qDebug() << this << "HttpServerRequest::start" << socket;
+#endif
+
   if (socket)
   {
     this->socket = socket;
@@ -127,6 +164,10 @@ void HttpServerRequest::start(QAbstractSocket *socket)
 
 void HttpServerRequest::readyRead()
 {
+#ifdef TRACE_CONNECTIONS
+  qDebug() << this << "HttpServerRequest::readyRead";
+#endif
+
   if (socket)
   while (socket->canReadLine())
   {
@@ -136,6 +177,10 @@ void HttpServerRequest::readyRead()
       SHttpEngine::RequestHeader request(data, parent);
       if (request.isValid())
       {
+#ifdef TRACE_CONNECTIONS
+        qDebug() << this << "HttpServerRequest::readyRead request valid";
+#endif
+
         disconnect(socket, SIGNAL(readyRead()), this, SLOT(readyRead()));
         disconnect(socket, SIGNAL(disconnected()), this, SLOT(deleteLater()));
 
@@ -145,14 +190,14 @@ void HttpServerRequest::readyRead()
       }
       else
       {
+#ifdef TRACE_CONNECTIONS
+        qDebug() << this << "HttpServerRequest::readyRead request invalid";
+#endif
+
         socket->write(SHttpEngine::ResponseHeader(request, SHttpEngine::Status_BadRequest));
-
-        connect(socket, SIGNAL(disconnected()), socket, SLOT(deleteLater()));
-        socket->disconnectFromHost();
-        socket = NULL;
-
-        deleteLater();
       }
+
+      deleteLater();
 
       break;
     }
@@ -166,6 +211,10 @@ HttpSocketRequest::HttpSocketRequest(QObject *parent, const QHostAddress &host, 
     message(message),
     socket(new QTcpSocket(parent))
 {
+#ifdef TRACE_CONNECTIONS
+  qDebug() << this << "HttpSocketRequest::HttpSocketRequest" << host.toString() << port;
+#endif
+
 #ifdef Q_OS_WIN
   // This is needed to ensure the socket isn't kept open by any child
   // processes.
@@ -180,9 +229,9 @@ HttpSocketRequest::HttpSocketRequest(QObject *parent, const QHostAddress &host, 
   socket->connectToHost(host, port);
   socket->setReadBufferSize(65536);
 
-  connect(&deleteTimer, SIGNAL(timeout()), SLOT(deleteLater()));
-  deleteTimer.setSingleShot(true);
-  deleteTimer.start(maxTTL);
+  connect(&failTimer, SIGNAL(timeout()), SLOT(failed()));
+  failTimer.setSingleShot(true);
+  failTimer.start(maxTTL);
 }
 
 HttpSocketRequest::HttpSocketRequest(QObject *parent, const QString &host, quint16 port, const QByteArray &message)
@@ -191,6 +240,10 @@ HttpSocketRequest::HttpSocketRequest(QObject *parent, const QString &host, quint
     message(message),
     socket(new QTcpSocket(parent))
 {
+#ifdef TRACE_CONNECTIONS
+  qDebug() << this << "HttpSocketRequest::HttpSocketRequest" << host << port;
+#endif
+
 #ifdef Q_OS_WIN
   // This is needed to ensure the socket isn't kept open by any child
   // processes.
@@ -204,13 +257,17 @@ HttpSocketRequest::HttpSocketRequest(QObject *parent, const QString &host, quint
 
   QHostInfo::lookupHost(host, this, SLOT(connectToHost(QHostInfo)));
 
-  connect(&deleteTimer, SIGNAL(timeout()), SLOT(deleteLater()));
-  deleteTimer.setSingleShot(true);
-  deleteTimer.start(maxTTL);
+  connect(&failTimer, SIGNAL(timeout()), SLOT(failed()));
+  failTimer.setSingleShot(true);
+  failTimer.start(maxTTL);
 }
 
 HttpSocketRequest::~HttpSocketRequest()
 {
+#ifdef TRACE_CONNECTIONS
+  qDebug() << this << "HttpSocketRequest::~HttpSocketRequest";
+#endif
+
   delete socket;
 }
 
@@ -227,6 +284,10 @@ void HttpSocketRequest::connectToHost(const QHostInfo &hostInfo)
 
 void HttpSocketRequest::connected(void)
 {
+#ifdef TRACE_CONNECTIONS
+  qDebug() << this << "HttpSocketRequest::connected" << socket << message.count();
+#endif
+
   if (socket && !message.isEmpty())
   {
     socket->write(message);
@@ -249,6 +310,10 @@ void HttpSocketRequest::connected(void)
 
 void HttpSocketRequest::bytesWritten(void)
 {
+#ifdef TRACE_CONNECTIONS
+  qDebug() << this << "HttpSocketRequest::bytesWritten" << socket << socket->bytesToWrite();
+#endif
+
   if (socket)
   if (socket->bytesToWrite() == 0)
     connected();
@@ -256,10 +321,17 @@ void HttpSocketRequest::bytesWritten(void)
 
 void HttpSocketRequest::failed(void)
 {
-  qDebug() << "HTTP request failed" << socket->errorString();
+#ifdef TRACE_CONNECTIONS
+  qDebug() << this << "HttpSocketRequest::failed" << socket;
+#endif
 
-  socket->deleteLater();
-  socket = NULL;
+  if (socket)
+  {
+    qWarning() << "HTTP request failed" << socket->errorString();
+
+    socket->deleteLater();
+    socket = NULL;
+  }
 
   QMetaObject::invokeMethod(this, "connected", Qt::QueuedConnection);
 }
@@ -270,6 +342,10 @@ SandboxProcess::SandboxProcess(SSandboxClient *parent, const QString &cmd)
     parent(parent),
     process(new QProcess(parent))
 {
+#ifdef TRACE_CONNECTIONS
+  qDebug() << this << "SandboxProcess::SandboxProcess" << cmd;
+#endif
+
   connect(process, SIGNAL(readyRead()), SLOT(readyRead()));
   connect(process, SIGNAL(finished(int, QProcess::ExitStatus)), SLOT(finished(int, QProcess::ExitStatus)));
 
@@ -279,13 +355,20 @@ SandboxProcess::SandboxProcess(SSandboxClient *parent, const QString &cmd)
 
 SandboxProcess::~SandboxProcess()
 {
+#ifdef TRACE_CONNECTIONS
+  qDebug() << this << "SandboxProcess::~SandboxProcess";
+#endif
+
   if (process->state() != QProcess::NotRunning)
   {
+    disconnect(process, SIGNAL(finished(int, QProcess::ExitStatus)), this, SLOT(finished(int, QProcess::ExitStatus)));
+
+    connect(process, SIGNAL(finished(int, QProcess::ExitStatus)), process, SLOT(deleteLater()));
     process->terminate();
     if (!process->waitForFinished(250))
       process->kill();
 
-    QTimer::singleShot(1000, process, SLOT(deleteLater()));
+    QTimer::singleShot(30000, process, SLOT(deleteLater()));
   }
   else
     delete process;
@@ -293,6 +376,10 @@ SandboxProcess::~SandboxProcess()
 
 void SandboxProcess::kill(void)
 {
+#ifdef TRACE_CONNECTIONS
+  qDebug() << this << "SandboxProcess::kill";
+#endif
+
   process->kill();
 }
 
@@ -322,7 +409,11 @@ void SandboxProcess::readyRead()
   }
 }
 
-void SandboxProcess::finished(int, QProcess::ExitStatus)
+void SandboxProcess::finished(int, QProcess::ExitStatus status)
 {
-  emit finished();
+#ifdef TRACE_CONNECTIONS
+  qDebug() << this << "SandboxProcess::finished" << status;
+#endif
+
+  emit finished(status);
 }

@@ -259,6 +259,7 @@ void SHttpServerEngine::handleHttpRequest(const SHttpEngine::RequestHeader &requ
   if (socket)
   {
     connect(socket, SIGNAL(disconnected()), socket, SLOT(deleteLater()));
+    QTimer::singleShot(30000, socket, SLOT(deleteLater()));
     socket->disconnectFromHost();
   }
 }
