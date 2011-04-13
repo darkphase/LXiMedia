@@ -17,8 +17,8 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXMEDIACENTER_HTTPPROXY_H
-#define LXMEDIACENTER_HTTPPROXY_H
+#ifndef LXMEDIACENTER_HTTPSTREAMPROXY_H
+#define LXMEDIACENTER_HTTPSTREAMPROXY_H
 
 #include <QtCore>
 #include <QtNetwork>
@@ -29,12 +29,12 @@ namespace LXiServer {
 
 /*! This is a generic output node, writing to a QIODevice.
  */
-class LXISERVER_PUBLIC SHttpProxy : public QObject
+class LXISERVER_PUBLIC SHttpStreamProxy : public QThread
 {
 Q_OBJECT
 public:
-  explicit                      SHttpProxy(QObject * = NULL);
-  virtual                       ~SHttpProxy();
+  explicit                      SHttpStreamProxy(void);
+  virtual                       ~SHttpStreamProxy();
 
   bool                          isConnected(void) const;
 
@@ -44,6 +44,9 @@ public slots:
 
 signals:
   void                          disconnected(void);
+
+protected:
+  virtual void                  run(void);
 
 private:
   __internal void               disconnectAllSockets(void);

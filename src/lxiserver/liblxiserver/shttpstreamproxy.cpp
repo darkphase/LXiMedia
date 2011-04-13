@@ -17,18 +17,22 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "shttpproxy.h"
+#include "shttpstreamproxy.h"
 #include "shttpengine.h"
 
 namespace LXiServer {
 
-struct SHttpProxy::Data
+struct SHttpStreamProxy::Data
 {
   struct Socket
   {
     QAbstractSocket           * socket;
     bool                        sendCache;
   };
+
+  inline                        Data(void) : mutex(QMutex::Recursive) { }
+
+  QMutex                        mutex;
 
   QAbstractSocket             * source;
   bool                          sourceFinished;
@@ -39,26 +43,28 @@ struct SHttpProxy::Data
   QByteArray                    cache;
 };
 
-const int SHttpProxy::outBufferSize = 2097152;
+const int           SHttpStreamProxy::outBufferSize = 4194304;
 
-SHttpProxy::SHttpProxy(QObject *parent)
-  : QObject(parent),
+SHttpStreamProxy::SHttpStreamProxy(void)
+  : QThread(),
     d(new Data())
 {
   d->sourceFinished = false;
   d->caching = true;
 }
 
-SHttpProxy::~SHttpProxy()
+SHttpStreamProxy::~SHttpStreamProxy()
 {
-  disconnect();
+  disconnectAllSockets();
 
   delete d;
   *const_cast<Data **>(&d) = NULL;
 }
 
-bool SHttpProxy::isConnected(void) const
+bool SHttpStreamProxy::isConnected(void) const
 {
+  QMutexLocker l(&d->mutex);
+
   if (d->sourceFinished || (d->source->state() != QAbstractSocket::ConnectedState))
   {
     d->sourceFinished = true;
@@ -75,26 +81,36 @@ bool SHttpProxy::isConnected(void) const
   return false;
 }
 
-bool SHttpProxy::setSource(QAbstractSocket *source)
+bool SHttpStreamProxy::setSource(QAbstractSocket *source)
 {
-  d->source = source;
+  if (!isRunning())
+  {
+    d->source = source;
 
-  connect(d->source, SIGNAL(readyRead()), SLOT(processData()));
-  connect(d->source, SIGNAL(disconnected()), SLOT(flushData()));
+    source->setParent(NULL);
+    source->moveToThread(this);
 
-  connect(&d->socketTimer, SIGNAL(timeout()), SLOT(processData()));
-  d->socketTimer.start(250);
+    moveToThread(this);
+    start();
 
-  return true;
+    return true;
+  }
+
+  return false;
 }
 
-bool SHttpProxy::addSocket(QAbstractSocket *socket)
+bool SHttpStreamProxy::addSocket(QAbstractSocket *socket)
 {
+  QMutexLocker l(&d->mutex);
+
   if (d->caching || d->sockets.isEmpty())
   {
     Data::Socket s;
     s.socket = socket;
     s.sendCache = true;
+
+    s.socket->setParent(NULL);
+    s.socket->moveToThread(this);
 
     d->sockets += s;
     connect(s.socket, SIGNAL(bytesWritten(qint64)), SLOT(processData()));
@@ -105,22 +121,37 @@ bool SHttpProxy::addSocket(QAbstractSocket *socket)
   return false;
 }
 
-void SHttpProxy::disconnectAllSockets(void)
+void SHttpStreamProxy::run(void)
 {
-  disconnect(d->source, SIGNAL(readyRead()), this, SLOT(processData()));
-  disconnect(d->source, SIGNAL(disconnected()), this, SLOT(flushData()));
+  connect(d->source, SIGNAL(readyRead()), SLOT(processData()));
+  connect(d->source, SIGNAL(disconnected()), SLOT(flushData()));
 
-  if (d->source->state() != QAbstractSocket::UnconnectedState)
+  connect(&d->socketTimer, SIGNAL(timeout()), SLOT(processData()));
+  d->socketTimer.start(250);
+
+  exec();
+}
+
+void SHttpStreamProxy::disconnectAllSockets(void)
+{
+  QMutexLocker l(&d->mutex);
+
+  if (d->source)
   {
-    connect(d->source, SIGNAL(disconnected()), d->source, SLOT(deleteLater()));
-    QTimer::singleShot(30000, d->source, SLOT(deleteLater()));
-    d->source->disconnectFromHost();
+    disconnect(d->source, SIGNAL(readyRead()), this, SLOT(processData()));
+    disconnect(d->source, SIGNAL(disconnected()), this, SLOT(flushData()));
+
+    if (d->source->state() != QAbstractSocket::UnconnectedState)
+    {
+      connect(d->source, SIGNAL(disconnected()), d->source, SLOT(deleteLater()));
+      QTimer::singleShot(30000, d->source, SLOT(deleteLater()));
+      d->source->disconnectFromHost();
+    }
+    else
+      d->source->deleteLater();
+
+    d->source = NULL;
   }
-  else
-    d->source->deleteLater();
-
-  d->source = NULL;
-
 
   for (QVector<Data::Socket>::Iterator s=d->sockets.begin(); s!=d->sockets.end(); s=d->sockets.erase(s))
   if (s->socket->state() != QAbstractSocket::UnconnectedState)
@@ -133,16 +164,22 @@ void SHttpProxy::disconnectAllSockets(void)
   else
     s->socket->deleteLater();
 
-
   if (!d->sourceFinished)
   {
     emit disconnected();
     d->sourceFinished = true;
   }
+
+  if (isRunning())
+    exit();
 }
 
-void SHttpProxy::processData(void)
+void SHttpStreamProxy::processData(void)
 {
+  Q_ASSERT(QThread::currentThread() == this);
+
+  QMutexLocker l(&d->mutex);
+
   if (d->source && !d->sourceFinished)
   {
     while (d->source->bytesAvailable() > 0)
@@ -164,7 +201,7 @@ void SHttpProxy::processData(void)
           s->sendCache = false;
         }
 
-        if ((d->cache.size() + buffer.size()) < (outBufferSize * 4))
+        if ((d->cache.size() + buffer.size()) < (outBufferSize * 2))
         {
           d->cache.append(buffer);
         }
@@ -202,8 +239,12 @@ void SHttpProxy::processData(void)
   }
 }
 
-void SHttpProxy::flushData(void)
+void SHttpStreamProxy::flushData(void)
 {
+  Q_ASSERT(QThread::currentThread() == this);
+
+  QMutexLocker l(&d->mutex);
+
   if (d->source && !d->sourceFinished)
   {
     while (d->source->bytesAvailable() > 0)

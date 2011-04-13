@@ -25,8 +25,8 @@ HEADERS += ../../../include/LXiServer \
  ../../../include/liblxiserver/export.h \
  ../../../include/liblxiserver/shttpclient.h \
  ../../../include/liblxiserver/shttpengine.h \
- ../../../include/liblxiserver/shttpproxy.h \
  ../../../include/liblxiserver/shttpserver.h \
+ ../../../include/liblxiserver/shttpstreamproxy.h \
  ../../../include/liblxiserver/ssandboxclient.h \
  ../../../include/liblxiserver/ssandboxserver.h \
  ../../../include/liblxiserver/sssdpclient.h \
@@ -40,8 +40,8 @@ HEADERS += ../../../include/LXiServer \
 SOURCES += shttpclient.cpp \
  shttpengine.cpp \
  shttpengine.header.cpp \
- shttpproxy.cpp \
  shttpserver.cpp \
+ shttpstreamproxy.cpp \
  ssandboxclient.cpp \
  ssandboxserver.cpp \
  sssdpclient.cpp \
