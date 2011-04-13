@@ -29,7 +29,7 @@ namespace LXiStream {
 class STimer;
 
 class LXISTREAM_PUBLIC SGraph : public QThread,
-                            public SScheduler
+                                public SScheduler
 {
 Q_OBJECT
 public:

@@ -47,7 +47,7 @@ public:
   public:
     MediaServer         * const parent;
     const QString               url;
-    SHttpProxy                  proxy;
+    SHttpStreamProxy            proxy;
   };
 
   struct ThumbnailListItem
