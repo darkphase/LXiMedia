@@ -76,9 +76,9 @@ public:
 
   private:
     const int                   capacity;
-    int                         size;
-    char                * const unaligned;
     char                * const data;
+    const bool                  owner;
+    int                         size;
   };
 
   typedef QSharedDataPointer<Memory> MemoryPtr;
@@ -111,6 +111,8 @@ public:
   void                          squeeze(void);
 
   inline const MemoryPtr      & memory(void) const                              { return d; } //!< Return s a pointer to the Memory object used by this buffer.
+
+  static void                   enablePool(bool);
 
 public: // Alignment methods
   /*! This constant specifies the minimum value by which data should be aligned
@@ -148,6 +150,9 @@ public: // Alignment methods
       SIMD (e.g. SSE) reading simpler.
    */
   static const int              numPaddingBytes;
+
+private:
+  __internal static char      * pool(int capacity, char *);
 
 private:
   __internal static QAtomicInt  uidCounter;
