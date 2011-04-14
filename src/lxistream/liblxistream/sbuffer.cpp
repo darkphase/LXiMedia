@@ -99,6 +99,92 @@ void SBuffer::squeeze(void)
     d = new Memory(d->data, d->size);
 }
 
+void SBuffer::enablePool(bool enabled)
+{
+  pool(enabled ? -1 : -2, NULL);
+}
+
+char * SBuffer::pool(int capacity, char *release)
+{
+  static volatile int enabled = 0;
+  static QMutex mutex(QMutex::Recursive);
+  static QMultiMap<int, char *> pool;
+
+  struct T
+  {
+    static char * alloc(int size)
+    {
+      char * const buffer = new char[sizeof(char *) + size + optimalAlignVal + numPaddingBytes];
+      char * const aligned = align(buffer + sizeof(char *));
+      reinterpret_cast<char **>(aligned)[-1] = buffer;
+
+      return aligned;
+    }
+
+    static void free(char *aligned)
+    {
+      delete [] reinterpret_cast<char **>(aligned)[-1];
+    }
+  };
+
+  QMutexLocker l(&mutex);
+
+  if (capacity == -1)
+  {
+    enabled++;
+  }
+  else if (capacity == -2)
+  {
+    if (enabled > 0)
+    if (--enabled == 0)
+    {
+      foreach (char *aligned, pool)
+        T::free(aligned);
+
+      pool.clear();
+    }
+  }
+  else if (capacity > 0)
+  {
+    if (enabled)
+    {
+      if (release)
+      {
+        //qDebug() << "pool release" << capacity;
+
+        pool.insert(capacity, release);
+      }
+      else
+      {
+        QMultiMap<int, char *>::Iterator i = pool.lowerBound(capacity);
+        if ((i != pool.end()) && (i.key() < (capacity * 2)))
+        {
+          //qDebug() << "pool reuse" << capacity << i.key();
+
+          char * const aligned = *i;
+          pool.erase(i);
+          return aligned;
+        }
+        else
+        {
+          //qDebug() << "pool alloc" << capacity;
+
+          return T::alloc(capacity);
+        }
+      }
+    }
+    else
+    {
+      if (release)
+        T::free(release);
+      else
+        return T::alloc(capacity);
+    }
+  }
+
+  return NULL;
+}
+
 
 /*! Creates an Memory instance for the specified block of memory. The memory is
     not released when this class is destructed, reimplement the destructor to
@@ -113,9 +199,9 @@ SBuffer::Memory::Memory(int capacity, char *data, int size)
   : QSharedData(),
     uid((data != NULL) ? uidCounter.fetchAndAddRelaxed(1) : 0),
     capacity(capacity),
-    size(size),
-    unaligned(NULL),
-    data(data)
+    data(data),
+    owner(false),
+    size(size)
 {
 }
 
@@ -123,9 +209,9 @@ SBuffer::Memory::Memory(const Memory &c)
   : QSharedData(c),
     uid(uidCounter.fetchAndAddRelaxed(1)),
     capacity(align(c.size)),
-    size(c.size),
-    unaligned(new char[this->capacity + optimalAlignVal + numPaddingBytes]),
-    data(align(unaligned))
+    data(pool(capacity, NULL)),
+    owner(true),
+    size(c.size)
 {
   memcpy(data, c.data, size);
   memset(data + size, 0, numPaddingBytes);
@@ -133,16 +219,17 @@ SBuffer::Memory::Memory(const Memory &c)
 
 SBuffer::Memory::~Memory()
 {
-  delete [] unaligned;
+  if (owner && data)
+    pool(capacity, data);
 }
 
 SBuffer::Memory::Memory(void)
   : QSharedData(),
     uid(0),
     capacity(0),
-    size(0),
-    unaligned(NULL),
-    data(NULL)
+    data(NULL),
+    owner(false),
+    size(0)
 {
 }
 
@@ -150,9 +237,9 @@ SBuffer::Memory::Memory(int capacity)
   : QSharedData(),
     uid(uidCounter.fetchAndAddRelaxed(1)),
     capacity(align(capacity)),
-    size(0),
-    unaligned(new char[this->capacity + optimalAlignVal + numPaddingBytes]),
-    data(align(unaligned))
+    data(pool(capacity, NULL)),
+    owner(true),
+    size(0)
 {
   memset(data, 0, numPaddingBytes);
 }
@@ -161,9 +248,9 @@ SBuffer::Memory::Memory(const char *data, int size)
   : QSharedData(),
     uid(uidCounter.fetchAndAddRelaxed(1)),
     capacity(align(size)),
-    size(size),
-    unaligned(new char[this->capacity + optimalAlignVal + numPaddingBytes]),
-    data(align(unaligned))
+    data(pool(capacity, NULL)),
+    owner(true),
+    size(size)
 {
   memcpy(this->data, data, size);
   memset(this->data + size, 0, numPaddingBytes);
@@ -173,9 +260,9 @@ SBuffer::Memory::Memory(const QByteArray &data)
   : QSharedData(),
     uid(uidCounter.fetchAndAddRelaxed(1)),
     capacity(align(data.size())),
-    size(data.size()),
-    unaligned(new char[this->capacity + optimalAlignVal + numPaddingBytes]),
-    data(align(unaligned))
+    data(pool(capacity, NULL)),
+    owner(true),
+    size(data.size())
 {
   memcpy(this->data, data.data(), data.size());
   memset(this->data + data.size(), 0, numPaddingBytes);
