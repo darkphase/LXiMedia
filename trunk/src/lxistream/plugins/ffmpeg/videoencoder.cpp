@@ -77,28 +77,17 @@ bool VideoEncoder::openCodec(const SVideoCodec &c, Flags flags)
   contextHandle->time_base.num = outCodec.frameRate().num();
   contextHandle->time_base.den = outCodec.frameRate().den();
 
+  contextHandle->mb_qmin = contextHandle->qmin = 1;
+  contextHandle->mb_qmax = contextHandle->qmax = 127;
+  contextHandle->max_qdiff = 32;
+
   const int baseRate = ((int(sqrt(contextHandle->width * contextHandle->height)) + 249) / 250) * 250;
   if (flags & Flag_LowQuality)
-  {
-    contextHandle->bit_rate = baseRate * 4000;
-    contextHandle->mb_qmin = contextHandle->qmin = 8;
-    contextHandle->mb_qmax = contextHandle->qmax = 63;
-    contextHandle->max_qdiff = 12;
-  }
+    contextHandle->bit_rate = baseRate * ((flags & Flag_Fast) ?  4000 :  3000);
   else if (flags & Flag_HighQuality)
-  {
-    contextHandle->bit_rate = baseRate * 16000;
-    contextHandle->mb_qmin = contextHandle->qmin = 1;
-    contextHandle->mb_qmax = contextHandle->qmax = 31;
-    contextHandle->max_qdiff = 3;
-  }
+    contextHandle->bit_rate = baseRate * ((flags & Flag_Fast) ? 16000 : 12000);
   else // Normal quality
-  {
-    contextHandle->bit_rate = baseRate * 8000;
-    contextHandle->mb_qmin = contextHandle->qmin = 4;
-    contextHandle->mb_qmax = contextHandle->qmax = 63;
-    contextHandle->max_qdiff = 6;
-  }
+    contextHandle->bit_rate = baseRate * ((flags & Flag_Fast) ?  8000 :  6000);
 
   // Fix for MPEG2 1080p quality
   if ((contextHandle->height > 720) && ((outCodec == "MPEG2") || (outCodec == "MPEG1")))
