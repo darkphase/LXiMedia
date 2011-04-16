@@ -68,6 +68,7 @@ signals:
 
 private slots:
   void                          readyRead();
+  void                          close();
 
 private:
   const QPointer<SHttpServerEngine> parent;

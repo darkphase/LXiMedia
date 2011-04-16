@@ -31,7 +31,7 @@
 
 #include "common/module.h"
 
-class LXiStreamInit : public LXiCore::SApplication::Initializer
+class LXiStreamInit : public SApplication::Initializer
 {
 public:
   virtual void                  startup(void);

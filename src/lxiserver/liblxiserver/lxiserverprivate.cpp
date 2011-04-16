@@ -19,19 +19,49 @@
 
 #include "lxiserverprivate.h"
 #include <LXiCore>
-#if defined(Q_OS_WIN)
-#include <windows.h>
-#endif
 
 #ifndef QT_NO_DEBUG
-#define TRACE_CONNECTIONS
+//#define TRACE_CONNECTIONS
 #endif
+
+class LXiServerInit : public SApplication::Initializer
+{
+public:
+  virtual void                  startup(void);
+  virtual void                  shutdown(void);
+
+private:
+  static LXiServerInit          self;
+};
+
+LXiServerInit LXiServerInit::self;
+
+void LXiServerInit::startup(void)
+{
+  static bool firsttime = true;
+  if (firsttime)
+  {
+    firsttime = false;
+
+    // Register metatypes.
+    qRegisterMetaType<QAbstractSocket::SocketError>("QAbstractSocket::SocketError");
+    qRegisterMetaType<QProcess::ExitStatus>("QProcess::ExitStatus");
+  }
+
+  sApp->addModuleFilter("lxiserver");
+}
+
+void LXiServerInit::shutdown(void)
+{
+}
 
 HttpClientRequest::HttpClientRequest(SHttpClientEngine *parent)
   : QObject(parent),
     socket(NULL),
     responded(false)
 {
+  Q_ASSERT(QThread::currentThread() == thread());
+
 #ifdef TRACE_CONNECTIONS
   qDebug() << this << "HttpClientRequest::HttpClientRequest";
 #endif
@@ -42,6 +72,8 @@ HttpClientRequest::HttpClientRequest(SHttpClientEngine *parent)
 
 HttpClientRequest::~HttpClientRequest()
 {
+  Q_ASSERT(QThread::currentThread() == thread());
+
 #ifdef TRACE_CONNECTIONS
   qDebug() << this << "HttpClientRequest::~HttpClientRequest";
 #endif
@@ -51,6 +83,8 @@ HttpClientRequest::~HttpClientRequest()
 
 void HttpClientRequest::start(QAbstractSocket *socket)
 {
+  Q_ASSERT(QThread::currentThread() == thread());
+
 #ifdef TRACE_CONNECTIONS
   qDebug() << this << "HttpClientRequest::start" << socket;
 #endif
@@ -59,8 +93,8 @@ void HttpClientRequest::start(QAbstractSocket *socket)
   {
     this->socket = socket;
 
-    connect(socket, SIGNAL(readyRead()), SLOT(readyRead()));
-    connect(socket, SIGNAL(disconnected()), SLOT(close()));
+    connect(socket, SIGNAL(readyRead()), SLOT(readyRead()), Qt::QueuedConnection);
+    connect(socket, SIGNAL(disconnected()), SLOT(close()), Qt::QueuedConnection);
 
     closeTimer.start(SHttpEngine::maxTTL);
   }
@@ -70,6 +104,8 @@ void HttpClientRequest::start(QAbstractSocket *socket)
 
 void HttpClientRequest::readyRead()
 {
+  Q_ASSERT(QThread::currentThread() == thread());
+
   if (!responded)
   {
     while (socket->bytesAvailable())
@@ -98,8 +134,10 @@ void HttpClientRequest::readyRead()
 
 void HttpClientRequest::close()
 {
+  Q_ASSERT(QThread::currentThread() == thread());
+
 #ifdef TRACE_CONNECTIONS
-  qDebug() << this << "HttpClientRequest::readyRead close" << responded;
+  qDebug() << this << "HttpClientRequest::close" << responded;
 #endif
 
   if (!responded)
@@ -117,6 +155,8 @@ HttpServerRequest::HttpServerRequest(SHttpServerEngine *parent)
     parent(parent),
     socket(NULL)
 {
+  Q_ASSERT(QThread::currentThread() == thread());
+
 #ifdef TRACE_CONNECTIONS
   qDebug() << this << "HttpServerRequest::HttpServerRequest";
 #endif
@@ -129,6 +169,8 @@ HttpServerRequest::HttpServerRequest(SHttpServerEngine *parent)
 
 HttpServerRequest::~HttpServerRequest()
 {
+  Q_ASSERT(QThread::currentThread() == thread());
+
 #ifdef TRACE_CONNECTIONS
   qDebug() << this << "HttpServerRequest::~HttpServerRequest" << socket;
 #endif
@@ -143,6 +185,8 @@ HttpServerRequest::~HttpServerRequest()
 
 void HttpServerRequest::start(QAbstractSocket *socket)
 {
+  Q_ASSERT(QThread::currentThread() == thread());
+
 #ifdef TRACE_CONNECTIONS
   qDebug() << this << "HttpServerRequest::start" << socket;
 #endif
@@ -151,12 +195,10 @@ void HttpServerRequest::start(QAbstractSocket *socket)
   {
     this->socket = socket;
 
-    connect(socket, SIGNAL(readyRead()), SLOT(readyRead()));
-    connect(socket, SIGNAL(disconnected()), SLOT(deleteLater()));
+    connect(socket, SIGNAL(readyRead()), SLOT(readyRead()), Qt::QueuedConnection);
+    connect(socket, SIGNAL(disconnected()), SLOT(close()), Qt::QueuedConnection);
 
     closeTimer.start(SHttpEngine::maxTTL);
-
-    readyRead();
   }
   else
     deleteLater();
@@ -164,6 +206,8 @@ void HttpServerRequest::start(QAbstractSocket *socket)
 
 void HttpServerRequest::readyRead()
 {
+  Q_ASSERT(QThread::currentThread() == thread());
+
 #ifdef TRACE_CONNECTIONS
   qDebug() << this << "HttpServerRequest::readyRead";
 #endif
@@ -182,7 +226,7 @@ void HttpServerRequest::readyRead()
 #endif
 
         disconnect(socket, SIGNAL(readyRead()), this, SLOT(readyRead()));
-        disconnect(socket, SIGNAL(disconnected()), this, SLOT(deleteLater()));
+        disconnect(socket, SIGNAL(disconnected()), this, SLOT(close()));
 
         emit handleHttpRequest(request, socket);
 
@@ -204,6 +248,17 @@ void HttpServerRequest::readyRead()
   }
 }
 
+void HttpServerRequest::close()
+{
+  Q_ASSERT(QThread::currentThread() == thread());
+
+#ifdef TRACE_CONNECTIONS
+  qDebug() << this << "HttpServerRequest::close";
+#endif
+
+  deleteLater();
+}
+
 
 HttpSocketRequest::HttpSocketRequest(QObject *parent, QAbstractSocket *socket, const QHostAddress &host, quint16 port, const QByteArray &message)
   : QObject(parent),
@@ -211,23 +266,17 @@ HttpSocketRequest::HttpSocketRequest(QObject *parent, QAbstractSocket *socket, c
     message(message),
     socket(socket)
 {
+  Q_ASSERT(QThread::currentThread() == thread());
+
 #ifdef TRACE_CONNECTIONS
   qDebug() << this << "HttpSocketRequest::HttpSocketRequest" << host.toString() << port;
 #endif
 
-#ifdef Q_OS_WIN
-  // This is needed to ensure the socket isn't kept open by any child
-  // processes.
-  HANDLE handle = (HANDLE)socket->socketDescriptor();
-  ::SetHandleInformation(handle, HANDLE_FLAG_INHERIT, 0);
-#endif
-
   connect(socket, SIGNAL(connected()), SLOT(connected()), Qt::QueuedConnection);
   connect(socket, SIGNAL(bytesWritten(qint64)), SLOT(bytesWritten()), Qt::QueuedConnection);
-  connect(socket, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(failed()), Qt::DirectConnection);
+  connect(socket, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(failed()), Qt::QueuedConnection);
 
   socket->connectToHost(host, port);
-  socket->setReadBufferSize(65536);
 
   connect(&failTimer, SIGNAL(timeout()), SLOT(failed()));
   failTimer.setSingleShot(true);
@@ -240,20 +289,15 @@ HttpSocketRequest::HttpSocketRequest(QObject *parent, QAbstractSocket *socket, c
     message(message),
     socket(socket)
 {
+  Q_ASSERT(QThread::currentThread() == thread());
+
 #ifdef TRACE_CONNECTIONS
   qDebug() << this << "HttpSocketRequest::HttpSocketRequest" << host << port;
 #endif
 
-#ifdef Q_OS_WIN
-  // This is needed to ensure the socket isn't kept open by any child
-  // processes.
-  HANDLE handle = (HANDLE)socket->socketDescriptor();
-  ::SetHandleInformation(handle, HANDLE_FLAG_INHERIT, 0);
-#endif
-
   connect(socket, SIGNAL(connected()), SLOT(connected()), Qt::QueuedConnection);
   connect(socket, SIGNAL(bytesWritten(qint64)), SLOT(bytesWritten()), Qt::QueuedConnection);
-  connect(socket, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(failed()), Qt::DirectConnection);
+  connect(socket, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(failed()), Qt::QueuedConnection);
 
   QHostInfo::lookupHost(host, this, SLOT(connectToHost(QHostInfo)));
 
@@ -264,6 +308,8 @@ HttpSocketRequest::HttpSocketRequest(QObject *parent, QAbstractSocket *socket, c
 
 HttpSocketRequest::~HttpSocketRequest()
 {
+  Q_ASSERT(QThread::currentThread() == thread());
+
 #ifdef TRACE_CONNECTIONS
   qDebug() << this << "HttpSocketRequest::~HttpSocketRequest";
 #endif
@@ -273,23 +319,29 @@ HttpSocketRequest::~HttpSocketRequest()
 
 void HttpSocketRequest::connectToHost(const QHostInfo &hostInfo)
 {
+  Q_ASSERT(QThread::currentThread() == thread());
+
+#ifdef TRACE_CONNECTIONS
+  qDebug() << this << "HttpSocketRequest::connectToHost";
+#endif
+
   if (!hostInfo.addresses().isEmpty())
-  {
     socket->connectToHost(hostInfo.addresses().first(), port);
-    socket->setReadBufferSize(65536);
-  }
   else
     deleteLater();
 }
 
 void HttpSocketRequest::connected(void)
 {
+  Q_ASSERT(QThread::currentThread() == thread());
+
 #ifdef TRACE_CONNECTIONS
   qDebug() << this << "HttpSocketRequest::connected" << socket << message.count();
 #endif
 
   if (socket && !message.isEmpty())
   {
+    socket->setReadBufferSize(65536);
     socket->write(message);
     message.clear();
   }
@@ -310,6 +362,8 @@ void HttpSocketRequest::connected(void)
 
 void HttpSocketRequest::bytesWritten(void)
 {
+  Q_ASSERT(QThread::currentThread() == thread());
+
 #ifdef TRACE_CONNECTIONS
   qDebug() << this << "HttpSocketRequest::bytesWritten" << socket << socket->bytesToWrite();
 #endif
@@ -321,6 +375,8 @@ void HttpSocketRequest::bytesWritten(void)
 
 void HttpSocketRequest::failed(void)
 {
+  Q_ASSERT(QThread::currentThread() == thread());
+
 #ifdef TRACE_CONNECTIONS
   qDebug() << this << "HttpSocketRequest::failed" << socket;
 #endif
@@ -342,12 +398,14 @@ SandboxProcess::SandboxProcess(SSandboxClient *parent, const QString &cmd)
     parent(parent),
     process(new QProcess(parent))
 {
+  Q_ASSERT(QThread::currentThread() == thread());
+
 #ifdef TRACE_CONNECTIONS
   qDebug() << this << "SandboxProcess::SandboxProcess" << cmd;
 #endif
 
-  connect(process, SIGNAL(readyRead()), SLOT(readyRead()));
-  connect(process, SIGNAL(finished(int, QProcess::ExitStatus)), SLOT(finished(int, QProcess::ExitStatus)));
+  connect(process, SIGNAL(readyRead()), SLOT(readyRead()), Qt::QueuedConnection);
+  connect(process, SIGNAL(finished(int, QProcess::ExitStatus)), SLOT(finished(int, QProcess::ExitStatus)), Qt::QueuedConnection);
 
   process->setReadChannel(QProcess::StandardError);
   process->start(cmd);
@@ -355,6 +413,8 @@ SandboxProcess::SandboxProcess(SSandboxClient *parent, const QString &cmd)
 
 SandboxProcess::~SandboxProcess()
 {
+  Q_ASSERT(QThread::currentThread() == thread());
+
 #ifdef TRACE_CONNECTIONS
   qDebug() << this << "SandboxProcess::~SandboxProcess";
 #endif
@@ -366,9 +426,13 @@ SandboxProcess::~SandboxProcess()
     connect(process, SIGNAL(finished(int, QProcess::ExitStatus)), process, SLOT(deleteLater()));
     process->terminate();
     if (!process->waitForFinished(250))
+    {
       process->kill();
-
-    QTimer::singleShot(30000, process, SLOT(deleteLater()));
+      if (!process->waitForFinished(250))
+        QTimer::singleShot(30000, process, SLOT(deleteLater()));
+      else
+        process->deleteLater();
+    }
   }
   else
     delete process;
@@ -376,6 +440,8 @@ SandboxProcess::~SandboxProcess()
 
 void SandboxProcess::kill(void)
 {
+  Q_ASSERT(QThread::currentThread() == thread());
+
 #ifdef TRACE_CONNECTIONS
   qDebug() << this << "SandboxProcess::kill";
 #endif
@@ -385,6 +451,8 @@ void SandboxProcess::kill(void)
 
 void SandboxProcess::readyRead()
 {
+  Q_ASSERT(QThread::currentThread() == thread());
+
   while (process->canReadLine())
   {
     const QByteArray line = process->readLine();
@@ -411,6 +479,8 @@ void SandboxProcess::readyRead()
 
 void SandboxProcess::finished(int, QProcess::ExitStatus status)
 {
+  Q_ASSERT(QThread::currentThread() == thread());
+
 #ifdef TRACE_CONNECTIONS
   qDebug() << this << "SandboxProcess::finished" << status;
 #endif

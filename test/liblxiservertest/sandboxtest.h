@@ -35,7 +35,6 @@ private slots:
   void                          cleanupTestCase(void);
 
   void                          sendRequests(void);
-  void                          sendTerminate(void);
 
   void                          handleResponse(const SHttpEngine::ResponseMessage &);
 

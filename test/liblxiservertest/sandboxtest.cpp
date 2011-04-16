@@ -21,11 +21,7 @@
 #include <QtTest>
 #include <LXiServer>
 
-#ifdef Q_OS_WIN
-const int SandboxTest::numResponses = 0;
-#else
-const int SandboxTest::numResponses = 100;
-#endif
+const int SandboxTest::numResponses = 50;
 
 int SandboxTest::startSandbox(const QString &mode)
 {
@@ -42,11 +38,6 @@ int SandboxTest::startSandbox(const QString &mode)
         if (url.hasQueryItem("nop"))
         {
           return SSandboxServer::sendResponse(request, socket, SHttpServer::Status_Ok);
-        }
-        else if (url.hasQueryItem("stop"))
-        {
-          qApp->exit(0);
-          return SSandboxServer::SocketOp_LeaveOpen;
         }
       }
 
@@ -94,35 +85,10 @@ void SandboxTest::sendRequests(void)
   for (int i=0; i<numResponses; i++)
     sandboxClient->sendRequest(nopRequest);
 
-  for (int i=0; (i<20) && (responseCount<numResponses); i++)
+  for (int i=0; (i<100) && (responseCount<numResponses); i++)
     QTest::qWait(100);
 
   QCOMPARE(responseCount, numResponses);
-}
-
-void SandboxTest::sendTerminate(void)
-{
-  if (numResponses > 0)
-  {
-    responseCount = 0;
-
-    SSandboxClient::RequestMessage nopRequest(sandboxClient);
-    nopRequest.setRequest("GET", "/?nop");
-    sandboxClient->sendRequest(nopRequest);
-
-    SSandboxClient::RequestMessage stopRequest(sandboxClient);
-    stopRequest.setRequest("GET", "/?stop");
-    sandboxClient->sendRequest(stopRequest);
-
-    QTest::qWait(100);
-
-    sandboxClient->sendRequest(nopRequest);
-
-    for (int i=0; (i<20) && (responseCount<2); i++)
-      QTest::qWait(100);
-
-    QCOMPARE(responseCount, 2);
-  }
 }
 
 void SandboxTest::handleResponse(const SHttpEngine::ResponseMessage &response)

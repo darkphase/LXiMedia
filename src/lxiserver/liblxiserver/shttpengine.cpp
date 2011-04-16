@@ -20,9 +20,10 @@
 #include "shttpengine.h"
 #include "lxiserverprivate.h"
 #include <QtNetwork>
-
 #if defined(Q_OS_UNIX)
 #include <sys/utsname.h>
+#elif defined(Q_OS_WIN)
+#include <windows.h>
 #endif
 
 namespace LXiServer {
@@ -354,7 +355,16 @@ QAbstractSocket * SHttpClientEngine::createSocket(void)
 {
   d->openSockets++;
 
-  return new Data::Socket(this);
+  QAbstractSocket * const socket = new Data::Socket(this);
+
+#ifdef Q_OS_WIN
+  // This is needed to ensure the socket isn't kept open by any child
+  // processes.
+  HANDLE handle = (HANDLE)socket->socketDescriptor();
+  ::SetHandleInformation(handle, HANDLE_FLAG_INHERIT, 0);
+#endif
+
+  return socket;
 }
 
 void SHttpClientEngine::socketDestroyed(void)
