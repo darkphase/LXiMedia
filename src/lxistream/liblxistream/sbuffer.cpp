@@ -99,92 +99,6 @@ void SBuffer::squeeze(void)
     d = new Memory(d->data, d->size);
 }
 
-void SBuffer::enablePool(bool enabled)
-{
-  pool(enabled ? -1 : -2, NULL);
-}
-
-char * SBuffer::pool(int capacity, char *release)
-{
-  static volatile int enabled = 0;
-  static QMutex mutex(QMutex::Recursive);
-  static QMultiMap<int, char *> pool;
-
-  struct T
-  {
-    static char * alloc(int size)
-    {
-      char * const buffer = new char[sizeof(char *) + size + optimalAlignVal + numPaddingBytes];
-      char * const aligned = align(buffer + sizeof(char *));
-      reinterpret_cast<char **>(aligned)[-1] = buffer;
-
-      return aligned;
-    }
-
-    static void free(char *aligned)
-    {
-      delete [] reinterpret_cast<char **>(aligned)[-1];
-    }
-  };
-
-  QMutexLocker l(&mutex);
-
-  if (capacity == -1)
-  {
-    enabled++;
-  }
-  else if (capacity == -2)
-  {
-    if (enabled > 0)
-    if (--enabled == 0)
-    {
-      foreach (char *aligned, pool)
-        T::free(aligned);
-
-      pool.clear();
-    }
-  }
-  else if (capacity > 0)
-  {
-    if (enabled)
-    {
-      if (release)
-      {
-        //qDebug() << "pool release" << capacity;
-
-        pool.insert(capacity, release);
-      }
-      else
-      {
-        QMultiMap<int, char *>::Iterator i = pool.lowerBound(capacity);
-        if ((i != pool.end()) && (i.key() < (capacity * 2)))
-        {
-          //qDebug() << "pool reuse" << capacity << i.key();
-
-          char * const aligned = *i;
-          pool.erase(i);
-          return aligned;
-        }
-        else
-        {
-          //qDebug() << "pool alloc" << capacity;
-
-          return T::alloc(capacity);
-        }
-      }
-    }
-    else
-    {
-      if (release)
-        T::free(release);
-      else
-        return T::alloc(capacity);
-    }
-  }
-
-  return NULL;
-}
-
 
 /*! Creates an Memory instance for the specified block of memory. The memory is
     not released when this class is destructed, reimplement the destructor to
@@ -208,8 +122,8 @@ SBuffer::Memory::Memory(int capacity, char *data, int size)
 SBuffer::Memory::Memory(const Memory &c)
   : QSharedData(c),
     uid(uidCounter.fetchAndAddRelaxed(1)),
-    capacity(align(c.size)),
-    data(pool(capacity, NULL)),
+    capacity(SMemoryPool::align(c.size + numPaddingBytes) - numPaddingBytes),
+    data(reinterpret_cast<char *>(SMemoryPool::alloc(capacity + numPaddingBytes))),
     owner(true),
     size(c.size)
 {
@@ -219,8 +133,8 @@ SBuffer::Memory::Memory(const Memory &c)
 
 SBuffer::Memory::~Memory()
 {
-  if (owner && data)
-    pool(capacity, data);
+  if (owner)
+    SMemoryPool::free(data);
 }
 
 SBuffer::Memory::Memory(void)
@@ -236,8 +150,8 @@ SBuffer::Memory::Memory(void)
 SBuffer::Memory::Memory(int capacity)
   : QSharedData(),
     uid(uidCounter.fetchAndAddRelaxed(1)),
-    capacity(align(capacity)),
-    data(pool(capacity, NULL)),
+    capacity(SMemoryPool::align(capacity + numPaddingBytes) - numPaddingBytes),
+    data(reinterpret_cast<char *>(SMemoryPool::alloc(this->capacity + numPaddingBytes))),
     owner(true),
     size(0)
 {
@@ -247,8 +161,8 @@ SBuffer::Memory::Memory(int capacity)
 SBuffer::Memory::Memory(const char *data, int size)
   : QSharedData(),
     uid(uidCounter.fetchAndAddRelaxed(1)),
-    capacity(align(size)),
-    data(pool(capacity, NULL)),
+    capacity(SMemoryPool::align(size + numPaddingBytes) - numPaddingBytes),
+    data(reinterpret_cast<char *>(SMemoryPool::alloc(capacity + numPaddingBytes))),
     owner(true),
     size(size)
 {
@@ -259,8 +173,8 @@ SBuffer::Memory::Memory(const char *data, int size)
 SBuffer::Memory::Memory(const QByteArray &data)
   : QSharedData(),
     uid(uidCounter.fetchAndAddRelaxed(1)),
-    capacity(align(data.size())),
-    data(pool(capacity, NULL)),
+    capacity(SMemoryPool::align(data.size() + numPaddingBytes) - numPaddingBytes),
+    data(reinterpret_cast<char *>(SMemoryPool::alloc(capacity + numPaddingBytes))),
     owner(true),
     size(data.size())
 {

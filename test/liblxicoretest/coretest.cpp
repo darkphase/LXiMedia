@@ -74,3 +74,44 @@ void CoreTest::StringParser_ComputeMatch(void)
   QVERIFY(SStringParser::computeMatch("some text with additional useless information", "some text") >
           SStringParser::computeMatch("some text with additional useless information", "some text with useful information"));
 }
+
+/*! Validates that the SMemoryPool class functions correctly.
+ */
+void CoreTest::MemoryPool(void)
+{
+  static const size_t size = 1024;
+
+  QVERIFY(SMemoryPool::poolSize(SMemoryPool::Pool_Free) == 0);
+  QVERIFY(SMemoryPool::poolSize(SMemoryPool::Pool_Alloc) == 0);
+
+  void * const buffer1 = SMemoryPool::alloc(size);
+  QVERIFY(buffer1 != NULL);
+  memset(buffer1, 1, size);
+
+  void * const buffer2 = SMemoryPool::alloc(size);
+  QVERIFY(buffer2 != NULL);
+  QVERIFY(buffer2 != buffer1);
+  memset(buffer2, 2, size);
+
+  QVERIFY(SMemoryPool::poolSize(SMemoryPool::Pool_Free) == 0);
+  QVERIFY(SMemoryPool::poolSize(SMemoryPool::Pool_Alloc) != 0);
+
+  SMemoryPool::free(buffer1);
+  QVERIFY(SMemoryPool::poolSize(SMemoryPool::Pool_Free) != 0);
+
+  // Buffer 1 should have been re-used.
+  void * const buffer3 = SMemoryPool::alloc(size);
+  QVERIFY(buffer3 == buffer1);
+  QCOMPARE(int(reinterpret_cast<const char *>(buffer3)[0]), 1);
+  memset(buffer3, 3, size);
+
+  QVERIFY(SMemoryPool::poolSize(SMemoryPool::Pool_Free) == 0);
+  QVERIFY(SMemoryPool::poolSize(SMemoryPool::Pool_Alloc) != 0);
+
+  SMemoryPool::free(buffer2);
+  SMemoryPool::free(buffer3);
+
+  // The pool should be flushed after all buffers are freed.
+  QVERIFY(SMemoryPool::poolSize(SMemoryPool::Pool_Free) == 0);
+  QVERIFY(SMemoryPool::poolSize(SMemoryPool::Pool_Alloc) == 0);
+}

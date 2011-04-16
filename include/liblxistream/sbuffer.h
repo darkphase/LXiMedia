@@ -112,8 +112,6 @@ public:
 
   inline const MemoryPtr      & memory(void) const                              { return d; } //!< Return s a pointer to the Memory object used by this buffer.
 
-  static void                   enablePool(bool);
-
 public: // Alignment methods
   /*! This constant specifies the minimum value by which data should be aligned
       in memory to prevent crashes (e.g. 16 bytes for SSE).
@@ -148,11 +146,12 @@ public: // Alignment methods
   /*! This constant specifies the number of bytes padding that are appended to
       the buffer, these bytes are always set to 0. These bytes make implementing
       SIMD (e.g. SSE) reading simpler.
+
+      \note The capacity for the buffer is already compensated for the padding.
+            Thus if capacity() returns 2000, the actual allocated amount of
+            memory is 2000 + numPaddingBytes.
    */
   static const int              numPaddingBytes;
-
-private:
-  __internal static char      * pool(int capacity, char *);
 
 private:
   __internal static QAtomicInt  uidCounter;
