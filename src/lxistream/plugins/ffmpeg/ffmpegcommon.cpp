@@ -64,7 +64,7 @@ void FFMpegCommon::disableLog(bool disabled)
   logDisabled = disabled;
 }
 
-::CodecID FFMpegCommon::toFFMpegCodecID(const QString &codec)
+::CodecID FFMpegCommon::toFFMpegCodecID(const QByteArray &codec)
 {
   ////////////////////////////////////////////////////////////////////////////
   // Audio codecs
@@ -114,6 +114,14 @@ void FFMpegCommon::disableLog(bool disabled)
   else if (codec == "EAC3")                 return CODEC_ID_EAC3;
   else if (codec == "SIPR")                 return CODEC_ID_SIPR;
   else if (codec == "MP1")                  return CODEC_ID_MP1;
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
+  else if (codec == "TWINVQ")               return CODEC_ID_TWINVQ;
+  else if (codec == "TRUEHD")               return CODEC_ID_TRUEHD;
+  else if (codec == "MP4ALS")               return CODEC_ID_MP4ALS;
+  else if (codec == "ATRAC1")               return CODEC_ID_ATRAC1;
+  else if (codec == "BINKAUDIO_RDFT")       return CODEC_ID_BINKAUDIO_RDFT;
+  else if (codec == "BINKAUDIO_DCT")        return CODEC_ID_BINKAUDIO_DCT;
+#endif
 
   ////////////////////////////////////////////////////////////////////////////
   // Video codecs
@@ -244,6 +252,26 @@ void FFMpegCommon::disableLog(bool disabled)
   else if (codec == "TGV")                  return CODEC_ID_TGV;
   else if (codec == "TGQ")                  return CODEC_ID_TGQ;
   else if (codec == "TQI")                  return CODEC_ID_TQI;
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
+  else if (codec == "AURA")                 return CODEC_ID_AURA;
+  else if (codec == "AURA2")                return CODEC_ID_AURA2;
+  else if (codec == "V210X")                return CODEC_ID_V210X;
+  else if (codec == "TMV")                  return CODEC_ID_TMV;
+  else if (codec == "V210")                 return CODEC_ID_V210;
+  else if (codec == "DPX")                  return CODEC_ID_DPX;
+  else if (codec == "MAD")                  return CODEC_ID_MAD;
+  else if (codec == "FRWU")                 return CODEC_ID_FRWU;
+  else if (codec == "FLASHSV2")             return CODEC_ID_FLASHSV2;
+  else if (codec == "CDGRAPHICS")           return CODEC_ID_CDGRAPHICS;
+  else if (codec == "R210")                 return CODEC_ID_R210;
+  else if (codec == "ANM")                  return CODEC_ID_ANM;
+  else if (codec == "BINKVIDEO")            return CODEC_ID_BINKVIDEO;
+  else if (codec == "IFF_ILBM")             return CODEC_ID_IFF_ILBM;
+  else if (codec == "IFF_BYTERUN1")         return CODEC_ID_IFF_BYTERUN1;
+  else if (codec == "KGV1")                 return CODEC_ID_KGV1;
+  else if (codec == "YOP")                  return CODEC_ID_YOP;
+  else if (codec == "VP8")                  return CODEC_ID_VP8;
+#endif
 
   ////////////////////////////////////////////////////////////////////////////
   // Audio formats
@@ -279,7 +307,11 @@ void FFMpegCommon::disableLog(bool disabled)
   else if (codec == "SUB/RAWUTF8")          return CODEC_ID_TEXT;
   else if (codec == "SUB/XSUB")             return CODEC_ID_XSUB;
   else if (codec == "SUB/SSA")              return CODEC_ID_SSA;
-  else if (codec == "SUB/MOVTEXT")          return CODEC_ID_MOV_TEXT;
+  else if (codec == "SUB/MOV_TEXT")         return CODEC_ID_MOV_TEXT;
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
+  else if (codec == "SUB/HDMV_PGS")         return CODEC_ID_HDMV_PGS_SUBTITLE;
+  else if (codec == "SUB/DVB_TELETEXT")     return CODEC_ID_DVB_TELETEXT;
+#endif
 
   else                                      return CODEC_ID_NONE;
 }
@@ -339,6 +371,14 @@ const char * FFMpegCommon::fromFFMpegCodecID(::CodecID id)
   case CODEC_ID_EAC3:               return "EAC3";
   case CODEC_ID_SIPR:               return "SIPR";
   case CODEC_ID_MP1:                return "MP1";
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
+  case CODEC_ID_TWINVQ:             return "TWINVQ";
+  case CODEC_ID_TRUEHD:             return "TRUEHD";
+  case CODEC_ID_MP4ALS:             return "MP4ALS";
+  case CODEC_ID_ATRAC1:             return "ATRAC1";
+  case CODEC_ID_BINKAUDIO_RDFT:     return "BINKAUDIO_RDFT";
+  case CODEC_ID_BINKAUDIO_DCT:      return "BINKAUDIO_DCT";
+#endif
 
   //////////////////////////////////////////////////////////////////////////////
   // Video codecs
@@ -469,6 +509,26 @@ const char * FFMpegCommon::fromFFMpegCodecID(::CodecID id)
   case CODEC_ID_TGV:                return "TGV";
   case CODEC_ID_TGQ:                return "TGQ";
   case CODEC_ID_TQI:                return "TQI";
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
+  case CODEC_ID_AURA:               return "AURA";
+  case CODEC_ID_AURA2:              return "AURA2";
+  case CODEC_ID_V210X:              return "V210X";
+  case CODEC_ID_TMV:                return "TMV";
+  case CODEC_ID_V210:               return "V210";
+  case CODEC_ID_DPX:                return "DPX";
+  case CODEC_ID_MAD:                return "MAD";
+  case CODEC_ID_FRWU:               return "FRWU";
+  case CODEC_ID_FLASHSV2:           return "FLASHSV2";
+  case CODEC_ID_CDGRAPHICS:         return "CDGRAPHICS";
+  case CODEC_ID_R210:               return "R210";
+  case CODEC_ID_ANM:                return "ANM";
+  case CODEC_ID_BINKVIDEO:          return "BINKVIDEO";
+  case CODEC_ID_IFF_ILBM:           return "IFF_ILBM";
+  case CODEC_ID_IFF_BYTERUN1:       return "IFF_BYTERUN1";
+  case CODEC_ID_KGV1:               return "KGV1";
+  case CODEC_ID_YOP:                return "YOP";
+  case CODEC_ID_VP8:                return "VP8";
+#endif
 
   //////////////////////////////////////////////////////////////////////////////
   // Audio formats
@@ -504,7 +564,11 @@ const char * FFMpegCommon::fromFFMpegCodecID(::CodecID id)
   case CODEC_ID_TEXT:               return "SUB/RAWUTF8";
   case CODEC_ID_XSUB:               return "SUB/XSUB";
   case CODEC_ID_SSA:                return "SUB/SSA";
-  case CODEC_ID_MOV_TEXT:           return "SUB/MOVTEXT";
+  case CODEC_ID_MOV_TEXT:           return "SUB/MOV_TEXT";
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
+  case CODEC_ID_HDMV_PGS_SUBTITLE:  return "SUB/HDMV_PGS";
+  case CODEC_ID_DVB_TELETEXT:       return "SUB/DVB_TELETEXT";
+#endif
   }
 }
 
@@ -670,6 +734,121 @@ SAudioFormat::Channels FFMpegCommon::fromFFMpegChannelLayout(int64_t layout, int
       return result;
     }
   }
+}
+
+::AVPacket FFMpegCommon::toAVPacket(const SEncodedAudioBuffer &buffer, const ::AVStream *stream)
+{
+  ::AVPacket packet;
+  memset(&packet, 0, sizeof(packet));
+
+  packet.data = (uint8_t *)buffer.data();
+  packet.size = buffer.size();
+
+  if (stream)
+  {
+    packet.pts = buffer.presentationTimeStamp().toClock(stream->time_base.num, stream->time_base.den);
+    packet.dts = buffer.decodingTimeStamp().toClock(stream->time_base.num, stream->time_base.den);
+    packet.stream_index = stream->index;
+  }
+  else
+  {
+    packet.pts = AV_NOPTS_VALUE;
+    packet.dts = AV_NOPTS_VALUE;
+    packet.stream_index = 0;
+  }
+
+  packet.flags =
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(52, 72, 0)
+    PKT_FLAG_KEY
+#else
+    AV_PKT_FLAG_KEY
+#endif
+    ;
+
+  packet.duration = 0;
+  packet.destruct = NULL;
+  packet.priv = NULL;
+  packet.pos = -1;
+  packet.convergence_duration = AV_NOPTS_VALUE;
+
+  return packet;
+}
+
+::AVPacket FFMpegCommon::toAVPacket(const SEncodedVideoBuffer &buffer, const ::AVStream *stream)
+{
+  ::AVPacket packet;
+  memset(&packet, 0, sizeof(packet));
+
+  packet.data = (uint8_t *)buffer.data();
+  packet.size = buffer.size();
+
+  if (stream)
+  {
+    packet.pts = buffer.presentationTimeStamp().toClock(stream->time_base.num, stream->time_base.den);
+    packet.dts = buffer.decodingTimeStamp().toClock(stream->time_base.num, stream->time_base.den);
+    packet.stream_index = stream->index;
+  }
+  else
+  {
+    packet.pts = AV_NOPTS_VALUE;
+    packet.dts = AV_NOPTS_VALUE;
+    packet.stream_index = 0;
+  }
+
+  packet.flags = buffer.isKeyFrame() ?
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(52, 72, 0)
+    PKT_FLAG_KEY
+#else
+    AV_PKT_FLAG_KEY
+#endif
+    : 0;
+
+  packet.duration = 0;
+  packet.destruct = NULL;
+  packet.priv = NULL;
+  packet.pos = -1;
+  packet.convergence_duration = AV_NOPTS_VALUE;
+
+  return packet;
+}
+
+::AVPacket FFMpegCommon::toAVPacket(const SEncodedDataBuffer &buffer, const ::AVStream *stream)
+{
+  ::AVPacket packet;
+  memset(&packet, 0, sizeof(packet));
+
+  packet.data = (uint8_t *)buffer.data();
+  packet.size = buffer.size();
+
+  if (stream)
+  {
+    packet.pts = buffer.presentationTimeStamp().toClock(stream->time_base.num, stream->time_base.den);
+    packet.dts = buffer.decodingTimeStamp().toClock(stream->time_base.num, stream->time_base.den);
+    packet.duration = buffer.duration().toClock(stream->time_base.num, stream->time_base.den);
+    packet.stream_index = stream->index;
+  }
+  else
+  {
+    packet.pts = AV_NOPTS_VALUE;
+    packet.dts = AV_NOPTS_VALUE;
+    packet.duration = 0;
+    packet.stream_index = 0;
+  }
+
+  packet.flags =
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(52, 72, 0)
+    PKT_FLAG_KEY
+#else
+    AV_PKT_FLAG_KEY
+#endif
+    ;
+
+  packet.destruct = NULL;
+  packet.priv = NULL;
+  packet.pos = -1;
+  packet.convergence_duration = AV_NOPTS_VALUE;
+
+  return packet;
 }
 
 void FFMpegCommon::log(void *, int level, const char *fmt, va_list vl)

@@ -110,18 +110,6 @@ bool VideoDecoder::openCodec(const SVideoCodec &c, Flags flags)
     return false;
   }
 
-//    packet.pts = AV_NOPTS_VALUE;
-//    packet.dts = AV_NOPTS_VALUE;
-//    packet.data = NULL;
-//    packet.size = 0;
-//    packet.stream_index = 0;
-//    packet.flags = 0;
-//    packet.duration = 0;
-//    packet.destruct = NULL;
-//    packet.priv = NULL;
-//    packet.pos = -1;
-//    packet.convergence_duration = AV_NOPTS_VALUE;
-
   return true;
 }
 
@@ -130,6 +118,13 @@ SVideoBufferList VideoDecoder::decodeBuffer(const SEncodedVideoBuffer &videoBuff
   SVideoBufferList output;
   if (!videoBuffer.isNull() && codecHandle)
   {
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
+    ::AVPacket packet = FFMpegCommon::toAVPacket(videoBuffer);
+#endif
+
+    const uint8_t *inPtr = reinterpret_cast<const uint8_t *>(videoBuffer.data());
+    int inSize = videoBuffer.size();
+
     const qint64 inputPts =
         videoBuffer.presentationTimeStamp().isValid()
         ? videoBuffer.presentationTimeStamp().toClock(contextHandle->time_base.num, contextHandle->time_base.den)
@@ -137,18 +132,20 @@ SVideoBufferList VideoDecoder::decodeBuffer(const SEncodedVideoBuffer &videoBuff
 
     contextHandle->reordered_opaque = inputPts;
 
-    size_t sourceSize = videoBuffer.size();
-    uint8_t *sourcePtr = (uint8_t *)videoBuffer.data();
-    while (sourceSize > 0)
+    while (inSize > 0)
     {
-      avcodec_get_frame_defaults(pictureHandle);
-
-      //packet.data = sourcePtr;
-      //packet.size = sourceSize;
+      ::avcodec_get_frame_defaults(pictureHandle);
 
       int gotPicture = 0;
-      //const int len = avcodec_decode_video2(contextHandle, pictureHandle, &gotPicture, &packet);
-      const int len = avcodec_decode_video(contextHandle, pictureHandle, &gotPicture, sourcePtr, sourceSize);
+
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(52, 72, 0)
+      const int len = ::avcodec_decode_video(contextHandle, pictureHandle, &gotPicture, (uint8_t *)inPtr, inSize);
+#else
+      packet.data = (uint8_t *)inPtr;
+      packet.size = inSize;
+      const int len = ::avcodec_decode_video2(contextHandle, pictureHandle, &gotPicture, &packet);
+#endif
+
       if ((len >= 0) && gotPicture)
       {
         // Determine metadata.
@@ -250,8 +247,8 @@ SVideoBufferList VideoDecoder::decodeBuffer(const SEncodedVideoBuffer &videoBuff
 
       if (len > 0)
       {
-        sourceSize -= len;
-        sourcePtr += len;
+        inPtr += len;
+        inSize -= len;
       }
       else
         break;
@@ -261,11 +258,22 @@ SVideoBufferList VideoDecoder::decodeBuffer(const SEncodedVideoBuffer &videoBuff
   {
     for (int gotPicture=1; gotPicture;)
     {
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
+      ::AVPacket packet;
+      memset(&packet, 0, sizeof(packet));
+#endif
+
       // Get any remaining frames
-      avcodec_get_frame_defaults(pictureHandle);
+      ::avcodec_get_frame_defaults(pictureHandle);
       gotPicture = 0;
+
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(52, 72, 0)
+      ::avcodec_decode_video(contextHandle, pictureHandle, &gotPicture, NULL, 0);
+#else
+      ::avcodec_decode_video2(contextHandle, pictureHandle, &gotPicture, &packet);
+#endif
+
       //const int len = avcodec_decode_video2(contextHandle, pictureHandle, &gotPicture, &packet);
-      avcodec_decode_video(contextHandle, pictureHandle, &gotPicture, NULL, 0);
       if (gotPicture)
       {
         SVideoBuffer destBuffer(outFormat);
