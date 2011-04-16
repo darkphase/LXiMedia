@@ -17,28 +17,60 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
+#ifndef LXICORE_SMEMORYPOOL_H
+#define LXICORE_SMEMORYPOOL_H
+
 #include <QtCore>
-#include <LXiStream>
+#include "splatform.h"
+#include "export.h"
 
-class CoreTest : public QObject
+namespace LXiCore {
+
+/*! The SMemoryPool singleton provides a fast memory allocator for large
+    buffers.
+ */
+class LXICORE_PUBLIC SMemoryPool
 {
-Q_OBJECT
+private:
+  struct Block
+  {
+    inline                      Block(void *addr, size_t size) : addr(addr), size(size) { }
+
+    void                      * addr;
+    size_t                      size;
+  };
+
 public:
-  inline explicit               CoreTest(QObject *parent) : QObject(parent), mediaApp(NULL) { }
+  enum Pool { Pool_Free, Pool_Alloc };
 
-private slots:
-  void                          initTestCase(void);
-  void                          cleanupTestCase(void);
+private: // No instances
+                                SMemoryPool();
+                                SMemoryPool(const SMemoryPool &);
+  SMemoryPool                 & operator=(const SMemoryPool &);
 
-private slots:
-  void                          StringParser_CleanName(void);
-  void                          StringParser_RawName(void);
-  void                          StringParser_RawPath(void);
-  void                          StringParser_FindMatch(void);
-  void                          StringParser_ComputeMatch(void);
-
-  void                          MemoryPool(void);
+public:
+  static size_t                 poolSize(Pool);
+  static size_t                 align(size_t);
+  static void                 * alloc(size_t);
+  static void                   free(void *);
 
 private:
-  SApplication                * mediaApp;
+  __internal static void      * allocPages(size_t);
+  __internal static void        freePages(void *, size_t);
+
+private:
+  struct Init;
+  __internal static Init        init;
+  __internal static int         pageSize;
+#if defined(Q_OS_UNIX)
+  __internal static int         zeroDev;
+#endif
+
+  __pure __internal static QMutex * mutex(void);
+  __pure __internal static QMultiMap<size_t, Block> & freePool(void);
+  __pure __internal static QHash<void *, Block> & allocPool(void);
 };
+
+} // End of namespace
+
+#endif

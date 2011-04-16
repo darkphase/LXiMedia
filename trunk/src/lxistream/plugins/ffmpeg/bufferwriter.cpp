@@ -243,27 +243,9 @@ void BufferWriter::process(const SEncodedAudioBuffer &buffer)
   QMap<quint32, ::AVStream *>::Iterator stream = streams.find(audioStreamId + 0);
   if (stream != streams.end())
   {
-    ::AVPacket packet;
-    ::av_init_packet(&packet);
-
-    packet.size = buffer.size();
-    packet.data = (uint8_t *)buffer.data();
-    packet.stream_index = (*stream)->index;
-    packet.pos = -1;
-
-    packet.pts = buffer.presentationTimeStamp().isValid()
-                 ? buffer.presentationTimeStamp().toClock((*stream)->time_base.num, (*stream)->time_base.den)
-                 : AV_NOPTS_VALUE;
-    packet.dts = buffer.decodingTimeStamp().isValid()
-                 ? buffer.decodingTimeStamp().toClock((*stream)->time_base.num, (*stream)->time_base.den)
-                 : packet.pts;
-    
-    if (packet.dts > packet.pts) 
-      packet.pts = packet.dts;
+    ::AVPacket packet = FFMpegCommon::toAVPacket(buffer, *stream);
 
     //qDebug() << "A:" << buffer.presentationTimeStamp().toMSec() << packet.pts << packet.dts;
-
-    packet.flags |= PKT_FLAG_KEY;
 
     ::av_interleaved_write_frame(formatContext, &packet);
   }
@@ -274,35 +256,25 @@ void BufferWriter::process(const SEncodedVideoBuffer &buffer)
   QMap<quint32, ::AVStream *>::Iterator stream = streams.find(videoStreamId + 0);
   if (stream != streams.end())
   {
-    ::AVPacket packet;
-    ::av_init_packet(&packet);
-
-    packet.size = buffer.size();
-    packet.data = (uint8_t *)buffer.data();
-    packet.stream_index = (*stream)->index;
-    packet.pos = -1;
-
-    packet.pts = buffer.presentationTimeStamp().isValid()
-                 ? buffer.presentationTimeStamp().toClock((*stream)->time_base.num, (*stream)->time_base.den)
-                 : AV_NOPTS_VALUE;
-    packet.dts = buffer.decodingTimeStamp().isValid()
-                 ? buffer.decodingTimeStamp().toClock((*stream)->time_base.num, (*stream)->time_base.den)
-                 : packet.pts;
-    
-    if (packet.dts > packet.pts) 
-      packet.pts = packet.dts;
+    ::AVPacket packet = FFMpegCommon::toAVPacket(buffer, *stream);
 
     //qDebug() << "V:" << buffer.presentationTimeStamp().toMSec() << packet.pts << packet.dts;
-
-    if (buffer.isKeyFrame())
-      packet.flags |= PKT_FLAG_KEY;
 
     ::av_interleaved_write_frame(formatContext, &packet);
   }
 }
 
-void BufferWriter::process(const SEncodedDataBuffer &)
+void BufferWriter::process(const SEncodedDataBuffer &buffer)
 {
+  QMap<quint32, ::AVStream *>::Iterator stream = streams.find(videoStreamId + 0);
+  if (stream != streams.end())
+  {
+    ::AVPacket packet = FFMpegCommon::toAVPacket(buffer, *stream);
+
+    //qDebug() << "D:" << buffer.presentationTimeStamp().toMSec() << packet.pts << packet.dts;
+
+    ::av_interleaved_write_frame(formatContext, &packet);
+  }
 }
 
 int BufferWriter::write(void *opaque, uint8_t *buf, int buf_size)

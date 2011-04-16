@@ -138,7 +138,7 @@ void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *readCallback)
           pi.isProbed = true;
           pi.isReadable = true;
 
-          bufferReader.setPosition(qMax(bufferReader.duration() / 8, STime::fromSec(5)));
+          bufferReader.setPosition(qMax(bufferReader.duration() / 8, STime::fromSec(5)), AVSEEK_FLAG_BYTE);
           for (unsigned i=0; (i<4096) && (produceCallback.bufferCount<256); i++)
             bufferReader.process();
 

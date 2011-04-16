@@ -159,8 +159,6 @@ void SGraph::queueSchedule(Dependency *depends)
 
 void SGraph::run(void)
 {
-  SBuffer::enablePool(true);
-
   QCoreApplication::postEvent(this, new QEvent(p->scheduleSourceEventType));
 
   QThread::exec();
@@ -172,8 +170,6 @@ void SGraph::run(void)
     sink->stop();
 
   p->stopped = true;
-
-  SBuffer::enablePool(false);
 
   // Ensure event handling occurs on the parent thread again.
   QThread::moveToThread(p->parentThread);

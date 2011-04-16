@@ -22,6 +22,7 @@
 
 #include <QtCore>
 #include <LXiStream>
+#include <stdint.h>
 
 extern "C"
 {

@@ -65,20 +65,10 @@ bool SHttpStreamProxy::isConnected(void) const
 {
   QMutexLocker l(&d->mutex);
 
-  if (d->sourceFinished || (d->source->state() != QAbstractSocket::ConnectedState))
-  {
-    d->sourceFinished = true;
-    return false;
-  }
-
-  if (d->caching)
+  if (!d->sourceFinished)
     return true;
-
-  foreach (const Data::Socket &s, d->sockets)
-  if (s.socket->state() == QAbstractSocket::ConnectedState)
-    return true;
-
-  return false;
+  else
+    return !d->sockets.isEmpty();
 }
 
 bool SHttpStreamProxy::setSource(QAbstractSocket *source)
@@ -151,6 +141,8 @@ void SHttpStreamProxy::disconnectAllSockets(void)
       d->source->deleteLater();
 
     d->source = NULL;
+
+    emit disconnected();
   }
 
   for (QVector<Data::Socket>::Iterator s=d->sockets.begin(); s!=d->sockets.end(); s=d->sockets.erase(s))
@@ -163,12 +155,6 @@ void SHttpStreamProxy::disconnectAllSockets(void)
   }
   else
     s->socket->deleteLater();
-
-  if (!d->sourceFinished)
-  {
-    emit disconnected();
-    d->sourceFinished = true;
-  }
 
   if (isRunning())
     exit();
@@ -233,8 +219,27 @@ void SHttpStreamProxy::processData(void)
         s = d->sockets.erase(s);
       }
     }
+  }
+  else // No souce, flush data.
+  {
+    for (QVector<Data::Socket>::Iterator s=d->sockets.begin(); s!=d->sockets.end(); )
+    if (s->socket->state() != QAbstractSocket::ConnectedState)
+    {
+      s->socket->deleteLater();
+      s = d->sockets.erase(s);
+    }
+    else if (s->socket->bytesToWrite() == 0)
+    {
+      disconnect(s->socket, SIGNAL(bytesWritten(qint64)), this, SLOT(processData()));
+      connect(s->socket, SIGNAL(disconnected()), s->socket, SLOT(deleteLater()));
+      QTimer::singleShot(30000, s->socket, SLOT(deleteLater()));
+      s->socket->disconnectFromHost();
+      s = d->sockets.erase(s);
+    }
+    else
+      s++;
 
-    if (!isConnected())
+    if (d->sockets.isEmpty())
       disconnectAllSockets();
   }
 }
@@ -273,7 +278,7 @@ void SHttpStreamProxy::flushData(void)
       }
     }
 
-    disconnectAllSockets();
+    d->sourceFinished = true;
   }
 }
 

@@ -23,6 +23,7 @@ HEADERS += $${LXIMEDIA_DIR}/include/LXiCore \
     $${LXIMEDIA_DIR}/include/liblxicore/sapplication.h \
     $${LXIMEDIA_DIR}/include/liblxicore/sdaemon.h \
     $${LXIMEDIA_DIR}/include/liblxicore/sfactory.h \
+    $${LXIMEDIA_DIR}/include/liblxicore/smemorypool.h \
     $${LXIMEDIA_DIR}/include/liblxicore/smodule.h \
     $${LXIMEDIA_DIR}/include/liblxicore/splatform.h \
     $${LXIMEDIA_DIR}/include/liblxicore/sscheduler.h \
@@ -32,6 +33,7 @@ SOURCES += sapplication.cpp \
     sapplication.exchandler.cpp \
     sapplication.log.cpp \
     sfactory.cpp \
+    smemorypool.cpp \
     smodule.cpp \
     sscheduler.cpp \
     sstringparser.cpp \

@@ -739,37 +739,32 @@ SAudioFormat::Channels FFMpegCommon::fromFFMpegChannelLayout(int64_t layout, int
 ::AVPacket FFMpegCommon::toAVPacket(const SEncodedAudioBuffer &buffer, const ::AVStream *stream)
 {
   ::AVPacket packet;
-  memset(&packet, 0, sizeof(packet));
+  ::av_init_packet(&packet);
 
   packet.data = (uint8_t *)buffer.data();
   packet.size = buffer.size();
 
   if (stream)
   {
-    packet.pts = buffer.presentationTimeStamp().toClock(stream->time_base.num, stream->time_base.den);
-    packet.dts = buffer.decodingTimeStamp().toClock(stream->time_base.num, stream->time_base.den);
     packet.stream_index = stream->index;
-  }
-  else
-  {
-    packet.pts = AV_NOPTS_VALUE;
-    packet.dts = AV_NOPTS_VALUE;
-    packet.stream_index = 0;
+
+    if (buffer.presentationTimeStamp().isValid())
+      packet.pts = buffer.presentationTimeStamp().toClock(stream->time_base.num, stream->time_base.den);
+
+    if (buffer.decodingTimeStamp().isValid())
+      packet.dts = buffer.decodingTimeStamp().toClock(stream->time_base.num, stream->time_base.den);
+
+    if (packet.dts > packet.pts)
+      packet.pts = packet.dts;
   }
 
-  packet.flags =
+  packet.flags |=
 #if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(52, 72, 0)
     PKT_FLAG_KEY
 #else
     AV_PKT_FLAG_KEY
 #endif
     ;
-
-  packet.duration = 0;
-  packet.destruct = NULL;
-  packet.priv = NULL;
-  packet.pos = -1;
-  packet.convergence_duration = AV_NOPTS_VALUE;
 
   return packet;
 }
@@ -777,25 +772,26 @@ SAudioFormat::Channels FFMpegCommon::fromFFMpegChannelLayout(int64_t layout, int
 ::AVPacket FFMpegCommon::toAVPacket(const SEncodedVideoBuffer &buffer, const ::AVStream *stream)
 {
   ::AVPacket packet;
-  memset(&packet, 0, sizeof(packet));
+  ::av_init_packet(&packet);
 
   packet.data = (uint8_t *)buffer.data();
   packet.size = buffer.size();
 
   if (stream)
   {
-    packet.pts = buffer.presentationTimeStamp().toClock(stream->time_base.num, stream->time_base.den);
-    packet.dts = buffer.decodingTimeStamp().toClock(stream->time_base.num, stream->time_base.den);
     packet.stream_index = stream->index;
-  }
-  else
-  {
-    packet.pts = AV_NOPTS_VALUE;
-    packet.dts = AV_NOPTS_VALUE;
-    packet.stream_index = 0;
+
+    if (buffer.presentationTimeStamp().isValid())
+      packet.pts = buffer.presentationTimeStamp().toClock(stream->time_base.num, stream->time_base.den);
+
+    if (buffer.decodingTimeStamp().isValid())
+      packet.dts = buffer.decodingTimeStamp().toClock(stream->time_base.num, stream->time_base.den);
+
+    if (packet.dts > packet.pts)
+      packet.pts = packet.dts;
   }
 
-  packet.flags = buffer.isKeyFrame() ?
+  packet.flags |= buffer.isKeyFrame() ?
 #if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(52, 72, 0)
     PKT_FLAG_KEY
 #else
@@ -803,50 +799,41 @@ SAudioFormat::Channels FFMpegCommon::fromFFMpegChannelLayout(int64_t layout, int
 #endif
     : 0;
 
-  packet.duration = 0;
-  packet.destruct = NULL;
-  packet.priv = NULL;
-  packet.pos = -1;
-  packet.convergence_duration = AV_NOPTS_VALUE;
-
   return packet;
 }
 
 ::AVPacket FFMpegCommon::toAVPacket(const SEncodedDataBuffer &buffer, const ::AVStream *stream)
 {
   ::AVPacket packet;
-  memset(&packet, 0, sizeof(packet));
+  ::av_init_packet(&packet);
 
   packet.data = (uint8_t *)buffer.data();
   packet.size = buffer.size();
 
   if (stream)
   {
-    packet.pts = buffer.presentationTimeStamp().toClock(stream->time_base.num, stream->time_base.den);
-    packet.dts = buffer.decodingTimeStamp().toClock(stream->time_base.num, stream->time_base.den);
-    packet.duration = buffer.duration().toClock(stream->time_base.num, stream->time_base.den);
     packet.stream_index = stream->index;
-  }
-  else
-  {
-    packet.pts = AV_NOPTS_VALUE;
-    packet.dts = AV_NOPTS_VALUE;
-    packet.duration = 0;
-    packet.stream_index = 0;
+
+    if (buffer.presentationTimeStamp().isValid())
+      packet.pts = buffer.presentationTimeStamp().toClock(stream->time_base.num, stream->time_base.den);
+
+    if (buffer.decodingTimeStamp().isValid())
+      packet.dts = buffer.decodingTimeStamp().toClock(stream->time_base.num, stream->time_base.den);
+
+    if (buffer.duration().isValid())
+      packet.duration = buffer.duration().toClock(stream->time_base.num, stream->time_base.den);
+
+    if (packet.dts > packet.pts)
+      packet.pts = packet.dts;
   }
 
-  packet.flags =
+  packet.flags |=
 #if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(52, 72, 0)
     PKT_FLAG_KEY
 #else
     AV_PKT_FLAG_KEY
 #endif
     ;
-
-  packet.destruct = NULL;
-  packet.priv = NULL;
-  packet.pos = -1;
-  packet.convergence_duration = AV_NOPTS_VALUE;
 
   return packet;
 }
