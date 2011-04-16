@@ -49,12 +49,17 @@ public:
 
   static void                   disableLog(bool);
 
-  static ::CodecID              toFFMpegCodecID(const QString &);
+  static ::CodecID              toFFMpegCodecID(const QByteArray &);
+  inline static ::CodecID       toFFMpegCodecID(const QString &codec)           { return toFFMpegCodecID(codec.toAscii()); }
   static const char           * fromFFMpegCodecID(::CodecID);
   static ::PixelFormat          toFFMpegPixelFormat(SVideoFormat::Format);
   static SVideoFormat::Format   fromFFMpegPixelFormat(::PixelFormat);
   static int64_t                toFFMpegChannelLayout(SAudioFormat::Channels);
   static SAudioFormat::Channels fromFFMpegChannelLayout(int64_t, int);
+
+  static ::AVPacket             toAVPacket(const SEncodedAudioBuffer &, const ::AVStream * = NULL);
+  static ::AVPacket             toAVPacket(const SEncodedVideoBuffer &, const ::AVStream * = NULL);
+  static ::AVPacket             toAVPacket(const SEncodedDataBuffer &, const ::AVStream * = NULL);
 
 private:
   static void                   log(void * ptr, int level, const char* fmt, va_list vl);

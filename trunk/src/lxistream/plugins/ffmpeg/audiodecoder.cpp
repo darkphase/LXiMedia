@@ -175,6 +175,10 @@ SAudioBufferList AudioDecoder::decodeBuffer(const SEncodedAudioBuffer &audioBuff
     }
     else if (codecHandle)
     {
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
+      ::AVPacket packet = FFMpegCommon::toAVPacket(audioBuffer);
+#endif
+
       const uint8_t *inPtr = reinterpret_cast<const uint8_t *>(audioBuffer.data());
       int inSize = audioBuffer.size();
 
@@ -196,7 +200,15 @@ SAudioBufferList AudioDecoder::decodeBuffer(const SEncodedAudioBuffer &audioBuff
       {
         // decode the audio
         int outSize = sizeof(tempBufferRaw) - SBuffer::optimalAlignVal;
-        int len = avcodec_decode_audio2(contextHandle, tempBuffer, &outSize, (uint8_t *)inPtr, inSize);
+
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(52, 72, 0)
+        const int len = ::avcodec_decode_audio2(contextHandle, tempBuffer, &outSize, (uint8_t *)inPtr, inSize);
+#else
+        packet.data = (uint8_t *)inPtr;
+        packet.size = inSize;
+        const int len = ::avcodec_decode_audio3(contextHandle, tempBuffer, &outSize, &packet);
+#endif
+
         if (len >= 0)
         {
           if (outSize > 0)

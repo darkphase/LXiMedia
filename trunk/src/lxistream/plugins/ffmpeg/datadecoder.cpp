@@ -84,109 +84,117 @@ bool DataDecoder::openCodec(const SDataCodec &c, Flags)
 SDataBufferList DataDecoder::decodeBuffer(const SEncodedDataBuffer &dataBuffer)
 {
   SDataBufferList output;
-  if (!dataBuffer.isNull())
+  if (!dataBuffer.isNull() && codecHandle)
   {
-    if (codecHandle)
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
+    ::AVPacket packet = FFMpegCommon::toAVPacket(dataBuffer);
+#endif
+
+    const uint8_t *inPtr = reinterpret_cast<const uint8_t *>(dataBuffer.data());
+    int inSize = dataBuffer.size();
+
+    STime timeStamp = dataBuffer.presentationTimeStamp();
+    if (!timeStamp.isValid())
+      timeStamp = dataBuffer.decodingTimeStamp();
+
+    while (inSize > 0)
     {
-      const uint8_t *inPtr = reinterpret_cast<const uint8_t *>(dataBuffer.data());
-      int inSize = dataBuffer.size();
+      int gotSubtitle = 0;
+      ::AVSubtitle subtitle;
 
-      STime timeStamp = dataBuffer.presentationTimeStamp();
-      if (!timeStamp.isValid())
-        timeStamp = dataBuffer.decodingTimeStamp();
+      // decode the subtitle
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(52, 72, 0)
+      const int len = ::avcodec_decode_subtitle(contextHandle, &subtitle, &gotSubtitle, (uint8_t *)inPtr, inSize);
+#else
+      packet.data = (uint8_t *)inPtr;
+      packet.size = inSize;
+      const int len = ::avcodec_decode_subtitle2(contextHandle, &subtitle, &gotSubtitle, &packet);
+#endif
 
-      while (inSize > 0)
+      if (len >= 0)
       {
-        int gotSubtitle = 0;
-        ::AVSubtitle subtitle;
-
-        // decode the subtitle
-        int len = ::avcodec_decode_subtitle(contextHandle, &subtitle, &gotSubtitle, (uint8_t *)inPtr, inSize);
-        if (len >= 0)
+        if (gotSubtitle != 0)
         {
-          if (gotSubtitle != 0)
+          QStringList text;
+          QList<SSubpictureBuffer::Rect> rects;
+          for (unsigned i=0; i<subtitle.num_rects; i++)
+          if ((subtitle.rects[i]->type == ::SUBTITLE_BITMAP) ||
+              ((subtitle.rects[i]->type == SUBTITLE_NONE) &&
+               (subtitle.rects[i]->pict.data[0] != NULL) &&
+               (subtitle.rects[i]->pict.data[1] != NULL)))
           {
-            QStringList text;
-            QList<SSubpictureBuffer::Rect> rects;
-            for (unsigned i=0; i<subtitle.num_rects; i++)
-            if ((subtitle.rects[i]->type == ::SUBTITLE_BITMAP) ||
-                ((subtitle.rects[i]->type == SUBTITLE_NONE) &&
-                 (subtitle.rects[i]->pict.data[0] != NULL) &&
-                 (subtitle.rects[i]->pict.data[1] != NULL)))
-            {
-              SSubpictureBuffer::Rect rect;
-              rect.x = subtitle.rects[i]->x;
-              rect.y = subtitle.rects[i]->y;
-              rect.width = subtitle.rects[i]->w;
-              rect.height = subtitle.rects[i]->h;
-              rect.lineStride = SBuffer::align(rect.width, SBuffer::minimumAlignVal);
-              rect.paletteSize = subtitle.rects[i]->nb_colors;
+            SSubpictureBuffer::Rect rect;
+            rect.x = subtitle.rects[i]->x;
+            rect.y = subtitle.rects[i]->y;
+            rect.width = subtitle.rects[i]->w;
+            rect.height = subtitle.rects[i]->h;
+            rect.lineStride = SBuffer::align(rect.width, SBuffer::minimumAlignVal);
+            rect.paletteSize = subtitle.rects[i]->nb_colors;
 
-              rects += rect;
-            }
-            else if (subtitle.rects[i]->type == ::SUBTITLE_TEXT)
-              text += QString::fromUtf8(subtitle.rects[i]->text);
+            rects += rect;
+          }
+          else if (subtitle.rects[i]->type == ::SUBTITLE_TEXT)
+            text += QString::fromUtf8(subtitle.rects[i]->text);
 
-            if (!rects.isEmpty())
+          if (!rects.isEmpty())
+          {
+            SSubpictureBuffer buffer(rects);
+            for (unsigned i=0, rectId = 0; (i<subtitle.num_rects) && (rectId<unsigned(rects.count())); i++)
+            if (((subtitle.rects[i]->type == ::SUBTITLE_BITMAP) ||
+                 (subtitle.rects[i]->type == SUBTITLE_NONE)) &&
+                (subtitle.rects[i]->pict.data[0] != NULL) &&
+                (subtitle.rects[i]->pict.data[1] != NULL))
             {
-              SSubpictureBuffer buffer(rects);
-              for (unsigned i=0, rectId = 0; (i<subtitle.num_rects) && (rectId<unsigned(rects.count())); i++)
-              if (((subtitle.rects[i]->type == ::SUBTITLE_BITMAP) ||
-                   (subtitle.rects[i]->type == SUBTITLE_NONE)) &&
-                  (subtitle.rects[i]->pict.data[0] != NULL) &&
-                  (subtitle.rects[i]->pict.data[1] != NULL))
+              const SSubpictureBuffer::Rect rect = rects[rectId];
+
+              memcpy(buffer.palette(rectId),
+                     reinterpret_cast<const SPixels::RGBAPixel *>(subtitle.rects[i]->pict.data[1]),
+                     rect.paletteSize * sizeof(SPixels::RGBAPixel));
+
+              const int srcLineStride = qMax(subtitle.rects[i]->w, subtitle.rects[i]->pict.linesize[0]);
+              quint8 * const lines = buffer.lines(rectId);
+              for (int y=0; y<subtitle.rects[i]->h; y++)
               {
-                const SSubpictureBuffer::Rect rect = rects[rectId];
+                const quint8 * const srcLine = subtitle.rects[i]->pict.data[0] + (srcLineStride * y);
+                quint8 * const dstLine = lines + (rect.lineStride * y);
 
-                memcpy(buffer.palette(rectId),
-                       reinterpret_cast<const SPixels::RGBAPixel *>(subtitle.rects[i]->pict.data[1]),
-                       rect.paletteSize * sizeof(SPixels::RGBAPixel));
-
-                const int srcLineStride = qMax(subtitle.rects[i]->w, subtitle.rects[i]->pict.linesize[0]);
-                quint8 * const lines = buffer.lines(rectId);
-                for (int y=0; y<subtitle.rects[i]->h; y++)
-                {
-                  const quint8 * const srcLine = subtitle.rects[i]->pict.data[0] + (srcLineStride * y);
-                  quint8 * const dstLine = lines + (rect.lineStride * y);
-
-                  memcpy(dstLine, srcLine, rect.width);
-                }
-
-                rectId++;
+                memcpy(dstLine, srcLine, rect.width);
               }
 
-              if (dataBuffer.presentationTimeStamp().isValid())
-                buffer.setTimeStamp(dataBuffer.presentationTimeStamp() + STime::fromMSec(subtitle.start_display_time));
-              else if (dataBuffer.decodingTimeStamp().isValid())
-                buffer.setTimeStamp(dataBuffer.decodingTimeStamp() + STime::fromMSec(subtitle.start_display_time));
-
-              buffer.setDuration(STime::fromMSec(subtitle.end_display_time - subtitle.start_display_time));
-
-              output += buffer;
+              rectId++;
             }
 
-            if (!text.isEmpty())
-            {
-              SSubtitleBuffer buffer(text);
+            if (dataBuffer.presentationTimeStamp().isValid())
+              buffer.setTimeStamp(dataBuffer.presentationTimeStamp() + STime::fromMSec(subtitle.start_display_time));
+            else if (dataBuffer.decodingTimeStamp().isValid())
+              buffer.setTimeStamp(dataBuffer.decodingTimeStamp() + STime::fromMSec(subtitle.start_display_time));
 
-              if (dataBuffer.presentationTimeStamp().isValid())
-                buffer.setTimeStamp(dataBuffer.presentationTimeStamp() + STime::fromMSec(subtitle.start_display_time));
-              else if (dataBuffer.decodingTimeStamp().isValid())
-                buffer.setTimeStamp(dataBuffer.decodingTimeStamp() + STime::fromMSec(subtitle.start_display_time));
+            buffer.setDuration(STime::fromMSec(subtitle.end_display_time - subtitle.start_display_time));
 
-              buffer.setDuration(STime::fromMSec(subtitle.end_display_time - subtitle.start_display_time));
-
-              output += buffer;
-            }
+            output += buffer;
           }
 
-          inPtr += len;
-          inSize -= len;
-          continue;
+          if (!text.isEmpty())
+          {
+            SSubtitleBuffer buffer(text);
+
+            if (dataBuffer.presentationTimeStamp().isValid())
+              buffer.setTimeStamp(dataBuffer.presentationTimeStamp() + STime::fromMSec(subtitle.start_display_time));
+            else if (dataBuffer.decodingTimeStamp().isValid())
+              buffer.setTimeStamp(dataBuffer.decodingTimeStamp() + STime::fromMSec(subtitle.start_display_time));
+
+            buffer.setDuration(STime::fromMSec(subtitle.end_display_time - subtitle.start_display_time));
+
+            output += buffer;
+          }
         }
 
-        break;
+        inPtr += len;
+        inSize -= len;
+        continue;
       }
+
+      break;
     }
   }
 

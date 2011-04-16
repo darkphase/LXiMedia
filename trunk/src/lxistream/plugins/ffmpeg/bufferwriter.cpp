@@ -53,13 +53,19 @@ BufferWriter::~BufferWriter()
 
 bool BufferWriter::openFormat(const QString &name)
 {
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(52, 72, 0)
   format = ::guess_stream_format(name.toAscii().data(), NULL, NULL);
+#else
+  format = ::av_guess_format(name.toAscii().data(), NULL, NULL);
+#endif
   if (format)
   {
     formatContext = ::avformat_alloc_context();
     formatContext->oformat = format;
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(52, 72, 0)
     formatContext->preload = AV_TIME_BASE / 100;
     formatContext->max_delay = AV_TIME_BASE / 100;
+#endif
 
     return true;
   }

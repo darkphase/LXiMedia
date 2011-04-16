@@ -204,7 +204,7 @@ void MainWindow::fileActivated(QTreeWidgetItem *item)
   const QFileInfo info(item->text(1));
   const SMediaInfo mediaInfo(info.absoluteFilePath());
 
-  if (!mediaInfo.isNull())
+  if (mediaInfo.isReadable())
     openFile(info.absoluteFilePath());
   else if (info.isDir())
     selectDir(info.absoluteFilePath());
