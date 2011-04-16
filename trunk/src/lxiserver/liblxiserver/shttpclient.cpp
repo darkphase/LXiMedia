@@ -40,14 +40,12 @@ struct SHttpClient::Data
   };
 
   QList<Request>                requests;
-  bool                          requestPending;
 };
 
 SHttpClient::SHttpClient(QObject *parent)
   : SHttpClientEngine(parent),
     d(new Data())
 {
-  d->requestPending = false;
 }
 
 SHttpClient::~SHttpClient()
@@ -67,8 +65,7 @@ void SHttpClient::openRequest(const RequestMessage &message, QObject *receiver, 
   if (splitHost(message.host(), hostname, port))
   {
     d->requests.append(Data::Request(hostname, port, message, receiver, slot));
-    if (!d->requestPending)
-      openRequest();
+    openRequest();
   }
 }
 
@@ -76,24 +73,18 @@ void SHttpClient::socketDestroyed(void)
 {
   SHttpClientEngine::socketDestroyed();
 
-  if (!d->requestPending)
-    openRequest();
+  openRequest();
 }
 
 void SHttpClient::openRequest(void)
 {
-  if (!d->requests.isEmpty() && (socketsAvailable() > 0))
+  while (!d->requests.isEmpty() && (socketsAvailable() > 0))
   {
-    d->requestPending = true;
-
     const Data::Request request = d->requests.takeFirst();
     HttpSocketRequest * const socketRequest = new HttpSocketRequest(this, createSocket(), request.hostname, request.port, request.message);
 
     connect(socketRequest, SIGNAL(connected(QAbstractSocket *)), request.receiver, request.slot);
-    connect(socketRequest, SIGNAL(connected(QAbstractSocket *)), SLOT(openRequest()));
   }
-  else
-    d->requestPending = false;
 }
 
 } // End of namespace

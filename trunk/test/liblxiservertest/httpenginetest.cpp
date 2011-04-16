@@ -166,7 +166,7 @@ void HttpEngineTest::testQtClient(const QHostAddress &address)
   for (int i=0; i<numResponses; i++)
     manager.get(QNetworkRequest(url));
 
-  for (unsigned i=0; (i<20) && (responseCount<numResponses); i++)
+  for (unsigned i=0; (i<100) && (responseCount<numResponses); i++)
     QTest::qWait(100);
 
   QCOMPARE(responseCount, numResponses);
@@ -186,7 +186,7 @@ void HttpEngineTest::testHttpClient(const QHostAddress &address)
   for (int i=0; i<numResponses; i++)
     httpClient.sendRequest(request);
 
-  for (unsigned i=0; (i<20) && (responseCount<numResponses); i++)
+  for (unsigned i=0; (i<100) && (responseCount<numResponses); i++)
     QTest::qWait(100);
 
   QCOMPARE(responseCount, numResponses);

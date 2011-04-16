@@ -45,8 +45,8 @@ struct SSandboxClient::Data
   quint16                       port;
 
   SandboxProcess              * serverProcess;
+  bool                          processStarted;
   QList<Request>                requests;
-  bool                          requestPending;
 };
 
 SSandboxClient::SSandboxClient(const QString &application, Mode mode, QObject *parent)
@@ -63,7 +63,7 @@ SSandboxClient::SSandboxClient(const QString &application, Mode mode, QObject *p
   }
 
   d->serverProcess = NULL;
-  d->requestPending = false;
+  d->processStarted = false;
 }
 
 SSandboxClient::~SSandboxClient()
@@ -85,52 +85,44 @@ void SSandboxClient::openRequest(const RequestMessage &message, QObject *receive
            "that owns the SSandboxClient object.");
 
   d->requests.append(Data::Request(message, receiver, slot));
-  if (!d->requestPending)
-    openRequest();
+  openRequest();
 }
 
 void SSandboxClient::socketDestroyed(void)
 {
   SHttpClientEngine::socketDestroyed();
 
-  if (!d->requestPending)
-    openRequest();
+  openRequest();
 }
 
 void SSandboxClient::processStarted(const QHostAddress &address, quint16 port)
 {
   d->address = address;
   d->port = port;
+  d->processStarted = true;
 
   openRequest();
 }
 
 void SSandboxClient::openRequest(void)
 {
-  if (!d->requests.isEmpty() && (socketsAvailable() > 0))
+  if (d->serverProcess == NULL)
   {
-    d->requestPending = true;
+    d->serverProcess = new SandboxProcess(this, d->application + " " + d->modeText);
+    d->processStarted = false;
 
-    if (d->serverProcess != NULL)
-    {
-      const Data::Request request = d->requests.takeFirst();
-      HttpSocketRequest * const socketRequest = new HttpSocketRequest(this, createSocket(), d->address, d->port, request.message);
-
-      connect(socketRequest, SIGNAL(connected(QAbstractSocket *)), request.receiver, request.slot);
-      connect(socketRequest, SIGNAL(connected(QAbstractSocket *)), SLOT(openRequest()));
-    }
-    else
-    {
-      d->serverProcess = new SandboxProcess(this, d->application + " " + d->modeText);
-
-      connect(d->serverProcess, SIGNAL(ready(QHostAddress, quint16)), SLOT(processStarted(QHostAddress, quint16)));
-      connect(d->serverProcess, SIGNAL(stop()), SLOT(stop()));
-      connect(d->serverProcess, SIGNAL(finished(QProcess::ExitStatus)), SLOT(finished(QProcess::ExitStatus)));
-      connect(d->serverProcess, SIGNAL(consoleLine(QString)), SIGNAL(consoleLine(QString)));
-    }
+    connect(d->serverProcess, SIGNAL(ready(QHostAddress, quint16)), SLOT(processStarted(QHostAddress, quint16)));
+    connect(d->serverProcess, SIGNAL(stop()), SLOT(stop()));
+    connect(d->serverProcess, SIGNAL(finished(QProcess::ExitStatus)), SLOT(finished(QProcess::ExitStatus)));
+    connect(d->serverProcess, SIGNAL(consoleLine(QString)), SIGNAL(consoleLine(QString)));
   }
-  else
-    d->requestPending = false;
+  else while (d->processStarted && !d->requests.isEmpty() && (socketsAvailable() > 0))
+  {
+    const Data::Request request = d->requests.takeFirst();
+    HttpSocketRequest * const socketRequest = new HttpSocketRequest(this, createSocket(), d->address, d->port, request.message);
+
+    connect(socketRequest, SIGNAL(connected(QAbstractSocket *)), request.receiver, request.slot);
+  }
 }
 
 void SSandboxClient::stop(void)
@@ -146,6 +138,7 @@ void SSandboxClient::stop(void)
     QTimer::singleShot(1000, d->serverProcess, SLOT(deleteLater()));
 
     d->serverProcess = NULL;
+    d->processStarted = false;
   }
 }
 
@@ -158,9 +151,9 @@ void SSandboxClient::finished(QProcess::ExitStatus status)
 
     d->serverProcess->deleteLater();
     d->serverProcess = NULL;
+    d->processStarted = false;
 
-    if (!d->requests.isEmpty())
-      openRequest();
+    openRequest();
   }
 }
 

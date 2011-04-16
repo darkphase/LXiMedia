@@ -69,6 +69,8 @@ public:
 protected:
   virtual void incomingConnection(int socketDescriptor)
   {
+    Q_ASSERT(QThread::currentThread() == thread());
+
     if (parent)
     {
       QTcpSocket * const socket = new Socket(parent);

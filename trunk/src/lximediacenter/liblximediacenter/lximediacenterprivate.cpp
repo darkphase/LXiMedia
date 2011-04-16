@@ -19,7 +19,7 @@
 
 #include "lximediacenterprivate.h"
 
-class LXiMediaCenterInit : public LXiCore::SApplication::Initializer
+class LXiMediaCenterInit : public SApplication::Initializer
 {
 public:
   virtual void                  startup(void);
