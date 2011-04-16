@@ -23,6 +23,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/mman.h>
+#elif defined(Q_OS_WIN)
+#include <windows.h>
 #endif
 
 #ifndef QT_NO_DEBUG
@@ -37,12 +39,17 @@ struct SMemoryPool::Init : SApplication::Initializer
   {
 #if defined(Q_OS_UNIX)
     pageSize = int(::sysconf(_SC_PAGESIZE));
+    zeroDev = ::open("/dev/zero", O_RDWR);
+#elif defined(Q_OS_WIN)
+    ::SYSTEM_INFO info;
+    ::GetSystemInfo(&info);
+    pageSize = info.dwPageSize;
+#else
+    pageSize = 64;
 #endif
 
     if (pageSize <= 0)
       pageSize = 8192;
-
-    zeroDev = ::open("/dev/zero", O_RDWR);
 
     // Ensure static initializers are called.
     QMutexLocker l(mutex());
@@ -67,8 +74,10 @@ struct SMemoryPool::Init : SApplication::Initializer
     freePool().clear();
     allocPool().clear();
 
+#if defined(Q_OS_UNIX)
     ::close(zeroDev);
     zeroDev = 0;
+#endif
     pageSize = 0;
   }
 };
@@ -184,16 +193,38 @@ void * SMemoryPool::allocPages(size_t size)
 # ifndef USE_GUARD_PAGES
     return result;
 # else
-    // Guard pages
     ::mprotect(result, pageSize, PROT_NONE);
     ::mprotect(result + pageSize + size, pageSize, PROT_NONE);
     return result + pageSize;
 # endif
   }
-  else
-    qFatal("SMemoryPool: Failed to allocate a block of size %u", unsigned(size));
+#elif defined(Q_OS_WIN)
+# ifndef USE_GUARD_PAGES
+  void * const result =
+      ::VirtualAlloc(NULL, size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+# else
+  quint8 * const result = reinterpret_cast<quint8 *>(
+      ::VirtualAlloc(NULL, size + (pageSize * 2), MEM_RESERVE, PAGE_READWRITE));
+# endif
+
+  if (result != NULL)
+  {
+# ifndef USE_GUARD_PAGES
+    return result;
+# else
+    ::VirtualAlloc(result + pageSize, size, MEM_COMMIT, PAGE_READWRITE);
+    return result + pageSize;
+# endif
+  }
+#else
+  quint8 * const buffer = (new quint8[size + sizeof(quint8 *) + pageSize]) + sizeof(quint8 *);
+  quint8 * const result = (quint8 *)(quintptr(buffer + pageSize) & ~quintptr(pageSize - 1));
+  reinterpret_cast<quint8 **>(result)[-1] = buffer;
+
+  return result;
 #endif
 
+  qFatal("SMemoryPool: Failed to allocate a block of size %u", unsigned(size));
   return NULL;
 }
 
@@ -203,10 +234,18 @@ void SMemoryPool::freePages(void *addr, size_t size)
 
 #if defined(Q_OS_UNIX)
 # ifndef USE_GUARD_PAGES
-  ::munmap(i->addr, i->size);
+  ::munmap(addr, size);
 # else
   ::munmap(reinterpret_cast<quint8 *>(addr) - pageSize, size + (pageSize * 2));
 # endif
+#elif defined(Q_OS_WIN)
+# ifndef USE_GUARD_PAGES
+  ::VirtualFree(addr, 0, MEM_RELEASE);
+# else
+  ::VirtualFree(reinterpret_cast<quint8 *>(addr) - pageSize, 0, MEM_RELEASE);
+# endif
+#else
+  delete [] reinterpret_cast<quint8 **>(addr)[-1];
 #endif
 }
 
