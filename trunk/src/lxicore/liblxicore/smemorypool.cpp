@@ -159,18 +159,16 @@ void SMemoryPool::free(void *ptr)
     // Flush all free buffers if there are no more buffers in use.
     if (allocPool().isEmpty())
     {
-#ifndef QT_NO_DEBUG
       size_t size = 0;
-      foreach (const Block &block, freePool())
-        size += block.size;
-
-      qDebug() << "SMemoryPool: flushing free pool of" << (size / 1048576) << "MiB";
-#endif
-
       foreach (const Block &block, freePool().values())
+      {
+        size += block.size;
         freePages(block.addr, block.size);
+      }
 
       freePool().clear();
+
+      //qDebug() << "SMemoryPool: flushed free pool of" << (size / 1024) << "KiB";
     }
   }
 }

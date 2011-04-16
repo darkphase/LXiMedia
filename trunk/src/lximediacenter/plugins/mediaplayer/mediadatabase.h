@@ -144,10 +144,6 @@ private:
   ImdbClient            * const imdbClient;
   SSandboxClient        * const probeSandbox;
 
-  QStringList                   probeQueue;
-  const unsigned                maxProbeCount;
-  unsigned                      probeCount;
-
   QFileSystemWatcher            fileSystemWatcher;
   QMap<QString, QStringList>    rootPaths;
   QTimer                        scanRootTimer;
