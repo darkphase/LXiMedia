@@ -265,9 +265,32 @@ void SHttpServerEngine::handleHttpRequest(const SHttpEngine::RequestHeader &requ
 }
 
 
+const QEvent::Type  SHttpClientEngine::socketDestroyedEventType = QEvent::Type(QEvent::registerEventType());
+
 struct SHttpClientEngine::Data
 {
+  class Socket : public QTcpSocket
+  {
+  public:
+    Socket(SHttpClientEngine *parent)
+      : QTcpSocket(parent), parent(parent)
+    {
+    }
+
+    virtual ~Socket()
+    {
+      if (parent)
+        qApp->postEvent(parent, new QEvent(socketDestroyedEventType));
+    }
+
+  private:
+    const QPointer<SHttpClientEngine> parent;
+  };
+
   QString                       senderId;
+
+  int                           maxOpenSockets;
+  int                           openSockets;
 };
 
 SHttpClientEngine::SHttpClientEngine(QObject *parent)
@@ -285,6 +308,9 @@ SHttpClientEngine::SHttpClientEngine(QObject *parent)
 #elif defined(Q_OS_WIN)
   d->senderId += " Windows";
 #endif
+
+  d->maxOpenSockets = qMax(1, QThread::idealThreadCount()) * 2;
+  d->openSockets = 0;
 }
 
 SHttpClientEngine::~SHttpClientEngine()
@@ -309,6 +335,32 @@ void SHttpClientEngine::sendRequest(const SHttpEngine::RequestMessage &request)
 
   connect(clientRequest, SIGNAL(response(SHttpEngine::ResponseMessage)), SLOT(handleResponse(SHttpEngine::ResponseMessage)));
   openRequest(request, clientRequest, SLOT(start(QAbstractSocket *)));
+}
+
+void SHttpClientEngine::customEvent(QEvent *e)
+{
+  if (e->type() == socketDestroyedEventType)
+    socketDestroyed();
+  else
+    QObject::customEvent(e);
+}
+
+int SHttpClientEngine::socketsAvailable(void) const
+{
+  return d->maxOpenSockets - d->openSockets;
+}
+
+QAbstractSocket * SHttpClientEngine::createSocket(void)
+{
+  d->openSockets++;
+
+  return new Data::Socket(this);
+}
+
+void SHttpClientEngine::socketDestroyed(void)
+{
+  Q_ASSERT(d->openSockets > 0);
+  d->openSockets--;
 }
 
 void SHttpClientEngine::handleResponse(const SHttpEngine::ResponseMessage &message)

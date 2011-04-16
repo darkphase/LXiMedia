@@ -244,11 +244,19 @@ signals:
   void                          response(const SHttpEngine::ResponseMessage &);
   void                          opened(QAbstractSocket *);
 
+protected:
+  virtual void                  customEvent(QEvent *);
+
+  int                           socketsAvailable(void) const;
+  QAbstractSocket             * createSocket(void);
+  virtual void                  socketDestroyed(void);
+
 protected slots:
   virtual void                  handleResponse(const SHttpEngine::ResponseMessage &);
 
 private:
-  class SocketHandler;
+  __internal static const QEvent::Type socketDestroyedEventType;
+
   struct Data;
   Data                  * const d;
 };

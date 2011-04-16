@@ -205,11 +205,11 @@ void HttpServerRequest::readyRead()
 }
 
 
-HttpSocketRequest::HttpSocketRequest(QObject *parent, const QHostAddress &host, quint16 port, const QByteArray &message)
+HttpSocketRequest::HttpSocketRequest(QObject *parent, QAbstractSocket *socket, const QHostAddress &host, quint16 port, const QByteArray &message)
   : QObject(parent),
     port(port),
     message(message),
-    socket(new QTcpSocket(parent))
+    socket(socket)
 {
 #ifdef TRACE_CONNECTIONS
   qDebug() << this << "HttpSocketRequest::HttpSocketRequest" << host.toString() << port;
@@ -234,11 +234,11 @@ HttpSocketRequest::HttpSocketRequest(QObject *parent, const QHostAddress &host, 
   failTimer.start(maxTTL);
 }
 
-HttpSocketRequest::HttpSocketRequest(QObject *parent, const QString &host, quint16 port, const QByteArray &message)
+HttpSocketRequest::HttpSocketRequest(QObject *parent, QAbstractSocket *socket, const QString &host, quint16 port, const QByteArray &message)
   : QObject(parent),
     port(port),
     message(message),
-    socket(new QTcpSocket(parent))
+    socket(socket)
 {
 #ifdef TRACE_CONNECTIONS
   qDebug() << this << "HttpSocketRequest::HttpSocketRequest" << host << port;
