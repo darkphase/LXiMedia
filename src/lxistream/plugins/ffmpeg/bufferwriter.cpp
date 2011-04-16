@@ -65,6 +65,9 @@ bool BufferWriter::openFormat(const QString &name)
 #if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(52, 72, 0)
     formatContext->preload = AV_TIME_BASE / 100;
     formatContext->max_delay = AV_TIME_BASE / 100;
+#else
+    formatContext->preload = int(0.5 * AV_TIME_BASE);
+    formatContext->max_delay = int(0.7 * AV_TIME_BASE);
 #endif
 
     return true;

@@ -238,10 +238,10 @@ void SHttpStreamProxy::processData(void)
     }
     else
       s++;
-
-    if (d->sockets.isEmpty())
-      disconnectAllSockets();
   }
+
+  if (d->sockets.isEmpty() && !d->caching)
+    disconnectAllSockets();
 }
 
 void SHttpStreamProxy::flushData(void)
