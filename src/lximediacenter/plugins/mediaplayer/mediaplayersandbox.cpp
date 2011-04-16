@@ -137,6 +137,8 @@ void MediaPlayerSandbox::customEvent(QEvent *e)
 
 void MediaPlayerSandbox::probe(const SSandboxServer::RequestHeader &request, QAbstractSocket *socket, const QString &file)
 {
+  qDebug() << "Probing:" << file;
+
   FileNode fileNode(file);
   if (!fileNode.isNull())
     qApp->postEvent(this, new ProbeResponseEvent(request, socket, fileNode.toByteArray(-1)));

@@ -115,9 +115,7 @@ void MediaDatabase::destroyInstance(void)
 MediaDatabase::MediaDatabase(BackendServer::MasterServer *masterServer, QObject *parent)
   : QObject(parent),
     imdbClient(masterServer->imdbClient()),
-    probeSandbox(masterServer->createSandbox(SSandboxClient::Mode_Nice)),
-    maxProbeCount(QThread::idealThreadCount() * 2),
-    probeCount(0)
+    probeSandbox(masterServer->createSandbox(SSandboxClient::Mode_Nice))
 {
   PluginSettings settings(Module::pluginName);
 
@@ -817,17 +815,6 @@ void MediaDatabase::probeFinished(const SHttpEngine::ResponseMessage &message)
   {
     qDebug() << "probeFinished" << message.status();
   }
-
-  if (!probeQueue.isEmpty())
-  {
-    qDebug() << "Probing:" << probeQueue.first();
-
-    SSandboxClient::RequestMessage request(probeSandbox);
-    request.setRequest("GET", QByteArray(MediaPlayerSandbox::path) + "?probe=" + probeQueue.takeFirst().toUtf8().toHex());
-    probeSandbox->sendRequest(request);
-  }
-  else
-    probeCount--;
 }
 
 QString MediaDatabase::findRoot(const QString &path, const QStringList &allRootPaths) const
@@ -989,18 +976,9 @@ void MediaDatabase::probeFile(
     // are still being copied).
     if (QFile(path).open(QFile::ReadOnly))
     {
-      if (probeCount < maxProbeCount)
-      {
-        qDebug() << "Probing:" << path;
-
-        SSandboxClient::RequestMessage request(probeSandbox);
-        request.setRequest("GET", QByteArray(MediaPlayerSandbox::path) + "?probe=" + path.toUtf8().toHex());
-        probeSandbox->sendRequest(request);
-
-        probeCount++;
-      }
-      else
-        probeQueue.append(path);
+      SSandboxClient::RequestMessage request(probeSandbox);
+      request.setRequest("GET", QByteArray(MediaPlayerSandbox::path) + "?probe=" + path.toUtf8().toHex());
+      probeSandbox->sendRequest(request);
     }
     else
     {
