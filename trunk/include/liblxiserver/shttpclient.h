@@ -37,6 +37,9 @@ public:
 public: // From HttpClientEngine
   virtual void                  openRequest(const RequestMessage &header, QObject *receiver, const char *slot);
 
+protected:
+  virtual void                  socketDestroyed(void);
+      
 private slots:
   __internal void               openRequest(void);
 

@@ -20,11 +20,7 @@
 #include "httpenginetest.h"
 #include <QtTest>
 
-#ifdef Q_OS_WIN
-const int HttpEngineTest::numResponses = 1;
-#else
 const int HttpEngineTest::numResponses = 100;
-#endif
 
 void HttpEngineTest::initTestCase(void)
 {

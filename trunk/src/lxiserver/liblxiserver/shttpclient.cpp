@@ -72,14 +72,22 @@ void SHttpClient::openRequest(const RequestMessage &message, QObject *receiver, 
   }
 }
 
+void SHttpClient::socketDestroyed(void)
+{
+  SHttpClientEngine::socketDestroyed();
+
+  if (!d->requestPending)
+    openRequest();
+}
+
 void SHttpClient::openRequest(void)
 {
-  if (!d->requests.isEmpty())
+  if (!d->requests.isEmpty() && (socketsAvailable() > 0))
   {
     d->requestPending = true;
 
     const Data::Request request = d->requests.takeFirst();
-    HttpSocketRequest * const socketRequest = new HttpSocketRequest(this, request.hostname, request.port, request.message);
+    HttpSocketRequest * const socketRequest = new HttpSocketRequest(this, createSocket(), request.hostname, request.port, request.message);
 
     connect(socketRequest, SIGNAL(connected(QAbstractSocket *)), request.receiver, request.slot);
     connect(socketRequest, SIGNAL(connected(QAbstractSocket *)), SLOT(openRequest()));

@@ -89,6 +89,14 @@ void SSandboxClient::openRequest(const RequestMessage &message, QObject *receive
     openRequest();
 }
 
+void SSandboxClient::socketDestroyed(void)
+{
+  SHttpClientEngine::socketDestroyed();
+
+  if (!d->requestPending)
+    openRequest();
+}
+
 void SSandboxClient::processStarted(const QHostAddress &address, quint16 port)
 {
   d->address = address;
@@ -99,14 +107,14 @@ void SSandboxClient::processStarted(const QHostAddress &address, quint16 port)
 
 void SSandboxClient::openRequest(void)
 {
-  if (!d->requests.isEmpty())
+  if (!d->requests.isEmpty() && (socketsAvailable() > 0))
   {
     d->requestPending = true;
 
     if (d->serverProcess != NULL)
     {
       const Data::Request request = d->requests.takeFirst();
-      HttpSocketRequest * const socketRequest = new HttpSocketRequest(this, d->address, d->port, request.message);
+      HttpSocketRequest * const socketRequest = new HttpSocketRequest(this, createSocket(), d->address, d->port, request.message);
 
       connect(socketRequest, SIGNAL(connected(QAbstractSocket *)), request.receiver, request.slot);
       connect(socketRequest, SIGNAL(connected(QAbstractSocket *)), SLOT(openRequest()));

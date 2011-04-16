@@ -80,8 +80,8 @@ class HttpSocketRequest : public QObject
 {
 Q_OBJECT
 public:
-  explicit                      HttpSocketRequest(QObject *, const QHostAddress &host, quint16 port, const QByteArray &message = QByteArray());
-  explicit                      HttpSocketRequest(QObject *, const QString &host, quint16 port, const QByteArray &message = QByteArray());
+  explicit                      HttpSocketRequest(QObject *, QAbstractSocket *, const QHostAddress &host, quint16 port, const QByteArray &message = QByteArray());
+  explicit                      HttpSocketRequest(QObject *, QAbstractSocket *, const QString &host, quint16 port, const QByteArray &message = QByteArray());
   virtual                       ~HttpSocketRequest();
 
 signals:
@@ -97,7 +97,7 @@ private:
   static const int              maxTTL = 15000;
   const quint16                 port;
   QByteArray                    message;
-  QTcpSocket                  * socket;
+  QAbstractSocket             * socket;
   QTimer                        failTimer;
 };
 

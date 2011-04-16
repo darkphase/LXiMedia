@@ -54,6 +54,9 @@ signals:
    */
   void                          consoleLine(const QString &);
 
+protected:
+  virtual void                  socketDestroyed(void);
+
 private slots:
   __internal void               processStarted(const QHostAddress &, quint16);
   __internal void               openRequest(void);
