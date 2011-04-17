@@ -292,51 +292,14 @@ Backend::SearchCacheEntry Backend::search(const QString &query) const
 
   QTime timer;
   timer.start();
+  SearchCacheEntry entry;
 
-  // Start parallel searches
-  /*class Query : public QRunnable
-  {
-  public:
-    inline Query(const BackendServer *backendServer, const QStringList &query)
-      : backendServer(backendServer),
-        query(query)
-    {
-      setAutoDelete(false);
-    }
-
-    virtual void run(void)
-    {
-      result = backendServer->search(query);
-      finished.release(1);
-    }
-
-  public:
-    const BackendServer * const backendServer;
-    const QStringList query;
-
-    BackendServer::SearchResultList result;
-    QSemaphore finished;
-  };
-
-  QList<QRunnable *> tasks;
   foreach (const BackendServer *backendServer, backendServers)
   {
-    QRunnable * const q = new Query(backendServer, queryRaw);
-    QThreadPool::globalInstance()->start(q, 1); // High priority since these need to be responsive.
-    tasks += q;
-  }
+    const QByteArray baseUrl = backendServer->serverPath().toUtf8();
 
-  // Gather all results, this will block until the tasks are ready.
-  SearchCacheEntry entry;
-  foreach (QRunnable *r, tasks)
-  {
-    Query * const q = static_cast<Query *>(r);
-    q->finished.acquire(1);
-
-    foreach (BackendServer::SearchResult result, q->result)
+    foreach (BackendServer::SearchResult result, backendServer->search(queryRaw))
     {
-      const QByteArray baseUrl = q->backendServer->serverPath().toUtf8();
-
       if (!result.location.isEmpty())
         result.location = baseUrl + result.location;
 
@@ -345,8 +308,6 @@ Backend::SearchCacheEntry Backend::search(const QString &query) const
 
       entry.results.insert(1.0 - result.relevance, result);
     }
-
-    delete q;
   }
 
   entry.duration = timer.elapsed();
@@ -364,8 +325,7 @@ Backend::SearchCacheEntry Backend::search(const QString &query) const
   else
     i++;
 
-  return entry;*/
-  return SearchCacheEntry();
+  return entry;
 }
 
 void Backend::customEvent(QEvent *e)

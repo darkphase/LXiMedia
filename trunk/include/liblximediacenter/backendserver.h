@@ -78,7 +78,7 @@ public:
   virtual QString               serverPath(void) const;
 
   virtual QByteArray            frontPageWidget(void) const;
-  virtual SearchResultList      search(const QStringList &) const;
+  virtual SearchResultList      search(const QStringList &rawQuery) const;
 
 public:
   SHttpServer::SocketOp         sendResponse(const SHttpServer::RequestHeader &, QAbstractSocket *, const QByteArray &, const char * = dataMime, bool allowCache = false, const QString &redir = QString::null) const;

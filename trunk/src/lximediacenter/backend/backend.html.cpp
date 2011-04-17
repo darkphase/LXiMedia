@@ -507,8 +507,8 @@ SHttpServer::SocketOp Backend::handleHtmlSearch(const SHttpServer::RequestMessag
   int count = 0;
 
   htmlParser.setField("TIME", QByteArray::number(qreal(entry.duration) / 1000.0, 'f', 2));
-  htmlParser.setField("FROM", QByteArray::number(first));
-  htmlParser.setField("TO", QByteArray::number(last));
+  htmlParser.setField("FROM", QByteArray::number(first + 1));
+  htmlParser.setField("TO", QByteArray::number(last + 1));
   htmlParser.setField("OF", QByteArray::number(entry.results.count()));
 
   for (QMultiMap<qreal, BackendServer::SearchResult>::ConstIterator i = entry.results.begin();
