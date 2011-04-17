@@ -60,10 +60,10 @@ protected: // From SInterfaces::BufferReader::WriteCallback
   virtual void                  write(const uchar *, qint64);
 
 private:
-  __internal void               blockUntil(STime);
+  _lxi_internal void            blockUntil(STime);
 
 private slots:
-  __internal void               closed(void);
+  _lxi_internal void            closed(void);
 
 public:
   static const int              outBufferSize;

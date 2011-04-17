@@ -54,8 +54,8 @@ signals:
   void                          output(const SVideoBuffer &);
 
 private slots:
-  __internal void               produced(const SAudioBuffer &);
-  __internal void               produced(const SVideoBuffer &);
+  _lxi_internal void            produced(const SAudioBuffer &);
+  _lxi_internal void            produced(const SVideoBuffer &);
 
 private:
   struct Data;

@@ -53,16 +53,16 @@ protected: // From SHttpServer::Callback
   virtual SHttpServer::SocketOp  handleHttpRequest(const SHttpServer::RequestMessage &, QAbstractSocket *);
 
 private slots:
-  __internal void               emitEvents(void);
+  _lxi_internal void            emitEvents(void);
 
 private:
-  __internal QString            makeSid(void);
+  _lxi_internal QString         makeSid(void);
 
 public:
   static const char     * const eventNS;
 
 private:
-  __internal static const QEvent::Type scheduleEventType;
+  _lxi_internal static const QEvent::Type scheduleEventType;
 
   class EventSession;
   struct Data;

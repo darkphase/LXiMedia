@@ -53,7 +53,7 @@ signals:
   void                          output(const SVideoBuffer &);
 
 private:
-  __internal void               processTask(const SEncodedVideoBuffer &, SInterfaces::VideoDecoder *decoder);
+  _lxi_internal void            processTask(const SEncodedVideoBuffer &, SInterfaces::VideoDecoder *decoder);
 
 private:
   struct Data;

@@ -57,22 +57,22 @@ public:
                                 GlobalSettings(void);
 
 public:
-  __pure static QList<QHostAddress> defaultBackendInterfaces(void);
-  __pure static quint16         defaultBackendHttpPort(void);
+  _lxi_pure static QList<QHostAddress> defaultBackendInterfaces(void);
+  _lxi_pure static quint16      defaultBackendHttpPort(void);
 
-  __pure static QUuid           serverUuid(void);
-  __pure static QString         settingsFile(void);
-  __pure static QString         databaseFile(void);
-  __pure static QString         applicationDataDir(void);
+  _lxi_pure static QUuid        serverUuid(void);
+  _lxi_pure static QString      settingsFile(void);
+  _lxi_pure static QString      databaseFile(void);
+  _lxi_pure static QString      applicationDataDir(void);
 
 #ifndef TRAYICON_ONLY
-  __pure static QList<TranscodeSize> allTranscodeSizes(void);
-  __pure static QString         defaultTranscodeSizeName(void);
-  __pure static QString         defaultTranscodeCropName(void);
-  __pure static QString         defaultEncodeModeName(void);
-  __pure static QList<TranscodeChannel> allTranscodeChannels(void);
-  __pure static QString         defaultTranscodeChannelName(void);
-  __pure static QString         defaultTranscodeMusicChannelName(void);
+  _lxi_pure static QList<TranscodeSize> allTranscodeSizes(void);
+  _lxi_pure static QString      defaultTranscodeSizeName(void);
+  _lxi_pure static QString      defaultTranscodeCropName(void);
+  _lxi_pure static QString      defaultEncodeModeName(void);
+  _lxi_pure static QList<TranscodeChannel> allTranscodeChannels(void);
+  _lxi_pure static QString      defaultTranscodeChannelName(void);
+  _lxi_pure static QString      defaultTranscodeMusicChannelName(void);
 #endif
 };
 

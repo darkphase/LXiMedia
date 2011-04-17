@@ -53,7 +53,7 @@ signals:
   void                          output(const SAudioBuffer &);
 
 private:
-  __internal void               processTask(const SEncodedAudioBuffer &, SInterfaces::AudioDecoder *decoder);
+  _lxi_internal void            processTask(const SEncodedAudioBuffer &, SInterfaces::AudioDecoder *decoder);
 
 private:
   struct Data;

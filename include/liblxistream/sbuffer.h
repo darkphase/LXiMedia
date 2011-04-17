@@ -154,7 +154,7 @@ public: // Alignment methods
   static const int              numPaddingBytes;
 
 private:
-  __internal static QAtomicInt  uidCounter;
+  _lxi_internal static QAtomicInt uidCounter;
 
   MemoryPtr                     d;
 };

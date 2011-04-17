@@ -61,10 +61,10 @@ signals:
   void                          output(const SSubtitleBuffer &);
 
 private:
-  __internal STime              correct(const STime &);
+  _lxi_internal STime           correct(const STime &);
 
 private:
-  __internal static const int   numChannels = 4;
+  _lxi_internal static const int numChannels = 4;
 
   struct Data;
   Data                  * const d;

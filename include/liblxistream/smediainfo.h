@@ -88,8 +88,8 @@ public:
   static const unsigned         tvShowSeason;
 
 private:
-  __internal void               probe(const QString &);
-  __internal void               probeDataStreams(void);
+  _lxi_internal void            probe(const QString &);
+  _lxi_internal void            probeDataStreams(void);
 
 private:
   QSharedDataPointer<ProbeInfo> pi;

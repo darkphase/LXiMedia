@@ -41,7 +41,7 @@ protected:
   virtual void                  socketDestroyed(void);
       
 private slots:
-  __internal void               openRequest(void);
+  _lxi_internal void            openRequest(void);
 
 private:
   struct Data;

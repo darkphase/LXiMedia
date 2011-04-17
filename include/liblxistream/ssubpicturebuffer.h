@@ -61,7 +61,7 @@ public:
   quint8                      * lines(int rectId);
 
 private:
-  __pure __internal static int  rectSize(const Rect &rect);
+  _lxi_pure _lxi_internal static int rectSize(const Rect &rect);
 
 private:
   struct

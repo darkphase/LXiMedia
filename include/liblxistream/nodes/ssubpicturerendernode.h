@@ -46,9 +46,9 @@ signals:
   void                          output(const SVideoBuffer &);
 
 private:
-  __internal void               processTask(const SSubpictureBuffer &);
-  __internal void               processTask(const SVideoBuffer &);
-  __internal static void        buildPalette(const SPixels::RGBAPixel *, int, SVideoFormat::Format, QByteArray &);
+  _lxi_internal void            processTask(const SSubpictureBuffer &);
+  _lxi_internal void            processTask(const SVideoBuffer &);
+  _lxi_internal static void     buildPalette(const SPixels::RGBAPixel *, int, SVideoFormat::Format, QByteArray &);
 
 private:
   struct Data;

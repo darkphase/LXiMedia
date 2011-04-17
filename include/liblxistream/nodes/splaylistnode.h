@@ -67,11 +67,11 @@ signals:
   void                          closed(const QString &, quint16);
 
 private:
-  __internal SFileInputNode   * openFile(const QString &, quint16);
-  __internal void               openNext(void);
+  _lxi_internal SFileInputNode * openFile(const QString &, quint16);
+  _lxi_internal void            openNext(void);
 
 private slots:
-  __internal void               closeFile(void);
+  _lxi_internal void            closeFile(void);
 
 private:
   struct Data;

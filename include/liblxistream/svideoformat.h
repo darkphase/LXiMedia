@@ -100,11 +100,11 @@ public:
   static inline bool            isYUV(Format f)                                 { return (f >= 0x2100) && (f < 0x2200); }
   static inline bool            isBayerArray(Format f)                          { return (f >= 0x2200) && (f < 0x2300); }
 
-  __pure static int             sampleSize(Format);
-  __pure static int             numPlanes(Format);
-  __pure static bool            planarYUVRatio(Format, int &w, int &h);
-  __pure static quint32         nullPixelValue(Format);
-  __pure static const char    * formatName(Format);
+  _lxi_pure static int          sampleSize(Format);
+  _lxi_pure static int          numPlanes(Format);
+  _lxi_pure static bool         planarYUVRatio(Format, int &w, int &h);
+  _lxi_pure static quint32      nullPixelValue(Format);
+  _lxi_pure static const char * formatName(Format);
 
 private:
   struct

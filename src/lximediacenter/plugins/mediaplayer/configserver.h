@@ -43,7 +43,7 @@ public:
   virtual QString               pluginName(void) const;
   virtual QString               serverName(void) const;
 
-  __pure static const QSet<QString> & hiddenDirs(void);
+  _lxi_pure static const QSet<QString> & hiddenDirs(void);
 
 protected: // From SHttpServer::Callback
   virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestMessage &, QAbstractSocket *);

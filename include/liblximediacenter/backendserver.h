@@ -93,8 +93,8 @@ public:
   static const char     * const searchDateTimeFormat;
 
 private:
-  __internal static const char * const dataMime;
-  __internal static const char * const textMime;
+  _lxi_internal static const char * const dataMime;
+  _lxi_internal static const char * const textMime;
 
 protected:
   static const char     * const htmlFrontPageWidget;

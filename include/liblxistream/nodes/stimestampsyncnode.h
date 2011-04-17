@@ -56,7 +56,7 @@ signals:
   void                          output(const SVideoBuffer &);
 
 private:
-  __internal void               output(void);
+  _lxi_internal void            output(void);
 
 private:
   template <class _buffer> struct Queue;

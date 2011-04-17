@@ -155,7 +155,7 @@ void SScheduler::start(Runnable *runnable, Priority priority)
 
   if (runnable->depends != NULL)
   {
-    if (__expect(runnable->depends->scheduler != this, false))
+    if (runnable->depends->scheduler != this)
       qFatal("The specified task dependency is not created for this scheduler.");
 
     QMutexLocker l(&d->mutex);
