@@ -136,7 +136,7 @@ public:
                                 RequestMessage(const QByteArray &, const SHttpEngine * = NULL);
 
     inline const QByteArray   & content(void) const                             { return data; }
-    inline void                 setContent(const QByteArray &content)           { data = content; }
+    void                        setContent(const QByteArray &content);
 
     QByteArray                  toByteArray(void) const;
     inline                      operator QByteArray() const                     { return toByteArray(); }
@@ -197,7 +197,7 @@ public:
 
   struct Callback
   {
-    virtual SocketOp            handleHttpRequest(const RequestHeader &, QAbstractSocket *) = 0;
+    virtual SocketOp            handleHttpRequest(const RequestMessage &, QAbstractSocket *) = 0;
   };
 
 public:
@@ -211,13 +211,12 @@ public:
   virtual const QString       & senderId(void) const;
 
 public:
-  static QByteArray             readContent(const RequestHeader &, QAbstractSocket *);
   static SocketOp               sendResponse(const RequestHeader &, QAbstractSocket *, Status, const QByteArray &content, const QObject * = NULL);
   static SocketOp               sendResponse(const RequestHeader &, QAbstractSocket *, Status, const QObject * = NULL);
   static SocketOp               sendRedirect(const RequestHeader &, QAbstractSocket *, const QString &);
 
 private slots:
-  __internal void               handleHttpRequest(const SHttpEngine::RequestHeader &, QAbstractSocket *);
+  __internal void               handleHttpRequest(const SHttpEngine::RequestMessage &, QAbstractSocket *);
 
 private:
   struct Data;

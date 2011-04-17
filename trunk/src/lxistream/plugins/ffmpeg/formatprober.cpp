@@ -138,8 +138,8 @@ void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *readCallback)
           pi.isProbed = true;
           pi.isReadable = true;
 
-          bufferReader.setPosition(qMax(bufferReader.duration() / 8, STime::fromSec(5)), AVSEEK_FLAG_BYTE);
-          for (unsigned i=0; (i<4096) && (produceCallback.bufferCount<256); i++)
+          bufferReader.setPosition(qMax(bufferReader.duration() / 8, STime::fromSec(5)));
+          for (unsigned i=0; (i<4096) && (produceCallback.bufferCount<64); i++)
             bufferReader.process();
 
           for (QMap<quint16, SEncodedVideoBufferList>::Iterator i = produceCallback.videoBuffers.begin();

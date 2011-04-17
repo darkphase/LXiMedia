@@ -50,7 +50,7 @@ QString MediaPlayerServer::pluginName(void) const
   return Module::pluginName;
 }
 
-MediaPlayerServer::Stream * MediaPlayerServer::streamVideo(const SHttpServer::RequestHeader &request)
+MediaPlayerServer::Stream * MediaPlayerServer::streamVideo(const SHttpServer::RequestMessage &request)
 {
   QUrl url(request.path());
   if (url.hasQueryItem("query"))
@@ -332,7 +332,7 @@ MediaPlayerServer::Item::Type MediaPlayerServer::defaultItemType(Item::Type type
   }
 }
 
-SHttpServer::SocketOp MediaPlayerServer::handleHttpRequest(const SHttpServer::RequestHeader &request, QAbstractSocket *socket)
+SHttpServer::SocketOp MediaPlayerServer::handleHttpRequest(const SHttpServer::RequestMessage &request, QAbstractSocket *socket)
 {
   const QUrl url(request.path());
   const QString file = request.file();

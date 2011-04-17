@@ -64,7 +64,7 @@ public slots:
   void                          start(QAbstractSocket *);
 
 signals:
-  void                          handleHttpRequest(const SHttpEngine::RequestHeader &, QAbstractSocket *);
+  void                          handleHttpRequest(const SHttpEngine::RequestMessage &, QAbstractSocket *);
 
 private slots:
   void                          readyRead();
@@ -74,6 +74,8 @@ private:
   const QPointer<SHttpServerEngine> parent;
   QAbstractSocket             * socket;
   QByteArray                    data;
+  bool                          headerReceived;
+  QByteArray                    content;
   QTimer                        closeTimer;
 };
 

@@ -49,14 +49,14 @@ Sandbox::~Sandbox()
 
 void Sandbox::start(const QString &mode)
 {
-  sandboxServer.initialize(mode);
+  stopTimer.start();
 
   // Load plugins
   backendSandboxes = BackendSandbox::create(this);
   foreach (BackendSandbox *sandbox, backendSandboxes)
     sandbox->initialize(&sandboxServer);
 
-  stopTimer.start();
+  sandboxServer.initialize(mode);
 
   qDebug() << "Finished initialization of sandbox process" << qApp->applicationPid();
 }

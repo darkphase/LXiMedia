@@ -34,7 +34,7 @@ PlaylistServer::~PlaylistServer()
 {
 }
 
-PlaylistServer::Stream * PlaylistServer::streamVideo(const SHttpServer::RequestHeader &request)
+PlaylistServer::Stream * PlaylistServer::streamVideo(const SHttpServer::RequestMessage &request)
 {
   const QStringList file = request.file().split('.');
   if (file.first() == "playlist")
@@ -122,7 +122,7 @@ QList<PlaylistServer::Item> PlaylistServer::listItems(const QString &path, unsig
   return result;
 }
 
-SHttpServer::SocketOp PlaylistServer::handleHttpRequest(const SHttpServer::RequestHeader &request, QAbstractSocket *socket)
+SHttpServer::SocketOp PlaylistServer::handleHttpRequest(const SHttpServer::RequestMessage &request, QAbstractSocket *socket)
 {
   const QUrl url(request.path());
   const QString file = request.file();

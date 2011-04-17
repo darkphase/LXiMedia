@@ -478,7 +478,7 @@ STime BufferReader::duration(void) const
   return STime();
 }
 
-bool BufferReader::setPosition(STime pos, int flags)
+bool BufferReader::setPosition(STime pos)
 {
   if (formatContext)
   {
@@ -492,7 +492,7 @@ bool BufferReader::setPosition(STime pos, int flags)
       return true; // Not started yet and seeking to start.
 
     if (pos.isValid())
-    if (::av_seek_frame(formatContext, -1, pos.toClock(AV_TIME_BASE), flags) >= 0)
+    if (::av_seek_frame(formatContext, -1, pos.toClock(AV_TIME_BASE), 0) >= 0)
     {
       for (unsigned i=0; i<formatContext->nb_streams; i++)
       if (streamContext[i])
@@ -503,11 +503,6 @@ bool BufferReader::setPosition(STime pos, int flags)
   }
 
   return false;
-}
-
-bool BufferReader::setPosition(STime pos)
-{
-  return setPosition(pos, 0);
 }
 
 STime BufferReader::position(void) const

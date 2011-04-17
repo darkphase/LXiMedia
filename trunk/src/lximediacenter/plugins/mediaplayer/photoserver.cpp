@@ -33,7 +33,7 @@ PhotoServer::~PhotoServer()
 {
 }
 
-PhotoServer::Stream * PhotoServer::streamVideo(const SHttpServer::RequestHeader &request)
+PhotoServer::Stream * PhotoServer::streamVideo(const SHttpServer::RequestMessage &request)
 {
   const QStringList file = request.file().split('.');
   if (file.first() == "playlist")
@@ -105,7 +105,7 @@ QList<PhotoServer::Item> PhotoServer::listItems(const QString &path, unsigned st
   return items;
 }
 
-SHttpServer::SocketOp PhotoServer::handleHttpRequest(const SHttpServer::RequestHeader &request, QAbstractSocket *socket)
+SHttpServer::SocketOp PhotoServer::handleHttpRequest(const SHttpServer::RequestMessage &request, QAbstractSocket *socket)
 {
   const QUrl url(request.path());
   const QString file = request.file();
@@ -121,7 +121,7 @@ SHttpServer::SocketOp PhotoServer::handleHttpRequest(const SHttpServer::RequestH
   return PlaylistServer::handleHttpRequest(request, socket);
 }
 
-SHttpServer::SocketOp PhotoServer::sendPhoto(const SHttpServer::RequestHeader &request, QAbstractSocket *socket, MediaDatabase::UniqueID uid, const QString &format) const
+SHttpServer::SocketOp PhotoServer::sendPhoto(const SHttpServer::RequestMessage &request, QAbstractSocket *socket, MediaDatabase::UniqueID uid, const QString &format) const
 {
   const FileNode node = mediaDatabase->readNode(uid);
 

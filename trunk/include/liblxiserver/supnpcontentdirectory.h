@@ -130,10 +130,10 @@ public slots:
 
 protected: // From SUPnPBase
   virtual void                  buildDescription(QDomDocument &, QDomElement &);
-  virtual void                  handleSoapMessage(const QDomElement &, QDomDocument &, QDomElement &, const SHttpServer::RequestHeader &, const QHostAddress &);
+  virtual void                  handleSoapMessage(const QDomElement &, QDomDocument &, QDomElement &, const SHttpServer::RequestMessage &, const QHostAddress &);
 
 private:
-  __internal void               handleBrowse(const QDomElement &, QDomDocument &, QDomElement &, const SHttpServer::RequestHeader &, const QHostAddress &);
+  __internal void               handleBrowse(const QDomElement &, QDomDocument &, QDomElement &, const SHttpServer::RequestMessage &, const QHostAddress &);
   __internal QDomElement        didlDirectory(QDomDocument &, Item::Type, const QString &path, const QString &title = QString::null);
   __internal QDomElement        didlFile(QDomDocument &doc, const QString &peer, const QString &host, const Item &, const QString &path, const QString &title = QString::null);
   __internal void               emitEvent(bool dirty);

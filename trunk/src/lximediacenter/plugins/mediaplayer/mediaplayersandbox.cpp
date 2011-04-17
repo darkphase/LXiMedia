@@ -52,7 +52,7 @@ void MediaPlayerSandbox::close(void)
   server->unregisterCallback(this);
 }
 
-SSandboxServer::SocketOp MediaPlayerSandbox::handleHttpRequest(const SSandboxServer::RequestHeader &request, QAbstractSocket *socket)
+SSandboxServer::SocketOp MediaPlayerSandbox::handleHttpRequest(const SSandboxServer::RequestMessage &request, QAbstractSocket *socket)
 {
   const QUrl url(request.path());
 
@@ -64,24 +64,27 @@ SSandboxServer::SocketOp MediaPlayerSandbox::handleHttpRequest(const SSandboxSer
   }
   else if (url.hasQueryItem("playfile"))
   {
-    const SMediaInfo file = FileNode::fromByteArray(SHttpServer::readContent(request, socket));
-
-    SandboxFileStream * const stream = new SandboxFileStream(file.filePath());
-    if (stream->file.open(url.queryItemValue("pid").toUShort()))
-    if (stream->setup(request, socket))
-    if (stream->start())
+    const SMediaInfo file = FileNode::fromByteArray(request.content());
+    if (!file.isNull())
     {
-      streams.append(stream);
-      return SSandboxServer::SocketOp_LeaveOpen;
+      SandboxFileStream * const stream = new SandboxFileStream(file.filePath());
+      if (stream->file.open(url.queryItemValue("pid").toUShort()))
+      if (stream->setup(request, socket))
+      if (stream->start())
+      {
+        streams.append(stream);
+        return SSandboxServer::SocketOp_LeaveOpen;
+      }
+
+      delete stream;
     }
 
-    delete stream;
     return SSandboxServer::sendResponse(request, socket, SSandboxServer::Status_InternalServerError, this);
   }
   else if (url.hasQueryItem("playlist"))
   {
     SMediaInfoList files;
-    foreach (const QByteArray &node, SHttpServer::readContent(request, socket).split('\n'))
+    foreach (const QByteArray &node, request.content().split('\n'))
       files.append(FileNode::fromByteArray(node));
 
     SandboxPlaylistStream * const stream = new SandboxPlaylistStream(files);
@@ -98,7 +101,7 @@ SSandboxServer::SocketOp MediaPlayerSandbox::handleHttpRequest(const SSandboxSer
   else if (url.hasQueryItem("playslideshow"))
   {
     SMediaInfoList files;
-    foreach (const QByteArray &node, SHttpServer::readContent(request, socket).split('\n'))
+    foreach (const QByteArray &node, request.content().split('\n'))
       files.append(FileNode::fromByteArray(node));
 
     SandboxSlideShowStream * const stream = new SandboxSlideShowStream(files);
@@ -135,7 +138,7 @@ void MediaPlayerSandbox::customEvent(QEvent *e)
     BackendSandbox::customEvent(e);
 }
 
-void MediaPlayerSandbox::probe(const SSandboxServer::RequestHeader &request, QAbstractSocket *socket, const QString &file)
+void MediaPlayerSandbox::probe(const SSandboxServer::RequestMessage &request, QAbstractSocket *socket, const QString &file)
 {
   qDebug() << "Probing:" << file;
 
@@ -177,7 +180,7 @@ SandboxFileStream::~SandboxFileStream()
 {
 }
 
-bool SandboxFileStream::setup(const SHttpServer::RequestHeader &request, QAbstractSocket *socket)
+bool SandboxFileStream::setup(const SHttpServer::RequestMessage &request, QAbstractSocket *socket)
 {
   return MediaTranscodeStream::setup(request, socket, &file);
 }
@@ -195,7 +198,7 @@ SandboxPlaylistStream::SandboxPlaylistStream(const SMediaInfoList &files)
   connect(&playlistNode, SIGNAL(output(SEncodedDataBuffer)), &dataDecoder, SLOT(input(SEncodedDataBuffer)));
 }
 
-bool SandboxPlaylistStream::setup(const SHttpServer::RequestHeader &request, QAbstractSocket *socket)
+bool SandboxPlaylistStream::setup(const SHttpServer::RequestMessage &request, QAbstractSocket *socket)
 {
   return MediaTranscodeStream::setup(request, socket, &playlistNode);
 }
@@ -224,7 +227,7 @@ SandboxSlideShowStream::SandboxSlideShowStream(const SMediaInfoList &files)
   connect(&slideShow, SIGNAL(output(SVideoBuffer)), &subtitleRenderer, SLOT(input(SVideoBuffer)));
 }
 
-bool SandboxSlideShowStream::setup(const SHttpServer::RequestHeader &request, QAbstractSocket *socket)
+bool SandboxSlideShowStream::setup(const SHttpServer::RequestMessage &request, QAbstractSocket *socket)
 {
   if (MediaStream::setup(
           request, socket,

@@ -37,8 +37,6 @@ MediaStream::MediaStream(void)
     videoEncoder(this),
     output(this)
 {
-  connect(&output, SIGNAL(disconnected()), SLOT(stop()));
-
   // Audio
   connect(&timeStampResampler, SIGNAL(output(SAudioBuffer)), &audioResampler, SLOT(input(SAudioBuffer)));
   connect(&audioResampler, SIGNAL(output(SAudioBuffer)), &sync, SLOT(input(SAudioBuffer)));
@@ -66,7 +64,7 @@ MediaStream::~MediaStream()
   qDebug() << "Stopped stream";
 }
 
-bool MediaStream::setup(const SHttpServer::RequestHeader &request, QIODevice *socket, STime duration, SInterval frameRate, SSize size, SAudioFormat::Channels channels)
+bool MediaStream::setup(const SHttpServer::RequestMessage &request, QAbstractSocket *socket, STime duration, SInterval frameRate, SSize size, SAudioFormat::Channels channels)
 {
   QUrl url(request.path());
   if (url.hasQueryItem("query"))
@@ -269,7 +267,7 @@ bool MediaStream::setup(const SHttpServer::RequestHeader &request, QIODevice *so
   videoResizer.setAspectRatioMode(aspectRatioMode);
   videoBox.setSize(size);
 
-  connect(socket, SIGNAL(readChannelFinished()), SLOT(stop()));
+  connect(socket, SIGNAL(disconnected()), SLOT(stop()));
   socket->write(header);
   output.setIODevice(socket, true);
 
@@ -285,7 +283,7 @@ bool MediaStream::setup(const SHttpServer::RequestHeader &request, QIODevice *so
   return true;
 }
 
-bool MediaStream::setup(const SHttpServer::RequestHeader &request, QIODevice *socket, STime duration, SAudioFormat::Channels channels)
+bool MediaStream::setup(const SHttpServer::RequestMessage &request, QAbstractSocket *socket, STime duration, SAudioFormat::Channels channels)
 {
   QUrl url(request.path());
   if (url.hasQueryItem("query"))
@@ -393,7 +391,7 @@ bool MediaStream::setup(const SHttpServer::RequestHeader &request, QIODevice *so
     return false;
   }
 
-  connect(socket, SIGNAL(readChannelFinished()), SLOT(stop()));
+  connect(socket, SIGNAL(disconnected()), SLOT(stop()));
   socket->write(header);
   output.setIODevice(socket, true);
 
@@ -425,7 +423,7 @@ MediaTranscodeStream::MediaTranscodeStream(void)
   connect(&dataDecoder, SIGNAL(output(SSubtitleBuffer)), &timeStampResampler, SLOT(input(SSubtitleBuffer)));
 }
 
-bool MediaTranscodeStream::setup(const SHttpServer::RequestHeader &request, QIODevice *socket, SInterfaces::BufferReaderNode *input, STime duration)
+bool MediaTranscodeStream::setup(const SHttpServer::RequestMessage &request, QAbstractSocket *socket, SInterfaces::BufferReaderNode *input, STime duration)
 {
   const QUrl url(request.path());
 

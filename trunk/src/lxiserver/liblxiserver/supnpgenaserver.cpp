@@ -159,7 +159,7 @@ void SUPnPGenaServer::timerEvent(QTimerEvent *e)
     QObject::timerEvent(e);
 }
 
-SHttpServer::SocketOp SUPnPGenaServer::handleHttpRequest(const SHttpServer::RequestHeader &request, QAbstractSocket *socket)
+SHttpServer::SocketOp SUPnPGenaServer::handleHttpRequest(const SHttpServer::RequestMessage &request, QAbstractSocket *socket)
 {
   if (request.path() == path())
   {

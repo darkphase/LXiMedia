@@ -85,7 +85,7 @@ public:
   virtual void                  close(void);
 
 protected:
-  virtual Stream              * streamVideo(const SHttpServer::RequestHeader &) = 0;
+  virtual Stream              * streamVideo(const SHttpServer::RequestMessage &) = 0;
 
   virtual int                   countItems(const QString &path) = 0;
   virtual QList<Item>           listItems(const QString &path, unsigned start = 0, unsigned count = 0) = 0;
@@ -94,7 +94,7 @@ protected slots:
   virtual void                  cleanStreams(void);
 
 protected: // From SHttpServer::Callback
-  virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestHeader &, QAbstractSocket *);
+  virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestMessage &, QAbstractSocket *);
 
 private: // From UPnPContentDirectory::Callback
   virtual int                   countContentDirItems(const QString &path);

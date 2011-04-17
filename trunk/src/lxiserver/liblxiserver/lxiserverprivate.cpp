@@ -153,7 +153,8 @@ void HttpClientRequest::close()
 HttpServerRequest::HttpServerRequest(SHttpServerEngine *parent)
   : QObject(parent),
     parent(parent),
-    socket(NULL)
+    socket(NULL),
+    headerReceived(false)
 {
   Q_ASSERT(QThread::currentThread() == thread());
 
@@ -161,7 +162,7 @@ HttpServerRequest::HttpServerRequest(SHttpServerEngine *parent)
   qDebug() << this << "HttpServerRequest::HttpServerRequest";
 #endif
 
-  connect(this, SIGNAL(handleHttpRequest(SHttpEngine::RequestHeader, QAbstractSocket *)), parent, SLOT(handleHttpRequest(SHttpEngine::RequestHeader, QAbstractSocket *)));
+  connect(this, SIGNAL(handleHttpRequest(SHttpEngine::RequestMessage, QAbstractSocket *)), parent, SLOT(handleHttpRequest(SHttpEngine::RequestMessage, QAbstractSocket *)));
 
   connect(&closeTimer, SIGNAL(timeout()), SLOT(deleteLater()));
   closeTimer.setSingleShot(true);
@@ -194,6 +195,7 @@ void HttpServerRequest::start(QAbstractSocket *socket)
   if (socket)
   {
     this->socket = socket;
+    headerReceived = false;
 
     connect(socket, SIGNAL(readyRead()), SLOT(readyRead()), Qt::QueuedConnection);
     connect(socket, SIGNAL(disconnected()), SLOT(close()), Qt::QueuedConnection);
@@ -213,17 +215,47 @@ void HttpServerRequest::readyRead()
 #endif
 
   if (socket)
-  while (socket->canReadLine())
   {
-    data += socket->readLine();
-    if (data.endsWith("\r\n\r\n"))
+    if (!headerReceived)
+    while (socket->canReadLine())
     {
-      SHttpEngine::RequestHeader request(data, parent);
-      if (request.isValid())
+      data += socket->readLine();
+      if (data.endsWith("\r\n\r\n"))
+      {
+        headerReceived = true;
+        break;
+      }
+    }
+
+    if (headerReceived)
+    {
+      SHttpEngine::RequestMessage request(data, parent);
+      if (!request.isValid())
       {
 #ifdef TRACE_CONNECTIONS
-        qDebug() << this << "HttpServerRequest::readyRead request valid";
+        qDebug() << this << "HttpServerRequest::readyRead request invalid";
 #endif
+
+        socket->write(SHttpEngine::ResponseHeader(request, SHttpEngine::Status_BadRequest));
+
+        disconnect(socket, SIGNAL(readyRead()), this, SLOT(readyRead()));
+        disconnect(socket, SIGNAL(disconnected()), this, SLOT(close()));
+
+        deleteLater();
+        return;
+      }
+
+      const qint64 length = request.contentLength();
+      while ((socket->bytesAvailable() > 0) && (content.length() < length))
+        content += socket->readAll();
+
+      if (content.length() >= length)
+      {
+#ifdef TRACE_CONNECTIONS
+        qDebug() << this << "HttpServerRequest::readyRead request valid" << length;
+#endif
+
+        request.setContent(content);
 
         disconnect(socket, SIGNAL(readyRead()), this, SLOT(readyRead()));
         disconnect(socket, SIGNAL(disconnected()), this, SLOT(close()));
@@ -231,19 +263,9 @@ void HttpServerRequest::readyRead()
         emit handleHttpRequest(request, socket);
 
         socket = NULL;
+        deleteLater();
+        return;
       }
-      else
-      {
-#ifdef TRACE_CONNECTIONS
-        qDebug() << this << "HttpServerRequest::readyRead request invalid";
-#endif
-
-        socket->write(SHttpEngine::ResponseHeader(request, SHttpEngine::Status_BadRequest));
-      }
-
-      deleteLater();
-
-      break;
     }
   }
 }
@@ -462,12 +484,22 @@ void SandboxProcess::readyRead()
       {
         if (line.startsWith("##READY"))
         {
+#ifdef TRACE_CONNECTIONS
+          qDebug() << this << "SandboxProcess::readyRead ##READY";
+#endif
+
           const QList<QByteArray> items = line.simplified().split(' ');
           if (items.count() >= 3)
             emit ready(QHostAddress(QString::fromAscii(items[1])), items[2].toUShort());
         }
         else if (line.startsWith("##STOP"))
+        {
+#ifdef TRACE_CONNECTIONS
+          qDebug() << this << "SandboxProcess::readyRead ##STOP";
+#endif
+
           emit stop();
+        }
         else
           emit consoleLine(QString::fromUtf8(line.trimmed()));
       }

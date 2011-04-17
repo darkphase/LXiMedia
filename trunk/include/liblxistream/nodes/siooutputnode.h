@@ -51,9 +51,6 @@ public:
   virtual bool                  start(STimer *);
   virtual void                  stop(void);
 
-signals:
-  void                          disconnected(void);
-
 public slots:
   void                          input(const SEncodedAudioBuffer &);
   void                          input(const SEncodedVideoBuffer &);
@@ -64,6 +61,9 @@ protected: // From SInterfaces::BufferReader::WriteCallback
 
 private:
   __internal void               blockUntil(STime);
+
+private slots:
+  __internal void               closed(void);
 
 public:
   static const int              outBufferSize;

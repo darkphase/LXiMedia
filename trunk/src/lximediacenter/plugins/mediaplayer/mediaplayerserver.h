@@ -67,7 +67,7 @@ protected:
   //void                          addVideoFile(DlnaServerDir *, const PlayItem &, const QString &, int = 0) const;
   //void                          addVideoFile(DlnaServerDir *, const QList<PlayItem> &, const QString &, int = 0) const;
 
-  virtual Stream              * streamVideo(const SHttpServer::RequestHeader &);
+  virtual Stream              * streamVideo(const SHttpServer::RequestMessage &);
 
   bool                          isEmpty(const QString &path);
   virtual int                   countItems(const QString &path);
@@ -78,7 +78,7 @@ protected:
   Item                          makeItem(MediaDatabase::UniqueID, bool recursePrograms = true);
   Item::Type                    defaultItemType(Item::Type = Item::Type_None) const;
 
-  virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestHeader &, QAbstractSocket *);
+  virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestMessage &, QAbstractSocket *);
 
   static QString                videoFormatString(const SMediaInfo::Program &);
   static QByteArray             buildVideoPlayer(MediaDatabase::UniqueID, const SMediaInfo::Program &, const QUrl &, const QSize & = QSize(768, 432));

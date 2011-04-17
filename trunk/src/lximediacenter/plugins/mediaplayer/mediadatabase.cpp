@@ -192,7 +192,7 @@ MediaDatabase::MediaDatabase(BackendServer::MasterServer *masterServer, QObject 
              "ON MediaplayerAlbums(name)");
 
   query.exec("CREATE TABLE IF NOT EXISTS MediaplayerItems ("
-             "file           INTEGER NOT NULL,"
+             "file           INTEGER UNIQUE NOT NULL,"
              "album          INTEGER NOT NULL,"
              "title          TEXT,"
              "subtitle       TEXT,"
@@ -216,14 +216,21 @@ MediaDatabase::MediaDatabase(BackendServer::MasterServer *masterServer, QObject 
   connect(&fileSystemWatcher, SIGNAL(directoryChanged(QString)), SLOT(directoryChanged(QString)));
   connect(&scanRootTimer, SIGNAL(timeout()), SLOT(scanRoots()));
   connect(&scanRootSingleTimer, SIGNAL(timeout()), SLOT(scanRoots()));
+  connect(&scanDirsSingleTimer, SIGNAL(timeout()), SLOT(scanDirs()));
 
   scanRootTimer.start(300000);
   scanRootSingleTimer.setSingleShot(true);
-  scanRootSingleTimer.start(15000);
+  scanRootSingleTimer.start(scanDelay);
+  scanDirsSingleTimer.setSingleShot(true);
 }
 
 MediaDatabase::~MediaDatabase()
 {
+  foreach (ScanDirEvent *e, scanDirsQueue)
+    delete e;
+
+  scanDirsQueue.clear();
+
   self = NULL;
 
   delete probeSandbox;
@@ -518,23 +525,24 @@ void MediaDatabase::customEvent(QEvent *e)
       q.remove.prepare("DELETE FROM MediaplayerFiles WHERE path = :path");
 
       const QFileInfo info(event->path);
+      const QDateTime newLastModified = info.lastModified();
 
       q.request.bindValue(0, event->path);
       q.request.exec();
-      if (q.request.next()) // Directory is in the database
+      if (q.request.next() && newLastModified.isValid()) // Directory is in the database
       {
         const qint64 rowId = q.request.value(0).toLongLong();
         const qint64 size = q.request.value(2).toLongLong();
-        const QDateTime lastModified = q.request.value(3).toDateTime();
+        const QDateTime oldLastModified = q.request.value(3).toDateTime();
 
         const QDir dir(event->path);
-        if ((dir.count() != unsigned(size)) || (info.lastModified() > lastModified.addSecs(2)))
+        if ((dir.count() != unsigned(size)) || (newLastModified > oldLastModified.addSecs(2)))
         {
           //qDebug() << "Updated dir:" << event->path << dir.count() << size << info.lastModified() << lastModified.addSecs(2);
 
           // Update the dir
           q.update.bindValue(0, dir.count());
-          q.update.bindValue(1, info.lastModified());
+          q.update.bindValue(1, newLastModified);
           q.update.bindValue(2, QVariant(QVariant::ByteArray));
           q.update.bindValue(3, event->path);
           q.update.exec();
@@ -553,7 +561,7 @@ void MediaDatabase::customEvent(QEvent *e)
             qApp->postEvent(this, new ScanDirEvent(this, child.absoluteFilePath()), scanDirPriority);
         }
       }
-      else if (info.isDir())
+      else if (info.isDir() && newLastModified.isValid())
       {
         qDebug() << "New root dir:" << event->path;
 
@@ -562,7 +570,7 @@ void MediaDatabase::customEvent(QEvent *e)
         q.insert.bindValue(1, QVariant(QVariant::LongLong));
         q.insert.bindValue(2, event->path);
         q.insert.bindValue(3, -1); // Size will be set when scanned
-        q.insert.bindValue(4, info.lastModified());
+        q.insert.bindValue(4, newLastModified);
         q.insert.bindValue(5, QVariant(QVariant::ByteArray));
         q.insert.exec();
 
@@ -619,7 +627,7 @@ void MediaDatabase::customEvent(QEvent *e)
     }
   }
   else if (e->type() == scanRootsEventType)
-    scanRootSingleTimer.start(15000);
+    scanRootSingleTimer.start(scanDelay);
   else
     QObject::customEvent(e);
 }
@@ -703,9 +711,20 @@ void MediaDatabase::scanRoots(void)
   }
 }
 
+void MediaDatabase::scanDirs(void)
+{
+  foreach (ScanDirEvent *e, scanDirsQueue)
+    qApp->postEvent(this, e, scanDirPriority);
+
+  scanDirsQueue.clear();
+}
+
 void MediaDatabase::directoryChanged(const QString &path)
 {
-  qApp->postEvent(this, new ScanDirEvent(this, path), scanDirPriority);
+  if (!scanDirsQueue.contains(path))
+    scanDirsQueue.insert(path, new ScanDirEvent(this, path));
+
+  scanDirsSingleTimer.start(scanDelay);
 }
 
 void MediaDatabase::probeFinished(const SHttpEngine::ResponseMessage &message)
@@ -791,7 +810,7 @@ void MediaDatabase::probeFinished(const SHttpEngine::ResponseMessage &message)
             if ((i.key() == Category_TVShows) || (i.key() == Category_Music))
               rawTitle = ("000000000" + QString::number(mediaInfo.track())).right(10) + rawTitle;
 
-            query.prepare("INSERT INTO MediaplayerItems "
+            query.prepare("INSERT OR REPLACE INTO MediaplayerItems "
                           "VALUES (:file, :album, :title, :subtitle, :imdbLink)");
             query.bindValue(0, rowId);
             query.bindValue(1, albumId);

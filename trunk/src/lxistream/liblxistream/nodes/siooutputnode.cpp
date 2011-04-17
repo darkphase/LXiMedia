@@ -105,6 +105,8 @@ bool SIOOutputNode::start(STimer *)
     d->ioDevice->moveToThread(thread());
     d->ioDevice->setParent(this);
 
+    connect(d->ioDevice, SIGNAL(readChannelFinished()), SLOT(closed()));
+
     return d->bufferWriter->start(this);
   }
 
@@ -116,21 +118,14 @@ void SIOOutputNode::stop(void)
   if (d->bufferWriter)
     d->bufferWriter->stop();
 
-  if (d->ioDevice)
-  {
-    QTime timer;
-    timer.start();
+  QTime timer;
+  timer.start();
 
-    while (d->ioDevice->bytesToWrite() > 0)
-    if (!d->ioDevice->waitForBytesWritten(qMax(5000 - timer.elapsed(), 0)))
-      break;
+  while (d->ioDevice && (d->ioDevice->bytesToWrite() >= 0))
+  if (!d->ioDevice->waitForBytesWritten(qMax(0, 5000 - qAbs(timer.elapsed()))))
+    break;
 
-    if (d->autoClose)
-    {
-      d->ioDevice->close();
-      d->ioDevice = NULL;
-    }
-  }
+  closed();
 }
 
 void SIOOutputNode::input(const SEncodedAudioBuffer &buffer)
@@ -163,27 +158,31 @@ void SIOOutputNode::input(const SEncodedDataBuffer &buffer)
 void SIOOutputNode::write(const uchar *buffer, qint64 size)
 {
   if (d->ioDevice)
+  while (d->ioDevice->bytesToWrite() >= outBufferSize)
+  if (!d->ioDevice->waitForBytesWritten(-1))
+    return;
+
+  for (qint64 i=0; (i<size) && d->ioDevice; )
   {
-    while (d->ioDevice->bytesToWrite() >= outBufferSize)
-    if (!d->ioDevice->waitForBytesWritten(-1))
-    {
-      emit disconnected();
+    const qint64 r = d->ioDevice->write((char *)buffer + i, size - i);
+    if (r > 0)
+      i += r;
+    else
       return;
+  }
+}
+
+void SIOOutputNode::closed(void)
+{
+  if (d->ioDevice)
+  {
+    if (d->autoClose)
+    {
+      d->ioDevice->close();
+      d->ioDevice->deleteLater();
     }
 
-    for (qint64 i=0; i<size; )
-    {
-      const qint64 r = d->ioDevice->write((char *)buffer + i, size - i);
-      if (r > 0)
-      {
-        i += r;
-      }
-      else
-      {
-        emit disconnected();
-        break;
-      }
-    }
+    d->ioDevice = NULL;
   }
 }
 
