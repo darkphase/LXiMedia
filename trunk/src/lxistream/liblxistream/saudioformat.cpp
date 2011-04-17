@@ -48,6 +48,21 @@ void SAudioFormat::setFormat(Format format, Channels channels, unsigned sampleRa
   d.sampleRate = sampleRate;
 }
 
+/*! Returns the number of active channels for the specified configuration.
+ */
+int SAudioFormat::numChannels(Channels c)
+{
+#ifdef __GNUC__
+  return __builtin_popcount(quint32(c));
+#else
+  int result = 0;
+  for (int i=0; i<32; i++)
+    result += ((quint32(c) & (quint32(1) << i)) ? 1 : 0);
+
+  return result;
+#endif
+}
+
 /*! Guesses the most applicable channel configuration for the specified number
     of channels.
  */

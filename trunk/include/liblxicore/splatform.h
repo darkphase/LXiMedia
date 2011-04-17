@@ -24,19 +24,16 @@
 # define _lxi_internal          __attribute__((visibility("hidden")))
 # define _lxi_pure              __attribute__((const))
 # define _lxi_packed            __attribute__((packed))
-# define _lxi_popcount(x)       __builtin_popcount(x)
 
 #elif defined(WIN32) && defined(__GNUC__)
 # define _lxi_internal
 # define _lxi_pure              __attribute__((const))
 # define _lxi_packed            __attribute__((packed))
-# define _lxi_popcount(x)       __builtin_popcount(x)
 
 #elif defined(WIN32) && defined(_MSC_VER)
 # define _lxi_internal
 # define _lxi_pure              __declspec(noalias)
 # define _lxi_packed
-# define _lxi_popcount(x)       (((((x - ((x >> 1) & 0x55555555)) & 0x33333333) + (((x - ((x >> 1) & 0x55555555)) >> 2) & 0x33333333) + (((x - ((x >> 1) & 0x55555555)) & 0x33333333) + (((x - ((x >> 1) & 0x55555555)) >> 2) & 0x33333333) >> 4) & 0xF0F0F0F) * 0x1010101) >> 24)
 
 #else
 # error Platform not supported
