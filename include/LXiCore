@@ -16,6 +16,10 @@
 
 using namespace LXiCore;
 
+#else
+
+#include "liblxicore/splatform.h"
+
 #endif
 
 #endif
