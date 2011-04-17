@@ -169,8 +169,8 @@ public:
   inline int                    numChannels(void) const                         { return numChannels(channelSetup()); }
   inline int                    sampleSize(void) const                          { return sampleSize(format()); }
 
-  static inline int             numChannels(Channels c)                         { return _lxi_popcount(quint32(c)); }
-  static Channels               guessChannels(unsigned numChannels);
+  _lxi_pure static int          numChannels(Channels c);
+  _lxi_pure static Channels     guessChannels(unsigned numChannels);
   _lxi_pure static int          sampleSize(Format);
   _lxi_pure static const char * formatName(Format);
   _lxi_pure static const char * channelName(Channel);
