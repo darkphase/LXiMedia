@@ -41,6 +41,7 @@ Section "-Shared Files" SecShared
   File ..\..\bin\QtNetwork4.dll
   File ..\..\bin\QtSql4.dll
   File ..\..\bin\QtXml4.dll
+  File ..\..\bin\LXiCore?.dll
   File ..\..\bin\LXiMediaCenter?.dll
   File ..\..\bin\LXiServer?.dll
   File ..\..\bin\LXiStream?.dll
@@ -57,7 +58,7 @@ Section "-Shared Files" SecShared
 
   SetOutPath $INSTDIR\lximedia
   SetOverwrite ifnewer
-  File ..\..\bin\lximedia\liblxistream_*.dll
+  File ..\..\bin\lximedia\lxistream_*.dll
 
   ; For backwards compatibility with 0.1.x versions, can be removed in the future.
   RMDir /r /REBOOTOK "$%ALLUSERSPROFILE%\Application Data\lximc"
@@ -76,12 +77,12 @@ Section "Backend service" SecBackend
 
   nsisFirewall::AddAuthorizedApplication "$INSTDIR\lximcbackend.exe" "LeX-Interactive MediaCenter - Backend service"
 
-  ExecWait '"$INSTDIR\lximcbackend.exe" --install'
-  ExecWait 'net start "LXiMediaCenter Backend"'
-
   SetOutPath $INSTDIR\lximedia
   SetOverwrite ifnewer
-  File ..\..\bin\lximedia\liblximediacenter_*.dll
+  File ..\..\bin\lximedia\lximediacenter_*.dll
+
+  ExecWait '"$INSTDIR\lximcbackend.exe" --install'
+  ExecWait 'net start "LXiMediaCenter Backend"'
 SectionEnd
 
 Section "Systemtray icon" SecTrayIcon
