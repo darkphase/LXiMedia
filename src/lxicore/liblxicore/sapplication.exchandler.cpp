@@ -19,27 +19,26 @@
 
 #include "sapplication.h"
 
-#define LIBCWD_THREAD_SAFE
-#define CWDEBUG
-
-#if defined(Q_OS_UNIX)
-#include <bfd.h>
-#elif defined(Q_OS_WIN)
-#include <bfd.h>
-#include <windows.h>
-#include <imagehlp.h>
+#if defined(__GNUC__)
+# define LIBCWD_THREAD_SAFE
+# define CWDEBUG
+# include <bfd.h>
+# include <cxxabi.h>
 #endif
-#include <cxxabi.h>
+#if defined(Q_OS_WIN)
+# include <windows.h>
+# include <imagehlp.h>
+#endif
 
 namespace LXiCore {
 
 class SApplicationLog
 {
 public:
-  static void                   startLogMsg(const char *type) __attribute__((nonnull));
+  static void                   startLogMsg(const char *type);
   static void                   endLogMsg(void);
-  static void                   writeLog(const char *msg) __attribute__((nonnull));
-  static int                    printfLog(const char *format, ...) __attribute__((nonnull));
+  static void                   writeLog(const char *msg);
+  static int                    printfLog(const char *format, ...);
 };
 
 class SApplicationExcHandler
@@ -51,9 +50,11 @@ public:
     HMODULE                       handle;
     HANDLE                        process;
 #endif
+#ifdef __GNUC__
     bfd                         * abfd;
     asymbol                    ** syms;
-    unsigned                      symcount;
+	unsigned                      symcount;
+#endif
   };
 
   struct Symbol
@@ -103,9 +104,11 @@ void SApplicationExcHandler::logStackFrame(void *instructionPointer, void *stack
   Module module;
   module.handle = NULL;
   module.process = ::GetCurrentProcess();
+#ifdef __GNUC__
   module.abfd = NULL;
   module.syms = NULL;
   module.symcount = 0;
+#endif
 
   if (::ReadProcessMemory(module.process,
                           (LPCVOID)(stackFrame.AddrFrame.Offset + sizeof(void *)),
@@ -128,6 +131,7 @@ void SApplicationExcHandler::logStackFrame(void *instructionPointer, void *stack
 
           if (module.handle != prevModule)
           {
+#ifdef __GNUC__
             if (module.syms)
             {
               ::GlobalFree(module.syms);
@@ -148,8 +152,10 @@ void SApplicationExcHandler::logStackFrame(void *instructionPointer, void *stack
               if ((module.syms = (asymbol **)::GlobalAlloc(GMEM_FIXED, storage)) != NULL)
                 module.symcount = bfd_canonicalize_symtab(module.abfd, module.syms);
             }
+#endif
           }
 
+#ifdef __GNUC__
           if (module.abfd && module.syms && module.symcount)
           {
             const Symbol symbol = getSymbolFromAddress(module, (void *)stackFrame.AddrPC.Offset);
@@ -163,6 +169,7 @@ void SApplicationExcHandler::logStackFrame(void *instructionPointer, void *stack
               SApplicationLog::printfLog(" %s\n", demangledName);
           }
           else
+#endif
             SApplicationLog::writeLog("\n");
         }
       }
@@ -189,6 +196,7 @@ void SApplicationExcHandler::logStackFrame(void *instructionPointer, void *stack
                           NULL);
     }
 
+#ifdef __GNUC__
     if (module.syms)
     {
       ::GlobalFree(module.syms);
@@ -198,6 +206,7 @@ void SApplicationExcHandler::logStackFrame(void *instructionPointer, void *stack
 
     if (module.abfd)
       bfd_close(module.abfd);
+#endif
   }
 #endif
 }
@@ -220,6 +229,7 @@ SApplicationExcHandler::Symbol SApplicationExcHandler::getSymbolFromAddress(cons
   result.fileName[0] = 0;
   result.lineNumber = 0;
 
+#ifdef __GNUC__
   struct find_handle
   {
     const Module * module;
@@ -292,6 +302,7 @@ SApplicationExcHandler::Symbol SApplicationExcHandler::getSymbolFromAddress(cons
       return result;
     }
   }
+#endif
 
 #ifdef Q_OS_WIN
   void * const moduleBase = getModuleBase(address);
@@ -375,6 +386,7 @@ SApplicationExcHandler::Symbol SApplicationExcHandler::getSymbolFromAddress(cons
 
 bool SApplicationExcHandler::demangleSymbolName(const char *name, char *demangledName, size_t size)
 {
+#ifdef __GNUC__
   const char *clean = name;
   while ((clean[0] == '_') && (clean[1] == '_'))
       clean++;
@@ -387,6 +399,10 @@ bool SApplicationExcHandler::demangleSymbolName(const char *name, char *demangle
   }
   else
     return true;
+#else
+  name; demangledName; size;
+  return false;
+#endif
 }
 
 #ifdef Q_OS_WIN

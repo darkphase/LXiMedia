@@ -41,7 +41,7 @@ public:
     quint16                     lineStride;
     quint8                      paletteSize;
     quint8                      _reserved;
-  } __attribute__((packed));
+  };
 
 public:
                                 SSubpictureBuffer(void);

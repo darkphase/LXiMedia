@@ -362,7 +362,7 @@ const QSet<QString> & FormatProber::audioSuffixes(void)
 {
   static QSet<QString> suffixes;
 
-  if (__builtin_expect(suffixes.isEmpty(), false))
+  if (suffixes.isEmpty())
   {
     suffixes += "aac";
     suffixes += "aif";
@@ -388,7 +388,7 @@ const QSet<QString> & FormatProber::videoSuffixes(void)
 {
   static QSet<QString> suffixes;
 
-  if (__builtin_expect(suffixes.isEmpty(), false))
+  if (suffixes.isEmpty())
   {
     suffixes += "3gp";
     suffixes += "3g2";
@@ -427,7 +427,7 @@ const QSet<QString> & FormatProber::imageSuffixes(void)
 {
   static QSet<QString> suffixes;
 
-  if (__builtin_expect(suffixes.isEmpty(), false))
+  if (suffixes.isEmpty())
   {
     suffixes += "ai";
     suffixes += "bmp";
@@ -455,7 +455,7 @@ const QSet<QString>  & FormatProber::rawImageSuffixes(void)
 {
   static QSet<QString> suffixes;
 
-  if (__builtin_expect(suffixes.isEmpty(), false))
+  if (suffixes.isEmpty())
   {
     suffixes += "3fr";
     suffixes += "arw";

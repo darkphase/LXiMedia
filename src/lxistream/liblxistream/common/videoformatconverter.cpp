@@ -34,18 +34,18 @@ extern "C" void LXiStream_Common_VideoFormatConverter_convertYUV2toRGB(
 // Implemented in videoformatconverter.demosaic.c
 extern "C" void LXiStream_Common_VideoFormatConverter_demosaic_GRBG8(
     const void * srcData, unsigned srcWidth, unsigned srcStride, unsigned srcNumLines,
-    void * dstData, unsigned dstStride) __attribute__((nonnull(1, 5)));
+    void * dstData, unsigned dstStride);
 extern "C" void LXiStream_Common_VideoFormatConverter_demosaic_GBRG8(
     const void * srcData, unsigned srcWidth, unsigned srcStride, unsigned srcNumLines,
-    void * dstData, unsigned dstStride) __attribute__((nonnull(1, 5)));
+    void * dstData, unsigned dstStride);
 extern "C" void LXiStream_Common_VideoFormatConverter_demosaic_RGGB8(
     const void * srcData, unsigned srcWidth, unsigned srcStride, unsigned srcNumLines,
-    void * dstData, unsigned dstStride) __attribute__((nonnull(1, 5)));
+    void * dstData, unsigned dstStride);
 extern "C" void LXiStream_Common_VideoFormatConverter_demosaic_BGGR8(
     const void * srcData, unsigned srcWidth, unsigned srcStride, unsigned srcNumLines,
-    void * dstData, unsigned dstStride) __attribute__((nonnull(1, 5)));
+    void * dstData, unsigned dstStride);
 extern "C" void LXiStream_Common_VideoFormatConverter_demosaic_postfilter(
-    void * srcData, unsigned srcWidth, unsigned srcStride, unsigned srcNumLines) __attribute__((nonnull(1)));
+    void * srcData, unsigned srcWidth, unsigned srcStride, unsigned srcNumLines);
 
 // Implemented in videoformatconverter.unpack.c
 extern "C" void LXiStream_Common_VideoFormatConverter_convertYUYVtoYUV422P(

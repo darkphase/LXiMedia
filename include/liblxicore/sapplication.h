@@ -129,16 +129,21 @@ inline SApplication::StackFrame SApplication::currentStackFrame(void)
 {
   StackFrame stackFrame;
 
-#if (defined(QT_ARCH_I386) || defined(QT_ARCH_WINDOWS))
+#if ((defined(QT_ARCH_I386) || defined(QT_ARCH_WINDOWS)) && defined(__GNUC__))
   asm volatile("movl %%esp, %0;"
                "movl %%ebp, %1;"
                : "=r"(stackFrame.stackPointer),
                  "=r"(stackFrame.framePointer));
-#elif defined(QT_ARCH_X86_64)
+#elif (defined(QT_ARCH_X86_64) && defined(__GNUC__))
   asm volatile("movq %%rsp, %0;"
                "movq %%rbp, %1;"
                : "=r"(stackFrame.stackPointer),
                  "=r"(stackFrame.framePointer));
+#elif ((defined(QT_ARCH_I386) || defined(QT_ARCH_WINDOWS)) && defined(_MSC_VER))
+  __asm {
+    mov stackFrame.stackPointer, esp
+    mov stackFrame.framePointer, ebp
+  }
 #else
 #error "Not implemented"
 #endif

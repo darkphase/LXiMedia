@@ -190,7 +190,7 @@ void STimeStampSyncNode::output(void)
   audioReady &= hasAudio;
   videoReady &= hasVideo;
 
-  if (__builtin_expect(!d->running, false) && audioReady && videoReady)
+  if (__expect(!d->running, false) && audioReady && videoReady)
   {
     if (!d->firstTimeStamp.isValid())
     {

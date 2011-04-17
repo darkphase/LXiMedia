@@ -30,6 +30,13 @@
 #  define LXICORE_PUBLIC        __attribute__((dllimport))
 # endif
 
+#elif defined(Q_OS_WIN) && defined(_MSC_VER)
+# if defined(S_BUILD_LIBLXICORE)
+#  define LXICORE_PUBLIC        __declspec(dllexport)
+# else
+#  define LXICORE_PUBLIC        __declspec(dllimport)
+# endif
+
 #else
 # define LXICORE_PUBLIC
 

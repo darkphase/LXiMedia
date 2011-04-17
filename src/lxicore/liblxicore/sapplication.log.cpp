@@ -39,10 +39,10 @@ public:
 
   static void                   logMessage(QtMsgType, const char *);
   static bool                   checkLogFile(const QString &fileName);
-  static void                   startLogMsg(const char *type) __attribute__((nonnull));
+  static void                   startLogMsg(const char *type);
   static void                   endLogMsg(void);
-  static void                   writeLog(const char *msg) __attribute__((nonnull));
-  static int                    printfLog(const char *format, ...) __attribute__((nonnull));
+  static void                   writeLog(const char *msg);
+  static int                    printfLog(const char *format, ...);
 
 public:
   static Init                   init;

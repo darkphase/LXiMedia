@@ -18,6 +18,7 @@
  ***************************************************************************/
 
 #include "sapplication.h"
+#include "sfactory.h"
 #include "smodule.h"
 #if defined(Q_OS_WIN)
 #include <windows.h>
