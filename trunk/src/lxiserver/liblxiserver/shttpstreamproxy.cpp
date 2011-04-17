@@ -37,7 +37,6 @@ struct SHttpStreamProxy::Data
   QAbstractSocket             * source;
   bool                          sourceFinished;
   QVector<Socket>               sockets;
-  QTimer                        socketTimer;
 
   bool                          caching;
   QByteArray                    cache;
@@ -116,8 +115,9 @@ void SHttpStreamProxy::run(void)
   connect(d->source, SIGNAL(readyRead()), SLOT(processData()));
   connect(d->source, SIGNAL(disconnected()), SLOT(flushData()));
 
-  connect(&d->socketTimer, SIGNAL(timeout()), SLOT(processData()));
-  d->socketTimer.start(250);
+  QTimer socketTimer;
+  connect(&socketTimer, SIGNAL(timeout()), SLOT(processData()));
+  socketTimer.start(250);
 
   exec();
 }

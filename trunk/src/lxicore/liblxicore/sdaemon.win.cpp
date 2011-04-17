@@ -62,7 +62,7 @@ SDaemon::~SDaemon()
   Data::serviceStatusHandle = NULL;
 }
 
-int SDaemon::main(int argc, char *argv[])
+int SDaemon::main(int &argc, char *argv[])
 {
   if (argc < 2)
   {
@@ -101,7 +101,7 @@ int SDaemon::main(int argc, char *argv[])
   }
   else if ((strcmp(argv[1], "--run") == 0) || (strcmp(argv[1], "-r") == 0))
   {
-    return run();
+    return run(argc, argv);
   }
   else
   {
@@ -140,7 +140,8 @@ bool SDaemon::Data::install(bool startImmediately)
           serviceName, serviceName,
           SERVICE_ALL_ACCESS, SERVICE_WIN32_OWN_PROCESS,
           SERVICE_AUTO_START, SERVICE_ERROR_IGNORE, path,
-          0, 0, 0, 0, 0);
+          0, 0, 0,
+          L"NT AUTHORITY\\LocalService", 0);
 
       if (service)
       {
@@ -209,15 +210,26 @@ void WINAPI SDaemon::Data::serviceMain(DWORD argc, TCHAR *argv[])
     serviceStatus.dwCurrentState = SERVICE_START_PENDING;
     ::SetServiceStatus(serviceStatusHandle, &serviceStatus);
 
+    // Convert arguments
+    int xargc = argc;
+    char **xargv = new char *[argc];
+    for (int i=0; i<xargc; i++)
+      xargv[i] = strdup(QString::fromWCharArray(argv[i]).toUtf8());
+
     // Run the service
     serviceStatus.dwControlsAccepted |= (SERVICE_ACCEPT_STOP | SERVICE_ACCEPT_SHUTDOWN);
     serviceStatus.dwCurrentState = SERVICE_RUNNING;
     ::SetServiceStatus(serviceStatusHandle, &serviceStatus);
-    instance->run();
+    instance->run(xargc, xargv);
 
     // Stop the service
     serviceStatus.dwCurrentState = SERVICE_STOP_PENDING;
     ::SetServiceStatus(serviceStatusHandle, &serviceStatus);
+
+    for (int i=0; i<xargc; i++)
+      free(xargv[i]);
+
+    delete [] xargv;
 
     // Set service status to stopped
     serviceStatus.dwControlsAccepted &= ~(SERVICE_ACCEPT_STOP | SERVICE_ACCEPT_SHUTDOWN);
