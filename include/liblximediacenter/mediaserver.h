@@ -32,8 +32,8 @@ namespace LXiMediaCenter {
 class MediaStream;
 
 class LXIMEDIACENTER_PUBLIC MediaServer : public BackendServer,
-                                 protected SHttpServer::Callback,
-                                 private SUPnPContentDirectory::Callback
+                                          protected SHttpServer::Callback,
+                                          private SUPnPContentDirectory::Callback
 {
 Q_OBJECT
 friend class MediaServerDir;

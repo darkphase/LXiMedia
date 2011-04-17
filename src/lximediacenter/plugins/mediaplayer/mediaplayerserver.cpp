@@ -50,6 +50,34 @@ QString MediaPlayerServer::pluginName(void) const
   return Module::pluginName;
 }
 
+MediaPlayerServer::SearchResultList MediaPlayerServer::search(const QStringList &rawQuery) const
+{
+  SearchResultList list;
+
+  foreach (const MediaDatabase::File &file, mediaDatabase->queryAlbums(category, rawQuery))
+  {
+    const SMediaInfo info = mediaDatabase->readNode(file.uid);
+    if (!info.isNull())
+    {
+      SearchResult result;
+      result.relevance = SStringParser::computeMatch(SStringParser::toRawName(info.title()), rawQuery);
+      result.headline = info.title();
+      result.location = MediaDatabase::toUidString(file.uid) + ".html";
+
+      foreach (const SMediaInfo::Program &program, info.programs())
+      if (!program.thumbnail.isEmpty())
+      {
+        result.thumbLocation = MediaDatabase::toUidString(file.uid) + "-thumb.jpeg";
+        break;
+      }
+
+      list += result;
+    }
+  }
+
+  return list;
+}
+
 MediaPlayerServer::Stream * MediaPlayerServer::streamVideo(const SHttpServer::RequestMessage &request)
 {
   QUrl url(request.path());

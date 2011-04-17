@@ -210,8 +210,9 @@ FileNode FileNode::fromByteArray(const QByteArray &str)
         program.dataStreams.append(stream);
       }
 
-      if (programElm.hasAttribute("codec"))
-        program.imageCodec = SVideoCodec::fromString(programElm.attribute("codec"));
+      QDomElement imageCodecElm = programElm.firstChildElement("imagecodec");
+      if (!imageCodecElm.isNull())
+        program.imageCodec = SVideoCodec::fromString(imageCodecElm.attribute("codec"));
 
       QDomElement thumbElm = programElm.firstChildElement("thumbnail");
       if (!thumbElm.isNull())

@@ -63,6 +63,8 @@ public:
 
   virtual QString               pluginName(void) const;
 
+  virtual SearchResultList      search(const QStringList &) const;
+
 protected:
   //void                          addVideoFile(DlnaServerDir *, const PlayItem &, const QString &, int = 0) const;
   //void                          addVideoFile(DlnaServerDir *, const QList<PlayItem> &, const QString &, int = 0) const;
