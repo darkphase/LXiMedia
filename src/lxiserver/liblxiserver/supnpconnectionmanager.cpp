@@ -170,7 +170,7 @@ void SUPnPConnectionManager::buildDescription(QDomDocument &doc, QDomElement &sc
   scpdElm.appendChild(serviceStateTableElm);
 }
 
-void SUPnPConnectionManager::handleSoapMessage(const QDomElement &body, QDomDocument &responseDoc, QDomElement &responseBody, const SHttpServer::RequestHeader &, const QHostAddress &)
+void SUPnPConnectionManager::handleSoapMessage(const QDomElement &body, QDomDocument &responseDoc, QDomElement &responseBody, const SHttpServer::RequestMessage &, const QHostAddress &)
 {
   const QDomElement getProtocolInfoElem = firstChildElementNS(body, connectionManagerNS, "GetProtocolInfo");
   if (!getProtocolInfoElem.isNull())

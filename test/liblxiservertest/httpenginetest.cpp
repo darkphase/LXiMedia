@@ -115,7 +115,7 @@ bool HttpEngineTest::startServer(const QHostAddress &address)
     {
     }
 
-    virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestHeader &request, QAbstractSocket *socket)
+    virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestMessage &request, QAbstractSocket *socket)
     {
       if (request.path() == "/test.txt")
       {

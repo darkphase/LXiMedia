@@ -30,13 +30,13 @@ namespace LXiServer {
 
 const char  * const SHttpEngine::httpVersion         = "HTTP/1.1";
 const int           SHttpEngine::maxTTL              = 300000;
-const char  * const SHttpEngine::fieldConnection     = "CONNECTION";
-const char  * const SHttpEngine::fieldContentLength  = "CONTENT-LENGTH";
-const char  * const SHttpEngine::fieldContentType    = "CONTENT-TYPE";
-const char  * const SHttpEngine::fieldDate           = "DATE";
-const char  * const SHttpEngine::fieldHost           = "HOST";
-const char  * const SHttpEngine::fieldServer         = "SERVER";
-const char  * const SHttpEngine::fieldUserAgent      = "USER-AGENT";
+const char  * const SHttpEngine::fieldConnection     = "Connection";
+const char  * const SHttpEngine::fieldContentLength  = "Content-Length";
+const char  * const SHttpEngine::fieldContentType    = "Content-Type";
+const char  * const SHttpEngine::fieldDate           = "Date";
+const char  * const SHttpEngine::fieldHost           = "Host";
+const char  * const SHttpEngine::fieldServer         = "Server";
+const char  * const SHttpEngine::fieldUserAgent      = "User-Agent";
 const char  * const SHttpEngine::dateFormat          = "ddd, dd MMM yyyy hh:mm:ss 'GMT'";
 
 SHttpEngine::SHttpEngine(void)
@@ -184,29 +184,6 @@ const QString & SHttpServerEngine::senderId(void) const
   return d->senderId;
 }
 
-QByteArray SHttpServerEngine::readContent(const RequestHeader &request, QAbstractSocket *socket)
-{
-  QTime timer;
-  timer.start();
-
-  QByteArray content=socket->readAll();
-
-  const qint64 length = request.contentLength();
-  if (length > 0)
-  {
-    for (; content.length() < length; content += socket->readAll())
-    if (!socket->waitForReadyRead(qMax(maxTTL - qAbs(timer.elapsed()), 0)))
-      return QByteArray();
-  }
-  else
-  {
-    while (socket->waitForReadyRead(qMin(2000, qMax(maxTTL - qAbs(timer.elapsed()), 0))))
-      content += socket->readAll();
-  }
-
-  return content;
-}
-
 SHttpServerEngine::SocketOp SHttpServerEngine::sendResponse(const RequestHeader &request, QAbstractSocket *socket, Status status, const QByteArray &content, const QObject *object)
 {
   if (status >= 400)
@@ -237,7 +214,7 @@ SHttpServerEngine::SocketOp SHttpServerEngine::sendRedirect(const RequestHeader 
   return SocketOp_Close;
 }
 
-void SHttpServerEngine::handleHttpRequest(const SHttpEngine::RequestHeader &request, QAbstractSocket *socket)
+void SHttpServerEngine::handleHttpRequest(const SHttpEngine::RequestMessage &request, QAbstractSocket *socket)
 {
   const QString path = QUrl(request.path()).path();
 

@@ -274,6 +274,12 @@ SHttpEngine::RequestMessage::RequestMessage(const QByteArray &message, const SHt
     data = message.mid(eoh + 4);
 }
 
+void SHttpEngine::RequestMessage::setContent(const QByteArray &content)
+{
+  data = content;
+  setContentLength(data.length());
+}
+
 QByteArray SHttpEngine::RequestMessage::toByteArray(void) const
 {
   return RequestHeader::toByteArray() + data;

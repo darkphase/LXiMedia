@@ -33,7 +33,7 @@ TvShowServer::~TvShowServer()
 {
 }
 
-TvShowServer::Stream * TvShowServer::streamVideo(const SHttpServer::RequestHeader &request)
+TvShowServer::Stream * TvShowServer::streamVideo(const SHttpServer::RequestMessage &request)
 {
   const QStringList file = request.file().split('.');
   if (file.first() == "playlist")

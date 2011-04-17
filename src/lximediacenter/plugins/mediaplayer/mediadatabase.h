@@ -115,6 +115,7 @@ protected:
 
 private slots:
   void                          scanRoots(void);
+  void                          scanDirs(void);
   void                          directoryChanged(const QString &);
   void                          probeFinished(const SHttpEngine::ResponseMessage &);
 
@@ -138,6 +139,7 @@ private:
   static const QEvent::Type     queryImdbItemEventType;
   static const QEvent::Type     scanRootsEventType;
 
+  static const int              scanDelay = 15000;
   static const CatecoryDesc     categories[];
   static MediaDatabase        * self;
 
@@ -148,6 +150,8 @@ private:
   QMap<QString, QStringList>    rootPaths;
   QTimer                        scanRootTimer;
   QTimer                        scanRootSingleTimer;
+  QTimer                        scanDirsSingleTimer;
+  QHash<QString, ScanDirEvent *> scanDirsQueue;
   QAtomicInt                    scanning;
 };
 

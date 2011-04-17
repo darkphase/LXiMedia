@@ -47,7 +47,7 @@ public:
 
 protected: // From SUPnPBase
   virtual void                  buildDescription(QDomDocument &, QDomElement &);
-  virtual void                  handleSoapMessage(const QDomElement &, QDomDocument &, QDomElement &, const SHttpServer::RequestHeader &, const QHostAddress &);
+  virtual void                  handleSoapMessage(const QDomElement &, QDomDocument &, QDomElement &, const SHttpServer::RequestMessage &, const QHostAddress &);
 
 private:
   __internal void               emitEvent(void);

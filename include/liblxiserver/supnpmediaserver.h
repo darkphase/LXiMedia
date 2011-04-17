@@ -56,7 +56,7 @@ public:
   void                          registerService(const Service &);
 
 protected: // From SHttpServer::Callback
-  virtual SHttpServer::SocketOp  handleHttpRequest(const SHttpServer::RequestHeader &, QAbstractSocket *);
+  virtual SHttpServer::SocketOp  handleHttpRequest(const SHttpServer::RequestMessage &, QAbstractSocket *);
 
 public:
   static const char     * const dlnaDeviceNS;

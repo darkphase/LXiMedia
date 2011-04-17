@@ -27,7 +27,7 @@ int SandboxTest::startSandbox(const QString &mode)
 {
   struct Callback : SSandboxServer::Callback
   {
-    virtual SSandboxServer::SocketOp handleHttpRequest(const SSandboxServer::RequestHeader &request, QAbstractSocket *socket)
+    virtual SSandboxServer::SocketOp handleHttpRequest(const SSandboxServer::RequestMessage &request, QAbstractSocket *socket)
     {
       const QUrl url(request.path());
       const QString path = url.path();
@@ -46,10 +46,11 @@ int SandboxTest::startSandbox(const QString &mode)
   };
 
   SSandboxServer sandboxServer;
-  sandboxServer.initialize(mode);
 
   Callback callback;
   sandboxServer.registerCallback("/", &callback);
+
+  sandboxServer.initialize(mode);
 
   const int result = qApp->exec();
 

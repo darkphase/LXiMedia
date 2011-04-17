@@ -385,7 +385,7 @@ void Backend::customEvent(QEvent *e)
   }
 }
 
-SHttpServer::SocketOp Backend::handleHttpRequest(const SHttpServer::RequestHeader &request, QAbstractSocket *socket)
+SHttpServer::SocketOp Backend::handleHttpRequest(const SHttpServer::RequestMessage &request, QAbstractSocket *socket)
 {
   const QUrl url(request.path());
   const QString path = url.path();

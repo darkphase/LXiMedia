@@ -37,7 +37,7 @@ public:
   virtual                       ~TvShowServer();
 
 protected:
-  virtual Stream              * streamVideo(const SHttpServer::RequestHeader &);
+  virtual Stream              * streamVideo(const SHttpServer::RequestMessage &);
 
   virtual int                   countItems(const QString &path);
   virtual QList<Item>           listItems(const QString &path, unsigned start, unsigned count);

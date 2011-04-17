@@ -69,7 +69,7 @@ int SDaemon::main(int &argc, char *argv[])
   }
   else if ((strcmp(argv[1], "--start") == 0) || (strcmp(argv[1], "-s") == 0))
   {
-    if (Data::start())
+    if (Data::start(argc, argv))
     {
       std::cout << "Started successfully." << std::endl;
       return 0;

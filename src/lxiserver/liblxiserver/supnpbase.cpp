@@ -77,7 +77,7 @@ void SUPnPBase::close(void)
   d->httpServer = NULL;
 }
 
-SHttpServer::SocketOp SUPnPBase::handleHttpRequest(const SHttpServer::RequestHeader &request, QAbstractSocket *socket)
+SHttpServer::SocketOp SUPnPBase::handleHttpRequest(const SHttpServer::RequestMessage &request, QAbstractSocket *socket)
 {
   if ((request.path() == d->basePath + "control") && (request.method() == "POST"))
     return handleControl(request, socket);
@@ -87,16 +87,15 @@ SHttpServer::SocketOp SUPnPBase::handleHttpRequest(const SHttpServer::RequestHea
   return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);
 }
 
-SHttpServer::SocketOp SUPnPBase::handleControl(const SHttpServer::RequestHeader &request, QAbstractSocket *socket)
+SHttpServer::SocketOp SUPnPBase::handleControl(const SHttpServer::RequestMessage &request, QAbstractSocket *socket)
 {
   QTime timer;
   timer.start();
 
-  const QByteArray content = SHttpServer::readContent(request, socket);
-  if (!content.isEmpty())
+  if (!request.content().isEmpty())
   {
     QDomDocument doc;
-    const QDomElement body = parseSoapMessage(doc, content);
+    const QDomElement body = parseSoapMessage(doc, request.content());
     if (!body.isNull())
     {
       QDomDocument responseDoc;
@@ -127,7 +126,7 @@ SHttpServer::SocketOp SUPnPBase::handleControl(const SHttpServer::RequestHeader 
   return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);
 }
 
-SHttpServer::SocketOp SUPnPBase::handleDescription(const SHttpServer::RequestHeader &request, QAbstractSocket *socket)
+SHttpServer::SocketOp SUPnPBase::handleDescription(const SHttpServer::RequestMessage &request, QAbstractSocket *socket)
 {
   QDomDocument doc;
   QDomElement scpdElm = doc.createElement("scpd");

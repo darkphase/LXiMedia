@@ -36,14 +36,14 @@ public:
   virtual                       ~PhotoServer();
 
 protected:
-  virtual Stream              * streamVideo(const SHttpServer::RequestHeader &);
+  virtual Stream              * streamVideo(const SHttpServer::RequestMessage &);
 
   virtual QList<Item>           listItems(const QString &path, unsigned start, unsigned count);
-  virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestHeader &, QAbstractSocket *);
+  virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestMessage &, QAbstractSocket *);
 
 private:
-  SHttpServer::SocketOp         sendPhoto(const SHttpServer::RequestHeader &, QAbstractSocket *, MediaDatabase::UniqueID, const QString &format) const;
-  SHttpServer::SocketOp         handleHtmlRequest(const SHttpServer::RequestHeader &, QAbstractSocket *, const QString &);
+  SHttpServer::SocketOp         sendPhoto(const SHttpServer::RequestMessage &, QAbstractSocket *, MediaDatabase::UniqueID, const QString &format) const;
+  SHttpServer::SocketOp         handleHtmlRequest(const SHttpServer::RequestMessage &, QAbstractSocket *, const QString &);
 
 private:
   static const char     * const htmlView;

@@ -34,7 +34,7 @@ private:
   class ProbeResponseEvent : public QEvent
   {
   public:
-    inline ProbeResponseEvent(const SSandboxServer::RequestHeader &request, QAbstractSocket *socket, const QByteArray &data)
+    inline ProbeResponseEvent(const SSandboxServer::RequestMessage &request, QAbstractSocket *socket, const QByteArray &data)
       : QEvent(probeResponseEventType), request(request), socket(socket), data(data)
     {
     }
@@ -52,13 +52,13 @@ public:
   virtual void                  close(void);
 
 public: // From SandboxServer::Callback
-  virtual SSandboxServer::SocketOp handleHttpRequest(const SSandboxServer::RequestHeader &, QAbstractSocket *);
+  virtual SSandboxServer::SocketOp handleHttpRequest(const SSandboxServer::RequestMessage &, QAbstractSocket *);
 
 protected: // From QObject
   virtual void                  customEvent(QEvent *);
 
 private:
-  void                          probe(const SSandboxServer::RequestHeader &request, QAbstractSocket *socket, const QString &file);
+  void                          probe(const SSandboxServer::RequestMessage &request, QAbstractSocket *socket, const QString &file);
 
 private slots:
   void                          cleanStreams(void);
@@ -81,7 +81,7 @@ public:
   explicit                      SandboxFileStream(const QString &fileName);
   virtual                       ~SandboxFileStream();
 
-  bool                          setup(const SHttpServer::RequestHeader &, QAbstractSocket *);
+  bool                          setup(const SHttpServer::RequestMessage &, QAbstractSocket *);
 
 public:
   SFileInputNode                file;
@@ -93,7 +93,7 @@ Q_OBJECT
 public:
   explicit                      SandboxPlaylistStream(const SMediaInfoList &files);
 
-  bool                          setup(const SHttpServer::RequestHeader &, QAbstractSocket *);
+  bool                          setup(const SHttpServer::RequestMessage &, QAbstractSocket *);
 
 public slots:
   void                          opened(const QString &, quint16);
@@ -110,7 +110,7 @@ Q_OBJECT
 public:
   explicit                      SandboxSlideShowStream(const SMediaInfoList &files);
 
-  bool                          setup(const SHttpServer::RequestHeader &, QAbstractSocket *);
+  bool                          setup(const SHttpServer::RequestMessage &, QAbstractSocket *);
 
 public:
   SlideShowNode                 slideShow;

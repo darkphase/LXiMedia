@@ -185,7 +185,7 @@ void SUPnPContentDirectory::buildDescription(QDomDocument &doc, QDomElement &scp
   scpdElm.appendChild(serviceStateTableElm);
 }
 
-void SUPnPContentDirectory::handleSoapMessage(const QDomElement &body, QDomDocument &responseDoc, QDomElement &responseBody, const SHttpServer::RequestHeader &request, const QHostAddress &peerAddress)
+void SUPnPContentDirectory::handleSoapMessage(const QDomElement &body, QDomDocument &responseDoc, QDomElement &responseBody, const SHttpServer::RequestMessage &request, const QHostAddress &peerAddress)
 {
   const QDomElement browseElm = firstChildElementNS(body, contentDirectoryNS, "Browse");
   if (!browseElm.isNull())
@@ -216,7 +216,7 @@ void SUPnPContentDirectory::handleSoapMessage(const QDomElement &body, QDomDocum
   }
 }
 
-void SUPnPContentDirectory::handleBrowse(const QDomElement &elem, QDomDocument &doc, QDomElement &body, const SHttpServer::RequestHeader &request, const QHostAddress &peerAddress)
+void SUPnPContentDirectory::handleBrowse(const QDomElement &elem, QDomDocument &doc, QDomElement &body, const SHttpServer::RequestMessage &request, const QHostAddress &peerAddress)
 {
   const QString path = fromObjectID(elem.firstChildElement("ObjectID").text());
   const QString browseFlag = elem.firstChildElement("BrowseFlag").text();
