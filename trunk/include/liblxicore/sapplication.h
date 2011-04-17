@@ -86,9 +86,9 @@ public:
   explicit                      SApplication(const QString &logDir = QString::null, QObject * = NULL);
   virtual                       ~SApplication();
 
-  __pure static const char    * name(void);
-  __pure static const char    * version(void);
-  __pure static SApplication  * instance(void);
+  _lxi_pure static const char * name(void);
+  _lxi_pure static const char * version(void);
+  _lxi_pure static SApplication * instance(void);
 
   void                          addModuleFilter(const QString &);
   bool                          loadModule(SModule *, QPluginLoader * = NULL);
@@ -112,13 +112,13 @@ public:
   static SApplication         * createForQTest(QObject *);
 
 private:
-  __internal explicit           SApplication(QObject *);
+  _lxi_internal explicit        SApplication(QObject *);
 
-  __internal static QList<SFactory *> & factories(void);
+  _lxi_internal static QList<SFactory *> & factories(void);
 
 private:
-  __internal static Initializer * initializers;
-  __internal static SApplication * self;
+  _lxi_internal static Initializer * initializers;
+  _lxi_internal static SApplication * self;
 
   struct Data;
   Data                  * const d;

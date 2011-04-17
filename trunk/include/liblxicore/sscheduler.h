@@ -179,7 +179,7 @@ protected:
 
 private:
   void                          start(Runnable *runnable, Priority = Priority_Normal);
-  __internal void               traceTask(int, int, const QByteArray &);
+  _lxi_internal void            traceTask(int, int, const QByteArray &);
 
 protected:
   static const QEvent::Type     scheduleEventType;

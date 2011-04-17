@@ -48,7 +48,7 @@ public: // From SInterfaces::BufferReaderNode
   virtual void                  selectStreams(const QList<StreamId> &);
 
 private slots:
-  __internal void               parseSubtitle(const SEncodedVideoBuffer &);
+  _lxi_internal void            parseSubtitle(const SEncodedVideoBuffer &);
 
 private:
   struct Data;

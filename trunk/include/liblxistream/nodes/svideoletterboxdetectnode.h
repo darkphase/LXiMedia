@@ -48,7 +48,7 @@ signals:
   void                          output(const SVideoBuffer &);
 
 private:
-  __internal qreal              determineAspectRatio(const SVideoBuffer &) const;
+  _lxi_internal qreal           determineAspectRatio(const SVideoBuffer &) const;
 
 private:
   struct Data;

@@ -49,14 +49,14 @@ protected:
   virtual void                  run(void);
 
 private:
-  __internal void               disconnectAllSockets(void);
+  _lxi_internal void            disconnectAllSockets(void);
 
 private slots:
-  __internal void               processData(void);
-  __internal void               flushData(void);
+  _lxi_internal void            processData(void);
+  _lxi_internal void            flushData(void);
 
 private:
-  __internal static const int   outBufferSize;
+  _lxi_internal static const int outBufferSize;
 
   struct Data;
   Data                  * const d;

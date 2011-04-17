@@ -52,7 +52,7 @@ signals:
   void                          output(const SVideoBuffer &);
 
 private:
-  __internal void               processTask(const SVideoBuffer &, SInterfaces::VideoResizer *);
+  _lxi_internal void            processTask(const SVideoBuffer &, SInterfaces::VideoResizer *);
 
 private:
   struct Data;

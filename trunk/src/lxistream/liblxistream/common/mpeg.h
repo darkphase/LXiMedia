@@ -55,13 +55,13 @@ static const quint8             programEndCode[4] = { 0x00, 0x00, 0x01, 0xB9 };
 
     \author A.J. Admiraal
  */
-__packed struct TSPacket
+struct _lxi_packed TSPacket
 {
   /*! This structure represents an MPEG-2 Part 1 adaptation field.
 
     \author A.J. Admiraal
   */
-  __packed struct AdaptationField
+  struct _lxi_packed AdaptationField
   {
     inline size_t               getLength(void) const                           { return size_t(data[0]) + 1; }     //!< Returns the length of the adaptation field in bytes
     inline bool                 hasDiscontinuity(void) const                    { return (data[1] & 0x80) != 0; }   //!< Returns true if the Discontinuity Indicator is set.
@@ -115,7 +115,7 @@ __packed struct TSPacket
 
     \author A.J. Admiraal
  */
-__packed struct PESHeader
+struct _lxi_packed PESHeader
 {
   enum StreamId
   {
@@ -148,7 +148,7 @@ __packed struct PESHeader
 
     \author A.J. Admiraal
  */
-__packed struct PESPacket : PESHeader
+struct _lxi_packed PESPacket : PESHeader
 {
   inline                        PESPacket(void)                                 { memset(_data, 0, 32 - sizeof(PESHeader)); }
 
@@ -178,7 +178,7 @@ __packed struct PESPacket : PESHeader
 
     \author A.J. Admiraal
  */
-__packed struct PSMap : PESHeader
+struct _lxi_packed PSMap : PESHeader
 {
   enum StreamType
   {
@@ -195,7 +195,7 @@ __packed struct PSMap : PESHeader
     StreamType_DTSAudio       = 0x8A
   };
 
-  __packed struct Stream
+  struct _lxi_packed Stream
   {
     inline                      Stream(void)                                    { memset(data, 0, sizeof(data)); }
     inline StreamType           getStreamType(void) const                       { return StreamType(data[0]); }
@@ -230,7 +230,7 @@ __packed struct PSMap : PESHeader
 
     \author A.J. Admiraal
  */
-__packed struct PSPackHeader
+struct _lxi_packed PSPackHeader
 {
   inline                        PSPackHeader(void)                              { initialize(); }
 
@@ -252,7 +252,7 @@ __packed struct PSPackHeader
 
     \author A.J. Admiraal
  */
-__packed struct PSSystemHeader : PESHeader
+struct _lxi_packed PSSystemHeader : PESHeader
 {
   inline                        PSSystemHeader(void)                            { initialize(); }
 

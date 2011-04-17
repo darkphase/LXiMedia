@@ -57,14 +57,14 @@ public:
   static SVideoBuffer           renderSubtitles(const SVideoBuffer &, const QStringList &, unsigned ratio = 16);
 
 private:
-  __internal void               processTask(const SSubtitleBuffer &);
-  __internal void               processTask(const SVideoBuffer &);
-  __internal static void        renderSubtitles(SVideoBuffer &, const Lines *, const Char * const *);
+  _lxi_internal void            processTask(const SSubtitleBuffer &);
+  _lxi_internal void            processTask(const SVideoBuffer &);
+  _lxi_internal static void     renderSubtitles(SVideoBuffer &, const Lines *, const Char * const *);
 
 private:
-  __internal static const unsigned char subFontsData[];
-  __internal static QMap<int, QVector<Char *> > characters;
-  __internal static FontLoader  fontLoader;
+  _lxi_internal static const unsigned char subFontsData[];
+  _lxi_internal static QMap<int, QVector<Char *> > characters;
+  _lxi_internal static FontLoader  fontLoader;
 
   struct Data;
   Data                  * const d;

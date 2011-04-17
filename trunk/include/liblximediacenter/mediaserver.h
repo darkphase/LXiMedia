@@ -101,13 +101,13 @@ private: // From UPnPContentDirectory::Callback
   virtual QList<SUPnPContentDirectory::Item> listContentDirItems(const QString &path, unsigned start, unsigned count);
 
 private:
-  __internal void               addStream(Stream *);
-  __internal void               removeStream(Stream *);
+  _lxi_internal void            addStream(Stream *);
+  _lxi_internal void            removeStream(Stream *);
 
 public:
-  __internal static const qint32 defaultDirSortOrder;
-  __internal static const qint32 defaultFileSortOrder;
-  __internal static const int   seekBySecs;
+  _lxi_internal static const qint32 defaultDirSortOrder;
+  _lxi_internal static const qint32 defaultFileSortOrder;
+  _lxi_internal static const int seekBySecs;
 
 private:
   struct Data;

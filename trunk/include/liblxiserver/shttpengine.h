@@ -126,7 +126,7 @@ public:
     inline void                 setResponse(Status status)                      { setStatus(status); }
     inline void                 setResponse(Status status, const QByteArray &version) { setStatus(status); setVersion(version); }
 
-    __pure static const char  * statusText(int);
+    _lxi_pure static const char * statusText(int);
   };
 
   class LXISERVER_PUBLIC RequestMessage : public RequestHeader
@@ -170,8 +170,8 @@ public:
   virtual const char          * senderType(void) const = 0;
   virtual const QString       & senderId(void) const = 0;
 
-  __pure static const char    * toMimeType(const QString &fileName);
-  __pure static bool            splitHost(const QString &host, QString &hostname, quint16 &port);
+  _lxi_pure static const char * toMimeType(const QString &fileName);
+  _lxi_pure static bool         splitHost(const QString &host, QString &hostname, quint16 &port);
 
 public:
   static const char     * const httpVersion;
@@ -216,7 +216,7 @@ public:
   static SocketOp               sendRedirect(const RequestHeader &, QAbstractSocket *, const QString &);
 
 private slots:
-  __internal void               handleHttpRequest(const SHttpEngine::RequestMessage &, QAbstractSocket *);
+  _lxi_internal void            handleHttpRequest(const SHttpEngine::RequestMessage &, QAbstractSocket *);
 
 private:
   struct Data;
@@ -254,7 +254,7 @@ protected slots:
   virtual void                  handleResponse(const SHttpEngine::ResponseMessage &);
 
 private:
-  __internal static const QEvent::Type socketDestroyedEventType;
+  _lxi_internal static const QEvent::Type socketDestroyedEventType;
 
   struct Data;
   Data                  * const d;

@@ -29,28 +29,28 @@ namespace LXiCore {
 class LXICORE_PUBLIC SStringParser
 {
 public:
-  __pure static bool            isUtf8(const QByteArray &);
+  _lxi_pure static bool         isUtf8(const QByteArray &);
 
-  __pure static QString         removeControl(const QString &);
-  __pure static QStringList     removeControl(const QStringList &);
-  __pure static QString         toBasicLatin(const QString &);
-  __pure static QString         toBasicLatin(QChar);
-  __pure static QStringList     toBasicLatin(const QStringList &);
-  __pure static QString         toCleanName(const QString &);
-  __pure static QStringList     toCleanName(const QStringList &);
-  __pure static QString         toRawName(const QString &);
-  __pure static QStringList     toRawName(const QStringList &);
-  __pure static QString         toRawPath(const QString &);
+  _lxi_pure static QString      removeControl(const QString &);
+  _lxi_pure static QStringList  removeControl(const QStringList &);
+  _lxi_pure static QString      toBasicLatin(const QString &);
+  _lxi_pure static QString      toBasicLatin(QChar);
+  _lxi_pure static QStringList  toBasicLatin(const QStringList &);
+  _lxi_pure static QString      toCleanName(const QString &);
+  _lxi_pure static QStringList  toCleanName(const QStringList &);
+  _lxi_pure static QString      toRawName(const QString &);
+  _lxi_pure static QStringList  toRawName(const QStringList &);
+  _lxi_pure static QString      toRawPath(const QString &);
 
-  __pure static QString         findMatch(const QString &, const QString &);
-  __pure static qreal           computeMatch(const QString &, const QString &);
-  __pure static qreal           computeMatch(const QString &, const QStringList &);
-  __pure static qreal           computeBidirMatch(const QString &, const QString &);
+  _lxi_pure static QString      findMatch(const QString &, const QString &);
+  _lxi_pure static qreal        computeMatch(const QString &, const QString &);
+  _lxi_pure static qreal        computeMatch(const QString &, const QStringList &);
+  _lxi_pure static qreal        computeBidirMatch(const QString &, const QString &);
 
-  __pure static unsigned        numWords(const QString &);
+  _lxi_pure static unsigned     numWords(const QString &);
 
-  __pure static const char    * languageOf(const QString &);
-  __pure static QString         iso639Language(const char *);
+  _lxi_pure static const char * languageOf(const QString &);
+  _lxi_pure static QString      iso639Language(const char *);
 };
 
 } // End of namespaces

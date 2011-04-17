@@ -51,7 +51,7 @@ signals:
   void                          output(const SEncodedVideoBuffer &);
 
 private:
-  __internal void               processTask(const SVideoBuffer &);
+  _lxi_internal void            processTask(const SVideoBuffer &);
 
 private:
   struct Data;

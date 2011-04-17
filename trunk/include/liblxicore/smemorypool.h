@@ -55,20 +55,20 @@ public:
   static void                   free(void *);
 
 private:
-  __internal static void      * allocPages(size_t);
-  __internal static void        freePages(void *, size_t);
+  _lxi_internal static void   * allocPages(size_t);
+  _lxi_internal static void     freePages(void *, size_t);
 
 private:
   struct Init;
-  __internal static Init        init;
-  __internal static int         pageSize;
+  _lxi_internal static Init     init;
+  _lxi_internal static int      pageSize;
 #if defined(Q_OS_UNIX)
-  __internal static int         zeroDev;
+  _lxi_internal static int      zeroDev;
 #endif
 
-  __pure __internal static QMutex * mutex(void);
-  __pure __internal static QMultiMap<size_t, Block> & freePool(void);
-  __pure __internal static QHash<void *, Block> & allocPool(void);
+  _lxi_pure _lxi_internal static QMutex * mutex(void);
+  _lxi_pure _lxi_internal static QMultiMap<size_t, Block> & freePool(void);
+  _lxi_pure _lxi_internal static QHash<void *, Block> & allocPool(void);
 };
 
 } // End of namespace

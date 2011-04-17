@@ -169,13 +169,13 @@ public:
   inline int                    numChannels(void) const                         { return numChannels(channelSetup()); }
   inline int                    sampleSize(void) const                          { return sampleSize(format()); }
 
-  static inline int             numChannels(Channels c)                         { return __popcount(quint32(c)); }
+  static inline int             numChannels(Channels c)                         { return _lxi_popcount(quint32(c)); }
   static Channels               guessChannels(unsigned numChannels);
-  __pure static int             sampleSize(Format);
-  __pure static const char    * formatName(Format);
-  __pure static const char    * channelName(Channel);
-  __pure static QString         channelNames(Channels);
-  __pure static const char    * channelSetupName(Channels);
+  _lxi_pure static int          sampleSize(Format);
+  _lxi_pure static const char * formatName(Format);
+  _lxi_pure static const char * channelName(Channel);
+  _lxi_pure static QString      channelNames(Channels);
+  _lxi_pure static const char * channelSetupName(Channels);
 
 private:
   struct
