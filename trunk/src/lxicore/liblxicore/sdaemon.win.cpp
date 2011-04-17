@@ -214,7 +214,7 @@ void WINAPI SDaemon::Data::serviceMain(DWORD argc, TCHAR *argv[])
     int xargc = argc;
     char **xargv = new char *[argc];
     for (int i=0; i<xargc; i++)
-      xargv[i] = strdup(QString::fromWCharArray(argv[i]).toUtf8());
+      xargv[i] = _strdup(QString::fromWCharArray(argv[i]).toUtf8());
 
     // Run the service
     serviceStatus.dwControlsAccepted |= (SERVICE_ACCEPT_STOP | SERVICE_ACCEPT_SHUTDOWN);

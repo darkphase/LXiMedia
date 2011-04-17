@@ -112,7 +112,11 @@ public:
     SScheduler          * const scheduler;
   };
 
+#ifndef _MSC_VER
 private:
+#else
+public:
+#endif
   class LXICORE_PUBLIC Runnable : public QRunnable
   {
   friend class SScheduler;
@@ -132,8 +136,10 @@ private:
     SScheduler                * scheduler;
   };
 
+#ifndef _MSC_VER
   friend bool ::LXiCore::operator<(int, const QPair<Runnable *, int> &);
   friend bool ::LXiCore::operator<(const QPair<Runnable *, int> &, int);
+#endif
 
   typedef QList< QPair<Runnable *, int> > TaskQueue;
 

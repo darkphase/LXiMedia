@@ -18,7 +18,9 @@
  ***************************************************************************/
 
 #include "sscheduler.h"
+#ifdef __GNUC__
 #include <cxxabi.h>
+#endif
 
 namespace LXiCore {
 
@@ -153,7 +155,7 @@ void SScheduler::start(Runnable *runnable, Priority priority)
 
   if (runnable->depends != NULL)
   {
-    if (__builtin_expect(runnable->depends->scheduler != this, false))
+    if (__expect(runnable->depends->scheduler != this, false))
       qFatal("The specified task dependency is not created for this scheduler.");
 
     QMutexLocker l(&d->mutex);
@@ -356,11 +358,13 @@ void SScheduler::Runnable::run(void)
 
     const int endTime = scheduler->d->traceTimer.elapsed();
 
+#ifdef __GNUC__
     char demangled[256];
     size_t demangledSize = sizeof(demangled);
     if (abi::__cxa_demangle(name, demangled, &demangledSize, NULL) != NULL)
       scheduler->traceTask(startTime, endTime, demangled);
     else
+#endif
       scheduler->traceTask(startTime, endTime, name);
   }
   else

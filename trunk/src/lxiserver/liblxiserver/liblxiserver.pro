@@ -12,11 +12,9 @@ DEPENDPATH += $${LXIMEDIA_DIR}/include/liblxiserver
 
 DEFINES += S_BUILD_LIBLXISERVER
 
-linux-g++|win32-g++ {
-  # Generate/Use precompiled header
-  CONFIG += precompile_header
-  PRECOMPILED_HEADER = $${LXIMEDIA_DIR}/include/LXiServer
-}
+# Generate/Use precompiled header
+CONFIG += precompile_header
+PRECOMPILED_HEADER = $${LXIMEDIA_DIR}/include/LXiServer
 
 include($${LXIMEDIA_DIR}/include/liblxicore/linklxicore.pri)
 
@@ -75,5 +73,23 @@ win32-g++ {
         system(cp -u $$(QTDIR)/bin/QtCored4.dll -t $${LXIMEDIA_DIR}/bin)
         system(cp -u $$(QTDIR)/bin/QtNetworkd4.dll -t $${LXIMEDIA_DIR}/bin)
         system(cp -u $$(QTDIR)/bin/QtXmld4.dll -t $${LXIMEDIA_DIR}/bin)
+    }
+}
+win32-msvc2005|win32-msvc2008|win32-msvc2010 {
+    TEMPLATE = vclib
+    GUID = CB4BC33A-9C6C-3536-8031-5EA89E8C8C0E
+    DEFINES += _CRT_SECURE_NO_WARNINGS
+    PRECOMPILED_SOURCE = $${PRECOMPILED_HEADER}
+
+    system(mkdir ..\\..\\..\\bin\\ > NUL 2>&1)
+    release { 
+        system(copy $$(QTDIR)\\bin\\QtCore4.dll ..\\..\\..\\bin\\ > NUL)
+        system(copy $$(QTDIR)\\bin\\QtNetwork4.dll ..\\..\\..\\bin\\ > NUL)
+        system(copy $$(QTDIR)\\bin\\QtXml4.dll ..\\..\\..\\bin\\ > NUL)
+    }
+    debug {
+        system(copy $$(QTDIR)\\bin\\QtCored4.dll ..\\..\\..\\bin\\ > NUL)
+        system(copy $$(QTDIR)\\bin\\QtNetworkd4.dll ..\\..\\..\\bin\\ > NUL)
+        system(copy $$(QTDIR)\\bin\\QtXmld4.dll ..\\..\\..\\bin\\ > NUL)
     }
 }

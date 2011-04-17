@@ -44,19 +44,24 @@ static const quint8             programEndCode[4] = { 0x00, 0x00, 0x01, 0xB9 };
 
 ////////////////////////////////////////////////////////////////////////////////
 // Structures
+
+#ifdef _MSC_VER
+#pragma pack(1)
+#endif
+
 /*! This structure represents an MPEG-2 Part 1 Transport Stream packet. This is
     a 188 byte packet containing the actual MPEG data. It is the elementary
     packet for DVB transmissions.
 
     \author A.J. Admiraal
  */
-struct TSPacket
+__packed struct TSPacket
 {
   /*! This structure represents an MPEG-2 Part 1 adaptation field.
 
     \author A.J. Admiraal
   */
-  struct AdaptationField
+  __packed struct AdaptationField
   {
     inline size_t               getLength(void) const                           { return size_t(data[0]) + 1; }     //!< Returns the length of the adaptation field in bytes
     inline bool                 hasDiscontinuity(void) const                    { return (data[1] & 0x80) != 0; }   //!< Returns true if the Discontinuity Indicator is set.
@@ -73,7 +78,7 @@ struct TSPacket
     qint8                       getSpliceCountdown(void) const;                 //!< Returns the Splice countdown, or 0 if not present.
 
     quint8                      data[tsPacketSize - 4];                         //!< Holds the raw field.
-  } __attribute__((packed));
+  };
 
   inline                        TSPacket(void)                                  { memset(data, 0, sizeof(data)); data[0] = tsSyncByte; }
 
@@ -102,7 +107,7 @@ struct TSPacket
   size_t                        setPayload(const quint8 *, size_t);
 
   quint8                        data[tsPacketSize];                             //!< Holds the raw packet.
-} __attribute__((packed));
+};
 
 
 /*! This structure represents an MPEG-2 Part 1 Packetized Elementary Stream
@@ -110,7 +115,7 @@ struct TSPacket
 
     \author A.J. Admiraal
  */
-struct PESHeader
+__packed struct PESHeader
 {
   enum StreamId
   {
@@ -135,7 +140,7 @@ struct PESHeader
 
   static const size_t           maxPayloadSize = 65506;                         //!< The maximum allowed payload size.
   quint8                        data[6];                                        //!< Holds the raw header, the rest of the packet follows this.
-} __attribute__((packed));
+};
 
 
 /*! This structure represents an MPEG-2 Part 1 Packetized Elementary Stream
@@ -143,7 +148,7 @@ struct PESHeader
 
     \author A.J. Admiraal
  */
-struct PESPacket : PESHeader
+__packed struct PESPacket : PESHeader
 {
   inline                        PESPacket(void)                                 { memset(_data, 0, 32 - sizeof(PESHeader)); }
 
@@ -166,14 +171,14 @@ struct PESPacket : PESHeader
   const quint8                * getPayload(void) const;                         //!< Returns a pointer to the payload.
 
   quint8                        _data[65535];                                   //!< Contains the raw data of the packet, excluding the header, use PESHeader::data instead.
-} __attribute__((packed));
+};
 
 
 /*! This structure represents an MPEG-2 Part 1 Program Stream Map.
 
     \author A.J. Admiraal
  */
-struct PSMap : PESHeader
+__packed struct PSMap : PESHeader
 {
   enum StreamType
   {
@@ -190,7 +195,7 @@ struct PSMap : PESHeader
     StreamType_DTSAudio       = 0x8A
   };
 
-  struct Stream
+  __packed struct Stream
   {
     inline                      Stream(void)                                    { memset(data, 0, sizeof(data)); }
     inline StreamType           getStreamType(void) const                       { return StreamType(data[0]); }
@@ -200,7 +205,7 @@ struct PSMap : PESHeader
     inline quint8               getDescLength(void) const                       { return (quint16(data[2]) << 8) | quint16(data[3]); }
 
     quint8                      data[4];
-  } __attribute__((packed));
+  };
 
   inline                        PSMap(void)                                     { initialize(); }
 
@@ -218,14 +223,14 @@ struct PSMap : PESHeader
   void                          addStream(const Stream &);
 
   quint8                        _data[1018];                                    //!< Contains the raw data of the packet, excluding the header, use PESHeader::data instead.
-} __attribute__((packed));
+};
 
 
 /*! This structure represents an MPEG-2 Part 1 Program Stream Pack Header.
 
     \author A.J. Admiraal
  */
-struct PSPackHeader
+__packed struct PSPackHeader
 {
   inline                        PSPackHeader(void)                              { initialize(); }
 
@@ -240,21 +245,25 @@ struct PSPackHeader
 
   static const size_t           baseLength = 14;
   quint8                        data[baseLength + 8];
-} __attribute__((packed));
+};
 
 
 /*! This structure represents an MPEG-2 Part 1 Program Stream System Header.
 
     \author A.J. Admiraal
  */
-struct PSSystemHeader : PESHeader
+__packed struct PSSystemHeader : PESHeader
 {
   inline                        PSSystemHeader(void)                            { initialize(); }
 
   void                          initialize();
 
   quint8                        _data[64];                                      //!< Contains the raw data of the packet, excluding the header, use PESHeader::data instead.
-} __attribute__((packed));
+};
+
+#ifdef _MSC_VER
+#pragma pack()
+#endif
 
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -11,11 +11,9 @@ DEPENDPATH += $${LXIMEDIA_DIR}/include/liblxicore
 
 DEFINES += S_BUILD_LIBLXICORE
 
-linux-g++|win32-g++ {
-  # Generate/Use precompiled header
-  CONFIG += precompile_header
-  PRECOMPILED_HEADER = $${LXIMEDIA_DIR}/include/LXiCore
-}
+# Generate/Use precompiled header
+CONFIG += precompile_header
+PRECOMPILED_HEADER = $${LXIMEDIA_DIR}/include/LXiCore
 
 # Files
 HEADERS += $${LXIMEDIA_DIR}/include/LXiCore \
@@ -38,10 +36,11 @@ SOURCES += sapplication.cpp \
     sscheduler.cpp \
     sstringparser.cpp \
     sstringparser.iso639.cpp
-LIBS += -lbfd \
-    -liberty
 
 # Platform specific
+linux-g++|win32-g++ {
+  LIBS += -lbfd -liberty
+}
 unix {
     SOURCES += sdaemon.unix.cpp
 
@@ -57,10 +56,22 @@ win32-g++ {
     system(cp -u $$(QTDIR)/bin/mingwm10.dll -t $${LXIMEDIA_DIR}/bin)
     release { 
         system(cp -u $$(QTDIR)/bin/QtCore4.dll -t $${LXIMEDIA_DIR}/bin)
-        system(cp -u $$(QTDIR)/bin/QtXml4.dll -t $${LXIMEDIA_DIR}/bin)
     }
     debug {
         system(cp -u $$(QTDIR)/bin/QtCored4.dll -t $${LXIMEDIA_DIR}/bin)
-        system(cp -u $$(QTDIR)/bin/QtXmld4.dll -t $${LXIMEDIA_DIR}/bin)
+    }
+}
+win32-msvc2005|win32-msvc2008|win32-msvc2010 {
+    TEMPLATE = vclib
+    GUID = 13E79835-D78E-3E44-8834-3AE6AD77D284
+    DEFINES += _CRT_SECURE_NO_WARNINGS
+    PRECOMPILED_SOURCE = $${PRECOMPILED_HEADER}
+
+    system(mkdir ..\\..\\..\\bin\\ > NUL 2>&1)
+    release { 
+        system(copy $$(QTDIR)\\bin\\QtCore4.dll ..\\..\\..\\bin\\ > NUL)
+    }
+    debug {
+        system(copy $$(QTDIR)\\bin\\QtCored4.dll ..\\..\\..\\bin\\ > NUL)
     }
 }

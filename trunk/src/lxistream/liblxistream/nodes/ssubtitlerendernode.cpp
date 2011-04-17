@@ -26,22 +26,22 @@ extern "C" void LXiStream_SSubtitleRenderNode_mixSubtitle8(
     void * srcData, unsigned srcStride, unsigned srcWidth, unsigned srcHeight,
     void * srcU, unsigned uStride, void * srcV, unsigned vStride,
     unsigned wf, unsigned hf,
-    const void *lines, const void *characters) __attribute__((nonnull));
+    const void *lines, const void *characters);
 
 extern "C" void LXiStream_SSubtitleRenderNode_mixSubtitle8_stretch(
     void * srcData, unsigned srcStride, unsigned srcWidth, unsigned srcHeight,
     float srcAspect, void * srcU, unsigned uStride, void * srcV,
     unsigned vStride, unsigned wf, unsigned hf,
-    const void *lines, const void *characters) __attribute__((nonnull));
+    const void *lines, const void *characters);
 
 extern "C" void LXiStream_SSubtitleRenderNode_mixSubtitle32(
     void * srcData, unsigned srcStride, unsigned srcWidth, unsigned srcHeight,
-    const void *lines, const void *characters) __attribute__((nonnull));
+    const void *lines, const void *characters);
 
 extern "C" void LXiStream_SSubtitleRenderNode_mixSubtitle32_stretch(
     void * srcData, unsigned srcStride, unsigned srcWidth, unsigned srcHeight,
     float srcAspect,
-    const void *lines, const void *characters) __attribute__((nonnull));
+    const void *lines, const void *characters);
 
 namespace LXiStream {
 
@@ -138,7 +138,7 @@ SVideoBuffer SSubtitleRenderNode::renderSubtitles(const SVideoBuffer &videoBuffe
   {
     QString line = lines[j];
     if (line.contains("<i>", Qt::CaseInsensitive))
-      font = characters.find(-(font->first()->height));
+      font = characters.find(-int(font->first()->height));
 
     line.replace("<i>", "", Qt::CaseInsensitive);
     line.replace("</i>", "", Qt::CaseInsensitive);
@@ -221,7 +221,7 @@ void SSubtitleRenderNode::processTask(const SVideoBuffer &videoBuffer)
       {
         QString line = lines[j];
         if (line.contains("<i>", Qt::CaseInsensitive))
-          d->font = characters.find(-(d->font->first()->height));
+          d->font = characters.find(-int(d->font->first()->height));
 
         line.replace("<i>", "", Qt::CaseInsensitive);
         line.replace("</i>", "", Qt::CaseInsensitive);
@@ -325,7 +325,7 @@ SSubtitleRenderNode::FontLoader::FontLoader(void)
         c->pixels[i] = (e != ' ') ? ((quint8(e - '0') * 28) + 3) : 0;
       }
 
-      const int fid = (elms[1].toInt() == 0) ? c->height : -c->height;
+      const int fid = (elms[1].toInt() == 0) ? int(c->height) : -int(c->height);
       QMap<int, QVector<SSubtitleRenderNode::Char *> >::Iterator i = characters.find(fid);
       if (i == characters.end())
       {

@@ -11,10 +11,8 @@ DEPENDPATH += $${LXIMEDIA_DIR}/include/liblxistream
 
 DEFINES += S_BUILD_LIBLXISTREAM
 
-linux-g++|win32-g++ {
-  CONFIG += precompile_header
-  PRECOMPILED_HEADER = $${LXIMEDIA_DIR}/include/LXiStream
-}
+CONFIG += precompile_header
+PRECOMPILED_HEADER = $${LXIMEDIA_DIR}/include/LXiStream
 
 include($${LXIMEDIA_DIR}/include/liblxicore/linklxicore.pri)
 
@@ -181,5 +179,23 @@ win32-g++ {
         system(cp -u $$(QTDIR)/bin/QtCored4.dll -t $${LXIMEDIA_DIR}/bin)
         system(cp -u $$(QTDIR)/bin/QtGuid4.dll -t $${LXIMEDIA_DIR}/bin)
         system(cp -u $$(QTDIR)/bin/QtXmld4.dll -t $${LXIMEDIA_DIR}/bin)
+    }
+}
+win32-msvc2005|win32-msvc2008|win32-msvc2010 {
+    TEMPLATE = vclib
+    GUID = 6AF51170-3E95-3E73-BFC4-0BBD8E57F07B
+    DEFINES += _CRT_SECURE_NO_WARNINGS
+    PRECOMPILED_SOURCE = $${PRECOMPILED_HEADER}
+
+    system(mkdir ..\\..\\..\\bin\\ > NUL 2>&1)
+    release { 
+        system(copy $$(QTDIR)\\bin\\QtCore4.dll ..\\..\\..\\bin\\ > NUL)
+        system(copy $$(QTDIR)\\bin\\QtGui4.dll ..\\..\\..\\bin\\ > NUL)
+        system(copy $$(QTDIR)\\bin\\QtXml4.dll ..\\..\\..\\bin\\ > NUL)
+    }
+    debug {
+        system(copy $$(QTDIR)\\bin\\QtCored4.dll ..\\..\\..\\bin\\ > NUL)
+        system(copy $$(QTDIR)\\bin\\QtGuid4.dll ..\\..\\..\\bin\\ > NUL)
+        system(copy $$(QTDIR)\\bin\\QtXmld4.dll ..\\..\\..\\bin\\ > NUL)
     }
 }

@@ -24,12 +24,12 @@
 extern "C" void LXiStream_SVideoBoxNode_boxVideo8(
     const void * srcData, unsigned srcWidth, unsigned srcStride, unsigned srcNumLines,
     void * dstData, unsigned dstWidth, unsigned dstStride, unsigned dstNumLines,
-    int nullPixel) __attribute__((nonnull(1, 5)));
+    int nullPixel);
 
 extern "C" void LXiStream_SVideoBoxNode_boxVideo32(
     const void * srcData, unsigned srcWidth, unsigned srcStride, unsigned srcNumLines,
     void * dstData, unsigned dstWidth, unsigned dstStride, unsigned dstNumLines,
-    quint32 nullPixel) __attribute__((nonnull(1, 5)));
+    quint32 nullPixel);
 
 namespace LXiStream {
 
