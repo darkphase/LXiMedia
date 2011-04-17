@@ -23,6 +23,16 @@
 #include "backend.h"
 #include "sandbox.h"
 
+void configApp(QCoreApplication &app)
+{
+  app.setOrganizationName("LeX-Interactive");
+  app.setOrganizationDomain("lximedia.sf.net");
+  app.setApplicationName("LXiMediaCenter");
+  app.setApplicationVersion(
+#include "_version.h"
+      );
+}
+
 class Daemon : public SDaemon
 {
 public:
@@ -31,8 +41,11 @@ public:
   {
   }
 
-  virtual int run(void)
+  virtual int run(int &argc, char *argv[])
   {
+    QCoreApplication app(argc, argv);
+    configApp(app);
+
     int exitCode = 0;
     do
     {
@@ -64,16 +77,11 @@ const char Daemon::name[] = "LXiMediaCenter Backend";
 
 int main(int argc, char *argv[])
 {
-  QCoreApplication app(argc, argv);
-  app.setOrganizationName("LeX-Interactive");
-  app.setOrganizationDomain("lximedia.sf.net");
-  app.setApplicationName("LXiMediaCenter");
-  app.setApplicationVersion(
-#include "_version.h"
-      );
-
   if ((argc >= 3) && (strcmp(argv[1], "--sandbox") == 0))
   {
+    QCoreApplication app(argc, argv);
+    configApp(app);
+
     Sandbox sandbox;
     sandbox.start(argv[2]);
 

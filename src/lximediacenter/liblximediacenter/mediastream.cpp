@@ -269,6 +269,7 @@ bool MediaStream::setup(const SHttpServer::RequestHeader &request, QIODevice *so
   videoResizer.setAspectRatioMode(aspectRatioMode);
   videoBox.setSize(size);
 
+  connect(socket, SIGNAL(readChannelFinished()), SLOT(stop()));
   socket->write(header);
   output.setIODevice(socket, true);
 
@@ -392,6 +393,7 @@ bool MediaStream::setup(const SHttpServer::RequestHeader &request, QIODevice *so
     return false;
   }
 
+  connect(socket, SIGNAL(readChannelFinished()), SLOT(stop()));
   socket->write(header);
   output.setIODevice(socket, true);
 

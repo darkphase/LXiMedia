@@ -37,7 +37,7 @@ struct SDaemon::Data
   static char                   name[256];
   static pid_t                  sessionID;
 
-  static bool                   start(void);
+  static bool                   start(int &argc, char *argv[]);
   static bool                   stop(void);
   static void                   termHandler(int);
 };
@@ -61,7 +61,7 @@ SDaemon::~SDaemon()
   Data::sessionID = 0;
 }
 
-int SDaemon::main(int argc, char *argv[])
+int SDaemon::main(int &argc, char *argv[])
 {
   if (argc < 2)
   {
@@ -95,7 +95,7 @@ int SDaemon::main(int argc, char *argv[])
   }
   else if ((strcmp(argv[1], "--run") == 0) || (strcmp(argv[1], "-r") == 0))
   {
-    return run();
+    return run(argc, argv);
   }
   else
   {
@@ -110,7 +110,7 @@ int SDaemon::main(int argc, char *argv[])
   return 0;
 }
 
-bool SDaemon::Data::start(void)
+bool SDaemon::Data::start(int &argc, char *argv[])
 {
   const pid_t pid = fork();
 
@@ -151,7 +151,7 @@ bool SDaemon::Data::start(void)
   sigaction(SIGTERM, &act, NULL);
 
   // This starts the deamon
-  Data::instance->run();
+  Data::instance->run(argc, argv);
 
   return true;
 }

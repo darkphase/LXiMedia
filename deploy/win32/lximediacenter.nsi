@@ -60,7 +60,7 @@ Section "-Shared Files" SecShared
   File ..\..\bin\lximedia\liblxistream_*.dll
 
   ; For backwards compatibility with 0.1.x versions, can be removed in the future.
-  Rename "$%ALLUSERSPROFILE%\Application Data\lximc" "$%ALLUSERSPROFILE%\Application Data\LXiMediaCenter"
+  RMDir /r /REBOOTOK "$%ALLUSERSPROFILE%\Application Data\lximc"
   RMDir /r /REBOOTOK "$INSTDIR\liblxistream"
   RMDir /r /REBOOTOK "$INSTDIR\lximediacenter"
 
@@ -116,7 +116,7 @@ Section "Uninstall"
   DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\LXiMediaCenter"
   
   MessageBox MB_YESNO "Would you like to keep the existing settings and databases? Note that building a new database might take several hours." /SD IDYES IDYES noRemoveDb
-    RMDir /r "$%ALLUSERSPROFILE%\Application Data\LXiMediaCenter"
+    RMDir /r "$%ALLUSERSPROFILE%\..\LocalService\Local Settings\Application Data\LXiMediaCenter"
   noRemoveDb:
   
 SectionEnd

@@ -116,17 +116,9 @@ QString GlobalSettings::applicationDataDir(void)
   else
     dir = QDir::cleanPath(QDir::homePath() + "/." + qApp->applicationName().toLower());
 #elif defined(Q_OS_WIN)
-  foreach (const QString &var, QProcess::systemEnvironment())
-  if (var.startsWith("ALLUSERSPROFILE=", Qt::CaseInsensitive))
-  {
-    dir = QDir::cleanPath(QDir::fromNativeSeparators(var.mid(16)) + "/Application Data/" + qApp->applicationName());
-    break;
-  }
-
   // We use Local Settings here because the backend is storing large databases
   // in this directory; this is not preferable in a roaming profile.
-  if (dir.length() == 0)
-    dir = QDir::cleanPath(QDir::homePath() + "/Local Settings/Application Data/" + qApp->applicationName());
+  dir = QDir::cleanPath(QDir::homePath() + "/Local Settings/Application Data/" + qApp->applicationName());
 #else
   dir = QDir::cleanPath(QDir::homePath() + "/." + qApp->applicationName().toLower());
 #endif

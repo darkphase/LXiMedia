@@ -31,10 +31,10 @@ public:
   explicit                      SDaemon(const QString &name);
   virtual                       ~SDaemon();
 
-  int                           main(int argc, char *argv[]);
+  int                           main(int &argc, char *argv[]);
 
 protected:
-  virtual int                   run(void) = 0;
+  virtual int                   run(int &argc, char *argv[]) = 0;
   virtual void                  quit(void) = 0;
 
 private:
