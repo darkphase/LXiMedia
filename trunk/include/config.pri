@@ -1,10 +1,10 @@
 # Default build settings for LXiMedia
 CONFIG += qt thread warn_on
-OBJECTS_DIR = $${LXIMEDIA_DIR}/obj/$${TARGET}
+OBJECTS_DIR = $${OUT_PWD}/$${LXIMEDIA_DIR}/obj/$${TARGET}
 MOC_DIR = $${OBJECTS_DIR}
 RCC_DIR = $${OBJECTS_DIR}
-INCLUDEPATH += $${LXIMEDIA_DIR}/include/
-DEPENDPATH += ./ $${LXIMEDIA_DIR}/include/
+INCLUDEPATH += $${PWD}/
+DEPENDPATH += ./ $${PWD}/
 
 # Version number
 unix|win32-g++ {
@@ -14,7 +14,7 @@ unix|win32-g++ {
 }
 
 # Optimizations
-include($${LXIMEDIA_DIR}/include/optimize.pri)
+include($${PWD}/optimize.pri)
 
 # Reduce export symbol table size and binary size.
 linux-g++ {

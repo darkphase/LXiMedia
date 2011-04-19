@@ -1,21 +1,21 @@
 TEMPLATE = app
 LXIMEDIA_DIR = ../../..
-DESTDIR = $${LXIMEDIA_DIR}/bin
+DESTDIR = $${OUT_PWD}/$${LXIMEDIA_DIR}/bin
 TARGET = lximctrayicon
 
 # Duplicate code to keep memory usage low
 CONFIG += qt warn_on
 QT += network xml
-OBJECTS_DIR = $${LXIMEDIA_DIR}/obj/$${TARGET}
+OBJECTS_DIR = $${OUT_PWD}/$${LXIMEDIA_DIR}/obj/$${TARGET}
 MOC_DIR = $${OBJECTS_DIR}
 RCC_DIR = $${OBJECTS_DIR}
-INCLUDEPATH += $${LXIMEDIA_DIR}/include/ $${LXIMEDIA_DIR}/include/liblximediacenter
-DEPENDPATH += $${LXIMEDIA_DIR}/include/ $${LXIMEDIA_DIR}/include/liblximediacenter
+INCLUDEPATH += $${PWD}/$${LXIMEDIA_DIR}/include/ $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter
+DEPENDPATH += $${PWD}/$${LXIMEDIA_DIR}/include/ $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter
 DEFINES += TRAYICON_ONLY
 DEFINES += S_BUILD_LIBLXIMEDIACENTER
 
 SOURCES += ../liblximediacenter/globalsettings.cpp
-HEADERS += $${LXIMEDIA_DIR}/include/liblximediacenter/globalsettings.h
+HEADERS += $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/globalsettings.h
 
 linux-g++|win32-g++ {
   # Optimize for size instead of speed
@@ -29,12 +29,10 @@ unix|win32-g++ {
   VERSION_MAJOR ~= s/\\.[0-9]+.+/
 }
 
-include($${LXIMEDIA_DIR}/include/liblxiserver/linklxiserver.pri)
+include($${PWD}/$${LXIMEDIA_DIR}/include/liblxiserver/linklxiserver.pri)
 
-linux-g++|win32-g++ {
-  CONFIG += precompile_header
-  PRECOMPILED_HEADER = $${LXIMEDIA_DIR}/include/LXiServer
-}
+CONFIG += precompile_header
+PRECOMPILED_HEADER = $${PWD}/$${LXIMEDIA_DIR}/include/LXiServer
 
 # Files
 SOURCES += main.cpp \

@@ -1,12 +1,10 @@
 MODULE_NAME = lxistream_v4l
 LXIMEDIA_DIR = ../../../..
-include($${LXIMEDIA_DIR}/include/liblxicore/module.pri)
-include($${LXIMEDIA_DIR}/include/liblxistream/linklxistream.pri)
+include($${PWD}/$${LXIMEDIA_DIR}/include/liblxicore/module.pri)
+include($${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/linklxistream.pri)
 
-linux-g++|win32-g++ {
-  CONFIG += precompile_header
-  PRECOMPILED_HEADER = $${LXIMEDIA_DIR}/include/LXiStream
-}
+CONFIG += precompile_header
+PRECOMPILED_HEADER = $${PWD}/$${LXIMEDIA_DIR}/include/LXiStream
 
 # Files
 HEADERS += videodev.h \
@@ -27,9 +25,9 @@ SOURCES += module.cpp \
 # vbiinput.cpp
 
 # AleVt
-#SOURCES += $${LXIMEDIA_DIR}/ext/alevt-1.6.1/cache.c \
-# $${LXIMEDIA_DIR}/ext/alevt-1.6.1/fdset.c \
-# $${LXIMEDIA_DIR}/ext/alevt-1.6.1/hamm.c \
-# $${LXIMEDIA_DIR}/ext/alevt-1.6.1/lang.c \
-# $${LXIMEDIA_DIR}/ext/alevt-1.6.1/misc.c \
-# $${LXIMEDIA_DIR}/ext/alevt-1.6.1/vbi.c
+#SOURCES += $${PWD}/$${LXIMEDIA_DIR}/ext/alevt-1.6.1/cache.c \
+# $${PWD}/$${LXIMEDIA_DIR}/ext/alevt-1.6.1/fdset.c \
+# $${PWD}/$${LXIMEDIA_DIR}/ext/alevt-1.6.1/hamm.c \
+# $${PWD}/$${LXIMEDIA_DIR}/ext/alevt-1.6.1/lang.c \
+# $${PWD}/$${LXIMEDIA_DIR}/ext/alevt-1.6.1/misc.c \
+# $${PWD}/$${LXIMEDIA_DIR}/ext/alevt-1.6.1/vbi.c
