@@ -1,31 +1,29 @@
 TEMPLATE = lib
 CONFIG += dll
 LXIMEDIA_DIR = ../../..
-DESTDIR = $${LXIMEDIA_DIR}/bin
+DESTDIR = $${OUT_PWD}/$${LXIMEDIA_DIR}/bin
 TARGET = LXiStreamGui
-include($${LXIMEDIA_DIR}/include/config.pri)
-include($${LXIMEDIA_DIR}/ext/exif/exif.pri)
+include($${PWD}/$${LXIMEDIA_DIR}/include/config.pri)
+include($${PWD}/$${LXIMEDIA_DIR}/ext/exif/exif.pri)
 
-INCLUDEPATH += $${LXIMEDIA_DIR}/include/liblxistream $${LXIMEDIA_DIR}/include/liblxistreamgui
-DEPENDPATH += $${LXIMEDIA_DIR}/include/liblxistream $${LXIMEDIA_DIR}/include/liblxistreamgui
+INCLUDEPATH += $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream $${PWD}/$${LXIMEDIA_DIR}/include/liblxistreamgui
+DEPENDPATH += $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream $${PWD}/$${LXIMEDIA_DIR}/include/liblxistreamgui
 
 DEFINES += S_BUILD_LIBLXISTREAMGUI
 
-linux-g++|win32-g++ {
-  CONFIG += precompile_header
-  PRECOMPILED_HEADER = $${LXIMEDIA_DIR}/include/LXiStreamGui
-}
+CONFIG += precompile_header
+PRECOMPILED_HEADER = $${PWD}/$${LXIMEDIA_DIR}/include/LXiStreamGui
 
-include($${LXIMEDIA_DIR}/include/liblxicore/linklxicore.pri)
-include($${LXIMEDIA_DIR}/include/liblxistream/linklxistream.pri)
+include($${PWD}/$${LXIMEDIA_DIR}/include/liblxicore/linklxicore.pri)
+include($${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/linklxistream.pri)
 
 # Files
-HEADERS += $${LXIMEDIA_DIR}/include/LXiStreamGui \
-    $${LXIMEDIA_DIR}/include/liblxistreamgui/export.h \
-    $${LXIMEDIA_DIR}/include/liblxistreamgui/sdisplay.h \
-    $${LXIMEDIA_DIR}/include/liblxistreamgui/simage.h \
-    $${LXIMEDIA_DIR}/include/liblxistreamgui/svideoview.h \
-    $${LXIMEDIA_DIR}/include/liblxistreamgui/svumeter.h
+HEADERS += $${PWD}/$${LXIMEDIA_DIR}/include/LXiStreamGui \
+    $${PWD}/$${LXIMEDIA_DIR}/include/liblxistreamgui/export.h \
+    $${PWD}/$${LXIMEDIA_DIR}/include/liblxistreamgui/sdisplay.h \
+    $${PWD}/$${LXIMEDIA_DIR}/include/liblxistreamgui/simage.h \
+    $${PWD}/$${LXIMEDIA_DIR}/include/liblxistreamgui/svideoview.h \
+    $${PWD}/$${LXIMEDIA_DIR}/include/liblxistreamgui/svumeter.h
 SOURCES += sdisplay.cpp \
     simage.cpp \
     svumeter.cpp
@@ -45,22 +43,22 @@ unix {
 win32:SOURCES += sdisplay.win.cpp \
     svideoview.win.cpp
 win32-g++ {
-    system(mkdir ..\\..\\..\\bin\\ > NUL 2>&1)
-    system(mkdir ..\\..\\..\\bin\\imageformats\\ > NUL 2>&1)
-    system(cp -u $$(QTDIR)/bin/libgcc_s_dw2-1.dll -t $${LXIMEDIA_DIR}/bin/)
-    system(cp -u $$(QTDIR)/bin/mingwm10.dll -t $${LXIMEDIA_DIR}/bin)
+    system(mkdir $$replace(OUT_PWD,/,\\)\\..\\..\\..\\bin\\ > NUL 2>&1)
+    system(mkdir $$replace(OUT_PWD,/,\\)\\..\\..\\..\\bin\\imageformats\\ > NUL 2>&1)
+    system(cp -u $$(QTDIR)/bin/libgcc_s_dw2-1.dll -t $${OUT_PWD}/$${LXIMEDIA_DIR}/bin/)
+    system(cp -u $$(QTDIR)/bin/mingwm10.dll -t $${OUT_PWD}/$${LXIMEDIA_DIR}/bin)
     release {
-        system(cp -u $$(QTDIR)/bin/QtCore4.dll -t $${LXIMEDIA_DIR}/bin)
-        system(cp -u $$(QTDIR)/bin/QtGui4.dll -t $${LXIMEDIA_DIR}/bin)
-        system(cp -u $$(QTDIR)/bin/QtXml4.dll -t $${LXIMEDIA_DIR}/bin)
-        system(cp -u $$(QTDIR)/plugins/imageformats/qjpeg4.dll -t $${LXIMEDIA_DIR}/bin/imageformats)
-        system(cp -u $$(QTDIR)/plugins/imageformats/qtiff4.dll -t $${LXIMEDIA_DIR}/bin/imageformats)
+        system(cp -u $$(QTDIR)/bin/QtCore4.dll -t $${OUT_PWD}/$${LXIMEDIA_DIR}/bin)
+        system(cp -u $$(QTDIR)/bin/QtGui4.dll -t $${OUT_PWD}/$${LXIMEDIA_DIR}/bin)
+        system(cp -u $$(QTDIR)/bin/QtXml4.dll -t $${OUT_PWD}/$${LXIMEDIA_DIR}/bin)
+        system(cp -u $$(QTDIR)/plugins/imageformats/qjpeg4.dll -t $${OUT_PWD}/$${LXIMEDIA_DIR}/bin/imageformats)
+        system(cp -u $$(QTDIR)/plugins/imageformats/qtiff4.dll -t $${OUT_PWD}/$${LXIMEDIA_DIR}/bin/imageformats)
     }
     debug {
-        system(cp -u $$(QTDIR)/bin/QtCored4.dll -t $${LXIMEDIA_DIR}/bin)
-        system(cp -u $$(QTDIR)/bin/QtGuid4.dll -t $${LXIMEDIA_DIR}/bin)
-        system(cp -u $$(QTDIR)/bin/QtXmld4.dll -t $${LXIMEDIA_DIR}/bin)
-        system(cp -u $$(QTDIR)/plugins/imageformats/qjpegd4.dll -t $${LXIMEDIA_DIR}/bin/imageformats)
-        system(cp -u $$(QTDIR)/plugins/imageformats/qtiffd4.dll -t $${LXIMEDIA_DIR}/bin/imageformats)
+        system(cp -u $$(QTDIR)/bin/QtCored4.dll -t $${OUT_PWD}/$${LXIMEDIA_DIR}/bin)
+        system(cp -u $$(QTDIR)/bin/QtGuid4.dll -t $${OUT_PWD}/$${LXIMEDIA_DIR}/bin)
+        system(cp -u $$(QTDIR)/bin/QtXmld4.dll -t $${OUT_PWD}/$${LXIMEDIA_DIR}/bin)
+        system(cp -u $$(QTDIR)/plugins/imageformats/qjpegd4.dll -t $${OUT_PWD}/$${LXIMEDIA_DIR}/bin/imageformats)
+        system(cp -u $$(QTDIR)/plugins/imageformats/qtiffd4.dll -t $${OUT_PWD}/$${LXIMEDIA_DIR}/bin/imageformats)
     }
 }

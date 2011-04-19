@@ -1,8 +1,8 @@
 # Linking the lximediacenter library
-include($${LXIMEDIA_DIR}/include/liblxicore/linklxicore.pri)
-include($${LXIMEDIA_DIR}/include/liblxiserver/linklxiserver.pri)
-include($${LXIMEDIA_DIR}/include/liblxistream/linklxistream.pri)
-include($${LXIMEDIA_DIR}/include/liblxistreamgui/linklxistreamgui.pri)
+include($${PWD}/../liblxicore/linklxicore.pri)
+include($${PWD}/../liblxiserver/linklxiserver.pri)
+include($${PWD}/../liblxistream/linklxistream.pri)
+include($${PWD}/../liblxistreamgui/linklxistreamgui.pri)
 
 LXIMEDIACENTER_VERSION_MAJOR = $$system(cat ../../VERSION)
 LXIMEDIACENTER_VERSION_MAJOR ~= s/\\.[0-9]+.+/
@@ -10,18 +10,18 @@ LXIMEDIACENTER_VERSION_MAJOR ~= s/\\.[0-9]+.+/
 !contains(LIBS, -lLXiMediaCenter) {
   QT += sql
 
-  !contains(INCLUDEPATH, $${LXIMEDIA_DIR}/include/) {
-    INCLUDEPATH += $${LXIMEDIA_DIR}/include/
-    DEPENDPATH += $${LXIMEDIA_DIR}/include/
+  !contains(INCLUDEPATH, $${PWD}/$${LXIMEDIA_DIR}/include/) {
+    INCLUDEPATH += $${PWD}/$${LXIMEDIA_DIR}/include/
+    DEPENDPATH += $${PWD}/$${LXIMEDIA_DIR}/include/
   }
 
   unix {
-    POST_TARGETDEPS += $${LXIMEDIA_DIR}/bin/libLXiMediaCenter.so
-    LIBS += -L$${LXIMEDIA_DIR}/bin -lLXiMediaCenter
+    POST_TARGETDEPS += $${OUT_PWD}/$${LXIMEDIA_DIR}/bin/libLXiMediaCenter.so
+    LIBS += -L$${OUT_PWD}/$${LXIMEDIA_DIR}/bin -lLXiMediaCenter
   }
 
   win32 {
-    POST_TARGETDEPS += $${LXIMEDIA_DIR}/bin/LXiMediaCenter$${LXIMEDIACENTER_VERSION_MAJOR}.dll
-    LIBS += -L$${LXIMEDIA_DIR}/bin -lLXiMediaCenter$${LXIMEDIACENTER_VERSION_MAJOR}
+    POST_TARGETDEPS += $${OUT_PWD}/$${LXIMEDIA_DIR}/bin/LXiMediaCenter$${LXIMEDIACENTER_VERSION_MAJOR}.dll
+    LIBS += -L$${OUT_PWD}/$${LXIMEDIA_DIR}/bin -lLXiMediaCenter$${LXIMEDIACENTER_VERSION_MAJOR}
   }
 }

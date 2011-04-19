@@ -1,14 +1,12 @@
 MODULE_NAME = lxistream_fftw
 LXIMEDIA_DIR = ../../../..
-include($${LXIMEDIA_DIR}/include/liblxicore/module.pri)
-include($${LXIMEDIA_DIR}/include/liblxistream/linklxistream.pri)
-include($${LXIMEDIA_DIR}/include/liblxistreamgui/linklxistreamgui.pri)
-include($${LXIMEDIA_DIR}/ext/fftw/fftw.pri)
+include($${PWD}/$${LXIMEDIA_DIR}/include/liblxicore/module.pri)
+include($${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/linklxistream.pri)
+include($${PWD}/$${LXIMEDIA_DIR}/include/liblxistreamgui/linklxistreamgui.pri)
+include($${PWD}/$${LXIMEDIA_DIR}/ext/fftw/fftw.pri)
 
-linux-g++|win32-g++ {
-  CONFIG += precompile_header
-  PRECOMPILED_HEADER = $${LXIMEDIA_DIR}/include/LXiStream
-}
+CONFIG += precompile_header
+PRECOMPILED_HEADER = $${PWD}/$${LXIMEDIA_DIR}/include/LXiStream
 
 # Files
 HEADERS += module.h

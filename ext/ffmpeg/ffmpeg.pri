@@ -1,6 +1,6 @@
 win32 {
-  INCLUDEPATH += $${LXIMEDIA_DIR}/ext/ffmpeg/include/
-  LIBS += -L$${LXIMEDIA_DIR}/ext/ffmpeg/bin.win32
+  INCLUDEPATH += $${PWD}/$${LXIMEDIA_DIR}/ext/ffmpeg/include/
+  LIBS += -L$${PWD}/$${LXIMEDIA_DIR}/ext/ffmpeg/bin.win32
 }
 
 win32-g++ {

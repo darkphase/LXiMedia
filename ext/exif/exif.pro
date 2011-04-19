@@ -17,6 +17,6 @@ EXIF_HEADERS = $${EXIF_VERSION}/libexif/_stdint.h \
  $${EXIF_VERSION}/libexif/exif-utils.h
 
 win32 {
-  system(bzip2 -fdk bin.win32\\libexif.a.bz2)
-  system(bzip2 -fcdk libexif_0.6.19.orig.tar.bz2 | tar -x $${EXIF_HEADERS} && rm -rf include && mv $${EXIF_VERSION} include)
+  system(bzip2 -fdk /$$replace(PWD,:,/)/bin.win32/libexif.a.bz2)
+  system(bzip2 -cdk /$$replace(PWD,:,/)/libexif_0.6.19.orig.tar.bz2 | tar -x $${EXIF_HEADERS} && rm -rf include && mv $${EXIF_VERSION} include)
 }

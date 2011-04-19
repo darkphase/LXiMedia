@@ -1,12 +1,12 @@
 MODULE_NAME = lximediacenter_mediaplayer
 LXIMEDIA_DIR = ../../../..
-include($${LXIMEDIA_DIR}/include/liblxicore/module.pri)
-include($${LXIMEDIA_DIR}/include/liblximediacenter/linklximediacenter.pri)
+include($${PWD}/$${LXIMEDIA_DIR}/include/liblxicore/module.pri)
+include($${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/linklximediacenter.pri)
 QT += network xml sql
 
 linux-g++|win32-g++ {
   CONFIG += precompile_header
-  PRECOMPILED_HEADER = $${LXIMEDIA_DIR}/include/LXiMediaCenter
+  PRECOMPILED_HEADER = $${PWD}/$${LXIMEDIA_DIR}/include/LXiMediaCenter
 }
 
 # Files

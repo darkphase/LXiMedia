@@ -16,9 +16,9 @@ FFMPEG_HEADERS = $${FFMPEG_VERSION}/libavcodec/avcodec.h \
  $${FFMPEG_VERSION}/libswscale/swscale.h
 
 win32 {
-    system(bzip2 -fdk bin.win32\\libavcodec.a.bz2)
-    system(bzip2 -fdk bin.win32\\libavformat.a.bz2)
-    system(bzip2 -fdk bin.win32\\libavutil.a.bz2)
-    system(bzip2 -fdk bin.win32\\libswscale.a.bz2)
-    system(bzip2 -fcdk ffmpeg_0.5.2.orig.tar.bz2 | tar -x $${FFMPEG_HEADERS} && rm -rf include && mv $${FFMPEG_VERSION} include)
+    system(bzip2 -fdk /$$replace(PWD,:,/)/bin.win32/libavcodec.a.bz2)
+    system(bzip2 -fdk /$$replace(PWD,:,/)/bin.win32/libavformat.a.bz2)
+    system(bzip2 -fdk /$$replace(PWD,:,/)/bin.win32/libavutil.a.bz2)
+    system(bzip2 -fdk /$$replace(PWD,:,/)/bin.win32/libswscale.a.bz2)
+    system(bzip2 -cdk /$$replace(PWD,:,/)/ffmpeg_0.5.2.orig.tar.bz2 | tar -x $${FFMPEG_HEADERS} && rm -rf include && mv $${FFMPEG_VERSION} include)
 }
