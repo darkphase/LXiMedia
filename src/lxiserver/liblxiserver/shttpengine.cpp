@@ -28,16 +28,16 @@
 
 namespace LXiServer {
 
-const char  * const SHttpEngine::httpVersion         = "HTTP/1.1";
-const int           SHttpEngine::maxTTL              = 300000;
-const char  * const SHttpEngine::fieldConnection     = "Connection";
-const char  * const SHttpEngine::fieldContentLength  = "Content-Length";
-const char  * const SHttpEngine::fieldContentType    = "Content-Type";
-const char  * const SHttpEngine::fieldDate           = "Date";
-const char  * const SHttpEngine::fieldHost           = "Host";
-const char  * const SHttpEngine::fieldServer         = "Server";
-const char  * const SHttpEngine::fieldUserAgent      = "User-Agent";
-const char  * const SHttpEngine::dateFormat          = "ddd, dd MMM yyyy hh:mm:ss 'GMT'";
+const char  SHttpEngine::httpVersion[]       = "HTTP/1.1";
+const int   SHttpEngine::maxTTL              = 300000;
+const char  SHttpEngine::fieldConnection[]   = "Connection";
+const char  SHttpEngine::fieldContentLength[]= "Content-Length";
+const char  SHttpEngine::fieldContentType[]  = "Content-Type";
+const char  SHttpEngine::fieldDate[]         = "Date";
+const char  SHttpEngine::fieldHost[]         = "Host";
+const char  SHttpEngine::fieldServer[]       = "Server";
+const char  SHttpEngine::fieldUserAgent[]    = "User-Agent";
+const char  SHttpEngine::dateFormat[]        = "ddd, dd MMM yyyy hh:mm:ss 'GMT'";
 
 SHttpEngine::SHttpEngine(void)
 {

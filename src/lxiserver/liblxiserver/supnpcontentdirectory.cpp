@@ -24,7 +24,7 @@
 
 namespace LXiServer {
 
-const char  * const SUPnPContentDirectory::contentDirectoryNS = "urn:schemas-upnp-org:service:ContentDirectory:1";
+const char      SUPnPContentDirectory::contentDirectoryNS[] = "urn:schemas-upnp-org:service:ContentDirectory:1";
 const unsigned  SUPnPContentDirectory::seekSec = 120;
 
 struct SUPnPContentDirectory::Data : SUPnPContentDirectory::Callback
@@ -749,6 +749,43 @@ QString SUPnPContentDirectory::fromObjectID(const QString &idStr)
 #endif
   }
 }
+
+
+SUPnPContentDirectory::Item::Item(void)
+  : isDir(false), played(false), direct(false), type(Type_None),
+    track(0), duration(0)
+{
+}
+
+SUPnPContentDirectory::Item::~Item()
+{
+}
+
+bool SUPnPContentDirectory::Item::isNull(void) const
+{
+  return url.isEmpty();
+}
+
+
+SUPnPContentDirectory::Item::Stream::Stream(quint32 id, const QString &lang)
+  : id(id), lang(lang)
+{
+}
+
+SUPnPContentDirectory::Item::Stream::~Stream()
+{
+}
+
+
+SUPnPContentDirectory::Item::Chapter::Chapter(const QString &title, unsigned position)
+  : title(title), position(position)
+{
+}
+
+SUPnPContentDirectory::Item::Chapter::~Chapter()
+{
+}
+
 
 int SUPnPContentDirectory::Data::countContentDirItems(const QString &path)
 {

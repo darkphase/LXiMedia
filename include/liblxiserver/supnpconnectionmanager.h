@@ -55,7 +55,7 @@ private:
   _lxi_internal QString         listSinkProtocols(void) const;
 
 public:
-  static const char     * const connectionManagerNS;
+  static const char             connectionManagerNS[];
 
 private:
   struct Data;

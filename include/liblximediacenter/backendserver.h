@@ -47,9 +47,10 @@ public:
     virtual void                recycleSandbox(SSandboxClient *) = 0;
   };
 
-  struct SearchResult
+  struct LXIMEDIACENTER_PUBLIC SearchResult
   {
-    inline                      SearchResult(void) : relevance(0.0)             { }
+                                SearchResult(void);
+                                ~SearchResult();
 
     qreal                       relevance;
     QString                     headline;
@@ -88,16 +89,16 @@ public:
 public:
   static const int              maxRequestTime;
   static const qreal            minSearchRelevance;
-  static const char     * const searchDateFormat;
-  static const char     * const searchTimeFormat;
-  static const char     * const searchDateTimeFormat;
+  static const char             searchDateFormat[];
+  static const char             searchTimeFormat[];
+  static const char             searchDateTimeFormat[];
 
 private:
-  _lxi_internal static const char * const dataMime;
-  _lxi_internal static const char * const textMime;
+  _lxi_internal static const char dataMime[];
+  _lxi_internal static const char textMime[];
 
 protected:
-  static const char     * const htmlFrontPageWidget;
+  static const char             htmlFrontPageWidget[];
 
 private:
   struct Data;

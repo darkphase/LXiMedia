@@ -30,11 +30,11 @@ struct BackendServer::Data
 
 const int          BackendServer::maxRequestTime = 1000;
 const qreal        BackendServer::minSearchRelevance = 0.1;
-const char * const BackendServer::searchDateFormat = "ddd d MMM yyyy";
-const char * const BackendServer::searchTimeFormat = "hh:mm";
-const char * const BackendServer::searchDateTimeFormat = "ddd, MMM d yyyy hh:mm";
-const char * const BackendServer::dataMime = "application/octet-stream";
-const char * const BackendServer::textMime = "text/plain;charset=utf-8";
+const char         BackendServer::searchDateFormat[] = "ddd d MMM yyyy";
+const char         BackendServer::searchTimeFormat[] = "hh:mm";
+const char         BackendServer::searchDateTimeFormat[] = "ddd, MMM d yyyy hh:mm";
+const char         BackendServer::dataMime[] = "application/octet-stream";
+const char         BackendServer::textMime[] = "text/plain;charset=utf-8";
 
 QList<BackendServer *> BackendServer::create(QObject *parent)
 {
@@ -113,6 +113,16 @@ SHttpServer::SocketOp BackendServer::sendHtmlContent(QAbstractSocket *socket, co
   socket->write(d->masterServer->parseHtmlContent(url, content, head));
 
   return SHttpServer::SocketOp_Close;
+}
+
+
+BackendServer::SearchResult::SearchResult(void)
+  : relevance(0.0)
+{
+}
+
+BackendServer::SearchResult::~SearchResult()
+{
 }
 
 } // End of namespace

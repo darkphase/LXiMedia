@@ -1,6 +1,6 @@
 win32 {
-  INCLUDEPATH += $${PWD}/$${LXIMEDIA_DIR}/ext/dvdnav/include/
-  LIBS += -L$${PWD}/$${LXIMEDIA_DIR}/ext/dvdnav/bin.win32
+  INCLUDEPATH += $${PWD}/include/
+  LIBS += -L$${PWD}/bin.win32
 }
 
 LIBS += -ldvdnav

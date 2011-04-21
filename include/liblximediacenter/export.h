@@ -20,14 +20,21 @@
 #ifndef LXIMEDIACENTER_EXPORT_H
 #define LXIMEDIACENTER_EXPORT_H
 
-#if defined(Q_OS_UNIX) && defined(__GNUC__)
+#if defined(__unix__) && defined(__GNUC__)
 # define LXIMEDIACENTER_PUBLIC  __attribute__((visibility("default")))
 
-#elif defined(Q_OS_WIN) && defined(__GNUC__)
+#elif defined(WIN32) && defined(__GNUC__)
 # if defined(S_BUILD_LIBLXIMEDIACENTER)
 #  define LXIMEDIACENTER_PUBLIC __attribute__((dllexport))
 # else
 #  define LXIMEDIACENTER_PUBLIC __attribute__((dllimport))
+# endif
+
+#elif defined(WIN32) && defined(_MSC_VER)
+# if defined(S_BUILD_LIBLXIMEDIACENTER)
+#  define LXIMEDIACENTER_PUBLIC __declspec(dllexport)
+# else
+#  define LXIMEDIACENTER_PUBLIC __declspec(dllimport)
 # endif
 
 #else

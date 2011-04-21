@@ -23,7 +23,7 @@
 
 namespace LXiServer {
 
-const char  * const SUPnPGenaServer::eventNS       = "urn:schemas-upnp-org:event-1-0";
+const char          SUPnPGenaServer::eventNS[]         = "urn:schemas-upnp-org:event-1-0";
 const QEvent::Type  SUPnPGenaServer::scheduleEventType = QEvent::Type(QEvent::registerEventType());
 
 class SUPnPGenaServer::EventSession : public SHttpClient

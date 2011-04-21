@@ -137,13 +137,13 @@ public:
 public:
   static const int              majorVersion, minorVersion;
   static const int              responseTimeout;
-  static const char     * const xmlDeclaration;
-  static const char     * const xmlContentType;
-  static const char     * const dlnaNS;
-  static const char     * const didlNS;
-  static const char     * const dublinCoreNS;
-  static const char     * const metadataNS;
-  static const char     * const soapNS;
+  static const char             xmlDeclaration[];
+  static const char             xmlContentType[];
+  static const char             dlnaNS[];
+  static const char             didlNS[];
+  static const char             dublinCoreNS[];
+  static const char             metadataNS[];
+  static const char             soapNS[];
 
 private:
   struct Data;

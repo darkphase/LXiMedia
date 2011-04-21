@@ -136,33 +136,40 @@ QObject * SFactory::createFunc(const QString &scheme, QObject *parent)
       factory().registerClass<_instance>(scheme); \
     } \
   \
-    inline static QStringList available(void) \
-    { \
-      QStringList result; \
-      foreach (const ::LXiCore::SFactory::Scheme &scheme, factory().registredSchemes(staticMetaObject.className())) \
-        result += scheme.name(); \
-      \
-      return result; \
-    } \
+    _lxi_pure static QStringList available(void); \
   \
   private: \
     _lxi_pure static ::LXiCore::SFactory & factory(void);
 
 #define S_FACTORIZABLE(_interface) \
   public: \
-    inline static _interface * create(QObject *parent, const QString &scheme, bool nonNull = true) \
-    { \
-      return static_cast<_interface *>(factory().createObject(staticMetaObject.className(), parent, scheme, nonNull)); \
-    } \
+    static _interface * create(QObject *parent, const QString &scheme, bool nonNull = true); \
   \
   S_FACTORIZABLE_NO_CREATE(_interface)
 
-#define S_FACTORIZABLE_INSTANCE(_interface) \
+#define S_FACTORIZABLE_INSTANCE_NO_CREATE(_interface) \
+  QStringList _interface::available(void) \
+  { \
+    QStringList result; \
+    foreach (const ::LXiCore::SFactory::Scheme &scheme, factory().registredSchemes(staticMetaObject.className())) \
+      result += scheme.name(); \
+    \
+    return result; \
+  } \
+  \
   ::LXiCore::SFactory & _interface::factory(void) \
   { \
     static ::LXiCore::SFactory f; \
     \
     return f; \
   }
+
+#define S_FACTORIZABLE_INSTANCE(_interface) \
+  _interface * _interface::create(QObject *parent, const QString &scheme, bool nonNull) \
+  { \
+    return static_cast<_interface *>(factory().createObject(staticMetaObject.className(), parent, scheme, nonNull)); \
+  } \
+  \
+  S_FACTORIZABLE_INSTANCE_NO_CREATE(_interface)
 
 #endif

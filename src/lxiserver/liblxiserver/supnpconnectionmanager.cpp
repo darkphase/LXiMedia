@@ -22,7 +22,7 @@
 
 namespace LXiServer {
 
-const char  * const SUPnPConnectionManager::connectionManagerNS = "urn:schemas-upnp-org:service:ConnectionManager:1";
+const char  SUPnPConnectionManager::connectionManagerNS[] = "urn:schemas-upnp-org:service:ConnectionManager:1";
 
 struct SUPnPConnectionManager::Data
 {

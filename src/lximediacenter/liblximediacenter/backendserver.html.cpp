@@ -21,7 +21,7 @@
 
 namespace LXiMediaCenter {
 
-const char * const BackendServer::htmlFrontPageWidget =
+const char BackendServer::htmlFrontPageWidget[] =
     "   <td class=\"widget\">\n"
     "    <p class=\"head\">{WIDGET_TITLE}</p>\n"
     "{WIDGET_CONTENT}"

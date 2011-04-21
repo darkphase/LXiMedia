@@ -3,6 +3,6 @@ unix {
 }
 
 win32 {
-  INCLUDEPATH += $${PWD}/$${LXIMEDIA_DIR}/ext/fftw/include/
-  LIBS += -L$${PWD}/$${LXIMEDIA_DIR}/ext/fftw/bin.win32 -lfftw3f
+  INCLUDEPATH += $${PWD}/include/
+  LIBS += -L$${PWD}/bin.win32 -lfftw3f
 }

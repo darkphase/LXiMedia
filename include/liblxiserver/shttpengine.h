@@ -174,17 +174,17 @@ public:
   _lxi_pure static bool         splitHost(const QString &host, QString &hostname, quint16 &port);
 
 public:
-  static const char     * const httpVersion;
+  static const char             httpVersion[];
   static const int              maxTTL;
 
-  static const char     * const fieldConnection;
-  static const char     * const fieldContentLength;
-  static const char     * const fieldContentType;
-  static const char     * const fieldDate;
-  static const char     * const fieldHost;
-  static const char     * const fieldServer;
-  static const char     * const fieldUserAgent;
-  static const char     * const dateFormat;
+  static const char             fieldConnection[];
+  static const char             fieldContentLength[];
+  static const char             fieldContentType[];
+  static const char             fieldDate[];
+  static const char             fieldHost[];
+  static const char             fieldServer[];
+  static const char             fieldUserAgent[];
+  static const char             dateFormat[];
 };
 
 

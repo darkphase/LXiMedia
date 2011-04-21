@@ -59,7 +59,7 @@ private:
   _lxi_internal QString         makeSid(void);
 
 public:
-  static const char     * const eventNS;
+  static const char             eventNS[];
 
 private:
   _lxi_internal static const QEvent::Type scheduleEventType;

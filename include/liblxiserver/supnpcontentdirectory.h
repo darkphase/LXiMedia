@@ -34,7 +34,7 @@ class LXISERVER_PUBLIC SUPnPContentDirectory : public SUPnPBase
 {
 Q_OBJECT
 public:
-  struct Item
+  struct LXISERVER_PUBLIC Item
   {
     enum Type
     {
@@ -55,35 +55,27 @@ public:
       Type_Photo
     };
 
-    struct Stream
+    struct LXISERVER_PUBLIC Stream
     {
-      inline Stream(quint32 id = 0, const QString &lang = QString::null)
-        : id(id), lang(lang)
-      {
-      }
+                                Stream(quint32 id = 0, const QString &lang = QString::null);
+                                ~Stream();
 
       quint32                   id;
       QString                   lang;
     };
 
-    struct Chapter
+    struct LXISERVER_PUBLIC Chapter
     {
-      inline Chapter(const QString &title = QString::null, unsigned position = 0)
-        : title(title), position(position)
-      {
-      }
+                                Chapter(const QString &title = QString::null, unsigned position = 0);
+                                ~Chapter();
 
       QString                   title;
       unsigned                  position;
     };
 
-    inline Item(void)
-      : isDir(false), played(false), direct(false), type(Type_None),
-        track(0), duration(0)
-    {
-    }
-
-    inline bool                 isNull(void) const                              { return url.isEmpty(); }
+                                Item(void);
+                                ~Item();
+    bool                        isNull(void) const;
 
     bool                        isDir;
     bool                        played;
@@ -151,7 +143,7 @@ private:
   _lxi_internal QString         fromObjectID(const QString &id);
 
 public:
-  static const char     * const contentDirectoryNS;
+  static const char             contentDirectoryNS[];
 
 private:
   _lxi_internal static const unsigned seekSec;

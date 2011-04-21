@@ -26,35 +26,35 @@ namespace LXiMediaCenter {
 
 
 const unsigned      MediaServer::itemsPerThumbnailPage = 60;
-const char  * const MediaServer::audioTimeFormat = "m:ss";
-const char  * const MediaServer::videoTimeFormat = "h:mm:ss";
+const char          MediaServer::audioTimeFormat[] = "m:ss";
+const char          MediaServer::videoTimeFormat[] = "h:mm:ss";
 
 
-const char * const MediaServer::m3uPlaylist =
+const char MediaServer::m3uPlaylist[] =
     "#EXTM3U\n"
     "\n"
     "{ITEMS}";
 
-const char * const MediaServer::m3uPlaylistItem =
+const char MediaServer::m3uPlaylistItem[] =
     "#EXTINF:{ITEM_LENGTH},{ITEM_NAME}\n"
     "{ITEM_URL}\n";
 
-const char * const MediaServer::htmlPages =
+const char MediaServer::htmlPages[] =
     "<div class=\"pageselector\">\n"
     " {PAGES}\n"
     "</div>\n";
 
-const char * const MediaServer::htmlPageItem =
+const char MediaServer::htmlPageItem[] =
     " <a class=\"pageselector\" href=\"{ITEM_LINK}\">{ITEM_NAME}</a>";
 
-const char * const MediaServer::htmlPageCurrentItem =
+const char MediaServer::htmlPageCurrentItem[] =
     " {ITEM_NAME}";
 
-const char * const MediaServer::htmlThumbnails =
+const char MediaServer::htmlThumbnails[] =
     " {PAGES}\n"
     " <script language=\"JavaScript\" type=\"text/javascript\">\n"
     "  <!--\n"
-    "  var winW = window.innerWidth - 32;\n"
+    "  var winW[] = window.innerWidth - 32;\n"
     "  if (winW >= 1440)\n"
     "    document.write(\"<table class=\\\"thumbnaillist\\\">{LIST2_ESC}</table>\");\n"
     "  else if (winW >= 1152)\n"
@@ -69,12 +69,12 @@ const char * const MediaServer::htmlThumbnails =
     "  </table>\n"
     " </noscript>\n";
 
-const char * const MediaServer::htmlThumbnailItemRow =
+const char MediaServer::htmlThumbnailItemRow[] =
     "   <tr class=\"thumbnaillist\">\n"
     "{ROW_ITEMS}"
     "   </tr>\n";
 
-const char * const MediaServer::htmlThumbnailItem =
+const char MediaServer::htmlThumbnailItem[] =
     "    <td class=\"thumbnaillistitem\">\n"
     "     <center>\n"
     "      <div class=\"{ITEM_CLASS}\">\n"
@@ -93,7 +93,7 @@ const char * const MediaServer::htmlThumbnailItem =
     "     </center>\n"
     "    </td>\n";
 
-const char * const MediaServer::htmlThumbnailItemNoTitle =
+const char MediaServer::htmlThumbnailItemNoTitle[] =
     "    <td class=\"thumbnaillistitem\">\n"
     "     <center>\n"
     "      <div class=\"thumbnaillistitem\">\n"
@@ -104,40 +104,40 @@ const char * const MediaServer::htmlThumbnailItemNoTitle =
     "     </center>\n"
     "    </td>\n";
 
-const char * const MediaServer::htmlDetailedList =
+const char MediaServer::htmlDetailedList[] =
     " {PAGES}\n"
     " <table class=\"list\">\n"
     "{LIST}"
     " </table>\n";
 
-const char * const MediaServer::htmlDetailedListRow =
+const char MediaServer::htmlDetailedListRow[] =
     "  <tr class=\"{ROW_CLASS}\">\n"
     "{COLUMNS}"
     "  </tr>\n";
 
-const char * const MediaServer::htmlDetailedListHead =
+const char MediaServer::htmlDetailedListHead[] =
     "   <th class=\"{ROW_CLASS}\">\n"
     "    {ITEM_TITLE}\n"
     "   </th>\n";
 
-const char * const MediaServer::htmlDetailedListIcon =
+const char MediaServer::htmlDetailedListIcon[] =
     "   <td class=\"{ROW_CLASS}\" width=\"0%\">\n"
     "    <img src=\"{ITEM_ICONURL}\" alt=\"{ITEM_TITLE}\" />\n"
     "   </td>\n";
 
-const char * const MediaServer::htmlDetailedListColumn =
+const char MediaServer::htmlDetailedListColumn[] =
     "   <td class=\"{ROW_CLASS}\">\n"
     "    {ITEM_TITLE}\n"
     "   </td>\n";
 
-const char * const MediaServer::htmlDetailedListColumnLink =
+const char MediaServer::htmlDetailedListColumnLink[] =
     "   <td class=\"{ROW_CLASS}\">\n"
     "    <a class=\"listitem\" title=\"{ITEM_TITLE}\" href=\"{ITEM_URL}\">\n"
     "     {ITEM_TITLE}\n"
     "    </a>\n"
     "   </td>\n";
 
-const char * const MediaServer::htmlPlayer =
+const char MediaServer::htmlPlayer[] =
     " <table class=\"main\">\n"
     "  <tr class=\"main\">\n"
     "   <td class=\"maincenter\" colspan=\"2\">\n"
@@ -155,7 +155,7 @@ const char * const MediaServer::htmlPlayer =
     "  </tr>\n"
     " </table>\n";
 
-const char * const MediaServer::htmlPlayerAudioItem =
+const char MediaServer::htmlPlayerAudioItem[] =
 #ifdef ENABLE_HTML5_PLAYER
     "    <audio src=\"{PLAYER_ITEM}.wav\" autoplay=\"autoplay\" controls=\"controls\">\n"
 #endif
@@ -174,7 +174,7 @@ const char * const MediaServer::htmlPlayerAudioItem =
 #endif
     ;
 
-const char * const MediaServer::htmlPlayerVideoItem =
+const char MediaServer::htmlPlayerVideoItem[] =
 #ifdef ENABLE_HTML5_PLAYER
     "    <video src=\"{PLAYER_ITEM}.ogv{QUERY}\" width=\"{WIDTH}\" height=\"{HEIGHT}\" autoplay=\"autoplay\" controls=\"controls\">\n"
 #endif
@@ -193,7 +193,7 @@ const char * const MediaServer::htmlPlayerVideoItem =
 #endif
     ;
 
-const char * const MediaServer::htmlPlayerThumbItem =
+const char MediaServer::htmlPlayerThumbItem[] =
     "    <center>\n"
     "     <table style=\"padding:0;border-spacing:0;width:{WIDTH}px;height:{HEIGHT}px;background-image:url('{PLAYER_ITEM}-thumb.png?size={WIDTH}x{HEIGHT}');background-position:center;background-repeat:no-repeat;background-color:#000000;\">\n"
     "      <tr style=\"vertical-align:middle;height:{HEIGHT2}px;\"><td>\n"
@@ -256,24 +256,24 @@ const char * const MediaServer::htmlPlayerThumbItem =
     "     </table>\n"
     "    </center>\n";
 
-const char * const MediaServer::htmlPlayerThumbItemOption =
+const char MediaServer::htmlPlayerThumbItemOption[] =
     "           <option value=\"{VALUE}\" {SELECTED}>{TEXT}</option>\n";
 
-const char * const MediaServer::htmlPlayerInfoItem =
+const char MediaServer::htmlPlayerInfoItem[] =
     "    <b>{ITEM_NAME}:</b><br />\n"
     "    {ITEM_VALUE}<br /><br />\n";
 
-const char * const MediaServer::htmlPlayerInfoActionHead =
+const char MediaServer::htmlPlayerInfoActionHead[] =
     "    <b>{ITEM_NAME}:</b><br />\n";
 
-const char * const MediaServer::htmlPlayerInfoAction =
+const char MediaServer::htmlPlayerInfoAction[] =
     "    <a href=\"{ITEM_LINK}\">{ITEM_NAME}</a><br />\n";
 
 
-const char * const MediaServer::headList =
+const char MediaServer::headList[] =
     " <link rel=\"stylesheet\" href=\"/list.css\" type=\"text/css\" media=\"screen, handheld, projection\" />\n";
 
-const char * const MediaServer::headPlayer =
+const char MediaServer::headPlayer[] =
     " <script type=\"text/javascript\" src=\"/swf/flowplayer.js\" />\n";
 
 QByteArray MediaServer::buildThumbnailView(const QString &dirPath, const ThumbnailListItemList &items, int start, int total)

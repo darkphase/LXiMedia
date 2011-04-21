@@ -91,7 +91,7 @@ struct ImdbClient::Data
   QNetworkReply               * reply;
 };
 
-const char  * const ImdbClient::sentinelItem = "#SENTINEL";
+const char          ImdbClient::sentinelItem[] = "#SENTINEL";
 const QEvent::Type  ImdbClient::tryMirrorEventType = QEvent::Type(QEvent::registerEventType());
 const QEvent::Type  ImdbClient::readMoviesListEventType = QEvent::Type(QEvent::registerEventType());
 const QEvent::Type  ImdbClient::readPlotListEventType = QEvent::Type(QEvent::registerEventType());
