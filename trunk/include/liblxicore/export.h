@@ -20,17 +20,17 @@
 #ifndef LXICORE_EXPORT_H
 #define LXICORE_EXPORT_H
 
-#if defined(Q_OS_UNIX) && defined(__GNUC__)
+#if defined(__unix__) && defined(__GNUC__)
 # define LXICORE_PUBLIC         __attribute__((visibility("default")))
 
-#elif defined(Q_OS_WIN) && defined(__GNUC__)
+#elif defined(WIN32) && defined(__GNUC__)
 # if defined(S_BUILD_LIBLXICORE)
 #  define LXICORE_PUBLIC        __attribute__((dllexport))
 # else
 #  define LXICORE_PUBLIC        __attribute__((dllimport))
 # endif
 
-#elif defined(Q_OS_WIN) && defined(_MSC_VER)
+#elif defined(WIN32) && defined(_MSC_VER)
 # if defined(S_BUILD_LIBLXICORE)
 #  define LXICORE_PUBLIC        __declspec(dllexport)
 # else

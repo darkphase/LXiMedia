@@ -20,14 +20,21 @@
 #ifndef LXISTREAMGUI_EXPORT_H
 #define LXISTREAMGUI_EXPORT_H
 
-#if defined(Q_OS_UNIX) && defined(__GNUC__)
+#if defined(__unix__) && defined(__GNUC__)
 # define LXISTREAMGUI_PUBLIC    __attribute__((visibility("default")))
 
-#elif defined(Q_OS_WIN) && defined(__GNUC__)
+#elif defined(WIN32) && defined(__GNUC__)
 # if defined(S_BUILD_LIBLXISTREAMGUI)
 #  define LXISTREAMGUI_PUBLIC   __attribute__((dllexport))
 # else
 #  define LXISTREAMGUI_PUBLIC   __attribute__((dllimport))
+# endif
+
+#elif defined(WIN32) && defined(_MSC_VER)
+# if defined(S_BUILD_LIBLXISTREAMGUI)
+#  define LXISTREAMGUI_PUBLIC   __declspec(dllexport)
+# else
+#  define LXISTREAMGUI_PUBLIC   __declspec(dllimport)
 # endif
 
 #else

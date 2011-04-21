@@ -215,4 +215,24 @@ MediaServer::Stream::~Stream()
   parent->removeStream(this);
 }
 
+
+MediaServer::ThumbnailListItem::ThumbnailListItem(void)
+  : played(false)
+{
+}
+
+MediaServer::ThumbnailListItem::~ThumbnailListItem()
+{
+}
+
+
+MediaServer::DetailedListItem::DetailedListItem(void)
+  : played(false)
+{
+}
+
+MediaServer::DetailedListItem::~DetailedListItem(void)
+{
+}
+
 } // End of namespace

@@ -27,14 +27,14 @@
 namespace LXiServer {
 
 const int           SUPnPBase::majorVersion = 1, SUPnPBase::minorVersion = 0;
-const int           SUPnPBase::responseTimeout = 30; // Seconds
-const char  * const SUPnPBase::xmlDeclaration  = "<?xml version=\"1.0\" encoding=\"utf-8\"?>";
-const char  * const SUPnPBase::xmlContentType  = "text/xml; charset=\"utf-8\" ";
-const char  * const SUPnPBase::dlnaNS          = "urn:schemas-dlna-org:metadata-1-0/";
-const char  * const SUPnPBase::didlNS          = "urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/";
-const char  * const SUPnPBase::dublinCoreNS    = "http://purl.org/dc/elements/1.1/";
-const char  * const SUPnPBase::metadataNS      = "urn:schemas-upnp-org:metadata-1-0/upnp/";
-const char  * const SUPnPBase::soapNS          = "http://schemas.xmlsoap.org/soap/envelope/";
+const int           SUPnPBase::responseTimeout  = 30; // Seconds
+const char          SUPnPBase::xmlDeclaration[] = "<?xml version=\"1.0\" encoding=\"utf-8\"?>";
+const char          SUPnPBase::xmlContentType[] = "text/xml; charset=\"utf-8\" ";
+const char          SUPnPBase::dlnaNS[]         = "urn:schemas-dlna-org:metadata-1-0/";
+const char          SUPnPBase::didlNS[]         = "urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/";
+const char          SUPnPBase::dublinCoreNS[]   = "http://purl.org/dc/elements/1.1/";
+const char          SUPnPBase::metadataNS[]     = "urn:schemas-upnp-org:metadata-1-0/upnp/";
+const char          SUPnPBase::soapNS[]         = "http://schemas.xmlsoap.org/soap/envelope/";
 
 struct SUPnPBase::Data
 {

@@ -50,9 +50,10 @@ public:
     SHttpStreamProxy            proxy;
   };
 
-  struct ThumbnailListItem
+  struct LXIMEDIACENTER_PUBLIC ThumbnailListItem
   {
-    inline ThumbnailListItem(void) : played(false) { }
+                                ThumbnailListItem(void);
+                                ~ThumbnailListItem();
 
     QString                     title;
     QString                     subtitle;
@@ -63,9 +64,10 @@ public:
 
   typedef QList<ThumbnailListItem> ThumbnailListItemList;
 
-  struct DetailedListItem
+  struct LXIMEDIACENTER_PUBLIC DetailedListItem
   {
-    inline DetailedListItem(void) : played(false) { }
+                                DetailedListItem(void);
+                                ~DetailedListItem();
 
     QStringList                 columns;
     QUrl                        iconurl;
@@ -115,35 +117,35 @@ private:
 
 protected: // Implemented in mediaserver.html.cpp
   static const unsigned         itemsPerThumbnailPage;
-  static const char     * const audioTimeFormat;
-  static const char     * const videoTimeFormat;
+  static const char             audioTimeFormat[];
+  static const char             videoTimeFormat[];
 
-  static const char     * const m3uPlaylist;
-  static const char     * const m3uPlaylistItem;
-  static const char     * const htmlPages;
-  static const char     * const htmlPageItem;
-  static const char     * const htmlPageCurrentItem;
-  static const char     * const htmlThumbnails;
-  static const char     * const htmlThumbnailItemRow;
-  static const char     * const htmlThumbnailItem;
-  static const char     * const htmlThumbnailItemNoTitle;
-  static const char     * const htmlDetailedList;
-  static const char     * const htmlDetailedListRow;
-  static const char     * const htmlDetailedListHead;
-  static const char     * const htmlDetailedListIcon;
-  static const char     * const htmlDetailedListColumn;
-  static const char     * const htmlDetailedListColumnLink;
-  static const char     * const htmlPlayer;
-  static const char     * const htmlPlayerAudioItem;
-  static const char     * const htmlPlayerVideoItem;
-  static const char     * const htmlPlayerThumbItem;
-  static const char     * const htmlPlayerThumbItemOption;
-  static const char     * const htmlPlayerInfoItem;
-  static const char     * const htmlPlayerInfoActionHead;
-  static const char     * const htmlPlayerInfoAction;
+  static const char             m3uPlaylist[];
+  static const char             m3uPlaylistItem[];
+  static const char             htmlPages[];
+  static const char             htmlPageItem[];
+  static const char             htmlPageCurrentItem[];
+  static const char             htmlThumbnails[];
+  static const char             htmlThumbnailItemRow[];
+  static const char             htmlThumbnailItem[];
+  static const char             htmlThumbnailItemNoTitle[];
+  static const char             htmlDetailedList[];
+  static const char             htmlDetailedListRow[];
+  static const char             htmlDetailedListHead[];
+  static const char             htmlDetailedListIcon[];
+  static const char             htmlDetailedListColumn[];
+  static const char             htmlDetailedListColumnLink[];
+  static const char             htmlPlayer[];
+  static const char             htmlPlayerAudioItem[];
+  static const char             htmlPlayerVideoItem[];
+  static const char             htmlPlayerThumbItem[];
+  static const char             htmlPlayerThumbItemOption[];
+  static const char             htmlPlayerInfoItem[];
+  static const char             htmlPlayerInfoActionHead[];
+  static const char             htmlPlayerInfoAction[];
 
-  static const char     * const headList;
-  static const char     * const headPlayer;
+  static const char             headList[];
+  static const char             headPlayer[];
 
   QByteArray                    buildThumbnailView(const QString &path, const ThumbnailListItemList &, int, int);
   QByteArray                    buildDetailedView(const QString &path, const QStringList &columns, const DetailedListItemList &);

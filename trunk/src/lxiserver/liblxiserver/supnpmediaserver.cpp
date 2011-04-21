@@ -24,8 +24,8 @@
 
 namespace LXiServer {
 
-const char  * const SUPnPMediaServer::dlnaDeviceNS = "urn:schemas-dlna-org:device-1-0";
-const char  * const SUPnPMediaServer::deviceType   = "urn:schemas-upnp-org:device:MediaServer:1";
+const char  SUPnPMediaServer::dlnaDeviceNS[] = "urn:schemas-dlna-org:device-1-0";
+const char  SUPnPMediaServer::deviceType[]   = "urn:schemas-upnp-org:device:MediaServer:1";
 
 struct SUPnPMediaServer::Data
 {
@@ -40,7 +40,7 @@ struct SUPnPMediaServer::Data
 
   QString                       basePath;
   SHttpServer                 * httpServer;
-  SSsdpServer                  * ssdpServer;
+  SSsdpServer                 * ssdpServer;
   QList<Service>                services;
   QList<Icon>                   icons;
 };

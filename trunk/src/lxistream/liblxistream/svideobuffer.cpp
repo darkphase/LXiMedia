@@ -63,7 +63,7 @@ void SVideoBuffer::setFormat(const SVideoFormat &format)
   const int numPlanes = format.numPlanes();
   if (numPlanes > 1)
   {
-    int wr, hr;
+    int wr = 1, hr = 1;
     format.planarYUVRatio(wr, hr);
 
     d.offset[0] = size;

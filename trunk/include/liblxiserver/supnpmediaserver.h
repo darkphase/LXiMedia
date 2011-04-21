@@ -59,10 +59,10 @@ protected: // From SHttpServer::Callback
   virtual SHttpServer::SocketOp  handleHttpRequest(const SHttpServer::RequestMessage &, QAbstractSocket *);
 
 public:
-  static const char     * const dlnaDeviceNS;
+  static const char             dlnaDeviceNS[];
 
 private:
-  _lxi_internal static const char * const deviceType;
+  _lxi_internal static const char deviceType[];
 
   struct Data;
   Data                  * const d;

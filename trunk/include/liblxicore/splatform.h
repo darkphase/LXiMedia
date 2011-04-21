@@ -22,12 +22,12 @@
 
 #if defined(__unix__) && defined(__GNUC__)
 # define _lxi_internal          __attribute__((visibility("hidden")))
-# define _lxi_pure              __attribute__((const))
+# define _lxi_pure              __attribute__((pure))
 # define _lxi_packed            __attribute__((packed))
 
 #elif defined(WIN32) && defined(__GNUC__)
 # define _lxi_internal
-# define _lxi_pure              __attribute__((const))
+# define _lxi_pure              __attribute__((pure))
 # define _lxi_packed            __attribute__((packed))
 
 #elif defined(WIN32) && defined(_MSC_VER)

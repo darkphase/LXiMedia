@@ -80,7 +80,7 @@ public:
   QStringList                   findSimilar(const QString &title, Type);
   QString                       findBest(const QString &title, const QStringList &);
 
-  static const char     * const sentinelItem;
+  static const char             sentinelItem[];
 
 protected:
   virtual void                  customEvent(QEvent *);
