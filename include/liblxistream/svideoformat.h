@@ -102,7 +102,7 @@ public:
 
   _lxi_pure static int          sampleSize(Format);
   _lxi_pure static int          numPlanes(Format);
-  _lxi_pure static bool         planarYUVRatio(Format, int &w, int &h);
+  static bool                   planarYUVRatio(Format, int &w, int &h);
   _lxi_pure static quint32      nullPixelValue(Format);
   _lxi_pure static const char * formatName(Format);
 
