@@ -103,12 +103,15 @@ void SVideoLetterboxDetectNode::input(const SVideoBuffer &videoBuffer)
                  (format == SVideoFormat::Format_YUV422P) ||
                  (format == SVideoFormat::Format_YUV444P))
         {
-          int yuvW = 0, yuvH = 0;
+          int yuvW = 1, yuvH = 1;
           format.planarYUVRatio(yuvW, yuvH);
 
-          destBuffer.setOffset(0, destBuffer.offset(0) + (destBuffer.lineSize(0) * (skipLines / 2)));
-          destBuffer.setOffset(1, destBuffer.offset(1) + (destBuffer.lineSize(1) * ((skipLines / yuvH) / 2)));
-          destBuffer.setOffset(2, destBuffer.offset(2) + (destBuffer.lineSize(2) * ((skipLines / yuvH) / 2)));
+          if ((yuvW > 0) && (yuvH > 0))
+          {
+            destBuffer.setOffset(0, destBuffer.offset(0) + (destBuffer.lineSize(0) * (skipLines / 2)));
+            destBuffer.setOffset(1, destBuffer.offset(1) + (destBuffer.lineSize(1) * ((skipLines / yuvH) / 2)));
+            destBuffer.setOffset(2, destBuffer.offset(2) + (destBuffer.lineSize(2) * ((skipLines / yuvH) / 2)));
+          }
         }
       }
 

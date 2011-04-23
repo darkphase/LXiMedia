@@ -170,8 +170,8 @@ public:
   virtual const char          * senderType(void) const = 0;
   virtual const QString       & senderId(void) const = 0;
 
-  _lxi_pure static const char * toMimeType(const QString &fileName);
-  _lxi_pure static bool         splitHost(const QString &host, QString &hostname, quint16 &port);
+  static const char           * toMimeType(const QString &fileName);
+  static bool                   splitHost(const QString &host, QString &hostname, quint16 &port);
 
 public:
   static const char             httpVersion[];
