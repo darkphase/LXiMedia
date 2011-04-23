@@ -54,7 +54,7 @@ const char MediaServer::htmlThumbnails[] =
     " {PAGES}\n"
     " <script language=\"JavaScript\" type=\"text/javascript\">\n"
     "  <!--\n"
-    "  var winW[] = window.innerWidth - 32;\n"
+    "  var winW = window.innerWidth - 32;\n"
     "  if (winW >= 1440)\n"
     "    document.write(\"<table class=\\\"thumbnaillist\\\">{LIST2_ESC}</table>\");\n"
     "  else if (winW >= 1152)\n"
