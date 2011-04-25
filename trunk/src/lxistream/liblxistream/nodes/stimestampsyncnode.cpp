@@ -48,10 +48,6 @@ struct STimeStampSyncNode::Data
   STime                         inTimeStamp;
   SInterval                     frameRate;
   STime                         startTime;
-
-  SAudioBuffer                  audioHeader;
-  SVideoBufferList              videoHeader;
-  STime                         headerLength;
 };
 
 
@@ -80,11 +76,14 @@ void STimeStampSyncNode::setFrameRate(SInterval r)
   d->frameRate = r;
 }
 
-void STimeStampSyncNode::setHeader(const SAudioBuffer &audioHeader, const SVideoBufferList &videoHeader, STime headerLength)
+STime STimeStampSyncNode::startTime(void) const
 {
-  d->audioHeader = audioHeader;
-  d->videoHeader = videoHeader;
-  d->headerLength = headerLength;
+  return d->startTime;
+}
+
+void STimeStampSyncNode::setStartTime(STime startTime)
+{
+  d->startTime = startTime;
 }
 
 void STimeStampSyncNode::input(const SAudioBuffer &audioBuffer)
@@ -214,37 +213,6 @@ void STimeStampSyncNode::output(void)
     for (QMap<quint16, Queue<SVideoBuffer> >::Iterator i=d->videoQueue.begin(); i!=d->videoQueue.end(); i++)
     while (!i->buffers.isEmpty() && (i->buffers.begin().key() < d->firstTimeStamp))
       i->buffers.erase(i->buffers.begin());
-
-    // Send header
-    if (!d->audioHeader.isNull() && !d->videoHeader.isEmpty() && (d->headerLength.toMSec() > 0))
-    {
-      for (STime t = STime::null; t < d->headerLength; t += STime(1, d->frameRate))
-      {
-        for (QMap<quint16, Queue<SAudioBuffer> >::Iterator i=d->audioQueue.begin(); i!=d->audioQueue.end(); i++)
-        {
-          d->audioHeader.setTimeStamp(i->time);
-          i->time += d->audioHeader.duration();
-
-          //qDebug() << "AOH" << d->audioHeader.timeStamp().toMSec();
-          emit output(d->audioHeader);
-        }
-
-        for (QMap<quint16, Queue<SVideoBuffer> >::Iterator i=d->videoQueue.begin(); i!=d->videoQueue.end(); i++)
-        {
-          const int b = t.toMSec() * d->videoHeader.count() / d->headerLength.toMSec();
-          SVideoBuffer videoBuffer = d->videoHeader[b];
-
-          videoBuffer.setTimeStamp(i->time);
-          i->time += STime(1, d->frameRate);
-
-          //qDebug() << "VOH" << videoBuffer.timeStamp().toMSec();
-          emit output(videoBuffer);
-        }
-      }
-
-      d->audioHeader.clear();
-      d->videoHeader.clear();
-    }
 
     d->running = true;
   }

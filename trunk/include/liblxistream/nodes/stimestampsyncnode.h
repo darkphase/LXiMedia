@@ -44,8 +44,8 @@ public:
 
   SInterval                     frameRate(void) const;
   void                          setFrameRate(SInterval);
-
-  void                          setHeader(const SAudioBuffer &, const SVideoBufferList &, STime);
+  STime                         startTime(void) const;
+  void                          setStartTime(STime);
 
 public slots:
   void                          input(const SAudioBuffer &);

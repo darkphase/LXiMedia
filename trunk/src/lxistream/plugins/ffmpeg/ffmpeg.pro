@@ -5,7 +5,7 @@ include($${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/linklxistream.pri)
 include($${PWD}/$${LXIMEDIA_DIR}/ext/ffmpeg/ffmpeg.pri)
 
 CONFIG += precompile_header
-PRECOMPILED_HEADER = $${PWD}/$${LXIMEDIA_DIR}/include/LXiStream
+PRECOMPILED_HEADER = ffmpegcommon.h
 
 # Files
 HEADERS += audiodecoder.h \

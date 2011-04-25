@@ -40,7 +40,6 @@ public:
   bool                          setup(const SHttpServer::RequestMessage &, QAbstractSocket *, STime duration, SAudioFormat::Channels channels);
 
 protected:
-  STimeStampResamplerNode       timeStampResampler;
   SAudioResampleNode            audioResampler;
   SVideoDeinterlaceNode         deinterlacer;
   SSubpictureRenderNode         subpictureRenderer;
@@ -65,6 +64,7 @@ public:
   SAudioDecoderNode             audioDecoder;
   SVideoDecoderNode             videoDecoder;
   SDataDecoderNode              dataDecoder;
+  STimeStampResamplerNode       timeStampResampler;
 };
 
 } // End of namespace

@@ -38,6 +38,7 @@ struct SGraph::Private
   bool                          stopped;
   int                           stopTimer;
   int                           stopCounter;
+  int                           stopSourceTimer;
 
   static const QEvent::Type     scheduleSourceEventType;
   static const QEvent::Type     stopEventloopEventType;
@@ -57,6 +58,7 @@ SGraph::SGraph(void)
   p->stopped = true;
   p->stopTimer = -1;
   p->stopCounter = 0;
+  p->stopSourceTimer = -1;
 }
 
 SGraph::~SGraph()
@@ -147,9 +149,16 @@ void SGraph::stop(void)
   if (p->started)
     p->stopping = true;
 
-  if (p->stopping && (QThread::currentThread() != this))
-  while (!QThread::wait(250))
-    QCoreApplication::postEvent(this, new QEvent(p->scheduleSourceEventType));
+  if (p->stopping)
+  {
+    if (QThread::currentThread() != this)
+    {
+      while (!QThread::wait(250))
+        QCoreApplication::postEvent(this, new QEvent(p->scheduleSourceEventType));
+    }
+    else
+      p->stopSourceTimer = startTimer(250);
+  }
 }
 
 void SGraph::queueSchedule(Dependency *depends)
@@ -170,6 +179,18 @@ void SGraph::run(void)
     sink->stop();
 
   p->stopped = true;
+
+  if (p->stopTimer >= 0)
+  {
+    killTimer(p->stopTimer);
+    p->stopTimer = -1;
+  }
+
+  if (p->stopSourceTimer >= 0)
+  {
+    killTimer(p->stopSourceTimer);
+    p->stopSourceTimer = -1;
+  }
 
   // Ensure event handling occurs on the parent thread again.
   QThread::moveToThread(p->parentThread);
@@ -228,6 +249,19 @@ void SGraph::timerEvent(QTimerEvent *e)
 
       QThread::exit(0);
       p->stopped = true;
+    }
+  }
+  else if (e->timerId() == p->stopSourceTimer)
+  {
+    if (!p->stopped)
+    {
+      QEvent e(p->scheduleSourceEventType);
+      customEvent(&e);
+    }
+    else
+    {
+      killTimer(p->stopSourceTimer);
+      p->stopSourceTimer = -1;
     }
   }
   else
