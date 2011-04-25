@@ -26,6 +26,61 @@
 
 namespace LXiCore {
 
+/*! The SFactoy class can be used to create instances of QObject classes, the
+    SFactory registres classes using the Qt reflection mechanism. The SFactory
+    class is usually never used directly, instead the S_FACTORIZABLE AND
+    S_FACTORIZABLE_INSTANCE macros should be used to declare a factorizable
+    interface.
+
+    These macros will define the folowing methods:
+    \code
+      template <class _instance>
+      static void registerClass(const SFactory::Scheme &scheme);
+      static QStringList available(void);
+      static SFactory & factory(void);
+      static QObject * create(QObject *parent, const QString &scheme, bool nonNull = true);
+    \endcode
+
+    The registerClass template methlod can be used to register an implementation
+    of the interface with the factory using registerClass<MyImplementation(0).
+    The nonp-template argument can be used to define a name or a priority to the
+    implementation.
+
+    \code
+      class MyInterface : public QObject
+      {
+      Q_OBJECT
+      S_FACTORIZABLE(MyInterface)
+      protected:
+        inline explicit MyInterface(QObject *parent) : QObject(parent) { }
+
+      public:
+        virtual int foo(int) = 0;
+        virtual void bar(int, int) = 0;
+      };
+
+      // In a cpp file:
+      S_FACTORIZABLE_INSTANCE(MyInterface);
+    \endcode
+
+    There are also S_FACTORIZABLE_NO_CREATE and
+    S_FACTORIZABLE_INSTANCE_NO_CREATE macros. These will allow for a manually
+    made create method that can perform additional actions upon creation of an
+    instance of the interface.
+
+    \code
+      MyInterface * MyInterface::create(QObject *parent, const char *name, int a, int b)
+      {
+        MyInterface * myInterface =
+            static_cast<MyInterface *>(factory().createObject(staticMetaObject.className(), parent, name, true));
+
+        if (myInterface)
+          myInterface->bar(a, b);
+
+        return myInterface;
+      }
+    \endcode
+ */
 class LXICORE_PUBLIC SFactory
 {
 public:

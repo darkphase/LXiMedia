@@ -27,6 +27,11 @@
 
 namespace LXiCore {
 
+/*! The SScheduler class can be used to run tasks on a QThreadPool. This class
+    provides similar functionality as QtConcurrent::run(), but it adds task
+    dependencies and task priorities. Also it can schedule tasks on any
+    QThreadPool not just the global instance.
+ */
 class LXICORE_PUBLIC SScheduler
 {
 Q_DISABLE_COPY(SScheduler)

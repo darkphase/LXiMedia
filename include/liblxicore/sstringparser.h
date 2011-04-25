@@ -26,6 +26,8 @@
 
 namespace LXiCore {
 
+/*! This class provides several basig string operations.
+ */
 class LXICORE_PUBLIC SStringParser
 {
 public:

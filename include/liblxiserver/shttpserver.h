@@ -28,6 +28,8 @@
 
 namespace LXiServer {
 
+/*! This class provides a basic HTTP server.
+ */
 class LXISERVER_PUBLIC SHttpServer : public SHttpServerEngine
 {
 Q_OBJECT

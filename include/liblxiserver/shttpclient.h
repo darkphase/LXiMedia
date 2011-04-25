@@ -27,6 +27,8 @@
 
 namespace LXiServer {
 
+/*! This class provides a basic HTTP client.
+ */
 class LXISERVER_PUBLIC SHttpClient : public SHttpClientEngine
 {
 Q_OBJECT

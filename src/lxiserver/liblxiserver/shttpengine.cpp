@@ -47,6 +47,8 @@ SHttpEngine::~SHttpEngine()
 {
 }
 
+/*! Returns the MIME type for the specified filename, based on the extension.
+ */
 const char * SHttpEngine::toMimeType(const QString &fileName)
 {
   const QString ext = QFileInfo(fileName).suffix().toLower();
@@ -93,6 +95,8 @@ const char * SHttpEngine::toMimeType(const QString &fileName)
   else                      return "application/octet-stream";
 }
 
+/*! Splits the specified host string into a hostname and port number.
+ */
 bool SHttpEngine::splitHost(const QString &host, QString &hostname, quint16 &port)
 {
   bool result = false;
@@ -160,11 +164,15 @@ SHttpServerEngine::~SHttpServerEngine()
   *const_cast<Data **>(&d) = NULL;
 }
 
+/*! Registers a callback with the server for the specified path.
+ */
 void SHttpServerEngine::registerCallback(const QString &path, Callback *callback)
 {
   d->callbacks.insert(path, callback);
 }
 
+/*! Unregisters a callback with the server for the specified path.
+ */
 void SHttpServerEngine::unregisterCallback(Callback *callback)
 {
   for (QMap<QString, Callback *>::Iterator i=d->callbacks.begin(); i!=d->callbacks.end(); )
@@ -184,6 +192,9 @@ const QString & SHttpServerEngine::senderId(void) const
   return d->senderId;
 }
 
+/*! Sends a formatted response to the client. If this is an error response, a
+    debug message is logged.
+ */
 SHttpServerEngine::SocketOp SHttpServerEngine::sendResponse(const RequestHeader &request, QAbstractSocket *socket, Status status, const QByteArray &content, const QObject *object)
 {
   if (status >= 400)
@@ -203,11 +214,15 @@ SHttpServerEngine::SocketOp SHttpServerEngine::sendResponse(const RequestHeader 
   return SocketOp_Close;
 }
 
+/*! Overload provided for convenience.
+ */
 SHttpServerEngine::SocketOp SHttpServerEngine::sendResponse(const RequestHeader &request, QAbstractSocket *socket, Status status, const QObject *object)
 {
   return sendResponse(request, socket, status, QByteArray(), object);
 }
 
+/*! This sends a redirect to the client.
+ */
 SHttpServerEngine::SocketOp SHttpServerEngine::sendRedirect(const RequestHeader &request, QAbstractSocket *socket, const QString &newUrl)
 {
   SHttpEngine::ResponseHeader response(request, SHttpEngine::Status_TemporaryRedirect);

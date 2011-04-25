@@ -35,12 +35,47 @@ class SModule;
 /*! The SApplication class initializes LXiMedia. An instance of SApplication is
     required to use most of the LXiMedia classes (unless documented otherwise).
     Once the instance is destroyed LXiMedia is uninitialized.
+
+    The constructor of SApplication will automatically load all relevant modules
+    from plugin files. On Unix, these plugin files have to be located in either
+    /usr/lib/lximedia0/ or /usr/local/lib/lximedia0/. On Windows these files
+    need to be located in a directory called "lximedia" that is located in the
+    directory that contains LXiCore0.dll.
+
+    The SApplication instance will also provide a logging system if a log
+    directory is provided to its constructor. Everyting logged with qDebug(),
+    qWarning(), qCritical() and qFatal() will be witten to a log file in that
+    directory.
  */
 class LXICORE_PUBLIC SApplication : public QObject
 {
 Q_OBJECT
 friend class SFactory;
 public:
+  /*! This initializer can be used to perform custom actions on creation and
+      destruction of an SApplication. To use it, create a subclass of
+      SApplication::Initializer and implement the startup() and shutdown()
+      methods and create a static instance of the subclass.
+
+      \code
+        class MyInitializer : SApplication::Initializer
+        {
+          virtual void startup(void)
+          {
+            // Startup actions ...
+          }
+
+          virtual void shutdown(void)
+          {
+            // Shutdown actions ...
+          }
+
+          static MyInitializer instance;
+        }
+
+        MyInitializer MyInitializer::instance;
+      \endcode
+   */
   class LXICORE_PUBLIC Initializer
   {
   friend class SApplication;
@@ -63,6 +98,10 @@ public:
     void                      * framePointer;
   };
 
+  /*! This is a helper class to read log messages from a log file. It can be
+      used as a QFile, read messages from the file with the readMessage()
+      method, similar to QFile::readLine().
+   */
   class LXICORE_PUBLIC LogFile : public QFile
   {
   public:
@@ -125,6 +164,9 @@ private:
 };
 
 
+/*! Returns a stack-frame pointer for the calling function. This stack-frame
+    pointer can then be used with the SApplication::logStackFrame() method.
+ */
 inline SApplication::StackFrame SApplication::currentStackFrame(void)
 {
   StackFrame stackFrame;

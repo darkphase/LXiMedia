@@ -54,6 +54,11 @@ SHttpClient::~SHttpClient()
   *const_cast<Data **>(&d) = NULL;
 }
 
+/*! This sends a HTTP request message to the server specified by the host in the
+    message. After the connection has been established and the message has been
+    sent, the provided slot is invoked with the opened QAbstractSocket as the
+    first argument.
+ */
 void SHttpClient::openRequest(const RequestMessage &message, QObject *receiver, const char *slot)
 {
   if (QThread::currentThread() != thread())

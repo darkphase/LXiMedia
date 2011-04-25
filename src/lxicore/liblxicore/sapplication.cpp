@@ -39,6 +39,8 @@ SApplication              * SApplication::self = NULL;
 
 /*! Initializes all LXiMedia components.
 
+    \note Only one active instance is allowed at any time.
+
     \param logDir           The directory where to store log files, no log files
                             are written if this is an empty string.
     \param parent           The parent QObject.
@@ -59,14 +61,15 @@ SApplication::SApplication(const QString &logDir, QObject *parent)
 
   if (!d->moduleFilter.isEmpty())
   {
+    const QString majorVersion = QByteArray(version()).split('.').first();
+
     // And now load the plugins
     QStringList paths;
 #ifndef Q_OS_WIN
-    paths += QCoreApplication::applicationDirPath() + "/lximedia/";
-    paths += "/usr/lib/lximedia/";
-    paths += "/usr/local/lib/lximedia/";
+    paths += "/usr/lib/lximedia" + majorVersion + "/";
+    paths += "/usr/local/lib/lximedia" + majorVersion + "/";
 #else
-    const QByteArray myDll = "LXiCore" + QByteArray(version()).split('.').first() + ".dll";
+    const QByteArray myDll = "LXiCore" + majorVersion + ".dll";
     HMODULE myModule = ::GetModuleHandleA(myDll.data());
     char fileName[MAX_PATH];
     if (::GetModuleFileNameA(myModule, fileName, MAX_PATH) > 0)
@@ -128,11 +131,9 @@ SApplication::SApplication(const QString &logDir, QObject *parent)
   }
 }
 
-/*! \fn void SApplication::shutdown(void)
-    This waits for all graphs to finish and cleans up any terminals allocated by
-    LXiStream.
+/*! Uninitializes all LXiMedia components.
 
-    \note Do not invoke initialize() again after shutting down.
+    \note Only one active instance is allowed at any time.
  */
 SApplication::~SApplication(void)
 {
@@ -180,16 +181,30 @@ const char * SApplication::version(void)
       ;
 }
 
+/*! Returns a pointer to the active SApplication instance or NULL if none
+    exists.
+
+    \note Only one active instance is allowed at any time.
+ */
 SApplication  * SApplication::instance(void)
 {
   return self;
 }
 
+/*! Adds a module filter string whoich is use to determine which of the plugins
+    in the plugin directory is actually loaded.
+
+    \note This method should rarely be useful.
+ */
 void SApplication::addModuleFilter(const QString &filter)
 {
   d->moduleFilter.append(filter);
 }
 
+/*! Loads a module.
+
+    \note This method should rarely be useful.
+ */
 bool SApplication::loadModule(SModule *module, QPluginLoader *loader)
 {
   Q_ASSERT(QThread::currentThread() == thread());
@@ -229,11 +244,18 @@ QByteArray SApplication::about(void) const
   return text;
 }
 
+/*! Returns the directory containing the log files or an emty string of not
+    applicable.
+ */
 const QString & SApplication::logDir(void) const
 {
   return d->logDir;
 }
 
+/*! Creates a new SApplication instance for use within a QTest environment. No
+    modules will be loaded automatically and they have to be loaded using
+    loadModule().
+ */
 SApplication * SApplication::createForQTest(QObject *parent)
 {
   return new SApplication(parent);

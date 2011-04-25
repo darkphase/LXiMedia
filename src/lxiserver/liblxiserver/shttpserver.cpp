@@ -93,6 +93,9 @@ private:
   const QPointer<SHttpServer>   parent;
 };
 
+/*! Creates an instance of the HTTP server, the specified protocol and
+    serverUuid are used in the HTTP response messages.
+ */
 SHttpServer::SHttpServer(const QString &protocol, const QUuid &serverUuid, QObject *parent)
   : SHttpServerEngine(protocol, parent),
     d(new Data())
@@ -107,6 +110,8 @@ SHttpServer::~SHttpServer()
   *const_cast<Data **>(&d) = NULL;
 }
 
+/*! Initializes the HTTP server by binding the specified interfaces and port.
+ */
 void SHttpServer::initialize(const QList<QHostAddress> &addresses, quint16 port)
 {
   foreach (const QHostAddress &address, addresses)
@@ -127,6 +132,8 @@ void SHttpServer::initialize(const QList<QHostAddress> &addresses, quint16 port)
   }
 }
 
+/*! Uninitializes the HTTP server by releasing the bound ports.
+ */
 void SHttpServer::close(void)
 {
   foreach (Server *server, d->servers)
@@ -138,6 +145,8 @@ void SHttpServer::close(void)
   d->servers.clear();
 }
 
+/*! Returns the bound port number for the specified interface.
+ */
 quint16 SHttpServer::serverPort(const QHostAddress &address) const
 {
   QMultiMap<QString, Server *>::ConstIterator i = d->servers.find(address.toString());
@@ -147,6 +156,8 @@ quint16 SHttpServer::serverPort(const QHostAddress &address) const
   return 0;
 }
 
+/*! Returns the UDN for the server.
+ */
 const QString & SHttpServer::serverUdn(void) const
 {
   return d->serverUdn;

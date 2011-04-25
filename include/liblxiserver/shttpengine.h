@@ -27,6 +27,8 @@
 
 namespace LXiServer {
 
+/*! This class provides some basics for HTTP clients and servers.
+ */
 class LXISERVER_PUBLIC SHttpEngine
 {
 public:
@@ -188,6 +190,8 @@ public:
 };
 
 
+/*! This class provides the basics for a HTTP server.
+ */
 class LXISERVER_PUBLIC SHttpServerEngine : public QObject,
                                            public SHttpEngine
 {
@@ -225,6 +229,8 @@ private:
 };
 
 
+/*! This class provides the basics for a HTTP client.
+ */
 class LXISERVER_PUBLIC SHttpClientEngine : public QObject,
                                            public SHttpEngine
 {
