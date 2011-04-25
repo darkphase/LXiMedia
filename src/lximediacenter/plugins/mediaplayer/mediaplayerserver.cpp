@@ -155,6 +155,8 @@ int MediaPlayerServer::countItems(const QString &path)
 
 QList<MediaPlayerServer::Item> MediaPlayerServer::listItems(const QString &path, unsigned start, unsigned count)
 {
+  masterServer->ensureSandboxReady(SSandboxClient::Mode_Normal);
+
   const bool returnAll = count == 0;
   const bool hasAlbum = mediaDatabase->hasAlbum(category, path);
   QList<Item> result = listAlbums(path, start, count);

@@ -32,7 +32,7 @@ Sandbox::Sandbox()
   qsrand(int(QDateTime::currentDateTime().toTime_t()));
 
   stopTimer.setSingleShot(true);
-  stopTimer.setInterval(30000);
+  stopTimer.setInterval(60000);
   stopTimer.start();
 
   connect(&stopTimer, SIGNAL(timeout()), SLOT(stop()));

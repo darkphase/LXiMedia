@@ -78,6 +78,14 @@ SSandboxClient::Mode SSandboxClient::mode(void) const
   return d->mode;
 }
 
+void SSandboxClient::ensureReady(void)
+{
+  RequestMessage message(this);
+  message.setRequest("TRACE", "/");
+
+  openRequest(message, NULL, NULL);
+}
+
 void SSandboxClient::openRequest(const RequestMessage &message, QObject *receiver, const char *slot)
 {
   if (QThread::currentThread() != thread())
@@ -121,7 +129,8 @@ void SSandboxClient::openRequest(void)
     const Data::Request request = d->requests.takeFirst();
     HttpSocketRequest * const socketRequest = new HttpSocketRequest(this, createSocket(), d->address, d->port, request.message);
 
-    connect(socketRequest, SIGNAL(connected(QAbstractSocket *)), request.receiver, request.slot);
+    if (request.receiver)
+      connect(socketRequest, SIGNAL(connected(QAbstractSocket *)), request.receiver, request.slot);
   }
 }
 

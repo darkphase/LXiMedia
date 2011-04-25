@@ -659,6 +659,18 @@ ImdbClient * Backend::imdbClient(void)
   return masterImdbClient;
 }
 
+void Backend::ensureSandboxReady(SSandboxClient::Mode mode)
+{
+  QMap<SSandboxClient::Mode, QList<SSandboxClient *> >::Iterator i = sandboxClients.find(mode);
+  if (i == sandboxClients.end())
+    i = sandboxClients.insert(mode, QList<SSandboxClient *>());
+
+  if (i->isEmpty())
+    i->append(new SSandboxClient(sandboxApplication, mode));
+
+  i->last()->ensureReady();
+}
+
 SSandboxClient * Backend::createSandbox(SSandboxClient::Mode mode)
 {
   QMap<SSandboxClient::Mode, QList<SSandboxClient *> >::Iterator i = sandboxClients.find(mode);

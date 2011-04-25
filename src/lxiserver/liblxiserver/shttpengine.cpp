@@ -28,7 +28,7 @@
 
 namespace LXiServer {
 
-const char  SHttpEngine::httpVersion[]       = "HTTP/1.1";
+const char  SHttpEngine::httpVersion[]       = "HTTP/1.0";
 const int   SHttpEngine::maxTTL              = 300000;
 const char  SHttpEngine::fieldConnection[]   = "Connection";
 const char  SHttpEngine::fieldContentLength[]= "Content-Length";
@@ -216,23 +216,30 @@ SHttpServerEngine::SocketOp SHttpServerEngine::sendRedirect(const RequestHeader 
 
 void SHttpServerEngine::handleHttpRequest(const SHttpEngine::RequestMessage &request, QAbstractSocket *socket)
 {
-  const QString path = QUrl(request.path()).path();
-
-  QString dir = path.left(path.lastIndexOf('/') + 1);
-  QMap<QString, Callback *>::ConstIterator callback = d->callbacks.find(dir);
-  while ((callback == d->callbacks.end()) && !dir.isEmpty())
+  if ((request.method() == "GET") || (request.method() == "POST"))
   {
-    dir = dir.left(dir.left(dir.length() - 1).lastIndexOf('/') + 1);
-    callback = d->callbacks.find(dir);
-  }
+    const QString path = QUrl(request.path()).path();
 
-  if ((callback != d->callbacks.end()) && dir.startsWith(callback.key()))
-  {
-    if ((*callback)->handleHttpRequest(request, socket) == SocketOp_LeaveOpen)
-      socket = NULL; // The callback took over the socket, it is responsible for closing and deleteing it.
+    QString dir = path.left(path.lastIndexOf('/') + 1);
+    QMap<QString, Callback *>::ConstIterator callback = d->callbacks.find(dir);
+    while ((callback == d->callbacks.end()) && !dir.isEmpty())
+    {
+      dir = dir.left(dir.left(dir.length() - 1).lastIndexOf('/') + 1);
+      callback = d->callbacks.find(dir);
+    }
+
+    if ((callback != d->callbacks.end()) && dir.startsWith(callback.key()))
+    {
+      if ((*callback)->handleHttpRequest(request, socket) == SocketOp_LeaveOpen)
+        socket = NULL; // The callback took over the socket, it is responsible for closing and deleteing it.
+    }
+    else
+      socket->write(ResponseHeader(request, Status_NotFound));
   }
-  else
-    socket->write(ResponseHeader(request, Status_NotFound));
+  else if (request.method() == "TRACE")
+  {
+    socket->write(request);
+  }
 
   if (socket)
   {
