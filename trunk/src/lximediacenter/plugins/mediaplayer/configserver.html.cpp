@@ -185,7 +185,7 @@ SHttpServer::SocketOp ConfigServer::handleHtmlRequest(const SHttpServer::Request
 
     drives(true);
 
-    return sendHtmlContent(socket, url, response, htmlParser.parse(htmlMain));
+    return sendHtmlContent(request, socket, url, response, htmlParser.parse(htmlMain));
   }
 }
 

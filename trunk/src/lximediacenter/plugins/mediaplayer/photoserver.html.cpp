@@ -114,7 +114,7 @@ SHttpServer::SocketOp PhotoServer::handleHtmlRequest(const SHttpServer::RequestM
       }
     }*/
 
-    return sendHtmlContent(socket, url, response, htmlParser.parse(htmlView));
+    return sendHtmlContent(request, socket, url, response, htmlParser.parse(htmlView));
   }
 
   return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);

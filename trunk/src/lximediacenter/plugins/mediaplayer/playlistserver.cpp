@@ -124,32 +124,35 @@ QList<PlaylistServer::Item> PlaylistServer::listItems(const QString &path, unsig
 
 SHttpServer::SocketOp PlaylistServer::handleHttpRequest(const SHttpServer::RequestMessage &request, QAbstractSocket *socket)
 {
-  const QUrl url(request.path());
-  const QString file = request.file();
-
-  if (file == "playlist.html") // Show player
+  if ((request.method() == "GET") || (request.method() == "HEAD"))
   {
-    const QString album = QUrl(request.path().mid(serverPath().length() - 1)).path();
-    if (!album.isEmpty())
+    const QUrl url(request.path());
+    const QString file = request.file();
+
+    if (file == "playlist.html") // Show player
     {
-      SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
-      response.setContentType("text/html;charset=utf-8");
-      response.setField("Cache-Control", "no-cache");
+      const QString album = QUrl(request.path().mid(serverPath().length() - 1)).path();
+      if (!album.isEmpty())
+      {
+        SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
+        response.setContentType("text/html;charset=utf-8");
+        response.setField("Cache-Control", "no-cache");
 
-      const QString albumName = album.mid(album.lastIndexOf('/') + 1);
+        const QString albumName = album.mid(album.lastIndexOf('/') + 1);
 
-      HtmlParser htmlParser;
+        HtmlParser htmlParser;
 
-      htmlParser.setField("PLAYER", buildVideoPlayer("playlist", albumName, url));
+        htmlParser.setField("PLAYER", buildVideoPlayer("playlist", albumName, url));
 
-      htmlParser.setField("PLAYER_INFOITEMS", QByteArray(""));
-      htmlParser.setField("ITEM_NAME", tr("Title"));
-      htmlParser.setField("ITEM_VALUE", albumName);
+        htmlParser.setField("PLAYER_INFOITEMS", QByteArray(""));
+        htmlParser.setField("ITEM_NAME", tr("Title"));
+        htmlParser.setField("ITEM_VALUE", albumName);
 
-      htmlParser.setField("PLAYER_DESCRIPTION_NAME", QByteArray(""));
-      htmlParser.setField("PLAYER_DESCRIPTION", QByteArray(""));
+        htmlParser.setField("PLAYER_DESCRIPTION_NAME", QByteArray(""));
+        htmlParser.setField("PLAYER_DESCRIPTION", QByteArray(""));
 
-      return sendHtmlContent(socket, url, response, htmlParser.parse(htmlPlayer), headPlayer);
+        return sendHtmlContent(request, socket, url, response, htmlParser.parse(htmlPlayer), headPlayer);
+      }
     }
   }
 

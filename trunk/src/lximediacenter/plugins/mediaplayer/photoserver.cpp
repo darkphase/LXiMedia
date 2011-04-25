@@ -107,16 +107,19 @@ QList<PhotoServer::Item> PhotoServer::listItems(const QString &path, unsigned st
 
 SHttpServer::SocketOp PhotoServer::handleHttpRequest(const SHttpServer::RequestMessage &request, QAbstractSocket *socket)
 {
-  const QUrl url(request.path());
-  const QString file = request.file();
-
-  if ((file.endsWith(".jpeg") && !file.endsWith("-thumb.jpeg")) ||
-      (file.endsWith(".png") && !file.endsWith("-thumb.png")))
+  if ((request.method() == "GET") || (request.method() == "HEAD"))
   {
-    return sendPhoto(request, socket, MediaDatabase::fromUidString(file), file.split('.').last());
+    const QUrl url(request.path());
+    const QString file = request.file();
+
+    if ((file.endsWith(".jpeg") && !file.endsWith("-thumb.jpeg")) ||
+        (file.endsWith(".png") && !file.endsWith("-thumb.png")))
+    {
+      return sendPhoto(request, socket, MediaDatabase::fromUidString(file), file.split('.').last());
+    }
+    else if (file.endsWith(".html") && (file != "playlist.html")) // Show photo
+      return handleHtmlRequest(request, socket, file);
   }
-  else if (file.endsWith(".html") && (file != "playlist.html")) // Show photo
-    return handleHtmlRequest(request, socket, file);
 
   return PlaylistServer::handleHttpRequest(request, socket);
 }

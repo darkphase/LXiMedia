@@ -105,11 +105,12 @@ public:
   void                          close(void);
 
 protected: // From SHttpServer::Callback
-  virtual SHttpServer::SocketOp  handleHttpRequest(const SHttpServer::RequestMessage &, QAbstractSocket *);
+  virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestMessage &, QAbstractSocket *);
+  virtual void                  handleHttpOptions(SHttpServer::ResponseHeader &);
 
 protected:
-  virtual SHttpServer::SocketOp  handleControl(const SHttpServer::RequestMessage &, QAbstractSocket *);
-  virtual SHttpServer::SocketOp  handleDescription(const SHttpServer::RequestMessage &, QAbstractSocket *);
+  virtual SHttpServer::SocketOp handleControl(const SHttpServer::RequestMessage &, QAbstractSocket *);
+  virtual SHttpServer::SocketOp handleDescription(const SHttpServer::RequestMessage &, QAbstractSocket *);
 
   virtual void                  buildDescription(QDomDocument &, QDomElement &) = 0;
   virtual void                  handleSoapMessage(const QDomElement &, QDomDocument &, QDomElement &, const SHttpServer::RequestMessage &, const QHostAddress &) = 0;

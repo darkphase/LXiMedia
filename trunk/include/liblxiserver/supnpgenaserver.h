@@ -50,7 +50,8 @@ protected:
   virtual void                  timerEvent(QTimerEvent *);
 
 protected: // From SHttpServer::Callback
-  virtual SHttpServer::SocketOp  handleHttpRequest(const SHttpServer::RequestMessage &, QAbstractSocket *);
+  virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestMessage &, QAbstractSocket *);
+  virtual void                  handleHttpOptions(SHttpServer::ResponseHeader &);
 
 private slots:
   _lxi_internal void            emitEvents(void);

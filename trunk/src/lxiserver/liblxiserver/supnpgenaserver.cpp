@@ -234,6 +234,11 @@ SHttpServer::SocketOp SUPnPGenaServer::handleHttpRequest(const SHttpServer::Requ
   return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);
 }
 
+void SUPnPGenaServer::handleHttpOptions(SHttpServer::ResponseHeader &response)
+{
+  response.setField("Allow", response.field("Allow") + ",SUBSCRIBE,UNSUBSCRIBE");
+}
+
 void SUPnPGenaServer::emitEvents(void)
 {
   foreach (EventSession *session, d->eventSessions)

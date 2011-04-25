@@ -29,11 +29,11 @@ namespace LXiServer {
 
 /*! This is a generic output node, writing to a QIODevice.
  */
-class LXISERVER_PUBLIC SHttpStreamProxy : public QThread
+class LXISERVER_PUBLIC SHttpStreamProxy : public QObject
 {
 Q_OBJECT
 public:
-  explicit                      SHttpStreamProxy(void);
+  explicit                      SHttpStreamProxy(QObject *parent = NULL);
   virtual                       ~SHttpStreamProxy();
 
   bool                          isConnected(void) const;
@@ -44,9 +44,6 @@ public slots:
 
 signals:
   void                          disconnected(void);
-
-protected:
-  virtual void                  run(void);
 
 private:
   _lxi_internal void            disconnectAllSockets(void);

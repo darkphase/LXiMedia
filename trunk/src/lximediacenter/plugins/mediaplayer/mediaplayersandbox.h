@@ -51,8 +51,9 @@ public:
   virtual void                  initialize(SSandboxServer *);
   virtual void                  close(void);
 
-public: // From SandboxServer::Callback
+public: // From SSandboxServer::Callback
   virtual SSandboxServer::SocketOp handleHttpRequest(const SSandboxServer::RequestMessage &, QAbstractSocket *);
+  virtual void                  handleHttpOptions(SHttpServer::ResponseHeader &);
 
 protected: // From QObject
   virtual void                  customEvent(QEvent *);

@@ -100,76 +100,84 @@ void SUPnPMediaServer::registerService(const Service &service)
 
 SHttpServer::SocketOp SUPnPMediaServer::handleHttpRequest(const SHttpServer::RequestMessage &request, QAbstractSocket *socket)
 {
-  if (request.path() == "/upnp/mediaserver/description.xml")
+  if ((request.method() == "GET") || (request.method() == "HEAD"))
   {
-    QDomDocument doc;
-    QDomElement rootElm = doc.createElement("root");
-    rootElm.setAttribute("xmlns", "urn:schemas-upnp-org:device-1-0");
-    SUPnPBase::addSpecVersion(doc, rootElm);
-
-    QDomElement deviceElm = doc.createElement("device");
-    SUPnPBase::addTextElm(doc, deviceElm, "deviceType", deviceType);
-    SUPnPBase::addTextElm(doc, deviceElm, "friendlyName", QHostInfo::localHostName() + ": " + qApp->applicationName());
-    SUPnPBase::addTextElm(doc, deviceElm, "manufacturer", qApp->organizationName());
-    SUPnPBase::addTextElm(doc, deviceElm, "manufacturerURL", "http://" + qApp->organizationDomain() + "/");
-    SUPnPBase::addTextElm(doc, deviceElm, "modelDescription", qApp->applicationName());
-    SUPnPBase::addTextElm(doc, deviceElm, "modelName", qApp->applicationName());
-    SUPnPBase::addTextElm(doc, deviceElm, "modelNumber", qApp->applicationVersion());
-    SUPnPBase::addTextElm(doc, deviceElm, "modelURL", "http://" + qApp->organizationDomain() + "/");
-    SUPnPBase::addTextElm(doc, deviceElm, "serialNumber", qApp->applicationVersion());
-    SUPnPBase::addTextElm(doc, deviceElm, "UDN", d->httpServer->serverUdn());
-    SUPnPBase::addTextElmNS(doc, deviceElm, "dlna:X_DLNADOC", dlnaDeviceNS, "DMS-1.00");
-
-    QString host = request.host();
-    if (!host.isEmpty())
-      SUPnPBase::addTextElm(doc, deviceElm, "presentationURL", "http://" + request.host() + "/");
-
-    if (!d->icons.isEmpty())
+    if (request.path() == "/upnp/mediaserver/description.xml")
     {
-      QDomElement iconListElm = doc.createElement("iconList");
-      foreach (const Data::Icon &icon, d->icons)
+      QDomDocument doc;
+      QDomElement rootElm = doc.createElement("root");
+      rootElm.setAttribute("xmlns", "urn:schemas-upnp-org:device-1-0");
+      SUPnPBase::addSpecVersion(doc, rootElm);
+
+      QDomElement deviceElm = doc.createElement("device");
+      SUPnPBase::addTextElm(doc, deviceElm, "deviceType", deviceType);
+      SUPnPBase::addTextElm(doc, deviceElm, "friendlyName", QHostInfo::localHostName() + ": " + qApp->applicationName());
+      SUPnPBase::addTextElm(doc, deviceElm, "manufacturer", qApp->organizationName());
+      SUPnPBase::addTextElm(doc, deviceElm, "manufacturerURL", "http://" + qApp->organizationDomain() + "/");
+      SUPnPBase::addTextElm(doc, deviceElm, "modelDescription", qApp->applicationName());
+      SUPnPBase::addTextElm(doc, deviceElm, "modelName", qApp->applicationName());
+      SUPnPBase::addTextElm(doc, deviceElm, "modelNumber", qApp->applicationVersion());
+      SUPnPBase::addTextElm(doc, deviceElm, "modelURL", "http://" + qApp->organizationDomain() + "/");
+      SUPnPBase::addTextElm(doc, deviceElm, "serialNumber", qApp->applicationVersion());
+      SUPnPBase::addTextElm(doc, deviceElm, "UDN", d->httpServer->serverUdn());
+      SUPnPBase::addTextElmNS(doc, deviceElm, "dlna:X_DLNADOC", dlnaDeviceNS, "DMS-1.00");
+
+      QString host = request.host();
+      if (!host.isEmpty())
+        SUPnPBase::addTextElm(doc, deviceElm, "presentationURL", "http://" + request.host() + "/");
+
+      if (!d->icons.isEmpty())
       {
-        QDomElement iconElm = doc.createElement("icon");
-        SUPnPBase::addTextElm(doc, iconElm, "url", icon.url);
-        SUPnPBase::addTextElm(doc, iconElm, "mimetype", icon.mimetype);
-        SUPnPBase::addTextElm(doc, iconElm, "width", QString::number(icon.width));
-        SUPnPBase::addTextElm(doc, iconElm, "height", QString::number(icon.height));
-        SUPnPBase::addTextElm(doc, iconElm, "depth", QString::number(icon.depth));
-        iconListElm.appendChild(iconElm);
+        QDomElement iconListElm = doc.createElement("iconList");
+        foreach (const Data::Icon &icon, d->icons)
+        {
+          QDomElement iconElm = doc.createElement("icon");
+          SUPnPBase::addTextElm(doc, iconElm, "url", icon.url);
+          SUPnPBase::addTextElm(doc, iconElm, "mimetype", icon.mimetype);
+          SUPnPBase::addTextElm(doc, iconElm, "width", QString::number(icon.width));
+          SUPnPBase::addTextElm(doc, iconElm, "height", QString::number(icon.height));
+          SUPnPBase::addTextElm(doc, iconElm, "depth", QString::number(icon.depth));
+          iconListElm.appendChild(iconElm);
+        }
+        deviceElm.appendChild(iconListElm);
       }
-      deviceElm.appendChild(iconListElm);
+
+      QDomElement serviceListElm = doc.createElement("serviceList");
+      foreach (const Service &service, d->services)
+      {
+        QDomElement serviceElm = doc.createElement("service");
+        SUPnPBase::addTextElm(doc, serviceElm, "serviceType", service.serviceType);
+        SUPnPBase::addTextElm(doc, serviceElm, "serviceId", service.serviceId);
+        SUPnPBase::addTextElm(doc, serviceElm, "SCPDURL", service.descriptionUrl);
+        SUPnPBase::addTextElm(doc, serviceElm, "controlURL", service.controlURL);
+        SUPnPBase::addTextElm(doc, serviceElm, "eventSubURL", service.eventSubURL);
+        serviceListElm.appendChild(serviceElm);
+      }
+      deviceElm.appendChild(serviceListElm);
+
+      rootElm.appendChild(deviceElm);
+      doc.appendChild(rootElm);
+
+      const QByteArray content = QByteArray(SUPnPBase::xmlDeclaration) + '\n' + doc.toByteArray();
+      SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
+      response.setContentType(SUPnPBase::xmlContentType);
+      response.setContentLength(content.length());
+      response.setField("Cache-Control", "no-cache");
+      response.setField("Accept-Ranges", "bytes");
+      response.setField("Connection", "close");
+      response.setField("contentFeatures.dlna.org", "");
+      socket->write(response);
+      socket->write(content);
+      return SHttpServer::SocketOp_Close;
     }
-
-    QDomElement serviceListElm = doc.createElement("serviceList");
-    foreach (const Service &service, d->services)
-    {
-      QDomElement serviceElm = doc.createElement("service");
-      SUPnPBase::addTextElm(doc, serviceElm, "serviceType", service.serviceType);
-      SUPnPBase::addTextElm(doc, serviceElm, "serviceId", service.serviceId);
-      SUPnPBase::addTextElm(doc, serviceElm, "SCPDURL", service.descriptionUrl);
-      SUPnPBase::addTextElm(doc, serviceElm, "controlURL", service.controlURL);
-      SUPnPBase::addTextElm(doc, serviceElm, "eventSubURL", service.eventSubURL);
-      serviceListElm.appendChild(serviceElm);
-    }
-    deviceElm.appendChild(serviceListElm);
-
-    rootElm.appendChild(deviceElm);
-    doc.appendChild(rootElm);
-
-    const QByteArray content = QByteArray(SUPnPBase::xmlDeclaration) + '\n' + doc.toByteArray();
-    SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
-    response.setContentType(SUPnPBase::xmlContentType);
-    response.setContentLength(content.length());
-    response.setField("Cache-Control", "no-cache");
-    response.setField("Accept-Ranges", "bytes");
-    response.setField("Connection", "close");
-    response.setField("contentFeatures.dlna.org", "");
-    socket->write(response);
-    socket->write(content);
-    return SHttpServer::SocketOp_Close;
   }
 
   return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);
+}
+
+void SUPnPMediaServer::handleHttpOptions(SHttpServer::ResponseHeader &response)
+{
+  response.setField("Allow", response.field("Allow") + ",GET,HEAD");
 }
 
 } // End of namespace
