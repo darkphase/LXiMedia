@@ -182,7 +182,7 @@ QList<GlobalSettings::TranscodeChannel> GlobalSettings::allTranscodeChannels(voi
 
 QString GlobalSettings::defaultTranscodeChannelName(void)
 {
-  return "5.1 Surround";
+  return "2.0 Stereo";
 }
 
 QString GlobalSettings::defaultTranscodeMusicChannelName(void)

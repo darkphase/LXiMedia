@@ -88,6 +88,8 @@ int               SMemoryPool::pageSize = 0;
   int             SMemoryPool::zeroDev = 0;
 #endif
 
+/*! Returns the size of the specified pool.
+ */
 size_t SMemoryPool::poolSize(Pool pool)
 {
   QMutexLocker l(mutex());
@@ -108,6 +110,8 @@ size_t SMemoryPool::poolSize(Pool pool)
   return result;
 }
 
+/*! Aligns the specified size to a multiple that can be allocated by the pool.
+ */
 size_t SMemoryPool::align(size_t size)
 {
   Q_ASSERT(pageSize);
@@ -115,6 +119,11 @@ size_t SMemoryPool::align(size_t size)
   return ((size + (pageSize - 1)) / pageSize) * pageSize;
 }
 
+/*! Returns a buffer of the specified size, either from the pool or newly
+    allocated. The specified size needs to be aligned using align().
+
+    \note Memory is not reset to zero.
+ */
 void * SMemoryPool::alloc(size_t size)
 {
   size = align(size);
@@ -141,6 +150,9 @@ void * SMemoryPool::alloc(size_t size)
   return NULL;
 }
 
+/*! Returns the specified buffer back into the pool. All memory in the pool is
+    freed if this was the last allocated buffer.
+ */
 void SMemoryPool::free(void *ptr)
 {
   if (ptr)
