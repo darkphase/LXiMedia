@@ -32,6 +32,7 @@ struct MediaServer::Data
   MasterServer                * masterServer;
   QList<Stream *>               streams;
   QList<Stream *>               reusableStreams;
+  QTimer                        cleanStreamsTimer;
 };
 
 const qint32  MediaServer::defaultDirSortOrder  = -65536;
@@ -44,6 +45,8 @@ MediaServer::MediaServer(QObject *parent)
     d(new Data())
 {
   d->masterServer = NULL;
+
+  connect(&d->cleanStreamsTimer, SIGNAL(timeout()), SLOT(cleanStreams()));
 }
 
 MediaServer::~MediaServer()
@@ -60,10 +63,14 @@ void MediaServer::initialize(MasterServer *masterServer)
 
   d->masterServer->httpServer()->registerCallback(serverPath(), this);
   d->masterServer->contentDirectory()->registerCallback(serverPath(), this);
+
+  d->cleanStreamsTimer.start(30000);
 }
 
 void MediaServer::close(void)
 {
+  d->cleanStreamsTimer.stop();
+
   BackendServer::close();
 
   d->masterServer->httpServer()->unregisterCallback(this);

@@ -44,6 +44,8 @@ public:
 
   Mode                          mode(void) const;
 
+  void                          ensureReady(void);
+
 public: // From HttpClientEngine
   virtual void                  openRequest(const RequestMessage &header, QObject *receiver, const char *slot);
 

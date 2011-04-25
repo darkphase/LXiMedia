@@ -279,6 +279,9 @@ void SHttpStreamProxy::flushData(void)
     }
 
     d->sourceFinished = true;
+
+    if (d->sockets.isEmpty())
+      disconnectAllSockets();
   }
 }
 
