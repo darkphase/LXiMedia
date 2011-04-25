@@ -61,6 +61,32 @@ void STimeStampResamplerNode::setFrameRate(SInterval frameRate, double maxRatio)
   d->resample = false;
 }
 
+SInterval STimeStampResamplerNode::roundFrameRate(SInterval frameRate)
+{
+  const double freq = frameRate.toFrequency();
+  const double d15 = freq - 15.0;
+  const double d24 = freq - 24.0;
+  const double d25 = freq - 25.0;
+  const double d30 = freq - 30.0;
+  const double d50 = freq - 50.0;
+  const double d60 = freq - 60.0;
+
+  if ((d15 > -3.0) && (d15 < 3.0))
+    return SInterval::fromFrequency(15);
+  else if ((d24 > -2.0) && (d24 < 0.6))
+    return SInterval::fromFrequency(24);
+  else if ((d25 > -2.0) && (d25 < 2.1))
+    return SInterval::fromFrequency(25);
+  else if ((d30 > -3.0) && (d30 < 4.0))
+    return SInterval::fromFrequency(30);
+  else if ((d50 > -5.0) && (d50 < 5.0))
+    return SInterval::fromFrequency(50);
+  else if ((d60 > -5.0) && (d60 < 5.0))
+    return SInterval::fromFrequency(60);
+  else
+    return SInterval::fromFrequency(25);
+}
+
 void STimeStampResamplerNode::input(const SAudioBuffer &audioBuffer)
 {
   Q_ASSERT(QThread::currentThread() == thread());

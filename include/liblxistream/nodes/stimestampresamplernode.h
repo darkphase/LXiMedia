@@ -48,6 +48,8 @@ public:
 
   void                          setFrameRate(SInterval frameRate, double maxRatio = 0.08);
 
+  static SInterval              roundFrameRate(SInterval);
+
 public slots:
   void                          input(const SAudioBuffer &);
   void                          input(const SVideoBuffer &);

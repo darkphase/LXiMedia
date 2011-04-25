@@ -24,7 +24,6 @@ namespace LXiMediaCenter {
 
 MediaStream::MediaStream(void)
   : SGraph(),
-    timeStampResampler(this),
     audioResampler(this, "linear"),
     deinterlacer(this),
     subpictureRenderer(this),
@@ -38,13 +37,11 @@ MediaStream::MediaStream(void)
     output(this)
 {
   // Audio
-  connect(&timeStampResampler, SIGNAL(output(SAudioBuffer)), &audioResampler, SLOT(input(SAudioBuffer)));
   connect(&audioResampler, SIGNAL(output(SAudioBuffer)), &sync, SLOT(input(SAudioBuffer)));
   connect(&sync, SIGNAL(output(SAudioBuffer)), &audioEncoder, SLOT(input(SAudioBuffer)));
   connect(&audioEncoder, SIGNAL(output(SEncodedAudioBuffer)), &output, SLOT(input(SEncodedAudioBuffer)));
 
   // Video
-  connect(&timeStampResampler, SIGNAL(output(SVideoBuffer)), &deinterlacer, SLOT(input(SVideoBuffer)));
   connect(&deinterlacer, SIGNAL(output(SVideoBuffer)), &subpictureRenderer, SLOT(input(SVideoBuffer)));
   connect(&subpictureRenderer, SIGNAL(output(SVideoBuffer)), &letterboxDetectNode, SLOT(input(SVideoBuffer)));
   connect(&letterboxDetectNode, SIGNAL(output(SVideoBuffer)), &videoResizer, SLOT(input(SVideoBuffer)));
@@ -53,10 +50,6 @@ MediaStream::MediaStream(void)
   connect(&subtitleRenderer, SIGNAL(output(SVideoBuffer)), &sync, SLOT(input(SVideoBuffer)));
   connect(&sync, SIGNAL(output(SVideoBuffer)), &videoEncoder, SLOT(input(SVideoBuffer)));
   connect(&videoEncoder, SIGNAL(output(SEncodedVideoBuffer)), &output, SLOT(input(SEncodedVideoBuffer)));
-
-  // Data
-  connect(&timeStampResampler, SIGNAL(output(SSubpictureBuffer)), &subpictureRenderer, SLOT(input(SSubpictureBuffer)));
-  connect(&timeStampResampler, SIGNAL(output(SSubtitleBuffer)), &subtitleRenderer, SLOT(input(SSubtitleBuffer)));
 }
 
 MediaStream::~MediaStream()
@@ -81,48 +74,6 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request, QAbstractSoc
     setPriority(Priority_High);
 
   // Set stream properties
-  const double freq = frameRate.toFrequency();
-  const double d15 = freq - 15.0;
-  const double d24 = freq - 24.0;
-  const double d25 = freq - 25.0;
-  const double d30 = freq - 30.0;
-  const double d50 = freq - 50.0;
-  const double d60 = freq - 60.0;
-
-  if ((d15 > -3.0) && (d15 < 3.0))
-  {
-    duration *= (15.0 / freq);
-    frameRate = SInterval::fromFrequency(15);
-  }
-  else if ((d24 > -2.0) && (d24 < 0.6))
-  {
-    duration *= (24.0 / freq);
-    frameRate = SInterval::fromFrequency(24);
-  }
-  else if ((d25 > -2.0) && (d25 < 2.1))
-  {
-    duration *= (25.0 / freq);
-    frameRate = SInterval::fromFrequency(25);
-  }
-  else if ((d30 > -3.0) && (d30 < 4.0))
-  {
-    duration *= (30.0 / freq);
-    frameRate = SInterval::fromFrequency(30);
-  }
-  else if ((d50 > -5.0) && (d50 < 5.0))
-  {
-    duration *= (50.0 / freq);
-    frameRate = SInterval::fromFrequency(50);
-  }
-  else if ((d60 > -5.0) && (d60 < 5.0))
-  {
-    duration *= (60.0 / freq);
-    frameRate = SInterval::fromFrequency(60);
-  }
-  else
-    frameRate = SInterval::fromFrequency(25);
-
-  timeStampResampler.setFrameRate(frameRate);
   sync.setFrameRate(frameRate);
 
   Qt::AspectRatioMode aspectRatioMode = Qt::KeepAspectRatio;
@@ -410,17 +361,22 @@ MediaTranscodeStream::MediaTranscodeStream(void)
   : MediaStream(),
     audioDecoder(this),
     videoDecoder(this),
-    dataDecoder(this)
+    dataDecoder(this),
+    timeStampResampler(this)
 {
   // Audio
   connect(&audioDecoder, SIGNAL(output(SAudioBuffer)), &timeStampResampler, SLOT(input(SAudioBuffer)));
+  connect(&timeStampResampler, SIGNAL(output(SAudioBuffer)), &audioResampler, SLOT(input(SAudioBuffer)));
 
   // Video
   connect(&videoDecoder, SIGNAL(output(SVideoBuffer)), &timeStampResampler, SLOT(input(SVideoBuffer)));
+  connect(&timeStampResampler, SIGNAL(output(SVideoBuffer)), &deinterlacer, SLOT(input(SVideoBuffer)));
 
   // Data
   connect(&dataDecoder, SIGNAL(output(SSubpictureBuffer)), &timeStampResampler, SLOT(input(SSubpictureBuffer)));
+  connect(&timeStampResampler, SIGNAL(output(SSubpictureBuffer)), &subpictureRenderer, SLOT(input(SSubpictureBuffer)));
   connect(&dataDecoder, SIGNAL(output(SSubtitleBuffer)), &timeStampResampler, SLOT(input(SSubtitleBuffer)));
+  connect(&timeStampResampler, SIGNAL(output(SSubtitleBuffer)), &subtitleRenderer, SLOT(input(SSubtitleBuffer)));
 }
 
 bool MediaTranscodeStream::setup(const SHttpServer::RequestMessage &request, QAbstractSocket *socket, SInterfaces::BufferReaderNode *input, STime duration)
@@ -466,16 +422,29 @@ bool MediaTranscodeStream::setup(const SHttpServer::RequestMessage &request, QAb
       duration = STime::null;
   }
 
+  if (url.hasQueryItem("starttime"))
+  {
+    const STime pos = STime::fromSec(url.queryItemValue("starttime").toInt());
+    sync.setStartTime(pos);
+
+    if (duration.isPositive())
+      duration += pos;
+  }
+
   // Set stream properties
   if (!audioStreams.isEmpty() && !videoStreams.isEmpty())
   {
     const SAudioCodec audioInCodec = audioStreams.first().codec;
     const SVideoCodec videoInCodec = videoStreams.first().codec;
 
-    if (MediaStream::setup(request, socket,
-                      duration,
-                      videoInCodec.frameRate(), videoInCodec.size(),
-                      audioInCodec.channelSetup()))
+    const SInterval roundedFrameRate = STimeStampResamplerNode::roundFrameRate(videoInCodec.frameRate());
+    const STime roundedDuration = duration * (roundedFrameRate.toFrequency() / videoInCodec.frameRate().toFrequency());
+
+    timeStampResampler.setFrameRate(roundedFrameRate);
+
+    if (MediaStream::setup(request, socket, roundedDuration,
+                           roundedFrameRate, videoInCodec.size(),
+                           audioInCodec.channelSetup()))
     {
       if (audioResampler.channels() == SAudioFormat::Channel_Stereo)
         audioDecoder.setFlags(SInterfaces::AudioDecoder::Flag_DownsampleToStereo);
@@ -488,9 +457,8 @@ bool MediaTranscodeStream::setup(const SHttpServer::RequestMessage &request, QAb
   {
     const SAudioCodec audioInCodec = audioStreams.first().codec;
 
-    if (MediaStream::setup(request, socket,
-                      duration,
-                      audioInCodec.channelSetup()))
+    if (MediaStream::setup(request, socket, duration,
+                           audioInCodec.channelSetup()))
     {
       if (audioResampler.channels() == SAudioFormat::Channel_Stereo)
         audioDecoder.setFlags(SInterfaces::AudioDecoder::Flag_DownsampleToStereo);
