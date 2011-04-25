@@ -43,7 +43,6 @@ public:
     virtual SUPnPContentDirectory * contentDirectory(void) = 0;
     virtual ImdbClient        * imdbClient(void) = 0;
 
-    virtual void                ensureSandboxReady(SSandboxClient::Mode) = 0;
     virtual SSandboxClient    * createSandbox(SSandboxClient::Mode) = 0;
     virtual void                recycleSandbox(SSandboxClient *) = 0;
   };
@@ -85,7 +84,7 @@ public:
 public:
   SHttpServer::SocketOp         sendResponse(const SHttpServer::RequestHeader &, QAbstractSocket *, const QByteArray &, const char * = dataMime, bool allowCache = false, const QString &redir = QString::null) const;
   SHttpServer::SocketOp         sendResponse(const SHttpServer::RequestHeader &, QAbstractSocket *, const QString &, const char * = textMime, bool allowCache = false, const QString &redir = QString::null) const;
-  SHttpServer::SocketOp         sendHtmlContent(QAbstractSocket *, const QUrl &, const SHttpServer::ResponseHeader &, const QByteArray &content, const QByteArray &head = QByteArray()) const;
+  SHttpServer::SocketOp         sendHtmlContent(const SHttpServer::RequestHeader &, QAbstractSocket *, const QUrl &, const SHttpServer::ResponseHeader &, const QByteArray &content, const QByteArray &head = QByteArray()) const;
 
 public:
   static const int              maxRequestTime;

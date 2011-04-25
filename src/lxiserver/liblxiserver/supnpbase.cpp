@@ -81,10 +81,15 @@ SHttpServer::SocketOp SUPnPBase::handleHttpRequest(const SHttpServer::RequestMes
 {
   if ((request.path() == d->basePath + "control") && (request.method() == "POST"))
     return handleControl(request, socket);
-  else if (request.path() == d->basePath + "description.xml")
+  else if ((request.path() == d->basePath + "description.xml") && ((request.method() == "GET") || (request.method() == "HEAD")))
     return handleDescription(request, socket);
 
   return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);
+}
+
+void SUPnPBase::handleHttpOptions(SHttpServer::ResponseHeader &response)
+{
+  response.setField("Allow", response.field("Allow") + ",GET,HEAD,POST");
 }
 
 SHttpServer::SocketOp SUPnPBase::handleControl(const SHttpServer::RequestMessage &request, QAbstractSocket *socket)

@@ -46,7 +46,8 @@ protected:
   virtual void                  customEvent(QEvent *);
 
 protected: // From SHttpServer::Callback
-  virtual SHttpServer::SocketOp  handleHttpRequest(const SHttpServer::RequestMessage &, QAbstractSocket *);
+  virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestMessage &, QAbstractSocket *);
+  virtual void                  handleHttpOptions(SHttpServer::ResponseHeader &);
 
 private:
   static QString                createLogDir(void);
@@ -59,7 +60,6 @@ private:
   virtual SUPnPContentDirectory * contentDirectory(void);
   virtual ImdbClient          * imdbClient(void);
 
-  virtual void                  ensureSandboxReady(SSandboxClient::Mode);
   virtual SSandboxClient      * createSandbox(SSandboxClient::Mode);
   virtual void                  recycleSandbox(SSandboxClient *);
 

@@ -30,13 +30,11 @@ struct SHttpStreamProxy::Data
     bool                        sendCache;
   };
 
-  inline                        Data(void) : mutex(QMutex::Recursive) { }
-
-  QMutex                        mutex;
 
   QAbstractSocket             * source;
   bool                          sourceFinished;
   QVector<Socket>               sockets;
+  QTimer                        socketTimer;
 
   bool                          caching;
   QByteArray                    cache;
@@ -44,12 +42,14 @@ struct SHttpStreamProxy::Data
 
 const int           SHttpStreamProxy::outBufferSize = 4194304;
 
-SHttpStreamProxy::SHttpStreamProxy(void)
-  : QThread(),
+SHttpStreamProxy::SHttpStreamProxy(QObject *parent)
+  : QObject(parent),
     d(new Data())
 {
   d->sourceFinished = false;
   d->caching = true;
+
+  connect(&d->socketTimer, SIGNAL(timeout()), SLOT(processData()));
 }
 
 SHttpStreamProxy::~SHttpStreamProxy()
@@ -62,8 +62,6 @@ SHttpStreamProxy::~SHttpStreamProxy()
 
 bool SHttpStreamProxy::isConnected(void) const
 {
-  QMutexLocker l(&d->mutex);
-
   if (!d->sourceFinished)
     return true;
   else
@@ -72,34 +70,23 @@ bool SHttpStreamProxy::isConnected(void) const
 
 bool SHttpStreamProxy::setSource(QAbstractSocket *source)
 {
-  if (!isRunning())
-  {
-    d->source = source;
+  d->source = source;
 
-    source->setParent(NULL);
-    source->moveToThread(this);
+  connect(d->source, SIGNAL(readyRead()), SLOT(processData()));
+  connect(d->source, SIGNAL(disconnected()), SLOT(flushData()));
 
-    moveToThread(this);
-    start();
+  d->socketTimer.start(250);
 
-    return true;
-  }
-
-  return false;
+  return true;
 }
 
 bool SHttpStreamProxy::addSocket(QAbstractSocket *socket)
 {
-  QMutexLocker l(&d->mutex);
-
-  if (d->caching || d->sockets.isEmpty())
+  if (d->caching)
   {
     Data::Socket s;
     s.socket = socket;
     s.sendCache = true;
-
-    s.socket->setParent(NULL);
-    s.socket->moveToThread(this);
 
     d->sockets += s;
     connect(s.socket, SIGNAL(bytesWritten(qint64)), SLOT(processData()));
@@ -110,22 +97,8 @@ bool SHttpStreamProxy::addSocket(QAbstractSocket *socket)
   return false;
 }
 
-void SHttpStreamProxy::run(void)
-{
-  connect(d->source, SIGNAL(readyRead()), SLOT(processData()));
-  connect(d->source, SIGNAL(disconnected()), SLOT(flushData()));
-
-  QTimer socketTimer;
-  connect(&socketTimer, SIGNAL(timeout()), SLOT(processData()));
-  socketTimer.start(250);
-
-  exec();
-}
-
 void SHttpStreamProxy::disconnectAllSockets(void)
 {
-  QMutexLocker l(&d->mutex);
-
   if (d->source)
   {
     disconnect(d->source, SIGNAL(readyRead()), this, SLOT(processData()));
@@ -156,16 +129,11 @@ void SHttpStreamProxy::disconnectAllSockets(void)
   else
     s->socket->deleteLater();
 
-  if (isRunning())
-    exit();
+  d->socketTimer.stop();
 }
 
 void SHttpStreamProxy::processData(void)
 {
-  Q_ASSERT(QThread::currentThread() == this);
-
-  QMutexLocker l(&d->mutex);
-
   if (d->source && !d->sourceFinished)
   {
     while (d->source->bytesAvailable() > 0)
@@ -182,7 +150,7 @@ void SHttpStreamProxy::processData(void)
         for (QVector<Data::Socket>::Iterator s=d->sockets.begin(); s!=d->sockets.end(); s++)
         if (s->sendCache && (s->socket->state() == QAbstractSocket::ConnectedState))
         {
-          //qDebug() << "Reuse" << d->cache.size();
+          qDebug() << "Reuse" << d->cache.size();
           s->socket->write(d->cache);
           s->sendCache = false;
         }
@@ -210,6 +178,8 @@ void SHttpStreamProxy::processData(void)
           else
             break;
         }
+
+        s->socket->flush();
 
         s++;
       }
@@ -246,10 +216,6 @@ void SHttpStreamProxy::processData(void)
 
 void SHttpStreamProxy::flushData(void)
 {
-  Q_ASSERT(QThread::currentThread() == this);
-
-  QMutexLocker l(&d->mutex);
-
   if (d->source && !d->sourceFinished)
   {
     while (d->source->bytesAvailable() > 0)
@@ -279,6 +245,7 @@ void SHttpStreamProxy::flushData(void)
     }
 
     d->sourceFinished = true;
+    d->caching = false;
 
     if (d->sockets.isEmpty())
       disconnectAllSockets();

@@ -227,11 +227,11 @@ void Backend::start(void)
       if (outFormats.contains("vob"))
       {
         QMap<QString, QString> pal;
-        pal["size"]   = "720x576x1.42222/box";
+        pal["size"]   = "720x576x1.42222,box";
         pal["channels"]   = QString::number(SAudioFormat::Channel_Stereo, 16);
 
         QMap<QString, QString> ntsc;
-        ntsc["size"]  = "704x480x1.21307/box";
+        ntsc["size"]  = "704x480x1.21307,box";
         ntsc["channels"]  = QString::number(SAudioFormat::Channel_Stereo, 16);
 
         videoProtocols += SUPnPBase::Protocol("http-get", "video/mpeg", true, "DLNA.ORG_PN=MPEG_PS_PAL",  ".mpeg", pal);
@@ -347,226 +347,234 @@ void Backend::customEvent(QEvent *e)
 
 SHttpServer::SocketOp Backend::handleHttpRequest(const SHttpServer::RequestMessage &request, QAbstractSocket *socket)
 {
-  const QUrl url(request.path());
-  const QString path = url.path();
-  const QString file = path.mid(path.lastIndexOf('/') + 1);
-
-  if (path.left(path.lastIndexOf('/') + 1) == "/")
+  if ((request.method() == "GET") || (request.method() == "HEAD"))
   {
-    if (url.hasQueryItem("exit"))
+    const QUrl url(request.path());
+    const QString path = url.path();
+    const QString file = path.mid(path.lastIndexOf('/') + 1);
+
+    if (path.left(path.lastIndexOf('/') + 1) == "/")
     {
-      QCoreApplication::postEvent(this, new QEvent(exitEventType));
-
-      return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NoContent, this);
-    }
-    else if (url.hasQueryItem("restart"))
-    {
-      QCoreApplication::postEvent(this, new QEvent(restartEventType));
-
-      return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NoContent, this);
-    }
-    else if (url.hasQueryItem("shutdown"))
-    {
-      QCoreApplication::postEvent(this, new QEvent(shutdownEventType));
-
-      return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NoContent, this);
-    }
-    else if (url.hasQueryItem("dismisserrors"))
-    {
-      GlobalSettings().setValue("DismissedErrors", mediaApp.errorLogFiles());
-
-      return handleHtmlRequest(request, socket, file);
-    }
-    else if (file == "traystatus.xml")
-    {
-      QDomDocument doc("");
-      QDomElement root = doc.createElement("traystatus");
-      doc.appendChild(root);
-
-      // Hostinfo
-      QDomElement hostInfo = doc.createElement("hostinfo");
-      root.appendChild(hostInfo);
-      hostInfo.setAttribute("hostname", QHostInfo::localHostName());
-
-      // DLNA clients
-      GlobalSettings settings;
-      settings.beginGroup("DLNA");
-
-      foreach (const QString &group, settings.childGroups())
-      if (group.startsWith("Client_"))
+      if (url.hasQueryItem("exit"))
       {
-        QDomElement dlnaClient = doc.createElement("dlnaclient");
-        root.appendChild(dlnaClient);
-        dlnaClient.setAttribute("name", group.mid(7));
-        dlnaClient.setAttribute("useragent", settings.value("UserAgent", tr("Unknown")).toString());
-        dlnaClient.setAttribute("lastseen", settings.value("LastSeen").toDateTime().toString(Qt::ISODate));
+        QCoreApplication::postEvent(this, new QEvent(exitEventType));
+
+        return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NoContent, this);
       }
-
-      settings.endGroup();
-
-      // Active log file
-      QDomElement activeLogFile = doc.createElement("activelogfile");
-      root.appendChild(activeLogFile);
-      activeLogFile.setAttribute("name", QFileInfo(mediaApp.activeLogFile()).fileName());
-
-      // Error logs
-      const QSet<QString> dismissedFiles =
-          QSet<QString>::fromList(settings.value("DismissedErrors").toStringList());
-
-      QStringList errorLogFiles;
-      foreach (const QString &file, mediaApp.errorLogFiles())
-      if (!dismissedFiles.contains(file))
-        errorLogFiles += file;
-
-      foreach (const QString &file, errorLogFiles)
+      else if (url.hasQueryItem("restart"))
       {
-        QDomElement errorLogFile = doc.createElement("errorlogfile");
-        root.appendChild(errorLogFile);
-        errorLogFile.setAttribute("name", QFileInfo(file).fileName());
+        QCoreApplication::postEvent(this, new QEvent(restartEventType));
+
+        return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NoContent, this);
       }
-
-      SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
-      response.setContentType("text/xml;charset=utf-8");
-      response.setField("Cache-Control", "no-cache");
-      socket->write(response);
-      socket->write(doc.toByteArray());
-      return SHttpServer::SocketOp_Close;
-    }
-    else if (file.endsWith(".css"))
-    {
-      return handleCssRequest(request, socket, file);
-    }
-    else if (url.hasQueryItem("q"))
-    {
-      return handleHtmlSearch(request, socket, file);
-    }
-    else if (request.path() == "/")
-    {
-      return handleHtmlRequest(request, socket, file);
-    }
-    else if (file.endsWith(".log"))
-    {
-      static const char * const logHead = " <link rel=\"stylesheet\" href=\"/log.css\" type=\"text/css\" media=\"screen, handheld, projection\" />\n";
-
-      QString logFileName;
-      if (file == "main.log")
+      else if (url.hasQueryItem("shutdown"))
       {
-        logFileName = mediaApp.activeLogFile();
+        QCoreApplication::postEvent(this, new QEvent(shutdownEventType));
+
+        return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NoContent, this);
       }
-      else foreach (const QString &f, mediaApp.allLogFiles())
-      if (f.endsWith("/" + file))
+      else if (url.hasQueryItem("dismisserrors"))
       {
-        logFileName = f;
-        break;
+        GlobalSettings().setValue("DismissedErrors", mediaApp.errorLogFiles());
+
+        return handleHtmlRequest(request, socket, file);
       }
-
-      SApplication::LogFile logFile(logFileName);
-      if (logFile.open(SApplication::LogFile::ReadOnly))
+      else if (file == "traystatus.xml")
       {
-        HtmlParser htmlParser(this->htmlParser);
-        htmlParser.setField("TR_DATE", tr("Date"));
-        htmlParser.setField("TR_TYPE", tr("Type"));
-        htmlParser.setField("TR_MESSAGE", tr("Message"));
+        QDomDocument doc("");
+        QDomElement root = doc.createElement("traystatus");
+        doc.appendChild(root);
 
-        htmlParser.setField("LOG_MESSAGES", QByteArray(""));
+        // Hostinfo
+        QDomElement hostInfo = doc.createElement("hostinfo");
+        root.appendChild(hostInfo);
+        hostInfo.setAttribute("hostname", QHostInfo::localHostName());
 
-        for (SApplication::LogFile::Message msg=logFile.readMessage();
-             msg.date.isValid();
-             msg=logFile.readMessage())
+        // DLNA clients
+        GlobalSettings settings;
+        settings.beginGroup("DLNA");
+
+        foreach (const QString &group, settings.childGroups())
+        if (group.startsWith("Client_"))
         {
-          const bool mr = !msg.message.isEmpty();
+          QDomElement dlnaClient = doc.createElement("dlnaclient");
+          root.appendChild(dlnaClient);
+          dlnaClient.setAttribute("name", group.mid(7));
+          dlnaClient.setAttribute("useragent", settings.value("UserAgent", tr("Unknown")).toString());
+          dlnaClient.setAttribute("lastseen", settings.value("LastSeen").toDateTime().toString(Qt::ISODate));
+        }
 
-          htmlParser.setField("ITEM_ROWS", QByteArray::number(mr ? 2 : 1));
+        settings.endGroup();
 
-          if (msg.type == "INF")
-            htmlParser.setField("ITEM_CLASS", QByteArray("loginf"));
-          else if (msg.type == "WRN")
-            htmlParser.setField("ITEM_CLASS", QByteArray("logwrn"));
-          else if ((msg.type == "CRT") || (msg.type == "EXC"))
-            htmlParser.setField("ITEM_CLASS", QByteArray("logerr"));
-          else
-            htmlParser.setField("ITEM_CLASS", QByteArray("logdbg"));
+        // Active log file
+        QDomElement activeLogFile = doc.createElement("activelogfile");
+        root.appendChild(activeLogFile);
+        activeLogFile.setAttribute("name", QFileInfo(mediaApp.activeLogFile()).fileName());
 
-          htmlParser.setField("ITEM_ROWS", QByteArray::number(mr ? 2 : 1));
-          htmlParser.setField("ITEM_DATE", msg.date.toString("yyyy-MM-dd/hh:mm:ss"));
-          htmlParser.setField("ITEM_TYPE", msg.type);
-          htmlParser.setField("ITEM_PID", QByteArray::number(msg.pid));
-          htmlParser.setField("ITEM_TID", QByteArray::number(msg.tid));
-          htmlParser.setField("ITEM_TYPE", msg.type);
-          htmlParser.setField("ITEM_HEADLINE", msg.headline);
-          htmlParser.appendField("LOG_MESSAGES", htmlParser.parse(htmlLogFileHeadline));
+        // Error logs
+        const QSet<QString> dismissedFiles =
+            QSet<QString>::fromList(settings.value("DismissedErrors").toStringList());
 
-          if (mr)
-          {
-            htmlParser.setField("ITEM_MESSAGE", msg.message.replace('\n', "<br />\n"));
-            htmlParser.appendField("LOG_MESSAGES", htmlParser.parse(htmlLogFileMessage));
-          }
+        QStringList errorLogFiles;
+        foreach (const QString &file, mediaApp.errorLogFiles())
+        if (!dismissedFiles.contains(file))
+          errorLogFiles += file;
+
+        foreach (const QString &file, errorLogFiles)
+        {
+          QDomElement errorLogFile = doc.createElement("errorlogfile");
+          root.appendChild(errorLogFile);
+          errorLogFile.setAttribute("name", QFileInfo(file).fileName());
         }
 
         SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
-        response.setContentType("text/html;charset=utf-8");
+        response.setContentType("text/xml;charset=utf-8");
         response.setField("Cache-Control", "no-cache");
-        if (logFileName == mediaApp.activeLogFile())
-          response.setField("Refresh", "10;URL=#bottom");
-
         socket->write(response);
-        socket->write(parseHtmlContent(url, htmlParser.parse(htmlLogFile), logHead));
+        socket->write(doc.toByteArray());
         return SHttpServer::SocketOp_Close;
       }
+      else if (file.endsWith(".css"))
+      {
+        return handleCssRequest(request, socket, file);
+      }
+      else if (url.hasQueryItem("q"))
+      {
+        return handleHtmlSearch(request, socket, file);
+      }
+      else if (request.path() == "/")
+      {
+        return handleHtmlRequest(request, socket, file);
+      }
+      else if (file.endsWith(".log"))
+      {
+        static const char * const logHead = " <link rel=\"stylesheet\" href=\"/log.css\" type=\"text/css\" media=\"screen, handheld, projection\" />\n";
+
+        QString logFileName;
+        if (file == "main.log")
+        {
+          logFileName = mediaApp.activeLogFile();
+        }
+        else foreach (const QString &f, mediaApp.allLogFiles())
+        if (f.endsWith("/" + file))
+        {
+          logFileName = f;
+          break;
+        }
+
+        SApplication::LogFile logFile(logFileName);
+        if (logFile.open(SApplication::LogFile::ReadOnly))
+        {
+          HtmlParser htmlParser(this->htmlParser);
+          htmlParser.setField("TR_DATE", tr("Date"));
+          htmlParser.setField("TR_TYPE", tr("Type"));
+          htmlParser.setField("TR_MESSAGE", tr("Message"));
+
+          htmlParser.setField("LOG_MESSAGES", QByteArray(""));
+
+          for (SApplication::LogFile::Message msg=logFile.readMessage();
+               msg.date.isValid();
+               msg=logFile.readMessage())
+          {
+            const bool mr = !msg.message.isEmpty();
+
+            htmlParser.setField("ITEM_ROWS", QByteArray::number(mr ? 2 : 1));
+
+            if (msg.type == "INF")
+              htmlParser.setField("ITEM_CLASS", QByteArray("loginf"));
+            else if (msg.type == "WRN")
+              htmlParser.setField("ITEM_CLASS", QByteArray("logwrn"));
+            else if ((msg.type == "CRT") || (msg.type == "EXC"))
+              htmlParser.setField("ITEM_CLASS", QByteArray("logerr"));
+            else
+              htmlParser.setField("ITEM_CLASS", QByteArray("logdbg"));
+
+            htmlParser.setField("ITEM_ROWS", QByteArray::number(mr ? 2 : 1));
+            htmlParser.setField("ITEM_DATE", msg.date.toString("yyyy-MM-dd/hh:mm:ss"));
+            htmlParser.setField("ITEM_TYPE", msg.type);
+            htmlParser.setField("ITEM_PID", QByteArray::number(msg.pid));
+            htmlParser.setField("ITEM_TID", QByteArray::number(msg.tid));
+            htmlParser.setField("ITEM_TYPE", msg.type);
+            htmlParser.setField("ITEM_HEADLINE", msg.headline);
+            htmlParser.appendField("LOG_MESSAGES", htmlParser.parse(htmlLogFileHeadline));
+
+            if (mr)
+            {
+              htmlParser.setField("ITEM_MESSAGE", msg.message.replace('\n', "<br />\n"));
+              htmlParser.appendField("LOG_MESSAGES", htmlParser.parse(htmlLogFileMessage));
+            }
+          }
+
+          SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
+          response.setContentType("text/html;charset=utf-8");
+          response.setField("Cache-Control", "no-cache");
+          if (logFileName == mediaApp.activeLogFile())
+            response.setField("Refresh", "10;URL=#bottom");
+
+          socket->write(response);
+          socket->write(parseHtmlContent(url, htmlParser.parse(htmlLogFile), logHead));
+          return SHttpServer::SocketOp_Close;
+        }
+      }
+      else if (file == "settings.html")
+      {
+        return handleHtmlConfig(request, socket);
+      }
+      else if (file == "about.html")
+      {
+        return showAbout(request, socket);
+      }
     }
-    else if (file == "settings.html")
+
+    QString sendFile;
+    if      (path == "/favicon.ico")                sendFile = ":/lximediacenter/appicon.ico";
+    else if (path == "/appicon.png")                sendFile = ":/lximediacenter/appicon.png";
+    else if (path == "/logo.png")                   sendFile = ":/lximediacenter/logo.png";
+
+    else if (path == "/img/null.png")               sendFile = ":/backend/null.png";
+    else if (path == "/img/checknone.png")          sendFile = ":/backend/checknone.png";
+    else if (path == "/img/checkfull.png")          sendFile = ":/backend/checkfull.png";
+    else if (path == "/img/checksome.png")          sendFile = ":/backend/checksome.png";
+    else if (path == "/img/checknonedisabled.png")  sendFile = ":/backend/checknonedisabled.png";
+    else if (path == "/img/checkfulldisabled.png")  sendFile = ":/backend/checkfulldisabled.png";
+    else if (path == "/img/checksomedisabled.png")  sendFile = ":/backend/checksomedisabled.png";
+    else if (path == "/img/treeopen.png")           sendFile = ":/backend/treeopen.png";
+    else if (path == "/img/treeclose.png")          sendFile = ":/backend/treeclose.png";
+    else if (path == "/img/starenabled.png")        sendFile = ":/backend/starenabled.png";
+    else if (path == "/img/stardisabled.png")       sendFile = ":/backend/stardisabled.png";
+    else if (path == "/img/directory.png")          sendFile = ":/backend/directory.png";
+    else if (path == "/img/playlist-file.png")      sendFile = ":/backend/playlist-file.png";
+    else if (path == "/img/audio-file.png")         sendFile = ":/backend/audio-file.png";
+    else if (path == "/img/video-file.png")         sendFile = ":/backend/video-file.png";
+    else if (path == "/img/image-file.png")         sendFile = ":/backend/image-file.png";
+    else if (path == "/img/restart.png")            sendFile = ":/backend/restart.png";
+    else if (path == "/img/shutdown.png")           sendFile = ":/backend/shutdown.png";
+
+    else if (path == "/swf/flowplayer.swf")         sendFile = ":/flowplayer/flowplayer-3.2.5.swf";
+    else if (path == "/swf/flowplayer.controls.swf")sendFile = ":/flowplayer/flowplayer.controls-3.2.3.swf";
+    else if (path == "/swf/flowplayer.js")          sendFile = ":/flowplayer/flowplayer-3.2.4.min.js";
+
+    if (!sendFile.isEmpty())
     {
-      return handleHtmlConfig(request, socket);
-    }
-    else if (file == "about.html")
-    {
-      return showAbout(request, socket);
-    }
-  }
-
-  QString sendFile;
-  if      (path == "/favicon.ico")                sendFile = ":/lximediacenter/appicon.ico";
-  else if (path == "/appicon.png")                sendFile = ":/lximediacenter/appicon.png";
-  else if (path == "/logo.png")                   sendFile = ":/lximediacenter/logo.png";
-
-  else if (path == "/img/null.png")               sendFile = ":/backend/null.png";
-  else if (path == "/img/checknone.png")          sendFile = ":/backend/checknone.png";
-  else if (path == "/img/checkfull.png")          sendFile = ":/backend/checkfull.png";
-  else if (path == "/img/checksome.png")          sendFile = ":/backend/checksome.png";
-  else if (path == "/img/checknonedisabled.png")  sendFile = ":/backend/checknonedisabled.png";
-  else if (path == "/img/checkfulldisabled.png")  sendFile = ":/backend/checkfulldisabled.png";
-  else if (path == "/img/checksomedisabled.png")  sendFile = ":/backend/checksomedisabled.png";
-  else if (path == "/img/treeopen.png")           sendFile = ":/backend/treeopen.png";
-  else if (path == "/img/treeclose.png")          sendFile = ":/backend/treeclose.png";
-  else if (path == "/img/starenabled.png")        sendFile = ":/backend/starenabled.png";
-  else if (path == "/img/stardisabled.png")       sendFile = ":/backend/stardisabled.png";
-  else if (path == "/img/directory.png")          sendFile = ":/backend/directory.png";
-  else if (path == "/img/playlist-file.png")      sendFile = ":/backend/playlist-file.png";
-  else if (path == "/img/audio-file.png")         sendFile = ":/backend/audio-file.png";
-  else if (path == "/img/video-file.png")         sendFile = ":/backend/video-file.png";
-  else if (path == "/img/image-file.png")         sendFile = ":/backend/image-file.png";
-  else if (path == "/img/restart.png")            sendFile = ":/backend/restart.png";
-  else if (path == "/img/shutdown.png")           sendFile = ":/backend/shutdown.png";
-
-  else if (path == "/swf/flowplayer.swf")         sendFile = ":/flowplayer/flowplayer-3.2.5.swf";
-  else if (path == "/swf/flowplayer.controls.swf")sendFile = ":/flowplayer/flowplayer.controls-3.2.3.swf";
-  else if (path == "/swf/flowplayer.js")          sendFile = ":/flowplayer/flowplayer-3.2.4.min.js";
-
-  if (!sendFile.isEmpty())
-  {
-    QFile file(sendFile);
-    if (file.open(QFile::ReadOnly))
-    {
-      SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
-      response.setContentLength(file.size());
-      response.setContentType(SHttpServer::toMimeType(sendFile));
-      socket->write(response);
-      socket->write(file.readAll());
-      return SHttpServer::SocketOp_Close;
+      QFile file(sendFile);
+      if (file.open(QFile::ReadOnly))
+      {
+        SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
+        response.setContentLength(file.size());
+        response.setContentType(SHttpServer::toMimeType(sendFile));
+        socket->write(response);
+        socket->write(file.readAll());
+        return SHttpServer::SocketOp_Close;
+      }
     }
   }
 
   return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);
+}
+
+void Backend::handleHttpOptions(SHttpServer::ResponseHeader &response)
+{
+  response.setField("Allow", response.field("Allow") + ",GET");
 }
 
 QString Backend::createLogDir(void)
@@ -659,18 +667,6 @@ ImdbClient * Backend::imdbClient(void)
   return masterImdbClient;
 }
 
-void Backend::ensureSandboxReady(SSandboxClient::Mode mode)
-{
-  QMap<SSandboxClient::Mode, QList<SSandboxClient *> >::Iterator i = sandboxClients.find(mode);
-  if (i == sandboxClients.end())
-    i = sandboxClients.insert(mode, QList<SSandboxClient *>());
-
-  if (i->isEmpty())
-    i->append(new SSandboxClient(sandboxApplication, mode));
-
-  i->last()->ensureReady();
-}
-
 SSandboxClient * Backend::createSandbox(SSandboxClient::Mode mode)
 {
   QMap<SSandboxClient::Mode, QList<SSandboxClient *> >::Iterator i = sandboxClients.find(mode);
@@ -714,12 +710,12 @@ void Backend::setContentDirectoryQueryItems(void)
     if (size.name == transcodeSize)
     {
       QString sizeStr =
-          QString::number(size.size.width()) + "x" +
-          QString::number(size.size.height()) + "x" +
+          QString::number(size.size.width()) + 'x' +
+          QString::number(size.size.height()) + 'x' +
           QString::number(size.size.aspectRatio(), 'f', 3);
 
       if (!transcodeCrop.isEmpty())
-        sizeStr += "/" + transcodeCrop.toLower();
+        sizeStr += ',' + transcodeCrop.toLower();
 
       queryItems["size"] = sizeStr;
       break;

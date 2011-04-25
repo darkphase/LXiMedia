@@ -56,63 +56,66 @@ QList<MusicServer::Item> MusicServer::listItems(const QString &path, unsigned st
 
 SHttpServer::SocketOp MusicServer::handleHttpRequest(const SHttpServer::RequestMessage &request, QAbstractSocket *socket)
 {
-  const QUrl url(request.path());
-  const QString file = request.file();
-
-  if (file.isEmpty())
+  if ((request.method() == "GET") || (request.method() == "HEAD"))
   {
-    SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
-    response.setContentType("text/html;charset=utf-8");
-    response.setField("Cache-Control", "no-cache");
+    const QUrl url(request.path());
+    const QString file = request.file();
 
-    QString path = url.path().mid(serverPath().length());
-    path = path.startsWith('/') ? path : ('/' + path);
-
-    DetailedListItemList detailedItems;
-
-    foreach (const SUPnPContentDirectory::Item &item, PlaylistServer::listItems(path))
+    if (file.isEmpty())
     {
-      if (item.isDir)
-      {
-        DetailedListItem detailedItem;
-        detailedItem.columns += item.title;
-        detailedItem.columns += "";
-        detailedItem.columns += "";
-        detailedItem.url = item.title + '/';
-        detailedItem.iconurl = "/img/directory.png";
+      SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
+      response.setContentType("text/html;charset=utf-8");
+      response.setField("Cache-Control", "no-cache");
 
-        detailedItems.append(detailedItem);
-      }
-      else if (item.duration > 0)
-      {
-        DetailedListItem detailedItem;
-        detailedItem.columns += item.title;
-        detailedItem.columns += item.artist;
-        detailedItem.columns += QTime().addSecs(item.duration).toString("mm:ss");
-        detailedItem.url = item.url;
-        detailedItem.url.setPath(detailedItem.url.path() + ".html");
-        detailedItem.iconurl = item.videoStreams.isEmpty() ? "/img/audio-file.png" : "/img/video-file.png";
-        detailedItem.played = item.played;
+      QString path = url.path().mid(serverPath().length());
+      path = path.startsWith('/') ? path : ('/' + path);
 
-        detailedItems.append(detailedItem);
-      }
-      else
-      {
-        DetailedListItem detailedItem;
-        detailedItem.columns += item.title;
-        detailedItem.columns += "";
-        detailedItem.columns += "";
-        detailedItem.url = item.url;
-        detailedItem.url.setPath(detailedItem.url.path() + ".html");
-        detailedItem.iconurl = "/img/playlist-file.png";
+      DetailedListItemList detailedItems;
 
-        detailedItems.append(detailedItem);
+      foreach (const SUPnPContentDirectory::Item &item, PlaylistServer::listItems(path))
+      {
+        if (item.isDir)
+        {
+          DetailedListItem detailedItem;
+          detailedItem.columns += item.title;
+          detailedItem.columns += "";
+          detailedItem.columns += "";
+          detailedItem.url = item.title + '/';
+          detailedItem.iconurl = "/img/directory.png";
+
+          detailedItems.append(detailedItem);
+        }
+        else if (item.duration > 0)
+        {
+          DetailedListItem detailedItem;
+          detailedItem.columns += item.title;
+          detailedItem.columns += item.artist;
+          detailedItem.columns += QTime().addSecs(item.duration).toString("mm:ss");
+          detailedItem.url = item.url;
+          detailedItem.url.setPath(detailedItem.url.path() + ".html");
+          detailedItem.iconurl = item.videoStreams.isEmpty() ? "/img/audio-file.png" : "/img/video-file.png";
+          detailedItem.played = item.played;
+
+          detailedItems.append(detailedItem);
+        }
+        else
+        {
+          DetailedListItem detailedItem;
+          detailedItem.columns += item.title;
+          detailedItem.columns += "";
+          detailedItem.columns += "";
+          detailedItem.url = item.url;
+          detailedItem.url.setPath(detailedItem.url.path() + ".html");
+          detailedItem.iconurl = "/img/playlist-file.png";
+
+          detailedItems.append(detailedItem);
+        }
       }
+
+      const QStringList columns = QStringList() << tr("Title") << tr("Artist") << tr("Duration");
+
+      return sendHtmlContent(request, socket, url, response, buildDetailedView(path, columns, detailedItems), headList);
     }
-
-    const QStringList columns = QStringList() << tr("Title") << tr("Artist") << tr("Duration");
-
-    return sendHtmlContent(socket, url, response, buildDetailedView(path, columns, detailedItems), headList);
   }
 
   return PlaylistServer::handleHttpRequest(request, socket);

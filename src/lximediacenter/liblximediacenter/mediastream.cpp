@@ -79,7 +79,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request, QAbstractSoc
   Qt::AspectRatioMode aspectRatioMode = Qt::KeepAspectRatio;
   if (url.hasQueryItem("size"))
   {
-    const QStringList formatTxt = url.queryItemValue("size").split('/');
+    const QStringList formatTxt = url.queryItemValue("size").split(',');
 
     const QStringList sizeTxt = formatTxt.first().split('x');
     if (sizeTxt.count() >= 2)
@@ -344,6 +344,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request, QAbstractSoc
 
   connect(socket, SIGNAL(disconnected()), SLOT(stop()));
   socket->write(header);
+  socket->flush();
   output.setIODevice(socket, true);
 
   //enableTrace("/tmp/test.svg");

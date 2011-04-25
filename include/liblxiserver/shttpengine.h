@@ -198,6 +198,7 @@ public:
   struct Callback
   {
     virtual SocketOp            handleHttpRequest(const RequestMessage &, QAbstractSocket *) = 0;
+    virtual void                handleHttpOptions(ResponseHeader &) = 0;
   };
 
 public:

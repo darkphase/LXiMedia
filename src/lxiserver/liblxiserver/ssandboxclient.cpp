@@ -78,14 +78,6 @@ SSandboxClient::Mode SSandboxClient::mode(void) const
   return d->mode;
 }
 
-void SSandboxClient::ensureReady(void)
-{
-  RequestMessage message(this);
-  message.setRequest("TRACE", "/");
-
-  openRequest(message, NULL, NULL);
-}
-
 void SSandboxClient::openRequest(const RequestMessage &message, QObject *receiver, const char *slot)
 {
   if (QThread::currentThread() != thread())

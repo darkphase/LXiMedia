@@ -98,7 +98,9 @@ SHttpServer::SocketOp BackendServer::sendResponse(const SHttpServer::RequestHead
     response.setField("Location", redir);
 
   socket->write(response);
-  socket->write(data);
+  if (request.method() != "HEAD")
+    socket->write(data);
+
   return SHttpServer::SocketOp_Close;
 }
 
@@ -107,10 +109,11 @@ SHttpServer::SocketOp BackendServer::sendResponse(const SHttpServer::RequestHead
   return sendResponse(request, socket, data.toUtf8(), mime, allowCache, redir);
 }
 
-SHttpServer::SocketOp BackendServer::sendHtmlContent(QAbstractSocket *socket, const QUrl &url, const SHttpServer::ResponseHeader &response, const QByteArray &content, const QByteArray &head) const
+SHttpServer::SocketOp BackendServer::sendHtmlContent(const SHttpServer::RequestHeader &request, QAbstractSocket *socket, const QUrl &url, const SHttpServer::ResponseHeader &response, const QByteArray &content, const QByteArray &head) const
 {
   socket->write(response);
-  socket->write(d->masterServer->parseHtmlContent(url, content, head));
+  if (request.method() != "HEAD")
+    socket->write(d->masterServer->parseHtmlContent(url, content, head));
 
   return SHttpServer::SocketOp_Close;
 }

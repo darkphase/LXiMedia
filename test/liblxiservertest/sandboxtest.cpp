@@ -29,19 +29,27 @@ int SandboxTest::startSandbox(const QString &mode)
   {
     virtual SSandboxServer::SocketOp handleHttpRequest(const SSandboxServer::RequestMessage &request, QAbstractSocket *socket)
     {
-      const QUrl url(request.path());
-      const QString path = url.path();
-      const QString file = path.mid(path.lastIndexOf('/') + 1);
-
-      if (path.left(path.lastIndexOf('/') + 1) == "/")
+      if ((request.method() == "GET") || (request.method() == "HEAD"))
       {
-        if (url.hasQueryItem("nop"))
+        const QUrl url(request.path());
+        const QString path = url.path();
+        const QString file = path.mid(path.lastIndexOf('/') + 1);
+
+        if (path.left(path.lastIndexOf('/') + 1) == "/")
         {
-          return SSandboxServer::sendResponse(request, socket, SHttpServer::Status_Ok);
+          if (url.hasQueryItem("nop"))
+          {
+            return SSandboxServer::sendResponse(request, socket, SHttpServer::Status_Ok);
+          }
         }
       }
 
       return SSandboxServer::sendResponse(request, socket, SHttpServer::Status_NotFound);
+    }
+
+    virtual void handleHttpOptions(SHttpServer::ResponseHeader &response)
+    {
+      response.setField("Allow", response.field("Allow") + ",GET,HEAD");
     }
   };
 

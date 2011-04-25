@@ -74,13 +74,21 @@ QString ConfigServer::serverName(void) const
 
 SHttpServer::SocketOp ConfigServer::handleHttpRequest(const SHttpServer::RequestMessage &request, QAbstractSocket *socket)
 {
-  const QUrl url(request.path());
-  const QString file = request.file();
+  if ((request.method() == "GET") || (request.method() == "HEAD"))
+  {
+    const QUrl url(request.path());
+    const QString file = request.file();
 
-  if (file.isEmpty() || file.endsWith(".html"))
-    return handleHtmlRequest(request, socket, file);
+    if (file.isEmpty() || file.endsWith(".html"))
+      return handleHtmlRequest(request, socket, file);
+  }
 
   return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);
+}
+
+void ConfigServer::handleHttpOptions(SHttpServer::ResponseHeader &response)
+{
+  response.setField("Allow", response.field("Allow") + ",GET,HEAD");
 }
 
 const QSet<QString> & ConfigServer::hiddenDirs(void)

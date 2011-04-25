@@ -90,75 +90,85 @@ void MediaServer::cleanStreams(void)
 
 SHttpServer::SocketOp MediaServer::handleHttpRequest(const SHttpServer::RequestMessage &request, QAbstractSocket *socket)
 {
-  const QUrl url(request.path());
-  const QString file = request.file();
-
-  if (file.isEmpty())
+  if ((request.method() == "GET") || (request.method() == "HEAD"))
   {
-    SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
-    response.setContentType("text/html;charset=utf-8");
-    response.setField("Cache-Control", "no-cache");
+    const QUrl url(request.path());
+    const QString file = request.file();
 
-    QString basePath = url.path().mid(serverPath().length());
-    basePath = basePath.startsWith('/') ? basePath : ('/' + basePath);
-
-    const int total = countItems(basePath);
-    const int start = url.queryItemValue("start").toInt();
-
-    ThumbnailListItemList thumbItems;
-
-    foreach (const SUPnPContentDirectory::Item &item, listItems(basePath, start, itemsPerThumbnailPage))
+    if (file.isEmpty())
     {
-      if (item.isDir)
-      {
-        ThumbnailListItem thumbItem;
-        thumbItem.title = item.title;
-        thumbItem.iconurl = item.iconUrl;
-        thumbItem.url = item.title + '/';
+      SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
+      response.setContentType("text/html;charset=utf-8");
+      response.setField("Cache-Control", "no-cache");
 
-        thumbItems.append(thumbItem);
+      QString basePath = url.path().mid(serverPath().length());
+      basePath = basePath.startsWith('/') ? basePath : ('/' + basePath);
+
+      const int total = countItems(basePath);
+      const int start = url.queryItemValue("start").toInt();
+
+      ThumbnailListItemList thumbItems;
+
+      foreach (const SUPnPContentDirectory::Item &item, listItems(basePath, start, itemsPerThumbnailPage))
+      {
+        if (item.isDir)
+        {
+          ThumbnailListItem thumbItem;
+          thumbItem.title = item.title;
+          thumbItem.iconurl = item.iconUrl;
+          thumbItem.url = item.title + '/';
+
+          thumbItems.append(thumbItem);
+        }
+        else
+        {
+          ThumbnailListItem thumbItem;
+          thumbItem.title = item.title;
+          thumbItem.iconurl = item.iconUrl;
+          thumbItem.url = item.url;
+          thumbItem.url.setPath(thumbItem.url.path() + ".html");
+          thumbItem.played = item.played;
+
+          if (item.played)
+          {
+            thumbItem.iconurl.removeQueryItem("overlay");
+            thumbItem.iconurl.addQueryItem("overlay", "played");
+          }
+
+          thumbItems.append(thumbItem);
+        }
+      }
+
+      return sendHtmlContent(request, socket, url, response, buildThumbnailView(basePath, thumbItems, start, total), headList);
+    }
+    else if (request.method() != "HEAD")
+    {
+      const QString url = request.path();
+
+      foreach (Stream *stream, d->streams)
+      if (stream->url == url)
+      if (stream->proxy.addSocket(socket))
+        return SHttpServer::SocketOp_LeaveOpen;
+
+      Stream * const stream = streamVideo(request);
+      if (stream)
+      {
+        stream->proxy.addSocket(socket);
+        return SHttpServer::SocketOp_LeaveOpen;
       }
       else
-      {
-        ThumbnailListItem thumbItem;
-        thumbItem.title = item.title;
-        thumbItem.iconurl = item.iconUrl;
-        thumbItem.url = item.url;
-        thumbItem.url.setPath(thumbItem.url.path() + ".html");
-        thumbItem.played = item.played;
-
-        if (item.played)
-        {
-          thumbItem.iconurl.removeQueryItem("overlay");
-          thumbItem.iconurl.addQueryItem("overlay", "played");
-        }
-
-        thumbItems.append(thumbItem);
-      }
+        return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);
     }
-
-    return sendHtmlContent(socket, url, response, buildThumbnailView(basePath, thumbItems, start, total), headList);
-  }
-  else
-  {
-    const QString url = request.path();
-
-    foreach (Stream *stream, d->streams)
-    if (stream->url == url)
-    if (stream->proxy.addSocket(socket))
-      return SHttpServer::SocketOp_LeaveOpen;
-
-    Stream * const stream = streamVideo(request);
-    if (stream)
-    {
-      stream->proxy.addSocket(socket);
-      return SHttpServer::SocketOp_LeaveOpen;
-    }
-    else
-      return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);
+    else // Return dummy head.
+      return SHttpServer::sendResponse(request, socket, SHttpServer::Status_Ok, this);
   }
 
   return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);
+}
+
+void MediaServer::handleHttpOptions(SHttpServer::ResponseHeader &response)
+{
+  response.setField("Allow", response.field("Allow") + ",GET,HEAD");
 }
 
 int MediaServer::countContentDirItems(const QString &dirPath)

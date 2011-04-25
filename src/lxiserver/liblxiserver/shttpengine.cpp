@@ -59,11 +59,10 @@ const char * SHttpEngine::toMimeType(const QString &fileName)
   else if (ext == "m3u")    return "audio/x-mpegurl";
   else if (ext == "mpa")    return "audio/mpeg";
   else if (ext == "mp2")    return "audio/mpeg";
-  else if (ext == "mp3")    return "audio/mpeg";
+  else if (ext == "mp3")    return "audio/mp3";
   else if (ext == "ac3")    return "audio/mpeg";
   else if (ext == "dts")    return "audio/mpeg";
   else if (ext == "oga")    return "audio/ogg";
-  else if (ext == "ogg")    return "audio/ogg";
   else if (ext == "wav")    return "audio/x-wav";
   else if (ext == "lpcm")   return "audio/L16;rate=48000;channels=2";
   else if (ext == "jpeg")   return "image/jpeg";
@@ -77,10 +76,11 @@ const char * SHttpEngine::toMimeType(const QString &fileName)
   else if (ext == "txt")    return "text/plain;charset=utf-8";
   else if (ext == "log")    return "text/plain;charset=utf-8";
   else if (ext == "xml")    return "text/xml;charset=utf-8";
-  else if (ext == "mpeg")   return "video/mpeg";
-  else if (ext == "mpg")    return "video/mpeg";
-  else if (ext == "mp4")    return "video/mpeg";
-  else if (ext == "ts")     return "video/mpeg";
+  else if (ext == "mpeg")   return "video/MP2P";
+  else if (ext == "mpg")    return "video/MP2P";
+  else if (ext == "mp4")    return "video/MP2P";
+  else if (ext == "ts")     return "video/MP2T";
+  else if (ext == "ogg")    return "video/ogg";
   else if (ext == "ogv")    return "video/ogg";
   else if (ext == "ogx")    return "video/ogg";
   else if (ext == "spx")    return "video/ogg";
@@ -197,7 +197,9 @@ SHttpServerEngine::SocketOp SHttpServerEngine::sendResponse(const RequestHeader 
   ResponseHeader response(request, status);
   response.setContentLength(content.size());
   socket->write(response);
-  socket->write(content);
+  if (request.method() != "HEAD")
+    socket->write(content);
+
   return SocketOp_Close;
 }
 
@@ -216,7 +218,34 @@ SHttpServerEngine::SocketOp SHttpServerEngine::sendRedirect(const RequestHeader 
 
 void SHttpServerEngine::handleHttpRequest(const SHttpEngine::RequestMessage &request, QAbstractSocket *socket)
 {
-  if ((request.method() == "GET") || (request.method() == "POST"))
+  if (request.method() == "OPTIONS")
+  {
+    ResponseHeader response(request, Status_Ok);
+    response.setField("Allow", "OPTIONS,TRACE");
+
+    if (request.path().trimmed() != "*")
+    {
+      const QString path = QUrl(request.path()).path();
+
+      QString dir = path.left(path.lastIndexOf('/') + 1);
+      QMap<QString, Callback *>::ConstIterator callback = d->callbacks.find(dir);
+      while ((callback == d->callbacks.end()) && !dir.isEmpty())
+      {
+        dir = dir.left(dir.left(dir.length() - 1).lastIndexOf('/') + 1);
+        callback = d->callbacks.find(dir);
+      }
+
+      if ((callback != d->callbacks.end()) && dir.startsWith(callback.key()))
+        (*callback)->handleHttpOptions(response);
+    }
+
+    socket->write(response);
+  }
+  else if (request.method() == "TRACE")
+  {
+    socket->write(request);
+  }
+  else
   {
     const QString path = QUrl(request.path()).path();
 
@@ -235,10 +264,6 @@ void SHttpServerEngine::handleHttpRequest(const SHttpEngine::RequestMessage &req
     }
     else
       socket->write(ResponseHeader(request, Status_NotFound));
-  }
-  else if (request.method() == "TRACE")
-  {
-    socket->write(request);
   }
 
   if (socket)
