@@ -61,7 +61,7 @@ SApplication::SApplication(const QString &logDir, QObject *parent)
 
   if (!d->moduleFilter.isEmpty())
   {
-    const QString majorVersion = QByteArray(version()).split('.').first();
+    const QByteArray majorVersion = QByteArray(version()).split('.').first();
 
     // And now load the plugins
     QStringList paths;
