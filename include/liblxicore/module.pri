@@ -2,7 +2,7 @@ TEMPLATE = lib
 CONFIG += plugin
 CONFIG += qt thread warn_on
 
-unix|win32-g++ {
+unix {
   VERSION_MAJOR = $$system(cat $${PWD}/../../VERSION)
   VERSION_MAJOR ~= s/\\.[0-9]+.+/
   DESTDIR = $${OUT_PWD}/$${LXIMEDIA_DIR}/bin/lximedia$${VERSION_MAJOR}
