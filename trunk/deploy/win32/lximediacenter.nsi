@@ -1,7 +1,7 @@
 !include "MUI2.nsh"
 
 Name "LeX-Interactive MediaCenter"
-OutFile "..\..\bin\LXiMediaCenterSetup.exe"
+OutFile "LXiMediaCenterSetup.exe"
 SetCompressor /SOLID lzma
 
 InstallDir "$PROGRAMFILES\LXiMediaCenter"
@@ -9,7 +9,7 @@ RequestExecutionLevel admin
 
 !define MUI_ABORTWARNING
 
-!insertmacro MUI_PAGE_LICENSE "..\..\COPYING"
+!insertmacro MUI_PAGE_LICENSE "COPYING"
 !insertmacro MUI_PAGE_COMPONENTS
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
@@ -31,34 +31,34 @@ SectionEnd
 Section "-Shared Files" SecShared
   SetOutPath $INSTDIR
   SetOverwrite ifnewer
-  File ..\..\COPYING
-  File ..\..\VERSION
-  File ..\..\README
-  File ..\..\bin\libgcc_s_dw2-1.dll
-  File ..\..\bin\mingwm10.dll
-  File ..\..\bin\QtCore4.dll
-  File ..\..\bin\QtGui4.dll
-  File ..\..\bin\QtNetwork4.dll
-  File ..\..\bin\QtSql4.dll
-  File ..\..\bin\QtXml4.dll
-  File ..\..\bin\LXiCore?.dll
-  File ..\..\bin\LXiMediaCenter?.dll
-  File ..\..\bin\LXiServer?.dll
-  File ..\..\bin\LXiStream?.dll
-  File ..\..\bin\LXiStreamGui?.dll
+  File COPYING
+  File VERSION
+  File README
+  File libgcc_s_dw2-1.dll
+  File mingwm10.dll
+  File QtCore4.dll
+  File QtGui4.dll
+  File QtNetwork4.dll
+  File QtSql4.dll
+  File QtXml4.dll
+  File LXiCore.dll
+  File LXiMediaCenter.dll
+  File LXiServer.dll
+  File LXiStream.dll
+  File LXiStreamGui.dll
 
   SetOutPath $INSTDIR\imageformats
   SetOverwrite ifnewer
-  File ..\..\bin\imageformats\qjpeg4.dll
-  File ..\..\bin\imageformats\qtiff4.dll
+  File imageformats\qjpeg4.dll
+  File imageformats\qtiff4.dll
 
   SetOutPath $INSTDIR\sqldrivers
   SetOverwrite ifnewer
-  File ..\..\bin\sqldrivers\qsqlite4.dll
+  File sqldrivers\qsqlite4.dll
 
   SetOutPath $INSTDIR\lximedia
   SetOverwrite ifnewer
-  File ..\..\bin\lximedia\lxistream_*.dll
+  File lximedia\lxistream_*.dll
 
   ; For backwards compatibility with 0.1.x versions, can be removed in the future.
   RMDir /r /REBOOTOK "$%ALLUSERSPROFILE%\Application Data\lximc"
@@ -73,13 +73,13 @@ SectionEnd
 Section "Backend service" SecBackend
   SetOutPath $INSTDIR
   SetOverwrite ifnewer
-  File ..\..\bin\lximcbackend.exe
+  File lximcbackend.exe
 
   nsisFirewall::AddAuthorizedApplication "$INSTDIR\lximcbackend.exe" "LeX-Interactive MediaCenter - Backend service"
 
   SetOutPath $INSTDIR\lximedia
   SetOverwrite ifnewer
-  File ..\..\bin\lximedia\lximediacenter_*.dll
+  File lximedia\lximediacenter_*.dll
 
   ExecWait '"$INSTDIR\lximcbackend.exe" --install'
   ExecWait 'net start "LXiMediaCenter Backend"'
@@ -90,7 +90,7 @@ Section "Systemtray icon" SecTrayIcon
 
   SetOutPath $INSTDIR
   SetOverwrite ifnewer
-  File ..\..\bin\lximctrayicon.exe
+  File lximctrayicon.exe
 
   nsisFirewall::AddAuthorizedApplication "$INSTDIR\lximctrayicon.exe" "LeX-Interactive MediaCenter - Tray icon"
 

@@ -16,9 +16,18 @@ FFMPEG_HEADERS = $${FFMPEG_VERSION}/libavcodec/avcodec.h \
  $${FFMPEG_VERSION}/libswscale/swscale.h
 
 win32 {
-    system(bzip2 -fdk /$$replace(PWD,:,/)/bin.win32/libavcodec.a.bz2)
-    system(bzip2 -fdk /$$replace(PWD,:,/)/bin.win32/libavformat.a.bz2)
-    system(bzip2 -fdk /$$replace(PWD,:,/)/bin.win32/libavutil.a.bz2)
-    system(bzip2 -fdk /$$replace(PWD,:,/)/bin.win32/libswscale.a.bz2)
-    system(bzip2 -cdk /$$replace(PWD,:,/)/ffmpeg_0.5.2.orig.tar.bz2 | tar -x $${FFMPEG_HEADERS} && rm -rf include && mv $${FFMPEG_VERSION} include)
+  BZIP2 = $$replace(PWD,/,\\)\\..\\gnuwin32\\bzip2.exe
+  TAR = $$replace(PWD,/,\\)\\..\\gnuwin32\\tar.exe
+
+  system($${BZIP2} -fdk $${PWD}/bin.win32/libavcodec.a.bz2)
+  system($${BZIP2} -fdk $${PWD}/bin.win32/libavformat.a.bz2)
+  system($${BZIP2} -fdk $${PWD}/bin.win32/libavutil.a.bz2)
+  system($${BZIP2} -fdk $${PWD}/bin.win32/libswscale.a.bz2)
+
+  system($${BZIP2} -fdk $${PWD}/ffmpeg_0.5.2.orig.tar.bz2)
+  system($${TAR} -x -f ffmpeg_0.5.2.orig.tar $${FFMPEG_HEADERS})
+  system(del /S /Q include > NUL 2>&1)
+  system(rmdir /S /Q include > NUL 2>&1)
+  system(move $${FFMPEG_VERSION} include > NUL 2>&1)
+  system(del /S /Q ffmpeg_0.5.2.orig.tar > NUL 2>&1)
 }

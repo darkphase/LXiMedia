@@ -1,7 +1,7 @@
 !include "MUI2.nsh"
 
 Name "LeX-Interactive MediaPlayer"
-OutFile "..\..\bin\LXiMediaPlayerSetup.exe"
+OutFile "LXiMediaPlayerSetup.exe"
 SetCompressor /SOLID lzma
 
 InstallDir "$PROGRAMFILES\LXiMediaPlayer"
@@ -9,7 +9,7 @@ RequestExecutionLevel admin
 
 !define MUI_ABORTWARNING
 
-!insertmacro MUI_PAGE_LICENSE "..\..\COPYING"
+!insertmacro MUI_PAGE_LICENSE "COPYING"
 !insertmacro MUI_PAGE_COMPONENTS
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
@@ -29,23 +29,26 @@ SectionEnd
 Section "-Shared Files" SecShared
   SetOutPath $INSTDIR
   SetOverwrite ifnewer
-  File ..\..\COPYING
-  File ..\..\VERSION
-  File ..\..\README
-  File ..\..\bin\libgcc_s_dw2-1.dll
-  File ..\..\bin\mingwm10.dll
-  File ..\..\bin\Qt*.dll
-  File ..\..\bin\LXiStream?.dll
-  File ..\..\bin\LXiStreamGui?.dll
-  File ..\..\bin\lxistreamsandbox.exe
+  File COPYING
+  File VERSION
+  File README
+  File libgcc_s_dw2-1.dll
+  File mingwm10.dll
+  File QtCore4.dll
+  File QtGui4.dll
+  File QtXml4.dll
+  File LXiCore.dll
+  File LXiStream.dll
+  File LXiStreamGui.dll
 
   SetOutPath $INSTDIR\imageformats
   SetOverwrite ifnewer
-  File ..\..\bin\imageformats\*.dll
+  File imageformats\qjpeg4.dll
+  File imageformats\qtiff4.dll
 
-  SetOutPath $INSTDIR\liblxistream
+  SetOutPath $INSTDIR\lximedia
   SetOverwrite ifnewer
-  File ..\..\bin\liblxistream\*.dll
+  File lximedia\lxistream_*.dll
 
   WriteUninstaller "$INSTDIR\Uninstall.exe"
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\LXiMediaPlayer" "DisplayName" "LeX-Interactive MediaPlayer"
@@ -55,7 +58,7 @@ SectionEnd
 Section "Media player" SecPlayer
   SetOutPath $INSTDIR
   SetOverwrite ifnewer
-  File ..\..\bin\lximediaplayer.exe
+  File lximediaplayer.exe
 SectionEnd
 
 Section "Start Menu Shortcuts"

@@ -17,6 +17,15 @@ EXIF_HEADERS = $${EXIF_VERSION}/libexif/_stdint.h \
  $${EXIF_VERSION}/libexif/exif-utils.h
 
 win32 {
-  system(bzip2 -fdk /$$replace(PWD,:,/)/bin.win32/libexif.a.bz2)
-  system(bzip2 -cdk /$$replace(PWD,:,/)/libexif_0.6.19.orig.tar.bz2 | tar -x $${EXIF_HEADERS} && rm -rf include && mv $${EXIF_VERSION} include)
+  BZIP2 = $$replace(PWD,/,\\)\\..\\gnuwin32\\bzip2.exe
+  TAR = $$replace(PWD,/,\\)\\..\\gnuwin32\\tar.exe
+
+  system($${BZIP2} -fdk $${PWD}/bin.win32/libexif.a.bz2)
+
+  system($${BZIP2} -fdk $${PWD}/libexif_0.6.19.orig.tar.bz2)
+  system($${TAR} -x -f libexif_0.6.19.orig.tar $${EXIF_HEADERS})
+  system(del /S /Q include > NUL 2>&1)
+  system(rmdir /S /Q include > NUL 2>&1)
+  system(move $${EXIF_VERSION} include > NUL 2>&1)
+  system(del /S /Q libexif_0.6.19.orig.tar > NUL 2>&1)
 }

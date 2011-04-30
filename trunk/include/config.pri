@@ -7,11 +7,7 @@ INCLUDEPATH += $${PWD}/
 DEPENDPATH += ./ $${PWD}/
 
 # Version number
-unix|win32-g++ {
-  VERSION = $$system(cat ../VERSION)
-  VERSION_MAJOR = $${VERSION}
-  VERSION_MAJOR ~= s/\\.[0-9]+.+/
-}
+unix:VERSION = $$system(cat ../VERSION)
 
 # Optimizations
 include($${PWD}/optimize.pri)
