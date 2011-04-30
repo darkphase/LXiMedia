@@ -23,7 +23,7 @@ linux-g++|win32-g++ {
   QMAKE_CXXFLAGS_RELEASE += -Os
 }
 
-unix:VERSION = $$system(cat ../VERSION)
+unix:VERSION = $$system(cat $${PWD}/$${LXIMEDIA_DIR}/VERSION)
 
 include($${PWD}/$${LXIMEDIA_DIR}/include/liblxiserver/linklxiserver.pri)
 
