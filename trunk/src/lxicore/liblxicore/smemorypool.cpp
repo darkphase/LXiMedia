@@ -188,6 +188,7 @@ void SMemoryPool::free(void *ptr)
 void * SMemoryPool::allocPages(size_t size)
 {
   Q_ASSERT(pageSize);
+  Q_ASSERT((size % pageSize) == 0);
 
 #if defined(Q_OS_UNIX)
 # ifndef USE_GUARD_PAGES
@@ -241,6 +242,7 @@ void * SMemoryPool::allocPages(size_t size)
 void SMemoryPool::freePages(void *addr, size_t size)
 {
   Q_ASSERT(pageSize);
+  Q_ASSERT((size % pageSize) == 0);
 
 #if defined(Q_OS_UNIX)
 # ifndef USE_GUARD_PAGES
@@ -249,7 +251,6 @@ void SMemoryPool::freePages(void *addr, size_t size)
   ::munmap(reinterpret_cast<quint8 *>(addr) - pageSize, size + (pageSize * 2));
 # endif
 #elif defined(Q_OS_WIN)
-  size;
 # ifndef USE_GUARD_PAGES
   ::VirtualFree(addr, 0, MEM_RELEASE);
 # else

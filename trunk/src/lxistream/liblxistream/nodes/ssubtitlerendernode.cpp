@@ -43,7 +43,7 @@ extern "C" void LXiStream_SSubtitleRenderNode_mixSubtitle32_stretch(
     float srcAspect,
     const void *lines, const void *characters);
 
-#if defined(Q_OS_WIN)
+#if defined(_MSC_VER)
 #pragma warning (disable : 4200)
 #endif
 
