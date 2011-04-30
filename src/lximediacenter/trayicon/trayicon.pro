@@ -27,9 +27,6 @@ unix:VERSION = $$system(cat $${PWD}/$${LXIMEDIA_DIR}/VERSION)
 
 include($${PWD}/$${LXIMEDIA_DIR}/include/liblxiserver/linklxiserver.pri)
 
-CONFIG += precompile_header
-PRECOMPILED_HEADER = $${PWD}/$${LXIMEDIA_DIR}/include/LXiServer
-
 # Files
 SOURCES += main.cpp \
  trayicon.cpp
@@ -47,4 +44,11 @@ win32 {
   LIBS += -lws2_32
   CONFIG += windows
   RC_FILE = trayicon.rc
+}
+
+# Windows specific
+win32-msvc2005|win32-msvc2008|win32-msvc2010 {
+  TEMPLATE = vcapp
+  GUID = 3335c322-7366-11e0-ada8-f32ee8bcccba
+  DEFINES += _CRT_SECURE_NO_WARNINGS
 }

@@ -81,7 +81,7 @@ bool VideoEncoder::openCodec(const SVideoCodec &c, Flags flags)
   contextHandle->mb_qmax = contextHandle->qmax = 127;
   contextHandle->max_qdiff = 32;
 
-  const int baseRate = ((int(sqrt(contextHandle->width * contextHandle->height)) + 249) / 250) * 250;
+  const int baseRate = ((int(sqrt(float(contextHandle->width * contextHandle->height))) + 249) / 250) * 250;
   if (flags & Flag_LowQuality)
     contextHandle->bit_rate = baseRate * ((flags & Flag_Fast) ?  4000 :  2500);
   else if (flags & Flag_HighQuality)

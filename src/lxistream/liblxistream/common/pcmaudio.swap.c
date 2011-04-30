@@ -18,27 +18,30 @@
  ***************************************************************************/
 
 #include <sys/types.h>
-#include <stdint.h>
 #include <assert.h>
+#include <stdlib.h>
 #ifdef __SSE__
-  #include <xmmintrin.h>
+  #include <emmintrin.h>
 #endif
+#include <stdint.h>
 
 void LXiStream_Common_PcmAudio_swap16
- (uint16_t * restrict dst, const uint16_t * restrict src, size_t len)
+ (uint16_t * __restrict dst, const uint16_t * __restrict src, size_t len)
 {
+  unsigned i, n;
+
 #ifndef __SSE__
-  for (unsigned i=0, n=len/sizeof(*dst); i<n; i++)
+  for (i=0, n=len/sizeof(*dst); i<n; i++)
     dst[i] = (src[i] >> 8) | (src[i] << 8);
 #else
+  __m128i * const __restrict vdst = (__m128i *)dst;
+  const __m128i * const __restrict vsrc = (const __m128i *)src;
+
   // Check alignment
   assert(((size_t)dst & (size_t)15) == 0);
   assert(((size_t)src & (size_t)15) == 0);
 
-  __m128i * const restrict vdst = (__m128i *)dst;
-  const __m128i * const restrict vsrc = (const __m128i *)src;
-
-  for (unsigned i=0, n=len/sizeof(*vdst); i<n; i++)
+  for (i=0, n=len/sizeof(*vdst); i<n; i++)
   {
     const __m128i v = _mm_load_si128(vsrc + i);
 
@@ -49,22 +52,34 @@ void LXiStream_Common_PcmAudio_swap16
   {
     const size_t pos = (len / sizeof(*vdst)) * sizeof(*vdst);
 
-    for (unsigned i=pos/sizeof(*dst), n=len/sizeof(*dst); i<n; i++)
+    for (i=pos/sizeof(*dst), n=len/sizeof(*dst); i<n; i++)
       dst[i] = (src[i] >> 8) | (src[i] << 8);
   }
 #endif
 }
 
 void LXiStream_Common_PcmAudio_swap32
- (uint32_t * restrict dst, const uint32_t * restrict src, size_t len)
+ (uint32_t * __restrict dst, const uint32_t * __restrict src, size_t len)
 {
-  for (unsigned i=0, n=len/sizeof(*dst); i<n; i++)
+  unsigned i, n;
+
+  for (i=0, n=len/sizeof(*dst); i<n; i++)
+#if defined(__GNUC__)
     dst[i] = __builtin_bswap32(src[i]);
+#elif defined(_MSC_VER)
+    dst[i] = _byteswap_ulong(src[i]);
+#endif
 }
 
 void LXiStream_Common_PcmAudio_swap64
- (uint64_t * restrict dst, const uint64_t * restrict src, size_t len)
+ (uint64_t * __restrict dst, const uint64_t * __restrict src, size_t len)
 {
-  for (unsigned i=0, n=len/sizeof(*dst); i<n; i++)
+  unsigned i, n;
+
+  for (i=0, n=len/sizeof(*dst); i<n; i++)
+#if defined(__GNUC__)
     dst[i] = __builtin_bswap64(src[i]);
+#elif defined(_MSC_VER)
+    dst[i] = _byteswap_uint64(src[i]);
+#endif
 }

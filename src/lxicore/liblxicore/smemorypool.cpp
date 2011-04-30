@@ -249,6 +249,7 @@ void SMemoryPool::freePages(void *addr, size_t size)
   ::munmap(reinterpret_cast<quint8 *>(addr) - pageSize, size + (pageSize * 2));
 # endif
 #elif defined(Q_OS_WIN)
+  size;
 # ifndef USE_GUARD_PAGES
   ::VirtualFree(addr, 0, MEM_RELEASE);
 # else

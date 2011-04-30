@@ -70,3 +70,9 @@ win32-g++ {
   system(copy /Y $$(QTDIR)\\bin\\libgcc_s_dw2-1.dll $${OUT_DIR} > NUL)
   system(copy /Y $$(QTDIR)\\bin\\mingwm10.dll $${OUT_DIR} > NUL)
 }
+win32-msvc2005|win32-msvc2008|win32-msvc2010 {
+  TEMPLATE = vclib
+  GUID = 4d862d4a-734b-11e0-9782-a7eb248805c9
+  DEFINES += _CRT_SECURE_NO_WARNINGS
+  PRECOMPILED_SOURCE = $${PRECOMPILED_HEADER}
+}

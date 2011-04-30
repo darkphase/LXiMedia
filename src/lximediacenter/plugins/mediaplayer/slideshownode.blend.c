@@ -21,11 +21,11 @@
 #include <stdint.h>
 #include <assert.h>
 #ifdef __SSE__
-  #include <xmmintrin.h>
+  #include <emmintrin.h>
 #endif
 
 void LXiMediaCenter_MediaPlayerBackend_SlideShowNode_blendImages
- (uint8_t * restrict dstData, const uint8_t * restrict srcDataA, const uint8_t * restrict srcDataB, unsigned numPixels, int factor)
+ (uint8_t * __restrict dstData, const uint8_t * __restrict srcDataA, const uint8_t * __restrict srcDataB, unsigned numPixels, int factor)
 {
   #ifndef __SSE__
     const uint16_t f = factor, af = 256 - factor;
@@ -33,17 +33,18 @@ void LXiMediaCenter_MediaPlayerBackend_SlideShowNode_blendImages
     for (unsigned i=0; i<numPixels; i++)
       dstData[i] = (uint8_t)(((((uint16_t)srcDataA[i]) * af) + (((uint16_t)srcDataB[i]) * f)) >> 8);
   #else
+    const __m128i z  = _mm_setzero_si128();
+    const __m128i f  = _mm_set1_epi16(factor);
+    const __m128i af = _mm_set1_epi16(256 - factor);
+    unsigned i;
+
     // Check alignment
     assert(((size_t)dstData & (size_t)15) == 0);
     assert(((size_t)srcDataA & (size_t)15) == 0);
     assert(((size_t)srcDataB & (size_t)15) == 0);
     assert(((size_t)numPixels & (size_t)15) == 0);
 
-    const __m128i z  = _mm_setzero_si128();
-    const __m128i f  = _mm_set1_epi16(factor);
-    const __m128i af = _mm_set1_epi16(256 - factor);
-
-    for (unsigned i=0; i<numPixels; i+=(sizeof(__m128i)/sizeof(uint8_t)))
+    for (i=0; i<numPixels; i+=(sizeof(__m128i)/sizeof(uint8_t)))
     {
       __m128i a = _mm_load_si128((__m128i *)(srcDataA + i));
       __m128i b = _mm_load_si128((__m128i *)(srcDataB + i));

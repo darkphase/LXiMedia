@@ -19,8 +19,8 @@
 
 #include <sys/types.h>
 #include <math.h>
-#include <stdint.h>
 #include <string.h>
+#include <stdint.h>
 #include "spixels.h"
 
 // Keep this structure in sync with the one defined in ssubpicturerendernode.cpp
@@ -36,13 +36,15 @@ struct Rect
 void LXiStream_SSubpictureRenderNode_mixSubpictureYUV
    (struct YUVData *yuvData, struct Rect *rect, const void *palette, unsigned paletteSize)
 {
+  unsigned x, y;
+
   // Render Y
-  for (unsigned y=0; y<rect->height; y++)
+  for (y=0; y<rect->height; y++)
   {
     const unsigned yp = rect->y + y;
-    uint8_t * restrict dstLine = yuvData->y + (yuvData->yStride * yp);
-    const uint8_t * restrict srcLine = rect->lines + (rect->lineStride * y);
-    for (unsigned x=0; x<rect->width; x++)
+    uint8_t * __restrict dstLine = yuvData->y + (yuvData->yStride * yp);
+    const uint8_t * __restrict srcLine = rect->lines + (rect->lineStride * y);
+    for (x=0; x<rect->width; x++)
     if (srcLine[x] * sizeof(YUVAPixel) < paletteSize)
     {
       const YUVAPixel pixel = ((YUVAPixel *)palette)[srcLine[x]];
@@ -55,13 +57,13 @@ void LXiStream_SSubpictureRenderNode_mixSubpictureYUV
   }
 
   // Render U and V
-  for (unsigned y=0; y<rect->height; y++)
+  for (y=0; y<rect->height; y++)
   {
     const unsigned yp = (rect->y + y) / yuvData->hr;
-    uint8_t * restrict dstLineU = yuvData->u + (yuvData->uStride * yp);
-    uint8_t * restrict dstLineV = yuvData->v + (yuvData->vStride * yp);
-    const uint8_t * restrict srcLine = rect->lines + (rect->lineStride * y);
-    for (unsigned x=0; x<rect->width; x+=yuvData->wr)
+    uint8_t * __restrict dstLineU = yuvData->u + (yuvData->uStride * yp);
+    uint8_t * __restrict dstLineV = yuvData->v + (yuvData->vStride * yp);
+    const uint8_t * __restrict srcLine = rect->lines + (rect->lineStride * y);
+    for (x=0; x<rect->width; x+=yuvData->wr)
     if (srcLine[x] * sizeof(YUVAPixel) < paletteSize)
     {
       const YUVAPixel pixel = ((YUVAPixel *)palette)[srcLine[x]];
@@ -76,4 +78,4 @@ void LXiStream_SSubpictureRenderNode_mixSubpictureYUV
           (((int)pixel.v) * (1 + ((int)pixel.a)))) >> 8);
     }
   }
-} __attribute__((nonnull));
+}

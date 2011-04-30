@@ -9,7 +9,7 @@ linux-g++|win32-g++ {
     QMAKE_CFLAGS += -march=i686 -mmmx -msse -msse2 -mfpmath=sse
   }
 
-  QMAKE_CFLAGS += -w -std=gnu99
+  QMAKE_CFLAGS += -w
 
   # Optimize C++ code for size.
   QMAKE_CXXFLAGS_RELEASE -= -O2
@@ -34,4 +34,9 @@ win32-g++ {
   # Required for 32-bit Windows/MingW to prevent crashing SSE code on unaligned
   # stack data.
   QMAKE_CFLAGS += -mstackrealign
+}
+
+win32-msvc2005|win32-msvc2008|win32-msvc2010 {
+  # Required to enable SSE code paths
+  DEFINES += __SSE__
 }

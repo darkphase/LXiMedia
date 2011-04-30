@@ -20,9 +20,9 @@
 #include <sys/types.h>
 #include <stdint.h>
 
-unsigned LXiStream_SAudioMatrixNode_mixMatrix
- (const int16_t * restrict srcData, unsigned numSamples, unsigned srcNumChannels, unsigned srcMatrixSize,
-  int16_t * restrict dstData, const float * restrict appliedMatrix, unsigned dstNumChannels)
+void LXiStream_SAudioMatrixNode_mixMatrix
+ (const int16_t * __restrict srcData, unsigned numSamples, unsigned srcNumChannels, unsigned srcMatrixSize,
+  int16_t * __restrict dstData, const float * __restrict appliedMatrix, unsigned dstNumChannels)
 {
   unsigned i, dc, mp, sc;
 

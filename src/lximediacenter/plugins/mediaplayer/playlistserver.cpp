@@ -163,7 +163,7 @@ QList<PlaylistServer::Item> PlaylistServer::listPlayAllItem(const QString &path,
 {
   QList<Item> result;
 
-  if (!MediaPlayerServer::isEmpty(path) > 0)
+  if (!MediaPlayerServer::isEmpty(path))
   {
     if (start == 0)
     {

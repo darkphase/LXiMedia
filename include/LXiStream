@@ -7,14 +7,12 @@
 
 #include <QtCore>
 
-#include "liblxistream/sanalogtuner.h"
 #include "liblxistream/saudiobuffer.h"
 #include "liblxistream/saudiocodec.h"
 #include "liblxistream/saudioformat.h"
 #include "liblxistream/sbuffer.h"
 #include "liblxistream/sdatabuffer.h"
 #include "liblxistream/sdatacodec.h"
-#include "liblxistream/sdigitaltuner.h"
 #include "liblxistream/sencodedaudiobuffer.h"
 #include "liblxistream/sencodeddatabuffer.h"
 #include "liblxistream/sencodedvideobuffer.h"
@@ -28,7 +26,6 @@
 #include "liblxistream/ssubtitlefile.h"
 #include "liblxistream/stime.h"
 #include "liblxistream/stimer.h"
-#include "liblxistream/stuner.h"
 #include "liblxistream/svideobuffer.h"
 #include "liblxistream/svideocodec.h"
 #include "liblxistream/svideoformat.h"
@@ -61,14 +58,6 @@
 using namespace LXiStream;
 
 #else
-
-#include <assert.h>
-#include <stdint.h>
-#include <string.h>
-#include <sys/types.h>
-#ifdef __SSE__
-  #include <xmmintrin.h>
-#endif
 
 #include "liblxistream/spixels.h"
 

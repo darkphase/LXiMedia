@@ -21,3 +21,11 @@ HEADERS += mainwindow.h
 FORMS += mainwindow.ui
 
 RESOURCES = images.qrc
+
+# Windows specific
+win32-msvc2005|win32-msvc2008|win32-msvc2010 {
+  TEMPLATE = vcapp
+  GUID = d9d4df56-736b-11e0-b8a6-4b90e26b66e7
+  DEFINES += _CRT_SECURE_NO_WARNINGS
+  PRECOMPILED_SOURCE = $${PRECOMPILED_HEADER}
+}

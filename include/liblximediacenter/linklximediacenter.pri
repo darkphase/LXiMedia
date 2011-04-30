@@ -4,20 +4,18 @@ include($${PWD}/../liblxiserver/linklxiserver.pri)
 include($${PWD}/../liblxistream/linklxistream.pri)
 include($${PWD}/../liblxistreamgui/linklxistreamgui.pri)
 
-!contains(LIBS, -lLXiMediaCenter) {
+!contains(LINKED, LXiMediaCenter) {
   QT += sql
-
-  !contains(INCLUDEPATH, $${PWD}/$${LXIMEDIA_DIR}/include/) {
-    INCLUDEPATH += $${PWD}/$${LXIMEDIA_DIR}/include/
-    DEPENDPATH += $${PWD}/$${LXIMEDIA_DIR}/include/
-  }
-
-  unix {
-    POST_TARGETDEPS += $${OUT_PWD}/$${LXIMEDIA_DIR}/bin/libLXiMediaCenter.so
-    LIBS += -L$${OUT_PWD}/$${LXIMEDIA_DIR}/bin -lLXiMediaCenter
-  }
-  win32 {
-    POST_TARGETDEPS += $${OUT_PWD}/$${LXIMEDIA_DIR}/bin/LXiMediaCenter.dll
-    LIBS += -L$${OUT_PWD}/$${LXIMEDIA_DIR}/bin -lLXiMediaCenter
+  LINKED += LXiMediaCenter
+  
+  !contains(CONFIG, staticlib) {
+    unix {
+      POST_TARGETDEPS += $${OUT_PWD}/$${LXIMEDIA_DIR}/bin/libLXiMediaCenter.so
+      LIBS += -L$${OUT_PWD}/$${LXIMEDIA_DIR}/bin -lLXiMediaCenter
+    }
+    
+    win32:POST_TARGETDEPS += $${OUT_PWD}/$${LXIMEDIA_DIR}/bin/LXiMediaCenter.dll
+    win32-g++:LIBS += -L$${OUT_PWD}/$${LXIMEDIA_DIR}/bin -lLXiMediaCenter
+    win32-msvc2005|win32-msvc2008|win32-msvc2010:LIBS += $$replace(OUT_PWD,/,\\)\\$$replace(LXIMEDIA_DIR,/,\\)\\bin\\LXiMediaCenter.lib
   }
 }

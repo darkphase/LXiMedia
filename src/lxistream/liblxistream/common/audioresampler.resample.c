@@ -26,8 +26,8 @@ __inline unsigned min(unsigned a, unsigned b) { return a < b ? a : b; }
 #define merge_samples(a, aw, b, bw) ((int16_t)(((float)(a) * aw) + ((float)(b) * bw)))
 
 unsigned LXiStream_Common_AudioResampler_resampleAudio
- (const int16_t * restrict srcData, unsigned srcSampleRate, unsigned numSamples, unsigned srcNumChannels,
-  int16_t * restrict dstData, unsigned dstSampleRate, unsigned maxSamples, unsigned dstNumChannels,
+ (const int16_t * __restrict srcData, unsigned srcSampleRate, unsigned numSamples, unsigned srcNumChannels,
+  int16_t * __restrict dstData, unsigned dstSampleRate, unsigned maxSamples, unsigned dstNumChannels,
   unsigned *pNextPos, float *pWeightOffset)
 {
   if (numSamples > 0)
@@ -154,9 +154,13 @@ unsigned LXiStream_Common_AudioResampler_resampleAudio
       }
     }
 
-    const float np = ((float)(dstNumSamples) * dt) + weightOffset;
-    *pWeightOffset = np - floorf(np);
-    *pNextPos = nextPos + (unsigned)np;
+    // Next position
+    {
+      const float np = ((float)(dstNumSamples) * dt) + weightOffset;
+      *pWeightOffset = np - floorf(np);
+      *pNextPos = nextPos + (unsigned)np;
+    }
+
     return dstNumSamples;
   }
   else

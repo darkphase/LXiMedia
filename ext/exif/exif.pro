@@ -26,6 +26,6 @@ win32 {
   system($${TAR} -x -f libexif_0.6.19.orig.tar $${EXIF_HEADERS})
   system(del /S /Q include > NUL 2>&1)
   system(rmdir /S /Q include > NUL 2>&1)
-  system(move $${EXIF_VERSION} include > NUL 2>&1)
-  system(del /S /Q libexif_0.6.19.orig.tar > NUL 2>&1)
+  system(ren $${EXIF_VERSION} include > NUL)
+  system(del /S /Q libexif_0.6.19.orig.tar > NUL)
 }

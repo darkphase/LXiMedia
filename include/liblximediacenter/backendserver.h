@@ -33,7 +33,7 @@ class LXIMEDIACENTER_PUBLIC BackendServer : public QObject
 Q_OBJECT
 S_FACTORIZABLE(BackendServer)
 public:
-  class LXIMEDIACENTER_PUBLIC MasterServer : public QObject
+  class LXIMEDIACENTER_PUBLIC MasterServer
   {
   public:
     virtual QByteArray          parseHtmlContent(const QUrl &url, const QByteArray &content, const QByteArray &head) const = 0;

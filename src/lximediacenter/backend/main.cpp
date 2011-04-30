@@ -23,12 +23,12 @@
 #include "backend.h"
 #include "sandbox.h"
 
-void configApp(QCoreApplication &app)
+void configApp(void)
 {
-  app.setOrganizationName("LeX-Interactive");
-  app.setOrganizationDomain("lximedia.sf.net");
-  app.setApplicationName("LXiMediaCenter");
-  app.setApplicationVersion(
+  qApp->setOrganizationName("LeX-Interactive");
+  qApp->setOrganizationDomain("lximedia.sf.net");
+  qApp->setApplicationName("LXiMediaCenter");
+  qApp->setApplicationVersion(
 #include "_version.h"
       );
 }
@@ -44,7 +44,7 @@ public:
   virtual int run(int &argc, char *argv[])
   {
     QCoreApplication app(argc, argv);
-    configApp(app);
+    configApp();
 
     int exitCode = 0;
     do
@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
   if ((argc >= 3) && (strcmp(argv[1], "--sandbox") == 0))
   {
     QCoreApplication app(argc, argv);
-    configApp(app);
+    configApp();
 
     Sandbox sandbox;
     sandbox.start(argv[2]);

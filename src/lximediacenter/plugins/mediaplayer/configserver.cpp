@@ -95,7 +95,7 @@ const QSet<QString> & ConfigServer::hiddenDirs(void)
 {
   static QSet<QString> h;
 
-  if (__builtin_expect(h.isEmpty(), false))
+  if (h.isEmpty())
   {
     const QDir root = QDir::root();
 
