@@ -24,8 +24,8 @@ namespace LXiStream {
 
 struct SAudioEncoderNode::Data
 {
-  SScheduler::Dependency      * dependency;
   SInterfaces::AudioEncoder   * encoder;
+  QFuture<void>                 future;
 };
 
 SAudioEncoderNode::SAudioEncoderNode(SGraph *parent)
@@ -33,13 +33,12 @@ SAudioEncoderNode::SAudioEncoderNode(SGraph *parent)
     SGraph::Node(parent),
     d(new Data())
 {
-  d->dependency = parent ? new SScheduler::Dependency(parent) : NULL;
   d->encoder = NULL;
 }
 
 SAudioEncoderNode::~SAudioEncoderNode()
 {
-  delete d->dependency;
+  d->future.waitForFinished();
   delete d->encoder;
   delete d;
   *const_cast<Data **>(&d) = NULL;
@@ -52,6 +51,8 @@ QStringList SAudioEncoderNode::codecs(void)
 
 bool SAudioEncoderNode::openCodec(const SAudioCodec &codec, SInterfaces::AudioEncoder::Flags flags)
 {
+  d->future.waitForFinished();
+
   delete d->encoder;
   d->encoder = SInterfaces::AudioEncoder::create(this, codec, flags, false);
 
@@ -66,10 +67,24 @@ SAudioCodec SAudioEncoderNode::codec(void) const
   return SAudioCodec();
 }
 
+bool SAudioEncoderNode::start(void)
+{
+  return d->encoder;
+}
+
+void SAudioEncoderNode::stop(void)
+{
+  d->future.waitForFinished();
+}
+
 void SAudioEncoderNode::input(const SAudioBuffer &audioBuffer)
 {
+  d->future.waitForFinished();
+
   if (d->encoder)
-    schedule(&SAudioEncoderNode::processTask, audioBuffer, d->dependency);
+    d->future = QtConcurrent::run(this, &SAudioEncoderNode::processTask, audioBuffer);
+  else
+    emit output(SEncodedAudioBuffer());
 }
 
 void SAudioEncoderNode::processTask(const SAudioBuffer &audioBuffer)

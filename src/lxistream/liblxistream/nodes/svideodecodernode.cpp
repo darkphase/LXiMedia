@@ -24,10 +24,10 @@ namespace LXiStream {
 
 struct SVideoDecoderNode::Data
 {
-  SScheduler::Dependency      * dependency;
   SVideoDecoderNode::Flags      flags;
   SVideoCodec                   lastCodec;
   SInterfaces::VideoDecoder   * decoder;
+  QFuture<void>                 future;
 };
 
 SVideoDecoderNode::SVideoDecoderNode(SGraph *parent, Flags flags)
@@ -35,14 +35,13 @@ SVideoDecoderNode::SVideoDecoderNode(SGraph *parent, Flags flags)
     SGraph::Node(parent),
     d(new Data())
 {
-  d->dependency = parent ? new SScheduler::Dependency(parent) : NULL;
   d->flags = flags;
   d->decoder = NULL;
 }
 
 SVideoDecoderNode::~SVideoDecoderNode()
 {
-  delete d->dependency;
+  d->future.waitForFinished();
   delete d->decoder;
   delete d;
   *const_cast<Data **>(&d) = NULL;
@@ -63,27 +62,43 @@ void SVideoDecoderNode::setFlags(SVideoDecoderNode::Flags flags)
   d->flags = flags;
 }
 
-void SVideoDecoderNode::input(const SEncodedVideoBuffer &videoBuffer)
+bool SVideoDecoderNode::start(void)
 {
-  // Open the correct codec. The previous codec is not deleted as there may
-  // still be tasts that depend on it, it will be deleted by Qt when this object
-  // is destroyed.
-  if (!videoBuffer.isNull() && (d->lastCodec != videoBuffer.codec()))
-  {
-    d->lastCodec = videoBuffer.codec();
-    d->decoder = SInterfaces::VideoDecoder::create(NULL, d->lastCodec, d->flags, false);
-
-    if (d->decoder == NULL)
-      qWarning() << "Failed to find video decoder for codec" << d->lastCodec.codec();
-  }
-
-  schedule(&SVideoDecoderNode::processTask, videoBuffer, d->decoder, d->dependency);
+  return true;
 }
 
-void SVideoDecoderNode::processTask(const SEncodedVideoBuffer &videoBuffer, SInterfaces::VideoDecoder *decoder)
+void SVideoDecoderNode::stop(void)
 {
-  if (decoder)
-  foreach (const SVideoBuffer &buffer, decoder->decodeBuffer(videoBuffer))
+  d->future.waitForFinished();
+}
+
+void SVideoDecoderNode::input(const SEncodedVideoBuffer &videoBuffer)
+{
+  d->future.waitForFinished();
+
+  if (!videoBuffer.isNull())
+  {
+    if (d->lastCodec != videoBuffer.codec())
+    {
+      delete d->decoder;
+
+      d->lastCodec = videoBuffer.codec();
+      d->decoder = SInterfaces::VideoDecoder::create(NULL, d->lastCodec, d->flags, false);
+
+      if (d->decoder == NULL)
+        qWarning() << "Failed to find video decoder for codec" << d->lastCodec.codec();
+    }
+  }
+
+  if (d->decoder)
+    d->future = QtConcurrent::run(this, &SVideoDecoderNode::processTask, videoBuffer);
+  else
+    emit output(SVideoBuffer());
+}
+
+void SVideoDecoderNode::processTask(const SEncodedVideoBuffer &videoBuffer)
+{
+  foreach (const SVideoBuffer &buffer, d->decoder->decodeBuffer(videoBuffer))
     emit output(buffer);
 }
 

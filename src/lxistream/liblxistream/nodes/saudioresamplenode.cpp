@@ -24,8 +24,8 @@ namespace LXiStream {
 
 struct SAudioResampleNode::Data
 {
-  SScheduler::Dependency      * dependency;
   SInterfaces::AudioResampler * resampler;
+  QFuture<void>                 future;
 };
 
 SAudioResampleNode::SAudioResampleNode(SGraph *parent, const QString &algo)
@@ -33,13 +33,12 @@ SAudioResampleNode::SAudioResampleNode(SGraph *parent, const QString &algo)
     SGraph::Node(parent),
     d(new Data())
 {
-  d->dependency = parent ? new SScheduler::Dependency(parent) : NULL;
   d->resampler = SInterfaces::AudioResampler::create(this, algo);
 }
 
 SAudioResampleNode::~SAudioResampleNode()
 {
-  delete d->dependency;
+  d->future.waitForFinished();
   delete d->resampler;
   delete d;
   *const_cast<Data **>(&d) = NULL;
@@ -86,10 +85,24 @@ void SAudioResampleNode::setSampleRate(unsigned s)
   }
 }
 
+bool SAudioResampleNode::start(void)
+{
+  return true;
+}
+
+void SAudioResampleNode::stop(void)
+{
+  d->future.waitForFinished();
+}
+
 void SAudioResampleNode::input(const SAudioBuffer &audioBuffer)
 {
-  if (d->resampler)
-    schedule(&SAudioResampleNode::processTask, audioBuffer, d->dependency);
+  d->future.waitForFinished();
+
+  if (!audioBuffer.isNull() && d->resampler)
+    d->future = QtConcurrent::run(this, &SAudioResampleNode::processTask, audioBuffer);
+  else
+    emit output(audioBuffer);
 }
 
 void SAudioResampleNode::processTask(const SAudioBuffer &audioBuffer)

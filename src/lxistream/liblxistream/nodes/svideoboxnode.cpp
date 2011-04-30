@@ -35,8 +35,8 @@ namespace LXiStream {
 
 struct SVideoBoxNode::Data
 {
-  SScheduler::Dependency      * dependency;
   SSize                         destSize;
+  QFuture<void>                 future;
 };
 
 SVideoBoxNode::SVideoBoxNode(SGraph *parent)
@@ -44,13 +44,12 @@ SVideoBoxNode::SVideoBoxNode(SGraph *parent)
     SGraph::Node(parent),
     d(new Data())
 {
-  d->dependency = parent ? new SScheduler::Dependency(parent) : NULL;
   d->destSize = SSize(768, 576);
 }
 
 SVideoBoxNode::~SVideoBoxNode()
 {
-  delete d->dependency;
+  d->future.waitForFinished();
   delete d;
   *const_cast<Data **>(&d) = NULL;
 }
@@ -65,14 +64,26 @@ void SVideoBoxNode::setSize(const SSize &s)
   d->destSize = s;
 }
 
+bool SVideoBoxNode::start(void)
+{
+  return true;
+}
+
+void SVideoBoxNode::stop(void)
+{
+  d->future.waitForFinished();
+}
+
 void SVideoBoxNode::input(const SVideoBuffer &videoBuffer)
 {
+  d->future.waitForFinished();
+
   if (!videoBuffer.isNull())
   {
     if (videoBuffer.format().size() == d->destSize)
       emit output(videoBuffer);
     else
-      schedule(&SVideoBoxNode::processTask, videoBuffer, d->dependency);
+      d->future = QtConcurrent::run(this, &SVideoBoxNode::processTask, videoBuffer);
   }
   else
     emit output(videoBuffer);

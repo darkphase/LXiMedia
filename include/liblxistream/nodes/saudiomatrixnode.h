@@ -54,6 +54,10 @@ public:
   const QList<qreal>          & matrix(void) const;
   void                          setMatrix(const QList<qreal> &);
 
+public: // From SGraph::Node
+  virtual bool                  start(void);
+  virtual void                  stop(void);
+
 public slots:
   void                          input(const SAudioBuffer &);
 

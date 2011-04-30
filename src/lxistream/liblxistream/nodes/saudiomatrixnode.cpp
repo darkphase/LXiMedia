@@ -26,13 +26,13 @@ namespace LXiStream {
 
 struct SAudioMatrixNode::Data
 {
-  SScheduler::Dependency      * dependency;
   QList<qreal>                  requestedMatrix;
   float                       * appliedMatrix;
   SAudioFormat::Channels        inChannelSetup;
   unsigned                      inNumChannels;
   SAudioFormat::Channels        outChannelSetup;
   unsigned                      outNumChannels;
+  QFuture<void>                 future;
 };
 
 SAudioMatrixNode::SAudioMatrixNode(SGraph *parent)
@@ -40,7 +40,6 @@ SAudioMatrixNode::SAudioMatrixNode(SGraph *parent)
     SGraph::Node(parent),
     d(new Data())
 {
-  d->dependency = parent ? new SScheduler::Dependency(parent) : NULL;
   d->appliedMatrix = NULL;
   d->inChannelSetup = SAudioFormat::Channel_Stereo;
   d->inNumChannels = SAudioFormat::numChannels(d->inChannelSetup);
@@ -50,7 +49,7 @@ SAudioMatrixNode::SAudioMatrixNode(SGraph *parent)
 
 SAudioMatrixNode::~SAudioMatrixNode()
 {
-  delete d->dependency;
+  d->future.waitForFinished();
   delete [] d->appliedMatrix;
   delete d;
   *const_cast<Data **>(&d) = NULL;
@@ -96,8 +95,20 @@ void SAudioMatrixNode::setMatrix(const QList<qreal> &m)
   }
 }
 
+bool SAudioMatrixNode::start(void)
+{
+  return true;
+}
+
+void SAudioMatrixNode::stop(void)
+{
+  d->future.waitForFinished();
+}
+
 void SAudioMatrixNode::input(const SAudioBuffer &audioBuffer)
 {
+  d->future.waitForFinished();
+
   if (!audioBuffer.isNull() &&
       (audioBuffer.format() == SAudioFormat::Format_PCM_S16) &&
       (d->inNumChannels * d->outNumChannels > 0))
@@ -123,7 +134,7 @@ void SAudioMatrixNode::input(const SAudioBuffer &audioBuffer)
       }
     }
 
-    schedule(&SAudioMatrixNode::processTask, audioBuffer, d->dependency);
+    d->future = QtConcurrent::run(this, &SAudioMatrixNode::processTask, audioBuffer);
   }
   else
     emit output(audioBuffer);

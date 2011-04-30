@@ -32,8 +32,6 @@ SlideShowNode::SlideShowNode(SGraph *parent, const SMediaInfoList &files)
   : QObject(parent),
     SGraph::SourceNode(parent),
     files(files),
-    loadDependency(parent ? new SScheduler::Dependency(parent) : NULL),
-    procDependency(parent ? new SScheduler::Dependency(parent) : NULL),
     outSize(768, 576),
     time(STime::null),
     currentPicture(-1),
@@ -43,8 +41,8 @@ SlideShowNode::SlideShowNode(SGraph *parent, const SMediaInfoList &files)
 
 SlideShowNode::~SlideShowNode()
 {
-  delete loadDependency;
-  delete procDependency;
+  loadFuture.waitForFinished();
+  future.waitForFinished();
 }
 
 SSize SlideShowNode::size(void) const
@@ -78,11 +76,19 @@ bool SlideShowNode::start(void)
   // Create a black video buffer
   lastBuffer = blackBuffer();
 
-  while (nextBufferReady.available() > 0)
-    nextBufferReady.tryAcquire();
-
   currentPicture = 0;
   currentFrame = 0;
+
+  if (currentPicture < files.count())
+  {
+    const SMediaInfo node = files[currentPicture++];
+    if (!node.isNull())
+      loadFuture = QtConcurrent::run(this, &SlideShowNode::loadImage, node.filePath());
+    else
+      nextBuffer = blackBuffer();
+  }
+  else
+    currentPicture = -1;
 
   return true;
 }
@@ -101,71 +107,50 @@ void SlideShowNode::stop(void)
 
 void SlideShowNode::process(void)
 {
-  if (currentPicture == 0)
+  future.waitForFinished();
+
+  if (currentFrame == 0)
   {
-    if (currentPicture < files.count())
+    if (currentPicture >= 0)
     {
-      const SMediaInfo node = files[currentPicture++];
-      if (!node.isNull())
+      loadFuture.waitForFinished();
+      currentBuffer = nextBuffer;
+
+      // Start loading next
+      if (currentPicture < files.count())
       {
-        loadImage(node.filePath());
+        const SMediaInfo node = files[currentPicture++];
+        if (!node.isNull())
+          loadFuture = QtConcurrent::run(this, &SlideShowNode::loadImage, node.filePath());
+        else
+          nextBuffer = blackBuffer();
       }
-      else
+      else if (currentPicture == files.count())
       {
         nextBuffer = blackBuffer();
-        nextBufferReady.release();
-      }
-    }
-    else
-      currentPicture = -1;
-
-    currentFrame = 0;
-  }
-
-  if ((currentPicture >= 0) && (currentFrame == 0))
-  {
-    nextBufferReady.acquire();
-    currentBuffer = nextBuffer;
-
-    // Start loading next
-    if (currentPicture < files.count())
-    {
-      const SMediaInfo node = files[currentPicture++];
-      if (!node.isNull())
-      {
-        schedule(&SlideShowNode::loadImage, node.filePath(), loadDependency, SScheduler::Priority_Low);
+        currentPicture++;
       }
       else
-      {
-        nextBuffer = blackBuffer();
-        nextBufferReady.release();
-      }
-    }
-    else if (currentPicture == files.count())
-    {
-      nextBuffer = blackBuffer();
-      nextBufferReady.release();
-      currentPicture++;
+        currentPicture = -1;
     }
     else
-      currentPicture = -1;
+    {
+      emit output(SAudioBuffer());
+      emit output(SVideoBuffer());
+      emit finished();
+    }
   }
 
   if (currentFrame >= 0)
   {
     const int fade = qMin(255, (++currentFrame) * 256 / frameRate);
 
-    schedule(&SlideShowNode::computeVideoBuffer, lastBuffer, currentBuffer, fade, procDependency);
+    future = QtConcurrent::run(this, &SlideShowNode::computeVideoBuffer, lastBuffer, currentBuffer, fade);
 
     if (currentFrame >= slideFrameCount)
     {
-      if (currentPicture >= 0)
-      {
-        lastBuffer = currentBuffer;
-        currentFrame = 0;
-      }
-      else
-        schedule(&SlideShowNode::sendFlush, procDependency);
+      lastBuffer = currentBuffer;
+      currentFrame = 0;
     }
   }
 }
@@ -192,7 +177,6 @@ void SlideShowNode::loadImage(const QString &fileName)
   p.end();
 
   nextBuffer = img.toVideoBuffer(ar, SInterval::fromFrequency(frameRate));
-  nextBufferReady.release();
 }
 
 void SlideShowNode::computeVideoBuffer(const SVideoBuffer &a, const SVideoBuffer &b, int fade)
@@ -220,13 +204,6 @@ void SlideShowNode::computeVideoBuffer(const SVideoBuffer &a, const SVideoBuffer
   emit output(audioBuffer);
 
   time += STime(1, SInterval::fromFrequency(frameRate));
-}
-
-void SlideShowNode::sendFlush(void)
-{
-  emit output(SAudioBuffer());
-  emit output(SVideoBuffer());
-  emit finished();
 }
 
 SVideoBuffer SlideShowNode::blackBuffer(void) const

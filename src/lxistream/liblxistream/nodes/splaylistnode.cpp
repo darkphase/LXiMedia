@@ -25,8 +25,6 @@ namespace LXiStream {
 
 struct SPlaylistNode::Data
 {
-  SScheduler::Dependency      * loadDependency;
-
   QList< QPair<QString, quint16> > fileNames;
   QList<STime>                  fileOffsets;
   STime                         duration;
@@ -35,11 +33,12 @@ struct SPlaylistNode::Data
   int                           nextFileId;
   SFileInputNode              * file;
   SFileInputNode              * nextFile;
-  QSemaphore                    nextFileReady;
 
   AudioStreamInfo               audioStreamInfo;
   bool                          hasVideo;
   VideoStreamInfo               videoStreamInfo;
+
+  QFuture<void>                 loadFuture;
 };
 
 SPlaylistNode::SPlaylistNode(SGraph *parent, const SMediaInfoList &files)
@@ -47,8 +46,6 @@ SPlaylistNode::SPlaylistNode(SGraph *parent, const SMediaInfoList &files)
     SGraph::SourceNode(parent),
     d(new Data())
 {
-  d->loadDependency = parent ? new SScheduler::Dependency(parent) : NULL;
-
   d->duration = STime::null;
   d->firstFileOffset = STime();
 
@@ -133,6 +130,8 @@ SPlaylistNode::SPlaylistNode(SGraph *parent, const SMediaInfoList &files)
 
 SPlaylistNode::~SPlaylistNode()
 {
+  d->loadFuture.waitForFinished();
+
   if (d->file)
   {
     d->file->stop();
@@ -145,7 +144,6 @@ SPlaylistNode::~SPlaylistNode()
     delete d->nextFile;
   }
 
-  delete d->loadDependency;
   delete d;
   *const_cast<Data **>(&d) = NULL;
 }
@@ -160,11 +158,15 @@ bool SPlaylistNode::start(void)
   d->fileId = -1;
   d->nextFileId = -1;
 
+  d->loadFuture = QtConcurrent::run(this, &SPlaylistNode::openNext);
+
   return true;
 }
 
 void SPlaylistNode::stop(void)
 {
+  d->loadFuture.waitForFinished();
+
   if (d->file)
   {
     d->file->stop();
@@ -185,29 +187,22 @@ void SPlaylistNode::stop(void)
 
 void SPlaylistNode::process(void)
 {
-  if (d->nextFileId == -1)
-  {
-    openNext();
-
-    if (d->nextFile && d->firstFileOffset.isValid())
-      d->nextFile->setPosition(d->firstFileOffset);
-  }
-
   if (d->file == NULL)
   {
+    d->loadFuture.waitForFinished();
+
     if (d->nextFileId == -2)
     {
       emit finished();
       return;
     }
 
-    d->nextFileReady.acquire();
     d->fileId = d->nextFileId;
     d->file = d->nextFile;
 
     // Start loading next
     if ((d->nextFileId >= 0) && (d->nextFileId < d->fileNames.count()))
-      schedule(&SPlaylistNode::openNext, d->loadDependency, SScheduler::Priority_Low);
+      d->loadFuture = QtConcurrent::run(this, &SPlaylistNode::openNext);
     else
       d->nextFileId = -2;
 
@@ -312,7 +307,9 @@ void SPlaylistNode::openNext(void)
     if (file)
     {
       d->nextFile = file;
-      d->nextFileReady.release();
+
+      if ((d->nextFileId == 0) && d->firstFileOffset.isValid())
+        d->nextFile->setPosition(d->firstFileOffset);
 
       return;
     }
@@ -320,7 +317,6 @@ void SPlaylistNode::openNext(void)
 
   d->nextFile = NULL;
   d->nextFileId = -2;
-  d->nextFileReady.release();
 }
 
 void SPlaylistNode::closeFile(void)

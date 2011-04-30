@@ -46,6 +46,10 @@ public:
   Flags                         flags(void) const;
   void                          setFlags(Flags);
 
+public: // From SGraph::Node
+  virtual bool                  start(void);
+  virtual void                  stop(void);
+
 public slots:
   void                          input(const SEncodedDataBuffer &);
 
@@ -54,7 +58,7 @@ signals:
   void                          output(const SSubpictureBuffer &);
 
 private:
-  _lxi_internal void            processTask(const SEncodedDataBuffer &, SInterfaces::DataDecoder *decoder);
+  _lxi_internal void            processTask(const SEncodedDataBuffer &);
 
 private:
   struct Data;

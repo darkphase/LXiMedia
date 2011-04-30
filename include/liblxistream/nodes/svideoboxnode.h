@@ -42,6 +42,10 @@ public:
   SSize                         size(void) const;
   void                          setSize(const SSize &s);
 
+public: // From SGraph::Node
+  virtual bool                  start(void);
+  virtual void                  stop(void);
+
 public slots:
   void                          input(const SVideoBuffer &);
 

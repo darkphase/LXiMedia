@@ -23,7 +23,6 @@ namespace LXiStream {
 
 struct SIOInputNode::Data
 {
-  SScheduler::Dependency      * dependency;
   QIODevice                   * ioDevice;
   bool                          opened;
   SInterfaces::BufferReader   * bufferReader;
@@ -35,7 +34,6 @@ SIOInputNode::SIOInputNode(SGraph *parent, QIODevice *ioDevice, const QString &p
     SInterfaces::BufferReader::ReadCallback(path),
     d(new Data())
 {
-  d->dependency = parent ? new SScheduler::Dependency(parent) : NULL;
   d->ioDevice = ioDevice;
   d->opened = false;
   d->bufferReader = NULL;
@@ -43,7 +41,6 @@ SIOInputNode::SIOInputNode(SGraph *parent, QIODevice *ioDevice, const QString &p
 
 SIOInputNode::~SIOInputNode()
 {
-  delete d->dependency;
   delete d->bufferReader;
   delete d;
   *const_cast<Data **>(&d) = NULL;

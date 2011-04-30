@@ -46,6 +46,10 @@ public:
   Flags                         flags(void) const;
   void                          setFlags(Flags);
 
+public: // From SGraph::Node
+  virtual bool                  start(void);
+  virtual void                  stop(void);
+
 public slots:
   void                          input(const SEncodedAudioBuffer &);
 
@@ -53,7 +57,7 @@ signals:
   void                          output(const SAudioBuffer &);
 
 private:
-  _lxi_internal void            processTask(const SEncodedAudioBuffer &, SInterfaces::AudioDecoder *decoder);
+  _lxi_internal void            processTask(const SEncodedAudioBuffer &);
 
 private:
   struct Data;

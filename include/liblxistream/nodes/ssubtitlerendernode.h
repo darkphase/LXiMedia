@@ -46,6 +46,10 @@ public:
   unsigned                      fontRatio(void) const;
   void                          setFontRatio(unsigned r);
 
+public: // From SGraph::Node
+  virtual bool                  start(void);
+  virtual void                  stop(void);
+
 public slots:
   void                          input(const SSubtitleBuffer &);
   void                          input(const SVideoBuffer &);
@@ -57,7 +61,6 @@ public:
   static SVideoBuffer           renderSubtitles(const SVideoBuffer &, const QStringList &, unsigned ratio = 16);
 
 private:
-  _lxi_internal void            processTask(const SSubtitleBuffer &);
   _lxi_internal void            processTask(const SVideoBuffer &);
   _lxi_internal static void     renderSubtitles(SVideoBuffer &, const Lines *, const Char * const *);
 

@@ -50,6 +50,10 @@ public:
 
   static SInterval              roundFrameRate(SInterval);
 
+public: // From SGraph::Node
+  virtual bool                  start(void);
+  virtual void                  stop(void);
+
 public slots:
   void                          input(const SAudioBuffer &);
   void                          input(const SVideoBuffer &);

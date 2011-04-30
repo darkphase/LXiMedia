@@ -22,7 +22,6 @@
 
 #include <QtCore>
 #include "splatform.h"
-#include "sscheduler.h"
 #include "export.h"
 
 #define sApp (SApplication::instance())

@@ -28,44 +28,71 @@ namespace LXiStream {
 
 class STimer;
 
-class LXISTREAM_PUBLIC SGraph : public QThread,
-                                public SScheduler
+class LXISTREAM_PUBLIC SGraph : public QThread
 {
 Q_OBJECT
 public:
-  typedef SScheduler::Priority Priority;
-
   /*! The Node abstract class is used for processing nodes.
    */
-  class LXISTREAM_PUBLIC Node : public SScheduler::Proxy
+  class LXISTREAM_PUBLIC Node
   {
   public:
     explicit                      Node(SGraph *);
     virtual                       ~Node();
+
+    /*! This method shall be invoked when the node is about to start processing
+        data.
+     */
+    virtual bool                  start(void) = 0;
+
+    /*! This method shall be invoked when the node is finished processing data.
+
+        \note This method may be invoked multiple times.
+     */
+    virtual void                  stop(void) = 0;
   };
 
   /*! The SinkNode abstract class is used for sink nodes.
    */
-  class LXISTREAM_PUBLIC SinkNode : public SScheduler::Proxy
+  class LXISTREAM_PUBLIC SinkNode
   {
   public:
     explicit                      SinkNode(SGraph *);
     virtual                       ~SinkNode();
 
+    /*! This method shall be invoked when the node is about to start processing
+        data.
+     */
     virtual bool                  start(STimer *) = 0;
+
+    /*! This method shall be invoked when the node is finished processing data.
+
+        \note This method may be invoked multiple times.
+     */
     virtual void                  stop(void) = 0;
   };
 
   /*! The SourceNode abstract class is used for source nodes.
    */
-  class LXISTREAM_PUBLIC SourceNode : public SScheduler::Proxy
+  class LXISTREAM_PUBLIC SourceNode
   {
   public:
     explicit                      SourceNode(SGraph *);
     virtual                       ~SourceNode();
 
+    /*! This method shall be invoked when the node is about to start processing
+        data.
+     */
     virtual bool                  start(void) = 0;
+
+    /*! This method shall be invoked when the node is finished processing data.
+
+        \note This method may be invoked multiple times.
+     */
     virtual void                  stop(void) = 0;
+
+    /*! This method shall be invoked to indicate the node has to produce data.
+     */
     virtual void                  process(void) = 0;
   };
 
@@ -73,25 +100,22 @@ public:
   explicit                      SGraph(void);
   virtual                       ~SGraph();
 
+  static bool                   connect(const QObject *, const char *, const QObject *, const char *);
+  bool                          connect(const QObject *, const char *, const char *) const;
+
   bool                          isRunning(void) const;
 
   void                          addNode(Node *);
   void                          addNode(SourceNode *);
   void                          addNode(SinkNode *);
 
-  inline void                   setPriority(Priority priority)                  { SScheduler::setPriority(priority); }
-
 public slots:
   virtual bool                  start(void);
   virtual void                  stop(void);
 
-protected: // From SScheduler
-  virtual void                  queueSchedule(Dependency *);
-
 protected: // From QThread and QObject
   virtual void                  run(void);
   virtual void                  customEvent(QEvent *);
-  virtual void                  timerEvent(QTimerEvent *);
 
 private:
   struct Private;

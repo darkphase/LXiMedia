@@ -67,12 +67,6 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request, QAbstractSoc
   if (file.count() <= 1)
     file += "mpeg"; // Default to mpeg file
 
-  // Stream priority
-  if (url.queryItemValue("priority") == "low")
-    setPriority(Priority_Low);
-  else if (url.queryItemValue("priority") == "high")
-    setPriority(Priority_High);
-
   // Set stream properties
   sync.setFrameRate(frameRate);
 
@@ -243,12 +237,6 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request, QAbstractSoc
   QStringList file = request.file().split('.');
   if (file.count() <= 1)
     file += "mpa"; // Default to mpeg file
-
-  // Stream priority
-  if (url.queryItemValue("priority") == "low")
-    setPriority(Priority_Low);
-  else if (url.queryItemValue("priority") == "high")
-    setPriority(Priority_High);
 
   // Set stream properties
   if (url.hasQueryItem("requestchannels"))

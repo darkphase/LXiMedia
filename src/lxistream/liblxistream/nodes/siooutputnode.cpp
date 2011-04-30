@@ -130,6 +130,8 @@ void SIOOutputNode::stop(void)
 
 void SIOOutputNode::input(const SEncodedAudioBuffer &buffer)
 {
+  Q_ASSERT(QThread::currentThread() == thread());
+
   if (!qFuzzyCompare(d->streamingSpeed, 0.0f))
     blockUntil(buffer.decodingTimeStamp().isValid() ? buffer.decodingTimeStamp() : buffer.presentationTimeStamp());
 
@@ -139,6 +141,8 @@ void SIOOutputNode::input(const SEncodedAudioBuffer &buffer)
 
 void SIOOutputNode::input(const SEncodedVideoBuffer &buffer)
 {
+  Q_ASSERT(QThread::currentThread() == thread());
+
   if (!qFuzzyCompare(d->streamingSpeed, 0.0f))
     blockUntil(buffer.decodingTimeStamp().isValid() ? buffer.decodingTimeStamp() : buffer.presentationTimeStamp());
 
@@ -148,6 +152,8 @@ void SIOOutputNode::input(const SEncodedVideoBuffer &buffer)
 
 void SIOOutputNode::input(const SEncodedDataBuffer &buffer)
 {
+  Q_ASSERT(QThread::currentThread() == thread());
+
   if (!qFuzzyCompare(d->streamingSpeed, 0.0f))
     blockUntil(buffer.decodingTimeStamp().isValid() ? buffer.decodingTimeStamp() : buffer.presentationTimeStamp());
 

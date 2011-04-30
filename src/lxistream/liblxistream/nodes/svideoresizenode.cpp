@@ -24,10 +24,10 @@ namespace LXiStream {
 
 struct SVideoResizeNode::Data
 {
-  SScheduler::Dependency      * dependency;
   QString                       algo;
   SInterfaces::VideoResizer   * resizer;
   SInterfaces::VideoResizer   * lanczosResizer;
+  QFuture<void>                 future;
 };
 
 SVideoResizeNode::SVideoResizeNode(SGraph *parent, const QString &algo)
@@ -35,7 +35,6 @@ SVideoResizeNode::SVideoResizeNode(SGraph *parent, const QString &algo)
     SGraph::Node(parent),
     d(new Data())
 {
-  d->dependency = parent ? new SScheduler::Dependency(parent) : NULL;
   d->algo = algo;
   d->lanczosResizer = NULL;
 
@@ -50,7 +49,7 @@ SVideoResizeNode::SVideoResizeNode(SGraph *parent, const QString &algo)
 
 SVideoResizeNode::~SVideoResizeNode()
 {
-  delete d->dependency;
+  d->future.waitForFinished();
   delete d->resizer;
   delete d->lanczosResizer;
   delete d;
@@ -118,9 +117,21 @@ QStringList SVideoResizeNode::algorithms(void)
   return SInterfaces::VideoDeinterlacer::available();
 }
 
+bool SVideoResizeNode::start(void)
+{
+  return true;
+}
+
+void SVideoResizeNode::stop(void)
+{
+  d->future.waitForFinished();
+}
+
 void SVideoResizeNode::input(const SVideoBuffer &videoBuffer)
 {
-  if (d->resizer)
+  d->future.waitForFinished();
+
+  if (!videoBuffer.isNull() && d->resizer)
   {
     SInterfaces::VideoResizer *resizer = d->resizer;
     if (d->lanczosResizer)
@@ -130,7 +141,7 @@ void SVideoResizeNode::input(const SVideoBuffer &videoBuffer)
       resizer = d->lanczosResizer;
     }
 
-    schedule(&SVideoResizeNode::processTask, videoBuffer, resizer, d->dependency);
+    d->future = QtConcurrent::run(this, &SVideoResizeNode::processTask, videoBuffer, resizer);
   }
   else
     emit output(videoBuffer);

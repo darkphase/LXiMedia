@@ -24,8 +24,8 @@ namespace LXiStream {
 
 struct SVideoEncoderNode::Data
 {
-  SScheduler::Dependency      * dependency;
   SInterfaces::VideoEncoder   * encoder;
+  QFuture<void>                 future;
 };
 
 SVideoEncoderNode::SVideoEncoderNode(SGraph *parent)
@@ -33,12 +33,11 @@ SVideoEncoderNode::SVideoEncoderNode(SGraph *parent)
     SGraph::Node(parent),
     d(new Data())
 {
-  d->dependency = parent ? new SScheduler::Dependency(parent) : NULL;
 }
 
 SVideoEncoderNode::~SVideoEncoderNode()
 {
-  delete d->dependency;
+  d->future.waitForFinished();
   delete d->encoder;
   delete d;
   *const_cast<Data **>(&d) = NULL;
@@ -51,6 +50,8 @@ QStringList SVideoEncoderNode::codecs(void)
 
 bool SVideoEncoderNode::openCodec(const SVideoCodec &codec, SInterfaces::VideoEncoder::Flags flags)
 {
+  d->future.waitForFinished();
+
   delete d->encoder;
   d->encoder = SInterfaces::VideoEncoder::create(this, codec, flags, false);
 
@@ -65,10 +66,24 @@ SVideoCodec SVideoEncoderNode::codec(void) const
   return SVideoCodec();
 }
 
+bool SVideoEncoderNode::start(void)
+{
+  return d->encoder;
+}
+
+void SVideoEncoderNode::stop(void)
+{
+  d->future.waitForFinished();
+}
+
 void SVideoEncoderNode::input(const SVideoBuffer &videoBuffer)
 {
+  d->future.waitForFinished();
+
   if (d->encoder)
-    schedule(&SVideoEncoderNode::processTask, videoBuffer, d->dependency);
+    d->future = QtConcurrent::run(this, &SVideoEncoderNode::processTask, videoBuffer);
+  else
+    emit output(SEncodedVideoBuffer());
 }
 
 void SVideoEncoderNode::processTask(const SVideoBuffer &videoBuffer)

@@ -38,6 +38,10 @@ public:
   explicit                      SSubpictureRenderNode(SGraph *);
   virtual                       ~SSubpictureRenderNode();
 
+public: // From SGraph::Node
+  virtual bool                  start(void);
+  virtual void                  stop(void);
+
 public slots:
   void                          input(const SSubpictureBuffer &);
   void                          input(const SVideoBuffer &);
@@ -46,7 +50,6 @@ signals:
   void                          output(const SVideoBuffer &);
 
 private:
-  _lxi_internal void            processTask(const SSubpictureBuffer &);
   _lxi_internal void            processTask(const SVideoBuffer &);
   _lxi_internal static void     buildPalette(const SPixels::RGBAPixel *, int, SVideoFormat::Format, QByteArray &);
 
