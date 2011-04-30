@@ -25,11 +25,14 @@
 
 class Sandbox : public QObject
 {
+Q_OBJECT
 public:
                                 Sandbox(void);
   virtual                       ~Sandbox();
 
+public slots:
   void                          start(const QString &mode);
+  void                          stop(void);
 
 private:
   SApplication                  mediaApp;
