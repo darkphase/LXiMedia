@@ -136,7 +136,8 @@ public:
   static QDomElement            parseSoapMessage(QDomDocument &doc, const QByteArray &data);
 
 public:
-  static const int              majorVersion, minorVersion;
+  static const int              majorVersion;
+  static const int              minorVersion;
   static const int              responseTimeout;
   static const char             xmlDeclaration[];
   static const char             xmlContentType[];
