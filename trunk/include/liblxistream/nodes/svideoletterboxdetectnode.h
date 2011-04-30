@@ -41,6 +41,10 @@ public:
   unsigned                      delayFrames(void) const;
   void                          setDelayFrames(unsigned);
 
+public: // From SGraph::Node
+  virtual bool                  start(void);
+  virtual void                  stop(void);
+
 public slots:
   void                          input(const SVideoBuffer &);
 

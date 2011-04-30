@@ -24,10 +24,10 @@ namespace LXiStream {
 
 struct SVideoFormatConvertNode::Data
 {
-  SScheduler::Dependency      * dependency;
   SVideoFormat::Format          sourceFormat;
   SVideoFormat::Format          destFormat;
   SInterfaces::VideoFormatConverter * converter;
+  QFuture<void>                 future;
 };
 
 SVideoFormatConvertNode::SVideoFormatConvertNode(SGraph *parent)
@@ -35,7 +35,6 @@ SVideoFormatConvertNode::SVideoFormatConvertNode(SGraph *parent)
     SGraph::Node(parent),
     d(new Data())
 {
-  d->dependency = parent ? new SScheduler::Dependency(parent) : NULL;
   d->sourceFormat = SVideoFormat::Format_Invalid;
   d->destFormat = SVideoFormat::Format_Invalid;
   d->converter = NULL;
@@ -43,7 +42,7 @@ SVideoFormatConvertNode::SVideoFormatConvertNode(SGraph *parent)
 
 SVideoFormatConvertNode::~SVideoFormatConvertNode()
 {
-  delete d->dependency;
+  d->future.waitForFinished();
   delete d->converter;
   delete d;
   *const_cast<Data **>(&d) = NULL;
@@ -123,15 +122,29 @@ SVideoBuffer SVideoFormatConvertNode::convert(const SVideoBuffer &videoBuffer, S
   return SVideoBuffer();
 }
 
+bool SVideoFormatConvertNode::start(void)
+{
+  return true;
+}
+
+void SVideoFormatConvertNode::stop(void)
+{
+  d->future.waitForFinished();
+}
+
 void SVideoFormatConvertNode::input(const SVideoBuffer &videoBuffer)
 {
+  d->future.waitForFinished();
+
   if (!videoBuffer.isNull())
   {
     if (videoBuffer.format() == d->destFormat)
       emit output(videoBuffer);
     else
-      schedule(&SVideoFormatConvertNode::processTask, videoBuffer, d->dependency);
+      d->future = QtConcurrent::run(this, &SVideoFormatConvertNode::processTask, videoBuffer);
   }
+  else
+    emit output(videoBuffer);
 }
 
 void SVideoFormatConvertNode::processTask(const SVideoBuffer &videoBuffer)

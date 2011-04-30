@@ -55,6 +55,15 @@ void SVideoLetterboxDetectNode::setDelayFrames(unsigned f)
   d->numFrames = f + 1;
 }
 
+bool SVideoLetterboxDetectNode::start(void)
+{
+  return true;
+}
+
+void SVideoLetterboxDetectNode::stop(void)
+{
+}
+
 void SVideoLetterboxDetectNode::input(const SVideoBuffer &videoBuffer)
 {
   if (!videoBuffer.isNull())
@@ -118,6 +127,8 @@ void SVideoLetterboxDetectNode::input(const SVideoBuffer &videoBuffer)
       emit output(destBuffer);
     }
   }
+  else
+    emit output(videoBuffer);
 }
 
 qreal SVideoLetterboxDetectNode::determineAspectRatio(const SVideoBuffer &videoBuffer) const

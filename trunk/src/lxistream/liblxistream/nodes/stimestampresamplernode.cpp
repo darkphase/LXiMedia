@@ -116,6 +116,15 @@ void STimeStampResamplerNode::input(const SAudioBuffer &audioBuffer)
     emit output(audioBuffer);
 }
 
+bool STimeStampResamplerNode::start(void)
+{
+  return true;
+}
+
+void STimeStampResamplerNode::stop(void)
+{
+}
+
 void STimeStampResamplerNode::input(const SVideoBuffer &videoBuffer)
 {
   Q_ASSERT(QThread::currentThread() == thread());

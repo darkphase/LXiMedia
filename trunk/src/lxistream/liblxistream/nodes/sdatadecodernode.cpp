@@ -24,10 +24,10 @@ namespace LXiStream {
 
 struct SDataDecoderNode::Data
 {
-  SScheduler::Dependency      * dependency;
   SDataDecoderNode::Flags       flags;
   SDataCodec                    lastCodec;
   SInterfaces::DataDecoder    * decoder;
+  QFuture<void>                 future;
 };
 
 SDataDecoderNode::SDataDecoderNode(SGraph *parent, Flags flags)
@@ -35,14 +35,13 @@ SDataDecoderNode::SDataDecoderNode(SGraph *parent, Flags flags)
     SGraph::Node(parent),
     d(new Data())
 {
-  d->dependency = parent ? new SScheduler::Dependency(parent) : NULL;
   d->flags = flags;
   d->decoder = NULL;
 }
 
 SDataDecoderNode::~SDataDecoderNode()
 {
-  delete d->dependency;
+  d->future.waitForFinished();
   delete d->decoder;
   delete d;
   *const_cast<Data **>(&d) = NULL;
@@ -63,27 +62,41 @@ void SDataDecoderNode::setFlags(SDataDecoderNode::Flags flags)
   d->flags = flags;
 }
 
-void SDataDecoderNode::input(const SEncodedDataBuffer &dataBuffer)
+bool SDataDecoderNode::start(void)
 {
-  // Open the correct codec. The previous codec is not deleted as there may
-  // still be tasks that depend on it, it will be deleted by Qt when this object
-  // is destroyed.
-  if (!dataBuffer.isNull() && (d->lastCodec != dataBuffer.codec()))
-  {
-    d->lastCodec = dataBuffer.codec();
-    d->decoder = SInterfaces::DataDecoder::create(NULL, d->lastCodec, d->flags, false);
-
-    if (d->decoder == NULL)
-      qWarning() << "Failed to find data decoder for codec" << d->lastCodec.codec();
-  }
-
-  schedule(&SDataDecoderNode::processTask, dataBuffer, d->decoder, d->dependency);
+  return true;
 }
 
-void SDataDecoderNode::processTask(const SEncodedDataBuffer &dataBuffer, SInterfaces::DataDecoder *decoder)
+void SDataDecoderNode::stop(void)
 {
-  if (decoder)
-  foreach (const SDataBuffer &buffer, decoder->decodeBuffer(dataBuffer))
+  d->future.waitForFinished();
+}
+
+void SDataDecoderNode::input(const SEncodedDataBuffer &dataBuffer)
+{
+  d->future.waitForFinished();
+
+  if (!dataBuffer.isNull())
+  {
+    if (d->lastCodec != dataBuffer.codec())
+    {
+      delete d->decoder;
+
+      d->lastCodec = dataBuffer.codec();
+      d->decoder = SInterfaces::DataDecoder::create(NULL, d->lastCodec, d->flags, false);
+
+      if (d->decoder == NULL)
+        qWarning() << "Failed to find data decoder for codec" << d->lastCodec.codec();
+    }
+
+    if (d->decoder)
+      d->future = QtConcurrent::run(this, &SDataDecoderNode::processTask, dataBuffer);
+  }
+}
+
+void SDataDecoderNode::processTask(const SEncodedDataBuffer &dataBuffer)
+{
+  foreach (const SDataBuffer &buffer, d->decoder->decodeBuffer(dataBuffer))
   switch(buffer.type())
   {
   case SDataBuffer::Type_None:

@@ -66,8 +66,6 @@ SSubtitleRenderNode::FontLoader SSubtitleRenderNode::fontLoader;
 
 struct SSubtitleRenderNode::Data
 {
-  SScheduler::Dependency      * dependency;
-  QMutex                        mutex;
   unsigned                      ratio;
   volatile bool                 enabled;
   QMap<STime, SSubtitleBuffer>  subtitles;
@@ -75,6 +73,9 @@ struct SSubtitleRenderNode::Data
   Lines                       * subtitle;
   STime                         subtitleTime;
   bool                          subtitleVisible;
+
+  QMutex                        mutex;
+  QFuture<void>                 future;
 };
 
 SSubtitleRenderNode::SSubtitleRenderNode(SGraph *parent)
@@ -85,7 +86,6 @@ SSubtitleRenderNode::SSubtitleRenderNode(SGraph *parent)
   // loadFont() should be invoked before a SSubtitleRenderNode can be constructed.
   Q_ASSERT(!characters.isEmpty());
 
-  d->dependency = parent ? new SScheduler::Dependency(parent) : NULL;
   d->ratio = 16;
   d->enabled = false;
   d->font = characters.end();
@@ -95,7 +95,7 @@ SSubtitleRenderNode::SSubtitleRenderNode(SGraph *parent)
 
 SSubtitleRenderNode::~SSubtitleRenderNode()
 {
-  delete d->dependency;
+  d->future.waitForFinished();
   delete d->subtitle;
   delete d;
   *const_cast<Data **>(&d) = NULL;
@@ -111,16 +111,40 @@ void SSubtitleRenderNode::setFontRatio(unsigned r)
   d->ratio = r;
 }
 
+bool SSubtitleRenderNode::start(void)
+{
+  return true;
+}
+
+void SSubtitleRenderNode::stop(void)
+{
+  d->future.waitForFinished();
+}
+
 void SSubtitleRenderNode::input(const SSubtitleBuffer &subtitleBuffer)
 {
-  if (!subtitleBuffer.isNull())
-    schedule(this, &SSubtitleRenderNode::processTask, subtitleBuffer, d->dependency);
+  QMutexLocker l(&d->mutex);
+
+  if (subtitleBuffer.duration().toSec() <= 10)
+  {
+    d->subtitles.insert(subtitleBuffer.timeStamp(), subtitleBuffer);
+  }
+  else // Prevent showing subtitles too long.
+  {
+    SSubtitleBuffer corrected = subtitleBuffer;
+    corrected.setDuration(STime::fromSec(10));
+    d->subtitles.insert(subtitleBuffer.timeStamp(), corrected);
+  }
+
+  d->enabled = true;
 }
 
 void SSubtitleRenderNode::input(const SVideoBuffer &videoBuffer)
 {
+  d->future.waitForFinished();
+
   if (!videoBuffer.isNull() && d->enabled)
-    schedule(this, &SSubtitleRenderNode::processTask, videoBuffer, d->dependency);
+    d->future = QtConcurrent::run(this, &SSubtitleRenderNode::processTask, videoBuffer);
   else
     emit output(videoBuffer);
 }
@@ -159,24 +183,6 @@ SVideoBuffer SSubtitleRenderNode::renderSubtitles(const SVideoBuffer &videoBuffe
   renderSubtitles(buffer, &subtitle, &(font->first()));
 
   return buffer;
-}
-
-void SSubtitleRenderNode::processTask(const SSubtitleBuffer &subtitleBuffer)
-{
-  QMutexLocker l(&d->mutex);
-
-  if (subtitleBuffer.duration().toSec() <= 10)
-  {
-    d->subtitles.insert(subtitleBuffer.timeStamp(), subtitleBuffer);
-  }
-  else // Prevent showing subtitles too long.
-  {
-    SSubtitleBuffer corrected = subtitleBuffer;
-    corrected.setDuration(STime::fromSec(10));
-    d->subtitles.insert(subtitleBuffer.timeStamp(), corrected);
-  }
-
-  d->enabled = true;
 }
 
 void SSubtitleRenderNode::processTask(const SVideoBuffer &videoBuffer)

@@ -38,6 +38,10 @@ public:
 
   static QStringList            algorithms(void);
 
+public: // From SGraph::Node
+  virtual bool                  start(void);
+  virtual void                  stop(void);
+
 public slots:
   void                          input(const SVideoBuffer &);
 

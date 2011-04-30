@@ -28,6 +28,7 @@ struct SHttpStreamProxy::Data
   {
     QAbstractSocket           * socket;
     bool                        sendCache;
+    bool                        firstData;
   };
 
 
@@ -87,6 +88,7 @@ bool SHttpStreamProxy::addSocket(QAbstractSocket *socket)
     Data::Socket s;
     s.socket = socket;
     s.sendCache = true;
+    s.firstData = true;
 
     d->sockets += s;
     connect(s.socket, SIGNAL(bytesWritten(qint64)), SLOT(processData()));
@@ -170,16 +172,13 @@ void SHttpStreamProxy::processData(void)
       if (s->socket->state() == QAbstractSocket::ConnectedState)
       {
         if (!s->sendCache)
-        for (qint64 i=0; i<buffer.size(); )
-        {
-          const qint64 r = s->socket->write(buffer.data() + i, buffer.size() - i);
-          if (r > 0)
-            i += r;
-          else
-            break;
-        }
+          s->socket->write(buffer);
 
-        s->socket->flush();
+        if (s->firstData)
+        {
+          s->socket->flush();
+          s->firstData = false;
+        }
 
         s++;
       }

@@ -24,8 +24,8 @@ namespace LXiStream {
 
 struct SVideoDeinterlaceNode::Data
 {
-  SScheduler::Dependency      * dependency;
   SInterfaces::VideoDeinterlacer * deinterlacer;
+  QFuture<void>                 future;
 };
 
 SVideoDeinterlaceNode::SVideoDeinterlaceNode(SGraph *parent, const QString &algo)
@@ -33,13 +33,12 @@ SVideoDeinterlaceNode::SVideoDeinterlaceNode(SGraph *parent, const QString &algo
     SGraph::Node(parent),
     d(new Data())
 {
-  d->dependency = parent ? new SScheduler::Dependency(parent) : NULL;
   d->deinterlacer = SInterfaces::VideoDeinterlacer::create(this, algo);
 }
 
 SVideoDeinterlaceNode::~SVideoDeinterlaceNode()
 {
-  delete d->dependency;
+  d->future.waitForFinished();
   delete d->deinterlacer;
   delete d;
   *const_cast<Data **>(&d) = NULL;
@@ -50,15 +49,27 @@ QStringList SVideoDeinterlaceNode::algorithms(void)
   return SInterfaces::VideoDeinterlacer::available();
 }
 
+bool SVideoDeinterlaceNode::start(void)
+{
+  return true;
+}
+
+void SVideoDeinterlaceNode::stop(void)
+{
+  d->future.waitForFinished();
+}
+
 void SVideoDeinterlaceNode::input(const SVideoBuffer &videoBuffer)
 {
+  d->future.waitForFinished();
+
   if (d->deinterlacer)
   {
     const SVideoFormat::FieldMode fieldMode = videoBuffer.format().fieldMode();
     if ((fieldMode == SVideoFormat::FieldMode_InterlacedTopFirst) ||
         (fieldMode == SVideoFormat::FieldMode_InterlacedBottomFirst))
     {
-      schedule(&SVideoDeinterlaceNode::processTask, videoBuffer, d->dependency);
+      d->future = QtConcurrent::run(this, &SVideoDeinterlaceNode::processTask, videoBuffer);
     }
     else
       emit output(videoBuffer);

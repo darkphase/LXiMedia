@@ -44,6 +44,10 @@ public:
   bool                          openCodec(const SVideoCodec &, Flags = SInterfaces::VideoEncoder::Flag_None);
   SVideoCodec                   codec(void) const;
 
+public: // From SGraph::Node
+  virtual bool                  start(void);
+  virtual void                  stop(void);
+
 public slots:
   void                          input(const SVideoBuffer &);
 

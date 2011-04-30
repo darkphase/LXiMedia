@@ -86,8 +86,19 @@ void STimeStampSyncNode::setStartTime(STime startTime)
   d->startTime = startTime;
 }
 
+bool STimeStampSyncNode::start(void)
+{
+  return true;
+}
+
+void STimeStampSyncNode::stop(void)
+{
+}
+
 void STimeStampSyncNode::input(const SAudioBuffer &audioBuffer)
 {
+  Q_ASSERT(QThread::currentThread() == thread());
+
   if (!audioBuffer.isNull())
   {
     const STime timeStamp = audioBuffer.timeStamp();
@@ -128,6 +139,8 @@ void STimeStampSyncNode::input(const SAudioBuffer &audioBuffer)
 
 void STimeStampSyncNode::input(const SVideoBuffer &videoBuffer)
 {
+  Q_ASSERT(QThread::currentThread() == thread());
+
   if (!videoBuffer.isNull())
   {
     const STime timeStamp = videoBuffer.timeStamp();

@@ -30,9 +30,6 @@ namespace LXiStream {
 
 struct SSubpictureRenderNode::Data
 {
-  SScheduler::Dependency      * dependency;
-
-  QMutex                        mutex;
   volatile bool                 enabled;
   QMap<STime, SSubpictureBuffer> subpictures;
   SSubpictureBuffer             subpicture;
@@ -52,6 +49,9 @@ struct SSubpictureRenderNode::Data
   };
 
   QList<Rect>                   subpictureRects;
+
+  QMutex                        mutex;
+  QFuture<void>                 future;
 };
 
 SSubpictureRenderNode::SSubpictureRenderNode(SGraph *parent)
@@ -59,33 +59,28 @@ SSubpictureRenderNode::SSubpictureRenderNode(SGraph *parent)
     SGraph::Node(parent),
     d(new Data())
 {
-  d->dependency = parent ? new SScheduler::Dependency(parent) : NULL;
   d->enabled = false;
   d->subpictureVisible = false;
 }
 
 SSubpictureRenderNode::~SSubpictureRenderNode()
 {
-  delete d->dependency;
+  d->future.waitForFinished();
   delete d;
   *const_cast<Data **>(&d) = NULL;
 }
 
+bool SSubpictureRenderNode::start(void)
+{
+  return true;
+}
+
+void SSubpictureRenderNode::stop(void)
+{
+  d->future.waitForFinished();
+}
+
 void SSubpictureRenderNode::input(const SSubpictureBuffer &subpictureBuffer)
-{
-  if (!subpictureBuffer.isNull())
-    schedule(this, &SSubpictureRenderNode::processTask, subpictureBuffer, d->dependency);
-}
-
-void SSubpictureRenderNode::input(const SVideoBuffer &videoBuffer)
-{
-  if (!videoBuffer.isNull() && d->enabled)
-    schedule(this, &SSubpictureRenderNode::processTask, videoBuffer, d->dependency);
-  else
-    emit output(videoBuffer);
-}
-
-void SSubpictureRenderNode::processTask(const SSubpictureBuffer &subpictureBuffer)
 {
   QMutexLocker l(&d->mutex);
 
@@ -101,6 +96,16 @@ void SSubpictureRenderNode::processTask(const SSubpictureBuffer &subpictureBuffe
   }
 
   d->enabled = true;
+}
+
+void SSubpictureRenderNode::input(const SVideoBuffer &videoBuffer)
+{
+  d->future.waitForFinished();
+
+  if (!videoBuffer.isNull() && d->enabled)
+    d->future = QtConcurrent::run(this, &SSubpictureRenderNode::processTask, videoBuffer);
+  else
+    emit output(videoBuffer);
 }
 
 void SSubpictureRenderNode::processTask(const SVideoBuffer &videoBuffer)

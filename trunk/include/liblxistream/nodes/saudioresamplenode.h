@@ -44,6 +44,10 @@ public:
   unsigned                      sampleRate(void) const;
   void                          setSampleRate(unsigned);
 
+public: // From SGraph::Node
+  virtual bool                  start(void);
+  virtual void                  stop(void);
+
 public slots:
   void                          input(const SAudioBuffer &);
 

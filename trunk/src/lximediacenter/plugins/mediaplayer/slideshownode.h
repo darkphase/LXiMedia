@@ -53,7 +53,6 @@ signals:
 private:
   void                          loadImage(const QString &);
   void                          computeVideoBuffer(const SVideoBuffer &, const SVideoBuffer &, int);
-  void                          sendFlush(void);
   SVideoBuffer                  blackBuffer(void) const;
 
 public:
@@ -63,15 +62,15 @@ public:
 private:
   const SMediaInfoList          files;
 
-  SScheduler::Dependency * const loadDependency;
-  SScheduler::Dependency * const procDependency;
   SSize                         outSize;
   SAudioBuffer                  audioBuffer;
   STime                         time;
   int                           currentPicture;
   int                           currentFrame;
   SVideoBuffer                  lastBuffer, currentBuffer, nextBuffer;
-  QSemaphore                    nextBufferReady;
+
+  QFuture<void>                 loadFuture;
+  QFuture<void>                 future;
 };
 
 } } // End of namespaces

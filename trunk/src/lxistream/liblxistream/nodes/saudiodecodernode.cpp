@@ -24,10 +24,10 @@ namespace LXiStream {
 
 struct SAudioDecoderNode::Data
 {
-  SScheduler::Dependency      * dependency;
   SAudioDecoderNode::Flags      flags;
   SAudioCodec                   lastCodec;
   SInterfaces::AudioDecoder   * decoder;
+  QFuture<void>                 future;
 };
 
 SAudioDecoderNode::SAudioDecoderNode(SGraph *parent, Flags flags)
@@ -35,14 +35,13 @@ SAudioDecoderNode::SAudioDecoderNode(SGraph *parent, Flags flags)
     SGraph::Node(parent),
     d(new Data())
 {
-  d->dependency = parent ? new SScheduler::Dependency(parent) : NULL;
   d->flags = flags;
   d->decoder = NULL;
 }
 
 SAudioDecoderNode::~SAudioDecoderNode()
 {
-  delete d->dependency;
+  d->future.waitForFinished();
   delete d->decoder;
   delete d;
   *const_cast<Data **>(&d) = NULL;
@@ -63,27 +62,43 @@ void SAudioDecoderNode::setFlags(SAudioDecoderNode::Flags flags)
   d->flags = flags;
 }
 
-void SAudioDecoderNode::input(const SEncodedAudioBuffer &audioBuffer)
+bool SAudioDecoderNode::start(void)
 {
-  // Open the correct codec. The previous codec is not deleted as there may
-  // still be tasts that depend on it, it will be deleted by Qt when this object
-  // is destroyed.
-  if (!audioBuffer.isNull() && (d->lastCodec != audioBuffer.codec()))
-  {
-    d->lastCodec = audioBuffer.codec();
-    d->decoder = SInterfaces::AudioDecoder::create(NULL, d->lastCodec, d->flags, false);
-
-    if (d->decoder == NULL)
-      qWarning() << "Failed to find audio decoder for codec" << d->lastCodec.codec();
-  }
-
-  schedule(&SAudioDecoderNode::processTask, audioBuffer, d->decoder, d->dependency);
+  return true;
 }
 
-void SAudioDecoderNode::processTask(const SEncodedAudioBuffer &audioBuffer, SInterfaces::AudioDecoder *decoder)
+void SAudioDecoderNode::stop(void)
 {
-  if (decoder)
-  foreach (const SAudioBuffer &buffer, decoder->decodeBuffer(audioBuffer))
+  d->future.waitForFinished();
+}
+
+void SAudioDecoderNode::input(const SEncodedAudioBuffer &audioBuffer)
+{
+  d->future.waitForFinished();
+
+  if (!audioBuffer.isNull())
+  {
+    if (d->lastCodec != audioBuffer.codec())
+    {
+      delete d->decoder;
+
+      d->lastCodec = audioBuffer.codec();
+      d->decoder = SInterfaces::AudioDecoder::create(NULL, d->lastCodec, d->flags, false);
+
+      if (d->decoder == NULL)
+        qWarning() << "Failed to find audio decoder for codec" << d->lastCodec.codec();
+    }
+  }
+
+  if (d->decoder)
+    d->future = QtConcurrent::run(this, &SAudioDecoderNode::processTask, audioBuffer);
+  else
+    emit output(SAudioBuffer());
+}
+
+void SAudioDecoderNode::processTask(const SEncodedAudioBuffer &audioBuffer)
+{
+  foreach (const SAudioBuffer &buffer, d->decoder->decodeBuffer(audioBuffer))
     emit output(buffer);
 }
 
