@@ -28,6 +28,6 @@ win32 {
   system($${TAR} -x -f ffmpeg_0.5.2.orig.tar $${FFMPEG_HEADERS})
   system(del /S /Q include > NUL 2>&1)
   system(rmdir /S /Q include > NUL 2>&1)
-  system(move $${FFMPEG_VERSION} include > NUL 2>&1)
-  system(del /S /Q ffmpeg_0.5.2.orig.tar > NUL 2>&1)
+  system(ren $${FFMPEG_VERSION} include > NUL)
+  system(del /S /Q ffmpeg_0.5.2.orig.tar > NUL)
 }

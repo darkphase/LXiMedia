@@ -18,6 +18,7 @@
  ***************************************************************************/
 
 #include "mediaserver.h"
+#include "globalsettings.h"
 #include "htmlparser.h"
 
 //#define ENABLE_HTML5_PLAYER

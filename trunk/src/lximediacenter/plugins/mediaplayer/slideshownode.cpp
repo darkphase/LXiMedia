@@ -23,7 +23,7 @@
 // Implemented in slideshowsource.blend.c
 extern "C" void LXiMediaCenter_MediaPlayerBackend_SlideShowNode_blendImages(
     void * dstData, const void * srcDataA, const void * srcDataB,
-    unsigned numPixels, int factor) __attribute__((nonnull));
+    unsigned numPixels, int factor);
 
 namespace LXiMediaCenter {
 namespace MediaPlayerBackend {

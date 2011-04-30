@@ -17,17 +17,16 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef __BACKEND_H
-#define __BACKEND_H
+#ifndef BACKEND_H
+#define BACKEND_H
 
 #include <QtCore>
 #include <LXiMediaCenter>
 
-
-class Backend : public BackendServer::MasterServer,
+class Backend : public QObject,
+                protected BackendServer::MasterServer,
                 protected SHttpServer::Callback
 {
-Q_OBJECT
 private:
   struct SearchCacheEntry
   {
@@ -133,6 +132,5 @@ private:
 
   static const char     * const headSearchResults;
 };
-
 
 #endif

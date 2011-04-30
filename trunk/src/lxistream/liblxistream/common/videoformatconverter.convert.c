@@ -18,16 +18,16 @@
  ***************************************************************************/
 
 #include <sys/types.h>
-#include <stdint.h>
 #ifdef __SSE__
-  #include <xmmintrin.h>
+  #include <emmintrin.h>
 #endif
+#include <stdint.h>
 #include "spixels.h"
 
 __inline int bound(int a, int b, int c) { return b < a ? a : (b > c ? c : b); }
 
 void LXiStream_Common_VideoFormatConverter_convertYUYVtoRGB
- (RGBAPixel * restrict rgb, const YUYVPixel * restrict yuv, unsigned numPixels)
+ (RGBAPixel * __restrict rgb, const YUYVPixel * __restrict yuv, unsigned numPixels)
 {
   unsigned i;
 
@@ -78,7 +78,9 @@ void LXiStream_Common_VideoFormatConverter_convertYUYVtoRGB
 
     for (i=0; i<numPixels; i+=4)
     {
-      __m128i px = _mm_unpacklo_epi8(_mm_loadl_epi64(yuv), zero);
+      __m128i px, uv, c02, c13;
+
+      px = _mm_unpacklo_epi8(_mm_loadl_epi64((const __m128i *)yuv), zero);
       yuv += 2;
 
       // y0 = 1.1643f * (y0 - 0.0625f);
@@ -91,25 +93,25 @@ void LXiStream_Common_VideoFormatConverter_convertYUYVtoRGB
       // r = bound(0, (int)((y0 + 1.5958f  * v)                * 255.0f), 255);
       // g = bound(0, (int)((y0 - 0.39173f * u - 0.81290f * v) * 255.0f), 255);
       // b = bound(0, (int)((y0 + 2.017f   * u)                * 255.0f), 255);
-      __m128i uv = _mm_shufflelo_epi16(_mm_shufflehi_epi16(px, _MM_SHUFFLE(3, 3, 1, 1)), _MM_SHUFFLE(3, 3, 1, 1));
+      uv = _mm_shufflelo_epi16(_mm_shufflehi_epi16(px, _MM_SHUFFLE(3, 3, 1, 1)), _MM_SHUFFLE(3, 3, 1, 1));
       uv = _mm_srai_epi16(_mm_mullo_epi16(uv, val3), 5); // Shift to divide by 32.
       uv = _mm_add_epi16(uv, _mm_slli_epi64(_mm_srli_epi64(uv, 48), 16)); // add the "-0.81290f * v" component to the "-0.39173f * u" component
 
-      __m128i c02 = _mm_shufflelo_epi16(_mm_shufflehi_epi16(px, _MM_SHUFFLE(0, 0, 0, 0)), _MM_SHUFFLE(0, 0, 0, 0));
+      c02 = _mm_shufflelo_epi16(_mm_shufflehi_epi16(px, _MM_SHUFFLE(0, 0, 0, 0)), _MM_SHUFFLE(0, 0, 0, 0));
       c02 = _mm_max_epi16(_mm_min_epi16(_mm_add_epi16(c02, uv), maxv), minv); // bound 0 >= n >= 255, except for "a" component.
 
       // Extract pixels 1 and 3
       // r = bound(0, (int)((y1 + 1.5958f  * v)                * 255.0f), 255);
       // g = bound(0, (int)((y1 - 0.39173f * u - 0.81290f * v) * 255.0f), 255);
       // b = bound(0, (int)((y1 + 2.017f   * u)                * 255.0f), 255);
-      __m128i c13 = _mm_shufflelo_epi16(_mm_shufflehi_epi16(px, _MM_SHUFFLE(2, 2, 2, 2)), _MM_SHUFFLE(2, 2, 2, 2));
+      c13 = _mm_shufflelo_epi16(_mm_shufflehi_epi16(px, _MM_SHUFFLE(2, 2, 2, 2)), _MM_SHUFFLE(2, 2, 2, 2));
       c13 = _mm_max_epi16(_mm_min_epi16(_mm_add_epi16(c13, uv), maxv), minv); // bound 0 >= n >= 255, except for "a" component.
 
       // Store data
       if (aligned)
-        _mm_store_si128(rgb, _mm_shuffle_epi32(_mm_packus_epi16(c02, c13), _MM_SHUFFLE(3, 1, 2, 0)));
+        _mm_store_si128((__m128i *)rgb, _mm_shuffle_epi32(_mm_packus_epi16(c02, c13), _MM_SHUFFLE(3, 1, 2, 0)));
       else
-        _mm_storeu_si128(rgb, _mm_shuffle_epi32(_mm_packus_epi16(c02, c13), _MM_SHUFFLE(3, 1, 2, 0)));
+        _mm_storeu_si128((__m128i *)rgb, _mm_shuffle_epi32(_mm_packus_epi16(c02, c13), _MM_SHUFFLE(3, 1, 2, 0)));
 
       rgb += 4;
     }
@@ -118,7 +120,7 @@ void LXiStream_Common_VideoFormatConverter_convertYUYVtoRGB
 }
 
 void LXiStream_Common_VideoFormatConverter_convertUYVYtoRGB
- (RGBAPixel * restrict rgb, const UYVYPixel * restrict yuv, unsigned numPixels)
+ (RGBAPixel * __restrict rgb, const UYVYPixel * __restrict yuv, unsigned numPixels)
 {
   unsigned i;
 
@@ -169,7 +171,9 @@ void LXiStream_Common_VideoFormatConverter_convertUYVYtoRGB
 
     for (i=0; i<numPixels; i+=4)
     {
-      __m128i px = _mm_unpacklo_epi8(_mm_loadl_epi64(yuv), zero);
+      __m128i px, uv, c02, c13;
+
+      px = _mm_unpacklo_epi8(_mm_loadl_epi64((const __m128i *)yuv), zero);
       yuv += 2;
 
       // y0 = 1.1643f * (y0 - 0.0625f);
@@ -182,25 +186,25 @@ void LXiStream_Common_VideoFormatConverter_convertUYVYtoRGB
       // r = bound(0, (int)((y0 + 1.5958f  * v)                * 255.0f), 255);
       // g = bound(0, (int)((y0 - 0.39173f * u - 0.81290f * v) * 255.0f), 255);
       // b = bound(0, (int)((y0 + 2.017f   * u)                * 255.0f), 255);
-      __m128i uv = _mm_shufflelo_epi16(_mm_shufflehi_epi16(px, _MM_SHUFFLE(2, 2, 0, 0)), _MM_SHUFFLE(2, 2, 0, 0));
+      uv = _mm_shufflelo_epi16(_mm_shufflehi_epi16(px, _MM_SHUFFLE(2, 2, 0, 0)), _MM_SHUFFLE(2, 2, 0, 0));
       uv = _mm_srai_epi16(_mm_mullo_epi16(uv, val3), 5); // Shift to divide by 32.
       uv = _mm_add_epi16(uv, _mm_slli_epi64(_mm_srli_epi64(uv, 48), 16)); // add the "-0.81290f * v" component to the "-0.39173f * u" component
 
-      __m128i c02 = _mm_shufflelo_epi16(_mm_shufflehi_epi16(px, _MM_SHUFFLE(1, 1, 1, 1)), _MM_SHUFFLE(1, 1, 1, 1));
+      c02 = _mm_shufflelo_epi16(_mm_shufflehi_epi16(px, _MM_SHUFFLE(1, 1, 1, 1)), _MM_SHUFFLE(1, 1, 1, 1));
       c02 = _mm_max_epi16(_mm_min_epi16(_mm_add_epi16(c02, uv), maxv), minv); // bound 0 >= n >= 255, except for "a" component.
 
       // Extract pixels 1 and 3
       // r = bound(0, (int)((y1 + 1.5958f  * v)                * 255.0f), 255);
       // g = bound(0, (int)((y1 - 0.39173f * u - 0.81290f * v) * 255.0f), 255);
       // b = bound(0, (int)((y1 + 2.017f   * u)                * 255.0f), 255);
-      __m128i c13 = _mm_shufflelo_epi16(_mm_shufflehi_epi16(px, _MM_SHUFFLE(3, 3, 3, 3)), _MM_SHUFFLE(3, 3, 3, 3));
+      c13 = _mm_shufflelo_epi16(_mm_shufflehi_epi16(px, _MM_SHUFFLE(3, 3, 3, 3)), _MM_SHUFFLE(3, 3, 3, 3));
       c13 = _mm_max_epi16(_mm_min_epi16(_mm_add_epi16(c13, uv), maxv), minv); // bound 0 >= n >= 255, except for "a" component.
 
       // Store data
       if (aligned)
-        _mm_store_si128(rgb, _mm_shuffle_epi32(_mm_packus_epi16(c02, c13), _MM_SHUFFLE(3, 1, 2, 0)));
+        _mm_store_si128((__m128i *)rgb, _mm_shuffle_epi32(_mm_packus_epi16(c02, c13), _MM_SHUFFLE(3, 1, 2, 0)));
       else
-        _mm_storeu_si128(rgb, _mm_shuffle_epi32(_mm_packus_epi16(c02, c13), _MM_SHUFFLE(3, 1, 2, 0)));
+        _mm_storeu_si128((__m128i *)rgb, _mm_shuffle_epi32(_mm_packus_epi16(c02, c13), _MM_SHUFFLE(3, 1, 2, 0)));
 
       rgb += 4;
     }
@@ -209,7 +213,7 @@ void LXiStream_Common_VideoFormatConverter_convertUYVYtoRGB
 }
 
 void LXiStream_Common_VideoFormatConverter_convertBGRtoRGB
- (uint32_t * restrict dst, const uint32_t * restrict src, unsigned numPixels)
+ (uint32_t * __restrict dst, const uint32_t * __restrict src, unsigned numPixels)
 {
   unsigned i;
 
@@ -236,10 +240,12 @@ void LXiStream_Common_VideoFormatConverter_convertBGRtoRGB
 
     for (i=0; i<numPixels; i+=sizeof(__m128i)/sizeof(uint32_t))
     {
-      __m128i px = _mm_load_si128((__m128i *)src);
+      __m128i px, rs;
+
+      px = _mm_load_si128((__m128i *)src);
       src += sizeof(__m128i) / sizeof(*src);
 
-      __m128i rs = _mm_and_si128(px, mask1);
+      rs = _mm_and_si128(px, mask1);
       rs = _mm_or_si128(rs, _mm_slli_si128(_mm_and_si128(px, mask2), 16));
       rs = _mm_or_si128(rs, _mm_srli_si128(_mm_and_si128(px, mask3), 16));
 
@@ -251,7 +257,7 @@ void LXiStream_Common_VideoFormatConverter_convertBGRtoRGB
 }
 
 void LXiStream_Common_VideoFormatConverter_convertYUV1toRGB
- (RGBAPixel * restrict rgb, const uint8_t * restrict iy, const uint8_t * restrict iu, const uint8_t * restrict iv, unsigned numPixels)
+ (RGBAPixel * __restrict rgb, const uint8_t * __restrict iy, const uint8_t * __restrict iu, const uint8_t * __restrict iv, unsigned numPixels)
 {
   unsigned i;
 
@@ -276,7 +282,7 @@ void LXiStream_Common_VideoFormatConverter_convertYUV1toRGB
 }
 
 void LXiStream_Common_VideoFormatConverter_convertYUV2toRGB
- (RGBAPixel * restrict rgb, const uint8_t * restrict iy, const uint8_t * restrict iu, const uint8_t * restrict iv, unsigned numPixels)
+ (RGBAPixel * __restrict rgb, const uint8_t * __restrict iy, const uint8_t * __restrict iu, const uint8_t * __restrict iv, unsigned numPixels)
 {
   unsigned i;
 
@@ -326,7 +332,9 @@ void LXiStream_Common_VideoFormatConverter_convertYUV2toRGB
     for (i=0; i<numPixels; i+=4)
     {
       const int in = i + 2;
-      __m128i px = _mm_setr_epi16(iy[i],  iu[i  >> 1], iy[i  + 1], iv[i  >> 1],
+      __m128i px, uv, c02, c13;
+
+      px = _mm_setr_epi16(iy[i],  iu[i  >> 1], iy[i  + 1], iv[i  >> 1],
                                   iy[in], iu[in >> 1], iy[in + 1], iv[in >> 1]);
 
       // y0 = 1.1643f * (y0 - 0.0625f);
@@ -339,25 +347,25 @@ void LXiStream_Common_VideoFormatConverter_convertYUV2toRGB
       // r = bound(0, (int)((y0 + 1.5958f  * v)                * 255.0f), 255);
       // g = bound(0, (int)((y0 - 0.39173f * u - 0.81290f * v) * 255.0f), 255);
       // b = bound(0, (int)((y0 + 2.017f   * u)                * 255.0f), 255);
-      __m128i uv = _mm_shufflelo_epi16(_mm_shufflehi_epi16(px, _MM_SHUFFLE(3, 3, 1, 1)), _MM_SHUFFLE(3, 3, 1, 1));
+      uv = _mm_shufflelo_epi16(_mm_shufflehi_epi16(px, _MM_SHUFFLE(3, 3, 1, 1)), _MM_SHUFFLE(3, 3, 1, 1));
       uv = _mm_srai_epi16(_mm_mullo_epi16(uv, val3), 5); // Shift to divide by 32.
       uv = _mm_add_epi16(uv, _mm_slli_epi64(_mm_srli_epi64(uv, 48), 16)); // add the "-0.81290f * v" component to the "-0.39173f * u" component
 
-      __m128i c02 = _mm_shufflelo_epi16(_mm_shufflehi_epi16(px, _MM_SHUFFLE(0, 0, 0, 0)), _MM_SHUFFLE(0, 0, 0, 0));
+      c02 = _mm_shufflelo_epi16(_mm_shufflehi_epi16(px, _MM_SHUFFLE(0, 0, 0, 0)), _MM_SHUFFLE(0, 0, 0, 0));
       c02 = _mm_max_epi16(_mm_min_epi16(_mm_add_epi16(c02, uv), maxv), minv); // bound 0 >= n >= 255, except for "a" component.
 
       // Extract pixels 1 and 3
       // r = bound(0, (int)((y1 + 1.5958f  * v)                * 255.0f), 255);
       // g = bound(0, (int)((y1 - 0.39173f * u - 0.81290f * v) * 255.0f), 255);
       // b = bound(0, (int)((y1 + 2.017f   * u)                * 255.0f), 255);
-      __m128i c13 = _mm_shufflelo_epi16(_mm_shufflehi_epi16(px, _MM_SHUFFLE(2, 2, 2, 2)), _MM_SHUFFLE(2, 2, 2, 2));
+      c13 = _mm_shufflelo_epi16(_mm_shufflehi_epi16(px, _MM_SHUFFLE(2, 2, 2, 2)), _MM_SHUFFLE(2, 2, 2, 2));
       c13 = _mm_max_epi16(_mm_min_epi16(_mm_add_epi16(c13, uv), maxv), minv); // bound 0 >= n >= 255, except for "a" component.
 
       // Store data
       if (aligned)
-        _mm_store_si128(rgb, _mm_shuffle_epi32(_mm_packus_epi16(c02, c13), _MM_SHUFFLE(3, 1, 2, 0)));
+        _mm_store_si128((__m128i *)rgb, _mm_shuffle_epi32(_mm_packus_epi16(c02, c13), _MM_SHUFFLE(3, 1, 2, 0)));
       else
-        _mm_storeu_si128(rgb, _mm_shuffle_epi32(_mm_packus_epi16(c02, c13), _MM_SHUFFLE(3, 1, 2, 0)));
+        _mm_storeu_si128((__m128i *)rgb, _mm_shuffle_epi32(_mm_packus_epi16(c02, c13), _MM_SHUFFLE(3, 1, 2, 0)));
 
       rgb += 4;
     }

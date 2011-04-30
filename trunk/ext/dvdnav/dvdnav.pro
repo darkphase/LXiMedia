@@ -23,14 +23,17 @@ win32 {
   system($${TAR} -x -f libdvdread_4.1.3.orig.tar $${DVDREAD_HEADERS})
   system(del /S /Q include > NUL 2>&1)
   system(rmdir /S /Q include > NUL 2>&1)
-  system(move $${DVDREAD_VERSION} include > NUL 2>&1)
-  system(move include\\src include\\dvdread > NUL 2>&1)
-  system(del /S /Q libdvdread_4.1.3.orig.tar > NUL 2>&1)
+  system(ren $${DVDREAD_VERSION} include > NUL)
+  system(move include\\src include\\dvdread > NUL)
+  system(del /S /Q libdvdread_4.1.3.orig.tar > NUL)
 
   system($${BZIP2} -fdk $${PWD}/libdvdnav_4.1.3.orig.tar.bz2)
   system($${TAR} -x -f libdvdnav_4.1.3.orig.tar $${DVDNAV_HEADERS})
-  system(move $${DVDNAV_VERSION}\\src include\\dvdnav > NUL 2>&1)
-  system(del /S /Q $${DVDNAV_VERSION} > NUL 2>&1)
-  system(rmdir /S /Q $${DVDNAV_VERSION} > NUL 2>&1)
-  system(del /S /Q libdvdnav_4.1.3.orig.tar > NUL 2>&1)
+  system(move $${DVDNAV_VERSION}\\src include\\dvdnav > NUL)
+  system(del /S /Q $${DVDNAV_VERSION} > NUL)
+  system(rmdir /S /Q $${DVDNAV_VERSION} > NUL)
+  system(del /S /Q libdvdnav_4.1.3.orig.tar > NUL)
+}
+win32-msvc2005|win32-msvc2008|win32-msvc2010 {
+  system(echo // Generated from dvdnav.pro       >  include\\config.h)
 }

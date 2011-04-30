@@ -116,12 +116,12 @@ public: // Alignment methods
   /*! This constant specifies the minimum value by which data should be aligned
       in memory to prevent crashes (e.g. 16 bytes for SSE).
    */
-  static const int              minimumAlignVal;
+  static const int              minimumAlignVal = 16;
 
   /*! This constant specifies the optimal value by which data should be aligned
       in memory for best performance (e.g. the size of a cache line).
    */
-  static const int              optimalAlignVal;
+  static const int              optimalAlignVal = 64;
 
   /*! This helper method aligns the specified buffer size to the optimal CPU
       alignment. The returned value is at least size and at most
@@ -151,7 +151,7 @@ public: // Alignment methods
             Thus if capacity() returns 2000, the actual allocated amount of
             memory is 2000 + numPaddingBytes.
    */
-  static const int              numPaddingBytes;
+  static const int              numPaddingBytes = minimumAlignVal;
 
 private:
   _lxi_internal static QAtomicInt uidCounter;

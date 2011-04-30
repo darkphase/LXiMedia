@@ -34,3 +34,11 @@ SOURCES += audiodecoder.cpp \
     bufferwriter.cpp \
     bufferreader.cpp \
     videoformatconverter.cpp
+
+# Windows specific
+win32-msvc2005|win32-msvc2008|win32-msvc2010 {
+  TEMPLATE = vclib
+  GUID = 1cad8fa2-7359-11e0-9142-974909def34c
+  DEFINES += _CRT_SECURE_NO_WARNINGS
+  PRECOMPILED_SOURCE = $${PRECOMPILED_HEADER}
+}

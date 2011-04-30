@@ -207,7 +207,7 @@ void ConfigServer::generateDirs(HtmlParser &htmlParser, const QFileInfoList &dir
                                   &dwSerialNumber,
                                   &dwMaxFileNameLength,
                                   &dwFileSystemFlags,
-                                  szFileSystemName, sizeof(szFileSystemName) / sizeof(*szFileSystemName)));
+                                  szFileSystemName, sizeof(szFileSystemName) / sizeof(*szFileSystemName)))
       {
         return QString::fromUtf16((const ushort *)szVolumeName).trimmed();
       }

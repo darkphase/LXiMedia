@@ -18,29 +18,26 @@
  ***************************************************************************/
 
 #include <sys/types.h>
-#include <stdint.h>
 #include <assert.h>
 #ifdef __SSE__
-  #include <xmmintrin.h>
+  #include <emmintrin.h>
 #endif
+#include <stdint.h>
 
 void LXiStream_Common_Deinterlace_mixFields
- (const uint8_t * restrict lineA, uint8_t * restrict lineB, const uint8_t * restrict lineC, unsigned numSamples)
+ (const uint8_t * __restrict lineA, uint8_t * __restrict lineB, const uint8_t * __restrict lineC, unsigned numSamples)
 {
-  // Check alignment
-  assert(((size_t)lineA & (size_t)15) == 0);
-  assert(((size_t)lineB & (size_t)15) == 0);
-  assert(((size_t)lineC & (size_t)15) == 0);
-  assert(((size_t)numSamples & (size_t)15) == 0);
+  unsigned i;
 
 #ifndef __SSE__
-  for (unsigned i=0; i<numSamples; i++)
+  for (i=0; i<numSamples; i++)
   {
     const uint8_t as = lineA[i] >> 1, bs = lineB[i] >> 1, cs = lineC[i] >> 1;
 
     int8_t dAB = ((int8_t)as) - ((int8_t)bs);
-    dAB = dAB >= 0 ? dAB : (-dAB);
     int8_t dAC = ((int8_t)as) - ((int8_t)cs);
+
+    dAB = dAB >= 0 ? dAB : (-dAB);
     dAC = dAC >= 0 ? dAC : (-dAC);
 
     if (dAB > (dAC + 8))
@@ -50,7 +47,13 @@ void LXiStream_Common_Deinterlace_mixFields
   const __m128i m = _mm_set1_epi8(0xFE);
   const __m128i c8 = _mm_set1_epi8(8);
 
-  for (unsigned i=0; i<numSamples; i+=(sizeof(__m128i)/sizeof(uint8_t)))
+  // Check alignment
+  assert(((size_t)lineA & (size_t)15) == 0);
+  assert(((size_t)lineB & (size_t)15) == 0);
+  assert(((size_t)lineC & (size_t)15) == 0);
+  assert(((size_t)numSamples & (size_t)15) == 0);
+
+  for (i=0; i<numSamples; i+=(sizeof(__m128i)/sizeof(uint8_t)))
   {
     __m128i as = _mm_srli_epi32(_mm_and_si128(_mm_load_si128((__m128i *)(lineA + i)), m), 1);
     __m128i b  = _mm_load_si128((__m128i *)(lineB + i));
@@ -58,13 +61,16 @@ void LXiStream_Common_Deinterlace_mixFields
     __m128i cs = _mm_srli_epi32(_mm_and_si128(_mm_load_si128((__m128i *)(lineC + i)), m), 1);
 
     __m128i dAB = _mm_sub_epi8(as, bs);
-    dAB = _mm_min_epu8(dAB, _mm_sub_epi8(_mm_setzero_si128(), dAB));
     __m128i dAC = _mm_sub_epi8(as, cs);
+
+    dAB = _mm_min_epu8(dAB, _mm_sub_epi8(_mm_setzero_si128(), dAB));
     dAC = _mm_min_epu8(dAC, _mm_sub_epi8(_mm_setzero_si128(), dAC));
 
-    __m128i blend = _mm_cmpgt_epi8(dAB, _mm_adds_epi8(dAC, c8));
-    __m128i result = _mm_and_si128(_mm_adds_epu8(as, cs), blend);
-    _mm_store_si128((__m128i *)(lineB + i), _mm_or_si128(result, _mm_andnot_si128(blend, b)));
+    {
+      __m128i blend = _mm_cmpgt_epi8(dAB, _mm_adds_epi8(dAC, c8));
+      __m128i result = _mm_and_si128(_mm_adds_epu8(as, cs), blend);
+      _mm_store_si128((__m128i *)(lineB + i), _mm_or_si128(result, _mm_andnot_si128(blend, b)));
+    }
   }
 #endif
 }

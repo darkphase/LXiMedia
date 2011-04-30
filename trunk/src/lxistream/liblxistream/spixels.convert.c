@@ -18,9 +18,8 @@
  ***************************************************************************/
 
 #include "spixels.h"
-#include <sys/types.h>
 #ifdef __SSE__
-  #include <xmmintrin.h>
+  #include <emmintrin.h>
 #endif
 
 YUVAPixel RGBA2YUVA(RGBAPixel p)

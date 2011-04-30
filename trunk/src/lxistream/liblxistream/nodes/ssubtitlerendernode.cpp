@@ -43,6 +43,10 @@ extern "C" void LXiStream_SSubtitleRenderNode_mixSubtitle32_stretch(
     float srcAspect,
     const void *lines, const void *characters);
 
+#if defined(Q_OS_WIN)
+#pragma warning (disable : 4200)
+#endif
+
 namespace LXiStream {
 
 // Keep these structures in sync with the ones defined in ssubtitlerendernode.mix.c

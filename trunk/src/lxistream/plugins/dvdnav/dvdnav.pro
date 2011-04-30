@@ -11,3 +11,10 @@ HEADERS += formatprober.h \
 SOURCES += formatprober.cpp \
     module.cpp \
     bufferreader.cpp
+
+# Windows specific
+win32-msvc2005|win32-msvc2008|win32-msvc2010 {
+  TEMPLATE = vclib
+  GUID = f9ffb2be-7358-11e0-a6bd-fb96216d1d8a
+  DEFINES += _CRT_SECURE_NO_WARNINGS
+}

@@ -19,8 +19,6 @@
 
 #include "sandbox.h"
 
-const QEvent::Type  Sandbox::exitEventType = QEvent::Type(QEvent::registerEventType());
-
 Sandbox::Sandbox()
   : QObject(),
     mediaApp(),
@@ -35,16 +33,28 @@ Sandbox::Sandbox()
   stopTimer.setInterval(60000);
   stopTimer.start();
 
-  connect(&stopTimer, SIGNAL(timeout()), SLOT(stop()));
+  connect(&stopTimer, SIGNAL(timeout()), SLOT(deleteLater()));
   connect(&sandboxServer, SIGNAL(busy()), &stopTimer, SLOT(stop()));
   connect(&sandboxServer, SIGNAL(idle()), &stopTimer, SLOT(start()));
 }
 
 Sandbox::~Sandbox()
 {
+  foreach (BackendSandbox *sandbox, backendSandboxes)
+  {
+    sandbox->close();
+    delete sandbox;
+  }
+
+  backendSandboxes.clear();
+
+  qDebug() << "Stopping sandbox process" << qApp->applicationPid();
+
   QThreadPool::globalInstance()->waitForDone();
 
   sandboxServer.close();
+
+  qApp->exit(0);
 }
 
 void Sandbox::start(const QString &mode)
@@ -59,27 +69,4 @@ void Sandbox::start(const QString &mode)
   sandboxServer.initialize(mode);
 
   qDebug() << "Finished initialization of sandbox process" << qApp->applicationPid();
-}
-
-void Sandbox::stop(void)
-{
-  foreach (BackendSandbox *sandbox, backendSandboxes)
-  {
-    sandbox->close();
-    delete sandbox;
-  }
-
-  backendSandboxes.clear();
-
-  qDebug() << "Stopping sandbox process" << qApp->applicationPid();
-
-  qApp->exit(0);
-}
-
-void Sandbox::customEvent(QEvent *e)
-{
-  if (e->type() == exitEventType)
-    stop();
-  else
-    QObject::customEvent(e);
 }

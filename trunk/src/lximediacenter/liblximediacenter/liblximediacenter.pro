@@ -11,10 +11,8 @@ DEPENDPATH += $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter
 
 DEFINES += S_BUILD_LIBLXIMEDIACENTER
 
-linux-g++|win32-g++ {
-  CONFIG += precompile_header
-  PRECOMPILED_HEADER = $${PWD}/$${LXIMEDIA_DIR}/include/LXiMediaCenter
-}
+CONFIG += precompile_header
+PRECOMPILED_HEADER = $${PWD}/$${LXIMEDIA_DIR}/include/LXiMediaCenter
 
 include($${PWD}/$${LXIMEDIA_DIR}/include/liblxicore/linklxicore.pri)
 include($${PWD}/$${LXIMEDIA_DIR}/include/liblxiserver/linklxiserver.pri)
@@ -85,4 +83,10 @@ win32 {
 win32-g++ {
     system(copy /Y $$(QTDIR)\\bin\\libgcc_s_dw2-1.dll $${OUT_DIR} > NUL)
     system(copy /Y $$(QTDIR)\\bin\\mingwm10.dll $${OUT_DIR} > NUL)
+}
+win32-msvc2005|win32-msvc2008|win32-msvc2010 {
+  TEMPLATE = vclib
+  GUID = f4e525ea-7365-11e0-aef3-cba632b16f97
+  DEFINES += _CRT_SECURE_NO_WARNINGS
+  PRECOMPILED_SOURCE = $${PRECOMPILED_HEADER}
 }

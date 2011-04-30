@@ -14,8 +14,8 @@ win32 {
   system($${TAR} -x -f fftw3_3.2.2.orig.tar $${FFTW_HEADERS})
   system(del /S /Q include > NUL 2>&1)
   system(rmdir /S /Q include > NUL 2>&1)
-  system(move $${FFTW_VERSION}\\api include > NUL 2>&1)
-  system(del /S /Q $${FFTW_VERSION} > NUL 2>&1)
-  system(rmdir /S /Q $${FFTW_VERSION} > NUL 2>&1)
-  system(del /S /Q fftw3_3.2.2.orig.tar > NUL 2>&1)
+  system(move $${FFTW_VERSION}\\api include > NUL)
+  system(del /S /Q $${FFTW_VERSION} > NUL)
+  system(rmdir /S /Q $${FFTW_VERSION} > NUL)
+  system(del /S /Q fftw3_3.2.2.orig.tar > NUL)
 }

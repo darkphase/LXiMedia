@@ -9,3 +9,10 @@ include($${PWD}/$${LXIMEDIA_DIR}/ext/fftw/fftw.pri)
 HEADERS += module.h
 
 SOURCES += module.cpp
+
+# Windows specific
+win32-msvc2005|win32-msvc2008|win32-msvc2010 {
+  TEMPLATE = vclib
+  GUID = 2a5cfcb4-7359-11e0-bdef-b7a999f73b97
+  DEFINES += _CRT_SECURE_NO_WARNINGS
+}

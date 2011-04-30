@@ -18,12 +18,12 @@
  ***************************************************************************/
 
 #include <sys/types.h>
-#include <stdint.h>
 #include <string.h>
+#include <stdint.h>
 
 void LXiStream_SVideoBoxNode_boxVideo8
- (const uint8_t * restrict srcData, unsigned srcWidth, unsigned srcStride, unsigned srcNumLines,
-  uint8_t * restrict dstData, unsigned dstWidth, unsigned dstStride, unsigned dstNumLines,
+ (const uint8_t * __restrict srcData, unsigned srcWidth, unsigned srcStride, unsigned srcNumLines,
+  uint8_t * __restrict dstData, unsigned dstWidth, unsigned dstStride, unsigned dstNumLines,
   int nullPixel)
 {
   const unsigned inLineOffset = (dstNumLines < srcNumLines) ? ((srcNumLines - dstNumLines) / 2) : 0;
@@ -35,15 +35,15 @@ void LXiStream_SVideoBoxNode_boxVideo8
 
   for (; line<outLineOffset; line++)
   {
-    uint8_t * const restrict dstLine = dstData + (line * dstStride);
+    uint8_t * const __restrict dstLine = dstData + (line * dstStride);
 
     memset(dstLine, nullPixel, dstWidth);
   }
 
   for (; line<srcNumLines+outLineOffset; line++)
   {
-    const uint8_t * const restrict srcLine = srcData + ((line + inLineOffset - outLineOffset) * srcStride) + inPixelOffset;
-    uint8_t * const restrict dstLine = dstData + (line * dstStride);
+    const uint8_t * const __restrict srcLine = srcData + ((line + inLineOffset - outLineOffset) * srcStride) + inPixelOffset;
+    uint8_t * const __restrict dstLine = dstData + (line * dstStride);
 
     memset(dstLine, nullPixel, outPixelOffset);
     memcpy(dstLine + outPixelOffset, srcLine, outWidth);
@@ -52,16 +52,16 @@ void LXiStream_SVideoBoxNode_boxVideo8
 
   for (; line<dstNumLines; line++)
   {
-    uint8_t * const restrict dstLine = dstData + (line * dstStride);
+    uint8_t * const __restrict dstLine = dstData + (line * dstStride);
 
     memset(dstLine, nullPixel, dstWidth);
   }
-} __attribute__((nonnull(1, 5)));
+}
 
 
 void LXiStream_SVideoBoxNode_boxVideo32
- (const uint32_t * restrict srcData, unsigned srcWidth, unsigned srcStride, unsigned srcNumLines,
-  uint32_t * restrict dstData, unsigned dstWidth, unsigned dstStride, unsigned dstNumLines,
+ (const uint32_t * __restrict srcData, unsigned srcWidth, unsigned srcStride, unsigned srcNumLines,
+  uint32_t * __restrict dstData, unsigned dstWidth, unsigned dstStride, unsigned dstNumLines,
   uint32_t nullPixel)
 {
   const unsigned inLineOffset = (dstNumLines < srcNumLines) ? ((srcNumLines - dstNumLines) / 2) : 0;
@@ -73,7 +73,7 @@ void LXiStream_SVideoBoxNode_boxVideo32
 
   for (; line<outLineOffset; line++)
   {
-    uint32_t * const restrict dstLine = (uint32_t *)((uint8_t *)dstData + (line * dstStride));
+    uint32_t * const __restrict dstLine = (uint32_t *)((uint8_t *)dstData + (line * dstStride));
 
     for (pix=0; pix<dstWidth; pix++)
       dstLine[pix] = nullPixel;
@@ -81,8 +81,8 @@ void LXiStream_SVideoBoxNode_boxVideo32
 
   for (; line<srcNumLines+outLineOffset; line++)
   {
-    const uint32_t * const restrict srcLine = ((uint32_t *)((uint8_t *)srcData + ((line + inLineOffset - outLineOffset) * srcStride))) + inPixelOffset;
-    uint32_t * const restrict dstLine = (uint32_t *)((uint8_t *)dstData + (line * dstStride));
+    const uint32_t * const __restrict srcLine = ((uint32_t *)((uint8_t *)srcData + ((line + inLineOffset - outLineOffset) * srcStride))) + inPixelOffset;
+    uint32_t * const __restrict dstLine = (uint32_t *)((uint8_t *)dstData + (line * dstStride));
 
     for (pix=0; pix<outPixelOffset; pix++)
       dstLine[pix] = nullPixel;
@@ -96,9 +96,9 @@ void LXiStream_SVideoBoxNode_boxVideo32
 
   for (; line<dstNumLines; line++)
   {
-    uint32_t * const restrict dstLine = (uint32_t *)((uint8_t *)dstData + (line * dstStride));
+    uint32_t * const __restrict dstLine = (uint32_t *)((uint8_t *)dstData + (line * dstStride));
 
     for (pix=0; pix<dstWidth; pix++)
       dstLine[pix] = nullPixel;
   }
-} __attribute__((nonnull(1, 5)));
+}

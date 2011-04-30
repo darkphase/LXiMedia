@@ -19,7 +19,12 @@
 
 #include "stimer.h"
 #include <QtCore>
+#if defined(Q_OS_UNIX)
 #include <sys/time.h>
+#elif defined(Q_OS_WIN)
+#include <windows.h>
+#endif
+
 
 namespace LXiStream {
 
@@ -29,6 +34,10 @@ struct STimer::Data
   QAtomicInt                    ref;
   STime                         localOffset;
   STime                         pausedTimeStamp;
+
+#if defined(Q_OS_WIN)
+  qint64                        timerFreq;
+#endif
 };
 
 struct STimer::IntervalData
@@ -46,6 +55,14 @@ STimer::STimer(void)
   d->ref = 1;
   d->localOffset = STime::null;
   d->pausedTimeStamp = STime();
+
+#if defined(Q_OS_WIN)
+  LARGE_INTEGER freq;
+  if (::QueryPerformanceFrequency(&freq))
+    d->timerFreq = freq.QuadPart;
+  else
+    d->timerFreq = 0;
+#endif
 }
 
 STimer::~STimer(void)
@@ -215,10 +232,18 @@ STime STimer::smoothTimeStamp(STime interval, STime delay)
 
 STime STimer::absoluteTimeStamp(void) const
 {
+#if defined(Q_OS_UNIX)
   struct timeval now;
   gettimeofday(&now, NULL);
 
   return STime::fromSec(now.tv_sec) + STime::fromUSec(now.tv_usec);
+#elif defined(Q_OS_WIN)
+  LARGE_INTEGER count;
+  if ((d->timerFreq > 0) && ::QueryPerformanceCounter(&count))
+    return STime::fromUSec((count.QuadPart * Q_INT64_C(1000000)) / d->timerFreq);
+  else
+    return STime::fromUSec(0);
+#endif
 }
 
 

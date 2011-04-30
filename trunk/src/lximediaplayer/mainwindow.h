@@ -116,8 +116,6 @@ private slots:
   void                          applySeek();
 
 private:
-  struct PlayerGraph;
-
   SApplication                * mediaApp;
 
   Ui_mainWindow                 ui;

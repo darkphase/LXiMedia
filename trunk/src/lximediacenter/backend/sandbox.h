@@ -17,30 +17,21 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef __SANDBOX_H
-#define __SANDBOX_H
+#ifndef SANDBOX_H
+#define SANDBOX_H
 
 #include <QtCore>
 #include <LXiMediaCenter>
 
 class Sandbox : public QObject
 {
-Q_OBJECT
 public:
                                 Sandbox(void);
   virtual                       ~Sandbox();
 
   void                          start(const QString &mode);
 
-public slots:
-  void                          stop(void);
-
-protected:
-  virtual void                  customEvent(QEvent *);
-
 private:
-  static const QEvent::Type     exitEventType;
-
   SApplication                  mediaApp;
   SSandboxServer                sandboxServer;
 

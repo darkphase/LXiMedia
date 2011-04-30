@@ -19,7 +19,6 @@ include($${PWD}/$${LXIMEDIA_DIR}/include/liblxicore/linklxicore.pri)
 # Files
 HEADERS += $${PWD}/$${LXIMEDIA_DIR}/include/LXiStream \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/export.h \
-    $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/sanalogtuner.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/saudiobuffer.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/saudiocodec.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/saudioformat.h \
@@ -29,7 +28,6 @@ HEADERS += $${PWD}/$${LXIMEDIA_DIR}/include/LXiStream \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/sencodedaudiobuffer.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/sencodeddatabuffer.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/sencodedvideobuffer.h \
-    $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/sdigitaltuner.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/sgraph.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/sinterfaces.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/sinterval.h \
@@ -41,7 +39,6 @@ HEADERS += $${PWD}/$${LXIMEDIA_DIR}/include/LXiStream \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/ssubtitlefile.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/stime.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/stimer.h \
-    $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/stuner.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/svideobuffer.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/svideocodec.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/svideoformat.h
@@ -189,7 +186,7 @@ win32-g++ {
 }
 win32-msvc2005|win32-msvc2008|win32-msvc2010 {
   TEMPLATE = vclib
-  GUID = 6AF51170-3E95-3E73-BFC4-0BBD8E57F07B
+  GUID = 3f2e4bd8-734b-11e0-be72-a39b83acd183
   DEFINES += _CRT_SECURE_NO_WARNINGS
   PRECOMPILED_SOURCE = $${PRECOMPILED_HEADER}
 }
