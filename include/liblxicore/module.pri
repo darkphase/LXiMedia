@@ -3,9 +3,9 @@ CONFIG += plugin
 CONFIG += qt thread warn_on
 
 unix {
-  VERSION_MAJOR = $$system(cat $${PWD}/../../VERSION)
-  VERSION_MAJOR ~= s/\\.[0-9]+.+/
-  DESTDIR = $${OUT_PWD}/$${LXIMEDIA_DIR}/bin/lximedia$${VERSION_MAJOR}
+  LXIMEDIA_VERSION_MAJOR = $$system(cat $${PWD}/../../VERSION)
+  LXIMEDIA_VERSION_MAJOR ~= s/\\.[0-9]+.+/
+  DESTDIR = $${OUT_PWD}/$${LXIMEDIA_DIR}/bin/lximedia$${LXIMEDIA_VERSION_MAJOR}
 } else {
   DESTDIR = $${OUT_PWD}/$${LXIMEDIA_DIR}/bin/lximedia
 }

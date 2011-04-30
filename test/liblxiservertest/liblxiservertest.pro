@@ -21,9 +21,6 @@ unix {
   include($${PWD}/$${LXIMEDIA_DIR}/include/liblxiserver/linklxiserver.pri)
 }
 
-CONFIG += precompile_header
-PRECOMPILED_HEADER = $${PWD}/$${LXIMEDIA_DIR}/include/LXiServer
-
 # Files
 HEADERS += httpenginetest.h \
     sandboxtest.h
@@ -44,20 +41,16 @@ win32 {
     CONFIG += console
     LIBS += -lws2_32
 }
-win32-g++ {
-    system(mkdir $$replace(OUT_PWD,/,\\)\\..\\..\\bin\\ > NUL 2>&1)
-    system(cp -u $$(QTDIR)/bin/libgcc_s_dw2-1.dll -t $${OUT_PWD}/$${LXIMEDIA_DIR}/bin/)
-    system(cp -u $$(QTDIR)/bin/mingwm10.dll -t $${OUT_PWD}/$${LXIMEDIA_DIR}/bin)
-    release {
-        system(cp -u $$(QTDIR)/bin/QtCore4.dll -t $${OUT_PWD}/$${LXIMEDIA_DIR}/bin)
-        system(cp -u $$(QTDIR)/bin/QtNetwork4.dll -t $${OUT_PWD}/$${LXIMEDIA_DIR}/bin)
-        system(cp -u $$(QTDIR)/bin/QtTest4.dll -t $${OUT_PWD}/$${LXIMEDIA_DIR}/bin)
-        system(cp -u $$(QTDIR)/bin/QtXml4.dll -t $${OUT_PWD}/$${LXIMEDIA_DIR}/bin)
-    }
-    debug {
-        system(cp -u $$(QTDIR)/bin/QtCored4.dll -t $${OUT_PWD}/$${LXIMEDIA_DIR}/bin)
-        system(cp -u $$(QTDIR)/bin/QtNetworkd4.dll -t $${OUT_PWD}/$${LXIMEDIA_DIR}/bin)
-        system(cp -u $$(QTDIR)/bin/QtTestd4.dll -t $${OUT_PWD}/$${LXIMEDIA_DIR}/bin)
-        system(cp -u $$(QTDIR)/bin/QtXmld4.dll -t $${OUT_PWD}/$${LXIMEDIA_DIR}/bin)
-    }
+
+# Windows specific
+win32 {
+  OUT_DIR = $$replace(OUT_PWD,/,\\)\\$$replace(LXIMEDIA_DIR,/,\\)\\bin
+
+  system(mkdir $${OUT_DIR} > NUL 2>&1)
+  release {
+    system(copy /Y $$(QTDIR)\\bin\\QtTest4.dll $${OUT_DIR} > NUL)
+  }
+  debug {
+    system(copy /Y $$(QTDIR)\\bin\\QtTestd4.dll $${OUT_DIR} > NUL)
+  }
 }

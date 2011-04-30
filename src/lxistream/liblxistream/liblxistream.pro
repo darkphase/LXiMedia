@@ -166,36 +166,30 @@ unix {
     target.path = /usr/lib
     INSTALLS += target
 }
-win32-g++ { 
-    system(mkdir $$replace(OUT_PWD,/,\\)\\..\\..\\..\\bin\\ > NUL 2>&1)
-    system(cp -u $$(QTDIR)/bin/libgcc_s_dw2-1.dll -t $${OUT_PWD}/$${LXIMEDIA_DIR}/bin/)
-    system(cp -u $$(QTDIR)/bin/mingwm10.dll -t $${OUT_PWD}/$${LXIMEDIA_DIR}/bin)
-    release { 
-        system(cp -u $$(QTDIR)/bin/QtCore4.dll -t $${OUT_PWD}/$${LXIMEDIA_DIR}/bin)
-        system(cp -u $$(QTDIR)/bin/QtGui4.dll -t $${OUT_PWD}/$${LXIMEDIA_DIR}/bin)
-        system(cp -u $$(QTDIR)/bin/QtXml4.dll -t $${OUT_PWD}/$${LXIMEDIA_DIR}/bin)
-    }
-    debug {
-        system(cp -u $$(QTDIR)/bin/QtCored4.dll -t $${OUT_PWD}/$${LXIMEDIA_DIR}/bin)
-        system(cp -u $$(QTDIR)/bin/QtGuid4.dll -t $${OUT_PWD}/$${LXIMEDIA_DIR}/bin)
-        system(cp -u $$(QTDIR)/bin/QtXmld4.dll -t $${OUT_PWD}/$${LXIMEDIA_DIR}/bin)
-    }
+
+# Windows specific
+win32 {
+  OUT_DIR = $$replace(OUT_PWD,/,\\)\\$$replace(LXIMEDIA_DIR,/,\\)\\bin
+
+  system(mkdir $${OUT_DIR} > NUL 2>&1)
+  release {
+    system(copy $$(QTDIR)\\bin\\QtCore4.dll $${OUT_DIR} > NUL)
+    system(copy $$(QTDIR)\\bin\\QtGui4.dll $${OUT_DIR} > NUL)
+    system(copy $$(QTDIR)\\bin\\QtXml4.dll $${OUT_DIR} > NUL)
+  }
+  debug {
+    system(copy $$(QTDIR)\\bin\\QtCored4.dll $${OUT_DIR} > NUL)
+    system(copy $$(QTDIR)\\bin\\QtGuid4.dll $${OUT_DIR} > NUL)
+    system(copy $$(QTDIR)\\bin\\QtXmld4.dll $${OUT_DIR} > NUL)
+  }
+}
+win32-g++ {
+  system(copy /Y $$(QTDIR)\\bin\\libgcc_s_dw2-1.dll $${OUT_DIR} > NUL)
+  system(copy /Y $$(QTDIR)\\bin\\mingwm10.dll $${OUT_DIR} > NUL)
 }
 win32-msvc2005|win32-msvc2008|win32-msvc2010 {
-    TEMPLATE = vclib
-    GUID = 6AF51170-3E95-3E73-BFC4-0BBD8E57F07B
-    DEFINES += _CRT_SECURE_NO_WARNINGS
-    PRECOMPILED_SOURCE = $${PRECOMPILED_HEADER}
-
-    system(mkdir $$replace(OUT_PWD,/,\\)\\..\\..\\..\\bin\\ > NUL 2>&1)
-    release { 
-        system(copy $$(QTDIR)\\bin\\QtCore4.dll $$replace(OUT_PWD,/,\\)\\..\\..\\..\\bin\\ > NUL)
-        system(copy $$(QTDIR)\\bin\\QtGui4.dll $$replace(OUT_PWD,/,\\)\\..\\..\\..\\bin\\ > NUL)
-        system(copy $$(QTDIR)\\bin\\QtXml4.dll $$replace(OUT_PWD,/,\\)\\..\\..\\..\\bin\\ > NUL)
-    }
-    debug {
-        system(copy $$(QTDIR)\\bin\\QtCored4.dll $$replace(OUT_PWD,/,\\)\\..\\..\\..\\bin\\ > NUL)
-        system(copy $$(QTDIR)\\bin\\QtGuid4.dll $$replace(OUT_PWD,/,\\)\\..\\..\\..\\bin\\ > NUL)
-        system(copy $$(QTDIR)\\bin\\QtXmld4.dll $$replace(OUT_PWD,/,\\)\\..\\..\\..\\bin\\ > NUL)
-    }
+  TEMPLATE = vclib
+  GUID = 6AF51170-3E95-3E73-BFC4-0BBD8E57F07B
+  DEFINES += _CRT_SECURE_NO_WARNINGS
+  PRECOMPILED_SOURCE = $${PRECOMPILED_HEADER}
 }

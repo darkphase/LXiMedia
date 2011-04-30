@@ -54,29 +54,35 @@ SOURCES += lximediacenterprivate.cpp
 RESOURCES = images/lximediacenter_images.qrc
 
 unix {
-    LIBS += -lz
-    target.path = /usr/lib
-    INSTALLS += target
+  LIBS += -lz
+  target.path = /usr/lib
+  INSTALLS += target
 }
 
 win32 {
   LIBS += -lws2_32
 }
 
-win32-g++ {
-  system(mkdir $$replace(OUT_PWD,/,\\)\\..\\..\\..\\bin\\ > NUL 2>&1)
-  system(mkdir $$replace(OUT_PWD,/,\\)\\..\\..\\..\\bin\\sqldrivers\\ > NUL 2>&1)
+# Windows specific
+win32 {
+  OUT_DIR = $$replace(OUT_PWD,/,\\)\\$$replace(LXIMEDIA_DIR,/,\\)\\bin
 
+  system(mkdir $${OUT_DIR} > NUL 2>&1)
+  system(mkdir $${OUT_DIR}\\sqldrivers > NUL 2>&1)
   release {
-    system(cp -u $$(QTDIR)/bin/QtCore4.dll -t $${OUT_PWD}/$${LXIMEDIA_DIR}/bin)
-    system(cp -u $$(QTDIR)/bin/QtSql4.dll -t $${OUT_PWD}/$${LXIMEDIA_DIR}/bin)
-    system(cp -u $$(QTDIR)/bin/QtXml4.dll -t $${OUT_PWD}/$${LXIMEDIA_DIR}/bin)
-    system(cp -u $$(QTDIR)/plugins/sqldrivers/qsqlite4.dll -t $${OUT_PWD}/$${LXIMEDIA_DIR}/bin/sqldrivers)
+    system(copy /Y $$(QTDIR)\\bin\\QtCore4.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\QtSql4.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\QtXml4.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\plugins\\sqldrivers\\qsqlite4.dll $${OUT_DIR}\\sqldrivers > NUL)
   }
   debug {
-    system(cp -u $$(QTDIR)/bin/QtCored4.dll -t $${OUT_PWD}/$${LXIMEDIA_DIR}/bin)
-    system(cp -u $$(QTDIR)/bin/QtSqld4.dll -t $${OUT_PWD}/$${LXIMEDIA_DIR}/bin)
-    system(cp -u $$(QTDIR)/bin/QtXmld4.dll -t $${OUT_PWD}/$${LXIMEDIA_DIR}/bin)
-    system(cp -u $$(QTDIR)/plugins/sqldrivers/qsqlited4.dll -t $${OUT_PWD}/$${LXIMEDIA_DIR}/bin/sqldrivers)
+    system(copy /Y $$(QTDIR)\\bin\\QtCored4.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\QtSqld4.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\QtXmld4.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\plugins\\sqldrivers\\qsqlited4.dll $${OUT_DIR}\\sqldrivers > NUL)
   }
+}
+win32-g++ {
+    system(copy /Y $$(QTDIR)\\bin\\libgcc_s_dw2-1.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\mingwm10.dll $${OUT_DIR} > NUL)
 }
