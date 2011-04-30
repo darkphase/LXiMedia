@@ -26,7 +26,8 @@
 
 namespace LXiServer {
 
-const int           SUPnPBase::majorVersion = 1, SUPnPBase::minorVersion = 0;
+const int           SUPnPBase::majorVersion     = 1;
+const int           SUPnPBase::minorVersion     = 0;
 const int           SUPnPBase::responseTimeout  = 30; // Seconds
 const char          SUPnPBase::xmlDeclaration[] = "<?xml version=\"1.0\" encoding=\"utf-8\"?>";
 const char          SUPnPBase::xmlContentType[] = "text/xml; charset=\"utf-8\" ";
