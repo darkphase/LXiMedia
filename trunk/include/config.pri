@@ -7,7 +7,7 @@ INCLUDEPATH += $${PWD}/
 DEPENDPATH += ./ $${PWD}/
 
 # Version number
-unix:VERSION = $$system(cat ../VERSION)
+unix:VERSION = $$system(cat $${PWD}/../VERSION)
 
 # Optimizations
 include($${PWD}/optimize.pri)
