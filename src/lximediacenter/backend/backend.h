@@ -23,6 +23,9 @@
 #include <QtCore>
 #include <LXiMediaCenter>
 
+// This starts the sandboxes in the local process, so they can be debugged.
+//#define DEBUG_USE_LOCAL_SANDBOX
+
 class Backend : public QObject,
                 protected BackendServer::MasterServer,
                 protected SHttpServer::Callback
@@ -36,6 +39,8 @@ private:
   };
 
 public:
+  static QString                createLogDir(void);
+
                                 Backend();
   virtual                       ~Backend();
 
@@ -49,8 +54,6 @@ protected: // From SHttpServer::Callback
   virtual void                  handleHttpOptions(SHttpServer::ResponseHeader &);
 
 private:
-  static QString                createLogDir(void);
-
   SearchCacheEntry              search(const QString &) const;
 
   virtual QByteArray            parseHtmlContent(const QUrl &, const QByteArray &content, const QByteArray &head) const;
@@ -75,8 +78,6 @@ private:
   static const QEvent::Type     restartEventType;
   static const QEvent::Type     shutdownEventType;
   static const QUrl             submitErrorUrl;
-
-  SApplication                  mediaApp;
 
   SHttpServer                   masterHttpServer;
   SSsdpServer                   masterSsdpServer;

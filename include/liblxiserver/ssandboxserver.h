@@ -37,6 +37,9 @@ public:
   bool                          initialize(const QString &mode);
   void                          close(void);
 
+  QHostAddress                  address(void) const;
+  quint16                       port(void) const;
+
 signals:
   void                          busy(void);
   void                          idle(void);

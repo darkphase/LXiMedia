@@ -103,10 +103,12 @@ bool AudioDecoder::openCodec(const SAudioCodec &c, Flags flags)
   else
     contextHandle->extradata = NULL;
 
+#ifdef OPT_ENABLE_THREADS
   contextHandle->thread_count = FFMpegCommon::decodeThreadCount(codecHandle->id);
   contextHandle->execute = &FFMpegCommon::execute;
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
   contextHandle->execute2 = &FFMpegCommon::execute2;
+#endif
 #endif
 
   if (avcodec_open(contextHandle, codecHandle) < 0)

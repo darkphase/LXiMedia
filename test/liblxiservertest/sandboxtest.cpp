@@ -25,8 +25,28 @@ const int SandboxTest::numResponses = 50;
 
 int SandboxTest::startSandbox(const QString &mode)
 {
-  struct Callback : SSandboxServer::Callback
+  SSandboxServer * const sandboxServer = createSandbox();
+  sandboxServer->initialize(mode);
+
+  const int result = qApp->exec();
+
+  sandboxServer->close();
+  delete sandboxServer;
+
+  return result;
+}
+
+SSandboxServer * SandboxTest::createSandbox(void)
+{
+  class Callback : public QObject,
+                   public SSandboxServer::Callback
   {
+  public:
+    Callback(QObject *parent)
+      : QObject(parent)
+    {
+    }
+
     virtual SSandboxServer::SocketOp handleHttpRequest(const SSandboxServer::RequestMessage &request, QAbstractSocket *socket)
     {
       if ((request.method() == "GET") || (request.method() == "HEAD"))
@@ -53,39 +73,31 @@ int SandboxTest::startSandbox(const QString &mode)
     }
   };
 
-  SSandboxServer sandboxServer;
+  SSandboxServer * const sandboxServer = new SSandboxServer();
+  sandboxServer->registerCallback("/", new Callback(sandboxServer));
 
-  Callback callback;
-  sandboxServer.registerCallback("/", &callback);
-
-  sandboxServer.initialize(mode);
-
-  const int result = qApp->exec();
-
-  sandboxServer.close();
-
-  return result;
+  return sandboxServer;
 }
 
 void SandboxTest::initTestCase(void)
 {
   mediaApp = SApplication::createForQTest(this);
-
-  sandboxClient = new SSandboxClient("\"" + qApp->applicationFilePath() + "\" --sandbox", SSandboxClient::Mode_Normal, this);
-  connect(sandboxClient, SIGNAL(response(SHttpEngine::ResponseMessage)), SLOT(handleResponse(SHttpEngine::ResponseMessage)), Qt::DirectConnection);
 }
 
 void SandboxTest::cleanupTestCase(void)
 {
-  delete sandboxClient;
-  sandboxClient = NULL;
-
   delete mediaApp;
   mediaApp = NULL;
 }
 
-void SandboxTest::sendRequests(void)
+void SandboxTest::localSandbox(void)
 {
+  SSandboxServer * const sandboxServer = createSandbox();
+  sandboxServer->initialize("local");
+
+  LXiServer::SSandboxClient * const sandboxClient = new SSandboxClient(sandboxServer, SSandboxClient::Mode_Normal, this);
+  connect(sandboxClient, SIGNAL(response(SHttpEngine::ResponseMessage)), SLOT(handleResponse(SHttpEngine::ResponseMessage)), Qt::DirectConnection);
+
   responseCount = 0;
 
   SSandboxClient::RequestMessage nopRequest(sandboxClient);
@@ -98,6 +110,32 @@ void SandboxTest::sendRequests(void)
     QTest::qWait(100);
 
   QCOMPARE(responseCount, numResponses);
+
+  delete sandboxClient;
+
+  sandboxServer->close();
+  delete sandboxServer;
+}
+
+void SandboxTest::remoteSandbox(void)
+{
+  LXiServer::SSandboxClient * const sandboxClient = new SSandboxClient("\"" + qApp->applicationFilePath() + "\" --sandbox", SSandboxClient::Mode_Normal, this);
+  connect(sandboxClient, SIGNAL(response(SHttpEngine::ResponseMessage)), SLOT(handleResponse(SHttpEngine::ResponseMessage)), Qt::DirectConnection);
+
+  responseCount = 0;
+
+  SSandboxClient::RequestMessage nopRequest(sandboxClient);
+  nopRequest.setRequest("GET", "/?nop");
+
+  for (int i=0; i<numResponses; i++)
+    sandboxClient->sendRequest(nopRequest);
+
+  for (int i=0; (i<100) && (responseCount<numResponses); i++)
+    QTest::qWait(100);
+
+  QCOMPARE(responseCount, numResponses);
+
+  delete sandboxClient;
 }
 
 void SandboxTest::handleResponse(const SHttpEngine::ResponseMessage &response)

@@ -838,6 +838,7 @@ SAudioFormat::Channels FFMpegCommon::fromFFMpegChannelLayout(int64_t layout, int
   return packet;
 }
 
+#ifdef OPT_ENABLE_THREADS
 int FFMpegCommon::encodeThreadCount(::CodecID codec)
 {
   int limit;
@@ -863,23 +864,13 @@ int FFMpegCommon::decodeThreadCount(::CodecID)
 
 int FFMpegCommon::execute(::AVCodecContext *c, int (*func)(::AVCodecContext *c2, void *arg), void *arg2, int *ret, int count, int size)
 {
-  if (count > 1)
+  if ((count > 1) && (c->thread_count > 1))
   {
-    struct T
-    {
-      static int profileFunc(int (*func)(::AVCodecContext *, void *), ::AVCodecContext *c, void *arg)
-      {
-        SApplication::Profiler _prf("FFMpegCommon::execute_task");
-
-        return func(c, arg);
-      }
-    };
-
     QVector< QFuture<int> > future;
     future.reserve(count);
 
     for (int i=0; i<count; i++)
-      future += QtConcurrent::run(&T::profileFunc, func, c, reinterpret_cast<char *>(arg2) + (size * i));
+      future += QtConcurrent::run(&FFMpegCommon::executeTask, func, c, reinterpret_cast<char *>(arg2) + (size * i));
 
     for (int i=0; i<count; i++)
     {
@@ -890,13 +881,23 @@ int FFMpegCommon::execute(::AVCodecContext *c, int (*func)(::AVCodecContext *c2,
   }
   else // Single-threaded.
   {
-    if (ret)
-      ret[0] = func(c, arg2);
-    else
-      func(c, arg2);
+    for (int i=0; i<count; i++)
+    {
+      if (ret)
+        ret[i] = func(c, arg2);
+      else
+        func(c, arg2);
+    }
   }
 
   return 0;
+}
+
+int FFMpegCommon::executeTask(int (*func)(::AVCodecContext *, void *), ::AVCodecContext *c, void *arg)
+{
+  LXI_PROFILE_FUNCTION;
+
+  return func(c, arg);
 }
 
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
@@ -904,23 +905,13 @@ int FFMpegCommon::execute2(::AVCodecContext *c, int (*func)(::AVCodecContext *c2
 {
   if ((count > 1) && (c->thread_count > 1))
   {
-    struct T
-    {
-      static int profileFunc(int (*func)(::AVCodecContext *, void *, int, int), ::AVCodecContext *c, void *arg, int jobnr, int threadnr)
-      {
-        SApplication::Profiler _prf("FFMpegCommon::execute2_task");
-
-        return func(c, arg, jobnr, threadnr);
-      }
-    };
-
     QVector< QFuture<int> > future;
     future.reserve(c->thread_count);
 
     for (int i=0; i<count; i+=c->thread_count)
     {
       for (int j=0; (j<c->thread_count) && ((i+j)<count); j++)
-        future += QtConcurrent::run(&T::profileFunc, func, c, arg2, i, j);
+        future += QtConcurrent::run(&FFMpegCommon::execute2Task, func, c, arg2, i, j);
 
       for (int j=0; j<future.count(); j++)
       {
@@ -945,6 +936,14 @@ int FFMpegCommon::execute2(::AVCodecContext *c, int (*func)(::AVCodecContext *c2
 
   return 0;
 }
+
+int FFMpegCommon::execute2Task(int (*func)(::AVCodecContext *, void *, int, int), ::AVCodecContext *c, void *arg, int jobnr, int threadnr)
+{
+  LXI_PROFILE_FUNCTION;
+
+  return func(c, arg, jobnr, threadnr);
+}
+#endif
 #endif
 
 void FFMpegCommon::log(void *, int level, const char *fmt, va_list vl)

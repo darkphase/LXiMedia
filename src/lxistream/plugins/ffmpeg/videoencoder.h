@@ -20,10 +20,6 @@
 #ifndef __VIDEOENCODER_H
 #define __VIDEOENCODER_H
 
-// This enables resending the last encoded buffer in case the same buffer is
-// encoded twice (only if encoding intra-frames only).
-#define OPT_RESEND_LAST_FRAME
-
 #include <QtCore>
 #include <LXiStream>
 #include "ffmpegcommon.h"

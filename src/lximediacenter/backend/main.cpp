@@ -43,8 +43,9 @@ public:
 
   virtual int run(int &argc, char *argv[])
   {
-    QCoreApplication app(argc, argv);
-    configApp();
+    QCoreApplication app(argc, argv); configApp();
+    SApplication mediaApp(Backend::createLogDir());
+    mediaApp.installExcpetionHandler();
 
     int exitCode = 0;
     do
@@ -79,11 +80,11 @@ int main(int argc, char *argv[])
 {
   if ((argc >= 3) && (strcmp(argv[1], "--sandbox") == 0))
   {
-    QCoreApplication app(argc, argv);
-    configApp();
+    QCoreApplication app(argc, argv); configApp();
+    SApplication mediaApp;
+    mediaApp.installExcpetionHandler();
 
-    Sandbox sandbox;
-    sandbox.start(argv[2]);
+    (new Sandbox())->start(argv[2]);
 
     return qApp->exec();
   }

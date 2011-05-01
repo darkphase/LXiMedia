@@ -21,33 +21,42 @@
 
 Sandbox::Sandbox()
   : QObject(),
-    mediaApp(),
     sandboxServer()
 {
-  mediaApp.installExcpetionHandler();
-  //mediaApp.enableProfiling(QDir::temp().absoluteFilePath(QString::number(qApp->applicationPid()) + ".svg"));
+  //sApp->enableProfiling(QDir::temp().absoluteFilePath(QString::number(qApp->applicationPid()) + ".svg"));
 
   // Seed the random number generator.
   qsrand(int(QDateTime::currentDateTime().toTime_t()));
 
-  stopTimer.setSingleShot(true);
-  stopTimer.setInterval(60000);
-  stopTimer.start();
-
-  connect(&stopTimer, SIGNAL(timeout()), SLOT(stop()));
+  connect(&stopTimer, SIGNAL(timeout()), SLOT(deleteLater()));
   connect(&sandboxServer, SIGNAL(busy()), &stopTimer, SLOT(stop()));
   connect(&sandboxServer, SIGNAL(idle()), &stopTimer, SLOT(start()));
 }
 
 Sandbox::~Sandbox()
 {
-  QThreadPool::globalInstance()->waitForDone();
+  if (mode != "local")
+    qDebug() << "Stopping sandbox process" << qApp->applicationPid();
+
+  sApp->disableProfiling();
 
   sandboxServer.close();
+
+  QThreadPool::globalInstance()->waitForDone();
+
+  foreach (BackendSandbox *sandbox, backendSandboxes)
+  {
+    sandbox->close();
+    delete sandbox;
+  }
+
+  if (mode != "local")
+    qApp->exit(0);
 }
 
 void Sandbox::start(const QString &mode)
 {
+  this->mode = mode;
   stopTimer.start();
 
   // Load plugins
@@ -57,20 +66,12 @@ void Sandbox::start(const QString &mode)
 
   sandboxServer.initialize(mode);
 
-  qDebug() << "Finished initialization of sandbox process" << qApp->applicationPid();
-}
-
-void Sandbox::stop(void)
-{
-  foreach (BackendSandbox *sandbox, backendSandboxes)
+  if (mode != "local")
   {
-    sandbox->close();
-    delete sandbox;
+    stopTimer.setSingleShot(true);
+    stopTimer.setInterval(60000);
+    stopTimer.start();
+
+    qDebug() << "Finished initialization of sandbox process" << qApp->applicationPid();
   }
-
-  backendSandboxes.clear();
-
-  qDebug() << "Stopping sandbox process" << qApp->applicationPid();
-
-  qApp->exit(0);
 }
