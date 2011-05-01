@@ -42,7 +42,6 @@ extern "C"
 namespace LXiStream {
 namespace FFMpegBackend {
 
-
 class FFMpegCommon
 {
 public:
@@ -62,15 +61,19 @@ public:
   static ::AVPacket             toAVPacket(const SEncodedVideoBuffer &, const ::AVStream * = NULL);
   static ::AVPacket             toAVPacket(const SEncodedDataBuffer &, const ::AVStream * = NULL);
 
+  static int                    decodeThreadCount(::CodecID);
+  static int                    encodeThreadCount(::CodecID);
+  static int                    execute(::AVCodecContext *c, int (*func)(::AVCodecContext *c2, void *arg), void *arg2, int *ret, int count, int size);
+
 private:
   static void                   log(void * ptr, int level, const char* fmt, va_list vl);
   static int                    lock(void **mutex, AVLockOp op);
 
 private:
+  static const int              threadLimit = 8;
   static int                    logLevel;
   static bool                   logDisabled;
 };
-
 
 } } // End of namespaces
 

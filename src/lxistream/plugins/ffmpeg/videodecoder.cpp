@@ -103,6 +103,9 @@ bool VideoDecoder::openCodec(const SVideoCodec &c, Flags flags)
   else
     contextHandle->extradata = NULL;
 
+  contextHandle->thread_count = FFMpegCommon::decodeThreadCount(codecHandle->id);
+  contextHandle->execute = &FFMpegCommon::execute;
+
   if (avcodec_open(contextHandle, codecHandle) < 0)
   {
     qCritical() << "VideoDecoder: Could not open video codec " << inCodec.codec();

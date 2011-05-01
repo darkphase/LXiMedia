@@ -125,29 +125,23 @@ void FFMpegTest::AudioEncodeDecode(void)
  */
 void FFMpegTest::VideoEncodeDecode(void)
 {
-  QSet<QByteArray> encoders, decoders;
-  for (::AVCodec *codec=::av_codec_next(NULL); codec; codec=::av_codec_next(codec))
-  if (codec->type == CODEC_TYPE_VIDEO)
-  {
-    if (codec->encode)
-      encoders += FFMpegBackend::FFMpegCommon::fromFFMpegCodecID(codec->id);
+  const QSet<QString> decoders = QSet<QString>::fromList(SVideoDecoderNode::codecs());
+  const QSet<QString> encoders = QSet<QString>::fromList(SVideoEncoderNode::codecs());
 
-    if (codec->decode)
-      decoders += FFMpegBackend::FFMpegCommon::fromFFMpegCodecID(codec->id);
-  }
+  /*const QSet<QString> codecs = QSet<QString>()
+      << "DVVIDEO" << "FLV1" << "FFVHUFF" << "H263" << "MJPEG" << "MPEG1"
+      << "MPEG2" << "MPEG4" << "PBM" << "THEORA" << "WMV1" << "WMV2";*/
 
-  const QSet<QByteArray> codecs = QSet<QByteArray>()
-      << "FLV1" << "H263" << "FFVHUFF" << "MJPEG" << "MPEG1" << "MPEG2"
-      << "MPEG4" << "PBM";// Buggy: << "THEORA";
-
-  QList<QByteArray> test = (codecs & encoders & decoders).toList();
+  QList<QString> test = (encoders & decoders).toList();
   qSort(test);
-  foreach (const QByteArray &codec, test)
-    VideoEncodeDecode(codec);
+  foreach (const QString &codec, test)
+    VideoEncodeDecode(codec.toAscii());
 }
 
 void FFMpegTest::VideoEncodeDecode(const char *codecName)
 {
+  //qDebug() << codecName;
+
   FFMpegBackend::VideoEncoder videoEncoder("", NULL);
   FFMpegBackend::VideoDecoder videoDecoder("", NULL);
 
