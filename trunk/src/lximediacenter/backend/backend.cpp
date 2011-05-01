@@ -18,16 +18,28 @@
  ***************************************************************************/
 
 #include "backend.h"
+#ifdef DEBUG_USE_LOCAL_SANDBOX
+# include "sandbox.h"
+#endif
 #include <iostream>
+
 
 const QEvent::Type  Backend::exitEventType = QEvent::Type(QEvent::registerEventType());
 const QEvent::Type  Backend::restartEventType = QEvent::Type(QEvent::registerEventType());
 const QEvent::Type  Backend::shutdownEventType = QEvent::Type(QEvent::registerEventType());
 const QUrl          Backend::submitErrorUrl("http://www.admiraal.dds.nl/submitlog.php");
 
+QString Backend::createLogDir(void)
+{
+  QDir logDir(GlobalSettings::applicationDataDir() + "/log");
+  if (!logDir.exists())
+    logDir.mkpath(logDir.absolutePath());
+
+  return logDir.absolutePath();
+}
+
 Backend::Backend()
   : BackendServer::MasterServer(),
-    mediaApp(createLogDir()),
     masterHttpServer(SUPnPBase::protocol(), GlobalSettings::serverUuid()),
     masterSsdpServer(&masterHttpServer),
     masterMediaServer("/upnp/"),
@@ -39,8 +51,6 @@ Backend::Backend()
     htmlParser(),
     backendServers()
 {
-  mediaApp.installExcpetionHandler();
-
   // Seed the random number generator.
   qsrand(int(QDateTime::currentDateTime().toTime_t()));
 
@@ -375,7 +385,7 @@ SHttpServer::SocketOp Backend::handleHttpRequest(const SHttpServer::RequestMessa
       }
       else if (url.hasQueryItem("dismisserrors"))
       {
-        GlobalSettings().setValue("DismissedErrors", mediaApp.errorLogFiles());
+        GlobalSettings().setValue("DismissedErrors", sApp->errorLogFiles());
 
         return handleHtmlRequest(request, socket, file);
       }
@@ -409,14 +419,14 @@ SHttpServer::SocketOp Backend::handleHttpRequest(const SHttpServer::RequestMessa
         // Active log file
         QDomElement activeLogFile = doc.createElement("activelogfile");
         root.appendChild(activeLogFile);
-        activeLogFile.setAttribute("name", QFileInfo(mediaApp.activeLogFile()).fileName());
+        activeLogFile.setAttribute("name", QFileInfo(sApp->activeLogFile()).fileName());
 
         // Error logs
         const QSet<QString> dismissedFiles =
             QSet<QString>::fromList(settings.value("DismissedErrors").toStringList());
 
         QStringList errorLogFiles;
-        foreach (const QString &file, mediaApp.errorLogFiles())
+        foreach (const QString &file, sApp->errorLogFiles())
         if (!dismissedFiles.contains(file))
           errorLogFiles += file;
 
@@ -453,9 +463,9 @@ SHttpServer::SocketOp Backend::handleHttpRequest(const SHttpServer::RequestMessa
         QString logFileName;
         if (file == "main.log")
         {
-          logFileName = mediaApp.activeLogFile();
+          logFileName = sApp->activeLogFile();
         }
-        else foreach (const QString &f, mediaApp.allLogFiles())
+        else foreach (const QString &f, sApp->allLogFiles())
         if (f.endsWith("/" + file))
         {
           logFileName = f;
@@ -508,7 +518,7 @@ SHttpServer::SocketOp Backend::handleHttpRequest(const SHttpServer::RequestMessa
           SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
           response.setContentType("text/html;charset=utf-8");
           response.setField("Cache-Control", "no-cache");
-          if (logFileName == mediaApp.activeLogFile())
+          if (logFileName == sApp->activeLogFile())
             response.setField("Refresh", "10;URL=#bottom");
 
           socket->write(response);
@@ -575,15 +585,6 @@ SHttpServer::SocketOp Backend::handleHttpRequest(const SHttpServer::RequestMessa
 void Backend::handleHttpOptions(SHttpServer::ResponseHeader &response)
 {
   response.setField("Allow", response.field("Allow") + ",GET");
-}
-
-QString Backend::createLogDir(void)
-{
-  QDir logDir(GlobalSettings::applicationDataDir() + "/log");
-  if (!logDir.exists())
-    logDir.mkpath(logDir.absolutePath());
-
-  return logDir.absolutePath();
 }
 
 QByteArray Backend::parseHtmlContent(const QUrl &url, const QByteArray &content, const QByteArray &head) const
@@ -671,7 +672,15 @@ SSandboxClient * Backend::createSandbox(SSandboxClient::Mode mode)
 {
   QMap<SSandboxClient::Mode, QList<SSandboxClient *> >::Iterator i = sandboxClients.find(mode);
   if ((i == sandboxClients.end()) || i->isEmpty())
+  {
+#ifndef DEBUG_USE_LOCAL_SANDBOX
     return new SSandboxClient(sandboxApplication, mode);
+#else
+    Sandbox * sandbox = new Sandbox();
+    sandbox->start("local");
+    return new SSandboxClient(sandbox->server(), mode);
+#endif
+  }
   else
     return i->takeLast();
 }

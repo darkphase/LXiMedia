@@ -39,6 +39,13 @@ extern "C"
 #endif
 }
 
+// This enables multithreaded encoding and decoding.
+#define OPT_ENABLE_THREADS
+
+// This enables resending the last encoded buffer in case the same buffer is
+// encoded twice (only if encoding intra-frames only).
+#define OPT_RESEND_LAST_FRAME
+
 namespace LXiStream {
 namespace FFMpegBackend {
 
@@ -61,14 +68,23 @@ public:
   static ::AVPacket             toAVPacket(const SEncodedVideoBuffer &, const ::AVStream * = NULL);
   static ::AVPacket             toAVPacket(const SEncodedDataBuffer &, const ::AVStream * = NULL);
 
+#ifdef OPT_ENABLE_THREADS
   static int                    decodeThreadCount(::CodecID);
   static int                    encodeThreadCount(::CodecID);
   static int                    execute(::AVCodecContext *c, int (*func)(::AVCodecContext *c2, void *arg), void *arg2, int *ret, int count, int size);
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
   static int                    execute2(::AVCodecContext *c, int (*func)(::AVCodecContext *c2, void *arg, int jobnr, int threadnr), void *arg2, int *ret, int count);
 #endif
+#endif
 
 private:
+#ifdef OPT_ENABLE_THREADS
+  static int                    executeTask(int (*func)(::AVCodecContext *, void *), ::AVCodecContext *c, void *arg);
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
+  static int                    execute2Task(int (*func)(::AVCodecContext *, void *, int, int), ::AVCodecContext *c, void *arg, int jobnr, int threadnr);
+#endif
+#endif
+
   static void                   log(void * ptr, int level, const char* fmt, va_list vl);
   static int                    lock(void **mutex, AVLockOp op);
 

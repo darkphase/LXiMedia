@@ -26,21 +26,22 @@ class SandboxTest : public QObject
 Q_OBJECT
 public:
   static int                    startSandbox(const QString &);
+  static SSandboxServer       * createSandbox(void);
 
 public:
-  inline explicit               SandboxTest(QObject *parent) : QObject(parent), sandboxClient(NULL), responseCount(0) { }
+  inline explicit               SandboxTest(QObject *parent) : QObject(parent), responseCount(0) { }
 
 private slots:
   void                          initTestCase(void);
   void                          cleanupTestCase(void);
 
-  void                          sendRequests(void);
+  void                          localSandbox(void);
+  void                          remoteSandbox(void);
 
   void                          handleResponse(const SHttpEngine::ResponseMessage &);
 
 private:
   SApplication                * mediaApp;
-  LXiServer::SSandboxClient   * sandboxClient;
   static const int              numResponses;
   int                           responseCount;
 };

@@ -24,7 +24,7 @@ namespace LXiMediaCenter {
 
 MediaStream::MediaStream(void)
   : SGraph(),
-    audioResampler(this, "linear"),
+    audioResampler(this),
     deinterlacer(this),
     subpictureRenderer(this),
     letterboxDetectNode(this),

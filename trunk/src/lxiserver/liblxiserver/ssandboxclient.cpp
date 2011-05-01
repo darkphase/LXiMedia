@@ -38,6 +38,7 @@ struct SSandboxClient::Data
   };
 
   QString                       application;
+  SSandboxServer              * localServer;
   Mode                          mode;
   QString                       modeText;
 
@@ -54,6 +55,7 @@ SSandboxClient::SSandboxClient(const QString &application, Mode mode, QObject *p
     d(new Data())
 {
   d->application = application;
+  d->localServer = NULL;
   d->mode = mode;
 
   switch(mode)
@@ -64,6 +66,18 @@ SSandboxClient::SSandboxClient(const QString &application, Mode mode, QObject *p
 
   d->serverProcess = NULL;
   d->processStarted = false;
+}
+
+SSandboxClient::SSandboxClient(SSandboxServer *localServer, Mode mode, QObject *parent)
+  : SHttpClientEngine(parent),
+    d(new Data())
+{
+  d->localServer = localServer;
+  d->mode = mode;
+  d->serverProcess = NULL;
+  d->address = localServer->address();
+  d->port = localServer->port();
+  d->processStarted = true;
 }
 
 SSandboxClient::~SSandboxClient()
@@ -106,10 +120,9 @@ void SSandboxClient::processStarted(const QHostAddress &address, quint16 port)
 
 void SSandboxClient::openRequest(void)
 {
-  if (d->serverProcess == NULL)
+  if ((d->processStarted == false) && (d->serverProcess == NULL) && !d->application.isEmpty())
   {
     d->serverProcess = new SandboxProcess(this, d->application + " " + d->modeText);
-    d->processStarted = false;
 
     connect(d->serverProcess, SIGNAL(ready(QHostAddress, quint16)), SLOT(processStarted(QHostAddress, quint16)));
     connect(d->serverProcess, SIGNAL(stop()), SLOT(stop()));
@@ -139,8 +152,9 @@ void SSandboxClient::stop(void)
     QTimer::singleShot(1000, d->serverProcess, SLOT(deleteLater()));
 
     d->serverProcess = NULL;
-    d->processStarted = false;
   }
+
+  d->processStarted = false;
 }
 
 void SSandboxClient::finished(QProcess::ExitStatus status)
@@ -152,10 +166,9 @@ void SSandboxClient::finished(QProcess::ExitStatus status)
 
     d->serverProcess->deleteLater();
     d->serverProcess = NULL;
-    d->processStarted = false;
-
-    openRequest();
   }
+
+  d->processStarted = false;
 }
 
 } // End of namespace

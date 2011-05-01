@@ -115,10 +115,12 @@ bool VideoEncoder::openCodec(const SVideoCodec &c, Flags flags)
   if (outCodec == "MJPEG")
     contextHandle->pix_fmt = PIX_FMT_YUVJ420P;
 
+#ifdef OPT_ENABLE_THREADS
   contextHandle->thread_count = FFMpegCommon::encodeThreadCount(codecHandle->id);
   contextHandle->execute = &FFMpegCommon::execute;
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
   contextHandle->execute2 = &FFMpegCommon::execute2;
+#endif
 #endif
 
   if (avcodec_open(contextHandle, codecHandle) < 0)

@@ -28,6 +28,8 @@
 
 namespace LXiServer {
 
+class SSandboxServer;
+
 class LXISERVER_PUBLIC SSandboxClient : public SHttpClientEngine
 {
 Q_OBJECT
@@ -40,6 +42,7 @@ public:
 
 public:
                                 SSandboxClient(const QString &application, Mode, QObject * = NULL);
+                                SSandboxClient(SSandboxServer *, Mode, QObject * = NULL);
   virtual                       ~SSandboxClient();
 
   Mode                          mode(void) const;

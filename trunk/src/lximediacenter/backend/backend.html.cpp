@@ -420,7 +420,7 @@ SHttpServer::SocketOp Backend::handleHtmlRequest(const SHttpServer::RequestMessa
       QSet<QString>::fromList(GlobalSettings().value("DismissedErrors").toStringList());
 
   QStringList errorLogFiles;
-  foreach (const QString &file, mediaApp.errorLogFiles())
+  foreach (const QString &file, sApp->errorLogFiles())
   if (!dismissedFiles.contains(file))
     errorLogFiles += file;
 

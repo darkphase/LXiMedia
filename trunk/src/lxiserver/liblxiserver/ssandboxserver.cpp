@@ -35,6 +35,7 @@ namespace LXiServer {
 
 struct SSandboxServer::Data
 {
+  QString                       mode;
   QTcpServer                  * server;
   int                           openSockets;
   QQueue<int>                   pendingSockets;
@@ -104,6 +105,7 @@ SSandboxServer::~SSandboxServer()
 
 bool SSandboxServer::initialize(const QString &mode)
 {
+  d->mode = mode;
   d->server = new Server(this);
 
   // First try IPv6, then IPv4
@@ -114,13 +116,16 @@ bool SSandboxServer::initialize(const QString &mode)
     return false;
   }
 
-  std::cerr << "##READY "
-      << d->server->serverAddress().toString().toAscii().data() << " "
-      << d->server->serverPort() << std::endl;
+  if (d->mode != "local")
+  {
+    std::cerr << "##READY "
+        << d->server->serverAddress().toString().toAscii().data() << " "
+        << d->server->serverPort() << std::endl;
+  }
 
   // This is performed after initialization to prevent priority inversion with
   // the process that is waiting for this one to start.
-  if (mode == "nice")
+  if (d->mode == "nice")
   {
 #if defined(Q_OS_UNIX)
     ::sched_param param = { 0 };
@@ -143,7 +148,18 @@ void SSandboxServer::close(void)
   delete d->server;
   d->server = NULL;
 
-  std::cerr << "##STOP" << std::endl;
+  if (d->mode != "local")
+    std::cerr << "##STOP" << std::endl;
+}
+
+QHostAddress SSandboxServer::address(void) const
+{
+  return d->server->serverAddress();
+}
+
+quint16 SSandboxServer::port(void) const
+{
+  return d->server->serverPort();
 }
 
 } // End of namespace

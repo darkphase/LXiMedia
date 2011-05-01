@@ -25,18 +25,17 @@
 
 class Sandbox : public QObject
 {
-Q_OBJECT
 public:
                                 Sandbox(void);
   virtual                       ~Sandbox();
 
-public slots:
+  inline SSandboxServer       * server(void)                                    { return &sandboxServer; }
+
   void                          start(const QString &mode);
-  void                          stop(void);
 
 private:
-  SApplication                  mediaApp;
   SSandboxServer                sandboxServer;
+  QString                       mode;
 
   QList<BackendSandbox *>       backendSandboxes;
 
