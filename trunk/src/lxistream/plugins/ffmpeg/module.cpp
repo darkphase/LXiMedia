@@ -53,8 +53,10 @@ bool Module::registerClasses(void)
       ;
 
   const QSet<QString> buggyEncoders = QSet<QString>()
-#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(60, 0, 0)
-      << "FLAC" << "THEORA"
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(52, 72, 0)
+      << "DNXHD" << "DVVIDEO" << "FLAC" << "HUFFYUV" << "JPEGLS" << "MSMPEG4V1"
+      << "PAM" << "PNG" << "QTRLE" << "RAWVIDEO" << "ROQ" << "RV10" << "RV20"
+      << "SGI" << "SNOW" << "SVQ1" << "TARGA" << "THEORA" << "TIFF" << "ZLIB"
 #endif
       ;
 

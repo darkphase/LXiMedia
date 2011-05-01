@@ -115,6 +115,9 @@ bool VideoEncoder::openCodec(const SVideoCodec &c, Flags flags)
   if (outCodec == "MJPEG")
     contextHandle->pix_fmt = PIX_FMT_YUVJ420P;
 
+  contextHandle->thread_count = FFMpegCommon::encodeThreadCount(codecHandle->id);
+  contextHandle->execute = &FFMpegCommon::execute;
+
   if (avcodec_open(contextHandle, codecHandle) < 0)
   {
     qCritical() << "VideoEncoder: Could not open video codec " << codecHandle->name;

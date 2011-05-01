@@ -838,6 +838,58 @@ SAudioFormat::Channels FFMpegCommon::fromFFMpegChannelLayout(int64_t layout, int
   return packet;
 }
 
+int FFMpegCommon::encodeThreadCount(::CodecID codec)
+{
+  int limit;
+  switch (codec)
+  {
+  case CODEC_ID_FFVHUFF:
+  case CODEC_ID_MPEG2VIDEO:
+    limit = threadLimit;
+    break;
+
+  default:
+    limit = 1;
+    break;
+  }
+
+  return qBound(1, QThreadPool::globalInstance()->maxThreadCount(), limit);
+}
+
+int FFMpegCommon::decodeThreadCount(::CodecID)
+{
+  return qBound(1, QThreadPool::globalInstance()->maxThreadCount(), threadLimit + 0);
+}
+
+int FFMpegCommon::execute(struct AVCodecContext *c, int (*func)(struct AVCodecContext *c2, void *arg), void *arg2, int *ret, int count, int size)
+{
+  if (count > 1)
+  {
+    QVector< QFuture<int> > future;
+    for (int i=0; i<count; i++)
+    {
+      void * const arg = reinterpret_cast<char *>(arg2) + (size * i);
+      future += QtConcurrent::run(func, c, arg);
+    }
+
+    for (int i=0; i<count; i++)
+    {
+      future[i].waitForFinished();
+      if (ret)
+        ret[i] = future[i].result();
+    }
+  }
+  else // Single-threaded.
+  {
+    if (ret)
+      ret[0] = func(c, arg2);
+    else
+      func(c, arg2);
+  }
+
+  return 0;
+}
+
 void FFMpegCommon::log(void *, int level, const char *fmt, va_list vl)
 {
   if ((level <= logLevel) && !logDisabled)
@@ -855,15 +907,15 @@ void FFMpegCommon::log(void *, int level, const char *fmt, va_list vl)
       break;
 
     if (level >= AV_LOG_INFO)
-      qDebug("FFMpeg: %s", buffer);
+      qDebug("FFMpeg info: %s", buffer);
     else if (level >= AV_LOG_FATAL)
-      qDebug("FFMpeg: %s", buffer);
+      qDebug("FFMpeg fatal: %s", buffer);
 #ifdef AV_LOG_PANIC
     else if (level >= AV_LOG_PANIC)
-      qFatal("FFMpeg: %s", buffer);
+      qFatal("FFMpeg panic: %s", buffer);
 #endif
     else
-      qDebug("FFMpeg: %s", buffer);
+      qDebug("FFMpeg debug: %s", buffer);
   }
 }
 
