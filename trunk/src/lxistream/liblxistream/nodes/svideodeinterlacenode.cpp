@@ -61,6 +61,8 @@ void SVideoDeinterlaceNode::stop(void)
 
 void SVideoDeinterlaceNode::input(const SVideoBuffer &videoBuffer)
 {
+  LXI_PROFILE_FUNCTION;
+
   d->future.waitForFinished();
 
   if (d->deinterlacer)
@@ -80,6 +82,8 @@ void SVideoDeinterlaceNode::input(const SVideoBuffer &videoBuffer)
 
 void SVideoDeinterlaceNode::processTask(const SVideoBuffer &videoBuffer)
 {
+  LXI_PROFILE_FUNCTION;
+
   foreach (const SVideoBuffer &buffer, d->deinterlacer->processBuffer(videoBuffer))
     emit output(buffer);
 }

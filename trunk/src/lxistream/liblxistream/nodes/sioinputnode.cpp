@@ -109,6 +109,8 @@ void SIOInputNode::stop(void)
 
 void SIOInputNode::process(void)
 {
+  LXI_PROFILE_FUNCTION;
+
   if (d->bufferReader)
   {
     if (!d->ioDevice->atEnd())

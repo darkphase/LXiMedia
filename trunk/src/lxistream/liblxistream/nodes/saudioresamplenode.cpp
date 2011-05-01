@@ -97,6 +97,8 @@ void SAudioResampleNode::stop(void)
 
 void SAudioResampleNode::input(const SAudioBuffer &audioBuffer)
 {
+  LXI_PROFILE_FUNCTION;
+
   d->future.waitForFinished();
 
   if (!audioBuffer.isNull() && d->resampler)
@@ -107,6 +109,8 @@ void SAudioResampleNode::input(const SAudioBuffer &audioBuffer)
 
 void SAudioResampleNode::processTask(const SAudioBuffer &audioBuffer)
 {
+  LXI_PROFILE_FUNCTION;
+
   emit output(d->resampler->processBuffer(audioBuffer));
 }
 

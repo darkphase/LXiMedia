@@ -79,6 +79,7 @@ bool AudioEncoder::openCodec(const SAudioCodec &c, Flags flags)
 
   contextHandle = avcodec_alloc_context();
   contextHandle->sample_rate = outCodec.sampleRate();
+  contextHandle->sample_fmt = SAMPLE_FMT_S16;
   contextHandle->channels = outCodec.numChannels();
   contextHandle->channel_layout = FFMpegCommon::toFFMpegChannelLayout(outCodec.channelSetup());
   contextHandle->bit_rate = (outCodec.bitRate() > 0) ? outCodec.bitRate() : (96000 * contextHandle->channels);
@@ -90,6 +91,12 @@ bool AudioEncoder::openCodec(const SAudioCodec &c, Flags flags)
 
   if (flags & Flag_Fast)
     contextHandle->flags2 |= CODEC_FLAG2_FAST;
+
+  contextHandle->thread_count = FFMpegCommon::encodeThreadCount(codecHandle->id);
+  contextHandle->execute = &FFMpegCommon::execute;
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
+  contextHandle->execute2 = &FFMpegCommon::execute2;
+#endif
 
   if (avcodec_open(contextHandle, codecHandle) < 0)
   {

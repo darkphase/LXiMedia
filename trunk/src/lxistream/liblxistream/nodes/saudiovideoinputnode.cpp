@@ -157,6 +157,8 @@ void SAudioVideoInputNode::stop(void)
 
 void SAudioVideoInputNode::process(void)
 {
+  LXI_PROFILE_FUNCTION;
+
   if (d->audioInput && d->videoInput)
   {
     if (d->audioTime <= d->videoTime)

@@ -107,6 +107,8 @@ void SlideShowNode::stop(void)
 
 void SlideShowNode::process(void)
 {
+  LXI_PROFILE_FUNCTION;
+
   future.waitForFinished();
 
   if (currentFrame == 0)
@@ -157,6 +159,8 @@ void SlideShowNode::process(void)
 
 void SlideShowNode::loadImage(const QString &fileName)
 {
+  LXI_PROFILE_FUNCTION;
+
   SImage img(outSize.size(), QImage::Format_RGB32);
 
   QPainter p;
@@ -181,6 +185,8 @@ void SlideShowNode::loadImage(const QString &fileName)
 
 void SlideShowNode::computeVideoBuffer(const SVideoBuffer &a, const SVideoBuffer &b, int fade)
 {
+  LXI_PROFILE_FUNCTION;
+
   SVideoBuffer videoBuffer;
   if (fade <= 0)
     videoBuffer = a;

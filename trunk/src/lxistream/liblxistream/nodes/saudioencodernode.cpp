@@ -49,6 +49,19 @@ QStringList SAudioEncoderNode::codecs(void)
   return SInterfaces::AudioEncoder::available();
 }
 
+QStringList SAudioEncoderNode::losslessCodecs(void)
+{
+  static const QSet<QString> losslessCodecs = QSet<QString>()
+      << "ALAC" << "ALS" << "FLAC" << "SONICLS"
+      << "PCM/S16LE" << "PCM/S16BE" << "PCM/U16LE" << "PCM/U16BE" << "PCM/S8"
+      << "PCM/U8" << "PCM/MULAW" << "PCM/ALAW" << "PCM/S32LE" << "PCM/S32BE"
+      << "PCM/U32LE" << "PCM/U32BE" << "PCM/S24LE" << "PCM/S24BE" << "PCM/U24LE"
+      << "PCM/U24BE" << "PCM/S24DAUD" << "PCM/ZORK" << "PCM/S16LEP" << "PCM/DVD"
+      << "PCM/F32BE" << "PCM/F32LE" << "PCM/F64BE" << "PCM/F64LE";
+
+  return (QSet<QString>::fromList(codecs()) & losslessCodecs).toList();
+}
+
 bool SAudioEncoderNode::openCodec(const SAudioCodec &codec, SInterfaces::AudioEncoder::Flags flags)
 {
   d->future.waitForFinished();
@@ -79,6 +92,8 @@ void SAudioEncoderNode::stop(void)
 
 void SAudioEncoderNode::input(const SAudioBuffer &audioBuffer)
 {
+  LXI_PROFILE_FUNCTION;
+
   d->future.waitForFinished();
 
   if (d->encoder)
@@ -89,6 +104,8 @@ void SAudioEncoderNode::input(const SAudioBuffer &audioBuffer)
 
 void SAudioEncoderNode::processTask(const SAudioBuffer &audioBuffer)
 {
+  LXI_PROFILE_FUNCTION;
+
   foreach (const SEncodedAudioBuffer &buffer, d->encoder->encodeBuffer(audioBuffer))
     emit output(buffer);
 }

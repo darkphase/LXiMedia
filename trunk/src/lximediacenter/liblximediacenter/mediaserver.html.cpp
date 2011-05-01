@@ -228,7 +228,7 @@ const char MediaServer::htmlPlayerThumbItem[] =
     "        <div style=\"padding:1em;background-color:rgba(255,255,255,0.7);width:{WIDTH23}px;\">\n"
     "         {TR_TRANSCODE_OPTIONS_EXPLAIN}\n"
     "         <br /><br />\n"
-    "         <form name=\"dlnasettings\" action=\"{TITLE}.mpeg\" method=\"get\">\n"
+    "         <form name=\"dlnasettings\" action=\"{CLEAN_TITLE}.mpeg\" method=\"get\">\n"
     "          <input type=\"hidden\" name=\"item\" value=\"{PLAYER_ITEM}\" />\n"
     "          <input type=\"hidden\" name=\"encode\" value=\"slow\" />\n"
     "          <input type=\"hidden\" name=\"priority\" value=\"low\" />\n"
@@ -433,10 +433,10 @@ QByteArray MediaServer::buildDetailedView(const QString &dirPath, const QStringL
   return htmlParser.parse(htmlDetailedList);
 }
 
-QByteArray MediaServer::buildVideoPlayer(const QByteArray &item, const SMediaInfo::Program &program, const QUrl &url, const QSize &size)
+QByteArray MediaServer::buildVideoPlayer(const QByteArray &item, const QString &title, const SMediaInfo::Program &program, const QUrl &url, const QSize &size)
 {
   HtmlParser htmlParser;
-  htmlParser.setField("TITLE", program.title);
+  htmlParser.setField("CLEAN_TITLE", SStringParser::toCleanName(title));
   htmlParser.setField("PLAYER_ITEM", item);
   htmlParser.setField("TR_PLAY_HERE", tr("Play now"));
   htmlParser.setField("TR_PLAY_EXTERNAL", tr("Play in external player"));
@@ -591,7 +591,7 @@ QByteArray MediaServer::buildVideoPlayer(const QByteArray &item, const SMediaInf
 QByteArray MediaServer::buildVideoPlayer(const QByteArray &item, const QString &title, const QUrl &url, const QSize &size)
 {
   HtmlParser htmlParser;
-  htmlParser.setField("TITLE", title);
+  htmlParser.setField("CLEAN_TITLE", SStringParser::toCleanName(title));
   htmlParser.setField("PLAYER_ITEM", item);
   htmlParser.setField("TR_PLAY_HERE", tr("Play now"));
   htmlParser.setField("TR_PLAY_EXTERNAL", tr("Play in external player"));

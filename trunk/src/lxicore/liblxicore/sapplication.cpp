@@ -32,6 +32,15 @@ struct SApplication::Data
   QString                       logDir;
   QStringList                   moduleFilter;
   QList< QPair<QPluginLoader *, SModule *> > modules;
+
+  QMutex                        profileMutex;
+  QFile                       * profileFile;
+  QMap<QThread *, int>          profileThreadMap;
+  QTime                         profileTimer;
+  int                           profileWidth;
+  static const int              profileLineHeight = 20;
+  static const int              profileSecWidth = 20000;
+  static const int              profileMinTaskWidth = 20;
 };
 
 SApplication::Initializer * SApplication::initializers = NULL;
@@ -53,6 +62,8 @@ SApplication::SApplication(const QString &logDir, QObject *parent)
     qFatal("Only one instance of the SApplication class is allowed.");
 
   d->logDir = logDir;
+  d->profileFile = NULL;
+  d->profileWidth = 0;
 
   self = this;
 
@@ -138,6 +149,8 @@ SApplication::SApplication(const QString &logDir, QObject *parent)
 SApplication::~SApplication(void)
 {
   Q_ASSERT(QThread::currentThread() == thread());
+
+  disableProfiling();
 
   for (Initializer *i = initializers; i; i = i->next)
     i->shutdown();
@@ -252,6 +265,140 @@ const QString & SApplication::logDir(void) const
   return d->logDir;
 }
 
+bool SApplication::enableProfiling(const QString &fileName)
+{
+  disableProfiling();
+
+  d->profileFile = new QFile(fileName);
+  if (!d->profileFile->open(QFile::WriteOnly))
+  {
+    delete d->profileFile;
+    d->profileFile = NULL;
+    return false;
+  }
+
+  // Reserve space for SVG header
+  d->profileFile->write("<svg>" + QByteArray(250, ' ') + '\n');
+
+  d->profileTimer.start();
+  d->profileWidth = 0;
+  profileTask(-1, -1, "Start");
+
+  return true;
+}
+
+void SApplication::disableProfiling(void)
+{
+  if (d->profileFile)
+  {
+    // Write SVG trailer
+    d->profileFile->write("</svg>\n");
+
+    // Write SVG header
+    d->profileFile->seek(0);
+    d->profileFile->write(
+        "<!-- Trace file created by LXiStream -->\n"
+        "<svg xmlns:svg=\"http://www.w3.org/2000/svg\" "
+             "xmlns=\"http://www.w3.org/2000/svg\" "
+             "version=\"1.1\" id=\"svg2\" "
+             "width=\"" + QByteArray::number(d->profileWidth + (d->profileSecWidth / 10)) + "\" "
+             "height=\"" + QByteArray::number(d->profileThreadMap.count() * d->profileLineHeight) + "\">");
+
+    delete d->profileFile;
+    d->profileFile = NULL;
+
+    d->profileThreadMap.clear();
+  }
+}
+
+int SApplication::profileTimeStamp(void)
+{
+  if (d->profileFile)
+  {
+    QMutexLocker l(&d->profileMutex);
+
+    return d->profileTimer.elapsed();
+  }
+  else
+    return 0;
+}
+
+void SApplication::profileTask(int startTime, int stopTime, const QByteArray &taskName)
+{
+  if (d->profileFile)
+  {
+    QMutexLocker l(&d->profileMutex);
+
+    QMap<QThread *, int>::Iterator threadId = d->profileThreadMap.find(QThread::currentThread());
+    if (threadId == d->profileThreadMap.end())
+    {
+      threadId = d->profileThreadMap.insert(QThread::currentThread(), d->profileThreadMap.count());
+
+      d->profileFile->write(
+          "<text x=\"0\" "
+                "y=\"" + QByteArray::number((*threadId * d->profileLineHeight) + 10) + "\" "
+                "style=\"font-size:8px\">"
+            "Thread " + QByteArray::number(*threadId) + "</text>\n");
+    }
+
+    const int duration = stopTime - startTime;
+    const int taskStart = (startTime * d->profileSecWidth / 1000) + 40;
+    const int taskWidth = qMax(1, duration * d->profileSecWidth / 1000);
+
+    d->profileWidth = qMax(d->profileWidth, taskStart + taskWidth);
+
+    d->profileFile->write(
+        "<rect x=\"" + QByteArray::number(taskStart) + "\" "
+              "y=\"" + QByteArray::number(*threadId * d->profileLineHeight) + "\" "
+              "width=\"" + QByteArray::number(taskWidth) + "\" "
+              "height=\"" + QByteArray::number(d->profileLineHeight) + "\" "
+              "style=\"fill:#E0E0FF;stroke:#000000;stroke-width:1\" />\n");
+
+    if (taskWidth >= d->profileMinTaskWidth)
+    {
+      QByteArray xmlTaskName = taskName;
+      const int par = xmlTaskName.indexOf('(');
+      if (par > 0)
+      {
+        xmlTaskName = xmlTaskName.left(par);
+
+        const int spc = xmlTaskName.lastIndexOf(' ');
+        if (spc >= 0)
+          xmlTaskName = xmlTaskName.mid(spc + 1);
+
+        int sep = -1;
+        for (int i = xmlTaskName.indexOf("::"); i >= 0; )
+        {
+          const int ns = xmlTaskName.indexOf("::", i + 2);
+          if (ns > i)
+          {
+            sep = i;
+            i = ns;
+          }
+          else
+            break;
+        }
+
+        if (sep >= 0)
+          xmlTaskName = xmlTaskName.mid(sep + 2);
+      }
+
+      xmlTaskName.replace("&", "&amp;");
+      xmlTaskName.replace("<", "&lt;");
+
+      d->profileFile->write(
+          "<text x=\"" + QByteArray::number(taskStart) + "\" "
+                "y=\"" + QByteArray::number((*threadId * d->profileLineHeight) + d->profileLineHeight - 7) + "\" "
+                "style=\"font-size:6px\">" + QByteArray::number(duration) + " ms</text>\n"
+          "<text x=\"" + QByteArray::number(taskStart) + "\" "
+                "y=\"" + QByteArray::number((*threadId * d->profileLineHeight) + d->profileLineHeight - 1) + "\" "
+                "style=\"font-size:6px\">" + xmlTaskName + "</text>\n");
+    }
+
+    d->profileFile->flush();
+  }
+}
+
 /*! Creates a new SApplication instance for use within a QTest environment. No
     modules will be loaded automatically and they have to be loaded using
     loadModule().
@@ -309,6 +456,18 @@ SApplication::Initializer::~Initializer()
   for (Initializer *i = initializers; i; i = i->next)
   if (i->next == this)
     i->next = i->next->next;
+}
+
+
+SApplication::Profiler::Profiler(const QByteArray &taskName)
+  : taskName(taskName),
+    startTime(self->profileTimeStamp())
+{
+}
+
+SApplication::Profiler::~Profiler()
+{
+  self->profileTask(startTime, self->profileTimeStamp(), taskName);
 }
 
 } // End of namespace

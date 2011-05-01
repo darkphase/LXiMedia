@@ -484,7 +484,7 @@ SHttpServer::SocketOp MediaPlayerServer::handleHttpRequest(const SHttpServer::Re
 
         HtmlParser htmlParser;
 
-        htmlParser.setField("PLAYER", buildVideoPlayer(uid, program, url));
+        htmlParser.setField("PLAYER", buildVideoPlayer(uid, node.title(), program, url));
 
         htmlParser.setField("PLAYER_INFOITEMS", QByteArray(""));
         htmlParser.setField("ITEM_NAME", tr("Title"));
@@ -531,9 +531,9 @@ QString MediaPlayerServer::videoFormatString(const SMediaInfo::Program &program)
   return tr("Unknown");
 }
 
-QByteArray MediaPlayerServer::buildVideoPlayer(MediaDatabase::UniqueID uid, const SMediaInfo::Program &program, const QUrl &url, const QSize &size)
+QByteArray MediaPlayerServer::buildVideoPlayer(MediaDatabase::UniqueID uid, const QString &title, const SMediaInfo::Program &program, const QUrl &url, const QSize &size)
 {
-  return MediaServer::buildVideoPlayer(MediaDatabase::toUidString(uid), program, url, size);
+  return MediaServer::buildVideoPlayer(MediaDatabase::toUidString(uid), title, program, url, size);
 }
 
 QByteArray MediaPlayerServer::buildVideoPlayer(const QByteArray &item, const QString &title, const QUrl &url, const QSize &size)

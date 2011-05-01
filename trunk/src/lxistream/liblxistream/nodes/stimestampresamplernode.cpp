@@ -127,6 +127,7 @@ void STimeStampResamplerNode::stop(void)
 
 void STimeStampResamplerNode::input(const SVideoBuffer &videoBuffer)
 {
+  LXI_PROFILE_FUNCTION;
   Q_ASSERT(QThread::currentThread() == thread());
 
   if (!videoBuffer.isNull() && d->frameRate.isValid())
@@ -165,6 +166,7 @@ void STimeStampResamplerNode::input(const SVideoBuffer &videoBuffer)
 
 void STimeStampResamplerNode::input(const SSubpictureBuffer &subpictureBuffer)
 {
+  LXI_PROFILE_FUNCTION;
   Q_ASSERT(QThread::currentThread() == thread());
 
   if (!subpictureBuffer.isNull())
@@ -188,6 +190,7 @@ void STimeStampResamplerNode::input(const SSubpictureBuffer &subpictureBuffer)
 
 void STimeStampResamplerNode::input(const SSubtitleBuffer &subtitleBuffer)
 {
+  LXI_PROFILE_FUNCTION;
   Q_ASSERT(QThread::currentThread() == thread());
 
   if (!subtitleBuffer.isNull())

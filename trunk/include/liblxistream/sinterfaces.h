@@ -600,6 +600,7 @@ public:
   virtual void                  setAspectRatioMode(Qt::AspectRatioMode) = 0;
   virtual Qt::AspectRatioMode   aspectRatioMode(void) const = 0;
 
+  virtual bool                  needsResize(const SVideoFormat &) = 0;
   virtual SVideoBuffer          processBuffer(const SVideoBuffer &) = 0;
 };
 

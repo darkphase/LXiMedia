@@ -134,6 +134,8 @@ void SVideoFormatConvertNode::stop(void)
 
 void SVideoFormatConvertNode::input(const SVideoBuffer &videoBuffer)
 {
+  LXI_PROFILE_FUNCTION;
+
   d->future.waitForFinished();
 
   if (!videoBuffer.isNull())
@@ -149,6 +151,8 @@ void SVideoFormatConvertNode::input(const SVideoBuffer &videoBuffer)
 
 void SVideoFormatConvertNode::processTask(const SVideoBuffer &videoBuffer)
 {
+  LXI_PROFILE_FUNCTION;
+
   emit output(convert(videoBuffer));
 }
 

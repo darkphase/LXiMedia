@@ -25,6 +25,7 @@ Sandbox::Sandbox()
     sandboxServer()
 {
   mediaApp.installExcpetionHandler();
+  //mediaApp.enableProfiling(QDir::temp().absoluteFilePath(QString::number(qApp->applicationPid()) + ".svg"));
 
   // Seed the random number generator.
   qsrand(int(QDateTime::currentDateTime().toTime_t()));

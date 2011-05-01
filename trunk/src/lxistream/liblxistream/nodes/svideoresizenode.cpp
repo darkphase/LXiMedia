@@ -129,19 +129,24 @@ void SVideoResizeNode::stop(void)
 
 void SVideoResizeNode::input(const SVideoBuffer &videoBuffer)
 {
+  LXI_PROFILE_FUNCTION;
+
   d->future.waitForFinished();
 
   if (!videoBuffer.isNull() && d->resizer)
   {
     SInterfaces::VideoResizer *resizer = d->resizer;
     if (d->lanczosResizer)
-    if ((d->lanczosResizer->size().height() > videoBuffer.format().size().height()) &&
-        (videoBuffer.format().size().height() < 720))
+    if ((d->lanczosResizer->size().width() > videoBuffer.format().size().width()) &&
+        (videoBuffer.format().size().width() < 1280))
     {
       resizer = d->lanczosResizer;
     }
 
-    d->future = QtConcurrent::run(this, &SVideoResizeNode::processTask, videoBuffer, resizer);
+    if (resizer->needsResize(videoBuffer.format()))
+      d->future = QtConcurrent::run(this, &SVideoResizeNode::processTask, videoBuffer, resizer);
+    else
+      emit output(videoBuffer);
   }
   else
     emit output(videoBuffer);
@@ -149,6 +154,8 @@ void SVideoResizeNode::input(const SVideoBuffer &videoBuffer)
 
 void SVideoResizeNode::processTask(const SVideoBuffer &videoBuffer, SInterfaces::VideoResizer *resizer)
 {
+  LXI_PROFILE_FUNCTION;
+
   emit output(resizer->processBuffer(videoBuffer));
 }
 

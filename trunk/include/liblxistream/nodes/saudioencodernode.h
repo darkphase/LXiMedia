@@ -40,6 +40,7 @@ public:
   virtual                       ~SAudioEncoderNode();
 
   static QStringList            codecs(void);
+  static QStringList            losslessCodecs(void);
 
   bool                          openCodec(const SAudioCodec &, Flags = SInterfaces::AudioEncoder::Flag_None);
   SAudioCodec                   codec(void) const;

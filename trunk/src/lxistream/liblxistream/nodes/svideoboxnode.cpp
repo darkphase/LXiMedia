@@ -76,6 +76,8 @@ void SVideoBoxNode::stop(void)
 
 void SVideoBoxNode::input(const SVideoBuffer &videoBuffer)
 {
+  LXI_PROFILE_FUNCTION;
+
   d->future.waitForFinished();
 
   if (!videoBuffer.isNull())
@@ -91,6 +93,8 @@ void SVideoBoxNode::input(const SVideoBuffer &videoBuffer)
 
 void SVideoBoxNode::processTask(const SVideoBuffer &videoBuffer)
 {
+  LXI_PROFILE_FUNCTION;
+
   const SSize size = videoBuffer.format().size();
 
   SVideoBuffer destBuffer(SVideoFormat(videoBuffer.format().format(),

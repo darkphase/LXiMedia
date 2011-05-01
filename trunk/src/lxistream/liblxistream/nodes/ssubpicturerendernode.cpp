@@ -82,6 +82,8 @@ void SSubpictureRenderNode::stop(void)
 
 void SSubpictureRenderNode::input(const SSubpictureBuffer &subpictureBuffer)
 {
+  LXI_PROFILE_FUNCTION;
+
   QMutexLocker l(&d->mutex);
 
   if (subpictureBuffer.duration().toSec() <= 10)
@@ -100,6 +102,8 @@ void SSubpictureRenderNode::input(const SSubpictureBuffer &subpictureBuffer)
 
 void SSubpictureRenderNode::input(const SVideoBuffer &videoBuffer)
 {
+  LXI_PROFILE_FUNCTION;
+
   d->future.waitForFinished();
 
   if (!videoBuffer.isNull() && d->enabled)
@@ -110,6 +114,8 @@ void SSubpictureRenderNode::input(const SVideoBuffer &videoBuffer)
 
 void SSubpictureRenderNode::processTask(const SVideoBuffer &videoBuffer)
 {
+  LXI_PROFILE_FUNCTION;
+
   QMutexLocker l(&d->mutex);
 
   for (QMap<STime, SSubpictureBuffer>::Iterator i=d->subpictures.begin(); i!=d->subpictures.end(); )
