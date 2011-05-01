@@ -861,16 +861,25 @@ int FFMpegCommon::decodeThreadCount(::CodecID)
   return qBound(1, QThreadPool::globalInstance()->maxThreadCount(), threadLimit + 0);
 }
 
-int FFMpegCommon::execute(struct AVCodecContext *c, int (*func)(struct AVCodecContext *c2, void *arg), void *arg2, int *ret, int count, int size)
+int FFMpegCommon::execute(::AVCodecContext *c, int (*func)(::AVCodecContext *c2, void *arg), void *arg2, int *ret, int count, int size)
 {
   if (count > 1)
   {
-    QVector< QFuture<int> > future;
-    for (int i=0; i<count; i++)
+    struct T
     {
-      void * const arg = reinterpret_cast<char *>(arg2) + (size * i);
-      future += QtConcurrent::run(func, c, arg);
-    }
+      static int profileFunc(int (*func)(::AVCodecContext *, void *), ::AVCodecContext *c, void *arg)
+      {
+        SApplication::Profiler _prf("FFMpegCommon::execute_task");
+
+        return func(c, arg);
+      }
+    };
+
+    QVector< QFuture<int> > future;
+    future.reserve(count);
+
+    for (int i=0; i<count; i++)
+      future += QtConcurrent::run(&T::profileFunc, func, c, reinterpret_cast<char *>(arg2) + (size * i));
 
     for (int i=0; i<count; i++)
     {
@@ -889,6 +898,54 @@ int FFMpegCommon::execute(struct AVCodecContext *c, int (*func)(struct AVCodecCo
 
   return 0;
 }
+
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
+int FFMpegCommon::execute2(::AVCodecContext *c, int (*func)(::AVCodecContext *c2, void *arg, int jobnr, int threadnr), void *arg2, int *ret, int count)
+{
+  if ((count > 1) && (c->thread_count > 1))
+  {
+    struct T
+    {
+      static int profileFunc(int (*func)(::AVCodecContext *, void *, int, int), ::AVCodecContext *c, void *arg, int jobnr, int threadnr)
+      {
+        SApplication::Profiler _prf("FFMpegCommon::execute2_task");
+
+        return func(c, arg, jobnr, threadnr);
+      }
+    };
+
+    QVector< QFuture<int> > future;
+    future.reserve(c->thread_count);
+
+    for (int i=0; i<count; i+=c->thread_count)
+    {
+      for (int j=0; (j<c->thread_count) && ((i+j)<count); j++)
+        future += QtConcurrent::run(&T::profileFunc, func, c, arg2, i, j);
+
+      for (int j=0; j<future.count(); j++)
+      {
+        future[j].waitForFinished();
+        if (ret)
+          ret[i+j] = future[j].result();
+      }
+
+      future.clear();
+    }
+  }
+  else // Single-threaded.
+  {
+    for (int i=0; i<count; i++)
+    {
+      if (ret)
+        ret[i] = func(c, arg2, i, 0);
+      else
+        func(c, arg2, i, 0);
+    }
+  }
+
+  return 0;
+}
+#endif
 
 void FFMpegCommon::log(void *, int level, const char *fmt, va_list vl)
 {

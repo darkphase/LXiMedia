@@ -127,6 +127,8 @@ void SSubtitleRenderNode::stop(void)
 
 void SSubtitleRenderNode::input(const SSubtitleBuffer &subtitleBuffer)
 {
+  LXI_PROFILE_FUNCTION;
+
   QMutexLocker l(&d->mutex);
 
   if (subtitleBuffer.duration().toSec() <= 10)
@@ -145,6 +147,8 @@ void SSubtitleRenderNode::input(const SSubtitleBuffer &subtitleBuffer)
 
 void SSubtitleRenderNode::input(const SVideoBuffer &videoBuffer)
 {
+  LXI_PROFILE_FUNCTION;
+
   d->future.waitForFinished();
 
   if (!videoBuffer.isNull() && d->enabled)
@@ -191,6 +195,8 @@ SVideoBuffer SSubtitleRenderNode::renderSubtitles(const SVideoBuffer &videoBuffe
 
 void SSubtitleRenderNode::processTask(const SVideoBuffer &videoBuffer)
 {
+  LXI_PROFILE_FUNCTION;
+
   QMutexLocker l(&d->mutex);
 
   for (QMap<STime, SSubtitleBuffer>::Iterator i=d->subtitles.begin(); i!=d->subtitles.end(); )

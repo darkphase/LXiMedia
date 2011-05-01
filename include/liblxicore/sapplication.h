@@ -24,7 +24,15 @@
 #include "splatform.h"
 #include "export.h"
 
-#define sApp (SApplication::instance())
+#define sApp (::LXiCore::SApplication::instance())
+
+#if defined(__GNUC__)
+# define LXI_PROFILE_FUNCTION ::LXiCore::SApplication::Profiler _prf(__PRETTY_FUNCTION__)
+#elif defined(_MSC_VER)
+# define LXI_PROFILE_FUNCTION ::LXiCore::SApplication::Profiler _prf(__FUNCSIG__)
+#else
+# define LXI_PROFILE_FUNCTION ::LXiCore::SApplication::Profiler _prf(__FUNCTION__)
+#endif
 
 namespace LXiCore {
 
@@ -120,6 +128,17 @@ public:
     Message                     readMessage(void);
   };
 
+  class LXICORE_PUBLIC Profiler
+  {
+  public:
+    explicit                    Profiler(const QByteArray &taskName);
+                                ~Profiler();
+
+  private:
+    const QByteArray            taskName;
+    const int                   startTime;
+  };
+
 public:
   explicit                      SApplication(const QString &logDir = QString::null, QObject * = NULL);
   virtual                       ~SApplication();
@@ -145,6 +164,12 @@ public: // Logging
   const QStringList           & allLogFiles(void) const;
   const QString               & activeLogFile(void) const;
   static void                   logLineToActiveLogFile(const QString &line);
+
+public: // Profiling
+  bool                          enableProfiling(const QString &fileName);
+  void                          disableProfiling(void);
+  int                           profileTimeStamp(void);
+  void                          profileTask(int, int, const QByteArray &);
 
 public:
   static SApplication         * createForQTest(QObject *);

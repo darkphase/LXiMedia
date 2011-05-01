@@ -82,6 +82,8 @@ void SAudioInputNode::stop(void)
 
 void SAudioInputNode::process(void)
 {
+  LXI_PROFILE_FUNCTION;
+
   if (d->input)
     d->input->process();
 }

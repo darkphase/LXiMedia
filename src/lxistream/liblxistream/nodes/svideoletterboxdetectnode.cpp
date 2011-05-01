@@ -66,6 +66,8 @@ void SVideoLetterboxDetectNode::stop(void)
 
 void SVideoLetterboxDetectNode::input(const SVideoBuffer &videoBuffer)
 {
+  LXI_PROFILE_FUNCTION;
+
   if (!videoBuffer.isNull())
   {
     d->buffers.append(videoBuffer);

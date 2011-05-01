@@ -40,6 +40,7 @@ public:
   virtual                       ~SVideoEncoderNode();
 
   static QStringList            codecs(void);
+  static QStringList            losslessCodecs(void);
 
   bool                          openCodec(const SVideoCodec &, Flags = SInterfaces::VideoEncoder::Flag_None);
   SVideoCodec                   codec(void) const;

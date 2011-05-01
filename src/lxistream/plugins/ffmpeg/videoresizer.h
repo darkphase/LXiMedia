@@ -42,6 +42,7 @@ public: // From SInterfaces::VideoResizer
   virtual void                  setAspectRatioMode(Qt::AspectRatioMode);
   virtual Qt::AspectRatioMode   aspectRatioMode(void) const;
 
+  virtual bool                  needsResize(const SVideoFormat &);
   virtual SVideoBuffer          processBuffer(const SVideoBuffer &);
 
 private:

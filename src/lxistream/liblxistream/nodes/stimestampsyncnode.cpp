@@ -97,6 +97,7 @@ void STimeStampSyncNode::stop(void)
 
 void STimeStampSyncNode::input(const SAudioBuffer &audioBuffer)
 {
+  LXI_PROFILE_FUNCTION;
   Q_ASSERT(QThread::currentThread() == thread());
 
   if (!audioBuffer.isNull())
@@ -139,6 +140,7 @@ void STimeStampSyncNode::input(const SAudioBuffer &audioBuffer)
 
 void STimeStampSyncNode::input(const SVideoBuffer &videoBuffer)
 {
+  LXI_PROFILE_FUNCTION;
   Q_ASSERT(QThread::currentThread() == thread());
 
   if (!videoBuffer.isNull())

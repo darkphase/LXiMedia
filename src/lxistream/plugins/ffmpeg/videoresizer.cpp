@@ -23,7 +23,6 @@
 namespace LXiStream {
 namespace FFMpegBackend {
 
-
 VideoResizer::VideoResizer(const QString &scheme, QObject *parent)
   : SInterfaces::VideoResizer(parent),
     filterFlags(algoFlags(scheme)),
@@ -74,32 +73,33 @@ Qt::AspectRatioMode VideoResizer::aspectRatioMode(void) const
   return scaleAspectRatioMode;
 }
 
-SVideoBuffer VideoResizer::processBuffer(const SVideoBuffer &videoBuffer)
+bool VideoResizer::needsResize(const SVideoFormat &format)
 {
-  if (!scaleSize.isNull() && !videoBuffer.isNull())
+  if (lastFormat != format)
   {
-    if (lastFormat != videoBuffer.format())
+    lastFormat = format;
+
+    QSize size = lastFormat.size().absoluteSize();
+    size.scale(scaleSize.absoluteSize(), scaleAspectRatioMode);
+    if (scaleSize.aspectRatio() > 1.0)
+      size.setWidth(int(size.width() / scaleSize.aspectRatio()));
+    else if (scaleSize.aspectRatio() < 1.0)
+      size.setHeight(int(size.height() / (1.0f / scaleSize.aspectRatio())));
+
+    destFormat = SVideoFormat(
+        lastFormat.format(),
+        SSize(unsigned(size.width()) & ~0x0Fu, size.height()),
+        lastFormat.frameRate(),
+        lastFormat.fieldMode());
+
+    if (swsContext)
     {
-      lastFormat = videoBuffer.format();
+      sws_freeContext(swsContext);
+      swsContext = NULL;
+    }
 
-      QSize size = lastFormat.size().absoluteSize();
-      size.scale(scaleSize.absoluteSize(), scaleAspectRatioMode);
-      if (scaleSize.aspectRatio() > 1.0)
-        size.setWidth(int(size.width() / scaleSize.aspectRatio()));
-      else if (scaleSize.aspectRatio() < 1.0)
-        size.setHeight(int(size.height() / (1.0f / scaleSize.aspectRatio())));
-
-      destFormat = SVideoFormat(lastFormat.format(),
-                                SSize(unsigned(size.width()) & ~0x0Fu, unsigned(size.height()) & ~0x0Fu),
-                                lastFormat.frameRate(),
-                                lastFormat.fieldMode());
-
-      if (swsContext)
-      {
-        sws_freeContext(swsContext);
-        swsContext = NULL;
-      }
-
+    if (destFormat.size() != format.size())
+    {
       const ::PixelFormat pf = FFMpegCommon::toFFMpegPixelFormat(lastFormat);
 
       swsContext = sws_getContext(lastFormat.size().width(), lastFormat.size().height(), pf,
@@ -114,45 +114,45 @@ SVideoBuffer VideoResizer::processBuffer(const SVideoBuffer &videoBuffer)
                                     NULL, NULL, NULL);
       }
     }
+  }
 
-    if (lastFormat.size() == destFormat.size())
+  return swsContext != NULL;
+}
+
+SVideoBuffer VideoResizer::processBuffer(const SVideoBuffer &videoBuffer)
+{
+  if (!scaleSize.isNull() && !videoBuffer.isNull() && VideoResizer::needsResize(videoBuffer.format()))
+  {
+    SVideoBuffer destBuffer(destFormat);
+
+    uint8_t       * source[4]     = { (uint8_t *)videoBuffer.scanLine(0, 0),
+                                      (uint8_t *)videoBuffer.scanLine(0, 1),
+                                      (uint8_t *)videoBuffer.scanLine(0, 2),
+                                      (uint8_t *)videoBuffer.scanLine(0, 3) };
+    int             srcLineSize[4]= { videoBuffer.lineSize(0),
+                                      videoBuffer.lineSize(1),
+                                      videoBuffer.lineSize(2),
+                                      videoBuffer.lineSize(3) };
+
+    uint8_t       * dest[4]       = { (uint8_t *)destBuffer.scanLine(0, 0),
+                                      (uint8_t *)destBuffer.scanLine(0, 1),
+                                      (uint8_t *)destBuffer.scanLine(0, 2),
+                                      (uint8_t *)destBuffer.scanLine(0, 3) };
+    int             dstLineSize[4]= { destBuffer.lineSize(0),
+                                      destBuffer.lineSize(1),
+                                      destBuffer.lineSize(2),
+                                      destBuffer.lineSize(3) };
+
+    if (sws_scale(swsContext, source, srcLineSize,
+                  0, lastFormat.size().height(),
+                  dest, dstLineSize) >= 0)
     {
-      return videoBuffer;
-    }
-    else if (swsContext)
-    {
-      SVideoBuffer destBuffer(destFormat);
-
-      uint8_t       * source[4]     = { (uint8_t *)videoBuffer.scanLine(0, 0),
-                                        (uint8_t *)videoBuffer.scanLine(0, 1),
-                                        (uint8_t *)videoBuffer.scanLine(0, 2),
-                                        (uint8_t *)videoBuffer.scanLine(0, 3) };
-      int             srcLineSize[4]= { videoBuffer.lineSize(0),
-                                        videoBuffer.lineSize(1),
-                                        videoBuffer.lineSize(2),
-                                        videoBuffer.lineSize(3) };
-
-      uint8_t       * dest[4]       = { (uint8_t *)destBuffer.scanLine(0, 0),
-                                        (uint8_t *)destBuffer.scanLine(0, 1),
-                                        (uint8_t *)destBuffer.scanLine(0, 2),
-                                        (uint8_t *)destBuffer.scanLine(0, 3) };
-      int             dstLineSize[4]= { destBuffer.lineSize(0),
-                                        destBuffer.lineSize(1),
-                                        destBuffer.lineSize(2),
-                                        destBuffer.lineSize(3) };
-
-      if (sws_scale(swsContext, source, srcLineSize,
-                    0, lastFormat.size().height(),
-                    dest, dstLineSize) >= 0)
-      {
-        destBuffer.setTimeStamp(videoBuffer.timeStamp());
-        return destBuffer;
-      }
+      destBuffer.setTimeStamp(videoBuffer.timeStamp());
+      return destBuffer;
     }
   }
 
   return videoBuffer;
 }
-
 
 } } // End of namespaces

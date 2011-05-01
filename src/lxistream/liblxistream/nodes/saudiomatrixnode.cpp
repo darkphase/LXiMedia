@@ -107,6 +107,8 @@ void SAudioMatrixNode::stop(void)
 
 void SAudioMatrixNode::input(const SAudioBuffer &audioBuffer)
 {
+  LXI_PROFILE_FUNCTION;
+
   d->future.waitForFinished();
 
   if (!audioBuffer.isNull() &&
@@ -142,6 +144,8 @@ void SAudioMatrixNode::input(const SAudioBuffer &audioBuffer)
 
 void SAudioMatrixNode::processTask(const SAudioBuffer &audioBuffer)
 {
+  LXI_PROFILE_FUNCTION;
+
   SAudioBuffer destBuffer(audioBuffer.format(), audioBuffer.numSamples());
 
   LXiStream_SAudioMatrixNode_mixMatrix(reinterpret_cast<const qint16 *>(audioBuffer.data()),

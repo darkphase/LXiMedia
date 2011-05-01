@@ -64,6 +64,9 @@ public:
   static int                    decodeThreadCount(::CodecID);
   static int                    encodeThreadCount(::CodecID);
   static int                    execute(::AVCodecContext *c, int (*func)(::AVCodecContext *c2, void *arg), void *arg2, int *ret, int count, int size);
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
+  static int                    execute2(::AVCodecContext *c, int (*func)(::AVCodecContext *c2, void *arg, int jobnr, int threadnr), void *arg2, int *ret, int count);
+#endif
 
 private:
   static void                   log(void * ptr, int level, const char* fmt, va_list vl);

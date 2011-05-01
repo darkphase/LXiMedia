@@ -38,6 +38,7 @@ private slots:
   void                          VideoEncodeDecode(void);
 
 private:
+  void                          AudioEncodeDecode(const char *);
   void                          VideoEncodeDecode(const char *);
 
 private:

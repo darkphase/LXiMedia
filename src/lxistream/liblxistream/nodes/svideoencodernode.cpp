@@ -48,6 +48,14 @@ QStringList SVideoEncoderNode::codecs(void)
   return SInterfaces::VideoEncoder::available();
 }
 
+QStringList SVideoEncoderNode::losslessCodecs(void)
+{
+  static const QSet<QString> losslessCodecs = QSet<QString>()
+      << "LJPEG" << "MLP" << "MSZH" << "ZLIB";
+
+  return (QSet<QString>::fromList(codecs()) & losslessCodecs).toList();
+}
+
 bool SVideoEncoderNode::openCodec(const SVideoCodec &codec, SInterfaces::VideoEncoder::Flags flags)
 {
   d->future.waitForFinished();
@@ -78,6 +86,8 @@ void SVideoEncoderNode::stop(void)
 
 void SVideoEncoderNode::input(const SVideoBuffer &videoBuffer)
 {
+  LXI_PROFILE_FUNCTION;
+
   d->future.waitForFinished();
 
   if (d->encoder)
@@ -88,6 +98,8 @@ void SVideoEncoderNode::input(const SVideoBuffer &videoBuffer)
 
 void SVideoEncoderNode::processTask(const SVideoBuffer &videoBuffer)
 {
+  LXI_PROFILE_FUNCTION;
+
   foreach (const SEncodedVideoBuffer &buffer, d->encoder->encodeBuffer(videoBuffer))
     emit output(buffer);
 }

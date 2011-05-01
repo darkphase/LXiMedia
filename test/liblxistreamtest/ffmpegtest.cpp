@@ -76,27 +76,49 @@ void FFMpegTest::MediaFileInfoAudioDeep(void)
  */
 void FFMpegTest::AudioEncodeDecode(void)
 {
+  static const QSet<QString> skipCodecs = QSet<QString>()
+      << "PCM/S16LE" << "PCM/S16BE" << "PCM/U16LE" << "PCM/U16BE" << "PCM/S8"
+      << "PCM/U8" << "PCM/MULAW" << "PCM/ALAW" << "PCM/S32LE" << "PCM/S32BE"
+      << "PCM/U32LE" << "PCM/U32BE" << "PCM/S24LE" << "PCM/S24BE" << "PCM/U24LE"
+      << "PCM/U24BE" << "PCM/S24DAUD" << "PCM/ZORK" << "PCM/S16LEP" << "PCM/DVD"
+      << "PCM/F32BE" << "PCM/F32LE" << "PCM/F64BE" << "PCM/F64LE";
+
+  const QSet<QString> decoders = QSet<QString>::fromList(SAudioDecoderNode::codecs());
+  const QSet<QString> encoders = QSet<QString>::fromList(SAudioEncoderNode::codecs());
+
+  QList<QString> test = (encoders & decoders).toList();
+  qSort(test);
+  foreach (const QString &codec, test)
+  if (!skipCodecs.contains(codec))
+    AudioEncodeDecode(codec.toAscii());
+}
+
+void FFMpegTest::AudioEncodeDecode(const char *codecName)
+{
+  //qDebug() << codecName;
+
   FFMpegBackend::AudioEncoder audioEncoder("", NULL);
   FFMpegBackend::AudioDecoder audioDecoder("", NULL);
 
   // Prepare a one-channel buffer with alternating values 32 and 64
   SAudioBuffer inBuffer(SAudioFormat(SAudioFormat::Format_PCM_S16,
-                                     SAudioFormat::Channel_Mono,
-                                     8000),
-                        2048);
+                                     SAudioFormat::Channel_Stereo,
+                                     44100),
+                        65536);
 
-  for (unsigned i=0; i<2048; i+=2)
+  for (int i=0; i<inBuffer.numSamples(); i+=2)
   {
-    reinterpret_cast<qint16 *>(inBuffer.data())[i]   = 32;
-    reinterpret_cast<qint16 *>(inBuffer.data())[i+1] = 64;
+    reinterpret_cast<qint16 *>(inBuffer.data())[i]   = -64;
+    reinterpret_cast<qint16 *>(inBuffer.data())[i+1] =  64;
   }
 
-  // Now encode it with FLAC (Free Lossless Audio Codec) if available.
-  if (audioEncoder.openCodec(SAudioCodec("FLAC", SAudioFormat::Channel_Mono, 8000)))
+  if (audioEncoder.openCodec(SAudioCodec(codecName, inBuffer.format().channelSetup(), inBuffer.format().sampleRate())))
   {
+    // Now encode it
     SEncodedAudioBufferList encBuffers;
-    for (unsigned i=0; i<8; i++)
-      encBuffers += audioEncoder.encodeBuffer(inBuffer);
+    encBuffers += audioEncoder.encodeBuffer(inBuffer);
+    encBuffers += audioEncoder.encodeBuffer(inBuffer);
+    encBuffers += audioEncoder.encodeBuffer(SAudioBuffer());
 
     QVERIFY(!encBuffers.isEmpty());
 
@@ -106,17 +128,21 @@ void FFMpegTest::AudioEncodeDecode(void)
     foreach (const SEncodedAudioBuffer &buffer, encBuffers)
       decBuffers += audioDecoder.decodeBuffer(buffer);
 
+    decBuffers += audioDecoder.decodeBuffer(SEncodedAudioBuffer());
+
     QVERIFY(!decBuffers.isEmpty());
 
-    // And check the result (As FLAC is lossless, we can do a bitwise compare)
+    // And check the result
     SAudioBuffer outBuffer = decBuffers; // This will merge all decoded buffers into one.
     QVERIFY(outBuffer.size() >= inBuffer.size());
     QVERIFY(outBuffer.numSamples() >= inBuffer.numSamples());
-    QCOMPARE(outBuffer.format().numChannels(), 1);
-    for (unsigned i=0; i<2048; i+=2)
+    QCOMPARE(outBuffer.format().numChannels(), inBuffer.format().numChannels());
+
+    if (SAudioEncoderNode::losslessCodecs().contains(codecName))
+    for (int i=0; i<inBuffer.numSamples(); i+=2)
     {
-      QCOMPARE(reinterpret_cast<qint16 *>(outBuffer.data())[i],   qint16(32));
-      QCOMPARE(reinterpret_cast<qint16 *>(outBuffer.data())[i+1], qint16(64));
+      QCOMPARE(reinterpret_cast<const qint16 *>(outBuffer.data())[i],   reinterpret_cast<const qint16 *>(inBuffer.data())[i]);
+      QCOMPARE(reinterpret_cast<const qint16 *>(outBuffer.data())[i+1], reinterpret_cast<const qint16 *>(inBuffer.data())[i+1]);
     }
   }
 }
@@ -125,16 +151,15 @@ void FFMpegTest::AudioEncodeDecode(void)
  */
 void FFMpegTest::VideoEncodeDecode(void)
 {
+  static const QSet<QString> skipCodecs = QSet<QString>();
+
   const QSet<QString> decoders = QSet<QString>::fromList(SVideoDecoderNode::codecs());
   const QSet<QString> encoders = QSet<QString>::fromList(SVideoEncoderNode::codecs());
-
-  /*const QSet<QString> codecs = QSet<QString>()
-      << "DVVIDEO" << "FLV1" << "FFVHUFF" << "H263" << "MJPEG" << "MPEG1"
-      << "MPEG2" << "MPEG4" << "PBM" << "THEORA" << "WMV1" << "WMV2";*/
 
   QList<QString> test = (encoders & decoders).toList();
   qSort(test);
   foreach (const QString &codec, test)
+  if (!skipCodecs.contains(codec))
     VideoEncodeDecode(codec.toAscii());
 }
 
