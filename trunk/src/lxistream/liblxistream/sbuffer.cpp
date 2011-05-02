@@ -21,6 +21,9 @@
 
 namespace LXiStream {
 
+const int   SBuffer::minimumAlignVal = 16;
+const int   SBuffer::optimalAlignVal = 64;
+const int   SBuffer::numPaddingBytes = minimumAlignVal;
 QAtomicInt  SBuffer::uidCounter(1);
 
 /*! Appends the specified data to the existing buffer, the buffer is resized if

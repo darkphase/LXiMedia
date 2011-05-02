@@ -199,7 +199,7 @@ SHttpServerEngine::SocketOp SHttpServerEngine::sendResponse(const RequestHeader 
 {
   if (status >= 400)
   {
-    qDebug() << "HTTP response:" << int(status) << "\""
+    qWarning() << "HTTP response:" << int(status) << "\""
         << ResponseHeader::statusText(status) << "\" for request:"
         << request.method() << request.path() << "from object: \""
         << (object ? object->metaObject()->className() : "NULL") << "\"";

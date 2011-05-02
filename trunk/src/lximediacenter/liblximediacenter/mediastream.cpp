@@ -216,8 +216,6 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request, QAbstractSoc
   socket->write(header);
   output.setIODevice(socket, true);
 
-  //enableTrace("/tmp/test.svg");
-
   qDebug() << "Started video stream"
       << size.width() << "x" << size.height()
       << "@" << frameRate.toFrequency() << videoEncoder.codec().codec()

@@ -42,6 +42,10 @@ PhotoServer::Stream * PhotoServer::streamVideo(const SHttpServer::RequestMessage
     if (url.hasQueryItem("query"))
       url = url.toEncoded(QUrl::RemoveQuery) + QByteArray::fromHex(url.queryItemValue("query").toAscii());
 
+    SSandboxClient * const sandbox = masterServer->createSandbox((url.queryItemValue("priority") == "low") ? SSandboxClient::Mode_Nice : SSandboxClient::Mode_Normal);
+    connect(sandbox, SIGNAL(consoleLine(QString)), SLOT(consoleLine(QString)));
+    sandbox->ensureStarted();
+
     QStringList albums;
     albums += request.directory().mid(serverPath().length() - 1);
 
@@ -75,12 +79,15 @@ PhotoServer::Stream * PhotoServer::streamVideo(const SHttpServer::RequestMessage
       foreach (const QByteArray &line, files)
         content += line + '\n';
 
-      Stream *stream = new Stream(this, request.path());
+      Stream *stream = new Stream(this, sandbox, request.path());
       if (stream->setup(rurl, content))
         return stream;
 
       delete stream;
     }
+
+    disconnect(sandbox, SIGNAL(consoleLine(QString)), this, SLOT(consoleLine(QString)));
+    masterServer->recycleSandbox(sandbox);
 
     return NULL;
   }

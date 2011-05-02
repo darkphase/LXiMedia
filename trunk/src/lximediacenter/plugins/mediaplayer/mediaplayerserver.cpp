@@ -84,6 +84,10 @@ MediaPlayerServer::Stream * MediaPlayerServer::streamVideo(const SHttpServer::Re
   if (url.hasQueryItem("query"))
     url = url.toEncoded(QUrl::RemoveQuery) + QByteArray::fromHex(url.queryItemValue("query").toAscii());
 
+  SSandboxClient * const sandbox = masterServer->createSandbox((url.queryItemValue("priority") == "low") ? SSandboxClient::Mode_Nice : SSandboxClient::Mode_Normal);
+  connect(sandbox, SIGNAL(consoleLine(QString)), SLOT(consoleLine(QString)));
+  sandbox->ensureStarted();
+
   MediaDatabase::UniqueID uid;
   if (url.hasQueryItem("item"))
   {
@@ -110,13 +114,16 @@ MediaPlayerServer::Stream * MediaPlayerServer::streamVideo(const SHttpServer::Re
       foreach (const QStringPair &queryItem, url.queryItems())
         rurl.addQueryItem(queryItem.first, queryItem.second);
 
-      Stream *stream = new Stream(this, request.path());
+      Stream *stream = new Stream(this, sandbox, request.path());
       if (stream->setup(rurl, node.toByteArray(-1)))
         return stream; // The graph owns the socket now.
 
       delete stream;
     }
   }
+
+  disconnect(sandbox, SIGNAL(consoleLine(QString)), this, SLOT(consoleLine(QString)));
+  masterServer->recycleSandbox(sandbox);
 
   return NULL;
 }
@@ -548,34 +555,20 @@ void MediaPlayerServer::consoleLine(const QString &line)
 }
 
 
-MediaPlayerServer::Stream::Stream(MediaPlayerServer *parent, const QString &url)
+MediaPlayerServer::Stream::Stream(MediaPlayerServer *parent, SSandboxClient *sandbox, const QString &url)
   : MediaServer::Stream(parent, url),
-    sandbox(NULL)
+    sandbox(sandbox)
 {
 }
 
 MediaPlayerServer::Stream::~Stream()
 {
-  if (sandbox)
-  {
-    disconnect(sandbox, SIGNAL(consoleLine(QString)), parent, SLOT(consoleLine(QString)));
-    static_cast<MediaPlayerServer *>(parent)->masterServer->recycleSandbox(sandbox);
-  }
+  disconnect(sandbox, SIGNAL(consoleLine(QString)), parent, SLOT(consoleLine(QString)));
+  static_cast<MediaPlayerServer *>(parent)->masterServer->recycleSandbox(sandbox);
 }
 
 bool MediaPlayerServer::Stream::setup(const QUrl &url, const QByteArray &content)
 {
-  if (sandbox)
-  {
-    disconnect(sandbox, SIGNAL(consoleLine(QString)), parent, SLOT(consoleLine(QString)));
-    static_cast<MediaPlayerServer *>(parent)->masterServer->recycleSandbox(sandbox);
-  }
-
-  sandbox = static_cast<MediaPlayerServer *>(parent)->masterServer->createSandbox(
-      (url.queryItemValue("priority") == "low") ? SSandboxClient::Mode_Nice : SSandboxClient::Mode_Normal);
-
-  connect(sandbox, SIGNAL(consoleLine(QString)), parent, SLOT(consoleLine(QString)));
-
   SHttpEngine::RequestMessage message(sandbox);
   message.setRequest("POST", url.toEncoded(QUrl::RemoveScheme | QUrl::RemoveAuthority));
   message.setContent(content);
