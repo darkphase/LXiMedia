@@ -90,6 +90,7 @@ SSandboxServer::SocketOp MediaPlayerSandbox::handleHttpRequest(const SSandboxSer
     {
       SMediaInfoList files;
       foreach (const QByteArray &node, request.content().split('\n'))
+      if (!node.isEmpty())
         files.append(FileNode::fromByteArray(node));
 
       SandboxPlaylistStream * const stream = new SandboxPlaylistStream(files);

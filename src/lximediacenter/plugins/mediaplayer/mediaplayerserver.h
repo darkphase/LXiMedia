@@ -38,13 +38,13 @@ protected:
   class Stream : public MediaServer::Stream
   {
   public:
-                                Stream(MediaPlayerServer *, const QString &url);
+                                Stream(MediaPlayerServer *, SSandboxClient *, const QString &url);
     virtual                     ~Stream();
 
     bool                        setup(const QUrl &request, const QByteArray &content);
 
   public:
-    SSandboxClient            * sandbox;
+    SSandboxClient      * const sandbox;
   };
 
   struct PlayItem

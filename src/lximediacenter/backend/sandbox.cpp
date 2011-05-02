@@ -23,7 +23,9 @@ Sandbox::Sandbox()
   : QObject(),
     sandboxServer()
 {
-  //sApp->enableProfiling(QDir::temp().absoluteFilePath(QString::number(qApp->applicationPid()) + ".svg"));
+  const QDir tempDir = QDir::temp();
+  if (tempDir.exists("sandbox_profile.svg"))
+    sApp->enableProfiling(tempDir.absoluteFilePath("sandbox_profile.svg"));
 
   // Seed the random number generator.
   qsrand(int(QDateTime::currentDateTime().toTime_t()));

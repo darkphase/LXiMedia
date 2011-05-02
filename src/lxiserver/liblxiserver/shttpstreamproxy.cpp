@@ -33,6 +33,7 @@ struct SHttpStreamProxy::Data
 
 
   QAbstractSocket             * source;
+  QTime                         sourceTimer;
   bool                          sourceFinished;
   QVector<Socket>               sockets;
   QTimer                        socketTimer;
@@ -72,6 +73,7 @@ bool SHttpStreamProxy::isConnected(void) const
 bool SHttpStreamProxy::setSource(QAbstractSocket *source)
 {
   d->source = source;
+  d->sourceTimer.start();
 
   connect(d->source, SIGNAL(readyRead()), SLOT(processData()));
   connect(d->source, SIGNAL(disconnected()), SLOT(flushData()));
@@ -83,7 +85,7 @@ bool SHttpStreamProxy::setSource(QAbstractSocket *source)
 
 bool SHttpStreamProxy::addSocket(QAbstractSocket *socket)
 {
-  if (d->caching)
+  if (d->caching && (qAbs(d->sourceTimer.elapsed()) < 10000))
   {
     Data::Socket s;
     s.socket = socket;

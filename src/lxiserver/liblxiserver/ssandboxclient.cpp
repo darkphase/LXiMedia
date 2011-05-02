@@ -92,6 +92,11 @@ SSandboxClient::Mode SSandboxClient::mode(void) const
   return d->mode;
 }
 
+void SSandboxClient::ensureStarted(void)
+{
+  openRequest();
+}
+
 void SSandboxClient::openRequest(const RequestMessage &message, QObject *receiver, const char *slot)
 {
   if (QThread::currentThread() != thread())
