@@ -85,7 +85,7 @@ bool SHttpStreamProxy::setSource(QAbstractSocket *source)
 
 bool SHttpStreamProxy::addSocket(QAbstractSocket *socket)
 {
-  if (d->caching && (qAbs(d->sourceTimer.elapsed()) < 10000))
+  if (d->caching && ((d->source == NULL) || (qAbs(d->sourceTimer.elapsed()) < 10000)))
   {
     Data::Socket s;
     s.socket = socket;
