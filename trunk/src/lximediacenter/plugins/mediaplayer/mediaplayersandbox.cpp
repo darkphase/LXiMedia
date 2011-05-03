@@ -202,17 +202,23 @@ SandboxPlaylistStream::SandboxPlaylistStream(const SMediaInfoList &files)
   : MediaTranscodeStream(),
     playlistNode(this, files)
 {
-  connect(&playlistNode, SIGNAL(finished()), SLOT(stop()));
-  connect(&playlistNode, SIGNAL(opened(QString, quint16)), SLOT(opened(QString, quint16)));
-  connect(&playlistNode, SIGNAL(closed(QString, quint16)), SLOT(closed(QString, quint16)));
-  connect(&playlistNode, SIGNAL(output(SEncodedAudioBuffer)), &audioDecoder, SLOT(input(SEncodedAudioBuffer)));
-  connect(&playlistNode, SIGNAL(output(SEncodedVideoBuffer)), &videoDecoder, SLOT(input(SEncodedVideoBuffer)));
-  connect(&playlistNode, SIGNAL(output(SEncodedDataBuffer)), &dataDecoder, SLOT(input(SEncodedDataBuffer)));
 }
 
 bool SandboxPlaylistStream::setup(const SHttpServer::RequestMessage &request, QAbstractSocket *socket)
 {
-  return MediaTranscodeStream::setup(request, socket, &playlistNode);
+  if (MediaTranscodeStream::setup(request, socket, &playlistNode))
+  {
+    connect(&playlistNode, SIGNAL(finished()), SLOT(stop()));
+    connect(&playlistNode, SIGNAL(opened(QString, quint16)), SLOT(opened(QString, quint16)));
+    connect(&playlistNode, SIGNAL(closed(QString, quint16)), SLOT(closed(QString, quint16)));
+    connect(&playlistNode, SIGNAL(output(SEncodedAudioBuffer)), &audioDecoder, SLOT(input(SEncodedAudioBuffer)));
+    connect(&playlistNode, SIGNAL(output(SEncodedVideoBuffer)), &videoDecoder, SLOT(input(SEncodedVideoBuffer)));
+    connect(&playlistNode, SIGNAL(output(SEncodedDataBuffer)), &dataDecoder, SLOT(input(SEncodedDataBuffer)));
+
+    return true;
+  }
+
+  return false;
 }
 
 void SandboxPlaylistStream::opened(const QString &filePath, quint16 programId)
@@ -234,9 +240,6 @@ SandboxSlideShowStream::SandboxSlideShowStream(const SMediaInfoList &files)
   : MediaStream(),
     slideShow(this, files)
 {
-  connect(&slideShow, SIGNAL(finished()), SLOT(stop()));
-  connect(&slideShow, SIGNAL(output(SAudioBuffer)), &sync, SLOT(input(SAudioBuffer)));
-  connect(&slideShow, SIGNAL(output(SVideoBuffer)), &subtitleRenderer, SLOT(input(SVideoBuffer)));
 }
 
 bool SandboxSlideShowStream::setup(const SHttpServer::RequestMessage &request, QAbstractSocket *socket)
@@ -247,7 +250,11 @@ bool SandboxSlideShowStream::setup(const SHttpServer::RequestMessage &request, Q
           SInterval::fromFrequency(slideShow.frameRate), slideShow.size(),
           SAudioFormat::Channel_Stereo))
   {
-    slideShow.setSize(videoResizer.size());
+    connect(&slideShow, SIGNAL(finished()), SLOT(stop()));
+    connect(&slideShow, SIGNAL(output(SAudioBuffer)), &sync, SLOT(input(SAudioBuffer)));
+    connect(&slideShow, SIGNAL(output(SVideoBuffer)), &video->subtitleRenderer, SLOT(input(SVideoBuffer)));
+
+    slideShow.setSize(video->resizer.size());
 
     return true;
   }

@@ -24,7 +24,7 @@
 #include <LXiMediaCenter>
 
 // This starts the sandboxes in the local process, so they can be debugged.
-#define DEBUG_USE_LOCAL_SANDBOX
+//#define DEBUG_USE_LOCAL_SANDBOX
 
 class Backend : public QObject,
                 protected BackendServer::MasterServer,

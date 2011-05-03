@@ -32,6 +32,36 @@ namespace LXiMediaCenter {
 class LXIMEDIACENTER_PUBLIC MediaStream : public SGraph
 {
 Q_OBJECT
+protected:
+  struct Audio
+  {
+    inline Audio(SGraph *parent)
+      : resampler(parent), encoder(parent)
+    {
+    }
+
+    SAudioResampleNode          resampler;
+    SAudioEncoderNode           encoder;
+  };
+
+  struct Video
+  {
+    inline Video(SGraph *parent)
+      : deinterlacer(parent), subpictureRenderer(parent),
+        letterboxDetectNode(parent), resizer(parent), box(parent),
+        subtitleRenderer(parent), encoder(parent)
+    {
+    }
+
+    SVideoDeinterlaceNode       deinterlacer;
+    SSubpictureRenderNode       subpictureRenderer;
+    SVideoLetterboxDetectNode   letterboxDetectNode;
+    SVideoResizeNode            resizer;
+    SVideoBoxNode               box;
+    SSubtitleRenderNode         subtitleRenderer;
+    SVideoEncoderNode           encoder;
+  };
+
 public:
   explicit                      MediaStream(void);
   virtual                       ~MediaStream();
@@ -40,16 +70,9 @@ public:
   bool                          setup(const SHttpServer::RequestMessage &, QAbstractSocket *, STime duration, SAudioFormat::Channels channels);
 
 protected:
-  SAudioResampleNode            audioResampler;
-  SVideoDeinterlaceNode         deinterlacer;
-  SSubpictureRenderNode         subpictureRenderer;
-  SVideoLetterboxDetectNode     letterboxDetectNode;
-  SVideoResizeNode              videoResizer;
-  SVideoBoxNode                 videoBox;
-  SSubtitleRenderNode           subtitleRenderer;
+  Audio                       * audio;
+  Video                       * video;
   STimeStampSyncNode            sync;
-  SAudioEncoderNode             audioEncoder;
-  SVideoEncoderNode             videoEncoder;
   SIOOutputNode                 output;
 };
 
