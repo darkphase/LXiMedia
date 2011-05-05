@@ -238,11 +238,11 @@ void Backend::start(void)
       {
         QMap<QString, QString> pal;
         pal["size"]   = "720x576x1.42222,box";
-        pal["channels"]   = QString::number(SAudioFormat::Channel_Stereo, 16);
+        pal["channels"]   = QString::number(SAudioFormat::Channels_Stereo, 16);
 
         QMap<QString, QString> ntsc;
         ntsc["size"]  = "704x480x1.21307,box";
-        ntsc["channels"]  = QString::number(SAudioFormat::Channel_Stereo, 16);
+        ntsc["channels"]  = QString::number(SAudioFormat::Channels_Stereo, 16);
 
         videoProtocols += SUPnPBase::Protocol("http-get", "video/mpeg", true, "DLNA.ORG_PN=MPEG_PS_PAL",  ".mpeg", pal);
         videoProtocols += SUPnPBase::Protocol("http-get", "video/mpeg", true, "DLNA.ORG_PN=MPEG_PS_NTSC", ".mpeg", ntsc);

@@ -33,21 +33,38 @@ namespace FFMpegBackend {
 class AudioResampler : public SInterfaces::AudioResampler
 {
 Q_OBJECT
+private:
+  struct Channel
+  {
+    inline Channel(void) : channel(SAudioFormat::Channel_None), bufferOffset(0) { }
+    inline explicit Channel(SAudioFormat::Channel channel, ::AVResampleContext *context = NULL)
+      : channel(channel), context(context), bufferOffset(0)
+    {
+    }
+
+    SAudioFormat::Channel       channel;
+    ::AVResampleContext       * context;
+    SAudioBuffer                channelBuffer;
+    unsigned                    bufferOffset;
+  };
+
 public:
   explicit                      AudioResampler(const QString &, QObject *);
   virtual                       ~AudioResampler();
 
 public: // From SInterfaces::AudioResampler
-  virtual void                  setFormat(const SAudioFormat &);
-  virtual SAudioFormat          format(void);
+  virtual void                  setSampleRate(unsigned);
+  virtual unsigned              sampleRate(void);
 
   virtual SAudioBuffer          processBuffer(const SAudioBuffer &);
 
 private:
-  SAudioFormat                  outFormat;
-  ReSampleContext             * reSampleContext;
-  int                           inSampleRate;
-  int                           inNumChannels;
+  SAudioBuffer                  resampleChannel(Channel *, const SAudioBuffer &) const;
+
+private:
+  unsigned                      outSampleRate;
+  QVector<Channel>              channels;
+  SAudioFormat                  inFormat;
   volatile bool                 reopen;
 };
 

@@ -25,84 +25,81 @@ namespace FFMpegBackend {
 
 AudioResampler::AudioResampler(const QString &, QObject *parent)
   : SInterfaces::AudioResampler(parent),
-    outFormat(SAudioFormat::Format_PCM_S16, 0, 0),
-    reSampleContext(NULL),
-    inSampleRate(0),
-    inNumChannels(0),
+    outSampleRate(48000),
+    inFormat(SAudioFormat::Format_PCM_S16, 0, 0),
     reopen(false)
 {
 }
 
 AudioResampler::~AudioResampler()
 {
-  if (reSampleContext)
-  {
-    audio_resample_close(reSampleContext);
-    reSampleContext = NULL;
-  }
+  foreach (const Channel &channel, channels)
+  if (channel.context)
+    ::av_resample_close(channel.context);
 }
 
-void AudioResampler::setFormat(const SAudioFormat &f)
+void AudioResampler::setSampleRate(unsigned rate)
 {
-  outFormat = f;
+  outSampleRate = rate;
 }
 
-SAudioFormat AudioResampler::format(void)
+unsigned AudioResampler::sampleRate(void)
 {
-  return outFormat;
+  return outSampleRate;
 }
 
 SAudioBuffer AudioResampler::processBuffer(const SAudioBuffer &audioBuffer)
 {
-  if (!audioBuffer.isNull())
-  if ((outFormat.sampleRate() > 0) || (outFormat.numChannels() > 0))
+  if (!audioBuffer.isNull() && (outSampleRate > 0))
   {
     Q_ASSERT(audioBuffer.format() == SAudioFormat::Format_PCM_S16);
 
-    const SAudioFormat::Channels outChannels = outFormat.numChannels() > 0 ? outFormat.channelSetup() : audioBuffer.format().channelSetup();
-    const int outNumChannels = SAudioFormat::numChannels(outChannels);
-    const int outSampleRate = outFormat.sampleRate() > 0 ? outFormat.sampleRate() : audioBuffer.format().sampleRate();
-
     if (audioBuffer.format() == SAudioFormat::Format_PCM_S16)
-    if ((audioBuffer.format().sampleRate() != outSampleRate) ||
-        (audioBuffer.format().numChannels() != outNumChannels))
+    if (audioBuffer.format().sampleRate() != outSampleRate)
     {
-      if ((inSampleRate != audioBuffer.format().sampleRate()) ||
-          (inNumChannels != audioBuffer.format().numChannels()))
+      if (inFormat != audioBuffer.format())
       {
-        if (reSampleContext)
+        foreach (const Channel &channel, channels)
+        if (channel.context)
+          ::av_resample_close(channel.context);
+
+        channels.clear();
+
+        inFormat = audioBuffer.format();
+
+        const int channelSetup = inFormat.channelSetup();
+        for (int i=0; i<32; i++)
+        if ((channelSetup & (quint32(1) << i)) != 0)
         {
-          audio_resample_close(reSampleContext);
-          reSampleContext = NULL;
+          channels.append(Channel(
+              SAudioFormat::Channel(quint32(1) << i),
+              ::av_resample_init(outSampleRate, inFormat.sampleRate(), 16, 10, 1, 0.95)));
         }
-
-        inNumChannels = audioBuffer.format().numChannels();
-        inSampleRate = audioBuffer.format().sampleRate();
-
-        reSampleContext = av_audio_resample_init(outNumChannels, inNumChannels,
-                                                 outSampleRate, inSampleRate,
-                                                 SAMPLE_FMT_S16, SAMPLE_FMT_S16,
-                                                 16, 10, 1, 0.95);
       }
 
-      if (reSampleContext)
+      QList< QFuture<SAudioBuffer> > futures;
+      for (int i=0; i<channels.count(); i++)
+        futures.append(QtConcurrent::run(this, &AudioResampler::resampleChannel, &channels[i], audioBuffer));
+
+      SAudioFormat outFormat = inFormat;
+      outFormat.setSampleRate(outSampleRate);
+
+      unsigned numSamples = UINT_MAX;
+      for (int i=0; i<futures.count(); i++)
       {
-        // Estimate buffer size
-        const unsigned estNumSamples = STime::fromClock(audioBuffer.numSamples(), inSampleRate).toClock(outSampleRate) + 32;
-        SAudioBuffer destBuffer(SAudioFormat(SAudioFormat::Format_PCM_S16, outChannels, outSampleRate), estNumSamples);
+        futures[i].waitForFinished();
+        numSamples = qMin(numSamples, futures[i].result().numSamples());
+      }
 
-        const unsigned numOutSamples =
-            qMax(audio_resample(reSampleContext,
-                                (short *)destBuffer.data(),
-                                (short *)audioBuffer.data(),
-                                audioBuffer.numSamples()), 0);
+      if ((numSamples > 0) && (numSamples < UINT_MAX))
+      {
+        SAudioBuffer destBuffer(outFormat, numSamples);
+        for (int i=0; i<futures.count(); i++)
+          destBuffer.setChannels(futures[i].result());
 
-        if (numOutSamples > 0)
-        {
-          destBuffer.setNumSamples(numOutSamples);
-          destBuffer.setTimeStamp(audioBuffer.timeStamp());
-          return destBuffer;
-        }
+        destBuffer.setTimeStamp(audioBuffer.timeStamp());
+
+        return destBuffer;
       }
     }
   }
@@ -110,5 +107,40 @@ SAudioBuffer AudioResampler::processBuffer(const SAudioBuffer &audioBuffer)
   return audioBuffer;
 }
 
+SAudioBuffer AudioResampler::resampleChannel(Channel *channel, const SAudioBuffer &audioBuffer) const
+{
+  const SAudioBuffer channelBuffer = audioBuffer.getChannel(channel->channel);
+  const SAudioBuffer srcBuffer = SAudioBufferList() << channel->channelBuffer << channelBuffer;
+
+  // Estimate buffer size
+  const unsigned estNumSamples = STime::fromClock(audioBuffer.numSamples(), inFormat.sampleRate()).toClock(outSampleRate) + 32;
+  SAudioFormat outFormat = inFormat;
+  outFormat.setChannelSetup(channel->channel);
+  outFormat.setSampleRate(outSampleRate);
+  SAudioBuffer dstBuffer(outFormat, estNumSamples);
+
+  int consumed = 0;
+  int produced = ::av_resample(
+      channel->context,
+      (short *)dstBuffer.data(),
+      ((short *)srcBuffer.data()) + channel->bufferOffset,
+      &consumed,
+      srcBuffer.numSamples() - channel->bufferOffset,
+      dstBuffer.numSamples(),
+      1);
+
+  dstBuffer.setNumSamples(produced);
+
+  channel->bufferOffset += consumed;
+  if (!channel->channelBuffer.isNull() && (channel->bufferOffset >= channel->channelBuffer.numSamples()))
+  {
+    channel->bufferOffset -= channel->channelBuffer.numSamples();
+    channel->channelBuffer = channelBuffer;
+  }
+  else
+    channel->channelBuffer = srcBuffer;
+
+  return dstBuffer;
+}
 
 } } // End of namespaces

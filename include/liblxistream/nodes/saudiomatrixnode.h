@@ -40,19 +40,22 @@ class LXISTREAM_PUBLIC SAudioMatrixNode : public QObject,
 {
 Q_OBJECT
 public:
-  enum Mode { ALL = -1, MONO = 0, STEREO = 1, QUADRA = 2, SURROUND = 3 };
-  enum Channel { FRONT_LEFT = 0, CENTER = 1, FRONT_RIGHT = 2, REAR_LEFT = 3, REAR_RIGHT = 4, LFE = 5 };
+  enum Matrix
+  {
+    Matrix_Identity = 0,
+    Matrix_SurroundToStereo
+  };
 
 public:
                                 SAudioMatrixNode(SGraph *);
   virtual                       ~SAudioMatrixNode();
 
-  quint32                       inChannels(void) const;
-  void                          setInChannels(quint32);
-  quint32                       outChannels(void) const;
-  void                          setOutChannels(quint32);
-  const QList<qreal>          & matrix(void) const;
-  void                          setMatrix(const QList<qreal> &);
+  void                          setDefaultMatrix(Matrix);
+  void                          setCell(SAudioFormat::Channel from, SAudioFormat::Channel to, float);
+  float                         cell(SAudioFormat::Channel from, SAudioFormat::Channel to) const;
+
+  void                          setChannels(SAudioFormat::Channels);
+  SAudioFormat::Channels        channels(void) const;
 
 public: // From SGraph::Node
   virtual bool                  start(void);
@@ -65,11 +68,9 @@ signals:
   void                          output(const SAudioBuffer &);
 
 private:
+  _lxi_pure _lxi_internal static int channelId(SAudioFormat::Channel);
   _lxi_internal void            processTask(const SAudioBuffer &);
-
-  _lxi_internal static Channel  getChannel(Mode, unsigned);
-  _lxi_internal static Mode     getMode(unsigned);
-  _lxi_internal void            prepareMatrix(unsigned);
+  _lxi_internal void            buildMatrix(void);
 
 private:
   struct Data;

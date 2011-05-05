@@ -66,7 +66,7 @@ bool SlideShowNode::start(void)
 
   // Create a silent audio buffer
   const SAudioFormat audioFormat(SAudioFormat::Format_PCM_S16,
-                                 SAudioFormat::Channel_Stereo,
+                                 SAudioFormat::Channels_Stereo,
                                  48000);
 
   audioBuffer.setFormat(audioFormat);

@@ -633,23 +633,23 @@ int64_t FFMpegCommon::toFFMpegChannelLayout(SAudioFormat::Channels channels)
 {
   switch (channels)
   {
-  case SAudioFormat::Channel_Mono:              return CH_LAYOUT_MONO;
-  case SAudioFormat::Channel_Stereo:            return CH_LAYOUT_STEREO;
-  case SAudioFormat::Channel_Quadraphonic:      return CH_LAYOUT_QUAD;
-  case SAudioFormat::Channel_Surround_3_0:      return CH_LAYOUT_SURROUND;
+  case SAudioFormat::Channels_Mono:             return CH_LAYOUT_MONO;
+  case SAudioFormat::Channels_Stereo:           return CH_LAYOUT_STEREO;
+  case SAudioFormat::Channels_Quadraphonic:     return CH_LAYOUT_QUAD;
+  case SAudioFormat::Channels_Surround_3_0:     return CH_LAYOUT_SURROUND;
 #ifdef CH_LAYOUT_4POINT0
-  case SAudioFormat::Channel_Surround_4_0:      return CH_LAYOUT_4POINT0;
+  case SAudioFormat::Channels_Surround_4_0:     return CH_LAYOUT_4POINT0;
 #endif
-  case SAudioFormat::Channel_Surround_5_0:      return CH_LAYOUT_5POINT0;
-  case SAudioFormat::Channel_Surround_5_1:      return CH_LAYOUT_5POINT1;
+  case SAudioFormat::Channels_Surround_5_0:     return CH_LAYOUT_5POINT0;
+  case SAudioFormat::Channels_Surround_5_1:     return CH_LAYOUT_5POINT1;
 #ifdef CH_LAYOUT_5POINT0_BACK
-  case SAudioFormat::Channel_Surround_6_0:      return CH_LAYOUT_5POINT0_BACK;
+  case SAudioFormat::Channels_Surround_6_0:     return CH_LAYOUT_5POINT0_BACK;
 #endif
 #ifdef CH_LAYOUT_5POINT1_BACK
-  case SAudioFormat::Channel_Surround_6_1:      return CH_LAYOUT_5POINT1_BACK;
+  case SAudioFormat::Channels_Surround_6_1:     return CH_LAYOUT_5POINT1_BACK;
 #endif
-  case SAudioFormat::Channel_Surround_7_1:      return CH_LAYOUT_7POINT1;
-  case SAudioFormat::Channel_Surround_7_1_Wide: return CH_LAYOUT_7POINT1_WIDE;
+  case SAudioFormat::Channels_Surround_7_1:     return CH_LAYOUT_7POINT1;
+  case SAudioFormat::Channels_Surround_7_1_Wide:return CH_LAYOUT_7POINT1_WIDE;
   default:
     {
       int64_t result = 0;
@@ -696,19 +696,19 @@ SAudioFormat::Channels FFMpegCommon::fromFFMpegChannelLayout(int64_t layout, int
 
   switch (layout)
   {
-  case CH_LAYOUT_MONO:              return SAudioFormat::Channel_Mono;
-  case CH_LAYOUT_STEREO:            return SAudioFormat::Channel_Stereo;
-  case CH_LAYOUT_QUAD:              return SAudioFormat::Channel_Quadraphonic;
-  case CH_LAYOUT_SURROUND:          return SAudioFormat::Channel_Surround_3_0;
-  case CH_LAYOUT_4POINT0:           return SAudioFormat::Channel_Surround_4_0;
-  case CH_LAYOUT_5POINT0:           return SAudioFormat::Channel_Surround_5_0;
-  case CH_LAYOUT_5POINT0_BACK:      return SAudioFormat::Channel_Surround_5_0;
-  case CH_LAYOUT_5POINT1:           return SAudioFormat::Channel_Surround_5_1;
-  case CH_LAYOUT_5POINT1_BACK:      return SAudioFormat::Channel_Surround_5_1;
-  case CH_LAYOUT_6POINT0:           return SAudioFormat::Channel_Surround_6_0;
-  case CH_LAYOUT_6POINT1:           return SAudioFormat::Channel_Surround_6_1;
-  case CH_LAYOUT_7POINT1:           return SAudioFormat::Channel_Surround_7_1;
-  case CH_LAYOUT_7POINT1_WIDE:      return SAudioFormat::Channel_Surround_7_1_Wide;
+  case CH_LAYOUT_MONO:              return SAudioFormat::Channels_Mono;
+  case CH_LAYOUT_STEREO:            return SAudioFormat::Channels_Stereo;
+  case CH_LAYOUT_QUAD:              return SAudioFormat::Channels_Quadraphonic;
+  case CH_LAYOUT_SURROUND:          return SAudioFormat::Channels_Surround_3_0;
+  case CH_LAYOUT_4POINT0:           return SAudioFormat::Channels_Surround_4_0;
+  case CH_LAYOUT_5POINT0:           return SAudioFormat::Channels_Surround_5_0;
+  case CH_LAYOUT_5POINT0_BACK:      return SAudioFormat::Channels_Surround_5_0;
+  case CH_LAYOUT_5POINT1:           return SAudioFormat::Channels_Surround_5_1;
+  case CH_LAYOUT_5POINT1_BACK:      return SAudioFormat::Channels_Surround_5_1;
+  case CH_LAYOUT_6POINT0:           return SAudioFormat::Channels_Surround_6_0;
+  case CH_LAYOUT_6POINT1:           return SAudioFormat::Channels_Surround_6_1;
+  case CH_LAYOUT_7POINT1:           return SAudioFormat::Channels_Surround_7_1;
+  case CH_LAYOUT_7POINT1_WIDE:      return SAudioFormat::Channels_Surround_7_1_Wide;
   case 0:                           return SAudioFormat::guessChannels(channels);
   default:
     {

@@ -38,7 +38,7 @@ class LXISTREAM_PUBLIC SAudioBuffer : public SBuffer
 {
 public:
   inline                        SAudioBuffer(void) : SBuffer()            { }
-  explicit                      SAudioBuffer(const SAudioFormat &, int numSamples = 0);
+  explicit                      SAudioBuffer(const SAudioFormat &, unsigned numSamples = 0);
                                 SAudioBuffer(const SAudioFormat &, const MemoryPtr &);
                                 SAudioBuffer(const SAudioBufferList &);
 
@@ -50,9 +50,13 @@ public:
   inline STime                  timeStamp(void) const                           { return d.timeStamp; }
   inline void                   setTimeStamp(STime t)                           { d.timeStamp = t; }
 
-  int                           numSamples(void) const;
-  void                          setNumSamples(int s);
+  unsigned                      numSamples(void) const;
+  void                          setNumSamples(unsigned s);
   STime                         duration(void) const;
+
+  SAudioBuffer                  getChannel(SAudioFormat::Channel) const;
+  void                          setChannel(const SAudioBuffer &, SAudioFormat::Channel);
+  void                          setChannels(const SAudioBuffer &);
 
 private:
   struct

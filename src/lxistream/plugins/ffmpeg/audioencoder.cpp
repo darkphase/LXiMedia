@@ -134,7 +134,7 @@ SEncodedAudioBufferList AudioEncoder::encodeBuffer(const SAudioBuffer &audioBuff
     {
       output << SEncodedAudioBuffer(outCodec, audioBuffer.memory());
     }
-    else if (audioBuffer.format().numChannels() == contextHandle->channels)
+    else if (audioBuffer.format().numChannels() == unsigned(contextHandle->channels))
     {
       const qint16 *buffer = reinterpret_cast<const qint16 *>(audioBuffer.data());
       size_t size = audioBuffer.size();

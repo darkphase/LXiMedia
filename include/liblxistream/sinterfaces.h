@@ -565,8 +565,8 @@ protected:
   inline explicit               AudioResampler(QObject *parent) : QObject(parent) { }
 
 public:
-  virtual void                  setFormat(const SAudioFormat &) = 0;
-  virtual SAudioFormat          format(void) = 0;
+  virtual void                  setSampleRate(unsigned) = 0;
+  virtual unsigned              sampleRate(void) = 0;
 
   virtual SAudioBuffer          processBuffer(const SAudioBuffer &) = 0;
 };

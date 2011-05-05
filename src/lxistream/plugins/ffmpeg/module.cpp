@@ -109,7 +109,7 @@ bool Module::registerClasses(void)
     BufferWriter::registerClass<BufferWriter>(format->name);
 
   // Filters
-  //AudioResampler::registerClass<AudioResampler>("fir");
+  AudioResampler::registerClass<AudioResampler>("fir");
   VideoResizer::registerClass<VideoResizer>("lanczos");
   VideoResizer::registerClass<VideoResizer>("bicubic");
   VideoResizer::registerClass<VideoResizer>("bilinear");

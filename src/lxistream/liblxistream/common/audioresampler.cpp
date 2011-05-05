@@ -21,10 +21,8 @@
 
 // Implemented in audioresampler.resample.c
 extern "C" unsigned LXiStream_Common_AudioResampler_resampleAudio(
-    const qint16 * srcData, unsigned srcSampleRate,
-    unsigned numSamples, unsigned srcNumChannels,
-    qint16 * dstData, unsigned dstSampleRate,
-    unsigned maxSamples, unsigned dstNumChannels,
+    const qint16 * srcData, unsigned srcSampleRate, unsigned numSamples, unsigned numChannels,
+    qint16 * dstData, unsigned dstSampleRate, unsigned maxSamples,
     unsigned *nextPos, float *weightOffset);
 
 namespace LXiStream {
@@ -33,20 +31,20 @@ namespace Common {
 
 AudioResampler::AudioResampler(const QString &, QObject *parent)
     : SInterfaces::AudioResampler(parent),
-      outFormat(SAudioFormat::Format_PCM_S16, 0, 0),
+      outSampleRate(48000),
       nextPos(0),
       weightOffset(0.0f)
 {
 }
 
-void AudioResampler::setFormat(const SAudioFormat &f)
+void AudioResampler::setSampleRate(unsigned rate)
 {
-  outFormat = f;
+  outSampleRate = rate;
 }
 
-SAudioFormat AudioResampler::format(void)
+unsigned AudioResampler::sampleRate(void)
 {
-  return outFormat;
+  return outSampleRate;
 }
 
 SAudioBuffer AudioResampler::processBuffer(const SAudioBuffer &audioBuffer)
@@ -62,21 +60,18 @@ SAudioBuffer AudioResampler::processBuffer(const SAudioBuffer &audioBuffer)
       weightOffset = 0.0f;
     }
 
-    if ((outFormat.sampleRate() > 0) || (outFormat.numChannels() > 0))
+    if (outSampleRate > 0)
     {
-      const SAudioFormat::Channels outChannels = outFormat.numChannels() > 0 ? outFormat.channelSetup() : audioBuffer.format().channelSetup();
-      const int outNumChannels = SAudioFormat::numChannels(outChannels);
-      const int outSampleRate = outFormat.sampleRate() > 0 ? outFormat.sampleRate() : audioBuffer.format().sampleRate();
-
       if (audioBuffer.format().sampleRate() > 0)
-      if ((outSampleRate != audioBuffer.format().sampleRate()) ||
-          (outNumChannels != audioBuffer.format().numChannels()))
+      if (outSampleRate != audioBuffer.format().sampleRate())
       {
+        SAudioFormat outFormat = audioBuffer.format();
+        outFormat.setSampleRate(outSampleRate);
+
         // Estimate buffer size
         const unsigned estNumSamples = STime::fromClock(audioBuffer.numSamples(), audioBuffer.format().sampleRate()).toClock(outSampleRate) + 32;
         const SAudioBuffer srcBuffer = SAudioBufferList() << lastBuffer << audioBuffer;
-        SAudioBuffer destBuffer(SAudioFormat(SAudioFormat::Format_PCM_S16, outChannels, outSampleRate),
-                                estNumSamples);
+        SAudioBuffer destBuffer(outFormat, estNumSamples);
 
         const unsigned numOutSamples =
             LXiStream_Common_AudioResampler_resampleAudio(
@@ -87,7 +82,6 @@ SAudioBuffer AudioResampler::processBuffer(const SAudioBuffer &audioBuffer)
                 reinterpret_cast<qint16 *>(destBuffer.data()),
                 outSampleRate,
                 estNumSamples,
-                outNumChannels,
                 &nextPos,
                 &weightOffset);
 

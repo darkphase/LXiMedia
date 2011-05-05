@@ -18,6 +18,7 @@
  ***************************************************************************/
 
 #include "ffmpegtest.h"
+#include "streamtest.h"
 #include <QtTest>
 #include <LXiStream>
 #include "lxistream/plugins/ffmpeg/audiodecoder.h"
@@ -100,17 +101,7 @@ void FFMpegTest::AudioEncodeDecode(const char *codecName)
   FFMpegBackend::AudioEncoder audioEncoder("", NULL);
   FFMpegBackend::AudioDecoder audioDecoder("", NULL);
 
-  // Prepare a one-channel buffer with alternating values 32 and 64
-  SAudioBuffer inBuffer(SAudioFormat(SAudioFormat::Format_PCM_S16,
-                                     SAudioFormat::Channel_Stereo,
-                                     44100),
-                        65536);
-
-  for (int i=0; i<inBuffer.numSamples(); i+=2)
-  {
-    reinterpret_cast<qint16 *>(inBuffer.data())[i]   = -64;
-    reinterpret_cast<qint16 *>(inBuffer.data())[i+1] =  64;
-  }
+  const SAudioBuffer inBuffer = StreamTest::makeTestBuffer(65536);
 
   if (audioEncoder.openCodec(SAudioCodec(codecName, inBuffer.format().channelSetup(), inBuffer.format().sampleRate())))
   {
@@ -138,11 +129,13 @@ void FFMpegTest::AudioEncodeDecode(const char *codecName)
     QVERIFY(outBuffer.numSamples() >= inBuffer.numSamples());
     QCOMPARE(outBuffer.format().numChannels(), inBuffer.format().numChannels());
 
-    if (SAudioEncoderNode::losslessCodecs().contains(codecName))
-    for (int i=0; i<inBuffer.numSamples(); i+=2)
+    if (SAudioEncoderNode::losslessCodecs().contains(codecName) && (outBuffer.size() >= inBuffer.size()))
+    for (int i=0, n=inBuffer.numSamples()*inBuffer.format().numChannels(); i<n; i+=4)
     {
       QCOMPARE(reinterpret_cast<const qint16 *>(outBuffer.data())[i],   reinterpret_cast<const qint16 *>(inBuffer.data())[i]);
       QCOMPARE(reinterpret_cast<const qint16 *>(outBuffer.data())[i+1], reinterpret_cast<const qint16 *>(inBuffer.data())[i+1]);
+      QCOMPARE(reinterpret_cast<const qint16 *>(outBuffer.data())[i+2], reinterpret_cast<const qint16 *>(inBuffer.data())[i+2]);
+      QCOMPARE(reinterpret_cast<const qint16 *>(outBuffer.data())[i+3], reinterpret_cast<const qint16 *>(inBuffer.data())[i+3]);
     }
   }
 }

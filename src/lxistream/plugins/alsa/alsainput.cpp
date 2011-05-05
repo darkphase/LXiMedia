@@ -27,7 +27,7 @@ AlsaInput::AlsaInput(const QString &dev, QObject *parent)
   : SInterfaces::AudioInput(parent),
     dev(dev.mid(dev.lastIndexOf(", ") + 2)),
     pcm(NULL),
-    outFormat(SAudioFormat::Format_PCM_S16, SAudioFormat::Channel_Stereo, 48000)
+    outFormat(SAudioFormat::Format_PCM_S16, SAudioFormat::Channels_Stereo, 48000)
 {
 }
 

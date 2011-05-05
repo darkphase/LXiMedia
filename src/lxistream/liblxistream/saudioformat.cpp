@@ -50,17 +50,14 @@ void SAudioFormat::setFormat(Format format, Channels channels, unsigned sampleRa
 
 /*! Returns the number of active channels for the specified configuration.
  */
-int SAudioFormat::numChannels(Channels c)
+unsigned SAudioFormat::numChannels(Channels c)
 {
-#ifdef __GNUC__
-  return __builtin_popcount(quint32(c));
-#else
-  int result = 0;
+  unsigned result = 0;
   for (int i=0; i<32; i++)
-    result += ((quint32(c) & (quint32(1) << i)) ? 1 : 0);
+  if (c & (quint32(1) << i))
+    result++;
 
   return result;
-#endif
 }
 
 /*! Guesses the most applicable channel configuration for the specified number
@@ -72,23 +69,43 @@ SAudioFormat::Channels SAudioFormat::guessChannels(unsigned numChannels)
   {
     default:
     case 0:     return Channel_None;
-    case 1:     return Channel_Mono;
-    case 2:     return Channel_Stereo;
-    case 3:     return Channel_Surround_3_0;
-    case 4:     return Channel_Quadraphonic;
-    case 5:     return Channel_Surround_5_0;
-    case 6:     return Channel_Surround_5_1;
-    case 7:     return Channel_Surround_6_1;
-    case 8:     return Channel_Surround_7_1;
-    case 12:    return Channel_Surround_10_2;
-    case 24:    return Channel_Surround_22_2;
+    case 1:     return Channels_Mono;
+    case 2:     return Channels_Stereo;
+    case 3:     return Channels_Surround_3_0;
+    case 4:     return Channels_Quadraphonic;
+    case 5:     return Channels_Surround_5_0;
+    case 6:     return Channels_Surround_5_1;
+    case 7:     return Channels_Surround_6_1;
+    case 8:     return Channels_Surround_7_1;
+    case 12:    return Channels_Surround_10_2;
+    case 24:    return Channels_Surround_22_2;
   }
+}
+
+/*! Returns the channel position in a specified channel setup. e.g. The right
+    channel is at position 1 (counting from 0) in a stereo setup and at position
+    2 in a 5.1 surround setup. Returns -1 if the specified channel is not
+    present in the specified channel setup.
+ */
+int SAudioFormat::channelPos(Channels channelSetup, Channel channel)
+{
+  int offset = -1;
+  for (int i=0, n=0; (i<32) && (offset<0); i++)
+  if (channelSetup & (quint32(1) << i))
+  {
+    if (channel == (quint32(1) << i))
+      offset = n;
+    else
+      n++;
+  }
+
+  return offset;
 }
 
 /*! Returns the size of one sample in bytes of the format, or 0 if not
     applicable. For example for Format_PCM_S16 this method returns 2.
  */
-int SAudioFormat::sampleSize(Format format)
+unsigned SAudioFormat::sampleSize(Format format)
 {
   switch (Format(format))
   {
@@ -188,7 +205,7 @@ QString SAudioFormat::channelNames(Channels channels)
   QString result = "";
 
   for (unsigned i=0; i<32; i++)
-  if ((quint32(channels) & (quint32(1) << i)) != 0)
+  if ((channels & (quint32(1) << i)) != 0)
   {
     QString name = channelName(Channel(quint32(1) << i));
     if (name.length() > 0)
@@ -205,16 +222,16 @@ const char * SAudioFormat::channelSetupName(Channels channels)
 {
   switch (channels)
   {
-  case Channel_Mono:                      return "Mono";
-  case Channel_Stereo:                    return "Stereo";
-  case Channel_Quadraphonic:              return "Quadraphonic";
-  case Channel_Surround_3_0:              return "3.0 Surround";
-  case Channel_Surround_4_0:              return "4.0 Surround";
-  case Channel_Surround_5_1:              return "5.1 Surround";
-  case Channel_Surround_6_1:              return "6.1 Surround";
-  case Channel_Surround_7_1:              return "7.1 Surround";
-  case Channel_Surround_10_2:             return "10.2 Surround";
-  case Channel_Surround_22_2:             return "22.2 Surround";
+  case Channels_Mono:                     return "Mono";
+  case Channels_Stereo:                   return "Stereo";
+  case Channels_Quadraphonic:             return "Quadraphonic";
+  case Channels_Surround_3_0:             return "3.0 Surround";
+  case Channels_Surround_4_0:             return "4.0 Surround";
+  case Channels_Surround_5_1:             return "5.1 Surround";
+  case Channels_Surround_6_1:             return "6.1 Surround";
+  case Channels_Surround_7_1:             return "7.1 Surround";
+  case Channels_Surround_10_2:            return "10.2 Surround";
+  case Channels_Surround_22_2:            return "22.2 Surround";
   default:                                return "";
   };
 }

@@ -21,7 +21,7 @@
 #include <stdint.h>
 
 void LXiStream_SAudioMatrixNode_mixMatrix
- (const int16_t * __restrict srcData, unsigned numSamples, unsigned srcNumChannels, unsigned srcMatrixSize,
+ (const int16_t * __restrict srcData, unsigned numSamples, unsigned srcNumChannels,
   int16_t * __restrict dstData, const float * __restrict appliedMatrix, unsigned dstNumChannels)
 {
   unsigned i, dc, mp, sc;
@@ -30,7 +30,7 @@ void LXiStream_SAudioMatrixNode_mixMatrix
   {
     for (dc=0; dc<dstNumChannels; dc++)
     {
-      mp = dc * srcMatrixSize;
+      mp = dc * srcNumChannels;
       dstData[dc] = (int16_t)((float)(srcData[0]) * appliedMatrix[mp]);
 
       for (sc=1; sc<srcNumChannels; sc++)
