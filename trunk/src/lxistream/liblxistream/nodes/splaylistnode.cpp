@@ -100,9 +100,9 @@ SPlaylistNode::SPlaylistNode(SGraph *parent, const SMediaInfoList &files)
   }
 
   if (surround)
-    d->audioStreamInfo.codec = SAudioCodec("*", SAudioFormat::Channel_Surround_5_1, 48000);
+    d->audioStreamInfo.codec = SAudioCodec("*", SAudioFormat::Channels_Surround_5_1, 48000);
   else
-    d->audioStreamInfo.codec = SAudioCodec("*", SAudioFormat::Channel_Stereo, 48000);
+    d->audioStreamInfo.codec = SAudioCodec("*", SAudioFormat::Channels_Stereo, 48000);
 
   if (d->hasVideo)
   {

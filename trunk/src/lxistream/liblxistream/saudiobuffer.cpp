@@ -47,7 +47,7 @@ namespace LXiStream {
 /*! Constructs an SAudioBuffer with the specified format and number of samples.
     \sa setNumSamples()
  */
-SAudioBuffer::SAudioBuffer(const SAudioFormat &format, int numSamples)
+SAudioBuffer::SAudioBuffer(const SAudioFormat &format, unsigned numSamples)
 {
   setFormat(format);
   setNumSamples(numSamples);
@@ -145,11 +145,11 @@ void SAudioBuffer::setFormat(const SAudioFormat &format)
 /*! Computes the number of samples in this buffer by dividing numBytes() by
     format().sampleSize() * format().numChannels().
  */
-int SAudioBuffer::numSamples(void) const
+unsigned SAudioBuffer::numSamples(void) const
 {
   Q_ASSERT((d.format.sampleSize() > 0) && (d.format.numChannels() > 0));
 
-  if ((d.format.sampleSize() > 0) && (d.format.numChannels() > 0))
+  if ((size() >= 0) && (d.format.sampleSize() > 0) && (d.format.numChannels() > 0))
     return size() / (d.format.sampleSize() * d.format.numChannels());
 
   return 0;
@@ -158,7 +158,7 @@ int SAudioBuffer::numSamples(void) const
 /*! Sets the number of samples in this buffer by multiplying the argument by
     format().sampleSize() * format().numChannels().
  */
-void SAudioBuffer::setNumSamples(int s)
+void SAudioBuffer::setNumSamples(unsigned s)
 {
   Q_ASSERT((d.format.sampleSize() > 0) && (d.format.numChannels() > 0));
 
@@ -175,5 +175,76 @@ STime SAudioBuffer::duration(void) const
   return STime();
 }
 
+/*! Returns an SAudioBuffer with only the samples of the specified channel.
+ */
+SAudioBuffer SAudioBuffer::getChannel(SAudioFormat::Channel channel) const
+{
+  const int channelPos = format().channelPos(channel);
+
+  if (channelPos >= 0)
+  {
+    SAudioFormat dstFormat(format());
+    dstFormat.setChannelSetup(channel);
+
+    const unsigned count = numSamples();
+    SAudioBuffer dstBuffer(dstFormat, count);
+
+    const char * const srcData = data();
+    char * const dstData = dstBuffer.data();
+
+    const unsigned sampleSize = format().sampleSize();
+    const unsigned sampleIncr = format().numChannels() * sampleSize;
+    for (unsigned i=0, r=channelPos*sampleSize, w=0;
+         i<count;
+         i++, r+=sampleIncr, w+=sampleSize)
+    {
+      memcpy(dstData + w, srcData + r, sampleSize);
+    }
+
+    return dstBuffer;
+  }
+  else
+    return SAudioBuffer();
+}
+
+/*! Extracts the samples of the specified channel from the specified buffer and
+    sets them as the samples for that channel for this buffer.
+ */
+void SAudioBuffer::setChannel(const SAudioBuffer &buffer, SAudioFormat::Channel channel)
+{
+  const int srcChannelPos = buffer.format().channelPos(channel);
+  const int dstChannelPos = format().channelPos(channel);
+
+  if ((srcChannelPos >= 0) && (dstChannelPos >= 0) &&
+      (buffer.format().format() == format().format()))
+  {
+    const unsigned count = qMin(buffer.numSamples(), numSamples());
+    const char * const srcData = buffer.data();
+    char * const dstData = data();
+
+    const unsigned sampleSize = format().sampleSize();
+    const unsigned srcSampleIncr = buffer.format().numChannels() * sampleSize;
+    const unsigned dstSampleIncr = format().numChannels() * sampleSize;
+    for (unsigned i=0, w=dstChannelPos*sampleSize, r=srcChannelPos*sampleSize;
+         i<count;
+         i++, w+=dstSampleIncr, r+=srcSampleIncr)
+    {
+      memcpy(dstData + w, srcData + r, sampleSize);
+    }
+  }
+}
+
+/*! Extracts the samples for all channels from the specified buffer and
+    sets them as the samples for those channel for this buffer.
+ */
+void SAudioBuffer::setChannels(const SAudioBuffer &buffer)
+{
+  for (int i=0; i<32; i++)
+  {
+    const quint32 c = quint32(1) << i;
+    if (((format().channelSetup() & c) != 0) && ((buffer.format().channelSetup() & c) != 0))
+      setChannel(buffer, SAudioFormat::Channel(c));
+  }
+}
 
 } // End of namespace

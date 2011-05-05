@@ -61,72 +61,6 @@ void IOTest::MediaFileInfoImage(void)
   QVERIFY(image.height() > 128);
 }
 
-/*! Tests the AudioResampler converting from stereo to mono.
- */
-void IOTest::AudioResamplerStereoMono(void)
-{
-  SInterfaces::AudioResampler * const audioResampler =
-      SInterfaces::AudioResampler::create(this, "");
-
-  // Prepare a two-channel buffer with value 32 on one channel and value 64 on
-  // the other
-  SAudioBuffer inBuffer(SAudioFormat(SAudioFormat::Format_PCM_S16,
-                                     SAudioFormat::Channel_Stereo,
-                                     8000),
-                        64);
-
-  for (unsigned i=0; i<64; i++)
-  {
-    reinterpret_cast<qint16 *>(inBuffer.data())[i*2]   = 32;
-    reinterpret_cast<qint16 *>(inBuffer.data())[i*2+1] = 64;
-  }
-
-  // Now resample it to a mono buffer
-  audioResampler->setFormat(SAudioFormat(SAudioFormat::Format_PCM_S16, SAudioFormat::Channel_Mono, 8000));
-  const SAudioBuffer outBuffer = audioResampler->processBuffer(inBuffer);
-  QVERIFY(!outBuffer.isNull());
-
-  // And check the result, note that the last 4 input samples are dropped.
-  QCOMPARE(outBuffer.size(), 128 - 8);
-  QCOMPARE(outBuffer.numSamples(), 64 - 4);
-  QCOMPARE(outBuffer.format().numChannels(), 1);
-  for (int i=0; i<outBuffer.size()/2; i++)
-    QCOMPARE(reinterpret_cast<const qint16 *>(outBuffer.data())[i], qint16(48));
-
-  delete audioResampler;
-}
-
-/*! Tests the AudioResampler converting from mono to stereo.
- */
-void IOTest::AudioResamplerMonoStereo(void)
-{
-  SInterfaces::AudioResampler * const audioResampler =
-      SInterfaces::AudioResampler::create(this, "");
-
-  // Prepare a one-channel buffer with value 32 in all samples
-  SAudioBuffer inBuffer(SAudioFormat(SAudioFormat::Format_PCM_S16,
-                                     SAudioFormat::Channel_Mono,
-                                     8000),
-                        64);
-
-  for (unsigned i=0; i<64; i++)
-    reinterpret_cast<qint16 *>(inBuffer.data())[i] = 32;
-
-  // Now resample it to a stereo buffer
-  audioResampler->setFormat(SAudioFormat(SAudioFormat::Format_PCM_S16, SAudioFormat::Channel_Stereo, 8000));
-  const SAudioBuffer outBuffer = audioResampler->processBuffer(inBuffer);
-  QVERIFY(!outBuffer.isNull());
-
-  // And check the result, note that the last 4 input samples are dropped.
-  QCOMPARE(outBuffer.size(), 256 - 16);
-  QCOMPARE(outBuffer.numSamples(), 64 - 4);
-  QCOMPARE(outBuffer.format().numChannels(), 2);
-  for (int i=0; i<outBuffer.size()/2; i++)
-    QCOMPARE(reinterpret_cast<const qint16 *>(outBuffer.data())[i], qint16(32));
-
-  delete audioResampler;
-}
-
 /*! Tests the AudioResampler converting to half the samplerate.
  */
 void IOTest::AudioResamplerHalfRate(void)
@@ -136,7 +70,7 @@ void IOTest::AudioResamplerHalfRate(void)
 
   // Prepare a one-channel buffer with alternating values 32 and 64
   SAudioBuffer inBuffer(SAudioFormat(SAudioFormat::Format_PCM_S16,
-                                     SAudioFormat::Channel_Mono,
+                                     SAudioFormat::Channels_Mono,
                                      8000),
                         64);
 
@@ -147,14 +81,14 @@ void IOTest::AudioResamplerHalfRate(void)
   }
 
   // Now resample it to half the samplerate
-  audioResampler->setFormat(SAudioFormat(SAudioFormat::Format_PCM_S16, SAudioFormat::Channel_Mono, 4000));
+  audioResampler->setSampleRate(4000);
   const SAudioBuffer outBuffer = audioResampler->processBuffer(inBuffer);
   QVERIFY(!outBuffer.isNull());
 
   // And check the result, note that the last 4 input samples are dropped.
   QCOMPARE(outBuffer.size(), 64 - 4);
-  QCOMPARE(outBuffer.numSamples(), 32 - 2);
-  QCOMPARE(outBuffer.format().numChannels(), 1);
+  QCOMPARE(outBuffer.numSamples(), 32u - 2u);
+  QCOMPARE(outBuffer.format().numChannels(), 1u);
   for (int i=0; i<outBuffer.size()/2; i++)
     QCOMPARE(reinterpret_cast<const qint16 *>(outBuffer.data())[i], qint16(32));
 
@@ -171,7 +105,7 @@ void IOTest::AudioResamplerDoubleRate(void)
   // Prepare a one-channel buffer with alternating values 32 and 64
   // Prepare a one-channel buffer with alternating values 32 and 64
   SAudioBuffer inBuffer(SAudioFormat(SAudioFormat::Format_PCM_S16,
-                                     SAudioFormat::Channel_Mono,
+                                     SAudioFormat::Channels_Mono,
                                      4000),
                         64);
 
@@ -181,15 +115,15 @@ void IOTest::AudioResamplerDoubleRate(void)
     reinterpret_cast<qint16 *>(inBuffer.data())[i+1] = 64;
   }
 
-  // Now resample it to half the samplerate
-  audioResampler->setFormat(SAudioFormat(SAudioFormat::Format_PCM_S16, SAudioFormat::Channel_Mono, 8000));
+  // Now resample it to double the samplerate
+  audioResampler->setSampleRate(8000);
   const SAudioBuffer outBuffer = audioResampler->processBuffer(inBuffer);
   QVERIFY(!outBuffer.isNull());
 
   // And check the result, note that the last 4 input samples are dropped.
   QCOMPARE(outBuffer.size(), 256 - 16);
-  QCOMPARE(outBuffer.numSamples(), 128 - 8);
-  QCOMPARE(outBuffer.format().numChannels(), 1);
+  QCOMPARE(outBuffer.numSamples(), 128u - 8u);
+  QCOMPARE(outBuffer.format().numChannels(), 1u);
   for (int i=0; i<outBuffer.size()/2; i+=4)
   {
     QCOMPARE(reinterpret_cast<const qint16 *>(outBuffer.data())[i],   qint16(32));

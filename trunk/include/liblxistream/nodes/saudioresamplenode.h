@@ -39,8 +39,6 @@ public:
 
   static QStringList            algorithms(void);
 
-  SAudioFormat::Channels        channels(void) const;
-  void                          setChannels(SAudioFormat::Channels);
   unsigned                      sampleRate(void) const;
   void                          setSampleRate(unsigned);
 

@@ -42,6 +42,7 @@ MediaStream::~MediaStream()
 bool MediaStream::setup(const SHttpServer::RequestMessage &request, QAbstractSocket *socket, STime duration, SInterval frameRate, SSize size, SAudioFormat::Channels channels)
 {
   audio = new Audio(this);
+  connect(&audio->matrix, SIGNAL(output(SAudioBuffer)), &audio->resampler, SLOT(input(SAudioBuffer)));
   connect(&audio->resampler, SIGNAL(output(SAudioBuffer)), &sync, SLOT(input(SAudioBuffer)));
   connect(&sync, SIGNAL(output(SAudioBuffer)), &audio->encoder, SLOT(input(SAudioBuffer)));
   connect(&audio->encoder, SIGNAL(output(SEncodedAudioBuffer)), &output, SLOT(input(SEncodedAudioBuffer)));
@@ -129,24 +130,24 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request, QAbstractSoc
   {
     if (SAudioFormat::numChannels(channels) <= 2)
     {
-      const SAudioCodec audioOutCodec("MP2", SAudioFormat::Channel_Stereo, 48000);
-      audio->resampler.setChannels(audioOutCodec.channelSetup());
+      const SAudioCodec audioOutCodec("MP2", SAudioFormat::Channels_Stereo, 48000);
+      audio->matrix.setChannels(audioOutCodec.channelSetup());
       audio->resampler.setSampleRate(audioOutCodec.sampleRate());
       if (!audio->encoder.openCodec(audioOutCodec, audioEncodeFlags))
         return false;
     }
     else if (SAudioFormat::numChannels(channels) == 4)
     {
-      const SAudioCodec audioOutCodec("AC3", SAudioFormat::Channel_Quadraphonic, 48000);
-      audio->resampler.setChannels(audioOutCodec.channelSetup());
+      const SAudioCodec audioOutCodec("AC3", SAudioFormat::Channels_Quadraphonic, 48000);
+      audio->matrix.setChannels(audioOutCodec.channelSetup());
       audio->resampler.setSampleRate(audioOutCodec.sampleRate());
       if (!audio->encoder.openCodec(audioOutCodec, audioEncodeFlags))
         return false;
     }
     else
     {
-      const SAudioCodec audioOutCodec("AC3", SAudioFormat::Channel_Surround_5_1, 48000);
-      audio->resampler.setChannels(audioOutCodec.channelSetup());
+      const SAudioCodec audioOutCodec("AC3", SAudioFormat::Channels_Surround_5_1, 48000);
+      audio->matrix.setChannels(audioOutCodec.channelSetup());
       audio->resampler.setSampleRate(audioOutCodec.sampleRate());
       if (!audio->encoder.openCodec(audioOutCodec, audioEncodeFlags))
         return false;
@@ -169,8 +170,8 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request, QAbstractSoc
   }
   else if ((file.last().toLower() == "ogg") || (file.last().toLower() == "ogv"))
   {
-    const SAudioCodec audioOutCodec("FLAC", SAudioFormat::Channel_Stereo, 44100);
-    audio->resampler.setChannels(audioOutCodec.channelSetup());
+    const SAudioCodec audioOutCodec("FLAC", SAudioFormat::Channels_Stereo, 44100);
+    audio->matrix.setChannels(audioOutCodec.channelSetup());
     audio->resampler.setSampleRate(audioOutCodec.sampleRate());
     if (!audio->encoder.openCodec(audioOutCodec, audioEncodeFlags))
       return false;
@@ -185,8 +186,8 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request, QAbstractSoc
   }
   else if (file.last().toLower() == "flv")
   {
-    const SAudioCodec audioOutCodec("PCM/S16LE", SAudioFormat::Channel_Stereo, 44100);
-    audio->resampler.setChannels(audioOutCodec.channelSetup());
+    const SAudioCodec audioOutCodec("PCM/S16LE", SAudioFormat::Channels_Stereo, 44100);
+    audio->matrix.setChannels(audioOutCodec.channelSetup());
     audio->resampler.setSampleRate(audioOutCodec.sampleRate());
     if (!audio->encoder.openCodec(audioOutCodec, audioEncodeFlags))
       return false;
@@ -226,6 +227,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request, QAbstractSoc
 bool MediaStream::setup(const SHttpServer::RequestMessage &request, QAbstractSocket *socket, STime duration, SAudioFormat::Channels channels)
 {
   audio = new Audio(this);
+  connect(&audio->matrix, SIGNAL(output(SAudioBuffer)), &audio->resampler, SLOT(input(SAudioBuffer)));
   connect(&audio->resampler, SIGNAL(output(SAudioBuffer)), &audio->encoder, SLOT(input(SAudioBuffer)));
   connect(&audio->encoder, SIGNAL(output(SEncodedAudioBuffer)), &output, SLOT(input(SEncodedAudioBuffer)));
 
@@ -261,8 +263,8 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request, QAbstractSoc
 
   if (file.last().toLower() == "mpa")
   {
-    const SAudioCodec audioOutCodec("MP2", SAudioFormat::Channel_Stereo, 48000);
-    audio->resampler.setChannels(audioOutCodec.channelSetup());
+    const SAudioCodec audioOutCodec("MP2", SAudioFormat::Channels_Stereo, 48000);
+    audio->matrix.setChannels(audioOutCodec.channelSetup());
     audio->resampler.setSampleRate(audioOutCodec.sampleRate());
     audio->encoder.openCodec(audioOutCodec, audioEncodeFlags);
 
@@ -271,8 +273,8 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request, QAbstractSoc
   }
   else if (file.last().toLower() == "mp3")
   {
-    const SAudioCodec audioOutCodec("MP3", SAudioFormat::Channel_Stereo, 48000);
-    audio->resampler.setChannels(audioOutCodec.channelSetup());
+    const SAudioCodec audioOutCodec("MP3", SAudioFormat::Channels_Stereo, 48000);
+    audio->matrix.setChannels(audioOutCodec.channelSetup());
     audio->resampler.setSampleRate(audioOutCodec.sampleRate());
     audio->encoder.openCodec(audioOutCodec, audioEncodeFlags);
 
@@ -281,8 +283,8 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request, QAbstractSoc
   }
   else if ((file.last().toLower() == "ogg") || (file.last().toLower() == "oga"))
   {
-    const SAudioCodec audioOutCodec("FLAC", SAudioFormat::Channel_Stereo, 44100);
-    audio->resampler.setChannels(audioOutCodec.channelSetup());
+    const SAudioCodec audioOutCodec("FLAC", SAudioFormat::Channels_Stereo, 44100);
+    audio->matrix.setChannels(audioOutCodec.channelSetup());
     audio->resampler.setSampleRate(audioOutCodec.sampleRate());
     audio->encoder.openCodec(audioOutCodec, audioEncodeFlags);
 
@@ -292,8 +294,8 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request, QAbstractSoc
   }
   else if (file.last().toLower() == "lpcm")
   {
-    const SAudioCodec audioOutCodec("PCM/S16BE", SAudioFormat::Channel_Stereo, 48000);
-    audio->resampler.setChannels(audioOutCodec.channelSetup());
+    const SAudioCodec audioOutCodec("PCM/S16BE", SAudioFormat::Channels_Stereo, 48000);
+    audio->matrix.setChannels(audioOutCodec.channelSetup());
     audio->resampler.setSampleRate(audioOutCodec.sampleRate());
     audio->encoder.openCodec(audioOutCodec, audioEncodeFlags);
 
@@ -303,8 +305,8 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request, QAbstractSoc
   }
   else if (file.last().toLower() == "wav")
   {
-    const SAudioCodec audioOutCodec("PCM/S16LE", SAudioFormat::Channel_Stereo, 44100);
-    audio->resampler.setChannels(audioOutCodec.channelSetup());
+    const SAudioCodec audioOutCodec("PCM/S16LE", SAudioFormat::Channels_Stereo, 44100);
+    audio->matrix.setChannels(audioOutCodec.channelSetup());
     audio->resampler.setSampleRate(audioOutCodec.sampleRate());
     audio->encoder.openCodec(audioOutCodec, audioEncodeFlags);
 
@@ -314,8 +316,8 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request, QAbstractSoc
   }
   else if (file.last().toLower() == "flv")
   {
-    const SAudioCodec audioOutCodec("PCM/S16LE", SAudioFormat::Channel_Stereo, 44100);
-    audio->resampler.setChannels(audioOutCodec.channelSetup());
+    const SAudioCodec audioOutCodec("PCM/S16LE", SAudioFormat::Channels_Stereo, 44100);
+    audio->matrix.setChannels(audioOutCodec.channelSetup());
     audio->resampler.setSampleRate(audioOutCodec.sampleRate());
     audio->encoder.openCodec(audioOutCodec, audioEncodeFlags);
 
@@ -333,8 +335,6 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request, QAbstractSoc
   socket->write(header);
   socket->flush();
   output.setIODevice(socket, true);
-
-  //enableTrace("/tmp/test.svg");
 
   qDebug() << "Started audio stream"
       << SAudioFormat::channelSetupName(audio->encoder.codec().channelSetup())
@@ -423,7 +423,7 @@ bool MediaTranscodeStream::setup(const SHttpServer::RequestMessage &request, QAb
     {
       // Audio
       connect(&audioDecoder, SIGNAL(output(SAudioBuffer)), &timeStampResampler, SLOT(input(SAudioBuffer)));
-      connect(&timeStampResampler, SIGNAL(output(SAudioBuffer)), &audio->resampler, SLOT(input(SAudioBuffer)));
+      connect(&timeStampResampler, SIGNAL(output(SAudioBuffer)), &audio->matrix, SLOT(input(SAudioBuffer)));
 
       // Video
       connect(&videoDecoder, SIGNAL(output(SVideoBuffer)), &timeStampResampler, SLOT(input(SVideoBuffer)));
@@ -435,8 +435,11 @@ bool MediaTranscodeStream::setup(const SHttpServer::RequestMessage &request, QAb
       connect(&dataDecoder, SIGNAL(output(SSubtitleBuffer)), &timeStampResampler, SLOT(input(SSubtitleBuffer)));
       connect(&timeStampResampler, SIGNAL(output(SSubtitleBuffer)), &video->subtitleRenderer, SLOT(input(SSubtitleBuffer)));
 
-      if (audio->resampler.channels() == SAudioFormat::Channel_Stereo)
+      if (audio->matrix.channels() == SAudioFormat::Channels_Stereo)
+      {
         audioDecoder.setFlags(SInterfaces::AudioDecoder::Flag_DownsampleToStereo);
+        audio->matrix.setDefaultMatrix(SAudioMatrixNode::Matrix_SurroundToStereo);
+      }
 
       return true;
     }
@@ -449,10 +452,13 @@ bool MediaTranscodeStream::setup(const SHttpServer::RequestMessage &request, QAb
     if (MediaStream::setup(request, socket, duration,
                            audioInCodec.channelSetup()))
     {
-      connect(&audioDecoder, SIGNAL(output(SAudioBuffer)), &audio->resampler, SLOT(input(SAudioBuffer)));
+      connect(&audioDecoder, SIGNAL(output(SAudioBuffer)), &audio->matrix, SLOT(input(SAudioBuffer)));
 
-      if (audio->resampler.channels() == SAudioFormat::Channel_Stereo)
+      if (audio->matrix.channels() == SAudioFormat::Channels_Stereo)
+      {
         audioDecoder.setFlags(SInterfaces::AudioDecoder::Flag_DownsampleToStereo);
+        audio->matrix.setDefaultMatrix(SAudioMatrixNode::Matrix_SurroundToStereo);
+      }
 
       return true;
     }

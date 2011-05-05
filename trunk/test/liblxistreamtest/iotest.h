@@ -33,8 +33,6 @@ private slots:
 private slots:
   void                          MediaFileInfoImage(void);
 
-  void                          AudioResamplerStereoMono(void);
-  void                          AudioResamplerMonoStereo(void);
   void                          AudioResamplerHalfRate(void);
   void                          AudioResamplerDoubleRate(void);
 

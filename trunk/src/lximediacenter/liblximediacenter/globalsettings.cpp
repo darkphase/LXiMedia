@@ -170,12 +170,12 @@ QString GlobalSettings::defaultEncodeModeName(void)
 QList<GlobalSettings::TranscodeChannel> GlobalSettings::allTranscodeChannels(void)
 {
   QList<TranscodeChannel> channels;
-  channels << TranscodeChannel("2.0 Stereo",        SAudioFormat::Channel_Stereo)
-           << TranscodeChannel("3.0 Surround",      SAudioFormat::Channel_Surround_3_0)
-           << TranscodeChannel("4.0 Quadraphonic",  SAudioFormat::Channel_Quadraphonic)
-           << TranscodeChannel("5.0 Surround",      SAudioFormat::Channel_Surround_5_0)
-           << TranscodeChannel("5.1 Surround",      SAudioFormat::Channel_Surround_5_1)
-           << TranscodeChannel("7.1 Surround",      SAudioFormat::Channel_Surround_7_1);
+  channels << TranscodeChannel("2.0 Stereo",        SAudioFormat::Channels_Stereo)
+           << TranscodeChannel("3.0 Surround",      SAudioFormat::Channels_Surround_3_0)
+           << TranscodeChannel("4.0 Quadraphonic",  SAudioFormat::Channels_Quadraphonic)
+           << TranscodeChannel("5.0 Surround",      SAudioFormat::Channels_Surround_5_0)
+           << TranscodeChannel("5.1 Surround",      SAudioFormat::Channels_Surround_5_1)
+           << TranscodeChannel("7.1 Surround",      SAudioFormat::Channels_Surround_7_1);
 
   return channels;
 }

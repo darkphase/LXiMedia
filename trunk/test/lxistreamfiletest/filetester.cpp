@@ -47,7 +47,8 @@ FileTester::FileTester(const QString &fileName)
     videoDecoder(this),
     dataDecoder(this),
     timeStampResampler(this),
-    audioResampler(this, "linear"),
+    audioMatrix(this),
+    audioResampler(this),
     subpictureRenderer(this),
     letterboxDetectNode(this),
     subtitleRenderer(this),
@@ -61,7 +62,8 @@ FileTester::FileTester(const QString &fileName)
 
   // Audio
   connect(&audioDecoder, SIGNAL(output(SAudioBuffer)), &timeStampResampler, SLOT(input(SAudioBuffer)));
-  connect(&timeStampResampler, SIGNAL(output(SAudioBuffer)), &audioResampler, SLOT(input(SAudioBuffer)));
+  connect(&timeStampResampler, SIGNAL(output(SAudioBuffer)), &audioMatrix, SLOT(input(SAudioBuffer)));
+  connect(&audioMatrix, SIGNAL(output(SAudioBuffer)), &audioResampler, SLOT(input(SAudioBuffer)));
   connect(&audioResampler, SIGNAL(output(SAudioBuffer)), &sync, SLOT(input(SAudioBuffer)));
 
   // Video
@@ -107,14 +109,14 @@ bool FileTester::setup(void)
       // Graph options.
       timeStampResampler.setFrameRate(SInterval::fromFrequency(15));
       audioDecoder.setFlags(SInterfaces::AudioDecoder::Flag_DownsampleToStereo);
-      audioResampler.setChannels(SAudioFormat::Channel_Stereo);
+      audioMatrix.setChannels(SAudioFormat::Channels_Stereo);
       audioResampler.setSampleRate(48000);
 
       return true;
     }
     else if (!audioStreams.isEmpty())
     {
-      audioResampler.setChannels(SAudioFormat::Channel_Stereo);
+      audioMatrix.setChannels(SAudioFormat::Channels_Stereo);
       audioResampler.setSampleRate(48000);
 
       return true;

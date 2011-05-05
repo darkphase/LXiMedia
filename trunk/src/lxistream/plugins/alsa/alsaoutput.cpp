@@ -195,13 +195,11 @@ void AlsaOutput::openFormat(const SAudioFormat &reqFormat)
   if (snd_pcm_hw_params(pcm, hw_params) == 0)
   if (snd_pcm_prepare(pcm) == 0)
   {
-    outFormat = SAudioFormat(SAudioFormat::Format_PCM_S16, SAudioFormat::guessChannels(numChannels), sampleRate);
-
     if ((int(numChannels) != reqFormat.numChannels()) || (int(sampleRate) != reqFormat.sampleRate()))
     {
       resampler = SInterfaces::AudioResampler::create(this, QString::null);
       if (resampler)
-        resampler->setFormat(outFormat);
+        resampler->setSampleRate(sampleRate);
     }
   }
 

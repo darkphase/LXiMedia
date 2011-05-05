@@ -33,6 +33,7 @@
 #include "liblxistream/nodes/saudiodecodernode.h"
 #include "liblxistream/nodes/saudioencodernode.h"
 #include "liblxistream/nodes/saudioinputnode.h"
+#include "liblxistream/nodes/saudiomatrixnode.h"
 #include "liblxistream/nodes/saudiooutputnode.h"
 #include "liblxistream/nodes/saudioresamplenode.h"
 #include "liblxistream/nodes/saudiovideoinputnode.h"

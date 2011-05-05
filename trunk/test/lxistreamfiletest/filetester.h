@@ -39,6 +39,7 @@ private:
   SVideoDecoderNode             videoDecoder;
   SDataDecoderNode              dataDecoder;
   STimeStampResamplerNode       timeStampResampler;
+  SAudioMatrixNode              audioMatrix;
   SAudioResampleNode            audioResampler;
   SSubpictureRenderNode         subpictureRenderer;
   SVideoLetterboxDetectNode     letterboxDetectNode;

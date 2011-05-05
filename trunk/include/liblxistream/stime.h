@@ -76,6 +76,7 @@ public:
   inline qint64                 toUSec(void) const                              { return d.interval.toTime(d.count * 1000000); }
   inline qint64                 toClock(SInterval i) const                      { return d.interval.toTime(d.count * i.den() / i.num()); }
   inline qint64                 toClock(int hz) const                           { return d.interval.toTime(d.count * hz); }
+  inline qint64                 toClock(unsigned hz) const                      { return d.interval.toTime(d.count * qint64(hz)); }
   inline qint64                 toClock(float hz) const                         { return d.interval.toTime(d.count * hz); }
   inline qint64                 toClock(double hz) const                        { return d.interval.toTime(d.count * hz); }
   inline qint64                 toClock(qint64 num, qint64 den) const           { return d.interval.toTime(d.count * den / num); }
@@ -87,6 +88,7 @@ public:
   static inline STime           fromUSec(qint64 t)                              { return STime(t, SInterval(1, 1000000)); }
   static inline STime           fromClock(qint64 t, SInterval i)                { return STime(t, i); }
   static inline STime           fromClock(qint64 t, int hz)                     { return STime(t, SInterval(1, hz)); }
+  static inline STime           fromClock(qint64 t, unsigned hz)                { return STime(t, SInterval(1, hz)); }
   static inline STime           fromClock(qint64 t, float hz)                   { return STime(t, SInterval::fromFrequency(hz)); }
   static inline STime           fromClock(qint64 t, double hz)                  { return STime(t, SInterval::fromFrequency(hz)); }
   static inline STime           fromClock(qint64 t, qint64 num, qint64 den)     { return STime(t, SInterval(num, den)); }

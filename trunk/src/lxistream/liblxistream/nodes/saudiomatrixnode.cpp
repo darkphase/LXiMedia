@@ -19,19 +19,21 @@
 
 #include "nodes/saudiomatrixnode.h"
 
-// Implemented in channelmatrix.mix.c
-extern "C" void LXiStream_SAudioMatrixNode_mixMatrix(const qint16 *, unsigned, unsigned, unsigned, qint16 *, const float *, unsigned);
+// Implemented in saudiomatrixnode.mix.c
+extern "C" void LXiStream_SAudioMatrixNode_mixMatrix
+ (const qint16 * __restrict srcData, unsigned numSamples, unsigned srcNumChannels,
+  qint16 * dstData, const float * appliedMatrix, unsigned dstNumChannels);
 
 namespace LXiStream {
 
 struct SAudioMatrixNode::Data
 {
-  QList<qreal>                  requestedMatrix;
+  float                         matrix[32][32];
+  SAudioFormat::Channels        channels;
+
+  SAudioFormat                  inFormat;
   float                       * appliedMatrix;
-  SAudioFormat::Channels        inChannelSetup;
-  unsigned                      inNumChannels;
-  SAudioFormat::Channels        outChannelSetup;
-  unsigned                      outNumChannels;
+
   QFuture<void>                 future;
 };
 
@@ -40,11 +42,10 @@ SAudioMatrixNode::SAudioMatrixNode(SGraph *parent)
     SGraph::Node(parent),
     d(new Data())
 {
+  d->channels = SAudioFormat::Channels_Stereo;
   d->appliedMatrix = NULL;
-  d->inChannelSetup = SAudioFormat::Channel_Stereo;
-  d->inNumChannels = SAudioFormat::numChannels(d->inChannelSetup);
-  d->outChannelSetup = SAudioFormat::Channel_Stereo;
-  d->outNumChannels = SAudioFormat::numChannels(d->outChannelSetup);
+
+  setDefaultMatrix(Matrix_Identity);
 }
 
 SAudioMatrixNode::~SAudioMatrixNode()
@@ -55,44 +56,57 @@ SAudioMatrixNode::~SAudioMatrixNode()
   *const_cast<Data **>(&d) = NULL;
 }
 
-quint32 SAudioMatrixNode::inChannels(void) const
+void SAudioMatrixNode::setDefaultMatrix(Matrix m)
 {
-  return quint32(d->inChannelSetup);
-}
+  for (int j=0; j<32; j++)
+  for (int i=0; i<32; i++)
+    d->matrix[i][j] = 0.0f;
 
-void SAudioMatrixNode::setInChannels(quint32 c)
-{
-  d->inChannelSetup = SAudioFormat::Channels(c);
-  d->inNumChannels = SAudioFormat::numChannels(d->inChannelSetup);
-}
-
-quint32 SAudioMatrixNode::outChannels(void) const
-{
-  return quint32(d->outChannelSetup);
-}
-
-void SAudioMatrixNode::setOutChannels(quint32 c)
-{
-  d->outChannelSetup = SAudioFormat::Channels(c);
-  d->outNumChannels = SAudioFormat::numChannels(d->outChannelSetup);
-}
-
-const QList<qreal> & SAudioMatrixNode::matrix(void) const
-{
-  return d->requestedMatrix;
-}
-
-void SAudioMatrixNode::setMatrix(const QList<qreal> &m)
-{
-  d->requestedMatrix = m;
-
-  if ((d->requestedMatrix.count() == int(d->inNumChannels * d->outNumChannels)) &&
-      (d->appliedMatrix != NULL))
+  switch (m)
   {
-    for (unsigned i=0; i<d->outNumChannels; i++)
-    for (unsigned j=0; j<d->inNumChannels; j++)
-      d->appliedMatrix[i * d->inNumChannels + j] = float(d->requestedMatrix[i * d->inNumChannels + j]);
+  case Matrix_Identity:
+    for (int i=0; i<32; i++)
+      d->matrix[i][i] = 1.0f;
+
+    break;
+
+  case Matrix_SurroundToStereo:
+    setCell(SAudioFormat::Channel_LeftFront,    SAudioFormat::Channel_LeftFront,  1.0f);
+    setCell(SAudioFormat::Channel_Center,       SAudioFormat::Channel_LeftFront,  0.7f);
+    setCell(SAudioFormat::Channel_LeftBack,     SAudioFormat::Channel_LeftFront,  0.5f);
+
+    setCell(SAudioFormat::Channel_RightFront,   SAudioFormat::Channel_RightFront, 1.0f);
+    setCell(SAudioFormat::Channel_Center,       SAudioFormat::Channel_RightFront, 0.7f);
+    setCell(SAudioFormat::Channel_RightBack,    SAudioFormat::Channel_RightFront, 0.5f);
+
+    break;
   }
+}
+
+void SAudioMatrixNode::setCell(SAudioFormat::Channel from, SAudioFormat::Channel to, float value)
+{
+  const int fromId = channelId(from), toId = channelId(to);
+  if ((fromId >= 0) && (toId >= 0))
+    d->matrix[fromId][toId] = value;
+}
+
+float SAudioMatrixNode::cell(SAudioFormat::Channel from, SAudioFormat::Channel to) const
+{
+  const int fromId = channelId(from), toId = channelId(to);
+  if ((fromId >= 0) && (toId >= 0))
+    return d->matrix[fromId][toId];
+
+  return 0.0f;
+}
+
+void SAudioMatrixNode::setChannels(SAudioFormat::Channels channels)
+{
+  d->channels = channels;
+}
+
+SAudioFormat::Channels SAudioMatrixNode::channels(void) const
+{
+  return d->channels;
 }
 
 bool SAudioMatrixNode::start(void)
@@ -103,6 +117,9 @@ bool SAudioMatrixNode::start(void)
 void SAudioMatrixNode::stop(void)
 {
   d->future.waitForFinished();
+
+  delete [] d->appliedMatrix;
+  d->appliedMatrix = NULL;
 }
 
 void SAudioMatrixNode::input(const SAudioBuffer &audioBuffer)
@@ -111,55 +128,80 @@ void SAudioMatrixNode::input(const SAudioBuffer &audioBuffer)
 
   d->future.waitForFinished();
 
-  if (!audioBuffer.isNull() &&
-      (audioBuffer.format() == SAudioFormat::Format_PCM_S16) &&
-      (d->inNumChannels * d->outNumChannels > 0))
+  if (!audioBuffer.isNull() && (audioBuffer.format() == SAudioFormat::Format_PCM_S16))
   {
-    if (d->appliedMatrix == NULL)
+    if ((d->appliedMatrix == NULL) || (d->inFormat != audioBuffer.format()))
     {
-      if (d->inNumChannels * d->outNumChannels > 0)
-      {
-        d->appliedMatrix = new float[d->inNumChannels * d->outNumChannels];
+      d->inFormat = audioBuffer.format();
 
-        if (d->requestedMatrix.count() == int(d->inNumChannels * d->outNumChannels))
-        {
-          for (unsigned i=0; i<d->outNumChannels; i++)
-          for (unsigned j=0; j<d->inNumChannels; j++)
-            d->appliedMatrix[i * d->inNumChannels + j] = float(d->requestedMatrix[i * d->inNumChannels + j]);
-        }
-        else
-        {
-          for (unsigned i=0; i<d->outNumChannels; i++)
-          for (unsigned j=0; j<d->inNumChannels; j++)
-            d->appliedMatrix[i * d->inNumChannels + j] = (i == j) ? 1.0f : 0.0f;
-        }
-      }
+      buildMatrix();
     }
 
-    d->future = QtConcurrent::run(this, &SAudioMatrixNode::processTask, audioBuffer);
+    if (d->appliedMatrix)
+      d->future = QtConcurrent::run(this, &SAudioMatrixNode::processTask, audioBuffer);
   }
   else
     emit output(audioBuffer);
+}
+
+int SAudioMatrixNode::channelId(SAudioFormat::Channel channel)
+{
+  for (int i=0; i<32; i++)
+  if (channel == (quint32(1) << i))
+    return i;
+
+  return -1;
 }
 
 void SAudioMatrixNode::processTask(const SAudioBuffer &audioBuffer)
 {
   LXI_PROFILE_FUNCTION;
 
-  SAudioBuffer destBuffer(audioBuffer.format(), audioBuffer.numSamples());
+  SAudioFormat outFormat = d->inFormat;
+  outFormat.setChannelSetup(d->channels);
+  SAudioBuffer destBuffer(outFormat, audioBuffer.numSamples());
 
   LXiStream_SAudioMatrixNode_mixMatrix(reinterpret_cast<const qint16 *>(audioBuffer.data()),
                                        audioBuffer.numSamples(),
                                        audioBuffer.format().numChannels(),
-                                       d->inNumChannels,
                                        reinterpret_cast<qint16 *>(destBuffer.data()),
                                        d->appliedMatrix,
-                                       d->outNumChannels);
+                                       outFormat.numChannels());
 
   destBuffer.setTimeStamp(audioBuffer.timeStamp());
 
   emit output(destBuffer);
 }
 
+void SAudioMatrixNode::buildMatrix(void)
+{
+  delete [] d->appliedMatrix;
+  d->appliedMatrix = NULL;
+
+  const unsigned inChannels = d->inFormat.numChannels();
+  const unsigned outChannels = SAudioFormat::numChannels(d->channels);
+
+  if ((inChannels > 0) && (outChannels > 0))
+  {
+    int inPos[32];
+    for (int i=0, n=0; i<32; i++)
+    if ((d->inFormat.channelSetup() & (quint32(1) << i)) != 0)
+      inPos[n++] = i;
+
+    int outPos[32];
+    for (int i=0, n=0; i<32; i++)
+    if ((d->channels & (quint32(1) << i)) != 0)
+      outPos[n++] = i;
+
+    d->appliedMatrix = new float[inChannels * outChannels];
+
+    for (unsigned j=0; j<outChannels; j++)
+    {
+      float * const line = d->appliedMatrix + (j * inChannels);
+      for (unsigned i=0; i<inChannels; i++)
+        line[i] = d->matrix[inPos[i]][outPos[j]];
+    }
+  }
+}
 
 } // End of namespace

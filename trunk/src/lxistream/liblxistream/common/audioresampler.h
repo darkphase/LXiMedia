@@ -36,13 +36,13 @@ public:
   explicit                      AudioResampler(const QString &, QObject *parent);
 
 public: // From SInterfaces::AudioResampler
-  virtual void                  setFormat(const SAudioFormat &);
-  virtual SAudioFormat          format(void);
+  virtual void                  setSampleRate(unsigned);
+  virtual unsigned              sampleRate(void);
 
   virtual SAudioBuffer          processBuffer(const SAudioBuffer &);
 
 private:
-  SAudioFormat                  outFormat;
+  unsigned                      outSampleRate;
   SAudioBuffer                  lastBuffer;
   unsigned                      nextPos;
   float                         weightOffset;

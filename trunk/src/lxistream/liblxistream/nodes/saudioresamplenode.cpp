@@ -49,40 +49,18 @@ QStringList SAudioResampleNode::algorithms(void)
   return SInterfaces::AudioResampler::available();
 }
 
-SAudioFormat::Channels SAudioResampleNode::channels(void) const
-{
-  if (d->resampler)
-    return d->resampler->format().channelSetup();
-  else
-    return SAudioFormat::Channel_None;
-}
-
-void SAudioResampleNode::setChannels(SAudioFormat::Channels c)
-{
-  if (d->resampler)
-  {
-    SAudioFormat format = d->resampler->format();
-    format.setChannelSetup(c);
-    d->resampler->setFormat(format);
-  }
-}
-
 unsigned SAudioResampleNode::sampleRate(void) const
 {
   if (d->resampler)
-    return d->resampler->format().sampleRate();
+    return d->resampler->sampleRate();
   else
     return 0;
 }
 
-void SAudioResampleNode::setSampleRate(unsigned s)
+void SAudioResampleNode::setSampleRate(unsigned rate)
 {
   if (d->resampler)
-  {
-    SAudioFormat format = d->resampler->format();
-    format.setSampleRate(s);
-    d->resampler->setFormat(format);
-  }
+    d->resampler->setSampleRate(rate);
 }
 
 bool SAudioResampleNode::start(void)

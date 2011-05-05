@@ -26,6 +26,8 @@ Q_OBJECT
 public:
   inline explicit               StreamTest(QObject *parent) : QObject(parent), mediaApp(NULL) { }
 
+  static SAudioBuffer           makeTestBuffer(unsigned numSamples);
+
 private slots:
   void                          initTestCase(void);
   void                          cleanupTestCase(void);
@@ -36,6 +38,7 @@ private slots:
   void                          BufferEnlarge(void);
   void                          BufferExternal(void);
 
+  void                          AudioBuffer(void);
   void                          AudioFormat(void);
   void                          AudioCodec(void);
   void                          VideoFormat(void);

@@ -104,36 +104,36 @@ public:
     Channel_LowFrequencyEffectsRight  = 0x40000000,
 
     // Channel configurations
-    Channel_Mono                      = Channel_Center,
-    Channel_Stereo                    = Channel_LeftFront | Channel_RightFront,
-    Channel_Quadraphonic              = Channel_LeftFront | Channel_RightFront |
+    Channels_Mono                     = Channel_Center,
+    Channels_Stereo                   = Channel_LeftFront | Channel_RightFront,
+    Channels_Quadraphonic             = Channel_LeftFront | Channel_RightFront |
                                         Channel_LeftBack | Channel_RightBack,
-    Channel_Surround_3_0              = Channel_LeftFront | Channel_RightFront |
+    Channels_Surround_3_0             = Channel_LeftFront | Channel_RightFront |
                                         Channel_Back,
-    Channel_Surround_4_0              = Channel_LeftFront | Channel_Center | Channel_RightFront |
+    Channels_Surround_4_0             = Channel_LeftFront | Channel_Center | Channel_RightFront |
                                         Channel_Back,
-    Channel_Surround_5_0              = Channel_LeftFront | Channel_Center | Channel_RightFront |
+    Channels_Surround_5_0             = Channel_LeftFront | Channel_Center | Channel_RightFront |
                                         Channel_LeftBack | Channel_RightBack,
-    Channel_Surround_5_1              = Channel_Surround_5_0 |
+    Channels_Surround_5_1             = Channels_Surround_5_0 |
                                         Channel_LowFrequencyEffects,
-    Channel_Surround_6_0              = Channel_LeftFront | Channel_Center | Channel_RightFront |
+    Channels_Surround_6_0             = Channel_LeftFront | Channel_Center | Channel_RightFront |
                                         Channel_LeftBack | Channel_RightBack |
                                         Channel_Back,
-    Channel_Surround_6_1              = Channel_Surround_6_0 |
+    Channels_Surround_6_1             = Channels_Surround_6_0 |
                                         Channel_LowFrequencyEffects,
-    Channel_Surround_7_1              = Channel_LeftFront | Channel_Center | Channel_RightFront |
+    Channels_Surround_7_1             = Channel_LeftFront | Channel_Center | Channel_RightFront |
                                         Channel_LeftSide | Channel_RightSide |
                                         Channel_LeftBack | Channel_RightBack |
                                         Channel_LowFrequencyEffects,
-    Channel_Surround_7_1_Wide         = Channel_LeftFront | Channel_CenterLeft | Channel_Center | Channel_CenterRight | Channel_RightFront |
+    Channels_Surround_7_1_Wide        = Channel_LeftFront | Channel_CenterLeft | Channel_Center | Channel_CenterRight | Channel_RightFront |
                                         Channel_LeftSide | Channel_RightSide |
                                         Channel_LowFrequencyEffects,
-    Channel_Surround_10_2             = Channel_LeftFront | Channel_CenterLeft | Channel_Center | Channel_CenterRight | Channel_RightFront |
+    Channels_Surround_10_2            = Channel_LeftFront | Channel_CenterLeft | Channel_Center | Channel_CenterRight | Channel_RightFront |
                                         Channel_TopLeftBack | Channel_LeftSide | Channel_RightSide | Channel_TopRightBack |
                                         Channel_Back |
                                         Channel_LowFrequencyEffectsLeft | Channel_LowFrequencyEffectsRight |
                                         Channel_TopLeftFront | Channel_TopRightFront,
-    Channel_Surround_22_2             = Channel_LeftFront | Channel_CenterLeft | Channel_Center | Channel_CenterRight | Channel_RightFront |
+    Channels_Surround_22_2            = Channel_LeftFront | Channel_CenterLeft | Channel_Center | Channel_CenterRight | Channel_RightFront |
                                         Channel_TopLeftFront | Channel_TopCenter | Channel_TopRightFront |
                                         Channel_BottomLeftFront | Channel_BottomCenter | Channel_BottomRightFront |
                                         Channel_LeftSide | Channel_RightSide |
@@ -162,16 +162,18 @@ public:
 
   inline Channels               channelSetup(void) const                        { return d.channels; }
   inline void                   setChannelSetup(Channels c)                     { d.channels = c; }
-  inline int                    sampleRate(void) const                          { return d.sampleRate; }
-  inline void                   setSampleRate(int s)                            { d.sampleRate = s; }
+  inline int                    channelPos(Channel channel) const               { return channelPos(d.channels, channel); }
+  inline unsigned               sampleRate(void) const                          { return d.sampleRate; }
+  inline void                   setSampleRate(unsigned s)                       { d.sampleRate = s; }
 
   inline const char           * formatName(void) const                          { return formatName(format()); }
-  inline int                    numChannels(void) const                         { return numChannels(channelSetup()); }
-  inline int                    sampleSize(void) const                          { return sampleSize(format()); }
+  inline unsigned               numChannels(void) const                         { return numChannels(channelSetup()); }
+  inline unsigned               sampleSize(void) const                          { return sampleSize(format()); }
 
-  _lxi_pure static int          numChannels(Channels c);
+  _lxi_pure static unsigned     numChannels(Channels);
   _lxi_pure static Channels     guessChannels(unsigned numChannels);
-  _lxi_pure static int          sampleSize(Format);
+  _lxi_pure static int          channelPos(Channels channelSetup, Channel channel);
+  _lxi_pure static unsigned     sampleSize(Format);
   _lxi_pure static const char * formatName(Format);
   _lxi_pure static const char * channelName(Channel);
   _lxi_pure static QString      channelNames(Channels);
@@ -182,7 +184,7 @@ private:
   {
     Format                      format;
     Channels                    channels;
-    int                         sampleRate;
+    unsigned                    sampleRate;
   }                             d;
 };
 

@@ -21,6 +21,27 @@
 #include <QtGui>
 #include <QtTest>
 
+SAudioBuffer StreamTest::makeTestBuffer(unsigned numSamples)
+{
+  SAudioBuffer buffer(
+      SAudioFormat(
+          SAudioFormat::Format_PCM_S16,
+          SAudioFormat::Channels_Stereo,
+          44100),
+      numSamples);
+
+  for (int i=0, n=buffer.numSamples()*buffer.format().numChannels(); i<n; i+=4)
+  {
+    reinterpret_cast<qint16 *>(buffer.data())[i]   = -64;
+    reinterpret_cast<qint16 *>(buffer.data())[i+1] = -32;
+    reinterpret_cast<qint16 *>(buffer.data())[i+2] =  64;
+    reinterpret_cast<qint16 *>(buffer.data())[i+3] =  32;
+  }
+
+  return buffer;
+}
+
+
 void StreamTest::initTestCase(void)
 {
   mediaApp = SApplication::createForQTest(this);
@@ -135,7 +156,7 @@ void StreamTest::BufferExternal(void)
   fillBuffer(extBuffer, sizeof(extBuffer));
 
   SAudioBuffer buffer(SAudioFormat(SAudioFormat::Format_PCM_S16,
-                                   SAudioFormat::Channel_Stereo,
+                                   SAudioFormat::Channels_Stereo,
                                    8000),
                       SBuffer::MemoryPtr(new Memory(sizeof(extBuffer),
                                          extBuffer,
@@ -170,6 +191,49 @@ void StreamTest::fillBuffer(char *data, int size)
     data[i] = char(i * 3);
 }
 
+/*! Tests the SAudioBuffer class
+ */
+void StreamTest::AudioBuffer(void)
+{
+  const SAudioBuffer inBuffer = StreamTest::makeTestBuffer(65536);
+
+  const SAudioBuffer leftBuffer = inBuffer.getChannel(SAudioFormat::Channel_LeftFront);
+  const SAudioBuffer centerBuffer = inBuffer.getChannel(SAudioFormat::Channel_Center);
+  const SAudioBuffer rightBuffer = inBuffer.getChannel(SAudioFormat::Channel_RightFront);
+
+  QVERIFY(!leftBuffer.isEmpty());
+  QVERIFY(centerBuffer.isEmpty());
+  QVERIFY(!rightBuffer.isEmpty());
+
+  for (int i=0, n=leftBuffer.numSamples()*leftBuffer.format().numChannels(); i<n; i+=2)
+  {
+    QCOMPARE(reinterpret_cast<const qint16 *>(leftBuffer.data())[i],   qint16(-64));
+    QCOMPARE(reinterpret_cast<const qint16 *>(leftBuffer.data())[i+1], qint16( 64));
+  }
+
+  for (int i=0, n=rightBuffer.numSamples()*rightBuffer.format().numChannels(); i<n; i+=2)
+  {
+    QCOMPARE(reinterpret_cast<const qint16 *>(rightBuffer.data())[i],   qint16(-32));
+    QCOMPARE(reinterpret_cast<const qint16 *>(rightBuffer.data())[i+1], qint16( 32));
+  }
+
+  SAudioBuffer outBuffer(inBuffer.format(), inBuffer.numSamples());
+  outBuffer.setChannels(leftBuffer);
+  outBuffer.setChannels(centerBuffer);
+  outBuffer.setChannels(rightBuffer);
+
+  QVERIFY(outBuffer.size() >= inBuffer.size());
+
+  if (outBuffer.size() >= inBuffer.size())
+  for (int i=0, n=inBuffer.numSamples()*inBuffer.format().numChannels(); i<n; i+=4)
+  {
+    QCOMPARE(reinterpret_cast<const qint16 *>(outBuffer.data())[i],   reinterpret_cast<const qint16 *>(inBuffer.data())[i]);
+    QCOMPARE(reinterpret_cast<const qint16 *>(outBuffer.data())[i+1], reinterpret_cast<const qint16 *>(inBuffer.data())[i+1]);
+    QCOMPARE(reinterpret_cast<const qint16 *>(outBuffer.data())[i+2], reinterpret_cast<const qint16 *>(inBuffer.data())[i+2]);
+    QCOMPARE(reinterpret_cast<const qint16 *>(outBuffer.data())[i+3], reinterpret_cast<const qint16 *>(inBuffer.data())[i+3]);
+  }
+}
+
 /*! Tests the SAudioFormat class
  */
 void StreamTest::AudioFormat(void)
@@ -181,33 +245,33 @@ void StreamTest::AudioFormat(void)
   QVERIFY(format != SAudioFormat::Format_PCM_F32);
   QCOMPARE(format.format(), SAudioFormat::Format_PCM_S16);
   QCOMPARE(format.isNull(), false);
-  QCOMPARE(format.numChannels(), 0);
-  QCOMPARE(format.sampleRate(), 0);
+  QCOMPARE(format.numChannels(), 0u);
+  QCOMPARE(format.sampleRate(), 0u);
 
-  format.setFormat(SAudioFormat::Format_PCM_S16, SAudioFormat::Channel_Surround_5_1, 48000);
-  QVERIFY(format == SAudioFormat(SAudioFormat::Format_PCM_S16, SAudioFormat::Channel_Surround_5_1, 48000));
+  format.setFormat(SAudioFormat::Format_PCM_S16, SAudioFormat::Channels_Surround_5_1, 48000);
+  QVERIFY(format == SAudioFormat(SAudioFormat::Format_PCM_S16, SAudioFormat::Channels_Surround_5_1, 48000));
   QVERIFY(format != SAudioFormat(SAudioFormat::Format_PCM_S16));
   QVERIFY(format == SAudioFormat::Format_PCM_S16);
   QVERIFY(format != SAudioFormat::Format_PCM_F32);
   QCOMPARE(format.isNull(), false);
-  QCOMPARE(format.numChannels(), 6);
-  QCOMPARE(format.sampleRate(), 48000);
+  QCOMPARE(format.numChannels(), 6u);
+  QCOMPARE(format.sampleRate(), 48000u);
 
-  QCOMPARE(SAudioFormat::numChannels(SAudioFormat::Channel_Mono), 1);
-  QCOMPARE(SAudioFormat::numChannels(SAudioFormat::Channel_Stereo), 2);
-  QCOMPARE(SAudioFormat::numChannels(SAudioFormat::Channel_Quadraphonic), 4);
-  QCOMPARE(SAudioFormat::numChannels(SAudioFormat::Channel_Surround_3_0), 3);
-  QCOMPARE(SAudioFormat::numChannels(SAudioFormat::Channel_Surround_4_0), 4);
-  QCOMPARE(SAudioFormat::numChannels(SAudioFormat::Channel_Surround_5_0), 5);
-  QCOMPARE(SAudioFormat::numChannels(SAudioFormat::Channel_Surround_5_1), 6);
-  QCOMPARE(SAudioFormat::numChannels(SAudioFormat::Channel_Surround_7_1), 8);
-  QCOMPARE(SAudioFormat::guessChannels(1), SAudioFormat::Channel_Mono);
-  QCOMPARE(SAudioFormat::guessChannels(2), SAudioFormat::Channel_Stereo);
-  QCOMPARE(SAudioFormat::guessChannels(4), SAudioFormat::Channel_Quadraphonic);
-  QCOMPARE(SAudioFormat::guessChannels(6), SAudioFormat::Channel_Surround_5_1);
-  QCOMPARE(SAudioFormat::sampleSize(SAudioFormat::Format_PCM_S16), 2);
-  QCOMPARE(SAudioFormat::sampleSize(SAudioFormat::Format_PCM_S8), 1);
-  QCOMPARE(SAudioFormat::sampleSize(SAudioFormat::Format_PCM_F32), 4);
+  QCOMPARE(SAudioFormat::numChannels(SAudioFormat::Channels_Mono), 1u);
+  QCOMPARE(SAudioFormat::numChannels(SAudioFormat::Channels_Stereo), 2u);
+  QCOMPARE(SAudioFormat::numChannels(SAudioFormat::Channels_Quadraphonic), 4u);
+  QCOMPARE(SAudioFormat::numChannels(SAudioFormat::Channels_Surround_3_0), 3u);
+  QCOMPARE(SAudioFormat::numChannels(SAudioFormat::Channels_Surround_4_0), 4u);
+  QCOMPARE(SAudioFormat::numChannels(SAudioFormat::Channels_Surround_5_0), 5u);
+  QCOMPARE(SAudioFormat::numChannels(SAudioFormat::Channels_Surround_5_1), 6u);
+  QCOMPARE(SAudioFormat::numChannels(SAudioFormat::Channels_Surround_7_1), 8u);
+  QCOMPARE(SAudioFormat::guessChannels(1), SAudioFormat::Channels_Mono);
+  QCOMPARE(SAudioFormat::guessChannels(2), SAudioFormat::Channels_Stereo);
+  QCOMPARE(SAudioFormat::guessChannels(4), SAudioFormat::Channels_Quadraphonic);
+  QCOMPARE(SAudioFormat::guessChannels(6), SAudioFormat::Channels_Surround_5_1);
+  QCOMPARE(SAudioFormat::sampleSize(SAudioFormat::Format_PCM_S16), 2u);
+  QCOMPARE(SAudioFormat::sampleSize(SAudioFormat::Format_PCM_S8), 1u);
+  QCOMPARE(SAudioFormat::sampleSize(SAudioFormat::Format_PCM_F32), 4u);
 }
 
 /*! Tests the SAudioCodec class
@@ -224,8 +288,8 @@ void StreamTest::AudioCodec(void)
   QCOMPARE(codec.numChannels(), 0);
   QCOMPARE(codec.sampleRate(), 0);
 
-  codec.setCodec("VORBIS", SAudioFormat::Channel_Surround_5_1, 48000);
-  QVERIFY(codec == SAudioCodec("VORBIS", SAudioFormat::Channel_Surround_5_1, 48000));
+  codec.setCodec("VORBIS", SAudioFormat::Channels_Surround_5_1, 48000);
+  QVERIFY(codec == SAudioCodec("VORBIS", SAudioFormat::Channels_Surround_5_1, 48000));
   QVERIFY(codec != SAudioCodec("VORBIS"));
   QVERIFY(codec == "VORBIS");
   QVERIFY(codec != "AC3");

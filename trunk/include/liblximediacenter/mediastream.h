@@ -36,10 +36,11 @@ protected:
   struct Audio
   {
     inline Audio(SGraph *parent)
-      : resampler(parent), encoder(parent)
+      : matrix(parent), resampler(parent), encoder(parent)
     {
     }
 
+    SAudioMatrixNode            matrix;
     SAudioResampleNode          resampler;
     SAudioEncoderNode           encoder;
   };

@@ -27,7 +27,7 @@ PulseAudioInput::PulseAudioInput(const QString &server, QObject *parent)
   : SInterfaces::AudioInput(parent),
     server(server),
     handle(NULL),
-    outFormat(SAudioFormat::Format_PCM_S16, SAudioFormat::Channel_Stereo, 48000)
+    outFormat(SAudioFormat::Format_PCM_S16, SAudioFormat::Channels_Stereo, 48000)
 {
 }
 
