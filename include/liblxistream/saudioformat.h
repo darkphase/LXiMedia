@@ -64,83 +64,56 @@ public:
 
     // Front speakers
     Channel_LeftFront                 = 0x00000001,
-    Channel_CenterLeft                = 0x00000002,
-    Channel_Center                    = 0x00000004,
-    Channel_CenterRight               = 0x00000008,
-    Channel_RightFront                = 0x00000010,
+    Channel_CenterLeftFront           = 0x00000040,
+    Channel_CenterFront               = 0x00000004,
+    Channel_CenterRightFront          = 0x00000080,
+    Channel_RightFront                = 0x00000002,
 
-    Channel_TopLeftFront              = 0x00000020,
-    Channel_TopCenter                 = 0x00000040,
-    Channel_TopRightFront             = 0x00000080,
-
-    Channel_BottomLeftFront           = 0x00000100,
-    Channel_BottomCenter              = 0x00000200,
-    Channel_BottomRightFront          = 0x00000400,
+    Channel_TopLeftFront              = 0x00001000,
+    Channel_TopCenterFront            = 0x00000800,
+    Channel_TopRightFront             = 0x00004000,
 
     // Side speakers
-    Channel_LeftSide                  = 0x00001000,
-    Channel_RightSide                 = 0x00002000,
-
-    Channel_TopLeftSide               = 0x00004000,
-    Channel_TopRightSide              = 0x00008000,
-
-    Channel_BottomLeftSide            = 0x00010000,
-    Channel_BottomRightSide           = 0x00020000,
+    Channel_LeftSide                  = 0x00000200,
+    Channel_RightSide                 = 0x00000400,
 
     // Back speakers
-    Channel_LeftBack                  = 0x00100000,
-    Channel_Back                      = 0x00200000,
-    Channel_RightBack                 = 0x00400000,
+    Channel_LeftBack                  = 0x00000010,
+    Channel_CenterBack                = 0x00000100,
+    Channel_RightBack                 = 0x00000020,
 
-    Channel_TopLeftBack               = 0x00800000,
-    Channel_TopRightBack              = 0x01000000,
-
-    Channel_BottomLeftBack            = 0x02000000,
-    Channel_BottomRightBack           = 0x04000000,
+    Channel_TopLeftBack               = 0x00008000,
+    Channel_TopCenterBack             = 0x00010000,
+    Channel_TopRightBack              = 0x00020000,
 
     // Misc speakers
-    Channel_LowFrequencyEffectsLeft   = 0x10000000,
-    Channel_LowFrequencyEffects       = 0x20000000,
-    Channel_LowFrequencyEffectsRight  = 0x40000000,
+    Channel_LowFrequencyEffects       = 0x00000008,
 
     // Channel configurations
-    Channels_Mono                     = Channel_Center,
+    Channels_Mono                     = Channel_CenterFront,
     Channels_Stereo                   = Channel_LeftFront | Channel_RightFront,
     Channels_Quadraphonic             = Channel_LeftFront | Channel_RightFront |
                                         Channel_LeftBack | Channel_RightBack,
     Channels_Surround_3_0             = Channel_LeftFront | Channel_RightFront |
-                                        Channel_Back,
-    Channels_Surround_4_0             = Channel_LeftFront | Channel_Center | Channel_RightFront |
-                                        Channel_Back,
-    Channels_Surround_5_0             = Channel_LeftFront | Channel_Center | Channel_RightFront |
+                                        Channel_CenterBack,
+    Channels_Surround_4_0             = Channel_LeftFront | Channel_CenterFront | Channel_RightFront |
+                                        Channel_CenterBack,
+    Channels_Surround_5_0             = Channel_LeftFront | Channel_CenterFront | Channel_RightFront |
                                         Channel_LeftBack | Channel_RightBack,
     Channels_Surround_5_1             = Channels_Surround_5_0 |
                                         Channel_LowFrequencyEffects,
-    Channels_Surround_6_0             = Channel_LeftFront | Channel_Center | Channel_RightFront |
+    Channels_Surround_6_0             = Channel_LeftFront | Channel_CenterFront | Channel_RightFront |
                                         Channel_LeftBack | Channel_RightBack |
-                                        Channel_Back,
+                                        Channel_CenterBack,
     Channels_Surround_6_1             = Channels_Surround_6_0 |
                                         Channel_LowFrequencyEffects,
-    Channels_Surround_7_1             = Channel_LeftFront | Channel_Center | Channel_RightFront |
+    Channels_Surround_7_1             = Channel_LeftFront | Channel_CenterFront | Channel_RightFront |
                                         Channel_LeftSide | Channel_RightSide |
                                         Channel_LeftBack | Channel_RightBack |
                                         Channel_LowFrequencyEffects,
-    Channels_Surround_7_1_Wide        = Channel_LeftFront | Channel_CenterLeft | Channel_Center | Channel_CenterRight | Channel_RightFront |
+    Channels_Surround_7_1_Wide        = Channel_LeftFront | Channel_CenterLeftFront | Channel_CenterFront | Channel_CenterRightFront | Channel_RightFront |
                                         Channel_LeftSide | Channel_RightSide |
                                         Channel_LowFrequencyEffects,
-    Channels_Surround_10_2            = Channel_LeftFront | Channel_CenterLeft | Channel_Center | Channel_CenterRight | Channel_RightFront |
-                                        Channel_TopLeftBack | Channel_LeftSide | Channel_RightSide | Channel_TopRightBack |
-                                        Channel_Back |
-                                        Channel_LowFrequencyEffectsLeft | Channel_LowFrequencyEffectsRight |
-                                        Channel_TopLeftFront | Channel_TopRightFront,
-    Channels_Surround_22_2            = Channel_LeftFront | Channel_CenterLeft | Channel_Center | Channel_CenterRight | Channel_RightFront |
-                                        Channel_TopLeftFront | Channel_TopCenter | Channel_TopRightFront |
-                                        Channel_BottomLeftFront | Channel_BottomCenter | Channel_BottomRightFront |
-                                        Channel_LeftSide | Channel_RightSide |
-                                        Channel_TopLeftSide | Channel_TopRightSide |
-                                        Channel_LeftBack | Channel_RightBack |
-                                        Channel_TopLeftBack | Channel_TopRightBack |
-                                        Channel_LowFrequencyEffectsLeft | Channel_LowFrequencyEffectsRight
   };
   Q_DECLARE_FLAGS(Channels, Channel)
 

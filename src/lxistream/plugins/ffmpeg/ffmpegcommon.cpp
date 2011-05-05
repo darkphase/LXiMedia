@@ -656,19 +656,20 @@ int64_t FFMpegCommon::toFFMpegChannelLayout(SAudioFormat::Channels channels)
 
       if ((channels & SAudioFormat::Channel_LeftFront) != 0)                result |= CH_FRONT_LEFT;
       if ((channels & SAudioFormat::Channel_RightFront) != 0)               result |= CH_FRONT_RIGHT;
-      if ((channels & SAudioFormat::Channel_Center) != 0)                   result |= CH_FRONT_CENTER;
+      if ((channels & SAudioFormat::Channel_CenterFront) != 0)              result |= CH_FRONT_CENTER;
       if ((channels & SAudioFormat::Channel_LowFrequencyEffects) != 0)      result |= CH_LOW_FREQUENCY;
       if ((channels & SAudioFormat::Channel_LeftBack) != 0)                 result |= CH_BACK_LEFT;
       if ((channels & SAudioFormat::Channel_RightBack) != 0)                result |= CH_BACK_RIGHT;
-      if ((channels & SAudioFormat::Channel_CenterLeft) != 0)               result |= CH_FRONT_LEFT_OF_CENTER;
-      if ((channels & SAudioFormat::Channel_CenterRight) != 0)              result |= CH_FRONT_RIGHT_OF_CENTER;
-      if ((channels & SAudioFormat::Channel_Back) != 0)                     result |= CH_BACK_CENTER;
+      if ((channels & SAudioFormat::Channel_CenterLeftFront) != 0)          result |= CH_FRONT_LEFT_OF_CENTER;
+      if ((channels & SAudioFormat::Channel_CenterRightFront) != 0)         result |= CH_FRONT_RIGHT_OF_CENTER;
+      if ((channels & SAudioFormat::Channel_CenterBack) != 0)               result |= CH_BACK_CENTER;
       if ((channels & SAudioFormat::Channel_LeftSide) != 0)                 result |= CH_SIDE_LEFT;
       if ((channels & SAudioFormat::Channel_RightSide) != 0)                result |= CH_SIDE_RIGHT;
       if ((channels & SAudioFormat::Channel_TopLeftFront) != 0)             result |= CH_TOP_FRONT_LEFT;
-      if ((channels & SAudioFormat::Channel_TopCenter) != 0)                result |= CH_TOP_FRONT_CENTER;
+      if ((channels & SAudioFormat::Channel_TopCenterFront) != 0)           result |= CH_TOP_FRONT_CENTER;
       if ((channels & SAudioFormat::Channel_TopRightFront) != 0)            result |= CH_TOP_FRONT_RIGHT;
       if ((channels & SAudioFormat::Channel_TopLeftBack) != 0)              result |= CH_TOP_BACK_LEFT;
+      if ((channels & SAudioFormat::Channel_TopCenterBack) != 0)            result |= CH_TOP_BACK_CENTER;
       if ((channels & SAudioFormat::Channel_TopRightBack) != 0)             result |= CH_TOP_BACK_RIGHT;
 
       return result;
@@ -716,19 +717,20 @@ SAudioFormat::Channels FFMpegCommon::fromFFMpegChannelLayout(int64_t layout, int
 
       if ((layout & CH_FRONT_LEFT) != 0)                result |= SAudioFormat::Channel_LeftFront;
       if ((layout & CH_FRONT_RIGHT) != 0)               result |= SAudioFormat::Channel_RightFront;
-      if ((layout & CH_FRONT_CENTER) != 0)              result |= SAudioFormat::Channel_Center;
+      if ((layout & CH_FRONT_CENTER) != 0)              result |= SAudioFormat::Channel_CenterFront;
       if ((layout & CH_LOW_FREQUENCY) != 0)             result |= SAudioFormat::Channel_LowFrequencyEffects;
       if ((layout & CH_BACK_LEFT) != 0)                 result |= SAudioFormat::Channel_LeftBack;
       if ((layout & CH_BACK_RIGHT) != 0)                result |= SAudioFormat::Channel_RightBack;
-      if ((layout & CH_FRONT_LEFT_OF_CENTER) != 0)      result |= SAudioFormat::Channel_CenterLeft;
-      if ((layout & CH_FRONT_RIGHT_OF_CENTER) != 0)     result |= SAudioFormat::Channel_CenterRight;
-      if ((layout & CH_BACK_CENTER) != 0)               result |= SAudioFormat::Channel_Back;
+      if ((layout & CH_FRONT_LEFT_OF_CENTER) != 0)      result |= SAudioFormat::Channel_CenterLeftFront;
+      if ((layout & CH_FRONT_RIGHT_OF_CENTER) != 0)     result |= SAudioFormat::Channel_CenterRightFront;
+      if ((layout & CH_BACK_CENTER) != 0)               result |= SAudioFormat::Channel_CenterBack;
       if ((layout & CH_SIDE_LEFT) != 0)                 result |= SAudioFormat::Channel_LeftSide;
       if ((layout & CH_SIDE_RIGHT) != 0)                result |= SAudioFormat::Channel_RightSide;
       if ((layout & CH_TOP_FRONT_LEFT) != 0)            result |= SAudioFormat::Channel_TopLeftFront;
-      if ((layout & CH_TOP_FRONT_CENTER) != 0)          result |= SAudioFormat::Channel_TopCenter;
+      if ((layout & CH_TOP_FRONT_CENTER) != 0)          result |= SAudioFormat::Channel_TopCenterFront;
       if ((layout & CH_TOP_FRONT_RIGHT) != 0)           result |= SAudioFormat::Channel_TopRightFront;
       if ((layout & CH_TOP_BACK_LEFT) != 0)             result |= SAudioFormat::Channel_TopLeftBack;
+      if ((layout & CH_TOP_BACK_CENTER) != 0)           result |= SAudioFormat::Channel_TopCenterBack;
       if ((layout & CH_TOP_BACK_RIGHT) != 0)            result |= SAudioFormat::Channel_TopRightBack;
 
       return result;

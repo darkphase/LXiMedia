@@ -25,16 +25,19 @@ void LXiStream_SAudioMatrixNode_mixMatrix
   int16_t * __restrict dstData, const float * __restrict appliedMatrix, unsigned dstNumChannels)
 {
   unsigned i, dc, mp, sc;
+  float result;
 
   for (i=0; i<numSamples; i++)
   {
     for (dc=0; dc<dstNumChannels; dc++)
     {
       mp = dc * srcNumChannels;
-      dstData[dc] = (int16_t)((float)(srcData[0]) * appliedMatrix[mp]);
+      result = ((float)srcData[0]) * appliedMatrix[mp];
 
       for (sc=1; sc<srcNumChannels; sc++)
-        dstData[dc] += (int16_t)((float)(srcData[sc]) * appliedMatrix[mp + sc]);
+        result += ((float)srcData[sc]) * appliedMatrix[mp + sc];
+
+      dstData[dc] = (int16_t)(result >= -32767.0f ? (result <= 32766.0f ? result : 32766.0f) : -32767.0f);
     }
 
     srcData += srcNumChannels;

@@ -198,7 +198,7 @@ void StreamTest::AudioBuffer(void)
   const SAudioBuffer inBuffer = StreamTest::makeTestBuffer(65536);
 
   const SAudioBuffer leftBuffer = inBuffer.getChannel(SAudioFormat::Channel_LeftFront);
-  const SAudioBuffer centerBuffer = inBuffer.getChannel(SAudioFormat::Channel_Center);
+  const SAudioBuffer centerBuffer = inBuffer.getChannel(SAudioFormat::Channel_CenterFront);
   const SAudioBuffer rightBuffer = inBuffer.getChannel(SAudioFormat::Channel_RightFront);
 
   QVERIFY(!leftBuffer.isEmpty());
