@@ -89,7 +89,7 @@ bool AudioDecoder::openCodec(const SAudioCodec &c, Flags flags)
   }
 
   if ((flags & Flag_DownsampleToStereo) && (contextHandle->channels != 2))
-    contextHandle->request_channel_layout = FFMpegCommon::toFFMpegChannelLayout(SAudioFormat::Channels_Stereo);
+    contextHandle->request_channel_layout = CH_LAYOUT_STEREO_DOWNMIX;
 
   contextHandle->bit_rate = inCodec.bitRate();
 
