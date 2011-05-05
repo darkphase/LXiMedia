@@ -77,17 +77,13 @@ bool VideoEncoder::openCodec(const SVideoCodec &c, Flags flags)
   contextHandle->time_base.num = outCodec.frameRate().num();
   contextHandle->time_base.den = outCodec.frameRate().den();
 
-  contextHandle->mb_qmin = contextHandle->qmin = 1;
-  contextHandle->mb_qmax = contextHandle->qmax = 127;
-  contextHandle->max_qdiff = 32;
-
   const int baseRate = ((int(sqrt(float(contextHandle->width * contextHandle->height))) + 249) / 250) * 250;
   if (flags & Flag_LowQuality)
-    contextHandle->bit_rate = baseRate * ((flags & Flag_Fast) ?  4000 :  2500);
+    contextHandle->bit_rate = baseRate *  6000;
   else if (flags & Flag_HighQuality)
-    contextHandle->bit_rate = baseRate * ((flags & Flag_Fast) ? 16000 : 10000);
+    contextHandle->bit_rate = baseRate * 24000;
   else // Normal quality
-    contextHandle->bit_rate = baseRate * ((flags & Flag_Fast) ?  8000 :  5000);
+    contextHandle->bit_rate = baseRate * 12000;
 
   // Fix for MPEG2 1080p quality
   if ((contextHandle->height > 720) && ((outCodec == "MPEG2") || (outCodec == "MPEG1")))
@@ -106,8 +102,14 @@ bool VideoEncoder::openCodec(const SVideoCodec &c, Flags flags)
     fastEncode = true;
   }
 
-  //contextHandle->bit_rate_tolerance =
-  //    int((contextHandle->bit_rate * ::av_q2d(contextHandle->time_base) * 1.1) + 0.5);
+  if (flags & Flag_HardBitrateLimit)
+  {
+    contextHandle->bit_rate_tolerance = contextHandle->bit_rate / 4;
+    contextHandle->rc_max_rate = contextHandle->bit_rate + contextHandle->bit_rate_tolerance;
+    contextHandle->bit_rate -= contextHandle->bit_rate_tolerance;
+    contextHandle->rc_buffer_size = contextHandle->bit_rate;
+    contextHandle->gop_size = 3;
+  }
 
   if ((outCodec == "MPEG1") || (outCodec == "MPEG2"))
     contextHandle->max_b_frames = fastEncode ? 0 : 3;

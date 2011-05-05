@@ -449,6 +449,7 @@ public:
     Flag_None                 = 0x0000,
     Flag_LowQuality           = 0x0001,
     Flag_HighQuality          = 0x0002,
+    Flag_HardBitrateLimit     = 0x0010,
     Flag_Fast                 = 0x0080
   };
   Q_DECLARE_FLAGS(Flags, Flag)

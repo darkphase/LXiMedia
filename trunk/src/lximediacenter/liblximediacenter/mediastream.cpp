@@ -123,6 +123,8 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request, QAbstractSoc
   else
     video->resizer.setHighQuality(false);
 
+  videoEncodeFlags |= SInterfaces::VideoEncoder::Flag_HardBitrateLimit;
+
   SHttpServer::ResponseHeader header(request, SHttpServer::Status_Ok);
   header.setField("Cache-Control", "no-cache");
 
