@@ -181,7 +181,7 @@ void FFMpegTest::VideoEncodeDecode(const char *codecName)
   }
 
   // Now encode it
-  QVERIFY(videoEncoder.openCodec(SVideoCodec(codecName, SSize(width, height), SInterval::fromFrequency(25))));
+  QVERIFY(videoEncoder.openCodec(SVideoCodec(codecName, SSize(width, height), SInterval::fromFrequency(25)), SInterfaces::VideoEncoder::Flag_HardBitrateLimit));
   SEncodedVideoBufferList encBuffers;
   for (int i=0; i<count; i++)
   {
