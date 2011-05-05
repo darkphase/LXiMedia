@@ -185,13 +185,14 @@ void SIOOutputNode::closed(void)
 {
   if (d->ioDevice)
   {
+    QIODevice * const device = d->ioDevice; // May be called recursively from close().
+    d->ioDevice = NULL;
+
     if (d->autoClose)
     {
-      d->ioDevice->close();
-      d->ioDevice->deleteLater();
+      device->close();
+      device->deleteLater();
     }
-
-    d->ioDevice = NULL;
   }
 }
 

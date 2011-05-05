@@ -72,13 +72,11 @@ void SAudioMatrixNode::setDefaultMatrix(Matrix m)
 
   case Matrix_SurroundToStereo:
     setCell(SAudioFormat::Channel_LeftFront,    SAudioFormat::Channel_LeftFront,  1.0f);
-    setCell(SAudioFormat::Channel_Center,       SAudioFormat::Channel_LeftFront,  0.7f);
+    setCell(SAudioFormat::Channel_CenterFront,  SAudioFormat::Channel_LeftFront,  0.7f);
     setCell(SAudioFormat::Channel_LeftBack,     SAudioFormat::Channel_LeftFront,  0.5f);
-
     setCell(SAudioFormat::Channel_RightFront,   SAudioFormat::Channel_RightFront, 1.0f);
-    setCell(SAudioFormat::Channel_Center,       SAudioFormat::Channel_RightFront, 0.7f);
+    setCell(SAudioFormat::Channel_CenterFront,  SAudioFormat::Channel_RightFront, 0.7f);
     setCell(SAudioFormat::Channel_RightBack,    SAudioFormat::Channel_RightFront, 0.5f);
-
     break;
   }
 }
@@ -111,15 +109,14 @@ SAudioFormat::Channels SAudioMatrixNode::channels(void) const
 
 bool SAudioMatrixNode::start(void)
 {
+  d->inFormat = SAudioFormat();
+
   return true;
 }
 
 void SAudioMatrixNode::stop(void)
 {
   d->future.waitForFinished();
-
-  delete [] d->appliedMatrix;
-  d->appliedMatrix = NULL;
 }
 
 void SAudioMatrixNode::input(const SAudioBuffer &audioBuffer)
@@ -130,15 +127,16 @@ void SAudioMatrixNode::input(const SAudioBuffer &audioBuffer)
 
   if (!audioBuffer.isNull() && (audioBuffer.format() == SAudioFormat::Format_PCM_S16))
   {
-    if ((d->appliedMatrix == NULL) || (d->inFormat != audioBuffer.format()))
+    if (d->inFormat != audioBuffer.format())
     {
       d->inFormat = audioBuffer.format();
-
       buildMatrix();
     }
 
     if (d->appliedMatrix)
       d->future = QtConcurrent::run(this, &SAudioMatrixNode::processTask, audioBuffer);
+    else
+      emit output(audioBuffer);
   }
   else
     emit output(audioBuffer);
@@ -183,23 +181,35 @@ void SAudioMatrixNode::buildMatrix(void)
 
   if ((inChannels > 0) && (outChannels > 0))
   {
-    int inPos[32];
+    int inPos[32]; memset(inPos, 0, sizeof(inPos));
     for (int i=0, n=0; i<32; i++)
     if ((d->inFormat.channelSetup() & (quint32(1) << i)) != 0)
       inPos[n++] = i;
 
-    int outPos[32];
+    int outPos[32]; memset(outPos, 0, sizeof(outPos));
     for (int i=0, n=0; i<32; i++)
     if ((d->channels & (quint32(1) << i)) != 0)
       outPos[n++] = i;
 
     d->appliedMatrix = new float[inChannels * outChannels];
 
+    bool identityMatrix = outChannels == inChannels;
     for (unsigned j=0; j<outChannels; j++)
     {
       float * const line = d->appliedMatrix + (j * inChannels);
       for (unsigned i=0; i<inChannels; i++)
-        line[i] = d->matrix[inPos[i]][outPos[j]];
+      {
+        const int ii = inPos[i], jj = outPos[j];
+
+        line[i] = d->matrix[ii][jj];
+        identityMatrix &= qFuzzyCompare(line[i], ii == jj ? 1.0f : 0.0f);
+      }
+    }
+
+    if (identityMatrix)
+    {
+      delete [] d->appliedMatrix;
+      d->appliedMatrix = NULL;
     }
   }
 }

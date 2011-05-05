@@ -77,8 +77,6 @@ SAudioFormat::Channels SAudioFormat::guessChannels(unsigned numChannels)
     case 6:     return Channels_Surround_5_1;
     case 7:     return Channels_Surround_6_1;
     case 8:     return Channels_Surround_7_1;
-    case 12:    return Channels_Surround_10_2;
-    case 24:    return Channels_Surround_22_2;
   }
 }
 
@@ -170,32 +168,22 @@ const char * SAudioFormat::channelName(Channel channel)
   switch (channel)
   {
   case Channel_LeftFront:                 return "Left (L)";
-  case Channel_CenterLeft:                return "Center Left (CL)";
-  case Channel_Center:                    return "Center (C)";
-  case Channel_CenterRight:               return "Center Right (CL)";
+  case Channel_CenterLeftFront:           return "Center Left (CL)";
+  case Channel_CenterFront:               return "Center (C)";
+  case Channel_CenterRightFront:          return "Center Right (CL)";
   case Channel_RightFront:                return "Right (R)";
   case Channel_TopLeftFront:              return "";
-  case Channel_TopCenter:                 return "";
+  case Channel_TopCenterFront:            return "";
   case Channel_TopRightFront:             return "";
-  case Channel_BottomLeftFront:           return "";
-  case Channel_BottomCenter:              return "";
-  case Channel_BottomRightFront:          return "";
   case Channel_LeftSide:                  return "Left Surround (LS)";
   case Channel_RightSide:                 return "Right Surround (RS)";
-  case Channel_TopLeftSide:               return "";
-  case Channel_TopRightSide:              return "";
-  case Channel_BottomLeftSide:            return "";
-  case Channel_BottomRightSide:           return "";
   case Channel_LeftBack:                  return "Left Back (LB)";
-  case Channel_Back:                      return "Back Surround (BS)";
+  case Channel_CenterBack:                return "Back Surround (BS)";
   case Channel_RightBack:                 return "Right Back (RB)";
   case Channel_TopLeftBack:               return "";
+  case Channel_TopCenterBack:             return "";
   case Channel_TopRightBack:              return "";
-  case Channel_BottomLeftBack:            return "";
-  case Channel_BottomRightBack:           return "";
-  case Channel_LowFrequencyEffectsLeft:   return "Low Frequency Effects (LFE)";
-  case Channel_LowFrequencyEffects:       return "Left Low Frequency Effects (LLFE)";
-  case Channel_LowFrequencyEffectsRight:  return "Right Low Frequency Effects (RLFE)";
+  case Channel_LowFrequencyEffects:       return "Low Frequency Effects (LFE)";
   default:                                return "";
   };
 }
@@ -230,8 +218,6 @@ const char * SAudioFormat::channelSetupName(Channels channels)
   case Channels_Surround_5_1:             return "5.1 Surround";
   case Channels_Surround_6_1:             return "6.1 Surround";
   case Channels_Surround_7_1:             return "7.1 Surround";
-  case Channels_Surround_10_2:            return "10.2 Surround";
-  case Channels_Surround_22_2:            return "22.2 Surround";
   default:                                return "";
   };
 }
