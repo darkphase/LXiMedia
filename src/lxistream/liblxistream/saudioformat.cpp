@@ -91,7 +91,7 @@ int SAudioFormat::channelPos(Channels channelSetup, Channel channel)
   for (int i=0, n=0; (i<32) && (offset<0); i++)
   if (channelSetup & (quint32(1) << i))
   {
-    if (channel == (quint32(1) << i))
+    if (quint32(channel) == (quint32(1) << i))
       offset = n;
     else
       n++;

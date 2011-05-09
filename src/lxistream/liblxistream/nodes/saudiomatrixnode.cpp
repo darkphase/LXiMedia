@@ -145,7 +145,7 @@ void SAudioMatrixNode::input(const SAudioBuffer &audioBuffer)
 int SAudioMatrixNode::channelId(SAudioFormat::Channel channel)
 {
   for (int i=0; i<32; i++)
-  if (channel == (quint32(1) << i))
+  if (quint32(channel) == (quint32(1) << i))
     return i;
 
   return -1;
