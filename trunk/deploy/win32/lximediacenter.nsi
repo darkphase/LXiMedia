@@ -24,8 +24,8 @@ RequestExecutionLevel admin
 
 Section "-Stop Apps" SecStop
   ExecWait 'net stop "LXiMediaCenter Backend"'
-  ExecWait 'taskkill /F /T /IM lximcbackend.exe'
-  ExecWait 'taskkill /F /IM lximctrayicon.exe'
+  ExecWait 'tskill lximcbackend /A'
+  ExecWait 'tskill lximctrayicon /A'
 SectionEnd
 
 Section "-Shared Files" SecShared
@@ -86,7 +86,7 @@ Section "Backend service" SecBackend
 SectionEnd
 
 Section "Systemtray icon" SecTrayIcon
-  ExecWait 'taskkill /F /IM lximctrayicon.exe'
+  ExecWait 'tskill lximctrayicon /A'
 
   SetOutPath $INSTDIR
   SetOverwrite ifnewer
@@ -102,8 +102,8 @@ Section "Uninstall"
   Delete "$INSTDIR\Uninstall.exe"
 
   ExecWait 'net stop "LXiMediaCenter Backend"'
-  ExecWait 'taskkill /F /T /IM lximcbackend.exe'
-  ExecWait 'taskkill /F /IM lximctrayicon.exe'
+  ExecWait 'tskill lximcbackend /A'
+  ExecWait 'tskill lximctrayicon /A'
 
   ExecWait '"$INSTDIR\lximcbackend.exe" --uninstall'
   
