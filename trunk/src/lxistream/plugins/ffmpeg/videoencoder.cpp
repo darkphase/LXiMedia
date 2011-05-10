@@ -104,8 +104,8 @@ bool VideoEncoder::openCodec(const SVideoCodec &c, Flags flags)
 
   if (flags & Flag_HardBitrateLimit)
   {
-    contextHandle->bit_rate_tolerance = contextHandle->bit_rate / 4;
-    contextHandle->rc_max_rate = contextHandle->bit_rate + contextHandle->bit_rate_tolerance;
+    contextHandle->bit_rate_tolerance = contextHandle->bit_rate / 3;
+    contextHandle->rc_max_rate = contextHandle->bit_rate;
     contextHandle->bit_rate -= contextHandle->bit_rate_tolerance;
     contextHandle->rc_buffer_size = contextHandle->bit_rate;
     contextHandle->gop_size = 3;
