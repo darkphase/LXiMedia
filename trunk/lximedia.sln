@@ -74,6 +74,18 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lximediaplayer", "src\lxime
 		{3F2E4BD8-734B-11E0-BE72-A39B83ACD183} = {3F2E4BD8-734B-11E0-BE72-A39B83ACD183}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lxistream_ffmpeg", "src\lxistream\plugins\ffmpeg\lxistream_ffmpeg.vcproj", "{1CAD8FA2-7359-11E0-9142-974909DEF34C}"
+	ProjectSection(ProjectDependencies) = postProject
+		{1AAB8BA4-734B-11E0-AB38-FF414B1AA9C5} = {1AAB8BA4-734B-11E0-AB38-FF414B1AA9C5}
+		{3F2E4BD8-734B-11E0-BE72-A39B83ACD183} = {3F2E4BD8-734B-11E0-BE72-A39B83ACD183}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lxistream_dvdnav", "src\lxistream\plugins\dvdnav\lxistream_dvdnav.vcproj", "{F9FFB2BE-7358-11E0-A6BD-FB96216D1D8A}"
+	ProjectSection(ProjectDependencies) = postProject
+		{1AAB8BA4-734B-11E0-AB38-FF414B1AA9C5} = {1AAB8BA4-734B-11E0-AB38-FF414B1AA9C5}
+		{3F2E4BD8-734B-11E0-BE72-A39B83ACD183} = {3F2E4BD8-734B-11E0-BE72-A39B83ACD183}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -128,6 +140,14 @@ Global
 		{D9D4DF56-736B-11E0-B8A6-4B90E26B66E7}.Debug|Win32.Build.0 = Debug|Win32
 		{D9D4DF56-736B-11E0-B8A6-4B90E26B66E7}.Release|Win32.ActiveCfg = Release|Win32
 		{D9D4DF56-736B-11E0-B8A6-4B90E26B66E7}.Release|Win32.Build.0 = Release|Win32
+		{1CAD8FA2-7359-11E0-9142-974909DEF34C}.Debug|Win32.ActiveCfg = Debug|Win32
+		{1CAD8FA2-7359-11E0-9142-974909DEF34C}.Debug|Win32.Build.0 = Debug|Win32
+		{1CAD8FA2-7359-11E0-9142-974909DEF34C}.Release|Win32.ActiveCfg = Release|Win32
+		{1CAD8FA2-7359-11E0-9142-974909DEF34C}.Release|Win32.Build.0 = Release|Win32
+		{F9FFB2BE-7358-11E0-A6BD-FB96216D1D8A}.Debug|Win32.ActiveCfg = Debug|Win32
+		{F9FFB2BE-7358-11E0-A6BD-FB96216D1D8A}.Debug|Win32.Build.0 = Debug|Win32
+		{F9FFB2BE-7358-11E0-A6BD-FB96216D1D8A}.Release|Win32.ActiveCfg = Release|Win32
+		{F9FFB2BE-7358-11E0-A6BD-FB96216D1D8A}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

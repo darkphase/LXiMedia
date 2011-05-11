@@ -26,3 +26,9 @@ linux-g++|win32-g++ {
     QMAKE_LFLAGS_RELEASE -= -Wl,-s
   }
 }
+
+# Multithreaded build
+win32-msvc2005|win32-msvc2008|win32-msvc2010 {
+  QMAKE_CXXFLAGS += /MP
+  QMAKE_CFLAGS += /MP
+}
