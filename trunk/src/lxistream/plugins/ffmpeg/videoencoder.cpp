@@ -104,12 +104,15 @@ bool VideoEncoder::openCodec(const SVideoCodec &c, Flags flags)
 
   if (flags & Flag_HardBitrateLimit)
   {
-    contextHandle->bit_rate_tolerance = contextHandle->bit_rate / 3;
+    contextHandle->bit_rate_tolerance = contextHandle->bit_rate / 4;
     contextHandle->rc_max_rate = contextHandle->bit_rate;
     contextHandle->bit_rate -= contextHandle->bit_rate_tolerance;
-    contextHandle->rc_buffer_size = contextHandle->bit_rate;
-    contextHandle->gop_size = 3;
+    contextHandle->rc_buffer_size = contextHandle->rc_max_rate * 2;
+    contextHandle->rc_initial_buffer_occupancy = contextHandle->rc_buffer_size * 3 / 4;
+    contextHandle->rc_qsquish = 1.0f;
   }
+
+  contextHandle->max_qdiff = (contextHandle->qmax - contextHandle->qmin) / 2;
 
   if ((outCodec == "MPEG1") || (outCodec == "MPEG2"))
     contextHandle->max_b_frames = fastEncode ? 0 : 3;
