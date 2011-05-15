@@ -86,6 +86,7 @@ private: // DTS framing
 
 private:
   static StreamContext        * initStreamContext(const ::AVStream *);
+  static QString                readMetadata(::AVMetadata *, const char *tagName);
   QPair<STime, STime>           correctTimeStamp(const ::AVPacket &);
   QPair<STime, STime>           correctTimeStampToVideo(const AVPacket &);
   static int                    read(void *opaque, uint8_t *buf, int buf_size);

@@ -93,8 +93,9 @@ public:
   struct StreamInfo : StreamId
   {
     inline StreamInfo(void) : StreamId() { memset(language, 0, sizeof(language)); }
-    inline StreamInfo(Type type, quint16 id, const char *language)
-      : StreamId(type, id)
+    inline StreamInfo(Type type, quint16 id, const char *language, const QString &title)
+      : StreamId(type, id),
+        title(title)
     {
       memset(this->language, 0, sizeof(this->language));
       if (language && (qstrlen(language) > 0))
@@ -102,12 +103,13 @@ public:
     }
 
     char                        language[4]; //!< ISO 639-1 or ISO 639-2 language code (empty string if undefined).
+    QString                     title;
   };
 
   struct AudioStreamInfo : StreamInfo
   {
     inline AudioStreamInfo(void) : codec() { }
-    inline AudioStreamInfo(quint16 id, const char *language, const SAudioCodec &codec) : StreamInfo(Type_Audio, id, language), codec(codec) { }
+    inline AudioStreamInfo(quint16 id, const char *language, const QString &title, const SAudioCodec &codec) : StreamInfo(Type_Audio, id, language, title), codec(codec) { }
 
     SAudioCodec                 codec;
   };
@@ -115,7 +117,7 @@ public:
   struct VideoStreamInfo : StreamInfo
   {
     inline VideoStreamInfo(void) : codec() { }
-    inline VideoStreamInfo(quint16 id, const char *language, const SVideoCodec &codec) : StreamInfo(Type_Video, id, language), codec(codec) { }
+    inline VideoStreamInfo(quint16 id, const char *language, const QString &title, const SVideoCodec &codec) : StreamInfo(Type_Video, id, language, title), codec(codec) { }
 
     SVideoCodec                 codec;
   };
@@ -123,7 +125,7 @@ public:
   struct DataStreamInfo : StreamInfo
   {
     inline DataStreamInfo(void) : codec() { }
-    inline DataStreamInfo(Type type, quint16 id, const char *language, const SDataCodec &codec) : StreamInfo(type, id, language), codec(codec) { }
+    inline DataStreamInfo(Type type, quint16 id, const char *language, const QString &title, const SDataCodec &codec) : StreamInfo(type, id, language, title), codec(codec) { }
 
     SDataCodec                  codec;
     QString                     file;

@@ -42,34 +42,37 @@ SAudioCodec::SAudioCodec(void)
   d.channels = SAudioFormat::Channel_None;
   d.sampleRate = 0;
   d.bitRate = 0;
+  d.frameSize = 0;
 }
 
 /*! Initializes a codec with the specified name, channels, sample rate and bit rate.
  */
-SAudioCodec::SAudioCodec(const char *codec, SAudioFormat::Channels channels, int sampleRate, int bitRate)
+SAudioCodec::SAudioCodec(const char *codec, SAudioFormat::Channels channels, int sampleRate, int bitRate, int frameSize)
 {
-  setCodec(codec, channels, sampleRate, bitRate);
+  setCodec(codec, channels, sampleRate, bitRate, frameSize);
 }
 
 /*! Initializes a codec with the specified name, channels, sample rate and bit rate.
  */
-SAudioCodec::SAudioCodec(const QString &codec, SAudioFormat::Channels channels, int sampleRate, int bitRate)
+SAudioCodec::SAudioCodec(const QString &codec, SAudioFormat::Channels channels, int sampleRate, int bitRate, int frameSize)
 {
-  setCodec(codec, channels, sampleRate, bitRate);
+  setCodec(codec, channels, sampleRate, bitRate, frameSize);
 }
 
 bool SAudioCodec::operator==(const SAudioCodec &comp) const
 {
   return (d.codec == comp.d.codec) && (d.channels == comp.d.channels) &&
-      (d.sampleRate == comp.d.sampleRate) && (d.bitRate == comp.d.bitRate);
+      (d.sampleRate == comp.d.sampleRate) && (d.bitRate == comp.d.bitRate) &&
+      (d.frameSize == comp.d.frameSize);
 }
 
-void SAudioCodec::setCodec(const QString &codec, SAudioFormat::Channels channels, int sampleRate, int bitRate)
+void SAudioCodec::setCodec(const QString &codec, SAudioFormat::Channels channels, int sampleRate, int bitRate, int frameSize)
 {
   d.codec = codec;
   d.channels = channels;
   d.sampleRate = sampleRate;
   d.bitRate = bitRate;
+  d.frameSize = frameSize;
 }
 
 QString SAudioCodec::toString(bool addExtraData) const
@@ -77,7 +80,8 @@ QString SAudioCodec::toString(bool addExtraData) const
   QString result = d.codec + ';' +
     QString::number(d.channels) + ';' +
     QString::number(d.sampleRate) + ';' +
-    QString::number(d.bitRate);
+    QString::number(d.bitRate) + ';' +
+    QString::number(d.frameSize);
 
   if (addExtraData && !d.extraData.isEmpty())
     result += ';' + QString::fromAscii(d.extraData.toBase64());
@@ -90,16 +94,17 @@ SAudioCodec SAudioCodec::fromString(const QString &str)
   const QStringList items = str.split(';');
   SAudioCodec result;
 
-  if (items.count() >= 4)
+  if (items.count() >= 5)
   {
     result.d.codec = items[0].toAscii();
     result.d.channels = SAudioFormat::Channels(items[1].toInt());
     result.d.sampleRate = items[2].toInt();
     result.d.bitRate = items[3].toInt();
+    result.d.frameSize = items[4].toInt();
   }
 
-  if (items.count() >= 5)
-    result.d.extraData = QByteArray::fromBase64(items[4].toAscii());
+  if (items.count() >= 6)
+    result.d.extraData = QByteArray::fromBase64(items[5].toAscii());
 
   return result;
 }

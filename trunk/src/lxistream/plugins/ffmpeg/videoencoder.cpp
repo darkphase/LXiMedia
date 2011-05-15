@@ -68,9 +68,10 @@ bool VideoEncoder::openCodec(const SVideoCodec &c, Flags flags)
     return false;
   }
 
-  contextHandle = avcodec_alloc_context();
-  contextHandle->pix_fmt = PIX_FMT_YUV420P;
+  contextHandle = ::avcodec_alloc_context();
+  ::avcodec_get_context_defaults2(contextHandle, CODEC_TYPE_VIDEO);
 
+  contextHandle->pix_fmt = PIX_FMT_YUV420P;
   contextHandle->width = outCodec.size().width();
   contextHandle->height = outCodec.size().height();
   contextHandle->sample_aspect_ratio = ::av_d2q(outCodec.size().aspectRatio(), 256);
@@ -84,10 +85,6 @@ bool VideoEncoder::openCodec(const SVideoCodec &c, Flags flags)
     contextHandle->bit_rate = baseRate * 24000;
   else // Normal quality
     contextHandle->bit_rate = baseRate * 12000;
-
-  // Fix for MPEG2 1080p quality
-  if ((contextHandle->height > 720) && ((outCodec == "MPEG2") || (outCodec == "MPEG1")))
-    contextHandle->bit_rate *= 2;
 
   if (outCodec.bitRate() > 0)
     contextHandle->bit_rate = outCodec.bitRate();
@@ -141,7 +138,7 @@ bool VideoEncoder::openCodec(const SVideoCodec &c, Flags flags)
   pictureHandle = avcodec_alloc_frame();
   avcodec_get_frame_defaults(pictureHandle);
 
-  outCodec.setBitRate(contextHandle->bit_rate);
+  outCodec.setBitRate(contextHandle->bit_rate + contextHandle->bit_rate_tolerance);
 
   if (contextHandle->extradata_size > 0)
     outCodec.setExtraData(QByteArray((const char *)contextHandle->extradata, contextHandle->extradata_size));

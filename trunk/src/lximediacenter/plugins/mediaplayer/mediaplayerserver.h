@@ -65,19 +65,18 @@ public:
 
   virtual SearchResultList      search(const QStringList &) const;
 
-protected:
-  //void                          addVideoFile(DlnaServerDir *, const PlayItem &, const QString &, int = 0) const;
-  //void                          addVideoFile(DlnaServerDir *, const QList<PlayItem> &, const QString &, int = 0) const;
-
+protected: // From MediaServer
   virtual Stream              * streamVideo(const SHttpServer::RequestMessage &);
 
-  bool                          isEmpty(const QString &path);
   virtual int                   countItems(const QString &path);
   virtual QList<Item>           listItems(const QString &path, unsigned start = 0, unsigned count = 0);
 
+protected:
+  bool                          isEmpty(const QString &path);
   int                           countAlbums(const QString &path);
   QList<Item>                   listAlbums(const QString &path, unsigned &start, unsigned &count);
   Item                          makeItem(MediaDatabase::UniqueID, bool recursePrograms = true);
+  QUrl                          findAlbumIcon(const QString &path);
   Item::Type                    defaultItemType(Item::Type = Item::Type_None) const;
 
   virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestMessage &, QAbstractSocket *);

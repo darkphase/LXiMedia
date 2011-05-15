@@ -110,21 +110,21 @@ bool BufferReader::start(ReadCallback *rc, ProduceCallback *pc, quint16 programI
           if (stream->codec->codec_type == CODEC_TYPE_AUDIO)
           {
             if (!hasAudio)
-              selectedStreams.insert(StreamId(StreamId::Type_Audio, stream->id));
+              selectedStreams.insert(StreamId(StreamId::Type_Audio, stream->index));
 
             hasAudio = true;
           }
           else if (stream->codec->codec_type == CODEC_TYPE_VIDEO)
           {
             if (!hasVideo)
-              selectedStreams.insert(StreamId(StreamId::Type_Video, stream->id));
+              selectedStreams.insert(StreamId(StreamId::Type_Video, stream->index));
 
             hasVideo = true;
           }
           else if (stream->codec->codec_type == CODEC_TYPE_SUBTITLE)
           {
             if (!hasSubtitle)
-              selectedStreams.insert(StreamId(StreamId::Type_Subtitle, stream->id));
+              selectedStreams.insert(StreamId(StreamId::Type_Subtitle, stream->index));
 
             hasSubtitle = true;
           }
@@ -253,7 +253,7 @@ bool BufferReader::process(void)
         {
           if (stream->codec->codec_type == CODEC_TYPE_AUDIO)
           {
-            if (selectedStreams.contains(StreamId(StreamId::Type_Audio, stream->id)) || !running)
+            if (selectedStreams.contains(StreamId(StreamId::Type_Audio, stream->index)) || !running)
             {
               // Detect DTS (Digital Theatre Surround) if needed.
               if (!context->dtsChecked &&
@@ -287,8 +287,10 @@ bool BufferReader::process(void)
                 buffer.setPresentationTimeStamp(ts.first);
                 buffer.setDecodingTimeStamp(ts.second);
 
-  //              qDebug() << "Audio timestamp" << packet.stream_index
-  //                  << ", pts = " << buffer.presentationTimeStamp().toMSec();
+//                qDebug() << "Audio timestamp" << packet.stream_index
+//                    << ", pts = " << buffer.presentationTimeStamp().toMSec()
+//                    << ", dts = " << buffer.decodingTimeStamp().toMSec()
+//                    << ", ppts = " << packet.pts << ", pdts = " << packet.dts;
 
                 if (running)
                   produceCallback->produce(buffer);
@@ -301,8 +303,10 @@ bool BufferReader::process(void)
                 buffer.setPresentationTimeStamp(ts.first);
                 buffer.setDecodingTimeStamp(ts.second);
 
-  //              qDebug() << "Audio timestamp" << packet.stream_index
-  //                  << ", pts = " << buffer.presentationTimeStamp().toMSec();
+//                qDebug() << "Audio timestamp" << packet.stream_index
+//                    << ", pts = " << buffer.presentationTimeStamp().toMSec()
+//                    << ", dts = " << buffer.decodingTimeStamp().toMSec()
+//                    << ", ppts = " << packet.pts << ", pdts = " << packet.dts;
 
                 if (running)
                   produceCallback->produce(buffer);
@@ -313,7 +317,7 @@ bool BufferReader::process(void)
           }
           else if (stream->codec->codec_type == CODEC_TYPE_VIDEO)
           {
-            if (selectedStreams.contains(StreamId(StreamId::Type_Video, stream->id)) || !running)
+            if (selectedStreams.contains(StreamId(StreamId::Type_Video, stream->index)) || !running)
             {
               SEncodedVideoBuffer buffer(context->videoCodec, packet.size);
 
@@ -364,7 +368,7 @@ bool BufferReader::process(void)
           }
           else if (stream->codec->codec_type == CODEC_TYPE_SUBTITLE)
           {
-            if (selectedStreams.contains(StreamId(StreamId::Type_Subtitle, stream->id)) || !running)
+            if (selectedStreams.contains(StreamId(StreamId::Type_Subtitle, stream->index)) || !running)
             {
               SEncodedDataBuffer buffer(context->dataCodec, packet.size);
 
@@ -402,7 +406,7 @@ bool BufferReader::process(void)
       const AVStream * const stream = formatContext->streams[dataBuffers.first().first];
       StreamContext * const context = streamContext[dataBuffers.first().first];
 
-      if (selectedStreams.contains(StreamId(StreamId::Type_Subtitle, stream->id)))
+      if (selectedStreams.contains(StreamId(StreamId::Type_Subtitle, stream->index)))
       {
         dataBuffers.first().second.setCodec(context->dataCodec);
         produceCallback->produce(dataBuffers.takeFirst().second);
@@ -417,7 +421,7 @@ bool BufferReader::process(void)
         const AVStream * const stream = formatContext->streams[audioBuffers.first().first];
         StreamContext * const context = streamContext[audioBuffers.first().first];
 
-        if (selectedStreams.contains(StreamId(StreamId::Type_Audio, stream->id)))
+        if (selectedStreams.contains(StreamId(StreamId::Type_Audio, stream->index)))
         {
           audioBuffers.first().second.setCodec(context->audioCodec);
           produceCallback->produce(audioBuffers.takeFirst().second);
@@ -430,7 +434,7 @@ bool BufferReader::process(void)
         const AVStream * const stream = formatContext->streams[videoBuffers.first().first];
         StreamContext * const context = streamContext[videoBuffers.first().first];
 
-        if (selectedStreams.contains(StreamId(StreamId::Type_Video, stream->id)))
+        if (selectedStreams.contains(StreamId(StreamId::Type_Video, stream->index)))
         {
           videoBuffers.first().second.setCodec(context->videoCodec);
           produceCallback->produce(videoBuffers.takeFirst().second);
@@ -444,7 +448,7 @@ bool BufferReader::process(void)
       const AVStream * const stream = formatContext->streams[audioBuffers.first().first];
       StreamContext * const context = streamContext[audioBuffers.first().first];
 
-      if (selectedStreams.contains(StreamId(StreamId::Type_Audio, stream->id)))
+      if (selectedStreams.contains(StreamId(StreamId::Type_Audio, stream->index)))
       {
         audioBuffers.first().second.setCodec(context->audioCodec);
         produceCallback->produce(audioBuffers.takeFirst().second);
@@ -457,7 +461,7 @@ bool BufferReader::process(void)
       const AVStream * const stream = formatContext->streams[videoBuffers.first().first];
       StreamContext * const context = streamContext[videoBuffers.first().first];
 
-      if (selectedStreams.contains(StreamId(StreamId::Type_Video, stream->id)))
+      if (selectedStreams.contains(StreamId(StreamId::Type_Video, stream->index)))
       {
         videoBuffers.first().second.setCodec(context->videoCodec);
         produceCallback->produce(videoBuffers.takeFirst().second);
@@ -547,8 +551,9 @@ QList<BufferReader::AudioStreamInfo> BufferReader::audioStreams(void) const
   if (streamContext[i])
   {
     streams += AudioStreamInfo(
-        formatContext->streams[i]->id,
+        formatContext->streams[i]->index,
         formatContext->streams[i]->language,
+        readMetadata(formatContext->streams[i]->metadata, "title"),
         streamContext[i]->audioCodec);
   }
 
@@ -565,8 +570,9 @@ QList<BufferReader::VideoStreamInfo> BufferReader::videoStreams(void) const
   if (streamContext[i])
   {
     streams += VideoStreamInfo(
-        formatContext->streams[i]->id,
+        formatContext->streams[i]->index,
         formatContext->streams[i]->language,
+        readMetadata(formatContext->streams[i]->metadata, "title"),
         streamContext[i]->videoCodec);
   }
 
@@ -584,8 +590,9 @@ QList<BufferReader::DataStreamInfo> BufferReader::dataStreams(void) const
   {
     streams += DataStreamInfo(
         DataStreamInfo::Type_Subtitle,
-        formatContext->streams[i]->id,
+        formatContext->streams[i]->index,
         formatContext->streams[i]->language,
+        readMetadata(formatContext->streams[i]->metadata, "title"),
         streamContext[i]->dataCodec);
   }
 
@@ -815,6 +822,18 @@ BufferReader::StreamContext * BufferReader::initStreamContext(const ::AVStream *
   }
 
   return streamContext;
+}
+
+QString BufferReader::readMetadata(::AVMetadata *metadata, const char *tagName)
+{
+  if (metadata)
+  {
+    AVMetadataTag * const tag = ::av_metadata_get(metadata, tagName, NULL, 0);
+    if (tag && tag->value)
+      return QString::fromUtf8(tag->value);
+  }
+
+  return QString::null;
 }
 
 QPair<STime, STime> BufferReader::correctTimeStamp(const AVPacket &packet)

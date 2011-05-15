@@ -199,7 +199,7 @@ void SVideoView::input(const SVideoBuffer &videoBuffer)
 {
   QMutexLocker l(&p->mutex);
 
-  if (!videoBuffer.isNull())
+  if (p->timer && !videoBuffer.isNull())
   {
     if (((videoBuffer.format().format() >= SVideoFormat::Format_RGB555) &&
          (videoBuffer.format().format() <= SVideoFormat::Format_BGR32)) ||

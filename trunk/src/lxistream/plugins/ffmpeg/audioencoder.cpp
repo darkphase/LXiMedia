@@ -77,7 +77,9 @@ bool AudioEncoder::openCodec(const SAudioCodec &c, Flags flags)
     return false;
   }
 
-  contextHandle = avcodec_alloc_context();
+  contextHandle = ::avcodec_alloc_context();
+  ::avcodec_get_context_defaults2(contextHandle, CODEC_TYPE_AUDIO);
+
   contextHandle->sample_rate = outCodec.sampleRate();
   contextHandle->sample_fmt = SAMPLE_FMT_S16;
   contextHandle->channels = outCodec.numChannels();
@@ -85,9 +87,11 @@ bool AudioEncoder::openCodec(const SAudioCodec &c, Flags flags)
   contextHandle->bit_rate = (outCodec.bitRate() > 0) ? outCodec.bitRate() : (96000 * contextHandle->channels);
 
   if (outCodec == "AC3")
-    contextHandle->bit_rate = qMin(contextHandle->bit_rate, 384000); // Higher AC3 bitrates give problems muxing.
+    contextHandle->bit_rate = qMin(contextHandle->bit_rate, 384000); // Higher bitrates give problems muxing.
+  else if (outCodec == "FLAC")
+    contextHandle->bit_rate = (contextHandle->sample_rate * contextHandle->channels * 2) * 8; // To prevent problems muxing.
 
-  contextHandle->bit_rate_tolerance = contextHandle->bit_rate / 2;
+  contextHandle->bit_rate_tolerance = contextHandle->bit_rate / 4;
 
   if (flags & Flag_Fast)
     contextHandle->flags2 |= CODEC_FLAG2_FAST;
@@ -112,7 +116,8 @@ bool AudioEncoder::openCodec(const SAudioCodec &c, Flags flags)
   inFrameBuffer = SBuffer::align(inFrameBufferRaw);
   inFrameBufferSize = 0;
 
-  outCodec.setBitRate(contextHandle->bit_rate);
+  outCodec.setFrameSize(contextHandle->frame_size);
+  outCodec.setBitRate(contextHandle->bit_rate + contextHandle->bit_rate_tolerance);
 
   if (contextHandle->extradata_size > 0)
     outCodec.setExtraData(QByteArray((const char *)contextHandle->extradata, contextHandle->extradata_size));

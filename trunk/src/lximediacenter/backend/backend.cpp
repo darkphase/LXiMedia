@@ -207,11 +207,14 @@ void Backend::start(void)
     if (outFormats.contains("mp2") && outAudioCodecs.contains("MP2"))
       audioProtocols += SUPnPBase::Protocol("http-get", "audio/mpeg", true, QString::null, ".mpa");
 
-    if (outFormats.contains("wav") && outAudioCodecs.contains("PCM/S16LE"))
-      audioProtocols += SUPnPBase::Protocol("http-get", "audio/wave", true, QString::null, ".wav");
+    if (outFormats.contains("ac3") && outAudioCodecs.contains("AC3"))
+      audioProtocols += SUPnPBase::Protocol("http-get", "audio/x-ac3", true, QString::null, ".ac3");
 
     if (outFormats.contains("ogg") && outAudioCodecs.contains("FLAC"))
       audioProtocols += SUPnPBase::Protocol("http-get", "audio/ogg", true, QString::null, ".oga");
+
+    if (outFormats.contains("wav") && outAudioCodecs.contains("PCM/S16LE"))
+      audioProtocols += SUPnPBase::Protocol("http-get", "audio/wave", true, QString::null, ".wav");
 
     if (outFormats.contains("flv") && outAudioCodecs.contains("PCM/S16LE"))
       audioProtocols += SUPnPBase::Protocol("http-get", "video/x-flv", true, QString::null, ".flv");
@@ -275,6 +278,12 @@ void Backend::start(void)
   masterContentDirectory.setProtocols(SUPnPContentDirectory::ProtocolType_Image, imageProtocols);
 
   setContentDirectoryQueryItems();
+
+  if (outFormats.contains("ogg") &&
+      outVideoCodecs.contains("THEORA") && outAudioCodecs.contains("FLAC"))
+  {
+    MediaServer::enableHtml5();
+  }
 
 //  DlnaServer::File shutdown(dlnaServiceDir.server());
 //  shutdown.url = "/?shutdown=shutdown";
@@ -730,11 +739,12 @@ void Backend::setContentDirectoryQueryItems(void)
       break;
     }
 
+    QString channels = QString::number(SAudioFormat::Channels_Stereo, 16);
     const QString transcodeChannels = settings.value("TranscodeChannels", genericTranscodeChannels).toString();
     foreach (const GlobalSettings::TranscodeChannel &channel, GlobalSettings::allTranscodeChannels())
     if (channel.name == transcodeChannels)
     {
-      queryItems["channels"] = QString::number(channel.channels, 16);
+      channels = QString::number(channel.channels, 16);
       break;
     }
 
@@ -742,9 +752,11 @@ void Backend::setContentDirectoryQueryItems(void)
     foreach (const GlobalSettings::TranscodeChannel &channel, GlobalSettings::allTranscodeChannels())
     if (channel.name == transcodeMusicChannels)
     {
-      queryItems["musicchannels"] = QString::number(channel.channels, 16);
+      channels += "," + QString::number(channel.channels, 16);
       break;
     }
+
+    queryItems["channels"] = channels;
 
     queryItems["priority"] = "high";
 

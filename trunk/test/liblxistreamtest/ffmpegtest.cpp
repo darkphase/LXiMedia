@@ -144,7 +144,8 @@ void FFMpegTest::AudioEncodeDecode(const char *codecName)
  */
 void FFMpegTest::VideoEncodeDecode(void)
 {
-  static const QSet<QString> skipCodecs = QSet<QString>();
+  static const QSet<QString> skipCodecs = QSet<QString>()
+      << "THEORA";
 
   const QSet<QString> decoders = QSet<QString>::fromList(SVideoDecoderNode::codecs());
   const QSet<QString> encoders = QSet<QString>::fromList(SVideoEncoderNode::codecs());
