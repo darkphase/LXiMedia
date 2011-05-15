@@ -94,7 +94,8 @@ private:
   HtmlParser                    cssParser;
   HtmlParser                    htmlParser;
   QList<BackendServer *>        backendServers;
-  QMap<QString, QList<QPair<QString, QString> > > submenuItems;
+  QMap<QString, QList<QPair<QString, QByteArray> > > submenuItems;
+  QByteArray                    menuHtml;
 
   mutable QMap<QString, SearchCacheEntry> searchCache;
 
@@ -106,21 +107,15 @@ private:
   static const char     * const csslog;
 
   static const char     * const htmlIndex;
+  static const char     * const htmlMenuGroup;
   static const char     * const htmlMenuItem;
-  static const char     * const htmlMenuItemSel;
-  static const char     * const htmlSubMenuItem;
-  static const char     * const htmlSubMenuItemSel;
-  static const char     * const htmlMain;
-  static const char     * const htmlWidgetRow;
-  static const char     * const htmlWidgetButton;
-  static const char     * const htmlSearchWidget;
   static const char     * const htmlSearchResults;
   static const char     * const htmlSearchResultsPage;
   static const char     * const htmlSearchResultsItem;
   static const char     * const htmlSearchResultsItemThumb;
-  static const char     * const htmlToolboxWidget;
-  static const char     * const htmlErrorLogWidget;
-  static const char     * const htmlErrorLogWidgetFile;
+  static const char     * const htmlErrorLog;
+  static const char     * const htmlErrorLogFile;
+  static const char     * const htmlErrorLogFileHead;
   static const char     * const htmlLogFile;
   static const char     * const htmlLogFileHeadline;
   static const char     * const htmlLogFileMessage;
@@ -132,8 +127,6 @@ private:
   static const char     * const htmlConfigDlnaClientRow;
   static const char     * const htmlConfigOption;
   static const char     * const htmlConfigImdbDownload;
-
-  static const char     * const headSearchResults;
 };
 
 #endif

@@ -114,7 +114,7 @@ SHttpServer::SocketOp MusicServer::handleHttpRequest(const SHttpServer::RequestM
 
       const QStringList columns = QStringList() << tr("Title") << tr("Artist") << tr("Duration");
 
-      return sendHtmlContent(request, socket, url, response, buildDetailedView(path, columns, detailedItems), headList);
+      return sendHtmlContent(request, socket, url, response, buildDetailedView(path, columns, detailedItems));
     }
   }
 

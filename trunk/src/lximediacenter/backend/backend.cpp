@@ -147,26 +147,23 @@ void Backend::start(void)
   cssParser.clear();
   htmlParser.clear();
 
-  htmlParser.setField("TR_MEDIA",               tr("Media"));
-  htmlParser.setField("TR_CENTER",              tr("Center"));
-  htmlParser.setField("TR_LOGO",                tr("<span class=\"logoa\">LX</span><span class=\"logob\">i</span><span class=\"logoc\">Media</span><span class=\"logoa\">Center</span>"));
-
-  // A minimal general menu
-  QList<QPair<QString, QString> > generalMenu;
-  generalMenu += QPair<QString, QString>(tr("Main"), "/");
-  generalMenu += QPair<QString, QString>(tr("Log"),  "/main.log#bottom");
-  generalMenu += QPair<QString, QString>(tr("About"),  "/about.html");
-  submenuItems[tr("General")] = generalMenu;
+  htmlParser.setField("TR_MEDIA",  tr("Media"));
+  htmlParser.setField("TR_CENTER", tr("Center"));
+  htmlParser.setField("TR_SEARCH", tr("Search"));
 
   // This call may take a while if the database needs to be updated ...
   masterImdbClient = new ImdbClient(this);
 
-  // The full general menu
-  generalMenu.clear();
-  generalMenu += QPair<QString, QString>(tr("Main"), "/");
-  generalMenu += QPair<QString, QString>(tr("Log"),  "/main.log#bottom");
-  generalMenu += QPair<QString, QString>(tr("Settings"),  "/settings.html");
-  generalMenu += QPair<QString, QString>(tr("About"),  "/about.html");
+  // Build the menu
+  QList<QPair<QString, QByteArray> > generalMenu;
+  generalMenu += qMakePair(tr("Main"),      QByteArray("/"));
+  generalMenu += qMakePair(tr("Log"),       QByteArray("/main.log#bottom"));
+#ifndef QT_NO_DEBUG
+  generalMenu += qMakePair(tr("Exit"),      QByteArray("/?exit"));
+  generalMenu += qMakePair(tr("Restart"),   QByteArray("/?restart"));
+#endif
+  generalMenu += qMakePair(tr("Settings"),  QByteArray("/settings.html"));
+  generalMenu += qMakePair(tr("About"),     QByteArray("/about.html"));
   submenuItems[tr("General")] = generalMenu;
 
   backendServers = BackendServer::create(this);
@@ -175,7 +172,25 @@ void Backend::start(void)
     server->initialize(this);
 
     submenuItems[server->pluginName()] +=
-        QPair<QString, QString>(server->serverName(), server->serverPath());
+        qMakePair(server->serverName(), server->serverPath());
+  }
+
+  htmlParser.setField("MAIN_MENUGROUPS", QByteArray(""));
+  for (QMap<QString, QList<QPair<QString, QByteArray> > >::ConstIterator i=submenuItems.begin();
+       i!=submenuItems.end();
+       i++)
+  {
+    HtmlParser localParser(htmlParser);
+    localParser.setField("MAIN_MENUITEMS", QByteArray(""));
+    for (QList<QPair<QString, QByteArray> >::ConstIterator j=i->begin(); j!=i->end(); j++)
+    {
+      localParser.setField("TEXT", j->first);
+      localParser.setField("LINK", j->second);
+      localParser.appendField("MAIN_MENUITEMS", localParser.parse(htmlMenuItem));
+    }
+
+    localParser.setField("TEXT", i.key());
+    htmlParser.appendField("MAIN_MENUGROUPS", localParser.parse(htmlMenuGroup));
   }
 
   // Setup SSDP server
@@ -315,7 +330,7 @@ Backend::SearchCacheEntry Backend::search(const QString &query) const
 
   foreach (const BackendServer *backendServer, backendServers)
   {
-    const QByteArray baseUrl = backendServer->serverPath().toUtf8();
+    const QByteArray baseUrl = backendServer->serverPath();
 
     foreach (BackendServer::SearchResult result, backendServer->search(queryRaw))
     {
@@ -566,8 +581,6 @@ SHttpServer::SocketOp Backend::handleHttpRequest(const SHttpServer::RequestMessa
     else if (path == "/img/audio-file.png")         sendFile = ":/backend/audio-file.png";
     else if (path == "/img/video-file.png")         sendFile = ":/backend/video-file.png";
     else if (path == "/img/image-file.png")         sendFile = ":/backend/image-file.png";
-    else if (path == "/img/restart.png")            sendFile = ":/backend/restart.png";
-    else if (path == "/img/shutdown.png")           sendFile = ":/backend/shutdown.png";
 
     else if (path == "/swf/flowplayer.swf")         sendFile = ":/flowplayer/flowplayer-3.2.5.swf";
     else if (path == "/swf/flowplayer.controls.swf")sendFile = ":/flowplayer/flowplayer.controls-3.2.3.swf";
@@ -600,60 +613,7 @@ QByteArray Backend::parseHtmlContent(const QUrl &url, const QByteArray &content,
 {
   HtmlParser localParser(htmlParser);
   localParser.setField("HEAD", head);
-
-  // Build menus
-  QString pluginPath = url.path(), pagePath;
-  const int s2 = pluginPath.indexOf('/', 1);
-  if (s2 > 1)
-  {
-    pagePath = pluginPath.mid(s2);
-    pluginPath = pluginPath.left(s2 + 1);
-
-    const int s3 = pagePath.indexOf('/', 1);
-    if (s3 > 1)
-      pagePath = pagePath.left(s3 + 1);
-  }
-  else
-  {
-    pagePath = pluginPath;
-    pluginPath = "/";
-  }
-
-  localParser.setField("HEAD_MENUITEMS", QByteArray(""));
-  localParser.setField("HEAD_SUBMENUITEMS", QByteArray(""));
-  for (QMap<QString, QList<QPair<QString, QString> > >::ConstIterator i=submenuItems.begin();
-       i!=submenuItems.end();
-       i++)
-  {
-    bool selected = false;
-    for (QList<QPair<QString, QString> >::ConstIterator j=i->begin(); j!=i->end(); j++)
-    {
-      QString p = j->second;
-      const int s2 = p.indexOf('/', 1);
-      if (s2 > 1)
-        p = p.left(s2 + 1);
-      else
-        p = "/";
-
-      if (p == pluginPath)
-      {
-        selected = true;
-
-        localParser.setField("TEXT", j->first);
-        localParser.setField("LINK", j->second);
-
-        const char * const html = j->second.split('#').first().endsWith(pagePath) ? htmlSubMenuItemSel : htmlSubMenuItem;
-        localParser.appendField("HEAD_SUBMENUITEMS", localParser.parse(html));
-      }
-    }
-
-    localParser.setField("TEXT", i.key());
-    localParser.setField("LINK", i.value().first().second);
-    localParser.appendField("HEAD_MENUITEMS", localParser.parse(selected ? htmlMenuItemSel : htmlMenuItem));
-  }
-
   localParser.setField("CONTENT", content);
-
   return localParser.parse(htmlIndex);
 }
 

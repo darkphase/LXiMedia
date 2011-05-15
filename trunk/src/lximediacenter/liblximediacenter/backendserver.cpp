@@ -63,9 +63,9 @@ void BackendServer::close(void)
 {
 }
 
-QString BackendServer::serverPath(void) const
+QByteArray BackendServer::serverPath(void) const
 {
-  return '/' + pluginName() + '/' + serverName() + '/';
+  return '/' + pluginName().toAscii() + '/' + serverName().toAscii() + '/';
 }
 
 QByteArray BackendServer::frontPageWidget(void) const

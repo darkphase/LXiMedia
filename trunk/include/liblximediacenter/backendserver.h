@@ -76,7 +76,7 @@ public:
 
   virtual QString               pluginName(void) const = 0;
   virtual QString               serverName(void) const = 0;
-  virtual QString               serverPath(void) const;
+  virtual QByteArray            serverPath(void) const;
 
   virtual QByteArray            frontPageWidget(void) const;
   virtual SearchResultList      search(const QStringList &rawQuery) const;
