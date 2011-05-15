@@ -111,7 +111,6 @@ void SHttpStreamProxy::disconnectAllSockets(void)
     if (d->source->state() != QAbstractSocket::UnconnectedState)
     {
       connect(d->source, SIGNAL(disconnected()), d->source, SLOT(deleteLater()));
-      QTimer::singleShot(30000, d->source, SLOT(deleteLater()));
       d->source->disconnectFromHost();
     }
     else
@@ -127,7 +126,6 @@ void SHttpStreamProxy::disconnectAllSockets(void)
   {
     disconnect(s->socket, SIGNAL(bytesWritten(qint64)), this, SLOT(processData()));
     connect(s->socket, SIGNAL(disconnected()), s->socket, SLOT(deleteLater()));
-    QTimer::singleShot(30000, s->socket, SLOT(deleteLater()));
     s->socket->disconnectFromHost();
   }
   else
@@ -154,7 +152,7 @@ void SHttpStreamProxy::processData(void)
         for (QVector<Data::Socket>::Iterator s=d->sockets.begin(); s!=d->sockets.end(); s++)
         if (s->sendCache && (s->socket->state() == QAbstractSocket::ConnectedState))
         {
-          qDebug() << "Reuse" << d->cache.size();
+          //qDebug() << "Reuse" << d->cache.size();
           s->socket->write(d->cache);
           s->sendCache = false;
         }
@@ -203,7 +201,6 @@ void SHttpStreamProxy::processData(void)
     {
       disconnect(s->socket, SIGNAL(bytesWritten(qint64)), this, SLOT(processData()));
       connect(s->socket, SIGNAL(disconnected()), s->socket, SLOT(deleteLater()));
-      QTimer::singleShot(30000, s->socket, SLOT(deleteLater()));
       s->socket->disconnectFromHost();
       s = d->sockets.erase(s);
     }

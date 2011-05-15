@@ -62,8 +62,22 @@ bool BufferWriter::openFormat(const QString &name)
   {
     formatContext = ::avformat_alloc_context();
     formatContext->oformat = format;
-    formatContext->preload = AV_TIME_BASE / 100;
-    formatContext->max_delay = AV_TIME_BASE / 100;
+
+    ::AVFormatParameters formatParameters;
+    memset(&formatParameters, 0, sizeof(formatParameters));
+    if (::av_set_parameters(formatContext, &formatParameters) < 0)
+      qCritical() << "BufferWriter::openFormat invalid ouptut format parameters.";
+
+    formatContext->bit_rate = 0;
+
+    if (name == "dvd")
+    {
+      formatContext->mux_rate = 10080000;
+      formatContext->packet_size = 2048;
+    }
+
+    formatContext->preload = int(0.5 * AV_TIME_BASE);
+    formatContext->max_delay = int(0.7 * AV_TIME_BASE);
 
     return true;
   }
@@ -102,7 +116,8 @@ bool BufferWriter::createStreams(const QList<SAudioCodec> &audioCodecs, const QL
       stream->codec->codec_id = FFMpegCommon::toFFMpegCodecID(codec);
       stream->codec->codec_type = CODEC_TYPE_AUDIO;
       stream->codec->time_base = stream->time_base;
-      stream->codec->bit_rate = qMax(64000, codec.bitRate());
+      stream->codec->bit_rate = codec.bitRate() > 0 ? codec.bitRate() : 2000000;
+      stream->codec->frame_size = codec.frameSize() > 0 ? codec.frameSize() : 8192;
       stream->codec->sample_rate = sampleRate;
       stream->codec->channels = codec.numChannels();
       stream->codec->channel_layout = FFMpegCommon::toFFMpegChannelLayout(codec.channelSetup());
@@ -115,11 +130,12 @@ bool BufferWriter::createStreams(const QList<SAudioCodec> &audioCodecs, const QL
         memset(stream->codec->extradata + stream->codec->extradata_size, 0, FF_INPUT_BUFFER_PADDING_SIZE);
       }
 
+      formatContext->bit_rate += stream->codec->bit_rate;
+
       hasAudio = true;
       streams.insert(audioStreamId + 0, stream);
     }
 
-    SInterval minFrameRate;
     foreach (const SVideoCodec &codec, videoCodecs)
     if (!codec.isNull())
     {
@@ -136,11 +152,6 @@ bool BufferWriter::createStreams(const QList<SAudioCodec> &audioCodecs, const QL
       {
         stream->time_base.num = frameRate.num();
         stream->time_base.den = frameRate.den();
-
-        if (minFrameRate.isValid())
-          minFrameRate = frameRate.toFrequency() < minFrameRate.toFrequency() ? frameRate : minFrameRate;
-        else
-          minFrameRate = frameRate;
       }
 
       stream->duration = duration.toClock(stream->time_base.num, stream->time_base.den);
@@ -152,7 +163,7 @@ bool BufferWriter::createStreams(const QList<SAudioCodec> &audioCodecs, const QL
       stream->codec->codec_id = FFMpegCommon::toFFMpegCodecID(codec);
       stream->codec->codec_type = CODEC_TYPE_VIDEO;
       stream->codec->time_base = stream->time_base;
-      stream->codec->bit_rate = qMax(64000, codec.bitRate());
+      stream->codec->bit_rate = codec.bitRate() > 0 ? codec.bitRate() : 20000000;
       stream->codec->width = codec.size().width();
       stream->codec->height = codec.size().height();
 
@@ -167,14 +178,10 @@ bool BufferWriter::createStreams(const QList<SAudioCodec> &audioCodecs, const QL
         memset(stream->codec->extradata + stream->codec->extradata_size, 0, FF_INPUT_BUFFER_PADDING_SIZE);
       }
 
+      formatContext->bit_rate += stream->codec->bit_rate;
+
       hasVideo = true;
       streams.insert(videoStreamId + 0, stream);
-    }
-
-    if (minFrameRate.isValid())
-    {
-      formatContext->preload = 0;
-      formatContext->max_delay = AV_TIME_BASE * 4 * minFrameRate.num() / minFrameRate.den();
     }
 
     return true;
@@ -187,53 +194,58 @@ bool BufferWriter::start(WriteCallback *c)
 {
   static const int ioBufferSize = 65536;
 
-  callback = c;
-  ioContext =
-      ::av_alloc_put_byte((unsigned char *)::av_malloc(ioBufferSize),
-                          ioBufferSize,
-                          true,
-                          this,
-                          NULL,
-                          &BufferWriter::write,
-                          NULL);
+  if (!streams.isEmpty())
+  {
+    callback = c;
+    ioContext =
+        ::av_alloc_put_byte((unsigned char *)::av_malloc(ioBufferSize),
+                            ioBufferSize,
+                            true,
+                            this,
+                            NULL,
+                            &BufferWriter::write,
+                            NULL);
 
-  ioContext->is_streamed = true;
+    ioContext->is_streamed = true;
 
-  formatContext->pb = ioContext;
+    formatContext->pb = ioContext;
 
-  if (::av_set_parameters(formatContext, NULL) < 0)
-    qCritical() << "BufferWriter::writeHeader invalid ouptut format parameters.";
+    //::dump_format(formatContext, 0, NULL, 1);
+    ::av_write_header(formatContext);
 
-  //::dump_format(formatContext, 0, NULL, 1);
-  ::av_write_header(formatContext);
+    return true;
+  }
 
-  return true;
+  return false;
 }
 
 void BufferWriter::stop(void)
 {
-  ::av_write_trailer(formatContext);
-
-  foreach (::AVStream *stream, streams)
+  if (!streams.isEmpty())
   {
-    delete [] stream->codec->extradata;
-    ::av_freep(&stream->codec);
-    ::av_freep(&stream);
+    ::av_write_trailer(formatContext);
+
+    foreach (::AVStream *stream, streams)
+    {
+      delete [] stream->codec->extradata;
+      ::av_freep(&stream->codec);
+      ::av_freep(&stream);
+    }
+
+    streams.clear();
+
+    ::av_free(formatContext);
+    formatContext = NULL;
+
+    if (ioContext)
+    {
+      ::av_free(ioContext->buffer);
+      ::av_free(ioContext);
+      ioContext = NULL;
+    }
+
+    callback = NULL;
   }
-
-  streams.clear();
-
-  ::av_free(formatContext);
-  formatContext = NULL;
-
-  if (ioContext)
-  {
-    ::av_free(ioContext->buffer);
-    ::av_free(ioContext);
-    ioContext = NULL;
-  }
-
-  callback = NULL;
 }
 
 void BufferWriter::process(const SEncodedAudioBuffer &buffer)

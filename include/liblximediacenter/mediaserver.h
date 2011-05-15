@@ -116,7 +116,11 @@ private:
   struct Data;
   Data                  * const d;
 
+public: // Implemented in mediaserver.html.cpp
+  static void                   enableHtml5(bool = true);
+
 protected: // Implemented in mediaserver.html.cpp
+  static bool                   html5Enabled;
   static const unsigned         itemsPerThumbnailPage;
   static const char             audioTimeFormat[];
   static const char             videoTimeFormat[];
@@ -138,7 +142,9 @@ protected: // Implemented in mediaserver.html.cpp
   static const char             htmlDetailedListColumnLink[];
   static const char             htmlPlayer[];
   static const char             htmlPlayerAudioItem[];
+  static const char             htmlPlayerAudioItemHtml5[];
   static const char             htmlPlayerVideoItem[];
+  static const char             htmlPlayerVideoItemHtml5[];
   static const char             htmlPlayerThumbItem[];
   static const char             htmlPlayerThumbItemOption[];
   static const char             htmlPlayerInfoItem[];
@@ -150,8 +156,8 @@ protected: // Implemented in mediaserver.html.cpp
 
   QByteArray                    buildThumbnailView(const QString &path, const ThumbnailListItemList &, int, int);
   QByteArray                    buildDetailedView(const QString &path, const QStringList &columns, const DetailedListItemList &);
-  static QByteArray             buildVideoPlayer(const QByteArray &item, const QString &title, const SMediaInfo::Program &, const QUrl &, const QSize & = QSize(768, 432));
-  static QByteArray             buildVideoPlayer(const QByteArray &item, const QString &title, const QUrl &, const QSize & = QSize(768, 432));
+  static QByteArray             buildVideoPlayer(const QByteArray &item, const QString &title, const SMediaInfo::Program &, const QUrl &, const QSize & = QSize(768, 432), SAudioFormat::Channels = SAudioFormat::Channels_Stereo);
+  static QByteArray             buildVideoPlayer(const QByteArray &item, const QString &title, const QUrl &, const QSize & = QSize(768, 432), SAudioFormat::Channels = SAudioFormat::Channels_Stereo);
 };
 
 } // End of namespace

@@ -101,7 +101,7 @@ QList<SFileInputNode::DataStreamInfo> SFileInputNode::dataStreams(void) const
     SSubtitleFile file(fileName);
     if (file.open())
     {
-      DataStreamInfo stream(DataStreamInfo::Type_Subtitle, nextStreamId++, file.language(), file.codec());
+      DataStreamInfo stream(DataStreamInfo::Type_Subtitle, nextStreamId++, file.language(), QString::null, file.codec());
       stream.file = fileName;
       dataStreams += stream;
 

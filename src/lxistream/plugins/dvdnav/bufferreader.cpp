@@ -343,7 +343,7 @@ QList<BufferReader::DataStreamInfo> BufferReader::dataStreams(void) const
         const qint8 lid = ::dvdnav_get_spu_logical_stream(dvdHandle, i);
         const quint16 id = (lid >= 0 ? int(lid) : i) + 0x20;
 
-        result += DataStreamInfo(StreamId::Type_Subtitle, id, language, SDataCodec("SUB/DVD"));
+        result += DataStreamInfo(StreamId::Type_Subtitle, id, language, QString::null, SDataCodec("SUB/DVD"));
       }
     }
 

@@ -308,6 +308,7 @@ void SMediaInfo::probeDataStreams(void)
                 DataStreamInfo::Type_Subtitle,
                 nextStreamId++,
                 file.language(),
+                QString::null,
                 file.codec());
 
             stream.file = fileName;

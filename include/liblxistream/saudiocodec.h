@@ -35,8 +35,8 @@ class LXISTREAM_PUBLIC SAudioCodec
 {
 public:
                                 SAudioCodec(void);
-                                SAudioCodec(const char *, SAudioFormat::Channels = SAudioFormat::Channel_None, int sampleRate = 0, int bitRate = 0);
-                                SAudioCodec(const QString &, SAudioFormat::Channels = SAudioFormat::Channel_None, int sampleRate = 0, int bitRate = 0);
+                                SAudioCodec(const char *, SAudioFormat::Channels = SAudioFormat::Channel_None, int sampleRate = 0, int bitRate = 0, int frameSize = 0);
+                                SAudioCodec(const QString &, SAudioFormat::Channels = SAudioFormat::Channel_None, int sampleRate = 0, int bitRate = 0, int frameSize = 0);
 
   inline                        operator const QString &() const                { return codec(); }
 
@@ -49,7 +49,7 @@ public:
 
   inline bool                   isNull(void) const                              { return d.codec.isEmpty(); }
   inline const QString        & codec(void) const                               { return d.codec; }
-  void                          setCodec(const QString &, SAudioFormat::Channels = SAudioFormat::Channel_None, int sampleRate = 0, int bitRate = 0);
+  void                          setCodec(const QString &, SAudioFormat::Channels = SAudioFormat::Channel_None, int sampleRate = 0, int bitRate = 0, int frameSize = 0);
 
   inline SAudioFormat::Channels channelSetup(void) const                        { return d.channels; }
   inline void                   setChannelSetup(SAudioFormat::Channels c)       { d.channels = c; }
@@ -57,6 +57,8 @@ public:
   inline void                   setSampleRate(int s)                            { d.sampleRate = s; }
   inline int                    bitRate(void) const                             { return d.bitRate; }
   inline void                   setBitRate(int b)                               { d.bitRate = b; }
+  inline int                    frameSize(void) const                           { return d.frameSize; }
+  inline void                   setFrameSize(int f)                             { d.frameSize = f; }
 
   inline int                    numChannels(void) const                         { return SAudioFormat::numChannels(channelSetup()); }
 
@@ -73,6 +75,7 @@ private:
     SAudioFormat::Channels      channels;
     int                         sampleRate;
     int                         bitRate;
+    int                         frameSize;
 
     QByteArray                  extraData;
   }                             d;

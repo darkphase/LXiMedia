@@ -752,11 +752,15 @@ SAudioFormat::Channels FFMpegCommon::fromFFMpegChannelLayout(int64_t layout, int
 
     if (buffer.presentationTimeStamp().isValid())
       packet.pts = buffer.presentationTimeStamp().toClock(stream->time_base.num, stream->time_base.den);
+    else
+      packet.pts = AV_NOPTS_VALUE;
 
     if (buffer.decodingTimeStamp().isValid())
       packet.dts = buffer.decodingTimeStamp().toClock(stream->time_base.num, stream->time_base.den);
+    else
+      packet.dts = AV_NOPTS_VALUE;
 
-    if (packet.dts > packet.pts)
+    if ((packet.pts != AV_NOPTS_VALUE) && (packet.dts != AV_NOPTS_VALUE) && (packet.dts > packet.pts))
       packet.pts = packet.dts;
   }
 

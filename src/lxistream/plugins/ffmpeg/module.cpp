@@ -57,14 +57,20 @@ bool Module::registerClasses(void)
 
   const QSet<QByteArray> unsupportedEncoders = QSet<QByteArray>()
       // Audio
-      << "FLAC" << "GSM" << "GSM_MS" << "NELLYMOSER" << "PCM/S16LE" << "PCM/S16BE"
+      << "GSM" << "GSM_MS" << "NELLYMOSER" << "PCM/S16LE" << "PCM/S16BE"
       << "PCM/U16LE" << "PCM/U16BE" << "PCM/MULAW" << "PCM/ALAW" << "VORBIS"
       << "WMAV1" << "WMAV2"
       // Video
       << "BMP" << "DVVIDEO" << "DNXHD" << "HUFFYUV" << "JPEGLS" << "MSMPEG4V1"
       << "PAM" << "PCX" << "PNG" << "QTRLE" << "RAWVIDEO" << "ROQ" << "RV10"
-      << "RV20" << "SGI" << "SNOW" << "SVQ1" << "TARGA" << "THEORA" << "TIFF"
-      << "V210" << "VP8" << "ZLIB"
+      << "RV20" << "SGI" << "SNOW" << "SVQ1" << "TARGA" << "TIFF" << "V210"
+      << "VP8" << "ZLIB"
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(52, 72, 0)
+      // Audio
+      << "FLAC"
+      // Video
+      << "THEORA"
+#endif
       ;
 
   for (::AVCodec *codec=::av_codec_next(NULL); codec; codec=::av_codec_next(codec))
@@ -97,15 +103,19 @@ bool Module::registerClasses(void)
   }
 
   // Formats
-  const QSet<QByteArray> unsupportedOutFormats = QSet<QByteArray>()
+  const QSet<QByteArray> unsupportedReaders = QSet<QByteArray>()
+      ;
+
+  const QSet<QByteArray> unsupportedWriters = QSet<QByteArray>()
       << "mpegts" << "asf"
       ;
 
   for (::AVInputFormat *format=::av_iformat_next(NULL); format; format=::av_iformat_next(format))
+    if (!unsupportedReaders.contains(format->name))
     BufferReader::registerClass<BufferReader>(format->name);
 
   for (::AVOutputFormat *format=::av_oformat_next(NULL); format; format=::av_oformat_next(format))
-  if (!unsupportedOutFormats.contains(format->name))
+  if (!unsupportedWriters.contains(format->name))
     BufferWriter::registerClass<BufferWriter>(format->name);
 
   // Filters

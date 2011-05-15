@@ -43,19 +43,29 @@ public:
   enum Matrix
   {
     Matrix_Identity = 0,
-    Matrix_SurroundToStereo
+    Matrix_SingleToAll,
+    Matrix_AllToSingle,
+    Matrix_MonoToStereo,
+    Matrix_StereoToMono,
+    Matrix_FrontToBack,
+    Matrix_SurroundToStereo,
+    Matrix_SurroundToSurround_3_0,
+    Matrix_SurroundToSurround_4_0,
+    Matrix_SurroundToSurround_5_1
   };
 
 public:
                                 SAudioMatrixNode(SGraph *);
   virtual                       ~SAudioMatrixNode();
 
-  void                          setDefaultMatrix(Matrix);
+  void                          setMatrix(Matrix);
   void                          setCell(SAudioFormat::Channel from, SAudioFormat::Channel to, float);
   float                         cell(SAudioFormat::Channel from, SAudioFormat::Channel to) const;
 
   void                          setChannels(SAudioFormat::Channels);
   SAudioFormat::Channels        channels(void) const;
+
+  static Matrix                 guessMatrix(SAudioFormat::Channels from, SAudioFormat::Channels to);
 
 public: // From SGraph::Node
   virtual bool                  start(void);

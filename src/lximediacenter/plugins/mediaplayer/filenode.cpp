@@ -73,6 +73,7 @@ QByteArray FileNode::toByteArray(int indent) const
       QDomElement elm = doc.createElement("audiostream");
       elm.setAttribute("id", audioStream.streamId());
       elm.setAttribute("language", audioStream.language);
+      elm.setAttribute("title", audioStream.title);
       elm.setAttribute("codec", audioStream.codec.toString(false));
       programElm.appendChild(elm);
     }
@@ -82,6 +83,7 @@ QByteArray FileNode::toByteArray(int indent) const
       QDomElement elm = doc.createElement("videostream");
       elm.setAttribute("id", videoStream.streamId());
       elm.setAttribute("language", videoStream.language);
+      elm.setAttribute("title", videoStream.title);
       elm.setAttribute("codec", videoStream.codec.toString(false));
       programElm.appendChild(elm);
     }
@@ -92,6 +94,7 @@ QByteArray FileNode::toByteArray(int indent) const
       elm.setAttribute("type", dataStream.streamType());
       elm.setAttribute("id", dataStream.streamId());
       elm.setAttribute("language", dataStream.language);
+      elm.setAttribute("title", dataStream.title);
       elm.setAttribute("file", dataStream.file);
       elm.setAttribute("codec", dataStream.codec.toString(false));
       programElm.appendChild(elm);
@@ -182,6 +185,7 @@ FileNode FileNode::fromByteArray(const QByteArray &str)
             AudioStreamInfo(
                 elm.attribute("id").toUShort(),
                 elm.attribute("language").toAscii(),
+                elm.attribute("title"),
                 SAudioCodec::fromString(elm.attribute("codec"))));
       }
 
@@ -193,6 +197,7 @@ FileNode FileNode::fromByteArray(const QByteArray &str)
             VideoStreamInfo(
                 elm.attribute("id").toUShort(),
                 elm.attribute("language").toAscii(),
+                elm.attribute("title"),
                 SVideoCodec::fromString(elm.attribute("codec"))));
       }
 
@@ -204,6 +209,7 @@ FileNode FileNode::fromByteArray(const QByteArray &str)
             DataStreamInfo::Type(elm.attribute("type").toInt()),
             elm.attribute("id").toUShort(),
             elm.attribute("language").toAscii(),
+            elm.attribute("title"),
             SDataCodec::fromString(elm.attribute("codec")));
 
         stream.file = elm.attribute("file");
