@@ -139,7 +139,7 @@ SHttpServer::SocketOp MediaServer::handleHttpRequest(const SHttpServer::RequestM
         }
       }
 
-      return sendHtmlContent(request, socket, url, response, buildThumbnailView(basePath, thumbItems, start, total), headList);
+      return sendHtmlContent(request, socket, url, response, buildThumbnailView(basePath, thumbItems, start, total));
     }
     else if (request.method() != "HEAD")
     {

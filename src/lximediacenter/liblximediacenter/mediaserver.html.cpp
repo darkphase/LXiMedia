@@ -50,57 +50,27 @@ const char MediaServer::htmlPageCurrentItem[] =
 
 const char MediaServer::htmlThumbnails[] =
     " {PAGES}\n"
-    " <script language=\"JavaScript\" type=\"text/javascript\">\n"
-    "  <!--\n"
-    "  var winW = window.innerWidth - 32;\n"
-    "  if (winW >= 1440)\n"
-    "    document.write(\"<table class=\\\"thumbnaillist\\\">{LIST2_ESC}</table>\");\n"
-    "  else if (winW >= 1152)\n"
-    "    document.write(\"<table class=\\\"thumbnaillist\\\">{LIST1_ESC}</table>\");\n"
-    "  else\n"
-    "    document.write(\"<table class=\\\"thumbnaillist\\\">{LIST0_ESC}</table>\");\n"
-    "  //-->\n"
-    " </script>\n"
-    " <noscript>\n"
-    "  <table class=\"thumbnaillist\">\n"
-    "{LIST0}"
-    "  </table>\n"
-    " </noscript>\n";
-
-const char MediaServer::htmlThumbnailItemRow[] =
-    "   <tr class=\"thumbnaillist\">\n"
-    "{ROW_ITEMS}"
-    "   </tr>\n";
+    "{ITEMS}";
 
 const char MediaServer::htmlThumbnailItem[] =
-    "    <td class=\"thumbnaillistitem\">\n"
-    "     <center>\n"
-    "      <div class=\"{ITEM_CLASS}\">\n"
-    "       <a class=\"thumbnaillistitem\" title=\"{ITEM_TITLE}\" href=\"{ITEM_URL}\">\n"
-    "        <img src=\"{ITEM_ICONURL}\" alt=\"{ITEM_TITLE}\" />\n"
-    "       </a>\n"
-    "      </div>\n"
-    "      <div class=\"thumbnaillistitemtitle\">\n"
-    "       <a class=\"thumbnaillistitemtitle\" title=\"{ITEM_TITLE}\" href=\"{ITEM_URL}\">\n"
-    "        {ITEM_TITLE}\n"
-    "       </a>\n"
-    "      </div>\n"
-    "      <div class=\"thumbnaillistitemnote\">\n"
-    "       {ITEM_SUBTITLE}\n"
-    "      </div>\n"
-    "     </center>\n"
-    "    </td>\n";
+    "  <div class=\"thumbnaillistitem\">\n"
+    "   <div class=\"thumbnail\">\n"
+    "    <a title=\"{ITEM_TITLE}\" href=\"{ITEM_URL}\">\n"
+    "     <img src=\"{ITEM_ICONURL}\" alt=\"{ITEM_TITLE}\" />\n"
+    "    </a>\n"
+    "   </div>\n"
+    "   {ITEM_TITLE}<br />\n"
+    "   <small>{ITEM_SUBTITLE}</small>\n"
+    "  </div>\n";
 
 const char MediaServer::htmlThumbnailItemNoTitle[] =
-    "    <td class=\"thumbnaillistitem\">\n"
-    "     <center>\n"
-    "      <div class=\"thumbnaillistitem\">\n"
-    "       <a class=\"thumbnaillistitem\" title=\"{ITEM_TITLE}\" href=\"{ITEM_URL}\">\n"
-    "        <img src=\"{ITEM_ICONURL}\" alt=\"{ITEM_TITLE}\" />\n"
-    "       </a>\n"
-    "      </div>\n"
-    "     </center>\n"
-    "    </td>\n";
+    "  <div class=\"thumbnaillistitem\">\n"
+    "   <div class=\"thumbnail\">\n"
+    "    <a title=\"{ITEM_TITLE}\" href=\"{ITEM_URL}\">\n"
+    "     <img src=\"{ITEM_ICONURL}\" alt=\"{ITEM_TITLE}\" />\n"
+    "    </a>\n"
+    "   </div>\n"
+    "  </div>\n";
 
 const char MediaServer::htmlDetailedList[] =
     " {PAGES}\n"
@@ -268,9 +238,6 @@ const char MediaServer::htmlPlayerInfoAction[] =
     "    <a href=\"{ITEM_LINK}\">{ITEM_NAME}</a><br />\n";
 
 
-const char MediaServer::headList[] =
-    " <link rel=\"stylesheet\" href=\"/list.css\" type=\"text/css\" media=\"screen, handheld, projection\" />\n";
-
 const char MediaServer::headPlayer[] =
     " <script type=\"text/javascript\" src=\"/swf/flowplayer.js\" />\n";
 
@@ -288,7 +255,7 @@ QByteArray MediaServer::buildThumbnailView(const QString &dirPath, const Thumbna
 
   const QStringList dirs = dirPath.split('/', QString::SkipEmptyParts);
 
-  QString fullPath = serverPath();
+  QByteArray fullPath = serverPath();
   htmlParser.setField("ITEM_LINK", fullPath);
   htmlParser.setField("ITEM_NAME", serverName());
   htmlParser.appendField("PAGES", htmlParser.parse(dirs.isEmpty() ? htmlPageCurrentItem : htmlPageItem));
@@ -330,36 +297,14 @@ QByteArray MediaServer::buildThumbnailView(const QString &dirPath, const Thumbna
   htmlParser.setField("PAGES", htmlParser.parse(htmlPages));
 
   // Build the content
-  htmlParser.setField("LIST0", QByteArray(""));
-  htmlParser.setField("LIST1", QByteArray(""));
-  htmlParser.setField("LIST2", QByteArray(""));
-  for (unsigned cls=0; cls<3; cls++)
+  htmlParser.setField("ITEMS", QByteArray(""));
+  foreach (const ThumbnailListItem &item, items)
   {
-    htmlParser.setField("ROW_ITEMS", QByteArray(""));
-    unsigned col = 0;
-    foreach (const ThumbnailListItem &item, items)
-    {
-      htmlParser.setField("ITEM_CLASS", QByteArray(item.played ? "thumbnaillistitemplayed" : "thumbnaillistitem"));
-      htmlParser.setField("ITEM_TITLE", item.title);
-      htmlParser.setField("ITEM_RAW_TITLE", SStringParser::toRawName(item.title));
-      htmlParser.setField("ITEM_SUBTITLE", item.subtitle);
-      htmlParser.setField("ITEM_ICONURL", item.iconurl.toString());
-      htmlParser.setField("ITEM_URL", item.url.toString());
-      htmlParser.appendField("ROW_ITEMS", htmlParser.parse(item.title.isEmpty() ? htmlThumbnailItemNoTitle : htmlThumbnailItem));
-
-      if (++col == 3 + cls)
-      {
-        htmlParser.appendField("LIST" + QByteArray::number(cls), htmlParser.parse(htmlThumbnailItemRow));
-        htmlParser.setField("ROW_ITEMS", QByteArray(""));
-        col = 0;
-      }
-    }
-
-    if (col > 0)
-      htmlParser.appendField("LIST" + QByteArray::number(cls), htmlParser.parse(htmlThumbnailItemRow));
-
-    QByteArray esc = htmlParser.field("LIST" + QByteArray::number(cls));
-    htmlParser.setField("LIST" + QByteArray::number(cls) + "_ESC", esc.replace('\\', "\\\\").replace('\"', "\\\"").simplified());
+    htmlParser.setField("ITEM_TITLE", item.title);
+    htmlParser.setField("ITEM_SUBTITLE", item.subtitle);
+    htmlParser.setField("ITEM_ICONURL", item.iconurl.toString());
+    htmlParser.setField("ITEM_URL", item.url.toString());
+    htmlParser.appendField("ITEMS", htmlParser.parse(item.title.isEmpty() ? htmlThumbnailItemNoTitle : htmlThumbnailItem));
   }
 
   return htmlParser.parse(htmlThumbnails);
@@ -374,7 +319,7 @@ QByteArray MediaServer::buildDetailedView(const QString &dirPath, const QStringL
 
   const QStringList dirs = dirPath.split('/', QString::SkipEmptyParts);
 
-  QString fullPath = serverPath();
+  QByteArray fullPath = serverPath();
   htmlParser.setField("ITEM_LINK", fullPath);
   htmlParser.setField("ITEM_NAME", serverName());
   htmlParser.appendField("PAGES", htmlParser.parse(dirs.isEmpty() ? htmlPageCurrentItem : htmlPageItem));

@@ -131,7 +131,6 @@ protected: // Implemented in mediaserver.html.cpp
   static const char             htmlPageItem[];
   static const char             htmlPageCurrentItem[];
   static const char             htmlThumbnails[];
-  static const char             htmlThumbnailItemRow[];
   static const char             htmlThumbnailItem[];
   static const char             htmlThumbnailItemNoTitle[];
   static const char             htmlDetailedList[];
@@ -151,7 +150,6 @@ protected: // Implemented in mediaserver.html.cpp
   static const char             htmlPlayerInfoActionHead[];
   static const char             htmlPlayerInfoAction[];
 
-  static const char             headList[];
   static const char             headPlayer[];
 
   QByteArray                    buildThumbnailView(const QString &path, const ThumbnailListItemList &, int, int);

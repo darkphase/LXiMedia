@@ -333,7 +333,7 @@ QUrl MediaPlayerServer::findAlbumIcon(const QString &path)
 {
   // First check files.
   foreach (const MediaDatabase::File &file, mediaDatabase->getAlbumFiles(category, path, 0, 8))
-    return serverPath() + MediaDatabase::toUidString(file.uid) + "-thumb.png?overlay=folder-video";
+    return QUrl(serverPath() + MediaDatabase::toUidString(file.uid) + "-thumb.png?overlay=folder-video");
 
   // Recursively check albums
   foreach (const QString &album, mediaDatabase->allAlbums(category))

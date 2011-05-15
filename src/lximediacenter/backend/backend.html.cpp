@@ -31,163 +31,92 @@ const char * const Backend::htmlIndex =
     "{HEAD}"
     "</head>\n"
     "<body>\n"
-    " <table class=\"head\">\n"
-    "  <tr class=\"head\">\n"
-    "   <td class=\"headlogo\">{TR_LOGO}</td>\n"
-    "{HEAD_MENUITEMS}"
-    "  </tr>\n"
-    " </table>\n"
-    " <table class=\"submenu\">\n"
-    "  <tr class=\"submenu\">\n"
-    "   <td></td>\n"
-    "{HEAD_SUBMENUITEMS}"
-    "   <td></td>\n"
-    "  </tr>\n"
-    " </table>\n"
+    " <div class=\"head\">\n"
+    "  <table class=\"head\">\n"
+    "   <tr><td class=\"heada\">\n"
+    "    <span class=\"headlogoa\">LX</span>\n"
+    "    <span class=\"headlogob\">i</span>\n"
+    "    <span class=\"headlogoc\">Media</span>\n"
+    "    <span class=\"headlogoa\">Center</span>\n"
+    "   </td><td class=\"headb\">\n"
+    "    <form name=\"search\" action=\"\" method=\"get\">\n"
+    "     <input type=\"text\" size=\"40\" name=\"q\" value=\"\" />\n"
+    "     <input type=\"submit\" value=\"{TR_SEARCH}\" />\n"
+    "    </form>\n"
+    "   </td></tr>\n"
+    "  </table>\n"
+    " </div>\n"
+    " <div class=\"menu\">\n"
+    "{MAIN_MENUGROUPS}"
+    " </div>\n"
+    " <div class=\"content\">\n"
     "{CONTENT}"
+    " </div>\n"
     "</body>\n"
     "</html>\n";
 
+const char * const Backend::htmlMenuGroup =
+    "  <ul class=\"menu\">\n"
+    "   <li class=\"menuhead\">{TEXT}</li>\n"
+    "{MAIN_MENUITEMS}"
+    "  </ul>\n";
+
 const char * const Backend::htmlMenuItem =
-    "   <td class=\"headmenuitem\"><a class=\"headmenuitem\" href=\"{LINK}\">{TEXT}</a></td>\n";
-
-const char * const Backend::htmlMenuItemSel =
-    "   <td class=\"headmenuitemsel\">{TEXT}</td>\n";
-
-const char * const Backend::htmlSubMenuItem =
-    "   <td class=\"submenuitem\"><a class=\"submenuitem\" href=\"{LINK}\">{TEXT}</a></td>\n";
-
-const char * const Backend::htmlSubMenuItemSel =
-    "   <td class=\"submenuitemsel\">{TEXT}</td>\n";
-
-//const char * const Backend::htmlMenuSideShutdownItem =
-//    "     <tr><td class=\"menu\" align=\"center\">\n"
-//    "      <script language=\"JavaScript\" type=\"text/javascript\">\n"
-//    "       <!--\n"
-//    "       function confirm{ACTION}()\n"
-//    "       {\n"
-//    "         if (confirm(\"{CONFIRM_TEXT}\"))\n"
-//    "           window.location = \"{LINK}\";\n"
-//    "       }\n"
-//    "       document.write(\"<p class=\\\"menuitem\\\"><a class=\\\"menuitem\\\" href=\\\"javascript:confirm{ACTION}();\\\">{TEXT}</a></p>\");\n"
-//    "       //-->\n"
-//    "      </script>\n"
-//    "      <noscript>\n"
-//    "       <p class=\"menuitem\"><a class=\"menuitem\" href=\"{LINK}\">{TEXT}</a></p>\n"
-//    "      </noscript>\n"
-//    "     </td></tr>\n";
-
-const char * const Backend::htmlMain =
-    " <table class=\"widgetsfull\">\n"
-    "{WIDGET_ROWS}"
-    " </table>\n";
-
-const char * const Backend::htmlWidgetRow =
-    "  <tr class=\"widgets\">\n"
-    "{WIDGETS}"
-    "  </tr>\n";
-
-const char * const Backend::htmlWidgetButton =
-    "      <td class=\"widgetbutton\">\n"
-    "       <div class=\"widgetbuttonsmall\">\n"
-    "        <a class=\"widgetbutton\" href=\"{LINK}\">\n"
-    "         <img src=\"{ICON}\" alt=\"{TEXT}\" />\n"
-    "        </a>\n"
-    "       </div>\n"
-    "       <div class=\"widgetbuttonsmalltitle\">\n"
-    "        <a class=\"widgetbuttontitle\" href=\"{LINK}\">{TEXT}</a>\n"
-    "       </div>\n"
-    "      </td>\n";
-
-const char * const Backend::htmlSearchWidget =
-    "   <td class=\"widget\" width=\"50%\">\n"
-    "    <span class=\"logoc\">{TR_MEDIA}</span><span class=\"logoa\">{TR_SEARCH}</span>\n"
-    "    <form name=\"search\" action=\"\" method=\"get\">\n"
-    "     <input type=\"text\" size=\"60\" name=\"q\" value=\"\" /><br /><br />\n"
-    "     <input type=\"submit\" value=\"{TR_SEARCH}\" />\n"
-    "    </form>\n"
-    "   </td>\n";
-
-const char * const Backend::htmlToolboxWidget =
-    "   <td class=\"widget\" width=\"50%\">\n"
-    "    <table class=\"widgetbuttons\">\n"
-    "     <tr class=\"widgetbuttons\">\n"
-    "{BUTTONS}"
-    "     </tr>\n"
-    "    </table>\n"
-    "   </td>\n";
+    "   <li class=\"menuitem\"><a class=\"menuitem\" href=\"{LINK}\">{TEXT}</a></li>\n";
 
 const char * const Backend::htmlSearchResults =
-    "<table class=\"searchresultlistbase\">\n"
-    " <tr>\n"
-    "  <td class=\"searchresultlistsearchbar\">\n"
-    "   <form name=\"search\" action=\"\" method=\"get\">\n"
-    "    {TR_SEARCH}:\n"
-    "    <input type=\"text\" size=\"40\" name=\"q\" value=\"{QUERY}\" />\n"
-    "    <input type=\"submit\" value=\"{TR_SEARCH}\" />\n"
-    "   </form><br />\n"
-    "   <p class=\"light\">{TR_RESULTS} {FROM} - {TO} {TR_OF} {OF} ({TIME} {TR_SECONDS})</p>\n"
-    "  </td>\n"
-    " </tr>\n"
-    " <tr><td>\n"
-    "  <table class=\"searchresultlist\">\n"
+    " {TR_RESULTS} {FROM} - {TO} {TR_OF} {OF} ({TIME} {TR_SECONDS})<br />\n"
+    " <table class=\"searchresultlist\">\n"
     "{SEARCHRESULTS}"
-    "  </table>\n"
-    " </td></tr>\n"
-    " <tr><td>\n"
-    "  <div class=\"pageselector\">\n"
-    "   {TR_PAGE}:{PAGES}<br />\n"
-    "  </div>\n"
-    " </td></tr>\n"
-    "</table>\n";
+    " </table>\n"
+    " {TR_PAGE}:{PAGES}<br />\n";
 
 const char * const Backend::htmlSearchResultsPage =
-    " <a class=\"pageselector\" href=\"{ITEM_LINK}\">{ITEM_NUMBER}</a>";
+    " <a href=\"{ITEM_LINK}\">{ITEM_NUMBER}</a>";
 
 const char * const Backend::htmlSearchResultsItem =
-    " <tr class=\"searchresultlist\"><td class=\"searchresultlistitemhead\" colspan=\"2\">\n"
-    "  <a class=\"searchresultlistitem\" href=\"{ITEM_LINK}\">{ITEM_HEADLINE}</a>\n"
+    " <tr><td class=\"searchresultlistitemhead\" colspan=\"2\">\n"
+    "  <a href=\"{ITEM_LINK}\">{ITEM_HEADLINE}</a>\n"
     " </td></tr>\n"
-    " <tr class=\"searchresultlist\">\n"
-    "  <td class=\"searchresultlistitem\" width=\"68\"></td>\n"
+    " <tr>\n"
+    "  <td class=\"searchresultlistitemthumb\"></td>\n"
     "  <td class=\"searchresultlistitem\">\n"
-    "   <p class=\"light\">{ITEM_TEXT}</p>\n"
-    "   <p class=\"light\"><i>{TR_RELEVANCE} {ITEM_RELEVANCE}</i></p>\n"
+    "   <small>"
+    "    {ITEM_TEXT}<br />\n"
+    "    {TR_RELEVANCE} {ITEM_RELEVANCE}\n"
+    "   </small>\n"
     "  </td>\n"
     " </tr>\n";
 
 const char * const Backend::htmlSearchResultsItemThumb =
-    " <tr class=\"searchresultlist\"><td class=\"searchresultlistitemhead\" colspan=\"2\">\n"
-    "  <a class=\"searchresultlistitem\" href=\"{ITEM_LINK}\">{ITEM_HEADLINE}</a>\n"
+    " <tr><td class=\"searchresultlistitemhead\" colspan=\"2\">\n"
+    "  <a href=\"{ITEM_LINK}\">{ITEM_HEADLINE}</a>\n"
     " </td></tr>\n"
-    " <tr class=\"searchresultlist\">\n"
-    "  <td class=\"searchresultlistitemthumb\" width=\"68\">\n"
+    " <tr>\n"
+    "  <td class=\"searchresultlistitemthumb\">\n"
     "   <a href=\"{ITEM_LINK}\"><img src=\"{ITEM_ICON}?size=64\" alt=\"Thumb\" /></a>\n"
     "  </td>\n"
     "  <td class=\"searchresultlistitem\">\n"
-    "   <p class=\"light\">{ITEM_TEXT}</p>\n"
-    "   <p class=\"light\"><i>{TR_RELEVANCE} {ITEM_RELEVANCE}</i></p>\n"
+    "   <small>"
+    "    {ITEM_TEXT}<br />\n"
+    "    {TR_RELEVANCE} {ITEM_RELEVANCE}\n"
+    "   </small>\n"
     "  </td>\n"
     " </tr>\n";
 
-const char * const Backend::htmlErrorLogWidget =
-    "   <td class=\"widget\">\n"
-    "    <p class=\"head\">{TR_ERRORS}</p>\n"
-    "    <table>\n"
-    "     <tr><td colspan=\"2\">{TR_HELP_SUBMIT}<br /><br /></td></tr>\n"
+const char * const Backend::htmlErrorLog =
+    " <h1>{TR_ERRORS}</h1>\n"
+    " {TR_HELP_SUBMIT}<br /><br />\n"
+    " <ul class=\"errorlogfiles\">\n"
     "{ERROR_LOG_FILES}"
-    "     <tr><td class=\"right\" colspan=\"2\">\n"
-    "      <br />\n"
-    "      <a href=\"?dismisserrors\">{TR_DISMISS}</a>\n"
-    "     </td></tr>\n"
-    "    </table>\n"
-    "   </td>\n";
+    " </ul>\n"
+    " <a href=\"?dismisserrors\">{TR_DISMISS}</a>\n";
 
-const char * const Backend::htmlErrorLogWidgetFile =
-    "     <tr>\n"
-    "      <td>{ITEM_DATE}</td>\n"
-    "      <td><a href=\"{ITEM_LINK}\">{ITEM_NAME}</a></td>\n"
-    "     </tr>\n";
+const char * const Backend::htmlErrorLogFileHead =
+    "  <li class=\"errorlogfilehead\">{ITEM_DATE}</li>\n";
+
+const char * const Backend::htmlErrorLogFile =
+    "  <li class=\"errorlogfile\"><a href=\"{ITEM_LINK}\">{ITEM_NAME}</a></li>\n";
 
 const char * const Backend::htmlLogFile =
     "<table class=\"log\">\n"
@@ -245,175 +174,132 @@ const char * const Backend::htmlAbout =
     " as published by the Free Software Foundation.<br />\n";
 
 const char * const Backend::htmlConfigMain =
-    " <table class=\"widgetsfull\">\n"
-    "  <tr class=\"widgets\">\n"
-    "   <td class=\"widget\" width=\"50%\">\n"
-    "    <p class=\"head\">{TR_HTTPSERVER_SETTINGS}</p>\n"
-    "    {TR_HTTPSERVER_EXPLAIN}<br />\n"
-    "    <br />\n"
-    "    <form name=\"httpsettings\" action=\"settings.html\" method=\"get\">\n"
-    "     <input type=\"hidden\" name=\"httpsettings\" value=\"httpsettings\" />\n"
-    "     {TR_HTTP_PORT_NUMBER}:\n"
-    "     <input type=\"text\" size=\"6\" name=\"httpport\" value=\"{HTTPPORT}\" /><br />\n"
-    "     <br />\n"
-    "     <input type=\"submit\" name=\"save\" value=\"{TR_SAVE}\" />\n"
-    "    </form>\n"
-    "   </td>\n"
-    "   <td class=\"widget\" width=\"50%\">\n"
-    "    <p class=\"head\">{TR_IMDB_SETTINGS}</p>\n"
-    "    {TR_DOWNLOAD_IMDB_EXPLAIN}<br />\n"
-    "    <a class=\"light\" href=\"http://www.imdb.com/interfaces\">www.imdb.com/interfaces</a><br />\n"
-    "    <br />\n"
+    " <fieldset>\n"
+    "  <legend>{TR_HTTPSERVER_SETTINGS}</legend>\n"
+    "  {TR_HTTPSERVER_EXPLAIN}<br />\n"
+    "  <br />\n"
+    "  <form name=\"httpsettings\" action=\"settings.html\" method=\"get\">\n"
+    "   <input type=\"hidden\" name=\"httpsettings\" value=\"httpsettings\" />\n"
+    "   {TR_HTTP_PORT_NUMBER}:\n"
+    "   <input type=\"text\" size=\"6\" name=\"httpport\" value=\"{HTTPPORT}\" /><br />\n"
+    "   <br />\n"
+    "   <input type=\"submit\" name=\"save\" value=\"{TR_SAVE}\" />\n"
+    "  </form>\n"
+    " </fieldset>\n"
+    " <fieldset>\n"
+    "  <legend>{TR_IMDB_SETTINGS}</legend>\n"
+    "  {TR_DOWNLOAD_IMDB_EXPLAIN}<br />\n"
+    "  <a href=\"http://www.imdb.com/interfaces\">www.imdb.com/interfaces</a><br />\n"
+    "  <br />\n"
     "{IMDB_ACTION}"
-    "   </td>\n"
-    "  </tr>\n"
-    "  <tr class=\"widgets\"><td class=\"widget\" colspan=\"2\">\n"
-    "   <form name=\"dlnasettings\" action=\"settings.html\" method=\"get\">\n"
-    "    <input type=\"hidden\" name=\"dlnasettings\" value=\"dlnasettings\" />\n"
-    "    <table class=\"main\">\n"
-    "     <tr class=\"main\"><td class=\"center\" colspan=\"4\">\n"
-    "      <p class=\"head\">{TR_DLNA_SETTINGS}</p>\n"
-    "     </td></tr>\n"
-    "     <tr class=\"main\">\n"
-    "      <td class=\"left\"></td>\n"
-    "      <td class=\"left\">\n"
-    "       <p class=\"head2\">{TR_MEDIA_TRANSCODE_SETTINGS}</p>"
-    "       <p class=\"light\">{TR_MEDIA_TRANSCODE_SETTINGS_EXPLAIN}</p>"
-    "      </td>\n"
-    "      <td class=\"left\">\n"
-    "       <p class=\"head2\">{TR_MUSIC_TRANSCODE_SETTINGS}</p>"
-    "       <p class=\"light\">{TR_MUSIC_TRANSCODE_SETTINGS_EXPLAIN}</p>"
-    "      </td>\n"
-    "      <td class=\"right\"></td>\n"
-    "     </tr>\n"
+    " </fieldset>\n"
+    " <fieldset>\n"
+    "  <legend>{TR_DLNA_SETTINGS}</legend>\n"
+    "  <form name=\"dlnasettings\" action=\"settings.html\" method=\"get\">\n"
+    "   <input type=\"hidden\" name=\"dlnasettings\" value=\"dlnasettings\" />\n"
+    "   <table>\n"
+    "    <tr>\n"
+    "     <td></td>\n"
+    "     <td>\n"
+    "      {TR_MEDIA_TRANSCODE_SETTINGS}<br />\n"
+    "      {TR_MEDIA_TRANSCODE_SETTINGS_EXPLAIN}\n"
+    "     </td>\n"
+    "     <td>\n"
+    "      {TR_MUSIC_TRANSCODE_SETTINGS}<br />\n"
+    "      {TR_MUSIC_TRANSCODE_SETTINGS_EXPLAIN}"
+    "     </td>\n"
+    "     <td></td>\n"
+    "    </tr>\n"
     "{CLIENT_ROWS}"
-    "     <tr class=\"main\"><td class=\"center\" colspan=\"4\">\n"
-    "      <input type=\"submit\" name=\"save\" value=\"{TR_SAVE}\" />\n"
-    "     </td></tr>\n"
-    "    </table>\n"
-    "   </form>\n"
-    "  </td></tr>\n"
-    " </table>\n";
+    "    <tr><td colspan=\"4\">\n"
+    "    <input type=\"submit\" name=\"save\" value=\"{TR_SAVE}\" />\n"
+    "    </td></tr>\n"
+    "   </table>\n"
+    "  </form>\n"
+    " </fieldset>\n";
 
 const char * const Backend::htmlConfigDlnaDefaultRow =
-    "   <tr class=\"main\">\n"
-    "    <td class=\"left\">\n"
-    "     <p class=\"head2\">{NAME}</p>"
-    "    </td>\n"
-    "    <td class=\"left\">\n"
-    "     <select name=\"transcodesize\">\n"
+    "  <tr>\n"
+    "   <td>\n"
+    "    <p>{NAME}</p>"
+    "   </td>\n"
+    "   <td>\n"
+    "    <select name=\"transcodesize\">\n"
     "{FORMATS}"
-    "     </select>\n"
-    "     <select name=\"cropmode\">\n"
-    "      <option value=\"Box\" {SELECTED_BOX}>{TR_LETTERBOX}</option>\n"
-    "      <option value=\"Zoom\" {SELECTED_ZOOM}>{TR_FULLSCREEN}</option>\n"
-    "     </select>\n"
-    "     <select name=\"channels\">\n"
+    "    </select>\n"
+    "    <select name=\"cropmode\">\n"
+    "     <option value=\"Box\" {SELECTED_BOX}>{TR_LETTERBOX}</option>\n"
+    "     <option value=\"Zoom\" {SELECTED_ZOOM}>{TR_FULLSCREEN}</option>\n"
+    "    </select>\n"
+    "    <select name=\"channels\">\n"
     "{CHANNELS}"
-    "     </select>\n"
-    "     <select name=\"encodemode\">\n"
-    "      <option value=\"Fast\" {SELECTED_FAST}>{TR_FAST}</option>\n"
-    "      <option value=\"Slow\" {SELECTED_SLOW}>{TR_HIGH_QUALITY}</option>\n"
-    "     </select>\n"
-    "    </td>\n"
-    "    <td class=\"left\">\n"
-    "     <select name=\"musicchannels\">\n"
+    "    </select>\n"
+    "    <select name=\"encodemode\">\n"
+    "     <option value=\"Fast\" {SELECTED_FAST}>{TR_FAST}</option>\n"
+    "     <option value=\"Slow\" {SELECTED_SLOW}>{TR_HIGH_QUALITY}</option>\n"
+    "    </select>\n"
+    "   </td>\n"
+    "   <td>\n"
+    "    <select name=\"musicchannels\">\n"
     "{MUSICCHANNELS}"
-    "     </select>\n"
-    "    </td>\n"
-    "    <td class=\"right\">\n"
-    "     <input type=\"submit\" name=\"defaults\" value=\"{TR_DEFAULTS}\" />\n"
-    "    </td>\n"
-    "   </tr>\n";
+    "    </select>\n"
+    "   </td>\n"
+    "   <td>\n"
+    "    <input type=\"submit\" name=\"defaults\" value=\"{TR_DEFAULTS}\" />\n"
+    "   </td>\n"
+    "  </tr>\n";
 
 const char * const Backend::htmlConfigDlnaClientRow =
-    "   <tr class=\"main\">\n"
-    "    <td class=\"left\">\n"
-    "     <p class=\"head2\" title=\"{USERAGENT}\">{NAME}</p>\n"
-    "     <p class=\"light\">{LAST_SEEN}</p>"
-    "    </td>\n"
-    "    <td class=\"left\">\n"
-    "     <select name=\"transcodesize-{NAME}\">\n"
+    "  <tr>\n"
+    "   <td>\n"
+    "    <p title=\"{USERAGENT}\">{NAME}</p>\n"
+    "    {LAST_SEEN}"
+    "   </td>\n"
+    "   <td>\n"
+    "    <select name=\"transcodesize-{NAME}\">\n"
     "{FORMATS}"
-    "     </select>\n"
-    "     <select name=\"cropmode-{NAME}\">\n"
-    "      <option value=\"Box\" {SELECTED_BOX}>{TR_LETTERBOX}</option>\n"
-    "      <option value=\"Zoom\" {SELECTED_ZOOM}>{TR_FULLSCREEN}</option>\n"
-    "     </select>\n"
-    "     <select name=\"channels-{NAME}\">\n"
+    "    </select>\n"
+    "    <select name=\"cropmode-{NAME}\">\n"
+    "     <option value=\"Box\" {SELECTED_BOX}>{TR_LETTERBOX}</option>\n"
+    "     <option value=\"Zoom\" {SELECTED_ZOOM}>{TR_FULLSCREEN}</option>\n"
+    "    </select>\n"
+    "    <select name=\"channels-{NAME}\">\n"
     "{CHANNELS}"
-    "     </select>\n"
-    "     <select name=\"encodemode-{NAME}\">\n"
-    "      <option value=\"Fast\" {SELECTED_FAST}>{TR_FAST}</option>\n"
-    "      <option value=\"Slow\" {SELECTED_SLOW}>{TR_HIGH_QUALITY}</option>\n"
-    "     </select>\n"
-    "    </td>\n"
-    "    <td class=\"left\">\n"
-    "     <select name=\"musicchannels-{NAME}\">\n"
+    "    </select>\n"
+    "    <select name=\"encodemode-{NAME}\">\n"
+    "     <option value=\"Fast\" {SELECTED_FAST}>{TR_FAST}</option>\n"
+    "     <option value=\"Slow\" {SELECTED_SLOW}>{TR_HIGH_QUALITY}</option>\n"
+    "    </select>\n"
+    "   </td>\n"
+    "   <td>\n"
+    "    <select name=\"musicchannels-{NAME}\">\n"
     "{MUSICCHANNELS}"
-    "     </select>\n"
-    "    </td>\n"
-    "    <td class=\"right\">\n"
-    "     <input type=\"submit\" name=\"erase-{NAME}\" value=\"{TR_ERASE}\" />\n"
-    "    </td>\n"
-    "   </tr>\n";
+    "    </select>\n"
+    "   </td>\n"
+    "   <td>\n"
+    "    <input type=\"submit\" name=\"erase-{NAME}\" value=\"{TR_ERASE}\" />\n"
+    "   </td>\n"
+    "  </tr>\n";
 
 const char * const Backend::htmlConfigOption =
-    "      <option value=\"{VALUE}\" {SELECTED}>{TEXT}</option>\n";
+    "     <option value=\"{VALUE}\" {SELECTED}>{TEXT}</option>\n";
 
 const char * const Backend::htmlConfigImdbDownload =
-    "   <form name=\"imdbsettings\" action=\"settings.html\" method=\"get\">\n"
-    "    <input type=\"hidden\" name=\"imdbsettings\" value=\"imdbsettings\" />\n"
-    "    <input type=\"submit\" name=\"download\" value=\"{TR_DOWNLOAD_IMDB}\" />\n"
-    "   </form>\n";
-
-const char * const Backend::headSearchResults =
-    " <link rel=\"stylesheet\" href=\"/list.css\" type=\"text/css\" media=\"screen, handheld, projection\" />\n";
+    "  <form name=\"imdbsettings\" action=\"settings.html\" method=\"get\">\n"
+    "   <input type=\"hidden\" name=\"imdbsettings\" value=\"imdbsettings\" />\n"
+    "   <input type=\"submit\" name=\"download\" value=\"{TR_DOWNLOAD_IMDB}\" />\n"
+    "  </form>\n";
 
 
 SHttpServer::SocketOp Backend::handleHtmlRequest(const SHttpServer::RequestMessage &request, QAbstractSocket *socket, const QString &)
 {
   HtmlParser htmlParser(this->htmlParser);
-  htmlParser.setField("TR_SEARCH", tr("Search"));
 
   SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
   response.setContentType("text/html;charset=utf-8");
   response.setField("Cache-Control", "no-cache");
 
-  htmlParser.setField("WIDGET_ROWS", QByteArray(""));
-  htmlParser.setField("WIDGETS", QByteArray(""));
-
-  // Search
-  htmlParser.appendField("WIDGETS", htmlParser.parse(htmlSearchWidget));
-
-  // Toolbox
-  htmlParser.setField("BUTTONS", QByteArray(""));
-
-#ifndef QT_NO_DEBUG
-  htmlParser.setField("TEXT", tr("Shutdown"));
-  htmlParser.setField("ICON", QByteArray("/img/shutdown.png"));
-  htmlParser.setField("LINK", QByteArray("/?shutdown"));
-  htmlParser.appendField("BUTTONS", htmlParser.parse(htmlWidgetButton));
-
-  htmlParser.setField("TEXT", tr("Restart"));
-  htmlParser.setField("ICON", QByteArray("/img/restart.png"));
-  htmlParser.setField("LINK", QByteArray("/?restart"));
-  htmlParser.appendField("BUTTONS", htmlParser.parse(htmlWidgetButton));
-#endif
-
-  htmlParser.appendField("WIDGETS", htmlParser.parse(htmlToolboxWidget));
-
-  htmlParser.appendField("WIDGET_ROWS", htmlParser.parse(htmlWidgetRow));
-  htmlParser.setField("WIDGETS", QByteArray(""));
-
-  // Custom widgets
-  QList<QByteArray> widgets;
-  foreach (const BackendServer *server, backendServers)
-  {
-    const QByteArray widget = server->frontPageWidget();
-    if (!widget.isEmpty())
-      widgets += widget;
-  }
+  QByteArray content;
 
   // Submit error log
   const QSet<QString> dismissedFiles =
@@ -427,7 +313,7 @@ SHttpServer::SocketOp Backend::handleHtmlRequest(const SHttpServer::RequestMessa
   if (!errorLogFiles.isEmpty())
   {
     htmlParser.setField("TR_ERRORS",tr("Program errors"));
-    htmlParser.setField("TR_DISMISS",tr("Dismiss errors"));
+    htmlParser.setField("TR_DISMISS",tr("Dismiss all errors"));
     htmlParser.setField("TR_HELP_SUBMIT",
         tr("Unexpected errors were found in the log files. Please take some time "
            "to to submit a bug report on "
@@ -441,40 +327,24 @@ SHttpServer::SocketOp Backend::handleHtmlRequest(const SHttpServer::RequestMessa
     {
       const QFileInfo info(errorLogFiles[i]);
 
-      htmlParser.setField("ITEM", QByteArray::number(i));
+      const QString date = info.created().toString("yyyy-MM-dd");
+      if (date != lastDate)
+      {
+        htmlParser.setField("ITEM_DATE", date);
+        htmlParser.appendField("ERROR_LOG_FILES", htmlParser.parse(htmlErrorLogFileHead));
+        lastDate = date;
+      }
+
       htmlParser.setField("ITEM_NAME", info.fileName());
       htmlParser.setField("ITEM_LINK", "/" + info.fileName());
-
-      const QString date = info.created().toString("yyyy-MM-dd");
-      htmlParser.setField("ITEM_DATE", (date != lastDate) ? date : QString::null);
-      lastDate = date;
-
-      htmlParser.appendField("ERROR_LOG_FILES", htmlParser.parse(htmlErrorLogWidgetFile));
+      htmlParser.appendField("ERROR_LOG_FILES", htmlParser.parse(htmlErrorLogFile));
     }
 
-    widgets += htmlParser.parse(htmlErrorLogWidget);
-  }
-
-  int count = 0;
-  foreach (const QByteArray &widget, widgets)
-  {
-    htmlParser.appendField("WIDGETS", widget);
-    if (++count >= 2)
-    {
-      htmlParser.appendField("WIDGET_ROWS", htmlParser.parse(htmlWidgetRow));
-      htmlParser.setField("WIDGETS", QByteArray(""));
-      count = 0;
-    }
-  }
-
-  if (count)
-  {
-    htmlParser.appendField("WIDGET_ROWS", htmlParser.parse(htmlWidgetRow));
-    htmlParser.setField("WIDGETS", QByteArray(""));
+    content += htmlParser.parse(htmlErrorLog);
   }
 
   socket->write(response);
-  socket->write(parseHtmlContent(QUrl(request.path()), htmlParser.parse(htmlMain), ""));
+  socket->write(parseHtmlContent(QUrl(request.path()), content, ""));
   return SHttpServer::SocketOp_Close;
 }
 
@@ -557,7 +427,7 @@ SHttpServer::SocketOp Backend::handleHtmlSearch(const SHttpServer::RequestMessag
   }
 
   socket->write(response);
-  socket->write(parseHtmlContent(url, htmlParser.parse(htmlSearchResults), headSearchResults));
+  socket->write(parseHtmlContent(url, htmlParser.parse(htmlSearchResults), ""));
   return SHttpServer::SocketOp_Close;
 }
 
