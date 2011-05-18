@@ -37,20 +37,21 @@ const char MediaServer::m3uPlaylistItem[] =
     "#EXTINF:{ITEM_LENGTH},{ITEM_NAME}\n"
     "{ITEM_URL}\n";
 
-const char MediaServer::htmlPages[] =
-    "<div class=\"pageselector\">\n"
-    " {PAGES}\n"
-    "</div>\n";
-
 const char MediaServer::htmlPageItem[] =
-    " <a class=\"pageselector\" href=\"{ITEM_LINK}\">{ITEM_NAME}</a>";
+    "    <li><a href=\"{ITEM_LINK}\">{ITEM_NAME}</a></li>\n";
 
-const char MediaServer::htmlPageCurrentItem[] =
-    " {ITEM_NAME}";
+const char MediaServer::htmlPageSeparator[] =
+    "    <li>{ITEM_NAME}</li>\n";
 
-const char MediaServer::htmlThumbnails[] =
-    " {PAGES}\n"
-    "{ITEMS}";
+const char MediaServer::htmlThumbnailList[] =
+    " <div class=\"content\">\n"
+    "  <div class=\"pageselector\"><ul>\n"
+    "{PAGES}"
+    "  </ul></div>\n"
+    "  <div class=\"thumbnaillist\">\n"
+    "{ITEMS}"
+    "  </div>\n"
+    " </div>\n";
 
 const char MediaServer::htmlThumbnailItem[] =
     "  <div class=\"thumbnaillistitem\">\n"
@@ -73,10 +74,14 @@ const char MediaServer::htmlThumbnailItemNoTitle[] =
     "  </div>\n";
 
 const char MediaServer::htmlDetailedList[] =
-    " {PAGES}\n"
+    " <div class=\"content\">\n"
+    "  <div class=\"pageselector\"><ul>\n"
+    "{PAGES}"
+    "  </ul></div>\n"
     " <table class=\"list\">\n"
-    "{LIST}"
-    " </table>\n";
+    "{ITEMS}"
+    " </table>\n"
+    " </div>\n";
 
 const char MediaServer::htmlDetailedListRow[] =
     "  <tr class=\"{ROW_CLASS}\">\n"
@@ -105,124 +110,112 @@ const char MediaServer::htmlDetailedListColumnLink[] =
     "    </a>\n"
     "   </td>\n";
 
-const char MediaServer::htmlPlayer[] =
-    " <table class=\"main\">\n"
-    "  <tr class=\"main\">\n"
-    "   <td class=\"maincenter\" colspan=\"2\">\n"
-    "{PLAYER}\n"
-    "   </td>\n"
-    "  </tr>\n"
-    "  <tr class=\"main\">\n"
-    "   <td class=\"mainleft\" width=\"40%\">\n"
-    "{PLAYER_INFOITEMS}"
-    "   </td>\n"
-    "   <td class=\"mainleft\" width=\"60%\">\n"
-    "    <b>{PLAYER_DESCRIPTION_NAME}:</b><br />\n"
-    "{PLAYER_DESCRIPTION}"
-    "   </td>\n"
-    "  </tr>\n"
-    " </table>\n";
-
 const char MediaServer::htmlPlayerAudioItem[] =
-    "     <center>\n"
-    "      <div id=\"player\" style=\"display:block;height:{HEIGHT}px;\" href=\"{PLAYER_ITEM}.flv\"></div>\n"
-    "      <script language=\"JavaScript\" type=\"text/javascript\">\n"
-    "       <!--\n"
-    "       flowplayer(\"player\", \"/swf/flowplayer.swf\", {\n"
-    "         clip: { autoPlay: true }\n"
-    "        } );\n"
-    "       //-->\n"
-    "      </script>\n"
-    "     </center>\n"
-    ;
+    "    <div id=\"player\" style=\"display:block;height:{HEIGHT}px;\" href=\"{PLAYER_ITEM}.flv\"></div>\n"
+    "    <script language=\"JavaScript\" type=\"text/javascript\">\n"
+    "     <!--\n"
+    "     flowplayer(\"player\", \"/swf/flowplayer.swf\", {\n"
+    "       clip: { autoPlay: true }\n"
+    "      } );\n"
+    "     //-->\n"
+    "    </script>\n";
 
 const char MediaServer::htmlPlayerAudioItemHtml5[] =
-    "    <audio src=\"{PLAYER_ITEM}.wav\" autoplay=\"autoplay\" controls=\"controls\">\n"
+    " <div class=\"content\">\n"
+    "  <div class=\"pageselector\"><ul>\n"
+    "{PAGES}"
+    "  </ul></div>\n"
+    "  <div class=\"player\">\n"
+    "   <audio src=\"{PLAYER_ITEM}.wav\" autoplay=\"autoplay\" controls=\"controls\">\n"
     "{FLV_PLAYER}"
-    "    </audio>\n"
-    ;
+    "   </audio>\n"
+    "  </div>\n"
+    " </div>\n";
 
 const char MediaServer::htmlPlayerVideoItem[] =
-    "     <center>\n"
-    "      <div id=\"player\" style=\"display:block;width:{WIDTH}px;height:{HEIGHT}px;\" href=\"{PLAYER_ITEM}.flv{QUERYX}\"></div>\n"
-    "      <script language=\"JavaScript\" type=\"text/javascript\">\n"
-    "       <!--\n"
-    "       flowplayer(\"player\", \"/swf/flowplayer.swf\", {\n"
-    "         clip: { scaling: 'fit', accelerated: true, autoPlay: true }\n"
-    "        } );\n"
-    "       //-->\n"
-    "      </script>\n"
-    "     </center>\n"
-    ;
+    "    <div id=\"player\" style=\"display:block;width:{WIDTH}px;height:{HEIGHT}px;\" href=\"{PLAYER_ITEM}.flv{QUERYX}\"></div>\n"
+    "    <script language=\"JavaScript\" type=\"text/javascript\">\n"
+    "     <!--\n"
+    "     flowplayer(\"player\", \"/swf/flowplayer.swf\", {\n"
+    "       clip: { scaling: 'fit', accelerated: true, autoPlay: true }\n"
+    "      } );\n"
+    "     //-->\n"
+    "    </script>\n";
 
 const char MediaServer::htmlPlayerVideoItemHtml5[] =
-    "    <video src=\"{PLAYER_ITEM}.ogg{QUERY}\" width=\"{WIDTH}\" height=\"{HEIGHT}\" autoplay=\"autoplay\" controls=\"controls\">\n"
+    " <div class=\"content\">\n"
+    "  <div class=\"pageselector\"><ul>\n"
+    "{PAGES}"
+    "  </ul></div>\n"
+    "  <div class=\"player\">\n"
+    "   <video src=\"{PLAYER_ITEM}.ogg{QUERY}\" width=\"{WIDTH}\" height=\"{HEIGHT}\" autoplay=\"autoplay\" controls=\"controls\">\n"
     "{FLV_PLAYER}"
-    "    </video>\n"
-    ;
+    "   </video>\n"
+    "  </div>\n"
+    " </div>\n";
 
 const char MediaServer::htmlPlayerThumbItem[] =
-    "    <center>\n"
-    "     <table style=\"padding:0;border-spacing:0;width:{WIDTH}px;height:{HEIGHT}px;background-image:url('{PLAYER_ITEM}-thumb.png?size={WIDTH}x{HEIGHT}');background-position:center;background-repeat:no-repeat;background-color:#000000;\">\n"
-    "      <tr style=\"vertical-align:middle;height:{HEIGHT2}px;\"><td>\n"
-    "       <center>\n"
-    "        <div style=\"padding:1em;background-color:rgba(255,255,255,0.7);width:{WIDTH23}px;\">\n"
-    "         {TR_DOWNLOAD_OPTIONS_EXPLAIN}\n"
-    "         <br /><br />\n"
-    "         <form name=\"play\" action=\"{PLAYER_ITEM}.html\" method=\"get\">\n"
-    "          <input type=\"hidden\" name=\"play\" value=\"play\" />\n"
-    "          {TR_LANGUAGE}:\n"
-    "          <select name=\"language\">\n"
+    " <div class=\"content\">\n"
+    "  <div class=\"pageselector\"><ul>\n"
+    "{PAGES}"
+    "  </ul></div>\n"
+    "  <div class=\"player\">\n"
+    "   <div style=\"padding:0;margin:0;display:table-cell;"
+                    "width:{WIDTH}px;height:{HEIGHT}px;vertical-align:middle;"
+                    "background-image:url('{PLAYER_ITEM}-thumb.png?size={WIDTH}x{HEIGHT}');"
+                    "background-position:center;background-repeat:no-repeat;background-color:#000000;\">\n"
+    "    <div style=\"padding:1em;margin:1em auto;width:{WIDTH23}px;background-color:rgb(176,176,176);background-color:rgba(255,255,255,0.7);\">\n"
+    "     {TR_DOWNLOAD_OPTIONS_EXPLAIN}\n"
+    "     <br /><br />\n"
+    "     <form name=\"play\" action=\"{PLAYER_ITEM}.html\" method=\"get\">\n"
+    "      <input type=\"hidden\" name=\"play\" value=\"play\" />\n"
+    "      {TR_LANGUAGE}:\n"
+    "      <select name=\"language\">\n"
     "{LANGUAGES}"
-    "          </select>\n"
-    "          {TR_SUBTITLES}:\n"
-    "          <select name=\"subtitles\">\n"
+    "      </select>\n"
+    "      {TR_SUBTITLES}:\n"
+    "      <select name=\"subtitles\">\n"
     "{SUBTITLES}"
-    "          </select>\n"
-    "          <br /><br />\n"
-    "          {TR_START_FROM}:\n"
-    "          <select name=\"position\">\n"
+    "      </select>\n"
+    "      <br /><br />\n"
+    "      {TR_START_FROM}:\n"
+    "      <select name=\"position\">\n"
     "{CHAPTERS}"
-    "          </select>\n"
-    "          <br /><br />\n"
-    "          <input type=\"submit\" value=\"{TR_PLAY_HERE}\" />\n"
-    "         </form>\n"
-    "        </div>\n"
-    "       </center>\n"
-    "      </td></tr>\n"
-    "      <tr style=\"vertical-align:middle;height:{HEIGHT2}px;\"><td>\n"
-    "       <center>\n"
-    "        <div style=\"padding:1em;background-color:rgba(255,255,255,0.7);width:{WIDTH23}px;\">\n"
-    "         {TR_TRANSCODE_OPTIONS_EXPLAIN}\n"
-    "         <br /><br />\n"
-    "         <form name=\"dlnasettings\" action=\"{CLEAN_TITLE}.mpeg\" method=\"get\">\n"
-    "          <input type=\"hidden\" name=\"item\" value=\"{PLAYER_ITEM}\" />\n"
-    "          <input type=\"hidden\" name=\"encode\" value=\"slow\" />\n"
-    "          <input type=\"hidden\" name=\"priority\" value=\"low\" />\n"
-    "          {TR_LANGUAGE}:\n"
-    "          <select name=\"language\">\n"
+    "      </select>\n"
+    "      <br /><br />\n"
+    "      <input type=\"submit\" value=\"{TR_PLAY_HERE}\" />\n"
+    "     </form>\n"
+    "    </div>\n"
+    "    <div style=\"padding:1em;margin:1em auto;width:{WIDTH23}px;background-color:rgb(176,176,176);background-color:rgba(255,255,255,0.7);\">\n"
+    "     {TR_TRANSCODE_OPTIONS_EXPLAIN}\n"
+    "     <br /><br />\n"
+    "     <form name=\"dlnasettings\" action=\"{CLEAN_TITLE}.mpeg\" method=\"get\">\n"
+    "      <input type=\"hidden\" name=\"item\" value=\"{PLAYER_ITEM}\" />\n"
+    "      <input type=\"hidden\" name=\"encode\" value=\"slow\" />\n"
+    "      <input type=\"hidden\" name=\"priority\" value=\"low\" />\n"
+    "      {TR_LANGUAGE}:\n"
+    "      <select name=\"language\">\n"
     "{LANGUAGES}"
-    "          </select>\n"
-    "          {TR_SUBTITLES}:\n"
-    "          <select name=\"subtitles\">\n"
+    "      </select>\n"
+    "      {TR_SUBTITLES}:\n"
+    "      <select name=\"subtitles\">\n"
     "{SUBTITLES}"
-    "          </select>\n"
-    "          <br /><br />\n"
-    "          {TR_TRANSCODE_TO}:\n"
-    "          <select name=\"size\">\n"
+    "      </select>\n"
+    "      <br /><br />\n"
+    "      {TR_TRANSCODE_TO}:\n"
+    "      <select name=\"size\">\n"
     "{FORMATS}"
-    "          </select>\n"
-    "          <select name=\"requestchannels\">\n"
+    "      </select>\n"
+    "      <select name=\"requestchannels\">\n"
     "{CHANNELS}"
-    "          </select>\n"
-    "          <br /><br />\n"
-    "          <input type=\"submit\" value=\"{TR_DOWNLOAD}\" />\n"
-    "         </form>\n"
-    "        </div>\n"
-    "       </center>\n"
-    "      </td></tr>\n"
-    "     </table>\n"
-    "    </center>\n";
+    "      </select>\n"
+    "      <br /><br />\n"
+    "      <input type=\"submit\" value=\"{TR_DOWNLOAD}\" />\n"
+    "     </form>\n"
+    "    </div>\n"
+    "   </div>\n"
+    "  </div>\n"
+    " </div>\n";
 
 const char MediaServer::htmlPlayerThumbItemOption[] =
     "           <option value=\"{VALUE}\" {SELECTED}>{TEXT}</option>\n";
@@ -239,11 +232,41 @@ const char MediaServer::htmlPlayerInfoAction[] =
 
 
 const char MediaServer::headPlayer[] =
-    " <script type=\"text/javascript\" src=\"/swf/flowplayer.js\" />\n";
+    " <script type=\"text/javascript\" src=\"/swf/flowplayer.js\"><!-- IE bug --></script>\n";
 
 void MediaServer::enableHtml5(bool enabled)
 {
   html5Enabled = enabled;
+}
+
+QByteArray MediaServer::buildPages(const QString &path)
+{
+  QByteArray result;
+
+  QByteArray fullPath = serverPath();
+  HtmlParser htmlParser;
+  htmlParser.setField("ITEM_LINK", fullPath);
+  htmlParser.setField("ITEM_NAME", serverName());
+  result += htmlParser.parse(htmlPageItem);
+
+  const int lastSlash = path.lastIndexOf('/');
+  if (lastSlash > 0)
+  {
+    const QStringList dirs = path.left(lastSlash).split('/', QString::SkipEmptyParts);
+
+    for (int i=0; i<dirs.count(); i++)
+    {
+      htmlParser.setField("ITEM_NAME", QByteArray(">"));
+      result += htmlParser.parse(htmlPageSeparator);
+
+      fullPath += dirs[i] + "/";
+      htmlParser.setField("ITEM_LINK", fullPath);
+      htmlParser.setField("ITEM_NAME", dirs[i]);
+      result += htmlParser.parse(htmlPageItem);
+    }
+  }
+
+  return result;
 }
 
 QByteArray MediaServer::buildThumbnailView(const QString &dirPath, const ThumbnailListItemList &items, int start, int total)
@@ -251,25 +274,7 @@ QByteArray MediaServer::buildThumbnailView(const QString &dirPath, const Thumbna
   HtmlParser htmlParser;
 
   // Build the page selector
-  htmlParser.setField("PAGES", QByteArray(""));
-
-  const QStringList dirs = dirPath.split('/', QString::SkipEmptyParts);
-
-  QByteArray fullPath = serverPath();
-  htmlParser.setField("ITEM_LINK", fullPath);
-  htmlParser.setField("ITEM_NAME", serverName());
-  htmlParser.appendField("PAGES", htmlParser.parse(dirs.isEmpty() ? htmlPageCurrentItem : htmlPageItem));
-
-  for (int i=0; i<dirs.count(); i++)
-  {
-    htmlParser.setField("ITEM_NAME", QByteArray(">"));
-    htmlParser.appendField("PAGES", htmlParser.parse(htmlPageCurrentItem));
-
-    fullPath += dirs[i] + "/";
-    htmlParser.setField("ITEM_LINK", fullPath);
-    htmlParser.setField("ITEM_NAME", dirs[i]);
-    htmlParser.appendField("PAGES", htmlParser.parse(i == (dirs.count() - 1) ? htmlPageCurrentItem : htmlPageItem));
-  }
+  htmlParser.setField("PAGES", buildPages(dirPath));
 
   const unsigned numPages = (total + (itemsPerThumbnailPage - 1)) / itemsPerThumbnailPage;
   const unsigned selectedPage = start / itemsPerThumbnailPage;
@@ -277,7 +282,7 @@ QByteArray MediaServer::buildThumbnailView(const QString &dirPath, const Thumbna
   if (numPages > 1)
   {
     htmlParser.setField("ITEM_NAME", QByteArray("("));
-    htmlParser.appendField("PAGES", htmlParser.parse(htmlPageCurrentItem));
+    htmlParser.appendField("PAGES", htmlParser.parse(htmlPageSeparator));
 
     for (unsigned i=0; i<numPages; i++)
     {
@@ -287,14 +292,12 @@ QByteArray MediaServer::buildThumbnailView(const QString &dirPath, const Thumbna
       if (i != selectedPage)
         htmlParser.appendField("PAGES", htmlParser.parse(htmlPageItem));
       else
-        htmlParser.appendField("PAGES", htmlParser.parse(htmlPageCurrentItem));
+        htmlParser.appendField("PAGES", htmlParser.parse(htmlPageItem));
     }
 
     htmlParser.setField("ITEM_NAME", QByteArray(")"));
-    htmlParser.appendField("PAGES", htmlParser.parse(htmlPageCurrentItem));
+    htmlParser.appendField("PAGES", htmlParser.parse(htmlPageSeparator));
   }
-
-  htmlParser.setField("PAGES", htmlParser.parse(htmlPages));
 
   // Build the content
   htmlParser.setField("ITEMS", QByteArray(""));
@@ -307,7 +310,7 @@ QByteArray MediaServer::buildThumbnailView(const QString &dirPath, const Thumbna
     htmlParser.appendField("ITEMS", htmlParser.parse(item.title.isEmpty() ? htmlThumbnailItemNoTitle : htmlThumbnailItem));
   }
 
-  return htmlParser.parse(htmlThumbnails);
+  return htmlParser.parse(htmlThumbnailList);
 }
 
 QByteArray MediaServer::buildDetailedView(const QString &dirPath, const QStringList &columns, const DetailedListItemList &items)
@@ -315,30 +318,10 @@ QByteArray MediaServer::buildDetailedView(const QString &dirPath, const QStringL
   HtmlParser htmlParser;
 
   // Build the page selector
-  htmlParser.setField("PAGES", QByteArray(""));
-
-  const QStringList dirs = dirPath.split('/', QString::SkipEmptyParts);
-
-  QByteArray fullPath = serverPath();
-  htmlParser.setField("ITEM_LINK", fullPath);
-  htmlParser.setField("ITEM_NAME", serverName());
-  htmlParser.appendField("PAGES", htmlParser.parse(dirs.isEmpty() ? htmlPageCurrentItem : htmlPageItem));
-
-  for (int i=0; i<dirs.count(); i++)
-  {
-    htmlParser.setField("ITEM_NAME", QByteArray(">"));
-    htmlParser.appendField("PAGES", htmlParser.parse(htmlPageCurrentItem));
-
-    fullPath += dirs[i] + "/";
-    htmlParser.setField("ITEM_LINK", fullPath);
-    htmlParser.setField("ITEM_NAME", dirs[i]);
-    htmlParser.appendField("PAGES", htmlParser.parse(i == (dirs.count() - 1) ? htmlPageCurrentItem : htmlPageItem));
-  }
-
-  htmlParser.setField("PAGES", htmlParser.parse(htmlPages));
+  htmlParser.setField("PAGES", buildPages(dirPath));
 
   // Build the table head
-  htmlParser.setField("LIST", QByteArray(""));
+  htmlParser.setField("ITEMS", QByteArray(""));
   htmlParser.setField("COLUMNS", QByteArray(""));
   htmlParser.setField("ROW_CLASS", QByteArray("listitem"));
 
@@ -351,7 +334,7 @@ QByteArray MediaServer::buildDetailedView(const QString &dirPath, const QStringL
     htmlParser.appendField("COLUMNS", htmlParser.parse(htmlDetailedListHead));
   }
 
-  htmlParser.appendField("LIST", htmlParser.parse(htmlDetailedListRow));
+  htmlParser.appendField("ITEMS", htmlParser.parse(htmlDetailedListRow));
 
   // Build the content
   int itemNum = 0;
@@ -374,15 +357,24 @@ QByteArray MediaServer::buildDetailedView(const QString &dirPath, const QStringL
         htmlParser.appendField("COLUMNS", htmlParser.parse(htmlDetailedListColumn));
     }
 
-    htmlParser.appendField("LIST", htmlParser.parse(htmlDetailedListRow));
+    htmlParser.appendField("ITEMS", htmlParser.parse(htmlDetailedListRow));
   }
 
   return htmlParser.parse(htmlDetailedList);
 }
 
-QByteArray MediaServer::buildVideoPlayer(const QByteArray &item, const QString &title, const SMediaInfo::Program &program, const QUrl &url, const QSize &size, SAudioFormat::Channels channels)
+QByteArray MediaServer::buildVideoPlayer(const QString &dirPath, const QByteArray &item, const QString &title, const SMediaInfo::Program &program, const QUrl &url, const QSize &size, SAudioFormat::Channels channels)
 {
   HtmlParser htmlParser;
+
+  // Build the page selector
+  htmlParser.setField("PAGES", buildPages(dirPath));
+  htmlParser.setField("ITEM_NAME", QByteArray(">"));
+  htmlParser.appendField("PAGES", htmlParser.parse(htmlPageSeparator));
+  htmlParser.setField("ITEM_NAME", title);
+  htmlParser.appendField("PAGES", htmlParser.parse(htmlPageSeparator));
+
+  // Build the player
   htmlParser.setField("CLEAN_TITLE", SStringParser::toCleanName(title));
   htmlParser.setField("PLAYER_ITEM", item);
   htmlParser.setField("TR_PLAY_HERE", tr("Play now"));
@@ -403,7 +395,6 @@ QByteArray MediaServer::buildVideoPlayer(const QByteArray &item, const QString &
   htmlParser.setField("WIDTH", QByteArray::number(size.width()));
   htmlParser.setField("WIDTH23", QByteArray::number(size.width() * 2 / 3));
   htmlParser.setField("HEIGHT", QByteArray::number(size.height()));
-  htmlParser.setField("HEIGHT2", QByteArray::number(size.height() / 2));
   htmlParser.setField("LANGUAGE", url.queryItemValue("language"));
 
   QByteArray query =
@@ -548,9 +539,18 @@ QByteArray MediaServer::buildVideoPlayer(const QByteArray &item, const QString &
     return htmlParser.parse(htmlPlayerThumbItem);
 }
 
-QByteArray MediaServer::buildVideoPlayer(const QByteArray &item, const QString &title, const QUrl &url, const QSize &size, SAudioFormat::Channels channels)
+QByteArray MediaServer::buildVideoPlayer(const QString &dirPath, const QByteArray &item, const QString &title, const QUrl &url, const QSize &size, SAudioFormat::Channels channels)
 {
   HtmlParser htmlParser;
+
+  // Build the page selector
+  htmlParser.setField("PAGES", buildPages(dirPath));
+  htmlParser.setField("ITEM_NAME", QByteArray(">"));
+  htmlParser.appendField("PAGES", htmlParser.parse(htmlPageSeparator));
+  htmlParser.setField("ITEM_NAME", title);
+  htmlParser.appendField("PAGES", htmlParser.parse(htmlPageSeparator));
+
+  // Build the player
   htmlParser.setField("CLEAN_TITLE", SStringParser::toCleanName(title));
   htmlParser.setField("PLAYER_ITEM", item);
   htmlParser.setField("TR_PLAY_HERE", tr("Play now"));
@@ -571,7 +571,6 @@ QByteArray MediaServer::buildVideoPlayer(const QByteArray &item, const QString &
   htmlParser.setField("WIDTH", QByteArray::number(size.width()));
   htmlParser.setField("WIDTH23", QByteArray::number(size.width() * 2 / 3));
   htmlParser.setField("HEIGHT", QByteArray::number(size.height()));
-  htmlParser.setField("HEIGHT2", QByteArray::number(size.height() / 2));
   htmlParser.setField("LANGUAGE", url.queryItemValue("language"));
 
   QByteArray query =

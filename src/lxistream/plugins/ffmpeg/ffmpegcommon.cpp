@@ -850,8 +850,8 @@ int FFMpegCommon::encodeThreadCount(::CodecID codec)
   int limit;
   switch (codec)
   {
-  case CODEC_ID_FFVHUFF:
   case CODEC_ID_MPEG2VIDEO:
+  case CODEC_ID_FFVHUFF:
     limit = threadLimit;
     break;
 
@@ -863,9 +863,26 @@ int FFMpegCommon::encodeThreadCount(::CodecID codec)
   return qBound(1, QThreadPool::globalInstance()->maxThreadCount(), limit);
 }
 
-int FFMpegCommon::decodeThreadCount(::CodecID)
+int FFMpegCommon::decodeThreadCount(::CodecID codec)
 {
-  return qBound(1, QThreadPool::globalInstance()->maxThreadCount(), threadLimit + 0);
+  int limit;
+  switch (codec)
+  {
+  case CODEC_ID_MPEG2VIDEO:
+  case CODEC_ID_H263:
+  case CODEC_ID_H264:
+  case CODEC_ID_THEORA:
+  case CODEC_ID_FFVHUFF:
+  case CODEC_ID_FFH264:
+    limit = threadLimit;
+    break;
+
+  default:
+    limit = 1;
+    break;
+  }
+
+  return qBound(1, QThreadPool::globalInstance()->maxThreadCount(), limit);
 }
 
 int FFMpegCommon::execute(::AVCodecContext *c, int (*func)(::AVCodecContext *c2, void *arg), void *arg2, int *ret, int count, int size)

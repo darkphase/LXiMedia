@@ -46,7 +46,8 @@ private:
   SHttpServer::SocketOp         handleHtmlRequest(const SHttpServer::RequestMessage &, QAbstractSocket *, const QString &);
 
 private:
-  static const char     * const htmlView;
+  static const char             htmlView[];
+  static const char             htmlDetail[];
 };
 
 } } // End of namespaces

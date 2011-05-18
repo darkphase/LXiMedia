@@ -129,8 +129,8 @@ protected: // Implemented in mediaserver.html.cpp
   static const char             m3uPlaylistItem[];
   static const char             htmlPages[];
   static const char             htmlPageItem[];
-  static const char             htmlPageCurrentItem[];
-  static const char             htmlThumbnails[];
+  static const char             htmlPageSeparator[];
+  static const char             htmlThumbnailList[];
   static const char             htmlThumbnailItem[];
   static const char             htmlThumbnailItemNoTitle[];
   static const char             htmlDetailedList[];
@@ -139,7 +139,6 @@ protected: // Implemented in mediaserver.html.cpp
   static const char             htmlDetailedListIcon[];
   static const char             htmlDetailedListColumn[];
   static const char             htmlDetailedListColumnLink[];
-  static const char             htmlPlayer[];
   static const char             htmlPlayerAudioItem[];
   static const char             htmlPlayerAudioItemHtml5[];
   static const char             htmlPlayerVideoItem[];
@@ -152,10 +151,11 @@ protected: // Implemented in mediaserver.html.cpp
 
   static const char             headPlayer[];
 
+  QByteArray                    buildPages(const QString &path);
   QByteArray                    buildThumbnailView(const QString &path, const ThumbnailListItemList &, int, int);
   QByteArray                    buildDetailedView(const QString &path, const QStringList &columns, const DetailedListItemList &);
-  static QByteArray             buildVideoPlayer(const QByteArray &item, const QString &title, const SMediaInfo::Program &, const QUrl &, const QSize & = QSize(768, 432), SAudioFormat::Channels = SAudioFormat::Channels_Stereo);
-  static QByteArray             buildVideoPlayer(const QByteArray &item, const QString &title, const QUrl &, const QSize & = QSize(768, 432), SAudioFormat::Channels = SAudioFormat::Channels_Stereo);
+  QByteArray                    buildVideoPlayer(const QString &path, const QByteArray &item, const QString &title, const SMediaInfo::Program &, const QUrl &, const QSize & = QSize(768, 432), SAudioFormat::Channels = SAudioFormat::Channels_Stereo);
+  QByteArray                    buildVideoPlayer(const QString &path, const QByteArray &item, const QString &title, const QUrl &, const QSize & = QSize(768, 432), SAudioFormat::Channels = SAudioFormat::Channels_Stereo);
 };
 
 } // End of namespace
