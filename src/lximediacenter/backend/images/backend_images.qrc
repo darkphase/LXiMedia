@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/backend">
+        <file>lximedia.png</file>
         <file>null.png</file>
         <file>checknone.png</file>
         <file>checkfull.png</file>

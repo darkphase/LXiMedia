@@ -565,6 +565,7 @@ SHttpServer::SocketOp Backend::handleHttpRequest(const SHttpServer::RequestMessa
     else if (path == "/appicon.png")                sendFile = ":/lximediacenter/appicon.png";
     else if (path == "/logo.png")                   sendFile = ":/lximediacenter/logo.png";
 
+    else if (path == "/img/lximedia.png")           sendFile = ":/backend/lximedia.png";
     else if (path == "/img/null.png")               sendFile = ":/backend/null.png";
     else if (path == "/img/checknone.png")          sendFile = ":/backend/checknone.png";
     else if (path == "/img/checkfull.png")          sendFile = ":/backend/checkfull.png";

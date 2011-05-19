@@ -31,21 +31,6 @@ const char * const Backend::htmlIndex =
     "{HEAD}"
     "</head>\n"
     "<body>\n"
-    " <div class=\"head\">\n"
-    "  <table class=\"head\">\n"
-    "   <tr><td class=\"heada\">\n"
-    "    <span class=\"headlogoa\">LX</span>\n"
-    "    <span class=\"headlogob\">i</span>\n"
-    "    <span class=\"headlogoc\">Media</span>\n"
-    "    <span class=\"headlogoa\">Center</span>\n"
-    "   </td><td class=\"headb\">\n"
-    "    <form name=\"search\" action=\"\" method=\"get\">\n"
-    "     <input type=\"text\" size=\"40\" name=\"q\" value=\"\" />\n"
-    "     <input type=\"submit\" value=\"{TR_SEARCH}\" />\n"
-    "    </form>\n"
-    "   </td></tr>\n"
-    "  </table>\n"
-    " </div>\n"
     "{MAIN_MENUGROUPS}"
     "{CONTENT}"
     "</body>\n"
@@ -59,6 +44,15 @@ const char * const Backend::htmlMenuGroup =
 
 const char * const Backend::htmlMenuItem =
     "  <li><a href=\"{LINK}\">{TEXT}</a></li>\n";
+
+const char * const Backend::htmlMain =
+    " <div style=\"display:block;text-align:center;\">\n"
+    "  <img src=\"/img/lximedia.png\" /><br />\n"
+    "  <form name=\"search\" action=\"\" method=\"get\">\n"
+    "   <input type=\"text\" size=\"60\" name=\"q\" value=\"\" /><br />\n"
+    "   <input type=\"submit\" value=\"{TR_SEARCH}\" />\n"
+    "  </form>\n"
+    " </div>\n";
 
 const char * const Backend::htmlSearchResults =
     " {TR_RESULTS} {FROM} - {TO} {TR_OF} {OF} ({TIME} {TR_SECONDS})<br />\n"
@@ -303,7 +297,7 @@ SHttpServer::SocketOp Backend::handleHtmlRequest(const SHttpServer::RequestMessa
   response.setContentType("text/html;charset=utf-8");
   response.setField("Cache-Control", "no-cache");
 
-  QByteArray content;
+  QByteArray content = htmlParser.parse(htmlMain);
 
   // Submit error log
   const QSet<QString> dismissedFiles =

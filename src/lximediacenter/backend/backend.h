@@ -109,6 +109,7 @@ private:
   static const char     * const htmlIndex;
   static const char     * const htmlMenuGroup;
   static const char     * const htmlMenuItem;
+  static const char     * const htmlMain;
   static const char     * const htmlSearchResults;
   static const char     * const htmlSearchResultsPage;
   static const char     * const htmlSearchResultsItem;
