@@ -78,37 +78,30 @@ const char MediaServer::htmlDetailedList[] =
     "  <div class=\"pageselector\"><ul>\n"
     "{PAGES}"
     "  </ul></div>\n"
-    " <table class=\"list\">\n"
+    "  <table class=\"detailedlist\">\n"
     "{ITEMS}"
-    " </table>\n"
+    "  </table>\n"
     " </div>\n";
 
 const char MediaServer::htmlDetailedListRow[] =
-    "  <tr class=\"{ROW_CLASS}\">\n"
+    "   <tr>\n"
     "{COLUMNS}"
-    "  </tr>\n";
+    "   </tr>\n";
 
 const char MediaServer::htmlDetailedListHead[] =
-    "   <th class=\"{ROW_CLASS}\">\n"
-    "    {ITEM_TITLE}\n"
-    "   </th>\n";
-
-const char MediaServer::htmlDetailedListIcon[] =
-    "   <td class=\"{ROW_CLASS}\" width=\"0%\">\n"
-    "    <img src=\"{ITEM_ICONURL}\" alt=\"{ITEM_TITLE}\" />\n"
-    "   </td>\n";
+    "    <th>{ITEM_TITLE}</th>\n";
 
 const char MediaServer::htmlDetailedListColumn[] =
-    "   <td class=\"{ROW_CLASS}\">\n"
-    "    {ITEM_TITLE}\n"
-    "   </td>\n";
+    "    <td>{ITEM_TITLE}</td>\n";
+
+const char MediaServer::htmlDetailedListColumnIcon[] =
+    "    <td><img src=\"{ITEM_ICONURL}\" alt=\"..\" />{ITEM_TITLE}</td>\n";
 
 const char MediaServer::htmlDetailedListColumnLink[] =
-    "   <td class=\"{ROW_CLASS}\">\n"
-    "    <a class=\"listitem\" title=\"{ITEM_TITLE}\" href=\"{ITEM_URL}\">\n"
-    "     {ITEM_TITLE}\n"
-    "    </a>\n"
-    "   </td>\n";
+    "    <td><a title=\"{ITEM_TITLE}\" href=\"{ITEM_URL}\">{ITEM_TITLE}</a></td>\n";
+
+const char MediaServer::htmlDetailedListColumnLinkIcon[] =
+    "    <td><a title=\"{ITEM_TITLE}\" href=\"{ITEM_URL}\"><img src=\"{ITEM_ICONURL}\" alt=\"..\" />{ITEM_TITLE}</a></td>\n";
 
 const char MediaServer::htmlPlayerAudioItem[] =
     "    <div id=\"player\" style=\"display:block;height:{HEIGHT}px;\" href=\"{PLAYER_ITEM}.flv\"></div>\n"
@@ -321,28 +314,20 @@ QByteArray MediaServer::buildDetailedView(const QString &dirPath, const QStringL
   htmlParser.setField("PAGES", buildPages(dirPath));
 
   // Build the table head
-  htmlParser.setField("ITEMS", QByteArray(""));
   htmlParser.setField("COLUMNS", QByteArray(""));
-  htmlParser.setField("ROW_CLASS", QByteArray("listitem"));
-
-  htmlParser.setField("ITEM_TITLE", QByteArray(""));
-  htmlParser.appendField("COLUMNS", htmlParser.parse(htmlDetailedListHead)); // Icon column
-
   foreach (const QString &column, columns)
   {
     htmlParser.setField("ITEM_TITLE", column);
     htmlParser.appendField("COLUMNS", htmlParser.parse(htmlDetailedListHead));
   }
 
-  htmlParser.appendField("ITEMS", htmlParser.parse(htmlDetailedListRow));
+  htmlParser.setField("ITEMS", htmlParser.parse(htmlDetailedListRow));
 
   // Build the content
   int itemNum = 0;
   foreach (const DetailedListItem &item, items)
   {
     htmlParser.setField("COLUMNS", QByteArray(""));
-    htmlParser.setField("ROW_CLASS", QByteArray((itemNum++ & 1) ? "listaltitem" : "listitem"));
-
     for (int i=0; i<item.columns.count(); i++)
     {
       htmlParser.setField("ITEM_TITLE", item.columns[i]);
@@ -350,8 +335,7 @@ QByteArray MediaServer::buildDetailedView(const QString &dirPath, const QStringL
       {
         htmlParser.setField("ITEM_ICONURL", item.iconurl.toString());
         htmlParser.setField("ITEM_URL", item.url.toString());
-        htmlParser.appendField("COLUMNS", htmlParser.parse(htmlDetailedListIcon));
-        htmlParser.appendField("COLUMNS", htmlParser.parse(htmlDetailedListColumnLink));
+        htmlParser.appendField("COLUMNS", htmlParser.parse(htmlDetailedListColumnLinkIcon));
       }
       else
         htmlParser.appendField("COLUMNS", htmlParser.parse(htmlDetailedListColumn));
