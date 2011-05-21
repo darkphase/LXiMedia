@@ -147,23 +147,19 @@ void Backend::start(void)
   cssParser.clear();
   htmlParser.clear();
 
-  htmlParser.setField("TR_MEDIA",  tr("Media"));
-  htmlParser.setField("TR_CENTER", tr("Center"));
-  htmlParser.setField("TR_SEARCH", tr("Search"));
-
   // This call may take a while if the database needs to be updated ...
   masterImdbClient = new ImdbClient(this);
 
   // Build the menu
-  QList<QPair<QString, QByteArray> > generalMenu;
-  generalMenu += qMakePair(tr("Main"),      QByteArray("/"));
-  generalMenu += qMakePair(tr("Log"),       QByteArray("/main.log#bottom"));
+  QList<MenuItem> generalMenu;
+  generalMenu += MenuItem(tr("Main"),      "/",                 "/img/lximedia.png");
+  generalMenu += MenuItem(tr("Log"),       "/main.log#bottom",  "/img/journal.png");
 #ifndef QT_NO_DEBUG
-  generalMenu += qMakePair(tr("Exit"),      QByteArray("/?exit"));
-  generalMenu += qMakePair(tr("Restart"),   QByteArray("/?restart"));
+  generalMenu += MenuItem(tr("Exit"),      "/?exit",            "/img/control.png");
+  generalMenu += MenuItem(tr("Restart"),   "/?restart",         "/img/control.png");
 #endif
-  generalMenu += qMakePair(tr("Settings"),  QByteArray("/settings.html"));
-  generalMenu += qMakePair(tr("About"),     QByteArray("/about.html"));
+  generalMenu += MenuItem(tr("Settings"),  "/settings.html",    "/img/control.png");
+  generalMenu += MenuItem(tr("About"),     "/about.html",       "/img/glossary.png");
   submenuItems[tr("General")] = generalMenu;
 
   backendServers = BackendServer::create(this);
@@ -172,21 +168,22 @@ void Backend::start(void)
     server->initialize(this);
 
     submenuItems[server->pluginName()] +=
-        qMakePair(server->serverName(), server->serverPath());
+        MenuItem(server->serverName(), server->serverPath(), server->serverIcon());
   }
 
   htmlParser.setField("MAIN_MENUGROUPS", QByteArray(""));
-  for (QMap<QString, QList<QPair<QString, QByteArray> > >::ConstIterator i=submenuItems.begin();
+  for (QMap<QString, QList<MenuItem> >::ConstIterator i=submenuItems.begin();
        i!=submenuItems.end();
        i++)
   {
     HtmlParser localParser(htmlParser);
-    localParser.setField("MAIN_MENUITEMS", QByteArray(""));
-    for (QList<QPair<QString, QByteArray> >::ConstIterator j=i->begin(); j!=i->end(); j++)
+    localParser.setField("ITEMS", QByteArray(""));
+    foreach (const MenuItem &item, *i)
     {
-      localParser.setField("TEXT", j->first);
-      localParser.setField("LINK", j->second);
-      localParser.appendField("MAIN_MENUITEMS", localParser.parse(htmlMenuItem));
+      localParser.setField("ITEM_TITLE", item.title);
+      localParser.setField("ITEM_URL", item.url);
+      localParser.setField("ITEM_ICONURL", item.iconurl);
+      localParser.appendField("ITEMS", localParser.parse(htmlMenuItem));
     }
 
     localParser.setField("TEXT", i.key());
@@ -282,8 +279,6 @@ void Backend::start(void)
 
   SUPnPBase::ProtocolList imageProtocols = SUPnPBase::ProtocolList()
       << SUPnPBase::Protocol("http-get", "image/jpeg",  true, "DLNA.ORG_PN=JPEG_LRG", ".jpeg")
-      << SUPnPBase::Protocol("http-get", "image/jpeg",  true, "DLNA.ORG_PN=JPEG_TN", "-thumb.jpeg")
-      << SUPnPBase::Protocol("http-get", "image/jpeg",  true, "DLNA.ORG_PN=JPEG_SM", "-thumb.jpeg")
       << SUPnPBase::Protocol("http-get", "image/png",   true, "DLNA.ORG_PN=PNG_LRG", ".png")
       << SUPnPBase::Protocol("http-get", "image/png",   true, "DLNA.ORG_PN=PNG_SM", "-thumb.png");
 
@@ -330,7 +325,7 @@ Backend::SearchCacheEntry Backend::search(const QString &query) const
 
   foreach (const BackendServer *backendServer, backendServers)
   {
-    const QByteArray baseUrl = backendServer->serverPath();
+    const QString baseUrl = backendServer->serverPath();
 
     foreach (BackendServer::SearchResult result, backendServer->search(queryRaw))
     {
@@ -468,10 +463,6 @@ SHttpServer::SocketOp Backend::handleHttpRequest(const SHttpServer::RequestMessa
         socket->write(doc.toByteArray());
         return SHttpServer::SocketOp_Close;
       }
-      else if (file.endsWith(".css"))
-      {
-        return handleCssRequest(request, socket, file);
-      }
       else if (url.hasQueryItem("q"))
       {
         return handleHtmlSearch(request, socket, file);
@@ -482,73 +473,7 @@ SHttpServer::SocketOp Backend::handleHttpRequest(const SHttpServer::RequestMessa
       }
       else if (file.endsWith(".log"))
       {
-        static const char * const logHead = " <link rel=\"stylesheet\" href=\"/log.css\" type=\"text/css\" media=\"screen, handheld, projection\" />\n";
-
-        QString logFileName;
-        if (file == "main.log")
-        {
-          logFileName = sApp->activeLogFile();
-        }
-        else foreach (const QString &f, sApp->allLogFiles())
-        if (f.endsWith("/" + file))
-        {
-          logFileName = f;
-          break;
-        }
-
-        SApplication::LogFile logFile(logFileName);
-        if (logFile.open(SApplication::LogFile::ReadOnly))
-        {
-          HtmlParser htmlParser(this->htmlParser);
-          htmlParser.setField("TR_DATE", tr("Date"));
-          htmlParser.setField("TR_TYPE", tr("Type"));
-          htmlParser.setField("TR_MESSAGE", tr("Message"));
-
-          htmlParser.setField("LOG_MESSAGES", QByteArray(""));
-
-          for (SApplication::LogFile::Message msg=logFile.readMessage();
-               msg.date.isValid();
-               msg=logFile.readMessage())
-          {
-            const bool mr = !msg.message.isEmpty();
-
-            htmlParser.setField("ITEM_ROWS", QByteArray::number(mr ? 2 : 1));
-
-            if (msg.type == "INF")
-              htmlParser.setField("ITEM_CLASS", QByteArray("loginf"));
-            else if (msg.type == "WRN")
-              htmlParser.setField("ITEM_CLASS", QByteArray("logwrn"));
-            else if ((msg.type == "CRT") || (msg.type == "EXC"))
-              htmlParser.setField("ITEM_CLASS", QByteArray("logerr"));
-            else
-              htmlParser.setField("ITEM_CLASS", QByteArray("logdbg"));
-
-            htmlParser.setField("ITEM_ROWS", QByteArray::number(mr ? 2 : 1));
-            htmlParser.setField("ITEM_DATE", msg.date.toString("yyyy-MM-dd/hh:mm:ss"));
-            htmlParser.setField("ITEM_TYPE", msg.type);
-            htmlParser.setField("ITEM_PID", QByteArray::number(msg.pid));
-            htmlParser.setField("ITEM_TID", QByteArray::number(msg.tid));
-            htmlParser.setField("ITEM_TYPE", msg.type);
-            htmlParser.setField("ITEM_HEADLINE", msg.headline);
-            htmlParser.appendField("LOG_MESSAGES", htmlParser.parse(htmlLogFileHeadline));
-
-            if (mr)
-            {
-              htmlParser.setField("ITEM_MESSAGE", msg.message.replace('\n', "<br />\n"));
-              htmlParser.appendField("LOG_MESSAGES", htmlParser.parse(htmlLogFileMessage));
-            }
-          }
-
-          SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
-          response.setContentType("text/html;charset=utf-8");
-          response.setField("Cache-Control", "no-cache");
-          if (logFileName == sApp->activeLogFile())
-            response.setField("Refresh", "10;URL=#bottom");
-
-          socket->write(response);
-          socket->write(parseHtmlContent(url, htmlParser.parse(htmlLogFile), logHead));
-          return SHttpServer::SocketOp_Close;
-        }
+        return handleHtmlLogFileRequest(request, socket, file);
       }
       else if (file == "settings.html")
       {
@@ -560,32 +485,33 @@ SHttpServer::SocketOp Backend::handleHttpRequest(const SHttpServer::RequestMessa
       }
     }
 
-    QString sendFile;
-    if      (path == "/favicon.ico")                sendFile = ":/lximediacenter/appicon.ico";
-    else if (path == "/appicon.png")                sendFile = ":/lximediacenter/appicon.png";
-    else if (path == "/logo.png")                   sendFile = ":/lximediacenter/logo.png";
+    // Check if the root directory of a plugin was requested.
+    QString pluginName = path.mid(1, path.length() - 2);
+    foreach (BackendServer *server, backendServers)
+    if (pluginName == server->pluginName())
+      return handleHtmlRequest(request, socket, pluginName);
 
-    else if (path == "/img/lximedia.png")           sendFile = ":/backend/lximedia.png";
-    else if (path == "/img/null.png")               sendFile = ":/backend/null.png";
-    else if (path == "/img/checknone.png")          sendFile = ":/backend/checknone.png";
-    else if (path == "/img/checkfull.png")          sendFile = ":/backend/checkfull.png";
-    else if (path == "/img/checksome.png")          sendFile = ":/backend/checksome.png";
-    else if (path == "/img/checknonedisabled.png")  sendFile = ":/backend/checknonedisabled.png";
-    else if (path == "/img/checkfulldisabled.png")  sendFile = ":/backend/checkfulldisabled.png";
-    else if (path == "/img/checksomedisabled.png")  sendFile = ":/backend/checksomedisabled.png";
-    else if (path == "/img/treeopen.png")           sendFile = ":/backend/treeopen.png";
-    else if (path == "/img/treeclose.png")          sendFile = ":/backend/treeclose.png";
-    else if (path == "/img/starenabled.png")        sendFile = ":/backend/starenabled.png";
-    else if (path == "/img/stardisabled.png")       sendFile = ":/backend/stardisabled.png";
-    else if (path == "/img/directory.png")          sendFile = ":/backend/directory.png";
-    else if (path == "/img/playlist-file.png")      sendFile = ":/backend/playlist-file.png";
-    else if (path == "/img/audio-file.png")         sendFile = ":/backend/audio-file.png";
-    else if (path == "/img/video-file.png")         sendFile = ":/backend/video-file.png";
-    else if (path == "/img/image-file.png")         sendFile = ":/backend/image-file.png";
+    QString sendFile;
+    if      (path == "/main.css")                   sendFile = ":/backend/main.css";
+
+    else if (path == "/favicon.ico")                sendFile = ":/lximediacenter/images/appicon.ico";
+    else if (path == "/appicon.png")                sendFile = ":/lximediacenter/images/appicon.png";
+    else if (path == "/logo.png")                   sendFile = ":/lximediacenter/images/logo.png";
 
     else if (path == "/swf/flowplayer.swf")         sendFile = ":/flowplayer/flowplayer-3.2.5.swf";
     else if (path == "/swf/flowplayer.controls.swf")sendFile = ":/flowplayer/flowplayer.controls-3.2.3.swf";
     else if (path == "/swf/flowplayer.js")          sendFile = ":/flowplayer/flowplayer-3.2.4.min.js";
+
+    else if (path.startsWith("/img/"))
+    {
+      static const QDir imgDir1(":/lximediacenter/images/");
+      static const QDir imgDir2(":/backend/images/");
+
+      if (imgDir1.exists(path.mid(5)))
+        sendFile = imgDir1.absoluteFilePath(path.mid(5));
+      else if (imgDir2.exists(path.mid(5)))
+        sendFile = imgDir2.absoluteFilePath(path.mid(5));
+    }
 
     if (!sendFile.isEmpty())
     {
@@ -608,14 +534,6 @@ SHttpServer::SocketOp Backend::handleHttpRequest(const SHttpServer::RequestMessa
 void Backend::handleHttpOptions(SHttpServer::ResponseHeader &response)
 {
   response.setField("Allow", response.field("Allow") + ",GET");
-}
-
-QByteArray Backend::parseHtmlContent(const QUrl &url, const QByteArray &content, const QByteArray &head) const
-{
-  HtmlParser localParser(htmlParser);
-  localParser.setField("HEAD", head);
-  localParser.setField("CONTENT", content);
-  return localParser.parse(htmlIndex);
 }
 
 SHttpServer * Backend::httpServer(void)

@@ -1,0 +1,25 @@
+<!DOCTYPE RCC><RCC version="1.0">
+<qresource prefix="/lximediacenter">
+  <file>images/appicon.svg</file>
+  <file>images/appicon.png</file>
+  <file>images/appicon.ico</file>
+  <file>images/appicon-large.png</file>
+  <file>images/logo.svg</file>
+  <file>images/logo.png</file>
+  <file>images/logo-inverted.png</file>
+
+  <file>images/arrow-right.png</file>
+  <file>images/audio-headset.png</file>
+  <file>images/camera-photo.png</file>
+  <file>images/control.png</file>
+  <file>images/folder-video.png</file>
+  <file>images/glossary.png</file>
+  <file>images/journal.png</file>
+  <file>images/media-optical.png</file>
+  <file>images/media-tape.png</file>
+  <file>images/phone.png</file>
+  <file>images/played.png</file>
+  <file>images/video-television.png</file>
+  <file>images/video-template.png</file>
+</qresource>
+</RCC>

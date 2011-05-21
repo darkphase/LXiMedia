@@ -63,13 +63,7 @@ MediaPlayerServer::SearchResultList MediaPlayerServer::search(const QStringList 
       result.relevance = SStringParser::computeMatch(SStringParser::toRawName(info.title()), rawQuery);
       result.headline = info.title();
       result.location = MediaDatabase::toUidString(file.uid) + ".html";
-
-      foreach (const SMediaInfo::Program &program, info.programs())
-      if (!program.thumbnail.isEmpty())
-      {
-        result.thumbLocation = MediaDatabase::toUidString(file.uid) + "-thumb.jpeg";
-        break;
-      }
+      result.thumbLocation = MediaDatabase::toUidString(file.uid) + "-thumb.png";
 
       list += result;
     }
@@ -277,6 +271,7 @@ MediaPlayerServer::Item MediaPlayerServer::makeItem(MediaDatabase::UniqueID uid,
         item.played = mediaDatabase->lastPlayed(uid).isValid();
         item.type = defaultItemType(Item::Type(item.type));
         item.url = MediaDatabase::toUidString(uid);
+        item.iconUrl = MediaDatabase::toUidString(uid) + "-thumb.png";
 
         item.title = !program.title.isEmpty() ? program.title : (tr("Title") + " " + QString::number(uid.pid + 1));
         item.artist = node.author();
@@ -296,9 +291,6 @@ MediaPlayerServer::Item MediaPlayerServer::makeItem(MediaDatabase::UniqueID uid,
 
         foreach (const SMediaInfo::DataStreamInfo &stream, program.dataStreams)
           item.subtitleStreams += Item::Stream(stream, (stream.title + " " + SStringParser::iso639Language(stream.language)).simplified());
-
-        if (!program.thumbnail.isEmpty())
-          item.iconUrl = MediaDatabase::toUidString(uid) + "-thumb.jpeg";
       }
     }
     else if (!node.programs().isEmpty())
@@ -392,9 +384,9 @@ SHttpServer::SocketOp MediaPlayerServer::handleHttpRequest(const SHttpServer::Re
     const QUrl url(request.path());
     const QString file = request.file();
 
-    if (file.endsWith("-thumb.jpeg") || file.endsWith("-thumb.png"))
+    if (file.endsWith("-thumb.png"))
     {
-      QSize size(256, 256);
+      QSize size(128, 128);
       if (url.hasQueryItem("size"))
       {
         const QStringList sizeTxt = url.queryItemValue("size").split('x');
@@ -412,54 +404,41 @@ SHttpServer::SocketOp MediaPlayerServer::handleHttpRequest(const SHttpServer::Re
         const SMediaInfo::Program program = node.programs().at(uid.pid);
         if (!program.thumbnail.isEmpty())
         {
-          if (!url.hasQueryItem("size") && !url.hasQueryItem("overlay") && !file.endsWith(".png"))
-          {
-            return sendResponse(request, socket, program.thumbnail, "image/jpeg", true);
-          }
-          else
-          {
-            QImage image = QImage::fromData(program.thumbnail);
-            if (url.hasQueryItem("size"))
-              image = image.scaled(size, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+          QImage image = QImage::fromData(program.thumbnail);
+          if (!image.isNull())
+            image = image.scaled(size, Qt::KeepAspectRatio, Qt::SmoothTransformation);
 
-            if (url.hasQueryItem("overlay"))
+          QImage result(size, QImage::Format_ARGB32);
+          QPainter p;
+          p.begin(&result);
+          p.setCompositionMode(QPainter::CompositionMode_Source); // Ignore alpha
+          p.fillRect(result.rect(), Qt::transparent);
+          p.setCompositionMode(QPainter::CompositionMode_SourceOver); // Process alpha
+          p.drawImage(
+              (result.width() / 2) - (image.width() / 2),
+              (result.height() / 2) - (image.height() / 2),
+              image);
+
+          if (url.hasQueryItem("overlay"))
+          {
+            QImage overlayImage(":/lximediacenter/images/" + url.queryItemValue("overlay") + ".png");
+            if (!overlayImage.isNull())
             {
-              QImage overlayImage(":/mediaplayer/" + url.queryItemValue("overlay") + ".png");
-              if (!overlayImage.isNull())
-              {
-                if (url.hasQueryItem("size"))
-                  overlayImage = overlayImage.scaled(size / 2, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+              overlayImage = overlayImage.scaled(size / 2, Qt::KeepAspectRatio, Qt::SmoothTransformation);
 
-                QImage sum(size, QImage::Format_ARGB32);
-                QPainter p;
-                p.begin(&sum);
-
-                p.setCompositionMode(QPainter::CompositionMode_Source); // Ignore alpha
-
-                p.fillRect(sum.rect(), Qt::transparent);
-
-                p.drawImage(
-                    (sum.width() / 2) - (image.width() / 2),
-                    (sum.height() / 2) - (image.height() / 2),
-                    image);
-
-                p.setCompositionMode(QPainter::CompositionMode_SourceOver); // Process alpha
-
-                p.drawImage(
-                    (sum.width() / 2) - (overlayImage.width() / 2),
-                    (sum.height() / 2) - (overlayImage.height() / 2),
-                    overlayImage);
-
-                p.end();
-                image = sum;
-              }
+              p.drawImage(
+                  (result.width() / 2) - (overlayImage.width() / 2),
+                  (result.height() / 2) - (overlayImage.height() / 2),
+                  overlayImage);
             }
-
-            QBuffer b;
-            image.save(&b, "PNG");
-
-            return sendResponse(request, socket, b.data(), "image/png", true);
           }
+
+          p.end();
+
+          QBuffer b;
+          result.save(&b, "PNG");
+
+          return sendResponse(request, socket, b.data(), "image/png", true);
         }
       }
 
@@ -472,18 +451,13 @@ SHttpServer::SocketOp MediaPlayerServer::handleHttpRequest(const SHttpServer::Re
         QImage sum(size, QImage::Format_ARGB32);
         QPainter p;
         p.begin(&sum);
-
         p.setCompositionMode(QPainter::CompositionMode_Source); // Ignore alpha
-
         p.fillRect(sum.rect(), Qt::transparent);
-
         p.setCompositionMode(QPainter::CompositionMode_SourceOver); // Process alpha
-
         p.drawImage(
             (sum.width() / 2) - (image.width() / 2),
             (sum.height() / 2) - (image.height() / 2),
             image);
-
         p.end();
 
         QBuffer b;
@@ -494,11 +468,14 @@ SHttpServer::SocketOp MediaPlayerServer::handleHttpRequest(const SHttpServer::Re
 
       return SHttpServer::sendRedirect(request, socket, "http://" + request.host() + "/img/null.png");
     }
+    else if (file == "icon.png")
+    {
+      QFile file(iconFile(serverName()));
+      if (file.open(QFile::ReadOnly))
+        return sendResponse(request, socket, file.readAll(), "image/png", true);
+    }
     else if (file.endsWith(".html")) // Show player
     {
-      QString basePath = url.path().mid(serverPath().length());
-      basePath = basePath.startsWith('/') ? basePath : ('/' + basePath);
-
       const MediaDatabase::UniqueID uid = MediaDatabase::fromUidString(file);
       const FileNode node = mediaDatabase->readNode(uid);
       if (!node.isNull())
@@ -508,7 +485,7 @@ SHttpServer::SocketOp MediaPlayerServer::handleHttpRequest(const SHttpServer::Re
         response.setContentType("text/html;charset=utf-8");
         response.setField("Cache-Control", "no-cache");
 
-        return sendHtmlContent(request, socket, url, response, buildVideoPlayer(basePath, uid, node.title(), node.programs().at(uid.pid), url), headPlayer);
+        return sendHtmlContent(request, socket, url, response, buildVideoPlayer(uid, node.title(), node.programs().at(uid.pid), url), headPlayer);
       }
     }
   }
@@ -536,14 +513,34 @@ QString MediaPlayerServer::videoFormatString(const SMediaInfo::Program &program)
   return tr("Unknown");
 }
 
-QByteArray MediaPlayerServer::buildVideoPlayer(const QString &dirPath, MediaDatabase::UniqueID uid, const QString &title, const SMediaInfo::Program &program, const QUrl &url, const QSize &size)
+QByteArray MediaPlayerServer::buildVideoPlayer(MediaDatabase::UniqueID uid, const QString &title, const SMediaInfo::Program &program, const QUrl &url, const QSize &size)
 {
-  return MediaServer::buildVideoPlayer(dirPath, MediaDatabase::toUidString(uid), title, program, url, size);
+  return MediaServer::buildVideoPlayer(MediaDatabase::toUidString(uid), title, program, url, size);
 }
 
-QByteArray MediaPlayerServer::buildVideoPlayer(const QString &dirPath, const QByteArray &item, const QString &title, const QUrl &url, const QSize &size)
+QByteArray MediaPlayerServer::buildVideoPlayer(const QByteArray &item, const QString &title, const QUrl &url, const QSize &size)
 {
-  return MediaServer::buildVideoPlayer(dirPath, item, title, url, size);
+  return MediaServer::buildVideoPlayer(item, title, url, size);
+}
+
+QString MediaPlayerServer::iconFile(const QString &name)
+{
+  static QMap<QString, QString> icons;
+  if (icons.isEmpty())
+  {
+    icons.insert(Module::moviesName,      ":/lximediacenter/images/media-optical.png");
+    icons.insert(Module::tvShowsName,     ":/lximediacenter/images/video-television.png");
+    icons.insert(Module::clipsName,       ":/lximediacenter/images/phone.png");
+    icons.insert(Module::homeVideosName,  ":/lximediacenter/images/media-tape.png");
+    icons.insert(Module::photosName,      ":/lximediacenter/images/camera-photo.png");
+    icons.insert(Module::musicName,       ":/lximediacenter/images/audio-headset.png");
+  }
+
+  QMap<QString, QString>::ConstIterator i = icons.find(name);
+  if (i != icons.end())
+    return *i;
+
+  return ":/lximediacenter/images/video-template.png";
 }
 
 void MediaPlayerServer::consoleLine(const QString &line)

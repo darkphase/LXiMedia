@@ -43,7 +43,6 @@ public:
 public:
   static const char             pluginName[];
 
-private:
   static const char             moviesName[];
   static const char             tvShowsName[];
   static const char             clipsName[];

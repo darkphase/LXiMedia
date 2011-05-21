@@ -55,10 +55,10 @@ void IOTest::MediaFileInfoImage(void)
   QVERIFY(!mediaInfo.programs().first().thumbnail.isEmpty());
 
   const QImage image = QImage::fromData(mediaInfo.programs().first().thumbnail);
-  QVERIFY(image.width() <= 256);
-  QVERIFY(image.width() > 128);
-  QVERIFY(image.height() <= 256);
-  QVERIFY(image.height() > 128);
+  QVERIFY(image.width() <= 128);
+  QVERIFY(image.width() > 64);
+  QVERIFY(image.height() <= 128);
+  QVERIFY(image.height() > 64);
 }
 
 /*! Tests the AudioResampler converting to half the samplerate.

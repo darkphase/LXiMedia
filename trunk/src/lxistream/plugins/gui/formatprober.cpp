@@ -77,13 +77,13 @@ void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *readCallback)
 
           program.imageCodec = SVideoCodec(program.imageCodec.codec(), image.size());
 
-          if ((program.imageCodec.size().width() >= 256) && (program.imageCodec.size().height() >= 256))
+          if ((program.imageCodec.size().width() >= 128) && (program.imageCodec.size().height() >= 128))
           {
             SImage thumbnail;
             if ((program.imageCodec.size().width() >= 1024) || (program.imageCodec.size().height() >= 1024))
-              thumbnail = image.scaled(256, 256, Qt::KeepAspectRatio, Qt::FastTransformation);
+              thumbnail = image.scaled(128, 128, Qt::KeepAspectRatio, Qt::FastTransformation);
             else
-              thumbnail = image.scaled(256, 256, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+              thumbnail = image.scaled(128, 128, Qt::KeepAspectRatio, Qt::SmoothTransformation);
 
             QBuffer b;
             if (thumbnail.save(&b, "JPEG", 50))

@@ -9,12 +9,11 @@ include($${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/linklximediacenter.pr
 # Files
 SOURCES += main.cpp \
     backend.cpp \
-    backend.css.cpp \
     backend.html.cpp \
     sandbox.cpp
 HEADERS += $${PWD}/backend.h \
     $${PWD}/sandbox.h
-RESOURCES = images/backend_images.qrc \
+RESOURCES = backend.qrc \
     ../../../ext/flowplayer/flowplayer.qrc
 
 # Platform specific

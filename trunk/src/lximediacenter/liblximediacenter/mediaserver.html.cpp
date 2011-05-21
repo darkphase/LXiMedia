@@ -24,7 +24,6 @@
 namespace LXiMediaCenter {
 
 bool                MediaServer::html5Enabled = false;
-const unsigned      MediaServer::itemsPerThumbnailPage = 60;
 const char          MediaServer::audioTimeFormat[] = "m:ss";
 const char          MediaServer::videoTimeFormat[] = "h:mm:ss";
 
@@ -38,16 +37,14 @@ const char MediaServer::m3uPlaylistItem[] =
     "{ITEM_URL}\n";
 
 const char MediaServer::htmlPageItem[] =
-    "    <li><a href=\"{ITEM_LINK}\">{ITEM_NAME}</a></li>\n";
+    "   <li><a href=\"{ITEM_LINK}\">{ITEM_NAME}</a></li>\n";
 
 const char MediaServer::htmlPageSeparator[] =
-    "    <li>{ITEM_NAME}</li>\n";
+    "   <li>{ITEM_NAME}</li>\n";
 
 const char MediaServer::htmlThumbnailList[] =
     " <div class=\"content\">\n"
-    "  <div class=\"pageselector\"><ul>\n"
-    "{PAGES}"
-    "  </ul></div>\n"
+    "  <h1>{TITLE}</h1>\n"
     "  <div class=\"thumbnaillist\">\n"
     "{ITEMS}"
     "  </div>\n"
@@ -75,9 +72,7 @@ const char MediaServer::htmlThumbnailItemNoTitle[] =
 
 const char MediaServer::htmlDetailedList[] =
     " <div class=\"content\">\n"
-    "  <div class=\"pageselector\"><ul>\n"
-    "{PAGES}"
-    "  </ul></div>\n"
+    "  <h1>{TITLE}</h1>\n"
     "  <table class=\"detailedlist\">\n"
     "{ITEMS}"
     "  </table>\n"
@@ -89,19 +84,19 @@ const char MediaServer::htmlDetailedListRow[] =
     "   </tr>\n";
 
 const char MediaServer::htmlDetailedListHead[] =
-    "    <th>{ITEM_TITLE}</th>\n";
+    "    <th class=\"{ITEM_CLASS}\">{ITEM_TITLE}</th>\n";
 
 const char MediaServer::htmlDetailedListColumn[] =
-    "    <td>{ITEM_TITLE}</td>\n";
+    "    <td class=\"{ITEM_CLASS}\">{ITEM_TITLE}</td>\n";
 
 const char MediaServer::htmlDetailedListColumnIcon[] =
-    "    <td><img src=\"{ITEM_ICONURL}\" alt=\"..\" />{ITEM_TITLE}</td>\n";
+    "    <td class=\"{ITEM_CLASS}\"><img src=\"{ITEM_ICONURL}\" alt=\"..\" />{ITEM_TITLE}</td>\n";
 
 const char MediaServer::htmlDetailedListColumnLink[] =
-    "    <td><a title=\"{ITEM_TITLE}\" href=\"{ITEM_URL}\">{ITEM_TITLE}</a></td>\n";
+    "    <td class=\"{ITEM_CLASS}\"><a title=\"{ITEM_TITLE}\" href=\"{ITEM_URL}\">{ITEM_TITLE}</a></td>\n";
 
 const char MediaServer::htmlDetailedListColumnLinkIcon[] =
-    "    <td><a title=\"{ITEM_TITLE}\" href=\"{ITEM_URL}\"><img src=\"{ITEM_ICONURL}\" alt=\"..\" />{ITEM_TITLE}</a></td>\n";
+    "    <td class=\"{ITEM_CLASS}\"><a title=\"{ITEM_TITLE}\" href=\"{ITEM_URL}\"><img src=\"{ITEM_ICONURL}\" alt=\"..\" />{ITEM_TITLE}</a></td>\n";
 
 const char MediaServer::htmlPlayerAudioItem[] =
     "    <div id=\"player\" style=\"display:block;height:{HEIGHT}px;\" href=\"{PLAYER_ITEM}.flv\"></div>\n"
@@ -115,9 +110,7 @@ const char MediaServer::htmlPlayerAudioItem[] =
 
 const char MediaServer::htmlPlayerAudioItemHtml5[] =
     " <div class=\"content\">\n"
-    "  <div class=\"pageselector\"><ul>\n"
-    "{PAGES}"
-    "  </ul></div>\n"
+    "  <h1>{TITLE}</h1>\n"
     "  <div class=\"player\">\n"
     "   <audio src=\"{PLAYER_ITEM}.wav\" autoplay=\"autoplay\" controls=\"controls\">\n"
     "{FLV_PLAYER}"
@@ -137,9 +130,7 @@ const char MediaServer::htmlPlayerVideoItem[] =
 
 const char MediaServer::htmlPlayerVideoItemHtml5[] =
     " <div class=\"content\">\n"
-    "  <div class=\"pageselector\"><ul>\n"
-    "{PAGES}"
-    "  </ul></div>\n"
+    "  <h1>{TITLE}</h1>\n"
     "  <div class=\"player\">\n"
     "   <video src=\"{PLAYER_ITEM}.ogg{QUERY}\" width=\"{WIDTH}\" height=\"{HEIGHT}\" autoplay=\"autoplay\" controls=\"controls\">\n"
     "{FLV_PLAYER}"
@@ -149,9 +140,7 @@ const char MediaServer::htmlPlayerVideoItemHtml5[] =
 
 const char MediaServer::htmlPlayerThumbItem[] =
     " <div class=\"content\">\n"
-    "  <div class=\"pageselector\"><ul>\n"
-    "{PAGES}"
-    "  </ul></div>\n"
+    "  <h1>{TITLE}</h1>\n"
     "  <div class=\"player\">\n"
     "   <div style=\"padding:0;margin:0;display:table-cell;"
                     "width:{WIDTH}px;height:{HEIGHT}px;vertical-align:middle;"
@@ -232,67 +221,11 @@ void MediaServer::enableHtml5(bool enabled)
   html5Enabled = enabled;
 }
 
-QByteArray MediaServer::buildPages(const QString &path)
-{
-  QByteArray result;
-
-  QByteArray fullPath = serverPath();
-  HtmlParser htmlParser;
-  htmlParser.setField("ITEM_LINK", fullPath);
-  htmlParser.setField("ITEM_NAME", serverName());
-  result += htmlParser.parse(htmlPageItem);
-
-  const int lastSlash = path.lastIndexOf('/');
-  if (lastSlash > 0)
-  {
-    const QStringList dirs = path.left(lastSlash).split('/', QString::SkipEmptyParts);
-
-    for (int i=0; i<dirs.count(); i++)
-    {
-      htmlParser.setField("ITEM_NAME", QByteArray(">"));
-      result += htmlParser.parse(htmlPageSeparator);
-
-      fullPath += dirs[i] + "/";
-      htmlParser.setField("ITEM_LINK", fullPath);
-      htmlParser.setField("ITEM_NAME", dirs[i]);
-      result += htmlParser.parse(htmlPageItem);
-    }
-  }
-
-  return result;
-}
-
-QByteArray MediaServer::buildThumbnailView(const QString &dirPath, const ThumbnailListItemList &items, int start, int total)
+QByteArray MediaServer::buildThumbnailView(const QString &title, const ThumbnailListItemList &items)
 {
   HtmlParser htmlParser;
+  htmlParser.setField("TITLE", title);
 
-  // Build the page selector
-  htmlParser.setField("PAGES", buildPages(dirPath));
-
-  const unsigned numPages = (total + (itemsPerThumbnailPage - 1)) / itemsPerThumbnailPage;
-  const unsigned selectedPage = start / itemsPerThumbnailPage;
-
-  if (numPages > 1)
-  {
-    htmlParser.setField("ITEM_NAME", QByteArray("("));
-    htmlParser.appendField("PAGES", htmlParser.parse(htmlPageSeparator));
-
-    for (unsigned i=0; i<numPages; i++)
-    {
-      htmlParser.setField("ITEM_LINK", "?start=" + QString::number(i * itemsPerThumbnailPage));
-      htmlParser.setField("ITEM_NAME", QString::number(i+1));
-
-      if (i != selectedPage)
-        htmlParser.appendField("PAGES", htmlParser.parse(htmlPageItem));
-      else
-        htmlParser.appendField("PAGES", htmlParser.parse(htmlPageItem));
-    }
-
-    htmlParser.setField("ITEM_NAME", QByteArray(")"));
-    htmlParser.appendField("PAGES", htmlParser.parse(htmlPageSeparator));
-  }
-
-  // Build the content
   htmlParser.setField("ITEMS", QByteArray(""));
   foreach (const ThumbnailListItem &item, items)
   {
@@ -306,39 +239,47 @@ QByteArray MediaServer::buildThumbnailView(const QString &dirPath, const Thumbna
   return htmlParser.parse(htmlThumbnailList);
 }
 
-QByteArray MediaServer::buildDetailedView(const QString &dirPath, const QStringList &columns, const DetailedListItemList &items)
+QByteArray MediaServer::buildDetailedView(const QString &title, const QList< QPair<QString, bool> > &columns, const DetailedListItemList &items)
 {
   HtmlParser htmlParser;
-
-  // Build the page selector
-  htmlParser.setField("PAGES", buildPages(dirPath));
+  htmlParser.setField("TITLE", title);
 
   // Build the table head
   htmlParser.setField("COLUMNS", QByteArray(""));
-  foreach (const QString &column, columns)
+  for (int i=0; i<columns.count(); i++)
   {
-    htmlParser.setField("ITEM_TITLE", column);
+    htmlParser.setField("ITEM_TITLE", columns[i].first);
+    htmlParser.setField("ITEM_CLASS", QByteArray(columns[i].second ? "stretch" : "nostretch"));
     htmlParser.appendField("COLUMNS", htmlParser.parse(htmlDetailedListHead));
   }
 
   htmlParser.setField("ITEMS", htmlParser.parse(htmlDetailedListRow));
 
   // Build the content
-  int itemNum = 0;
-  foreach (const DetailedListItem &item, items)
+  for (int i=0; i<items.count(); i++)
   {
     htmlParser.setField("COLUMNS", QByteArray(""));
-    for (int i=0; i<item.columns.count(); i++)
+    for (int j=0; (j<columns.count()) && (j<items[i].columns.count()); j++)
     {
-      htmlParser.setField("ITEM_TITLE", item.columns[i]);
-      if (i == 0)
+      htmlParser.setField("ITEM_TITLE", items[i].columns[j].title);
+      htmlParser.setField("ITEM_CLASS", QByteArray(columns[j].second ? "stretch" : "nostretch") + QByteArray(i & 1 ? "_b" : "_a"));
+      htmlParser.setField("ITEM_ICONURL", items[i].columns[j].iconurl.toString());
+      htmlParser.setField("ITEM_URL", items[i].columns[j].url.toString());
+
+      if (!items[i].columns[j].url.isEmpty())
       {
-        htmlParser.setField("ITEM_ICONURL", item.iconurl.toString());
-        htmlParser.setField("ITEM_URL", item.url.toString());
-        htmlParser.appendField("COLUMNS", htmlParser.parse(htmlDetailedListColumnLinkIcon));
+        if (!items[i].columns[j].iconurl.isEmpty())
+          htmlParser.appendField("COLUMNS", htmlParser.parse(htmlDetailedListColumnLinkIcon));
+        else
+          htmlParser.appendField("COLUMNS", htmlParser.parse(htmlDetailedListColumnLink));
       }
       else
-        htmlParser.appendField("COLUMNS", htmlParser.parse(htmlDetailedListColumn));
+      {
+        if (!items[i].columns[j].iconurl.isEmpty())
+          htmlParser.appendField("COLUMNS", htmlParser.parse(htmlDetailedListColumnIcon));
+        else
+          htmlParser.appendField("COLUMNS", htmlParser.parse(htmlDetailedListColumn));
+      }
     }
 
     htmlParser.appendField("ITEMS", htmlParser.parse(htmlDetailedListRow));
@@ -347,18 +288,11 @@ QByteArray MediaServer::buildDetailedView(const QString &dirPath, const QStringL
   return htmlParser.parse(htmlDetailedList);
 }
 
-QByteArray MediaServer::buildVideoPlayer(const QString &dirPath, const QByteArray &item, const QString &title, const SMediaInfo::Program &program, const QUrl &url, const QSize &size, SAudioFormat::Channels channels)
+QByteArray MediaServer::buildVideoPlayer(const QByteArray &item, const QString &title, const SMediaInfo::Program &program, const QUrl &url, const QSize &size, SAudioFormat::Channels channels)
 {
   HtmlParser htmlParser;
+  htmlParser.setField("TITLE", title);
 
-  // Build the page selector
-  htmlParser.setField("PAGES", buildPages(dirPath));
-  htmlParser.setField("ITEM_NAME", QByteArray(">"));
-  htmlParser.appendField("PAGES", htmlParser.parse(htmlPageSeparator));
-  htmlParser.setField("ITEM_NAME", title);
-  htmlParser.appendField("PAGES", htmlParser.parse(htmlPageSeparator));
-
-  // Build the player
   htmlParser.setField("CLEAN_TITLE", SStringParser::toCleanName(title));
   htmlParser.setField("PLAYER_ITEM", item);
   htmlParser.setField("TR_PLAY_HERE", tr("Play now"));
@@ -523,16 +457,10 @@ QByteArray MediaServer::buildVideoPlayer(const QString &dirPath, const QByteArra
     return htmlParser.parse(htmlPlayerThumbItem);
 }
 
-QByteArray MediaServer::buildVideoPlayer(const QString &dirPath, const QByteArray &item, const QString &title, const QUrl &url, const QSize &size, SAudioFormat::Channels channels)
+QByteArray MediaServer::buildVideoPlayer(const QByteArray &item, const QString &title, const QUrl &url, const QSize &size, SAudioFormat::Channels channels)
 {
   HtmlParser htmlParser;
-
-  // Build the page selector
-  htmlParser.setField("PAGES", buildPages(dirPath));
-  htmlParser.setField("ITEM_NAME", QByteArray(">"));
-  htmlParser.appendField("PAGES", htmlParser.parse(htmlPageSeparator));
-  htmlParser.setField("ITEM_NAME", title);
-  htmlParser.appendField("PAGES", htmlParser.parse(htmlPageSeparator));
+  htmlParser.setField("TITLE", title);
 
   // Build the player
   htmlParser.setField("CLEAN_TITLE", SStringParser::toCleanName(title));

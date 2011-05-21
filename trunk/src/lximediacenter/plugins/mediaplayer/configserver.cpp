@@ -80,7 +80,15 @@ SHttpServer::SocketOp ConfigServer::handleHttpRequest(const SHttpServer::Request
     const QString file = request.file();
 
     if (file.isEmpty() || file.endsWith(".html"))
+    {
       return handleHtmlRequest(request, socket, file);
+    }
+    else if (file == "icon.png")
+    {
+      QFile file(":/lximediacenter/images/control.png");
+      if (file.open(QFile::ReadOnly))
+        return sendResponse(request, socket, file.readAll(), "image/png", true);
+    }
   }
 
   return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);

@@ -37,8 +37,6 @@ SOURCES += configserver.cpp \
     slideshownode.blend.c \
     tvshowserver.cpp
 
-RESOURCES = images/mediaplayer_images.qrc
-
 # Windows specific
 win32-msvc2005|win32-msvc2008|win32-msvc2010 {
   TEMPLATE = vclib

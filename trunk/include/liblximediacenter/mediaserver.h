@@ -66,12 +66,20 @@ public:
 
   struct LXIMEDIACENTER_PUBLIC DetailedListItem
   {
+    struct LXIMEDIACENTER_PUBLIC Column
+    {
+                                Column(QString = QString::null, QUrl = QUrl(), QUrl = QUrl());
+                                ~Column();
+
+      QString                   title;
+      QUrl                      iconurl; 
+      QUrl                      url;
+    };
+
                                 DetailedListItem(void);
                                 ~DetailedListItem();
 
-    QStringList                 columns;
-    QUrl                        iconurl;
-    QUrl                        url;
+    QList<Column>               columns;
     bool                        played;
   };
 
@@ -121,7 +129,6 @@ public: // Implemented in mediaserver.html.cpp
 
 protected: // Implemented in mediaserver.html.cpp
   static bool                   html5Enabled;
-  static const unsigned         itemsPerThumbnailPage;
   static const char             audioTimeFormat[];
   static const char             videoTimeFormat[];
 
@@ -152,11 +159,10 @@ protected: // Implemented in mediaserver.html.cpp
 
   static const char             headPlayer[];
 
-  QByteArray                    buildPages(const QString &path);
-  QByteArray                    buildThumbnailView(const QString &path, const ThumbnailListItemList &, int, int);
-  QByteArray                    buildDetailedView(const QString &path, const QStringList &columns, const DetailedListItemList &);
-  QByteArray                    buildVideoPlayer(const QString &path, const QByteArray &item, const QString &title, const SMediaInfo::Program &, const QUrl &, const QSize & = QSize(768, 432), SAudioFormat::Channels = SAudioFormat::Channels_Stereo);
-  QByteArray                    buildVideoPlayer(const QString &path, const QByteArray &item, const QString &title, const QUrl &, const QSize & = QSize(768, 432), SAudioFormat::Channels = SAudioFormat::Channels_Stereo);
+  QByteArray                    buildThumbnailView(const QString &title, const ThumbnailListItemList &);
+  QByteArray                    buildDetailedView(const QString &title, const QList< QPair<QString, bool> > &columns, const DetailedListItemList &);
+  QByteArray                    buildVideoPlayer(const QByteArray &item, const QString &title, const SMediaInfo::Program &, const QUrl &, const QSize & = QSize(768, 432), SAudioFormat::Channels = SAudioFormat::Channels_Stereo);
+  QByteArray                    buildVideoPlayer(const QByteArray &item, const QString &title, const QUrl &, const QSize & = QSize(768, 432), SAudioFormat::Channels = SAudioFormat::Channels_Stereo);
 };
 
 } // End of namespace

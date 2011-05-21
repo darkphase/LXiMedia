@@ -63,9 +63,14 @@ void BackendServer::close(void)
 {
 }
 
-QByteArray BackendServer::serverPath(void) const
+QString BackendServer::serverPath(void) const
 {
-  return '/' + pluginName().toAscii() + '/' + serverName().toAscii() + '/';
+  return '/' + pluginName() + '/' + serverName() + '/';
+}
+
+QString BackendServer::serverIcon(void) const
+{
+  return serverPath() + "icon.png";
 }
 
 QByteArray BackendServer::frontPageWidget(void) const
@@ -116,6 +121,27 @@ SHttpServer::SocketOp BackendServer::sendHtmlContent(const SHttpServer::RequestH
     socket->write(d->masterServer->parseHtmlContent(url, content, head));
 
   return SHttpServer::SocketOp_Close;
+}
+
+QString BackendServer::basePath(const QString &path) const
+{
+  QString result = path.mid(serverPath().length());
+  result = result.startsWith('/') ? result : ('/' + result);
+  
+  return result;
+}
+
+QString BackendServer::dirName(const QString &path)
+{
+  QString result = path;
+  while (result.endsWith('/'))
+    result = result.left(result.length() - 1);
+
+  int ls = result.lastIndexOf('/');
+  if (result >= 0)
+    result = result.mid(ls + 1);
+  
+  return result;
 }
 
 
