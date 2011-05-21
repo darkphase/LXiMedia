@@ -68,24 +68,25 @@ unix {
     #SOURCES += opengltest.cpp
     #DEFINES += "ENABLE_GLSL"
     #FILES_UNDER_TEST += $${LXIMEDIA_DIR}/obj/opengl/*.o
-}
-linux-g++ {
-    # ALSA
-    #HEADERS += alsatest.h
-    #SOURCES += alsatest.cpp
-    #DEFINES += "ENABLE_ALSA"
-    #LIBS += -lasound
-    #FILES_UNDER_TEST += $${LXIMEDIA_DIR}/obj/alsa/*.o
-    
-    # V4L
-    #SOURCES += v4ltest.cpp
-    #DEFINES += "ENABLE_V4L"
-    #FILES_UNDER_TEST += $${LXIMEDIA_DIR}/obj/v4l/*.o
-    
-    # Linux DVB
-    #SOURCES += linuxdvbtest.cpp
-    #DEFINES += "ENABLE_LINUXDVB"
-    #FILES_UNDER_TEST += $${LXIMEDIA_DIR}/obj/linuxdvb/*.o
+
+  contains(QMAKE_HOST.os, Linux) {
+      # ALSA
+      #HEADERS += alsatest.h
+      #SOURCES += alsatest.cpp
+      #DEFINES += "ENABLE_ALSA"
+      #LIBS += -lasound
+      #FILES_UNDER_TEST += $${LXIMEDIA_DIR}/obj/alsa/*.o
+
+      # V4L
+      #SOURCES += v4ltest.cpp
+      #DEFINES += "ENABLE_V4L"
+      #FILES_UNDER_TEST += $${LXIMEDIA_DIR}/obj/v4l/*.o
+
+      # Linux DVB
+      #SOURCES += linuxdvbtest.cpp
+      #DEFINES += "ENABLE_LINUXDVB"
+      #FILES_UNDER_TEST += $${LXIMEDIA_DIR}/obj/linuxdvb/*.o
+  }
 }
 win32 { 
     CONFIG += console

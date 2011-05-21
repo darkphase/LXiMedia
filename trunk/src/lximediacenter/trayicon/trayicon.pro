@@ -17,12 +17,6 @@ DEFINES += S_BUILD_LIBLXIMEDIACENTER
 SOURCES += ../liblximediacenter/globalsettings.cpp
 HEADERS += $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/globalsettings.h
 
-linux-g++|win32-g++ {
-  # Optimize for size instead of speed
-  QMAKE_CXXFLAGS_RELEASE -= -O2
-  QMAKE_CXXFLAGS_RELEASE += -Os
-}
-
 unix:VERSION = $$system(cat $${PWD}/$${LXIMEDIA_DIR}/VERSION)
 
 include($${PWD}/$${LXIMEDIA_DIR}/include/liblxiserver/linklxiserver.pri)

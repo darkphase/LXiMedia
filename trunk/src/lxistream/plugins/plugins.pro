@@ -4,8 +4,10 @@ DESTDIR = .
 
 SUBDIRS += dvdnav ffmpeg fftw gui #opengl
 
-linux-g++ {
-  SUBDIRS += alsa pulseaudio v4l #linuxdvb
+unix {
+  contains(QMAKE_HOST.os, Linux) {
+    SUBDIRS += alsa pulseaudio v4l #linuxdvb
+  }
 }
 
 win32 {
