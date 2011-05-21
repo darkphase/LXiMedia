@@ -34,17 +34,17 @@ SOURCES += sapplication.cpp \
     sstringparser.iso639.cpp
 
 # Platform specific
-linux-g++|win32-g++ {
+unix|win32-g++ {
   LIBS += -lbfd -liberty
 }
 unix {
-    SOURCES += sdaemon.unix.cpp
+  SOURCES += sdaemon.unix.cpp
 
-    target.path = /usr/lib
-    INSTALLS += target
+  target.path = /usr/lib
+  INSTALLS += target
 }
 win32 {
-    SOURCES += sdaemon.win.cpp
+  SOURCES += sdaemon.win.cpp
 }
 
 # Windows specific
