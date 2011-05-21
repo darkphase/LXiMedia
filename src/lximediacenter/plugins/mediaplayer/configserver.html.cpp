@@ -28,56 +28,50 @@ namespace LXiMediaCenter {
 namespace MediaPlayerBackend {
 
 const char * const ConfigServer::htmlMain =
-    " <table class=\"widgetsfull\">\n"
-    "  <tr class=\"widgets\">\n"
-    "   <td class=\"widget\">\n"
-    "    <table class=\"main\">\n"
-    "     <tr class=\"main\">\n"
-    "      <td class=\"center\" colspan=\"2\">\n"
-    "       <p class=\"head\">{TR_MEDIA_DIRECTORIES}</p>\n"
-    "       {TR_MEDIA_DIRECTORIES_EXPLAIN}\n"
-    "      </td>\n"
-    "     </tr>\n"
-    "     <tr class=\"main\">\n"
-    "      <td class=\"maincenter\" width=\"50%\">\n"
-    "       <p class=\"head2\">{TR_MOVIES}</p>\n"
-    "       {TR_MOVIES_EXPLAIN}\n"
-    "       <iframe src=\"movies-tree.html\" width=\"100%\" height=\"300\" frameborder=\"0\"></iframe>\n"
-    "      </td>\n"
-    "      <td class=\"maincenter\" width=\"50%\">\n"
-    "       <p class=\"head2\">{TR_TVSHOWS}</p>\n"
-    "       {TR_TVSHOWS_EXPLAIN}\n"
-    "       <iframe src=\"tvshows-tree.html\" width=\"100%\" height=\"300\" frameborder=\"0\"></iframe>\n"
-    "      </td>\n"
-    "     </tr>\n"
-    "     <tr class=\"main\">\n"
-    "      <td class=\"maincenter\" width=\"50%\">\n"
-    "       <p class=\"head2\">{TR_CLIPS}</p>\n"
-    "       {TR_CLIPS_EXPLAIN}\n"
-    "       <iframe src=\"clips-tree.html\" width=\"100%\" height=\"300\" frameborder=\"0\"></iframe>\n"
-    "      </td>\n"
-    "      <td class=\"maincenter\" width=\"50%\">\n"
-    "       <p class=\"head2\">{TR_MUSIC}</p>\n"
-    "       {TR_MUSIC_EXPLAIN}\n"
-    "       <iframe src=\"music-tree.html\" width=\"100%\" height=\"300\" frameborder=\"0\"></iframe>\n"
-    "      </td>\n"
-    "     </tr>\n"
-    "     <tr class=\"main\">\n"
-    "      <td class=\"maincenter\" width=\"50%\">\n"
-    "       <p class=\"head2\">{TR_PHOTOS}</p>\n"
-    "       {TR_PHOTOS_EXPLAIN}\n"
-    "       <iframe src=\"photos-tree.html\" width=\"100%\" height=\"300\" frameborder=\"0\"></iframe>\n"
-    "      </td>\n"
-    "      <td class=\"maincenter\" width=\"50%\">\n"
-    "       <p class=\"head2\">{TR_HOMEVIDEOS}</p>\n"
-    "       {TR_HOMEVIDEOS_EXPLAIN}\n"
-    "       <iframe src=\"homevideos-tree.html\" width=\"100%\" height=\"300\" frameborder=\"0\"></iframe>\n"
-    "      </td>\n"
-    "     </tr>\n"
-    "    </table>\n"
-    "   </td>\n"
-    "  </tr>\n"
-    " </table>\n";
+    " <div class=\"content\">\n"
+    "  <fieldset style=\"float:left;\">\n"
+    "   <legend>{TR_MOVIES}</legend>\n"
+    "   {TR_MOVIES_EXPLAIN}<br />\n"
+    "   <iframe style=\"width:30em;height:30em;\" src=\"movies-tree.html\" frameborder=\"0\">\n"
+    "    <a href=\"movies-tree.html\" target=\"_blank\">{TR_MOVIES}</a>\n"
+    "   </iframe>\n"
+    "  </fieldset>\n"
+    "  <fieldset style=\"float:left;\">\n"
+    "   <legend>{TR_TVSHOWS}</legend>\n"
+    "   {TR_TVSHOWS_EXPLAIN}<br />\n"
+    "   <iframe style=\"width:30em;height:30em;\" src=\"tvshows-tree.html\" frameborder=\"0\">\n"
+    "    <a href=\"tvshows-tree.html\" target=\"_blank\">{TR_TVSHOWS}</a>\n"
+    "   </iframe>\n"
+    "  </fieldset>\n"
+    "  <fieldset style=\"float:left;\">\n"
+    "   <legend>{TR_CLIPS}</legend>\n"
+    "   {TR_CLIPS_EXPLAIN}<br />\n"
+    "   <iframe style=\"width:30em;height:30em;\" src=\"clips-tree.html\" frameborder=\"0\">\n"
+    "    <a href=\"clips-tree.html\" target=\"_blank\">{TR_CLIPS}</a>\n"
+    "   </iframe>\n"
+    "  </fieldset>\n"
+    "  <fieldset style=\"float:left;\">\n"
+    "   <legend>{TR_MUSIC}</legend>\n"
+    "   {TR_MUSIC_EXPLAIN}<br />\n"
+    "   <iframe style=\"width:30em;height:30em;\" src=\"music-tree.html\" frameborder=\"0\">\n"
+    "    <a href=\"music-tree.html\" target=\"_blank\">{TR_MUSIC}</a>\n"
+    "   </iframe>\n"
+    "  </fieldset>\n"
+    "  <fieldset style=\"float:left;\">\n"
+    "   <legend>{TR_PHOTOS}</legend>\n"
+    "   {TR_PHOTOS_EXPLAIN}<br />\n"
+    "   <iframe style=\"width:30em;height:30em;\" src=\"photos-tree.html\" frameborder=\"0\">\n"
+    "    <a href=\"photos-tree.html\" target=\"_blank\">{TR_PHOTOS}</a>\n"
+    "   </iframe>\n"
+    "  </fieldset>\n"
+    "  <fieldset style=\"float:left;\">\n"
+    "   <legend>{TR_HOMEVIDEOS}</legend>\n"
+    "   {TR_HOMEVIDEOS_EXPLAIN}<br />\n"
+    "   <iframe style=\"width:30em;height:30em;\" src=\"homevideos-tree.html\" frameborder=\"0\">\n"
+    "    <a href=\"homevideos-tree.html\" target=\"_blank\">{TR_HOMEVIDEOS}</a>\n"
+    "   </iframe>\n"
+    "  </fieldset>\n"
+    " </div>\n";
 
 const char * const ConfigServer::htmlDirTreeIndex =
     "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
@@ -96,7 +90,7 @@ const char * const ConfigServer::htmlDirTreeIndex =
 
 const char * const ConfigServer::htmlDirTreeDir =
     " <tr align=\"middle\"><td align=\"left\">\n"
-    "  <a class=\"bookmark\" name=\"{DIR_FULLPATH}\" />\n"
+    "  <a class=\"hidden\" name=\"{DIR_FULLPATH}\" />\n"
     "  {DIR_INDENT}\n"
     "  {DIR_EXPAND}\n"
     "  {DIR_CHECK}\n"
@@ -104,20 +98,20 @@ const char * const ConfigServer::htmlDirTreeDir =
     " </td></tr>\n";
 
 const char * const ConfigServer::htmlDirTreeIndent =
-    "<img src=\"/img/null.png\" width=\"16\" height=\"16\" />";
+    " <img src=\"/img/null.png\" width=\"16\" height=\"16\" />\n";
 
 const char * const ConfigServer::htmlDirTreeExpand =
-    "<a class=\"bookmark\" href=\"{FILE}?open={DIR_ALLOPEN}#{DIR_FULLPATH}\" />"
-    "<img src=\"/img/tree{DIR_OPEN}.png\" width=\"16\" height=\"16\" />"
-    "</a>";
+    " <a class=\"hidden\" href=\"{FILE}?open={DIR_ALLOPEN}#{DIR_FULLPATH}\">\n"
+    "  <img src=\"/img/tree{DIR_OPEN}.png\" width=\"16\" height=\"16\" />\n"
+    " </a>\n";
 
 const char * const ConfigServer::htmlDirTreeCheck =
-    "<img src=\"/img/check{DIR_CHECKED}.png\" width=\"16\" height=\"16\" />";
+    " <img src=\"/img/check{DIR_CHECKED}.png\" width=\"16\" height=\"16\" />";
 
 const char * const ConfigServer::htmlDirTreeCheckLink =
-    "<a class=\"bookmark\" href=\"{FILE}?open={DIR_ALLOPEN}&amp;{DIR_CHECKTYPE}={DIR_FULLPATH}#{DIR_FULLPATH}\" />"
-    "<img src=\"/img/check{DIR_CHECKED}.png\" width=\"16\" height=\"16\" />"
-    "</a>";
+    " <a class=\"hidden\" href=\"{FILE}?open={DIR_ALLOPEN}&amp;{DIR_CHECKTYPE}={DIR_FULLPATH}#{DIR_FULLPATH}\">\n"
+    "  <img src=\"/img/check{DIR_CHECKED}.png\" width=\"16\" height=\"16\" />\n"
+    " </a>\n";
 
 SHttpServer::SocketOp ConfigServer::handleHtmlRequest(const SHttpServer::RequestMessage &request, QAbstractSocket *socket, const QString &file)
 {
@@ -165,7 +159,6 @@ SHttpServer::SocketOp ConfigServer::handleHtmlRequest(const SHttpServer::Request
   }
   else
   {
-    htmlParser.setField("TR_MEDIA_DIRECTORIES", tr("Media directories"));
     htmlParser.setField("TR_CLIPS", tr("Video clips"));
     htmlParser.setField("TR_CLIPS_EXPLAIN", tr("Directories containing video clips:"));
     htmlParser.setField("TR_HOMEVIDEOS", tr("Home videos"));
@@ -178,10 +171,6 @@ SHttpServer::SocketOp ConfigServer::handleHtmlRequest(const SHttpServer::Request
     htmlParser.setField("TR_PHOTOS_EXPLAIN", tr("Directories containing photo albums:"));
     htmlParser.setField("TR_TVSHOWS", tr("TV Shows"));
     htmlParser.setField("TR_TVSHOWS_EXPLAIN", tr("Directories containing TV shows:"));
-
-    htmlParser.setField("TR_MEDIA_DIRECTORIES_EXPLAIN",
-      tr("Select the directories containing various media files here. Note "
-         "that it may take several minutes before any changes will be visible."));
 
     drives(true);
 

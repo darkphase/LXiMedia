@@ -101,15 +101,8 @@ SHttpServer::SocketOp MediaServer::handleHttpRequest(const SHttpServer::RequestM
       response.setContentType("text/html;charset=utf-8");
       response.setField("Cache-Control", "no-cache");
 
-      QString basePath = url.path().mid(serverPath().length());
-      basePath = basePath.startsWith('/') ? basePath : ('/' + basePath);
-
-      const int total = countItems(basePath);
-      const int start = url.queryItemValue("start").toInt();
-
       ThumbnailListItemList thumbItems;
-
-      foreach (const SUPnPContentDirectory::Item &item, listItems(basePath, start, itemsPerThumbnailPage))
+      foreach (const SUPnPContentDirectory::Item &item, listItems(basePath(url.path())))
       {
         if (item.isDir)
         {
@@ -139,7 +132,7 @@ SHttpServer::SocketOp MediaServer::handleHttpRequest(const SHttpServer::RequestM
         }
       }
 
-      return sendHtmlContent(request, socket, url, response, buildThumbnailView(basePath, thumbItems, start, total));
+      return sendHtmlContent(request, socket, url, response, buildThumbnailView(dirName(url.path()), thumbItems));
     }
     else if (request.method() != "HEAD")
     {
@@ -249,6 +242,18 @@ MediaServer::DetailedListItem::DetailedListItem(void)
 }
 
 MediaServer::DetailedListItem::~DetailedListItem(void)
+{
+}
+
+
+MediaServer::DetailedListItem::Column::Column(QString title, QUrl iconurl, QUrl url)
+  : title(title),
+    iconurl(iconurl),
+    url(url)
+{
+}
+
+MediaServer::DetailedListItem::Column::~Column()
 {
 }
 

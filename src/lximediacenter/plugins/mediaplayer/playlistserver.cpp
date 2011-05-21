@@ -141,14 +141,11 @@ SHttpServer::SocketOp PlaylistServer::handleHttpRequest(const SHttpServer::Reque
       const QString album = QUrl(request.path().mid(serverPath().length() - 1)).path();
       if (!album.isEmpty())
       {
-        QString basePath = url.path().mid(serverPath().length());
-        basePath = basePath.startsWith('/') ? basePath : ('/' + basePath);
-
         SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
         response.setContentType("text/html;charset=utf-8");
         response.setField("Cache-Control", "no-cache");
 
-        return sendHtmlContent(request, socket, url, response, buildVideoPlayer(basePath, "playlist", album.mid(album.lastIndexOf('/') + 1), url), headPlayer);
+        return sendHtmlContent(request, socket, url, response, buildVideoPlayer("playlist", album.mid(album.lastIndexOf('/') + 1), url), headPlayer);
       }
     }
   }

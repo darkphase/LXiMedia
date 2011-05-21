@@ -33,6 +33,18 @@ class Backend : public QObject,
                 protected SHttpServer::Callback
 {
 private:
+  struct MenuItem
+  {
+    inline MenuItem(const QString &title, const QString &url, const QString &iconurl)
+      :title(title), url(url), iconurl(iconurl)
+    {
+    }
+
+    QString                     title;
+    QString                     url;
+    QString                     iconurl;
+  };
+
   struct SearchCacheEntry
   {
     QMultiMap<qreal, BackendServer::SearchResult> results;
@@ -59,6 +71,7 @@ private:
   SearchCacheEntry              search(const QString &) const;
 
   virtual QByteArray            parseHtmlContent(const QUrl &, const QByteArray &content, const QByteArray &head) const;
+
   virtual SHttpServer         * httpServer(void);
   virtual SSsdpServer         * ssdpServer(void);
   virtual SUPnPContentDirectory * contentDirectory(void);
@@ -67,9 +80,11 @@ private:
   virtual SSandboxClient      * createSandbox(SSandboxClient::Mode);
   virtual void                  recycleSandbox(SSandboxClient *);
 
-  SHttpServer::SocketOp         handleCssRequest(const SHttpServer::RequestMessage &, QAbstractSocket *, const QString &);
-  SHttpServer::SocketOp         handleHtmlSearch(const SHttpServer::RequestMessage &, QAbstractSocket *, const QString &);
+  QByteArray                    parseHtmlLogErrors(void) const;
+
   SHttpServer::SocketOp         handleHtmlRequest(const SHttpServer::RequestMessage &, QAbstractSocket *, const QString &);
+  SHttpServer::SocketOp         handleHtmlSearch(const SHttpServer::RequestMessage &, QAbstractSocket *, const QString &);
+  SHttpServer::SocketOp         handleHtmlLogFileRequest(const SHttpServer::RequestMessage &, QAbstractSocket *, const QString &);
   SHttpServer::SocketOp         showAbout(const SHttpServer::RequestMessage &, QAbstractSocket *);
   SHttpServer::SocketOp         handleHtmlConfig(const SHttpServer::RequestMessage &, QAbstractSocket *);
 
@@ -94,7 +109,7 @@ private:
   HtmlParser                    cssParser;
   HtmlParser                    htmlParser;
   QList<BackendServer *>        backendServers;
-  QMap<QString, QList<QPair<QString, QByteArray> > > submenuItems;
+  QMap<QString, QList<MenuItem> > submenuItems;
   QByteArray                    menuHtml;
 
   mutable QMap<QString, SearchCacheEntry> searchCache;
@@ -107,16 +122,14 @@ private:
   static const char     * const csslog;
 
   static const char     * const htmlIndex;
+  static const char     * const htmlLocationItem;
   static const char     * const htmlMenuGroup;
   static const char     * const htmlMenuItem;
   static const char     * const htmlMain;
+  static const char     * const htmlMainGroupItem;
+  static const char     * const htmlMainServerItem;
   static const char     * const htmlSearchResults;
-  static const char     * const htmlSearchResultsPage;
   static const char     * const htmlSearchResultsItem;
-  static const char     * const htmlSearchResultsItemThumb;
-  static const char     * const htmlErrorLog;
-  static const char     * const htmlErrorLogFile;
-  static const char     * const htmlErrorLogFileHead;
   static const char     * const htmlLogFile;
   static const char     * const htmlLogFileHeadline;
   static const char     * const htmlLogFileMessage;

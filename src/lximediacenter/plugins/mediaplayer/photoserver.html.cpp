@@ -23,14 +23,14 @@ namespace LXiMediaCenter {
 namespace MediaPlayerBackend {
 
 const char PhotoServer::htmlView[] =
-    " <ul class=\"menu\">\n"
-    "  <li>{TR_DETAILS}</li>\n"
+    " <div class=\"menu\">\n"
+    "  <ul>\n"
+    "   <li>{TR_DETAILS}</li>\n"
     "{DETAILS}"
-    " </ul>\n"
+    "  </ul>\n"
+    " </div>\n"
     " <div class=\"content\">\n"
-    "  <div class=\"pageselector\"><ul>\n"
-    "{PAGES}"
-    "  </ul></div>\n"
+    "  <h1>{TITLE}</h1>\n"
     "  <div class=\"player\">\n"
     "   <a href=\"{PHOTO}.jpeg\">\n"
     "    <img src=\"{PHOTO}.jpeg\" alt=\"Photo\" width=\"100%\" />\n"
@@ -39,7 +39,7 @@ const char PhotoServer::htmlView[] =
     " </div>\n";
 
 const char PhotoServer::htmlDetail[] =
-    "  <li>{ITEM_NAME}: {ITEM_VALUE}</li>\n";
+    "   <li>{ITEM_NAME}: {ITEM_VALUE}</li>\n";
 
 SHttpServer::SocketOp PhotoServer::handleHtmlRequest(const SHttpServer::RequestMessage &request, QAbstractSocket *socket, const QString &file)
 {
@@ -57,6 +57,7 @@ SHttpServer::SocketOp PhotoServer::handleHtmlRequest(const SHttpServer::RequestM
     const SMediaInfo::Program program = node.programs().at(uid.pid);
 
     HtmlParser htmlParser;
+    htmlParser.setField("TITLE", node.title());
     htmlParser.setField("TR_DETAILS", tr("Details"));
 
     htmlParser.setField("DETAILS", QByteArray(""));
@@ -73,17 +74,6 @@ SHttpServer::SocketOp PhotoServer::handleHtmlRequest(const SHttpServer::RequestM
     htmlParser.setField("ITEM_VALUE", videoFormatString(program));
     htmlParser.appendField("DETAILS", htmlParser.parse(htmlDetail));
 
-    QString basePath = url.path().mid(serverPath().length());
-    basePath = basePath.startsWith('/') ? basePath : ('/' + basePath);
-
-    // Build the page selector
-    htmlParser.setField("PAGES", buildPages(basePath));
-    htmlParser.setField("ITEM_NAME", QByteArray(">"));
-    htmlParser.appendField("PAGES", htmlParser.parse(htmlPageSeparator));
-    htmlParser.setField("ITEM_NAME", node.title());
-    htmlParser.appendField("PAGES", htmlParser.parse(htmlPageSeparator));
-
-    // Build the viewer
     htmlParser.setField("PHOTO", MediaDatabase::toUidString(uid));
     return sendHtmlContent(request, socket, url, response, htmlParser.parse(htmlView));
   }

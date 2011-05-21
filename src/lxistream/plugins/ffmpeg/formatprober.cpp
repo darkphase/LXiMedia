@@ -188,7 +188,7 @@ void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *readCallback)
               if (!bestThumb.isNull())
               {
                 VideoResizer videoResizer("bicubic", this);
-                videoResizer.setSize(SSize(256, 256));
+                videoResizer.setSize(SSize(128, 128));
                 videoResizer.setAspectRatioMode(Qt::KeepAspectRatio);
                 bestThumb = videoResizer.processBuffer(bestThumb);
 

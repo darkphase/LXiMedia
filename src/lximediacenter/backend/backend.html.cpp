@@ -27,117 +27,121 @@ const char * const Backend::htmlIndex =
     " <title>{_PRODUCT} @ {_HOSTNAME}</title>\n"
     " <meta http-equiv=\"Content-Type\" content=\"text/html;charset=utf-8\" />\n"
     " <link rel=\"stylesheet\" href=\"/main.css\" type=\"text/css\" media=\"screen, handheld, projection\" />\n"
-    " <link rel=\"stylesheet\" href=\"/menu.css\" type=\"text/css\" media=\"screen, handheld, projection\" />\n"
     "{HEAD}"
     "</head>\n"
     "<body>\n"
+    " <table class=\"location\">\n"
+    "  <tr><td>\n"
+    "   <div>\n"
+    "    <img src=\"/appicon.png\" alt=\"..\" />\n"
+    "    <ul>\n"
+    "     <li><a href=\"/\">{_HOSTNAME}</a></li>\n"
+    "{PATH}"
+    "    </ul>\n"
+    "   </div>\n"
+    "  </td><td>\n"
+    "   <div>\n"
+    "    <form name=\"search\" action=\"/\" method=\"get\">\n"
+    "     <input type=\"text\" size=\"40\" name=\"q\" value=\"{SEARCH_QUERY}\" />\n"
+    "     <input type=\"image\" src=\"/img/database-query.png\" alt=\"{TR_SEARCH}\"/>\n"
+    "    </form>\n"
+    "   </div>\n"
+    "  </td></tr>\n"
+    " </table>\n"
     "{MAIN_MENUGROUPS}"
     "{CONTENT}"
     "</body>\n"
     "</html>\n";
 
+const char * const Backend::htmlLocationItem =
+    "     <li><a href=\"{ITEM_LINK}\">{ITEM_NAME}</a></li>\n";
+
 const char * const Backend::htmlMenuGroup =
-    " <ul class=\"menu\">\n"
-    "  <li>{TEXT}</li>\n"
-    "{MAIN_MENUITEMS}"
-    " </ul>\n";
+    " <div class=\"menu\">\n"
+    "  <ul>\n"
+    "   <li>{TEXT}</li>\n"
+    "{ITEMS}"
+    "  </ul>\n"
+    " </div>\n";
 
 const char * const Backend::htmlMenuItem =
-    "  <li><a href=\"{LINK}\">{TEXT}</a></li>\n";
+    "   <li><a href=\"{ITEM_URL}\"><img src=\"{ITEM_ICONURL}\" alt=\"..\">{ITEM_TITLE}</a></li>\n";
 
 const char * const Backend::htmlMain =
-    " <div style=\"display:block;text-align:center;\">\n"
-    "  <img src=\"/img/lximedia.png\" /><br />\n"
-    "  <form name=\"search\" action=\"\" method=\"get\">\n"
-    "   <input type=\"text\" size=\"60\" name=\"q\" value=\"\" /><br />\n"
-    "   <input type=\"submit\" value=\"{TR_SEARCH}\" />\n"
-    "  </form>\n"
+    "{LOG_ERRORS}"
+    " <div class=\"content\">\n"
+    "{GROUPS}"
     " </div>\n";
+
+const char * const Backend::htmlMainGroupItem =
+    "  <h1>{ITEM_TITLE}</h1>\n"
+    "  <div class=\"thumbnaillist\">\n"
+    "{ITEMS}"
+    "  </div>\n";
+
+const char * const Backend::htmlMainServerItem =
+    "  <div class=\"thumbnaillistitem\">\n"
+    "   <div class=\"thumbnail\">\n"
+    "    <a title=\"{ITEM_TITLE}\" href=\"{ITEM_URL}\">\n"
+    "     <img src=\"{ITEM_ICONURL}\" alt=\"{ITEM_TITLE}\" />\n"
+    "    </a>\n"
+    "   </div>\n"
+    "   {ITEM_TITLE}\n"
+    "  </div>\n";
 
 const char * const Backend::htmlSearchResults =
-    " {TR_RESULTS} {FROM} - {TO} {TR_OF} {OF} ({TIME} {TR_SECONDS})<br />\n"
-    " <table class=\"searchresultlist\">\n"
-    "{SEARCHRESULTS}"
-    " </table>\n"
-    " {TR_PAGE}:{PAGES}<br />\n";
-
-const char * const Backend::htmlSearchResultsPage =
-    " <a href=\"{ITEM_LINK}\">{ITEM_NUMBER}</a>";
-
-const char * const Backend::htmlSearchResultsItem =
-    " <tr><td class=\"searchresultlistitemhead\" colspan=\"2\">\n"
-    "  <a href=\"{ITEM_LINK}\">{ITEM_HEADLINE}</a>\n"
-    " </td></tr>\n"
-    " <tr>\n"
-    "  <td class=\"searchresultlistitemthumb\"></td>\n"
-    "  <td class=\"searchresultlistitem\">\n"
-    "   <small>"
-    "    {ITEM_TEXT}<br />\n"
-    "    {TR_RELEVANCE} {ITEM_RELEVANCE}\n"
-    "   </small>\n"
-    "  </td>\n"
-    " </tr>\n";
-
-const char * const Backend::htmlSearchResultsItemThumb =
-    " <tr><td class=\"searchresultlistitemhead\" colspan=\"2\">\n"
-    "  <a href=\"{ITEM_LINK}\">{ITEM_HEADLINE}</a>\n"
-    " </td></tr>\n"
-    " <tr>\n"
-    "  <td class=\"searchresultlistitemthumb\">\n"
-    "   <a href=\"{ITEM_LINK}\"><img src=\"{ITEM_ICON}?size=64\" alt=\"Thumb\" /></a>\n"
-    "  </td>\n"
-    "  <td class=\"searchresultlistitem\">\n"
-    "   <small>"
-    "    {ITEM_TEXT}<br />\n"
-    "    {TR_RELEVANCE} {ITEM_RELEVANCE}\n"
-    "   </small>\n"
-    "  </td>\n"
-    " </tr>\n";
-
-const char * const Backend::htmlErrorLog =
     " <div class=\"content\">\n"
-    "  <h1>{TR_ERRORS}</h1>\n"
-    "  {TR_HELP_SUBMIT}<br /><br />\n"
-    "  <ul class=\"errorlogfiles\">\n"
-    "{ERROR_LOG_FILES}"
-    "  </ul>\n"
-    "  <a href=\"?dismisserrors\">{TR_DISMISS}</a>\n"
+    "  <h1>{ITEM_TITLE}</h1>\n"
+    "  <div class=\"thumbnaillist\">\n"
+    "{SEARCHRESULTS}"
+    "  </div>\n"
     " </div>\n";
 
-const char * const Backend::htmlErrorLogFileHead =
-    "   <li class=\"errorlogfilehead\">{ITEM_DATE}</li>\n";
-
-const char * const Backend::htmlErrorLogFile =
-    "   <li class=\"errorlogfile\"><a href=\"{ITEM_LINK}\">{ITEM_NAME}</a></li>\n";
+const char * const Backend::htmlSearchResultsItem =
+    "  <div class=\"thumbnaillistitem\">\n"
+    "   <div class=\"thumbnail\">\n"
+    "    <a title=\"{ITEM_TITLE}\" href=\"{ITEM_URL}\">\n"
+    "     <img src=\"{ITEM_ICONURL}\" alt=\"{ITEM_TITLE}\" />\n"
+    "    </a>\n"
+    "   </div>\n"
+    "   {ITEM_TITLE}<br />\n"
+    "   <small>{TR_RELEVANCE}: {ITEM_RELEVANCE}</small>\n"
+    "  </div>\n";
 
 const char * const Backend::htmlLogFile =
+    "{LOG_ERRORS}"
     " <div class=\"content\">\n"
-    "  <table class=\"log\">\n"
-    "   <tr class=\"log\"><th class=\"log\">{TR_DATE}</th><th class=\"log\">{TR_TYPE}</th><th class=\"log\">PID:TID</th><th class=\"log\">{TR_MESSAGE}</th></tr>\n"
+    "  <table class=\"detailedlist\">\n"
+    "   <tr>\n"
+    "    <th class=\"nostretch\">{TR_DATE}</th>\n"
+    "    <th class=\"nostretch\">{TR_TYPE}</th>\n"
+    "    <th class=\"nostretch\">PID:TID</th>\n"
+    "    <th class=\"stretch\">{TR_MESSAGE}</th>\n"
+    "   </tr>\n"
     "{LOG_MESSAGES}"
     "  </table>\n"
     "  <a name=\"bottom\"></a>\n"
     " </div>\n";
 
 const char * const Backend::htmlLogFileHeadline =
-    "   <tr class=\"log\">\n"
-    "    <td width=\"140\" rowspan=\"{ITEM_ROWS}\" class=\"{ITEM_CLASS}\">\n"
+    "   <tr>\n"
+    "    <td class=\"nostretch_a\" rowspan=\"{ITEM_ROWS}\">\n"
     "     {ITEM_DATE}\n"
     "    </td>\n"
-    "    <td width=\"40\" rowspan=\"{ITEM_ROWS}\" class=\"{ITEM_CLASS}\">\n"
+    "    <td class=\"nostretch_a\" rowspan=\"{ITEM_ROWS}\">\n"
     "     {ITEM_TYPE}\n"
     "    </td>\n"
-    "    <td width=\"40\" rowspan=\"{ITEM_ROWS}\" class=\"{ITEM_CLASS}\">\n"
+    "    <td class=\"nostretch_a\" rowspan=\"{ITEM_ROWS}\">\n"
     "     {ITEM_PID}:{ITEM_TID}\n"
     "    </td>\n"
-    "    <td class=\"{ITEM_CLASS}\">\n"
+    "    <td class=\"stretch_a\">\n"
     "     {ITEM_HEADLINE}\n"
     "    </td>\n"
     "   </tr>\n";
 
 const char * const Backend::htmlLogFileMessage =
-    "   <tr class=\"log\">\n"
-    "    <td class=\"{ITEM_CLASS}\">\n"
+    "   <tr>\n"
+    "    <td>\n"
     "{ITEM_MESSAGE}\n"
     "    </td>\n"
     "   </tr>\n";
@@ -289,15 +293,47 @@ const char * const Backend::htmlConfigImdbDownload =
     "   </form>\n";
 
 
-SHttpServer::SocketOp Backend::handleHtmlRequest(const SHttpServer::RequestMessage &request, QAbstractSocket *socket, const QString &)
+QByteArray Backend::parseHtmlContent(const QUrl &url, const QByteArray &content, const QByteArray &head) const
+{
+  HtmlParser localParser(htmlParser);
+  localParser.setField("TR_SEARCH", tr("Search"));
+  localParser.setField("SEARCH_QUERY", QByteArray(""));
+  localParser.setField("PATH", QByteArray(""));
+
+  const QString path = url.path();
+  const int lastSlash = path.lastIndexOf('/');
+  if (lastSlash > 0)
+  {
+    QString fullPath = "/";
+    foreach (const QString &dir, path.left(lastSlash).split('/', QString::SkipEmptyParts))
+    {
+      fullPath += dir + "/";
+      localParser.setField("ITEM_LINK", fullPath);
+      localParser.setField("ITEM_NAME", dir);
+      localParser.appendField("PATH", localParser.parse(htmlLocationItem));
+    }
+  }
+
+  if (url.hasQueryItem("q"))
+  {
+    const QString queryValue = url.queryItemValue("q");
+    const QString queryString = QByteArray::fromPercentEncoding(queryValue.toAscii().replace('+', ' '));
+    localParser.setField("TR_SEARCH", tr("Search"));
+    localParser.setField("SEARCH_QUERY", queryString);
+
+    localParser.setField("ITEM_LINK", "/?q=" + queryValue);
+    localParser.setField("ITEM_NAME", tr("Search") + ": " + queryString);
+    localParser.appendField("PATH", localParser.parse(htmlLocationItem));
+  }
+
+  localParser.setField("HEAD", head);
+  localParser.setField("CONTENT", content);
+  return localParser.parse(htmlIndex);
+}
+
+QByteArray Backend::parseHtmlLogErrors(void) const
 {
   HtmlParser htmlParser(this->htmlParser);
-
-  SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
-  response.setContentType("text/html;charset=utf-8");
-  response.setField("Cache-Control", "no-cache");
-
-  QByteArray content = htmlParser.parse(htmlMain);
 
   // Submit error log
   const QSet<QString> dismissedFiles =
@@ -312,12 +348,8 @@ SHttpServer::SocketOp Backend::handleHtmlRequest(const SHttpServer::RequestMessa
   {
     htmlParser.setField("TR_ERRORS",tr("Program errors"));
     htmlParser.setField("TR_DISMISS",tr("Dismiss all errors"));
-    htmlParser.setField("TR_HELP_SUBMIT",
-        tr("Unexpected errors were found in the log files. Please take some time "
-           "to to submit a bug report on "
-           "<a href=\"http://sourceforge.net/projects/lximedia/develop\">"
-           "sourceforge.net/projects/lximedia/develop</a> if you think these "
-           "errors are due to bugs in the software."));
+
+    htmlParser.setField("ITEM_ICONURL", QByteArray("/img/journal.png"));
 
     htmlParser.setField("ERROR_LOG_FILES", QByteArray(""));
     QString lastDate;
@@ -325,38 +357,62 @@ SHttpServer::SocketOp Backend::handleHtmlRequest(const SHttpServer::RequestMessa
     {
       const QFileInfo info(errorLogFiles[i]);
 
-      const QString date = info.created().toString("yyyy-MM-dd");
-      if (date != lastDate)
-      {
-        htmlParser.setField("ITEM_DATE", date);
-        htmlParser.appendField("ERROR_LOG_FILES", htmlParser.parse(htmlErrorLogFileHead));
-        lastDate = date;
-      }
-
-      htmlParser.setField("ITEM_NAME", info.fileName());
-      htmlParser.setField("ITEM_LINK", "/" + info.fileName());
-      htmlParser.appendField("ERROR_LOG_FILES", htmlParser.parse(htmlErrorLogFile));
+      htmlParser.setField("ITEM_TITLE", info.created().toString("yyyy-MM-dd hh:mm"));
+      htmlParser.setField("ITEM_URL", "/" + info.fileName());
+      htmlParser.appendField("ITEMS", htmlParser.parse(htmlMenuItem));
     }
 
-    content += htmlParser.parse(htmlErrorLog);
+    htmlParser.setField("ITEM_TITLE", tr("Dismiss all errors"));
+    htmlParser.setField("ITEM_URL", QByteArray("/?dismisserrors"));
+    htmlParser.appendField("ITEMS", htmlParser.parse(htmlMenuItem));
+
+    htmlParser.setField("TEXT", tr("Program errors"));
+    return htmlParser.parse(htmlMenuGroup);
+  }
+
+  return QByteArray();
+}
+
+SHttpServer::SocketOp Backend::handleHtmlRequest(const SHttpServer::RequestMessage &request, QAbstractSocket *socket, const QString &file)
+{
+  HtmlParser htmlParser(this->htmlParser);
+
+  SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
+  response.setContentType("text/html;charset=utf-8");
+  response.setField("Cache-Control", "no-cache");
+
+  htmlParser.setField("LOG_ERRORS", parseHtmlLogErrors());
+
+  htmlParser.setField("GROUPS", QByteArray(""));
+  for (QMap<QString, QList<MenuItem> >::ConstIterator i=submenuItems.begin();
+       i!=submenuItems.end();
+       i++)
+  if (file.isEmpty() || (file == i.key()))
+  {
+    htmlParser.setField("ITEMS", QByteArray(""));
+    foreach (const MenuItem &item, *i)
+    {
+      htmlParser.setField("ITEM_TITLE", item.title);
+      htmlParser.setField("ITEM_URL", item.url);
+      htmlParser.setField("ITEM_ICONURL", item.iconurl);
+      htmlParser.appendField("ITEMS", htmlParser.parse(htmlMainServerItem));
+    }
+
+    htmlParser.setField("ITEM_TITLE", i.key());
+    htmlParser.appendField("GROUPS", htmlParser.parse(htmlMainGroupItem));
   }
 
   socket->write(response);
-  socket->write(parseHtmlContent(QUrl(request.path()), content, ""));
+  socket->write(parseHtmlContent(QUrl(request.path()), htmlParser.parse(htmlMain), ""));
   return SHttpServer::SocketOp_Close;
 }
 
 SHttpServer::SocketOp Backend::handleHtmlSearch(const SHttpServer::RequestMessage &request, QAbstractSocket *socket, const QString &)
 {
-  static const int resultsPerPage = 30;
-
   HtmlParser htmlParser(this->htmlParser);
   htmlParser.setField("TR_OF", tr("of"));
-  htmlParser.setField("TR_PAGE", tr("Page"));
   htmlParser.setField("TR_RELEVANCE", tr("Relevance"));
   htmlParser.setField("TR_RESULTS", tr("Results"));
-  htmlParser.setField("TR_SEARCH", tr("Search"));
-  htmlParser.setField("TR_SECONDS", tr("seconds"));
 
   SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
   response.setContentType("text/html;charset=utf-8");
@@ -365,68 +421,90 @@ SHttpServer::SocketOp Backend::handleHtmlSearch(const SHttpServer::RequestMessag
   const QUrl url(request.path());
   const QString queryValue = url.queryItemValue("q");
   const QString queryString = QByteArray::fromPercentEncoding(queryValue.toAscii().replace('+', ' '));
-  htmlParser.setField("QUERY", queryString);
-
   const SearchCacheEntry entry = search(queryString);
   htmlParser.setField("SEARCHRESULTS", QByteArray(""));
 
-  const int first = url.queryItemValue("first").toUInt();
-  const int last = qMin(first + resultsPerPage, entry.results.count()) - 1;
-  int count = 0;
-
-  htmlParser.setField("TIME", QByteArray::number(qreal(entry.duration) / 1000.0, 'f', 2));
-  htmlParser.setField("FROM", QByteArray::number(first + 1));
-  htmlParser.setField("TO", QByteArray::number(last + 1));
-  htmlParser.setField("OF", QByteArray::number(entry.results.count()));
-
-  for (QMultiMap<qreal, BackendServer::SearchResult>::ConstIterator i = entry.results.begin();
-       i != entry.results.end();
-       i++)
+  foreach (const BackendServer::SearchResult &result, entry.results)
   {
-    if ((count >= first) && (count <= last))
-    {
-      htmlParser.setField("ITEM_HEADLINE", i->headline);
-      htmlParser.setField("ITEM_LINK", i->location);
-      htmlParser.setField("ITEM_TEXT", i->text);
-      htmlParser.setField("ITEM_RELEVANCE", QString::number(qBound(0, int(i->relevance * 100.0), 100)) + "%");
+    htmlParser.setField("ITEM_TITLE", result.headline);
+    htmlParser.setField("ITEM_RELEVANCE", QString::number(qBound(0, int(result.relevance * 100.0), 100)) + "%");
+    htmlParser.setField("ITEM_URL", result.location);
+    htmlParser.setField("ITEM_ICONURL", result.thumbLocation);
 
-      if (!i->thumbLocation.isEmpty())
-      {
-        htmlParser.setField("ITEM_ICON", i->thumbLocation);
-        htmlParser.appendField("SEARCHRESULTS", htmlParser.parse(htmlSearchResultsItemThumb));
-      }
-      else
-        htmlParser.appendField("SEARCHRESULTS", htmlParser.parse(htmlSearchResultsItem));
-    }
-    else if (count > last)
-      break;
-
-    count++;
+    htmlParser.appendField("SEARCHRESULTS", htmlParser.parse(htmlSearchResultsItem));
   }
 
-  htmlParser.setField("PAGES", QByteArray(""));
-  for (int i=0, n=(entry.results.count() + (resultsPerPage - 1)) / resultsPerPage; i<n; i++)
-  {
-    if ((i * resultsPerPage) != first)
-    {
-      htmlParser.setField("ITEM_LINK", "/?q=" + queryValue + "&amp;first=" + QString::number(i * resultsPerPage));
-      htmlParser.setField("ITEM_NUMBER", QByteArray::number(i + 1));
-      htmlParser.appendField("PAGES", htmlParser.parse(htmlSearchResultsPage));
-    }
-    else
-      htmlParser.appendField("PAGES", QByteArray::number(i + 1));
-  }
-
-  if (last < entry.results.count() - 1)
-  {
-    htmlParser.setField("ITEM_LINK", "/?q=" + queryValue + "&amp;first=" + QString::number(last + 1));
-    htmlParser.setField("ITEM_NUMBER", tr("Next"));
-    htmlParser.appendField("PAGES", htmlParser.parse(htmlSearchResultsPage));
-  }
+  htmlParser.setField("ITEM_TITLE", tr("Search") + ": " + queryString);
 
   socket->write(response);
   socket->write(parseHtmlContent(url, htmlParser.parse(htmlSearchResults), ""));
   return SHttpServer::SocketOp_Close;
+}
+
+SHttpServer::SocketOp Backend::handleHtmlLogFileRequest(const SHttpServer::RequestMessage &request, QAbstractSocket *socket, const QString &file)
+{
+  QString logFileName;
+  if (file == "main.log")
+  {
+    logFileName = sApp->activeLogFile();
+  }
+  else foreach (const QString &f, sApp->allLogFiles())
+  if (f.endsWith("/" + file))
+  {
+    logFileName = f;
+    break;
+  }
+
+  SApplication::LogFile logFile(logFileName);
+  if (logFile.open(SApplication::LogFile::ReadOnly))
+  {
+    const QUrl url(request.path());
+
+    HtmlParser htmlParser(this->htmlParser);
+    htmlParser.setField("TR_DATE", tr("Date"));
+    htmlParser.setField("TR_TYPE", tr("Type"));
+    htmlParser.setField("TR_MESSAGE", tr("Message"));
+
+    htmlParser.setField("LOG_ERRORS", parseHtmlLogErrors());
+
+    htmlParser.setField("LOG_MESSAGES", QByteArray(""));
+
+    for (SApplication::LogFile::Message msg=logFile.readMessage();
+         msg.date.isValid();
+         msg=logFile.readMessage())
+    {
+      const bool mr = !msg.message.isEmpty();
+
+      htmlParser.setField("ITEM_ROWS", QByteArray::number(mr ? 2 : 1));
+
+      htmlParser.setField("ITEM_ROWS", QByteArray::number(mr ? 2 : 1));
+      htmlParser.setField("ITEM_DATE", msg.date.toString("yyyy-MM-dd/hh:mm:ss"));
+      htmlParser.setField("ITEM_TYPE", msg.type);
+      htmlParser.setField("ITEM_PID", QByteArray::number(msg.pid));
+      htmlParser.setField("ITEM_TID", QByteArray::number(msg.tid));
+      htmlParser.setField("ITEM_TYPE", msg.type);
+      htmlParser.setField("ITEM_HEADLINE", msg.headline);
+      htmlParser.appendField("LOG_MESSAGES", htmlParser.parse(htmlLogFileHeadline));
+
+      if (mr)
+      {
+        htmlParser.setField("ITEM_MESSAGE", msg.message.replace('\n', "<br />\n"));
+        htmlParser.appendField("LOG_MESSAGES", htmlParser.parse(htmlLogFileMessage));
+      }
+    }
+
+    SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
+    response.setContentType("text/html;charset=utf-8");
+    response.setField("Cache-Control", "no-cache");
+    if (logFileName == sApp->activeLogFile())
+      response.setField("Refresh", "10;URL=#bottom");
+
+    socket->write(response);
+    socket->write(parseHtmlContent(url, htmlParser.parse(htmlLogFile), ""));
+    return SHttpServer::SocketOp_Close;
+  }
+
+  return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);
 }
 
 SHttpServer::SocketOp Backend::showAbout(const SHttpServer::RequestMessage &request, QAbstractSocket *socket)

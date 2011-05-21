@@ -1,0 +1,24 @@
+<RCC>
+    <qresource prefix="/backend">
+        <file>main.css</file>
+
+        <file>images/lximedia.png</file>
+        <file>images/null.png</file>
+        <file>images/checknone.png</file>
+        <file>images/checkfull.png</file>
+        <file>images/checksome.png</file>
+        <file>images/checknonedisabled.png</file>
+        <file>images/checkfulldisabled.png</file>
+        <file>images/checksomedisabled.png</file>
+        <file>images/database-query.png</file>
+        <file>images/treeopen.png</file>
+        <file>images/treeclose.png</file>
+        <file>images/starenabled.png</file>
+        <file>images/stardisabled.png</file>
+        <file>images/directory.png</file>
+        <file>images/playlist-file.png</file>
+        <file>images/audio-file.png</file>
+        <file>images/video-file.png</file>
+        <file>images/image-file.png</file>
+    </qresource>
+</RCC>
