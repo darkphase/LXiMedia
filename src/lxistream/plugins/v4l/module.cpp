@@ -45,6 +45,11 @@ void Module::unload(void)
 
 QByteArray Module::about(void)
 {
+  return "Video 4 Linux plugin by A.J. Admiraal";
+}
+
+QByteArray Module::licenses(void)
+{
   return QByteArray();
 }
 

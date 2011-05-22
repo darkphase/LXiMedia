@@ -107,7 +107,9 @@ bool VideoEncoder::openCodec(const SVideoCodec &c, Flags flags)
     contextHandle->rc_buffer_size = contextHandle->rc_max_rate * 2;
     contextHandle->rc_initial_buffer_occupancy = contextHandle->rc_buffer_size * 3 / 4;
     contextHandle->rc_qsquish = 0.0f;
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
     contextHandle->rc_lookahead = qMin(contextHandle->rc_lookahead, int(outCodec.frameRate().toFrequency() * 3));
+#endif
   }
 
   contextHandle->max_qdiff = contextHandle->qmax - contextHandle->qmin;

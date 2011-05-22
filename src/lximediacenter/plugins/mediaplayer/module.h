@@ -39,6 +39,7 @@ public:
   virtual bool                  registerClasses(void);
   virtual void                  unload(void);
   virtual QByteArray            about(void);
+  virtual QByteArray            licenses(void);
 
 public:
   static const char             pluginName[];

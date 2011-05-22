@@ -112,6 +112,11 @@ void Module::unload(void)
 
 QByteArray Module::about(void)
 {
+  return "ALSA plugin by A.J. Admiraal";
+}
+
+QByteArray Module::licenses(void)
+{
   return QByteArray();
 }
 

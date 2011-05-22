@@ -37,21 +37,24 @@ void Module::unload(void)
 
 QByteArray Module::about(void)
 {
-  const QByteArray text;/* =
-      " <h2>FFTW</h2>\n"
-      " Version: " + QByteArray(fftwf_version) + "<br />\n"
-      " Website: <a href=\"http://www.fftw.org/\">www.fftw.org</a><br />\n"
-      " <br />\n"
-      " <b>Copyright (c) 2003, 2007-8 Matteo Frigo</b><br />\n"
-      " <b>Copyright (c) 2003, 2007-8 Massachusetts Institute of Technology</b><br />\n"
-      " <br />\n"
-      " Used under the terms of the GNU General Public License version 2\n"
-      " as published by the Free Software Foundation.<br />\n"
-      " <br />\n";*/
+  return "FFTW plugin by A.J. Admiraal";
+}
+
+QByteArray Module::licenses(void)
+{
+  const QByteArray text =
+      "<h2>FFTW</h2>\n"
+      "Version: " + QByteArray(fftwf_version) + "<br />\n"
+      "Website: <a href=\"http://www.fftw.org/\">www.fftw.org</a><br />\n"
+      "<br />\n"
+      "<b>Copyright (c) 2003, 2007-8 Matteo Frigo</b><br />\n"
+      "<b>Copyright (c) 2003, 2007-8 Massachusetts Institute of Technology</b><br />\n"
+      "<br />\n"
+      "Used under the terms of the GNU General Public License version 2\n"
+      "as published by the Free Software Foundation.\n";
 
   return text;
 }
-
 
 QMutex & Module::fftwMutex(void)
 {

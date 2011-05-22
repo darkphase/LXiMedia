@@ -110,4 +110,9 @@ QByteArray Module::about(void)
   return QByteArray();
 }
 
+QByteArray Module::licenses(void)
+{
+  return QByteArray();
+}
+
 } } // End of namespaces
