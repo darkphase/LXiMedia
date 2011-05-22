@@ -23,6 +23,9 @@
 #endif
 #include <QtXml>
 #include <liblximediacenter/globalsettings.h>
+#if defined(Q_OS_WIN)
+#include <windows.h>
+#endif
 
 using namespace LXiMediaCenter;
 
@@ -253,11 +256,14 @@ void TrayIcon::loadBrowser(const QUrl &url)
   view->setAttribute(Qt::WA_DeleteOnClose);
   view->load(url);
   view->show();
-#elif defined(Q_OS_WIN)
-  QProcess::startDetached(
-      QProcessEnvironment::systemEnvironment().value("ComSpec", "cmd.exe"),
-      QStringList() << "/c" << "start" << url.toString());
 #elif defined(Q_OS_UNIX)
   QProcess::startDetached("xdg-open", QStringList() << url.toString());
+#elif defined(Q_OS_WIN)
+  if (int(::ShellExecute(NULL, L"open", reinterpret_cast<const WCHAR *>(url.toString().utf16()), NULL, NULL, SW_SHOWNORMAL)) <= 32)
+  {
+    QProcess::startDetached(
+        QProcessEnvironment::systemEnvironment().value("ComSpec", "cmd.exe"),
+        QStringList() << "/c" << "start" << url.toString());
+  }
 #endif
 }
