@@ -152,7 +152,7 @@ void Backend::start(void)
 
   // Build the menu
   QList<MenuItem> generalMenu;
-  generalMenu += MenuItem(tr("Main"),      "/",                 "/img/lximedia.png");
+  generalMenu += MenuItem(tr("Main"),      "/",                 "/lximedia.png");
   generalMenu += MenuItem(tr("Log"),       "/main.log#bottom",  "/img/journal.png");
 #ifndef QT_NO_DEBUG
   generalMenu += MenuItem(tr("Exit"),      "/?exit",            "/img/control.png");
@@ -199,9 +199,9 @@ void Backend::start(void)
   masterConnectionManager.initialize(&masterHttpServer, &masterMediaServer);
   masterContentDirectory.initialize(&masterHttpServer, &masterMediaServer);
 
-  const QImage icon(":/lximediacenter/appicon.png");
+  const QImage icon(":/lximedia.png");
   if (!icon.isNull())
-    masterMediaServer.addIcon("/appicon.png", icon.width(), icon.height(), icon.depth());
+    masterMediaServer.addIcon("/lximedia.png", icon.width(), icon.height(), icon.depth());
 
   // Supported DLNA protocols
   const QStringList outAudioCodecs = SAudioEncoderNode::codecs();
@@ -435,11 +435,6 @@ SHttpServer::SocketOp Backend::handleHttpRequest(const SHttpServer::RequestMessa
 
         settings.endGroup();
 
-        // Active log file
-        QDomElement activeLogFile = doc.createElement("activelogfile");
-        root.appendChild(activeLogFile);
-        activeLogFile.setAttribute("name", QFileInfo(sApp->activeLogFile()).fileName());
-
         // Error logs
         const QSet<QString> dismissedFiles =
             QSet<QString>::fromList(settings.value("DismissedErrors").toStringList());
@@ -493,10 +488,8 @@ SHttpServer::SocketOp Backend::handleHttpRequest(const SHttpServer::RequestMessa
 
     QString sendFile;
     if      (path == "/main.css")                   sendFile = ":/backend/main.css";
-
-    else if (path == "/favicon.ico")                sendFile = ":/lximediacenter/images/appicon.ico";
-    else if (path == "/appicon.png")                sendFile = ":/lximediacenter/images/appicon.png";
-    else if (path == "/logo.png")                   sendFile = ":/lximediacenter/images/logo.png";
+    else if (path == "/favicon.ico")                sendFile = ":/lximedia.ico";
+    else if (path == "/lximedia.png")               sendFile = ":/lximedia.png";
 
     else if (path == "/swf/flowplayer.swf")         sendFile = ":/flowplayer/flowplayer-3.2.5.swf";
     else if (path == "/swf/flowplayer.controls.swf")sendFile = ":/flowplayer/flowplayer.controls-3.2.3.swf";
@@ -504,13 +497,9 @@ SHttpServer::SocketOp Backend::handleHttpRequest(const SHttpServer::RequestMessa
 
     else if (path.startsWith("/img/"))
     {
-      static const QDir imgDir1(":/lximediacenter/images/");
-      static const QDir imgDir2(":/backend/images/");
-
-      if (imgDir1.exists(path.mid(5)))
-        sendFile = imgDir1.absoluteFilePath(path.mid(5));
-      else if (imgDir2.exists(path.mid(5)))
-        sendFile = imgDir2.absoluteFilePath(path.mid(5));
+      static const QDir imgDir(":/lximediacenter/images/");
+      if (imgDir.exists(path.mid(5)))
+        sendFile = imgDir.absoluteFilePath(path.mid(5));
     }
 
     if (!sendFile.isEmpty())
@@ -518,7 +507,7 @@ SHttpServer::SocketOp Backend::handleHttpRequest(const SHttpServer::RequestMessa
       SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
       response.setContentType(SHttpServer::toMimeType(sendFile));
 
-      if (url.hasQueryItem("scale") && path.startsWith("/img/"))
+      if (url.hasQueryItem("scale") && path.endsWith(".png"))
       {
         QImage image(sendFile);
         if (!image.isNull())

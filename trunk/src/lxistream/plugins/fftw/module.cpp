@@ -43,7 +43,7 @@ QByteArray Module::about(void)
 QByteArray Module::licenses(void)
 {
   const QByteArray text =
-      "<h2>FFTW</h2>\n"
+      "<h3>FFTW</h3>\n"
       "Version: " + QByteArray(fftwf_version) + "<br />\n"
       "Website: <a href=\"http://www.fftw.org/\">www.fftw.org</a><br />\n"
       "<br />\n"

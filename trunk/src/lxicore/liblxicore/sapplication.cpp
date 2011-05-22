@@ -250,19 +250,17 @@ QByteArray SApplication::about(void) const
       "ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS\n"
       "FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.\n";
 
-  text +=
-      "<h2>Plugins loaded</h2>\n"
-      "<ul>\n";
-
+  QByteArray plugins;
   for (QList< QPair<QPluginLoader *, SModule *> >::Iterator i=d->modules.begin(); i!=d->modules.end(); i++)
   if (i->first && i->second)
-    text += "<li title=\"" + i->first->fileName().toUtf8() + "\">" + i->second->about() + "</li>\n";
+    plugins += "<li title=\"" + i->first->fileName().toUtf8() + "\">" + i->second->about() + "</li>\n";
 
-  text += "</ul>\n";
+  if (!plugins.isEmpty())
+    text += "<h2>Plugins loaded</h2>\n<ul>\n" + plugins + "</ul>\n";
 
   text +=
-      "<h1>Third-party libraries used</h1>\n"
-      "<h2>Qt</h2>\n"
+      "<h2>Third-party libraries used</h2>\n"
+      "<h3>Qt</h3>\n"
       "Versions: " + QByteArray(qVersion()) + " (linked), " QT_VERSION_STR " (built)<br />\n"
       "Website: <a href=\"http://qt.nokia.com/\">qt.nokia.com</a><br />\n"
       "<br />\n"

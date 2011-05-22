@@ -22,18 +22,20 @@
 
 int main(int argc, char *argv[])
 {
-  QApplication app(argc, argv);
-  app.setOrganizationName("LeX-Interactive");
-  app.setOrganizationDomain("lximedia.sf.net");
-  app.setApplicationName("LXiMediaCenter");
-  app.setApplicationVersion(
+  QApplication qapp(argc, argv);
+  qapp.setOrganizationName("LeX-Interactive");
+  qapp.setOrganizationDomain("lximedia.sf.net");
+  qapp.setApplicationName("LXiMediaCenter");
+  qapp.setApplicationVersion(
 #include "_version.h"
       );
 
-  app.setQuitOnLastWindowClosed(false);
+  qapp.setQuitOnLastWindowClosed(false);
+
+  SApplication sapp;
 
   TrayIcon trayIcon;
   trayIcon.show();
 
-  return app.exec();
+  return qapp.exec();
 }

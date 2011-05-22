@@ -46,7 +46,7 @@ public:
    */
   virtual QByteArray            about(void) = 0;
 
-  /*! Returns an HTML formatted H2 section describing the license(s) that apply
+  /*! Returns an HTML formatted H3 section describing the license(s) that apply
       to the use of this pluging (e.g. licenses of any libraries used).
    */
   virtual QByteArray            licenses(void) = 0;

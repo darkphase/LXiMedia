@@ -45,7 +45,7 @@ QByteArray Module::about(void)
 QByteArray Module::licenses(void)
 {
   const QByteArray text =
-      " <h2>libdvdnav</h2>\n"
+      " <h3>libdvdnav</h3>\n"
       " Website: <a href=\"http://dvd.sourceforge.net/\">dvd.sourceforge.net</a><br />\n"
       " <br />\n"
       " Used under the terms of the GNU General Public License version 2\n"
