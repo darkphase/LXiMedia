@@ -32,6 +32,7 @@ SOURCES += sapplication.cpp \
     smodule.cpp \
     sstringparser.cpp \
     sstringparser.iso639.cpp
+RESOURCES = liblxicore.qrc
 
 # Platform specific
 unix|win32-g++ {

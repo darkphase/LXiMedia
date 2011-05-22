@@ -60,7 +60,7 @@ QByteArray Module::about(void)
 QByteArray Module::licenses(void)
 {
   const QByteArray text =
-      "<h2>libexif C EXIF library</h2>\n"
+      "<h3>libexif C EXIF library</h3>\n"
       "Website: <a href=\"http://libexif.sourceforge.net/\">libexif.sourceforge.net</a><br />\n"
       "<br />\n"
       "Used under the terms of the GNU Lesser General Public License version 2.1\n"

@@ -154,7 +154,7 @@ QByteArray Module::about(void)
 QByteArray Module::licenses(void)
 {
   const QByteArray text =
-      "<h2>FFMpeg (libavcodec, libavformat, libswscale)</h2>\n"
+      "<h3>FFMpeg (libavcodec, libavformat, libswscale)</h3>\n"
       "Versions: " LIBAVCODEC_IDENT ", " LIBAVFORMAT_IDENT ", " LIBSWSCALE_IDENT "<br />\n"
       "Website: <a href=\"http://www.ffmpeg.org/\">www.ffmpeg.org</a><br />\n"
       "<br />\n"

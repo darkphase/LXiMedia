@@ -33,7 +33,7 @@ const char * const Backend::htmlIndex =
     " <table class=\"location\">\n"
     "  <tr><td>\n"
     "   <div>\n"
-    "    <img src=\"/appicon.png\" alt=\"..\" />\n"
+    "    <img src=\"/lximedia.png?scale=32\" alt=\"..\" />\n"
     "    <ul>\n"
     "     <li><a href=\"/\">{_HOSTNAME}</a></li>\n"
     "{PATH}"

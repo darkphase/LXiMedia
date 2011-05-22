@@ -81,7 +81,7 @@ QByteArray Module::about(void)
 QByteArray Module::licenses(void)
 {
   const QByteArray text =
-      "<h2>PulseAudio</h2>\n"
+      "<h3>PulseAudio</h3>\n"
       "Website: <a href=\"http://www.pulseaudio.org/\">www.pulseaudio.org</a><br />\n"
       "<br />\n"
       "Used under the terms of the GNU Lesser General Public License version 2.1\n"

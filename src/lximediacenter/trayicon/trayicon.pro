@@ -27,8 +27,6 @@ SOURCES += main.cpp \
 
 HEADERS += trayicon.h
 
-RESOURCES = ../liblximediacenter/images/trayicon_images.qrc
-
 unix {
     target.path = /usr/bin
     INSTALLS += target

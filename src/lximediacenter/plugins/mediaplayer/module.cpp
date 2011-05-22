@@ -86,7 +86,7 @@ QByteArray Module::about(void)
 QByteArray Module::licenses(void)
 {
   const QByteArray text =
-      "<h2>KDE monochromatic icons theme</h2>\n"
+      "<h3>KDE monochromatic icons theme</h3>\n"
       "Website: <a href=\"http://www.kde.org/\">www.kde.org</a><br />\n"
       "<br />\n"
       "Used under the terms of the GNU General Public License version 2\n"

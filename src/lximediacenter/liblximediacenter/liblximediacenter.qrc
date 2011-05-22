@@ -1,13 +1,5 @@
 <!DOCTYPE RCC><RCC version="1.0">
 <qresource prefix="/lximediacenter">
-  <file>images/appicon.svg</file>
-  <file>images/appicon.png</file>
-  <file>images/appicon.ico</file>
-  <file>images/appicon-large.png</file>
-  <file>images/logo.svg</file>
-  <file>images/logo.png</file>
-  <file>images/logo-inverted.png</file>
-
   <file>images/arrow-right.png</file>
   <file>images/audio-headset.png</file>
   <file>images/camera-photo.png</file>
@@ -21,5 +13,23 @@
   <file>images/played.png</file>
   <file>images/video-television.png</file>
   <file>images/video-template.png</file>
+
+  <file>images/null.png</file>
+  <file>images/checknone.png</file>
+  <file>images/checkfull.png</file>
+  <file>images/checksome.png</file>
+  <file>images/checknonedisabled.png</file>
+  <file>images/checkfulldisabled.png</file>
+  <file>images/checksomedisabled.png</file>
+  <file>images/database-query.png</file>
+  <file>images/treeopen.png</file>
+  <file>images/treeclose.png</file>
+  <file>images/starenabled.png</file>
+  <file>images/stardisabled.png</file>
+  <file>images/directory.png</file>
+  <file>images/playlist-file.png</file>
+  <file>images/audio-file.png</file>
+  <file>images/video-file.png</file>
+  <file>images/image-file.png</file>
 </qresource>
 </RCC>

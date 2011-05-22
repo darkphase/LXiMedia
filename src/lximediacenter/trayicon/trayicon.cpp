@@ -32,7 +32,7 @@ const int   TrayIcon::iconSize = 32;
 
 TrayIcon::TrayIcon()
     : QObject(),
-      icon(":/lximediacenter/appicon.png"),
+      icon(":/lximedia.png"),
       trayIcon(),
       ssdpClient(QString("uuid:" + GlobalSettings::serverUuid().toString()).replace("{", "").replace("}", "")),
       aboutBox(NULL)
@@ -40,6 +40,7 @@ TrayIcon::TrayIcon()
   connect(&updateStatusTimer, SIGNAL(timeout()), SLOT(updateStatus()));
   connect(&networkAccessManager, SIGNAL(finished(QNetworkReply *)), SLOT(requestFinished(QNetworkReply *)));
   connect(&trayIcon, SIGNAL(messageClicked()), SLOT(messageClicked()));
+  connect(&menu, SIGNAL(triggered(QAction *)), SLOT(loadBrowser(QAction *)));
 }
 
 TrayIcon::~TrayIcon()
@@ -55,10 +56,10 @@ void TrayIcon::show(void)
 
   rebuildMenu();
 
-  QTimer::singleShot(5000, this, SLOT(startSSdp()));
+  QTimer::singleShot(5000, this, SLOT(startSSDP()));
 }
 
-void TrayIcon::startSSdp(void)
+void TrayIcon::startSSDP(void)
 {
   ssdpClient.initialize(GlobalSettings::defaultBackendInterfaces());
   ssdpClient.sendSearch(qApp->applicationName() + QString(":server"));
@@ -73,19 +74,9 @@ void TrayIcon::showAbout(void)
   if (aboutBox == NULL)
   {
     aboutBox = new QMessageBox();
-    aboutBox->setWindowTitle(tr("About") + " " + QCoreApplication::applicationName());
+    aboutBox->setWindowTitle(tr("About") + " " + QByteArray(sApp->name()));
     aboutBox->setIconPixmap(icon.pixmap(64, QIcon::Normal));
-    aboutBox->setText(
-        "<big><b>" + qApp->applicationName() + " " + qApp->applicationVersion() + "</b></big><br /><br />"
-        "Built on " __DATE__ " at " __TIME__ "<br /><br />"
-        "Copyright (c) 2010 A.J. Admiraal<br /><br />"
-        "This program is free software; you can redistribute it and/or modify<br />"
-        "it under the terms of the GNU General Public License version 2 as<br />"
-        "published by the Free Software Foundation.<br /><br />"
-        "This program is distributed in the hope that it will be useful,<br />"
-        "but WITHOUT ANY WARRANTY; without even the implied warranty of<br />"
-        "MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the<br />"
-        "GNU General Public License for more details.");
+    aboutBox->setText(sApp->about());
 
     aboutBox->setStandardButtons(QMessageBox::Close);
     aboutBox->setWindowModality(Qt::NonModal);
@@ -105,10 +96,6 @@ void TrayIcon::updateMenu(void)
       Server server;
       server.url = result.location;
       server.hostname = server.url.host();
-      server.menu = new QMenu(&menu);
-      server.menu->setTitle(server.hostname);
-
-      connect(server.menu, SIGNAL(triggered(QAction*)), SLOT(loadBrowser(QAction*)));
 
       i = servers.insert(result.uuid, server);
     }
@@ -116,7 +103,6 @@ void TrayIcon::updateMenu(void)
     {
       i->url = result.location;
       i->hostname = i->url.host();
-      i->menu->setTitle(i->hostname);
     }
 
     uuids += result.uuid;
@@ -126,10 +112,7 @@ void TrayIcon::updateMenu(void)
   // Remove old servers
   for (QMap<QString, Server>::Iterator i=servers.begin(); i!=servers.end(); )
   if (!uuids.contains(i.key()))
-  {
-    delete i->menu;
     i = servers.erase(i);
-  }
   else
     i++;
 
@@ -139,14 +122,14 @@ void TrayIcon::updateMenu(void)
 void TrayIcon::rebuildMenu(void)
 {
   menu.clear();
-  menu.addAction(tr("About") + " " + QCoreApplication::applicationName(), this, SLOT(showAbout()));
+  menu.addAction(tr("About") + " " + QByteArray(sApp->name()), this, SLOT(showAbout()));
   menu.addSeparator();
 
   bool found = false;
   foreach (const Server &server, servers)
   if (server.visible)
   {
-    menu.addMenu(server.menu);
+    menu.addAction(icon, server.hostname)->setData(server.url.toString());
     found = true;
   }
 
@@ -197,10 +180,7 @@ void TrayIcon::requestFinished(QNetworkReply *reply)
 
         QDomElement hostInfo = root.firstChildElement("hostinfo");
         if (!hostInfo.isNull())
-        {
           i->hostname = hostInfo.attribute("hostname", i->url.host());
-          i->menu->setTitle(i->hostname);
-        }
 
         for (QDomElement j=root.firstChildElement("dlnaclient"); !j.isNull(); j=j.nextSiblingElement("dlnaclient"))
         if (!i->detectedClients.contains(j.attribute("name")))
@@ -219,35 +199,7 @@ void TrayIcon::requestFinished(QNetworkReply *reply)
           }
         }
 
-        i->menu->clear();
-        i->menu->addAction(tr("Manage"))->setData(i->url.toString());
-
-        QDomElement activeLogFile = root.firstChildElement("activelogfile");
-        if (!activeLogFile.isNull())
-        {
-          QUrl logFileUrl = i->url;
-          logFileUrl.setPath("/" + activeLogFile.attribute("name"));
-
-          i->menu->addAction(tr("View log file"))->setData(logFileUrl.toString());
-        }
-
-        bool errors = false;
-        for (QDomElement j=root.firstChildElement("errorlogfile"); !j.isNull(); j=j.nextSiblingElement("errorlogfile"))
-        {
-          if (!errors)
-            i->menu->addSeparator();
-
-          QUrl logFileUrl = i->url;
-          logFileUrl.setPath("/" + j.attribute("name"));
-
-          i->menu->addAction(
-              tr("View error log") + ": " + j.attribute("name"))
-              ->setData(logFileUrl.toString());
-
-          errors = true;
-        }
-
-        if (errors && !i->notifiedErrorLog)
+        if (!root.firstChildElement("errorlogfile").isNull() && !i->notifiedErrorLog)
         {
           i->notifiedErrorLog = true;
           messageUrl = i->url;
@@ -268,9 +220,9 @@ void TrayIcon::requestFinished(QNetworkReply *reply)
     else if (reply->error() != QNetworkReply::OperationCanceledError)
     { // Failed, hide item
       i->visible = false;
-      rebuildMenu();
     }
 
+    rebuildMenu();
     i->updateStatusReply = NULL;
 
     break;
@@ -286,7 +238,9 @@ void TrayIcon::messageClicked(void)
 
 void TrayIcon::loadBrowser(QAction *action)
 {
-  loadBrowser(action->data().toString());
+  const QString url = action->data().toString();
+  if (!url.isEmpty())
+    loadBrowser(url);
 }
 
 void TrayIcon::loadBrowser(const QUrl &url)

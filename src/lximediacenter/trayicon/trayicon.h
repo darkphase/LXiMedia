@@ -32,14 +32,13 @@ private:
   struct Server
   {
     inline Server(void)
-      : menu(NULL), updateStatusReply(NULL), visible(true), firstUpdate(true),
+      : updateStatusReply(NULL), visible(true), firstUpdate(true),
         notifiedErrorLog(false)
     {
     }
 
     QUrl                        url;
     QString                     hostname;
-    QMenu                     * menu;
 
     QNetworkReply             * updateStatusReply;
 
@@ -56,7 +55,7 @@ public:
   void                          show(void);
 
 private slots:
-  void                          startSSdp(void);
+  void                          startSSDP(void);
 
   void                          showAbout(void);
   void                          updateMenu(void);
