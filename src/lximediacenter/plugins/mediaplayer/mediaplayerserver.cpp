@@ -442,7 +442,7 @@ SHttpServer::SocketOp MediaPlayerServer::handleHttpRequest(const SHttpServer::Re
         }
       }
 
-      QImage image(":/mediaplayer/video-template.png");
+      QImage image(":/lximediacenter/images/video-template.png");
       if (!image.isNull())
       {
         if (url.hasQueryItem("size"))
@@ -467,12 +467,6 @@ SHttpServer::SocketOp MediaPlayerServer::handleHttpRequest(const SHttpServer::Re
       }
 
       return SHttpServer::sendRedirect(request, socket, "http://" + request.host() + "/img/null.png");
-    }
-    else if (file == "icon.png")
-    {
-      QFile file(iconFile(serverName()));
-      if (file.open(QFile::ReadOnly))
-        return sendResponse(request, socket, file.readAll(), "image/png", true);
     }
     else if (file.endsWith(".html")) // Show player
     {
@@ -521,26 +515,6 @@ QByteArray MediaPlayerServer::buildVideoPlayer(MediaDatabase::UniqueID uid, cons
 QByteArray MediaPlayerServer::buildVideoPlayer(const QByteArray &item, const QString &title, const QUrl &url, const QSize &size)
 {
   return MediaServer::buildVideoPlayer(item, title, url, size);
-}
-
-QString MediaPlayerServer::iconFile(const QString &name)
-{
-  static QMap<QString, QString> icons;
-  if (icons.isEmpty())
-  {
-    icons.insert(Module::moviesName,      ":/lximediacenter/images/media-optical.png");
-    icons.insert(Module::tvShowsName,     ":/lximediacenter/images/video-television.png");
-    icons.insert(Module::clipsName,       ":/lximediacenter/images/phone.png");
-    icons.insert(Module::homeVideosName,  ":/lximediacenter/images/media-tape.png");
-    icons.insert(Module::photosName,      ":/lximediacenter/images/camera-photo.png");
-    icons.insert(Module::musicName,       ":/lximediacenter/images/audio-headset.png");
-  }
-
-  QMap<QString, QString>::ConstIterator i = icons.find(name);
-  if (i != icons.end())
-    return *i;
-
-  return ":/lximediacenter/images/video-template.png";
 }
 
 void MediaPlayerServer::consoleLine(const QString &line)

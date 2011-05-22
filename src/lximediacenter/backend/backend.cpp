@@ -168,7 +168,7 @@ void Backend::start(void)
     server->initialize(this);
 
     submenuItems[server->pluginName()] +=
-        MenuItem(server->serverName(), server->serverPath(), server->serverIcon());
+        MenuItem(server->serverName(), server->serverPath(), server->serverIconPath());
   }
 
   htmlParser.setField("MAIN_MENUGROUPS", QByteArray(""));
@@ -182,7 +182,7 @@ void Backend::start(void)
     {
       localParser.setField("ITEM_TITLE", item.title);
       localParser.setField("ITEM_URL", item.url);
-      localParser.setField("ITEM_ICONURL", item.iconurl);
+      localParser.setField("ITEM_ICONURL", item.iconurl + "?scale=32");
       localParser.appendField("ITEMS", localParser.parse(htmlMenuItem));
     }
 
@@ -515,15 +515,42 @@ SHttpServer::SocketOp Backend::handleHttpRequest(const SHttpServer::RequestMessa
 
     if (!sendFile.isEmpty())
     {
-      QFile file(sendFile);
-      if (file.open(QFile::ReadOnly))
+      SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
+      response.setContentType(SHttpServer::toMimeType(sendFile));
+
+      if (url.hasQueryItem("scale") && path.startsWith("/img/"))
       {
-        SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
-        response.setContentLength(file.size());
-        response.setContentType(SHttpServer::toMimeType(sendFile));
-        socket->write(response);
-        socket->write(file.readAll());
-        return SHttpServer::SocketOp_Close;
+        QImage image(sendFile);
+        if (!image.isNull())
+        {
+          QSize size = image.size();
+          const QStringList sizeTxt = url.queryItemValue("scale").split('x');
+          if (sizeTxt.count() >= 2)
+            size = QSize(sizeTxt[0].toInt(), sizeTxt[1].toInt());
+          else if (sizeTxt.count() >= 1)
+            size = QSize(sizeTxt[0].toInt(), sizeTxt[0].toInt());
+
+          image = image.scaled(size, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+
+          QBuffer b;
+          image.save(&b, "PNG");
+
+          response.setContentLength(b.size());
+          socket->write(response);
+          socket->write(b.data());
+          return SHttpServer::SocketOp_Close;
+        }
+      }
+      else
+      {
+        QFile file(sendFile);
+        if (file.open(QFile::ReadOnly))
+        {
+          response.setContentLength(file.size());
+          socket->write(response);
+          socket->write(file.readAll());
+          return SHttpServer::SocketOp_Close;
+        }
       }
     }
   }

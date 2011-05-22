@@ -225,21 +225,29 @@ div.thumbnaillist {
  display: table-cell;
 }
 div.thumbnaillistitem {
- padding: 1px 1em 1px 1em;
- margin: 0 1em 1em 0;
- width: 128px;
- height: 158px;
- overflow: hidden;
- float: left;
- white-space: nowrap;
- text-align:center;
-}
-div.thumbnail {
- padding: 0;
+ padding: 1px 0.25em 1px 0.25em;
  margin: 0;
+ width: 144px;
+ height: 158px;
+ float: left;
+ text-align: center;
+}
+.thumbnaillistitem div.thumbnail {
+ padding: 0;
+ margin: 0 8px 0 8px;
  width: 128px;
  height: 128px;
- border: 1px solid ThreeDFace;
+ border: 1px solid #D0CFCF;
+}
+.thumbnaillistitem div.title {
+ overflow: hidden;
+ white-space: nowrap;
+ font-size: 1em;
+}
+.thumbnaillistitem div.subtitle {
+ overflow: hidden;
+ white-space: nowrap;
+ font-size: 0.75em;
 }
 .thumbnail img {
  padding: 0;

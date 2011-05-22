@@ -85,8 +85,6 @@ protected:
   QByteArray                    buildVideoPlayer(MediaDatabase::UniqueID, const QString &, const SMediaInfo::Program &, const QUrl &, const QSize & = QSize(768, 432));
   QByteArray                    buildVideoPlayer(const QByteArray &, const QString &, const QUrl &, const QSize & = QSize(768, 432));
 
-  static QString                iconFile(const QString &);
-
 private slots:
   void                          consoleLine(const QString &);
 
