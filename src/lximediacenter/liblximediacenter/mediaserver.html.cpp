@@ -344,7 +344,7 @@ QByteArray MediaServer::buildVideoPlayer(const QByteArray &item, const QString &
 
   htmlParser.setField("DETAILS", QByteArray(""));
   htmlParser.setField("ITEM_NAME", tr("Duration"));
-  htmlParser.setField("ITEM_VALUE", QTime().addSecs(program.duration.toSec()).toString("hh:mm:ss"));
+  htmlParser.setField("ITEM_VALUE", QTime().addSecs(program.duration.toSec()).toString("h:mm:ss"));
   htmlParser.appendField("DETAILS", htmlParser.parse(htmlDetail));
   htmlParser.setField("ITEM_NAME", tr("Audio"));
   htmlParser.setField("ITEM_VALUE", audioFormatString(program));
