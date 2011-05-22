@@ -29,7 +29,7 @@
 namespace LXiMediaCenter {
 namespace MediaPlayerBackend {
 
-template <class _base, MediaDatabase::Category _category, const char * _name>
+template <class _base, MediaDatabase::Category _category, const char * _name, const char * _icon>
 class Server : public _base
 {
 public:
@@ -42,25 +42,30 @@ public:
   {
     return _name;
   }
+
+  virtual QString serverIconPath(void) const
+  {
+    return _icon;
+  }
 };
 
 const char Module::pluginName[]     = QT_TR_NOOP("Media player");
 
-const char Module::moviesName[]     = QT_TR_NOOP("Movies");
-const char Module::tvShowsName[]    = QT_TR_NOOP("TV Shows");
-const char Module::clipsName[]      = QT_TR_NOOP("Video clips");
-const char Module::homeVideosName[] = QT_TR_NOOP("Home videos");
-const char Module::photosName[]     = QT_TR_NOOP("Photos");
-const char Module::musicName[]      = QT_TR_NOOP("Music");
+const char Module::moviesName[]     = QT_TR_NOOP("Movies"),       Module::moviesIcon[] = "/img/media-optical.png";
+const char Module::tvShowsName[]    = QT_TR_NOOP("TV Shows"),     Module::tvShowsIcon[] = "/img/video-television.png";
+const char Module::clipsName[]      = QT_TR_NOOP("Video clips"),  Module::clipsIcon[] = "/img/phone.png";
+const char Module::homeVideosName[] = QT_TR_NOOP("Home videos"),  Module::homeVideosIcon[] = "/img/media-tape.png";
+const char Module::photosName[]     = QT_TR_NOOP("Photos"),       Module::photosIcon[] = "/img/camera-photo.png";
+const char Module::musicName[]      = QT_TR_NOOP("Music"),        Module::musicIcon[] = "/img/audio-headset.png";
 
 bool Module::registerClasses(void)
 {
-  MediaPlayerServer::registerClass< Server<MediaPlayerServer, MediaDatabase::Category_Movies,     moviesName> >(0);
-  MediaPlayerServer::registerClass< Server<TvShowServer,      MediaDatabase::Category_TVShows,    tvShowsName> >(-1);
-  MediaPlayerServer::registerClass< Server<PlaylistServer,    MediaDatabase::Category_Clips,      clipsName> >(-2);
-  MediaPlayerServer::registerClass< Server<PlaylistServer,    MediaDatabase::Category_HomeVideos, homeVideosName> >(-3);
-  MediaPlayerServer::registerClass< Server<PhotoServer,       MediaDatabase::Category_Photos,     photosName> >(-4);
-  MediaPlayerServer::registerClass< Server<MusicServer,       MediaDatabase::Category_Music,      musicName> >(-5);
+  MediaPlayerServer::registerClass< Server<MediaPlayerServer, MediaDatabase::Category_Movies,     moviesName,     moviesIcon> >(0);
+  MediaPlayerServer::registerClass< Server<TvShowServer,      MediaDatabase::Category_TVShows,    tvShowsName,    tvShowsIcon> >(-1);
+  MediaPlayerServer::registerClass< Server<PlaylistServer,    MediaDatabase::Category_Clips,      clipsName,      clipsIcon> >(-2);
+  MediaPlayerServer::registerClass< Server<PlaylistServer,    MediaDatabase::Category_HomeVideos, homeVideosName, homeVideosIcon> >(-3);
+  MediaPlayerServer::registerClass< Server<PhotoServer,       MediaDatabase::Category_Photos,     photosName,     photosIcon> >(-4);
+  MediaPlayerServer::registerClass< Server<MusicServer,       MediaDatabase::Category_Music,      musicName,      musicIcon> >(-5);
   MediaPlayerServer::registerClass<ConfigServer>(-6);
 
   MediaPlayerSandbox::registerClass<MediaPlayerSandbox>(0);

@@ -104,8 +104,8 @@ const char * const Backend::htmlSearchResultsItem =
     "     <img src=\"{ITEM_ICONURL}\" alt=\"{ITEM_TITLE}\" />\n"
     "    </a>\n"
     "   </div>\n"
-    "   {ITEM_TITLE}<br />\n"
-    "   <small>{TR_RELEVANCE}: {ITEM_RELEVANCE}</small>\n"
+    "   <div class=\"title\">{ITEM_TITLE}</div>\n"
+    "   <div class=\"subtitle\">{TR_RELEVANCE}: {ITEM_RELEVANCE}</div>\n"
     "  </div>\n";
 
 const char * const Backend::htmlLogFile =
@@ -349,7 +349,7 @@ QByteArray Backend::parseHtmlLogErrors(void) const
     htmlParser.setField("TR_ERRORS",tr("Program errors"));
     htmlParser.setField("TR_DISMISS",tr("Dismiss all errors"));
 
-    htmlParser.setField("ITEM_ICONURL", QByteArray("/img/journal.png"));
+    htmlParser.setField("ITEM_ICONURL", QByteArray("/img/journal.png?scale=32"));
 
     htmlParser.setField("ERROR_LOG_FILES", QByteArray(""));
     QString lastDate;

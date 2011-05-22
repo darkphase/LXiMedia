@@ -138,14 +138,14 @@ SHttpServer::SocketOp PlaylistServer::handleHttpRequest(const SHttpServer::Reque
 
     if (file == "playlist.html") // Show player
     {
-      const QString album = QUrl(request.path().mid(serverPath().length() - 1)).path();
+      const QString album = QUrl(request.directory().mid(serverPath().length() - 1)).path();
       if (!album.isEmpty())
       {
         SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
         response.setContentType("text/html;charset=utf-8");
         response.setField("Cache-Control", "no-cache");
 
-        return sendHtmlContent(request, socket, url, response, buildVideoPlayer("playlist", album.mid(album.lastIndexOf('/') + 1), url), headPlayer);
+        return sendHtmlContent(request, socket, url, response, buildVideoPlayer("playlist", dirName(album), url), headPlayer);
       }
     }
   }

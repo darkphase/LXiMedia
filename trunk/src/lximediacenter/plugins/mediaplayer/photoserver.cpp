@@ -69,7 +69,7 @@ PhotoServer::Stream * PhotoServer::streamVideo(const SHttpServer::RequestMessage
     if (!files.isEmpty())
     {
       QUrl rurl;
-      rurl.setPath(MediaPlayerSandbox::path);
+      rurl.setPath(MediaPlayerSandbox::path + request.file());
       rurl.addQueryItem("playslideshow", QString::null);
       typedef QPair<QString, QString> QStringPair;
       foreach (const QStringPair &queryItem, url.queryItems())
@@ -119,13 +119,13 @@ SHttpServer::SocketOp PhotoServer::handleHttpRequest(const SHttpServer::RequestM
     const QUrl url(request.path());
     const QString file = request.file();
 
-    if (file.endsWith(".jpeg") || (file.endsWith(".png") && !file.endsWith("-thumb.png") && (file != "icon.png")))
+    if (file.endsWith(".jpeg") || (file.endsWith(".png") && !file.endsWith("-thumb.png")))
       return sendPhoto(request, socket, MediaDatabase::fromUidString(file), file.split('.').last());
     else if (file.endsWith(".html") && (file != "playlist.html")) // Show photo
       return handleHtmlRequest(request, socket, file);
   }
 
-  return MediaPlayerServer::handleHttpRequest(request, socket);
+  return PlaylistServer::handleHttpRequest(request, socket);
 }
 
 SHttpServer::SocketOp PhotoServer::sendPhoto(const SHttpServer::RequestMessage &request, QAbstractSocket *socket, MediaDatabase::UniqueID uid, const QString &format) const

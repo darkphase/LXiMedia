@@ -51,24 +51,24 @@ const char MediaServer::htmlThumbnailList[] =
     " </div>\n";
 
 const char MediaServer::htmlThumbnailItem[] =
-    "  <div class=\"thumbnaillistitem\">\n"
-    "   <div class=\"thumbnail\">\n"
-    "    <a title=\"{ITEM_TITLE}\" href=\"{ITEM_URL}\">\n"
-    "     <img src=\"{ITEM_ICONURL}\" alt=\"{ITEM_TITLE}\" />\n"
-    "    </a>\n"
-    "   </div>\n"
-    "   {ITEM_TITLE}<br />\n"
-    "   <small>{ITEM_SUBTITLE}</small>\n"
-    "  </div>\n";
+    "   <div class=\"thumbnaillistitem\">\n"
+    "    <div class=\"thumbnail\">\n"
+    "     <a title=\"{ITEM_TITLE}\" href=\"{ITEM_URL}\">\n"
+    "      <img src=\"{ITEM_ICONURL}\" alt=\"{ITEM_TITLE}\" />\n"
+    "     </a>\n"
+    "    </div>\n"
+    "    <div class=\"title\">{ITEM_TITLE}</div>\n"
+    "    <div class=\"subtitle\">{ITEM_SUBTITLE}</div>\n"
+    "   </div>\n";
 
 const char MediaServer::htmlThumbnailItemNoTitle[] =
-    "  <div class=\"thumbnaillistitem\">\n"
-    "   <div class=\"thumbnail\">\n"
-    "    <a title=\"{ITEM_TITLE}\" href=\"{ITEM_URL}\">\n"
-    "     <img src=\"{ITEM_ICONURL}\" alt=\"{ITEM_TITLE}\" />\n"
-    "    </a>\n"
-    "   </div>\n"
-    "  </div>\n";
+    "   <div class=\"thumbnaillistitem\">\n"
+    "    <div class=\"thumbnail\">\n"
+    "     <a title=\"{ITEM_TITLE}\" href=\"{ITEM_URL}\">\n"
+    "      <img src=\"{ITEM_ICONURL}\" alt=\"{ITEM_TITLE}\" />\n"
+    "     </a>\n"
+    "    </div>\n"
+    "   </div>\n";
 
 const char MediaServer::htmlDetailedList[] =
     " <div class=\"content\">\n"

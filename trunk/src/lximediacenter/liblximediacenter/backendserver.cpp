@@ -68,11 +68,6 @@ QString BackendServer::serverPath(void) const
   return '/' + pluginName() + '/' + serverName() + '/';
 }
 
-QString BackendServer::serverIcon(void) const
-{
-  return serverPath() + "icon.png";
-}
-
 QByteArray BackendServer::frontPageWidget(void) const
 {
   return QByteArray("");

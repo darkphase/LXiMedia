@@ -42,6 +42,7 @@ public:
 
   virtual QString               pluginName(void) const;
   virtual QString               serverName(void) const;
+  virtual QString               serverIconPath(void) const;
 
   _lxi_pure static const QSet<QString> & hiddenDirs(void);
 
