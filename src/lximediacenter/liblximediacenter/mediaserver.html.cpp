@@ -107,14 +107,9 @@ const char MediaServer::htmlPlayerAudioItem[] =
     " </div>\n";
 
 const char MediaServer::htmlPlayerAudioItemHtml5[] =
-    " <div class=\"content\">\n"
-    "  <h1>{TITLE}</h1>\n"
-    "  <div class=\"player\">\n"
     "   <audio src=\"{PLAYER_ITEM}.wav\" autoplay=\"autoplay\" controls=\"controls\">\n"
     "{FLV_PLAYER}"
-    "   </audio>\n"
-    "  </div>\n"
-    " </div>\n";
+    "   </audio>\n";
 
 const char MediaServer::htmlPlayerAudioItemFlv[] =
     "    <div id=\"player\" style=\"display:block;height:{HEIGHT}px;\" href=\"{PLAYER_ITEM}.flv\"></div>\n"
@@ -135,14 +130,9 @@ const char MediaServer::htmlPlayerVideoItem[] =
     " </div>\n";
 
 const char MediaServer::htmlPlayerVideoItemHtml5[] =
-    " <div class=\"content\">\n"
-    "  <h1>{TITLE}</h1>\n"
-    "  <div class=\"player\">\n"
     "   <video src=\"{PLAYER_ITEM}.ogg{QUERY}\" width=\"{WIDTH}\" height=\"{HEIGHT}\" autoplay=\"autoplay\" controls=\"controls\">\n"
     "{FLV_PLAYER}"
-    "   </video>\n"
-    "  </div>\n"
-    " </div>\n";
+    "   </video>\n";
 
 const char MediaServer::htmlPlayerVideoItemFlv[] =
     "    <div id=\"player\" style=\"display:block;width:{WIDTH}px;height:{HEIGHT}px;\" href=\"{PLAYER_ITEM}.flv{QUERYX}\"></div>\n"
