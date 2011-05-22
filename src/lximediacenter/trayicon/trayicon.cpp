@@ -18,6 +18,9 @@
  ***************************************************************************/
 
 #include "trayicon.h"
+#if defined(QT_WEBKIT_LIB)
+#include <QtWebKit>
+#endif
 #include <QtXml>
 #include <liblximediacenter/globalsettings.h>
 
@@ -245,7 +248,12 @@ void TrayIcon::loadBrowser(QAction *action)
 
 void TrayIcon::loadBrowser(const QUrl &url)
 {
-#if defined(Q_OS_WIN)
+#if defined(QT_WEBKIT_LIB)
+  QWebView *view = new QWebView();
+  view->setAttribute(Qt::WA_DeleteOnClose);
+  view->load(url);
+  view->show();
+#elif defined(Q_OS_WIN)
   QProcess::startDetached(
       QProcessEnvironment::systemEnvironment().value("ComSpec", "cmd.exe"),
       QStringList() << "/c" << "start" << url.toString());

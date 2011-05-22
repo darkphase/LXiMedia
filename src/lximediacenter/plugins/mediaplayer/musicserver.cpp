@@ -110,7 +110,7 @@ SHttpServer::SocketOp MusicServer::handleHttpRequest(const SHttpServer::RequestM
               DetailedListItem::Column(
                   item.title,
                   QUrl("/img/playlist-file.png"),
-                  QUrl(item.title + '/')));
+                  url));
           detailedItem.columns.append(DetailedListItem::Column());
           detailedItem.columns.append(DetailedListItem::Column());
 

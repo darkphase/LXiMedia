@@ -167,12 +167,16 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request, QAbstractSoc
   }
   else if ((file.last().toLower() == "ogg") || (file.last().toLower() == "ogv"))
   {
-    const SAudioCodec audioOutCodec("FLAC", outChannels, 48000);
+    SAudioCodec audioOutCodec("VORBIS", outChannels, 48000);
     audio->matrix.setMatrix(SAudioMatrixNode::guessMatrix(inChannels, audioOutCodec.channelSetup()));
     audio->matrix.setChannels(audioOutCodec.channelSetup());
     audio->resampler.setSampleRate(audioOutCodec.sampleRate());
     if (!audio->encoder.openCodec(audioOutCodec, audioEncodeFlags))
-      return false;
+    {
+      audioOutCodec.setCodec("FLAC", audioOutCodec.channelSetup(), audioOutCodec.sampleRate());
+      if (!audio->encoder.openCodec(audioOutCodec, audioEncodeFlags))
+        return false;
+    }
 
     const SVideoCodec videoOutCodec("THEORA", size, frameRate);
     if (!video->encoder.openCodec(videoOutCodec, videoEncodeFlags))
@@ -262,7 +266,8 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request, QAbstractSoc
     audio->matrix.setMatrix(SAudioMatrixNode::guessMatrix(inChannels, audioOutCodec.channelSetup()));
     audio->matrix.setChannels(audioOutCodec.channelSetup());
     audio->resampler.setSampleRate(audioOutCodec.sampleRate());
-    audio->encoder.openCodec(audioOutCodec, audioEncodeFlags);
+    if (!audio->encoder.openCodec(audioOutCodec, audioEncodeFlags))
+      return false;
 
     if (file.last().toLower() != "ts")
     {
@@ -281,7 +286,8 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request, QAbstractSoc
     audio->matrix.setMatrix(SAudioMatrixNode::guessMatrix(inChannels, audioOutCodec.channelSetup()));
     audio->matrix.setChannels(audioOutCodec.channelSetup());
     audio->resampler.setSampleRate(audioOutCodec.sampleRate());
-    audio->encoder.openCodec(audioOutCodec, audioEncodeFlags);
+    if (!audio->encoder.openCodec(audioOutCodec, audioEncodeFlags))
+      return false;
 
     output.openFormat("mp3", audio->encoder.codec(), SVideoCodec(), duration);
     header.setContentType("audio/mp3");
@@ -292,7 +298,8 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request, QAbstractSoc
     audio->matrix.setMatrix(SAudioMatrixNode::guessMatrix(inChannels, audioOutCodec.channelSetup()));
     audio->matrix.setChannels(audioOutCodec.channelSetup());
     audio->resampler.setSampleRate(audioOutCodec.sampleRate());
-    audio->encoder.openCodec(audioOutCodec, audioEncodeFlags);
+    if (!audio->encoder.openCodec(audioOutCodec, audioEncodeFlags))
+      return false;
 
     output.enablePseudoStreaming(1.1f);
     output.openFormat("ac3", audio->encoder.codec(), SVideoCodec(), duration);
@@ -300,11 +307,16 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request, QAbstractSoc
   }
   else if ((file.last().toLower() == "ogg") || (file.last().toLower() == "oga"))
   {
-    const SAudioCodec audioOutCodec("FLAC", outChannels, 48000);
+    SAudioCodec audioOutCodec("VORBIS", outChannels, 48000);
     audio->matrix.setMatrix(SAudioMatrixNode::guessMatrix(inChannels, audioOutCodec.channelSetup()));
     audio->matrix.setChannels(audioOutCodec.channelSetup());
     audio->resampler.setSampleRate(audioOutCodec.sampleRate());
-    audio->encoder.openCodec(audioOutCodec, audioEncodeFlags);
+    if (!audio->encoder.openCodec(audioOutCodec, audioEncodeFlags))
+    {
+      audioOutCodec.setCodec("FLAC", audioOutCodec.channelSetup(), audioOutCodec.sampleRate());
+      if (!audio->encoder.openCodec(audioOutCodec, audioEncodeFlags))
+        return false;
+    }
 
     output.enablePseudoStreaming(1.1f);
     output.openFormat("ogg", audio->encoder.codec(), SVideoCodec(), duration);
@@ -316,7 +328,8 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request, QAbstractSoc
     audio->matrix.setMatrix(SAudioMatrixNode::guessMatrix(inChannels, audioOutCodec.channelSetup()));
     audio->matrix.setChannels(audioOutCodec.channelSetup());
     audio->resampler.setSampleRate(audioOutCodec.sampleRate());
-    audio->encoder.openCodec(audioOutCodec, audioEncodeFlags);
+    if (!audio->encoder.openCodec(audioOutCodec, audioEncodeFlags))
+      return false;
 
     output.enablePseudoStreaming(1.1f);
     output.openFormat("s16be", audio->encoder.codec(), SVideoCodec(), duration);
@@ -328,7 +341,8 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request, QAbstractSoc
     audio->matrix.setMatrix(SAudioMatrixNode::guessMatrix(inChannels, audioOutCodec.channelSetup()));
     audio->matrix.setChannels(audioOutCodec.channelSetup());
     audio->resampler.setSampleRate(audioOutCodec.sampleRate());
-    audio->encoder.openCodec(audioOutCodec, audioEncodeFlags);
+    if (!audio->encoder.openCodec(audioOutCodec, audioEncodeFlags))
+      return false;
 
     output.enablePseudoStreaming(1.1f);
     output.openFormat("wav", audio->encoder.codec(), SVideoCodec(), duration);
@@ -340,7 +354,8 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request, QAbstractSoc
     audio->matrix.setMatrix(SAudioMatrixNode::guessMatrix(inChannels, audioOutCodec.channelSetup()));
     audio->matrix.setChannels(audioOutCodec.channelSetup());
     audio->resampler.setSampleRate(audioOutCodec.sampleRate());
-    audio->encoder.openCodec(audioOutCodec, audioEncodeFlags);
+    if (!audio->encoder.openCodec(audioOutCodec, audioEncodeFlags))
+      return false;
 
     output.enablePseudoStreaming(1.1f);
     output.openFormat("flv", audio->encoder.codec(), SVideoCodec(), duration);

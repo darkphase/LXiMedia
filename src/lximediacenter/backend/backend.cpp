@@ -222,7 +222,7 @@ void Backend::start(void)
     if (outFormats.contains("ac3") && outAudioCodecs.contains("AC3"))
       audioProtocols += SUPnPBase::Protocol("http-get", "audio/x-ac3", true, QString::null, ".ac3");
 
-    if (outFormats.contains("ogg") && outAudioCodecs.contains("FLAC"))
+    if (outFormats.contains("ogg") && (outAudioCodecs.contains("VORBIS") || outAudioCodecs.contains("FLAC")))
       audioProtocols += SUPnPBase::Protocol("http-get", "audio/ogg", true, QString::null, ".oga");
 
     if (outFormats.contains("wav") && outAudioCodecs.contains("PCM/S16LE"))
@@ -265,7 +265,7 @@ void Backend::start(void)
     }
 
     if (outFormats.contains("ogg") &&
-        outVideoCodecs.contains("THEORA") && outAudioCodecs.contains("FLAC"))
+        outVideoCodecs.contains("THEORA") && (outAudioCodecs.contains("VORBIS") || outAudioCodecs.contains("FLAC")))
     {
       videoProtocols += SUPnPBase::Protocol("http-get", "video/ogg", true, QString::null, ".ogv");
     }
@@ -290,7 +290,7 @@ void Backend::start(void)
   setContentDirectoryQueryItems();
 
   if (outFormats.contains("ogg") &&
-      outVideoCodecs.contains("THEORA") && outAudioCodecs.contains("FLAC"))
+      outVideoCodecs.contains("THEORA") && (outAudioCodecs.contains("VORBIS") || outAudioCodecs.contains("FLAC")))
   {
     MediaServer::enableHtml5();
   }
