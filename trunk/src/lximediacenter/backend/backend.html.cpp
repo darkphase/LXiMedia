@@ -148,29 +148,7 @@ const char * const Backend::htmlLogFileMessage =
 
 const char * const Backend::htmlAbout =
     " <div class=\"content\">\n"
-    "  <h1>{_PRODUCT}</h1>\n"
-    "  Version: {VERSION}<br />\n"
-    "  Website: <a href=\"http://lximedia.sourceforge.net/\">lximedia.sourceforge.net</a><br />\n"
-    "  <br />\n"
-    "  <b>Copyright &copy; 2009-2010 A.J. Admiraal. All rights reserved.</b><br />\n"
-    "  <br />\n"
-    "  This program is free software; you can redistribute it and/or modify it\n"
-    "  under the terms of the GNU General Public License version 2 as published\n"
-    "  by the Free Software Foundation.<br />\n"
-    "  <br />\n"
-    "  This program is distributed in the hope that it will be useful, but WITHOUT\n"
-    "  ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS\n"
-    "  FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.<br />\n"
-    "  <br />\n"
-    "{ABOUT_LXISTREAM}"
-    "  <h1>Qt</h1>\n"
-    "  Version: {QT_VERSION}<br />\n"
-    "  Website: <a href=\"http://qt.nokia.com/\">qt.nokia.com</a><br />\n"
-    "  <br />\n"
-    "  <b>Copyright &copy; 2010 Nokia Corporation and/or its subsidiary(-ies).</b><br />\n"
-    "  <br />\n"
-    "  Used under the terms of the GNU Lesser General Public License version 2.1\n"
-    "  as published by the Free Software Foundation.<br />\n"
+    "{ABOUT_LXIMEDIA}"
     " </div>\n";
 
 const char * const Backend::htmlConfigMain =
@@ -515,9 +493,7 @@ SHttpServer::SocketOp Backend::showAbout(const SHttpServer::RequestMessage &requ
   response.setContentType("text/html;charset=utf-8");
   response.setField("Cache-Control", "no-cache");
 
-  htmlParser.setField("VERSION", qApp->applicationVersion());
-  htmlParser.setField("ABOUT_LXISTREAM", sApp->about());
-  htmlParser.setField("QT_VERSION", QByteArray(qVersion()));
+  htmlParser.setField("ABOUT_LXIMEDIA", sApp->about());
 
   socket->write(response);
   socket->write(parseHtmlContent(QUrl(request.path()), htmlParser.parse(htmlAbout), ""));

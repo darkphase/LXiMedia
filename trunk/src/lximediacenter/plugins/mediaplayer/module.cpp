@@ -80,6 +80,11 @@ void Module::unload(void)
 
 QByteArray Module::about(void)
 {
+  return QByteArray(pluginName) + " by A.J. Admiraal";
+}
+
+QByteArray Module::licenses(void)
+{
   return QByteArray();
 }
 

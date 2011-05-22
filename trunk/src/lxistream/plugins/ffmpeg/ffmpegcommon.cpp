@@ -850,10 +850,11 @@ int FFMpegCommon::encodeThreadCount(::CodecID codec)
   int limit;
   switch (codec)
   {
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
   case CODEC_ID_MPEG2VIDEO:
-  case CODEC_ID_FFVHUFF:
     limit = threadLimit;
     break;
+#endif
 
   default:
     limit = 1;
@@ -868,11 +869,10 @@ int FFMpegCommon::decodeThreadCount(::CodecID codec)
   int limit;
   switch (codec)
   {
-  case CODEC_ID_MPEG2VIDEO:
+  //case CODEC_ID_MPEG2VIDEO: // Buggy
   case CODEC_ID_H263:
   case CODEC_ID_H264:
   case CODEC_ID_THEORA:
-  case CODEC_ID_FFVHUFF:
   case CODEC_ID_FFH264:
     limit = threadLimit;
     break;

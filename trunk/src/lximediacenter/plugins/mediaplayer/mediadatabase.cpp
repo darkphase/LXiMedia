@@ -722,7 +722,11 @@ void MediaDatabase::scanDirs(void)
 void MediaDatabase::directoryChanged(const QString &path)
 {
   if (!scanDirsQueue.contains(path))
+  {
+    qDebug() << "Filesystem change in" << path << ", scanning in" << (scanDelay / 1000) << "seconds";
+
     scanDirsQueue.insert(path, new ScanDirEvent(this, path));
+  }
 
   scanDirsSingleTimer.start(scanDelay);
 }

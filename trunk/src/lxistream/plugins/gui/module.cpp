@@ -54,13 +54,17 @@ void Module::unload(void)
 
 QByteArray Module::about(void)
 {
-  const QByteArray text;/* =
-      " <h2>libexif C EXIF library</h2>\n"
-      " Website: <a href=\"http://libexif.sourceforge.net/\">libexif.sourceforge.net</a><br />\n"
-      " <br />\n"
-      " Used under the terms of the GNU Lesser General Public License version 2.1\n"
-      " as published by the Free Software Foundation.<br />\n"
-      " <br />\n";*/
+  return "LXiStreamGui plugin by A.J. Admiraal";
+}
+
+QByteArray Module::licenses(void)
+{
+  const QByteArray text =
+      "<h2>libexif C EXIF library</h2>\n"
+      "Website: <a href=\"http://libexif.sourceforge.net/\">libexif.sourceforge.net</a><br />\n"
+      "<br />\n"
+      "Used under the terms of the GNU Lesser General Public License version 2.1\n"
+      "as published by the Free Software Foundation.\n";
 
   return text;
 }

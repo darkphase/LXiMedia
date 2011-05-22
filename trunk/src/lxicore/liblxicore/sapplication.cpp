@@ -236,23 +236,44 @@ bool SApplication::loadModule(SModule *module, QPluginLoader *loader)
 QByteArray SApplication::about(void) const
 {
   QByteArray text =
-      " <h1>" + QByteArray(name()) + "</h1>\n"
-      " Version: " + QByteArray(version()) + "<br />\n"
-      " Website: <a href=\"http://lximedia.sourceforge.net/\">lximedia.sourceforge.net</a><br />\n"
-      " <br />\n"
-      " <b>Copyright &copy; 2009-2010 A.J. Admiraal. All rights reserved.</b><br />\n"
-      " <br />\n"
-      " This program is free software; you can redistribute it and/or modify it\n"
-      " under the terms of the GNU General Public License version 2 as published\n"
-      " by the Free Software Foundation.<br />\n"
-      " <br />\n"
-      " This program is distributed in the hope that it will be useful, but WITHOUT\n"
-      " ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS\n"
-      " FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.<br />\n"
-      " <br />\n";
+      "<h1>About " + QByteArray(name()) + "</h1>\n"
+      "Version: " + QByteArray(version()) + "<br />\n"
+      "Website: <a href=\"http://lximedia.sourceforge.net/\">lximedia.sourceforge.net</a><br />\n"
+      "<br />\n"
+      "<b>Copyright &copy; 2009-2011 A.J. Admiraal. All rights reserved.</b><br />\n"
+      "<br />\n"
+      "This program is free software; you can redistribute it and/or modify it\n"
+      "under the terms of the GNU General Public License version 2 as published\n"
+      "by the Free Software Foundation.<br />\n"
+      "<br />\n"
+      "This program is distributed in the hope that it will be useful, but WITHOUT\n"
+      "ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS\n"
+      "FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.\n";
+
+  text +=
+      "<h2>Plugins loaded</h2>\n"
+      "<ul>\n";
 
   for (QList< QPair<QPluginLoader *, SModule *> >::Iterator i=d->modules.begin(); i!=d->modules.end(); i++)
-    text += i->second->about();
+  if (i->first && i->second)
+    text += "<li title=\"" + i->first->fileName().toUtf8() + "\">" + i->second->about() + "</li>\n";
+
+  text += "</ul>\n";
+
+  text +=
+      "<h1>Third-party libraries used</h1>\n"
+      "<h2>Qt</h2>\n"
+      "Versions: " + QByteArray(qVersion()) + " (linked), " QT_VERSION_STR " (built)<br />\n"
+      "Website: <a href=\"http://qt.nokia.com/\">qt.nokia.com</a><br />\n"
+      "<br />\n"
+      "<b>Copyright &copy; 2011 Nokia Corporation and/or its subsidiary(-ies).</b><br />\n"
+      "<br />\n"
+      "Used under the terms of the GNU Lesser General Public License version 2.1\n"
+      "as published by the Free Software Foundation.\n";
+
+  for (QList< QPair<QPluginLoader *, SModule *> >::Iterator i=d->modules.begin(); i!=d->modules.end(); i++)
+  if (i->second)
+    text += i->second->licenses();
 
   return text;
 }

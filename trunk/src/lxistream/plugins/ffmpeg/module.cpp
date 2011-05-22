@@ -148,14 +148,18 @@ void Module::unload(void)
 
 QByteArray Module::about(void)
 {
+  return "FFMpeg plugin by A.J. Admiraal";
+}
+
+QByteArray Module::licenses(void)
+{
   const QByteArray text =
-      " <h2>FFMpeg (libavcodec, libavformat, libswscale)</h2>\n"
-      " Versions: " LIBAVCODEC_IDENT ", " LIBAVFORMAT_IDENT ", " LIBSWSCALE_IDENT "<br />\n"
-      " Website: <a href=\"http://www.ffmpeg.org/\">www.ffmpeg.org</a><br />\n"
-      " <br />\n"
-      " Used under the terms of the GNU Lesser General Public License version 2.1\n"
-      " as published by the Free Software Foundation.<br />\n"
-      " <br />\n";
+      "<h2>FFMpeg (libavcodec, libavformat, libswscale)</h2>\n"
+      "Versions: " LIBAVCODEC_IDENT ", " LIBAVFORMAT_IDENT ", " LIBSWSCALE_IDENT "<br />\n"
+      "Website: <a href=\"http://www.ffmpeg.org/\">www.ffmpeg.org</a><br />\n"
+      "<br />\n"
+      "Used under the terms of the GNU Lesser General Public License version 2.1\n"
+      "as published by the Free Software Foundation.\n";
 
   return text;
 }

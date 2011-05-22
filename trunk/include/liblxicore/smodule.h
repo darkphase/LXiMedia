@@ -31,11 +31,25 @@ class LXICORE_PUBLIC SModule : public QObject
 {
 Q_OBJECT
 public:
-  virtual                         ~SModule();
+  virtual                       ~SModule();
 
-  virtual bool                    registerClasses(void) = 0;
-  virtual void                    unload(void) = 0;
-  virtual QByteArray              about(void) = 0;
+  /*! Shall register all classes with their respective factories.
+   */
+  virtual bool                  registerClasses(void) = 0;
+
+  /*! Shall clean up all allocated resources, any registred classes classes do
+      not have to be unregistered.
+   */
+  virtual void                  unload(void) = 0;
+
+  /*! Returns one line of text describing the plugin (e.g. name, author).
+   */
+  virtual QByteArray            about(void) = 0;
+
+  /*! Returns an HTML formatted H2 section describing the license(s) that apply
+      to the use of this pluging (e.g. licenses of any libraries used).
+   */
+  virtual QByteArray            licenses(void) = 0;
 
 public:
   /*! This boolean indicates if a module is allowed to open devices (e.g. audio
@@ -43,7 +57,7 @@ public:
       startup speed, set this to true before creating an instance of
       SApplication if access to devices is needed.
    */
-  static bool                     loadDevices;
+  static bool                   loadDevices;
 };
 
 } // End of namespace

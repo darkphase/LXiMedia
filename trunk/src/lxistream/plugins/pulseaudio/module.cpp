@@ -75,7 +75,19 @@ void Module::unload(void)
 
 QByteArray Module::about(void)
 {
-  return QByteArray();
+  return "PulseAudio plugin by A.J. Admiraal";
+}
+
+QByteArray Module::licenses(void)
+{
+  const QByteArray text =
+      "<h2>PulseAudio</h2>\n"
+      "Website: <a href=\"http://www.pulseaudio.org/\">www.pulseaudio.org</a><br />\n"
+      "<br />\n"
+      "Used under the terms of the GNU Lesser General Public License version 2.1\n"
+      "as published by the Free Software Foundation.\n";
+
+  return text;
 }
 
 } } // End of namespaces
