@@ -99,14 +99,12 @@ const char MediaServer::htmlDetailedListColumnLinkIcon[] =
     "    <td class=\"{ITEM_CLASS}\"><a title=\"{ITEM_TITLE}\" href=\"{ITEM_URL}\"><img src=\"{ITEM_ICONURL}\" alt=\"..\" />{ITEM_TITLE}</a></td>\n";
 
 const char MediaServer::htmlPlayerAudioItem[] =
-    "    <div id=\"player\" style=\"display:block;height:{HEIGHT}px;\" href=\"{PLAYER_ITEM}.flv\"></div>\n"
-    "    <script language=\"JavaScript\" type=\"text/javascript\">\n"
-    "     <!--\n"
-    "     flowplayer(\"player\", \"/swf/flowplayer.swf\", {\n"
-    "       clip: { autoPlay: true }\n"
-    "      } );\n"
-    "     //-->\n"
-    "    </script>\n";
+    " <div class=\"content\">\n"
+    "  <h1>{TITLE}</h1>\n"
+    "  <div class=\"player\">\n"
+    "{PLAYER}"
+    "  </div>\n"
+    " </div>\n";
 
 const char MediaServer::htmlPlayerAudioItemHtml5[] =
     " <div class=\"content\">\n"
@@ -118,15 +116,23 @@ const char MediaServer::htmlPlayerAudioItemHtml5[] =
     "  </div>\n"
     " </div>\n";
 
-const char MediaServer::htmlPlayerVideoItem[] =
-    "    <div id=\"player\" style=\"display:block;width:{WIDTH}px;height:{HEIGHT}px;\" href=\"{PLAYER_ITEM}.flv{QUERYX}\"></div>\n"
+const char MediaServer::htmlPlayerAudioItemFlv[] =
+    "    <div id=\"player\" style=\"display:block;height:{HEIGHT}px;\" href=\"{PLAYER_ITEM}.flv\"></div>\n"
     "    <script language=\"JavaScript\" type=\"text/javascript\">\n"
     "     <!--\n"
     "     flowplayer(\"player\", \"/swf/flowplayer.swf\", {\n"
-    "       clip: { scaling: 'fit', accelerated: true, autoPlay: true }\n"
+    "       clip: { autoPlay: true }\n"
     "      } );\n"
     "     //-->\n"
     "    </script>\n";
+
+const char MediaServer::htmlPlayerVideoItem[] =
+    " <div class=\"content\">\n"
+    "  <h1>{TITLE}</h1>\n"
+    "  <div class=\"player\">\n"
+    "{PLAYER}"
+    "  </div>\n"
+    " </div>\n";
 
 const char MediaServer::htmlPlayerVideoItemHtml5[] =
     " <div class=\"content\">\n"
@@ -137,6 +143,16 @@ const char MediaServer::htmlPlayerVideoItemHtml5[] =
     "   </video>\n"
     "  </div>\n"
     " </div>\n";
+
+const char MediaServer::htmlPlayerVideoItemFlv[] =
+    "    <div id=\"player\" style=\"display:block;width:{WIDTH}px;height:{HEIGHT}px;\" href=\"{PLAYER_ITEM}.flv{QUERYX}\"></div>\n"
+    "    <script language=\"JavaScript\" type=\"text/javascript\">\n"
+    "     <!--\n"
+    "     flowplayer(\"player\", \"/swf/flowplayer.swf\", {\n"
+    "       clip: { scaling: 'fit', accelerated: true, autoPlay: true }\n"
+    "      } );\n"
+    "     //-->\n"
+    "    </script>\n";
 
 const char MediaServer::htmlPlayerThumbItem[] =
     " <div class=\"content\">\n"
@@ -447,11 +463,13 @@ QByteArray MediaServer::buildVideoPlayer(const QByteArray &item, const QString &
   {
     if (html5Enabled)
     {
-      htmlParser.setField("FLV_PLAYER", htmlParser.parse(htmlPlayerVideoItem));
-      return htmlParser.parse(htmlPlayerVideoItemHtml5);
+      htmlParser.setField("PLAYER", htmlParser.parse(htmlPlayerVideoItemHtml5));
+      htmlParser.setField("FLV_PLAYER", htmlParser.parse(htmlPlayerVideoItemFlv));
     }
     else
-      return htmlParser.parse(htmlPlayerVideoItem);
+      htmlParser.setField("PLAYER", htmlParser.parse(htmlPlayerVideoItemFlv));
+
+    return htmlParser.parse(htmlPlayerVideoItem);
   }
   else
     return htmlParser.parse(htmlPlayerThumbItem);
@@ -557,11 +575,13 @@ QByteArray MediaServer::buildVideoPlayer(const QByteArray &item, const QString &
   {
     if (html5Enabled)
     {
-      htmlParser.setField("FLV_PLAYER", htmlParser.parse(htmlPlayerVideoItem));
-      return htmlParser.parse(htmlPlayerVideoItemHtml5);
+      htmlParser.setField("PLAYER", htmlParser.parse(htmlPlayerVideoItemHtml5));
+      htmlParser.setField("FLV_PLAYER", htmlParser.parse(htmlPlayerVideoItemFlv));
     }
     else
-      return htmlParser.parse(htmlPlayerVideoItem);
+      htmlParser.setField("PLAYER", htmlParser.parse(htmlPlayerVideoItemFlv));
+
+    return htmlParser.parse(htmlPlayerVideoItem);
   }
   else
     return htmlParser.parse(htmlPlayerThumbItem);
