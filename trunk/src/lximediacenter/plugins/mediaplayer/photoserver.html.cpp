@@ -38,9 +38,6 @@ const char PhotoServer::htmlView[] =
     "  </div>\n"
     " </div>\n";
 
-const char PhotoServer::htmlDetail[] =
-    "   <li>{ITEM_NAME}: {ITEM_VALUE}</li>\n";
-
 SHttpServer::SocketOp PhotoServer::handleHtmlRequest(const SHttpServer::RequestMessage &request, QAbstractSocket *socket, const QString &file)
 {
   SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);

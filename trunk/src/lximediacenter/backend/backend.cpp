@@ -289,19 +289,14 @@ void Backend::start(void)
 
   setContentDirectoryQueryItems();
 
+  /* HTML5 is still very buggy implemented in many browsers, so for now we stay
+     with Flash video.
+
   if (outFormats.contains("ogg") &&
       outVideoCodecs.contains("THEORA") && (outAudioCodecs.contains("VORBIS") || outAudioCodecs.contains("FLAC")))
   {
     MediaServer::enableHtml5();
-  }
-
-//  DlnaServer::File shutdown(dlnaServiceDir.server());
-//  shutdown.url = "/?shutdown=shutdown";
-//  shutdown.mimeType = "video/mpeg";
-//  dlnaServiceDir.addFile(tr("Shutdown server"), shutdown);
-//  dlnaServiceDir.sortOrder = 0xFFFFFFFF; // Last item
-//
-//  masterDlnaServer.addDir("/" + tr("Service"), &dlnaServiceDir);
+  }*/
 
   qDebug() << "Finished initialization.";
 }
