@@ -155,12 +155,12 @@ protected: // Implemented in mediaserver.html.cpp
   static const char             htmlPlayerVideoItemFlv[];
   static const char             htmlPlayerThumbItem[];
   static const char             htmlPlayerThumbItemOption[];
-  static const char             htmlPlayerInfoItem[];
-  static const char             htmlPlayerInfoActionHead[];
-  static const char             htmlPlayerInfoAction[];
+  static const char             htmlDetail[];
 
   static const char             headPlayer[];
 
+  static QString                audioFormatString(const SMediaInfo::Program &);
+  static QString                videoFormatString(const SMediaInfo::Program &);
   QByteArray                    buildThumbnailView(const QString &title, const ThumbnailListItemList &);
   QByteArray                    buildDetailedView(const QString &title, const QList< QPair<QString, bool> > &columns, const DetailedListItemList &);
   QByteArray                    buildVideoPlayer(const QByteArray &item, const QString &title, const SMediaInfo::Program &, const QUrl &, const QSize & = QSize(768, 432), SAudioFormat::Channels = SAudioFormat::Channels_Stereo);

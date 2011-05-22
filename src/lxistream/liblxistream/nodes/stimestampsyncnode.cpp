@@ -34,7 +34,11 @@ struct STimeStampSyncNode::Queue
 
 struct STimeStampSyncNode::Data
 {
-  inline Data(void) : maxDelay(STime::fromMSec(2500)), running(false), inTimeStamp(STime::null) { }
+  inline Data(void)
+    : maxDelay(STime::fromSec(2)), purgeDelay(STime::fromSec(3)), running(false),
+      inTimeStamp(STime::null)
+  {
+  }
 
   static const int              maxAudioBufferCount = 256;
   static const int              maxVideoBufferCount = 32;
@@ -43,6 +47,7 @@ struct STimeStampSyncNode::Data
   QMap<quint16, Queue<SVideoBuffer> > videoQueue;
 
   const STime                   maxDelay;
+  const STime                   purgeDelay;
   bool                          running;
   STime                         firstTimeStamp;
   STime                         inTimeStamp;
@@ -111,9 +116,20 @@ void STimeStampSyncNode::input(const SAudioBuffer &audioBuffer)
         i = d->audioQueue.insert(0, Queue<SAudioBuffer>(d->startTime));
 
       // Dump out-of-range buffers
-      for (QMultiMap<STime, SAudioBuffer>::Iterator j = i->buffers.lowerBound(timeStamp + STime::fromSec(3));
+      for (QMultiMap<STime, SAudioBuffer>::Iterator j = i->buffers.lowerBound(timeStamp + d->purgeDelay);
            j != i->buffers.end(); )
       {
+        if (d->videoQueue.isEmpty())
+        { // No video stream, output all audio packets (probably next song is starting).
+          SAudioBuffer ab = *j;
+
+          ab.setTimeStamp(i->time);
+          //qDebug() << "AOP" << ab.timeStamp().toMSec();
+          emit output(ab);
+
+          i->time += ab.duration();
+        }
+
         j = i->buffers.erase(j);
       }
 
@@ -128,8 +144,13 @@ void STimeStampSyncNode::input(const SAudioBuffer &audioBuffer)
       if ((qAbs(audioBuffer.timeStamp() - j->timeStamp()) > d->maxDelay) ||
           (i->buffers.count() > d->maxAudioBufferCount))
       {
-        //qDebug() << "AOF" << j->timeStamp().toMSec();
-        emit output(*j);
+        SAudioBuffer ab = *j;
+
+        ab.setTimeStamp(i->time);
+        //qDebug() << "AOF" << ab.timeStamp().toMSec();
+        emit output(ab);
+
+        i->time += ab.duration();
         j = i->buffers.erase(j);
       }
       else
@@ -158,7 +179,7 @@ void STimeStampSyncNode::input(const SVideoBuffer &videoBuffer)
       }
 
       // Dump out-of-range buffers
-      for (QMultiMap<STime, SVideoBuffer>::Iterator j = i->buffers.lowerBound(timeStamp + STime::fromSec(3));
+      for (QMultiMap<STime, SVideoBuffer>::Iterator j = i->buffers.lowerBound(timeStamp + d->purgeDelay);
            j != i->buffers.end(); )
       {
         j = i->buffers.erase(j);
@@ -175,8 +196,13 @@ void STimeStampSyncNode::input(const SVideoBuffer &videoBuffer)
       if ((qAbs(videoBuffer.timeStamp() - j->timeStamp()) > d->maxDelay) ||
           (i->buffers.count() > d->maxVideoBufferCount))
       {
-        //qDebug() << "VOF" << j->timeStamp().toMSec();
-        emit output(*j);
+        SVideoBuffer vb = *j;
+
+        vb.setTimeStamp(i->time);
+        //qDebug() << "VOF" << vb.timeStamp().toMSec();
+        emit output(vb);
+
+        i->time += STime(1, d->frameRate);
         j = i->buffers.erase(j);
       }
       else

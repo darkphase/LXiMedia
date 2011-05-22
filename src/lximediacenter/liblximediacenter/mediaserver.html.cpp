@@ -99,6 +99,12 @@ const char MediaServer::htmlDetailedListColumnLinkIcon[] =
     "    <td class=\"{ITEM_CLASS}\"><a title=\"{ITEM_TITLE}\" href=\"{ITEM_URL}\"><img src=\"{ITEM_ICONURL}\" alt=\"..\" />{ITEM_TITLE}</a></td>\n";
 
 const char MediaServer::htmlPlayerAudioItem[] =
+    " <div class=\"menu\">\n"
+    "  <ul>\n"
+    "   <li>{TR_DETAILS}</li>\n"
+    "{DETAILS}"
+    "  </ul>\n"
+    " </div>\n"
     " <div class=\"content\">\n"
     "  <h1>{TITLE}</h1>\n"
     "  <div class=\"player\">\n"
@@ -122,6 +128,12 @@ const char MediaServer::htmlPlayerAudioItemFlv[] =
     "    </script>\n";
 
 const char MediaServer::htmlPlayerVideoItem[] =
+    " <div class=\"menu\">\n"
+    "  <ul>\n"
+    "   <li>{TR_DETAILS}</li>\n"
+    "{DETAILS}"
+    "  </ul>\n"
+    " </div>\n"
     " <div class=\"content\">\n"
     "  <h1>{TITLE}</h1>\n"
     "  <div class=\"player\">\n"
@@ -145,6 +157,12 @@ const char MediaServer::htmlPlayerVideoItemFlv[] =
     "    </script>\n";
 
 const char MediaServer::htmlPlayerThumbItem[] =
+    " <div class=\"menu\">\n"
+    "  <ul>\n"
+    "   <li>{TR_DETAILS}</li>\n"
+    "{DETAILS}"
+    "  </ul>\n"
+    " </div>\n"
     " <div class=\"content\">\n"
     "  <h1>{TITLE}</h1>\n"
     "  <div class=\"player\">\n"
@@ -208,15 +226,8 @@ const char MediaServer::htmlPlayerThumbItem[] =
 const char MediaServer::htmlPlayerThumbItemOption[] =
     "           <option value=\"{VALUE}\" {SELECTED}>{TEXT}</option>\n";
 
-const char MediaServer::htmlPlayerInfoItem[] =
-    "    <b>{ITEM_NAME}:</b><br />\n"
-    "    {ITEM_VALUE}<br /><br />\n";
-
-const char MediaServer::htmlPlayerInfoActionHead[] =
-    "    <b>{ITEM_NAME}:</b><br />\n";
-
-const char MediaServer::htmlPlayerInfoAction[] =
-    "    <a href=\"{ITEM_LINK}\">{ITEM_NAME}</a><br />\n";
+const char MediaServer::htmlDetail[] =
+    "   <li>{ITEM_NAME}: {ITEM_VALUE}</li>\n";
 
 
 const char MediaServer::headPlayer[] =
@@ -225,6 +236,37 @@ const char MediaServer::headPlayer[] =
 void MediaServer::enableHtml5(bool enabled)
 {
   html5Enabled = enabled;
+}
+
+QString MediaServer::audioFormatString(const SMediaInfo::Program &program)
+{
+  QString result;
+  foreach (const SMediaInfo::AudioStreamInfo &stream, program.audioStreams)
+  {
+    const QString setupName = SAudioFormat::channelSetupName(stream.codec.channelSetup());
+    if (!setupName.isEmpty())
+      result += ", " + setupName;
+  }
+
+  return result.isEmpty() ? tr("Unknown") : result.mid(2);
+}
+
+QString MediaServer::videoFormatString(const SMediaInfo::Program &program)
+{
+  QString result;
+  foreach (const SMediaInfo::VideoStreamInfo &stream, program.videoStreams)
+  {
+    if (!stream.codec.size().isNull())
+    {
+      result += ", " + QString::number(stream.codec.size().width()) +
+                " x " + QString::number(stream.codec.size().height());
+
+      if (stream.codec.frameRate().isValid())
+        result +=  " @ " + QString::number(stream.codec.frameRate().toFrequency(), 'f', 2) + " fps";
+    }
+  }
+
+  return result.isEmpty() ? tr("Unknown") : result.mid(2);
 }
 
 QByteArray MediaServer::buildThumbnailView(const QString &title, const ThumbnailListItemList &items)
@@ -298,6 +340,18 @@ QByteArray MediaServer::buildVideoPlayer(const QByteArray &item, const QString &
 {
   HtmlParser htmlParser;
   htmlParser.setField("TITLE", title);
+  htmlParser.setField("TR_DETAILS", tr("Details"));
+
+  htmlParser.setField("DETAILS", QByteArray(""));
+  htmlParser.setField("ITEM_NAME", tr("Duration"));
+  htmlParser.setField("ITEM_VALUE", QTime().addSecs(program.duration.toSec()).toString("hh:mm:ss"));
+  htmlParser.appendField("DETAILS", htmlParser.parse(htmlDetail));
+  htmlParser.setField("ITEM_NAME", tr("Audio"));
+  htmlParser.setField("ITEM_VALUE", audioFormatString(program));
+  htmlParser.appendField("DETAILS", htmlParser.parse(htmlDetail));
+  htmlParser.setField("ITEM_NAME", tr("Video"));
+  htmlParser.setField("ITEM_VALUE", videoFormatString(program));
+  htmlParser.appendField("DETAILS", htmlParser.parse(htmlDetail));
 
   htmlParser.setField("CLEAN_TITLE", SStringParser::toCleanName(title));
   htmlParser.setField("PLAYER_ITEM", item);
@@ -469,6 +523,12 @@ QByteArray MediaServer::buildVideoPlayer(const QByteArray &item, const QString &
 {
   HtmlParser htmlParser;
   htmlParser.setField("TITLE", title);
+  htmlParser.setField("TR_DETAILS", tr("Details"));
+
+  htmlParser.setField("DETAILS", QByteArray(""));
+  htmlParser.setField("ITEM_NAME", tr("Audio"));
+  htmlParser.setField("ITEM_VALUE", QString(SAudioFormat::channelSetupName(channels)));
+  htmlParser.appendField("DETAILS", htmlParser.parse(htmlDetail));
 
   // Build the player
   htmlParser.setField("CLEAN_TITLE", SStringParser::toCleanName(title));

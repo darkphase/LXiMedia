@@ -47,7 +47,6 @@ private:
 
 private:
   static const char             htmlView[];
-  static const char             htmlDetail[];
 };
 
 } } // End of namespaces

@@ -487,26 +487,6 @@ SHttpServer::SocketOp MediaPlayerServer::handleHttpRequest(const SHttpServer::Re
   return MediaServer::handleHttpRequest(request, socket);
 }
 
-QString MediaPlayerServer::videoFormatString(const SMediaInfo::Program &program)
-{
-  if (!program.videoStreams.isEmpty())
-  {
-    const SVideoCodec codec = program.videoStreams.first().codec;
-    if (!codec.size().isNull())
-    {
-      QString s = QString::number(codec.size().width()) + " x " +
-                  QString::number(codec.size().height());
-
-      if (codec.frameRate().isValid())
-        s +=  " @ " + QString::number(codec.frameRate().toFrequency(), 'f', 2) + " fps";
-
-      return s;
-    }
-  }
-
-  return tr("Unknown");
-}
-
 QByteArray MediaPlayerServer::buildVideoPlayer(MediaDatabase::UniqueID uid, const QString &title, const SMediaInfo::Program &program, const QUrl &url, const QSize &size)
 {
   return MediaServer::buildVideoPlayer(MediaDatabase::toUidString(uid), title, program, url, size);
