@@ -130,7 +130,7 @@ const char MediaServer::htmlPlayerVideoItem[] =
     " </div>\n";
 
 const char MediaServer::htmlPlayerVideoItemHtml5[] =
-    "   <video src=\"{PLAYER_ITEM}.ogg{QUERY}\" width=\"{WIDTH}\" height=\"{HEIGHT}\" autoplay=\"autoplay\" controls=\"controls\">\n"
+    "   <video src=\"{PLAYER_ITEM}.ogg{QUERY}\" width=\"{WIDTH}\" height=\"{HEIGHT}\" autoplay=\"autoplay\" controls=\"controls\" poster=\"{PLAYER_ITEM}-thumb.png?size={WIDTH}x{HEIGHT}\">\n"
     "{FLV_PLAYER}"
     "   </video>\n";
 

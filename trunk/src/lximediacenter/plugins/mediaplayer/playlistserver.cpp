@@ -79,7 +79,7 @@ PlaylistServer::Stream * PlaylistServer::streamVideo(const SHttpServer::RequestM
     if (!files.isEmpty())
     {
       QUrl rurl;
-      rurl.setPath(MediaPlayerSandbox::path);
+      rurl.setPath(MediaPlayerSandbox::path + request.file());
       rurl.addQueryItem("playlist", QString::null);
       typedef QPair<QString, QString> QStringPair;
       foreach (const QStringPair &queryItem, url.queryItems())
