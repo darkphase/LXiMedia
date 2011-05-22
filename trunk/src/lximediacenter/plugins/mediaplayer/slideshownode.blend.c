@@ -29,8 +29,9 @@ void LXiMediaCenter_MediaPlayerBackend_SlideShowNode_blendImages
 {
   #ifndef __SSE__
     const uint16_t f = factor, af = 256 - factor;
+    unsigned i;
 
-    for (unsigned i=0; i<numPixels; i++)
+    for (i=0; i<numPixels; i++)
       dstData[i] = (uint8_t)(((((uint16_t)srcDataA[i]) * af) + (((uint16_t)srcDataB[i]) * f)) >> 8);
   #else
     const __m128i z  = _mm_setzero_si128();
