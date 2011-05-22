@@ -85,7 +85,14 @@ QByteArray Module::about(void)
 
 QByteArray Module::licenses(void)
 {
-  return QByteArray();
+  const QByteArray text =
+      "<h2>KDE monochromatic icons theme</h2>\n"
+      "Website: <a href=\"http://www.kde.org/\">www.kde.org</a><br />\n"
+      "<br />\n"
+      "Used under the terms of the GNU General Public License version 2\n"
+      "as published by the Free Software Foundation.\n";
+
+  return text;
 }
 
 } } // End of namespaces
