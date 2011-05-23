@@ -101,21 +101,20 @@ bool VideoEncoder::openCodec(const SVideoCodec &c, Flags flags)
 
   if (flags & Flag_HardBitrateLimit)
   {
-    contextHandle->bit_rate_tolerance = contextHandle->bit_rate / 4;
+    contextHandle->bit_rate_tolerance = contextHandle->bit_rate / 2;
     contextHandle->rc_max_rate = contextHandle->bit_rate;
     contextHandle->bit_rate -= contextHandle->bit_rate_tolerance;
-    contextHandle->rc_buffer_size = contextHandle->rc_max_rate * 2;
+    contextHandle->rc_buffer_size = ((20 * contextHandle->rc_max_rate) / (1151929 / 2)) * 8 * 1024;
     contextHandle->rc_initial_buffer_occupancy = contextHandle->rc_buffer_size * 3 / 4;
-    contextHandle->rc_qsquish = 0.0f;
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
-    contextHandle->rc_lookahead = qMin(contextHandle->rc_lookahead, int(outCodec.frameRate().toFrequency() * 3));
-#endif
   }
 
   contextHandle->max_qdiff = contextHandle->qmax - contextHandle->qmin;
 
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(52, 72, 0)
+  // This circumvents a bug generating corrupt blocks in large areas with the same color.
   if ((outCodec == "MPEG1") || (outCodec == "MPEG2"))
-    contextHandle->max_b_frames = fastEncode ? 0 : 3;
+    contextHandle->max_b_frames = 3;
+#endif
 
   if (outCodec == "MJPEG")
     contextHandle->pix_fmt = PIX_FMT_YUVJ420P;
