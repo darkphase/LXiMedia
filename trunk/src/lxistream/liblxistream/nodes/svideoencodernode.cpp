@@ -33,6 +33,7 @@ SVideoEncoderNode::SVideoEncoderNode(SGraph *parent)
     SGraph::Node(parent),
     d(new Data())
 {
+  d->encoder = NULL;
 }
 
 SVideoEncoderNode::~SVideoEncoderNode()
