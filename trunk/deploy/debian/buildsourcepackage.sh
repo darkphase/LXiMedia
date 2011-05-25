@@ -15,7 +15,7 @@ cp ../../lximedia.pro /${OUTDIR}/${PKGNAME}/
 cp ../../README /${OUTDIR}/${PKGNAME}/
 cp ../../VERSION /${OUTDIR}/${PKGNAME}/
 mkdir -p /${OUTDIR}/${PKGNAME}/deploy
-cp -r ../../ext/* /${OUTDIR}/${PKGNAME}/deploy/
+cp -r ../../deploy/* /${OUTDIR}/${PKGNAME}/deploy/
 mkdir -p /${OUTDIR}/${PKGNAME}/ext
 cp -r ../../ext/* /${OUTDIR}/${PKGNAME}/ext/
 mkdir -p /${OUTDIR}/${PKGNAME}/include
@@ -54,7 +54,7 @@ echo " -- A.J. Admiraal <code@admiraal.dds.nl>  `date -R`" >> /${OUTDIR}/${PKGNA
 
 cd /${OUTDIR}/${PKGNAME} || exit
 
-# Remove makefiles (should be generated with qmake
+# Remove makefiles (should be generated with qmake)
 rm -rf `find -name Makefile*`
 
 # Remove .svn entries

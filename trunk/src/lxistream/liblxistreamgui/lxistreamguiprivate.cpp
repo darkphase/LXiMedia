@@ -17,13 +17,25 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXISTREAMPRIVATE_H
-#define LXISTREAMPRIVATE_H
+#include "lxistreamguiprivate.h"
 
-#include <QtCore>
-#include <LXiCore>
-#include "sbuffer.h"
+class LXiStreamGuiInit : public SApplication::Initializer
+{
+public:
+  virtual void                  startup(void);
+  virtual void                  shutdown(void);
 
-using namespace LXiStream;
+private:
+  static LXiStreamGuiInit       self;
+};
 
-#endif
+LXiStreamGuiInit LXiStreamGuiInit::self;
+
+void LXiStreamGuiInit::startup(void)
+{
+  sApp->addModuleFilter("lxistreamgui");
+}
+
+void LXiStreamGuiInit::shutdown(void)
+{
+}
