@@ -16,6 +16,6 @@ DEPENDPATH += $${PWD}/../../src/
 include($${PWD}/../config.pri)
 
 unix {
-    target.path = /usr/lib/lximedia
+    target.path = /usr/lib/lximedia0
     INSTALLS += target
 }

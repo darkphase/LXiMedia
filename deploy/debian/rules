@@ -4,7 +4,7 @@ export DH_COMPAT=5
 
 build: Makefile
 	dh_testdir
-	$(MAKE) -j `grep -c 'model name' /proc/cpuinfo`
+	$(MAKE)
 
 build-doxy:
 	dh_testdir

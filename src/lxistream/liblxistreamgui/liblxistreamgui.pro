@@ -28,6 +28,9 @@ SOURCES += sdisplay.cpp \
     simage.cpp \
     svumeter.cpp
 
+HEADERS += lxistreamguiprivate.h
+SOURCES += lxistreamguiprivate.cpp
+
 # Platform specific
 unix { 
     SOURCES += sdisplay.x11.cpp \

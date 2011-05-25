@@ -30,7 +30,7 @@ unix {
 FILES_UNDER_TEST = $${OUT_PWD}/$${LXIMEDIA_DIR}/obj/lxistream_dvdnav/*.o \
   $${OUT_PWD}/$${LXIMEDIA_DIR}/obj/lxistream_ffmpeg/*.o \
   $${OUT_PWD}/$${LXIMEDIA_DIR}/obj/lxistream_fftw/*.o \
-  $${OUT_PWD}/$${LXIMEDIA_DIR}/obj/lxistream_gui/*.o
+  $${OUT_PWD}/$${LXIMEDIA_DIR}/obj/lxistreamgui_gui/*.o
 
 # Files
 HEADERS += streamtest.h \

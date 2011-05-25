@@ -1,11 +1,4 @@
 unix {
-  exists( /usr/include/ffmpeg/avcodec.h ) {
-    DEFINES += USE_FFMPEG_OLD_PATH
-  }
-  exists( /usr/local/include/ffmpeg/avcodec.h ) {
-    DEFINES += USE_FFMPEG_OLD_PATH
-  }
-  
   LIBS += -lavformat -lavcodec -lavutil -lswscale
 }
 

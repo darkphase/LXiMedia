@@ -17,13 +17,11 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXISTREAMPRIVATE_H
-#define LXISTREAMPRIVATE_H
+#ifndef LXISTREAMGUIPRIVATE_H
+#define LXISTREAMGUIPRIVATE_H
 
 #include <QtCore>
 #include <LXiCore>
-#include "sbuffer.h"
-
-using namespace LXiStream;
+#include <LXiStream>
 
 #endif
