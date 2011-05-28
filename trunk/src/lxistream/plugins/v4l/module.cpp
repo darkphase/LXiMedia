@@ -20,20 +20,17 @@
 #include "module.h"
 #include "v4l2input.h"
 
-namespace LXiStream {
+namespace LXiStreamDevice {
 namespace V4lBackend {
 
 bool Module::registerClasses(void)
 {
   int result = false;
-  if (loadDevices)
+  foreach (const SFactory::Scheme &scheme, V4l2Input::listDevices())
   {
-    foreach (const SFactory::Scheme &scheme, V4l2Input::listDevices())
-    {
-      V4l2Input::registerClass<V4l2Input>(scheme);
+    V4l2Input::registerClass<V4l2Input>(scheme);
 
-      result = true;
-    }
+    result = true;
   }
 
   return result;
@@ -56,4 +53,4 @@ QByteArray Module::licenses(void)
 } } // End of namespaces
 
 #include <QtPlugin>
-Q_EXPORT_PLUGIN2(lxistream_v4l, LXiStream::V4lBackend::Module);
+Q_EXPORT_PLUGIN2(lxistreamdevice_v4l, LXiStreamDevice::V4lBackend::Module);

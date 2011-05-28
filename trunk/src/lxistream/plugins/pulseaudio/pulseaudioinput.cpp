@@ -19,9 +19,8 @@
 
 #include "pulseaudioinput.h"
 
-namespace LXiStream {
+namespace LXiStreamDevice {
 namespace PulseAudioBackend {
-
 
 PulseAudioInput::PulseAudioInput(const QString &server, QObject *parent)
   : SInterfaces::AudioInput(parent),
@@ -98,6 +97,5 @@ void PulseAudioInput::process(void)
     emit produce(buffer);
   }
 }
-
 
 } } // End of namespaces

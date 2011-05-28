@@ -22,10 +22,6 @@
 
 #include <LXiStream>
 
-#ifndef QT_PLUGIN
-#define QT_PLUGIN
-#endif
-
 namespace LXiStream {
 namespace GuiBackend {
 

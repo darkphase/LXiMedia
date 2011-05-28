@@ -22,48 +22,46 @@
 #include "pulseaudiooutput.h"
 #include <QtGui/QApplication>
 
-namespace LXiStream {
+namespace LXiStreamDevice {
 namespace PulseAudioBackend {
 
 bool Module::registerClasses(void)
 {
   int result = false;
-  if (loadDevices)
+
+  if (qobject_cast<QApplication *>(QCoreApplication::instance()) == NULL)
   {
-    if (qobject_cast<QApplication *>(QCoreApplication::instance()) == NULL)
-    {
-      qWarning() <<
-          "Not loading PulseAudio because this is a non-gui application (i.e. "
-          "a QCoreApplication is used instead of a QApplication)";
+    qWarning() <<
+        "Not loading PulseAudio because this is a non-gui application (i.e. "
+        "a QCoreApplication is used instead of a QApplication)";
 
-      return false; // Non-gui application
-    }
+    return false; // Non-gui application
+  }
 
-    pa_sample_spec sampleSpec;
-    sampleSpec.format = PA_SAMPLE_S16LE;
-    sampleSpec.rate = 48000;
-    sampleSpec.channels = 2;
+  pa_sample_spec sampleSpec;
+  sampleSpec.format = PA_SAMPLE_S16LE;
+  sampleSpec.rate = 48000;
+  sampleSpec.channels = 2;
 
-    pa_simple * const handle = pa_simple_new(
-        NULL,
-        SApplication::name(),
-        PA_STREAM_PLAYBACK,
-        NULL,
-        "PulseAudioDevice::listDevices",
-        &sampleSpec,
-        NULL,
-        NULL,
-        NULL);
+  pa_simple * const handle = pa_simple_new(
+      NULL,
+      SApplication::name(),
+      PA_STREAM_PLAYBACK,
+      NULL,
+      "PulseAudioDevice::listDevices",
+      &sampleSpec,
+      NULL,
+      NULL,
+      NULL);
 
-    if (handle)
-    {
-      pa_simple_free(handle);
+  if (handle)
+  {
+    pa_simple_free(handle);
 
-      PulseAudioInput::registerClass<PulseAudioInput>(1);
-      PulseAudioOutput::registerClass<PulseAudioOutput>(1);
+    PulseAudioInput::registerClass<PulseAudioInput>(1);
+    PulseAudioOutput::registerClass<PulseAudioOutput>(1);
 
-      result = true;
-    }
+    result = true;
   }
 
   return result;
@@ -93,4 +91,4 @@ QByteArray Module::licenses(void)
 } } // End of namespaces
 
 #include <QtPlugin>
-Q_EXPORT_PLUGIN2(lxistream_pulseaudio, LXiStream::PulseAudioBackend::Module);
+Q_EXPORT_PLUGIN2(lxistreamdevice_pulseaudio, LXiStreamDevice::PulseAudioBackend::Module);

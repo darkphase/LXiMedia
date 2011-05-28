@@ -23,7 +23,7 @@
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 
-namespace LXiStream {
+namespace LXiStreamDevice {
 namespace V4lBackend {
 
 QMap<QString, int> V4l2Input::deviceMap;
@@ -836,6 +836,5 @@ V4l2Input::Memory::~Memory()
 {
   parent->queueBuffer(bufferIndex);
 }
-
 
 } } // End of namespaces

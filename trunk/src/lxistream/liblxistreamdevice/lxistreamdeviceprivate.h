@@ -17,52 +17,11 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXISTREAM_SAUDIOVIDEOINPUTNODE_H
-#define LXISTREAM_SAUDIOVIDEOINPUTNODE_H
+#ifndef LXISTREAMDEVICEPRIVATE_H
+#define LXISTREAMDEVICEPRIVATE_H
 
 #include <QtCore>
 #include <LXiCore>
-#include "../saudiobuffer.h"
-#include "../sgraph.h"
-#include "../svideobuffer.h"
-#include "../export.h"
-
-namespace LXiStream {
-
-/*! This is a generic audio/video input node that can be used to obtain audio
-    and video data from a capture device such as a video capture card.
- */
-class LXISTREAM_PUBLIC SAudioVideoInputNode : public QObject,
-                                              public SGraph::SourceNode
-{
-Q_OBJECT
-public:
-  explicit                      SAudioVideoInputNode(SGraph *, const QString &device = QString::null);
-  virtual                       ~SAudioVideoInputNode();
-
-  static QStringList            devices(void);
-
-  void                          setFormat(const SVideoFormat &);
-  void                          setMaxBuffers(int);
-
-  virtual bool                  start(void);
-  virtual void                  stop(void);
-  virtual void                  process(void);
-
-signals:
-  void                          output(const SAudioBuffer &);
-  void                          output(const SVideoBuffer &);
-
-private slots:
-  _lxi_internal void            produced(const SAudioBuffer &);
-  _lxi_internal void            produced(const SVideoBuffer &);
-
-private:
-  struct Data;
-  Data                  * const d;
-};
-
-
-} // End of namespace
+#include <LXiStream>
 
 #endif

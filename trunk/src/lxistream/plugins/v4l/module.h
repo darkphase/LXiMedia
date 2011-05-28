@@ -20,13 +20,9 @@
 #ifndef V4LBACKEND_MODULE_H
 #define V4LBACKEND_MODULE_H
 
-#include <LXiStream>
+#include <LXiStreamDevice>
 
-#ifndef QT_PLUGIN
-#define QT_PLUGIN
-#endif
-
-namespace LXiStream {
+namespace LXiStreamDevice {
 namespace V4lBackend {
 
 class Module : public SModule

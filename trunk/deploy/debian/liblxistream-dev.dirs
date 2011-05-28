@@ -1,4 +1,7 @@
 usr/bin
 usr/lib
 usr/include/liblxistream
+usr/include/liblxistream/nodes
+usr/include/liblxistreamdevice
+usr/include/liblxistreamdevice/nodes
 usr/include/liblxistreamgui

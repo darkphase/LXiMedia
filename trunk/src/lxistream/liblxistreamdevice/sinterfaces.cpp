@@ -17,76 +17,13 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "nodes/saudioinputnode.h"
 #include "sinterfaces.h"
 
-namespace LXiStream {
+namespace LXiStreamDevice {
+namespace SInterfaces {
 
+S_FACTORIZABLE_INSTANCE(AudioInput);
+S_FACTORIZABLE_INSTANCE(AudioOutput);
+S_FACTORIZABLE_INSTANCE(VideoInput);
 
-struct SAudioInputNode::Data
-{
-  QString                       device;
-  SInterfaces::AudioInput     * input;
-};
-
-SAudioInputNode::SAudioInputNode(SGraph *parent, const QString &device)
-  : QObject(parent),
-    SGraph::SourceNode(parent),
-    d(new Data())
-{
-  d->device = device;
-  d->input = NULL;
-}
-
-SAudioInputNode::~SAudioInputNode()
-{
-  delete d->input;
-  delete d;
-  *const_cast<Data **>(&d) = NULL;
-}
-
-QStringList SAudioInputNode::devices(void)
-{
-  return SInterfaces::AudioInput::available();
-}
-
-bool SAudioInputNode::start(void)
-{
-  delete d->input;
-  d->input = SInterfaces::AudioInput::create(this, d->device);
-
-  if (d->input)
-  if (d->input->start())
-  {
-    connect(d->input, SIGNAL(produce(const SAudioBuffer &)), SIGNAL(output(const SAudioBuffer &)));
-    return true;
-  }
-
-  delete d->input;
-  d->input = NULL;
-
-  qWarning() << "Failed to open audio input device" << d->device;
-  return false;
-}
-
-void SAudioInputNode::stop(void)
-{
-  if (d->input)
-  {
-    d->input->stop();
-
-    delete d->input;
-    d->input = NULL;
-  }
-}
-
-void SAudioInputNode::process(void)
-{
-  LXI_PROFILE_FUNCTION;
-
-  if (d->input)
-    d->input->process();
-}
-
-
-} // End of namespace
+} } // End of namespaces

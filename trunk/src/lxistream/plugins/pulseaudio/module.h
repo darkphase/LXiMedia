@@ -20,13 +20,9 @@
 #ifndef PULSEAUDIOBACKEND_MODULE_H
 #define PULSEAUDIOBACKEND_MODULE_H
 
-#include <LXiStream>
+#include <LXiStreamDevice>
 
-#ifndef QT_PLUGIN
-#define QT_PLUGIN
-#endif
-
-namespace LXiStream {
+namespace LXiStreamDevice {
 namespace PulseAudioBackend {
 
 class Module : public SModule

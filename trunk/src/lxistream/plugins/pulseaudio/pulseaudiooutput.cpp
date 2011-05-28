@@ -19,9 +19,8 @@
 
 #include "pulseaudiooutput.h"
 
-namespace LXiStream {
+namespace LXiStreamDevice {
 namespace PulseAudioBackend {
-
 
 PulseAudioOutput::PulseAudioOutput(const QString &server, QObject *parent)
   : SInterfaces::AudioOutput(parent),
@@ -109,6 +108,5 @@ void PulseAudioOutput::openCodec(const SAudioFormat &reqFormat)
     inFormat = reqFormat;
   }
 }
-
 
 } } // End of namespaces

@@ -24,6 +24,7 @@
 #include <QtGui>
 #include <LXiStream>
 #include <LXiStreamGui>
+#include <LXiStreamDevice>
 
 #include "ui_mainwindow.h"
 

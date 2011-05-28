@@ -17,16 +17,15 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef __ALSAOUTPUT_H
-#define __ALSAOUTPUT_H
+#ifndef ALSAOUTPUT_H
+#define ALSAOUTPUT_H
 
 #include <alsa/asoundlib.h>
 #include <QtCore>
-#include <LXiStream>
+#include <LXiStreamDevice>
 
-namespace LXiStream {
+namespace LXiStreamDevice {
 namespace AlsaBackend {
-
 
 class AlsaOutput : public SInterfaces::AudioOutput
 {
@@ -51,13 +50,12 @@ private:
 
   const QString                 dev;
   snd_pcm_t                   * pcm;
-  SInterfaces::AudioResampler * resampler;
+  ::LXiStream::SInterfaces::AudioResampler * resampler;
 
   STime                         outLatency;
   SAudioFormat                  lastFormat;
   SAudioFormat                  outFormat;
 };
-
 
 } } // End of namespaces
 

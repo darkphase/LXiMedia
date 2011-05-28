@@ -19,10 +19,8 @@
 
 #include "nodes/saudiooutputnode.h"
 #include "sinterfaces.h"
-#include "stimer.h"
 
-namespace LXiStream {
-
+namespace LXiStreamDevice {
 
 struct SAudioOutputNode::Data
 {
@@ -124,6 +122,5 @@ void SAudioOutputNode::input(const SAudioBuffer &audioBuffer)
     }
   }
 }
-
 
 } // End of namespace

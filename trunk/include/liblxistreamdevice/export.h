@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010 by A.J. Admiraal                                   *
+ *   Copyright (C) 2011 by A.J. Admiraal                                   *
  *   code@admiraal.dds.nl                                                  *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -17,12 +17,29 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "smodule.h"
+#ifndef LXISTREAMDEVICE_EXPORT_H
+#define LXISTREAMDEVICE_EXPORT_H
 
-namespace LXiCore {
+#if defined(__unix__) && defined(__GNUC__)
+# define LXISTREAMDEVICE_PUBLIC __attribute__((visibility("default")))
 
-SModule::~SModule()
-{
-}
+#elif defined(WIN32) && defined(__GNUC__)
+# if defined(S_BUILD_LIBLXISTREAMDEVICE)
+#  define LXISTREAMDEVICE_PUBLIC __attribute__((dllexport))
+# else
+#  define LXISTREAMDEVICE_PUBLIC __attribute__((dllimport))
+# endif
 
-} // End of namespace
+#elif defined(WIN32) && defined(_MSC_VER)
+# if defined(S_BUILD_LIBLXISTREAMDEVICE)
+#  define LXISTREAMDEVICE_PUBLIC __declspec(dllexport)
+# else
+#  define LXISTREAMDEVICE_PUBLIC __declspec(dllimport)
+# endif
+
+#else
+# define LXISTREAMDEVICE_PUBLIC
+
+#endif
+
+#endif
