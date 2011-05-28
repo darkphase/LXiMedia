@@ -34,14 +34,16 @@ cp lximediacenter1.init /${OUTDIR}/${PKGNAME}/debian/lximediacenter1-allinone.in
 cp lximediacenter1.postinst /${OUTDIR}/${PKGNAME}/debian/lximediacenter1-allinone.postinst
 cp lximediacenter1.postrm /${OUTDIR}/${PKGNAME}/debian/lximediacenter1-allinone.postrm
 
-cat liblxiserver1.dirs > /${OUTDIR}/${PKGNAME}/debian/lximediacenter1-allinone.dirs
-cat liblxistream1.dirs > /${OUTDIR}/${PKGNAME}/debian/lximediacenter1-allinone.dirs
+cat liblxicore1.dirs > /${OUTDIR}/${PKGNAME}/debian/lximediacenter1-allinone.dirs
+cat liblxiserver1.dirs >> /${OUTDIR}/${PKGNAME}/debian/lximediacenter1-allinone.dirs
+cat liblxistream1.dirs >> /${OUTDIR}/${PKGNAME}/debian/lximediacenter1-allinone.dirs
 cat liblxistreamgui1.dirs >> /${OUTDIR}/${PKGNAME}/debian/lximediacenter1-allinone.dirs
 cat liblximediacenter1.dirs >> /${OUTDIR}/${PKGNAME}/debian/lximediacenter1-allinone.dirs
 cat lximediacenter1.dirs >> /${OUTDIR}/${PKGNAME}/debian/lximediacenter1-allinone.dirs
 
-cat liblxiserver1.install > /${OUTDIR}/${PKGNAME}/debian/lximediacenter1-allinone.install
-cat liblxistream1.install > /${OUTDIR}/${PKGNAME}/debian/lximediacenter1-allinone.install
+cat liblxicore1.install > /${OUTDIR}/${PKGNAME}/debian/lximediacenter1-allinone.install
+cat liblxiserver1.install >> /${OUTDIR}/${PKGNAME}/debian/lximediacenter1-allinone.install
+cat liblxistream1.install >> /${OUTDIR}/${PKGNAME}/debian/lximediacenter1-allinone.install
 cat liblxistreamgui1.install >> /${OUTDIR}/${PKGNAME}/debian/lximediacenter1-allinone.install
 cat liblximediacenter1.install >> /${OUTDIR}/${PKGNAME}/debian/lximediacenter1-allinone.install
 cat lximediacenter1.install >> /${OUTDIR}/${PKGNAME}/debian/lximediacenter1-allinone.install
@@ -64,3 +66,25 @@ dpkg-buildpackage -rfakeroot -S
 
 cd ..
 rm -rf ${PKGNAME}
+
+# Generate package build script
+echo if [ \$# -ne 1 ] >  ${OUTDIR}/${PKGFILE}.sh
+echo then >> ${OUTDIR}/${PKGFILE}.sh
+echo   echo Usage: sudo \$0 distribution >> ${OUTDIR}/${PKGFILE}.sh
+echo   exit 65 >> ${OUTDIR}/${PKGFILE}.sh
+echo fi >> ${OUTDIR}/${PKGFILE}.sh
+echo >> ${OUTDIR}/${PKGFILE}.sh
+echo grep \"debian\" /etc/issue -i -q>> ${OUTDIR}/${PKGFILE}.sh
+echo if [ \$? = \'0\' ] >> ${OUTDIR}/${PKGFILE}.sh
+echo then >> ${OUTDIR}/${PKGFILE}.sh
+echo   pbuilder --update --distribution \$1 --components \"main\" --override-config \|\| exit 1 >> ${OUTDIR}/${PKGFILE}.sh
+echo fi >> ${OUTDIR}/${PKGFILE}.sh
+echo >> ${OUTDIR}/${PKGFILE}.sh
+echo grep \"ubuntu\" /etc/issue -i -q >> ${OUTDIR}/${PKGFILE}.sh
+echo if [ \$? = \'0\' ] >> ${OUTDIR}/${PKGFILE}.sh
+echo then >> ${OUTDIR}/${PKGFILE}.sh
+echo   pbuilder --update --distribution \$1 --components \"main universe\" --override-config \|\| exit 1 >> ${OUTDIR}/${PKGFILE}.sh
+echo fi >> ${OUTDIR}/${PKGFILE}.sh
+echo >> ${OUTDIR}/${PKGFILE}.sh
+echo pbuilder --build --distribution \$1 ${PKGFILE}.dsc \|\| exit 1 >> ${OUTDIR}/${PKGFILE}.sh
+chmod a+x ${OUTDIR}/${PKGFILE}.sh
