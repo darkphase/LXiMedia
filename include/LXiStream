@@ -32,11 +32,8 @@
 
 #include "liblxistream/nodes/saudiodecodernode.h"
 #include "liblxistream/nodes/saudioencodernode.h"
-#include "liblxistream/nodes/saudioinputnode.h"
 #include "liblxistream/nodes/saudiomatrixnode.h"
-#include "liblxistream/nodes/saudiooutputnode.h"
 #include "liblxistream/nodes/saudioresamplenode.h"
-#include "liblxistream/nodes/saudiovideoinputnode.h"
 #include "liblxistream/nodes/sdatadecodernode.h"
 #include "liblxistream/nodes/sfileinputnode.h"
 #include "liblxistream/nodes/sfileoutputnode.h"
@@ -52,7 +49,6 @@
 #include "liblxistream/nodes/svideodeinterlacenode.h"
 #include "liblxistream/nodes/svideoencodernode.h"
 #include "liblxistream/nodes/svideoformatconvertnode.h"
-#include "liblxistream/nodes/svideoinputnode.h"
 #include "liblxistream/nodes/svideoletterboxdetectnode.h"
 #include "liblxistream/nodes/svideoresizenode.h"
 

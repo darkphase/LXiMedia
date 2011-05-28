@@ -17,12 +17,45 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "smodule.h"
+#ifndef LXISTREAMDEVICE_SVIDEOINPUTNODE_H
+#define LXISTREAMDEVICE_SVIDEOINPUTNODE_H
 
-namespace LXiCore {
+#include <QtCore>
+#include <LXiCore>
+#include <LXiStream>
+#include "../export.h"
 
-SModule::~SModule()
+namespace LXiStreamDevice {
+
+/*! This is a generic video input node that can be used to obtain video data
+    from a video device such as a webcam or video capture card.
+ */
+class LXISTREAMDEVICE_PUBLIC SVideoInputNode : public QObject,
+                                               public SGraph::SourceNode
 {
-}
+Q_OBJECT
+public:
+  explicit                      SVideoInputNode(SGraph *, const QString &device = QString::null);
+  virtual                       ~SVideoInputNode();
+
+  static QStringList            devices(void);
+
+  void                          setFormat(const SVideoFormat &);
+  void                          setMaxBuffers(int);
+
+  virtual bool                  start(void);
+  virtual void                  stop(void);
+  virtual void                  process(void);
+
+signals:
+  void                          output(const SVideoBuffer &);
+
+private:
+  struct Data;
+  Data                  * const d;
+};
+
 
 } // End of namespace
+
+#endif

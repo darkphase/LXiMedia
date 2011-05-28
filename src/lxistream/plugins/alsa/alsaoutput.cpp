@@ -19,9 +19,8 @@
 
 #include "alsaoutput.h"
 
-namespace LXiStream {
+namespace LXiStreamDevice {
 namespace AlsaBackend {
-
 
 AlsaOutput::AlsaOutput(const QString &dev, QObject *parent)
   : SInterfaces::AudioOutput(parent),
@@ -197,7 +196,7 @@ void AlsaOutput::openFormat(const SAudioFormat &reqFormat)
   {
     if ((int(numChannels) != reqFormat.numChannels()) || (int(sampleRate) != reqFormat.sampleRate()))
     {
-      resampler = SInterfaces::AudioResampler::create(this, QString::null);
+      resampler = ::LXiStream::SInterfaces::AudioResampler::create(this, QString::null);
       if (resampler)
         resampler->setSampleRate(sampleRate);
     }
@@ -230,6 +229,5 @@ snd_pcm_format_t AlsaOutput::toALSA(SAudioFormat::Format format)
   default:                              return SND_PCM_FORMAT_UNKNOWN;
   }
 }
-
 
 } } // End of namespaces

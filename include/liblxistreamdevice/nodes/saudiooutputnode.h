@@ -17,12 +17,43 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "smodule.h"
+#ifndef LXISTREAMDEVICE_SAUDIOOUTPUTNODE_H
+#define LXISTREAMDEVICE_SAUDIOOUTPUTNODE_H
 
-namespace LXiCore {
+#include <QtCore>
+#include <LXiCore>
+#include <LXiStream>
+#include "../export.h"
 
-SModule::~SModule()
+namespace LXiStreamDevice {
+
+/*! This is a generic decoder node wich decodes audio and video buffers.
+ */
+class LXISTREAMDEVICE_PUBLIC SAudioOutputNode : public QObject,
+                                                public SGraph::SinkNode
 {
-}
+Q_OBJECT
+public:
+  explicit                      SAudioOutputNode(SGraph *, const QString &device = QString::null);
+  virtual                       ~SAudioOutputNode();
+
+  static QStringList            devices(void);
+
+  void                          setDelay(STime);
+  STime                         delay(void) const;
+
+  virtual bool                  start(STimer *);
+  virtual void                  stop(void);
+
+public slots:
+  void                          input(const SAudioBuffer &);
+
+private:
+  struct Data;
+  Data                  * const d;
+};
+
 
 } // End of namespace
+
+#endif

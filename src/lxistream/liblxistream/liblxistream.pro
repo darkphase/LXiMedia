@@ -69,11 +69,8 @@ SOURCES += saudiobuffer.cpp \
 # Nodes
 HEADERS += $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/saudiodecodernode.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/saudioencodernode.h \
-    $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/saudioinputnode.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/saudiomatrixnode.h \
-    $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/saudiooutputnode.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/saudioresamplenode.h \
-    $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/saudiovideoinputnode.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/sdatadecodernode.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/sfileinputnode.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/sfileoutputnode.h \
@@ -89,17 +86,13 @@ HEADERS += $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/saudiodecodernode
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/svideodeinterlacenode.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/svideoencodernode.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/svideoformatconvertnode.h \
-    $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/svideoinputnode.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/svideoletterboxdetectnode.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/svideoresizenode.h
 SOURCES += nodes/saudiodecodernode.cpp \
     nodes/saudioencodernode.cpp \
-    nodes/saudioinputnode.cpp \
     nodes/saudiomatrixnode.cpp \
     nodes/saudiomatrixnode.mix.c \
-    nodes/saudiooutputnode.cpp \
     nodes/saudioresamplenode.cpp \
-    nodes/saudiovideoinputnode.cpp \
     nodes/sdatadecodernode.cpp \
     nodes/sfileinputnode.cpp \
     nodes/sfileoutputnode.cpp \
@@ -118,7 +111,6 @@ SOURCES += nodes/saudiodecodernode.cpp \
     nodes/svideodeinterlacenode.cpp \
     nodes/svideoencodernode.cpp \
     nodes/svideoformatconvertnode.cpp \
-    nodes/svideoinputnode.cpp \
     nodes/svideoletterboxdetectnode.cpp \
     nodes/svideoresizenode.cpp
 

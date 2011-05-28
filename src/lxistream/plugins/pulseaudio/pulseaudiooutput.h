@@ -17,14 +17,14 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef __PULSEAUDIOOUTPUT_H
-#define __PULSEAUDIOOUTPUT_H
+#ifndef PULSEAUDIOOUTPUT_H
+#define PULSEAUDIOOUTPUT_H
 
 #include <pulse/simple.h>
 #include <QtCore>
-#include <LXiStream>
+#include <LXiStreamDevice>
 
-namespace LXiStream {
+namespace LXiStreamDevice {
 namespace PulseAudioBackend {
 
 class PulseAudioOutputNode;
@@ -53,7 +53,6 @@ private:
   STime                         outLatency;
   SAudioFormat                  inFormat;
 };
-
 
 } } // End of namespaces
 

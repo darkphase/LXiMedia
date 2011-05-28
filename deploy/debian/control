@@ -57,6 +57,7 @@ Section: libdevel
 Architecture: any
 Depends: liblxicore-dev (= ${binary:Version}),
          liblxistream1 (= ${binary:Version}), 
+         liblxistreamdevice1 (= ${binary:Version})
          liblxistreamgui1 (= ${binary:Version})
 Description: Development files for liblxistream
  liblxistream is a streaming media library.
@@ -69,6 +70,7 @@ Depends: liblxicore-dev (= ${binary:Version}),
          liblxistream-dev (= ${binary:Version}), 
          liblximediacenter1 (= ${binary:Version}), 
          liblxistream1 (= ${binary:Version}), 
+         liblxistreamdevice1 (= ${binary:Version})
          liblxistreamgui1 (= ${binary:Version})
 Description: Development files for liblxistream
  liblxistream is a streaming media library.
@@ -114,9 +116,20 @@ Depends: ${misc:Depends},
          libqtgui4,
          libqt4-network,
          libqt4-xml
-Recommends: lxistreamgui1 (= ${binary:Version})
+Recommends: liblxistreamdevice1 (= ${binary:Version}), 
+            lxistreamgui1 (= ${binary:Version})
 Description: A streaming media library
  Provides a platform independent abstraction for different multimedia libraries.
+
+Package: liblxistreamdevice1
+Section: libs
+Architecture: any
+Depends: ${misc:Depends},
+         liblxicore1 (= ${binary:Version}), 
+         liblxistream1 (= ${binary:Version}), 
+         libqtcore4
+Description: Device library for liblxistream.
+ Adds device support to liblxistream.
 
 Package: liblxistreamgui1
 Section: libs
@@ -158,6 +171,7 @@ Depends: ${misc:Depends},
          liblxicore1 (= ${binary:Version}), 
          liblxiserver1 (= ${binary:Version}), 
          liblxistream1 (= ${binary:Version}), 
+         liblxistreamdevice1 (= ${binary:Version}),
          liblxistreamgui1 (= ${binary:Version}),
          liblximediacenter1 (= ${binary:Version}), 
          libqtcore4,
@@ -193,6 +207,7 @@ Depends: ${misc:Depends},
 Provides: liblxicore1,
           liblxiserver1,
           liblxistream1,
+          liblxistreamdevice1,
           liblxistreamgui1,
           liblximediacenter1
 Description: A DLNA based transcoding media server

@@ -19,10 +19,8 @@
 
 #include "nodes/saudiovideoinputnode.h"
 #include "sinterfaces.h"
-#include <LXiCore>
 
-namespace LXiStream {
-
+namespace LXiStreamDevice {
 
 struct SAudioVideoInputNode::Data
 {
@@ -179,6 +177,5 @@ void SAudioVideoInputNode::produced(const SVideoBuffer &buffer)
 {
   d->videoTime = buffer.timeStamp();
 }
-
 
 } // End of namespace

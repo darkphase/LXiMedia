@@ -17,16 +17,15 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef __ALSAINPUT_H
-#define __ALSAINPUT_H
+#ifndef ALSAINPUT_H
+#define ALSAINPUT_H
 
 #include <alsa/asoundlib.h>
 #include <QtCore>
-#include <LXiStream>
+#include <LXiStreamDevice>
 
-namespace LXiStream {
+namespace LXiStreamDevice {
 namespace AlsaBackend {
-
 
 class AlsaInput : public SInterfaces::AudioInput
 {
@@ -49,7 +48,6 @@ private:
   STimer                        timer;
   SAudioFormat                  outFormat;
 };
-
 
 } } // End of namespaces
 

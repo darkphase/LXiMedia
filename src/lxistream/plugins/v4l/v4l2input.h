@@ -17,11 +17,11 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef V4LBACKEND_V4L2INPUT_H
-#define V4LBACKEND_V4L2INPUT_H
+#ifndef V4L2INPUT_H
+#define V4L2INPUT_H
 
 #include <QtCore>
-#include <LXiStream>
+#include <LXiStreamDevice>
 
 typedef qint64    __s64;
 typedef quint64   __u64;
@@ -34,7 +34,7 @@ typedef quint8    __u8;
 
 #include "videodev2.h"
 
-namespace LXiStream {
+namespace LXiStreamDevice {
 namespace V4lBackend {
 
 class V4l2Input : public SInterfaces::VideoInput
@@ -121,7 +121,6 @@ private:
 
   bool                          streamOn;
 };
-
 
 } } // End of namespaces
 

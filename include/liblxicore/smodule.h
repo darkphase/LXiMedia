@@ -50,14 +50,6 @@ public:
       to the use of this pluging (e.g. licenses of any libraries used).
    */
   virtual QByteArray            licenses(void) = 0;
-
-public:
-  /*! This boolean indicates if a module is allowed to open devices (e.g. audio
-      inputs, DVB tuners, etc.). By default this is set to false to inclrease
-      startup speed, set this to true before creating an instance of
-      SApplication if access to devices is needed.
-   */
-  static bool                   loadDevices;
 };
 
 } // End of namespace

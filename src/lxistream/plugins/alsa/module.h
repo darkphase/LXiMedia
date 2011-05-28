@@ -20,13 +20,9 @@
 #ifndef ALSABACKEND_MODULE_H
 #define ALSABACKEND_MODULE_H
 
-#include <LXiStream>
+#include <LXiStreamDevice>
 
-#ifndef QT_PLUGIN
-#define QT_PLUGIN
-#endif
-
-namespace LXiStream {
+namespace LXiStreamDevice {
 namespace AlsaBackend {
 
 class Module : public SModule

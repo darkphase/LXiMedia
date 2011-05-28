@@ -1,7 +1,8 @@
-MODULE_NAME = lxistream_pulseaudio
+MODULE_NAME = lxistreamdevice_pulseaudio
 LXIMEDIA_DIR = ../../../..
 include($${PWD}/$${LXIMEDIA_DIR}/include/liblxicore/module.pri)
 include($${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/linklxistream.pri)
+include($${PWD}/$${LXIMEDIA_DIR}/include/liblxistreamdevice/linklxistreamdevice.pri)
 
 # Files
 HEADERS += pulseaudioinput.h \

@@ -59,7 +59,6 @@ MainWindow::MainWindow(void)
   ui.tuneDownButton->setIcon(style->standardIcon(QStyle::SP_MediaSeekBackward));
   ui.tuneUpButton->setIcon(style->standardIcon(QStyle::SP_MediaSeekForward));
 
-  SModule::loadDevices = true;
   mediaApp = new SApplication();
 
   ui.captureDevices->addItem(tr("Select"));

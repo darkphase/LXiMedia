@@ -23,10 +23,6 @@
 #include <QtCore/QObject>
 #include "sinterfaces.h"
 
-#ifndef QT_PLUGIN
-#define QT_PLUGIN
-#endif
-
 namespace LXiStream {
 namespace Common {
 

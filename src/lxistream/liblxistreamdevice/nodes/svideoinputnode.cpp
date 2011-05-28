@@ -20,8 +20,7 @@
 #include "nodes/svideoinputnode.h"
 #include "sinterfaces.h"
 
-namespace LXiStream {
-
+namespace LXiStreamDevice {
 
 struct SVideoInputNode::Data
 {
@@ -108,6 +107,5 @@ void SVideoInputNode::process(void)
   if (d->input)
     d->input->process();
 }
-
 
 } // End of namespace

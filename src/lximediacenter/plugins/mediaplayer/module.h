@@ -23,10 +23,6 @@
 #include <QtCore>
 #include <LXiMediaCenter>
 
-#ifndef QT_PLUGIN
-#define QT_PLUGIN
-#endif
-
 namespace LXiMediaCenter {
 namespace MediaPlayerBackend {
 

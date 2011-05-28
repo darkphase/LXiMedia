@@ -19,9 +19,8 @@
 
 #include "alsainput.h"
 
-namespace LXiStream {
+namespace LXiStreamDevice {
 namespace AlsaBackend {
-
 
 AlsaInput::AlsaInput(const QString &dev, QObject *parent)
   : SInterfaces::AudioInput(parent),
@@ -116,6 +115,5 @@ void AlsaInput::process(void)
     }
   }
 }
-
 
 } } // End of namespaces

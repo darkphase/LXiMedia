@@ -31,11 +31,8 @@ S_FACTORIZABLE_INSTANCE_NO_CREATE(DataDecoder);
 S_FACTORIZABLE_INSTANCE_NO_CREATE(AudioEncoder);
 S_FACTORIZABLE_INSTANCE_NO_CREATE(VideoEncoder);
 S_FACTORIZABLE_INSTANCE_NO_CREATE(VideoFormatConverter);
-S_FACTORIZABLE_INSTANCE(AudioInput);
-S_FACTORIZABLE_INSTANCE(AudioOutput);
 S_FACTORIZABLE_INSTANCE(AudioResampler);
 S_FACTORIZABLE_INSTANCE(VideoDeinterlacer);
-S_FACTORIZABLE_INSTANCE(VideoInput);
 S_FACTORIZABLE_INSTANCE(VideoResizer);
 
 const unsigned FormatProber::defaultProbeSize = 16384;
@@ -272,6 +269,5 @@ VideoFormatConverter * VideoFormatConverter::create(QObject *parent, const SVide
 
   return videoFormatConverter;
 }
-
 
 } } // End of namespaces

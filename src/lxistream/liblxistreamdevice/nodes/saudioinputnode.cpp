@@ -17,43 +17,74 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXISTREAM_SAUDIOINPUTNODE_H
-#define LXISTREAM_SAUDIOINPUTNODE_H
+#include "nodes/saudioinputnode.h"
+#include "sinterfaces.h"
 
-#include <QtCore>
-#include <LXiCore>
-#include "../saudiobuffer.h"
-#include "../sgraph.h"
-#include "../export.h"
+namespace LXiStreamDevice {
 
-namespace LXiStream {
-
-/*! This is a generic audio input node that can be used to obtain audio data
-    from an audio device such as a audio capture card.
- */
-class LXISTREAM_PUBLIC SAudioInputNode : public QObject,
-                                         public SGraph::SourceNode
+struct SAudioInputNode::Data
 {
-Q_OBJECT
-public:
-  explicit                      SAudioInputNode(SGraph *, const QString &device = QString::null);
-  virtual                       ~SAudioInputNode();
-
-  static QStringList            devices(void);
-
-  virtual bool                  start(void);
-  virtual void                  stop(void);
-  virtual void                  process(void);
-
-signals:
-  void                          output(const SAudioBuffer &);
-
-private:
-  struct Data;
-  Data                  * const d;
+  QString                       device;
+  SInterfaces::AudioInput     * input;
 };
 
+SAudioInputNode::SAudioInputNode(SGraph *parent, const QString &device)
+  : QObject(parent),
+    SGraph::SourceNode(parent),
+    d(new Data())
+{
+  d->device = device;
+  d->input = NULL;
+}
+
+SAudioInputNode::~SAudioInputNode()
+{
+  delete d->input;
+  delete d;
+  *const_cast<Data **>(&d) = NULL;
+}
+
+QStringList SAudioInputNode::devices(void)
+{
+  return SInterfaces::AudioInput::available();
+}
+
+bool SAudioInputNode::start(void)
+{
+  delete d->input;
+  d->input = SInterfaces::AudioInput::create(this, d->device);
+
+  if (d->input)
+  if (d->input->start())
+  {
+    connect(d->input, SIGNAL(produce(const SAudioBuffer &)), SIGNAL(output(const SAudioBuffer &)));
+    return true;
+  }
+
+  delete d->input;
+  d->input = NULL;
+
+  qWarning() << "Failed to open audio input device" << d->device;
+  return false;
+}
+
+void SAudioInputNode::stop(void)
+{
+  if (d->input)
+  {
+    d->input->stop();
+
+    delete d->input;
+    d->input = NULL;
+  }
+}
+
+void SAudioInputNode::process(void)
+{
+  LXI_PROFILE_FUNCTION;
+
+  if (d->input)
+    d->input->process();
+}
 
 } // End of namespace
-
-#endif
