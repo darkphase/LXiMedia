@@ -4,8 +4,8 @@
 # Provides:		lximcbackend
 # Required-Start:	$syslog $network $local_fs
 # Required-Stop:	$syslog $network $local_fs
-# Default-Start:	2 3 4 5
-# Default-Stop:		0 1 6
+# Default-Start:	1 2 3 4 5
+# Default-Stop:		0 6
 # Short-Description:	Backend for LXiMediaCenter
 ### END INIT INFO
 
