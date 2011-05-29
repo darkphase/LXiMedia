@@ -17,32 +17,32 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef TELEVISIONBACKEND_H
-#define TELEVISIONBACKEND_H
+#ifndef TELEVISION_MODULE_H
+#define TELEVISION_MODULE_H
 
 #include <QtCore>
 #include <LXiMediaCenter>
 //#include "epgdatabase.h"
 
 namespace LXiMediaCenter {
+namespace TelevisionBackend {
 
-class TelevisionBackend : public BackendPlugin
+class Module : public SModule
 {
 Q_OBJECT
 public:
-  explicit                      TelevisionBackend(QObject *parent = NULL);
-  virtual                       ~TelevisionBackend();
+  virtual bool                  registerClasses(void);
+  virtual void                  unload(void);
+  virtual QByteArray            about(void);
+  virtual QByteArray            licenses(void);
 
-  virtual QString               pluginName(void) const;
-  virtual QString               pluginVersion(void) const;
-  virtual QString               authorName(void) const;
-
-  virtual QList<BackendServer *> createServers(BackendServer::MasterServer *);
+public:
+  static const char             pluginName[];
 
 private:
   //EpgDatabase                 * epgDatabase;
 };
 
-} // End of namespace
+} } // End of namespaces
 
 #endif
