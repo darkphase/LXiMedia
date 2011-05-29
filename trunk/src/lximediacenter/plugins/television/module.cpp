@@ -17,75 +17,42 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "televisionbackend.h"
+#include "module.h"
 #include "cameraserver.h"
 //#include "scan.h"
 //#include "teletextserver.h"
 //#include "televisionserver.h"
 //#include "configserver.h"
 
-Q_EXPORT_PLUGIN2(PLUGIN_NAME, LXiMediaCenter::TelevisionBackend);
-
 namespace LXiMediaCenter {
+namespace TelevisionBackend {
 
-TelevisionBackend::TelevisionBackend(QObject *parent)
-  : BackendPlugin(parent)//,
-    //epgDatabase(NULL)
+const char Module::pluginName[] = QT_TR_NOOP("Television");
+
+bool Module::registerClasses(void)
+{
+  CameraServer::registerClass<CameraServer>(0);
+
+  //MediaPlayerSandbox::registerClass<TelevisionSandbox>(0);
+
+  return true;
+}
+
+void Module::unload(void)
 {
 }
 
-TelevisionBackend::~TelevisionBackend()
+QByteArray Module::about(void)
 {
-  //delete epgDatabase;
+  return QByteArray(pluginName) + " by A.J. Admiraal";
 }
 
-QString TelevisionBackend::pluginName(void) const
+QByteArray Module::licenses(void)
 {
-  return "Television";
+  return QByteArray();
 }
 
-QString TelevisionBackend::pluginVersion(void) const
-{
-  return "1.0";
-}
+} } // End of namespaces
 
-QString TelevisionBackend::authorName(void) const
-{
-  return "A.J. Admiraal";
-}
-
-QList<BackendServer *> TelevisionBackend::createServers(BackendServer::MasterServer *server)
-{
-  //if (epgDatabase == NULL)
-  //  epgDatabase = new EpgDatabase(this);
-
-  QList<BackendServer *> servers;
-  //TeletextServer * const teletextServer = new TeletextServer(epgDatabase, server, this);
-  //TelevisionServer * const televisionServer = new TelevisionServer(epgDatabase, teletextServer, server, this);
-  //ConfigServer * configServer = NULL;
-
-//  if (televisionServer->hasTuners())
-//  {
-//    servers += televisionServer;
-//    servers += teletextServer;
-//    configServer = new ConfigServer(televisionServer, server, this);
-//  }
-//  else
-//  {
-//    delete televisionServer;
-//    delete teletextServer;
-//  }
-
-  CameraServer * const cameraServer = new CameraServer(this, server, SAudioVideoInputNode::devices());
-  if (cameraServer->hasCameras())
-    servers += cameraServer;
-  else
-    delete cameraServer;
-
-//  if (configServer)
-//    servers += configServer;
-
-  return servers;
-}
-
-} // End of namespace
+#include <QtPlugin>
+Q_EXPORT_PLUGIN2(lximediacenter_television, LXiMediaCenter::TelevisionBackend::Module);

@@ -23,44 +23,40 @@
 #include <QtCore>
 #include <LXiMediaCenter>
 #include <LXiStream>
+#include <LXiStreamDevice>
 
 namespace LXiMediaCenter {
-
-class TelevisionBackend;
+namespace TelevisionBackend {
 
 class CameraServer : public MediaServer
 {
 Q_OBJECT
-protected:
-  class CameraStream : public Stream
-  {
-  public:
-                                CameraStream(CameraServer *, const QHostAddress &peer, const QString &url, const QString &camera);
-
-  public:
-    SAudioVideoInputNode        input;
-  };
-
 public:
-                                CameraServer(TelevisionBackend *, MasterServer *, const QStringList &);
-  virtual                       ~CameraServer();
+                                CameraServer(const QString &, QObject *);
 
-  inline bool                   hasCameras(void) const                           { return !cameras.isEmpty(); }
+  virtual void                  initialize(MasterServer *);
+  virtual void                  close(void);
 
-  virtual bool                  handleConnection(const QHttpRequestHeader &, QAbstractSocket *);
+  virtual QString               pluginName(void) const;
+  virtual QString               serverName(void) const;
+  virtual QString               serverIconPath(void) const;
 
-protected:
-  virtual bool                  streamVideo(const QHttpRequestHeader &, QAbstractSocket *);
-  virtual bool                  buildPlaylist(const QHttpRequestHeader &, QAbstractSocket *);
+  virtual SearchResultList      search(const QStringList &) const;
+
+protected: // From MediaServer
+  virtual Stream              * streamVideo(const SHttpServer::RequestMessage &);
+
+  virtual int                   countItems(const QString &path);
+  virtual QList<Item>           listItems(const QString &path, unsigned start = 0, unsigned count = 0);
+
+protected: // From SHttpServer::Callback
+  virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestMessage &, QAbstractSocket *);
 
 private:
-  bool                          handleHtmlRequest(const QUrl &, const QString &, QAbstractSocket *);
-
-private:
-  TelevisionBackend     * const plugin;
+  MasterServer                * masterServer;
   const QStringList             cameras;
 };
 
-} // End of namespace
+} } // End of namespaces
 
 #endif
