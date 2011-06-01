@@ -80,7 +80,7 @@ public:
   static void                   destroyInstance(void);
 
 private:
-                                MediaDatabase(BackendServer::MasterServer *, QObject *parent = NULL);
+  explicit                      MediaDatabase(BackendServer::MasterServer *, QObject *parent = NULL);
   virtual                       ~MediaDatabase();
 
 public:
