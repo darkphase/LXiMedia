@@ -66,7 +66,7 @@ bool Module::registerClasses(void)
   MediaPlayerServer::registerClass< Server<PlaylistServer,    MediaDatabase::Category_HomeVideos, homeVideosName, homeVideosIcon> >(-3);
   MediaPlayerServer::registerClass< Server<PhotoServer,       MediaDatabase::Category_Photos,     photosName,     photosIcon> >(-4);
   MediaPlayerServer::registerClass< Server<MusicServer,       MediaDatabase::Category_Music,      musicName,      musicIcon> >(-5);
-  MediaPlayerServer::registerClass<ConfigServer>(-6);
+  ConfigServer::registerClass<ConfigServer>(-6);
 
   MediaPlayerSandbox::registerClass<MediaPlayerSandbox>(0);
 

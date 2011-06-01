@@ -2,4 +2,4 @@ TEMPLATE = subdirs
 CONFIG += ordered
 DESTDIR = .
 
-SUBDIRS += mediaplayer television
+SUBDIRS += internet mediaplayer television
