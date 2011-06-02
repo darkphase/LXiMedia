@@ -1,5 +1,6 @@
 TEMPLATE = app
 CONFIG += qtestlib
+macx:CONFIG -= app_bundle
 QT -= gui
 LXIMEDIA_DIR = ../..
 DESTDIR = $${OUT_PWD}/$${LXIMEDIA_DIR}/bin
@@ -20,20 +21,16 @@ unix {
 HEADERS += coretest.h
 SOURCES += main.cpp \
     coretest.cpp
-LIBS += -lbfd \
-    -liberty
 
 # Run tests after link
 unix:QMAKE_POST_LINK = $(TARGET) -silent
 win32:QMAKE_POST_LINK = $${DESTDIR}/$${TARGET} -silent
 
 # Platform specific
-unix {
-    QMAKE_LFLAGS += -z \
-        muldefs
-}
 win32 { 
     CONFIG += console
+    LIBS += -lbfd \
+        -liberty
 }
 
 # Windows specific

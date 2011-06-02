@@ -1,8 +1,20 @@
-To compile libexif for Windows follow the steps below, note that for Linux the
-libexif-dev package should be installed instead.
+To compile libexif for Windows or Mac OS X follow the steps below, note that
+for Linux the libexif-dev package should be installed instead.
 
-- Make sure MSYS is installed in the same directory as the QtSDK mingw
-  installation and start a bash shell.
+Mac OS X:
+- Make sure XCode is installed and start a terminal.
+
+- Extract the libexif sources somewhere and cd into the source directory.
+
+- Configure libexif using:
+  ./configure
+
+- Run make and copy the libexif.a file to ext/exif/bin.macx.
+
+Windows:
+- Make sure MinGW and MSYS are installed and start a MinGW bash shell.
+
+- Extract the libexif sources somewhere and cd into the source directory.
 
 - Configure libexif using:
   ./configure

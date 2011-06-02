@@ -1,6 +1,6 @@
 TEMPLATE = subdirs
 CONFIG += ordered
 
-win32 {
+macx|win32 {
   SUBDIRS = dvdnav exif ffmpeg fftw
 }

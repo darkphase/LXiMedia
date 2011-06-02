@@ -18,7 +18,7 @@
  ***************************************************************************/
 
 #include "iotest.h"
-#include <QtGui>
+#include <QtGui/QImage>
 #include <QtTest>
 #include "lxistream/plugins/gui/module.h"
 

@@ -1,3 +1,6 @@
+macx:INCLUDEPATH += $${PWD}/include/
+macx:LIBS += -L$${PWD}/bin.macx -ldvdread
+
 unix:LIBS += -ldvdnav
 
 win32:include($${PWD}/../gnuwin32/gnuwin32.pri)

@@ -1,14 +1,27 @@
-To compile ffmpeg for Windows follow the steps below, note that for Linux the
-livavcodec-dev, libavformat-dev, libavutil-dev and libswscale-dev packages
-should be installed instead.
+To compile ffmpeg for Windows or Mac OS X follow the steps below, note that
+for Linux the livavcodec-dev, libavformat-dev, libavutil-dev and
+libswscale-dev packages should be installed instead.
 
-- Extract the FFMpeg sources in a directory _without_ spaces in the path.
+Mac OS X:
+- Make sure XCode is installed and start a terminal.
+
+- Extract the libexif sources somewhere and cd into the source directory.
+
+- Configure ffmpeg using:
+  ./configure --disable-ffmpeg --disable-ffplay --disable-ffprobe --disable-ffserver --enable-swscale --disable-network --disable-debug --disable-amd3dnow --disable-amd3dnowext --disable-ssse3 --disable-zlib --disable-bzlib
+
+- Run make and copy the libavcodec.a, libavformat.a, libavutil.a and
+  libswscale.a files to ext/exif/bin.macx.
+
+Windows:
+- Make sure MinGW and MSYS are installed and start a MinGW bash shell.
+
+- Extract the libexif sources somewhere and cd into the source directory.
 
 - Make sure MinGW and MSYS are installed and start a MinGW bash shell.
 
-- Change into the directory containing the FFMpeg sources and execute the
-  following command:
-  ./configure --disable-ffmpeg --disable-ffplay --disable-ffprobe --disable-ffserver --enable-swscale --disable-network --disable-debug --enable-memalign-hack --enable-mmx --enable-sse --disable-amd3dnow --disable-amd3dnowext --disable-ssse3 --extra-cflags="-D_ISOC99_SOURCE -D_POSIX_C_SOURCE=200112 -march=i686 -mmmx -msse -msse2 -mfpmath=sse"
+- Configure ffmpeg using:
+  ./configure --disable-ffmpeg --disable-ffplay --disable-ffprobe --disable-ffserver --enable-swscale --disable-network --disable-debug --enable-memalign-hack --enable-mmx --enable-sse --disable-amd3dnow --disable-amd3dnowext --disable-ssse3 --disable-zlib --disable-bzlib --extra-cflags="-D_ISOC99_SOURCE -D_POSIX_C_SOURCE=200112 -march=i686 -mmmx -msse -msse2 -mfpmath=sse"
 
 - Run mingw32-make and copy the libavcodec.a, libavformat.a, libavutil.a and
   libswscale.a files to ext/ffmpeg/bin.win32.

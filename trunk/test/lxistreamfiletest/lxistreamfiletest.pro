@@ -36,11 +36,14 @@ LIBS += -lbfd \
 
 # Platform specific
 unix {
-    LIBS += -lX11 \
-        -lXext \
-        -lXrandr \
-        -lXtst \
-        -lXv
+    !macx {
+        LIBS += -lX11 \
+            -lXext \
+            -lXrandr \
+            -lXtst \
+            -lXv
+    }
+
     QMAKE_LFLAGS += -z \
         muldefs
 }

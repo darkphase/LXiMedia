@@ -1,5 +1,6 @@
 TEMPLATE = app
 CONFIG += qtestlib
+macx:CONFIG -= app_bundle
 QT += network sql xml
 LXIMEDIA_DIR = ../..
 DESTDIR = $${OUT_PWD}/$${LXIMEDIA_DIR}/bin
@@ -36,8 +37,6 @@ unix {
 HEADERS += commontest.h
 SOURCES += main.cpp \
     commontest.cpp
-LIBS += -lbfd \
-    -liberty
 
 # Run tests after link
 unix:QMAKE_POST_LINK = $(TARGET) -silent
@@ -45,16 +44,14 @@ win32:QMAKE_POST_LINK = $${DESTDIR}/$${TARGET} -silent
 
 # Platform specific
 unix { 
-    LIBS += -lbfd \
-        -liberty \
-        -lX11 \
-        -lXext \
-        -lXrandr \
-        -lXtst \
-        -lXv \
-        -lz
-    QMAKE_LFLAGS += -z \
-        muldefs
+    LIBS += -lz
+    !macx {
+        LIBS += -lX11 \
+            -lXext \
+            -lXrandr \
+            -lXtst \
+            -lXv
+    }
 }
 win32 { 
     CONFIG += console
@@ -63,9 +60,6 @@ win32 {
         -lws2_32
     QMAKE_LFLAGS += -Wl,-allow-multiple-definition
 }
-
-QMAKE_LFLAGS += $${FILES_UNDER_TEST}
-POST_TARGETDEPS += $${FILES_UNDER_TEST}
 
 # Windows specific
 win32 {

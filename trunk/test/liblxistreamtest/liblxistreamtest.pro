@@ -1,6 +1,6 @@
 TEMPLATE = app
 CONFIG += qtestlib
-Qt -= gui
+macx:CONFIG -= app_bundle
 LXIMEDIA_DIR = ../..
 DESTDIR = $${OUT_PWD}/$${LXIMEDIA_DIR}/bin
 TARGET = lxistreamtest
@@ -55,11 +55,14 @@ win32:QMAKE_POST_LINK = $${DESTDIR}/$${TARGET} -silent
 
 # Platform specific
 unix {
-    LIBS += -lX11 \
-        -lXext \
-        -lXrandr \
-        -lXtst \
-        -lXv
+    !macx {
+        LIBS += -lX11 \
+            -lXext \
+            -lXrandr \
+            -lXtst \
+            -lXv
+    }
+
     QMAKE_LFLAGS += -z \
         muldefs
     

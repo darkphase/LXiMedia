@@ -128,8 +128,10 @@ bool SSandboxServer::initialize(const QString &mode)
   if (d->mode == "nice")
   {
 #if defined(Q_OS_UNIX)
+# if defined(Q_OS_LINUX)
     ::sched_param param = { 0 };
     ::sched_setscheduler(::getpid(), SCHED_BATCH, &param);
+# endif
 
     ::nice(15);
 #elif defined(Q_OS_WIN)

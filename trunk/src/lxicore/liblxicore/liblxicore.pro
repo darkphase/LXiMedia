@@ -25,7 +25,6 @@ HEADERS += $${PWD}/$${LXIMEDIA_DIR}/include/LXiCore \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxicore/splatform.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxicore/sstringparser.h
 SOURCES += sapplication.cpp \
-    sapplication.exchandler.cpp \
     sapplication.log.cpp \
     sfactory.cpp \
     smemorypool.cpp \
@@ -35,9 +34,6 @@ SOURCES += sapplication.cpp \
 RESOURCES = liblxicore.qrc
 
 # Platform specific
-unix|win32-g++ {
-  LIBS += -lbfd -liberty
-}
 unix {
   SOURCES += sdaemon.unix.cpp
 
@@ -45,7 +41,11 @@ unix {
   INSTALLS += target
 }
 win32 {
-  SOURCES += sdaemon.win.cpp
+  SOURCES += sdaemon.win.cpp \
+    sapplication.exchandler.cpp
+}
+win32-g++ {
+  LIBS += -lbfd -liberty
 }
 
 # Windows specific

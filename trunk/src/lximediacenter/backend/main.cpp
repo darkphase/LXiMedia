@@ -33,6 +33,7 @@ void configApp(void)
       );
 }
 
+#if (defined(Q_OS_LINUX) || defined(Q_OS_WIN))
 class Daemon : public SDaemon
 {
 public:
@@ -45,7 +46,9 @@ public:
   {
     QCoreApplication app(argc, argv); configApp();
     SApplication mediaApp(Backend::createLogDir());
+#if defined(Q_OS_WIN)
     mediaApp.installExcpetionHandler();
+#endif
 
     int exitCode = 0;
     do
@@ -70,7 +73,7 @@ public:
   static const char name[];
 };
 
-#if defined(Q_OS_UNIX)
+#if defined(Q_OS_LINUX)
 const char Daemon::name[] = "lximcbackend";
 #elif defined(Q_OS_WIN)
 const char Daemon::name[] = "LXiMediaCenter Backend";
@@ -82,7 +85,9 @@ int main(int argc, char *argv[])
   {
     QCoreApplication app(argc, argv); configApp();
     SApplication mediaApp;
+#if defined(Q_OS_WIN)
     mediaApp.installExcpetionHandler();
+#endif
 
     (new Sandbox())->start(argv[2]);
 
@@ -94,3 +99,34 @@ int main(int argc, char *argv[])
     return daemon.main(argc, argv);
   }
 }
+#else
+int main(int argc, char *argv[])
+{
+  if ((argc >= 3) && (strcmp(argv[1], "--sandbox") == 0))
+  {
+    QCoreApplication app(argc, argv); configApp();
+    SApplication mediaApp;
+
+    (new Sandbox())->start(argv[2]);
+
+    return qApp->exec();
+  }
+  else
+  {
+    QCoreApplication app(argc, argv); configApp();
+    SApplication mediaApp(Backend::createLogDir());
+
+    int exitCode = 0;
+    do
+    {
+      Backend backend;
+      backend.start();
+
+      exitCode = qApp->exec();
+    }
+    while (exitCode == -1);
+
+    return exitCode;
+  }
+}
+#endif

@@ -26,6 +26,12 @@
 # define _lxi_packed            __attribute__((packed))
 # define _lxi_align             __attribute__((aligned(16)))
 
+#elif defined(__APPLE__) && defined(__GNUC__)
+# define _lxi_internal          __attribute__((visibility("hidden")))
+# define _lxi_pure              __attribute__((pure))
+# define _lxi_packed            __attribute__((packed))
+# define _lxi_align             __attribute__((aligned(16)))
+
 #elif defined(WIN32) && defined(__GNUC__)
 # define _lxi_internal
 # define _lxi_pure              __attribute__((pure))

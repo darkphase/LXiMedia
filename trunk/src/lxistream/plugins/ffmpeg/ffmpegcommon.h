@@ -26,7 +26,9 @@
 
 extern "C"
 {
+#undef UINT64_C
 #define UINT64_C Q_UINT64_C
+#undef INT64_C
 #define INT64_C Q_INT64_C
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>

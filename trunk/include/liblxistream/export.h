@@ -23,6 +23,9 @@
 #if defined(__unix__) && defined(__GNUC__)
 # define LXISTREAM_PUBLIC       __attribute__((visibility("default")))
 
+#elif defined(__APPLE__) && defined(__GNUC__)
+# define LXISTREAM_PUBLIC       __attribute__((visibility("default")))
+
 #elif defined(WIN32) && defined(__GNUC__)
 # if defined(S_BUILD_LIBLXISTREAM)
 #  define LXISTREAM_PUBLIC      __attribute__((dllexport))

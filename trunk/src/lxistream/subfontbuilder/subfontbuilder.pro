@@ -5,6 +5,7 @@ DESTDIR = $${OUT_PWD}/$${LXIMEDIA_DIR}/bin
 TARGET = subfontbuilder
 include($${PWD}/$${LXIMEDIA_DIR}/include/config.pri)
 CONFIG += console
+macx:CONFIG -= app_bundle
 
 # Files
 SOURCES += main.cpp

@@ -11,6 +11,23 @@ DVDNAV_HEADERS = $${DVDNAV_VERSION}/src/dvdnav.h \
  $${DVDNAV_VERSION}/src/dvd_types.h \
  $${DVDNAV_VERSION}/src/dvdnav_events.h
 
+macx {
+  system(bzip2 -fdk $${PWD}/bin.macx/libdvdnav.a.bz2)
+  system(bzip2 -fdk $${PWD}/bin.macx/libdvdread.a.bz2)
+
+  system(bzip2 -fdk $${PWD}/libdvdread_4.1.3.orig.tar.bz2)
+  system(tar -x -f libdvdread_4.1.3.orig.tar $${DVDREAD_HEADERS})
+  system(rm -rf include)
+  system(mv $${DVDREAD_VERSION} include)
+  system(mv include/src include/dvdread)
+  system(rm libdvdread_4.1.3.orig.tar)
+
+  system(bzip2 -fdk $${PWD}/libdvdnav_4.1.3.orig.tar.bz2)
+  system(tar -x -f libdvdnav_4.1.3.orig.tar $${DVDNAV_HEADERS})
+  system(mv $${DVDNAV_VERSION}/src include/dvdnav)
+  system(rm -rf $${DVDNAV_VERSION})
+  system(rm libdvdnav_4.1.3.orig.tar)
+}
 win32 {
   BZIP2 = $$replace(PWD,/,\\)\\..\\gnuwin32\\bzip2.exe
   TAR = $$replace(PWD,/,\\)\\..\\gnuwin32\\tar.exe

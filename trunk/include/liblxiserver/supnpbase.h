@@ -43,8 +43,20 @@ public:
                     const QString &contentFormat = "",
                     bool conversionIndicator = false,
                     const QString &profile = "",
-                    const QString &suffix = "",
-                    const QMap<QString, QString> & queryItems = QMap<QString, QString>())
+                    const QString &suffix = "")
+      : protocol(protocol), network("*"), contentFormat(contentFormat),
+        profile(profile), playSpeed(true), conversionIndicator(conversionIndicator),
+        operationsRange(false), operationsTimeSeek(false),
+        flags("01700000000000000000000000000000"), suffix(suffix)
+    {
+    }
+
+    inline Protocol(const QString &protocol,
+                    const QString &contentFormat,
+                    bool conversionIndicator,
+                    const QString &profile,
+                    const QString &suffix,
+                    const QMap<QString, QString> &queryItems)
       : protocol(protocol), network("*"), contentFormat(contentFormat),
         profile(profile), playSpeed(true), conversionIndicator(conversionIndicator),
         operationsRange(false), operationsTimeSeek(false),

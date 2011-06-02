@@ -48,6 +48,7 @@ SHttpStreamProxy::SHttpStreamProxy(QObject *parent)
   : QObject(parent),
     d(new Data())
 {
+  d->source = NULL;
   d->sourceFinished = false;
   d->caching = true;
 
@@ -72,15 +73,24 @@ bool SHttpStreamProxy::isConnected(void) const
 
 bool SHttpStreamProxy::setSource(QAbstractSocket *source)
 {
-  d->source = source;
-  d->sourceTimer.start();
+  if (source)
+  {
+    d->source = source;
+    d->sourceTimer.start();
 
-  connect(d->source, SIGNAL(readyRead()), SLOT(processData()));
-  connect(d->source, SIGNAL(disconnected()), SLOT(flushData()));
+    connect(d->source, SIGNAL(readyRead()), SLOT(processData()));
+    connect(d->source, SIGNAL(disconnected()), SLOT(flushData()));
 
-  d->socketTimer.start(250);
+    d->socketTimer.start(250);
 
-  return true;
+    return true;
+  }
+  else
+  {
+    disconnectAllSockets();
+
+    return false;
+  }
 }
 
 bool SHttpStreamProxy::addSocket(QAbstractSocket *socket)
