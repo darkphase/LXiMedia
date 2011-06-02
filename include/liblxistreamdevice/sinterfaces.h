@@ -23,13 +23,14 @@
 #include <QtCore>
 #include <LXiCore>
 #include <LXiStream>
+#include "export.h"
 
 namespace LXiStreamDevice {
 namespace SInterfaces {
 
 /*! The AudioInput interface can be used to provide audio input devices.
  */
-class LXISTREAM_PUBLIC AudioInput : public QObject
+class LXISTREAMDEVICE_PUBLIC AudioInput : public QObject
 {
 Q_OBJECT
 S_FACTORIZABLE(AudioInput)
@@ -50,7 +51,7 @@ signals:
 
 /*! The AudioOutput interface can be used to provide audio output devices.
  */
-class LXISTREAM_PUBLIC AudioOutput : public QObject
+class LXISTREAMDEVICE_PUBLIC AudioOutput : public QObject
 {
 Q_OBJECT
 S_FACTORIZABLE(AudioOutput)
@@ -68,7 +69,7 @@ public slots:
 
 /*! The VideoInput interface can be used to provide video input devices.
  */
-class LXISTREAM_PUBLIC VideoInput : public QObject
+class LXISTREAMDEVICE_PUBLIC VideoInput : public QObject
 {
 Q_OBJECT
 S_FACTORIZABLE(VideoInput)

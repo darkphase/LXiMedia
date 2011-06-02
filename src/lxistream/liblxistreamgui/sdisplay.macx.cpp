@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2011 by A.J. Admiraal                                   *
+ *   Copyright (C) 2010 by A.J. Admiraal                                   *
  *   code@admiraal.dds.nl                                                  *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -17,32 +17,73 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXIMEDIACENTER_EXPORT_H
-#define LXIMEDIACENTER_EXPORT_H
+#include "sdisplay.h"
 
-#if defined(__unix__) && defined(__GNUC__)
-# define LXIMEDIACENTER_PUBLIC  __attribute__((visibility("default")))
+namespace LXiStreamGui {
 
-#elif defined(__APPLE__) && defined(__GNUC__)
-# define LXIMEDIACENTER_PUBLIC  __attribute__((visibility("default")))
 
-#elif defined(WIN32) && defined(__GNUC__)
-# if defined(S_BUILD_LIBLXIMEDIACENTER)
-#  define LXIMEDIACENTER_PUBLIC __attribute__((dllexport))
-# else
-#  define LXIMEDIACENTER_PUBLIC __attribute__((dllimport))
-# endif
+struct SDisplay::Private
+{
+};
 
-#elif defined(WIN32) && defined(_MSC_VER)
-# if defined(S_BUILD_LIBLXIMEDIACENTER)
-#  define LXIMEDIACENTER_PUBLIC __declspec(dllexport)
-# else
-#  define LXIMEDIACENTER_PUBLIC __declspec(dllimport)
-# endif
 
-#else
-# define LXIMEDIACENTER_PUBLIC
+SDisplay::SDisplay(void)
+         :p(new Private())
+{
+}
 
-#endif
+SDisplay::~SDisplay()
+{
+  delete p;
+  *const_cast<Private **>(&p) = NULL;
+}
 
-#endif
+void SDisplay::blockScreenSaver(bool)
+{
+}
+
+QList<SDisplay::Mode> SDisplay::allModes(void) const
+{
+  QList<Mode> modes;
+
+  return modes;
+}
+
+SDisplay::Mode SDisplay::mode(void) const
+{
+
+  Mode m;
+  m.size = QSize(0, 0);
+  m.rate = 0;
+
+  return m;
+}
+
+bool SDisplay::setMode(const Mode &)
+{
+  return false;
+}
+
+bool SDisplay::setSize(const QSize &)
+{
+  return false;
+}
+
+QList<qreal> SDisplay::allRates(void) const
+{
+  QList<qreal> r;
+
+  return r;
+}
+
+bool SDisplay::setRate(qreal)
+{
+  return false;
+}
+
+void SDisplay::timerEvent(QTimerEvent *)
+{
+}
+
+
+} // End of namespace

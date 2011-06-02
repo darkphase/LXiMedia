@@ -76,10 +76,14 @@ SApplication::SApplication(const QString &logDir, QObject *parent)
 
     // And now load the plugins
     QStringList paths;
-#ifndef Q_OS_WIN
+#if defined(Q_OS_UNIX)
+# if defined(Q_OS_MACX)
+    paths += qApp->applicationDirPath() + "/lximedia/";
+# else
     paths += "/usr/lib/lximedia" + majorVersion + "/";
     paths += "/usr/local/lib/lximedia" + majorVersion + "/";
-#else
+# endif
+#elif defined(Q_OS_WIN)
     const QByteArray myDll = "LXiCore" + majorVersion + ".dll";
     HMODULE myModule = ::GetModuleHandleA(myDll.data());
     char fileName[MAX_PATH];
@@ -91,13 +95,19 @@ SApplication::SApplication(const QString &logDir, QObject *parent)
     }
     else
       qCritical("Failed to locate %s", myDll.data());
+#else
+# error Not implemented
 #endif
 
     QSet<QString> modules;
     foreach (QDir dir, paths)
-#ifndef Q_OS_WIN
-    foreach (const QFileInfo &fileInfo, dir.entryInfoList(QDir::Files))
-#else
+#if defined(Q_OS_UNIX)
+# if defined(Q_OS_MACX)
+    foreach (const QFileInfo &fileInfo, dir.entryInfoList(QStringList() << "*.dylib", QDir::Files))
+# else
+    foreach (const QFileInfo &fileInfo, dir.entryInfoList(QStringList() << "*.so", QDir::Files))
+# endif
+#elif defined(Q_OS_WIN)
     foreach (const QFileInfo &fileInfo, dir.entryInfoList(QStringList() << "*.dll", QDir::Files))
 #endif
     if (!modules.contains(fileInfo.fileName()))
@@ -435,6 +445,8 @@ SApplication::SApplication(QObject *parent)
     qFatal("Only one instance of the SApplication class is allowed.");
 
   d->logDir = "::";
+  d->profileFile = NULL;
+  d->profileWidth = 0;
 
   self = this;
 
@@ -490,5 +502,3 @@ SApplication::Profiler::~Profiler()
 }
 
 } // End of namespace
-
-

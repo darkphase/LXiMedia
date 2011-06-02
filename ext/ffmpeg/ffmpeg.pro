@@ -17,6 +17,19 @@ FFMPEG_HEADERS = $${FFMPEG_VERSION}/libavcodec/avcodec.h \
  $${FFMPEG_VERSION}/libavutil/rational.h \
  $${FFMPEG_VERSION}/libswscale/swscale.h
 
+macx {
+  system(bzip2 -fdk $${PWD}/bin.macx/libavcodec.a.bz2)
+  system(bzip2 -fdk $${PWD}/bin.macx/libavformat.a.bz2)
+  system(bzip2 -fdk $${PWD}/bin.macx/libavutil.a.bz2)
+  system(bzip2 -fdk $${PWD}/bin.macx/libswscale.a.bz2)
+
+  system(bzip2 -fdk $${PWD}/libav_0.6.2.orig.tar.bz2)
+  system(tar -x -f libav_0.6.2.orig.tar $${FFMPEG_HEADERS})
+  system(rm -rf include)
+  system(mv $${FFMPEG_VERSION} include)
+  system(rm libav_0.6.2.orig.tar)
+  system(cp bin.macx/avconfig.h include/libavutil/)
+}
 win32 {
   BZIP2 = $$replace(PWD,/,\\)\\..\\gnuwin32\\bzip2.exe
   TAR = $$replace(PWD,/,\\)\\..\\gnuwin32\\tar.exe

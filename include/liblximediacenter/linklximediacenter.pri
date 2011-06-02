@@ -9,13 +9,7 @@ include($${PWD}/../liblxistreamgui/linklxistreamgui.pri)
   LINKED += LXiMediaCenter
   
   !contains(CONFIG, staticlib) {
-    unix {
-      POST_TARGETDEPS += $${OUT_PWD}/$${LXIMEDIA_DIR}/bin/libLXiMediaCenter.so
-      LIBS += -L$${OUT_PWD}/$${LXIMEDIA_DIR}/bin -lLXiMediaCenter
-    }
-    
-    win32:POST_TARGETDEPS += $${OUT_PWD}/$${LXIMEDIA_DIR}/bin/LXiMediaCenter.dll
-    win32-g++:LIBS += -L$${OUT_PWD}/$${LXIMEDIA_DIR}/bin -lLXiMediaCenter
+    unix|win32-g++:LIBS += -L$${OUT_PWD}/$${LXIMEDIA_DIR}/bin -lLXiMediaCenter
     win32-msvc2005|win32-msvc2008|win32-msvc2010:LIBS += $$replace(OUT_PWD,/,\\)\\$$replace(LXIMEDIA_DIR,/,\\)\\bin\\LXiMediaCenter.lib
   }
 }

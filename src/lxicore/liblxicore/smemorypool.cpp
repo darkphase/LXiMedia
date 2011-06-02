@@ -19,7 +19,7 @@
 
 #include "smemorypool.h"
 #include "sapplication.h"
-#if defined(Q_OS_UNIX)
+#if defined(Q_OS_LINUX)
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/mman.h>
@@ -37,7 +37,7 @@ struct SMemoryPool::Init : SApplication::Initializer
 {
   virtual void startup(void)
   {
-#if defined(Q_OS_UNIX)
+#if defined(Q_OS_LINUX)
     pageSize = int(::sysconf(_SC_PAGESIZE));
     zeroDev = ::open("/dev/zero", O_RDWR);
 #elif defined(Q_OS_WIN)
@@ -74,7 +74,7 @@ struct SMemoryPool::Init : SApplication::Initializer
     freePool().clear();
     allocPool().clear();
 
-#if defined(Q_OS_UNIX)
+#if defined(Q_OS_LINUX)
     ::close(zeroDev);
     zeroDev = 0;
 #endif
@@ -84,7 +84,7 @@ struct SMemoryPool::Init : SApplication::Initializer
 
 SMemoryPool::Init SMemoryPool::init;
 int               SMemoryPool::pageSize = 0;
-#if defined(Q_OS_UNIX)
+#if defined(Q_OS_LINUX)
   int             SMemoryPool::zeroDev = 0;
 #endif
 
@@ -190,7 +190,7 @@ void * SMemoryPool::allocPages(size_t size)
   Q_ASSERT(pageSize);
   Q_ASSERT((size % pageSize) == 0);
 
-#if defined(Q_OS_UNIX)
+#if defined(Q_OS_LINUX)
 # ifndef USE_GUARD_PAGES
   void * const result =
       ::mmap(0, size, PROT_READ | PROT_WRITE, MAP_PRIVATE, zeroDev, 0);
@@ -228,8 +228,8 @@ void * SMemoryPool::allocPages(size_t size)
 # endif
   }
 #else
-  quint8 * const buffer = (new quint8[size + sizeof(quint8 *) + pageSize]) + sizeof(quint8 *);
-  quint8 * const result = (quint8 *)(quintptr(buffer + pageSize) & ~quintptr(pageSize - 1));
+  quint8 * const buffer = new quint8[size + sizeof(quint8 *) + pageSize];
+  quint8 * const result = (quint8 *)(quintptr(buffer + sizeof(quint8 *) + pageSize) & ~quintptr(pageSize - 1));
   reinterpret_cast<quint8 **>(result)[-1] = buffer;
 
   return result;
@@ -244,7 +244,7 @@ void SMemoryPool::freePages(void *addr, size_t size)
   Q_ASSERT(pageSize);
   Q_ASSERT((size % pageSize) == 0);
 
-#if defined(Q_OS_UNIX)
+#if defined(Q_OS_LINUX)
 # ifndef USE_GUARD_PAGES
   ::munmap(addr, size);
 # else

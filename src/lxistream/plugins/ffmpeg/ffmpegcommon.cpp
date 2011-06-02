@@ -20,17 +20,6 @@
 #include "ffmpegcommon.h"
 #include <cstring>
 
-#if defined(Q_OS_WIN) && defined(_GLIBCXX_CSTRING)
-inline size_t strnlen(const char *s, size_t maxlen)
-{
-    for (size_t i=0; i<maxlen; i++)
-    if (s[i] == '\0')
-        return i;
-
-    return maxlen;
-}
-#endif
-
 namespace LXiStream {
 namespace FFMpegBackend {
 
@@ -975,11 +964,11 @@ void FFMpegCommon::log(void *, int level, const char *fmt, va_list vl)
   {
     //const ::AVClass * const * const c = reinterpret_cast<const ::AVClass * const *>(ptr);
 
-    char buffer[4096] = { '\0' };
-    ::vsnprintf(buffer, sizeof(buffer), fmt, vl);
+    char buffer[4096]; buffer[sizeof(buffer) - 1] = '\0';
+    ::vsnprintf(buffer, sizeof(buffer) - 1, fmt, vl);
 
     // Trim trailing whitespace.
-    for (int i=strnlen(buffer, sizeof(buffer)); i>=0; i--)
+    for (int i=::strlen(buffer); i>=0; i--)
     if ((buffer[i] >= '\0') && (buffer[i] <= ' '))
       buffer[i] = '\0';
     else

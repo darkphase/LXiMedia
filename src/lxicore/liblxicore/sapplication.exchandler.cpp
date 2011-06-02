@@ -538,9 +538,4 @@ void SApplication::installExcpetionHandler(void)
   SApplicationExcHandler::initialize();
 }
 
-void SApplication::logStackFrame(const StackFrame &stackFrame)
-{
-  return SApplicationExcHandler::logStackFrame(NULL, stackFrame.stackPointer, stackFrame.framePointer);
-}
-
 } // End of namespace

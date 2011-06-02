@@ -25,16 +25,12 @@ unix|win32-g++ {
     QMAKE_CFLAGS += -march=i686 -mmmx -msse -msse2 -mfpmath=sse
   }
 
-  QMAKE_CFLAGS += -w
-
-  # Improve floating point performance
-  QMAKE_CXXFLAGS += -fno-math-errno -fno-signed-zeros
-  QMAKE_CFLAGS += -fno-math-errno -fno-signed-zeros -fno-common -ffast-math
+  QMAKE_CFLAGS += -w -fno-common
 
   # All "hot" code is placed in plain old C files; these need to be fully
   # optimized, also in debug mode.
   QMAKE_CFLAGS_RELEASE -= -O2
-  QMAKE_CFLAGS += -O3
+  QMAKE_CFLAGS += -O3 -ffast-math
 }
 
 # Debug information is added in release to make stack tracing possible.

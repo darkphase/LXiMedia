@@ -16,6 +16,15 @@ EXIF_HEADERS = $${EXIF_VERSION}/libexif/_stdint.h \
  $${EXIF_VERSION}/libexif/exif-tag.h \
  $${EXIF_VERSION}/libexif/exif-utils.h
 
+macx {
+  system(bzip2 -fdk $${PWD}/bin.macx/libexif.a.bz2)
+
+  system(bzip2 -fdk $${PWD}/libexif_0.6.19.orig.tar.bz2)
+  system(tar -x -f libexif_0.6.19.orig.tar $${EXIF_HEADERS})
+  system(rm -rf include)
+  system(mv $${EXIF_VERSION} include)
+  system(rm libexif_0.6.19.orig.tar)
+}
 win32 {
   BZIP2 = $$replace(PWD,/,\\)\\..\\gnuwin32\\bzip2.exe
   TAR = $$replace(PWD,/,\\)\\..\\gnuwin32\\tar.exe

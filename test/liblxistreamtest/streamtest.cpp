@@ -18,7 +18,6 @@
  ***************************************************************************/
 
 #include "streamtest.h"
-#include <QtGui>
 #include <QtTest>
 
 SAudioBuffer StreamTest::makeTestBuffer(unsigned numSamples)

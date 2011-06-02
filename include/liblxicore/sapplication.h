@@ -151,12 +151,10 @@ public:
   bool                          loadModule(SModule *, QPluginLoader * = NULL);
   QByteArray                    about(void) const;
 
+#ifdef Q_OS_WIN
 public: // Exception handler
   static void                   installExcpetionHandler(void);
-
-  inline static StackFrame      currentStackFrame(void);
-  static void                   logStackFrame(const StackFrame &);
-  inline static void            logStackFrame(void)                             { return logStackFrame(currentStackFrame()); }
+#endif
 
 public: // Logging
   const QString               & logDir(void) const;
@@ -186,36 +184,6 @@ private:
   struct Data;
   Data                  * const d;
 };
-
-
-/*! Returns a stack-frame pointer for the calling function. This stack-frame
-    pointer can then be used with the SApplication::logStackFrame() method.
- */
-inline SApplication::StackFrame SApplication::currentStackFrame(void)
-{
-  StackFrame stackFrame;
-
-#if ((defined(QT_ARCH_I386) || defined(QT_ARCH_WINDOWS)) && defined(__GNUC__))
-  asm volatile("movl %%esp, %0;"
-               "movl %%ebp, %1;"
-               : "=r"(stackFrame.stackPointer),
-                 "=r"(stackFrame.framePointer));
-#elif (defined(QT_ARCH_X86_64) && defined(__GNUC__))
-  asm volatile("movq %%rsp, %0;"
-               "movq %%rbp, %1;"
-               : "=r"(stackFrame.stackPointer),
-                 "=r"(stackFrame.framePointer));
-#elif ((defined(QT_ARCH_I386) || defined(QT_ARCH_WINDOWS)) && defined(_MSC_VER))
-  __asm {
-    mov stackFrame.stackPointer, esp
-    mov stackFrame.framePointer, ebp
-  }
-#else
-#error "Not implemented"
-#endif
-
-  return stackFrame;
-}
 
 } // End of namespace
 

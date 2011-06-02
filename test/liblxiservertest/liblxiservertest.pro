@@ -1,5 +1,6 @@
 TEMPLATE = app
 CONFIG += qtestlib
+macx:CONFIG -= app_bundle
 QT -= gui
 QT += network xml
 LXIMEDIA_DIR = ../..
@@ -27,19 +28,17 @@ HEADERS += httpenginetest.h \
 SOURCES += main.cpp \
     httpenginetest.cpp \
     sandboxtest.cpp
-LIBS += -lbfd \
-    -liberty
 
 # Run tests after link
 unix:QMAKE_POST_LINK = $(TARGET) -silent
 win32:QMAKE_POST_LINK = $${DESTDIR}/$${TARGET} -silent
 
 # Platform specific
-unix { 
-}
 win32 { 
     CONFIG += console
-    LIBS += -lws2_32
+    LIBS += -lbfd \
+        -liberty \
+        -lws2_32
 }
 
 # Windows specific
