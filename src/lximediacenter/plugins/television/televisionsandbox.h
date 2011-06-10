@@ -17,46 +17,56 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXSTREAM_STIMER_H
-#define LXSTREAM_STIMER_H
+#ifndef TELEVISIONSANDBOX_H
+#define TELEVISIONSANDBOX_H
 
-#include <QtGlobal>
-#include <LXiCore>
-#include "stime.h"
-#include "export.h"
+#include <LXiMediaCenter>
+#include <LXiStreamDevice>
 
-namespace LXiStream {
+namespace LXiMediaCenter {
+namespace TelevisionBackend {
 
-class LXISTREAM_PUBLIC STimer
+class TelevisionSandbox : public BackendSandbox
 {
-Q_DISABLE_COPY(STimer)
+Q_OBJECT
 public:
-                                STimer(void);
-                                ~STimer(void);
+  explicit                      TelevisionSandbox(const QString &, QObject *parent = NULL);
 
-  void                          sync(STimer &);
+  virtual void                  initialize(SSandboxServer *);
+  virtual void                  close(void);
 
-  STime                         timeStamp(void) const;
-  void                          setTimeStamp(STime);
-  void                          reset(void);
-  STime                         correctTimeStamp(STime ts, STime maxOffset);
-  STime                         offset(STime) const;
-  STime                         correctOffset(STime ts, STime maxOffset = STime::fromMSec(50));
-  void                          pause(bool);
+public: // From SSandboxServer::Callback
+  virtual SSandboxServer::SocketOp handleHttpRequest(const SSandboxServer::RequestMessage &, QAbstractSocket *);
+  virtual void                  handleHttpOptions(SHttpServer::ResponseHeader &);
 
-  STime                         smoothTimeStamp(STime interval = STime(), STime delay = STime::null);
-  STime                         absoluteTimeStamp(void) const;
+private slots:
+  void                          cleanStreams(void);
+
+public:
+  static const char     * const path;
 
 private:
-  class Init;
+  static const QEvent::Type     probeResponseEventType;
 
-  struct Data;
-  Data                        * d;
-
-  struct IntervalData;
-  IntervalData                * id;
+  SSandboxServer              * server;
+  QList<MediaStream *>          streams;
+  QTimer                        cleanStreamsTimer;
 };
 
-} // End of namespace
+class SandboxInputStream : public MediaStream
+{
+Q_OBJECT
+public:
+  explicit                      SandboxInputStream(const QString &device);
+  virtual                       ~SandboxInputStream();
+
+  bool                          setup(const SHttpServer::RequestMessage &, QAbstractSocket *);
+
+public:
+  SAudioVideoInputNode          input;
+};
+
+
+} } // End of namespaces
 
 #endif

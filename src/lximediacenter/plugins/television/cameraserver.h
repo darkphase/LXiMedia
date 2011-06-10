@@ -31,6 +31,19 @@ namespace TelevisionBackend {
 class CameraServer : public MediaServer
 {
 Q_OBJECT
+protected:
+  class Stream : public MediaServer::Stream
+  {
+  public:
+                                Stream(CameraServer *, SSandboxClient *, const QString &url);
+    virtual                     ~Stream();
+
+    bool                        setup(const QUrl &request);
+
+  public:
+    SSandboxClient      * const sandbox;
+  };
+
 public:
                                 CameraServer(const QString &, QObject *);
 

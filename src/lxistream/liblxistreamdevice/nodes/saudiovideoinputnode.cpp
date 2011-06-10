@@ -22,16 +22,44 @@
 
 namespace LXiStreamDevice {
 
+template <class _input>
+class SAudioVideoInputNode::Thread : public QThread
+{
+public:
+  inline Thread(QObject *parent, _input *input)
+    : QThread(parent), input(input), running(true)
+  {
+    start();
+  }
+
+  virtual ~Thread()
+  {
+    running = false;
+    QThread::wait();
+  }
+
+protected:
+  virtual void run(void)
+  {
+    while (running)
+      input->process();
+  }
+
+private:
+  _input                * const input;
+  volatile bool                 running;
+};
+
 struct SAudioVideoInputNode::Data
 {
   QString                       device;
   SVideoFormat                  format;
   int                           maxBuffers;
+
   SInterfaces::AudioInput     * audioInput;
   SInterfaces::VideoInput     * videoInput;
-
-  STime                         audioTime;
-  STime                         videoTime;
+  Thread<SInterfaces::AudioInput> * audioThread;
+  Thread<SInterfaces::VideoInput> * videoThread;
 };
 
 SAudioVideoInputNode::SAudioVideoInputNode(SGraph *parent, const QString &device)
@@ -43,6 +71,8 @@ SAudioVideoInputNode::SAudioVideoInputNode(SGraph *parent, const QString &device
   d->maxBuffers = 0;
   d->audioInput = NULL;
   d->videoInput = NULL;
+  d->audioThread = NULL;
+  d->videoThread = NULL;
 }
 
 SAudioVideoInputNode::~SAudioVideoInputNode()
@@ -70,13 +100,17 @@ void SAudioVideoInputNode::setMaxBuffers(int maxBuffers)
 
 bool SAudioVideoInputNode::start(void)
 {
+  delete d->audioThread;
+  d->audioThread = NULL;
+
   delete d->audioInput;
   d->audioInput = NULL;
-  d->audioTime = STime::null;
+
+  delete d->videoThread;
+  d->videoThread = NULL;
 
   delete d->videoInput;
   d->videoInput = SInterfaces::VideoInput::create(this, d->device);
-  d->videoTime = STime::null;
 
   if (d->videoInput)
   {
@@ -103,7 +137,7 @@ bool SAudioVideoInputNode::start(void)
         if (d->audioInput->start())
         {
           connect(d->audioInput, SIGNAL(produce(const SAudioBuffer &)), SIGNAL(output(const SAudioBuffer &)));
-          connect(d->audioInput, SIGNAL(produce(const SAudioBuffer &)), SLOT(produced(const SAudioBuffer &)), Qt::DirectConnection);
+          d->audioThread = new Thread<SInterfaces::AudioInput>(this, d->audioInput);
         }
         else
         {
@@ -122,7 +156,7 @@ bool SAudioVideoInputNode::start(void)
     if (d->videoInput->start())
     {
       connect(d->videoInput, SIGNAL(produce(const SVideoBuffer &)), SIGNAL(output(const SVideoBuffer &)));
-      connect(d->videoInput, SIGNAL(produce(const SVideoBuffer &)), SLOT(produced(const SVideoBuffer &)), Qt::DirectConnection);
+      d->videoThread = new Thread<SInterfaces::VideoInput>(this, d->videoInput);
       return true;
     }
   }
@@ -136,6 +170,9 @@ bool SAudioVideoInputNode::start(void)
 
 void SAudioVideoInputNode::stop(void)
 {
+  delete d->audioThread;
+  d->audioThread = NULL;
+
   if (d->audioInput)
   {
     d->audioInput->stop();
@@ -143,6 +180,9 @@ void SAudioVideoInputNode::stop(void)
     delete d->audioInput;
     d->audioInput = NULL;
   }
+
+  delete d->videoThread;
+  d->videoThread = NULL;
 
   if (d->videoInput)
   {
@@ -155,27 +195,7 @@ void SAudioVideoInputNode::stop(void)
 
 void SAudioVideoInputNode::process(void)
 {
-  LXI_PROFILE_FUNCTION;
-
-  if (d->audioInput && d->videoInput)
-  {
-    if (d->audioTime <= d->videoTime)
-      d->audioInput->process();
-    else
-      d->videoInput->process();
-  }
-  else if (d->videoInput)
-    d->videoInput->process();
-}
-
-void SAudioVideoInputNode::produced(const SAudioBuffer &buffer)
-{
-  d->audioTime = buffer.timeStamp();
-}
-
-void SAudioVideoInputNode::produced(const SVideoBuffer &buffer)
-{
-  d->videoTime = buffer.timeStamp();
+  // The threads do all the work.
 }
 
 } // End of namespace

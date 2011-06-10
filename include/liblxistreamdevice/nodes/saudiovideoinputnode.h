@@ -51,11 +51,9 @@ signals:
   void                          output(const SAudioBuffer &);
   void                          output(const SVideoBuffer &);
 
-private slots:
-  _lxi_internal void            produced(const SAudioBuffer &);
-  _lxi_internal void            produced(const SVideoBuffer &);
-
 private:
+  template <class _input> class Thread;
+
   struct Data;
   Data                  * const d;
 };

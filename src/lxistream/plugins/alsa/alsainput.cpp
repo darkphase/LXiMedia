@@ -110,7 +110,7 @@ void AlsaInput::process(void)
     }
     else if (err < 0)
     {
-      qWarning() << "AlsaInput: Recovering";
+      qDebug() << "AlsaInput: Recovering";
       snd_pcm_recover(pcm, err, 1);
     }
   }

@@ -25,9 +25,23 @@
 #include <windows.h>
 #endif
 
-
 namespace LXiStream {
 
+class STimer::Init : public SApplication::Initializer
+{
+public:
+  virtual void                  startup(void);
+  virtual void                  shutdown(void);
+
+public:
+  static qint64                 baseTimestamp;
+
+private:
+  static Init                   self;
+};
+
+qint64       STimer::Init::baseTimestamp = 0;
+STimer::Init STimer::Init::self;
 
 struct STimer::Data
 {
@@ -75,7 +89,7 @@ STimer::~STimer(void)
 
 void STimer::sync(STimer &other)
 {
-  if(&other != this)
+  if (&other != this)
   {
     if (!d->ref.deref())
       delete d;
@@ -190,14 +204,15 @@ void STimer::pause(bool p)
     \note This method works best for intervals of 10 - 1000 ms with jitter less
           than 100 ms.
  */
-STime STimer::smoothTimeStamp(STime interval, STime delay)
+STime STimer::smoothTimeStamp(STime refInterval, STime delay)
 {
   if (id != NULL)
   {
     const STime currentTime = timeStamp() - delay;
-    id->sourceTime += interval.isValid() ? interval : id->avgInterval;
+    const STime interval = refInterval.isValid() ? refInterval : id->avgInterval;
+    id->sourceTime += interval;
 
-    if (qAbs(currentTime - id->sourceTime) < STime::fromMSec(100))
+    if (qAbs(currentTime - id->sourceTime) < (interval * 4))
     {
       // Compensate for a small drift.
       if (qAbs(currentTime - id->sourceTime) >= STime::fromMSec(10))
@@ -224,27 +239,46 @@ STime STimer::smoothTimeStamp(STime interval, STime delay)
     id = new IntervalData();
     id->sourceTime = timeStamp() - delay;
     id->lastTime = id->sourceTime;
-    id->avgInterval = interval.isValid() ? interval : STime::null;
+    id->avgInterval = refInterval.isValid() ? refInterval : STime::null;
   }
 
   return id->sourceTime;
 }
 
+/*! Returns the time since the creation of the SApplication instance.
+ */
 STime STimer::absoluteTimeStamp(void) const
 {
 #if defined(Q_OS_UNIX)
   struct timeval now;
   gettimeofday(&now, NULL);
 
-  return STime::fromSec(now.tv_sec) + STime::fromUSec(now.tv_usec);
+  return STime::fromSec(now.tv_sec - Init::baseTimestamp) + STime::fromUSec(now.tv_usec);
 #elif defined(Q_OS_WIN)
   LARGE_INTEGER count;
   if ((d->timerFreq > 0) && ::QueryPerformanceCounter(&count))
-    return STime::fromUSec((count.QuadPart * Q_INT64_C(1000000)) / d->timerFreq);
+    return STime::fromUSec(((count.QuadPart - Init::baseTimestamp) * Q_INT64_C(1000000)) / d->timerFreq);
   else
     return STime::fromUSec(0);
 #endif
 }
 
+void STimer::Init::startup(void)
+{
+#if defined(Q_OS_UNIX)
+  struct timeval now;
+  gettimeofday(&now, NULL);
+
+  baseTimestamp = now.tv_sec;
+#elif defined(Q_OS_WIN)
+  LARGE_INTEGER count;
+  if ((d->timerFreq > 0) && ::QueryPerformanceCounter(&count))
+    baseTimestamp = count.QuadPart;
+#endif
+}
+
+void STimer::Init::shutdown(void)
+{
+}
 
 } // End of namespace
