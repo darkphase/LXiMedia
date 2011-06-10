@@ -99,9 +99,9 @@ void AlsaOutput::consume(const SAudioBuffer &audioBuffer)
           if (err == -EBADFD)
             qWarning() << "AlsaOutput: PCM is not in the right state.";
           else if (err == -EPIPE)
-            qWarning() << "AlsaOutput: Buffer underrun occurred.";
+            qDebug() << "AlsaOutput: Buffer underrun occurred.";
           else if (err == -ESTRPIPE)
-            qWarning() << "AlsaOutput: A suspend event occurred.";
+            qDebug() << "AlsaOutput: A suspend event occurred.";
           else
             qWarning() << "AlsaOutput: An unknown error " << err << " occurred.";
 
@@ -194,7 +194,7 @@ void AlsaOutput::openFormat(const SAudioFormat &reqFormat)
   if (snd_pcm_hw_params(pcm, hw_params) == 0)
   if (snd_pcm_prepare(pcm) == 0)
   {
-    if ((int(numChannels) != reqFormat.numChannels()) || (int(sampleRate) != reqFormat.sampleRate()))
+    if ((numChannels != reqFormat.numChannels()) || (sampleRate != reqFormat.sampleRate()))
     {
       resampler = ::LXiStream::SInterfaces::AudioResampler::create(this, QString::null);
       if (resampler)

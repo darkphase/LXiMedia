@@ -42,7 +42,7 @@ void MediaPlayerSandbox::initialize(SSandboxServer *server)
 
   BackendSandbox::initialize(server);
 
-  server->registerCallback("/mediaplayer/", this);
+  server->registerCallback(path, this);
 }
 
 void MediaPlayerSandbox::close(void)

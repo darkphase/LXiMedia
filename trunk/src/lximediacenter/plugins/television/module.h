@@ -22,6 +22,7 @@
 
 #include <QtCore>
 #include <LXiMediaCenter>
+#include <LXiStreamDevice>
 //#include "epgdatabase.h"
 
 namespace LXiMediaCenter {

@@ -19,6 +19,7 @@
 
 #include "cameraserver.h"
 #include "module.h"
+#include "televisionsandbox.h"
 
 namespace LXiMediaCenter {
 namespace TelevisionBackend {
@@ -63,8 +64,34 @@ CameraServer::SearchResultList CameraServer::search(const QStringList &rawQuery)
   return list;
 }
 
+
 CameraServer::Stream * CameraServer::streamVideo(const SHttpServer::RequestMessage &request)
 {
+  QUrl url(request.path());
+  if (url.hasQueryItem("query"))
+    url = url.toEncoded(QUrl::RemoveQuery) + QByteArray::fromHex(url.queryItemValue("query").toAscii());
+
+  SSandboxClient * const sandbox = masterServer->createSandbox(SSandboxClient::Mode_Normal);
+  sandbox->ensureStarted();
+
+  QUrl rurl;
+  rurl.setPath(TelevisionSandbox::path + request.file());
+  rurl.addQueryItem("opencamera", QString::null);
+  typedef QPair<QString, QString> QStringPair;
+  foreach (const QStringPair &queryItem, url.queryItems())
+    rurl.addQueryItem(queryItem.first, queryItem.second);
+
+  const QStringList file = request.file().split('.');
+  if (file.count() >= 2)
+    rurl.addQueryItem("device", file.first());
+
+  Stream *stream = new Stream(this, sandbox, request.path());
+  if (stream->setup(rurl))
+    return stream; // The graph owns the socket now.
+
+  delete stream;
+  masterServer->recycleSandbox(sandbox);
+
   return NULL;
 }
 
@@ -115,6 +142,27 @@ SHttpServer::SocketOp CameraServer::handleHttpRequest(const SHttpServer::Request
   }
 
   return MediaServer::handleHttpRequest(request, socket);
+}
+
+CameraServer::Stream::Stream(CameraServer *parent, SSandboxClient *sandbox, const QString &url)
+  : MediaServer::Stream(parent, url),
+    sandbox(sandbox)
+{
+}
+
+CameraServer::Stream::~Stream()
+{
+  static_cast<CameraServer *>(parent)->masterServer->recycleSandbox(sandbox);
+}
+
+bool CameraServer::Stream::setup(const QUrl &url)
+{
+  SHttpEngine::RequestMessage message(sandbox);
+  message.setRequest("GET", url.toEncoded(QUrl::RemoveScheme | QUrl::RemoveAuthority));
+
+  sandbox->openRequest(message, &proxy, SLOT(setSource(QAbstractSocket *)));
+
+  return true;
 }
 
 } } // End of namespaces

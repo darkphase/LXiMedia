@@ -17,6 +17,7 @@ SOURCES += cameraserver.cpp \
 # teletextserver.cpp \
 # teletextserver.html.cpp \
  module.cpp \
+ televisionsandbox.cpp \
 # televisionserver.cpp \
 # televisionserver.html.cpp
 
@@ -26,6 +27,7 @@ HEADERS += cameraserver.h \
 # scan.h \
 # teletextserver.h \
  module.h \
+ televisionsandbox.h \
 # televisionserver.h
 
 # Windows specific

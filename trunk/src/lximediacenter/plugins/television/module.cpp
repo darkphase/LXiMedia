@@ -19,6 +19,7 @@
 
 #include "module.h"
 #include "cameraserver.h"
+#include "televisionsandbox.h"
 //#include "scan.h"
 //#include "teletextserver.h"
 //#include "televisionserver.h"
@@ -33,7 +34,7 @@ bool Module::registerClasses(void)
 {
   CameraServer::registerClass<CameraServer>(0);
 
-  //MediaPlayerSandbox::registerClass<TelevisionSandbox>(0);
+  TelevisionSandbox::registerClass<TelevisionSandbox>(0);
 
   return true;
 }
