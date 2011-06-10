@@ -80,39 +80,44 @@ bool VideoEncoder::openCodec(const SVideoCodec &c, Flags flags)
 
   const int baseRate = ((int(sqrt(float(contextHandle->width * contextHandle->height))) + 249) / 250) * 250;
   if (flags & Flag_LowQuality)
-    contextHandle->bit_rate = baseRate *  6000;
+    contextHandle->bit_rate = baseRate *  8000;
   else if (flags & Flag_HighQuality)
-    contextHandle->bit_rate = baseRate * 24000;
+    contextHandle->bit_rate = baseRate * 32000;
   else // Normal quality
-    contextHandle->bit_rate = baseRate * 12000;
+    contextHandle->bit_rate = baseRate * 16000;
 
   if (outCodec.bitRate() > 0)
     contextHandle->bit_rate = outCodec.bitRate();
 
-  if (flags & Flag_Fast)
-  {
-    contextHandle->gop_size = 0;
-    contextHandle->strict_std_compliance = FF_COMPLIANCE_INOFFICIAL;
-
-    contextHandle->flags2 |= CODEC_FLAG2_FAST;
-
-    fastEncode = true;
-  }
+  contextHandle->bit_rate_tolerance = contextHandle->bit_rate / 2;
 
   if (flags & Flag_HardBitrateLimit)
   {
-    contextHandle->bit_rate_tolerance = contextHandle->bit_rate / 2;
     contextHandle->rc_max_rate = contextHandle->bit_rate;
     contextHandle->bit_rate -= contextHandle->bit_rate_tolerance;
     contextHandle->rc_buffer_size = ((20 * contextHandle->rc_max_rate) / (1151929 / 2)) * 8 * 1024;
     contextHandle->rc_initial_buffer_occupancy = contextHandle->rc_buffer_size * 3 / 4;
   }
 
+  if (flags & Flag_Fast)
+  {
+    contextHandle->gop_size = 0;
+    contextHandle->max_b_frames = 0;
+    contextHandle->strict_std_compliance = FF_COMPLIANCE_INOFFICIAL;
+    contextHandle->bit_rate += contextHandle->bit_rate_tolerance / 2;
+    if (contextHandle->rc_max_rate > 0)
+      contextHandle->rc_max_rate += contextHandle->bit_rate_tolerance / 2;
+
+    contextHandle->flags2 |= CODEC_FLAG2_FAST;
+
+    fastEncode = true;
+  }
+
   contextHandle->max_qdiff = contextHandle->qmax - contextHandle->qmin;
 
 #if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(52, 72, 0)
   // This circumvents a bug generating corrupt blocks in large areas with the same color.
-  if ((outCodec == "MPEG1") || (outCodec == "MPEG2"))
+  if (((outCodec == "MPEG1") || (outCodec == "MPEG2")) && !fastEncode)
     contextHandle->max_b_frames = 3;
 #endif
 
