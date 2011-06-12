@@ -55,6 +55,7 @@ private:
   void                          generateDirs(HtmlParser &, const QFileInfoList &, int, const QSet<QString> &, const QStringList &);
 
   static const QFileInfoList  & drives(bool rescan = false);
+  static QString                driveLabel(const QString &);
 
 private:
   static const char             dirSplit;

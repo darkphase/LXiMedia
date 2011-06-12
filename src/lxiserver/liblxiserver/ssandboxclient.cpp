@@ -39,7 +39,7 @@ struct SSandboxClient::Data
 
   QString                       application;
   SSandboxServer              * localServer;
-  Mode                          mode;
+  Priority                      priority;
   QString                       modeText;
 
   QHostAddress                  address;
@@ -50,30 +50,31 @@ struct SSandboxClient::Data
   QList<Request>                requests;
 };
 
-SSandboxClient::SSandboxClient(const QString &application, Mode mode, QObject *parent)
+SSandboxClient::SSandboxClient(const QString &application, Priority priority, QObject *parent)
   : SHttpClientEngine(parent),
     d(new Data())
 {
   d->application = application;
   d->localServer = NULL;
-  d->mode = mode;
+  d->priority = priority;
 
-  switch(mode)
+  switch(priority)
   {
-  case Mode_Normal: d->modeText = "normal"; break;
-  case Mode_Nice:   d->modeText = "nice";   break;
+  case Priority_Low:    d->modeText = "lowprio";    break;
+  case Priority_Normal: d->modeText = "normalprio"; break;
+  case Priority_High:   d->modeText = "highprio";   break;
   }
 
   d->serverProcess = NULL;
   d->processStarted = false;
 }
 
-SSandboxClient::SSandboxClient(SSandboxServer *localServer, Mode mode, QObject *parent)
+SSandboxClient::SSandboxClient(SSandboxServer *localServer, Priority priority, QObject *parent)
   : SHttpClientEngine(parent),
     d(new Data())
 {
   d->localServer = localServer;
-  d->mode = mode;
+  d->priority = priority;
   d->serverProcess = NULL;
   d->address = localServer->address();
   d->port = localServer->port();
@@ -87,9 +88,9 @@ SSandboxClient::~SSandboxClient()
   *const_cast<Data **>(&d) = NULL;
 }
 
-SSandboxClient::Mode SSandboxClient::mode(void) const
+SSandboxClient::Priority SSandboxClient::priority(void) const
 {
-  return d->mode;
+  return d->priority;
 }
 
 void SSandboxClient::ensureStarted(void)

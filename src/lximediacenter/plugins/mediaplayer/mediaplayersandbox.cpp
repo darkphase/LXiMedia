@@ -248,7 +248,9 @@ bool SandboxSlideShowStream::setup(const SHttpServer::RequestMessage &request, Q
           request, socket,
           slideShow.duration(),
           SInterval::fromFrequency(slideShow.frameRate), slideShow.size(),
-          SAudioFormat::Channels_Stereo))
+          SAudioFormat::Channels_Stereo,
+          SInterfaces::AudioEncoder::Flag_None,
+          SInterfaces::VideoEncoder::Flag_Slideshow))
   {
     connect(&slideShow, SIGNAL(finished()), SLOT(stop()));
     connect(&slideShow, SIGNAL(output(SAudioBuffer)), &sync, SLOT(input(SAudioBuffer)));

@@ -82,9 +82,9 @@ SPlaylistNode::SPlaylistNode(SGraph *parent, const SMediaInfoList &files)
         else if ((frameRate < 32.5) || ((frameRate >= 55.0) && (frameRate < 65.0)))
           fps30++;
 
-        if (info.codec.size().width() < 1280)
+        if ((info.codec.size().width() < 1280) && (info.codec.size().height() < 720))
           sizeSD++;
-        else if (info.codec.size().width() < 1920)
+        else if ((info.codec.size().width() < 1920) && (info.codec.size().height() < 1080))
           size720++;
         else
           size1080++;

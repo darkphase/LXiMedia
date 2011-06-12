@@ -95,7 +95,7 @@ void SandboxTest::localSandbox(void)
   SSandboxServer * const sandboxServer = createSandbox();
   sandboxServer->initialize("local");
 
-  LXiServer::SSandboxClient * const sandboxClient = new SSandboxClient(sandboxServer, SSandboxClient::Mode_Normal, this);
+  LXiServer::SSandboxClient * const sandboxClient = new SSandboxClient(sandboxServer, SSandboxClient::Priority_Normal, this);
   connect(sandboxClient, SIGNAL(response(SHttpEngine::ResponseMessage)), SLOT(handleResponse(SHttpEngine::ResponseMessage)), Qt::DirectConnection);
 
   responseCount = 0;
@@ -119,7 +119,7 @@ void SandboxTest::localSandbox(void)
 
 void SandboxTest::remoteSandbox(void)
 {
-  LXiServer::SSandboxClient * const sandboxClient = new SSandboxClient("\"" + qApp->applicationFilePath() + "\" --sandbox", SSandboxClient::Mode_Normal, this);
+  LXiServer::SSandboxClient * const sandboxClient = new SSandboxClient("\"" + qApp->applicationFilePath() + "\" --sandbox", SSandboxClient::Priority_Normal, this);
   connect(sandboxClient, SIGNAL(response(SHttpEngine::ResponseMessage)), SLOT(handleResponse(SHttpEngine::ResponseMessage)), Qt::DirectConnection);
 
   responseCount = 0;

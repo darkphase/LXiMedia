@@ -29,6 +29,10 @@ namespace MediaPlayerBackend {
 
 const char * const ConfigServer::htmlMain =
     " <div class=\"content\">\n"
+    "  <fieldset>\n"
+    "   <legend>{TR_RIGHTS}</legend>\n"
+    "   {TR_RIGHTS_EXPLAIN}\n"
+    "  </fieldset>\n"
     "  <fieldset style=\"float:left;\">\n"
     "   <legend>{TR_MOVIES}</legend>\n"
     "   {TR_MOVIES_EXPLAIN}<br />\n"
@@ -106,7 +110,7 @@ const char * const ConfigServer::htmlDirTreeExpand =
     " </a>\n";
 
 const char * const ConfigServer::htmlDirTreeCheck =
-    " <img src=\"/img/check{DIR_CHECKED}.png\" width=\"16\" height=\"16\" />";
+    " <img src=\"/img/check{DIR_CHECKED}.png\" title=\"{DIR_TITLE}\" width=\"16\" height=\"16\" />";
 
 const char * const ConfigServer::htmlDirTreeCheckLink =
     " <a class=\"hidden\" href=\"{FILE}?open={DIR_ALLOPEN}&amp;{DIR_CHECKTYPE}={DIR_FULLPATH}#{DIR_FULLPATH}\">\n"
@@ -159,6 +163,24 @@ SHttpServer::SocketOp ConfigServer::handleHtmlRequest(const SHttpServer::Request
   }
   else
   {
+    htmlParser.setField("TR_RIGHTS", tr("Access rights"));
+    htmlParser.setField("TR_RIGHTS_EXPLAIN", tr(
+        "By default, the LXiMediaCenter backend (lximcbackend) runs as a restricted user.\n"
+#if defined(Q_OS_LINUX)
+        "The user and group \"lximediacenter\" were created during installation for this purpose.\n"
+#elif defined(Q_OS_WIN)
+        "The  \"Local Service\" user is used for this purpose.\n"
+#endif
+        "This means that all files that need to be accessed by LXiMediaCenter, need to be accessible by this user.\n"
+#if defined(Q_OS_LINUX)
+        "This can be done by setting the read permission for \"other\" users on the files and directories that need to be accessed by the LXiMediaCenter backend.\n"
+#elif defined(Q_OS_WIN)
+        "This can be done by adding \"Everyone\" with the read permission set to the files and directories that need to be accessed by the LXiMediaCenter backend.\n"
+#endif
+        "<br /><br />\n"
+        "Furthermore, certain system directories can not be selected to prevent security issues."
+        ));
+  
     htmlParser.setField("TR_CLIPS", tr("Video clips"));
     htmlParser.setField("TR_CLIPS_EXPLAIN", tr("Directories containing video clips:"));
     htmlParser.setField("TR_HOMEVIDEOS", tr("Home videos"));
@@ -173,6 +195,7 @@ SHttpServer::SocketOp ConfigServer::handleHtmlRequest(const SHttpServer::Request
     htmlParser.setField("TR_TVSHOWS_EXPLAIN", tr("Directories containing TV shows:"));
 
     drives(true);
+    driveLabel(QString::null);
 
     return sendHtmlContent(request, socket, url, response, htmlParser.parse(htmlMain));
   }
@@ -180,11 +203,149 @@ SHttpServer::SocketOp ConfigServer::handleHtmlRequest(const SHttpServer::Request
 
 void ConfigServer::generateDirs(HtmlParser &htmlParser, const QFileInfoList &dirs, int indent, const QSet<QString> &allopen, const QStringList &rootPaths)
 {
-#ifdef Q_OS_WIN
-  struct T
+  foreach (const QFileInfo &info, dirs)
+  if (!info.fileName().startsWith('.'))
   {
-    static QString driveLabel(const QString &drive)
+    const QString canonicalName =
+        (info.isReadable() ? info.canonicalFilePath() : info.absoluteFilePath())
+#ifdef Q_OS_WIN
+        .toLower()
+#endif
+        ;
+
+    const QString fileName = info.fileName();
+
+    QFileInfoList children = QDir(canonicalName).entryInfoList(QDir::Dirs);
+    for (QList<QFileInfo>::Iterator i=children.begin(); i!=children.end(); )
+    if (i->fileName().startsWith('.'))
+      i = children.erase(i);
+    else
+      i++;
+
+    htmlParser.setField("DIR_FULLPATH", canonicalName.toUtf8().toHex());
+
+    // Indentation
+    htmlParser.setField("DIR_INDENT", QByteArray(""));
+    for (int i=0; i<indent; i++)
+      htmlParser.appendField("DIR_INDENT", htmlParser.parse(htmlDirTreeIndent));
+
+    // Expand
+    htmlParser.setField("DIR_EXPAND", htmlParser.parse(htmlDirTreeIndent));
+    if (!hiddenDirs().contains(canonicalName))
+    if ((indent > 0) && !children.isEmpty())
     {
+      QSet<QString> all = allopen;
+      if (all.contains(canonicalName))
+      {
+        all.remove(canonicalName);
+        htmlParser.setField("DIR_OPEN", QByteArray("open"));
+      }
+      else
+      {
+        all.insert(canonicalName);
+        htmlParser.setField("DIR_OPEN", QByteArray("close"));
+      }
+
+      htmlParser.setField("DIR_ALLOPEN", qCompress(QStringList(all.toList()).join(QString(dirSplit)).toUtf8()).toHex());
+      htmlParser.setField("DIR_EXPAND", htmlParser.parse(htmlDirTreeExpand));
+    }
+
+    // Check
+    bool checkEnabled = true;
+    htmlParser.setField("DIR_CHECKED", QByteArray("none"));
+    htmlParser.setField("DIR_CHECKTYPE", QByteArray("checkon"));
+    foreach (const QString &root, rootPaths)
+    {
+      if (root == canonicalName)
+      {
+        htmlParser.setField("DIR_CHECKED", QByteArray("full"));
+        htmlParser.setField("DIR_CHECKTYPE", QByteArray("checkoff"));
+        checkEnabled = true;
+        break;
+      }
+      else if (root.startsWith(canonicalName))
+      {
+        htmlParser.setField("DIR_CHECKED", QByteArray("some"));
+        htmlParser.setField("DIR_TITLE", QByteArray("A child is selected"));
+        checkEnabled = false;
+      }
+      else if (canonicalName.startsWith(root))
+      {
+        htmlParser.setField("DIR_CHECKED", QByteArray("fulldisabled"));
+        htmlParser.setField("DIR_TITLE", QByteArray("A parent is selected"));
+        checkEnabled = false;
+      }
+    }
+
+    if (hiddenDirs().contains(canonicalName))
+    {
+      htmlParser.appendField("DIR_CHECKED", QByteArray("disabled"));
+      htmlParser.setField("DIR_TITLE", tr("This system directory can not be selected"));
+      checkEnabled = false;
+    }
+    else if (!info.isReadable() || !info.isExecutable())
+    {
+      htmlParser.appendField("DIR_CHECKED", QByteArray("disabled"));
+      htmlParser.setField("DIR_TITLE", tr("Access denied"));
+      checkEnabled = false;
+    }
+    else if (indent == 0)
+    {
+      htmlParser.appendField("DIR_CHECKED", QByteArray("disabled"));
+      htmlParser.setField("DIR_TITLE", tr("The root can not be selected"));
+      checkEnabled = false;
+    }
+
+    htmlParser.setField("DIR_ALLOPEN", qCompress(QStringList(allopen.toList()).join(QString(dirSplit)).toUtf8()).toHex());
+    htmlParser.setField("DIR_CHECK", htmlParser.parse(checkEnabled ? htmlDirTreeCheckLink : htmlDirTreeCheck));
+
+    // Name
+    if (fileName.isEmpty())
+    {
+      htmlParser.setField("DIR_NAME", info.absoluteFilePath());
+
+      const QString label = driveLabel(info.absoluteFilePath());
+      if (!label.isEmpty())
+        htmlParser.appendField("DIR_NAME", " (" + label + ")");
+    }
+    else
+      htmlParser.setField("DIR_NAME", fileName);
+
+
+    if (info.isSymLink())
+      htmlParser.appendField("DIR_NAME", " (" + tr("symbolic link to") + " " + info.symLinkTarget() + ")");
+
+    htmlParser.appendField("DIRS", htmlParser.parse(htmlDirTreeDir));
+
+    // Recurse
+    if (!hiddenDirs().contains(canonicalName))
+    if ((indent == 0) || (allopen.contains(canonicalName)))
+      generateDirs(htmlParser, children, indent + 1, allopen, rootPaths);
+  }
+}
+
+const QFileInfoList & ConfigServer::drives(bool rescan)
+{
+  static QFileInfoList driveList;
+  if (rescan)
+    driveList = QDir::drives();
+
+  return driveList;
+}
+
+QString ConfigServer::driveLabel(const QString &drive)
+{
+#ifdef Q_OS_WIN
+  static QMap<QString, QString> labels;
+
+  if (!drive.isEmpty())
+  {
+    if (drive.length() <= 3)
+    {
+      QMap<QString, QString>::Iterator label = labels.find(drive);
+      if (label != labels.end())
+        return *label;
+
       WCHAR szVolumeName[MAX_PATH+1];
       WCHAR szFileSystemName[MAX_PATH+1];
       DWORD dwSerialNumber = 0;
@@ -198,132 +359,22 @@ void ConfigServer::generateDirs(HtmlParser &htmlParser, const QFileInfoList &dir
                                   &dwFileSystemFlags,
                                   szFileSystemName, sizeof(szFileSystemName) / sizeof(*szFileSystemName)))
       {
-        return QString::fromUtf16((const ushort *)szVolumeName).trimmed();
-      }
-
-      return QString::null;
-    }
-  };
-#endif
-
-  foreach (const QFileInfo &info, dirs)
-  if (!info.fileName().startsWith('.'))
-  {
-    const QString canonicalName =
-        (info.isReadable() ? info.canonicalFilePath() : info.absoluteFilePath())
-#ifdef Q_OS_WIN
-        .toLower()
-#endif
-        ;
-
-    if (!hiddenDirs().contains(canonicalName))
-    {
-      const QString fileName = info.fileName();
-
-      QFileInfoList children = QDir(canonicalName).entryInfoList(QDir::Dirs);
-      for (QList<QFileInfo>::Iterator i=children.begin(); i!=children.end(); )
-      if (i->fileName().startsWith('.'))
-        i = children.erase(i);
-      else
-        i++;
-
-      htmlParser.setField("DIR_FULLPATH", canonicalName.toUtf8().toHex());
-
-      // Indentation
-      htmlParser.setField("DIR_INDENT", QByteArray(""));
-      for (int i=0; i<indent; i++)
-        htmlParser.appendField("DIR_INDENT", htmlParser.parse(htmlDirTreeIndent));
-
-      // Expand
-      htmlParser.setField("DIR_EXPAND", htmlParser.parse(htmlDirTreeIndent));
-      if ((indent > 0) && !children.isEmpty())
-      {
-        QSet<QString> all = allopen;
-        if (all.contains(canonicalName))
-        {
-          all.remove(canonicalName);
-          htmlParser.setField("DIR_OPEN", QByteArray("open"));
-        }
-        else
-        {
-          all.insert(canonicalName);
-          htmlParser.setField("DIR_OPEN", QByteArray("close"));
-        }
-
-        htmlParser.setField("DIR_ALLOPEN", qCompress(QStringList(all.toList()).join(QString(dirSplit)).toUtf8()).toHex());
-        htmlParser.setField("DIR_EXPAND", htmlParser.parse(htmlDirTreeExpand));
-      }
-
-      // Check
-      bool checkEnabled = true;
-      htmlParser.setField("DIR_CHECKED", QByteArray("none"));
-      htmlParser.setField("DIR_CHECKTYPE", QByteArray("checkon"));
-      foreach (const QString &root, rootPaths)
-      {
-        if (root == canonicalName)
-        {
-          htmlParser.setField("DIR_CHECKED", QByteArray("full"));
-          htmlParser.setField("DIR_CHECKTYPE", QByteArray("checkoff"));
-          checkEnabled = true;
-          break;
-        }
-        else if (root.startsWith(canonicalName))
-        {
-          htmlParser.setField("DIR_CHECKED", QByteArray("some"));
-          checkEnabled = false;
-        }
-        else if (canonicalName.startsWith(root))
-        {
-          htmlParser.setField("DIR_CHECKED", QByteArray("fulldisabled"));
-          checkEnabled = false;
-        }
-      }
-
-      if (indent == 0)
-      {
-        htmlParser.appendField("DIR_CHECKED", QByteArray("disabled"));
-        checkEnabled = false;
-      }
-
-      htmlParser.setField("DIR_ALLOPEN", qCompress(QStringList(allopen.toList()).join(QString(dirSplit)).toUtf8()).toHex());
-      htmlParser.setField("DIR_CHECK", htmlParser.parse(checkEnabled ? htmlDirTreeCheckLink : htmlDirTreeCheck));
-
-      // Name
-      if (fileName.isEmpty())
-      {
-        htmlParser.setField("DIR_NAME", info.absoluteFilePath());
-#ifdef Q_OS_WIN
-        if (info.isReadable())
-        {
-          const QString label = T::driveLabel(info.absoluteFilePath());
-          if (!label.isEmpty())
-            htmlParser.appendField("DIR_NAME", " (" + label + ")");
-        }
-#endif
+        label = labels.insert(drive, QString::fromUtf16((const ushort *)szVolumeName).trimmed());
       }
       else
-        htmlParser.setField("DIR_NAME", fileName);
+        label = labels.insert(drive, QString::null);
 
-
-      if (info.isSymLink())
-        htmlParser.appendField("DIR_NAME", " (" + tr("symbolic link to") + " " + info.symLinkTarget() + ")");
-
-      htmlParser.appendField("DIRS", htmlParser.parse(htmlDirTreeDir));
-
-      // Recurse
-      if ((indent == 0) || (allopen.contains(canonicalName)))
-        generateDirs(htmlParser, children, indent + 1, allopen, rootPaths);
+      return *label;
     }
   }
-}
+  else
+    labels.clear();
+#else
+  if (drive == "/")
+    return tr("Root");
+#endif
 
-const QFileInfoList & ConfigServer::drives(bool rescan)
-{
-  static QFileInfoList driveList;
-  if (rescan)
-    driveList = QDir::drives();
-
-  return driveList;
+  return QString::null;
 }
 
 

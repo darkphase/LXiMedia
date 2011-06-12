@@ -39,7 +39,14 @@ MediaStream::~MediaStream()
   qDebug() << "Stopped stream";
 }
 
-bool MediaStream::setup(const SHttpServer::RequestMessage &request, QAbstractSocket *socket, STime duration, SInterval frameRate, SSize size, SAudioFormat::Channels inChannels)
+bool MediaStream::setup(const SHttpServer::RequestMessage &request,
+                        QAbstractSocket *socket,
+                        STime duration,
+                        SInterval frameRate,
+                        SSize size,
+                        SAudioFormat::Channels inChannels,
+                        SInterfaces::AudioEncoder::Flags audioEncodeFlags,
+                        SInterfaces::VideoEncoder::Flags videoEncodeFlags)
 {
   audio = new Audio(this);
   connect(&audio->matrix, SIGNAL(output(SAudioBuffer)), &audio->resampler, SLOT(input(SAudioBuffer)));
@@ -113,16 +120,14 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request, QAbstractSoc
     }
   }
 
-  SInterfaces::AudioEncoder::Flags audioEncodeFlags = SInterfaces::AudioEncoder::Flag_Fast;
-  SInterfaces::VideoEncoder::Flags videoEncodeFlags = SInterfaces::VideoEncoder::Flag_Fast;
-  if (url.queryItemValue("encode") == "slow")
+  if (url.queryItemValue("encode") == "fast")
   {
-    audioEncodeFlags = SInterfaces::AudioEncoder::Flag_None;
-    videoEncodeFlags = SInterfaces::VideoEncoder::Flag_None;
-    video->resizer.setHighQuality(true);
+    audioEncodeFlags |= SInterfaces::AudioEncoder::Flag_Fast;
+    videoEncodeFlags |= SInterfaces::VideoEncoder::Flag_Fast;
+    video->resizer.setHighQuality(false);
   }
   else
-    video->resizer.setHighQuality(false);
+    video->resizer.setHighQuality(true);
 
   videoEncodeFlags |= SInterfaces::VideoEncoder::Flag_HardBitrateLimit;
 
@@ -227,7 +232,11 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request, QAbstractSoc
   return true;
 }
 
-bool MediaStream::setup(const SHttpServer::RequestMessage &request, QAbstractSocket *socket, STime duration, SAudioFormat::Channels inChannels)
+bool MediaStream::setup(const SHttpServer::RequestMessage &request,
+                        QAbstractSocket *socket,
+                        STime duration,
+                        SAudioFormat::Channels inChannels,
+                        SInterfaces::AudioEncoder::Flags audioEncodeFlags)
 {
   audio = new Audio(this);
   connect(&audio->matrix, SIGNAL(output(SAudioBuffer)), &audio->resampler, SLOT(input(SAudioBuffer)));
@@ -254,9 +263,8 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request, QAbstractSoc
       outChannels = SAudioFormat::Channels(cl[0].toUInt(NULL, 16));
   }
 
-  SInterfaces::AudioEncoder::Flags audioEncodeFlags = SInterfaces::AudioEncoder::Flag_Fast;
-  if (url.queryItemValue("encode") == "slow")
-    audioEncodeFlags = SInterfaces::AudioEncoder::Flag_None;
+  if (url.queryItemValue("encode") == "fast")
+    audioEncodeFlags |= SInterfaces::AudioEncoder::Flag_Fast;
 
   SHttpServer::ResponseHeader header(request, SHttpServer::Status_Ok);
   header.setField("Cache-Control", "no-cache");
@@ -391,7 +399,12 @@ MediaTranscodeStream::MediaTranscodeStream(void)
 {
 }
 
-bool MediaTranscodeStream::setup(const SHttpServer::RequestMessage &request, QAbstractSocket *socket, SInterfaces::BufferReaderNode *input, STime duration)
+bool MediaTranscodeStream::setup(const SHttpServer::RequestMessage &request,
+                                 QAbstractSocket *socket,
+                                 SInterfaces::BufferReaderNode *input,
+                                 STime duration,
+                                 SInterfaces::AudioEncoder::Flags audioEncodeFlags,
+                                 SInterfaces::VideoEncoder::Flags videoEncodeFlags)
 {
   const QUrl url(request.path());
 
@@ -456,7 +469,8 @@ bool MediaTranscodeStream::setup(const SHttpServer::RequestMessage &request, QAb
 
     if (MediaStream::setup(request, socket, roundedDuration,
                            roundedFrameRate, videoInCodec.size(),
-                           audioInCodec.channelSetup()))
+                           audioInCodec.channelSetup(),
+                           audioEncodeFlags, videoEncodeFlags))
     {
       // Audio
       connect(&audioDecoder, SIGNAL(output(SAudioBuffer)), &timeStampResampler, SLOT(input(SAudioBuffer)));

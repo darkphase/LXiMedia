@@ -71,7 +71,7 @@ CameraServer::Stream * CameraServer::streamVideo(const SHttpServer::RequestMessa
   if (url.hasQueryItem("query"))
     url = url.toEncoded(QUrl::RemoveQuery) + QByteArray::fromHex(url.queryItemValue("query").toAscii());
 
-  SSandboxClient * const sandbox = masterServer->createSandbox(SSandboxClient::Mode_Normal);
+  SSandboxClient * const sandbox = masterServer->createSandbox(SSandboxClient::Priority_Normal);
   sandbox->ensureStarted();
 
   QUrl rurl;

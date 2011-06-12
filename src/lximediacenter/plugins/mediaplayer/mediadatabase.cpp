@@ -115,7 +115,7 @@ void MediaDatabase::destroyInstance(void)
 MediaDatabase::MediaDatabase(BackendServer::MasterServer *masterServer, QObject *parent)
   : QObject(parent),
     imdbClient(masterServer->imdbClient()),
-    probeSandbox(masterServer->createSandbox(SSandboxClient::Mode_Nice))
+    probeSandbox(masterServer->createSandbox(SSandboxClient::Priority_Low))
 {
   PluginSettings settings(Module::pluginName);
 
