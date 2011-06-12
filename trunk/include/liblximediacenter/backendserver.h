@@ -43,7 +43,7 @@ public:
     virtual SUPnPContentDirectory * contentDirectory(void) = 0;
     virtual ImdbClient        * imdbClient(void) = 0;
 
-    virtual SSandboxClient    * createSandbox(SSandboxClient::Mode) = 0;
+    virtual SSandboxClient    * createSandbox(SSandboxClient::Priority) = 0;
     virtual void                recycleSandbox(SSandboxClient *) = 0;
   };
 

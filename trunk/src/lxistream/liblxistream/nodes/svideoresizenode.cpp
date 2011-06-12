@@ -138,7 +138,8 @@ void SVideoResizeNode::input(const SVideoBuffer &videoBuffer)
     SInterfaces::VideoResizer *resizer = d->resizer;
     if (d->lanczosResizer)
     if ((d->lanczosResizer->size().width() > videoBuffer.format().size().width()) &&
-        (videoBuffer.format().size().width() < 1280))
+        (videoBuffer.format().size().width() < 1280) &&
+        (videoBuffer.format().size().height() < 720))
     {
       resizer = d->lanczosResizer;
     }

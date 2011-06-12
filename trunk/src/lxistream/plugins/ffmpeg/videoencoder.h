@@ -58,6 +58,7 @@ private:
 
   bool                          fastEncode;
 #ifdef OPT_RESEND_LAST_FRAME
+  bool                          enableResend;
   int                           lastInBufferId;
   SEncodedVideoBuffer           lastEncodedBuffer;
 #endif

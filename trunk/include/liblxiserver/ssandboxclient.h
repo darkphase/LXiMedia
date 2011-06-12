@@ -34,18 +34,19 @@ class LXISERVER_PUBLIC SSandboxClient : public SHttpClientEngine
 {
 Q_OBJECT
 public:
-  enum Mode
+  enum Priority
   {
-    Mode_Normal               = 0,
-    Mode_Nice
+    Priority_Low              = -1,
+    Priority_Normal           = 0,
+    Priority_High             = 1
   };
 
 public:
-                                SSandboxClient(const QString &application, Mode, QObject * = NULL);
-                                SSandboxClient(SSandboxServer *, Mode, QObject * = NULL);
+                                SSandboxClient(const QString &application, Priority, QObject * = NULL);
+                                SSandboxClient(SSandboxServer *, Priority, QObject * = NULL);
   virtual                       ~SSandboxClient();
 
-  Mode                          mode(void) const;
+  Priority                      priority(void) const;
 
   void                          ensureStarted(void);
 

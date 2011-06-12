@@ -567,17 +567,17 @@ ImdbClient * Backend::imdbClient(void)
   return masterImdbClient;
 }
 
-SSandboxClient * Backend::createSandbox(SSandboxClient::Mode mode)
+SSandboxClient * Backend::createSandbox(SSandboxClient::Priority priority)
 {
-  QMap<SSandboxClient::Mode, QList<SSandboxClient *> >::Iterator i = sandboxClients.find(mode);
+  QMap<SSandboxClient::Priority, QList<SSandboxClient *> >::Iterator i = sandboxClients.find(priority);
   if ((i == sandboxClients.end()) || i->isEmpty())
   {
 #ifndef DEBUG_USE_LOCAL_SANDBOX
-    return new SSandboxClient(sandboxApplication, mode);
+    return new SSandboxClient(sandboxApplication, priority);
 #else
     Sandbox * sandbox = new Sandbox();
     sandbox->start("local");
-    return new SSandboxClient(sandbox->server(), mode);
+    return new SSandboxClient(sandbox->server(), priority);
 #endif
   }
   else
@@ -586,7 +586,7 @@ SSandboxClient * Backend::createSandbox(SSandboxClient::Mode mode)
 
 void Backend::recycleSandbox(SSandboxClient *sandboxClient)
 {
-  sandboxClients[sandboxClient->mode()].append(sandboxClient);
+  sandboxClients[sandboxClient->priority()].append(sandboxClient);
 }
 
 void Backend::setContentDirectoryQueryItems(void)

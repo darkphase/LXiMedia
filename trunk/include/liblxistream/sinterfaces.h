@@ -449,9 +449,33 @@ public:
   enum Flag
   {
     Flag_None                 = 0x0000,
+
+    /*! Indicates that the video should be encoded at low quality.
+        \note When neighter Flag_LowQuality nor Flag_HighQuality are set, the
+              video should be encoded at normal quality.
+     */
     Flag_LowQuality           = 0x0001,
+
+    /*! Indicates that the video should be encoded at high quality.
+        \note When neighter Flag_LowQuality nor Flag_HighQuality are set, the
+              video should be encoded at normal quality.
+     */
     Flag_HighQuality          = 0x0002,
+
+    /*! Indicates the reference bitrate should not be exceeded, complex scenes
+        shall be encoded at a lower quality.
+     */
     Flag_HardBitrateLimit     = 0x0010,
+
+    /*! Indicates the video stream is a slideshow with (mostly) stationary
+        images. When possible, the encoder shall optimize its settings for
+        this.
+     */
+    Flag_Slideshow            = 0x0040,
+
+    /*! Indicates the video encoding should be as fast as possible at the
+        expense of image quality. (For example by only using intra-frames)
+     */
     Flag_Fast                 = 0x0080
   };
   Q_DECLARE_FLAGS(Flags, Flag)

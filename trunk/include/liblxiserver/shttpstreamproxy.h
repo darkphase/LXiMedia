@@ -53,6 +53,7 @@ private slots:
   _lxi_internal void            flushData(void);
 
 private:
+  _lxi_internal static const int inBufferSize;
   _lxi_internal static const int outBufferSize;
 
   struct Data;

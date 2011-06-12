@@ -21,7 +21,7 @@
 
 namespace LXiStream {
 
-const int SIOOutputNode::outBufferSize = 65536;
+const int SIOOutputNode::outBufferSize = 262144;
 
 struct SIOOutputNode::Data
 {

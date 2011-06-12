@@ -77,7 +77,7 @@ private:
   virtual SUPnPContentDirectory * contentDirectory(void);
   virtual ImdbClient          * imdbClient(void);
 
-  virtual SSandboxClient      * createSandbox(SSandboxClient::Mode);
+  virtual SSandboxClient      * createSandbox(SSandboxClient::Priority);
   virtual void                  recycleSandbox(SSandboxClient *);
 
   QByteArray                    parseHtmlLogErrors(void) const;
@@ -104,7 +104,7 @@ private:
   ImdbClient                  * masterImdbClient;
 
   const QString                 sandboxApplication;
-  QMap<SSandboxClient::Mode, QList<SSandboxClient *> > sandboxClients;
+  QMap<SSandboxClient::Priority, QList<SSandboxClient *> > sandboxClients;
 
   HtmlParser                    cssParser;
   HtmlParser                    htmlParser;

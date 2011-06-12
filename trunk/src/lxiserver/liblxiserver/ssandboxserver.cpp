@@ -125,7 +125,7 @@ bool SSandboxServer::initialize(const QString &mode)
 
   // This is performed after initialization to prevent priority inversion with
   // the process that is waiting for this one to start.
-  if (d->mode == "nice")
+  if (d->mode == "lowprio")
   {
 #if defined(Q_OS_UNIX)
 # if defined(Q_OS_LINUX)
@@ -138,6 +138,14 @@ bool SSandboxServer::initialize(const QString &mode)
     ::SetPriorityClass(::GetCurrentProcess(), IDLE_PRIORITY_CLASS);
 
     ::SetPriorityClass(::GetCurrentProcess(), PROCESS_MODE_BACKGROUND_BEGIN);
+#endif
+  }
+  else if (d->mode == "highprio")
+  {
+#if defined(Q_OS_UNIX)
+    ::nice(-5);
+#elif defined(Q_OS_WIN)
+    ::SetPriorityClass(::GetCurrentProcess(), ABOVE_NORMAL_PRIORITY_CLASS);
 #endif
   }
 

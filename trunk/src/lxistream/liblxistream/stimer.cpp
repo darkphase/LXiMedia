@@ -272,7 +272,7 @@ void STimer::Init::startup(void)
   baseTimestamp = now.tv_sec;
 #elif defined(Q_OS_WIN)
   LARGE_INTEGER count;
-  if ((d->timerFreq > 0) && ::QueryPerformanceCounter(&count))
+  if (::QueryPerformanceCounter(&count))
     baseTimestamp = count.QuadPart;
 #endif
 }

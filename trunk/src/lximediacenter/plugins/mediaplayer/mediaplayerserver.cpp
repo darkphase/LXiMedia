@@ -78,7 +78,13 @@ MediaPlayerServer::Stream * MediaPlayerServer::streamVideo(const SHttpServer::Re
   if (url.hasQueryItem("query"))
     url = url.toEncoded(QUrl::RemoveQuery) + QByteArray::fromHex(url.queryItemValue("query").toAscii());
 
-  SSandboxClient * const sandbox = masterServer->createSandbox((url.queryItemValue("priority") == "low") ? SSandboxClient::Mode_Nice : SSandboxClient::Mode_Normal);
+  SSandboxClient::Priority priority = SSandboxClient::Priority_Normal;
+  if (url.queryItemValue("priority") == "low")
+    priority = SSandboxClient::Priority_Low;
+  else if (url.queryItemValue("priority") == "high")
+    priority = SSandboxClient::Priority_High;
+
+  SSandboxClient * const sandbox = masterServer->createSandbox(priority);
   connect(sandbox, SIGNAL(consoleLine(QString)), SLOT(consoleLine(QString)));
   sandbox->ensureStarted();
 

@@ -37,6 +37,7 @@ VideoEncoder::VideoEncoder(const QString &, QObject *parent)
     lastSubStreamId(0),
     fastEncode(false),
 #ifdef OPT_RESEND_LAST_FRAME
+    enableResend(false),
     lastInBufferId(0),
 #endif
     outBuffer()
@@ -101,19 +102,21 @@ bool VideoEncoder::openCodec(const SVideoCodec &c, Flags flags)
 
   if (flags & Flag_Fast)
   {
-    contextHandle->gop_size = 0;
+    contextHandle->bit_rate += contextHandle->bit_rate_tolerance / 2;
+    contextHandle->gop_size = (flags & Flag_Slideshow) ? 4 : 0;
     contextHandle->max_b_frames = 0;
     contextHandle->strict_std_compliance = FF_COMPLIANCE_INOFFICIAL;
-    contextHandle->bit_rate += contextHandle->bit_rate_tolerance / 2;
-    if (contextHandle->rc_max_rate > 0)
-      contextHandle->rc_max_rate += contextHandle->bit_rate_tolerance / 2;
 
     contextHandle->flags2 |= CODEC_FLAG2_FAST;
 
     fastEncode = true;
-  }
 
-  contextHandle->max_qdiff = contextHandle->qmax - contextHandle->qmin;
+#ifdef OPT_RESEND_LAST_FRAME
+    // Resending the last frame can only be done if the bitrate limit is not hard.
+    if ((flags & Flag_HardBitrateLimit) == 0)
+      enableResend = true;
+#endif
+  }
 
 #if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(52, 72, 0)
   // This circumvents a bug generating corrupt blocks in large areas with the same color.
@@ -168,7 +171,7 @@ SEncodedVideoBufferList VideoEncoder::encodeBuffer(const SVideoBuffer &videoBuff
 #ifdef OPT_RESEND_LAST_FRAME
     // Simply return the previously encoded buffer if we're encoding fast (I
     // frames only) and the input buffer is the same as the output buffer.
-    if (fastEncode && (videoBuffer.memory()->uid == lastInBufferId) &&
+    if (enableResend && (videoBuffer.memory()->uid == lastInBufferId) &&
         lastEncodedBuffer.isKeyFrame())
     {
       const STime frameTime = STime(1, SInterval(contextHandle->time_base.num, contextHandle->time_base.den));
@@ -248,7 +251,7 @@ SEncodedVideoBufferList VideoEncoder::encodeBuffer(const SVideoBuffer &videoBuff
   //          << ", size =" << out_size;
 
   #ifdef OPT_RESEND_LAST_FRAME
-        if (fastEncode)
+        if (enableResend)
         {
           lastInBufferId = videoBuffer.memory()->uid;
           lastEncodedBuffer = destBuffer;
@@ -259,7 +262,7 @@ SEncodedVideoBufferList VideoEncoder::encodeBuffer(const SVideoBuffer &videoBuff
       }
     }
 #ifdef OPT_RESEND_LAST_FRAME
-    else if (fastEncode)
+    else if (enableResend)
     {
       lastInBufferId = 0;
       lastEncodedBuffer.clear();
@@ -307,7 +310,7 @@ SEncodedVideoBufferList VideoEncoder::encodeBuffer(const SVideoBuffer &videoBuff
     }
 
 #ifdef OPT_RESEND_LAST_FRAME
-    if (fastEncode)
+    if (enableResend)
     {
       lastInBufferId = 0;
       lastEncodedBuffer.clear();

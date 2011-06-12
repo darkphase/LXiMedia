@@ -67,8 +67,19 @@ public:
   explicit                      MediaStream(void);
   virtual                       ~MediaStream();
 
-  bool                          setup(const SHttpServer::RequestMessage &, QAbstractSocket *, STime duration, SInterval frameRate, SSize size, SAudioFormat::Channels channels);
-  bool                          setup(const SHttpServer::RequestMessage &, QAbstractSocket *, STime duration, SAudioFormat::Channels channels);
+  bool                          setup(const SHttpServer::RequestMessage &,
+                                      QAbstractSocket *,
+                                      STime duration,
+                                      SInterval frameRate,
+                                      SSize size,
+                                      SAudioFormat::Channels,
+                                      SInterfaces::AudioEncoder::Flags = SInterfaces::AudioEncoder::Flag_None,
+                                      SInterfaces::VideoEncoder::Flags = SInterfaces::VideoEncoder::Flag_None);
+  bool                          setup(const SHttpServer::RequestMessage &,
+                                      QAbstractSocket *,
+                                      STime duration,
+                                      SAudioFormat::Channels,
+                                      SInterfaces::AudioEncoder::Flags = SInterfaces::AudioEncoder::Flag_None);
 
 protected:
   Audio                       * audio;
@@ -82,7 +93,12 @@ class LXIMEDIACENTER_PUBLIC MediaTranscodeStream : public MediaStream
 public:
   explicit                      MediaTranscodeStream(void);
 
-  bool                          setup(const SHttpServer::RequestMessage &, QAbstractSocket *, SInterfaces::BufferReaderNode *, STime duration = STime());
+  bool                          setup(const SHttpServer::RequestMessage &,
+                                      QAbstractSocket *,
+                                      SInterfaces::BufferReaderNode *,
+                                      STime duration = STime(),
+                                      SInterfaces::AudioEncoder::Flags = SInterfaces::AudioEncoder::Flag_None,
+                                      SInterfaces::VideoEncoder::Flags = SInterfaces::VideoEncoder::Flag_None);
 
 public:
   SAudioDecoderNode             audioDecoder;

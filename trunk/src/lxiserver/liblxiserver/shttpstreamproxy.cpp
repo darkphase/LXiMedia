@@ -42,7 +42,8 @@ struct SHttpStreamProxy::Data
   QByteArray                    cache;
 };
 
-const int           SHttpStreamProxy::outBufferSize = 4194304;
+const int SHttpStreamProxy::inBufferSize  = 262144;
+const int SHttpStreamProxy::outBufferSize = 8388608;
 
 SHttpStreamProxy::SHttpStreamProxy(QObject *parent)
   : QObject(parent),
@@ -76,11 +77,11 @@ bool SHttpStreamProxy::setSource(QAbstractSocket *source)
   if (source)
   {
     d->source = source;
-    d->sourceTimer.start();
-
+    d->source->setReadBufferSize(inBufferSize * 2);
     connect(d->source, SIGNAL(readyRead()), SLOT(processData()));
     connect(d->source, SIGNAL(disconnected()), SLOT(flushData()));
 
+    d->sourceTimer.start();
     d->socketTimer.start(250);
 
     return true;
@@ -155,7 +156,7 @@ void SHttpStreamProxy::processData(void)
       if (s->socket->bytesToWrite() >= outBufferSize)
         return; // Blocked, wait a bit.
 
-      const QByteArray buffer = d->source->read(65536);
+      const QByteArray buffer = d->source->read(inBufferSize);
 
       if (d->caching)
       {
@@ -228,7 +229,7 @@ void SHttpStreamProxy::flushData(void)
   {
     while (d->source->bytesAvailable() > 0)
     {
-      const QByteArray buffer = d->source->read(65536);
+      const QByteArray buffer = d->source->read(inBufferSize);
 
       for (QVector<Data::Socket>::Iterator s=d->sockets.begin(); s!=d->sockets.end(); )
       if (s->socket->state() == QAbstractSocket::ConnectedState)
