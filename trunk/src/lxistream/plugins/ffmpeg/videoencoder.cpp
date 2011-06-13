@@ -102,6 +102,7 @@ bool VideoEncoder::openCodec(const SVideoCodec &c, Flags flags)
 
   if (flags & Flag_Fast)
   {
+    contextHandle->rc_max_rate += contextHandle->bit_rate_tolerance / 2;
     contextHandle->bit_rate += contextHandle->bit_rate_tolerance / 2;
     contextHandle->gop_size = (flags & Flag_Slideshow) ? 4 : 0;
     contextHandle->max_b_frames = 0;
@@ -113,7 +114,7 @@ bool VideoEncoder::openCodec(const SVideoCodec &c, Flags flags)
 
 #ifdef OPT_RESEND_LAST_FRAME
     // Resending the last frame can only be done if the bitrate limit is not hard.
-    if ((flags & Flag_HardBitrateLimit) == 0)
+    if (((flags & Flag_HardBitrateLimit) == 0) && ((flags & Flag_Slideshow) == 0))
       enableResend = true;
 #endif
   }
