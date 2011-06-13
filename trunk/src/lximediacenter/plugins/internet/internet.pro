@@ -9,10 +9,12 @@ PRECOMPILED_HEADER = $${PWD}/$${LXIMEDIA_DIR}/include/LXiMediaCenter
 
 # Files
 HEADERS += configserver.h \
+    internetserver.h \
     module.h \
     sitedatabase.h
 
 SOURCES += configserver.cpp \
+    internetserver.cpp \
     configserver.html.cpp \
     module.cpp \
     sitedatabase.cpp

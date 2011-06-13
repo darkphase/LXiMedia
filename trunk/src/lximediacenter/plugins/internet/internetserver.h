@@ -17,32 +17,62 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef INTERNET_MODULE_H
-#define INTERNET_MODULE_H
+#ifndef INTRENETSERVER_H
+#define INTRENETSERVER_H
 
 #include <QtCore>
+#include <LXiStream>
 #include <LXiMediaCenter>
+#include "sitedatabase.h"
 
 namespace LXiMediaCenter {
 namespace InternetBackend {
 
-class SiteDatabase;
+class MediaPlayerServerDir;
 
-class Module : public SModule
+class InternetServer : public MediaServer
 {
 Q_OBJECT
-public:
-  virtual bool                  registerClasses(void);
-  virtual void                  unload(void);
-  virtual QByteArray            about(void);
-  virtual QByteArray            licenses(void);
+friend class MediaPlayerServerDir;
+protected:
+  class Stream : public MediaServer::Stream
+  {
+  public:
+                                Stream(InternetServer *, SSandboxClient *, const QString &url);
+    virtual                     ~Stream();
+
+    bool                        setup(const QUrl &request, const QByteArray &content);
+
+  public:
+    SSandboxClient      * const sandbox;
+  };
 
 public:
-  static const char             pluginName[];
+                                InternetServer(SiteDatabase::Category, QObject *);
+
+  virtual void                  initialize(MasterServer *);
+  virtual void                  close(void);
+
+  virtual QString               pluginName(void) const;
+
+  virtual SearchResultList      search(const QStringList &) const;
+
+protected: // From MediaServer
+  virtual Stream              * streamVideo(const SHttpServer::RequestMessage &);
+
+  virtual int                   countItems(const QString &path);
+  virtual QList<Item>           listItems(const QString &path, unsigned start = 0, unsigned count = 0);
+
+protected: // From SHttpServer::Callback
+  virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestMessage &, QAbstractSocket *);
 
 private:
-  static const char             radioName[],        radioIcon[];
-  static const char             televisionName[],   televisionIcon[];
+  Item::Type                    defaultItemType(void) const;
+
+protected:
+  const SiteDatabase::Category  category;
+  MasterServer                * masterServer;
+  SiteDatabase                * siteDatabase;
 };
 
 } } // End of namespaces

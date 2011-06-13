@@ -24,6 +24,15 @@
 namespace LXiMediaCenter {
 namespace InternetBackend {
 
+const char  ConfigServer::dirSplit =
+#if defined(Q_OS_UNIX)
+    ':';
+#elif  defined(Q_OS_WIN)
+    ';';
+#else
+#error Not implemented.
+#endif
+
 ConfigServer::ConfigServer(const QString &, QObject *parent)
   : BackendServer(parent),
     masterServer(NULL),
