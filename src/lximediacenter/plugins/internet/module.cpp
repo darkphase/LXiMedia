@@ -19,15 +19,41 @@
 
 #include "module.h"
 #include "configserver.h"
+#include "internetserver.h"
 #include "sitedatabase.h"
 
 namespace LXiMediaCenter {
 namespace InternetBackend {
 
+template <class _base, SiteDatabase::Category _category, const char * _name, const char * _icon>
+class Server : public _base
+{
+public:
+  explicit Server(const QString &, QObject *parent)
+    : _base(_category, parent)
+  {
+  }
+
+  virtual QString serverName(void) const
+  {
+    return _name;
+  }
+
+  virtual QString serverIconPath(void) const
+  {
+    return _icon;
+  }
+};
+
 const char Module::pluginName[]     = QT_TR_NOOP("Internet");
+
+const char Module::radioName[]      = QT_TR_NOOP("Radio"),        Module::radioIcon[]       = "/img/audio-headset.png";
+const char Module::televisionName[] = QT_TR_NOOP("Television"),   Module::televisionIcon[]  = "/img/video-television.png";
 
 bool Module::registerClasses(void)
 {
+  InternetServer::registerClass< Server<InternetServer, SiteDatabase::Category_Radio,       radioName,      radioIcon> >(0);
+  InternetServer::registerClass< Server<InternetServer, SiteDatabase::Category_Television,  televisionName, televisionIcon> >(0);
   ConfigServer::registerClass<ConfigServer>(-6);
 
   //MediaPlayerSandbox::registerClass<InternetSandbox>(0);

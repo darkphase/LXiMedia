@@ -53,6 +53,7 @@ private:
   void                          generateTree(HtmlParser &, const QFileInfoList &, int, const QSet<QString> &, const QStringList &);
 
 private:
+  static const char             dirSplit;
   MasterServer                * masterServer;
   SiteDatabase                * siteDatabase;
 
@@ -62,8 +63,8 @@ private:
   static const char     * const htmlTreeDir;
   static const char     * const htmlTreeIndent;
   static const char     * const htmlTreeExpand;
-  static const char     * const htmlTreeCheck;
   static const char     * const htmlTreeCheckLink;
+  static const char     * const htmlTreeEditItemLink;
   static const char     * const htmlEditIndex;
 };
 

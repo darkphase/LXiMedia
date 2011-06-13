@@ -88,10 +88,13 @@ SiteDatabase::SiteDatabase(QObject *parent)
 
   // Create tables that don't exist
   query.exec("CREATE TABLE IF NOT EXISTS InternetSites ("
-             "name           TEXT NOT NULL,"
+             "hostname       TEXT UNIQUE NOT NULL,"
              "countries      TEXT NOT NULL,"
              "category       INTEGER NOT NULL,"
              "script         TEXT)");
+
+  query.exec("CREATE INDEX IF NOT EXISTS InternetSites_hostname "
+             "ON InternetSites(hostname)");
 
   query.exec("CREATE INDEX IF NOT EXISTS InternetSites_countries "
              "ON InternetSites(countries)");
@@ -107,20 +110,121 @@ SiteDatabase::~SiteDatabase()
   self = NULL;
 }
 
-QStringList SiteDatabase::allCountries(Category category)
+void SiteDatabase::setSite(const QString &hostname, const QString &countries, Category category, const QString &script)
+{
+  Database::Query query;
+  query.prepare("INSERT OR REPLACE INTO InternetSites "
+                "VALUES (:hostname, :countries, :category, :script)");
+  query.bindValue(0, hostname);
+  query.bindValue(1, countries);
+  query.bindValue(2, category);
+  query.bindValue(3, script);
+  query.exec();
+}
+
+bool SiteDatabase::getSite(const QString &hostname, QString &countries, Category &category, QString &script)
+{
+  Database::Query query;
+  query.prepare("SELECT countries, category, script FROM InternetSites "
+                "WHERE hostname = :hostname");
+  query.bindValue(0, hostname);
+  query.exec();
+  if (query.next())
+  {
+    countries = query.value(0).toString();
+    category = Category(query.value(1).toInt());
+    script = query.value(2).toString();
+
+    return true;
+  }
+
+  return false;
+}
+
+QStringList SiteDatabase::allCountries(void)
 {
   QSet<QString> result;
 
   Database::Query query;
-  query.prepare("SELECT countries FROM InternetSites "
-                "WHERE category = :category");
-  query.bindValue(0, category);
+  query.prepare("SELECT countries FROM InternetSites");
   query.exec();
   while (query.next())
   foreach (const QString &country, query.value(0).toString().simplified().split(' '))
     result.insert(country.toUpper());
 
   return result.toList();
+}
+
+QStringList SiteDatabase::getSites(const QString &country, unsigned start, unsigned count)
+{
+  QString limit;
+  if (count > 0)
+  {
+    limit += " LIMIT " + QString::number(count);
+    if (start > 0)
+      limit += " OFFSET " + QString::number(start);
+  }
+
+  QStringList result;
+
+  Database::Query query;
+  query.prepare("SELECT hostname FROM InternetSites "
+                "WHERE countries LIKE '%" + SStringParser::toRawName(country) + "%' "
+                "ORDER BY hostname" + limit);
+  query.exec();
+  while (query.next())
+    result += query.value(0).toString();
+
+  return result;
+}
+
+int SiteDatabase::countSites(const QString &country)
+{
+  Database::Query query;
+  query.prepare("SELECT COUNT(*) FROM InternetSites "
+                "WHERE countries LIKE '%" + SStringParser::toRawName(country) + "%'");
+  query.exec();
+  if (query.next())
+    return query.value(0).toInt();
+
+  return 0;
+}
+
+QStringList SiteDatabase::getSites(Category category, unsigned start, unsigned count)
+{
+  QString limit;
+  if (count > 0)
+  {
+    limit += " LIMIT " + QString::number(count);
+    if (start > 0)
+      limit += " OFFSET " + QString::number(start);
+  }
+
+  QStringList result;
+
+  Database::Query query;
+  query.prepare("SELECT hostname FROM InternetSites "
+                "WHERE category = :category "
+                "ORDER BY hostname" + limit);
+  query.bindValue(0, category);
+  query.exec();
+  while (query.next())
+    result += query.value(0).toString();
+
+  return result;
+}
+
+int SiteDatabase::countSites(Category category)
+{
+  Database::Query query;
+  query.prepare("SELECT COUNT(*) FROM InternetSites "
+                "WHERE category = :category");
+  query.bindValue(0, category);
+  query.exec();
+  if (query.next())
+    return query.value(0).toInt();
+
+  return 0;
 }
 
 } } // End of namespaces

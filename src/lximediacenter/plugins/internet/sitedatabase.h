@@ -33,8 +33,10 @@ Q_OBJECT
 public:
   enum Category
   {
-    Category_None             =  0,
-    Category_Radio            = 10
+    Category_None             = 0,
+    Category_Radio            = 1,
+    Category_Television       = 2,
+    Category_Sentinel
   };
 
 public:
@@ -46,7 +48,14 @@ private:
   virtual                       ~SiteDatabase();
 
 public:
-  QStringList                   allCountries(Category);
+  void                          setSite(const QString &hostname, const QString &countries, Category, const QString &script);
+  bool                          getSite(const QString &hostname, QString &countries, Category &, QString &script);
+
+  QStringList                   allCountries(void);
+  int                           countSites(const QString &country);
+  QStringList                   getSites(const QString &country, unsigned start = 0, unsigned count = 0);
+  int                           countSites(Category);
+  QStringList                   getSites(Category, unsigned start = 0, unsigned count = 0);
 
 private:
   static SiteDatabase         * self;
