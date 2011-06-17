@@ -109,6 +109,10 @@ SHttpServer::SocketOp SUPnPMediaServer::handleHttpRequest(const SHttpServer::Req
       rootElm.setAttribute("xmlns", "urn:schemas-upnp-org:device-1-0");
       SUPnPBase::addSpecVersion(doc, rootElm);
 
+      const QString host = request.host();
+      if (!host.isEmpty())
+        SUPnPBase::addTextElm(doc, rootElm, "URLBase", "http://" + host + "/");
+
       QDomElement deviceElm = doc.createElement("device");
       SUPnPBase::addTextElm(doc, deviceElm, "deviceType", deviceType);
       SUPnPBase::addTextElm(doc, deviceElm, "friendlyName", QHostInfo::localHostName() + ": " + qApp->applicationName());
@@ -122,9 +126,8 @@ SHttpServer::SocketOp SUPnPMediaServer::handleHttpRequest(const SHttpServer::Req
       SUPnPBase::addTextElm(doc, deviceElm, "UDN", d->httpServer->serverUdn());
       SUPnPBase::addTextElmNS(doc, deviceElm, "dlna:X_DLNADOC", dlnaDeviceNS, "DMS-1.00");
 
-      QString host = request.host();
       if (!host.isEmpty())
-        SUPnPBase::addTextElm(doc, deviceElm, "presentationURL", "http://" + request.host() + "/");
+        SUPnPBase::addTextElm(doc, deviceElm, "presentationURL", "http://" + host + "/");
 
       if (!d->icons.isEmpty())
       {

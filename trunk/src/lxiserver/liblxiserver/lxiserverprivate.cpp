@@ -150,16 +150,17 @@ void HttpClientRequest::close()
 }
 
 
-HttpServerRequest::HttpServerRequest(SHttpServerEngine *parent)
+HttpServerRequest::HttpServerRequest(SHttpServerEngine *parent, quint16 serverPort)
   : QObject(parent),
     parent(parent),
+    serverPort(serverPort),
     socket(NULL),
     headerReceived(false)
 {
   Q_ASSERT(QThread::currentThread() == thread());
 
 #ifdef TRACE_CONNECTIONS
-  qDebug() << this << "HttpServerRequest::HttpServerRequest";
+  qDebug() << this << "HttpServerRequest::HttpServerRequest" << serverPort;
 #endif
 
   connect(this, SIGNAL(handleHttpRequest(SHttpEngine::RequestMessage, QAbstractSocket *)), parent, SLOT(handleHttpRequest(SHttpEngine::RequestMessage, QAbstractSocket *)));
@@ -256,6 +257,14 @@ void HttpServerRequest::readyRead()
 #endif
 
         request.setContent(content);
+
+        // Add correct port number in the host section (is sometimes omitted)
+        if (!request.host().isEmpty())
+        {
+          QString hostname; quint16 port = 0;
+          if (parent->splitHost(request.host(), hostname, port))
+            request.setHost(hostname, serverPort);
+        }
 
         disconnect(socket, SIGNAL(readyRead()), this, SLOT(readyRead()));
         disconnect(socket, SIGNAL(disconnected()), this, SLOT(close()));

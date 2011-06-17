@@ -78,7 +78,7 @@ protected:
     {
       QTcpSocket * const socket = new Socket(parent);
       if (socket->setSocketDescriptor(socketDescriptor))
-        (new HttpServerRequest(parent))->start(socket);
+        (new HttpServerRequest(parent, serverPort()))->start(socket);
       else
         delete socket;
     }

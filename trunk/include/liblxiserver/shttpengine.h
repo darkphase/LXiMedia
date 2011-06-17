@@ -73,6 +73,7 @@ public:
     inline void                 setDate(void)                                   { setDate(QDateTime::currentDateTime()); }
     inline QString              host(void) const                                { return field(fieldHost); }
     inline void                 setHost(const QString &host)                    { setField(fieldHost, host); }
+    void                        setHost(const QString &hostname, quint16);
     void                        setHost(const QHostAddress &, quint16 = 0);
     inline QString              server(void) const                              { return field(fieldServer); }
     inline void                 setServer(const QString &server)                { setField(fieldServer, server); }

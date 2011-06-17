@@ -88,6 +88,20 @@ QDateTime SHttpEngine::Header::date(void) const
   return date.toLocalTime();
 }
 
+void SHttpEngine::Header::setHost(const QString &hostname, quint16 port)
+{
+  QString host;
+  if (!hostname.contains(':'))
+    host += hostname;
+  else
+    host += '[' + hostname + ']';
+
+  if (port > 0)
+    host += ':' + QString::number(port);
+
+  setHost(host);
+}
+
 void SHttpEngine::Header::setHost(const QHostAddress &address, quint16 port)
 {
   QString host;
