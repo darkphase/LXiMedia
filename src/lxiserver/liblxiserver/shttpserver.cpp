@@ -82,7 +82,7 @@ protected:
         HANDLE handle = (HANDLE)socket->socketDescriptor();
         ::SetHandleInformation(handle, HANDLE_FLAG_INHERIT, 0);
 #endif
-        (new HttpServerRequest(parent))->start(socket);
+        (new HttpServerRequest(parent, serverPort()))->start(socket);
       }
       else
         delete socket;

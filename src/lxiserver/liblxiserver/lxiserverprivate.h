@@ -57,7 +57,7 @@ class HttpServerRequest : public QObject
 {
 Q_OBJECT
 public:
-  explicit                      HttpServerRequest(SHttpServerEngine *);
+  explicit                      HttpServerRequest(SHttpServerEngine *, quint16 serverPort);
   virtual                       ~HttpServerRequest();
 
 public slots:
@@ -72,6 +72,7 @@ private slots:
 
 private:
   const QPointer<SHttpServerEngine> parent;
+  const quint16                 serverPort;
   QAbstractSocket             * socket;
   QByteArray                    data;
   bool                          headerReceived;
