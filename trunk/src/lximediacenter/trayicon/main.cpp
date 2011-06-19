@@ -19,7 +19,6 @@
 
 #include "trayicon.h"
 
-
 int main(int argc, char *argv[])
 {
   QApplication qapp(argc, argv);
@@ -34,8 +33,8 @@ int main(int argc, char *argv[])
 
   SApplication sapp;
 
-  TrayIcon trayIcon;
-  trayIcon.show();
+  TrayIcon * const trayIcon = new TrayIcon();
+  trayIcon->show();
 
   return qapp.exec();
 }

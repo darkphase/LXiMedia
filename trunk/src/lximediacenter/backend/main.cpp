@@ -31,6 +31,16 @@ void configApp(void)
   qApp->setApplicationVersion(
 #include "_version.h"
       );
+
+#if defined(Q_OS_MACX)
+  QDir appDir(qApp->applicationDirPath());
+  if (appDir.dirName() == "MacOS")
+  {
+    appDir.cdUp();
+    appDir.cd("PlugIns");
+    qApp->setLibraryPaths(QStringList() << appDir.absolutePath());
+  }
+#endif
 }
 
 #if (defined(Q_OS_LINUX) || defined(Q_OS_WIN))
@@ -99,12 +109,13 @@ int main(int argc, char *argv[])
     return daemon.main(argc, argv);
   }
 }
-#else
+#elif defined(Q_OS_MACX)
 int main(int argc, char *argv[])
 {
+  QCoreApplication app(argc, argv); configApp();
+
   if ((argc >= 3) && (strcmp(argv[1], "--sandbox") == 0))
   {
-    QCoreApplication app(argc, argv); configApp();
     SApplication mediaApp;
 
     (new Sandbox())->start(argv[2]);
@@ -113,7 +124,6 @@ int main(int argc, char *argv[])
   }
   else
   {
-    QCoreApplication app(argc, argv); configApp();
     SApplication mediaApp(Backend::createLogDir());
 
     int exitCode = 0;

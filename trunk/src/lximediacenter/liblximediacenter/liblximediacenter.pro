@@ -53,8 +53,11 @@ RESOURCES = liblximediacenter.qrc
 
 unix {
   LIBS += -lz
-  target.path = /usr/lib
-  INSTALLS += target
+
+  !macx {
+    target.path = /usr/lib
+    INSTALLS += target
+  }
 }
 
 win32 {

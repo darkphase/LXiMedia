@@ -207,11 +207,7 @@ void ConfigServer::generateDirs(HtmlParser &htmlParser, const QFileInfoList &dir
   if (!info.fileName().startsWith('.'))
   {
     const QString canonicalName =
-        (info.isReadable() ? info.canonicalFilePath() : info.absoluteFilePath())
-#ifdef Q_OS_WIN
-        .toLower()
-#endif
-        ;
+        (info.isReadable() ? info.canonicalFilePath() : info.absoluteFilePath());
 
     const QString fileName = info.fileName();
 
@@ -231,7 +227,7 @@ void ConfigServer::generateDirs(HtmlParser &htmlParser, const QFileInfoList &dir
 
     // Expand
     htmlParser.setField("DIR_EXPAND", htmlParser.parse(htmlDirTreeIndent));
-    if (!hiddenDirs().contains(canonicalName))
+    if (!isHidden(canonicalName))
     if ((indent > 0) && !children.isEmpty())
     {
       QSet<QString> all = allopen;
@@ -277,7 +273,7 @@ void ConfigServer::generateDirs(HtmlParser &htmlParser, const QFileInfoList &dir
       }
     }
 
-    if (hiddenDirs().contains(canonicalName))
+    if (isHidden(canonicalName))
     {
       htmlParser.appendField("DIR_CHECKED", QByteArray("disabled"));
       htmlParser.setField("DIR_TITLE", tr("This system directory can not be selected"));
@@ -318,7 +314,7 @@ void ConfigServer::generateDirs(HtmlParser &htmlParser, const QFileInfoList &dir
     htmlParser.appendField("DIRS", htmlParser.parse(htmlDirTreeDir));
 
     // Recurse
-    if (!hiddenDirs().contains(canonicalName))
+    if (!isHidden(canonicalName))
     if ((indent == 0) || (allopen.contains(canonicalName)))
       generateDirs(htmlParser, children, indent + 1, allopen, rootPaths);
   }

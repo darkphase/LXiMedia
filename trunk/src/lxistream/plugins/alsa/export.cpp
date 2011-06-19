@@ -17,39 +17,7 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include <QtCore>
-#include <QtGui>
-#include <LXiStream>
-#include <iostream>
-#include "lxistream/plugins/dvdnav/module.h"
-#include "lxistream/plugins/ffmpeg/module.h"
-#include "filetester.h"
+#include "module.h"
+#include <QtPlugin>
 
-int main(int argc, char *argv[])
-{
-  QApplication app(argc, argv);
-  if (app.arguments().count() >= 2)
-  {
-    SApplication mediaApp;
-    mediaApp.loadModule(new DVDNavBackend::Module());
-    mediaApp.loadModule(new FFMpegBackend::Module());
-
-    QDir dir(app.arguments()[1]);
-    std::cout << "Testing all files in directory " << dir.absolutePath().toAscii().data() << std::endl;
-
-    foreach (const QFileInfo &fileInfo, dir.entryInfoList(QDir::NoFilter, QDir::Name))
-      QtConcurrent::run(&FileTester::testFile, fileInfo.absoluteFilePath());
-      //FileTester::testFile(fileInfo.absoluteFilePath());
-
-    // Wait for all tasks to finish
-    QThreadPool::globalInstance()->waitForDone();
-
-    return 0;
-  }
-  else
-  {
-    std::cerr << "Usage: lxistreamfiletester <directory>" << std::endl;
-
-    return 1;
-  }
-}
+Q_EXPORT_PLUGIN2(lxistreamdevice_alsa, LXiStream::AlsaBackend::Module);

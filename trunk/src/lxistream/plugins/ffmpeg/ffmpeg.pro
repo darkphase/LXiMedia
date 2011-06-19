@@ -35,6 +35,9 @@ SOURCES += audiodecoder.cpp \
     bufferreader.cpp \
     videoformatconverter.cpp
 
+# Export plugin
+SOURCES += export.cpp
+
 # Windows specific
 win32-msvc2005|win32-msvc2008|win32-msvc2010 {
   TEMPLATE = vclib

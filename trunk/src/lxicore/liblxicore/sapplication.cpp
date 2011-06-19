@@ -72,35 +72,9 @@ SApplication::SApplication(const QString &logDir, QObject *parent)
 
   if (!d->moduleFilter.isEmpty())
   {
-    const QByteArray majorVersion = QByteArray(version()).split('.').first();
-
     // And now load the plugins
-    QStringList paths;
-#if defined(Q_OS_UNIX)
-# if defined(Q_OS_MACX)
-    paths += qApp->applicationDirPath() + "/lximedia/";
-# else
-    paths += "/usr/lib/lximedia" + majorVersion + "/";
-    paths += "/usr/local/lib/lximedia" + majorVersion + "/";
-# endif
-#elif defined(Q_OS_WIN)
-    const QByteArray myDll = "LXiCore" + majorVersion + ".dll";
-    HMODULE myModule = ::GetModuleHandleA(myDll.data());
-    char fileName[MAX_PATH];
-    if (::GetModuleFileNameA(myModule, fileName, MAX_PATH) > 0)
-    {
-      QByteArray path = fileName;
-      path = path.left(path.lastIndexOf('\\') + 1);
-      paths += path + "lximedia\\";
-    }
-    else
-      qCritical("Failed to locate %s", myDll.data());
-#else
-# error Not implemented
-#endif
-
     QSet<QString> modules;
-    foreach (QDir dir, paths)
+    foreach (QDir dir, pluginPaths())
 #if defined(Q_OS_UNIX)
 # if defined(Q_OS_MACX)
     foreach (const QFileInfo &fileInfo, dir.entryInfoList(QStringList() << "*.dylib", QDir::Files))
@@ -214,6 +188,36 @@ SApplication  * SApplication::instance(void)
   return self;
 }
 
+/*! Returns the paths that are searched for plugins.
+ */
+QStringList SApplication::pluginPaths(void)
+{
+  QStringList result;
+
+#if defined(Q_OS_UNIX)
+  const QByteArray majorVersion = QByteArray(version()).split('.').first();
+
+  foreach (const QString &path, qApp->libraryPaths())
+    result += path + "/lximedia" + majorVersion + "/";
+#elif defined(Q_OS_WIN)
+  const QByteArray myDll = "LXiCore.dll";
+  HMODULE myModule = ::GetModuleHandleA(myDll.data());
+  char fileName[MAX_PATH];
+  if (::GetModuleFileNameA(myModule, fileName, MAX_PATH) > 0)
+  {
+    QByteArray path = fileName;
+    path = path.left(path.lastIndexOf('\\') + 1);
+    result += path + "lximedia\\";
+  }
+  else
+    qCritical("Failed to locate %s", myDll.data());
+#else
+# error Not implemented
+#endif
+
+  return result;
+}
+
 /*! Adds a module filter string whoich is use to determine which of the plugins
     in the plugin directory is actually loaded.
 
@@ -222,6 +226,41 @@ SApplication  * SApplication::instance(void)
 void SApplication::addModuleFilter(const QString &filter)
 {
   d->moduleFilter.append(filter);
+}
+
+/*! Loads a module.
+
+    \note This method should rarely be useful.
+ */
+bool SApplication::loadModule(const QString &name)
+{
+  Q_ASSERT(QThread::currentThread() == thread());
+
+  const QString filename =
+#if defined(Q_OS_UNIX)
+# if defined(Q_OS_MACX)
+      "lib" + name + ".dylib";
+# else
+      "lib" + name + ".so";
+# endif
+#elif defined(Q_OS_WIN)
+      name + ".dll";
+#endif
+
+  foreach (QDir dir, pluginPaths())
+  if (dir.exists(filename))
+  {
+    QPluginLoader * const loader = new QPluginLoader(dir.absoluteFilePath(filename));
+    SModule * const module = qobject_cast<SModule *>(loader->instance());
+    if (module)
+    if (loadModule(module, loader))
+      return true;
+
+    loader->unload();
+    delete loader;
+  }
+
+  return false;
 }
 
 /*! Loads a module.

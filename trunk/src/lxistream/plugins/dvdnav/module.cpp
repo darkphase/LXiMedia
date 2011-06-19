@@ -55,6 +55,3 @@ QByteArray Module::licenses(void)
 }
 
 } } // End of namespaces
-
-#include <QtPlugin>
-Q_EXPORT_PLUGIN2(lxistream_dvdnav, LXiStream::DVDNavBackend::Module);

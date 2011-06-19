@@ -13,4 +13,7 @@ SOURCES += pulseaudioinput.cpp \
  pulseaudiooutput.cpp \
  module.cpp
 
+# Export plugin
+SOURCES += export.cpp
+
 LIBS += -lpulse-simple

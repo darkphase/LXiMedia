@@ -35,17 +35,55 @@ const int   TrayIcon::iconSize = 16;
 const int   TrayIcon::iconSize = 32;
 #endif
 
+#if defined(Q_OS_MACX)
+const char  TrayIcon::agentName[] = "net.sf.lximedia.lximediacenter.backend";
+#endif
 
 TrayIcon::TrayIcon()
-    : QObject(),
-      icon(":/lximedia.png"),
-      trayIcon(),
-      ssdpClient(QString("uuid:" + GlobalSettings::serverUuid().toString()).replace("{", "").replace("}", "")),
-      aboutBox(NULL)
+#if defined(Q_OS_MACX)
+  : QWidget(),
+    serviceLabel(this),
+    serviceButton(this),
+    menuButton(this),
+    serviceLayout(new QHBoxLayout()),
+    startAutomatically(tr("Start the agent automatically at system startup"), this),
+    helpLabel(tr(
+        "This window can safely be closed when the agent is running, it "
+        "will remain running in the background."), this),
+    layout(new QVBoxLayout(this)),
+#else
+  : QObject(),
+    trayIcon(),
+#endif
+    icon(":/lximedia.png"),
+    ssdpClient(QString("uuid:" + GlobalSettings::serverUuid().toString()).replace("{", "").replace("}", "")),
+    localhostRunning(false),
+    aboutBox(NULL)
 {
+  qApp->setWindowIcon(icon);
+#if defined(Q_OS_MACX)
+  setWindowIcon(icon);
+  setWindowTitle(qApp->applicationName() + " " + tr("Agent Controller"));
+  setAttribute(Qt::WA_DeleteOnClose);
+
+  serviceLayout->addWidget(&serviceLabel, 3);
+  serviceLayout->addWidget(&serviceButton, 1);
+  serviceLayout->addWidget(&menuButton, 0);
+  menuButton.setMenu(&menu);
+  menuButton.setText(tr("More"));
+  layout->addLayout(serviceLayout);
+  layout->addWidget(&startAutomatically);
+  helpLabel.setWordWrap(true);
+  layout->addWidget(&helpLabel);
+
+  connect(&serviceButton, SIGNAL(clicked(bool)), SLOT(startStopLocalAgent()));
+  connect(&startAutomatically, SIGNAL(toggled(bool)), SLOT(registerAgent(bool)));
+#else
+  connect(&trayIcon, SIGNAL(messageClicked()), SLOT(messageClicked()));
+#endif
+
   connect(&updateStatusTimer, SIGNAL(timeout()), SLOT(updateStatus()));
   connect(&networkAccessManager, SIGNAL(finished(QNetworkReply *)), SLOT(requestFinished(QNetworkReply *)));
-  connect(&trayIcon, SIGNAL(messageClicked()), SLOT(messageClicked()));
   connect(&menu, SIGNAL(triggered(QAction *)), SLOT(loadBrowser(QAction *)));
 }
 
@@ -55,14 +93,22 @@ TrayIcon::~TrayIcon()
 
 void TrayIcon::show(void)
 {
+#if defined(Q_OS_MACX)
+  qApp->setQuitOnLastWindowClosed(true);
+  QWidget::show();
+  resize(450, 150);
+
+  startAutomatically.setChecked(QFile::exists(QDir::homePath() + "/Library/LaunchAgents/" + QString(agentName) + ".plist"));
+#else
   trayIcon.setIcon(icon.pixmap(iconSize, QIcon::Normal));
   trayIcon.setContextMenu(&menu);
   trayIcon.setToolTip(QCoreApplication::applicationName());
   trayIcon.show();
+#endif
 
   rebuildMenu();
 
-  QTimer::singleShot(5000, this, SLOT(startSSDP()));
+  QTimer::singleShot(500, this, SLOT(startSSDP()));
 }
 
 void TrayIcon::startSSDP(void)
@@ -93,6 +139,7 @@ void TrayIcon::showAbout(void)
 
 void TrayIcon::updateMenu(void)
 {
+  localhostRunning = false;
   QSet<QString> uuids;
   foreach (const SSsdpClient::Node &result, ssdpClient.searchResults(qApp->applicationName() + QString(":server")))
   {
@@ -110,6 +157,10 @@ void TrayIcon::updateMenu(void)
       i->url = result.location;
       i->hostname = i->url.host();
     }
+
+    qDebug() << i->url.host();
+    if (isLocalAddress(i->url.host()))
+      localhostRunning = true;
 
     uuids += result.uuid;
     updateStatus(i);
@@ -139,6 +190,20 @@ void TrayIcon::rebuildMenu(void)
     found = true;
   }
 
+#if defined(Q_OS_MACX)
+  if (localhostRunning)
+  {
+    serviceLabel.setText(tr("The agent is currently running"));
+    serviceButton.setText(tr("Stop agent"));
+    serviceButton.setEnabled(true);
+  }
+  else
+  {
+    serviceLabel.setText(tr("The agent is currently not running"));
+    serviceButton.setText(tr("Start agent"));
+    serviceButton.setEnabled(true);
+  }
+#else
   if (!found)
   {
     trayIcon.setIcon(icon.pixmap(iconSize, QIcon::Disabled));
@@ -146,6 +211,7 @@ void TrayIcon::rebuildMenu(void)
   }
   else
     trayIcon.setIcon(icon.pixmap(iconSize, QIcon::Normal));
+#endif
 
   menu.addSeparator();
   menu.addAction(tr("Exit"), qApp, SLOT(quit()));
@@ -165,8 +231,7 @@ void TrayIcon::updateStatus(QMap<QString, Server>::Iterator &i)
   if (i->updateStatusReply)
     i->updateStatusReply->abort();
 
-  QNetworkRequest request(url);
-  i->updateStatusReply = networkAccessManager.get(request);
+  i->updateStatusReply = networkAccessManager.get(QNetworkRequest(url));
 }
 
 void TrayIcon::requestFinished(QNetworkReply *reply)
@@ -198,10 +263,12 @@ void TrayIcon::requestFinished(QNetworkReply *reply)
             messageUrl = i->url;
             messageUrl.setPath("/setup/");
 
+#if !defined(Q_OS_MACX)
             trayIcon.showMessage(
                 tr("Detected a new media playback device"),
                 j.attribute("useragent"),
                 QSystemTrayIcon::Information);
+#endif
           }
         }
 
@@ -210,12 +277,14 @@ void TrayIcon::requestFinished(QNetworkReply *reply)
           i->notifiedErrorLog = true;
           messageUrl = i->url;
 
+#if !defined(Q_OS_MACX)
           trayIcon.showMessage(
               tr("Error reports ready for submission"),
               tr("The last time the program was run some unexpected errors "
                  "occurred. Detailed information on these errors have been "
                  "written to one or more error reports, click here for more info."),
               QSystemTrayIcon::Warning);
+#endif
         }
 
         i->firstUpdate = false;
@@ -256,6 +325,8 @@ void TrayIcon::loadBrowser(const QUrl &url)
   view->setAttribute(Qt::WA_DeleteOnClose);
   view->load(url);
   view->show();
+#elif defined(Q_OS_MACX)
+  QProcess::startDetached("open", QStringList() << url.toString());
 #elif defined(Q_OS_UNIX)
   QProcess::startDetached("xdg-open", QStringList() << url.toString());
 #elif defined(Q_OS_WIN)
@@ -266,4 +337,92 @@ void TrayIcon::loadBrowser(const QUrl &url)
         QStringList() << "/c" << "start" << url.toString());
   }
 #endif
+}
+
+#if defined(Q_OS_MACX)
+void TrayIcon::startStopLocalAgent(void)
+{
+  if (localhostRunning)
+  {
+    foreach (const Server &server, servers)
+    if (isLocalAddress(server.url.host()))
+    {
+      QUrl url = server.url;
+      url.addQueryItem("exit", "");
+
+      networkAccessManager.get(QNetworkRequest(url));
+
+      serviceLabel.setText(tr("The agent is stopping"));
+      serviceButton.setEnabled(false);
+    }
+  }
+  else
+  {
+    if (QProcess::startDetached(QDir(qApp->applicationDirPath()).absoluteFilePath("lximcbackend"), QStringList()))
+    {
+      serviceLabel.setText(tr("The agent is starting"));
+      serviceButton.setEnabled(false);
+    }
+  }
+}
+
+void TrayIcon::registerAgent(bool enabled)
+{
+  QDir dir(QDir::homePath() + "/Library/LaunchAgents/");
+  qDebug() << enabled << dir.absolutePath();
+
+  if (enabled)
+  {
+    if (!dir.exists())
+      QDir::home().mkpath("Library/LaunchAgents");
+
+    if (dir.exists())
+    {
+      QDomDocument doc;
+      QDomElement root = doc.createElement("plist");
+      root.setAttribute("version", "1.0");
+      QDomElement dict = doc.createElement("dict");
+
+      QDomElement elm;
+      elm = doc.createElement("key");
+      elm.appendChild(doc.createTextNode("Label"));
+      dict.appendChild(elm);
+      elm = doc.createElement("string");
+      elm.appendChild(doc.createTextNode(QString(agentName) + ".agent"));
+      dict.appendChild(elm);
+
+      elm = doc.createElement("key");
+      elm.appendChild(doc.createTextNode("RunAtLoad"));
+      dict.appendChild(elm);
+      dict.appendChild(doc.createElement("true"));
+
+      elm = doc.createElement("key");
+      elm.appendChild(doc.createTextNode("Program"));
+      dict.appendChild(elm);
+      elm = doc.createElement("string");
+      elm.appendChild(doc.createTextNode(QDir(qApp->applicationDirPath()).absoluteFilePath("lximcbackend")));
+      dict.appendChild(elm);
+
+      root.appendChild(dict);
+      doc.appendChild(root);
+
+      QFile file(dir.absoluteFilePath(QString(agentName) + ".plist"));
+      if (file.open(QFile::WriteOnly))
+        file.write(doc.toByteArray());
+    }
+  }
+  else if (dir.exists())
+    dir.remove(QString(agentName) + ".plist");
+}
+#endif
+
+bool TrayIcon::isLocalAddress(const QString &host)
+{
+  const QHostAddress address(host);
+
+  foreach (const QHostAddress &local, QNetworkInterface::allAddresses())
+  if (local == address)
+    return true;
+
+  return false;
 }

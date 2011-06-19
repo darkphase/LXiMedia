@@ -15,6 +15,9 @@ SOURCES += dvbdevice.cpp \
  dvbtuner.cpp \
  module.cpp
 
+# Export plugin
+SOURCES += export.cpp
+
 # AleVt
 SOURCES += $${LXIMEDIA_DIR}/ext/alevt-1.6.1/hamm.c \
  $${LXIMEDIA_DIR}/ext/alevt-1.6.1/lang.c

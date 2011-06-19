@@ -18,8 +18,10 @@ RESOURCES = backend.qrc \
 
 # Platform specific
 unix { 
+  !macx {
     target.path = /usr/bin
     INSTALLS += target
+  }
 }
 win32 { 
     CONFIG += console

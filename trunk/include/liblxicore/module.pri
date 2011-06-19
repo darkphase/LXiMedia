@@ -2,7 +2,7 @@ TEMPLATE = lib
 CONFIG += plugin
 CONFIG += qt thread warn_on
 
-macx|win32 {
+win32 {
   DESTDIR = $${OUT_PWD}/$${LXIMEDIA_DIR}/bin/lximedia
 } else {
   LXIMEDIA_VERSION_MAJOR = $$system(cat $${PWD}/../../VERSION)
@@ -16,6 +16,8 @@ DEPENDPATH += $${PWD}/../../src/
 include($${PWD}/../config.pri)
 
 unix {
+  !macx {
     target.path = /usr/lib/lximedia0
     INSTALLS += target
+  }
 }

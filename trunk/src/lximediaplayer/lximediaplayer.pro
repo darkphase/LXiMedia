@@ -4,7 +4,6 @@ LXIMEDIA_DIR = ../..
 DESTDIR = $${OUT_PWD}/$${LXIMEDIA_DIR}/bin
 TARGET = lximediaplayer
 include($${PWD}/$${LXIMEDIA_DIR}/include/config.pri)
-UI_DIR = $${OBJECTS_DIR}
 INCLUDEPATH += .
 include($${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/linklxistream.pri)
 include($${PWD}/$${LXIMEDIA_DIR}/include/liblxistreamgui/linklxistreamgui.pri)

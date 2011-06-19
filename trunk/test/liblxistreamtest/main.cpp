@@ -18,6 +18,7 @@
  ***************************************************************************/
 
 #include <QTest>
+#include <iostream>
 #include "streamtest.h"
 #include "dvdnavtest.h"
 #include "ffmpegtest.h"
@@ -28,22 +29,42 @@
 #ifdef ENABLE_ALSA
 #include "alsatest.h"
 #endif
-
+#include "filetester.h"
 
 int main(int argc, char *argv[])
 {
   QCoreApplication app(argc, argv);
+  if ((app.arguments().count() >= 3) && (app.arguments()[1] == "-batch"))
+  {
+    SApplication * const mediaApp = SApplication::createForQTest(qApp);
+    mediaApp->loadModule("lxistream_dvdnav");
+    mediaApp->loadModule("lxistream_ffmpeg");
 
-  if (QTest::qExec(new StreamTest(&app), app.arguments()) != 0)   return 1;
-  if (QTest::qExec(new IOTest(&app), app.arguments()) != 0)       return 1;
-  if (QTest::qExec(new DVDNavTest(&app), app.arguments()) != 0)   return 1;
-  if (QTest::qExec(new FFMpegTest(&app), app.arguments()) != 0)   return 1;
+    QDir dir(app.arguments()[2]);
+    std::cout << "Testing all files in directory " << dir.absolutePath().toAscii().data() << std::endl;
+
+    foreach (const QFileInfo &fileInfo, dir.entryInfoList(QDir::NoFilter, QDir::Name))
+      QtConcurrent::run(&FileTester::testFile, fileInfo.absoluteFilePath());
+      //FileTester::testFile(fileInfo.absoluteFilePath());
+
+    // Wait for all tasks to finish
+    QThreadPool::globalInstance()->waitForDone();
+
+    delete mediaApp;
+  }
+  else
+  {
+    if (QTest::qExec(new StreamTest(&app), app.arguments()) != 0)   return 1;
+    if (QTest::qExec(new IOTest(&app), app.arguments()) != 0)       return 1;
+    if (QTest::qExec(new DVDNavTest(&app), app.arguments()) != 0)   return 1;
+    if (QTest::qExec(new FFMpegTest(&app), app.arguments()) != 0)   return 1;
 #ifdef ENABLE_GLSL
-  if (QTest::qExec(new OpenGLTest(&app), app.arguments()) != 0)   return 1;
+    if (QTest::qExec(new OpenGLTest(&app), app.arguments()) != 0)   return 1;
 #endif
 #ifdef ENABLE_ALSA
-  if (QTest::qExec(new AlsaTest(&app), app.arguments()) != 0)     return 1;
+    if (QTest::qExec(new AlsaTest(&app), app.arguments()) != 0)     return 1;
 #endif
+  }
 
   return 0;
 }

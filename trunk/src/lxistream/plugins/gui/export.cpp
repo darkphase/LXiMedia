@@ -18,49 +18,6 @@
  ***************************************************************************/
 
 #include "module.h"
+#include <QtPlugin>
 
-#include <fftw3.h>
-
-namespace LXiStream {
-namespace FFTWBackend {
-
-bool Module::registerClasses(void)
-{
-  fftwMutex();
-
-  return true;
-}
-
-void Module::unload(void)
-{
-}
-
-QByteArray Module::about(void)
-{
-  return "FFTW plugin by A.J. Admiraal";
-}
-
-QByteArray Module::licenses(void)
-{
-  const QByteArray text =
-      "<h3>FFTW</h3>\n"
-      "Version: " + QByteArray(fftwf_version) + "<br />\n"
-      "Website: <a href=\"http://www.fftw.org/\">www.fftw.org</a><br />\n"
-      "<br />\n"
-      "<b>Copyright (c) 2003, 2007-8 Matteo Frigo</b><br />\n"
-      "<b>Copyright (c) 2003, 2007-8 Massachusetts Institute of Technology</b><br />\n"
-      "<br />\n"
-      "Used under the terms of the GNU General Public License version 2\n"
-      "as published by the Free Software Foundation.\n";
-
-  return text;
-}
-
-QMutex & Module::fftwMutex(void)
-{
-  static QMutex m(QMutex::Recursive);
-
-  return m;
-}
-
-} } // End of namespaces
+Q_EXPORT_PLUGIN2(lxistreamgui_gui, LXiStream::GuiBackend::Module);

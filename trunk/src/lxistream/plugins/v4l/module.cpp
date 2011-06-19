@@ -51,6 +51,3 @@ QByteArray Module::licenses(void)
 }
 
 } } // End of namespaces
-
-#include <QtPlugin>
-Q_EXPORT_PLUGIN2(lxistreamdevice_v4l, LXiStreamDevice::V4lBackend::Module);

@@ -126,7 +126,6 @@ private:
   void                          updateDir(const QString &, qint64, QuerySet &);
   void                          probeFile(const QString &);
 
-  bool                          isHidden(const QString &);
   QMap<Category, QString>       findCategories(const QString &) const;
 
 public:

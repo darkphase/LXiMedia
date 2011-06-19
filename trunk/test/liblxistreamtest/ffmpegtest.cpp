@@ -21,21 +21,12 @@
 #include "streamtest.h"
 #include <QtTest>
 #include <LXiStream>
-#include "lxistream/plugins/ffmpeg/audiodecoder.h"
-#include "lxistream/plugins/ffmpeg/audioencoder.h"
-#include "lxistream/plugins/ffmpeg/bufferreader.h"
-#include "lxistream/plugins/ffmpeg/bufferwriter.h"
-#include "lxistream/plugins/ffmpeg/ffmpegcommon.h"
-#include "lxistream/plugins/ffmpeg/module.h"
-#include "lxistream/plugins/ffmpeg/videodecoder.h"
-#include "lxistream/plugins/ffmpeg/videoencoder.h"
-
 
 void FFMpegTest::initTestCase(void)
 {
   mediaApp = SApplication::createForQTest(this);
 
-  QVERIFY(mediaApp->loadModule(new FFMpegBackend::Module()));
+  QVERIFY(mediaApp->loadModule("lxistream_ffmpeg"));
 
 //  const QDir probeDir("");
 //  foreach (const QString &file, probeDir.entryList())
@@ -98,28 +89,30 @@ void FFMpegTest::AudioEncodeDecode(const char *codecName)
 {
   //qDebug() << codecName;
 
-  FFMpegBackend::AudioEncoder audioEncoder("", NULL);
-  FFMpegBackend::AudioDecoder audioDecoder("", NULL);
-
   const SAudioBuffer inBuffer = StreamTest::makeTestBuffer(65536);
 
-  if (audioEncoder.openCodec(SAudioCodec(codecName, inBuffer.format().channelSetup(), inBuffer.format().sampleRate())))
+  SInterfaces::AudioEncoder *audioEncoder = SInterfaces::AudioEncoder::create(NULL, SAudioCodec(codecName, inBuffer.format().channelSetup(), inBuffer.format().sampleRate()));
+  SInterfaces::AudioDecoder *audioDecoder = NULL;
+
+  if (audioEncoder)
   {
     // Now encode it
     SEncodedAudioBufferList encBuffers;
-    encBuffers += audioEncoder.encodeBuffer(inBuffer);
-    encBuffers += audioEncoder.encodeBuffer(inBuffer);
-    encBuffers += audioEncoder.encodeBuffer(SAudioBuffer());
+    encBuffers += audioEncoder->encodeBuffer(inBuffer);
+    encBuffers += audioEncoder->encodeBuffer(inBuffer);
+    encBuffers += audioEncoder->encodeBuffer(SAudioBuffer());
 
     QVERIFY(!encBuffers.isEmpty());
 
     // And decode it again
-    QVERIFY(audioDecoder.openCodec(encBuffers.first().codec()));
+    audioDecoder = SInterfaces::AudioDecoder::create(NULL, encBuffers.first().codec());
+    QVERIFY(audioDecoder);
+
     SAudioBufferList decBuffers;
     foreach (const SEncodedAudioBuffer &buffer, encBuffers)
-      decBuffers += audioDecoder.decodeBuffer(buffer);
+      decBuffers += audioDecoder->decodeBuffer(buffer);
 
-    decBuffers += audioDecoder.decodeBuffer(SEncodedAudioBuffer());
+    decBuffers += audioDecoder->decodeBuffer(SEncodedAudioBuffer());
 
     QVERIFY(!decBuffers.isEmpty());
 
@@ -138,6 +131,9 @@ void FFMpegTest::AudioEncodeDecode(const char *codecName)
       QCOMPARE(reinterpret_cast<const qint16 *>(outBuffer.data())[i+3], reinterpret_cast<const qint16 *>(inBuffer.data())[i+3]);
     }
   }
+
+  delete audioDecoder;
+  delete audioEncoder;
 }
 
 /*! Tests encoding and decoding video.
@@ -161,9 +157,6 @@ void FFMpegTest::VideoEncodeDecode(const char *codecName)
 {
   //qDebug() << codecName;
 
-  FFMpegBackend::VideoEncoder videoEncoder("", NULL);
-  FFMpegBackend::VideoDecoder videoDecoder("", NULL);
-
   // Prepare a buffer
   static const unsigned width = 352;
   static const unsigned height = 288;
@@ -181,24 +174,34 @@ void FFMpegTest::VideoEncodeDecode(const char *codecName)
       line[x] = (x * y) * 10;
   }
 
+  SInterfaces::VideoEncoder *videoEncoder = SInterfaces::VideoEncoder::create(NULL, SVideoCodec(codecName, SSize(width, height), SInterval::fromFrequency(25)));
+  SInterfaces::VideoDecoder *videoDecoder = NULL;
+
   // Now encode it
-  QVERIFY(videoEncoder.openCodec(SVideoCodec(codecName, SSize(width, height), SInterval::fromFrequency(25)), SInterfaces::VideoEncoder::Flag_HardBitrateLimit));
-  SEncodedVideoBufferList encBuffers;
-  for (int i=0; i<count; i++)
+  if (videoEncoder)
   {
-    inBuffer.setTimeStamp(STime::fromClock(i, 25.0));
-    encBuffers += videoEncoder.encodeBuffer(inBuffer);
+    SEncodedVideoBufferList encBuffers;
+    for (int i=0; i<count; i++)
+    {
+      inBuffer.setTimeStamp(STime::fromClock(i, 25.0));
+      encBuffers += videoEncoder->encodeBuffer(inBuffer);
+    }
+
+    encBuffers += videoEncoder->encodeBuffer(SVideoBuffer());
+    QCOMPARE(encBuffers.count(), count);
+
+    // And decode it again
+    videoDecoder = SInterfaces::VideoDecoder::create(NULL, encBuffers.first().codec());
+    QVERIFY(videoDecoder);
+
+    SVideoBufferList decBuffers;
+    foreach (const SEncodedVideoBuffer &buffer, encBuffers)
+      decBuffers += videoDecoder->decodeBuffer(buffer);
+
+    decBuffers += videoDecoder->decodeBuffer(SEncodedVideoBuffer());
+    QCOMPARE(decBuffers.count(), count);
   }
 
-  encBuffers += videoEncoder.encodeBuffer(SVideoBuffer());
-  QCOMPARE(encBuffers.count(), count);
-
-  // And decode it again
-  QVERIFY(videoDecoder.openCodec(encBuffers.first().codec()));
-  SVideoBufferList decBuffers;
-  foreach (const SEncodedVideoBuffer &buffer, encBuffers)
-    decBuffers += videoDecoder.decodeBuffer(buffer);
-
-  decBuffers += videoDecoder.decodeBuffer(SEncodedVideoBuffer());
-  QCOMPARE(decBuffers.count(), count);
+  delete videoDecoder;
+  delete videoEncoder;
 }

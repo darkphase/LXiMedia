@@ -147,7 +147,9 @@ public:
   _lxi_pure static const char * version(void);
   _lxi_pure static SApplication * instance(void);
 
+  static QStringList            pluginPaths(void);
   void                          addModuleFilter(const QString &);
+  bool                          loadModule(const QString &);
   bool                          loadModule(SModule *, QPluginLoader * = NULL);
   QByteArray                    about(void) const;
 

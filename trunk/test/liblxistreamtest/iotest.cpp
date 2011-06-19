@@ -20,14 +20,13 @@
 #include "iotest.h"
 #include <QtGui/QImage>
 #include <QtTest>
-#include "lxistream/plugins/gui/module.h"
-
 
 void IOTest::initTestCase(void)
 {
   mediaApp = SApplication::createForQTest(this);
 
-  QVERIFY(mediaApp->loadModule(new GuiBackend::Module()));
+  QVERIFY(mediaApp->loadModule("lxistream_ffmpeg"));
+  QVERIFY(mediaApp->loadModule("lxistreamgui_gui"));
 }
 
 void IOTest::cleanupTestCase(void)
@@ -66,7 +65,7 @@ void IOTest::MediaFileInfoImage(void)
 void IOTest::AudioResamplerHalfRate(void)
 {
   SInterfaces::AudioResampler * const audioResampler =
-      SInterfaces::AudioResampler::create(this, "");
+      SInterfaces::AudioResampler::create(this, "linear");
 
   // Prepare a one-channel buffer with alternating values 32 and 64
   SAudioBuffer inBuffer(SAudioFormat(SAudioFormat::Format_PCM_S16,
@@ -100,7 +99,7 @@ void IOTest::AudioResamplerHalfRate(void)
 void IOTest::AudioResamplerDoubleRate(void)
 {
   SInterfaces::AudioResampler * const audioResampler =
-      SInterfaces::AudioResampler::create(this, "");
+      SInterfaces::AudioResampler::create(this, "linear");
 
   // Prepare a one-channel buffer with alternating values 32 and 64
   // Prepare a one-channel buffer with alternating values 32 and 64
