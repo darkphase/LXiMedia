@@ -33,21 +33,21 @@ SOURCES += lxistreamguiprivate.cpp
 
 # Platform specific
 unix { 
-    macx {
-        SOURCES += sdisplay.macx.cpp \
-            svideoview.macx.cpp
-    } else {
-        SOURCES += sdisplay.x11.cpp \
-            svideoview.x11.cpp
-        LIBS += -lX11 \
-            -lXext \
-            -lXrandr \
-            -lXtst \
-            -lXv
-    }
+  macx {
+    SOURCES += sdisplay.macx.cpp \
+        svideoview.macx.cpp
+  } else {
+    SOURCES += sdisplay.x11.cpp \
+        svideoview.x11.cpp
+    LIBS += -lX11 \
+        -lXext \
+        -lXrandr \
+        -lXtst \
+        -lXv
 
     target.path = /usr/lib
     INSTALLS += target
+  }
 }
 win32 {
   SOURCES += sdisplay.win.cpp \

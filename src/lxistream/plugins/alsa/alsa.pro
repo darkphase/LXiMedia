@@ -14,3 +14,6 @@ SOURCES += alsainput.cpp \
  module.cpp
 
 LIBS += -lasound
+
+# Export plugin
+SOURCES += export.cpp

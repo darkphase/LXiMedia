@@ -19,17 +19,13 @@
 
 #include "dvdnavtest.h"
 #include <QtTest>
-#include "lxistream/plugins/dvdnav/bufferreader.h"
-#include "lxistream/plugins/dvdnav/module.h"
-#include "lxistream/plugins/ffmpeg/module.h"
-
 
 void DVDNavTest::initTestCase(void)
 {
   mediaApp = SApplication::createForQTest(this);
 
-  QVERIFY(mediaApp->loadModule(new DVDNavBackend::Module()));
-  QVERIFY(mediaApp->loadModule(new FFMpegBackend::Module()));
+  QVERIFY(mediaApp->loadModule("lxistream_dvdnav"));
+  QVERIFY(mediaApp->loadModule("lxistream_ffmpeg"));
 
   //SMediaInfo info("");
   //qDebug() << info.programs().count();

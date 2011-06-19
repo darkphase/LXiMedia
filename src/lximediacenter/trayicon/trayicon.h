@@ -25,7 +25,12 @@
 #include <QtNetwork>
 #include <LXiServer>
 
-class TrayIcon : public QObject
+class TrayIcon
+#if defined(Q_OS_MACX)
+    : public QWidget
+#else
+    : public QObject
+#endif
 {
 Q_OBJECT
 private:
@@ -69,14 +74,36 @@ private slots:
   void                          loadBrowser(QAction *);
   void                          loadBrowser(const QUrl &);
 
+#if defined(Q_OS_MACX)
+  void                          startStopLocalAgent(void);
+  void                          registerAgent(bool);
+#endif
+
+private:
+  static bool                   isLocalAddress(const QString &);
+
 private:
   static const int              iconSize;
 
-  const QIcon                   icon;
+#if defined(Q_OS_MACX)
+  static const char             agentName[];
+
+  QLabel                        serviceLabel;
+  QPushButton                   serviceButton;
+  QToolButton                   menuButton;
+  QHBoxLayout           * const serviceLayout;
+  QCheckBox                     startAutomatically;
+  QLabel                        helpLabel;
+  QVBoxLayout           * const layout;
+#else
   QSystemTrayIcon               trayIcon;
+#endif
+
+  const QIcon                   icon;
   QMenu                         menu;
   SSsdpClient                   ssdpClient;
   QMap<QString, Server>         servers;
+  bool                          localhostRunning;
   QUrl                          messageUrl;
 
   QTimer                        updateStatusTimer;

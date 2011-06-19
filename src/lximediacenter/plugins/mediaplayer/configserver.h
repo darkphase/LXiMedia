@@ -45,6 +45,7 @@ public:
   virtual QString               serverIconPath(void) const;
 
   _lxi_pure static const QSet<QString> & hiddenDirs(void);
+  static bool                   isHidden(const QString &path);
 
 protected: // From SHttpServer::Callback
   virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestMessage &, QAbstractSocket *);

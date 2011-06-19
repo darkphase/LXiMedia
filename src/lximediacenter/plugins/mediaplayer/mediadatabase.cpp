@@ -504,7 +504,7 @@ void MediaDatabase::customEvent(QEvent *e)
   if (e->type() == scanDirEventType)
   {
     const ScanDirEvent * const event = static_cast<const ScanDirEvent *>(e);
-    if (!isHidden(event->path))
+    if (!ConfigServer::isHidden(event->path))
     {
       Database::transaction();
 
@@ -645,7 +645,7 @@ void MediaDatabase::scanRoots(void)
 
       QStringList paths;
       foreach (const QString &root, settings.value("Paths").toStringList())
-      if (!root.trimmed().isEmpty() && !isHidden(root) && QFileInfo(root).exists())
+      if (!root.trimmed().isEmpty() && !ConfigServer::isHidden(root) && QFileInfo(root).exists())
         paths.append(root);
 
       settings.setValue("Paths", paths);
@@ -993,7 +993,7 @@ void MediaDatabase::probeFile(
   const QString path = _path.toLower();
 #endif
 
-  if (!path.isEmpty() && !isHidden(path))
+  if (!path.isEmpty() && !ConfigServer::isHidden(path))
   {
     // Only scan files if they can be opened (to prevent scanning files that
     // are still being copied).
@@ -1039,26 +1039,6 @@ void MediaDatabase::probeFile(
       }
     }
   }
-}
-
-bool MediaDatabase::isHidden(const QString &absoluteFilePath)
-{
-  const QFileInfo info(absoluteFilePath);
-  const QString canonicalFilePath =
-      (info.exists() ? info.canonicalFilePath() : absoluteFilePath)
-#ifdef Q_OS_WIN
-      .toLower()
-#endif
-      ;
-
-  foreach (const QString &hidden, ConfigServer::hiddenDirs())
-  if ((absoluteFilePath == hidden) || absoluteFilePath.startsWith(hidden + "/") ||
-      (canonicalFilePath == hidden) || canonicalFilePath.startsWith(hidden + "/"))
-  {
-    return true;
-  }
-
-  return false;
 }
 
 QMap<MediaDatabase::Category, QString> MediaDatabase::findCategories(const QString &path) const

@@ -104,7 +104,7 @@ const QSet<QString> & ConfigServer::hiddenDirs(void)
   {
     const QDir root = QDir::root();
 
-#ifndef Q_OS_WIN
+#if defined(Q_OS_UNIX)
     h += root.absoluteFilePath("bin");
     h += root.absoluteFilePath("boot");
     h += root.absoluteFilePath("dev");
@@ -116,24 +116,61 @@ const QSet<QString> & ConfigServer::hiddenDirs(void)
     h += root.absoluteFilePath("tmp");
     h += root.absoluteFilePath("usr");
     h += root.absoluteFilePath("var");
-#else // Windows (paths need to be lower case)
-    h += root.absoluteFilePath("windows").toLower();
-    h += root.absoluteFilePath("program files").toLower();
+#endif
+
+#if defined(Q_OS_MACX)
+    h += root.absoluteFilePath("Applications");
+    h += root.absoluteFilePath("cores");
+    h += root.absoluteFilePath("Developer");
+    h += root.absoluteFilePath("private");
+    h += root.absoluteFilePath("System");
+#endif
+
+#if defined(Q_OS_WIN)
+    h += root.absoluteFilePath("Program Files");
+    h += root.absoluteFilePath("Program Files (x86)");
+    h += root.absoluteFilePath("WINDOWS");
 #endif
 
     foreach (const QFileInfo &drive, QDir::drives())
     {
-#ifndef Q_OS_WIN
       h += QDir(drive.absoluteFilePath()).absoluteFilePath("lost+found");
-#else // Windows (paths need to be lower case)
-      h += QDir(drive.absoluteFilePath()).absoluteFilePath("lost+found").toLower();
-      h += QDir(drive.absoluteFilePath()).absoluteFilePath("recycler").toLower();
-      h += QDir(drive.absoluteFilePath()).absoluteFilePath("system volume information").toLower();
+
+#if defined(Q_OS_WIN)
+      h += QDir(drive.absoluteFilePath()).absoluteFilePath("RECYCLER");
+      h += QDir(drive.absoluteFilePath()).absoluteFilePath("System Volume Information");
 #endif
     }
   }
 
   return h;
+}
+
+bool ConfigServer::isHidden(const QString &path)
+{
+  static const Qt::CaseSensitivity caseSensitive =
+#ifdef Q_OS_WIN
+      Qt::CaseInsensitive;
+#else
+      Qt::CaseSensitive;
+#endif
+
+  const QFileInfo info(path);
+
+  QString absoluteFilePath = info.absolutePath();
+  if (!absoluteFilePath.endsWith('/')) absoluteFilePath += '/';
+
+  QString canonicalFilePath = (info.exists() ? info.canonicalFilePath() : info.absolutePath());
+  if (!canonicalFilePath.endsWith('/')) canonicalFilePath += '/';
+
+  foreach (const QString &hidden, ConfigServer::hiddenDirs())
+  {
+    const QString path = hidden.endsWith('/') ? hidden : (hidden + '/');
+    if (absoluteFilePath.startsWith(path, caseSensitive) || canonicalFilePath.startsWith(path, caseSensitive))
+      return true;
+  }
+
+  return false;
 }
 
 } } // End of namespaces

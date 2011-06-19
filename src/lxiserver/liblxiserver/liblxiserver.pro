@@ -54,8 +54,10 @@ HEADERS += lxiserverprivate.h
 SOURCES += lxiserverprivate.cpp
 
 unix {
+  !macx {
     target.path = /usr/lib
     INSTALLS += target
+  }
 }
 win32 {
   LIBS += -lws2_32

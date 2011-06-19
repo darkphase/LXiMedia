@@ -1,6 +1,6 @@
 TEMPLATE = app
 CONFIG += qtestlib
-macx:CONFIG -= app_bundle
+win32:CONFIG += console
 QT -= gui
 QT += network xml
 LXIMEDIA_DIR = ../..
@@ -9,18 +9,8 @@ TARGET = lxiservertest
 INCLUDEPATH += $${PWD}/$${LXIMEDIA_DIR}/src/
 DEPENDPATH += $${PWD}/$${LXIMEDIA_DIR}/src/
 include($${PWD}/$${LXIMEDIA_DIR}/include/config.pri)
-
-unix {
-  # Prevent dependency with .so files
-  QMAKE_LFLAGS += $${OUT_PWD}/$${LXIMEDIA_DIR}/obj/LXiCore/*.o \
-    $${OUT_PWD}/$${LXIMEDIA_DIR}/obj/LXiServer/*.o
-
-  POST_TARGETDEPS += $${OUT_PWD}/$${LXIMEDIA_DIR}/obj/LXiCore/*.o \
-    $${OUT_PWD}/$${LXIMEDIA_DIR}/obj/LXiServer/*.o
-} else {
-  include($${PWD}/$${LXIMEDIA_DIR}/include/liblxicore/linklxicore.pri)
-  include($${PWD}/$${LXIMEDIA_DIR}/include/liblxiserver/linklxiserver.pri)
-}
+include($${PWD}/$${LXIMEDIA_DIR}/include/liblxicore/linklxicore.pri)
+include($${PWD}/$${LXIMEDIA_DIR}/include/liblxiserver/linklxiserver.pri)
 
 # Files
 HEADERS += httpenginetest.h \
@@ -30,16 +20,8 @@ SOURCES += main.cpp \
     sandboxtest.cpp
 
 # Run tests after link
-unix:QMAKE_POST_LINK = $(TARGET) -silent
+unix:QMAKE_POST_LINK = cd $${DESTDIR} && LD_LIBRARY_PATH=. && ./$${TARGET} -silent
 win32:QMAKE_POST_LINK = $${DESTDIR}/$${TARGET} -silent
-
-# Platform specific
-win32 { 
-    CONFIG += console
-    LIBS += -lbfd \
-        -liberty \
-        -lws2_32
-}
 
 # Windows specific
 win32 {

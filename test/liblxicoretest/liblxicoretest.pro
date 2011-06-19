@@ -1,6 +1,6 @@
 TEMPLATE = app
 CONFIG += qtestlib
-macx:CONFIG -= app_bundle
+win32:CONFIG += console
 QT -= gui
 LXIMEDIA_DIR = ../..
 DESTDIR = $${OUT_PWD}/$${LXIMEDIA_DIR}/bin
@@ -8,14 +8,7 @@ TARGET = lxicoretest
 INCLUDEPATH += $${PWD}/$${LXIMEDIA_DIR}/src/
 DEPENDPATH += $${PWD}/$${LXIMEDIA_DIR}/src/
 include($${PWD}/$${LXIMEDIA_DIR}/include/config.pri)
-
-unix {
-  # Prevent dependency with .so files
-  QMAKE_LFLAGS += $${OUT_PWD}/$${LXIMEDIA_DIR}/obj/LXiCore/*.o
-  POST_TARGETDEPS += $${OUT_PWD}/$${LXIMEDIA_DIR}/obj/LXiCore/*.o
-} else {
-  include($${PWD}/$${LXIMEDIA_DIR}/include/liblxicore/linklxicore.pri)
-}
+include($${PWD}/$${LXIMEDIA_DIR}/include/liblxicore/linklxicore.pri)
 
 # Files
 HEADERS += coretest.h
@@ -23,15 +16,8 @@ SOURCES += main.cpp \
     coretest.cpp
 
 # Run tests after link
-unix:QMAKE_POST_LINK = $(TARGET) -silent
+unix:QMAKE_POST_LINK = cd $${DESTDIR} && LD_LIBRARY_PATH=. && ./$${TARGET} -silent
 win32:QMAKE_POST_LINK = $${DESTDIR}/$${TARGET} -silent
-
-# Platform specific
-win32 { 
-    CONFIG += console
-    LIBS += -lbfd \
-        -liberty
-}
 
 # Windows specific
 win32 {

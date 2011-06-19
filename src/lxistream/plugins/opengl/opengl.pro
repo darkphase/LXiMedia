@@ -14,3 +14,6 @@ unix {
 
 HEADERS += module.h
 SOURCES += module.cpp
+
+# Export plugin
+SOURCES += export.cpp

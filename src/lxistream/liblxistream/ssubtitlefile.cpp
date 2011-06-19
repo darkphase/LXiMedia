@@ -109,7 +109,6 @@ SDataCodec SSubtitleFile::codec(void) const
 SEncodedDataBuffer SSubtitleFile::readSubtitle(STime timeStamp)
 {
   int phase = 0;
-  int id = 0;
   STime startTime = STime::null, stopTime = STime::null;
   QByteArray data;
   QByteArray line;
@@ -119,7 +118,7 @@ SEncodedDataBuffer SSubtitleFile::readSubtitle(STime timeStamp)
     if (phase == 0)
     { // Get ID
       bool ok = false;
-      id = line.trimmed().toInt(&ok);
+      line.trimmed().toInt(&ok);
 
       if (ok)
         phase++;

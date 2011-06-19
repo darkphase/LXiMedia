@@ -118,6 +118,3 @@ QByteArray Module::licenses(void)
 }
 
 } } // End of namespaces
-
-#include <QtPlugin>
-Q_EXPORT_PLUGIN2(lxistreamdevice_alsa, LXiStreamDevice::AlsaBackend::Module);

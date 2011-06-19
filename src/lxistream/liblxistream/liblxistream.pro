@@ -152,8 +152,10 @@ SOURCES += common/module.cpp
 
 # Platform specific
 unix {
+  !macx {
     target.path = /usr/lib
     INSTALLS += target
+  }
 }
 
 # Windows specific

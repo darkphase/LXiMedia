@@ -15,4 +15,7 @@ SOURCES += winmmaudiodevice.cpp \
  winmmaudiooutput.cpp \
  module.cpp
 
+# Export plugin
+SOURCES += export.cpp
+
 LIBS += -lwinmm

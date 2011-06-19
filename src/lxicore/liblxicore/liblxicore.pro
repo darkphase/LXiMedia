@@ -37,8 +37,10 @@ RESOURCES = liblxicore.qrc
 unix {
   SOURCES += sdaemon.unix.cpp
 
-  target.path = /usr/lib
-  INSTALLS += target
+  !macx {
+    target.path = /usr/lib
+    INSTALLS += target
+  }
 }
 win32 {
   SOURCES += sdaemon.win.cpp \

@@ -89,6 +89,3 @@ QByteArray Module::licenses(void)
 }
 
 } } // End of namespaces
-
-#include <QtPlugin>
-Q_EXPORT_PLUGIN2(lxistreamdevice_pulseaudio, LXiStreamDevice::PulseAudioBackend::Module);
