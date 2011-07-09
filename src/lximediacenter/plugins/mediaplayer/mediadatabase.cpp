@@ -38,13 +38,14 @@ struct MediaDatabase::QuerySet
 class MediaDatabase::ScanDirEvent : public QEvent
 {
 public:
-  inline ScanDirEvent(MediaDatabase *parent, const QString &path)
+  inline ScanDirEvent(MediaDatabase *parent, const QString &path, bool forceUpdate)
     : QEvent(scanDirEventType), parent(parent),
       path((path.endsWith('/') ? path : (path + '/'))
 #ifdef Q_OS_WIN
            .toLower()
 #endif
-           )
+           ),
+      forceUpdate(forceUpdate)
   {
     parent->scanning.ref();
   }
@@ -57,6 +58,7 @@ public:
 public:
   MediaDatabase * const parent;
   const QString path;
+  const bool forceUpdate;
 };
 
 class MediaDatabase::QueryImdbItemEvent : public QEvent
@@ -115,7 +117,8 @@ void MediaDatabase::destroyInstance(void)
 MediaDatabase::MediaDatabase(BackendServer::MasterServer *masterServer, QObject *parent)
   : QObject(parent),
     imdbClient(masterServer->imdbClient()),
-    probeSandbox(masterServer->createSandbox(SSandboxClient::Priority_Low))
+    probeSandbox(masterServer->createSandbox(SSandboxClient::Priority_Low)),
+    probeTokens(QThread::idealThreadCount() * 2)
 {
   PluginSettings settings(Module::pluginName);
 
@@ -271,7 +274,11 @@ MediaDatabase::UniqueID MediaDatabase::fromPath(const QString &path) const
 {
   Database::Query query;
   query.prepare("SELECT uid FROM MediaplayerFiles WHERE path = :path");
-  query.bindValue(0, path);
+  query.bindValue(0, path
+#ifdef Q_OS_WIN
+      .toLower()
+#endif
+      );
   query.exec();
   if (query.next())
     return query.value(0).toLongLong();
@@ -536,7 +543,7 @@ void MediaDatabase::customEvent(QEvent *e)
         const QDateTime oldLastModified = q.request.value(3).toDateTime();
 
         const QDir dir(event->path);
-        if ((dir.count() != unsigned(size)) || (newLastModified > oldLastModified.addSecs(2)))
+        if ((dir.count() != unsigned(size)) || (newLastModified > oldLastModified.addSecs(2)) || event->forceUpdate)
         {
           //qDebug() << "Updated dir:" << event->path << dir.count() << size << info.lastModified() << lastModified.addSecs(2);
 
@@ -558,7 +565,7 @@ void MediaDatabase::customEvent(QEvent *e)
 
           foreach (const QFileInfo &child, dir.entryInfoList(QDir::Dirs))
           if (!child.fileName().startsWith('.'))
-            qApp->postEvent(this, new ScanDirEvent(this, child.absoluteFilePath()), scanDirPriority);
+            qApp->postEvent(this, new ScanDirEvent(this, child.absoluteFilePath(), false), scanDirPriority);
         }
       }
       else if (info.isDir() && newLastModified.isValid())
@@ -575,7 +582,7 @@ void MediaDatabase::customEvent(QEvent *e)
         q.insert.exec();
 
         // Scan again.
-        qApp->postEvent(this, new ScanDirEvent(this, event->path), scanDirPriority);
+        qApp->postEvent(this, new ScanDirEvent(this, event->path, true), scanDirPriority);
       }
 
       Database::commit();
@@ -646,7 +653,13 @@ void MediaDatabase::scanRoots(void)
       QStringList paths;
       foreach (const QString &root, settings.value("Paths").toStringList())
       if (!root.trimmed().isEmpty() && !ConfigServer::isHidden(root) && QFileInfo(root).exists())
-        paths.append(root);
+      {
+        paths.append(root
+#ifdef Q_OS_WIN
+            .toLower()
+#endif
+            );
+      }
 
       settings.setValue("Paths", paths);
       rootPaths[group] = paths;
@@ -661,14 +674,27 @@ void MediaDatabase::scanRoots(void)
     // Scan all root paths recursively
     foreach (const QString &path, allRootPaths)
     if (!fileSystemWatcher.directories().contains(path))
-      qApp->postEvent(this, new ScanDirEvent(this, path), scanDirPriority);
+      qApp->postEvent(this, new ScanDirEvent(this, path, false), scanDirPriority);
 
     // Find roots that are no longer roots and remove them
     query.exec("SELECT path FROM MediaplayerFiles WHERE parentDir ISNULL");
     QVariantList removePaths;
     while (query.next())
-    if (findRoot(query.value(0).toString(), allRootPaths).isEmpty())
-      removePaths << query.value(0);
+    {
+      const QString path = query.value(0).toString();
+
+      if (findRoot(path, allRootPaths).isEmpty())
+      {
+        // Remove all queued probes for the path
+        for (QSet<QString>::Iterator i=probeQueue.begin(); i!= probeQueue.end(); )
+        if (i->startsWith(path))
+          i = probeQueue.erase(i);
+        else
+          i++;
+
+        removePaths << path;
+      }
+    }
 
     if (!removePaths.isEmpty())
     {
@@ -721,11 +747,17 @@ void MediaDatabase::scanDirs(void)
 
 void MediaDatabase::directoryChanged(const QString &path)
 {
-  if (!scanDirsQueue.contains(path))
-  {
-    qDebug() << "Filesystem change in" << path << ", scanning in" << (scanDelay / 1000) << "seconds";
+  const QString basePath = path
+#ifdef Q_OS_WIN
+      .toLower()
+#endif
+      ;
 
-    scanDirsQueue.insert(path, new ScanDirEvent(this, path));
+  if (!scanDirsQueue.contains(basePath))
+  {
+    qDebug() << "Filesystem change in" << basePath << ", scanning in" << (scanDelay / 1000) << "seconds";
+
+    scanDirsQueue.insert(basePath, new ScanDirEvent(this, basePath, true));
   }
 
   scanDirsSingleTimer.start(scanDelay);
@@ -733,6 +765,9 @@ void MediaDatabase::directoryChanged(const QString &path)
 
 void MediaDatabase::probeFinished(const SHttpEngine::ResponseMessage &message)
 {
+  probeTokens++;
+  probeNext();
+
   if ((message.status() == SHttpEngine::Status_Ok) && !message.content().isEmpty())
   {
     const FileNode mediaInfo = FileNode::fromByteArray(message.content());
@@ -840,6 +875,72 @@ void MediaDatabase::probeFinished(const SHttpEngine::ResponseMessage &message)
   }
 }
 
+void MediaDatabase::probeNext(void)
+{
+  for (QSet<QString>::Iterator next = probeQueue.begin();
+       (next != probeQueue.end()) && (probeTokens > 0);
+       next = probeQueue.erase(next))
+  {
+    if (!next->isEmpty() && !ConfigServer::isHidden(*next))
+    {
+      Database::Query query;
+      query.prepare("SELECT size FROM MediaplayerFiles WHERE path = :path");
+      query.bindValue(0, *next);
+      query.exec();
+      if (query.next())
+      {
+        const qint64 size = query.value(0).toLongLong();
+
+        if (size > -10) // Try 10 times (~5 mins), otherwise fail forever.
+        {
+          query.prepare("UPDATE MediaplayerFiles "
+                        "SET size = :size "
+                        "WHERE path = :path");
+          query.bindValue(0, qMin(size - 1, Q_INT64_C(-1)));
+          query.bindValue(1, *next);
+          query.exec();
+
+          // Only scan files if they can be opened (to prevent scanning files that
+          // are still being copied).
+          if (QFile(*next).open(QFile::ReadOnly))
+          {
+            SSandboxClient::RequestMessage request(probeSandbox);
+            request.setRequest("GET", QByteArray(MediaPlayerSandbox::path) + "?probe=" + next->toUtf8().toHex());
+            probeSandbox->sendRequest(request);
+
+            probeTokens--;
+          }
+          else
+          {
+            if (size == -1)
+              qDebug() << "File" << *next << "can not be opened, scanning later";
+
+            QString dirPath = QFileInfo(*next).absolutePath();
+            if (!dirPath.endsWith('/'))
+              dirPath += '/';
+
+            if (!scanDirsQueue.contains(dirPath))
+              scanDirsQueue.insert(dirPath, new ScanDirEvent(this, dirPath, true));
+
+            scanDirsSingleTimer.start(scanDelay);
+          }
+        }
+        else // Set the correct size so the file is not probed anymore.
+        {
+          qDebug() << "File" << *next << "can not be scanned";
+
+          query.prepare("UPDATE MediaplayerFiles "
+                        "SET size = :size "
+                        "WHERE path = :path");
+          query.bindValue(0, QFileInfo(*next).size());
+          query.bindValue(1, *next);
+          query.exec();
+        }
+      }
+    }
+  }
+}
+
 QString MediaDatabase::findRoot(const QString &path, const QStringList &allRootPaths) const
 {
   const QFileInfo info(path);
@@ -867,12 +968,18 @@ QString MediaDatabase::findRoot(const QString &path, const QStringList &allRootP
 
 void MediaDatabase::updateDir(const QString &path, qint64 parentDir, QuerySet &q)
 {
-  qDebug() << "Scanning:" << path;
+  const QString basePath = path
+#ifdef Q_OS_WIN
+      .toLower()
+#endif
+      ;
+
+  qDebug() << "Scanning:" << basePath;
 
   QSet<QString> childPaths;
 
   // Update existing and add new dirs.
-  foreach (const QFileInfo &child, QDir(path).entryInfoList(QDir::Dirs))
+  foreach (const QFileInfo &child, QDir(basePath).entryInfoList(QDir::Dirs))
   if (!child.fileName().startsWith('.'))
   {
     QString childPath = child.absoluteFilePath()
@@ -901,23 +1008,22 @@ void MediaDatabase::updateDir(const QString &path, qint64 parentDir, QuerySet &q
       q.insert.exec();
     }
 
-    qApp->postEvent(this, new ScanDirEvent(this, childPath), scanDirPriority);
+    qApp->postEvent(this, new ScanDirEvent(this, childPath, false), scanDirPriority);
   }
 
   // Update existing and add new files.
-  foreach (const QFileInfo &child, QDir(path).entryInfoList(QDir::Files))
+  foreach (const QFileInfo &child, QDir(basePath).entryInfoList(QDir::Files))
   if (!child.fileName().startsWith('.'))
   {
-    if (path.endsWith("/VIDEO_TS/", Qt::CaseInsensitive) || path.endsWith("/AUDIO_TS/", Qt::CaseInsensitive))
-    if (child.fileName().compare("VIDEO_TS.IFO", Qt::CaseInsensitive) != 0)
+    if (basePath.endsWith("/video_ts/") || basePath.endsWith("/audio_ts/"))
+    if (child.fileName().compare("video_ts.ifo", Qt::CaseInsensitive) != 0)
       continue;
 
-    const QString childPath =
-#ifndef Q_OS_WIN
-        child.absoluteFilePath();
-#else
-        child.absoluteFilePath().toLower();
+    const QString childPath = child.absoluteFilePath()
+#ifdef Q_OS_WIN
+        .toLower()
 #endif
+        ;
 
     childPaths.insert(childPath);
 
@@ -944,7 +1050,7 @@ void MediaDatabase::updateDir(const QString &path, qint64 parentDir, QuerySet &q
       //qDebug() << "Updated file:" << childPath << child.size() << q.request.value(2).toLongLong() << child.lastModified() << q.request.value(3).toDateTime().addSecs(2);
 
       // Update the file
-      q.update.bindValue(0, -1); // Size will be set when probed
+      q.update.bindValue(0, qMin(Q_INT64_C(-1), q.request.value(2).toLongLong())); // Size will be set when probed
       q.update.bindValue(1, child.lastModified());
       q.update.bindValue(2, QVariant(QVariant::ByteArray));
       q.update.bindValue(3, childPath);
@@ -983,77 +1089,36 @@ void MediaDatabase::updateDir(const QString &path, qint64 parentDir, QuerySet &q
 }
 
 // Ensure directories end with a '/'
-void MediaDatabase::probeFile(
-#ifndef Q_OS_WIN
-    const QString &path)
+void MediaDatabase::probeFile(const QString &path)
 {
-#else
-    const QString &_path)
-{
-  const QString path = _path.toLower();
+  probeQueue.insert(path
+#ifdef Q_OS_WIN
+      .toLower()
 #endif
+      );
 
-  if (!path.isEmpty() && !ConfigServer::isHidden(path))
-  {
-    // Only scan files if they can be opened (to prevent scanning files that
-    // are still being copied).
-    if (QFile(path).open(QFile::ReadOnly))
-    {
-      SSandboxClient::RequestMessage request(probeSandbox);
-      request.setRequest("GET", QByteArray(MediaPlayerSandbox::path) + "?probe=" + path.toUtf8().toHex());
-      probeSandbox->sendRequest(request);
-    }
-    else
-    {
-      Database::Query query;
-      query.prepare("SELECT size FROM MediaplayerFiles WHERE path = :path");
-      query.bindValue(0, path);
-      query.exec();
-      if (query.next())
-      {
-        const qint64 size = query.value(0).toLongLong();
-
-        if (size == -1)
-          qDebug() << "File" << path << "can not be opened, scanning later";
-
-        if (size > -60) // Try 60 times (~1 hour), otherwise fail forever.
-        {
-          query.prepare("UPDATE MediaplayerFiles "
-                        "SET size = :size "
-                        "WHERE path = :path");
-          query.bindValue(0, qMin(size - 1, Q_INT64_C(-1)));
-          query.bindValue(1, path);
-          query.exec();
-        }
-        else // Set the correct size so the file is not probed anymore.
-        {
-          qDebug() << "File" << path << "can not be opened, not scanning at all";
-
-          query.prepare("UPDATE MediaplayerFiles "
-                        "SET size = :size "
-                        "WHERE path = :path");
-          query.bindValue(0, QFileInfo(path).size());
-          query.bindValue(1, path);
-          query.exec();
-        }
-      }
-    }
-  }
+  probeNext();
 }
 
 QMap<MediaDatabase::Category, QString> MediaDatabase::findCategories(const QString &path) const
 {
   QMap<Category, QString> result;
 
+  const QString basePath = path
+#ifdef Q_OS_WIN
+      .toLower()
+#endif
+      ;
+
   for (int i=0; categories[i].name; i++)
   {
     QMap<QString, QStringList>::ConstIterator rootPath = rootPaths.find(categories[i].name);
     if (rootPath != rootPaths.end())
     foreach (const QString &root, *rootPath)
-    if (path.startsWith(root))
+    if (basePath.startsWith(root))
     {
-      QString album = path.mid(root.length());
-      if (album.endsWith("/VIDEO_TS/VIDEO_TS.IFO", Qt::CaseInsensitive))
+      QString album = basePath.mid(root.length());
+      if (album.endsWith("/video_ts/video_ts.ifo"))
         album = album.left(album.length() - 22);
 
       album = album.left(album.lastIndexOf('/') + 1);

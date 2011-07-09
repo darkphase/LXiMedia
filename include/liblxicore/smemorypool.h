@@ -62,12 +62,14 @@ private:
   struct Init;
   _lxi_internal static Init     init;
   _lxi_internal static int      pageSize;
+  _lxi_internal static int      maxFreeCount;
 #if defined(Q_OS_UNIX)
   _lxi_internal static int      zeroDev;
 #endif
 
   _lxi_pure _lxi_internal static QMutex * mutex(void);
   _lxi_pure _lxi_internal static QMultiMap<size_t, Block> & freePool(void);
+  _lxi_pure _lxi_internal static QList<size_t> & freeQueue(void);
   _lxi_pure _lxi_internal static QHash<void *, Block> & allocPool(void);
 };
 

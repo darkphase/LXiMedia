@@ -28,17 +28,9 @@ void FFMpegTest::initTestCase(void)
 
   QVERIFY(mediaApp->loadModule("lxistream_ffmpeg"));
 
-//  const QDir probeDir("");
-//  foreach (const QString &file, probeDir.entryList())
-//  if (!file.startsWith('.'))
-//  {
-//    const SMediaInfo mediaInfo(probeDir.absoluteFilePath(file));
-//    qDebug() << file << mediaInfo.format();
-//  }
-//
-//  QFile file("/tmp/test.jpeg");
-//  if (file.open(QFile::WriteOnly))
-//    file.write(mediaInfo.thumbnails().first());
+//  QTime timer; timer.start();
+//  const SMediaInfo mediaInfo();
+//  qDebug() << mediaInfo.format() << timer.elapsed();
 }
 
 void FFMpegTest::cleanupTestCase(void)

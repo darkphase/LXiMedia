@@ -46,7 +46,6 @@ void SSubpictureBuffer::setRects(const QList<Rect> &rects)
   {
     Rect * const destRect = reinterpret_cast<Rect *>(data + pos);
     *destRect = rect;
-    destRect->_reserved = 0;
 
     pos += rectSize(rect);
   }

@@ -58,10 +58,10 @@ void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *readCallback)
 {
   struct ProduceCallback : SInterfaces::BufferReader::ProduceCallback
   {
-    QMap<quint16, SEncodedVideoBufferList> videoBuffers;
-    int bufferCount;
+    SEncodedVideoBufferList videoBuffers;
+    bool waitForKeyFrame;
 
-    ProduceCallback(void) : bufferCount(0)
+    ProduceCallback(void) : waitForKeyFrame(true)
     {
     }
 
@@ -71,10 +71,11 @@ void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *readCallback)
 
     virtual void produce(const SEncodedVideoBuffer &videoBuffer)
     {
-      if (!videoBuffers[0].isEmpty() || videoBuffer.isKeyFrame())
-        videoBuffers[0] += videoBuffer;
-
-      bufferCount = qMax(bufferCount, videoBuffers[0].count());
+      if (!waitForKeyFrame || videoBuffer.isKeyFrame())
+      {
+        videoBuffers += videoBuffer;
+        waitForKeyFrame = false;
+      }
     }
 
     virtual void produce(const SEncodedDataBuffer &)
@@ -138,67 +139,101 @@ void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *readCallback)
           pi.isProbed = true;
           pi.isReadable = true;
 
-          bufferReader.setPosition(qMax(bufferReader.duration() / 8, STime::fromSec(5)));
-          for (unsigned i=0; (i<4096) && (produceCallback.bufferCount<64); i++)
-            bufferReader.process();
-
-          for (QMap<quint16, SEncodedVideoBufferList>::Iterator i = produceCallback.videoBuffers.begin();
-               i != produceCallback.videoBuffers.end();
-               i++)
-          if (!i->isEmpty() && !i->first().codec().isNull())
+          // Get thumbnails
+          for (QList<VideoStreamInfo>::Iterator videoStream = program.videoStreams.begin();
+               videoStream != program.videoStreams.end();
+               videoStream++)
           {
-            VideoDecoder videoDecoder(QString::null, this);
-            if (videoDecoder.openCodec(i->first().codec()))
+            bufferReader.selectStreams(QList<StreamId>() << (*videoStream));
+
+            // Read the first minute
             {
-              SVideoBuffer bestThumb;
-              int bestDist = 0;
-
-              foreach (const SEncodedVideoBuffer &coded, *i)
-              foreach (const SVideoBuffer &thumb, videoDecoder.decodeBuffer(coded))
+              STime firstTime;
+              for (int i=0, lc=0; (i<128) && (produceCallback.videoBuffers.count()<2048); i++)
               {
-                // Get all greyvalues
-                QVector<quint8> pixels;
-                pixels.reserve(4096);
-                for (unsigned y=0, n=thumb.format().size().height(), i=n/64; y<n; y+=i)
-                {
-                  const quint8 * const line = reinterpret_cast<const quint8 *>(thumb.scanLine(y, 0));
-                  for (int x=0, n=thumb.format().size().width(), i=n/64; x<n; x+=i)
-                    pixels += line[x];
-                }
+                if (!bufferReader.process(true))
+                  break;
 
-                qSort(pixels);
-                const int dist = int(pixels[pixels.count() * 3 / 4]) - int(pixels[pixels.count() / 4]);
-                if (dist >= bestDist)
+                if (produceCallback.videoBuffers.count() != lc)
                 {
-                  bestThumb = thumb;
-                  bestDist = dist;
+                  const SEncodedVideoBuffer &last = produceCallback.videoBuffers.last();
+                  const STime lastTime = last.presentationTimeStamp().isValid()
+                                         ? last.presentationTimeStamp()
+                                         : last.decodingTimeStamp();
+
+                  if (firstTime.isValid())
+                    firstTime = qMin(firstTime, lastTime);
+                  else
+                    firstTime = lastTime;
+
+                  if ((lastTime - firstTime).toSec() >= 60)
+                    break;
+
+                  if (last.isKeyFrame())
+                  while (produceCallback.videoBuffers.count() > 1)
+                    produceCallback.videoBuffers.takeFirst();
+
+                  i = 0;
+                  lc = produceCallback.videoBuffers.count();
                 }
               }
 
-              for (QList<VideoStreamInfo>::Iterator j = program.videoStreams.begin();
-                   j != program.videoStreams.end();
-                   j++)
+              for (int i=0; (i<4096) && (produceCallback.videoBuffers.count()<128); i++)
+              if (!bufferReader.process(true))
+                break;
+            }
+
+            if (!produceCallback.videoBuffers.isEmpty() &&
+                !produceCallback.videoBuffers.first().codec().isNull())
+            {
+              VideoDecoder videoDecoder(QString::null, this);
+              if (videoDecoder.openCodec(produceCallback.videoBuffers.first().codec()))
               {
+                SVideoBuffer bestThumb;
+                int bestDist = 0, counter = 0;
+
+                foreach (const SEncodedVideoBuffer &coded, produceCallback.videoBuffers)
+                foreach (const SVideoBuffer &thumb, videoDecoder.decodeBuffer(coded))
+                {
+                  // Get all greyvalues
+                  QVector<quint8> pixels;
+                  pixels.reserve(4096);
+                  for (unsigned y=0, n=thumb.format().size().height(), i=n/32; y<n; y+=i)
+                  {
+                    const quint8 * const line = reinterpret_cast<const quint8 *>(thumb.scanLine(y, 0));
+                    for (int x=0, n=thumb.format().size().width(), i=n/32; x<n; x+=i)
+                      pixels += line[x];
+                  }
+
+                  qSort(pixels);
+                  const int dist = (counter++ / 10) + (int(pixels[pixels.count() * 3 / 4]) - int(pixels[pixels.count() / 4]));
+                  if (dist >= bestDist)
+                  {
+                    bestThumb = thumb;
+                    bestDist = dist;
+                  }
+                }
+
                 const SInterval frameRate = bestThumb.format().frameRate();
-                if (qAbs(j->codec.frameRate().toFrequency() - frameRate.toFrequency()) > 0.1f)
-                  j->codec.setFrameRate(frameRate);
-              }
+                if (qAbs(videoStream->codec.frameRate().toFrequency() - frameRate.toFrequency()) > 0.1f)
+                  videoStream->codec.setFrameRate(frameRate);
 
-              // Build thumbnail
-              if (!bestThumb.isNull())
-              {
-                VideoResizer videoResizer("bicubic", this);
-                videoResizer.setSize(SSize(128, 128));
-                videoResizer.setAspectRatioMode(Qt::KeepAspectRatio);
-                bestThumb = videoResizer.processBuffer(bestThumb);
-
-                VideoEncoder videoEncoder(QString::null, this);
-                if (videoEncoder.openCodec(SVideoCodec("MJPEG", bestThumb.format().size(), SInterval::fromFrequency(25)),
-                                           SInterfaces::VideoEncoder::Flag_LowQuality))
+                // Build thumbnail
+                if (program.thumbnail.isEmpty() && !bestThumb.isNull())
                 {
-                  const SEncodedVideoBufferList thumbnail = videoEncoder.encodeBuffer(bestThumb);
-                  if (!thumbnail.isEmpty())
-                    program.thumbnail = QByteArray((const char *)thumbnail.first().data(), thumbnail.first().size());
+                  VideoResizer videoResizer("bicubic", this);
+                  videoResizer.setSize(SSize(128, 128));
+                  videoResizer.setAspectRatioMode(Qt::KeepAspectRatio);
+                  bestThumb = videoResizer.processBuffer(bestThumb);
+
+                  VideoEncoder videoEncoder(QString::null, this);
+                  if (videoEncoder.openCodec(SVideoCodec("MJPEG", bestThumb.format().size(), SInterval::fromFrequency(25)),
+                                             SInterfaces::VideoEncoder::Flag_LowQuality))
+                  {
+                    const SEncodedVideoBufferList thumbnail = videoEncoder.encodeBuffer(bestThumb);
+                    if (!thumbnail.isEmpty())
+                      program.thumbnail = QByteArray((const char *)thumbnail.first().data(), thumbnail.first().size());
+                  }
                 }
               }
             }

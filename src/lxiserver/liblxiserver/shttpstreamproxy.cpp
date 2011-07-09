@@ -22,6 +22,30 @@
 
 namespace LXiServer {
 
+class SHttpStreamProxy::SetSourceEvent : public QEvent
+{
+public:
+  inline SetSourceEvent(QAbstractSocket *source)
+    : QEvent(setSourceEventType), source(source)
+  {
+  }
+
+public:
+  QAbstractSocket * const source;
+};
+
+class SHttpStreamProxy::AddSocketEvent : public QEvent
+{
+public:
+  inline AddSocketEvent(QAbstractSocket *socket)
+    : QEvent(addSocketEventType), socket(socket)
+  {
+  }
+
+public:
+  QAbstractSocket * const socket;
+};
+
 struct SHttpStreamProxy::Data
 {
   struct Socket
@@ -31,7 +55,10 @@ struct SHttpStreamProxy::Data
     bool                        firstData;
   };
 
+  inline Data(void) : mutex(QMutex::Recursive) { }
 
+  QMutex                        mutex;
+  QThread                     * mainThread;
   QAbstractSocket             * source;
   QTime                         sourceTimer;
   bool                          sourceFinished;
@@ -42,23 +69,33 @@ struct SHttpStreamProxy::Data
   QByteArray                    cache;
 };
 
-const int SHttpStreamProxy::inBufferSize  = 262144;
-const int SHttpStreamProxy::outBufferSize = 8388608;
+const QEvent::Type  SHttpStreamProxy::setSourceEventType = QEvent::Type(QEvent::registerEventType());
+const QEvent::Type  SHttpStreamProxy::addSocketEventType = QEvent::Type(QEvent::registerEventType());
+const QEvent::Type  SHttpStreamProxy::disconnectEventType = QEvent::Type(QEvent::registerEventType());
 
-SHttpStreamProxy::SHttpStreamProxy(QObject *parent)
-  : QObject(parent),
+const int           SHttpStreamProxy::inBufferSize  = 262144;
+const int           SHttpStreamProxy::outBufferSize = 8388608;
+
+SHttpStreamProxy::SHttpStreamProxy(void)
+  : QThread(),
     d(new Data())
 {
+  d->mainThread = thread();
   d->source = NULL;
   d->sourceFinished = false;
   d->caching = true;
 
   connect(&d->socketTimer, SIGNAL(timeout()), SLOT(processData()));
+
+  moveToThread(this);
+  start();
 }
 
 SHttpStreamProxy::~SHttpStreamProxy()
 {
-  disconnectAllSockets();
+  // The event will simply be discarded if the thread isn't running anymore.
+  qApp->postEvent(this, new QEvent(disconnectEventType));
+  wait();
 
   delete d;
   *const_cast<Data **>(&d) = NULL;
@@ -66,6 +103,8 @@ SHttpStreamProxy::~SHttpStreamProxy()
 
 bool SHttpStreamProxy::isConnected(void) const
 {
+  QMutexLocker l(&d->mutex);
+
   if (!d->sourceFinished)
     return true;
   else
@@ -74,37 +113,42 @@ bool SHttpStreamProxy::isConnected(void) const
 
 bool SHttpStreamProxy::setSource(QAbstractSocket *source)
 {
+  if (currentThread() != d->mainThread)
+  {
+    qCritical() <<
+        "SHttpStreamProxy::setSource() is not called from the correct thread, "
+        "make sure Qt::DirectConnection is specified with connect if the slot "
+        "is invoked through a signal.";
+  }
+
   if (source)
   {
-    d->source = source;
-    d->source->setReadBufferSize(inBufferSize * 2);
-    connect(d->source, SIGNAL(readyRead()), SLOT(processData()));
-    connect(d->source, SIGNAL(disconnected()), SLOT(flushData()));
-
-    d->sourceTimer.start();
-    d->socketTimer.start(250);
+    source->setParent(NULL);
+    source->moveToThread(this);
+    qApp->postEvent(this, new SetSourceEvent(source));
 
     return true;
   }
-  else
-  {
-    disconnectAllSockets();
 
-    return false;
-  }
+  disconnectAllSockets();
+  return false;
 }
 
 bool SHttpStreamProxy::addSocket(QAbstractSocket *socket)
 {
+  if (currentThread() != d->mainThread)
+  {
+    qCritical() <<
+        "SHttpStreamProxy::addSocket() is not called from the correct thread, "
+        "make sure Qt::DirectConnection is specified with connect if the slot "
+        "is invoked through a signal.";
+  }
+
   if (d->caching && ((d->source == NULL) || (qAbs(d->sourceTimer.elapsed()) < 10000)))
   {
-    Data::Socket s;
-    s.socket = socket;
-    s.sendCache = true;
-    s.firstData = true;
-
-    d->sockets += s;
-    connect(s.socket, SIGNAL(bytesWritten(qint64)), SLOT(processData()));
+    socket->setParent(NULL);
+    socket->moveToThread(this);
+    qApp->postEvent(this, new AddSocketEvent(socket));
 
     return true;
   }
@@ -112,8 +156,51 @@ bool SHttpStreamProxy::addSocket(QAbstractSocket *socket)
   return false;
 }
 
+void SHttpStreamProxy::run(void)
+{
+  QThread::exec();
+}
+
+void SHttpStreamProxy::customEvent(QEvent *e)
+{
+  QMutexLocker l(&d->mutex);
+
+  if (e->type() == setSourceEventType)
+  {
+    const SetSourceEvent * const event = static_cast<const SetSourceEvent *>(e);
+
+    d->source = event->source;
+    d->source->setReadBufferSize(inBufferSize * 2);
+    connect(d->source, SIGNAL(readyRead()), SLOT(processData()));
+    connect(d->source, SIGNAL(disconnected()), SLOT(flushData()));
+
+    d->sourceTimer.start();
+    d->socketTimer.start(250);
+  }
+  else if (e->type() == addSocketEventType)
+  {
+    const AddSocketEvent * const event = static_cast<const AddSocketEvent *>(e);
+
+    Data::Socket s;
+    s.socket = event->socket;
+    s.sendCache = true;
+    s.firstData = true;
+
+    d->sockets += s;
+    connect(s.socket, SIGNAL(bytesWritten(qint64)), SLOT(processData()));
+  }
+  else if (e->type() == disconnectEventType)
+  {
+    disconnectAllSockets();
+  }
+  else
+    QThread::customEvent(e);
+}
+
 void SHttpStreamProxy::disconnectAllSockets(void)
 {
+  QMutexLocker l(&d->mutex);
+
   if (d->source)
   {
     disconnect(d->source, SIGNAL(readyRead()), this, SLOT(processData()));
@@ -127,26 +214,36 @@ void SHttpStreamProxy::disconnectAllSockets(void)
     else
       d->source->deleteLater();
 
+    d->source->moveToThread(qApp->thread());
+
     d->source = NULL;
 
     emit disconnected();
   }
 
   for (QVector<Data::Socket>::Iterator s=d->sockets.begin(); s!=d->sockets.end(); s=d->sockets.erase(s))
-  if (s->socket->state() != QAbstractSocket::UnconnectedState)
   {
-    disconnect(s->socket, SIGNAL(bytesWritten(qint64)), this, SLOT(processData()));
-    connect(s->socket, SIGNAL(disconnected()), s->socket, SLOT(deleteLater()));
-    s->socket->disconnectFromHost();
+    if (s->socket->state() != QAbstractSocket::UnconnectedState)
+    {
+      disconnect(s->socket, SIGNAL(bytesWritten(qint64)), this, SLOT(processData()));
+      connect(s->socket, SIGNAL(disconnected()), s->socket, SLOT(deleteLater()));
+      s->socket->disconnectFromHost();
+    }
+    else
+      s->socket->deleteLater();
+
+    s->socket->moveToThread(qApp->thread());
   }
-  else
-    s->socket->deleteLater();
 
   d->socketTimer.stop();
+
+  quit();
 }
 
 void SHttpStreamProxy::processData(void)
 {
+  QMutexLocker l(&d->mutex);
+
   if (d->source && !d->sourceFinished)
   {
     while (d->source->bytesAvailable() > 0)
@@ -196,6 +293,7 @@ void SHttpStreamProxy::processData(void)
       else
       {
         s->socket->deleteLater();
+        s->socket->moveToThread(qApp->thread());
         s = d->sockets.erase(s);
       }
     }
@@ -206,6 +304,7 @@ void SHttpStreamProxy::processData(void)
     if (s->socket->state() != QAbstractSocket::ConnectedState)
     {
       s->socket->deleteLater();
+      s->socket->moveToThread(qApp->thread());
       s = d->sockets.erase(s);
     }
     else if (s->socket->bytesToWrite() == 0)
@@ -213,6 +312,7 @@ void SHttpStreamProxy::processData(void)
       disconnect(s->socket, SIGNAL(bytesWritten(qint64)), this, SLOT(processData()));
       connect(s->socket, SIGNAL(disconnected()), s->socket, SLOT(deleteLater()));
       s->socket->disconnectFromHost();
+      s->socket->moveToThread(qApp->thread());
       s = d->sockets.erase(s);
     }
     else
@@ -225,6 +325,8 @@ void SHttpStreamProxy::processData(void)
 
 void SHttpStreamProxy::flushData(void)
 {
+  QMutexLocker l(&d->mutex);
+
   if (d->source && !d->sourceFinished)
   {
     while (d->source->bytesAvailable() > 0)
@@ -249,6 +351,7 @@ void SHttpStreamProxy::flushData(void)
       else
       {
         s->socket->deleteLater();
+        s->socket->moveToThread(qApp->thread());
         s = d->sockets.erase(s);
       }
     }

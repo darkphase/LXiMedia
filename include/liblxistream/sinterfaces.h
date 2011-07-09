@@ -534,6 +534,7 @@ public:
   virtual unsigned              sampleRate(void) = 0;
 
   virtual SAudioBuffer          processBuffer(const SAudioBuffer &) = 0;
+  virtual void                  compensate(float) = 0;
 };
 
 /*! The VideoDeinterlacer interface can be used to provide deinterlacing

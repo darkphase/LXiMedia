@@ -35,7 +35,6 @@ class LXISTREAM_PUBLIC SSubtitleRenderNode : public QObject,
 {
 Q_OBJECT
 private:
-  struct                        FontLoader { FontLoader(void); ~FontLoader(); };
   struct                        Lines;
   struct                        Char;
 
@@ -63,12 +62,9 @@ public:
 private:
   _lxi_internal void            processTask(const SVideoBuffer &);
   _lxi_internal static void     renderSubtitles(SVideoBuffer &, const Lines *, const Char * const *);
+  _lxi_internal static void     loadFonts(void);
 
 private:
-  _lxi_internal static const unsigned char subFontsData[];
-  _lxi_internal static QMap<int, QVector<Char *> > characters;
-  _lxi_internal static FontLoader  fontLoader;
-
   struct Data;
   Data                  * const d;
 };

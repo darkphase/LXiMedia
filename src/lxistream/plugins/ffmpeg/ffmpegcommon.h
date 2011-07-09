@@ -60,9 +60,9 @@ public:
   static int64_t                toFFMpegChannelLayout(SAudioFormat::Channels);
   static SAudioFormat::Channels fromFFMpegChannelLayout(int64_t, int);
 
-  static ::AVPacket             toAVPacket(const SEncodedAudioBuffer &, const ::AVStream * = NULL);
-  static ::AVPacket             toAVPacket(const SEncodedVideoBuffer &, const ::AVStream * = NULL);
-  static ::AVPacket             toAVPacket(const SEncodedDataBuffer &, const ::AVStream * = NULL);
+  static ::AVPacket             toAVPacket(const SEncodedAudioBuffer &, ::AVStream * = NULL);
+  static ::AVPacket             toAVPacket(const SEncodedVideoBuffer &, ::AVStream * = NULL);
+  static ::AVPacket             toAVPacket(const SEncodedDataBuffer &, ::AVStream * = NULL);
 
 #ifdef OPT_ENABLE_THREADS
   static int                    decodeThreadCount(::CodecID);

@@ -24,6 +24,7 @@
 #include "sencodedaudiobuffer.h"
 #include "sencodeddatabuffer.h"
 #include "sencodedvideobuffer.h"
+#include "smediainfo.h"
 #include "ssubpicturebuffer.h"
 #include "ssubtitlebuffer.h"
 #include "svideobuffer.h"
@@ -62,6 +63,10 @@ void LXiStreamInit::startup(void)
     qRegisterMetaType<SAudioCodec>("SAudioCodec");
     qRegisterMetaType<SVideoCodec>("SVideoCodec");
     qRegisterMetaType<SDataCodec>("SDataCodec");
+
+    qRegisterMetaType<SInterval>("SInterval");
+    qRegisterMetaType<STime>("STime");
+    qRegisterMetaType<SMediaInfo>("SMediaInfo");
   }
 
   sApp->addModuleFilter("lxistream");

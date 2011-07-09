@@ -52,6 +52,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
   connect(&audio->matrix, SIGNAL(output(SAudioBuffer)), &audio->resampler, SLOT(input(SAudioBuffer)));
   connect(&audio->resampler, SIGNAL(output(SAudioBuffer)), &sync, SLOT(input(SAudioBuffer)));
   connect(&sync, SIGNAL(output(SAudioBuffer)), &audio->encoder, SLOT(input(SAudioBuffer)));
+  connect(&sync, SIGNAL(compensateAudio(float)), &audio->resampler, SLOT(compensate(float)));
   connect(&audio->encoder, SIGNAL(output(SEncodedAudioBuffer)), &output, SLOT(input(SEncodedAudioBuffer)));
 
   video = new Video(this);
@@ -162,7 +163,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
     if (file.last().toLower() != "ts")
     { // Program stream
       output.openFormat("vob", audio->encoder.codec(), video->encoder.codec(), duration);
-      header.setContentType("video/MP2P");
+      header.setContentType("video/mpeg");
     }
     else
     { // Transport stream
@@ -456,13 +457,29 @@ bool MediaTranscodeStream::setup(const SHttpServer::RequestMessage &request,
       duration += pos;
   }
 
+  QVector<double> frameRates = STimeStampResamplerNode::standardFrameRates();
+  if (url.hasQueryItem("framerates"))
+  {
+    QVector<double> rates;
+    foreach (const QString &rate, url.queryItemValue("framerates").split(','))
+    {
+      bool ok = false;
+      const double val = rate.toDouble(&ok);
+      if (ok)
+        rates += val;
+    }
+
+    if (!rates.isEmpty())
+      frameRates = rates;
+  }
+
   // Set stream properties
   if (!audioStreams.isEmpty() && !videoStreams.isEmpty())
   {
     const SAudioCodec audioInCodec = audioStreams.first().codec;
     const SVideoCodec videoInCodec = videoStreams.first().codec;
 
-    const SInterval roundedFrameRate = STimeStampResamplerNode::roundFrameRate(videoInCodec.frameRate());
+    const SInterval roundedFrameRate = STimeStampResamplerNode::roundFrameRate(videoInCodec.frameRate(), frameRates);
     const STime roundedDuration = duration * (roundedFrameRate.toFrequency() / videoInCodec.frameRate().toFrequency());
 
     timeStampResampler.setFrameRate(roundedFrameRate);

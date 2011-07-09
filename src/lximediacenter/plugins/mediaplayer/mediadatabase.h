@@ -118,6 +118,7 @@ private slots:
   void                          scanDirs(void);
   void                          directoryChanged(const QString &);
   void                          probeFinished(const SHttpEngine::ResponseMessage &);
+  void                          probeNext(void);
 
 private:
   QByteArray                    readNodeData(UniqueID) const;
@@ -138,7 +139,7 @@ private:
   static const QEvent::Type     queryImdbItemEventType;
   static const QEvent::Type     scanRootsEventType;
 
-  static const int              scanDelay = 15000;
+  static const int              scanDelay = 30000;
   static const CatecoryDesc     categories[];
   static MediaDatabase        * self;
 
@@ -152,6 +153,8 @@ private:
   QTimer                        scanDirsSingleTimer;
   QHash<QString, ScanDirEvent *> scanDirsQueue;
   QAtomicInt                    scanning;
+  QSet<QString>                 probeQueue;
+  int                           probeTokens;
 };
 
 

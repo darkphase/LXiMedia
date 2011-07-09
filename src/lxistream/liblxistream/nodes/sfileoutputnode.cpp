@@ -44,7 +44,7 @@ SFileOutputNode::~SFileOutputNode()
 
 bool SFileOutputNode::start(STimer *timer)
 {
-  if (d->mediaFile.open(QIODevice::WriteOnly))
+  if (d->mediaFile.open(QFile::WriteOnly))
     return SIOOutputNode::start(timer);
 
   return false;

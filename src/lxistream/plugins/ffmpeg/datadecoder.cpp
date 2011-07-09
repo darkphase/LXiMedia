@@ -119,7 +119,7 @@ SDataBufferList DataDecoder::decodeBuffer(const SEncodedDataBuffer &dataBuffer)
           QList<SSubpictureBuffer::Rect> rects;
           for (unsigned i=0; i<subtitle.num_rects; i++)
           if ((subtitle.rects[i]->type == ::SUBTITLE_BITMAP) ||
-              ((subtitle.rects[i]->type == SUBTITLE_NONE) &&
+              ((subtitle.rects[i]->type == ::SUBTITLE_NONE) &&
                (subtitle.rects[i]->pict.data[0] != NULL) &&
                (subtitle.rects[i]->pict.data[1] != NULL)))
           {
@@ -141,7 +141,7 @@ SDataBufferList DataDecoder::decodeBuffer(const SEncodedDataBuffer &dataBuffer)
             SSubpictureBuffer buffer(rects);
             for (unsigned i=0, rectId = 0; (i<subtitle.num_rects) && (rectId<unsigned(rects.count())); i++)
             if (((subtitle.rects[i]->type == ::SUBTITLE_BITMAP) ||
-                 (subtitle.rects[i]->type == SUBTITLE_NONE)) &&
+                 (subtitle.rects[i]->type == ::SUBTITLE_NONE)) &&
                 (subtitle.rects[i]->pict.data[0] != NULL) &&
                 (subtitle.rects[i]->pict.data[1] != NULL))
             {

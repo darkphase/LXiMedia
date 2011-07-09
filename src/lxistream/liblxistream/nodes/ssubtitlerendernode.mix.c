@@ -62,12 +62,12 @@ void LXiStream_SSubtitleRenderNode_mixSubtitle8
       for (sc=0; sc<160; sc++)
       if (lines->l[sl][sc] > 0)
       {
-        const struct Char * const c = characters[lines->l[sl][sc]];
-        const uint8_t * const pixels = c->pixels + (ly * c->width);
+        const struct Char * const __restrict c = characters[lines->l[sl][sc]];
+        const uint8_t * const __restrict pixels = c->pixels + (ly * c->width);
 
         for (x=0; x<c->width; x++)
-        if (pixels[x] == 3)
-          pix[x] >>= 2;
+        if (pixels[x] < 128)
+          pix[x] = ((pixels[x] * 2) >= pix[x]) ? 0 : (pix[x] - (pixels[x] * 2));
 
         pix += c->advance;
       }
@@ -80,12 +80,12 @@ void LXiStream_SSubtitleRenderNode_mixSubtitle8
       for (sc=0; sc<160; sc++)
       if (lines->l[sl][sc] > 0)
       {
-        const struct Char * const c = characters[lines->l[sl][sc]];
-        const uint8_t * const pixels = c->pixels + (ly * c->width);
+        const struct Char * const __restrict c = characters[lines->l[sl][sc]];
+        const uint8_t * const __restrict pixels = c->pixels + (ly * c->width);
 
         for (x=0; x<c->width; x++)
-        if (pixels[x] > 3)
-          pix[x] = pixels[x];
+        if (pixels[x] >= 128)
+          pix[x] = (pixels[x] - 128) * 2;
 
         pix += c->advance;
       }
@@ -101,11 +101,11 @@ void LXiStream_SSubtitleRenderNode_mixSubtitle8
         for (sc=0; sc<160; sc++)
         if (lines->l[sl][sc] > 0)
         {
-          const struct Char * const c = characters[lines->l[sl][sc]];
-          const uint8_t * const pixels = c->pixels + (ly * c->width);
+          const struct Char * const __restrict c = characters[lines->l[sl][sc]];
+          const uint8_t * const __restrict pixels = c->pixels + (ly * c->width);
 
           for (x=0; x<c->width; x++)
-          if (pixels[x] > 3)
+          if (pixels[x] >= 128)
             uPix[(xx+x)/wf] = vPix[(xx+x)/wf] = (uint8_t)127;
 
           xx += c->advance;
@@ -134,9 +134,7 @@ void LXiStream_SSubtitleRenderNode_mixSubtitle8_stretch
     unsigned lineWidth = 0;
     for (sc=0; sc<160; sc++)
     if (lines->l[sl][sc] > 0)
-      lineWidth += characters[lines->l[sl][sc]]->advance;
-
-    lineWidth = (unsigned)(lineWidth / srcAspect);
+      lineWidth += (unsigned)((characters[lines->l[sl][sc]]->advance / srcAspect) + 0.5f);
 
     if ((lineWidth + (lineHeight * 2)) < srcWidth)
     for (ly=0; ly<lineHeight; ly++)
@@ -149,14 +147,29 @@ void LXiStream_SSubtitleRenderNode_mixSubtitle8_stretch
       for (sc=0; sc<160; sc++)
       if (lines->l[sl][sc] > 0)
       {
-        const struct Char * const c = characters[lines->l[sl][sc]];
-        const uint8_t * const pixels = c->pixels + (ly * c->width);
+        const struct Char * const __restrict c = characters[lines->l[sl][sc]];
+        const uint8_t * __restrict const pixels = c->pixels + (ly * c->width);
 
         for (x=0, n=(unsigned)(c->width/srcAspect); x<n; x++)
-        if (pixels[(unsigned)(x*srcAspect)] == 3)
-          pix[x] >>= 2;
+        {
+          const float srcPos = (float)(x) * srcAspect;
+          const unsigned srcX = (unsigned)srcPos;
+          if ((pixels[srcX] < 128) || (pixels[srcX + 1] < 128))
+          {
+            const float sampleBweight = srcPos - (float)(srcX);
+            const float sampleAweight = 1.0f - sampleBweight;
+            const uint8_t sampleA = (pixels[srcX] < 128) ? (pixels[srcX] * 2) : 0;
+            const uint8_t sampleB = (pixels[srcX + 1] < 128) ? (pixels[srcX + 1] * 2) : 0;
 
-        pix += (unsigned)(c->advance/srcAspect);
+            const uint8_t sample =
+                (uint8_t)((((float)sampleA) * sampleAweight) +
+                          (((float)sampleB) * sampleBweight));
+
+            pix[x] = (sample >= pix[x]) ? 0 : (pix[x] - sample);
+          }
+        }
+
+        pix += (unsigned)((c->advance / srcAspect) + 0.5f);
       }
       else
         break;
@@ -167,25 +180,26 @@ void LXiStream_SSubtitleRenderNode_mixSubtitle8_stretch
       for (sc=0; sc<160; sc++)
       if (lines->l[sl][sc] > 0)
       {
-        const struct Char * const c = characters[lines->l[sl][sc]];
-        const uint8_t * const pixels = c->pixels + (ly * c->width);
+        const struct Char * const __restrict c = characters[lines->l[sl][sc]];
+        const uint8_t * const __restrict pixels = c->pixels + (ly * c->width);
 
         for (x=0, n=(unsigned)(c->width/srcAspect)-1; x<n; x++)
         {
           const float srcPos = (float)(x) * srcAspect;
           const unsigned srcX = (unsigned)srcPos;
-
-          if ((pixels[srcX] > 3) || (pixels[srcX + 1] > 3))
+          if ((pixels[srcX] >= 128) || (pixels[srcX + 1] >= 128))
           {
             const float sampleBweight = srcPos - (float)(srcX);
             const float sampleAweight = 1.0f - sampleBweight;
+            const uint8_t sampleA = (pixels[srcX] >= 128) ? ((pixels[srcX] - 128) * 2) : 0;
+            const uint8_t sampleB = (pixels[srcX + 1] >= 128) ? ((pixels[srcX + 1] - 128) * 2) : 0;
 
-            pix[x] = (uint8_t)(((float)(pixels[srcX]) * sampleAweight) +
-                               ((float)(pixels[srcX + 1]) * sampleBweight));
+            pix[x] = (uint8_t)((((float)sampleA) * sampleAweight) +
+                               (((float)sampleB) * sampleBweight));
           }
         }
 
-        pix += (unsigned)(c->advance/srcAspect);
+        pix += (unsigned)((c->advance / srcAspect) + 0.5f);
       }
       else
         break;
@@ -199,14 +213,14 @@ void LXiStream_SSubtitleRenderNode_mixSubtitle8_stretch
         for (sc=0; sc<160; sc++)
         if (lines->l[sl][sc] > 0)
         {
-          const struct Char * const c = characters[lines->l[sl][sc]];
-          const uint8_t * const pixels = c->pixels + (ly * c->width);
+          const struct Char * const __restrict c = characters[lines->l[sl][sc]];
+          const uint8_t * const __restrict pixels = c->pixels + (ly * c->width);
 
           for (x=0, n=(unsigned)(c->width/srcAspect); x<n; x++)
-          if (pixels[(unsigned)(x*srcAspect)] > 3)
+          if (pixels[(unsigned)(x*srcAspect)] >= 128)
             uPix[(xx+x)/wf] = vPix[(xx+x)/wf] = (uint8_t)127;
 
-          xx += (unsigned)(c->advance/srcAspect);
+          xx += (unsigned)((c->advance / srcAspect) + 0.5f);
         }
         else
           break;
@@ -243,14 +257,17 @@ void LXiStream_SSubtitleRenderNode_mixSubtitle32
       for (sc=0; sc<160; sc++)
       if (lines->l[sl][sc] > 0)
       {
-        const struct Char * const c = characters[lines->l[sl][sc]];
-        const uint8_t * const pixels = c->pixels + (ly * c->width);
+        const struct Char * const __restrict c = characters[lines->l[sl][sc]];
+        const uint8_t * const __restrict pixels = c->pixels + (ly * c->width);
 
         for (x=0; x<c->width; x++)
-        if (pixels[x] == 3)
+        if (pixels[x] < 128)
         {
-          uint8_t * __restrict p = (uint8_t *)(pix + x);
-          p[0] >>= 2; p[1] >>= 2; p[2] >>= 2; p[3] >>= 2;
+          uint8_t * const __restrict p = (uint8_t *)(pix + x);
+          p[0] = ((pixels[x] * 2) >= p[0]) ? 0 : (p[0] - (pixels[x] * 2));
+          p[1] = ((pixels[x] * 2) >= p[1]) ? 0 : (p[1] - (pixels[x] * 2));
+          p[2] = ((pixels[x] * 2) >= p[2]) ? 0 : (p[2] - (pixels[x] * 2));
+          p[3] = ((pixels[x] * 2) >= p[3]) ? 0 : (p[3] - (pixels[x] * 2));
         }
 
         pix += c->advance;
@@ -264,14 +281,14 @@ void LXiStream_SSubtitleRenderNode_mixSubtitle32
       for (sc=0; sc<160; sc++)
       if (lines->l[sl][sc] > 0)
       {
-        const struct Char * const c = characters[lines->l[sl][sc]];
-        const uint8_t * const pixels = c->pixels + (ly * c->width);
+        const struct Char * const __restrict c = characters[lines->l[sl][sc]];
+        const uint8_t * const __restrict pixels = c->pixels + (ly * c->width);
 
         for (x=0; x<c->width; x++)
         if (pixels[x] > 3)
         {
-          uint8_t * __restrict p = (uint8_t *)(pix + x);
-          p[0] = p[1] = p[2] = p[3] = pixels[x];
+          uint8_t * const __restrict p = (uint8_t *)(pix + x);
+          p[0] = p[1] = p[2] = p[3] = (pixels[x] - 128) * 2;
         }
 
         pix += c->advance;
@@ -298,9 +315,7 @@ void LXiStream_SSubtitleRenderNode_mixSubtitle32_stretch
     unsigned lineWidth = 0;
     for (sc=0; sc<160; sc++)
     if (lines->l[sl][sc] > 0)
-      lineWidth += characters[lines->l[sl][sc]]->advance;
-
-    lineWidth = (unsigned)(lineWidth / srcAspect);
+      lineWidth += (unsigned)((characters[lines->l[sl][sc]]->advance / srcAspect) + 0.5f);
 
     if ((lineWidth + (lineHeight * 2)) < srcWidth)
     for (ly=0; ly<lineHeight; ly++)
@@ -313,17 +328,33 @@ void LXiStream_SSubtitleRenderNode_mixSubtitle32_stretch
       for (sc=0; sc<160; sc++)
       if (lines->l[sl][sc] > 0)
       {
-        const struct Char * const c = characters[lines->l[sl][sc]];
-        const uint8_t * const pixels = c->pixels + (ly * c->width);
+        const struct Char * const __restrict c = characters[lines->l[sl][sc]];
+        const uint8_t * const __restrict pixels = c->pixels + (ly * c->width);
 
         for (x=0, n=(unsigned)(c->width/srcAspect); x<n; x++)
-        if (pixels[(unsigned)(x*srcAspect)] == 3)
         {
-          uint8_t * __restrict p = (uint8_t *)(pix + x);
-          p[0] >>= 2; p[1] >>= 2; p[2] >>= 2; p[3] >>= 2;
+          const float srcPos = (float)(x) * srcAspect;
+          const unsigned srcX = (unsigned)srcPos;
+          if ((pixels[srcX] < 128) || (pixels[srcX + 1] < 128))
+          {
+            const float sampleBweight = srcPos - (float)(srcX);
+            const float sampleAweight = 1.0f - sampleBweight;
+            const uint8_t sampleA = (pixels[srcX] < 128) ? (pixels[srcX] * 2) : 0;
+            const uint8_t sampleB = (pixels[srcX + 1] < 128) ? (pixels[srcX + 1] * 2) : 0;
+
+            const uint8_t sample =
+                (uint8_t)((((float)sampleA) * sampleAweight) +
+                          (((float)sampleB) * sampleBweight));
+
+            uint8_t * const __restrict p = (uint8_t *)(pix + x);
+            p[0] = (sample >= p[0]) ? 0 : (p[0] - sample);
+            p[1] = (sample >= p[1]) ? 0 : (p[1] - sample);
+            p[2] = (sample >= p[2]) ? 0 : (p[2] - sample);
+            p[3] = (sample >= p[3]) ? 0 : (p[3] - sample);
+          }
         }
 
-        pix += (unsigned)(c->advance/srcAspect);
+        pix += (unsigned)((c->advance / srcAspect) + 0.5f);
       }
       else
         break;
@@ -334,26 +365,28 @@ void LXiStream_SSubtitleRenderNode_mixSubtitle32_stretch
       for (sc=0; sc<160; sc++)
       if (lines->l[sl][sc] > 0)
       {
-        const struct Char * const c = characters[lines->l[sl][sc]];
-        const uint8_t * const pixels = c->pixels + (ly * c->width);
+        const struct Char * const __restrict c = characters[lines->l[sl][sc]];
+        const uint8_t * const __restrict pixels = c->pixels + (ly * c->width);
 
         for (x=0, n=(unsigned)(c->width/srcAspect)-1; x<n; x++)
         {
           const float srcPos = (float)(x) * srcAspect;
           const unsigned srcX = (unsigned)srcPos;
-
-          if ((pixels[srcX] > 3) || (pixels[srcX + 1] > 3))
+          if ((pixels[srcX] >= 128) || (pixels[srcX + 1] >= 128))
           {
             const float sampleBweight = srcPos - (float)(srcX);
             const float sampleAweight = 1.0f - sampleBweight;
+            const uint8_t sampleA = (pixels[srcX] >= 128) ? ((pixels[srcX] - 128) * 2) : 0;
+            const uint8_t sampleB = (pixels[srcX + 1] >= 128) ? ((pixels[srcX + 1] - 128) * 2) : 0;
 
-            uint8_t * __restrict p = (uint8_t *)(pix + x);
-            p[0] = p[1] = p[2] = p[3] = (uint8_t)(((float)(pixels[srcX]) * sampleAweight) +
-                                                  ((float)(pixels[srcX + 1]) * sampleBweight));
+            uint8_t * const __restrict p = (uint8_t *)(pix + x);
+            p[0] = p[1] = p[2] = p[3] =
+                (uint8_t)((((float)sampleA) * sampleAweight) +
+                          (((float)sampleB) * sampleBweight));
           }
         }
 
-        pix += (unsigned)(c->advance/srcAspect);
+        pix += (unsigned)((c->advance / srcAspect) + 0.5f);
       }
       else
         break;

@@ -21,7 +21,12 @@
 #include "svideobuffer.h"
 
 // Implemented in svideobox.box.c
-extern "C" void LXiStream_SVideoBoxNode_boxVideo8(
+extern "C" void LXiStream_SVideoBoxNode_boxVideo8y(
+    const void * srcData, unsigned srcWidth, unsigned srcStride, unsigned srcNumLines,
+    void * dstData, unsigned dstWidth, unsigned dstStride, unsigned dstNumLines,
+    int nullPixel);
+
+extern "C" void LXiStream_SVideoBoxNode_boxVideo8uv(
     const void * srcData, unsigned srcWidth, unsigned srcStride, unsigned srcNumLines,
     void * dstData, unsigned dstWidth, unsigned dstStride, unsigned dstNumLines,
     int nullPixel);
@@ -108,43 +113,48 @@ void SVideoBoxNode::processTask(const SVideoBuffer &videoBuffer)
     videoBuffer.format().planarYUVRatio(wr, hr);
 
     if (destBuffer.lineSize(0) > 0)
-      LXiStream_SVideoBoxNode_boxVideo8(videoBuffer.scanLine(0, 0),
-                                  size.width(), videoBuffer.lineSize(0),
-                                  size.height(), destBuffer.scanLine(0, 0),
-                                  d->destSize.width(), destBuffer.lineSize(0),
-                                  d->destSize.height(), 0);
+      LXiStream_SVideoBoxNode_boxVideo8y(
+          videoBuffer.scanLine(0, 0),
+          size.width(), videoBuffer.lineSize(0),
+          size.height(), destBuffer.scanLine(0, 0),
+          d->destSize.width(), destBuffer.lineSize(0),
+          d->destSize.height(), 0);
 
     if (destBuffer.lineSize(1) > 0)
-      LXiStream_SVideoBoxNode_boxVideo8(videoBuffer.scanLine(0, 1),
-                                  size.width() / wr, videoBuffer.lineSize(1),
-                                  size.height() / hr, destBuffer.scanLine(0, 1),
-                                  d->destSize.width() / wr, destBuffer.lineSize(1),
-                                  d->destSize.height() / hr, 127);
+      LXiStream_SVideoBoxNode_boxVideo8uv(
+          videoBuffer.scanLine(0, 1),
+          size.width() / wr, videoBuffer.lineSize(1),
+          size.height() / hr, destBuffer.scanLine(0, 1),
+          d->destSize.width() / wr, destBuffer.lineSize(1),
+          d->destSize.height() / hr, 127);
 
     if (destBuffer.lineSize(2) > 0)
-      LXiStream_SVideoBoxNode_boxVideo8(videoBuffer.scanLine(0, 2),
-                                  size.width() / wr, videoBuffer.lineSize(2),
-                                  size.height() / hr, destBuffer.scanLine(0, 2),
-                                  d->destSize.width() / wr, destBuffer.lineSize(2),
-                                  d->destSize.height() / hr, 127);
+      LXiStream_SVideoBoxNode_boxVideo8uv(
+          videoBuffer.scanLine(0, 2),
+          size.width() / wr, videoBuffer.lineSize(2),
+          size.height() / hr, destBuffer.scanLine(0, 2),
+          d->destSize.width() / wr, destBuffer.lineSize(2),
+          d->destSize.height() / hr, 127);
   }
   if (destBuffer.format().sampleSize() == 2)
   {
     if (destBuffer.lineSize(0) > 0)
-      LXiStream_SVideoBoxNode_boxVideo32(videoBuffer.scanLine(0, 0),
-                                   size.width() / 2, videoBuffer.lineSize(0),
-                                   size.height(), destBuffer.scanLine(0, 0),
-                                   d->destSize.width() / 2, destBuffer.lineSize(0),
-                                   d->destSize.height(), videoBuffer.format().nullPixelValue());
+      LXiStream_SVideoBoxNode_boxVideo32(
+          videoBuffer.scanLine(0, 0),
+          size.width() / 2, videoBuffer.lineSize(0),
+          size.height(), destBuffer.scanLine(0, 0),
+          d->destSize.width() / 2, destBuffer.lineSize(0),
+          d->destSize.height(), videoBuffer.format().nullPixelValue());
   }
   if (destBuffer.format().sampleSize() == 4)
   {
     if (destBuffer.lineSize(0) > 0)
-      LXiStream_SVideoBoxNode_boxVideo32(videoBuffer.scanLine(0, 0),
-                                   size.width(), videoBuffer.lineSize(0),
-                                   size.height(), destBuffer.scanLine(0, 0),
-                                   d->destSize.width(), destBuffer.lineSize(0),
-                                   d->destSize.height(), videoBuffer.format().nullPixelValue());
+      LXiStream_SVideoBoxNode_boxVideo32(
+          videoBuffer.scanLine(0, 0),
+          size.width(), videoBuffer.lineSize(0),
+          size.height(), destBuffer.scanLine(0, 0),
+          d->destSize.width(), destBuffer.lineSize(0),
+          d->destSize.height(), videoBuffer.format().nullPixelValue());
   }
 
   destBuffer.setTimeStamp(videoBuffer.timeStamp());

@@ -345,6 +345,8 @@ bool SApplication::enableProfiling(const QString &fileName)
     return false;
   }
 
+  qDebug() << "Enabling profiling to file" << fileName;
+
   // Reserve space for SVG header
   d->profileFile->write("<svg>" + QByteArray(250, ' ') + '\n');
 
@@ -376,6 +378,8 @@ void SApplication::disableProfiling(void)
     d->profileFile = NULL;
 
     d->profileThreadMap.clear();
+
+    qDebug() << "Disabled profiling";
   }
 }
 
@@ -462,6 +466,11 @@ void SApplication::profileTask(int startTime, int stopTime, const QByteArray &ta
                 "y=\"" + QByteArray::number((*threadId * d->profileLineHeight) + d->profileLineHeight - 1) + "\" "
                 "style=\"font-size:6px\">" + xmlTaskName + "</text>\n");
     }
+//    else
+//    {
+//      d->profileFile->write(
+//          "<!-- " + taskName + " " + QByteArray::number(duration) + " ms -->\n");
+//    }
 
     d->profileFile->flush();
   }
@@ -533,6 +542,7 @@ SApplication::Profiler::Profiler(const QByteArray &taskName)
   : taskName(taskName),
     startTime(self->profileTimeStamp())
 {
+  self->profileTask(startTime, startTime, taskName + "_start");
 }
 
 SApplication::Profiler::~Profiler()

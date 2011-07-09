@@ -59,6 +59,8 @@ signals:
   void                          output(const SAudioBuffer &);
   void                          output(const SVideoBuffer &);
 
+  void                          compensateAudio(float);
+
 private:
   _lxi_internal void            output(void);
 

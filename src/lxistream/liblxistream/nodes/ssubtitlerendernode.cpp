@@ -52,28 +52,25 @@ namespace LXiStream {
 // Keep these structures in sync with the ones defined in ssubtitlerendernode.mix.c
 struct SSubtitleRenderNode::Lines
 {
-  quint8                      l[4][160];
+  quint8                        l[4][160];
 };
 
 struct SSubtitleRenderNode::Char
 {
-  unsigned                    advance, width, height;
-  quint8                      pixels[0];
+  unsigned                      advance, width, height;
+  quint8                        pixels[0];
 };
-
-const unsigned char SSubtitleRenderNode::subFontsData[] = {
-#include "subtitlefont.h"
-};
-
-QMap<int, QVector<SSubtitleRenderNode::Char *> > SSubtitleRenderNode::characters;
-SSubtitleRenderNode::FontLoader SSubtitleRenderNode::fontLoader;
 
 struct SSubtitleRenderNode::Data
 {
+  static int                    instances;
+  static QByteArray             fontData;
+  static QMap<int, QVector<const Char *> > characters;
+
   unsigned                      ratio;
   volatile bool                 enabled;
   QMap<STime, SSubtitleBuffer>  subtitles;
-  QMap<int, QVector<Char *> >::ConstIterator font;
+  QMap<int, QVector<const Char *> >::ConstIterator font;
   Lines                       * subtitle;
   STime                         subtitleTime;
   bool                          subtitleVisible;
@@ -82,17 +79,25 @@ struct SSubtitleRenderNode::Data
   QFuture<void>                 future;
 };
 
+int SSubtitleRenderNode::Data::instances = 0;
+QByteArray SSubtitleRenderNode::Data::fontData;
+QMap<int, QVector<const SSubtitleRenderNode::Char *> > SSubtitleRenderNode::Data::characters;
+
 SSubtitleRenderNode::SSubtitleRenderNode(SGraph *parent)
   : QObject(parent),
     SGraph::Node(parent),
     d(new Data())
 {
-  // loadFont() should be invoked before a SSubtitleRenderNode can be constructed.
-  Q_ASSERT(!characters.isEmpty());
+  if (d->instances++ <= 0)
+    loadFonts();
+
+  Q_ASSERT(d->instances > 0);
+  Q_ASSERT(!d->fontData.isEmpty());
+  Q_ASSERT(!d->characters.isEmpty());
 
   d->ratio = 16;
   d->enabled = false;
-  d->font = characters.end();
+  d->font = d->characters.end();
   d->subtitle = new Lines();
   d->subtitleVisible = false;
 }
@@ -101,6 +106,15 @@ SSubtitleRenderNode::~SSubtitleRenderNode()
 {
   d->future.waitForFinished();
   delete d->subtitle;
+
+  if (--d->instances <= 0)
+  {
+    d->fontData.clear();
+    d->characters.clear();
+  }
+
+  Q_ASSERT(d->instances >= 0);
+
   delete d;
   *const_cast<Data **>(&d) = NULL;
 }
@@ -159,9 +173,9 @@ void SSubtitleRenderNode::input(const SVideoBuffer &videoBuffer)
 
 SVideoBuffer SSubtitleRenderNode::renderSubtitles(const SVideoBuffer &videoBuffer, const QStringList &lines, unsigned ratio)
 {
-  QMap<int, QVector<Char *> >::ConstIterator font =
-      characters.lowerBound(videoBuffer.format().size().height() / ratio);
-  if (font == characters.end())
+  QMap<int, QVector<const Char *> >::ConstIterator font =
+      Data::characters.lowerBound(videoBuffer.format().size().height() / ratio);
+  if (font == Data::characters.end())
     font--;
 
   Lines subtitle;
@@ -170,7 +184,7 @@ SVideoBuffer SSubtitleRenderNode::renderSubtitles(const SVideoBuffer &videoBuffe
   {
     QString line = lines[j];
     if (line.contains("<i>", Qt::CaseInsensitive))
-      font = characters.find(-int(font->first()->height));
+      font = Data::characters.find(-int(font->first()->height));
 
     line.replace("<i>", "", Qt::CaseInsensitive);
     line.replace("</i>", "", Qt::CaseInsensitive);
@@ -226,8 +240,8 @@ void SSubtitleRenderNode::processTask(const SVideoBuffer &videoBuffer)
     // Render the next subtitle.
     if ((i.key() != d->subtitleTime) && (i.key() <= timeStamp))
     {
-      d->font = characters.lowerBound(videoBuffer.format().size().height() / d->ratio);
-      if (d->font == characters.end())
+      d->font = d->characters.lowerBound(videoBuffer.format().size().height() / d->ratio);
+      if (d->font == d->characters.end())
         d->font--;
 
       const QStringList lines = i->subtitle();
@@ -237,7 +251,7 @@ void SSubtitleRenderNode::processTask(const SVideoBuffer &videoBuffer)
       {
         QString line = lines[j];
         if (line.contains("<i>", Qt::CaseInsensitive))
-          d->font = characters.find(-int(d->font->first()->height));
+          d->font = d->characters.find(-int(d->font->first()->height));
 
         line.replace("<i>", "", Qt::CaseInsensitive);
         line.replace("</i>", "", Qt::CaseInsensitive);
@@ -319,60 +333,110 @@ void SSubtitleRenderNode::renderSubtitles(SVideoBuffer &buffer, const Lines *sub
   }
 }
 
+/*! This loads the pre-rendered "DejaVu Sans" characters, see
+    http://dejavu-fonts.org/ for more information on this font.
 
-SSubtitleRenderNode::FontLoader::FontLoader(void)
+Copyright (c) 2003 by Bitstream, Inc. All Rights Reserved. Bitstream Vera is a
+trademark of Bitstream, Inc. Permission is hereby granted, free of charge, to
+any person obtaining a copy of the fonts accompanying this license ("Fonts") and
+associated documentation files (the "Font Software"), to reproduce and
+distribute the Font Software, including without limitation the rights to use,
+copy, merge, publish, distribute, and/or sell copies of the Font Software, and
+to permit persons to whom the Font Software is furnished to do so, subject to
+the following conditions:
+The above copyright and trademark notices and this permission notice shall be
+included in all copies of one or more of the Font Software typefaces. The Font
+Software may be modified, altered, or added to, and in particular the designs of
+glyphs or characters in the Fonts may be modified and additional glyphs or
+characters may be added to the Fonts, only if the fonts are renamed to names not
+containing either the words "Bitstream" or the word "Vera".
+This License becomes null and void to the extent applicable to Fonts or Font
+Software that has been modified and is distributed under the "Bitstream Vera"
+names. The Font Software may be sold as part of a larger software package but no
+copy of one or more of the Font Software typefaces may be sold by itself.
+
+THE FONT SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT OF COPYRIGHT, PATENT, TRADEMARK, OR
+OTHER RIGHT. IN NO EVENT SHALL BITSTREAM OR THE GNOME FOUNDATION BE LIABLE FOR
+ANY CLAIM, DAMAGES OR OTHER LIABILITY, INCLUDING ANY GENERAL, SPECIAL, INDIRECT,
+INCIDENTAL, OR CONSEQUENTIAL DAMAGES, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+OTHERWISE, ARISING FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR
+FROM OTHER DEALINGS IN THE FONT SOFTWARE.
+
+Except as contained in this notice, the names of Gnome, the Gnome Foundation,
+and Bitstream Inc., shall not be used in advertising or otherwise to promote the
+sale, use or other dealings in this Font Software without prior written
+authorization from the Gnome Foundation or Bitstream Inc., respectively. For
+further information, contact: fonts at gnome dot org.
+
+Copyright (c) 2006 by Tavmjong Bah. All Rights Reserved. Permission is hereby
+granted, free of charge, to any person obtaining a copy of the fonts
+accompanying this license ("Fonts") and associated documentation files (the
+"Font Software"), to reproduce and distribute the modifications to the
+Bitstream Vera Font Software, including without limitation the rights to use,
+copy, merge, publish, distribute, and/or sell copies of the Font Software, and
+to permit persons to whom the Font Software is furnished to do so, subject to
+the following conditions:
+The above copyright and trademark notices and this permission notice shall be
+included in all copies of one or more of the Font Software typefaces. The Font
+Software may be modified, altered, or added to, and in particular the designs of
+glyphs or characters in the Fonts may be modified and additional glyphs or
+characters may be added to the Fonts, only if the fonts are renamed to names not
+containing either the words "Tavmjong Bah" or the word "Arev".
+This License becomes null and void to the extent applicable to Fonts or Font
+Software that has been modified and is distributed under the "Tavmjong Bah Arev"
+names. The Font Software may be sold as part of a larger software package but no
+copy of one or more of the Font Software typefaces may be sold by itself.
+
+THE FONT SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO ANY WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT OF COPYRIGHT, PATENT, TRADEMARK, OR
+OTHER RIGHT. IN NO EVENT SHALL TAVMJONG BAH BE LIABLE FOR ANY CLAIM, DAMAGES OR
+OTHER LIABILITY, INCLUDING ANY GENERAL, SPECIAL, INDIRECT, INCIDENTAL, OR
+CONSEQUENTIAL DAMAGES, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ARISING FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM OTHER
+DEALINGS IN THE FONT SOFTWARE.
+
+Except as contained in this notice, the name of Tavmjong Bah shall not be used
+in advertising or otherwise to promote the sale, use or other dealings in this
+Font Software without prior written authorization from Tavmjong Bah. For further
+information, contact: tavmjong @ free . fr.
+*/
+void SSubtitleRenderNode::loadFonts(void)
 {
-  foreach (const QByteArray &fontData,
-           qUncompress(QByteArray::fromRawData((const char *)subFontsData, sizeof(subFontsData))).split(':'))
+  QFile file(":/lxistream/nodes/subtitlefont.bin");
+  if (file.open(QFile::ReadOnly))
   {
-    const QList<QByteArray> elms = fontData.split(';');
-    if (elms.count() >= 6)
+    Data::fontData = qUncompress(file.readAll());
+    Data::characters.clear();
+
+    if (!Data::fontData.isEmpty())
     {
-      const unsigned width = elms[3].toUInt(), height = elms[4].toUInt();
-      Char * const c = reinterpret_cast<Char *>(new quint8[sizeof(Char) + (width * height * sizeof(quint8))]);
-
-      c->advance = elms[2].toUInt();
-      c->width = width;
-      c->height = height;
-
-      for (unsigned i=0, n=width*height; i<n; i++)
+      const char * const bytes = Data::fontData.constData();
+      for (int pos=0, size=Data::fontData.size(); pos<size; )
       {
-        const char e = elms[5][i];
-        c->pixels[i] = (e != ' ') ? ((quint8(e - '0') * 28) + 3) : 0;
-      }
+        const qint32 * const ce = reinterpret_cast<const qint32 *>(bytes + pos);
+        const qint32 * const m = reinterpret_cast<const qint32 *>(bytes + pos + sizeof(qint32));
+        const Char * const c = reinterpret_cast<const Char *>(bytes + pos + (sizeof(qint32) * 2));
 
-      const int fid = (elms[1].toInt() == 0) ? int(c->height) : -int(c->height);
-      QMap<int, QVector<SSubtitleRenderNode::Char *> >::Iterator i = characters.find(fid);
-      if (i == characters.end())
-      {
-        QVector<SSubtitleRenderNode::Char *> v;
-        v.reserve(256);
-        v.resize(256);
-        memset(&(v.first()), 0, 256 * sizeof(Char *));
-        i = characters.insert(fid, v);
-      }
+        const int fid = (*m == 0) ? int(c->height) : -int(c->height);
+        QMap<int, QVector<const SSubtitleRenderNode::Char *> >::Iterator i = Data::characters.find(fid);
+        if (i == Data::characters.end())
+        {
+          QVector<const SSubtitleRenderNode::Char *> v;
+          v.resize(256);
+          memset(&(v.first()), 0, 256 * sizeof(Char *));
+          i = Data::characters.insert(fid, v);
+        }
 
-      const int ce = elms[0].toInt();
-      if (i->size() > ce)
-        (*i)[ce] = c;
+        if (i->size() > *ce)
+          (*i)[*ce] = c;
+
+        pos += (sizeof(qint32) * 2) + sizeof(Char) + (c->width * c->height);
+      }
     }
   }
 }
-
-SSubtitleRenderNode::FontLoader::~FontLoader()
-{
-  // This code may crash on old Qt implementations. The only reason to clean
-  // this up is for memory leak tests, so it can be safely skipped.
-#if QT_VERSION >= 0x040600
-  for (QMap<int, QVector<Char *> >::Iterator i=characters.begin(); i!=characters.end(); )
-  {
-    foreach (Char *c, *i)
-      delete [] reinterpret_cast<quint8 *>(c);
-
-    i = characters.erase(i);
-  }
-#endif
-}
-
 
 } // End of namespace

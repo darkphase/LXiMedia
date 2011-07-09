@@ -85,6 +85,15 @@ void SAudioResampleNode::input(const SAudioBuffer &audioBuffer)
     emit output(audioBuffer);
 }
 
+void SAudioResampleNode::compensate(float frac)
+{
+  LXI_PROFILE_FUNCTION;
+
+  d->future.waitForFinished();
+
+  d->resampler->compensate(frac);
+}
+
 void SAudioResampleNode::processTask(const SAudioBuffer &audioBuffer)
 {
   LXI_PROFILE_FUNCTION;

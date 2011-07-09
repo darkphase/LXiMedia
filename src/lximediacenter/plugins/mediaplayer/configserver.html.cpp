@@ -206,19 +206,18 @@ void ConfigServer::generateDirs(HtmlParser &htmlParser, const QFileInfoList &dir
   foreach (const QFileInfo &info, dirs)
   if (!info.fileName().startsWith('.'))
   {
-    const QString canonicalName =
-        (info.isReadable() ? info.canonicalFilePath() : info.absoluteFilePath());
+    const QString absoluteName = info.absoluteFilePath();
 
     const QString fileName = info.fileName();
 
-    QFileInfoList children = QDir(canonicalName).entryInfoList(QDir::Dirs);
+    QFileInfoList children = QDir(absoluteName).entryInfoList(QDir::Dirs);
     for (QList<QFileInfo>::Iterator i=children.begin(); i!=children.end(); )
     if (i->fileName().startsWith('.'))
       i = children.erase(i);
     else
       i++;
 
-    htmlParser.setField("DIR_FULLPATH", canonicalName.toUtf8().toHex());
+    htmlParser.setField("DIR_FULLPATH", absoluteName.toUtf8().toHex());
 
     // Indentation
     htmlParser.setField("DIR_INDENT", QByteArray(""));
@@ -227,18 +226,18 @@ void ConfigServer::generateDirs(HtmlParser &htmlParser, const QFileInfoList &dir
 
     // Expand
     htmlParser.setField("DIR_EXPAND", htmlParser.parse(htmlDirTreeIndent));
-    if (!isHidden(canonicalName))
+    if (!isHidden(absoluteName))
     if ((indent > 0) && !children.isEmpty())
     {
       QSet<QString> all = allopen;
-      if (all.contains(canonicalName))
+      if (all.contains(absoluteName))
       {
-        all.remove(canonicalName);
+        all.remove(absoluteName);
         htmlParser.setField("DIR_OPEN", QByteArray("open"));
       }
       else
       {
-        all.insert(canonicalName);
+        all.insert(absoluteName);
         htmlParser.setField("DIR_OPEN", QByteArray("close"));
       }
 
@@ -252,20 +251,20 @@ void ConfigServer::generateDirs(HtmlParser &htmlParser, const QFileInfoList &dir
     htmlParser.setField("DIR_CHECKTYPE", QByteArray("checkon"));
     foreach (const QString &root, rootPaths)
     {
-      if (root == canonicalName)
+      if (root == absoluteName)
       {
         htmlParser.setField("DIR_CHECKED", QByteArray("full"));
         htmlParser.setField("DIR_CHECKTYPE", QByteArray("checkoff"));
         checkEnabled = true;
         break;
       }
-      else if (root.startsWith(canonicalName))
+      else if (root.startsWith(absoluteName))
       {
         htmlParser.setField("DIR_CHECKED", QByteArray("some"));
         htmlParser.setField("DIR_TITLE", QByteArray("A child is selected"));
         checkEnabled = false;
       }
-      else if (canonicalName.startsWith(root))
+      else if (absoluteName.startsWith(root))
       {
         htmlParser.setField("DIR_CHECKED", QByteArray("fulldisabled"));
         htmlParser.setField("DIR_TITLE", QByteArray("A parent is selected"));
@@ -273,7 +272,7 @@ void ConfigServer::generateDirs(HtmlParser &htmlParser, const QFileInfoList &dir
       }
     }
 
-    if (isHidden(canonicalName))
+    if (isHidden(absoluteName))
     {
       htmlParser.appendField("DIR_CHECKED", QByteArray("disabled"));
       htmlParser.setField("DIR_TITLE", tr("This system directory can not be selected"));
@@ -314,8 +313,8 @@ void ConfigServer::generateDirs(HtmlParser &htmlParser, const QFileInfoList &dir
     htmlParser.appendField("DIRS", htmlParser.parse(htmlDirTreeDir));
 
     // Recurse
-    if (!isHidden(canonicalName))
-    if ((indent == 0) || (allopen.contains(canonicalName)))
+    if (!isHidden(absoluteName))
+    if ((indent == 0) || (allopen.contains(absoluteName)))
       generateDirs(htmlParser, children, indent + 1, allopen, rootPaths);
   }
 }

@@ -108,7 +108,7 @@ void STimeStampSyncNode::input(const SAudioBuffer &audioBuffer)
   if (!audioBuffer.isNull())
   {
     const STime timeStamp = audioBuffer.timeStamp();
-    //qDebug() << "AI" << timeStamp.toMSec();
+//    qDebug() << "AI" << timeStamp.toMSec();
     if (!d->firstTimeStamp.isValid() || (timeStamp >= d->firstTimeStamp))
     {
       QMap<quint16, Queue<SAudioBuffer> >::Iterator i = d->audioQueue.find(0);
@@ -124,7 +124,7 @@ void STimeStampSyncNode::input(const SAudioBuffer &audioBuffer)
           SAudioBuffer ab = *j;
 
           ab.setTimeStamp(i->time);
-          //qDebug() << "AOP" << ab.timeStamp().toMSec();
+//          qDebug() << "AOP" << ab.timeStamp().toMSec();
           emit output(ab);
 
           i->time += ab.duration();
@@ -147,7 +147,7 @@ void STimeStampSyncNode::input(const SAudioBuffer &audioBuffer)
         SAudioBuffer ab = *j;
 
         ab.setTimeStamp(i->time);
-        //qDebug() << "AOF" << ab.timeStamp().toMSec();
+//        qDebug() << "AOF" << ab.timeStamp().toMSec();
         emit output(ab);
 
         i->time += ab.duration();
@@ -167,7 +167,7 @@ void STimeStampSyncNode::input(const SVideoBuffer &videoBuffer)
   if (!videoBuffer.isNull())
   {
     const STime timeStamp = videoBuffer.timeStamp();
-    //qDebug() << "VI" << timeStamp.toMSec();
+//    qDebug() << "VI" << timeStamp.toMSec();
     if (!d->firstTimeStamp.isValid() || (timeStamp >= d->firstTimeStamp))
     {
       QMap<quint16, Queue<SVideoBuffer> >::Iterator i = d->videoQueue.find(0);
@@ -199,7 +199,7 @@ void STimeStampSyncNode::input(const SVideoBuffer &videoBuffer)
         SVideoBuffer vb = *j;
 
         vb.setTimeStamp(i->time);
-        //qDebug() << "VOF" << vb.timeStamp().toMSec();
+//        qDebug() << "VOF" << vb.timeStamp().toMSec();
         emit output(vb);
 
         i->time += STime(1, d->frameRate);
@@ -244,7 +244,7 @@ void STimeStampSyncNode::output(void)
       if (!i->buffers.isEmpty())
         d->firstTimeStamp = qMax(d->firstTimeStamp, i->buffers.begin().key());
 
-      //qDebug() << "firstTimeStamp" << d->firstTimeStamp.toMSec();
+//      qDebug() << "firstTimeStamp" << d->firstTimeStamp.toMSec();
     }
 
     for (QMap<quint16, Queue<SAudioBuffer> >::Iterator i=d->audioQueue.begin(); i!=d->audioQueue.end(); i++)
@@ -282,7 +282,7 @@ void STimeStampSyncNode::output(void)
         SAudioBuffer ab = *j;
 
         ab.setTimeStamp(i->time);
-        //qDebug() << "AO1" << ab.timeStamp().toMSec() << lvkey.toMSec() << it.toMSec() << i->time.toMSec();
+//        qDebug() << "AO1" << ab.timeStamp().toMSec() << lvkey.toMSec() << it.toMSec();
         emit output(ab);
 
         at = i->time;
@@ -296,11 +296,13 @@ void STimeStampSyncNode::output(void)
     if (inTime.isValid())
       d->inTimeStamp = inTime;
 
+    const STime frameTime = d->frameRate.isValid() ? STime(1, d->frameRate) : STime::fromMSec(15);
+
     // Dump old video buffers
     for (QMap<quint16, Queue<SVideoBuffer> >::Iterator i=d->videoQueue.begin(); i!=d->videoQueue.end(); i++)
     for (QMultiMap<STime, SVideoBuffer>::Iterator j = i->buffers.begin(); j != i->buffers.end(); )
     {
-      if ((j.key() - d->inTimeStamp) < STime::fromMSec(-250))
+      if ((j.key() - d->inTimeStamp) <= (frameTime * -2))
         j = i->buffers.erase(j);
       else
         break;
@@ -316,32 +318,18 @@ void STimeStampSyncNode::output(void)
       {
         const STime nextVideoTime = audioTime + delta;
 
-        if (d->frameRate.isValid())
+        SVideoBuffer vb = *j;
+        j = i->buffers.erase(j);
+
+        if (i->time <= (nextVideoTime + frameTime))
+        do
         {
-          SVideoBuffer vb = *j;
-          j = i->buffers.erase(j);
-
-          if (i->time <= (nextVideoTime + STime(1, d->frameRate)))
-          do
-          {
-            vb.setTimeStamp(i->time);
-            //qDebug() << "VO1" << vb.timeStamp().toMSec() << nextVideoTime.toMSec() << audioTime.toMSec() << delta.toMSec();
-            emit output(vb);
-
-            i->time += STime(1, d->frameRate);
-          } while (i->time <= nextVideoTime);
-        }
-        else
-        {
-          SVideoBuffer vb = *j;
-          j = i->buffers.erase(j);
-
-          vb.setTimeStamp(nextVideoTime);
-          //qDebug() << "VO2" << vb.timeStamp().toMSec();
+          vb.setTimeStamp(i->time);
+//            qDebug() << "VO1" << vb.timeStamp().toMSec() << nextVideoTime.toMSec() << audioTime.toMSec() << delta.toMSec();
           emit output(vb);
 
-          i->time = nextVideoTime;
-        }
+          i->time += frameTime;
+        } while (i->time <= nextVideoTime);
       }
       else
         break;

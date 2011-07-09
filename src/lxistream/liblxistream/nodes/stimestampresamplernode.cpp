@@ -61,30 +61,29 @@ void STimeStampResamplerNode::setFrameRate(SInterval frameRate, double maxRatio)
   d->resample = false;
 }
 
-SInterval STimeStampResamplerNode::roundFrameRate(SInterval frameRate)
+const QVector<double> & STimeStampResamplerNode::standardFrameRates(void)
+{
+  static QVector<double> rates;
+  if (rates.isEmpty())
+    rates << 24.0 << 25.0 << 30.0 << 50.0 << 60.0;
+
+  return rates;
+}
+
+SInterval STimeStampResamplerNode::roundFrameRate(SInterval frameRate, const QVector<double> &rates)
 {
   const double freq = frameRate.toFrequency();
-  const double d15 = freq - 15.0;
-  const double d24 = freq - 24.0;
-  const double d25 = freq - 25.0;
-  const double d30 = freq - 30.0;
-  const double d50 = freq - 50.0;
-  const double d60 = freq - 60.0;
 
-  if ((d15 > -3.0) && (d15 < 3.0))
-    return SInterval::fromFrequency(15);
-  else if ((d24 > -2.0) && (d24 < 0.6))
-    return SInterval::fromFrequency(24);
-  else if ((d25 > -2.0) && (d25 < 2.1))
-    return SInterval::fromFrequency(25);
-  else if ((d30 > -3.0) && (d30 < 4.0))
-    return SInterval::fromFrequency(30);
-  else if ((d50 > -5.0) && (d50 < 5.0))
-    return SInterval::fromFrequency(50);
-  else if ((d60 > -5.0) && (d60 < 5.0))
-    return SInterval::fromFrequency(60);
-  else
-    return SInterval::fromFrequency(25);
+  for (int i=0; i<rates.count(); i++)
+  {
+    const double min = (i == 0) ? 0.0 : ((rates[i-1] + rates[i]) / 2.0);
+    const double max = (i == (rates.count() - 1)) ? INT_MAX : ((rates[i] + rates[i+1]) / 2.0);
+
+    if ((freq > min) && (freq < max))
+      return SInterval::fromFrequency(rates[i]);
+  }
+
+  return frameRate;
 }
 
 void STimeStampResamplerNode::input(const SAudioBuffer &audioBuffer)

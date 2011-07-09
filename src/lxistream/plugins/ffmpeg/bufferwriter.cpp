@@ -30,7 +30,8 @@ BufferWriter::BufferWriter(const QString &, QObject *parent)
     format(NULL),
     formatContext(NULL),
     ioContext(NULL),
-    hasAudio(false), hasVideo(false)
+    hasAudio(false), hasVideo(false),
+    mpegClock(false)
 {
 }
 
@@ -70,6 +71,15 @@ bool BufferWriter::openFormat(const QString &name)
 
     formatContext->bit_rate = 0;
 
+    if ((name == "dvd") || (name == "mp2") || (name == "mp3") ||
+        (name == "mp4") || (name == "mpeg") || (name == "mpeg1video") ||
+        (name == "mpeg2video") || (name == "mpegts") || (name == "mpegtsraw") ||
+        (name == "mpegvideo") || (name == "svcd") || (name == "vcd") ||
+        (name == "vob"))
+    {
+      mpegClock = true;
+    }
+
     if (name == "dvd")
     {
       formatContext->mux_rate = 10080000;
@@ -89,6 +99,62 @@ bool BufferWriter::createStreams(const QList<SAudioCodec> &audioCodecs, const QL
 {
   if (formatContext)
   {
+    foreach (const SVideoCodec &codec, videoCodecs)
+    if (!codec.isNull())
+    {
+      AVStream *stream  = ::av_new_stream(formatContext, streams.count());
+      ::avcodec_get_context_defaults2(stream->codec, CODEC_TYPE_VIDEO);
+
+      const SInterval frameRate = codec.frameRate();
+      if (mpegClock || !frameRate.isValid())
+      {
+        stream->time_base.num = 1;
+        stream->time_base.den = 90000;
+      }
+      else
+      {
+        stream->time_base.num = frameRate.num();
+        stream->time_base.den = frameRate.den();
+      }
+
+      if (duration.isValid())
+        stream->duration = duration.toClock(stream->time_base.num, stream->time_base.den);
+
+      if (frameRate.isValid())
+      {
+        stream->r_frame_rate.num = stream->avg_frame_rate.num = frameRate.num();
+        stream->r_frame_rate.den = stream->avg_frame_rate.den = frameRate.den();
+      }
+
+      stream->pts.val = 0;
+      stream->pts.num = stream->time_base.num;
+      stream->pts.den = stream->time_base.den;
+
+      stream->codec->codec_id = FFMpegCommon::toFFMpegCodecID(codec);
+      stream->codec->codec_type = CODEC_TYPE_VIDEO;
+      stream->codec->time_base = stream->time_base;
+      stream->codec->bit_rate = codec.bitRate() > 0 ? codec.bitRate() : 20000000;
+      stream->codec->width = codec.size().width();
+      stream->codec->height = codec.size().height();
+      stream->codec->sample_aspect_ratio = stream->sample_aspect_ratio = ::av_d2q(codec.size().aspectRatio(), 256);
+
+      if (formatContext->oformat->flags & AVFMT_GLOBALHEADER)
+          stream->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
+
+      stream->codec->extradata_size = codec.extraData().size();
+      if (stream->codec->extradata_size > 0)
+      {
+        stream->codec->extradata = new uint8_t[stream->codec->extradata_size + FF_INPUT_BUFFER_PADDING_SIZE];
+        memcpy(stream->codec->extradata, codec.extraData().data(), stream->codec->extradata_size);
+        memset(stream->codec->extradata + stream->codec->extradata_size, 0, FF_INPUT_BUFFER_PADDING_SIZE);
+      }
+
+      formatContext->bit_rate += stream->codec->bit_rate;
+
+      hasVideo = true;
+      streams.insert(videoStreamId + 0, stream);
+    }
+
     foreach (const SAudioCodec &codec, audioCodecs)
     if (!codec.isNull())
     {
@@ -96,7 +162,7 @@ bool BufferWriter::createStreams(const QList<SAudioCodec> &audioCodecs, const QL
       ::avcodec_get_context_defaults2(stream->codec, CODEC_TYPE_AUDIO);
 
       const unsigned sampleRate = codec.sampleRate();
-      if (sampleRate == 0)
+      if (mpegClock || (sampleRate == 0))
       {
         stream->time_base.num = 1;
         stream->time_base.den = 90000;
@@ -107,7 +173,8 @@ bool BufferWriter::createStreams(const QList<SAudioCodec> &audioCodecs, const QL
         stream->time_base.den = sampleRate;
       }
 
-      stream->duration = duration.toClock(stream->time_base.num, stream->time_base.den);
+      if (duration.isValid())
+        stream->duration = duration.toClock(stream->time_base.num, stream->time_base.den);
 
       stream->pts.val = 0;
       stream->pts.num = stream->time_base.num;
@@ -136,53 +203,8 @@ bool BufferWriter::createStreams(const QList<SAudioCodec> &audioCodecs, const QL
       streams.insert(audioStreamId + 0, stream);
     }
 
-    foreach (const SVideoCodec &codec, videoCodecs)
-    if (!codec.isNull())
-    {
-      AVStream *stream  = ::av_new_stream(formatContext, streams.count());
-      ::avcodec_get_context_defaults2(stream->codec, CODEC_TYPE_VIDEO);
-
-      const SInterval frameRate = codec.frameRate();
-      if (!frameRate.isValid())
-      {
-        stream->time_base.num = 1;
-        stream->time_base.den = 90000;
-      }
-      else
-      {
-        stream->time_base.num = frameRate.num();
-        stream->time_base.den = frameRate.den();
-      }
-
-      stream->duration = duration.toClock(stream->time_base.num, stream->time_base.den);
-
-      stream->pts.val = 0;
-      stream->pts.num = stream->time_base.num;
-      stream->pts.den = stream->time_base.den;
-
-      stream->codec->codec_id = FFMpegCommon::toFFMpegCodecID(codec);
-      stream->codec->codec_type = CODEC_TYPE_VIDEO;
-      stream->codec->time_base = stream->time_base;
-      stream->codec->bit_rate = codec.bitRate() > 0 ? codec.bitRate() : 20000000;
-      stream->codec->width = codec.size().width();
-      stream->codec->height = codec.size().height();
-
-      if (formatContext->oformat->flags & AVFMT_GLOBALHEADER)
-          stream->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
-
-      stream->codec->extradata_size = codec.extraData().size();
-      if (stream->codec->extradata_size > 0)
-      {
-        stream->codec->extradata = new uint8_t[stream->codec->extradata_size + FF_INPUT_BUFFER_PADDING_SIZE];
-        memcpy(stream->codec->extradata, codec.extraData().data(), stream->codec->extradata_size);
-        memset(stream->codec->extradata + stream->codec->extradata_size, 0, FF_INPUT_BUFFER_PADDING_SIZE);
-      }
-
-      formatContext->bit_rate += stream->codec->bit_rate;
-
-      hasVideo = true;
-      streams.insert(videoStreamId + 0, stream);
-    }
+    if (formatContext->mux_rate <= 0)
+      formatContext->mux_rate = formatContext->bit_rate * 8;
 
     return true;
   }

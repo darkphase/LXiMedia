@@ -57,6 +57,7 @@ public: // From SInterfaces::AudioResampler
   virtual unsigned              sampleRate(void);
 
   virtual SAudioBuffer          processBuffer(const SAudioBuffer &);
+  virtual void                  compensate(float);
 
 private:
   SAudioBuffer                  resampleChannel(Channel *, const SAudioBuffer &) const;
