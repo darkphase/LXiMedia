@@ -102,5 +102,8 @@ SAudioBuffer AudioResampler::processBuffer(const SAudioBuffer &audioBuffer)
   return audioBuffer;
 }
 
+void AudioResampler::compensate(float)
+{
+}
 
 } } // End of namespaces

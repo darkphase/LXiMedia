@@ -27,13 +27,14 @@
 
 namespace LXiServer {
 
-/*! This is a generic output node, writing to a QIODevice.
+/*! This is a HTTP stream proxy that can be used to stream to one or more
+    clients simultaneously.
  */
-class LXISERVER_PUBLIC SHttpStreamProxy : public QObject
+class LXISERVER_PUBLIC SHttpStreamProxy : public QThread
 {
 Q_OBJECT
 public:
-  explicit                      SHttpStreamProxy(QObject *parent = NULL);
+  explicit                      SHttpStreamProxy(void);
   virtual                       ~SHttpStreamProxy();
 
   bool                          isConnected(void) const;
@@ -41,6 +42,10 @@ public:
 public slots:
   bool                          setSource(QAbstractSocket *);
   bool                          addSocket(QAbstractSocket *);
+
+protected:
+  virtual void                  run(void);
+  virtual void                  customEvent(QEvent *);
 
 signals:
   void                          disconnected(void);
@@ -53,8 +58,15 @@ private slots:
   _lxi_internal void            flushData(void);
 
 private:
+  _lxi_internal static const QEvent::Type setSourceEventType;
+  _lxi_internal static const QEvent::Type addSocketEventType;
+  _lxi_internal static const QEvent::Type disconnectEventType;
+
   _lxi_internal static const int inBufferSize;
   _lxi_internal static const int outBufferSize;
+
+  class SetSourceEvent;
+  class AddSocketEvent;
 
   struct Data;
   Data                  * const d;

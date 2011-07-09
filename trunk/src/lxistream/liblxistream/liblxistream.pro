@@ -117,6 +117,8 @@ SOURCES += nodes/saudiodecodernode.cpp \
 HEADERS += lxistreamprivate.h
 SOURCES += lxistreamprivate.cpp
 
+RESOURCES = liblxistream.qrc
+
 # Common backend classes
 HEADERS += common/audiooutput.h \
     common/audioresampler.h \

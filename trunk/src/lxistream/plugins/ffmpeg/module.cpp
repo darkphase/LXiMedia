@@ -107,7 +107,7 @@ bool Module::registerClasses(void)
       ;
 
   const QSet<QByteArray> unsupportedWriters = QSet<QByteArray>()
-      << "mpegts" << "asf"
+      << "asf"
       ;
 
   for (::AVInputFormat *format=::av_iformat_next(NULL); format; format=::av_iformat_next(format))

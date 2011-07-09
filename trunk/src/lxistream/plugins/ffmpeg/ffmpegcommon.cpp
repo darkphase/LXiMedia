@@ -727,7 +727,7 @@ SAudioFormat::Channels FFMpegCommon::fromFFMpegChannelLayout(int64_t layout, int
   }
 }
 
-::AVPacket FFMpegCommon::toAVPacket(const SEncodedAudioBuffer &buffer, const ::AVStream *stream)
+::AVPacket FFMpegCommon::toAVPacket(const SEncodedAudioBuffer &buffer, ::AVStream *stream)
 {
   ::AVPacket packet;
   ::av_init_packet(&packet);
@@ -747,10 +747,12 @@ SAudioFormat::Channels FFMpegCommon::fromFFMpegChannelLayout(int64_t layout, int
     if (buffer.decodingTimeStamp().isValid())
       packet.dts = buffer.decodingTimeStamp().toClock(stream->time_base.num, stream->time_base.den);
     else
-      packet.dts = AV_NOPTS_VALUE;
+      packet.dts = packet.pts;
 
     if ((packet.pts != AV_NOPTS_VALUE) && (packet.dts != AV_NOPTS_VALUE) && (packet.dts > packet.pts))
       packet.pts = packet.dts;
+
+    stream->pts.val = packet.pts;
   }
 
   packet.flags |=
@@ -764,7 +766,7 @@ SAudioFormat::Channels FFMpegCommon::fromFFMpegChannelLayout(int64_t layout, int
   return packet;
 }
 
-::AVPacket FFMpegCommon::toAVPacket(const SEncodedVideoBuffer &buffer, const ::AVStream *stream)
+::AVPacket FFMpegCommon::toAVPacket(const SEncodedVideoBuffer &buffer, ::AVStream *stream)
 {
   ::AVPacket packet;
   ::av_init_packet(&packet);
@@ -778,12 +780,18 @@ SAudioFormat::Channels FFMpegCommon::fromFFMpegChannelLayout(int64_t layout, int
 
     if (buffer.presentationTimeStamp().isValid())
       packet.pts = buffer.presentationTimeStamp().toClock(stream->time_base.num, stream->time_base.den);
+    else
+      packet.pts = AV_NOPTS_VALUE;
 
     if (buffer.decodingTimeStamp().isValid())
       packet.dts = buffer.decodingTimeStamp().toClock(stream->time_base.num, stream->time_base.den);
+    else
+      packet.dts = packet.pts;
 
-    if (packet.dts > packet.pts)
+    if ((packet.pts != AV_NOPTS_VALUE) && (packet.dts != AV_NOPTS_VALUE) && (packet.dts > packet.pts))
       packet.pts = packet.dts;
+
+    stream->pts.val = packet.pts;
   }
 
   packet.flags |= buffer.isKeyFrame() ?
@@ -797,7 +805,7 @@ SAudioFormat::Channels FFMpegCommon::fromFFMpegChannelLayout(int64_t layout, int
   return packet;
 }
 
-::AVPacket FFMpegCommon::toAVPacket(const SEncodedDataBuffer &buffer, const ::AVStream *stream)
+::AVPacket FFMpegCommon::toAVPacket(const SEncodedDataBuffer &buffer, ::AVStream *stream)
 {
   ::AVPacket packet;
   ::av_init_packet(&packet);
@@ -811,15 +819,21 @@ SAudioFormat::Channels FFMpegCommon::fromFFMpegChannelLayout(int64_t layout, int
 
     if (buffer.presentationTimeStamp().isValid())
       packet.pts = buffer.presentationTimeStamp().toClock(stream->time_base.num, stream->time_base.den);
+    else
+      packet.pts = AV_NOPTS_VALUE;
 
     if (buffer.decodingTimeStamp().isValid())
       packet.dts = buffer.decodingTimeStamp().toClock(stream->time_base.num, stream->time_base.den);
+    else
+      packet.dts = packet.pts;
 
     if (buffer.duration().isValid())
       packet.duration = buffer.duration().toClock(stream->time_base.num, stream->time_base.den);
 
-    if (packet.dts > packet.pts)
+    if ((packet.pts != AV_NOPTS_VALUE) && (packet.dts != AV_NOPTS_VALUE) && (packet.dts > packet.pts))
       packet.pts = packet.dts;
+
+    stream->pts.val = packet.pts;
   }
 
   packet.flags |=

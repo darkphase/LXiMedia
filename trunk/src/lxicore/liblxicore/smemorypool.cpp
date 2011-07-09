@@ -54,6 +54,7 @@ struct SMemoryPool::Init : SApplication::Initializer
     // Ensure static initializers are called.
     QMutexLocker l(mutex());
     freePool().clear();
+    freeQueue().clear();
     allocPool().clear();
   }
 
@@ -72,6 +73,7 @@ struct SMemoryPool::Init : SApplication::Initializer
       freePages(block.addr, block.size);
 
     freePool().clear();
+    freeQueue().clear();
     allocPool().clear();
 
 #if defined(Q_OS_LINUX)
@@ -84,6 +86,7 @@ struct SMemoryPool::Init : SApplication::Initializer
 
 SMemoryPool::Init SMemoryPool::init;
 int               SMemoryPool::pageSize = 0;
+int               SMemoryPool::maxFreeCount = 64;
 #if defined(Q_OS_LINUX)
   int             SMemoryPool::zeroDev = 0;
 #endif
@@ -135,8 +138,18 @@ void * SMemoryPool::alloc(size_t size)
     if ((i != freePool().end()) && (i.key() <= (size + (size / 2))))
     {
       void * const result = i->addr;
+
+      for (QList<size_t>::Iterator j=freeQueue().begin(); j!=freeQueue().end(); j++)
+      if (*j == i.key())
+      {
+        freeQueue().erase(j);
+        break;
+      }
+
       allocPool().insert(result, *i);
       freePool().erase(i);
+
+      Q_ASSERT(freePool().count() == freeQueue().count());
       return result;
     }
     else // Allocate new
@@ -163,6 +176,7 @@ void SMemoryPool::free(void *ptr)
     if (i != allocPool().end())
     {
       freePool().insert(i->size, *i);
+      freeQueue().prepend(i->size);
       allocPool().erase(i);
     }
     else
@@ -179,9 +193,22 @@ void SMemoryPool::free(void *ptr)
       }
 
       freePool().clear();
+      freeQueue().clear();
 
       //qDebug() << "SMemoryPool: flushed free pool of" << (size / 1024) << "KiB";
     }
+
+    while (freeQueue().count() > maxFreeCount)
+    {
+      QMultiMap<size_t, Block>::Iterator i = freePool().find(freeQueue().takeLast());
+      if (i != freePool().end())
+      {
+        freePages(i->addr, i->size);
+        freePool().erase(i);
+      }
+    }
+
+    Q_ASSERT(freePool().count() == freeQueue().count());
   }
 }
 
@@ -273,6 +300,13 @@ QMultiMap<size_t, SMemoryPool::Block> & SMemoryPool::freePool(void)
   static QMultiMap<size_t, Block> p;
 
   return p;
+}
+
+QList<size_t> & SMemoryPool::freeQueue(void)
+{
+  static QList<size_t> q;
+
+  return q;
 }
 
 QHash<void *, SMemoryPool::Block> & SMemoryPool::allocPool(void)

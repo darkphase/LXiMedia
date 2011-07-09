@@ -118,6 +118,8 @@ void SSubpictureRenderNode::processTask(const SVideoBuffer &videoBuffer)
 
   QMutexLocker l(&d->mutex);
 
+  const SSize size = videoBuffer.format().size();
+
   for (QMap<STime, SSubpictureBuffer>::Iterator i=d->subpictures.begin(); i!=d->subpictures.end(); )
   {
     const STime timeStamp = videoBuffer.timeStamp();
@@ -153,8 +155,19 @@ void SSubpictureRenderNode::processTask(const SVideoBuffer &videoBuffer)
       foreach (const SSubpictureBuffer::Rect &rect, d->subpicture.rects())
       {
         Data::Rect r;
-        r.x = rect.x;
-        r.y = rect.y;
+
+        if ((rect.x + int(rect.width) < size.width()) &&
+            (rect.y + int(rect.height) < size.height()))
+        {
+          r.x = rect.x;
+          r.y = rect.y;
+        }
+        else // Subtitle rect is outside of picture rect; center it.
+        {
+          r.x = (size.width() / 2) - (rect.width / 2);
+          r.y = size.height() - rect.height - (size.height() / 16);
+        }
+
         r.width = rect.width;
         r.height = rect.height;
         r.lineStride = rect.lineStride;
@@ -179,11 +192,11 @@ void SSubpictureRenderNode::processTask(const SVideoBuffer &videoBuffer)
   if (d->subpictureVisible && !d->subpictures.isEmpty())
   {
     SVideoBuffer buffer = videoBuffer;
-    const int width = buffer.format().size().width(), height = buffer.format().size().height();
 
     foreach (const Data::Rect &rect, d->subpictureRects)
     if ((rect.x >= 0) && (rect.y >=0) &&
-        (rect.x + int(rect.width) < width) && (rect.y + int(rect.height) < height))
+        (rect.x + int(rect.width) < size.width()) &&
+        (rect.y + int(rect.height) < size.height()))
     {
       switch (buffer.format().format())
       {
@@ -208,7 +221,7 @@ void SSubpictureRenderNode::processTask(const SVideoBuffer &videoBuffer)
     emit output(videoBuffer);
 }
 
-void SSubpictureRenderNode::buildPalette(const SPixels::RGBAPixel *palette, int paletteSize, SVideoFormat::Format dstFormat, QByteArray &dstPalette)
+void SSubpictureRenderNode::buildPalette(const SPixels::RGBAPixel *palette, unsigned paletteSize, SVideoFormat::Format dstFormat, QByteArray &dstPalette)
 {
   switch (dstFormat)
   {
@@ -219,7 +232,7 @@ void SSubpictureRenderNode::buildPalette(const SPixels::RGBAPixel *palette, int 
   case SVideoFormat::Format_YUV444P:
     {
       dstPalette.resize(paletteSize * sizeof(SPixels::YUVAPixel));
-      for (int i=0; i<paletteSize; i++)
+      for (unsigned i=0; i<paletteSize; i++)
         reinterpret_cast<SPixels::YUVAPixel *>(dstPalette.data())[i] = SPixels::RGBA2YUVA(palette[i]);
     }
     break;

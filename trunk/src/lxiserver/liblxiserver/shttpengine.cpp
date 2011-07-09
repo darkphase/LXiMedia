@@ -78,9 +78,9 @@ const char * SHttpEngine::toMimeType(const QString &fileName)
   else if (ext == "txt")    return "text/plain;charset=utf-8";
   else if (ext == "log")    return "text/plain;charset=utf-8";
   else if (ext == "xml")    return "text/xml;charset=utf-8";
-  else if (ext == "mpeg")   return "video/MP2P";
-  else if (ext == "mpg")    return "video/MP2P";
-  else if (ext == "mp4")    return "video/MP2P";
+  else if (ext == "mpeg")   return "video/mpeg";
+  else if (ext == "mpg")    return "video/mpeg";
+  else if (ext == "mp4")    return "video/mpeg";
   else if (ext == "ts")     return "video/MP2T";
   else if (ext == "ogg")    return "video/ogg";
   else if (ext == "ogv")    return "video/ogg";
@@ -334,7 +334,7 @@ SHttpClientEngine::SHttpClientEngine(QObject *parent)
   d->senderId += " Windows";
 #endif
 
-  d->maxOpenSockets = qMax(1, QThread::idealThreadCount()) * 2;
+  d->maxOpenSockets = qMax(1, QThread::idealThreadCount()) * 4;
   d->openSockets = 0;
 }
 

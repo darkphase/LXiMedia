@@ -48,6 +48,7 @@ public: // From SGraph::Node
 
 public slots:
   void                          input(const SAudioBuffer &);
+  void                          compensate(float);
 
 signals:
   void                          output(const SAudioBuffer &);

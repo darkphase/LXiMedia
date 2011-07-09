@@ -22,13 +22,15 @@
 #include <QtNetwork>
 #include <iostream>
 #if defined(Q_OS_UNIX)
-#include <unistd.h>
-#include <sched.h>
+# include <unistd.h>
+# if defined(Q_OS_LINUX)
+#  include <sys/syscall.h>
+# endif
 #elif defined(Q_OS_WIN)
-#include <windows.h>
-#ifndef PROCESS_MODE_BACKGROUND_BEGIN
-#define PROCESS_MODE_BACKGROUND_BEGIN 0x00100000
-#endif
+# include <windows.h>
+# ifndef PROCESS_MODE_BACKGROUND_BEGIN
+#  define PROCESS_MODE_BACKGROUND_BEGIN 0x00100000
+# endif
 #endif
 
 namespace LXiServer {
@@ -128,15 +130,12 @@ bool SSandboxServer::initialize(const QString &mode)
   if (d->mode == "lowprio")
   {
 #if defined(Q_OS_UNIX)
-# if defined(Q_OS_LINUX)
-    ::sched_param param = { 0 };
-    ::sched_setscheduler(::getpid(), SCHED_BATCH, &param);
-# endif
-
     ::nice(15);
+# if defined(Q_OS_LINUX)
+    ::syscall(SYS_ioprio_set, 1, ::getpid(), 0x6007);
+# endif
 #elif defined(Q_OS_WIN)
     ::SetPriorityClass(::GetCurrentProcess(), IDLE_PRIORITY_CLASS);
-
     ::SetPriorityClass(::GetCurrentProcess(), PROCESS_MODE_BACKGROUND_BEGIN);
 #endif
   }
@@ -144,6 +143,9 @@ bool SSandboxServer::initialize(const QString &mode)
   {
 #if defined(Q_OS_UNIX)
     ::nice(-5);
+# if defined(Q_OS_LINUX)
+    ::syscall(SYS_ioprio_set, 1, ::getpid(), 0x4002);
+# endif
 #elif defined(Q_OS_WIN)
     ::SetPriorityClass(::GetCurrentProcess(), ABOVE_NORMAL_PRIORITY_CLASS);
 #endif

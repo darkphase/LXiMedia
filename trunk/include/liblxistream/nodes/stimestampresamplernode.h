@@ -48,7 +48,8 @@ public:
 
   void                          setFrameRate(SInterval frameRate, double maxRatio = 0.08);
 
-  static SInterval              roundFrameRate(SInterval);
+  static const QVector<double> & standardFrameRates(void);
+  static SInterval              roundFrameRate(SInterval, const QVector<double> &);
 
 public: // From SGraph::Node
   virtual bool                  start(void);

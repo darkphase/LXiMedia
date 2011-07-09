@@ -237,27 +237,35 @@ void Backend::start(void)
     if ((outVideoCodecs.contains("MPEG1") || outVideoCodecs.contains("MPEG2")) &&
         outAudioCodecs.contains("MP2"))
     {
+      if (outFormats.contains("vob"))
+        videoProtocols += SUPnPBase::Protocol("http-get", "video/mpeg", true, QString::null, ".mpeg");
+
+      if (outFormats.contains("mpegts"))
+        videoProtocols += SUPnPBase::Protocol("http-get", "video/MP2T", true, QString::null, ".ts");
+
       if (outFormats.contains("mpegts"))
       {
-        videoProtocols += SUPnPBase::Protocol("http-get", "video/mpeg", true, "DLNA.ORG_PN=MPEG_TS_HD_EU", ".ts");
-        videoProtocols += SUPnPBase::Protocol("http-get", "video/mpeg", true, "DLNA.ORG_PN=MPEG_TS_HD_JP", ".ts");
-        videoProtocols += SUPnPBase::Protocol("http-get", "video/mpeg", true, "DLNA.ORG_PN=MPEG_TS_HD_NA", ".ts");
-        videoProtocols += SUPnPBase::Protocol("http-get", "video/mpeg", true, "DLNA.ORG_PN=MPEG_TS_HD_KO", ".ts");
-      }
-      else if (outFormats.contains("vob"))
-      {
-        videoProtocols += SUPnPBase::Protocol("http-get", "video/mpeg", true, QString::null, ".mpeg");
+        QMap<QString, QString> hdeu;
+        hdeu["framerates"] = "24,25";
+
+        QMap<QString, QString> hdna;
+        hdna["framerates"] = "24,30";
+
+        videoProtocols += SUPnPBase::Protocol("http-get", "video/MP2T", true, "DLNA.ORG_PN=MPEG_TS_HD_EU_ISO", ".ts", hdeu);
+        videoProtocols += SUPnPBase::Protocol("http-get", "video/MP2T", true, "DLNA.ORG_PN=MPEG_TS_HD_NA_ISO", ".ts", hdna);
       }
 
       if (outFormats.contains("vob"))
       {
         QMap<QString, QString> pal;
-        pal["size"]   = "720x576x1.42222,box";
-        pal["channels"]   = QString::number(SAudioFormat::Channels_Stereo, 16);
+        pal["size"]         = "720x576x1.42222,box";
+        pal["framerates"]   = "25";
+        pal["channels"]     = QString::number(SAudioFormat::Channels_Stereo, 16);
 
         QMap<QString, QString> ntsc;
-        ntsc["size"]  = "704x480x1.21307,box";
-        ntsc["channels"]  = QString::number(SAudioFormat::Channels_Stereo, 16);
+        ntsc["size"]        = "704x480x1.21307,box";
+        ntsc["framerates"]  = "24,30";
+        ntsc["channels"]    = QString::number(SAudioFormat::Channels_Stereo, 16);
 
         videoProtocols += SUPnPBase::Protocol("http-get", "video/mpeg", true, "DLNA.ORG_PN=MPEG_PS_PAL",  ".mpeg", pal);
         videoProtocols += SUPnPBase::Protocol("http-get", "video/mpeg", true, "DLNA.ORG_PN=MPEG_PS_NTSC", ".mpeg", ntsc);

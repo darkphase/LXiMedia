@@ -141,7 +141,7 @@ void SSandboxClient::openRequest(void)
     HttpSocketRequest * const socketRequest = new HttpSocketRequest(this, createSocket(), d->address, d->port, request.message);
 
     if (request.receiver)
-      connect(socketRequest, SIGNAL(connected(QAbstractSocket *)), request.receiver, request.slot);
+      connect(socketRequest, SIGNAL(connected(QAbstractSocket *)), request.receiver, request.slot, Qt::DirectConnection);
   }
 }
 

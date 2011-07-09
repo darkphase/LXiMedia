@@ -185,7 +185,7 @@ bool BufferReader::start(ReadCallback *rc, ProduceCallback *pc, quint16 programI
 
                 // Check if a 1/1, 1/2, 1/3 or 1/4 of the refFrameRate is a better match.
                 for (int j=1; j<=4; j++)
-                if (qAbs((refFrameRate.toFrequency() / j) - frameRate.toFrequency()) < 0.5)
+                if (qAbs((refFrameRate.toFrequency() / j) - frameRate.toFrequency()) < 1.0)
                   frameRate = SInterval(refFrameRate.num() * j, refFrameRate.den());
 
 //                qDebug() << "Framerate" << frameRate.toFrequency() << refFrameRate.toFrequency();
@@ -234,10 +234,20 @@ void BufferReader::stop(void)
 
 bool BufferReader::process(void)
 {
+  return process(false);
+}
+
+bool BufferReader::process(bool fast)
+{
   if ((running && audioBuffers.isEmpty() && videoBuffers.isEmpty() && dataBuffers.isEmpty()) || !running)
   {
     ::AVPacket packet;
     ::av_init_packet(&packet);
+
+    if (fast)
+      formatContext->flags |= AVFMT_FLAG_NOFILLIN;
+    else
+      formatContext->flags &= ~int(AVFMT_FLAG_NOFILLIN);
 
     if (::av_read_frame(formatContext, &packet) >= 0)
     {
@@ -484,6 +494,11 @@ STime BufferReader::duration(void) const
 
 bool BufferReader::setPosition(STime pos)
 {
+  return setPosition(pos, false);
+}
+
+bool BufferReader::setPosition(STime pos, bool fast)
+{
   if (formatContext)
   {
     if (!pos.isNull() || !pos.isValid())
@@ -496,7 +511,7 @@ bool BufferReader::setPosition(STime pos)
       return true; // Not started yet and seeking to start.
 
     if (pos.isValid())
-    if (::av_seek_frame(formatContext, -1, pos.toClock(AV_TIME_BASE), 0) >= 0)
+    if (::av_seek_frame(formatContext, -1, pos.toClock(AV_TIME_BASE), fast ? AVSEEK_FLAG_BYTE : 0) >= 0)
     {
       for (unsigned i=0; i<formatContext->nb_streams; i++)
       if (streamContext[i])

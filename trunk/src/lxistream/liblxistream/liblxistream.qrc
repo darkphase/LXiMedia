@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/lxistream">
+        <file>nodes/subtitlefont.bin</file>
+    </qresource>
+</RCC>

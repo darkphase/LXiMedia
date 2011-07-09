@@ -61,6 +61,9 @@ public:
 
   inline const ::AVFormatContext * context(void) const                          { return formatContext; }
 
+  bool                          process(bool fast);
+  bool                          setPosition(STime, bool fast);
+
 public: // From SInterfaces::BufferReader
   virtual bool                  openFormat(const QString &);
 

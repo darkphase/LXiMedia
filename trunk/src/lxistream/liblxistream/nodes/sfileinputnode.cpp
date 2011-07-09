@@ -50,7 +50,7 @@ SFileInputNode::~SFileInputNode()
 
 bool SFileInputNode::open(quint16 programId)
 {
-  if (d->mediaFile.open(QIODevice::ReadOnly))
+  if (d->mediaFile.open(QFile::ReadOnly))
   {
     SIOInputNode::setIODevice(&d->mediaFile);
 

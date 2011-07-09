@@ -45,7 +45,7 @@ SVideoBuffer::SVideoBuffer(const SVideoFormat &format, const MemoryPtr &memory, 
   }
 }
 
-/*! Sets the format of teh video buffer. This method ensures enough memory is
+/*! Sets the format of the video buffer. This method ensures enough memory is
     allocated for the format and ensures lineSize() and offset() return the
     correct values. Any data already in the buffer may be corrupted by this
     method.
@@ -67,14 +67,14 @@ void SVideoBuffer::setFormat(const SVideoFormat &format)
     format.planarYUVRatio(wr, hr);
 
     d.offset[0] = size;
-    d.lineSize[0] = align(format.size().width() * format.sampleSize());
+    d.lineSize[0] = align(format.size().width() * format.sampleSize(), minimumAlignVal);
 
     size += d.lineSize[0] * format.size().height();
 
     for (int i=1; i<numPlanes; i++)
     {
       d.offset[i] = size;
-      d.lineSize[i] = align((format.size().width() / wr) * format.sampleSize());
+      d.lineSize[i] = align((format.size().width() / wr) * format.sampleSize(), minimumAlignVal);
 
       size += d.lineSize[i] * (format.size().height() / hr);
     }
@@ -82,7 +82,7 @@ void SVideoBuffer::setFormat(const SVideoFormat &format)
   else
   {
     d.offset[0] = size;
-    d.lineSize[0] = align(format.size().width() * format.sampleSize());
+    d.lineSize[0] = align(format.size().width() * format.sampleSize(), minimumAlignVal);
 
     size += d.lineSize[0] * format.size().height();
   }

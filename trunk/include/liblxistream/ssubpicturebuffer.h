@@ -39,8 +39,7 @@ public:
     qint16                      x, y;
     quint16                     width, height;
     quint16                     lineStride;
-    quint8                      paletteSize;
-    quint8                      _reserved;
+    quint16                     paletteSize;
   };
 
 public:

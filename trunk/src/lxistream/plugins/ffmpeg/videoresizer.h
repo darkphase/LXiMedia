@@ -46,13 +46,18 @@ public: // From SInterfaces::VideoResizer
   virtual SVideoBuffer          processBuffer(const SVideoBuffer &);
 
 private:
+  bool                          processSlice(int, const SVideoBuffer &, quint8 **, int *);
+  void                          freeContext(void);
+
+private:
   const int                     filterFlags;
   SSize                         scaleSize;
   Qt::AspectRatioMode           scaleAspectRatioMode;
   SVideoFormat                  lastFormat;
   SVideoFormat                  destFormat;
 
-  SwsContext                  * swsContext;
+  const int                     numContexts;
+  ::SwsContext               ** swsContext;
 };
 
 

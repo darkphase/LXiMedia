@@ -107,6 +107,15 @@ SAudioBuffer AudioResampler::processBuffer(const SAudioBuffer &audioBuffer)
   return audioBuffer;
 }
 
+void AudioResampler::compensate(float frac)
+{
+  const int distance = outSampleRate / 8;
+  const int delta = qBound(-(distance / 2), int(distance * frac), distance / 2);
+
+  foreach (const Channel &channel, channels)
+    ::av_resample_compensate(channel.context, delta, distance);
+}
+
 SAudioBuffer AudioResampler::resampleChannel(Channel *channel, const SAudioBuffer &audioBuffer) const
 {
   const SAudioBuffer channelBuffer = audioBuffer.getChannel(channel->channel);

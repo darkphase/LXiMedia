@@ -21,7 +21,7 @@
 #include <string.h>
 #include <stdint.h>
 
-void LXiStream_SVideoBoxNode_boxVideo8
+void LXiStream_SVideoBoxNode_boxVideo8y
  (const uint8_t * __restrict srcData, unsigned srcWidth, unsigned srcStride, unsigned srcNumLines,
   uint8_t * __restrict dstData, unsigned dstWidth, unsigned dstStride, unsigned dstNumLines,
   int nullPixel)
@@ -58,6 +58,68 @@ void LXiStream_SVideoBoxNode_boxVideo8
   }
 }
 
+void LXiStream_SVideoBoxNode_boxVideo8uv
+ (const uint8_t * __restrict srcData, unsigned srcWidth, unsigned srcStride, unsigned srcNumLines,
+  uint8_t * __restrict dstData, unsigned dstWidth, unsigned dstStride, unsigned dstNumLines,
+  int nullPixel)
+{
+  const unsigned inLineOffset = (dstNumLines < srcNumLines) ? ((srcNumLines - dstNumLines) / 2) : 0;
+  const unsigned inPixelOffset = (dstWidth < srcWidth) ? ((srcWidth - dstWidth) / 2) : 0;
+  const unsigned outLineOffset = (srcNumLines < dstNumLines) ? ((dstNumLines - srcNumLines) / 2) : 0;
+  const unsigned outPixelOffset = (srcWidth < dstWidth) ? ((dstWidth - srcWidth) / 2) : 0;
+  const unsigned outWidth = (srcWidth < dstWidth) ? srcWidth : dstWidth;
+  unsigned line = 0;
+
+  for (; line+1<outLineOffset; line++)
+  {
+    uint8_t * const __restrict dstLine = dstData + (line * dstStride);
+
+    memset(dstLine, nullPixel, dstWidth);
+  }
+
+  // Repeat chroma line.
+  if (line < outLineOffset)
+  {
+    const uint8_t * const __restrict srcLine = srcData + ((line + 1 + inLineOffset - outLineOffset) * srcStride) + inPixelOffset;
+    uint8_t * const __restrict dstLine = dstData + (line * dstStride);
+
+    memset(dstLine, nullPixel, outPixelOffset);
+    memcpy(dstLine + outPixelOffset, srcLine, outWidth);
+    memset(dstLine + outPixelOffset + outWidth, nullPixel, outPixelOffset);
+
+    line++;
+  }
+
+  for (; line<srcNumLines+outLineOffset; line++)
+  {
+    const uint8_t * const __restrict srcLine = srcData + ((line + inLineOffset - outLineOffset) * srcStride) + inPixelOffset;
+    uint8_t * const __restrict dstLine = dstData + (line * dstStride);
+
+    memset(dstLine, nullPixel, outPixelOffset);
+    memcpy(dstLine + outPixelOffset, srcLine, outWidth);
+    memset(dstLine + outPixelOffset + outWidth, nullPixel, outPixelOffset);
+  }
+
+  // Repeat chroma line.
+  if ((line > 0) && (line < dstNumLines))
+  {
+    const uint8_t * const __restrict srcLine = srcData + ((line - 1 + inLineOffset - outLineOffset) * srcStride) + inPixelOffset;
+    uint8_t * const __restrict dstLine = dstData + (line * dstStride);
+
+    memset(dstLine, nullPixel, outPixelOffset);
+    memcpy(dstLine + outPixelOffset, srcLine, outWidth);
+    memset(dstLine + outPixelOffset + outWidth, nullPixel, outPixelOffset);
+
+    line++;
+  }
+
+  for (; line<dstNumLines; line++)
+  {
+    uint8_t * const __restrict dstLine = dstData + (line * dstStride);
+
+    memset(dstLine, nullPixel, dstWidth);
+  }
+}
 
 void LXiStream_SVideoBoxNode_boxVideo32
  (const uint32_t * __restrict srcData, unsigned srcWidth, unsigned srcStride, unsigned srcNumLines,
