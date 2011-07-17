@@ -221,7 +221,7 @@ void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *readCallback)
                 // Build thumbnail
                 if (program.thumbnail.isEmpty() && !bestThumb.isNull())
                 {
-                  VideoResizer videoResizer("bicubic", this);
+                  VideoResizer videoResizer("bilinear", this);
                   videoResizer.setSize(SSize(128, 128));
                   videoResizer.setAspectRatioMode(Qt::KeepAspectRatio);
                   bestThumb = videoResizer.processBuffer(bestThumb);

@@ -140,7 +140,7 @@ public:
   };
 
 public:
-  explicit                      SApplication(const QString &logDir = QString::null, QObject * = NULL);
+  explicit                      SApplication(const QString &logDir = QString::null, const QStringList &skipModules = QStringList(), QObject * = NULL);
   virtual                       ~SApplication();
 
   _lxi_pure static const char * name(void);

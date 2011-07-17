@@ -20,11 +20,77 @@
 #include "ssandboxclient.h"
 #include "lxiserverprivate.h"
 #include <QtNetwork>
+#if defined(Q_OS_WIN)
+# include <windows.h>
+#endif
 
 namespace LXiServer {
 
 struct SSandboxClient::Data
 {
+#ifdef SANDBOX_USE_LOCALSERVER
+  class Socket : public QLocalSocket
+  {
+  public:
+    Socket(SHttpClientEngine *parent)
+      : QLocalSocket(parent), parent(parent)
+    {
+      if (parent)
+        qApp->sendEvent(parent, new QEvent(socketCreatedEventType));
+    }
+
+    virtual ~Socket()
+    {
+      if (parent)
+        qApp->postEvent(parent, new QEvent(socketDestroyedEventType));
+    }
+
+    inline HttpSocketRequest * createRequest(const QString &serverName, const QByteArray &message)
+    {
+      return new HttpSocketRequest(parent, this, serverName, message);
+    }
+
+  private:
+    const QPointer<SHttpClientEngine> parent;
+  };
+#else
+  class Socket : public QTcpSocket
+  {
+  public:
+    Socket(SHttpClientEngine *parent)
+      : QTcpSocket(parent), parent(parent)
+    {
+      if (parent)
+        qApp->sendEvent(parent, new QEvent(socketCreatedEventType));
+
+#ifdef Q_OS_WIN
+      // This is needed to ensure the socket isn't kept open by any child
+      // processes.
+      ::SetHandleInformation((HANDLE)socketDescriptor(), HANDLE_FLAG_INHERIT, 0);
+#endif
+    }
+
+    virtual ~Socket()
+    {
+      if (parent)
+        qApp->postEvent(parent, new QEvent(socketDestroyedEventType));
+    }
+
+    inline HttpSocketRequest * createRequest(const QString &serverName, const QByteArray &message)
+    {
+      QString address; quint16 port = 0;
+      if (splitHost(serverName, address, port))
+        return new HttpSocketRequest(parent, this, QHostAddress(address), port, message);
+
+      delete this;
+      return NULL;
+    }
+
+  private:
+    const QPointer<SHttpClientEngine> parent;
+  };
+#endif
+
   struct Request
   {
     inline Request(const QByteArray &message, QObject *receiver, const char *slot)
@@ -42,9 +108,7 @@ struct SSandboxClient::Data
   Priority                      priority;
   QString                       modeText;
 
-  QHostAddress                  address;
-  quint16                       port;
-
+  QString                       serverName;
   SandboxProcess              * serverProcess;
   bool                          processStarted;
   QList<Request>                requests;
@@ -76,8 +140,7 @@ SSandboxClient::SSandboxClient(SSandboxServer *localServer, Priority priority, Q
   d->localServer = localServer;
   d->priority = priority;
   d->serverProcess = NULL;
-  d->address = localServer->address();
-  d->port = localServer->port();
+  d->serverName = localServer->serverName();
   d->processStarted = true;
 }
 
@@ -115,10 +178,9 @@ void SSandboxClient::socketDestroyed(void)
   openRequest();
 }
 
-void SSandboxClient::processStarted(const QHostAddress &address, quint16 port)
+void SSandboxClient::processStarted(const QString &serverName)
 {
-  d->address = address;
-  d->port = port;
+  d->serverName = serverName;
   d->processStarted = true;
 
   openRequest();
@@ -130,7 +192,7 @@ void SSandboxClient::openRequest(void)
   {
     d->serverProcess = new SandboxProcess(this, d->application + " " + d->modeText);
 
-    connect(d->serverProcess, SIGNAL(ready(QHostAddress, quint16)), SLOT(processStarted(QHostAddress, quint16)));
+    connect(d->serverProcess, SIGNAL(ready(QString)), SLOT(processStarted(QString)));
     connect(d->serverProcess, SIGNAL(stop()), SLOT(stop()));
     connect(d->serverProcess, SIGNAL(finished(QProcess::ExitStatus)), SLOT(finished(QProcess::ExitStatus)));
     connect(d->serverProcess, SIGNAL(consoleLine(QString)), SIGNAL(consoleLine(QString)));
@@ -138,10 +200,10 @@ void SSandboxClient::openRequest(void)
   else while (d->processStarted && !d->requests.isEmpty() && (socketsAvailable() > 0))
   {
     const Data::Request request = d->requests.takeFirst();
-    HttpSocketRequest * const socketRequest = new HttpSocketRequest(this, createSocket(), d->address, d->port, request.message);
 
-    if (request.receiver)
-      connect(socketRequest, SIGNAL(connected(QAbstractSocket *)), request.receiver, request.slot, Qt::DirectConnection);
+    HttpSocketRequest * const socketRequest = (new Data::Socket(this))->createRequest(d->serverName, request.message);
+    if (socketRequest && request.receiver)
+      connect(socketRequest, SIGNAL(connected(QIODevice *)), request.receiver, request.slot, Qt::DirectConnection);
   }
 }
 
@@ -149,7 +211,7 @@ void SSandboxClient::stop(void)
 {
   if (d->serverProcess)
   {
-    disconnect(d->serverProcess, SIGNAL(ready(QHostAddress, quint16)), this, SLOT(processStarted(QHostAddress, quint16)));
+    disconnect(d->serverProcess, SIGNAL(ready(QString)), this, SLOT(processStarted(QString)));
     disconnect(d->serverProcess, SIGNAL(stop()), this, SLOT(stop()));
     disconnect(d->serverProcess, SIGNAL(finished(QProcess::ExitStatus)), this, SLOT(finished(QProcess::ExitStatus)));
     disconnect(d->serverProcess, SIGNAL(consoleLine(QString)), this, SIGNAL(consoleLine(QString)));

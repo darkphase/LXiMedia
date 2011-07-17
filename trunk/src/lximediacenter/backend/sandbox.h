@@ -23,7 +23,8 @@
 #include <QtCore>
 #include <LXiMediaCenter>
 
-class Sandbox : public QObject
+class Sandbox : public QObject,
+                public SSandboxServer::Callback
 {
 public:
                                 Sandbox(void);
@@ -32,6 +33,10 @@ public:
   inline SSandboxServer       * server(void)                                    { return &sandboxServer; }
 
   void                          start(const QString &mode);
+
+public: // From SSandboxServer::Callback
+  virtual SSandboxServer::SocketOp handleHttpRequest(const SSandboxServer::RequestMessage &, QIODevice *);
+  virtual void                  handleHttpOptions(SHttpServer::ResponseHeader &);
 
 private:
   SSandboxServer                sandboxServer;

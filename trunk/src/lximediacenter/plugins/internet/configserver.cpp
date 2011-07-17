@@ -76,7 +76,7 @@ QString ConfigServer::serverIconPath(void) const
   return "/img/control.png";
 }
 
-SHttpServer::SocketOp ConfigServer::handleHttpRequest(const SHttpServer::RequestMessage &request, QAbstractSocket *socket)
+SHttpServer::SocketOp ConfigServer::handleHttpRequest(const SHttpServer::RequestMessage &request, QIODevice *socket)
 {
   if ((request.method() == "GET") || (request.method() == "HEAD"))
   {

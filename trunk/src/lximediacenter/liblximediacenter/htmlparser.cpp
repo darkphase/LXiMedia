@@ -19,6 +19,7 @@
 
 #include "htmlparser.h"
 #include <QtNetwork>
+#include "globalsettings.h"
 
 namespace LXiMediaCenter {
 
@@ -34,9 +35,11 @@ HtmlParser::~HtmlParser()
 
 void HtmlParser::clear(void)
 {
+  GlobalSettings settings;
+
   fields.clear();
   fields["_PRODUCT"]  = qApp->applicationName().toUtf8();
-  fields["_HOSTNAME"] = QHostInfo::localHostName().toUtf8();
+  fields["_HOSTNAME"] = (settings.value("DeviceName", settings.defaultDeviceName())).toString().toUtf8();
 
   fields["_PALETTE_WINDOW"]      = palette().window.toByteArray();
   fields["_PALETTE_WINDOWTEXT"]  = palette().windowText.toByteArray();

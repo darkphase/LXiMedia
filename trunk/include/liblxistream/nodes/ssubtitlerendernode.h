@@ -22,7 +22,7 @@
 
 #include <QtCore>
 #include <LXiCore>
-#include "../sgraph.h"
+#include "../sinterfaces.h"
 #include "../spixels.h"
 #include "../ssubtitlebuffer.h"
 #include "../svideobuffer.h"
@@ -30,8 +30,7 @@
 
 namespace LXiStream {
 
-class LXISTREAM_PUBLIC SSubtitleRenderNode : public QObject,
-                                             public SGraph::Node
+class LXISTREAM_PUBLIC SSubtitleRenderNode : public SInterfaces::Node
 {
 Q_OBJECT
 private:
@@ -45,7 +44,7 @@ public:
   unsigned                      fontRatio(void) const;
   void                          setFontRatio(unsigned r);
 
-public: // From SGraph::Node
+public: // From SInterfaces::Node
   virtual bool                  start(void);
   virtual void                  stop(void);
 

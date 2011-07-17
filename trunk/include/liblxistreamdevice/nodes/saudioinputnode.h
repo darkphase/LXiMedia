@@ -30,8 +30,7 @@ namespace LXiStreamDevice {
 /*! This is a generic audio input node that can be used to obtain audio data
     from an audio device such as a audio capture card.
  */
-class LXISTREAMDEVICE_PUBLIC SAudioInputNode : public QObject,
-                                               public SGraph::SourceNode
+class LXISTREAMDEVICE_PUBLIC SAudioInputNode : public ::LXiStream::SInterfaces::SourceNode
 {
 Q_OBJECT
 public:

@@ -35,8 +35,7 @@ struct SIOOutputNode::Data
 };
 
 SIOOutputNode::SIOOutputNode(SGraph *parent, QIODevice *ioDevice)
-  : QObject(parent),
-    SGraph::SinkNode(parent),
+  : SInterfaces::SinkNode(parent),
     d(new Data())
 {
   d->ioDevice = ioDevice;

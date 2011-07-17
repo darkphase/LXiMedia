@@ -244,10 +244,12 @@ bool BufferReader::process(bool fast)
     ::AVPacket packet;
     ::av_init_packet(&packet);
 
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
     if (fast)
       formatContext->flags |= AVFMT_FLAG_NOFILLIN;
     else
       formatContext->flags &= ~int(AVFMT_FLAG_NOFILLIN);
+#endif
 
     if (::av_read_frame(formatContext, &packet) >= 0)
     {

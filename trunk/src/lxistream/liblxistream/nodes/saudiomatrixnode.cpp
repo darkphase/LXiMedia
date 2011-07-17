@@ -38,8 +38,7 @@ struct SAudioMatrixNode::Data
 };
 
 SAudioMatrixNode::SAudioMatrixNode(SGraph *parent)
-  : QObject(parent),
-    SGraph::Node(parent),
+  : SInterfaces::Node(parent),
     d(new Data())
 {
   d->channels = SAudioFormat::Channels_Stereo;

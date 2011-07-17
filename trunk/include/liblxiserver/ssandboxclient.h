@@ -64,7 +64,7 @@ protected:
   virtual void                  socketDestroyed(void);
 
 private slots:
-  _lxi_internal void            processStarted(const QHostAddress &, quint16);
+  _lxi_internal void            processStarted(const QString &);
   _lxi_internal void            openRequest(void);
   _lxi_internal void            stop(void);
   _lxi_internal void            finished(QProcess::ExitStatus);

@@ -45,13 +45,36 @@ public: // From SBufferDecoder
 
 private:
   template <SAudioFormat::Format format>
+  static SAudioBuffer           decodeBufferS8(const SEncodedAudioBuffer &);
+  template <SAudioFormat::Format format>
+  static SAudioBuffer           decodeBufferU8(const SEncodedAudioBuffer &);
+
+  template <SAudioFormat::Format format>
   static SAudioBuffer           copyBuffer(const SEncodedAudioBuffer &);
   template <SAudioFormat::Format format>
-  static SAudioBuffer           swapBuffer16(const SEncodedAudioBuffer &);
+  static SAudioBuffer           swapBufferS16(const SEncodedAudioBuffer &);
   template <SAudioFormat::Format format>
-  static SAudioBuffer           swapBuffer32(const SEncodedAudioBuffer &);
+  static SAudioBuffer           decodeBufferU16(const SEncodedAudioBuffer &);
   template <SAudioFormat::Format format>
-  static SAudioBuffer           swapBuffer64(const SEncodedAudioBuffer &);
+  static SAudioBuffer           swapDecodeBufferU16(const SEncodedAudioBuffer &);
+
+  template <SAudioFormat::Format format>
+  static SAudioBuffer           decodeBufferS32(const SEncodedAudioBuffer &);
+  template <SAudioFormat::Format format>
+  static SAudioBuffer           swapDecodeBufferS32(const SEncodedAudioBuffer &);
+  template <SAudioFormat::Format format>
+  static SAudioBuffer           decodeBufferU32(const SEncodedAudioBuffer &);
+  template <SAudioFormat::Format format>
+  static SAudioBuffer           swapDecodeBufferU32(const SEncodedAudioBuffer &);
+  template <SAudioFormat::Format format>
+  static SAudioBuffer           decodeBufferF32(const SEncodedAudioBuffer &);
+  template <SAudioFormat::Format format>
+  static SAudioBuffer           swapDecodeBufferF32(const SEncodedAudioBuffer &);
+
+  template <SAudioFormat::Format format>
+  static SAudioBuffer           decodeBufferF64(const SEncodedAudioBuffer &);
+  template <SAudioFormat::Format format>
+  static SAudioBuffer           swapDecodeBufferF64(const SEncodedAudioBuffer &);
 
 private:
   SAudioBuffer                  (* decode)(const SEncodedAudioBuffer &);

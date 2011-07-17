@@ -40,8 +40,8 @@ public:
   bool                          isConnected(void) const;
 
 public slots:
-  bool                          setSource(QAbstractSocket *);
-  bool                          addSocket(QAbstractSocket *);
+  bool                          setSource(QIODevice *);
+  bool                          addSocket(QIODevice *);
 
 protected:
   virtual void                  run(void);

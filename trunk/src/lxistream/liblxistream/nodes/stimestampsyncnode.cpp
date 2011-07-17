@@ -43,6 +43,8 @@ struct STimeStampSyncNode::Data
   static const int              maxAudioBufferCount = 256;
   static const int              maxVideoBufferCount = 32;
 
+  QMutex                        mutex;
+
   QMap<quint16, Queue<SAudioBuffer> > audioQueue;
   QMap<quint16, Queue<SVideoBuffer> > videoQueue;
 
@@ -57,8 +59,7 @@ struct STimeStampSyncNode::Data
 
 
 STimeStampSyncNode::STimeStampSyncNode(SGraph *parent)
-  : QObject(parent),
-    SGraph::Node(parent),
+  : SInterfaces::Node(parent),
     d(new Data())
 {
   d->frameRate = SInterval::fromFrequency(25);
@@ -103,7 +104,7 @@ void STimeStampSyncNode::stop(void)
 void STimeStampSyncNode::input(const SAudioBuffer &audioBuffer)
 {
   LXI_PROFILE_FUNCTION;
-  Q_ASSERT(QThread::currentThread() == thread());
+  QMutexLocker l(&d->mutex);
 
   if (!audioBuffer.isNull())
   {
@@ -162,7 +163,7 @@ void STimeStampSyncNode::input(const SAudioBuffer &audioBuffer)
 void STimeStampSyncNode::input(const SVideoBuffer &videoBuffer)
 {
   LXI_PROFILE_FUNCTION;
-  Q_ASSERT(QThread::currentThread() == thread());
+  QMutexLocker l(&d->mutex);
 
   if (!videoBuffer.isNull())
   {
@@ -265,13 +266,14 @@ void STimeStampSyncNode::output(void)
     if (!i->buffers.isEmpty())
       lvkey = lvkey.isValid() ? qMin(lvkey, i->buffers.begin().key()) : i->buffers.begin().key();
 
-    STime audioTime;
+    STime audioTimeMin, audioTimeMax;
     STime inTime;
 
     if (lvkey.isValid())
     for (QMap<quint16, Queue<SAudioBuffer> >::Iterator i=d->audioQueue.begin(); i!=d->audioQueue.end(); i++)
     {
       STime at = i->time, it = d->inTimeStamp;
+      audioTimeMin = audioTimeMin.isValid() ? qMin(audioTimeMin, at) : at;
 
       for (QMultiMap<STime, SAudioBuffer>::Iterator j = i->buffers.begin();
            (j != i->buffers.end()) && (lvkey >= it);
@@ -289,7 +291,7 @@ void STimeStampSyncNode::output(void)
         i->time += ab.duration();
       }
 
-      audioTime = audioTime.isValid() ? qMin(audioTime, at) : at;
+      audioTimeMax = audioTimeMax.isValid() ? qMin(audioTimeMax, at) : at;
       inTime = inTime.isValid() ? qMin(inTime, it) : it;
     }
 
@@ -297,39 +299,44 @@ void STimeStampSyncNode::output(void)
       d->inTimeStamp = inTime;
 
     const STime frameTime = d->frameRate.isValid() ? STime(1, d->frameRate) : STime::fromMSec(15);
+    const STime maxDelta = frameTime * -5;
 
     // Dump old video buffers
     for (QMap<quint16, Queue<SVideoBuffer> >::Iterator i=d->videoQueue.begin(); i!=d->videoQueue.end(); i++)
     for (QMultiMap<STime, SVideoBuffer>::Iterator j = i->buffers.begin(); j != i->buffers.end(); )
     {
-      if ((j.key() - d->inTimeStamp) <= (frameTime * -2))
+      if ((j.key() - d->inTimeStamp) <= maxDelta)
+      {
+//        qDebug() << "DUMPV" << j.key().toMSec() << d->inTimeStamp.toMSec() << frameTime.toMSec();
         j = i->buffers.erase(j);
+      }
       else
         break;
     }
 
     // Output video buffers
-    if (audioTime.isValid())
+    if (audioTimeMin.isValid() && audioTimeMax.isValid())
     for (QMap<quint16, Queue<SVideoBuffer> >::Iterator i=d->videoQueue.begin(); i!=d->videoQueue.end(); i++)
     for (QMultiMap<STime, SVideoBuffer>::Iterator j = i->buffers.begin(); j != i->buffers.end(); )
     {
       const STime delta = j.key() - d->inTimeStamp;
       if (!delta.isPositive())
       {
-        const STime nextVideoTime = audioTime + delta;
+        const STime nextVideoTimeMin = audioTimeMin + delta;
 
         SVideoBuffer vb = *j;
         j = i->buffers.erase(j);
 
-        if (i->time <= (nextVideoTime + frameTime))
+        if (i->time <= (audioTimeMax + frameTime))
         do
         {
           vb.setTimeStamp(i->time);
-//            qDebug() << "VO1" << vb.timeStamp().toMSec() << nextVideoTime.toMSec() << audioTime.toMSec() << delta.toMSec();
+//          qDebug() << "VO1" << vb.timeStamp().toMSec() << nextVideoTime.toMSec() << nextVideoTimeMin.toMSec() << nextVideoTimeMax.toMSec() << delta.toMSec();
           emit output(vb);
 
           i->time += frameTime;
-        } while (i->time <= nextVideoTime);
+//          if (i->time <= nextVideoTimeMin) qDebug() << "DUPV" << i->time.toMSec() << nextVideoTimeMin.toMSec() << nextVideoTimeMax.toMSec();
+        } while (i->time <= nextVideoTimeMin);
       }
       else
         break;

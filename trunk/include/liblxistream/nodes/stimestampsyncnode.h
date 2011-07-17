@@ -23,7 +23,7 @@
 #include <QtCore>
 #include <LXiCore>
 #include "../saudiobuffer.h"
-#include "../sgraph.h"
+#include "../sinterfaces.h"
 #include "../stime.h"
 #include "../svideobuffer.h"
 #include "../export.h"
@@ -34,8 +34,7 @@ class SAudioBuffer;
 class SDataBuffer;
 class SVideoBuffer;
 
-class LXISTREAM_PUBLIC STimeStampSyncNode : public QObject,
-                                            public SGraph::Node
+class LXISTREAM_PUBLIC STimeStampSyncNode : public SInterfaces::Node
 {
 Q_OBJECT
 public:
@@ -47,7 +46,7 @@ public:
   STime                         startTime(void) const;
   void                          setStartTime(STime);
 
-public: // From SGraph::Node
+public: // From SInterfaces::Node
   virtual bool                  start(void);
   virtual void                  stop(void);
 

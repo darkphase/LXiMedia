@@ -142,12 +142,12 @@ const char MediaServer::htmlPlayerVideoItem[] =
     " </div>\n";
 
 const char MediaServer::htmlPlayerVideoItemHtml5[] =
-    "   <video src=\"{PLAYER_ITEM}.ogg{QUERY}\" width=\"{WIDTH}\" height=\"{HEIGHT}\" autoplay=\"autoplay\" controls=\"controls\" poster=\"{PLAYER_ITEM}-thumb.png?size={WIDTH}x{HEIGHT}\">\n"
+    "   <video src=\"{PLAYER_ITEM}.ogg{QUERY}\" width=\"{WIDTH}\" height=\"{HEIGHT}\" autoplay=\"autoplay\" controls=\"controls\" poster=\"{PLAYER_ITEM}-thumb.png?resolution={WIDTH}x{HEIGHT}\">\n"
     "{FLV_PLAYER}"
     "   </video>\n";
 
 const char MediaServer::htmlPlayerVideoItemFlv[] =
-    "    <div id=\"player\" style=\"display:block;width:{WIDTH}px;height:{HEIGHT}px;\" href=\"{PLAYER_ITEM}.flv{QUERYX}\"></div>\n"
+    "    <div id=\"player\" style=\"display:block;width:{WIDTH}px;height:{HEIGHT}px;\" href=\"{PLAYER_ITEM}.flv{QUERY}\"></div>\n"
     "    <script language=\"JavaScript\" type=\"text/javascript\">\n"
     "     <!--\n"
     "     flowplayer(\"player\", \"/swf/flowplayer.swf\", {\n"
@@ -168,7 +168,7 @@ const char MediaServer::htmlPlayerThumbItem[] =
     "  <div class=\"player\">\n"
     "   <div style=\"padding:0;margin:0;display:table-cell;"
                     "width:{WIDTH}px;height:{HEIGHT}px;vertical-align:middle;"
-                    "background-image:url('{PLAYER_ITEM}-thumb.png?size={WIDTH}x{HEIGHT}');"
+                    "background-image:url('{PLAYER_ITEM}-thumb.png?resolution={WIDTH}x{HEIGHT}');"
                     "background-position:center;background-repeat:no-repeat;background-color:#000000;\">\n"
     "    <div style=\"padding:1em;margin:1em auto;width:{WIDTH23}px;background-color:rgb(176,176,176);background-color:rgba(255,255,255,0.7);\">\n"
     "     {TR_DOWNLOAD_OPTIONS_EXPLAIN}\n"
@@ -209,7 +209,7 @@ const char MediaServer::htmlPlayerThumbItem[] =
     "      </select>\n"
     "      <br /><br />\n"
     "      {TR_TRANSCODE_TO}:\n"
-    "      <select name=\"size\">\n"
+    "      <select name=\"resolution\">\n"
     "{FORMATS}"
     "      </select>\n"
     "      <select name=\"requestchannels\">\n"
@@ -376,13 +376,12 @@ QByteArray MediaServer::buildVideoPlayer(const QByteArray &item, const QString &
   htmlParser.setField("LANGUAGE", url.queryItemValue("language"));
 
   QByteArray query =
-      "?size=" + QByteArray::number(size.width()) + "x" + QByteArray::number(size.height()) +
+      "resolution=" + QByteArray::number(size.width()) + "x" + QByteArray::number(size.height()) +
       "&channels=" + QByteArray::number(channels, 16) +
       "&language=" + url.queryItemValue("language").toAscii() +
       "&subtitles=" + url.queryItemValue("subtitles").toAscii() +
       "&position=" + url.queryItemValue("position").toAscii();
-  htmlParser.setField("QUERYX", "?query=" + query.toHex().toUpper());
-  htmlParser.setField("QUERY", query.replace("&", "&amp;"));
+  htmlParser.setField("QUERY", ".." + SUPnPContentDirectory::toQueryID(query));
 
   int count = 1;
   htmlParser.setField("LANGUAGES", QByteArray(""));
@@ -554,10 +553,9 @@ QByteArray MediaServer::buildVideoPlayer(const QByteArray &item, const QString &
   htmlParser.setField("LANGUAGE", url.queryItemValue("language"));
 
   QByteArray query =
-      "?size=" + QByteArray::number(size.width()) + "x" + QByteArray::number(size.height()) +
+      "resolution=" + QByteArray::number(size.width()) + "x" + QByteArray::number(size.height()) +
       "&channels=" + QByteArray::number(channels, 16);
-  htmlParser.setField("QUERYX", "?query=" + query.toHex().toUpper());
-  htmlParser.setField("QUERY", query.replace("&", "&amp;"));
+  htmlParser.setField("QUERY", ".." + SUPnPContentDirectory::toQueryID(query));
 
   htmlParser.setField("SELECTED", QByteArray(""));
 

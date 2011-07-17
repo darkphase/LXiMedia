@@ -26,6 +26,7 @@ HEADERS += $${PWD}/$${LXIMEDIA_DIR}/include/LXiStreamGui \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistreamgui/svumeter.h
 SOURCES += sdisplay.cpp \
     simage.cpp \
+    svideoview.cpp \
     svumeter.cpp
 
 HEADERS += lxistreamguiprivate.h

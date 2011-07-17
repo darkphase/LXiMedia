@@ -176,6 +176,8 @@ public:
   static const char           * toMimeType(const QString &fileName);
   static bool                   splitHost(const QString &host, QString &hostname, quint16 &port);
 
+  static void                   closeSocket(QIODevice *);
+
 public:
   static const char             httpVersion[];
   static const int              maxTTL;
@@ -202,7 +204,7 @@ public:
 
   struct Callback
   {
-    virtual SocketOp            handleHttpRequest(const RequestMessage &, QAbstractSocket *) = 0;
+    virtual SocketOp            handleHttpRequest(const RequestMessage &, QIODevice *) = 0;
     virtual void                handleHttpOptions(ResponseHeader &) = 0;
   };
 
@@ -217,12 +219,12 @@ public:
   virtual const QString       & senderId(void) const;
 
 public:
-  static SocketOp               sendResponse(const RequestHeader &, QAbstractSocket *, Status, const QByteArray &content, const QObject * = NULL);
-  static SocketOp               sendResponse(const RequestHeader &, QAbstractSocket *, Status, const QObject * = NULL);
-  static SocketOp               sendRedirect(const RequestHeader &, QAbstractSocket *, const QString &);
+  static SocketOp               sendResponse(const RequestHeader &, QIODevice *, Status, const QByteArray &content, const QObject * = NULL);
+  static SocketOp               sendResponse(const RequestHeader &, QIODevice *, Status, const QObject * = NULL);
+  static SocketOp               sendRedirect(const RequestHeader &, QIODevice *, const QString &);
 
 private slots:
-  _lxi_internal void            handleHttpRequest(const SHttpEngine::RequestMessage &, QAbstractSocket *);
+  _lxi_internal void            handleHttpRequest(const SHttpEngine::RequestMessage &, QIODevice *);
 
 private:
   struct Data;
@@ -249,21 +251,23 @@ public:
 
 signals:
   void                          response(const SHttpEngine::ResponseMessage &);
-  void                          opened(QAbstractSocket *);
+  void                          opened(QIODevice *);
 
 protected:
   virtual void                  customEvent(QEvent *);
 
   int                           socketsAvailable(void) const;
-  QAbstractSocket             * createSocket(void);
+  virtual void                  socketCreated(void);
   virtual void                  socketDestroyed(void);
 
 protected slots:
   virtual void                  handleResponse(const SHttpEngine::ResponseMessage &);
 
-private:
-  _lxi_internal static const QEvent::Type socketDestroyedEventType;
+protected:
+  static const QEvent::Type     socketCreatedEventType;
+  static const QEvent::Type     socketDestroyedEventType;
 
+private:
   struct Data;
   Data                  * const d;
 };

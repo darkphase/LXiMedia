@@ -23,7 +23,7 @@
 #include <QtCore>
 #include <LXiCore>
 #include "../saudiobuffer.h"
-#include "../sgraph.h"
+#include "../sinterfaces.h"
 #include "../spixels.h"
 #include "../ssubpicturebuffer.h"
 #include "../ssubtitlebuffer.h"
@@ -38,8 +38,7 @@ class SVideoBuffer;
 
 /*! This filter can be used to resample the timestamps in a stream.
  */
-class LXISTREAM_PUBLIC STimeStampResamplerNode : public QObject,
-                                                 public SGraph::Node
+class LXISTREAM_PUBLIC STimeStampResamplerNode : public SInterfaces::Node
 {
 Q_OBJECT
 public:
@@ -51,7 +50,7 @@ public:
   static const QVector<double> & standardFrameRates(void);
   static SInterval              roundFrameRate(SInterval, const QVector<double> &);
 
-public: // From SGraph::Node
+public: // From SInterfaces::Node
   virtual bool                  start(void);
   virtual void                  stop(void);
 

@@ -39,7 +39,7 @@ public:
 
 protected:
   virtual QList<Item>           listItems(const QString &path, unsigned start = 0, unsigned count = 0);
-  virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestMessage &, QAbstractSocket *);
+  virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestMessage &, QIODevice *);
 
   QStringList                   playlists(void) const;
   Playlist                    * createPlaylist(const QString &);

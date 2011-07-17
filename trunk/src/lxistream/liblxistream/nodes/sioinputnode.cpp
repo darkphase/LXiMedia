@@ -29,8 +29,7 @@ struct SIOInputNode::Data
 };
 
 SIOInputNode::SIOInputNode(SGraph *parent, QIODevice *ioDevice, const QString &path)
-  : QObject(parent),
-    SGraph::SourceNode(parent),
+  : SInterfaces::SourceNode(parent),
     SInterfaces::BufferReader::ReadCallback(path),
     d(new Data())
 {

@@ -65,6 +65,7 @@ public:
     }
 
     QString                     toString(bool brief = false) const;             //!< Returns the DLNA protocol string.
+    QString                     contentFeatures(void) const;                    //!< Returns the DLNA contentFeatures string.
 
     QString                     protocol;                                       //!< The network protocol used (e.g. "http-get").
     QString                     network;                                        //!< The network used, usually not needed.
@@ -117,12 +118,12 @@ public:
   void                          close(void);
 
 protected: // From SHttpServer::Callback
-  virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestMessage &, QAbstractSocket *);
+  virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestMessage &, QIODevice *);
   virtual void                  handleHttpOptions(SHttpServer::ResponseHeader &);
 
 protected:
-  virtual SHttpServer::SocketOp handleControl(const SHttpServer::RequestMessage &, QAbstractSocket *);
-  virtual SHttpServer::SocketOp handleDescription(const SHttpServer::RequestMessage &, QAbstractSocket *);
+  virtual SHttpServer::SocketOp handleControl(const SHttpServer::RequestMessage &, QIODevice *);
+  virtual SHttpServer::SocketOp handleDescription(const SHttpServer::RequestMessage &, QIODevice *);
 
   virtual void                  buildDescription(QDomDocument &, QDomElement &) = 0;
   virtual void                  handleSoapMessage(const QDomElement &, QDomDocument &, QDomElement &, const SHttpServer::RequestMessage &, const QHostAddress &) = 0;
@@ -134,8 +135,8 @@ protected:
 public:
   static QString                protocol(void);
 
-  static void                   addTextElm(QDomDocument &doc, QDomElement &elm, const QString &name, const QString &value);
-  static void                   addTextElmNS(QDomDocument &doc, QDomElement &elm, const QString &name, const QString &nsUri, const QString &value);
+  static QDomElement            addTextElm(QDomDocument &doc, QDomElement &elm, const QString &name, const QString &value);
+  static QDomElement            addTextElmNS(QDomDocument &doc, QDomElement &elm, const QString &name, const QString &nsUri, const QString &value);
   static void                   addSpecVersion(QDomDocument &doc, QDomElement &elm);
   static void                   addActionArgument(QDomDocument &doc, QDomElement &elm, const QString &name, const QString &direction, const QString &relatedStateVariable);
   static void                   addStateVariable(QDomDocument &doc, QDomElement &elm, bool sendEvents, const QString &name, const QString &dataType, const QStringList &allowedValues = QStringList());

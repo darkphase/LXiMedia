@@ -21,6 +21,7 @@
 #include "supnpgenaserver.h"
 
 #define USE_SMALL_OBJECTIDS
+#define USE_SMALL_QUERYIDS
 
 namespace LXiServer {
 
@@ -42,10 +43,20 @@ struct SUPnPContentDirectory::Data : SUPnPContentDirectory::Callback
   QAtomicInt                    systemUpdateId;
 
 #ifdef USE_SMALL_OBJECTIDS
-  QVector<QString>              objectIdList;
-  QHash<QString, qint32>        objectIdHash;
+  QVector<QByteArray>           objectIdList;
+  QHash<QByteArray, qint32>     objectIdHash;
+#endif
+
+#ifdef USE_SMALL_QUERYIDS
+  static QVector<QByteArray>    queryIdList;
+  static QHash<QByteArray, qint32> queryIdHash;
 #endif
 };
+
+#ifdef USE_SMALL_QUERYIDS
+QVector<QByteArray>       SUPnPContentDirectory::Data::queryIdList;
+QHash<QByteArray, qint32> SUPnPContentDirectory::Data::queryIdHash;
+#endif
 
 SUPnPContentDirectory::SUPnPContentDirectory(const QString &basePath, QObject *parent)
     : SUPnPBase(basePath + "contentdirectory/", parent),
@@ -59,7 +70,7 @@ SUPnPContentDirectory::SUPnPContentDirectory(const QString &basePath, QObject *p
   d->callbacks.insert("/", d);
 
 #ifdef USE_SMALL_OBJECTIDS
-  d->objectIdList.append(QString::null);
+  d->objectIdList.append(QByteArray());
   d->objectIdHash.insert(d->objectIdList.last(), d->objectIdList.count() - 1);
 #endif
 }
@@ -117,6 +128,36 @@ void SUPnPContentDirectory::unregisterCallback(Callback *callback)
     i = d->callbacks.erase(i);
   else
     i++;
+}
+
+QByteArray SUPnPContentDirectory::toQueryID(const QByteArray &query)
+{
+#ifdef USE_SMALL_QUERYIDS
+  QHash<QByteArray, qint32>::ConstIterator i = Data::queryIdHash.find(query);
+    if (i != Data::queryIdHash.end())
+      return ("0000000" + QByteArray::number(*i, 16)).right(8);
+
+    Data::queryIdList.append(query);
+    Data::queryIdList.last().squeeze();
+    Data::queryIdHash.insert(Data::queryIdList.last(), Data::queryIdList.count() - 1);
+
+    return ("0000000" + QByteArray::number(Data::queryIdList.count() - 1, 16)).right(8);
+#else
+    return qCompress(query, 9).toHex();
+#endif
+}
+
+QByteArray SUPnPContentDirectory::fromQueryID(const QByteArray &idStr)
+{
+#ifdef USE_SMALL_QUERYIDS
+    const qint32 id = idStr.toInt(NULL, 16);
+    if (id < Data::queryIdList.count())
+      return Data::queryIdList[id];
+
+    return QByteArray();
+#else
+    return qUncompress(QByteArray::fromHex(idStr));
+#endif
 }
 
 void SUPnPContentDirectory::modified(void)
@@ -218,7 +259,7 @@ void SUPnPContentDirectory::handleSoapMessage(const QDomElement &body, QDomDocum
 
 void SUPnPContentDirectory::handleBrowse(const QDomElement &elem, QDomDocument &doc, QDomElement &body, const SHttpServer::RequestMessage &request, const QHostAddress &peerAddress)
 {
-  const QString path = fromObjectID(elem.firstChildElement("ObjectID").text());
+  const QString path = fromObjectID(elem.firstChildElement("ObjectID").text().toAscii());
   const QString browseFlag = elem.firstChildElement("BrowseFlag").text();
   const unsigned start = elem.firstChildElement("StartingIndex").text().toUInt();
   const unsigned count = elem.firstChildElement("RequestedCount").text().toUInt();
@@ -229,7 +270,6 @@ void SUPnPContentDirectory::handleBrowse(const QDomElement &elem, QDomDocument &
   d->activeClients[peer] = request.field("User-Agent");
 
   QDomElement browseResponse = createElementNS(doc, elem, "BrowseResponse");
-  addTextElm(doc, browseResponse, "UpdateID", QString::number(d->systemUpdateId));
 
   const QString basePath = baseDir(path);
   QMap<QString, Callback *>::Iterator callback = d->callbacks.find(basePath);
@@ -276,7 +316,7 @@ void SUPnPContentDirectory::handleBrowse(const QDomElement &elem, QDomDocument &
       totalMatches = (*callback)->countContentDirItems(path);
 
       subDoc.appendChild(root);
-      result.appendChild(doc.createTextNode(subDoc.toString(-1)));
+      result.appendChild(doc.createTextNode(subDoc.toString(-1).replace(">", "&gt;"))); // Crude hack for non-compliant XML parsers
     }
     else if (browseFlag == "BrowseMetadata")
     {
@@ -290,10 +330,11 @@ void SUPnPContentDirectory::handleBrowse(const QDomElement &elem, QDomDocument &
 
       totalMatches = totalReturned = 1;
 
-      result.appendChild(doc.createTextNode(subDoc.toString(-1)));
+      result.appendChild(doc.createTextNode(subDoc.toString(-1).replace(">", "&gt;"))); // Crude hack for non-compliant XML parsers
     }
 
     browseResponse.appendChild(result);
+
     addTextElm(doc, browseResponse, "NumberReturned", QString::number(totalReturned));
     addTextElm(doc, browseResponse, "TotalMatches", QString::number(totalMatches));
   }
@@ -350,7 +391,7 @@ void SUPnPContentDirectory::handleBrowse(const QDomElement &elem, QDomDocument &
       totalMatches = items.count();
 
       subDoc.appendChild(root);
-      result.appendChild(doc.createTextNode(subDoc.toString(-1)));
+      result.appendChild(doc.createTextNode(subDoc.toString(-1).replace(">", "&gt;"))); // Crude hack for non-compliant XML parsers
     }
     else if (browseFlag == "BrowseMetadata")
     {
@@ -368,7 +409,7 @@ void SUPnPContentDirectory::handleBrowse(const QDomElement &elem, QDomDocument &
       totalMatches = totalReturned = 1;
 
       subDoc.appendChild(root);
-      result.appendChild(doc.createTextNode(subDoc.toString(-1)));
+      result.appendChild(doc.createTextNode(subDoc.toString(-1).replace(">", "&gt;"))); // Crude hack for non-compliant XML parsers
     }
 
     browseResponse.appendChild(result);
@@ -376,6 +417,7 @@ void SUPnPContentDirectory::handleBrowse(const QDomElement &elem, QDomDocument &
     addTextElm(doc, browseResponse, "TotalMatches", QString::number(totalMatches));
   }
 
+  addTextElm(doc, browseResponse, "UpdateID", QString::number(d->systemUpdateId));
   body.appendChild(browseResponse);
 }
 
@@ -390,9 +432,9 @@ QDomElement SUPnPContentDirectory::didlDirectory(QDomDocument &doc, Item::Type t
                 : QString("root"));
 
   QDomElement containerElm = doc.createElement("container");
-  containerElm.setAttribute("id", toObjectID(path));
-  containerElm.setAttribute("restricted", "true");
-  containerElm.setAttribute("parentID", toObjectID(parentPath));
+  containerElm.setAttribute("id", QString::fromAscii(toObjectID(path)));
+  containerElm.setAttribute("restricted", "1");
+  containerElm.setAttribute("parentID", QString::fromAscii(toObjectID(parentPath)));
 
   addTextElm(doc, containerElm, "dc:title", dcTitle);
 
@@ -421,9 +463,9 @@ QDomElement SUPnPContentDirectory::didlDirectory(QDomDocument &doc, Item::Type t
 QDomElement SUPnPContentDirectory::didlFile(QDomDocument &doc, const QString &peer, const QString &host, const Item &item, const QString &path, const QString &title)
 {
   QDomElement itemElm = doc.createElement("item");
-  itemElm.setAttribute("id", toObjectID(path));
-  itemElm.setAttribute("restricted", "true");
-  itemElm.setAttribute("parentID", toObjectID(parentDir(path)));
+  itemElm.setAttribute("id", QString::fromAscii(toObjectID(path)));
+  itemElm.setAttribute("restricted", "1");
+  itemElm.setAttribute("parentID", QString::fromAscii(toObjectID(parentDir(path))));
 
   addTextElm(doc, itemElm, "dc:title", !title.isEmpty() ? title : item.title);
 
@@ -515,6 +557,7 @@ QDomElement SUPnPContentDirectory::didlFile(QDomDocument &doc, const QString &pe
 
     QUrl u = url;
     u.setPath(u.path() + protocol.suffix);
+    u.addQueryItem("contentFeatures", protocol.contentFeatures().toAscii().toHex());
 
     for (QMap<QString, QString>::ConstIterator i = protocol.queryItems.begin();
          i != protocol.queryItems.end();
@@ -524,7 +567,31 @@ QDomElement SUPnPContentDirectory::didlFile(QDomDocument &doc, const QString &pe
       u.addQueryItem(i.key(), i.value());
     }
 
-    resElm.appendChild(doc.createTextNode(u.toString()));
+    if (u.hasQueryItem("resolution"))
+    {
+      QString resolution;
+      foreach (QChar c, u.queryItemValue("resolution"))
+      if (c.isNumber())
+        resolution += c;
+      else if (!resolution.contains('x'))
+        resolution += 'x';
+      else
+        break;
+
+      const QStringList rs = resolution.split('x');
+      if (rs.count() == 2)
+      {
+        resElm.setAttribute("resolution", resolution);
+
+        // Skip HD profile if resolution is too small.
+        if (protocol.profile.startsWith("DLNA.ORG_PN=MPEG_TS_HD"))
+        if ((rs[0].toInt() < 1280) && (rs[1].toInt() < 720))
+          continue;
+      }
+    }
+
+    // Encode the filename
+    resElm.appendChild(doc.createTextNode(u.toString(QUrl::RemoveQuery) + ".." + toQueryID(u.encodedQuery())));
     itemElm.appendChild(resElm);
   }
 
@@ -582,6 +649,8 @@ QStringList SUPnPContentDirectory::streamItems(const Item &item)
 
           query += "&subtitles=" + QString::number(dataStreams[d].id, 16);
         }
+        else
+          query += "&subtitles=";
 
         result += ("r" + query + "#" + title);
       }
@@ -696,7 +765,7 @@ QString SUPnPContentDirectory::parentDir(const QString &dir)
   return QString::null;
 }
 
-QString SUPnPContentDirectory::toObjectID(const QString &path)
+QByteArray SUPnPContentDirectory::toObjectID(const QString &path)
 {
   if (path == "/")
   {
@@ -709,23 +778,22 @@ QString SUPnPContentDirectory::toObjectID(const QString &path)
   else
   {
 #ifdef USE_SMALL_OBJECTIDS
-    QHash<QString, qint32>::ConstIterator i = d->objectIdHash.find(path);
+    QHash<QByteArray, qint32>::ConstIterator i = d->objectIdHash.find(path.toUtf8());
     if (i != d->objectIdHash.end())
-      return QString::number(*i);
+      return QByteArray::number(*i);
 
-    d->objectIdList.append(path);
+    d->objectIdList.append(path.toUtf8());
     d->objectIdList.last().squeeze();
     d->objectIdHash.insert(d->objectIdList.last(), d->objectIdList.count() - 1);
 
-    return QString::number(d->objectIdList.count() - 1);
+    return QByteArray::number(d->objectIdList.count() - 1);
 #else
-    return QString::fromAscii(qCompress(path.toUtf8(), 9).toBase64());
-    //return path;
+    return qCompress(path.toUtf8(), 9).toBase64();
 #endif
   }
 }
 
-QString SUPnPContentDirectory::fromObjectID(const QString &idStr)
+QString SUPnPContentDirectory::fromObjectID(const QByteArray &idStr)
 {
   if (idStr == "0")
   {
@@ -740,12 +808,11 @@ QString SUPnPContentDirectory::fromObjectID(const QString &idStr)
 #ifdef USE_SMALL_OBJECTIDS
     const qint32 id = idStr.toInt();
     if (id < d->objectIdList.count())
-      return d->objectIdList[id];
+      return QString::fromUtf8(d->objectIdList[id]);
 
     return QString::null;
 #else
-    return QString::fromUtf8(qUncompress(QByteArray::fromBase64(idStr.toAscii())));
-    //return idStr;
+    return QString::fromUtf8(qUncompress(QByteArray::fromBase64(idStr)));
 #endif
   }
 }

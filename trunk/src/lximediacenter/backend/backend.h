@@ -32,6 +32,7 @@ class Backend : public QObject,
                 protected BackendServer::MasterServer,
                 protected SHttpServer::Callback
 {
+Q_OBJECT
 private:
   struct MenuItem
   {
@@ -60,11 +61,14 @@ public:
 
   void                          start(void);
 
+public slots:
+  void                          start(const SHttpEngine::ResponseMessage &);
+
 protected:
   virtual void                  customEvent(QEvent *);
 
 protected: // From SHttpServer::Callback
-  virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestMessage &, QAbstractSocket *);
+  virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestMessage &, QIODevice *);
   virtual void                  handleHttpOptions(SHttpServer::ResponseHeader &);
 
 private:
@@ -82,11 +86,12 @@ private:
 
   QByteArray                    parseHtmlLogErrors(void) const;
 
-  SHttpServer::SocketOp         handleHtmlRequest(const SHttpServer::RequestMessage &, QAbstractSocket *, const QString &);
-  SHttpServer::SocketOp         handleHtmlSearch(const SHttpServer::RequestMessage &, QAbstractSocket *, const QString &);
-  SHttpServer::SocketOp         handleHtmlLogFileRequest(const SHttpServer::RequestMessage &, QAbstractSocket *, const QString &);
-  SHttpServer::SocketOp         showAbout(const SHttpServer::RequestMessage &, QAbstractSocket *);
-  SHttpServer::SocketOp         handleHtmlConfig(const SHttpServer::RequestMessage &, QAbstractSocket *);
+  SHttpServer::SocketOp         handleHtmlRequest(const SHttpServer::RequestMessage &, QIODevice *, const MediaServer::File &);
+  SHttpServer::SocketOp         handleHtmlRequest(const SHttpServer::RequestMessage &, QIODevice *, const QString &);
+  SHttpServer::SocketOp         handleHtmlSearch(const SHttpServer::RequestMessage &, QIODevice *, const MediaServer::File &);
+  SHttpServer::SocketOp         handleHtmlLogFileRequest(const SHttpServer::RequestMessage &, QIODevice *, const MediaServer::File &);
+  SHttpServer::SocketOp         showAbout(const SHttpServer::RequestMessage &, QIODevice *);
+  SHttpServer::SocketOp         handleHtmlConfig(const SHttpServer::RequestMessage &, QIODevice *);
 
   void                          setContentDirectoryQueryItems(void);
 
@@ -101,16 +106,18 @@ private:
   SUPnPMediaServer              masterMediaServer;
   SUPnPConnectionManager        masterConnectionManager;
   SUPnPContentDirectory         masterContentDirectory;
+  SUPnPMediaReceiverRegistrar   masterMediaReceiverRegistrar;
   ImdbClient                  * masterImdbClient;
 
   const QString                 sandboxApplication;
-  QMap<SSandboxClient::Priority, QList<SSandboxClient *> > sandboxClients;
 
   HtmlParser                    cssParser;
   HtmlParser                    htmlParser;
   QList<BackendServer *>        backendServers;
   QMap<QString, QList<MenuItem> > submenuItems;
   QByteArray                    menuHtml;
+
+  SSandboxClient              * formatSandbox;
 
   mutable QMap<QString, SearchCacheEntry> searchCache;
 

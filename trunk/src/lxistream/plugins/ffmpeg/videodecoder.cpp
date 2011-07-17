@@ -91,6 +91,9 @@ bool VideoDecoder::openCodec(const SVideoCodec &c, Flags flags)
   else
     contextHandle->skip_frame = AVDISCARD_DEFAULT;
 
+  if (flags & Flag_Fast)
+    contextHandle->flags2 |= CODEC_FLAG2_FAST;
+
   contextHandle->bit_rate = inCodec.bitRate();
 
   contextHandle->extradata_size = inCodec.extraData().size();

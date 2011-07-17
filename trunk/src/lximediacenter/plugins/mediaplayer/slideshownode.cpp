@@ -29,8 +29,7 @@ namespace LXiMediaCenter {
 namespace MediaPlayerBackend {
 
 SlideShowNode::SlideShowNode(SGraph *parent, const SMediaInfoList &files)
-  : QObject(parent),
-    SGraph::SourceNode(parent),
+  : SInterfaces::SourceNode(parent),
     files(files),
     outSize(768, 576),
     time(STime::null),

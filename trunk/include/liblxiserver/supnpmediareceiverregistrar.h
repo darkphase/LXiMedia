@@ -17,58 +17,48 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXISERVER_SUPNPGENASERVER_H
-#define LXISERVER_SUPNPGENASERVER_H
+#ifndef LXISERVER_SUPNPMEDIARECEIVERREGISTRAR_H
+#define LXISERVER_SUPNPMEDIARECEIVERREGISTRAR_H
 
 #include <QtCore>
 #include <QtNetwork>
 #include <QtXml>
 #include <LXiCore>
 #include "shttpserver.h"
+#include "supnpbase.h"
 #include "export.h"
 
 namespace LXiServer {
 
-class LXISERVER_PUBLIC SUPnPGenaServer : public QObject,
-                                         protected SHttpServer::Callback
+class SUPnPMediaServer;
+
+class LXISERVER_PUBLIC SUPnPMediaReceiverRegistrar : public SUPnPBase
 {
 Q_OBJECT
 public:
-                                SUPnPGenaServer(const QString &basePath, QObject * = NULL);
-  virtual                       ~SUPnPGenaServer();
+  explicit                      SUPnPMediaReceiverRegistrar(const QString &basePath, QObject * = NULL);
+  virtual                       ~SUPnPMediaReceiverRegistrar();
 
-  QString                       path(void) const;
-
-  void                          initialize(SHttpServer *);
+  void                          initialize(SHttpServer *, SUPnPMediaServer *);
   void                          close(void);
 
-public slots:
-  void                          emitEvent(const QDomDocument &doc);
-
-protected:
-  virtual void                  customEvent(QEvent *);
-  virtual void                  timerEvent(QTimerEvent *);
-
-protected: // From SHttpServer::Callback
-  virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestMessage &, QIODevice *);
-  virtual void                  handleHttpOptions(SHttpServer::ResponseHeader &);
-
-private slots:
-  _lxi_internal void            emitEvents(void);
+protected: // From SUPnPBase
+  virtual void                  buildDescription(QDomDocument &, QDomElement &);
+  virtual void                  handleSoapMessage(const QDomElement &, QDomDocument &, QDomElement &, const SHttpServer::RequestMessage &, const QHostAddress &);
 
 private:
-  _lxi_internal QString         makeSid(void);
+  _lxi_internal void            emitEvent(void);
 
 public:
-  static const char             eventNS[];
+  static const char             mediaReceiverRegistrarNS[];
 
 private:
-  _lxi_internal static const QEvent::Type scheduleEventType;
+  _lxi_internal static const char datatypesNS[];
 
-  class EventSession;
   struct Data;
   Data                  * const d;
 };
+
 
 } // End of namespace
 

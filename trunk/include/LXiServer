@@ -21,6 +21,7 @@
 #include "liblxiserver/supnpconnectionmanager.h"
 #include "liblxiserver/supnpcontentdirectory.h"
 #include "liblxiserver/supnpgenaserver.h"
+#include "liblxiserver/supnpmediareceiverregistrar.h"
 #include "liblxiserver/supnpmediaserver.h"
 
 using namespace LXiServer;

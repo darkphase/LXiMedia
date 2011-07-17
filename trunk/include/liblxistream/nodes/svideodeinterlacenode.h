@@ -22,14 +22,13 @@
 
 #include <QtCore>
 #include <LXiCore>
-#include "../sgraph.h"
+#include "../sinterfaces.h"
 #include "../svideobuffer.h"
 #include "../export.h"
 
 namespace LXiStream {
 
-class LXISTREAM_PUBLIC SVideoDeinterlaceNode : public QObject,
-                                               public SGraph::Node
+class LXISTREAM_PUBLIC SVideoDeinterlaceNode : public SInterfaces::Node
 {
 Q_OBJECT
 public:
@@ -38,7 +37,7 @@ public:
 
   static QStringList            algorithms(void);
 
-public: // From SGraph::Node
+public: // From SInterfaces::Node
   virtual bool                  start(void);
   virtual void                  stop(void);
 

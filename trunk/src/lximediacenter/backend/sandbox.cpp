@@ -40,8 +40,6 @@ Sandbox::~Sandbox()
   if (mode != "local")
     qDebug() << "Stopping sandbox process" << qApp->applicationPid();
 
-  sApp->disableProfiling();
-
   sandboxServer.close();
 
   QThreadPool::globalInstance()->waitForDone();
@@ -52,6 +50,8 @@ Sandbox::~Sandbox()
     delete sandbox;
   }
 
+  sApp->disableProfiling();
+
   if (mode != "local")
     qApp->exit(0);
 }
@@ -60,6 +60,8 @@ void Sandbox::start(const QString &mode)
 {
   this->mode = mode;
   stopTimer.start();
+
+  sandboxServer.registerCallback("/", this);
 
   // Load plugins
   backendSandboxes = BackendSandbox::create(this);
@@ -76,4 +78,35 @@ void Sandbox::start(const QString &mode)
 
     qDebug() << "Finished initialization of sandbox process" << qApp->applicationPid();
   }
+}
+
+SSandboxServer::SocketOp Sandbox::handleHttpRequest(const SSandboxServer::RequestMessage &request, QIODevice *socket)
+{
+  const MediaServer::File file(request);
+
+  if ((request.method() == "GET") && (file.url().path() == "/"))
+  {
+    if (file.url().hasQueryItem("formats"))
+    {
+      QByteArray content;
+      content += "AudioCodecs:" + SAudioEncoderNode::codecs().join("\t").toUtf8() + '\n';
+      content += "VideoCodecs:" + SVideoEncoderNode::codecs().join("\t").toUtf8() + '\n';
+      content += "Formats:" + SIOOutputNode::formats().join("\t").toUtf8() + '\n';
+
+      return SSandboxServer::sendResponse(request, socket, SSandboxServer::Status_Ok, content, this);
+    }
+    else if (file.url().hasQueryItem("exit"))
+    {
+      QTimer::singleShot(5000, this, SLOT(deleteLater()));
+
+      return SSandboxServer::sendResponse(request, socket, SSandboxServer::Status_Ok, this);
+    }
+  }
+
+  return SSandboxServer::sendResponse(request, socket, SSandboxServer::Status_NotFound, this);
+}
+
+void Sandbox::handleHttpOptions(SHttpServer::ResponseHeader &response)
+{
+  response.setField("Allow", response.field("Allow") + ",GET");
 }

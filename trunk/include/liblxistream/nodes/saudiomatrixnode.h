@@ -23,7 +23,7 @@
 #include <QtCore>
 #include <LXiCore>
 #include "../saudiobuffer.h"
-#include "../sgraph.h"
+#include "../sinterfaces.h"
 #include "../export.h"
 
 namespace LXiStream {
@@ -35,8 +35,7 @@ namespace LXiStream {
     and rear channels. It can also mix the left and right channels into one
     channel for the center speaker and the subwoofer.
  */
-class LXISTREAM_PUBLIC SAudioMatrixNode : public QObject,
-                                          public SGraph::Node
+class LXISTREAM_PUBLIC SAudioMatrixNode : public SInterfaces::Node
 {
 Q_OBJECT
 public:
@@ -67,7 +66,7 @@ public:
 
   static Matrix                 guessMatrix(SAudioFormat::Channels from, SAudioFormat::Channels to);
 
-public: // From SGraph::Node
+public: // From SInterfaces::Node
   virtual bool                  start(void);
   virtual void                  stop(void);
 

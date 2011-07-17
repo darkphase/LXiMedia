@@ -22,7 +22,7 @@
 
 #include <QtCore>
 #include <LXiCore>
-#include "../sgraph.h"
+#include "../sinterfaces.h"
 #include "../svideobuffer.h"
 #include "../export.h"
 
@@ -30,8 +30,7 @@ namespace LXiStream {
 
 class SVideoBuffer;
 
-class LXISTREAM_PUBLIC SVideoFormatConvertNode : public QObject,
-                                                 public SGraph::Node
+class LXISTREAM_PUBLIC SVideoFormatConvertNode : public SInterfaces::Node
 {
 Q_OBJECT
 public:
@@ -44,7 +43,7 @@ public:
   SVideoBuffer                  convert(const SVideoBuffer &);
   static SVideoBuffer           convert(const SVideoBuffer &, SVideoFormat::Format);
 
-public: // From SGraph::Node
+public: // From SInterfaces::Node
   virtual bool                  start(void);
   virtual void                  stop(void);
 

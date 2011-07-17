@@ -29,8 +29,7 @@ struct SAudioResampleNode::Data
 };
 
 SAudioResampleNode::SAudioResampleNode(SGraph *parent, const QString &algo)
-  : QObject(parent),
-    SGraph::Node(parent),
+  : SInterfaces::Node(parent),
     d(new Data())
 {
   d->resampler = SInterfaces::AudioResampler::create(this, algo);

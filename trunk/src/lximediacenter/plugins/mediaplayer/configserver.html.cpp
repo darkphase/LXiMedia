@@ -117,29 +117,28 @@ const char * const ConfigServer::htmlDirTreeCheckLink =
     "  <img src=\"/img/check{DIR_CHECKED}.png\" width=\"16\" height=\"16\" />\n"
     " </a>\n";
 
-SHttpServer::SocketOp ConfigServer::handleHtmlRequest(const SHttpServer::RequestMessage &request, QAbstractSocket *socket, const QString &file)
+SHttpServer::SocketOp ConfigServer::handleHtmlRequest(const SHttpServer::RequestMessage &request, QIODevice *socket, const MediaServer::File &file)
 {
   SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
   response.setContentType("text/html;charset=utf-8");
   response.setField("Cache-Control", "no-cache");
 
-  const QUrl url(request.path());
   HtmlParser htmlParser;
 
-  if (file.endsWith("-tree.html"))
+  if (file.baseName().endsWith("-tree"))
   {
     PluginSettings settings(pluginName());
-    settings.beginGroup(file.left(file.length() - 10));
+    settings.beginGroup(file.baseName().left(file.baseName().length() - 5));
 
     QStringList rootPaths = settings.value("Paths").toStringList();
 
-    const QString open = url.queryItemValue("open");
+    const QString open = file.url().queryItemValue("open");
     const QSet<QString> allopen = !open.isEmpty()
                                   ? QSet<QString>::fromList(QString::fromUtf8(qUncompress(QByteArray::fromHex(open.toAscii()))).split(dirSplit))
                                   : QSet<QString>();
 
-    const QString checkon = QString::fromUtf8(QByteArray::fromHex(url.queryItemValue("checkon").toAscii()));
-    const QString checkoff = QString::fromUtf8(QByteArray::fromHex(url.queryItemValue("checkoff").toAscii()));
+    const QString checkon = QString::fromUtf8(QByteArray::fromHex(file.url().queryItemValue("checkon").toAscii()));
+    const QString checkoff = QString::fromUtf8(QByteArray::fromHex(file.url().queryItemValue("checkoff").toAscii()));
     if (!checkon.isEmpty() || !checkoff.isEmpty())
     {
       if (!checkon.isEmpty())
@@ -153,7 +152,7 @@ SHttpServer::SocketOp ConfigServer::handleHtmlRequest(const SHttpServer::Request
       mediaDatabase->rescanRoots();
     }
 
-    htmlParser.setField("FILE", file);
+    htmlParser.setField("FILE", file.fullName());
     htmlParser.setField("DIRS", QByteArray(""));
     generateDirs(htmlParser, drives(), 0, allopen, rootPaths);
 
@@ -197,7 +196,7 @@ SHttpServer::SocketOp ConfigServer::handleHtmlRequest(const SHttpServer::Request
     drives(true);
     driveLabel(QString::null);
 
-    return sendHtmlContent(request, socket, url, response, htmlParser.parse(htmlMain));
+    return sendHtmlContent(request, socket, file.url(), response, htmlParser.parse(htmlMain));
   }
 }
 

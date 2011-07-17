@@ -123,6 +123,7 @@ bool Module::registerClasses(void)
   VideoResizer::registerClass<VideoResizer>("lanczos");
   VideoResizer::registerClass<VideoResizer>("bicubic");
   VideoResizer::registerClass<VideoResizer>("bilinear");
+  VideoResizer::registerClass<VideoResizer>("deinterlace");
 
   // Format converters
   FFMpegCommon::disableLog(true);

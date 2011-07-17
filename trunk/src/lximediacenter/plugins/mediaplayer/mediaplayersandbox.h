@@ -34,14 +34,14 @@ private:
   class ProbeResponseEvent : public QEvent
   {
   public:
-    inline ProbeResponseEvent(const SSandboxServer::RequestMessage &request, QAbstractSocket *socket, const QByteArray &data)
+    inline ProbeResponseEvent(const SSandboxServer::RequestMessage &request, QIODevice *socket, const QByteArray &data)
       : QEvent(probeResponseEventType), request(request), socket(socket), data(data)
     {
     }
 
   public:
     const SSandboxServer::RequestHeader request;
-    QAbstractSocket           * const socket;
+    QIODevice           * const socket;
     const QByteArray            data;
   };
 
@@ -52,14 +52,14 @@ public:
   virtual void                  close(void);
 
 public: // From SSandboxServer::Callback
-  virtual SSandboxServer::SocketOp handleHttpRequest(const SSandboxServer::RequestMessage &, QAbstractSocket *);
+  virtual SSandboxServer::SocketOp handleHttpRequest(const SSandboxServer::RequestMessage &, QIODevice *);
   virtual void                  handleHttpOptions(SHttpServer::ResponseHeader &);
 
 protected: // From QObject
   virtual void                  customEvent(QEvent *);
 
 private:
-  void                          probe(const SSandboxServer::RequestMessage &request, QAbstractSocket *socket, const QString &file);
+  void                          probe(const SSandboxServer::RequestMessage &request, QIODevice *socket, const QString &file);
 
 private slots:
   void                          cleanStreams(void);
@@ -82,7 +82,7 @@ public:
   explicit                      SandboxFileStream(const QString &fileName);
   virtual                       ~SandboxFileStream();
 
-  bool                          setup(const SHttpServer::RequestMessage &, QAbstractSocket *);
+  bool                          setup(const SHttpServer::RequestMessage &, QIODevice *);
 
 public:
   SFileInputNode                file;
@@ -94,7 +94,7 @@ Q_OBJECT
 public:
   explicit                      SandboxPlaylistStream(const SMediaInfoList &files);
 
-  bool                          setup(const SHttpServer::RequestMessage &, QAbstractSocket *);
+  bool                          setup(const SHttpServer::RequestMessage &, QIODevice *);
 
 public slots:
   void                          opened(const QString &, quint16);
@@ -111,7 +111,7 @@ Q_OBJECT
 public:
   explicit                      SandboxSlideShowStream(const SMediaInfoList &files);
 
-  bool                          setup(const SHttpServer::RequestMessage &, QAbstractSocket *);
+  bool                          setup(const SHttpServer::RequestMessage &, QIODevice *);
 
 public:
   SlideShowNode                 slideShow;

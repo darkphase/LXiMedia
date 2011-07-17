@@ -131,8 +131,7 @@ bool MainWindow::openFile(const QString &fileName, int startPos)
 
   playerGraph = new PlayerGraph(fileName);
   playerGraph->audioOutput.setDelay(STime::fromMSec(250)); // Otherwise video frames may come too late.
-  playerGraph->addNode(ui.videoView);
-  connect(&(playerGraph->sync), SIGNAL(output(SVideoBuffer)), ui.videoView, SLOT(input(SVideoBuffer)));
+  connect(&(playerGraph->sync), SIGNAL(output(SVideoBuffer)), ui.videoView->createSink(playerGraph), SLOT(input(SVideoBuffer)));
 
   if (playerGraph->start())
   {
@@ -218,8 +217,7 @@ void MainWindow::selectCaptureDevice(int id)
 
     captureGraph = new CaptureGraph(ui.captureDevices->currentText());
     captureGraph->audioOutput.setDelay(STime::fromMSec(250)); // Otherwise video frames may come too late.
-    captureGraph->addNode(ui.videoView);
-    connect(&(captureGraph->audioVideoInput), SIGNAL(output(SVideoBuffer)), ui.videoView, SLOT(input(SVideoBuffer)));
+    connect(&(captureGraph->audioVideoInput), SIGNAL(output(SVideoBuffer)), ui.videoView->createSink(captureGraph), SLOT(input(SVideoBuffer)));
 
     if (captureGraph->start())
     {

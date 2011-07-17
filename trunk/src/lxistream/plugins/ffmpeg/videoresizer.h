@@ -46,8 +46,9 @@ public: // From SInterfaces::VideoResizer
   virtual SVideoBuffer          processBuffer(const SVideoBuffer &);
 
 private:
-  bool                          processSlice(int, const SVideoBuffer &, quint8 **, int *);
-  void                          freeContext(void);
+  bool                          processSlice(quint8 **source, int *srcLineSize, quint8 **, int *);
+
+  static ::SwsFilter          * createDeinterlaceFilter(void);
 
 private:
   const int                     filterFlags;
@@ -56,8 +57,8 @@ private:
   SVideoFormat                  lastFormat;
   SVideoFormat                  destFormat;
 
-  const int                     numContexts;
-  ::SwsContext               ** swsContext;
+  ::SwsContext                * swsContext;
+  ::SwsFilter                 * preFilter;
 };
 
 

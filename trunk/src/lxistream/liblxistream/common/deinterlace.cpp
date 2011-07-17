@@ -33,84 +33,79 @@ SVideoBufferList DeinterlaceBlend::processBuffer(const SVideoBuffer &videoBuffer
   if (!videoBufferA.isNull())
   {
     SVideoFormat format = videoBufferA.format();
-    const SVideoFormat::FieldMode fieldMode = format.fieldMode();
     format.setFieldMode(SVideoFormat::FieldMode_Progressive);
 
-    if ((fieldMode == SVideoFormat::FieldMode_InterlacedTopFirst) ||
-        (fieldMode == SVideoFormat::FieldMode_InterlacedBottomFirst))
+    const SSize size = format.size();
+
+    if ((format == SVideoFormat::Format_YUYV422) ||
+        (format == SVideoFormat::Format_UYVY422))
     {
-      const SSize size = format.size();
+      videoBufferA.overrideFormat(format);
 
-      if ((format == SVideoFormat::Format_YUYV422) ||
-          (format == SVideoFormat::Format_UYVY422))
+      for (int i=1; i<size.height()-1; i+=2)
       {
-        videoBufferA.overrideFormat(format);
+        const char * const line0 = videoBufferA.scanLine(i - 1, 0);
+        char * const line1 = videoBufferA.scanLine(i, 0);
+        const char * const line2 = videoBufferA.scanLine(i + 1, 0);
 
+        LXiStream_Common_Deinterlace_mixFields(line0, line1, line2, videoBufferA.lineSize(0));
+      }
+    }
+    else if ((format == SVideoFormat::Format_YUV410P) ||
+             (format == SVideoFormat::Format_YUV411P) ||
+             (format == SVideoFormat::Format_YUV420P) ||
+             (format == SVideoFormat::Format_YUV422P) ||
+             (format == SVideoFormat::Format_YUV444P))
+    {
+      videoBufferA.overrideFormat(format);
+
+      // Y
+      for (int i=1; i<size.height()-1; i+=2)
+      {
+        const char * const line0 = videoBufferA.scanLine(i - 1, 0);
+        char * const line1 = videoBufferA.scanLine(i, 0);
+        const char * const line2 = videoBufferA.scanLine(i + 1, 0);
+
+        LXiStream_Common_Deinterlace_mixFields(line0, line1, line2, videoBufferA.lineSize(0));
+      }
+
+      int wr = 1, hr = 1;
+      if (format.planarYUVRatio(wr, hr))
+      if (hr == 1)
+      {
+        // U
         for (int i=1; i<size.height()-1; i+=2)
         {
-          const char * const line0 = videoBufferA.scanLine(i - 1, 0);
-          char * const line1 = videoBufferA.scanLine(i, 0);
-          const char * const line2 = videoBufferA.scanLine(i + 1, 0);
+          const char * const line0 = videoBufferA.scanLine(i - 1, 1);
+          char * const line1 = videoBufferA.scanLine(i, 1);
+          const char * const line2 = videoBufferA.scanLine(i + 1, 1);
 
-          LXiStream_Common_Deinterlace_mixFields(line0, line1, line2, videoBufferA.lineSize(0));
+          LXiStream_Common_Deinterlace_mixFields(line0, line1, line2, videoBufferA.lineSize(1));
+        }
+
+        // V
+        for (int i=1; i<size.height()-1; i+=2)
+        {
+          const char * const line0 = videoBufferA.scanLine(i - 1, 2);
+          char * const line1 = videoBufferA.scanLine(i, 2);
+          const char * const line2 = videoBufferA.scanLine(i + 1, 2);
+
+          LXiStream_Common_Deinterlace_mixFields(line0, line1, line2, videoBufferA.lineSize(2));
         }
       }
-      else if ((format == SVideoFormat::Format_YUV410P) ||
-               (format == SVideoFormat::Format_YUV411P) ||
-               (format == SVideoFormat::Format_YUV420P) ||
-               (format == SVideoFormat::Format_YUV422P) ||
-               (format == SVideoFormat::Format_YUV444P))
+    }
+    else if ((format == SVideoFormat::Format_BGR32) ||
+             (format == SVideoFormat::Format_RGB32))
+    {
+      videoBufferA.overrideFormat(format);
+
+      for (int i=1; i<size.height()-1; i+=2)
       {
-        videoBufferA.overrideFormat(format);
+        const char * const line0 = videoBufferA.scanLine(i - 1, 0);
+        char * const line1 = videoBufferA.scanLine(i, 0);
+        const char * const line2 = videoBufferA.scanLine(i + 1, 0);
 
-        // Y
-        for (int i=1; i<size.height()-1; i+=2)
-        {
-          const char * const line0 = videoBufferA.scanLine(i - 1, 0);
-          char * const line1 = videoBufferA.scanLine(i, 0);
-          const char * const line2 = videoBufferA.scanLine(i + 1, 0);
-
-          LXiStream_Common_Deinterlace_mixFields(line0, line1, line2, videoBufferA.lineSize(0));
-        }
-
-        int wr = 1, hr = 1;
-        if (format.planarYUVRatio(wr, hr))
-        if (hr == 1)
-        {
-          // U
-          for (int i=1; i<size.height()-1; i+=2)
-          {
-            const char * const line0 = videoBufferA.scanLine(i - 1, 1);
-            char * const line1 = videoBufferA.scanLine(i, 1);
-            const char * const line2 = videoBufferA.scanLine(i + 1, 1);
-
-            LXiStream_Common_Deinterlace_mixFields(line0, line1, line2, videoBufferA.lineSize(1));
-          }
-
-          // V
-          for (int i=1; i<size.height()-1; i+=2)
-          {
-            const char * const line0 = videoBufferA.scanLine(i - 1, 2);
-            char * const line1 = videoBufferA.scanLine(i, 2);
-            const char * const line2 = videoBufferA.scanLine(i + 1, 2);
-
-            LXiStream_Common_Deinterlace_mixFields(line0, line1, line2, videoBufferA.lineSize(2));
-          }
-        }
-      }
-      else if ((format == SVideoFormat::Format_BGR32) ||
-               (format == SVideoFormat::Format_RGB32))
-      {
-        videoBufferA.overrideFormat(format);
-
-        for (int i=1; i<size.height()-1; i+=2)
-        {
-          const char * const line0 = videoBufferA.scanLine(i - 1, 0);
-          char * const line1 = videoBufferA.scanLine(i, 0);
-          const char * const line2 = videoBufferA.scanLine(i + 1, 0);
-
-          LXiStream_Common_Deinterlace_mixFields(line0, line1, line2, videoBufferA.lineSize(0));
-        }
+        LXiStream_Common_Deinterlace_mixFields(line0, line1, line2, videoBufferA.lineSize(0));
       }
     }
 

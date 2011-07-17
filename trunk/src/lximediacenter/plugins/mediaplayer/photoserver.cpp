@@ -35,17 +35,13 @@ PhotoServer::~PhotoServer()
 
 PhotoServer::Stream * PhotoServer::streamVideo(const SHttpServer::RequestMessage &request)
 {
-  const QStringList file = request.file().split('.');
-  if (file.first() == "playlist")
+  const MediaServer::File file(request);
+  if (file.baseName() == "playlist")
   {
-    QUrl url(request.path());
-    if (url.hasQueryItem("query"))
-      url = url.toEncoded(QUrl::RemoveQuery) + QByteArray::fromHex(url.queryItemValue("query").toAscii());
-
     SSandboxClient::Priority priority = SSandboxClient::Priority_Normal;
-    if (url.queryItemValue("priority") == "low")
+    if (file.url().queryItemValue("priority") == "low")
       priority = SSandboxClient::Priority_Low;
-    else if (url.queryItemValue("priority") == "high")
+    else if (file.url().queryItemValue("priority") == "high")
       priority = SSandboxClient::Priority_High;
 
     SSandboxClient * const sandbox = masterServer->createSandbox(priority);
@@ -75,10 +71,10 @@ PhotoServer::Stream * PhotoServer::streamVideo(const SHttpServer::RequestMessage
     if (!files.isEmpty())
     {
       QUrl rurl;
-      rurl.setPath(MediaPlayerSandbox::path + request.file());
+      rurl.setPath(MediaPlayerSandbox::path + file.fullName());
       rurl.addQueryItem("playslideshow", QString::null);
       typedef QPair<QString, QString> QStringPair;
-      foreach (const QStringPair &queryItem, url.queryItems())
+      foreach (const QStringPair &queryItem, file.url().queryItems())
         rurl.addQueryItem(queryItem.first, queryItem.second);
 
       QByteArray content;
@@ -118,24 +114,24 @@ QList<PhotoServer::Item> PhotoServer::listItems(const QString &path, unsigned st
   return items;
 }
 
-SHttpServer::SocketOp PhotoServer::handleHttpRequest(const SHttpServer::RequestMessage &request, QAbstractSocket *socket)
+SHttpServer::SocketOp PhotoServer::handleHttpRequest(const SHttpServer::RequestMessage &request, QIODevice *socket)
 {
   if ((request.method() == "GET") || (request.method() == "HEAD"))
   {
-    const QUrl url(request.path());
-    const QString file = request.file();
+    const MediaServer::File file(request);
 
-    if (file.endsWith(".jpeg") || (file.endsWith(".png") && !file.endsWith("-thumb.png")))
-      return sendPhoto(request, socket, MediaDatabase::fromUidString(file), file.split('.').last());
-    else if (file.endsWith(".html") && (file != "playlist.html")) // Show photo
+    if ((file.suffix() == "jpeg") || ((file.suffix() == "png") && !file.baseName().endsWith("-thumb")))
+      return sendPhoto(request, socket, MediaDatabase::fromUidString(file.baseName()), file.suffix());
+    else if ((file.suffix() == "html") && (file.baseName() != "playlist")) // Show photo
       return handleHtmlRequest(request, socket, file);
   }
 
   return PlaylistServer::handleHttpRequest(request, socket);
 }
 
-SHttpServer::SocketOp PhotoServer::sendPhoto(const SHttpServer::RequestMessage &request, QAbstractSocket *socket, MediaDatabase::UniqueID uid, const QString &format) const
+SHttpServer::SocketOp PhotoServer::sendPhoto(const SHttpServer::RequestMessage &request, QIODevice *socket, MediaDatabase::UniqueID uid, const QString &format) const
 {
+  const MediaServer::File file(request);
   const FileNode node = mediaDatabase->readNode(uid);
 
   if (!node.isNull())
@@ -149,10 +145,9 @@ SHttpServer::SocketOp PhotoServer::sendPhoto(const SHttpServer::RequestMessage &
       buffer.open(QAbstractSocket::WriteOnly);
 
       unsigned width = 0, height = 0;
-      const QUrl url(request.path());
-      if (url.hasQueryItem("size"))
+      if (file.url().hasQueryItem("resolution"))
       {
-        const QStringList size = url.queryItemValue("size").split('x');
+        const QStringList size = file.url().queryItemValue("resolution").split('x');
         if (size.count() >= 2)
         {
           width = qMax(0, size[0].toInt());

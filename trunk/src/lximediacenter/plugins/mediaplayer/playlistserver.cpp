@@ -36,17 +36,13 @@ PlaylistServer::~PlaylistServer()
 
 PlaylistServer::Stream * PlaylistServer::streamVideo(const SHttpServer::RequestMessage &request)
 {
-  const QStringList file = request.file().split('.');
-  if (file.first() == "playlist")
+  const MediaServer::File file(request);
+  if (file.baseName() == "playlist")
   {
-    QUrl url(request.path());
-    if (url.hasQueryItem("query"))
-      url = url.toEncoded(QUrl::RemoveQuery) + QByteArray::fromHex(url.queryItemValue("query").toAscii());
-
     SSandboxClient::Priority priority = SSandboxClient::Priority_Normal;
-    if (url.queryItemValue("priority") == "low")
+    if (file.url().queryItemValue("priority") == "low")
       priority = SSandboxClient::Priority_Low;
-    else if (url.queryItemValue("priority") == "high")
+    else if (file.url().queryItemValue("priority") == "high")
       priority = SSandboxClient::Priority_High;
 
     SSandboxClient * const sandbox = masterServer->createSandbox(priority);
@@ -85,10 +81,10 @@ PlaylistServer::Stream * PlaylistServer::streamVideo(const SHttpServer::RequestM
     if (!files.isEmpty())
     {
       QUrl rurl;
-      rurl.setPath(MediaPlayerSandbox::path + request.file());
+      rurl.setPath(MediaPlayerSandbox::path + file.fullName());
       rurl.addQueryItem("playlist", QString::null);
       typedef QPair<QString, QString> QStringPair;
-      foreach (const QStringPair &queryItem, url.queryItems())
+      foreach (const QStringPair &queryItem, file.url().queryItems())
         rurl.addQueryItem(queryItem.first, queryItem.second);
 
       QByteArray content;
@@ -135,14 +131,12 @@ QList<PlaylistServer::Item> PlaylistServer::listItems(const QString &path, unsig
   return result;
 }
 
-SHttpServer::SocketOp PlaylistServer::handleHttpRequest(const SHttpServer::RequestMessage &request, QAbstractSocket *socket)
+SHttpServer::SocketOp PlaylistServer::handleHttpRequest(const SHttpServer::RequestMessage &request, QIODevice *socket)
 {
   if ((request.method() == "GET") || (request.method() == "HEAD"))
   {
-    const QUrl url(request.path());
-    const QString file = request.file();
-
-    if (file == "playlist.html") // Show player
+    const MediaServer::File file(request);
+    if (file.fullName() == "playlist.html") // Show player
     {
       const QString album = QUrl(request.directory().mid(serverPath().length() - 1)).path();
       if (!album.isEmpty())
@@ -151,7 +145,7 @@ SHttpServer::SocketOp PlaylistServer::handleHttpRequest(const SHttpServer::Reque
         response.setContentType("text/html;charset=utf-8");
         response.setField("Cache-Control", "no-cache");
 
-        return sendHtmlContent(request, socket, url, response, buildVideoPlayer("playlist", dirName(album), url), headPlayer);
+        return sendHtmlContent(request, socket, file.url(), response, buildVideoPlayer("playlist", dirName(album), file.url()), headPlayer);
       }
     }
   }

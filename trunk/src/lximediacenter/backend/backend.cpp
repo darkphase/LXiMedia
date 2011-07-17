@@ -45,11 +45,13 @@ Backend::Backend()
     masterMediaServer("/upnp/"),
     masterConnectionManager("/upnp/"),
     masterContentDirectory("/upnp/"),
+    masterMediaReceiverRegistrar("/upnp/"),
     masterImdbClient(NULL),
     sandboxApplication("\"" + qApp->applicationFilePath() + "\" --sandbox"),
     cssParser(),
     htmlParser(),
-    backendServers()
+    backendServers(),
+    formatSandbox(NULL)
 {
   // Seed the random number generator.
   qsrand(int(QDateTime::currentDateTime().toTime_t()));
@@ -85,6 +87,7 @@ Backend::~Backend()
 
   masterContentDirectory.close();
   masterConnectionManager.close();
+  masterMediaReceiverRegistrar.close();
   masterMediaServer.close();
   masterSsdpServer.close();
   masterHttpServer.close();
@@ -198,16 +201,41 @@ void Backend::start(void)
   masterMediaServer.initialize(&masterHttpServer, &masterSsdpServer);
   masterConnectionManager.initialize(&masterHttpServer, &masterMediaServer);
   masterContentDirectory.initialize(&masterHttpServer, &masterMediaServer);
+  masterMediaReceiverRegistrar.initialize(&masterHttpServer, &masterMediaServer);
+
+  masterMediaServer.setDeviceName(settings.value("DeviceName", settings.defaultDeviceName()).toString());
 
   const QImage icon(":/lximedia.png");
   if (!icon.isNull())
     masterMediaServer.addIcon("/lximedia.png", icon.width(), icon.height(), icon.depth());
 
-  // Supported DLNA protocols
-  const QStringList outAudioCodecs = SAudioEncoderNode::codecs();
-  const QStringList outVideoCodecs = SVideoEncoderNode::codecs();
-  const QStringList outFormats = SIOOutputNode::formats();
+  // Request all supported formats
+  formatSandbox = createSandbox(SSandboxClient::Priority_Low);
+  connect(formatSandbox, SIGNAL(response(SHttpEngine::ResponseMessage)), SLOT(start(SHttpEngine::ResponseMessage)));
 
+  SSandboxClient::RequestMessage request(formatSandbox);
+  request.setRequest("GET", "/?formats");
+  formatSandbox->sendRequest(request);
+}
+
+void Backend::start(const SHttpEngine::ResponseMessage &formats)
+{
+  recycleSandbox(formatSandbox);
+  formatSandbox = NULL;
+
+  // Decode the message
+  QStringList outAudioCodecs;
+  QStringList outVideoCodecs;
+  QStringList outFormats;
+  foreach (const QString &line, formats.content().split('\n'))
+  if (line.startsWith("AudioCodecs:"))
+    outAudioCodecs = line.mid(12).trimmed().split('\t');
+  else if (line.startsWith("VideoCodecs:"))
+    outVideoCodecs = line.mid(12).trimmed().split('\t');
+  else if (line.startsWith("Formats:"))
+    outFormats = line.mid(8).trimmed().split('\t');
+
+  // Supported DLNA protocols
   SUPnPBase::ProtocolList audioProtocols;
   {
     if (outFormats.contains("s16be") && outAudioCodecs.contains("PCM/S16BE"))
@@ -217,7 +245,7 @@ void Backend::start(void)
       audioProtocols += SUPnPBase::Protocol("http-get", "audio/mpeg", true, "DLNA.ORG_PN=MP3", ".mp3");
 
     if (outFormats.contains("mp2") && outAudioCodecs.contains("MP2"))
-      audioProtocols += SUPnPBase::Protocol("http-get", "audio/mpeg", true, QString::null, ".mpa");
+      audioProtocols += SUPnPBase::Protocol("http-get", "audio/mpeg", true, "DLNA.ORG_PN=MPEG1", ".mpa");
 
     if (outFormats.contains("ac3") && outAudioCodecs.contains("AC3"))
       audioProtocols += SUPnPBase::Protocol("http-get", "audio/x-ac3", true, QString::null, ".ac3");
@@ -238,10 +266,10 @@ void Backend::start(void)
         outAudioCodecs.contains("MP2"))
     {
       if (outFormats.contains("vob"))
-        videoProtocols += SUPnPBase::Protocol("http-get", "video/mpeg", true, QString::null, ".mpeg");
+        videoProtocols += SUPnPBase::Protocol("http-get", "video/mpeg", true, "DLNA.ORG_PN=MPEG_PS", ".mpeg");
 
       if (outFormats.contains("mpegts"))
-        videoProtocols += SUPnPBase::Protocol("http-get", "video/MP2T", true, QString::null, ".ts");
+        videoProtocols += SUPnPBase::Protocol("http-get", "video/mpeg", true, "DLNA.ORG_PN=MPEG_TS", ".ts");
 
       if (outFormats.contains("mpegts"))
       {
@@ -251,19 +279,19 @@ void Backend::start(void)
         QMap<QString, QString> hdna;
         hdna["framerates"] = "24,30";
 
-        videoProtocols += SUPnPBase::Protocol("http-get", "video/MP2T", true, "DLNA.ORG_PN=MPEG_TS_HD_EU_ISO", ".ts", hdeu);
-        videoProtocols += SUPnPBase::Protocol("http-get", "video/MP2T", true, "DLNA.ORG_PN=MPEG_TS_HD_NA_ISO", ".ts", hdna);
+        videoProtocols += SUPnPBase::Protocol("http-get", "video/mpeg", true, "DLNA.ORG_PN=MPEG_TS_HD_EU_ISO", ".ts", hdeu);
+        videoProtocols += SUPnPBase::Protocol("http-get", "video/mpeg", true, "DLNA.ORG_PN=MPEG_TS_HD_NA_ISO", ".ts", hdna);
       }
 
       if (outFormats.contains("vob"))
       {
         QMap<QString, QString> pal;
-        pal["size"]         = "720x576x1.42222,box";
+        pal["resolution"]   = "720x576x1.42222,box";
         pal["framerates"]   = "25";
         pal["channels"]     = QString::number(SAudioFormat::Channels_Stereo, 16);
 
         QMap<QString, QString> ntsc;
-        ntsc["size"]        = "704x480x1.21307,box";
+        ntsc["resolution"]  = "704x480x1.21307,box";
         ntsc["framerates"]  = "24,30";
         ntsc["channels"]    = QString::number(SAudioFormat::Channels_Stereo, 16);
 
@@ -377,42 +405,43 @@ void Backend::customEvent(QEvent *e)
   }
 }
 
-SHttpServer::SocketOp Backend::handleHttpRequest(const SHttpServer::RequestMessage &request, QAbstractSocket *socket)
+SHttpServer::SocketOp Backend::handleHttpRequest(const SHttpServer::RequestMessage &request, QIODevice *socket)
 {
   if ((request.method() == "GET") || (request.method() == "HEAD"))
   {
-    const QUrl url(request.path());
-    const QString path = url.path();
-    const QString file = path.mid(path.lastIndexOf('/') + 1);
+    const MediaServer::File file(request);
+    const QString path = file.url().path();
 
     if (path.left(path.lastIndexOf('/') + 1) == "/")
     {
-      if (url.hasQueryItem("exit"))
+      if (file.url().hasQueryItem("exit"))
       {
         QCoreApplication::postEvent(this, new QEvent(exitEventType));
 
         return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NoContent, this);
       }
-      else if (url.hasQueryItem("restart"))
+      else if (file.url().hasQueryItem("restart"))
       {
         QCoreApplication::postEvent(this, new QEvent(restartEventType));
 
         return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NoContent, this);
       }
-      else if (url.hasQueryItem("shutdown"))
+      else if (file.url().hasQueryItem("shutdown"))
       {
         QCoreApplication::postEvent(this, new QEvent(shutdownEventType));
 
         return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NoContent, this);
       }
-      else if (url.hasQueryItem("dismisserrors"))
+      else if (file.url().hasQueryItem("dismisserrors"))
       {
         GlobalSettings().setValue("DismissedErrors", sApp->errorLogFiles());
 
         return handleHtmlRequest(request, socket, file);
       }
-      else if (file == "traystatus.xml")
+      else if (file.fullName() == "traystatus.xml")
       {
+        GlobalSettings settings;
+
         QDomDocument doc("");
         QDomElement root = doc.createElement("traystatus");
         doc.appendChild(root);
@@ -420,10 +449,9 @@ SHttpServer::SocketOp Backend::handleHttpRequest(const SHttpServer::RequestMessa
         // Hostinfo
         QDomElement hostInfo = doc.createElement("hostinfo");
         root.appendChild(hostInfo);
-        hostInfo.setAttribute("hostname", QHostInfo::localHostName());
+        hostInfo.setAttribute("hostname", settings.value("DeviceName", settings.defaultDeviceName()).toString());
 
         // DLNA clients
-        GlobalSettings settings;
         settings.beginGroup("DLNA");
 
         foreach (const QString &group, settings.childGroups())
@@ -461,7 +489,7 @@ SHttpServer::SocketOp Backend::handleHttpRequest(const SHttpServer::RequestMessa
         socket->write(doc.toByteArray());
         return SHttpServer::SocketOp_Close;
       }
-      else if (url.hasQueryItem("q"))
+      else if (file.url().hasQueryItem("q"))
       {
         return handleHtmlSearch(request, socket, file);
       }
@@ -469,15 +497,15 @@ SHttpServer::SocketOp Backend::handleHttpRequest(const SHttpServer::RequestMessa
       {
         return handleHtmlRequest(request, socket, file);
       }
-      else if (file.endsWith(".log"))
+      else if (file.suffix() == "log")
       {
         return handleHtmlLogFileRequest(request, socket, file);
       }
-      else if (file == "settings.html")
+      else if (file.fullName() == "settings.html")
       {
         return handleHtmlConfig(request, socket);
       }
-      else if (file == "about.html")
+      else if (file.fullName() == "about.html")
       {
         return showAbout(request, socket);
       }
@@ -510,13 +538,13 @@ SHttpServer::SocketOp Backend::handleHttpRequest(const SHttpServer::RequestMessa
       SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
       response.setContentType(SHttpServer::toMimeType(sendFile));
 
-      if (url.hasQueryItem("scale") && path.endsWith(".png"))
+      if (file.url().hasQueryItem("scale") && path.endsWith(".png"))
       {
         QImage image(sendFile);
         if (!image.isNull())
         {
           QSize size = image.size();
-          const QStringList sizeTxt = url.queryItemValue("scale").split('x');
+          const QStringList sizeTxt = file.url().queryItemValue("scale").split('x');
           if (sizeTxt.count() >= 2)
             size = QSize(sizeTxt[0].toInt(), sizeTxt[1].toInt());
           else if (sizeTxt.count() >= 1)
@@ -577,24 +605,25 @@ ImdbClient * Backend::imdbClient(void)
 
 SSandboxClient * Backend::createSandbox(SSandboxClient::Priority priority)
 {
-  QMap<SSandboxClient::Priority, QList<SSandboxClient *> >::Iterator i = sandboxClients.find(priority);
-  if ((i == sandboxClients.end()) || i->isEmpty())
-  {
 #ifndef DEBUG_USE_LOCAL_SANDBOX
-    return new SSandboxClient(sandboxApplication, priority);
+  return new SSandboxClient(sandboxApplication, priority);
 #else
-    Sandbox * sandbox = new Sandbox();
-    sandbox->start("local");
-    return new SSandboxClient(sandbox->server(), priority);
+  Sandbox * sandbox = new Sandbox();
+  sandbox->start("local");
+  return new SSandboxClient(sandbox->server(), priority);
 #endif
-  }
-  else
-    return i->takeLast();
 }
 
 void Backend::recycleSandbox(SSandboxClient *sandboxClient)
 {
-  sandboxClients[sandboxClient->priority()].append(sandboxClient);
+  if (sandboxClient)
+  {
+    SHttpEngine::RequestMessage message(sandboxClient);
+    message.setRequest("GET", "/?exit");
+
+    sandboxClient->openRequest(message, NULL, NULL);
+    QTimer::singleShot(30000, sandboxClient, SLOT(deleteLater()));
+  }
 }
 
 void Backend::setContentDirectoryQueryItems(void)
@@ -633,7 +662,7 @@ void Backend::setContentDirectoryQueryItems(void)
       if (!transcodeCrop.isEmpty())
         sizeStr += ',' + transcodeCrop.toLower();
 
-      queryItems["size"] = sizeStr;
+      queryItems["resolution"] = sizeStr;
       break;
     }
 

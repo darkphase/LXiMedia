@@ -29,8 +29,7 @@ namespace LXiStreamDevice {
 
 /*! This is a generic decoder node wich decodes audio and video buffers.
  */
-class LXISTREAMDEVICE_PUBLIC SAudioOutputNode : public QObject,
-                                                public SGraph::SinkNode
+class LXISTREAMDEVICE_PUBLIC SAudioOutputNode : public ::LXiStream::SInterfaces::SinkNode
 {
 Q_OBJECT
 public:

@@ -38,15 +38,14 @@ const char PhotoServer::htmlView[] =
     "  </div>\n"
     " </div>\n";
 
-SHttpServer::SocketOp PhotoServer::handleHtmlRequest(const SHttpServer::RequestMessage &request, QAbstractSocket *socket, const QString &file)
+SHttpServer::SocketOp PhotoServer::handleHtmlRequest(const SHttpServer::RequestMessage &request, QIODevice *socket, const MediaServer::File &file)
 {
   SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
   response.setContentType("text/html;charset=utf-8");
   response.setField("Cache-Control", "no-cache");
 
-  const QUrl url(request.path());
-  const QString album = SStringParser::toRawName(url.queryItemValue("album"));
-  const MediaDatabase::UniqueID uid = MediaDatabase::fromUidString(file);
+  const QString album = SStringParser::toRawName(file.url().queryItemValue("album"));
+  const MediaDatabase::UniqueID uid = MediaDatabase::fromUidString(file.baseName());
   const FileNode node = mediaDatabase->readNode(uid);
   if (!node.isNull())
   if (uid.pid < node.programs().count())
@@ -72,7 +71,7 @@ SHttpServer::SocketOp PhotoServer::handleHtmlRequest(const SHttpServer::RequestM
     htmlParser.appendField("DETAILS", htmlParser.parse(htmlDetail));
 
     htmlParser.setField("PHOTO", MediaDatabase::toUidString(uid));
-    return sendHtmlContent(request, socket, url, response, htmlParser.parse(htmlView));
+    return sendHtmlContent(request, socket, file.url(), response, htmlParser.parse(htmlView));
   }
 
   return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);

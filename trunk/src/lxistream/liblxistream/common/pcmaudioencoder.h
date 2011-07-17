@@ -47,9 +47,9 @@ public: // From SInterfaces::AudioEncoder
 
 private:
   static SEncodedAudioBuffer    copyBuffer(const SAudioBuffer &, const QString &);
-  static SEncodedAudioBuffer    swapBuffer16(const SAudioBuffer &, const QString &);
-  static SEncodedAudioBuffer    swapBuffer32(const SAudioBuffer &, const QString &);
-  static SEncodedAudioBuffer    swapBuffer64(const SAudioBuffer &, const QString &);
+  static SEncodedAudioBuffer    swapBufferS16(const SAudioBuffer &, const QString &);
+  static SEncodedAudioBuffer    encodeBufferS16U16(const SAudioBuffer &, const QString &);
+  static SEncodedAudioBuffer    encodeSwapBufferS16U16(const SAudioBuffer &, const QString &);
 
 private:
   SEncodedAudioBuffer           (* encode)(const SAudioBuffer &, const QString &);

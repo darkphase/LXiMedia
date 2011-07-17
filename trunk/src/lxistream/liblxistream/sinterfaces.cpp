@@ -35,6 +35,43 @@ S_FACTORIZABLE_INSTANCE(AudioResampler);
 S_FACTORIZABLE_INSTANCE(VideoDeinterlacer);
 S_FACTORIZABLE_INSTANCE(VideoResizer);
 
+
+Node::Node(SGraph *graph)
+  : QObject(graph)
+{
+  if (graph)
+    graph->addNode(this);
+}
+
+Node::~Node()
+{
+}
+
+
+SinkNode::SinkNode(SGraph *graph)
+  : QObject(graph)
+{
+  if (graph)
+    graph->addNode(this);
+}
+
+SinkNode::~SinkNode()
+{
+}
+
+
+SourceNode::SourceNode(SGraph *graph)
+  : QObject(graph)
+{
+  if (graph)
+    graph->addNode(this);
+}
+
+SourceNode::~SourceNode()
+{
+}
+
+
 const unsigned FormatProber::defaultProbeSize = 16384;
 
 QList<FormatProber *> FormatProber::create(QObject *parent)
