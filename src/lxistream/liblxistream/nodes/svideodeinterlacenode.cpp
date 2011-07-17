@@ -29,8 +29,7 @@ struct SVideoDeinterlaceNode::Data
 };
 
 SVideoDeinterlaceNode::SVideoDeinterlaceNode(SGraph *parent, const QString &algo)
-  : QObject(parent),
-    SGraph::Node(parent),
+  : SInterfaces::Node(parent),
     d(new Data())
 {
   d->deinterlacer = SInterfaces::VideoDeinterlacer::create(this, algo);
@@ -67,9 +66,11 @@ void SVideoDeinterlaceNode::input(const SVideoBuffer &videoBuffer)
 
   if (d->deinterlacer)
   {
+    const SSize size = videoBuffer.format().size();
     const SVideoFormat::FieldMode fieldMode = videoBuffer.format().fieldMode();
     if ((fieldMode == SVideoFormat::FieldMode_InterlacedTopFirst) ||
-        (fieldMode == SVideoFormat::FieldMode_InterlacedBottomFirst))
+        (fieldMode == SVideoFormat::FieldMode_InterlacedBottomFirst) ||
+        ((size.width() >= 1920) || (size.height() >= 1080)))
     {
       d->future = QtConcurrent::run(this, &SVideoDeinterlaceNode::processTask, videoBuffer);
     }

@@ -31,8 +31,7 @@ struct SVideoDecoderNode::Data
 };
 
 SVideoDecoderNode::SVideoDecoderNode(SGraph *parent, Flags flags)
-  : QObject(parent),
-    SGraph::Node(parent),
+  : SInterfaces::Node(parent),
     d(new Data())
 {
   d->flags = flags;

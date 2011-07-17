@@ -154,13 +154,15 @@ const char * const Backend::htmlAbout =
 const char * const Backend::htmlConfigMain =
     " <div class=\"content\">\n"
     "  <fieldset>\n"
-    "   <legend>{TR_HTTPSERVER_SETTINGS}</legend>\n"
+    "   <legend>{TR_SERVER_SETTINGS}</legend>\n"
     "   {TR_HTTPSERVER_EXPLAIN}<br />\n"
     "   <br />\n"
     "   <form name=\"httpsettings\" action=\"settings.html\" method=\"get\">\n"
     "    <input type=\"hidden\" name=\"httpsettings\" value=\"httpsettings\" />\n"
     "    {TR_HTTP_PORT_NUMBER}:\n"
-    "    <input type=\"text\" size=\"6\" name=\"httpport\" value=\"{HTTPPORT}\" /><br />\n"
+    "    <input type=\"text\" size=\"6\" name=\"httpport\" value=\"{HTTPPORT}\" />\n"
+    "    {TR_DEVICE_NAME}:\n"
+    "    <input type=\"text\" size=\"40\" name=\"devicename\" value=\"{DEVICENAME}\" /><br />\n"
     "    <br />\n"
     "    <input type=\"submit\" name=\"save\" value=\"{TR_SAVE}\" />\n"
     "   </form>\n"
@@ -351,7 +353,12 @@ QByteArray Backend::parseHtmlLogErrors(void) const
   return QByteArray();
 }
 
-SHttpServer::SocketOp Backend::handleHtmlRequest(const SHttpServer::RequestMessage &request, QAbstractSocket *socket, const QString &file)
+SHttpServer::SocketOp Backend::handleHtmlRequest(const SHttpServer::RequestMessage &request, QIODevice *socket, const MediaServer::File &file)
+{
+  return handleHtmlRequest(request, socket, file.fullName());
+}
+
+SHttpServer::SocketOp Backend::handleHtmlRequest(const SHttpServer::RequestMessage &request, QIODevice *socket, const QString &file)
 {
   HtmlParser htmlParser(this->htmlParser);
 
@@ -385,7 +392,7 @@ SHttpServer::SocketOp Backend::handleHtmlRequest(const SHttpServer::RequestMessa
   return SHttpServer::SocketOp_Close;
 }
 
-SHttpServer::SocketOp Backend::handleHtmlSearch(const SHttpServer::RequestMessage &request, QAbstractSocket *socket, const QString &)
+SHttpServer::SocketOp Backend::handleHtmlSearch(const SHttpServer::RequestMessage &request, QIODevice *socket, const MediaServer::File &)
 {
   HtmlParser htmlParser(this->htmlParser);
   htmlParser.setField("TR_OF", tr("of"));
@@ -396,8 +403,8 @@ SHttpServer::SocketOp Backend::handleHtmlSearch(const SHttpServer::RequestMessag
   response.setContentType("text/html;charset=utf-8");
   response.setField("Cache-Control", "no-cache");
 
-  const QUrl url(request.path());
-  const QString queryValue = url.queryItemValue("q");
+  const MediaServer::File file(request);
+  const QString queryValue = file.url().queryItemValue("q");
   const QString queryString = QByteArray::fromPercentEncoding(queryValue.toAscii().replace('+', ' '));
   const SearchCacheEntry entry = search(queryString);
   htmlParser.setField("SEARCHRESULTS", QByteArray(""));
@@ -415,19 +422,19 @@ SHttpServer::SocketOp Backend::handleHtmlSearch(const SHttpServer::RequestMessag
   htmlParser.setField("ITEM_TITLE", tr("Search") + ": " + queryString);
 
   socket->write(response);
-  socket->write(parseHtmlContent(url, htmlParser.parse(htmlSearchResults), ""));
+  socket->write(parseHtmlContent(file.url(), htmlParser.parse(htmlSearchResults), ""));
   return SHttpServer::SocketOp_Close;
 }
 
-SHttpServer::SocketOp Backend::handleHtmlLogFileRequest(const SHttpServer::RequestMessage &request, QAbstractSocket *socket, const QString &file)
+SHttpServer::SocketOp Backend::handleHtmlLogFileRequest(const SHttpServer::RequestMessage &request, QIODevice *socket, const MediaServer::File &file)
 {
   QString logFileName;
-  if (file == "main.log")
+  if (file.fullName() == "main.log")
   {
     logFileName = sApp->activeLogFile();
   }
   else foreach (const QString &f, sApp->allLogFiles())
-  if (f.endsWith("/" + file))
+  if (f.endsWith("/" + file.fullName()))
   {
     logFileName = f;
     break;
@@ -436,7 +443,7 @@ SHttpServer::SocketOp Backend::handleHtmlLogFileRequest(const SHttpServer::Reque
   SApplication::LogFile logFile(logFileName);
   if (logFile.open(SApplication::LogFile::ReadOnly))
   {
-    const QUrl url(request.path());
+    const MediaServer::File file(request);
 
     HtmlParser htmlParser(this->htmlParser);
     htmlParser.setField("TR_DATE", tr("Date"));
@@ -478,14 +485,14 @@ SHttpServer::SocketOp Backend::handleHtmlLogFileRequest(const SHttpServer::Reque
       response.setField("Refresh", "10;URL=#bottom");
 
     socket->write(response);
-    socket->write(parseHtmlContent(url, htmlParser.parse(htmlLogFile), ""));
+    socket->write(parseHtmlContent(file.url(), htmlParser.parse(htmlLogFile), ""));
     return SHttpServer::SocketOp_Close;
   }
 
   return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);
 }
 
-SHttpServer::SocketOp Backend::showAbout(const SHttpServer::RequestMessage &request, QAbstractSocket *socket)
+SHttpServer::SocketOp Backend::showAbout(const SHttpServer::RequestMessage &request, QIODevice *socket)
 {
   HtmlParser htmlParser(this->htmlParser);
 
@@ -500,7 +507,7 @@ SHttpServer::SocketOp Backend::showAbout(const SHttpServer::RequestMessage &requ
   return SHttpServer::SocketOp_Close;
 }
 
-SHttpServer::SocketOp Backend::handleHtmlConfig(const SHttpServer::RequestMessage &request, QAbstractSocket *socket)
+SHttpServer::SocketOp Backend::handleHtmlConfig(const SHttpServer::RequestMessage &request, QIODevice *socket)
 {
   SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
   response.setContentType("text/html;charset=utf-8");
@@ -509,24 +516,33 @@ SHttpServer::SocketOp Backend::handleHtmlConfig(const SHttpServer::RequestMessag
   GlobalSettings settings;
 
   // HTTP server
-  const QUrl url(request.path());
-  if (url.hasQueryItem("httpsettings") && url.hasQueryItem("httpport"))
+  const MediaServer::File file(request);
+  if (file.url().hasQueryItem("httpsettings") && file.url().hasQueryItem("httpport") && file.url().hasQueryItem("devicename"))
   {
-    const int portValue = url.queryItemValue("httpport").toInt();
+    const int portValue = file.url().queryItemValue("httpport").toInt();
     if ((portValue > 0) && (portValue < 65536))
       settings.setValue("HttpPort", portValue);
+
+    const QString deviceName = file.url().queryItemValue("devicename");
+    if (!deviceName.isEmpty())
+    {
+      settings.setValue("DeviceName", deviceName);
+      masterMediaServer.setDeviceName(deviceName);
+    }
   }
 
-  htmlParser.setField("TR_HTTPSERVER_SETTINGS", tr("HTTP server settings"));
+  htmlParser.setField("TR_SERVER_SETTINGS", tr("Server settings"));
   htmlParser.setField("TR_HTTP_PORT_NUMBER", tr("Preferred HTTP port number"));
+  htmlParser.setField("TR_DEVICE_NAME", tr("Device name"));
   htmlParser.setField("TR_HTTPSERVER_EXPLAIN",
     tr("This form configures the internal HTTP server. Note that the daemon "
        "needs to be restarted to apply these settings."));
 
   htmlParser.setField("HTTPPORT", settings.value("HttpPort", settings.defaultBackendHttpPort()).toString());
+  htmlParser.setField("DEVICENAME", settings.value("DeviceName", settings.defaultDeviceName()).toString());
 
   // IMDB
-  if (masterImdbClient && url.hasQueryItem("imdbsettings") && url.hasQueryItem("download"))
+  if (masterImdbClient && file.url().hasQueryItem("imdbsettings") && file.url().hasQueryItem("download"))
   {
     masterImdbClient->obtainIMDBFiles();
   }
@@ -556,38 +572,38 @@ SHttpServer::SocketOp Backend::handleHtmlConfig(const SHttpServer::RequestMessag
   // DLNA
   settings.beginGroup("DLNA");
 
-  if (url.hasQueryItem("dlnasettings") && url.hasQueryItem("save"))
+  if (file.url().hasQueryItem("dlnasettings") && file.url().hasQueryItem("save"))
   {
     const QString sizeName =
-        QByteArray::fromPercentEncoding(url.queryItemValue("transcodesize").toAscii().replace('+', ' '));
+        QByteArray::fromPercentEncoding(file.url().queryItemValue("transcodesize").toAscii().replace('+', ' '));
     if (!sizeName.isEmpty())
       settings.setValue("TranscodeSize", sizeName);
     else
       settings.remove("TranscodeSize");
 
     const QString cropName =
-        QByteArray::fromPercentEncoding(url.queryItemValue("cropmode").toAscii().replace('+', ' '));
+        QByteArray::fromPercentEncoding(file.url().queryItemValue("cropmode").toAscii().replace('+', ' '));
     if (!cropName.isEmpty())
       settings.setValue("TranscodeCrop", cropName);
     else
       settings.remove("TranscodeCrop");
 
     const QString encodeModeName =
-        QByteArray::fromPercentEncoding(url.queryItemValue("encodemode").toAscii().replace('+', ' '));
+        QByteArray::fromPercentEncoding(file.url().queryItemValue("encodemode").toAscii().replace('+', ' '));
     if (!encodeModeName.isEmpty())
       settings.setValue("EncodeMode", encodeModeName);
     else
       settings.remove("EncodeMode");
 
     const QString channelsName =
-        QByteArray::fromPercentEncoding(url.queryItemValue("channels").toAscii().replace('+', ' '));
+        QByteArray::fromPercentEncoding(file.url().queryItemValue("channels").toAscii().replace('+', ' '));
     if (!channelsName.isEmpty())
       settings.setValue("TranscodeChannels", channelsName);
     else
       settings.remove("TranscodeChannels");
 
     const QString musicChannelsName =
-        QByteArray::fromPercentEncoding(url.queryItemValue("musicchannels").toAscii().replace('+', ' '));
+        QByteArray::fromPercentEncoding(file.url().queryItemValue("musicchannels").toAscii().replace('+', ' '));
     if (!musicChannelsName.isEmpty())
       settings.setValue("TranscodeMusicChannels", musicChannelsName);
     else
@@ -600,35 +616,35 @@ SHttpServer::SocketOp Backend::handleHtmlConfig(const SHttpServer::RequestMessag
       const QString name = group.mid(7);
 
       const QString clientSizeName =
-          QByteArray::fromPercentEncoding(url.queryItemValue("transcodesize-" + name).toAscii().replace('+', ' '));
+          QByteArray::fromPercentEncoding(file.url().queryItemValue("transcodesize-" + name).toAscii().replace('+', ' '));
       if (!clientSizeName.isEmpty() && (clientSizeName != sizeName))
         settings.setValue("TranscodeSize", clientSizeName);
       else
         settings.remove("TranscodeSize");
 
       const QString clientCropName =
-          QByteArray::fromPercentEncoding(url.queryItemValue("cropmode-" + name).toAscii().replace('+', ' '));
+          QByteArray::fromPercentEncoding(file.url().queryItemValue("cropmode-" + name).toAscii().replace('+', ' '));
       if (!clientCropName.isEmpty() && (clientCropName != cropName))
         settings.setValue("TranscodeCrop", clientCropName);
       else
         settings.remove("TranscodeCrop");
 
       const QString clientEncodeModeName =
-          QByteArray::fromPercentEncoding(url.queryItemValue("encodemode-" + name).toAscii().replace('+', ' '));
+          QByteArray::fromPercentEncoding(file.url().queryItemValue("encodemode-" + name).toAscii().replace('+', ' '));
       if (!clientEncodeModeName.isEmpty() && (clientEncodeModeName != encodeModeName))
         settings.setValue("EncodeMode", clientEncodeModeName);
       else
         settings.remove("EncodeMode");
 
       const QString clientChannelsName =
-          QByteArray::fromPercentEncoding(url.queryItemValue("channels-" + name).toAscii().replace('+', ' '));
+          QByteArray::fromPercentEncoding(file.url().queryItemValue("channels-" + name).toAscii().replace('+', ' '));
       if (!clientChannelsName.isEmpty() && (clientChannelsName != channelsName))
         settings.setValue("TranscodeChannels", clientChannelsName);
       else
         settings.remove("TranscodeChannels");
 
       const QString clientMusicChannelsName =
-          QByteArray::fromPercentEncoding(url.queryItemValue("musicchannels-" + name).toAscii().replace('+', ' '));
+          QByteArray::fromPercentEncoding(file.url().queryItemValue("musicchannels-" + name).toAscii().replace('+', ' '));
       if (!clientMusicChannelsName.isEmpty() && (clientMusicChannelsName != musicChannelsName))
         settings.setValue("TranscodeMusicChannels", clientMusicChannelsName);
       else
@@ -639,7 +655,7 @@ SHttpServer::SocketOp Backend::handleHtmlConfig(const SHttpServer::RequestMessag
 
     setContentDirectoryQueryItems();
   }
-  else if (url.hasQueryItem("dlnasettings") && url.hasQueryItem("defaults"))
+  else if (file.url().hasQueryItem("dlnasettings") && file.url().hasQueryItem("defaults"))
   {
     settings.remove("TranscodeSize");
     settings.remove("TranscodeCrop");
@@ -649,10 +665,10 @@ SHttpServer::SocketOp Backend::handleHtmlConfig(const SHttpServer::RequestMessag
 
     setContentDirectoryQueryItems();
   }
-  else if (url.hasQueryItem("dlnasettings"))
+  else if (file.url().hasQueryItem("dlnasettings"))
   {
     foreach (const QString &group, settings.childGroups())
-    if (group.startsWith("Client_") && url.hasQueryItem("erase-" + group.mid(7)))
+    if (group.startsWith("Client_") && file.url().hasQueryItem("erase-" + group.mid(7)))
       settings.remove(group);
 
     setContentDirectoryQueryItems();
@@ -832,6 +848,6 @@ SHttpServer::SocketOp Backend::handleHtmlConfig(const SHttpServer::RequestMessag
   }
 
   socket->write(response);
-  socket->write(parseHtmlContent(url, htmlParser.parse(htmlConfigMain), ""));
+  socket->write(parseHtmlContent(file.url(), htmlParser.parse(htmlConfigMain), ""));
   return SHttpServer::SocketOp_Close;
 }

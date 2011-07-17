@@ -31,7 +31,11 @@ int main(int argc, char *argv[])
 
   qapp.setQuitOnLastWindowClosed(false);
 
-  SApplication sapp;
+  SApplication mediaApp(QString::null
+#if !defined(DEBUG_USE_LOCAL_SANDBOX)
+                        , QStringList() << "lxistream" << "lxistreamgui" << "lximediacenter"
+#endif
+                        );
 
   TrayIcon * const trayIcon = new TrayIcon();
   trayIcon->show();

@@ -33,6 +33,7 @@ HEADERS += $${PWD}/$${LXIMEDIA_DIR}/include/LXiServer \
  $${PWD}/$${LXIMEDIA_DIR}/include/liblxiserver/supnpconnectionmanager.h \
  $${PWD}/$${LXIMEDIA_DIR}/include/liblxiserver/supnpcontentdirectory.h \
  $${PWD}/$${LXIMEDIA_DIR}/include/liblxiserver/supnpgenaserver.h \
+ $${PWD}/$${LXIMEDIA_DIR}/include/liblxiserver/supnpmediareceiverregistrar.h \
  $${PWD}/$${LXIMEDIA_DIR}/include/liblxiserver/supnpmediaserver.h
 
 SOURCES += shttpclient.cpp \
@@ -48,6 +49,7 @@ SOURCES += shttpclient.cpp \
  supnpconnectionmanager.cpp \
  supnpcontentdirectory.cpp \
  supnpgenaserver.cpp \
+ supnpmediareceiverregistrar.cpp \
  supnpmediaserver.cpp
 
 HEADERS += lxiserverprivate.h

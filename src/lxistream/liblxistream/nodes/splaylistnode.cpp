@@ -42,8 +42,7 @@ struct SPlaylistNode::Data
 };
 
 SPlaylistNode::SPlaylistNode(SGraph *parent, const SMediaInfoList &files)
-  : QObject(parent),
-    SGraph::SourceNode(parent),
+  : SInterfaces::SourceNode(parent),
     d(new Data())
 {
   d->duration = STime::null;

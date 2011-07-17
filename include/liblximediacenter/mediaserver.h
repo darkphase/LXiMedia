@@ -38,6 +38,27 @@ class LXIMEDIACENTER_PUBLIC MediaServer : public BackendServer,
 Q_OBJECT
 friend class MediaServerDir;
 public:
+  class LXIMEDIACENTER_PUBLIC File
+  {
+  public:
+                                File(const SHttpServer::RequestMessage &);
+                                ~File();
+
+    inline const QString      & baseName(void) const                            { return d.baseName; }
+    inline const QString      & suffix(void) const                              { return d.suffix; }
+    inline const QString      & fullName(void) const                            { return d.fullName; }
+    inline const QUrl         & url(void) const                                 { return d.url; }
+
+  private:
+    struct
+    {
+      QString                   baseName;
+      QString                   suffix;
+      QString                   fullName;
+      QUrl                      url;
+    }                           d;
+  };
+
   class LXIMEDIACENTER_PUBLIC Stream
   {
   public:
@@ -104,7 +125,7 @@ protected slots:
   virtual void                  cleanStreams(void);
 
 protected: // From SHttpServer::Callback
-  virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestMessage &, QAbstractSocket *);
+  virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestMessage &, QIODevice *);
   virtual void                  handleHttpOptions(SHttpServer::ResponseHeader &);
 
 private: // From UPnPContentDirectory::Callback

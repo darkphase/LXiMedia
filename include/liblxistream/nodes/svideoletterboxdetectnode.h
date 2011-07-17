@@ -22,7 +22,7 @@
 
 #include <QtCore>
 #include <LXiCore>
-#include "../sgraph.h"
+#include "../sinterfaces.h"
 #include "../svideobuffer.h"
 #include "../export.h"
 
@@ -30,8 +30,7 @@ namespace LXiStream {
 
 class SVideoBuffer;
 
-class LXISTREAM_PUBLIC SVideoLetterboxDetectNode : public QObject,
-                                                   public SGraph::Node
+class LXISTREAM_PUBLIC SVideoLetterboxDetectNode : public SInterfaces::Node
 {
 Q_OBJECT
 public:
@@ -41,7 +40,7 @@ public:
   unsigned                      delayFrames(void) const;
   void                          setDelayFrames(unsigned);
 
-public: // From SGraph::Node
+public: // From SInterfaces::Node
   virtual bool                  start(void);
   virtual void                  stop(void);
 

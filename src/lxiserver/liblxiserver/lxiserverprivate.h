@@ -26,6 +26,12 @@
 #include "shttpclient.h"
 #include "ssandboxclient.h"
 
+// Qt uses names pipes for local sockets under Windows, which are not suitable
+// for using HTTP and therefore normal TCP sockets need to be used.
+#ifndef Q_OS_WIN
+#define SANDBOX_USE_LOCALSERVER
+#endif
+
 using namespace LXiServer;
 
 class HttpClientRequest : public QObject
@@ -36,7 +42,7 @@ public:
   virtual                       ~HttpClientRequest();
 
 public slots:
-  void                          start(QAbstractSocket *);
+  void                          start(QIODevice *);
 
 signals:
   void                          response(const SHttpEngine::ResponseMessage &);
@@ -47,7 +53,7 @@ private slots:
 
 private:
   const SHttpEngine::RequestMessage message;
-  QAbstractSocket             * socket;
+  QPointer<QIODevice>           socket;
   QByteArray                    data;
   QTimer                        closeTimer;
   bool                          responded;
@@ -61,10 +67,10 @@ public:
   virtual                       ~HttpServerRequest();
 
 public slots:
-  void                          start(QAbstractSocket *);
+  void                          start(QIODevice *);
 
 signals:
-  void                          handleHttpRequest(const SHttpEngine::RequestMessage &, QAbstractSocket *);
+  void                          handleHttpRequest(const SHttpEngine::RequestMessage &, QIODevice *);
 
 private slots:
   void                          readyRead();
@@ -73,7 +79,7 @@ private slots:
 private:
   const QPointer<SHttpServerEngine> parent;
   const quint16                 serverPort;
-  QAbstractSocket             * socket;
+  QPointer<QIODevice>           socket;
   QByteArray                    data;
   bool                          headerReceived;
   QByteArray                    content;
@@ -84,12 +90,13 @@ class HttpSocketRequest : public QObject
 {
 Q_OBJECT
 public:
-  explicit                      HttpSocketRequest(QObject *, QAbstractSocket *, const QHostAddress &host, quint16 port, const QByteArray &message = QByteArray());
-  explicit                      HttpSocketRequest(QObject *, QAbstractSocket *, const QString &host, quint16 port, const QByteArray &message = QByteArray());
+                                HttpSocketRequest(QObject *, QAbstractSocket *, const QHostAddress &host, quint16 port, const QByteArray &message = QByteArray());
+                                HttpSocketRequest(QObject *, QAbstractSocket *, const QString &host, quint16 port, const QByteArray &message = QByteArray());
+                                HttpSocketRequest(QObject *, QLocalSocket *, const QString &server, const QByteArray &message = QByteArray());
   virtual                       ~HttpSocketRequest();
 
 signals:
-  void                          connected(QAbstractSocket *);
+  void                          connected(QIODevice *);
 
 private slots:
   void                          connectToHost(const QHostInfo &);
@@ -101,7 +108,7 @@ private:
   static const int              maxTTL = 15000;
   const quint16                 port;
   QByteArray                    message;
-  QAbstractSocket             * socket;
+  QPointer<QIODevice>           socket;
   QTimer                        failTimer;
 };
 
@@ -116,7 +123,7 @@ public slots:
   void                          kill(void);
 
 signals:
-  void                          ready(const QHostAddress &, quint16);
+  void                          ready(const QString &);
   void                          stop(void);
   void                          finished(QProcess::ExitStatus);
   void                          consoleLine(const QString &);

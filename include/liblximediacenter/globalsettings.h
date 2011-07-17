@@ -23,9 +23,7 @@
 #include <QtCore>
 #include <QtNetwork>
 #include <LXiCore>
-#ifndef TRAYICON_ONLY
 #include <LXiStream>
-#endif
 #include "export.h"
 
 namespace LXiMediaCenter {
@@ -33,7 +31,6 @@ namespace LXiMediaCenter {
 class LXIMEDIACENTER_PUBLIC GlobalSettings : public QSettings
 {
 public:
-#ifndef TRAYICON_ONLY
   struct TranscodeSize
   {
     inline TranscodeSize(void) { }
@@ -51,7 +48,6 @@ public:
     QString                     name;
     SAudioFormat::Channels      channels;
   };
-#endif
 
 public:
                                 GlobalSettings(void);
@@ -59,13 +55,13 @@ public:
 public:
   _lxi_pure static QList<QHostAddress> defaultBackendInterfaces(void);
   _lxi_pure static quint16      defaultBackendHttpPort(void);
+  _lxi_pure static QString      defaultDeviceName(void);
 
   _lxi_pure static QUuid        serverUuid(void);
   _lxi_pure static QString      settingsFile(void);
   _lxi_pure static QString      databaseFile(void);
   _lxi_pure static QString      applicationDataDir(void);
 
-#ifndef TRAYICON_ONLY
   _lxi_pure static QList<TranscodeSize> allTranscodeSizes(void);
   _lxi_pure static QString      defaultTranscodeSizeName(void);
   _lxi_pure static QString      defaultTranscodeCropName(void);
@@ -73,7 +69,6 @@ public:
   _lxi_pure static QList<TranscodeChannel> allTranscodeChannels(void);
   _lxi_pure static QString      defaultTranscodeChannelName(void);
   _lxi_pure static QString      defaultTranscodeMusicChannelName(void);
-#endif
 };
 
 } // End of namespace

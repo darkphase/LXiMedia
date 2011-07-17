@@ -20,11 +20,40 @@
 #include "shttpclient.h"
 #include "lxiserverprivate.h"
 #include <QtNetwork>
+#if defined(Q_OS_WIN)
+# include <windows.h>
+#endif
 
 namespace LXiServer {
 
 struct SHttpClient::Data
 {
+  class Socket : public QTcpSocket
+  {
+  public:
+    Socket(SHttpClientEngine *parent)
+      : QTcpSocket(parent), parent(parent)
+    {
+      if (parent)
+        qApp->sendEvent(parent, new QEvent(socketCreatedEventType));
+
+#ifdef Q_OS_WIN
+      // This is needed to ensure the socket isn't kept open by any child
+      // processes.
+      ::SetHandleInformation((HANDLE)socketDescriptor(), HANDLE_FLAG_INHERIT, 0);
+#endif
+    }
+
+    virtual ~Socket()
+    {
+      if (parent)
+        qApp->postEvent(parent, new QEvent(socketDestroyedEventType));
+    }
+
+  private:
+    const QPointer<SHttpClientEngine> parent;
+  };
+
   struct Request
   {
     inline Request(const QString &hostname, quint16 port, const QByteArray &message, QObject *receiver, const char *slot)
@@ -56,8 +85,8 @@ SHttpClient::~SHttpClient()
 
 /*! This sends a HTTP request message to the server specified by the host in the
     message. After the connection has been established and the message has been
-    sent, the provided slot is invoked with the opened QAbstractSocket as the
-    first argument.
+    sent, the provided slot is invoked with the opened socket (QIODevice *) as
+    the first argument.
  */
 void SHttpClient::openRequest(const RequestMessage &message, QObject *receiver, const char *slot)
 {
@@ -86,9 +115,10 @@ void SHttpClient::openRequest(void)
   while (!d->requests.isEmpty() && (socketsAvailable() > 0))
   {
     const Data::Request request = d->requests.takeFirst();
-    HttpSocketRequest * const socketRequest = new HttpSocketRequest(this, createSocket(), request.hostname, request.port, request.message);
 
-    connect(socketRequest, SIGNAL(connected(QAbstractSocket *)), request.receiver, request.slot);
+    HttpSocketRequest * const socketRequest = new HttpSocketRequest(this, new Data::Socket(this), request.hostname, request.port, request.message);
+
+    connect(socketRequest, SIGNAL(connected(QIODevice *)), request.receiver, request.slot);
   }
 }
 

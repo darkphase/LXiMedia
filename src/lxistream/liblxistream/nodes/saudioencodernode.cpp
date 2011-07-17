@@ -29,8 +29,7 @@ struct SAudioEncoderNode::Data
 };
 
 SAudioEncoderNode::SAudioEncoderNode(SGraph *parent)
-  : QObject(parent),
-    SGraph::Node(parent),
+  : SInterfaces::Node(parent),
     d(new Data())
 {
   d->encoder = NULL;

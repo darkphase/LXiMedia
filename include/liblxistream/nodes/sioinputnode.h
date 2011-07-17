@@ -22,7 +22,6 @@
 
 #include <QtCore>
 #include <LXiCore>
-#include "../sgraph.h"
 #include "../sinterfaces.h"
 #include "../export.h"
 
@@ -30,8 +29,7 @@ namespace LXiStream {
 
 /*! This is a generic input node, reading to a QIODevice.
  */
-class LXISTREAM_PUBLIC SIOInputNode : public QObject,
-                                      public SGraph::SourceNode,
+class LXISTREAM_PUBLIC SIOInputNode : public SInterfaces::SourceNode,
                                       public SInterfaces::BufferReaderNode,
                                       protected SInterfaces::BufferReader::ReadCallback,
                                       protected SInterfaces::BufferReader::ProduceCallback

@@ -47,7 +47,7 @@ SSandboxServer * SandboxTest::createSandbox(void)
     {
     }
 
-    virtual SSandboxServer::SocketOp handleHttpRequest(const SSandboxServer::RequestMessage &request, QAbstractSocket *socket)
+    virtual SSandboxServer::SocketOp handleHttpRequest(const SSandboxServer::RequestMessage &request, QIODevice *socket)
     {
       if ((request.method() == "GET") || (request.method() == "HEAD"))
       {

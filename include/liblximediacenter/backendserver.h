@@ -82,9 +82,9 @@ public:
   virtual SearchResultList      search(const QStringList &rawQuery) const;
 
 public:
-  SHttpServer::SocketOp         sendResponse(const SHttpServer::RequestHeader &, QAbstractSocket *, const QByteArray &, const char * = dataMime, bool allowCache = false, const QString &redir = QString::null) const;
-  SHttpServer::SocketOp         sendResponse(const SHttpServer::RequestHeader &, QAbstractSocket *, const QString &, const char * = textMime, bool allowCache = false, const QString &redir = QString::null) const;
-  SHttpServer::SocketOp         sendHtmlContent(const SHttpServer::RequestHeader &, QAbstractSocket *, const QUrl &, const SHttpServer::ResponseHeader &, const QByteArray &content, const QByteArray &head = QByteArray()) const;
+  SHttpServer::SocketOp         sendResponse(const SHttpServer::RequestHeader &, QIODevice *, const QByteArray &, const char * = dataMime, bool allowCache = false, const QString &redir = QString::null) const;
+  SHttpServer::SocketOp         sendResponse(const SHttpServer::RequestHeader &, QIODevice *, const QString &, const char * = textMime, bool allowCache = false, const QString &redir = QString::null) const;
+  SHttpServer::SocketOp         sendHtmlContent(const SHttpServer::RequestHeader &, QIODevice *, const QUrl &, const SHttpServer::ResponseHeader &, const QByteArray &content, const QByteArray &head = QByteArray()) const;
 
   QString                       basePath(const QString &) const;
   static QString                dirName(const QString &);

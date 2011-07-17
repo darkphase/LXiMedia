@@ -22,7 +22,7 @@
 
 #include <QtCore>
 #include <LXiCore>
-#include "../sgraph.h"
+#include "../sinterfaces.h"
 #include "../spixels.h"
 #include "../ssubpicturebuffer.h"
 #include "../svideobuffer.h"
@@ -30,15 +30,14 @@
 
 namespace LXiStream {
 
-class LXISTREAM_PUBLIC SSubpictureRenderNode : public QObject,
-                                               public SGraph::Node
+class LXISTREAM_PUBLIC SSubpictureRenderNode : public SInterfaces::Node
 {
 Q_OBJECT
 public:
   explicit                      SSubpictureRenderNode(SGraph *);
   virtual                       ~SSubpictureRenderNode();
 
-public: // From SGraph::Node
+public: // From SInterfaces::Node
   virtual bool                  start(void);
   virtual void                  stop(void);
 

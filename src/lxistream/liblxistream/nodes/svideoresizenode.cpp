@@ -31,12 +31,10 @@ struct SVideoResizeNode::Data
 };
 
 SVideoResizeNode::SVideoResizeNode(SGraph *parent, const QString &algo)
-  : QObject(parent),
-    SGraph::Node(parent),
+  : SInterfaces::Node(parent),
     d(new Data())
 {
   d->algo = algo;
-  d->lanczosResizer = NULL;
 
   if (algo.isEmpty())
     d->resizer = SInterfaces::VideoResizer::create(this, "bilinear");
@@ -45,6 +43,8 @@ SVideoResizeNode::SVideoResizeNode(SGraph *parent, const QString &algo)
 
   if (d->resizer == NULL)
     d->resizer = SInterfaces::VideoResizer::create(this, QString::null);
+
+  d->lanczosResizer = NULL;
 }
 
 SVideoResizeNode::~SVideoResizeNode()
@@ -135,11 +135,10 @@ void SVideoResizeNode::input(const SVideoBuffer &videoBuffer)
 
   if (!videoBuffer.isNull() && d->resizer)
   {
+    const SSize size = videoBuffer.format().size();
     SInterfaces::VideoResizer *resizer = d->resizer;
-    if (d->lanczosResizer)
-    if ((d->lanczosResizer->size().width() > videoBuffer.format().size().width()) &&
-        (videoBuffer.format().size().width() < 1280) &&
-        (videoBuffer.format().size().height() < 720))
+    if (d->lanczosResizer && (d->lanczosResizer->size().width() > size.width()) &&
+        (size.width() < 1280) && (size.height() < 720))
     {
       resizer = d->lanczosResizer;
     }

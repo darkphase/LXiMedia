@@ -88,21 +88,19 @@ void MediaServer::cleanStreams(void)
     delete stream;
 }
 
-SHttpServer::SocketOp MediaServer::handleHttpRequest(const SHttpServer::RequestMessage &request, QAbstractSocket *socket)
+SHttpServer::SocketOp MediaServer::handleHttpRequest(const SHttpServer::RequestMessage &request, QIODevice *socket)
 {
   if ((request.method() == "GET") || (request.method() == "HEAD"))
   {
-    const QUrl url(request.path());
-    const QString file = request.file();
-
-    if (file.isEmpty())
+    const MediaServer::File file(request);
+    if (file.baseName().isEmpty())
     {
       SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
       response.setContentType("text/html;charset=utf-8");
       response.setField("Cache-Control", "no-cache");
 
       ThumbnailListItemList thumbItems;
-      foreach (const SUPnPContentDirectory::Item &item, listItems(basePath(url.path())))
+      foreach (const SUPnPContentDirectory::Item &item, listItems(basePath(file.url().path())))
       {
         if (item.isDir)
         {
@@ -132,14 +130,12 @@ SHttpServer::SocketOp MediaServer::handleHttpRequest(const SHttpServer::RequestM
         }
       }
 
-      return sendHtmlContent(request, socket, url, response, buildThumbnailView(dirName(url.path()), thumbItems));
+      return sendHtmlContent(request, socket, file.url(), response, buildThumbnailView(dirName(file.url().path()), thumbItems));
     }
     else if (request.method() != "HEAD")
     {
-      const QString url = request.path();
-
       foreach (Stream *stream, d->streams)
-      if (stream->url == url)
+      if (stream->url == request.path())
       if (stream->proxy.addSocket(socket))
         return SHttpServer::SocketOp_LeaveOpen;
 
@@ -152,8 +148,16 @@ SHttpServer::SocketOp MediaServer::handleHttpRequest(const SHttpServer::RequestM
       else
         return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);
     }
-    else // Return dummy head.
-      return SHttpServer::sendResponse(request, socket, SHttpServer::Status_Ok, this);
+    else // Return head only.
+    {
+      SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
+      response.setField("transferMode.dlna.org", "Streaming");
+      if (file.url().hasQueryItem("contentFeatures"))
+        response.setField("contentFeatures.dlna.org", QByteArray::fromHex(file.url().queryItemValue("contentFeatures").toAscii()));
+
+      socket->write(response);
+      return SHttpServer::SocketOp_Close;
+    }
   }
 
   return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);
@@ -210,6 +214,38 @@ void MediaServer::removeStream(Stream *stream)
 {
   d->streams.removeAll(stream);
   d->reusableStreams.removeAll(stream);
+}
+
+MediaServer::File::File(const SHttpServer::RequestMessage &request)
+{
+  const QUrl url(request.path());
+  const QStringList list = request.file().split("..");
+  if (list.count() >= 2)
+  {
+    const QByteArray q = SUPnPContentDirectory::fromQueryID(list.last().toAscii());
+    const QString path = url.path();
+    d.url = path.left(path.lastIndexOf('/') + 1) + list.first() + '?' + q;
+  }
+  else
+    d.url = url;
+
+  if (!list.isEmpty())
+  {
+    QStringList file = list.first().toLower().split('.');
+
+    if (file.count() >= 2)
+      d.suffix = file.takeLast();
+
+    if (!file.isEmpty())
+      d.baseName = file.join(".");
+  }
+
+  if (!d.baseName.isEmpty() || !d.suffix.isEmpty())
+    d.fullName = d.baseName + '.' + d.suffix;
+}
+
+MediaServer::File::~File()
+{
 }
 
 MediaServer::Stream::Stream(MediaServer *parent, const QString &url)

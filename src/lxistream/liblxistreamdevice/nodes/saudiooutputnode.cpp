@@ -32,8 +32,7 @@ struct SAudioOutputNode::Data
 };
 
 SAudioOutputNode::SAudioOutputNode(SGraph *parent, const QString &device)
-  : QObject(parent),
-    SGraph::SinkNode(parent),
+  : ::LXiStream::SInterfaces::SinkNode(parent),
     d(new Data())
 {
   d->device = device;

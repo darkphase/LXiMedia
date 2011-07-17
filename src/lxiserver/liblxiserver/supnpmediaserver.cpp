@@ -43,6 +43,7 @@ struct SUPnPMediaServer::Data
   SSsdpServer                 * ssdpServer;
   QList<Service>                services;
   QList<Icon>                   icons;
+  QString                       deviceName;
 };
 
 SUPnPMediaServer::SUPnPMediaServer(const QString &basePath, QObject *parent)
@@ -52,6 +53,7 @@ SUPnPMediaServer::SUPnPMediaServer(const QString &basePath, QObject *parent)
   d->basePath = basePath;
   d->httpServer = NULL;
   d->ssdpServer = NULL;
+  d->deviceName = QHostInfo::localHostName() + ": " + qApp->applicationName();
 }
 
 SUPnPMediaServer::~SUPnPMediaServer()
@@ -80,6 +82,11 @@ void SUPnPMediaServer::close(void)
     d->httpServer->unregisterCallback(this);
 }
 
+void SUPnPMediaServer::setDeviceName(const QString &deviceName)
+{
+  d->deviceName = deviceName;
+}
+
 void SUPnPMediaServer::addIcon(const QString &url, unsigned width, unsigned height, unsigned depth)
 {
   Data::Icon icon;
@@ -98,7 +105,7 @@ void SUPnPMediaServer::registerService(const Service &service)
   d->ssdpServer->publish(service.serviceType, service.descriptionUrl, 1);
 }
 
-SHttpServer::SocketOp SUPnPMediaServer::handleHttpRequest(const SHttpServer::RequestMessage &request, QAbstractSocket *socket)
+SHttpServer::SocketOp SUPnPMediaServer::handleHttpRequest(const SHttpServer::RequestMessage &request, QIODevice *socket)
 {
   if ((request.method() == "GET") || (request.method() == "HEAD"))
   {
@@ -115,7 +122,7 @@ SHttpServer::SocketOp SUPnPMediaServer::handleHttpRequest(const SHttpServer::Req
 
       QDomElement deviceElm = doc.createElement("device");
       SUPnPBase::addTextElm(doc, deviceElm, "deviceType", deviceType);
-      SUPnPBase::addTextElm(doc, deviceElm, "friendlyName", QHostInfo::localHostName() + ": " + qApp->applicationName());
+      SUPnPBase::addTextElm(doc, deviceElm, "friendlyName", d->deviceName);
       SUPnPBase::addTextElm(doc, deviceElm, "manufacturer", qApp->organizationName());
       SUPnPBase::addTextElm(doc, deviceElm, "manufacturerURL", "http://" + qApp->organizationDomain() + "/");
       SUPnPBase::addTextElm(doc, deviceElm, "modelDescription", qApp->applicationName());
@@ -168,7 +175,6 @@ SHttpServer::SocketOp SUPnPMediaServer::handleHttpRequest(const SHttpServer::Req
       response.setField("Cache-Control", "no-cache");
       response.setField("Accept-Ranges", "bytes");
       response.setField("Connection", "close");
-      response.setField("contentFeatures.dlna.org", "");
       socket->write(response);
       socket->write(content);
       return SHttpServer::SocketOp_Close;

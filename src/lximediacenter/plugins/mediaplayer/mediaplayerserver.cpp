@@ -74,31 +74,21 @@ MediaPlayerServer::SearchResultList MediaPlayerServer::search(const QStringList 
 
 MediaPlayerServer::Stream * MediaPlayerServer::streamVideo(const SHttpServer::RequestMessage &request)
 {
-  QUrl url(request.path());
-  if (url.hasQueryItem("query"))
-    url = url.toEncoded(QUrl::RemoveQuery) + QByteArray::fromHex(url.queryItemValue("query").toAscii());
+  const MediaServer::File file(request);
 
   SSandboxClient::Priority priority = SSandboxClient::Priority_Normal;
-  if (url.queryItemValue("priority") == "low")
+  if (file.url().queryItemValue("priority") == "low")
     priority = SSandboxClient::Priority_Low;
-  else if (url.queryItemValue("priority") == "high")
+  else if (file.url().queryItemValue("priority") == "high")
     priority = SSandboxClient::Priority_High;
 
   SSandboxClient * const sandbox = masterServer->createSandbox(priority);
   connect(sandbox, SIGNAL(consoleLine(QString)), SLOT(consoleLine(QString)));
   sandbox->ensureStarted();
 
-  MediaDatabase::UniqueID uid;
-  if (url.hasQueryItem("item"))
-  {
-    uid = MediaDatabase::fromUidString(url.queryItemValue("item"));
-  }
-  else
-  {
-    const QStringList file = request.file().split('.');
-    if (file.count() >= 2)
-      uid = MediaDatabase::fromUidString(file.first());
-  }
+  const MediaDatabase::UniqueID uid = file.url().hasQueryItem("item")
+    ? MediaDatabase::fromUidString(file.url().queryItemValue("item"))
+    : MediaDatabase::fromUidString(file.baseName());
 
   if (uid.fid != 0)
   {
@@ -107,11 +97,11 @@ MediaPlayerServer::Stream * MediaPlayerServer::streamVideo(const SHttpServer::Re
     if (uid.pid < node.programs().count())
     {
       QUrl rurl;
-      rurl.setPath(MediaPlayerSandbox::path + request.file());
+      rurl.setPath(MediaPlayerSandbox::path + file.fullName());
       rurl.addQueryItem("playfile", QString::null);
       rurl.addQueryItem("pid", QString::number(uid.pid));
       typedef QPair<QString, QString> QStringPair;
-      foreach (const QStringPair &queryItem, url.queryItems())
+      foreach (const QStringPair &queryItem, file.url().queryItems())
         rurl.addQueryItem(queryItem.first, queryItem.second);
 
       Stream *stream = new Stream(this, sandbox, request.path());
@@ -383,26 +373,24 @@ MediaPlayerServer::Item::Type MediaPlayerServer::defaultItemType(Item::Type type
   }
 }
 
-SHttpServer::SocketOp MediaPlayerServer::handleHttpRequest(const SHttpServer::RequestMessage &request, QAbstractSocket *socket)
+SHttpServer::SocketOp MediaPlayerServer::handleHttpRequest(const SHttpServer::RequestMessage &request, QIODevice *socket)
 {
   if ((request.method() == "GET") || (request.method() == "HEAD"))
   {
-    const QUrl url(request.path());
-    const QString file = request.file();
-
-    if (file.endsWith("-thumb.png"))
+    const MediaServer::File file(request);
+    if (file.fullName().endsWith("-thumb.png"))
     {
       QSize size(128, 128);
-      if (url.hasQueryItem("size"))
+      if (file.url().hasQueryItem("resolution"))
       {
-        const QStringList sizeTxt = url.queryItemValue("size").split('x');
+        const QStringList sizeTxt = file.url().queryItemValue("resolution").split('x');
         if (sizeTxt.count() >= 2)
           size = QSize(sizeTxt[0].toInt(), sizeTxt[1].toInt());
         else if (sizeTxt.count() >= 1)
           size = QSize(sizeTxt[0].toInt(), sizeTxt[0].toInt());
       }
 
-      const MediaDatabase::UniqueID uid = MediaDatabase::fromUidString(file);
+      const MediaDatabase::UniqueID uid = MediaDatabase::fromUidString(file.baseName());
       const FileNode node = mediaDatabase->readNode(uid);
       if (!node.isNull())
       if (uid.pid < node.programs().count())
@@ -425,9 +413,9 @@ SHttpServer::SocketOp MediaPlayerServer::handleHttpRequest(const SHttpServer::Re
               (result.height() / 2) - (image.height() / 2),
               image);
 
-          if (url.hasQueryItem("overlay"))
+          if (file.url().hasQueryItem("overlay"))
           {
-            QImage overlayImage(":/lximediacenter/images/" + url.queryItemValue("overlay") + ".png");
+            QImage overlayImage(":/lximediacenter/images/" + file.url().queryItemValue("overlay") + ".png");
             if (!overlayImage.isNull())
             {
               overlayImage = overlayImage.scaled(size / 2, Qt::KeepAspectRatio, Qt::SmoothTransformation);
@@ -451,7 +439,7 @@ SHttpServer::SocketOp MediaPlayerServer::handleHttpRequest(const SHttpServer::Re
       QImage image(":/lximediacenter/images/video-template.png");
       if (!image.isNull())
       {
-        if (url.hasQueryItem("size"))
+        if (file.url().hasQueryItem("resolution"))
           image = image.scaled(size / 2, Qt::KeepAspectRatio, Qt::SmoothTransformation);
 
         QImage sum(size, QImage::Format_ARGB32);
@@ -474,9 +462,9 @@ SHttpServer::SocketOp MediaPlayerServer::handleHttpRequest(const SHttpServer::Re
 
       return SHttpServer::sendRedirect(request, socket, "http://" + request.host() + "/img/null.png");
     }
-    else if (file.endsWith(".html")) // Show player
+    else if (file.suffix() == "html") // Show player
     {
-      const MediaDatabase::UniqueID uid = MediaDatabase::fromUidString(file);
+      const MediaDatabase::UniqueID uid = MediaDatabase::fromUidString(file.baseName());
       const FileNode node = mediaDatabase->readNode(uid);
       if (!node.isNull())
       if (uid.pid < node.programs().count())
@@ -485,7 +473,7 @@ SHttpServer::SocketOp MediaPlayerServer::handleHttpRequest(const SHttpServer::Re
         response.setContentType("text/html;charset=utf-8");
         response.setField("Cache-Control", "no-cache");
 
-        return sendHtmlContent(request, socket, url, response, buildVideoPlayer(uid, node.title(), node.programs().at(uid.pid), url), headPlayer);
+        return sendHtmlContent(request, socket, file.url(), response, buildVideoPlayer(uid, node.title(), node.programs().at(uid.pid), file.url()), headPlayer);
       }
     }
   }
@@ -528,7 +516,7 @@ bool MediaPlayerServer::Stream::setup(const QUrl &url, const QByteArray &content
   message.setRequest("POST", url.toEncoded(QUrl::RemoveScheme | QUrl::RemoveAuthority));
   message.setContent(content);
 
-  sandbox->openRequest(message, &proxy, SLOT(setSource(QAbstractSocket *)));
+  sandbox->openRequest(message, &proxy, SLOT(setSource(QIODevice *)));
 
   return true;
 }

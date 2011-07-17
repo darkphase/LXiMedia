@@ -33,26 +33,20 @@ class LXIMEDIACENTER_PUBLIC MediaStream : public SGraph
 {
 Q_OBJECT
 protected:
-  struct Audio
+  struct LXIMEDIACENTER_PUBLIC Audio
   {
-    inline Audio(SGraph *parent)
-      : matrix(parent), resampler(parent), encoder(parent)
-    {
-    }
+    explicit                    Audio(SGraph *parent);
+                                ~Audio();
 
     SAudioMatrixNode            matrix;
     SAudioResampleNode          resampler;
     SAudioEncoderNode           encoder;
   };
 
-  struct Video
+  struct LXIMEDIACENTER_PUBLIC Video
   {
-    inline Video(SGraph *parent)
-      : deinterlacer(parent), subpictureRenderer(parent),
-        letterboxDetectNode(parent), resizer(parent), box(parent),
-        subtitleRenderer(parent), encoder(parent)
-    {
-    }
+    explicit                    Video(SGraph *parent);
+                                ~Video();
 
     SVideoDeinterlaceNode       deinterlacer;
     SSubpictureRenderNode       subpictureRenderer;
@@ -64,11 +58,11 @@ protected:
   };
 
 public:
-  explicit                      MediaStream(void);
+                                MediaStream(void);
   virtual                       ~MediaStream();
 
   bool                          setup(const SHttpServer::RequestMessage &,
-                                      QAbstractSocket *,
+                                      QIODevice *,
                                       STime duration,
                                       SInterval frameRate,
                                       SSize size,
@@ -76,7 +70,7 @@ public:
                                       SInterfaces::AudioEncoder::Flags = SInterfaces::AudioEncoder::Flag_None,
                                       SInterfaces::VideoEncoder::Flags = SInterfaces::VideoEncoder::Flag_None);
   bool                          setup(const SHttpServer::RequestMessage &,
-                                      QAbstractSocket *,
+                                      QIODevice *,
                                       STime duration,
                                       SAudioFormat::Channels,
                                       SInterfaces::AudioEncoder::Flags = SInterfaces::AudioEncoder::Flag_None);
@@ -94,7 +88,7 @@ public:
   explicit                      MediaTranscodeStream(void);
 
   bool                          setup(const SHttpServer::RequestMessage &,
-                                      QAbstractSocket *,
+                                      QIODevice *,
                                       SInterfaces::BufferReaderNode *,
                                       STime duration = STime(),
                                       SInterfaces::AudioEncoder::Flags = SInterfaces::AudioEncoder::Flag_None,

@@ -38,11 +38,64 @@ namespace LXiServer {
 struct SSandboxServer::Data
 {
   QString                       mode;
-  QTcpServer                  * server;
+  Server                      * server;
   int                           openSockets;
   QQueue<int>                   pendingSockets;
 };
 
+#ifdef SANDBOX_USE_LOCALSERVER
+class SSandboxServer::Socket : public QLocalSocket
+{
+public:
+  explicit Socket(SSandboxServer *parent)
+    : QLocalSocket(parent), parent(parent)
+  {
+    if (parent->d->openSockets++ == 0)
+      emit parent->busy();
+  }
+
+  virtual ~Socket()
+  {
+    if (parent)
+    if (parent->d)
+    if (--parent->d->openSockets == 0)
+      emit parent->idle();
+  }
+
+private:
+  const QPointer<SSandboxServer> parent;
+};
+
+class SSandboxServer::Server : public QLocalServer
+{
+public:
+  explicit Server(SSandboxServer *parent)
+    : QLocalServer(parent), parent(parent)
+  {
+  }
+
+  inline bool listen(void)
+  {
+    return QLocalServer::listen(QUuid::createUuid().toString());
+  }
+
+protected:
+  virtual void incomingConnection(quintptr socketDescriptor)
+  {
+    if (parent)
+    {
+      QLocalSocket * const socket = new Socket(parent);
+      if (socket->setSocketDescriptor(socketDescriptor))
+        (new HttpServerRequest(parent, 0))->start(socket);
+      else
+        delete socket;
+    }
+  }
+
+private:
+  const QPointer<SSandboxServer> parent;
+};
+#else
 class SSandboxServer::Socket : public QTcpSocket
 {
 public:
@@ -73,6 +126,20 @@ public:
   {
   }
 
+  inline bool listen(void)
+  {
+    if (!QTcpServer::listen(QHostAddress::LocalHostIPv6))
+    if (!QTcpServer::listen(QHostAddress::LocalHost))
+      return false;
+
+    return true;
+  }
+
+  inline QString serverName(void) const
+  {
+    return "[" + serverAddress().toString() + "]:" + QString::number(serverPort());
+  }
+
 protected:
   virtual void incomingConnection(int socketDescriptor)
   {
@@ -89,6 +156,7 @@ protected:
 private:
   const QPointer<SSandboxServer> parent;
 };
+#endif
 
 SSandboxServer::SSandboxServer(QObject *parent)
   : SHttpServerEngine("Sandbox/1.0", parent),
@@ -111,19 +179,14 @@ bool SSandboxServer::initialize(const QString &mode)
   d->server = new Server(this);
 
   // First try IPv6, then IPv4
-  if (!d->server->listen(QHostAddress::LocalHostIPv6))
-  if (!d->server->listen(QHostAddress::LocalHost))
+  if (!d->server->listen())
   {
     qWarning() << "SSandboxServer Failed to bind localhost interface";
     return false;
   }
 
   if (d->mode != "local")
-  {
-    std::cerr << "##READY "
-        << d->server->serverAddress().toString().toAscii().data() << " "
-        << d->server->serverPort() << std::endl;
-  }
+    std::cerr << "##READY " << d->server->serverName().toAscii().data() << std::endl;
 
   // This is performed after initialization to prevent priority inversion with
   // the process that is waiting for this one to start.
@@ -164,14 +227,9 @@ void SSandboxServer::close(void)
     std::cerr << "##STOP" << std::endl;
 }
 
-QHostAddress SSandboxServer::address(void) const
+QString SSandboxServer::serverName(void) const
 {
-  return d->server->serverAddress();
-}
-
-quint16 SSandboxServer::port(void) const
-{
-  return d->server->serverPort();
+  return d->server->serverName();
 }
 
 } // End of namespace

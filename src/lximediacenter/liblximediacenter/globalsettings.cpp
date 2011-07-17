@@ -53,6 +53,11 @@ quint16 GlobalSettings::defaultBackendHttpPort(void)
   return 4280;
 }
 
+QString GlobalSettings::defaultDeviceName(void)
+{
+  return QHostInfo::localHostName() + ": " + qApp->applicationName();
+}
+
 QUuid GlobalSettings::serverUuid(void)
 {
   QString uuid = "00000000-0000-0000-0000-000000000000";
@@ -129,7 +134,6 @@ QString GlobalSettings::applicationDataDir(void)
   return dir;
 }
 
-#ifndef TRAYICON_ONLY
 QList<GlobalSettings::TranscodeSize> GlobalSettings::allTranscodeSizes(void)
 {
   QList<TranscodeSize> sizes;
@@ -189,7 +193,5 @@ QString GlobalSettings::defaultTranscodeMusicChannelName(void)
 {
   return "2.0 Stereo";
 }
-#endif
-
 
 } // End of namespace

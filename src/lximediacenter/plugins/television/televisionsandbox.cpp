@@ -50,7 +50,7 @@ void TelevisionSandbox::close(void)
   server->unregisterCallback(this);
 }
 
-SSandboxServer::SocketOp TelevisionSandbox::handleHttpRequest(const SSandboxServer::RequestMessage &request, QAbstractSocket *socket)
+SSandboxServer::SocketOp TelevisionSandbox::handleHttpRequest(const SSandboxServer::RequestMessage &request, QIODevice *socket)
 {
   const QUrl url(request.path());
 
@@ -107,7 +107,7 @@ SandboxInputStream::~SandboxInputStream()
 {
 }
 
-bool SandboxInputStream::setup(const SHttpServer::RequestMessage &request, QAbstractSocket *socket)
+bool SandboxInputStream::setup(const SHttpServer::RequestMessage &request, QIODevice *socket)
 {
   const bool result = MediaStream::setup(request, socket, STime(), SInterval::fromFrequency(15), SSize(352, 288), SAudioFormat::Channels_Stereo);
 

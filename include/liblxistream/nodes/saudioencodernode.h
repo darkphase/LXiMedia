@@ -23,13 +23,11 @@
 #include <QtCore>
 #include <LXiCore>
 #include "../sinterfaces.h"
-#include "../sgraph.h"
 #include "../export.h"
 
 namespace LXiStream {
 
-class LXISTREAM_PUBLIC SAudioEncoderNode : public QObject,
-                                           public SGraph::Node
+class LXISTREAM_PUBLIC SAudioEncoderNode : public SInterfaces::Node
 {
 Q_OBJECT
 public:
@@ -45,7 +43,7 @@ public:
   bool                          openCodec(const SAudioCodec &, Flags = SInterfaces::AudioEncoder::Flag_None);
   SAudioCodec                   codec(void) const;
 
-public: // From SGraph::Node
+public: // From SInterfaces::Node
   virtual bool                  start(void);
   virtual void                  stop(void);
 

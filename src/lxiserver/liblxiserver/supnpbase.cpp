@@ -78,7 +78,7 @@ void SUPnPBase::close(void)
   d->httpServer = NULL;
 }
 
-SHttpServer::SocketOp SUPnPBase::handleHttpRequest(const SHttpServer::RequestMessage &request, QAbstractSocket *socket)
+SHttpServer::SocketOp SUPnPBase::handleHttpRequest(const SHttpServer::RequestMessage &request, QIODevice *socket)
 {
   if ((request.path() == d->basePath + "control") && (request.method() == "POST"))
     return handleControl(request, socket);
@@ -93,7 +93,7 @@ void SUPnPBase::handleHttpOptions(SHttpServer::ResponseHeader &response)
   response.setField("Allow", response.field("Allow") + ",GET,HEAD,POST");
 }
 
-SHttpServer::SocketOp SUPnPBase::handleControl(const SHttpServer::RequestMessage &request, QAbstractSocket *socket)
+SHttpServer::SocketOp SUPnPBase::handleControl(const SHttpServer::RequestMessage &request, QIODevice *socket)
 {
   QTime timer;
   timer.start();
@@ -121,7 +121,6 @@ SHttpServer::SocketOp SUPnPBase::handleControl(const SHttpServer::RequestMessage
       response.setField("Cache-Control", "no-cache");
       response.setField("Accept-Ranges", "bytes");
       response.setField("Connection", "close");
-      response.setField("contentFeatures.dlna.org", "");
       socket->write(response);
       socket->write(content);
 
@@ -132,7 +131,7 @@ SHttpServer::SocketOp SUPnPBase::handleControl(const SHttpServer::RequestMessage
   return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);
 }
 
-SHttpServer::SocketOp SUPnPBase::handleDescription(const SHttpServer::RequestMessage &request, QAbstractSocket *socket)
+SHttpServer::SocketOp SUPnPBase::handleDescription(const SHttpServer::RequestMessage &request, QIODevice *socket)
 {
   QDomDocument doc;
   QDomElement scpdElm = doc.createElement("scpd");
@@ -150,7 +149,6 @@ SHttpServer::SocketOp SUPnPBase::handleDescription(const SHttpServer::RequestMes
   response.setField("Cache-Control", "no-cache");
   response.setField("Accept-Ranges", "bytes");
   response.setField("Connection", "close");
-  response.setField("contentFeatures.dlna.org", "");
   socket->write(response);
   socket->write(content);
 
@@ -170,22 +168,26 @@ SHttpServer * SUPnPBase::httpServer(void) const
 QString SUPnPBase::protocol(void)
 {
   return
-      "UPnP/" + QString::number(majorVersion) + "." + QString::number(minorVersion) +
-      " DLNADOC/1.00";
+      "DLNADOC/1.50 UPnP/" +
+      QString::number(majorVersion) + '.' + QString::number(minorVersion);
 }
 
-void SUPnPBase::addTextElm(QDomDocument &doc, QDomElement &elm, const QString &name, const QString &value)
+QDomElement SUPnPBase::addTextElm(QDomDocument &doc, QDomElement &elm, const QString &name, const QString &value)
 {
   QDomElement subElm = doc.createElement(name);
   subElm.appendChild(doc.createTextNode(value));
   elm.appendChild(subElm);
+
+  return subElm;
 }
 
-void SUPnPBase::addTextElmNS(QDomDocument &doc, QDomElement &elm, const QString &name, const QString &nsUri, const QString &value)
+QDomElement SUPnPBase::addTextElmNS(QDomDocument &doc, QDomElement &elm, const QString &name, const QString &nsUri, const QString &value)
 {
   QDomElement subElm = doc.createElementNS(nsUri, name);
   subElm.appendChild(doc.createTextNode(value));
   elm.appendChild(subElm);
+
+  return subElm;
 }
 
 void SUPnPBase::addSpecVersion(QDomDocument &doc, QDomElement &elm)
@@ -245,7 +247,7 @@ QDomElement SUPnPBase::makeSoapMessage(QDomDocument &doc, const QDomElement &nsE
 
   doc.appendChild(root);
 
-  QDomElement body = createElementNS(doc, nsElm, "Body");
+  QDomElement body = doc.createElement(nsElm.prefix() + ":" + "Body");
   root.appendChild(body);
 
   return body;
@@ -253,7 +255,7 @@ QDomElement SUPnPBase::makeSoapMessage(QDomDocument &doc, const QDomElement &nsE
 
 QByteArray SUPnPBase::serializeSoapMessage(const QDomDocument &doc)
 {
-  return xmlDeclaration + doc.toByteArray(-1);
+  return xmlDeclaration + doc.toByteArray(-1).replace("&amp;gt;", "&gt;"); // Crude hack for non-compliant XML parsers
 }
 
 QDomElement SUPnPBase::firstChildElementNS(const QDomElement &elm, const QString &nsURI, const QString &localName)
@@ -286,21 +288,28 @@ QString SUPnPBase::Protocol::toString(bool brief) const
 {
   QString result = protocol + ":" + network + ":" + contentFormat + ":";
   if (!brief)
-  {
-    if (!profile.isEmpty())
-      result += profile + ";";
-
-    result +=
-        "DLNA.ORG_PS=" + QString::number(playSpeed ? 1 : 0) + ";"
-        "DLNA.ORG_CI=" + QString::number(conversionIndicator ? 1 : 0) + ";"
-        "DLNA.ORG_OP=" + QString::number(operationsTimeSeek ? 1 : 0) +
-                         QString::number(operationsRange ? 1 : 0);
-
-    if (!flags.isEmpty())
-      result += ";DLNA.ORG_FLAGS=" + flags;
-  }
+    result += contentFeatures();
   else
     result += !profile.isEmpty() ? profile : "*";
+
+  return result;
+}
+
+QString SUPnPBase::Protocol::contentFeatures(void) const
+{
+  QString result;
+
+  if (!profile.isEmpty())
+    result += profile + ";";
+
+  result +=
+      "DLNA.ORG_PS=" + QString::number(playSpeed ? 1 : 0) + ";"
+      "DLNA.ORG_CI=" + QString::number(conversionIndicator ? 1 : 0) + ";"
+      "DLNA.ORG_OP=" + QString::number(operationsTimeSeek ? 1 : 0) +
+                       QString::number(operationsRange ? 1 : 0);
+
+  if (!flags.isEmpty())
+    result += ";DLNA.ORG_FLAGS=" + flags;
 
   return result;
 }

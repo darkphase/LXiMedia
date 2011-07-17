@@ -55,7 +55,12 @@ public:
   virtual int run(int &argc, char *argv[])
   {
     QCoreApplication app(argc, argv); configApp();
-    SApplication mediaApp(Backend::createLogDir());
+    SApplication mediaApp(Backend::createLogDir()
+#if !defined(DEBUG_USE_LOCAL_SANDBOX)
+                          , QStringList() << "lxistream" << "lxistreamgui"
+#endif
+                          );
+
 #if defined(Q_OS_WIN)
     mediaApp.installExcpetionHandler();
 #endif
@@ -124,7 +129,11 @@ int main(int argc, char *argv[])
   }
   else
   {
-    SApplication mediaApp(Backend::createLogDir());
+    SApplication mediaApp(Backend::createLogDir()
+#if !defined(DEBUG_USE_LOCAL_SANDBOX)
+                          , QStringList() << "lxistream" << "lxistreamgui"
+#endif
+                          );
 
     int exitCode = 0;
     do

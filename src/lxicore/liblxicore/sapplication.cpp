@@ -54,7 +54,7 @@ SApplication              * SApplication::self = NULL;
                             are written if this is an empty string.
     \param parent           The parent QObject.
  */
-SApplication::SApplication(const QString &logDir, QObject *parent)
+SApplication::SApplication(const QString &logDir, const QStringList &skipModules, QObject *parent)
   : QObject(parent),
     d(new Data())
 {
@@ -90,9 +90,16 @@ SApplication::SApplication(const QString &logDir, QObject *parent)
 
       bool load = false;
       foreach (const QString &filter, d->moduleFilter)
-      if (filterName.contains(filter, Qt::CaseInsensitive))
+      if (filterName.endsWith(filter, Qt::CaseInsensitive))
       {
         load = true;
+        break;
+      }
+
+      foreach (const QString &skip, skipModules)
+      if (filterName.endsWith(skip, Qt::CaseInsensitive))
+      {
+        load = false;
         break;
       }
 

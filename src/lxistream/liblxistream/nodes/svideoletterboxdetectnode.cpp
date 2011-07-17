@@ -31,8 +31,7 @@ struct SVideoLetterboxDetectNode::Data
 };
 
 SVideoLetterboxDetectNode::SVideoLetterboxDetectNode(SGraph *parent)
-  : QObject(parent),
-    SGraph::Node(parent),
+  : SInterfaces::Node(parent),
     d(new Data())
 {
   d->numFrames = 2;

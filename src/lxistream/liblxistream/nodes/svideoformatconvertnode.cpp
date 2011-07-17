@@ -31,8 +31,7 @@ struct SVideoFormatConvertNode::Data
 };
 
 SVideoFormatConvertNode::SVideoFormatConvertNode(SGraph *parent)
-  : QObject(parent),
-    SGraph::Node(parent),
+  : SInterfaces::Node(parent),
     d(new Data())
 {
   d->sourceFormat = SVideoFormat::Format_Invalid;

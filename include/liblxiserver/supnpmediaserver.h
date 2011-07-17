@@ -51,12 +51,14 @@ public:
   void                          initialize(SHttpServer *, SSsdpServer *);
   void                          close(void);
 
+  void                          setDeviceName(const QString &);
+
   void                          addIcon(const QString &url, unsigned width, unsigned height, unsigned depth);
 
   void                          registerService(const Service &);
 
 protected: // From SHttpServer::Callback
-  virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestMessage &, QAbstractSocket *);
+  virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestMessage &, QIODevice *);
   virtual void                  handleHttpOptions(SHttpServer::ResponseHeader &);
 
 public:

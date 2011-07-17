@@ -30,8 +30,7 @@ namespace LXiStreamDevice {
 /*! This is a generic video input node that can be used to obtain video data
     from a video device such as a webcam or video capture card.
  */
-class LXISTREAMDEVICE_PUBLIC SVideoInputNode : public QObject,
-                                               public SGraph::SourceNode
+class LXISTREAMDEVICE_PUBLIC SVideoInputNode : public ::LXiStream::SInterfaces::SourceNode
 {
 Q_OBJECT
 public:

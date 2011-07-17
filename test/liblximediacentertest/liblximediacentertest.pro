@@ -19,7 +19,8 @@ SOURCES += main.cpp \
     commontest.cpp
 
 # Run tests after link
-unix:QMAKE_POST_LINK = cd $${DESTDIR} && LD_LIBRARY_PATH=. && ./$${TARGET} -silent
+unix:QMAKE_LFLAGS += -Wl,-rpath -Wl,.
+unix:QMAKE_POST_LINK = cd $${DESTDIR} && ./$${TARGET} -silent
 win32:QMAKE_POST_LINK = $${DESTDIR}/$${TARGET} -silent
 
 # Windows specific

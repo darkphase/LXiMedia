@@ -117,6 +117,9 @@ public:
   void                          registerCallback(const QString &path, Callback *);
   void                          unregisterCallback(Callback *);
 
+  static QByteArray             toQueryID(const QByteArray &query);
+  static QByteArray             fromQueryID(const QByteArray &id);
+
 public slots:
   void                          modified(void);
 
@@ -139,8 +142,8 @@ private:
 
   _lxi_internal static QString  baseDir(const QString &);
   _lxi_internal static QString  parentDir(const QString &);
-  _lxi_internal QString         toObjectID(const QString &path);
-  _lxi_internal QString         fromObjectID(const QString &id);
+  _lxi_internal QByteArray      toObjectID(const QString &path);
+  _lxi_internal QString         fromObjectID(const QByteArray &id);
 
 public:
   static const char             contentDirectoryNS[];

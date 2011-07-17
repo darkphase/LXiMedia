@@ -22,7 +22,7 @@
 
 #include <QtCore>
 #include <LXiCore>
-#include "../sgraph.h"
+#include "../sinterfaces.h"
 #include "../ssize.h"
 #include "../svideobuffer.h"
 #include "../export.h"
@@ -31,8 +31,7 @@ namespace LXiStream {
 
 class SVideoBuffer;
 
-class LXISTREAM_PUBLIC SVideoBoxNode : public QObject,
-                                       public SGraph::Node
+class LXISTREAM_PUBLIC SVideoBoxNode : public SInterfaces::Node
 {
 Q_OBJECT
 public:
@@ -42,7 +41,7 @@ public:
   SSize                         size(void) const;
   void                          setSize(const SSize &s);
 
-public: // From SGraph::Node
+public: // From SInterfaces::Node
   virtual bool                  start(void);
   virtual void                  stop(void);
 

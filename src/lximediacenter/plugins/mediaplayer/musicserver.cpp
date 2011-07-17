@@ -54,21 +54,19 @@ QList<MusicServer::Item> MusicServer::listItems(const QString &path, unsigned st
   return items;
 }
 
-SHttpServer::SocketOp MusicServer::handleHttpRequest(const SHttpServer::RequestMessage &request, QAbstractSocket *socket)
+SHttpServer::SocketOp MusicServer::handleHttpRequest(const SHttpServer::RequestMessage &request, QIODevice *socket)
 {
   if ((request.method() == "GET") || (request.method() == "HEAD"))
   {
-    const QUrl url(request.path());
-    const QString file = request.file();
-
-    if (file.isEmpty())
+    const MediaServer::File file(request);
+    if (file.baseName().isEmpty())
     {
       SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
       response.setContentType("text/html;charset=utf-8");
       response.setField("Cache-Control", "no-cache");
 
       DetailedListItemList detailedItems;
-      foreach (const SUPnPContentDirectory::Item &item, PlaylistServer::listItems(basePath(url.path())))
+      foreach (const SUPnPContentDirectory::Item &item, PlaylistServer::listItems(basePath(file.url().path())))
       {
         if (item.isDir)
         {
@@ -123,7 +121,7 @@ SHttpServer::SocketOp MusicServer::handleHttpRequest(const SHttpServer::RequestM
       columns.append(qMakePair(tr("Artist"), true));
       columns.append(qMakePair(tr("Duration"), false));
 
-      return sendHtmlContent(request, socket, url, response, buildDetailedView(dirName(url.path()), columns, detailedItems));
+      return sendHtmlContent(request, socket, file.url(), response, buildDetailedView(dirName(file.url().path()), columns, detailedItems));
     }
   }
 

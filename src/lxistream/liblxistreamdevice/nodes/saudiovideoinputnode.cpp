@@ -63,8 +63,7 @@ struct SAudioVideoInputNode::Data
 };
 
 SAudioVideoInputNode::SAudioVideoInputNode(SGraph *parent, const QString &device)
-  : QObject(parent),
-    SGraph::SourceNode(parent),
+  : ::LXiStream::SInterfaces::SourceNode(parent),
     d(new Data())
 {
   d->device = device;

@@ -19,6 +19,7 @@
 
 #include "sgraph.h"
 #include "sbuffer.h"
+#include "sinterfaces.h"
 #include "stimer.h"
 
 namespace LXiStream {
@@ -26,9 +27,9 @@ namespace LXiStream {
 
 struct SGraph::Private
 {
-  QVector<Node *>               nodes;
-  QVector<SourceNode *>         sourceNodes;
-  QVector<SinkNode *>           sinkNodes;
+  QVector<SInterfaces::Node *> nodes;
+  QVector<SInterfaces::SourceNode *> sourceNodes;
+  QVector<SInterfaces::SinkNode *> sinkNodes;
 
   QThread                     * parentThread;
   STimer                        timer;
@@ -64,7 +65,13 @@ SGraph::~SGraph()
 
 bool SGraph::connect(const QObject *sender, const char *signal, const QObject *receiver, const char *member)
 {
-  return QThread::connect(sender, signal, receiver, member, Qt::QueuedConnection);
+  const bool queue =
+      (qobject_cast<const SInterfaces::SourceNode *>(sender) != NULL) ||
+      (qobject_cast<const SInterfaces::SinkNode *>(sender) != NULL) ||
+      (qobject_cast<const SInterfaces::SourceNode *>(receiver) != NULL) ||
+      (qobject_cast<const SInterfaces::SinkNode *>(receiver) != NULL);
+
+  return QThread::connect(sender, signal, receiver, member, queue ? Qt::QueuedConnection : Qt::DirectConnection);
 }
 
 bool SGraph::connect(const QObject *sender, const char *signal, const char *member) const
@@ -77,17 +84,17 @@ bool SGraph::isRunning(void) const
   return p->started;
 }
 
-void SGraph::addNode(Node *node)
+void SGraph::addNode(SInterfaces::Node *node)
 {
   p->nodes += node;
 }
 
-void SGraph::addNode(SourceNode *node)
+void SGraph::addNode(SInterfaces::SourceNode *node)
 {
   p->sourceNodes += node;
 }
 
-void SGraph::addNode(SinkNode *node)
+void SGraph::addNode(SInterfaces::SinkNode *node)
 {
   p->sinkNodes += node;
 }
@@ -100,53 +107,53 @@ bool SGraph::start(void)
     p->stopped = false;
     p->timer.reset();
 
-    QVector<SourceNode *> startedSources;
-    QVector<Node *> startedNodes;
-    QVector<SinkNode *> startedSinks;
+    QVector<SInterfaces::SourceNode *> startedSources;
+    QVector<SInterfaces::Node *> startedNodes;
+    QVector<SInterfaces::SinkNode *> startedSinks;
 
-    foreach (SourceNode *source, p->sourceNodes)
+    foreach (SInterfaces::SourceNode *source, p->sourceNodes)
     if (source->start())
     {
       startedSources += source;
     }
     else
     {
-      foreach (SourceNode *source, startedSources)
+      foreach (SInterfaces::SourceNode *source, startedSources)
         source->stop();
 
       return false;
     }
 
-    foreach (Node *node, p->nodes)
+    foreach (SInterfaces::Node *node, p->nodes)
     if (node->start())
     {
       startedNodes += node;
     }
     else
     {
-      foreach (SourceNode *source, startedSources)
+      foreach (SInterfaces::SourceNode *source, startedSources)
         source->stop();
 
-      foreach (Node *node, startedNodes)
+      foreach (SInterfaces::Node *node, startedNodes)
         node->stop();
 
       return false;
     }
 
-    foreach (SinkNode *sink, p->sinkNodes)
+    foreach (SInterfaces::SinkNode *sink, p->sinkNodes)
     if (sink->start(&(p->timer)))
     {
       startedSinks += sink;
     }
     else
     {
-      foreach (SourceNode *source, startedSources)
+      foreach (SInterfaces::SourceNode *source, startedSources)
         source->stop();
 
-      foreach (Node *node, startedNodes)
+      foreach (SInterfaces::Node *node, startedNodes)
         node->stop();
 
-      foreach (SinkNode *sink, startedSinks)
+      foreach (SInterfaces::SinkNode *sink, startedSinks)
         sink->stop();
 
       return false;
@@ -186,14 +193,14 @@ void SGraph::run(void)
 
   QThread::exec();
 
-  foreach (SourceNode *source, p->sourceNodes)
+  foreach (SInterfaces::SourceNode *source, p->sourceNodes)
     source->stop();
 
   for (int i=0; i<p->nodes.count(); i++)
-  foreach (Node *node, p->nodes)
+  foreach (SInterfaces::Node *node, p->nodes)
     node->stop();
 
-  foreach (SinkNode *sink, p->sinkNodes)
+  foreach (SInterfaces::SinkNode *sink, p->sinkNodes)
     sink->stop();
 
   p->stopped = true;
@@ -210,7 +217,7 @@ void SGraph::customEvent(QEvent *e)
   {
     if (!p->stopped && !p->stopping)
     {
-      foreach (SourceNode *source, p->sourceNodes)
+      foreach (SInterfaces::SourceNode *source, p->sourceNodes)
         source->process();
 
       QCoreApplication::postEvent(this, new QEvent(p->scheduleSourceEventType), INT_MIN + 1);
@@ -220,39 +227,6 @@ void SGraph::customEvent(QEvent *e)
     QThread::exit(0);
   else
     QThread::customEvent(e);
-}
-
-
-SGraph::Node::Node(SGraph *graph)
-{
-  if (graph)
-    graph->addNode(this);
-}
-
-SGraph::Node::~Node()
-{
-}
-
-
-SGraph::SinkNode::SinkNode(SGraph *graph)
-{
-  if (graph)
-    graph->addNode(this);
-}
-
-SGraph::SinkNode::~SinkNode()
-{
-}
-
-
-SGraph::SourceNode::SourceNode(SGraph *graph)
-{
-  if (graph)
-    graph->addNode(this);
-}
-
-SGraph::SourceNode::~SourceNode()
-{
 }
 
 } // End of namespace

@@ -19,54 +19,66 @@
 
 #include "shttpstreamproxy.h"
 #include "shttpengine.h"
+#if defined(Q_OS_UNIX)
+#include <sys/socket.h>
+#elif defined(Q_OS_WIN)
+#include <ws2tcpip.h>
+#endif
 
 namespace LXiServer {
 
 class SHttpStreamProxy::SetSourceEvent : public QEvent
 {
 public:
-  inline SetSourceEvent(QAbstractSocket *source)
+  inline SetSourceEvent(QIODevice *source)
     : QEvent(setSourceEventType), source(source)
   {
   }
 
 public:
-  QAbstractSocket * const source;
+  QIODevice * const source;
 };
 
 class SHttpStreamProxy::AddSocketEvent : public QEvent
 {
 public:
-  inline AddSocketEvent(QAbstractSocket *socket)
+  inline AddSocketEvent(QIODevice *socket)
     : QEvent(addSocketEventType), socket(socket)
   {
   }
 
 public:
-  QAbstractSocket * const socket;
+  QIODevice * const socket;
 };
 
 struct SHttpStreamProxy::Data
 {
   struct Socket
   {
-    QAbstractSocket           * socket;
-    bool                        sendCache;
-    bool                        firstData;
+    bool                        isConnected(void) const;
+
+    QIODevice                 * socket;
+    QAbstractSocket           * aSocket;
+    QLocalSocket              * lSocket;
+    qint64                      readPos;
   };
 
-  inline Data(void) : mutex(QMutex::Recursive) { }
+  inline Data(QObject *parent) : mutex(QMutex::NonRecursive), socketTimer(parent) { }
 
   QMutex                        mutex;
   QThread                     * mainThread;
-  QAbstractSocket             * source;
-  QTime                         sourceTimer;
+  QIODevice                   * source;
+  QAbstractSocket             * aSource;
+  QLocalSocket                * lSource;
   bool                          sourceFinished;
   QVector<Socket>               sockets;
   QTimer                        socketTimer;
 
   bool                          caching;
   QByteArray                    cache;
+  QTime                         cacheTimer;
+  static const int              cacheTimeout = 30000;
+  static const int              maxCacheSize = 134217728;
 };
 
 const QEvent::Type  SHttpStreamProxy::setSourceEventType = QEvent::Type(QEvent::registerEventType());
@@ -74,14 +86,16 @@ const QEvent::Type  SHttpStreamProxy::addSocketEventType = QEvent::Type(QEvent::
 const QEvent::Type  SHttpStreamProxy::disconnectEventType = QEvent::Type(QEvent::registerEventType());
 
 const int           SHttpStreamProxy::inBufferSize  = 262144;
-const int           SHttpStreamProxy::outBufferSize = 8388608;
+const int           SHttpStreamProxy::outBufferSize = 2097152;
 
 SHttpStreamProxy::SHttpStreamProxy(void)
   : QThread(),
-    d(new Data())
+    d(new Data(this))
 {
   d->mainThread = thread();
   d->source = NULL;
+  d->aSource = NULL;
+  d->lSource = NULL;
   d->sourceFinished = false;
   d->caching = true;
 
@@ -111,7 +125,7 @@ bool SHttpStreamProxy::isConnected(void) const
     return !d->sockets.isEmpty();
 }
 
-bool SHttpStreamProxy::setSource(QAbstractSocket *source)
+bool SHttpStreamProxy::setSource(QIODevice *source)
 {
   if (currentThread() != d->mainThread)
   {
@@ -130,11 +144,11 @@ bool SHttpStreamProxy::setSource(QAbstractSocket *source)
     return true;
   }
 
-  disconnectAllSockets();
+  qApp->postEvent(this, new QEvent(disconnectEventType));
   return false;
 }
 
-bool SHttpStreamProxy::addSocket(QAbstractSocket *socket)
+bool SHttpStreamProxy::addSocket(QIODevice *socket)
 {
   if (currentThread() != d->mainThread)
   {
@@ -144,7 +158,7 @@ bool SHttpStreamProxy::addSocket(QAbstractSocket *socket)
         "is invoked through a signal.";
   }
 
-  if (d->caching && ((d->source == NULL) || (qAbs(d->sourceTimer.elapsed()) < 10000)))
+  if (d->caching && ((d->source == NULL) || (qAbs(d->cacheTimer.elapsed()) < d->cacheTimeout)))
   {
     socket->setParent(NULL);
     socket->moveToThread(this);
@@ -158,7 +172,11 @@ bool SHttpStreamProxy::addSocket(QAbstractSocket *socket)
 
 void SHttpStreamProxy::run(void)
 {
+  d->cache.reserve(d->maxCacheSize);
+
   QThread::exec();
+
+  moveToThread(qApp->thread());
 }
 
 void SHttpStreamProxy::customEvent(QEvent *e)
@@ -170,11 +188,16 @@ void SHttpStreamProxy::customEvent(QEvent *e)
     const SetSourceEvent * const event = static_cast<const SetSourceEvent *>(e);
 
     d->source = event->source;
-    d->source->setReadBufferSize(inBufferSize * 2);
+    d->aSource = qobject_cast<QAbstractSocket *>(d->source);
+    d->lSource = qobject_cast<QLocalSocket *>(d->source);
+
+    if (d->aSource) d->aSource->setReadBufferSize(inBufferSize);
+    if (d->lSource) d->lSource->setReadBufferSize(inBufferSize);
+
     connect(d->source, SIGNAL(readyRead()), SLOT(processData()));
     connect(d->source, SIGNAL(disconnected()), SLOT(flushData()));
 
-    d->sourceTimer.start();
+    d->cacheTimer.start();
     d->socketTimer.start(250);
   }
   else if (e->type() == addSocketEventType)
@@ -183,11 +206,26 @@ void SHttpStreamProxy::customEvent(QEvent *e)
 
     Data::Socket s;
     s.socket = event->socket;
-    s.sendCache = true;
-    s.firstData = true;
+    s.aSocket = qobject_cast<QAbstractSocket *>(s.socket);
+    s.lSocket = qobject_cast<QLocalSocket *>(s.socket);
+    s.readPos = 0;
 
-    d->sockets += s;
+#if (defined(Q_OS_UNIX) || defined(Q_OS_WIN))
+    if (s.aSocket)
+    {
+      const int optval = outBufferSize / 2;
+      ::setsockopt(
+            s.aSocket->socketDescriptor(), SOL_SOCKET, SO_SNDBUF,
+            reinterpret_cast<const char *>(&optval), sizeof(optval));
+    }
+#endif
+
     connect(s.socket, SIGNAL(bytesWritten(qint64)), SLOT(processData()));
+
+    d->cacheTimer.start();
+
+    //qDebug() << "SHttpStreamProxy: Connected socket" << s.socket;
+    d->sockets += s;
   }
   else if (e->type() == disconnectEventType)
   {
@@ -199,17 +237,20 @@ void SHttpStreamProxy::customEvent(QEvent *e)
 
 void SHttpStreamProxy::disconnectAllSockets(void)
 {
-  QMutexLocker l(&d->mutex);
-
   if (d->source)
   {
     disconnect(d->source, SIGNAL(readyRead()), this, SLOT(processData()));
     disconnect(d->source, SIGNAL(disconnected()), this, SLOT(flushData()));
 
-    if (d->source->state() != QAbstractSocket::UnconnectedState)
+    if (d->aSource && (d->aSource->state() != QAbstractSocket::UnconnectedState))
     {
-      connect(d->source, SIGNAL(disconnected()), d->source, SLOT(deleteLater()));
-      d->source->disconnectFromHost();
+      connect(d->aSource, SIGNAL(disconnected()), d->aSource, SLOT(deleteLater()));
+      d->aSource->disconnectFromHost();
+    }
+    else if (d->lSource && (d->lSource->state() != QLocalSocket::UnconnectedState))
+    {
+      connect(d->lSource, SIGNAL(disconnected()), d->lSource, SLOT(deleteLater()));
+      d->lSource->disconnectFromServer();
     }
     else
       d->source->deleteLater();
@@ -217,17 +258,25 @@ void SHttpStreamProxy::disconnectAllSockets(void)
     d->source->moveToThread(qApp->thread());
 
     d->source = NULL;
+    d->sourceFinished = true;
+    d->socketTimer.stop();
 
     emit disconnected();
   }
 
   for (QVector<Data::Socket>::Iterator s=d->sockets.begin(); s!=d->sockets.end(); s=d->sockets.erase(s))
   {
-    if (s->socket->state() != QAbstractSocket::UnconnectedState)
+    if (s->aSocket && (s->aSocket->state() != QAbstractSocket::UnconnectedState))
     {
-      disconnect(s->socket, SIGNAL(bytesWritten(qint64)), this, SLOT(processData()));
-      connect(s->socket, SIGNAL(disconnected()), s->socket, SLOT(deleteLater()));
-      s->socket->disconnectFromHost();
+      disconnect(s->aSocket, SIGNAL(bytesWritten(qint64)), this, SLOT(processData()));
+      connect(s->aSocket, SIGNAL(disconnected()), s->aSocket, SLOT(deleteLater()));
+      s->aSocket->disconnectFromHost();
+    }
+    else if (s->lSocket && (s->lSocket->state() != QLocalSocket::UnconnectedState))
+    {
+      disconnect(s->lSocket, SIGNAL(bytesWritten(qint64)), this, SLOT(processData()));
+      connect(s->lSocket, SIGNAL(disconnected()), s->lSocket, SLOT(deleteLater()));
+      s->lSocket->disconnectFromServer();
     }
     else
       s->socket->deleteLater();
@@ -248,44 +297,25 @@ void SHttpStreamProxy::processData(void)
   {
     while (d->source->bytesAvailable() > 0)
     {
-      for (QVector<Data::Socket>::Iterator s=d->sockets.begin(); s!=d->sockets.end(); s++)
-      if (s->socket->state() == QAbstractSocket::ConnectedState)
-      if (s->socket->bytesToWrite() >= outBufferSize)
-        return; // Blocked, wait a bit.
-
-      const QByteArray buffer = d->source->read(inBufferSize);
-
-      if (d->caching)
-      {
-        for (QVector<Data::Socket>::Iterator s=d->sockets.begin(); s!=d->sockets.end(); s++)
-        if (s->sendCache && (s->socket->state() == QAbstractSocket::ConnectedState))
-        {
-          //qDebug() << "Reuse" << d->cache.size();
-          s->socket->write(d->cache);
-          s->sendCache = false;
-        }
-
-        if ((d->cache.size() + buffer.size()) < (outBufferSize * 2))
-        {
-          d->cache.append(buffer);
-        }
-        else
-        {
-          d->cache.clear();
-          d->caching = false;
-        }
-      }
-
+      qint64 minBuf = outBufferSize, maxBuf = 0;
       for (QVector<Data::Socket>::Iterator s=d->sockets.begin(); s!=d->sockets.end(); )
-      if (s->socket->state() == QAbstractSocket::ConnectedState)
+      if (s->isConnected())
       {
-        if (!s->sendCache)
-          s->socket->write(buffer);
-
-        if (s->firstData)
+        if (s->readPos >= d->cache.size())
         {
-          s->socket->flush();
-          s->firstData = false;
+          const qint64 bw = s->socket->bytesToWrite();
+          minBuf = qMin(minBuf, bw);
+          maxBuf = qMax(maxBuf, bw);
+        }
+        else if (s->socket->bytesToWrite() <= (outBufferSize - inBufferSize))
+        {
+          //qDebug() << "SHttpStreamProxy: Cached" << s->socket << s->readPos << d->cache.size();
+
+          const QByteArray chunk = d->cache.mid(s->readPos, inBufferSize);
+          if (s->socket->write(chunk) == chunk.size())
+            s->readPos += chunk.size();
+          else
+            qDebug() << "SHttpStreamProxy: Error writing data to socket" << s->socket;
         }
 
         s++;
@@ -296,12 +326,67 @@ void SHttpStreamProxy::processData(void)
         s->socket->moveToThread(qApp->thread());
         s = d->sockets.erase(s);
       }
+
+      if (minBuf <= (outBufferSize - inBufferSize))
+      {
+        const QByteArray buffer = d->source->read(inBufferSize);
+
+        for (QVector<Data::Socket>::Iterator s=d->sockets.begin(); s!=d->sockets.end(); s++)
+        if (s->isConnected())
+        {
+          if (s->readPos >= d->cache.size())
+          {
+            if (s->socket->bytesToWrite() <= (outBufferSize * 2))
+            {
+              if (s->socket->write(buffer) == buffer.size())
+                s->readPos += buffer.size();
+              else
+                qDebug() << "SHttpStreamProxy: Error writing data to socket" << s->socket;
+
+              //qDebug() << "SHttpStreamProxy: Direct" << s->socket << s->readPos << (d->cache.size() + buffer.size());
+            }
+            else if (!d->caching)
+            {
+              //qDebug() << "SHttpStreamProxy: Disconnecting stalled socket" << s->socket;
+              if (s->aSocket) s->aSocket->disconnectFromHost();
+              if (s->lSocket) s->lSocket->disconnectFromServer();
+            }
+          }
+        }
+
+        if (d->caching)
+        {
+          if ((qAbs(d->cacheTimer.elapsed()) < d->cacheTimeout) &&
+              ((d->cache.size() + buffer.size()) <= d->maxCacheSize))
+          {
+            d->cache.append(buffer);
+            //qDebug() << "SHttpStreamProxy: Append cache" << d->cache.size() << buffer.size();
+          }
+          else
+          {
+            //qDebug() << "SHttpStreamProxy: Flushed reconnect cache" << d->cache.size();
+            d->cache.clear();
+            d->caching = false;
+          }
+        }
+      }
+      else
+      {
+        if (d->caching && (qAbs(d->cacheTimer.elapsed()) >= d->cacheTimeout))
+        {
+          //qDebug() << "SHttpStreamProxy: Flushed reconnect cache" << d->cache.size();
+          d->cache.clear();
+          d->caching = false;
+        }
+
+        break;
+      }
     }
   }
   else // No souce, flush data.
   {
     for (QVector<Data::Socket>::Iterator s=d->sockets.begin(); s!=d->sockets.end(); )
-    if (s->socket->state() != QAbstractSocket::ConnectedState)
+    if (!s->isConnected())
     {
       s->socket->deleteLater();
       s->socket->moveToThread(qApp->thread());
@@ -311,7 +396,10 @@ void SHttpStreamProxy::processData(void)
     {
       disconnect(s->socket, SIGNAL(bytesWritten(qint64)), this, SLOT(processData()));
       connect(s->socket, SIGNAL(disconnected()), s->socket, SLOT(deleteLater()));
-      s->socket->disconnectFromHost();
+
+      if (s->aSocket) s->aSocket->disconnectFromHost();
+      if (s->lSocket) s->lSocket->disconnectFromServer();
+
       s->socket->moveToThread(qApp->thread());
       s = d->sockets.erase(s);
     }
@@ -329,19 +417,17 @@ void SHttpStreamProxy::flushData(void)
 
   if (d->source && !d->sourceFinished)
   {
-    while (d->source->bytesAvailable() > 0)
+    while ((d->source->bytesAvailable() > 0) && !d->sockets.isEmpty())
     {
       const QByteArray buffer = d->source->read(inBufferSize);
 
       for (QVector<Data::Socket>::Iterator s=d->sockets.begin(); s!=d->sockets.end(); )
-      if (s->socket->state() == QAbstractSocket::ConnectedState)
+      if (s->isConnected() && (s->socket->bytesToWrite() <= (outBufferSize * 2)))
       {
-        if (!s->sendCache)
-        for (qint64 i=0; i<buffer.size(); )
+        if (s->readPos >= d->cache.size())
         {
-          const qint64 r = s->socket->write(buffer.data() + i, buffer.size() - i);
-          if (r > 0)
-            i += r;
+          if (s->socket->write(buffer) == buffer.size())
+            s->readPos += buffer.size();
           else
             break;
         }
@@ -362,6 +448,17 @@ void SHttpStreamProxy::flushData(void)
     if (d->sockets.isEmpty())
       disconnectAllSockets();
   }
+}
+
+
+bool SHttpStreamProxy::Data::Socket::isConnected(void) const
+{
+  if (aSocket)
+    return aSocket->state() == QAbstractSocket::ConnectedState;
+  else if (lSocket)
+    return lSocket->state() == QLocalSocket::ConnectedState;
+  else
+    return true;
 }
 
 } // End of namespace

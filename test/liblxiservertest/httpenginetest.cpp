@@ -115,7 +115,7 @@ bool HttpEngineTest::startServer(const QHostAddress &address)
     {
     }
 
-    virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestMessage &request, QAbstractSocket *socket)
+    virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestMessage &request, QIODevice *socket)
     {
       if ((request.method() == "GET") || (request.method() == "HEAD"))
       {

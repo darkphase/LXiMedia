@@ -35,17 +35,13 @@ TvShowServer::~TvShowServer()
 
 TvShowServer::Stream * TvShowServer::streamVideo(const SHttpServer::RequestMessage &request)
 {
-  const QStringList file = request.file().split('.');
-  if (file.first() == "playlist")
+  const MediaServer::File file(request);
+  if (file.baseName() == "playlist")
   {
-    QUrl url(request.path());
-    if (url.hasQueryItem("query"))
-      url = url.toEncoded(QUrl::RemoveQuery) + QByteArray::fromHex(url.queryItemValue("query").toAscii());
-
     SSandboxClient::Priority priority = SSandboxClient::Priority_Normal;
-    if (url.queryItemValue("priority") == "low")
+    if (file.url().queryItemValue("priority") == "low")
       priority = SSandboxClient::Priority_Low;
-    else if (url.queryItemValue("priority") == "high")
+    else if (file.url().queryItemValue("priority") == "high")
       priority = SSandboxClient::Priority_High;
 
     SSandboxClient * const sandbox = masterServer->createSandbox(priority);
@@ -87,7 +83,7 @@ TvShowServer::Stream * TvShowServer::streamVideo(const SHttpServer::RequestMessa
         rurl.setPath(MediaPlayerSandbox::path);
         rurl.addQueryItem("playlist", QString::null);
         typedef QPair<QString, QString> QStringPair;
-        foreach (const QStringPair &queryItem, url.queryItems())
+        foreach (const QStringPair &queryItem, file.url().queryItems())
           rurl.addQueryItem(queryItem.first, queryItem.second);
 
         QByteArray content;
@@ -127,7 +123,7 @@ int TvShowServer::countItems(const QString &path)
 
       const QMap<unsigned, QVector<MediaDatabase::UniqueID> >::ConstIterator s = seasons.find(season);
       if (s != seasons.end())
-        return s->count() + 1;
+        return s->count();
       else
         return 0;
     }

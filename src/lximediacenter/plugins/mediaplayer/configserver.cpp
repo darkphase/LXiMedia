@@ -77,14 +77,12 @@ QString ConfigServer::serverIconPath(void) const
   return "/img/control.png";
 }
 
-SHttpServer::SocketOp ConfigServer::handleHttpRequest(const SHttpServer::RequestMessage &request, QAbstractSocket *socket)
+SHttpServer::SocketOp ConfigServer::handleHttpRequest(const SHttpServer::RequestMessage &request, QIODevice *socket)
 {
   if ((request.method() == "GET") || (request.method() == "HEAD"))
   {
-    const QUrl url(request.path());
-    const QString file = request.file();
-
-    if (file.isEmpty() || file.endsWith(".html"))
+    const MediaServer::File file(request);
+    if (file.baseName().isEmpty() || (file.suffix() == "html"))
       return handleHtmlRequest(request, socket, file);
   }
 

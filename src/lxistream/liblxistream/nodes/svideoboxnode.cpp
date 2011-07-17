@@ -45,8 +45,7 @@ struct SVideoBoxNode::Data
 };
 
 SVideoBoxNode::SVideoBoxNode(SGraph *parent)
-  : QObject(parent),
-    SGraph::Node(parent),
+  : SInterfaces::Node(parent),
     d(new Data())
 {
   d->destSize = SSize(768, 576);

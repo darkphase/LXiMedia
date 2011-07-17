@@ -84,8 +84,7 @@ QByteArray SSubtitleRenderNode::Data::fontData;
 QMap<int, QVector<const SSubtitleRenderNode::Char *> > SSubtitleRenderNode::Data::characters;
 
 SSubtitleRenderNode::SSubtitleRenderNode(SGraph *parent)
-  : QObject(parent),
-    SGraph::Node(parent),
+  : SInterfaces::Node(parent),
     d(new Data())
 {
   if (d->instances++ <= 0)

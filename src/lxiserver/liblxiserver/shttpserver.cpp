@@ -79,8 +79,7 @@ protected:
 #ifdef Q_OS_WIN
         // This is needed to ensure the socket isn't kept open by any child
         // processes.
-        HANDLE handle = (HANDLE)socket->socketDescriptor();
-        ::SetHandleInformation(handle, HANDLE_FLAG_INHERIT, 0);
+        ::SetHandleInformation((HANDLE)socket->socketDescriptor(), HANDLE_FLAG_INHERIT, 0);
 #endif
         (new HttpServerRequest(parent, serverPort()))->start(socket);
       }

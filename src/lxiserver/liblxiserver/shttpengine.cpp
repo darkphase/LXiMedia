@@ -22,13 +22,11 @@
 #include <QtNetwork>
 #if defined(Q_OS_UNIX)
 #include <sys/utsname.h>
-#elif defined(Q_OS_WIN)
-#include <windows.h>
 #endif
 
 namespace LXiServer {
 
-const char  SHttpEngine::httpVersion[]       = "HTTP/1.0";
+const char  SHttpEngine::httpVersion[]       = "HTTP/1.1";
 const int   SHttpEngine::maxTTL              = 300000;
 const char  SHttpEngine::fieldConnection[]   = "Connection";
 const char  SHttpEngine::fieldContentLength[]= "Content-Length";
@@ -81,7 +79,7 @@ const char * SHttpEngine::toMimeType(const QString &fileName)
   else if (ext == "mpeg")   return "video/mpeg";
   else if (ext == "mpg")    return "video/mpeg";
   else if (ext == "mp4")    return "video/mpeg";
-  else if (ext == "ts")     return "video/MP2T";
+  else if (ext == "ts")     return "video/mpeg";
   else if (ext == "ogg")    return "video/ogg";
   else if (ext == "ogv")    return "video/ogg";
   else if (ext == "ogx")    return "video/ogg";
@@ -129,6 +127,23 @@ bool SHttpEngine::splitHost(const QString &host, QString &hostname, quint16 &por
   }
 
   return result;
+}
+
+void SHttpEngine::closeSocket(QIODevice *socket)
+{
+  if (socket)
+  {
+    QObject::connect(socket, SIGNAL(disconnected()), socket, SLOT(deleteLater()));
+    QTimer::singleShot(30000, socket, SLOT(deleteLater()));
+
+    QAbstractSocket * const aSocket = qobject_cast<QAbstractSocket *>(socket);
+    if (aSocket)
+      aSocket->disconnectFromHost();
+
+    QLocalSocket * const lSocket = qobject_cast<QLocalSocket *>(socket);
+    if (lSocket)
+      lSocket->disconnectFromServer();
+  }
 }
 
 
@@ -195,7 +210,7 @@ const QString & SHttpServerEngine::senderId(void) const
 /*! Sends a formatted response to the client. If this is an error response, a
     debug message is logged.
  */
-SHttpServerEngine::SocketOp SHttpServerEngine::sendResponse(const RequestHeader &request, QAbstractSocket *socket, Status status, const QByteArray &content, const QObject *object)
+SHttpServerEngine::SocketOp SHttpServerEngine::sendResponse(const RequestHeader &request, QIODevice *socket, Status status, const QByteArray &content, const QObject *object)
 {
   if (status >= 400)
   {
@@ -216,14 +231,14 @@ SHttpServerEngine::SocketOp SHttpServerEngine::sendResponse(const RequestHeader 
 
 /*! Overload provided for convenience.
  */
-SHttpServerEngine::SocketOp SHttpServerEngine::sendResponse(const RequestHeader &request, QAbstractSocket *socket, Status status, const QObject *object)
+SHttpServerEngine::SocketOp SHttpServerEngine::sendResponse(const RequestHeader &request, QIODevice *socket, Status status, const QObject *object)
 {
   return sendResponse(request, socket, status, QByteArray(), object);
 }
 
 /*! This sends a redirect to the client.
  */
-SHttpServerEngine::SocketOp SHttpServerEngine::sendRedirect(const RequestHeader &request, QAbstractSocket *socket, const QString &newUrl)
+SHttpServerEngine::SocketOp SHttpServerEngine::sendRedirect(const RequestHeader &request, QIODevice *socket, const QString &newUrl)
 {
   SHttpEngine::ResponseHeader response(request, SHttpEngine::Status_TemporaryRedirect);
   response.setField("LOCATION", newUrl);
@@ -231,7 +246,7 @@ SHttpServerEngine::SocketOp SHttpServerEngine::sendRedirect(const RequestHeader 
   return SocketOp_Close;
 }
 
-void SHttpServerEngine::handleHttpRequest(const SHttpEngine::RequestMessage &request, QAbstractSocket *socket)
+void SHttpServerEngine::handleHttpRequest(const SHttpEngine::RequestMessage &request, QIODevice *socket)
 {
   if (request.method() == "OPTIONS")
   {
@@ -281,37 +296,15 @@ void SHttpServerEngine::handleHttpRequest(const SHttpEngine::RequestMessage &req
       socket->write(ResponseHeader(request, Status_NotFound));
   }
 
-  if (socket)
-  {
-    connect(socket, SIGNAL(disconnected()), socket, SLOT(deleteLater()));
-    QTimer::singleShot(30000, socket, SLOT(deleteLater()));
-    socket->disconnectFromHost();
-  }
+  closeSocket(socket);
 }
 
 
+const QEvent::Type  SHttpClientEngine::socketCreatedEventType = QEvent::Type(QEvent::registerEventType());
 const QEvent::Type  SHttpClientEngine::socketDestroyedEventType = QEvent::Type(QEvent::registerEventType());
 
 struct SHttpClientEngine::Data
 {
-  class Socket : public QTcpSocket
-  {
-  public:
-    Socket(SHttpClientEngine *parent)
-      : QTcpSocket(parent), parent(parent)
-    {
-    }
-
-    virtual ~Socket()
-    {
-      if (parent)
-        qApp->postEvent(parent, new QEvent(socketDestroyedEventType));
-    }
-
-  private:
-    const QPointer<SHttpClientEngine> parent;
-  };
-
   QString                       senderId;
 
   int                           maxOpenSockets;
@@ -359,12 +352,14 @@ void SHttpClientEngine::sendRequest(const SHttpEngine::RequestMessage &request)
   HttpClientRequest * const clientRequest = new HttpClientRequest(this);
 
   connect(clientRequest, SIGNAL(response(SHttpEngine::ResponseMessage)), SLOT(handleResponse(SHttpEngine::ResponseMessage)));
-  openRequest(request, clientRequest, SLOT(start(QAbstractSocket *)));
+  openRequest(request, clientRequest, SLOT(start(QIODevice *)));
 }
 
 void SHttpClientEngine::customEvent(QEvent *e)
 {
-  if (e->type() == socketDestroyedEventType)
+  if (e->type() == socketCreatedEventType)
+    socketCreated();
+  else if (e->type() == socketDestroyedEventType)
     socketDestroyed();
   else
     QObject::customEvent(e);
@@ -375,20 +370,9 @@ int SHttpClientEngine::socketsAvailable(void) const
   return d->maxOpenSockets - d->openSockets;
 }
 
-QAbstractSocket * SHttpClientEngine::createSocket(void)
+void SHttpClientEngine::socketCreated(void)
 {
   d->openSockets++;
-
-  QAbstractSocket * const socket = new Data::Socket(this);
-
-#ifdef Q_OS_WIN
-  // This is needed to ensure the socket isn't kept open by any child
-  // processes.
-  HANDLE handle = (HANDLE)socket->socketDescriptor();
-  ::SetHandleInformation(handle, HANDLE_FLAG_INHERIT, 0);
-#endif
-
-  return socket;
 }
 
 void SHttpClientEngine::socketDestroyed(void)

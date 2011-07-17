@@ -17,56 +17,40 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef TELEVISIONSANDBOX_H
-#define TELEVISIONSANDBOX_H
+#include "svideoview.h"
 
-#include <LXiMediaCenter>
-#include <LXiStreamDevice>
+namespace LXiStreamGui {
 
-namespace LXiMediaCenter {
-namespace TelevisionBackend {
+using namespace LXiStream;
 
-class TelevisionSandbox : public BackendSandbox
+SVideoViewSink * SVideoView::createSink(SGraph *graph)
 {
-Q_OBJECT
-public:
-  explicit                      TelevisionSandbox(const QString &, QObject *parent = NULL);
+  return new SVideoViewSink(graph, this);
+}
 
-  virtual void                  initialize(SSandboxServer *);
-  virtual void                  close(void);
-
-public: // From SSandboxServer::Callback
-  virtual SSandboxServer::SocketOp handleHttpRequest(const SSandboxServer::RequestMessage &, QIODevice *);
-  virtual void                  handleHttpOptions(SHttpServer::ResponseHeader &);
-
-private slots:
-  void                          cleanStreams(void);
-
-public:
-  static const char     * const path;
-
-private:
-  static const QEvent::Type     probeResponseEventType;
-
-  SSandboxServer              * server;
-  QList<MediaStream *>          streams;
-  QTimer                        cleanStreamsTimer;
-};
-
-class SandboxInputStream : public MediaStream
+SVideoViewSink::SVideoViewSink(SGraph *graph, SVideoView *parent)
+  : SInterfaces::SinkNode(graph),
+    parent(parent)
 {
-Q_OBJECT
-public:
-  explicit                      SandboxInputStream(const QString &device);
-  virtual                       ~SandboxInputStream();
+}
 
-  bool                          setup(const SHttpServer::RequestMessage &, QIODevice *);
+SVideoViewSink::~SVideoViewSink()
+{
+}
 
-public:
-  SAudioVideoInputNode          input;
-};
+bool SVideoViewSink::start(STimer *timer)
+{
+  return parent->start(timer);
+}
 
+void SVideoViewSink::stop(void)
+{
+  parent->stop();
+}
 
-} } // End of namespaces
+void SVideoViewSink::input(const SVideoBuffer &videoBuffer)
+{
+  parent->input(videoBuffer);
+}
 
-#endif
+} // End of namespace

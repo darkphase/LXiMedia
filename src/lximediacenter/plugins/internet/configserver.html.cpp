@@ -116,7 +116,7 @@ const char * const ConfigServer::htmlEditIndex =
     "</body>\n"
     "</html>\n";
 
-SHttpServer::SocketOp ConfigServer::handleHtmlRequest(const SHttpServer::RequestMessage &request, QAbstractSocket *socket, const QString &file)
+SHttpServer::SocketOp ConfigServer::handleHtmlRequest(const SHttpServer::RequestMessage &request, QIODevice *socket, const QString &file)
 {
   SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
   response.setContentType("text/html;charset=utf-8");

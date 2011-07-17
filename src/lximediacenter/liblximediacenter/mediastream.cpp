@@ -19,6 +19,7 @@
 
 #include "mediastream.h"
 #include <LXiStreamGui>
+#include "mediaserver.h"
 
 namespace LXiMediaCenter {
 
@@ -40,7 +41,7 @@ MediaStream::~MediaStream()
 }
 
 bool MediaStream::setup(const SHttpServer::RequestMessage &request,
-                        QAbstractSocket *socket,
+                        QIODevice *socket,
                         STime duration,
                         SInterval frameRate,
                         SSize size,
@@ -48,6 +49,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
                         SInterfaces::AudioEncoder::Flags audioEncodeFlags,
                         SInterfaces::VideoEncoder::Flags videoEncodeFlags)
 {
+  delete audio;
   audio = new Audio(this);
   connect(&audio->matrix, SIGNAL(output(SAudioBuffer)), &audio->resampler, SLOT(input(SAudioBuffer)));
   connect(&audio->resampler, SIGNAL(output(SAudioBuffer)), &sync, SLOT(input(SAudioBuffer)));
@@ -55,6 +57,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
   connect(&sync, SIGNAL(compensateAudio(float)), &audio->resampler, SLOT(compensate(float)));
   connect(&audio->encoder, SIGNAL(output(SEncodedAudioBuffer)), &output, SLOT(input(SEncodedAudioBuffer)));
 
+  delete video;
   video = new Video(this);
   connect(&video->deinterlacer, SIGNAL(output(SVideoBuffer)), &video->subpictureRenderer, SLOT(input(SVideoBuffer)));
   connect(&video->subpictureRenderer, SIGNAL(output(SVideoBuffer)), &video->letterboxDetectNode, SLOT(input(SVideoBuffer)));
@@ -65,21 +68,15 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
   connect(&sync, SIGNAL(output(SVideoBuffer)), &video->encoder, SLOT(input(SVideoBuffer)));
   connect(&video->encoder, SIGNAL(output(SEncodedVideoBuffer)), &output, SLOT(input(SEncodedVideoBuffer)));
 
-  QUrl url(request.path());
-  if (url.hasQueryItem("query"))
-    url = url.toEncoded(QUrl::RemoveQuery) + QByteArray::fromHex(url.queryItemValue("query").toAscii());
-
-  QStringList file = request.file().split('.');
-  if (file.count() <= 1)
-    file += "mpeg"; // Default to mpeg file
+  const MediaServer::File file(request);
 
   // Set stream properties
   sync.setFrameRate(frameRate);
 
   Qt::AspectRatioMode aspectRatioMode = Qt::KeepAspectRatio;
-  if (url.hasQueryItem("size"))
+  if (file.url().hasQueryItem("resolution"))
   {
-    const QStringList formatTxt = url.queryItemValue("size").split(',');
+    const QStringList formatTxt = file.url().queryItemValue("resolution").split(',');
 
     const QStringList sizeTxt = formatTxt.first().split('x');
     if (sizeTxt.count() >= 2)
@@ -102,11 +99,11 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
   }
 
   SAudioFormat::Channels outChannels = inChannels;
-  if (url.hasQueryItem("channels"))
+  if (file.url().hasQueryItem("channels"))
   {
-    const QStringList cl = url.queryItemValue("channels").split(',');
+    const QStringList cl = file.url().queryItemValue("channels").split(',');
 
-    if ((url.queryItemValue("music") == "true") && (cl.count() >= 2))
+    if ((file.url().queryItemValue("music") == "true") && (cl.count() >= 2))
     {
       outChannels = SAudioFormat::Channels(cl[1].toUInt(NULL, 16));
     }
@@ -121,7 +118,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
     }
   }
 
-  if (url.queryItemValue("encode") == "fast")
+  if (file.url().queryItemValue("encode") == "fast")
   {
     audioEncodeFlags |= SInterfaces::AudioEncoder::Flag_Fast;
     videoEncodeFlags |= SInterfaces::VideoEncoder::Flag_Fast;
@@ -134,8 +131,11 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
 
   SHttpServer::ResponseHeader header(request, SHttpServer::Status_Ok);
   header.setField("Cache-Control", "no-cache");
+  header.setField("transferMode.dlna.org", "Streaming");
+  if (file.url().hasQueryItem("contentFeatures"))
+    header.setField("contentFeatures.dlna.org", QByteArray::fromHex(file.url().queryItemValue("contentFeatures").toAscii()));
 
-  if ((file.last().toLower() == "mpeg") || (file.last().toLower() == "mpg") || (file.last().toLower() == "ts"))
+  if ((file.suffix() == "mpeg") || (file.suffix() == "mpg") || (file.suffix() == "ts"))
   {
     if ((outChannels == SAudioFormat::Channels_Mono) || (outChannels == SAudioFormat::Channels_Stereo))
     {
@@ -160,7 +160,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
     if (!video->encoder.openCodec(SVideoCodec("MPEG1", size, frameRate), videoEncodeFlags))
       return false;
 
-    if (file.last().toLower() != "ts")
+    if (file.suffix() != "ts")
     { // Program stream
       output.openFormat("vob", audio->encoder.codec(), video->encoder.codec(), duration);
       header.setContentType("video/mpeg");
@@ -168,10 +168,10 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
     else
     { // Transport stream
       output.openFormat("mpegts", audio->encoder.codec(), video->encoder.codec(), duration);
-      header.setContentType("video/MP2T");
+      header.setContentType("video/mpeg");
     }
   }
-  else if ((file.last().toLower() == "ogg") || (file.last().toLower() == "ogv"))
+  else if ((file.suffix() == "ogg") || (file.suffix() == "ogv"))
   {
     SAudioCodec audioOutCodec("VORBIS", outChannels, 48000);
     audio->matrix.setMatrix(SAudioMatrixNode::guessMatrix(inChannels, audioOutCodec.channelSetup()));
@@ -192,7 +192,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
     output.openFormat("ogg", audio->encoder.codec(), video->encoder.codec(), duration);
     header.setContentType("video/ogg");
   }
-  else if (file.last().toLower() == "flv")
+  else if (file.suffix() == "flv")
   {
     const SAudioCodec audioOutCodec("PCM/S16LE", SAudioFormat::Channels_Stereo, 44100);
     audio->matrix.setMatrix(SAudioMatrixNode::guessMatrix(inChannels, audioOutCodec.channelSetup()));
@@ -211,7 +211,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
   }
   else
   {
-    qDebug() << "Incorrect video format:" << file.last();
+    qDebug() << "Incorrect video format:" << file.suffix();
     return false;
   }
 
@@ -234,43 +234,41 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
 }
 
 bool MediaStream::setup(const SHttpServer::RequestMessage &request,
-                        QAbstractSocket *socket,
+                        QIODevice *socket,
                         STime duration,
                         SAudioFormat::Channels inChannels,
                         SInterfaces::AudioEncoder::Flags audioEncodeFlags)
 {
+  delete audio;
   audio = new Audio(this);
   connect(&audio->matrix, SIGNAL(output(SAudioBuffer)), &audio->resampler, SLOT(input(SAudioBuffer)));
   connect(&audio->resampler, SIGNAL(output(SAudioBuffer)), &sync, SLOT(input(SAudioBuffer)));
   connect(&sync, SIGNAL(output(SAudioBuffer)), &audio->encoder, SLOT(input(SAudioBuffer)));
   connect(&audio->encoder, SIGNAL(output(SEncodedAudioBuffer)), &output, SLOT(input(SEncodedAudioBuffer)));
 
-  QUrl url(request.path());
-  if (url.hasQueryItem("query"))
-    url = url.toEncoded(QUrl::RemoveQuery) + QByteArray::fromHex(url.queryItemValue("query").toAscii());
-
-  QStringList file = request.file().split('.');
-  if (file.count() <= 1)
-    file += "mpa"; // Default to mpeg file
+  const MediaServer::File file(request);
 
   SAudioFormat::Channels outChannels = inChannels;
-  if (url.hasQueryItem("channels"))
+  if (file.url().hasQueryItem("channels"))
   {
-    const QStringList cl = url.queryItemValue("channels").split(',');
+    const QStringList cl = file.url().queryItemValue("channels").split(',');
 
-    if ((url.queryItemValue("music") == "true") && (cl.count() >= 2))
+    if ((file.url().queryItemValue("music") == "true") && (cl.count() >= 2))
       outChannels = SAudioFormat::Channels(cl[1].toUInt(NULL, 16));
     else if (!cl.isEmpty())
       outChannels = SAudioFormat::Channels(cl[0].toUInt(NULL, 16));
   }
 
-  if (url.queryItemValue("encode") == "fast")
+  if (file.url().queryItemValue("encode") == "fast")
     audioEncodeFlags |= SInterfaces::AudioEncoder::Flag_Fast;
 
   SHttpServer::ResponseHeader header(request, SHttpServer::Status_Ok);
   header.setField("Cache-Control", "no-cache");
+  header.setField("transferMode.dlna.org", "Streaming");
+  if (file.url().hasQueryItem("contentFeatures"))
+    header.setField("contentFeatures.dlna.org", QByteArray::fromHex(file.url().queryItemValue("contentFeatures").toAscii()));
 
-  if ((file.last().toLower() == "mpa") || (file.last().toLower() == "ts"))
+  if ((file.suffix() == "mpa") || (file.suffix() == "ts"))
   {
     const SAudioCodec audioOutCodec("MP2", SAudioFormat::Channels_Stereo, 48000);
     audio->matrix.setMatrix(SAudioMatrixNode::guessMatrix(inChannels, audioOutCodec.channelSetup()));
@@ -279,7 +277,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
     if (!audio->encoder.openCodec(audioOutCodec, audioEncodeFlags))
       return false;
 
-    if (file.last().toLower() != "ts")
+    if (file.suffix() != "ts")
     {
       output.openFormat("mp2", audio->encoder.codec(), SVideoCodec(), duration);
       header.setContentType("audio/mpeg");
@@ -287,10 +285,10 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
     else
     { // Transport stream
       output.openFormat("mpegts", audio->encoder.codec(), SVideoCodec(), duration);
-      header.setContentType("video/MP2T");
+      header.setContentType("video/mpeg");
     }
   }
-  else if (file.last().toLower() == "mp3")
+  else if (file.suffix() == "mp3")
   {
     const SAudioCodec audioOutCodec("MP3", SAudioFormat::Channels_Stereo, 48000);
     audio->matrix.setMatrix(SAudioMatrixNode::guessMatrix(inChannels, audioOutCodec.channelSetup()));
@@ -302,7 +300,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
     output.openFormat("mp3", audio->encoder.codec(), SVideoCodec(), duration);
     header.setContentType("audio/mp3");
   }
-  else if (file.last().toLower() == "ac3")
+  else if (file.suffix() == "ac3")
   {
     const SAudioCodec audioOutCodec("AC3", outChannels, 48000);
     audio->matrix.setMatrix(SAudioMatrixNode::guessMatrix(inChannels, audioOutCodec.channelSetup()));
@@ -315,7 +313,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
     output.openFormat("ac3", audio->encoder.codec(), SVideoCodec(), duration);
     header.setContentType("audio/x-ac3");
   }
-  else if ((file.last().toLower() == "ogg") || (file.last().toLower() == "oga"))
+  else if ((file.suffix() == "ogg") || (file.suffix() == "oga"))
   {
     SAudioCodec audioOutCodec("VORBIS", outChannels, 48000);
     audio->matrix.setMatrix(SAudioMatrixNode::guessMatrix(inChannels, audioOutCodec.channelSetup()));
@@ -332,7 +330,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
     output.openFormat("ogg", audio->encoder.codec(), SVideoCodec(), duration);
     header.setContentType("audio/ogg");
   }
-  else if (file.last().toLower() == "lpcm")
+  else if (file.suffix() == "lpcm")
   {
     const SAudioCodec audioOutCodec("PCM/S16BE", SAudioFormat::Channels_Stereo, 48000);
     audio->matrix.setMatrix(SAudioMatrixNode::guessMatrix(inChannels, audioOutCodec.channelSetup()));
@@ -345,7 +343,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
     output.openFormat("s16be", audio->encoder.codec(), SVideoCodec(), duration);
     header.setContentType("audio/L16;rate=48000;channels=2");
   }
-  else if (file.last().toLower() == "wav")
+  else if (file.suffix() == "wav")
   {
     const SAudioCodec audioOutCodec("PCM/S16LE", SAudioFormat::Channels_Stereo, 44100);
     audio->matrix.setMatrix(SAudioMatrixNode::guessMatrix(inChannels, audioOutCodec.channelSetup()));
@@ -358,7 +356,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
     output.openFormat("wav", audio->encoder.codec(), SVideoCodec(), duration);
     header.setContentType("audio/wave");
   }
-  else if (file.last().toLower() == "flv")
+  else if (file.suffix() == "flv")
   {
     const SAudioCodec audioOutCodec("PCM/S16LE", SAudioFormat::Channels_Stereo, 44100);
     audio->matrix.setMatrix(SAudioMatrixNode::guessMatrix(inChannels, audioOutCodec.channelSetup()));
@@ -373,13 +371,12 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
   }
   else
   {
-    qDebug() << "Incorrect audio format:" << file.last();
+    qDebug() << "Incorrect audio format:" << file.suffix();
     return false;
   }
 
   connect(socket, SIGNAL(disconnected()), SLOT(stop()));
   socket->write(header);
-  socket->flush();
   output.setIODevice(socket, true);
 
   qDebug() << "Started audio stream"
@@ -388,6 +385,34 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
       << header.contentType();
 
   return true;
+}
+
+
+MediaStream::Audio::Audio(SGraph *parent)
+  : matrix(parent),
+    resampler(parent),
+    encoder(parent)
+{
+}
+
+MediaStream::Audio::~Audio()
+{
+}
+
+
+MediaStream::Video::Video(SGraph *parent)
+  : deinterlacer(parent),
+    subpictureRenderer(parent),
+    letterboxDetectNode(parent),
+    resizer(parent),
+    box(parent),
+    subtitleRenderer(parent),
+    encoder(parent)
+{
+}
+
+MediaStream::Video::~Video()
+{
 }
 
 
@@ -401,13 +426,13 @@ MediaTranscodeStream::MediaTranscodeStream(void)
 }
 
 bool MediaTranscodeStream::setup(const SHttpServer::RequestMessage &request,
-                                 QAbstractSocket *socket,
+                                 QIODevice *socket,
                                  SInterfaces::BufferReaderNode *input,
                                  STime duration,
                                  SInterfaces::AudioEncoder::Flags audioEncodeFlags,
                                  SInterfaces::VideoEncoder::Flags videoEncodeFlags)
 {
-  const QUrl url(request.path());
+  const MediaServer::File file(request);
 
   // Select streams
   const QList<SIOInputNode::AudioStreamInfo> audioStreams = input->audioStreams();
@@ -415,18 +440,18 @@ bool MediaTranscodeStream::setup(const SHttpServer::RequestMessage &request,
   const QList<SIOInputNode::DataStreamInfo>  dataStreams  = input->dataStreams();
 
   QList<SIOInputNode::StreamId> selectedStreams;
-  if (url.hasQueryItem("language"))
-    selectedStreams += url.queryItemValue("language").toUInt(NULL, 16);
+  if (file.url().hasQueryItem("language"))
+    selectedStreams += file.url().queryItemValue("language").toUInt(NULL, 16);
   else if (!audioStreams.isEmpty())
     selectedStreams += audioStreams.first();
 
   if (!videoStreams.isEmpty())
     selectedStreams += videoStreams.first();
 
-  if (url.hasQueryItem("subtitles"))
+  if (file.url().hasQueryItem("subtitles"))
   {
-    if (!url.queryItemValue("subtitles").isEmpty())
-      selectedStreams += url.queryItemValue("subtitles").toUInt(NULL, 16);
+    if (!file.url().queryItemValue("subtitles").isEmpty())
+      selectedStreams += file.url().queryItemValue("subtitles").toUInt(NULL, 16);
   }
   else if (!dataStreams.isEmpty())
     selectedStreams += dataStreams.first();
@@ -437,9 +462,9 @@ bool MediaTranscodeStream::setup(const SHttpServer::RequestMessage &request,
   if (!duration.isValid())
     duration = input->duration();
 
-  if (url.hasQueryItem("position"))
+  if (file.url().hasQueryItem("position"))
   {
-    const STime pos = STime::fromSec(url.queryItemValue("position").toInt());
+    const STime pos = STime::fromSec(file.url().queryItemValue("position").toInt());
     input->setPosition(pos);
 
     if (duration > pos)
@@ -448,9 +473,9 @@ bool MediaTranscodeStream::setup(const SHttpServer::RequestMessage &request,
       duration = STime::null;
   }
 
-  if (url.hasQueryItem("starttime"))
+  if (file.url().hasQueryItem("starttime"))
   {
-    const STime pos = STime::fromSec(url.queryItemValue("starttime").toInt());
+    const STime pos = STime::fromSec(file.url().queryItemValue("starttime").toInt());
     sync.setStartTime(pos);
 
     if (duration.isPositive())
@@ -458,10 +483,10 @@ bool MediaTranscodeStream::setup(const SHttpServer::RequestMessage &request,
   }
 
   QVector<double> frameRates = STimeStampResamplerNode::standardFrameRates();
-  if (url.hasQueryItem("framerates"))
+  if (file.url().hasQueryItem("framerates"))
   {
     QVector<double> rates;
-    foreach (const QString &rate, url.queryItemValue("framerates").split(','))
+    foreach (const QString &rate, file.url().queryItemValue("framerates").split(','))
     {
       bool ok = false;
       const double val = rate.toDouble(&ok);
@@ -506,11 +531,13 @@ bool MediaTranscodeStream::setup(const SHttpServer::RequestMessage &request,
       if (audio->matrix.channels() == SAudioFormat::Channels_Stereo)
         audioDecoder.setFlags(SInterfaces::AudioDecoder::Flag_DownsampleToStereo);
 
+      // To improve performance of multithreaded decoding.
+      videoDecoder.setFlags(SInterfaces::VideoDecoder::Flag_Fast);
+
       return true;
     }
   }
-
-  if (!audioStreams.isEmpty())
+  else if (!audioStreams.isEmpty())
   {
     const SAudioCodec audioInCodec = audioStreams.first().codec;
 

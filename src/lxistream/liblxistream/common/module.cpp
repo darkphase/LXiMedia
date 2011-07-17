@@ -43,6 +43,8 @@ bool Module::registerClasses(void)
   FormatProber::registerClass<FormatProber>(INT_MAX); // This one always first.
 
   // Codecs
+  PcmAudioDecoder::registerClass<PcmAudioDecoder>(SFactory::Scheme(1, "PCM/S8"));
+  PcmAudioDecoder::registerClass<PcmAudioDecoder>(SFactory::Scheme(1, "PCM/U8"));
   PcmAudioDecoder::registerClass<PcmAudioDecoder>(SFactory::Scheme(1, "PCM/S16LE"));
   PcmAudioDecoder::registerClass<PcmAudioDecoder>(SFactory::Scheme(1, "PCM/S16BE"));
   PcmAudioDecoder::registerClass<PcmAudioDecoder>(SFactory::Scheme(1, "PCM/U16LE"));
@@ -60,14 +62,6 @@ bool Module::registerClasses(void)
   PcmAudioEncoder::registerClass<PcmAudioEncoder>(SFactory::Scheme(1, "PCM/S16BE"));
   PcmAudioEncoder::registerClass<PcmAudioEncoder>(SFactory::Scheme(1, "PCM/U16LE"));
   PcmAudioEncoder::registerClass<PcmAudioEncoder>(SFactory::Scheme(1, "PCM/U16BE"));
-  PcmAudioEncoder::registerClass<PcmAudioEncoder>(SFactory::Scheme(1, "PCM/S32LE"));
-  PcmAudioEncoder::registerClass<PcmAudioEncoder>(SFactory::Scheme(1, "PCM/S32BE"));
-  PcmAudioEncoder::registerClass<PcmAudioEncoder>(SFactory::Scheme(1, "PCM/U32LE"));
-  PcmAudioEncoder::registerClass<PcmAudioEncoder>(SFactory::Scheme(1, "PCM/U32BE"));
-  PcmAudioEncoder::registerClass<PcmAudioEncoder>(SFactory::Scheme(1, "PCM/F32LE"));
-  PcmAudioEncoder::registerClass<PcmAudioEncoder>(SFactory::Scheme(1, "PCM/F32BE"));
-  PcmAudioEncoder::registerClass<PcmAudioEncoder>(SFactory::Scheme(1, "PCM/F64LE"));
-  PcmAudioEncoder::registerClass<PcmAudioEncoder>(SFactory::Scheme(1, "PCM/F64BE"));
 
   RawSubtitleDecoder::registerClass<RawSubtitleDecoder>(SFactory::Scheme(1, "SUB/RAWUTF8"));
   RawSubtitleDecoder::registerClass<RawSubtitleDecoder>(SFactory::Scheme(1, "SUB/RAWLATIN1"));

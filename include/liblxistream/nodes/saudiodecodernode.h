@@ -23,15 +23,13 @@
 #include <QtCore>
 #include <LXiCore>
 #include "../sinterfaces.h"
-#include "../sgraph.h"
 #include "../export.h"
 
 namespace LXiStream {
 
 class SAudioBuffer;
 
-class LXISTREAM_PUBLIC SAudioDecoderNode : public QObject,
-                                           public SGraph::Node
+class LXISTREAM_PUBLIC SAudioDecoderNode : public SInterfaces::Node
 {
 Q_OBJECT
 public:
@@ -46,7 +44,7 @@ public:
   Flags                         flags(void) const;
   void                          setFlags(Flags);
 
-public: // From SGraph::Node
+public: // From SInterfaces::Node
   virtual bool                  start(void);
   virtual void                  stop(void);
 

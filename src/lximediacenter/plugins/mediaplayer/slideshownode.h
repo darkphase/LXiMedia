@@ -27,8 +27,7 @@
 namespace LXiMediaCenter {
 namespace MediaPlayerBackend {
 
-class SlideShowNode : public QObject,
-                      public SGraph::SourceNode
+class SlideShowNode : public SInterfaces::SourceNode
 {
 Q_OBJECT
 public:

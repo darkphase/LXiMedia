@@ -22,14 +22,12 @@
 
 #include <QtCore>
 #include <LXiCore>
-#include "../sgraph.h"
 #include "../sinterfaces.h"
 #include "../export.h"
 
 namespace LXiStream {
 
-class LXISTREAM_PUBLIC SVideoEncoderNode : public QObject,
-                                           public SGraph::Node
+class LXISTREAM_PUBLIC SVideoEncoderNode : public SInterfaces::Node
 {
 Q_OBJECT
 public:
@@ -45,7 +43,7 @@ public:
   bool                          openCodec(const SVideoCodec &, Flags = SInterfaces::VideoEncoder::Flag_None);
   SVideoCodec                   codec(void) const;
 
-public: // From SGraph::Node
+public: // From SInterfaces::Node
   virtual bool                  start(void);
   virtual void                  stop(void);
 

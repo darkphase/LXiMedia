@@ -23,7 +23,6 @@
 #include <QtCore>
 #include <LXiCore>
 #include "sioinputnode.h"
-#include "../sgraph.h"
 #include "../smediainfo.h"
 #include "../export.h"
 
@@ -31,8 +30,7 @@ namespace LXiStream {
 
 class SFileInputNode;
 
-class LXISTREAM_PUBLIC SPlaylistNode : public QObject,
-                                       public SGraph::SourceNode,
+class LXISTREAM_PUBLIC SPlaylistNode : public SInterfaces::SourceNode,
                                        public SInterfaces::BufferReaderNode
 {
 Q_OBJECT

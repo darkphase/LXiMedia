@@ -122,8 +122,12 @@ bool BufferWriter::createStreams(const QList<SAudioCodec> &audioCodecs, const QL
 
       if (frameRate.isValid())
       {
-        stream->r_frame_rate.num = stream->avg_frame_rate.num = frameRate.num();
-        stream->r_frame_rate.den = stream->avg_frame_rate.den = frameRate.den();
+        stream->r_frame_rate.num = frameRate.num();
+        stream->r_frame_rate.den = frameRate.den();
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
+        stream->avg_frame_rate.num = stream->r_frame_rate.num;
+        stream->avg_frame_rate.den = stream->r_frame_rate.den;
+#endif
       }
 
       stream->pts.val = 0;

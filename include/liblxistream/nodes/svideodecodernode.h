@@ -22,7 +22,6 @@
 
 #include <QtCore>
 #include <LXiCore>
-#include "../sgraph.h"
 #include "../sinterfaces.h"
 #include "../export.h"
 
@@ -30,8 +29,7 @@ namespace LXiStream {
 
 class SVideoBuffer;
 
-class LXISTREAM_PUBLIC SVideoDecoderNode : public QObject,
-                                           public SGraph::Node
+class LXISTREAM_PUBLIC SVideoDecoderNode : public SInterfaces::Node
 {
 Q_OBJECT
 public:
@@ -46,7 +44,7 @@ public:
   Flags                         flags(void) const;
   void                          setFlags(Flags);
 
-public: // From SGraph::Node
+public: // From SInterfaces::Node
   virtual bool                  start(void);
   virtual void                  stop(void);
 
