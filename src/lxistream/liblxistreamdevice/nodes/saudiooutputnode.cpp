@@ -90,7 +90,7 @@ STime SAudioOutputNode::delay(void) const
 
 void SAudioOutputNode::input(const SAudioBuffer &audioBuffer)
 {
-  LXI_PROFILE_FUNCTION;
+  LXI_PROFILE_FUNCTION(TaskType_AudioProcessing);
 
   if (d->output)
   {

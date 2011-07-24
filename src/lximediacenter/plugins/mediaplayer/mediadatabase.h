@@ -122,7 +122,6 @@ private slots:
 
 private:
   QByteArray                    readNodeData(UniqueID) const;
-  QString                       findRoot(const QString &, const QStringList &) const;
 
   void                          updateDir(const QString &, qint64, QuerySet &);
   void                          probeFile(const QString &);

@@ -50,7 +50,7 @@ SUPnPMediaServer::SUPnPMediaServer(const QString &basePath, QObject *parent)
     : QObject(parent),
       d(new Data())
 {
-  d->basePath = basePath;
+  d->basePath = basePath + "mediaserver/";
   d->httpServer = NULL;
   d->ssdpServer = NULL;
   d->deviceName = QHostInfo::localHostName() + ": " + qApp->applicationName();
@@ -70,10 +70,10 @@ void SUPnPMediaServer::initialize(SHttpServer *httpServer, SSsdpServer *ssdpServ
   d->httpServer = httpServer;
   d->ssdpServer = ssdpServer;
 
-  httpServer->registerCallback(d->basePath + "mediaserver/", this);
+  httpServer->registerCallback(d->basePath, this);
 
-  ssdpServer->publish("upnp:rootdevice", "/upnp/mediaserver/description.xml", 3);
-  ssdpServer->publish("urn:schemas-upnp-org:device:MediaServer:1", "/upnp/mediaserver/description.xml", 2);
+  ssdpServer->publish("upnp:rootdevice", d->basePath + "description.xml", 3);
+  ssdpServer->publish("urn:schemas-upnp-org:device:MediaServer:1", d->basePath + "description.xml", 2);
 }
 
 void SUPnPMediaServer::close(void)
@@ -102,14 +102,14 @@ void SUPnPMediaServer::addIcon(const QString &url, unsigned width, unsigned heig
 void SUPnPMediaServer::registerService(const Service &service)
 {
   d->services += service;
-  d->ssdpServer->publish(service.serviceType, service.descriptionUrl, 1);
+  d->ssdpServer->publish(service.serviceType, d->basePath + "description.xml", 1);
 }
 
 SHttpServer::SocketOp SUPnPMediaServer::handleHttpRequest(const SHttpServer::RequestMessage &request, QIODevice *socket)
 {
   if ((request.method() == "GET") || (request.method() == "HEAD"))
   {
-    if (request.path() == "/upnp/mediaserver/description.xml")
+    if (request.path() == (d->basePath + "description.xml"))
     {
       QDomDocument doc;
       QDomElement rootElm = doc.createElement("root");
@@ -131,7 +131,7 @@ SHttpServer::SocketOp SUPnPMediaServer::handleHttpRequest(const SHttpServer::Req
       SUPnPBase::addTextElm(doc, deviceElm, "modelURL", "http://" + qApp->organizationDomain() + "/");
       SUPnPBase::addTextElm(doc, deviceElm, "serialNumber", qApp->applicationVersion());
       SUPnPBase::addTextElm(doc, deviceElm, "UDN", d->httpServer->serverUdn());
-      SUPnPBase::addTextElmNS(doc, deviceElm, "dlna:X_DLNADOC", dlnaDeviceNS, "DMS-1.00");
+      SUPnPBase::addTextElmNS(doc, deviceElm, "dlna:X_DLNADOC", dlnaDeviceNS, "DMS-" + QString(SUPnPBase::dlnaDoc));
 
       if (!host.isEmpty())
         SUPnPBase::addTextElm(doc, deviceElm, "presentationURL", "http://" + host + "/");
@@ -168,7 +168,7 @@ SHttpServer::SocketOp SUPnPMediaServer::handleHttpRequest(const SHttpServer::Req
       rootElm.appendChild(deviceElm);
       doc.appendChild(rootElm);
 
-      const QByteArray content = QByteArray(SUPnPBase::xmlDeclaration) + '\n' + doc.toByteArray();
+      const QByteArray content = QByteArray(SUPnPBase::xmlDeclaration) + doc.toByteArray(-1);
       SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
       response.setContentType(SUPnPBase::xmlContentType);
       response.setContentLength(content.length());

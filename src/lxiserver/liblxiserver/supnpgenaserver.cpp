@@ -126,7 +126,7 @@ void SUPnPGenaServer::close(void)
 
 void SUPnPGenaServer::emitEvent(const QDomDocument &doc)
 {
-  const QByteArray content = QByteArray(SUPnPBase::xmlDeclaration) + '\n' + doc.toByteArray();
+  const QByteArray content = QByteArray(SUPnPBase::xmlDeclaration) + doc.toByteArray(-1);
 
   d->eventMessage = content;
 

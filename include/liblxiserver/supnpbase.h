@@ -152,6 +152,7 @@ public:
   static const int              majorVersion;
   static const int              minorVersion;
   static const int              responseTimeout;
+  static const char             dlnaDoc[];
   static const char             xmlDeclaration[];
   static const char             xmlContentType[];
   static const char             dlnaNS[];

@@ -40,11 +40,7 @@ class MediaDatabase::ScanDirEvent : public QEvent
 public:
   inline ScanDirEvent(MediaDatabase *parent, const QString &path, bool forceUpdate)
     : QEvent(scanDirEventType), parent(parent),
-      path((path.endsWith('/') ? path : (path + '/'))
-#ifdef Q_OS_WIN
-           .toLower()
-#endif
-           ),
+      path((path.endsWith('/') ? path : (path + '/'))),
       forceUpdate(forceUpdate)
   {
     parent->scanning.ref();
@@ -80,9 +76,6 @@ public:
   const QString title;
   const Category category;
 };
-
-
-const int MediaDatabase::maxSongDurationMin = 15;
 
 const QEvent::Type  MediaDatabase::scanDirEventType = QEvent::Type(QEvent::registerEventType());
 const QEvent::Type  MediaDatabase::queryImdbItemEventType = QEvent::Type(QEvent::registerEventType());
@@ -274,11 +267,7 @@ MediaDatabase::UniqueID MediaDatabase::fromPath(const QString &path) const
 {
   Database::Query query;
   query.prepare("SELECT uid FROM MediaplayerFiles WHERE path = :path");
-  query.bindValue(0, path
-#ifdef Q_OS_WIN
-      .toLower()
-#endif
-      );
+  query.bindValue(0, path);
   query.exec();
   if (query.next())
     return query.value(0).toLongLong();
@@ -653,13 +642,7 @@ void MediaDatabase::scanRoots(void)
       QStringList paths;
       foreach (const QString &root, settings.value("Paths").toStringList())
       if (!root.trimmed().isEmpty() && !ConfigServer::isHidden(root) && QFileInfo(root).exists())
-      {
-        paths.append(root
-#ifdef Q_OS_WIN
-            .toLower()
-#endif
-            );
-      }
+        paths.append(root.endsWith('/') ? root : (root + '/'));
 
       settings.setValue("Paths", paths);
       rootPaths[group] = paths;
@@ -682,8 +665,7 @@ void MediaDatabase::scanRoots(void)
     while (query.next())
     {
       const QString path = query.value(0).toString();
-
-      if (findRoot(path, allRootPaths).isEmpty())
+      if (!allRootPaths.contains(path))
       {
         // Remove all queued probes for the path
         for (QSet<QString>::Iterator i=probeQueue.begin(); i!= probeQueue.end(); )
@@ -692,6 +674,7 @@ void MediaDatabase::scanRoots(void)
         else
           i++;
 
+        qDebug() << "Root path " << path << "is no longer available.";
         removePaths << path;
       }
     }
@@ -747,17 +730,11 @@ void MediaDatabase::scanDirs(void)
 
 void MediaDatabase::directoryChanged(const QString &path)
 {
-  const QString basePath = path
-#ifdef Q_OS_WIN
-      .toLower()
-#endif
-      ;
-
-  if (!scanDirsQueue.contains(basePath))
+  if (!scanDirsQueue.contains(path))
   {
-    qDebug() << "Filesystem change in" << basePath << ", scanning in" << (scanDelay / 1000) << "seconds";
+    qDebug() << "Filesystem change in" << path << ", scanning in" << (scanDelay / 1000) << "seconds";
 
-    scanDirsQueue.insert(basePath, new ScanDirEvent(this, basePath, true));
+    scanDirsQueue.insert(path, new ScanDirEvent(this, path, true));
   }
 
   scanDirsSingleTimer.start(scanDelay);
@@ -941,52 +918,17 @@ void MediaDatabase::probeNext(void)
   }
 }
 
-QString MediaDatabase::findRoot(const QString &path, const QStringList &allRootPaths) const
-{
-  const QFileInfo info(path);
-
-#ifndef Q_OS_WIN
-  const QString absoluteFilePath = info.absoluteFilePath();
-#else
-  const QString absoluteFilePath = QDir::toNativeSeparators(info.absoluteFilePath()).toLower();
-#endif
-
-  foreach (const QString &root, allRootPaths)
-#ifndef Q_OS_WIN
-  if ((root == absoluteFilePath) || absoluteFilePath.startsWith(root + "/"))
-    return root.endsWith('/') ? root : (root + '/');
-#else
-  {
-    const QString croot = QDir::toNativeSeparators(root).toLower();
-    if ((croot == absoluteFilePath) || absoluteFilePath.startsWith(croot + "\\"))
-      return root.endsWith('/') ? root : (root + '/');
-  }
-#endif
-
-  return QString::null;
-}
-
 void MediaDatabase::updateDir(const QString &path, qint64 parentDir, QuerySet &q)
 {
-  const QString basePath = path
-#ifdef Q_OS_WIN
-      .toLower()
-#endif
-      ;
-
-  qDebug() << "Scanning:" << basePath;
+  qDebug() << "Scanning:" << path;
 
   QSet<QString> childPaths;
 
   // Update existing and add new dirs.
-  foreach (const QFileInfo &child, QDir(basePath).entryInfoList(QDir::Dirs))
+  foreach (const QFileInfo &child, QDir(path).entryInfoList(QDir::Dirs))
   if (!child.fileName().startsWith('.'))
   {
-    QString childPath = child.absoluteFilePath()
-#ifdef Q_OS_WIN
-        .toLower()
-#endif
-        ;
+    QString childPath = child.absoluteFilePath();
 
     // Ensure directories end with a '/'
     if (!childPath.endsWith('/'))
@@ -1012,18 +954,14 @@ void MediaDatabase::updateDir(const QString &path, qint64 parentDir, QuerySet &q
   }
 
   // Update existing and add new files.
-  foreach (const QFileInfo &child, QDir(basePath).entryInfoList(QDir::Files))
+  foreach (const QFileInfo &child, QDir(path).entryInfoList(QDir::Files))
   if (!child.fileName().startsWith('.'))
   {
-    if (basePath.endsWith("/video_ts/") || basePath.endsWith("/audio_ts/"))
+    if (path.endsWith("/video_ts/", Qt::CaseInsensitive) || path.endsWith("/audio_ts/", Qt::CaseInsensitive))
     if (child.fileName().compare("video_ts.ifo", Qt::CaseInsensitive) != 0)
       continue;
 
-    const QString childPath = child.absoluteFilePath()
-#ifdef Q_OS_WIN
-        .toLower()
-#endif
-        ;
+    const QString childPath = child.absoluteFilePath();
 
     childPaths.insert(childPath);
 
@@ -1091,11 +1029,7 @@ void MediaDatabase::updateDir(const QString &path, qint64 parentDir, QuerySet &q
 // Ensure directories end with a '/'
 void MediaDatabase::probeFile(const QString &path)
 {
-  probeQueue.insert(path
-#ifdef Q_OS_WIN
-      .toLower()
-#endif
-      );
+  probeQueue.insert(path);
 
   probeNext();
 }
@@ -1104,20 +1038,14 @@ QMap<MediaDatabase::Category, QString> MediaDatabase::findCategories(const QStri
 {
   QMap<Category, QString> result;
 
-  const QString basePath = path
-#ifdef Q_OS_WIN
-      .toLower()
-#endif
-      ;
-
   for (int i=0; categories[i].name; i++)
   {
     QMap<QString, QStringList>::ConstIterator rootPath = rootPaths.find(categories[i].name);
     if (rootPath != rootPaths.end())
     foreach (const QString &root, *rootPath)
-    if (basePath.startsWith(root))
+    if (path.startsWith(root))
     {
-      QString album = basePath.mid(root.length());
+      QString album = path.mid(root.length());
       if (album.endsWith("/video_ts/video_ts.ifo"))
         album = album.left(album.length() - 22);
 

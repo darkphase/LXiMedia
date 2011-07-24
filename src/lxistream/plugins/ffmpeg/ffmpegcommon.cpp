@@ -921,7 +921,7 @@ int FFMpegCommon::execute(::AVCodecContext *c, int (*func)(::AVCodecContext *c2,
 
 int FFMpegCommon::executeTask(int (*func)(::AVCodecContext *, void *), ::AVCodecContext *c, void *arg)
 {
-  LXI_PROFILE_FUNCTION;
+  LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
 
   return func(c, arg);
 }
@@ -965,7 +965,7 @@ int FFMpegCommon::execute2(::AVCodecContext *c, int (*func)(::AVCodecContext *c2
 
 int FFMpegCommon::execute2Task(int (*func)(::AVCodecContext *, void *, int, int), ::AVCodecContext *c, void *arg, int jobnr, int threadnr)
 {
-  LXI_PROFILE_FUNCTION;
+  LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
 
   return func(c, arg, jobnr, threadnr);
 }

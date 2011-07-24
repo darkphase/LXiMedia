@@ -108,7 +108,7 @@ void SIOInputNode::stop(void)
 
 void SIOInputNode::process(void)
 {
-  LXI_PROFILE_FUNCTION;
+  LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
 
   if (d->bufferReader)
   {

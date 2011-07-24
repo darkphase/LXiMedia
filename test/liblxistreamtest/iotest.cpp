@@ -26,7 +26,7 @@ void IOTest::initTestCase(void)
   mediaApp = SApplication::createForQTest(this);
 
   QVERIFY(mediaApp->loadModule("lxistream_ffmpeg"));
-  QVERIFY(mediaApp->loadModule("lxistreamgui_gui"));
+  QVERIFY(mediaApp->loadModule("lxistream_gui"));
 }
 
 void IOTest::cleanupTestCase(void)

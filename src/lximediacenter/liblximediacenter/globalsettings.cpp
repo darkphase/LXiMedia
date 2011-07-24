@@ -194,4 +194,9 @@ QString GlobalSettings::defaultTranscodeMusicChannelName(void)
   return "2.0 Stereo";
 }
 
+QString GlobalSettings::defaultMusicModeName(void)
+{
+  return "RemoveVideo";
+}
+
 } // End of namespace

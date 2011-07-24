@@ -53,12 +53,13 @@ protected: // From SHttpServer::Callback
 
 private:
   SHttpServer::SocketOp         handleHtmlRequest(const SHttpServer::RequestMessage &, QIODevice *, const MediaServer::File &);
-  void                          generateDirs(HtmlParser &, const QFileInfoList &, int, const QSet<QString> &, const QStringList &);
+  void                          generateDirs(HtmlParser &, const QFileInfoList &, int, const QStringList &, const QStringList &);
 
   static const QFileInfoList  & drives(bool rescan = false);
   static QString                driveLabel(const QString &);
 
 private:
+  static const Qt::CaseSensitivity caseSensitivity;
   static const char             dirSplit;
   MasterServer                * masterServer;
   MediaDatabase               * mediaDatabase;

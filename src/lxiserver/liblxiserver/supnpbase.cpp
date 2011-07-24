@@ -29,8 +29,9 @@ namespace LXiServer {
 const int           SUPnPBase::majorVersion     = 1;
 const int           SUPnPBase::minorVersion     = 0;
 const int           SUPnPBase::responseTimeout  = 30; // Seconds
-const char          SUPnPBase::xmlDeclaration[] = "<?xml version=\"1.0\" encoding=\"utf-8\"?>";
-const char          SUPnPBase::xmlContentType[] = "text/xml; charset=\"utf-8\" ";
+const char          SUPnPBase::dlnaDoc[]        = "1.50";
+const char          SUPnPBase::xmlDeclaration[] = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n";
+const char          SUPnPBase::xmlContentType[] = "text/xml; charset=\"utf-8\"";
 const char          SUPnPBase::dlnaNS[]         = "urn:schemas-dlna-org:metadata-1-0/";
 const char          SUPnPBase::didlNS[]         = "urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/";
 const char          SUPnPBase::dublinCoreNS[]   = "http://purl.org/dc/elements/1.1/";
@@ -142,7 +143,7 @@ SHttpServer::SocketOp SUPnPBase::handleDescription(const SHttpServer::RequestMes
 
   doc.appendChild(scpdElm);
 
-  const QByteArray content = QByteArray(xmlDeclaration) + '\n' + doc.toByteArray();
+  const QByteArray content = QByteArray(xmlDeclaration) + doc.toByteArray(-1);
   SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
   response.setContentType(xmlContentType);
   response.setContentLength(content.length());
@@ -168,7 +169,7 @@ SHttpServer * SUPnPBase::httpServer(void) const
 QString SUPnPBase::protocol(void)
 {
   return
-      "DLNADOC/1.50 UPnP/" +
+      "DLNADOC/" + QString(dlnaDoc) + " UPnP/" +
       QString::number(majorVersion) + '.' + QString::number(minorVersion);
 }
 

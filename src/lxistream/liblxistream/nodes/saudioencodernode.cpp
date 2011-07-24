@@ -91,9 +91,8 @@ void SAudioEncoderNode::stop(void)
 
 void SAudioEncoderNode::input(const SAudioBuffer &audioBuffer)
 {
-  LXI_PROFILE_FUNCTION;
-
-  d->future.waitForFinished();
+  LXI_PROFILE_WAIT(d->future.waitForFinished());
+  LXI_PROFILE_FUNCTION(TaskType_AudioProcessing);
 
   if (d->encoder)
     d->future = QtConcurrent::run(this, &SAudioEncoderNode::processTask, audioBuffer);
@@ -103,7 +102,7 @@ void SAudioEncoderNode::input(const SAudioBuffer &audioBuffer)
 
 void SAudioEncoderNode::processTask(const SAudioBuffer &audioBuffer)
 {
-  LXI_PROFILE_FUNCTION;
+  LXI_PROFILE_FUNCTION(TaskType_AudioProcessing);
 
   foreach (const SEncodedAudioBuffer &buffer, d->encoder->encodeBuffer(audioBuffer))
     emit output(buffer);

@@ -58,7 +58,6 @@ Architecture: any
 Depends: liblxicore-dev (= ${binary:Version}),
          liblxistream1 (= ${binary:Version}), 
          liblxistreamdevice1 (= ${binary:Version})
-         liblxistreamgui1 (= ${binary:Version})
 Description: Development files for liblxistream
  liblxistream is a streaming media library.
 
@@ -71,7 +70,6 @@ Depends: liblxicore-dev (= ${binary:Version}),
          liblximediacenter1 (= ${binary:Version}), 
          liblxistream1 (= ${binary:Version}), 
          liblxistreamdevice1 (= ${binary:Version})
-         liblxistreamgui1 (= ${binary:Version})
 Description: Development files for liblxistream
  liblxistream is a streaming media library.
 
@@ -116,8 +114,7 @@ Depends: ${misc:Depends},
          libqtgui4,
          libqt4-network,
          libqt4-xml
-Recommends: liblxistreamdevice1 (= ${binary:Version}), 
-            lxistreamgui1 (= ${binary:Version})
+Recommends: liblxistreamdevice1 (= ${binary:Version})
 Description: A streaming media library
  Provides a platform independent abstraction for different multimedia libraries.
 
@@ -131,23 +128,6 @@ Depends: ${misc:Depends},
 Description: Device library for liblxistream.
  Adds device support to liblxistream.
 
-Package: liblxistreamgui1
-Section: libs
-Architecture: any
-Depends: ${misc:Depends},
-         liblxicore1 (= ${binary:Version}), 
-         liblxistream1 (= ${binary:Version}), 
-         libqtcore4,
-         libqtgui4,
-         libqt4-xml,
-         libx11-6,
-         libxrandr2,
-         libxext6,
-         libxtst6,
-         libxv1
-Description: GUI library for liblxistream.
- Adds X11/Qt GUI support to liblxistream.
-
 Package: liblximediacenter1
 Section: libs
 Architecture: any
@@ -155,7 +135,6 @@ Depends: ${misc:Depends},
          liblxicore1 (= ${binary:Version}), 
          liblxiserver1 (= ${binary:Version}), 
          liblxistream1 (= ${binary:Version}), 
-         liblxistreamgui1 (= ${binary:Version}),
          libqtcore4,
          libqtgui4,
          libqt4-xml,
@@ -172,7 +151,6 @@ Depends: ${misc:Depends},
          liblxiserver1 (= ${binary:Version}), 
          liblxistream1 (= ${binary:Version}), 
          liblxistreamdevice1 (= ${binary:Version}),
-         liblxistreamgui1 (= ${binary:Version}),
          liblximediacenter1 (= ${binary:Version}), 
          libqtcore4,
          libqtgui4,
@@ -208,7 +186,6 @@ Provides: liblxicore1,
           liblxiserver1,
           liblxistream1,
           liblxistreamdevice1,
-          liblxistreamgui1,
           liblximediacenter1
 Description: A DLNA based transcoding media server
  LXiMediaCenter is a DLNA based transcoding media server.

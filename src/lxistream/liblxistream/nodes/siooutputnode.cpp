@@ -129,7 +129,7 @@ void SIOOutputNode::stop(void)
 
 void SIOOutputNode::input(const SEncodedAudioBuffer &buffer)
 {
-  LXI_PROFILE_FUNCTION;
+  LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
   Q_ASSERT(QThread::currentThread() == thread());
 
   if (!qFuzzyCompare(d->streamingSpeed, 0.0f))
@@ -141,7 +141,7 @@ void SIOOutputNode::input(const SEncodedAudioBuffer &buffer)
 
 void SIOOutputNode::input(const SEncodedVideoBuffer &buffer)
 {
-  LXI_PROFILE_FUNCTION;
+  LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
   Q_ASSERT(QThread::currentThread() == thread());
 
   if (!qFuzzyCompare(d->streamingSpeed, 0.0f))
@@ -153,7 +153,7 @@ void SIOOutputNode::input(const SEncodedVideoBuffer &buffer)
 
 void SIOOutputNode::input(const SEncodedDataBuffer &buffer)
 {
-  LXI_PROFILE_FUNCTION;
+  LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
   Q_ASSERT(QThread::currentThread() == thread());
 
   if (!qFuzzyCompare(d->streamingSpeed, 0.0f))

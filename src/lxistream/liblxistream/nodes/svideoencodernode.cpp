@@ -86,9 +86,8 @@ void SVideoEncoderNode::stop(void)
 
 void SVideoEncoderNode::input(const SVideoBuffer &videoBuffer)
 {
-  LXI_PROFILE_FUNCTION;
-
-  d->future.waitForFinished();
+  LXI_PROFILE_WAIT(d->future.waitForFinished());
+  LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
 
   if (d->encoder)
     d->future = QtConcurrent::run(this, &SVideoEncoderNode::processTask, videoBuffer);
@@ -98,7 +97,7 @@ void SVideoEncoderNode::input(const SVideoBuffer &videoBuffer)
 
 void SVideoEncoderNode::processTask(const SVideoBuffer &videoBuffer)
 {
-  LXI_PROFILE_FUNCTION;
+  LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
 
   foreach (const SEncodedVideoBuffer &buffer, d->encoder->encodeBuffer(videoBuffer))
     emit output(buffer);

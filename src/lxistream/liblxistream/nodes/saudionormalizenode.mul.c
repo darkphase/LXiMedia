@@ -17,52 +17,33 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXSTREAM_SGRAPH_H
-#define LXSTREAM_SGRAPH_H
+#include <sys/types.h>
+#include <stdint.h>
 
-#include <QtCore>
-#include <LXiCore>
-#include "export.h"
+int16_t LXiStream_SAudioNormalizeNode_measure
+ (const int16_t * __restrict srcData, unsigned numSamples, unsigned srcNumChannels)
+{
+  const unsigned totalSamples = numSamples * srcNumChannels;
+  unsigned i;
+  int64_t result = 0;
 
-namespace LXiStream {
+  for (i=0; i<totalSamples; i++)
+    result += srcData[i] < 0 ? -srcData[i] : srcData[i];
 
-class STimer;
-
-namespace SInterfaces {
-  class Node;
-  class SourceNode;
-  class SinkNode;
+  return (int16_t)(result / totalSamples);
 }
 
-class LXISTREAM_PUBLIC SGraph : public QThread
+void LXiStream_SAudioNormalizeNode_gain
+ (const int16_t * srcData, unsigned numSamples, unsigned srcNumChannels,
+  int16_t * dstData, float factor)
 {
-Q_OBJECT
-public:
-  explicit                      SGraph(void);
-  virtual                       ~SGraph();
+  const unsigned totalSamples = numSamples * srcNumChannels;
+  unsigned i;
 
-  static bool                   connect(const QObject *, const char *, const QObject *, const char *);
-  bool                          connect(const QObject *, const char *, const char *) const;
+  for (i=0; i<totalSamples; i++)
+  {
+    const float val = ((float)srcData[i]) * factor;
 
-  bool                          isRunning(void) const;
-
-  void                          addNode(SInterfaces::Node *);
-  void                          addNode(SInterfaces::SourceNode *);
-  void                          addNode(SInterfaces::SinkNode *);
-
-public slots:
-  virtual bool                  start(void);
-  virtual void                  stop(void);
-
-protected: // From QThread and QObject
-  virtual void                  run(void);
-  virtual void                  customEvent(QEvent *);
-
-private:
-  struct Data;
-  Data                  * const d;
-};
-
-} // End of namespace
-
-#endif
+    dstData[i] = (int16_t)(val < -32768.0f ? -32768 : (val > 32767.0f ? 32768 : val));
+  }
+}

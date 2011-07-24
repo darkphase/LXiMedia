@@ -80,9 +80,8 @@ void SVideoBoxNode::stop(void)
 
 void SVideoBoxNode::input(const SVideoBuffer &videoBuffer)
 {
-  LXI_PROFILE_FUNCTION;
-
-  d->future.waitForFinished();
+  LXI_PROFILE_WAIT(d->future.waitForFinished());
+  LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
 
   if (!videoBuffer.isNull())
   {
@@ -97,7 +96,7 @@ void SVideoBoxNode::input(const SVideoBuffer &videoBuffer)
 
 void SVideoBoxNode::processTask(const SVideoBuffer &videoBuffer)
 {
-  LXI_PROFILE_FUNCTION;
+  LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
 
   const SSize size = videoBuffer.format().size();
 

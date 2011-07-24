@@ -24,6 +24,7 @@
 #include <QtNetwork>
 #include <LXiServer>
 #include <LXiStream>
+#include <LXiStreamGui>
 #include "backendserver.h"
 #include "export.h"
 
@@ -38,8 +39,11 @@ protected:
     explicit                    Audio(SGraph *parent);
                                 ~Audio();
 
+    SAudioFormat::Channels      outChannels;
     SAudioMatrixNode            matrix;
     SAudioResampleNode          resampler;
+    SAudioGapRemoverNode        gapRemover;
+    SAudioNormalizeNode         audioNormalizer;
     SAudioEncoderNode           encoder;
   };
 
@@ -98,6 +102,7 @@ public:
   SAudioDecoderNode             audioDecoder;
   SVideoDecoderNode             videoDecoder;
   SDataDecoderNode              dataDecoder;
+  SVideoGeneratorNode           videoGenerator;
   STimeStampResamplerNode       timeStampResampler;
 };
 

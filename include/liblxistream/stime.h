@@ -39,7 +39,7 @@ class LXISTREAM_PUBLIC STime
 public:
   inline                        STime(void)                                     { d.count = 0; }
   inline                        STime(const STime &from)                        { d.count = from.d.count; d.interval = from.d.interval; }
-  inline                        STime(qint64 count, SInterval interval)         { d.count = count; d.interval = interval; }
+  inline                        STime(qint64 count, const SInterval &interval)  { d.count = count; d.interval = interval; }
 
   inline bool                   isValid(void) const                             { return d.interval.isValid(); }
   inline bool                   isNull(void) const                              { return isValid() && (d.count == 0); }
@@ -57,12 +57,16 @@ public:
 
   inline STime                  operator-(void) const                           { return STime(-d.count, d.interval); }
   inline STime                  operator+(const STime &t) const                 { return add(*this, t); }
+  inline STime                  operator+(const SInterval &i) const             { return add(*this, STime(1, i)); }
   inline STime                  operator-(const STime &t) const                 { return add(*this, -t); }
+  inline STime                  operator-(const SInterval &i) const             { return add(*this, STime(-1, i)); }
   inline STime                  operator*(int m) const                          { return STime(d.count * m, d.interval); }
   inline STime                  operator/(int d) const                          { return div(*this, d); }
 
   inline STime                & operator+=(const STime &t)                      { return *this = *this + t; }
+  inline STime                & operator+=(const SInterval &i)                  { return *this = *this + i; }
   inline STime                & operator-=(const STime &t)                      { return *this = *this - t; }
+  inline STime                & operator-=(const SInterval &i)                  { return *this = *this - i; }
   inline STime                & operator*=(int m)                               { return *this = *this * m; }
   inline STime                & operator/=(int d)                               { return *this = *this / d; }
 

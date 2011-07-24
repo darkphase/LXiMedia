@@ -73,9 +73,8 @@ void SAudioDecoderNode::stop(void)
 
 void SAudioDecoderNode::input(const SEncodedAudioBuffer &audioBuffer)
 {
-  LXI_PROFILE_FUNCTION;
-
-  d->future.waitForFinished();
+  LXI_PROFILE_WAIT(d->future.waitForFinished());
+  LXI_PROFILE_FUNCTION(TaskType_AudioProcessing);
 
   if (!audioBuffer.isNull())
   {
@@ -99,7 +98,7 @@ void SAudioDecoderNode::input(const SEncodedAudioBuffer &audioBuffer)
 
 void SAudioDecoderNode::processTask(const SEncodedAudioBuffer &audioBuffer)
 {
-  LXI_PROFILE_FUNCTION;
+  LXI_PROFILE_FUNCTION(TaskType_AudioProcessing);
 
   foreach (const SAudioBuffer &buffer, d->decoder->decodeBuffer(audioBuffer))
     emit output(buffer);

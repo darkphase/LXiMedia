@@ -73,9 +73,8 @@ void SVideoDecoderNode::stop(void)
 
 void SVideoDecoderNode::input(const SEncodedVideoBuffer &videoBuffer)
 {
-  LXI_PROFILE_FUNCTION;
-
-  d->future.waitForFinished();
+  LXI_PROFILE_WAIT(d->future.waitForFinished());
+  LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
 
   if (!videoBuffer.isNull())
   {
@@ -99,7 +98,7 @@ void SVideoDecoderNode::input(const SEncodedVideoBuffer &videoBuffer)
 
 void SVideoDecoderNode::processTask(const SEncodedVideoBuffer &videoBuffer)
 {
-  LXI_PROFILE_FUNCTION;
+  LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
 
   foreach (const SVideoBuffer &buffer, d->decoder->decodeBuffer(videoBuffer))
     emit output(buffer);

@@ -186,7 +186,7 @@ void SPlaylistNode::stop(void)
 
 void SPlaylistNode::process(void)
 {
-  LXI_PROFILE_FUNCTION;
+  LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
 
   if (d->file == NULL)
   {
@@ -285,7 +285,7 @@ void SPlaylistNode::selectStreams(const QList<StreamId> &)
 
 SFileInputNode * SPlaylistNode::openFile(const QString &fileName, quint16 programId)
 {
-  LXI_PROFILE_FUNCTION;
+  LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
 
   SFileInputNode * const file = new SFileInputNode(NULL, fileName);
   if (file->open(programId) && file->start())

@@ -104,19 +104,17 @@ bool FileTester::setup(void)
     // Set stream properties
     if (!audioStreams.isEmpty() && !videoStreams.isEmpty())
     {
-      const SVideoCodec videoInCodec = videoStreams.first().codec;
-
       // Graph options.
       timeStampResampler.setFrameRate(SInterval::fromFrequency(15));
       audioDecoder.setFlags(SInterfaces::AudioDecoder::Flag_DownsampleToStereo);
-      audioMatrix.setChannels(SAudioFormat::Channels_Stereo);
+      audioMatrix.guessMatrices(SAudioFormat::Channels_Stereo);
       audioResampler.setSampleRate(48000);
 
       return true;
     }
     else if (!audioStreams.isEmpty())
     {
-      audioMatrix.setChannels(SAudioFormat::Channels_Stereo);
+      audioMatrix.guessMatrices(SAudioFormat::Channels_Stereo);
       audioResampler.setSampleRate(48000);
 
       return true;

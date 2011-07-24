@@ -74,9 +74,8 @@ void SAudioResampleNode::stop(void)
 
 void SAudioResampleNode::input(const SAudioBuffer &audioBuffer)
 {
-  LXI_PROFILE_FUNCTION;
-
-  d->future.waitForFinished();
+  LXI_PROFILE_WAIT(d->future.waitForFinished());
+  LXI_PROFILE_FUNCTION(TaskType_AudioProcessing);
 
   if (!audioBuffer.isNull() && d->resampler)
     d->future = QtConcurrent::run(this, &SAudioResampleNode::processTask, audioBuffer);
@@ -86,16 +85,15 @@ void SAudioResampleNode::input(const SAudioBuffer &audioBuffer)
 
 void SAudioResampleNode::compensate(float frac)
 {
-  LXI_PROFILE_FUNCTION;
-
-  d->future.waitForFinished();
+  LXI_PROFILE_WAIT(d->future.waitForFinished());
+  LXI_PROFILE_FUNCTION(TaskType_AudioProcessing);
 
   d->resampler->compensate(frac);
 }
 
 void SAudioResampleNode::processTask(const SAudioBuffer &audioBuffer)
 {
-  LXI_PROFILE_FUNCTION;
+  LXI_PROFILE_FUNCTION(TaskType_AudioProcessing);
 
   emit output(d->resampler->processBuffer(audioBuffer));
 }

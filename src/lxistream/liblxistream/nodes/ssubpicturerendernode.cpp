@@ -81,9 +81,8 @@ void SSubpictureRenderNode::stop(void)
 
 void SSubpictureRenderNode::input(const SSubpictureBuffer &subpictureBuffer)
 {
-  LXI_PROFILE_FUNCTION;
-
-  QMutexLocker l(&d->mutex);
+  LXI_PROFILE_WAIT(d->mutex.lock());
+  LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
 
   if (subpictureBuffer.duration().toSec() <= 10)
   {
@@ -97,13 +96,13 @@ void SSubpictureRenderNode::input(const SSubpictureBuffer &subpictureBuffer)
   }
 
   d->enabled = true;
+  d->mutex.unlock();
 }
 
 void SSubpictureRenderNode::input(const SVideoBuffer &videoBuffer)
 {
-  LXI_PROFILE_FUNCTION;
-
-  d->future.waitForFinished();
+  LXI_PROFILE_WAIT(d->future.waitForFinished());
+  LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
 
   if (!videoBuffer.isNull() && d->enabled)
     d->future = QtConcurrent::run(this, &SSubpictureRenderNode::processTask, videoBuffer);
@@ -113,9 +112,8 @@ void SSubpictureRenderNode::input(const SVideoBuffer &videoBuffer)
 
 void SSubpictureRenderNode::processTask(const SVideoBuffer &videoBuffer)
 {
-  LXI_PROFILE_FUNCTION;
-
-  QMutexLocker l(&d->mutex);
+  LXI_PROFILE_WAIT(d->mutex.lock());
+  LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
 
   const SSize size = videoBuffer.format().size();
 
@@ -218,6 +216,8 @@ void SSubpictureRenderNode::processTask(const SVideoBuffer &videoBuffer)
   }
   else
     emit output(videoBuffer);
+
+  d->mutex.unlock();
 }
 
 void SSubpictureRenderNode::buildPalette(const SPixels::RGBAPixel *palette, unsigned paletteSize, SVideoFormat::Format dstFormat, QByteArray &dstPalette)

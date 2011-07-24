@@ -29,6 +29,10 @@ SOURCES += sdisplay.cpp \
     svideoview.cpp \
     svumeter.cpp
 
+# Nodes
+HEADERS += $${PWD}/$${LXIMEDIA_DIR}/include/liblxistreamgui/nodes/svideogeneratornode.h
+SOURCES += nodes/svideogeneratornode.cpp
+
 HEADERS += lxistreamguiprivate.h
 SOURCES += lxistreamguiprivate.cpp
 

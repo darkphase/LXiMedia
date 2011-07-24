@@ -24,11 +24,20 @@
 namespace LXiMediaCenter {
 namespace MediaPlayerBackend {
 
-const char  ConfigServer::dirSplit =
+const char ConfigServer::dirSplit =
 #if defined(Q_OS_UNIX)
     ':';
 #elif  defined(Q_OS_WIN)
     ';';
+#else
+#error Not implemented.
+#endif
+
+const Qt::CaseSensitivity ConfigServer::caseSensitivity =
+#if defined(Q_OS_UNIX)
+    Qt::CaseSensitive;
+#elif  defined(Q_OS_WIN)
+    Qt::CaseInsensitive;
 #else
 #error Not implemented.
 #endif
@@ -146,13 +155,6 @@ const QSet<QString> & ConfigServer::hiddenDirs(void)
 
 bool ConfigServer::isHidden(const QString &path)
 {
-  static const Qt::CaseSensitivity caseSensitive =
-#ifdef Q_OS_WIN
-      Qt::CaseInsensitive;
-#else
-      Qt::CaseSensitive;
-#endif
-
   const QFileInfo info(path);
 
   QString absoluteFilePath = info.absolutePath();
@@ -164,7 +166,7 @@ bool ConfigServer::isHidden(const QString &path)
   foreach (const QString &hidden, ConfigServer::hiddenDirs())
   {
     const QString path = hidden.endsWith('/') ? hidden : (hidden + '/');
-    if (absoluteFilePath.startsWith(path, caseSensitive) || canonicalFilePath.startsWith(path, caseSensitive))
+    if (absoluteFilePath.startsWith(path, caseSensitivity) || canonicalFilePath.startsWith(path, caseSensitivity))
       return true;
   }
 

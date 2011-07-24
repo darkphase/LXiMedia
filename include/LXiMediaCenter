@@ -4,6 +4,7 @@
 #include <LXiCore>
 #include <LXiServer>
 #include <LXiStream>
+#include <LXiStreamGui>
 
 #ifdef __cplusplus
 
