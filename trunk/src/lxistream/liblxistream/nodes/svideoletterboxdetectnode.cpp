@@ -65,7 +65,7 @@ void SVideoLetterboxDetectNode::stop(void)
 
 void SVideoLetterboxDetectNode::input(const SVideoBuffer &videoBuffer)
 {
-  LXI_PROFILE_FUNCTION;
+  LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
 
   if (!videoBuffer.isNull())
   {

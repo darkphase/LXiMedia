@@ -461,7 +461,6 @@ SHttpServer::SocketOp Backend::handleHttpRequest(const SHttpServer::RequestMessa
           root.appendChild(dlnaClient);
           dlnaClient.setAttribute("name", group.mid(7));
           dlnaClient.setAttribute("useragent", settings.value("UserAgent", tr("Unknown")).toString());
-          dlnaClient.setAttribute("lastseen", settings.value("LastSeen").toDateTime().toString(Qt::ISODate));
         }
 
         settings.endGroup();
@@ -641,11 +640,14 @@ void Backend::setContentDirectoryQueryItems(void)
       settings.value("TranscodeChannels", settings.defaultTranscodeChannelName()).toString();
   const QString genericTranscodeMusicChannels =
       settings.value("TranscodeMusicChannels", settings.defaultTranscodeMusicChannelName()).toString();
+  const QString genericMusicMode =
+      settings.value("MusicMode", settings.defaultMusicModeName()).toString();
 
   foreach (const QString &group, settings.childGroups() << QString::null)
   if (group.isEmpty() || group.startsWith("Client_"))
   {
-    settings.beginGroup(group);
+    if (!group.isEmpty())
+      settings.beginGroup(group);
 
     QMap<QString, QString> queryItems;
 
@@ -689,12 +691,19 @@ void Backend::setContentDirectoryQueryItems(void)
 
     const QString encodeMode = settings.value("EncodeMode", genericEncodeMode).toString();
     if (!encodeMode.isEmpty())
-      queryItems["encode"] = encodeMode.toLower();
+      queryItems["encodemode"] = encodeMode.toLower();
     else
-      queryItems["encode"] = "fast";
+      queryItems["encodemode"] = "fast";
 
-    masterContentDirectory.setQueryItems(QString::null, queryItems);
+    const QString musicMode = settings.value("MusicMode", genericMusicMode).toString();
+    if (!musicMode.isEmpty())
+      queryItems["musicmode"] = musicMode.toLower();
+    else
+      queryItems["musicmode"] = "leavevideo";
 
-    settings.endGroup();
+    masterContentDirectory.setQueryItems(!group.isEmpty() ? group.mid(7) : QString::null, queryItems);
+
+    if (!group.isEmpty())
+      settings.endGroup();
   }
 }

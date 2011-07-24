@@ -144,8 +144,7 @@ private:
   static const char     * const htmlAbout;
 
   static const char     * const htmlConfigMain;
-  static const char     * const htmlConfigDlnaDefaultRow;
-  static const char     * const htmlConfigDlnaClientRow;
+  static const char     * const htmlConfigDlnaRow;
   static const char     * const htmlConfigOption;
   static const char     * const htmlConfigImdbDownload;
 };

@@ -17,75 +17,88 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "nodes/svideodeinterlacenode.h"
-#include "sinterfaces.h"
+#include "nodes/svideogeneratornode.h"
+#include "simage.h"
 
-namespace LXiStream {
+namespace LXiStreamGui {
 
-struct SVideoDeinterlaceNode::Data
+struct SVideoGeneratorNode::Data
 {
-  SInterfaces::VideoDeinterlacer * deinterlacer;
-  QFuture<void>                 future;
+  SImage                        image;
+  SInterval                     frameRate;
+  SVideoBuffer                  videoBuffer;
+  STime                         videoTime;
 };
 
-SVideoDeinterlaceNode::SVideoDeinterlaceNode(SGraph *parent, const QString &algo)
+SVideoGeneratorNode::SVideoGeneratorNode(SGraph *parent)
   : SInterfaces::Node(parent),
     d(new Data())
 {
-  d->deinterlacer = SInterfaces::VideoDeinterlacer::create(this, algo);
+  d->frameRate = SInterval::fromFrequency(25);
 }
 
-SVideoDeinterlaceNode::~SVideoDeinterlaceNode()
+SVideoGeneratorNode::~SVideoGeneratorNode()
 {
-  d->future.waitForFinished();
-  delete d->deinterlacer;
   delete d;
   *const_cast<Data **>(&d) = NULL;
 }
 
-QStringList SVideoDeinterlaceNode::algorithms(void)
+void SVideoGeneratorNode::setImage(const SImage &image)
 {
-  return SInterfaces::VideoDeinterlacer::available();
+  d->image = image;
 }
 
-bool SVideoDeinterlaceNode::start(void)
+const SImage & SVideoGeneratorNode::image(void) const
 {
+  return d->image;
+}
+
+void SVideoGeneratorNode::setFrameRate(const SInterval &frameRate)
+{
+  d->frameRate = frameRate;
+}
+
+const SInterval & SVideoGeneratorNode::frameRate(void) const
+{
+  return d->frameRate;
+}
+
+bool SVideoGeneratorNode::start(void)
+{
+  if (!d->image.isNull())
+  {
+    d->videoBuffer = d->image.toVideoBuffer(SInterval::fromFrequency(25));
+    d->videoBuffer.setTimeStamp(STime::null);
+  }
+
   return true;
 }
 
-void SVideoDeinterlaceNode::stop(void)
+void SVideoGeneratorNode::stop(void)
 {
-  d->future.waitForFinished();
+  d->videoBuffer = SVideoBuffer();
 }
 
-void SVideoDeinterlaceNode::input(const SVideoBuffer &videoBuffer)
+void SVideoGeneratorNode::input(const SAudioBuffer &audioBuffer)
 {
-  LXI_PROFILE_WAIT(d->future.waitForFinished());
   LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
 
-  if (d->deinterlacer)
+  if (!audioBuffer.isNull())
   {
-    const SSize size = videoBuffer.format().size();
-    const SVideoFormat::FieldMode fieldMode = videoBuffer.format().fieldMode();
-    if ((fieldMode == SVideoFormat::FieldMode_InterlacedTopFirst) ||
-        (fieldMode == SVideoFormat::FieldMode_InterlacedBottomFirst) ||
-        ((size.width() >= 1920) || (size.height() >= 1080)))
+    if (!d->videoTime.isValid() || (qAbs(d->videoTime - audioBuffer.timeStamp()).toSec() >= 3))
+      d->videoTime = audioBuffer.timeStamp();
+
+    while (d->videoTime <= audioBuffer.timeStamp())
     {
-      d->future = QtConcurrent::run(this, &SVideoDeinterlaceNode::processTask, videoBuffer);
+      if (!d->videoBuffer.isNull())
+      {
+        d->videoBuffer.setTimeStamp(d->videoTime);
+        emit output(d->videoBuffer);
+      }
+
+      d->videoTime += d->frameRate;
     }
-    else
-      emit output(videoBuffer);
   }
-  else
-    emit output(videoBuffer);
-}
-
-void SVideoDeinterlaceNode::processTask(const SVideoBuffer &videoBuffer)
-{
-  LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
-
-  foreach (const SVideoBuffer &buffer, d->deinterlacer->processBuffer(videoBuffer))
-    emit output(buffer);
 }
 
 } // End of namespace

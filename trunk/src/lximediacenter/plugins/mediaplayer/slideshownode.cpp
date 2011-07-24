@@ -106,9 +106,8 @@ void SlideShowNode::stop(void)
 
 void SlideShowNode::process(void)
 {
-  LXI_PROFILE_FUNCTION;
-
-  future.waitForFinished();
+  LXI_PROFILE_WAIT(future.waitForFinished());
+  LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
 
   if (currentFrame == 0)
   {
@@ -158,9 +157,9 @@ void SlideShowNode::process(void)
 
 void SlideShowNode::loadImage(const QString &fileName)
 {
-  LXI_PROFILE_FUNCTION;
+  LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
 
-  SImage img(outSize.size(), QImage::Format_RGB32);
+  SImage img(outSize, QImage::Format_RGB32);
 
   QPainter p;
   p.begin(&img);
@@ -179,12 +178,12 @@ void SlideShowNode::loadImage(const QString &fileName)
     }
   p.end();
 
-  nextBuffer = img.toVideoBuffer(ar, SInterval::fromFrequency(frameRate));
+  nextBuffer = img.toVideoBuffer(SInterval::fromFrequency(frameRate));
 }
 
 void SlideShowNode::computeVideoBuffer(const SVideoBuffer &a, const SVideoBuffer &b, int fade)
 {
-  LXI_PROFILE_FUNCTION;
+  LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
 
   SVideoBuffer videoBuffer;
   if (fade <= 0)
@@ -213,14 +212,14 @@ void SlideShowNode::computeVideoBuffer(const SVideoBuffer &a, const SVideoBuffer
 
 SVideoBuffer SlideShowNode::blackBuffer(void) const
 {
-  SImage img(outSize.size(), QImage::Format_RGB32);
+  SImage img(outSize, QImage::Format_RGB32);
 
   QPainter p;
   p.begin(&img);
     p.fillRect(img.rect(), Qt::black);
   p.end();
 
-  return img.toVideoBuffer(outSize.aspectRatio(), SInterval::fromFrequency(frameRate));
+  return img.toVideoBuffer(SInterval::fromFrequency(frameRate));
 }
 
 } } // End of namespaces

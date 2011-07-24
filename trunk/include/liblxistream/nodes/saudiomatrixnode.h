@@ -22,7 +22,6 @@
 
 #include <QtCore>
 #include <LXiCore>
-#include "../saudiobuffer.h"
 #include "../sinterfaces.h"
 #include "../export.h"
 
@@ -39,7 +38,28 @@ class LXISTREAM_PUBLIC SAudioMatrixNode : public SInterfaces::Node
 {
 Q_OBJECT
 public:
-  enum Matrix
+  class LXISTREAM_PUBLIC Matrix
+  {
+  friend class SAudioMatrixNode;
+  public:
+                                Matrix(void);
+                                ~Matrix(void);
+
+    void                        setChannels(SAudioFormat::Channels);
+    SAudioFormat::Channels      channels(void) const;
+
+    void                        setCell(SAudioFormat::Channel from, SAudioFormat::Channel to, float);
+    float                       cell(SAudioFormat::Channel from, SAudioFormat::Channel to) const;
+
+  private:
+    struct
+    {
+      float                     matrix[32][32];
+      SAudioFormat::Channels    channels;
+    }                           d;
+  };
+
+  enum MatrixMode
   {
     Matrix_Identity = 0,
     Matrix_SingleToAll,
@@ -57,14 +77,12 @@ public:
                                 SAudioMatrixNode(SGraph *);
   virtual                       ~SAudioMatrixNode();
 
-  void                          setMatrix(Matrix);
-  void                          setCell(SAudioFormat::Channel from, SAudioFormat::Channel to, float);
-  float                         cell(SAudioFormat::Channel from, SAudioFormat::Channel to) const;
+  void                          setMatrix(SAudioFormat::Channels from, Matrix);
+  void                          setMatrix(SAudioFormat::Channels from, MatrixMode, SAudioFormat::Channels to);
+  void                          guessMatrices(SAudioFormat::Channels to);
+  const Matrix                & matrix(SAudioFormat::Channels from) const;
 
-  void                          setChannels(SAudioFormat::Channels);
-  SAudioFormat::Channels        channels(void) const;
-
-  static Matrix                 guessMatrix(SAudioFormat::Channels from, SAudioFormat::Channels to);
+  static MatrixMode             guessMatrix(SAudioFormat::Channels from, SAudioFormat::Channels to);
 
 public: // From SInterfaces::Node
   virtual bool                  start(void);

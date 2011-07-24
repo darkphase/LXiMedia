@@ -69,7 +69,9 @@ SOURCES += saudiobuffer.cpp \
 # Nodes
 HEADERS += $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/saudiodecodernode.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/saudioencodernode.h \
+    $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/saudiogapremovernode.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/saudiomatrixnode.h \
+    $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/saudionormalizenode.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/saudioresamplenode.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/sdatadecodernode.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/sfileinputnode.h \
@@ -90,8 +92,11 @@ HEADERS += $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/saudiodecodernode
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/svideoresizenode.h
 SOURCES += nodes/saudiodecodernode.cpp \
     nodes/saudioencodernode.cpp \
+    nodes/saudiogapremovernode.cpp \
     nodes/saudiomatrixnode.cpp \
     nodes/saudiomatrixnode.mix.c \
+    nodes/saudionormalizenode.cpp \
+    nodes/saudionormalizenode.mul.c \
     nodes/saudioresamplenode.cpp \
     nodes/sdatadecodernode.cpp \
     nodes/sfileinputnode.cpp \

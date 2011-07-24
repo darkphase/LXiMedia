@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010 by A.J. Admiraal                                   *
+ *   Copyright (C) 2007 by A.J. Admiraal                                   *
  *   code@admiraal.dds.nl                                                  *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -17,51 +17,44 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXSTREAM_SGRAPH_H
-#define LXSTREAM_SGRAPH_H
+#ifndef LXISTREAM_SAUDIONORMALIZENODE_H
+#define LXISTREAM_SAUDIONORMALIZENODE_H
 
 #include <QtCore>
 #include <LXiCore>
-#include "export.h"
+#include "../sinterfaces.h"
+#include "../export.h"
 
 namespace LXiStream {
 
-class STimer;
-
-namespace SInterfaces {
-  class Node;
-  class SourceNode;
-  class SinkNode;
-}
-
-class LXISTREAM_PUBLIC SGraph : public QThread
+/*! This audio filter can be used to normalize an audio stream.
+ */
+class LXISTREAM_PUBLIC SAudioNormalizeNode : public SInterfaces::Node
 {
 Q_OBJECT
 public:
-  explicit                      SGraph(void);
-  virtual                       ~SGraph();
+public:
+                                SAudioNormalizeNode(SGraph *);
+  virtual                       ~SAudioNormalizeNode();
 
-  static bool                   connect(const QObject *, const char *, const QObject *, const char *);
-  bool                          connect(const QObject *, const char *, const char *) const;
-
-  bool                          isRunning(void) const;
-
-  void                          addNode(SInterfaces::Node *);
-  void                          addNode(SInterfaces::SourceNode *);
-  void                          addNode(SInterfaces::SinkNode *);
-
-public slots:
+public: // From SInterfaces::Node
   virtual bool                  start(void);
   virtual void                  stop(void);
 
-protected: // From QThread and QObject
-  virtual void                  run(void);
-  virtual void                  customEvent(QEvent *);
+public slots:
+  void                          input(const SAudioBuffer &);
+
+signals:
+  void                          output(const SAudioBuffer &);
+
+private:
+  _lxi_internal void            processTask(const SAudioBuffer &);
 
 private:
   struct Data;
   Data                  * const d;
 };
+
 
 } // End of namespace
 

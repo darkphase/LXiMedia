@@ -35,21 +35,22 @@ struct STimeStampSyncNode::Queue
 struct STimeStampSyncNode::Data
 {
   inline Data(void)
-    : maxDelay(STime::fromSec(2)), purgeDelay(STime::fromSec(3)), running(false),
-      inTimeStamp(STime::null)
+    : maxAudioDelay(STime::fromMSec(24) * maxAudioBufferCount),
+      maxVideoDelay(STime::fromMSec(40) * maxVideoBufferCount),
+      running(false), inTimeStamp(STime::null)
   {
   }
 
   static const int              maxAudioBufferCount = 256;
-  static const int              maxVideoBufferCount = 32;
+  static const int              maxVideoBufferCount = 96;
 
   QMutex                        mutex;
 
   QMap<quint16, Queue<SAudioBuffer> > audioQueue;
   QMap<quint16, Queue<SVideoBuffer> > videoQueue;
 
-  const STime                   maxDelay;
-  const STime                   purgeDelay;
+  const STime                   maxAudioDelay;
+  const STime                   maxVideoDelay;
   bool                          running;
   STime                         firstTimeStamp;
   STime                         inTimeStamp;
@@ -103,7 +104,7 @@ void STimeStampSyncNode::stop(void)
 
 void STimeStampSyncNode::input(const SAudioBuffer &audioBuffer)
 {
-  LXI_PROFILE_FUNCTION;
+  LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
   QMutexLocker l(&d->mutex);
 
   if (!audioBuffer.isNull())
@@ -117,7 +118,7 @@ void STimeStampSyncNode::input(const SAudioBuffer &audioBuffer)
         i = d->audioQueue.insert(0, Queue<SAudioBuffer>(d->startTime));
 
       // Dump out-of-range buffers
-      for (QMultiMap<STime, SAudioBuffer>::Iterator j = i->buffers.lowerBound(timeStamp + d->purgeDelay);
+      for (QMultiMap<STime, SAudioBuffer>::Iterator j = i->buffers.lowerBound(timeStamp + d->maxAudioDelay);
            j != i->buffers.end(); )
       {
         if (d->videoQueue.isEmpty())
@@ -142,7 +143,7 @@ void STimeStampSyncNode::input(const SAudioBuffer &audioBuffer)
         output();
       }
       else for (QMultiMap<STime, SAudioBuffer>::Iterator j=i->buffers.begin(); j!=i->buffers.end(); )
-      if ((qAbs(audioBuffer.timeStamp() - j->timeStamp()) > d->maxDelay) ||
+      if ((qAbs(audioBuffer.timeStamp() - j->timeStamp()) > d->maxAudioDelay) ||
           (i->buffers.count() > d->maxAudioBufferCount))
       {
         SAudioBuffer ab = *j;
@@ -162,7 +163,7 @@ void STimeStampSyncNode::input(const SAudioBuffer &audioBuffer)
 
 void STimeStampSyncNode::input(const SVideoBuffer &videoBuffer)
 {
-  LXI_PROFILE_FUNCTION;
+  LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
   QMutexLocker l(&d->mutex);
 
   if (!videoBuffer.isNull())
@@ -180,7 +181,7 @@ void STimeStampSyncNode::input(const SVideoBuffer &videoBuffer)
       }
 
       // Dump out-of-range buffers
-      for (QMultiMap<STime, SVideoBuffer>::Iterator j = i->buffers.lowerBound(timeStamp + d->purgeDelay);
+      for (QMultiMap<STime, SVideoBuffer>::Iterator j = i->buffers.lowerBound(timeStamp + d->maxVideoDelay);
            j != i->buffers.end(); )
       {
         j = i->buffers.erase(j);
@@ -194,7 +195,7 @@ void STimeStampSyncNode::input(const SVideoBuffer &videoBuffer)
         output();
       }
       else for (QMultiMap<STime, SVideoBuffer>::Iterator j=i->buffers.begin(); j!=i->buffers.end(); )
-      if ((qAbs(videoBuffer.timeStamp() - j->timeStamp()) > d->maxDelay) ||
+      if ((qAbs(videoBuffer.timeStamp() - j->timeStamp()) > d->maxVideoDelay) ||
           (i->buffers.count() > d->maxVideoBufferCount))
       {
         SVideoBuffer vb = *j;

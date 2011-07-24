@@ -176,36 +176,22 @@ const char * const Backend::htmlConfigMain =
     "  </fieldset>\n"
     "  <fieldset>\n"
     "   <legend>{TR_DLNA_SETTINGS}</legend>\n"
-    "   <form name=\"dlnasettings\" action=\"settings.html\" method=\"get\">\n"
-    "    <input type=\"hidden\" name=\"dlnasettings\" value=\"dlnasettings\" />\n"
-    "    <table>\n"
-    "     <tr>\n"
-    "      <td></td>\n"
-    "      <td>\n"
-    "       {TR_MEDIA_TRANSCODE_SETTINGS}<br />\n"
-    "       {TR_MEDIA_TRANSCODE_SETTINGS_EXPLAIN}\n"
-    "      </td>\n"
-    "      <td>\n"
-    "       {TR_MUSIC_TRANSCODE_SETTINGS}<br />\n"
-    "       {TR_MUSIC_TRANSCODE_SETTINGS_EXPLAIN}"
-    "      </td>\n"
-    "      <td></td>\n"
-    "     </tr>\n"
+    "   {TR_MEDIA_TRANSCODE_SETTINGS_EXPLAIN}<br />\n"
+    "   <br />\n"
+    "   {TR_AUDIO_TRANSCODE_SETTINGS_EXPLAIN}<br />\n"
+    "   <br />\n"
     "{CLIENT_ROWS}"
-    "     <tr><td colspan=\"4\">\n"
-    "     <input type=\"submit\" name=\"save\" value=\"{TR_SAVE}\" />\n"
-    "     </td></tr>\n"
-    "    </table>\n"
-    "   </form>\n"
     "  </fieldset>\n"
     " </div>\n";
 
-const char * const Backend::htmlConfigDlnaDefaultRow =
-    "   <tr>\n"
-    "    <td>\n"
-    "     <p>{NAME}</p>"
-    "    </td>\n"
-    "    <td>\n"
+const char * const Backend::htmlConfigDlnaRow =
+    "   <fieldset>\n"
+    "    <legend>{NAME}</legend>\n"
+    "    <form name=\"dlnasettings\" action=\"settings.html\" method=\"get\">\n"
+    "     <input type=\"hidden\" name=\"dlnasettings\" value=\"{NAME}\" />\n"
+    "     {TR_USER_AGENT}: \"{USERAGENT}\"<br />\n"
+    "     <br />\n"
+    "     {TR_VIDEO_SETTINGS}:\n"
     "     <select name=\"transcodesize\">\n"
     "{FORMATS}"
     "     </select>\n"
@@ -220,48 +206,21 @@ const char * const Backend::htmlConfigDlnaDefaultRow =
     "      <option value=\"Fast\" {SELECTED_FAST}>{TR_FAST}</option>\n"
     "      <option value=\"Slow\" {SELECTED_SLOW}>{TR_HIGH_QUALITY}</option>\n"
     "     </select>\n"
-    "    </td>\n"
-    "    <td>\n"
+    "     <br /><br />\n"
+    "     {TR_MUSIC_SETTINGS}:\n"
     "     <select name=\"musicchannels\">\n"
     "{MUSICCHANNELS}"
     "     </select>\n"
-    "    </td>\n"
-    "    <td>\n"
+    "     <select name=\"musicmode\">\n"
+    "      <option value=\"LeaveVideo\" {SELECTED_LEAVEVIDEO}>{TR_LEAVE_VIDEO}</option>\n"
+    "      <option value=\"AddVideoBlack\" {SELECTED_ADDBLACKVIDEO}>{TR_ADD_BLACK_VIDEO}</option>\n"
+    "      <option value=\"RemoveVideo\" {SELECTED_REMOVEVIDEO}>{TR_REMOVE_VIDEO}</option>\n"
+    "     </select>\n"
+    "     <br /><br />\n"
+    "     <input type=\"submit\" name=\"save\" value=\"{TR_SAVE}\" />\n"
     "     <input type=\"submit\" name=\"defaults\" value=\"{TR_DEFAULTS}\" />\n"
-    "    </td>\n"
-    "   </tr>\n";
-
-const char * const Backend::htmlConfigDlnaClientRow =
-    "   <tr>\n"
-    "    <td>\n"
-    "     <p title=\"{USERAGENT}\">{NAME}</p>\n"
-    "     {LAST_SEEN}"
-    "    </td>\n"
-    "    <td>\n"
-    "     <select name=\"transcodesize-{NAME}\">\n"
-    "{FORMATS}"
-    "     </select>\n"
-    "     <select name=\"cropmode-{NAME}\">\n"
-    "      <option value=\"Box\" {SELECTED_BOX}>{TR_LETTERBOX}</option>\n"
-    "      <option value=\"Zoom\" {SELECTED_ZOOM}>{TR_FULLSCREEN}</option>\n"
-    "     </select>\n"
-    "     <select name=\"channels-{NAME}\">\n"
-    "{CHANNELS}"
-    "     </select>\n"
-    "     <select name=\"encodemode-{NAME}\">\n"
-    "      <option value=\"Fast\" {SELECTED_FAST}>{TR_FAST}</option>\n"
-    "      <option value=\"Slow\" {SELECTED_SLOW}>{TR_HIGH_QUALITY}</option>\n"
-    "     </select>\n"
-    "    </td>\n"
-    "    <td>\n"
-    "     <select name=\"musicchannels-{NAME}\">\n"
-    "{MUSICCHANNELS}"
-    "     </select>\n"
-    "    </td>\n"
-    "    <td>\n"
-    "     <input type=\"submit\" name=\"erase-{NAME}\" value=\"{TR_ERASE}\" />\n"
-    "    </td>\n"
-    "   </tr>\n";
+    "    </form>\n"
+    "   </fieldset>\n";
 
 const char * const Backend::htmlConfigOption =
     "      <option value=\"{VALUE}\" {SELECTED}>{TEXT}</option>\n";
@@ -572,104 +531,74 @@ SHttpServer::SocketOp Backend::handleHtmlConfig(const SHttpServer::RequestMessag
   // DLNA
   settings.beginGroup("DLNA");
 
-  if (file.url().hasQueryItem("dlnasettings") && file.url().hasQueryItem("save"))
+  if (file.url().hasQueryItem("dlnasettings"))
   {
-    const QString sizeName =
-        QByteArray::fromPercentEncoding(file.url().queryItemValue("transcodesize").toAscii().replace('+', ' '));
-    if (!sizeName.isEmpty())
-      settings.setValue("TranscodeSize", sizeName);
-    else
-      settings.remove("TranscodeSize");
+    const QString group = "Client_" + file.url().queryItemValue("dlnasettings");
 
-    const QString cropName =
-        QByteArray::fromPercentEncoding(file.url().queryItemValue("cropmode").toAscii().replace('+', ' '));
-    if (!cropName.isEmpty())
-      settings.setValue("TranscodeCrop", cropName);
-    else
-      settings.remove("TranscodeCrop");
-
-    const QString encodeModeName =
-        QByteArray::fromPercentEncoding(file.url().queryItemValue("encodemode").toAscii().replace('+', ' '));
-    if (!encodeModeName.isEmpty())
-      settings.setValue("EncodeMode", encodeModeName);
-    else
-      settings.remove("EncodeMode");
-
-    const QString channelsName =
-        QByteArray::fromPercentEncoding(file.url().queryItemValue("channels").toAscii().replace('+', ' '));
-    if (!channelsName.isEmpty())
-      settings.setValue("TranscodeChannels", channelsName);
-    else
-      settings.remove("TranscodeChannels");
-
-    const QString musicChannelsName =
-        QByteArray::fromPercentEncoding(file.url().queryItemValue("musicchannels").toAscii().replace('+', ' '));
-    if (!musicChannelsName.isEmpty())
-      settings.setValue("TranscodeMusicChannels", musicChannelsName);
-    else
-      settings.remove("TranscodeMusicChannels");
-
-    foreach (const QString &group, settings.childGroups())
-    if (group.startsWith("Client_"))
+    bool needEndGroup = false;
+    if ((file.url().queryItemValue("dlnasettings") != "_default") &&
+        (settings.childGroups().contains(group)))
     {
       settings.beginGroup(group);
-      const QString name = group.mid(7);
+      needEndGroup = true;
+    }
 
-      const QString clientSizeName =
-          QByteArray::fromPercentEncoding(file.url().queryItemValue("transcodesize-" + name).toAscii().replace('+', ' '));
-      if (!clientSizeName.isEmpty() && (clientSizeName != sizeName))
-        settings.setValue("TranscodeSize", clientSizeName);
+    if (file.url().hasQueryItem("save"))
+    {
+      const QString sizeName =
+          QByteArray::fromPercentEncoding(file.url().queryItemValue("transcodesize").toAscii().replace('+', ' '));
+      if (!sizeName.isEmpty())
+        settings.setValue("TranscodeSize", sizeName);
       else
         settings.remove("TranscodeSize");
 
-      const QString clientCropName =
-          QByteArray::fromPercentEncoding(file.url().queryItemValue("cropmode-" + name).toAscii().replace('+', ' '));
-      if (!clientCropName.isEmpty() && (clientCropName != cropName))
-        settings.setValue("TranscodeCrop", clientCropName);
+      const QString cropName =
+          QByteArray::fromPercentEncoding(file.url().queryItemValue("cropmode").toAscii().replace('+', ' '));
+      if (!cropName.isEmpty())
+        settings.setValue("TranscodeCrop", cropName);
       else
         settings.remove("TranscodeCrop");
 
-      const QString clientEncodeModeName =
-          QByteArray::fromPercentEncoding(file.url().queryItemValue("encodemode-" + name).toAscii().replace('+', ' '));
-      if (!clientEncodeModeName.isEmpty() && (clientEncodeModeName != encodeModeName))
-        settings.setValue("EncodeMode", clientEncodeModeName);
+      const QString encodeModeName =
+          QByteArray::fromPercentEncoding(file.url().queryItemValue("encodemode").toAscii().replace('+', ' '));
+      if (!encodeModeName.isEmpty())
+        settings.setValue("EncodeMode", encodeModeName);
       else
         settings.remove("EncodeMode");
 
-      const QString clientChannelsName =
-          QByteArray::fromPercentEncoding(file.url().queryItemValue("channels-" + name).toAscii().replace('+', ' '));
-      if (!clientChannelsName.isEmpty() && (clientChannelsName != channelsName))
-        settings.setValue("TranscodeChannels", clientChannelsName);
+      const QString channelsName =
+          QByteArray::fromPercentEncoding(file.url().queryItemValue("channels").toAscii().replace('+', ' '));
+      if (!channelsName.isEmpty())
+        settings.setValue("TranscodeChannels", channelsName);
       else
         settings.remove("TranscodeChannels");
 
-      const QString clientMusicChannelsName =
-          QByteArray::fromPercentEncoding(file.url().queryItemValue("musicchannels-" + name).toAscii().replace('+', ' '));
-      if (!clientMusicChannelsName.isEmpty() && (clientMusicChannelsName != musicChannelsName))
-        settings.setValue("TranscodeMusicChannels", clientMusicChannelsName);
+      const QString musicChannelsName =
+          QByteArray::fromPercentEncoding(file.url().queryItemValue("musicchannels").toAscii().replace('+', ' '));
+      if (!musicChannelsName.isEmpty())
+        settings.setValue("TranscodeMusicChannels", musicChannelsName);
       else
         settings.remove("TranscodeMusicChannels");
 
-      settings.endGroup();
+      const QString musicModeName =
+          QByteArray::fromPercentEncoding(file.url().queryItemValue("musicmode").toAscii().replace('+', ' '));
+      if (!musicModeName.isEmpty())
+        settings.setValue("MusicMode", musicModeName);
+      else
+        settings.remove("MusicMode");
+    }
+    else if (file.url().hasQueryItem("defaults"))
+    {
+      settings.remove("TranscodeSize");
+      settings.remove("TranscodeCrop");
+      settings.remove("EncodeMode");
+      settings.remove("TranscodeChannels");
+      settings.remove("TranscodeMusicChannels");
+      settings.remove("MusicMode");
     }
 
-    setContentDirectoryQueryItems();
-  }
-  else if (file.url().hasQueryItem("dlnasettings") && file.url().hasQueryItem("defaults"))
-  {
-    settings.remove("TranscodeSize");
-    settings.remove("TranscodeCrop");
-    settings.remove("EncodeMode");
-    settings.remove("TranscodeChannels");
-    settings.remove("TranscodeMusicChannels");
-
-    setContentDirectoryQueryItems();
-  }
-  else if (file.url().hasQueryItem("dlnasettings"))
-  {
-    foreach (const QString &group, settings.childGroups())
-    if (group.startsWith("Client_") && file.url().hasQueryItem("erase-" + group.mid(7)))
-      settings.remove(group);
+    if (needEndGroup)
+      settings.endGroup();
 
     setContentDirectoryQueryItems();
   }
@@ -684,30 +613,39 @@ SHttpServer::SocketOp Backend::handleHtmlConfig(const SHttpServer::RequestMessag
       settings.value("TranscodeChannels", settings.defaultTranscodeChannelName()).toString();
   const QString genericTranscodeMusicChannels =
       settings.value("TranscodeMusicChannels", settings.defaultTranscodeMusicChannelName()).toString();
+  const QString genericMusicMode =
+      settings.value("MusicMode", settings.defaultMusicModeName()).toString();
 
   HtmlParser htmlParser;
   htmlParser.setField("TR_DLNA_SETTINGS", tr("DLNA transcode settings"));
-  htmlParser.setField("TR_MEDIA_TRANSCODE_SETTINGS", tr("Media transcode settings"));
-  htmlParser.setField("TR_MUSIC_TRANSCODE_SETTINGS", tr("Music transcode settings"));
+  htmlParser.setField("TR_VIDEO_SETTINGS", tr("Video transcode settings"));
+  htmlParser.setField("TR_MUSIC_SETTINGS", tr("Music transcode settings"));
+  htmlParser.setField("TR_USER_AGENT", tr("User agent"));
   htmlParser.setField("TR_SAVE", tr("Save"));
-  htmlParser.setField("TR_ERASE", tr("Erase"));
   htmlParser.setField("TR_DEFAULTS", tr("Defaults"));
   htmlParser.setField("TR_LETTERBOX", tr("Letterbox"));
   htmlParser.setField("TR_FULLSCREEN", tr("Fullscreen"));
   htmlParser.setField("TR_FAST", tr("Fast"));
   htmlParser.setField("TR_HIGH_QUALITY", tr("High quality"));
+  htmlParser.setField("TR_LEAVE_VIDEO", tr("Leave video"));
+  htmlParser.setField("TR_ADD_BLACK_VIDEO", tr("Add black video"));
+  htmlParser.setField("TR_REMOVE_VIDEO", tr("Remove video"));
 
   htmlParser.setField("TR_MEDIA_TRANSCODE_SETTINGS_EXPLAIN",
-    tr("The transcode settings for the DLNA clients. Note that higher settings "
-       "require more CPU power and more network bandwidth. The \"Letterbox\" "
-       "setting will add black bars to the image if the aspect ratio does not "
-       "match, the \"Fullscreen\" setting will zoom in and cut off part of the "
-       "image. The \"High quality\" setting will use more CPU power but gives "
-       "higher quality images than the \"Fast\" setting, which only encodes "
-       "intra-frames."));
+    tr("This form will allow adjustment of the transcode settings for the DLNA "
+       "clients. Note that higher settings require more CPU power and more "
+       "network bandwidth. The \"Letterbox\" setting will add black bars to "
+       "the image if the aspect ratio does not match, whereas the \"Fullscreen\" "
+       "setting will zoom in and cut off part of the image. The \"High quality\" "
+       "setting will use more CPU power but gives higher quality images than the "
+       "\"Fast\" setting, which only encodes intra-frames."));
 
-  htmlParser.setField("TR_MUSIC_TRANSCODE_SETTINGS_EXPLAIN",
-    tr("The transcode settings specifically for music."));
+  htmlParser.setField("TR_AUDIO_TRANSCODE_SETTINGS_EXPLAIN",
+    tr("There are two separate transcode settings for music. The "
+       "\"4.0 Quadraphonic\" setting can be used to duplicate the front channels "
+       "to the rear channels. Furthermore, the \"Add black video\" setting can "
+       "be used to add a video stream with black images to simulate that a TV is "
+       "switched off (audio only)."));
 
   htmlParser.setField("CLIENT_ROWS", QByteArray(""));
 
@@ -754,6 +692,7 @@ SHttpServer::SocketOp Backend::handleHtmlConfig(const SHttpServer::RequestMessag
 
   // Default settings
   htmlParser.setField("NAME", tr("Default settings"));
+  htmlParser.setField("USERAGENT", tr("N/A"));
   htmlParser.setField("FORMATS", QByteArray(""));
   htmlParser.setField("CHANNELS", QByteArray(""));
   htmlParser.setField("MUSICCHANNELS", QByteArray(""));
@@ -789,7 +728,26 @@ SHttpServer::SocketOp Backend::handleHtmlConfig(const SHttpServer::RequestMessag
     htmlParser.setField("SELECTED_SLOW", QByteArray("selected=\"selected\""));
   }
 
-  htmlParser.appendField("CLIENT_ROWS", htmlParser.parse(htmlConfigDlnaDefaultRow));
+  if (settings.value("MusicMode", genericMusicMode).toString() == "AddVideoBlack")
+  {
+    htmlParser.setField("SELECTED_ADDBLACKVIDEO", QByteArray("selected=\"selected\""));
+    htmlParser.setField("SELECTED_REMOVEVIDEO", QByteArray(""));
+    htmlParser.setField("SELECTED_LEAVEVIDEO", QByteArray(""));
+  }
+  else if (settings.value("MusicMode", genericMusicMode).toString() == "RemoveVideo")
+  {
+    htmlParser.setField("SELECTED_ADDBLACKVIDEO", QByteArray(""));
+    htmlParser.setField("SELECTED_REMOVEVIDEO", QByteArray("selected=\"selected\""));
+    htmlParser.setField("SELECTED_LEAVEVIDEO", QByteArray(""));
+  }
+  else
+  {
+    htmlParser.setField("SELECTED_ADDBLACKVIDEO", QByteArray(""));
+    htmlParser.setField("SELECTED_REMOVEVIDEO", QByteArray(""));
+    htmlParser.setField("SELECTED_LEAVEVIDEO", QByteArray("selected=\"selected\""));
+  }
+
+  htmlParser.appendField("CLIENT_ROWS", htmlParser.parse(htmlConfigDlnaRow));
 
   // DLNA clients
   const QMap<QString, QString> activeClients = masterContentDirectory.activeClients();
@@ -797,17 +755,9 @@ SHttpServer::SocketOp Backend::handleHtmlConfig(const SHttpServer::RequestMessag
   {
     settings.beginGroup("Client_" + i.key());
     settings.setValue("UserAgent", i.value());
-    settings.endGroup();
-  }
 
-  foreach (const QString &group, settings.childGroups())
-  if (group.startsWith("Client_"))
-  {
-    settings.beginGroup(group);
-
-    htmlParser.setField("NAME", group.mid(7));
+    htmlParser.setField("NAME", i.key());
     htmlParser.setField("USERAGENT", settings.value("UserAgent", tr("Unknown")).toString());
-    htmlParser.setField("LAST_SEEN", settings.value("LastSeen").toDateTime().toString(BackendServer::searchDateTimeFormat));
     htmlParser.setField("FORMATS", QByteArray(""));
     htmlParser.setField("CHANNELS", QByteArray(""));
     htmlParser.setField("MUSICCHANNELS", QByteArray(""));
@@ -843,8 +793,27 @@ SHttpServer::SocketOp Backend::handleHtmlConfig(const SHttpServer::RequestMessag
       htmlParser.setField("SELECTED_SLOW", QByteArray("selected=\"selected\""));
     }
 
+    if (settings.value("MusicMode", genericMusicMode).toString() == "AddVideoBlack")
+    {
+      htmlParser.setField("SELECTED_ADDBLACKVIDEO", QByteArray("selected=\"selected\""));
+      htmlParser.setField("SELECTED_REMOVEVIDEO", QByteArray(""));
+      htmlParser.setField("SELECTED_LEAVEVIDEO", QByteArray(""));
+    }
+    else if (settings.value("MusicMode", genericMusicMode).toString() == "RemoveVideo")
+    {
+      htmlParser.setField("SELECTED_ADDBLACKVIDEO", QByteArray(""));
+      htmlParser.setField("SELECTED_REMOVEVIDEO", QByteArray("selected=\"selected\""));
+      htmlParser.setField("SELECTED_LEAVEVIDEO", QByteArray(""));
+    }
+    else
+    {
+      htmlParser.setField("SELECTED_ADDBLACKVIDEO", QByteArray(""));
+      htmlParser.setField("SELECTED_REMOVEVIDEO", QByteArray(""));
+      htmlParser.setField("SELECTED_LEAVEVIDEO", QByteArray("selected=\"selected\""));
+    }
+
     settings.endGroup();
-    htmlParser.appendField("CLIENT_ROWS", htmlParser.parse(htmlConfigDlnaClientRow));
+    htmlParser.appendField("CLIENT_ROWS", htmlParser.parse(htmlConfigDlnaRow));
   }
 
   socket->write(response);

@@ -133,19 +133,23 @@ SHttpServer::SocketOp ConfigServer::handleHtmlRequest(const SHttpServer::Request
     QStringList rootPaths = settings.value("Paths").toStringList();
 
     const QString open = file.url().queryItemValue("open");
-    const QSet<QString> allopen = !open.isEmpty()
-                                  ? QSet<QString>::fromList(QString::fromUtf8(qUncompress(QByteArray::fromHex(open.toAscii()))).split(dirSplit))
-                                  : QSet<QString>();
+    const QStringList allopen = !open.isEmpty()
+                                ? QString::fromUtf8(qUncompress(QByteArray::fromHex(open.toAscii()))).split(dirSplit)
+                                : QStringList();
 
     const QString checkon = QString::fromUtf8(QByteArray::fromHex(file.url().queryItemValue("checkon").toAscii()));
     const QString checkoff = QString::fromUtf8(QByteArray::fromHex(file.url().queryItemValue("checkoff").toAscii()));
     if (!checkon.isEmpty() || !checkoff.isEmpty())
     {
       if (!checkon.isEmpty())
-        rootPaths.append(checkon);
+        rootPaths.append(checkon.endsWith('/') ? checkon : (checkon + '/'));
 
       if (!checkoff.isEmpty())
-        rootPaths.removeAll(checkoff);
+      for (QStringList::Iterator i=rootPaths.begin(); i!=rootPaths.end(); )
+      if (i->compare(checkoff, caseSensitivity) == 0)
+        i = rootPaths.erase(i);
+      else
+        i++;
 
       settings.setValue("Paths", rootPaths);
 
@@ -200,14 +204,13 @@ SHttpServer::SocketOp ConfigServer::handleHtmlRequest(const SHttpServer::Request
   }
 }
 
-void ConfigServer::generateDirs(HtmlParser &htmlParser, const QFileInfoList &dirs, int indent, const QSet<QString> &allopen, const QStringList &rootPaths)
+void ConfigServer::generateDirs(HtmlParser &htmlParser, const QFileInfoList &dirs, int indent, const QStringList &allopen, const QStringList &rootPaths)
 {
   foreach (const QFileInfo &info, dirs)
   if (!info.fileName().startsWith('.'))
   {
-    const QString absoluteName = info.absoluteFilePath();
-
     const QString fileName = info.fileName();
+    const QString absoluteName = info.absoluteFilePath().endsWith('/') ? info.absoluteFilePath() : (info.absoluteFilePath() + '/');
 
     QFileInfoList children = QDir(absoluteName).entryInfoList(QDir::Dirs);
     for (QList<QFileInfo>::Iterator i=children.begin(); i!=children.end(); )
@@ -228,19 +231,24 @@ void ConfigServer::generateDirs(HtmlParser &htmlParser, const QFileInfoList &dir
     if (!isHidden(absoluteName))
     if ((indent > 0) && !children.isEmpty())
     {
-      QSet<QString> all = allopen;
-      if (all.contains(absoluteName))
+      QStringList all = allopen;
+      if (all.contains(absoluteName, caseSensitivity))
       {
-        all.remove(absoluteName);
+        for (QStringList::Iterator i=all.begin(); i!=all.end(); )
+        if (i->compare(absoluteName, caseSensitivity) == 0)
+          i = all.erase(i);
+        else
+          i++;
+
         htmlParser.setField("DIR_OPEN", QByteArray("open"));
       }
       else
       {
-        all.insert(absoluteName);
+        all.append(absoluteName);
         htmlParser.setField("DIR_OPEN", QByteArray("close"));
       }
 
-      htmlParser.setField("DIR_ALLOPEN", qCompress(QStringList(all.toList()).join(QString(dirSplit)).toUtf8()).toHex());
+      htmlParser.setField("DIR_ALLOPEN", qCompress(all.join(QString(dirSplit)).toUtf8()).toHex());
       htmlParser.setField("DIR_EXPAND", htmlParser.parse(htmlDirTreeExpand));
     }
 
@@ -250,20 +258,20 @@ void ConfigServer::generateDirs(HtmlParser &htmlParser, const QFileInfoList &dir
     htmlParser.setField("DIR_CHECKTYPE", QByteArray("checkon"));
     foreach (const QString &root, rootPaths)
     {
-      if (root == absoluteName)
+      if (root.compare(absoluteName, caseSensitivity) == 0)
       {
         htmlParser.setField("DIR_CHECKED", QByteArray("full"));
         htmlParser.setField("DIR_CHECKTYPE", QByteArray("checkoff"));
         checkEnabled = true;
         break;
       }
-      else if (root.startsWith(absoluteName))
+      else if (root.startsWith(absoluteName, caseSensitivity))
       {
         htmlParser.setField("DIR_CHECKED", QByteArray("some"));
         htmlParser.setField("DIR_TITLE", QByteArray("A child is selected"));
         checkEnabled = false;
       }
-      else if (absoluteName.startsWith(root))
+      else if (absoluteName.startsWith(root, caseSensitivity))
       {
         htmlParser.setField("DIR_CHECKED", QByteArray("fulldisabled"));
         htmlParser.setField("DIR_TITLE", QByteArray("A parent is selected"));
@@ -290,7 +298,7 @@ void ConfigServer::generateDirs(HtmlParser &htmlParser, const QFileInfoList &dir
       checkEnabled = false;
     }
 
-    htmlParser.setField("DIR_ALLOPEN", qCompress(QStringList(allopen.toList()).join(QString(dirSplit)).toUtf8()).toHex());
+    htmlParser.setField("DIR_ALLOPEN", qCompress(allopen.join(QString(dirSplit)).toUtf8()).toHex());
     htmlParser.setField("DIR_CHECK", htmlParser.parse(checkEnabled ? htmlDirTreeCheckLink : htmlDirTreeCheck));
 
     // Name
@@ -305,7 +313,6 @@ void ConfigServer::generateDirs(HtmlParser &htmlParser, const QFileInfoList &dir
     else
       htmlParser.setField("DIR_NAME", fileName);
 
-
     if (info.isSymLink())
       htmlParser.appendField("DIR_NAME", " (" + tr("symbolic link to") + " " + info.symLinkTarget() + ")");
 
@@ -313,7 +320,7 @@ void ConfigServer::generateDirs(HtmlParser &htmlParser, const QFileInfoList &dir
 
     // Recurse
     if (!isHidden(absoluteName))
-    if ((indent == 0) || (allopen.contains(absoluteName)))
+    if ((indent == 0) || (allopen.contains(absoluteName, caseSensitivity)))
       generateDirs(htmlParser, children, indent + 1, allopen, rootPaths);
   }
 }

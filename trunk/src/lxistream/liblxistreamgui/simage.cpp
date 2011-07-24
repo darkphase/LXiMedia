@@ -29,7 +29,8 @@ namespace LXiStreamGui {
 using namespace LXiStream;
 
 SImage::SImage(const SVideoBuffer &inBuffer, bool fast)
-  : QImage()
+  : QImage(),
+    aspectRatio(1.0f)
 {
   if (!inBuffer.isNull())
   {
@@ -81,7 +82,8 @@ SImage::SImage(const SVideoBuffer &inBuffer, bool fast)
 }
 
 SImage::SImage(const QString &fileName, const char *format)
-  :QImage()
+  : QImage(),
+    aspectRatio(1.0f)
 {
   QFile file(fileName);
   if (file.open(QFile::ReadOnly))
@@ -90,7 +92,8 @@ SImage::SImage(const QString &fileName, const char *format)
 
 #ifndef QT_NO_CAST_FROM_ASCII
 SImage::SImage(const char *fileName, const char *format)
-  :QImage()
+  : QImage(),
+    aspectRatio(1.0f)
 {
   QFile file(fileName);
   if (file.open(QFile::ReadOnly))
@@ -98,7 +101,7 @@ SImage::SImage(const char *fileName, const char *format)
 }
 #endif
 
-SVideoBuffer SImage::toVideoBuffer(float aspectRatio, SInterval frameRate) const
+SVideoBuffer SImage::toVideoBuffer(SInterval frameRate) const
 {
   if (!isNull())
   {

@@ -76,7 +76,7 @@ public:
 
   inline bool listen(void)
   {
-    return QLocalServer::listen(QUuid::createUuid().toString());
+    return QLocalServer::listen("sandbox-" + QUuid::createUuid().toString().replace("{", "").replace("}", ""));
   }
 
 protected:

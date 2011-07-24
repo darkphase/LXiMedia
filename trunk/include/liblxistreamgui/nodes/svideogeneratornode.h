@@ -17,46 +17,38 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXSTREAM_SGRAPH_H
-#define LXSTREAM_SGRAPH_H
+#ifndef LXSTREAMGUI_SVIDEOGENERATORNODE_H
+#define LXSTREAMGUI_SVIDEOGENERATORNODE_H
 
 #include <QtCore>
-#include <LXiCore>
-#include "export.h"
+#include <LXiStream>
+#include "../export.h"
 
-namespace LXiStream {
+namespace LXiStreamGui {
 
-class STimer;
+class SImage;
 
-namespace SInterfaces {
-  class Node;
-  class SourceNode;
-  class SinkNode;
-}
-
-class LXISTREAM_PUBLIC SGraph : public QThread
+class LXISTREAMGUI_PUBLIC SVideoGeneratorNode : public SInterfaces::Node
 {
 Q_OBJECT
 public:
-  explicit                      SGraph(void);
-  virtual                       ~SGraph();
+  explicit                      SVideoGeneratorNode(SGraph *);
+  virtual                       ~SVideoGeneratorNode();
 
-  static bool                   connect(const QObject *, const char *, const QObject *, const char *);
-  bool                          connect(const QObject *, const char *, const char *) const;
+  void                          setImage(const SImage &);
+  const SImage                & image(void) const;
+  void                          setFrameRate(const SInterval &);
+  const SInterval             & frameRate(void) const;
 
-  bool                          isRunning(void) const;
-
-  void                          addNode(SInterfaces::Node *);
-  void                          addNode(SInterfaces::SourceNode *);
-  void                          addNode(SInterfaces::SinkNode *);
-
-public slots:
+public: // From SInterfaces::SourceNode
   virtual bool                  start(void);
   virtual void                  stop(void);
 
-protected: // From QThread and QObject
-  virtual void                  run(void);
-  virtual void                  customEvent(QEvent *);
+public slots:
+  void                          input(const SAudioBuffer &);
+
+signals:
+  void                          output(const SVideoBuffer &);
 
 private:
   struct Data;

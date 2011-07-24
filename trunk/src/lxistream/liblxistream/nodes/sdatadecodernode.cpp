@@ -73,9 +73,8 @@ void SDataDecoderNode::stop(void)
 
 void SDataDecoderNode::input(const SEncodedDataBuffer &dataBuffer)
 {
-  LXI_PROFILE_FUNCTION;
-
-  d->future.waitForFinished();
+  LXI_PROFILE_WAIT(d->future.waitForFinished());
+  LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
 
   if (!dataBuffer.isNull())
   {
@@ -97,7 +96,7 @@ void SDataDecoderNode::input(const SEncodedDataBuffer &dataBuffer)
 
 void SDataDecoderNode::processTask(const SEncodedDataBuffer &dataBuffer)
 {
-  LXI_PROFILE_FUNCTION;
+  LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
 
   foreach (const SDataBuffer &buffer, d->decoder->decodeBuffer(dataBuffer))
   switch(buffer.type())

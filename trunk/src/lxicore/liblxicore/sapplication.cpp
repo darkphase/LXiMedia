@@ -204,6 +204,11 @@ QStringList SApplication::pluginPaths(void)
 #if defined(Q_OS_UNIX)
   const QByteArray majorVersion = QByteArray(version()).split('.').first();
 
+# if defined(Q_OS_LINUX)
+  qApp->addLibraryPath("/usr/lib");
+  qApp->addLibraryPath("/usr/local/lib");
+# endif
+
   foreach (const QString &path, qApp->libraryPaths())
     result += path + "/lximedia" + majorVersion + "/";
 #elif defined(Q_OS_WIN)
@@ -359,7 +364,7 @@ bool SApplication::enableProfiling(const QString &fileName)
 
   d->profileTimer.start();
   d->profileWidth = 0;
-  profileTask(-1, -1, "Start");
+  profileTask(-1, -1, "Start", TaskType_Blocked);
 
   return true;
 }
@@ -402,8 +407,11 @@ int SApplication::profileTimeStamp(void)
     return 0;
 }
 
-void SApplication::profileTask(int startTime, int stopTime, const QByteArray &taskName)
+void SApplication::profileTask(int startTime, int stopTime, const QByteArray &taskName, TaskType taskType)
 {
+  static const char * const taskFill[4]   = { "C0C0C0", "E0FFE0", "FFE0E0", "E0E0FF" };
+  static const char * const taskStroke[4] = { "404040", "008000", "800000", "000080" };
+
   if (d->profileFile)
   {
     QMutexLocker l(&d->profileMutex);
@@ -426,15 +434,16 @@ void SApplication::profileTask(int startTime, int stopTime, const QByteArray &ta
 
     d->profileWidth = qMax(d->profileWidth, taskStart + taskWidth);
 
-    d->profileFile->write(
-        "<rect x=\"" + QByteArray::number(taskStart) + "\" "
-              "y=\"" + QByteArray::number(*threadId * d->profileLineHeight) + "\" "
-              "width=\"" + QByteArray::number(taskWidth) + "\" "
-              "height=\"" + QByteArray::number(d->profileLineHeight) + "\" "
-              "style=\"fill:#E0E0FF;stroke:#000000;stroke-width:1\" />\n");
-
     if (taskWidth >= d->profileMinTaskWidth)
     {
+      d->profileFile->write(
+          "<rect x=\"" + QByteArray::number(taskStart) + "\" "
+                "y=\"" + QByteArray::number(*threadId * d->profileLineHeight) + "\" "
+                "width=\"" + QByteArray::number(taskWidth) + "\" "
+                "height=\"" + QByteArray::number(d->profileLineHeight) + "\" "
+                "style=\"fill:#" + QByteArray(taskFill[taskType]) +
+                       ";stroke:#" + QByteArray(taskStroke[taskType]) + ";stroke-width:1\" />\n");
+
       QByteArray xmlTaskName = taskName;
       const int par = xmlTaskName.indexOf('(');
       if (par > 0)
@@ -545,16 +554,35 @@ SApplication::Initializer::~Initializer()
 }
 
 
-SApplication::Profiler::Profiler(const QByteArray &taskName)
+SApplication::Profiler::Profiler(const char *taskName, TaskType taskType)
   : taskName(taskName),
+    waitName(NULL),
+    taskType(taskType),
     startTime(self->profileTimeStamp())
 {
-  self->profileTask(startTime, startTime, taskName + "_start");
+  if (self->d->profileFile)
+    self->profileTask(startTime, startTime, QByteArray(taskName) + "_start", taskType);
+}
+
+SApplication::Profiler::Profiler(const char *taskName, const char *waitName, TaskType taskType)
+  : taskName(taskName),
+    waitName(waitName),
+    taskType(taskType),
+    startTime(self->profileTimeStamp())
+{
+  if (self->d->profileFile)
+    self->profileTask(startTime, startTime, QByteArray(taskName) + "/" + waitName + "_start", taskType);
 }
 
 SApplication::Profiler::~Profiler()
 {
-  self->profileTask(startTime, self->profileTimeStamp(), taskName);
+  if (self->d->profileFile)
+  {
+    if (waitName == NULL)
+      self->profileTask(startTime, self->profileTimeStamp(), taskName, taskType);
+    else
+      self->profileTask(startTime, self->profileTimeStamp(), QByteArray(taskName) + "/" + waitName, taskType);
+  }
 }
 
 } // End of namespace

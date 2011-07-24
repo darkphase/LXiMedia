@@ -129,9 +129,8 @@ void SVideoResizeNode::stop(void)
 
 void SVideoResizeNode::input(const SVideoBuffer &videoBuffer)
 {
-  LXI_PROFILE_FUNCTION;
-
-  d->future.waitForFinished();
+  LXI_PROFILE_WAIT(d->future.waitForFinished());
+  LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
 
   if (!videoBuffer.isNull() && d->resizer)
   {
@@ -154,7 +153,7 @@ void SVideoResizeNode::input(const SVideoBuffer &videoBuffer)
 
 void SVideoResizeNode::processTask(const SVideoBuffer &videoBuffer, SInterfaces::VideoResizer *resizer)
 {
-  LXI_PROFILE_FUNCTION;
+  LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
 
   emit output(resizer->processBuffer(videoBuffer));
 }

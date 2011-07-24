@@ -27,11 +27,14 @@
 #define sApp (::LXiCore::SApplication::instance())
 
 #if defined(__GNUC__)
-# define LXI_PROFILE_FUNCTION ::LXiCore::SApplication::Profiler _prf(__PRETTY_FUNCTION__)
+# define LXI_PROFILE_WAIT(x) do { ::LXiCore::SApplication::Profiler _prf(__PRETTY_FUNCTION__, #x); x; } while(false)
+# define LXI_PROFILE_FUNCTION(t) ::LXiCore::SApplication::Profiler _prf(__PRETTY_FUNCTION__, ::LXiCore::SApplication:: t)
 #elif defined(_MSC_VER)
-# define LXI_PROFILE_FUNCTION ::LXiCore::SApplication::Profiler _prf(__FUNCSIG__)
+# define LXI_PROFILE_WAIT(x) do { ::LXiCore::SApplication::Profiler _prf(__FUNCSIG__, #x); x; } while(false)
+# define LXI_PROFILE_FUNCTION(t) ::LXiCore::SApplication::Profiler _prf(__FUNCSIG__, ::LXiCore::SApplication:: t)
 #else
-# define LXI_PROFILE_FUNCTION ::LXiCore::SApplication::Profiler _prf(__FUNCTION__)
+# define LXI_PROFILE_WAIT(x) do { ::LXiCore::SApplication::Profiler _prf(__FUNCTION__, #x); x; } while(false)
+# define LXI_PROFILE_FUNCTION(t) ::LXiCore::SApplication::Profiler _prf(__FUNCTION__, ::LXiCore::SApplication:: t)
 #endif
 
 namespace LXiCore {
@@ -128,14 +131,31 @@ public:
     Message                     readMessage(void);
   };
 
+  /*! Enumerates different task types for use with profiling. They determine the
+      color of the block in the profile.
+   */
+  enum TaskType
+  {
+    TaskType_Blocked,
+    TaskType_AudioProcessing,
+    TaskType_VideoProcessing,
+    TaskType_MiscProcessing
+  };
+
+  /*! A profiler helper class that profiles the creation and destruction times
+      of the object, much like a QMutexLocker.
+   */
   class LXICORE_PUBLIC Profiler
   {
   public:
-    explicit                    Profiler(const QByteArray &taskName);
+    explicit                    Profiler(const char *taskName, TaskType);
+                                Profiler(const char *taskName, const char *waitName, TaskType = TaskType_Blocked);
                                 ~Profiler();
 
   private:
-    const QByteArray            taskName;
+    const char          * const taskName;
+    const char          * const waitName;
+    const TaskType              taskType;
     const int                   startTime;
   };
 
@@ -169,7 +189,7 @@ public: // Profiling
   bool                          enableProfiling(const QString &fileName);
   void                          disableProfiling(void);
   int                           profileTimeStamp(void);
-  void                          profileTask(int, int, const QByteArray &);
+  void                          profileTask(int, int, const QByteArray &, TaskType);
 
 public:
   static SApplication         * createForQTest(QObject *);

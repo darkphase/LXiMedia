@@ -170,23 +170,6 @@ void SUPnPContentDirectory::buildDescription(QDomDocument &doc, QDomElement &scp
   QDomElement actionListElm = doc.createElement("actionList");
   {
     QDomElement actionElm = doc.createElement("action");
-    addTextElm(doc, actionElm, "name", "Browse");
-    QDomElement argumentListElm = doc.createElement("argumentList");
-    addActionArgument(doc, argumentListElm, "ObjectID", "in", "A_ARG_TYPE_ObjectID");
-    addActionArgument(doc, argumentListElm, "BrowseFlag", "in", "A_ARG_TYPE_BrowseFlag");
-    addActionArgument(doc, argumentListElm, "Filter", "in", "A_ARG_TYPE_Filter");
-    addActionArgument(doc, argumentListElm, "StartingIndex", "in", "A_ARG_TYPE_Index");
-    addActionArgument(doc, argumentListElm, "RequestedCount", "in", "A_ARG_TYPE_Count");
-    addActionArgument(doc, argumentListElm, "SortCriteria", "in", "A_ARG_TYPE_SortCriteria");
-    addActionArgument(doc, argumentListElm, "Result", "out", "A_ARG_TYPE_Result");
-    addActionArgument(doc, argumentListElm, "NumberReturned", "out", "A_ARG_TYPE_Count");
-    addActionArgument(doc, argumentListElm, "TotalMatches", "out", "A_ARG_TYPE_Count");
-    addActionArgument(doc, argumentListElm, "UpdateID", "out", "A_ARG_TYPE_UpdateID");
-    actionElm.appendChild(argumentListElm);
-    actionListElm.appendChild(actionElm);
-  }
-  {
-    QDomElement actionElm = doc.createElement("action");
     addTextElm(doc, actionElm, "name", "GetSearchCapabilities");
     QDomElement argumentListElm = doc.createElement("argumentList");
     addActionArgument(doc, argumentListElm, "SearchCaps", "out", "SearchCapabilities");
@@ -209,11 +192,46 @@ void SUPnPContentDirectory::buildDescription(QDomDocument &doc, QDomElement &scp
     actionElm.appendChild(argumentListElm);
     actionListElm.appendChild(actionElm);
   }
+  {
+    QDomElement actionElm = doc.createElement("action");
+    addTextElm(doc, actionElm, "name", "Browse");
+    QDomElement argumentListElm = doc.createElement("argumentList");
+    addActionArgument(doc, argumentListElm, "ObjectID", "in", "A_ARG_TYPE_ObjectID");
+    addActionArgument(doc, argumentListElm, "BrowseFlag", "in", "A_ARG_TYPE_BrowseFlag");
+    addActionArgument(doc, argumentListElm, "Filter", "in", "A_ARG_TYPE_Filter");
+    addActionArgument(doc, argumentListElm, "StartingIndex", "in", "A_ARG_TYPE_Index");
+    addActionArgument(doc, argumentListElm, "RequestedCount", "in", "A_ARG_TYPE_Count");
+    addActionArgument(doc, argumentListElm, "SortCriteria", "in", "A_ARG_TYPE_SortCriteria");
+    addActionArgument(doc, argumentListElm, "Result", "out", "A_ARG_TYPE_Result");
+    addActionArgument(doc, argumentListElm, "NumberReturned", "out", "A_ARG_TYPE_Count");
+    addActionArgument(doc, argumentListElm, "TotalMatches", "out", "A_ARG_TYPE_Count");
+    addActionArgument(doc, argumentListElm, "UpdateID", "out", "A_ARG_TYPE_UpdateID");
+    actionElm.appendChild(argumentListElm);
+    actionListElm.appendChild(actionElm);
+  }
+  /*{
+    QDomElement actionElm = doc.createElement("action");
+    addTextElm(doc, actionElm, "name", "Search");
+    QDomElement argumentListElm = doc.createElement("argumentList");
+    addActionArgument(doc, argumentListElm, "ContainerID", "in", "A_ARG_TYPE_ObjectID");
+    addActionArgument(doc, argumentListElm, "SearchCriteria", "in", "A_ARG_TYPE_SearchCriteria");
+    addActionArgument(doc, argumentListElm, "Filter", "in", "A_ARG_TYPE_Filter");
+    addActionArgument(doc, argumentListElm, "StartingIndex", "in", "A_ARG_TYPE_Index");
+    addActionArgument(doc, argumentListElm, "RequestedCount", "in", "A_ARG_TYPE_Count");
+    addActionArgument(doc, argumentListElm, "SortCriteria", "in", "A_ARG_TYPE_SortCriteria");
+    addActionArgument(doc, argumentListElm, "Result", "out", "A_ARG_TYPE_Result");
+    addActionArgument(doc, argumentListElm, "NumberReturned", "out", "A_ARG_TYPE_Count");
+    addActionArgument(doc, argumentListElm, "TotalMatches", "out", "A_ARG_TYPE_Count");
+    addActionArgument(doc, argumentListElm, "UpdateID", "out", "A_ARG_TYPE_UpdateID");
+    actionElm.appendChild(argumentListElm);
+    actionListElm.appendChild(actionElm);
+  }*/
   scpdElm.appendChild(actionListElm);
 
   QDomElement serviceStateTableElm = doc.createElement("serviceStateTable");
   addStateVariable(doc, serviceStateTableElm, false, "A_ARG_TYPE_ObjectID", "string");
   addStateVariable(doc, serviceStateTableElm, false, "A_ARG_TYPE_Result", "string");
+  addStateVariable(doc, serviceStateTableElm, false, "A_ARG_TYPE_SearchCriteria", "string");
   addStateVariable(doc, serviceStateTableElm, false, "A_ARG_TYPE_BrowseFlag", "string", QStringList() << "BrowseMetadata" << "BrowseDirectChildren");
   addStateVariable(doc, serviceStateTableElm, false, "A_ARG_TYPE_Filter", "string");
   addStateVariable(doc, serviceStateTableElm, false, "A_ARG_TYPE_SortCriteria", "string");
@@ -223,6 +241,7 @@ void SUPnPContentDirectory::buildDescription(QDomDocument &doc, QDomElement &scp
   addStateVariable(doc, serviceStateTableElm, false, "SearchCapabilities", "string");
   addStateVariable(doc, serviceStateTableElm, false, "SortCapabilities", "string");
   addStateVariable(doc, serviceStateTableElm, true, "SystemUpdateID", "ui4");
+  addStateVariable(doc, serviceStateTableElm, true, "TransferIDs", "string");
   scpdElm.appendChild(serviceStateTableElm);
 }
 
@@ -496,9 +515,6 @@ QDomElement SUPnPContentDirectory::didlFile(QDomDocument &doc, const QString &pe
   url.setScheme("http");
   url.setAuthority(host);
 
-  if ((item.type == Item::Type_Music) || (item.type == Item::Type_MusicVideo))
-    url.addQueryItem("music", "true");
-
   QMap<QString, QMap<QString, QString> >::ConstIterator peerItems = d->queryItems.find(peer);
   if (peerItems == d->queryItems.end())
     peerItems = d->queryItems.find(QString::null);
@@ -507,7 +523,35 @@ QDomElement SUPnPContentDirectory::didlFile(QDomDocument &doc, const QString &pe
   for (QMap<QString, QString>::ConstIterator i = peerItems->begin(); i != peerItems->end(); i++)
     url.addQueryItem(i.key(), i.value());
 
-  switch (Item::Type(item.type))
+  Item::Type itemType = Item::Type(item.type);
+  switch (itemType)
+  {
+  case Item::Type_Audio:
+  case Item::Type_Music:
+  case Item::Type_AudioBroadcast:
+  case Item::Type_AudioBook:
+    if (url.queryItemValue("musicmode").startsWith("addvideo"))
+      itemType = Item::Type_MusicVideo;
+
+    break;
+
+  case Item::Type_MusicVideo:
+    if (url.queryItemValue("musicmode") == "removevideo")
+      itemType = Item::Type_Music;
+
+    break;
+
+  case Item::Type_None:
+  case Item::Type_Playlist:
+  case Item::Type_Video:
+  case Item::Type_Movie:
+  case Item::Type_VideoBroadcast:
+  case Item::Type_Image:
+  case Item::Type_Photo:
+    break;
+  }
+
+  switch (itemType)
   {
   case Item::Type_None:           addTextElm(doc, itemElm, "upnp:class", "object.item"); break;
   case Item::Type_Playlist:       addTextElm(doc, itemElm, "upnp:class", "object.item.playlistItem"); break;
@@ -527,7 +571,7 @@ QDomElement SUPnPContentDirectory::didlFile(QDomDocument &doc, const QString &pe
   }
 
   QList<ProtocolType> protocolTypes;
-  switch (Item::Type(item.type))
+  switch (itemType)
   {
   case Item::Type_None:           protocolTypes += ProtocolType_None; break;
   case Item::Type_Playlist:       protocolTypes += ProtocolType_Video; protocolTypes += ProtocolType_Audio; break;
@@ -545,6 +589,9 @@ QDomElement SUPnPContentDirectory::didlFile(QDomDocument &doc, const QString &pe
   case Item::Type_Image:
   case Item::Type_Photo:          protocolTypes += ProtocolType_Image; break;
   }
+
+  if (protocolTypes.contains(ProtocolType_Audio))
+    url.addQueryItem("music", "true");
 
   foreach (ProtocolType protocolType, protocolTypes)
   foreach (const Protocol &protocol, d->protocols[protocolType])

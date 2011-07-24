@@ -140,9 +140,8 @@ void SSubtitleRenderNode::stop(void)
 
 void SSubtitleRenderNode::input(const SSubtitleBuffer &subtitleBuffer)
 {
-  LXI_PROFILE_FUNCTION;
-
-  QMutexLocker l(&d->mutex);
+  LXI_PROFILE_WAIT(d->mutex.lock());
+  LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
 
   if (subtitleBuffer.duration().toSec() <= 10)
   {
@@ -156,13 +155,13 @@ void SSubtitleRenderNode::input(const SSubtitleBuffer &subtitleBuffer)
   }
 
   d->enabled = true;
+  d->mutex.unlock();
 }
 
 void SSubtitleRenderNode::input(const SVideoBuffer &videoBuffer)
 {
-  LXI_PROFILE_FUNCTION;
-
-  d->future.waitForFinished();
+  LXI_PROFILE_WAIT(d->future.waitForFinished());
+  LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
 
   if (!videoBuffer.isNull() && d->enabled)
     d->future = QtConcurrent::run(this, &SSubtitleRenderNode::processTask, videoBuffer);
@@ -208,9 +207,8 @@ SVideoBuffer SSubtitleRenderNode::renderSubtitles(const SVideoBuffer &videoBuffe
 
 void SSubtitleRenderNode::processTask(const SVideoBuffer &videoBuffer)
 {
-  LXI_PROFILE_FUNCTION;
-
-  QMutexLocker l(&d->mutex);
+  LXI_PROFILE_WAIT(d->mutex.lock());
+  LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
 
   for (QMap<STime, SSubtitleBuffer>::Iterator i=d->subtitles.begin(); i!=d->subtitles.end(); )
   {
@@ -283,6 +281,8 @@ void SSubtitleRenderNode::processTask(const SVideoBuffer &videoBuffer)
   }
   else
     emit output(videoBuffer);
+
+  d->mutex.unlock();
 }
 
 void SSubtitleRenderNode::renderSubtitles(SVideoBuffer &buffer, const Lines *subtitle, const Char * const *font)

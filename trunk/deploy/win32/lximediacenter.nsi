@@ -59,7 +59,6 @@ Section "-Shared Files" SecShared
   SetOutPath $INSTDIR\lximedia
   SetOverwrite ifnewer
   File lximedia\lxistream_*.dll
-  File lximedia\lxistreamgui_*.dll
 
   ; For backwards compatibility with 0.1.x versions, can be removed in the future.
   RMDir /r /REBOOTOK "$%ALLUSERSPROFILE%\Application Data\lximc"

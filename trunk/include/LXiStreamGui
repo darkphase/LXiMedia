@@ -13,6 +13,8 @@
 #include "liblxistreamgui/svideoview.h"
 #include "liblxistreamgui/svumeter.h"
 
+#include "liblxistreamgui/nodes/svideogeneratornode.h"
+
 using namespace LXiStreamGui;
 
 #endif

@@ -101,7 +101,7 @@ void SVideoInputNode::stop(void)
 
 void SVideoInputNode::process(void)
 {
-  LXI_PROFILE_FUNCTION;
+  LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
 
   if (d->input)
     d->input->process();

@@ -79,7 +79,13 @@ SAudioBuffer AudioResampler::processBuffer(const SAudioBuffer &audioBuffer)
 
       QList< QFuture<SAudioBuffer> > futures;
       for (int i=0; i<channels.count(); i++)
+      {
+#ifdef OPT_ENABLE_THREADS
         futures.append(QtConcurrent::run(this, &AudioResampler::resampleChannel, &channels[i], audioBuffer));
+#else
+        resampleChannel(&channels[i], audioBuffer);
+#endif
+      }
 
       SAudioFormat outFormat = inFormat;
       outFormat.setSampleRate(outSampleRate);
@@ -118,6 +124,10 @@ void AudioResampler::compensate(float frac)
 
 SAudioBuffer AudioResampler::resampleChannel(Channel *channel, const SAudioBuffer &audioBuffer) const
 {
+#ifdef OPT_ENABLE_THREADS
+  LXI_PROFILE_FUNCTION(TaskType_AudioProcessing);
+#endif
+
   const SAudioBuffer channelBuffer = audioBuffer.getChannel(channel->channel);
   const SAudioBuffer srcBuffer = SAudioBufferList() << channel->channelBuffer << channelBuffer;
 
