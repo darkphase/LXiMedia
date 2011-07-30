@@ -20,4 +20,4 @@
 #include "module.h"
 #include <QtPlugin>
 
-Q_EXPORT_PLUGIN2(lxistreamdevice_pulseaudio, LXiStream::PulseAudioBackend::Module);
+Q_EXPORT_PLUGIN2(lxistreamdevice_pulseaudio, LXiStreamDevice::PulseAudioBackend::Module);
