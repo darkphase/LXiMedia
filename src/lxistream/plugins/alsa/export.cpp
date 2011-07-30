@@ -20,4 +20,4 @@
 #include "module.h"
 #include <QtPlugin>
 
-Q_EXPORT_PLUGIN2(lxistreamdevice_alsa, LXiStream::AlsaBackend::Module);
+Q_EXPORT_PLUGIN2(lxistreamdevice_alsa, LXiStreamDevice::AlsaBackend::Module);
