@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/internet">
+        <file>sites/fm.fresh!1.0.js</file>
+    </qresource>
+</RCC>

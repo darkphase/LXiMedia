@@ -48,12 +48,14 @@ protected:
   };
 
 public:
-                                InternetServer(SiteDatabase::Category, QObject *);
+                                InternetServer(const QString &, QObject *);
 
   virtual void                  initialize(MasterServer *);
   virtual void                  close(void);
 
   virtual QString               pluginName(void) const;
+  virtual QString               serverName(void) const;
+  virtual QString               serverIconPath(void) const;
 
   virtual SearchResultList      search(const QStringList &) const;
 
@@ -64,15 +66,16 @@ protected: // From MediaServer
   virtual QList<Item>           listItems(const QString &path, unsigned start = 0, unsigned count = 0);
 
 protected: // From SHttpServer::Callback
-  virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestMessage &, QAbstractSocket *);
+  virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestMessage &, QIODevice *);
 
 private:
-  Item::Type                    defaultItemType(void) const;
+  const QList<Item>           & cachedItems(const QString &path);
 
 protected:
-  const SiteDatabase::Category  category;
   MasterServer                * masterServer;
   SiteDatabase                * siteDatabase;
+  QMap<QString, QList<Item> >   itemCache;
+  QTime                         cacheTimer;
 };
 
 } } // End of namespaces

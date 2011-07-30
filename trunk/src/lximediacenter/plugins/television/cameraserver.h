@@ -63,7 +63,7 @@ protected: // From MediaServer
   virtual QList<Item>           listItems(const QString &path, unsigned start = 0, unsigned count = 0);
 
 protected: // From SHttpServer::Callback
-  virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestMessage &, QAbstractSocket *);
+  virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestMessage &, QIODevice *);
 
 private:
   MasterServer                * masterServer;

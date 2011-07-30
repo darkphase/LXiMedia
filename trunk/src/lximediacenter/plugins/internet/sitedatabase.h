@@ -31,15 +31,6 @@ class SiteDatabase : public QObject
 {
 Q_OBJECT
 public:
-  enum Category
-  {
-    Category_None             = 0,
-    Category_Radio            = 1,
-    Category_Television       = 2,
-    Category_Sentinel
-  };
-
-public:
   static SiteDatabase         * createInstance(void);
   static void                   destroyInstance(void);
 
@@ -48,16 +39,30 @@ private:
   virtual                       ~SiteDatabase();
 
 public:
-  void                          setSite(const QString &hostname, const QString &countries, Category, const QString &script);
-  bool                          getSite(const QString &hostname, QString &countries, Category &, QString &script);
+  bool                          needsUpdate(const QString &identifier) const;
+  void                          update(const QString &identifier, const QString &friendlyName, const QString &targetAudience, const QString &script);
 
-  QStringList                   allCountries(void);
-  int                           countSites(const QString &country);
-  QStringList                   getSites(const QString &country, unsigned start = 0, unsigned count = 0);
-  int                           countSites(Category);
-  QStringList                   getSites(Category, unsigned start = 0, unsigned count = 0);
+  QString                       friendlyName(const QString &identifier) const;
+  QString                       script(const QString &identifier) const;
+
+  QStringList                   allTargetAudiences(void) const;
+  int                           countSites(const QString &targetAudience) const;
+  int                           countSites(const QStringList &targetAudiences) const;
+  QStringList                   getSites(const QString &targetAudience, unsigned start = 0, unsigned count = 0) const;
+  QStringList                   getSites(const QStringList &targetAudiences, unsigned start = 0, unsigned count = 0) const;
+
+  static QString                reverseDomain(const QString &);
+
+protected:
+  virtual void                  customEvent(QEvent *);
 
 private:
+  void                          updateScript(const QFileInfo &filename);
+
+private:
+  class ScriptUpdateEvent;
+
+  static const QEvent::Type     scriptUpdateEventType;
   static SiteDatabase         * self;
 };
 

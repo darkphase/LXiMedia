@@ -47,6 +47,7 @@ public:
     inline const QString      & baseName(void) const                            { return d.baseName; }
     inline const QString      & suffix(void) const                              { return d.suffix; }
     inline const QString      & fullName(void) const                            { return d.fullName; }
+    inline const QString      & parentDir(void) const                           { return d.parentDir; }
     inline const QUrl         & url(void) const                                 { return d.url; }
 
   private:
@@ -55,6 +56,7 @@ public:
       QString                   baseName;
       QString                   suffix;
       QString                   fullName;
+      QString                   parentDir;
       QUrl                      url;
     }                           d;
   };

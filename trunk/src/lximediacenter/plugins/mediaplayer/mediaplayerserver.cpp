@@ -226,6 +226,7 @@ QList<MediaPlayerServer::Item> MediaPlayerServer::listAlbums(const QString &path
             item.isDir = true;
             item.type = itemType;
             item.title = name;
+            item.url = name + '/';
             item.iconUrl = findAlbumIcon(path + item.title + '/');
 
             result += item;
@@ -294,6 +295,7 @@ MediaPlayerServer::Item MediaPlayerServer::makeItem(MediaDatabase::UniqueID uid,
       item.isDir = true;
       item.type = defaultItemType();
       item.title = node.title();
+      item.url = item.title + '/';
       item.iconUrl = MediaDatabase::toUidString(uid) + "-thumb.png?overlay=folder-video";
     }
 

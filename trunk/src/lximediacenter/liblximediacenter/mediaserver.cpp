@@ -107,7 +107,7 @@ SHttpServer::SocketOp MediaServer::handleHttpRequest(const SHttpServer::RequestM
           ThumbnailListItem thumbItem;
           thumbItem.title = item.title;
           thumbItem.iconurl = item.iconUrl;
-          thumbItem.url = item.title + '/';
+          thumbItem.url = item.url;
 
           thumbItems.append(thumbItem);
         }
@@ -242,6 +242,10 @@ MediaServer::File::File(const SHttpServer::RequestMessage &request)
 
   if (!d.baseName.isEmpty() || !d.suffix.isEmpty())
     d.fullName = d.baseName + '.' + d.suffix;
+
+  QString path = url.path();
+  path = path.left(path.lastIndexOf('/'));
+  d.parentDir = path.mid(path.lastIndexOf('/') + 1);
 }
 
 MediaServer::File::~File()

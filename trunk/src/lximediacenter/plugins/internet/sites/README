@@ -1,0 +1,34 @@
+The JavaScript files in this directory provide access to internet based media
+such are web-radio, web-TV, etc. The format of the scripts is described below.
+
+The file name should be in the format "<domain>!<revision>.js", where domain
+should be the reversed domain name and revision the revision of the script. For
+example:
+  "org.wikimedia.commons!1.0.js"
+
+The file should provide the following functions:
+
+The version function should return the version of LXiMediaCenter that this 
+script is compatible with.
+  function version() { return "0.3.0"; }
+
+The friendlyName function should return a friendly name of the site.
+  function friendlyName() { return "Wikimedia Commons"; }
+
+The targetAudience function should return a space separated list of target
+audiences based on geographical location in the format "<Country>[/<Location>]",
+the string "*" can be used to indicate a global audience.
+  function targetAudience() { return "NL UK/London"; }
+
+The icon function should return a base64 encoded string representing a 128x128
+PNG encoded icon for the specified ID, this should not exceed 8192 characters.
+Use the command-line "base64 -w 0 icon.png > icon.txt" to encode the base64 
+data, reduce the number of colors in the PNG image to achieve the size limit.
+The special empty string ID is used for the global icon.
+  function icon(id)
+  { 
+    if (id == "")
+      return "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAAN1wAADdcBQiibeAAAABl0RVh0U29mdHdhcmUAd3d3Lmlua3NjYXBlLm9yZ5vuPBoAAAAcSURBVDiNY/z//z8DJYCJIt2jBowaMGrAIDIAAGOaAx22PDS6AAAAAElFTkSuQmCC"; 
+    else
+      return "";
+  }
