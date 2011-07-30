@@ -121,7 +121,7 @@ QList<CameraServer::Item> CameraServer::listItems(const QString &path, unsigned 
   return result;
 }
 
-SHttpServer::SocketOp CameraServer::handleHttpRequest(const SHttpServer::RequestMessage &request, QAbstractSocket *socket)
+SHttpServer::SocketOp CameraServer::handleHttpRequest(const SHttpServer::RequestMessage &request, QIODevice *socket)
 {
   if ((request.method() == "GET") || (request.method() == "HEAD"))
   {

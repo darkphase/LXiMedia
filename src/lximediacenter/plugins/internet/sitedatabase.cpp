@@ -19,11 +19,29 @@
 
 #include "sitedatabase.h"
 #include "module.h"
+#include "scriptengine.h"
 
 namespace LXiMediaCenter {
 namespace InternetBackend {
 
-SiteDatabase * SiteDatabase::self = NULL;
+class SiteDatabase::ScriptUpdateEvent : public QEvent
+{
+public:
+  inline ScriptUpdateEvent(const QString &identifier, const QString &friendlyName, const QString &targetAudience, const QString &script)
+    : QEvent(scriptUpdateEventType), identifier(identifier),
+      friendlyName(friendlyName), targetAudience(targetAudience), script(script)
+  {
+  }
+
+public:
+  const QString                 identifier;
+  const QString                 friendlyName;
+  const QString                 targetAudience;
+  const QString                 script;
+};
+
+const QEvent::Type  SiteDatabase::scriptUpdateEventType = QEvent::Type(QEvent::registerEventType());
+SiteDatabase      * SiteDatabase::self = NULL;
 
 SiteDatabase * SiteDatabase::createInstance(void)
 {
@@ -47,7 +65,7 @@ SiteDatabase::SiteDatabase(QObject *parent)
 
   // Drop all tables if the database version is outdated.
   static const int databaseVersion = 1;
-  if (settings.value("DatabaseVersion", 0).toInt() != databaseVersion)
+  //if (settings.value("DatabaseVersion", 0).toInt() != databaseVersion)
   {
     qDebug() << "Internet site database layout changed, recreating tables.";
 
@@ -83,57 +101,53 @@ SiteDatabase::SiteDatabase(QObject *parent)
 
     query.exec("PRAGMA foreign_keys = ON");
 
-    query.exec("VACUUM");
+    //query.exec("VACUUM");
   }
 
   // Create tables that don't exist
   query.exec("CREATE TABLE IF NOT EXISTS InternetSites ("
-             "hostname       TEXT UNIQUE NOT NULL,"
-             "countries      TEXT NOT NULL,"
-             "category       INTEGER NOT NULL,"
+             "identifier     TEXT UNIQUE NOT NULL,"
+             "friendlyName   TEXT NOT NULL,"
+             "targetAudience TEXT NOT NULL,"
              "script         TEXT)");
 
-  query.exec("CREATE INDEX IF NOT EXISTS InternetSites_hostname "
-             "ON InternetSites(hostname)");
+  query.exec("CREATE INDEX IF NOT EXISTS InternetSites_identifier "
+             "ON InternetSites(identifier)");
 
-  query.exec("CREATE INDEX IF NOT EXISTS InternetSites_countries "
-             "ON InternetSites(countries)");
-
-  query.exec("CREATE INDEX IF NOT EXISTS InternetSites_category "
-             "ON InternetSites(category)");
+  query.exec("CREATE INDEX IF NOT EXISTS InternetSites_targetAudience "
+             "ON InternetSites(targetAudience)");
 
   settings.setValue("DatabaseVersion", databaseVersion);
+
+  // Update the database
+  foreach (const QFileInfo &info, QDir(":/internet/sites/").entryInfoList(QStringList() << "*.js", QDir::Files))
+  if (needsUpdate(info.completeBaseName()))
+    QtConcurrent::run(this, &SiteDatabase::updateScript, info);
 }
 
 SiteDatabase::~SiteDatabase()
 {
+  QThreadPool::globalInstance()->waitForDone();
+
   self = NULL;
 }
 
-void SiteDatabase::setSite(const QString &hostname, const QString &countries, Category category, const QString &script)
+bool SiteDatabase::needsUpdate(const QString &identifierStr) const
 {
-  Database::Query query;
-  query.prepare("INSERT OR REPLACE INTO InternetSites "
-                "VALUES (:hostname, :countries, :category, :script)");
-  query.bindValue(0, hostname);
-  query.bindValue(1, countries);
-  query.bindValue(2, category);
-  query.bindValue(3, script);
-  query.exec();
-}
-
-bool SiteDatabase::getSite(const QString &hostname, QString &countries, Category &category, QString &script)
-{
-  Database::Query query;
-  query.prepare("SELECT countries, category, script FROM InternetSites "
-                "WHERE hostname = :hostname");
-  query.bindValue(0, hostname);
-  query.exec();
-  if (query.next())
+  const QStringList identifier = identifierStr.split('!');
+  if (identifier.count() >= 2)
   {
-    countries = query.value(0).toString();
-    category = Category(query.value(1).toInt());
-    script = query.value(2).toString();
+    Database::Query query;
+    query.prepare("SELECT identifier FROM InternetSites "
+                  "WHERE identifier LIKE :identifier");
+    query.bindValue(0, identifier[0] + "!%");
+    query.exec();
+    if (query.next())
+    {
+      const QStringList list = query.value(0).toString().split('!');
+      if (list.count() >= 2)
+        return list[1] < identifier[1];
+    }
 
     return true;
   }
@@ -141,22 +155,116 @@ bool SiteDatabase::getSite(const QString &hostname, QString &countries, Category
   return false;
 }
 
-QStringList SiteDatabase::allCountries(void)
+void SiteDatabase::update(const QString &identifierStr, const QString &friendlyName, const QString &targetAudience, const QString &script)
 {
-  QSet<QString> result;
+  const QStringList identifier = identifierStr.split('!');
+  if ((identifier.count() >= 2) && !friendlyName.isEmpty() && !targetAudience.isEmpty() && !script.isEmpty())
+  {
+    Database::Query query;
+    query.prepare("DELETE FROM InternetSites "
+                  "WHERE identifier LIKE :identifier");
+    query.bindValue(0, identifier[0] + "!%");
+    query.exec();
 
-  Database::Query query;
-  query.prepare("SELECT countries FROM InternetSites");
-  query.exec();
-  while (query.next())
-  foreach (const QString &country, query.value(0).toString().simplified().split(' '))
-    result.insert(country.toUpper());
+    QString targetAudienceStr;
+    foreach (const QString &audience, targetAudience.simplified().split(' '))
+      targetAudienceStr += "{" + audience + "} ";
 
-  return result.toList();
+    query.prepare("INSERT OR REPLACE INTO InternetSites "
+                  "VALUES (:identifier, :friendlyName, :targetAudience, :script)");
+    query.bindValue(0, identifierStr.toLower());
+    query.bindValue(1, friendlyName);
+    query.bindValue(2, targetAudienceStr.trimmed());
+    query.bindValue(3, script);
+    query.exec();
+  }
 }
 
-QStringList SiteDatabase::getSites(const QString &country, unsigned start, unsigned count)
+QString SiteDatabase::friendlyName(const QString &identifierStr) const
 {
+  const QStringList identifier = identifierStr.split('!');
+
+  Database::Query query;
+  query.prepare("SELECT friendlyName FROM InternetSites "
+                "WHERE identifier LIKE :identifier");
+  query.bindValue(0, identifier.first() + "!%");
+  query.exec();
+  if (query.next())
+    return query.value(0).toString();
+
+  return QString::null;
+}
+
+QString SiteDatabase::script(const QString &identifierStr) const
+{
+  const QStringList identifier = identifierStr.split('!');
+
+  Database::Query query;
+  query.prepare("SELECT script FROM InternetSites "
+                "WHERE identifier LIKE :identifier");
+  query.bindValue(0, identifier.first() + "!%");
+  query.exec();
+  if (query.next())
+    return query.value(0).toString();
+
+  return QString::null;
+}
+
+QStringList SiteDatabase::allTargetAudiences(void) const
+{
+  QMap<QString, QString> result;
+
+  Database::Query query;
+  query.prepare("SELECT DISTINCT targetAudience FROM InternetSites");
+  query.exec();
+  while (query.next())
+  foreach (QString targetAudience, query.value(0).toString().simplified().split(' '))
+    result.insert(targetAudience.toUpper(), targetAudience.replace("{", "").replace("}", ""));
+
+  return result.values();
+}
+
+int SiteDatabase::countSites(const QString &targetAudience) const
+{
+  Database::Query query;
+  query.prepare("SELECT COUNT(*) FROM InternetSites "
+                "WHERE targetAudience LIKE :targetAudience");
+  query.bindValue(0, "%{" + targetAudience + "}%");
+  query.exec();
+  if (query.next())
+    return query.value(0).toInt();
+
+  return 0;
+}
+
+int SiteDatabase::countSites(const QStringList &targetAudiences) const
+{
+  if (!targetAudiences.isEmpty())
+  {
+    QString q = "SELECT COUNT(*) FROM InternetSites";
+    for (int i=0; i<targetAudiences.count(); i++)
+    {
+      q += (i == 0) ? " WHERE " : " OR ";
+      q += "(targetAudience LIKE :targetAudience" + QString::number(i) + ")";
+    }
+
+    Database::Query query;
+    query.prepare(q);
+    foreach (const QString &targetAudience, targetAudiences)
+      query.bindValue(0, "%{" + targetAudience + "}%");
+
+    query.exec();
+    if (query.next())
+      return query.value(0).toInt();
+  }
+
+  return 0;
+}
+
+QStringList SiteDatabase::getSites(const QString &targetAudience, unsigned start, unsigned count) const
+{
+  QStringList result;
+
   QString limit;
   if (count > 0)
   {
@@ -165,66 +273,101 @@ QStringList SiteDatabase::getSites(const QString &country, unsigned start, unsig
       limit += " OFFSET " + QString::number(start);
   }
 
-  QStringList result;
-
   Database::Query query;
-  query.prepare("SELECT hostname FROM InternetSites "
-                "WHERE countries LIKE '%" + SStringParser::toRawName(country) + "%' "
-                "ORDER BY hostname" + limit);
+  query.prepare("SELECT identifier FROM InternetSites "
+                "WHERE targetAudience LIKE :targetAudience "
+                "ORDER BY identifier" + limit);
+  query.bindValue(0, "%{" + targetAudience + "}%");
   query.exec();
   while (query.next())
-    result += query.value(0).toString();
+    result += query.value(0).toString().split('!').first();
 
   return result;
 }
 
-int SiteDatabase::countSites(const QString &country)
+QStringList SiteDatabase::getSites(const QStringList &targetAudiences, unsigned start, unsigned count) const
 {
-  Database::Query query;
-  query.prepare("SELECT COUNT(*) FROM InternetSites "
-                "WHERE countries LIKE '%" + SStringParser::toRawName(country) + "%'");
-  query.exec();
-  if (query.next())
-    return query.value(0).toInt();
+  QStringList result;
 
-  return 0;
-}
-
-QStringList SiteDatabase::getSites(Category category, unsigned start, unsigned count)
-{
-  QString limit;
-  if (count > 0)
+  if (!targetAudiences.isEmpty())
   {
-    limit += " LIMIT " + QString::number(count);
-    if (start > 0)
-      limit += " OFFSET " + QString::number(start);
+    QString limit;
+    if (count > 0)
+    {
+      limit += " LIMIT " + QString::number(count);
+      if (start > 0)
+        limit += " OFFSET " + QString::number(start);
+    }
+
+    QString q = "SELECT identifier FROM InternetSites";
+    for (int i=0; i<targetAudiences.count(); i++)
+    {
+      q += (i == 0) ? " WHERE " : " OR ";
+      q += "(targetAudience LIKE :targetAudience" + QString::number(i) + ")";
+    }
+
+    q += " ORDER BY identifier" + limit;
+
+    Database::Query query;
+    query.prepare(q);
+    foreach (const QString &targetAudience, targetAudiences)
+      query.bindValue(0, "%{" + targetAudience + "}%");
+
+    query.exec();
+    while (query.next())
+      result += query.value(0).toString().split('!').first();
   }
 
-  QStringList result;
-
-  Database::Query query;
-  query.prepare("SELECT hostname FROM InternetSites "
-                "WHERE category = :category "
-                "ORDER BY hostname" + limit);
-  query.bindValue(0, category);
-  query.exec();
-  while (query.next())
-    result += query.value(0).toString();
-
   return result;
 }
 
-int SiteDatabase::countSites(Category category)
+QString SiteDatabase::reverseDomain(const QString &domain)
 {
-  Database::Query query;
-  query.prepare("SELECT COUNT(*) FROM InternetSites "
-                "WHERE category = :category");
-  query.bindValue(0, category);
-  query.exec();
-  if (query.next())
-    return query.value(0).toInt();
+  QString reversed;
+  foreach (const QString &part, domain.split('.'))
+    reversed.prepend(part + '.');
 
-  return 0;
+  if (!reversed.isEmpty())
+    return reversed.left(reversed.length() - 1);
+  else
+    return QString::null;
+}
+
+void SiteDatabase::customEvent(QEvent *e)
+{
+  if (e->type() == scriptUpdateEventType)
+  {
+    const ScriptUpdateEvent * const event = static_cast<const ScriptUpdateEvent *>(e);
+
+    update(event->identifier, event->friendlyName, event->targetAudience, event->script);
+  }
+  else
+    QObject::customEvent(e);
+}
+
+void SiteDatabase::updateScript(const QFileInfo &info)
+{
+  QFile file(info.absoluteFilePath());
+  if (file.open(QFile::ReadOnly))
+  {
+    const QString script = QString::fromUtf8(file.readAll());
+    if (!script.isEmpty())
+    {
+      const QScriptSyntaxCheckResult syntaxCheckResult = QScriptEngine::checkSyntax(script);
+      if (syntaxCheckResult.state() == QScriptSyntaxCheckResult::Valid)
+      {
+        ScriptEngine engine(script);
+        if (engine.isCompatible())
+        {
+          qApp->postEvent(this, new ScriptUpdateEvent(
+              info.completeBaseName(),
+              engine.friendlyName(),
+              engine.targetAudience(),
+              script));
+        }
+      }
+    }
+  }
 }
 
 } } // End of namespaces

@@ -155,10 +155,7 @@ SApplication::~SApplication(void)
 
     i.second->unload();
     if (i.first)
-    {
-      i.first->unload();
-      delete i.first;
-    }
+      i.first->unload(); // Deliberately not deleting QPluginLoader as it causes a crash.
     else
       delete i.second;
   }

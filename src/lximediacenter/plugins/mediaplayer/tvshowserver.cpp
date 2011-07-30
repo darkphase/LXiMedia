@@ -195,6 +195,7 @@ QList<TvShowServer::Item> TvShowServer::listItems(const QString &path, unsigned 
           item.isDir = true;
           item.type = defaultItemType();
           item.title = seasonText + " " + QString::number(i.key());
+          item.url = item.title + '/';
           item.iconUrl = MediaDatabase::toUidString(i.value().first()) + "-thumb.png?overlay=folder-video";
           result.append(item);
 

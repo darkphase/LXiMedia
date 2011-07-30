@@ -18,16 +18,14 @@
  ***************************************************************************/
 
 #include "internetserver.h"
-#include <QtScript>
-//#include "internetsandbox.h"
+#include "scriptengine.h"
 #include "module.h"
 
 namespace LXiMediaCenter {
 namespace InternetBackend {
 
-InternetServer::InternetServer(SiteDatabase::Category category, QObject *parent)
+InternetServer::InternetServer(const QString &, QObject *parent)
   : MediaServer(parent),
-    category(category),
     masterServer(NULL),
     siteDatabase(NULL)
 {
@@ -39,6 +37,8 @@ void InternetServer::initialize(MasterServer *masterServer)
   this->siteDatabase = SiteDatabase::createInstance();
 
   MediaServer::initialize(masterServer);
+
+  cacheTimer.start();
 }
 
 void InternetServer::close(void)
@@ -49,6 +49,16 @@ void InternetServer::close(void)
 QString InternetServer::pluginName(void) const
 {
   return Module::pluginName;
+}
+
+QString InternetServer::serverName(void) const
+{
+  return QT_TR_NOOP("Sites");
+}
+
+QString InternetServer::serverIconPath(void) const
+{
+  return "/img/homepage.png";
 }
 
 InternetServer::SearchResultList InternetServer::search(const QStringList &rawQuery) const
@@ -64,63 +74,178 @@ InternetServer::Stream * InternetServer::streamVideo(const SHttpServer::RequestM
   return NULL;
 }
 
-int InternetServer::countItems(const QString &)
+int InternetServer::countItems(const QString &path)
 {
-  return siteDatabase->countSites(category);
+  if (path == "/")
+  {
+    PluginSettings settings(pluginName());
+
+    return siteDatabase->countSites(settings.value("Audiences").toStringList());
+  }
+  else
+    return cachedItems(path).count();
 }
 
-QList<InternetServer::Item> InternetServer::listItems(const QString &, unsigned start, unsigned count)
+QList<InternetServer::Item> InternetServer::listItems(const QString &path, unsigned start, unsigned count)
 {
   QList<Item> result;
 
-  foreach (const QString &hostname, siteDatabase->getSites(category, start, count))
+  if (path == "/")
   {
-    QString countries, script;
-    SiteDatabase::Category category = SiteDatabase::Category_None;
+    PluginSettings settings(pluginName());
 
-    siteDatabase->getSite(hostname, countries, category, script);
+    foreach (const QString &identifier, siteDatabase->getSites(settings.value("Audiences").toStringList(), start, count))
+    {
+      Item item;
+      item.isDir = true;
+      item.type = Item::Type_None;
+      item.title = siteDatabase->friendlyName(identifier);
+      item.url = siteDatabase->reverseDomain(identifier) + '/';
+      item.iconUrl = siteDatabase->reverseDomain(identifier) + "/-thumb.png";
 
-    QScriptEngine engine;
-    engine.evaluate(script);
+      result += item;
+    }
+  }
+  else
+  {
+    const QList<Item> &items = cachedItems(path);
 
-    QScriptValue global = engine.globalObject();
-    QScriptValue streamLocationFunc = global.property("streamLocation");
-    QScriptValue iconLocationFunc = global.property("iconLocation");
-
-    const QString streamLocation = streamLocationFunc.call().toString();
-    const QString iconLocation = iconLocationFunc.call().toString();
-
-    Item item;
-    item.title = hostname;
-    item.type = defaultItemType();
-    item.url = streamLocation.toUtf8().toHex();
-    item.iconUrl = iconLocation.toUtf8().toHex() + "-thumb.png";
-
-    result += item;
+    const bool returnAll = count == 0;
+    for (int i=start, n=0; (i<items.count()) && (returnAll || (n<int(count))); i++, n++)
+      result.append(items[i]);
   }
 
   return result;
 }
 
-SHttpServer::SocketOp InternetServer::handleHttpRequest(const SHttpServer::RequestMessage &request, QAbstractSocket *socket)
+SHttpServer::SocketOp InternetServer::handleHttpRequest(const SHttpServer::RequestMessage &request, QIODevice *socket)
 {
+  if ((request.method() == "GET") || (request.method() == "HEAD"))
+  {
+    const MediaServer::File file(request);
+    if (file.fullName().endsWith("-thumb.png"))
+    {
+      QSize size(128, 128);
+      if (file.url().hasQueryItem("resolution"))
+      {
+        const QStringList sizeTxt = file.url().queryItemValue("resolution").split('x');
+        if (sizeTxt.count() >= 2)
+          size = QSize(sizeTxt[0].toInt(), sizeTxt[1].toInt());
+        else if (sizeTxt.count() >= 1)
+          size = QSize(sizeTxt[0].toInt(), sizeTxt[0].toInt());
+      }
+
+      const QString script = siteDatabase->script(siteDatabase->reverseDomain(file.parentDir()));
+      if (!script.isEmpty())
+      {
+        ScriptEngine engine(script);
+        QImage image = engine.icon(file.baseName().left(file.baseName().length() - 6));
+        if (!image.isNull())
+          image = image.scaled(size, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+
+        QImage result(size, QImage::Format_ARGB32);
+        QPainter p;
+        p.begin(&result);
+        p.setCompositionMode(QPainter::CompositionMode_Source); // Ignore alpha
+        p.fillRect(result.rect(), Qt::transparent);
+        p.setCompositionMode(QPainter::CompositionMode_SourceOver); // Process alpha
+        p.drawImage(
+            (result.width() / 2) - (image.width() / 2),
+            (result.height() / 2) - (image.height() / 2),
+            image);
+
+        if (file.url().hasQueryItem("overlay"))
+        {
+          QImage overlayImage(":/lximediacenter/images/" + file.url().queryItemValue("overlay") + ".png");
+          if (!overlayImage.isNull())
+          {
+            overlayImage = overlayImage.scaled(size / 2, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+
+            p.drawImage(
+                (result.width() / 2) - (overlayImage.width() / 2),
+                (result.height() / 2) - (overlayImage.height() / 2),
+                overlayImage);
+          }
+        }
+
+        p.end();
+
+        QBuffer b;
+        result.save(&b, "PNG");
+
+        return sendResponse(request, socket, b.data(), "image/png", true);
+      }
+
+      QImage image(":/lximediacenter/images/video-template.png");
+      if (!image.isNull())
+      {
+        if (file.url().hasQueryItem("resolution"))
+          image = image.scaled(size / 2, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+
+        QImage sum(size, QImage::Format_ARGB32);
+        QPainter p;
+        p.begin(&sum);
+        p.setCompositionMode(QPainter::CompositionMode_Source); // Ignore alpha
+        p.fillRect(sum.rect(), Qt::transparent);
+        p.setCompositionMode(QPainter::CompositionMode_SourceOver); // Process alpha
+        p.drawImage(
+            (sum.width() / 2) - (image.width() / 2),
+            (sum.height() / 2) - (image.height() / 2),
+            image);
+        p.end();
+
+        QBuffer b;
+        sum.save(&b, "PNG");
+
+        return sendResponse(request, socket, b.data(), "image/png", true);
+      }
+
+      return SHttpServer::sendRedirect(request, socket, "http://" + request.host() + "/img/null.png");
+    }
+    /*else if (file.suffix() == "html") // Show player
+    {
+      const MediaDatabase::UniqueID uid = MediaDatabase::fromUidString(file.baseName());
+      const FileNode node = mediaDatabase->readNode(uid);
+      if (!node.isNull())
+      if (uid.pid < node.programs().count())
+      {
+        SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
+        response.setContentType("text/html;charset=utf-8");
+        response.setField("Cache-Control", "no-cache");
+
+        return sendHtmlContent(request, socket, file.url(), response, buildVideoPlayer(uid, node.title(), node.programs().at(uid.pid), file.url()), headPlayer);
+      }
+    }*/
+  }
+
   return MediaServer::handleHttpRequest(request, socket);
 }
 
-InternetServer::Item::Type InternetServer::defaultItemType(void) const
+const QList<InternetServer::Item> & InternetServer::cachedItems(const QString &path)
 {
-  switch (category)
+  static const QList<Item> null;
+
+  if (qAbs(cacheTimer.restart()) >= 5 * 60000)
+    itemCache.clear();
+
+  const int sep = path.indexOf('/', 1);
+  const QString identifier = siteDatabase->reverseDomain(path.mid(1, sep - 1));
+
+  QMap<QString, QList<Item> >::Iterator i = itemCache.find(path);
+  if (i == itemCache.end())
   {
-  default:
-  case SiteDatabase::Category_None:
-    return Item::Type_None;
+    const QString script = siteDatabase->script(identifier);
+    if (!script.isEmpty())
+    {
+      ScriptEngine engine(script);
 
-  case SiteDatabase::Category_Radio:
-    return Item::Type_Music;
-
-  case SiteDatabase::Category_Television:
-    return Item::Type_Video;
+      i = itemCache.insert(path, engine.listItems(path.mid(sep)));
+    }
+    else
+      return null;
   }
+
+  return *i;
 }
 
 InternetServer::Stream::Stream(InternetServer *parent, SSandboxClient *sandbox, const QString &url)

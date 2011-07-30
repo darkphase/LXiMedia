@@ -64,8 +64,6 @@ private:
   static const char     * const htmlTreeIndent;
   static const char     * const htmlTreeExpand;
   static const char     * const htmlTreeCheckLink;
-  static const char     * const htmlTreeEditItemLink;
-  static const char     * const htmlEditIndex;
 };
 
 } } // End of namespaces
