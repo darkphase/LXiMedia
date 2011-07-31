@@ -39,6 +39,11 @@ public:
 
 public:
   static const char             pluginName[];
+
+private:
+  static const char             radioName[],        radioIcon[];
+  static const char             tvName[],           tvIcon[];
+  static const char             sitesName[],        sitesIcon[];
 };
 
 } } // End of namespaces

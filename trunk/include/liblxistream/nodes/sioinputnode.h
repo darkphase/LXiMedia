@@ -30,7 +30,7 @@ namespace LXiStream {
 /*! This is a generic input node, reading to a QIODevice.
  */
 class LXISTREAM_PUBLIC SIOInputNode : public SInterfaces::SourceNode,
-                                      public SInterfaces::BufferReaderNode,
+                                      public SInterfaces::AbstractBufferReader,
                                       protected SInterfaces::BufferReader::ReadCallback,
                                       protected SInterfaces::BufferReader::ProduceCallback
 {
@@ -40,7 +40,7 @@ public:
   virtual                       ~SIOInputNode();
 
   void                          setIODevice(QIODevice *);
-  virtual bool                  open(quint16 programId);
+  virtual bool                  open(quint16 programId = 0);
 
 public: // From SInterfaces::SourceNode
   virtual bool                  start(void);

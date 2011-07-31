@@ -25,6 +25,7 @@
 #include "bufferwriter.h"
 #include "datadecoder.h"
 #include "formatprober.h"
+#include "networkbufferreader.h"
 #include "videodecoder.h"
 #include "videoencoder.h"
 #include "videoformatconverter.h"
@@ -117,6 +118,14 @@ bool Module::registerClasses(void)
   for (::AVOutputFormat *format=::av_oformat_next(NULL); format; format=::av_oformat_next(format))
   if (!unsupportedWriters.contains(format->name))
     BufferWriter::registerClass<BufferWriter>(format->name);
+
+  // Protocols
+  const QSet<QByteArray> unsupportedProtocols = QSet<QByteArray>()
+      ;
+
+  for (::URLProtocol *protocol=::av_protocol_next(NULL); protocol; protocol=::av_protocol_next(protocol))
+  if (!unsupportedProtocols.contains(protocol->name))
+    NetworkBufferReader::registerClass<NetworkBufferReader>(protocol->name);
 
   // Filters
   AudioResampler::registerClass<AudioResampler>("fir");

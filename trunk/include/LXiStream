@@ -41,6 +41,7 @@
 #include "liblxistream/nodes/sfileoutputnode.h"
 #include "liblxistream/nodes/siooutputnode.h"
 #include "liblxistream/nodes/sioinputnode.h"
+#include "liblxistream/nodes/snetworkinputnode.h"
 #include "liblxistream/nodes/splaylistnode.h"
 #include "liblxistream/nodes/ssubpicturerendernode.h"
 #include "liblxistream/nodes/ssubtitlerendernode.h"

@@ -941,7 +941,6 @@ QList<SUPnPContentDirectory::Item> SUPnPContentDirectory::Data::listContentDirIt
           item.title = sub;
           item.title = item.title.startsWith('/') ? item.title.mid(1) : item.title;
           item.title = item.title.endsWith('/') ? item.title.left(item.title.length() - 1) : item.title;
-          item.url = item.title + '/';
 
           result += item;
           if (count > 0)

@@ -93,7 +93,7 @@ public:
 
   bool                          setup(const SHttpServer::RequestMessage &,
                                       QIODevice *,
-                                      SInterfaces::BufferReaderNode *,
+                                      SInterfaces::AbstractBufferReader *,
                                       STime duration = STime(),
                                       SInterfaces::AudioEncoder::Flags = SInterfaces::AudioEncoder::Flag_None,
                                       SInterfaces::VideoEncoder::Flags = SInterfaces::VideoEncoder::Flag_None);

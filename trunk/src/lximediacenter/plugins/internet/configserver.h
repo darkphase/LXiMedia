@@ -49,7 +49,7 @@ protected: // From SHttpServer::Callback
   virtual void                  handleHttpOptions(SHttpServer::ResponseHeader &);
 
 private:
-  SHttpServer::SocketOp         handleHtmlRequest(const SHttpServer::RequestMessage &, QIODevice *, const QString &);
+  SHttpServer::SocketOp         handleHtmlRequest(const SHttpServer::RequestMessage &, QIODevice *, const MediaServer::File &);
   void                          generateTree(HtmlParser &, const QFileInfoList &, int, const QSet<QString> &, const QStringList &);
 
 private:
@@ -58,12 +58,18 @@ private:
   SiteDatabase                * siteDatabase;
 
 private:
-  static const char     * const htmlMain;
-  static const char     * const htmlTreeIndex;
-  static const char     * const htmlTreeDir;
-  static const char     * const htmlTreeIndent;
-  static const char     * const htmlTreeExpand;
-  static const char     * const htmlTreeCheckLink;
+  static const char             htmlMain[];
+
+  static const char             htmlTreeIndex[];
+  static const char             htmlTreeDir[];
+  static const char             htmlTreeIndent[];
+  static const char             htmlTreeExpand[];
+  static const char             htmlTreeCheckLink[];
+  static const char             htmlTreeCheckIcon[];
+  static const char             htmlTreeScriptLink[];
+
+  static const char             htmlEditMain[];
+  static const char             htmlEditHead[];
 };
 
 } } // End of namespaces

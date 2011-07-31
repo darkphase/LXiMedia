@@ -107,7 +107,7 @@ SHttpServer::SocketOp MediaServer::handleHttpRequest(const SHttpServer::RequestM
           ThumbnailListItem thumbItem;
           thumbItem.title = item.title;
           thumbItem.iconurl = item.iconUrl;
-          thumbItem.url = item.url;
+          thumbItem.url = item.title + '/';
 
           thumbItems.append(thumbItem);
         }

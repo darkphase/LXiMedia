@@ -20,6 +20,8 @@ HEADERS += audiodecoder.h \
     videoresizer.h \
     bufferwriter.h \
     bufferreader.h \
+    bufferreaderbase.h \
+    networkbufferreader.h \
     videoformatconverter.h
 SOURCES += audiodecoder.cpp \
     audioencoder.cpp \
@@ -33,6 +35,8 @@ SOURCES += audiodecoder.cpp \
     videoresizer.cpp \
     bufferwriter.cpp \
     bufferreader.cpp \
+    bufferreaderbase.cpp \
+    networkbufferreader.cpp \
     videoformatconverter.cpp
 
 # Export plugin

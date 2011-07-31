@@ -24,6 +24,7 @@ namespace SInterfaces {
 
 S_FACTORIZABLE_INSTANCE_NO_CREATE(FormatProber);
 S_FACTORIZABLE_INSTANCE_NO_CREATE(BufferReader);
+S_FACTORIZABLE_INSTANCE_NO_CREATE(NetworkBufferReader);
 S_FACTORIZABLE_INSTANCE_NO_CREATE(BufferWriter);
 S_FACTORIZABLE_INSTANCE_NO_CREATE(AudioDecoder);
 S_FACTORIZABLE_INSTANCE_NO_CREATE(VideoDecoder);
@@ -79,7 +80,7 @@ QList<FormatProber *> FormatProber::create(QObject *parent)
   return factory().createObjects<FormatProber>(parent);
 }
 
-/*! Creates a buffer reader for the specified format.
+/*! Creates a BufferReader for the specified format.
     \param parent   The parent object, or NULL if none.
     \param format   The data format of the serialized data (e.g. "mpeg" or "flv").
     \param nonNull  When true, the default, the method will throw a qFatal() if
@@ -106,8 +107,31 @@ BufferReader * BufferReader::create(QObject *parent, const QString &format, bool
   return bufferReader;
 }
 
-BufferReaderNode::~BufferReaderNode()
+/*! Creates a NetworkBufferReader for the specified protocol.
+    \param parent   The parent object, or NULL if none.
+    \param protocol The protocol of the network stream (e.g. "http" or "rtp").
+    \param nonNull  When true, the default, the method will throw a qFatal() if
+                    the object can not be created, the method is guaranteed not
+                    to return a null pointer in this case. When false, the
+                    method will return a null pointer if the object can not be
+                    created.
+ */
+NetworkBufferReader * NetworkBufferReader::create(QObject *parent, const QString &protocol, bool nonNull)
 {
+  NetworkBufferReader * bufferReader =
+      static_cast<NetworkBufferReader *>(factory().createObject(staticMetaObject.className(), parent, protocol, nonNull));
+
+  if (bufferReader)
+  if (!bufferReader->openProtocol(protocol))
+  {
+    delete bufferReader;
+    bufferReader = NULL;
+  }
+
+  if (nonNull && (bufferReader == NULL))
+    qFatal("Failed to open network protocol \"%s\".", protocol.toAscii().data());
+
+  return bufferReader;
 }
 
 /*! Creates a buffer writer for the specified format.

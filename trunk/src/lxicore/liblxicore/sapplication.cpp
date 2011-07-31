@@ -154,9 +154,8 @@ SApplication::~SApplication(void)
     QPair<QPluginLoader *, SModule *> i = d->modules.takeLast();
 
     i.second->unload();
-    if (i.first)
-      i.first->unload(); // Deliberately not deleting QPluginLoader as it causes a crash.
-    else
+    // Deliberately not unloading/deleting QPluginLoader as it causes a crash.
+    if (i.first == NULL)
       delete i.second;
   }
 

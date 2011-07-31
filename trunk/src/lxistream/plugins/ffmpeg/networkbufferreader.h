@@ -17,8 +17,8 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef __BUFFERREADER_H
-#define __BUFFERREADER_H
+#ifndef __NETWORKBUFFERREADER_H
+#define __NETWORKBUFFERREADER_H
 
 #include <QtCore>
 #include <LXiStream>
@@ -28,31 +28,24 @@
 namespace LXiStream {
 namespace FFMpegBackend {
 
-class BufferReader : public SInterfaces::BufferReader,
-                     public BufferReaderBase
+class NetworkBufferReader : public SInterfaces::NetworkBufferReader,
+                            public BufferReaderBase
 {
 Q_OBJECT
 public:
-  explicit                      BufferReader(const QString &, QObject *);
-  virtual                       ~BufferReader();
+  explicit                      NetworkBufferReader(const QString &, QObject *);
+  virtual                       ~NetworkBufferReader();
 
   inline bool                   process(bool fast)                              { return BufferReaderBase::process(fast); }
 
-public: // From SInterfaces::BufferReader
-  virtual bool                  openFormat(const QString &);
+public: // From SInterfaces::NetworkBufferReader
+  virtual bool                  openProtocol(const QString &);
 
-  virtual bool                  start(ReadCallback *, ProduceCallback *, quint16 programId, bool streamed);
+  virtual bool                  start(const QUrl &url, ProduceCallback *, quint16 programId);
   virtual void                  stop(void);
   inline virtual bool           process(void)                                   { return BufferReaderBase::process(); }
 
 private:
-  static int                    read(void *opaque, uint8_t *buf, int buf_size);
-  static int64_t                seek(void *opaque, int64_t offset, int whence);
-
-private:
-  ReadCallback                * readCallback;
-  ::AVInputFormat             * format;
-  ::ByteIOContext             * ioContext;
 };
 
 } } // End of namespaces

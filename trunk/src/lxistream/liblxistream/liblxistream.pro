@@ -78,6 +78,7 @@ HEADERS += $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/saudiodecodernode
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/sfileoutputnode.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/sioinputnode.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/siooutputnode.h \
+    $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/snetworkinputnode.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/splaylistnode.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/ssubpicturerendernode.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/ssubtitlerendernode.h \
@@ -103,6 +104,7 @@ SOURCES += nodes/saudiodecodernode.cpp \
     nodes/sfileoutputnode.cpp \
     nodes/sioinputnode.cpp \
     nodes/siooutputnode.cpp \
+    nodes/snetworkinputnode.cpp \
     nodes/splaylistnode.cpp \
     nodes/ssubpicturerendernode.cpp \
     nodes/ssubpicturerendernode.mix.c \
