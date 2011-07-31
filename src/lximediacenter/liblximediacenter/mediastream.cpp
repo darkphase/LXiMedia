@@ -455,7 +455,7 @@ MediaTranscodeStream::MediaTranscodeStream(void)
 
 bool MediaTranscodeStream::setup(const SHttpServer::RequestMessage &request,
                                  QIODevice *socket,
-                                 SInterfaces::BufferReaderNode *input,
+                                 SInterfaces::AbstractBufferReader *input,
                                  STime duration,
                                  SInterfaces::AudioEncoder::Flags audioEncodeFlags,
                                  SInterfaces::VideoEncoder::Flags videoEncodeFlags)

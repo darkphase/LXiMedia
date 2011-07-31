@@ -78,13 +78,38 @@ QString ConfigServer::serverIconPath(void) const
 
 SHttpServer::SocketOp ConfigServer::handleHttpRequest(const SHttpServer::RequestMessage &request, QIODevice *socket)
 {
-  if ((request.method() == "GET") || (request.method() == "HEAD"))
+  if ((request.method() == "GET") || (request.method() == "POST") || (request.method() == "HEAD"))
   {
-    const QUrl url(request.path());
-    const QString file = request.file();
+    const MediaServer::File file(request);
 
-    if (file.isEmpty() || file.endsWith(".html"))
+    if (file.baseName().isEmpty() || (file.suffix() == "html"))
+    {
       return handleHtmlRequest(request, socket, file);
+    }
+    else if (file.suffix() == "txt")
+    {
+      QFile txtFile(":/internet/sites/" + file.baseName().toUpper());
+      if (txtFile.open(QFile::ReadOnly))
+      {
+        SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
+        response.setContentType("text/plain;charset=utf-8");
+        response.setField("Cache-Control", "no-cache");
+
+        socket->write(response);
+        socket->write(txtFile.readAll());
+        return SHttpServer::SocketOp_Close;
+      }
+    }
+    else if (file.suffix() == "js")
+    {
+      SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
+      response.setContentType("text/javascript;charset=utf-8");
+      response.setField("Cache-Control", "no-cache");
+
+      socket->write(response);
+      socket->write(siteDatabase->script(file.baseName()).toUtf8());
+      return SHttpServer::SocketOp_Close;
+    }
   }
 
   return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);
@@ -92,7 +117,7 @@ SHttpServer::SocketOp ConfigServer::handleHttpRequest(const SHttpServer::Request
 
 void ConfigServer::handleHttpOptions(SHttpServer::ResponseHeader &response)
 {
-  response.setField("Allow", response.field("Allow") + ",GET,HEAD");
+  response.setField("Allow", response.field("Allow") + ",GET,POST,HEAD");
 }
 
 } } // End of namespaces

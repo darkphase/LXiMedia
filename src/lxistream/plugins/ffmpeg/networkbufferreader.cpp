@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by A.J. Admiraal                                   *
+ *   Copyright (C) 2010 by A.J. Admiraal                                   *
  *   code@admiraal.dds.nl                                                  *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -17,44 +17,37 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef __BUFFERREADER_H
-#define __BUFFERREADER_H
-
-#include <QtCore>
-#include <LXiStream>
-#include "ffmpegcommon.h"
-#include "bufferreaderbase.h"
+#include "networkbufferreader.h"
 
 namespace LXiStream {
 namespace FFMpegBackend {
 
-class BufferReader : public SInterfaces::BufferReader,
-                     public BufferReaderBase
+NetworkBufferReader::NetworkBufferReader(const QString &, QObject *parent)
+  : SInterfaces::NetworkBufferReader(parent)
 {
-Q_OBJECT
-public:
-  explicit                      BufferReader(const QString &, QObject *);
-  virtual                       ~BufferReader();
+}
 
-  inline bool                   process(bool fast)                              { return BufferReaderBase::process(fast); }
+NetworkBufferReader::~NetworkBufferReader()
+{
+}
 
-public: // From SInterfaces::BufferReader
-  virtual bool                  openFormat(const QString &);
+bool NetworkBufferReader::openProtocol(const QString &)
+{
+  return true;
+}
 
-  virtual bool                  start(ReadCallback *, ProduceCallback *, quint16 programId, bool streamed);
-  virtual void                  stop(void);
-  inline virtual bool           process(void)                                   { return BufferReaderBase::process(); }
+bool NetworkBufferReader::start(const QUrl &url, ProduceCallback *produceCallback, quint16 /*programId*/)
+{
+  ::AVFormatContext * formatContext = NULL;
+  if (::av_open_input_file(&formatContext, url.toEncoded(), NULL, 0, NULL) == 0)
+    return BufferReaderBase::start(produceCallback, formatContext);
 
-private:
-  static int                    read(void *opaque, uint8_t *buf, int buf_size);
-  static int64_t                seek(void *opaque, int64_t offset, int whence);
+  return false;
+}
 
-private:
-  ReadCallback                * readCallback;
-  ::AVInputFormat             * format;
-  ::ByteIOContext             * ioContext;
-};
+void NetworkBufferReader::stop(void)
+{
+  BufferReaderBase::stop();
+}
 
 } } // End of namespaces
-
-#endif

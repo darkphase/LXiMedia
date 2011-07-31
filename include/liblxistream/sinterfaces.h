@@ -296,15 +296,17 @@ public:
   virtual void                  probeMetadata(ProbeInfo &probeInfo, ReadCallback *callback) = 0;
 };
 
-/*! The BufferReader interface can be used to read serialized buffers from a
-    byte stream.
+/*! The AbstractBufferReader interface is used for interfaces and nodes that
+    provide access to buffer streams.
  */
-class LXISTREAM_PUBLIC BufferReader : public QObject
+class LXISTREAM_PUBLIC AbstractBufferReader
 {
-Q_OBJECT
-S_FACTORIZABLE_NO_CREATE(BufferReader)
 public:
-  typedef FormatProber::ReadCallback ReadCallback;
+  typedef FormatProber::StreamId        StreamId;
+  typedef FormatProber::AudioStreamInfo AudioStreamInfo;
+  typedef FormatProber::VideoStreamInfo VideoStreamInfo;
+  typedef FormatProber::DataStreamInfo  DataStreamInfo;
+  typedef FormatProber::Chapter         Chapter;
 
   struct ProduceCallback
   {
@@ -313,11 +315,28 @@ public:
     virtual void                produce(const SEncodedDataBuffer &) = 0;
   };
 
-  typedef FormatProber::StreamId        StreamId;
-  typedef FormatProber::AudioStreamInfo AudioStreamInfo;
-  typedef FormatProber::VideoStreamInfo VideoStreamInfo;
-  typedef FormatProber::DataStreamInfo  DataStreamInfo;
-  typedef FormatProber::Chapter         Chapter;
+public:
+  virtual STime                 duration(void) const = 0;
+  virtual bool                  setPosition(STime) = 0;
+  virtual STime                 position(void) const = 0;
+  virtual QList<Chapter>        chapters(void) const = 0;
+
+  virtual QList<AudioStreamInfo> audioStreams(void) const = 0;
+  virtual QList<VideoStreamInfo> videoStreams(void) const = 0;
+  virtual QList<DataStreamInfo> dataStreams(void) const = 0;
+  virtual void                  selectStreams(const QList<StreamId> &) = 0;
+};
+
+/*! The BufferReader interface can be used to read serialized buffers from a
+    byte stream.
+ */
+class LXISTREAM_PUBLIC BufferReader : public QObject,
+                                      public virtual AbstractBufferReader
+{
+Q_OBJECT
+S_FACTORIZABLE_NO_CREATE(BufferReader)
+public:
+  typedef FormatProber::ReadCallback ReadCallback;
 
 public:
   static BufferReader         * create(QObject *parent, const QString &format, bool nonNull = true);
@@ -331,42 +350,31 @@ public:
   virtual bool                  start(ReadCallback *, ProduceCallback *, quint16 programId, bool streamed) = 0;
   virtual void                  stop(void) = 0;
   virtual bool                  process(void) = 0;
-
-  virtual STime                 duration(void) const = 0;
-  virtual bool                  setPosition(STime) = 0;
-  virtual STime                 position(void) const = 0;
-  virtual QList<Chapter>        chapters(void) const = 0;
-
-  virtual QList<AudioStreamInfo> audioStreams(void) const = 0;
-  virtual QList<VideoStreamInfo> videoStreams(void) const = 0;
-  virtual QList<DataStreamInfo>  dataStreams(void) const = 0;
-  virtual void                  selectStreams(const QList<StreamId> &) = 0;
 };
 
-/*! The BufferReaderNode interface is used for nodes that provide access to a
-    BufferReader.
+/*! The NetworkBufferReader interface can be used to read serialized buffers
+    from a network stream.
  */
-class LXISTREAM_PUBLIC BufferReaderNode
+class LXISTREAM_PUBLIC NetworkBufferReader : public QObject,
+                                             public virtual AbstractBufferReader
 {
+Q_OBJECT
+S_FACTORIZABLE_NO_CREATE(NetworkBufferReader)
 public:
-  typedef FormatProber::StreamId        StreamId;
-  typedef FormatProber::AudioStreamInfo AudioStreamInfo;
-  typedef FormatProber::VideoStreamInfo VideoStreamInfo;
-  typedef FormatProber::DataStreamInfo  DataStreamInfo;
-  typedef FormatProber::Chapter         Chapter;
+  typedef BufferReader::ProduceCallback ProduceCallback;
 
 public:
-  virtual                       ~BufferReaderNode();
+  static NetworkBufferReader  * create(QObject *parent, const QString &protocol, bool nonNull = true);
 
-  virtual STime                 duration(void) const = 0;
-  virtual bool                  setPosition(STime) = 0;
-  virtual STime                 position(void) const = 0;
-  virtual QList<Chapter>        chapters(void) const = 0;
+protected:
+  inline explicit               NetworkBufferReader(QObject *parent) : QObject(parent) { }
 
-  virtual QList<AudioStreamInfo> audioStreams(void) const = 0;
-  virtual QList<VideoStreamInfo> videoStreams(void) const = 0;
-  virtual QList<DataStreamInfo> dataStreams(void) const = 0;
-  virtual void                  selectStreams(const QList<StreamId> &) = 0;
+  virtual bool                  openProtocol(const QString &) = 0;
+
+public:
+  virtual bool                  start(const QUrl &url, ProduceCallback *, quint16 programId) = 0;
+  virtual void                  stop(void) = 0;
+  virtual bool                  process(void) = 0;
 };
 
 /*! The BufferWriter interface can be used to write serialized buffers to a

@@ -17,28 +17,28 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXISTREAM_SPLAYLISTNODE_H
-#define LXISTREAM_SPLAYLISTNODE_H
+#ifndef LXISTREAM_SNETWORKINPUTNODE_H
+#define LXISTREAM_SNETWORKINPUTNODE_H
 
 #include <QtCore>
 #include <LXiCore>
-#include "sioinputnode.h"
-#include "../smediainfo.h"
+#include "../sinterfaces.h"
 #include "../export.h"
 
 namespace LXiStream {
 
-class SFileInputNode;
+class SEncodedVideoBuffer;
 
-class LXISTREAM_PUBLIC SPlaylistNode : public SInterfaces::SourceNode,
-                                       public SInterfaces::AbstractBufferReader
+class LXISTREAM_PUBLIC SNetworkInputNode : public SInterfaces::SourceNode,
+                                           public SInterfaces::AbstractBufferReader,
+                                           protected SInterfaces::BufferReader::ProduceCallback
 {
 Q_OBJECT
 public:
-  explicit                      SPlaylistNode(SGraph *, const SMediaInfoList &files);
-  virtual                       ~SPlaylistNode();
+  explicit                      SNetworkInputNode(SGraph *, const QUrl &url);
+  virtual                       ~SNetworkInputNode();
 
-  virtual bool                  open(void);
+  virtual bool                  open(quint16 programId = 0);
 
 public: // From SInterfaces::SourceNode
   virtual bool                  start(void);
@@ -61,21 +61,16 @@ signals:
   void                          output(const SEncodedVideoBuffer &);
   void                          output(const SEncodedDataBuffer &);
   void                          finished(void);
-  void                          opened(const QString &, quint16);
-  void                          closed(const QString &, quint16);
 
-private:
-  _lxi_internal SFileInputNode * openFile(const QString &, quint16);
-  _lxi_internal void            openNext(void);
-
-private slots:
-  _lxi_internal void            closeFile(void);
+protected: // From SInterfaces::BufferReader::ProduceCallback
+  virtual void                  produce(const SEncodedAudioBuffer &);
+  virtual void                  produce(const SEncodedVideoBuffer &);
+  virtual void                  produce(const SEncodedDataBuffer &);
 
 private:
   struct Data;
   Data                  * const d;
 };
-
 
 } // End of namespace
 

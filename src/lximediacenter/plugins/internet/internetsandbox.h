@@ -17,64 +17,50 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef INTRENETSERVER_H
-#define INTRENETSERVER_H
+#ifndef INTERNETSANDBOX_H
+#define INTERNETSANDBOX_H
 
-#include <QtCore>
-#include <LXiStream>
 #include <LXiMediaCenter>
-#include "sitedatabase.h"
 
 namespace LXiMediaCenter {
 namespace InternetBackend {
 
-class MediaPlayerServerDir;
-
-class InternetServer : public MediaServer
+class InternetSandbox : public BackendSandbox
 {
 Q_OBJECT
-friend class MediaPlayerServerDir;
-protected:
-  class Stream : public MediaServer::Stream
-  {
-  public:
-                                Stream(InternetServer *, SSandboxClient *, const QString &url);
-    virtual                     ~Stream();
-
-    bool                        setup(const QUrl &request, const QByteArray &content);
-
-  public:
-    SSandboxClient      * const sandbox;
-  };
-
 public:
-                                InternetServer(const QString &category, QObject *);
+  explicit                      InternetSandbox(const QString &, QObject *parent = NULL);
 
-  virtual void                  initialize(MasterServer *);
+  virtual void                  initialize(SSandboxServer *);
   virtual void                  close(void);
 
-  virtual QString               pluginName(void) const;
+public: // From SSandboxServer::Callback
+  virtual SSandboxServer::SocketOp handleHttpRequest(const SSandboxServer::RequestMessage &, QIODevice *);
+  virtual void                  handleHttpOptions(SHttpServer::ResponseHeader &);
 
-  virtual SearchResultList      search(const QStringList &) const;
+private slots:
+  void                          cleanStreams(void);
 
-protected: // From MediaServer
-  virtual Stream              * streamVideo(const SHttpServer::RequestMessage &);
-
-  virtual int                   countItems(const QString &path);
-  virtual QList<Item>           listItems(const QString &path, unsigned start = 0, unsigned count = 0);
-
-protected: // From SHttpServer::Callback
-  virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestMessage &, QIODevice *);
+public:
+  static const char     * const path;
 
 private:
-  const QList<Item>           & cachedItems(const QString &path);
+  SSandboxServer              * server;
+  QList<MediaStream *>          streams;
+  QTimer                        cleanStreamsTimer;
+};
 
-protected:
-  const QString                 category;
-  MasterServer                * masterServer;
-  SiteDatabase                * siteDatabase;
-  QMap<QString, QList<Item> >   itemCache;
-  QTime                         cacheTimer;
+class SandboxNetworkStream : public MediaTranscodeStream
+{
+Q_OBJECT
+public:
+  explicit                      SandboxNetworkStream(const QUrl &url);
+  virtual                       ~SandboxNetworkStream();
+
+  bool                          setup(const SHttpServer::RequestMessage &, QIODevice *);
+
+public:
+  SNetworkInputNode             source;
 };
 
 } } // End of namespaces

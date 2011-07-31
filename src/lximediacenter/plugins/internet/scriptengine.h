@@ -38,11 +38,12 @@ public:
 
   QString                       version(void);
   bool                          isCompatible(void);
-  QString                       friendlyName(void);
   QString                       targetAudience(void);
+  QString                       category(void);
 
   QImage                        icon(const QString &id);
   QList<MediaServer::Item>      listItems(const QString &path);
+  QString                       streamLocation(const QString &id);
 
 private slots:
   void                          exceptionHandler(const QScriptValue &exception);
@@ -53,8 +54,8 @@ private:
   QScriptValue                  me;
 
   QScriptValue                  versionFunc;
-  QScriptValue                  friendlyNameFunc;
   QScriptValue                  targetAudienceFunc;
+  QScriptValue                  categoryFunc;
 
   QScriptValue                  iconFunc;
   QScriptValue                  listItemsFunc;

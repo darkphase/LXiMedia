@@ -32,8 +32,8 @@ ScriptEngine::ScriptEngine(const QString &script, QObject *parent)
   global = engine.globalObject();
 
   versionFunc = global.property("version");
-  friendlyNameFunc = global.property("friendlyName");
   targetAudienceFunc = global.property("targetAudience");
+  categoryFunc = global.property("category");
 
   iconFunc = global.property("icon");
   listItemsFunc = global.property("listItems");
@@ -65,18 +65,18 @@ bool ScriptEngine::isCompatible(void)
   return false;
 }
 
-QString ScriptEngine::friendlyName(void)
-{
-  if (!friendlyNameFunc.isNull())
-    return friendlyNameFunc.call(me).toString();
-
-  return QString::null;
-}
-
 QString ScriptEngine::targetAudience(void)
 {
   if (!targetAudienceFunc.isNull())
     return targetAudienceFunc.call(me).toString();
+
+  return QString::null;
+}
+
+QString ScriptEngine::category(void)
+{
+  if (!categoryFunc.isNull())
+    return categoryFunc.call(me).toString();
 
   return QString::null;
 }
@@ -102,6 +102,7 @@ QList<MediaServer::Item> ScriptEngine::listItems(const QString &path)
       if (vars.count() >= 3)
       {
         MediaServer::Item item;
+        item.direct = true;
 
         if (vars[2] == "Video")
           item.type = SUPnPContentDirectory::Item::Type_Video;
@@ -123,6 +124,14 @@ QList<MediaServer::Item> ScriptEngine::listItems(const QString &path)
   }
 
   return result;
+}
+
+QString ScriptEngine::streamLocation(const QString &id)
+{
+  if (!streamLocationFunc.isNull())
+    return streamLocationFunc.call(me, QScriptValueList() << id).toString();
+
+  return QString::null;
 }
 
 void ScriptEngine::exceptionHandler(const QScriptValue &exception)

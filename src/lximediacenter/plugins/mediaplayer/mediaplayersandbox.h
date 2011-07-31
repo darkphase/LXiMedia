@@ -21,7 +21,6 @@
 #define MEDIAPLAYERSANDBOX_H
 
 #include <LXiMediaCenter>
-#include "mediadatabase.h"
 #include "slideshownode.h"
 
 namespace LXiMediaCenter {

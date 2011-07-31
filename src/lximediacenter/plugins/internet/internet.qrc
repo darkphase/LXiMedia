@@ -1,5 +1,15 @@
 <RCC>
     <qresource prefix="/internet">
-        <file>sites/fm.fresh!1.0.js</file>
+        <file>sites/README</file>
+        <file>sites/fm.fresh!1.js</file>
+        <file>sites/fm.fresh!1.js</file>
+        <file>sites/nl.3fm!1.js</file>
+        <file>sites/nl.radio1!1.js</file>
+        <file>sites/nl.radio2!1.js</file>
+        <file>sites/nl.radio4!1.js</file>
+        <file>sites/nl.radio5!1.js</file>
+        <file>sites/nl.radio6!1.js</file>
+        <file>sites/nl.radioveronica!1.js</file>
+        <file>sites/nl.skyradio!1.js</file>
     </qresource>
 </RCC>
