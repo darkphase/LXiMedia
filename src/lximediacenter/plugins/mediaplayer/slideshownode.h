@@ -66,6 +66,7 @@ private:
   STime                         time;
   int                           currentPicture;
   int                           currentFrame;
+  SImage                        baseImage;
   SVideoBuffer                  lastBuffer, currentBuffer, nextBuffer;
 
   QFuture<void>                 loadFuture;
