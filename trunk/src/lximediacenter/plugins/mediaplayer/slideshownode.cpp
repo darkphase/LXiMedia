@@ -72,6 +72,8 @@ bool SlideShowNode::start(void)
   audioBuffer.setNumSamples(audioFormat.sampleRate() / frameRate);
   memset(audioBuffer.data(), 0, audioBuffer.size());
 
+  baseImage = SVideoGeneratorNode::drawCorneredImage(outSize);
+
   // Create a black video buffer
   lastBuffer = blackBuffer();
 
@@ -161,11 +163,10 @@ void SlideShowNode::loadImage(const QString &fileName)
 {
   LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
 
-  SImage img(outSize, QImage::Format_RGB32);
+  SImage img = baseImage;
 
   QPainter p;
   p.begin(&img);
-    p.fillRect(img.rect(), Qt::black);
     const float ar = outSize.aspectRatio();
 
     SImage src(fileName);
