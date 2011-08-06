@@ -21,6 +21,7 @@
 #define LXSTREAMGUI_SVIDEOGENERATORNODE_H
 
 #include <QtCore>
+#include <QtGui>
 #include <LXiStream>
 #include "../export.h"
 
@@ -49,6 +50,10 @@ public slots:
 
 signals:
   void                          output(const SVideoBuffer &);
+
+public: // Helper methods
+  static SImage                 drawCorneredImage(const SSize &);
+  static SImage                 drawBusyWaitImage(const SSize &, int angle);
 
 private:
   struct Data;

@@ -232,7 +232,7 @@ void SVideoView::paintEvent(QPaintEvent *)
 
   if (!image.isNull())
   {
-    QSizeF sz(image.size());
+    QSizeF sz(image.size().size());
     sz.scale(size(), Qt::KeepAspectRatio);
     image = image.scaled(sz.toSize(), Qt::IgnoreAspectRatio, (image.height() <= 576) ? Qt::SmoothTransformation : Qt::FastTransformation);
 

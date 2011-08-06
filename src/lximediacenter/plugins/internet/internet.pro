@@ -13,7 +13,8 @@ HEADERS += configserver.h \
     internetserver.h \
     module.h \
     scriptengine.h \
-    sitedatabase.h
+    sitedatabase.h \
+    streaminputnode.h
 
 SOURCES += configserver.cpp \
     internetsandbox.cpp \
@@ -21,7 +22,8 @@ SOURCES += configserver.cpp \
     configserver.html.cpp \
     module.cpp \
     scriptengine.cpp \
-    sitedatabase.cpp
+    sitedatabase.cpp \
+    streaminputnode.cpp
 
 RESOURCES = internet.qrc
 

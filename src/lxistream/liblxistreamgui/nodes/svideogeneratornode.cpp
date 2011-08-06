@@ -101,4 +101,78 @@ void SVideoGeneratorNode::input(const SAudioBuffer &audioBuffer)
   }
 }
 
+SImage SVideoGeneratorNode::drawCorneredImage(const SSize &size)
+{
+  SImage img(size, QImage::Format_RGB32);
+  img.fill(0);
+
+  QPainter p(&img);
+
+  const int blockSize = qMin(size.width(), size.height()) / 8;
+  const int blockWidth = blockSize / size.aspectRatio();
+  const int blockHeight = blockSize;
+
+  const QRect block1(-blockWidth, -blockHeight, blockWidth * 2, blockHeight * 2);
+  QRadialGradient gradient1(0, 0, blockSize);
+  gradient1.setColorAt(0.0, Qt::gray);
+  gradient1.setColorAt(1.0, Qt::transparent);
+
+  p.setPen(Qt::transparent);
+  p.setBrush(gradient1);
+  p.drawPie(block1, 270 * 16, 90 * 16);
+
+  const QRect block2 = block1.translated(size.width(), size.height());
+  QRadialGradient gradient2(size.width(), size.height(), blockSize);
+  gradient2.setColorAt(0.0, Qt::gray);
+  gradient2.setColorAt(1.0, Qt::transparent);
+
+  p.setPen(Qt::transparent);
+  p.setBrush(gradient2);
+  p.drawPie(block2,  90 * 16, 90 * 16);
+
+  return img;
+}
+
+SImage SVideoGeneratorNode::drawBusyWaitImage(const SSize &size, int angle)
+{
+  const int blockSize = qMin(size.width(), size.height()) / 2;
+
+  SImage img(SSize(blockSize, blockSize, size.aspectRatio()), QImage::Format_ARGB32);
+  img.fill(0);
+
+  QPainter p(&img);
+
+  QRadialGradient gradient(img.width() / 2, img.height() / 2, blockSize / 2);
+  gradient.setColorAt(0.0, Qt::gray);
+  gradient.setColorAt(1.0, Qt::transparent);
+
+  p.setPen(Qt::transparent);
+  p.setBrush(gradient);
+  p.drawPie(img.rect(),  90 * 16, 90 * 16);
+  p.drawPie(img.rect(), 270 * 16, 90 * 16);
+
+  p.setRenderHint(QPainter::Antialiasing);
+  p.setPen(Qt::white);
+  p.setBrush(Qt::white);
+
+  const QRectF outerRect = img.rect().adjusted(blockSize / 16, blockSize / 16, -blockSize / 16, -blockSize / 16);
+  const QRectF innerRect = outerRect.adjusted(blockSize / 16, blockSize / 16, -blockSize / 16, -blockSize / 16);
+
+  QPainterPath path1;
+  path1.arcMoveTo(outerRect, angle);
+  path1.arcTo(outerRect, angle, 90);
+  path1.arcTo(innerRect, angle + 90, -90);
+  path1.closeSubpath();
+  p.drawPath(path1);
+
+  QPainterPath path2;
+  path2.arcMoveTo(outerRect, angle + 180);
+  path2.arcTo(outerRect, angle + 180, 90);
+  path2.arcTo(innerRect, angle + 270, -90);
+  path2.closeSubpath();
+  p.drawPath(path2);
+
+  return img;
+}
+
 } // End of namespace

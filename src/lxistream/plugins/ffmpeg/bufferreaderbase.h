@@ -29,6 +29,22 @@ namespace FFMpegBackend {
 
 class BufferReaderBase : public virtual SInterfaces::AbstractBufferReader
 {
+public:
+  class Packet : public SBuffer
+  {
+  public:
+                                Packet(void);
+                                Packet(const ::AVPacket &from);
+
+  public:
+    qint64                      pts, dts;
+    qint64                      pos;
+    qint64                      convergenceDuration;
+    int                         streamIndex;
+    int                         flags;
+    int                         duration;
+  };
+
 private:
   struct StreamContext
   {
@@ -62,7 +78,10 @@ public:
 
   bool                          start(ProduceCallback *, ::AVFormatContext *);
   void                          stop(void);
-  bool                          process(bool fast = false);
+
+  Packet                        read(bool fast = false);
+  STime                         timeStamp(const Packet &) const;
+  bool                          demux(const Packet &);
 
 public: // From SInterfaces::AbstractBufferReader
   virtual STime                 duration(void) const;
@@ -76,16 +95,16 @@ public: // From SInterfaces::AbstractBufferReader
   virtual void                  selectStreams(const QList<StreamId> &);
 
 private: // DTS framing
-  static bool                   isDTS(const uint8_t *, int);
-  static int                    findDTSFrame(const uint8_t *, int);
-  static unsigned               findDTSFrameType(const uint8_t *);
-  static SEncodedAudioBufferList parseDTSFrames(StreamContext *, const uint8_t *, int);
+  static bool                   isDTS(const SBuffer &);
+  static int                    findDTSFrame(const quint8 *, int);
+  static unsigned               findDTSFrameType(const quint8 *);
+  static SEncodedAudioBufferList parseDTSFrames(StreamContext *, const SBuffer &);
 
 private:
   static StreamContext        * initStreamContext(const ::AVStream *);
   static QString                readMetadata(::AVMetadata *, const char *tagName);
-  QPair<STime, STime>           correctTimeStamp(const ::AVPacket &);
-  QPair<STime, STime>           correctTimeStampToVideo(const AVPacket &);
+  QPair<STime, STime>           correctTimeStamp(const Packet &);
+  QPair<STime, STime>           correctTimeStampToVideo(const Packet &);
 
 private:
   static const STime            maxJumpTime;
@@ -95,12 +114,9 @@ private:
 
   StreamContext               * streamContext[MAX_STREAMS];
   QSet<StreamId>                selectedStreams;
-  bool                          running;
   
   static const unsigned         maxBufferCount = StreamContext::measurementSize * 8;
-  QList< QPair<int, SEncodedAudioBuffer> > audioBuffers;
-  QList< QPair<int, SEncodedVideoBuffer> > videoBuffers;
-  QList< QPair<int, SEncodedDataBuffer> >  dataBuffers;
+  QList<Packet>                 packetBuffer;
 };
 
 } } // End of namespaces

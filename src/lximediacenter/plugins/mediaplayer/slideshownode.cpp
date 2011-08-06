@@ -94,6 +94,8 @@ bool SlideShowNode::start(void)
 
 void SlideShowNode::stop(void)
 {
+  future.waitForFinished();
+
   audioBuffer.clear();
   lastBuffer.clear();
   currentBuffer.clear();
@@ -164,12 +166,12 @@ void SlideShowNode::loadImage(const QString &fileName)
   QPainter p;
   p.begin(&img);
     p.fillRect(img.rect(), Qt::black);
-    const qreal ar = outSize.aspectRatio();
+    const float ar = outSize.aspectRatio();
 
     SImage src(fileName);
     if (!src.isNull())
     {
-      QSize size = src.size();
+      QSize size = src.size().size();
       size.scale(int(img.width() * ar), img.height(), Qt::KeepAspectRatio);
       src = src.scaled(int(size.width() / ar), size.height(), Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
       p.drawImage((img.width() / 2) - (src.width() / 2),

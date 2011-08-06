@@ -36,14 +36,14 @@ public:
   explicit                      BufferReader(const QString &, QObject *);
   virtual                       ~BufferReader();
 
-  inline bool                   process(bool fast)                              { return BufferReaderBase::process(fast); }
+  inline bool                   process(bool fast)                              { return BufferReaderBase::demux(BufferReaderBase::read(fast)); }
 
 public: // From SInterfaces::BufferReader
   virtual bool                  openFormat(const QString &);
 
   virtual bool                  start(ReadCallback *, ProduceCallback *, quint16 programId, bool streamed);
   virtual void                  stop(void);
-  inline virtual bool           process(void)                                   { return BufferReaderBase::process(); }
+  inline virtual bool           process(void)                                   { return BufferReaderBase::demux(BufferReaderBase::read()); }
 
 private:
   static int                    read(void *opaque, uint8_t *buf, int buf_size);

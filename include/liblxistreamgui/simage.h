@@ -26,6 +26,8 @@ public:
   LXiStream::SVideoBuffer       toVideoBuffer(SInterval frameRate = SInterval()) const;
   inline                        operator LXiStream::SVideoBuffer() const        { return toVideoBuffer(); }
 
+  inline SSize                  size(void) const                                { return SSize(QImage::size(), aspectRatio); }
+
   static SImage                 fromData(const uchar *, int, const char * = NULL);
   static SImage                 fromData(const QByteArray &, const char * = NULL);
 

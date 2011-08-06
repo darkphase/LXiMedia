@@ -44,10 +44,6 @@ Node::Node(SGraph *graph)
     graph->addNode(this);
 }
 
-Node::~Node()
-{
-}
-
 
 SinkNode::SinkNode(SGraph *graph)
   : QObject(graph)
@@ -56,20 +52,12 @@ SinkNode::SinkNode(SGraph *graph)
     graph->addNode(this);
 }
 
-SinkNode::~SinkNode()
-{
-}
-
 
 SourceNode::SourceNode(SGraph *graph)
   : QObject(graph)
 {
   if (graph)
     graph->addNode(this);
-}
-
-SourceNode::~SourceNode()
-{
 }
 
 
