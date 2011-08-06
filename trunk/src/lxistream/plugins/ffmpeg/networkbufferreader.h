@@ -36,16 +36,21 @@ public:
   explicit                      NetworkBufferReader(const QString &, QObject *);
   virtual                       ~NetworkBufferReader();
 
-  inline bool                   process(bool fast)                              { return BufferReaderBase::process(fast); }
-
 public: // From SInterfaces::NetworkBufferReader
   virtual bool                  openProtocol(const QString &);
 
   virtual bool                  start(const QUrl &url, ProduceCallback *, quint16 programId);
   virtual void                  stop(void);
-  inline virtual bool           process(void)                                   { return BufferReaderBase::process(); }
+
+  virtual bool                  buffer(void);
+  virtual STime                 bufferDuration(void) const;
+
+  virtual bool                  process(void);
 
 private:
+  QMutex                        readMutex;
+  mutable QMutex                packetBufferMutex;
+  QList<Packet>                 packetBuffer;
 };
 
 } } // End of namespaces

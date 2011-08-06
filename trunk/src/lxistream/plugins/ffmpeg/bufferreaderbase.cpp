@@ -26,8 +26,7 @@ const STime BufferReaderBase::maxJumpTime = STime::fromSec(10);
 
 BufferReaderBase::BufferReaderBase(void)
   : produceCallback(NULL),
-    formatContext(NULL),
-    running(false)
+    formatContext(NULL)
 {
   for (unsigned i=0; i<MAX_STREAMS; i++)
     streamContext[i] = NULL;
@@ -61,7 +60,7 @@ bool BufferReaderBase::start(ProduceCallback *produceCallback, ::AVFormatContext
 
     for (unsigned i=0; i<formatContext->nb_streams; i++)
     {
-      const AVStream * const stream = formatContext->streams[i];
+      const ::AVStream * const stream = formatContext->streams[i];
 
       streamContext[i] = initStreamContext(stream);
 
@@ -90,20 +89,57 @@ bool BufferReaderBase::start(ProduceCallback *produceCallback, ::AVFormatContext
 
     if (hasVideo)
     { // Determine the framerate
-      running = false;
-
-      // Gather timestamps.
+      QList<Packet> readAheadBuffer;
       for (unsigned i=0, f=0; (i<maxBufferCount) && (f==0); i++)
       {
-        if (!process(false))
-          break;
-
-        // Check if we have enough data.
         f = 1;
-        for (unsigned j=0; j<formatContext->nb_streams; j++)
-        if (formatContext->streams[j]->codec->codec_type == CODEC_TYPE_VIDEO)
-        if (streamContext[j]->measurement.count() < streamContext[j]->measurementSize)
-          f = 0;
+
+        const Packet packet = read(false);
+        if (packet.streamIndex >= 0)
+        {
+          if (unsigned(packet.streamIndex) < formatContext->nb_streams)
+          {
+            const ::AVStream * const stream = formatContext->streams[packet.streamIndex];
+            if (stream && (streamContext[packet.streamIndex] == NULL))
+              streamContext[packet.streamIndex] = initStreamContext(stream);
+
+            StreamContext * const context = streamContext[packet.streamIndex];
+
+            if (stream && context)
+            {
+              if (stream->codec->codec_type == CODEC_TYPE_VIDEO)
+              {
+                if (context->measurement.count() < context->measurementSize)
+                {
+                  STime ts;
+                  if (packet.pts != AV_NOPTS_VALUE)
+                    ts = STime::fromClock(packet.pts, stream->time_base.num, stream->time_base.den);
+                  else if (packet.dts != AV_NOPTS_VALUE)
+                    ts = STime::fromClock(packet.dts, stream->time_base.num, stream->time_base.den);
+
+                  if (ts.isValid())
+                  {
+                    // Remove invalid timestamps
+                    foreach (const STime &t, context->measurement)
+                    if (qAbs(t - ts) > STime::fromSec(context->measurementSize + 4))
+                    {
+                      context->measurement.clear();
+                      break;
+                    }
+
+                    context->measurement += ts;
+                  }
+                }
+                else
+                  f = 0; // Finished
+              }
+            }
+          }
+          else
+            break;
+        }
+
+        readAheadBuffer += packet;
       }
 
       // And determine the framerate for each video stream          .
@@ -153,9 +189,11 @@ bool BufferReaderBase::start(ProduceCallback *produceCallback, ::AVFormatContext
 
         streamContext[i]->measurement.clear();
       }
+
+      packetBuffer = readAheadBuffer;
     }
 
-    return running = true;
+    return true;
   }
 
   return false;
@@ -180,253 +218,167 @@ void BufferReaderBase::stop(void)
   produceCallback = NULL;
 }
 
-bool BufferReaderBase::process(bool fast)
+BufferReaderBase::Packet BufferReaderBase::read(bool fast)
 {
-  if ((running && audioBuffers.isEmpty() && videoBuffers.isEmpty() && dataBuffers.isEmpty()) || !running)
+  if (packetBuffer.isEmpty())
   {
-    ::AVPacket packet;
-    ::av_init_packet(&packet);
+    ::AVPacket avPacket;
+    ::av_init_packet(&avPacket);
 
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
+  #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
     if (fast)
       formatContext->flags |= AVFMT_FLAG_NOFILLIN;
     else
       formatContext->flags &= ~int(AVFMT_FLAG_NOFILLIN);
-#endif
+  #endif
 
-    if (::av_read_frame(formatContext, &packet) >= 0)
+    if (::av_read_frame(formatContext, &avPacket) >= 0)
+      return avPacket;
+
+    return Packet();
+  }
+  else
+    return packetBuffer.takeFirst();
+}
+
+STime BufferReaderBase::timeStamp(const Packet &packet) const
+{
+  STime result;
+
+  if ((packet.streamIndex >= 0) && (unsigned(packet.streamIndex) < formatContext->nb_streams))
+  {
+    const ::AVStream * const stream = formatContext->streams[packet.streamIndex];
+    if (stream)
     {
-      if (unsigned(packet.stream_index) < formatContext->nb_streams)
+      if (packet.pts != AV_NOPTS_VALUE)
+        result = STime::fromClock(packet.pts, stream->time_base.num, stream->time_base.den);
+      else if (packet.dts != AV_NOPTS_VALUE)
+        result = STime::fromClock(packet.dts, stream->time_base.num, stream->time_base.den);
+    }
+  }
+
+  return result;
+}
+
+bool BufferReaderBase::demux(const Packet &packet)
+{
+  if (packet.streamIndex >= 0)
+  {
+    if (unsigned(packet.streamIndex) < formatContext->nb_streams)
+    {
+      const ::AVStream * const stream = formatContext->streams[packet.streamIndex];
+      if (stream && (streamContext[packet.streamIndex] == NULL))
+        streamContext[packet.streamIndex] = initStreamContext(stream);
+
+      StreamContext * const context = streamContext[packet.streamIndex];
+
+      if (stream && context)
       {
-        const AVStream * const stream = formatContext->streams[packet.stream_index];
-        if (stream && (streamContext[packet.stream_index] == NULL))
-          streamContext[packet.stream_index] = initStreamContext(stream);
-
-        StreamContext * const context = streamContext[packet.stream_index];
-
-        if (stream && context)
+        if (stream->codec->codec_type == CODEC_TYPE_AUDIO)
         {
-          if (stream->codec->codec_type == CODEC_TYPE_AUDIO)
+          if (selectedStreams.contains(StreamId(StreamId::Type_Audio, stream->index)))
           {
-            if (selectedStreams.contains(StreamId(StreamId::Type_Audio, stream->index)) || !running)
-            {
-              // Detect DTS (Digital Theatre Surround) if needed.
-              if (!context->dtsChecked &&
-                  ((stream->codec->codec_id == CODEC_ID_PCM_S16LE) ||
-                   (stream->codec->codec_id == CODEC_ID_PCM_S16BE)))
-              { // Not checked for DTS yet
-                if (isDTS(packet.data, packet.size))
-                {
-                  context->needsDTSFraming = true;
-                  context->dtsBuffer = new quint8[context->dtsBufferSize];
-                  context->dtsBufferUsed = 0;
-
-                  context->audioCodec =
-                      SAudioCodec("DTS",
-                                  FFMpegCommon::fromFFMpegChannelLayout(stream->codec->channel_layout,
-                                                                        stream->codec->channels),
-                                  stream->codec->sample_rate);
-                }
-
-                context->dtsChecked = true; // Checked for DTS.
-              }
-
-              if (!context->needsDTSFraming)
+            // Detect DTS (Digital Theatre Surround) if needed.
+            if (!context->dtsChecked &&
+                ((stream->codec->codec_id == CODEC_ID_PCM_S16LE) ||
+                 (stream->codec->codec_id == CODEC_ID_PCM_S16BE)))
+            { // Not checked for DTS yet
+              if (isDTS(packet))
               {
-                SEncodedAudioBuffer buffer(context->audioCodec, packet.size);
+                context->needsDTSFraming = true;
+                context->dtsBuffer = new quint8[context->dtsBufferSize];
+                context->dtsBufferUsed = 0;
 
-                memcpy(buffer.data(), packet.data, packet.size);
-                buffer.resize(packet.size);
-
-                const QPair<STime, STime> ts = correctTimeStamp(packet);
-                buffer.setPresentationTimeStamp(ts.first);
-                buffer.setDecodingTimeStamp(ts.second);
-
-//                qDebug() << "Audio timestamp" << packet.stream_index
-//                    << ", pts = " << buffer.presentationTimeStamp().toMSec()
-//                    << ", dts = " << buffer.decodingTimeStamp().toMSec()
-//                    << ", ppts = " << packet.pts << ", pdts = " << packet.dts;
-
-                if (running)
-                  produceCallback->produce(buffer);
-                else
-                  audioBuffers += QPair<int, SEncodedAudioBuffer>(packet.stream_index, buffer);
+                context->audioCodec =
+                    SAudioCodec("DTS",
+                                FFMpegCommon::fromFFMpegChannelLayout(stream->codec->channel_layout,
+                                                                      stream->codec->channels),
+                                stream->codec->sample_rate);
               }
-              else foreach (SEncodedAudioBuffer buffer, parseDTSFrames(context, packet.data, packet.size))
-              { // Do DTS framing
-                const QPair<STime, STime> ts = correctTimeStamp(packet);
-                buffer.setPresentationTimeStamp(ts.first);
-                buffer.setDecodingTimeStamp(ts.second);
 
-//                qDebug() << "Audio timestamp" << packet.stream_index
-//                    << ", pts = " << buffer.presentationTimeStamp().toMSec()
-//                    << ", dts = " << buffer.decodingTimeStamp().toMSec()
-//                    << ", ppts = " << packet.pts << ", pdts = " << packet.dts;
-
-                if (running)
-                  produceCallback->produce(buffer);
-                else
-                  audioBuffers += QPair<int, SEncodedAudioBuffer>(packet.stream_index, buffer);
-              }
+              context->dtsChecked = true; // Checked for DTS.
             }
-          }
-          else if (stream->codec->codec_type == CODEC_TYPE_VIDEO)
-          {
-            if (selectedStreams.contains(StreamId(StreamId::Type_Video, stream->index)) || !running)
-            {
-              SEncodedVideoBuffer buffer(context->videoCodec, packet.size);
 
-              memcpy(buffer.data(), packet.data, packet.size);
-              buffer.resize(packet.size);
+            if (!context->needsDTSFraming)
+            {
+              SEncodedAudioBuffer buffer(context->audioCodec, packet.memory());
 
               const QPair<STime, STime> ts = correctTimeStamp(packet);
               buffer.setPresentationTimeStamp(ts.first);
               buffer.setDecodingTimeStamp(ts.second);
 
-              buffer.setKeyFrame((packet.flags & PKT_FLAG_KEY) != 0);
+//                  qDebug() << "Audio timestamp" << packet.streamIndex
+//                      << ", pts = " << buffer.presentationTimeStamp().toMSec()
+//                      << ", dts = " << buffer.decodingTimeStamp().toMSec()
+//                      << ", ppts = " << packet.pts << ", pdts = " << packet.dts;
 
-//              qDebug() << "Video timestamp" << packet.stream_index
-//                  << ", dts =" << buffer.decodingTimeStamp().toMSec()
-//                  << ", pts =" << buffer.presentationTimeStamp().toMSec()
-//                  << ", key =" << buffer.isKeyFrame();
-
-              if (running)
-              {
+              if (produceCallback)
                 produceCallback->produce(buffer);
-              }
-              else
-              {
-                videoBuffers += QPair<int, SEncodedVideoBuffer>(packet.stream_index, buffer);
-                if (context->measurement.count() < context->measurementSize)
-                {
-                  STime ts;
-                  if (packet.pts != AV_NOPTS_VALUE)
-                    ts = STime::fromClock(packet.pts, stream->time_base.num, stream->time_base.den);
-                  else if (packet.dts != AV_NOPTS_VALUE)
-                    ts = STime::fromClock(packet.dts, stream->time_base.num, stream->time_base.den);
-
-                  if (ts.isValid())
-                  {
-                    // Remove invalid timestamps
-                    foreach (const STime &t, context->measurement)
-                    if (qAbs(t - ts) > STime::fromSec(context->measurementSize + 4))
-                    {
-                      context->measurement.clear();
-                      break;
-                    }
-
-                    context->measurement += ts;
-                  }
-                }
-              }
             }
-          }
-          else if (stream->codec->codec_type == CODEC_TYPE_SUBTITLE)
-          {
-            if (selectedStreams.contains(StreamId(StreamId::Type_Subtitle, stream->index)) || !running)
-            {
-              SEncodedDataBuffer buffer(context->dataCodec, packet.size);
-
-              memcpy(buffer.data(), packet.data, packet.size);
-              buffer.resize(packet.size);
-
-              const QPair<STime, STime> ts = correctTimeStampToVideo(packet);
+            else foreach (SEncodedAudioBuffer buffer, parseDTSFrames(context, packet))
+            { // Do DTS framing
+              const QPair<STime, STime> ts = correctTimeStamp(packet);
               buffer.setPresentationTimeStamp(ts.first);
               buffer.setDecodingTimeStamp(ts.second);
-              buffer.setDuration(STime(packet.convergence_duration, context->timeBase));
 
-//              qDebug() << "Data timestamp" << packet.stream_index
-//                  << ", dts =" << buffer.decodingTimeStamp().toMSec()
-//                  << ", pts =" << buffer.presentationTimeStamp().toMSec()
-//                  << ", duration =" << buffer.duration().toMSec();
+//                  qDebug() << "Audio timestamp" << packet.streamIndex
+//                      << ", pts = " << buffer.presentationTimeStamp().toMSec()
+//                      << ", dts = " << buffer.decodingTimeStamp().toMSec()
+//                      << ", ppts = " << packet.pts << ", pdts = " << packet.dts;
 
-              if (running)
+              if (produceCallback)
                 produceCallback->produce(buffer);
-              else
-                dataBuffers += QPair<int, SEncodedDataBuffer>(packet.stream_index, buffer);
             }
           }
         }
-      }
-
-      ::av_free_packet(&packet);
-    }
-    else // Error or end-of-file.
-      return false;
-  }
-  else // First send out cached buffers.
-  {
-    if (!dataBuffers.isEmpty())
-    {
-      const AVStream * const stream = formatContext->streams[dataBuffers.first().first];
-      StreamContext * const context = streamContext[dataBuffers.first().first];
-
-      if (selectedStreams.contains(StreamId(StreamId::Type_Subtitle, stream->index)))
-      {
-        dataBuffers.first().second.setCodec(context->dataCodec);
-        produceCallback->produce(dataBuffers.takeFirst().second);
-      }
-      else
-        dataBuffers.takeFirst();
-    }
-    else if (!audioBuffers.isEmpty() && !videoBuffers.isEmpty())
-    {
-      if (audioBuffers.first().second.presentationTimeStamp() <= videoBuffers.first().second.presentationTimeStamp())
-      {
-        const AVStream * const stream = formatContext->streams[audioBuffers.first().first];
-        StreamContext * const context = streamContext[audioBuffers.first().first];
-
-        if (selectedStreams.contains(StreamId(StreamId::Type_Audio, stream->index)))
+        else if (stream->codec->codec_type == CODEC_TYPE_VIDEO)
         {
-          audioBuffers.first().second.setCodec(context->audioCodec);
-          produceCallback->produce(audioBuffers.takeFirst().second);
-        }
-        else
-          audioBuffers.takeFirst();
-      }
-      else
-      {
-        const AVStream * const stream = formatContext->streams[videoBuffers.first().first];
-        StreamContext * const context = streamContext[videoBuffers.first().first];
+          if (selectedStreams.contains(StreamId(StreamId::Type_Video, stream->index)))
+          {
+            SEncodedVideoBuffer buffer(context->videoCodec, packet.memory());
 
-        if (selectedStreams.contains(StreamId(StreamId::Type_Video, stream->index)))
+            const QPair<STime, STime> ts = correctTimeStamp(packet);
+            buffer.setPresentationTimeStamp(ts.first);
+            buffer.setDecodingTimeStamp(ts.second);
+
+            buffer.setKeyFrame((packet.flags & PKT_FLAG_KEY) != 0);
+
+//                qDebug() << "Video timestamp" << packet.streamIndex
+//                    << ", dts =" << buffer.decodingTimeStamp().toMSec()
+//                    << ", pts =" << buffer.presentationTimeStamp().toMSec()
+//                    << ", key =" << buffer.isKeyFrame();
+
+            if (produceCallback)
+              produceCallback->produce(buffer);
+          }
+        }
+        else if (stream->codec->codec_type == CODEC_TYPE_SUBTITLE)
         {
-          videoBuffers.first().second.setCodec(context->videoCodec);
-          produceCallback->produce(videoBuffers.takeFirst().second);
+          if (selectedStreams.contains(StreamId(StreamId::Type_Subtitle, stream->index)))
+          {
+            SEncodedDataBuffer buffer(context->dataCodec, packet.memory());
+
+            const QPair<STime, STime> ts = correctTimeStampToVideo(packet);
+            buffer.setPresentationTimeStamp(ts.first);
+            buffer.setDecodingTimeStamp(ts.second);
+            buffer.setDuration(STime(packet.convergenceDuration, context->timeBase));
+
+//                qDebug() << "Data timestamp" << packet.streamIndex
+//                    << ", dts =" << buffer.decodingTimeStamp().toMSec()
+//                    << ", pts =" << buffer.presentationTimeStamp().toMSec()
+//                    << ", duration =" << buffer.duration().toMSec();
+
+            if (produceCallback)
+              produceCallback->produce(buffer);
+          }
         }
-        else
-          videoBuffers.takeFirst();
       }
     }
-    else if (!audioBuffers.isEmpty())
-    {
-      const AVStream * const stream = formatContext->streams[audioBuffers.first().first];
-      StreamContext * const context = streamContext[audioBuffers.first().first];
 
-      if (selectedStreams.contains(StreamId(StreamId::Type_Audio, stream->index)))
-      {
-        audioBuffers.first().second.setCodec(context->audioCodec);
-        produceCallback->produce(audioBuffers.takeFirst().second);
-      }
-      else
-        audioBuffers.takeFirst();
-    }
-    else if (!videoBuffers.isEmpty())
-    {
-      const AVStream * const stream = formatContext->streams[videoBuffers.first().first];
-      StreamContext * const context = streamContext[videoBuffers.first().first];
-
-      if (selectedStreams.contains(StreamId(StreamId::Type_Video, stream->index)))
-      {
-        videoBuffers.first().second.setCodec(context->videoCodec);
-        produceCallback->produce(videoBuffers.takeFirst().second);
-      }
-      else
-        videoBuffers.takeFirst();
-    }
+    return true;
   }
-
-  return true;
+  else
+    return false;
 }
 
 STime BufferReaderBase::duration(void) const
@@ -442,12 +394,8 @@ bool BufferReaderBase::setPosition(STime pos, bool fast)
   if (formatContext)
   {
     if (!pos.isNull() || !pos.isValid())
-    {
-      audioBuffers.clear();
-      videoBuffers.clear();
-      dataBuffers.clear();
-    }
-    else if (!audioBuffers.isEmpty() || !videoBuffers.isEmpty() || !dataBuffers.isEmpty())
+      packetBuffer.clear();
+    else if (!packetBuffer.isEmpty())
       return true; // Not started yet and seeking to start.
 
     if (pos.isValid())
@@ -561,8 +509,11 @@ void BufferReaderBase::selectStreams(const QList<StreamId> &streams)
 
 /*! Returns true if the data contains DTS data.
  */
-bool BufferReaderBase::isDTS(const uint8_t *inPtr, int inSize)
+bool BufferReaderBase::isDTS(const SBuffer &buffer)
 {
+  const quint8 *inPtr = reinterpret_cast<const quint8 *>(buffer.data());
+  int inSize = buffer.size();
+
   const int ofs = findDTSFrame(inPtr, inSize);
   if (ofs >= 0)
   {
@@ -600,7 +551,7 @@ bool BufferReaderBase::isDTS(const uint8_t *inPtr, int inSize)
 /*! Looks for a DTS frame header in the specified buffer and returns the offset
     to this frame, or -1 if not found.
  */
-int BufferReaderBase::findDTSFrame(const uint8_t *inPtr, int inSize)
+int BufferReaderBase::findDTSFrame(const quint8 *inPtr, int inSize)
 {
   for (int i=0; i<(inSize-10); i++)
   if (findDTSFrameType(inPtr + i) != 0)
@@ -613,7 +564,7 @@ int BufferReaderBase::findDTSFrame(const uint8_t *inPtr, int inSize)
     big-endian (3) or 14-bit little-endian (4) or returns 0 if none of these are
     found.
 */
-unsigned BufferReaderBase::findDTSFrameType(const uint8_t *inPtr)
+unsigned BufferReaderBase::findDTSFrameType(const quint8 *inPtr)
 {
   if ((inPtr[0] == 0x7F) && (inPtr[1] == 0xFE) && (inPtr[2] == 0x80) && (inPtr[3] == 0x01))
     return 1;
@@ -627,8 +578,11 @@ unsigned BufferReaderBase::findDTSFrameType(const uint8_t *inPtr)
     return 0;
 }
 
-SEncodedAudioBufferList BufferReaderBase::parseDTSFrames(StreamContext *context, const uint8_t *inPtr, int inSize)
+SEncodedAudioBufferList BufferReaderBase::parseDTSFrames(StreamContext *context, const SBuffer &buffer)
 {
+  const quint8 *inPtr = reinterpret_cast<const quint8 *>(buffer.data());
+  int inSize = buffer.size();
+
   if (context->dtsBufferUsed + inSize <= int(context->dtsBufferSize))
   {
     memcpy(context->dtsBuffer + context->dtsBufferUsed, inPtr, inSize);
@@ -791,9 +745,9 @@ QString BufferReaderBase::readMetadata(::AVMetadata *metadata, const char *tagNa
   return QString::null;
 }
 
-QPair<STime, STime> BufferReaderBase::correctTimeStamp(const AVPacket &packet)
+QPair<STime, STime> BufferReaderBase::correctTimeStamp(const Packet &packet)
 {
-  StreamContext * const context = streamContext[packet.stream_index];
+  StreamContext * const context = streamContext[packet.streamIndex];
 
   // Ensure the timestamps are zero-based. Non-zero bases streams can occur
   // when captured from DVB or a sample has been cut from a larger file.
@@ -882,9 +836,9 @@ QPair<STime, STime> BufferReaderBase::correctTimeStamp(const AVPacket &packet)
   return QPair<STime, STime>(presentationTimeStamp, decodingTimeStamp);
 }
 
-QPair<STime, STime> BufferReaderBase::correctTimeStampToVideo(const AVPacket &packet)
+QPair<STime, STime> BufferReaderBase::correctTimeStampToVideo(const Packet &packet)
 {
-  StreamContext * const context = streamContext[packet.stream_index];
+  StreamContext * const context = streamContext[packet.streamIndex];
 
   // Ensure the timestamps are zero-based. Non-zero bases streams can occur
   // when captured from DVB or a sample has been cut from a larger file.
@@ -909,6 +863,28 @@ QPair<STime, STime> BufferReaderBase::correctTimeStampToVideo(const AVPacket &pa
     presentationTimeStamp = STime(packet.pts, context->timeBase) - subtract;
 
   return QPair<STime, STime>(presentationTimeStamp, decodingTimeStamp);
+}
+
+BufferReaderBase::Packet::Packet(void)
+  : SBuffer(),
+    pts(AV_NOPTS_VALUE), dts(AV_NOPTS_VALUE),
+    pos(-1),
+    convergenceDuration(0),
+    streamIndex(-1),
+    flags(0),
+    duration(0)
+{
+}
+
+BufferReaderBase::Packet::Packet(const ::AVPacket &from)
+  : SBuffer(reinterpret_cast<const char *>(from.data), from.size),
+    pts(from.pts), dts(from.dts),
+    pos(from.pos),
+    convergenceDuration(from.convergence_duration),
+    streamIndex(from.stream_index),
+    flags(from.flags),
+    duration(from.duration)
+{
 }
 
 } } // End of namespaces

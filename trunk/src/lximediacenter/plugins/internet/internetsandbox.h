@@ -21,6 +21,7 @@
 #define INTERNETSANDBOX_H
 
 #include <LXiMediaCenter>
+#include "streaminputnode.h"
 
 namespace LXiMediaCenter {
 namespace InternetBackend {
@@ -50,7 +51,7 @@ private:
   QTimer                        cleanStreamsTimer;
 };
 
-class SandboxNetworkStream : public MediaTranscodeStream
+class SandboxNetworkStream : public MediaStream
 {
 Q_OBJECT
 public:
@@ -60,7 +61,7 @@ public:
   bool                          setup(const SHttpServer::RequestMessage &, QIODevice *);
 
 public:
-  SNetworkInputNode             source;
+  StreamInputNode               source;
 };
 
 } } // End of namespaces

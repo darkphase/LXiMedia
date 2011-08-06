@@ -38,6 +38,9 @@ public:
   explicit                      SNetworkInputNode(SGraph *, const QUrl &url);
   virtual                       ~SNetworkInputNode();
 
+  void                          setBufferDuration(const STime &);
+  STime                         bufferDuration(void) const;
+
   virtual bool                  open(quint16 programId = 0);
 
 public: // From SInterfaces::SourceNode
@@ -56,7 +59,11 @@ public: // From SInterfaces::BufferReaderNode
   virtual QList<DataStreamInfo>  dataStreams(void) const;
   virtual void                  selectStreams(const QList<StreamId> &);
 
+public slots:
+  void                          fillBuffer(void);
+
 signals:
+  void                          bufferState(bool, float);
   void                          output(const SEncodedAudioBuffer &);
   void                          output(const SEncodedVideoBuffer &);
   void                          output(const SEncodedDataBuffer &);
@@ -66,6 +73,9 @@ protected: // From SInterfaces::BufferReader::ProduceCallback
   virtual void                  produce(const SEncodedAudioBuffer &);
   virtual void                  produce(const SEncodedVideoBuffer &);
   virtual void                  produce(const SEncodedDataBuffer &);
+
+private:
+  _lxi_internal void            bufferTask(void);
 
 private:
   struct Data;

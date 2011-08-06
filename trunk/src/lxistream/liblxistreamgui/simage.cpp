@@ -111,19 +111,19 @@ SVideoBuffer SImage::toVideoBuffer(SInterval frameRate) const
     case QImage::Format_RGB32:
     case QImage::Format_ARGB32:
     case QImage::Format_ARGB32_Premultiplied:
-      bufferFormat.setFormat(SVideoFormat::Format_RGB32, SSize(size(), aspectRatio), frameRate, SVideoFormat::FieldMode_Progressive);
+      bufferFormat.setFormat(SVideoFormat::Format_RGB32, size(), frameRate, SVideoFormat::FieldMode_Progressive);
       break;
 
     case QImage::Format_RGB888:
-      bufferFormat.setFormat(SVideoFormat::Format_RGB24, SSize(size(), aspectRatio), frameRate, SVideoFormat::FieldMode_Progressive);
+      bufferFormat.setFormat(SVideoFormat::Format_RGB24, size(), frameRate, SVideoFormat::FieldMode_Progressive);
       break;
 
     case QImage::Format_RGB16:
-      bufferFormat.setFormat(SVideoFormat::Format_RGB565, SSize(size(), aspectRatio), frameRate, SVideoFormat::FieldMode_Progressive);
+      bufferFormat.setFormat(SVideoFormat::Format_RGB565, size(), frameRate, SVideoFormat::FieldMode_Progressive);
       break;
 
     case QImage::Format_RGB555:
-      bufferFormat.setFormat(SVideoFormat::Format_RGB555, SSize(size(), aspectRatio), frameRate, SVideoFormat::FieldMode_Progressive);
+      bufferFormat.setFormat(SVideoFormat::Format_RGB555, size(), frameRate, SVideoFormat::FieldMode_Progressive);
       break;
 
     default:

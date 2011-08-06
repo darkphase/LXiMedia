@@ -108,6 +108,7 @@ SiteDatabase::SiteDatabase(QObject *parent)
   // Create tables that don't exist
   query.exec("CREATE TABLE IF NOT EXISTS InternetSites ("
              "identifier     TEXT UNIQUE NOT NULL,"
+             "name           TEXT NOT NULL,"
              "category       TEXT NOT NULL,"
              "targetAudience TEXT NOT NULL,"
              "script         TEXT NOT NULL)");
@@ -177,11 +178,12 @@ void SiteDatabase::update(const QString &identifierStr, const QString &category,
       targetAudienceStr += "{" + audience + "} ";
 
     query.prepare("INSERT OR REPLACE INTO InternetSites "
-                  "VALUES (:identifier, :category, :targetAudience, :script)");
+                  "VALUES (:identifier, :name, :category, :targetAudience, :script)");
     query.bindValue(0, identifierStr.toLower());
-    query.bindValue(1, category);
-    query.bindValue(2, targetAudienceStr.trimmed());
-    query.bindValue(3, script);
+    query.bindValue(1, reverseDomain(identifier[0]));
+    query.bindValue(2, category);
+    query.bindValue(3, targetAudienceStr.trimmed());
+    query.bindValue(4, script);
     query.exec();
   }
 }
@@ -314,9 +316,9 @@ QStringList SiteDatabase::getSites(const QString &targetAudience, unsigned start
   }
 
   Database::Query query;
-  query.prepare("SELECT identifier FROM InternetSites "
+  query.prepare("SELECT identifier, name FROM InternetSites "
                 "WHERE targetAudience LIKE :targetAudience "
-                "ORDER BY identifier" + limit);
+                "ORDER BY name" + limit);
   query.bindValue(0, "%{" + targetAudience + "}%");
   query.exec();
   while (query.next())
@@ -339,7 +341,7 @@ QStringList SiteDatabase::getSites(const QString &category, const QStringList &t
         limit += " OFFSET " + QString::number(start);
     }
 
-    QString q = "SELECT identifier FROM InternetSites "
+    QString q = "SELECT identifier, name FROM InternetSites "
                 "WHERE category = :category";
     for (int i=0; i<targetAudiences.count(); i++)
     {
@@ -347,7 +349,7 @@ QStringList SiteDatabase::getSites(const QString &category, const QStringList &t
       q += "(targetAudience LIKE :targetAudience" + QString::number(i) + ")";
     }
 
-    q += ") ORDER BY identifier" + limit;
+    q += ") ORDER BY name" + limit;
 
     Database::Query query;
     query.prepare(q);

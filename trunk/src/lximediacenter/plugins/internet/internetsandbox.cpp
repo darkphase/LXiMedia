@@ -64,7 +64,6 @@ SSandboxServer::SocketOp InternetSandbox::handleHttpRequest(const SSandboxServer
       if (url.isValid())
       {
         SandboxNetworkStream * const stream = new SandboxNetworkStream(url);
-        if (stream->source.open())
         if (stream->setup(request, socket))
         if (stream->start())
         {
@@ -101,14 +100,10 @@ void InternetSandbox::cleanStreams(void)
 
 
 SandboxNetworkStream::SandboxNetworkStream(const QUrl &url)
-  : MediaTranscodeStream(),
+  : MediaStream(),
     source(this, url)
 {
   connect(&source, SIGNAL(finished()), SLOT(stop()));
-
-  connect(&source, SIGNAL(output(SEncodedAudioBuffer)), &audioDecoder, SLOT(input(SEncodedAudioBuffer)));
-  connect(&source, SIGNAL(output(SEncodedVideoBuffer)), &videoDecoder, SLOT(input(SEncodedVideoBuffer)));
-  connect(&source, SIGNAL(output(SEncodedDataBuffer)), &dataDecoder, SLOT(input(SEncodedDataBuffer)));
 }
 
 SandboxNetworkStream::~SandboxNetworkStream()
@@ -117,7 +112,52 @@ SandboxNetworkStream::~SandboxNetworkStream()
 
 bool SandboxNetworkStream::setup(const SHttpServer::RequestMessage &request, QIODevice *socket)
 {
-  return MediaTranscodeStream::setup(request, socket, &source);
+  const MediaServer::File file(request);
+
+  if (file.url().hasQueryItem("resolution"))
+  {
+    const QStringList formatTxt = file.url().queryItemValue("resolution").split(',');
+
+    const QStringList sizeTxt = formatTxt.first().split('x');
+    if (sizeTxt.count() >= 2)
+    {
+      SSize size = source.size();
+      size.setWidth(sizeTxt[0].toInt());
+      size.setHeight(sizeTxt[1].toInt());
+      if (sizeTxt.count() >= 3)
+        size.setAspectRatio(sizeTxt[2].toFloat());
+      else
+        size.setAspectRatio(1.0f);
+
+      source.setSize(size);
+    }
+  }
+
+  if (file.url().hasQueryItem("channels"))
+  {
+    const QStringList cl = file.url().queryItemValue("channels").split(',');
+
+    if ((file.url().queryItemValue("music") == "true") && (cl.count() >= 2))
+      source.setChannelSetup(SAudioFormat::Channels(cl[1].toUInt(NULL, 16)));
+    else if (!cl.isEmpty())
+      source.setChannelSetup(SAudioFormat::Channels(cl[0].toUInt(NULL, 16)));
+  }
+
+  const bool hasVideo = file.url().queryItemValue("music") != "true";
+  const bool generateVideo = file.url().queryItemValue("musicmode").startsWith("addvideo");
+
+  if (source.open(hasVideo, generateVideo))
+  if (MediaStream::setup(request, socket, STime::null, source.frameRate(), source.size(), source.channelSetup()))
+  {
+    connect(&source, SIGNAL(output(SAudioBuffer)), &audio->matrix, SLOT(input(SAudioBuffer)));
+    connect(&source, SIGNAL(output(SVideoBuffer)), &video->deinterlacer, SLOT(input(SVideoBuffer)));
+    connect(&source, SIGNAL(output(SSubpictureBuffer)), &video->subpictureRenderer, SLOT(input(SSubpictureBuffer)));
+    connect(&source, SIGNAL(output(SSubtitleBuffer)), &video->subtitleRenderer, SLOT(input(SSubtitleBuffer)));
+
+    return true;
+  }
+
+  return false;
 }
 
 } } // End of namespaces

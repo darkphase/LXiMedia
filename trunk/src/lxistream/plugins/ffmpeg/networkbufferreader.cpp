@@ -50,4 +50,65 @@ void NetworkBufferReader::stop(void)
   BufferReaderBase::stop();
 }
 
+bool NetworkBufferReader::buffer(void)
+{
+  QMutexLocker rl(&readMutex);
+
+  const Packet packet = BufferReaderBase::read();
+  if (packet.streamIndex >= 0)
+  {
+    packetBufferMutex.lock();
+      packetBuffer += packet;
+    packetBufferMutex.unlock();
+
+    return true;
+  }
+  else
+    return false;
+}
+
+STime NetworkBufferReader::bufferDuration(void) const
+{
+  QMutexLocker pl(&packetBufferMutex);
+
+  if (!packetBuffer.isEmpty())
+  {
+    const STime first = timeStamp(packetBuffer.first());
+    const STime last  = timeStamp(packetBuffer.last());
+
+    if (first.isValid() && last.isValid())
+      return last - first;
+  }
+
+  return STime();
+}
+
+bool NetworkBufferReader::process(void)
+{
+  QMutexLocker pl(&packetBufferMutex);
+
+  if (!packetBuffer.isEmpty())
+  {
+    const Packet packet = packetBuffer.takeFirst();
+    pl.unlock();
+
+    return BufferReaderBase::demux(packet);
+  }
+
+  pl.unlock();
+
+  QMutexLocker rl(&readMutex);
+  pl.relock();
+
+  if (!packetBuffer.isEmpty())
+  {
+    const Packet packet = packetBuffer.takeFirst();
+    pl.unlock();
+
+    return BufferReaderBase::demux(packet);
+  }
+  else
+    return BufferReaderBase::demux(BufferReaderBase::read());
+}
+
 } } // End of namespaces

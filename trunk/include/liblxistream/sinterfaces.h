@@ -49,7 +49,6 @@ class LXISTREAM_PUBLIC Node : public QObject
 Q_OBJECT
 public:
   explicit                      Node(SGraph *);
-  virtual                       ~Node();
 
   /*! This method shall be invoked when the node is about to start processing
       data.
@@ -70,7 +69,6 @@ class LXISTREAM_PUBLIC SinkNode : public QObject
 Q_OBJECT
 public:
   explicit                      SinkNode(SGraph *);
-  virtual                       ~SinkNode();
 
   /*! This method shall be invoked when the node is about to start processing
       data.
@@ -91,7 +89,6 @@ class LXISTREAM_PUBLIC SourceNode : public QObject
 Q_OBJECT
 public:
   explicit                      SourceNode(SGraph *);
-  virtual                       ~SourceNode();
 
   /*! This method shall be invoked when the node is about to start processing
       data.
@@ -349,6 +346,10 @@ protected:
 public:
   virtual bool                  start(ReadCallback *, ProduceCallback *, quint16 programId, bool streamed) = 0;
   virtual void                  stop(void) = 0;
+
+  /*! Shall demux a packet from the stream.
+      \returns false if an error occured.
+   */
   virtual bool                  process(void) = 0;
 };
 
@@ -374,6 +375,23 @@ protected:
 public:
   virtual bool                  start(const QUrl &url, ProduceCallback *, quint16 programId) = 0;
   virtual void                  stop(void) = 0;
+
+  /*! Shall buffer more data, use bufferSize() to check the amount of data
+      buffered.
+      \returns false if an error occured.
+      \note This method shall be thread-safe, such that buffer() and
+            bufferDuration() or process() can be invoked simulateously.
+   */
+  virtual bool                  buffer(void) = 0;
+
+  /*! Shall return the amount of time buffered.
+   */
+  virtual STime                 bufferDuration(void) const = 0;
+
+  /*! Shall demux a packet from the buffer, or the stream if the buffer is
+      empty.
+      \returns false if an error occured.
+   */
   virtual bool                  process(void) = 0;
 };
 
