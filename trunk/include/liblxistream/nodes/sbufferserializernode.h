@@ -30,8 +30,11 @@ class LXISTREAM_PUBLIC SBufferSerializerNode : public SInterfaces::SinkNode
 {
 Q_OBJECT
 public:
-  explicit                      SBufferSerializerNode(SGraph *, QIODevice *);
+  explicit                      SBufferSerializerNode(SGraph *, QIODevice * = NULL);
   virtual                       ~SBufferSerializerNode();
+
+  void                          setIODevice(QIODevice *, bool autoClose = false);
+  bool                          hasIODevice(void) const;
 
 public: // From SInterfaces::SinkNode
   virtual bool                  start(STimer *);
@@ -43,6 +46,12 @@ public slots:
   void                          input(const SVideoBuffer &);
   void                          input(const SSubtitleBuffer &);
   void                          input(const SSubpictureBuffer &);
+
+signals:
+  void                          closed(void);
+
+private slots:
+  _lxi_internal void            close(void);
 
 private:
   template <class _buffer>

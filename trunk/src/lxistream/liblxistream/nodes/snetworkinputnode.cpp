@@ -106,13 +106,15 @@ void SNetworkInputNode::stop(void)
 
 void SNetworkInputNode::process(void)
 {
+  LXI_PROFILE_WAIT(d->future.waitForFinished());
   LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
 
   if (d->bufferReader)
   {
     fillBuffer();
-
-    if (d->bufferReader->process())
+    if (!d->bufferState)
+      return;
+    else if (d->bufferReader->process())
       return;
 
     // Finished; close input.

@@ -40,6 +40,8 @@ public:
   virtual                       ~SIOInputNode();
 
   void                          setIODevice(QIODevice *);
+  bool                          hasIODevice(void) const;
+
   virtual bool                  open(quint16 programId = 0);
 
 public: // From SInterfaces::SourceNode

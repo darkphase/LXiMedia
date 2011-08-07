@@ -30,8 +30,11 @@ class LXISTREAM_PUBLIC SBufferDeserializerNode : public SInterfaces::SourceNode
 {
 Q_OBJECT
 public:
-  explicit                      SBufferDeserializerNode(SGraph *, QIODevice *);
+  explicit                      SBufferDeserializerNode(SGraph *, QIODevice * = NULL);
   virtual                       ~SBufferDeserializerNode();
+
+  void                          setIODevice(QIODevice *);
+  bool                          hasIODevice(void) const;
 
 public: // From SInterfaces::SourceNode
   virtual bool                  start(void);
@@ -44,8 +47,10 @@ signals:
   void                          output(const SVideoBuffer &);
   void                          output(const SSubtitleBuffer &);
   void                          output(const SSubpictureBuffer &);
+  void                          finished(void);
 
 private:
+  _lxi_internal static bool     read(QIODevice *, char *, unsigned);
   template <class _buffer>
   _lxi_internal void            deserialize(void);
 

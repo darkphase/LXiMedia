@@ -17,8 +17,8 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXSTREAMGUI_SVIDEOGENERATORNODE_H
-#define LXSTREAMGUI_SVIDEOGENERATORNODE_H
+#ifndef LXISTREAMGUI_SVIDEOGENERATORNODE_H
+#define LXISTREAMGUI_SVIDEOGENERATORNODE_H
 
 #include <QtCore>
 #include <QtGui>

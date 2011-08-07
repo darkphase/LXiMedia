@@ -40,6 +40,8 @@ public:
   static QStringList            formats(void);
 
   void                          setIODevice(QIODevice *, bool autoClose = false);
+  bool                          hasIODevice(void) const;
+
   bool                          openFormat(const QString &, const SAudioCodec &, STime);
   bool                          openFormat(const QString &, const SAudioCodec &, const SVideoCodec &, STime);
   bool                          openFormat(const QString &, const QList<SAudioCodec> &, const QList<SVideoCodec> &, STime);
@@ -54,6 +56,9 @@ public slots:
   void                          input(const SEncodedVideoBuffer &);
   void                          input(const SEncodedDataBuffer &);
 
+signals:
+  void                          closed(void);
+
 protected: // From SInterfaces::BufferReader::WriteCallback
   virtual void                  write(const uchar *, qint64);
 
@@ -61,7 +66,7 @@ private:
   _lxi_internal void            blockUntil(STime);
 
 private slots:
-  _lxi_internal void            closed(void);
+  _lxi_internal void            close(void);
 
 public:
   static const int              outBufferSize;

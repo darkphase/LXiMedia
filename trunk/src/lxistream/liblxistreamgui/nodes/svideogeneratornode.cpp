@@ -136,8 +136,10 @@ SImage SVideoGeneratorNode::drawCorneredImage(const SSize &size)
 SImage SVideoGeneratorNode::drawBusyWaitImage(const SSize &size, int angle)
 {
   const int blockSize = qMin(size.width(), size.height()) / 2;
+  const int blockWidth = blockSize / size.aspectRatio();
+  const int blockHeight = blockSize;
 
-  SImage img(SSize(blockSize, blockSize, size.aspectRatio()), QImage::Format_ARGB32);
+  SImage img(SSize(blockWidth, blockHeight, size.aspectRatio()), QImage::Format_ARGB32);
   img.fill(0);
 
   QPainter p(&img);
@@ -155,8 +157,8 @@ SImage SVideoGeneratorNode::drawBusyWaitImage(const SSize &size, int angle)
   p.setPen(Qt::white);
   p.setBrush(Qt::white);
 
-  const QRectF outerRect = img.rect().adjusted(blockSize / 16, blockSize / 16, -blockSize / 16, -blockSize / 16);
-  const QRectF innerRect = outerRect.adjusted(blockSize / 16, blockSize / 16, -blockSize / 16, -blockSize / 16);
+  const QRectF outerRect = img.rect().adjusted(blockWidth / 16, blockHeight / 16, -blockWidth / 16, -blockHeight / 16);
+  const QRectF innerRect = outerRect.adjusted(blockWidth / 16, blockHeight / 16, -blockWidth / 16, -blockHeight / 16);
 
   QPainterPath path1;
   path1.arcMoveTo(outerRect, angle);

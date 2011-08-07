@@ -25,6 +25,9 @@ const int SIOOutputNode::outBufferSize = 262144;
 
 struct SIOOutputNode::Data
 {
+  inline Data(void) : mutex(QMutex::Recursive) { }
+
+  QMutex                        mutex;
   QIODevice                   * ioDevice;
   SInterfaces::BufferWriter   * bufferWriter;
   bool                          autoClose;
@@ -61,6 +64,11 @@ void SIOOutputNode::setIODevice(QIODevice *ioDevice, bool autoClose)
 {
   d->ioDevice = ioDevice;
   d->autoClose = autoClose;
+}
+
+bool SIOOutputNode::hasIODevice(void) const
+{
+  return d->ioDevice != NULL;
 }
 
 bool SIOOutputNode::openFormat(const QString &format, const SAudioCodec &audioCodec, STime duration)
@@ -104,7 +112,9 @@ bool SIOOutputNode::start(STimer *)
     d->ioDevice->moveToThread(thread());
     d->ioDevice->setParent(this);
 
-    connect(d->ioDevice, SIGNAL(readChannelFinished()), SLOT(closed()));
+    connect(d->ioDevice, SIGNAL(readChannelFinished()), SLOT(close()));
+    if (d->ioDevice->metaObject()->indexOfSignal("disconnected()") >= 0)
+      connect(d->ioDevice, SIGNAL(disconnected()), SLOT(close()));
 
     return d->bufferWriter->start(this);
   }
@@ -124,11 +134,12 @@ void SIOOutputNode::stop(void)
   if (!d->ioDevice->waitForBytesWritten(qMax(0, 5000 - qAbs(timer.elapsed()))))
     break;
 
-  closed();
+  close();
 }
 
 void SIOOutputNode::input(const SEncodedAudioBuffer &buffer)
 {
+  LXI_PROFILE_WAIT(d->mutex.lock());
   LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
   Q_ASSERT(QThread::currentThread() == thread());
 
@@ -137,10 +148,13 @@ void SIOOutputNode::input(const SEncodedAudioBuffer &buffer)
 
   if (d->bufferWriter)
     d->bufferWriter->process(buffer);
+
+  d->mutex.unlock();
 }
 
 void SIOOutputNode::input(const SEncodedVideoBuffer &buffer)
 {
+  LXI_PROFILE_WAIT(d->mutex.lock());
   LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
   Q_ASSERT(QThread::currentThread() == thread());
 
@@ -149,10 +163,13 @@ void SIOOutputNode::input(const SEncodedVideoBuffer &buffer)
 
   if (d->bufferWriter)
     d->bufferWriter->process(buffer);
+
+  d->mutex.unlock();
 }
 
 void SIOOutputNode::input(const SEncodedDataBuffer &buffer)
 {
+  LXI_PROFILE_WAIT(d->mutex.lock());
   LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
   Q_ASSERT(QThread::currentThread() == thread());
 
@@ -161,6 +178,8 @@ void SIOOutputNode::input(const SEncodedDataBuffer &buffer)
 
   if (d->bufferWriter)
     d->bufferWriter->process(buffer);
+
+  d->mutex.unlock();
 }
 
 void SIOOutputNode::write(const uchar *buffer, qint64 size)
@@ -180,8 +199,11 @@ void SIOOutputNode::write(const uchar *buffer, qint64 size)
   }
 }
 
-void SIOOutputNode::closed(void)
+void SIOOutputNode::close(void)
 {
+  LXI_PROFILE_WAIT(d->mutex.lock());
+  LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
+
   if (d->ioDevice)
   {
     QIODevice * const device = d->ioDevice; // May be called recursively from close().
@@ -192,7 +214,12 @@ void SIOOutputNode::closed(void)
       device->close();
       device->deleteLater();
     }
+
+    //qDebug() << "SIOOutputNode: Client disconnected";
+    emit closed();
   }
+
+  d->mutex.unlock();
 }
 
 void SIOOutputNode::blockUntil(STime timeStamp)
@@ -206,8 +233,7 @@ void SIOOutputNode::blockUntil(STime timeStamp)
   {
     const STime correctedTime = STime::fromMSec(qint64(float(timeStamp.toMSec()) / d->streamingSpeed));
 
-    // This blocks the thread until it is time to process the buffer. The
-    // timestamp is divided by 2 to allow processing 2 times realtime.
+    // This blocks the thread until it is time to process the buffer.
     const STime duration = d->streamTimer.correctOffset(correctedTime, STime::fromMSec(maxDelay));
     if (duration.isPositive())
       T::msleep(qBound(0, int(duration.toMSec()), maxDelay));

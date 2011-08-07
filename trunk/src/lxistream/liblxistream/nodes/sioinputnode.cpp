@@ -50,6 +50,11 @@ void SIOInputNode::setIODevice(QIODevice *ioDevice)
   d->ioDevice = ioDevice;
 }
 
+bool SIOInputNode::hasIODevice(void) const
+{
+  return d->ioDevice != NULL;
+}
+
 bool SIOInputNode::open(quint16 programId)
 {
   QByteArray buffer;
