@@ -24,6 +24,8 @@ namespace LXiStream {
 
 SVideoFormat::SVideoFormat(void)
 {
+  Q_ASSERT(sizeof(*this) == sizeof(d));
+
   d.format = Format_Invalid;
   d.size = SSize();
   d.frameRate = SInterval();
@@ -36,6 +38,8 @@ SVideoFormat::SVideoFormat(void)
  */
 SVideoFormat::SVideoFormat(Format format, SSize size, SInterval frameRate, FieldMode fieldMode)
 {
+  Q_ASSERT(sizeof(*this) == sizeof(d));
+
   setFormat(format, size, frameRate, fieldMode);
 }
 

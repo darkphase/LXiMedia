@@ -29,6 +29,11 @@
 
 namespace LXiStream {
 
+/*! This class groups all format aspects of unencoded video.
+
+    \note This class can be serialized.
+    \sa SAudioFormat
+ */
 class LXISTREAM_PUBLIC SVideoFormat
 {
 public:
@@ -107,6 +112,7 @@ public:
   _lxi_pure static const char * formatName(Format);
 
 private:
+  // Ensure all these struct members are serializable.
   struct
   {
     Format                      format;

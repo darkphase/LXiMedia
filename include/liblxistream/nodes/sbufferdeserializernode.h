@@ -17,39 +17,44 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include <QtCore>
-#include <LXiStream>
+#ifndef LXISTREAM_SBUFFERDESERIALIZERNODE_H
+#define LXISTREAM_SBUFFERDESERIALIZERNODE_H
 
-class IOTest : public QObject
+#include <QtCore>
+#include <LXiCore>
+#include "../sinterfaces.h"
+
+namespace LXiStream {
+
+class LXISTREAM_PUBLIC SBufferDeserializerNode : public SInterfaces::SourceNode
 {
 Q_OBJECT
 public:
-  inline explicit               IOTest(QObject *parent) : QObject(parent), mediaApp(NULL) { }
+  explicit                      SBufferDeserializerNode(SGraph *, QIODevice *);
+  virtual                       ~SBufferDeserializerNode();
 
-private slots:
-  void                          initTestCase(void);
-  void                          cleanupTestCase(void);
+public: // From SInterfaces::SourceNode
+  virtual bool                  start(void);
+  virtual void                  stop(void);
+  virtual void                  process(void);
 
-private slots:
-  void                          MediaFileInfoImage(void);
-
-  void                          AudioResamplerHalfRate(void);
-  void                          AudioResamplerDoubleRate(void);
-
-  void                          BufferSerializerLoopback(void);
-
-private slots:
-  void                          receive(const QByteArray &);
-  void                          receive(const SAudioBuffer &);
-  void                          receive(const SVideoBuffer &);
+signals:
+  void                          output(const QByteArray &);
+  void                          output(const SAudioBuffer &);
+  void                          output(const SVideoBuffer &);
+  void                          output(const SSubtitleBuffer &);
+  void                          output(const SSubpictureBuffer &);
 
 private:
-  SAudioBuffer                  createAudioBuffer(unsigned sampleRate);
-  SVideoBuffer                  createVideoBuffer(const SSize &);
+  template <class _buffer>
+  _lxi_internal void            deserialize(void);
 
 private:
-  SApplication                * mediaApp;
-  QList<QByteArray>             messageList;
-  SAudioBufferList              audioBufferList;
-  SVideoBufferList              videoBufferList;
+  struct Data;
+  Data                  * const d;
 };
+
+
+} // End of namespace
+
+#endif

@@ -26,6 +26,11 @@
 
 namespace LXiStream {
 
+/*! This class groups all format aspects of unencoded audio.
+
+    \note This class can be serialized.
+    \sa SVideoFormat
+ */
 class LXISTREAM_PUBLIC SAudioFormat
 {
 public:

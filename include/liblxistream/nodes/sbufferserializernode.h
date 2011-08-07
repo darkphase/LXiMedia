@@ -17,39 +17,43 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include <QtCore>
-#include <LXiStream>
+#ifndef LXISTREAM_SBUFFERSERIALIZERNODE_H
+#define LXISTREAM_SBUFFERSERIALIZERNODE_H
 
-class IOTest : public QObject
+#include <QtCore>
+#include <LXiCore>
+#include "../sinterfaces.h"
+
+namespace LXiStream {
+
+class LXISTREAM_PUBLIC SBufferSerializerNode : public SInterfaces::SinkNode
 {
 Q_OBJECT
 public:
-  inline explicit               IOTest(QObject *parent) : QObject(parent), mediaApp(NULL) { }
+  explicit                      SBufferSerializerNode(SGraph *, QIODevice *);
+  virtual                       ~SBufferSerializerNode();
 
-private slots:
-  void                          initTestCase(void);
-  void                          cleanupTestCase(void);
+public: // From SInterfaces::SinkNode
+  virtual bool                  start(STimer *);
+  virtual void                  stop(void);
 
-private slots:
-  void                          MediaFileInfoImage(void);
-
-  void                          AudioResamplerHalfRate(void);
-  void                          AudioResamplerDoubleRate(void);
-
-  void                          BufferSerializerLoopback(void);
-
-private slots:
-  void                          receive(const QByteArray &);
-  void                          receive(const SAudioBuffer &);
-  void                          receive(const SVideoBuffer &);
+public slots:
+  void                          input(const QByteArray &);
+  void                          input(const SAudioBuffer &);
+  void                          input(const SVideoBuffer &);
+  void                          input(const SSubtitleBuffer &);
+  void                          input(const SSubpictureBuffer &);
 
 private:
-  SAudioBuffer                  createAudioBuffer(unsigned sampleRate);
-  SVideoBuffer                  createVideoBuffer(const SSize &);
+  template <class _buffer>
+  _lxi_internal void            serialize(const _buffer &, quint32 bufferId);
 
 private:
-  SApplication                * mediaApp;
-  QList<QByteArray>             messageList;
-  SAudioBufferList              audioBufferList;
-  SVideoBufferList              videoBufferList;
+  struct Data;
+  Data                  * const d;
 };
+
+
+} // End of namespace
+
+#endif

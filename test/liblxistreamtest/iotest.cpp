@@ -31,6 +31,10 @@ void IOTest::initTestCase(void)
 
 void IOTest::cleanupTestCase(void)
 {
+  messageList.clear();
+  audioBufferList.clear();
+  videoBufferList.clear();
+
   delete mediaApp;
   mediaApp = NULL;
 }
@@ -68,16 +72,7 @@ void IOTest::AudioResamplerHalfRate(void)
       SInterfaces::AudioResampler::create(this, "linear");
 
   // Prepare a one-channel buffer with alternating values 32 and 64
-  SAudioBuffer inBuffer(SAudioFormat(SAudioFormat::Format_PCM_S16,
-                                     SAudioFormat::Channels_Mono,
-                                     8000),
-                        64);
-
-  for (unsigned i=0; i<64; i+=2)
-  {
-    reinterpret_cast<qint16 *>(inBuffer.data())[i]   = 32;
-    reinterpret_cast<qint16 *>(inBuffer.data())[i+1] = 64;
-  }
+  SAudioBuffer inBuffer = createAudioBuffer(8000);
 
   // Now resample it to half the samplerate
   audioResampler->setSampleRate(4000);
@@ -102,17 +97,7 @@ void IOTest::AudioResamplerDoubleRate(void)
       SInterfaces::AudioResampler::create(this, "linear");
 
   // Prepare a one-channel buffer with alternating values 32 and 64
-  // Prepare a one-channel buffer with alternating values 32 and 64
-  SAudioBuffer inBuffer(SAudioFormat(SAudioFormat::Format_PCM_S16,
-                                     SAudioFormat::Channels_Mono,
-                                     4000),
-                        64);
-
-  for (unsigned i=0; i<64; i+=2)
-  {
-    reinterpret_cast<qint16 *>(inBuffer.data())[i]   = 32;
-    reinterpret_cast<qint16 *>(inBuffer.data())[i+1] = 64;
-  }
+  SAudioBuffer inBuffer = createAudioBuffer(4000);
 
   // Now resample it to double the samplerate
   audioResampler->setSampleRate(8000);
@@ -134,68 +119,111 @@ void IOTest::AudioResamplerDoubleRate(void)
   delete audioResampler;
 }
 
-/*! Creates a temporary file and verifies that buffers can written and read.
+/*! Serializes and deserializes buffers.
  */
-void IOTest::PsFileLoopback(void)
+void IOTest::BufferSerializerLoopback(void)
 {
-/*  static const unsigned numBuffers = 8;
+  static const int numBuffers = 32;
 
-  // Prepare a one-channel buffer with alternating values 32 and 64
-  SAudioBuffer buffer(SAudioFormat(SAudioFormat::Format_PCM_S16,
-                                   SAudioFormat::Channel_Mono,
-                                   8000),
-                      2048);
+  QBuffer buffer;
+  SAudioBuffer audioBuffer = createAudioBuffer(8000);
+  SVideoBuffer videoBuffer = createVideoBuffer(SSize(352, 288));
 
-  for (unsigned i=0; i<2048; i+=2)
+  buffer.open(QBuffer::ReadWrite);
+  SBufferSerializerNode bufferSerializer(NULL, &buffer);
+  for (int i=0; i<numBuffers; i++)
   {
-    reinterpret_cast<qint16 *>(buffer.data())[i]   = 32;
-    reinterpret_cast<qint16 *>(buffer.data())[i+1] = 64;
+    bufferSerializer.input("BufferSequence" + QByteArray::number(i));
+    bufferSerializer.input(audioBuffer);
+    bufferSerializer.input(videoBuffer);
   }
 
-  buffer.setTimeStamp(STime::null);
+  buffer.seek(0);
+  SBufferDeserializerNode bufferDeserializer(NULL, &buffer);
+  connect(&bufferDeserializer, SIGNAL(output(QByteArray)), SLOT(receive(QByteArray)));
+  connect(&bufferDeserializer, SIGNAL(output(SAudioBuffer)), SLOT(receive(SAudioBuffer)));
+  connect(&bufferDeserializer, SIGNAL(output(SVideoBuffer)), SLOT(receive(SVideoBuffer)));
 
-  QDir temp(QDir::tempPath());
-  const QString fileName = temp.absoluteFilePath("IOTest__PsFileLoopback.mpeg");
-  temp.remove(fileName);
-
-  SFileOutputNode fileOutput(NULL, fileName);
-  QVERIFY(fileOutput.openFormat(Common::PsBufferWriter::formatName));
-  QVERIFY(fileOutput.start(NULL));
-
-  for (unsigned i=0; i<numBuffers; i++)
-  {
-    buffer.setTimeStamp(buffer.duration() * i);
-    fileOutput.input(buffer);
-  }
-
-  fileOutput.stop();
-
-  SFileInputNode fileInput(NULL, fileName);
-  connect(&fileInput, SIGNAL(output(const SAudioBuffer &)), SLOT(receive(const SAudioBuffer &)));
-  QVERIFY(fileInput.start());
-
-  while (!fileInput.atEnd())
-    fileInput.process();
-
-  fileInput.stop();
-
-  QVERIFY(!audioBufferList.isEmpty());
-
-  // And check the result
-  const SAudioBuffer mergedBuffer = audioBufferList; // Merges all audio buffers
-  QCOMPARE(mergedBuffer.numBytes(), size_t(4096 * numBuffers));
-  QCOMPARE(mergedBuffer.codec().numChannels(), 1u);
-  for (unsigned i=0; i<2048*numBuffers; i+=2)
-  {
-    QCOMPARE(reinterpret_cast<const qint16 *>(mergedBuffer.bits())[i],   qint16(32));
-    QCOMPARE(reinterpret_cast<const qint16 *>(mergedBuffer.bits())[i+1], qint16(64));
-  }
-
+  messageList.clear();
   audioBufferList.clear();
-  QVERIFY(temp.remove(fileName));*/
+  videoBufferList.clear();
+  for (int i=0; i<numBuffers; i++)
+  {
+    bufferDeserializer.process();
+    bufferDeserializer.process();
+    bufferDeserializer.process();
+  }
+
+  QCOMPARE(messageList.count(), numBuffers);
+  for (int i=0; i<messageList.count(); i++)
+    QCOMPARE(messageList[i], "BufferSequence" + QByteArray::number(i));
+
+  QCOMPARE(audioBufferList.count(), numBuffers);
+  foreach (const SAudioBuffer &buffer, audioBufferList)
+  {
+    QCOMPARE(buffer.format(), audioBuffer.format());
+    QCOMPARE(buffer.timeStamp(), audioBuffer.timeStamp());
+    QCOMPARE(buffer.numSamples(), audioBuffer.numSamples());
+    QCOMPARE(buffer.duration(), audioBuffer.duration());
+
+    QCOMPARE(buffer.size(), audioBuffer.size());
+    QVERIFY(memcmp(buffer.data(), audioBuffer.data(), qMin(buffer.size(), audioBuffer.size())) == 0);
+  }
+
+  QCOMPARE(videoBufferList.count(), numBuffers);
+  foreach (const SVideoBuffer &buffer, videoBufferList)
+  {
+    QCOMPARE(buffer.format(), videoBuffer.format());
+    QCOMPARE(buffer.timeStamp(), videoBuffer.timeStamp());
+    QCOMPARE(buffer.lineSize(0), videoBuffer.lineSize(0));
+    QCOMPARE(buffer.offset(0), videoBuffer.offset(0));
+
+    QCOMPARE(buffer.size(), videoBuffer.size());
+    QVERIFY(memcmp(buffer.data(), videoBuffer.data(), qMin(buffer.size(), videoBuffer.size())) == 0);
+  }
+}
+
+void IOTest::receive(const QByteArray &buffer)
+{
+  messageList += buffer;
 }
 
 void IOTest::receive(const SAudioBuffer &buffer)
 {
   audioBufferList += buffer;
+}
+
+void IOTest::receive(const SVideoBuffer &buffer)
+{
+  videoBufferList += buffer;
+}
+
+SAudioBuffer IOTest::createAudioBuffer(unsigned sampleRate)
+{
+  SAudioBuffer buffer(SAudioFormat(SAudioFormat::Format_PCM_S16,
+                                   SAudioFormat::Channels_Mono,
+                                   sampleRate),
+                        64);
+
+  for (unsigned i=0; i<64; i+=2)
+  {
+    reinterpret_cast<qint16 *>(buffer.data())[i]   = 32;
+    reinterpret_cast<qint16 *>(buffer.data())[i+1] = 64;
+  }
+
+  return buffer;
+}
+
+SVideoBuffer IOTest::createVideoBuffer(const SSize &size)
+{
+  SVideoBuffer buffer(SVideoFormat(SVideoFormat::Format_GRAY8, size));
+
+  for (int y=0; y<size.height(); y++)
+  {
+    quint8 * const line = reinterpret_cast<quint8 *>(buffer.scanLine(y, 0));
+    for (int x=0; x<size.width(); x++)
+      line[x] = x + y;
+  }
+
+  return buffer;
 }

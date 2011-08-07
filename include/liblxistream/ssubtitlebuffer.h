@@ -28,10 +28,15 @@
 
 namespace LXiStream {
 
+class SBufferDeserializerNode;
+class SBufferSerializerNode;
+
 /*! This class represents a buffer containing subtitle data.
  */
 class LXISTREAM_PUBLIC SSubtitleBuffer : public SBuffer
 {
+friend class SBufferDeserializerNode;
+friend class SBufferSerializerNode;
 public:
   inline                        SSubtitleBuffer(void) : SBuffer()               { }
   inline                        SSubtitleBuffer(const QStringList &s) : SBuffer() { setSubtitle(s); }
@@ -45,6 +50,7 @@ public:
   inline void                   setSubtitle(const QStringList &s)               { setData(s.join("\n").toUtf8()); }
 
 private:
+  // Ensure all these struct members are serializable.
   struct
   {
     STime                       timeStamp;

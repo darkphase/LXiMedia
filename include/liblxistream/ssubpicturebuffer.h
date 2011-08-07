@@ -29,10 +29,15 @@
 
 namespace LXiStream {
 
+class SBufferDeserializerNode;
+class SBufferSerializerNode;
+
 /*! This class represents a buffer containing subpicture data.
  */
 class LXISTREAM_PUBLIC SSubpictureBuffer : public SBuffer
 {
+friend class SBufferDeserializerNode;
+friend class SBufferSerializerNode;
 public:
   struct Rect
   {
@@ -63,6 +68,7 @@ private:
   _lxi_internal static int      rectSize(const Rect &rect);
 
 private:
+  // Ensure all these struct members are serializable.
   struct
   {
     STime                       timeStamp;

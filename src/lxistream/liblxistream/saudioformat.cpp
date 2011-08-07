@@ -23,6 +23,8 @@ namespace LXiStream {
 
 SAudioFormat::SAudioFormat(void)
 {
+  Q_ASSERT(sizeof(*this) == sizeof(d));
+
   d.format = Format_Invalid;
   d.channels = Channel_None;
   d.sampleRate = 0;
@@ -30,6 +32,8 @@ SAudioFormat::SAudioFormat(void)
 
 SAudioFormat::SAudioFormat(Format format, Channels channels, unsigned sampleRate)
 {
+  Q_ASSERT(sizeof(*this) == sizeof(d));
+
   setFormat(format, channels, sampleRate);
 }
 

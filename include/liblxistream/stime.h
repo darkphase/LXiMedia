@@ -32,14 +32,15 @@ namespace LXiStream {
     supports adding and comparing different times of different intervals, for
     example: (10 * 1/30) + (4 * 1/15) = (18 * 1/30).
 
+    \note This class can be serialized.
     \sa SInterval
  */
 class LXISTREAM_PUBLIC STime
 {
 public:
-  inline                        STime(void)                                     { d.count = 0; }
-  inline                        STime(const STime &from)                        { d.count = from.d.count; d.interval = from.d.interval; }
-  inline                        STime(qint64 count, const SInterval &interval)  { d.count = count; d.interval = interval; }
+  inline                        STime(void)                                     { Q_ASSERT(sizeof(*this) == sizeof(d)); d.count = 0; }
+  inline                        STime(const STime &from)                        { Q_ASSERT(sizeof(*this) == sizeof(d)); d.count = from.d.count; d.interval = from.d.interval; }
+  inline                        STime(qint64 count, const SInterval &interval)  { Q_ASSERT(sizeof(*this) == sizeof(d)); d.count = count; d.interval = interval; }
 
   inline bool                   isValid(void) const                             { return d.interval.isValid(); }
   inline bool                   isNull(void) const                              { return isValid() && (d.count == 0); }
@@ -105,6 +106,7 @@ private:
   static STime                  div(const STime &, int);
 
 private:
+  // Ensure all these struct members are serializable.
   struct
   {
     qint64                      count;

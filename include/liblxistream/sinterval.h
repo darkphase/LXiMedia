@@ -31,14 +31,15 @@ namespace LXiStream {
     An SInterval can be created by manually specifying a numerator and
     denomerator or by invoking the static method fromFrequency().
 
+    \note This class can be serialized.
     \sa STime
  */
 class LXISTREAM_PUBLIC SInterval
 {
 public:
-  inline                        SInterval(void)                                 { d.num = d.den = 0; }
-  inline                        SInterval(qint64 num, qint64 den)               { d.num = num; d.den = den; }
-  inline                        SInterval(const SInterval &from)                { d.num = from.d.num; d.den = from.d.den; }
+  inline                        SInterval(void)                                 { Q_ASSERT(sizeof(*this) == sizeof(d)); d.num = d.den = 0; }
+  inline                        SInterval(qint64 num, qint64 den)               { Q_ASSERT(sizeof(*this) == sizeof(d)); d.num = num; d.den = den; }
+  inline                        SInterval(const SInterval &from)                { Q_ASSERT(sizeof(*this) == sizeof(d)); d.num = from.d.num; d.den = from.d.den; }
 
   inline bool                   isValid(void) const                             { return (d.num > 0) && (d.den > 0); }
 
@@ -82,6 +83,7 @@ private:
   static qint64                 comp(const SInterval &, const SInterval &);
 
 private:
+  // Ensure all these struct members are serializable.
   struct
   {
     qint64                      num, den;

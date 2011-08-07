@@ -29,6 +29,9 @@
 
 namespace LXiStream {
 
+class SBufferDeserializerNode;
+class SBufferSerializerNode;
+
 class SAudioBuffer;
 typedef QList<SAudioBuffer>     SAudioBufferList;
 
@@ -36,6 +39,8 @@ typedef QList<SAudioBuffer>     SAudioBufferList;
  */
 class LXISTREAM_PUBLIC SAudioBuffer : public SBuffer
 {
+friend class SBufferDeserializerNode;
+friend class SBufferSerializerNode;
 public:
   inline                        SAudioBuffer(void) : SBuffer()            { }
   explicit                      SAudioBuffer(const SAudioFormat &, unsigned numSamples = 0);
@@ -59,6 +64,7 @@ public:
   void                          setChannels(const SAudioBuffer &);
 
 private:
+  // Ensure all these struct members are serializable.
   struct
   {
     SAudioFormat                format;
