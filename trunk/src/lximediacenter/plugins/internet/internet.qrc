@@ -2,7 +2,6 @@
     <qresource prefix="/internet">
         <file>sites/README</file>
         <file>sites/fm.fresh!1.js</file>
-        <file>sites/fm.fresh!1.js</file>
         <file>sites/nl.3fm!1.js</file>
         <file>sites/nl.radio1!1.js</file>
         <file>sites/nl.radio2!1.js</file>

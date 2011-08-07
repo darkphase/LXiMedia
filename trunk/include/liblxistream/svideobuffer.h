@@ -29,10 +29,15 @@
 
 namespace LXiStream {
 
+class SBufferDeserializerNode;
+class SBufferSerializerNode;
+
 /*! This class represents a buffer containing raw video pixels.
  */
 class LXISTREAM_PUBLIC SVideoBuffer : public SBuffer
 {
+friend class SBufferDeserializerNode;
+friend class SBufferSerializerNode;
 public:
                                 SVideoBuffer(void);
   explicit                      SVideoBuffer(const SVideoFormat &);
@@ -54,6 +59,7 @@ public:
   inline void                   setOffset(int plane, size_t o)                  { Q_ASSERT(plane < d.maxPlanes); d.offset[plane] = o; }
 
 private:
+  // Ensure all these struct members are serializable.
   struct
   {
     SVideoFormat                format;

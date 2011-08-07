@@ -73,6 +73,8 @@ HEADERS += $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/saudiodecodernode
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/saudiomatrixnode.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/saudionormalizenode.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/saudioresamplenode.h \
+    $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/sbufferdeserializernode.h \
+    $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/sbufferserializernode.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/sdatadecodernode.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/sfileinputnode.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/sfileoutputnode.h \
@@ -99,6 +101,8 @@ SOURCES += nodes/saudiodecodernode.cpp \
     nodes/saudionormalizenode.cpp \
     nodes/saudionormalizenode.mul.c \
     nodes/saudioresamplenode.cpp \
+    nodes/sbufferdeserializernode.cpp \
+    nodes/sbufferserializernode.cpp \
     nodes/sdatadecodernode.cpp \
     nodes/sfileinputnode.cpp \
     nodes/sfileoutputnode.cpp \
