@@ -330,27 +330,43 @@ QList<BufferReader::DataStreamInfo> BufferReader::dataStreams(void) const
 {
   QMutexLocker l(&mutex);
 
+  QList<DataStreamInfo> result = bufferReader->dataStreams();
+
   if (dvdHandle)
   {
-    QList<DataStreamInfo> result;
-
+    // Match the subtitle streams.
+    bool found = false;
     for (int i=0; i<0x1F; i++)
     {
       const uint16_t lang = ::dvdnav_spu_stream_to_lang(dvdHandle, i);
       if (lang != 0xFFFF)
       {
-        const char language[3] = { (lang >> 8) & 0xFF, lang & 0xFF, 0 };
         const qint8 lid = ::dvdnav_get_spu_logical_stream(dvdHandle, i);
         const quint16 id = (lid >= 0 ? int(lid) : i) + 0x20;
 
-        result += DataStreamInfo(StreamId::Type_Subtitle, id, language, QString::null, SDataCodec("SUB/DVD"));
+        for (int i=0; i<result.count(); i++)
+        if (result[i].nativeId == id)
+        {
+          result[i].language[0] = (lang >> 8) & 0xFF;
+          result[i].language[1] = lang & 0xFF;
+          result[i].language[2] = 0;
+          result[i].language[3] = 0;
+
+          found = true;
+        }
       }
     }
 
-    return result;
+    // Remove any unidentified subtitle streams.
+    if (found)
+    for (QList<DataStreamInfo>::Iterator i=result.begin(); i!=result.end(); )
+    if (i->language[0] == 0)
+      i = result.erase(i);
+    else
+      i++;
   }
-  else
-    return bufferReader->dataStreams();
+
+  return result;
 }
 
 void BufferReader::selectStreams(const QList<StreamId> &streams)

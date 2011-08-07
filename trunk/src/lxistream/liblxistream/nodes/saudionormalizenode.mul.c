@@ -35,15 +35,17 @@ int16_t LXiStream_SAudioNormalizeNode_measure
 
 void LXiStream_SAudioNormalizeNode_gain
  (const int16_t * srcData, unsigned numSamples, unsigned srcNumChannels,
-  int16_t * dstData, float factor)
+  int16_t * dstData, int factor)
 {
   const unsigned totalSamples = numSamples * srcNumChannels;
   unsigned i;
+  int result;
 
   for (i=0; i<totalSamples; i++)
   {
-    const float val = ((float)srcData[i]) * factor;
+    result = ((int)srcData[i]) * factor;
+    result >>= 8;
 
-    dstData[i] = (int16_t)(val < -32768.0f ? -32768 : (val > 32767.0f ? 32768 : val));
+    dstData[i] = (int16_t)(result >= -32768 ? (result <= 32767 ? result : 32767) : -32768);
   }
 }

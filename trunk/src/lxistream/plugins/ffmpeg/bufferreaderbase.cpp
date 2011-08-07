@@ -453,11 +453,15 @@ QList<BufferReaderBase::AudioStreamInfo> BufferReaderBase::audioStreams(void) co
   if (formatContext->streams[i]->codec->codec_type == CODEC_TYPE_AUDIO)
   if (streamContext[i])
   {
-    streams += AudioStreamInfo(
+    AudioStreamInfo streamInfo(
         formatContext->streams[i]->index,
         formatContext->streams[i]->language,
         readMetadata(formatContext->streams[i]->metadata, "title"),
         streamContext[i]->audioCodec);
+
+    streamInfo.nativeId = formatContext->streams[i]->id;
+
+    streams += streamInfo;
   }
 
   return streams;
@@ -472,11 +476,15 @@ QList<BufferReaderBase::VideoStreamInfo> BufferReaderBase::videoStreams(void) co
   if (formatContext->streams[i]->codec->codec_type == CODEC_TYPE_VIDEO)
   if (streamContext[i])
   {
-    streams += VideoStreamInfo(
+    VideoStreamInfo streamInfo(
         formatContext->streams[i]->index,
         formatContext->streams[i]->language,
         readMetadata(formatContext->streams[i]->metadata, "title"),
         streamContext[i]->videoCodec);
+
+    streamInfo.nativeId = formatContext->streams[i]->id;
+
+    streams += streamInfo;
   }
 
   return streams;
@@ -491,12 +499,16 @@ QList<BufferReaderBase::DataStreamInfo> BufferReaderBase::dataStreams(void) cons
   if (formatContext->streams[i]->codec->codec_type == CODEC_TYPE_SUBTITLE)
   if (streamContext[i])
   {
-    streams += DataStreamInfo(
+    DataStreamInfo streamInfo(
         DataStreamInfo::Type_Subtitle,
         formatContext->streams[i]->index,
         formatContext->streams[i]->language,
         readMetadata(formatContext->streams[i]->metadata, "title"),
         streamContext[i]->dataCodec);
+
+    streamInfo.nativeId = formatContext->streams[i]->id;
+
+    streams += streamInfo;
   }
 
   return streams;
@@ -701,6 +713,13 @@ BufferReaderBase::StreamContext * BufferReaderBase::initStreamContext(const ::AV
         (stream->codec->sample_aspect_ratio.num != 0))
     {
       ar = ::av_q2d(stream->codec->sample_aspect_ratio);
+    }
+
+    if (qFuzzyCompare(ar, 1.0f) &&
+        (stream->sample_aspect_ratio.den != 0) &&
+        (stream->sample_aspect_ratio.num != 0))
+    {
+      ar = ::av_q2d(stream->sample_aspect_ratio);
     }
 
     // Note that den and num are deliberately swapped! (see documentation of AVStream::r_frame_rate)

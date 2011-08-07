@@ -58,6 +58,7 @@ bool VideoDecoder::openCodec(const SVideoCodec &c, Flags flags)
 
   inCodec = c;
   timeStamp = STime::null;
+  reorderBuffer.clear();
 
   if ((codecHandle = avcodec_find_decoder(FFMpegCommon::toFFMpegCodecID(inCodec))) == NULL)
   {
@@ -136,16 +137,14 @@ SVideoBufferList VideoDecoder::decodeBuffer(const SEncodedVideoBuffer &videoBuff
     const uint8_t *inPtr = reinterpret_cast<const uint8_t *>(videoBuffer.data());
     int inSize = videoBuffer.size();
 
-    const qint64 inputPts =
-        videoBuffer.presentationTimeStamp().isValid()
-        ? videoBuffer.presentationTimeStamp().toClock(contextHandle->time_base.num, contextHandle->time_base.den)
-        : AV_NOPTS_VALUE;
-
-    contextHandle->reordered_opaque = inputPts;
-
     while (inSize > 0)
     {
       ::avcodec_get_frame_defaults(pictureHandle);
+
+      contextHandle->reordered_opaque =
+          videoBuffer.presentationTimeStamp().isValid()
+          ? videoBuffer.presentationTimeStamp().toClock(contextHandle->time_base.num, contextHandle->time_base.den)
+          : AV_NOPTS_VALUE;
 
       int gotPicture = 0;
 
@@ -167,6 +166,9 @@ SVideoBufferList VideoDecoder::decodeBuffer(const SEncodedVideoBuffer &videoBuff
           size = SSize(contextHandle->width, contextHandle->height);
         else
           size = SSize(contextHandle->width, contextHandle->height, ::av_q2d(contextHandle->sample_aspect_ratio));
+
+        if (qFuzzyCompare(size.aspectRatio(), 1.0f))
+          size.setAspectRatio(videoBuffer.codec().size().aspectRatio());
 
         const SInterval frameRate = videoBuffer.codec().frameRate();
 
@@ -224,36 +226,57 @@ SVideoBufferList VideoDecoder::decodeBuffer(const SEncodedVideoBuffer &videoBuff
         else 
           ts = timeStamp;
 
-        // Correct invalid timestamps
-        const STime delta = qAbs(timeStamp - ts);
-        if (!videoBuffer.isKeyFrame() && (delta <= STime(contextHandle->gop_size, frameRate)))
-          ts = timeStamp;
-        else if (videoBuffer.isKeyFrame() && (delta <= STime(2, frameRate)))
-          ts = timeStamp;
-
-/*
         // This might give a better PTS.
-        if (pictureHandle->pts > 0)
+//        if (pictureHandle->pts > 0)
+//        {
+//          const STime framePts = STime::fromClock(pictureHandle->pts, contextHandle->time_base.num, contextHandle->time_base.den);
+//          if (qAbs(ts - framePts) < STime::fromSec(1))
+//            ts = framePts;
+//        }
+
+        if ((contextHandle->has_b_frames > 1) && (contextHandle->has_b_frames <= 30))
         {
-          const STime framePts = STime::fromClock(pictureHandle->pts, contextHandle->time_base.num, contextHandle->time_base.den);
-          if (qAbs(ts - framePts) < STime::fromSec(1))
-            ts = framePts;
+          destBuffer.setTimeStamp(ts);
+          reorderBuffer.insert(ts, destBuffer);
+
+          if (reorderBuffer.count() > contextHandle->has_b_frames)
+          {
+            QMap<STime, SVideoBuffer>::Iterator i = reorderBuffer.begin();
+            ts = i.key();
+            destBuffer = i.value();
+            reorderBuffer.erase(i);
+          }
+          else
+            destBuffer = SVideoBuffer();
         }
-*/
 
-//        static STime lastTs = STime::fromSec(0);
-//        qDebug() << "Video timestamp" << ts.toMSec() << (ts - lastTs).toMSec()
-//            << ", ref =" << timeStamp.toMSec()
-//            << ", key =" << videoBuffer.isKeyFrame()
-//            << ", rpts =" << rpts.toMSec()
-//            << ", pts =" << videoBuffer.presentationTimeStamp().toMSec()
-//            << ", dts =" << videoBuffer.decodingTimeStamp().toMSec();
-//        lastTs = ts;
+        if (!destBuffer.isNull())
+        {
+          // Correct invalid timestamps
+          const STime delta = qAbs(timeStamp - ts);
+          if (!videoBuffer.isKeyFrame() && (delta <= STime(contextHandle->gop_size, frameRate)))
+            ts = timeStamp;
+          else if (videoBuffer.isKeyFrame() && (delta <= STime(2, frameRate)))
+            ts = timeStamp;
 
-        destBuffer.setTimeStamp(ts);
-        output << destBuffer;
+          destBuffer.setTimeStamp(ts);
+          output << destBuffer;
 
-        timeStamp = ts + STime(1, frameRate);
+//          static STime lastTs = STime::fromSec(0);
+//          qDebug() << "Video timestamp" << ts.toMSec() << (ts - lastTs).toMSec()
+//              << ", ref =" << timeStamp.toMSec()
+//              << ", key =" << videoBuffer.isKeyFrame()
+//              << ", rpts =" << rpts.toMSec()
+//              << ", pts =" << videoBuffer.presentationTimeStamp().toMSec()
+//              << ", dts =" << videoBuffer.decodingTimeStamp().toMSec()
+//              << ", max_b_frames = " << contextHandle->max_b_frames
+//              << ", has_b_frames = " << contextHandle->has_b_frames
+//              << ", phpts = " << pictureHandle->pts
+//              << ", repeat_pict = " << pictureHandle->repeat_pict;
+//          lastTs = ts;
+
+          timeStamp = ts + STime(1, frameRate);
+        }
       }
 
       if (len > 0)

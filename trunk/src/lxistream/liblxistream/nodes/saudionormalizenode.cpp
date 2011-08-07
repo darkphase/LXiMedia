@@ -24,7 +24,7 @@ extern "C" qint16 LXiStream_SAudioNormalizeNode_measure
  (const qint16 * srcData, unsigned numSamples, unsigned srcNumChannels);
 extern "C" void LXiStream_SAudioNormalizeNode_gain
  (const qint16 * srcData, unsigned numSamples, unsigned srcNumChannels,
-  qint16 * dstData, float factor);
+  qint16 * dstData, int factor);
 
 namespace LXiStream {
 
@@ -114,7 +114,7 @@ void SAudioNormalizeNode::processTask(const SAudioBuffer &audioBuffer)
            srcBuffer.numSamples(),
            srcBuffer.format().numChannels(),
            reinterpret_cast<qint16 *>(destBuffer.data()),
-           4096.0f / float(avg));
+           ((4096.0f / float(avg)) * 256.0f) + 0.5f);
 
       emit output(destBuffer);
     }
@@ -147,7 +147,7 @@ void SAudioNormalizeNode::processTask(const SAudioBuffer &audioBuffer)
            srcBuffer.numSamples(),
            srcBuffer.format().numChannels(),
            reinterpret_cast<qint16 *>(destBuffer.data()),
-           4096.0f / float(avg));
+           ((4096.0f / float(avg)) * 256.0f) + 0.5f);
 
       emit output(destBuffer);
     }

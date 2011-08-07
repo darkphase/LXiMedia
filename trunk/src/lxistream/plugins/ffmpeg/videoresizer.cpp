@@ -94,7 +94,8 @@ bool VideoResizer::needsResize(const SVideoFormat &format)
 
     destFormat = SVideoFormat(
         lastFormat.format(),
-        SSize(unsigned(size.width() + 15) & ~0x0Fu, unsigned(size.height() + 15) & ~0x0Fu),
+        // Deliberately +7 to prevent aspect ratio issues with small formats.
+        SSize(unsigned(size.width() + 7) & ~0x0Fu, unsigned(size.height() + 7) & ~0x0Fu),
         lastFormat.frameRate(),
         lastFormat.fieldMode());
 

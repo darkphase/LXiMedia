@@ -76,9 +76,9 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
 
   delete video;
   video = new Video(this);
-  connect(&video->deinterlacer, SIGNAL(output(SVideoBuffer)), &video->subpictureRenderer, SLOT(input(SVideoBuffer)));
-  connect(&video->subpictureRenderer, SIGNAL(output(SVideoBuffer)), &video->letterboxDetectNode, SLOT(input(SVideoBuffer)));
-  connect(&video->letterboxDetectNode, SIGNAL(output(SVideoBuffer)), &video->resizer, SLOT(input(SVideoBuffer)));
+  connect(&video->deinterlacer, SIGNAL(output(SVideoBuffer)), &video->letterboxDetectNode, SLOT(input(SVideoBuffer)));
+  connect(&video->letterboxDetectNode, SIGNAL(output(SVideoBuffer)), &video->subpictureRenderer, SLOT(input(SVideoBuffer)));
+  connect(&video->subpictureRenderer, SIGNAL(output(SVideoBuffer)), &video->resizer, SLOT(input(SVideoBuffer)));
   connect(&video->resizer, SIGNAL(output(SVideoBuffer)), &video->box, SLOT(input(SVideoBuffer)));
   connect(&video->box, SIGNAL(output(SVideoBuffer)), &video->subtitleRenderer, SLOT(input(SVideoBuffer)));
   connect(&video->subtitleRenderer, SIGNAL(output(SVideoBuffer)), &sync, SLOT(input(SVideoBuffer)));
@@ -452,8 +452,8 @@ MediaStream::Audio::~Audio()
 
 MediaStream::Video::Video(SGraph *parent)
   : deinterlacer(parent),
-    subpictureRenderer(parent),
     letterboxDetectNode(parent),
+    subpictureRenderer(parent),
     resizer(parent),
     box(parent),
     subtitleRenderer(parent),
@@ -599,9 +599,6 @@ bool MediaTranscodeStream::setup(const SHttpServer::RequestMessage &request,
 
       if (audio->outChannels == SAudioFormat::Channels_Stereo)
         audioDecoder.setFlags(SInterfaces::AudioDecoder::Flag_DownsampleToStereo);
-
-      // To improve performance of multithreaded decoding.
-      videoDecoder.setFlags(SInterfaces::VideoDecoder::Flag_Fast);
 
       return true;
     }

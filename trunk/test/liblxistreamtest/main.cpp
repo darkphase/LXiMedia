@@ -40,12 +40,15 @@ int main(int argc, char *argv[])
     mediaApp->loadModule("lxistream_dvdnav");
     mediaApp->loadModule("lxistream_ffmpeg");
 
+    // Ignore all logged messages
+    struct T { static void logMessage(QtMsgType, const char *) { } };
+    qInstallMsgHandler(&T::logMessage);
+
     QDir dir(app.arguments()[2]);
     std::cout << "Testing all files in directory " << dir.absolutePath().toAscii().data() << std::endl;
 
     foreach (const QFileInfo &fileInfo, dir.entryInfoList(QDir::NoFilter, QDir::Name))
-      QtConcurrent::run(&FileTester::testFile, fileInfo.absoluteFilePath());
-      //FileTester::testFile(fileInfo.absoluteFilePath());
+      FileTester::testFile(fileInfo.absoluteFilePath());
 
     // Wait for all tasks to finish
     QThreadPool::globalInstance()->waitForDone();
