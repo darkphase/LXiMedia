@@ -71,13 +71,20 @@ public:
                                       SInterval frameRate,
                                       SSize size,
                                       SAudioFormat::Channels,
+                                      bool musicPlaylist = false,
                                       SInterfaces::AudioEncoder::Flags = SInterfaces::AudioEncoder::Flag_None,
                                       SInterfaces::VideoEncoder::Flags = SInterfaces::VideoEncoder::Flag_None);
   bool                          setup(const SHttpServer::RequestMessage &,
                                       QIODevice *,
                                       STime duration,
                                       SAudioFormat::Channels,
+                                      bool musicPlaylist = false,
                                       SInterfaces::AudioEncoder::Flags = SInterfaces::AudioEncoder::Flag_None);
+
+  static SSize                  decodeSize(const QUrl &);
+  static void                   decodeSize(const QUrl &, SSize &, Qt::AspectRatioMode &);
+  static SAudioFormat::Channels decodeChannels(const QUrl &);
+  static void                   decodeChannels(const QUrl &, SAudioFormat::Channels &);
 
 protected:
   Audio                       * audio;
@@ -95,6 +102,7 @@ public:
                                       QIODevice *,
                                       SInterfaces::AbstractBufferReader *,
                                       STime duration = STime(),
+                                      bool musicPlaylist = false,
                                       SInterfaces::AudioEncoder::Flags = SInterfaces::AudioEncoder::Flag_None,
                                       SInterfaces::VideoEncoder::Flags = SInterfaces::VideoEncoder::Flag_None);
 

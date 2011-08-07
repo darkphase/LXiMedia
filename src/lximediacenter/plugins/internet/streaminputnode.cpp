@@ -195,7 +195,9 @@ void StreamInputNode::process(void)
     if (bufferingTime.isNull())
       bufferingTimer.setTimeStamp(bufferingTime);
 
-    //if ((bufferingTime * 2) < (bufferingTimer.timeStamp() + STime::fromSec(3)))
+    // Allow slightly faster than realtime.
+    const STime correctedTime = STime::fromMSec(qint64(float(bufferingTime.toMSec()) / 1.1f));
+    if (correctedTime < bufferingTimer.timeStamp())
     {
       future = QtConcurrent::run(this, &StreamInputNode::computeBufferingFrame, bufferingTime);
       bufferingTime += STime(1, baseFrameRate);

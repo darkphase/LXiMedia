@@ -195,7 +195,8 @@ void SHttpStreamProxy::customEvent(QEvent *e)
     if (d->lSource) d->lSource->setReadBufferSize(inBufferSize);
 
     connect(d->source, SIGNAL(readyRead()), SLOT(processData()));
-    connect(d->source, SIGNAL(disconnected()), SLOT(flushData()));
+    if (d->source->metaObject()->indexOfSignal("disconnected()") >= 0)
+      connect(d->source, SIGNAL(disconnected()), SLOT(flushData()));
 
     d->cacheTimer.start();
     d->socketTimer.start(250);
@@ -240,7 +241,8 @@ void SHttpStreamProxy::disconnectAllSockets(void)
   if (d->source)
   {
     disconnect(d->source, SIGNAL(readyRead()), this, SLOT(processData()));
-    disconnect(d->source, SIGNAL(disconnected()), this, SLOT(flushData()));
+    if (d->source->metaObject()->indexOfSignal("disconnected()") >= 0)
+      disconnect(d->source, SIGNAL(disconnected()), this, SLOT(flushData()));
 
     if (d->aSource && (d->aSource->state() != QAbstractSocket::UnconnectedState))
     {
@@ -261,6 +263,7 @@ void SHttpStreamProxy::disconnectAllSockets(void)
     d->sourceFinished = true;
     d->socketTimer.stop();
 
+    //qDebug() << "SHttpStreamProxy: All clients disconnected";
     emit disconnected();
   }
 
@@ -395,7 +398,8 @@ void SHttpStreamProxy::processData(void)
     else if (s->socket->bytesToWrite() == 0)
     {
       disconnect(s->socket, SIGNAL(bytesWritten(qint64)), this, SLOT(processData()));
-      connect(s->socket, SIGNAL(disconnected()), s->socket, SLOT(deleteLater()));
+      if (s->socket->metaObject()->indexOfSignal("disconnected()") >= 0)
+        connect(s->socket, SIGNAL(disconnected()), s->socket, SLOT(deleteLater()));
 
       if (s->aSocket) s->aSocket->disconnectFromHost();
       if (s->lSocket) s->lSocket->disconnectFromServer();

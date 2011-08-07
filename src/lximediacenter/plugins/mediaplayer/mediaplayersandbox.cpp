@@ -206,7 +206,13 @@ SandboxPlaylistStream::SandboxPlaylistStream(const SMediaInfoList &files)
 
 bool SandboxPlaylistStream::setup(const SHttpServer::RequestMessage &request, QIODevice *socket)
 {
-  if (MediaTranscodeStream::setup(request, socket, &playlistNode))
+  const MediaServer::File file(request);
+
+  if (MediaTranscodeStream::setup(
+      request, socket,
+      &playlistNode,
+      STime(),
+      file.url().queryItemValue("music") == "true"))
   {
     connect(&playlistNode, SIGNAL(finished()), SLOT(stop()));
     connect(&playlistNode, SIGNAL(opened(QString, quint16)), SLOT(opened(QString, quint16)));
@@ -249,6 +255,7 @@ bool SandboxSlideShowStream::setup(const SHttpServer::RequestMessage &request, Q
           slideShow.duration(),
           SInterval::fromFrequency(slideShow.frameRate), slideShow.size(),
           SAudioFormat::Channels_Stereo,
+          false,
           SInterfaces::AudioEncoder::Flag_None,
           SInterfaces::VideoEncoder::Flag_Slideshow))
   {

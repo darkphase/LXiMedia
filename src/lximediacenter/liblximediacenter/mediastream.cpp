@@ -46,17 +46,20 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
                         SInterval frameRate,
                         SSize size,
                         SAudioFormat::Channels inChannels,
+                        bool musicPlaylist,
                         SInterfaces::AudioEncoder::Flags audioEncodeFlags,
                         SInterfaces::VideoEncoder::Flags videoEncodeFlags)
 {
   const MediaServer::File file(request);
+
+  connect(&output, SIGNAL(closed()), SLOT(stop()));
 
   delete audio;
   audio = new Audio(this);
   connect(&audio->matrix, SIGNAL(output(SAudioBuffer)), &audio->resampler, SLOT(input(SAudioBuffer)));
   connect(&sync, SIGNAL(compensateAudio(float)), &audio->resampler, SLOT(compensate(float)));
 
-  if (file.url().queryItemValue("music") == "true")
+  if (musicPlaylist)
   {
     connect(&audio->resampler, SIGNAL(output(SAudioBuffer)), &audio->gapRemover, SLOT(input(SAudioBuffer)));
     connect(&audio->gapRemover, SIGNAL(output(SAudioBuffer)), &sync, SLOT(input(SAudioBuffer)));
@@ -86,49 +89,10 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
   sync.setFrameRate(frameRate);
 
   Qt::AspectRatioMode aspectRatioMode = Qt::KeepAspectRatio;
-  if (file.url().hasQueryItem("resolution"))
-  {
-    const QStringList formatTxt = file.url().queryItemValue("resolution").split(',');
-
-    const QStringList sizeTxt = formatTxt.first().split('x');
-    if (sizeTxt.count() >= 2)
-    {
-      size.setWidth(sizeTxt[0].toInt());
-      size.setHeight(sizeTxt[1].toInt());
-      if (sizeTxt.count() >= 3)
-        size.setAspectRatio(sizeTxt[2].toFloat());
-      else
-        size.setAspectRatio(1.0f);
-    }
-
-    if (formatTxt.count() >= 2)
-    {
-      if (formatTxt[1] == "box")
-        aspectRatioMode = Qt::KeepAspectRatio;
-      else if (formatTxt[1] == "zoom")
-        aspectRatioMode = Qt::KeepAspectRatioByExpanding;
-    }
-  }
+  decodeSize(file.url(), size, aspectRatioMode);
 
   SAudioFormat::Channels outChannels = inChannels;
-  if (file.url().hasQueryItem("channels"))
-  {
-    const QStringList cl = file.url().queryItemValue("channels").split(',');
-
-    if ((file.url().queryItemValue("music") == "true") && (cl.count() >= 2))
-    {
-      outChannels = SAudioFormat::Channels(cl[1].toUInt(NULL, 16));
-    }
-    else if (!cl.isEmpty())
-    {
-      const SAudioFormat::Channels c = SAudioFormat::Channels(cl[0].toUInt(NULL, 16));
-      if ((SAudioFormat::numChannels(c) > 0) &&
-          (SAudioFormat::numChannels(inChannels) > SAudioFormat::numChannels(c)))
-      {
-        outChannels = c;
-      }
-    }
-  }
+  decodeChannels(file.url(), outChannels);
 
   if (file.url().queryItemValue("encodemode") == "fast")
   {
@@ -249,6 +213,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
                         QIODevice *socket,
                         STime duration,
                         SAudioFormat::Channels inChannels,
+                        bool musicPlaylist,
                         SInterfaces::AudioEncoder::Flags audioEncodeFlags)
 {
   const MediaServer::File file(request);
@@ -257,7 +222,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
   audio = new Audio(this);
   connect(&audio->matrix, SIGNAL(output(SAudioBuffer)), &audio->resampler, SLOT(input(SAudioBuffer)));
 
-  if (file.url().queryItemValue("music") == "true")
+  if (musicPlaylist)
   {
     connect(&audio->resampler, SIGNAL(output(SAudioBuffer)), &audio->gapRemover, SLOT(input(SAudioBuffer)));
     connect(&audio->gapRemover, SIGNAL(output(SAudioBuffer)), &sync, SLOT(input(SAudioBuffer)));
@@ -273,15 +238,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
   connect(&audio->encoder, SIGNAL(output(SEncodedAudioBuffer)), &output, SLOT(input(SEncodedAudioBuffer)));
 
   SAudioFormat::Channels outChannels = inChannels;
-  if (file.url().hasQueryItem("channels"))
-  {
-    const QStringList cl = file.url().queryItemValue("channels").split(',');
-
-    if ((file.url().queryItemValue("music") == "true") && (cl.count() >= 2))
-      outChannels = SAudioFormat::Channels(cl[1].toUInt(NULL, 16));
-    else if (!cl.isEmpty())
-      outChannels = SAudioFormat::Channels(cl[0].toUInt(NULL, 16));
-  }
+  decodeChannels(file.url(), outChannels);
 
   if (file.url().queryItemValue("encodemode") == "fast")
     audioEncodeFlags |= SInterfaces::AudioEncoder::Flag_Fast;
@@ -411,6 +368,72 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
   return true;
 }
 
+SSize MediaStream::decodeSize(const QUrl &url)
+{
+  SSize size(720, 576, 1.42222);
+  Qt::AspectRatioMode aspectRatioMode;
+  decodeSize(url, size, aspectRatioMode);
+
+  return size;
+}
+
+void MediaStream::decodeSize(const QUrl &url, SSize &size, Qt::AspectRatioMode &aspectRatioMode)
+{
+  if (url.hasQueryItem("resolution"))
+  {
+    const QStringList formatTxt = url.queryItemValue("resolution").split(',');
+
+    const QStringList sizeTxt = formatTxt.first().split('x');
+    if (sizeTxt.count() >= 2)
+    {
+      size.setWidth(sizeTxt[0].toInt());
+      size.setHeight(sizeTxt[1].toInt());
+      if (sizeTxt.count() >= 3)
+        size.setAspectRatio(sizeTxt[2].toFloat());
+      else
+        size.setAspectRatio(1.0f);
+    }
+
+    if (formatTxt.count() >= 2)
+    {
+      if (formatTxt[1] == "box")
+        aspectRatioMode = Qt::KeepAspectRatio;
+      else if (formatTxt[1] == "zoom")
+        aspectRatioMode = Qt::KeepAspectRatioByExpanding;
+    }
+  }
+}
+
+SAudioFormat::Channels MediaStream::decodeChannels(const QUrl &url)
+{
+  SAudioFormat::Channels channels = SAudioFormat::Channels_Stereo;
+  decodeChannels(url, channels);
+
+  return channels;
+}
+
+void MediaStream::decodeChannels(const QUrl &url, SAudioFormat::Channels &channels)
+{
+  if (url.hasQueryItem("channels"))
+  {
+    const QStringList cl = url.queryItemValue("channels").split(',');
+
+    if ((url.queryItemValue("music") == "true") && (cl.count() >= 2))
+    {
+      channels = SAudioFormat::Channels(cl[1].toUInt(NULL, 16));
+    }
+    else if (!cl.isEmpty())
+    {
+      const SAudioFormat::Channels c = SAudioFormat::Channels(cl[0].toUInt(NULL, 16));
+      if ((SAudioFormat::numChannels(c) > 0) &&
+          (SAudioFormat::numChannels(channels) > SAudioFormat::numChannels(c)))
+      {
+        channels = c;
+      }
+    }
+  }
+}
+
 
 MediaStream::Audio::Audio(SGraph *parent)
   : outChannels(SAudioFormat::Channel_None),
@@ -457,6 +480,7 @@ bool MediaTranscodeStream::setup(const SHttpServer::RequestMessage &request,
                                  QIODevice *socket,
                                  SInterfaces::AbstractBufferReader *input,
                                  STime duration,
+                                 bool musicPlaylist,
                                  SInterfaces::AudioEncoder::Flags audioEncodeFlags,
                                  SInterfaces::VideoEncoder::Flags videoEncodeFlags)
 {
@@ -532,24 +556,7 @@ bool MediaTranscodeStream::setup(const SHttpServer::RequestMessage &request,
     const QString musicMode = file.url().queryItemValue("musicmode");
     if (musicMode.startsWith("addvideo"))
     {
-      SSize size(352, 288);
-      if (file.url().hasQueryItem("resolution"))
-      {
-        const QStringList formatTxt = file.url().queryItemValue("resolution").split(',');
-
-        const QStringList sizeTxt = formatTxt.first().split('x');
-        if (sizeTxt.count() >= 2)
-        {
-          size.setWidth(sizeTxt[0].toInt());
-          size.setHeight(sizeTxt[1].toInt());
-          if (sizeTxt.count() >= 3)
-            size.setAspectRatio(sizeTxt[2].toFloat());
-          else
-            size.setAspectRatio(1.0f);
-        }
-      }
-
-      SImage blackImage(size, SImage::Format_RGB32);
+      SImage blackImage(decodeSize(file.url()), SImage::Format_RGB32);
       blackImage.fill(0);
       videoGenerator.setImage(blackImage);
       videoGenerator.setFrameRate(SInterval::fromFrequency(24));
@@ -573,6 +580,7 @@ bool MediaTranscodeStream::setup(const SHttpServer::RequestMessage &request,
     if (MediaStream::setup(request, socket, roundedDuration,
                            roundedFrameRate, videoInCodec.size(),
                            audioInCodec.channelSetup(),
+                           musicPlaylist,
                            audioEncodeFlags, videoEncodeFlags))
     {
       // Audio
@@ -610,6 +618,7 @@ bool MediaTranscodeStream::setup(const SHttpServer::RequestMessage &request,
     if (MediaStream::setup(request, socket, duration,
                            frameRate, videoGenerator.image().size(),
                            audioInCodec.channelSetup(),
+                           musicPlaylist,
                            audioEncodeFlags, videoEncodeFlags))
     {
       // Audio
@@ -638,7 +647,8 @@ bool MediaTranscodeStream::setup(const SHttpServer::RequestMessage &request,
     const SAudioCodec audioInCodec = audioStreams.first().codec;
 
     if (MediaStream::setup(request, socket, duration,
-                           audioInCodec.channelSetup()))
+                           audioInCodec.channelSetup(),
+                           musicPlaylist))
     {
       connect(&audioDecoder, SIGNAL(output(SAudioBuffer)), &audio->matrix, SLOT(input(SAudioBuffer)));
 

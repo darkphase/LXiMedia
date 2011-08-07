@@ -23,8 +23,11 @@ namespace LXiStream {
 
 struct SBufferSerializerNode::Data
 {
+  inline Data(void) : mutex(QMutex::Recursive) { }
+
   QMutex                        mutex;
   QIODevice                   * ioDevice;
+  bool                          autoClose;
 };
 
 SBufferSerializerNode::SBufferSerializerNode(SGraph *parent, QIODevice *ioDevice)
@@ -32,6 +35,7 @@ SBufferSerializerNode::SBufferSerializerNode(SGraph *parent, QIODevice *ioDevice
     d(new Data())
 {
   d->ioDevice = ioDevice;
+  d->autoClose = false;
 }
 
 SBufferSerializerNode::~SBufferSerializerNode()
@@ -40,13 +44,36 @@ SBufferSerializerNode::~SBufferSerializerNode()
   *const_cast<Data **>(&d) = NULL;
 }
 
+void SBufferSerializerNode::setIODevice(QIODevice *ioDevice, bool autoClose)
+{
+  d->ioDevice = ioDevice;
+  d->autoClose = autoClose;
+}
+
+bool SBufferSerializerNode::hasIODevice(void) const
+{
+  return d->ioDevice != NULL;
+}
+
 bool SBufferSerializerNode::start(STimer *)
 {
-  return true;
+  if (d->ioDevice && d->ioDevice->isOpen())
+  {
+    d->ioDevice->setParent(this);
+
+    connect(d->ioDevice, SIGNAL(readChannelFinished()), SLOT(close()));
+    if (d->ioDevice->metaObject()->indexOfSignal("disconnected()") >= 0)
+      connect(d->ioDevice, SIGNAL(disconnected()), SLOT(close()));
+
+    return true;
+  }
+
+  return false;
 }
 
 void SBufferSerializerNode::stop(void)
 {
+  closed();
 }
 
 template <>
@@ -55,10 +82,22 @@ void SBufferSerializerNode::serialize(const QByteArray &buffer, quint32 bufferId
   LXI_PROFILE_WAIT(d->mutex.lock());
   LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
 
-  const struct { quint32 bufferId, dataLen; } header = { bufferId, buffer.size() };
+  if (d->ioDevice)
+  {
+    while (d->ioDevice->bytesToWrite() > 262144)
+    if (d->ioDevice->waitForBytesWritten(5000) == false)
+    {
+      d->mutex.unlock();
 
-  d->ioDevice->write(reinterpret_cast<const char *>(&header), sizeof(header));
-  d->ioDevice->write(buffer.data(), header.dataLen);
+      close();
+      return;
+    }
+
+    const struct { quint32 bufferId, dataLen; } header = { bufferId, buffer.size() };
+
+    d->ioDevice->write(reinterpret_cast<const char *>(&header), sizeof(header));
+    d->ioDevice->write(buffer.data(), header.dataLen);
+  }
 
   d->mutex.unlock();
 }
@@ -69,11 +108,22 @@ void SBufferSerializerNode::serialize(const _buffer &buffer, quint32 bufferId)
   LXI_PROFILE_WAIT(d->mutex.lock());
   LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
 
-  const struct { quint32 bufferId, metaLen, dataLen; } header = { bufferId, sizeof(buffer.d), buffer.size() };
+  if (d->ioDevice)
+  {
+    while (d->ioDevice->bytesToWrite() > 262144)
+    if (!d->ioDevice->waitForBytesWritten(-1))
+    {
+      d->mutex.unlock();
 
-  d->ioDevice->write(reinterpret_cast<const char *>(&header), sizeof(header));
-  d->ioDevice->write(reinterpret_cast<const char *>(&buffer.d), header.metaLen);
-  d->ioDevice->write(buffer.data(), header.dataLen);
+      close();
+      return;
+    }
+
+    const struct { quint32 bufferId, metaLen, dataLen; } header = { bufferId, sizeof(buffer.d), buffer.size() };
+    d->ioDevice->write(reinterpret_cast<const char *>(&header), sizeof(header));
+    d->ioDevice->write(reinterpret_cast<const char *>(&buffer.d), header.metaLen);
+    d->ioDevice->write(buffer.data(), header.dataLen);
+  }
 
   d->mutex.unlock();
 }
@@ -101,6 +151,29 @@ void SBufferSerializerNode::input(const SSubtitleBuffer &buffer)
 void SBufferSerializerNode::input(const SSubpictureBuffer &buffer)
 {
   serialize(buffer, 0xA5B60104);
+}
+
+void SBufferSerializerNode::close(void)
+{
+  LXI_PROFILE_WAIT(d->mutex.lock());
+  LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
+
+  if (d->ioDevice)
+  {
+    QIODevice * const device = d->ioDevice; // May be called recursively from close().
+    d->ioDevice = NULL;
+
+    if (d->autoClose)
+    {
+      device->close();
+      device->deleteLater();
+    }
+
+    //qDebug() << "SBufferSerializerNode: Client disconnected";
+    emit closed();
+  }
+
+  d->mutex.unlock();
 }
 
 } // End of namespace
