@@ -41,8 +41,8 @@ private:
   STimeStampResamplerNode       timeStampResampler;
   SAudioMatrixNode              audioMatrix;
   SAudioResampleNode            audioResampler;
-  SSubpictureRenderNode         subpictureRenderer;
   SVideoLetterboxDetectNode     letterboxDetectNode;
+  SSubpictureRenderNode         subpictureRenderer;
   SSubtitleRenderNode           subtitleRenderer;
   STimeStampSyncNode            sync;
 };

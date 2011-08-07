@@ -160,6 +160,7 @@ public:
     inline StreamInfo(void) : StreamId() { memset(language, 0, sizeof(language)); }
     inline StreamInfo(Type type, quint16 id, const char *language, const QString &title)
       : StreamId(type, id),
+        nativeId(0),
         title(title)
     {
       memset(this->language, 0, sizeof(this->language));
@@ -168,6 +169,7 @@ public:
     }
 
     char                        language[4]; //!< ISO 639-1 or ISO 639-2 language code (empty string if undefined).
+    quint32                     nativeId; //!< The native stream ID, if available.
     QString                     title;
   };
 

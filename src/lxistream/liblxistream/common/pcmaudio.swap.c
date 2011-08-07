@@ -46,8 +46,8 @@ void LXiStream_Common_PcmAudio_decodeS8S16
   {
     const __m128i v = _mm_load_si128(vsrc + i);
 
-    _mm_store_si128(vdst + (i * 2),     _mm_unpacklo_epi8(v, v0));
-    _mm_store_si128(vdst + (i * 2) + 1, _mm_unpackhi_epi8(v, v0));
+    _mm_store_si128(vdst + (i * 2),     _mm_unpacklo_epi8(v0, v));
+    _mm_store_si128(vdst + (i * 2) + 1, _mm_unpackhi_epi8(v0, v));
   }
 
   if ((len & 15) != 0)
@@ -82,8 +82,8 @@ void LXiStream_Common_PcmAudio_decodeU8S16
   {
     const __m128i v = _mm_sub_epi8(_mm_load_si128(vsrc + i), v128);
 
-    _mm_store_si128(vdst + (i * 2),     _mm_unpacklo_epi8(v, v0));
-    _mm_store_si128(vdst + (i * 2) + 1, _mm_unpackhi_epi8(v, v0));
+    _mm_store_si128(vdst + (i * 2),     _mm_unpacklo_epi8(v0, v));
+    _mm_store_si128(vdst + (i * 2) + 1, _mm_unpackhi_epi8(v0, v));
   }
 
   if ((len & 15) != 0)

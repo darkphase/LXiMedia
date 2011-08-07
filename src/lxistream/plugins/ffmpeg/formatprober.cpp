@@ -132,10 +132,6 @@ void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *readCallback)
           if (!videoStreams.isEmpty())
             program.videoStreams = videoStreams;
 
-          const QList<DataStreamInfo> dataStreams = bufferReader.dataStreams();
-          if (!dataStreams.isEmpty())
-            program.dataStreams = dataStreams;
-
           pi.isProbed = true;
           pi.isReadable = true;
 
@@ -238,6 +234,12 @@ void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *readCallback)
               }
             }
           }
+
+          // Data streams are set now, as subtitles are not all detected before
+          // scanning the file.
+          const QList<DataStreamInfo> dataStreams = bufferReader.dataStreams();
+          if (!dataStreams.isEmpty())
+            program.dataStreams = dataStreams;
 
           bufferReader.stop();
         }

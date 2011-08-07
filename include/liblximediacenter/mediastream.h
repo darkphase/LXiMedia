@@ -53,8 +53,8 @@ protected:
                                 ~Video();
 
     SVideoDeinterlaceNode       deinterlacer;
-    SSubpictureRenderNode       subpictureRenderer;
     SVideoLetterboxDetectNode   letterboxDetectNode;
+    SSubpictureRenderNode       subpictureRenderer;
     SVideoResizeNode            resizer;
     SVideoBoxNode               box;
     SSubtitleRenderNode         subtitleRenderer;

@@ -18,6 +18,7 @@
  ***************************************************************************/
 
 #include "filetester.h"
+#include <iostream>
 
 void FileTester::testFile(const QString &fileName)
 {
@@ -28,12 +29,14 @@ void FileTester::testFile(const QString &fileName)
 
     if (tester->setup())
     {
-      qDebug() << "Starting" << fileName.toAscii().data();
+      QTime timer; timer.start();
+
+      std::cout << fileName.toAscii().data() << " ... " << std::flush;
 
       tester->start();
       tester->wait();
 
-      qDebug() << "Finished" << fileName.toAscii().data();
+      std::cout << QByteArray::number(float(timer.elapsed()) / 1000.0f, 'f', 1).data() << " sec" << std::endl;
     }
 
     delete tester;
@@ -49,8 +52,8 @@ FileTester::FileTester(const QString &fileName)
     timeStampResampler(this),
     audioMatrix(this),
     audioResampler(this),
-    subpictureRenderer(this),
     letterboxDetectNode(this),
+    subpictureRenderer(this),
     subtitleRenderer(this),
     sync(this)
 {
@@ -68,9 +71,9 @@ FileTester::FileTester(const QString &fileName)
 
   // Video
   connect(&videoDecoder, SIGNAL(output(SVideoBuffer)), &timeStampResampler, SLOT(input(SVideoBuffer)));
-  connect(&timeStampResampler, SIGNAL(output(SVideoBuffer)), &subpictureRenderer, SLOT(input(SVideoBuffer)));
-  connect(&subpictureRenderer, SIGNAL(output(SVideoBuffer)), &letterboxDetectNode, SLOT(input(SVideoBuffer)));
-  connect(&letterboxDetectNode, SIGNAL(output(SVideoBuffer)), &subtitleRenderer, SLOT(input(SVideoBuffer)));
+  connect(&timeStampResampler, SIGNAL(output(SVideoBuffer)), &letterboxDetectNode, SLOT(input(SVideoBuffer)));
+  connect(&letterboxDetectNode, SIGNAL(output(SVideoBuffer)), &subpictureRenderer, SLOT(input(SVideoBuffer)));
+  connect(&subpictureRenderer, SIGNAL(output(SVideoBuffer)), &subtitleRenderer, SLOT(input(SVideoBuffer)));
   connect(&subtitleRenderer, SIGNAL(output(SVideoBuffer)), &sync, SLOT(input(SVideoBuffer)));
 
   // Data

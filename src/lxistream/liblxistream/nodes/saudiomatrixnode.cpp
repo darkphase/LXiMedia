@@ -22,7 +22,7 @@
 // Implemented in saudiomatrixnode.mix.c
 extern "C" void LXiStream_SAudioMatrixNode_mixMatrix
  (const qint16 * srcData, unsigned numSamples, unsigned srcNumChannels,
-  qint16 * dstData, const float * appliedMatrix, unsigned dstNumChannels);
+  qint16 * dstData, const int * appliedMatrix, unsigned dstNumChannels);
 
 namespace LXiStream {
 
@@ -32,7 +32,7 @@ struct SAudioMatrixNode::Data
 
   SAudioFormat                  inFormat;
   SAudioFormat                  outFormat;
-  float                       * appliedMatrix;
+  int                         * appliedMatrix;
 
   QFuture<void>                 future;
 };
@@ -299,18 +299,18 @@ void SAudioMatrixNode::buildMatrix(void)
       if ((matrix->d.channels & (quint32(1) << i)) != 0)
         outPos[n++] = i;
 
-      d->appliedMatrix = new float[inChannels * outChannels];
+      d->appliedMatrix = new int[inChannels * outChannels];
 
       bool identityMatrix = outChannels == inChannels;
       for (unsigned j=0; j<outChannels; j++)
       {
-        float * const line = d->appliedMatrix + (j * inChannels);
+        int * const line = d->appliedMatrix + (j * inChannels);
         for (unsigned i=0; i<inChannels; i++)
         {
           const int ii = inPos[i], jj = outPos[j];
 
-          line[i] = matrix->d.matrix[ii][jj];
-          identityMatrix &= qFuzzyCompare(line[i], ii == jj ? 1.0f : 0.0f);
+          line[i] = int((matrix->d.matrix[ii][jj] * 256.0f) + 0.5f);
+          identityMatrix &= line[i] == (ii == jj ? 256 : 0);
         }
       }
 

@@ -53,6 +53,7 @@ private:
 
   quint32                       lastSubStreamId;
   STime                         timeStamp;
+  QMap<STime, SVideoBuffer>     reorderBuffer;
 };
 
 
