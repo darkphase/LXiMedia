@@ -313,10 +313,18 @@ void Backend::start(const SHttpEngine::ResponseMessage &formats)
     }
   }
 
-  SUPnPBase::ProtocolList imageProtocols = SUPnPBase::ProtocolList()
-      << SUPnPBase::Protocol("http-get", "image/jpeg",  true, "DLNA.ORG_PN=JPEG_LRG", ".jpeg")
-      << SUPnPBase::Protocol("http-get", "image/png",   true, "DLNA.ORG_PN=PNG_LRG", ".png")
-      << SUPnPBase::Protocol("http-get", "image/png",   true, "DLNA.ORG_PN=PNG_SM", "-thumb.png");
+  SUPnPBase::ProtocolList imageProtocols;
+  {
+    QMap<QString, QString> photo;
+    photo["resolution"] = "1920x1080";
+
+    QMap<QString, QString> thumb;
+    thumb["resolution"] = "128x128";
+
+    imageProtocols += SUPnPBase::Protocol("http-get", "image/jpeg",  true, "DLNA.ORG_PN=JPEG_LRG", ".jpeg", photo);
+    imageProtocols += SUPnPBase::Protocol("http-get", "image/png",   true, "DLNA.ORG_PN=PNG_LRG", ".png", photo);
+    imageProtocols += SUPnPBase::Protocol("http-get", "image/png",   true, "DLNA.ORG_PN=PNG_SM", "-thumb.png", thumb);
+  }
 
   masterConnectionManager.setSourceProtocols(audioProtocols + videoProtocols + imageProtocols);
   masterContentDirectory.setProtocols(SUPnPContentDirectory::ProtocolType_Audio, audioProtocols);

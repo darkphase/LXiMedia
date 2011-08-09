@@ -150,32 +150,46 @@ bool BufferReaderBase::start(ProduceCallback *produceCallback, ::AVFormatContext
         {
           qSort(streamContext[i]->measurement);
 
-          QList<qint64> intervals;
+          // Get the frame intervals
+          QMap<qint64, QAtomicInt> intervals;
           for (int j=1; j<streamContext[i]->measurementSize; j++)
-            intervals += (streamContext[i]->measurement[j] - streamContext[i]->measurement[j-1]).toUSec();
+            intervals[(streamContext[i]->measurement[j] - streamContext[i]->measurement[j-1]).toUSec()].ref();
 
-          qSort(intervals);
-          const qint64 median = intervals[intervals.count() / 2];
-          for (QList<qint64>::Iterator j=intervals.begin(); j!=intervals.end();)
-          if (qAbs(*j - median) < (median / 2))
+          // Keep only the ones that reoccur
+          int maxCount = 0;
+          for (QMap<qint64, QAtomicInt>::Iterator j=intervals.begin(); j!=intervals.end(); j++)
+            maxCount = qMax(int(*j), maxCount);
+
+          for (QMap<qint64, QAtomicInt>::Iterator j=intervals.begin(); j!=intervals.end();)
+          if (*j > (maxCount / 4))
+          {
+            if (*j > ((maxCount / 2) + (maxCount / 4)))
+              *j = maxCount;
+            else if (*j > ((maxCount / 3) + (maxCount / 4)))
+              *j = maxCount / 2;
+            else
+              *j = maxCount / 3;
+
             j++;
+          }
           else
             j = intervals.erase(j);
 
-          while ((intervals.count() % 6) != 0)
-            intervals.takeLast();
+//              for (QMap<qint64, QAtomicInt>::Iterator j=intervals.begin(); j!=intervals.end(); j++)
+//                qDebug() << "Interval" << j.key() << j.value();
 
-//              foreach (int interval, intervals)
-//                qDebug() << "Interval" << interval;
-
-          if (intervals.count() > 0)
+          if (!intervals.isEmpty())
           {
             qint64 sum = 0;
-            foreach (int interval, intervals)
-              sum += interval;
+            int count = 0;
+            for (QMap<qint64, QAtomicInt>::Iterator j=intervals.begin(); j!=intervals.end(); j++)
+            {
+              sum += j.key() * j.value();
+              count += j.value();
+            }
 
             const SInterval refFrameRate = streamContext[i]->videoCodec.frameRate();
-            SInterval frameRate(sum, intervals.count() * 1000000);
+            SInterval frameRate(sum, count * 1000000);
 
             // Check if a 1/1, 1/2, 1/3 or 1/4 of the refFrameRate is a better match.
             for (int j=1; j<=4; j++)
