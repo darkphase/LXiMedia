@@ -93,6 +93,8 @@ void HttpClientRequest::start(QIODevice *socket)
   if (socket)
   {
     this->socket = socket;
+    data.clear();
+    responded = false;
 
     connect(socket, SIGNAL(readyRead()), SLOT(readyRead()), Qt::QueuedConnection);
     connect(socket, SIGNAL(disconnected()), SLOT(close()), Qt::QueuedConnection);
@@ -114,8 +116,10 @@ void HttpClientRequest::readyRead()
 
     if (socket && !data.isEmpty())
     {
-      SHttpEngine::ResponseMessage message(data);
-      if (message.isValid() && (message.content().size() >= message.contentLength()))
+      SHttpEngine::ResponseMessage message(NULL);
+      message.parse(data);
+
+      if (message.isValid() && message.isComplete())
       {
 #ifdef TRACE_CONNECTIONS
         qDebug() << this << "HttpClientRequest::readyRead emit response";
@@ -164,8 +168,6 @@ HttpServerRequest::HttpServerRequest(SHttpServerEngine *parent, quint16 serverPo
   qDebug() << this << "HttpServerRequest::HttpServerRequest" << serverPort;
 #endif
 
-  connect(this, SIGNAL(handleHttpRequest(SHttpEngine::RequestMessage, QIODevice *)), parent, SLOT(handleHttpRequest(SHttpEngine::RequestMessage, QIODevice *)));
-
   connect(&closeTimer, SIGNAL(timeout()), SLOT(deleteLater()));
   closeTimer.setSingleShot(true);
 }
@@ -192,12 +194,16 @@ void HttpServerRequest::start(QIODevice *socket)
   if (socket)
   {
     this->socket = socket;
+    data.clear();
     headerReceived = false;
+    content.clear();
 
     connect(socket, SIGNAL(readyRead()), SLOT(readyRead()), Qt::QueuedConnection);
     connect(socket, SIGNAL(disconnected()), SLOT(close()), Qt::QueuedConnection);
 
     closeTimer.start(SHttpEngine::maxTTL);
+
+    readyRead();
   }
   else
     deleteLater();
@@ -207,12 +213,12 @@ void HttpServerRequest::readyRead()
 {
   Q_ASSERT(QThread::currentThread() == thread());
 
-#ifdef TRACE_CONNECTIONS
-  qDebug() << this << "HttpServerRequest::readyRead";
-#endif
-
   if (socket)
   {
+#ifdef TRACE_CONNECTIONS
+    qDebug() << this << "HttpServerRequest::readyRead" << socket->bytesAvailable();
+#endif
+
     if (!headerReceived)
     while (socket->canReadLine())
     {
@@ -226,7 +232,9 @@ void HttpServerRequest::readyRead()
 
     if (headerReceived)
     {
-      SHttpEngine::RequestMessage request(data, parent);
+      SHttpEngine::RequestMessage request(parent);
+      request.parse(data);
+      
       if (!request.isValid())
       {
 #ifdef TRACE_CONNECTIONS
@@ -265,11 +273,20 @@ void HttpServerRequest::readyRead()
         disconnect(socket, SIGNAL(readyRead()), this, SLOT(readyRead()));
         disconnect(socket, SIGNAL(disconnected()), this, SLOT(close()));
 
-        emit handleHttpRequest(request, socket);
-
-        socket = NULL;
-        deleteLater();
-        return;
+        SHttpEngine::ResponseMessage response = parent->handleHttpRequest(request, socket);
+        if (parent->sendHttpResponse(request, response, socket))
+        {
+#ifdef TRACE_CONNECTIONS
+          qDebug() << this << "HttpServerRequest::readyRead reuse";
+#endif
+          // Reuse the socket
+          start(socket);
+        }
+        else
+        {
+          socket = NULL;
+          deleteLater();
+        }
       }
     }
   }

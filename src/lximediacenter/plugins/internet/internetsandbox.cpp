@@ -52,7 +52,7 @@ void InternetSandbox::close(void)
   cleanStreams();
 }
 
-SSandboxServer::SocketOp InternetSandbox::handleHttpRequest(const SSandboxServer::RequestMessage &request, QIODevice *socket)
+SSandboxServer::ResponseMessage InternetSandbox::httpRequest(const SSandboxServer::RequestMessage &request, QIODevice *socket)
 {
   const MediaServer::File file(request);
 
@@ -68,22 +68,17 @@ SSandboxServer::SocketOp InternetSandbox::handleHttpRequest(const SSandboxServer
         if (stream->start())
         {
           streams.append(stream);
-          return SSandboxServer::SocketOp_LeaveOpen;
+          return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_None);
         }
 
         delete stream;
       }
 
-      return SSandboxServer::sendResponse(request, socket, SSandboxServer::Status_InternalServerError, this);
+      return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_InternalServerError);
     }
   }
 
-  return SSandboxServer::sendResponse(request, socket, SSandboxServer::Status_NotFound, this);
-}
-
-void InternetSandbox::handleHttpOptions(SHttpServer::ResponseHeader &response)
-{
-  response.setField("Allow", response.field("Allow") + ",POST");
+  return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_NotFound);
 }
 
 void InternetSandbox::cleanStreams(void)

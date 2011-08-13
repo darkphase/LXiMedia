@@ -207,51 +207,11 @@ const QString & SHttpServerEngine::senderId(void) const
   return d->senderId;
 }
 
-/*! Sends a formatted response to the client. If this is an error response, a
-    debug message is logged.
- */
-SHttpServerEngine::SocketOp SHttpServerEngine::sendResponse(const RequestHeader &request, QIODevice *socket, Status status, const QByteArray &content, const QObject *object)
+SHttpServerEngine::ResponseMessage SHttpServerEngine::handleHttpRequest(const SHttpEngine::RequestMessage &request, QIODevice *socket)
 {
-  if (status >= 400)
+  if (request.method().compare("OPTIONS", Qt::CaseInsensitive) == 0)
   {
-    qWarning() << "HTTP response:" << int(status) << "\""
-        << ResponseHeader::statusText(status) << "\" for request:"
-        << request.method() << request.path() << "from object: \""
-        << (object ? object->metaObject()->className() : "NULL") << "\"";
-  }
-
-  ResponseHeader response(request, status);
-  response.setContentLength(content.size());
-  socket->write(response);
-  if (request.method() != "HEAD")
-    socket->write(content);
-
-  return SocketOp_Close;
-}
-
-/*! Overload provided for convenience.
- */
-SHttpServerEngine::SocketOp SHttpServerEngine::sendResponse(const RequestHeader &request, QIODevice *socket, Status status, const QObject *object)
-{
-  return sendResponse(request, socket, status, QByteArray(), object);
-}
-
-/*! This sends a redirect to the client.
- */
-SHttpServerEngine::SocketOp SHttpServerEngine::sendRedirect(const RequestHeader &request, QIODevice *socket, const QString &newUrl)
-{
-  SHttpEngine::ResponseHeader response(request, SHttpEngine::Status_TemporaryRedirect);
-  response.setField("LOCATION", newUrl);
-  socket->write(response);
-  return SocketOp_Close;
-}
-
-void SHttpServerEngine::handleHttpRequest(const SHttpEngine::RequestMessage &request, QIODevice *socket)
-{
-  if (request.method() == "OPTIONS")
-  {
-    ResponseHeader response(request, Status_Ok);
-    response.setField("Allow", "OPTIONS,TRACE");
+    const QString baseOptions = "OPTIONS,TRACE";
 
     if (request.path().trimmed() != "*")
     {
@@ -266,14 +226,26 @@ void SHttpServerEngine::handleHttpRequest(const SHttpEngine::RequestMessage &req
       }
 
       if ((callback != d->callbacks.end()) && dir.startsWith(callback.key()))
-        (*callback)->handleHttpOptions(response);
+      {
+        ResponseMessage response = (*callback)->httpOptions(request);
+        const QString allow = response.field("Allow");
+        response.setField("Allow", allow.isEmpty() ? baseOptions : (baseOptions + ',' + allow));
+
+        return response;
+      }
     }
 
-    socket->write(response);
+    ResponseMessage response(request, Status_Ok);
+    response.setField("Allow", baseOptions);
+
+    return response;
   }
-  else if (request.method() == "TRACE")
+  else if (request.method().compare("TRACE", Qt::CaseInsensitive) == 0)
   {
     socket->write(request);
+    closeSocket(socket);
+
+    return ResponseMessage(request, Status_None);
   }
   else
   {
@@ -288,15 +260,55 @@ void SHttpServerEngine::handleHttpRequest(const SHttpEngine::RequestMessage &req
     }
 
     if ((callback != d->callbacks.end()) && dir.startsWith(callback.key()))
+      return (*callback)->httpRequest(request, socket);
+    else
+      return ResponseMessage(request, Status_NotFound);
+  }
+}
+
+bool SHttpServerEngine::sendHttpResponse(const SHttpEngine::RequestHeader &request, SHttpEngine::ResponseMessage &response, QIODevice *socket, bool reuse)
+{
+  if (response.status() != SHttpEngine::Status_None)
+  {
+    if (reuse && response.hasField(fieldContentLength) &&
+        (request.connection().compare("Close", Qt::CaseInsensitive) != 0) &&
+        ((response.version() >= SHttpEngine::httpVersion) ||
+         (request.connection().compare("Keep-Alive", Qt::CaseInsensitive) == 0)))
     {
-      if ((*callback)->handleHttpRequest(request, socket) == SocketOp_LeaveOpen)
-        socket = NULL; // The callback took over the socket, it is responsible for closing and deleteing it.
+      response.setConnection("Keep-Alive");
+
+      if (request.isHead())
+        response.setContent(QByteArray());
+
+      socket->write(response);
+
+      QAbstractSocket * const aSocket = qobject_cast<QAbstractSocket *>(socket);
+      if (aSocket)
+        aSocket->flush();
+
+      QLocalSocket * const lSocket = qobject_cast<QLocalSocket *>(socket);
+      if (lSocket)
+        lSocket->flush();
+
+      return true; // Reuse the socket
     }
     else
-      socket->write(ResponseHeader(request, Status_NotFound));
+    {
+      response.setConnection("Close");
+      socket->write(response);
+      SHttpEngine::closeSocket(socket);
+    }
   }
 
-  closeSocket(socket);
+  return false;
+}
+
+SHttpServerEngine::ResponseMessage SHttpServerEngine::Callback::httpOptions(const RequestMessage &request)
+{
+  ResponseMessage response(request, Status_Ok);
+  response.setField("Allow", "GET,HEAD,POST");
+
+  return response;
 }
 
 

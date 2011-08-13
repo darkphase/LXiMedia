@@ -373,9 +373,9 @@ MediaPlayerServer::Item::Type MediaPlayerServer::defaultItemType(Item::Type type
   }
 }
 
-SHttpServer::SocketOp MediaPlayerServer::handleHttpRequest(const SHttpServer::RequestMessage &request, QIODevice *socket)
+SHttpServer::ResponseMessage MediaPlayerServer::httpRequest(const SHttpServer::RequestMessage &request, QIODevice *socket)
 {
-  if ((request.method() == "GET") || (request.method() == "HEAD"))
+  if (request.isGet())
   {
     const MediaServer::File file(request);
     if (file.fullName().endsWith("-thumb.png"))
@@ -432,7 +432,7 @@ SHttpServer::SocketOp MediaPlayerServer::handleHttpRequest(const SHttpServer::Re
           QBuffer b;
           result.save(&b, "PNG");
 
-          return sendResponse(request, socket, b.data(), "image/png", true);
+          return makeResponse(request, b.data(), "image/png", true);
         }
       }
 
@@ -457,10 +457,12 @@ SHttpServer::SocketOp MediaPlayerServer::handleHttpRequest(const SHttpServer::Re
         QBuffer b;
         sum.save(&b, "PNG");
 
-        return sendResponse(request, socket, b.data(), "image/png", true);
+        return makeResponse(request, b.data(), "image/png", true);
       }
 
-      return SHttpServer::sendRedirect(request, socket, "http://" + request.host() + "/img/null.png");
+      SHttpServer::ResponseMessage response(request, SHttpServer::Status_MovedPermanently);
+      response.setField("Location", "http://" + request.host() + "/img/null.png");
+      return response;
     }
     else if (file.suffix() == "html") // Show player
     {
@@ -468,17 +470,11 @@ SHttpServer::SocketOp MediaPlayerServer::handleHttpRequest(const SHttpServer::Re
       const FileNode node = mediaDatabase->readNode(uid);
       if (!node.isNull())
       if (uid.pid < node.programs().count())
-      {
-        SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
-        response.setContentType("text/html;charset=utf-8");
-        response.setField("Cache-Control", "no-cache");
-
-        return sendHtmlContent(request, socket, file.url(), response, buildVideoPlayer(uid, node.title(), node.programs().at(uid.pid), file.url()), headPlayer);
-      }
+        return makeHtmlContent(request, file.url(), buildVideoPlayer(uid, node.title(), node.programs().at(uid.pid), file.url()), headPlayer);
     }
   }
 
-  return MediaServer::handleHttpRequest(request, socket);
+  return MediaServer::httpRequest(request, socket);
 }
 
 QByteArray MediaPlayerServer::buildVideoPlayer(MediaDatabase::UniqueID uid, const QString &title, const SMediaInfo::Program &program, const QUrl &url, const QSize &size)

@@ -79,22 +79,17 @@ void SUPnPBase::close(void)
   d->httpServer = NULL;
 }
 
-SHttpServer::SocketOp SUPnPBase::handleHttpRequest(const SHttpServer::RequestMessage &request, QIODevice *socket)
+SHttpServer::ResponseMessage SUPnPBase::httpRequest(const SHttpServer::RequestMessage &request, QIODevice *socket)
 {
-  if ((request.path() == d->basePath + "control") && (request.method() == "POST"))
+  if ((request.path() == d->basePath + "control") && request.isPost())
     return handleControl(request, socket);
-  else if ((request.path() == d->basePath + "description.xml") && ((request.method() == "GET") || (request.method() == "HEAD")))
-    return handleDescription(request, socket);
+  else if ((request.path() == d->basePath + "description.xml") && request.isGet())
+    return handleDescription(request);
 
-  return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);
+  return SHttpServer::ResponseMessage(request, SHttpServer::Status_NotFound);
 }
 
-void SUPnPBase::handleHttpOptions(SHttpServer::ResponseHeader &response)
-{
-  response.setField("Allow", response.field("Allow") + ",GET,HEAD,POST");
-}
-
-SHttpServer::SocketOp SUPnPBase::handleControl(const SHttpServer::RequestMessage &request, QIODevice *socket)
+SHttpServer::ResponseMessage SUPnPBase::handleControl(const SHttpServer::RequestMessage &request, QIODevice *socket)
 {
   QTime timer;
   timer.start();
@@ -115,24 +110,19 @@ SHttpServer::SocketOp SUPnPBase::handleControl(const SHttpServer::RequestMessage
 
       handleSoapMessage(body, responseDoc, responseBody, request, peerAddress);
 
-      const QByteArray content = serializeSoapMessage(responseDoc);
-      SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
-      response.setContentType(xmlContentType);
-      response.setContentLength(content.length());
+      SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
       response.setField("Cache-Control", "no-cache");
-      response.setField("Accept-Ranges", "bytes");
-      response.setField("Connection", "close");
-      socket->write(response);
-      socket->write(content);
+      response.setContentType(xmlContentType);
+      response.setContent(serializeSoapMessage(responseDoc));
 
-      return SHttpServer::SocketOp_Close;
+      return response;
     }
   }
 
-  return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);
+  return SHttpServer::ResponseMessage(request, SHttpServer::Status_NotFound);
 }
 
-SHttpServer::SocketOp SUPnPBase::handleDescription(const SHttpServer::RequestMessage &request, QIODevice *socket)
+SHttpServer::ResponseMessage SUPnPBase::handleDescription(const SHttpServer::RequestMessage &request)
 {
   QDomDocument doc;
   QDomElement scpdElm = doc.createElement("scpd");
@@ -143,17 +133,14 @@ SHttpServer::SocketOp SUPnPBase::handleDescription(const SHttpServer::RequestMes
 
   doc.appendChild(scpdElm);
 
-  const QByteArray content = QByteArray(xmlDeclaration) + doc.toByteArray(-1);
-  SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
-  response.setContentType(xmlContentType);
-  response.setContentLength(content.length());
+  SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
   response.setField("Cache-Control", "no-cache");
   response.setField("Accept-Ranges", "bytes");
   response.setField("Connection", "close");
-  socket->write(response);
-  socket->write(content);
+  response.setContentType(xmlContentType);
+  response.setContent(QByteArray(xmlDeclaration) + doc.toByteArray(-1));
 
-  return SHttpServer::SocketOp_Close;
+  return response;
 }
 
 const QString & SUPnPBase::basePath(void) const

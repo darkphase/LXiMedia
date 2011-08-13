@@ -78,44 +78,35 @@ BackendServer::SearchResultList BackendServer::search(const QStringList &) const
   return SearchResultList();
 }
 
-SHttpServer::SocketOp BackendServer::sendResponse(const SHttpServer::RequestHeader &request, QIODevice *socket, const QByteArray &data, const char *mime, bool allowCache, const QString &redir) const
+SHttpServer::ResponseMessage BackendServer::makeResponse(const SHttpServer::RequestHeader &request, const QByteArray &data, const char *mime, bool allowCache) const
 {
-  SHttpServer::ResponseHeader response(request, (redir.length() == 0) ? SHttpServer::Status_Ok : SHttpServer::Status_MovedPermanently);
-  if (!allowCache)
-    response.setField("Cache-Control", "no-cache");
-  else
-    response.setField("Cache-Control", "max-age=1800");
+  SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
+  response.setField("Cache-Control", allowCache ? "max-age=1800" : "no-cache");
 
-  if (redir.length() == 0)
-  {
-    if (mime != NULL)
-      response.setContentType(mime);
+  if (mime != NULL)
+    response.setContentType(mime);
 
-    if (data.length() > 0)
-      response.setContentLength(data.length());
-  }
-  else
-    response.setField("Location", redir);
+  if (!request.isHead())
+    response.setContent(data);
 
-  socket->write(response);
-  if (request.method() != "HEAD")
-    socket->write(data);
-
-  return SHttpServer::SocketOp_Close;
+  return response;
 }
 
-SHttpServer::SocketOp BackendServer::sendResponse(const SHttpServer::RequestHeader &request, QIODevice *socket, const QString &data, const char *mime, bool allowCache, const QString &redir) const
+SHttpServer::ResponseMessage BackendServer::makeResponse(const SHttpServer::RequestHeader &request, const QString &data, const char *mime, bool allowCache) const
 {
-  return sendResponse(request, socket, data.toUtf8(), mime, allowCache, redir);
+  return makeResponse(request, data.toUtf8(), mime, allowCache);
 }
 
-SHttpServer::SocketOp BackendServer::sendHtmlContent(const SHttpServer::RequestHeader &request, QIODevice *socket, const QUrl &url, const SHttpServer::ResponseHeader &response, const QByteArray &content, const QByteArray &head) const
+SHttpServer::ResponseMessage BackendServer::makeHtmlContent(const SHttpServer::RequestHeader &request, const QUrl &url, const QByteArray &content, const QByteArray &head) const
 {
-  socket->write(response);
-  if (request.method() != "HEAD")
-    socket->write(d->masterServer->parseHtmlContent(url, content, head));
+  SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
+  response.setContentType("text/html;charset=utf-8");
+  response.setField("Cache-Control", "no-cache");
 
-  return SHttpServer::SocketOp_Close;
+  if (!request.isHead())
+    response.setContent(d->masterServer->parseHtmlContent(url, content, head));
+
+  return response;
 }
 
 QString BackendServer::basePath(const QString &path) const

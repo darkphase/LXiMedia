@@ -140,7 +140,7 @@ const QList<SsdpClientInterface *> & SSsdpClient::interfaces(void) const
 
 void SSsdpClient::parsePacket(SsdpClientInterface *, const SHttpServer::RequestHeader &header, const QHostAddress &, quint16)
 {
-  if (header.method().toUpper() == "NOTIFY")
+  if (header.method().compare("NOTIFY", Qt::CaseInsensitive) == 0)
   {
     const QString nts = header.field("NTS");
 
@@ -287,7 +287,12 @@ void SsdpClientInterface::ssdpDatagramReady(void)
     const qint64 size = ssdpSocket.readDatagram(buffer, sizeof(buffer), &sourceAddress, &sourcePort);
 
     if (size > 0)
-      parent->parsePacket(this, SHttpServer::RequestHeader(QByteArray(buffer, size), NULL), sourceAddress, sourcePort);
+    {
+      SHttpServer::RequestHeader request(NULL);
+      request.parse(QByteArray(buffer, size));
+
+      parent->parsePacket(this, request, sourceAddress, sourcePort);
+    }
   }
 }
 
@@ -304,7 +309,12 @@ void SsdpClientInterface::privateDatagramReady(void)
     {
       const QByteArray txt(buffer, size);
       if (txt.startsWith("HTTP"))
-        parent->parsePacket(this, SHttpServer::ResponseHeader(txt, NULL), sourceAddress, sourcePort);
+      {
+        SHttpServer::ResponseHeader response(NULL);
+        response.parse(txt);
+
+        parent->parsePacket(this, response, sourceAddress, sourcePort);
+      }
     }
     else if (size < 0)
       break;

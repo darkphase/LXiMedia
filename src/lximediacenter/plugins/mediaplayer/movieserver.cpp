@@ -17,15 +17,52 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "backendserver.h"
+#include "movieserver.h"
+#include "mediaplayersandbox.h"
 
 namespace LXiMediaCenter {
+namespace MediaPlayerBackend {
 
-const char BackendServer::htmlFrontPageWidget[] =
-    "   <td class=\"widget\">\n"
-    "    <p class=\"head\">{WIDGET_TITLE}</p>\n"
-    "{WIDGET_CONTENT}"
-    "   </td>\n";
+MovieServer::MovieServer(MediaDatabase::Category category, QObject *parent)
+  : MediaPlayerServer(category, parent)
+{
+}
 
+MovieServer::~MovieServer()
+{
+}
 
-} // End of namespace
+QList<MovieServer::Item> MovieServer::listItems(const QString &path, unsigned start, unsigned count)
+{
+  QList<Item> items = MediaPlayerServer::listItems(path, start, count);
+
+  for (QList<Item>::Iterator i=items.begin(); i!=items.end(); i++)
+  if (i->isDir)
+    *i = recurseItem(path, *i);
+
+  return items;
+}
+
+/*! This removes directories with only one item and puts the item in the list..
+ */
+MovieServer::Item MovieServer::recurseItem(const QString &path, const Item &item)
+{
+  const QString subPath = path + item.title + '/';
+
+  const QList<Item> items = MediaPlayerServer::listItems(subPath, 0, 2);
+  if (items.count() == 1)
+  {
+    if (items.first().isDir)
+    {
+      const Item subItem = recurseItem(subPath, items.first());
+      if (!subItem.isDir)
+        return subItem;
+    }
+    else
+      return items.first();
+  }
+
+  return item;
+}
+
+} } // End of namespaces

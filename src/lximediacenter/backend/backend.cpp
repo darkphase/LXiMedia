@@ -413,9 +413,9 @@ void Backend::customEvent(QEvent *e)
   }
 }
 
-SHttpServer::SocketOp Backend::handleHttpRequest(const SHttpServer::RequestMessage &request, QIODevice *socket)
+SHttpServer::ResponseMessage Backend::httpRequest(const SHttpServer::RequestMessage &request, QIODevice *)
 {
-  if ((request.method() == "GET") || (request.method() == "HEAD"))
+  if (request.isGet())
   {
     const MediaServer::File file(request);
     const QString path = file.url().path();
@@ -426,25 +426,25 @@ SHttpServer::SocketOp Backend::handleHttpRequest(const SHttpServer::RequestMessa
       {
         QCoreApplication::postEvent(this, new QEvent(exitEventType));
 
-        return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NoContent, this);
+        return SHttpServer::ResponseMessage(request, SHttpServer::Status_NoContent);
       }
       else if (file.url().hasQueryItem("restart"))
       {
         QCoreApplication::postEvent(this, new QEvent(restartEventType));
 
-        return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NoContent, this);
+        return SHttpServer::ResponseMessage(request, SHttpServer::Status_NoContent);
       }
       else if (file.url().hasQueryItem("shutdown"))
       {
         QCoreApplication::postEvent(this, new QEvent(shutdownEventType));
 
-        return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NoContent, this);
+        return SHttpServer::ResponseMessage(request, SHttpServer::Status_NoContent);
       }
       else if (file.url().hasQueryItem("dismisserrors"))
       {
         GlobalSettings().setValue("DismissedErrors", sApp->errorLogFiles());
 
-        return handleHtmlRequest(request, socket, file);
+        return handleHtmlRequest(request, file);
       }
       else if (file.fullName() == "traystatus.xml")
       {
@@ -489,32 +489,32 @@ SHttpServer::SocketOp Backend::handleHttpRequest(const SHttpServer::RequestMessa
           errorLogFile.setAttribute("name", QFileInfo(file).fileName());
         }
 
-        SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
-        response.setContentType("text/xml;charset=utf-8");
+        SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
         response.setField("Cache-Control", "no-cache");
-        socket->write(response);
-        socket->write(doc.toByteArray());
-        return SHttpServer::SocketOp_Close;
+        response.setContentType("text/xml;charset=utf-8");
+        response.setContent(doc.toByteArray());
+
+        return response;
       }
       else if (file.url().hasQueryItem("q"))
       {
-        return handleHtmlSearch(request, socket, file);
+        return handleHtmlSearch(request, file);
       }
       else if (request.path() == "/")
       {
-        return handleHtmlRequest(request, socket, file);
+        return handleHtmlRequest(request, file);
       }
       else if (file.suffix() == "log")
       {
-        return handleHtmlLogFileRequest(request, socket, file);
+        return handleHtmlLogFileRequest(request, file);
       }
       else if (file.fullName() == "settings.html")
       {
-        return handleHtmlConfig(request, socket);
+        return handleHtmlConfig(request);
       }
       else if (file.fullName() == "about.html")
       {
-        return showAbout(request, socket);
+        return showAbout(request);
       }
     }
 
@@ -522,12 +522,15 @@ SHttpServer::SocketOp Backend::handleHttpRequest(const SHttpServer::RequestMessa
     QString pluginName = path.mid(1, path.length() - 2);
     foreach (BackendServer *server, backendServers)
     if (pluginName == server->pluginName())
-      return handleHtmlRequest(request, socket, pluginName);
+      return handleHtmlRequest(request, pluginName);
 
     QString sendFile;
-    if      (path == "/main.css")                   sendFile = ":/backend/main.css";
-    else if (path == "/favicon.ico")                sendFile = ":/lximedia.ico";
+    if      (path == "/favicon.ico")                sendFile = ":/lximedia.ico";
     else if (path == "/lximedia.png")               sendFile = ":/lximedia.png";
+
+    else if (path == "/css/main.css")               sendFile = ":/css/main.css";
+
+    else if (path == "/js/dynamiclist.js")          sendFile = ":/js/dynamiclist.js";
 
     else if (path == "/swf/flowplayer.swf")         sendFile = ":/flowplayer/flowplayer-3.2.5.swf";
     else if (path == "/swf/flowplayer.controls.swf")sendFile = ":/flowplayer/flowplayer.controls-3.2.3.swf";
@@ -542,7 +545,7 @@ SHttpServer::SocketOp Backend::handleHttpRequest(const SHttpServer::RequestMessa
 
     if (!sendFile.isEmpty())
     {
-      SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
+      SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
       response.setContentType(SHttpServer::toMimeType(sendFile));
 
       if (file.url().hasQueryItem("scale") && path.endsWith(".png"))
@@ -562,10 +565,8 @@ SHttpServer::SocketOp Backend::handleHttpRequest(const SHttpServer::RequestMessa
           QBuffer b;
           image.save(&b, "PNG");
 
-          response.setContentLength(b.size());
-          socket->write(response);
-          socket->write(b.data());
-          return SHttpServer::SocketOp_Close;
+          response.setContent(b.data());
+          return response;
         }
       }
       else
@@ -573,21 +574,14 @@ SHttpServer::SocketOp Backend::handleHttpRequest(const SHttpServer::RequestMessa
         QFile file(sendFile);
         if (file.open(QFile::ReadOnly))
         {
-          response.setContentLength(file.size());
-          socket->write(response);
-          socket->write(file.readAll());
-          return SHttpServer::SocketOp_Close;
+          response.setContent(file.readAll());
+          return response;
         }
       }
     }
   }
 
-  return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);
-}
-
-void Backend::handleHttpOptions(SHttpServer::ResponseHeader &response)
-{
-  response.setField("Allow", response.field("Allow") + ",GET");
+  return SHttpServer::ResponseMessage(request, SHttpServer::Status_NotFound);
 }
 
 SHttpServer * Backend::httpServer(void)

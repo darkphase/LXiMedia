@@ -50,6 +50,14 @@ const char MediaServer::htmlThumbnailList[] =
     "  </div>\n"
     " </div>\n";
 
+const char MediaServer::htmlThumbnailLoader[] =
+    " <div class=\"content\">\n"
+    "  <h1>{TITLE}</h1>\n"
+    "  <div class=\"thumbnaillist\" id=\"items\">\n"
+    "  </div>\n"
+    "  <script type=\"text/javascript\">loadListContent(\"items\", 0, 128);</script>\n"
+    " </div>\n";
+
 const char MediaServer::htmlThumbnailItem[] =
     "   <div class=\"thumbnaillistitem\">\n"
     "    <div class=\"thumbnail\">\n"
@@ -76,6 +84,15 @@ const char MediaServer::htmlDetailedList[] =
     "  <table class=\"detailedlist\">\n"
     "{ITEMS}"
     "  </table>\n"
+    " </div>\n";
+
+const char MediaServer::htmlDetailedLoader[] =
+    " <div class=\"content\">\n"
+    "  <h1>{TITLE}</h1>\n"
+    "  <table class=\"detailedlist\" id=\"items\">\n"
+    "{HEADROW}"
+    "  </table>\n"
+    "  <script type=\"text/javascript\">loadListContent(\"items\", 0, 128);</script>\n"
     " </div>\n";
 
 const char MediaServer::htmlDetailedListRow[] =
@@ -119,8 +136,7 @@ const char MediaServer::htmlPlayerAudioItemHtml5[] =
 
 const char MediaServer::htmlPlayerAudioItemFlv[] =
     "    <div id=\"player\" style=\"display:block;height:{HEIGHT}px;\" href=\"{PLAYER_ITEM}.flv\"></div>\n"
-    "    <script language=\"JavaScript\" type=\"text/javascript\">\n"
-    "     <!--\n"
+    "    <script language=\"JavaScript\" type=\"text/javascript\"><!--\n"
     "     flowplayer(\"player\", \"/swf/flowplayer.swf\", {\n"
     "       clip: { autoPlay: true }\n"
     "      } );\n"
@@ -149,11 +165,9 @@ const char MediaServer::htmlPlayerVideoItemHtml5[] =
 const char MediaServer::htmlPlayerVideoItemFlv[] =
     "    <div id=\"player\" style=\"display:block;width:{WIDTH}px;height:{HEIGHT}px;\" href=\"{PLAYER_ITEM}.flv{QUERY}\"></div>\n"
     "    <script language=\"JavaScript\" type=\"text/javascript\">\n"
-    "     <!--\n"
     "     flowplayer(\"player\", \"/swf/flowplayer.swf\", {\n"
     "       clip: { scaling: 'fit', accelerated: true, autoPlay: true }\n"
     "      } );\n"
-    "     //-->\n"
     "    </script>\n";
 
 const char MediaServer::htmlPlayerThumbItem[] =
@@ -230,8 +244,11 @@ const char MediaServer::htmlDetail[] =
     "   <li>{ITEM_NAME}: {ITEM_VALUE}</li>\n";
 
 
+const char MediaServer::headList[] =
+    " <script type=\"text/javascript\" src=\"/js/dynamiclist.js\"></script>\n"; // Open and close tag due to IE bug
+
 const char MediaServer::headPlayer[] =
-    " <script type=\"text/javascript\" src=\"/swf/flowplayer.js\"><!-- IE bug --></script>\n";
+    " <script type=\"text/javascript\" src=\"/swf/flowplayer.js\"></script>\n"; // Open and close tag due to IE bug
 
 void MediaServer::enableHtml5(bool enabled)
 {
@@ -273,18 +290,32 @@ QByteArray MediaServer::buildThumbnailView(const QString &title, const Thumbnail
 {
   HtmlParser htmlParser;
   htmlParser.setField("TITLE", title);
+  htmlParser.setField("ITEMS", buildThumbnailItems(items));
+  return htmlParser.parse(htmlThumbnailList);
+}
 
-  htmlParser.setField("ITEMS", QByteArray(""));
+QByteArray MediaServer::buildThumbnailLoader(const QString &title)
+{
+  HtmlParser htmlParser;
+  htmlParser.setField("TITLE", title);
+  return htmlParser.parse(htmlThumbnailLoader);
+}
+
+QByteArray MediaServer::buildThumbnailItems(const ThumbnailListItemList &items)
+{
+  HtmlParser htmlParser;
+
+  QByteArray result;
   foreach (const ThumbnailListItem &item, items)
   {
     htmlParser.setField("ITEM_TITLE", item.title);
     htmlParser.setField("ITEM_SUBTITLE", item.subtitle);
     htmlParser.setField("ITEM_ICONURL", item.iconurl.toString());
     htmlParser.setField("ITEM_URL", item.url.toString());
-    htmlParser.appendField("ITEMS", htmlParser.parse(item.title.isEmpty() ? htmlThumbnailItemNoTitle : htmlThumbnailItem));
+    result += htmlParser.parse(item.title.isEmpty() ? htmlThumbnailItemNoTitle : htmlThumbnailItem);
   }
 
-  return htmlParser.parse(htmlThumbnailList);
+  return result;
 }
 
 QByteArray MediaServer::buildDetailedView(const QString &title, const QList< QPair<QString, bool> > &columns, const DetailedListItemList &items)
@@ -301,16 +332,42 @@ QByteArray MediaServer::buildDetailedView(const QString &title, const QList< QPa
     htmlParser.appendField("COLUMNS", htmlParser.parse(htmlDetailedListHead));
   }
 
-  htmlParser.setField("ITEMS", htmlParser.parse(htmlDetailedListRow));
+  htmlParser.setField("ITEMS", htmlParser.parse(htmlDetailedListRow) + buildDetailedItems(items));
 
-  // Build the content
+  return htmlParser.parse(htmlDetailedList);
+}
+
+QByteArray MediaServer::buildDetailedLoader(const QString &title, const QList< QPair<QString, bool> > &columns)
+{
+  HtmlParser htmlParser;
+  htmlParser.setField("TITLE", title);
+
+  // Build the table head
+  htmlParser.setField("COLUMNS", QByteArray(""));
+  for (int i=0; i<columns.count(); i++)
+  {
+    htmlParser.setField("ITEM_TITLE", columns[i].first);
+    htmlParser.setField("ITEM_CLASS", QByteArray(columns[i].second ? "stretch" : "nostretch"));
+    htmlParser.appendField("COLUMNS", htmlParser.parse(htmlDetailedListHead));
+  }
+
+  htmlParser.setField("HEADROW", htmlParser.parse(htmlDetailedListRow));
+
+  return htmlParser.parse(htmlDetailedLoader);
+}
+
+QByteArray MediaServer::buildDetailedItems(const DetailedListItemList &items)
+{
+  HtmlParser htmlParser;
+
+  QByteArray result;
   for (int i=0; i<items.count(); i++)
   {
     htmlParser.setField("COLUMNS", QByteArray(""));
-    for (int j=0; (j<columns.count()) && (j<items[i].columns.count()); j++)
+    for (int j=0; j<items[i].columns.count(); j++)
     {
       htmlParser.setField("ITEM_TITLE", items[i].columns[j].title);
-      htmlParser.setField("ITEM_CLASS", QByteArray(columns[j].second ? "stretch" : "nostretch") + QByteArray(i & 1 ? "_b" : "_a"));
+      htmlParser.setField("ITEM_CLASS", QByteArray(i & 1 ? "b" : "a"));
       htmlParser.setField("ITEM_ICONURL", items[i].columns[j].iconurl.toString());
       htmlParser.setField("ITEM_URL", items[i].columns[j].url.toString());
 
@@ -330,10 +387,10 @@ QByteArray MediaServer::buildDetailedView(const QString &title, const QList< QPa
       }
     }
 
-    htmlParser.appendField("ITEMS", htmlParser.parse(htmlDetailedListRow));
+    result += htmlParser.parse(htmlDetailedListRow);
   }
 
-  return htmlParser.parse(htmlDetailedList);
+  return result;
 }
 
 QByteArray MediaServer::buildVideoPlayer(const QByteArray &item, const QString &title, const SMediaInfo::Program &program, const QUrl &url, const QSize &size, SAudioFormat::Channels channels)

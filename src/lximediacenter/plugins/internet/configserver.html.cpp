@@ -178,12 +178,8 @@ const char ConfigServer::htmlEditHead[] =
     "  }//-->\n"
     " </script>\n";
 
-SHttpServer::SocketOp ConfigServer::handleHtmlRequest(const SHttpServer::RequestMessage &request, QIODevice *socket, const MediaServer::File &file)
+SHttpServer::ResponseMessage ConfigServer::handleHtmlRequest(const SHttpServer::RequestMessage &request, const MediaServer::File &file)
 {
-  SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
-  response.setContentType("text/html;charset=utf-8");
-  response.setField("Cache-Control", "no-cache");
-
   HtmlParser htmlParser;
 
   htmlParser.setField("TR_HOSTNAME", tr("Host name"));
@@ -283,9 +279,12 @@ SHttpServer::SocketOp ConfigServer::handleHtmlRequest(const SHttpServer::Request
       }
     }
 
-    socket->write(response);
-    socket->write(htmlParser.parse(htmlTreeIndex));
-    return SHttpServer::SocketOp_Close;
+    SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
+    response.setField("Cache-Control", "no-cache");
+    response.setContentType("text/html;charset=utf-8");
+    response.setContent(htmlParser.parse(htmlTreeIndex));
+
+    return response;
   }
   else if (file.fullName() == "edit.html")
   {
@@ -312,14 +311,19 @@ SHttpServer::SocketOp ConfigServer::handleHtmlRequest(const SHttpServer::Request
       {
         siteDatabase->update(identifier, script);
 
-        return SHttpServer::sendRedirect(request, socket, "http://" + request.host() + serverPath());
+        SHttpServer::ResponseMessage response(request, SHttpServer::Status_MovedPermanently);
+        response.setField("Location", "http://" + request.host() + serverPath());
+        return response;
       }
     }
     else if (file.url().hasQueryItem("remove"))
     {
       siteDatabase->remove(QByteArray::fromPercentEncoding(file.url().queryItemValue("identifier").toAscii()));
 
-      return SHttpServer::sendRedirect(request, socket, "http://" + request.host() + serverPath());
+
+      SHttpServer::ResponseMessage response(request, SHttpServer::Status_MovedPermanently);
+      response.setField("Location", "http://" + request.host() + serverPath());
+      return response;
     }
     else
     {
@@ -327,12 +331,10 @@ SHttpServer::SocketOp ConfigServer::handleHtmlRequest(const SHttpServer::Request
       htmlParser.setField("SCRIPT",  siteDatabase->script(file.url().queryItemValue("identifier")));
     }
 
-    return sendHtmlContent(request, socket, file.url(), response, htmlParser.parse(htmlEditMain), htmlEditHead);
+    return makeHtmlContent(request, file.url(), htmlParser.parse(htmlEditMain), htmlEditHead);
   }
   else
-  {
-    return sendHtmlContent(request, socket, file.url(), response, htmlParser.parse(htmlMain));
-  }
+    return makeHtmlContent(request, file.url(), htmlParser.parse(htmlMain));
 }
 
 } } // End of namespaces

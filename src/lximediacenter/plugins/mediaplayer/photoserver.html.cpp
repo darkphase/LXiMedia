@@ -38,13 +38,8 @@ const char PhotoServer::htmlView[] =
     "  </div>\n"
     " </div>\n";
 
-SHttpServer::SocketOp PhotoServer::handleHtmlRequest(const SHttpServer::RequestMessage &request, QIODevice *socket, const MediaServer::File &file)
+SHttpServer::ResponseMessage PhotoServer::handleHtmlRequest(const SHttpServer::RequestMessage &request, const MediaServer::File &file)
 {
-  SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
-  response.setContentType("text/html;charset=utf-8");
-  response.setField("Cache-Control", "no-cache");
-
-  const QString album = SStringParser::toRawName(file.url().queryItemValue("album"));
   const MediaDatabase::UniqueID uid = MediaDatabase::fromUidString(file.baseName());
   const FileNode node = mediaDatabase->readNode(uid);
   if (!node.isNull())
@@ -71,10 +66,10 @@ SHttpServer::SocketOp PhotoServer::handleHtmlRequest(const SHttpServer::RequestM
     htmlParser.appendField("DETAILS", htmlParser.parse(htmlDetail));
 
     htmlParser.setField("PHOTO", MediaDatabase::toUidString(uid));
-    return sendHtmlContent(request, socket, file.url(), response, htmlParser.parse(htmlView));
+    return makeHtmlContent(request, file.url(), htmlParser.parse(htmlView));
   }
 
-  return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);
+  return SHttpServer::ResponseMessage(request, SHttpServer::Status_NotFound);
 }
 
 } } // End of namespaces

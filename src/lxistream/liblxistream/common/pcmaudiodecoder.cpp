@@ -133,18 +133,17 @@ SAudioBufferList PcmAudioDecoder::decodeBuffer(const SEncodedAudioBuffer &audioB
 
   if (decode && !audioBuffer.isNull())
   {
-    SAudioBuffer destBuffer = decode(audioBuffer);
-
-    STime timeStamp = nextTimeStamp;
     if (audioBuffer.presentationTimeStamp().isValid())
-      timeStamp = audioBuffer.presentationTimeStamp();
+      nextTimeStamp = audioBuffer.presentationTimeStamp();
     else if (audioBuffer.decodingTimeStamp().isValid())
-      timeStamp = audioBuffer.decodingTimeStamp();
+      nextTimeStamp = audioBuffer.decodingTimeStamp();
 
-    destBuffer.setTimeStamp(timeStamp);
-    nextTimeStamp = timeStamp + destBuffer.duration();
-
-    output << destBuffer;
+    foreach (SAudioBuffer destBuffer, decode(audioBuffer))
+    {
+      destBuffer.setTimeStamp(nextTimeStamp);
+      nextTimeStamp += destBuffer.duration();
+      output << destBuffer;
+    }
   }
   else if (audioBuffer.isNull())
     output << SAudioBuffer();
@@ -153,7 +152,7 @@ SAudioBufferList PcmAudioDecoder::decodeBuffer(const SEncodedAudioBuffer &audioB
 }
 
 template <SAudioFormat::Format format>
-SAudioBuffer PcmAudioDecoder::decodeBufferS8(const SEncodedAudioBuffer &buffer)
+SAudioBufferList PcmAudioDecoder::decodeBufferS8(const SEncodedAudioBuffer &buffer)
 {
   const SAudioFormat dstFormat(format,
                                buffer.codec().channelSetup(),
@@ -163,11 +162,11 @@ SAudioBuffer PcmAudioDecoder::decodeBufferS8(const SEncodedAudioBuffer &buffer)
 
   LXiStream_Common_PcmAudio_decodeS8S16(dstBuffer.data(), buffer.data(), dstBuffer.size());
 
-  return dstBuffer;
+  return split(dstBuffer);
 }
 
 template <SAudioFormat::Format format>
-SAudioBuffer PcmAudioDecoder::decodeBufferU8(const SEncodedAudioBuffer &buffer)
+SAudioBufferList PcmAudioDecoder::decodeBufferU8(const SEncodedAudioBuffer &buffer)
 {
   const SAudioFormat dstFormat(format,
                                buffer.codec().channelSetup(),
@@ -177,21 +176,21 @@ SAudioBuffer PcmAudioDecoder::decodeBufferU8(const SEncodedAudioBuffer &buffer)
 
   LXiStream_Common_PcmAudio_decodeU8S16(dstBuffer.data(), buffer.data(), dstBuffer.size());
 
-  return dstBuffer;
+  return split(dstBuffer);
 }
 
 template <SAudioFormat::Format format>
-SAudioBuffer PcmAudioDecoder::copyBuffer(const SEncodedAudioBuffer &buffer)
+SAudioBufferList PcmAudioDecoder::copyBuffer(const SEncodedAudioBuffer &buffer)
 {
   const SAudioFormat dstFormat(format,
                                buffer.codec().channelSetup(),
                                buffer.codec().sampleRate());
 
-  return SAudioBuffer(dstFormat, buffer.memory());
+  return split(SAudioBuffer(dstFormat, buffer.memory()));
 }
 
 template <SAudioFormat::Format format>
-SAudioBuffer PcmAudioDecoder::swapBufferS16(const SEncodedAudioBuffer &buffer)
+SAudioBufferList PcmAudioDecoder::swapBufferS16(const SEncodedAudioBuffer &buffer)
 {
   const SAudioFormat dstFormat(format,
                                buffer.codec().channelSetup(),
@@ -201,11 +200,11 @@ SAudioBuffer PcmAudioDecoder::swapBufferS16(const SEncodedAudioBuffer &buffer)
 
   LXiStream_Common_PcmAudio_swap16(dstBuffer.data(), buffer.data(), dstBuffer.size());
 
-  return dstBuffer;
+  return split(dstBuffer);
 }
 
 template <SAudioFormat::Format format>
-SAudioBuffer PcmAudioDecoder::decodeBufferU16(const SEncodedAudioBuffer &buffer)
+SAudioBufferList PcmAudioDecoder::decodeBufferU16(const SEncodedAudioBuffer &buffer)
 {
   const SAudioFormat dstFormat(format,
                                buffer.codec().channelSetup(),
@@ -215,11 +214,11 @@ SAudioBuffer PcmAudioDecoder::decodeBufferU16(const SEncodedAudioBuffer &buffer)
 
   LXiStream_Common_PcmAudio_decodeU16S16(dstBuffer.data(), buffer.data(), dstBuffer.size());
 
-  return dstBuffer;
+  return split(dstBuffer);
 }
 
 template <SAudioFormat::Format format>
-SAudioBuffer PcmAudioDecoder::swapDecodeBufferU16(const SEncodedAudioBuffer &buffer)
+SAudioBufferList PcmAudioDecoder::swapDecodeBufferU16(const SEncodedAudioBuffer &buffer)
 {
   const SAudioFormat dstFormat(format,
                                buffer.codec().channelSetup(),
@@ -229,11 +228,11 @@ SAudioBuffer PcmAudioDecoder::swapDecodeBufferU16(const SEncodedAudioBuffer &buf
 
   LXiStream_Common_PcmAudio_swapDecodeU16S16(dstBuffer.data(), buffer.data(), dstBuffer.size());
 
-  return dstBuffer;
+  return split(dstBuffer);
 }
 
 template <SAudioFormat::Format format>
-SAudioBuffer PcmAudioDecoder::decodeBufferS32(const SEncodedAudioBuffer &buffer)
+SAudioBufferList PcmAudioDecoder::decodeBufferS32(const SEncodedAudioBuffer &buffer)
 {
   const SAudioFormat dstFormat(format,
                                buffer.codec().channelSetup(),
@@ -243,11 +242,11 @@ SAudioBuffer PcmAudioDecoder::decodeBufferS32(const SEncodedAudioBuffer &buffer)
 
   LXiStream_Common_PcmAudio_decodeS32S16(dstBuffer.data(), buffer.data(), dstBuffer.size());
 
-  return dstBuffer;
+  return split(dstBuffer);
 }
 
 template <SAudioFormat::Format format>
-SAudioBuffer PcmAudioDecoder::swapDecodeBufferS32(const SEncodedAudioBuffer &buffer)
+SAudioBufferList PcmAudioDecoder::swapDecodeBufferS32(const SEncodedAudioBuffer &buffer)
 {
   const SAudioFormat dstFormat(format,
                                buffer.codec().channelSetup(),
@@ -257,11 +256,11 @@ SAudioBuffer PcmAudioDecoder::swapDecodeBufferS32(const SEncodedAudioBuffer &buf
 
   LXiStream_Common_PcmAudio_swapDecodeS32S16(dstBuffer.data(), buffer.data(), dstBuffer.size());
 
-  return dstBuffer;
+  return split(dstBuffer);
 }
 
 template <SAudioFormat::Format format>
-SAudioBuffer PcmAudioDecoder::decodeBufferU32(const SEncodedAudioBuffer &buffer)
+SAudioBufferList PcmAudioDecoder::decodeBufferU32(const SEncodedAudioBuffer &buffer)
 {
   const SAudioFormat dstFormat(format,
                                buffer.codec().channelSetup(),
@@ -271,11 +270,11 @@ SAudioBuffer PcmAudioDecoder::decodeBufferU32(const SEncodedAudioBuffer &buffer)
 
   LXiStream_Common_PcmAudio_decodeU32S16(dstBuffer.data(), buffer.data(), dstBuffer.size());
 
-  return dstBuffer;
+  return split(dstBuffer);
 }
 
 template <SAudioFormat::Format format>
-SAudioBuffer PcmAudioDecoder::swapDecodeBufferU32(const SEncodedAudioBuffer &buffer)
+SAudioBufferList PcmAudioDecoder::swapDecodeBufferU32(const SEncodedAudioBuffer &buffer)
 {
   const SAudioFormat dstFormat(format,
                                buffer.codec().channelSetup(),
@@ -285,11 +284,11 @@ SAudioBuffer PcmAudioDecoder::swapDecodeBufferU32(const SEncodedAudioBuffer &buf
 
   LXiStream_Common_PcmAudio_swapDecodeU32S16(dstBuffer.data(), buffer.data(), dstBuffer.size());
 
-  return dstBuffer;
+  return split(dstBuffer);
 }
 
 template <SAudioFormat::Format format>
-SAudioBuffer PcmAudioDecoder::decodeBufferF32(const SEncodedAudioBuffer &buffer)
+SAudioBufferList PcmAudioDecoder::decodeBufferF32(const SEncodedAudioBuffer &buffer)
 {
   const SAudioFormat dstFormat(format,
                                buffer.codec().channelSetup(),
@@ -299,11 +298,11 @@ SAudioBuffer PcmAudioDecoder::decodeBufferF32(const SEncodedAudioBuffer &buffer)
 
   LXiStream_Common_PcmAudio_decodeF32S16(dstBuffer.data(), buffer.data(), dstBuffer.size());
 
-  return dstBuffer;
+  return split(dstBuffer);
 }
 
 template <SAudioFormat::Format format>
-SAudioBuffer PcmAudioDecoder::swapDecodeBufferF32(const SEncodedAudioBuffer &buffer)
+SAudioBufferList PcmAudioDecoder::swapDecodeBufferF32(const SEncodedAudioBuffer &buffer)
 {
   const SAudioFormat dstFormat(format,
                                buffer.codec().channelSetup(),
@@ -313,11 +312,11 @@ SAudioBuffer PcmAudioDecoder::swapDecodeBufferF32(const SEncodedAudioBuffer &buf
 
   LXiStream_Common_PcmAudio_swapDecodeF32S16(dstBuffer.data(), buffer.data(), dstBuffer.size());
 
-  return dstBuffer;
+  return split(dstBuffer);
 }
 
 template <SAudioFormat::Format format>
-SAudioBuffer PcmAudioDecoder::decodeBufferF64(const SEncodedAudioBuffer &buffer)
+SAudioBufferList PcmAudioDecoder::decodeBufferF64(const SEncodedAudioBuffer &buffer)
 {
   const SAudioFormat dstFormat(format,
                                buffer.codec().channelSetup(),
@@ -327,11 +326,11 @@ SAudioBuffer PcmAudioDecoder::decodeBufferF64(const SEncodedAudioBuffer &buffer)
 
   LXiStream_Common_PcmAudio_decodeF64S16(dstBuffer.data(), buffer.data(), dstBuffer.size());
 
-  return dstBuffer;
+  return split(dstBuffer);
 }
 
 template <SAudioFormat::Format format>
-SAudioBuffer PcmAudioDecoder::swapDecodeBufferF64(const SEncodedAudioBuffer &buffer)
+SAudioBufferList PcmAudioDecoder::swapDecodeBufferF64(const SEncodedAudioBuffer &buffer)
 {
   const SAudioFormat dstFormat(format,
                                buffer.codec().channelSetup(),
@@ -341,7 +340,28 @@ SAudioBuffer PcmAudioDecoder::swapDecodeBufferF64(const SEncodedAudioBuffer &buf
 
   LXiStream_Common_PcmAudio_swapDecodeF64S16(dstBuffer.data(), buffer.data(), dstBuffer.size());
 
-  return dstBuffer;
+  return split(dstBuffer);
+}
+
+SAudioBufferList PcmAudioDecoder::split(const SAudioBuffer &buffer)
+{
+  if (buffer.duration().toMSec() > 32)
+  {
+    const unsigned halfNumSamples = buffer.numSamples() / 2;
+    const unsigned sampleSize = buffer.format().sampleSize() * buffer.format().numChannels();
+
+    SAudioBuffer a(buffer.format(), halfNumSamples);
+    a.setTimeStamp(buffer.timeStamp());
+    memcpy(a.data(), buffer.data(), halfNumSamples * sampleSize);
+
+    SAudioBuffer b(buffer.format(), buffer.numSamples() - halfNumSamples);
+    b.setTimeStamp(buffer.timeStamp() + STime(halfNumSamples, SInterval(1, buffer.format().sampleRate())));
+    memcpy(b.data(), buffer.data() + (halfNumSamples * sampleSize), b.numSamples() * sampleSize);
+
+    return SAudioBufferList() << split(a) << split(b);
+  }
+  else
+    return SAudioBufferList() << buffer;
 }
 
 } } // End of namespaces

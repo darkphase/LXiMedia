@@ -14,6 +14,7 @@ HEADERS += configserver.h \
     mediaplayersandbox.h \
     mediaplayerserver.h \
     module.h \
+    movieserver.h \
     musicserver.h \
     photoserver.h \
     playlist.h \
@@ -28,6 +29,7 @@ SOURCES += configserver.cpp \
     mediaplayersandbox.cpp \
     mediaplayerserver.cpp \
     module.cpp \
+    movieserver.cpp \
     musicserver.cpp \
     photoserver.cpp \
     photoserver.html.cpp \

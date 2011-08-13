@@ -33,9 +33,6 @@ h3 {
 img {
  border: none;
 }
-img.thumbnail {
- border: 1px solid #D0CFCF;
-}
 fieldset {
  padding: 0.5em;
  margin: 0 0.5em 0.5em 0.5em;
@@ -56,10 +53,6 @@ input {
 select {
  border: 1px solid #000000;
 }
-a:link    { color: #000000; text-decoration: none; }
-a:visited { color: #000000; text-decoration: none; }
-a:active  { color: #000000; text-decoration: underline; }
-a:hover   { color: #000000; text-decoration: underline; }
 a.hidden {
  text-decoration: none;
 }
@@ -126,6 +119,10 @@ table.location {
  border: none;
  background-color: #FFFFFF;
 }
+.location a:link    { color: #000000; text-decoration: none; }
+.location a:visited { color: #000000; text-decoration: none; }
+.location a:active  { color: #000000; text-decoration: underline; }
+.location a:hover   { color: #000000; text-decoration: underline; }
 div.menu {
  padding: 0.7em 1em 0.7em 1em;
  margin: 0;

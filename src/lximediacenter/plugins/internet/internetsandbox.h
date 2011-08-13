@@ -36,8 +36,7 @@ public:
   virtual void                  close(void);
 
 public: // From SSandboxServer::Callback
-  virtual SSandboxServer::SocketOp handleHttpRequest(const SSandboxServer::RequestMessage &, QIODevice *);
-  virtual void                  handleHttpOptions(SHttpServer::ResponseHeader &);
+  virtual SSandboxServer::ResponseMessage httpRequest(const SSandboxServer::RequestMessage &, QIODevice *);
 
 private slots:
   void                          cleanStreams(void);

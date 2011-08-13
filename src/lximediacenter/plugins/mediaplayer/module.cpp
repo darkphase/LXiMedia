@@ -22,6 +22,7 @@
 #include "mediadatabase.h"
 #include "mediaplayersandbox.h"
 #include "mediaplayerserver.h"
+#include "movieserver.h"
 #include "musicserver.h"
 #include "photoserver.h"
 #include "tvshowserver.h"
@@ -60,7 +61,7 @@ const char Module::musicName[]      = QT_TR_NOOP("Music"),        Module::musicI
 
 bool Module::registerClasses(void)
 {
-  MediaPlayerServer::registerClass< Server<MediaPlayerServer, MediaDatabase::Category_Movies,     moviesName,     moviesIcon> >(0);
+  MediaPlayerServer::registerClass< Server<MovieServer,       MediaDatabase::Category_Movies,     moviesName,     moviesIcon> >(0);
   MediaPlayerServer::registerClass< Server<TvShowServer,      MediaDatabase::Category_TVShows,    tvShowsName,    tvShowsIcon> >(-1);
   MediaPlayerServer::registerClass< Server<PlaylistServer,    MediaDatabase::Category_Clips,      clipsName,      clipsIcon> >(-2);
   MediaPlayerServer::registerClass< Server<PlaylistServer,    MediaDatabase::Category_HomeVideos, homeVideosName, homeVideosIcon> >(-3);

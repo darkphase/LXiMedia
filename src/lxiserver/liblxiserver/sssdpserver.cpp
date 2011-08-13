@@ -95,7 +95,7 @@ void SSsdpServer::publish(const QString &nt, const QString &relativeUrl, unsigne
 
 void SSsdpServer::parsePacket(SsdpClientInterface *iface, const SHttpServer::RequestHeader &header, const QHostAddress &sourceAddress, quint16 sourcePort)
 {
-  if ((header.method().toUpper() == "M-SEARCH") && header.hasField("MX") &&
+  if ((header.method().compare("M-SEARCH", Qt::CaseInsensitive) == 0) && header.hasField("MX") &&
       !sourceAddress.isNull() && sourcePort)
   {
     const QString st = header.field("ST");

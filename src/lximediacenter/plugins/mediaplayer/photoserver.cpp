@@ -114,22 +114,22 @@ QList<PhotoServer::Item> PhotoServer::listItems(const QString &path, unsigned st
   return items;
 }
 
-SHttpServer::SocketOp PhotoServer::handleHttpRequest(const SHttpServer::RequestMessage &request, QIODevice *socket)
+SHttpServer::ResponseMessage PhotoServer::httpRequest(const SHttpServer::RequestMessage &request, QIODevice *socket)
 {
-  if ((request.method() == "GET") || (request.method() == "HEAD"))
+  if (request.isGet())
   {
     const MediaServer::File file(request);
 
     if ((file.suffix() == "jpeg") || ((file.suffix() == "png") && !file.baseName().endsWith("-thumb")))
-      return sendPhoto(request, socket, MediaDatabase::fromUidString(file.baseName()), file.suffix());
+      return sendPhoto(request, MediaDatabase::fromUidString(file.baseName()), file.suffix());
     else if ((file.suffix() == "html") && (file.baseName() != "playlist")) // Show photo
-      return handleHtmlRequest(request, socket, file);
+      return handleHtmlRequest(request, file);
   }
 
-  return PlaylistServer::handleHttpRequest(request, socket);
+  return PlaylistServer::httpRequest(request, socket);
 }
 
-SHttpServer::SocketOp PhotoServer::sendPhoto(const SHttpServer::RequestMessage &request, QIODevice *socket, MediaDatabase::UniqueID uid, const QString &format) const
+SHttpServer::ResponseMessage PhotoServer::sendPhoto(const SHttpServer::RequestMessage &request, MediaDatabase::UniqueID uid, const QString &format) const
 {
   const MediaServer::File file(request);
   const FileNode node = mediaDatabase->readNode(uid);
@@ -165,11 +165,11 @@ SHttpServer::SocketOp PhotoServer::sendPhoto(const SHttpServer::RequestMessage &
       image.save(&buffer, format.toUpper().toAscii(), 80);
       buffer.close();
 
-      return sendResponse(request, socket, buffer.data(), ("image/" + format.toLower()).toAscii(), true);
+      return makeResponse(request, buffer.data(), ("image/" + format.toLower()).toAscii(), true);
     }
   }
 
-  return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);
+  return SHttpServer::ResponseMessage(request, SHttpServer::Status_NotFound);
 }
 
 } } // End of namespaces

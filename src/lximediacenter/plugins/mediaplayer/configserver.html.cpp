@@ -83,7 +83,7 @@ const char * const ConfigServer::htmlDirTreeIndex =
     "<html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"en\" xml:lang=\"en\">\n"
     "<head>\n"
     " <meta http-equiv=\"Content-Type\" content=\"text/html;charset=utf-8\" />\n"
-    " <link rel=\"stylesheet\" href=\"/main.css\" type=\"text/css\" media=\"screen, handheld, projection\" />\n"
+    " <link rel=\"stylesheet\" href=\"/css/main.css\" type=\"text/css\" media=\"screen, handheld, projection\" />\n"
     "</head>\n"
     "<body>\n"
     " <table width=\"100%\" cellspacing=\"0\" cellpadding=\"3\" border=\"0\">\n"
@@ -117,12 +117,8 @@ const char * const ConfigServer::htmlDirTreeCheckLink =
     "  <img src=\"/img/check{DIR_CHECKED}.png\" width=\"16\" height=\"16\" />\n"
     " </a>\n";
 
-SHttpServer::SocketOp ConfigServer::handleHtmlRequest(const SHttpServer::RequestMessage &request, QIODevice *socket, const MediaServer::File &file)
+SHttpServer::ResponseMessage ConfigServer::handleHtmlRequest(const SHttpServer::RequestMessage &request, const MediaServer::File &file)
 {
-  SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
-  response.setContentType("text/html;charset=utf-8");
-  response.setField("Cache-Control", "no-cache");
-
   HtmlParser htmlParser;
 
   if (file.baseName().endsWith("-tree"))
@@ -160,9 +156,12 @@ SHttpServer::SocketOp ConfigServer::handleHtmlRequest(const SHttpServer::Request
     htmlParser.setField("DIRS", QByteArray(""));
     generateDirs(htmlParser, drives(), 0, allopen, rootPaths);
 
-    socket->write(response);
-    socket->write(htmlParser.parse(htmlDirTreeIndex));
-    return SHttpServer::SocketOp_Close;
+    SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
+    response.setField("Cache-Control", "no-cache");
+    response.setContentType("text/html;charset=utf-8");
+    response.setContent(htmlParser.parse(htmlDirTreeIndex));
+
+    return response;
   }
   else
   {
@@ -200,7 +199,7 @@ SHttpServer::SocketOp ConfigServer::handleHtmlRequest(const SHttpServer::Request
     drives(true);
     driveLabel(QString::null);
 
-    return sendHtmlContent(request, socket, file.url(), response, htmlParser.parse(htmlMain));
+    return makeHtmlContent(request, file.url(), htmlParser.parse(htmlMain));
   }
 }
 

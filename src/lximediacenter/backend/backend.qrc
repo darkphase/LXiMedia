@@ -1,5 +1,6 @@
 <RCC>
-    <qresource prefix="/backend">
-        <file>main.css</file>
+    <qresource>
+        <file>css/main.css</file>
+        <file>js/dynamiclist.js</file>
     </qresource>
 </RCC>

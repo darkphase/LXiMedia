@@ -284,8 +284,8 @@ void STimeStampSyncNode::output(void)
 
         SAudioBuffer ab = *j;
 
+//        qDebug() << "AO1" << ab.timeStamp().toMSec() <<  i->time.toMSec() << lvkey.toMSec() << it.toMSec();
         ab.setTimeStamp(i->time);
-//        qDebug() << "AO1" << ab.timeStamp().toMSec() << lvkey.toMSec() << it.toMSec();
         emit output(ab);
 
         at = i->time;
@@ -300,7 +300,7 @@ void STimeStampSyncNode::output(void)
       d->inTimeStamp = inTime;
 
     const STime frameTime = d->frameRate.isValid() ? STime(1, d->frameRate) : STime::fromMSec(15);
-    const STime maxDelta = frameTime * -5;
+    const STime maxDelta = frameTime * -1;
 
     // Dump old video buffers
     for (QMap<quint16, Queue<SVideoBuffer> >::Iterator i=d->videoQueue.begin(); i!=d->videoQueue.end(); i++)
@@ -331,12 +331,12 @@ void STimeStampSyncNode::output(void)
         if (i->time <= (audioTimeMax + frameTime))
         do
         {
+//          qDebug() << "VO1" << vb.timeStamp().toMSec() << i->time.toMSec() << nextVideoTimeMin.toMSec() << delta.toMSec();
           vb.setTimeStamp(i->time);
-//          qDebug() << "VO1" << vb.timeStamp().toMSec() << nextVideoTime.toMSec() << nextVideoTimeMin.toMSec() << nextVideoTimeMax.toMSec() << delta.toMSec();
           emit output(vb);
 
           i->time += frameTime;
-//          if (i->time <= nextVideoTimeMin) qDebug() << "DUPV" << i->time.toMSec() << nextVideoTimeMin.toMSec() << nextVideoTimeMax.toMSec();
+//          if (i->time <= nextVideoTimeMin) qDebug() << "DUPV" << i->time.toMSec() << nextVideoTimeMin.toMSec();
         } while (i->time <= nextVideoTimeMin);
       }
       else

@@ -35,8 +35,7 @@ public:
   void                          start(const QString &mode);
 
 public: // From SSandboxServer::Callback
-  virtual SSandboxServer::SocketOp handleHttpRequest(const SSandboxServer::RequestMessage &, QIODevice *);
-  virtual void                  handleHttpOptions(SHttpServer::ResponseHeader &);
+  virtual SSandboxServer::ResponseMessage httpRequest(const SSandboxServer::RequestMessage &, QIODevice *);
 
 private:
   SSandboxServer                sandboxServer;
