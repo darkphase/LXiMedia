@@ -47,9 +47,9 @@ SSandboxServer * SandboxTest::createSandbox(void)
     {
     }
 
-    virtual SSandboxServer::SocketOp handleHttpRequest(const SSandboxServer::RequestMessage &request, QIODevice *socket)
+    virtual SSandboxServer::ResponseMessage httpRequest(const SSandboxServer::RequestMessage &request, QIODevice *)
     {
-      if ((request.method() == "GET") || (request.method() == "HEAD"))
+      if (request.isGet())
       {
         const QUrl url(request.path());
         const QString path = url.path();
@@ -59,17 +59,12 @@ SSandboxServer * SandboxTest::createSandbox(void)
         {
           if (url.hasQueryItem("nop"))
           {
-            return SSandboxServer::sendResponse(request, socket, SHttpServer::Status_Ok);
+            return SSandboxServer::ResponseMessage(request, SHttpServer::Status_Ok);
           }
         }
       }
 
-      return SSandboxServer::sendResponse(request, socket, SHttpServer::Status_NotFound);
-    }
-
-    virtual void handleHttpOptions(SHttpServer::ResponseHeader &response)
-    {
-      response.setField("Allow", response.field("Allow") + ",GET,HEAD");
+      return SSandboxServer::ResponseMessage(request, SHttpServer::Status_NotFound);
     }
   };
 

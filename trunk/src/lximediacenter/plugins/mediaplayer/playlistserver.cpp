@@ -131,26 +131,20 @@ QList<PlaylistServer::Item> PlaylistServer::listItems(const QString &path, unsig
   return result;
 }
 
-SHttpServer::SocketOp PlaylistServer::handleHttpRequest(const SHttpServer::RequestMessage &request, QIODevice *socket)
+SHttpServer::ResponseMessage PlaylistServer::httpRequest(const SHttpServer::RequestMessage &request, QIODevice *socket)
 {
-  if ((request.method() == "GET") || (request.method() == "HEAD"))
+  if (request.isGet())
   {
     const MediaServer::File file(request);
     if (file.fullName() == "playlist.html") // Show player
     {
       const QString album = QUrl(request.directory().mid(serverPath().length() - 1)).path();
       if (!album.isEmpty())
-      {
-        SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
-        response.setContentType("text/html;charset=utf-8");
-        response.setField("Cache-Control", "no-cache");
-
-        return sendHtmlContent(request, socket, file.url(), response, buildVideoPlayer("playlist", dirName(album), file.url()), headPlayer);
-      }
+        return makeHtmlContent(request, file.url(), buildVideoPlayer("playlist", dirName(album), file.url()), headPlayer);
     }
   }
 
-  return MediaPlayerServer::handleHttpRequest(request, socket);
+  return MediaPlayerServer::httpRequest(request, socket);
 }
 
 QList<PlaylistServer::Item> PlaylistServer::listPlayAllItem(const QString &path,  unsigned &start, unsigned &count, MediaDatabase::UniqueID thumbUid, const QList<Item> &thumbs)

@@ -142,7 +142,7 @@ void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *readCallback)
           {
             bufferReader.selectStreams(QList<StreamId>() << (*videoStream));
 
-            // Read the first minute
+            // Read the first two minutes
             {
               STime firstTime;
               for (int i=0, lc=0; (i<128) && (produceCallback.videoBuffers.count()<2048); i++)
@@ -162,7 +162,7 @@ void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *readCallback)
                   else
                     firstTime = lastTime;
 
-                  if ((lastTime - firstTime).toSec() >= 60)
+                  if ((lastTime - firstTime).toSec() >= 120)
                     break;
 
                   if (last.isKeyFrame())

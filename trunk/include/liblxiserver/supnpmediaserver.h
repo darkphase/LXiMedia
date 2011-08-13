@@ -58,8 +58,7 @@ public:
   void                          registerService(const Service &);
 
 protected: // From SHttpServer::Callback
-  virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestMessage &, QIODevice *);
-  virtual void                  handleHttpOptions(SHttpServer::ResponseHeader &);
+  virtual SHttpServer::ResponseMessage httpRequest(const SHttpServer::RequestMessage &, QIODevice *);
 
 public:
   static const char             dlnaDeviceNS[];

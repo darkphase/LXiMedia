@@ -48,11 +48,10 @@ public:
   static bool                   isHidden(const QString &path);
 
 protected: // From SHttpServer::Callback
-  virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestMessage &, QIODevice *);
-  virtual void                  handleHttpOptions(SHttpServer::ResponseHeader &);
+  virtual SHttpServer::ResponseMessage httpRequest(const SHttpServer::RequestMessage &, QIODevice *);
 
 private:
-  SHttpServer::SocketOp         handleHtmlRequest(const SHttpServer::RequestMessage &, QIODevice *, const MediaServer::File &);
+  SHttpServer::ResponseMessage  handleHtmlRequest(const SHttpServer::RequestMessage &, const MediaServer::File &);
   void                          generateDirs(HtmlParser &, const QFileInfoList &, int, const QStringList &, const QStringList &);
 
   static const QFileInfoList  & drives(bool rescan = false);

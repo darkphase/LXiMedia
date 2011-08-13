@@ -45,39 +45,41 @@ public: // From SBufferDecoder
 
 private:
   template <SAudioFormat::Format format>
-  static SAudioBuffer           decodeBufferS8(const SEncodedAudioBuffer &);
+  static SAudioBufferList       decodeBufferS8(const SEncodedAudioBuffer &);
   template <SAudioFormat::Format format>
-  static SAudioBuffer           decodeBufferU8(const SEncodedAudioBuffer &);
+  static SAudioBufferList       decodeBufferU8(const SEncodedAudioBuffer &);
 
   template <SAudioFormat::Format format>
-  static SAudioBuffer           copyBuffer(const SEncodedAudioBuffer &);
+  static SAudioBufferList       copyBuffer(const SEncodedAudioBuffer &);
   template <SAudioFormat::Format format>
-  static SAudioBuffer           swapBufferS16(const SEncodedAudioBuffer &);
+  static SAudioBufferList       swapBufferS16(const SEncodedAudioBuffer &);
   template <SAudioFormat::Format format>
-  static SAudioBuffer           decodeBufferU16(const SEncodedAudioBuffer &);
+  static SAudioBufferList       decodeBufferU16(const SEncodedAudioBuffer &);
   template <SAudioFormat::Format format>
-  static SAudioBuffer           swapDecodeBufferU16(const SEncodedAudioBuffer &);
+  static SAudioBufferList       swapDecodeBufferU16(const SEncodedAudioBuffer &);
 
   template <SAudioFormat::Format format>
-  static SAudioBuffer           decodeBufferS32(const SEncodedAudioBuffer &);
+  static SAudioBufferList       decodeBufferS32(const SEncodedAudioBuffer &);
   template <SAudioFormat::Format format>
-  static SAudioBuffer           swapDecodeBufferS32(const SEncodedAudioBuffer &);
+  static SAudioBufferList       swapDecodeBufferS32(const SEncodedAudioBuffer &);
   template <SAudioFormat::Format format>
-  static SAudioBuffer           decodeBufferU32(const SEncodedAudioBuffer &);
+  static SAudioBufferList       decodeBufferU32(const SEncodedAudioBuffer &);
   template <SAudioFormat::Format format>
-  static SAudioBuffer           swapDecodeBufferU32(const SEncodedAudioBuffer &);
+  static SAudioBufferList       swapDecodeBufferU32(const SEncodedAudioBuffer &);
   template <SAudioFormat::Format format>
-  static SAudioBuffer           decodeBufferF32(const SEncodedAudioBuffer &);
+  static SAudioBufferList       decodeBufferF32(const SEncodedAudioBuffer &);
   template <SAudioFormat::Format format>
-  static SAudioBuffer           swapDecodeBufferF32(const SEncodedAudioBuffer &);
+  static SAudioBufferList       swapDecodeBufferF32(const SEncodedAudioBuffer &);
 
   template <SAudioFormat::Format format>
-  static SAudioBuffer           decodeBufferF64(const SEncodedAudioBuffer &);
+  static SAudioBufferList       decodeBufferF64(const SEncodedAudioBuffer &);
   template <SAudioFormat::Format format>
-  static SAudioBuffer           swapDecodeBufferF64(const SEncodedAudioBuffer &);
+  static SAudioBufferList       swapDecodeBufferF64(const SEncodedAudioBuffer &);
+
+  static SAudioBufferList       split(const SAudioBuffer &);
 
 private:
-  SAudioBuffer                  (* decode)(const SEncodedAudioBuffer &);
+  SAudioBufferList              (* decode)(const SEncodedAudioBuffer &);
   STime                         nextTimeStamp;
 };
 

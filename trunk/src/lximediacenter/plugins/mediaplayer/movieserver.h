@@ -17,38 +17,30 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef PLAYLISTSERVER_H
-#define PLAYLISTSERVER_H
+#ifndef MOVIESERVER_H
+#define MOVIESERVER_H
 
 #include <QtCore>
 #include <LXiMediaCenter>
+#include <LXiStream>
 #include "mediadatabase.h"
 #include "mediaplayerserver.h"
 
 namespace LXiMediaCenter {
 namespace MediaPlayerBackend {
 
-class PlaylistServer : public MediaPlayerServer
+class MovieServer : public MediaPlayerServer
 {
 Q_OBJECT
 public:
-                                PlaylistServer(MediaDatabase::Category, QObject *, const QString & = tr("Play all"));
-  virtual                       ~PlaylistServer();
+                                MovieServer(MediaDatabase::Category, QObject *);
+  virtual                       ~MovieServer();
 
 protected:
-  virtual Stream              * streamVideo(const SHttpServer::RequestMessage &);
-
-  virtual int                   countItems(const QString &path);
-  virtual QList<Item>           listItems(const QString &path, unsigned start = 0, unsigned count = 0);
-  virtual SHttpServer::ResponseMessage httpRequest(const SHttpServer::RequestMessage &, QIODevice *);
-
-  QList<Item>                   listPlayAllItem(const QString &path,  unsigned &start, unsigned &count, MediaDatabase::UniqueID = 0, const QList<Item> &thumbs = QList<Item>());
+  virtual QList<Item>           listItems(const QString &path, unsigned start, unsigned count);
 
 private:
-  const QString                 itemTitle;
-
-private:
-  static const char     * const htmlView;
+  Item                          recurseItem(const QString &path, const Item &item);
 };
 
 } } // End of namespaces

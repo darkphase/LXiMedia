@@ -80,11 +80,11 @@ void Sandbox::start(const QString &mode)
   }
 }
 
-SSandboxServer::SocketOp Sandbox::handleHttpRequest(const SSandboxServer::RequestMessage &request, QIODevice *socket)
+SSandboxServer::ResponseMessage Sandbox::httpRequest(const SSandboxServer::RequestMessage &request, QIODevice *)
 {
   const MediaServer::File file(request);
 
-  if ((request.method() == "GET") && (file.url().path() == "/"))
+  if (request.isGet() && (file.url().path() == "/"))
   {
     if (file.url().hasQueryItem("formats"))
     {
@@ -93,20 +93,15 @@ SSandboxServer::SocketOp Sandbox::handleHttpRequest(const SSandboxServer::Reques
       content += "VideoCodecs:" + SVideoEncoderNode::codecs().join("\t").toUtf8() + '\n';
       content += "Formats:" + SIOOutputNode::formats().join("\t").toUtf8() + '\n';
 
-      return SSandboxServer::sendResponse(request, socket, SSandboxServer::Status_Ok, content, this);
+      return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_Ok, content);
     }
     else if (file.url().hasQueryItem("exit"))
     {
       QTimer::singleShot(5000, this, SLOT(deleteLater()));
 
-      return SSandboxServer::sendResponse(request, socket, SSandboxServer::Status_Ok, this);
+      return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_Ok);
     }
   }
 
-  return SSandboxServer::sendResponse(request, socket, SSandboxServer::Status_NotFound, this);
-}
-
-void Sandbox::handleHttpOptions(SHttpServer::ResponseHeader &response)
-{
-  response.setField("Allow", response.field("Allow") + ",GET");
+  return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_NotFound);
 }

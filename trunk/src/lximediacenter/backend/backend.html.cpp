@@ -26,7 +26,7 @@ const char * const Backend::htmlIndex =
     "<head>\n"
     " <title>{_PRODUCT} @ {_HOSTNAME}</title>\n"
     " <meta http-equiv=\"Content-Type\" content=\"text/html;charset=utf-8\" />\n"
-    " <link rel=\"stylesheet\" href=\"/main.css\" type=\"text/css\" media=\"screen, handheld, projection\" />\n"
+    " <link rel=\"stylesheet\" href=\"/css/main.css\" type=\"text/css\" media=\"screen, handheld, projection\" />\n"
     "{HEAD}"
     "</head>\n"
     "<body>\n"
@@ -312,16 +312,16 @@ QByteArray Backend::parseHtmlLogErrors(void) const
   return QByteArray();
 }
 
-SHttpServer::SocketOp Backend::handleHtmlRequest(const SHttpServer::RequestMessage &request, QIODevice *socket, const MediaServer::File &file)
+SHttpServer::ResponseMessage Backend::handleHtmlRequest(const SHttpServer::RequestMessage &request, const MediaServer::File &file)
 {
-  return handleHtmlRequest(request, socket, file.fullName());
+  return handleHtmlRequest(request, file.fullName());
 }
 
-SHttpServer::SocketOp Backend::handleHtmlRequest(const SHttpServer::RequestMessage &request, QIODevice *socket, const QString &file)
+SHttpServer::ResponseMessage Backend::handleHtmlRequest(const SHttpServer::RequestMessage &request, const QString &file)
 {
   HtmlParser htmlParser(this->htmlParser);
 
-  SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
+  SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
   response.setContentType("text/html;charset=utf-8");
   response.setField("Cache-Control", "no-cache");
 
@@ -346,19 +346,19 @@ SHttpServer::SocketOp Backend::handleHtmlRequest(const SHttpServer::RequestMessa
     htmlParser.appendField("GROUPS", htmlParser.parse(htmlMainGroupItem));
   }
 
-  socket->write(response);
-  socket->write(parseHtmlContent(QUrl(request.path()), htmlParser.parse(htmlMain), ""));
-  return SHttpServer::SocketOp_Close;
+  response.setContent(parseHtmlContent(QUrl(request.path()), htmlParser.parse(htmlMain), ""));
+
+  return response;
 }
 
-SHttpServer::SocketOp Backend::handleHtmlSearch(const SHttpServer::RequestMessage &request, QIODevice *socket, const MediaServer::File &)
+SHttpServer::ResponseMessage Backend::handleHtmlSearch(const SHttpServer::RequestMessage &request, const MediaServer::File &)
 {
   HtmlParser htmlParser(this->htmlParser);
   htmlParser.setField("TR_OF", tr("of"));
   htmlParser.setField("TR_RELEVANCE", tr("Relevance"));
   htmlParser.setField("TR_RESULTS", tr("Results"));
 
-  SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
+  SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
   response.setContentType("text/html;charset=utf-8");
   response.setField("Cache-Control", "no-cache");
 
@@ -380,12 +380,12 @@ SHttpServer::SocketOp Backend::handleHtmlSearch(const SHttpServer::RequestMessag
 
   htmlParser.setField("ITEM_TITLE", tr("Search") + ": " + queryString);
 
-  socket->write(response);
-  socket->write(parseHtmlContent(file.url(), htmlParser.parse(htmlSearchResults), ""));
-  return SHttpServer::SocketOp_Close;
+  response.setContent(parseHtmlContent(file.url(), htmlParser.parse(htmlSearchResults), ""));
+
+  return response;
 }
 
-SHttpServer::SocketOp Backend::handleHtmlLogFileRequest(const SHttpServer::RequestMessage &request, QIODevice *socket, const MediaServer::File &file)
+SHttpServer::ResponseMessage Backend::handleHtmlLogFileRequest(const SHttpServer::RequestMessage &request, const MediaServer::File &file)
 {
   QString logFileName;
   if (file.fullName() == "main.log")
@@ -437,38 +437,38 @@ SHttpServer::SocketOp Backend::handleHtmlLogFileRequest(const SHttpServer::Reque
       }
     }
 
-    SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
+    SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
     response.setContentType("text/html;charset=utf-8");
     response.setField("Cache-Control", "no-cache");
     if (logFileName == sApp->activeLogFile())
       response.setField("Refresh", "10;URL=#bottom");
 
-    socket->write(response);
-    socket->write(parseHtmlContent(file.url(), htmlParser.parse(htmlLogFile), ""));
-    return SHttpServer::SocketOp_Close;
+    response.setContent(parseHtmlContent(file.url(), htmlParser.parse(htmlLogFile), ""));
+
+    return response;
   }
 
-  return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);
+  return SHttpServer::ResponseMessage(request, SHttpServer::Status_NotFound);
 }
 
-SHttpServer::SocketOp Backend::showAbout(const SHttpServer::RequestMessage &request, QIODevice *socket)
+SHttpServer::ResponseMessage Backend::showAbout(const SHttpServer::RequestMessage &request)
 {
   HtmlParser htmlParser(this->htmlParser);
 
-  SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
+  SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
   response.setContentType("text/html;charset=utf-8");
   response.setField("Cache-Control", "no-cache");
 
   htmlParser.setField("ABOUT_LXIMEDIA", sApp->about());
 
-  socket->write(response);
-  socket->write(parseHtmlContent(QUrl(request.path()), htmlParser.parse(htmlAbout), ""));
-  return SHttpServer::SocketOp_Close;
+  response.setContent(parseHtmlContent(QUrl(request.path()), htmlParser.parse(htmlAbout), ""));
+
+  return response;
 }
 
-SHttpServer::SocketOp Backend::handleHtmlConfig(const SHttpServer::RequestMessage &request, QIODevice *socket)
+SHttpServer::ResponseMessage Backend::handleHtmlConfig(const SHttpServer::RequestMessage &request)
 {
-  SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
+  SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
   response.setContentType("text/html;charset=utf-8");
   response.setField("Cache-Control", "no-cache");
 
@@ -816,7 +816,7 @@ SHttpServer::SocketOp Backend::handleHtmlConfig(const SHttpServer::RequestMessag
     htmlParser.appendField("CLIENT_ROWS", htmlParser.parse(htmlConfigDlnaRow));
   }
 
-  socket->write(response);
-  socket->write(parseHtmlContent(file.url(), htmlParser.parse(htmlConfigMain), ""));
-  return SHttpServer::SocketOp_Close;
+  response.setContent(parseHtmlContent(file.url(), htmlParser.parse(htmlConfigMain), ""));
+
+  return response;
 }

@@ -71,9 +71,6 @@ protected: // From MediaServer
   virtual int                   countItems(const QString &path);
   virtual QList<Item>           listItems(const QString &path, unsigned start = 0, unsigned count = 0);
 
-protected: // From SHttpServer::Callback
-  virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestMessage &, QIODevice *);
-
 protected:
   bool                          isEmpty(const QString &path);
   int                           countAlbums(const QString &path);
@@ -81,6 +78,8 @@ protected:
   Item                          makeItem(MediaDatabase::UniqueID, bool recursePrograms = true);
   QUrl                          findAlbumIcon(const QString &path);
   Item::Type                    defaultItemType(Item::Type = Item::Type_None) const;
+
+  virtual SHttpServer::ResponseMessage httpRequest(const SHttpServer::RequestMessage &, QIODevice *);
 
   QByteArray                    buildVideoPlayer(MediaDatabase::UniqueID, const QString &, const SMediaInfo::Program &, const QUrl &, const QSize & = QSize(768, 432));
   QByteArray                    buildVideoPlayer(const QByteArray &, const QString &, const QUrl &, const QSize & = QSize(768, 432));

@@ -86,21 +86,16 @@ QString ConfigServer::serverIconPath(void) const
   return "/img/control.png";
 }
 
-SHttpServer::SocketOp ConfigServer::handleHttpRequest(const SHttpServer::RequestMessage &request, QIODevice *socket)
+SHttpServer::ResponseMessage ConfigServer::httpRequest(const SHttpServer::RequestMessage &request, QIODevice *)
 {
-  if ((request.method() == "GET") || (request.method() == "HEAD"))
+  if (request.isGet())
   {
     const MediaServer::File file(request);
     if (file.baseName().isEmpty() || (file.suffix() == "html"))
-      return handleHtmlRequest(request, socket, file);
+      return handleHtmlRequest(request, file);
   }
 
-  return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);
-}
-
-void ConfigServer::handleHttpOptions(SHttpServer::ResponseHeader &response)
-{
-  response.setField("Allow", response.field("Allow") + ",GET,HEAD");
+  return SHttpServer::ResponseMessage(request, SHttpServer::Status_NotFound);
 }
 
 const QSet<QString> & ConfigServer::hiddenDirs(void)

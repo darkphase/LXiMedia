@@ -127,8 +127,7 @@ protected slots:
   virtual void                  cleanStreams(void);
 
 protected: // From SHttpServer::Callback
-  virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestMessage &, QIODevice *);
-  virtual void                  handleHttpOptions(SHttpServer::ResponseHeader &);
+  virtual SHttpServer::ResponseMessage httpRequest(const SHttpServer::RequestMessage &, QIODevice *);
 
 private: // From UPnPContentDirectory::Callback
   virtual int                   countContentDirItems(const QString &path);
@@ -161,9 +160,11 @@ protected: // Implemented in mediaserver.html.cpp
   static const char             htmlPageItem[];
   static const char             htmlPageSeparator[];
   static const char             htmlThumbnailList[];
+  static const char             htmlThumbnailLoader[];
   static const char             htmlThumbnailItem[];
   static const char             htmlThumbnailItemNoTitle[];
   static const char             htmlDetailedList[];
+  static const char             htmlDetailedLoader[];
   static const char             htmlDetailedListRow[];
   static const char             htmlDetailedListHead[];
   static const char             htmlDetailedListColumn[];
@@ -180,12 +181,17 @@ protected: // Implemented in mediaserver.html.cpp
   static const char             htmlPlayerThumbItemOption[];
   static const char             htmlDetail[];
 
+  static const char             headList[];
   static const char             headPlayer[];
 
   static QString                audioFormatString(const SMediaInfo::Program &);
   static QString                videoFormatString(const SMediaInfo::Program &);
   QByteArray                    buildThumbnailView(const QString &title, const ThumbnailListItemList &);
+  QByteArray                    buildThumbnailLoader(const QString &title);
+  QByteArray                    buildThumbnailItems(const ThumbnailListItemList &);
   QByteArray                    buildDetailedView(const QString &title, const QList< QPair<QString, bool> > &columns, const DetailedListItemList &);
+  QByteArray                    buildDetailedLoader(const QString &title, const QList< QPair<QString, bool> > &columns);
+  QByteArray                    buildDetailedItems(const DetailedListItemList &);
   QByteArray                    buildVideoPlayer(const QByteArray &item, const QString &title, const SMediaInfo::Program &, const QUrl &, const QSize & = QSize(768, 432), SAudioFormat::Channels = SAudioFormat::Channels_Stereo);
   QByteArray                    buildVideoPlayer(const QByteArray &item, const QString &title, const QUrl &, const QSize & = QSize(768, 432), SAudioFormat::Channels = SAudioFormat::Channels_Stereo);
 };

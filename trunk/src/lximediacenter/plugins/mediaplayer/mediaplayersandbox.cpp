@@ -54,20 +54,20 @@ void MediaPlayerSandbox::close(void)
   cleanStreams();
 }
 
-SSandboxServer::SocketOp MediaPlayerSandbox::handleHttpRequest(const SSandboxServer::RequestMessage &request, QIODevice *socket)
+SSandboxServer::ResponseMessage MediaPlayerSandbox::httpRequest(const SSandboxServer::RequestMessage &request, QIODevice *socket)
 {
   const MediaServer::File file(request);
 
-  if (request.method() == "GET")
+  if (request.isGet())
   {
     if (file.url().hasQueryItem("probe"))
     {
       QtConcurrent::run(this, &MediaPlayerSandbox::probe, request, socket, QString::fromUtf8(QByteArray::fromHex(file.url().queryItemValue("probe").toAscii())));
 
-      return SSandboxServer::SocketOp_LeaveOpen;
+      return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_None);
     }
   }
-  else if (request.method() == "POST")
+  else if (request.isPost())
   {
     if (file.url().hasQueryItem("playfile"))
     {
@@ -80,13 +80,13 @@ SSandboxServer::SocketOp MediaPlayerSandbox::handleHttpRequest(const SSandboxSer
         if (stream->start())
         {
           streams.append(stream);
-          return SSandboxServer::SocketOp_LeaveOpen;
+          return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_None);
         }
 
         delete stream;
       }
 
-      return SSandboxServer::sendResponse(request, socket, SSandboxServer::Status_InternalServerError, this);
+      return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_InternalServerError);
     }
     else if (file.url().hasQueryItem("playlist"))
     {
@@ -100,11 +100,11 @@ SSandboxServer::SocketOp MediaPlayerSandbox::handleHttpRequest(const SSandboxSer
       if (stream->start())
       {
         streams.append(stream);
-        return SSandboxServer::SocketOp_LeaveOpen;
+        return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_None);
       }
 
       delete stream;
-      return SSandboxServer::sendResponse(request, socket, SSandboxServer::Status_InternalServerError, this);
+      return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_InternalServerError);
     }
     else if (file.url().hasQueryItem("playslideshow"))
     {
@@ -117,20 +117,15 @@ SSandboxServer::SocketOp MediaPlayerSandbox::handleHttpRequest(const SSandboxSer
       if (stream->start())
       {
         streams.append(stream);
-        return SSandboxServer::SocketOp_LeaveOpen;
+        return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_None);
       }
 
       delete stream;
-      return SSandboxServer::sendResponse(request, socket, SSandboxServer::Status_InternalServerError, this);
+      return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_InternalServerError);
     }
   }
 
-  return SSandboxServer::sendResponse(request, socket, SSandboxServer::Status_NotFound, this);
-}
-
-void MediaPlayerSandbox::handleHttpOptions(SHttpServer::ResponseHeader &response)
-{
-  response.setField("Allow", response.field("Allow") + ",GET,POST");
+  return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_NotFound);
 }
 
 void MediaPlayerSandbox::customEvent(QEvent *e)
@@ -139,12 +134,12 @@ void MediaPlayerSandbox::customEvent(QEvent *e)
   {
     const ProbeResponseEvent * const event = static_cast<ProbeResponseEvent *>(e);
 
-    if (!event->data.isEmpty())
-      SSandboxServer::sendResponse(event->request, event->socket, SSandboxServer::Status_Ok, event->data, this);
-    else
-      SSandboxServer::sendResponse(event->request, event->socket, SSandboxServer::Status_NotFound, this);
+    SHttpServer::ResponseMessage response =
+        event->data.isEmpty()
+        ? SHttpServer::ResponseMessage(event->request, SSandboxServer::Status_NotFound)
+        : SHttpServer::ResponseMessage(event->request, SSandboxServer::Status_Ok, event->data);
 
-    SSandboxServer::closeSocket(event->socket);
+    SSandboxServer::sendHttpResponse(event->request, response, event->socket, false);
   }
   else
     BackendSandbox::customEvent(e);

@@ -68,8 +68,7 @@ protected:
   virtual void                  customEvent(QEvent *);
 
 protected: // From SHttpServer::Callback
-  virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestMessage &, QIODevice *);
-  virtual void                  handleHttpOptions(SHttpServer::ResponseHeader &);
+  virtual SHttpServer::ResponseMessage httpRequest(const SHttpServer::RequestMessage &, QIODevice *);
 
 private:
   SearchCacheEntry              search(const QString &) const;
@@ -86,12 +85,12 @@ private:
 
   QByteArray                    parseHtmlLogErrors(void) const;
 
-  SHttpServer::SocketOp         handleHtmlRequest(const SHttpServer::RequestMessage &, QIODevice *, const MediaServer::File &);
-  SHttpServer::SocketOp         handleHtmlRequest(const SHttpServer::RequestMessage &, QIODevice *, const QString &);
-  SHttpServer::SocketOp         handleHtmlSearch(const SHttpServer::RequestMessage &, QIODevice *, const MediaServer::File &);
-  SHttpServer::SocketOp         handleHtmlLogFileRequest(const SHttpServer::RequestMessage &, QIODevice *, const MediaServer::File &);
-  SHttpServer::SocketOp         showAbout(const SHttpServer::RequestMessage &, QIODevice *);
-  SHttpServer::SocketOp         handleHtmlConfig(const SHttpServer::RequestMessage &, QIODevice *);
+  SHttpServer::ResponseMessage  handleHtmlRequest(const SHttpServer::RequestMessage &, const MediaServer::File &);
+  SHttpServer::ResponseMessage  handleHtmlRequest(const SHttpServer::RequestMessage &, const QString &);
+  SHttpServer::ResponseMessage  handleHtmlSearch(const SHttpServer::RequestMessage &, const MediaServer::File &);
+  SHttpServer::ResponseMessage  handleHtmlLogFileRequest(const SHttpServer::RequestMessage &, const MediaServer::File &);
+  SHttpServer::ResponseMessage  showAbout(const SHttpServer::RequestMessage &);
+  SHttpServer::ResponseMessage  handleHtmlConfig(const SHttpServer::RequestMessage &);
 
   void                          setContentDirectoryQueryItems(void);
 

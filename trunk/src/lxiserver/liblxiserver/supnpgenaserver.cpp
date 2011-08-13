@@ -159,11 +159,11 @@ void SUPnPGenaServer::timerEvent(QTimerEvent *e)
     QObject::timerEvent(e);
 }
 
-SHttpServer::SocketOp SUPnPGenaServer::handleHttpRequest(const SHttpServer::RequestMessage &request, QIODevice *socket)
+SHttpServer::ResponseMessage SUPnPGenaServer::httpRequest(const SHttpServer::RequestMessage &request, QIODevice *socket)
 {
   if (request.path() == path())
   {
-    if (request.method() == "SUBSCRIBE")
+    if (request.method().compare("SUBSCRIBE", Qt::CaseInsensitive) == 0)
     {
       QMap<QString, EventSession *>::Iterator session = d->eventSessions.end();
       if (request.hasField("SID"))
@@ -192,13 +192,12 @@ SHttpServer::SocketOp SUPnPGenaServer::handleHttpRequest(const SHttpServer::Requ
         session = d->eventSessions.insert(s->sid, s);
       }
       else
-        return SHttpServer::sendResponse(request, socket, SHttpServer::Status_BadRequest, this);
+        return SHttpServer::ResponseMessage(request, SHttpServer::Status_BadRequest);
 
       if (session != d->eventSessions.end())
       {
-        SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
+        SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
         response.setField("SID", (*session)->sid);
-        response.setContentLength(0);
         response.setField("TIMEOUT", "Second-" + QString::number((*session)->timeout));
 
         socket->write(response);
@@ -210,10 +209,10 @@ SHttpServer::SocketOp SUPnPGenaServer::handleHttpRequest(const SHttpServer::Requ
           (*session)->sendEvent();
         }
 
-        return SHttpServer::SocketOp_Close;
+        return SHttpServer::ResponseMessage(request, SHttpServer::Status_None);
       }
     }
-    else if (request.method() == "UNSUBSCRIBE")
+    else if (request.method().compare("UNSUBSCRIBE", Qt::CaseInsensitive) == 0)
     {
       if (!request.hasField("CALLBACK") && !request.hasField("NT"))
       {
@@ -221,22 +220,25 @@ SHttpServer::SocketOp SUPnPGenaServer::handleHttpRequest(const SHttpServer::Requ
         if (session != d->eventSessions.end())
         {
           (*session)->unsubscribe();
-          return SHttpServer::sendResponse(request, socket, SHttpServer::Status_Ok, this);
+          return SHttpServer::ResponseMessage(request, SHttpServer::Status_Ok);
         }
       }
       else
-        return SHttpServer::sendResponse(request, socket, SHttpServer::Status_BadRequest, this);
+        return SHttpServer::ResponseMessage(request, SHttpServer::Status_BadRequest);
     }
 
-    return SHttpServer::sendResponse(request, socket, SHttpServer::Status_PreconditionFailed, this);
+    return SHttpServer::ResponseMessage(request, SHttpServer::Status_PreconditionFailed);
   }
 
-  return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);
+  return SHttpServer::ResponseMessage(request, SHttpServer::Status_NotFound);
 }
 
-void SUPnPGenaServer::handleHttpOptions(SHttpServer::ResponseHeader &response)
+SHttpServer::ResponseMessage SUPnPGenaServer::httpOptions(const SHttpServer::RequestMessage &request)
 {
-  response.setField("Allow", response.field("Allow") + ",SUBSCRIBE,UNSUBSCRIBE");
+  SHttpServer::ResponseMessage response(request);
+  response.setField("Allow", "SUBSCRIBE,UNSUBSCRIBE");
+
+  return response;
 }
 
 void SUPnPGenaServer::emitEvents(void)
@@ -307,16 +309,13 @@ void SUPnPGenaServer::EventSession::sendEvent(void)
     return;
 
   // Build the message
-  const QByteArray content = parent->d->eventMessage;
   SHttpServer::RequestMessage request(NULL);
-  request.setContentType(SUPnPBase::xmlContentType);
-  request.setContentLength(content.length());
   request.setField("NT", "upnp:event");
   request.setField("NTS", "upnp:propchange");
   request.setField("SID", sid);
   request.setField("SEQ", QString::number(eventKey));
-
-  request.setContent(content);
+  request.setContentType(SUPnPBase::xmlContentType);
+  request.setContent(parent->d->eventMessage);
 
   // Make sure the eventKey does not overflow to 0.
   if (++eventKey == 0) eventKey = 1;

@@ -69,9 +69,6 @@ public:
 public slots:
   void                          start(QIODevice *);
 
-signals:
-  void                          handleHttpRequest(const SHttpEngine::RequestMessage &, QIODevice *);
-
 private slots:
   void                          readyRead();
   void                          close();

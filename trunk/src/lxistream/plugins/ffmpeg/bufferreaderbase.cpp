@@ -161,7 +161,7 @@ bool BufferReaderBase::start(ProduceCallback *produceCallback, ::AVFormatContext
             maxCount = qMax(int(*j), maxCount);
 
           for (QMap<qint64, QAtomicInt>::Iterator j=intervals.begin(); j!=intervals.end();)
-          if (*j > (maxCount / 4))
+          if ((j.key() > 10000) && (j.key() < 100000) && (*j > (maxCount / 4)))
           {
             if (*j > ((maxCount / 2) + (maxCount / 4)))
               *j = maxCount;
@@ -317,7 +317,7 @@ bool BufferReaderBase::demux(const Packet &packet)
             {
               SEncodedAudioBuffer buffer(context->audioCodec, packet.memory());
 
-              const QPair<STime, STime> ts = correctTimeStamp(packet);
+              const QPair<STime, STime> ts = correctTimeStampToVideo(packet);
               buffer.setPresentationTimeStamp(ts.first);
               buffer.setDecodingTimeStamp(ts.second);
 
@@ -331,7 +331,7 @@ bool BufferReaderBase::demux(const Packet &packet)
             }
             else foreach (SEncodedAudioBuffer buffer, parseDTSFrames(context, packet))
             { // Do DTS framing
-              const QPair<STime, STime> ts = correctTimeStamp(packet);
+              const QPair<STime, STime> ts = correctTimeStampToVideo(packet);
               buffer.setPresentationTimeStamp(ts.first);
               buffer.setDecodingTimeStamp(ts.second);
 
@@ -875,7 +875,11 @@ QPair<STime, STime> BufferReaderBase::correctTimeStampToVideo(const Packet &pack
 
   // Ensure the timestamps are zero-based. Non-zero bases streams can occur
   // when captured from DVB or a sample has been cut from a larger file.
-  STime subtract = STime::null;
+  STime baseSubtract = context->timeStampGap;
+  if (context->firstTimeStamp.isValid())
+    baseSubtract += context->firstTimeStamp;
+
+  STime subtract;
   for (unsigned i=0; i<formatContext->nb_streams; i++)
   if (formatContext->streams[i]->codec->codec_type == CODEC_TYPE_VIDEO)
   {
@@ -886,16 +890,21 @@ QPair<STime, STime> BufferReaderBase::correctTimeStampToVideo(const Packet &pack
     break;
   }
 
-  // Determine the decodingTimeStamp and presentationTimeStamp.
-  STime decodingTimeStamp, presentationTimeStamp;
+  if (subtract.isValid() && (qAbs(baseSubtract - subtract).toSec() < 15))
+  {
+    // Determine the decodingTimeStamp and presentationTimeStamp.
+    STime decodingTimeStamp, presentationTimeStamp;
 
-  if (packet.dts != AV_NOPTS_VALUE)
-    decodingTimeStamp = STime(packet.dts, context->timeBase) - subtract;
+    if (packet.dts != AV_NOPTS_VALUE)
+      decodingTimeStamp = STime(packet.dts, context->timeBase) - subtract;
 
-  if (packet.pts != AV_NOPTS_VALUE)
-    presentationTimeStamp = STime(packet.pts, context->timeBase) - subtract;
+    if (packet.pts != AV_NOPTS_VALUE)
+      presentationTimeStamp = STime(packet.pts, context->timeBase) - subtract;
 
-  return QPair<STime, STime>(presentationTimeStamp, decodingTimeStamp);
+    return QPair<STime, STime>(presentationTimeStamp, decodingTimeStamp);
+  }
+  else
+    return correctTimeStamp(packet);
 }
 
 BufferReaderBase::Packet::Packet(void)

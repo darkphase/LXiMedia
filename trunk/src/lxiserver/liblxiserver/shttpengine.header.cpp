@@ -28,26 +28,9 @@ SHttpEngine::Header::Header(const SHttpEngine *httpEngine)
 {
 }
 
-SHttpEngine::Header::Header(const QByteArray &header, const SHttpEngine *httpEngine)
-  : httpEngine(httpEngine)
+bool SHttpEngine::Header::isValid(void) const
 {
-  if (header.contains("\r\n\r\n"))
-  {
-    QList<QByteArray> lines = header.split('\r');
-    if (!lines.isEmpty())
-      head = lines.takeFirst().split(' ');
-
-    foreach (const QByteArray &line, lines) // Note: each line starts with a \n.
-    {
-      const int colon = line.indexOf(':');
-      if (colon > 0)
-      {
-        setField(
-            QString::fromUtf8(line.mid(1, colon - 1)).trimmed(),
-            QString::fromUtf8(line.mid(colon + 1)).trimmed());
-      }
-    }
-  }
+  return head.count() == 3;
 }
 
 bool SHttpEngine::Header::hasField(const QString &name) const
@@ -121,7 +104,7 @@ QByteArray SHttpEngine::Header::toByteArray(void) const
   QByteArray result;
   if (isValid())
   {
-    result = head[0] + ' ' + head[1] + ' ' + head[2] + "\r\n";
+    result = head[0].toUtf8() + ' ' + head[1].toUtf8() + ' ' + head[2].toUtf8() + "\r\n";
     for (QList< QPair<QString, QString> >::ConstIterator i=fields.begin(); i!=fields.end(); i++)
       result += i->first.toUtf8() + ": " + i->second.toUtf8() + "\r\n";
 
@@ -129,6 +112,31 @@ QByteArray SHttpEngine::Header::toByteArray(void) const
   }
 
   return result;
+}
+
+void SHttpEngine::Header::parse(const QByteArray &header)
+{
+  head.clear();
+  fields.clear();
+
+  if (header.contains("\r\n\r\n"))
+  {
+    QList<QByteArray> lines = header.split('\r');
+    if (!lines.isEmpty())
+    foreach (const QByteArray &item, lines.takeFirst().simplified().split(' '))
+      head.append(QString::fromUtf8(item));
+
+    foreach (const QByteArray &line, lines) // Note: each line starts with a \n.
+    {
+      const int colon = line.indexOf(':');
+      if (colon > 0)
+      {
+        setField(
+            QString::fromUtf8(line.mid(1, colon - 1)).trimmed(),
+            QString::fromUtf8(line.mid(colon + 1)).trimmed());
+      }
+    }
+  }
 }
 
 
@@ -141,14 +149,26 @@ SHttpEngine::RequestHeader::RequestHeader(const SHttpEngine *httpEngine)
     setField(httpEngine->senderType(), httpEngine->senderId());
 }
 
-SHttpEngine::RequestHeader::RequestHeader(const QByteArray &header, const SHttpEngine *httpEngine)
-  : Header(header, httpEngine)
+bool SHttpEngine::RequestHeader::isGet(void) const
 {
+  return
+      (method().compare("GET", Qt::CaseInsensitive) == 0) ||
+      (method().compare("HEAD", Qt::CaseInsensitive) == 0);
+}
+
+bool SHttpEngine::RequestHeader::isHead(void) const
+{
+  return method().compare("HEAD", Qt::CaseInsensitive) == 0;
+}
+
+bool SHttpEngine::RequestHeader::isPost(void) const
+{
+  return method().compare("POST", Qt::CaseInsensitive) == 0;
 }
 
 QString SHttpEngine::RequestHeader::file(void) const
 {
-  QByteArray result = path();
+  QString result = path();
 
   const int q = result.indexOf('?');
   if (q >= 0)
@@ -158,12 +178,12 @@ QString SHttpEngine::RequestHeader::file(void) const
   if (s >= 0)
     result = result.mid(s + 1);
 
-  return QString::fromUtf8(QByteArray::fromPercentEncoding(result));
+  return QString::fromUtf8(QByteArray::fromPercentEncoding(result.toAscii()));
 }
 
 QString SHttpEngine::RequestHeader::directory(void) const
 {
-  QByteArray result = path();
+  QString result = path();
 
   const int q = result.indexOf('?');
   if (q >= 0)
@@ -173,7 +193,7 @@ QString SHttpEngine::RequestHeader::directory(void) const
   if (s >= 0)
     result = result.left(s + 1);
 
-  return QString::fromUtf8(QByteArray::fromPercentEncoding(result));
+  return QString::fromUtf8(QByteArray::fromPercentEncoding(result.toAscii()));
 }
 
 SHttpEngine::ResponseHeader::ResponseHeader(const SHttpEngine *httpEngine)
@@ -189,7 +209,7 @@ SHttpEngine::ResponseHeader::ResponseHeader(const SHttpEngine *httpEngine)
 SHttpEngine::ResponseHeader::ResponseHeader(const RequestHeader &request)
   : Header(request.httpEngine)
 {
-  head << qMin(request.version(), QByteArray(httpVersion)) << "200" << "OK";
+  head << qMin(request.version(), QString(httpVersion)) << "200" << "OK";
   setDate();
 
   if (httpEngine)
@@ -199,31 +219,32 @@ SHttpEngine::ResponseHeader::ResponseHeader(const RequestHeader &request)
 SHttpEngine::ResponseHeader::ResponseHeader(const RequestHeader &request, Status status)
   : Header(request.httpEngine)
 {
-  head << qMin(request.version(), QByteArray(httpVersion)) << QByteArray::number(status) << statusText(status);
+  head << qMin(request.version(), QString(httpVersion)) << QString::number(status) << statusText(status);
   setDate();
 
   if (httpEngine)
     setField(httpEngine->senderType(), httpEngine->senderId());
 }
 
-SHttpEngine::ResponseHeader::ResponseHeader(const QByteArray &header, const SHttpEngine *httpEngine)
-  : Header(header, httpEngine)
-{
-  while (head.count() > 3)
-    head[2] += " " + head.takeAt(3);
-}
-
 void SHttpEngine::ResponseHeader::setStatus(Status status)
 {
   if (head.size() > 1)
-    head[1] = QByteArray::number(status);
+    head[1] = QString::number(status);
   else
-    head.append(QByteArray::number(status));
+    head.append(QString::number(status));
 
   if (head.size() > 2)
     head[2] = statusText(status);
   else
     head.append(statusText(status));
+}
+
+void SHttpEngine::ResponseHeader::parse(const QByteArray &header)
+{
+  Header::parse(header);
+
+  while (head.count() > 3)
+    head[2] += " " + head.takeAt(3);
 }
 
 const char * SHttpEngine::ResponseHeader::statusText(int code)
@@ -280,12 +301,15 @@ const char * SHttpEngine::ResponseHeader::statusText(int code)
 }
 
 
-SHttpEngine::RequestMessage::RequestMessage(const QByteArray &message, const SHttpEngine *server)
-  : RequestHeader(message, server)
+SHttpEngine::RequestMessage::RequestMessage(const SHttpEngine *server)
+  : RequestHeader(server)
 {
-  const int eoh = message.indexOf("\r\n\r\n");
-  if (eoh >= 0)
-    data = message.mid(eoh + 4);
+  setContentLength(data.length());
+}
+
+bool SHttpEngine::RequestMessage::isComplete(void) const
+{
+  return data.length() >= contentLength();
 }
 
 void SHttpEngine::RequestMessage::setContent(const QByteArray &content)
@@ -299,18 +323,70 @@ QByteArray SHttpEngine::RequestMessage::toByteArray(void) const
   return RequestHeader::toByteArray() + data;
 }
 
-
-SHttpEngine::ResponseMessage::ResponseMessage(const QByteArray &message, const SHttpEngine *server)
-  : ResponseHeader(message, server)
+void SHttpEngine::RequestMessage::parse(const QByteArray &message)
 {
   const int eoh = message.indexOf("\r\n\r\n");
   if (eoh >= 0)
+  {
+    RequestHeader::parse(message.left(eoh + 4));
     data = message.mid(eoh + 4);
+  }
+  else
+    RequestHeader::parse(message);
+}
+
+
+SHttpEngine::ResponseMessage::ResponseMessage(const SHttpEngine *httpEngine = NULL)
+  : ResponseHeader(httpEngine) 
+{ 
+  setContentLength(data.length());
+}
+
+SHttpEngine::ResponseMessage::ResponseMessage(const RequestHeader &request) 
+  : ResponseHeader(request) 
+{ 
+  setContentLength(data.length());
+}
+
+SHttpEngine::ResponseMessage::ResponseMessage(const RequestHeader &request, Status status) 
+  : ResponseHeader(request, status) 
+{ 
+  setContentLength(data.length());
+}
+
+SHttpEngine::ResponseMessage::ResponseMessage(const RequestHeader &request, Status status, const QByteArray &data)
+  : ResponseHeader(request, status),
+    data(data)
+{
+  setContentLength(data.length());
+}
+
+bool SHttpEngine::ResponseMessage::isComplete(void) const
+{
+  return data.length() >= contentLength();
+}
+
+void SHttpEngine::ResponseMessage::setContent(const QByteArray &content)
+{
+  data = content;
+  setContentLength(data.length());
 }
 
 QByteArray SHttpEngine::ResponseMessage::toByteArray(void) const
 {
   return ResponseHeader::toByteArray() + data;
+}
+
+void SHttpEngine::ResponseMessage::parse(const QByteArray &message)
+{
+  const int eoh = message.indexOf("\r\n\r\n");
+  if (eoh >= 0)
+  {
+    ResponseHeader::parse(message.left(eoh + 4));
+    data = message.mid(eoh + 4);
+  }
+  else
+    ResponseHeader::parse(message);
 }
 
 

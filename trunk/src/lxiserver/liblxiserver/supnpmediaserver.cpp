@@ -105,9 +105,9 @@ void SUPnPMediaServer::registerService(const Service &service)
   d->ssdpServer->publish(service.serviceType, d->basePath + "description.xml", 1);
 }
 
-SHttpServer::SocketOp SUPnPMediaServer::handleHttpRequest(const SHttpServer::RequestMessage &request, QIODevice *socket)
+SHttpServer::ResponseMessage SUPnPMediaServer::httpRequest(const SHttpServer::RequestMessage &request, QIODevice *)
 {
-  if ((request.method() == "GET") || (request.method() == "HEAD"))
+  if (request.isGet())
   {
     if (request.path() == (d->basePath + "description.xml"))
     {
@@ -168,25 +168,17 @@ SHttpServer::SocketOp SUPnPMediaServer::handleHttpRequest(const SHttpServer::Req
       rootElm.appendChild(deviceElm);
       doc.appendChild(rootElm);
 
-      const QByteArray content = QByteArray(SUPnPBase::xmlDeclaration) + doc.toByteArray(-1);
-      SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
-      response.setContentType(SUPnPBase::xmlContentType);
-      response.setContentLength(content.length());
+      SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
       response.setField("Cache-Control", "no-cache");
       response.setField("Accept-Ranges", "bytes");
       response.setField("Connection", "close");
-      socket->write(response);
-      socket->write(content);
-      return SHttpServer::SocketOp_Close;
+      response.setContentType(SUPnPBase::xmlContentType);
+      response.setContent(QByteArray(SUPnPBase::xmlDeclaration) + doc.toByteArray(-1));
+      return response;
     }
   }
 
-  return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound, this);
-}
-
-void SUPnPMediaServer::handleHttpOptions(SHttpServer::ResponseHeader &response)
-{
-  response.setField("Allow", response.field("Allow") + ",GET,HEAD");
+  return SHttpServer::ResponseMessage(request, SHttpServer::Status_NotFound);
 }
 
 } // End of namespace

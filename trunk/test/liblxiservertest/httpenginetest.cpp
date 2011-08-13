@@ -115,29 +115,23 @@ bool HttpEngineTest::startServer(const QHostAddress &address)
     {
     }
 
-    virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestMessage &request, QIODevice *socket)
+    virtual SHttpServer::ResponseMessage httpRequest(const SHttpServer::RequestMessage &request, QIODevice *)
     {
-      if ((request.method() == "GET") || (request.method() == "HEAD"))
+      if (request.isGet())
       {
         if (request.path() == "/test.txt")
         {
           const QString text = "hello world\n";
 
-          SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
-          response.setContentLength(text.size());
+          SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
           response.setContentType(SHttpServer::toMimeType(".txt"));
-          socket->write(response);
-          socket->write(text.toUtf8());
-          return SHttpServer::SocketOp_Close;
+          response.setContent(text.toUtf8());
+
+          return response;
         }
       }
 
-      return SHttpServer::sendResponse(request, socket, SHttpServer::Status_NotFound);
-    }
-
-    virtual void handleHttpOptions(SHttpServer::ResponseHeader &response)
-    {
-      response.setField("Allow", response.field("Allow") + ",GET,HEAD");
+      return SHttpServer::ResponseMessage(request, SHttpServer::Status_NotFound);
     }
   };
 

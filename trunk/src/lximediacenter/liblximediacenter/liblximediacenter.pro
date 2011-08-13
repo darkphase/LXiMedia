@@ -35,7 +35,6 @@ HEADERS += $${PWD}/$${LXIMEDIA_DIR}/include/LXiMediaCenter \
 
 SOURCES += backendsandbox.cpp \
  backendserver.cpp \
- backendserver.html.cpp \
  database.cpp \
  globalsettings.cpp \
  htmlparser.cpp \
