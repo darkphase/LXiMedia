@@ -41,18 +41,17 @@ private:
 public:
   bool                          needsUpdate(const QString &identifier) const;
   void                          update(const QString &identifier, const QString &script);
-  void                          update(const QString &identifier, const QString &category, const QString &targetAudience, const QString &script);
+  void                          update(const QString &identifier, const QString &targetAudience, const QString &script);
   void                          remove(const QString &identifier);
   QString                       fullIdentifier(const QString &identifier) const;
 
-  QString                       category(const QString &identifier) const;
   QString                       script(const QString &identifier) const;
 
   QStringList                   allTargetAudiences(void) const;
   int                           countSites(const QString &targetAudience) const;
-  int                           countSites(const QString &category, const QStringList &targetAudiences) const;
+  int                           countSites(const QStringList &targetAudiences) const;
   QStringList                   getSites(const QString &targetAudience, unsigned start = 0, unsigned count = 0) const;
-  QStringList                   getSites(const QString &category, const QStringList &targetAudiences, unsigned start = 0, unsigned count = 0) const;
+  QStringList                   getSites(const QStringList &targetAudiences, unsigned start = 0, unsigned count = 0) const;
 
   static QString                reverseDomain(const QString &);
 

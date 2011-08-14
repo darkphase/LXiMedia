@@ -17,8 +17,24 @@ audiences based on geographical location in the format "<Country>[/<Location>]",
 the string "*" can be used to indicate a global audience.
   function targetAudience() { return "NL UK/London"; }
 
-The category function should return one of { "Radio", "TV", "Sites" }.
-  function category() { return "Radio"; }
+The listItems function should return the media items for the site. The function
+should return an array, where each item is an array with the following elements:
+[ <streamid>, <name>, <type> ]. streamid is the identifier for the stream, name 
+is the user-visible name of the stream and type is one of { "Audio", "Video", 
+"Image", "Dir" }.
+  function listItems(path)
+  {
+    if (path == "/")
+    {
+      var items =
+        [ ["stream1", "Play Stream 1", "Audio"],
+          ["stream2", "Play Stream 2", "Audio"] ];
+
+      return items;
+    }
+    else
+      return [];
+  }
 
 The icon function should return a base64 encoded string representing a 128x128
 PNG encoded icon for the specified ID, this should not exceed 8192 characters.
@@ -28,19 +44,6 @@ The special empty string ID is used for the global icon.
   function icon(id)
   { 
     return icon_png; 
-  }
-
-The listItems function should return the media items for the site. The function
-should return a formatted string, where each item is separated by a semicolon
-and the items are formatted as: "<streamid>|<name>|<type>". streamid is the
-identifier for the stream, name is the user-visible name of the stream and type
-is one of { "Audio", "Video", "Image", "Dir" }.
-  function listItems(path)
-  {
-    if (path == "/")
-      return "stream1|Play Stream 1|Audio;stream2|Play Stream 2|Audio";
-    else
-      return "";
   }
 
 The streamLocation function should return the URL for a streamid.

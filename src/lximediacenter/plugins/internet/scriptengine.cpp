@@ -33,7 +33,6 @@ ScriptEngine::ScriptEngine(const QString &script, QObject *parent)
 
   versionFunc = global.property("version");
   targetAudienceFunc = global.property("targetAudience");
-  categoryFunc = global.property("category");
 
   iconFunc = global.property("icon");
   listItemsFunc = global.property("listItems");
@@ -73,14 +72,6 @@ QString ScriptEngine::targetAudience(void)
   return QString::null;
 }
 
-QString ScriptEngine::category(void)
-{
-  if (!categoryFunc.isNull())
-    return categoryFunc.call(me).toString();
-
-  return QString::null;
-}
-
 QImage ScriptEngine::icon(const QString &id)
 {
   if (!iconFunc.isNull())
@@ -95,31 +86,37 @@ QList<MediaServer::Item> ScriptEngine::listItems(const QString &path)
 
   if (!listItemsFunc.isNull())
   {
-    const QString itemsStr = listItemsFunc.call(me, QScriptValueList() << path).toString();
-    foreach (const QString &itemStr, itemsStr.split(';', QString::SkipEmptyParts))
+    const QScriptValue items = listItemsFunc.call(me, QScriptValueList() << path);
+    for (int i=0; true; i++)
     {
-      const QStringList vars = itemStr.split('|');
-      if (vars.count() >= 3)
+      const QScriptValue item = items.property(i);
+      if (item.isArray())
       {
+        const QString streamId = item.property(0).toString();
+        const QString name = item.property(1).toString();
+        const QString type = item.property(2).toString();
+
         MediaServer::Item item;
         item.direct = true;
 
-        if (vars[2] == "Video")
+        if (type.compare("Video", Qt::CaseInsensitive))
           item.type = SUPnPContentDirectory::Item::Type_Video;
-        else if (vars[2] == "Audio")
+        else if (type.compare("Audio", Qt::CaseInsensitive))
           item.type = SUPnPContentDirectory::Item::Type_Audio;
-        else if (vars[2] == "Image")
+        else if (type.compare("Image", Qt::CaseInsensitive))
           item.type = SUPnPContentDirectory::Item::Type_Image;
         else
           item.type = SUPnPContentDirectory::Item::Type_None;
 
-        item.url = vars[0];
-        item.iconUrl = vars[0] + "-thumb.png";
+        item.url = streamId;
+        item.iconUrl = streamId + "-thumb.png";
 
-        item.title = vars[1];
+        item.title = name;
 
         result += item;
       }
+      else
+        break;
     }
   }
 

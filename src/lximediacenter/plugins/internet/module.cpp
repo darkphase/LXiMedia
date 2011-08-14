@@ -48,16 +48,12 @@ public:
 
 const char Module::pluginName[]     = QT_TR_NOOP("Internet");
 
-const char Module::radioName[]      = QT_TR_NOOP("Radio"),        Module::radioIcon[] = "/img/audio-headset.png";
-const char Module::tvName[]         = QT_TR_NOOP("TV"),           Module::tvIcon[]    = "/img/video-television.png";
 const char Module::sitesName[]      = QT_TR_NOOP("Sites"),        Module::sitesIcon[] = "/img/homepage.png";
 
 bool Module::registerClasses(void)
 {
-  InternetServer::registerClass< Server<radioName,  radioIcon> >(0);
-  InternetServer::registerClass< Server<tvName,     tvIcon> >(-1);
-  InternetServer::registerClass< Server<sitesName,  sitesIcon> >(-2);
-  ConfigServer::registerClass<ConfigServer>(-6);
+  InternetServer::registerClass< Server<sitesName,  sitesIcon> >(0);
+  ConfigServer::registerClass<ConfigServer>(-1);
 
   InternetSandbox::registerClass<InternetSandbox>(0);
 

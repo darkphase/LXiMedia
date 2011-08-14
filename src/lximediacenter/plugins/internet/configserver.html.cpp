@@ -268,7 +268,7 @@ SHttpServer::ResponseMessage ConfigServer::handleHtmlRequest(const SHttpServer::
         htmlParser.setField("DIR_ALLOPEN", qCompress(QStringList(allopen.toList()).join(QString(dirSplit)).toUtf8()).toHex());
         htmlParser.setField("DIR_EXPAND", QByteArray(""));
 
-        htmlParser.setField("ITEM_ICON", '/' + pluginName() + '/' + siteDatabase->category(identifier) + '/' + siteDatabase->reverseDomain(identifier) + "/-thumb.png");
+        htmlParser.setField("ITEM_ICON", '/' + pluginName() + "/Sites/" + siteDatabase->reverseDomain(identifier) + "/-thumb.png");
         htmlParser.setField("DIR_CHECK", htmlParser.parse(htmlTreeCheckIcon));
 
         htmlParser.setField("ITEM_NAME", siteDatabase->reverseDomain(identifier));

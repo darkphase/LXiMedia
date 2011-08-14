@@ -70,7 +70,6 @@ private:
   const QList<Item>           & cachedItems(const QString &path);
 
 protected:
-  const QString                 category;
   MasterServer                * masterServer;
   SiteDatabase                * siteDatabase;
   QMap<QString, QList<Item> >   itemCache;
