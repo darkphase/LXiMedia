@@ -35,7 +35,7 @@ NetworkBufferReader::~NetworkBufferReader()
 {
   if (mmsHandle)
   {
-    ::mms_close(mmsHandle);
+    ::mmsx_close(mmsHandle);
     mmsHandle = NULL;
   }
 
@@ -51,20 +51,29 @@ bool NetworkBufferReader::start(const QUrl &url, ProduceCallback *pc, quint16 pr
 {
   foreach (const QUrl &mmsUrl, resolve(url))
   {
-    mmsHandle = ::mms_connect(NULL, NULL, url.toEncoded(), 1048576);
+    qDebug() << "MMS connect" << mmsUrl.toString();
+    mmsHandle = ::mmsx_connect(NULL, NULL, mmsUrl.toEncoded(), 1048576);
     if (mmsHandle)
     {
+      qDebug() << "MMS connected";
+
       bufferReader = SInterfaces::BufferReader::create(this, "asf", false);
       if (bufferReader)
       {
+        qDebug() << "MMS bufferReader->start";
         if (bufferReader->start(this, pc, programId, true))
+        {
+          qDebug() << "MMS bufferReader->start finished";
           return true;
+        }
+
+        qDebug() << "MMS bufferReader->start failed";
 
         delete bufferReader;
         bufferReader = NULL;
       }
 
-      ::mms_close(mmsHandle);
+      ::mmsx_close(mmsHandle);
       mmsHandle = NULL;
     }
   }
@@ -76,7 +85,7 @@ void NetworkBufferReader::stop(void)
 {
   if (mmsHandle)
   {
-    ::mms_close(mmsHandle);
+    ::mmsx_close(mmsHandle);
     mmsHandle = NULL;
   }
 
@@ -84,25 +93,25 @@ void NetworkBufferReader::stop(void)
   bufferReader = NULL;
 }
 
-bool NetworkBufferReader::buffer(void)
-{
-  return true;
-}
-
-STime NetworkBufferReader::bufferDuration(void) const
-{
-  return STime::null;
-}
-
 bool NetworkBufferReader::process(void)
 {
   return bufferReader->process();
 }
 
+bool NetworkBufferReader::buffer(void)
+{
+  return bufferReader->buffer();
+}
+
+STime NetworkBufferReader::bufferDuration(void) const
+{
+  return bufferReader->bufferDuration();
+}
+
 STime NetworkBufferReader::duration(void) const
 {
   if (mmsHandle)
-    return STime::fromMSec(::mms_get_time_length(mmsHandle) * 1000.0);
+    return STime::fromMSec(::mmsx_get_time_length(mmsHandle) * 1000.0);
 
   return STime();
 }
@@ -110,7 +119,7 @@ STime NetworkBufferReader::duration(void) const
 bool NetworkBufferReader::setPosition(STime pos)
 {
   if (mmsHandle)
-    return ::mms_time_seek(NULL, mmsHandle, double(pos.toMSec()) / 1000.0) == 0;
+    return ::mmsx_time_seek(NULL, mmsHandle, double(pos.toMSec()) / 1000.0) == 0;
 
   return false;
 }
@@ -148,12 +157,18 @@ void NetworkBufferReader::selectStreams(const QList<StreamId> &streams)
 qint64 NetworkBufferReader::read(uchar *buffer, qint64 size)
 {
   if (mmsHandle)
-    return ::mms_read(NULL, mmsHandle, reinterpret_cast<char *>(buffer), size);
+  {
+    int result = ::mmsx_read(NULL, mmsHandle, reinterpret_cast<char *>(buffer), size);
+    
+    qDebug() << "MMS NetworkBufferReader::read" << size << result;
+    
+    return result;
+  }
 
   return -1;
 }
 
-qint64 NetworkBufferReader::seek(qint64 offset, int whence)
+qint64 NetworkBufferReader::seek(qint64 /*offset*/, int /*whence*/)
 {
   return -1;
 }

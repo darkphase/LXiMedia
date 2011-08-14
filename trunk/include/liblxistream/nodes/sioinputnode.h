@@ -49,7 +49,7 @@ public: // From SInterfaces::SourceNode
   virtual void                  stop(void);
   virtual void                  process(void);
 
-public: // From SInterfaces::BufferReaderNode
+public: // From SInterfaces::AbstractBufferReader
   virtual STime                 duration(void) const;
   virtual bool                  setPosition(STime);
   virtual STime                 position(void) const;

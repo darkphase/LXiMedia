@@ -22,7 +22,7 @@
 
 #include <QtCore>
 #include <LXiStream>
-#include <libmms/mms.h>
+#include <libmms/mmsx.h>
 
 namespace LXiStream {
 namespace MMSBackend {
@@ -40,11 +40,10 @@ public: // From SInterfaces::BufferReader
 
   virtual bool                  start(const QUrl &url, ProduceCallback *, quint16 programId);
   virtual void                  stop(void);
+  virtual bool                  process(void);
 
   virtual bool                  buffer(void);
   virtual STime                 bufferDuration(void) const;
-
-  virtual bool                  process(void);
 
   virtual STime                 duration(void) const;
   virtual bool                  setPosition(STime);
@@ -64,7 +63,7 @@ private:
   static QList<QUrl>            resolve(const QUrl &);
 
 private:
-  ::mms_t                     * mmsHandle;
+  ::mmsx_t                    * mmsHandle;
 
   SInterfaces::BufferReader   * bufferReader;
 };

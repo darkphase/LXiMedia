@@ -300,7 +300,7 @@ void STimeStampSyncNode::output(void)
       d->inTimeStamp = inTime;
 
     const STime frameTime = d->frameRate.isValid() ? STime(1, d->frameRate) : STime::fromMSec(15);
-    const STime maxDelta = frameTime * -1;
+    const STime maxDelta = frameTime * -3;
 
     // Dump old video buffers
     for (QMap<quint16, Queue<SVideoBuffer> >::Iterator i=d->videoQueue.begin(); i!=d->videoQueue.end(); i++)

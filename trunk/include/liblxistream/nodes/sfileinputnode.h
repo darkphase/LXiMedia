@@ -41,7 +41,7 @@ public:
 public: // From SInterfaces::SourceNode
   virtual void                  stop(void);
 
-public: // From SInterfaces::BufferReaderNode
+public: // From SInterfaces::AbstractBufferReader
   virtual bool                  setPosition(STime);
 
   virtual QList<DataStreamInfo> dataStreams(void) const;

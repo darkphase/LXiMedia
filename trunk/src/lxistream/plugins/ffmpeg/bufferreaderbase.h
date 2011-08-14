@@ -27,7 +27,7 @@
 namespace LXiStream {
 namespace FFMpegBackend {
 
-class BufferReaderBase : public virtual SInterfaces::AbstractBufferReader
+class BufferReaderBase : public virtual SInterfaces::AbstractBufferedReader
 {
 public:
   class Packet : public SBuffer
@@ -83,7 +83,10 @@ public:
   STime                         timeStamp(const Packet &) const;
   bool                          demux(const Packet &);
 
-public: // From SInterfaces::AbstractBufferReader
+public: // From SInterfaces::AbstractBufferedReader
+  virtual bool                  buffer(void);
+  virtual STime                 bufferDuration(void) const;
+
   virtual STime                 duration(void) const;
   inline virtual bool           setPosition(STime pos)                          { return setPosition(pos, false); }
   virtual STime                 position(void) const;

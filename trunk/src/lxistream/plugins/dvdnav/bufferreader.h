@@ -54,6 +54,9 @@ public: // From SInterfaces::BufferReader
   virtual void                  stop(void);
   virtual bool                  process(void);
 
+  virtual bool                  buffer(void);
+  virtual STime                 bufferDuration(void) const;
+
   virtual STime                 duration(void) const;
   virtual bool                  setPosition(STime);
   virtual STime                 position(void) const;

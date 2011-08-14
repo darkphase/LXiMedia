@@ -142,20 +142,38 @@ bool SandboxNetworkStream::setup(const SHttpServer::RequestMessage &request, QIO
   const bool generateVideo = file.url().queryItemValue("musicmode").startsWith("addvideo");
 
   if (source.open(hasVideo, generateVideo))
-  if (MediaStream::setup(
-      request, socket,
-      STime::null,
-      source.frameRate(),
-      source.size(),
-      source.channelSetup(),
-      false))
   {
-    connect(&source, SIGNAL(output(SAudioBuffer)), &audio->matrix, SLOT(input(SAudioBuffer)));
-    connect(&source, SIGNAL(output(SVideoBuffer)), &video->deinterlacer, SLOT(input(SVideoBuffer)));
-    connect(&source, SIGNAL(output(SSubpictureBuffer)), &video->subpictureRenderer, SLOT(input(SSubpictureBuffer)));
-    connect(&source, SIGNAL(output(SSubtitleBuffer)), &video->subtitleRenderer, SLOT(input(SSubtitleBuffer)));
+    if (hasVideo || generateVideo)
+    {
+      if (MediaStream::setup(
+          request, socket,
+          STime::null,
+          source.frameRate(),
+          source.size(),
+          source.channelSetup(),
+          false))
+      {
+        connect(&source, SIGNAL(output(SAudioBuffer)), &audio->matrix, SLOT(input(SAudioBuffer)));
+        connect(&source, SIGNAL(output(SVideoBuffer)), &video->deinterlacer, SLOT(input(SVideoBuffer)));
+        connect(&source, SIGNAL(output(SSubpictureBuffer)), &video->subpictureRenderer, SLOT(input(SSubpictureBuffer)));
+        connect(&source, SIGNAL(output(SSubtitleBuffer)), &video->subtitleRenderer, SLOT(input(SSubtitleBuffer)));
 
-    return true;
+        return true;
+      }
+    }
+    else
+    {
+      if (MediaStream::setup(
+          request, socket,
+          STime::null,
+          source.channelSetup(),
+          false))
+      {
+        connect(&source, SIGNAL(output(SAudioBuffer)), &audio->matrix, SLOT(input(SAudioBuffer)));
+
+        return true;
+      }
+    }
   }
 
   return false;
