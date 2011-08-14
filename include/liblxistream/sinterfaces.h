@@ -326,11 +326,31 @@ public:
   virtual void                  selectStreams(const QList<StreamId> &) = 0;
 };
 
+
+/*! The AbstractBufferedReader interface is used for interfaces and nodes that
+    provide access to buffered streams (e.g. network streams).
+ */
+class LXISTREAM_PUBLIC AbstractBufferedReader : public AbstractBufferReader
+{
+public:
+  /*! Shall buffer more data, use bufferDuration() to check the amount of data
+      buffered.
+      \returns false if an error occured.
+      \note This method shall be thread-safe, such that buffer() and
+            bufferDuration() or process() can be invoked simulateously.
+   */
+  virtual bool                  buffer(void) = 0;
+
+  /*! Shall return the amount of time buffered.
+   */
+  virtual STime                 bufferDuration(void) const = 0;
+};
+
 /*! The BufferReader interface can be used to read serialized buffers from a
     byte stream.
  */
 class LXISTREAM_PUBLIC BufferReader : public QObject,
-                                      public virtual AbstractBufferReader
+                                      public virtual AbstractBufferedReader
 {
 Q_OBJECT
 S_FACTORIZABLE_NO_CREATE(BufferReader)
@@ -359,7 +379,7 @@ public:
     from a network stream.
  */
 class LXISTREAM_PUBLIC NetworkBufferReader : public QObject,
-                                             public virtual AbstractBufferReader
+                                             public virtual AbstractBufferedReader
 {
 Q_OBJECT
 S_FACTORIZABLE_NO_CREATE(NetworkBufferReader)
@@ -377,18 +397,6 @@ protected:
 public:
   virtual bool                  start(const QUrl &url, ProduceCallback *, quint16 programId) = 0;
   virtual void                  stop(void) = 0;
-
-  /*! Shall buffer more data, use bufferSize() to check the amount of data
-      buffered.
-      \returns false if an error occured.
-      \note This method shall be thread-safe, such that buffer() and
-            bufferDuration() or process() can be invoked simulateously.
-   */
-  virtual bool                  buffer(void) = 0;
-
-  /*! Shall return the amount of time buffered.
-   */
-  virtual STime                 bufferDuration(void) const = 0;
 
   /*! Shall demux a packet from the buffer, or the stream if the buffer is
       empty.

@@ -395,6 +395,38 @@ bool BufferReaderBase::demux(const Packet &packet)
     return false;
 }
 
+bool BufferReaderBase::buffer(void)
+{
+  ::AVPacket avPacket;
+  ::av_init_packet(&avPacket);
+
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
+  formatContext->flags &= ~int(AVFMT_FLAG_NOFILLIN);
+#endif
+
+  if (::av_read_frame(formatContext, &avPacket) >= 0)
+  {
+    packetBuffer.append(avPacket);
+    return true;
+  }
+
+  return false;
+}
+
+STime BufferReaderBase::bufferDuration(void) const
+{
+  if (!packetBuffer.isEmpty())
+  {
+    const STime first = timeStamp(packetBuffer.first());
+    const STime last  = timeStamp(packetBuffer.last());
+
+    if (first.isValid() && last.isValid())
+      return last - first;
+  }
+
+  return STime();
+}
+
 STime BufferReaderBase::duration(void) const
 {
   if (formatContext->duration != AV_NOPTS_VALUE)

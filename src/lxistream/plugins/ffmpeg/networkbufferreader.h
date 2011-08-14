@@ -42,15 +42,7 @@ public: // From SInterfaces::NetworkBufferReader
   virtual bool                  start(const QUrl &url, ProduceCallback *, quint16 programId);
   virtual void                  stop(void);
 
-  virtual bool                  buffer(void);
-  virtual STime                 bufferDuration(void) const;
-
   virtual bool                  process(void);
-
-private:
-  QMutex                        readMutex;
-  mutable QMutex                packetBufferMutex;
-  QList<Packet>                 packetBuffer;
 };
 
 } } // End of namespaces

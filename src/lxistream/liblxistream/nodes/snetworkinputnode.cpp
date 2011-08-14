@@ -30,6 +30,7 @@ struct SNetworkInputNode::Data
   STime                         bufferDuration;
   SInterfaces::NetworkBufferReader * bufferReader;
 
+  QSemaphore                    bufferSem;
   bool                          bufferState;
   QFuture<void>                 future;
   QFutureWatcher<void>          futureWatcher;
@@ -43,6 +44,7 @@ SNetworkInputNode::SNetworkInputNode(SGraph *parent, const QUrl &url)
   d->programId = 0;
   d->bufferDuration = STime::fromSec(10);
   d->bufferReader = NULL;
+  d->bufferSem.release(1);
   d->bufferState = false;
 
   connect(&d->futureWatcher, SIGNAL(finished()), SLOT(fillBuffer()), Qt::QueuedConnection);
@@ -106,32 +108,38 @@ void SNetworkInputNode::stop(void)
 
 void SNetworkInputNode::process(void)
 {
-  LXI_PROFILE_WAIT(d->future.waitForFinished());
   LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
 
   if (d->bufferReader)
   {
+    if (d->bufferSem.tryAcquire(1, 15))
+    {
+      if (d->bufferState)
+      if (!d->bufferReader->process())
+      {
+        // Finished; close input.
+        d->bufferReader->stop();
+
+        delete d->bufferReader;
+        d->bufferReader = NULL;
+
+        emit output(SEncodedAudioBuffer());
+        emit output(SEncodedVideoBuffer());
+        emit output(SEncodedDataBuffer());
+        emit finished();
+      }
+
+      d->bufferSem.release(1);
+    }
+
     fillBuffer();
-    if (!d->bufferState)
-      return;
-    else if (d->bufferReader->process())
-      return;
-
-    // Finished; close input.
-    d->bufferReader->stop();
-
-    delete d->bufferReader;
-    d->bufferReader = NULL;
-
-    emit output(SEncodedAudioBuffer());
-    emit output(SEncodedVideoBuffer());
-    emit output(SEncodedDataBuffer());
-    emit finished();
   }
 }
 
 STime SNetworkInputNode::duration(void) const
 {
+  d->future.waitForFinished();
+
   if (d->bufferReader)
     return d->bufferReader->duration();
 
@@ -140,6 +148,8 @@ STime SNetworkInputNode::duration(void) const
 
 bool SNetworkInputNode::setPosition(STime pos)
 {
+  d->future.waitForFinished();
+
   if (d->bufferReader)
     return d->bufferReader->setPosition(pos);
 
@@ -148,6 +158,8 @@ bool SNetworkInputNode::setPosition(STime pos)
 
 STime SNetworkInputNode::position(void) const
 {
+  d->future.waitForFinished();
+
   if (d->bufferReader)
     return d->bufferReader->position();
 
@@ -156,6 +168,8 @@ STime SNetworkInputNode::position(void) const
 
 QList<SNetworkInputNode::Chapter> SNetworkInputNode::chapters(void) const
 {
+  d->future.waitForFinished();
+
   if (d->bufferReader)
     return d->bufferReader->chapters();
 
@@ -164,6 +178,8 @@ QList<SNetworkInputNode::Chapter> SNetworkInputNode::chapters(void) const
 
 QList<SNetworkInputNode::AudioStreamInfo> SNetworkInputNode::audioStreams(void) const
 {
+  d->future.waitForFinished();
+
   if (d->bufferReader)
     return d->bufferReader->audioStreams();
 
@@ -172,6 +188,8 @@ QList<SNetworkInputNode::AudioStreamInfo> SNetworkInputNode::audioStreams(void) 
 
 QList<SNetworkInputNode::VideoStreamInfo> SNetworkInputNode::videoStreams(void) const
 {
+  d->future.waitForFinished();
+
   if (d->bufferReader)
     return d->bufferReader->videoStreams();
 
@@ -180,6 +198,8 @@ QList<SNetworkInputNode::VideoStreamInfo> SNetworkInputNode::videoStreams(void) 
 
 QList<SNetworkInputNode::DataStreamInfo> SNetworkInputNode::dataStreams(void) const
 {
+  d->future.waitForFinished();
+
   if (d->bufferReader)
     return d->bufferReader->dataStreams();
 
@@ -188,6 +208,8 @@ QList<SNetworkInputNode::DataStreamInfo> SNetworkInputNode::dataStreams(void) co
 
 void SNetworkInputNode::selectStreams(const QList<StreamId> &streamIds)
 {
+  d->future.waitForFinished();
+
   if (d->bufferReader)
     d->bufferReader->selectStreams(streamIds);
 }
@@ -195,6 +217,7 @@ void SNetworkInputNode::selectStreams(const QList<StreamId> &streamIds)
 void SNetworkInputNode::fillBuffer(void)
 {
   if (d->bufferReader)
+  if (d->bufferSem.tryAcquire(1, 0))
   {
     const STime currentDuration = d->bufferReader->bufferDuration();
     const float currentProgress = float(currentDuration.toMSec()) / float(d->bufferDuration.toMSec());
@@ -214,6 +237,8 @@ void SNetworkInputNode::fillBuffer(void)
     }
     else if (!d->bufferState)
       emit bufferState(d->bufferState = true, currentProgress);
+
+    d->bufferSem.release(1);
   }
 }
 
@@ -234,9 +259,12 @@ void SNetworkInputNode::produce(const SEncodedDataBuffer &buffer)
 
 void SNetworkInputNode::bufferTask(void)
 {
+  LXI_PROFILE_WAIT(d->bufferSem.acquire(1));
   LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
 
   d->bufferReader->buffer();
+
+  d->bufferSem.release(1);
 }
 
 } // End of namespace
