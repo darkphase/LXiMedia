@@ -22,7 +22,7 @@
 namespace LXiStream {
 namespace DVDNavBackend {
 
-const char * const BufferReader::formatName = "disc.dvd";
+const char BufferReader::formatName[] = "disc.dvd";
 
 QString BufferReader::discPath(const QString &path)
 {

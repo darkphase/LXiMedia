@@ -359,7 +359,7 @@ const QString & SHttpClientEngine::senderId(void) const
   return d->senderId;
 }
 
-void SHttpClientEngine::sendRequest(const SHttpEngine::RequestMessage &request)
+void SHttpClientEngine::sendRequest(const RequestMessage &request)
 {
   HttpClientRequest * const clientRequest = new HttpClientRequest(this);
 

@@ -83,6 +83,48 @@ SHttpClient::~SHttpClient()
   *const_cast<Data **>(&d) = NULL;
 }
 
+SHttpClient::ResponseMessage SHttpClient::blockedRequest(const RequestMessage &request, int timeout)
+{
+  QTime timer; timer.start();
+
+  QString hostname;
+  quint16 port = 80;
+  if (splitHost(request.host(), hostname, port))
+  {
+    QTcpSocket socket;
+    socket.connectToHost(hostname, port);
+    if (socket.waitForConnected(qMax(0, timeout - timer.elapsed())))
+    {
+      socket.write(request);
+      if (socket.waitForBytesWritten(qMax(0, timeout - timer.elapsed())))
+      {
+        QByteArray data;
+        while (!data.endsWith("\r\n\r\n") &&
+               socket.waitForReadyRead(qMax(0, timeout - timer.elapsed())))
+        {
+          while (socket.canReadLine() && !data.endsWith("\r\n\r\n"))
+            data += socket.readLine();
+        }
+
+        ResponseMessage response(NULL);
+        response.parse(data);
+
+        data = socket.readAll();
+        while (((response.contentLength() == 0) || (data.length() < response.contentLength())) &&
+               socket.waitForReadyRead(qMax(0, timeout - timer.elapsed())))
+        {
+          data += socket.readAll();
+        }
+
+        response.setContent(data);
+        return response;
+      }
+    }
+  }
+
+  return ResponseMessage(request, Status_BadRequest);
+}
+
 /*! This sends a HTTP request message to the server specified by the host in the
     message. After the connection has been established and the message has been
     sent, the provided slot is invoked with the opened socket (QIODevice *) as

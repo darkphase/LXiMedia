@@ -43,7 +43,7 @@ function streamLocation(id)
   else if (id == "radio4")      return "http://shoutcast2.omroep.nl:8106/";
   else if (id == "radio5")      return "http://shoutcast2.omroep.nl:8108/";
   else if (id == "radio6")      return "http://shoutcast2.omroep.nl:8110/";
-  else if (id == "journaal24")  return "http://livestreams.omroep.nl/nos/journaal24-bb";
+  else if (id == "journaal24")  return "http.asx://livestreams.omroep.nl/nos/journaal24-bb";
   else                          return "";
 }
 
