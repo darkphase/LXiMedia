@@ -33,7 +33,7 @@ class BufferReader : public SInterfaces::BufferReader,
 {
 Q_OBJECT
 public:
-  static const char     * const formatName;
+  static const char             formatName[];
 
   static QString                discPath(const QString &path);
   static bool                   isExtractedDiscPath(const QString &path);

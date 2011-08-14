@@ -36,6 +36,8 @@ public:
                                 SHttpClient(QObject * = NULL);
   virtual                       ~SHttpClient();
 
+  static ResponseMessage        blockedRequest(const RequestMessage &, int timeout = 30000);
+
 public: // From HttpClientEngine
   virtual void                  openRequest(const RequestMessage &header, QObject *receiver, const char *slot);
 

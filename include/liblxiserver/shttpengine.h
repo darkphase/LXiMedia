@@ -225,8 +225,8 @@ public:
   virtual const char          * senderType(void) const;
   virtual const QString       & senderId(void) const;
 
-  ResponseMessage               handleHttpRequest(const SHttpEngine::RequestMessage &, QIODevice *);
-  static bool                   sendHttpResponse(const SHttpEngine::RequestHeader &, SHttpEngine::ResponseMessage &, QIODevice *, bool reuse = true);
+  ResponseMessage               handleHttpRequest(const RequestMessage &, QIODevice *);
+  static bool                   sendHttpResponse(const RequestHeader &, ResponseMessage &, QIODevice *, bool reuse = true);
   
 private:
   struct Data;
@@ -248,7 +248,6 @@ public:
   virtual const QString       & senderId(void) const;
 
   virtual void                  openRequest(const RequestMessage &message, QObject *receiver, const char *slot) = 0;
-
   void                          sendRequest(const RequestMessage &);
 
 signals:
