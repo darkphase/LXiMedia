@@ -54,14 +54,16 @@ private:
   SHttpServer::ResponseMessage  handleHtmlRequest(const SHttpServer::RequestMessage &, const MediaServer::File &);
   void                          generateDirs(HtmlParser &, const QFileInfoList &, int, const QStringList &, const QStringList &);
 
-  static const QFileInfoList  & drives(bool rescan = false);
-  static QString                driveLabel(const QString &);
+  void                          scanDrives(void);
 
 private:
   static const Qt::CaseSensitivity caseSensitivity;
   static const char             dirSplit;
   MasterServer                * masterServer;
   MediaDatabase               * mediaDatabase;
+
+  QMap<QString, QFileInfo>      driveInfoList;
+  QMap<QString, QString>        driveLabelList;
 
 private:
   static const char     * const htmlMain;

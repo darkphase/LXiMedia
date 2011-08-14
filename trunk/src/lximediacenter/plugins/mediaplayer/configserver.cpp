@@ -46,8 +46,6 @@ ConfigServer::ConfigServer(const QString &, QObject *parent)
   : BackendServer(parent),
     masterServer(NULL)
 {
-  // Ensure static initializers are invoked.
-  drives();
 }
 
 ConfigServer::~ConfigServer()
