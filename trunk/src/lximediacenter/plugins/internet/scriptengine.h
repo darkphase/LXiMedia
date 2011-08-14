@@ -39,7 +39,6 @@ public:
   QString                       version(void);
   bool                          isCompatible(void);
   QString                       targetAudience(void);
-  QString                       category(void);
 
   QImage                        icon(const QString &id);
   QList<MediaServer::Item>      listItems(const QString &path);
@@ -55,7 +54,6 @@ private:
 
   QScriptValue                  versionFunc;
   QScriptValue                  targetAudienceFunc;
-  QScriptValue                  categoryFunc;
 
   QScriptValue                  iconFunc;
   QScriptValue                  listItemsFunc;

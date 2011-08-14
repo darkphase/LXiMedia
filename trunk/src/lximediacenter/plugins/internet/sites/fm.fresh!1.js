@@ -1,18 +1,22 @@
 function version()              { return "0.3.0"; }
 function targetAudience()       { return "NL"; }
-function category()             { return "Radio"; }
-
-function icon(id)
-{ 
-  return freshfm_png;
-}
 
 function listItems(path)
 {
   if (path == "/")
-    return "stream|Play live stream|Audio";
+  {
+    var items =
+      [ ["stream", "Play live stream", "Audio"] ];
+
+    return items;
+  }
   else
-    return "";
+    return [];
+}
+
+function icon(id)
+{ 
+  return freshfm_png;
 }
 
 function streamLocation(id)

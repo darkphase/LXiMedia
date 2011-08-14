@@ -25,9 +25,8 @@
 namespace LXiMediaCenter {
 namespace InternetBackend {
 
-InternetServer::InternetServer(const QString &category, QObject *parent)
+InternetServer::InternetServer(const QString &, QObject *parent)
   : MediaServer(parent),
-    category(category),
     masterServer(NULL),
     siteDatabase(NULL)
 {
@@ -113,7 +112,7 @@ int InternetServer::countItems(const QString &path)
   {
     PluginSettings settings(pluginName());
 
-    return siteDatabase->countSites(category, settings.value("Audiences").toStringList());
+    return siteDatabase->countSites(settings.value("Audiences").toStringList());
   }
   else
     return cachedItems(path).count();
@@ -127,7 +126,7 @@ QList<InternetServer::Item> InternetServer::listItems(const QString &path, unsig
   {
     PluginSettings settings(pluginName());
 
-    foreach (const QString &identifier, siteDatabase->getSites(category, settings.value("Audiences").toStringList(), start, count))
+    foreach (const QString &identifier, siteDatabase->getSites(settings.value("Audiences").toStringList(), start, count))
     {
       Item item;
       item.isDir = true;
