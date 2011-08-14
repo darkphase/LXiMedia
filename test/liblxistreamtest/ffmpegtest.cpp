@@ -61,6 +61,7 @@ void FFMpegTest::MediaFileInfoAudioDeep(void)
 void FFMpegTest::AudioEncodeDecode(void)
 {
   static const QSet<QString> skipCodecs = QSet<QString>()
+      << "MP3"
       << "PCM/S16LE" << "PCM/S16BE" << "PCM/U16LE" << "PCM/U16BE" << "PCM/S8"
       << "PCM/U8" << "PCM/MULAW" << "PCM/ALAW" << "PCM/S32LE" << "PCM/S32BE"
       << "PCM/U32LE" << "PCM/U32BE" << "PCM/S24LE" << "PCM/S24BE" << "PCM/U24LE"
@@ -133,7 +134,7 @@ void FFMpegTest::AudioEncodeDecode(const char *codecName)
 void FFMpegTest::VideoEncodeDecode(void)
 {
   static const QSet<QString> skipCodecs = QSet<QString>()
-      << "GIF" << "THEORA";
+      << "GIF" << "H264" << "THEORA";
 
   const QSet<QString> decoders = QSet<QString>::fromList(SVideoDecoderNode::codecs());
   const QSet<QString> encoders = QSet<QString>::fromList(SVideoEncoderNode::codecs());

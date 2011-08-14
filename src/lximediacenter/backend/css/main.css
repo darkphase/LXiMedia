@@ -200,20 +200,11 @@ table.detailedlist {
  padding: 0 0.25em;
  text-align: left;
  vertical-align: top;
-}
-.detailedlist td.stretch_a {
- width: 1000em;
- white-space: normal;
-}
-.detailedlist td.nostretch_a {
  white-space: nowrap;
 }
-.detailedlist td.stretch_b {
- width: 1000em;
- white-space: normal;
- background-color: #F0EFEF;
+.detailedlist td.a {
 }
-.detailedlist td.nostretch_b {
+.detailedlist td.b {
  white-space: nowrap;
  background-color: #F0EFEF;
 }

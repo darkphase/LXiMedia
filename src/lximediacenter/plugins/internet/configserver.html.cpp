@@ -40,7 +40,7 @@ const char ConfigServer::htmlTreeIndex[] =
     "<html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"en\" xml:lang=\"en\">\n"
     "<head>\n"
     " <meta http-equiv=\"Content-Type\" content=\"text/html;charset=utf-8\" />\n"
-    " <link rel=\"stylesheet\" href=\"/main.css\" type=\"text/css\" media=\"screen, handheld, projection\" />\n"
+    " <link rel=\"stylesheet\" href=\"/css/main.css\" type=\"text/css\" media=\"screen, handheld, projection\" />\n"
     "</head>\n"
     "<body>\n"
     " <table width=\"100%\" cellspacing=\"0\" cellpadding=\"3\" border=\"0\">\n"
@@ -52,30 +52,30 @@ const char ConfigServer::htmlTreeIndex[] =
 const char ConfigServer::htmlTreeDir[] =
     " <tr valign=\"middle\"><td align=\"left\">\n"
     "  <a class=\"hidden\" name=\"{DIR_FULLPATH}\" />\n"
-    "  {DIR_INDENT}\n"
-    "  {DIR_EXPAND}\n"
-    "  {DIR_CHECK}\n"
+    "{DIR_INDENT}"
+    "{DIR_EXPAND}"
+    "{DIR_CHECK}"
     "  {DIR_NAME}\n"
     " </td></tr>\n";
 
 const char ConfigServer::htmlTreeIndent[] =
-    " <img src=\"/img/null.png\" width=\"16\" height=\"16\" />\n";
+    "  <img src=\"/img/null.png\" width=\"16\" height=\"16\" />\n";
 
 const char ConfigServer::htmlTreeExpand[] =
-    " <a class=\"hidden\" href=\"{FILE}?open={DIR_ALLOPEN}#{DIR_FULLPATH}\">\n"
-    "  <img src=\"/img/tree{DIR_OPEN}.png\" width=\"16\" height=\"16\" />\n"
-    " </a>\n";
+    "  <a class=\"hidden\" href=\"{FILE}?open={DIR_ALLOPEN}#{DIR_FULLPATH}\">\n"
+    "   <img src=\"/img/tree{DIR_OPEN}.png\" width=\"16\" height=\"16\" />\n"
+    "  </a>\n";
 
 const char ConfigServer::htmlTreeCheckLink[] =
-    " <a class=\"hidden\" href=\"{FILE}?open={DIR_ALLOPEN}&amp;{DIR_CHECKTYPE}={DIR_FULLPATH}#{DIR_FULLPATH}\">\n"
-    "  <img src=\"/img/check{DIR_CHECKED}.png\" width=\"16\" height=\"16\" />\n"
-    " </a>\n";
+    "  <a class=\"hidden\" href=\"{FILE}?open={DIR_ALLOPEN}&amp;{DIR_CHECKTYPE}={DIR_FULLPATH}#{DIR_FULLPATH}\">\n"
+    "   <img src=\"/img/check{DIR_CHECKED}.png\" width=\"16\" height=\"16\" />\n"
+    "  </a>\n";
 
 const char ConfigServer::htmlTreeCheckIcon[] =
-    " <img class=\"thumbnail\" src=\"{ITEM_ICON}?resolution=16x16\" width=\"16\" height=\"16\" />\n";
+    "  <img class=\"thumbnail\" src=\"{ITEM_ICON}?resolution=16x16\" width=\"16\" height=\"16\" />\n";
 
 const char ConfigServer::htmlTreeScriptLink[] =
-    " <a class=\"hidden\" href=\"edit.html?identifier={ITEM_IDENTIFIER}\" target=\"_parent\">{ITEM_NAME}</a>\n";
+    "  <a class=\"hidden\" href=\"edit.html?identifier={ITEM_IDENTIFIER}\" target=\"_parent\">{ITEM_NAME}</a>\n";
 
 const char ConfigServer::htmlEditMain[] =
     " <div class=\"content\">\n"

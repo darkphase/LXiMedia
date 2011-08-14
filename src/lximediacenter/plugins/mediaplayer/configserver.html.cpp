@@ -95,27 +95,27 @@ const char * const ConfigServer::htmlDirTreeIndex =
 const char * const ConfigServer::htmlDirTreeDir =
     " <tr align=\"middle\"><td align=\"left\">\n"
     "  <a class=\"hidden\" name=\"{DIR_FULLPATH}\" />\n"
-    "  {DIR_INDENT}\n"
-    "  {DIR_EXPAND}\n"
-    "  {DIR_CHECK}\n"
+    "{DIR_INDENT}"
+    "{DIR_EXPAND}"
+    "{DIR_CHECK}"
     "  {DIR_NAME}\n"
     " </td></tr>\n";
 
 const char * const ConfigServer::htmlDirTreeIndent =
-    " <img src=\"/img/null.png\" width=\"16\" height=\"16\" />\n";
+    "  <img src=\"/img/null.png\" width=\"16\" height=\"16\" />\n";
 
 const char * const ConfigServer::htmlDirTreeExpand =
-    " <a class=\"hidden\" href=\"{FILE}?open={DIR_ALLOPEN}#{DIR_FULLPATH}\">\n"
-    "  <img src=\"/img/tree{DIR_OPEN}.png\" width=\"16\" height=\"16\" />\n"
-    " </a>\n";
+    "  <a class=\"hidden\" href=\"{FILE}?open={DIR_ALLOPEN}#{DIR_FULLPATH}\">\n"
+    "   <img src=\"/img/tree{DIR_OPEN}.png\" width=\"16\" height=\"16\" />\n"
+    "  </a>\n";
 
 const char * const ConfigServer::htmlDirTreeCheck =
-    " <img src=\"/img/check{DIR_CHECKED}.png\" title=\"{DIR_TITLE}\" width=\"16\" height=\"16\" />";
+    "  <img src=\"/img/check{DIR_CHECKED}.png\" title=\"{DIR_TITLE}\" width=\"16\" height=\"16\" />\n";
 
 const char * const ConfigServer::htmlDirTreeCheckLink =
-    " <a class=\"hidden\" href=\"{FILE}?open={DIR_ALLOPEN}&amp;{DIR_CHECKTYPE}={DIR_FULLPATH}#{DIR_FULLPATH}\">\n"
-    "  <img src=\"/img/check{DIR_CHECKED}.png\" width=\"16\" height=\"16\" />\n"
-    " </a>\n";
+    "  <a class=\"hidden\" href=\"{FILE}?open={DIR_ALLOPEN}&amp;{DIR_CHECKTYPE}={DIR_FULLPATH}#{DIR_FULLPATH}\">\n"
+    "   <img src=\"/img/check{DIR_CHECKED}.png\" width=\"16\" height=\"16\" />\n"
+    "  </a>\n";
 
 SHttpServer::ResponseMessage ConfigServer::handleHtmlRequest(const SHttpServer::RequestMessage &request, const MediaServer::File &file)
 {
@@ -154,7 +154,7 @@ SHttpServer::ResponseMessage ConfigServer::handleHtmlRequest(const SHttpServer::
 
     htmlParser.setField("FILE", file.fullName());
     htmlParser.setField("DIRS", QByteArray(""));
-    generateDirs(htmlParser, drives(), 0, allopen, rootPaths);
+    generateDirs(htmlParser, driveInfoList.values(), 0, allopen, rootPaths);
 
     SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
     response.setField("Cache-Control", "no-cache");
@@ -196,8 +196,7 @@ SHttpServer::ResponseMessage ConfigServer::handleHtmlRequest(const SHttpServer::
     htmlParser.setField("TR_TVSHOWS", tr("TV Shows"));
     htmlParser.setField("TR_TVSHOWS_EXPLAIN", tr("Directories containing TV shows:"));
 
-    drives(true);
-    driveLabel(QString::null);
+    scanDrives();
 
     return makeHtmlContent(request, file.url(), htmlParser.parse(htmlMain));
   }
@@ -305,9 +304,9 @@ void ConfigServer::generateDirs(HtmlParser &htmlParser, const QFileInfoList &dir
     {
       htmlParser.setField("DIR_NAME", info.absoluteFilePath());
 
-      const QString label = driveLabel(info.absoluteFilePath());
-      if (!label.isEmpty())
-        htmlParser.appendField("DIR_NAME", " (" + label + ")");
+      QMap<QString, QString>::Iterator i = driveLabelList.find(info.absoluteFilePath());
+      if ((i != driveLabelList.end()) && !i->isEmpty())
+        htmlParser.appendField("DIR_NAME", " (" + *i + ")");
     }
     else
       htmlParser.setField("DIR_NAME", fileName);
@@ -324,58 +323,39 @@ void ConfigServer::generateDirs(HtmlParser &htmlParser, const QFileInfoList &dir
   }
 }
 
-const QFileInfoList & ConfigServer::drives(bool rescan)
+void ConfigServer::scanDrives(void)
 {
-  static QFileInfoList driveList;
-  if (rescan)
-    driveList = QDir::drives();
+  driveInfoList.clear();
+  driveLabelList.clear();
 
-  return driveList;
-}
-
-QString ConfigServer::driveLabel(const QString &drive)
-{
-#ifdef Q_OS_WIN
-  static QMap<QString, QString> labels;
-
-  if (!drive.isEmpty())
+  foreach (const QFileInfo &drive, QDir::drives())
   {
-    if (drive.length() <= 3)
+    QString label = QString::null;
+
+#ifdef Q_OS_WIN
+    WCHAR szVolumeName[MAX_PATH+1];
+    WCHAR szFileSystemName[MAX_PATH+1];
+    DWORD dwSerialNumber = 0;
+    DWORD dwMaxFileNameLength = MAX_PATH;
+    DWORD dwFileSystemFlags = 0;
+
+    if (::GetVolumeInformationW(reinterpret_cast<const WCHAR *>(drive.absoluteFilePath().utf16()),
+                                szVolumeName, sizeof(szVolumeName) / sizeof(*szVolumeName),
+                                &dwSerialNumber,
+                                &dwMaxFileNameLength,
+                                &dwFileSystemFlags,
+                                szFileSystemName, sizeof(szFileSystemName) / sizeof(*szFileSystemName)))
     {
-      QMap<QString, QString>::Iterator label = labels.find(drive);
-      if (label != labels.end())
-        return *label;
-
-      WCHAR szVolumeName[MAX_PATH+1];
-      WCHAR szFileSystemName[MAX_PATH+1];
-      DWORD dwSerialNumber = 0;
-      DWORD dwMaxFileNameLength = MAX_PATH;
-      DWORD dwFileSystemFlags = 0;
-
-      if (::GetVolumeInformationW(reinterpret_cast<const WCHAR *>(drive.utf16()),
-                                  szVolumeName, sizeof(szVolumeName) / sizeof(*szVolumeName),
-                                  &dwSerialNumber,
-                                  &dwMaxFileNameLength,
-                                  &dwFileSystemFlags,
-                                  szFileSystemName, sizeof(szFileSystemName) / sizeof(*szFileSystemName)))
-      {
-        label = labels.insert(drive, QString::fromUtf16((const ushort *)szVolumeName).trimmed());
-      }
-      else
-        label = labels.insert(drive, QString::null);
-
-      return *label;
+      label = QString::fromUtf16((const ushort *)szVolumeName).trimmed();
     }
-  }
-  else
-    labels.clear();
 #else
-  if (drive == "/")
-    return tr("Root");
+    if (drive.absoluteFilePath() == "/")
+      label = tr("Root");
 #endif
 
-  return QString::null;
+    driveInfoList.insert(drive.absoluteFilePath(), drive);
+    driveLabelList.insert(drive.absoluteFilePath(), label);
+  }
 }
-
 
 } } // End of namespaces
