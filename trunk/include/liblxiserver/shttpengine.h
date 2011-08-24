@@ -32,23 +32,61 @@ namespace LXiServer {
 class LXISERVER_PUBLIC SHttpEngine
 {
 public:
+  /*! The HTTP status codes.
+   */
   enum Status
   {
     Status_None               = 0,
 
     Status_Continue           = 100,
     Status_SwitchingProtocols = 101,
+
     Status_Ok                 = 200,
+    Status_Created            = 201,
+    Status_Accepted           = 202,
+    Status_NonAuthInformation = 203,
     Status_NoContent          = 204,
+    Status_ResetContent       = 205,
+    Status_PartialContent     = 206,
+
     Status_MultipleChoices    = 300,
     Status_MovedPermanently   = 301,
+
+    Status_Found              = 302,
+    Status_SeeOther           = 303,
+    Status_NotModified        = 304,
+    Status_UseProxy           = 305,
     Status_TemporaryRedirect  = 307,
+
     Status_BadRequest         = 400,
+    Status_Unauthorized       = 401,
+    Status_PaymentRequired    = 402,
+    Status_Forbidden          = 403,
     Status_NotFound           = 404,
+    Status_MethodNotAllowed   = 405,
+    Status_NotAcceptable      = 406,
+    Status_ProxyAuthRequired  = 407,
+    Status_RequestTimeout     = 408,
+    Status_Conflict           = 409,
+    Status_Gone               = 410,
+    Status_LengthRequired     = 411,
     Status_PreconditionFailed = 412,
-    Status_InternalServerError= 500
+    Status_RequestEntTooLarge = 413,
+    Status_RequestURITooLarge = 414,
+    Status_UnsuppMediaType    = 415,
+    Status_ReqRangeNotSatisf  = 416,
+    Status_ExpectationFailed  = 417,
+
+    Status_InternalServerError= 500,
+    Status_NotImplemented     = 501,
+    Status_BadGateway         = 502,
+    Status_ServiceUnavailable = 503,
+    Status_GatewayTimeout     = 504,
+    Status_HTTPVersionNotSupp = 505
   };
 
+  /*! This class provides a standard HTTP header.
+   */
   class LXISERVER_PUBLIC Header
   {
   protected:
@@ -93,6 +131,8 @@ public:
     QList< QPair<QString, QString> > fields;
   };
 
+  /*! This class provides a standard HTTP request header.
+   */
   class LXISERVER_PUBLIC RequestHeader : public Header
   {
   public:
@@ -116,6 +156,8 @@ public:
     QString                     directory(void) const;
   };
 
+  /*! This class provides a standard HTTP response header.
+   */
   class LXISERVER_PUBLIC ResponseHeader : public Header
   {
   public:
@@ -136,6 +178,8 @@ public:
     _lxi_pure static const char * statusText(int);
   };
 
+  /*! This class provides a standard HTTP request message.
+   */
   class LXISERVER_PUBLIC RequestMessage : public RequestHeader
   {
   public:
@@ -154,6 +198,8 @@ public:
     QByteArray                  data;
   };
 
+  /*! This class provides a standard HTTP response message.
+   */
   class LXISERVER_PUBLIC ResponseMessage : public ResponseHeader
   {
   public:
