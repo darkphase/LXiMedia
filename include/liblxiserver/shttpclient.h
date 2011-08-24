@@ -36,12 +36,27 @@ public:
                                 SHttpClient(QObject * = NULL);
   virtual                       ~SHttpClient();
 
-  static ResponseMessage        blockedRequest(const RequestMessage &, int timeout = 30000);
+  /*! Sends a HTTP request to the host mentioned in the RequestMessage and
+      receives a result message.
+      \param  request           The HTTP request message to send.
+      \param  timeout           The timeout in millicesonds.
+      \returns                  A ResponseMessage containing the HTTP response.
+      \note This method blocks until a response has been received or the timeout
+            expires..
+   */
+  static ResponseMessage        blockedRequest(const RequestMessage &request, int timeout = 30000);
 
 public: // From HttpClientEngine
+  /*! This sends a HTTP request message to the server specified by the host in the
+      message. After the connection has been established and the message has been
+      sent, the provided slot is invoked with the opened socket (QIODevice *) as
+      the first argument.
+   */
   virtual void                  openRequest(const RequestMessage &header, QObject *receiver, const char *slot);
 
 protected:
+  /*! Shall be invoked when a socket is destroyed.
+   */
   virtual void                  socketDestroyed(void);
       
 private slots:

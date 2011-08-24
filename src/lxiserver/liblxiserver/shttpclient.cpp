@@ -125,11 +125,6 @@ SHttpClient::ResponseMessage SHttpClient::blockedRequest(const RequestMessage &r
   return ResponseMessage(request, Status_BadRequest);
 }
 
-/*! This sends a HTTP request message to the server specified by the host in the
-    message. After the connection has been established and the message has been
-    sent, the provided slot is invoked with the opened socket (QIODevice *) as
-    the first argument.
- */
 void SHttpClient::openRequest(const RequestMessage &message, QObject *receiver, const char *slot)
 {
   if (QThread::currentThread() != thread())
