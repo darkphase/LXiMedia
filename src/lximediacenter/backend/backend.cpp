@@ -235,109 +235,108 @@ void Backend::start(const SHttpEngine::ResponseMessage &formats)
   else if (line.startsWith("Formats:"))
     outFormats = line.mid(8).trimmed().split('\t');
 
-  // Supported DLNA protocols
-  SUPnPBase::ProtocolList audioProtocols;
+  // Supported DLNA audio protocols
+  if (outFormats.contains("ac3") && outAudioCodecs.contains("AC3"))
+    MediaServer::mediaProfiles().addProfile(MediaProfiles::AC3, -2); // Prefer
+
+  if (outFormats.contains("s16be") && outAudioCodecs.contains("PCM/S16BE"))
+    MediaServer::mediaProfiles().addProfile(MediaProfiles::LPCM, -2); // Prefer
+
+  if (outFormats.contains("mp2") && outAudioCodecs.contains("MP2"))
+    MediaServer::mediaProfiles().addProfile(MediaProfiles::MP2);
+
+  if (outFormats.contains("mp3") && outAudioCodecs.contains("MP3"))
+    MediaServer::mediaProfiles().addProfile(MediaProfiles::MP3, -1); // Prefer
+
+  if (outFormats.contains("ogg") && outAudioCodecs.contains("VORBIS"))
+    MediaServer::mediaProfiles().addProfile(MediaProfiles::VORBIS, 1);
+
+  // Supported DLNA video protocols
+  if (outFormats.contains("vob") && outVideoCodecs.contains("MPEG1") && outAudioCodecs.contains("MP2"))
+    MediaServer::mediaProfiles().addProfile(MediaProfiles::MPEG1, 16);
+
+  if (outFormats.contains("vob") && outVideoCodecs.contains("MPEG2"))
   {
-    if (outFormats.contains("s16be") && outAudioCodecs.contains("PCM/S16BE"))
-      audioProtocols += SUPnPBase::Protocol("http-get", "audio/L16;rate=48000;channels=2", true, "DLNA.ORG_PN=LPCM", ".lpcm");
-
-    if (outFormats.contains("mp3") && outAudioCodecs.contains("MP3"))
-      audioProtocols += SUPnPBase::Protocol("http-get", "audio/mpeg", true, "DLNA.ORG_PN=MP3", ".mp3");
-
-    if (outFormats.contains("mp2") && outAudioCodecs.contains("MP2"))
-      audioProtocols += SUPnPBase::Protocol("http-get", "audio/mpeg", true, "DLNA.ORG_PN=MPEG1", ".mpa");
-
-    if (outFormats.contains("ac3") && outAudioCodecs.contains("AC3"))
-      audioProtocols += SUPnPBase::Protocol("http-get", "audio/x-ac3", true, QString::null, ".ac3");
-
-    if (outFormats.contains("ogg") && (outAudioCodecs.contains("VORBIS") || outAudioCodecs.contains("FLAC")))
-      audioProtocols += SUPnPBase::Protocol("http-get", "audio/ogg", true, QString::null, ".oga");
-
-    if (outFormats.contains("wav") && outAudioCodecs.contains("PCM/S16LE"))
-      audioProtocols += SUPnPBase::Protocol("http-get", "audio/wave", true, QString::null, ".wav");
-
-    if (outFormats.contains("flv") && outAudioCodecs.contains("PCM/S16LE"))
-      audioProtocols += SUPnPBase::Protocol("http-get", "video/x-flv", true, QString::null, ".flv");
-  }
-
-  SUPnPBase::ProtocolList videoProtocols;
-  {
-    if ((outVideoCodecs.contains("MPEG1") || outVideoCodecs.contains("MPEG2")) &&
-        outAudioCodecs.contains("MP2"))
+    if (outAudioCodecs.contains("MP2"))
     {
-      if (outFormats.contains("vob"))
-        videoProtocols += SUPnPBase::Protocol("http-get", "video/mpeg", true, "DLNA.ORG_PN=MPEG_PS", ".mpeg");
-
-      if (outFormats.contains("mpegts"))
-        videoProtocols += SUPnPBase::Protocol("http-get", "video/mpeg", true, "DLNA.ORG_PN=MPEG_TS", ".ts");
-
-      if (outFormats.contains("mpegts"))
-      {
-        QMap<QString, QString> hdeu;
-        hdeu["framerates"] = "24,25";
-
-        QMap<QString, QString> hdna;
-        hdna["framerates"] = "24,30";
-
-        videoProtocols += SUPnPBase::Protocol("http-get", "video/mpeg", true, "DLNA.ORG_PN=MPEG_TS_HD_EU_ISO", ".ts", hdeu);
-        videoProtocols += SUPnPBase::Protocol("http-get", "video/mpeg", true, "DLNA.ORG_PN=MPEG_TS_HD_NA_ISO", ".ts", hdna);
-      }
-
-      if (outFormats.contains("vob"))
-      {
-        QMap<QString, QString> pal;
-        pal["resolution"]   = "720x576x1.42222,box";
-        pal["framerates"]   = "25";
-        pal["channels"]     = QString::number(SAudioFormat::Channels_Stereo, 16);
-
-        QMap<QString, QString> ntsc;
-        ntsc["resolution"]  = "704x480x1.21307,box";
-        ntsc["framerates"]  = "24,30";
-        ntsc["channels"]    = QString::number(SAudioFormat::Channels_Stereo, 16);
-
-        videoProtocols += SUPnPBase::Protocol("http-get", "video/mpeg", true, "DLNA.ORG_PN=MPEG_PS_PAL",  ".mpeg", pal);
-        videoProtocols += SUPnPBase::Protocol("http-get", "video/mpeg", true, "DLNA.ORG_PN=MPEG_PS_NTSC", ".mpeg", ntsc);
-      }
+      MediaServer::mediaProfiles().addProfile(MediaProfiles::MPEG_PS_PAL);
+      MediaServer::mediaProfiles().addProfile(MediaProfiles::MPEG_PS_NTSC);
     }
 
-    if (outFormats.contains("ogg") &&
-        outVideoCodecs.contains("THEORA") && (outAudioCodecs.contains("VORBIS") || outAudioCodecs.contains("FLAC")))
+    if (outAudioCodecs.contains("AC3"))
     {
-      videoProtocols += SUPnPBase::Protocol("http-get", "video/ogg", true, QString::null, ".ogv");
+      MediaServer::mediaProfiles().addProfile(MediaProfiles::MPEG_PS_PAL_XAC3);
+      MediaServer::mediaProfiles().addProfile(MediaProfiles::MPEG_PS_NTSC_XAC3);
     }
 
-    if (outFormats.contains("flv") &&
-        outVideoCodecs.contains("FLV1") && outAudioCodecs.contains("PCM/S16LE"))
+    if (outAudioCodecs.contains("MP2") || outAudioCodecs.contains("AC3"))
     {
-      videoProtocols += SUPnPBase::Protocol("http-get", "video/x-flv", true, QString::null, ".flv");
+      // Prefer EU over NA because it supports 25 Hz and MP2.
+      MediaServer::mediaProfiles().addProfile(MediaProfiles::MPEG_PS_SD_EU, 4);
+      MediaServer::mediaProfiles().addProfile(MediaProfiles::MPEG_PS_HD_EU, -9);
+    }
+
+    if (outAudioCodecs.contains("AC3"))
+    {
+      MediaServer::mediaProfiles().addProfile(MediaProfiles::MPEG_PS_SD_NA, 7);
+      MediaServer::mediaProfiles().addProfile(MediaProfiles::MPEG_PS_HD_NA, -6);
     }
   }
 
-  SUPnPBase::ProtocolList imageProtocols;
+  if (outFormats.contains("mpegts") && outVideoCodecs.contains("MPEG2"))
   {
-    QMap<QString, QString> photo;
-    photo["resolution"] = "1920x1080";
+    if (outAudioCodecs.contains("MP2") || outAudioCodecs.contains("AC3"))
+    {
+      // Prefer EU over NA because it supports 25 Hz and MP2.
+      MediaServer::mediaProfiles().addProfile(MediaProfiles::MPEG_TS_SD_EU_ISO, 5);
+      MediaServer::mediaProfiles().addProfile(MediaProfiles::MPEG_TS_HD_EU_ISO, -8);
+    }
 
-    QMap<QString, QString> thumb;
-    thumb["resolution"] = "128x128";
-
-    imageProtocols += SUPnPBase::Protocol("http-get", "image/jpeg",  true, "DLNA.ORG_PN=JPEG_LRG", ".jpeg", photo);
-    imageProtocols += SUPnPBase::Protocol("http-get", "image/png",   true, "DLNA.ORG_PN=PNG_LRG", ".png", photo);
-    imageProtocols += SUPnPBase::Protocol("http-get", "image/png",   true, "DLNA.ORG_PN=PNG_SM", "-thumb.png", thumb);
+    if (outAudioCodecs.contains("AC3"))
+    {
+      MediaServer::mediaProfiles().addProfile(MediaProfiles::MPEG_TS_SD_NA_ISO, 8);
+      MediaServer::mediaProfiles().addProfile(MediaProfiles::MPEG_TS_HD_NA_ISO, -5);
+    }
   }
 
-  masterConnectionManager.setSourceProtocols(audioProtocols + videoProtocols + imageProtocols);
-  masterContentDirectory.setProtocols(SUPnPContentDirectory::ProtocolType_Audio, audioProtocols);
-  masterContentDirectory.setProtocols(SUPnPContentDirectory::ProtocolType_Video, videoProtocols);
-  masterContentDirectory.setProtocols(SUPnPContentDirectory::ProtocolType_Image, imageProtocols);
+  if (outFormats.contains("m2ts") && outVideoCodecs.contains("MPEG2"))
+  {
+    if (outAudioCodecs.contains("MP2") || outAudioCodecs.contains("AC3"))
+    {
+      // Prefer EU over NA because it supports 25 Hz and MP2.
+      MediaServer::mediaProfiles().addProfile(MediaProfiles::MPEG_TS_SD_EU, 6);
+      MediaServer::mediaProfiles().addProfile(MediaProfiles::MPEG_TS_HD_EU, -7);
+    }
 
-  setContentDirectoryQueryItems();
+    if (outAudioCodecs.contains("AC3"))
+    {
+      MediaServer::mediaProfiles().addProfile(MediaProfiles::MPEG_TS_SD_NA, 9);
+      MediaServer::mediaProfiles().addProfile(MediaProfiles::MPEG_TS_HD_NA, -4);
+    }
+  }
+
+  if (outFormats.contains("ogg") &&
+      outVideoCodecs.contains("THEORA") && outAudioCodecs.contains("VORBIS"))
+  {
+    MediaServer::mediaProfiles().addProfile(MediaProfiles::VORBIS, 9);
+  }
+
+  // Supported DLNA image protocols
+  MediaServer::mediaProfiles().addProfile(MediaProfiles::JPEG_LRG, -3); // Prefer
+  MediaServer::mediaProfiles().addProfile(MediaProfiles::JPEG_MED);
+  MediaServer::mediaProfiles().addProfile(MediaProfiles::JPEG_SM);
+  MediaServer::mediaProfiles().addProfile(MediaProfiles::JPEG_TN);
+  MediaServer::mediaProfiles().addProfile(MediaProfiles::PNG_LRG, -2); // Prefer
+  MediaServer::mediaProfiles().addProfile(MediaProfiles::PNG_TN);
+
+  masterConnectionManager.setSourceProtocols(MediaServer::mediaProfiles().listProtocols());
+  masterConnectionManager.setSinkProtocols(SUPnPBase::ProtocolList());
 
   /* HTML5 is still very buggy implemented in many browsers, so for now we stay
      with Flash video.
 
   if (outFormats.contains("ogg") &&
-      outVideoCodecs.contains("THEORA") && (outAudioCodecs.contains("VORBIS") || outAudioCodecs.contains("FLAC")))
+      outVideoCodecs.contains("THEORA") && outAudioCodecs.contains("FLAC"))
   {
     MediaServer::enableHtml5();
   }*/
@@ -446,7 +445,7 @@ SHttpServer::ResponseMessage Backend::httpRequest(const SHttpServer::RequestMess
 
         return handleHtmlRequest(request, file);
       }
-      else if (file.fullName() == "traystatus.xml")
+      else if (file.fileName() == "traystatus.xml")
       {
         GlobalSettings settings;
 
@@ -504,15 +503,15 @@ SHttpServer::ResponseMessage Backend::httpRequest(const SHttpServer::RequestMess
       {
         return handleHtmlRequest(request, file);
       }
-      else if (file.suffix() == "log")
+      else if (file.fileName().endsWith(".log", Qt::CaseInsensitive))
       {
         return handleHtmlLogFileRequest(request, file);
       }
-      else if (file.fullName() == "settings.html")
+      else if (file.fileName() == "settings.html")
       {
         return handleHtmlConfig(request);
       }
-      else if (file.fullName() == "about.html")
+      else if (file.fileName() == "about.html")
       {
         return showAbout(request);
       }
@@ -624,88 +623,5 @@ void Backend::recycleSandbox(SSandboxClient *sandboxClient)
 
     sandboxClient->openRequest(message, NULL, NULL);
     QTimer::singleShot(30000, sandboxClient, SLOT(deleteLater()));
-  }
-}
-
-void Backend::setContentDirectoryQueryItems(void)
-{
-  GlobalSettings settings;
-  settings.beginGroup("DLNA");
-
-  const QString genericTranscodeSize =
-      settings.value("TranscodeSize", settings.defaultTranscodeSizeName()).toString();
-  const QString genericTranscodeCrop =
-      settings.value("TranscodeCrop", settings.defaultTranscodeCropName()).toString();
-  const QString genericEncodeMode =
-      settings.value("EncodeMode", settings.defaultEncodeModeName()).toString();
-  const QString genericTranscodeChannels =
-      settings.value("TranscodeChannels", settings.defaultTranscodeChannelName()).toString();
-  const QString genericTranscodeMusicChannels =
-      settings.value("TranscodeMusicChannels", settings.defaultTranscodeMusicChannelName()).toString();
-  const QString genericMusicMode =
-      settings.value("MusicMode", settings.defaultMusicModeName()).toString();
-
-  foreach (const QString &group, settings.childGroups() << QString::null)
-  if (group.isEmpty() || group.startsWith("Client_"))
-  {
-    if (!group.isEmpty())
-      settings.beginGroup(group);
-
-    QMap<QString, QString> queryItems;
-
-    const QString transcodeSize = settings.value("TranscodeSize", genericTranscodeSize).toString();
-    const QString transcodeCrop = settings.value("TranscodeCrop", genericTranscodeCrop).toString();
-    foreach (const GlobalSettings::TranscodeSize &size, GlobalSettings::allTranscodeSizes())
-    if (size.name == transcodeSize)
-    {
-      QString sizeStr =
-          QString::number(size.size.width()) + 'x' +
-          QString::number(size.size.height()) + 'x' +
-          QString::number(size.size.aspectRatio(), 'f', 3);
-
-      if (!transcodeCrop.isEmpty())
-        sizeStr += ',' + transcodeCrop.toLower();
-
-      queryItems["resolution"] = sizeStr;
-      break;
-    }
-
-    QString channels = QString::number(SAudioFormat::Channels_Stereo, 16);
-    const QString transcodeChannels = settings.value("TranscodeChannels", genericTranscodeChannels).toString();
-    foreach (const GlobalSettings::TranscodeChannel &channel, GlobalSettings::allTranscodeChannels())
-    if (channel.name == transcodeChannels)
-    {
-      channels = QString::number(channel.channels, 16);
-      break;
-    }
-
-    const QString transcodeMusicChannels = settings.value("TranscodeMusicChannels", genericTranscodeMusicChannels).toString();
-    foreach (const GlobalSettings::TranscodeChannel &channel, GlobalSettings::allTranscodeChannels())
-    if (channel.name == transcodeMusicChannels)
-    {
-      channels += "," + QString::number(channel.channels, 16);
-      break;
-    }
-
-    queryItems["channels"] = channels;
-
-    queryItems["priority"] = "high";
-
-    const QString encodeMode = settings.value("EncodeMode", genericEncodeMode).toString();
-    if (!encodeMode.isEmpty())
-      queryItems["encodemode"] = encodeMode.toLower();
-    else
-      queryItems["encodemode"] = "fast";
-
-    const QString musicMode = settings.value("MusicMode", genericMusicMode).toString();
-    if (!musicMode.isEmpty())
-      queryItems["musicmode"] = musicMode.toLower();
-    else
-      queryItems["musicmode"] = "leavevideo";
-
-    masterContentDirectory.setQueryItems(!group.isEmpty() ? group.mid(7) : QString::null, queryItems);
-
-    if (!group.isEmpty())
-      settings.endGroup();
   }
 }

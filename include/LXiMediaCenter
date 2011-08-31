@@ -16,6 +16,7 @@
 #include "liblximediacenter/globalsettings.h"
 #include "liblximediacenter/htmlparser.h"
 #include "liblximediacenter/imdbclient.h"
+#include "liblximediacenter/mediaprofiles.h"
 #include "liblximediacenter/mediaserver.h"
 #include "liblximediacenter/mediastream.h"
 #include "liblximediacenter/pluginsettings.h"

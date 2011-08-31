@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010 by A.J. Admiraal                                   *
+ *   Copyright (C) 2007 by A.J. Admiraal                                   *
  *   code@admiraal.dds.nl                                                  *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -17,49 +17,43 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXISERVER_SUPNPMEDIARECEIVERREGISTRAR_H
-#define LXISERVER_SUPNPMEDIARECEIVERREGISTRAR_H
+#ifndef LXISTREAMCOMMON_TSBUFFERWRITER_H
+#define LXISTREAMCOMMON_TSBUFFERWRITER_H
 
 #include <QtCore>
-#include <QtNetwork>
-#include <QtXml>
-#include <LXiCore>
-#include "shttpserver.h"
-#include "supnpbase.h"
-#include "export.h"
+#include <LXiStream>
+#include "mpeg.h"
 
-namespace LXiServer {
+namespace LXiStream {
+namespace Common {
 
-class SUPnPMediaServer;
-
-class LXISERVER_PUBLIC SUPnPMediaReceiverRegistrar : public SUPnPBase
+class TsBufferWriter : public SInterfaces::BufferWriter,
+                       protected SInterfaces::BufferWriter::WriteCallback
 {
 Q_OBJECT
 public:
-  explicit                      SUPnPMediaReceiverRegistrar(const QString &basePath, QObject * = NULL);
-  virtual                       ~SUPnPMediaReceiverRegistrar();
+  explicit                      TsBufferWriter(const QString &, QObject *);
+  virtual                       ~TsBufferWriter();
 
-  void                          initialize(SHttpServer *, SUPnPMediaServer *);
-  void                          close(void);
+public: // From SInterfaces::BufferWriter
+  virtual bool                  openFormat(const QString &);
+  virtual bool                  createStreams(const QList<SAudioCodec> &, const QList<SVideoCodec> &, STime);
 
-protected: // From SUPnPBase
-  virtual void                  buildDescription(QDomDocument &, QDomElement &);
-  virtual SHttpServer::Status   handleSoapMessage(const QDomElement &, QDomDocument &, QDomElement &, const SHttpServer::RequestMessage &, const QHostAddress &);
+  virtual bool                  start(SInterfaces::BufferWriter::WriteCallback *);
+  virtual void                  stop(void);
+  virtual void                  process(const SEncodedAudioBuffer &);
+  virtual void                  process(const SEncodedVideoBuffer &);
+  virtual void                  process(const SEncodedDataBuffer &);
+
+protected:
+  virtual void                  write(const uchar *, qint64);
 
 private:
-  _lxi_internal void            emitEvent(void);
-
-public:
-  static const char             mediaReceiverRegistrarNS[];
-
-private:
-  _lxi_internal static const char datatypesNS[];
-
-  struct Data;
-  Data                  * const d;
+  SInterfaces::BufferWriter   * bufferWriter;
+  SInterfaces::BufferWriter::WriteCallback * callback;
 };
 
 
-} // End of namespace
+} } // End of namespaces
 
 #endif

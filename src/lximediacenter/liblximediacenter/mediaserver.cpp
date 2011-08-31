@@ -77,6 +77,20 @@ void MediaServer::close(void)
   d->masterServer->contentDirectory()->unregisterCallback(this);
 }
 
+MediaProfiles & MediaServer::mediaProfiles(void)
+{
+  static MediaProfiles p;
+
+  return p;
+}
+
+QSet<QString> & MediaServer::activeClients(void)
+{
+  static QSet<QString> c;
+
+  return c;
+}
+
 void MediaServer::cleanStreams(void)
 {
   QList<Stream *> obsolete;
@@ -93,7 +107,7 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
   if (request.isGet())
   {
     const MediaServer::File file(request);
-    if (file.baseName().isEmpty())
+    if (file.fileName().isEmpty())
     {
       if (file.url().hasQueryItem("items"))
       {
@@ -172,16 +186,22 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
   return SHttpServer::ResponseMessage(request, SHttpServer::Status_NotFound);
 }
 
-int MediaServer::countContentDirItems(const QString &dirPath)
+int MediaServer::countContentDirItems(const QString &peer, const QString &dirPath)
 {
+  if (!activeClients().contains(peer))
+    activeClients().insert(peer);
+
   QString subPath = dirPath.mid(serverPath().length());
   subPath = subPath.startsWith('/') ? subPath : ('/' + subPath);
 
   return countItems(subPath);
 }
 
-QList<SUPnPContentDirectory::Item> MediaServer::listContentDirItems(const QString &dirPath, unsigned start, unsigned count)
+QList<SUPnPContentDirectory::Item> MediaServer::listContentDirItems(const QString &peer, const QString &dirPath, unsigned start, unsigned count)
 {
+  if (!activeClients().contains(peer))
+    activeClients().insert(peer);
+
   QString subPath = dirPath.mid(serverPath().length());
   subPath = subPath.startsWith('/') ? subPath : ('/' + subPath);
 
@@ -201,10 +221,220 @@ QList<SUPnPContentDirectory::Item> MediaServer::listContentDirItems(const QStrin
     if (!iconPath.isEmpty())
       item.iconUrl.setPath(iconPath.startsWith('/') ? iconPath : (basePath + '/' + iconPath));
 
+    if (item.isImage())
+    {
+      item.protocols = mediaProfiles().listProtocols(item.imageSize);
+    }
+    else
+    {
+      int addVideo = 0;
+      SAudioFormat audioFormat = audioFormatFor(peer, item, addVideo);
+      if (!item.isMusic() && (audioFormat.numChannels() > 2) &&
+          ((item.audioFormat.channelSetup() == SAudioFormat::Channels_Mono) ||
+           (item.audioFormat.channelSetup() == SAudioFormat::Channels_Stereo))
+          )
+      {
+        audioFormat.setChannelSetup(SAudioFormat::Channels_Stereo);
+      }
+
+      SVideoFormat videoFormat = videoFormatFor(peer, item);
+      videoFormat.setFrameRate(item.videoFormat.frameRate());
+
+      if ((item.isVideo() && (addVideo >= 0)) || (addVideo > 0))
+      {
+        if ((item.type == Item::Type_Audio) || (item.type == Item::Type_AudioBook))
+          item.type = Item::Type_Video;
+        else if (item.type == Item::Type_Music)
+          item.type = Item::Type_MusicVideo;
+        else if (item.type == Item::Type_AudioBroadcast)
+          item.type = Item::Type_VideoBroadcast;
+
+        item.protocols = mediaProfiles().listProtocols(audioFormat, videoFormat);
+      }
+      else
+      {
+        if ((item.type == Item::Type_Video) || (item.type == Item::Type_Movie))
+          item.type = Item::Type_Audio;
+        else if (item.type == Item::Type_MusicVideo)
+          item.type = Item::Type_Music;
+        else if (item.type == Item::Type_VideoBroadcast)
+          item.type = Item::Type_AudioBroadcast;
+
+        item.protocols = mediaProfiles().listProtocols(audioFormat);
+      }
+    }
+
+    setQueryItemsFor(peer, item.url);
+
     result += item;
   }
 
   return result;
+}
+
+SAudioFormat MediaServer::audioFormatFor(const QString &peer, const Item &item, int &addVideo)
+{
+  GlobalSettings settings;
+  settings.beginGroup("DLNA");
+
+  const QString genericTranscodeChannels =
+      settings.value("TranscodeChannels", settings.defaultTranscodeChannelName()).toString();
+  const QString genericTranscodeMusicChannels =
+      settings.value("TranscodeMusicChannels", settings.defaultTranscodeMusicChannelName()).toString();
+  const QString genericMusicMode =
+      settings.value("MusicMode", settings.defaultMusicModeName()).toString();
+
+  SAudioFormat result;
+  result.setSampleRate(48000);
+
+  foreach (const QString &group, settings.childGroups() << QString::null)
+  if (group.isEmpty() || group == ("Client_" + peer))
+  {
+    if (!group.isEmpty())
+      settings.beginGroup(group);
+
+    if ((item.type == Item::Type_Music) || (item.type == Item::Type_MusicVideo))
+    {
+      const QString transcodeMusicChannels = settings.value("TranscodeMusicChannels", genericTranscodeMusicChannels).toString();
+      foreach (const GlobalSettings::TranscodeChannel &channel, GlobalSettings::allTranscodeChannels())
+      if (channel.name == transcodeMusicChannels)
+      {
+        result.setChannelSetup(channel.channels);
+        break;
+      }
+
+      const QString musicMode = settings.value("MusicMode", genericMusicMode).toString();
+      if (musicMode.compare("AddVideoBlack", Qt::CaseInsensitive) == 0)
+        addVideo = 1;
+      else if (musicMode.compare("RemoveVideo", Qt::CaseInsensitive) == 0)
+        addVideo = -1;
+      else
+        addVideo = 0;
+    }
+    else
+    {
+      const QString transcodeChannels = settings.value("TranscodeChannels", genericTranscodeChannels).toString();
+      foreach (const GlobalSettings::TranscodeChannel &channel, GlobalSettings::allTranscodeChannels())
+      if (channel.name == transcodeChannels)
+      {
+        result.setChannelSetup(channel.channels);
+        break;
+      }
+    }
+
+    break;
+  }
+
+  return result;
+}
+
+SVideoFormat MediaServer::videoFormatFor(const QString &peer, const Item &)
+{
+  GlobalSettings settings;
+  settings.beginGroup("DLNA");
+
+  const QString genericTranscodeSize =
+      settings.value("TranscodeSize", settings.defaultTranscodeSizeName()).toString();
+
+  SVideoFormat result;
+
+  foreach (const QString &group, settings.childGroups() << QString::null)
+  if (group.isEmpty() || group == ("Client_" + peer))
+  {
+    if (!group.isEmpty())
+      settings.beginGroup(group);
+
+    const QString transcodeSize = settings.value("TranscodeSize", genericTranscodeSize).toString();
+    foreach (const GlobalSettings::TranscodeSize &size, GlobalSettings::allTranscodeSizes())
+    if (size.name == transcodeSize)
+    {
+      result.setSize(size.size);
+      break;
+    }
+
+    break;
+  }
+
+  return result;
+}
+
+void MediaServer::setQueryItemsFor(const QString &peer, QUrl &url)
+{
+  GlobalSettings settings;
+  settings.beginGroup("DLNA");
+
+  const QString genericTranscodeSize =
+      settings.value("TranscodeSize", settings.defaultTranscodeSizeName()).toString();
+  const QString genericTranscodeCrop =
+      settings.value("TranscodeCrop", settings.defaultTranscodeCropName()).toString();
+  const QString genericEncodeMode =
+      settings.value("EncodeMode", settings.defaultEncodeModeName()).toString();
+  const QString genericTranscodeChannels =
+      settings.value("TranscodeChannels", settings.defaultTranscodeChannelName()).toString();
+  const QString genericTranscodeMusicChannels =
+      settings.value("TranscodeMusicChannels", settings.defaultTranscodeMusicChannelName()).toString();
+  const QString genericMusicMode =
+      settings.value("MusicMode", settings.defaultMusicModeName()).toString();
+
+  foreach (const QString &group, settings.childGroups() << QString::null)
+  if (group.isEmpty() || group == ("Client_" + peer))
+  {
+    if (!group.isEmpty())
+      settings.beginGroup(group);
+
+    QMap<QString, QString> queryItems;
+
+    const QString transcodeSize = settings.value("TranscodeSize", genericTranscodeSize).toString();
+    const QString transcodeCrop = settings.value("TranscodeCrop", genericTranscodeCrop).toString();
+    foreach (const GlobalSettings::TranscodeSize &size, GlobalSettings::allTranscodeSizes())
+    if (size.name == transcodeSize)
+    {
+      QString sizeStr =
+          QString::number(size.size.width()) + 'x' +
+          QString::number(size.size.height()) + 'x' +
+          QString::number(size.size.aspectRatio(), 'f', 3);
+
+      if (!transcodeCrop.isEmpty())
+        sizeStr += ',' + transcodeCrop.toLower();
+
+      url.addQueryItem("resolution", sizeStr);
+      break;
+    }
+
+    QString channels = QString::number(SAudioFormat::Channels_Stereo, 16);
+    const QString transcodeChannels = settings.value("TranscodeChannels", genericTranscodeChannels).toString();
+    foreach (const GlobalSettings::TranscodeChannel &channel, GlobalSettings::allTranscodeChannels())
+    if (channel.name == transcodeChannels)
+    {
+      channels = QString::number(channel.channels, 16);
+      break;
+    }
+
+    const QString transcodeMusicChannels = settings.value("TranscodeMusicChannels", genericTranscodeMusicChannels).toString();
+    foreach (const GlobalSettings::TranscodeChannel &channel, GlobalSettings::allTranscodeChannels())
+    if (channel.name == transcodeMusicChannels)
+    {
+      channels += "," + QString::number(channel.channels, 16);
+      break;
+    }
+
+    url.addQueryItem("channels", channels);
+    url.addQueryItem("priority", "high");
+
+    const QString encodeMode = settings.value("EncodeMode", genericEncodeMode).toString();
+    if (!encodeMode.isEmpty())
+      url.addQueryItem("encodemode", encodeMode.toLower());
+    else
+      url.addQueryItem("encodemode", "fast");
+
+    const QString musicMode = settings.value("MusicMode", genericMusicMode).toString();
+    if (!musicMode.isEmpty())
+      url.addQueryItem("musicmode", musicMode.toLower());
+    else
+      url.addQueryItem("musicmode", "leavevideo");
+
+    break;
+  }
 }
 
 void MediaServer::addStream(Stream *stream)
@@ -220,32 +450,31 @@ void MediaServer::removeStream(Stream *stream)
   d->reusableStreams.removeAll(stream);
 }
 
+
+MediaServer::Item::Item(void)
+{
+}
+
+MediaServer::Item::~Item()
+{
+}
+
+
 MediaServer::File::File(const SHttpServer::RequestMessage &request)
 {
   const QUrl url(request.path());
-  const QStringList list = request.file().split("..");
-  if (list.count() >= 2)
+
+  QByteArray query;
+  if (SUPnPContentDirectory::fromQueryPath(request.file(), d.fileName, query))
   {
-    const QByteArray q = SUPnPContentDirectory::fromQueryID(list.last().toAscii());
     const QString path = url.path();
-    d.url = path.left(path.lastIndexOf('/') + 1) + list.first() + '?' + q;
+    d.url = path.left(path.lastIndexOf('/') + 1) + d.fileName + '?' + query;
   }
   else
-    d.url = url;
-
-  if (!list.isEmpty())
   {
-    QStringList file = list.first().toLower().split('.');
-
-    if (file.count() >= 2)
-      d.suffix = file.takeLast();
-
-    if (!file.isEmpty())
-      d.baseName = file.join(".");
+    d.fileName = request.file();
+    d.url = url;
   }
-
-  if (!d.baseName.isEmpty() || !d.suffix.isEmpty())
-    d.fullName = d.baseName + '.' + d.suffix;
 
   QString path = url.path();
   path = path.left(path.lastIndexOf('/'));

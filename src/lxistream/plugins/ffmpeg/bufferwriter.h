@@ -59,7 +59,7 @@ private:
   QMap<quint32, ::AVStream *>   streams;
 
   bool                          hasAudio, hasVideo;
-  bool                          mpegClock;
+  bool                          mpegClock, mpegTs;
 };
 
 

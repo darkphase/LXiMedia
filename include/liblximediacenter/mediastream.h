@@ -68,23 +68,22 @@ public:
   bool                          setup(const SHttpServer::RequestMessage &,
                                       QIODevice *,
                                       STime duration,
-                                      SInterval frameRate,
-                                      SSize size,
-                                      SAudioFormat::Channels,
+                                      const SAudioFormat &,
+                                      const SVideoFormat &,
                                       bool musicPlaylist = false,
                                       SInterfaces::AudioEncoder::Flags = SInterfaces::AudioEncoder::Flag_None,
                                       SInterfaces::VideoEncoder::Flags = SInterfaces::VideoEncoder::Flag_None);
   bool                          setup(const SHttpServer::RequestMessage &,
                                       QIODevice *,
                                       STime duration,
-                                      SAudioFormat::Channels,
+                                      const SAudioFormat &,
                                       bool musicPlaylist = false,
                                       SInterfaces::AudioEncoder::Flags = SInterfaces::AudioEncoder::Flag_None);
 
   static SSize                  decodeSize(const QUrl &);
-  static void                   decodeSize(const QUrl &, SSize &, Qt::AspectRatioMode &);
+  static void                   decodeSize(const QUrl &, SVideoFormat &, Qt::AspectRatioMode &);
   static SAudioFormat::Channels decodeChannels(const QUrl &);
-  static void                   decodeChannels(const QUrl &, SAudioFormat::Channels &);
+  static void                   decodeChannels(const QUrl &, SAudioFormat &);
 
 protected:
   Audio                       * audio;

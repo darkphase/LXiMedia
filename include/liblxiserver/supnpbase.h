@@ -39,11 +39,11 @@ Q_OBJECT
 public:
   struct Protocol
   {
-    inline Protocol(const QString &protocol = "http-get",
-                    const QString &contentFormat = "",
+    inline Protocol(const QByteArray &protocol = "http-get",
+                    const QByteArray &contentFormat = "",
                     bool conversionIndicator = false,
-                    const QString &profile = "",
-                    const QString &suffix = "")
+                    const QByteArray &profile = "",
+                    const QByteArray &suffix = "")
       : protocol(protocol), network("*"), contentFormat(contentFormat),
         profile(profile), playSpeed(true), conversionIndicator(conversionIndicator),
         operationsRange(false), operationsTimeSeek(false),
@@ -51,27 +51,14 @@ public:
     {
     }
 
-    inline Protocol(const QString &protocol,
-                    const QString &contentFormat,
-                    bool conversionIndicator,
-                    const QString &profile,
-                    const QString &suffix,
-                    const QMap<QString, QString> &queryItems)
-      : protocol(protocol), network("*"), contentFormat(contentFormat),
-        profile(profile), playSpeed(true), conversionIndicator(conversionIndicator),
-        operationsRange(false), operationsTimeSeek(false),
-        flags("01700000000000000000000000000000"), suffix(suffix), queryItems(queryItems)
-    {
-    }
+    QByteArray                  toByteArray(bool brief = false) const;          //!< Returns the DLNA protocol string.
+    QByteArray                  contentFeatures(void) const;                    //!< Returns the DLNA contentFeatures string.
 
-    QString                     toString(bool brief = false) const;             //!< Returns the DLNA protocol string.
-    QString                     contentFeatures(void) const;                    //!< Returns the DLNA contentFeatures string.
+    QByteArray                  protocol;                                       //!< The network protocol used (e.g. "http-get").
+    QByteArray                  network;                                        //!< The network used, usually not needed.
+    QByteArray                  contentFormat;                                  //!< The content format used with the protocol (e.g. MIME-type for "http-get").
 
-    QString                     protocol;                                       //!< The network protocol used (e.g. "http-get").
-    QString                     network;                                        //!< The network used, usually not needed.
-    QString                     contentFormat;                                  //!< The content format used with the protocol (e.g. MIME-type for "http-get").
-
-    QString                     profile;                                        //!< The profile name of the protocol (e.g. "DLNA.ORG_PN=JPEG_TN").
+    QByteArray                  profile;                                        //!< The profile name of the protocol (e.g. "JPEG_TN").
     bool                        playSpeed;                                      //!< false = invalid play speed, true = normal play speed.
     bool                        conversionIndicator;                            //!< false = not transcoded, true = transcoded.
     bool                        operationsRange;                                //!< true = range supported.
@@ -96,19 +83,12 @@ public:
      */
     QString                     flags;
 
-    QString                     suffix;                                         //!< The file extension (including .).
-    QMap<QString, QString>      queryItems;                                     //!< Query items that are added to the URL.
+    QByteArray                  suffix;                                         //!< The file extension (including .).
+
+    QList< QPair<QString, QString> > queryItems;
   };
 
   typedef QList<Protocol>       ProtocolList;
-
-  enum ProtocolType
-  {
-    ProtocolType_None         = 0,
-    ProtocolType_Audio,
-    ProtocolType_Video,
-    ProtocolType_Image
-  };
 
 public:
   explicit                      SUPnPBase(const QString &basePath, QObject * = NULL);
@@ -125,7 +105,7 @@ protected:
   virtual SHttpServer::ResponseMessage handleDescription(const SHttpServer::RequestMessage &);
 
   virtual void                  buildDescription(QDomDocument &, QDomElement &) = 0;
-  virtual void                  handleSoapMessage(const QDomElement &, QDomDocument &, QDomElement &, const SHttpServer::RequestMessage &, const QHostAddress &) = 0;
+  virtual SHttpServer::Status   handleSoapMessage(const QDomElement &, QDomDocument &, QDomElement &, const SHttpServer::RequestMessage &, const QHostAddress &) = 0;
 
 protected:
   const QString               & basePath(void) const;

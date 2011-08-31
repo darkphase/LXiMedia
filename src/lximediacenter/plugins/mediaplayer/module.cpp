@@ -50,12 +50,12 @@ public:
   }
 };
 
-const char Module::pluginName[]     = QT_TR_NOOP("Media player");
+const char Module::pluginName[]     = QT_TR_NOOP("Media Player");
 
 const char Module::moviesName[]     = QT_TR_NOOP("Movies"),       Module::moviesIcon[] = "/img/media-optical.png";
 const char Module::tvShowsName[]    = QT_TR_NOOP("TV Shows"),     Module::tvShowsIcon[] = "/img/video-television.png";
-const char Module::clipsName[]      = QT_TR_NOOP("Video clips"),  Module::clipsIcon[] = "/img/phone.png";
-const char Module::homeVideosName[] = QT_TR_NOOP("Home videos"),  Module::homeVideosIcon[] = "/img/media-tape.png";
+const char Module::clipsName[]      = QT_TR_NOOP("Video Clips"),  Module::clipsIcon[] = "/img/phone.png";
+const char Module::homeVideosName[] = QT_TR_NOOP("Home Videos"),  Module::homeVideosIcon[] = "/img/media-tape.png";
 const char Module::photosName[]     = QT_TR_NOOP("Photos"),       Module::photosIcon[] = "/img/camera-photo.png";
 const char Module::musicName[]      = QT_TR_NOOP("Music"),        Module::musicIcon[] = "/img/audio-headset.png";
 

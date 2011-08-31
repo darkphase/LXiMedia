@@ -194,7 +194,7 @@ SHttpServer::ResponseMessage ConfigServer::handleHtmlRequest(const SHttpServer::
   htmlParser.setField("TR_SCRIPT_INFO", tr("Script info"));
   htmlParser.setField("TR_APPEND_IMAGE", tr("Append image"));
 
-  if (file.fullName().endsWith("-tree.html"))
+  if (file.fileName().endsWith("-tree.html"))
   {
     PluginSettings settings(pluginName());
 
@@ -218,7 +218,7 @@ SHttpServer::ResponseMessage ConfigServer::handleHtmlRequest(const SHttpServer::
                                   ? QSet<QString>::fromList(QString::fromUtf8(qUncompress(QByteArray::fromHex(open.toAscii()))).split(dirSplit))
                                   : QSet<QString>();
 
-    htmlParser.setField("FILE", file.fullName());
+    htmlParser.setField("FILE", file.fileName());
     htmlParser.setField("DIRS", QByteArray(""));
     foreach (const QString &targetAudience, siteDatabase->allTargetAudiences())
     {
@@ -286,7 +286,7 @@ SHttpServer::ResponseMessage ConfigServer::handleHtmlRequest(const SHttpServer::
 
     return response;
   }
-  else if (file.fullName() == "edit.html")
+  else if (file.fileName() == "edit.html")
   {
     htmlParser.setField("IDENTIFIER", QByteArray(""));
     htmlParser.setField("SCRIPT", QByteArray(""));

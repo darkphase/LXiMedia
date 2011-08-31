@@ -34,7 +34,7 @@ class LXISERVER_PUBLIC SHttpEngine
 public:
   /*! The HTTP status codes.
    */
-  enum Status
+  enum StatusCode
   {
     Status_None               = 0,
 
@@ -156,6 +156,23 @@ public:
     QString                     directory(void) const;
   };
 
+  class LXISERVER_PUBLIC Status
+  {
+  public:
+    inline                      Status(StatusCode statusCode) : code(statusCode), desc(errorDescription(statusCode)) { }
+    inline                      Status(int statusCode, const QString &description) : code(statusCode), desc(description) { }
+
+    inline bool                 operator==(StatusCode statusCode) const         { return code == statusCode; }
+    inline bool                 operator!=(StatusCode statusCode) const         { return code != statusCode; }
+
+    inline int                  statusCode(void) const                          { return code; }
+    inline const QString      & description(void) const                         { return desc; }
+
+  private:
+    int                         code;
+    QString                     desc;
+  };
+
   /*! This class provides a standard HTTP response header.
    */
   class LXISERVER_PUBLIC ResponseHeader : public Header
@@ -163,19 +180,17 @@ public:
   public:
     explicit                    ResponseHeader(const SHttpEngine *);
     explicit                    ResponseHeader(const RequestHeader &);
-                                ResponseHeader(const RequestHeader &, Status);
+                                ResponseHeader(const RequestHeader &, const Status &);
 
     inline QString              version(void) const                             { return isValid() ? head[0] : QString::null; }
     inline void                 setVersion(const QString &version)              { if (head.size() > 0) head[0] = version; else head.append(version); }
-    inline Status               status(void) const                              { return isValid() ? Status(head[1].toInt()) : Status_None; }
-    void                        setStatus(Status status);
+    inline Status               status(void) const                              { return isValid() ? Status(head[1].toInt(), head[2]) : Status(Status_None); }
+    void                        setStatus(const Status &status);
 
     inline void                 setResponse(Status status)                      { setStatus(status); }
     inline void                 setResponse(Status status, const QByteArray &version) { setStatus(status); setVersion(version); }
 
     void                        parse(const QByteArray &);
-
-    _lxi_pure static const char * statusText(int);
   };
 
   /*! This class provides a standard HTTP request message.
@@ -228,6 +243,7 @@ public:
   virtual const char          * senderType(void) const = 0;
   virtual const QString       & senderId(void) const = 0;
 
+  static const char           * errorDescription(StatusCode);
   static const char           * toMimeType(const QString &fileName);
   static bool                   splitHost(const QString &host, QString &hostname, quint16 &port);
 

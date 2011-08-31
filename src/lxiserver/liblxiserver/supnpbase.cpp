@@ -108,14 +108,20 @@ SHttpServer::ResponseMessage SUPnPBase::handleControl(const SHttpServer::Request
       if (abstractSocket)
         peerAddress = abstractSocket->peerAddress();
 
-      handleSoapMessage(body, responseDoc, responseBody, request, peerAddress);
+      const SHttpServer::Status status =
+          handleSoapMessage(body, responseDoc, responseBody, request, peerAddress);
 
-      SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
-      response.setField("Cache-Control", "no-cache");
-      response.setContentType(xmlContentType);
-      response.setContent(serializeSoapMessage(responseDoc));
+      if (status == SHttpServer::Status_Ok)
+      {
+        SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
+        response.setField("Cache-Control", "no-cache");
+        response.setContentType(xmlContentType);
+        response.setContent(serializeSoapMessage(responseDoc));
 
-      return response;
+        return response;
+      }
+      else
+        return SHttpServer::ResponseMessage(request, SHttpServer::Status_Ok);
     }
   }
 
@@ -272,29 +278,29 @@ QDomElement SUPnPBase::parseSoapMessage(QDomDocument &doc, const QByteArray &dat
   return QDomElement();
 }
 
-QString SUPnPBase::Protocol::toString(bool brief) const
+QByteArray SUPnPBase::Protocol::toByteArray(bool brief) const
 {
-  QString result = protocol + ":" + network + ":" + contentFormat + ":";
+  QByteArray result = protocol + ":" + network + ":" + contentFormat + ":";
   if (!brief)
     result += contentFeatures();
   else
-    result += !profile.isEmpty() ? profile : "*";
+    result += !profile.isEmpty() ? ("DLNA.ORG_PN=" + profile) : QByteArray("*");
 
   return result;
 }
 
-QString SUPnPBase::Protocol::contentFeatures(void) const
+QByteArray SUPnPBase::Protocol::contentFeatures(void) const
 {
-  QString result;
+  QByteArray result;
 
   if (!profile.isEmpty())
-    result += profile + ";";
+    result += "DLNA.ORG_PN=" + profile + ";";
 
   result +=
-      "DLNA.ORG_PS=" + QString::number(playSpeed ? 1 : 0) + ";"
-      "DLNA.ORG_CI=" + QString::number(conversionIndicator ? 1 : 0) + ";"
-      "DLNA.ORG_OP=" + QString::number(operationsTimeSeek ? 1 : 0) +
-                       QString::number(operationsRange ? 1 : 0);
+      "DLNA.ORG_PS=" + QByteArray::number(playSpeed ? 1 : 0) + ";"
+      "DLNA.ORG_CI=" + QByteArray::number(conversionIndicator ? 1 : 0) + ";"
+      "DLNA.ORG_OP=" + QByteArray::number(operationsTimeSeek ? 1 : 0) +
+                       QByteArray::number(operationsRange ? 1 : 0);
 
   if (!flags.isEmpty())
     result += ";DLNA.ORG_FLAGS=" + flags;

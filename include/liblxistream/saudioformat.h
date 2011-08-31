@@ -112,9 +112,10 @@ public:
                                         Channel_CenterBack,
     Channels_Surround_6_1             = Channels_Surround_6_0 |
                                         Channel_LowFrequencyEffects,
-    Channels_Surround_7_1             = Channel_LeftFront | Channel_CenterFront | Channel_RightFront |
+    Channels_Surround_7_0             = Channel_LeftFront | Channel_CenterFront | Channel_RightFront |
                                         Channel_LeftSide | Channel_RightSide |
-                                        Channel_LeftBack | Channel_RightBack |
+                                        Channel_LeftBack | Channel_RightBack,
+    Channels_Surround_7_1             = Channels_Surround_7_0 |
                                         Channel_LowFrequencyEffects,
     Channels_Surround_7_1_Wide        = Channel_LeftFront | Channel_CenterLeftFront | Channel_CenterFront | Channel_CenterRightFront | Channel_RightFront |
                                         Channel_LeftSide | Channel_RightSide |

@@ -68,6 +68,23 @@ QList<FormatProber *> FormatProber::create(QObject *parent)
   return factory().createObjects<FormatProber>(parent);
 }
 
+
+QString FormatProber::StreamInfo::fullName(void) const
+{
+  QString lang = SStringParser::iso639Language(language);
+  if (!lang.isEmpty() && !title.isEmpty() &&
+      !title.contains(lang, Qt::CaseInsensitive))
+  {
+    return lang + " " + title;
+  }
+  else if (!title.isEmpty())
+    return title;
+  else if (!lang.isEmpty())
+    return lang;
+  else
+    return tr("Unknown");
+}
+
 /*! Creates a BufferReader for the specified format.
     \param parent   The parent object, or NULL if none.
     \param format   The data format of the serialized data (e.g. "mpeg" or "flv").

@@ -82,13 +82,13 @@ SHttpServer::ResponseMessage ConfigServer::httpRequest(const SHttpServer::Reques
   {
     const MediaServer::File file(request);
 
-    if (file.baseName().isEmpty() || (file.suffix() == "html"))
+    if (file.fileName().isEmpty() || file.fileName().endsWith(".html", Qt::CaseInsensitive))
     {
       return handleHtmlRequest(request, file);
     }
-    else if (file.suffix() == "txt")
+    else if (file.fileName() == "README")
     {
-      QFile txtFile(":/internet/sites/" + file.baseName().toUpper());
+      QFile txtFile(":/internet/sites/" + file.fileName());
       if (txtFile.open(QFile::ReadOnly))
       {
         SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
@@ -99,12 +99,12 @@ SHttpServer::ResponseMessage ConfigServer::httpRequest(const SHttpServer::Reques
         return response;
       }
     }
-    else if (file.suffix() == "js")
+    else if (file.fileName().endsWith(".js", Qt::CaseInsensitive))
     {
       SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
       response.setField("Cache-Control", "no-cache");
       response.setContentType("text/javascript;charset=utf-8");
-      response.setContent(siteDatabase->script(file.baseName()).toUtf8());
+      response.setContent(siteDatabase->script(file.fileName().left(file.fileName().length() - 3)).toUtf8());
 
       return response;
     }

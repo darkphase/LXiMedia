@@ -26,6 +26,7 @@
 #include "psbufferreader.h"
 #include "psbufferwriter.h"
 #include "rawsubtitledecoder.h"
+#include "tsbufferwriter.h"
 #include "videoformatconverter.h"
 
 namespace LXiStream {
@@ -69,7 +70,9 @@ bool Module::registerClasses(void)
   // Buffer readers and writers
   //PsBufferReader::registerClass<PsBufferReader>(PsBufferWriter::formatName);
   //PsBufferWriter::registerClass<PsBufferWriter>(PsBufferWriter::formatName);
+  TsBufferWriter::registerClass<TsBufferWriter>(SFactory::Scheme(-1, "m2ts"));
 
+  // Filters
   DeinterlaceBlend::registerClass<DeinterlaceBlend>(SFactory::Scheme(0, "blend"));
   DeinterlaceBob::registerClass<DeinterlaceBob>(SFactory::Scheme(-1, "bob"));
 

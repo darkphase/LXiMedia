@@ -101,20 +101,20 @@ void SUPnPConnectionManager::emitEvent(void)
   d->genaServer->emitEvent(doc);
 }
 
-QString SUPnPConnectionManager::listSourceProtocols(void) const
+QByteArray SUPnPConnectionManager::listSourceProtocols(void) const
 {
-  QString result;
+  QByteArray result;
   foreach (const Protocol &protocol, d->sourceProtocols)
-    result += "," + protocol.toString(true);
+    result += "," + protocol.toByteArray(true);
 
   return result.isEmpty() ? result : result.mid(1);
 }
 
-QString SUPnPConnectionManager::listSinkProtocols(void) const
+QByteArray SUPnPConnectionManager::listSinkProtocols(void) const
 {
-  QString result;
+  QByteArray result;
   foreach (const Protocol &protocol, d->sinkProtocols)
-    result += "," + protocol.toString(true);
+    result += "," + protocol.toByteArray(true);
 
   return result.isEmpty() ? result : result.mid(1);
 }
@@ -170,24 +170,30 @@ void SUPnPConnectionManager::buildDescription(QDomDocument &doc, QDomElement &sc
   scpdElm.appendChild(serviceStateTableElm);
 }
 
-void SUPnPConnectionManager::handleSoapMessage(const QDomElement &body, QDomDocument &responseDoc, QDomElement &responseBody, const SHttpServer::RequestMessage &, const QHostAddress &)
+SHttpServer::Status SUPnPConnectionManager::handleSoapMessage(const QDomElement &body, QDomDocument &responseDoc, QDomElement &responseBody, const SHttpServer::RequestMessage &, const QHostAddress &)
 {
+  SHttpServer::Status status = SHttpServer::Status(402, "Invalid args");
+
   const QDomElement getProtocolInfoElem = firstChildElementNS(body, connectionManagerNS, "GetProtocolInfo");
   if (!getProtocolInfoElem.isNull())
   {
-    QDomElement response = createElementNS(responseDoc, getProtocolInfoElem, "GetProtocolInfoResponse");
-    addTextElm(responseDoc, response, "Source", listSourceProtocols());
-    addTextElm(responseDoc, response, "Sink", listSinkProtocols());
-    responseBody.appendChild(response);
+    QDomElement responseElm = createElementNS(responseDoc, getProtocolInfoElem, "GetProtocolInfoResponse");
+    addTextElm(responseDoc, responseElm, "Source", listSourceProtocols());
+    addTextElm(responseDoc, responseElm, "Sink", listSinkProtocols());
+    responseBody.appendChild(responseElm);
+    status = SHttpServer::Status_Ok;
   }
 
   const QDomElement getCurrentConnectionIDsElem = firstChildElementNS(body, connectionManagerNS, "GetCurrentConnectionIDs");
   if (!getCurrentConnectionIDsElem.isNull())
   {
-    QDomElement response = createElementNS(responseDoc, getCurrentConnectionIDsElem, "GetCurrentConnectionIDsResponse");
-    addTextElm(responseDoc, response, "ConnectionIDs", QString::null);
-    responseBody.appendChild(response);
+    QDomElement responseElm = createElementNS(responseDoc, getCurrentConnectionIDsElem, "GetCurrentConnectionIDsResponse");
+    addTextElm(responseDoc, responseElm, "ConnectionIDs", QString::null);
+    responseBody.appendChild(responseElm);
+    status = SHttpServer::Status_Ok;
   }
+
+  return status;
 }
 
 } // End of namespace

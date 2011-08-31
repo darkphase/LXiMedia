@@ -62,26 +62,61 @@ void STimeStampResamplerNode::setFrameRate(SInterval frameRate, double maxRatio)
   d->resample = false;
 }
 
-const QVector<double> & STimeStampResamplerNode::standardFrameRates(void)
+const QVector<SInterval> & STimeStampResamplerNode::standardFrameRates(void)
 {
-  static QVector<double> rates;
+  static QVector<SInterval> rates;
   if (rates.isEmpty())
-    rates << 24.0 << 25.0 << 30.0 << 50.0 << 60.0;
+  {
+    rates
+        << SInterval::ntscFrequency(24)
+        << SInterval::fromFrequency(24)
+        << SInterval::fromFrequency(25)
+        << SInterval::ntscFrequency(30)
+        << SInterval::fromFrequency(30)
+        << SInterval::fromFrequency(50)
+        << SInterval::ntscFrequency(60)
+        << SInterval::fromFrequency(60);
+  }
 
   return rates;
 }
 
-SInterval STimeStampResamplerNode::roundFrameRate(SInterval frameRate, const QVector<double> &rates)
+SInterval STimeStampResamplerNode::roundFrameRate(SInterval frameRate, const QVector<SInterval> &rates)
 {
   const double freq = frameRate.toFrequency();
 
+  if (rates.count() > 1)
   for (int i=0; i<rates.count(); i++)
   {
-    const double min = (i == 0) ? 0.0 : ((rates[i-1] + rates[i]) / 2.0);
-    const double max = (i == (rates.count() - 1)) ? INT_MAX : ((rates[i] + rates[i+1]) / 2.0);
+    double min, max;
+    if (i == 0)
+    {
+      const double rb = rates[i].toFrequency();
+      const double rc = rates[i+1].toFrequency();
+
+      min = 0.0;
+      max = (rb + rc) / 2.0;
+    }
+    else if (i == (rates.count() - 1))
+    {
+      const double ra = rates[i-1].toFrequency();
+      const double rb = rates[i].toFrequency();
+
+      min = (ra + rb) / 2.0;
+      max = INT_MAX;
+    }
+    else
+    {
+      const double ra = rates[i-1].toFrequency();
+      const double rb = rates[i].toFrequency();
+      const double rc = rates[i+1].toFrequency();
+
+      min = (ra + rb) / 2.0;
+      max = (rb + rc) / 2.0;
+    }
 
     if ((freq > min) && (freq < max))
-      return SInterval::fromFrequency(rates[i]);
+      return rates[i];
   }
 
   return frameRate;

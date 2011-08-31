@@ -25,6 +25,7 @@
 #include <LXiServer>
 #include <LXiStream>
 #include "backendserver.h"
+#include "mediaprofiles.h"
 #include "export.h"
 
 namespace LXiMediaCenter {
@@ -38,24 +39,30 @@ class LXIMEDIACENTER_PUBLIC MediaServer : public BackendServer,
 Q_OBJECT
 friend class MediaServerDir;
 public:
+  struct LXIMEDIACENTER_PUBLIC Item : SUPnPContentDirectory::Item
+  {
+                                Item(void);
+                                ~Item();
+
+    SAudioFormat                audioFormat;
+    SVideoFormat                videoFormat;
+    SSize                       imageSize;
+  };
+
   class LXIMEDIACENTER_PUBLIC File
   {
   public:
                                 File(const SHttpServer::RequestMessage &);
                                 ~File();
 
-    inline const QString      & baseName(void) const                            { return d.baseName; }
-    inline const QString      & suffix(void) const                              { return d.suffix; }
-    inline const QString      & fullName(void) const                            { return d.fullName; }
+    inline const QString      & fileName(void) const                            { return d.fileName; }
     inline const QString      & parentDir(void) const                           { return d.parentDir; }
     inline const QUrl         & url(void) const                                 { return d.url; }
 
   private:
     struct
     {
-      QString                   baseName;
-      QString                   suffix;
-      QString                   fullName;
+      QString                   fileName;
       QString                   parentDir;
       QUrl                      url;
     }                           d;
@@ -108,14 +115,15 @@ public:
 
   typedef QList<DetailedListItem> DetailedListItemList;
 
-  typedef SUPnPContentDirectory::Item Item;
-
 public:
   explicit                      MediaServer(QObject * = NULL);
   virtual                       ~MediaServer();
 
   virtual void                  initialize(MasterServer *);
   virtual void                  close(void);
+
+  _lxi_pure static MediaProfiles & mediaProfiles(void);
+  _lxi_pure static QSet<QString> & activeClients(void);
 
 protected:
   virtual Stream              * streamVideo(const SHttpServer::RequestMessage &) = 0;
@@ -130,10 +138,13 @@ protected: // From SHttpServer::Callback
   virtual SHttpServer::ResponseMessage httpRequest(const SHttpServer::RequestMessage &, QIODevice *);
 
 private: // From UPnPContentDirectory::Callback
-  virtual int                   countContentDirItems(const QString &path);
-  virtual QList<SUPnPContentDirectory::Item> listContentDirItems(const QString &path, unsigned start, unsigned count);
+  virtual int                   countContentDirItems(const QString &peer, const QString &path);
+  virtual QList<SUPnPContentDirectory::Item> listContentDirItems(const QString &peer, const QString &path, unsigned start, unsigned count);
 
 private:
+  _lxi_internal static SAudioFormat audioFormatFor(const QString &peer, const Item &item, int &addVideo);
+  _lxi_internal static SVideoFormat videoFormatFor(const QString &peer, const Item &item);
+  _lxi_internal static void     setQueryItemsFor(const QString &peer, QUrl &);
   _lxi_internal void            addStream(Stream *);
   _lxi_internal void            removeStream(Stream *);
 

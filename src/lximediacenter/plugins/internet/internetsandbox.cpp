@@ -146,12 +146,11 @@ bool SandboxNetworkStream::setup(const SHttpServer::RequestMessage &request, QIO
     if (hasVideo || generateVideo)
     {
       if (MediaStream::setup(
-          request, socket,
-          STime::null,
-          source.frameRate(),
-          source.size(),
-          source.channelSetup(),
-          false))
+            request, socket,
+            STime::null,
+            SAudioFormat(SAudioFormat::Format_Invalid, source.channelSetup()),
+            SVideoFormat(SVideoFormat::Format_Invalid, source.size(), source.frameRate()),
+            false))
       {
         connect(&source, SIGNAL(output(SAudioBuffer)), &audio->matrix, SLOT(input(SAudioBuffer)));
         connect(&source, SIGNAL(output(SVideoBuffer)), &video->deinterlacer, SLOT(input(SVideoBuffer)));
@@ -164,10 +163,10 @@ bool SandboxNetworkStream::setup(const SHttpServer::RequestMessage &request, QIO
     else
     {
       if (MediaStream::setup(
-          request, socket,
-          STime::null,
-          source.channelSetup(),
-          false))
+            request, socket,
+            STime::null,
+            SAudioFormat(SAudioFormat::Format_Invalid, source.channelSetup()),
+            false))
       {
         connect(&source, SIGNAL(output(SAudioBuffer)), &audio->matrix, SLOT(input(SAudioBuffer)));
 

@@ -130,12 +130,12 @@ const char MediaServer::htmlPlayerAudioItem[] =
     " </div>\n";
 
 const char MediaServer::htmlPlayerAudioItemHtml5[] =
-    "   <audio src=\"{PLAYER_ITEM}.wav\" autoplay=\"autoplay\" controls=\"controls\">\n"
+    "   <audio src=\"{PLAYER_URL}\" autoplay=\"autoplay\" controls=\"controls\">\n"
     "{FLV_PLAYER}"
     "   </audio>\n";
 
 const char MediaServer::htmlPlayerAudioItemFlv[] =
-    "    <div id=\"player\" style=\"display:block;height:{HEIGHT}px;\" href=\"{PLAYER_ITEM}.flv\"></div>\n"
+    "    <div id=\"player\" style=\"display:block;height:{HEIGHT}px;\" href=\"{PLAYER_URL}\"></div>\n"
     "    <script language=\"JavaScript\" type=\"text/javascript\"><!--\n"
     "     flowplayer(\"player\", \"/swf/flowplayer.swf\", {\n"
     "       clip: { autoPlay: true }\n"
@@ -158,12 +158,12 @@ const char MediaServer::htmlPlayerVideoItem[] =
     " </div>\n";
 
 const char MediaServer::htmlPlayerVideoItemHtml5[] =
-    "   <video src=\"{PLAYER_ITEM}.ogg{QUERY}\" width=\"{WIDTH}\" height=\"{HEIGHT}\" autoplay=\"autoplay\" controls=\"controls\" poster=\"{PLAYER_ITEM}-thumb.png?resolution={WIDTH}x{HEIGHT}\">\n"
+    "   <video src=\"{PLAYER_URL}\" width=\"{WIDTH}\" height=\"{HEIGHT}\" autoplay=\"autoplay\" controls=\"controls\" poster=\"{PLAYER_ITEM}-thumb.png?resolution={WIDTH}x{HEIGHT}\">\n"
     "{FLV_PLAYER}"
     "   </video>\n";
 
 const char MediaServer::htmlPlayerVideoItemFlv[] =
-    "    <div id=\"player\" style=\"display:block;width:{WIDTH}px;height:{HEIGHT}px;\" href=\"{PLAYER_ITEM}.flv{QUERY}\"></div>\n"
+    "    <div id=\"player\" style=\"display:block;width:{WIDTH}px;height:{HEIGHT}px;\" href=\"{PLAYER_URL}\"></div>\n"
     "    <script language=\"JavaScript\" type=\"text/javascript\">\n"
     "     flowplayer(\"player\", \"/swf/flowplayer.swf\", {\n"
     "       clip: { scaling: 'fit', accelerated: true, autoPlay: true }\n"
@@ -367,7 +367,7 @@ QByteArray MediaServer::buildDetailedItems(const DetailedListItemList &items)
     for (int j=0; j<items[i].columns.count(); j++)
     {
       htmlParser.setField("ITEM_TITLE", items[i].columns[j].title);
-      htmlParser.setField("ITEM_CLASS", QByteArray(i & 1 ? "b" : "a"));
+      htmlParser.setField("ITEM_CLASS", QByteArray(i & 1 ? "nostretch_b" : "nostretch_a"));
       htmlParser.setField("ITEM_ICONURL", items[i].columns[j].iconurl.toString());
       htmlParser.setField("ITEM_URL", items[i].columns[j].url.toString());
 
@@ -431,14 +431,6 @@ QByteArray MediaServer::buildVideoPlayer(const QByteArray &item, const QString &
   htmlParser.setField("WIDTH23", QByteArray::number(size.width() * 2 / 3));
   htmlParser.setField("HEIGHT", QByteArray::number(size.height()));
   htmlParser.setField("LANGUAGE", url.queryItemValue("language"));
-
-  QByteArray query =
-      "resolution=" + QByteArray::number(size.width()) + "x" + QByteArray::number(size.height()) +
-      "&channels=" + QByteArray::number(channels, 16) +
-      "&language=" + url.queryItemValue("language").toAscii() +
-      "&subtitles=" + url.queryItemValue("subtitles").toAscii() +
-      "&position=" + url.queryItemValue("position").toAscii();
-  htmlParser.setField("QUERY", ".." + SUPnPContentDirectory::toQueryID(query));
 
   int count = 1;
   htmlParser.setField("LANGUAGES", QByteArray(""));
@@ -561,13 +553,25 @@ QByteArray MediaServer::buildVideoPlayer(const QByteArray &item, const QString &
 
   if (url.hasQueryItem("play"))
   {
+    const QByteArray query =
+        "resolution=" + QByteArray::number(size.width()) + "x" + QByteArray::number(size.height()) +
+        "&channels=" + QByteArray::number(channels, 16) +
+        "&language=" + url.queryItemValue("language").toAscii() +
+        "&subtitles=" + url.queryItemValue("subtitles").toAscii() +
+        "&position=" + url.queryItemValue("position").toAscii();
+
     if (html5Enabled)
     {
+      htmlParser.setField("PLAYER_URL", SUPnPContentDirectory::toQueryPath(item, query, ".ogg"));
       htmlParser.setField("PLAYER", htmlParser.parse(htmlPlayerVideoItemHtml5));
+      htmlParser.setField("PLAYER_URL", SUPnPContentDirectory::toQueryPath(item, query, ".flv"));
       htmlParser.setField("FLV_PLAYER", htmlParser.parse(htmlPlayerVideoItemFlv));
     }
     else
+    {
+      htmlParser.setField("PLAYER_URL", SUPnPContentDirectory::toQueryPath(item, query, ".flv"));
       htmlParser.setField("PLAYER", htmlParser.parse(htmlPlayerVideoItemFlv));
+    }
 
     return htmlParser.parse(htmlPlayerVideoItem);
   }
@@ -608,11 +612,6 @@ QByteArray MediaServer::buildVideoPlayer(const QByteArray &item, const QString &
   htmlParser.setField("WIDTH23", QByteArray::number(size.width() * 2 / 3));
   htmlParser.setField("HEIGHT", QByteArray::number(size.height()));
   htmlParser.setField("LANGUAGE", url.queryItemValue("language"));
-
-  QByteArray query =
-      "resolution=" + QByteArray::number(size.width()) + "x" + QByteArray::number(size.height()) +
-      "&channels=" + QByteArray::number(channels, 16);
-  htmlParser.setField("QUERY", ".." + SUPnPContentDirectory::toQueryID(query));
 
   htmlParser.setField("SELECTED", QByteArray(""));
 
@@ -678,13 +677,22 @@ QByteArray MediaServer::buildVideoPlayer(const QByteArray &item, const QString &
 
   if (url.hasQueryItem("play"))
   {
+    const QByteArray query =
+        "resolution=" + QByteArray::number(size.width()) + "x" + QByteArray::number(size.height()) +
+        "&channels=" + QByteArray::number(channels, 16);
+
     if (html5Enabled)
     {
+      htmlParser.setField("PLAYER_URL", SUPnPContentDirectory::toQueryPath(item, query, ".ogg"));
       htmlParser.setField("PLAYER", htmlParser.parse(htmlPlayerVideoItemHtml5));
+      htmlParser.setField("PLAYER_URL", SUPnPContentDirectory::toQueryPath(item, query, ".flv"));
       htmlParser.setField("FLV_PLAYER", htmlParser.parse(htmlPlayerVideoItemFlv));
     }
     else
+    {
+      htmlParser.setField("PLAYER_URL", SUPnPContentDirectory::toQueryPath(item, query, ".flv"));
       htmlParser.setField("PLAYER", htmlParser.parse(htmlPlayerVideoItemFlv));
+    }
 
     return htmlParser.parse(htmlPlayerVideoItem);
   }

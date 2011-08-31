@@ -31,7 +31,7 @@ BufferWriter::BufferWriter(const QString &, QObject *parent)
     formatContext(NULL),
     ioContext(NULL),
     hasAudio(false), hasVideo(false),
-    mpegClock(false)
+    mpegClock(false), mpegTs(false)
 {
 }
 
@@ -78,6 +78,11 @@ bool BufferWriter::openFormat(const QString &name)
         (name == "vob"))
     {
       mpegClock = true;
+    }
+
+    if ((name == "mpegts") || (name == "mpegtsraw"))
+    {
+      mpegTs = true;
     }
 
     if (name == "dvd")
@@ -207,6 +212,10 @@ bool BufferWriter::createStreams(const QList<SAudioCodec> &audioCodecs, const QL
       streams.insert(audioStreamId + 0, stream);
     }
 
+    // Circumvents some bug?
+    if (mpegTs)
+      formatContext->bit_rate = formatContext->bit_rate / 8;
+
     if (formatContext->mux_rate <= 0)
       formatContext->mux_rate = formatContext->bit_rate * 8;
 
@@ -218,7 +227,7 @@ bool BufferWriter::createStreams(const QList<SAudioCodec> &audioCodecs, const QL
 
 bool BufferWriter::start(WriteCallback *c)
 {
-  static const int ioBufferSize = 65536;
+  static const int ioBufferSize = 350 * 188;
 
   if (!streams.isEmpty())
   {

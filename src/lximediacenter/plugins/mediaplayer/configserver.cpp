@@ -89,7 +89,7 @@ SHttpServer::ResponseMessage ConfigServer::httpRequest(const SHttpServer::Reques
   if (request.isGet())
   {
     const MediaServer::File file(request);
-    if (file.baseName().isEmpty() || (file.suffix() == "html"))
+    if (file.fileName().isEmpty() || file.fileName().endsWith("html", Qt::CaseInsensitive))
       return handleHtmlRequest(request, file);
   }
 

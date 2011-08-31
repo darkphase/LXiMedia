@@ -36,7 +36,7 @@ TvShowServer::~TvShowServer()
 TvShowServer::Stream * TvShowServer::streamVideo(const SHttpServer::RequestMessage &request)
 {
   const MediaServer::File file(request);
-  if (file.baseName() == "playlist")
+  if (file.fileName().startsWith("playlist."))
   {
     SSandboxClient::Priority priority = SSandboxClient::Priority_Normal;
     if (file.url().queryItemValue("priority") == "low")
