@@ -78,6 +78,7 @@ public:
   static inline SInterval       fromFrequency(int hz)                           { return SInterval(1, hz); }
   static SInterval              fromFrequency(float hz);
   static SInterval              fromFrequency(double hz);
+  static inline SInterval       ntscFrequency(int hz)                           { return SInterval(1001, hz * 1000); }
 
 private:
   static qint64                 comp(const SInterval &, const SInterval &);

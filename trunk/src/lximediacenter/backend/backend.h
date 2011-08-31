@@ -92,8 +92,6 @@ private:
   SHttpServer::ResponseMessage  showAbout(const SHttpServer::RequestMessage &);
   SHttpServer::ResponseMessage  handleHtmlConfig(const SHttpServer::RequestMessage &);
 
-  void                          setContentDirectoryQueryItems(void);
-
 private:
   static const QEvent::Type     exitEventType;
   static const QEvent::Type     restartEventType;

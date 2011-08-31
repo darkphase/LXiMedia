@@ -143,7 +143,7 @@ void STimeStampSyncNode::input(const SAudioBuffer &audioBuffer)
         output();
       }
       else for (QMultiMap<STime, SAudioBuffer>::Iterator j=i->buffers.begin(); j!=i->buffers.end(); )
-      if ((qAbs(audioBuffer.timeStamp() - j->timeStamp()) > d->maxAudioDelay) ||
+      if ((qAbs(audioBuffer.timeStamp() - j->timeStamp()) > (d->maxAudioDelay / 2)) ||
           (i->buffers.count() > d->maxAudioBufferCount))
       {
         SAudioBuffer ab = *j;

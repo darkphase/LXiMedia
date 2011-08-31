@@ -36,6 +36,8 @@ public:
 
   SSize                         size(void) const;
   void                          setSize(const SSize &size);
+  STime                         slideDuration(void) const;
+  void                          setSlideDuration(const STime &);
 
   STime                         duration(void) const;
 
@@ -56,12 +58,12 @@ private:
 
 public:
   static const int              frameRate = 24;
-  static const int              slideFrameCount = 120;
 
 private:
   const SMediaInfoList          files;
 
   SSize                         outSize;
+  int                           slideFrameCount;
   SAudioBuffer                  audioBuffer;
   STime                         time;
   int                           currentPicture;

@@ -32,6 +32,7 @@ SlideShowNode::SlideShowNode(SGraph *parent, const SMediaInfoList &files)
   : SInterfaces::SourceNode(parent),
     files(files),
     outSize(768, 576),
+    slideFrameCount(180),
     time(STime::null),
     currentPicture(-1),
     currentFrame(-1)
@@ -52,6 +53,16 @@ SSize SlideShowNode::size(void) const
 void SlideShowNode::setSize(const SSize &size)
 {
   outSize = size;
+}
+
+STime SlideShowNode::slideDuration(void) const
+{
+  return STime::fromClock(slideFrameCount, frameRate);
+}
+
+void SlideShowNode::setSlideDuration(const STime &time)
+{
+  slideFrameCount = time.toClock(frameRate);
 }
 
 STime SlideShowNode::duration(void) const

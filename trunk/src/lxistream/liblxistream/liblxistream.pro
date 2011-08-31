@@ -55,11 +55,11 @@ SOURCES += saudiobuffer.cpp \
     sinterfaces.cpp \
     sinterval.cpp \
     smediainfo.cpp \
+    spixels.cpp \
+    spixels.convert.c \
     ssubpicturebuffer.cpp \
     ssubtitlebuffer.cpp \
     ssubtitlefile.cpp \
-    spixels.cpp \
-    spixels.convert.c \
     stime.cpp \
     stimer.cpp \
     svideobuffer.cpp \
@@ -141,6 +141,7 @@ HEADERS += common/audiooutput.h \
     common/psbufferreader.h \
     common/psbufferwriter.h \
     common/rawsubtitledecoder.h \
+    common/tsbufferwriter.h \
     common/videoformatconverter.h
 SOURCES += common/audiooutput.cpp \
     common/audioresampler.cpp \
@@ -155,6 +156,7 @@ SOURCES += common/audiooutput.cpp \
     common/psbufferreader.cpp \
     common/psbufferwriter.cpp \
     common/rawsubtitledecoder.cpp \
+    common/tsbufferwriter.cpp \
     common/videoformatconverter.cpp \
     common/videoformatconverter.convert.c \
     common/videoformatconverter.demosaic.c \

@@ -28,6 +28,7 @@ HEADERS += $${PWD}/$${LXIMEDIA_DIR}/include/LXiMediaCenter \
  $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/globalsettings.h \
  $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/htmlparser.h \
  $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/imdbclient.h \
+ $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/mediaprofiles.h \
  $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/mediaserver.h \
  $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/mediastream.h \
  $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/pluginsettings.h \
@@ -39,6 +40,7 @@ SOURCES += backendsandbox.cpp \
  globalsettings.cpp \
  htmlparser.cpp \
  imdbclient.cpp \
+ mediaprofiles.cpp \
  mediaserver.cpp \
  mediaserver.html.cpp \
  mediastream.cpp \

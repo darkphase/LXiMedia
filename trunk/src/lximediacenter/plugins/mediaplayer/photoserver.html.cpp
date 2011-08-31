@@ -40,7 +40,7 @@ const char PhotoServer::htmlView[] =
 
 SHttpServer::ResponseMessage PhotoServer::handleHtmlRequest(const SHttpServer::RequestMessage &request, const MediaServer::File &file)
 {
-  const MediaDatabase::UniqueID uid = MediaDatabase::fromUidString(file.baseName());
+  const MediaDatabase::UniqueID uid = MediaDatabase::fromUidString(file.fileName());
   const FileNode node = mediaDatabase->readNode(uid);
   if (!node.isNull())
   if (uid.pid < node.programs().count())

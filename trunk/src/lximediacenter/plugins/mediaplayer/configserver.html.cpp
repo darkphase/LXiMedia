@@ -30,50 +30,60 @@ namespace MediaPlayerBackend {
 const char * const ConfigServer::htmlMain =
     " <div class=\"content\">\n"
     "  <fieldset>\n"
-    "   <legend>{TR_RIGHTS}</legend>\n"
-    "   {TR_RIGHTS_EXPLAIN}\n"
+    "   <legend>{TR_SETTINGS}</legend>\n"
+    "   <form name=\"settings\" action=\"\" method=\"get\">\n"
+    "    <input type=\"hidden\" name=\"settings\" value=\"settings\" />\n"
+    "    {TR_SLIDEDURATION}:\n"
+    "    <input type=\"text\" size=\"6\" name=\"slideduration\" value=\"{SLIDEDURATION}\" />ms.\n"
+    "    <br /><br />\n"
+    "    <input type=\"submit\" name=\"save\" value=\"{TR_SAVE}\" />\n"
+    "   </form>\n"
     "  </fieldset>\n"
-    "  <fieldset style=\"float:left;\">\n"
-    "   <legend>{TR_MOVIES}</legend>\n"
-    "   {TR_MOVIES_EXPLAIN}<br />\n"
-    "   <iframe style=\"width:30em;height:30em;\" src=\"movies-tree.html\" frameborder=\"0\">\n"
-    "    <a href=\"movies-tree.html\" target=\"_blank\">{TR_MOVIES}</a>\n"
-    "   </iframe>\n"
-    "  </fieldset>\n"
-    "  <fieldset style=\"float:left;\">\n"
-    "   <legend>{TR_TVSHOWS}</legend>\n"
-    "   {TR_TVSHOWS_EXPLAIN}<br />\n"
-    "   <iframe style=\"width:30em;height:30em;\" src=\"tvshows-tree.html\" frameborder=\"0\">\n"
-    "    <a href=\"tvshows-tree.html\" target=\"_blank\">{TR_TVSHOWS}</a>\n"
-    "   </iframe>\n"
-    "  </fieldset>\n"
-    "  <fieldset style=\"float:left;\">\n"
-    "   <legend>{TR_CLIPS}</legend>\n"
-    "   {TR_CLIPS_EXPLAIN}<br />\n"
-    "   <iframe style=\"width:30em;height:30em;\" src=\"clips-tree.html\" frameborder=\"0\">\n"
-    "    <a href=\"clips-tree.html\" target=\"_blank\">{TR_CLIPS}</a>\n"
-    "   </iframe>\n"
-    "  </fieldset>\n"
-    "  <fieldset style=\"float:left;\">\n"
-    "   <legend>{TR_MUSIC}</legend>\n"
-    "   {TR_MUSIC_EXPLAIN}<br />\n"
-    "   <iframe style=\"width:30em;height:30em;\" src=\"music-tree.html\" frameborder=\"0\">\n"
-    "    <a href=\"music-tree.html\" target=\"_blank\">{TR_MUSIC}</a>\n"
-    "   </iframe>\n"
-    "  </fieldset>\n"
-    "  <fieldset style=\"float:left;\">\n"
-    "   <legend>{TR_PHOTOS}</legend>\n"
-    "   {TR_PHOTOS_EXPLAIN}<br />\n"
-    "   <iframe style=\"width:30em;height:30em;\" src=\"photos-tree.html\" frameborder=\"0\">\n"
-    "    <a href=\"photos-tree.html\" target=\"_blank\">{TR_PHOTOS}</a>\n"
-    "   </iframe>\n"
-    "  </fieldset>\n"
-    "  <fieldset style=\"float:left;\">\n"
-    "   <legend>{TR_HOMEVIDEOS}</legend>\n"
-    "   {TR_HOMEVIDEOS_EXPLAIN}<br />\n"
-    "   <iframe style=\"width:30em;height:30em;\" src=\"homevideos-tree.html\" frameborder=\"0\">\n"
-    "    <a href=\"homevideos-tree.html\" target=\"_blank\">{TR_HOMEVIDEOS}</a>\n"
-    "   </iframe>\n"
+    "  <fieldset>\n"
+    "   <legend>{TR_MEDIADIRS}</legend>\n"
+    "   {TR_RIGHTS_EXPLAIN}<br />\n"
+    "   <fieldset style=\"float:left;\">\n"
+    "    <legend>{TR_MOVIES}</legend>\n"
+    "    {TR_MOVIES_EXPLAIN}<br />\n"
+    "    <iframe style=\"width:30em;height:30em;\" src=\"movies-tree.html\" frameborder=\"0\">\n"
+    "     <a href=\"movies-tree.html\" target=\"_blank\">{TR_MOVIES}</a>\n"
+    "    </iframe>\n"
+    "   </fieldset>\n"
+    "   <fieldset style=\"float:left;\">\n"
+    "    <legend>{TR_TVSHOWS}</legend>\n"
+    "    {TR_TVSHOWS_EXPLAIN}<br />\n"
+    "    <iframe style=\"width:30em;height:30em;\" src=\"tvshows-tree.html\" frameborder=\"0\">\n"
+    "     <a href=\"tvshows-tree.html\" target=\"_blank\">{TR_TVSHOWS}</a>\n"
+    "    </iframe>\n"
+    "   </fieldset>\n"
+    "   <fieldset style=\"float:left;\">\n"
+    "    <legend>{TR_CLIPS}</legend>\n"
+    "    {TR_CLIPS_EXPLAIN}<br />\n"
+    "    <iframe style=\"width:30em;height:30em;\" src=\"clips-tree.html\" frameborder=\"0\">\n"
+    "     <a href=\"clips-tree.html\" target=\"_blank\">{TR_CLIPS}</a>\n"
+    "    </iframe>\n"
+    "   </fieldset>\n"
+    "   <fieldset style=\"float:left;\">\n"
+    "    <legend>{TR_MUSIC}</legend>\n"
+    "    {TR_MUSIC_EXPLAIN}<br />\n"
+    "    <iframe style=\"width:30em;height:30em;\" src=\"music-tree.html\" frameborder=\"0\">\n"
+    "     <a href=\"music-tree.html\" target=\"_blank\">{TR_MUSIC}</a>\n"
+    "    </iframe>\n"
+    "   </fieldset>\n"
+    "   <fieldset style=\"float:left;\">\n"
+    "    <legend>{TR_PHOTOS}</legend>\n"
+    "    {TR_PHOTOS_EXPLAIN}<br />\n"
+    "    <iframe style=\"width:30em;height:30em;\" src=\"photos-tree.html\" frameborder=\"0\">\n"
+    "     <a href=\"photos-tree.html\" target=\"_blank\">{TR_PHOTOS}</a>\n"
+    "    </iframe>\n"
+    "   </fieldset>\n"
+    "   <fieldset style=\"float:left;\">\n"
+    "    <legend>{TR_HOMEVIDEOS}</legend>\n"
+    "    {TR_HOMEVIDEOS_EXPLAIN}<br />\n"
+    "    <iframe style=\"width:30em;height:30em;\" src=\"homevideos-tree.html\" frameborder=\"0\">\n"
+    "     <a href=\"homevideos-tree.html\" target=\"_blank\">{TR_HOMEVIDEOS}</a>\n"
+    "    </iframe>\n"
+    "   </fieldset>\n"
     "  </fieldset>\n"
     " </div>\n";
 
@@ -121,10 +131,10 @@ SHttpServer::ResponseMessage ConfigServer::handleHtmlRequest(const SHttpServer::
 {
   HtmlParser htmlParser;
 
-  if (file.baseName().endsWith("-tree"))
+  if (file.fileName().endsWith("-tree.html"))
   {
     PluginSettings settings(pluginName());
-    settings.beginGroup(file.baseName().left(file.baseName().length() - 5));
+    settings.beginGroup(file.fileName().left(file.fileName().length() - 10));
 
     QStringList rootPaths = settings.value("Paths").toStringList();
 
@@ -152,7 +162,7 @@ SHttpServer::ResponseMessage ConfigServer::handleHtmlRequest(const SHttpServer::
       mediaDatabase->rescanRoots();
     }
 
-    htmlParser.setField("FILE", file.fullName());
+    htmlParser.setField("FILE", file.fileName());
     htmlParser.setField("DIRS", QByteArray(""));
     generateDirs(htmlParser, driveInfoList.values(), 0, allopen, rootPaths);
 
@@ -165,7 +175,10 @@ SHttpServer::ResponseMessage ConfigServer::handleHtmlRequest(const SHttpServer::
   }
   else
   {
-    htmlParser.setField("TR_RIGHTS", tr("Access rights"));
+    htmlParser.setField("TR_SETTINGS", tr("Settings"));
+    htmlParser.setField("TR_SLIDEDURATION", tr("Photo slideshow slide duration"));
+    htmlParser.setField("TR_SAVE", tr("Save"));
+    htmlParser.setField("TR_MEDIADIRS", tr("Media directories"));
     htmlParser.setField("TR_RIGHTS_EXPLAIN", tr(
         "By default, the LXiMediaCenter backend (lximcbackend) runs as a restricted user.\n"
 #if defined(Q_OS_LINUX)
@@ -179,7 +192,6 @@ SHttpServer::ResponseMessage ConfigServer::handleHtmlRequest(const SHttpServer::
 #elif defined(Q_OS_WIN)
         "This can be done by adding \"Everyone\" with the read permission set to the files and directories that need to be accessed by the LXiMediaCenter backend.\n"
 #endif
-        "<br /><br />\n"
         "Furthermore, certain system directories can not be selected to prevent security issues."
         ));
   
@@ -195,6 +207,14 @@ SHttpServer::ResponseMessage ConfigServer::handleHtmlRequest(const SHttpServer::
     htmlParser.setField("TR_PHOTOS_EXPLAIN", tr("Directories containing photo albums:"));
     htmlParser.setField("TR_TVSHOWS", tr("TV Shows"));
     htmlParser.setField("TR_TVSHOWS_EXPLAIN", tr("Directories containing TV shows:"));
+
+    PluginSettings settings(pluginName());
+    if (file.url().hasQueryItem("settings"))
+    {
+      settings.setValue("SlideDuration", qBound(2500, file.url().queryItemValue("slideduration").toInt(), 60000));
+    }
+
+    htmlParser.setField("SLIDEDURATION", QByteArray::number(settings.value("SlideDuration", 7500).toInt()));
 
     scanDrives();
 
@@ -329,8 +349,9 @@ void ConfigServer::scanDrives(void)
   driveLabelList.clear();
 
   foreach (const QFileInfo &drive, QDir::drives())
+  if (QDir(drive.absoluteFilePath()).count() != 0)
   {
-    QString label = QString::null;
+    driveInfoList.insert(drive.absoluteFilePath(), drive);
 
 #ifdef Q_OS_WIN
     WCHAR szVolumeName[MAX_PATH+1];
@@ -346,15 +367,14 @@ void ConfigServer::scanDrives(void)
                                 &dwFileSystemFlags,
                                 szFileSystemName, sizeof(szFileSystemName) / sizeof(*szFileSystemName)))
     {
-      label = QString::fromUtf16((const ushort *)szVolumeName).trimmed();
+      driveLabelList.insert(
+            drive.absoluteFilePath(),
+            QString::fromUtf16((const ushort *)szVolumeName).trimmed());
     }
 #else
     if (drive.absoluteFilePath() == "/")
-      label = tr("Root");
+      driveLabelList.insert(drive.absoluteFilePath(), tr("Root"));
 #endif
-
-    driveInfoList.insert(drive.absoluteFilePath(), drive);
-    driveLabelList.insert(drive.absoluteFilePath(), label);
   }
 }
 

@@ -47,12 +47,12 @@ public:
 
 protected: // From SUPnPBase
   virtual void                  buildDescription(QDomDocument &, QDomElement &);
-  virtual void                  handleSoapMessage(const QDomElement &, QDomDocument &, QDomElement &, const SHttpServer::RequestMessage &, const QHostAddress &);
+  virtual SHttpServer::Status   handleSoapMessage(const QDomElement &, QDomDocument &, QDomElement &, const SHttpServer::RequestMessage &, const QHostAddress &);
 
 private:
   _lxi_internal void            emitEvent(void);
-  _lxi_internal QString         listSourceProtocols(void) const;
-  _lxi_internal QString         listSinkProtocols(void) const;
+  _lxi_internal QByteArray      listSourceProtocols(void) const;
+  _lxi_internal QByteArray      listSinkProtocols(void) const;
 
 public:
   static const char             connectionManagerNS[];

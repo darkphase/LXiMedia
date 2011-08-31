@@ -57,11 +57,11 @@ public:
 
     struct LXISERVER_PUBLIC Stream
     {
-                                Stream(quint32 id = 0, const QString &lang = QString::null);
+                                Stream(void);
                                 ~Stream();
 
-      quint32                   id;
-      QString                   lang;
+      QString                   title;
+      QList< QPair<QString, QString> > queryItems;
     };
 
     struct LXISERVER_PUBLIC Chapter
@@ -75,7 +75,12 @@ public:
 
                                 Item(void);
                                 ~Item();
+
     bool                        isNull(void) const;
+    bool                        isAudio(void) const;
+    bool                        isVideo(void) const;
+    bool                        isImage(void) const;
+    bool                        isMusic(void) const;
 
     bool                        isDir;
     bool                        played;
@@ -89,18 +94,17 @@ public:
     QString                     album;
     int                         track;
 
-    QList<Stream>               audioStreams;
-    QList<Stream>               videoStreams;
-    QList<Stream>               subtitleStreams;
-
     unsigned                    duration; //!< In seconds
+
+    QList<Stream>               streams;
     QList<Chapter>              chapters;
+    ProtocolList                protocols;
   };
 
   struct Callback
   {
-    virtual int                 countContentDirItems(const QString &path) = 0;
-    virtual QList<Item>         listContentDirItems(const QString &path, unsigned start = 0, unsigned count = 0) = 0;
+    virtual int                 countContentDirItems(const QString &peer, const QString &path) = 0;
+    virtual QList<Item>         listContentDirItems(const QString &peer, const QString &path, unsigned start = 0, unsigned count = 0) = 0;
   };
 
 public:
@@ -110,27 +114,24 @@ public:
   void                          initialize(SHttpServer *, SUPnPMediaServer *);
   void                          close(void);
 
-  void                          setProtocols(ProtocolType, const ProtocolList &);
-  void                          setQueryItems(const QString &peer, const QMap<QString, QString> &);
-  QMap<QString, QString>        activeClients(void) const;
-
   void                          registerCallback(const QString &path, Callback *);
   void                          unregisterCallback(Callback *);
 
-  static QByteArray             toQueryID(const QByteArray &query);
-  static QByteArray             fromQueryID(const QByteArray &id);
+  static QByteArray             toQueryPath(const QByteArray &path, const QByteArray &query, const QByteArray &suffix);
+  static bool                   fromQueryPath(const QString &queryStr, QString &path, QByteArray &query);
 
 public slots:
   void                          modified(void);
 
 protected: // From SUPnPBase
   virtual void                  buildDescription(QDomDocument &, QDomElement &);
-  virtual void                  handleSoapMessage(const QDomElement &, QDomDocument &, QDomElement &, const SHttpServer::RequestMessage &, const QHostAddress &);
+  virtual SHttpServer::Status   handleSoapMessage(const QDomElement &, QDomDocument &, QDomElement &, const SHttpServer::RequestMessage &, const QHostAddress &);
 
 private:
-  _lxi_internal void            handleBrowse(const QDomElement &, QDomDocument &, QDomElement &, const SHttpServer::RequestMessage &, const QHostAddress &);
-  _lxi_internal QDomElement     didlDirectory(QDomDocument &, Item::Type, const QString &path, const QString &title = QString::null);
-  _lxi_internal QDomElement     didlFile(QDomDocument &doc, const QString &peer, const QString &host, const Item &, const QString &path, const QString &title = QString::null);
+  _lxi_internal bool            handleBrowse(const QDomElement &, QDomDocument &, QDomElement &, const SHttpServer::RequestMessage &, const QHostAddress &);
+  _lxi_internal void            didlDirectory(QDomDocument &, QDomElement &, Item::Type, const QString &peer, const QString &path, const QString &title = QString::null);
+  _lxi_internal void            didlContainer(QDomDocument &, QDomElement &, Item::Type, const QString &path, const QString &title = QString::null, int childCount = 0);
+  _lxi_internal void            didlFile(QDomDocument &, QDomElement &, const QString &host, const Item &, const QString &path, const QString &title = QString::null);
   _lxi_internal void            emitEvent(bool dirty);
 
   _lxi_internal static QStringList streamItems(const Item &);

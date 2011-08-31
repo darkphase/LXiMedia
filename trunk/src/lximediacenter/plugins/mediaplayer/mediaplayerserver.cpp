@@ -88,7 +88,7 @@ MediaPlayerServer::Stream * MediaPlayerServer::streamVideo(const SHttpServer::Re
 
   const MediaDatabase::UniqueID uid = file.url().hasQueryItem("item")
     ? MediaDatabase::fromUidString(file.url().queryItemValue("item"))
-    : MediaDatabase::fromUidString(file.baseName());
+    : MediaDatabase::fromUidString(file.fileName().split('.').first());
 
   if (uid.fid != 0)
   {
@@ -97,7 +97,7 @@ MediaPlayerServer::Stream * MediaPlayerServer::streamVideo(const SHttpServer::Re
     if (uid.pid < node.programs().count())
     {
       QUrl rurl;
-      rurl.setPath(MediaPlayerSandbox::path + file.fullName());
+      rurl.setPath(MediaPlayerSandbox::path + file.fileName());
       rurl.addQueryItem("playfile", QString::null);
       rurl.addQueryItem("pid", QString::number(uid.pid));
       typedef QPair<QString, QString> QStringPair;
@@ -276,17 +276,44 @@ MediaPlayerServer::Item MediaPlayerServer::makeItem(MediaDatabase::UniqueID uid,
 
         item.duration = program.duration.toSec();
 
+        for (int a=0, an=program.audioStreams.count(); a < an; a++)
+        for (int d=0, dn=program.dataStreams.count(); d <= dn; d++)
+        {
+          Item::Stream stream;
+
+          stream.title = QString::number(a + 1) + ". " + program.audioStreams[a].fullName();
+          stream.queryItems += qMakePair(QString("language"), QString::number(program.audioStreams[a].streamSpec, 16));
+
+          if (d < dn)
+          {
+            stream.title += ", " + QString::number(d + 1) + ". " + program.dataStreams[d].fullName() + " " + tr("subtitles");
+            stream.queryItems += qMakePair(QString("subtitles"), QString::number(program.dataStreams[d].streamSpec, 16));
+          }
+          else
+            stream.queryItems += qMakePair(QString("subtitles"), QString());
+
+          item.streams += stream;
+        }
+
         foreach (const SMediaInfo::Chapter &chapter, program.chapters)
           item.chapters += Item::Chapter(chapter.title, chapter.begin.toSec());
 
-        foreach (const SMediaInfo::AudioStreamInfo &stream, program.audioStreams)
-          item.audioStreams += Item::Stream(stream, (stream.title + " " + SStringParser::iso639Language(stream.language)).simplified());
+        if (!program.audioStreams.isEmpty())
+        {
+          const SAudioCodec &codec = program.audioStreams.first().codec;
+          item.audioFormat.setChannelSetup(codec.channelSetup());
+          item.audioFormat.setSampleRate(codec.sampleRate());
+        }
 
-        foreach (const SMediaInfo::VideoStreamInfo &stream, program.videoStreams)
-          item.videoStreams += Item::Stream(stream, (stream.title + " " + SStringParser::iso639Language(stream.language)).simplified());
+        if (!program.videoStreams.isEmpty())
+        {
+          const SVideoCodec &codec = program.videoStreams.first().codec;
+          item.videoFormat.setSize(codec.size());
+          item.videoFormat.setFrameRate(codec.frameRate());
+        }
 
-        foreach (const SMediaInfo::DataStreamInfo &stream, program.dataStreams)
-          item.subtitleStreams += Item::Stream(stream, (stream.title + " " + SStringParser::iso639Language(stream.language)).simplified());
+        if (!program.imageCodec.isNull())
+          item.imageSize = program.imageCodec.size();
       }
     }
     else if (!node.programs().isEmpty())
@@ -378,7 +405,7 @@ SHttpServer::ResponseMessage MediaPlayerServer::httpRequest(const SHttpServer::R
   if (request.isGet())
   {
     const MediaServer::File file(request);
-    if (file.fullName().endsWith("-thumb.png"))
+    if (file.fileName().endsWith("-thumb.png"))
     {
       QSize size(128, 128);
       if (file.url().hasQueryItem("resolution"))
@@ -390,7 +417,7 @@ SHttpServer::ResponseMessage MediaPlayerServer::httpRequest(const SHttpServer::R
           size = QSize(sizeTxt[0].toInt(), sizeTxt[0].toInt());
       }
 
-      const MediaDatabase::UniqueID uid = MediaDatabase::fromUidString(file.baseName());
+      const MediaDatabase::UniqueID uid = MediaDatabase::fromUidString(file.fileName());
       const FileNode node = mediaDatabase->readNode(uid);
       if (!node.isNull())
       if (uid.pid < node.programs().count())
@@ -464,9 +491,9 @@ SHttpServer::ResponseMessage MediaPlayerServer::httpRequest(const SHttpServer::R
       response.setField("Location", "http://" + request.host() + "/img/null.png");
       return response;
     }
-    else if (file.suffix() == "html") // Show player
+    else if (file.fileName().endsWith(".html", Qt::CaseInsensitive)) // Show player
     {
-      const MediaDatabase::UniqueID uid = MediaDatabase::fromUidString(file.baseName());
+      const MediaDatabase::UniqueID uid = MediaDatabase::fromUidString(file.fileName());
       const FileNode node = mediaDatabase->readNode(uid);
       if (!node.isNull())
       if (uid.pid < node.programs().count())

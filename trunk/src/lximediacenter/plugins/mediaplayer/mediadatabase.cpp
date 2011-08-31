@@ -848,7 +848,7 @@ void MediaDatabase::probeFinished(const SHttpEngine::ResponseMessage &message)
   }
   else
   {
-    qDebug() << "probeFinished" << message.status();
+    qDebug() << "probeFinished" << message.status().statusCode() << message.status().description();
   }
 }
 

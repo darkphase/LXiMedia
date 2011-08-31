@@ -245,11 +245,12 @@ SandboxSlideShowStream::SandboxSlideShowStream(const SMediaInfoList &files)
 
 bool SandboxSlideShowStream::setup(const SHttpServer::RequestMessage &request, QIODevice *socket)
 {
+  const MediaServer::File file(request);
+
   if (MediaStream::setup(
-          request, socket,
-          slideShow.duration(),
-          SInterval::fromFrequency(slideShow.frameRate), slideShow.size(),
-          SAudioFormat::Channels_Stereo,
+          request, socket, slideShow.duration(),
+          SAudioFormat(SAudioFormat::Format_Invalid, SAudioFormat::Channels_Stereo, 48000),
+          SVideoFormat(SVideoFormat::Format_Invalid, slideShow.size(), SInterval::fromFrequency(slideShow.frameRate)),
           false,
           SInterfaces::AudioEncoder::Flag_None,
           SInterfaces::VideoEncoder::Flag_Slideshow))
@@ -259,6 +260,9 @@ bool SandboxSlideShowStream::setup(const SHttpServer::RequestMessage &request, Q
     connect(&slideShow, SIGNAL(output(SVideoBuffer)), &video->subtitleRenderer, SLOT(input(SVideoBuffer)));
 
     slideShow.setSize(video->resizer.size());
+
+    if (file.url().hasQueryItem("slideduration"))
+      slideShow.setSlideDuration(STime::fromMSec(file.url().queryItemValue("slideduration").toInt()));
 
     return true;
   }

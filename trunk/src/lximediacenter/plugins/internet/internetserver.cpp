@@ -74,7 +74,7 @@ InternetServer::Stream * InternetServer::streamVideo(const SHttpServer::RequestM
 
   const QString item = file.url().hasQueryItem("item")
     ? file.url().queryItemValue("item")
-    : file.baseName();
+    : file.fileName();
 
   if (!item.isEmpty())
   {
@@ -86,7 +86,7 @@ InternetServer::Stream * InternetServer::streamVideo(const SHttpServer::RequestM
       if (!location.isEmpty())
       {
         QUrl rurl;
-        rurl.setPath(InternetSandbox::path + file.fullName());
+        rurl.setPath(InternetSandbox::path + file.fileName());
         rurl.addQueryItem("playstream", QString::null);
         typedef QPair<QString, QString> QStringPair;
         foreach (const QStringPair &queryItem, file.url().queryItems())
@@ -154,7 +154,7 @@ SHttpServer::ResponseMessage InternetServer::httpRequest(const SHttpServer::Requ
   if (request.isGet())
   {
     const MediaServer::File file(request);
-    if (file.fullName().endsWith("-thumb.png"))
+    if (file.fileName().endsWith("-thumb.png"))
     {
       QSize size(128, 128);
       if (file.url().hasQueryItem("resolution"))
@@ -170,7 +170,7 @@ SHttpServer::ResponseMessage InternetServer::httpRequest(const SHttpServer::Requ
       if (!script.isEmpty())
       {
         ScriptEngine engine(script);
-        QImage image = engine.icon(file.baseName().left(file.baseName().length() - 6));
+        QImage image = engine.icon(file.fileName().left(file.fileName().length() - 10));
         if (!image.isNull())
           image = image.scaled(size, Qt::KeepAspectRatio, Qt::SmoothTransformation);
 
@@ -235,8 +235,12 @@ SHttpServer::ResponseMessage InternetServer::httpRequest(const SHttpServer::Requ
       response.setField("Location", "http://" + request.host() + "/img/null.png");
       return response;
     }
-    else if (file.suffix() == "html") // Show player
-      return makeHtmlContent(request, file.url(), buildVideoPlayer(file.baseName().toUtf8(), file.baseName(), file.url()), headPlayer);
+    else if (file.fileName().endsWith(".html", Qt::CaseInsensitive)) // Show player
+    {
+      const QString title = file.fileName().left(file.fileName().length() - 5);
+
+      return makeHtmlContent(request, file.url(), buildVideoPlayer(title.toUtf8(), title, file.url()), headPlayer);
+    }
   }
 
   return MediaServer::httpRequest(request, socket);

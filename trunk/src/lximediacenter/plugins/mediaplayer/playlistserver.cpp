@@ -37,7 +37,7 @@ PlaylistServer::~PlaylistServer()
 PlaylistServer::Stream * PlaylistServer::streamVideo(const SHttpServer::RequestMessage &request)
 {
   const MediaServer::File file(request);
-  if (file.baseName() == "playlist")
+  if (file.fileName().startsWith("playlist."))
   {
     SSandboxClient::Priority priority = SSandboxClient::Priority_Normal;
     if (file.url().queryItemValue("priority") == "low")
@@ -81,7 +81,7 @@ PlaylistServer::Stream * PlaylistServer::streamVideo(const SHttpServer::RequestM
     if (!files.isEmpty())
     {
       QUrl rurl;
-      rurl.setPath(MediaPlayerSandbox::path + file.fullName());
+      rurl.setPath(MediaPlayerSandbox::path + file.fileName());
       rurl.addQueryItem("playlist", QString::null);
       typedef QPair<QString, QString> QStringPair;
       foreach (const QStringPair &queryItem, file.url().queryItems())
@@ -136,7 +136,7 @@ SHttpServer::ResponseMessage PlaylistServer::httpRequest(const SHttpServer::Requ
   if (request.isGet())
   {
     const MediaServer::File file(request);
-    if (file.fullName() == "playlist.html") // Show player
+    if (file.fileName() == "playlist.html") // Show player
     {
       const QString album = QUrl(request.directory().mid(serverPath().length() - 1)).path();
       if (!album.isEmpty())

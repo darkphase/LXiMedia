@@ -143,27 +143,33 @@ void SUPnPMediaReceiverRegistrar::buildDescription(QDomDocument &doc, QDomElemen
   scpdElm.appendChild(serviceStateTableElm);
 }
 
-void SUPnPMediaReceiverRegistrar::handleSoapMessage(const QDomElement &body, QDomDocument &responseDoc, QDomElement &responseBody, const SHttpServer::RequestMessage &, const QHostAddress &)
+SHttpServer::Status SUPnPMediaReceiverRegistrar::handleSoapMessage(const QDomElement &body, QDomDocument &responseDoc, QDomElement &responseBody, const SHttpServer::RequestMessage &, const QHostAddress &)
 {
+  SHttpServer::Status status = SHttpServer::Status(402, "Invalid args");
+
   const QDomElement isAuthorizedElem = firstChildElementNS(body, mediaReceiverRegistrarNS, "IsAuthorized");
   if (!isAuthorizedElem.isNull())
   {
-    QDomElement response = createElementNS(responseDoc, isAuthorizedElem, "IsAuthorizedResponse");
-    QDomElement result = addTextElm(responseDoc, response, "Result", "1");
-    result.setAttribute("xmlns:dt", datatypesNS);
-    result.setAttribute("dt:dt", "int");
-    responseBody.appendChild(response);
+    QDomElement responseElm = createElementNS(responseDoc, isAuthorizedElem, "IsAuthorizedResponse");
+    QDomElement resultElm = addTextElm(responseDoc, responseElm, "Result", "1");
+    resultElm.setAttribute("xmlns:dt", datatypesNS);
+    resultElm.setAttribute("dt:dt", "int");
+    responseBody.appendChild(responseElm);
+    status = SHttpServer::Status_Ok;
   }
 
   const QDomElement isValidatedElem = firstChildElementNS(body, mediaReceiverRegistrarNS, "IsValidated");
   if (!isValidatedElem.isNull())
   {
-    QDomElement response = createElementNS(responseDoc, isValidatedElem, "IsValidatedResponse");
-    QDomElement result = addTextElm(responseDoc, response, "Result", "1");
-    result.setAttribute("xmlns:dt", datatypesNS);
-    result.setAttribute("dt:dt", "int");
-    responseBody.appendChild(response);
+    QDomElement responseElm = createElementNS(responseDoc, isValidatedElem, "IsValidatedResponse");
+    QDomElement resultElm = addTextElm(responseDoc, responseElm, "Result", "1");
+    resultElm.setAttribute("xmlns:dt", datatypesNS);
+    resultElm.setAttribute("dt:dt", "int");
+    responseBody.appendChild(responseElm);
+    status = SHttpServer::Status_Ok;
   }
+
+  return status;
 }
 
 } // End of namespace

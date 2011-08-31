@@ -47,8 +47,8 @@ public:
 
   void                          setFrameRate(SInterval frameRate, double maxRatio = 0.08);
 
-  static const QVector<double> & standardFrameRates(void);
-  static SInterval              roundFrameRate(SInterval, const QVector<double> &);
+  static const QVector<SInterval> & standardFrameRates(void);
+  static SInterval              roundFrameRate(SInterval, const QVector<SInterval> &);
 
 public: // From SInterfaces::Node
   virtual bool                  start(void);

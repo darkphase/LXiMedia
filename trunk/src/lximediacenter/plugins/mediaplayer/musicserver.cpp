@@ -46,6 +46,8 @@ QList<MusicServer::Item> MusicServer::listItems(const QString &path, unsigned st
 
       if (!item.artist.isEmpty())
         item.title += " [" + item.artist + "]";
+
+      item.url.addQueryItem("music", "true");
     }
 
     items += item;
@@ -59,7 +61,7 @@ SHttpServer::ResponseMessage MusicServer::httpRequest(const SHttpServer::Request
   if (request.isGet())
   {
     const MediaServer::File file(request);
-    if (file.baseName().isEmpty())
+    if (file.fileName().isEmpty())
     {
       if (file.url().hasQueryItem("items"))
       {
@@ -97,7 +99,7 @@ SHttpServer::ResponseMessage MusicServer::httpRequest(const SHttpServer::Request
             detailedItem.columns.append(
                 DetailedListItem::Column(
                     item.title,
-                    QUrl(item.videoStreams.isEmpty() ? "/img/audio-file.png" : "/img/video-file.png"),
+                    QUrl(item.isVideo() ? "/img/video-file.png" : "/img/audio-file.png"),
                     url));
             detailedItem.columns.append(DetailedListItem::Column(item.artist));
             detailedItem.columns.append(DetailedListItem::Column(QTime().addSecs(item.duration).toString("mm:ss")));

@@ -189,8 +189,6 @@ const char * const Backend::htmlConfigDlnaRow =
     "    <legend>{NAME}</legend>\n"
     "    <form name=\"dlnasettings\" action=\"settings.html\" method=\"get\">\n"
     "     <input type=\"hidden\" name=\"dlnasettings\" value=\"{NAME}\" />\n"
-    "     {TR_USER_AGENT}: \"{USERAGENT}\"<br />\n"
-    "     <br />\n"
     "     {TR_VIDEO_SETTINGS}:\n"
     "     <select name=\"transcodesize\">\n"
     "{FORMATS}"
@@ -314,7 +312,7 @@ QByteArray Backend::parseHtmlLogErrors(void) const
 
 SHttpServer::ResponseMessage Backend::handleHtmlRequest(const SHttpServer::RequestMessage &request, const MediaServer::File &file)
 {
-  return handleHtmlRequest(request, file.fullName());
+  return handleHtmlRequest(request, file.fileName());
 }
 
 SHttpServer::ResponseMessage Backend::handleHtmlRequest(const SHttpServer::RequestMessage &request, const QString &file)
@@ -388,12 +386,12 @@ SHttpServer::ResponseMessage Backend::handleHtmlSearch(const SHttpServer::Reques
 SHttpServer::ResponseMessage Backend::handleHtmlLogFileRequest(const SHttpServer::RequestMessage &request, const MediaServer::File &file)
 {
   QString logFileName;
-  if (file.fullName() == "main.log")
+  if (file.fileName() == "main.log")
   {
     logFileName = sApp->activeLogFile();
   }
   else foreach (const QString &f, sApp->allLogFiles())
-  if (f.endsWith("/" + file.fullName()))
+  if (f.endsWith("/" + file.fileName()))
   {
     logFileName = f;
     break;
@@ -599,8 +597,6 @@ SHttpServer::ResponseMessage Backend::handleHtmlConfig(const SHttpServer::Reques
 
     if (needEndGroup)
       settings.endGroup();
-
-    setContentDirectoryQueryItems();
   }
 
   const QString genericTranscodeSize =
@@ -692,7 +688,6 @@ SHttpServer::ResponseMessage Backend::handleHtmlConfig(const SHttpServer::Reques
 
   // Default settings
   htmlParser.setField("NAME", tr("Default settings"));
-  htmlParser.setField("USERAGENT", tr("N/A"));
   htmlParser.setField("FORMATS", QByteArray(""));
   htmlParser.setField("CHANNELS", QByteArray(""));
   htmlParser.setField("MUSICCHANNELS", QByteArray(""));
@@ -750,14 +745,14 @@ SHttpServer::ResponseMessage Backend::handleHtmlConfig(const SHttpServer::Reques
   htmlParser.appendField("CLIENT_ROWS", htmlParser.parse(htmlConfigDlnaRow));
 
   // DLNA clients
-  const QMap<QString, QString> activeClients = masterContentDirectory.activeClients();
-  for (QMap<QString, QString>::ConstIterator i=activeClients.begin(); i!=activeClients.end(); i++)
-  {
-    settings.beginGroup("Client_" + i.key());
-    settings.setValue("UserAgent", i.value());
+  QStringList activeClients = MediaServer::activeClients().toList();
+  qSort(activeClients);
 
-    htmlParser.setField("NAME", i.key());
-    htmlParser.setField("USERAGENT", settings.value("UserAgent", tr("Unknown")).toString());
+  foreach (const QString &activeClient, activeClients)
+  {
+    settings.beginGroup("Client_" + activeClient);
+
+    htmlParser.setField("NAME", activeClient);
     htmlParser.setField("FORMATS", QByteArray(""));
     htmlParser.setField("CHANNELS", QByteArray(""));
     htmlParser.setField("MUSICCHANNELS", QByteArray(""));

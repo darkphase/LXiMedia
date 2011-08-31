@@ -58,7 +58,7 @@ bool BufferReader::start(ReadCallback *readCallback, ProduceCallback *produceCal
     if (ioContext)
       qFatal("BufferReader already opened a stream.");
 
-    static const int ioBufferSize = 65536;
+    static const int ioBufferSize = 350 * 188;
 
     this->readCallback = readCallback;
     ioContext =

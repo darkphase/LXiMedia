@@ -67,12 +67,16 @@ public:
   inline void                   setAspectRatio(float na)                        { d.aspectRatio = na; }
   inline QSize                  size(void) const                                { return QSize(d.width, d.height); }
 
-  inline int                    absoluteWidth(void) const                       { return (d.aspectRatio > 1.0f) ? int(d.width * d.aspectRatio) : d.width; }
-  inline int                    absoluteHeight(void) const                      { return (d.aspectRatio < 1.0f) ? int(d.height * (1.0f / d.aspectRatio)) : d.height; }
+  inline int                    absoluteWidth(void) const                       { return (d.aspectRatio > 1.0f) ? int((d.width * d.aspectRatio) + 0.5f) : d.width; }
+  inline int                    absoluteHeight(void) const                      { return (d.aspectRatio < 1.0f) ? int((d.height * (1.0f / d.aspectRatio)) + 0.5f) : d.height; }
   inline QSize                  absoluteSize(void) const                        { return QSize(absoluteWidth(), absoluteHeight()); }
 
   inline QString                toString(void) const                            { return QString::number(d.width) + 'x' + QString::number(d.height) + 'x' + QString::number(d.aspectRatio); }
   inline static SSize           fromString(const QString &str)                  { const QStringList l = str.split('x'); return SSize(l.count() >= 1 ? l[0].toInt() : 0, l.count() >= 2 ? l[1].toInt() : 0, l.count() >= 3 ? l[2].toFloat() : 1.0f); }
+
+  /*! Scales the size to the specified size retaining the correct aspect ratio.
+   */
+  inline SSize                  scaled(int nw, int nh) const                    { return SSize(nw, nh, (float(absoluteWidth() * nh) / float(absoluteHeight())) / float(nw)); }
 
 private:
   // Ensure all these struct members are serializable.

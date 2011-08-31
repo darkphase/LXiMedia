@@ -202,10 +202,20 @@ table.detailedlist {
  vertical-align: top;
  white-space: nowrap;
 }
-.detailedlist td.a {
-}
-.detailedlist td.b {
+.detailedlist td.nostretch_a {
  white-space: nowrap;
+}
+.detailedlist td.nostretch_b {
+ white-space: nowrap;
+ background-color: #F0EFEF;
+}
+.detailedlist td.stretch_a {
+ width: 1000em;
+ white-space: normal;
+}
+.detailedlist td.stretch_b {
+ width: 1000em;
+ white-space: normal;
  background-color: #F0EFEF;
 }
 .detailedlist img {

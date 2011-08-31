@@ -155,7 +155,7 @@ public:
     quint32                     streamSpec;
   };
 
-  struct StreamInfo : StreamId
+  struct LXISTREAM_PUBLIC StreamInfo : StreamId
   {
     inline StreamInfo(void) : StreamId() { memset(language, 0, sizeof(language)); }
     inline StreamInfo(Type type, quint16 id, const char *language, const QString &title)
@@ -167,6 +167,8 @@ public:
       if (language && (qstrlen(language) > 0))
         qstrncpy(this->language, language, sizeof(this->language));
     }
+
+    QString                     fullName(void) const;
 
     char                        language[4]; //!< ISO 639-1 or ISO 639-2 language code (empty string if undefined).
     quint32                     nativeId; //!< The native stream ID, if available.

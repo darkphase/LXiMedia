@@ -36,7 +36,7 @@ PhotoServer::~PhotoServer()
 PhotoServer::Stream * PhotoServer::streamVideo(const SHttpServer::RequestMessage &request)
 {
   const MediaServer::File file(request);
-  if (file.baseName() == "playlist")
+  if (file.fileName().startsWith("playlist."))
   {
     SSandboxClient::Priority priority = SSandboxClient::Priority_Normal;
     if (file.url().queryItemValue("priority") == "low")
@@ -70,9 +70,12 @@ PhotoServer::Stream * PhotoServer::streamVideo(const SHttpServer::RequestMessage
 
     if (!files.isEmpty())
     {
+      PluginSettings settings(pluginName());
+
       QUrl rurl;
-      rurl.setPath(MediaPlayerSandbox::path + file.fullName());
+      rurl.setPath(MediaPlayerSandbox::path + file.fileName());
       rurl.addQueryItem("playslideshow", QString::null);
+      rurl.addQueryItem("slideduration", QString::number(settings.value("SlideDuration", 7500).toInt()));
       typedef QPair<QString, QString> QStringPair;
       foreach (const QStringPair &queryItem, file.url().queryItems())
         rurl.addQueryItem(queryItem.first, queryItem.second);
@@ -120,10 +123,37 @@ SHttpServer::ResponseMessage PhotoServer::httpRequest(const SHttpServer::Request
   {
     const MediaServer::File file(request);
 
-    if ((file.suffix() == "jpeg") || ((file.suffix() == "png") && !file.baseName().endsWith("-thumb")))
-      return sendPhoto(request, MediaDatabase::fromUidString(file.baseName()), file.suffix());
-    else if ((file.suffix() == "html") && (file.baseName() != "playlist")) // Show photo
+    // Check for DLNA request.
+    const QString contentFeatures = QByteArray::fromHex(file.url().queryItemValue("contentFeatures").toAscii());
+    const MediaProfiles::ImageProfile imageProfile = MediaProfiles::imageProfileFor(contentFeatures);
+    switch (imageProfile)
+    {
+    case MediaProfiles::JPEG_TN:
+    case MediaProfiles::JPEG_SM:
+    case MediaProfiles::JPEG_MED:
+    case MediaProfiles::JPEG_LRG:
+      return sendPhoto(request, MediaDatabase::fromUidString(file.fileName()), "jpeg");
+
+    case MediaProfiles::PNG_TN:
+    case MediaProfiles::PNG_LRG:
+      return sendPhoto(request, MediaDatabase::fromUidString(file.fileName()), "png");
+    }
+
+    if (file.fileName().endsWith(".png", Qt::CaseInsensitive) &&
+        !file.fileName().endsWith("-thumb.png", Qt::CaseInsensitive))
+    {
+      return sendPhoto(request, MediaDatabase::fromUidString(file.fileName()), "png");
+    }
+    else if (file.fileName().endsWith(".jpeg", Qt::CaseInsensitive) &&
+             !file.fileName().endsWith("-thumb.jpeg", Qt::CaseInsensitive))
+    {
+      return sendPhoto(request, MediaDatabase::fromUidString(file.fileName()), "jpeg");
+    }
+    else if (file.fileName().endsWith(".html", Qt::CaseInsensitive) &&
+             !file.fileName().startsWith("playlist.")) // Show photo
+    {
       return handleHtmlRequest(request, file);
+    }
   }
 
   return PlaylistServer::httpRequest(request, socket);
@@ -137,35 +167,51 @@ SHttpServer::ResponseMessage PhotoServer::sendPhoto(const SHttpServer::RequestMe
   if (!node.isNull())
   if (node.containsImage())
   {
+    SSize size = node.programs().first().imageCodec.size();
+    if (file.url().hasQueryItem("resolution"))
+    {
+      const QStringList sizeTxt = file.url().queryItemValue("resolution").split('x');
+      if (sizeTxt.count() >= 2)
+      {
+        size.setWidth(qMax(0, sizeTxt[0].toInt()));
+        size.setHeight(qMax(0, sizeTxt[1].toInt()));
+      }
+    }
+
+    const QString contentFeatures = QByteArray::fromHex(file.url().queryItemValue("contentFeatures").toAscii());
+    const MediaProfiles::ImageProfile imageProfile = MediaProfiles::imageProfileFor(contentFeatures);
+    if (imageProfile != 0) // DLNA stream.
+      MediaProfiles::correctFormat(imageProfile, size);
+
     SImage image(node.filePath());
     if (!image.isNull())
     {
-      QByteArray jpgData;
-      QBuffer buffer(&jpgData);
-      buffer.open(QAbstractSocket::WriteOnly);
+      SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
+      response.setField("Cache-Control", "no-cache");
+      response.setContentType("image/" + format.toLower());
 
-      unsigned width = 0, height = 0;
-      if (file.url().hasQueryItem("resolution"))
+      if (!contentFeatures.isEmpty())
       {
-        const QStringList size = file.url().queryItemValue("resolution").split('x');
-        if (size.count() >= 2)
-        {
-          width = qMax(0, size[0].toInt());
-          height = qMax(0, size[1].toInt());
-        }
+        response.setField("transferMode.dlna.org", "Interactive");
+        response.setField("contentFeatures.dlna.org", contentFeatures);
       }
 
-      if ((width > 0) && (height > 0) &&
-          ((width < unsigned(image.width())) ||
-           (height < unsigned(image.height()))))
+      if (!request.isHead())
       {
-        image = image.scaled(width, height, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+        QByteArray jpgData;
+        QBuffer buffer(&jpgData);
+        buffer.open(QAbstractSocket::WriteOnly);
+
+        if (!size.isNull())
+          image = image.scaled(size.size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
+
+        image.save(&buffer, format.toUpper().toAscii(), 80);
+        buffer.close();
+
+        response.setContent(buffer.data());
       }
 
-      image.save(&buffer, format.toUpper().toAscii(), 80);
-      buffer.close();
-
-      return makeResponse(request, buffer.data(), ("image/" + format.toLower()).toAscii(), true);
+      return response;
     }
   }
 
