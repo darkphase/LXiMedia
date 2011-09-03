@@ -124,9 +124,13 @@ const char MediaServer::htmlPlayerAudioItem[] =
     " </div>\n";
 
 const char MediaServer::htmlPlayerAudioItemHtml5[] =
-    "   <audio src=\"{PLAYER_URL}\" autoplay=\"autoplay\" controls=\"controls\">\n"
+    "   <audio autoplay=\"autoplay\" controls=\"controls\">\n"
+    "{SOURCES}"
     "{FLV_PLAYER}"
     "   </audio>\n";
+
+const char MediaServer::htmlPlayerAudioSourceItemHtml5[] =
+    "    <source src='{SOURCE_URL}' type='{SOURCE_CODEC}' />\n";
 
 const char MediaServer::htmlPlayerAudioItemFlv[] =
     "    <div id=\"player\" style=\"display:block;height:{HEIGHT}px;\" href=\"{PLAYER_URL}\"></div>\n"
@@ -152,9 +156,13 @@ const char MediaServer::htmlPlayerVideoItem[] =
     " </div>\n";
 
 const char MediaServer::htmlPlayerVideoItemHtml5[] =
-    "   <video src=\"{PLAYER_URL}\" width=\"{WIDTH}\" height=\"{HEIGHT}\" autoplay=\"autoplay\" controls=\"controls\" poster=\"{PLAYER_ITEM}-thumb.png?resolution={WIDTH}x{HEIGHT}\">\n"
+    "   <video width=\"{WIDTH}\" height=\"{HEIGHT}\" autoplay=\"autoplay\" controls=\"controls\" poster=\"{PLAYER_ITEM}-thumb.png?resolution={WIDTH}x{HEIGHT}\">\n"
+    "{SOURCES}"
     "{FLV_PLAYER}"
     "   </video>\n";
+
+const char MediaServer::htmlPlayerVideoSourceItemHtml5[] =
+    "    <source src='{SOURCE_URL}' type='{SOURCE_CODEC}' />\n";
 
 const char MediaServer::htmlPlayerVideoItemFlv[] =
     "    <div id=\"player\" style=\"display:block;width:{WIDTH}px;height:{HEIGHT}px;\" href=\"{PLAYER_URL}\"></div>\n"
@@ -556,10 +564,13 @@ QByteArray MediaServer::buildVideoPlayer(const QByteArray &item, const QString &
 
     if (html5Enabled)
     {
-      htmlParser.setField("PLAYER_URL", SUPnPContentDirectory::toQueryPath(item, query, ".ogg"));
-      htmlParser.setField("PLAYER", htmlParser.parse(htmlPlayerVideoItemHtml5));
       htmlParser.setField("PLAYER_URL", SUPnPContentDirectory::toQueryPath(item, query, ".flv"));
       htmlParser.setField("FLV_PLAYER", htmlParser.parse(htmlPlayerVideoItemFlv));
+
+      htmlParser.setField("SOURCE_URL", SUPnPContentDirectory::toQueryPath(item, query, ".ogg"));
+      htmlParser.setField("SOURCE_CODEC", QByteArray("video/ogg; codecs=\"theora, flac\""));
+      htmlParser.setField("SOURCES", htmlParser.parse(htmlPlayerVideoSourceItemHtml5));
+      htmlParser.setField("PLAYER", htmlParser.parse(htmlPlayerVideoItemHtml5));
     }
     else
     {
@@ -677,10 +688,13 @@ QByteArray MediaServer::buildVideoPlayer(const QByteArray &item, const QString &
 
     if (html5Enabled)
     {
-      htmlParser.setField("PLAYER_URL", SUPnPContentDirectory::toQueryPath(item, query, ".ogg"));
-      htmlParser.setField("PLAYER", htmlParser.parse(htmlPlayerVideoItemHtml5));
       htmlParser.setField("PLAYER_URL", SUPnPContentDirectory::toQueryPath(item, query, ".flv"));
       htmlParser.setField("FLV_PLAYER", htmlParser.parse(htmlPlayerVideoItemFlv));
+
+      htmlParser.setField("SOURCE_URL", SUPnPContentDirectory::toQueryPath(item, query, ".ogg"));
+      htmlParser.setField("SOURCE_CODEC", QByteArray("video/ogg; codecs=\"theora, flac\""));
+      htmlParser.setField("SOURCES", htmlParser.parse(htmlPlayerVideoSourceItemHtml5));
+      htmlParser.setField("PLAYER", htmlParser.parse(htmlPlayerVideoItemHtml5));
     }
     else
     {

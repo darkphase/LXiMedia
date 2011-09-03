@@ -332,14 +332,11 @@ void Backend::start(const SHttpEngine::ResponseMessage &formats)
   masterConnectionManager.setSourceProtocols(MediaServer::mediaProfiles().listProtocols());
   masterConnectionManager.setSinkProtocols(SUPnPBase::ProtocolList());
 
-  /* HTML5 is still very buggy implemented in many browsers, so for now we stay
-     with Flash video.
-
   if (outFormats.contains("ogg") &&
       outVideoCodecs.contains("THEORA") && outAudioCodecs.contains("FLAC"))
   {
     MediaServer::enableHtml5();
-  }*/
+  }
 
   qDebug() << "Finished initialization.";
 }
