@@ -20,8 +20,7 @@
 #include "backend.h"
 
 const char * const Backend::htmlIndex =
-    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
-    "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">\n"
+    "<!DOCTYPE html>\n"
     "<html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"en\" xml:lang=\"en\">\n"
     "<head>\n"
     " <title>{_PRODUCT} @ {_HOSTNAME}</title>\n"
@@ -65,7 +64,7 @@ const char * const Backend::htmlMenuGroup =
     " </div>\n";
 
 const char * const Backend::htmlMenuItem =
-    "   <li><a href=\"{ITEM_URL}\"><img src=\"{ITEM_ICONURL}\" alt=\"..\">{ITEM_TITLE}</a></li>\n";
+    "   <li><a href=\"{ITEM_URL}\"><img src=\"{ITEM_ICONURL}\" alt=\"..\" />{ITEM_TITLE}</a></li>\n";
 
 const char * const Backend::htmlMain =
     "{LOG_ERRORS}"
@@ -245,7 +244,7 @@ QByteArray Backend::parseHtmlContent(const QUrl &url, const QByteArray &content,
     foreach (const QString &dir, path.left(lastSlash).split('/', QString::SkipEmptyParts))
     {
       fullPath += dir + "/";
-      localParser.setField("ITEM_LINK", fullPath);
+      localParser.setField("ITEM_LINK", QUrl(fullPath).toEncoded());
       localParser.setField("ITEM_NAME", dir);
       localParser.appendField("PATH", localParser.parse(htmlLocationItem));
     }
@@ -258,7 +257,7 @@ QByteArray Backend::parseHtmlContent(const QUrl &url, const QByteArray &content,
     localParser.setField("TR_SEARCH", tr("Search"));
     localParser.setField("SEARCH_QUERY", queryString);
 
-    localParser.setField("ITEM_LINK", "/?q=" + queryValue);
+    localParser.setField("ITEM_LINK", QUrl("/?q=" + queryValue).toEncoded());
     localParser.setField("ITEM_NAME", tr("Search") + ": " + queryString);
     localParser.appendField("PATH", localParser.parse(htmlLocationItem));
   }
@@ -286,7 +285,7 @@ QByteArray Backend::parseHtmlLogErrors(void) const
     htmlParser.setField("TR_ERRORS",tr("Program errors"));
     htmlParser.setField("TR_DISMISS",tr("Dismiss all errors"));
 
-    htmlParser.setField("ITEM_ICONURL", QByteArray("/img/journal.png?scale=32"));
+    htmlParser.setField("ITEM_ICONURL", QUrl("/img/journal.png?scale=32").toEncoded());
 
     htmlParser.setField("ERROR_LOG_FILES", QByteArray(""));
     QString lastDate;
@@ -295,12 +294,12 @@ QByteArray Backend::parseHtmlLogErrors(void) const
       const QFileInfo info(errorLogFiles[i]);
 
       htmlParser.setField("ITEM_TITLE", info.created().toString("yyyy-MM-dd hh:mm"));
-      htmlParser.setField("ITEM_URL", "/" + info.fileName());
+      htmlParser.setField("ITEM_URL", QUrl("/" + info.fileName()).toEncoded());
       htmlParser.appendField("ITEMS", htmlParser.parse(htmlMenuItem));
     }
 
     htmlParser.setField("ITEM_TITLE", tr("Dismiss all errors"));
-    htmlParser.setField("ITEM_URL", QByteArray("/?dismisserrors"));
+    htmlParser.setField("ITEM_URL", QUrl("/?dismisserrors").toEncoded());
     htmlParser.appendField("ITEMS", htmlParser.parse(htmlMenuItem));
 
     htmlParser.setField("TEXT", tr("Program errors"));
@@ -335,8 +334,8 @@ SHttpServer::ResponseMessage Backend::handleHtmlRequest(const SHttpServer::Reque
     foreach (const MenuItem &item, *i)
     {
       htmlParser.setField("ITEM_TITLE", item.title);
-      htmlParser.setField("ITEM_URL", item.url);
-      htmlParser.setField("ITEM_ICONURL", item.iconurl);
+      htmlParser.setField("ITEM_URL", QUrl(item.url).toEncoded());
+      htmlParser.setField("ITEM_ICONURL", QUrl(item.iconurl).toEncoded());
       htmlParser.appendField("ITEMS", htmlParser.parse(htmlMainServerItem));
     }
 
@@ -370,8 +369,8 @@ SHttpServer::ResponseMessage Backend::handleHtmlSearch(const SHttpServer::Reques
   {
     htmlParser.setField("ITEM_TITLE", result.headline);
     htmlParser.setField("ITEM_RELEVANCE", QString::number(qBound(0, int(result.relevance * 100.0), 100)) + "%");
-    htmlParser.setField("ITEM_URL", result.location);
-    htmlParser.setField("ITEM_ICONURL", result.thumbLocation);
+    htmlParser.setField("ITEM_URL", QUrl(result.location).toEncoded());
+    htmlParser.setField("ITEM_ICONURL", QUrl(result.thumbLocation).toEncoded());
 
     htmlParser.appendField("SEARCHRESULTS", htmlParser.parse(htmlSearchResultsItem));
   }

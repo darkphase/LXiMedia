@@ -134,6 +134,7 @@ private:
   _lxi_internal void            didlFile(QDomDocument &, QDomElement &, const QString &host, const Item &, const QString &path, const QString &title = QString::null);
   _lxi_internal void            emitEvent(bool dirty);
 
+  _lxi_internal static QStringList allItems(const Item &, const QStringList &itemProps);
   _lxi_internal static QStringList streamItems(const Item &);
   _lxi_internal static QStringList playSeekItems(const Item &);
   _lxi_internal static QStringList seekItems(const Item &);

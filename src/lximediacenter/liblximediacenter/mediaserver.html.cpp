@@ -36,12 +36,6 @@ const char MediaServer::m3uPlaylistItem[] =
     "#EXTINF:{ITEM_LENGTH},{ITEM_NAME}\n"
     "{ITEM_URL}\n";
 
-const char MediaServer::htmlPageItem[] =
-    "   <li><a href=\"{ITEM_LINK}\">{ITEM_NAME}</a></li>\n";
-
-const char MediaServer::htmlPageSeparator[] =
-    "   <li>{ITEM_NAME}</li>\n";
-
 const char MediaServer::htmlThumbnailList[] =
     " <div class=\"content\">\n"
     "  <h1>{TITLE}</h1>\n"
@@ -136,7 +130,7 @@ const char MediaServer::htmlPlayerAudioItemHtml5[] =
 
 const char MediaServer::htmlPlayerAudioItemFlv[] =
     "    <div id=\"player\" style=\"display:block;height:{HEIGHT}px;\" href=\"{PLAYER_URL}\"></div>\n"
-    "    <script language=\"JavaScript\" type=\"text/javascript\"><!--\n"
+    "    <script type=\"text/javascript\"><!--\n"
     "     flowplayer(\"player\", \"/swf/flowplayer.swf\", {\n"
     "       clip: { autoPlay: true }\n"
     "      } );\n"
@@ -164,7 +158,7 @@ const char MediaServer::htmlPlayerVideoItemHtml5[] =
 
 const char MediaServer::htmlPlayerVideoItemFlv[] =
     "    <div id=\"player\" style=\"display:block;width:{WIDTH}px;height:{HEIGHT}px;\" href=\"{PLAYER_URL}\"></div>\n"
-    "    <script language=\"JavaScript\" type=\"text/javascript\">\n"
+    "    <script type=\"text/javascript\">\n"
     "     flowplayer(\"player\", \"/swf/flowplayer.swf\", {\n"
     "       clip: { scaling: 'fit', accelerated: true, autoPlay: true }\n"
     "      } );\n"
@@ -209,7 +203,7 @@ const char MediaServer::htmlPlayerThumbItem[] =
     "    <div style=\"padding:1em;margin:1em auto;width:{WIDTH23}px;background-color:rgb(176,176,176);background-color:rgba(255,255,255,0.7);\">\n"
     "     {TR_TRANSCODE_OPTIONS_EXPLAIN}\n"
     "     <br /><br />\n"
-    "     <form name=\"dlnasettings\" action=\"{CLEAN_TITLE}.mpeg\" method=\"get\">\n"
+    "     <form name=\"dlnasettings\" action=\"{ENCODED_TITLE}.mpeg\" method=\"get\">\n"
     "      <input type=\"hidden\" name=\"item\" value=\"{PLAYER_ITEM}\" />\n"
     "      <input type=\"hidden\" name=\"encodemode\" value=\"slow\" />\n"
     "      <input type=\"hidden\" name=\"priority\" value=\"low\" />\n"
@@ -310,8 +304,8 @@ QByteArray MediaServer::buildThumbnailItems(const ThumbnailListItemList &items)
   {
     htmlParser.setField("ITEM_TITLE", item.title);
     htmlParser.setField("ITEM_SUBTITLE", item.subtitle);
-    htmlParser.setField("ITEM_ICONURL", item.iconurl.toString());
-    htmlParser.setField("ITEM_URL", item.url.toString());
+    htmlParser.setField("ITEM_ICONURL", item.iconurl.toEncoded());
+    htmlParser.setField("ITEM_URL", item.url.toEncoded());
     result += htmlParser.parse(item.title.isEmpty() ? htmlThumbnailItemNoTitle : htmlThumbnailItem);
   }
 
@@ -368,8 +362,8 @@ QByteArray MediaServer::buildDetailedItems(const DetailedListItemList &items)
     {
       htmlParser.setField("ITEM_TITLE", items[i].columns[j].title);
       htmlParser.setField("ITEM_CLASS", QByteArray(i & 1 ? "nostretch_b" : "nostretch_a"));
-      htmlParser.setField("ITEM_ICONURL", items[i].columns[j].iconurl.toString());
-      htmlParser.setField("ITEM_URL", items[i].columns[j].url.toString());
+      htmlParser.setField("ITEM_ICONURL", items[i].columns[j].iconurl.toEncoded());
+      htmlParser.setField("ITEM_URL", items[i].columns[j].url.toEncoded());
 
       if (!items[i].columns[j].url.isEmpty())
       {
@@ -410,7 +404,7 @@ QByteArray MediaServer::buildVideoPlayer(const QByteArray &item, const QString &
   htmlParser.setField("ITEM_VALUE", videoFormatString(program));
   htmlParser.appendField("DETAILS", htmlParser.parse(htmlDetail));
 
-  htmlParser.setField("CLEAN_TITLE", SStringParser::toCleanName(title));
+  htmlParser.setField("ENCODED_TITLE", SStringParser::toCleanName(title).toUtf8().toPercentEncoding());
   htmlParser.setField("PLAYER_ITEM", item);
   htmlParser.setField("TR_PLAY_HERE", tr("Play now"));
   htmlParser.setField("TR_PLAY_EXTERNAL", tr("Play in external player"));
@@ -591,7 +585,7 @@ QByteArray MediaServer::buildVideoPlayer(const QByteArray &item, const QString &
   htmlParser.appendField("DETAILS", htmlParser.parse(htmlDetail));
 
   // Build the player
-  htmlParser.setField("CLEAN_TITLE", SStringParser::toCleanName(title));
+  htmlParser.setField("CLEAN_TITLE", SStringParser::toCleanName(title).toUtf8().toPercentEncoding());
   htmlParser.setField("PLAYER_ITEM", item);
   htmlParser.setField("TR_PLAY_HERE", tr("Play now"));
   htmlParser.setField("TR_PLAY_EXTERNAL", tr("Play in external player"));
