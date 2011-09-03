@@ -181,9 +181,11 @@ protected: // Implemented in mediaserver.html.cpp
   static const char             htmlDetailedListColumnLinkIcon[];
   static const char             htmlPlayerAudioItem[];
   static const char             htmlPlayerAudioItemHtml5[];
+  static const char             htmlPlayerAudioSourceItemHtml5[];
   static const char             htmlPlayerAudioItemFlv[];
   static const char             htmlPlayerVideoItem[];
   static const char             htmlPlayerVideoItemHtml5[];
+  static const char             htmlPlayerVideoSourceItemHtml5[];
   static const char             htmlPlayerVideoItemFlv[];
   static const char             htmlPlayerThumbItem[];
   static const char             htmlPlayerThumbItemOption[];
