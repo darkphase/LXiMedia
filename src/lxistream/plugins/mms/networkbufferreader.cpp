@@ -57,11 +57,11 @@ bool NetworkBufferReader::start(const QUrl &url, ProduceCallback *pc, quint16 pr
     {
       qDebug() << "MMS connected";
 
-      bufferReader = SInterfaces::BufferReader::create(this, "asf", false);
+      bufferReader = SInterfaces::BufferReader::create(this, "asf", true);
       if (bufferReader)
       {
         qDebug() << "MMS bufferReader->start";
-        if (bufferReader->start(this, pc, programId, true))
+        if (bufferReader->start(this, pc, programId, false))
         {
           qDebug() << "MMS bufferReader->start finished";
           return true;
@@ -168,9 +168,24 @@ qint64 NetworkBufferReader::read(uchar *buffer, qint64 size)
   return -1;
 }
 
-qint64 NetworkBufferReader::seek(qint64 /*offset*/, int /*whence*/)
+qint64 NetworkBufferReader::seek(qint64 offset, int whence)
 {
-  return -1;
+  if (whence != -1)
+  {
+    qint64 result = ::mmsx_seek(NULL, mmsHandle, offset, whence);
+
+    qDebug() << "MMS NetworkBufferReader::seek" << offset << whence << result;
+
+    return result;
+  }
+  else
+  {
+    qint64 result = ::mmsx_get_current_pos(mmsHandle);
+
+    qDebug() << "MMS NetworkBufferReader::seek" << offset << whence << result;
+
+    return result;
+  }
 }
 
 QList<QUrl> NetworkBufferReader::resolve(const QUrl &url)
@@ -206,7 +221,12 @@ QList<QUrl> NetworkBufferReader::resolve(const QUrl &url)
         }
 
         if (!result.isEmpty())
+        {
+          for (int i=0; i<result.count(); i++)
+            qSwap(result[qrand() % result.count()], result[qrand() % result.count()]);
+
           return result;
+        }
       }
       else
         qDebug() << line << col << error << corrected;
