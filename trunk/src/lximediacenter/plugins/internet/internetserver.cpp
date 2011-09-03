@@ -74,7 +74,7 @@ InternetServer::Stream * InternetServer::streamVideo(const SHttpServer::RequestM
 
   const QString item = file.url().hasQueryItem("item")
     ? file.url().queryItemValue("item")
-    : file.fileName();
+    : file.fileName().left(file.fileName().lastIndexOf('.'));
 
   if (!item.isEmpty())
   {
