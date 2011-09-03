@@ -167,9 +167,6 @@ protected: // Implemented in mediaserver.html.cpp
 
   static const char             m3uPlaylist[];
   static const char             m3uPlaylistItem[];
-  static const char             htmlPages[];
-  static const char             htmlPageItem[];
-  static const char             htmlPageSeparator[];
   static const char             htmlThumbnailList[];
   static const char             htmlThumbnailLoader[];
   static const char             htmlThumbnailItem[];

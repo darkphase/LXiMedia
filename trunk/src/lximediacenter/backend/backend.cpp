@@ -184,8 +184,8 @@ void Backend::start(void)
     foreach (const MenuItem &item, *i)
     {
       localParser.setField("ITEM_TITLE", item.title);
-      localParser.setField("ITEM_URL", item.url);
-      localParser.setField("ITEM_ICONURL", item.iconurl + "?scale=32");
+      localParser.setField("ITEM_URL", QUrl(item.url).toEncoded());
+      localParser.setField("ITEM_ICONURL", QUrl(item.iconurl + "?scale=32").toEncoded());
       localParser.appendField("ITEMS", localParser.parse(htmlMenuItem));
     }
 

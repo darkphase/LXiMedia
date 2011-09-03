@@ -327,7 +327,7 @@ bool SUPnPContentDirectory::handleBrowse(const QDomElement &elem, QDomDocument &
           if (item.direct)
             didlFile(subDoc, root, host, item, path + QString::number(itemIndex), title);
           else
-            didlContainer(subDoc, root, Item::Type(item.type), path + QString::number(itemIndex), title);
+            didlContainer(subDoc, root, Item::Type(item.type), path + QString::number(itemIndex), title, allItems(item, QStringList()).count());
         }
         else
           didlDirectory(subDoc, root, Item::Type(item.type), peer, path + item.title + '/');
@@ -378,6 +378,7 @@ bool SUPnPContentDirectory::handleBrowse(const QDomElement &elem, QDomDocument &
       return false;
     }
 
+    const QStringList items = allItems(item, itemProps);
     QDomElement result = doc.createElement("Result");
     int totalMatches = 0, totalReturned = 0;
 
@@ -389,16 +390,6 @@ bool SUPnPContentDirectory::handleBrowse(const QDomElement &elem, QDomDocument &
       root.setAttribute("xmlns:dlna", dlnaNS);
       root.setAttribute("xmlns:upnp", metadataNS);
 
-      QStringList items;
-      if (itemProps[1].isEmpty()) // Root
-        items = streamItems(item);
-      else if (itemProps[1] == "r")
-        items = playSeekItems(item);
-      else if (itemProps[1] == "s")
-        items = seekItems(item);
-      else if (itemProps[1] == "c")
-        items = chapterItems(item);
-
       // Only select the items that were requested.
       for (int i=start, n=0; (i<items.count()) && ((count == 0) || (n<int(count))); i++, n++)
       {
@@ -406,7 +397,7 @@ bool SUPnPContentDirectory::handleBrowse(const QDomElement &elem, QDomDocument &
         if (props[1] == "p")
           didlFile(subDoc, root, host, makePlayItem(item, props), path + '|' + items[i]);
         else
-          didlContainer(subDoc, root, Item::Type(item.type), path + '|' + items[i], props[3]);
+          didlContainer(subDoc, root, Item::Type(item.type), path + '|' + items[i], props[3], allItems(item, splitItemProps(items[i])).count());
 
         totalReturned++;
       }
@@ -427,7 +418,7 @@ bool SUPnPContentDirectory::handleBrowse(const QDomElement &elem, QDomDocument &
       if (itemProps[1].isEmpty() || (itemProps[1] == "p"))
         didlFile(subDoc, root, host, makePlayItem(item, itemProps), path);
       else
-        didlContainer(subDoc, root, Item::Type(item.type), path, itemProps[3]);
+        didlContainer(subDoc, root, Item::Type(item.type), path, itemProps[3], items.count());
 
       totalMatches = totalReturned = 1;
 
@@ -458,9 +449,7 @@ void SUPnPContentDirectory::didlDirectory(QDomDocument &doc, QDomElement &root, 
     return;
   }
 
-  const int numDirItems = (*callback)->countContentDirItems(peer, path);
-  if (numDirItems > 0)
-    didlContainer(doc, root, type, path, title, numDirItems);
+  didlContainer(doc, root, type, path, title, (*callback)->countContentDirItems(peer, path));
 }
 
 void SUPnPContentDirectory::didlContainer(QDomDocument &doc, QDomElement &root, Item::Type type, const QString &path, const QString &title, int childCount)
@@ -590,6 +579,21 @@ void SUPnPContentDirectory::emitEvent(bool dirty)
   doc.appendChild(propertySet);
 
   d->genaServer->emitEvent(doc);
+}
+
+QStringList SUPnPContentDirectory::allItems(const Item &item, const QStringList &itemProps)
+{
+  QStringList items;
+  if (itemProps.isEmpty() || itemProps[1].isEmpty()) // Root
+    items = streamItems(item);
+  else if (itemProps[1] == "r")
+    items = playSeekItems(item);
+  else if (itemProps[1] == "s")
+    items = seekItems(item);
+  else if (itemProps[1] == "c")
+    items = chapterItems(item);
+
+  return items;
 }
 
 QStringList SUPnPContentDirectory::streamItems(const Item &item)
@@ -824,7 +828,7 @@ SUPnPContentDirectory::Item::Chapter::~Chapter()
 }
 
 
-int SUPnPContentDirectory::Data::countContentDirItems(const QString &, const QString &path)
+int SUPnPContentDirectory::Data::countContentDirItems(const QString &peer, const QString &path)
 {
   QSet<QString> subDirs;
 
@@ -833,14 +837,17 @@ int SUPnPContentDirectory::Data::countContentDirItems(const QString &, const QSt
   {
     QString sub = i.key().mid(path.length() - 1);
     sub = sub.left(sub.indexOf('/', 1) + 1);
-    if (sub.length() > 1)
+    if ((sub.length() > 1) && !subDirs.contains(sub) &&
+        ((*i)->countContentDirItems(peer, i.key()) > 0))
+    {
       subDirs.insert(sub);
+    }
   }
 
   return subDirs.count();
 }
 
-QList<SUPnPContentDirectory::Item> SUPnPContentDirectory::Data::listContentDirItems(const QString &, const QString &path, unsigned start, unsigned count)
+QList<SUPnPContentDirectory::Item> SUPnPContentDirectory::Data::listContentDirItems(const QString &peer, const QString &path, unsigned start, unsigned count)
 {
   const bool returnAll = count == 0;
   QList<SUPnPContentDirectory::Item> result;
@@ -851,7 +858,8 @@ QList<SUPnPContentDirectory::Item> SUPnPContentDirectory::Data::listContentDirIt
   {
     QString sub = i.key().mid(path.length() - 1);
     sub = sub.left(sub.indexOf('/', 1) + 1);
-    if ((sub.length() > 1) && !names.contains(sub))
+    if ((sub.length() > 1) && !names.contains(sub) &&
+        ((*i)->countContentDirItems(peer, i.key()) > 0))
     {
       names.insert(sub);
 
