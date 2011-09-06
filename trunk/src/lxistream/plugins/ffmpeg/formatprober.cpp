@@ -112,12 +112,12 @@ void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *readCallback)
           pi.track = bestOf(pi.track, bufferReader.context()->track);
 
           if (pi.programs.isEmpty())
-            pi.programs.append(ProbeInfo::Program());
+            pi.programs.append(ProbeInfo::Program(0));
 
           ProbeInfo::Program &program = pi.programs.first();
 
           const STime duration = bufferReader.duration();
-          if (duration.isValid())
+          if (duration.isValid() && (duration > program.duration))
             program.duration = duration;
 
           const QList<Chapter> chapters = bufferReader.chapters();
@@ -140,45 +140,52 @@ void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *readCallback)
                videoStream != program.videoStreams.end();
                videoStream++)
           {
-            bufferReader.selectStreams(QList<StreamId>() << (*videoStream));
+            bufferReader.selectStreams(QVector<StreamId>() << (*videoStream));
 
-            // Read the first two minutes
+            // Skip the first 5%
+            const int skipSecs = (program.duration.toMin() >= 10) ? (program.duration.toSec() / 20) : 60;
+
+            STime firstTime;
+            for (int i=0, lc=0; (i<16384) && (produceCallback.videoBuffers.count()<1000); i++)
             {
-              STime firstTime;
-              for (int i=0, lc=0; (i<128) && (produceCallback.videoBuffers.count()<2048); i++)
-              {
-                if (!bufferReader.process(true))
-                  break;
-
-                if (produceCallback.videoBuffers.count() != lc)
-                {
-                  const SEncodedVideoBuffer &last = produceCallback.videoBuffers.last();
-                  const STime lastTime = last.presentationTimeStamp().isValid()
-                                         ? last.presentationTimeStamp()
-                                         : last.decodingTimeStamp();
-
-                  if (firstTime.isValid())
-                    firstTime = qMin(firstTime, lastTime);
-                  else
-                    firstTime = lastTime;
-
-                  if ((lastTime - firstTime).toSec() >= 120)
-                    break;
-
-                  if (last.isKeyFrame())
-                  while (produceCallback.videoBuffers.count() > 1)
-                    produceCallback.videoBuffers.takeFirst();
-
-                  i = 0;
-                  lc = produceCallback.videoBuffers.count();
-                }
-              }
-
-              for (int i=0; (i<4096) && (produceCallback.videoBuffers.count()<128); i++)
               if (!bufferReader.process(true))
                 break;
+
+              if (produceCallback.videoBuffers.count() != lc)
+              {
+                const SEncodedVideoBuffer &last = produceCallback.videoBuffers.last();
+                const STime lastTime = last.presentationTimeStamp().isValid()
+                                       ? last.presentationTimeStamp()
+                                       : last.decodingTimeStamp();
+
+                if (firstTime.isValid())
+                  firstTime = qMin(firstTime, lastTime);
+                else
+                  firstTime = lastTime;
+
+                if ((lastTime - firstTime).toSec() >= skipSecs)
+                  break;
+
+                if (last.isKeyFrame())
+                while (produceCallback.videoBuffers.count() > 1)
+                  produceCallback.videoBuffers.takeFirst();
+
+                while ((produceCallback.videoBuffers.count() >= 500) &&
+                       !produceCallback.videoBuffers.first().isKeyFrame()) // No keyframes?
+                {
+                  produceCallback.videoBuffers.takeFirst();
+                }
+
+                lc = produceCallback.videoBuffers.count();
+              }
             }
 
+            // Read ~20 seconds of video
+            for (int i=0; (i<4096) && (produceCallback.videoBuffers.count()<500); i++)
+            if (!bufferReader.process(true))
+              break;
+
+            // Find the best thumbnail
             if (!produceCallback.videoBuffers.isEmpty() &&
                 !produceCallback.videoBuffers.first().codec().isNull())
             {
@@ -202,12 +209,14 @@ void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *readCallback)
                   }
 
                   qSort(pixels);
-                  const int dist = (counter++ / 10) + (int(pixels[pixels.count() * 3 / 4]) - int(pixels[pixels.count() / 4]));
-                  if (dist >= bestDist)
+                  const int dist = (counter / 10) + (int(pixels[pixels.count() * 3 / 4]) - int(pixels[pixels.count() / 4]));
+                  if ((dist >= bestDist) || (counter < 64)) // Prevent blocks in case a keyframe is missing.
                   {
                     bestThumb = thumb;
                     bestDist = dist;
                   }
+
+                  counter++;
                 }
 
                 const SInterval frameRate = bestThumb.format().frameRate();
@@ -235,8 +244,8 @@ void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *readCallback)
             }
           }
 
-          // Data streams are set now, as subtitles are not all detected before
-          // scanning the file.
+          // Subtitle streams may not be visible after reading some data (as the
+          // first subtitle usually appears after a few minutes).
           const QList<DataStreamInfo> dataStreams = bufferReader.dataStreams();
           if (!dataStreams.isEmpty())
             program.dataStreams = dataStreams;

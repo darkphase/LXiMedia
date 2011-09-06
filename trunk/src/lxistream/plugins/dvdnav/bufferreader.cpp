@@ -31,7 +31,7 @@ QString BufferReader::discPath(const QString &path)
 
 bool BufferReader::isExtractedDiscPath(const QString &path)
 {
-  return path.endsWith("/VIDEO_TS/VIDEO_TS.IFO", Qt::CaseInsensitive);
+  return path.endsWith("/video_ts/video_ts.ifo", Qt::CaseInsensitive);
 }
 
 bool BufferReader::isDiscPath(const QString &path)
@@ -42,7 +42,7 @@ bool BufferReader::isDiscPath(const QString &path)
 #ifdef Q_OS_UNIX
       canonicalPath.startsWith("/dev/") ||
 #endif
-      QDir(canonicalPath).entryList().contains("VIDEO_TS", Qt::CaseInsensitive))
+      QDir(canonicalPath).entryList().contains("video_ts", Qt::CaseInsensitive))
   {
     return true;
   }
@@ -57,6 +57,7 @@ BufferReader::BufferReader(const QString &, QObject *parent)
     dvdHandle(NULL),
     currentTitle(0),
     currentChapter(-1),
+    produceCallback(NULL),
     bufferReader(NULL),
     seekEnabled(false),
     flushing(false),
@@ -123,7 +124,7 @@ unsigned BufferReader::numTitles(void) const
   return 0;
 }
 
-bool BufferReader::selectTitle(SInterfaces::BufferReader::ProduceCallback *pc, quint16 programId)
+bool BufferReader::selectTitle(quint16 programId)
 {
   if (::dvdnav_title_play(dvdHandle, programId + 1) == DVDNAV_STATUS_OK)
   {
@@ -152,15 +153,29 @@ bool BufferReader::selectTitle(SInterfaces::BufferReader::ProduceCallback *pc, q
       ::free(chapters);
     }
 
-    bufferReader = SInterfaces::BufferReader::create(this, "mpeg", false);
-    if (bufferReader)
-    {
-      if (bufferReader->start(this, pc, 0, true))
-        return true;
+    return true;
+  }
 
-      delete bufferReader;
-      bufferReader = NULL;
+  return false;
+}
+
+bool BufferReader::reopenBufferReader(void)
+{
+  delete bufferReader;
+
+  bufferReader = SInterfaces::BufferReader::create(this, "mpeg", false);
+  if (bufferReader)
+  {
+    if (bufferReader->start(this, produceCallback, 0, true))
+    {
+      if (!selectedStreams.isEmpty())
+        bufferReader->selectStreams(selectedStreams);
+
+      return true;
     }
+
+    delete bufferReader;
+    bufferReader = NULL;
   }
 
   return false;
@@ -175,7 +190,10 @@ bool BufferReader::start(SInterfaces::BufferReader::ReadCallback *rc, SInterface
 
   if (openFile(rc->path))
   {
-    if (selectTitle(pc, programId))
+    produceCallback = pc;
+
+    if (selectTitle(programId))
+    if (reopenBufferReader())
       return true;
 
     ::dvdnav_close(dvdHandle);
@@ -200,6 +218,7 @@ void BufferReader::stop(void)
     seekEnabled = flushing = playing = skipStill = skipWait = false;
   }
 
+  produceCallback = NULL;
   delete bufferReader;
   bufferReader = NULL;
 }
@@ -241,9 +260,7 @@ bool BufferReader::setPosition(STime pos)
         skipStill = false;
         skipWait = false;
 
-        bufferReader->setPosition(STime::null);
-
-        return true;
+        return reopenBufferReader();
       }
     }
     else if (!titleChapters.isEmpty())
@@ -273,7 +290,7 @@ bool BufferReader::setPosition(STime pos)
         bufferReader->setPosition(STime::null);
         flushing = false;
 
-        return true;
+        return reopenBufferReader();
       }
     }
   }
@@ -311,7 +328,15 @@ QList<BufferReader::AudioStreamInfo> BufferReader::audioStreams(void) const
 {
   QMutexLocker l(&mutex);
 
-  QList<AudioStreamInfo> result = bufferReader->audioStreams();
+  return filterAudioStreams(bufferReader->audioStreams());
+}
+
+QList<BufferReader::AudioStreamInfo> BufferReader::filterAudioStreams(const QList<AudioStreamInfo> &streams) const
+{
+  QMutexLocker l(&mutex);
+
+  QList<AudioStreamInfo> result = streams;
+  qSort(result);
 
   if (dvdHandle)
   for (int i=0; i<result.count(); i++)
@@ -333,14 +358,30 @@ QList<BufferReader::VideoStreamInfo> BufferReader::videoStreams(void) const
 {
   QMutexLocker l(&mutex);
 
-  return bufferReader->videoStreams();
+  return filterVideoStreams(bufferReader->videoStreams());
+}
+
+QList<BufferReader::VideoStreamInfo> BufferReader::filterVideoStreams(const QList<VideoStreamInfo> &streams) const
+{
+  QList<VideoStreamInfo> result = streams;
+  qSort(result);
+
+  return result;
 }
 
 QList<BufferReader::DataStreamInfo> BufferReader::dataStreams(void) const
 {
   QMutexLocker l(&mutex);
 
-  QList<DataStreamInfo> result = bufferReader->dataStreams();
+  return filterDataStreams(bufferReader->dataStreams());
+}
+
+QList<BufferReader::DataStreamInfo> BufferReader::filterDataStreams(const QList<DataStreamInfo> &streams) const
+{
+  QMutexLocker l(&mutex);
+
+  QList<DataStreamInfo> result = streams;
+  qSort(result);
 
   if (dvdHandle)
   {
@@ -355,7 +396,7 @@ QList<BufferReader::DataStreamInfo> BufferReader::dataStreams(void) const
         const quint16 id = (lid >= 0 ? int(lid) : i) + 0x20;
 
         for (int i=0; i<result.count(); i++)
-        if (result[i].nativeId == id)
+        if (((result[i].type & StreamId::Type_Flag_Native) != 0) && result[i].id == id)
         {
           result[i].language[0] = (lang >> 8) & 0xFF;
           result[i].language[1] = lang & 0xFF;
@@ -379,9 +420,11 @@ QList<BufferReader::DataStreamInfo> BufferReader::dataStreams(void) const
   return result;
 }
 
-void BufferReader::selectStreams(const QList<StreamId> &streams)
+void BufferReader::selectStreams(const QVector<StreamId> &streams)
 {
-  bufferReader->selectStreams(streams);
+  selectedStreams = streams;
+  if (bufferReader)
+    bufferReader->selectStreams(selectedStreams);
 }
 
 qint64 BufferReader::read(uchar *buffer, qint64 size)

@@ -95,7 +95,7 @@ public: // From SInterfaces::AbstractBufferedReader
   virtual QList<AudioStreamInfo> audioStreams(void) const;
   virtual QList<VideoStreamInfo> videoStreams(void) const;
   virtual QList<DataStreamInfo> dataStreams(void) const;
-  virtual void                  selectStreams(const QList<StreamId> &);
+  virtual void                  selectStreams(const QVector<StreamId> &);
 
 private: // DTS framing
   static bool                   isDTS(const SBuffer &);
@@ -106,8 +106,10 @@ private: // DTS framing
 private:
   static StreamContext        * initStreamContext(const ::AVStream *);
   static QString                readMetadata(::AVMetadata *, const char *tagName);
+  bool                          isSelected(const ::AVStream *) const;
   QPair<STime, STime>           correctTimeStamp(const Packet &);
   QPair<STime, STime>           correctTimeStampToVideo(const Packet &);
+  QPair<STime, STime>           correctTimeStampToVideoOnly(const Packet &) const;
 
 private:
   static const STime            maxJumpTime;
@@ -116,8 +118,8 @@ private:
   ::AVFormatContext           * formatContext;
 
   StreamContext               * streamContext[MAX_STREAMS];
-  QSet<StreamId>                selectedStreams;
-  
+  QVector<StreamId>             selectedStreams;
+
   static const unsigned         maxBufferCount = StreamContext::measurementSize * 8;
   QList<Packet>                 packetBuffer;
 };

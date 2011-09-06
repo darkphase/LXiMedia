@@ -101,7 +101,12 @@ QList<SFileInputNode::DataStreamInfo> SFileInputNode::dataStreams(void) const
     SSubtitleFile file(fileName);
     if (file.open())
     {
-      DataStreamInfo stream(DataStreamInfo::Type_Subtitle, nextStreamId++, file.language(), QString::null, file.codec());
+      DataStreamInfo stream(
+          StreamId(StreamId::Type_Subtitle, nextStreamId++),
+          file.language(),
+          QString::null,
+          file.codec());
+
       stream.file = fileName;
       dataStreams += stream;
 
@@ -112,9 +117,9 @@ QList<SFileInputNode::DataStreamInfo> SFileInputNode::dataStreams(void) const
   return dataStreams;
 }
 
-void SFileInputNode::selectStreams(const QList<StreamId> &streamIds)
+void SFileInputNode::selectStreams(const QVector<StreamId> &streamIds)
 {
-  QList<StreamId> nextStreamIds;
+  QVector<StreamId> nextStreamIds;
   foreach (StreamId id, streamIds)
   if (d->subtitleStreams.contains(id))
   {

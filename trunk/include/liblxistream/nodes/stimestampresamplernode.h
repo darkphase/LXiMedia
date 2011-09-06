@@ -68,6 +68,7 @@ signals:
 
 private:
   _lxi_internal STime           correct(const STime &);
+  _lxi_internal STime           correctOnly(const STime &) const;
 
 private:
   _lxi_internal static const int numChannels = 4;

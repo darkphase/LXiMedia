@@ -125,7 +125,7 @@ public:
     const SHttpEngine         * httpEngine;
 
   protected:
-    QStringList                 head;
+    QList<QByteArray>           head;
 
   private:
     QList< QPair<QString, QString> > fields;
@@ -142,12 +142,12 @@ public:
     bool                        isHead(void) const;                             //!< returns true if the method is HEAD.
     bool                        isPost(void) const;                             //!< returns true if the method is POST.
 
-    inline QString              method(void) const                              { return isValid() ? head[0] : QString::null; }
-    inline void                 setMethod(const QString &method)                { if (head.size() > 0) head[0] = method; else head.append(method); }
-    inline QString              path(void) const                                { return isValid() ? head[1] : QString::null; }
-    inline void                 setPath(const QString &path)                    { if (head.size() > 1) head[1] = path; else head.append(path); }
-    inline QString              version(void) const                             { return isValid() ? head[2] : QString::null; }
-    inline void                 setVersion(const QString &version)              { if (head.size() > 2) head[2] = version; else head.append(version); }
+    inline QByteArray           method(void) const                              { return isValid() ? head[0] : QByteArray(); }
+    inline void                 setMethod(const QByteArray &method)             { if (head.size() > 0) head[0] = method; else head.append(method); }
+    inline QByteArray           path(void) const                                { return isValid() ? head[1] : QByteArray(); }
+    inline void                 setPath(const QByteArray &path)                 { if (head.size() > 1) head[1] = path; else head.append(path); }
+    inline QByteArray           version(void) const                             { return isValid() ? head[2] : QByteArray(); }
+    inline void                 setVersion(const QByteArray &version)           { if (head.size() > 2) head[2] = version; else head.append(version); }
 
     inline void                 setRequest(const QByteArray &method, const QByteArray &path) { setMethod(method); setPath(path);  }
     inline void                 setRequest(const QByteArray &method, const QByteArray &path, const QByteArray &version) { setMethod(method); setPath(path); setVersion(version); }
@@ -160,17 +160,17 @@ public:
   {
   public:
     inline                      Status(StatusCode statusCode) : code(statusCode), desc(errorDescription(statusCode)) { }
-    inline                      Status(int statusCode, const QString &description) : code(statusCode), desc(description) { }
+    inline                      Status(int statusCode, const QByteArray &description) : code(statusCode), desc(description) { }
 
     inline bool                 operator==(StatusCode statusCode) const         { return code == statusCode; }
     inline bool                 operator!=(StatusCode statusCode) const         { return code != statusCode; }
 
     inline int                  statusCode(void) const                          { return code; }
-    inline const QString      & description(void) const                         { return desc; }
+    inline const QByteArray   & description(void) const                         { return desc; }
 
   private:
     int                         code;
-    QString                     desc;
+    QByteArray                  desc;
   };
 
   /*! This class provides a standard HTTP response header.
@@ -182,8 +182,8 @@ public:
     explicit                    ResponseHeader(const RequestHeader &);
                                 ResponseHeader(const RequestHeader &, const Status &);
 
-    inline QString              version(void) const                             { return isValid() ? head[0] : QString::null; }
-    inline void                 setVersion(const QString &version)              { if (head.size() > 0) head[0] = version; else head.append(version); }
+    inline QByteArray           version(void) const                             { return isValid() ? head[0] : QByteArray(); }
+    inline void                 setVersion(const QByteArray &version)           { if (head.size() > 0) head[0] = version; else head.append(version); }
     inline Status               status(void) const                              { return isValid() ? Status(head[1].toInt(), head[2]) : Status(Status_None); }
     void                        setStatus(const Status &status);
 
@@ -221,7 +221,7 @@ public:
     explicit                    ResponseMessage(const SHttpEngine *);
     explicit                    ResponseMessage(const RequestHeader &request);
                                 ResponseMessage(const RequestHeader &request, Status status);
-                                ResponseMessage(const RequestHeader &request, Status status, const QByteArray &);
+                                ResponseMessage(const RequestHeader &request, Status status, const QByteArray &content, const QString &contentType);
 
     bool                        isComplete(void) const;
 
@@ -261,6 +261,30 @@ public:
   static const char             fieldServer[];
   static const char             fieldUserAgent[];
   static const char             dateFormat[];
+
+  static const char             mimeAppOctet[];
+  static const char             mimeAudioAc3[];
+  static const char             mimeAudioLpcm[];
+  static const char             mimeAudioMp3[];
+  static const char             mimeAudioMpeg[];
+  static const char             mimeAudioMpegUrl[];
+  static const char             mimeAudioOgg[];
+  static const char             mimeAudioWave[];
+  static const char             mimeImageJpeg[];
+  static const char             mimeImagePng[];
+  static const char             mimeImageSvg[];
+  static const char             mimeImageTiff[];
+  static const char             mimeVideoFlv[];
+  static const char             mimeVideoMpeg[];
+  static const char             mimeVideoMpegM2TS[];
+  static const char             mimeVideoMpegTS[];
+  static const char             mimeVideoOgg[];
+  static const char             mimeVideoQt[];
+  static const char             mimeTextCss[];
+  static const char             mimeTextHtml[];
+  static const char             mimeTextJs[];
+  static const char             mimeTextPlain[];
+  static const char             mimeTextXml[];
 };
 
 

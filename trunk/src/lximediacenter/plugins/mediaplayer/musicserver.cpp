@@ -42,7 +42,7 @@ QList<MusicServer::Item> MusicServer::listItems(const QString &path, unsigned st
     if (!item.isDir)
     {
       item.played = false; // Not useful for music.
-      item.direct = true;
+      item.seekable = false;
 
       if (!item.artist.isEmpty())
         item.title += " [" + item.artist + "]";
@@ -125,7 +125,7 @@ SHttpServer::ResponseMessage MusicServer::httpRequest(const SHttpServer::Request
           }
         }
 
-        return makeResponse(request, buildDetailedItems(detailedItems), "text/html;charset=utf-8", false);
+        return makeResponse(request, buildDetailedItems(detailedItems), SHttpEngine::mimeTextHtml, false);
       }
       else
       {

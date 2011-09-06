@@ -292,7 +292,8 @@ void SMediaInfo::probeDataStreams(void)
         for (QList<DataStreamInfo>::Iterator i=subs.begin(); i!=subs.end(); i++)
         if (i->file == fileName)
         {
-          i->streamSpec = DataStreamInfo::Type_Subtitle | quint32(nextStreamId++);
+          i->type = DataStreamInfo::Type_Subtitle;
+          i->id = nextStreamId++;
           program->dataStreams += *i;
 
           found = true;
@@ -305,8 +306,7 @@ void SMediaInfo::probeDataStreams(void)
           if (file.open())
           {
             DataStreamInfo stream(
-                DataStreamInfo::Type_Subtitle,
-                nextStreamId++,
+                StreamId(DataStreamInfo::Type_Subtitle, nextStreamId++),
                 file.language(),
                 QString::null,
                 file.codec());

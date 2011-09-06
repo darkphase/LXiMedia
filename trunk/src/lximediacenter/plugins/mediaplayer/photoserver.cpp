@@ -108,7 +108,7 @@ QList<PhotoServer::Item> PhotoServer::listItems(const QString &path, unsigned st
     if (!item.isDir)
     {
       item.played = false; // Not useful for photos.
-      item.direct = true;
+      item.seekable = false;
     }
 
     items += item;

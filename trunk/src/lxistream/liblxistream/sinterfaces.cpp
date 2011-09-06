@@ -69,6 +69,45 @@ QList<FormatProber *> FormatProber::create(QObject *parent)
 }
 
 
+QString FormatProber::StreamId::toString(void) const
+{
+  QString h;
+  switch (type & ~Type_Flags)
+  {
+  default:
+  case Type_None:     h = "X"; break;
+  case Type_Audio:    h = "A"; break;
+  case Type_Video:    h = "V"; break;
+  case Type_Subtitle: h = "S"; break;
+  }
+
+  if (type & Type_Flag_Native)
+    h += "n";
+
+  return h + ("000" + QString::number(id, 16)).right(4);
+}
+
+FormatProber::StreamId FormatProber::StreamId::fromString(const QString &txt)
+{
+  if (txt.length() > 4)
+  {
+    Type type = Type_None;
+    if (txt[0] == 'A')
+      type = Type_Audio;
+    else if (txt[0] == 'V')
+      type = Type_Video;
+    else if (txt[0] == 'S')
+      type = Type_Subtitle;
+
+    if (txt[1] == 'n')
+      return StreamId(type | Type_Flag_Native, txt.mid(2, 4).toUShort(NULL, 16));
+    else
+      return StreamId(type, txt.mid(1, 4).toUShort(NULL, 16));
+  }
+  else
+    return StreamId();
+}
+
 QString FormatProber::StreamInfo::fullName(void) const
 {
   QString lang = SStringParser::iso639Language(language);

@@ -215,7 +215,7 @@ QList<SIOInputNode::DataStreamInfo> SIOInputNode::dataStreams(void) const
   return QList<DataStreamInfo>();
 }
 
-void SIOInputNode::selectStreams(const QList<StreamId> &streamIds)
+void SIOInputNode::selectStreams(const QVector<StreamId> &streamIds)
 {
   if (d->bufferReader)
     d->bufferReader->selectStreams(streamIds);

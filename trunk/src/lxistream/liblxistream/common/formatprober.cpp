@@ -53,7 +53,7 @@ void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *callback)
     const QString suffix = info.suffix().toLower();
 
     if (pi.programs.isEmpty())
-      pi.programs.append(ProbeInfo::Program());
+      pi.programs.append(ProbeInfo::Program(0));
 
     ProbeInfo::Program &program = pi.programs.first();
     if (imageSuffixes().contains(suffix))
@@ -63,15 +63,15 @@ void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *callback)
     }
     else if (audioSuffixes().contains(suffix))
     {
-      program.audioStreams = QList<AudioStreamInfo>() << AudioStreamInfo(0, NULL, QString::null, SAudioCodec(suffix.toUpper()));
+      program.audioStreams = QList<AudioStreamInfo>() << AudioStreamInfo(StreamId(), NULL, QString::null, SAudioCodec(suffix.toUpper()));
       pi.fileTypeName = audioDescription(suffix);
 
       splitFileName(info.completeBaseName(), pi.title, pi.author, pi.album, pi.track);
     }
     else if (videoSuffixes().contains(suffix))
     {
-      program.audioStreams = QList<AudioStreamInfo>() << AudioStreamInfo(0, NULL, QString::null, SAudioCodec(suffix.toUpper()));
-      program.videoStreams = QList<VideoStreamInfo>() << VideoStreamInfo(0, NULL, QString::null, SVideoCodec(suffix.toUpper()));
+      program.audioStreams = QList<AudioStreamInfo>() << AudioStreamInfo(StreamId(), NULL, QString::null, SAudioCodec(suffix.toUpper()));
+      program.videoStreams = QList<VideoStreamInfo>() << VideoStreamInfo(StreamId(), NULL, QString::null, SVideoCodec(suffix.toUpper()));
       pi.fileTypeName = videoDescription(suffix);
 
       splitFileName(info.completeBaseName(), pi.title, pi.author, pi.album, pi.track);

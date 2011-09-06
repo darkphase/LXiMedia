@@ -88,12 +88,60 @@ SSandboxServer::ResponseMessage Sandbox::httpRequest(const SSandboxServer::Reque
   {
     if (file.url().hasQueryItem("formats"))
     {
-      QByteArray content;
-      content += "AudioCodecs:" + SAudioEncoderNode::codecs().join("\t").toUtf8() + '\n';
-      content += "VideoCodecs:" + SVideoEncoderNode::codecs().join("\t").toUtf8() + '\n';
-      content += "Formats:" + SIOOutputNode::formats().join("\t").toUtf8() + '\n';
+      QDomDocument doc("");
+      QDomElement rootElm = doc.createElement("formats");
+      doc.appendChild(rootElm);
 
-      return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_Ok, content);
+      struct T
+      {
+        static QDomElement createElement(QDomDocument &doc, const QString &name, const QString &type, const QStringList &values)
+        {
+          QDomElement codecsElm = doc.createElement(name);
+          foreach (const QString &value, values)
+          {
+            QDomElement elm = doc.createElement(type);
+            elm.appendChild(doc.createTextNode(value));
+            codecsElm.appendChild(elm);
+          }
+
+          return codecsElm;
+        }
+      };
+
+      rootElm.appendChild(T::createElement(doc, "audiocodecs", "codec", SAudioEncoderNode::codecs()));
+      rootElm.appendChild(T::createElement(doc, "videocodecs", "codec", SVideoEncoderNode::codecs()));
+      rootElm.appendChild(T::createElement(doc, "formats", "format", SIOOutputNode::formats()));
+
+      return SSandboxServer::ResponseMessage(
+          request, SSandboxServer::Status_Ok,
+          doc.toByteArray(-1), SHttpEngine::mimeTextXml);
+    }
+    else if (file.url().hasQueryItem("modules"))
+    {
+      QDomDocument doc("");
+      QDomElement rootElm = doc.createElement("modules");
+      doc.appendChild(rootElm);
+
+      const QMap<QString, SModule *> modules = sApp->modules();
+      for (QMap<QString, SModule *>::ConstIterator i=modules.begin(); i!=modules.end(); i++)
+      {
+        QDomElement moduleElm = doc.createElement("module");
+        moduleElm.setAttribute("file", i.key());
+
+        QDomElement aboutElm = doc.createElement("about");
+        aboutElm.appendChild(doc.createTextNode((*i)->about()));
+        moduleElm.appendChild(aboutElm);
+
+        QDomElement licensesElm = doc.createElement("licenses");
+        licensesElm.appendChild(doc.createTextNode((*i)->licenses()));
+        moduleElm.appendChild(licensesElm);
+
+        rootElm.appendChild(moduleElm);
+      }
+
+      return SSandboxServer::ResponseMessage(
+          request, SSandboxServer::Status_Ok,
+          doc.toByteArray(-1), SHttpEngine::mimeTextXml);
     }
     else if (file.url().hasQueryItem("exit"))
     {

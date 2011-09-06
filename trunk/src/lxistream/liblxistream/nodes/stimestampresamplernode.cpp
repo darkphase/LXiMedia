@@ -213,10 +213,10 @@ void STimeStampResamplerNode::input(const SSubpictureBuffer &subpictureBuffer)
     {
       const STime timeStamp = buffer.timeStamp();
       if (timeStamp.isValid())
-        buffer.setTimeStamp(correct(STime(qint64(timeStamp.count() / d->ratio), timeStamp.interval())));
+        buffer.setTimeStamp(correctOnly(STime(qint64(timeStamp.count() / d->ratio), timeStamp.interval())));
     }
     else
-      buffer.setTimeStamp(correct(buffer.timeStamp()));
+      buffer.setTimeStamp(correctOnly(buffer.timeStamp()));
 
     emit output(buffer);
   }
@@ -237,10 +237,10 @@ void STimeStampResamplerNode::input(const SSubtitleBuffer &subtitleBuffer)
     {
       const STime timeStamp = buffer.timeStamp();
       if (timeStamp.isValid())
-        buffer.setTimeStamp(correct(STime(qint64(timeStamp.count() / d->ratio), timeStamp.interval())));
+        buffer.setTimeStamp(correctOnly(STime(qint64(timeStamp.count() / d->ratio), timeStamp.interval())));
     }
     else
-      buffer.setTimeStamp(correct(buffer.timeStamp()));
+      buffer.setTimeStamp(correctOnly(buffer.timeStamp()));
 
     emit output(buffer);
   }
@@ -279,6 +279,23 @@ STime STimeStampResamplerNode::correct(const STime &timeStamp)
     d->highestTimeStamp = qMax(d->highestTimeStamp, result);
 
     return result;
+  }
+
+  return timeStamp;
+}
+
+STime STimeStampResamplerNode::correctOnly(const STime &timeStamp) const
+{
+  if (timeStamp.isValid())
+  {
+    QMap<STime, STime> corrected;
+    foreach (const STime &offset, d->outputOffset)
+    {
+      const STime result = timeStamp + offset;
+      corrected.insert(d->highestTimeStamp - result, result);
+    }
+
+    return corrected.begin().value();
   }
 
   return timeStamp;

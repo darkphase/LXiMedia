@@ -151,7 +151,7 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
           }
         }
 
-        return makeResponse(request, buildThumbnailItems(thumbItems), "text/html;charset=utf-8", false);
+        return makeResponse(request, buildThumbnailItems(thumbItems), SHttpEngine::mimeTextHtml, false);
       }
       else
         return makeHtmlContent(request, file.url(), buildThumbnailLoader(dirName(file.url().path())), headList);
@@ -249,7 +249,7 @@ QList<SUPnPContentDirectory::Item> MediaServer::listContentDirItems(const QStrin
         else if (item.type == Item::Type_AudioBroadcast)
           item.type = Item::Type_VideoBroadcast;
 
-        item.protocols = mediaProfiles().listProtocols(audioFormat, videoFormat);
+        item.protocols = mediaProfiles().listProtocols(audioFormat, videoFormat, item.seekable);
       }
       else
       {
@@ -260,7 +260,7 @@ QList<SUPnPContentDirectory::Item> MediaServer::listContentDirItems(const QStrin
         else if (item.type == Item::Type_VideoBroadcast)
           item.type = Item::Type_AudioBroadcast;
 
-        item.protocols = mediaProfiles().listProtocols(audioFormat);
+        item.protocols = mediaProfiles().listProtocols(audioFormat, item.seekable);
       }
     }
 
@@ -462,7 +462,7 @@ MediaServer::Item::~Item()
 
 MediaServer::File::File(const SHttpServer::RequestMessage &request)
 {
-  const QUrl url(request.path());
+  const QUrl url = QUrl::fromEncoded(request.path());
 
   QByteArray query;
   if (SUPnPContentDirectory::fromQueryPath(request.file(), d.fileName, query))

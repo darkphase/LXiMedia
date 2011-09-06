@@ -94,7 +94,6 @@ MediaPlayerServer::Stream * MediaPlayerServer::streamVideo(const SHttpServer::Re
   {
     const FileNode node = mediaDatabase->readNode(uid);
     if (!node.isNull())
-    if (uid.pid < node.programs().count())
     {
       QUrl rurl;
       rurl.setPath(MediaPlayerSandbox::path + file.fileName());
@@ -103,6 +102,19 @@ MediaPlayerServer::Stream * MediaPlayerServer::streamVideo(const SHttpServer::Re
       typedef QPair<QString, QString> QStringPair;
       foreach (const QStringPair &queryItem, file.url().queryItems())
         rurl.addQueryItem(queryItem.first, queryItem.second);
+
+      if (request.hasField("timeSeekRange.dlna.org"))
+      {
+        int pos = rurl.queryItemValue("position").toInt();
+        rurl.removeAllQueryItems("position");
+
+        QString ntp = request.field("timeSeekRange.dlna.org");
+        ntp = ntp.mid(ntp.indexOf("ntp=") + 4);
+        ntp = ntp.left(ntp.indexOf('-'));
+        pos += int(ntp.toFloat() + 0.5f);
+
+        rurl.addQueryItem("position", QString::number(pos));
+      }
 
       Stream *stream = new Stream(this, sandbox, request.path());
       if (stream->setup(rurl, node.toByteArray(-1)))
@@ -159,7 +171,7 @@ QList<MediaPlayerServer::Item> MediaPlayerServer::listItems(const QString &path,
       {
         if (returnAll || (count > 0))
         for (int i=start, n=0; (i<node.programs().count()) && (returnAll || (n<int(count))); i++, n++)
-          result.append(makeItem(MediaDatabase::UniqueID(file.uid.fid, i), false));
+          result.append(makeItem(MediaDatabase::UniqueID(file.uid.fid, node.programs()[i].programId), false));
       }
 
       break;
@@ -249,71 +261,76 @@ MediaPlayerServer::Item MediaPlayerServer::makeItem(MediaDatabase::UniqueID uid,
   const FileNode node = mediaDatabase->readNode(uid);
   if (!node.isNull())
   {
-    if ((uid.pid < node.programs().count()) && (!recursePrograms || (node.programs().count() == 1)))
+    if (!recursePrograms || (node.programs().count() == 1))
     {
-      const SMediaInfo::Program program = node.programs().at(uid.pid);
-
-      if (!program.audioStreams.isEmpty() && !program.videoStreams.isEmpty())
-        item.type = SUPnPContentDirectory::Item::Type_Video;
-      else if (!program.audioStreams.isEmpty())
-        item.type = SUPnPContentDirectory::Item::Type_Audio;
-      else if (!program.imageCodec.isNull())
-        item.type = SUPnPContentDirectory::Item::Type_Image;
-      else
-        item.type = SUPnPContentDirectory::Item::Type_None;
-
-      if (item.type != SUPnPContentDirectory::Item::Type_None)
+      foreach (const SMediaInfo::Program &program, node.programs())
+      if ((program.programId == uid.pid) || (node.programs().count() == 1))
       {
-        item.played = mediaDatabase->lastPlayed(uid).isValid();
-        item.type = defaultItemType(Item::Type(item.type));
-        item.url = MediaDatabase::toUidString(uid);
-        item.iconUrl = MediaDatabase::toUidString(uid) + "-thumb.png";
-
-        item.title = !program.title.isEmpty() ? program.title : (tr("Title") + " " + QString::number(uid.pid + 1));
-        item.artist = node.author();
-        item.album = node.album();
-        item.track = node.track();
-
-        item.duration = program.duration.toSec();
-
-        for (int a=0, an=program.audioStreams.count(); a < an; a++)
-        for (int d=0, dn=program.dataStreams.count(); d <= dn; d++)
+        if (!program.audioStreams.isEmpty() && !program.videoStreams.isEmpty())
+          item.type = SUPnPContentDirectory::Item::Type_Video;
+        else if (!program.audioStreams.isEmpty())
+          item.type = SUPnPContentDirectory::Item::Type_Audio;
+        else if (!program.imageCodec.isNull())
+          item.type = SUPnPContentDirectory::Item::Type_Image;
+        else
+          item.type = SUPnPContentDirectory::Item::Type_None;
+  
+        if (item.type != SUPnPContentDirectory::Item::Type_None)
         {
-          Item::Stream stream;
-
-          stream.title = QString::number(a + 1) + ". " + program.audioStreams[a].fullName();
-          stream.queryItems += qMakePair(QString("language"), QString::number(program.audioStreams[a].streamSpec, 16));
-
-          if (d < dn)
+          item.played = mediaDatabase->lastPlayed(uid).isValid();
+          item.seekable = true;
+          item.type = defaultItemType(Item::Type(item.type));
+          item.url = MediaDatabase::toUidString(uid);
+          item.iconUrl = MediaDatabase::toUidString(uid) + "-thumb.png";
+  
+          item.title = !program.title.isEmpty() ? program.title : (tr("Title") + " " + QString::number(uid.pid + 1));
+          item.artist = node.author();
+          item.album = node.album();
+          item.track = node.track();
+  
+          item.duration = program.duration.toSec();
+  
+          for (int a=0, an=program.audioStreams.count(); a < an; a++)
+          for (int d=0, dn=program.dataStreams.count(); d <= dn; d++)
           {
-            stream.title += ", " + QString::number(d + 1) + ". " + program.dataStreams[d].fullName() + " " + tr("subtitles");
-            stream.queryItems += qMakePair(QString("subtitles"), QString::number(program.dataStreams[d].streamSpec, 16));
+            Item::Stream stream;
+  
+            stream.title = QString::number(a + 1) + ". " + program.audioStreams[a].fullName();
+            stream.queryItems += qMakePair(QString("language"), program.audioStreams[a].toString());
+  
+            if (d < dn)
+            {
+              stream.title += ", " + QString::number(d + 1) + ". " + program.dataStreams[d].fullName() + " " + tr("subtitles");
+              stream.queryItems += qMakePair(QString("subtitles"), program.dataStreams[d].toString());
+            }
+            else
+              stream.queryItems += qMakePair(QString("subtitles"), QString());
+  
+            item.streams += stream;
           }
-          else
-            stream.queryItems += qMakePair(QString("subtitles"), QString());
-
-          item.streams += stream;
+  
+          foreach (const SMediaInfo::Chapter &chapter, program.chapters)
+            item.chapters += Item::Chapter(chapter.title, chapter.begin.toSec());
+  
+          if (!program.audioStreams.isEmpty())
+          {
+            const SAudioCodec &codec = program.audioStreams.first().codec;
+            item.audioFormat.setChannelSetup(codec.channelSetup());
+            item.audioFormat.setSampleRate(codec.sampleRate());
+          }
+  
+          if (!program.videoStreams.isEmpty())
+          {
+            const SVideoCodec &codec = program.videoStreams.first().codec;
+            item.videoFormat.setSize(codec.size());
+            item.videoFormat.setFrameRate(codec.frameRate());
+          }
+  
+          if (!program.imageCodec.isNull())
+            item.imageSize = program.imageCodec.size();
         }
-
-        foreach (const SMediaInfo::Chapter &chapter, program.chapters)
-          item.chapters += Item::Chapter(chapter.title, chapter.begin.toSec());
-
-        if (!program.audioStreams.isEmpty())
-        {
-          const SAudioCodec &codec = program.audioStreams.first().codec;
-          item.audioFormat.setChannelSetup(codec.channelSetup());
-          item.audioFormat.setSampleRate(codec.sampleRate());
-        }
-
-        if (!program.videoStreams.isEmpty())
-        {
-          const SVideoCodec &codec = program.videoStreams.first().codec;
-          item.videoFormat.setSize(codec.size());
-          item.videoFormat.setFrameRate(codec.frameRate());
-        }
-
-        if (!program.imageCodec.isNull())
-          item.imageSize = program.imageCodec.size();
+        
+        break;
       }
     }
     else if (!node.programs().isEmpty())
@@ -420,9 +437,9 @@ SHttpServer::ResponseMessage MediaPlayerServer::httpRequest(const SHttpServer::R
       const MediaDatabase::UniqueID uid = MediaDatabase::fromUidString(file.fileName());
       const FileNode node = mediaDatabase->readNode(uid);
       if (!node.isNull())
-      if (uid.pid < node.programs().count())
+      foreach (const SMediaInfo::Program &program, node.programs())
+      if (program.programId == uid.pid)
       {
-        const SMediaInfo::Program program = node.programs().at(uid.pid);
         if (!program.thumbnail.isEmpty())
         {
           QImage image = QImage::fromData(program.thumbnail);
@@ -459,8 +476,10 @@ SHttpServer::ResponseMessage MediaPlayerServer::httpRequest(const SHttpServer::R
           QBuffer b;
           result.save(&b, "PNG");
 
-          return makeResponse(request, b.data(), "image/png", true);
+          return makeResponse(request, b.data(), SHttpEngine::mimeImagePng, true);
         }
+
+        break;
       }
 
       QImage image(":/lximediacenter/images/video-template.png");
@@ -484,7 +503,7 @@ SHttpServer::ResponseMessage MediaPlayerServer::httpRequest(const SHttpServer::R
         QBuffer b;
         sum.save(&b, "PNG");
 
-        return makeResponse(request, b.data(), "image/png", true);
+        return makeResponse(request, b.data(), SHttpEngine::mimeImagePng, true);
       }
 
       SHttpServer::ResponseMessage response(request, SHttpServer::Status_MovedPermanently);
@@ -496,8 +515,9 @@ SHttpServer::ResponseMessage MediaPlayerServer::httpRequest(const SHttpServer::R
       const MediaDatabase::UniqueID uid = MediaDatabase::fromUidString(file.fileName());
       const FileNode node = mediaDatabase->readNode(uid);
       if (!node.isNull())
-      if (uid.pid < node.programs().count())
-        return makeHtmlContent(request, file.url(), buildVideoPlayer(uid, node.title(), node.programs().at(uid.pid), file.url()), headPlayer);
+      foreach (const SMediaInfo::Program &program, node.programs())
+      if (program.programId == uid.pid)
+        return makeHtmlContent(request, file.url(), buildVideoPlayer(uid, node.title(), program, file.url()), headPlayer);
     }
   }
 

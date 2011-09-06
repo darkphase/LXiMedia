@@ -94,6 +94,34 @@ void BufferReader::stop(void)
   readCallback = NULL;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 int BufferReader::read(void *opaque, uint8_t *buf, int buf_size)
 {
   return reinterpret_cast<BufferReader *>(opaque)->readCallback->read(buf, buf_size);
