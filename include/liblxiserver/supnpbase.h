@@ -42,11 +42,13 @@ public:
     inline Protocol(const QByteArray &protocol = "http-get",
                     const QByteArray &contentFormat = "",
                     bool conversionIndicator = false,
+                    bool operationsRange = false,
+                    bool operationsTimeSeek = false,
                     const QByteArray &profile = "",
                     const QByteArray &suffix = "")
       : protocol(protocol), network("*"), contentFormat(contentFormat),
         profile(profile), playSpeed(true), conversionIndicator(conversionIndicator),
-        operationsRange(false), operationsTimeSeek(false),
+        operationsRange(operationsRange), operationsTimeSeek(operationsTimeSeek),
         flags("01700000000000000000000000000000"), suffix(suffix)
     {
     }
@@ -133,7 +135,6 @@ public:
   static const int              responseTimeout;
   static const char             dlnaDoc[];
   static const char             xmlDeclaration[];
-  static const char             xmlContentType[];
   static const char             dlnaNS[];
   static const char             didlNS[];
   static const char             dublinCoreNS[];

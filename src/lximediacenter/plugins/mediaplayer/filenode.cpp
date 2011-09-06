@@ -52,6 +52,7 @@ QByteArray FileNode::toByteArray(int indent) const
   foreach (const Program &program, pi.programs)
   {
     QDomElement programElm = doc.createElement("program");
+    programElm.setAttribute("id", QString::number(program.programId));
 
     if (!program.title.isEmpty())
       programElm.setAttribute("title", SStringParser::removeControl(program.title));
@@ -71,7 +72,7 @@ QByteArray FileNode::toByteArray(int indent) const
     foreach (const AudioStreamInfo &audioStream, program.audioStreams)
     {
       QDomElement elm = doc.createElement("audiostream");
-      elm.setAttribute("id", audioStream.streamId());
+      elm.setAttribute("id", audioStream.toString());
       elm.setAttribute("language", audioStream.language);
       elm.setAttribute("title", audioStream.title);
       elm.setAttribute("codec", audioStream.codec.toString(false));
@@ -81,7 +82,7 @@ QByteArray FileNode::toByteArray(int indent) const
     foreach (const VideoStreamInfo &videoStream, program.videoStreams)
     {
       QDomElement elm = doc.createElement("videostream");
-      elm.setAttribute("id", videoStream.streamId());
+      elm.setAttribute("id", videoStream.toString());
       elm.setAttribute("language", videoStream.language);
       elm.setAttribute("title", videoStream.title);
       elm.setAttribute("codec", videoStream.codec.toString(false));
@@ -91,8 +92,7 @@ QByteArray FileNode::toByteArray(int indent) const
     foreach (const DataStreamInfo &dataStream, program.dataStreams)
     {
       QDomElement elm = doc.createElement("datastream");
-      elm.setAttribute("type", dataStream.streamType());
-      elm.setAttribute("id", dataStream.streamId());
+      elm.setAttribute("id", dataStream.toString());
       elm.setAttribute("language", dataStream.language);
       elm.setAttribute("title", dataStream.title);
       elm.setAttribute("file", dataStream.file);
@@ -159,7 +159,7 @@ FileNode FileNode::fromByteArray(const QByteArray &str)
          !programElm.isNull();
          programElm = programElm.nextSiblingElement("program"))
     {
-      Program program;
+      Program program(programElm.attribute("id").toUShort());
       program.title = programElm.attribute("title");
 
       const long duration = programElm.attribute("duration", "-1").toLong();
@@ -183,7 +183,7 @@ FileNode FileNode::fromByteArray(const QByteArray &str)
       {
         program.audioStreams.append(
             AudioStreamInfo(
-                elm.attribute("id").toUShort(),
+                StreamId::fromString(elm.attribute("id")),
                 elm.attribute("language").toAscii(),
                 elm.attribute("title"),
                 SAudioCodec::fromString(elm.attribute("codec"))));
@@ -195,7 +195,7 @@ FileNode FileNode::fromByteArray(const QByteArray &str)
       {
         program.videoStreams.append(
             VideoStreamInfo(
-                elm.attribute("id").toUShort(),
+                StreamId::fromString(elm.attribute("id")),
                 elm.attribute("language").toAscii(),
                 elm.attribute("title"),
                 SVideoCodec::fromString(elm.attribute("codec"))));
@@ -206,8 +206,7 @@ FileNode FileNode::fromByteArray(const QByteArray &str)
            elm = elm.nextSiblingElement("datastream"))
       {
         DataStreamInfo stream(
-            DataStreamInfo::Type(elm.attribute("type").toInt()),
-            elm.attribute("id").toUShort(),
+            StreamId::fromString(elm.attribute("id")),
             elm.attribute("language").toAscii(),
             elm.attribute("title"),
             SDataCodec::fromString(elm.attribute("codec")));

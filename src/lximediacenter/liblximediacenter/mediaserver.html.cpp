@@ -445,7 +445,7 @@ QByteArray MediaServer::buildVideoPlayer(const QByteArray &item, const QString &
     else
       title += " " + tr("Unknown");
 
-    htmlParser.setField("VALUE", QByteArray::number(stream, 16));
+    htmlParser.setField("VALUE", stream.toString());
     htmlParser.setField("TEXT", QString::number(count++) + ". " + title.simplified());
     htmlParser.appendField("LANGUAGES", htmlParser.parse(htmlPlayerThumbItemOption));
   }
@@ -461,7 +461,7 @@ QByteArray MediaServer::buildVideoPlayer(const QByteArray &item, const QString &
     else
       title += " " + tr("Unknown");
 
-    htmlParser.setField("VALUE", QByteArray::number(stream, 16));
+    htmlParser.setField("VALUE", stream.toString());
     htmlParser.setField("TEXT", QString::number(count++) + ". " + title.simplified());
     htmlParser.appendField("SUBTITLES", htmlParser.parse(htmlPlayerThumbItemOption));
   }
@@ -596,7 +596,7 @@ QByteArray MediaServer::buildVideoPlayer(const QByteArray &item, const QString &
   htmlParser.appendField("DETAILS", htmlParser.parse(htmlDetail));
 
   // Build the player
-  htmlParser.setField("CLEAN_TITLE", SStringParser::toCleanName(title).toUtf8().toPercentEncoding());
+  htmlParser.setField("ENCODED_TITLE", SStringParser::toCleanName(title).toUtf8().toPercentEncoding());
   htmlParser.setField("PLAYER_ITEM", item);
   htmlParser.setField("TR_PLAY_HERE", tr("Play now"));
   htmlParser.setField("TR_PLAY_EXTERNAL", tr("Play in external player"));

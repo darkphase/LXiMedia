@@ -168,12 +168,13 @@ SHttpServer::ResponseMessage SUPnPMediaServer::httpRequest(const SHttpServer::Re
       rootElm.appendChild(deviceElm);
       doc.appendChild(rootElm);
 
-      SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
+      SHttpServer::ResponseMessage response(
+          request, SHttpServer::Status_Ok,
+          SUPnPBase::xmlDeclaration + doc.toByteArray(-1), SHttpEngine::mimeTextXml);
+
       response.setField("Cache-Control", "no-cache");
       response.setField("Accept-Ranges", "bytes");
       response.setField("Connection", "close");
-      response.setContentType(SUPnPBase::xmlContentType);
-      response.setContent(QByteArray(SUPnPBase::xmlDeclaration) + doc.toByteArray(-1));
       return response;
     }
   }

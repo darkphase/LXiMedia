@@ -33,8 +33,6 @@ const qreal        BackendServer::minSearchRelevance = 0.1;
 const char         BackendServer::searchDateFormat[] = "ddd d MMM yyyy";
 const char         BackendServer::searchTimeFormat[] = "hh:mm";
 const char         BackendServer::searchDateTimeFormat[] = "ddd, MMM d yyyy hh:mm";
-const char         BackendServer::dataMime[] = "application/octet-stream";
-const char         BackendServer::textMime[] = "text/plain;charset=utf-8";
 
 QList<BackendServer *> BackendServer::create(QObject *parent)
 {
@@ -100,7 +98,7 @@ SHttpServer::ResponseMessage BackendServer::makeResponse(const SHttpServer::Requ
 SHttpServer::ResponseMessage BackendServer::makeHtmlContent(const SHttpServer::RequestHeader &request, const QUrl &url, const QByteArray &content, const QByteArray &head) const
 {
   SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
-  response.setContentType("text/html;charset=utf-8");
+  response.setContentType(SHttpEngine::mimeTextHtml);
   response.setField("Cache-Control", "no-cache");
 
   if (!request.isHead())

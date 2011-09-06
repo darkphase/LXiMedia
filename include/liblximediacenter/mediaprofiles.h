@@ -68,8 +68,8 @@ public:
   void                          addProfile(ImageProfile, int priority = 0);
 
   SUPnPBase::ProtocolList       listProtocols(void);
-  SUPnPBase::ProtocolList       listProtocols(const SAudioFormat &);
-  SUPnPBase::ProtocolList       listProtocols(const SAudioFormat &, const SVideoFormat &);
+  SUPnPBase::ProtocolList       listProtocols(const SAudioFormat &, bool seekable);
+  SUPnPBase::ProtocolList       listProtocols(const SAudioFormat &, const SVideoFormat &, bool seekable);
   SUPnPBase::ProtocolList       listProtocols(const SSize &imageSize);
 
   static int                    correctFormat(AudioProfile, SAudioFormat &);

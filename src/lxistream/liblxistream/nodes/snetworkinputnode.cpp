@@ -206,7 +206,7 @@ QList<SNetworkInputNode::DataStreamInfo> SNetworkInputNode::dataStreams(void) co
   return QList<DataStreamInfo>();
 }
 
-void SNetworkInputNode::selectStreams(const QList<StreamId> &streamIds)
+void SNetworkInputNode::selectStreams(const QVector<StreamId> &streamIds)
 {
   d->future.waitForFinished();
 

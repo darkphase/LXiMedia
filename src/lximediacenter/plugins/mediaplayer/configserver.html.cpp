@@ -168,7 +168,7 @@ SHttpServer::ResponseMessage ConfigServer::handleHtmlRequest(const SHttpServer::
 
     SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
     response.setField("Cache-Control", "no-cache");
-    response.setContentType("text/html;charset=utf-8");
+    response.setContentType(SHttpEngine::mimeTextHtml);
     response.setContent(htmlParser.parse(htmlDirTreeIndex));
 
     return response;

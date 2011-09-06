@@ -118,7 +118,7 @@ MediaDatabase::MediaDatabase(BackendServer::MasterServer *masterServer, QObject 
   Database::Query query;
 
   // Drop all tables if the database version is outdated.
-  static const int databaseVersion = 2;
+  static const int databaseVersion = 3;
   if (settings.value("DatabaseVersion", 0).toInt() != databaseVersion)
   {
     qDebug() << "Mediaplayer database layout changed, recreating tables.";
@@ -957,7 +957,7 @@ void MediaDatabase::updateDir(const QString &path, qint64 parentDir, QuerySet &q
   foreach (const QFileInfo &child, QDir(path).entryInfoList(QDir::Files))
   if (!child.fileName().startsWith('.'))
   {
-    if (path.endsWith("/video_ts/", Qt::CaseInsensitive) || path.endsWith("/audio_ts/", Qt::CaseInsensitive))
+    if (path.endsWith("/video_ts/", Qt::CaseInsensitive))
     if (child.fileName().compare("video_ts.ifo", Qt::CaseInsensitive) != 0)
       continue;
 
@@ -1046,7 +1046,7 @@ QMap<MediaDatabase::Category, QString> MediaDatabase::findCategories(const QStri
     if (path.startsWith(root))
     {
       QString album = path.mid(root.length());
-      if (album.endsWith("/video_ts/video_ts.ifo"))
+      if (album.endsWith("/video_ts/video_ts.ifo", Qt::CaseInsensitive))
         album = album.left(album.length() - 22);
 
       album = album.left(album.lastIndexOf('/') + 1);

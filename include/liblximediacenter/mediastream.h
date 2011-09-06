@@ -67,7 +67,7 @@ public:
 
   bool                          setup(const SHttpServer::RequestMessage &,
                                       QIODevice *,
-                                      STime duration,
+                                      STime position, STime duration,
                                       const SAudioFormat &,
                                       const SVideoFormat &,
                                       bool musicPlaylist = false,
@@ -75,7 +75,7 @@ public:
                                       SInterfaces::VideoEncoder::Flags = SInterfaces::VideoEncoder::Flag_None);
   bool                          setup(const SHttpServer::RequestMessage &,
                                       QIODevice *,
-                                      STime duration,
+                                      STime position, STime duration,
                                       const SAudioFormat &,
                                       bool musicPlaylist = false,
                                       SInterfaces::AudioEncoder::Flags = SInterfaces::AudioEncoder::Flag_None);

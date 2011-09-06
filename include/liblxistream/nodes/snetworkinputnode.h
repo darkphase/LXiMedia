@@ -57,7 +57,7 @@ public: // From SInterfaces::AbstractBufferReader
   virtual QList<AudioStreamInfo> audioStreams(void) const;
   virtual QList<VideoStreamInfo> videoStreams(void) const;
   virtual QList<DataStreamInfo>  dataStreams(void) const;
-  virtual void                  selectStreams(const QList<StreamId> &);
+  virtual void                  selectStreams(const QVector<StreamId> &);
 
 public slots:
   void                          fillBuffer(void);

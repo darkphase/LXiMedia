@@ -140,7 +140,7 @@ const QList<SsdpClientInterface *> & SSsdpClient::interfaces(void) const
 
 void SSsdpClient::parsePacket(SsdpClientInterface *, const SHttpServer::RequestHeader &header, const QHostAddress &, quint16)
 {
-  if (header.method().compare("NOTIFY", Qt::CaseInsensitive) == 0)
+  if (header.method() == "NOTIFY")
   {
     const QString nts = header.field("NTS");
 

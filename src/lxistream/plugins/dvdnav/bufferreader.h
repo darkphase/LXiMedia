@@ -45,7 +45,12 @@ public:
   bool                          openFile(const QString &);
   QString                       discTitle(void) const;
   unsigned                      numTitles(void) const;
-  bool                          selectTitle(SInterfaces::BufferReader::ProduceCallback *, quint16);
+  bool                          selectTitle(quint16);
+  bool                          reopenBufferReader(void);
+
+  QList<AudioStreamInfo>        filterAudioStreams(const QList<AudioStreamInfo> &) const;
+  QList<VideoStreamInfo>        filterVideoStreams(const QList<VideoStreamInfo> &) const;
+  QList<DataStreamInfo>         filterDataStreams(const QList<DataStreamInfo> &) const;
 
 public: // From SInterfaces::BufferReader
   virtual bool                  openFormat(const QString &);
@@ -65,7 +70,7 @@ public: // From SInterfaces::BufferReader
   virtual QList<AudioStreamInfo> audioStreams(void) const;
   virtual QList<VideoStreamInfo> videoStreams(void) const;
   virtual QList<DataStreamInfo>  dataStreams(void) const;
-  virtual void                  selectStreams(const QList<StreamId> &);
+  virtual void                  selectStreams(const QVector<StreamId> &);
 
 public: // From SInterfaces::BufferReader::ReadCallback
   virtual qint64                read(uchar *buffer, qint64 size);
@@ -80,7 +85,9 @@ private:
   QList<STime>                  titleChapters;
   STime                         titleDuration;
 
+  SInterfaces::BufferReader::ProduceCallback * produceCallback;
   SInterfaces::BufferReader   * bufferReader;
+  QVector<StreamId>             selectedStreams;
 
   static const unsigned         blockSize = 2048;
   bool                          seekEnabled, flushing;

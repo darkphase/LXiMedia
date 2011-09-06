@@ -324,7 +324,7 @@ bool SUPnPContentDirectory::handleBrowse(const QDomElement &elem, QDomDocument &
         if (!item.isDir)
         {
           const QString title = (item.played ? "*" : "") + item.title;
-          if (item.direct)
+          if (!item.seekable)
             didlFile(subDoc, root, host, item, path + QString::number(itemIndex), title);
           else
             didlContainer(subDoc, root, Item::Type(item.type), path + QString::number(itemIndex), title, allItems(item, QStringList()).count());
@@ -774,7 +774,7 @@ QString SUPnPContentDirectory::fromObjectID(const QByteArray &idStr)
 
 
 SUPnPContentDirectory::Item::Item(void)
-  : isDir(false), played(false), direct(false), type(Type_None),
+  : isDir(false), played(false), seekable(false), type(Type_None),
     track(0), duration(0)
 {
 }

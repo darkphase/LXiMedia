@@ -71,7 +71,7 @@ void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *readCallback)
           pi.isReadable = true;
 
           if (pi.programs.isEmpty())
-            pi.programs.append(ProbeInfo::Program());
+            pi.programs.append(ProbeInfo::Program(0));
 
           ProbeInfo::Program &program = pi.programs.first();
 

@@ -163,7 +163,7 @@ SHttpServer::ResponseMessage SUPnPGenaServer::httpRequest(const SHttpServer::Req
 {
   if (request.path() == path())
   {
-    if (request.method().compare("SUBSCRIBE", Qt::CaseInsensitive) == 0)
+    if (request.method() == "SUBSCRIBE")
     {
       QMap<QString, EventSession *>::Iterator session = d->eventSessions.end();
       if (request.hasField("SID"))
@@ -212,7 +212,7 @@ SHttpServer::ResponseMessage SUPnPGenaServer::httpRequest(const SHttpServer::Req
         return SHttpServer::ResponseMessage(request, SHttpServer::Status_None);
       }
     }
-    else if (request.method().compare("UNSUBSCRIBE", Qt::CaseInsensitive) == 0)
+    else if (request.method() == "UNSUBSCRIBE")
     {
       if (!request.hasField("CALLBACK") && !request.hasField("NT"))
       {
@@ -314,7 +314,7 @@ void SUPnPGenaServer::EventSession::sendEvent(void)
   request.setField("NTS", "upnp:propchange");
   request.setField("SID", sid);
   request.setField("SEQ", QString::number(eventKey));
-  request.setContentType(SUPnPBase::xmlContentType);
+  request.setContentType(SHttpEngine::mimeTextXml);
   request.setContent(parent->d->eventMessage);
 
   // Make sure the eventKey does not overflow to 0.

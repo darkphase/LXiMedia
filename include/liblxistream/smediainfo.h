@@ -36,6 +36,7 @@ public:
   typedef SInterfaces::FormatProber::ProbeInfo          ProbeInfo;
   typedef SInterfaces::FormatProber::ProbeInfo::Program Program;
   typedef SInterfaces::FormatProber::Chapter            Chapter;
+  typedef SInterfaces::FormatProber::StreamId           StreamId;
   typedef SInterfaces::FormatProber::AudioStreamInfo    AudioStreamInfo;
   typedef SInterfaces::FormatProber::VideoStreamInfo    VideoStreamInfo;
   typedef SInterfaces::FormatProber::DataStreamInfo     DataStreamInfo;

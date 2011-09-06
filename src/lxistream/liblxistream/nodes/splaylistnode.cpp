@@ -279,7 +279,7 @@ QList<SPlaylistNode::DataStreamInfo>  SPlaylistNode::dataStreams(void) const
   return QList<DataStreamInfo>();
 }
 
-void SPlaylistNode::selectStreams(const QList<StreamId> &)
+void SPlaylistNode::selectStreams(const QVector<StreamId> &)
 {
 }
 

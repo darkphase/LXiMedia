@@ -92,7 +92,7 @@ bool FileTester::setup(void)
     const QList<SIOInputNode::VideoStreamInfo> videoStreams = file.videoStreams();
     const QList<SIOInputNode::DataStreamInfo>  dataStreams  = file.dataStreams();
 
-    QList<SIOInputNode::StreamId> selectedStreams;
+    QVector<SIOInputNode::StreamId> selectedStreams;
     if (!audioStreams.isEmpty())
       selectedStreams += audioStreams.first();
 

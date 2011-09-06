@@ -51,7 +51,7 @@ Backend::Backend()
     cssParser(),
     htmlParser(),
     backendServers(),
-    formatSandbox(NULL)
+    initSandbox(NULL)
 {
   // Seed the random number generator.
   qsrand(int(QDateTime::currentDateTime().toTime_t()));
@@ -210,30 +210,53 @@ void Backend::start(void)
     masterMediaServer.addIcon("/lximedia.png", icon.width(), icon.height(), icon.depth());
 
   // Request all supported formats
-  formatSandbox = createSandbox(SSandboxClient::Priority_Low);
-  connect(formatSandbox, SIGNAL(response(SHttpEngine::ResponseMessage)), SLOT(start(SHttpEngine::ResponseMessage)));
+  initSandbox = createSandbox(SSandboxClient::Priority_Low);
+  connect(initSandbox, SIGNAL(response(SHttpEngine::ResponseMessage)), SLOT(start(SHttpEngine::ResponseMessage)));
 
-  SSandboxClient::RequestMessage request(formatSandbox);
+  SSandboxClient::RequestMessage request(initSandbox);
   request.setRequest("GET", "/?formats");
-  formatSandbox->sendRequest(request);
+  initSandbox->sendRequest(request);
 }
 
 void Backend::start(const SHttpEngine::ResponseMessage &formats)
 {
-  recycleSandbox(formatSandbox);
-  formatSandbox = NULL;
+  disconnect(initSandbox, SIGNAL(response(SHttpEngine::ResponseMessage)), this, SLOT(start(SHttpEngine::ResponseMessage)));
+  connect(initSandbox, SIGNAL(response(SHttpEngine::ResponseMessage)), SLOT(addModules(SHttpEngine::ResponseMessage)));
+
+  SSandboxClient::RequestMessage request(initSandbox);
+  request.setRequest("GET", "/?modules");
+  initSandbox->sendRequest(request);
 
   // Decode the message
   QStringList outAudioCodecs;
   QStringList outVideoCodecs;
   QStringList outFormats;
-  foreach (const QString &line, formats.content().split('\n'))
-  if (line.startsWith("AudioCodecs:"))
-    outAudioCodecs = line.mid(12).trimmed().split('\t');
-  else if (line.startsWith("VideoCodecs:"))
-    outVideoCodecs = line.mid(12).trimmed().split('\t');
-  else if (line.startsWith("Formats:"))
-    outFormats = line.mid(8).trimmed().split('\t');
+
+  QDomDocument doc("");
+  if (doc.setContent(formats.content()))
+  {
+    struct T
+    {
+      static QStringList readElement(QDomDocument &doc, const QString &name, const QString &type)
+      {
+        QStringList result;
+
+        QDomElement codecsElm = doc.documentElement().firstChildElement(name);
+        for (QDomElement codecElm = codecsElm.firstChildElement(type);
+             !codecElm.isNull();
+             codecElm = codecElm.nextSiblingElement(type))
+        {
+          result += codecElm.text();
+        }
+
+        return result;
+      }
+    };
+
+    outAudioCodecs = T::readElement(doc, "audiocodecs", "codec");
+    outVideoCodecs = T::readElement(doc, "videocodecs", "codec");
+    outFormats = T::readElement(doc, "formats", "format");
+  }
 
   // Supported DLNA audio protocols
   if (outFormats.contains("ac3") && outAudioCodecs.contains("AC3"))
@@ -339,6 +362,37 @@ void Backend::start(const SHttpEngine::ResponseMessage &formats)
   }
 
   qDebug() << "Finished initialization.";
+}
+
+void Backend::addModules(const SHttpEngine::ResponseMessage &modules)
+{
+  recycleSandbox(initSandbox);
+  initSandbox = NULL;
+
+  QDomDocument doc("");
+  if (doc.setContent(modules.content()))
+  {
+    struct VirtualModule : public SModule
+    {
+      virtual bool registerClasses(void) { return true; }
+      virtual void unload(void) { }
+      virtual QByteArray about(void) { return aboutText; }
+      virtual QByteArray licenses(void) { return licensesText; }
+
+      QByteArray aboutText;
+      QByteArray licensesText;
+    };
+
+    for (QDomElement moduleElm = doc.documentElement().firstChildElement("module");
+         !moduleElm.isNull();
+         moduleElm = moduleElm.nextSiblingElement("module"))
+    {
+      VirtualModule * const module = new VirtualModule();
+      module->aboutText = moduleElm.firstChildElement("about").text().toUtf8();
+      module->licensesText = moduleElm.firstChildElement("licenses").text().toUtf8();
+      sApp->loadModule(module);
+    }
+  }
 }
 
 Backend::SearchCacheEntry Backend::search(const QString &query) const
@@ -485,11 +539,11 @@ SHttpServer::ResponseMessage Backend::httpRequest(const SHttpServer::RequestMess
           errorLogFile.setAttribute("name", QFileInfo(file).fileName());
         }
 
-        SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
-        response.setField("Cache-Control", "no-cache");
-        response.setContentType("text/xml;charset=utf-8");
-        response.setContent(doc.toByteArray());
+        SHttpServer::ResponseMessage response(
+            request, SHttpServer::Status_Ok,
+            doc.toByteArray(-1), SHttpEngine::mimeTextXml);
 
+        response.setField("Cache-Control", "no-cache");
         return response;
       }
       else if (file.url().hasQueryItem("q"))
@@ -525,6 +579,7 @@ SHttpServer::ResponseMessage Backend::httpRequest(const SHttpServer::RequestMess
     else if (path == "/lximedia.png")               sendFile = ":/lximedia.png";
 
     else if (path == "/css/main.css")               sendFile = ":/css/main.css";
+    else if (path == "/css/phone.css")              sendFile = ":/css/phone.css";
 
     else if (path == "/js/dynamiclist.js")          sendFile = ":/js/dynamiclist.js";
 

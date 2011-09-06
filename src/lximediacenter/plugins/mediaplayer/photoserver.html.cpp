@@ -43,10 +43,9 @@ SHttpServer::ResponseMessage PhotoServer::handleHtmlRequest(const SHttpServer::R
   const MediaDatabase::UniqueID uid = MediaDatabase::fromUidString(file.fileName());
   const FileNode node = mediaDatabase->readNode(uid);
   if (!node.isNull())
-  if (uid.pid < node.programs().count())
+  foreach (const SMediaInfo::Program &program, node.programs())
+  if (program.programId == uid.pid)
   {
-    const SMediaInfo::Program program = node.programs().at(uid.pid);
-
     HtmlParser htmlParser;
     htmlParser.setField("TITLE", node.title());
     htmlParser.setField("TR_DETAILS", tr("Details"));

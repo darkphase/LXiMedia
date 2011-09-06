@@ -156,7 +156,7 @@ QList<PlaylistServer::Item> PlaylistServer::listPlayAllItem(const QString &path,
     if (start == 0)
     {
       Item item;
-      item.direct = true;
+      item.seekable = false;
 
       item.type = defaultItemType();
       if ((item.type == Item::Type_Image) || (item.type == Item::Type_Photo))

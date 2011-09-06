@@ -147,7 +147,7 @@ bool SandboxNetworkStream::setup(const SHttpServer::RequestMessage &request, QIO
     {
       if (MediaStream::setup(
             request, socket,
-            STime::null,
+            STime::null, STime::null,
             SAudioFormat(SAudioFormat::Format_Invalid, source.channelSetup()),
             SVideoFormat(SVideoFormat::Format_Invalid, source.size(), source.frameRate()),
             false))
@@ -164,7 +164,7 @@ bool SandboxNetworkStream::setup(const SHttpServer::RequestMessage &request, QIO
     {
       if (MediaStream::setup(
             request, socket,
-            STime::null,
+            STime::null, STime::null,
             SAudioFormat(SAudioFormat::Format_Invalid, source.channelSetup()),
             false))
       {

@@ -49,7 +49,7 @@ public: // From SInterfaces::BufferReader
   virtual QList<AudioStreamInfo> audioStreams(void) const;
   virtual QList<VideoStreamInfo> videoStreams(void) const;
   virtual QList<DataStreamInfo>  dataStreams(void) const;
-  virtual void                  selectStreams(const QList<StreamId> &);
+  virtual void                  selectStreams(const QVector<StreamId> &);
 
 private:
   void                          processPESPacket(const MPEG::PESPacket *, size_t);

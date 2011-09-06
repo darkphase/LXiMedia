@@ -288,6 +288,16 @@ bool SApplication::loadModule(SModule *module, QPluginLoader *loader)
     return false;
 }
 
+QMap<QString, SModule *> SApplication::modules(void) const
+{
+  QMap<QString, SModule *> result;
+  for (QList< QPair<QPluginLoader *, SModule *> >::Iterator i=d->modules.begin(); i!=d->modules.end(); i++)
+  if (i->first && i->second)
+    result.insert(i->first->fileName(), i->second);
+
+  return result;
+}
+
 /*! Returns the about text with minimal XHTML markup.
  */
 QByteArray SApplication::about(void) const
@@ -326,9 +336,17 @@ QByteArray SApplication::about(void) const
       "Used under the terms of the GNU Lesser General Public License version 2.1\n"
       "as published by the Free Software Foundation.\n";
 
+  QSet<QByteArray> allLicenses;
   for (QList< QPair<QPluginLoader *, SModule *> >::Iterator i=d->modules.begin(); i!=d->modules.end(); i++)
   if (i->second)
-    text += i->second->licenses();
+  {
+    const QByteArray licenses = i->second->licenses();
+    if (!allLicenses.contains(licenses))
+    {
+      text += licenses;
+      allLicenses.insert(licenses);
+    }
+  }
 
   return text;
 }

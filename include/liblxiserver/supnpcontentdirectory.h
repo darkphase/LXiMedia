@@ -84,7 +84,7 @@ public:
 
     bool                        isDir;
     bool                        played;
-    bool                        direct;
+    bool                        seekable;
     quint8                      type;
     QUrl                        url;
     QUrl                        iconUrl;

@@ -137,7 +137,7 @@ void MediaPlayerSandbox::customEvent(QEvent *e)
     SHttpServer::ResponseMessage response =
         event->data.isEmpty()
         ? SHttpServer::ResponseMessage(event->request, SSandboxServer::Status_NotFound)
-        : SHttpServer::ResponseMessage(event->request, SSandboxServer::Status_Ok, event->data);
+        : SHttpServer::ResponseMessage(event->request, SSandboxServer::Status_Ok, event->data, SHttpEngine::mimeTextXml);
 
     SSandboxServer::sendHttpResponse(event->request, response, event->socket, false);
   }
@@ -222,7 +222,7 @@ bool SandboxPlaylistStream::setup(const SHttpServer::RequestMessage &request, QI
   return false;
 }
 
-void SandboxPlaylistStream::opened(const QString &filePath, quint16 programId)
+void SandboxPlaylistStream::opened(const QString &filePath, quint16 /*programId*/)
 {
   // Mark as played:
   std::cerr << ("#PLAYED:" + filePath.toUtf8().toHex()).data() << std::endl;
@@ -230,7 +230,7 @@ void SandboxPlaylistStream::opened(const QString &filePath, quint16 programId)
   currentFile = filePath;
 }
 
-void SandboxPlaylistStream::closed(const QString &filePath, quint16 programId)
+void SandboxPlaylistStream::closed(const QString &filePath, quint16 /*programId*/)
 {
   if (currentFile == filePath)
     currentFile = QString::null;
@@ -248,7 +248,8 @@ bool SandboxSlideShowStream::setup(const SHttpServer::RequestMessage &request, Q
   const MediaServer::File file(request);
 
   if (MediaStream::setup(
-          request, socket, slideShow.duration(),
+          request, socket,
+          STime::null, slideShow.duration(),
           SAudioFormat(SAudioFormat::Format_Invalid, SAudioFormat::Channels_Stereo, 48000),
           SVideoFormat(SVideoFormat::Format_Invalid, slideShow.size(), SInterval::fromFrequency(slideShow.frameRate)),
           false,

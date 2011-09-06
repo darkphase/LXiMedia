@@ -97,7 +97,7 @@ QList<MediaServer::Item> ScriptEngine::listItems(const QString &path)
         const QString type = item.property(2).toString();
 
         MediaServer::Item item;
-        item.direct = true;
+        item.seekable = false;
 
         if (type.compare("Video", Qt::CaseInsensitive))
           item.type = SUPnPContentDirectory::Item::Type_Video;

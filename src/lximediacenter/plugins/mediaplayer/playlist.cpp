@@ -108,10 +108,9 @@ QByteArray Playlist::serialize(void) const
   {
     const FileNode node = mediaDatabase->readNode(list[i].uid);
     if (!node.isNull())
-    if (list[i].uid.pid < unsigned(node.programs().count()))
+    foreach (const SMediaInfo::Program &program, node.programs())
+    if (program.programId == list[i].uid.pid)
     {
-      const SMediaInfo::Program program = node.programs().at(list[i].uid.pid);
-
       data.append("#EXTINF:");
       if (program.duration.isPositive())
         data.append(QByteArray::number(program.duration.toSec()));

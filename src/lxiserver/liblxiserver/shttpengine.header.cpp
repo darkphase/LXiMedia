@@ -104,7 +104,7 @@ QByteArray SHttpEngine::Header::toByteArray(void) const
   QByteArray result;
   if (isValid())
   {
-    result = head[0].toUtf8() + ' ' + head[1].toUtf8() + ' ' + head[2].toUtf8() + "\r\n";
+    result = head[0] + ' ' + head[1] + ' ' + head[2] + "\r\n";
     for (QList< QPair<QString, QString> >::ConstIterator i=fields.begin(); i!=fields.end(); i++)
       result += i->first.toUtf8() + ": " + i->second.toUtf8() + "\r\n";
 
@@ -124,7 +124,7 @@ void SHttpEngine::Header::parse(const QByteArray &header)
     QList<QByteArray> lines = header.split('\r');
     if (!lines.isEmpty())
     foreach (const QByteArray &item, lines.takeFirst().simplified().split(' '))
-      head.append(QString::fromUtf8(item));
+      head.append(item);
 
     foreach (const QByteArray &line, lines) // Note: each line starts with a \n.
     {
@@ -151,24 +151,22 @@ SHttpEngine::RequestHeader::RequestHeader(const SHttpEngine *httpEngine)
 
 bool SHttpEngine::RequestHeader::isGet(void) const
 {
-  return
-      (method().compare("GET", Qt::CaseInsensitive) == 0) ||
-      (method().compare("HEAD", Qt::CaseInsensitive) == 0);
+  return (method() == "GET") || (method() == "HEAD");
 }
 
 bool SHttpEngine::RequestHeader::isHead(void) const
 {
-  return method().compare("HEAD", Qt::CaseInsensitive) == 0;
+  return method() == "HEAD";
 }
 
 bool SHttpEngine::RequestHeader::isPost(void) const
 {
-  return method().compare("POST", Qt::CaseInsensitive) == 0;
+  return method() == "POST";
 }
 
 QString SHttpEngine::RequestHeader::file(void) const
 {
-  QString result = path();
+  QByteArray result = path();
 
   const int q = result.indexOf('?');
   if (q >= 0)
@@ -178,12 +176,12 @@ QString SHttpEngine::RequestHeader::file(void) const
   if (s >= 0)
     result = result.mid(s + 1);
 
-  return QString::fromUtf8(QByteArray::fromPercentEncoding(result.toAscii()));
+  return QString::fromUtf8(QByteArray::fromPercentEncoding(result));
 }
 
 QString SHttpEngine::RequestHeader::directory(void) const
 {
-  QString result = path();
+  QByteArray result = path();
 
   const int q = result.indexOf('?');
   if (q >= 0)
@@ -193,7 +191,7 @@ QString SHttpEngine::RequestHeader::directory(void) const
   if (s >= 0)
     result = result.left(s + 1);
 
-  return QString::fromUtf8(QByteArray::fromPercentEncoding(result.toAscii()));
+  return QString::fromUtf8(QByteArray::fromPercentEncoding(result));
 }
 
 SHttpEngine::ResponseHeader::ResponseHeader(const SHttpEngine *httpEngine)
@@ -209,7 +207,7 @@ SHttpEngine::ResponseHeader::ResponseHeader(const SHttpEngine *httpEngine)
 SHttpEngine::ResponseHeader::ResponseHeader(const RequestHeader &request)
   : Header(request.httpEngine)
 {
-  head << qMin(request.version(), QString(httpVersion)) << "200" << "OK";
+  head << qMin(request.version(), QByteArray(httpVersion)) << "200" << "OK";
   setDate();
 
   if (httpEngine)
@@ -219,7 +217,7 @@ SHttpEngine::ResponseHeader::ResponseHeader(const RequestHeader &request)
 SHttpEngine::ResponseHeader::ResponseHeader(const RequestHeader &request, const Status &status)
   : Header(request.httpEngine)
 {
-  head << qMin(request.version(), QString(httpVersion)) << QString::number(status.statusCode()) << status.description();
+  head << qMin(request.version(), QByteArray(httpVersion)) << QByteArray::number(status.statusCode()) << status.description();
   setDate();
 
   if (httpEngine)
@@ -229,9 +227,9 @@ SHttpEngine::ResponseHeader::ResponseHeader(const RequestHeader &request, const 
 void SHttpEngine::ResponseHeader::setStatus(const Status &status)
 {
   if (head.size() > 1)
-    head[1] = QString::number(status.statusCode());
+    head[1] = QByteArray::number(status.statusCode());
   else
-    head.append(QString::number(status.statusCode()));
+    head.append(QByteArray::number(status.statusCode()));
 
   if (head.size() > 2)
     head[2] = status.description();
@@ -301,11 +299,12 @@ SHttpEngine::ResponseMessage::ResponseMessage(const RequestHeader &request, Stat
   setContentLength(data.length());
 }
 
-SHttpEngine::ResponseMessage::ResponseMessage(const RequestHeader &request, Status status, const QByteArray &data)
+SHttpEngine::ResponseMessage::ResponseMessage(const RequestHeader &request, Status status, const QByteArray &data, const QString &contentType)
   : ResponseHeader(request, status),
     data(data)
 {
   setContentLength(data.length());
+  setContentType(contentType);
 }
 
 bool SHttpEngine::ResponseMessage::isComplete(void) const

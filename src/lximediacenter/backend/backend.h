@@ -61,8 +61,9 @@ public:
 
   void                          start(void);
 
-public slots:
+private slots:
   void                          start(const SHttpEngine::ResponseMessage &);
+  void                          addModules(const SHttpEngine::ResponseMessage &);
 
 protected:
   virtual void                  customEvent(QEvent *);
@@ -114,7 +115,7 @@ private:
   QMap<QString, QList<MenuItem> > submenuItems;
   QByteArray                    menuHtml;
 
-  SSandboxClient              * formatSandbox;
+  SSandboxClient              * initSandbox;
 
   mutable QMap<QString, SearchCacheEntry> searchCache;
 

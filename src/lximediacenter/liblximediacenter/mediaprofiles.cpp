@@ -65,7 +65,7 @@ SUPnPBase::ProtocolList MediaProfiles::listProtocols(void)
     result.insert(i.key(), SUPnPBase::Protocol(
         "http-get",
         mimeTypeFor(i.value()),
-        true,
+        true, false, true,
         profileName(i.value()),
         suffixFor(i.value())));
   }
@@ -77,7 +77,7 @@ SUPnPBase::ProtocolList MediaProfiles::listProtocols(void)
     result.insert(i.key(), SUPnPBase::Protocol(
         "http-get",
         mimeTypeFor(i.value()),
-        true,
+        true, false, true,
         profileName(i.value()),
         suffixFor(i.value())));
   }
@@ -89,7 +89,7 @@ SUPnPBase::ProtocolList MediaProfiles::listProtocols(void)
     result.insert(i.key(), SUPnPBase::Protocol(
         "http-get",
         mimeTypeFor(i.value()),
-        true,
+        true, false, false,
         profileName(i.value()),
         suffixFor(i.value())));
   }
@@ -97,7 +97,7 @@ SUPnPBase::ProtocolList MediaProfiles::listProtocols(void)
   return result.values();
 }
 
-SUPnPBase::ProtocolList MediaProfiles::listProtocols(const SAudioFormat &audioFormat)
+SUPnPBase::ProtocolList MediaProfiles::listProtocols(const SAudioFormat &audioFormat, bool seekable)
 {
   QMultiMap<int, SUPnPBase::Protocol> result;
 
@@ -111,7 +111,7 @@ SUPnPBase::ProtocolList MediaProfiles::listProtocols(const SAudioFormat &audioFo
     result.insert(priority, SUPnPBase::Protocol(
         "http-get",
         mimeTypeFor(i.value()),
-        true,
+        true, false, seekable,
         profileName(i.value()),
         suffixFor(i.value())));
   }
@@ -119,7 +119,7 @@ SUPnPBase::ProtocolList MediaProfiles::listProtocols(const SAudioFormat &audioFo
   return result.values();
 }
 
-SUPnPBase::ProtocolList MediaProfiles::listProtocols(const SAudioFormat &audioFormat, const SVideoFormat &videoFormat)
+SUPnPBase::ProtocolList MediaProfiles::listProtocols(const SAudioFormat &audioFormat, const SVideoFormat &videoFormat, bool seekable)
 {
   QMultiMap<int, SUPnPBase::Protocol> result;
 
@@ -139,7 +139,7 @@ SUPnPBase::ProtocolList MediaProfiles::listProtocols(const SAudioFormat &audioFo
       result.insert(priority, SUPnPBase::Protocol(
           "http-get",
           mimeTypeFor(i.value()),
-          true,
+          true, false, seekable,
           profileName(i.value()),
           suffixFor(i.value())));
     }
@@ -164,7 +164,7 @@ SUPnPBase::ProtocolList MediaProfiles::listProtocols(const SSize &imageSize)
       result.insert(priority, SUPnPBase::Protocol(
           "http-get",
           mimeTypeFor(i.value()),
-          true,
+          true, false, false,
           profileName(i.value()),
           suffixFor(i.value())));
     }
@@ -677,19 +677,19 @@ const char * MediaProfiles::mimeTypeFor(VideoProfile profile)
   case MPEG_PS_HD_EU:
   case MPEG_PS_SD_NA:
   case MPEG_PS_HD_NA:
-    return "video/mpeg";
+    return SHttpEngine::mimeVideoMpeg;
 
   case MPEG_TS_SD_EU:
   case MPEG_TS_HD_EU:
   case MPEG_TS_SD_NA:
   case MPEG_TS_HD_NA:
-    return "video/vnd.dlna.mpeg-tts";
+    return SHttpEngine::mimeVideoMpegM2TS;
 
   case MPEG_TS_SD_EU_ISO:
   case MPEG_TS_HD_EU_ISO:
   case MPEG_TS_SD_NA_ISO:
   case MPEG_TS_HD_NA_ISO:
-    return "video/x-mpegts";
+    return SHttpEngine::mimeVideoMpegTS;
   }
 
   return "";
@@ -703,11 +703,11 @@ const char * MediaProfiles::mimeTypeFor(ImageProfile profile)
   case JPEG_SM:
   case JPEG_MED:
   case JPEG_LRG:
-    return "image/jpeg";
+    return SHttpEngine::mimeImageJpeg;
 
   case PNG_TN:
   case PNG_LRG:
-    return "image/png";
+    return SHttpEngine::mimeImagePng;
   }
 
   return "";

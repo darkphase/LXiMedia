@@ -171,6 +171,7 @@ public:
   void                          addModuleFilter(const QString &);
   bool                          loadModule(const QString &);
   bool                          loadModule(SModule *, QPluginLoader * = NULL);
+  QMap<QString, SModule *>      modules(void) const;
   QByteArray                    about(void) const;
 
 #ifdef Q_OS_WIN

@@ -132,35 +132,37 @@ public:
     int                         confidence;
   };
 
-  struct StreamId
+  struct LXISTREAM_PUBLIC StreamId
   {
     enum Type
     {
-      Type_None               = 0x00000,
-      Type_Audio              = 0x10000,
-      Type_Video              = 0x20000,
-      Type_Subtitle           = 0x30000
+      Type_None               = 0x0000,
+      Type_Audio              = 0x0001,
+      Type_Video              = 0x0002,
+      Type_Subtitle           = 0x0003,
+      Type_Flags              = 0xF000,
+      Type_Flag_Native        = 0x1000
     };
 
-    inline StreamId(void) : streamSpec(Type_None)                               { }
-    inline StreamId(quint32 streamSpec) : streamSpec(streamSpec)                { }
-    inline StreamId(Type type, quint16 id) : streamSpec(type | quint32(id))     { }
+    inline StreamId(void) : type(Type_None), id(0)                              { }
+    inline StreamId(quint16 type, quint16 id) : type(type), id(id)              { }
 
-    inline                      operator quint32() const                        { return streamSpec; }
-    inline bool                 operator<(StreamId other) const                 { return streamSpec < other.streamSpec; }
+    inline bool                 operator==(const StreamId &other) const         { return (type == other.type) && (id == other.id); }
+    inline bool                 operator!=(const StreamId &other) const         { return !operator==(other); }
+    inline bool                 operator<(const StreamId &other) const          { return id < other.id; }
 
-    inline Type                 streamType(void) const                          { return Type(streamSpec & 0xFFFF0000u); }
-    inline quint16              streamId(void) const                            { return quint16(streamSpec & 0xFFFF); }
+    QString                     toString(void) const;
+    static StreamId             fromString(const QString &);
 
-    quint32                     streamSpec;
+    quint16                     type;
+    quint16                     id;
   };
 
   struct LXISTREAM_PUBLIC StreamInfo : StreamId
   {
     inline StreamInfo(void) : StreamId() { memset(language, 0, sizeof(language)); }
-    inline StreamInfo(Type type, quint16 id, const char *language, const QString &title)
-      : StreamId(type, id),
-        nativeId(0),
+    inline StreamInfo(StreamId id, const char *language, const QString &title)
+      : StreamId(id),
         title(title)
     {
       memset(this->language, 0, sizeof(this->language));
@@ -171,14 +173,17 @@ public:
     QString                     fullName(void) const;
 
     char                        language[4]; //!< ISO 639-1 or ISO 639-2 language code (empty string if undefined).
-    quint32                     nativeId; //!< The native stream ID, if available.
     QString                     title;
   };
 
   struct AudioStreamInfo : StreamInfo
   {
     inline AudioStreamInfo(void) : codec() { }
-    inline AudioStreamInfo(quint16 id, const char *language, const QString &title, const SAudioCodec &codec) : StreamInfo(Type_Audio, id, language, title), codec(codec) { }
+    inline AudioStreamInfo(StreamId id, const char *language, const QString &title, const SAudioCodec &codec)
+      : StreamInfo(id, language, title), codec(codec)
+    {
+      type = (type & Type_Flags) | Type_Audio;
+    }
 
     SAudioCodec                 codec;
   };
@@ -186,7 +191,11 @@ public:
   struct VideoStreamInfo : StreamInfo
   {
     inline VideoStreamInfo(void) : codec() { }
-    inline VideoStreamInfo(quint16 id, const char *language, const QString &title, const SVideoCodec &codec) : StreamInfo(Type_Video, id, language, title), codec(codec) { }
+    inline VideoStreamInfo(StreamId id, const char *language, const QString &title, const SVideoCodec &codec)
+      : StreamInfo(id, language, title), codec(codec)
+    {
+      type = (type & Type_Flags) | Type_Video;
+    }
 
     SVideoCodec                 codec;
   };
@@ -194,7 +203,10 @@ public:
   struct DataStreamInfo : StreamInfo
   {
     inline DataStreamInfo(void) : codec() { }
-    inline DataStreamInfo(Type type, quint16 id, const char *language, const QString &title, const SDataCodec &codec) : StreamInfo(type, id, language, title), codec(codec) { }
+    inline DataStreamInfo(StreamId id, const char *language, const QString &title, const SDataCodec &codec)
+      : StreamInfo(id, language, title), codec(codec)
+    {
+    }
 
     SDataCodec                  codec;
     QString                     file;
@@ -209,7 +221,7 @@ public:
 
   struct ProbeInfo : QSharedData
   {
-    inline ProbeInfo(void) : size(0), isProbed(false), isReadable(false), year(0), track(0) { }
+    inline                      ProbeInfo(void) : size(0), isProbed(false), isReadable(false), year(0), track(0) { }
 
     QString                     filePath;
     QString                     path;                                           //!< Only use this if the path deviates from the filePath.
@@ -225,6 +237,9 @@ public:
 
     struct Program
     {
+      inline explicit           Program(quint16 programId) : programId(programId) { }
+
+      quint16                   programId;
       QString                   title;
       STime                     duration;
       QList<Chapter>            chapters;
@@ -325,7 +340,7 @@ public:
   virtual QList<AudioStreamInfo> audioStreams(void) const = 0;
   virtual QList<VideoStreamInfo> videoStreams(void) const = 0;
   virtual QList<DataStreamInfo> dataStreams(void) const = 0;
-  virtual void                  selectStreams(const QList<StreamId> &) = 0;
+  virtual void                  selectStreams(const QVector<StreamId> &) = 0;
 };
 
 

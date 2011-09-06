@@ -37,6 +37,30 @@ const char  SHttpEngine::fieldServer[]       = "Server";
 const char  SHttpEngine::fieldUserAgent[]    = "User-Agent";
 const char  SHttpEngine::dateFormat[]        = "ddd, dd MMM yyyy hh:mm:ss 'GMT'";
 
+const char  SHttpEngine::mimeAppOctet[]      = "application/octet-stream";
+const char  SHttpEngine::mimeAudioAc3[]      = "audio/x-ac3";
+const char  SHttpEngine::mimeAudioLpcm[]     = "audio/L16;rate=48000;channels=2";
+const char  SHttpEngine::mimeAudioMp3[]      = "audio/mp3";
+const char  SHttpEngine::mimeAudioMpeg[]     = "audio/mpeg";
+const char  SHttpEngine::mimeAudioMpegUrl[]  = "audio/x-mpegurl";
+const char  SHttpEngine::mimeAudioOgg[]      = "audio/ogg";
+const char  SHttpEngine::mimeAudioWave[]     = "audio/wave";
+const char  SHttpEngine::mimeImageJpeg[]     = "image/jpeg";
+const char  SHttpEngine::mimeImagePng[]      = "image/png";
+const char  SHttpEngine::mimeImageSvg[]      = "image/svg+xml";
+const char  SHttpEngine::mimeImageTiff[]     = "image/tiff";
+const char  SHttpEngine::mimeVideoFlv[]      = "video/x-flv";
+const char  SHttpEngine::mimeVideoMpeg[]     = "video/mpeg";
+const char  SHttpEngine::mimeVideoMpegM2TS[] = "video/vnd.dlna.mpeg-tts";
+const char  SHttpEngine::mimeVideoMpegTS[]   = "video/x-mpegts";
+const char  SHttpEngine::mimeVideoOgg[]      = "video/ogg";
+const char  SHttpEngine::mimeVideoQt[]       = "video/quicktime";
+const char  SHttpEngine::mimeTextCss[]       = "text/css;charset=\"utf-8\"";
+const char  SHttpEngine::mimeTextHtml[]      = "text/html;charset=\"utf-8\"";
+const char  SHttpEngine::mimeTextJs[]        = "text/javascript;charset=\"utf-8\"";
+const char  SHttpEngine::mimeTextPlain[]     = "text/plain;charset=\"utf-8\"";
+const char  SHttpEngine::mimeTextXml[]       = "text/xml;charset=\"utf-8\"";
+
 SHttpEngine::SHttpEngine(void)
 {
 }
@@ -106,41 +130,41 @@ const char * SHttpEngine::toMimeType(const QString &fileName)
 {
   const QString ext = QFileInfo(fileName).suffix().toLower();
 
-  if      (ext == "js")     return "application/javascript";
+  if      (ext == "js")     return mimeTextJs;
   else if (ext == "pdf")    return "application/pdf";
   else if (ext == "xhtml")  return "application/xhtml+xml";
   else if (ext == "dtd")    return "application/xml-dtd";
   else if (ext == "zip")    return "application/zip";
-  else if (ext == "m3u")    return "audio/x-mpegurl";
-  else if (ext == "mpa")    return "audio/mpeg";
-  else if (ext == "mp2")    return "audio/mpeg";
-  else if (ext == "mp3")    return "audio/mp3";
-  else if (ext == "ac3")    return "audio/mpeg";
-  else if (ext == "dts")    return "audio/mpeg";
-  else if (ext == "oga")    return "audio/ogg";
-  else if (ext == "wav")    return "audio/x-wav";
-  else if (ext == "lpcm")   return "audio/L16;rate=48000;channels=2";
-  else if (ext == "jpeg")   return "image/jpeg";
-  else if (ext == "jpg")    return "image/jpeg";
-  else if (ext == "png")    return "image/png";
-  else if (ext == "svg")    return "image/svg+xml";
-  else if (ext == "tiff")   return "image/tiff";
-  else if (ext == "css")    return "text/css;charset=utf-8";
-  else if (ext == "html")   return "text/html;charset=utf-8";
-  else if (ext == "htm")    return "text/html;charset=utf-8";
-  else if (ext == "txt")    return "text/plain;charset=utf-8";
-  else if (ext == "log")    return "text/plain;charset=utf-8";
-  else if (ext == "xml")    return "text/xml;charset=utf-8";
-  else if (ext == "mpeg")   return "video/mpeg";
-  else if (ext == "mpg")    return "video/mpeg";
-  else if (ext == "mp4")    return "video/mpeg";
-  else if (ext == "ts")     return "video/mpeg";
-  else if (ext == "ogg")    return "video/ogg";
-  else if (ext == "ogv")    return "video/ogg";
-  else if (ext == "ogx")    return "video/ogg";
-  else if (ext == "spx")    return "video/ogg";
-  else if (ext == "qt")     return "video/quicktime";
-  else if (ext == "flv")    return "video/x-flv";
+  else if (ext == "m3u")    return mimeAudioMpegUrl;
+  else if (ext == "mpa")    return mimeAudioMpeg;
+  else if (ext == "mp2")    return mimeAudioMpeg;
+  else if (ext == "mp3")    return mimeAudioMp3;
+  else if (ext == "ac3")    return mimeAudioMpeg;
+  else if (ext == "dts")    return mimeAudioMpeg;
+  else if (ext == "oga")    return mimeAudioOgg;
+  else if (ext == "wav")    return mimeAudioWave;
+  else if (ext == "lpcm")   return mimeAudioLpcm;
+  else if (ext == "jpeg")   return mimeImageJpeg;
+  else if (ext == "jpg")    return mimeImageJpeg;
+  else if (ext == "png")    return mimeImagePng;
+  else if (ext == "svg")    return mimeImageSvg;
+  else if (ext == "tiff")   return mimeImageTiff;
+  else if (ext == "css")    return mimeTextCss;
+  else if (ext == "html")   return mimeTextHtml;
+  else if (ext == "htm")    return mimeTextHtml;
+  else if (ext == "txt")    return mimeTextPlain;
+  else if (ext == "log")    return mimeTextPlain;
+  else if (ext == "xml")    return mimeTextXml;
+  else if (ext == "mpeg")   return mimeVideoMpeg;
+  else if (ext == "mpg")    return mimeVideoMpeg;
+  else if (ext == "mp4")    return mimeVideoMpeg;
+  else if (ext == "ts")     return mimeVideoMpeg;
+  else if (ext == "ogg")    return mimeVideoOgg;
+  else if (ext == "ogv")    return mimeVideoOgg;
+  else if (ext == "ogx")    return mimeVideoOgg;
+  else if (ext == "spx")    return mimeVideoOgg;
+  else if (ext == "qt")     return mimeVideoQt;
+  else if (ext == "flv")    return mimeVideoFlv;
 
   // For licenses
   else if (fileName.startsWith("COPYING")) return "text/plain";
@@ -264,7 +288,7 @@ const QString & SHttpServerEngine::senderId(void) const
 
 SHttpServerEngine::ResponseMessage SHttpServerEngine::handleHttpRequest(const SHttpEngine::RequestMessage &request, QIODevice *socket)
 {
-  if (request.method().compare("OPTIONS", Qt::CaseInsensitive) == 0)
+  if (request.method() == "OPTIONS")
   {
     const QString baseOptions = "OPTIONS,TRACE";
 
@@ -295,7 +319,7 @@ SHttpServerEngine::ResponseMessage SHttpServerEngine::handleHttpRequest(const SH
 
     return response;
   }
-  else if (request.method().compare("TRACE", Qt::CaseInsensitive) == 0)
+  else if (request.method() == "TRACE")
   {
     socket->write(request);
     closeSocket(socket);

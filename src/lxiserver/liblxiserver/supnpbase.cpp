@@ -31,7 +31,6 @@ const int           SUPnPBase::minorVersion     = 0;
 const int           SUPnPBase::responseTimeout  = 30; // Seconds
 const char          SUPnPBase::dlnaDoc[]        = "1.50";
 const char          SUPnPBase::xmlDeclaration[] = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n";
-const char          SUPnPBase::xmlContentType[] = "text/xml; charset=\"utf-8\"";
 const char          SUPnPBase::dlnaNS[]         = "urn:schemas-dlna-org:metadata-1-0/";
 const char          SUPnPBase::didlNS[]         = "urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/";
 const char          SUPnPBase::dublinCoreNS[]   = "http://purl.org/dc/elements/1.1/";
@@ -113,11 +112,11 @@ SHttpServer::ResponseMessage SUPnPBase::handleControl(const SHttpServer::Request
 
       if (status == SHttpServer::Status_Ok)
       {
-        SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
-        response.setField("Cache-Control", "no-cache");
-        response.setContentType(xmlContentType);
-        response.setContent(serializeSoapMessage(responseDoc));
+        SHttpServer::ResponseMessage response(
+            request, SHttpServer::Status_Ok,
+            serializeSoapMessage(responseDoc), SHttpEngine::mimeTextXml);
 
+        response.setField("Cache-Control", "no-cache");
         return response;
       }
       else
@@ -139,13 +138,13 @@ SHttpServer::ResponseMessage SUPnPBase::handleDescription(const SHttpServer::Req
 
   doc.appendChild(scpdElm);
 
-  SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
+  SHttpServer::ResponseMessage response(
+      request, SHttpServer::Status_Ok,
+      QByteArray(xmlDeclaration) + doc.toByteArray(-1), SHttpEngine::mimeTextXml);
+
   response.setField("Cache-Control", "no-cache");
   response.setField("Accept-Ranges", "bytes");
   response.setField("Connection", "close");
-  response.setContentType(xmlContentType);
-  response.setContent(QByteArray(xmlDeclaration) + doc.toByteArray(-1));
-
   return response;
 }
 

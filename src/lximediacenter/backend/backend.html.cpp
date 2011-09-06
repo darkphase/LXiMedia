@@ -25,7 +25,8 @@ const char * const Backend::htmlIndex =
     "<head>\n"
     " <title>{_PRODUCT} @ {_HOSTNAME}</title>\n"
     " <meta http-equiv=\"Content-Type\" content=\"text/html;charset=utf-8\" />\n"
-    " <link rel=\"stylesheet\" href=\"/css/main.css\" type=\"text/css\" media=\"screen, handheld, projection\" />\n"
+    " <link rel=\"stylesheet\" href=\"/css/main.css\" type=\"text/css\" media=\"screen, projection\" />\n"
+    " <link rel=\"stylesheet\" href=\"/css/phone.css\" type=\"text/css\" media=\"handheld, tv\" />\n"
     "{HEAD}"
     "</head>\n"
     "<body>\n"
@@ -319,7 +320,7 @@ SHttpServer::ResponseMessage Backend::handleHtmlRequest(const SHttpServer::Reque
   HtmlParser htmlParser(this->htmlParser);
 
   SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
-  response.setContentType("text/html;charset=utf-8");
+  response.setContentType(SHttpEngine::mimeTextHtml);
   response.setField("Cache-Control", "no-cache");
 
   htmlParser.setField("LOG_ERRORS", parseHtmlLogErrors());
@@ -356,7 +357,7 @@ SHttpServer::ResponseMessage Backend::handleHtmlSearch(const SHttpServer::Reques
   htmlParser.setField("TR_RESULTS", tr("Results"));
 
   SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
-  response.setContentType("text/html;charset=utf-8");
+  response.setContentType(SHttpEngine::mimeTextHtml);
   response.setField("Cache-Control", "no-cache");
 
   const MediaServer::File file(request);
@@ -435,7 +436,7 @@ SHttpServer::ResponseMessage Backend::handleHtmlLogFileRequest(const SHttpServer
     }
 
     SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
-    response.setContentType("text/html;charset=utf-8");
+    response.setContentType(SHttpEngine::mimeTextHtml);
     response.setField("Cache-Control", "no-cache");
     if (logFileName == sApp->activeLogFile())
       response.setField("Refresh", "10;URL=#bottom");
@@ -453,7 +454,7 @@ SHttpServer::ResponseMessage Backend::showAbout(const SHttpServer::RequestMessag
   HtmlParser htmlParser(this->htmlParser);
 
   SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
-  response.setContentType("text/html;charset=utf-8");
+  response.setContentType(SHttpEngine::mimeTextHtml);
   response.setField("Cache-Control", "no-cache");
 
   htmlParser.setField("ABOUT_LXIMEDIA", sApp->about());
@@ -466,7 +467,7 @@ SHttpServer::ResponseMessage Backend::showAbout(const SHttpServer::RequestMessag
 SHttpServer::ResponseMessage Backend::handleHtmlConfig(const SHttpServer::RequestMessage &request)
 {
   SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
-  response.setContentType("text/html;charset=utf-8");
+  response.setContentType(SHttpEngine::mimeTextHtml);
   response.setField("Cache-Control", "no-cache");
 
   GlobalSettings settings;

@@ -65,35 +65,40 @@ void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *callback)
       pi.title = bufferReader.discTitle();
 
       pi.programs.clear();
-      for (unsigned i=0, n=bufferReader.numTitles(); i<n; i++)
+      for (quint16 i=0, n=bufferReader.numTitles(); i<n; i++)
+      if (bufferReader.selectTitle(i))
       {
-        ProbeInfo::Program program;
-        if (bufferReader.selectTitle(NULL, i))
-        {
-          ProbeInfo fpi;
-          foreach (SInterfaces::FormatProber *prober, SInterfaces::FormatProber::create(NULL))
-          {
-            if ((qobject_cast<FormatProber *>(prober) == NULL) && !fpi.isProbed)
-            {
-              bufferReader.setPosition(STime::null);
-              prober->probeMetadata(fpi, &bufferReader);
-            }
+        ProbeInfo fpi;
+        fpi.programs.append(ProbeInfo::Program(i));
 
-            delete prober;
+        fpi.programs.first().duration = bufferReader.duration();
+
+        foreach (SInterfaces::FormatProber *prober, SInterfaces::FormatProber::create(NULL))
+        {
+          if ((qobject_cast<FormatProber *>(prober) == NULL) && !fpi.isProbed)
+          {
+            bufferReader.setPosition(STime::null);
+            prober->probeMetadata(fpi, &bufferReader);
           }
 
-          if (!fpi.programs.isEmpty())
-            program = fpi.programs.first();
+          delete prober;
+        }
 
+        if (!fpi.programs.isEmpty())
+        {
+          ProbeInfo::Program &program = fpi.programs.first();
+
+          program.programId = i;
           program.duration = bufferReader.duration();
           program.chapters = bufferReader.chapters();
 
-          program.audioStreams = bufferReader.audioStreams();
-          program.videoStreams = bufferReader.videoStreams();
-          program.dataStreams = bufferReader.dataStreams();
-        }
+          program.audioStreams = bufferReader.filterAudioStreams(program.audioStreams);
+          program.videoStreams = bufferReader.filterVideoStreams(program.videoStreams);
+          program.dataStreams = bufferReader.filterDataStreams(program.dataStreams);
 
-        pi.programs.append(program);
+          if (program.duration.isValid() && (program.duration.toSec() >= 60))
+            pi.programs.append(program);
+        }
       }
     }
   }
