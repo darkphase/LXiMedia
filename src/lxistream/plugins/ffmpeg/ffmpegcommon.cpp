@@ -945,13 +945,11 @@ SAudioFormat::Channels FFMpegCommon::fromFFMpegChannelLayout(int64_t layout, int
     stream->pts.val = packet.pts;
   }
 
-  packet.flags |=
-#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(52, 72, 0)
-    PKT_FLAG_KEY
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
+  packet.flags |= AV_PKT_FLAG_KEY;
 #else
-    AV_PKT_FLAG_KEY
+  packet.flags |= PKT_FLAG_KEY;
 #endif
-    ;
 
   return packet;
 }
@@ -984,13 +982,11 @@ SAudioFormat::Channels FFMpegCommon::fromFFMpegChannelLayout(int64_t layout, int
     stream->pts.val = packet.pts;
   }
 
-  packet.flags |= buffer.isKeyFrame() ?
-#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(52, 72, 0)
-    PKT_FLAG_KEY
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
+  packet.flags |= buffer.isKeyFrame() ? AV_PKT_FLAG_KEY : 0;
 #else
-    AV_PKT_FLAG_KEY
+  packet.flags |= buffer.isKeyFrame() ? PKT_FLAG_KEY : 0;
 #endif
-    : 0;
 
   return packet;
 }
@@ -1026,13 +1022,11 @@ SAudioFormat::Channels FFMpegCommon::fromFFMpegChannelLayout(int64_t layout, int
     stream->pts.val = packet.pts;
   }
 
-  packet.flags |=
-#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(52, 72, 0)
-    PKT_FLAG_KEY
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
+  packet.flags |= AV_PKT_FLAG_KEY;
 #else
-    AV_PKT_FLAG_KEY
+  packet.flags |= PKT_FLAG_KEY;
 #endif
-    ;
 
   return packet;
 }

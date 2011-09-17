@@ -392,7 +392,11 @@ bool BufferReaderBase::demux(const Packet &packet)
               buffer.setPresentationTimeStamp(ts.first);
               buffer.setDecodingTimeStamp(ts.second);
 
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
+              buffer.setKeyFrame((packet.flags & AV_PKT_FLAG_KEY) != 0);
+#else
               buffer.setKeyFrame((packet.flags & PKT_FLAG_KEY) != 0);
+#endif
 
 //              qDebug() << "Video timestamp" << packet.streamIndex
 //                  << ", dts =" << buffer.decodingTimeStamp().toMSec()
