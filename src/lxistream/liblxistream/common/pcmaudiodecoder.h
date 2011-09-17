@@ -44,42 +44,8 @@ public: // From SBufferDecoder
   virtual SAudioBufferList      decodeBuffer(const SEncodedAudioBuffer &);
 
 private:
-  template <SAudioFormat::Format format>
-  static SAudioBufferList       decodeBufferS8(const SEncodedAudioBuffer &);
-  template <SAudioFormat::Format format>
-  static SAudioBufferList       decodeBufferU8(const SEncodedAudioBuffer &);
-
-  template <SAudioFormat::Format format>
-  static SAudioBufferList       copyBuffer(const SEncodedAudioBuffer &);
-  template <SAudioFormat::Format format>
-  static SAudioBufferList       swapBufferS16(const SEncodedAudioBuffer &);
-  template <SAudioFormat::Format format>
-  static SAudioBufferList       decodeBufferU16(const SEncodedAudioBuffer &);
-  template <SAudioFormat::Format format>
-  static SAudioBufferList       swapDecodeBufferU16(const SEncodedAudioBuffer &);
-
-  template <SAudioFormat::Format format>
-  static SAudioBufferList       decodeBufferS32(const SEncodedAudioBuffer &);
-  template <SAudioFormat::Format format>
-  static SAudioBufferList       swapDecodeBufferS32(const SEncodedAudioBuffer &);
-  template <SAudioFormat::Format format>
-  static SAudioBufferList       decodeBufferU32(const SEncodedAudioBuffer &);
-  template <SAudioFormat::Format format>
-  static SAudioBufferList       swapDecodeBufferU32(const SEncodedAudioBuffer &);
-  template <SAudioFormat::Format format>
-  static SAudioBufferList       decodeBufferF32(const SEncodedAudioBuffer &);
-  template <SAudioFormat::Format format>
-  static SAudioBufferList       swapDecodeBufferF32(const SEncodedAudioBuffer &);
-
-  template <SAudioFormat::Format format>
-  static SAudioBufferList       decodeBufferF64(const SEncodedAudioBuffer &);
-  template <SAudioFormat::Format format>
-  static SAudioBufferList       swapDecodeBufferF64(const SEncodedAudioBuffer &);
-
-  static SAudioBufferList       split(const SAudioBuffer &);
-
-private:
-  SAudioBufferList              (* decode)(const SEncodedAudioBuffer &);
+  SAudioFormat::Format          format;
+  SAudioFormatConvertNode       formatConvert;
   STime                         nextTimeStamp;
 };
 

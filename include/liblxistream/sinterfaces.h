@@ -160,26 +160,22 @@ public:
 
   struct LXISTREAM_PUBLIC StreamInfo : StreamId
   {
-    inline StreamInfo(void) : StreamId() { memset(language, 0, sizeof(language)); }
-    inline StreamInfo(StreamId id, const char *language, const QString &title)
-      : StreamId(id),
-        title(title)
+    inline StreamInfo(void) : StreamId() { }
+    inline StreamInfo(StreamId id, const QString &language, const QString &title)
+      : StreamId(id), language(language), title(title)
     {
-      memset(this->language, 0, sizeof(this->language));
-      if (language && (qstrlen(language) > 0))
-        qstrncpy(this->language, language, sizeof(this->language));
     }
 
     QString                     fullName(void) const;
 
-    char                        language[4]; //!< ISO 639-1 or ISO 639-2 language code (empty string if undefined).
+    QString                     language; //!< ISO 639-1 or ISO 639-2 language code (empty string if undefined).
     QString                     title;
   };
 
   struct AudioStreamInfo : StreamInfo
   {
     inline AudioStreamInfo(void) : codec() { }
-    inline AudioStreamInfo(StreamId id, const char *language, const QString &title, const SAudioCodec &codec)
+    inline AudioStreamInfo(StreamId id, const QString &language, const QString &title, const SAudioCodec &codec)
       : StreamInfo(id, language, title), codec(codec)
     {
       type = (type & Type_Flags) | Type_Audio;
@@ -191,7 +187,7 @@ public:
   struct VideoStreamInfo : StreamInfo
   {
     inline VideoStreamInfo(void) : codec() { }
-    inline VideoStreamInfo(StreamId id, const char *language, const QString &title, const SVideoCodec &codec)
+    inline VideoStreamInfo(StreamId id, const QString &language, const QString &title, const SVideoCodec &codec)
       : StreamInfo(id, language, title), codec(codec)
     {
       type = (type & Type_Flags) | Type_Video;
@@ -203,7 +199,7 @@ public:
   struct DataStreamInfo : StreamInfo
   {
     inline DataStreamInfo(void) : codec() { }
-    inline DataStreamInfo(StreamId id, const char *language, const QString &title, const SDataCodec &codec)
+    inline DataStreamInfo(StreamId id, const QString &language, const QString &title, const SDataCodec &codec)
       : StreamInfo(id, language, title), codec(codec)
     {
     }
@@ -634,6 +630,33 @@ protected:
 public:
   virtual SVideoCodec           codec(void) const = 0;
   virtual SEncodedVideoBufferList encodeBuffer(const SVideoBuffer &) = 0;
+};
+
+/*! The AudioFormatConverter interface can be used to convert audio formats.
+ */
+class LXISTREAM_PUBLIC AudioFormatConverter : public QObject
+{
+Q_OBJECT
+S_FACTORIZABLE_NO_CREATE(AudioFormatConverter)
+public:
+  static AudioFormatConverter * create(QObject *parent, const SAudioFormat &srcFormat, const SAudioFormat &dstFormat, bool nonNull = true);
+
+  template <class _instance>
+  static inline void registerClass(const SAudioFormat &srcFormat, const SAudioFormat &dstFormat, int priority = 0)
+  {
+    registerClass<_instance>(
+        SFactory::Scheme(
+            priority,
+            QString(srcFormat.formatName()) + "->" + QString(dstFormat.formatName())));
+  }
+
+protected:
+  inline explicit               AudioFormatConverter(QObject *parent) : QObject(parent) { }
+
+  virtual bool                  openFormat(const SAudioFormat &srcFormat, const SAudioFormat &dstFormat) = 0;
+
+public:
+  virtual SAudioBuffer          convertBuffer(const SAudioBuffer &) = 0;
 };
 
 /*! The VideoFormatConverter interface can be used to convert video formats.

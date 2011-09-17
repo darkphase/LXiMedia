@@ -19,17 +19,12 @@
 
 #include "pcmaudioencoder.h"
 
-// Implemented in pcmaudio.swap.c
-extern "C" void LXiStream_Common_PcmAudio_swap16(void *, const void *, size_t);
-extern "C" void LXiStream_Common_PcmAudio_encodeS16U16(void *, const void *, size_t);
-extern "C" void LXiStream_Common_PcmAudio_encodeSwapS16U16(void *, const void *, size_t);
-
 namespace LXiStream {
 namespace Common {
 
 PcmAudioEncoder::PcmAudioEncoder(const QString &, QObject *parent)
   : SInterfaces::AudioEncoder(parent),
-    encode(NULL)
+    formatConvert(NULL)
 {
 }
 
@@ -43,28 +38,40 @@ bool PcmAudioEncoder::openCodec(const SAudioCodec &c, Flags)
   {
     outCodec = c;
 
-#if Q_BYTE_ORDER == Q_LITTLE_ENDIAN
-    if (c.codec() == "PCM/S16LE")
-      encode = &PcmAudioEncoder::copyBuffer;
+    if (c.codec() == "PCM/S8")
+      formatConvert.setDestFormat(SAudioFormat::Format_PCM_S8);
+    else if (c.codec() == "PCM/U8")
+      formatConvert.setDestFormat(SAudioFormat::Format_PCM_U8);
+    else if (c.codec() == "PCM/S16LE")
+      formatConvert.setDestFormat(SAudioFormat::Format_PCM_S16LE);
     else if (c.codec() == "PCM/S16BE")
-      encode = &PcmAudioEncoder::swapBufferS16;
+      formatConvert.setDestFormat(SAudioFormat::Format_PCM_S16BE);
     else if (c.codec() == "PCM/U16LE")
-      encode = &PcmAudioEncoder::encodeBufferS16U16;
+      formatConvert.setDestFormat(SAudioFormat::Format_PCM_U16LE);
     else if (c.codec() == "PCM/U16BE")
-      encode = &PcmAudioEncoder::encodeSwapBufferS16U16;
-#else
-    if (c.codec() == "PCM/S16LE")
-      encode = &PcmAudioEncoder::swapBufferS16;
-    else if (c.codec() == "PCM/S16BE")
-      encode = &PcmAudioEncoder::copyBuffer;
-    else if (c.codec() == "PCM/U16LE")
-      encode = &PcmAudioEncoder::encodeSwapBufferS16U16;
-    else if (c.codec() == "PCM/U16BE")
-      encode = &PcmAudioEncoder::encodeBufferS16U16;
-#endif
+      formatConvert.setDestFormat(SAudioFormat::Format_PCM_U16BE);
+
+    else if (c.codec() == "PCM/S32LE")
+      formatConvert.setDestFormat(SAudioFormat::Format_PCM_S32LE);
+    else if (c.codec() == "PCM/S32BE")
+      formatConvert.setDestFormat(SAudioFormat::Format_PCM_S32BE);
+    else if (c.codec() == "PCM/U32LE")
+      formatConvert.setDestFormat(SAudioFormat::Format_PCM_U32LE);
+    else if (c.codec() == "PCM/U32BE")
+      formatConvert.setDestFormat(SAudioFormat::Format_PCM_U32BE);
+
+    else if (c.codec() == "PCM/F32LE")
+      formatConvert.setDestFormat(SAudioFormat::Format_PCM_F32LE);
+    else if (c.codec() == "PCM/F32BE")
+      formatConvert.setDestFormat(SAudioFormat::Format_PCM_F32BE);
+
+    else if (c.codec() == "PCM/F64LE")
+      formatConvert.setDestFormat(SAudioFormat::Format_PCM_F64LE);
+    else if (c.codec() == "PCM/F64BE")
+      formatConvert.setDestFormat(SAudioFormat::Format_PCM_F64BE);
   }
 
-  return encode != NULL;
+  return formatConvert.destFormat() != SAudioFormat::Format_Invalid;
 }
 
 SAudioCodec PcmAudioEncoder::codec(void) const
@@ -74,72 +81,29 @@ SAudioCodec PcmAudioEncoder::codec(void) const
 
 SEncodedAudioBufferList PcmAudioEncoder::encodeBuffer(const SAudioBuffer &audioBuffer)
 {
-  SEncodedAudioBufferList output;
-
-  if (encode && !audioBuffer.isNull())
+  if ((formatConvert.destFormat() != SAudioFormat::Format_Invalid) && !audioBuffer.isNull())
   {
-    SEncodedAudioBuffer destBuffer = encode(audioBuffer, outCodec);
+    const SAudioBuffer destBuffer =
+        (audioBuffer.format().format() != formatConvert.destFormat())
+          ? formatConvert.convert(audioBuffer)
+          : audioBuffer;
 
-    destBuffer.setPresentationTimeStamp(audioBuffer.timeStamp());
-    destBuffer.setDecodingTimeStamp(audioBuffer.timeStamp());
+    if (!destBuffer.isNull())
+    {
+      SEncodedAudioBuffer encodedBuffer(
+          SAudioCodec(
+              outCodec.codec(),
+              destBuffer.format().channelSetup(),
+              destBuffer.format().sampleRate()),
+          destBuffer.memory());
 
-    output << destBuffer;
+      encodedBuffer.setPresentationTimeStamp(destBuffer.timeStamp());
+
+      return SEncodedAudioBufferList() << encodedBuffer;
+    }
   }
-  else if (audioBuffer.isNull())
-    output << SEncodedAudioBuffer();
 
-  return output;
-}
-
-SEncodedAudioBuffer PcmAudioEncoder::copyBuffer(const SAudioBuffer &buffer, const QString &codec)
-{
-  const SAudioCodec dstCodec(codec,
-                             buffer.format().channelSetup(),
-                             buffer.format().sampleRate());
-
-  return SEncodedAudioBuffer(dstCodec, buffer.memory());
-}
-
-SEncodedAudioBuffer PcmAudioEncoder::swapBufferS16(const SAudioBuffer &buffer, const QString &codec)
-{
-  const SAudioCodec dstCodec(codec,
-                             buffer.format().channelSetup(),
-                             buffer.format().sampleRate());
-
-  SEncodedAudioBuffer dstBuffer(dstCodec, buffer.size());
-  dstBuffer.resize(buffer.size());
-
-  LXiStream_Common_PcmAudio_swap16(dstBuffer.data(), buffer.data(), dstBuffer.size());
-
-  return dstBuffer;
-}
-
-SEncodedAudioBuffer PcmAudioEncoder::encodeBufferS16U16(const SAudioBuffer &buffer, const QString &codec)
-{
-  const SAudioCodec dstCodec(codec,
-                             buffer.format().channelSetup(),
-                             buffer.format().sampleRate());
-
-  SEncodedAudioBuffer dstBuffer(dstCodec, buffer.size());
-  dstBuffer.resize(buffer.size());
-
-  LXiStream_Common_PcmAudio_encodeS16U16(dstBuffer.data(), buffer.data(), dstBuffer.size());
-
-  return dstBuffer;
-}
-
-SEncodedAudioBuffer PcmAudioEncoder::encodeSwapBufferS16U16(const SAudioBuffer &buffer, const QString &codec)
-{
-  const SAudioCodec dstCodec(codec,
-                             buffer.format().channelSetup(),
-                             buffer.format().sampleRate());
-
-  SEncodedAudioBuffer dstBuffer(dstCodec, buffer.size());
-  dstBuffer.resize(buffer.size());
-
-  LXiStream_Common_PcmAudio_encodeSwapS16U16(dstBuffer.data(), buffer.data(), dstBuffer.size());
-
-  return dstBuffer;
+  return SEncodedAudioBufferList();
 }
 
 } } // End of namespaces

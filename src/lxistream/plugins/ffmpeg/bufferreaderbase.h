@@ -60,7 +60,7 @@ private:
     STime                       timeStampGap;
 
     // For measuring the framerate.
-    static const int            measurementSize = 48; // Needs to be a multiple of 6.
+    static const int            measurementSize; // Needs to be a multiple of 6.
     QVector<STime>              measurement;
 
     // For DTS framing.
@@ -73,7 +73,12 @@ public:
                                 BufferReaderBase(void);
   virtual                       ~BufferReaderBase();
 
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+  inline QString                readMetadata(const char *tagName) const         { return readMetadata(formatContext->metadata, tagName); }
+#else
   inline const ::AVFormatContext * context(void) const                          { return formatContext; }
+#endif
+
   bool                          setPosition(STime, bool fast);
 
   bool                          start(ProduceCallback *, ::AVFormatContext *);
@@ -105,7 +110,11 @@ private: // DTS framing
 
 private:
   static StreamContext        * initStreamContext(const ::AVStream *);
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+  static QString                readMetadata(::AVDictionary *, const char *tagName);
+#else
   static QString                readMetadata(::AVMetadata *, const char *tagName);
+#endif
   bool                          isSelected(const ::AVStream *) const;
   QPair<STime, STime>           correctTimeStamp(const Packet &);
   QPair<STime, STime>           correctTimeStampToVideo(const Packet &);
@@ -117,10 +126,11 @@ private:
   ProduceCallback             * produceCallback;
   ::AVFormatContext           * formatContext;
 
-  StreamContext               * streamContext[MAX_STREAMS];
+
+  QVector<StreamContext *>      streamContext;
   QVector<StreamId>             selectedStreams;
 
-  static const unsigned         maxBufferCount = StreamContext::measurementSize * 8;
+  static const int              maxBufferCount;
   QList<Packet>                 packetBuffer;
 };
 

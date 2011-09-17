@@ -59,7 +59,11 @@ bool DataDecoder::openCodec(const SDataCodec &c, Flags)
   }
 
   contextHandle = avcodec_alloc_context();
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+  contextHandle->codec_type = AVMEDIA_TYPE_SUBTITLE;
+#else
   contextHandle->codec_type = CODEC_TYPE_SUBTITLE;
+#endif
 
   contextHandle->extradata_size = inCodec.extraData().size();
   if (contextHandle->extradata_size > 0)

@@ -30,10 +30,12 @@ AudioEncoder::AudioEncoder(const QString &, QObject *parent)
     codecHandle(NULL),
     contextHandle(NULL),
     passThrough(false),
+    inSampleSize(sizeof(qint16)),
     inFrameSize(0),
     inFrameBufferRaw(NULL),
     inFrameBuffer(NULL),
     inFrameBufferSize(0),
+    formatConvert(NULL),
     showErrors(0)
 {
 }
@@ -78,10 +80,39 @@ bool AudioEncoder::openCodec(const SAudioCodec &c, Flags flags)
   }
 
   contextHandle = ::avcodec_alloc_context();
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+  ::avcodec_get_context_defaults2(contextHandle, AVMEDIA_TYPE_AUDIO);
+#else
   ::avcodec_get_context_defaults2(contextHandle, CODEC_TYPE_AUDIO);
+#endif
+
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+  contextHandle->sample_fmt = ::AV_SAMPLE_FMT_NONE;
+#else
+  contextHandle->sample_fmt = ::SAMPLE_FMT_NONE;
+#endif
+
+  if (codecHandle->sample_fmts)
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+  for (const ::AVSampleFormat *f=codecHandle->sample_fmts; *f != ::AV_SAMPLE_FMT_NONE; f++)
+#else
+  for (const ::SampleFormat *f=codecHandle->sample_fmts; *f != ::SAMPLE_FMT_NONE; f++)
+#endif
+  if (FFMpegCommon::fromFFMpegSampleFormat(*f) != SAudioFormat::Format_Invalid)
+  {
+    contextHandle->sample_fmt = *f;
+    break;
+  }
+
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+  if (contextHandle->sample_fmt == ::AV_SAMPLE_FMT_NONE)
+    contextHandle->sample_fmt = ::AV_SAMPLE_FMT_S16;
+#else
+  if (contextHandle->sample_fmt == ::SAMPLE_FMT_NONE)
+    contextHandle->sample_fmt = ::SAMPLE_FMT_S16;
+#endif
 
   contextHandle->sample_rate = outCodec.sampleRate();
-  contextHandle->sample_fmt = SAMPLE_FMT_S16;
   contextHandle->channels = outCodec.numChannels();
   contextHandle->channel_layout = FFMpegCommon::toFFMpegChannelLayout(outCodec.channelSetup());
   contextHandle->bit_rate = (outCodec.bitRate() > 0) ? outCodec.bitRate() : (96000 * contextHandle->channels);
@@ -111,8 +142,11 @@ bool AudioEncoder::openCodec(const SAudioCodec &c, Flags flags)
     return false;
   }
 
-  inFrameSize = contextHandle->frame_size * sizeof(qint16) * outCodec.numChannels();
-  inFrameBufferRaw = new qint16[(inFrameSize + SBuffer::optimalAlignVal + SBuffer::optimalAlignVal) / sizeof(qint16)];
+  formatConvert.setDestFormat(FFMpegCommon::fromFFMpegSampleFormat(contextHandle->sample_fmt));
+
+  inSampleSize = SAudioFormat::sampleSize(formatConvert.destFormat());
+  inFrameSize = contextHandle->frame_size * inSampleSize * outCodec.numChannels();
+  inFrameBufferRaw = new char[inFrameSize + SBuffer::optimalAlignVal + SBuffer::optimalAlignVal];
   inFrameBuffer = SBuffer::align(inFrameBufferRaw);
   inFrameBufferSize = 0;
 
@@ -141,75 +175,77 @@ SEncodedAudioBufferList AudioEncoder::encodeBuffer(const SAudioBuffer &audioBuff
     }
     else if (audioBuffer.format().numChannels() == unsigned(contextHandle->channels))
     {
-      const qint16 *buffer = reinterpret_cast<const qint16 *>(audioBuffer.data());
-      size_t size = audioBuffer.size();
-      size_t ptr = 0;
-
-      STime timeStamp = audioBuffer.timeStamp();
-      if (timeStamp.isValid())
-        timeStamp -= STime::fromClock(numSamples(inFrameBufferSize), contextHandle->sample_rate);
-      else
-        timeStamp = STime::null;
-
-      while (size > 0)
+      const SAudioBuffer preprocBuffer = formatConvert.convert(audioBuffer);
+      if (!preprocBuffer.isNull())
       {
-        if ((inFrameBufferSize > 0) && (size >= inFrameSize - inFrameBufferSize))
-        {
-          // Concatenate to the remaining buffer
-          memcpy(reinterpret_cast<quint8 *>(inFrameBuffer) + inFrameBufferSize,
-                 reinterpret_cast<const quint8 *>(buffer) + ptr,
-                 inFrameSize - inFrameBufferSize);
+        const char *buffer = preprocBuffer.data();
+        size_t size = preprocBuffer.size();
+        size_t ptr = 0;
 
-          SEncodedAudioBuffer destBuffer(outCodec, qMax(FF_MIN_BUFFER_SIZE, AVCODEC_MAX_AUDIO_FRAME_SIZE));
-          int out_size = avcodec_encode_audio(contextHandle,
-                                              (uint8_t *)destBuffer.data(),
-                                              destBuffer.capacity(),
-                                              inFrameBuffer);
-          if (out_size > 0)
-          {
-            size -= inFrameSize - inFrameBufferSize;
-            ptr += inFrameSize - inFrameBufferSize;
-            inFrameBufferSize = 0;
-
-            destBuffer.resize(out_size);
-            destBuffer.setPresentationTimeStamp(timeStamp);
-
-            output << destBuffer;
-            timeStamp += STime::fromClock(numSamples(inFrameSize), contextHandle->sample_rate);
-          }
-          else
-            size = 0;
-        }
-        else if (size >= inFrameSize)
-        {
-          SEncodedAudioBuffer destBuffer(outCodec, qMax(FF_MIN_BUFFER_SIZE, AVCODEC_MAX_AUDIO_FRAME_SIZE));
-          int out_size = avcodec_encode_audio(contextHandle,
-                                              (uint8_t *)destBuffer.data(),
-                                              destBuffer.capacity(),
-                                              reinterpret_cast<const qint16 *>(reinterpret_cast<const quint8 *>(buffer) + ptr));
-          if (out_size > 0)
-          {
-            size -= inFrameSize;
-            ptr += inFrameSize;
-
-            destBuffer.resize(out_size);
-            destBuffer.setPresentationTimeStamp(timeStamp);
-
-            output << destBuffer;
-            timeStamp += STime::fromClock(numSamples(inFrameSize), contextHandle->sample_rate);
-          }
-          else
-            size = 0;
-        }
+        STime timeStamp = preprocBuffer.timeStamp();
+        if (timeStamp.isValid())
+          timeStamp -= STime::fromClock(numSamples(inFrameBufferSize), contextHandle->sample_rate);
         else
-        {
-          // Store the remaining buffer
-          memcpy(reinterpret_cast<quint8 *>(inFrameBuffer) + inFrameBufferSize,
-                 reinterpret_cast<const quint8 *>(buffer) + ptr,
-                 size);
+          timeStamp = STime::null;
 
-          inFrameBufferSize += size;
-          size = 0;
+        while (size > 0)
+        {
+          if ((inFrameBufferSize > 0) && (size >= inFrameSize - inFrameBufferSize))
+          {
+            // Concatenate to the remaining buffer
+            memcpy(inFrameBuffer + inFrameBufferSize, buffer + ptr, inFrameSize - inFrameBufferSize);
+
+            SEncodedAudioBuffer destBuffer(outCodec, qMax(FF_MIN_BUFFER_SIZE, AVCODEC_MAX_AUDIO_FRAME_SIZE));
+            int out_size = avcodec_encode_audio(
+                contextHandle,
+                reinterpret_cast<uint8_t *>(destBuffer.data()), destBuffer.capacity(),
+                reinterpret_cast<const short *>(inFrameBuffer));
+
+            if (out_size > 0)
+            {
+              size -= inFrameSize - inFrameBufferSize;
+              ptr += inFrameSize - inFrameBufferSize;
+              inFrameBufferSize = 0;
+
+              destBuffer.resize(out_size);
+              destBuffer.setPresentationTimeStamp(timeStamp);
+
+              output << destBuffer;
+              timeStamp += STime::fromClock(numSamples(inFrameSize), contextHandle->sample_rate);
+            }
+            else
+              size = 0;
+          }
+          else if (size >= inFrameSize)
+          {
+            SEncodedAudioBuffer destBuffer(outCodec, qMax(FF_MIN_BUFFER_SIZE, AVCODEC_MAX_AUDIO_FRAME_SIZE));
+            int out_size = avcodec_encode_audio(
+                contextHandle,
+                reinterpret_cast<uint8_t *>(destBuffer.data()), destBuffer.capacity(),
+                reinterpret_cast<const short *>(buffer + ptr));
+
+            if (out_size > 0)
+            {
+              size -= inFrameSize;
+              ptr += inFrameSize;
+
+              destBuffer.resize(out_size);
+              destBuffer.setPresentationTimeStamp(timeStamp);
+
+              output << destBuffer;
+              timeStamp += STime::fromClock(numSamples(inFrameSize), contextHandle->sample_rate);
+            }
+            else
+              size = 0;
+          }
+          else
+          {
+            // Store the remaining buffer
+            memcpy(inFrameBuffer + inFrameBufferSize, buffer + ptr, size);
+
+            inFrameBufferSize += size;
+            size = 0;
+          }
         }
       }
     }

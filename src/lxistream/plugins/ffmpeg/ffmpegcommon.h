@@ -55,6 +55,13 @@ public:
   static ::CodecID              toFFMpegCodecID(const QByteArray &);
   inline static ::CodecID       toFFMpegCodecID(const QString &codec)           { return toFFMpegCodecID(codec.toAscii()); }
   static const char           * fromFFMpegCodecID(::CodecID);
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+  static ::AVSampleFormat       toFFMpegSampleFormat(SAudioFormat::Format);
+  static SAudioFormat::Format   fromFFMpegSampleFormat(::AVSampleFormat);
+#else
+  static ::SampleFormat         toFFMpegSampleFormat(SAudioFormat::Format);
+  static SAudioFormat::Format   fromFFMpegSampleFormat(::SampleFormat);
+#endif
   static ::PixelFormat          toFFMpegPixelFormat(SVideoFormat::Format);
   static SVideoFormat::Format   fromFFMpegPixelFormat(::PixelFormat);
   static int64_t                toFFMpegChannelLayout(SAudioFormat::Channels);

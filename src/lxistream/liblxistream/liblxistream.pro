@@ -69,6 +69,7 @@ SOURCES += saudiobuffer.cpp \
 # Nodes
 HEADERS += $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/saudiodecodernode.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/saudioencodernode.h \
+    $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/saudioformatconvertnode.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/saudiogapremovernode.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/saudiomatrixnode.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/saudionormalizenode.h \
@@ -95,6 +96,7 @@ HEADERS += $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/saudiodecodernode
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/svideoresizenode.h
 SOURCES += nodes/saudiodecodernode.cpp \
     nodes/saudioencodernode.cpp \
+    nodes/saudioformatconvertnode.cpp \
     nodes/saudiogapremovernode.cpp \
     nodes/saudiomatrixnode.cpp \
     nodes/saudiomatrixnode.mix.c \
@@ -131,7 +133,8 @@ SOURCES += lxistreamprivate.cpp
 RESOURCES = liblxistream.qrc
 
 # Common backend classes
-HEADERS += common/audiooutput.h \
+HEADERS += common/audioformatconverter.h \
+    common/audiooutput.h \
     common/audioresampler.h \
     common/deinterlace.h \
     common/formatprober.h \
@@ -143,7 +146,9 @@ HEADERS += common/audiooutput.h \
     common/rawsubtitledecoder.h \
     common/tsbufferwriter.h \
     common/videoformatconverter.h
-SOURCES += common/audiooutput.cpp \
+SOURCES += common/audioformatconverter.cpp \
+    common/audioformatconverter.convert.c \
+    common/audiooutput.cpp \
     common/audioresampler.cpp \
     common/audioresampler.resample.c \
     common/deinterlace.cpp \
@@ -152,7 +157,6 @@ SOURCES += common/audiooutput.cpp \
     common/mpeg.cpp \
     common/pcmaudiodecoder.cpp \
     common/pcmaudioencoder.cpp \
-    common/pcmaudio.swap.c \
     common/psbufferreader.cpp \
     common/psbufferwriter.cpp \
     common/rawsubtitledecoder.cpp \

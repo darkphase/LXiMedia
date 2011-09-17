@@ -79,7 +79,11 @@ bool VideoDecoder::openCodec(const SVideoCodec &c, Flags flags)
     contextHandle->workaround_bugs = FF_BUG_NO_PADDING;
 #endif
 
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+  contextHandle->codec_type = AVMEDIA_TYPE_VIDEO;
+#else
   contextHandle->codec_type = CODEC_TYPE_VIDEO;
+#endif
   contextHandle->width = 0;
   contextHandle->height = 0;
   contextHandle->coded_width = inCodec.size().width();

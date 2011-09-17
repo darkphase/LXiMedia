@@ -76,7 +76,11 @@ bool AudioDecoder::openCodec(const SAudioCodec &c, Flags flags)
   }
 
   contextHandle = avcodec_alloc_context();
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+  contextHandle->codec_type = AVMEDIA_TYPE_AUDIO;
+#else
   contextHandle->codec_type = CODEC_TYPE_AUDIO;
+#endif
   contextHandle->flags2 |= CODEC_FLAG2_CHUNKS;
 
   if (inCodec.sampleRate() != 0)

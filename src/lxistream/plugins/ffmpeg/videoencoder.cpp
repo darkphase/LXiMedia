@@ -70,9 +70,25 @@ bool VideoEncoder::openCodec(const SVideoCodec &c, Flags flags)
   }
 
   contextHandle = ::avcodec_alloc_context();
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+  ::avcodec_get_context_defaults2(contextHandle, AVMEDIA_TYPE_VIDEO);
+#else
   ::avcodec_get_context_defaults2(contextHandle, CODEC_TYPE_VIDEO);
+#endif
 
-  contextHandle->pix_fmt = PIX_FMT_YUV420P;
+  contextHandle->pix_fmt = ::PIX_FMT_NONE;
+
+  if (codecHandle->pix_fmts)
+  for (const ::PixelFormat *f=codecHandle->pix_fmts; *f != ::PIX_FMT_NONE; f++)
+  if (FFMpegCommon::fromFFMpegPixelFormat(*f) != SVideoFormat::Format_Invalid)
+  {
+    contextHandle->pix_fmt = *f;
+    break;
+  }
+
+  if (contextHandle->pix_fmt == ::PIX_FMT_NONE)
+    contextHandle->pix_fmt = ::PIX_FMT_YUV420P;
+
   contextHandle->width = outCodec.size().width();
   contextHandle->height = outCodec.size().height();
   contextHandle->sample_aspect_ratio = ::av_d2q(outCodec.size().aspectRatio(), 256);
@@ -106,7 +122,11 @@ bool VideoEncoder::openCodec(const SVideoCodec &c, Flags flags)
     contextHandle->bit_rate += contextHandle->bit_rate_tolerance / 2;
     contextHandle->gop_size = (flags & Flag_Slideshow) ? 4 : 0;
     contextHandle->max_b_frames = 0;
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+    contextHandle->strict_std_compliance = FF_COMPLIANCE_UNOFFICIAL;
+#else
     contextHandle->strict_std_compliance = FF_COMPLIANCE_INOFFICIAL;
+#endif
 
     contextHandle->flags2 |= CODEC_FLAG2_FAST;
 
@@ -124,9 +144,6 @@ bool VideoEncoder::openCodec(const SVideoCodec &c, Flags flags)
   if (((outCodec == "MPEG1") || (outCodec == "MPEG2")) && !fastEncode)
     contextHandle->max_b_frames = 3;
 #endif
-
-  if (outCodec == "MJPEG")
-    contextHandle->pix_fmt = PIX_FMT_YUVJ420P;
 
 #ifdef OPT_ENABLE_THREADS
   contextHandle->thread_count = FFMpegCommon::encodeThreadCount(codecHandle->id);

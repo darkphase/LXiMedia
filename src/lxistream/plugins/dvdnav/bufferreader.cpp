@@ -344,10 +344,8 @@ QList<BufferReader::AudioStreamInfo> BufferReader::filterAudioStreams(const QLis
     const uint16_t lang = ::dvdnav_audio_stream_to_lang(dvdHandle, i);
     if (lang != 0xFFFF)
     {
-      result[i].language[0] = (lang >> 8) & 0xFF;
-      result[i].language[1] = lang & 0xFF;
-      result[i].language[2] = 0;
-      result[i].language[3] = 0;
+      const char language[] = { char(lang >> 8), char(lang & 0xFF), '\0' };
+      result[i].language = language;
     }
   }
 
@@ -411,7 +409,7 @@ QList<BufferReader::DataStreamInfo> BufferReader::filterDataStreams(const QList<
     // Remove any unidentified subtitle streams.
     if (found)
     for (QList<DataStreamInfo>::Iterator i=result.begin(); i!=result.end(); )
-    if (i->language[0] == 0)
+    if (i->language.isEmpty())
       i = result.erase(i);
     else
       i++;
