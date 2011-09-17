@@ -52,6 +52,7 @@ public:
   static unsigned               numWords(const QString &);
 
   static const char           * languageOf(const QString &);
+  static QString                iso639Language(const QString &);
   static QString                iso639Language(const char *);
 };
 

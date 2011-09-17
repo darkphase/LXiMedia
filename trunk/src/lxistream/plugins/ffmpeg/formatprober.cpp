@@ -102,6 +102,16 @@ void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *readCallback)
         ProduceCallback produceCallback;
         if (bufferReader.start(readCallback, &produceCallback, 0, false))
         {
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+          pi.title = bestOf(pi.title, SStringParser::removeControl(bufferReader.readMetadata("title")).trimmed());
+          pi.author = bestOf(pi.author, SStringParser::removeControl(bufferReader.readMetadata("author")).trimmed());
+          pi.copyright = bestOf(pi.copyright, SStringParser::removeControl(bufferReader.readMetadata("copyright")).trimmed());
+          pi.comment = bestOf(pi.comment, SStringParser::removeControl(bufferReader.readMetadata("comment")).trimmed());
+          pi.album = bestOf(pi.album, SStringParser::removeControl(bufferReader.readMetadata("album")).trimmed());
+          pi.genre = bestOf(pi.genre, SStringParser::removeControl(bufferReader.readMetadata("genre")).trimmed());
+          pi.year = bestOf(pi.year, bufferReader.readMetadata("year").toInt());
+          pi.track = bestOf(pi.track, bufferReader.readMetadata("track").toInt());
+#else
           pi.title = bestOf(pi.title, SStringParser::removeControl(QString::fromUtf8(bufferReader.context()->title)).trimmed());
           pi.author = bestOf(pi.author, SStringParser::removeControl(QString::fromUtf8(bufferReader.context()->author)).trimmed());
           pi.copyright = bestOf(pi.copyright, SStringParser::removeControl(QString::fromUtf8(bufferReader.context()->copyright)).trimmed());
@@ -110,6 +120,7 @@ void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *readCallback)
           pi.genre = bestOf(pi.genre, SStringParser::removeControl(QString::fromUtf8(bufferReader.context()->genre)).trimmed());
           pi.year = bestOf(pi.year, bufferReader.context()->year);
           pi.track = bestOf(pi.track, bufferReader.context()->track);
+#endif
 
           if (pi.programs.isEmpty())
             pi.programs.append(ProbeInfo::Program(0));

@@ -24,6 +24,14 @@ namespace LXiCore {
 /*! Returns the translated language name for the ISO 639-1 or ISO 639-2 language
     code.
  */
+QString SStringParser::iso639Language(const QString &lang)
+{
+  return iso639Language(lang.toAscii().data());
+}
+
+/*! Returns the translated language name for the ISO 639-1 or ISO 639-2 language
+    code.
+ */
 QString SStringParser::iso639Language(const char *lang)
 {
   const int langLen = qstrnlen(lang, 4);

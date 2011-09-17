@@ -66,7 +66,10 @@ void FFMpegTest::AudioEncodeDecode(void)
       << "PCM/U8" << "PCM/MULAW" << "PCM/ALAW" << "PCM/S32LE" << "PCM/S32BE"
       << "PCM/U32LE" << "PCM/U32BE" << "PCM/S24LE" << "PCM/S24BE" << "PCM/U24LE"
       << "PCM/U24BE" << "PCM/S24DAUD" << "PCM/ZORK" << "PCM/S16LEP" << "PCM/DVD"
-      << "PCM/F32BE" << "PCM/F32LE" << "PCM/F64BE" << "PCM/F64LE";
+      << "PCM/F32BE" << "PCM/F32LE" << "PCM/F64BE" << "PCM/F64LE"
+      << "ADPCM/ADX" << "ADPCM/G722" << "ADPCM/G726" << "ADPCM/IMA_WAV"
+      << "AMR/WB"
+      << "DPCM/ROQ";
 
   const QSet<QString> decoders = QSet<QString>::fromList(SAudioDecoderNode::codecs());
   const QSet<QString> encoders = QSet<QString>::fromList(SAudioEncoderNode::codecs());
@@ -95,7 +98,7 @@ void FFMpegTest::AudioEncodeDecode(const char *codecName)
     encBuffers += audioEncoder->encodeBuffer(inBuffer);
     encBuffers += audioEncoder->encodeBuffer(SAudioBuffer());
 
-    QVERIFY(!encBuffers.isEmpty());
+    QVERIFY2(!encBuffers.isEmpty(), codecName);
 
     // And decode it again
     audioDecoder = SInterfaces::AudioDecoder::create(NULL, encBuffers.first().codec());
@@ -107,12 +110,12 @@ void FFMpegTest::AudioEncodeDecode(const char *codecName)
 
     decBuffers += audioDecoder->decodeBuffer(SEncodedAudioBuffer());
 
-    QVERIFY(!decBuffers.isEmpty());
+    QVERIFY2(!decBuffers.isEmpty(), codecName);
 
     // And check the result
     SAudioBuffer outBuffer = decBuffers; // This will merge all decoded buffers into one.
-    QVERIFY(outBuffer.size() >= inBuffer.size());
-    QVERIFY(outBuffer.numSamples() >= inBuffer.numSamples());
+    QVERIFY2(outBuffer.size() >= inBuffer.size(), codecName);
+    QVERIFY2(outBuffer.numSamples() >= inBuffer.numSamples(), codecName);
     QCOMPARE(outBuffer.format().numChannels(), inBuffer.format().numChannels());
 
     if (SAudioEncoderNode::losslessCodecs().contains(codecName) && (outBuffer.size() >= inBuffer.size()))
@@ -185,13 +188,14 @@ void FFMpegTest::VideoEncodeDecode(const char *codecName)
 
     // And decode it again
     videoDecoder = SInterfaces::VideoDecoder::create(NULL, encBuffers.first().codec());
-    QVERIFY(videoDecoder);
+    QVERIFY2(videoDecoder, codecName);
 
     SVideoBufferList decBuffers;
     foreach (const SEncodedVideoBuffer &buffer, encBuffers)
       decBuffers += videoDecoder->decodeBuffer(buffer);
 
     decBuffers += videoDecoder->decodeBuffer(SEncodedVideoBuffer());
+    QVERIFY2(!decBuffers.isEmpty(), codecName);
     QCOMPARE(decBuffers.count(), count);
   }
 

@@ -64,10 +64,12 @@ bool BufferWriter::openFormat(const QString &name)
     formatContext = ::avformat_alloc_context();
     formatContext->oformat = format;
 
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(53, 0, 0)
     ::AVFormatParameters formatParameters;
     memset(&formatParameters, 0, sizeof(formatParameters));
     if (::av_set_parameters(formatContext, &formatParameters) < 0)
       qCritical() << "BufferWriter::openFormat invalid ouptut format parameters.";
+#endif
 
     formatContext->bit_rate = 0;
 
@@ -108,7 +110,11 @@ bool BufferWriter::createStreams(const QList<SAudioCodec> &audioCodecs, const QL
     if (!codec.isNull())
     {
       AVStream *stream  = ::av_new_stream(formatContext, streams.count());
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+      ::avcodec_get_context_defaults2(stream->codec, AVMEDIA_TYPE_VIDEO);
+#else
       ::avcodec_get_context_defaults2(stream->codec, CODEC_TYPE_VIDEO);
+#endif
 
       const SInterval frameRate = codec.frameRate();
       if (mpegClock || !frameRate.isValid())
@@ -140,7 +146,11 @@ bool BufferWriter::createStreams(const QList<SAudioCodec> &audioCodecs, const QL
       stream->pts.den = stream->time_base.den;
 
       stream->codec->codec_id = FFMpegCommon::toFFMpegCodecID(codec);
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+      stream->codec->codec_type = AVMEDIA_TYPE_VIDEO;
+#else
       stream->codec->codec_type = CODEC_TYPE_VIDEO;
+#endif
       stream->codec->time_base = stream->time_base;
       stream->codec->bit_rate = codec.bitRate() > 0 ? codec.bitRate() : 20000000;
       stream->codec->width = codec.size().width();
@@ -168,7 +178,11 @@ bool BufferWriter::createStreams(const QList<SAudioCodec> &audioCodecs, const QL
     if (!codec.isNull())
     {
       ::AVStream *stream  = ::av_new_stream(formatContext, streams.count());
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+      ::avcodec_get_context_defaults2(stream->codec, AVMEDIA_TYPE_AUDIO);
+#else
       ::avcodec_get_context_defaults2(stream->codec, CODEC_TYPE_AUDIO);
+#endif
 
       const unsigned sampleRate = codec.sampleRate();
       if (mpegClock || (sampleRate == 0))
@@ -190,7 +204,11 @@ bool BufferWriter::createStreams(const QList<SAudioCodec> &audioCodecs, const QL
       stream->pts.den = stream->time_base.den;
 
       stream->codec->codec_id = FFMpegCommon::toFFMpegCodecID(codec);
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+      stream->codec->codec_type = AVMEDIA_TYPE_AUDIO;
+#else
       stream->codec->codec_type = CODEC_TYPE_AUDIO;
+#endif
       stream->codec->time_base = stream->time_base;
       stream->codec->bit_rate = codec.bitRate() > 0 ? codec.bitRate() : 2000000;
       stream->codec->frame_size = codec.frameSize() > 0 ? codec.frameSize() : 8192;
@@ -232,21 +250,34 @@ bool BufferWriter::start(WriteCallback *c)
   if (!streams.isEmpty())
   {
     callback = c;
-    ioContext =
-        ::av_alloc_put_byte((unsigned char *)::av_malloc(ioBufferSize),
-                            ioBufferSize,
-                            true,
-                            this,
-                            NULL,
-                            &BufferWriter::write,
-                            NULL);
 
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+    ioContext = ::avio_alloc_context(
+#else
+    ioContext = ::av_alloc_put_byte(
+#endif
+        (unsigned char *)::av_malloc(ioBufferSize),
+        ioBufferSize,
+        true,
+        this,
+        NULL,
+        &BufferWriter::write,
+        NULL);
+
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+    ioContext->seekable = 0;
+#else
     ioContext->is_streamed = true;
+#endif
 
     formatContext->pb = ioContext;
 
-    //::dump_format(formatContext, 0, NULL, 1);
+    //::av_dump_format(formatContext, 0, NULL, 1);
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+    ::avformat_write_header(formatContext, NULL);
+#else
     ::av_write_header(formatContext);
+#endif
 
     return true;
   }

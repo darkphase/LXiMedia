@@ -52,8 +52,8 @@ private:
   static SEncodedAudioBuffer    encodeSwapBufferS16U16(const SAudioBuffer &, const QString &);
 
 private:
-  SEncodedAudioBuffer           (* encode)(const SAudioBuffer &, const QString &);
   SAudioCodec                   outCodec;
+  SAudioFormatConvertNode       formatConvert;
 };
 
 

@@ -264,6 +264,8 @@ bool SApplication::loadModule(const QString &name)
     if (loadModule(module, loader))
       return true;
 
+    qDebug() << "Failed to load" << dir.absoluteFilePath(filename) << loader->errorString();
+
     loader->unload();
     delete loader;
   }

@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2007 by A.J. Admiraal                                   *
+ *   Copyright (C) 2011 by A.J. Admiraal                                   *
  *   code@admiraal.dds.nl                                                  *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -17,49 +17,50 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef __BUFFERREADER_H
-#define __BUFFERREADER_H
+#ifndef LXISTREAM_SAUDIOFORMATCONVERTNODE_H
+#define LXISTREAM_SAUDIOFORMATCONVERTNODE_H
 
 #include <QtCore>
-#include <LXiStream>
-#include "ffmpegcommon.h"
-#include "bufferreaderbase.h"
+#include <LXiCore>
+#include "../sinterfaces.h"
+#include "../saudiobuffer.h"
+#include "../export.h"
 
 namespace LXiStream {
-namespace FFMpegBackend {
 
-class BufferReader : public SInterfaces::BufferReader,
-                     public BufferReaderBase
+class SVideoBuffer;
+
+class LXISTREAM_PUBLIC SAudioFormatConvertNode : public SInterfaces::Node
 {
 Q_OBJECT
 public:
-  explicit                      BufferReader(const QString &, QObject *);
-  virtual                       ~BufferReader();
+  explicit                      SAudioFormatConvertNode(SGraph *);
+  virtual                       ~SAudioFormatConvertNode();
 
-  inline bool                   process(bool fast)                              { return BufferReaderBase::demux(BufferReaderBase::read(fast)); }
+  void                          setDestFormat(SAudioFormat::Format);
+  SAudioFormat::Format          destFormat(void) const;
 
-public: // From SInterfaces::BufferReader
-  virtual bool                  openFormat(const QString &);
+  SAudioBuffer                  convert(const SAudioBuffer &);
+  static SAudioBuffer           convert(const SAudioBuffer &, SAudioFormat::Format);
 
-  virtual bool                  start(ReadCallback *, ProduceCallback *, quint16 programId, bool streamed);
+public: // From SInterfaces::Node
+  virtual bool                  start(void);
   virtual void                  stop(void);
-  inline virtual bool           process(void)                                   { return BufferReaderBase::demux(BufferReaderBase::read()); }
+
+public slots:
+  void                          input(const SAudioBuffer &);
+
+signals:
+  void                          output(const SAudioBuffer &);
 
 private:
-
-  static int                    read(void *opaque, uint8_t *buf, int buf_size);
-  static int64_t                seek(void *opaque, int64_t offset, int whence);
+  _lxi_internal void            processTask(const SAudioBuffer &);
 
 private:
-  ReadCallback                * readCallback;
-  ::AVInputFormat             * format;
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
-  ::AVIOContext               * ioContext;
-#else
-  ::ByteIOContext             * ioContext;
-#endif
+  struct Data;
+  Data                  * const d;
 };
 
-} } // End of namespaces
+} // End of namespace
 
 #endif

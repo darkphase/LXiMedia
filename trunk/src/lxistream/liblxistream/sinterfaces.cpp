@@ -31,6 +31,7 @@ S_FACTORIZABLE_INSTANCE_NO_CREATE(VideoDecoder);
 S_FACTORIZABLE_INSTANCE_NO_CREATE(DataDecoder);
 S_FACTORIZABLE_INSTANCE_NO_CREATE(AudioEncoder);
 S_FACTORIZABLE_INSTANCE_NO_CREATE(VideoEncoder);
+S_FACTORIZABLE_INSTANCE_NO_CREATE(AudioFormatConverter);
 S_FACTORIZABLE_INSTANCE_NO_CREATE(VideoFormatConverter);
 S_FACTORIZABLE_INSTANCE(AudioResampler);
 S_FACTORIZABLE_INSTANCE(VideoDeinterlacer);
@@ -343,6 +344,36 @@ VideoEncoder * VideoEncoder::create(QObject *parent, const SVideoCodec &codec, F
     qFatal("Failed to open video encoder for \"%s\".", codec.codec().toAscii().data());
 
   return videoEncoder;
+}
+
+/*! Creates an audio format converter for the specified source and destination
+    formats.
+    \param parent   The parent object, or NULL if none.
+    \param srcFormat The source format.
+    \param dstFormat The destination format.
+    \param nonNull  When true, the default, the method will throw a qFatal() if
+                    the object can not be created, the method is guaranteed not
+                    to return a null pointer in this case. When false, the
+                    method will return a null pointer if the object can not be
+                    created.
+ */
+AudioFormatConverter * AudioFormatConverter::create(QObject *parent, const SAudioFormat &srcFormat, const SAudioFormat &dstFormat, bool nonNull)
+{
+  const QString scheme = QString(srcFormat.formatName()) + "->" + QString(dstFormat.formatName());
+  AudioFormatConverter * audioFormatConverter =
+      static_cast<AudioFormatConverter *>(factory().createObject(staticMetaObject.className(), parent, scheme, nonNull));
+
+  if (audioFormatConverter)
+  if (!audioFormatConverter->openFormat(srcFormat, dstFormat))
+  {
+    delete audioFormatConverter;
+    audioFormatConverter = NULL;
+  }
+
+  if (nonNull && (audioFormatConverter == NULL))
+    qFatal("Failed to open audio format converter for \"%s\".", scheme.toAscii().data());
+
+  return audioFormatConverter;
 }
 
 /*! Creates a video format converter for the specified source and destination

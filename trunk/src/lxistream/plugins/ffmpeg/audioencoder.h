@@ -48,7 +48,7 @@ public: // From SBufferEncoder
   virtual SEncodedAudioBufferList encodeBuffer(const SAudioBuffer &);
 
 private:
-  inline int                    numSamples(size_t n)                            { return int((n / contextHandle->channels) / sizeof(qint16)); }
+  inline int                    numSamples(size_t n)                            { return int((n / contextHandle->channels) / inSampleSize); }
 
 private:
   SAudioCodec                   outCodec;
@@ -56,10 +56,13 @@ private:
   AVCodecContext              * contextHandle;
   bool                          passThrough;
 
+  unsigned                      inSampleSize;
   size_t                        inFrameSize;
-  qint16                      * inFrameBufferRaw;
-  qint16                      * inFrameBuffer;
+  char                        * inFrameBufferRaw;
+  char                        * inFrameBuffer;
   size_t                        inFrameBufferSize;
+
+  SAudioFormatConvertNode       formatConvert;
 
   unsigned                      showErrors;
 };

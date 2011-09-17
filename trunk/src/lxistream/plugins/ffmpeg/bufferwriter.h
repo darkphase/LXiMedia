@@ -55,7 +55,11 @@ private:
   WriteCallback               * callback;
   ::AVOutputFormat            * format;
   ::AVFormatContext           * formatContext;
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+  ::AVIOContext               * ioContext;
+#else
   ::ByteIOContext             * ioContext;
+#endif
   QMap<quint32, ::AVStream *>   streams;
 
   bool                          hasAudio, hasVideo;

@@ -61,16 +61,25 @@ bool BufferReader::start(ReadCallback *readCallback, ProduceCallback *produceCal
     static const int ioBufferSize = 350 * 188;
 
     this->readCallback = readCallback;
-    ioContext =
-        ::av_alloc_put_byte((unsigned char *)::av_malloc(ioBufferSize),
-                            ioBufferSize,
-                            false,
-                            this,
-                            &BufferReader::read,
-                            NULL,
-                            &BufferReader::seek);
 
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+    ioContext = ::avio_alloc_context(
+#else
+    ioContext = ::av_alloc_put_byte(
+#endif
+        (unsigned char *)::av_malloc(ioBufferSize),
+        ioBufferSize,
+        false,
+        this,
+        &BufferReader::read,
+        NULL,
+        &BufferReader::seek);
+
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+    ioContext->seekable = streamed ? 0 : AVIO_SEEKABLE_NORMAL;
+#else
     ioContext->is_streamed = streamed;
+#endif
 
     ::AVFormatContext * formatContext = NULL;
     if (::av_open_input_stream(&formatContext, ioContext, "", format, NULL) == 0)
@@ -93,34 +102,6 @@ void BufferReader::stop(void)
 
   readCallback = NULL;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 int BufferReader::read(void *opaque, uint8_t *buf, int buf_size)
 {

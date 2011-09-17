@@ -440,7 +440,7 @@ QByteArray MediaServer::buildVideoPlayer(const QByteArray &item, const QString &
   foreach (const SMediaInfo::AudioStreamInfo &stream, program.audioStreams)
   {
     QString title = stream.title + " ";
-    if (stream.language[0] != 0)
+    if (!stream.language.isEmpty())
       title += " " + SStringParser::iso639Language(stream.language);
     else
       title += " " + tr("Unknown");
@@ -456,7 +456,7 @@ QByteArray MediaServer::buildVideoPlayer(const QByteArray &item, const QString &
   foreach (const SMediaInfo::DataStreamInfo &stream, program.dataStreams)
   {
     QString title = stream.title + " ";
-    if (stream.language[0] != 0)
+    if (!stream.language.isEmpty())
       title += " " + SStringParser::iso639Language(stream.language);
     else
       title += " " + tr("Unknown");

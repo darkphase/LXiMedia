@@ -18,6 +18,7 @@
  ***************************************************************************/
 
 #include "module.h"
+#include "audioformatconverter.h"
 #include "audioresampler.h"
 #include "deinterlace.h"
 #include "formatprober.h"
@@ -59,10 +60,20 @@ bool Module::registerClasses(void)
   PcmAudioDecoder::registerClass<PcmAudioDecoder>(SFactory::Scheme(1, "PCM/F64LE"));
   PcmAudioDecoder::registerClass<PcmAudioDecoder>(SFactory::Scheme(1, "PCM/F64BE"));
 
+  PcmAudioEncoder::registerClass<PcmAudioEncoder>(SFactory::Scheme(1, "PCM/S8"));
+  PcmAudioEncoder::registerClass<PcmAudioEncoder>(SFactory::Scheme(1, "PCM/U8"));
   PcmAudioEncoder::registerClass<PcmAudioEncoder>(SFactory::Scheme(1, "PCM/S16LE"));
   PcmAudioEncoder::registerClass<PcmAudioEncoder>(SFactory::Scheme(1, "PCM/S16BE"));
   PcmAudioEncoder::registerClass<PcmAudioEncoder>(SFactory::Scheme(1, "PCM/U16LE"));
   PcmAudioEncoder::registerClass<PcmAudioEncoder>(SFactory::Scheme(1, "PCM/U16BE"));
+  PcmAudioEncoder::registerClass<PcmAudioEncoder>(SFactory::Scheme(1, "PCM/S32LE"));
+  PcmAudioEncoder::registerClass<PcmAudioEncoder>(SFactory::Scheme(1, "PCM/S32BE"));
+  PcmAudioEncoder::registerClass<PcmAudioEncoder>(SFactory::Scheme(1, "PCM/U32LE"));
+  PcmAudioEncoder::registerClass<PcmAudioEncoder>(SFactory::Scheme(1, "PCM/U32BE"));
+  PcmAudioEncoder::registerClass<PcmAudioEncoder>(SFactory::Scheme(1, "PCM/F32LE"));
+  PcmAudioEncoder::registerClass<PcmAudioEncoder>(SFactory::Scheme(1, "PCM/F32BE"));
+  PcmAudioEncoder::registerClass<PcmAudioEncoder>(SFactory::Scheme(1, "PCM/F64LE"));
+  PcmAudioEncoder::registerClass<PcmAudioEncoder>(SFactory::Scheme(1, "PCM/F64BE"));
 
   RawSubtitleDecoder::registerClass<RawSubtitleDecoder>(SFactory::Scheme(1, "SUB/RAWUTF8"));
   RawSubtitleDecoder::registerClass<RawSubtitleDecoder>(SFactory::Scheme(1, "SUB/RAWLATIN1"));
@@ -75,6 +86,40 @@ bool Module::registerClasses(void)
   // Filters
   DeinterlaceBlend::registerClass<DeinterlaceBlend>(SFactory::Scheme(0, "blend"));
   DeinterlaceBob::registerClass<DeinterlaceBob>(SFactory::Scheme(-1, "bob"));
+
+  // Audio format converters
+  AudioFormatConverter_Format_PCM_S16LE_Format_PCM_S16BE::registerClass<AudioFormatConverter_Format_PCM_S16LE_Format_PCM_S16BE>();
+  AudioFormatConverter_Format_PCM_S16BE_Format_PCM_S16LE::registerClass<AudioFormatConverter_Format_PCM_S16BE_Format_PCM_S16LE>();
+  AudioFormatConverter_Format_PCM_U16LE_Format_PCM_U16BE::registerClass<AudioFormatConverter_Format_PCM_U16LE_Format_PCM_U16BE>();
+  AudioFormatConverter_Format_PCM_U16BE_Format_PCM_U16LE::registerClass<AudioFormatConverter_Format_PCM_U16BE_Format_PCM_U16LE>();
+  AudioFormatConverter_Format_PCM_S32LE_Format_PCM_S32BE::registerClass<AudioFormatConverter_Format_PCM_S32LE_Format_PCM_S32BE>();
+  AudioFormatConverter_Format_PCM_S32BE_Format_PCM_S32LE::registerClass<AudioFormatConverter_Format_PCM_S32BE_Format_PCM_S32LE>();
+  AudioFormatConverter_Format_PCM_U32LE_Format_PCM_U32BE::registerClass<AudioFormatConverter_Format_PCM_U32LE_Format_PCM_U32BE>();
+  AudioFormatConverter_Format_PCM_U32BE_Format_PCM_U32LE::registerClass<AudioFormatConverter_Format_PCM_U32BE_Format_PCM_U32LE>();
+  AudioFormatConverter_Format_PCM_F32LE_Format_PCM_F32BE::registerClass<AudioFormatConverter_Format_PCM_F32LE_Format_PCM_F32BE>();
+  AudioFormatConverter_Format_PCM_F32BE_Format_PCM_F32LE::registerClass<AudioFormatConverter_Format_PCM_F32BE_Format_PCM_F32LE>();
+  AudioFormatConverter_Format_PCM_F64LE_Format_PCM_F64BE::registerClass<AudioFormatConverter_Format_PCM_F64LE_Format_PCM_F64BE>();
+  AudioFormatConverter_Format_PCM_F64BE_Format_PCM_F64LE::registerClass<AudioFormatConverter_Format_PCM_F64BE_Format_PCM_F64LE>();
+
+  AudioFormatConverter_Format_PCM_S8_Format_PCM_S16::registerClass<AudioFormatConverter_Format_PCM_S8_Format_PCM_S16>();
+  AudioFormatConverter_Format_PCM_U8_Format_PCM_U16::registerClass<AudioFormatConverter_Format_PCM_U8_Format_PCM_U16>();
+  AudioFormatConverter_Format_PCM_S16_Format_PCM_S8::registerClass<AudioFormatConverter_Format_PCM_S16_Format_PCM_S8>();
+  AudioFormatConverter_Format_PCM_U16_Format_PCM_U8::registerClass<AudioFormatConverter_Format_PCM_U16_Format_PCM_U8>();
+  AudioFormatConverter_Format_PCM_S16_Format_PCM_S32::registerClass<AudioFormatConverter_Format_PCM_S16_Format_PCM_S32>();
+  AudioFormatConverter_Format_PCM_U16_Format_PCM_U32::registerClass<AudioFormatConverter_Format_PCM_U16_Format_PCM_U32>();
+  AudioFormatConverter_Format_PCM_S32_Format_PCM_S16::registerClass<AudioFormatConverter_Format_PCM_S32_Format_PCM_S16>();
+  AudioFormatConverter_Format_PCM_U32_Format_PCM_U16::registerClass<AudioFormatConverter_Format_PCM_U32_Format_PCM_U16>();
+  AudioFormatConverter_Format_PCM_S16_Format_PCM_F32::registerClass<AudioFormatConverter_Format_PCM_S16_Format_PCM_F32>();
+  AudioFormatConverter_Format_PCM_F32_Format_PCM_S16::registerClass<AudioFormatConverter_Format_PCM_F32_Format_PCM_S16>();
+  AudioFormatConverter_Format_PCM_S32_Format_PCM_F32::registerClass<AudioFormatConverter_Format_PCM_S32_Format_PCM_F32>();
+  AudioFormatConverter_Format_PCM_F32_Format_PCM_S32::registerClass<AudioFormatConverter_Format_PCM_F32_Format_PCM_S32>();
+  AudioFormatConverter_Format_PCM_S16_Format_PCM_F64::registerClass<AudioFormatConverter_Format_PCM_S16_Format_PCM_F64>();
+  AudioFormatConverter_Format_PCM_F64_Format_PCM_S16::registerClass<AudioFormatConverter_Format_PCM_F64_Format_PCM_S16>();
+  AudioFormatConverter_Format_PCM_S32_Format_PCM_F64::registerClass<AudioFormatConverter_Format_PCM_S32_Format_PCM_F64>();
+  AudioFormatConverter_Format_PCM_F64_Format_PCM_S32::registerClass<AudioFormatConverter_Format_PCM_F64_Format_PCM_S32>();
+
+  AudioFormatConverter_Format_PCM_U16_Format_PCM_S16::registerClass<AudioFormatConverter_Format_PCM_U16_Format_PCM_S16>();
+  AudioFormatConverter_Format_PCM_S16_Format_PCM_U16::registerClass<AudioFormatConverter_Format_PCM_S16_Format_PCM_U16>();
 
   // Video format converters
   VideoFormatConverter_Format_YUYV422_Format_RGB32::registerClass<VideoFormatConverter_Format_YUYV422_Format_RGB32>();

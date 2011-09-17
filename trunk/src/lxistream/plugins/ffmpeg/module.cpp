@@ -79,7 +79,11 @@ bool Module::registerClasses(void)
     const char * const name = FFMpegCommon::fromFFMpegCodecID(codec->id);
     if (name)
     {
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+      if (codec->type == AVMEDIA_TYPE_AUDIO)
+#else
       if (codec->type == CODEC_TYPE_AUDIO)
+#endif
       {
         if (codec->decode && !unsupportedDecoders.contains(name))
           AudioDecoder::registerClass<AudioDecoder>(name);
@@ -87,7 +91,11 @@ bool Module::registerClasses(void)
         if (codec->encode && !unsupportedEncoders.contains(name))
           AudioEncoder::registerClass<AudioEncoder>(name);
       }
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+      else if (codec->type == AVMEDIA_TYPE_VIDEO)
+#else
       else if (codec->type == CODEC_TYPE_VIDEO)
+#endif
       {
         if (codec->decode && !unsupportedDecoders.contains(name))
           VideoDecoder::registerClass<VideoDecoder>(name);
@@ -95,7 +103,11 @@ bool Module::registerClasses(void)
         if (codec->encode && !unsupportedEncoders.contains(name))
           VideoEncoder::registerClass<VideoEncoder>(name);
       }
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+      else if (codec->type == AVMEDIA_TYPE_SUBTITLE)
+#else
       else if (codec->type == CODEC_TYPE_SUBTITLE)
+#endif
       {
         if (codec->decode && !unsupportedDecoders.contains(name))
           DataDecoder::registerClass<DataDecoder>(name);

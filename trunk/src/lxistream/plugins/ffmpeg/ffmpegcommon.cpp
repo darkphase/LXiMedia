@@ -111,6 +111,50 @@ void FFMpegCommon::disableLog(bool disabled)
   if (codec == "BINKAUDIO_RDFT")        return CODEC_ID_BINKAUDIO_RDFT;
   if (codec == "BINKAUDIO_DCT")         return CODEC_ID_BINKAUDIO_DCT;
 #endif
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+  if (codec == "AAC_LATM")              return CODEC_ID_AAC_LATM;
+  if (codec == "QDMC")                  return CODEC_ID_QDMC;
+#endif
+
+  if (codec == "DPCM/ROQ")              return CODEC_ID_ROQ_DPCM;
+  if (codec == "DPCM/INTERPLAY")        return CODEC_ID_INTERPLAY_DPCM;
+  if (codec == "DPCM/XAN")              return CODEC_ID_XAN_DPCM;
+  if (codec == "DPCM/SOL")              return CODEC_ID_SOL_DPCM;
+
+  if (codec == "ADPCM/IMA_QT")          return CODEC_ID_ADPCM_IMA_QT;
+  if (codec == "ADPCM/IMA_WAV")         return CODEC_ID_ADPCM_IMA_WAV;
+  if (codec == "ADPCM/IMA_DK3")         return CODEC_ID_ADPCM_IMA_DK3;
+  if (codec == "ADPCM/IMA_DK4")         return CODEC_ID_ADPCM_IMA_DK4;
+  if (codec == "ADPCM/IMA_WS")          return CODEC_ID_ADPCM_IMA_WS;
+  if (codec == "ADPCM/IMA_SMJPEG")      return CODEC_ID_ADPCM_IMA_SMJPEG;
+  if (codec == "ADPCM/MS")              return CODEC_ID_ADPCM_MS;
+  if (codec == "ADPCM/4XM")             return CODEC_ID_ADPCM_4XM;
+  if (codec == "ADPCM/XA")              return CODEC_ID_ADPCM_XA;
+  if (codec == "ADPCM/ADX")             return CODEC_ID_ADPCM_ADX;
+  if (codec == "ADPCM/EA")              return CODEC_ID_ADPCM_EA;
+  if (codec == "ADPCM/G726")            return CODEC_ID_ADPCM_G726;
+  if (codec == "ADPCM/CT")              return CODEC_ID_ADPCM_CT;
+  if (codec == "ADPCM/SWF")             return CODEC_ID_ADPCM_SWF;
+  if (codec == "ADPCM/YAMAHA")          return CODEC_ID_ADPCM_YAMAHA;
+  if (codec == "ADPCM/SBPRO_4")         return CODEC_ID_ADPCM_SBPRO_4;
+  if (codec == "ADPCM/SBPRO_3")         return CODEC_ID_ADPCM_SBPRO_3;
+  if (codec == "ADPCM/SBPRO_2")         return CODEC_ID_ADPCM_SBPRO_2;
+  if (codec == "ADPCM/THP")             return CODEC_ID_ADPCM_THP;
+  if (codec == "ADPCM/IMA_AMV")         return CODEC_ID_ADPCM_IMA_AMV;
+  if (codec == "ADPCM/EA_R1")           return CODEC_ID_ADPCM_EA_R1;
+  if (codec == "ADPCM/EA_R3")           return CODEC_ID_ADPCM_EA_R3;
+  if (codec == "ADPCM/EA_R2")           return CODEC_ID_ADPCM_EA_R2;
+  if (codec == "ADPCM/IMA_EA_SEAD")     return CODEC_ID_ADPCM_IMA_EA_SEAD;
+  if (codec == "ADPCM/IMA_EA_EACS")     return CODEC_ID_ADPCM_IMA_EA_EACS;
+  if (codec == "ADPCM/EA_XAS")          return CODEC_ID_ADPCM_EA_XAS;
+  if (codec == "ADPCM/EA_MAXIS_XA")     return CODEC_ID_ADPCM_EA_MAXIS_XA;
+  if (codec == "ADPCM/IMA_ISS")         return CODEC_ID_ADPCM_IMA_ISS;
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+  if (codec == "ADPCM/G722")            return CODEC_ID_ADPCM_G722;
+#endif
+
+  if (codec == "AMR/NB")                return CODEC_ID_AMR_NB;
+  if (codec == "AMR/WB")                return CODEC_ID_AMR_WB;
 
   ////////////////////////////////////////////////////////////////////////////
   // Video codecs
@@ -175,7 +219,9 @@ void FFMpegCommon::disableLog(bool disabled)
   if (codec == "QDRAW")                 return CODEC_ID_QDRAW;
   if (codec == "VIXL")                  return CODEC_ID_VIXL;
   if (codec == "QPEG")                  return CODEC_ID_QPEG;
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(53, 0, 0)
   if (codec == "XVID")                  return CODEC_ID_XVID;
+#endif
   if (codec == "PNG")                   return CODEC_ID_PNG;
   if (codec == "PPM")                   return CODEC_ID_PPM;
   if (codec == "PBM")                   return CODEC_ID_PBM;
@@ -261,6 +307,18 @@ void FFMpegCommon::disableLog(bool disabled)
   if (codec == "YOP")                   return CODEC_ID_YOP;
   if (codec == "VP8")                   return CODEC_ID_VP8;
 #endif
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+  if (codec == "PICTOR")                return CODEC_ID_PICTOR;
+  if (codec == "ANSI")                  return CODEC_ID_ANSI;
+  if (codec == "A64_MULTI")             return CODEC_ID_A64_MULTI;
+  if (codec == "A64_MULTI5")            return CODEC_ID_A64_MULTI5;
+  if (codec == "R10K")                  return CODEC_ID_R10K;
+  if (codec == "MXPEG")                 return CODEC_ID_MXPEG;
+  if (codec == "LAGARITH")              return CODEC_ID_LAGARITH;
+  if (codec == "PRORES")                return CODEC_ID_PRORES;
+  if (codec == "JV")                    return CODEC_ID_JV;
+  if (codec == "DFA")                   return CODEC_ID_DFA;
+#endif
 
   ////////////////////////////////////////////////////////////////////////////
   // Audio formats
@@ -288,6 +346,11 @@ void FFMpegCommon::disableLog(bool disabled)
   if (codec == "PCM/F32LE")             return CODEC_ID_PCM_F32LE;
   if (codec == "PCM/F64BE")             return CODEC_ID_PCM_F64BE;
   if (codec == "PCM/F64LE")             return CODEC_ID_PCM_F64LE;
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+  if (codec == "PCM/BLURAY")            return CODEC_ID_PCM_BLURAY;
+  if (codec == "PCM/LXF")               return CODEC_ID_PCM_LXF;
+  if (codec == "PCM/S302M")             return CODEC_ID_S302M;
+#endif
 
   //////////////////////////////////////////////////////////////////////////////
   // Subtitle codecs
@@ -300,6 +363,9 @@ void FFMpegCommon::disableLog(bool disabled)
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
   if (codec == "SUB/HDMV_PGS")          return CODEC_ID_HDMV_PGS_SUBTITLE;
   if (codec == "SUB/DVB_TELETEXT")      return CODEC_ID_DVB_TELETEXT;
+#endif
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+  if (codec == "SUB/SRT")               return CODEC_ID_SRT;
 #endif
 
   else                                  return CODEC_ID_NONE;
@@ -368,6 +434,50 @@ const char * FFMpegCommon::fromFFMpegCodecID(::CodecID id)
   case CODEC_ID_BINKAUDIO_RDFT:     return "BINKAUDIO_RDFT";
   case CODEC_ID_BINKAUDIO_DCT:      return "BINKAUDIO_DCT";
 #endif
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+  case CODEC_ID_AAC_LATM:           return "AAC_LATM";
+  case CODEC_ID_QDMC:               return "QDMC";
+#endif
+
+  case CODEC_ID_ROQ_DPCM:           return "DPCM/ROQ";
+  case CODEC_ID_INTERPLAY_DPCM:     return "DPCM/INTERPLAY";
+  case CODEC_ID_XAN_DPCM:           return "DPCM/XAN";
+  case CODEC_ID_SOL_DPCM:           return "DPCM/SOL";
+
+  case CODEC_ID_ADPCM_IMA_QT:       return "ADPCM/IMA_QT";
+  case CODEC_ID_ADPCM_IMA_WAV:      return "ADPCM/IMA_WAV";
+  case CODEC_ID_ADPCM_IMA_DK3:      return "ADPCM/IMA_DK3";
+  case CODEC_ID_ADPCM_IMA_DK4:      return "ADPCM/IMA_DK4";
+  case CODEC_ID_ADPCM_IMA_WS:       return "ADPCM/IMA_WS";
+  case CODEC_ID_ADPCM_IMA_SMJPEG:   return "ADPCM/IMA_SMJPEG";
+  case CODEC_ID_ADPCM_MS:           return "ADPCM/MS";
+  case CODEC_ID_ADPCM_4XM:          return "ADPCM/4XM";
+  case CODEC_ID_ADPCM_XA:           return "ADPCM/XA";
+  case CODEC_ID_ADPCM_ADX:          return "ADPCM/ADX";
+  case CODEC_ID_ADPCM_EA:           return "ADPCM/EA";
+  case CODEC_ID_ADPCM_G726:         return "ADPCM/G726";
+  case CODEC_ID_ADPCM_CT:           return "ADPCM/CT";
+  case CODEC_ID_ADPCM_SWF:          return "ADPCM/SWF";
+  case CODEC_ID_ADPCM_YAMAHA:       return "ADPCM/YAMAHA";
+  case CODEC_ID_ADPCM_SBPRO_4:      return "ADPCM/SBPRO_4";
+  case CODEC_ID_ADPCM_SBPRO_3:      return "ADPCM/SBPRO_3";
+  case CODEC_ID_ADPCM_SBPRO_2:      return "ADPCM/SBPRO_2";
+  case CODEC_ID_ADPCM_THP:          return "ADPCM/THP";
+  case CODEC_ID_ADPCM_IMA_AMV:      return "ADPCM/IMA_AMV";
+  case CODEC_ID_ADPCM_EA_R1:        return "ADPCM/EA_R1";
+  case CODEC_ID_ADPCM_EA_R3:        return "ADPCM/EA_R3";
+  case CODEC_ID_ADPCM_EA_R2:        return "ADPCM/EA_R2";
+  case CODEC_ID_ADPCM_IMA_EA_SEAD:  return "ADPCM/IMA_EA_SEAD";
+  case CODEC_ID_ADPCM_IMA_EA_EACS:  return "ADPCM/IMA_EA_EACS";
+  case CODEC_ID_ADPCM_EA_XAS:       return "ADPCM/EA_XAS";
+  case CODEC_ID_ADPCM_EA_MAXIS_XA:  return "ADPCM/EA_MAXIS_XA";
+  case CODEC_ID_ADPCM_IMA_ISS:      return "ADPCM/IMA_ISS";
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+  case CODEC_ID_ADPCM_G722:         return "ADPCM/G722";
+#endif
+
+  case CODEC_ID_AMR_NB:             return "AMR/NB";
+  case CODEC_ID_AMR_WB:             return "AMR/WB";
 
   //////////////////////////////////////////////////////////////////////////////
   // Video codecs
@@ -432,7 +542,9 @@ const char * FFMpegCommon::fromFFMpegCodecID(::CodecID id)
   case CODEC_ID_QDRAW:              return "QDRAW";
   case CODEC_ID_VIXL:               return "VIXL";
   case CODEC_ID_QPEG:               return "QPEG";
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(53, 0, 0)
   case CODEC_ID_XVID:               return "XVID";
+#endif
   case CODEC_ID_PNG:                return "PNG";
   case CODEC_ID_PPM:                return "PPM";
   case CODEC_ID_PBM:                return "PBM";
@@ -518,6 +630,18 @@ const char * FFMpegCommon::fromFFMpegCodecID(::CodecID id)
   case CODEC_ID_YOP:                return "YOP";
   case CODEC_ID_VP8:                return "VP8";
 #endif
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+  case CODEC_ID_PICTOR:             return "PICTOR";
+  case CODEC_ID_ANSI:               return "ANSI";
+  case CODEC_ID_A64_MULTI:          return "A64_MULTI";
+  case CODEC_ID_A64_MULTI5:         return "A64_MULTI5";
+  case CODEC_ID_R10K:               return "R10K";
+  case CODEC_ID_MXPEG:              return "MXPEG";
+  case CODEC_ID_LAGARITH:           return "LAGARITH";
+  case CODEC_ID_PRORES:             return "PRORES";
+  case CODEC_ID_JV:                 return "JV";
+  case CODEC_ID_DFA:                return "DFA";
+#endif
 
   //////////////////////////////////////////////////////////////////////////////
   // Audio formats
@@ -545,6 +669,11 @@ const char * FFMpegCommon::fromFFMpegCodecID(::CodecID id)
   case CODEC_ID_PCM_F32LE:          return "PCM/F32LE";
   case CODEC_ID_PCM_F64BE:          return "PCM/F64BE";
   case CODEC_ID_PCM_F64LE:          return "PCM/F64LE";
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+  case CODEC_ID_PCM_BLURAY:         return "PCM/BLURAY";
+  case CODEC_ID_PCM_LXF:            return "PCM/LXF";
+  case CODEC_ID_S302M:              return "PCM/S302M";
+#endif
 
   //////////////////////////////////////////////////////////////////////////////
   // Subtitle codecs
@@ -558,8 +687,69 @@ const char * FFMpegCommon::fromFFMpegCodecID(::CodecID id)
   case CODEC_ID_HDMV_PGS_SUBTITLE:  return "SUB/HDMV_PGS";
   case CODEC_ID_DVB_TELETEXT:       return "SUB/DVB_TELETEXT";
 #endif
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+  case CODEC_ID_SRT:                return "SUB/SRT";
+#endif
   }
 }
+
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+::AVSampleFormat FFMpegCommon::toFFMpegSampleFormat(SAudioFormat::Format format)
+{
+  switch (format)
+  {
+  case SAudioFormat::Format_PCM_U8:       return ::AV_SAMPLE_FMT_U8;
+  case SAudioFormat::Format_PCM_S16:      return ::AV_SAMPLE_FMT_S16;
+  case SAudioFormat::Format_PCM_S32:      return ::AV_SAMPLE_FMT_S32;
+  case SAudioFormat::Format_PCM_F32:      return ::AV_SAMPLE_FMT_FLT;
+  case SAudioFormat::Format_PCM_F64:      return ::AV_SAMPLE_FMT_DBL;
+  default:                                return ::AV_SAMPLE_FMT_NONE;
+  }
+}
+#else
+::SampleFormat FFMpegCommon::toFFMpegSampleFormat(SAudioFormat::Format format)
+{
+  switch (format)
+  {
+  case SAudioFormat::Format_PCM_U8:       return ::SAMPLE_FMT_U8;
+  case SAudioFormat::Format_PCM_S16:      return ::SAMPLE_FMT_S16;
+  case SAudioFormat::Format_PCM_S32:      return ::SAMPLE_FMT_S32;
+  case SAudioFormat::Format_PCM_F32:      return ::SAMPLE_FMT_FLT;
+  case SAudioFormat::Format_PCM_F64:      return ::SAMPLE_FMT_DBL;
+  default:                                return ::SAMPLE_FMT_NONE;
+  }
+}
+#endif
+
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+SAudioFormat::Format FFMpegCommon::fromFFMpegSampleFormat(::AVSampleFormat sf)
+{
+  switch (sf)
+  {
+  default:
+  case ::AV_SAMPLE_FMT_NONE:  return SAudioFormat::Format_Invalid;
+  case ::AV_SAMPLE_FMT_U8:    return SAudioFormat::Format_PCM_U8;
+  case ::AV_SAMPLE_FMT_S16:   return SAudioFormat::Format_PCM_S16;
+  case ::AV_SAMPLE_FMT_S32:   return SAudioFormat::Format_PCM_S32;
+  case ::AV_SAMPLE_FMT_FLT:   return SAudioFormat::Format_PCM_F32;
+  case ::AV_SAMPLE_FMT_DBL:   return SAudioFormat::Format_PCM_F64;
+  }
+}
+#else
+SAudioFormat::Format FFMpegCommon::fromFFMpegSampleFormat(::SampleFormat sf)
+{
+  switch (sf)
+  {
+  default:
+  case ::SAMPLE_FMT_NONE:     return SAudioFormat::Format_Invalid;
+  case ::SAMPLE_FMT_U8:       return SAudioFormat::Format_PCM_U8;
+  case ::SAMPLE_FMT_S16:      return SAudioFormat::Format_PCM_S16;
+  case ::SAMPLE_FMT_S32:      return SAudioFormat::Format_PCM_S32;
+  case ::SAMPLE_FMT_FLT:      return SAudioFormat::Format_PCM_F32;
+  case ::SAMPLE_FMT_DBL:      return SAudioFormat::Format_PCM_F64;
+  }
+}
+#endif
 
 ::PixelFormat FFMpegCommon::toFFMpegPixelFormat(SVideoFormat::Format format)
 {
