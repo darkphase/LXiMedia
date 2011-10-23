@@ -27,7 +27,6 @@ struct SVideoFormatConvertNode::Data
   SVideoFormat::Format          sourceFormat;
   SVideoFormat::Format          destFormat;
   SInterfaces::VideoFormatConverter * converter;
-  QFuture<void>                 future;
 };
 
 SVideoFormatConvertNode::SVideoFormatConvertNode(SGraph *parent)
@@ -41,7 +40,6 @@ SVideoFormatConvertNode::SVideoFormatConvertNode(SGraph *parent)
 
 SVideoFormatConvertNode::~SVideoFormatConvertNode()
 {
-  d->future.waitForFinished();
   delete d->converter;
   delete d;
   *const_cast<Data **>(&d) = NULL;
@@ -128,12 +126,10 @@ bool SVideoFormatConvertNode::start(void)
 
 void SVideoFormatConvertNode::stop(void)
 {
-  d->future.waitForFinished();
 }
 
 void SVideoFormatConvertNode::input(const SVideoBuffer &videoBuffer)
 {
-  LXI_PROFILE_WAIT(d->future.waitForFinished());
   LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
 
   if (!videoBuffer.isNull())
@@ -141,17 +137,10 @@ void SVideoFormatConvertNode::input(const SVideoBuffer &videoBuffer)
     if (videoBuffer.format() == d->destFormat)
       emit output(videoBuffer);
     else
-      d->future = QtConcurrent::run(this, &SVideoFormatConvertNode::processTask, videoBuffer);
+      emit output(convert(videoBuffer));
   }
   else
     emit output(videoBuffer);
-}
-
-void SVideoFormatConvertNode::processTask(const SVideoBuffer &videoBuffer)
-{
-  LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
-
-  emit output(convert(videoBuffer));
 }
 
 } // End of namespace

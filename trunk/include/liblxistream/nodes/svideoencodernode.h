@@ -58,7 +58,6 @@ signals:
 
 private:
   _lxi_internal const SInterfaces::VideoEncoder * encoder(void) const;
-  _lxi_internal void            processTask(const SVideoBuffer &);
 
 private:
   struct Data;

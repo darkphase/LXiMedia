@@ -43,7 +43,7 @@ public:
 
   virtual bool                  start(void) = 0;
   virtual void                  stop(void) = 0;
-  virtual void                  process(void) = 0;
+  virtual bool                  process(void) = 0;
 
 signals:
   void                          produce(const SAudioBuffer &);
@@ -84,7 +84,7 @@ public:
 
   virtual bool                  start(void) = 0;
   virtual void                  stop(void) = 0;
-  virtual void                  process(void) = 0;
+  virtual bool                  process(void) = 0;
 
 signals:
   void                          produce(const SVideoBuffer &);

@@ -106,10 +106,11 @@ void SNetworkInputNode::stop(void)
   }
 }
 
-void SNetworkInputNode::process(void)
+bool SNetworkInputNode::process(void)
 {
   LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
 
+  bool result = false;
   if (d->bufferReader)
   {
     if (d->bufferSem.tryAcquire(1, 15))
@@ -130,10 +131,13 @@ void SNetworkInputNode::process(void)
       }
 
       d->bufferSem.release(1);
+      result = true;
     }
 
     fillBuffer();
   }
+
+  return result;
 }
 
 STime SNetworkInputNode::duration(void) const

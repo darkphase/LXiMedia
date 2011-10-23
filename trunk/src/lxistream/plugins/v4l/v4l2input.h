@@ -76,7 +76,7 @@ public: // From SInterfaces::VideoInput
 
   virtual bool                  start(void);
   virtual void                  stop(void);
-  virtual void                  process(void);
+  virtual bool                  process(void);
 
 private:
   qreal                         control(quint32 id) const;

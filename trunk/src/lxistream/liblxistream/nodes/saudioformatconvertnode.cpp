@@ -27,7 +27,6 @@ struct SAudioFormatConvertNode::Data
   SAudioFormat::Format          sourceFormat;
   SAudioFormat::Format          destFormat;
   SInterfaces::AudioFormatConverter * converter;
-  QFuture<void>                 future;
 };
 
 SAudioFormatConvertNode::SAudioFormatConvertNode(SGraph *parent)
@@ -41,7 +40,6 @@ SAudioFormatConvertNode::SAudioFormatConvertNode(SGraph *parent)
 
 SAudioFormatConvertNode::~SAudioFormatConvertNode()
 {
-  d->future.waitForFinished();
   delete d->converter;
   delete d;
   *const_cast<Data **>(&d) = NULL;
@@ -128,12 +126,10 @@ bool SAudioFormatConvertNode::start(void)
 
 void SAudioFormatConvertNode::stop(void)
 {
-  d->future.waitForFinished();
 }
 
 void SAudioFormatConvertNode::input(const SAudioBuffer &audioBuffer)
 {
-  LXI_PROFILE_WAIT(d->future.waitForFinished());
   LXI_PROFILE_FUNCTION(TaskType_AudioProcessing);
 
   if (!audioBuffer.isNull())
@@ -141,17 +137,10 @@ void SAudioFormatConvertNode::input(const SAudioBuffer &audioBuffer)
     if (audioBuffer.format() == d->destFormat)
       emit output(audioBuffer);
     else
-      d->future = QtConcurrent::run(this, &SAudioFormatConvertNode::processTask, audioBuffer);
+      emit output(convert(audioBuffer));
   }
   else
     emit output(audioBuffer);
-}
-
-void SAudioFormatConvertNode::processTask(const SAudioBuffer &audioBuffer)
-{
-  LXI_PROFILE_FUNCTION(TaskType_AudioProcessing);
-
-  emit output(convert(audioBuffer));
 }
 
 } // End of namespace

@@ -178,14 +178,14 @@ void StreamInputNode::stop(void)
   correctTime = STime();
 }
 
-void StreamInputNode::process(void)
+bool StreamInputNode::process(void)
 {
   LXI_PROFILE_WAIT(future.waitForFinished());
   LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
 
   if (bufferState && (bufferingTime.isNull() || (bufferingTime.toMSec() >= minBufferingTimeMs)))
   {
-    networkInput.process();
+    return networkInput.process();
   }
   else
   {
@@ -205,6 +205,8 @@ void StreamInputNode::process(void)
         correctTime += STime(1, baseFrameRate);
     }
   }
+
+  return false;
 }
 
 void StreamInputNode::setBufferState(bool b, float p)

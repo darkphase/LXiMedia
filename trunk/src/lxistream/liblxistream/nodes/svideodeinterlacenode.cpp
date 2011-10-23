@@ -25,7 +25,6 @@ namespace LXiStream {
 struct SVideoDeinterlaceNode::Data
 {
   SInterfaces::VideoDeinterlacer * deinterlacer;
-  QFuture<void>                 future;
 };
 
 SVideoDeinterlaceNode::SVideoDeinterlaceNode(SGraph *parent, const QString &algo)
@@ -37,7 +36,6 @@ SVideoDeinterlaceNode::SVideoDeinterlaceNode(SGraph *parent, const QString &algo
 
 SVideoDeinterlaceNode::~SVideoDeinterlaceNode()
 {
-  d->future.waitForFinished();
   delete d->deinterlacer;
   delete d;
   *const_cast<Data **>(&d) = NULL;
@@ -55,12 +53,10 @@ bool SVideoDeinterlaceNode::start(void)
 
 void SVideoDeinterlaceNode::stop(void)
 {
-  d->future.waitForFinished();
 }
 
 void SVideoDeinterlaceNode::input(const SVideoBuffer &videoBuffer)
 {
-  LXI_PROFILE_WAIT(d->future.waitForFinished());
   LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
 
   if (d->deinterlacer)
@@ -71,21 +67,14 @@ void SVideoDeinterlaceNode::input(const SVideoBuffer &videoBuffer)
         (fieldMode == SVideoFormat::FieldMode_InterlacedBottomFirst) ||
         ((size.width() >= 1920) || (size.height() >= 1080)))
     {
-      d->future = QtConcurrent::run(this, &SVideoDeinterlaceNode::processTask, videoBuffer);
+      foreach (const SVideoBuffer &buffer, d->deinterlacer->processBuffer(videoBuffer))
+        emit output(buffer);
     }
     else
       emit output(videoBuffer);
   }
   else
     emit output(videoBuffer);
-}
-
-void SVideoDeinterlaceNode::processTask(const SVideoBuffer &videoBuffer)
-{
-  LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
-
-  foreach (const SVideoBuffer &buffer, d->deinterlacer->processBuffer(videoBuffer))
-    emit output(buffer);
 }
 
 } // End of namespace

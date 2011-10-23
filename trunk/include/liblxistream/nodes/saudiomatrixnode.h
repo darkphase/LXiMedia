@@ -96,7 +96,6 @@ signals:
 
 private:
   _lxi_pure _lxi_internal static int channelId(SAudioFormat::Channel);
-  _lxi_internal void            processTask(const SAudioBuffer &);
   _lxi_internal void            buildMatrix(void);
 
 private:

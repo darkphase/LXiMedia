@@ -102,8 +102,9 @@ public:
   virtual void                  stop(void) = 0;
 
   /*! This method shall be invoked to indicate the node has to produce data.
+      \returns true if data has been produced.
    */
-  virtual void                  process(void) = 0;
+  virtual bool                  process(void) = 0;
 };
 
 /*! The FormatProber interface can be used to detect the format of a byte

@@ -49,9 +49,6 @@ struct SSubpictureRenderNode::Data
   };
 
   QList<Rect>                   subpictureRects;
-
-  QMutex                        mutex;
-  QFuture<void>                 future;
 };
 
 SSubpictureRenderNode::SSubpictureRenderNode(SGraph *parent)
@@ -64,7 +61,6 @@ SSubpictureRenderNode::SSubpictureRenderNode(SGraph *parent)
 
 SSubpictureRenderNode::~SSubpictureRenderNode()
 {
-  d->future.waitForFinished();
   delete d;
   *const_cast<Data **>(&d) = NULL;
 }
@@ -76,12 +72,10 @@ bool SSubpictureRenderNode::start(void)
 
 void SSubpictureRenderNode::stop(void)
 {
-  d->future.waitForFinished();
 }
 
 void SSubpictureRenderNode::input(const SSubpictureBuffer &subpictureBuffer)
 {
-  LXI_PROFILE_WAIT(d->mutex.lock());
   LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
 
   if (subpictureBuffer.duration().toSec() <= 10)
@@ -96,128 +90,118 @@ void SSubpictureRenderNode::input(const SSubpictureBuffer &subpictureBuffer)
   }
 
   d->enabled = true;
-  d->mutex.unlock();
 }
 
 void SSubpictureRenderNode::input(const SVideoBuffer &videoBuffer)
 {
-  LXI_PROFILE_WAIT(d->future.waitForFinished());
   LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
 
   if (!videoBuffer.isNull() && d->enabled)
-    d->future = QtConcurrent::run(this, &SSubpictureRenderNode::processTask, videoBuffer);
-  else
-    emit output(videoBuffer);
-}
-
-void SSubpictureRenderNode::processTask(const SVideoBuffer &videoBuffer)
-{
-  LXI_PROFILE_WAIT(d->mutex.lock());
-  LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
-
-  const SSize size = videoBuffer.format().size();
-
-  for (QMap<STime, SSubpictureBuffer>::Iterator i=d->subpictures.begin(); i!=d->subpictures.end(); )
   {
-    const STime timeStamp = videoBuffer.timeStamp();
+    const SSize size = videoBuffer.format().size();
 
-    // Can the current subpicture be removed.
-    if (d->subpictureVisible && ((i.key() + i->duration()) < timeStamp))
+    for (QMap<STime, SSubpictureBuffer>::Iterator i=d->subpictures.begin(); i!=d->subpictures.end(); )
     {
-      i = d->subpictures.erase(i);
-      d->subpicture.clear();
-      d->subpictureTime = STime();
-      d->subpictureVisible = false;
-      continue;
-    }
+      const STime timeStamp = videoBuffer.timeStamp();
 
-    // Can the next subpicture be displayed yet.
-    QMap<STime, SSubpictureBuffer>::Iterator n = i + 1;
-    if (n != d->subpictures.end())
-    if ((n.key() != d->subpictureTime) && (n.key() <= timeStamp))
-    {
-      i = d->subpictures.erase(i);
-      d->subpicture.clear();
-      d->subpictureTime = STime();
-      d->subpictureVisible = false;
-      continue;
-    }
-
-    // Render the next subpicture.
-    if ((i.key() != d->subpictureTime) && (i.key() <= timeStamp))
-    {
-      d->subpicture = *i;
-      d->subpictureRects.clear();
-
-      foreach (const SSubpictureBuffer::Rect &rect, d->subpicture.rects())
+      // Can the current subpicture be removed.
+      if (d->subpictureVisible && ((i.key() + i->duration()) < timeStamp))
       {
-        Data::Rect r;
-
-        if ((rect.x + int(rect.width) < size.width()) &&
-            (rect.y + int(rect.height) < size.height()))
-        {
-          r.x = rect.x;
-          r.y = rect.y;
-        }
-        else // Subtitle rect is outside of picture rect; center it.
-        {
-          r.x = (size.width() / 2) - (rect.width / 2);
-          r.y = size.height() - rect.height - (size.height() / 16);
-        }
-
-        r.width = rect.width;
-        r.height = rect.height;
-        r.lineStride = rect.lineStride;
-        r.lines = d->subpicture.lines(d->subpictureRects.count());
-
-        buildPalette(
-            d->subpicture.palette(d->subpictureRects.count()),
-            rect.paletteSize,
-            videoBuffer.format().format(),
-            r.palette);
-
-        d->subpictureRects += r;
+        i = d->subpictures.erase(i);
+        d->subpicture.clear();
+        d->subpictureTime = STime();
+        d->subpictureVisible = false;
+        continue;
       }
 
-      d->subpictureVisible = true;
-      d->subpictureTime = i.key();
-    }
-
-    break;
-  }
-
-  if (d->subpictureVisible && !d->subpictures.isEmpty())
-  {
-    SVideoBuffer buffer = videoBuffer;
-
-    foreach (const Data::Rect &rect, d->subpictureRects)
-    if ((rect.x >= 0) && (rect.y >=0) &&
-        (rect.x + int(rect.width) < size.width()) &&
-        (rect.y + int(rect.height) < size.height()))
-    {
-      switch (buffer.format().format())
+      // Can the next subpicture be displayed yet.
+      QMap<STime, SSubpictureBuffer>::Iterator n = i + 1;
+      if (n != d->subpictures.end())
+      if ((n.key() != d->subpictureTime) && (n.key() <= timeStamp))
       {
-      case SVideoFormat::Format_YUV410P:
-      case SVideoFormat::Format_YUV411P:
-      case SVideoFormat::Format_YUV420P:
-      case SVideoFormat::Format_YUV422P:
-      case SVideoFormat::Format_YUV444P:
-        LXiStream_SSubpictureRenderNode_mixSubpictureYUV(
-            buffer, &rect, rect.palette.data(), rect.palette.size());
-
-        break;
-
-      default:
-        break;
+        i = d->subpictures.erase(i);
+        d->subpicture.clear();
+        d->subpictureTime = STime();
+        d->subpictureVisible = false;
+        continue;
       }
+
+      // Render the next subpicture.
+      if ((i.key() != d->subpictureTime) && (i.key() <= timeStamp))
+      {
+        d->subpicture = *i;
+        d->subpictureRects.clear();
+
+        foreach (const SSubpictureBuffer::Rect &rect, d->subpicture.rects())
+        {
+          Data::Rect r;
+
+          if ((rect.x + int(rect.width) < size.width()) &&
+              (rect.y + int(rect.height) < size.height()))
+          {
+            r.x = rect.x;
+            r.y = rect.y;
+          }
+          else // Subtitle rect is outside of picture rect; center it.
+          {
+            r.x = (size.width() / 2) - (rect.width / 2);
+            r.y = size.height() - rect.height - (size.height() / 16);
+          }
+
+          r.width = rect.width;
+          r.height = rect.height;
+          r.lineStride = rect.lineStride;
+          r.lines = d->subpicture.lines(d->subpictureRects.count());
+
+          buildPalette(
+              d->subpicture.palette(d->subpictureRects.count()),
+              rect.paletteSize,
+              videoBuffer.format().format(),
+              r.palette);
+
+          d->subpictureRects += r;
+        }
+
+        d->subpictureVisible = true;
+        d->subpictureTime = i.key();
+      }
+
+      break;
     }
 
-    emit output(buffer);
+    if (d->subpictureVisible && !d->subpictures.isEmpty())
+    {
+      SVideoBuffer buffer = videoBuffer;
+
+      foreach (const Data::Rect &rect, d->subpictureRects)
+      if ((rect.x >= 0) && (rect.y >=0) &&
+          (rect.x + int(rect.width) < size.width()) &&
+          (rect.y + int(rect.height) < size.height()))
+      {
+        switch (buffer.format().format())
+        {
+        case SVideoFormat::Format_YUV410P:
+        case SVideoFormat::Format_YUV411P:
+        case SVideoFormat::Format_YUV420P:
+        case SVideoFormat::Format_YUV422P:
+        case SVideoFormat::Format_YUV444P:
+          LXiStream_SSubpictureRenderNode_mixSubpictureYUV(
+              buffer, &rect, rect.palette.data(), rect.palette.size());
+
+          break;
+
+        default:
+          break;
+        }
+      }
+
+      emit output(buffer);
+    }
+    else
+      emit output(videoBuffer);
   }
   else
     emit output(videoBuffer);
-
-  d->mutex.unlock();
 }
 
 void SSubpictureRenderNode::buildPalette(const SPixels::RGBAPixel *palette, unsigned paletteSize, SVideoFormat::Format dstFormat, QByteArray &dstPalette)

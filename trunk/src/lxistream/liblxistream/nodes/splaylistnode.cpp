@@ -184,7 +184,7 @@ void SPlaylistNode::stop(void)
   d->nextFileId = -1;
 }
 
-void SPlaylistNode::process(void)
+bool SPlaylistNode::process(void)
 {
   LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
 
@@ -195,7 +195,7 @@ void SPlaylistNode::process(void)
     if (d->nextFileId == -2)
     {
       emit finished();
-      return;
+      return true;
     }
 
     d->fileId = d->nextFileId;
@@ -215,7 +215,9 @@ void SPlaylistNode::process(void)
   }
 
   if (d->file)
-    d->file->process();
+    return d->file->process();
+
+  return false;
 }
 
 STime SPlaylistNode::duration(void) const

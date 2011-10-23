@@ -26,7 +26,6 @@ namespace LXiStream {
 struct SAudioEncoderNode::Data
 {
   SInterfaces::AudioEncoder   * encoder;
-  QFuture<void>                 future;
 };
 
 SAudioEncoderNode::SAudioEncoderNode(SGraph *parent)
@@ -38,7 +37,6 @@ SAudioEncoderNode::SAudioEncoderNode(SGraph *parent)
 
 SAudioEncoderNode::~SAudioEncoderNode()
 {
-  d->future.waitForFinished();
   delete d->encoder;
   delete d;
   *const_cast<Data **>(&d) = NULL;
@@ -64,8 +62,6 @@ QStringList SAudioEncoderNode::losslessCodecs(void)
 
 bool SAudioEncoderNode::openCodec(const SAudioCodec &codec, SIOOutputNode *outputNode, STime duration, SInterfaces::AudioEncoder::Flags flags)
 {
-  d->future.waitForFinished();
-
   SInterfaces::BufferWriter * const bufferWriter =
       outputNode ? outputNode->bufferWriter() : NULL;
 
@@ -105,24 +101,13 @@ bool SAudioEncoderNode::start(void)
 
 void SAudioEncoderNode::stop(void)
 {
-  d->future.waitForFinished();
 }
 
 void SAudioEncoderNode::input(const SAudioBuffer &audioBuffer)
 {
-  LXI_PROFILE_WAIT(d->future.waitForFinished());
   LXI_PROFILE_FUNCTION(TaskType_AudioProcessing);
 
   if (d->encoder)
-    d->future = QtConcurrent::run(this, &SAudioEncoderNode::processTask, audioBuffer);
-  else
-    emit output(SEncodedAudioBuffer());
-}
-
-void SAudioEncoderNode::processTask(const SAudioBuffer &audioBuffer)
-{
-  LXI_PROFILE_FUNCTION(TaskType_AudioProcessing);
-
   foreach (const SEncodedAudioBuffer &buffer, d->encoder->encodeBuffer(audioBuffer))
     emit output(buffer);
 }

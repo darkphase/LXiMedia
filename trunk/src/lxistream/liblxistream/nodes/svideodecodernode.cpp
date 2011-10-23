@@ -28,7 +28,6 @@ struct SVideoDecoderNode::Data
   SVideoDecoderNode::Flags      flags;
   SVideoCodec                   lastCodec;
   SInterfaces::VideoDecoder   * decoder;
-  QFuture<void>                 future;
 };
 
 SVideoDecoderNode::SVideoDecoderNode(SGraph *parent)
@@ -42,7 +41,6 @@ SVideoDecoderNode::SVideoDecoderNode(SGraph *parent)
 
 SVideoDecoderNode::~SVideoDecoderNode()
 {
-  d->future.waitForFinished();
   delete d->decoder;
   delete d;
   *const_cast<Data **>(&d) = NULL;
@@ -78,12 +76,10 @@ bool SVideoDecoderNode::start(void)
 
 void SVideoDecoderNode::stop(void)
 {
-  d->future.waitForFinished();
 }
 
 void SVideoDecoderNode::input(const SEncodedVideoBuffer &videoBuffer)
 {
-  LXI_PROFILE_WAIT(d->future.waitForFinished());
   LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
 
   if (!videoBuffer.isNull())
@@ -104,15 +100,6 @@ void SVideoDecoderNode::input(const SEncodedVideoBuffer &videoBuffer)
   }
 
   if (d->decoder)
-    d->future = QtConcurrent::run(this, &SVideoDecoderNode::processTask, videoBuffer);
-  else
-    emit output(SVideoBuffer());
-}
-
-void SVideoDecoderNode::processTask(const SEncodedVideoBuffer &videoBuffer)
-{
-  LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
-
   foreach (const SVideoBuffer &buffer, d->decoder->decodeBuffer(videoBuffer))
     emit output(buffer);
 }

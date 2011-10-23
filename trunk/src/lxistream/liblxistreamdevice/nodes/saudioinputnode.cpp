@@ -78,12 +78,14 @@ void SAudioInputNode::stop(void)
   }
 }
 
-void SAudioInputNode::process(void)
+bool SAudioInputNode::process(void)
 {
   LXI_PROFILE_FUNCTION(TaskType_AudioProcessing);
 
   if (d->input)
-    d->input->process();
+    return d->input->process();
+
+  return false;
 }
 
 } // End of namespace

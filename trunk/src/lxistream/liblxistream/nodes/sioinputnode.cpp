@@ -111,7 +111,7 @@ void SIOInputNode::stop(void)
   }
 }
 
-void SIOInputNode::process(void)
+bool SIOInputNode::process(void)
 {
   LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
 
@@ -119,7 +119,7 @@ void SIOInputNode::process(void)
   {
     if (!d->ioDevice->atEnd())
     if (d->bufferReader->process())
-      return;
+      return true;
 
     // Finished; close input.
     d->bufferReader->stop();
@@ -131,7 +131,10 @@ void SIOInputNode::process(void)
     emit output(SEncodedVideoBuffer());
     emit output(SEncodedDataBuffer());
     emit finished();
+    return true;
   }
+
+  return false;
 }
 
 qint64 SIOInputNode::read(uchar *buffer, qint64 size)

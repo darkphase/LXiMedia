@@ -25,7 +25,6 @@ namespace LXiStream {
 struct SAudioResampleNode::Data
 {
   SInterfaces::AudioResampler * resampler;
-  QFuture<void>                 future;
 };
 
 SAudioResampleNode::SAudioResampleNode(SGraph *parent, const QString &algo)
@@ -37,7 +36,6 @@ SAudioResampleNode::SAudioResampleNode(SGraph *parent, const QString &algo)
 
 SAudioResampleNode::~SAudioResampleNode()
 {
-  d->future.waitForFinished();
   delete d->resampler;
   delete d;
   *const_cast<Data **>(&d) = NULL;
@@ -69,33 +67,23 @@ bool SAudioResampleNode::start(void)
 
 void SAudioResampleNode::stop(void)
 {
-  d->future.waitForFinished();
 }
 
 void SAudioResampleNode::input(const SAudioBuffer &audioBuffer)
 {
-  LXI_PROFILE_WAIT(d->future.waitForFinished());
   LXI_PROFILE_FUNCTION(TaskType_AudioProcessing);
 
   if (!audioBuffer.isNull() && d->resampler)
-    d->future = QtConcurrent::run(this, &SAudioResampleNode::processTask, audioBuffer);
+    emit output(d->resampler->processBuffer(audioBuffer));
   else
     emit output(audioBuffer);
 }
 
 void SAudioResampleNode::compensate(float frac)
 {
-  LXI_PROFILE_WAIT(d->future.waitForFinished());
   LXI_PROFILE_FUNCTION(TaskType_AudioProcessing);
 
   d->resampler->compensate(frac);
-}
-
-void SAudioResampleNode::processTask(const SAudioBuffer &audioBuffer)
-{
-  LXI_PROFILE_FUNCTION(TaskType_AudioProcessing);
-
-  emit output(d->resampler->processBuffer(audioBuffer));
 }
 
 } // End of namespace
