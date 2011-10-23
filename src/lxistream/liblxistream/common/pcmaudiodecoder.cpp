@@ -34,7 +34,7 @@ PcmAudioDecoder::~PcmAudioDecoder()
 {
 }
 
-bool PcmAudioDecoder::openCodec(const SAudioCodec &c, Flags)
+bool PcmAudioDecoder::openCodec(const SAudioCodec &c, SInterfaces::BufferReader *, Flags)
 {
   if (c.codec().startsWith("PCM/"))
   {

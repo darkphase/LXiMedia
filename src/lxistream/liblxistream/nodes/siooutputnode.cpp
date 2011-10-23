@@ -18,6 +18,8 @@
  ***************************************************************************/
 
 #include "nodes/siooutputnode.h"
+#include "nodes/saudioencodernode.h"
+#include "nodes/svideoencodernode.h"
 
 namespace LXiStream {
 
@@ -71,31 +73,17 @@ bool SIOOutputNode::hasIODevice(void) const
   return d->ioDevice != NULL;
 }
 
-bool SIOOutputNode::openFormat(const QString &format, const SAudioCodec &audioCodec, STime duration)
-{
-  return openFormat(format,
-                    QList<SAudioCodec>() << audioCodec,
-                    QList<SVideoCodec>(),
-                    duration);
-}
-
-bool SIOOutputNode::openFormat(const QString &format, const SAudioCodec &audioCodec, const SVideoCodec &videoCodec, STime duration)
-{
-  return openFormat(format,
-                    QList<SAudioCodec>() << audioCodec,
-                    QList<SVideoCodec>() << videoCodec,
-                    duration);
-}
-
-bool SIOOutputNode::openFormat(const QString &format, const QList<SAudioCodec> &audioCodecs, const QList<SVideoCodec> &videoCodecs, STime duration)
+bool SIOOutputNode::openFormat(const QString &format)
 {
   delete d->bufferWriter;
   d->bufferWriter = SInterfaces::BufferWriter::create(this, format, false);
 
-  if (d->bufferWriter)
-    return d->bufferWriter->createStreams(audioCodecs, videoCodecs, duration);
+  return d->bufferWriter != NULL;
+}
 
-  return false;
+SInterfaces::BufferWriter * SIOOutputNode::bufferWriter(void)
+{
+  return d->bufferWriter;
 }
 
 void SIOOutputNode::enablePseudoStreaming(float speed, STime preload)
@@ -116,7 +104,7 @@ bool SIOOutputNode::start(STimer *)
     if (d->ioDevice->metaObject()->indexOfSignal("disconnected()") >= 0)
       connect(d->ioDevice, SIGNAL(disconnected()), SLOT(close()));
 
-    return d->bufferWriter->start(this);
+    return d->bufferWriter->start(this, d->ioDevice->isSequential());
   }
 
   return false;
@@ -197,6 +185,23 @@ void SIOOutputNode::write(const uchar *buffer, qint64 size)
     else
       return;
   }
+}
+
+qint64 SIOOutputNode::seek(qint64 offset, int whence)
+{
+  if (d->ioDevice)
+  {
+    if (whence == SEEK_SET)
+      return d->ioDevice->seek(offset) ? 0 : -1;
+    else if (whence == SEEK_CUR)
+      return d->ioDevice->seek(d->ioDevice->pos() + offset) ? 0 : -1;
+    else if (whence == SEEK_END)
+      return d->ioDevice->seek(d->ioDevice->size() + offset) ? 0 : -1;
+    else if (whence == -1) // get size
+      return d->ioDevice->size();
+  }
+
+  return -1;
 }
 
 void SIOOutputNode::close(void)

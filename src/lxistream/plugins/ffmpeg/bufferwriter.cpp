@@ -18,7 +18,8 @@
  ***************************************************************************/
 
 #include "bufferwriter.h"
-
+#include "audioencoder.h"
+#include "videoencoder.h"
 
 namespace LXiStream {
 namespace FFMpegBackend {
@@ -30,6 +31,7 @@ BufferWriter::BufferWriter(const QString &, QObject *parent)
     format(NULL),
     formatContext(NULL),
     ioContext(NULL),
+    sequential(false),
     hasAudio(false), hasVideo(false),
     mpegClock(false), mpegTs(false)
 {
@@ -102,140 +104,80 @@ bool BufferWriter::openFormat(const QString &name)
   return false;
 }
 
-bool BufferWriter::createStreams(const QList<SAudioCodec> &audioCodecs, const QList<SVideoCodec> &videoCodecs, STime duration)
+::AVStream * BufferWriter::createStream(void)
 {
-  if (formatContext)
+  AVStream * const stream = ::av_new_stream(formatContext, streams.count());
+  streams.insert(stream->index, stream);
+
+  return stream;
+}
+
+bool BufferWriter::addStream(const SInterfaces::AudioEncoder *encoder, STime duration)
+{
+  if (encoder)
   {
-    foreach (const SVideoCodec &codec, videoCodecs)
-    if (!codec.isNull())
+    ::AVStream *stream = NULL;
+
+    const AudioEncoder * const ffEncoder = qobject_cast<const AudioEncoder *>(encoder);
+    if (ffEncoder)
+    foreach (::AVStream *s, streams)
+    if (s->codec == ffEncoder->avCodecContext())
     {
-      AVStream *stream  = ::av_new_stream(formatContext, streams.count());
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
-      ::avcodec_get_context_defaults2(stream->codec, AVMEDIA_TYPE_VIDEO);
-#else
-      ::avcodec_get_context_defaults2(stream->codec, CODEC_TYPE_VIDEO);
-#endif
-
-      const SInterval frameRate = codec.frameRate();
-      if (mpegClock || !frameRate.isValid())
-      {
-        stream->time_base.num = 1;
-        stream->time_base.den = 90000;
-      }
-      else
-      {
-        stream->time_base.num = frameRate.num();
-        stream->time_base.den = frameRate.den();
-      }
-
-      if (duration.isValid())
-        stream->duration = duration.toClock(stream->time_base.num, stream->time_base.den);
-
-      if (frameRate.isValid())
-      {
-        stream->r_frame_rate.num = frameRate.num();
-        stream->r_frame_rate.den = frameRate.den();
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
-        stream->avg_frame_rate.num = stream->r_frame_rate.num;
-        stream->avg_frame_rate.den = stream->r_frame_rate.den;
-#endif
-      }
-
-      stream->pts.val = 0;
-      stream->pts.num = stream->time_base.num;
-      stream->pts.den = stream->time_base.den;
-
-      stream->codec->codec_id = FFMpegCommon::toFFMpegCodecID(codec);
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
-      stream->codec->codec_type = AVMEDIA_TYPE_VIDEO;
-#else
-      stream->codec->codec_type = CODEC_TYPE_VIDEO;
-#endif
-      stream->codec->time_base = stream->time_base;
-      stream->codec->bit_rate = codec.bitRate() > 0 ? codec.bitRate() : 20000000;
-      stream->codec->width = codec.size().width();
-      stream->codec->height = codec.size().height();
-      stream->codec->sample_aspect_ratio = stream->sample_aspect_ratio = ::av_d2q(codec.size().aspectRatio(), 256);
-
-      if (formatContext->oformat->flags & AVFMT_GLOBALHEADER)
-          stream->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
-
-      stream->codec->extradata_size = codec.extraData().size();
-      if (stream->codec->extradata_size > 0)
-      {
-        stream->codec->extradata = new uint8_t[stream->codec->extradata_size + FF_INPUT_BUFFER_PADDING_SIZE];
-        memcpy(stream->codec->extradata, codec.extraData().data(), stream->codec->extradata_size);
-        memset(stream->codec->extradata + stream->codec->extradata_size, 0, FF_INPUT_BUFFER_PADDING_SIZE);
-      }
-
-      formatContext->bit_rate += stream->codec->bit_rate;
-
-      hasVideo = true;
-      streams.insert(videoStreamId + 0, stream);
+      stream = s;
+      break;
     }
 
-    foreach (const SAudioCodec &codec, audioCodecs)
-    if (!codec.isNull())
+    if (stream == NULL)
     {
-      ::AVStream *stream  = ::av_new_stream(formatContext, streams.count());
+      stream = createStream();
+
+      const SAudioCodec baseCodec = encoder->codec();
+      const unsigned sampleRate = baseCodec.sampleRate();
+
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
       ::avcodec_get_context_defaults2(stream->codec, AVMEDIA_TYPE_AUDIO);
 #else
       ::avcodec_get_context_defaults2(stream->codec, CODEC_TYPE_AUDIO);
 #endif
 
-      const unsigned sampleRate = codec.sampleRate();
-      if (mpegClock || (sampleRate == 0))
-      {
-        stream->time_base.num = 1;
-        stream->time_base.den = 90000;
-      }
-      else
-      {
-        stream->time_base.num = 1;
-        stream->time_base.den = sampleRate;
-      }
-
-      if (duration.isValid())
-        stream->duration = duration.toClock(stream->time_base.num, stream->time_base.den);
-
-      stream->pts.val = 0;
-      stream->pts.num = stream->time_base.num;
-      stream->pts.den = stream->time_base.den;
-
-      stream->codec->codec_id = FFMpegCommon::toFFMpegCodecID(codec);
+      stream->codec->codec_id = FFMpegCommon::toFFMpegCodecID(baseCodec);
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
       stream->codec->codec_type = AVMEDIA_TYPE_AUDIO;
 #else
       stream->codec->codec_type = CODEC_TYPE_AUDIO;
 #endif
       stream->codec->time_base = stream->time_base;
-      stream->codec->bit_rate = codec.bitRate() > 0 ? codec.bitRate() : 2000000;
-      stream->codec->frame_size = codec.frameSize() > 0 ? codec.frameSize() : 8192;
+      stream->codec->bit_rate = baseCodec.bitRate() > 0 ? baseCodec.bitRate() : 2000000;
+      stream->codec->frame_size = baseCodec.frameSize() > 0 ? baseCodec.frameSize() : 8192;
       stream->codec->sample_rate = sampleRate;
-      stream->codec->channels = codec.numChannels();
-      stream->codec->channel_layout = FFMpegCommon::toFFMpegChannelLayout(codec.channelSetup());
+      stream->codec->channels = baseCodec.numChannels();
+      stream->codec->channel_layout = FFMpegCommon::toFFMpegChannelLayout(baseCodec.channelSetup());
 
-      stream->codec->extradata_size = codec.extraData().size();
-      if (stream->codec->extradata_size > 0)
-      {
-        stream->codec->extradata = new uint8_t[stream->codec->extradata_size + FF_INPUT_BUFFER_PADDING_SIZE];
-        memcpy(stream->codec->extradata, codec.extraData().data(), stream->codec->extradata_size);
-        memset(stream->codec->extradata + stream->codec->extradata_size, 0, FF_INPUT_BUFFER_PADDING_SIZE);
-      }
-
-      formatContext->bit_rate += stream->codec->bit_rate;
-
-      hasAudio = true;
-      streams.insert(audioStreamId + 0, stream);
+      stream->codec->time_base.num = 1;
+      stream->codec->time_base.den = sampleRate;
     }
 
-    // Circumvents some bug?
-    if (mpegTs)
-      formatContext->bit_rate = formatContext->bit_rate / 8;
+    if (mpegClock || (stream->codec->time_base.num == 0))
+    {
+      stream->time_base.num = 1;
+      stream->time_base.den = 90000;
+    }
+    else
+    {
+      stream->time_base.num = stream->codec->time_base.num;
+      stream->time_base.den = stream->codec->time_base.den;
+    }
 
-    if (formatContext->mux_rate <= 0)
-      formatContext->mux_rate = formatContext->bit_rate * 8;
+    if (duration.isValid())
+      stream->duration = duration.toClock(stream->time_base.num, stream->time_base.den);
+
+    stream->pts.val = 0;
+    stream->pts.num = stream->time_base.num;
+    stream->pts.den = stream->time_base.den;
+
+    formatContext->bit_rate += stream->codec->bit_rate;
+
+    hasAudio = true;
 
     return true;
   }
@@ -243,13 +185,104 @@ bool BufferWriter::createStreams(const QList<SAudioCodec> &audioCodecs, const QL
   return false;
 }
 
-bool BufferWriter::start(WriteCallback *c)
+bool BufferWriter::addStream(const SInterfaces::VideoEncoder *encoder, STime duration)
+{
+  if (encoder)
+  {
+    ::AVStream *stream = NULL;
+
+    const VideoEncoder * const ffEncoder = qobject_cast<const VideoEncoder *>(encoder);
+    if (ffEncoder)
+    foreach (::AVStream *s, streams)
+    if (s->codec == ffEncoder->avCodecContext())
+    {
+      stream = s;
+      break;
+    }
+
+    if (stream == NULL)
+    {
+      stream = createStream();
+
+      const SVideoCodec baseCodec = encoder->codec();
+
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+      ::avcodec_get_context_defaults2(stream->codec, AVMEDIA_TYPE_VIDEO);
+#else
+      ::avcodec_get_context_defaults2(stream->codec, CODEC_TYPE_VIDEO);
+#endif
+
+      stream->codec->codec_id = FFMpegCommon::toFFMpegCodecID(baseCodec);
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+      stream->codec->codec_type = AVMEDIA_TYPE_VIDEO;
+#else
+      stream->codec->codec_type = CODEC_TYPE_VIDEO;
+#endif
+      stream->codec->time_base = stream->time_base;
+      stream->codec->bit_rate = baseCodec.bitRate() > 0 ? baseCodec.bitRate() : 20000000;
+      stream->codec->width = baseCodec.size().width();
+      stream->codec->height = baseCodec.size().height();
+      stream->codec->sample_aspect_ratio = ::av_d2q(baseCodec.size().aspectRatio(), 256);
+
+      const SInterval frameRate = baseCodec.frameRate();
+      if (frameRate.isValid())
+      {
+        stream->codec->time_base.num = frameRate.num();
+        stream->codec->time_base.den = frameRate.den();
+      }
+      else
+      {
+        stream->codec->time_base.num = 1;
+        stream->codec->time_base.den = 90000;
+      }
+    }
+
+    if (mpegClock)
+    {
+      stream->time_base.num = 1;
+      stream->time_base.den = 90000;
+    }
+    else
+    {
+      stream->time_base.num = stream->codec->time_base.num;
+      stream->time_base.den = stream->codec->time_base.den;
+    }
+
+    if (duration.isValid())
+      stream->duration = duration.toClock(stream->time_base.num, stream->time_base.den);
+
+    stream->sample_aspect_ratio = stream->codec->sample_aspect_ratio;
+
+    // den/num deliberately swapped.
+    stream->r_frame_rate.num = stream->codec->time_base.den;
+    stream->r_frame_rate.den = stream->codec->time_base.num;
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
+    stream->avg_frame_rate.num = stream->r_frame_rate.num;
+    stream->avg_frame_rate.den = stream->r_frame_rate.den;
+#endif
+
+    stream->pts.val = 0;
+    stream->pts.num = stream->time_base.num;
+    stream->pts.den = stream->time_base.den;
+
+    formatContext->bit_rate += stream->codec->bit_rate;
+
+    hasVideo = true;
+
+    return true;
+  }
+
+  return false;
+}
+
+bool BufferWriter::start(WriteCallback *c, bool seq)
 {
   static const int ioBufferSize = 350 * 188;
 
   if (!streams.isEmpty())
   {
     callback = c;
+    sequential = seq;
 
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
     ioContext = ::avio_alloc_context(
@@ -262,22 +295,26 @@ bool BufferWriter::start(WriteCallback *c)
         this,
         NULL,
         &BufferWriter::write,
-        NULL);
+        &BufferWriter::seek);
 
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
-    ioContext->seekable = 0;
+    ioContext->seekable = sequential ? 0 : AVIO_SEEKABLE_NORMAL;
 #else
-    ioContext->is_streamed = true;
+    ioContext->is_streamed = sequential;
 #endif
 
     formatContext->pb = ioContext;
 
-    //::av_dump_format(formatContext, 0, NULL, 1);
+    if (mpegTs)
+      formatContext->mux_rate = formatContext->bit_rate + (formatContext->bit_rate / 2);
+
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
     ::avformat_write_header(formatContext, NULL);
 #else
     ::av_write_header(formatContext);
 #endif
+
+//    ::av_dump_format(formatContext, 0, NULL, 1);
 
     return true;
   }
@@ -293,7 +330,6 @@ void BufferWriter::stop(void)
 
     foreach (::AVStream *stream, streams)
     {
-      delete [] stream->codec->extradata;
       ::av_freep(&stream->codec);
       ::av_freep(&stream);
     }
@@ -316,40 +352,61 @@ void BufferWriter::stop(void)
 
 void BufferWriter::process(const SEncodedAudioBuffer &buffer)
 {
-  QMap<quint32, ::AVStream *>::Iterator stream = streams.find(audioStreamId + 0);
-  if (stream != streams.end())
+  foreach (::AVStream *stream, streams)
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+  if (stream->codec->codec_type == AVMEDIA_TYPE_AUDIO)
+#else
+  if (stream->codec->codec_type == CODEC_TYPE_AUDIO)
+#endif
   {
-    ::AVPacket packet = FFMpegCommon::toAVPacket(buffer, *stream);
+    ::AVPacket packet = FFMpegCommon::toAVPacket(buffer, stream);
 
-    //qDebug() << "A:" << buffer.presentationTimeStamp().toMSec() << packet.pts << packet.dts;
+//    qDebug() << "A:" << packet.stream_index << packet.size << buffer.presentationTimeStamp().toMSec() << packet.pts << packet.dts;
 
-    ::av_interleaved_write_frame(formatContext, &packet);
+    if (::av_interleaved_write_frame(formatContext, &packet) != 0)
+      qDebug() << "FFMpegBackend::BufferWriter: Could not write audio frame.";
+
+    break;
   }
 }
 
 void BufferWriter::process(const SEncodedVideoBuffer &buffer)
 {
-  QMap<quint32, ::AVStream *>::Iterator stream = streams.find(videoStreamId + 0);
-  if (stream != streams.end())
+  foreach (::AVStream *stream, streams)
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+  if (stream->codec->codec_type == AVMEDIA_TYPE_VIDEO)
+#else
+  if (stream->codec->codec_type == CODEC_TYPE_VIDEO)
+#endif
   {
-    ::AVPacket packet = FFMpegCommon::toAVPacket(buffer, *stream);
+    ::AVPacket packet = FFMpegCommon::toAVPacket(buffer, stream);
 
-    //qDebug() << "V:" << buffer.presentationTimeStamp().toMSec() << packet.pts << packet.dts;
+//    qDebug() << "V:" << packet.stream_index << packet.size << buffer.presentationTimeStamp().toMSec() << packet.pts << packet.dts;
 
-    ::av_interleaved_write_frame(formatContext, &packet);
+    if (::av_interleaved_write_frame(formatContext, &packet) != 0)
+      qDebug() << "FFMpegBackend::BufferWriter: Could not write video frame.";
+
+    break;
   }
 }
 
 void BufferWriter::process(const SEncodedDataBuffer &buffer)
 {
-  QMap<quint32, ::AVStream *>::Iterator stream = streams.find(videoStreamId + 0);
-  if (stream != streams.end())
+  foreach (::AVStream *stream, streams)
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+  if (stream->codec->codec_type == AVMEDIA_TYPE_SUBTITLE)
+#else
+  if (stream->codec->codec_type == CODEC_TYPE_SUBTITLE)
+#endif
   {
-    ::AVPacket packet = FFMpegCommon::toAVPacket(buffer, *stream);
+    ::AVPacket packet = FFMpegCommon::toAVPacket(buffer, stream);
 
-    //qDebug() << "D:" << buffer.presentationTimeStamp().toMSec() << packet.pts << packet.dts;
+//    qDebug() << "D:" << packet.stream_index << packet.size << buffer.presentationTimeStamp().toMSec() << packet.pts << packet.dts;
 
-    ::av_interleaved_write_frame(formatContext, &packet);
+    if (::av_interleaved_write_frame(formatContext, &packet) != 0)
+      qDebug() << "FFMpegBackend::BufferWriter: Could not write data frame.";
+
+    break;
   }
 }
 
@@ -358,6 +415,27 @@ int BufferWriter::write(void *opaque, uint8_t *buf, int buf_size)
   reinterpret_cast<BufferWriter *>(opaque)->callback->write(buf, buf_size);
 
   return 0;
+}
+
+int64_t BufferWriter::seek(void *opaque, int64_t offset, int whence)
+{
+  BufferWriter * const me = reinterpret_cast<BufferWriter *>(opaque);
+  
+  if (me->sequential)
+  {
+    if (whence == SEEK_SET)
+      return -1;
+    else if (whence == SEEK_CUR)
+      return -1;
+    else if (whence == SEEK_END)
+      return -1;
+    else if (whence == AVSEEK_SIZE) // get size
+      return me->callback->seek(offset, -1);
+
+    return -1;
+  }
+  else  
+    return me->callback->seek(offset, (whence == AVSEEK_SIZE) ? -1 : whence);
 }
 
 } } // End of namespaces

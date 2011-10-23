@@ -236,5 +236,9 @@ void SIOInputNode::produce(const SEncodedDataBuffer &buffer)
   emit output(buffer);
 }
 
+SInterfaces::BufferReader * SIOInputNode::bufferReader(void)
+{
+  return d->bufferReader;
+}
 
 } // End of namespace

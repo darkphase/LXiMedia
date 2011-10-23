@@ -185,43 +185,107 @@ const char * const Backend::htmlConfigMain =
     " </div>\n";
 
 const char * const Backend::htmlConfigDlnaRow =
+    "   <a name=\"{CLIENT_NAME}\"></a>\n"
     "   <fieldset>\n"
     "    <legend>{NAME}</legend>\n"
-    "    <form name=\"dlnasettings\" action=\"settings.html\" method=\"get\">\n"
-    "     <input type=\"hidden\" name=\"dlnasettings\" value=\"{NAME}\" />\n"
-    "     {TR_VIDEO_SETTINGS}:\n"
-    "     <select name=\"transcodesize\">\n"
+    "    <form name=\"dlnasettings\" action=\"settings.html#{CLIENT_NAME}\" method=\"get\">\n"
+    "     <input type=\"hidden\" name=\"client\" value=\"{CLIENT_NAME}\" />\n"
+    "     <table>\n"
+    "      <tr>\n"
+    "       <td>{TR_VIDEO_SETTINGS}:</td>\n"
+    "       <td>\n"
+    "        <select name=\"transcodesize\">\n"
     "{FORMATS}"
-    "     </select>\n"
-    "     <select name=\"cropmode\">\n"
-    "      <option value=\"Box\" {SELECTED_BOX}>{TR_LETTERBOX}</option>\n"
-    "      <option value=\"Zoom\" {SELECTED_ZOOM}>{TR_FULLSCREEN}</option>\n"
-    "     </select>\n"
-    "     <select name=\"channels\">\n"
+    "        </select>\n"
+    "        <select name=\"cropmode\">\n"
+    "         <option value=\"Box\" {SELECTED_BOX}>{TR_LETTERBOX}</option>\n"
+    "         <option value=\"Zoom\" {SELECTED_ZOOM}>{TR_FULLSCREEN}</option>\n"
+    "        </select>\n"
+    "        <select name=\"channels\">\n"
     "{CHANNELS}"
-    "     </select>\n"
-    "     <select name=\"encodemode\">\n"
-    "      <option value=\"Fast\" {SELECTED_FAST}>{TR_FAST}</option>\n"
-    "      <option value=\"Slow\" {SELECTED_SLOW}>{TR_HIGH_QUALITY}</option>\n"
-    "     </select>\n"
-    "     <br /><br />\n"
-    "     {TR_MUSIC_SETTINGS}:\n"
-    "     <select name=\"musicchannels\">\n"
+    "        </select>\n"
+    "        <select name=\"encodemode\">\n"
+    "         <option value=\"Fast\" {SELECTED_FAST}>{TR_FAST}</option>\n"
+    "         <option value=\"Slow\" {SELECTED_SLOW}>{TR_HIGH_QUALITY}</option>\n"
+    "        </select>\n"
+    "       </td>\n"
+    "      </tr>\n"
+    "      <tr>\n"
+    "       <td>{TR_MUSIC_SETTINGS}:</td>\n"
+    "       <td>\n"
+    "        <select name=\"musicchannels\">\n"
     "{MUSICCHANNELS}"
-    "     </select>\n"
-    "     <select name=\"musicmode\">\n"
-    "      <option value=\"LeaveVideo\" {SELECTED_LEAVEVIDEO}>{TR_LEAVE_VIDEO}</option>\n"
-    "      <option value=\"AddVideoBlack\" {SELECTED_ADDBLACKVIDEO}>{TR_ADD_BLACK_VIDEO}</option>\n"
-    "      <option value=\"RemoveVideo\" {SELECTED_REMOVEVIDEO}>{TR_REMOVE_VIDEO}</option>\n"
-    "     </select>\n"
-    "     <br /><br />\n"
+    "        </select>\n"
+    "        <select name=\"musicmode\">\n"
+    "         <option value=\"LeaveVideo\" {SELECTED_LEAVEVIDEO}>{TR_LEAVE_VIDEO}</option>\n"
+    "         <option value=\"AddVideoBlack\" {SELECTED_ADDBLACKVIDEO}>{TR_ADD_BLACK_VIDEO}</option>\n"
+    "         <option value=\"RemoveVideo\" {SELECTED_REMOVEVIDEO}>{TR_REMOVE_VIDEO}</option>\n"
+    "        </select>\n"
+    "       </td>\n"
+    "      </tr>\n"
+    "{PROFILES}"
+    "     </table>\n"
+    "     <br />\n"
     "     <input type=\"submit\" name=\"save\" value=\"{TR_SAVE}\" />\n"
     "     <input type=\"submit\" name=\"defaults\" value=\"{TR_DEFAULTS}\" />\n"
     "    </form>\n"
     "   </fieldset>\n";
 
+const char * const Backend::htmlConfigDlnaRowProfilesClosed =
+    "      <tr>\n"
+    "       <td class=\"top\">{TR_SUPPORTED_DLNA_PROFILES}:</td>\n"
+    "       <td>\n"
+    "        <a class=\"hidden\" href=\"settings.html?expand={CLIENT_NAME}\">\n"
+    "         {TR_SHOW_PROFILE_SETTINGS}\n"
+    "        </a>\n"
+    "       </td>\n"
+    "      </tr>\n";
+
+const char * const Backend::htmlConfigDlnaRowProfiles =
+    "      <tr>\n"
+    "       <td class=\"top\">{TR_SUPPORTED_DLNA_PROFILES}:</td>\n"
+    "       </td>\n"
+    "       <td>\n"
+    "        <input type=\"hidden\" name=\"expand\" value=\"{CLIENT_NAME}\" />\n"
+    "        <table>\n"
+    "         <tr>\n"
+    "          <th>{TR_AUDIO_PROFILES}</th>\n"
+    "          <th>{TR_VIDEO_PROFILES}</th>\n"
+    "          <th>{TR_IMAGE_PROFILES}</th>\n"
+    "         </tr>\n"
+    "         <tr>\n"
+    "          <td class=\"top\">\n"
+    "{AUDIO_PROFILES}"
+    "          </td>\n"
+    "          <td class=\"top\">\n"
+    "{VIDEO_PROFILES}"
+    "          </td>\n"
+    "          <td class=\"top\">\n"
+    "{IMAGE_PROFILES}"
+    "          </td>\n"
+    "         </tr>"
+    "         <tr>\n"
+    "          <td colspan=\"3\">\n"
+    "           <div style=\"width: 50em;\">\n"
+    "            {TR_POST_PROFILES}<br/>\n"
+    "           </div>\n"
+    "           <div style=\"width: 50em; background-color: #FFFFFF; border: 1px solid #000000;\">\n"
+    "            [{INI_NAME}]<br/>\n"
+    "            AudioProfiles={INI_AUDIO_PROFILES}<br/>\n"
+    "            VideoProfiles={INI_VIDEO_PROFILES}<br/>\n"
+    "            ImageProfiles={INI_IMAGE_PROFILES}<br/>\n"
+    "           </div>\n"
+    "          </td>\n"
+    "         </tr>\n"
+    "        </table>\n"
+    "       </td>\n"
+    "      </tr>\n";
+
+const char * const Backend::htmlConfigDlnaRowProfilesCheck =
+    "           <input type=\"checkbox\" name=\"profile_{PROFILE_NAME}\" value=\"on\" {CHECKED}/>{PROFILE_NAME}<br/>\n";
+
 const char * const Backend::htmlConfigOption =
-    "      <option value=\"{VALUE}\" {SELECTED}>{TEXT}</option>\n";
+    "         <option value=\"{VALUE}\" {SELECTED}>{TEXT}</option>\n";
 
 const char * const Backend::htmlConfigImdbDownload =
     "   <form name=\"imdbsettings\" action=\"settings.html\" method=\"get\">\n"
@@ -480,20 +544,21 @@ SHttpServer::ResponseMessage Backend::handleHtmlConfig(const SHttpServer::Reques
     if ((portValue > 0) && (portValue < 65536))
       settings.setValue("HttpPort", portValue);
 
-    const QString deviceName = file.url().queryItemValue("devicename");
+    const QString deviceName = file.url().queryItemValue("devicename").replace('+', ' ');
     if (!deviceName.isEmpty())
     {
       settings.setValue("DeviceName", deviceName);
       masterMediaServer.setDeviceName(deviceName);
     }
+
+    reset();
   }
 
   htmlParser.setField("TR_SERVER_SETTINGS", tr("Server settings"));
   htmlParser.setField("TR_HTTP_PORT_NUMBER", tr("Preferred HTTP port number"));
   htmlParser.setField("TR_DEVICE_NAME", tr("Device name"));
   htmlParser.setField("TR_HTTPSERVER_EXPLAIN",
-    tr("This form configures the internal HTTP server. Note that the daemon "
-       "needs to be restarted to apply these settings."));
+    tr("This configures the internal HTTP server."));
 
   htmlParser.setField("HTTPPORT", settings.value("HttpPort", settings.defaultBackendHttpPort()).toString());
   htmlParser.setField("DEVICENAME", settings.value("DeviceName", settings.defaultDeviceName()).toString());
@@ -506,8 +571,8 @@ SHttpServer::ResponseMessage Backend::handleHtmlConfig(const SHttpServer::Reques
 
   htmlParser.setField("TR_IMDB_SETTINGS", tr("IMDb settings"));
   htmlParser.setField("TR_DOWNLOAD_IMDB_EXPLAIN",
-    tr("This form will allow the imdb.com data files to be downloaded to "
-       "provide additional information on the media files that are available. "
+    tr("This will allow the imdb.com data files to be downloaded to provide "
+       "additional information on the media files that are available. "
        "Downloading and parsing the files will take several minutes."));
 
   if (masterImdbClient && masterImdbClient->isAvailable() && !masterImdbClient->needUpdate())
@@ -529,13 +594,16 @@ SHttpServer::ResponseMessage Backend::handleHtmlConfig(const SHttpServer::Reques
   // DLNA
   settings.beginGroup("DLNA");
 
-  if (file.url().hasQueryItem("dlnasettings"))
+  const QStringList enabledAudioProfiles = MediaServer::mediaProfiles().enabledAudioProfiles();
+  const QStringList enabledVideoProfiles = MediaServer::mediaProfiles().enabledVideoProfiles();
+  const QStringList enabledImageProfiles = MediaServer::mediaProfiles().enabledImageProfiles();
+
+  if (file.url().hasQueryItem("client"))
   {
-    const QString group = "Client_" + file.url().queryItemValue("dlnasettings");
+    const QString group = "Client_" + file.url().queryItemValue("client");
 
     bool needEndGroup = false;
-    if ((file.url().queryItemValue("dlnasettings") != "_default") &&
-        (settings.childGroups().contains(group)))
+    if ((group.length() > 7) && (group != "Client__default"))
     {
       settings.beginGroup(group);
       needEndGroup = true;
@@ -584,6 +652,38 @@ SHttpServer::ResponseMessage Backend::handleHtmlConfig(const SHttpServer::Reques
         settings.setValue("MusicMode", musicModeName);
       else
         settings.remove("MusicMode");
+
+      QStringList audioProfiles;
+      foreach (const QString &profile, enabledAudioProfiles)
+      if (file.url().hasQueryItem("profile_" + profile))
+        audioProfiles += profile;
+
+      if (!audioProfiles.isEmpty())
+        settings.setValue("SupportedAudioProfiles", audioProfiles);
+      else
+        settings.remove("SupportedAudioProfiles");
+
+      QStringList videoProfiles;
+      foreach (const QString &profile, enabledVideoProfiles)
+      if (file.url().hasQueryItem("profile_" + profile))
+        videoProfiles += profile;
+
+      if (!videoProfiles.isEmpty())
+        settings.setValue("SupportedVideoProfiles", videoProfiles);
+      else
+        settings.remove("SupportedVideoProfiles");
+
+      QStringList imageProfiles;
+      foreach (const QString &profile, enabledImageProfiles)
+      if (file.url().hasQueryItem("profile_" + profile))
+        imageProfiles += profile;
+
+      if (!imageProfiles.isEmpty())
+        settings.setValue("SupportedImageProfiles", imageProfiles);
+      else
+        settings.remove("SupportedImageProfiles");
+
+      reset();
     }
     else if (file.url().hasQueryItem("defaults"))
     {
@@ -593,6 +693,11 @@ SHttpServer::ResponseMessage Backend::handleHtmlConfig(const SHttpServer::Reques
       settings.remove("TranscodeChannels");
       settings.remove("TranscodeMusicChannels");
       settings.remove("MusicMode");
+      settings.remove("SupportedAudioProfiles");
+      settings.remove("SupportedVideoProfiles");
+      settings.remove("SupportedImageProfiles");
+
+      reset();
     }
 
     if (needEndGroup)
@@ -616,6 +721,11 @@ SHttpServer::ResponseMessage Backend::handleHtmlConfig(const SHttpServer::Reques
   htmlParser.setField("TR_DLNA_SETTINGS", tr("DLNA transcode settings"));
   htmlParser.setField("TR_VIDEO_SETTINGS", tr("Video transcode settings"));
   htmlParser.setField("TR_MUSIC_SETTINGS", tr("Music transcode settings"));
+  htmlParser.setField("TR_SUPPORTED_DLNA_PROFILES", tr("Supported DLNA profiles"));
+  htmlParser.setField("TR_SHOW_PROFILE_SETTINGS", tr("Show profile settings"));
+  htmlParser.setField("TR_AUDIO_PROFILES", tr("Audio profiles"));
+  htmlParser.setField("TR_VIDEO_PROFILES", tr("Video profiles"));
+  htmlParser.setField("TR_IMAGE_PROFILES", tr("Image profiles"));
   htmlParser.setField("TR_USER_AGENT", tr("User agent"));
   htmlParser.setField("TR_SAVE", tr("Save"));
   htmlParser.setField("TR_DEFAULTS", tr("Defaults"));
@@ -642,6 +752,14 @@ SHttpServer::ResponseMessage Backend::handleHtmlConfig(const SHttpServer::Reques
        "to the rear channels. Furthermore, the \"Add black video\" setting can "
        "be used to add a video stream with black images to simulate that a TV is "
        "switched off (audio only)."));
+
+  htmlParser.setField("TR_POST_PROFILES",
+    tr("If your device does not work with the default enabled DLNA profiles and "
+       "you were able to make it work by disabling the unsupported profiles "
+       "above, please take the time to post the configuration below on the "
+       "<a href=\"http://sourceforge.net/projects/lximedia/forums/forum/1178772\">"
+       "Sourceforge LXIMedia forum</a>. These settings will then be added to the "
+       "next release."));
 
   htmlParser.setField("CLIENT_ROWS", QByteArray(""));
 
@@ -688,6 +806,7 @@ SHttpServer::ResponseMessage Backend::handleHtmlConfig(const SHttpServer::Reques
 
   // Default settings
   htmlParser.setField("NAME", tr("Default settings"));
+  htmlParser.setField("CLIENT_NAME", QByteArray("_default"));
   htmlParser.setField("FORMATS", QByteArray(""));
   htmlParser.setField("CHANNELS", QByteArray(""));
   htmlParser.setField("MUSICCHANNELS", QByteArray(""));
@@ -742,6 +861,8 @@ SHttpServer::ResponseMessage Backend::handleHtmlConfig(const SHttpServer::Reques
     htmlParser.setField("SELECTED_LEAVEVIDEO", QByteArray("selected=\"selected\""));
   }
 
+  htmlParser.setField("PROFILES", QByteArray(""));
+
   htmlParser.appendField("CLIENT_ROWS", htmlParser.parse(htmlConfigDlnaRow));
 
   // DLNA clients
@@ -750,9 +871,12 @@ SHttpServer::ResponseMessage Backend::handleHtmlConfig(const SHttpServer::Reques
 
   foreach (const QString &activeClient, activeClients)
   {
-    settings.beginGroup("Client_" + activeClient);
+    const QString clientTag = SStringParser::toCleanName(activeClient).replace(' ', '_');
+
+    settings.beginGroup("Client_" + clientTag);
 
     htmlParser.setField("NAME", activeClient);
+    htmlParser.setField("CLIENT_NAME", clientTag);
     htmlParser.setField("FORMATS", QByteArray(""));
     htmlParser.setField("CHANNELS", QByteArray(""));
     htmlParser.setField("MUSICCHANNELS", QByteArray(""));
@@ -806,6 +930,72 @@ SHttpServer::ResponseMessage Backend::handleHtmlConfig(const SHttpServer::Reques
       htmlParser.setField("SELECTED_REMOVEVIDEO", QByteArray(""));
       htmlParser.setField("SELECTED_LEAVEVIDEO", QByteArray("selected=\"selected\""));
     }
+
+    if (file.url().queryItemValue("expand") == clientTag)
+    {
+      htmlParser.setField("INI_NAME", activeClient.split('@').first());
+
+      QStringList checkedAudioProfiles =
+          settings.value(
+              "SupportedAudioProfiles",
+              MediaServer::mediaProfiles().supportedAudioProfiles(activeClient)
+              ).toStringList();
+
+      if (checkedAudioProfiles.isEmpty())
+        checkedAudioProfiles = enabledAudioProfiles;
+
+      htmlParser.setField("AUDIO_PROFILES", QByteArray(""));
+      foreach (const QString &profile, enabledAudioProfiles)
+      {
+        htmlParser.setField("PROFILE_NAME", profile);
+        htmlParser.setField("CHECKED", QByteArray(checkedAudioProfiles.contains(profile) ? "checked=\"checked\"" : ""));
+        htmlParser.appendField("AUDIO_PROFILES", htmlParser.parse(htmlConfigDlnaRowProfilesCheck));
+      }
+
+      htmlParser.setField("INI_AUDIO_PROFILES", checkedAudioProfiles.join(", "));
+
+      QStringList checkedVideoProfiles =
+          settings.value(
+              "SupportedVideoProfiles",
+              MediaServer::mediaProfiles().supportedVideoProfiles(activeClient)
+              ).toStringList();
+
+      if (checkedVideoProfiles.isEmpty())
+        checkedVideoProfiles = enabledVideoProfiles;
+
+      htmlParser.setField("VIDEO_PROFILES", QByteArray(""));
+      foreach (const QString &profile, enabledVideoProfiles)
+      {
+        htmlParser.setField("PROFILE_NAME", profile);
+        htmlParser.setField("CHECKED", QByteArray(checkedVideoProfiles.contains(profile) ? "checked=\"checked\"" : ""));
+        htmlParser.appendField("VIDEO_PROFILES", htmlParser.parse(htmlConfigDlnaRowProfilesCheck));
+      }
+
+      htmlParser.setField("INI_VIDEO_PROFILES", checkedVideoProfiles.join(", "));
+
+      QStringList checkedImageProfiles =
+          settings.value(
+              "SupportedImageProfiles",
+              MediaServer::mediaProfiles().supportedImageProfiles(activeClient)
+              ).toStringList();
+
+      if (checkedImageProfiles.isEmpty())
+        checkedImageProfiles = enabledImageProfiles;
+
+      htmlParser.setField("IMAGE_PROFILES", QByteArray(""));
+      foreach (const QString &profile, enabledImageProfiles)
+      {
+        htmlParser.setField("PROFILE_NAME", profile);
+        htmlParser.setField("CHECKED", QByteArray(checkedImageProfiles.contains(profile) ? "checked=\"checked\"" : ""));
+        htmlParser.appendField("IMAGE_PROFILES", htmlParser.parse(htmlConfigDlnaRowProfilesCheck));
+      }
+
+      htmlParser.setField("INI_IMAGE_PROFILES", checkedImageProfiles.join(", "));
+
+      htmlParser.setField("PROFILES", htmlParser.parse(htmlConfigDlnaRowProfiles));
+    }
+    else
+      htmlParser.setField("PROFILES", htmlParser.parse(htmlConfigDlnaRowProfilesClosed));
 
     settings.endGroup();
     htmlParser.appendField("CLIENT_ROWS", htmlParser.parse(htmlConfigDlnaRow));

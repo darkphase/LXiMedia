@@ -109,7 +109,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
 
   // Match with DLNA profile
   const QString contentFeatures = QByteArray::fromHex(file.url().queryItemValue("contentFeatures").toAscii());
-  const MediaProfiles::VideoProfile videoProfile = MediaProfiles::videoProfileFor(contentFeatures);
+  const MediaProfiles::VideoProfile videoProfile = MediaServer::mediaProfiles().videoProfileFor(contentFeatures);
   if (videoProfile != 0) // DLNA stream.
   {
     MediaProfiles::correctFormat(videoProfile, audioFormat);
@@ -124,21 +124,27 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
                       "-" + QString::number(float((position + duration).toMSec()) / 1000.0f, 'f', 2));
     }
 
-    const SAudioCodec audioCodec = MediaProfiles::audioCodecFor(videoProfile, audioFormat);
+    if (!output.openFormat(MediaProfiles::formatFor(videoProfile)))
+    {
+      qWarning() << "Could not open file format:" << MediaProfiles::formatFor(videoProfile);
+      return false;
+    }
+
+    const SAudioCodec audioCodec(MediaProfiles::audioCodecFor(videoProfile, audioFormat.channelSetup()), audioFormat.channelSetup(), audioFormat.sampleRate());
     audio->outChannels = audioCodec.channelSetup();
     audio->matrix.guessMatrices(audioCodec.channelSetup());
     audio->resampler.setSampleRate(audioCodec.sampleRate());
-    if (!audio->encoder.openCodec(audioCodec, audioEncodeFlags))
+    if (!audio->encoder.openCodec(audioCodec, &output, duration, audioEncodeFlags))
     {
       qWarning() << "Could not open audio codec:" << audioCodec.codec();
       return false;
     }
 
-    const SVideoCodec videoCodec = MediaProfiles::videoCodecFor(videoProfile, videoFormat);
+    const SVideoCodec videoCodec(MediaProfiles::videoCodecFor(videoProfile), videoFormat.size(), videoFormat.frameRate());
     video->resizer.setSize(videoCodec.size());
     video->resizer.setAspectRatioMode(aspectRatioMode);
     video->box.setSize(videoCodec.size());
-    if (!video->encoder.openCodec(videoCodec, videoEncodeFlags))
+    if (!video->encoder.openCodec(videoCodec, &output, duration, videoEncodeFlags))
     {
       qWarning() << "Could not open video codec:" << videoCodec.codec();
       return false;
@@ -146,7 +152,6 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
 
     sync.setFrameRate(videoFormat.frameRate());
 
-    output.openFormat(MediaProfiles::formatFor(videoProfile), audio->encoder.codec(), video->encoder.codec(), duration);
     header.setContentType(MediaProfiles::mimeTypeFor(videoProfile));
   }
   else // Non-DLNA stream.
@@ -165,13 +170,20 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
               videoFormat.frameRate(),
               STimeStampResamplerNode::standardFrameRates());
 
-      audioCodec = SAudioCodec("AC3", audioFormat.channelSetup(), audioFormat.sampleRate());
+      if ((audioFormat.channelSetup() == SAudioFormat::Channels_Mono) ||
+          (audioFormat.channelSetup() == SAudioFormat::Channels_Stereo))
+      {
+        audioCodec = SAudioCodec("MP2", audioFormat.channelSetup(), audioFormat.sampleRate());
+      }
+      else
+        audioCodec = SAudioCodec("AC3", audioFormat.channelSetup(), audioFormat.sampleRate());
+
       videoCodec = SVideoCodec("MPEG2", videoFormat.size(), roundedFrameRate);
 
       if (file.fileName().endsWith(".ts", Qt::CaseInsensitive))
       {
         format = "mpegts";
-        header.setContentType(SHttpEngine::mimeVideoMpegTS);
+        header.setContentType(SHttpEngine::mimeVideoMpeg);
       }
       else if (file.fileName().endsWith(".m2ts", Qt::CaseInsensitive))
       {
@@ -213,10 +225,16 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
       return false;
     }
 
+    if (!output.openFormat(format))
+    {
+      qWarning() << "Could not open file format:" << format;
+      return false;
+    }
+
     audio->outChannels = audioCodec.channelSetup();
     audio->matrix.guessMatrices(audioCodec.channelSetup());
     audio->resampler.setSampleRate(audioCodec.sampleRate());
-    if (!audio->encoder.openCodec(audioCodec, audioEncodeFlags))
+    if (!audio->encoder.openCodec(audioCodec, &output, duration, audioEncodeFlags))
     {
       qWarning() << "Could not open audio codec:" << audioCodec.codec();
       return false;
@@ -225,15 +243,13 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
     video->resizer.setSize(videoCodec.size());
     video->resizer.setAspectRatioMode(aspectRatioMode);
     video->box.setSize(videoCodec.size());
-    if (!video->encoder.openCodec(videoCodec, videoEncodeFlags))
+    if (!video->encoder.openCodec(videoCodec, &output, duration, videoEncodeFlags))
     {
       qWarning() << "Could not open video codec:" << videoCodec.codec();
       return false;
     }
 
     sync.setFrameRate(videoFormat.frameRate());
-
-    output.openFormat(format, audio->encoder.codec(), video->encoder.codec(), duration);
   }
 
   connect(socket, SIGNAL(disconnected()), SLOT(stop()));
@@ -291,7 +307,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
 
   // Match with DLNA profile
   const QString contentFeatures = QByteArray::fromHex(file.url().queryItemValue("contentFeatures").toAscii());
-  const MediaProfiles::AudioProfile audioProfile = MediaProfiles::audioProfileFor(contentFeatures);
+  const MediaProfiles::AudioProfile audioProfile = MediaServer::mediaProfiles().audioProfileFor(contentFeatures);
   if (audioProfile != 0) // DLNA stream.
   {
     MediaProfiles::correctFormat(audioProfile, audioFormat);
@@ -305,17 +321,22 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
                       "-" + QString::number(float((position + duration).toMSec()) / 1000.0f, 'f', 2));
     }
 
-    const SAudioCodec audioCodec = MediaProfiles::audioCodecFor(audioProfile, audioFormat);
+    if (!output.openFormat(MediaProfiles::formatFor(audioProfile)))
+    {
+      qWarning() << "Could not open file format:" << MediaProfiles::formatFor(audioProfile);
+      return false;
+    }
+
+    const SAudioCodec audioCodec(MediaProfiles::audioCodecFor(audioProfile, audioFormat.channelSetup()), audioFormat.channelSetup(), audioFormat.sampleRate());
     audio->outChannels = audioCodec.channelSetup();
     audio->matrix.guessMatrices(audioCodec.channelSetup());
     audio->resampler.setSampleRate(audioCodec.sampleRate());
-    if (!audio->encoder.openCodec(audioCodec, audioEncodeFlags))
+    if (!audio->encoder.openCodec(audioCodec, &output, duration, audioEncodeFlags))
     {
       qWarning() << "Could not open audio codec:" << audioCodec.codec();
       return false;
     }
 
-    output.openFormat(MediaProfiles::formatFor(audioProfile), audio->encoder.codec(), SVideoCodec(), duration);
     header.setContentType(MediaProfiles::mimeTypeFor(audioProfile));
   }
   else // Non-DLNA stream.
@@ -334,7 +355,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
       if (file.fileName().endsWith(".ts", Qt::CaseInsensitive))
       {
         format = "mpegts";
-        header.setContentType(SHttpEngine::mimeVideoMpegTS);
+        header.setContentType(SHttpEngine::mimeVideoMpeg);
       }
       else if (file.fileName().endsWith(".m2ts", Qt::CaseInsensitive))
       {
@@ -346,6 +367,12 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
         format = "vob";
         header.setContentType(SHttpEngine::mimeVideoMpeg);
       }
+    }
+    else if (file.fileName().endsWith(".aac", Qt::CaseInsensitive))
+    {
+      audioCodec = SAudioCodec("AAC", SAudioFormat::Channels_Stereo, audioFormat.sampleRate());
+      format = "adts";
+      header.setContentType(SHttpEngine::mimeAudioAac);
     }
     else if (file.fileName().endsWith(".ac3", Qt::CaseInsensitive))
     {
@@ -404,16 +431,20 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
       return false;
     }
 
+    if (!output.openFormat(format))
+    {
+      qWarning() << "Could not open file format:" << format;
+      return false;
+    }
+
     audio->outChannels = audioCodec.channelSetup();
     audio->matrix.guessMatrices(audioCodec.channelSetup());
     audio->resampler.setSampleRate(audioCodec.sampleRate());
-    if (!audio->encoder.openCodec(audioCodec, audioEncodeFlags))
+    if (!audio->encoder.openCodec(audioCodec, &output, duration, audioEncodeFlags))
     {
       qWarning() << "Could not open audio codec:" << audioCodec.codec();
       return false;
     }
-
-    output.openFormat(format, audio->encoder.codec(), SVideoCodec(), duration);
   }
 
   connect(socket, SIGNAL(disconnected()), SLOT(stop()));
@@ -550,75 +581,94 @@ bool MediaTranscodeStream::setup(const SHttpServer::RequestMessage &request,
 {
   const MediaServer::File file(request);
 
-  // Select streams
-  QList<SIOInputNode::AudioStreamInfo> audioStreams = input->audioStreams();
-  QList<SIOInputNode::VideoStreamInfo> videoStreams = input->videoStreams();
-  QList<SIOInputNode::DataStreamInfo>  dataStreams  = input->dataStreams();
-
-  QVector<SIOInputNode::StreamId> selectedStreams;
-  if (file.url().hasQueryItem("language"))
-    selectedStreams += SIOInputNode::StreamId::fromString(file.url().queryItemValue("language"));
-  else if (!audioStreams.isEmpty())
-    selectedStreams += audioStreams.first();
-
-  if (!videoStreams.isEmpty())
-    selectedStreams += videoStreams.first();
-
-  if (file.url().hasQueryItem("subtitles"))
+  if (audioDecoder.open(NULL) && videoDecoder.open(NULL) && dataDecoder.open(NULL))
   {
-    if (!file.url().queryItemValue("subtitles").isEmpty())
-      selectedStreams += SIOInputNode::StreamId::fromString(file.url().queryItemValue("subtitles"));
-  }
-  else if (!dataStreams.isEmpty())
-    selectedStreams += dataStreams.first();
+    // Select streams
+    QList<SIOInputNode::AudioStreamInfo> audioStreams = input->audioStreams();
+    QList<SIOInputNode::VideoStreamInfo> videoStreams = input->videoStreams();
+    QList<SIOInputNode::DataStreamInfo>  dataStreams  = input->dataStreams();
 
-  input->selectStreams(selectedStreams);
+    QVector<SIOInputNode::StreamId> selectedStreams;
+    if (file.url().hasQueryItem("language"))
+      selectedStreams += SIOInputNode::StreamId::fromString(file.url().queryItemValue("language"));
+    else if (!audioStreams.isEmpty())
+      selectedStreams += audioStreams.first();
 
-  // Seek to start
-  if (!duration.isValid())
-    duration = input->duration();
+    if (!videoStreams.isEmpty())
+      selectedStreams += videoStreams.first();
 
-  if (file.url().hasQueryItem("position"))
-  {
-    const STime pos = STime::fromSec(file.url().queryItemValue("position").toInt());
-    input->setPosition(pos);
-
-    if (duration > pos)
-      duration -= pos;
-    else
-      duration = STime::null;
-  }
-
-  if (file.url().hasQueryItem("starttime"))
-  {
-    const STime pos = STime::fromSec(file.url().queryItemValue("starttime").toInt());
-    sync.setStartTime(pos);
-
-    if (duration.isPositive())
-      duration += pos;
-  }
-
-  bool generateVideo = false;
-  if (file.url().queryItemValue("music") == "true")
-  {
-    const QString musicMode = file.url().queryItemValue("musicmode");
-    if (musicMode.startsWith("addvideo"))
+    if (file.url().hasQueryItem("subtitles"))
     {
-      SImage blackImage(decodeSize(file.url()), SImage::Format_RGB32);
-      blackImage.fill(0);
-      videoGenerator.setImage(blackImage);
-      videoGenerator.setFrameRate(SInterval::fromFrequency(24));
-      generateVideo = true;
+      if (!file.url().queryItemValue("subtitles").isEmpty())
+        selectedStreams += SIOInputNode::StreamId::fromString(file.url().queryItemValue("subtitles"));
     }
-    else if (musicMode == "removevideo")
-      videoStreams.clear();
-  }
+    else if (!dataStreams.isEmpty())
+      selectedStreams += dataStreams.first();
 
-  // Set stream properties
-  if (!audioStreams.isEmpty() && !videoStreams.isEmpty())
-  { // Decode audio and video
-    const SAudioCodec audioInCodec = audioStreams.first().codec;
-    const SVideoCodec videoInCodec = videoStreams.first().codec;
+    input->selectStreams(selectedStreams);
+
+    // Seek to start
+    if (!duration.isValid())
+      duration = input->duration();
+
+    if (file.url().hasQueryItem("position"))
+    {
+      const STime pos = STime::fromSec(file.url().queryItemValue("position").toInt());
+      input->setPosition(pos);
+
+      if (duration > pos)
+        duration -= pos;
+      else
+        duration = STime::null;
+    }
+
+    if (file.url().hasQueryItem("starttime"))
+    {
+      const STime pos = STime::fromSec(file.url().queryItemValue("starttime").toInt());
+      sync.setStartTime(pos);
+
+      if (duration.isPositive())
+        duration += pos;
+    }
+
+    bool generateVideo = false;
+    if (file.url().queryItemValue("music") == "true")
+    {
+      const QString musicMode = file.url().queryItemValue("musicmode");
+      if (musicMode.startsWith("addvideo"))
+      {
+        SSize size(352, 288);
+        if (file.url().hasQueryItem("resolution"))
+        {
+          const QStringList formatTxt = file.url().queryItemValue("resolution").split(',');
+
+          const QStringList sizeTxt = formatTxt.first().split('x');
+          if (sizeTxt.count() >= 2)
+          {
+            size.setWidth(sizeTxt[0].toInt());
+            size.setHeight(sizeTxt[1].toInt());
+            if (sizeTxt.count() >= 3)
+              size.setAspectRatio(sizeTxt[2].toFloat());
+            else
+              size.setAspectRatio(1.0f);
+          }
+        }
+
+        SImage blackImage(size, SImage::Format_RGB32);
+        blackImage.fill(0);
+        videoGenerator.setImage(blackImage);
+        videoGenerator.setFrameRate(SInterval::fromFrequency(24));
+        generateVideo = true;
+      }
+      else if (musicMode == "removevideo")
+        videoStreams.clear();
+    }
+
+    // Set stream properties
+    if (!audioStreams.isEmpty() && !videoStreams.isEmpty())
+    { // Decode audio and video
+      const SAudioCodec audioInCodec = audioStreams.first().codec;
+      const SVideoCodec videoInCodec = videoStreams.first().codec;
 
     if (MediaStream::setup(request, socket,
                            input->position(), duration,
@@ -631,32 +681,32 @@ bool MediaTranscodeStream::setup(const SHttpServer::RequestMessage &request,
       connect(&audioDecoder, SIGNAL(output(SAudioBuffer)), &timeStampResampler, SLOT(input(SAudioBuffer)));
       connect(&timeStampResampler, SIGNAL(output(SAudioBuffer)), &audio->matrix, SLOT(input(SAudioBuffer)));
 
-      // Video
-      connect(&videoDecoder, SIGNAL(output(SVideoBuffer)), &timeStampResampler, SLOT(input(SVideoBuffer)));
-      connect(&timeStampResampler, SIGNAL(output(SVideoBuffer)), &video->deinterlacer, SLOT(input(SVideoBuffer)));
+        // Video
+        connect(&videoDecoder, SIGNAL(output(SVideoBuffer)), &timeStampResampler, SLOT(input(SVideoBuffer)));
+        connect(&timeStampResampler, SIGNAL(output(SVideoBuffer)), &video->deinterlacer, SLOT(input(SVideoBuffer)));
 
-      // Data
-      connect(&dataDecoder, SIGNAL(output(SSubpictureBuffer)), &timeStampResampler, SLOT(input(SSubpictureBuffer)));
-      connect(&timeStampResampler, SIGNAL(output(SSubpictureBuffer)), &video->subpictureRenderer, SLOT(input(SSubpictureBuffer)));
-      connect(&dataDecoder, SIGNAL(output(SSubtitleBuffer)), &timeStampResampler, SLOT(input(SSubtitleBuffer)));
-      connect(&timeStampResampler, SIGNAL(output(SSubtitleBuffer)), &video->subtitleRenderer, SLOT(input(SSubtitleBuffer)));
+        // Data
+        connect(&dataDecoder, SIGNAL(output(SSubpictureBuffer)), &timeStampResampler, SLOT(input(SSubpictureBuffer)));
+        connect(&timeStampResampler, SIGNAL(output(SSubpictureBuffer)), &video->subpictureRenderer, SLOT(input(SSubpictureBuffer)));
+        connect(&dataDecoder, SIGNAL(output(SSubtitleBuffer)), &timeStampResampler, SLOT(input(SSubtitleBuffer)));
+        connect(&timeStampResampler, SIGNAL(output(SSubtitleBuffer)), &video->subtitleRenderer, SLOT(input(SSubtitleBuffer)));
 
-      timeStampResampler.setFrameRate(video->encoder.codec().frameRate());
+        timeStampResampler.setFrameRate(video->encoder.codec().frameRate());
 
-      if (audio->outChannels == SAudioFormat::Channels_Stereo)
-        audioDecoder.setFlags(SInterfaces::AudioDecoder::Flag_DownsampleToStereo);
+        if (audio->outChannels == SAudioFormat::Channels_Stereo)
+          audioDecoder.setFlags(SInterfaces::AudioDecoder::Flag_DownsampleToStereo);
 
-      return true;
+        return true;
+      }
     }
-  }
-  else if (!audioStreams.isEmpty() && generateVideo)
-  { // Decode audio, generate video
-    const SAudioCodec audioInCodec = audioStreams.first().codec;
+    else if (!audioStreams.isEmpty() && generateVideo)
+    { // Decode audio, generate video
+      const SAudioCodec audioInCodec = audioStreams.first().codec;
 
-    const SInterval frameRate = videoGenerator.frameRate();
-    timeStampResampler.setFrameRate(frameRate);
+      const SInterval frameRate = videoGenerator.frameRate();
+      timeStampResampler.setFrameRate(frameRate);
 
-    videoEncodeFlags |= SInterfaces::VideoEncoder::Flag_Fast;
+      videoEncodeFlags |= SInterfaces::VideoEncoder::Flag_Fast;
 
     if (MediaStream::setup(request, socket,
                            input->position(), duration,
@@ -669,26 +719,26 @@ bool MediaTranscodeStream::setup(const SHttpServer::RequestMessage &request,
       connect(&audioDecoder, SIGNAL(output(SAudioBuffer)), &timeStampResampler, SLOT(input(SAudioBuffer)));
       connect(&timeStampResampler, SIGNAL(output(SAudioBuffer)), &audio->matrix, SLOT(input(SAudioBuffer)));
 
-      // Video
-      connect(&audioDecoder, SIGNAL(output(SAudioBuffer)), &videoGenerator, SLOT(input(SAudioBuffer)));
-      connect(&videoGenerator, SIGNAL(output(SVideoBuffer)), &timeStampResampler, SLOT(input(SVideoBuffer)));
-      connect(&timeStampResampler, SIGNAL(output(SVideoBuffer)), &video->deinterlacer, SLOT(input(SVideoBuffer)));
+        // Video
+        connect(&audioDecoder, SIGNAL(output(SAudioBuffer)), &videoGenerator, SLOT(input(SAudioBuffer)));
+        connect(&videoGenerator, SIGNAL(output(SVideoBuffer)), &timeStampResampler, SLOT(input(SVideoBuffer)));
+        connect(&timeStampResampler, SIGNAL(output(SVideoBuffer)), &video->deinterlacer, SLOT(input(SVideoBuffer)));
 
-      // Data
-      connect(&dataDecoder, SIGNAL(output(SSubpictureBuffer)), &timeStampResampler, SLOT(input(SSubpictureBuffer)));
-      connect(&timeStampResampler, SIGNAL(output(SSubpictureBuffer)), &video->subpictureRenderer, SLOT(input(SSubpictureBuffer)));
-      connect(&dataDecoder, SIGNAL(output(SSubtitleBuffer)), &timeStampResampler, SLOT(input(SSubtitleBuffer)));
-      connect(&timeStampResampler, SIGNAL(output(SSubtitleBuffer)), &video->subtitleRenderer, SLOT(input(SSubtitleBuffer)));
+        // Data
+        connect(&dataDecoder, SIGNAL(output(SSubpictureBuffer)), &timeStampResampler, SLOT(input(SSubpictureBuffer)));
+        connect(&timeStampResampler, SIGNAL(output(SSubpictureBuffer)), &video->subpictureRenderer, SLOT(input(SSubpictureBuffer)));
+        connect(&dataDecoder, SIGNAL(output(SSubtitleBuffer)), &timeStampResampler, SLOT(input(SSubtitleBuffer)));
+        connect(&timeStampResampler, SIGNAL(output(SSubtitleBuffer)), &video->subtitleRenderer, SLOT(input(SSubtitleBuffer)));
 
-      if (audio->outChannels == SAudioFormat::Channels_Stereo)
-        audioDecoder.setFlags(SInterfaces::AudioDecoder::Flag_DownsampleToStereo);
+        if (audio->outChannels == SAudioFormat::Channels_Stereo)
+          audioDecoder.setFlags(SInterfaces::AudioDecoder::Flag_DownsampleToStereo);
 
-      return true;
+        return true;
+      }
     }
-  }
-  else if (!audioStreams.isEmpty())
-  { // Decode audio
-    const SAudioCodec audioInCodec = audioStreams.first().codec;
+    else if (!audioStreams.isEmpty())
+    { // Decode audio
+      const SAudioCodec audioInCodec = audioStreams.first().codec;
 
     if (MediaStream::setup(request, socket,
                            input->position(), duration,
@@ -697,10 +747,11 @@ bool MediaTranscodeStream::setup(const SHttpServer::RequestMessage &request,
     {
       connect(&audioDecoder, SIGNAL(output(SAudioBuffer)), &audio->matrix, SLOT(input(SAudioBuffer)));
 
-      if (audio->outChannels == SAudioFormat::Channels_Stereo)
-        audioDecoder.setFlags(SInterfaces::AudioDecoder::Flag_DownsampleToStereo);
+        if (audio->outChannels == SAudioFormat::Channels_Stereo)
+          audioDecoder.setFlags(SInterfaces::AudioDecoder::Flag_DownsampleToStereo);
 
-      return true;
+        return true;
+      }
     }
   }
 

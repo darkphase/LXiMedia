@@ -60,6 +60,7 @@ public:
   virtual                       ~Backend();
 
   void                          start(void);
+  void                          reset(void);
 
 private slots:
   void                          start(const SHttpEngine::ResponseMessage &);
@@ -143,6 +144,9 @@ private:
 
   static const char     * const htmlConfigMain;
   static const char     * const htmlConfigDlnaRow;
+  static const char     * const htmlConfigDlnaRowProfilesClosed;
+  static const char     * const htmlConfigDlnaRowProfiles;
+  static const char     * const htmlConfigDlnaRowProfilesCheck;
   static const char     * const htmlConfigOption;
   static const char     * const htmlConfigImdbDownload;
 };

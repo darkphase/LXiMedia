@@ -39,6 +39,7 @@ public:
 
   void                          initialize(const QList<QHostAddress> &addresses, quint16 port = 0);
   void                          close(void);
+  void                          reset(const QList<QHostAddress> &addresses, quint16 port = 0);
 
   quint16                       serverPort(const QHostAddress &) const;
   const QString               & serverUdn(void) const;

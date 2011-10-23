@@ -56,14 +56,27 @@ QStringList SVideoEncoderNode::losslessCodecs(void)
   return (QSet<QString>::fromList(codecs()) & losslessCodecs).toList();
 }
 
-bool SVideoEncoderNode::openCodec(const SVideoCodec &codec, SInterfaces::VideoEncoder::Flags flags)
+bool SVideoEncoderNode::openCodec(const SVideoCodec &codec, SIOOutputNode *outputNode, STime duration, SInterfaces::VideoEncoder::Flags flags)
 {
   d->future.waitForFinished();
 
-  delete d->encoder;
-  d->encoder = SInterfaces::VideoEncoder::create(this, codec, flags, false);
+  SInterfaces::BufferWriter * const bufferWriter =
+      outputNode ? outputNode->bufferWriter() : NULL;
 
-  return d->encoder;
+  delete d->encoder;
+  d->encoder = SInterfaces::VideoEncoder::create(this, codec, bufferWriter, flags, false);
+
+  if (d->encoder)
+  {
+    if (bufferWriter)
+      return bufferWriter->addStream(d->encoder, duration);
+    else
+      return true;
+  }
+  else
+    qDebug() << "SVideoEncoderNode::openCodec: Open the SIOOutputNode format first,";
+
+  return false;
 }
 
 SVideoCodec SVideoEncoderNode::codec(void) const
@@ -72,6 +85,11 @@ SVideoCodec SVideoEncoderNode::codec(void) const
     return d->encoder->codec();
 
   return SVideoCodec();
+}
+
+const SInterfaces::VideoEncoder * SVideoEncoderNode::encoder(void) const
+{
+  return d->encoder;
 }
 
 bool SVideoEncoderNode::start(void)

@@ -38,6 +38,7 @@ const char  SHttpEngine::fieldUserAgent[]    = "User-Agent";
 const char  SHttpEngine::dateFormat[]        = "ddd, dd MMM yyyy hh:mm:ss 'GMT'";
 
 const char  SHttpEngine::mimeAppOctet[]      = "application/octet-stream";
+const char  SHttpEngine::mimeAudioAac[]      = "audio/aac";
 const char  SHttpEngine::mimeAudioAc3[]      = "audio/x-ac3";
 const char  SHttpEngine::mimeAudioLpcm[]     = "audio/L16;rate=48000;channels=2";
 const char  SHttpEngine::mimeAudioMp3[]      = "audio/mp3";
@@ -45,16 +46,23 @@ const char  SHttpEngine::mimeAudioMpeg[]     = "audio/mpeg";
 const char  SHttpEngine::mimeAudioMpegUrl[]  = "audio/x-mpegurl";
 const char  SHttpEngine::mimeAudioOgg[]      = "audio/ogg";
 const char  SHttpEngine::mimeAudioWave[]     = "audio/wave";
+const char  SHttpEngine::mimeAudioWma[]      = "audio/x-ms-wma";
 const char  SHttpEngine::mimeImageJpeg[]     = "image/jpeg";
 const char  SHttpEngine::mimeImagePng[]      = "image/png";
 const char  SHttpEngine::mimeImageSvg[]      = "image/svg+xml";
 const char  SHttpEngine::mimeImageTiff[]     = "image/tiff";
+const char  SHttpEngine::mimeVideo3g2[]      = "video/3gpp";
+const char  SHttpEngine::mimeVideoAsf[]      = "video/x-ms-asf";
+const char  SHttpEngine::mimeVideoAvi[]      = "video/avi";
 const char  SHttpEngine::mimeVideoFlv[]      = "video/x-flv";
+const char  SHttpEngine::mimeVideoMatroska[] = "video/x-matroska";
 const char  SHttpEngine::mimeVideoMpeg[]     = "video/mpeg";
 const char  SHttpEngine::mimeVideoMpegM2TS[] = "video/vnd.dlna.mpeg-tts";
 const char  SHttpEngine::mimeVideoMpegTS[]   = "video/x-mpegts";
+const char  SHttpEngine::mimeVideoMp4[]      = "video/mp4";
 const char  SHttpEngine::mimeVideoOgg[]      = "video/ogg";
 const char  SHttpEngine::mimeVideoQt[]       = "video/quicktime";
+const char  SHttpEngine::mimeVideoWmv[]      = "video/x-ms-wmv";
 const char  SHttpEngine::mimeTextCss[]       = "text/css;charset=\"utf-8\"";
 const char  SHttpEngine::mimeTextHtml[]      = "text/html;charset=\"utf-8\"";
 const char  SHttpEngine::mimeTextJs[]        = "text/javascript;charset=\"utf-8\"";
@@ -135,6 +143,9 @@ const char * SHttpEngine::toMimeType(const QString &fileName)
   else if (ext == "xhtml")  return "application/xhtml+xml";
   else if (ext == "dtd")    return "application/xml-dtd";
   else if (ext == "zip")    return "application/zip";
+  else if (ext == "aac")    return mimeAudioAac;
+  else if (ext == "ac3")    return mimeAudioAc3;
+  else if (ext == "lpcm")   return mimeAudioLpcm;
   else if (ext == "m3u")    return mimeAudioMpegUrl;
   else if (ext == "mpa")    return mimeAudioMpeg;
   else if (ext == "mp2")    return mimeAudioMpeg;
@@ -143,7 +154,7 @@ const char * SHttpEngine::toMimeType(const QString &fileName)
   else if (ext == "dts")    return mimeAudioMpeg;
   else if (ext == "oga")    return mimeAudioOgg;
   else if (ext == "wav")    return mimeAudioWave;
-  else if (ext == "lpcm")   return mimeAudioLpcm;
+  else if (ext == "wma")    return mimeAudioWma;
   else if (ext == "jpeg")   return mimeImageJpeg;
   else if (ext == "jpg")    return mimeImageJpeg;
   else if (ext == "png")    return mimeImagePng;
@@ -155,9 +166,14 @@ const char * SHttpEngine::toMimeType(const QString &fileName)
   else if (ext == "txt")    return mimeTextPlain;
   else if (ext == "log")    return mimeTextPlain;
   else if (ext == "xml")    return mimeTextXml;
+  else if (ext == "3g2")    return mimeVideo3g2;
+  else if (ext == "asf")    return mimeVideoAsf;
+  else if (ext == "avi")    return mimeVideoAvi;
+  else if (ext == "m2ts")   return mimeVideoMpegTS;
+  else if (ext == "mkv")    return mimeVideoMatroska;
   else if (ext == "mpeg")   return mimeVideoMpeg;
   else if (ext == "mpg")    return mimeVideoMpeg;
-  else if (ext == "mp4")    return mimeVideoMpeg;
+  else if (ext == "mp4")    return mimeVideoMp4;
   else if (ext == "ts")     return mimeVideoMpeg;
   else if (ext == "ogg")    return mimeVideoOgg;
   else if (ext == "ogv")    return mimeVideoOgg;
@@ -165,6 +181,7 @@ const char * SHttpEngine::toMimeType(const QString &fileName)
   else if (ext == "spx")    return mimeVideoOgg;
   else if (ext == "qt")     return mimeVideoQt;
   else if (ext == "flv")    return mimeVideoFlv;
+  else if (ext == "wmv")    return mimeVideoWmv;
 
   // For licenses
   else if (fileName.startsWith("COPYING")) return "text/plain";

@@ -60,7 +60,7 @@ bool Module::registerClasses(void)
       // Audio
       << "GSM" << "GSM_MS" << "NELLYMOSER" << "PCM/S16LE" << "PCM/S16BE"
       << "PCM/U16LE" << "PCM/U16BE" << "PCM/MULAW" << "PCM/ALAW" << "VORBIS"
-      << "WMAV1" << "WMAV2"
+//      << "WMAV1" << "WMAV2"
       // Video
       << "BMP" << "DVVIDEO" << "DNXHD" << "HUFFYUV" << "JPEGLS" << "MSMPEG4V1"
       << "PAM" << "PCX" << "PNG" << "QTRLE" << "RAWVIDEO" << "ROQ" << "RV10"
@@ -120,7 +120,7 @@ bool Module::registerClasses(void)
       ;
 
   const QSet<QByteArray> unsupportedWriters = QSet<QByteArray>()
-      << "asf"
+      << "mpegts"
       ;
 
   for (::AVInputFormat *format=::av_iformat_next(NULL); format; format=::av_iformat_next(format))

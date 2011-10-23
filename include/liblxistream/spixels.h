@@ -31,10 +31,6 @@ class SVideoBuffer;
 
 namespace SPixels {
 
-#ifdef _MSC_VER
-#pragma pack(1)
-#endif
-
 #define OP16 uint16_t pack; inline operator uint16_t() const { return pack; }
 #define OP32 uint32_t pack; inline operator uint32_t() const { return pack; }
 #define EXTC extern "C"
@@ -42,6 +38,10 @@ namespace SPixels {
 #define OP16 uint16_t pack;
 #define OP32 uint32_t pack;
 #define EXTC
+#endif
+
+#ifdef _MSC_VER
+#pragma pack(1)
 #endif
 
 typedef union { struct _lxi_packed { uint8_t b, g, r, a; }; OP32 } RGBAPixel;
@@ -134,5 +134,9 @@ struct YUVData
 #ifdef __cplusplus
 } } // End of namespaces
 #endif
+
+#undef OP16
+#undef OP32
+#undef EXTC
 
 #endif

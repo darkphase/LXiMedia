@@ -53,9 +53,29 @@ input {
 select {
  border: 1px solid #000000;
 }
-a.hidden {
- text-decoration: none;
+table {
+ padding: 0;
+ margin: 0;
+ border: none;
 }
+td {
+ padding: 0.2em;
+ margin: 0.2em;
+ vertical-align: middle;
+}
+td.top {
+ padding: 0.2em;
+ margin: 0.2em;
+ vertical-align: top;
+}
+a:link            { color: #000000; text-decoration: underline; }
+a:visited         { color: #606060; text-decoration: underline; }
+a:active          { color: #000000; text-decoration: underline; }
+a:hover           { color: #000000; text-decoration: underline; }
+a.hidden:link     { color: #000000; text-decoration: none; }
+a.hidden:visited  { color: #000000; text-decoration: none; }
+a.hidden:active   { color: #000000; text-decoration: underline; }
+a.hidden:hover    { color: #000000; text-decoration: underline; }
 table.location {
  padding: 0;
  margin: 0;

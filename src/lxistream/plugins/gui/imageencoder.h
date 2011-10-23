@@ -36,7 +36,7 @@ public:
   virtual                       ~ImageEncoder();
 
 public: // From SBufferEncoder
-  virtual bool                  openCodec(const SVideoCodec &, Flags = Flag_None);
+  virtual bool                  openCodec(const SVideoCodec &, SInterfaces::BufferWriter *, Flags);
   virtual SVideoCodec           codec(void) const;
   virtual SEncodedVideoBufferList encodeBuffer(const SVideoBuffer &);
 

@@ -28,6 +28,7 @@
 namespace LXiStream {
 
 class SSubtitleBuffer;
+class SIOInputNode;
 
 class LXISTREAM_PUBLIC SDataDecoderNode : public SInterfaces::Node
 {
@@ -36,10 +37,12 @@ public:
   typedef SInterfaces::DataDecoder::Flags Flags;
 
 public:
-  explicit                      SDataDecoderNode(SGraph *, Flags = SInterfaces::DataDecoder::Flag_None);
+  explicit                      SDataDecoderNode(SGraph *);
   virtual                       ~SDataDecoderNode();
 
   static QStringList            codecs(void);
+
+  bool                          open(SIOInputNode *, Flags = SInterfaces::DataDecoder::Flag_None);
 
   Flags                         flags(void) const;
   void                          setFlags(Flags);

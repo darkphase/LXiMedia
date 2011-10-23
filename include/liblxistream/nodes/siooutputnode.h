@@ -27,12 +27,17 @@
 
 namespace LXiStream {
 
+class SAudioEncoderNode;
+class SVideoEncoderNode;
+
 /*! This is a generic output node, writing to a QIODevice.
  */
 class LXISTREAM_PUBLIC SIOOutputNode : public SInterfaces::SinkNode,
                                        protected SInterfaces::BufferWriter::WriteCallback
 {
 Q_OBJECT
+friend class SAudioEncoderNode;
+friend class SVideoEncoderNode;
 public:
   explicit                      SIOOutputNode(SGraph *, QIODevice * = NULL);
   virtual                       ~SIOOutputNode();
@@ -40,6 +45,7 @@ public:
   static QStringList            formats(void);
 
   void                          setIODevice(QIODevice *, bool autoClose = false);
+  bool                          openFormat(const QString &);
   bool                          hasIODevice(void) const;
 
   bool                          openFormat(const QString &, const SAudioCodec &, STime);
@@ -61,8 +67,10 @@ signals:
 
 protected: // From SInterfaces::BufferReader::WriteCallback
   virtual void                  write(const uchar *, qint64);
+  virtual qint64                seek(qint64, int);
 
 private:
+  _lxi_internal SInterfaces::BufferWriter * bufferWriter(void);
   _lxi_internal void            blockUntil(STime);
 
 private slots:

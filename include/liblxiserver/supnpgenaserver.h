@@ -41,6 +41,7 @@ public:
 
   void                          initialize(SHttpServer *);
   void                          close(void);
+  void                          reset(void);
 
 public slots:
   void                          emitEvent(const QDomDocument &doc);

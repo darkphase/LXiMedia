@@ -19,6 +19,7 @@
 
 #include "nodes/saudioencodernode.h"
 #include "saudiobuffer.h"
+#include "nodes/siooutputnode.h"
 
 namespace LXiStream {
 
@@ -61,14 +62,27 @@ QStringList SAudioEncoderNode::losslessCodecs(void)
   return (QSet<QString>::fromList(codecs()) & losslessCodecs).toList();
 }
 
-bool SAudioEncoderNode::openCodec(const SAudioCodec &codec, SInterfaces::AudioEncoder::Flags flags)
+bool SAudioEncoderNode::openCodec(const SAudioCodec &codec, SIOOutputNode *outputNode, STime duration, SInterfaces::AudioEncoder::Flags flags)
 {
   d->future.waitForFinished();
 
-  delete d->encoder;
-  d->encoder = SInterfaces::AudioEncoder::create(this, codec, flags, false);
+  SInterfaces::BufferWriter * const bufferWriter =
+      outputNode ? outputNode->bufferWriter() : NULL;
 
-  return d->encoder;
+  delete d->encoder;
+  d->encoder = SInterfaces::AudioEncoder::create(this, codec, bufferWriter, flags, false);
+
+  if (d->encoder)
+  {
+    if (bufferWriter)
+      return bufferWriter->addStream(d->encoder, duration);
+    else
+      return true;
+  }
+  else
+    qDebug() << "SAudioEncoderNode::openCodec: Open the SIOOutputNode format first,";
+
+  return false;
 }
 
 SAudioCodec SAudioEncoderNode::codec(void) const
@@ -77,6 +91,11 @@ SAudioCodec SAudioEncoderNode::codec(void) const
     return d->encoder->codec();
 
   return SAudioCodec();
+}
+
+const SInterfaces::AudioEncoder * SAudioEncoderNode::encoder(void) const
+{
+  return d->encoder;
 }
 
 bool SAudioEncoderNode::start(void)

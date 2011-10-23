@@ -65,6 +65,12 @@ void SUPnPConnectionManager::close(void)
   d->genaServer->close();
 }
 
+void SUPnPConnectionManager::reset(void)
+{
+  SUPnPBase::reset();
+  d->genaServer->reset();
+}
+
 void SUPnPConnectionManager::setSourceProtocols(const ProtocolList &sourceProtocols)
 {
   d->sourceProtocols = sourceProtocols;

@@ -263,6 +263,7 @@ public:
   static const char             dateFormat[];
 
   static const char             mimeAppOctet[];
+  static const char             mimeAudioAac[];
   static const char             mimeAudioAc3[];
   static const char             mimeAudioLpcm[];
   static const char             mimeAudioMp3[];
@@ -270,16 +271,23 @@ public:
   static const char             mimeAudioMpegUrl[];
   static const char             mimeAudioOgg[];
   static const char             mimeAudioWave[];
+  static const char             mimeAudioWma[];
   static const char             mimeImageJpeg[];
   static const char             mimeImagePng[];
   static const char             mimeImageSvg[];
   static const char             mimeImageTiff[];
+  static const char             mimeVideo3g2[];
+  static const char             mimeVideoAsf[];
+  static const char             mimeVideoAvi[];
   static const char             mimeVideoFlv[];
+  static const char             mimeVideoMatroska[];
   static const char             mimeVideoMpeg[];
   static const char             mimeVideoMpegM2TS[];
   static const char             mimeVideoMpegTS[];
+  static const char             mimeVideoMp4[];
   static const char             mimeVideoOgg[];
   static const char             mimeVideoQt[];
+  static const char             mimeVideoWmv[];
   static const char             mimeTextCss[];
   static const char             mimeTextHtml[];
   static const char             mimeTextJs[];

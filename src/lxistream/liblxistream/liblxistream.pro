@@ -147,12 +147,10 @@ HEADERS += common/audioformatconverter.h \
     common/tsbufferwriter.h \
     common/videoformatconverter.h
 SOURCES += common/audioformatconverter.cpp \
-    common/audioformatconverter.convert.c \
     common/audiooutput.cpp \
     common/audioresampler.cpp \
     common/audioresampler.resample.c \
     common/deinterlace.cpp \
-    common/deinterlace.mix.c \
     common/formatprober.cpp \
     common/mpeg.cpp \
     common/pcmaudiodecoder.cpp \
@@ -162,12 +160,12 @@ SOURCES += common/audioformatconverter.cpp \
     common/rawsubtitledecoder.cpp \
     common/tsbufferwriter.cpp \
     common/videoformatconverter.cpp \
-    common/videoformatconverter.convert.c \
-    common/videoformatconverter.demosaic.c \
-    common/videoformatconverter.unpack.c
+    common/videoformatconverter.demosaic.c
 
 HEADERS += common/module.h
 SOURCES += common/module.cpp
+
+include($${PWD}/$${LXIMEDIA_DIR}/src/lxistream/algorithms/linkalgorithms.pri)
 
 # Platform specific
 unix {

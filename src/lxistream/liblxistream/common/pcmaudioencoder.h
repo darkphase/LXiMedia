@@ -41,7 +41,7 @@ public:
   virtual                       ~PcmAudioEncoder();
 
 public: // From SInterfaces::AudioEncoder
-  virtual bool                  openCodec(const SAudioCodec &, Flags = Flag_None);
+  virtual bool                  openCodec(const SAudioCodec &, SInterfaces::BufferWriter *, Flags);
   virtual SAudioCodec           codec(void) const;
   virtual SEncodedAudioBufferList encodeBuffer(const SAudioBuffer &);
 

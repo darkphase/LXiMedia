@@ -18,27 +18,8 @@
  ***************************************************************************/
 
 #include "audioformatconverter.h"
-
-// Implemented in audioformatconverter.convert.c
-extern "C" void LXiStream_Common_AudioFormatConverter_swap16(void *, const void *, size_t);
-extern "C" void LXiStream_Common_AudioFormatConverter_swap32(void *, const void *, size_t);
-extern "C" void LXiStream_Common_AudioFormatConverter_swap64(void *, const void *, size_t);
-extern "C" void LXiStream_Common_AudioFormatConverter_convertU8U16(void *, const void *, size_t);
-extern "C" void LXiStream_Common_AudioFormatConverter_convertU16U8(void *, const void *, size_t);
-extern "C" void LXiStream_Common_AudioFormatConverter_convertU16U32(void *, const void *, size_t);
-extern "C" void LXiStream_Common_AudioFormatConverter_convertU32U16(void *, const void *, size_t);
-extern "C" void LXiStream_Common_AudioFormatConverter_convertS16F32(void *, const void *, size_t);
-extern "C" void LXiStream_Common_AudioFormatConverter_convertF32S16(void *, const void *, size_t);
-extern "C" void LXiStream_Common_AudioFormatConverter_convertS32F32(void *, const void *, size_t);
-extern "C" void LXiStream_Common_AudioFormatConverter_convertF32S32(void *, const void *, size_t);
-extern "C" void LXiStream_Common_AudioFormatConverter_convertS16F64(void *, const void *, size_t);
-extern "C" void LXiStream_Common_AudioFormatConverter_convertF64S16(void *, const void *, size_t);
-extern "C" void LXiStream_Common_AudioFormatConverter_convertS32F64(void *, const void *, size_t);
-extern "C" void LXiStream_Common_AudioFormatConverter_convertF64S32(void *, const void *, size_t);
-extern "C" void LXiStream_Common_AudioFormatConverter_convertU16S16(void *, const void *, size_t);
-extern "C" void LXiStream_Common_AudioFormatConverter_convertS16U16(void *, const void *, size_t);
-extern "C" void LXiStream_Common_AudioFormatConverter_convertU32S32(void *, const void *, size_t);
-extern "C" void LXiStream_Common_AudioFormatConverter_convertS32U32(void *, const void *, size_t);
+#include "../../algorithms/audioconvert.h"
+#include "../../algorithms/data.h"
 
 namespace LXiStream {
 namespace Common {
@@ -73,7 +54,10 @@ SAudioBuffer AudioFormatConverter_Format_PCM_S16LE_Format_PCM_S16BE::convertBuff
                                          audioBuffer.format().sampleRate()),
                             audioBuffer.numSamples());
 
-    LXiStream_Common_AudioFormatConverter_swap16(destBuffer.data(), audioBuffer.data(), destBuffer.size());
+    Algorithms::Data::swapBytes(
+        reinterpret_cast<qint16 *>(destBuffer.data()),
+        reinterpret_cast<const qint16 *>(audioBuffer.data()),
+        destBuffer.size() / sizeof(qint16));
 
     destBuffer.setTimeStamp(audioBuffer.timeStamp());
 
@@ -92,7 +76,10 @@ SAudioBuffer AudioFormatConverter_Format_PCM_S16BE_Format_PCM_S16LE::convertBuff
                                          audioBuffer.format().sampleRate()),
                             audioBuffer.numSamples());
 
-    LXiStream_Common_AudioFormatConverter_swap16(destBuffer.data(), audioBuffer.data(), destBuffer.size());
+    Algorithms::Data::swapBytes(
+        reinterpret_cast<qint16 *>(destBuffer.data()),
+        reinterpret_cast<const qint16 *>(audioBuffer.data()),
+        destBuffer.size() / sizeof(qint16));
 
     destBuffer.setTimeStamp(audioBuffer.timeStamp());
 
@@ -111,7 +98,10 @@ SAudioBuffer AudioFormatConverter_Format_PCM_U16LE_Format_PCM_U16BE::convertBuff
                                          audioBuffer.format().sampleRate()),
                             audioBuffer.numSamples());
 
-    LXiStream_Common_AudioFormatConverter_swap16(destBuffer.data(), audioBuffer.data(), destBuffer.size());
+    Algorithms::Data::swapBytes(
+        reinterpret_cast<quint16 *>(destBuffer.data()),
+        reinterpret_cast<const quint16 *>(audioBuffer.data()),
+        destBuffer.size() / sizeof(quint16));
 
     destBuffer.setTimeStamp(audioBuffer.timeStamp());
 
@@ -130,7 +120,10 @@ SAudioBuffer AudioFormatConverter_Format_PCM_U16BE_Format_PCM_U16LE::convertBuff
                                          audioBuffer.format().sampleRate()),
                             audioBuffer.numSamples());
 
-    LXiStream_Common_AudioFormatConverter_swap16(destBuffer.data(), audioBuffer.data(), destBuffer.size());
+    Algorithms::Data::swapBytes(
+        reinterpret_cast<quint16 *>(destBuffer.data()),
+        reinterpret_cast<const quint16 *>(audioBuffer.data()),
+        destBuffer.size() / sizeof(quint16));
 
     destBuffer.setTimeStamp(audioBuffer.timeStamp());
 
@@ -149,7 +142,10 @@ SAudioBuffer AudioFormatConverter_Format_PCM_S32LE_Format_PCM_S32BE::convertBuff
                                          audioBuffer.format().sampleRate()),
                             audioBuffer.numSamples());
 
-    LXiStream_Common_AudioFormatConverter_swap32(destBuffer.data(), audioBuffer.data(), destBuffer.size());
+    Algorithms::Data::swapBytes(
+        reinterpret_cast<qint32 *>(destBuffer.data()),
+        reinterpret_cast<const qint32 *>(audioBuffer.data()),
+        destBuffer.size() / sizeof(qint32));
 
     destBuffer.setTimeStamp(audioBuffer.timeStamp());
 
@@ -168,7 +164,10 @@ SAudioBuffer AudioFormatConverter_Format_PCM_S32BE_Format_PCM_S32LE::convertBuff
                                          audioBuffer.format().sampleRate()),
                             audioBuffer.numSamples());
 
-    LXiStream_Common_AudioFormatConverter_swap32(destBuffer.data(), audioBuffer.data(), destBuffer.size());
+    Algorithms::Data::swapBytes(
+        reinterpret_cast<qint32 *>(destBuffer.data()),
+        reinterpret_cast<const qint32 *>(audioBuffer.data()),
+        destBuffer.size() / sizeof(qint32));
 
     destBuffer.setTimeStamp(audioBuffer.timeStamp());
 
@@ -187,7 +186,10 @@ SAudioBuffer AudioFormatConverter_Format_PCM_U32LE_Format_PCM_U32BE::convertBuff
                                          audioBuffer.format().sampleRate()),
                             audioBuffer.numSamples());
 
-    LXiStream_Common_AudioFormatConverter_swap32(destBuffer.data(), audioBuffer.data(), destBuffer.size());
+    Algorithms::Data::swapBytes(
+        reinterpret_cast<quint32 *>(destBuffer.data()),
+        reinterpret_cast<const quint32 *>(audioBuffer.data()),
+        destBuffer.size() / sizeof(quint32));
 
     destBuffer.setTimeStamp(audioBuffer.timeStamp());
 
@@ -206,7 +208,10 @@ SAudioBuffer AudioFormatConverter_Format_PCM_U32BE_Format_PCM_U32LE::convertBuff
                                          audioBuffer.format().sampleRate()),
                             audioBuffer.numSamples());
 
-    LXiStream_Common_AudioFormatConverter_swap32(destBuffer.data(), audioBuffer.data(), destBuffer.size());
+    Algorithms::Data::swapBytes(
+        reinterpret_cast<quint32 *>(destBuffer.data()),
+        reinterpret_cast<const quint32 *>(audioBuffer.data()),
+        destBuffer.size() / sizeof(quint32));
 
     destBuffer.setTimeStamp(audioBuffer.timeStamp());
 
@@ -225,7 +230,10 @@ SAudioBuffer AudioFormatConverter_Format_PCM_F32LE_Format_PCM_F32BE::convertBuff
                                          audioBuffer.format().sampleRate()),
                             audioBuffer.numSamples());
 
-    LXiStream_Common_AudioFormatConverter_swap32(destBuffer.data(), audioBuffer.data(), destBuffer.size());
+    Algorithms::Data::swapBytes(
+        reinterpret_cast<float *>(destBuffer.data()),
+        reinterpret_cast<const float *>(audioBuffer.data()),
+        destBuffer.size() / sizeof(float));
 
     destBuffer.setTimeStamp(audioBuffer.timeStamp());
 
@@ -244,7 +252,10 @@ SAudioBuffer AudioFormatConverter_Format_PCM_F32BE_Format_PCM_F32LE::convertBuff
                                          audioBuffer.format().sampleRate()),
                             audioBuffer.numSamples());
 
-    LXiStream_Common_AudioFormatConverter_swap32(destBuffer.data(), audioBuffer.data(), destBuffer.size());
+    Algorithms::Data::swapBytes(
+        reinterpret_cast<float *>(destBuffer.data()),
+        reinterpret_cast<const float *>(audioBuffer.data()),
+        destBuffer.size() / sizeof(float));
 
     destBuffer.setTimeStamp(audioBuffer.timeStamp());
 
@@ -263,7 +274,10 @@ SAudioBuffer AudioFormatConverter_Format_PCM_F64LE_Format_PCM_F64BE::convertBuff
                                          audioBuffer.format().sampleRate()),
                             audioBuffer.numSamples());
 
-    LXiStream_Common_AudioFormatConverter_swap64(destBuffer.data(), audioBuffer.data(), destBuffer.size());
+    Algorithms::Data::swapBytes(
+        reinterpret_cast<double *>(destBuffer.data()),
+        reinterpret_cast<const double *>(audioBuffer.data()),
+        destBuffer.size() / sizeof(double));
 
     destBuffer.setTimeStamp(audioBuffer.timeStamp());
 
@@ -282,7 +296,10 @@ SAudioBuffer AudioFormatConverter_Format_PCM_F64BE_Format_PCM_F64LE::convertBuff
                                          audioBuffer.format().sampleRate()),
                             audioBuffer.numSamples());
 
-    LXiStream_Common_AudioFormatConverter_swap64(destBuffer.data(), audioBuffer.data(), destBuffer.size());
+    Algorithms::Data::swapBytes(
+        reinterpret_cast<double *>(destBuffer.data()),
+        reinterpret_cast<const double *>(audioBuffer.data()),
+        destBuffer.size() / sizeof(double));
 
     destBuffer.setTimeStamp(audioBuffer.timeStamp());
 
@@ -315,7 +332,10 @@ SAudioBuffer AudioFormatConverter_Format_PCM_S8_Format_PCM_S16::convertBuffer(co
                                          audioBuffer.format().sampleRate()),
                             audioBuffer.numSamples());
 
-    LXiStream_Common_AudioFormatConverter_convertU8U16(destBuffer.data(), audioBuffer.data(), destBuffer.size());
+    Algorithms::AudioConvert::convert(
+        reinterpret_cast<qint16 *>(destBuffer.data()),
+        reinterpret_cast<const qint8 *>(audioBuffer.data()),
+        destBuffer.size() / sizeof(qint16));
 
     destBuffer.setTimeStamp(audioBuffer.timeStamp());
 
@@ -334,7 +354,10 @@ SAudioBuffer AudioFormatConverter_Format_PCM_U8_Format_PCM_U16::convertBuffer(co
                                          audioBuffer.format().sampleRate()),
                             audioBuffer.numSamples());
 
-    LXiStream_Common_AudioFormatConverter_convertU8U16(destBuffer.data(), audioBuffer.data(), destBuffer.size());
+    Algorithms::AudioConvert::convert(
+        reinterpret_cast<quint16 *>(destBuffer.data()),
+        reinterpret_cast<const quint8 *>(audioBuffer.data()),
+        destBuffer.size() / sizeof(quint16));
 
     destBuffer.setTimeStamp(audioBuffer.timeStamp());
 
@@ -353,7 +376,10 @@ SAudioBuffer AudioFormatConverter_Format_PCM_S16_Format_PCM_S8::convertBuffer(co
                                          audioBuffer.format().sampleRate()),
                             audioBuffer.numSamples());
 
-    LXiStream_Common_AudioFormatConverter_convertU16U8(destBuffer.data(), audioBuffer.data(), destBuffer.size());
+    Algorithms::AudioConvert::convert(
+        reinterpret_cast<qint8 *>(destBuffer.data()),
+        reinterpret_cast<const qint16 *>(audioBuffer.data()),
+        destBuffer.size() / sizeof(qint8));
 
     destBuffer.setTimeStamp(audioBuffer.timeStamp());
 
@@ -372,7 +398,10 @@ SAudioBuffer AudioFormatConverter_Format_PCM_U16_Format_PCM_U8::convertBuffer(co
                                          audioBuffer.format().sampleRate()),
                             audioBuffer.numSamples());
 
-    LXiStream_Common_AudioFormatConverter_convertU16U8(destBuffer.data(), audioBuffer.data(), destBuffer.size());
+    Algorithms::AudioConvert::convert(
+        reinterpret_cast<quint8 *>(destBuffer.data()),
+        reinterpret_cast<const quint16 *>(audioBuffer.data()),
+        destBuffer.size() / sizeof(quint8));
 
     destBuffer.setTimeStamp(audioBuffer.timeStamp());
 
@@ -391,7 +420,10 @@ SAudioBuffer AudioFormatConverter_Format_PCM_S16_Format_PCM_S32::convertBuffer(c
                                          audioBuffer.format().sampleRate()),
                             audioBuffer.numSamples());
 
-    LXiStream_Common_AudioFormatConverter_convertU16U32(destBuffer.data(), audioBuffer.data(), destBuffer.size());
+    Algorithms::AudioConvert::convert(
+        reinterpret_cast<qint32 *>(destBuffer.data()),
+        reinterpret_cast<const qint16 *>(audioBuffer.data()),
+        destBuffer.size() / sizeof(qint32));
 
     destBuffer.setTimeStamp(audioBuffer.timeStamp());
 
@@ -410,7 +442,10 @@ SAudioBuffer AudioFormatConverter_Format_PCM_U16_Format_PCM_U32::convertBuffer(c
                                          audioBuffer.format().sampleRate()),
                             audioBuffer.numSamples());
 
-    LXiStream_Common_AudioFormatConverter_convertU16U32(destBuffer.data(), audioBuffer.data(), destBuffer.size());
+    Algorithms::AudioConvert::convert(
+        reinterpret_cast<quint32 *>(destBuffer.data()),
+        reinterpret_cast<const quint16 *>(audioBuffer.data()),
+        destBuffer.size() / sizeof(quint32));
 
     destBuffer.setTimeStamp(audioBuffer.timeStamp());
 
@@ -429,7 +464,10 @@ SAudioBuffer AudioFormatConverter_Format_PCM_S32_Format_PCM_S16::convertBuffer(c
                                          audioBuffer.format().sampleRate()),
                             audioBuffer.numSamples());
 
-    LXiStream_Common_AudioFormatConverter_convertU8U16(destBuffer.data(), audioBuffer.data(), destBuffer.size());
+    Algorithms::AudioConvert::convert(
+        reinterpret_cast<qint16 *>(destBuffer.data()),
+        reinterpret_cast<const qint32 *>(audioBuffer.data()),
+        destBuffer.size() / sizeof(qint16));
 
     destBuffer.setTimeStamp(audioBuffer.timeStamp());
 
@@ -448,7 +486,10 @@ SAudioBuffer AudioFormatConverter_Format_PCM_U32_Format_PCM_U16::convertBuffer(c
                                          audioBuffer.format().sampleRate()),
                             audioBuffer.numSamples());
 
-    LXiStream_Common_AudioFormatConverter_convertU8U16(destBuffer.data(), audioBuffer.data(), destBuffer.size());
+    Algorithms::AudioConvert::convert(
+        reinterpret_cast<quint16 *>(destBuffer.data()),
+        reinterpret_cast<const quint32 *>(audioBuffer.data()),
+        destBuffer.size() / sizeof(quint16));
 
     destBuffer.setTimeStamp(audioBuffer.timeStamp());
 
@@ -467,7 +508,10 @@ SAudioBuffer AudioFormatConverter_Format_PCM_S16_Format_PCM_F32::convertBuffer(c
                                          audioBuffer.format().sampleRate()),
                             audioBuffer.numSamples());
 
-    LXiStream_Common_AudioFormatConverter_convertS16F32(destBuffer.data(), audioBuffer.data(), destBuffer.size());
+    Algorithms::AudioConvert::convert(
+        reinterpret_cast<float *>(destBuffer.data()),
+        reinterpret_cast<const qint16 *>(audioBuffer.data()),
+        destBuffer.size() / sizeof(float));
 
     destBuffer.setTimeStamp(audioBuffer.timeStamp());
 
@@ -486,7 +530,10 @@ SAudioBuffer AudioFormatConverter_Format_PCM_F32_Format_PCM_S16::convertBuffer(c
                                          audioBuffer.format().sampleRate()),
                             audioBuffer.numSamples());
 
-    LXiStream_Common_AudioFormatConverter_convertF32S16(destBuffer.data(), audioBuffer.data(), destBuffer.size());
+    Algorithms::AudioConvert::convert(
+        reinterpret_cast<qint16 *>(destBuffer.data()),
+        reinterpret_cast<const float *>(audioBuffer.data()),
+        destBuffer.size() / sizeof(qint16));
 
     destBuffer.setTimeStamp(audioBuffer.timeStamp());
 
@@ -505,7 +552,10 @@ SAudioBuffer AudioFormatConverter_Format_PCM_S32_Format_PCM_F32::convertBuffer(c
                                          audioBuffer.format().sampleRate()),
                             audioBuffer.numSamples());
 
-    LXiStream_Common_AudioFormatConverter_convertS32F32(destBuffer.data(), audioBuffer.data(), destBuffer.size());
+    Algorithms::AudioConvert::convert(
+        reinterpret_cast<float *>(destBuffer.data()),
+        reinterpret_cast<const qint32 *>(audioBuffer.data()),
+        destBuffer.size() / sizeof(float));
 
     destBuffer.setTimeStamp(audioBuffer.timeStamp());
 
@@ -524,7 +574,10 @@ SAudioBuffer AudioFormatConverter_Format_PCM_F32_Format_PCM_S32::convertBuffer(c
                                          audioBuffer.format().sampleRate()),
                             audioBuffer.numSamples());
 
-    LXiStream_Common_AudioFormatConverter_convertF32S32(destBuffer.data(), audioBuffer.data(), destBuffer.size());
+    Algorithms::AudioConvert::convert(
+        reinterpret_cast<qint32 *>(destBuffer.data()),
+        reinterpret_cast<const float *>(audioBuffer.data()),
+        destBuffer.size() / sizeof(qint32));
 
     destBuffer.setTimeStamp(audioBuffer.timeStamp());
 
@@ -543,7 +596,10 @@ SAudioBuffer AudioFormatConverter_Format_PCM_S16_Format_PCM_F64::convertBuffer(c
                                          audioBuffer.format().sampleRate()),
                             audioBuffer.numSamples());
 
-    LXiStream_Common_AudioFormatConverter_convertS16F64(destBuffer.data(), audioBuffer.data(), destBuffer.size());
+    Algorithms::AudioConvert::convert(
+        reinterpret_cast<double *>(destBuffer.data()),
+        reinterpret_cast<const qint16 *>(audioBuffer.data()),
+        destBuffer.size() / sizeof(double));
 
     destBuffer.setTimeStamp(audioBuffer.timeStamp());
 
@@ -562,7 +618,10 @@ SAudioBuffer AudioFormatConverter_Format_PCM_F64_Format_PCM_S16::convertBuffer(c
                                          audioBuffer.format().sampleRate()),
                             audioBuffer.numSamples());
 
-    LXiStream_Common_AudioFormatConverter_convertF64S16(destBuffer.data(), audioBuffer.data(), destBuffer.size());
+    Algorithms::AudioConvert::convert(
+        reinterpret_cast<qint16 *>(destBuffer.data()),
+        reinterpret_cast<const double *>(audioBuffer.data()),
+        destBuffer.size() / sizeof(qint16));
 
     destBuffer.setTimeStamp(audioBuffer.timeStamp());
 
@@ -581,7 +640,10 @@ SAudioBuffer AudioFormatConverter_Format_PCM_S32_Format_PCM_F64::convertBuffer(c
                                          audioBuffer.format().sampleRate()),
                             audioBuffer.numSamples());
 
-    LXiStream_Common_AudioFormatConverter_convertS32F64(destBuffer.data(), audioBuffer.data(), destBuffer.size());
+    Algorithms::AudioConvert::convert(
+        reinterpret_cast<double *>(destBuffer.data()),
+        reinterpret_cast<const qint32 *>(audioBuffer.data()),
+        destBuffer.size() / sizeof(double));
 
     destBuffer.setTimeStamp(audioBuffer.timeStamp());
 
@@ -600,7 +662,10 @@ SAudioBuffer AudioFormatConverter_Format_PCM_F64_Format_PCM_S32::convertBuffer(c
                                          audioBuffer.format().sampleRate()),
                             audioBuffer.numSamples());
 
-    LXiStream_Common_AudioFormatConverter_convertF64S32(destBuffer.data(), audioBuffer.data(), destBuffer.size());
+    Algorithms::AudioConvert::convert(
+        reinterpret_cast<qint32 *>(destBuffer.data()),
+        reinterpret_cast<const double *>(audioBuffer.data()),
+        destBuffer.size() / sizeof(qint32));
 
     destBuffer.setTimeStamp(audioBuffer.timeStamp());
 
@@ -637,7 +702,10 @@ SAudioBuffer AudioFormatConverter_Format_PCM_U16_Format_PCM_S16::convertBuffer(c
                                          audioBuffer.format().sampleRate()),
                             audioBuffer.numSamples());
 
-    LXiStream_Common_AudioFormatConverter_convertU16S16(destBuffer.data(), audioBuffer.data(), destBuffer.size());
+    Algorithms::AudioConvert::convert(
+        reinterpret_cast<qint16 *>(destBuffer.data()),
+        reinterpret_cast<const quint16 *>(audioBuffer.data()),
+        destBuffer.size() / sizeof(qint16));
 
     destBuffer.setTimeStamp(audioBuffer.timeStamp());
 
@@ -656,7 +724,10 @@ SAudioBuffer AudioFormatConverter_Format_PCM_S16_Format_PCM_U16::convertBuffer(c
                                          audioBuffer.format().sampleRate()),
                             audioBuffer.numSamples());
 
-    LXiStream_Common_AudioFormatConverter_convertS16U16(destBuffer.data(), audioBuffer.data(), destBuffer.size());
+    Algorithms::AudioConvert::convert(
+        reinterpret_cast<quint16 *>(destBuffer.data()),
+        reinterpret_cast<const qint16 *>(audioBuffer.data()),
+        destBuffer.size() / sizeof(quint16));
 
     destBuffer.setTimeStamp(audioBuffer.timeStamp());
 
@@ -675,7 +746,10 @@ SAudioBuffer AudioFormatConverter_Format_PCM_U32_Format_PCM_S32::convertBuffer(c
                                          audioBuffer.format().sampleRate()),
                             audioBuffer.numSamples());
 
-    LXiStream_Common_AudioFormatConverter_convertU32S32(destBuffer.data(), audioBuffer.data(), destBuffer.size());
+    Algorithms::AudioConvert::convert(
+        reinterpret_cast<qint32 *>(destBuffer.data()),
+        reinterpret_cast<const quint32 *>(audioBuffer.data()),
+        destBuffer.size() / sizeof(qint32));
 
     destBuffer.setTimeStamp(audioBuffer.timeStamp());
 
@@ -694,7 +768,10 @@ SAudioBuffer AudioFormatConverter_Format_PCM_S32_Format_PCM_U32::convertBuffer(c
                                          audioBuffer.format().sampleRate()),
                             audioBuffer.numSamples());
 
-    LXiStream_Common_AudioFormatConverter_convertS32U32(destBuffer.data(), audioBuffer.data(), destBuffer.size());
+    Algorithms::AudioConvert::convert(
+        reinterpret_cast<quint32 *>(destBuffer.data()),
+        reinterpret_cast<const qint32 *>(audioBuffer.data()),
+        destBuffer.size() / sizeof(quint32));
 
     destBuffer.setTimeStamp(audioBuffer.timeStamp());
 

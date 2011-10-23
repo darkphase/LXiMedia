@@ -27,6 +27,10 @@
 
 namespace LXiStream {
 
+class SAudioDecoderNode;
+class SVideoDecoderNode;
+class SDataDecoderNode;
+
 /*! This is a generic input node, reading to a QIODevice.
  */
 class LXISTREAM_PUBLIC SIOInputNode : public SInterfaces::SourceNode,
@@ -35,6 +39,9 @@ class LXISTREAM_PUBLIC SIOInputNode : public SInterfaces::SourceNode,
                                       protected SInterfaces::BufferReader::ProduceCallback
 {
 Q_OBJECT
+friend class SAudioDecoderNode;
+friend class SVideoDecoderNode;
+friend class SDataDecoderNode;
 public:
   explicit                      SIOInputNode(SGraph *, QIODevice * = NULL, const QString &path = QString::null);
   virtual                       ~SIOInputNode();
@@ -74,6 +81,9 @@ protected: // From SInterfaces::BufferReader::ProduceCallback
   virtual void                  produce(const SEncodedAudioBuffer &);
   virtual void                  produce(const SEncodedVideoBuffer &);
   virtual void                  produce(const SEncodedDataBuffer &);
+
+private:
+  _lxi_internal SInterfaces::BufferReader * bufferReader(void);
 
 private:
   struct Data;

@@ -78,6 +78,10 @@ void SUPnPBase::close(void)
   d->httpServer = NULL;
 }
 
+void SUPnPBase::reset(void)
+{
+}
+
 SHttpServer::ResponseMessage SUPnPBase::httpRequest(const SHttpServer::RequestMessage &request, QIODevice *socket)
 {
   if ((request.path() == d->basePath + "control") && request.isPost())
@@ -163,6 +167,31 @@ QString SUPnPBase::protocol(void)
   return
       "DLNADOC/" + QString(dlnaDoc) + " UPnP/" +
       QString::number(majorVersion) + '.' + QString::number(minorVersion);
+}
+
+QString SUPnPBase::toClientString(const QHostAddress &peerAddress, const SHttpServer::RequestMessage &request)
+{
+  QString userAgent;
+  foreach (const QString &tag, request.userAgent().split(' '))
+  if (!tag.startsWith("DLNADOC/", Qt::CaseInsensitive) &&
+      !tag.startsWith("dma/", Qt::CaseInsensitive) &&
+      !tag.startsWith("UPnP/", Qt::CaseInsensitive))
+  {
+    userAgent.reserve(tag.length());
+
+    for (QString::ConstIterator i=tag.begin(); i!=tag.end(); i++)
+    if ((*i == '-') || (*i == '/') || (*i == '.'))
+      userAgent += *i;
+    else if (i->isLetterOrNumber() || (*i == '-') || (*i == '/') || (*i == '.'))
+      userAgent += SStringParser::toBasicLatin(*i);
+    else if (!userAgent.isEmpty() && (userAgent[userAgent.length()-1] != ' '))
+      userAgent += ' ';
+
+    userAgent = userAgent.trimmed().replace(' ', '_');
+    break;
+  }
+
+  return userAgent + "@" + peerAddress.toString();
 }
 
 QDomElement SUPnPBase::addTextElm(QDomDocument &doc, QDomElement &elm, const QString &name, const QString &value)
@@ -280,10 +309,11 @@ QDomElement SUPnPBase::parseSoapMessage(QDomDocument &doc, const QByteArray &dat
 QByteArray SUPnPBase::Protocol::toByteArray(bool brief) const
 {
   QByteArray result = protocol + ":" + network + ":" + contentFormat + ":";
-  if (!brief)
-    result += contentFeatures();
+
+  if (!profile.isEmpty())
+    result += brief ? ("DLNA.ORG_PN=" + profile) : contentFeatures();
   else
-    result += !profile.isEmpty() ? ("DLNA.ORG_PN=" + profile) : QByteArray("*");
+    result += "*";
 
   return result;
 }
@@ -295,14 +325,18 @@ QByteArray SUPnPBase::Protocol::contentFeatures(void) const
   if (!profile.isEmpty())
     result += "DLNA.ORG_PN=" + profile + ";";
 
+  if (!contentFormat.startsWith("image/"))
+  {
+    result += "DLNA.ORG_PS=" + QByteArray::number(playSpeed ? 1 : 0) + ";" +
+              "DLNA.ORG_OP=" + QByteArray::number(operationsTimeSeek ? 1 : 0) +
+                               QByteArray::number(operationsRange ? 1 : 0) + ";";
+  }
+
   result +=
-      "DLNA.ORG_PS=" + QByteArray::number(playSpeed ? 1 : 0) + ";"
-      "DLNA.ORG_CI=" + QByteArray::number(conversionIndicator ? 1 : 0) + ";"
-      "DLNA.ORG_OP=" + QByteArray::number(operationsTimeSeek ? 1 : 0) +
-                       QByteArray::number(operationsRange ? 1 : 0);
+      "DLNA.ORG_CI=" + QByteArray::number(conversionIndicator ? 1 : 0);
 
   if (!flags.isEmpty())
-    result += ";DLNA.ORG_FLAGS=" + flags;
+    result += ";DLNA.ORG_FLAGS=" + flags + "000000000000000000000000";
 
   return result;
 }

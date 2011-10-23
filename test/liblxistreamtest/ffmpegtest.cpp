@@ -61,7 +61,7 @@ void FFMpegTest::MediaFileInfoAudioDeep(void)
 void FFMpegTest::AudioEncodeDecode(void)
 {
   static const QSet<QString> skipCodecs = QSet<QString>()
-      << "MP3"
+      << "MP3" << "WMAV1" << "WMAV2"
       << "PCM/S16LE" << "PCM/S16BE" << "PCM/U16LE" << "PCM/U16BE" << "PCM/S8"
       << "PCM/U8" << "PCM/MULAW" << "PCM/ALAW" << "PCM/S32LE" << "PCM/S32BE"
       << "PCM/U32LE" << "PCM/U32BE" << "PCM/S24LE" << "PCM/S24BE" << "PCM/U24LE"
@@ -83,7 +83,7 @@ void FFMpegTest::AudioEncodeDecode(void)
 
 void FFMpegTest::AudioEncodeDecode(const char *codecName)
 {
-  //qDebug() << codecName;
+//  qDebug() << codecName;
 
   const SAudioBuffer inBuffer = StreamTest::makeTestBuffer(65536);
 
@@ -101,7 +101,7 @@ void FFMpegTest::AudioEncodeDecode(const char *codecName)
     QVERIFY2(!encBuffers.isEmpty(), codecName);
 
     // And decode it again
-    audioDecoder = SInterfaces::AudioDecoder::create(NULL, encBuffers.first().codec());
+    audioDecoder = SInterfaces::AudioDecoder::create(NULL, encBuffers.first().codec(), NULL);
     QVERIFY(audioDecoder);
 
     SAudioBufferList decBuffers;
@@ -137,7 +137,7 @@ void FFMpegTest::AudioEncodeDecode(const char *codecName)
 void FFMpegTest::VideoEncodeDecode(void)
 {
   static const QSet<QString> skipCodecs = QSet<QString>()
-      << "GIF" << "H264" << "THEORA";
+      << "GIF" << "H261" << "H263" << "H264" << "THEORA";
 
   const QSet<QString> decoders = QSet<QString>::fromList(SVideoDecoderNode::codecs());
   const QSet<QString> encoders = QSet<QString>::fromList(SVideoEncoderNode::codecs());
@@ -151,7 +151,7 @@ void FFMpegTest::VideoEncodeDecode(void)
 
 void FFMpegTest::VideoEncodeDecode(const char *codecName)
 {
-  //qDebug() << codecName;
+//  qDebug() << codecName;
 
   // Prepare a buffer
   static const unsigned width = 352;
@@ -176,6 +176,9 @@ void FFMpegTest::VideoEncodeDecode(const char *codecName)
   // Now encode it
   if (videoEncoder)
   {
+    QTime timer;
+    timer.start();
+
     SEncodedVideoBufferList encBuffers;
     for (int i=0; i<count; i++)
     {
@@ -187,7 +190,7 @@ void FFMpegTest::VideoEncodeDecode(const char *codecName)
     QCOMPARE(encBuffers.count(), count);
 
     // And decode it again
-    videoDecoder = SInterfaces::VideoDecoder::create(NULL, encBuffers.first().codec());
+    videoDecoder = SInterfaces::VideoDecoder::create(NULL, encBuffers.first().codec(), NULL);
     QVERIFY2(videoDecoder, codecName);
 
     SVideoBufferList decBuffers;
@@ -197,6 +200,9 @@ void FFMpegTest::VideoEncodeDecode(const char *codecName)
     decBuffers += videoDecoder->decodeBuffer(SEncodedVideoBuffer());
     QVERIFY2(!decBuffers.isEmpty(), codecName);
     QCOMPARE(decBuffers.count(), count);
+
+    if (!qApp->arguments().contains("-silent"))
+      qDebug() << codecName << QString::number(float(count * 1000) / float(timer.elapsed()), 'f', 2).toAscii().data() << "fps";
   }
 
   delete videoDecoder;

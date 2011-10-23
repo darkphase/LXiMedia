@@ -48,20 +48,28 @@ bool TsBufferWriter::openFormat(const QString &name)
   return false;
 }
 
-bool TsBufferWriter::createStreams(const QList<SAudioCodec> &audioCodecs, const QList<SVideoCodec> &videoCodecs, STime duration)
+bool TsBufferWriter::addStream(const SInterfaces::AudioEncoder *encoder, STime duration)
 {
   if (bufferWriter)
-    return bufferWriter->createStreams(audioCodecs, videoCodecs, duration);
+    return bufferWriter->addStream(encoder, duration);
 
   return false;
 }
 
-bool TsBufferWriter::start(SInterfaces::BufferWriter::WriteCallback *c)
+bool TsBufferWriter::addStream(const SInterfaces::VideoEncoder *encoder, STime duration)
+{
+  if (bufferWriter)
+    return bufferWriter->addStream(encoder, duration);
+
+  return false;
+}
+
+bool TsBufferWriter::start(SInterfaces::BufferWriter::WriteCallback *c, bool /*sequential*/)
 {
   callback = c;
 
   if (bufferWriter)
-    return bufferWriter->start(this);
+    return bufferWriter->start(this, true);
 
   return false;
 }
@@ -112,5 +120,18 @@ void TsBufferWriter::write(const uchar *buffer, qint64 size)
   }
 }
 
+qint64 TsBufferWriter::seek(qint64 offset, int whence)
+{
+  if (whence == SEEK_SET)
+    return -1;
+  else if (whence == SEEK_CUR)
+    return -1;
+  else if (whence == SEEK_END)
+    return -1;
+  else if (whence == -1) // get size
+    return callback->seek(offset, whence);
+
+  return -1;
+}
 
 } } // End of namespaces

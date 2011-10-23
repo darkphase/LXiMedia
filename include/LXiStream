@@ -18,6 +18,7 @@
 #include "liblxistream/sencodedvideobuffer.h"
 #include "liblxistream/sgraph.h"
 #include "liblxistream/sinterfaces.h"
+#include "liblxistream/sinterval.h"
 #include "liblxistream/smediainfo.h"
 #include "liblxistream/spixels.h"
 #include "liblxistream/ssize.h"

@@ -186,10 +186,10 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
   return SHttpServer::ResponseMessage(request, SHttpServer::Status_NotFound);
 }
 
-int MediaServer::countContentDirItems(const QString &peer, const QString &dirPath)
+int MediaServer::countContentDirItems(const QString &client, const QString &dirPath)
 {
-  if (!activeClients().contains(peer))
-    activeClients().insert(peer);
+  if (!activeClients().contains(client))
+    activeClients().insert(client);
 
   QString subPath = dirPath.mid(serverPath().length());
   subPath = subPath.startsWith('/') ? subPath : ('/' + subPath);
@@ -197,10 +197,10 @@ int MediaServer::countContentDirItems(const QString &peer, const QString &dirPat
   return countItems(subPath);
 }
 
-QList<SUPnPContentDirectory::Item> MediaServer::listContentDirItems(const QString &peer, const QString &dirPath, unsigned start, unsigned count)
+QList<SUPnPContentDirectory::Item> MediaServer::listContentDirItems(const QString &client, const QString &dirPath, unsigned start, unsigned count)
 {
-  if (!activeClients().contains(peer))
-    activeClients().insert(peer);
+  if (!activeClients().contains(client))
+    activeClients().insert(client);
 
   QString subPath = dirPath.mid(serverPath().length());
   subPath = subPath.startsWith('/') ? subPath : ('/' + subPath);
@@ -223,12 +223,12 @@ QList<SUPnPContentDirectory::Item> MediaServer::listContentDirItems(const QStrin
 
     if (item.isImage())
     {
-      item.protocols = mediaProfiles().listProtocols(item.imageSize);
+      item.protocols = mediaProfiles().listProtocols(client, item.imageSize);
     }
     else
     {
       int addVideo = 0;
-      SAudioFormat audioFormat = audioFormatFor(peer, item, addVideo);
+      SAudioFormat audioFormat = audioFormatFor(client, item, addVideo);
       if (!item.isMusic() && (audioFormat.numChannels() > 2) &&
           ((item.audioFormat.channelSetup() == SAudioFormat::Channels_Mono) ||
            (item.audioFormat.channelSetup() == SAudioFormat::Channels_Stereo))
@@ -237,7 +237,7 @@ QList<SUPnPContentDirectory::Item> MediaServer::listContentDirItems(const QStrin
         audioFormat.setChannelSetup(SAudioFormat::Channels_Stereo);
       }
 
-      SVideoFormat videoFormat = videoFormatFor(peer, item);
+      SVideoFormat videoFormat = videoFormatFor(client, item);
       videoFormat.setFrameRate(item.videoFormat.frameRate());
 
       if ((item.isVideo() && (addVideo >= 0)) || (addVideo > 0))
@@ -249,7 +249,7 @@ QList<SUPnPContentDirectory::Item> MediaServer::listContentDirItems(const QStrin
         else if (item.type == Item::Type_AudioBroadcast)
           item.type = Item::Type_VideoBroadcast;
 
-        item.protocols = mediaProfiles().listProtocols(audioFormat, videoFormat, item.seekable);
+        item.protocols = mediaProfiles().listProtocols(client, audioFormat, videoFormat, item.seekable);
       }
       else
       {
@@ -260,11 +260,11 @@ QList<SUPnPContentDirectory::Item> MediaServer::listContentDirItems(const QStrin
         else if (item.type == Item::Type_VideoBroadcast)
           item.type = Item::Type_AudioBroadcast;
 
-        item.protocols = mediaProfiles().listProtocols(audioFormat, item.seekable);
+        item.protocols = mediaProfiles().listProtocols(client, audioFormat, item.seekable);
       }
     }
 
-    setQueryItemsFor(peer, item.url);
+    setQueryItemsFor(client, item.url);
 
     result += item;
   }
@@ -272,7 +272,7 @@ QList<SUPnPContentDirectory::Item> MediaServer::listContentDirItems(const QStrin
   return result;
 }
 
-SAudioFormat MediaServer::audioFormatFor(const QString &peer, const Item &item, int &addVideo)
+SAudioFormat MediaServer::audioFormatFor(const QString &client, const Item &item, int &addVideo)
 {
   GlobalSettings settings;
   settings.beginGroup("DLNA");
@@ -287,8 +287,10 @@ SAudioFormat MediaServer::audioFormatFor(const QString &peer, const Item &item, 
   SAudioFormat result;
   result.setSampleRate(48000);
 
+  const QString clientTag = SStringParser::toCleanName(client).replace(' ', '_');
+
   foreach (const QString &group, settings.childGroups() << QString::null)
-  if (group.isEmpty() || group == ("Client_" + peer))
+  if (group.isEmpty() || group == ("Client_" + clientTag))
   {
     if (!group.isEmpty())
       settings.beginGroup(group);
@@ -328,7 +330,7 @@ SAudioFormat MediaServer::audioFormatFor(const QString &peer, const Item &item, 
   return result;
 }
 
-SVideoFormat MediaServer::videoFormatFor(const QString &peer, const Item &)
+SVideoFormat MediaServer::videoFormatFor(const QString &client, const Item &)
 {
   GlobalSettings settings;
   settings.beginGroup("DLNA");
@@ -338,8 +340,10 @@ SVideoFormat MediaServer::videoFormatFor(const QString &peer, const Item &)
 
   SVideoFormat result;
 
+  const QString clientTag = SStringParser::toCleanName(client).replace(' ', '_');
+
   foreach (const QString &group, settings.childGroups() << QString::null)
-  if (group.isEmpty() || group == ("Client_" + peer))
+  if (group.isEmpty() || group == ("Client_" + clientTag))
   {
     if (!group.isEmpty())
       settings.beginGroup(group);
@@ -358,7 +362,7 @@ SVideoFormat MediaServer::videoFormatFor(const QString &peer, const Item &)
   return result;
 }
 
-void MediaServer::setQueryItemsFor(const QString &peer, QUrl &url)
+void MediaServer::setQueryItemsFor(const QString &client, QUrl &url)
 {
   GlobalSettings settings;
   settings.beginGroup("DLNA");
@@ -376,8 +380,10 @@ void MediaServer::setQueryItemsFor(const QString &peer, QUrl &url)
   const QString genericMusicMode =
       settings.value("MusicMode", settings.defaultMusicModeName()).toString();
 
+  const QString clientTag = SStringParser::toCleanName(client).replace(' ', '_');
+
   foreach (const QString &group, settings.childGroups() << QString::null)
-  if (group.isEmpty() || group == ("Client_" + peer))
+  if (group.isEmpty() || group == ("Client_" + clientTag))
   {
     if (!group.isEmpty())
       settings.beginGroup(group);

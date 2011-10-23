@@ -36,7 +36,7 @@ public:
   virtual                       ~DataDecoder();
 
 public: // From SBufferDecoder
-  virtual bool                  openCodec(const SDataCodec &, Flags = Flag_None);
+  virtual bool                  openCodec(const SDataCodec &, const SInterfaces::BufferReader *, Flags = Flag_None);
   virtual SDataBufferList       decodeBuffer(const SEncodedDataBuffer &);
 
 private:

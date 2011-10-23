@@ -38,7 +38,7 @@ public:
   static SVideoBuffer           decodeImage(const QByteArray &);
 
 public: // From SBufferDecoder
-  virtual bool                  openCodec(const SVideoCodec &, Flags = Flag_None);
+  virtual bool                  openCodec(const SVideoCodec &, SInterfaces::BufferReader *, Flags);
   virtual SVideoBufferList      decodeBuffer(const SEncodedVideoBuffer &);
 };
 

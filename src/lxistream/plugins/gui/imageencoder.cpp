@@ -23,7 +23,6 @@
 namespace LXiStream {
 namespace GuiBackend {
 
-
 ImageEncoder::ImageEncoder(const QString &, QObject *parent)
   : SInterfaces::VideoEncoder(parent),
     quality(80)
@@ -34,7 +33,7 @@ ImageEncoder::~ImageEncoder()
 {
 }
 
-bool ImageEncoder::openCodec(const SVideoCodec &c, Flags flags)
+bool ImageEncoder::openCodec(const SVideoCodec &c, SInterfaces::BufferWriter *, Flags flags)
 {
   outCodec = c;
 
@@ -74,6 +73,5 @@ SEncodedVideoBufferList ImageEncoder::encodeBuffer(const SVideoBuffer &input)
 
   return SEncodedVideoBufferList();
 }
-
 
 } } // End of namespaces

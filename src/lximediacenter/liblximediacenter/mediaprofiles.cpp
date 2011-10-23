@@ -23,164 +23,436 @@ namespace LXiMediaCenter {
 
 struct MediaProfiles::Data
 {
+  QSettings * settings;
+  QMap<QString, QString> bestClientCache;
+
   QMultiMap<int, AudioProfile>  audioProfiles;
   QMultiMap<int, VideoProfile>  videoProfiles;
   QMultiMap<int, ImageProfile>  imageProfiles;
+
+  static const int hiddenPriority = 128;
+  static const int priorityBoost = 32;
+  static QMap<QByteArray, AudioProfile> audioProfileNames;
+  static QMap<QByteArray, VideoProfile> videoProfileNames;
+  static QMap<QByteArray, ImageProfile> imageProfileNames;
 };
+
+QMap<QByteArray, MediaProfiles::AudioProfile> MediaProfiles::Data::audioProfileNames;
+QMap<QByteArray, MediaProfiles::VideoProfile> MediaProfiles::Data::videoProfileNames;
+QMap<QByteArray, MediaProfiles::ImageProfile> MediaProfiles::Data::imageProfileNames;
 
 MediaProfiles::MediaProfiles(void)
   : d(new Data())
 {
+  d->settings = NULL;
+
+#define INSERT_PROFILE_NAME(m, n) m.insert(#n, n)
+
+  if (d->audioProfileNames.isEmpty())
+  {
+    INSERT_PROFILE_NAME(d->audioProfileNames, LPCM);
+    INSERT_PROFILE_NAME(d->audioProfileNames, MP2);
+    INSERT_PROFILE_NAME(d->audioProfileNames, MP3);
+    INSERT_PROFILE_NAME(d->audioProfileNames, AAC_ADTS);
+    INSERT_PROFILE_NAME(d->audioProfileNames, AC3);
+    INSERT_PROFILE_NAME(d->audioProfileNames, WMABASE);
+    INSERT_PROFILE_NAME(d->audioProfileNames, VORBIS);
+  }
+
+  if (d->videoProfileNames.isEmpty())
+  {
+    INSERT_PROFILE_NAME(d->videoProfileNames, MPEG1);
+    INSERT_PROFILE_NAME(d->videoProfileNames, MPEG_PS_PAL);
+    INSERT_PROFILE_NAME(d->videoProfileNames, MPEG_PS_PAL_XAC3);
+    INSERT_PROFILE_NAME(d->videoProfileNames, MPEG_PS_NTSC);
+    INSERT_PROFILE_NAME(d->videoProfileNames, MPEG_PS_NTSC_XAC3);
+    INSERT_PROFILE_NAME(d->videoProfileNames, MPEG_TS_SD_EU);
+    INSERT_PROFILE_NAME(d->videoProfileNames, MPEG_TS_SD_EU_ISO);
+    INSERT_PROFILE_NAME(d->videoProfileNames, MPEG_TS_HD_EU);
+    INSERT_PROFILE_NAME(d->videoProfileNames, MPEG_TS_HD_EU_ISO);
+    INSERT_PROFILE_NAME(d->videoProfileNames, MPEG_TS_SD_NA);
+    INSERT_PROFILE_NAME(d->videoProfileNames, MPEG_TS_SD_NA_ISO);
+    INSERT_PROFILE_NAME(d->videoProfileNames, MPEG_TS_HD_NA);
+    INSERT_PROFILE_NAME(d->videoProfileNames, MPEG_TS_HD_NA_ISO);
+    INSERT_PROFILE_NAME(d->videoProfileNames, MPEG4_P2_TS_SP_AAC);
+    INSERT_PROFILE_NAME(d->videoProfileNames, MPEG4_P2_TS_SP_AAC_ISO);
+    INSERT_PROFILE_NAME(d->videoProfileNames, MPEG4_P2_TS_SP_MPEG1_L3);
+    INSERT_PROFILE_NAME(d->videoProfileNames, MPEG4_P2_TS_SP_MPEG1_L3_ISO);
+    INSERT_PROFILE_NAME(d->videoProfileNames, MPEG4_P2_TS_SP_MPEG2_L2);
+    INSERT_PROFILE_NAME(d->videoProfileNames, MPEG4_P2_TS_SP_MPEG2_L2_ISO);
+    INSERT_PROFILE_NAME(d->videoProfileNames, MPEG4_P2_TS_SP_AC3_L3);
+    INSERT_PROFILE_NAME(d->videoProfileNames, MPEG4_P2_TS_SP_AC3_ISO);
+    INSERT_PROFILE_NAME(d->videoProfileNames, MPEG4_P2_TS_ASP_AAC);
+    INSERT_PROFILE_NAME(d->videoProfileNames, MPEG4_P2_TS_ASP_AAC_ISO);
+    INSERT_PROFILE_NAME(d->videoProfileNames, MPEG4_P2_TS_ASP_MPEG1_L3);
+    INSERT_PROFILE_NAME(d->videoProfileNames, MPEG4_P2_TS_ASP_MPEG1_L3_ISO);
+    INSERT_PROFILE_NAME(d->videoProfileNames, MPEG4_P2_TS_ASP_AC3_L3);
+    INSERT_PROFILE_NAME(d->videoProfileNames, MPEG4_P2_TS_ASP_AC3_ISO);
+    INSERT_PROFILE_NAME(d->videoProfileNames, WMVMED_BASE);
+    INSERT_PROFILE_NAME(d->videoProfileNames, MPEG_PS_SD_EU_NONSTD);
+    INSERT_PROFILE_NAME(d->videoProfileNames, MPEG_PS_HD_EU_NONSTD);
+    INSERT_PROFILE_NAME(d->videoProfileNames, MPEG_PS_SD_NA_NONSTD);
+    INSERT_PROFILE_NAME(d->videoProfileNames, MPEG_PS_HD_NA_NONSTD);
+    INSERT_PROFILE_NAME(d->videoProfileNames, MPEG4_P2_MATROSKA_MP3_SD_NONSTD);
+    INSERT_PROFILE_NAME(d->videoProfileNames, MPEG4_P2_MATROSKA_MP3_HD_NONSTD);
+    INSERT_PROFILE_NAME(d->videoProfileNames, MPEG4_P2_MATROSKA_AAC_SD_NONSTD);
+    INSERT_PROFILE_NAME(d->videoProfileNames, MPEG4_P2_MATROSKA_AAC_HD_NONSTD);
+    INSERT_PROFILE_NAME(d->videoProfileNames, MPEG4_P2_MATROSKA_AC3_SD_NONSTD);
+    INSERT_PROFILE_NAME(d->videoProfileNames, MPEG4_P2_MATROSKA_AC3_HD_NONSTD);
+  }
+
+  if (d->imageProfileNames.isEmpty())
+  {
+    INSERT_PROFILE_NAME(d->imageProfileNames, JPEG_TN);
+    INSERT_PROFILE_NAME(d->imageProfileNames, JPEG_SM);
+    INSERT_PROFILE_NAME(d->imageProfileNames, JPEG_MED);
+    INSERT_PROFILE_NAME(d->imageProfileNames, JPEG_LRG);
+    INSERT_PROFILE_NAME(d->imageProfileNames, PNG_TN);
+    INSERT_PROFILE_NAME(d->imageProfileNames, PNG_LRG);
+  }
+
+#undef INSERT_PROFILE_NAME
 }
 
 MediaProfiles::~MediaProfiles()
 {
+  delete d->settings;
   delete d;
   *const_cast<Data **>(&d) = NULL;
 }
 
-void MediaProfiles::addProfile(AudioProfile profile, int priority)
+void MediaProfiles::openDeviceConfig(const QString &filename)
 {
-  d->audioProfiles.insert(priority, profile);
+  delete d->settings;
+  d->settings = new QSettings(filename, QSettings::IniFormat);
+  d->bestClientCache.clear();
 }
 
-void MediaProfiles::addProfile(VideoProfile profile, int priority)
+void MediaProfiles::setCodecs(const QSet<QString> &audioCodecs, const QSet<QString> &videoCodecs, const QSet<QString> &imageCodecs, const QSet<QString> &formats)
 {
-  d->videoProfiles.insert(priority, profile);
+  foreach (AudioProfile profile, d->audioProfileNames)
+  if (audioCodecs.contains(audioCodecFor(profile, SAudioFormat::Channels_Stereo)) &&
+      audioCodecs.contains(audioCodecFor(profile, SAudioFormat::Channels_Surround_5_1)) &&
+      formats.contains(formatFor(profile)))
+  {
+    d->audioProfiles.insert(profilePriority(profile), profile);
+  }
+
+  foreach (VideoProfile profile, d->videoProfileNames)
+  if (audioCodecs.contains(audioCodecFor(profile, SAudioFormat::Channels_Stereo)) &&
+      audioCodecs.contains(audioCodecFor(profile, SAudioFormat::Channels_Surround_5_1)) &&
+      videoCodecs.contains(videoCodecFor(profile)) &&
+      formats.contains(formatFor(profile)))
+  {
+    d->videoProfiles.insert(profilePriority(profile), profile);
+  }
+
+  foreach (ImageProfile profile, d->imageProfileNames)
+  if (imageCodecs.contains(imageCodecFor(profile)))
+    d->imageProfiles.insert(profilePriority(profile), profile);
 }
 
-void MediaProfiles::addProfile(ImageProfile profile, int priority)
+QStringList MediaProfiles::enabledAudioProfiles(void)
 {
-  d->imageProfiles.insert(priority, profile);
+  QStringList result;
+  foreach (AudioProfile profile, d->audioProfiles)
+    result += profileName(profile);
+
+  return result;
 }
 
-SUPnPBase::ProtocolList MediaProfiles::listProtocols(void)
+QStringList MediaProfiles::enabledVideoProfiles(void)
+{
+  QStringList result;
+  foreach (VideoProfile profile, d->videoProfiles)
+    result += profileName(profile);
+
+  return result;
+}
+
+QStringList MediaProfiles::enabledImageProfiles(void)
+{
+  QStringList result;
+  foreach (ImageProfile profile, d->imageProfiles)
+    result += profileName(profile);
+
+  return result;
+}
+
+SUPnPBase::ProtocolList MediaProfiles::listProtocols(const QString &client)
 {
   QMultiMap<int, SUPnPBase::Protocol> result;
 
+  const QStringList supportedAudioProfiles = this->supportedAudioProfiles(client);
   for (QMultiMap<int, AudioProfile>::Iterator i = d->audioProfiles.begin();
        i != d->audioProfiles.end();
        i++)
   {
-    result.insert(i.key(), SUPnPBase::Protocol(
-        "http-get",
-        mimeTypeFor(i.value()),
-        true, false, true,
-        profileName(i.value()),
-        suffixFor(i.value())));
+    const QByteArray name = profileName(i.value());
+    if (supportedAudioProfiles.isEmpty() || supportedAudioProfiles.contains(name))
+    {
+      result.insert(i.key(), SUPnPBase::Protocol(
+          "http-get",
+          mimeTypeFor(i.value()),
+          true, false, true,
+          name,
+          suffixFor(i.value())));
+    }
   }
 
+  const QStringList supportedVideoProfiles = this->supportedVideoProfiles(client);
   for (QMultiMap<int, VideoProfile>::Iterator i = d->videoProfiles.begin();
        i != d->videoProfiles.end();
        i++)
   {
-    result.insert(i.key(), SUPnPBase::Protocol(
-        "http-get",
-        mimeTypeFor(i.value()),
-        true, false, true,
-        profileName(i.value()),
-        suffixFor(i.value())));
+    const QByteArray name = profileName(i.value());
+    if (supportedVideoProfiles.isEmpty() || supportedVideoProfiles.contains(name))
+    {
+      result.insert(i.key(), SUPnPBase::Protocol(
+          "http-get",
+          mimeTypeFor(i.value()),
+          true, false, true,
+          name,
+          suffixFor(i.value())));
+    }
   }
 
+  const QStringList supportedImageProfiles = this->supportedImageProfiles(client);
   for (QMultiMap<int, ImageProfile>::Iterator i = d->imageProfiles.begin();
        i != d->imageProfiles.end();
        i++)
   {
-    result.insert(i.key(), SUPnPBase::Protocol(
-        "http-get",
-        mimeTypeFor(i.value()),
-        true, false, false,
-        profileName(i.value()),
-        suffixFor(i.value())));
+    const QByteArray name = profileName(i.value());
+    if (supportedImageProfiles.isEmpty() || supportedImageProfiles.contains(name))
+    {
+      result.insert(i.key(), SUPnPBase::Protocol(
+          "http-get",
+          mimeTypeFor(i.value()),
+          true, false, false,
+          name,
+          suffixFor(i.value())));
+    }
   }
 
   return result.values();
 }
 
-SUPnPBase::ProtocolList MediaProfiles::listProtocols(const SAudioFormat &audioFormat, bool seekable)
+SUPnPBase::ProtocolList MediaProfiles::listProtocols(const QString &client, const SAudioFormat &audioFormat, bool seekable)
 {
   QMultiMap<int, SUPnPBase::Protocol> result;
 
+  const QStringList supportedAudioProfiles = this->supportedAudioProfiles(client);
   for (QMultiMap<int, AudioProfile>::Iterator i = d->audioProfiles.begin();
        i != d->audioProfiles.end();
        i++)
   {
-    SAudioFormat correctedAudioFormat = audioFormat;
-    const int priority = i.key() + correctFormat(*i,correctedAudioFormat);
-
-    result.insert(priority, SUPnPBase::Protocol(
-        "http-get",
-        mimeTypeFor(i.value()),
-        true, false, seekable,
-        profileName(i.value()),
-        suffixFor(i.value())));
-  }
-
-  return result.values();
-}
-
-SUPnPBase::ProtocolList MediaProfiles::listProtocols(const SAudioFormat &audioFormat, const SVideoFormat &videoFormat, bool seekable)
-{
-  QMultiMap<int, SUPnPBase::Protocol> result;
-
-  for (QMultiMap<int, VideoProfile>::Iterator i = d->videoProfiles.begin();
-       i != d->videoProfiles.end();
-       i++)
-  {
-    SAudioFormat correctedAudioFormat = audioFormat;
-    SVideoFormat correctedVideoFormat = videoFormat;
-    const int priority =
-        i.key() +
-        correctFormat(*i, correctedAudioFormat) +
-        correctFormat(*i, correctedVideoFormat);
-
-    if (priority < 128)
+    const QByteArray name = profileName(i.value());
+    if (supportedAudioProfiles.isEmpty() || supportedAudioProfiles.contains(name))
     {
+      SAudioFormat correctedAudioFormat = audioFormat;
+      const int priority = i.key() + correctFormat(*i,correctedAudioFormat);
+
       result.insert(priority, SUPnPBase::Protocol(
           "http-get",
           mimeTypeFor(i.value()),
           true, false, seekable,
-          profileName(i.value()),
-          suffixFor(i.value())));
+          name,
+          suffixFor(i.value()),
+          audioFormat.sampleRate(), audioFormat.numChannels()));
     }
   }
 
   return result.values();
 }
 
-SUPnPBase::ProtocolList MediaProfiles::listProtocols(const SSize &imageSize)
+SUPnPBase::ProtocolList MediaProfiles::listProtocols(const QString &client, const SAudioFormat &audioFormat, const SVideoFormat &videoFormat, bool seekable)
 {
   QMultiMap<int, SUPnPBase::Protocol> result;
 
-  for (QMultiMap<int, ImageProfile>::Iterator i = d->imageProfiles.begin();
-       i != d->imageProfiles.end();
+  const QStringList supportedVideoProfiles = this->supportedVideoProfiles(client);
+  for (QMultiMap<int, VideoProfile>::Iterator i = d->videoProfiles.begin();
+       i != d->videoProfiles.end();
        i++)
   {
-    SSize correctedImageSize = imageSize;
-    const int priority = i.key() + correctFormat(*i, correctedImageSize);
-
-    if (priority < 128)
+    const QByteArray name = profileName(i.value());
+    if (supportedVideoProfiles.isEmpty() || supportedVideoProfiles.contains(name))
     {
-      result.insert(priority, SUPnPBase::Protocol(
-          "http-get",
-          mimeTypeFor(i.value()),
-          true, false, false,
-          profileName(i.value()),
-          suffixFor(i.value())));
+      SAudioFormat correctedAudioFormat = audioFormat;
+      SVideoFormat correctedVideoFormat = videoFormat;
+      const int priority =
+          i.key() +
+          correctFormat(*i, correctedAudioFormat) +
+          correctFormat(*i, correctedVideoFormat);
+
+      if (priority < d->hiddenPriority)
+      {
+        result.insert(priority, SUPnPBase::Protocol(
+            "http-get",
+            mimeTypeFor(i.value()),
+            true, false, seekable,
+            name,
+            suffixFor(i.value()),
+            correctedAudioFormat.sampleRate(), correctedAudioFormat.numChannels(),
+            correctedVideoFormat.size().size()));
+      }
     }
   }
 
   return result.values();
+}
+
+SUPnPBase::ProtocolList MediaProfiles::listProtocols(const QString &client, const SSize &imageSize)
+{
+  QMultiMap<int, SUPnPBase::Protocol> result;
+
+  const QStringList supportedImageProfiles = this->supportedImageProfiles(client);
+  for (QMultiMap<int, ImageProfile>::Iterator i = d->imageProfiles.begin();
+       i != d->imageProfiles.end();
+       i++)
+  {
+    const QByteArray name = profileName(i.value());
+    if (supportedImageProfiles.isEmpty() || supportedImageProfiles.contains(name))
+    {
+      SSize correctedImageSize = imageSize;
+      const int priority = i.key() + correctFormat(*i, correctedImageSize);
+
+      const quint64 estimatedSize =
+          1024 + // Estimated header
+          ((quint64(correctedImageSize.absoluteWidth()) *
+            quint64(correctedImageSize.absoluteHeight())) /
+           (name.startsWith("JPEG") ? 2 : 1));
+
+      if (priority < d->hiddenPriority)
+      {
+        result.insert(priority, SUPnPBase::Protocol(
+            "http-get",
+            mimeTypeFor(i.value()),
+            true, false, false,
+            name,
+            suffixFor(i.value()),
+            0, 0,
+            correctedImageSize.size(),
+            estimatedSize));
+      }
+    }
+  }
+
+  return result.values();
+}
+
+QStringList MediaProfiles::supportedAudioProfiles(const QString &client)
+{
+  const QString bestClient = findBestClient(client);
+
+  QStringList result;
+  if (d->settings && !bestClient.isEmpty())
+  {
+    d->settings->beginGroup(bestClient);
+    result = d->settings->value("AudioProfiles", result).toStringList();
+    d->settings->endGroup();
+  }
+
+  GlobalSettings settings;
+  settings.beginGroup("DLNA");
+  settings.beginGroup("Client_" + SStringParser::toCleanName(client).replace(' ', '_'));
+  return settings.value("SupportedAudioProfiles", result).toStringList();
+}
+
+QStringList MediaProfiles::supportedVideoProfiles(const QString &client)
+{
+  const QString bestClient = findBestClient(client);
+
+  QStringList result;
+  if (d->settings && !bestClient.isEmpty())
+  {
+    d->settings->beginGroup(bestClient);
+    result = d->settings->value("VideoProfiles", result).toStringList();
+    d->settings->endGroup();
+  }
+
+  GlobalSettings settings;
+  settings.beginGroup("DLNA");
+  settings.beginGroup("Client_" + SStringParser::toCleanName(client).replace(' ', '_'));
+  return settings.value("SupportedVideoProfiles", result).toStringList();
+}
+
+QStringList MediaProfiles::supportedImageProfiles(const QString &client)
+{
+  const QString bestClient = findBestClient(client);
+
+  QStringList result;
+  if (d->settings && !bestClient.isEmpty())
+  {
+    d->settings->beginGroup(bestClient);
+    result = d->settings->value("ImageProfiles", result).toStringList();
+    d->settings->endGroup();
+  }
+
+  GlobalSettings settings;
+  settings.beginGroup("DLNA");
+  settings.beginGroup("Client_" + SStringParser::toCleanName(client).replace(' ', '_'));
+  return settings.value("SupportedImageProfiles", result).toStringList();
+}
+
+QString MediaProfiles::findBestClient(const QString &client)
+{
+  QString result;
+  if (!client.isEmpty())
+  {
+    QMap<QString, QString>::Iterator i = d->bestClientCache.find(client);
+    if (i != d->bestClientCache.end())
+      return *i;
+
+    QString clientUserAgent, clientVersion;
+    {
+      const int at = client.indexOf('@');
+      clientUserAgent = (at >= 0) ? client.left(at) : client;
+
+      const int sl = clientUserAgent.lastIndexOf('/');
+      if (sl > 0)
+      {
+        clientVersion = clientUserAgent.mid(sl + 1).toUpper();
+        clientUserAgent = clientUserAgent.left(sl);
+      }
+    }
+
+    QString bestVersion;
+    if (d->settings && !clientUserAgent.isEmpty())
+    foreach (const QString &groupUserAgent, d->settings->childGroups())
+    {
+      if (clientUserAgent.compare(groupUserAgent, Qt::CaseInsensitive) == 0)
+      {
+        d->settings->beginGroup(groupUserAgent);
+
+        foreach (const QString &groupVersion, d->settings->childGroups())
+        {
+          if (bestVersion.isEmpty() ||
+              ((clientVersion >= groupVersion) && (groupVersion > bestVersion)) ||
+              ((clientVersion <= groupVersion) && (groupVersion < bestVersion)))
+          {
+            bestVersion = groupVersion;
+          }
+        }
+
+        if (!bestVersion.isEmpty())
+          result = groupUserAgent + '/' + bestVersion;
+        else
+          result = groupUserAgent;
+
+        d->settings->endGroup();
+      }
+    }
+
+    d->bestClientCache.insert(client, result);
+  }
+
+  return result;
 }
 
 int MediaProfiles::correctFormat(AudioProfile profile, SAudioFormat &format)
 {
   switch (profile)
   {
-  case AC3:
-    format.setSampleRate(48000);
-    return correctFormatSurround51(format);
-
   case LPCM:
     format.setSampleRate(48000);
     if ((format.numChannels() == 1) || (format.numChannels() == 2))
@@ -196,10 +468,15 @@ int MediaProfiles::correctFormat(AudioProfile profile, SAudioFormat &format)
 
   case MP2:
   case MP3:
+  case AAC_ADTS:
   case WMABASE:
   case VORBIS:
-    format.setSampleRate(48000);
+    format.setSampleRate(44100);
     return correctFormatStereo(format);
+
+  case AC3:
+    format.setSampleRate(48000);
+    return correctFormatSurround51(format);
   }
 
   return 0;
@@ -212,23 +489,50 @@ int MediaProfiles::correctFormat(VideoProfile profile, SAudioFormat &format)
   case MPEG1:
   case MPEG_PS_PAL:
   case MPEG_PS_NTSC:
+  case MPEG4_P2_TS_SP_AAC:
+  case MPEG4_P2_TS_SP_AAC_ISO:
+  case MPEG4_P2_TS_SP_MPEG1_L3:
+  case MPEG4_P2_TS_SP_MPEG1_L3_ISO:
+  case MPEG4_P2_TS_SP_MPEG2_L2:
+  case MPEG4_P2_TS_SP_MPEG2_L2_ISO:
+  case MPEG4_P2_TS_ASP_AAC:
+  case MPEG4_P2_TS_ASP_AAC_ISO:
+  case MPEG4_P2_TS_ASP_MPEG1_L3:
+  case MPEG4_P2_TS_ASP_MPEG1_L3_ISO:
+  case WMVMED_BASE:
+  case MPEG4_P2_MATROSKA_MP3_SD_NONSTD:
+  case MPEG4_P2_MATROSKA_AAC_SD_NONSTD:
+    format.setSampleRate(44100);
+    return correctFormatStereo(format);
+
+  case MPEG4_P2_MATROSKA_MP3_HD_NONSTD:
+  case MPEG4_P2_MATROSKA_AAC_HD_NONSTD:
     format.setSampleRate(48000);
     return correctFormatStereo(format);
 
   case MPEG_PS_PAL_XAC3:
   case MPEG_PS_NTSC_XAC3:
-  case MPEG_PS_SD_EU:
   case MPEG_TS_SD_EU:
   case MPEG_TS_SD_EU_ISO:
-  case MPEG_PS_HD_EU:
-  case MPEG_TS_HD_EU:
-  case MPEG_TS_HD_EU_ISO:
-  case MPEG_PS_SD_NA:
   case MPEG_TS_SD_NA:
   case MPEG_TS_SD_NA_ISO:
-  case MPEG_PS_HD_NA:
+  case MPEG4_P2_TS_SP_AC3_L3:
+  case MPEG4_P2_TS_SP_AC3_ISO:
+  case MPEG4_P2_TS_ASP_AC3_L3:
+  case MPEG4_P2_TS_ASP_AC3_ISO:
+  case MPEG_PS_SD_EU_NONSTD:
+  case MPEG_PS_SD_NA_NONSTD:
+  case MPEG4_P2_MATROSKA_AC3_SD_NONSTD:
+    format.setSampleRate(44100);
+    return correctFormatSurround51(format);
+
+  case MPEG_TS_HD_EU:
+  case MPEG_TS_HD_EU_ISO:
   case MPEG_TS_HD_NA:
   case MPEG_TS_HD_NA_ISO:
+  case MPEG_PS_HD_EU_NONSTD:
+  case MPEG_PS_HD_NA_NONSTD:
+  case MPEG4_P2_MATROSKA_AC3_HD_NONSTD:
     format.setSampleRate(48000);
     return correctFormatSurround51(format);
   }
@@ -245,7 +549,9 @@ int MediaProfiles::correctFormat(VideoProfile profile, SVideoFormat &format)
   {
   case MPEG1:
     if ((format.size().width() <= 352) && (format.size().height() <= 288))
-      offset -= 2; // Prefer
+      offset -= Data::priorityBoost;
+    else if ((format.size().width() >= 1280) || (format.size().height() >= 720))
+      offset += Data::priorityBoost;
 
     if (frameRate < 24.5)
     {
@@ -267,16 +573,16 @@ int MediaProfiles::correctFormat(VideoProfile profile, SVideoFormat &format)
 
   case MPEG_PS_PAL:
   case MPEG_PS_PAL_XAC3:
-  case MPEG_PS_SD_EU:
   case MPEG_TS_SD_EU:
   case MPEG_TS_SD_EU_ISO:
+  case MPEG_PS_SD_EU_NONSTD:
     if ((format.size().width() <= 352) && (format.size().height() <= 288))
-      offset = 256; // Hide
-    else if ((format.size().width() <= 720) && (format.size().height() <= 576))
-      offset -= 2; // Prefer
+      offset = Data::hiddenPriority * 2;
+    else if ((format.size().width() <= 768) && (format.size().height() <= 576))
+      offset -= Data::priorityBoost;
 
-    if (frameRate < 27.5)
-      offset -= 2; // Prefer
+    if (frameRate > 27.5)
+      offset = Data::hiddenPriority * 2;
 
     format.setFrameRate(SInterval::fromFrequency(25));
     format.setSize(format.size().scaled(720, 576));
@@ -285,27 +591,24 @@ int MediaProfiles::correctFormat(VideoProfile profile, SVideoFormat &format)
   case MPEG_PS_NTSC:
   case MPEG_PS_NTSC_XAC3:
     if ((format.size().width() <= 352) && (format.size().height() <= 288))
-      offset = 256; // Hide
-    else if ((format.size().width() <= 720) && (format.size().height() <= 576))
-      offset -= 2; // Prefer
+      offset = Data::hiddenPriority * 2;
+    else if ((format.size().width() <= 768) && (format.size().height() <= 576))
+      offset -= Data::priorityBoost;
 
-    if (frameRate >= 27.5)
-      offset -= 2; // Prefer
+    if (frameRate < 27.5)
+      offset = Data::hiddenPriority * 2;
 
     format.setFrameRate(SInterval::ntscFrequency(30));
     format.setSize(format.size().scaled(704, 480));
     break;
 
-  case MPEG_PS_SD_NA:
   case MPEG_TS_SD_NA:
   case MPEG_TS_SD_NA_ISO:
+  case MPEG_PS_SD_NA_NONSTD:
     if ((format.size().width() <= 352) && (format.size().height() <= 288))
-      offset = 256; // Hide
-    else if ((format.size().width() <= 720) && (format.size().height() <= 576))
-      offset -= 2; // Prefer
-
-    if ((frameRate >= 27.5) || (frameRate < 24.5))
-      offset -= 2; // Prefer
+      offset = Data::hiddenPriority * 2;
+    else if ((format.size().width() <= 768) && (format.size().height() <= 576))
+      offset -= Data::priorityBoost;
 
     if (frameRate < 27.5)
       format.setFrameRate(SInterval::ntscFrequency(24));
@@ -316,13 +619,13 @@ int MediaProfiles::correctFormat(VideoProfile profile, SVideoFormat &format)
 
     break;
 
-  case MPEG_PS_HD_EU:
   case MPEG_TS_HD_EU:
   case MPEG_TS_HD_EU_ISO:
+  case MPEG_PS_HD_EU_NONSTD:
     if ((format.size().width() >= 1280) || (format.size().height() >= 720))
-      offset -= 4; // Prefer
+      offset -= Data::priorityBoost;
     else
-      offset = 256; // Hide
+      offset = Data::hiddenPriority * 2;
 
     if (frameRate < 24.5)
       format.setFrameRate(SInterval::fromFrequency(24));
@@ -338,18 +641,116 @@ int MediaProfiles::correctFormat(VideoProfile profile, SVideoFormat &format)
 
     break;
 
-  case MPEG_PS_HD_NA:
   case MPEG_TS_HD_NA:
   case MPEG_TS_HD_NA_ISO:
+  case MPEG_PS_HD_NA_NONSTD:
     if ((format.size().width() >= 1280) || (format.size().height() >= 720))
-      offset -= 4; // Prefer
+      offset -= Data::priorityBoost;
     else
-      offset = 256; // Hide
+      offset = Data::hiddenPriority * 2;
 
     if (frameRate < 27.5)
       format.setFrameRate(SInterval::ntscFrequency(24));
     else
       format.setFrameRate(SInterval::ntscFrequency(30));
+
+    if ((format.size().width() >= 1920) || (format.size().height() >= 1080))
+      format.setSize(SSize(1920, 1080));
+    else if ((format.size().width() >= 1280) || (format.size().height() >= 720))
+      format.setSize(SSize(1280, 720));
+
+    break;
+
+  case MPEG4_P2_TS_SP_AAC:
+  case MPEG4_P2_TS_SP_AAC_ISO:
+  case MPEG4_P2_TS_SP_MPEG2_L2:
+  case MPEG4_P2_TS_SP_MPEG2_L2_ISO:
+  case MPEG4_P2_TS_SP_AC3_ISO:
+    if ((format.size().width() <= 352) && (format.size().height() <= 288))
+      offset -= Data::priorityBoost;
+    else if ((format.size().width() >= 1280) || (format.size().height() >= 720))
+      offset += Data::priorityBoost;
+
+    if ((float(format.size().absoluteWidth()) / float(format.size().absoluteHeight())) >= 1.6f)
+      format.setSize(format.size().scaled(320, 180)); // QVGA 16:9
+    else
+      format.setSize(format.size().scaled(320, 240)); // QVGA 4:3
+
+    format.setFrameRate(SInterval::fromFrequency(15));
+
+    break;
+
+  case MPEG4_P2_TS_SP_MPEG1_L3:
+  case MPEG4_P2_TS_SP_MPEG1_L3_ISO:
+  case MPEG4_P2_TS_SP_AC3_L3:
+    if ((format.size().width() <= 352) && (format.size().height() <= 288))
+      offset = Data::hiddenPriority * 2;
+    else if ((format.size().width() <= 720) && (format.size().height() <= 576))
+      offset -= Data::priorityBoost;
+
+    if ((float(format.size().absoluteWidth()) / float(format.size().absoluteHeight())) >= 1.6f)
+      format.setSize(format.size().scaled(640, 360)); // VGA 16:9
+    else
+      format.setSize(format.size().scaled(640, 480)); // VGA
+
+    break;
+
+  case MPEG4_P2_TS_ASP_AAC:
+  case MPEG4_P2_TS_ASP_AAC_ISO:
+  case MPEG4_P2_TS_ASP_MPEG1_L3:
+  case MPEG4_P2_TS_ASP_MPEG1_L3_ISO:
+  case MPEG4_P2_TS_ASP_AC3_L3:
+  case MPEG4_P2_TS_ASP_AC3_ISO:
+    if ((format.size().width() <= 352) && (format.size().height() <= 288))
+      offset = Data::hiddenPriority * 2;
+    else if ((format.size().width() <= 720) && (format.size().height() <= 576))
+      offset -= Data::priorityBoost;
+
+    format.setSize(format.size().scaled(720, 576));
+
+    break;
+
+  case WMVMED_BASE:
+    if ((format.size().width() <= 352) && (format.size().height() <= 288))
+      offset = Data::hiddenPriority * 2;
+    else if ((format.size().width() <= 720) && (format.size().height() <= 576))
+      offset -= Data::priorityBoost;
+
+    if (frameRate < 27.5)
+    {
+      format.setFrameRate(SInterval::fromFrequency(25));
+      format.setSize(format.size().scaled(720, 576));
+    }
+    else
+    {
+      format.setFrameRate(SInterval::ntscFrequency(30));
+      format.setSize(format.size().scaled(720, 480));
+    }
+
+    break;
+
+  case MPEG4_P2_MATROSKA_MP3_SD_NONSTD:
+  case MPEG4_P2_MATROSKA_AAC_SD_NONSTD:
+  case MPEG4_P2_MATROSKA_AC3_SD_NONSTD:
+    if ((format.size().width() <= 352) && (format.size().height() <= 288))
+      offset = Data::hiddenPriority * 2;
+    else if ((format.size().width() <= 768) && (format.size().height() <= 576))
+      offset -= Data::priorityBoost;
+
+    if ((float(format.size().absoluteWidth()) / float(format.size().absoluteHeight())) >= 1.6f)
+      format.setSize(format.size().scaled(640, 360)); // VGA 16:9
+    else
+      format.setSize(format.size().scaled(640, 480)); // VGA
+
+    break;
+
+  case MPEG4_P2_MATROSKA_MP3_HD_NONSTD:
+  case MPEG4_P2_MATROSKA_AAC_HD_NONSTD:
+  case MPEG4_P2_MATROSKA_AC3_HD_NONSTD:
+    if ((format.size().width() >= 1280) || (format.size().height() >= 720))
+      offset -= Data::priorityBoost;
+    else
+      offset = Data::hiddenPriority * 2;
 
     if ((format.size().width() >= 1920) || (format.size().height() >= 1080))
       format.setSize(SSize(1920, 1080));
@@ -417,7 +818,7 @@ int MediaProfiles::correctFormat(ImageProfile profile, SSize &size)
 
 #define PROFILE_NAME(x) if (profileName == #x) return x
 
-MediaProfiles::AudioProfile MediaProfiles::audioProfileFor(const QString &contentFeatures)
+MediaProfiles::AudioProfile MediaProfiles::audioProfileFor(const QString &contentFeatures) const
 {
   const int profilePos = contentFeatures.indexOf("DLNA.ORG_PN=");
   if (profilePos >= 0)
@@ -425,18 +826,17 @@ MediaProfiles::AudioProfile MediaProfiles::audioProfileFor(const QString &conten
     const int end = contentFeatures.indexOf(';', profilePos);
     const QString profileName = contentFeatures.mid(profilePos + 12, qMax(-1, end - (profilePos + 12)));
 
-         PROFILE_NAME(AC3);
-    else PROFILE_NAME(LPCM);
-    else PROFILE_NAME(MP2);
-    else PROFILE_NAME(MP3);
-    else PROFILE_NAME(WMABASE);
-    else PROFILE_NAME(VORBIS);
+    QMap<QByteArray, AudioProfile>::ConstIterator i = d->audioProfileNames.find(profileName.toAscii());
+    if (i != d->audioProfileNames.end())
+      return i.value();
+
+    Q_ASSERT_X(false, "Could not find", profileName.toAscii().data());
   }
 
   return AudioProfile(0);
 }
 
-MediaProfiles::VideoProfile MediaProfiles::videoProfileFor(const QString &contentFeatures)
+MediaProfiles::VideoProfile MediaProfiles::videoProfileFor(const QString &contentFeatures) const
 {
   const int profilePos = contentFeatures.indexOf("DLNA.ORG_PN=");
   if (profilePos >= 0)
@@ -444,29 +844,17 @@ MediaProfiles::VideoProfile MediaProfiles::videoProfileFor(const QString &conten
     const int end = contentFeatures.indexOf(';', profilePos);
     const QString profileName = contentFeatures.mid(profilePos + 12, qMax(-1, end - (profilePos + 12)));
 
-         PROFILE_NAME(MPEG1);
-    else PROFILE_NAME(MPEG_PS_PAL);
-    else PROFILE_NAME(MPEG_PS_PAL_XAC3);
-    else PROFILE_NAME(MPEG_PS_NTSC);
-    else PROFILE_NAME(MPEG_PS_NTSC_XAC3);
-    else PROFILE_NAME(MPEG_PS_SD_EU);
-    else PROFILE_NAME(MPEG_TS_SD_EU);
-    else PROFILE_NAME(MPEG_TS_SD_EU_ISO);
-    else PROFILE_NAME(MPEG_PS_HD_EU);
-    else PROFILE_NAME(MPEG_TS_HD_EU);
-    else PROFILE_NAME(MPEG_TS_HD_EU_ISO);
-    else PROFILE_NAME(MPEG_PS_SD_NA);
-    else PROFILE_NAME(MPEG_TS_SD_NA);
-    else PROFILE_NAME(MPEG_TS_SD_NA_ISO);
-    else PROFILE_NAME(MPEG_PS_HD_NA);
-    else PROFILE_NAME(MPEG_TS_HD_NA);
-    else PROFILE_NAME(MPEG_TS_HD_NA_ISO);
+    QMap<QByteArray, VideoProfile>::ConstIterator i = d->videoProfileNames.find(profileName.toAscii());
+    if (i != d->videoProfileNames.end())
+      return i.value();
+
+    Q_ASSERT_X(false, "Could not find", profileName.toAscii().data());
   }
 
   return VideoProfile(0);
 }
 
-MediaProfiles::ImageProfile MediaProfiles::imageProfileFor(const QString &contentFeatures)
+MediaProfiles::ImageProfile MediaProfiles::imageProfileFor(const QString &contentFeatures) const
 {
   const int profilePos = contentFeatures.indexOf("DLNA.ORG_PN=");
   if (profilePos >= 0)
@@ -474,120 +862,186 @@ MediaProfiles::ImageProfile MediaProfiles::imageProfileFor(const QString &conten
     const int end = contentFeatures.indexOf(';', profilePos);
     const QString profileName = contentFeatures.mid(profilePos + 12, qMax(-1, end - (profilePos + 12)));
 
-         PROFILE_NAME(JPEG_TN);
-    else PROFILE_NAME(JPEG_SM);
-    else PROFILE_NAME(JPEG_MED);
-    else PROFILE_NAME(JPEG_LRG);
-    else PROFILE_NAME(PNG_TN);
-    else PROFILE_NAME(PNG_LRG);
+    QMap<QByteArray, ImageProfile>::ConstIterator i = d->imageProfileNames.find(profileName.toAscii());
+    if (i != d->imageProfileNames.end())
+      return i.value();
+
+    Q_ASSERT_X(false, "Could not find", profileName.toAscii().data());
   }
 
   return ImageProfile(0);
 }
 
-#undef PROFILE_NAME
-
-SAudioCodec MediaProfiles::audioCodecFor(AudioProfile profile, const SAudioFormat &format)
+QString MediaProfiles::audioCodecFor(AudioProfile profile, SAudioFormat::Channels)
 {
   switch (profile)
   {
-  case AC3:
-    return SAudioCodec("AC3", format.channelSetup(), format.sampleRate());
-
   case LPCM:
-    return SAudioCodec("PCM/S16BE", format.channelSetup(), format.sampleRate());
+    return "PCM/S16BE";
 
   case MP2:
-    return SAudioCodec("MP2", format.channelSetup(), format.sampleRate());
+    return "MP2";
 
   case MP3:
-    return SAudioCodec("MP3", format.channelSetup(), format.sampleRate());
+    return "MP3";
+
+  case AAC_ADTS:
+    return "AAC";
+
+  case AC3:
+    return "AC3";
 
   case WMABASE:
-    return SAudioCodec("WMA", format.channelSetup(), format.sampleRate());
+    return "WMAV2";
 
   case VORBIS:
-    return SAudioCodec("VORBIS", format.channelSetup(), format.sampleRate());
+    return "VORBIS";
   }
 
-  return SAudioCodec();
+  return QString::null;
 }
 
-SAudioCodec MediaProfiles::audioCodecFor(VideoProfile profile, const SAudioFormat &format)
+QString MediaProfiles::audioCodecFor(VideoProfile profile, SAudioFormat::Channels channels)
 {
   switch (profile)
   {
   case MPEG1:
   case MPEG_PS_PAL:
   case MPEG_PS_NTSC:
-    return SAudioCodec("MP2", format.channelSetup(), format.sampleRate());
+  case MPEG4_P2_TS_SP_MPEG2_L2:
+  case MPEG4_P2_TS_SP_MPEG2_L2_ISO:
+    return "MP2";
 
   case MPEG_PS_PAL_XAC3:
   case MPEG_PS_NTSC_XAC3:
-    return SAudioCodec("AC3", format.channelSetup(), format.sampleRate());
+  case MPEG4_P2_TS_SP_AC3_L3:
+  case MPEG4_P2_TS_SP_AC3_ISO:
+  case MPEG4_P2_TS_ASP_AC3_L3:
+  case MPEG4_P2_TS_ASP_AC3_ISO:
+  case MPEG4_P2_MATROSKA_AC3_SD_NONSTD:
+  case MPEG4_P2_MATROSKA_AC3_HD_NONSTD:
+    return "AC3";
 
-  case MPEG_PS_SD_EU:
   case MPEG_TS_SD_EU:
   case MPEG_TS_SD_EU_ISO:
-  case MPEG_PS_HD_EU:
+  case MPEG_PS_SD_EU_NONSTD:
   case MPEG_TS_HD_EU:
   case MPEG_TS_HD_EU_ISO:
-    if ((format.channelSetup() == SAudioFormat::Channels_Mono) ||
-        (format.channelSetup() == SAudioFormat::Channels_Stereo))
-    {
-      return SAudioCodec("MP2", format.channelSetup(), format.sampleRate());
-    }
+  case MPEG_PS_HD_EU_NONSTD:
+    if ((channels == SAudioFormat::Channels_Mono) || (channels == SAudioFormat::Channels_Stereo))
+      return "MP2";
     else
-      return SAudioCodec("AC3", format.channelSetup(), format.sampleRate());
+      return "AC3";
 
-  case MPEG_PS_SD_NA:
   case MPEG_TS_SD_NA:
   case MPEG_TS_SD_NA_ISO:
-  case MPEG_PS_HD_NA:
+  case MPEG_PS_SD_NA_NONSTD:
   case MPEG_TS_HD_NA:
   case MPEG_TS_HD_NA_ISO:
-    return SAudioCodec("AC3", format.channelSetup(), format.sampleRate());
+  case MPEG_PS_HD_NA_NONSTD:
+    return "AC3";
+
+  case MPEG4_P2_TS_SP_AAC:
+  case MPEG4_P2_TS_SP_AAC_ISO:
+  case MPEG4_P2_TS_ASP_AAC:
+  case MPEG4_P2_TS_ASP_AAC_ISO:
+  case MPEG4_P2_MATROSKA_AAC_SD_NONSTD:
+  case MPEG4_P2_MATROSKA_AAC_HD_NONSTD:
+    return "AAC";
+
+  case MPEG4_P2_TS_SP_MPEG1_L3:
+  case MPEG4_P2_TS_SP_MPEG1_L3_ISO:
+  case MPEG4_P2_TS_ASP_MPEG1_L3:
+  case MPEG4_P2_TS_ASP_MPEG1_L3_ISO:
+    return "MP3";
+
+  case WMVMED_BASE:
+    return "WMAV2";
+
+  case MPEG4_P2_MATROSKA_MP3_SD_NONSTD:
+  case MPEG4_P2_MATROSKA_MP3_HD_NONSTD:
+    return "MP3";
   }
 
-  return SAudioCodec();
+  return QString::null;
 }
 
-SVideoCodec MediaProfiles::videoCodecFor(VideoProfile profile, const SVideoFormat &format)
+QString MediaProfiles::videoCodecFor(VideoProfile profile)
 {
   switch (profile)
   {
   case MPEG1:
-    return SVideoCodec("MPEG1", format.size(), format.frameRate());
+    return "MPEG1";
 
   case MPEG_PS_PAL:
   case MPEG_PS_NTSC:
   case MPEG_PS_PAL_XAC3:
   case MPEG_PS_NTSC_XAC3:
-  case MPEG_PS_SD_EU:
   case MPEG_TS_SD_EU:
   case MPEG_TS_SD_EU_ISO:
-  case MPEG_PS_HD_EU:
+  case MPEG_PS_SD_EU_NONSTD:
   case MPEG_TS_HD_EU:
   case MPEG_TS_HD_EU_ISO:
-  case MPEG_PS_SD_NA:
+  case MPEG_PS_HD_EU_NONSTD:
   case MPEG_TS_SD_NA:
   case MPEG_TS_SD_NA_ISO:
-  case MPEG_PS_HD_NA:
+  case MPEG_PS_SD_NA_NONSTD:
   case MPEG_TS_HD_NA:
   case MPEG_TS_HD_NA_ISO:
-    return SVideoCodec("MPEG2", format.size(), format.frameRate());
+  case MPEG_PS_HD_NA_NONSTD:
+    return "MPEG2";
+
+  case MPEG4_P2_TS_SP_AAC:
+  case MPEG4_P2_TS_SP_AAC_ISO:
+  case MPEG4_P2_TS_SP_MPEG1_L3:
+  case MPEG4_P2_TS_SP_MPEG1_L3_ISO:
+  case MPEG4_P2_TS_SP_MPEG2_L2:
+  case MPEG4_P2_TS_SP_MPEG2_L2_ISO:
+  case MPEG4_P2_TS_SP_AC3_L3:
+  case MPEG4_P2_TS_SP_AC3_ISO:
+  case MPEG4_P2_TS_ASP_AAC:
+  case MPEG4_P2_TS_ASP_AAC_ISO:
+  case MPEG4_P2_TS_ASP_MPEG1_L3:
+  case MPEG4_P2_TS_ASP_MPEG1_L3_ISO:
+  case MPEG4_P2_TS_ASP_AC3_L3:
+  case MPEG4_P2_TS_ASP_AC3_ISO:
+  case MPEG4_P2_MATROSKA_MP3_SD_NONSTD:
+  case MPEG4_P2_MATROSKA_MP3_HD_NONSTD:
+  case MPEG4_P2_MATROSKA_AAC_SD_NONSTD:
+  case MPEG4_P2_MATROSKA_AAC_HD_NONSTD:
+  case MPEG4_P2_MATROSKA_AC3_SD_NONSTD:
+  case MPEG4_P2_MATROSKA_AC3_HD_NONSTD:
+    return "MPEG4";
+
+  case WMVMED_BASE:
+    return "WMV3";
   }
 
-  return SVideoCodec();
+  return QString::null;
+}
+
+QString MediaProfiles::imageCodecFor(ImageProfile profile)
+{
+  switch (profile)
+  {
+  case JPEG_TN:
+  case JPEG_SM:
+  case JPEG_MED:
+  case JPEG_LRG:
+    return "JPEG";
+
+  case PNG_TN:
+  case PNG_LRG:
+    return "PNG";
+  }
+
+  return QString::null;
 }
 
 QString MediaProfiles::formatFor(AudioProfile profile)
 {
   switch (profile)
   {
-  case AC3:
-    return "ac3";
-
   case LPCM:
     return "s16be";
 
@@ -597,6 +1051,12 @@ QString MediaProfiles::formatFor(AudioProfile profile)
   case MP3:
     return "mp3";
 
+  case AAC_ADTS:
+    return "adts";
+
+  case AC3:
+    return "ac3";
+
   case WMABASE:
     return "asf";
 
@@ -604,7 +1064,7 @@ QString MediaProfiles::formatFor(AudioProfile profile)
     return "ogg";
   }
 
-  return "";
+  return QString::null;
 }
 
 QString MediaProfiles::formatFor(VideoProfile profile)
@@ -618,10 +1078,10 @@ QString MediaProfiles::formatFor(VideoProfile profile)
   case MPEG_PS_NTSC:
   case MPEG_PS_PAL_XAC3:
   case MPEG_PS_NTSC_XAC3:
-  case MPEG_PS_SD_EU:
-  case MPEG_PS_HD_EU:
-  case MPEG_PS_SD_NA:
-  case MPEG_PS_HD_NA:
+  case MPEG_PS_SD_EU_NONSTD:
+  case MPEG_PS_HD_EU_NONSTD:
+  case MPEG_PS_SD_NA_NONSTD:
+  case MPEG_PS_HD_NA_NONSTD:
     return "vob";
 
   case MPEG_TS_SD_EU:
@@ -635,30 +1095,62 @@ QString MediaProfiles::formatFor(VideoProfile profile)
   case MPEG_TS_SD_NA_ISO:
   case MPEG_TS_HD_NA_ISO:
     return "mpegts";
+
+  case MPEG4_P2_TS_SP_AAC:
+  case MPEG4_P2_TS_SP_MPEG1_L3:
+  case MPEG4_P2_TS_SP_MPEG2_L2:
+  case MPEG4_P2_TS_SP_AC3_L3:
+  case MPEG4_P2_TS_ASP_AAC:
+  case MPEG4_P2_TS_ASP_MPEG1_L3:
+  case MPEG4_P2_TS_ASP_AC3_L3:
+    return "m2ts";
+
+  case MPEG4_P2_TS_SP_AAC_ISO:
+  case MPEG4_P2_TS_SP_MPEG1_L3_ISO:
+  case MPEG4_P2_TS_SP_MPEG2_L2_ISO:
+  case MPEG4_P2_TS_SP_AC3_ISO:
+  case MPEG4_P2_TS_ASP_AAC_ISO:
+  case MPEG4_P2_TS_ASP_MPEG1_L3_ISO:
+  case MPEG4_P2_TS_ASP_AC3_ISO:
+    return "mpegts";
+
+  case WMVMED_BASE:
+    return "asf";
+
+  case MPEG4_P2_MATROSKA_MP3_SD_NONSTD:
+  case MPEG4_P2_MATROSKA_MP3_HD_NONSTD:
+  case MPEG4_P2_MATROSKA_AAC_SD_NONSTD:
+  case MPEG4_P2_MATROSKA_AAC_HD_NONSTD:
+  case MPEG4_P2_MATROSKA_AC3_SD_NONSTD:
+  case MPEG4_P2_MATROSKA_AC3_HD_NONSTD:
+    return "matroska";
   }
 
-  return "";
+  return QString::null;
 }
 
 const char * MediaProfiles::mimeTypeFor(AudioProfile profile)
 {
   switch (profile)
   {
-  case AC3:
-    return "audio/ac3";
-
   case LPCM:
     return "audio/L16;rate=48000;channels=2";
 
   case MP2:
   case MP3:
-    return "audio/mpeg";
+    return SHttpEngine::mimeAudioMpeg;
+
+  case AAC_ADTS:
+    return SHttpEngine::mimeAudioAac; //"audio/vnd.dlna.adts";
+
+  case AC3:
+    return SHttpEngine::mimeAudioAc3;
 
   case WMABASE:
-    return "audio/x-ms-wma";
+    return SHttpEngine::mimeAudioWma;
 
   case VORBIS:
-    return "application/ogg";
+    return SHttpEngine::mimeAudioOgg;
   }
 
   return "";
@@ -673,11 +1165,24 @@ const char * MediaProfiles::mimeTypeFor(VideoProfile profile)
   case MPEG_PS_PAL_XAC3:
   case MPEG_PS_NTSC:
   case MPEG_PS_NTSC_XAC3:
-  case MPEG_PS_SD_EU:
-  case MPEG_PS_HD_EU:
-  case MPEG_PS_SD_NA:
-  case MPEG_PS_HD_NA:
+  case MPEG_PS_SD_EU_NONSTD:
+  case MPEG_PS_HD_EU_NONSTD:
+  case MPEG_PS_SD_NA_NONSTD:
+  case MPEG_PS_HD_NA_NONSTD:
     return SHttpEngine::mimeVideoMpeg;
+
+  case MPEG_TS_SD_EU_ISO:
+  case MPEG_TS_HD_EU_ISO:
+  case MPEG_TS_SD_NA_ISO:
+  case MPEG_TS_HD_NA_ISO:
+  case MPEG4_P2_TS_SP_AAC_ISO:
+  case MPEG4_P2_TS_SP_MPEG1_L3_ISO:
+  case MPEG4_P2_TS_SP_MPEG2_L2_ISO:
+  case MPEG4_P2_TS_SP_AC3_ISO:
+  case MPEG4_P2_TS_ASP_AAC_ISO:
+  case MPEG4_P2_TS_ASP_MPEG1_L3_ISO:
+  case MPEG4_P2_TS_ASP_AC3_ISO:
+    return SHttpEngine::mimeVideoMpegTS;
 
   case MPEG_TS_SD_EU:
   case MPEG_TS_HD_EU:
@@ -685,11 +1190,25 @@ const char * MediaProfiles::mimeTypeFor(VideoProfile profile)
   case MPEG_TS_HD_NA:
     return SHttpEngine::mimeVideoMpegM2TS;
 
-  case MPEG_TS_SD_EU_ISO:
-  case MPEG_TS_HD_EU_ISO:
-  case MPEG_TS_SD_NA_ISO:
-  case MPEG_TS_HD_NA_ISO:
-    return SHttpEngine::mimeVideoMpegTS;
+  case MPEG4_P2_TS_SP_AAC:
+  case MPEG4_P2_TS_SP_MPEG1_L3:
+  case MPEG4_P2_TS_SP_MPEG2_L2:
+  case MPEG4_P2_TS_SP_AC3_L3:
+  case MPEG4_P2_TS_ASP_AAC:
+  case MPEG4_P2_TS_ASP_MPEG1_L3:
+  case MPEG4_P2_TS_ASP_AC3_L3:
+    return SHttpEngine::mimeVideoMpegM2TS;
+
+  case WMVMED_BASE:
+    return SHttpEngine::mimeVideoWmv;
+
+  case MPEG4_P2_MATROSKA_MP3_SD_NONSTD:
+  case MPEG4_P2_MATROSKA_MP3_HD_NONSTD:
+  case MPEG4_P2_MATROSKA_AAC_SD_NONSTD:
+  case MPEG4_P2_MATROSKA_AAC_HD_NONSTD:
+  case MPEG4_P2_MATROSKA_AC3_SD_NONSTD:
+  case MPEG4_P2_MATROSKA_AC3_HD_NONSTD:
+    return SHttpEngine::mimeVideoMatroska;
   }
 
   return "";
@@ -717,9 +1236,6 @@ const char * MediaProfiles::suffixFor(AudioProfile profile)
 {
   switch (profile)
   {
-  case AC3:
-    return ".ac3";
-
   case LPCM:
     return ".lpcm";
 
@@ -728,6 +1244,12 @@ const char * MediaProfiles::suffixFor(AudioProfile profile)
 
   case MP3:
     return ".mp3";
+
+  case AAC_ADTS:
+    return ".aac";
+
+  case AC3:
+    return ".ac3";
 
   case WMABASE:
     return ".wma";
@@ -748,10 +1270,10 @@ const char * MediaProfiles::suffixFor(VideoProfile profile)
   case MPEG_PS_PAL_XAC3:
   case MPEG_PS_NTSC:
   case MPEG_PS_NTSC_XAC3:
-  case MPEG_PS_SD_EU:
-  case MPEG_PS_HD_EU:
-  case MPEG_PS_SD_NA:
-  case MPEG_PS_HD_NA:
+  case MPEG_PS_SD_EU_NONSTD:
+  case MPEG_PS_HD_EU_NONSTD:
+  case MPEG_PS_SD_NA_NONSTD:
+  case MPEG_PS_HD_NA_NONSTD:
     return ".mpeg";
 
   case MPEG_TS_SD_EU:
@@ -764,7 +1286,34 @@ const char * MediaProfiles::suffixFor(VideoProfile profile)
   case MPEG_TS_HD_EU_ISO:
   case MPEG_TS_SD_NA_ISO:
   case MPEG_TS_HD_NA_ISO:
+  case MPEG4_P2_TS_SP_AAC_ISO:
+  case MPEG4_P2_TS_SP_MPEG1_L3_ISO:
+  case MPEG4_P2_TS_SP_MPEG2_L2_ISO:
+  case MPEG4_P2_TS_SP_AC3_ISO:
+  case MPEG4_P2_TS_ASP_AAC_ISO:
+  case MPEG4_P2_TS_ASP_MPEG1_L3_ISO:
+  case MPEG4_P2_TS_ASP_AC3_ISO:
     return ".ts";
+
+  case MPEG4_P2_TS_SP_AAC:
+  case MPEG4_P2_TS_SP_MPEG1_L3:
+  case MPEG4_P2_TS_SP_MPEG2_L2:
+  case MPEG4_P2_TS_SP_AC3_L3:
+  case MPEG4_P2_TS_ASP_AAC:
+  case MPEG4_P2_TS_ASP_MPEG1_L3:
+  case MPEG4_P2_TS_ASP_AC3_L3:
+    return ".m2ts";
+
+  case WMVMED_BASE:
+    return ".wmv";
+
+  case MPEG4_P2_MATROSKA_MP3_SD_NONSTD:
+  case MPEG4_P2_MATROSKA_MP3_HD_NONSTD:
+  case MPEG4_P2_MATROSKA_AAC_SD_NONSTD:
+  case MPEG4_P2_MATROSKA_AAC_HD_NONSTD:
+  case MPEG4_P2_MATROSKA_AC3_SD_NONSTD:
+  case MPEG4_P2_MATROSKA_AC3_HD_NONSTD:
+    return ".mkv";
   }
 
   return "";
@@ -786,6 +1335,131 @@ const char * MediaProfiles::suffixFor(ImageProfile profile)
   }
 
   return "";
+}
+
+int MediaProfiles::profilePriority(AudioProfile profile)
+{
+  switch (profile)
+  {
+  case LPCM:
+  case AC3:
+    return -2;
+
+  case MP2:
+  case AAC_ADTS:
+    return 0;
+
+  case MP3:
+    return -1;
+
+  case WMABASE:
+    return 1;
+
+  case VORBIS:
+    return 0;
+  }
+
+  return 0;
+}
+
+int MediaProfiles::profilePriority(VideoProfile profile)
+{
+  switch (profile)
+  {
+  case MPEG_TS_HD_EU:
+  case MPEG_TS_HD_EU_ISO:
+    return -9;
+
+  case MPEG_TS_HD_NA:
+  case MPEG_TS_HD_NA_ISO:
+    return -6;
+
+  case MPEG_PS_PAL_XAC3:
+  case MPEG_PS_NTSC_XAC3:
+    return -1;
+
+  case MPEG_PS_PAL:
+  case MPEG_PS_NTSC:
+    return 0;
+
+  case MPEG_TS_SD_EU:
+  case MPEG_TS_SD_EU_ISO:
+    return 3;
+
+  case MPEG_TS_SD_NA:
+  case MPEG_TS_SD_NA_ISO:
+    return 6;
+
+  case MPEG4_P2_TS_SP_AAC:
+  case MPEG4_P2_TS_SP_AAC_ISO:
+  case MPEG4_P2_TS_SP_MPEG1_L3:
+  case MPEG4_P2_TS_SP_MPEG1_L3_ISO:
+  case MPEG4_P2_TS_SP_MPEG2_L2:
+  case MPEG4_P2_TS_SP_MPEG2_L2_ISO:
+  case MPEG4_P2_TS_SP_AC3_L3:
+  case MPEG4_P2_TS_SP_AC3_ISO:
+    return 12;
+
+  case MPEG4_P2_TS_ASP_AAC:
+  case MPEG4_P2_TS_ASP_AAC_ISO:
+  case MPEG4_P2_TS_ASP_MPEG1_L3:
+  case MPEG4_P2_TS_ASP_MPEG1_L3_ISO:
+  case MPEG4_P2_TS_ASP_AC3_L3:
+  case MPEG4_P2_TS_ASP_AC3_ISO:
+    return 15;
+
+  case MPEG1:
+    return 18;
+
+  case MPEG_PS_HD_EU_NONSTD:
+    return -8;
+
+  case MPEG_PS_HD_NA_NONSTD:
+    return -5;
+
+  case MPEG4_P2_MATROSKA_MP3_HD_NONSTD:
+  case MPEG4_P2_MATROSKA_AAC_HD_NONSTD:
+  case MPEG4_P2_MATROSKA_AC3_HD_NONSTD:
+    return -4;
+
+  case MPEG_PS_SD_EU_NONSTD:
+    return 4;
+
+  case MPEG_PS_SD_NA_NONSTD:
+    return 7;
+
+  case MPEG4_P2_MATROSKA_MP3_SD_NONSTD:
+  case MPEG4_P2_MATROSKA_AAC_SD_NONSTD:
+  case MPEG4_P2_MATROSKA_AC3_SD_NONSTD:
+    return 8;
+
+  case WMVMED_BASE:
+    return 9;
+  }
+
+  return 0;
+}
+
+int MediaProfiles::profilePriority(ImageProfile profile)
+{
+  switch (profile)
+  {
+  case JPEG_LRG:
+    return -3;
+
+  case JPEG_MED:
+  case PNG_LRG:
+    return -2;
+
+  case JPEG_SM:
+    return -1;
+
+  case JPEG_TN:
+  case PNG_TN:
+    return 0;
+  }
+
+  return 0;
 }
 
 int MediaProfiles::correctFormatStereo(SAudioFormat &format)
@@ -898,64 +1572,46 @@ int MediaProfiles::correctFormatSurround71(SAudioFormat &format)
   }
 }
 
-#define PROFILE_NAME(x) case x: return #x
-
-const char * MediaProfiles::profileName(AudioProfile profile)
+QByteArray MediaProfiles::profileName(AudioProfile profile)
 {
-  switch (profile)
+  for (QMap<QByteArray, AudioProfile>::ConstIterator i = Data::audioProfileNames.begin();
+       i != Data::audioProfileNames.end();
+       i++)
+  if (i.value() == profile)
   {
-    PROFILE_NAME(AC3);
-    PROFILE_NAME(LPCM);
-    PROFILE_NAME(MP2);
-    PROFILE_NAME(MP3);
-    PROFILE_NAME(WMABASE);
-    PROFILE_NAME(VORBIS);
+    return i.key();
   }
 
-  return "";
+  Q_ASSERT(false);
+  return QByteArray();
 }
 
-const char * MediaProfiles::profileName(VideoProfile profile)
+QByteArray MediaProfiles::profileName(VideoProfile profile)
 {
-  switch (profile)
+  for (QMap<QByteArray, VideoProfile>::ConstIterator i = Data::videoProfileNames.begin();
+       i != Data::videoProfileNames.end();
+       i++)
+  if (i.value() == profile)
   {
-    PROFILE_NAME(MPEG1);
-    PROFILE_NAME(MPEG_PS_PAL);
-    PROFILE_NAME(MPEG_PS_PAL_XAC3);
-    PROFILE_NAME(MPEG_PS_NTSC);
-    PROFILE_NAME(MPEG_PS_NTSC_XAC3);
-    PROFILE_NAME(MPEG_PS_SD_EU);
-    PROFILE_NAME(MPEG_TS_SD_EU);
-    PROFILE_NAME(MPEG_TS_SD_EU_ISO);
-    PROFILE_NAME(MPEG_PS_HD_EU);
-    PROFILE_NAME(MPEG_TS_HD_EU);
-    PROFILE_NAME(MPEG_TS_HD_EU_ISO);
-    PROFILE_NAME(MPEG_PS_SD_NA);
-    PROFILE_NAME(MPEG_TS_SD_NA);
-    PROFILE_NAME(MPEG_TS_SD_NA_ISO);
-    PROFILE_NAME(MPEG_PS_HD_NA);
-    PROFILE_NAME(MPEG_TS_HD_NA);
-    PROFILE_NAME(MPEG_TS_HD_NA_ISO);
+    return i.key();
   }
 
-  return "";
+  Q_ASSERT(false);
+  return QByteArray();
 }
 
-const char * MediaProfiles::profileName(ImageProfile profile)
+QByteArray MediaProfiles::profileName(ImageProfile profile)
 {
-  switch (profile)
+  for (QMap<QByteArray, ImageProfile>::ConstIterator i = Data::imageProfileNames.begin();
+       i != Data::imageProfileNames.end();
+       i++)
+  if (i.value() == profile)
   {
-    PROFILE_NAME(JPEG_TN);
-    PROFILE_NAME(JPEG_SM);
-    PROFILE_NAME(JPEG_MED);
-    PROFILE_NAME(JPEG_LRG);
-    PROFILE_NAME(PNG_TN);
-    PROFILE_NAME(PNG_LRG);
+    return i.key();
   }
 
-  return "";
+  Q_ASSERT(false);
+  return QByteArray();
 }
-
-#undef PROFILE_NAME
 
 } // End of namespace

@@ -18,6 +18,7 @@
  ***************************************************************************/
 
 #include "audioencoder.h"
+#include "bufferwriter.h"
 #include <QtEndian>
 
 namespace LXiStream {
@@ -29,6 +30,7 @@ AudioEncoder::AudioEncoder(const QString &, QObject *parent)
     outCodec(),
     codecHandle(NULL),
     contextHandle(NULL),
+    contextHandleOwner(false),
     passThrough(false),
     inSampleSize(sizeof(qint16)),
     inFrameSize(0),
@@ -45,13 +47,13 @@ AudioEncoder::~AudioEncoder()
   if (codecHandle && contextHandle)
     avcodec_close(contextHandle);
 
-  if (contextHandle)
+  if (contextHandle && contextHandleOwner)
     av_free(contextHandle);
 
   delete [] inFrameBufferRaw;
 }
 
-bool AudioEncoder::openCodec(const SAudioCodec &c, Flags flags)
+bool AudioEncoder::openCodec(const SAudioCodec &c, SInterfaces::BufferWriter *bufferWriter, Flags flags)
 {
   if (contextHandle)
     qFatal("AudioEncoder already opened a codec.");
@@ -79,7 +81,18 @@ bool AudioEncoder::openCodec(const SAudioCodec &c, Flags flags)
     return false;
   }
 
-  contextHandle = ::avcodec_alloc_context();
+  BufferWriter * const ffBufferWriter = qobject_cast<BufferWriter *>(bufferWriter);
+  if (ffBufferWriter)
+  {
+    contextHandle = ffBufferWriter->createStream()->codec;
+    contextHandleOwner = false;
+  }
+  else
+  {
+    contextHandle = ::avcodec_alloc_context();
+    contextHandleOwner = true;
+  }
+
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
   ::avcodec_get_context_defaults2(contextHandle, AVMEDIA_TYPE_AUDIO);
 #else
@@ -115,8 +128,10 @@ bool AudioEncoder::openCodec(const SAudioCodec &c, Flags flags)
   contextHandle->sample_rate = outCodec.sampleRate();
   contextHandle->channels = outCodec.numChannels();
   contextHandle->channel_layout = FFMpegCommon::toFFMpegChannelLayout(outCodec.channelSetup());
-  contextHandle->bit_rate = (outCodec.bitRate() > 0) ? outCodec.bitRate() : (96000 * contextHandle->channels);
+  contextHandle->time_base.num = 1;
+  contextHandle->time_base.den = contextHandle->sample_rate;
 
+  contextHandle->bit_rate = (outCodec.bitRate() > 0) ? outCodec.bitRate() : (96000 * contextHandle->channels);
   if (outCodec == "AC3")
     contextHandle->bit_rate = qMin(contextHandle->bit_rate, 384000); // Higher bitrates give problems muxing.
   else if (outCodec == "FLAC")
@@ -134,6 +149,10 @@ bool AudioEncoder::openCodec(const SAudioCodec &c, Flags flags)
   contextHandle->execute2 = &FFMpegCommon::execute2;
 #endif
 #endif
+
+  if (ffBufferWriter)
+  if (ffBufferWriter->avFormat()->flags & AVFMT_GLOBALHEADER)
+      contextHandle->flags |= CODEC_FLAG_GLOBAL_HEADER;
 
   if (avcodec_open(contextHandle, codecHandle) < 0)
   {

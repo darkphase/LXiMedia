@@ -45,11 +45,16 @@ public:
                     bool operationsRange = false,
                     bool operationsTimeSeek = false,
                     const QByteArray &profile = "",
-                    const QByteArray &suffix = "")
+                    const QByteArray &suffix = "",
+                    unsigned sampleRate = 0, unsigned channels = 0,
+                    const QSize &resolution = QSize(),
+                    quint64 size = 0)
       : protocol(protocol), network("*"), contentFormat(contentFormat),
         profile(profile), playSpeed(true), conversionIndicator(conversionIndicator),
         operationsRange(operationsRange), operationsTimeSeek(operationsTimeSeek),
-        flags("01700000000000000000000000000000"), suffix(suffix)
+        flags(contentFormat.startsWith("image/") ? "00100000" : "01700000"),
+        suffix(suffix), sampleRate(sampleRate), channels(channels),
+        resolution(resolution), size(size)
     {
     }
 
@@ -83,9 +88,13 @@ public:
            Example: (1 << 24) | (1 << 22) | (1 << 21) | (1 << 20)
              DLNA.ORG_FLAGS=01700000[000000000000000000000000] // [] show padding
      */
-    QString                     flags;
+    QByteArray                  flags;
 
     QByteArray                  suffix;                                         //!< The file extension (including .).
+
+    unsigned                    sampleRate, channels;
+    QSize                       resolution;
+    quint64                     size;
 
     QList< QPair<QString, QString> > queryItems;
   };
@@ -98,6 +107,7 @@ public:
 
   void                          initialize(SHttpServer *, SUPnPMediaServer::Service &);
   void                          close(void);
+  void                          reset(void);
 
 protected: // From SHttpServer::Callback
   virtual SHttpServer::ResponseMessage httpRequest(const SHttpServer::RequestMessage &, QIODevice *);
@@ -115,6 +125,7 @@ protected:
 
 public:
   static QString                protocol(void);
+  static QString                toClientString(const QHostAddress &, const SHttpServer::RequestMessage &);
 
   static QDomElement            addTextElm(QDomDocument &doc, QDomElement &elm, const QString &name, const QString &value);
   static QDomElement            addTextElmNS(QDomDocument &doc, QDomElement &elm, const QString &name, const QString &nsUri, const QString &value);

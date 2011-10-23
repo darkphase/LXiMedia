@@ -82,6 +82,10 @@ void SUPnPMediaServer::close(void)
     d->httpServer->unregisterCallback(this);
 }
 
+void SUPnPMediaServer::reset(void)
+{
+}
+
 void SUPnPMediaServer::setDeviceName(const QString &deviceName)
 {
   d->deviceName = deviceName;

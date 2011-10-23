@@ -73,24 +73,25 @@ void SSsdpServer::initialize(const QList<QHostAddress> &interfaces)
 
 void SSsdpServer::close(void)
 {
-  for (QMultiMap<QString, Private::Service>::ConstIterator i = p->published.begin();
-       i != p->published.end();
-       i++)
-  {
-    for (unsigned j=0; j<i->msgCount; j++)
-    foreach (SsdpClientInterface *iface, interfaces())
-      sendByeBye(iface, i.key());
-  }
-
   p->autoPublishTimer.stop();
+  unpublishServices();
 
   SSsdpClient::close();
+}
+
+void SSsdpServer::reset(void)
+{
+  p->autoPublishTimer.stop();
+  unpublishServices();
+
+  p->publishTimer.start(3000);
+  p->autoPublishTimer.start(((cacheTimeout / 2) - 300) * 1000);
 }
 
 void SSsdpServer::publish(const QString &nt, const QString &relativeUrl, unsigned msgCount)
 {
   p->published.insert(nt, Private::Service(relativeUrl, msgCount));
-  p->publishTimer.start(5000);
+  p->publishTimer.start(3000);
 }
 
 void SSsdpServer::parsePacket(SsdpClientInterface *iface, const SHttpServer::RequestHeader &header, const QHostAddress &sourceAddress, quint16 sourcePort)
@@ -178,6 +179,18 @@ void SSsdpServer::publishServices(void)
         sendAlive(iface, i.key(), url);
       }
     }
+  }
+}
+
+void SSsdpServer::unpublishServices(void)
+{
+  for (QMultiMap<QString, Private::Service>::ConstIterator i = p->published.begin();
+       i != p->published.end();
+       i++)
+  {
+    for (unsigned j=0; j<i->msgCount; j++)
+    foreach (SsdpClientInterface *iface, interfaces())
+      sendByeBye(iface, i.key());
   }
 }
 

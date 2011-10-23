@@ -39,7 +39,7 @@ public:
   virtual                       ~VideoDecoder();
 
 public: // From SBufferDecoder
-  virtual bool                  openCodec(const SVideoCodec &, Flags = Flag_None);
+  virtual bool                  openCodec(const SVideoCodec &, SInterfaces::BufferReader *, Flags = Flag_None);
   virtual SVideoBufferList      decodeBuffer(const SEncodedVideoBuffer &);
 
 private:

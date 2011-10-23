@@ -30,6 +30,7 @@
 #include "alsatest.h"
 #endif
 #include "filetester.h"
+#include "performancetest.h"
 
 int main(int argc, char *argv[])
 {
@@ -57,16 +58,17 @@ int main(int argc, char *argv[])
   }
   else
   {
-    if (QTest::qExec(new StreamTest(&app), app.arguments()) != 0)   return 1;
-    if (QTest::qExec(new IOTest(&app), app.arguments()) != 0)       return 1;
-    if (QTest::qExec(new DVDNavTest(&app), app.arguments()) != 0)   return 1;
-    if (QTest::qExec(new FFMpegTest(&app), app.arguments()) != 0)   return 1;
+    if (QTest::qExec(new StreamTest(&app), app.arguments()) != 0)       return 1;
+    if (QTest::qExec(new IOTest(&app), app.arguments()) != 0)           return 1;
+    if (QTest::qExec(new DVDNavTest(&app), app.arguments()) != 0)       return 1;
+    if (QTest::qExec(new FFMpegTest(&app), app.arguments()) != 0)       return 1;
 #ifdef ENABLE_GLSL
-    if (QTest::qExec(new OpenGLTest(&app), app.arguments()) != 0)   return 1;
+    if (QTest::qExec(new OpenGLTest(&app), app.arguments()) != 0)       return 1;
 #endif
 #ifdef ENABLE_ALSA
-    if (QTest::qExec(new AlsaTest(&app), app.arguments()) != 0)     return 1;
+    if (QTest::qExec(new AlsaTest(&app), app.arguments()) != 0)         return 1;
 #endif
+    if (QTest::qExec(new PerformanceTest(&app), app.arguments()) != 0)  return 1;
   }
 
   return 0;

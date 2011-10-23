@@ -201,7 +201,7 @@ void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *readCallback)
                 !produceCallback.videoBuffers.first().codec().isNull())
             {
               VideoDecoder videoDecoder(QString::null, this);
-              if (videoDecoder.openCodec(produceCallback.videoBuffers.first().codec()))
+              if (videoDecoder.openCodec(produceCallback.videoBuffers.first().codec(), &bufferReader))
               {
                 SVideoBuffer bestThumb;
                 int bestDist = 0, counter = 0;
@@ -243,8 +243,10 @@ void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *readCallback)
                   bestThumb = videoResizer.processBuffer(bestThumb);
 
                   VideoEncoder videoEncoder(QString::null, this);
-                  if (videoEncoder.openCodec(SVideoCodec("MJPEG", bestThumb.format().size(), SInterval::fromFrequency(25)),
-                                             SInterfaces::VideoEncoder::Flag_LowQuality))
+                  if (videoEncoder.openCodec(
+                      SVideoCodec("MJPEG", bestThumb.format().size(), SInterval::fromFrequency(25)),
+                      NULL,
+                      SInterfaces::VideoEncoder::Flag_LowQuality))
                   {
                     const SEncodedVideoBufferList thumbnail = videoEncoder.encodeBuffer(bestThumb);
                     if (!thumbnail.isEmpty())
