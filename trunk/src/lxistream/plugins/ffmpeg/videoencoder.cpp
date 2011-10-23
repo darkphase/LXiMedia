@@ -72,12 +72,12 @@ bool VideoEncoder::openCodec(const SVideoCodec &c, SInterfaces::BufferWriter *bu
   }
 
   BufferWriter * const ffBufferWriter = qobject_cast<BufferWriter *>(bufferWriter);
-//  if (ffBufferWriter)
-//  {
-//    contextHandle = ffBufferWriter->createStream()->codec;
-//    contextHandleOwner = false;
-//  }
-//  else
+  if (ffBufferWriter)
+  {
+    contextHandle = ffBufferWriter->createStream()->codec;
+    contextHandleOwner = false;
+  }
+  else
   {
     contextHandle = ::avcodec_alloc_context();
     contextHandleOwner = true;
@@ -126,8 +126,6 @@ bool VideoEncoder::openCodec(const SVideoCodec &c, SInterfaces::BufferWriter *bu
   {
     contextHandle->rc_max_rate = contextHandle->bit_rate;
     contextHandle->bit_rate -= contextHandle->bit_rate_tolerance;
-    contextHandle->rc_buffer_size = ((20 * contextHandle->rc_max_rate) / (1151929 / 2)) * 8 * 1024;
-    contextHandle->rc_initial_buffer_occupancy = contextHandle->rc_buffer_size * 3 / 4;
   }
 
   if (flags & Flag_Fast)
@@ -170,6 +168,13 @@ bool VideoEncoder::openCodec(const SVideoCodec &c, SInterfaces::BufferWriter *bu
   if (ffBufferWriter)
   if (ffBufferWriter->avFormat()->flags & AVFMT_GLOBALHEADER)
       contextHandle->flags |= CODEC_FLAG_GLOBAL_HEADER;
+
+  // Determine rate-control buffer size.
+  if (contextHandle->rc_max_rate > 0)
+  {
+    contextHandle->rc_buffer_size = qBound(262144, (contextHandle->rc_max_rate / 500000) * 65536, 4194304);
+    contextHandle->rc_initial_buffer_occupancy = contextHandle->rc_buffer_size * 3 / 4;
+  }
 
   if (avcodec_open(contextHandle, codecHandle) < 0)
   {

@@ -235,7 +235,7 @@ const char * const Backend::htmlConfigDlnaRowProfilesClosed =
     "      <tr>\n"
     "       <td class=\"top\">{TR_SUPPORTED_DLNA_PROFILES}:</td>\n"
     "       <td>\n"
-    "        <a class=\"hidden\" href=\"settings.html?expand={CLIENT_NAME}\">\n"
+    "        <a href=\"settings.html?expand={CLIENT_NAME}\">\n"
     "         {TR_SHOW_PROFILE_SETTINGS}\n"
     "        </a>\n"
     "       </td>\n"
