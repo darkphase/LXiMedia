@@ -29,7 +29,6 @@ struct SAudioDecoderNode::Data
   SAudioDecoderNode::Flags      flags;
   SAudioCodec                   lastCodec;
   SInterfaces::AudioDecoder   * decoder;
-  QFuture<void>                 future;
 };
 
 SAudioDecoderNode::SAudioDecoderNode(SGraph *parent)
@@ -43,7 +42,6 @@ SAudioDecoderNode::SAudioDecoderNode(SGraph *parent)
 
 SAudioDecoderNode::~SAudioDecoderNode()
 {
-  d->future.waitForFinished();
   delete d->decoder;
   delete d;
   *const_cast<Data **>(&d) = NULL;
@@ -79,12 +77,10 @@ bool SAudioDecoderNode::start(void)
 
 void SAudioDecoderNode::stop(void)
 {
-  d->future.waitForFinished();
 }
 
 void SAudioDecoderNode::input(const SEncodedAudioBuffer &audioBuffer)
 {
-  LXI_PROFILE_WAIT(d->future.waitForFinished());
   LXI_PROFILE_FUNCTION(TaskType_AudioProcessing);
 
   if (!audioBuffer.isNull())
@@ -105,15 +101,6 @@ void SAudioDecoderNode::input(const SEncodedAudioBuffer &audioBuffer)
   }
 
   if (d->decoder)
-    d->future = QtConcurrent::run(this, &SAudioDecoderNode::processTask, audioBuffer);
-  else
-    emit output(SAudioBuffer());
-}
-
-void SAudioDecoderNode::processTask(const SEncodedAudioBuffer &audioBuffer)
-{
-  LXI_PROFILE_FUNCTION(TaskType_AudioProcessing);
-
   foreach (const SAudioBuffer &buffer, d->decoder->decodeBuffer(audioBuffer))
     emit output(buffer);
 }

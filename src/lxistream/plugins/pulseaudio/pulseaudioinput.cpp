@@ -82,7 +82,7 @@ void PulseAudioInput::stop(void)
   }
 }
 
-void PulseAudioInput::process(void)
+bool PulseAudioInput::process(void)
 {
   const unsigned numSamples = outFormat.sampleRate() * 40 / 1000; // 40 ms of samples
   SAudioBuffer buffer(outFormat, numSamples);
@@ -95,7 +95,10 @@ void PulseAudioInput::process(void)
     buffer.setTimeStamp(timer.smoothTimeStamp(buffer.duration(), latency));
 
     emit produce(buffer);
+    return true;
   }
+
+  return false;
 }
 
 } } // End of namespaces

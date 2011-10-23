@@ -25,7 +25,6 @@ namespace LXiStream {
 struct SVideoEncoderNode::Data
 {
   SInterfaces::VideoEncoder   * encoder;
-  QFuture<void>                 future;
 };
 
 SVideoEncoderNode::SVideoEncoderNode(SGraph *parent)
@@ -37,7 +36,6 @@ SVideoEncoderNode::SVideoEncoderNode(SGraph *parent)
 
 SVideoEncoderNode::~SVideoEncoderNode()
 {
-  d->future.waitForFinished();
   delete d->encoder;
   delete d;
   *const_cast<Data **>(&d) = NULL;
@@ -58,8 +56,6 @@ QStringList SVideoEncoderNode::losslessCodecs(void)
 
 bool SVideoEncoderNode::openCodec(const SVideoCodec &codec, SIOOutputNode *outputNode, STime duration, SInterfaces::VideoEncoder::Flags flags)
 {
-  d->future.waitForFinished();
-
   SInterfaces::BufferWriter * const bufferWriter =
       outputNode ? outputNode->bufferWriter() : NULL;
 
@@ -99,27 +95,15 @@ bool SVideoEncoderNode::start(void)
 
 void SVideoEncoderNode::stop(void)
 {
-  d->future.waitForFinished();
 }
 
 void SVideoEncoderNode::input(const SVideoBuffer &videoBuffer)
 {
-  LXI_PROFILE_WAIT(d->future.waitForFinished());
   LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
 
   if (d->encoder)
-    d->future = QtConcurrent::run(this, &SVideoEncoderNode::processTask, videoBuffer);
-  else
-    emit output(SEncodedVideoBuffer());
-}
-
-void SVideoEncoderNode::processTask(const SVideoBuffer &videoBuffer)
-{
-  LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
-
   foreach (const SEncodedVideoBuffer &buffer, d->encoder->encodeBuffer(videoBuffer))
     emit output(buffer);
 }
-
 
 } // End of namespace

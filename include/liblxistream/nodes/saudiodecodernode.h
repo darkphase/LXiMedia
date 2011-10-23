@@ -58,9 +58,6 @@ signals:
   void                          output(const SAudioBuffer &);
 
 private:
-  _lxi_internal void            processTask(const SEncodedAudioBuffer &);
-
-private:
   struct Data;
   Data                  * const d;
 };

@@ -28,7 +28,6 @@ struct SDataDecoderNode::Data
   SDataDecoderNode::Flags       flags;
   SDataCodec                    lastCodec;
   SInterfaces::DataDecoder    * decoder;
-  QFuture<void>                 future;
 };
 
 SDataDecoderNode::SDataDecoderNode(SGraph *parent)
@@ -42,7 +41,6 @@ SDataDecoderNode::SDataDecoderNode(SGraph *parent)
 
 SDataDecoderNode::~SDataDecoderNode()
 {
-  d->future.waitForFinished();
   delete d->decoder;
   delete d;
   *const_cast<Data **>(&d) = NULL;
@@ -78,12 +76,10 @@ bool SDataDecoderNode::start(void)
 
 void SDataDecoderNode::stop(void)
 {
-  d->future.waitForFinished();
 }
 
 void SDataDecoderNode::input(const SEncodedDataBuffer &dataBuffer)
 {
-  LXI_PROFILE_WAIT(d->future.waitForFinished());
   LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
 
   if (!dataBuffer.isNull())
@@ -103,27 +99,20 @@ void SDataDecoderNode::input(const SEncodedDataBuffer &dataBuffer)
     }
 
     if (d->decoder)
-      d->future = QtConcurrent::run(this, &SDataDecoderNode::processTask, dataBuffer);
-  }
-}
+    foreach (const SDataBuffer &buffer, d->decoder->decodeBuffer(dataBuffer))
+    switch(buffer.type())
+    {
+    case SDataBuffer::Type_None:
+      break;
 
-void SDataDecoderNode::processTask(const SEncodedDataBuffer &dataBuffer)
-{
-  LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
+    case SDataBuffer::Type_SubtitleBuffer:
+      emit output(buffer.subtitleBuffer());
+      break;
 
-  foreach (const SDataBuffer &buffer, d->decoder->decodeBuffer(dataBuffer))
-  switch(buffer.type())
-  {
-  case SDataBuffer::Type_None:
-    break;
-
-  case SDataBuffer::Type_SubtitleBuffer:
-    emit output(buffer.subtitleBuffer());
-    break;
-
-  case SDataBuffer::Type_SubpictureBuffer:
-    emit output(buffer.subpictureBuffer());
-    break;
+    case SDataBuffer::Type_SubpictureBuffer:
+      emit output(buffer.subpictureBuffer());
+      break;
+    }
   }
 }
 

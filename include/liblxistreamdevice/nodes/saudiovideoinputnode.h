@@ -44,7 +44,7 @@ public:
 
   virtual bool                  start(void);
   virtual void                  stop(void);
-  virtual void                  process(void);
+  virtual bool                  process(void);
 
 signals:
   void                          output(const SAudioBuffer &);

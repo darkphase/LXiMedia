@@ -192,9 +192,10 @@ void SAudioVideoInputNode::stop(void)
   }
 }
 
-void SAudioVideoInputNode::process(void)
+bool SAudioVideoInputNode::process(void)
 {
   // The threads do all the work.
+  return false;
 }
 
 } // End of namespace

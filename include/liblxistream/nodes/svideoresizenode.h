@@ -54,9 +54,6 @@ signals:
   void                          output(const SVideoBuffer &);
 
 private:
-  _lxi_internal void            processTask(const SVideoBuffer &, SInterfaces::VideoResizer *);
-
-private:
   struct Data;
   Data                  * const d;
 };

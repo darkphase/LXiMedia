@@ -44,7 +44,7 @@ public:
 public: // From SInterfaces::SourceNode
   virtual bool                  start(void);
   virtual void                  stop(void);
-  virtual void                  process(void);
+  virtual bool                  process(void);
 
 signals:
   void                          output(const SAudioBuffer &);
@@ -72,7 +72,6 @@ private:
   SVideoBuffer                  lastBuffer, currentBuffer, nextBuffer;
 
   QFuture<void>                 loadFuture;
-  QFuture<void>                 future;
 };
 
 } } // End of namespaces

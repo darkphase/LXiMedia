@@ -42,7 +42,6 @@ SlideShowNode::SlideShowNode(SGraph *parent, const SMediaInfoList &files)
 SlideShowNode::~SlideShowNode()
 {
   loadFuture.waitForFinished();
-  future.waitForFinished();
 }
 
 SSize SlideShowNode::size(void) const
@@ -107,7 +106,7 @@ bool SlideShowNode::start(void)
 
 void SlideShowNode::stop(void)
 {
-  future.waitForFinished();
+  loadFuture.waitForFinished();
 
   audioBuffer.clear();
   lastBuffer.clear();
@@ -119,9 +118,8 @@ void SlideShowNode::stop(void)
   currentFrame = -1;
 }
 
-void SlideShowNode::process(void)
+bool SlideShowNode::process(void)
 {
-  LXI_PROFILE_WAIT(future.waitForFinished());
   LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
 
   if (currentFrame == 0)
@@ -150,9 +148,12 @@ void SlideShowNode::process(void)
     }
     else
     {
+      currentFrame = -1;
+
       emit output(SAudioBuffer());
       emit output(SVideoBuffer());
       emit finished();
+      return true;
     }
   }
 
@@ -160,14 +161,18 @@ void SlideShowNode::process(void)
   {
     const int fade = qMin(255, (++currentFrame) * 256 / frameRate);
 
-    future = QtConcurrent::run(this, &SlideShowNode::computeVideoBuffer, lastBuffer, currentBuffer, fade);
+    computeVideoBuffer(lastBuffer, currentBuffer, fade);
 
     if (currentFrame >= slideFrameCount)
     {
       lastBuffer = currentBuffer;
       currentFrame = 0;
     }
+
+    return true;
   }
+
+  return false;
 }
 
 void SlideShowNode::loadImage(const QString &fileName)

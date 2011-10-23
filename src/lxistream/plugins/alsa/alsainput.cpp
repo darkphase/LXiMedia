@@ -86,7 +86,7 @@ void AlsaInput::stop(void)
   }
 }
 
-void AlsaInput::process(void)
+bool AlsaInput::process(void)
 {
   const unsigned numSamples = outFormat.sampleRate() * 40 / 1000; // 40 ms of samples
   SAudioBuffer buffer(outFormat, numSamples);
@@ -106,7 +106,7 @@ void AlsaInput::process(void)
       buffer.setTimeStamp(timer.smoothTimeStamp(duration, delay));
 
       emit produce(buffer);
-      return;
+      return true;
     }
     else if (err < 0)
     {
@@ -114,6 +114,8 @@ void AlsaInput::process(void)
       snd_pcm_recover(pcm, err, 1);
     }
   }
+
+  return false;
 }
 
 } } // End of namespaces

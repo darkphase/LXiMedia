@@ -103,7 +103,7 @@ void SBufferDeserializerNode::deserialize(void)
   }
 }
 
-void SBufferDeserializerNode::process(void)
+bool SBufferDeserializerNode::process(void)
 {
   if (d->ioDevice && d->ioDevice->isOpen())
   while (d->ioDevice->bytesAvailable() >= 4)
@@ -113,16 +113,18 @@ void SBufferDeserializerNode::process(void)
     {
       switch (bufferId)
       {
-      case 0xA5B60100: deserialize<QByteArray>();           return;
-      case 0xA5B60101: deserialize<SAudioBuffer>();         return;
-      case 0xA5B60102: deserialize<SVideoBuffer>();         return;
-      case 0xA5B60103: deserialize<SSubtitleBuffer>();      return;
-      case 0xA5B60104: deserialize<SSubpictureBuffer>();    return;
+      case 0xA5B60100: deserialize<QByteArray>();           return true;
+      case 0xA5B60101: deserialize<SAudioBuffer>();         return true;
+      case 0xA5B60102: deserialize<SVideoBuffer>();         return true;
+      case 0xA5B60103: deserialize<SSubtitleBuffer>();      return true;
+      case 0xA5B60104: deserialize<SSubpictureBuffer>();    return true;
       }
     }
     else
-      return;
+      break;
   }
+
+  return false;
 }
 
 bool SBufferDeserializerNode::read(QIODevice *ioDevice, char *buffer, unsigned length)

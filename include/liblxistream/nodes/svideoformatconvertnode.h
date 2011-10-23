@@ -54,9 +54,6 @@ signals:
   void                          output(const SVideoBuffer &);
 
 private:
-  _lxi_internal void            processTask(const SVideoBuffer &);
-
-private:
   struct Data;
   Data                  * const d;
 };

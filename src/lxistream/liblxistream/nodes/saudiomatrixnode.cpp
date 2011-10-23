@@ -33,8 +33,6 @@ struct SAudioMatrixNode::Data
   SAudioFormat                  inFormat;
   SAudioFormat                  outFormat;
   int                         * appliedMatrix;
-
-  QFuture<void>                 future;
 };
 
 SAudioMatrixNode::SAudioMatrixNode(SGraph *parent)
@@ -46,7 +44,6 @@ SAudioMatrixNode::SAudioMatrixNode(SGraph *parent)
 
 SAudioMatrixNode::~SAudioMatrixNode()
 {
-  d->future.waitForFinished();
   delete [] d->appliedMatrix;
   delete d;
   *const_cast<Data **>(&d) = NULL;
@@ -221,12 +218,10 @@ bool SAudioMatrixNode::start(void)
 
 void SAudioMatrixNode::stop(void)
 {
-  d->future.waitForFinished();
 }
 
 void SAudioMatrixNode::input(const SAudioBuffer &audioBuffer)
 {
-  LXI_PROFILE_WAIT(d->future.waitForFinished());
   LXI_PROFILE_FUNCTION(TaskType_AudioProcessing);
 
   if (!audioBuffer.isNull() && (audioBuffer.format() == SAudioFormat::Format_PCM_S16))
@@ -238,7 +233,20 @@ void SAudioMatrixNode::input(const SAudioBuffer &audioBuffer)
     }
 
     if (d->appliedMatrix)
-      d->future = QtConcurrent::run(this, &SAudioMatrixNode::processTask, audioBuffer);
+    {
+      SAudioBuffer destBuffer(d->outFormat, audioBuffer.numSamples());
+
+      LXiStream_SAudioMatrixNode_mixMatrix(reinterpret_cast<const qint16 *>(audioBuffer.data()),
+                                           audioBuffer.numSamples(),
+                                           audioBuffer.format().numChannels(),
+                                           reinterpret_cast<qint16 *>(destBuffer.data()),
+                                           d->appliedMatrix,
+                                           d->outFormat.numChannels());
+
+      destBuffer.setTimeStamp(audioBuffer.timeStamp());
+
+      emit output(destBuffer);
+    }
     else
       emit output(audioBuffer);
   }
@@ -253,24 +261,6 @@ int SAudioMatrixNode::channelId(SAudioFormat::Channel channel)
     return i;
 
   return -1;
-}
-
-void SAudioMatrixNode::processTask(const SAudioBuffer &audioBuffer)
-{
-  LXI_PROFILE_FUNCTION(TaskType_AudioProcessing);
-
-  SAudioBuffer destBuffer(d->outFormat, audioBuffer.numSamples());
-
-  LXiStream_SAudioMatrixNode_mixMatrix(reinterpret_cast<const qint16 *>(audioBuffer.data()),
-                                       audioBuffer.numSamples(),
-                                       audioBuffer.format().numChannels(),
-                                       reinterpret_cast<qint16 *>(destBuffer.data()),
-                                       d->appliedMatrix,
-                                       d->outFormat.numChannels());
-
-  destBuffer.setTimeStamp(audioBuffer.timeStamp());
-
-  emit output(destBuffer);
 }
 
 void SAudioMatrixNode::buildMatrix(void)

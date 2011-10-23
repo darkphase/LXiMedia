@@ -59,9 +59,6 @@ signals:
   void                          output(const SSubpictureBuffer &);
 
 private:
-  _lxi_internal void            processTask(const SEncodedDataBuffer &);
-
-private:
   struct Data;
   Data                  * const d;
 };

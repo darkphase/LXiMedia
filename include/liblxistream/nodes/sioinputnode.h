@@ -54,7 +54,7 @@ public:
 public: // From SInterfaces::SourceNode
   virtual bool                  start(void);
   virtual void                  stop(void);
-  virtual void                  process(void);
+  virtual bool                  process(void);
 
 public: // From SInterfaces::AbstractBufferReader
   virtual STime                 duration(void) const;

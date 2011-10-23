@@ -99,12 +99,14 @@ void SVideoInputNode::stop(void)
   }
 }
 
-void SVideoInputNode::process(void)
+bool SVideoInputNode::process(void)
 {
   LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
 
   if (d->input)
-    d->input->process();
+    return d->input->process();
+
+  return false;
 }
 
 } // End of namespace

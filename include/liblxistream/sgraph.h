@@ -56,7 +56,7 @@ public slots:
 
 protected: // From QThread and QObject
   virtual void                  run(void);
-  virtual void                  customEvent(QEvent *);
+  virtual void                  timerEvent(QTimerEvent *);
 
 private:
   struct Data;

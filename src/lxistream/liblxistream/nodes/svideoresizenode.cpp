@@ -27,7 +27,6 @@ struct SVideoResizeNode::Data
   QString                       algo;
   SInterfaces::VideoResizer   * resizer;
   SInterfaces::VideoResizer   * lanczosResizer;
-  QFuture<void>                 future;
 };
 
 SVideoResizeNode::SVideoResizeNode(SGraph *parent, const QString &algo)
@@ -49,7 +48,6 @@ SVideoResizeNode::SVideoResizeNode(SGraph *parent, const QString &algo)
 
 SVideoResizeNode::~SVideoResizeNode()
 {
-  d->future.waitForFinished();
   delete d->resizer;
   delete d->lanczosResizer;
   delete d;
@@ -124,12 +122,10 @@ bool SVideoResizeNode::start(void)
 
 void SVideoResizeNode::stop(void)
 {
-  d->future.waitForFinished();
 }
 
 void SVideoResizeNode::input(const SVideoBuffer &videoBuffer)
 {
-  LXI_PROFILE_WAIT(d->future.waitForFinished());
   LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
 
   if (!videoBuffer.isNull() && d->resizer)
@@ -143,19 +139,12 @@ void SVideoResizeNode::input(const SVideoBuffer &videoBuffer)
     }
 
     if (resizer->needsResize(videoBuffer.format()))
-      d->future = QtConcurrent::run(this, &SVideoResizeNode::processTask, videoBuffer, resizer);
+      emit output(resizer->processBuffer(videoBuffer));
     else
       emit output(videoBuffer);
   }
   else
     emit output(videoBuffer);
-}
-
-void SVideoResizeNode::processTask(const SVideoBuffer &videoBuffer, SInterfaces::VideoResizer *resizer)
-{
-  LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
-
-  emit output(resizer->processBuffer(videoBuffer));
 }
 
 } // End of namespace

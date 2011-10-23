@@ -58,7 +58,6 @@ signals:
 
 private:
   _lxi_internal const SInterfaces::AudioEncoder * encoder(void) const;
-  _lxi_internal void            processTask(const SAudioBuffer &);
 
 private:
   struct Data;

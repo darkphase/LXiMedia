@@ -346,7 +346,7 @@ void V4l2Input::stop(void)
   }
 }
 
-void V4l2Input::process(void)
+bool V4l2Input::process(void)
 {
   if (mappedBuffers > 0)
   { // mmap based capture
@@ -383,6 +383,7 @@ void V4l2Input::process(void)
           updateAgc(buffer);
 
         emit produce(buffer);
+        return true;
       }
       else
       {
@@ -419,6 +420,7 @@ void V4l2Input::process(void)
           updateAgc(buffer);
 
         emit produce(buffer);
+        return true;
       }
       else
       {
@@ -439,6 +441,8 @@ void V4l2Input::process(void)
       }
     }
   }
+
+  return false;
 }
 
 /*bool V4l2Input::selectInput(int inputIndex)

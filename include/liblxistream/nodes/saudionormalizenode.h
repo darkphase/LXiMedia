@@ -48,9 +48,6 @@ signals:
   void                          output(const SAudioBuffer &);
 
 private:
-  _lxi_internal void            processTask(const SAudioBuffer &);
-
-private:
   struct Data;
   Data                  * const d;
 };

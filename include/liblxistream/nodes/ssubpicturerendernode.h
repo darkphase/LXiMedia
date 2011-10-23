@@ -49,7 +49,6 @@ signals:
   void                          output(const SVideoBuffer &);
 
 private:
-  _lxi_internal void            processTask(const SVideoBuffer &);
   _lxi_internal static void     buildPalette(const SPixels::RGBAPixel *, unsigned, SVideoFormat::Format, QByteArray &);
 
 private:

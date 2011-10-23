@@ -24,7 +24,6 @@
 
 namespace LXiStream {
 
-
 struct SGraph::Data
 {
   QVector<SInterfaces::Node *> nodes;
@@ -33,29 +32,17 @@ struct SGraph::Data
 
   QThread                     * parentThread;
   STimer                        timer;
-  bool                          started;
-  bool                          stopping;
-  bool                          stopped;
-
-  static QAtomicInt             graphsRunning;
-
-  static const QEvent::Type     scheduleSourceEventType;
-  static const QEvent::Type     stopEventloopEventType;
+  int                           processTimer;
+  volatile bool                 running;
 };
-
-QAtomicInt         SGraph::Data::graphsRunning(0);
-
-const QEvent::Type SGraph::Data::scheduleSourceEventType = QEvent::Type(QEvent::registerEventType());
-const QEvent::Type SGraph::Data::stopEventloopEventType = QEvent::Type(QEvent::registerEventType());
 
 SGraph::SGraph(void)
        :QThread(NULL),
         d(new Data())
 {
   d->parentThread = QThread::thread();
-  d->started = false;
-  d->stopping = false;
-  d->stopped = true;
+  d->running = false;
+  d->processTimer = -1;
 }
 
 SGraph::~SGraph()
@@ -69,17 +56,17 @@ SGraph::~SGraph()
 
 bool SGraph::connect(const QObject *sender, const char *signal, const QObject *receiver, const char *member)
 {
-  return QThread::connect(sender, signal, receiver, member, Qt::QueuedConnection);
+  return QThread::connect(sender, signal, receiver, member, Qt::DirectConnection);
 }
 
 bool SGraph::connect(const QObject *sender, const char *signal, const char *member) const
 {
-  return QThread::connect(sender, signal, member, Qt::QueuedConnection);
+  return QThread::connect(sender, signal, member, Qt::DirectConnection);
 }
 
 bool SGraph::isRunning(void) const
 {
-  return d->started;
+  return d->running;
 }
 
 void SGraph::addNode(SInterfaces::Node *node)
@@ -99,76 +86,71 @@ void SGraph::addNode(SInterfaces::SinkNode *node)
 
 bool SGraph::start(void)
 {
-  if (!d->started)
+  if (!d->running)
   {
-    d->stopping = false;
-    d->stopped = false;
-    d->timer.reset();
-
+    // Start nodes
     QVector<SInterfaces::SourceNode *> startedSources;
     QVector<SInterfaces::Node *> startedNodes;
     QVector<SInterfaces::SinkNode *> startedSinks;
 
+    d->running = true;
+
     foreach (SInterfaces::SourceNode *source, d->sourceNodes)
-    if (source->start())
+    if (!source->start())
     {
+      qWarning() << "Failed to start source:" << source->metaObject()->className();
+
+      d->running = false;
+      break;
+    }
+    else
       startedSources += source;
-    }
-    else
-    {
-      qWarning() << "Failed to start source node:" << source->metaObject()->className();
 
-      foreach (SInterfaces::SourceNode *source, startedSources)
-        source->stop();
-
-      return false;
-    }
-
+    if (d->running)
     foreach (SInterfaces::Node *node, d->nodes)
-    if (node->start())
-    {
-      startedNodes += node;
-    }
-    else
+    if (!node->start())
     {
       qWarning() << "Failed to start node:" << node->metaObject()->className();
 
-      foreach (SInterfaces::SourceNode *source, startedSources)
-        source->stop();
-
-      foreach (SInterfaces::Node *node, startedNodes)
-        node->stop();
-
-      return false;
-    }
-
-    foreach (SInterfaces::SinkNode *sink, d->sinkNodes)
-    if (sink->start(&(d->timer)))
-    {
-      startedSinks += sink;
+      d->running = false;
+      break;
     }
     else
+      startedNodes += node;
+
+    if (d->running)
+    foreach (SInterfaces::SinkNode *sink, d->sinkNodes)
+    if (!sink->start(&(d->timer)))
     {
       qWarning() << "Failed to start sink node:" << sink->metaObject()->className();
 
-      foreach (SInterfaces::SourceNode *source, startedSources)
-        source->stop();
+      d->running = false;
+      break;
+    }
+    else
+      startedSinks += sink;
 
-      foreach (SInterfaces::Node *node, startedNodes)
-        node->stop();
+    if (d->running)
+    {
+      d->timer.reset();
 
-      foreach (SInterfaces::SinkNode *sink, startedSinks)
-        sink->stop();
+      // Ensure event handling occurs on the running thread.
+      QThread::moveToThread(this);
+      QThread::start();
 
-      return false;
+      return true;
     }
 
-    // Ensure event handling occurs on the running thread.
-    QThread::moveToThread(this);
+    foreach (SInterfaces::SourceNode *source, startedSources)
+      source->stop();
 
-    QThread::start();
-    d->started = true;
-    return true;
+    foreach (SInterfaces::Node *node, startedNodes)
+      node->stop();
+
+    foreach (SInterfaces::SinkNode *sink, startedSinks)
+      sink->stop();
+
+    return false;
   }
   else
   {
@@ -179,12 +161,9 @@ bool SGraph::start(void)
 
 void SGraph::stop(void)
 {
-  if (d->started)
-    d->stopping = true;
-
-  if (d->stopping)
+  if (d->running)
   {
-    QCoreApplication::postEvent(this, new QEvent(d->stopEventloopEventType), INT_MIN);
+    d->running = false;
 
     if (QThread::currentThread() != this)
       QThread::wait();
@@ -193,50 +172,48 @@ void SGraph::stop(void)
 
 void SGraph::run(void)
 {
-  QCoreApplication::postEvent(this, new QEvent(d->scheduleSourceEventType));
+  if (d->running)
+  {
+    d->processTimer = startTimer(0);
 
-  if (d->graphsRunning.fetchAndAddRelaxed(1) == 0)
-    QThreadPool::globalInstance()->setMaxThreadCount(QThread::idealThreadCount() * 2);
+    QThread::exec();
 
-  QThread::exec();
+    killTimer(d->processTimer);
+    d->processTimer = -1;
+  }
 
   foreach (SInterfaces::SourceNode *source, d->sourceNodes)
     source->stop();
 
-  for (int i=0; i<d->nodes.count(); i++)
   foreach (SInterfaces::Node *node, d->nodes)
     node->stop();
 
   foreach (SInterfaces::SinkNode *sink, d->sinkNodes)
     sink->stop();
 
-  d->stopped = true;
-
-  if (d->graphsRunning.fetchAndAddRelaxed(-1) == 1)
-    QThreadPool::globalInstance()->setMaxThreadCount(QThread::idealThreadCount());
-
   // Ensure event handling occurs on the parent thread again.
   QThread::moveToThread(d->parentThread);
-
-  d->started = false;
+  d->running = false;
 }
 
-void SGraph::customEvent(QEvent *e)
+void SGraph::timerEvent(QTimerEvent *e)
 {
-  if (e->type() == d->scheduleSourceEventType)
+  if (e->timerId() == d->processTimer)
   {
-    if (!d->stopped && !d->stopping)
+    if (d->running)
     {
+      bool produced = false;
       foreach (SInterfaces::SourceNode *source, d->sourceNodes)
-        source->process();
+        produced |= source->process();
 
-      QCoreApplication::postEvent(this, new QEvent(d->scheduleSourceEventType), INT_MIN + 1);
+      if (!produced)
+        QThread::sleep(10);
     }
+    else if (QThread::currentThread() == this)
+      QThread::exit(0);
   }
-  if (e->type() == d->stopEventloopEventType)
-    QThread::exit(0);
   else
-    QThread::customEvent(e);
+    QThread::timerEvent(e);
 }
 
 } // End of namespace
