@@ -160,6 +160,10 @@ SVideoBufferList VideoDecoder::decodeBuffer(const SEncodedVideoBuffer &videoBuff
       const int len = ::avcodec_decode_video2(contextHandle, pictureHandle, &gotPicture, &packet);
 #endif
 
+      for (int i=0, n=outFormat.numPlanes(); (i<n) && gotPicture; i++)
+      if (pictureHandle->data[i] == NULL)
+        gotPicture = 0;
+
       if ((len >= 0) && gotPicture)
       {
         // Determine metadata.
