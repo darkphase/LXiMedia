@@ -40,7 +40,7 @@ public:
   virtual                       ~PcmAudioDecoder();
 
 public: // From SBufferDecoder
-  virtual bool                  openCodec(const SAudioCodec &, Flags = Flag_None);
+  virtual bool                  openCodec(const SAudioCodec &, SInterfaces::BufferReader *, Flags);
   virtual SAudioBufferList      decodeBuffer(const SEncodedAudioBuffer &);
 
 private:

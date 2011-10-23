@@ -45,7 +45,7 @@ DataDecoder::~DataDecoder()
   }
 }
 
-bool DataDecoder::openCodec(const SDataCodec &c, Flags)
+bool DataDecoder::openCodec(const SDataCodec &c, const SInterfaces::BufferReader *, Flags)
 {
   if (contextHandle)
     qFatal("DataDecoder already opened a codec.");

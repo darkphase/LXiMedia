@@ -124,6 +124,20 @@ void SUPnPGenaServer::close(void)
   d->httpServer = NULL;
 }
 
+void SUPnPGenaServer::reset(void)
+{
+  for (QMap<QString, EventSession *>::Iterator i = d->eventSessions.begin();
+       i != d->eventSessions.end();
+       i = d->eventSessions.erase(i))
+  {
+    Q_ASSERT(((*i)->queued == 0) || ((*i)->currentEventKey() == 0));
+    delete *i;
+  }
+
+  d->sidBase = QUuid::createUuid();
+  d->sidCounter = 0;
+}
+
 void SUPnPGenaServer::emitEvent(const QDomDocument &doc)
 {
   const QByteArray content = QByteArray(SUPnPBase::xmlDeclaration) + doc.toByteArray(-1);

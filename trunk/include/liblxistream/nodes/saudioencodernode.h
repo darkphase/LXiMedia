@@ -27,9 +27,12 @@
 
 namespace LXiStream {
 
+class SIOOutputNode;
+
 class LXISTREAM_PUBLIC SAudioEncoderNode : public SInterfaces::Node
 {
 Q_OBJECT
+friend class SIOOutputNode;
 public:
   typedef SInterfaces::AudioEncoder::Flags Flags;
 
@@ -40,7 +43,7 @@ public:
   static QStringList            codecs(void);
   static QStringList            losslessCodecs(void);
 
-  bool                          openCodec(const SAudioCodec &, Flags = SInterfaces::AudioEncoder::Flag_None);
+  bool                          openCodec(const SAudioCodec &, SIOOutputNode *, STime duration, Flags = SInterfaces::AudioEncoder::Flag_None);
   SAudioCodec                   codec(void) const;
 
 public: // From SInterfaces::Node
@@ -54,6 +57,7 @@ signals:
   void                          output(const SEncodedAudioBuffer &);
 
 private:
+  _lxi_internal const SInterfaces::AudioEncoder * encoder(void) const;
   _lxi_internal void            processTask(const SAudioBuffer &);
 
 private:

@@ -31,7 +31,7 @@ ImageDecoder::~ImageDecoder()
 {
 }
 
-bool ImageDecoder::openCodec(const SVideoCodec &, Flags)
+bool ImageDecoder::openCodec(const SVideoCodec &, SInterfaces::BufferReader *, Flags)
 {
   return true;
 }

@@ -35,55 +35,100 @@ class LXIMEDIACENTER_PUBLIC MediaProfiles
 public:
   enum AudioProfile
   {
-    AC3 = 1,
-    LPCM,
-    MP2, MP3,
-    WMABASE,
-    VORBIS
+    // PCM
+    LPCM = 1,
+
+    // MPEG
+    MP2 = 0x0100, MP3,
+    AAC_ADTS,
+    AC3,
+
+    // WMA
+    WMABASE = 0x1000,
+
+    // Vorbis
+    VORBIS = 0x2000
   };
 
   enum VideoProfile
   {
-    MPEG1 = 1,
-    MPEG_PS_PAL, MPEG_PS_PAL_XAC3,
+    // MPEG 1
+    MPEG1 = 0x0100,
+
+    // MPEG 2
+    MPEG_PS_PAL = 0x0200, MPEG_PS_PAL_XAC3,
     MPEG_PS_NTSC, MPEG_PS_NTSC_XAC3,
-    MPEG_PS_SD_EU, MPEG_TS_SD_EU, MPEG_TS_SD_EU_ISO,
-    MPEG_PS_HD_EU, MPEG_TS_HD_EU, MPEG_TS_HD_EU_ISO,
-    MPEG_PS_SD_NA, MPEG_TS_SD_NA, MPEG_TS_SD_NA_ISO,
-    MPEG_PS_HD_NA, MPEG_TS_HD_NA, MPEG_TS_HD_NA_ISO
+
+    MPEG_TS_SD_EU, MPEG_TS_SD_EU_ISO,
+    MPEG_TS_HD_EU, MPEG_TS_HD_EU_ISO,
+    MPEG_TS_SD_NA, MPEG_TS_SD_NA_ISO,
+    MPEG_TS_HD_NA, MPEG_TS_HD_NA_ISO,
+
+    // MPEG 4 part 2
+    MPEG4_P2_TS_SP_AAC = 0x0400, MPEG4_P2_TS_SP_AAC_ISO,
+    MPEG4_P2_TS_SP_MPEG1_L3, MPEG4_P2_TS_SP_MPEG1_L3_ISO,
+    MPEG4_P2_TS_SP_MPEG2_L2, MPEG4_P2_TS_SP_MPEG2_L2_ISO,
+    MPEG4_P2_TS_SP_AC3_L3, MPEG4_P2_TS_SP_AC3_ISO,
+
+    MPEG4_P2_TS_ASP_AAC, MPEG4_P2_TS_ASP_AAC_ISO,
+    MPEG4_P2_TS_ASP_MPEG1_L3, MPEG4_P2_TS_ASP_MPEG1_L3_ISO,
+    MPEG4_P2_TS_ASP_AC3_L3, MPEG4_P2_TS_ASP_AC3_ISO,
+
+    // WMV
+    WMVMED_BASE = 0x1000,
+
+    // Non-standard
+    MPEG_PS_SD_EU_NONSTD = 0x7000, MPEG_PS_HD_EU_NONSTD,
+    MPEG_PS_SD_NA_NONSTD, MPEG_PS_HD_NA_NONSTD,
+
+    MPEG4_P2_MATROSKA_MP3_SD_NONSTD, MPEG4_P2_MATROSKA_MP3_HD_NONSTD,
+    MPEG4_P2_MATROSKA_AAC_SD_NONSTD, MPEG4_P2_MATROSKA_AAC_HD_NONSTD,
+    MPEG4_P2_MATROSKA_AC3_SD_NONSTD, MPEG4_P2_MATROSKA_AC3_HD_NONSTD,
   };
 
   enum ImageProfile
   {
-    JPEG_TN = 1, JPEG_SM, JPEG_MED, JPEG_LRG,
-    PNG_TN, PNG_LRG
+    // JPEG
+    JPEG_TN = 0x0100, JPEG_SM, JPEG_MED, JPEG_LRG,
+
+    // PNG
+    PNG_TN = 0x0200, PNG_LRG
   };
 
 public:
                                 MediaProfiles(void);
                                 ~MediaProfiles();
 
-  void                          addProfile(AudioProfile, int priority = 0);
-  void                          addProfile(VideoProfile, int priority = 0);
-  void                          addProfile(ImageProfile, int priority = 0);
+  void                          openDeviceConfig(const QString &);
 
-  SUPnPBase::ProtocolList       listProtocols(void);
-  SUPnPBase::ProtocolList       listProtocols(const SAudioFormat &, bool seekable);
-  SUPnPBase::ProtocolList       listProtocols(const SAudioFormat &, const SVideoFormat &, bool seekable);
-  SUPnPBase::ProtocolList       listProtocols(const SSize &imageSize);
+  void                          setCodecs(const QSet<QString> &audioCodecs, const QSet<QString> &videoCodecs, const QSet<QString> &imageCodecs, const QSet<QString> &formats);
+
+  QStringList                   enabledAudioProfiles(void);
+  QStringList                   enabledVideoProfiles(void);
+  QStringList                   enabledImageProfiles(void);
+
+  SUPnPBase::ProtocolList       listProtocols(const QString &client);
+  SUPnPBase::ProtocolList       listProtocols(const QString &client, const SAudioFormat &, bool seekable);
+  SUPnPBase::ProtocolList       listProtocols(const QString &client, const SAudioFormat &, const SVideoFormat &, bool seekable);
+  SUPnPBase::ProtocolList       listProtocols(const QString &client, const SSize &imageSize);
+
+  QStringList                   supportedAudioProfiles(const QString &client);
+  QStringList                   supportedVideoProfiles(const QString &client);
+  QStringList                   supportedImageProfiles(const QString &client);
 
   static int                    correctFormat(AudioProfile, SAudioFormat &);
   static int                    correctFormat(VideoProfile, SAudioFormat &);
   static int                    correctFormat(VideoProfile, SVideoFormat &);
   static int                    correctFormat(ImageProfile, SSize &);
 
-  static AudioProfile           audioProfileFor(const QString &contentFeatures);
-  static VideoProfile           videoProfileFor(const QString &contentFeatures);
-  static ImageProfile           imageProfileFor(const QString &contentFeatures);
+  AudioProfile                  audioProfileFor(const QString &contentFeatures) const;
+  VideoProfile                  videoProfileFor(const QString &contentFeatures) const;
+  ImageProfile                  imageProfileFor(const QString &contentFeatures) const;
 
-  static SAudioCodec            audioCodecFor(AudioProfile, const SAudioFormat &);
-  static SAudioCodec            audioCodecFor(VideoProfile, const SAudioFormat &);
-  static SVideoCodec            videoCodecFor(VideoProfile, const SVideoFormat &);
+  static QString                audioCodecFor(AudioProfile, SAudioFormat::Channels);
+  static QString                audioCodecFor(VideoProfile, SAudioFormat::Channels);
+  static QString                videoCodecFor(VideoProfile);
+  static QString                imageCodecFor(ImageProfile);
 
   static QString                formatFor(AudioProfile);
   static QString                formatFor(VideoProfile);
@@ -97,13 +142,19 @@ public:
   static const char           * suffixFor(ImageProfile);
 
 private:
+  _lxi_internal static int      profilePriority(AudioProfile);
+  _lxi_internal static int      profilePriority(VideoProfile);
+  _lxi_internal static int      profilePriority(ImageProfile);
+
+  _lxi_internal QString         findBestClient(const QString &);
+
   _lxi_internal static int      correctFormatStereo(SAudioFormat &);
   _lxi_internal static int      correctFormatSurround51(SAudioFormat &);
   _lxi_internal static int      correctFormatSurround71(SAudioFormat &);
 
-  _lxi_internal static const char * profileName(AudioProfile);
-  _lxi_internal static const char * profileName(VideoProfile);
-  _lxi_internal static const char * profileName(ImageProfile);
+  _lxi_internal static QByteArray profileName(AudioProfile);
+  _lxi_internal static QByteArray profileName(VideoProfile);
+  _lxi_internal static QByteArray profileName(ImageProfile);
 
 private:
   struct Data;

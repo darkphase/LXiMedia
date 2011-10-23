@@ -37,9 +37,10 @@ public:
 
 public: // From SInterfaces::BufferWriter
   virtual bool                  openFormat(const QString &);
-  virtual bool                  createStreams(const QList<SAudioCodec> &, const QList<SVideoCodec> &, STime);
+  virtual bool                  addStream(const SInterfaces::AudioEncoder *, STime);
+  virtual bool                  addStream(const SInterfaces::VideoEncoder *, STime);
 
-  virtual bool                  start(SInterfaces::BufferWriter::WriteCallback *);
+  virtual bool                  start(SInterfaces::BufferWriter::WriteCallback *, bool);
   virtual void                  stop(void);
   virtual void                  process(const SEncodedAudioBuffer &);
   virtual void                  process(const SEncodedVideoBuffer &);
@@ -47,6 +48,7 @@ public: // From SInterfaces::BufferWriter
 
 protected:
   virtual void                  write(const uchar *, qint64);
+  virtual qint64                seek(qint64, int);
 
 private:
   SInterfaces::BufferWriter   * bufferWriter;

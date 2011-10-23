@@ -19,22 +19,25 @@
 
 #include "nodes/saudiodecodernode.h"
 #include "saudiobuffer.h"
+#include "nodes/sioinputnode.h"
 
 namespace LXiStream {
 
 struct SAudioDecoderNode::Data
 {
+  SIOInputNode                * inputNode;
   SAudioDecoderNode::Flags      flags;
   SAudioCodec                   lastCodec;
   SInterfaces::AudioDecoder   * decoder;
   QFuture<void>                 future;
 };
 
-SAudioDecoderNode::SAudioDecoderNode(SGraph *parent, Flags flags)
+SAudioDecoderNode::SAudioDecoderNode(SGraph *parent)
   : SInterfaces::Node(parent),
     d(new Data())
 {
-  d->flags = flags;
+  d->inputNode = NULL;
+  d->flags = SInterfaces::AudioDecoder::Flag_None;
   d->decoder = NULL;
 }
 
@@ -49,6 +52,14 @@ SAudioDecoderNode::~SAudioDecoderNode()
 QStringList SAudioDecoderNode::codecs(void)
 {
   return SInterfaces::AudioDecoder::available();
+}
+
+bool SAudioDecoderNode::open(SIOInputNode *inputNode, Flags flags)
+{
+  d->inputNode = inputNode;
+  d->flags = flags;
+
+  return true;
 }
 
 SAudioDecoderNode::Flags SAudioDecoderNode::flags(void) const
@@ -82,8 +93,11 @@ void SAudioDecoderNode::input(const SEncodedAudioBuffer &audioBuffer)
     {
       delete d->decoder;
 
+      SInterfaces::BufferReader * const bufferReader =
+          d->inputNode ? d->inputNode->bufferReader() : NULL;
+
       d->lastCodec = audioBuffer.codec();
-      d->decoder = SInterfaces::AudioDecoder::create(NULL, d->lastCodec, d->flags, false);
+      d->decoder = SInterfaces::AudioDecoder::create(NULL, d->lastCodec, bufferReader, d->flags, false);
 
       if (d->decoder == NULL)
         qWarning() << "Failed to find audio decoder for codec" << d->lastCodec.codec();

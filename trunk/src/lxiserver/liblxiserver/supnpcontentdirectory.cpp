@@ -30,8 +30,8 @@ const unsigned  SUPnPContentDirectory::seekSec = 120;
 
 struct SUPnPContentDirectory::Data : SUPnPContentDirectory::Callback
 {
-  virtual int                   countContentDirItems(const QString &peer, const QString &path);
-  virtual QList<Item>           listContentDirItems(const QString &peer, const QString &path, unsigned start, unsigned count);
+  virtual int                   countContentDirItems(const QString &client, const QString &path);
+  virtual QList<Item>           listContentDirItems(const QString &client, const QString &path, unsigned start, unsigned count);
 
   SUPnPGenaServer             * genaServer;
 
@@ -95,6 +95,21 @@ void SUPnPContentDirectory::close(void)
 {
   SUPnPBase::close();
   d->genaServer->close();
+}
+
+void SUPnPContentDirectory::reset(void)
+{
+  SUPnPBase::reset();
+  d->genaServer->reset();
+
+  d->systemUpdateId = 1;
+
+#ifdef USE_SMALL_OBJECTIDS
+  d->objectIdList.clear();
+  d->objectIdHash.clear();
+  d->objectIdList.append(QByteArray());
+  d->objectIdHash.insert(d->objectIdList.last(), d->objectIdList.count() - 1);
+#endif
 }
 
 void SUPnPContentDirectory::registerCallback(const QString &path, Callback *callback)
@@ -289,7 +304,7 @@ bool SUPnPContentDirectory::handleBrowse(const QDomElement &elem, QDomDocument &
   const QString browseFlag = elem.firstChildElement("BrowseFlag").text();
   const unsigned start = elem.firstChildElement("StartingIndex").text().toUInt();
   const unsigned count = elem.firstChildElement("RequestedCount").text().toUInt();
-  const QString peer = peerAddress.toString();
+  const QString client = toClientString(peerAddress, request);
   const QString host = request.host();
 
   QDomElement browseResponse = createElementNS(doc, elem, "BrowseResponse");
@@ -319,7 +334,7 @@ bool SUPnPContentDirectory::handleBrowse(const QDomElement &elem, QDomDocument &
       root.setAttribute("xmlns:upnp", metadataNS);
 
       unsigned itemIndex = start;
-      foreach (const Item &item, (*callback)->listContentDirItems(peer, path, start, count))
+      foreach (const Item &item, (*callback)->listContentDirItems(client, path, start, count))
       {
         if (!item.isDir)
         {
@@ -330,13 +345,13 @@ bool SUPnPContentDirectory::handleBrowse(const QDomElement &elem, QDomDocument &
             didlContainer(subDoc, root, Item::Type(item.type), path + QString::number(itemIndex), title, allItems(item, QStringList()).count());
         }
         else
-          didlDirectory(subDoc, root, Item::Type(item.type), peer, path + item.title + '/');
+          didlDirectory(subDoc, root, Item::Type(item.type), client, path + item.title + '/');
 
         itemIndex++;
         totalReturned++;
       }
 
-      totalMatches = (*callback)->countContentDirItems(peer, path);
+      totalMatches = (*callback)->countContentDirItems(client, path);
 
       subDoc.appendChild(root);
       result.appendChild(doc.createTextNode(subDoc.toString(-1).replace(">", "&gt;"))); // Crude hack for non-compliant XML parsers
@@ -348,7 +363,7 @@ bool SUPnPContentDirectory::handleBrowse(const QDomElement &elem, QDomDocument &
       root.setAttribute("xmlns:dc", dublinCoreNS);
       root.setAttribute("xmlns:dlna", dlnaNS);
       root.setAttribute("xmlns:upnp", metadataNS);
-      didlDirectory(subDoc, root, Item::Type_None, peer, path);
+      didlDirectory(subDoc, root, Item::Type_None, client, path);
       subDoc.appendChild(root);
 
       totalMatches = totalReturned = 1;
@@ -369,7 +384,7 @@ bool SUPnPContentDirectory::handleBrowse(const QDomElement &elem, QDomDocument &
 
     // Get the item
     Item item;
-    foreach (const Item &i, (*callback)->listContentDirItems(peer, basePath, itemIndex, 1))
+    foreach (const Item &i, (*callback)->listContentDirItems(client, basePath, itemIndex, 1))
       item = i;
 
     if (item.isNull())
@@ -437,7 +452,7 @@ bool SUPnPContentDirectory::handleBrowse(const QDomElement &elem, QDomDocument &
   return true;
 }
 
-void SUPnPContentDirectory::didlDirectory(QDomDocument &doc, QDomElement &root, Item::Type type, const QString &peer, const QString &path, const QString &title)
+void SUPnPContentDirectory::didlDirectory(QDomDocument &doc, QDomElement &root, Item::Type type, const QString &client, const QString &path, const QString &title)
 {
   QMap<QString, Callback *>::Iterator callback = d->callbacks.find(path);
   for (QString i=path; !i.isEmpty() && (callback == d->callbacks.end()); i=parentDir(i))
@@ -449,7 +464,7 @@ void SUPnPContentDirectory::didlDirectory(QDomDocument &doc, QDomElement &root, 
     return;
   }
 
-  didlContainer(doc, root, type, path, title, (*callback)->countContentDirItems(peer, path));
+  didlContainer(doc, root, type, path, title, (*callback)->countContentDirItems(client, path));
 }
 
 void SUPnPContentDirectory::didlContainer(QDomDocument &doc, QDomElement &root, Item::Type type, const QString &path, const QString &title, int childCount)
@@ -552,6 +567,18 @@ void SUPnPContentDirectory::didlFile(QDomDocument &doc, QDomElement &root, const
 
     if (item.duration > 0)
       resElm.setAttribute("duration", QTime().addSecs(item.duration).toString("h:mm:ss.zzz"));
+
+    if (protocol.sampleRate > 0)
+      resElm.setAttribute("sampleFrequency", QString::number(protocol.sampleRate));
+
+    if (protocol.channels > 0)
+      resElm.setAttribute("nrAudioChannels", QString::number(protocol.channels));
+
+    if (protocol.resolution.isValid() && !protocol.resolution.isNull())
+      resElm.setAttribute("resolution", QString::number(protocol.resolution.width()) + "x" + QString::number(protocol.resolution.height()));
+
+    if (protocol.size > 0)
+      resElm.setAttribute("size", QString::number(protocol.size));
 
     QUrl url = item.url;
     url.setScheme("http");
@@ -828,7 +855,7 @@ SUPnPContentDirectory::Item::Chapter::~Chapter()
 }
 
 
-int SUPnPContentDirectory::Data::countContentDirItems(const QString &peer, const QString &path)
+int SUPnPContentDirectory::Data::countContentDirItems(const QString &client, const QString &path)
 {
   QSet<QString> subDirs;
 
@@ -838,7 +865,7 @@ int SUPnPContentDirectory::Data::countContentDirItems(const QString &peer, const
     QString sub = i.key().mid(path.length() - 1);
     sub = sub.left(sub.indexOf('/', 1) + 1);
     if ((sub.length() > 1) && !subDirs.contains(sub) &&
-        ((*i)->countContentDirItems(peer, i.key()) > 0))
+        ((*i)->countContentDirItems(client, i.key()) > 0))
     {
       subDirs.insert(sub);
     }
@@ -847,7 +874,7 @@ int SUPnPContentDirectory::Data::countContentDirItems(const QString &peer, const
   return subDirs.count();
 }
 
-QList<SUPnPContentDirectory::Item> SUPnPContentDirectory::Data::listContentDirItems(const QString &peer, const QString &path, unsigned start, unsigned count)
+QList<SUPnPContentDirectory::Item> SUPnPContentDirectory::Data::listContentDirItems(const QString &client, const QString &path, unsigned start, unsigned count)
 {
   const bool returnAll = count == 0;
   QList<SUPnPContentDirectory::Item> result;
@@ -859,7 +886,7 @@ QList<SUPnPContentDirectory::Item> SUPnPContentDirectory::Data::listContentDirIt
     QString sub = i.key().mid(path.length() - 1);
     sub = sub.left(sub.indexOf('/', 1) + 1);
     if ((sub.length() > 1) && !names.contains(sub) &&
-        ((*i)->countContentDirItems(peer, i.key()) > 0))
+        ((*i)->countContentDirItems(client, i.key()) > 0))
     {
       names.insert(sub);
 

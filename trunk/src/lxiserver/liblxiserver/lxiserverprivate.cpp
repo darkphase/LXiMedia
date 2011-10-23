@@ -274,7 +274,8 @@ void HttpServerRequest::readyRead()
         disconnect(socket, SIGNAL(disconnected()), this, SLOT(close()));
 
         SHttpEngine::ResponseMessage response = parent->handleHttpRequest(request, socket);
-        if (parent->sendHttpResponse(request, response, socket))
+
+        if (socket && parent->sendHttpResponse(request, response, socket))
         {
 #ifdef TRACE_CONNECTIONS
           qDebug() << this << "HttpServerRequest::readyRead reuse";

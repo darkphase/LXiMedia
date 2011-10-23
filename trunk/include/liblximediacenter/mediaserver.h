@@ -138,13 +138,13 @@ protected: // From SHttpServer::Callback
   virtual SHttpServer::ResponseMessage httpRequest(const SHttpServer::RequestMessage &, QIODevice *);
 
 private: // From UPnPContentDirectory::Callback
-  virtual int                   countContentDirItems(const QString &peer, const QString &path);
-  virtual QList<SUPnPContentDirectory::Item> listContentDirItems(const QString &peer, const QString &path, unsigned start, unsigned count);
+  virtual int                   countContentDirItems(const QString &client, const QString &path);
+  virtual QList<SUPnPContentDirectory::Item> listContentDirItems(const QString &client, const QString &path, unsigned start, unsigned count);
 
 private:
-  _lxi_internal static SAudioFormat audioFormatFor(const QString &peer, const Item &item, int &addVideo);
-  _lxi_internal static SVideoFormat videoFormatFor(const QString &peer, const Item &item);
-  _lxi_internal static void     setQueryItemsFor(const QString &peer, QUrl &);
+  _lxi_internal static SAudioFormat audioFormatFor(const QString &client, const Item &item, int &addVideo);
+  _lxi_internal static SVideoFormat videoFormatFor(const QString &client, const Item &item);
+  _lxi_internal static void     setQueryItemsFor(const QString &client, QUrl &);
   _lxi_internal void            addStream(Stream *);
   _lxi_internal void            removeStream(Stream *);
 

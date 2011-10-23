@@ -38,8 +38,10 @@ public:
                                 VideoEncoder(const QString &, QObject *);
   virtual                       ~VideoEncoder();
 
+  inline const ::AVCodecContext * avCodecContext(void) const                    { return contextHandle; }
+
 public: // From SBufferEncoder
-  virtual bool                  openCodec(const SVideoCodec &, Flags = Flag_None);
+  virtual bool                  openCodec(const SVideoCodec &, SInterfaces::BufferWriter *, Flags = Flag_None);
   virtual SVideoCodec           codec(void) const;
   virtual SEncodedVideoBufferList encodeBuffer(const SVideoBuffer &);
 
@@ -47,9 +49,10 @@ private:
   static const int              bufferSize;
 
   SVideoCodec                   outCodec;
-  AVCodec                     * codecHandle;
-  AVCodecContext              * contextHandle;
-  AVFrame                     * pictureHandle;
+  ::AVCodec                   * codecHandle;
+  ::AVCodecContext            * contextHandle;
+  bool                          contextHandleOwner;
+  ::AVFrame                   * pictureHandle;
   SVideoBuffer                  pictureBuffer;
 
   SVideoFormatConvertNode       formatConvert;

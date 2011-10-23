@@ -61,20 +61,20 @@ SAudioFormat::Format SAudioFormatConvertNode::destFormat(void) const
 
 /*! Converts the video buffer to the format specified by setDestFormat().
  */
-SAudioBuffer SAudioFormatConvertNode::convert(const SAudioBuffer &videoBuffer)
+SAudioBuffer SAudioFormatConvertNode::convert(const SAudioBuffer &audioBuffer)
 {
-  if (!videoBuffer.isNull())
+  if (!audioBuffer.isNull())
   {
-    if (videoBuffer.format() != d->sourceFormat)
+    if (audioBuffer.format() != d->sourceFormat)
     {
-      d->sourceFormat = videoBuffer.format();
+      d->sourceFormat = audioBuffer.format();
       delete d->converter;
       d->converter = NULL;
     }
 
     if (d->sourceFormat == d->destFormat)
     {
-      return videoBuffer;
+      return audioBuffer;
     }
     else if ((d->converter == NULL) &&
              (d->sourceFormat != SAudioFormat::Format_Invalid) &&
@@ -84,7 +84,7 @@ SAudioBuffer SAudioFormatConvertNode::convert(const SAudioBuffer &videoBuffer)
     }
 
     if (d->converter)
-      return d->converter->convertBuffer(videoBuffer);
+      return d->converter->convertBuffer(audioBuffer);
   }
 
   return SAudioBuffer();

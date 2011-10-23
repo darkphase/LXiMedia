@@ -22,11 +22,12 @@
 
 #include <QtCore>
 #include <LXiStream>
+#define this self
 #include <dvdnav/dvdnav.h>
+#undef this
 
 namespace LXiStream {
 namespace DVDNavBackend {
-
 
 class BufferReader : public SInterfaces::BufferReader,
                      public SInterfaces::BufferReader::ReadCallback
@@ -93,7 +94,6 @@ private:
   bool                          seekEnabled, flushing;
   bool                          playing, skipStill, skipWait;
 };
-
 
 } } // End of namespaces
 

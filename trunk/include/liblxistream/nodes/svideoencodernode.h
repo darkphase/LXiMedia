@@ -27,9 +27,12 @@
 
 namespace LXiStream {
 
+class SIOOutputNode;
+
 class LXISTREAM_PUBLIC SVideoEncoderNode : public SInterfaces::Node
 {
 Q_OBJECT
+friend class SIOOutputNode;
 public:
   typedef SInterfaces::VideoEncoder::Flags Flags;
 
@@ -40,7 +43,7 @@ public:
   static QStringList            codecs(void);
   static QStringList            losslessCodecs(void);
 
-  bool                          openCodec(const SVideoCodec &, Flags = SInterfaces::VideoEncoder::Flag_None);
+  bool                          openCodec(const SVideoCodec &, SIOOutputNode *, STime duration, Flags = SInterfaces::VideoEncoder::Flag_None);
   SVideoCodec                   codec(void) const;
 
 public: // From SInterfaces::Node
@@ -54,6 +57,7 @@ signals:
   void                          output(const SEncodedVideoBuffer &);
 
 private:
+  _lxi_internal const SInterfaces::VideoEncoder * encoder(void) const;
   _lxi_internal void            processTask(const SVideoBuffer &);
 
 private:

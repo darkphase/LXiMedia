@@ -81,7 +81,7 @@ bool Module::registerClasses(void)
   // Buffer readers and writers
   //PsBufferReader::registerClass<PsBufferReader>(PsBufferWriter::formatName);
   //PsBufferWriter::registerClass<PsBufferWriter>(PsBufferWriter::formatName);
-  TsBufferWriter::registerClass<TsBufferWriter>(SFactory::Scheme(-1, "m2ts"));
+  //TsBufferWriter::registerClass<TsBufferWriter>(SFactory::Scheme(-1, "m2ts"));
 
   // Filters
   DeinterlaceBlend::registerClass<DeinterlaceBlend>(SFactory::Scheme(0, "blend"));
@@ -123,12 +123,17 @@ bool Module::registerClasses(void)
 
   // Video format converters
   VideoFormatConverter_Format_YUYV422_Format_RGB32::registerClass<VideoFormatConverter_Format_YUYV422_Format_RGB32>();
+  VideoFormatConverter_Format_RGB32_Format_YUYV422::registerClass<VideoFormatConverter_Format_RGB32_Format_YUYV422>();
   VideoFormatConverter_Format_UYVY422_Format_RGB32::registerClass<VideoFormatConverter_Format_UYVY422_Format_RGB32>();
+  VideoFormatConverter_Format_RGB32_Format_UYVY422::registerClass<VideoFormatConverter_Format_RGB32_Format_UYVY422>();
   VideoFormatConverter_Format_BGR32_Format_RGB32::registerClass<VideoFormatConverter_Format_BGR32_Format_RGB32>();
   VideoFormatConverter_Format_RGB32_Format_BGR32::registerClass<VideoFormatConverter_Format_RGB32_Format_BGR32>();
   VideoFormatConverter_Format_YUV420P_Format_RGB32::registerClass<VideoFormatConverter_Format_YUV420P_Format_RGB32>();
+  VideoFormatConverter_Format_RGB32_Format_YUV420P::registerClass<VideoFormatConverter_Format_RGB32_Format_YUV420P>();
   VideoFormatConverter_Format_YUV422P_Format_RGB32::registerClass<VideoFormatConverter_Format_YUV422P_Format_RGB32>();
+  VideoFormatConverter_Format_RGB32_Format_YUV422P::registerClass<VideoFormatConverter_Format_RGB32_Format_YUV422P>();
   VideoFormatConverter_Format_YUV444P_Format_RGB32::registerClass<VideoFormatConverter_Format_YUV444P_Format_RGB32>();
+  VideoFormatConverter_Format_RGB32_Format_YUV444P::registerClass<VideoFormatConverter_Format_RGB32_Format_YUV444P>();
 
   VideoFormatConverter_Format_GRBG8_Format_RGB32::registerClass<VideoFormatConverter_Format_GRBG8_Format_RGB32>();
   VideoFormatConverter_Format_GBRG8_Format_RGB32::registerClass<VideoFormatConverter_Format_GBRG8_Format_RGB32>();

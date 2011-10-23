@@ -103,8 +103,8 @@ public:
 
   struct Callback
   {
-    virtual int                 countContentDirItems(const QString &peer, const QString &path) = 0;
-    virtual QList<Item>         listContentDirItems(const QString &peer, const QString &path, unsigned start = 0, unsigned count = 0) = 0;
+    virtual int                 countContentDirItems(const QString &client, const QString &path) = 0;
+    virtual QList<Item>         listContentDirItems(const QString &client, const QString &path, unsigned start = 0, unsigned count = 0) = 0;
   };
 
 public:
@@ -113,6 +113,7 @@ public:
 
   void                          initialize(SHttpServer *, SUPnPMediaServer *);
   void                          close(void);
+  void                          reset(void);
 
   void                          registerCallback(const QString &path, Callback *);
   void                          unregisterCallback(Callback *);
@@ -129,7 +130,7 @@ protected: // From SUPnPBase
 
 private:
   _lxi_internal bool            handleBrowse(const QDomElement &, QDomDocument &, QDomElement &, const SHttpServer::RequestMessage &, const QHostAddress &);
-  _lxi_internal void            didlDirectory(QDomDocument &, QDomElement &, Item::Type, const QString &peer, const QString &path, const QString &title = QString::null);
+  _lxi_internal void            didlDirectory(QDomDocument &, QDomElement &, Item::Type, const QString &client, const QString &path, const QString &title = QString::null);
   _lxi_internal void            didlContainer(QDomDocument &, QDomElement &, Item::Type, const QString &path, const QString &title = QString::null, int childCount = 0);
   _lxi_internal void            didlFile(QDomDocument &, QDomElement &, const QString &host, const Item &, const QString &path, const QString &title = QString::null);
   _lxi_internal void            emitEvent(bool dirty);

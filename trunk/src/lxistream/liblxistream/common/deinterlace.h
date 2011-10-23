@@ -26,7 +26,6 @@
 namespace LXiStream {
 namespace Common {
 
-
 class DeinterlaceBlend : public SInterfaces::VideoDeinterlacer
 {
 Q_OBJECT
@@ -35,6 +34,9 @@ public:
 
 public: // From SInterfaces::VideoDeinterlacer
   virtual SVideoBufferList      processBuffer(const SVideoBuffer &);
+
+private:
+  void                          copyLines(SVideoBuffer &destBuffer, const SVideoBuffer &videoBuffer, int plane);
 };
 
 
@@ -48,10 +50,12 @@ public: // From SInterfaces::VideoDeinterlacer
   virtual SVideoBufferList      processBuffer(const SVideoBuffer &);
 
 private:
+  void                          copyLines(SVideoBuffer &destBuffer, const SVideoBuffer &videoBuffer, int offset, int plane);
+
+private:
   STime                         avgFrameTime;
   STime                         lastTimeStamp;
 };
-
 
 } } // End of namespaces
 

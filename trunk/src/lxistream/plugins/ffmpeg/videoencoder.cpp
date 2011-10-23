@@ -18,6 +18,7 @@
  ***************************************************************************/
 
 #include "videoencoder.h"
+#include "bufferwriter.h"
 #include <cmath>
 
 namespace LXiStream {
@@ -30,6 +31,7 @@ VideoEncoder::VideoEncoder(const QString &, QObject *parent)
     outCodec(),
     codecHandle(NULL),
     contextHandle(NULL),
+    contextHandleOwner(false),
     pictureHandle(NULL),
     pictureBuffer(),
     formatConvert(NULL),
@@ -49,14 +51,14 @@ VideoEncoder::~VideoEncoder()
   if (codecHandle && contextHandle)
     avcodec_close(contextHandle);
 
-  if (contextHandle)
+  if (contextHandle && contextHandleOwner)
     av_free(contextHandle);
 
   if (pictureHandle)
     av_free(pictureHandle);
 }
 
-bool VideoEncoder::openCodec(const SVideoCodec &c, Flags flags)
+bool VideoEncoder::openCodec(const SVideoCodec &c, SInterfaces::BufferWriter *bufferWriter, Flags flags)
 {
   if (contextHandle)
     qFatal("VideoEncoder already opened a codec.");
@@ -69,7 +71,18 @@ bool VideoEncoder::openCodec(const SVideoCodec &c, Flags flags)
     return false;
   }
 
-  contextHandle = ::avcodec_alloc_context();
+  BufferWriter * const ffBufferWriter = qobject_cast<BufferWriter *>(bufferWriter);
+//  if (ffBufferWriter)
+//  {
+//    contextHandle = ffBufferWriter->createStream()->codec;
+//    contextHandleOwner = false;
+//  }
+//  else
+  {
+    contextHandle = ::avcodec_alloc_context();
+    contextHandleOwner = true;
+  }
+
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
   ::avcodec_get_context_defaults2(contextHandle, AVMEDIA_TYPE_VIDEO);
 #else
@@ -92,6 +105,7 @@ bool VideoEncoder::openCodec(const SVideoCodec &c, Flags flags)
   contextHandle->width = outCodec.size().width();
   contextHandle->height = outCodec.size().height();
   contextHandle->sample_aspect_ratio = ::av_d2q(outCodec.size().aspectRatio(), 256);
+  contextHandle->ticks_per_frame = 1;
   contextHandle->time_base.num = outCodec.frameRate().num();
   contextHandle->time_base.den = outCodec.frameRate().den();
 
@@ -153,6 +167,10 @@ bool VideoEncoder::openCodec(const SVideoCodec &c, Flags flags)
 #endif
 #endif
 
+  if (ffBufferWriter)
+  if (ffBufferWriter->avFormat()->flags & AVFMT_GLOBALHEADER)
+      contextHandle->flags |= CODEC_FLAG_GLOBAL_HEADER;
+
   if (avcodec_open(contextHandle, codecHandle) < 0)
   {
     qCritical() << "VideoEncoder: Could not open video codec " << codecHandle->name;
@@ -192,7 +210,7 @@ SEncodedVideoBufferList VideoEncoder::encodeBuffer(const SVideoBuffer &videoBuff
     if (enableResend && (videoBuffer.memory()->uid == lastInBufferId) &&
         lastEncodedBuffer.isKeyFrame())
     {
-      const STime frameTime = STime(1, SInterval(contextHandle->time_base.num, contextHandle->time_base.den));
+      const STime frameTime = STime(contextHandle->ticks_per_frame, SInterval(contextHandle->time_base.num, contextHandle->time_base.den));
 
       lastEncodedBuffer.setPresentationTimeStamp(lastEncodedBuffer.presentationTimeStamp() + frameTime);
       lastEncodedBuffer.setDecodingTimeStamp(lastEncodedBuffer.decodingTimeStamp() + frameTime);

@@ -207,22 +207,24 @@ BufferWriter * BufferWriter::create(QObject *parent, const QString &format, bool
 }
 
 /*! Creates an audio decoder for the specified codec.
-    \param parent   The parent object, or NULL if none.
-    \param codec    The codec to use.
-    \param flags    The flags to use, see SAudioDecoderNode::Flags.
-    \param nonNull  When true, the default, the method will throw a qFatal() if
-                    the object can not be created, the method is guaranteed not
-                    to return a null pointer in this case. When false, the
-                    method will return a null pointer if the object can not be
-                    created.
+    \param parent       The parent object, or NULL if none.
+    \param codec        The codec to use.
+    \param bufferReader The BufferReader that was used to open the file, or NULL
+                        if not available.
+    \param flags        The flags to use, see SAudioDecoderNode::Flags.
+    \param nonNull      When true, the default, the method will throw a qFatal()
+                        if the object can not be created, the method is
+                        guaranteed not to return a null pointer in this case.
+                        When false, the method will return a null pointer if the
+                        object can not be created.
  */
-AudioDecoder * AudioDecoder::create(QObject *parent, const SAudioCodec &codec, Flags flags, bool nonNull)
+AudioDecoder * AudioDecoder::create(QObject *parent, const SAudioCodec &codec, BufferReader *bufferReader, Flags flags, bool nonNull)
 {
   AudioDecoder * audioDecoder =
       static_cast<AudioDecoder *>(factory().createObject(staticMetaObject.className(), parent, codec.codec(), nonNull));
 
   if (audioDecoder)
-  if (!audioDecoder->openCodec(codec, flags))
+  if (!audioDecoder->openCodec(codec, bufferReader, flags))
   {
     delete audioDecoder;
     audioDecoder = NULL;
@@ -235,22 +237,24 @@ AudioDecoder * AudioDecoder::create(QObject *parent, const SAudioCodec &codec, F
 }
 
 /*! Creates a video decoder for the specified codec.
-    \param parent   The parent object, or NULL if none.
-    \param codec    The codec to use.
-    \param flags    The flags to use, see SVideoDecoderNode::Flags.
-    \param nonNull  When true, the default, the method will throw a qFatal() if
-                    the object can not be created, the method is guaranteed not
-                    to return a null pointer in this case. When false, the
-                    method will return a null pointer if the object can not be
-                    created.
+    \param parent       The parent object, or NULL if none.
+    \param codec        The codec to use.
+    \param bufferReader The BufferReader that was used to open the file, or NULL
+                        if not available.
+    \param flags        The flags to use, see SVideoDecoderNode::Flags.
+    \param nonNull      When true, the default, the method will throw a qFatal()
+                        if the object can not be created, the method is
+                        guaranteed not to return a null pointer in this case.
+                        When false, the method will return a null pointer if the
+                        object can not be created.
  */
-VideoDecoder * VideoDecoder::create(QObject *parent, const SVideoCodec &codec, Flags flags, bool nonNull)
+VideoDecoder * VideoDecoder::create(QObject *parent, const SVideoCodec &codec, BufferReader *bufferReader, Flags flags, bool nonNull)
 {
   VideoDecoder * videoDecoder =
       static_cast<VideoDecoder *>(factory().createObject(staticMetaObject.className(), parent, codec.codec(), nonNull));
 
   if (videoDecoder)
-  if (!videoDecoder->openCodec(codec, flags))
+  if (!videoDecoder->openCodec(codec, bufferReader, flags))
   {
     delete videoDecoder;
     videoDecoder = NULL;
@@ -263,22 +267,24 @@ VideoDecoder * VideoDecoder::create(QObject *parent, const SVideoCodec &codec, F
 }
 
 /*! Creates a data decoder for the specified codec.
-    \param parent   The parent object, or NULL if none.
-    \param codec    The codec to use.
-    \param flags    The flags to use, see SDataDecoderNode::Flags.
-    \param nonNull  When true, the default, the method will throw a qFatal() if
-                    the object can not be created, the method is guaranteed not
-                    to return a null pointer in this case. When false, the
-                    method will return a null pointer if the object can not be
-                    created.
+    \param parent       The parent object, or NULL if none.
+    \param codec        The codec to use.
+    \param bufferReader The BufferReader that was used to open the file, or NULL
+                        if not available.
+    \param flags        The flags to use, see SDataDecoderNode::Flags.
+    \param nonNull      When true, the default, the method will throw a qFatal()
+                        if the object can not be created, the method is
+                        guaranteed not to return a null pointer in this case.
+                        When false, the method will return a null pointer if the
+                        object can not be created.
  */
-DataDecoder * DataDecoder::create(QObject *parent, const SDataCodec &codec, Flags flags, bool nonNull)
+DataDecoder * DataDecoder::create(QObject *parent, const SDataCodec &codec, const BufferReader *bufferReader, Flags flags, bool nonNull)
 {
   DataDecoder * dataDecoder =
       static_cast<DataDecoder *>(factory().createObject(staticMetaObject.className(), parent, codec.codec(), nonNull));
 
   if (dataDecoder)
-  if (!dataDecoder->openCodec(codec, flags))
+  if (!dataDecoder->openCodec(codec, bufferReader, flags))
   {
     delete dataDecoder;
     dataDecoder = NULL;
@@ -300,13 +306,13 @@ DataDecoder * DataDecoder::create(QObject *parent, const SDataCodec &codec, Flag
                     method will return a null pointer if the object can not be
                     created.
  */
-AudioEncoder * AudioEncoder::create(QObject *parent, const SAudioCodec &codec, Flags flags, bool nonNull)
+AudioEncoder * AudioEncoder::create(QObject *parent, const SAudioCodec &codec, BufferWriter *bufferWriter, Flags flags, bool nonNull)
 {
   AudioEncoder * audioEncoder =
       static_cast<AudioEncoder *>(factory().createObject(staticMetaObject.className(), parent, codec.codec(), nonNull));
 
   if (audioEncoder)
-  if (!audioEncoder->openCodec(codec, flags))
+  if (!audioEncoder->openCodec(codec, bufferWriter, flags))
   {
     delete audioEncoder;
     audioEncoder = NULL;
@@ -328,13 +334,13 @@ AudioEncoder * AudioEncoder::create(QObject *parent, const SAudioCodec &codec, F
                     method will return a null pointer if the object can not be
                     created.
  */
-VideoEncoder * VideoEncoder::create(QObject *parent, const SVideoCodec &codec, Flags flags, bool nonNull)
+VideoEncoder * VideoEncoder::create(QObject *parent, const SVideoCodec &codec, BufferWriter *bufferWriter, Flags flags, bool nonNull)
 {
   VideoEncoder * videoEncoder =
       static_cast<VideoEncoder *>(factory().createObject(staticMetaObject.className(), parent, codec.codec(), nonNull));
 
   if (videoEncoder)
-  if (!videoEncoder->openCodec(codec, flags))
+  if (!videoEncoder->openCodec(codec, bufferWriter, flags))
   {
     delete videoEncoder;
     videoEncoder = NULL;

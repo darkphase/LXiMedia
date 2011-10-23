@@ -20,6 +20,11 @@
 #ifndef LXICORE_SPLATFORM_H
 #define LXICORE_SPLATFORM_H
 
+#undef _lxi_internal
+#undef _lxi_pure
+#undef _lxi_packed
+#undef _lxi_align
+
 #if defined(__unix__) && defined(__GNUC__)
 # define _lxi_internal          __attribute__((visibility("hidden")))
 # define _lxi_pure              __attribute__((pure))

@@ -24,17 +24,19 @@ namespace LXiStream {
 
 struct SVideoDecoderNode::Data
 {
+  SIOInputNode                * inputNode;
   SVideoDecoderNode::Flags      flags;
   SVideoCodec                   lastCodec;
   SInterfaces::VideoDecoder   * decoder;
   QFuture<void>                 future;
 };
 
-SVideoDecoderNode::SVideoDecoderNode(SGraph *parent, Flags flags)
+SVideoDecoderNode::SVideoDecoderNode(SGraph *parent)
   : SInterfaces::Node(parent),
     d(new Data())
 {
-  d->flags = flags;
+  d->inputNode = NULL;
+  d->flags = SInterfaces::VideoDecoder::Flag_None;
   d->decoder = NULL;
 }
 
@@ -49,6 +51,14 @@ SVideoDecoderNode::~SVideoDecoderNode()
 QStringList SVideoDecoderNode::codecs(void)
 {
   return SInterfaces::VideoDecoder::available();
+}
+
+bool SVideoDecoderNode::open(SIOInputNode *inputNode, Flags flags)
+{
+  d->inputNode = inputNode;
+  d->flags = flags;
+
+  return true;
 }
 
 SVideoDecoderNode::Flags SVideoDecoderNode::flags(void) const
@@ -82,8 +92,11 @@ void SVideoDecoderNode::input(const SEncodedVideoBuffer &videoBuffer)
     {
       delete d->decoder;
 
+      SInterfaces::BufferReader * const bufferReader =
+          d->inputNode ? d->inputNode->bufferReader() : NULL;
+
       d->lastCodec = videoBuffer.codec();
-      d->decoder = SInterfaces::VideoDecoder::create(NULL, d->lastCodec, d->flags, false);
+      d->decoder = SInterfaces::VideoDecoder::create(NULL, d->lastCodec, bufferReader, d->flags, false);
 
       if (d->decoder == NULL)
         qWarning() << "Failed to find video decoder for codec" << d->lastCodec.codec();

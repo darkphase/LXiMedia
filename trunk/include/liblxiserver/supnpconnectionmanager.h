@@ -41,6 +41,7 @@ public:
 
   void                          initialize(SHttpServer *, SUPnPMediaServer *);
   void                          close(void);
+  void                          reset(void);
 
   void                          setSourceProtocols(const ProtocolList &);
   void                          setSinkProtocols(const ProtocolList &);

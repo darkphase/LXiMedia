@@ -308,6 +308,93 @@ public:
   virtual void                  probeMetadata(ProbeInfo &probeInfo, ReadCallback *callback) = 0;
 };
 
+class BufferReader;
+
+/*! The AudioDecoder interface can be used to decode audio buffers.
+ */
+class LXISTREAM_PUBLIC AudioDecoder : public QObject
+{
+Q_OBJECT
+S_FACTORIZABLE_NO_CREATE(AudioDecoder)
+public:
+  enum Flag
+  {
+    Flag_None                 = 0x0000,
+    Flag_DownsampleToStereo   = 0x0001
+  };
+  Q_DECLARE_FLAGS(Flags, Flag)
+
+public:
+  static AudioDecoder         * create(QObject *parent, const SAudioCodec &codec, BufferReader * = NULL, Flags = Flag_None, bool nonNull = true);
+
+protected:
+  inline explicit               AudioDecoder(QObject *parent) : QObject(parent) { }
+
+  virtual bool                  openCodec(const SAudioCodec &, BufferReader *, Flags) = 0;
+
+public:
+  virtual SAudioBufferList      decodeBuffer(const SEncodedAudioBuffer &) = 0;
+};
+
+/*! The VideoDecoder interface can be used to decode audio buffers.
+ */
+class LXISTREAM_PUBLIC VideoDecoder : public QObject
+{
+Q_OBJECT
+S_FACTORIZABLE_NO_CREATE(VideoDecoder)
+public:
+  enum Flag
+  {
+    Flag_None                 = 0x0000,
+
+    /*! Indicates that only keyframes should be decoded.
+     */
+    Flag_KeyframesOnly        = 0x0001,
+
+    /*! Indicates the video decoding should be as fast as possible at the
+        expense of image quality.
+     */
+    Flag_Fast                 = 0x0080
+  };
+  Q_DECLARE_FLAGS(Flags, Flag)
+
+public:
+  static VideoDecoder         * create(QObject *parent, const SVideoCodec &codec, BufferReader * = NULL, Flags = Flag_None, bool nonNull = true);
+
+protected:
+  inline explicit               VideoDecoder(QObject *parent) : QObject(parent) { }
+
+  virtual bool                  openCodec(const SVideoCodec &, BufferReader *, Flags) = 0;
+
+public:
+  virtual SVideoBufferList      decodeBuffer(const SEncodedVideoBuffer &) = 0;
+};
+
+/*! The SubtitleDecoder interface can be used to decode subtitle buffers.
+ */
+class LXISTREAM_PUBLIC DataDecoder : public QObject
+{
+Q_OBJECT
+S_FACTORIZABLE_NO_CREATE(DataDecoder)
+public:
+  enum Flag
+  {
+    Flag_None                 = 0x0000,
+  };
+  Q_DECLARE_FLAGS(Flags, Flag)
+
+public:
+  static DataDecoder          * create(QObject *parent, const SDataCodec &codec, const BufferReader *, Flags = Flag_None, bool nonNull = true);
+
+protected:
+  inline explicit               DataDecoder(QObject *parent) : QObject(parent) { }
+
+  virtual bool                  openCodec(const SDataCodec &, const BufferReader *, Flags) = 0;
+
+public:
+  virtual SDataBufferList       decodeBuffer(const SEncodedDataBuffer &) = 0;
+};
+
 /*! The AbstractBufferReader interface is used for interfaces and nodes that
     provide access to buffer streams.
  */
@@ -418,122 +505,7 @@ public:
   virtual bool                  process(void) = 0;
 };
 
-/*! The BufferWriter interface can be used to write serialized buffers to a
-    byte stream.
- */
-class LXISTREAM_PUBLIC BufferWriter : public QObject
-{
-Q_OBJECT
-S_FACTORIZABLE_NO_CREATE(BufferWriter)
-public:
-  struct WriteCallback
-  {
-    virtual void                write(const uchar *, qint64) = 0;
-  };
-
-public:
-  static BufferWriter         * create(QObject *parent, const QString &format, bool nonNull = true);
-
-protected:
-  inline explicit               BufferWriter(QObject *parent) : QObject(parent) { }
-
-  virtual bool                  openFormat(const QString &) = 0;
-
-public:
-  virtual bool                  createStreams(const QList<SAudioCodec> &, const QList<SVideoCodec> &, STime) = 0;
-
-  virtual bool                  start(WriteCallback *) = 0;
-  virtual void                  stop(void) = 0;
-
-  virtual void                  process(const SEncodedAudioBuffer &) = 0;
-  virtual void                  process(const SEncodedVideoBuffer &) = 0;
-  virtual void                  process(const SEncodedDataBuffer &) = 0;
-};
-
-/*! The AudioDecoder interface can be used to decode audio buffers.
- */
-class LXISTREAM_PUBLIC AudioDecoder : public QObject
-{
-Q_OBJECT
-S_FACTORIZABLE_NO_CREATE(AudioDecoder)
-public:
-  enum Flag
-  {
-    Flag_None                 = 0x0000,
-    Flag_DownsampleToStereo   = 0x0001
-  };
-  Q_DECLARE_FLAGS(Flags, Flag)
-
-public:
-  static AudioDecoder         * create(QObject *parent, const SAudioCodec &codec, Flags = Flag_None, bool nonNull = true);
-
-protected:
-  inline explicit               AudioDecoder(QObject *parent) : QObject(parent) { }
-
-  virtual bool                  openCodec(const SAudioCodec &, Flags) = 0;
-
-public:
-  virtual SAudioBufferList      decodeBuffer(const SEncodedAudioBuffer &) = 0;
-};
-
-/*! The VideoDecoder interface can be used to decode audio buffers.
- */
-class LXISTREAM_PUBLIC VideoDecoder : public QObject
-{
-Q_OBJECT
-S_FACTORIZABLE_NO_CREATE(VideoDecoder)
-public:
-  enum Flag
-  {
-    Flag_None                 = 0x0000,
-
-    /*! Indicates that only keyframes should be decoded.
-     */
-    Flag_KeyframesOnly        = 0x0001,
-
-    /*! Indicates the video decoding should be as fast as possible at the
-        expense of image quality.
-     */
-    Flag_Fast                 = 0x0080
-  };
-  Q_DECLARE_FLAGS(Flags, Flag)
-
-public:
-  static VideoDecoder         * create(QObject *parent, const SVideoCodec &codec, Flags = Flag_None, bool nonNull = true);
-
-protected:
-  inline explicit               VideoDecoder(QObject *parent) : QObject(parent) { }
-
-  virtual bool                  openCodec(const SVideoCodec &, Flags) = 0;
-
-public:
-  virtual SVideoBufferList      decodeBuffer(const SEncodedVideoBuffer &) = 0;
-};
-
-/*! The SubtitleDecoder interface can be used to decode subtitle buffers.
- */
-class LXISTREAM_PUBLIC DataDecoder : public QObject
-{
-Q_OBJECT
-S_FACTORIZABLE_NO_CREATE(DataDecoder)
-public:
-  enum Flag
-  {
-    Flag_None                 = 0x0000,
-  };
-  Q_DECLARE_FLAGS(Flags, Flag)
-
-public:
-  static DataDecoder          * create(QObject *parent, const SDataCodec &codec, Flags = Flag_None, bool nonNull = true);
-
-protected:
-  inline explicit               DataDecoder(QObject *parent) : QObject(parent) { }
-
-  virtual bool                  openCodec(const SDataCodec &, Flags) = 0;
-
-public:
-  virtual SDataBufferList       decodeBuffer(const SEncodedDataBuffer &) = 0;
-};
+class BufferWriter;
 
 /*! The AudioEncoder interface can be used to encode audio buffers.
  */
@@ -566,12 +538,12 @@ public:
   Q_DECLARE_FLAGS(Flags, Flag)
 
 public:
-  static AudioEncoder         * create(QObject *parent, const SAudioCodec &codec, Flags = Flag_None, bool nonNull = true);
+  static AudioEncoder         * create(QObject *parent, const SAudioCodec &codec, BufferWriter * = NULL, Flags = Flag_None, bool nonNull = true);
 
 protected:
   inline explicit               AudioEncoder(QObject *parent) : QObject(parent) { }
 
-  virtual bool                  openCodec(const SAudioCodec &, Flags) = 0;
+  virtual bool                  openCodec(const SAudioCodec &, BufferWriter *, Flags) = 0;
 
 public:
   virtual SAudioCodec           codec(void) const = 0;
@@ -620,16 +592,50 @@ public:
   Q_DECLARE_FLAGS(Flags, Flag)
 
 public:
-  static VideoEncoder         * create(QObject *parent, const SVideoCodec &codec, Flags = Flag_None, bool nonNull = true);
+  static VideoEncoder         * create(QObject *parent, const SVideoCodec &codec, BufferWriter * = NULL, Flags = Flag_None, bool nonNull = true);
 
 protected:
   inline explicit               VideoEncoder(QObject *parent) : QObject(parent) { }
 
-  virtual bool                  openCodec(const SVideoCodec &, Flags) = 0;
+  virtual bool                  openCodec(const SVideoCodec &, BufferWriter *, Flags) = 0;
 
 public:
   virtual SVideoCodec           codec(void) const = 0;
   virtual SEncodedVideoBufferList encodeBuffer(const SVideoBuffer &) = 0;
+};
+
+/*! The BufferWriter interface can be used to write serialized buffers to a
+    byte stream.
+ */
+class LXISTREAM_PUBLIC BufferWriter : public QObject
+{
+Q_OBJECT
+S_FACTORIZABLE_NO_CREATE(BufferWriter)
+public:
+  struct WriteCallback
+  {
+    virtual void                write(const uchar *, qint64) = 0;
+    virtual qint64              seek(qint64, int) = 0;
+  };
+
+public:
+  static BufferWriter         * create(QObject *parent, const QString &format, bool nonNull = true);
+
+protected:
+  inline explicit               BufferWriter(QObject *parent) : QObject(parent) { }
+
+  virtual bool                  openFormat(const QString &) = 0;
+
+public:
+  virtual bool                  addStream(const AudioEncoder *, STime) = 0;
+  virtual bool                  addStream(const VideoEncoder *, STime) = 0;
+
+  virtual bool                  start(WriteCallback *, bool sequential) = 0;
+  virtual void                  stop(void) = 0;
+
+  virtual void                  process(const SEncodedAudioBuffer &) = 0;
+  virtual void                  process(const SEncodedVideoBuffer &) = 0;
+  virtual void                  process(const SEncodedDataBuffer &) = 0;
 };
 
 /*! The AudioFormatConverter interface can be used to convert audio formats.

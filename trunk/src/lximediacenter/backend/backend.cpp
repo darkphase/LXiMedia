@@ -77,6 +77,9 @@ Backend::Backend()
 
   QFile::copy(settingsFile, bakSettingsFile);
 
+  // Open device configuration
+  MediaServer::mediaProfiles().openDeviceConfig(":/devices.ini");
+
   // Open database
   Database::initialize();
 }
@@ -118,13 +121,9 @@ void Backend::start(void)
 {
   GlobalSettings settings;
 
-  masterHttpServer.initialize(settings.defaultBackendInterfaces(),
-                              settings.value("HttpPort", settings.defaultBackendHttpPort()).toInt());
-
-  // Write a port file so the server can be found
-  QFile portFile(QDir(GlobalSettings::applicationDataDir()).absoluteFilePath("server.port"));
-  if (portFile.open(QFile::WriteOnly))
-    portFile.write(QByteArray::number(masterHttpServer.serverPort(QHostAddress::LocalHost)));
+  masterHttpServer.initialize(
+      settings.defaultBackendInterfaces(),
+      settings.value("HttpPort", settings.defaultBackendHttpPort()).toInt());
 
   // Setup HTTP server
   masterHttpServer.registerCallback("/", this);
@@ -258,101 +257,14 @@ void Backend::start(const SHttpEngine::ResponseMessage &formats)
     outFormats = T::readElement(doc, "formats", "format");
   }
 
-  // Supported DLNA audio protocols
-  if (outFormats.contains("ac3") && outAudioCodecs.contains("AC3"))
-    MediaServer::mediaProfiles().addProfile(MediaProfiles::AC3, -2); // Prefer
+  // Figure out the supported DLNA audio protocols.
+  MediaServer::mediaProfiles().setCodecs(
+      QSet<QString>::fromList(outAudioCodecs),
+      QSet<QString>::fromList(outVideoCodecs),
+      QSet<QString>::fromList(QStringList() << "JPEG" << "PNG"),
+      QSet<QString>::fromList(outFormats));
 
-  if (outFormats.contains("s16be") && outAudioCodecs.contains("PCM/S16BE"))
-    MediaServer::mediaProfiles().addProfile(MediaProfiles::LPCM, -2); // Prefer
-
-  if (outFormats.contains("mp2") && outAudioCodecs.contains("MP2"))
-    MediaServer::mediaProfiles().addProfile(MediaProfiles::MP2);
-
-  if (outFormats.contains("mp3") && outAudioCodecs.contains("MP3"))
-    MediaServer::mediaProfiles().addProfile(MediaProfiles::MP3, -1); // Prefer
-
-  if (outFormats.contains("ogg") && outAudioCodecs.contains("VORBIS"))
-    MediaServer::mediaProfiles().addProfile(MediaProfiles::VORBIS, 1);
-
-  // Supported DLNA video protocols
-  if (outFormats.contains("vob") && outVideoCodecs.contains("MPEG1") && outAudioCodecs.contains("MP2"))
-    MediaServer::mediaProfiles().addProfile(MediaProfiles::MPEG1, 16);
-
-  if (outFormats.contains("vob") && outVideoCodecs.contains("MPEG2"))
-  {
-    if (outAudioCodecs.contains("MP2"))
-    {
-      MediaServer::mediaProfiles().addProfile(MediaProfiles::MPEG_PS_PAL);
-      MediaServer::mediaProfiles().addProfile(MediaProfiles::MPEG_PS_NTSC);
-    }
-
-    if (outAudioCodecs.contains("AC3"))
-    {
-      MediaServer::mediaProfiles().addProfile(MediaProfiles::MPEG_PS_PAL_XAC3);
-      MediaServer::mediaProfiles().addProfile(MediaProfiles::MPEG_PS_NTSC_XAC3);
-    }
-
-    if (outAudioCodecs.contains("MP2") || outAudioCodecs.contains("AC3"))
-    {
-      // Prefer EU over NA because it supports 25 Hz and MP2.
-      MediaServer::mediaProfiles().addProfile(MediaProfiles::MPEG_PS_SD_EU, 4);
-      MediaServer::mediaProfiles().addProfile(MediaProfiles::MPEG_PS_HD_EU, -9);
-    }
-
-    if (outAudioCodecs.contains("AC3"))
-    {
-      MediaServer::mediaProfiles().addProfile(MediaProfiles::MPEG_PS_SD_NA, 7);
-      MediaServer::mediaProfiles().addProfile(MediaProfiles::MPEG_PS_HD_NA, -6);
-    }
-  }
-
-  if (outFormats.contains("mpegts") && outVideoCodecs.contains("MPEG2"))
-  {
-    if (outAudioCodecs.contains("MP2") || outAudioCodecs.contains("AC3"))
-    {
-      // Prefer EU over NA because it supports 25 Hz and MP2.
-      MediaServer::mediaProfiles().addProfile(MediaProfiles::MPEG_TS_SD_EU_ISO, 5);
-      MediaServer::mediaProfiles().addProfile(MediaProfiles::MPEG_TS_HD_EU_ISO, -8);
-    }
-
-    if (outAudioCodecs.contains("AC3"))
-    {
-      MediaServer::mediaProfiles().addProfile(MediaProfiles::MPEG_TS_SD_NA_ISO, 8);
-      MediaServer::mediaProfiles().addProfile(MediaProfiles::MPEG_TS_HD_NA_ISO, -5);
-    }
-  }
-
-  if (outFormats.contains("m2ts") && outVideoCodecs.contains("MPEG2"))
-  {
-    if (outAudioCodecs.contains("MP2") || outAudioCodecs.contains("AC3"))
-    {
-      // Prefer EU over NA because it supports 25 Hz and MP2.
-      MediaServer::mediaProfiles().addProfile(MediaProfiles::MPEG_TS_SD_EU, 6);
-      MediaServer::mediaProfiles().addProfile(MediaProfiles::MPEG_TS_HD_EU, -7);
-    }
-
-    if (outAudioCodecs.contains("AC3"))
-    {
-      MediaServer::mediaProfiles().addProfile(MediaProfiles::MPEG_TS_SD_NA, 9);
-      MediaServer::mediaProfiles().addProfile(MediaProfiles::MPEG_TS_HD_NA, -4);
-    }
-  }
-
-  if (outFormats.contains("ogg") &&
-      outVideoCodecs.contains("THEORA") && outAudioCodecs.contains("VORBIS"))
-  {
-    MediaServer::mediaProfiles().addProfile(MediaProfiles::VORBIS, 9);
-  }
-
-  // Supported DLNA image protocols
-  MediaServer::mediaProfiles().addProfile(MediaProfiles::JPEG_LRG, -3); // Prefer
-  MediaServer::mediaProfiles().addProfile(MediaProfiles::JPEG_MED);
-  MediaServer::mediaProfiles().addProfile(MediaProfiles::JPEG_SM);
-  MediaServer::mediaProfiles().addProfile(MediaProfiles::JPEG_TN);
-  MediaServer::mediaProfiles().addProfile(MediaProfiles::PNG_LRG, -2); // Prefer
-  MediaServer::mediaProfiles().addProfile(MediaProfiles::PNG_TN);
-
-  masterConnectionManager.setSourceProtocols(MediaServer::mediaProfiles().listProtocols());
+  masterConnectionManager.setSourceProtocols(MediaServer::mediaProfiles().listProtocols(QString::null));
   masterConnectionManager.setSinkProtocols(SUPnPBase::ProtocolList());
 
   if (outFormats.contains("ogg") &&
@@ -362,6 +274,22 @@ void Backend::start(const SHttpEngine::ResponseMessage &formats)
   }
 
   qDebug() << "Finished initialization.";
+}
+
+void Backend::reset(void)
+{
+  GlobalSettings settings;
+
+  masterSsdpServer.reset();
+
+  masterHttpServer.reset(
+      settings.defaultBackendInterfaces(),
+      settings.value("HttpPort", settings.defaultBackendHttpPort()).toInt());
+
+  masterMediaServer.reset();
+  masterConnectionManager.reset();
+  masterContentDirectory.reset();
+  masterMediaReceiverRegistrar.reset();
 }
 
 void Backend::addModules(const SHttpEngine::ResponseMessage &modules)
@@ -508,20 +436,6 @@ SHttpServer::ResponseMessage Backend::httpRequest(const SHttpServer::RequestMess
         QDomElement hostInfo = doc.createElement("hostinfo");
         root.appendChild(hostInfo);
         hostInfo.setAttribute("hostname", settings.value("DeviceName", settings.defaultDeviceName()).toString());
-
-        // DLNA clients
-        settings.beginGroup("DLNA");
-
-        foreach (const QString &group, settings.childGroups())
-        if (group.startsWith("Client_"))
-        {
-          QDomElement dlnaClient = doc.createElement("dlnaclient");
-          root.appendChild(dlnaClient);
-          dlnaClient.setAttribute("name", group.mid(7));
-          dlnaClient.setAttribute("useragent", settings.value("UserAgent", tr("Unknown")).toString());
-        }
-
-        settings.endGroup();
 
         // Error logs
         const QSet<QString> dismissedFiles =

@@ -20,14 +20,14 @@
 #include <sys/types.h>
 #include <stdint.h>
 #include <assert.h>
-#ifdef __SSE__
+#ifdef __SSE2__
   #include <emmintrin.h>
 #endif
 
 void LXiMediaCenter_MediaPlayerBackend_SlideShowNode_blendImages
  (uint8_t * __restrict dstData, const uint8_t * __restrict srcDataA, const uint8_t * __restrict srcDataB, unsigned numPixels, int factor)
 {
-  #ifndef __SSE__
+  #ifndef __SSE2__
     const uint16_t f = factor, af = 256 - factor;
     unsigned i;
 

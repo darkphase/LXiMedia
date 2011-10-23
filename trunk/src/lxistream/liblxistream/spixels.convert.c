@@ -18,7 +18,7 @@
  ***************************************************************************/
 
 #include "spixels.h"
-#ifdef __SSE__
+#ifdef __SSE2__
   #include <emmintrin.h>
 #endif
 

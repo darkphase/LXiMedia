@@ -105,6 +105,8 @@ SHttpServer::SHttpServer(const QString &protocol, const QUuid &serverUuid, QObje
 
 SHttpServer::~SHttpServer()
 {
+  close();
+
   delete d;
   *const_cast<Data **>(&d) = NULL;
 }
@@ -138,10 +140,19 @@ void SHttpServer::close(void)
   foreach (Server *server, d->servers)
   {
     server->close();
-    delete server;
+    server->deleteLater();
   }
 
   d->servers.clear();
+}
+
+/*! Resets the HTTP server by releasing the bound ports and binding the
+    specified interfaces and port.
+ */
+void SHttpServer::reset(const QList<QHostAddress> &addresses, quint16 port)
+{
+  close();
+  initialize(addresses, port);
 }
 
 /*! Returns the bound port number for the specified interface.

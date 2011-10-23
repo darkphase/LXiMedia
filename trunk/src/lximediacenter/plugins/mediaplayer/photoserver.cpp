@@ -125,7 +125,7 @@ SHttpServer::ResponseMessage PhotoServer::httpRequest(const SHttpServer::Request
 
     // Check for DLNA request.
     const QString contentFeatures = QByteArray::fromHex(file.url().queryItemValue("contentFeatures").toAscii());
-    const MediaProfiles::ImageProfile imageProfile = MediaProfiles::imageProfileFor(contentFeatures);
+    const MediaProfiles::ImageProfile imageProfile = mediaProfiles().imageProfileFor(contentFeatures);
     switch (imageProfile)
     {
     case MediaProfiles::JPEG_TN:
@@ -179,7 +179,7 @@ SHttpServer::ResponseMessage PhotoServer::sendPhoto(const SHttpServer::RequestMe
     }
 
     const QString contentFeatures = QByteArray::fromHex(file.url().queryItemValue("contentFeatures").toAscii());
-    const MediaProfiles::ImageProfile imageProfile = MediaProfiles::imageProfileFor(contentFeatures);
+    const MediaProfiles::ImageProfile imageProfile = mediaProfiles().imageProfileFor(contentFeatures);
     if (imageProfile != 0) // DLNA stream.
       MediaProfiles::correctFormat(imageProfile, size);
 

@@ -23,10 +23,14 @@ SOURCES += main.cpp \
     ffmpegtest.cpp \
     filetester.cpp \
     iotest.cpp
-#    fingerprinttest.cpp \
-#    graphtest.cpp \
-#    performancetest.cpp
 RESOURCES = test.qrc
+
+# Performance test
+HEADERS += performancetest.h
+SOURCES += performancetest.cpp \
+    $${PWD}/$${LXIMEDIA_DIR}/src/lxistream/liblxistream/common/audioresampler.resample.c
+
+include($${PWD}/$${LXIMEDIA_DIR}/src/lxistream/algorithms/linkalgorithms.pri)
 
 # Run tests after link
 unix:QMAKE_LFLAGS += -Wl,-rpath -Wl,.

@@ -39,6 +39,7 @@ public:
 
   virtual void                  initialize(const QList<QHostAddress> &interfaces);
   virtual void                  close(void);
+  void                          reset(void);
 
   void                          publish(const QString &nt, const QString &relativeUrl, unsigned msgCount);
 
@@ -51,6 +52,7 @@ protected:
 
 private slots:
   _lxi_internal void            publishServices(void);
+  _lxi_internal void            unpublishServices(void);
 
 private:
   struct Private;

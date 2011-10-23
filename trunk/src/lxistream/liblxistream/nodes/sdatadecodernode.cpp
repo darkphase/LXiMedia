@@ -24,17 +24,19 @@ namespace LXiStream {
 
 struct SDataDecoderNode::Data
 {
+  SIOInputNode                * inputNode;
   SDataDecoderNode::Flags       flags;
   SDataCodec                    lastCodec;
   SInterfaces::DataDecoder    * decoder;
   QFuture<void>                 future;
 };
 
-SDataDecoderNode::SDataDecoderNode(SGraph *parent, Flags flags)
+SDataDecoderNode::SDataDecoderNode(SGraph *parent)
   : SInterfaces::Node(parent),
     d(new Data())
 {
-  d->flags = flags;
+  d->inputNode = NULL;
+  d->flags = SInterfaces::DataDecoder::Flag_None;
   d->decoder = NULL;
 }
 
@@ -49,6 +51,14 @@ SDataDecoderNode::~SDataDecoderNode()
 QStringList SDataDecoderNode::codecs(void)
 {
   return SInterfaces::AudioDecoder::available();
+}
+
+bool SDataDecoderNode::open(SIOInputNode *inputNode, Flags flags)
+{
+  d->inputNode = inputNode;
+  d->flags = flags;
+
+  return true;
 }
 
 SDataDecoderNode::Flags SDataDecoderNode::flags(void) const
@@ -82,8 +92,11 @@ void SDataDecoderNode::input(const SEncodedDataBuffer &dataBuffer)
     {
       delete d->decoder;
 
+      SInterfaces::BufferReader * const bufferReader =
+          d->inputNode ? d->inputNode->bufferReader() : NULL;
+
       d->lastCodec = dataBuffer.codec();
-      d->decoder = SInterfaces::DataDecoder::create(NULL, d->lastCodec, d->flags, false);
+      d->decoder = SInterfaces::DataDecoder::create(NULL, d->lastCodec, bufferReader, d->flags, false);
 
       if (d->decoder == NULL)
         qWarning() << "Failed to find data decoder for codec" << d->lastCodec.codec();

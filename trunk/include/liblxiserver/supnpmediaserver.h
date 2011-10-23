@@ -50,6 +50,7 @@ public:
 
   void                          initialize(SHttpServer *, SSsdpServer *);
   void                          close(void);
+  void                          reset(void);
 
   void                          setDeviceName(const QString &);
 

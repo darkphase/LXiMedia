@@ -35,11 +35,15 @@ public:
   explicit                      BufferWriter(const QString &, QObject *);
   virtual                       ~BufferWriter();
 
+  inline const ::AVOutputFormat * avFormat(void) const                          { return format; }
+  ::AVStream                  * createStream(void);
+
 public: // From SInterfaces::BufferWriter
   virtual bool                  openFormat(const QString &);
-  virtual bool                  createStreams(const QList<SAudioCodec> &, const QList<SVideoCodec> &, STime);
+  virtual bool                  addStream(const SInterfaces::AudioEncoder *, STime);
+  virtual bool                  addStream(const SInterfaces::VideoEncoder *, STime);
 
-  virtual bool                  start(WriteCallback *);
+  virtual bool                  start(WriteCallback *, bool);
   virtual void                  stop(void);
   virtual void                  process(const SEncodedAudioBuffer &);
   virtual void                  process(const SEncodedVideoBuffer &);
@@ -47,11 +51,9 @@ public: // From SInterfaces::BufferWriter
 
 private:
   static int                    write(void *opaque, uint8_t *buf, int buf_size);
+  static int64_t                seek(void *opaque, int64_t offset, int whence);
 
 private:
-  static const quint32          audioStreamId = 0x00010000;
-  static const quint32          videoStreamId = 0x00020000;
-
   WriteCallback               * callback;
   ::AVOutputFormat            * format;
   ::AVFormatContext           * formatContext;
@@ -60,8 +62,9 @@ private:
 #else
   ::ByteIOContext             * ioContext;
 #endif
-  QMap<quint32, ::AVStream *>   streams;
+  QMap<int, ::AVStream *>       streams;
 
+  bool                          sequential;
   bool                          hasAudio, hasVideo;
   bool                          mpegClock, mpegTs;
 };

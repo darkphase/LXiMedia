@@ -47,7 +47,7 @@ AudioDecoder::~AudioDecoder()
   }
 }
 
-bool AudioDecoder::openCodec(const SAudioCodec &c, Flags flags)
+bool AudioDecoder::openCodec(const SAudioCodec &c, SInterfaces::BufferReader *, Flags flags)
 {
   if (contextHandle)
     qFatal("AudioDecoder already opened a codec.");

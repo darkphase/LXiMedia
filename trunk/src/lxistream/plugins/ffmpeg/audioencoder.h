@@ -42,8 +42,10 @@ public:
                                 AudioEncoder(const QString &, QObject *);
   virtual                       ~AudioEncoder();
 
+  inline const ::AVCodecContext * avCodecContext(void) const                    { return contextHandle; }
+
 public: // From SBufferEncoder
-  virtual bool                  openCodec(const SAudioCodec &, Flags = Flag_None);
+  virtual bool                  openCodec(const SAudioCodec &, SInterfaces::BufferWriter *, Flags = Flag_None);
   virtual SAudioCodec           codec(void) const;
   virtual SEncodedAudioBufferList encodeBuffer(const SAudioBuffer &);
 
@@ -52,8 +54,9 @@ private:
 
 private:
   SAudioCodec                   outCodec;
-  AVCodec                     * codecHandle;
-  AVCodecContext              * contextHandle;
+  ::AVCodec                   * codecHandle;
+  ::AVCodecContext            * contextHandle;
+  bool                          contextHandleOwner;
   bool                          passThrough;
 
   unsigned                      inSampleSize;

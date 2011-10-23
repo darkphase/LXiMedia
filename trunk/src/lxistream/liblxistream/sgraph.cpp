@@ -116,6 +116,8 @@ bool SGraph::start(void)
     }
     else
     {
+      qWarning() << "Failed to start source node:" << source->metaObject()->className();
+
       foreach (SInterfaces::SourceNode *source, startedSources)
         source->stop();
 
@@ -129,6 +131,8 @@ bool SGraph::start(void)
     }
     else
     {
+      qWarning() << "Failed to start node:" << node->metaObject()->className();
+
       foreach (SInterfaces::SourceNode *source, startedSources)
         source->stop();
 
@@ -145,6 +149,8 @@ bool SGraph::start(void)
     }
     else
     {
+      qWarning() << "Failed to start sink node:" << sink->metaObject()->className();
+
       foreach (SInterfaces::SourceNode *source, startedSources)
         source->stop();
 

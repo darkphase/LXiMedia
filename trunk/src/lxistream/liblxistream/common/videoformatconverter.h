@@ -56,12 +56,36 @@ public:
   virtual SVideoBuffer          convertBuffer(const SVideoBuffer &);
 };
 
+class VideoFormatConverter_Format_RGB32_Format_YUYV422 : public VideoFormatConverterBase<SVideoFormat::Format_RGB32, SVideoFormat::Format_YUYV422>
+{
+Q_OBJECT
+public:
+  inline VideoFormatConverter_Format_RGB32_Format_YUYV422(const QString &name, QObject *parent)
+    : VideoFormatConverterBase<SVideoFormat::Format_RGB32, SVideoFormat::Format_YUYV422>(name, parent)
+  {
+  }
+
+  virtual SVideoBuffer          convertBuffer(const SVideoBuffer &);
+};
+
 class VideoFormatConverter_Format_UYVY422_Format_RGB32 : public VideoFormatConverterBase<SVideoFormat::Format_UYVY422, SVideoFormat::Format_RGB32>
 {
 Q_OBJECT
 public:
   inline VideoFormatConverter_Format_UYVY422_Format_RGB32(const QString &name, QObject *parent)
     : VideoFormatConverterBase<SVideoFormat::Format_UYVY422, SVideoFormat::Format_RGB32>(name, parent)
+  {
+  }
+
+  virtual SVideoBuffer          convertBuffer(const SVideoBuffer &);
+};
+
+class VideoFormatConverter_Format_RGB32_Format_UYVY422 : public VideoFormatConverterBase<SVideoFormat::Format_RGB32, SVideoFormat::Format_UYVY422>
+{
+Q_OBJECT
+public:
+  inline VideoFormatConverter_Format_RGB32_Format_UYVY422(const QString &name, QObject *parent)
+    : VideoFormatConverterBase<SVideoFormat::Format_RGB32, SVideoFormat::Format_UYVY422>(name, parent)
   {
   }
 
@@ -104,6 +128,18 @@ public:
   virtual SVideoBuffer          convertBuffer(const SVideoBuffer &);
 };
 
+class VideoFormatConverter_Format_RGB32_Format_YUV420P : public VideoFormatConverterBase<SVideoFormat::Format_RGB32, SVideoFormat::Format_YUV420P>
+{
+Q_OBJECT
+public:
+  inline VideoFormatConverter_Format_RGB32_Format_YUV420P(const QString &name, QObject *parent)
+    : VideoFormatConverterBase<SVideoFormat::Format_RGB32, SVideoFormat::Format_YUV420P>(name, parent)
+  {
+  }
+
+  virtual SVideoBuffer          convertBuffer(const SVideoBuffer &);
+};
+
 class VideoFormatConverter_Format_YUV422P_Format_RGB32 : public VideoFormatConverterBase<SVideoFormat::Format_YUV422P, SVideoFormat::Format_RGB32>
 {
 Q_OBJECT
@@ -116,12 +152,36 @@ public:
   virtual SVideoBuffer          convertBuffer(const SVideoBuffer &);
 };
 
+class VideoFormatConverter_Format_RGB32_Format_YUV422P : public VideoFormatConverterBase<SVideoFormat::Format_RGB32, SVideoFormat::Format_YUV422P>
+{
+Q_OBJECT
+public:
+  inline VideoFormatConverter_Format_RGB32_Format_YUV422P(const QString &name, QObject *parent)
+    : VideoFormatConverterBase<SVideoFormat::Format_RGB32, SVideoFormat::Format_YUV422P>(name, parent)
+  {
+  }
+
+  virtual SVideoBuffer          convertBuffer(const SVideoBuffer &);
+};
+
 class VideoFormatConverter_Format_YUV444P_Format_RGB32 : public VideoFormatConverterBase<SVideoFormat::Format_YUV444P, SVideoFormat::Format_RGB32>
 {
 Q_OBJECT
 public:
   inline VideoFormatConverter_Format_YUV444P_Format_RGB32(const QString &name, QObject *parent)
     : VideoFormatConverterBase<SVideoFormat::Format_YUV444P, SVideoFormat::Format_RGB32>(name, parent)
+  {
+  }
+
+  virtual SVideoBuffer          convertBuffer(const SVideoBuffer &);
+};
+
+class VideoFormatConverter_Format_RGB32_Format_YUV444P : public VideoFormatConverterBase<SVideoFormat::Format_RGB32, SVideoFormat::Format_YUV444P>
+{
+Q_OBJECT
+public:
+  inline VideoFormatConverter_Format_RGB32_Format_YUV444P(const QString &name, QObject *parent)
+    : VideoFormatConverterBase<SVideoFormat::Format_RGB32, SVideoFormat::Format_YUV444P>(name, parent)
   {
   }
 
