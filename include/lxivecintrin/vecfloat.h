@@ -36,182 +36,308 @@ template <int _count>
 struct FloatVector : VecObject
 {
   lxivec_always_inline FloatVector(void)
+    : VecObject()
   {
   }
 
-  lxivec_always_inline FloatVector(const FloatVector<_count> &from)
-  {
-    copy(data, from.data);
-  }
-
-  lxivec_always_inline FloatVector(const DoubleVector<_count> &from)
-  {
-    repack(data, from.data);
-  }
-
-  template <typename _fromtype>
-  lxivec_always_inline FloatVector(const IntVector<_fromtype, _count> &from)
-  {
-    repack(data, from.data);
-  }
-
-  lxivec_always_inline FloatVector<_count> & operator=(const FloatVector<_count> &from)
+  lxivec_always_inline FloatVector(
+      const FloatVector<_count> &from)
+    : VecObject(from)
   {
     copy(data, from.data);
-    return *this;
   }
 
-  lxivec_always_inline FloatVector<_count> & operator=(const DoubleVector<_count> &from)
+  lxivec_always_inline FloatVector(
+      const DoubleVector<_count> &from)
+    : VecObject()
   {
     repack(data, from.data);
-    return *this;
   }
 
   template <typename _fromtype>
-  lxivec_always_inline FloatVector<_count> & operator=(const IntVector<_fromtype, _count> &from)
+  lxivec_always_inline FloatVector(
+      const IntVector<_fromtype, _count> &from)
+    : VecObject()
   {
     repack(data, from.data);
-    return *this;
   }
 
-  template <typename _fromtype>
-  lxivec_always_inline FloatVector<_count> & operator=(const DoubleVector<_count> &from)
-  {
-    repack(data, from.data);
-    return *this;
-  }
-
-  static lxivec_always_inline FloatVector<_count> load(const float *p)
+  static lxivec_always_inline FloatVector<_count> load(
+      const float *p)
   {
     FloatVector<_count> r;
     _private::load(r.data, p);
     return r;
   }
 
-  lxivec_always_inline void store(float *p) const
+  friend lxivec_always_inline void store(
+      float *p,
+      const FloatVector<_count> &a,
+      int max = _count)
   {
-    _private::store(p, data);
+    _private::store(p, a.data, max);
   }
 
-  lxivec_always_inline FloatVector<_count> operator+(const FloatVector<_count> &b) const
+  friend lxivec_always_inline FloatVector<_count> add(
+      const FloatVector<_count> &a,
+      const FloatVector<_count> &b)
   {
     FloatVector<_count> r;
-    add(r.data, data, b.data);
+    add(r.data, a.data, b.data);
     return r;
   }
 
-  lxivec_always_inline FloatVector<_count> & operator+=(const FloatVector<_count> &b)
+  friend lxivec_always_inline FloatVector<_count> add(
+      const FloatVector<_count> &a,
+      float b)
+  {
+    FloatVector<_count> r;
+    add(r.data, a.data, b);
+    return r;
+  }
+
+  friend lxivec_always_inline FloatVector<_count> sub(
+      const FloatVector<_count> &a,
+      const FloatVector<_count> &b)
+  {
+    FloatVector<_count> r;
+    sub(r.data, a.data, b.data);
+    return r;
+  }
+
+  friend lxivec_always_inline FloatVector<_count> sub(
+      const FloatVector<_count> &a,
+      float b)
+  {
+    FloatVector<_count> r;
+    sub(r.data, a.data, b);
+    return r;
+  }
+
+  friend lxivec_always_inline FloatVector<_count> mul(
+      const FloatVector<_count> &a,
+      const FloatVector<_count> &b)
+  {
+    FloatVector<_count> r;
+    mul(r.data, a.data, b.data);
+    return r;
+  }
+
+  friend lxivec_always_inline FloatVector<_count> mul(
+      const FloatVector<_count> &a,
+      float b)
+  {
+    FloatVector<_count> r;
+    mul(r.data, a.data, b);
+    return r;
+  }
+
+  friend lxivec_always_inline FloatVector<_count> div(
+      const FloatVector<_count> &a,
+      const FloatVector<_count> &b)
+  {
+    FloatVector<_count> r;
+    div(r.data, a.data, b.data);
+    return r;
+  }
+
+  friend lxivec_always_inline FloatVector<_count> div(
+      const FloatVector<_count> &a,
+      float b)
+  {
+    FloatVector<_count> r;
+    div(r.data, a.data, b);
+    return r;
+  }
+
+  friend lxivec_always_inline FloatVector<_count> abs(
+      const FloatVector<_count> &x)
+  {
+    FloatVector<_count> r;
+    abs(r.data, x.data);
+    return r;
+  }
+
+  friend lxivec_always_inline FloatVector<_count> min(
+      const FloatVector<_count> &a,
+      const FloatVector<_count> &b)
+  {
+    FloatVector<_count> r;
+    min(r.data, a.data, b.data);
+    return r;
+  }
+
+  friend lxivec_always_inline FloatVector<_count> max(
+      const FloatVector<_count> &a,
+      const FloatVector<_count> &b)
+  {
+    FloatVector<_count> r;
+    max(r.data, a.data, b.data);
+    return r;
+  }
+
+  friend lxivec_always_inline FloatVector<_count> select(
+      const BoolVector<4, _count> &m,
+      const FloatVector<_count> &a,
+      const FloatVector<_count> &b)
+  {
+    FloatVector<_count> r;
+    select(r.data, m.data, a.data, b.data);
+    return r;
+  }
+
+  lxivec_always_inline FloatVector<_count> & operator=(
+      const FloatVector<_count> &from)
+  {
+    copy(data, from.data);
+    return *this;
+  }
+
+  lxivec_always_inline FloatVector<_count> & operator=(
+      const DoubleVector<_count> &from)
+  {
+    repack(data, from.data);
+    return *this;
+  }
+
+  template <typename _fromtype>
+  lxivec_always_inline FloatVector<_count> & operator=(
+      const IntVector<_fromtype, _count> &from)
+  {
+    repack(data, from.data);
+    return *this;
+  }
+
+  template <typename _fromtype>
+  lxivec_always_inline FloatVector<_count> & operator=(
+      const DoubleVector<_count> &from)
+  {
+    repack(data, from.data);
+    return *this;
+  }
+
+  lxivec_always_inline FloatVector<_count> operator+(
+      const FloatVector<_count> &b) const
+  {
+    return add(*this, b);
+  }
+
+  lxivec_always_inline FloatVector<_count> & operator+=(
+      const FloatVector<_count> &b)
   {
     add(data, data, b.data);
     return *this;
   }
 
-  lxivec_always_inline FloatVector<_count> operator+(float b) const
+  lxivec_always_inline FloatVector<_count> operator+(
+      float b) const
   {
-    FloatVector<_count> r;
-    add(r.data, data, b);
-    return r;
+    return add(*this, b);
   }
 
-  lxivec_always_inline FloatVector<_count> & operator+=(float b)
+  lxivec_always_inline FloatVector<_count> & operator+=(
+      float b)
   {
     add(data, data, b);
     return *this;
   }
 
-  lxivec_always_inline FloatVector<_count> operator-(const FloatVector<_count> &b) const
+  lxivec_always_inline FloatVector<_count> operator-(
+      const FloatVector<_count> &b) const
   {
-    FloatVector<_count> r;
-    sub(r.data, data, b.data);
-    return r;
+    return sub(*this, b);
   }
 
-  lxivec_always_inline FloatVector<_count> & operator-=(const FloatVector<_count> &b)
+  lxivec_always_inline FloatVector<_count> & operator-=(
+      const FloatVector<_count> &b)
   {
     sub(data, data, b.data);
     return *this;
   }
 
-  lxivec_always_inline FloatVector<_count> operator-(float b) const
+  lxivec_always_inline FloatVector<_count> operator-(
+      float b) const
   {
-    FloatVector<_count> r;
-    sub(r.data, data, b);
-    return r;
+    return sub(*this, b);
   }
 
-  lxivec_always_inline FloatVector<_count> & operator-=(float b)
+  lxivec_always_inline FloatVector<_count> & operator-=(
+      float b)
   {
     sub(data, data, b);
     return *this;
   }
 
-  lxivec_always_inline FloatVector<_count> operator*(const FloatVector<_count> &b) const
+  lxivec_always_inline FloatVector<_count> operator*(
+      const FloatVector<_count> &b) const
   {
-    FloatVector<_count> r;
-    mul(r.data, data, b.data);
-    return r;
+    return mul(*this, b);
   }
 
-  lxivec_always_inline FloatVector<_count> & operator*=(const FloatVector<_count> &b)
+  lxivec_always_inline FloatVector<_count> & operator*=(
+      const FloatVector<_count> &b)
   {
     mul(data, data, b.data);
     return *this;
   }
 
-  lxivec_always_inline FloatVector<_count> operator*(float b) const
+  lxivec_always_inline FloatVector<_count> operator*(
+      float b) const
   {
-    FloatVector<_count> r;
-    mul(r.data, data, b);
-    return r;
+    return mul(*this, b);
   }
 
-  lxivec_always_inline FloatVector<_count> & operator*=(float b)
+  lxivec_always_inline FloatVector<_count> & operator*=(
+      float b)
   {
     mul(data, data, b);
     return *this;
   }
 
-  lxivec_always_inline FloatVector<_count> operator/(const FloatVector<_count> &b) const
+  lxivec_always_inline FloatVector<_count> operator/(
+      const FloatVector<_count> &b) const
   {
-    FloatVector<_count> r;
-    div(r.data, data, b.data);
-    return r;
+    return div(*this, b);
   }
 
-  lxivec_always_inline FloatVector<_count> & operator/=(const FloatVector<_count> &b)
+  lxivec_always_inline FloatVector<_count> & operator/=(
+      const FloatVector<_count> &b)
   {
     div(data, data, b.data);
     return *this;
   }
 
-  lxivec_always_inline FloatVector<_count> operator/(float b) const
+  lxivec_always_inline FloatVector<_count> operator/(
+      float b) const
   {
-    FloatVector<_count> r;
-    div(r.data, data, b);
-    return r;
+    return div(*this, b);
   }
 
-  lxivec_always_inline FloatVector<_count> & operator/=(float b)
+  lxivec_always_inline FloatVector<_count> & operator/=(
+      float b)
   {
     div(data, data, b);
     return *this;
   }
 
-  lxivec_always_inline BoolVector<4, _count> operator==(const FloatVector<_count> &b) const
+  lxivec_always_inline BoolVector<4, _count> operator==(
+      const FloatVector<_count> &b) const
   {
     BoolVector<4, _count> r;
     cmpeq(r.data, data, b.data);
     return r;
   }
 
-  lxivec_always_inline BoolVector<4, _count> operator>(const FloatVector<_count> &b) const
+  lxivec_always_inline BoolVector<4, _count> operator>(
+      const FloatVector<_count> &b) const
   {
     BoolVector<4, _count> r;
     cmpgt(r.data, data, b.data);
     return r;
   }
 
-  lxivec_always_inline BoolVector<4, _count> operator<(const FloatVector<_count> &b) const
+  lxivec_always_inline BoolVector<4, _count> operator<(
+      const FloatVector<_count> &b) const
   {
     BoolVector<4, _count> r;
     cmplt(r.data, data, b.data);
@@ -224,185 +350,311 @@ struct FloatVector : VecObject
 };
 
 template <int _count>
-struct DoubleVector
+struct DoubleVector : VecObject
 {
   lxivec_always_inline DoubleVector(void)
+    : VecObject()
   {
   }
 
-  lxivec_always_inline DoubleVector(const DoubleVector<_count> &from)
-  {
-    copy(data, from.data);
-  }
-
-  lxivec_always_inline DoubleVector(const FloatVector<_count> &from)
-  {
-    repack(data, from.data);
-  }
-
-  template <typename _fromtype>
-  lxivec_always_inline DoubleVector(const IntVector<_fromtype, _count> &from)
-  {
-    repack(data, from.data);
-  }
-
-  lxivec_always_inline DoubleVector<_count> & operator=(const DoubleVector<_count> &from)
+  lxivec_always_inline DoubleVector(
+      const DoubleVector<_count> &from)
+    : VecObject(from)
   {
     copy(data, from.data);
-    return *this;
   }
 
-  lxivec_always_inline DoubleVector<_count> & operator=(const FloatVector<_count> &from)
+  lxivec_always_inline DoubleVector(
+      const FloatVector<_count> &from)
+    : VecObject()
   {
     repack(data, from.data);
-    return *this;
   }
 
   template <typename _fromtype>
-  lxivec_always_inline DoubleVector<_count> & operator=(const IntVector<_fromtype, _count> &from)
+  lxivec_always_inline DoubleVector(
+      const IntVector<_fromtype, _count> &from)
+    : VecObject()
   {
     repack(data, from.data);
-    return *this;
   }
 
-  template <typename _fromtype>
-  lxivec_always_inline DoubleVector<_count> & operator=(const DoubleVector<_count> &from)
-  {
-    repack(data, from.data);
-    return *this;
-  }
-
-  static lxivec_always_inline DoubleVector<_count> load(const double *p)
+  static lxivec_always_inline DoubleVector<_count> load(
+      const double *p)
   {
     DoubleVector<_count> r;
     _private::load(r.data, p);
     return r;
   }
 
-  lxivec_always_inline void store(double *p) const
+  friend lxivec_always_inline void store(
+      double *p,
+      const DoubleVector<_count> &a,
+      int max = _count)
   {
-    _private::store(p, data);
+    _private::store(p, a.data, max);
   }
 
-  lxivec_always_inline DoubleVector<_count> operator+(const DoubleVector<_count> &b) const
+  friend lxivec_always_inline DoubleVector<_count> add(
+      const DoubleVector<_count> &a,
+      const DoubleVector<_count> &b)
   {
     DoubleVector<_count> r;
-    add(r.data, data, b.data);
+    add(r.data, a.data, b.data);
     return r;
   }
 
-  lxivec_always_inline DoubleVector<_count> & operator+=(const DoubleVector<_count> &b)
+  friend lxivec_always_inline DoubleVector<_count> add(
+      const DoubleVector<_count> &a,
+      float b)
+  {
+    DoubleVector<_count> r;
+    add(r.data, a.data, b);
+    return r;
+  }
+
+  friend lxivec_always_inline DoubleVector<_count> sub(
+      const DoubleVector<_count> &a,
+      const DoubleVector<_count> &b)
+  {
+    DoubleVector<_count> r;
+    sub(r.data, a.data, b.data);
+    return r;
+  }
+
+  friend lxivec_always_inline DoubleVector<_count> sub(
+      const DoubleVector<_count> &a,
+      float b)
+  {
+    DoubleVector<_count> r;
+    sub(r.data, a.data, b);
+    return r;
+  }
+
+  friend lxivec_always_inline DoubleVector<_count> mul(
+      const DoubleVector<_count> &a,
+      const DoubleVector<_count> &b)
+  {
+    DoubleVector<_count> r;
+    mul(r.data, a.data, b.data);
+    return r;
+  }
+
+  friend lxivec_always_inline DoubleVector<_count> mul(
+      const DoubleVector<_count> &a,
+      float b)
+  {
+    DoubleVector<_count> r;
+    mul(r.data, a.data, b);
+    return r;
+  }
+
+  friend lxivec_always_inline DoubleVector<_count> div(
+      const DoubleVector<_count> &a,
+      const DoubleVector<_count> &b)
+  {
+    DoubleVector<_count> r;
+    div(r.data, a.data, b.data);
+    return r;
+  }
+
+  friend lxivec_always_inline DoubleVector<_count> div(
+      const DoubleVector<_count> &a,
+      float b)
+  {
+    DoubleVector<_count> r;
+    div(r.data, a.data, b);
+    return r;
+  }
+
+  friend lxivec_always_inline DoubleVector<_count> abs(
+      const DoubleVector<_count> &x)
+  {
+    DoubleVector<_count> r;
+    abs(r.data, x.data);
+    return r;
+  }
+
+  friend lxivec_always_inline DoubleVector<_count> min(
+      const DoubleVector<_count> &a,
+      const DoubleVector<_count> &b)
+  {
+    DoubleVector<_count> r;
+    min(r.data, a.data, b.data);
+    return r;
+  }
+
+  friend lxivec_always_inline DoubleVector<_count> max(
+      const DoubleVector<_count> &a,
+      const DoubleVector<_count> &b)
+  {
+    DoubleVector<_count> r;
+    max(r.data, a.data, b.data);
+    return r;
+  }
+
+  friend lxivec_always_inline DoubleVector<_count> select(
+      const BoolVector<8, _count> &m,
+      const DoubleVector<_count> &a,
+      const DoubleVector<_count> &b)
+  {
+    DoubleVector<_count> r;
+    select(r.data, m.data, a.data, b.data);
+    return r;
+  }
+
+  lxivec_always_inline DoubleVector<_count> & operator=(
+      const DoubleVector<_count> &from)
+  {
+    copy(data, from.data);
+    return *this;
+  }
+
+  lxivec_always_inline DoubleVector<_count> & operator=(
+      const FloatVector<_count> &from)
+  {
+    repack(data, from.data);
+    return *this;
+  }
+
+  template <typename _fromtype>
+  lxivec_always_inline DoubleVector<_count> & operator=(
+      const IntVector<_fromtype, _count> &from)
+  {
+    repack(data, from.data);
+    return *this;
+  }
+
+  template <typename _fromtype>
+  lxivec_always_inline DoubleVector<_count> & operator=(
+      const DoubleVector<_count> &from)
+  {
+    repack(data, from.data);
+    return *this;
+  }
+
+  lxivec_always_inline DoubleVector<_count> operator+(
+      const DoubleVector<_count> &b) const
+  {
+    return add(*this, b);
+  }
+
+  lxivec_always_inline DoubleVector<_count> & operator+=(
+      const DoubleVector<_count> &b)
   {
     add(data, data, b.data);
     return *this;
   }
 
-  lxivec_always_inline DoubleVector<_count> operator+(float b) const
+  lxivec_always_inline DoubleVector<_count> operator+(
+      float b) const
   {
-    DoubleVector<_count> r;
-    add(r.data, data, b);
-    return r;
+    return add(*this, b);
   }
 
-  lxivec_always_inline DoubleVector<_count> & operator+=(float b)
+  lxivec_always_inline DoubleVector<_count> & operator+=(
+      float b)
   {
     add(data, data, b);
     return *this;
   }
 
-  lxivec_always_inline DoubleVector<_count> operator-(const DoubleVector<_count> &b) const
+  lxivec_always_inline DoubleVector<_count> operator-(
+      const DoubleVector<_count> &b) const
   {
-    DoubleVector<_count> r;
-    sub(r.data, data, b.data);
-    return r;
+    return sub(*this, b);
   }
 
-  lxivec_always_inline DoubleVector<_count> & operator-=(const DoubleVector<_count> &b)
+  lxivec_always_inline DoubleVector<_count> & operator-=(
+      const DoubleVector<_count> &b)
   {
     sub(data, data, b.data);
     return *this;
   }
 
-  lxivec_always_inline DoubleVector<_count> operator-(float b) const
+  lxivec_always_inline DoubleVector<_count> operator-(
+      float b) const
   {
-    DoubleVector<_count> r;
-    sub(r.data, data, b);
-    return r;
+    return sub(*this, b);
   }
 
-  lxivec_always_inline DoubleVector<_count> & operator-=(float b)
+  lxivec_always_inline DoubleVector<_count> & operator-=(
+      float b)
   {
     sub(data, data, b);
     return *this;
   }
 
-  lxivec_always_inline DoubleVector<_count> operator*(const DoubleVector<_count> &b) const
+  lxivec_always_inline DoubleVector<_count> operator*(
+      const DoubleVector<_count> &b) const
   {
-    DoubleVector<_count> r;
-    mul(r.data, data, b.data);
-    return r;
+    return mul(*this, b);
   }
 
-  lxivec_always_inline DoubleVector<_count> & operator*=(const DoubleVector<_count> &b)
+  lxivec_always_inline DoubleVector<_count> & operator*=(
+      const DoubleVector<_count> &b)
   {
     mul(data, data, b.data);
     return *this;
   }
 
-  lxivec_always_inline DoubleVector<_count> operator*(float b) const
+  lxivec_always_inline DoubleVector<_count> operator*(
+      float b) const
   {
-    DoubleVector<_count> r;
-    mul(r.data, data, b);
-    return r;
+    return mul(*this, b);
   }
 
-  lxivec_always_inline DoubleVector<_count> & operator*=(float b)
+  lxivec_always_inline DoubleVector<_count> & operator*=(
+      float b)
   {
     mul(data, data, b);
     return *this;
   }
 
-  lxivec_always_inline DoubleVector<_count> operator/(const DoubleVector<_count> &b) const
+  lxivec_always_inline DoubleVector<_count> operator/(
+      const DoubleVector<_count> &b) const
   {
-    DoubleVector<_count> r;
-    div(r.data, data, b.data);
-    return r;
+    return div(*this, b);
   }
 
-  lxivec_always_inline DoubleVector<_count> & operator/=(const DoubleVector<_count> &b)
+  lxivec_always_inline DoubleVector<_count> & operator/=(
+      const DoubleVector<_count> &b)
   {
     div(data, data, b.data);
     return *this;
   }
 
-  lxivec_always_inline DoubleVector<_count> operator/(float b) const
+  lxivec_always_inline DoubleVector<_count> operator/(
+      float b) const
   {
-    DoubleVector<_count> r;
-    div(r.data, data, b);
-    return r;
+    return div(*this, b);
   }
 
-  lxivec_always_inline DoubleVector<_count> & operator/=(float b)
+  lxivec_always_inline DoubleVector<_count> & operator/=(
+      float b)
   {
     div(data, data, b);
     return *this;
   }
 
-  lxivec_always_inline BoolVector<8, _count> operator==(const DoubleVector<_count> &b) const
+  lxivec_always_inline BoolVector<8, _count> operator==(
+      const DoubleVector<_count> &b) const
   {
     BoolVector<8, _count> r;
     cmpeq(r.data, data, b.data);
     return r;
   }
 
-  lxivec_always_inline BoolVector<8, _count> operator>(const DoubleVector<_count> &b) const
+  lxivec_always_inline BoolVector<8, _count> operator>(
+      const DoubleVector<_count> &b) const
   {
     BoolVector<8, _count> r;
     cmpgt(r.data, data, b.data);
     return r;
   }
 
-  lxivec_always_inline BoolVector<8, _count> operator<(const DoubleVector<_count> &b) const
+  lxivec_always_inline BoolVector<8, _count> operator<(
+      const DoubleVector<_count> &b) const
   {
     BoolVector<8, _count> r;
     cmplt(r.data, data, b.data);
@@ -430,86 +682,6 @@ typedef _private::DoubleVector<8 * vecsize / sizeof(double)>  double_ov;
 
 typedef _private::FloatVector <16 * vecsize / sizeof(float)>  float_hv;
 typedef _private::DoubleVector<16 * vecsize / sizeof(double)> double_hv;
-
-template <int _count>
-lxivec_always_inline _private::FloatVector<_count> abs(
-    const _private::FloatVector<_count> &x)
-{
-  _private::FloatVector<_count> r;
-  _private::abs(r.data, x.data);
-  return r;
-}
-
-template <int _count>
-lxivec_always_inline _private::DoubleVector<_count> abs(
-    const _private::DoubleVector<_count> &x)
-{
-  _private::DoubleVector<_count> r;
-  _private::abs(r.data, x.data);
-  return r;
-}
-
-template <int _count>
-lxivec_always_inline _private::FloatVector<_count> min(
-    const _private::FloatVector<_count> &a,
-    const _private::FloatVector<_count> &b)
-{
-  _private::FloatVector<_count> r;
-  _private::min(r.data, a.data, b.data);
-  return r;
-}
-
-template <int _count>
-lxivec_always_inline _private::DoubleVector<_count> min(
-    const _private::DoubleVector<_count> &a,
-    const _private::DoubleVector<_count> &b)
-{
-  _private::DoubleVector<_count> r;
-  _private::min(r.data, a.data, b.data);
-  return r;
-}
-
-template <int _count>
-lxivec_always_inline _private::FloatVector<_count> max(
-    const _private::FloatVector<_count> &a,
-    const _private::FloatVector<_count> &b)
-{
-  _private::FloatVector<_count> r;
-  _private::max(r.data, a.data, b.data);
-  return r;
-}
-
-template <int _count>
-lxivec_always_inline _private::DoubleVector<_count> max(
-    const _private::DoubleVector<_count> &a,
-    const _private::DoubleVector<_count> &b)
-{
-  _private::DoubleVector<_count> r;
-  _private::max(r.data, a.data, b.data);
-  return r;
-}
-
-template <int _count>
-lxivec_always_inline _private::FloatVector<_count> select(
-    const _private::BoolVector<4, _count> &m,
-    const _private::FloatVector<_count> &a,
-    const _private::FloatVector<_count> &b)
-{
-  _private::FloatVector<_count> r;
-  _private::select(r.data, m.data, a.data, b.data);
-  return r;
-}
-
-template <int _count>
-lxivec_always_inline _private::DoubleVector<_count> select(
-    const _private::BoolVector<8, _count> &m,
-    const _private::DoubleVector<_count> &a,
-    const _private::DoubleVector<_count> &b)
-{
-  _private::DoubleVector<_count> r;
-  _private::select(r.data, m.data, a.data, b.data);
-  return r;
-}
 
 } // End of namespace
 

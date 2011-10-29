@@ -43,8 +43,6 @@ namespace _private {
     int8_t val[_count];
 #if defined(__SSE2__)
     __m128i vec[_count / (sizeof(__m128i) / sizeof(int8_t))];
-#elif defined(__MMX__)
-    __m64 vec[_count / (sizeof(__m64) / sizeof(int8_t))];
 #endif
   };
 
@@ -54,8 +52,6 @@ namespace _private {
     uint8_t val[_count];
 #if defined(__SSE2__)
     __m128i vec[_count / (sizeof(__m128i) / sizeof(uint8_t))];
-#elif defined(__MMX__)
-    __m64 vec[_count / (sizeof(__m64) / sizeof(uint8_t))];
 #endif
   };
 
@@ -65,8 +61,6 @@ namespace _private {
     int16_t val[_count];
 #if defined(__SSE2__)
     __m128i vec[_count / (sizeof(__m128i) / sizeof(int16_t))];
-#elif defined(__MMX__)
-    __m64 vec[_count / (sizeof(__m64) / sizeof(int16_t))];
 #endif
   };
 
@@ -76,8 +70,6 @@ namespace _private {
     uint16_t val[_count];
 #if defined(__SSE2__)
     __m128i vec[_count / (sizeof(__m128i) / sizeof(uint16_t))];
-#elif defined(__MMX__)
-    __m64 vec[_count / (sizeof(__m64) / sizeof(uint16_t))];
 #endif
   };
 
@@ -87,8 +79,6 @@ namespace _private {
     int32_t val[_count];
 #if defined(__SSE2__)
     __m128i vec[_count / (sizeof(__m128i) / sizeof(int32_t))];
-#elif defined(__MMX__)
-    __m64 vec[_count / (sizeof(__m64) / sizeof(int32_t))];
 #endif
   };
 
@@ -98,8 +88,6 @@ namespace _private {
     uint32_t val[_count];
 #if defined(__SSE2__)
     __m128i vec[_count / (sizeof(__m128i) / sizeof(uint32_t))];
-#elif defined(__MMX__)
-    __m64 vec[_count / (sizeof(__m64) / sizeof(uint32_t))];
 #endif
   };
 
@@ -109,8 +97,6 @@ namespace _private {
     int64_t val[_count];
 #if defined(__SSE2__)
     __m128i vec[_count / (sizeof(__m128i) / sizeof(int64_t))];
-#elif defined(__MMX__)
-    __m64 vec[_count / (sizeof(__m64) / sizeof(int64_t))];
 #endif
   };
 
@@ -120,51 +106,11 @@ namespace _private {
     uint64_t val[_count];
 #if defined(__SSE2__)
     __m128i vec[_count / (sizeof(__m128i) / sizeof(uint64_t))];
-#elif defined(__MMX__)
-    __m64 vec[_count / (sizeof(__m64) / sizeof(uint64_t))];
 #endif
   };
 
 #ifdef _MSC_VER
 # pragma pack()
-#endif
-
-#if defined(__MMX__)
-  lxivec_always_inline __m64 set_m64(int64_t a)
-  {
-# ifdef __x86_64__
-    return _mm_cvtsi64_m64(a);
-# else
-    return reinterpret_cast<const __m64 &>(a);
-# endif
-  }
-
-  lxivec_always_inline __m64 set_m64(uint64_t a)
-  {
-# ifdef __x86_64__
-    return _mm_cvtsi64_m64(a);
-# else
-    return reinterpret_cast<const __m64 &>(a);
-# endif
-  }
-
-  lxivec_always_inline int64_t get_int64(__m64 a)
-  {
-# ifdef __x86_64__
-    return _mm_cvtm64_si64(a);
-# else
-    return reinterpret_cast<const int64_t &>(a);
-# endif
-  }
-
-  lxivec_always_inline uint64_t get_uint64(__m64 a)
-  {
-# ifdef __x86_64__
-    return uint64_t(_mm_cvtm64_si64(a));
-# else
-    return reinterpret_cast<const uint64_t &>(a);
-# endif
-  }
 #endif
 
 #if defined(__SSE2__)
@@ -222,11 +168,6 @@ namespace _private {
       dst.vec[vi] = _mm_load_si128(reinterpret_cast<const __m128i *>(p) + vi);
 
     i += sizeof(dst.vec) / sizeof(*p);
-#elif defined(__MMX__)
-    for (int vi = 0; (vi < int(sizeof(dst.vec) / sizeof(dst.vec[0]))) && (vi <= int(max / (sizeof(dst.vec[0]) / sizeof(*p)))); vi++)
-      dst.vec[vi] = reinterpret_cast<const __m64 *>(p)[vi];
-
-    i += sizeof(dst.vec) / sizeof(*p);
 #endif
 
     for (; i<max; i++)
@@ -244,11 +185,6 @@ namespace _private {
       _mm_store_si128(reinterpret_cast<__m128i *>(p) + vi, src.vec[vi]);
 
     i += sizeof(src.vec) / sizeof(*p);
-#elif defined(__MMX__)
-    for (int vi = 0; (vi < int(sizeof(src.vec) / sizeof(src.vec[0]))) && (vi <= int(max / (sizeof(src.vec[0]) / sizeof(*p)))); vi++)
-      reinterpret_cast<const __m64 *>(p)[vi] = src.vec[vi];
-
-    i += sizeof(src.vec) / sizeof(*p);
 #endif
 
     for (; i<max; i++)
@@ -260,69 +196,135 @@ namespace _private {
   {
     int i = 0;
 
-#if defined(__SSE2__) || defined(__MMX__)
+#if defined(__SSE2__)
     for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
       dst.vec[vi] = src.vec[vi];
 
     i += sizeof(dst.vec) / sizeof(_type);
 #endif
 
-    if (i < _count)
-      memcpy(dst.val + i, src.val + i, (_count - i) * sizeof(_type));
+    for (; i<_count; i++)
+      dst.val[i] = src.val[i];
   }
 
-  template <typename _type>
-  lxivec_always_inline int8_t saturate_int8(_type v)
+  lxivec_always_inline int8_t saturate_int8(int16_t v)
   {
     return (v >= -128) ? ((v <= 127) ? int8_t(v) : int8_t(127)) : int8_t(-128);
   }
 
-  template <typename _type>
-  lxivec_always_inline int8_t saturate_int8u(_type v)
+  lxivec_always_inline int8_t saturate_int8(int32_t v)
+  {
+    return (v >= -128) ? ((v <= 127) ? int8_t(v) : int8_t(127)) : int8_t(-128);
+  }
+
+  lxivec_always_inline int8_t saturate_int8(int64_t v)
+  {
+    return (v >= -128) ? ((v <= 127) ? int8_t(v) : int8_t(127)) : int8_t(-128);
+  }
+
+  lxivec_always_inline int8_t saturate_int8(uint16_t v)
   {
     return (v <= 127) ? int8_t(v) : int8_t(127);
   }
 
-  template <typename _type>
-  lxivec_always_inline uint8_t saturate_uint8(_type v)
+  lxivec_always_inline int8_t saturate_int8(uint32_t v)
+  {
+    return (v <= 127) ? int8_t(v) : int8_t(127);
+  }
+
+  lxivec_always_inline int8_t saturate_int8(uint64_t v)
+  {
+    return (v <= 127) ? int8_t(v) : int8_t(127);
+  }
+
+  lxivec_always_inline uint8_t saturate_uint8(int16_t v)
   {
     return (v >= 0) ? ((v <= 255) ? uint8_t(v) : uint8_t(255)) : uint8_t(0);
   }
 
-  template <typename _type>
-  lxivec_always_inline int16_t saturate_int16(_type v)
+  lxivec_always_inline uint8_t saturate_uint8(int32_t v)
+  {
+    return (v >= 0) ? ((v <= 255) ? uint8_t(v) : uint8_t(255)) : uint8_t(0);
+  }
+
+  lxivec_always_inline uint8_t saturate_uint8(int64_t v)
+  {
+    return (v >= 0) ? ((v <= 255) ? uint8_t(v) : uint8_t(255)) : uint8_t(0);
+  }
+
+  lxivec_always_inline uint8_t saturate_uint8(uint16_t v)
+  {
+    return (v <= 255) ? uint8_t(v) : uint8_t(255);
+  }
+
+  lxivec_always_inline uint8_t saturate_uint8(uint32_t v)
+  {
+    return (v <= 255) ? uint8_t(v) : uint8_t(255);
+  }
+
+  lxivec_always_inline uint8_t saturate_uint8(uint64_t v)
+  {
+    return (v <= 255) ? uint8_t(v) : uint8_t(255);
+  }
+
+  lxivec_always_inline int16_t saturate_int16(int32_t v)
   {
     return (v >= -32768) ? ((v <= 32767) ? int16_t(v) : int16_t(32767)) : int16_t(-32768);
   }
 
-  template <typename _type>
-  lxivec_always_inline int16_t saturate_int16u(_type v)
+  lxivec_always_inline int16_t saturate_int16(int64_t v)
+  {
+    return (v >= -32768) ? ((v <= 32767) ? int16_t(v) : int16_t(32767)) : int16_t(-32768);
+  }
+
+  lxivec_always_inline int16_t saturate_int16(uint32_t v)
   {
     return (v <= 32767) ? int16_t(v) : int16_t(32767);
   }
 
-  template <typename _type>
-  lxivec_always_inline uint16_t saturate_uint16(_type v)
+  lxivec_always_inline int16_t saturate_int16u(uint64_t v)
+  {
+    return (v <= 32767) ? int16_t(v) : int16_t(32767);
+  }
+
+  lxivec_always_inline uint16_t saturate_uint16(int32_t v)
   {
     return (v >= 0) ? ((v <= 65535) ? uint16_t(v) : uint16_t(65535)) : uint16_t(0);
   }
 
-  template <typename _type>
-  lxivec_always_inline int32_t saturate_int32(_type v)
+  lxivec_always_inline uint16_t saturate_uint16(int64_t v)
   {
-    return (v >= -2147483648ll) ? ((v <= 2147483647ll) ? int32_t(v) : int32_t(2147483647ll)) : int32_t(-2147483648ll);
+    return (v >= 0) ? ((v <= 65535) ? uint16_t(v) : uint16_t(65535)) : uint16_t(0);
   }
 
-  template <typename _type>
-  lxivec_always_inline int32_t saturate_int32u(_type v)
+  lxivec_always_inline uint16_t saturate_uint16(uint32_t v)
   {
-    return (v <= 2147483647ll) ? int32_t(v) : int32_t(2147483647ll);
+    return (v <= 65535) ? uint16_t(v) : uint16_t(65535);
   }
 
-  template <typename _type>
-  lxivec_always_inline uint32_t saturate_uint32(_type v)
+  lxivec_always_inline uint16_t saturate_uint16(uint64_t v)
   {
-    return (v >= 0) ? ((v <= 4294967295u) ? uint32_t(v) : uint32_t(4294967295u)) : uint32_t(0);
+    return (v <= 65535) ? uint16_t(v) : uint16_t(65535);
+  }
+
+  lxivec_always_inline int32_t saturate_int32(int64_t v)
+  {
+    return (v >= -2147483648ll) ? ((v <= 2147483647ll) ? int32_t(v) : int32_t(2147483647)) : int32_t(-2147483648);
+  }
+
+  lxivec_always_inline int32_t saturate_int32(uint64_t v)
+  {
+    return (v <= 2147483647ll) ? int32_t(v) : int32_t(2147483647);
+  }
+
+  lxivec_always_inline uint32_t saturate_uint32(int64_t v)
+  {
+    return (v >= 0) ? ((v <= 4294967295ll) ? uint32_t(v) : uint32_t(4294967295u)) : uint32_t(0);
+  }
+
+  lxivec_always_inline uint32_t saturate_uint32(uint64_t v)
+  {
+    return (v <= 4294967295ull) ? uint32_t(v) : uint32_t(4294967295u);
   }
 
 } } // End of namespaces

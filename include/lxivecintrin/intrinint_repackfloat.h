@@ -60,19 +60,6 @@ namespace _private {
     }
 
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
-#elif defined(__SSE__) && defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(src.vec) / sizeof(src.vec[0])); vi++)
-    {
-      dst.vec[vi] = _mm_packs_pi16(
-          _mm_packs_pi32(
-              _mm_cvtps_pi32(src.vec[vi * 2    ]),
-              _mm_cvtps_pi32(_mm_movehl_ps(src.vec[vi], src.vec[vi * 2    ]))),
-          _mm_packs_pi32(
-              _mm_cvtps_pi32(src.vec[vi * 2 + 1]),
-              _mm_cvtps_pi32(_mm_movehl_ps(src.vec[vi], src.vec[vi * 2 + 1]))));
-    }
-
-    i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
 
     for (; i<_count; i++)
@@ -89,17 +76,17 @@ namespace _private {
       dst.vec[vi] = _mm_packus_epi32(_mm_cvtps_epi32(src.vec[vi * 2]), _mm_cvtps_epi32(src.vec[vi * 2 + 1]));
 
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
-  //#elif defined(__SSE2__)
-  //  for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
-  //  {
-  //    dst.vec[vi] = _mm_add_epi16(
-  //      _mm_packs_epi32(
-  //          _mm_sub_epi32(_mm_cvtps_epi32(src.vec[vi * 2    ]), _mm_set1_epi32(32768)),
-  //          _mm_sub_epi32(_mm_cvtps_epi32(src.vec[vi * 2 + 1]), _mm_set1_epi32(32768))),
-  //      _mm_set1_epi16(32768));
-  //  }
-  //
-  //  i += sizeof(dst.vec) / sizeof(dst.val[0]);
+#elif defined(__SSE2__)
+    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
+    {
+      dst.vec[vi] = _mm_add_epi16(
+        _mm_packs_epi32(
+            _mm_cvtps_epi32(_mm_sub_ps(src.vec[vi * 2    ], _mm_set1_ps(32768.0f))),
+            _mm_cvtps_epi32(_mm_sub_ps(src.vec[vi * 2 + 1], _mm_set1_ps(32768.0f)))),
+        _mm_set1_epi16(32768));
+    }
+
+    i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
 
     for (; i<_count; i++)
@@ -116,15 +103,6 @@ namespace _private {
       dst.vec[vi] = _mm_packs_epi32(_mm_cvtps_epi32(src.vec[vi * 2]), _mm_cvtps_epi32(src.vec[vi * 2 + 1]));
 
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
-#elif defined(__SSE__) && defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(src.vec) / sizeof(src.vec[0])); vi++)
-    {
-      dst.vec[vi] = _mm_packs_pi32(
-          _mm_cvtps_pi32(src.vec[vi]),
-          _mm_cvtps_pi32(_mm_movehl_ps(src.vec[vi], src.vec[vi])));
-    }
-
-    i += sizeof(src.vec) / sizeof(src.val[0]);
 #endif
 
     for (; i<_count; i++)
@@ -148,14 +126,6 @@ namespace _private {
 #if defined(__SSE2__)
     for (int vi = 0; vi < int(sizeof(src.vec) / sizeof(src.vec[0])); vi++)
       dst.vec[vi] = _mm_cvtps_epi32(src.vec[vi]);
-
-    i += sizeof(src.vec) / sizeof(src.val[0]);
-#elif defined(__SSE__) && defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(src.vec) / sizeof(src.vec[0])); vi++)
-    {
-      dst.vec[vi * 2    ] = _mm_cvtps_pi32(src.vec[vi]);
-      dst.vec[vi * 2 + 1] = _mm_cvtps_pi32(_mm_movehl_ps(src.vec[vi], src.vec[vi]));
-    }
 
     i += sizeof(src.vec) / sizeof(src.val[0]);
 #endif
@@ -251,39 +221,35 @@ namespace _private {
   {
     int i = 0;
 
-#if defined(__SSE4A__)
-    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
-    {
-      dst.vec[vi] = _mm_packus_epi32(
-          _mm_or_si128(
-              _mm_cvtpd_epi32(src.vec[vi * 4]),
-              _mm_slli_si128(_mm_cvtpd_epi32(src.vec[vi * 4 + 1]), 8)),
-          _mm_or_si128(
-              _mm_cvtpd_epi32(src.vec[vi * 4 + 2]),
-              _mm_slli_si128(_mm_cvtpd_epi32(src.vec[vi * 4 + 3]), 8)));
-    }
-
-    i += sizeof(dst.vec) / sizeof(dst.val[0]);
-  //#elif defined(__SSE2__)
-  //  for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
-  //  {
-  //    dst.vec[vi] = _mm_add_epi16(
-  //      _mm_packs_epi32(
-  //          _mm_sub_epi32(
-  //              _mm_or_si128(
-  //                  _mm_cvtpd_epi32(src.vec[vi * 4]),
-  //                  _mm_slli_si128(_mm_cvtpd_epi32(src.vec[vi * 4 + 1]), 8)),
-  //              _mm_set1_epi32(32768)),
-  //          _mm_sub_epi32(
-  //              _mm_or_si128(
-  //                  _mm_cvtpd_epi32(src.vec[vi * 4 + 2]),
-  //                  _mm_slli_si128(_mm_cvtpd_epi32(src.vec[vi * 4 + 3]), 8)),
-  //              _mm_set1_epi32(32768))),
-  //      _mm_set1_epi16(32768));
-  //  }
-  //
-  //  i += sizeof(dst.vec) / sizeof(dst.val[0]);
-#endif
+//#if defined(__SSE4A__)
+//    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
+//    {
+//      dst.vec[vi] = _mm_packus_epi32(
+//          _mm_or_si128(
+//              _mm_cvtpd_epi32(src.vec[vi * 4]),
+//              _mm_slli_si128(_mm_cvtpd_epi32(src.vec[vi * 4 + 1]), 8)),
+//          _mm_or_si128(
+//              _mm_cvtpd_epi32(src.vec[vi * 4 + 2]),
+//              _mm_slli_si128(_mm_cvtpd_epi32(src.vec[vi * 4 + 3]), 8)));
+//    }
+//
+//    i += sizeof(dst.vec) / sizeof(dst.val[0]);
+//#elif defined(__SSE2__)
+//    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
+//    {
+//      dst.vec[vi] = _mm_add_epi16(
+//        _mm_packs_epi32(
+//            _mm_or_si128(
+//                _mm_cvtpd_epi32(_mm_sub_pd(src.vec[vi * 4], _mm_set1_pd(32768.0))),
+//                _mm_slli_si128(_mm_cvtpd_epi32(_mm_sub_pd(src.vec[vi * 4 + 1], _mm_set1_pd(32768.0))), 8)),
+//            _mm_or_si128(
+//                _mm_cvtpd_epi32(_mm_sub_pd(src.vec[vi * 4 + 2], _mm_set1_pd(32768.0))),
+//                _mm_slli_si128(_mm_cvtpd_epi32(_mm_sub_pd(src.vec[vi * 4 + 3], _mm_set1_pd(32768.0))), 8))),
+//        _mm_set1_epi16(32768));
+//    }
+//
+//    i += sizeof(dst.vec) / sizeof(dst.val[0]);
+//#endif
 
     for (; i<_count; i++)
       dst.val[i] = uint16_t(src.val[i]);

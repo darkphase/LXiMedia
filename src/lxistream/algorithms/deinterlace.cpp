@@ -33,7 +33,7 @@ void Deinterlace::blendFields(uint8_t * dst, const uint8_t * srca, const uint8_t
     const int16_dv bs = uint8_v::load(srcb + i);
 
     const uint8_v result = (as + bs) >> 1;
-    result.store(dst + i);
+    store(dst + i, result);
   }
 }
 
@@ -48,7 +48,7 @@ void Deinterlace::smartBlendFields(uint8_t * dst, const uint8_t * srca, const ui
     const bool16_dv mask = max(abs(as - bs), abs(bs - cs)) > (abs(as - cs) + 8);
 
     const uint8_v result = select(mask, (as + cs) >> 1, bs);
-    result.store(dst + i);
+    store(dst + i, result);
   }
 }
 

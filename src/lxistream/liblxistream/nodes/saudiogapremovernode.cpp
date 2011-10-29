@@ -18,10 +18,7 @@
  ***************************************************************************/
 
 #include "nodes/saudiogapremovernode.h"
-
-// Implemented in saudionormalizenode.mul.c
-extern "C" qint16 LXiStream_SAudioNormalizeNode_measure
- (const qint16 * srcData, unsigned numSamples, unsigned srcNumChannels);
+#include "../../algorithms/audioprocess.h"
 
 namespace LXiStream {
 
@@ -60,16 +57,14 @@ void SAudioGapRemoverNode::input(const SAudioBuffer &audioBuffer)
   if (!d->audioDelay.isEmpty() &&
       (qAbs(audioBuffer.timeStamp() - d->audioDelay.last().timeStamp()).toMSec() > (d->delay * 2)))
   { // New stream (timestamp gap).
-    if ((LXiStream_SAudioNormalizeNode_measure
-            (reinterpret_cast<const qint16 *>(audioBuffer.data()),
-             audioBuffer.numSamples(),
-             audioBuffer.format().numChannels()) >= 512))
+    if (Algorithms::AudioProcess::avg(
+            reinterpret_cast<const qint16 *>(audioBuffer.data()),
+            audioBuffer.numSamples() * audioBuffer.format().numChannels()) >= 512)
     {
       while (!d->audioDelay.isEmpty() &&
-             (LXiStream_SAudioNormalizeNode_measure
-              (reinterpret_cast<const qint16 *>(d->audioDelay.last().data()),
-               d->audioDelay.last().numSamples(),
-               d->audioDelay.last().format().numChannels()) < 512))
+             (Algorithms::AudioProcess::avg(
+                  reinterpret_cast<const qint16 *>(d->audioDelay.last().data()),
+                  d->audioDelay.last().numSamples() * d->audioDelay.last().format().numChannels()) < 512))
       {
         d->audioDelay.takeLast();
       }

@@ -280,12 +280,11 @@ void Backend::reset(void)
 {
   GlobalSettings settings;
 
+  const quint16 newPort = settings.value("HttpPort", settings.defaultBackendHttpPort()).toInt();
+  if (newPort != masterHttpServer.defaultPort())
+    masterHttpServer.reset(settings.defaultBackendInterfaces(), newPort);
+
   masterSsdpServer.reset();
-
-  masterHttpServer.reset(
-      settings.defaultBackendInterfaces(),
-      settings.value("HttpPort", settings.defaultBackendHttpPort()).toInt());
-
   masterMediaServer.reset();
   masterConnectionManager.reset();
   masterContentDirectory.reset();

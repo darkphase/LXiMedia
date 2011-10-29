@@ -44,24 +44,6 @@ namespace _private {
   lxivec_always_inline __m128i band(__m128i a, uint32_t b) { return _mm_and_si128(a, _mm_set1_epi32(b)); }
   lxivec_always_inline __m128i band(__m128i a, int64_t b)  { return _mm_and_si128(a, _mm_set1_epi64x(b)); }
   lxivec_always_inline __m128i band(__m128i a, uint64_t b) { return _mm_and_si128(a, _mm_set1_epi64x(b)); }
-#elif defined(__MMX__)
-  lxivec_always_inline __m64 bor(__m64 a, int8_t b)   { return _mm_or_si64(a, _mm_set1_pi8(b)); }
-  lxivec_always_inline __m64 bor(__m64 a, uint8_t b)  { return _mm_or_si64(a, _mm_set1_pi8(b)); }
-  lxivec_always_inline __m64 bor(__m64 a, int16_t b)  { return _mm_or_si64(a, _mm_set1_pi16(b)); }
-  lxivec_always_inline __m64 bor(__m64 a, uint16_t b) { return _mm_or_si64(a, _mm_set1_pi16(b)); }
-  lxivec_always_inline __m64 bor(__m64 a, int32_t b)  { return _mm_or_si64(a, _mm_set1_pi32(b)); }
-  lxivec_always_inline __m64 bor(__m64 a, uint32_t b) { return _mm_or_si64(a, _mm_set1_pi32(b)); }
-  lxivec_always_inline __m64 bor(__m64 a, int64_t b)  { return _mm_or_si64(a, set_m64(b)); }
-  lxivec_always_inline __m64 bor(__m64 a, uint64_t b) { return _mm_or_si64(a, set_m64(b)); }
-
-  lxivec_always_inline __m64 band(__m64 a, int8_t b)   { return _mm_and_si64(a, _mm_set1_pi8(b)); }
-  lxivec_always_inline __m64 band(__m64 a, uint8_t b)  { return _mm_and_si64(a, _mm_set1_pi8(b)); }
-  lxivec_always_inline __m64 band(__m64 a, int16_t b)  { return _mm_and_si64(a, _mm_set1_pi16(b)); }
-  lxivec_always_inline __m64 band(__m64 a, uint16_t b) { return _mm_and_si64(a, _mm_set1_pi16(b)); }
-  lxivec_always_inline __m64 band(__m64 a, int32_t b)  { return _mm_and_si64(a, _mm_set1_pi32(b)); }
-  lxivec_always_inline __m64 band(__m64 a, uint32_t b) { return _mm_and_si64(a, _mm_set1_pi32(b)); }
-  lxivec_always_inline __m64 band(__m64 a, int64_t b)  { return _mm_and_si64(a, set_m64(b)); }
-  lxivec_always_inline __m64 band(__m64 a, uint64_t b) { return _mm_and_si64(a, set_m64(b)); }
 #endif
 
   template <typename _type, int _count>
@@ -72,11 +54,6 @@ namespace _private {
 #if defined(__SSE2__)
     for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
       dst.vec[vi] = _mm_or_si128(a.vec[vi], b.vec[vi]);
-
-    i += sizeof(dst.vec) / sizeof(dst.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
-      dst.vec[vi] = _mm_or_si64(a.vec[vi], b.vec[vi]);
 
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
@@ -95,11 +72,6 @@ namespace _private {
       dst.vec[vi] = _mm_and_si128(a.vec[vi], b.vec[vi]);
 
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
-      dst.vec[vi] = _mm_and_si64(a.vec[vi], b.vec[vi]);
-
-    i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
 
     for (; i<_count; i++)
@@ -111,7 +83,7 @@ namespace _private {
   {
     int i = 0;
 
-#if defined(__SSE2__) || defined(__MMX__)
+#if defined(__SSE2__)
     for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
       dst.vec[vi] = bor(a.vec[vi], b);
 
@@ -127,7 +99,7 @@ namespace _private {
   {
     int i = 0;
 
-#if defined(__SSE2__) || defined(__MMX__)
+#if defined(__SSE2__)
     for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
       dst.vec[vi] = band(a.vec[vi], b);
 
@@ -179,44 +151,6 @@ namespace _private {
   }
 
   lxivec_always_inline __m128i shr(__m128i a, int b, uint64_t) { return _mm_srli_epi64(a, b); }
-#elif defined(__MMX__)
-  lxivec_always_inline __m64 shl(__m64 a, int b, int8_t)
-  {
-    return _mm_slli_pi16(_mm_andnot_si64(_mm_set1_pi8(((1 << b) - 1) << (8 - b)), a), b);
-  }
-
-  lxivec_always_inline __m64 shl(__m64 a, int b, uint8_t)
-  {
-    return _mm_slli_pi16(_mm_andnot_si64(_mm_set1_pi8(((1 << b) - 1) << (8 - b)), a), b);
-  }
-
-  lxivec_always_inline __m64 shl(__m64 a, int b, int16_t)  { return _mm_slli_pi16(a, b); }
-  lxivec_always_inline __m64 shl(__m64 a, int b, uint16_t) { return _mm_slli_pi16(a, b); }
-  lxivec_always_inline __m64 shl(__m64 a, int b, int32_t)  { return _mm_slli_pi32(a, b); }
-  lxivec_always_inline __m64 shl(__m64 a, int b, uint32_t) { return _mm_slli_pi32(a, b); }
-  lxivec_always_inline __m64 shl(__m64 a, int b, int64_t)  { return _mm_slli_si64(a, b); }
-  lxivec_always_inline __m64 shl(__m64 a, int b, uint64_t) { return _mm_slli_si64(a, b); }
-
-  lxivec_always_inline __m64 shr(__m64 a, int b, int8_t)
-  {
-    return _mm_or_si64(
-        _mm_srli_pi16(_mm_andnot_si64(_mm_set1_pi8((1 << b) - 1), a), b),
-        _mm_andnot_si64(
-            _mm_cmpgt_pi8(a, _mm_cmpeq_pi32(a, a)),
-            _mm_set1_pi8(((1 << b) - 1) << (8 - b))));
-  }
-
-  lxivec_always_inline __m64 shr(__m64 a, int b, uint8_t)
-  {
-    return _mm_srli_pi16(_mm_andnot_si64(_mm_set1_pi8((1 << b) - 1), a), b);
-  }
-
-  lxivec_always_inline __m64 shr(__m64 a, int b, int16_t)  { return _mm_srai_pi16(a, b); }
-  lxivec_always_inline __m64 shr(__m64 a, int b, uint16_t) { return _mm_srli_pi16(a, b); }
-  lxivec_always_inline __m64 shr(__m64 a, int b, int32_t)  { return _mm_srai_pi32(a, b); }
-  lxivec_always_inline __m64 shr(__m64 a, int b, uint32_t) { return _mm_srli_pi32(a, b); }
-  lxivec_always_inline __m64 shr(__m64 a, int b, int64_t)  { return set_m64(get_int64(a) >> b); }
-  lxivec_always_inline __m64 shr(__m64 a, int b, uint64_t) { return _mm_srli_si64(a, b); }
 #endif
 
   template <typename _type, int _count>
@@ -224,7 +158,7 @@ namespace _private {
   {
     int i = 0;
 
-#if defined(__SSE2__) || defined(__MMX__)
+#if defined(__SSE2__)
     for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
       dst.vec[vi] = shl(a.vec[vi], b, dst.val[0]);
 
@@ -240,7 +174,7 @@ namespace _private {
   {
     int i = 0;
 
-#if defined(__SSE2__) || defined(__MMX__)
+#if defined(__SSE2__)
     for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
       dst.vec[vi] = shr(a.vec[vi], b, dst.val[0]);
 

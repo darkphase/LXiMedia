@@ -132,8 +132,8 @@ namespace _private {
     i += sizeof(dst.vec) / sizeof(float);
 #endif
 
-    if (i < _count)
-      memcpy(dst.val + i, src.val + i, (_count - i) * sizeof(float));
+    for (; i<_count; i++)
+      dst.val[i] = src.val[i];
   }
 
   template <int _count>
@@ -148,8 +148,8 @@ namespace _private {
     i += sizeof(dst.vec) / sizeof(double);
 #endif
 
-    if (i < _count)
-      memcpy(dst.val + i, src.val + i, (_count - i) * sizeof(double));
+    for (; i<_count; i++)
+      dst.val[i] = src.val[i];
   }
 
 } } // End of namespaces

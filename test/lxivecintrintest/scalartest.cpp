@@ -17,7 +17,6 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#undef __MMX__
 #undef __SSE__
 #undef __SSE2__
 #undef __SSE3__

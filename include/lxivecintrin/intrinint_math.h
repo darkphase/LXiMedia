@@ -62,118 +62,6 @@ namespace _private {
   lxivec_always_inline __m128i sub(__m128i a, uint32_t b) { return _mm_sub_epi32(a, _mm_set1_epi32(b)); }
   lxivec_always_inline __m128i sub(__m128i a, int64_t b)  { return _mm_sub_epi64(a, _mm_set1_epi64x(b)); }
   lxivec_always_inline __m128i sub(__m128i a, uint64_t b) { return _mm_sub_epi64(a, _mm_set1_epi64x(b)); }
-#elif defined(__MMX__)
-  lxivec_always_inline __m64 add(__m64 a, __m64 b, int8_t)   { return _mm_add_pi8(a, b); }
-  lxivec_always_inline __m64 add(__m64 a, __m64 b, uint8_t)  { return _mm_add_pi8(a, b); }
-  lxivec_always_inline __m64 add(__m64 a, __m64 b, int16_t)  { return _mm_add_pi16(a, b); }
-  lxivec_always_inline __m64 add(__m64 a, __m64 b, uint16_t) { return _mm_add_pi16(a, b); }
-
-  lxivec_always_inline __m64 add(__m64 a, __m64 b, int32_t)
-  {
-    return _mm_or_si64(
-        _mm_cvtsi32_si64(
-            int32_t(_mm_cvtsi64_si32(a)) +
-            int32_t(_mm_cvtsi64_si32(b))),
-        _mm_slli_si64(
-            _mm_cvtsi32_si64(
-                int32_t(_mm_cvtsi64_si32(_mm_srli_si64(a, 32))) +
-                int32_t(_mm_cvtsi64_si32(_mm_srli_si64(b, 32)))),
-            32));
-  }
-
-  lxivec_always_inline __m64 add(__m64 a, __m64 b, uint32_t)
-  {
-    return _mm_or_si64(
-        _mm_cvtsi32_si64(
-            int32_t(_mm_cvtsi64_si32(a)) +
-            int32_t(_mm_cvtsi64_si32(b))),
-        _mm_slli_si64(
-            _mm_cvtsi32_si64(
-                uint32_t(_mm_cvtsi64_si32(_mm_srli_si64(a, 32))) +
-                uint32_t(_mm_cvtsi64_si32(_mm_srli_si64(b, 32)))),
-            32));
-  }
-
-  lxivec_always_inline __m64 add(__m64 a, __m64 b, int64_t)  { return set_m64(get_int64(a) + get_int64(b)); }
-  lxivec_always_inline __m64 add(__m64 a, __m64 b, uint64_t) { return set_m64(get_uint64(a) + get_uint64(b)); }
-
-  lxivec_always_inline __m64 add(__m64 a, int8_t b)   { return _mm_add_pi8(a, _mm_set1_pi8(b)); }
-  lxivec_always_inline __m64 add(__m64 a, uint8_t b)  { return _mm_add_pi8(a, _mm_set1_pi8(b)); }
-  lxivec_always_inline __m64 add(__m64 a, int16_t b)  { return _mm_add_pi16(a, _mm_set1_pi16(b)); }
-  lxivec_always_inline __m64 add(__m64 a, uint16_t b) { return _mm_add_pi16(a, _mm_set1_pi16(b)); }
-
-  lxivec_always_inline __m64 add(__m64 a, int32_t b)
-  {
-    return _mm_or_si64(
-        _mm_cvtsi32_si64(int32_t(_mm_cvtsi64_si32(a)) + b),
-        _mm_slli_si64(_mm_cvtsi32_si64(int32_t(_mm_cvtsi64_si32(_mm_srli_si64(a, 32))) + b), 32));
-  }
-
-  lxivec_always_inline __m64 add(__m64 a, uint32_t b)
-  {
-    return _mm_or_si64(
-        _mm_cvtsi32_si64(uint32_t(_mm_cvtsi64_si32(a)) + b),
-        _mm_slli_si64(_mm_cvtsi32_si64(uint32_t(_mm_cvtsi64_si32(_mm_srli_si64(a, 32))) + b), 32));
-  }
-
-  lxivec_always_inline __m64 add(__m64 a, int64_t b)  { return set_m64(get_int64(a) + b); }
-  lxivec_always_inline __m64 add(__m64 a, uint64_t b) { return set_m64(get_uint64(a) + b); }
-
-  lxivec_always_inline __m64 sub(__m64 a, __m64 b, int8_t)   { return _mm_sub_pi8(a, b); }
-  lxivec_always_inline __m64 sub(__m64 a, __m64 b, uint8_t)  { return _mm_sub_pi8(a, b); }
-  lxivec_always_inline __m64 sub(__m64 a, __m64 b, int16_t)  { return _mm_sub_pi16(a, b); }
-  lxivec_always_inline __m64 sub(__m64 a, __m64 b, uint16_t) { return _mm_sub_pi16(a, b); }
-
-  lxivec_always_inline __m64 sub(__m64 a, __m64 b, int32_t)
-  {
-    return _mm_or_si64(
-        _mm_cvtsi32_si64(
-            int32_t(_mm_cvtsi64_si32(a)) -
-            int32_t(_mm_cvtsi64_si32(b))),
-        _mm_slli_si64(
-            _mm_cvtsi32_si64(
-                int32_t(_mm_cvtsi64_si32(_mm_srli_si64(a, 32))) -
-                int32_t(_mm_cvtsi64_si32(_mm_srli_si64(b, 32)))),
-            32));
-  }
-
-  lxivec_always_inline __m64 sub(__m64 a, __m64 b, uint32_t)
-  {
-    return _mm_or_si64(
-        _mm_cvtsi32_si64(
-            int32_t(_mm_cvtsi64_si32(a)) -
-            int32_t(_mm_cvtsi64_si32(b))),
-        _mm_slli_si64(
-            _mm_cvtsi32_si64(
-                uint32_t(_mm_cvtsi64_si32(_mm_srli_si64(a, 32))) -
-                uint32_t(_mm_cvtsi64_si32(_mm_srli_si64(b, 32)))),
-            32));
-  }
-
-  lxivec_always_inline __m64 sub(__m64 a, __m64 b, int64_t)  { return set_m64(get_int64(a) - get_int64(b)); }
-  lxivec_always_inline __m64 sub(__m64 a, __m64 b, uint64_t) { return set_m64(get_uint64(a) - get_uint64(b)); }
-
-  lxivec_always_inline __m64 sub(__m64 a, int8_t b)   { return _mm_sub_pi8(a, _mm_set1_pi8(b)); }
-  lxivec_always_inline __m64 sub(__m64 a, uint8_t b)  { return _mm_sub_pi8(a, _mm_set1_pi8(b)); }
-  lxivec_always_inline __m64 sub(__m64 a, int16_t b)  { return _mm_sub_pi16(a, _mm_set1_pi16(b)); }
-  lxivec_always_inline __m64 sub(__m64 a, uint16_t b) { return _mm_sub_pi16(a, _mm_set1_pi16(b)); }
-
-  lxivec_always_inline __m64 sub(__m64 a, int32_t b)
-  {
-    return _mm_or_si64(
-        _mm_cvtsi32_si64(int32_t(_mm_cvtsi64_si32(a)) - b),
-        _mm_slli_si64(_mm_cvtsi32_si64(int32_t(_mm_cvtsi64_si32(_mm_srli_si64(a, 32))) - b), 32));
-  }
-
-  lxivec_always_inline __m64 sub(__m64 a, uint32_t b)
-  {
-    return _mm_or_si64(
-        _mm_cvtsi32_si64(uint32_t(_mm_cvtsi64_si32(a)) - b),
-        _mm_slli_si64(_mm_cvtsi32_si64(uint32_t(_mm_cvtsi64_si32(_mm_srli_si64(a, 32))) - b), 32));
-  }
-
-  lxivec_always_inline __m64 sub(__m64 a, int64_t b)  { return set_m64(get_int64(a) - b); }
-  lxivec_always_inline __m64 sub(__m64 a, uint64_t b) { return set_m64(get_uint64(a) - b); }
 #endif
 
   template <typename _type, int _count>
@@ -181,7 +69,7 @@ namespace _private {
   {
     int i = 0;
 
-#if defined(__SSE2__) || defined(__MMX__)
+#if defined(__SSE2__)
     for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
       dst.vec[vi] = add(a.vec[vi], b.vec[vi], dst.val[0]);
 
@@ -197,7 +85,7 @@ namespace _private {
   {
     int i = 0;
 
-#if defined(__SSE2__) || defined(__MMX__)
+#if defined(__SSE2__)
     for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
       dst.vec[vi] = sub(a.vec[vi], b.vec[vi], dst.val[0]);
 
@@ -213,7 +101,7 @@ namespace _private {
   {
     int i = 0;
 
-#if defined(__SSE2__) || defined(__MMX__)
+#if defined(__SSE2__)
     for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
       dst.vec[vi] = add(a.vec[vi], b);
 
@@ -229,7 +117,7 @@ namespace _private {
   {
     int i = 0;
 
-#if defined(__SSE2__) || defined(__MMX__)
+#if defined(__SSE2__)
     for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
       dst.vec[vi] = sub(a.vec[vi], b);
 
@@ -329,73 +217,6 @@ namespace _private {
     const uint64pair sb = get_uint64(b);
     return _mm_set_epi64x(sb.a + sb.b, sa.a + sa.b);
   }
-#elif defined(__MMX__)
-  lxivec_always_inline __m64 hadd(__m64 a, __m64 b, int8_t)
-  {
-    return _mm_packs_pi16(
-        _mm_add_pi16(
-            _mm_and_si64(a, _mm_set1_pi16(0x00FF)),
-            _mm_srli_pi16(a, 8)),
-        _mm_add_pi16(
-            _mm_and_si64(b, _mm_set1_pi16(0x00FF)),
-            _mm_srli_pi16(b, 8)));
-  }
-
-  lxivec_always_inline __m64 hadd(__m64 a, __m64 b, uint8_t)
-  {
-    return _mm_packs_pu16(
-        _mm_add_pi16(
-            _mm_and_si64(a, _mm_set1_pi16(0x00FF)),
-            _mm_srli_pi16(a, 8)),
-        _mm_add_pi16(
-            _mm_and_si64(b, _mm_set1_pi16(0x00FF)),
-            _mm_srli_pi16(b, 8)));
-  }
-
-  lxivec_always_inline __m64 hadd(__m64 a, __m64 b, int16_t)
-  {
-    return _mm_packs_pi32(
-        _mm_add_pi32(
-            _mm_and_si64(a, _mm_set1_pi32(0x0000FFFF)),
-            _mm_srli_pi32(a, 16)),
-        _mm_add_pi32(
-            _mm_and_si64(b, _mm_set1_pi32(0x0000FFFF)),
-            _mm_srli_pi32(b, 16)));
-  }
-
-  lxivec_always_inline __m64 hadd(__m64 a, __m64 b, uint16_t)
-  {
-    return _mm_add_pi16(
-        _mm_packs_pi32(
-            _mm_sub_pi32(
-                _mm_add_pi32(
-                    _mm_and_si64(a, _mm_set1_pi32(0x0000FFFF)),
-                    _mm_srli_pi32(a, 16)),
-                _mm_set1_pi32(32768)),
-            _mm_sub_pi32(
-                _mm_add_pi32(
-                    _mm_and_si64(b, _mm_set1_pi32(0x0000FFFF)),
-                    _mm_srli_pi32(b, 16)),
-                _mm_set1_pi32(32768))),
-        _mm_set1_pi16(32768));
-  }
-
-  lxivec_always_inline __m64 hadd(__m64 a, __m64 b, int32_t)
-  {
-    return _mm_set_pi32(
-        int32_t(_mm_cvtsi64_si32(b))  + int32_t(_mm_cvtsi64_si32(_mm_srli_si64(b, 32))),
-        int32_t(_mm_cvtsi64_si32(a))  + int32_t(_mm_cvtsi64_si32(_mm_srli_si64(a, 32))));
-  }
-
-  lxivec_always_inline __m64 hadd(__m64 a, __m64 b, uint32_t)
-  {
-    return _mm_set_pi32(
-        uint32_t(_mm_cvtsi64_si32(b)) + uint32_t(_mm_cvtsi64_si32(_mm_srli_si64(b, 32))),
-        uint32_t(_mm_cvtsi64_si32(a)) + uint32_t(_mm_cvtsi64_si32(_mm_srli_si64(a, 32))));
-  }
-
-  lxivec_always_inline __m64 hadd(__m64 a, __m64 b, int64_t)  { return set_m64(get_int64(a) + get_int64(b)); }
-  lxivec_always_inline __m64 hadd(__m64 a, __m64 b, uint64_t) { return set_m64(get_uint64(a) + get_uint64(b)); }
 #endif
 
   template <typename _type, int _count>
@@ -403,7 +224,7 @@ namespace _private {
   {
     int i = 0;
 
-#if defined(__SSE2__) || defined(__MMX__)
+#if defined(__SSE2__)
     for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
       dst.vec[vi] = hadd(a.vec[vi * 2], a.vec[vi * 2 + 1], dst.val[0]);
 
@@ -412,6 +233,18 @@ namespace _private {
 
     for (; i<_count/2; i++)
       dst.val[i] = a.val[i * 2] + a.val[i * 2 + 1];
+  }
+
+  template <typename _type, int _count>
+  lxivec_always_inline _type hsum(const Ints<_type, _count> &a)
+  {
+    int i = 0;
+
+    _type result = 0;
+    for (; i<_count; i++)
+      result += a.val[i];
+
+    return result;
   }
 
 #if defined(__SSE2__)
@@ -568,127 +401,6 @@ namespace _private {
     const uint64pair sa = get_uint64(a);
     return _mm_set_epi64x(sa.b * b, sa.a * b);
   }
-#elif defined(__MMX__)
-  lxivec_always_inline __m64 mul(__m64 a, __m64 b, int8_t)
-  {
-    const __m64 signa = _mm_cmpgt_pi8(_mm_setzero_si64(), a);
-    const __m64 signb = _mm_cmpgt_pi8(_mm_setzero_si64(), b);
-
-    return _mm_packs_pi16(
-        _mm_srai_pi16(
-            _mm_slli_pi16(
-                _mm_mullo_pi16(
-                    _mm_unpacklo_pi8(a, signa),
-                    _mm_unpacklo_pi8(b, signb)),
-                8),
-            8),
-        _mm_srai_pi16(
-            _mm_slli_pi16(
-                _mm_mullo_pi16(
-                    _mm_unpackhi_pi8(a, signa),
-                    _mm_unpackhi_pi8(b, signb)),
-                8),
-            8));
-  }
-
-  lxivec_always_inline __m64 mul(__m64 a, __m64 b, uint8_t)
-  {
-    return _mm_packs_pu16(
-        _mm_srli_pi16(
-            _mm_slli_pi16(
-                _mm_mullo_pi16(
-                    _mm_unpacklo_pi8(a, _mm_setzero_si64()),
-                    _mm_unpacklo_pi8(b, _mm_setzero_si64())),
-                8),
-            8),
-        _mm_srli_pi16(
-            _mm_slli_pi16(
-                _mm_mullo_pi16(
-                    _mm_unpackhi_pi8(a, _mm_setzero_si64()),
-                    _mm_unpackhi_pi8(b, _mm_setzero_si64())),
-                8),
-            8));
-  }
-
-  lxivec_always_inline __m64 mul(__m64 a, __m64 b, int16_t)  { return _mm_mullo_pi16(a, b); }
-  lxivec_always_inline __m64 mul(__m64 a, __m64 b, uint16_t) { return _mm_mullo_pi16(a, b); }
-
-  lxivec_always_inline __m64 mul(__m64 a, __m64 b, int32_t)
-  {
-    return _mm_set_pi32(
-        int32_t(_mm_cvtsi64_si32(_mm_srli_si64(a, 32))) * int32_t(_mm_cvtsi64_si32(_mm_srli_si64(b, 32))),
-        int32_t(_mm_cvtsi64_si32(a))                    * int32_t(_mm_cvtsi64_si32(b)));
-  }
-
-  lxivec_always_inline __m64 mul(__m64 a, __m64 b, uint32_t)
-  {
-    return _mm_set_pi32(
-        uint32_t(_mm_cvtsi64_si32(_mm_srli_si64(a, 32))) * uint32_t(_mm_cvtsi64_si32(_mm_srli_si64(b, 32))),
-        uint32_t(_mm_cvtsi64_si32(a))                    * uint32_t(_mm_cvtsi64_si32(b)));
-  }
-
-  lxivec_always_inline __m64 mul(__m64 a, __m64 b, int64_t)   { return set_m64(get_int64(a) * get_int64(b)); }
-  lxivec_always_inline __m64 mul(__m64 a, __m64 b, uint64_t)  { return set_m64(get_uint64(a) * get_uint64(b)); }
-
-  lxivec_always_inline __m64 mul(__m64 a, int8_t b)
-  {
-    const __m64 signa = _mm_cmpgt_pi8(_mm_setzero_si64(), a);
-
-    return _mm_packs_pi16(
-        _mm_srai_pi16(
-            _mm_slli_pi16(
-                _mm_mullo_pi16(
-                    _mm_unpacklo_pi8(a, signa),
-                    _mm_set1_pi16(b)),
-                8),
-            8),
-        _mm_srai_pi16(
-            _mm_slli_pi16(
-                _mm_mullo_pi16(
-                    _mm_unpackhi_pi8(a, signa),
-                    _mm_set1_pi16(b)),
-                8),
-            8));
-  }
-
-  lxivec_always_inline __m64 mul(__m64 a, uint8_t b)
-  {
-    return _mm_packs_pu16(
-        _mm_srli_pi16(
-            _mm_slli_pi16(
-                _mm_mullo_pi16(
-                    _mm_unpacklo_pi8(a, _mm_setzero_si64()),
-                    _mm_set1_pi16(b)),
-                8),
-            8),
-        _mm_srli_pi16(
-            _mm_slli_pi16(
-                _mm_mullo_pi16(
-                    _mm_unpackhi_pi8(a, _mm_setzero_si64()),
-                    _mm_set1_pi16(b)),
-                8),
-            8));
-  }
-
-  lxivec_always_inline __m64 mul(__m64 a, int16_t b)  { return _mm_mullo_pi16(a, _mm_set1_pi16(b)); }
-  lxivec_always_inline __m64 mul(__m64 a, uint16_t b) { return _mm_mullo_pi16(a, _mm_set1_pi16(b)); }
-
-  lxivec_always_inline __m64 mul(__m64 a, int32_t b)
-  {
-    return _mm_set_pi32(
-        int32_t(_mm_cvtsi64_si32(_mm_srli_si64(a, 32))) * b,
-        int32_t(_mm_cvtsi64_si32(a))                    * b);
-  }
-
-  lxivec_always_inline __m64 mul(__m64 a, uint32_t b)
-  {
-    return _mm_set_pi32(
-        uint32_t(_mm_cvtsi64_si32(_mm_srli_si64(a, 32))) * b,
-        uint32_t(_mm_cvtsi64_si32(a))                    * b);
-  }
-
-  lxivec_always_inline __m64 mul(__m64 a, int64_t b)  { return set_m64(get_int64(a) * b); }
-  lxivec_always_inline __m64 mul(__m64 a, uint64_t b) { return set_m64(get_uint64(a) * b); }
 #endif
 
   template <typename _type, int _count>
@@ -758,33 +470,6 @@ namespace _private {
     const int64pair sa = get_int64(a);
     return _mm_set_epi64x((sa.b >= -sa.b) ? sa.b : -sa.b, (sa.a >= -sa.a) ? sa.a : -sa.a);
   }
-#elif defined(__MMX__)
-  lxivec_always_inline __m64 abs(__m64 a, int8_t)
-  {
-    const __m64 ai = _mm_sub_pi8(_mm_setzero_si64(), a);
-    const __m64 m = _mm_cmpgt_pi8(a, ai);
-    return _mm_or_si64(_mm_and_si64(a, m), _mm_andnot_si64(m, ai));
-  }
-
-  lxivec_always_inline __m64 abs(__m64 a, int16_t)
-  {
-    const __m64 ai = _mm_sub_pi16(_mm_setzero_si64(), a);
-    const __m64 m = _mm_cmpgt_pi16(a, ai);
-    return _mm_or_si64(_mm_and_si64(a, m), _mm_andnot_si64(m, ai));
-  }
-
-  lxivec_always_inline __m64 abs(__m64 a, int32_t)
-  {
-    const int32_t aa = _mm_cvtsi64_si32(a);
-    const int32_t ab = _mm_cvtsi64_si32(_mm_srli_si64(a, 32));
-    return _mm_set_pi32((ab >= -ab) ? ab : -ab, (aa >= -aa) ? aa : -aa);
-  }
-
-  lxivec_always_inline __m64 abs(__m64 a, int64_t)
-  {
-    const int64_t aa = get_int64(a);
-    return set_m64((aa >= -aa) ? aa : -aa);
-  }
 #endif
 
 #if defined(__SSE2__)
@@ -792,11 +477,6 @@ namespace _private {
   lxivec_always_inline __m128i abs(__m128i a, uint16_t) { return a; }
   lxivec_always_inline __m128i abs(__m128i a, uint32_t) { return a; }
   lxivec_always_inline __m128i abs(__m128i a, uint64_t) { return a; }
-#elif defined(__MMX__)
-  lxivec_always_inline __m64 abs(__m64 a, uint8_t)  { return a; }
-  lxivec_always_inline __m64 abs(__m64 a, uint16_t) { return a; }
-  lxivec_always_inline __m64 abs(__m64 a, uint32_t) { return a; }
-  lxivec_always_inline __m64 abs(__m64 a, uint64_t) { return a; }
 #endif
 
   lxivec_always_inline int8_t    abs(int8_t a)   { return (a >= -a) ? a : -a; }
@@ -813,7 +493,7 @@ namespace _private {
   {
     int i = 0;
 
-#if defined(__SSE2__) || defined(__MMX__)
+#if defined(__SSE2__)
     for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
       dst.vec[vi] = abs(a.vec[vi], dst.val[0]);
 

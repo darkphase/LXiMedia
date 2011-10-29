@@ -44,29 +44,8 @@ namespace _private {
     }
 
     i += sizeof(src.vec) / sizeof(src.val[0]);
-#elif defined(__SSE__) && defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(src.vec) / sizeof(src.vec[0])); vi++)
-    {
-# ifdef __x86_64__ // Somehow only accurate on x64
-      dst.vec[vi * 2    ] = _mm_cvtpi16_ps(_mm_unpacklo_pi8(src.vec[vi], _mm_setzero_si64()));
-      dst.vec[vi * 2 + 1] = _mm_cvtpi16_ps(_mm_unpackhi_pi8(src.vec[vi], _mm_setzero_si64()));
-# else
-      const __m64 lo = _mm_unpacklo_pi8(src.vec[vi], _mm_setzero_si64());
-      dst.vec[vi * 2    ] = _mm_cvtpi32x2_ps(
-            _mm_unpacklo_pi16(lo, _mm_setzero_si64()),
-            _mm_unpackhi_pi16(lo, _mm_setzero_si64()));
-
-      const __m64 hi = _mm_unpackhi_pi8(src.vec[vi], _mm_setzero_si64());
-      dst.vec[vi * 2 + 1] = _mm_cvtpi32x2_ps(
-            _mm_unpacklo_pi16(hi, _mm_setzero_si64()),
-            _mm_unpackhi_pi16(hi, _mm_setzero_si64()));
-# endif
-    }
-
-    i += sizeof(src.vec) / sizeof(src.val[0]);
 #endif
 
-    if (i < _count) release();
     for (; i<_count; i++)
       dst.val[i] = float(src.val[i]);
   }
@@ -89,29 +68,8 @@ namespace _private {
     }
 
     i += sizeof(src.vec) / sizeof(src.val[0]);
-#elif defined(__SSE__) && defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(src.vec) / sizeof(src.vec[0])); vi++)
-    {
-# ifdef __x86_64__ // Somehow only accurate on x64
-      dst.vec[vi * 2    ] = _mm_cvtpi16_ps(_mm_srai_pi16(_mm_unpacklo_pi8(_mm_setzero_si64(), src.vec[vi]), 8));
-      dst.vec[vi * 2 + 1] = _mm_cvtpi16_ps(_mm_srai_pi16(_mm_unpackhi_pi8(_mm_setzero_si64(), src.vec[vi]), 8));
-# else
-      const __m64 lo = _mm_unpacklo_pi8(_mm_setzero_si64(), src.vec[vi]);
-      dst.vec[vi * 2    ] = _mm_cvtpi32x2_ps(
-            _mm_srai_pi32(_mm_unpacklo_pi16(_mm_setzero_si64(), lo), 24),
-            _mm_srai_pi32(_mm_unpackhi_pi16(_mm_setzero_si64(), lo), 24));
-
-      const __m64 hi = _mm_unpackhi_pi8(_mm_setzero_si64(), src.vec[vi]);
-      dst.vec[vi * 2 + 1] = _mm_cvtpi32x2_ps(
-            _mm_srai_pi32(_mm_unpacklo_pi16(_mm_setzero_si64(), hi), 24),
-            _mm_srai_pi32(_mm_unpackhi_pi16(_mm_setzero_si64(), hi), 24));
-# endif
-    }
-
-    i += sizeof(src.vec) / sizeof(src.val[0]);
 #endif
 
-    if (i < _count) release();
     for (; i<_count; i++)
       dst.val[i] = float(src.val[i]);
   }
@@ -129,18 +87,8 @@ namespace _private {
     }
 
     i += sizeof(src.vec) / sizeof(src.val[0]);
-#elif defined(__SSE__) && defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
-    {
-      dst.vec[vi] = _mm_cvtpi32x2_ps(
-          _mm_unpacklo_pi16(src.vec[vi], _mm_setzero_si64()),
-          _mm_unpackhi_pi16(src.vec[vi], _mm_setzero_si64()));
-    }
-
-    i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
 
-    if (i < _count) release();
     for (; i<_count; i++)
       dst.val[i] = float(src.val[i]);
   }
@@ -158,22 +106,8 @@ namespace _private {
     }
 
     i += sizeof(src.vec) / sizeof(src.val[0]);
-#elif defined(__SSE__) && defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(src.vec) / sizeof(src.vec[0])); vi++)
-    {
-# ifdef __x86_64__ // Somehow only accurate on x64
-      dst.vec[vi] = _mm_cvtpi16_ps(src.vec[vi]);
-# else
-      dst.vec[vi] = _mm_cvtpi32x2_ps(
-          _mm_srai_pi32(_mm_unpacklo_pi16(_mm_setzero_si64(), src.vec[vi]), 16),
-          _mm_srai_pi32(_mm_unpackhi_pi16(_mm_setzero_si64(), src.vec[vi]), 16));
-# endif
-    }
-
-    i += sizeof(src.vec) / sizeof(src.val[0]);
 #endif
 
-    if (i < _count) release();
     for (; i<_count; i++)
       dst.val[i] = float(src.val[i]);
   }
@@ -183,7 +117,6 @@ namespace _private {
   {
     int i = 0;
 
-    if (i < _count) release();
     for (; i<_count; i++)
       dst.val[i] = float(src.val[i]);
   }
@@ -198,14 +131,8 @@ namespace _private {
       dst.vec[vi] = _mm_cvtepi32_ps(src.vec[vi]);
 
     i += sizeof(src.vec) / sizeof(src.val[0]);
-#elif defined(__SSE__) && defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
-      dst.vec[vi] = _mm_cvtpi32x2_ps(src.vec[vi * 2], src.vec[vi * 2 + 1]);
-
-    i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
 
-    if (i < _count) release();
     for (; i<_count; i++)
       dst.val[i] = float(src.val[i]);
   }
@@ -215,7 +142,6 @@ namespace _private {
   {
     int i = 0;
 
-    if (i < _count) release();
     for (; i<_count; i++)
       dst.val[i] = float(src.val[i]);
   }
@@ -225,7 +151,6 @@ namespace _private {
   {
     int i = 0;
 
-    if (i < _count) release();
     for (; i<_count; i++)
       dst.val[i] = float(src.val[i]);
   }
@@ -260,7 +185,6 @@ namespace _private {
     i += sizeof(src.vec) / sizeof(src.val[0]);
 #endif
 
-    if (i < _count) release();
     for (; i<_count; i++)
       dst.val[i] = float(src.val[i]);
   }
@@ -295,7 +219,6 @@ namespace _private {
     i += sizeof(src.vec) / sizeof(src.val[0]);
 #endif
 
-    if (i < _count) release();
     for (; i<_count; i++)
       dst.val[i] = float(src.val[i]);
   }
@@ -320,7 +243,6 @@ namespace _private {
     i += sizeof(src.vec) / sizeof(src.val[0]);
 #endif
 
-    if (i < _count) release();
     for (; i<_count; i++)
       dst.val[i] = float(src.val[i]);
   }
@@ -345,7 +267,6 @@ namespace _private {
     i += sizeof(src.vec) / sizeof(src.val[0]);
 #endif
 
-    if (i < _count) release();
     for (; i<_count; i++)
       dst.val[i] = float(src.val[i]);
   }
@@ -374,7 +295,6 @@ namespace _private {
     i += sizeof(src.vec) / sizeof(src.val[0]);
 #endif
 
-    if (i < _count) release();
     for (; i<_count; i++)
       dst.val[i] = double(src.val[i]);
   }
@@ -384,7 +304,6 @@ namespace _private {
   {
     int i = 0;
 
-    if (i < _count) release();
     for (; i<_count; i++)
       dst.val[i] = double(src.val[i]);
   }
@@ -394,7 +313,6 @@ namespace _private {
   {
     int i = 0;
 
-    if (i < _count) release();
     for (; i<_count; i++)
       dst.val[i] = double(src.val[i]);
   }

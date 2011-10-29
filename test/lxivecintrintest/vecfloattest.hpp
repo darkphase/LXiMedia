@@ -47,7 +47,7 @@ void VecFloatTest::PREFIX(test)(void)
   for (int i=0; i<vector.count; i++)
     QVERIFY(qAbs(vector.data.val[i] - single(i + 8)) < 0.1);
 
-  vector = lxivec::abs(vector);
+  vector = abs(vector);
   for (int i=0; i<vector.count; i++)
     QVERIFY(qAbs(vector.data.val[i] - single(i + 8)) < 0.1);
 
@@ -75,11 +75,11 @@ void VecFloatTest::PREFIX(test)(void)
   for (int i=0; i<vectordiv8.count; i++)
     QVERIFY(qAbs(vectordiv8.data.val[i] - (vector.data.val[i] / single(3.0))) < 0.1);
 
-  _vector mvector = lxivec::min(vector, vectormin8);
+  _vector mvector = min(vector, vectormin8);
   for (int i=0; i<mvector.count; i++)
     QVERIFY(qAbs(mvector.data.val[i] - vectormin8.data.val[i]) < 0.1);
 
-  mvector = lxivec::max(vector, vectorplus8);
+  mvector = max(vector, vectorplus8);
   for (int i=0; i<mvector.count; i++)
     QVERIFY(qAbs(mvector.data.val[i] - vectorplus8.data.val[i]) < 0.1);
 
@@ -107,11 +107,11 @@ void VecFloatTest::PREFIX(test)(void)
   for (int i=0; i<cvector.count; i++)
     QVERIFY(cvector.data.val[i] == 0);
 
-  _vector svector = lxivec::select(vectormin8 < vectorplus8, vectormin8, vectorplus8);
+  _vector svector = select(vectormin8 < vectorplus8, vectormin8, vectorplus8);
   for (int i=0; i<cvector.count; i++)
     QVERIFY(qAbs(svector.data.val[i] - vectormin8.data.val[i]) < 0.1);
 
-  svector = lxivec::select(vectormin8 < vectormin8, vectormin8, vectorplus8);
+  svector = select(vectormin8 < vectormin8, vectormin8, vectorplus8);
   for (int i=0; i<cvector.count; i++)
     QVERIFY(qAbs(svector.data.val[i] - vectorplus8.data.val[i]) < 0.1);
 }

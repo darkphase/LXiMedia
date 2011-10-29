@@ -30,10 +30,12 @@ HEADERS += $${PWD}/$${LXIMEDIA_DIR}/include/lxivecintrin/platform.h \
 
 # Files
 HEADERS += audioconvert.h \
+    audioprocess.h \
     data.h \
     deinterlace.h \
     videoconvert.h
 SOURCES += audioconvert.cpp \
+    audioprocess.cpp \
     data.cpp \
     deinterlace.cpp \
     videoconvert.cpp
@@ -41,9 +43,7 @@ SOURCES += audioconvert.cpp \
 # Platform specific
 unix|win32-g++ {
   QMAKE_CXXFLAGS_RELEASE -= -O2
-  unix:QMAKE_CXXFLAGS += -Ofast
-  win32-g++:QMAKE_CXXFLAGS += -O3
-  QMAKE_CXXFLAGS += -funsafe-math-optimizations -funsafe-loop-optimizations
+  QMAKE_CXXFLAGS += -O3 -funsafe-math-optimizations -funsafe-loop-optimizations
 }
 
 # Windows specific

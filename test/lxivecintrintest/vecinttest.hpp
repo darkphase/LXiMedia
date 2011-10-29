@@ -113,7 +113,7 @@ void VecIntTest::PREFIX(test)(void)
   for (int i=0; i<vector.count; i++)
     QCOMPARE(vector.data.val[i], single(i + 8));
 
-  vector = lxivec::abs(vector);
+  vector = abs(vector);
   for (int i=0; i<vector.count; i++)
     QCOMPARE(vector.data.val[i], single(i + 8));
 
@@ -149,19 +149,25 @@ void VecIntTest::PREFIX(test)(void)
   for (int i=0; i<vectormul.count; i++)
     QCOMPARE(vectormul.data.val[i], single(vector.data.val[i] * 3));
 
-  _vector mvector = lxivec::min(vector, vectormin);
+  _vector mvector = min(vector, vectormin);
   for (int i=0; i<mvector.count; i++)
     QCOMPARE(mvector.data.val[i], vectormin.data.val[i]);
 
-  mvector = lxivec::max(vector, vectorplus);
+  mvector = max(vector, vectorplus);
   for (int i=0; i<mvector.count; i++)
     QCOMPARE(mvector.data.val[i], vectorplus.data.val[i]);
 
-  lxivec::_private::IntVector<single, _vector::count / 2> havector = vector.hadd();
+  lxivec::_private::IntVector<single, _vector::count / 2> havector = hadd(vector);
   for (int i=0; i<havector.count; i++)
     QCOMPARE(havector.data.val[i], single(vector.data.val[i * 2] + vector.data.val[i * 2 + 1]));
 
-  lxivec::_private::IntVector<single, _vector::count * 2> ivector = lxivec::interleave(vectormin, vectorplus);
+  single hsresult = 0;
+  for (int i=0; i<vector.count; i++)
+    hsresult += vector.data.val[i];
+
+  QCOMPARE(hsum(vector), hsresult);
+
+  lxivec::_private::IntVector<single, _vector::count * 2> ivector = interleave(vectormin, vectorplus);
   for (int i=0; i<vectormin.count; i++)
   {
     QCOMPARE(ivector.data.val[i * 2    ], vectormin.data.val[i]);
@@ -192,11 +198,11 @@ void VecIntTest::PREFIX(test)(void)
   for (int i=0; i<cvector.count; i++)
     QVERIFY(cvector.data.val[i] == 0);
 
-  _vector svector = lxivec::select(vectormin < vectorplus, vectormin, vectorplus);
+  _vector svector = select(vectormin < vectorplus, vectormin, vectorplus);
   for (int i=0; i<svector.count; i++)
     QCOMPARE(svector.data.val[i], vectormin.data.val[i]);
 
-  svector = lxivec::select(vectormin < vectormin, vectormin, vectorplus);
+  svector = select(vectormin < vectormin, vectormin, vectorplus);
   for (int i=0; i<svector.count; i++)
     QCOMPARE(svector.data.val[i], vectorplus.data.val[i]);
 

@@ -36,73 +36,190 @@ template <typename _type, int _count>
 struct IntVector : VecObject
 {
   lxivec_always_inline IntVector(void)
+    : VecObject()
   {
   }
 
-  lxivec_always_inline IntVector(const IntVector<_type, _count> &from)
+  lxivec_always_inline IntVector(
+      const IntVector<_type, _count> &from)
+    : VecObject(from)
   {
     copy(data, from.data);
   }
 
   template <typename _fromtype>
-  lxivec_always_inline IntVector(const IntVector<_fromtype, _count> &from)
+  lxivec_always_inline IntVector(
+      const IntVector<_fromtype, _count> &from)
+    : VecObject()
   {
     repack(data, from.data);
   }
 
-  lxivec_always_inline IntVector(const FloatVector<_count> &from)
+  lxivec_always_inline IntVector(
+      const FloatVector<_count> &from)
+    : VecObject()
   {
     repack(data, from.data);
   }
 
-  lxivec_always_inline IntVector(const DoubleVector<_count> &from)
+  lxivec_always_inline IntVector(
+      const DoubleVector<_count> &from)
+    : VecObject()
   {
     repack(data, from.data);
   }
 
-  lxivec_always_inline IntVector<_type, _count> & operator=(const IntVector<_type, _count> &from)
-  {
-    copy(data, from.data);
-    return *this;
-  }
-
-  template <typename _fromtype>
-  lxivec_always_inline IntVector<_type, _count> & operator=(const IntVector<_fromtype, _count> &from)
-  {
-    repack(data, from.data);
-    return *this;
-  }
-
-  static lxivec_always_inline IntVector<_type, _count> load(const _type *p, int max = _count)
+  static lxivec_always_inline IntVector<_type, _count> load(
+      const _type *p,
+      int max = _count)
   {
     IntVector<_type, _count> r;
     _private::load(r.data, p, max);
     return r;
   }
 
-  lxivec_always_inline void store(_type *p, int max = _count) const
+  friend lxivec_always_inline void store(
+      _type *p,
+      const IntVector<_type, _count> &a,
+      int max = _count)
   {
-    _private::store(p, data, max);
+    _private::store(p, a.data, max);
   }
 
-  static lxivec_always_inline IntVector<_type, _count> set(_type v)
+  static lxivec_always_inline IntVector<_type, _count> set(
+      _type v)
   {
     IntVector<_type, _count> r;
     _private::set(r.data, v);
     return r;
   }
 
-  static lxivec_always_inline IntVector<_type, _count> set(_type v1, _type v2)
+  static lxivec_always_inline IntVector<_type, _count> set(
+      _type v1, _type v2)
   {
     IntVector<_type, _count> r;
     _private::set(r.data, v1, v2);
     return r;
   }
 
-  static lxivec_always_inline IntVector<_type, _count> set(_type v1, _type v2, _type v3, _type v4)
+  static lxivec_always_inline IntVector<_type, _count> set(
+      _type v1, _type v2, _type v3, _type v4)
   {
     IntVector<_type, _count> r;
     _private::set(r.data, v1, v2, v3, v4);
+    return r;
+  }
+
+  friend lxivec_always_inline IntVector<_type, _count * 2> interleave(
+      const IntVector<_type, _count> &a,
+      const IntVector<_type, _count> &b)
+  {
+    IntVector<_type, _count * 2> r;
+    interleave(r.data, a.data, b.data);
+    return r;
+  }
+
+  friend lxivec_always_inline IntVector<_type, _count> add(
+      const IntVector<_type, _count> &a,
+      const IntVector<_type, _count> &b)
+  {
+    IntVector<_type, _count> r;
+    add(r.data, a.data, b.data);
+    return r;
+  }
+
+  friend lxivec_always_inline IntVector<_type, _count> add(
+      const IntVector<_type, _count> &a,
+      _type b)
+  {
+    IntVector<_type, _count> r;
+    add(r.data, a.data, b);
+    return r;
+  }
+
+  friend lxivec_always_inline IntVector<_type, _count / 2> hadd(
+      const IntVector<_type, _count> &a)
+  {
+    IntVector<_type, _count / 2> r;
+    hadd(r.data, a.data);
+    return r;
+  }
+
+  friend lxivec_always_inline _type hsum(
+      const IntVector<_type, _count> &a)
+  {
+    return hsum(a.data);
+  }
+
+  friend lxivec_always_inline IntVector<_type, _count> sub(
+      const IntVector<_type, _count> &a,
+      const IntVector<_type, _count> &b)
+  {
+    IntVector<_type, _count> r;
+    sub(r.data, a.data, b.data);
+    return r;
+  }
+
+  friend lxivec_always_inline IntVector<_type, _count> sub(
+      const IntVector<_type, _count> &a,
+      _type b)
+  {
+    IntVector<_type, _count> r;
+    sub(r.data, a.data, b);
+    return r;
+  }
+
+  friend lxivec_always_inline IntVector<_type, _count> mul(
+      const IntVector<_type, _count> &a,
+      const IntVector<_type, _count> &b)
+  {
+    IntVector<_type, _count> r;
+    mul(r.data, a.data, b.data);
+    return r;
+  }
+
+  friend lxivec_always_inline IntVector<_type, _count> mul(
+      const IntVector<_type, _count> &a,
+      _type b)
+  {
+    IntVector<_type, _count> r;
+    mul(r.data, a.data, b);
+    return r;
+  }
+
+  friend lxivec_always_inline IntVector<_type, _count> abs(
+      const IntVector<_type, _count> &a)
+  {
+    IntVector<_type, _count> r;
+    abs(r.data, a.data);
+    return r;
+  }
+
+  friend lxivec_always_inline IntVector<_type, _count> min(
+      const IntVector<_type, _count> &a,
+      const IntVector<_type, _count> &b)
+  {
+    IntVector<_type, _count> r;
+    min(r.data, a.data, b.data);
+    return r;
+  }
+
+  friend lxivec_always_inline IntVector<_type, _count> max(
+      const IntVector<_type, _count> &a,
+      const IntVector<_type, _count> &b)
+  {
+    IntVector<_type, _count> r;
+    max(r.data, a.data, b.data);
+    return r;
+  }
+
+  friend lxivec_always_inline IntVector<_type, _count> select(
+      const BoolVector<sizeof(_type), _count> &m,
+      const IntVector<_type, _count> &a,
+      const IntVector<_type, _count> &b)
+  {
+    IntVector<_type, _count> r;
+    select(r.data, m.data, a.data, b.data);
     return r;
   }
 
@@ -118,185 +235,208 @@ struct IntVector : VecObject
     return *reinterpret_cast<const IntVector<typename _astype::single, _count * sizeof(_type) / sizeof(typename _astype::single)> *>(this);
   }
 
-  lxivec_always_inline IntVector<_type, _count> operator+(const IntVector<_type, _count> &b) const
+  lxivec_always_inline IntVector<_type, _count> & operator=(
+      const IntVector<_type, _count> &from)
   {
-    IntVector<_type, _count> r;
-    add(r.data, data, b.data);
-    return r;
+    copy(data, from.data);
+    return *this;
   }
 
-  lxivec_always_inline IntVector<_type, _count> & operator+=(const IntVector<_type, _count> &b)
+  template <typename _fromtype>
+  lxivec_always_inline IntVector<_type, _count> & operator=(
+      const IntVector<_fromtype, _count> &from)
+  {
+    repack(data, from.data);
+    return *this;
+  }
+
+  lxivec_always_inline IntVector<_type, _count> operator+(
+      const IntVector<_type, _count> &b) const
+  {
+    return add(*this, b);
+  }
+
+  lxivec_always_inline IntVector<_type, _count> & operator+=(
+      const IntVector<_type, _count> &b)
   {
     add(data, data, b.data);
     return *this;
   }
 
-  lxivec_always_inline IntVector<_type, _count> operator+(_type b) const
+  lxivec_always_inline IntVector<_type, _count> operator+(
+      _type b) const
   {
-    IntVector<_type, _count> r;
-    add(r.data, data, b);
-    return r;
+    return add(*this, b);
   }
 
-  lxivec_always_inline IntVector<_type, _count> & operator+=(_type b)
+  lxivec_always_inline IntVector<_type, _count> & operator+=(
+      _type b)
   {
     add(data, data, b);
     return *this;
   }
-  
-  lxivec_always_inline IntVector<_type, _count / 2> hadd(void) const
+
+  lxivec_always_inline IntVector<_type, _count> operator-(
+      const IntVector<_type, _count> &b) const
   {
-    IntVector<_type, _count / 2> r;
-    _private::hadd(r.data, data);
-    return r;
+    return sub(*this, b);
   }
 
-  lxivec_always_inline IntVector<_type, _count> operator-(const IntVector<_type, _count> &b) const
-  {
-    IntVector<_type, _count> r;
-    sub(r.data, data, b.data);
-    return r;
-  }
-
-  lxivec_always_inline IntVector<_type, _count> & operator-=(const IntVector<_type, _count> &b)
+  lxivec_always_inline IntVector<_type, _count> & operator-=(
+      const IntVector<_type, _count> &b)
   {
     sub(data, data, b.data);
     return *this;
   }
 
-  lxivec_always_inline IntVector<_type, _count> operator-(_type b) const
+  lxivec_always_inline IntVector<_type, _count> operator-(
+      _type b) const
   {
-    IntVector<_type, _count> r;
-    sub(r.data, data, b);
-    return r;
+    return sub(*this, b);
   }
 
-  lxivec_always_inline IntVector<_type, _count> & operator-=(_type b)
+  lxivec_always_inline IntVector<_type, _count> & operator-=(
+      _type b)
   {
     sub(data, data, b);
     return *this;
   }
-  
-  lxivec_always_inline IntVector<_type, _count> operator*(const IntVector<_type, _count> &b) const
+
+  lxivec_always_inline IntVector<_type, _count> operator*(
+      const IntVector<_type, _count> &b) const
   {
-    IntVector<_type, _count> r;
-    mul(r.data, data, b.data);
-    return r;
+    return mul(*this, b);
   }
 
-  lxivec_always_inline IntVector<_type, _count> & operator*=(const IntVector<_type, _count> &b)
+  lxivec_always_inline IntVector<_type, _count> & operator*=(
+      const IntVector<_type, _count> &b)
   {
     mul(data, data, b.data);
     return *this;
   }
 
-  lxivec_always_inline IntVector<_type, _count> operator*(_type b) const
+  lxivec_always_inline IntVector<_type, _count> operator*(
+      _type b) const
   {
-    IntVector<_type, _count> r;
-    mul(r.data, data, b);
-    return r;
+    return mul(*this, b);
   }
 
-  lxivec_always_inline IntVector<_type, _count> & operator*=(_type b)
+  lxivec_always_inline IntVector<_type, _count> & operator*=(
+      _type b)
   {
     mul(data, data, b);
     return *this;
   }
 
-  lxivec_always_inline BoolVector<sizeof(_type), _count> operator==(const IntVector<_type, _count> &b) const
+  lxivec_always_inline BoolVector<sizeof(_type), _count> operator==(
+      const IntVector<_type, _count> &b) const
   {
     BoolVector<sizeof(_type), _count> r;
     cmpeq(r.data, data, b.data);
     return r;
   }
 
-  lxivec_always_inline BoolVector<sizeof(_type), _count> operator>(const IntVector<_type, _count> &b) const
+  lxivec_always_inline BoolVector<sizeof(_type), _count> operator>(
+      const IntVector<_type, _count> &b) const
   {
     BoolVector<sizeof(_type), _count> r;
     cmpgt(r.data, data, b.data);
     return r;
   }
 
-  lxivec_always_inline BoolVector<sizeof(_type), _count> operator<(const IntVector<_type, _count> &b) const
+  lxivec_always_inline BoolVector<sizeof(_type), _count> operator<(
+      const IntVector<_type, _count> &b) const
   {
     BoolVector<sizeof(_type), _count> r;
     cmplt(r.data, data, b.data);
     return r;
   }
 
-  lxivec_always_inline IntVector<_type, _count> operator|(const IntVector<_type, _count> &b) const
+  lxivec_always_inline IntVector<_type, _count> operator|(
+      const IntVector<_type, _count> &b) const
   {
     IntVector<_type, _count> r;
     bor(r.data, data, b.data);
     return r;
   }
 
-  lxivec_always_inline IntVector<_type, _count> & operator|=(const IntVector<_type, _count> &b)
+  lxivec_always_inline IntVector<_type, _count> & operator|=(
+      const IntVector<_type, _count> &b)
   {
     bor(data, data, b.data);
     return *this;
   }
 
-  lxivec_always_inline IntVector<_type, _count> operator|(_type b) const
+  lxivec_always_inline IntVector<_type, _count> operator|(
+      _type b) const
   {
     IntVector<_type, _count> r;
     bor(r.data, data, b);
     return r;
   }
 
-  lxivec_always_inline IntVector<_type, _count> & operator|=(_type b)
+  lxivec_always_inline IntVector<_type, _count> & operator|=(
+      _type b)
   {
     bor(data, data, b);
     return *this;
   }
 
-  lxivec_always_inline IntVector<_type, _count> operator&(const IntVector<_type, _count> &b) const
+  lxivec_always_inline IntVector<_type, _count> operator&(
+      const IntVector<_type, _count> &b) const
   {
     IntVector<_type, _count> r;
     band(r.data, data, b.data);
     return r;
   }
 
-  lxivec_always_inline IntVector<_type, _count> & operator&=(const IntVector<_type, _count> &b)
+  lxivec_always_inline IntVector<_type, _count> & operator&=(
+      const IntVector<_type, _count> &b)
   {
     band(data, data, b.data);
     return *this;
   }
 
-  lxivec_always_inline IntVector<_type, _count> operator&(_type b) const
+  lxivec_always_inline IntVector<_type, _count> operator&(
+      _type b) const
   {
     IntVector<_type, _count> r;
     band(r.data, data, b);
     return r;
   }
 
-  lxivec_always_inline IntVector<_type, _count> & operator&=(_type b)
+  lxivec_always_inline IntVector<_type, _count> & operator&=(
+      _type b)
   {
     band(data, data, b);
     return *this;
   }
 
-  lxivec_always_inline IntVector<_type, _count> operator>>(int b) const
+  lxivec_always_inline IntVector<_type, _count> operator>>(
+      int b) const
   {
     IntVector<_type, _count> r;
     shr(r.data, data, b);
     return r;
   }
 
-  lxivec_always_inline IntVector<_type, _count> & operator>>=(int b)
+  lxivec_always_inline IntVector<_type, _count> & operator>>=(
+      int b)
   {
     shr(data, data, b);
     return *this;
   }
 
-  lxivec_always_inline IntVector<_type, _count> operator<<(int b) const
+  lxivec_always_inline IntVector<_type, _count> operator<<(
+      int b) const
   {
     IntVector<_type, _count> r;
     shl(r.data, data, b);
     return r;
   }
 
-  lxivec_always_inline IntVector<_type, _count> & operator<<=(int b)
+  lxivec_always_inline IntVector<_type, _count> & operator<<=(
+      int b)
   {
     shl(data, data, b);
     return *this;
@@ -353,56 +493,6 @@ typedef _private::IntVector<uint32_t, 16 * vecsize / sizeof(uint32_t)>  uint32_h
 typedef _private::IntVector<int32_t,  16 * vecsize / sizeof(int32_t)>   int32_hv;
 typedef _private::IntVector<uint64_t, 16 * vecsize / sizeof(uint64_t)>  uint64_hv;
 typedef _private::IntVector<int64_t,  16 * vecsize / sizeof(int64_t)>   int64_hv;
-
-template <typename _type, int _count>
-lxivec_always_inline _private::IntVector<_type, _count * 2> interleave(
-    const _private::IntVector<_type, _count> &a,
-    const _private::IntVector<_type, _count> &b)
-{
-  _private::IntVector<_type, _count * 2> r;
-  _private::interleave(r.data, a.data, b.data);
-  return r;
-}
-
-template <typename _type, int _count>
-lxivec_always_inline _private::IntVector<_type, _count> abs(
-    const _private::IntVector<_type, _count> &x)
-{
-  _private::IntVector<_type, _count> r;
-  _private::abs(r.data, x.data);
-  return r;
-}
-
-template <typename _type, int _count>
-lxivec_always_inline _private::IntVector<_type, _count> min(
-    const _private::IntVector<_type, _count> &a,
-    const _private::IntVector<_type, _count> &b)
-{
-  _private::IntVector<_type, _count> r;
-  _private::min(r.data, a.data, b.data);
-  return r;
-}
-
-template <typename _type, int _count>
-lxivec_always_inline _private::IntVector<_type, _count> max(
-    const _private::IntVector<_type, _count> &a,
-    const _private::IntVector<_type, _count> &b)
-{
-  _private::IntVector<_type, _count> r;
-  _private::max(r.data, a.data, b.data);
-  return r;
-}
-
-template <typename _type, int _count>
-lxivec_always_inline _private::IntVector<_type, _count> select(
-    const _private::BoolVector<sizeof(_type), _count> &m,
-    const _private::IntVector<_type, _count> &a,
-    const _private::IntVector<_type, _count> &b)
-{
-  _private::IntVector<_type, _count> r;
-  _private::select(r.data, m.data, a.data, b.data);
-  return r;
-}
 
 } // End of namespace
 

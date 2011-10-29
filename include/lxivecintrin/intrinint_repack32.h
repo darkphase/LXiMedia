@@ -39,14 +39,6 @@ namespace _private {
     }
 
     i += sizeof(a.vec) / sizeof(a.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(a.vec) / sizeof(a.vec[0])); vi++)
-    {
-      dst.vec[vi * 2    ] = _mm_unpacklo_pi32(a.vec[vi], b.vec[vi]);
-      dst.vec[vi * 2 + 1] = _mm_unpackhi_pi32(a.vec[vi], b.vec[vi]);
-    }
-
-    i += sizeof(a.vec) / sizeof(a.val[0]);
 #endif
 
     for (; i<_count; i++)
@@ -69,14 +61,6 @@ namespace _private {
     }
 
     i += sizeof(a.vec) / sizeof(a.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(a.vec) / sizeof(a.vec[0])); vi++)
-    {
-      dst.vec[vi * 2    ] = _mm_unpacklo_pi32(a.vec[vi], b.vec[vi]);
-      dst.vec[vi * 2 + 1] = _mm_unpackhi_pi32(a.vec[vi], b.vec[vi]);
-    }
-
-    i += sizeof(a.vec) / sizeof(a.val[0]);
 #endif
 
     for (; i<_count; i++)
@@ -91,15 +75,15 @@ namespace _private {
   {
     int i = 0;
 
-#if defined(__SSE2__) || defined(__MMX__)
+#if defined(__SSE2__)
     for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
       dst.vec[vi] = src.vec[vi];
 
     i += sizeof(dst.vec) / sizeof(src.val[0]);
 #endif
 
-    if (i < _count)
-      memcpy(dst.val + i, src.val + i, (_count - i) * sizeof(src.val[0]));
+    for (; i<_count; i++)
+      dst.val[i] = src.val[i];
   }
 
   template <int _count>
@@ -107,15 +91,15 @@ namespace _private {
   {
     int i = 0;
 
-#if defined(__SSE2__) || defined(__MMX__)
+#if defined(__SSE2__)
     for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
       dst.vec[vi] = src.vec[vi];
 
     i += sizeof(dst.vec) / sizeof(src.val[0]);
 #endif
 
-    if (i < _count)
-      memcpy(dst.val + i, src.val + i, (_count - i) * sizeof(src.val[0]));
+    for (; i<_count; i++)
+      dst.val[i] = src.val[i];
   }
 
   template <int _count>
@@ -129,15 +113,6 @@ namespace _private {
       dst.vec[vi] = _mm_packs_epi16(
           _mm_packs_epi32(src.vec[vi * 4    ], src.vec[vi * 4 + 1]),
           _mm_packs_epi32(src.vec[vi * 4 + 2], src.vec[vi * 4 + 3]));
-    }
-
-    i += sizeof(dst.vec) / sizeof(dst.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
-    {
-      dst.vec[vi] = _mm_packs_pi16(
-          _mm_packs_pi32(src.vec[vi * 4    ], src.vec[vi * 4 + 1]),
-          _mm_packs_pi32(src.vec[vi * 4 + 2], src.vec[vi * 4 + 3]));
     }
 
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
@@ -158,15 +133,6 @@ namespace _private {
       dst.vec[vi] = _mm_packus_epi16(
           _mm_packs_epi32(src.vec[vi * 4    ], src.vec[vi * 4 + 1]),
           _mm_packs_epi32(src.vec[vi * 4 + 2], src.vec[vi * 4 + 3]));
-    }
-
-    i += sizeof(dst.vec) / sizeof(dst.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
-    {
-      dst.vec[vi] = _mm_packs_pu16(
-          _mm_packs_pi32(src.vec[vi * 4    ], src.vec[vi * 4 + 1]),
-          _mm_packs_pi32(src.vec[vi * 4 + 2], src.vec[vi * 4 + 3]));
     }
 
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
@@ -207,37 +173,10 @@ namespace _private {
     }
 
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
-    {
-      const __m64 one = _mm_cmpeq_pi32(src.vec[vi * 4], src.vec[vi * 4]);
-      const __m64 ma = _mm_cmpgt_pi32(src.vec[vi * 4    ], one);
-      const __m64 mb = _mm_cmpgt_pi32(src.vec[vi * 4 + 1], one);
-      const __m64 mc = _mm_cmpgt_pi32(src.vec[vi * 4 + 2], one);
-      const __m64 md = _mm_cmpgt_pi32(src.vec[vi * 4 + 3], one);
-
-      dst.vec[vi] = _mm_packs_pi16(
-          _mm_packs_pi32(
-              _mm_or_si64(
-                  _mm_andnot_si64(ma, _mm_set1_pi32(2147483647)),
-                  _mm_and_si64(ma, src.vec[vi * 4    ])),
-              _mm_or_si64(
-                  _mm_andnot_si64(mb, _mm_set1_pi32(2147483647)),
-                  _mm_and_si64(mb, src.vec[vi * 4 + 1]))),
-          _mm_packs_pi32(
-              _mm_or_si64(
-                  _mm_andnot_si64(mc, _mm_set1_pi32(2147483647)),
-                  _mm_and_si64(mc, src.vec[vi * 4 + 2])),
-              _mm_or_si64(
-                  _mm_andnot_si64(md, _mm_set1_pi32(2147483647)),
-                  _mm_and_si64(md, src.vec[vi * 4 + 3]))));
-    }
-
-    i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
 
     for (; i<_count; i++)
-      dst.val[i] = saturate_int8u(src.val[i]);
+      dst.val[i] = saturate_int8(src.val[i]);
   }
 
   template <int _count>
@@ -271,33 +210,6 @@ namespace _private {
     }
 
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
-    {
-      const __m64 one = _mm_cmpeq_pi32(src.vec[vi * 4], src.vec[vi * 4]);
-      const __m64 ma = _mm_cmpgt_pi32(src.vec[vi * 4    ], one);
-      const __m64 mb = _mm_cmpgt_pi32(src.vec[vi * 4 + 1], one);
-      const __m64 mc = _mm_cmpgt_pi32(src.vec[vi * 4 + 2], one);
-      const __m64 md = _mm_cmpgt_pi32(src.vec[vi * 4 + 3], one);
-
-      dst.vec[vi] = _mm_packs_pu16(
-          _mm_packs_pi32(
-              _mm_or_si64(
-                  _mm_andnot_si64(ma, _mm_set1_pi32(2147483647)),
-                  _mm_and_si64(ma, src.vec[vi * 4    ])),
-              _mm_or_si64(
-                  _mm_andnot_si64(mb, _mm_set1_pi32(2147483647)),
-                  _mm_and_si64(mb, src.vec[vi * 4 + 1]))),
-          _mm_packs_pi32(
-              _mm_or_si64(
-                  _mm_andnot_si64(mc, _mm_set1_pi32(2147483647)),
-                  _mm_and_si64(mc, src.vec[vi * 4 + 2])),
-              _mm_or_si64(
-                  _mm_andnot_si64(md, _mm_set1_pi32(2147483647)),
-                  _mm_and_si64(md, src.vec[vi * 4 + 3]))));
-    }
-
-    i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
 
     for (; i<_count; i++)
@@ -312,11 +224,6 @@ namespace _private {
 #if defined(__SSE2__)
     for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
       dst.vec[vi] = _mm_packs_epi32(src.vec[vi * 2], src.vec[vi * 2 + 1]);
-
-    i += sizeof(dst.vec) / sizeof(dst.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
-      dst.vec[vi] = _mm_packs_pi32(src.vec[vi * 2], src.vec[vi * 2 + 1]);
 
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
@@ -346,17 +253,6 @@ namespace _private {
     }
 
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
-    {
-      dst.vec[vi] = _mm_add_pi16(
-        _mm_packs_pi32(
-            _mm_sub_pi32(src.vec[vi * 2    ], _mm_set1_pi32(32768)),
-            _mm_sub_pi32(src.vec[vi * 2 + 1], _mm_set1_pi32(32768))),
-        _mm_set1_pi16(32768));
-    }
-
-    i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
 
     for (; i<_count; i++)
@@ -381,23 +277,6 @@ namespace _private {
           _mm_or_si128(
               _mm_and_si128(mb, _mm_set1_epi32(2147483647)),
               _mm_andnot_si128(mb, src.vec[vi * 2 + 1])));
-    }
-
-    i += sizeof(dst.vec) / sizeof(dst.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
-    {
-      const __m64 one = _mm_cmpeq_pi32(src.vec[vi * 2], src.vec[vi * 2]);
-      const __m64 ma = _mm_cmpgt_pi32(src.vec[vi * 2    ], one);
-      const __m64 mb = _mm_cmpgt_pi32(src.vec[vi * 2 + 1], one);
-
-      dst.vec[vi] = _mm_packs_pi32(
-          _mm_or_si64(
-              _mm_andnot_si64(ma, _mm_set1_pi32(2147483647)),
-              _mm_and_si64(ma, src.vec[vi * 2    ])),
-          _mm_or_si64(
-              _mm_andnot_si64(mb, _mm_set1_pi32(2147483647)),
-              _mm_and_si64(mb, src.vec[vi * 2 + 1])));
     }
 
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
@@ -450,29 +329,6 @@ namespace _private {
     }
 
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
-    {
-      const __m64 one = _mm_cmpeq_pi32(src.vec[vi * 2], src.vec[vi * 2]);
-      const __m64 ma = _mm_cmpgt_pi32(src.vec[vi * 2    ], one);
-      const __m64 mb = _mm_cmpgt_pi32(src.vec[vi * 2 + 1], one);
-
-      dst.vec[vi] = _mm_add_pi16(
-        _mm_packs_pi32(
-            _mm_sub_pi32(
-                _mm_or_si64(
-                    _mm_andnot_si64(ma, _mm_set1_pi32(2147483647)),
-                    _mm_and_si64(ma, src.vec[vi * 2    ])),
-                _mm_set1_pi32(32768)),
-            _mm_sub_pi32(
-                _mm_or_si64(
-                    _mm_andnot_si64(mb, _mm_set1_pi32(2147483647)),
-                    _mm_and_si64(mb, src.vec[vi * 2 + 1])),
-                _mm_set1_pi32(32768))),
-        _mm_set1_pi16(32768));
-    }
-
-    i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
 
     for (; i<_count; i++)
@@ -490,15 +346,6 @@ namespace _private {
       const __m128i sign = _mm_cmplt_epi32(src.vec[vi], _mm_setzero_si128());
       dst.vec[vi * 2    ] = _mm_unpacklo_epi32(src.vec[vi], sign);
       dst.vec[vi * 2 + 1] = _mm_unpackhi_epi32(src.vec[vi], sign);
-    }
-
-    i += sizeof(src.vec) / sizeof(src.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(src.vec) / sizeof(src.vec[0])); vi++)
-    {
-      const __m64 sign = _mm_cmpgt_pi32(_mm_setzero_si64(), src.vec[vi]);
-      dst.vec[vi * 2    ] = _mm_unpacklo_pi32(src.vec[vi], sign);
-      dst.vec[vi * 2 + 1] = _mm_unpackhi_pi32(src.vec[vi], sign);
     }
 
     i += sizeof(src.vec) / sizeof(src.val[0]);
@@ -522,15 +369,6 @@ namespace _private {
     }
 
     i += sizeof(src.vec) / sizeof(src.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(src.vec) / sizeof(src.vec[0])); vi++)
-    {
-      const __m64 sign = _mm_cmpgt_pi32(_mm_setzero_si64(), src.vec[vi]);
-      dst.vec[vi * 2    ] = _mm_unpacklo_pi32(src.vec[vi], sign);
-      dst.vec[vi * 2 + 1] = _mm_unpackhi_pi32(src.vec[vi], sign);
-    }
-
-    i += sizeof(src.vec) / sizeof(src.val[0]);
 #endif
 
     for (; i<_count; i++)
@@ -550,14 +388,6 @@ namespace _private {
     }
 
     i += sizeof(src.vec) / sizeof(src.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(src.vec) / sizeof(src.vec[0])); vi++)
-    {
-      dst.vec[vi * 2    ] = _mm_unpacklo_pi32(src.vec[vi], _mm_setzero_si64());
-      dst.vec[vi * 2 + 1] = _mm_unpackhi_pi32(src.vec[vi], _mm_setzero_si64());
-    }
-
-    i += sizeof(src.vec) / sizeof(src.val[0]);
 #endif
 
     for (; i<_count; i++)
@@ -574,14 +404,6 @@ namespace _private {
     {
       dst.vec[vi * 2    ] = _mm_unpacklo_epi32(src.vec[vi], _mm_setzero_si128());
       dst.vec[vi * 2 + 1] = _mm_unpackhi_epi32(src.vec[vi], _mm_setzero_si128());
-    }
-
-    i += sizeof(src.vec) / sizeof(src.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(src.vec) / sizeof(src.vec[0])); vi++)
-    {
-      dst.vec[vi * 2    ] = _mm_unpacklo_pi32(src.vec[vi], _mm_setzero_si64());
-      dst.vec[vi * 2 + 1] = _mm_unpackhi_pi32(src.vec[vi], _mm_setzero_si64());
     }
 
     i += sizeof(src.vec) / sizeof(src.val[0]);

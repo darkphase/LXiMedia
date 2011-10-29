@@ -33,7 +33,7 @@ void Data::swapBytes(uint16_t * dst, const uint16_t * src, int n)
     a = (a >> 8) |
         (a << 8);
 
-    a.store(dst + i);
+    store(dst + i, a);
   }
 }
 
@@ -47,7 +47,7 @@ void Data::swapBytes(uint32_t * dst, const uint32_t * src, int n)
         ((a & 0x0000FF00) << 8) |
         (a << 24);
 
-    a.store(dst + i);
+    store(dst + i, a);
   }
 }
 
@@ -65,7 +65,7 @@ void Data::swapBytes(uint64_t * dst, const uint64_t * src, int n)
         ((a >> 40) & 0x000000000000FF00ull) |
         (a  >> 56);
 
-    a.store(dst + i);
+    store(dst + i, a);
   }
 }
 

@@ -36,11 +36,6 @@ namespace _private {
       dst.vec[vi] = _mm_set1_epi8(v);
 
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
-      dst.vec[vi] = _mm_set1_pi8(v);
-
-    i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
 
     for (; i<_count; i++)
@@ -55,11 +50,6 @@ namespace _private {
 #if defined(__SSE2__)
     for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
       dst.vec[vi] = _mm_set_epi8(v2, v1, v2, v1, v2, v1, v2, v1, v2, v1, v2, v1, v2, v1, v2, v1);
-
-    i += sizeof(dst.vec) / sizeof(dst.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
-      dst.vec[vi] = _mm_set_pi8(v2, v1, v2, v1, v2, v1, v2, v1);
 
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
@@ -79,11 +69,6 @@ namespace _private {
 #if defined(__SSE2__)
     for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
       dst.vec[vi] = _mm_set_epi8(v4, v3, v2, v1, v4, v3, v2, v1, v4, v3, v2, v1, v4, v3, v2, v1);
-
-    i += sizeof(dst.vec) / sizeof(dst.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
-      dst.vec[vi] = _mm_set_pi8(v4, v3, v2, v1, v4, v3, v2, v1);
 
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
@@ -107,11 +92,6 @@ namespace _private {
       dst.vec[vi] = _mm_set1_epi8(v);
 
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
-      dst.vec[vi] = _mm_set1_pi8(v);
-
-    i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
 
     for (; i<_count; i++)
@@ -126,11 +106,6 @@ namespace _private {
 #if defined(__SSE2__)
     for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
       dst.vec[vi] = _mm_set_epi8(v2, v1, v2, v1, v2, v1, v2, v1, v2, v1, v2, v1, v2, v1, v2, v1);
-
-    i += sizeof(dst.vec) / sizeof(dst.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
-      dst.vec[vi] = _mm_set_pi8(v2, v1, v2, v1, v2, v1, v2, v1);
 
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
@@ -150,11 +125,6 @@ namespace _private {
 #if defined(__SSE2__)
     for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
       dst.vec[vi] = _mm_set_epi8(v4, v3, v2, v1, v4, v3, v2, v1, v4, v3, v2, v1, v4, v3, v2, v1);
-
-    i += sizeof(dst.vec) / sizeof(dst.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
-      dst.vec[vi] = _mm_set_pi8(v4, v3, v2, v1, v4, v3, v2, v1);
 
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
@@ -178,11 +148,6 @@ namespace _private {
       dst.vec[vi] = _mm_set1_epi16(v);
 
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
-      dst.vec[vi] = _mm_set1_pi16(v);
-
-    i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
 
     for (; i<_count; i++)
@@ -197,11 +162,6 @@ namespace _private {
 #if defined(__SSE2__)
     for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
       dst.vec[vi] = _mm_set_epi16(v2, v1, v2, v1, v2, v1, v2, v1);
-
-    i += sizeof(dst.vec) / sizeof(dst.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
-      dst.vec[vi] = _mm_set_pi16(v2, v1, v2, v1);
 
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
@@ -221,11 +181,6 @@ namespace _private {
 #if defined(__SSE2__)
     for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
       dst.vec[vi] = _mm_set_epi16(v4, v3, v2, v1, v4, v3, v2, v1);
-
-    i += sizeof(dst.vec) / sizeof(dst.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
-      dst.vec[vi] = _mm_set_pi16(v4, v3, v2, v1);
 
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
@@ -249,11 +204,6 @@ namespace _private {
       dst.vec[vi] = _mm_set1_epi16(v);
 
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
-      dst.vec[vi] = _mm_set1_pi16(v);
-
-    i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
 
     for (; i<_count; i++)
@@ -268,11 +218,6 @@ namespace _private {
 #if defined(__SSE2__)
     for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
       dst.vec[vi] = _mm_set_epi16(v2, v1, v2, v1, v2, v1, v2, v1);
-
-    i += sizeof(dst.vec) / sizeof(dst.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
-      dst.vec[vi] = _mm_set_pi16(v2, v1, v2, v1);
 
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
@@ -292,11 +237,6 @@ namespace _private {
 #if defined(__SSE2__)
     for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
       dst.vec[vi] = _mm_set_epi16(v4, v3, v2, v1, v4, v3, v2, v1);
-
-    i += sizeof(dst.vec) / sizeof(dst.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
-      dst.vec[vi] = _mm_set_pi16(v4, v3, v2, v1);
 
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
@@ -320,11 +260,6 @@ namespace _private {
       dst.vec[vi] = _mm_set1_epi32(v);
 
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
-      dst.vec[vi] = _mm_set1_pi32(v);
-
-    i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
 
     for (; i<_count; i++)
@@ -339,11 +274,6 @@ namespace _private {
 #if defined(__SSE2__)
     for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
       dst.vec[vi] = _mm_set_epi32(v2, v1, v2, v1);
-
-    i += sizeof(dst.vec) / sizeof(dst.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
-      dst.vec[vi] = _mm_set_pi32(v2, v1);
 
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
@@ -365,14 +295,6 @@ namespace _private {
       dst.vec[vi] = _mm_set_epi32(v4, v3, v2, v1);
 
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi + 2 <= int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi += 2)
-    {
-      dst.vec[vi    ] = _mm_set_pi32(v2, v1);
-      dst.vec[vi + 1] = _mm_set_pi32(v4, v3);
-
-      i += (sizeof(dst.vec[0]) / sizeof(dst.val[0])) * 2;
-    }
 #endif
 
     for (; i+4<=_count; i+=4)
@@ -394,11 +316,6 @@ namespace _private {
       dst.vec[vi] = _mm_set1_epi32(v);
 
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
-      dst.vec[vi] = _mm_set1_pi32(v);
-
-    i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
 
     for (; i<_count; i++)
@@ -413,11 +330,6 @@ namespace _private {
 #if defined(__SSE2__)
     for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
       dst.vec[vi] = _mm_set_epi32(v2, v1, v2, v1);
-
-    i += sizeof(dst.vec) / sizeof(dst.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
-      dst.vec[vi] = _mm_set_pi32(v2, v1);
 
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
@@ -439,14 +351,6 @@ namespace _private {
       dst.vec[vi] = _mm_set_epi32(v4, v3, v2, v1);
 
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi + 2 <= int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi += 2)
-    {
-      dst.vec[vi    ] = _mm_set_pi32(v2, v1);
-      dst.vec[vi + 1] = _mm_set_pi32(v4, v3);
-
-      i += (sizeof(dst.vec[0]) / sizeof(dst.val[0])) * 2;
-    }
 #endif
 
     for (; i+4<=_count; i+=4)
@@ -468,11 +372,6 @@ namespace _private {
       dst.vec[vi] = _mm_set1_epi64x(v);
 
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
-      dst.vec[vi] = set_m64(v);
-
-    i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
 
     for (; i<_count; i++)
@@ -489,14 +388,6 @@ namespace _private {
       dst.vec[vi] = _mm_set_epi64x(v2, v1);
 
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi + 2 <= int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi += 2)
-    {
-      dst.vec[vi    ] = set_m64(v1);
-      dst.vec[vi + 1] = set_m64(v2);
-
-      i += (sizeof(dst.vec[0]) / sizeof(dst.val[0])) * 2;
-    }
 #endif
 
     for (; i+2<=_count; i+=2)
@@ -519,16 +410,6 @@ namespace _private {
 
       i += (sizeof(dst.vec[0]) / sizeof(dst.val[0])) * 2;
     }
-#elif defined(__MMX__)
-    for (int vi = 0; vi + 4 <= int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi += 4)
-    {
-      dst.vec[vi    ] = set_m64(v1);
-      dst.vec[vi + 1] = set_m64(v2);
-      dst.vec[vi + 2] = set_m64(v3);
-      dst.vec[vi + 3] = set_m64(v4);
-
-      i += (sizeof(dst.vec[0]) / sizeof(dst.val[0])) * 4;
-    }
 #endif
 
     for (; i+4<=_count; i+=4)
@@ -550,11 +431,6 @@ namespace _private {
       dst.vec[vi] = _mm_set1_epi64x(v);
 
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
-      dst.vec[vi] = set_m64(v);
-
-    i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
 
     for (; i<_count; i++)
@@ -571,14 +447,6 @@ namespace _private {
       dst.vec[vi] = _mm_set_epi64x(v2, v1);
 
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi + 2 <= int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi+=2)
-    {
-      dst.vec[vi    ] = set_m64(v1);
-      dst.vec[vi + 1] = set_m64(v2);
-
-      i += (sizeof(dst.vec[0]) / sizeof(dst.val[0])) * 2;
-    }
 #endif
 
     for (; i+2<=_count; i+=2)
@@ -600,16 +468,6 @@ namespace _private {
       dst.vec[vi + 1] = _mm_set_epi64x(v4, v3);
 
       i += (sizeof(dst.vec[0]) / sizeof(dst.val[0])) * 2;
-    }
-#elif defined(__MMX__)
-    for (int vi = 0; vi + 4 <= int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi += 4)
-    {
-      dst.vec[vi    ] = set_m64(v1);
-      dst.vec[vi + 1] = set_m64(v2);
-      dst.vec[vi + 2] = set_m64(v3);
-      dst.vec[vi + 3] = set_m64(v4);
-
-      i += (sizeof(dst.vec[0]) / sizeof(dst.val[0])) * 4;
     }
 #endif
 

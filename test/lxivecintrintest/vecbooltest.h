@@ -34,17 +34,6 @@ private slots:
 private:
   template<class _vector> void  Scalar_test(void);
 
-#ifdef ENABLE_MMX
-private slots:
-  void                          MMX_Bool8(void);
-  void                          MMX_Bool16(void);
-  void                          MMX_Bool32(void);
-  void                          MMX_Bool64(void);
-
-private:
-  template<class _vector> void  MMX_test(void);
-#endif
-
 #ifdef ENABLE_SSE
 private slots:
   void                          SSE_Bool8(void);

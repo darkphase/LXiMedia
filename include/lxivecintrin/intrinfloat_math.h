@@ -55,7 +55,6 @@ namespace _private {
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
 
-    if (i < _count) release();
     for (; i<_count; i++)
       dst.val[i] = a.val[i] + b.val[i];
   }
@@ -72,7 +71,6 @@ namespace _private {
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
 
-    if (i < _count) release();
     for (; i<_count; i++)
       dst.val[i] = a.val[i] - b.val[i];
   }
@@ -89,7 +87,6 @@ namespace _private {
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
 
-    if (i < _count) release();
     for (; i<_count; i++)
       dst.val[i] = a.val[i] + b;
   }
@@ -106,7 +103,6 @@ namespace _private {
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
 
-    if (i < _count) release();
     for (; i<_count; i++)
       dst.val[i] = a.val[i] - b;
   }
@@ -123,7 +119,6 @@ namespace _private {
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
 
-    if (i < _count) release();
     for (; i<_count; i++)
       dst.val[i] = a.val[i] + b.val[i];
   }
@@ -140,7 +135,6 @@ namespace _private {
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
 
-    if (i < _count) release();
     for (; i<_count; i++)
       dst.val[i] = a.val[i] - b.val[i];
   }
@@ -157,7 +151,6 @@ namespace _private {
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
 
-    if (i < _count) release();
     for (; i<_count; i++)
       dst.val[i] = a.val[i] + b;
   }
@@ -174,7 +167,6 @@ namespace _private {
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
 
-    if (i < _count) release();
     for (; i<_count; i++)
       dst.val[i] = a.val[i] - b;
   }
@@ -208,7 +200,6 @@ namespace _private {
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
 
-    if (i < _count) release();
     for (; i<_count; i++)
       dst.val[i] = a.val[i] * b.val[i];
   }
@@ -225,7 +216,6 @@ namespace _private {
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
 
-    if (i < _count) release();
     for (; i<_count; i++)
       dst.val[i] = a.val[i] / b.val[i];
   }
@@ -242,7 +232,6 @@ namespace _private {
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
 
-    if (i < _count) release();
     for (; i<_count; i++)
       dst.val[i] = a.val[i] * b;
   }
@@ -259,7 +248,6 @@ namespace _private {
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
 
-    if (i < _count) release();
     for (; i<_count; i++)
       dst.val[i] = a.val[i] / b;
   }
@@ -276,7 +264,6 @@ namespace _private {
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
 
-    if (i < _count) release();
     for (; i<_count; i++)
       dst.val[i] = a.val[i] * b.val[i];
   }
@@ -293,7 +280,6 @@ namespace _private {
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
 
-    if (i < _count) release();
     for (; i<_count; i++)
       dst.val[i] = a.val[i] / b.val[i];
   }
@@ -310,7 +296,6 @@ namespace _private {
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
 
-    if (i < _count) release();
     for (; i<_count; i++)
       dst.val[i] = a.val[i] * b;
   }
@@ -327,7 +312,6 @@ namespace _private {
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
 
-    if (i < _count) release();
     for (; i<_count; i++)
       dst.val[i] = a.val[i] / b;
   }
@@ -363,7 +347,6 @@ namespace _private {
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
 
-    if (i < _count) release();
     for (; i<_count; i++)
       dst.val[i] = abs(a.val[i]);
   }
@@ -380,7 +363,6 @@ namespace _private {
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
 
-    if (i < _count) release();
     for (; i<_count; i++)
       dst.val[i] = abs(a.val[i]);
   }

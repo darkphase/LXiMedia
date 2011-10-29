@@ -101,7 +101,6 @@ SOURCES += nodes/saudiodecodernode.cpp \
     nodes/saudiomatrixnode.cpp \
     nodes/saudiomatrixnode.mix.c \
     nodes/saudionormalizenode.cpp \
-    nodes/saudionormalizenode.mul.c \
     nodes/saudioresamplenode.cpp \
     nodes/sbufferdeserializernode.cpp \
     nodes/sbufferserializernode.cpp \

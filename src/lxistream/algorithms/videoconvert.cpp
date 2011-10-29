@@ -36,9 +36,9 @@ void VideoConvert::YUYVtoYUV2(uint8_t *dsty, uint8_t *dstu, uint8_t *dstv, const
       const uint8_v u = (yuyv.as<int32_qv>() & 0x0000FF00) >> 8;
       const uint8_v v = (yuyv.as<int32_qv>() >> 24) & 0x000000FF;
 
-      y.store(dsty, m / 2);
-      u.store(dstu, m / 4);
-      v.store(dstv, m / 4);
+      store(dsty, y, m / 2);
+      store(dstu, u, m / 4);
+      store(dstv, v, m / 4);
     }
   };
 
@@ -64,9 +64,9 @@ void VideoConvert::UYVYtoYUV2(uint8_t *dsty, uint8_t *dstu, uint8_t *dstv, const
       const uint8_v u = uyvy.as<int32_qv>() & 0x000000FF;
       const uint8_v v = (uyvy.as<int32_qv>() >> 16) & 0x000000FF;
 
-      y.store(dsty, m / 2);
-      u.store(dstu, m / 4);
-      v.store(dstv, m / 4);
+      store(dsty, y, m / 2);
+      store(dstu, u, m / 4);
+      store(dstv, v, m / 4);
     }
   };
 
@@ -93,13 +93,13 @@ void VideoConvert::mergeUVlines(
     int16_dv b = uint8_v::load(srcub + i);
 
     uint8_v r = (a + b) >> 1;
-    r.store(dstu + i);
+    store(dstu + i, r);
 
     a = uint8_v::load(srcva + i);
     b = uint8_v::load(srcvb + i);
 
     r = (a + b) >> 1;
-    r.store(dstv + i);
+    store(dstv + i, r);
   }
 }
 
@@ -143,7 +143,7 @@ void VideoConvert::YUYVtoRGB(uint32_t *dst, const uint8_t *src, int n)
           (((int16_qv(u.as<uint8_dv>()) - 128) * mu) >> 6) +
           (((int16_qv(v.as<uint8_dv>()) - 128) * mv) >> 6);
 
-      r.as<uint32_dv>().store(dst, m / 2);
+      store(dst, r.as<uint32_dv>(), m / 2);
     }
   };
 
@@ -198,7 +198,7 @@ void VideoConvert::UYVYtoRGB(uint32_t *dst, const uint8_t *src, int n)
           (((int16_qv(u.as<uint8_dv>()) - 128) * mu) >> 6) +
           (((int16_qv(v.as<uint8_dv>()) - 128) * mv) >> 6);
 
-      r.as<uint32_dv>().store(dst, m / 2);
+      store(dst, r.as<uint32_dv>(), m / 2);
     }
   };
 
@@ -249,7 +249,7 @@ void VideoConvert::YUV1toRGB(uint32_t *dst, const uint8_t *srcy, const uint8_t *
           (((int16_ov(u.as<uint8_qv>()) - 128) * mu) >> 6) +
           (((int16_ov(v.as<uint8_qv>()) - 128) * mv) >> 6);
 
-      r.as<uint32_qv>().store(dst, m);
+      store(dst, r.as<uint32_qv>(), m);
     }
   };
 
@@ -298,7 +298,7 @@ void VideoConvert::YUV2toRGB(uint32_t *dst, const uint8_t *srcy, const uint8_t *
           (((int16_hv(interleave(u, u).as<uint8_ov>()) - 128) * mu) >> 6) +
           (((int16_hv(interleave(v, v).as<uint8_ov>()) - 128) * mv) >> 6);
 
-      r.as<uint32_ov>().store(dst, m);
+      store(dst, r.as<uint32_ov>(), m);
     }
   };
 
@@ -332,16 +332,16 @@ void VideoConvert::RGBtoYUYV(uint8_t *dst, const uint32_t *src, int n)
       const uint32_dv rgba = uint32_dv::load(src, m);
 
       // Convert RGBARGBA... to YY...
-      const int16_v y = (int16_qv(rgba.as<uint8_dv>()) * my).hadd().hadd() >> 6;
+      const int16_v y = hadd(hadd(int16_qv(rgba.as<uint8_dv>()) * my)) >> 6;
 
       // Compute average Y and R,B of two neighburing pixels.
       const int16_v ya = (y + ((y.as<uint32_v>() >> 16) | (y.as<uint32_v>() << 16)).as<int16_v>()) >> 1;
-      const int16_v rba = ((rgba & 0x00FF00FF).hadd() >> 1).as<int16_v>();
+      const int16_v rba = (hadd(rgba & 0x00FF00FF) >> 1).as<int16_v>();
 
       // Multiply factors and pack into YUYVYUYV...
       const uint8_v r = interleave(y, (((rba - ya) * muv) >> 6) + 128);
 
-      r.store(dst, m * 2);
+      store(dst, r, m * 2);
     }
   };
 
@@ -375,16 +375,16 @@ void VideoConvert::RGBtoUYVY(uint8_t *dst, const uint32_t *src, int n)
       const uint32_dv rgba = uint32_dv::load(src, m);
   
       // Convert RGBARGBA... to YY...
-      const int16_v y = (int16_qv(rgba.as<uint8_dv>()) * my).hadd().hadd() >> 6;
+      const int16_v y = hadd(hadd(int16_qv(rgba.as<uint8_dv>()) * my)) >> 6;
   
       // Compute average Y and R,B of two neighburing pixels.
       const int16_v ya = (y + ((y.as<uint32_v>() >> 16) | (y.as<uint32_v>() << 16)).as<int16_v>()) >> 1;
-      const int16_v rba = ((rgba & 0x00FF00FF).hadd() >> 1).as<int16_v>();
+      const int16_v rba = (hadd(rgba & 0x00FF00FF) >> 1).as<int16_v>();
   
       // Multiply factors and pack into YUYVYUYV...
       const uint8_v r = interleave((((rba - ya) * muv) >> 6) + 128, y);
   
-      r.store(dst, m * 2);
+      store(dst, r, m * 2);
     }
   };
 
@@ -418,16 +418,16 @@ void VideoConvert::RGBtoYUV1(uint8_t *dsty, uint8_t *dstu, uint8_t *dstv, const 
       const uint32_qv rgba = uint32_qv::load(src, m);
 
       // Convert RGBARGBA... to YY...
-      const uint8_v y = (int16_ov(rgba.as<uint8_qv>()) * my).hadd().hadd() >> 6;
-      y.store(dsty, m);
+      const uint8_v y = hadd(hadd(int16_ov(rgba.as<uint8_qv>()) * my)) >> 6;
+      store(dsty, y, m);
 
       // Convert RGBARGBA... to UU...
       const uint8_v u = (((int16_dv(rgba & 0x000000FF) - y) * 36) >> 6) + 128;
-      u.store(dstu, m);
+      store(dstu, u, m);
 
       // Convert RGBARGBA... to VV...
       const uint8_v v = (((int16_dv((rgba & 0x00FF0000) >> 16) - y) * 46) >> 6) + 128;
-      v.store(dstv, m);
+      store(dstv, v, m);
     }
   };
 
@@ -461,16 +461,16 @@ void VideoConvert::RGBtoYUV2(uint8_t *dsty, uint8_t *dstu, uint8_t *dstv, const 
       const uint32_ov rgba = uint32_ov::load(src, m);
 
       // Convert RGBARGBA... to YY...
-      const uint8_dv y = (int16_hv(rgba.as<uint8_ov>()) * my).hadd().hadd() >> 6;
-      y.store(dsty, m);
+      const uint8_dv y = hadd(hadd(int16_hv(rgba.as<uint8_ov>()) * my)) >> 6;
+      store(dsty, y, m);
 
       // Convert RGBARGBA... to UU...
-      const uint8_v u = ((((int16_qv(rgba & 0x000000FF) - y) * 36) >> 6) + 128).hadd() >> 1;
-      u.store(dstu, m / 2);
+      const uint8_v u = hadd((((int16_qv(rgba & 0x000000FF) - y) * 36) >> 6) + 128) >> 1;
+      store(dstu, u, m / 2);
 
       // Convert RGBARGBA... to VV...
-      const uint8_v v = ((((int16_qv((rgba & 0x00FF0000) >> 16) - y) * 46) >> 6) + 128).hadd() >> 1;
-      v.store(dstv, m / 2);
+      const uint8_v v = hadd((((int16_qv((rgba & 0x00FF0000) >> 16) - y) * 46) >> 6) + 128) >> 1;
+      store(dstv, v, m / 2);
     }
   };
 
@@ -495,7 +495,7 @@ void VideoConvert::BGRtoRGB(uint32_t *dst, const uint32_t *src, int n)
     rgba |= (bgra & 0x00FF0000) >> 16;
     rgba |= (bgra & 0x000000FF) << 16;
 
-    rgba.store(dst + i);
+    store(dst + i, rgba);
   }
 }
 
