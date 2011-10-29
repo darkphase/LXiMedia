@@ -39,14 +39,6 @@ namespace _private {
     }
 
     i += sizeof(a.vec) / sizeof(a.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(a.vec) / sizeof(a.vec[0])); vi++)
-    {
-      dst.vec[vi * 2    ] = _mm_unpacklo_pi16(a.vec[vi], b.vec[vi]);
-      dst.vec[vi * 2 + 1] = _mm_unpackhi_pi16(a.vec[vi], b.vec[vi]);
-    }
-
-    i += sizeof(a.vec) / sizeof(a.val[0]);
 #endif
 
     for (; i<_count; i++)
@@ -69,14 +61,6 @@ namespace _private {
     }
 
     i += sizeof(a.vec) / sizeof(a.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(a.vec) / sizeof(a.vec[0])); vi++)
-    {
-      dst.vec[vi * 2    ] = _mm_unpacklo_pi16(a.vec[vi], b.vec[vi]);
-      dst.vec[vi * 2 + 1] = _mm_unpackhi_pi16(a.vec[vi], b.vec[vi]);
-    }
-
-    i += sizeof(a.vec) / sizeof(a.val[0]);
 #endif
 
     for (; i<_count; i++)
@@ -91,15 +75,15 @@ namespace _private {
   {
     int i = 0;
 
-#if defined(__SSE2__) || defined(__MMX__)
+#if defined(__SSE2__)
     for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
       dst.vec[vi] = src.vec[vi];
 
     i += sizeof(dst.vec) / sizeof(src.val[0]);
 #endif
 
-    if (i < _count)
-      memcpy(dst.val + i, src.val + i, (_count - i) * sizeof(src.val[0]));
+    for (; i<_count; i++)
+      dst.val[i] = src.val[i];
   }
 
   template <int _count>
@@ -107,15 +91,15 @@ namespace _private {
   {
     int i = 0;
 
-#if defined(__SSE2__) || defined(__MMX__)
+#if defined(__SSE2__)
     for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
       dst.vec[vi] = src.vec[vi];
 
     i += sizeof(dst.vec) / sizeof(src.val[0]);
 #endif
 
-    if (i < _count)
-      memcpy(dst.val + i, src.val + i, (_count - i) * sizeof(src.val[0]));
+    for (; i<_count; i++)
+      dst.val[i] = src.val[i];
   }
 
   template <int _count>
@@ -126,11 +110,6 @@ namespace _private {
 #if defined(__SSE2__)
     for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
       dst.vec[vi] = _mm_packs_epi16(src.vec[vi * 2], src.vec[vi * 2 + 1]);
-
-    i += sizeof(dst.vec) / sizeof(dst.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
-      dst.vec[vi] = _mm_packs_pi16(src.vec[vi * 2], src.vec[vi * 2 + 1]);
 
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
@@ -147,11 +126,6 @@ namespace _private {
 #if defined(__SSE2__)
     for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
       dst.vec[vi] = _mm_packus_epi16(src.vec[vi * 2], src.vec[vi * 2 + 1]);
-
-    i += sizeof(dst.vec) / sizeof(dst.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
-      dst.vec[vi] = _mm_packs_pu16(src.vec[vi * 2], src.vec[vi * 2 + 1]);
 
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
@@ -178,23 +152,10 @@ namespace _private {
     }
 
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
-    {
-      dst.vec[vi] = _mm_packs_pi16(
-          _mm_packs_pi32(
-              _mm_unpacklo_pi16(src.vec[vi * 2    ], _mm_setzero_si64()),
-              _mm_unpackhi_pi16(src.vec[vi * 2    ], _mm_setzero_si64())),
-          _mm_packs_pi32(
-              _mm_unpacklo_pi16(src.vec[vi * 2 + 1], _mm_setzero_si64()),
-              _mm_unpackhi_pi16(src.vec[vi * 2 + 1], _mm_setzero_si64())));
-    }
-
-    i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
 
     for (; i<_count; i++)
-      dst.val[i] = saturate_int8u(src.val[i]);
+      dst.val[i] = saturate_int8(src.val[i]);
   }
 
   template <int _count>
@@ -212,19 +173,6 @@ namespace _private {
           _mm_packs_epi32(
               _mm_unpacklo_epi16(src.vec[vi * 2 + 1], _mm_setzero_si128()),
               _mm_unpackhi_epi16(src.vec[vi * 2 + 1], _mm_setzero_si128())));
-    }
-
-    i += sizeof(dst.vec) / sizeof(dst.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
-    {
-      dst.vec[vi] = _mm_packs_pu16(
-          _mm_packs_pi32(
-              _mm_unpacklo_pi16(src.vec[vi * 2    ], _mm_setzero_si64()),
-              _mm_unpackhi_pi16(src.vec[vi * 2    ], _mm_setzero_si64())),
-          _mm_packs_pi32(
-              _mm_unpacklo_pi16(src.vec[vi * 2 + 1], _mm_setzero_si64()),
-              _mm_unpackhi_pi16(src.vec[vi * 2 + 1], _mm_setzero_si64())));
     }
 
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
@@ -248,15 +196,6 @@ namespace _private {
     }
 
     i += sizeof(src.vec) / sizeof(src.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(src.vec) / sizeof(src.vec[0])); vi++)
-    {
-      const __m64 sign = _mm_cmpgt_pi16(_mm_setzero_si64(), src.vec[vi]);
-      dst.vec[vi * 2    ] = _mm_unpacklo_pi16(src.vec[vi], sign);
-      dst.vec[vi * 2 + 1] = _mm_unpackhi_pi16(src.vec[vi], sign);
-    }
-
-    i += sizeof(src.vec) / sizeof(src.val[0]);
 #endif
 
     for (; i<_count; i++)
@@ -274,15 +213,6 @@ namespace _private {
       const __m128i sign = _mm_cmplt_epi16(src.vec[vi], _mm_setzero_si128());
       dst.vec[vi * 2    ] = _mm_unpacklo_epi16(src.vec[vi], sign);
       dst.vec[vi * 2 + 1] = _mm_unpackhi_epi16(src.vec[vi], sign);
-    }
-
-    i += sizeof(src.vec) / sizeof(src.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(src.vec) / sizeof(src.vec[0])); vi++)
-    {
-      const __m64 sign = _mm_cmpgt_pi16(_mm_setzero_si64(), src.vec[vi]);
-      dst.vec[vi * 2    ] = _mm_unpacklo_pi16(src.vec[vi], sign);
-      dst.vec[vi * 2 + 1] = _mm_unpackhi_pi16(src.vec[vi], sign);
     }
 
     i += sizeof(src.vec) / sizeof(src.val[0]);
@@ -305,14 +235,6 @@ namespace _private {
     }
 
     i += sizeof(src.vec) / sizeof(src.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(src.vec) / sizeof(src.vec[0])); vi++)
-    {
-      dst.vec[vi * 2    ] = _mm_unpacklo_pi16(src.vec[vi], _mm_setzero_si64());
-      dst.vec[vi * 2 + 1] = _mm_unpackhi_pi16(src.vec[vi], _mm_setzero_si64());
-    }
-
-    i += sizeof(src.vec) / sizeof(src.val[0]);
 #endif
 
     for (; i<_count; i++)
@@ -329,14 +251,6 @@ namespace _private {
     {
       dst.vec[vi * 2    ] = _mm_unpacklo_epi16(src.vec[vi], _mm_setzero_si128());
       dst.vec[vi * 2 + 1] = _mm_unpackhi_epi16(src.vec[vi], _mm_setzero_si128());
-    }
-
-    i += sizeof(src.vec) / sizeof(src.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(src.vec) / sizeof(src.vec[0])); vi++)
-    {
-      dst.vec[vi * 2    ] = _mm_unpacklo_pi16(src.vec[vi], _mm_setzero_si64());
-      dst.vec[vi * 2 + 1] = _mm_unpackhi_pi16(src.vec[vi], _mm_setzero_si64());
     }
 
     i += sizeof(src.vec) / sizeof(src.val[0]);
@@ -368,23 +282,6 @@ namespace _private {
     }
 
     i += sizeof(src.vec) / sizeof(src.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(src.vec) / sizeof(src.vec[0])); vi++)
-    {
-      const __m64 sign = _mm_cmpgt_pi16(_mm_setzero_si64(), src.vec[vi]);
-
-      const __m64 lo = _mm_unpacklo_pi16(src.vec[vi], sign);
-      const __m64 losign = _mm_unpacklo_pi16(sign, sign);
-      dst.vec[vi * 4    ] = _mm_unpacklo_pi32(lo, losign);
-      dst.vec[vi * 4 + 1] = _mm_unpackhi_pi32(lo, losign);
-
-      const __m64 hi = _mm_unpackhi_pi16(src.vec[vi], sign);
-      const __m64 hisign = _mm_unpackhi_pi16(sign, sign);
-      dst.vec[vi * 4 + 2] = _mm_unpacklo_pi32(hi, hisign);
-      dst.vec[vi * 4 + 3] = _mm_unpackhi_pi32(hi, hisign);
-    }
-
-    i += sizeof(src.vec) / sizeof(src.val[0]);
 #endif
 
     for (; i<_count; i++)
@@ -413,23 +310,6 @@ namespace _private {
     }
 
     i += sizeof(src.vec) / sizeof(src.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(src.vec) / sizeof(src.vec[0])); vi++)
-    {
-      const __m64 sign = _mm_cmpgt_pi16(_mm_setzero_si64(), src.vec[vi]);
-
-      const __m64 lo = _mm_unpacklo_pi16(src.vec[vi], sign);
-      const __m64 losign = _mm_unpacklo_pi16(sign, sign);
-      dst.vec[vi * 4    ] = _mm_unpacklo_pi32(lo, losign);
-      dst.vec[vi * 4 + 1] = _mm_unpackhi_pi32(lo, losign);
-
-      const __m64 hi = _mm_unpackhi_pi16(src.vec[vi], sign);
-      const __m64 hisign = _mm_unpackhi_pi16(sign, sign);
-      dst.vec[vi * 4 + 2] = _mm_unpacklo_pi32(hi, hisign);
-      dst.vec[vi * 4 + 3] = _mm_unpackhi_pi32(hi, hisign);
-    }
-
-    i += sizeof(src.vec) / sizeof(src.val[0]);
 #endif
 
     for (; i<_count; i++)
@@ -454,19 +334,6 @@ namespace _private {
     }
 
     i += sizeof(src.vec) / sizeof(src.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(src.vec) / sizeof(src.vec[0])); vi++)
-    {
-      const __m64 lo = _mm_unpacklo_pi16(src.vec[vi], _mm_setzero_si64());
-      dst.vec[vi * 4    ] = _mm_unpacklo_pi32(lo, _mm_setzero_si64());
-      dst.vec[vi * 4 + 1] = _mm_unpackhi_pi32(lo, _mm_setzero_si64());
-
-      const __m64 hi = _mm_unpackhi_pi16(src.vec[vi], _mm_setzero_si64());
-      dst.vec[vi * 4 + 2] = _mm_unpacklo_pi32(hi, _mm_setzero_si64());
-      dst.vec[vi * 4 + 3] = _mm_unpackhi_pi32(hi, _mm_setzero_si64());
-    }
-
-    i += sizeof(src.vec) / sizeof(src.val[0]);
 #endif
 
     for (; i<_count; i++)
@@ -488,19 +355,6 @@ namespace _private {
       const __m128i hi = _mm_unpackhi_epi16(src.vec[vi], _mm_setzero_si128());
       dst.vec[vi * 4 + 2] = _mm_unpacklo_epi32(hi, _mm_setzero_si128());
       dst.vec[vi * 4 + 3] = _mm_unpackhi_epi32(hi, _mm_setzero_si128());
-    }
-
-    i += sizeof(src.vec) / sizeof(src.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(src.vec) / sizeof(src.vec[0])); vi++)
-    {
-      const __m64 lo = _mm_unpacklo_pi16(src.vec[vi], _mm_setzero_si64());
-      dst.vec[vi * 4    ] = _mm_unpacklo_pi32(lo, _mm_setzero_si64());
-      dst.vec[vi * 4 + 1] = _mm_unpackhi_pi32(lo, _mm_setzero_si64());
-
-      const __m64 hi = _mm_unpackhi_pi16(src.vec[vi], _mm_setzero_si64());
-      dst.vec[vi * 4 + 2] = _mm_unpacklo_pi32(hi, _mm_setzero_si64());
-      dst.vec[vi * 4 + 3] = _mm_unpackhi_pi32(hi, _mm_setzero_si64());
     }
 
     i += sizeof(src.vec) / sizeof(src.val[0]);

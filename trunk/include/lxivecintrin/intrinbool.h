@@ -40,8 +40,6 @@ namespace _private {
     uint8_t val[_count];
 #if defined(__SSE2__)
     __m128i vec[_count / (sizeof(__m128i) / sizeof(uint8_t))];
-#elif defined(__MMX__)
-    __m64 vec[_count / (sizeof(__m64) / sizeof(uint8_t))];
 #endif
   };
 
@@ -51,8 +49,6 @@ namespace _private {
     uint16_t val[_count];
 #if defined(__SSE2__)
     __m128i vec[_count / (sizeof(__m128i) / sizeof(uint16_t))];
-#elif defined(__MMX__)
-    __m64 vec[_count / (sizeof(__m64) / sizeof(uint16_t))];
 #endif
   };
 
@@ -62,8 +58,6 @@ namespace _private {
     uint32_t val[_count];
 #if defined(__SSE2__)
     __m128i vec[_count / (sizeof(__m128i) / sizeof(uint32_t))];
-#elif defined(__MMX__)
-    __m64 vec[_count / (sizeof(__m64) / sizeof(uint32_t))];
 #endif
   };
 
@@ -73,8 +67,6 @@ namespace _private {
     uint64_t val[_count];
 #if defined(__SSE2__)
     __m128i vec[_count / (sizeof(__m128i) / sizeof(uint64_t))];
-#elif defined(__MMX__)
-    __m64 vec[_count / (sizeof(__m64) / sizeof(uint64_t))];
 #endif
   };
 
@@ -87,15 +79,15 @@ namespace _private {
   {
     int i = 0;
 
-#if defined(__SSE2__) || defined(__MMX__)
+#if defined(__SSE2__)
     for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
       dst.vec[vi] = src.vec[vi];
 
     i += sizeof(dst.vec) / _size;
 #endif
 
-    if (i < _count)
-      memcpy(dst.val + i, src.val + i, (_count - i) * _size);
+    for (; i<_count; i++)
+      dst.val[i] = src.val[i];
   }
 
   template <int _size, int _count>
@@ -106,11 +98,6 @@ namespace _private {
 #if defined(__SSE2__)
     for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
       dst.vec[vi] = _mm_or_si128(a.vec[vi], b.vec[vi]);
-
-    i += sizeof(dst.vec) / sizeof(dst.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
-      dst.vec[vi] = _mm_or_si64(a.vec[vi], b.vec[vi]);
 
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
@@ -129,11 +116,6 @@ namespace _private {
       dst.vec[vi] = _mm_and_si128(a.vec[vi], b.vec[vi]);
 
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
-      dst.vec[vi] = _mm_and_si64(a.vec[vi], b.vec[vi]);
-
-    i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
 
     for (; i<_count; i++)
@@ -148,11 +130,6 @@ namespace _private {
 #if defined(__SSE2__)
     for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
       dst.vec[vi] = _mm_andnot_si128(a.vec[vi], _mm_cmpeq_epi32(a.vec[vi], a.vec[vi]));
-
-    i += sizeof(dst.vec) / sizeof(dst.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
-      dst.vec[vi] = _mm_andnot_si64(a.vec[vi], _mm_cmpeq_pi32(a.vec[vi], a.vec[vi]));
 
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
@@ -171,11 +148,6 @@ namespace _private {
       dst.vec[vi] = _mm_andnot_si128(_mm_xor_si128(a.vec[vi], b.vec[vi]), _mm_cmpeq_epi32(a.vec[vi], a.vec[vi]));
 
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
-      dst.vec[vi] = _mm_andnot_si64(_mm_xor_si64(a.vec[vi], b.vec[vi]), _mm_cmpeq_pi32(a.vec[vi], a.vec[vi]));
-
-    i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
 
     for (; i<_count; i++)
@@ -190,11 +162,6 @@ namespace _private {
 #if defined(__SSE2__)
     for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
       dst.vec[vi] = _mm_xor_si128(a.vec[vi], b.vec[vi]);
-
-    i += sizeof(dst.vec) / sizeof(dst.val[0]);
-#elif defined(__MMX__)
-    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
-      dst.vec[vi] = _mm_xor_si64(a.vec[vi], b.vec[vi]);
 
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif

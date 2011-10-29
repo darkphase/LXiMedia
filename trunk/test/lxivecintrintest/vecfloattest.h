@@ -52,35 +52,6 @@ private:
   template<class _dstvector, class _srcvector> void Scalar_convertFloatVector(void);
   template<class _dstvector, class _srcvector> void Scalar_convertDoubleVector(void);
 
-#ifdef ENABLE_MMX
-private slots:
-  void                          MMX_Float(void);
-  void                          MMX_Double(void);
-
-  void                          MMX_Float_Int8(void);
-  void                          MMX_Float_UInt8(void);
-  void                          MMX_Float_Int16(void);
-  void                          MMX_Float_UInt16(void);
-  void                          MMX_Float_Int32(void);
-  void                          MMX_Float_UInt32(void);
-  void                          MMX_Float_Int64(void);
-  void                          MMX_Float_UInt64(void);
-
-  void                          MMX_Double_Int8(void);
-  void                          MMX_Double_UInt8(void);
-  void                          MMX_Double_Int16(void);
-  void                          MMX_Double_UInt16(void);
-  void                          MMX_Double_Int32(void);
-  void                          MMX_Double_UInt32(void);
-  void                          MMX_Double_Int64(void);
-  void                          MMX_Double_UInt64(void);
-
-private:
-  template<class _vector> void  MMX_test(void);
-  template<class _dstvector, class _srcvector> void MMX_convertFloatVector(void);
-  template<class _dstvector, class _srcvector> void MMX_convertDoubleVector(void);
-#endif
-
 #ifdef ENABLE_SSE
 private slots:
   void                          SSE_Float(void);

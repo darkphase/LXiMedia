@@ -30,7 +30,7 @@ namespace LXiServer {
 struct SHttpServer::Data
 {
   QList<QHostAddress>           addresses;
-  quint16                       port;
+  quint16                       defaultPort;
   QString                       serverUdn;
   QMultiMap<QString, Server *>  servers;
   int                           openSockets;
@@ -99,6 +99,7 @@ SHttpServer::SHttpServer(const QString &protocol, const QUuid &serverUuid, QObje
   : SHttpServerEngine(protocol, parent),
     d(new Data())
 {
+  d->defaultPort = 0;
   d->serverUdn = QString("uuid:" + serverUuid.toString()).replace("{", "").replace("}", "");
   d->openSockets = 0;
 }
@@ -115,6 +116,8 @@ SHttpServer::~SHttpServer()
  */
 void SHttpServer::initialize(const QList<QHostAddress> &addresses, quint16 port)
 {
+  d->defaultPort = port;
+
   foreach (const QHostAddress &address, addresses)
   {
     Server * const server = new Server(this);
@@ -153,6 +156,13 @@ void SHttpServer::reset(const QList<QHostAddress> &addresses, quint16 port)
 {
   close();
   initialize(addresses, port);
+}
+
+/*! Returns the default port number as provided to initialize() and reset().
+ */
+quint16 SHttpServer::defaultPort(void) const
+{
+  return d->defaultPort;
 }
 
 /*! Returns the bound port number for the specified interface.

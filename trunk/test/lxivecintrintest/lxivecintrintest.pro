@@ -9,37 +9,45 @@ include($${PWD}/$${LXIMEDIA_DIR}/include/config.pri)
 
 unix {
   contains(QMAKE_HOST.os, Linux) {
-    system(cat /proc/cpuinfo | grep flags | grep mmx > /dev/null) {
-      CONFIG += mmx
-      QMAKE_CXXFLAGS += -mmmx
-      QMAKE_CFLAGS += -mmmx
-    }
     system(cat /proc/cpuinfo | grep flags | grep sse > /dev/null) {
-      CONFIG += sse
-      QMAKE_CXXFLAGS += -msse
-      QMAKE_CFLAGS += -msse
+      !contains(CONFIG, sse) {
+        CONFIG += sse
+        QMAKE_CXXFLAGS += -msse
+        QMAKE_CFLAGS += -msse
+      }
     }
     system(cat /proc/cpuinfo | grep flags | grep sse2 > /dev/null) {
-      CONFIG += sse2
-      QMAKE_CXXFLAGS += -msse2
-      QMAKE_CFLAGS += -msse2
+      !contains(CONFIG, sse2) {
+        CONFIG += sse2
+        QMAKE_CXXFLAGS += -msse2
+        QMAKE_CFLAGS += -msse2
+      }
     }
     system(cat /proc/cpuinfo | grep flags | grep sse3 > /dev/null) {
-      CONFIG += sse3
-      QMAKE_CXXFLAGS += -msse3
-      QMAKE_CFLAGS += -msse3
+      !contains(CONFIG, sse3) {
+        CONFIG += sse3
+        QMAKE_CXXFLAGS += -msse3
+        QMAKE_CFLAGS += -msse3
+      }
     }
     system(cat /proc/cpuinfo | grep flags | grep ssse3 > /dev/null) {
-      CONFIG += ssse3
-      QMAKE_CXXFLAGS += -mssse3
-      QMAKE_CFLAGS += -mssse3
+      !contains(CONFIG, ssse3) {
+        CONFIG += ssse3
+        QMAKE_CXXFLAGS += -mssse3
+        QMAKE_CFLAGS += -mssse3
+      }
     }
     system(cat /proc/cpuinfo | grep flags | grep sse4 > /dev/null) {
-      CONFIG += sse4
-      QMAKE_CXXFLAGS += -msse4
-      QMAKE_CFLAGS += -msse4
+      !contains(CONFIG, sse4) {
+        CONFIG += sse4
+        QMAKE_CXXFLAGS += -msse4
+        QMAKE_CFLAGS += -msse4
+      }
     }
   }
+
+  QMAKE_CXXFLAGS += -fdiagnostics-show-option
+  QMAKE_CFLAGS += -fdiagnostics-show-option
 }
 
 # Files
@@ -52,10 +60,6 @@ HEADERS += vecbooltest.h \
 SOURCES += main.cpp \
     scalartest.cpp
 
-contains(CONFIG, mmx) {
-    SOURCES += mmxtest.cpp
-    DEFINES += ENABLE_MMX
-}
 contains(CONFIG, sse) {
     SOURCES += ssetest.cpp
     DEFINES += ENABLE_SSE

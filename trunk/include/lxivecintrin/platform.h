@@ -25,12 +25,7 @@
 
 #include <sys/types.h>
 #include <stdint.h>
-#include <string.h>
-#include <malloc.h>
 
-#ifdef __MMX__
-#include <mmintrin.h>
-#endif
 #ifdef __SSE__
 #include <xmmintrin.h>
 #endif

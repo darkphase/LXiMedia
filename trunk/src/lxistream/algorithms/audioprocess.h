@@ -17,16 +17,17 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#undef __SSE__
-#undef __SSE2__
-#undef __SSE3__
-#undef __SSSE3__
-#undef __SSE4A__
-#include <lxivecintrin/vectypes>
-#include <QtTest>
+#include <sys/types.h>
+#include <stdint.h>
 
-#define PREFIX(x) MMX_ ## x
+namespace LXiStream {
+namespace Algorithms {
 
-#include "vecbooltest.hpp"
-#include "vecinttest.hpp"
-#include "vecfloattest.hpp"
+class AudioProcess
+{
+public:
+  static int16_t avg(const int16_t * src, int n);
+  static void gain(int16_t * dst, const int16_t * src, int n, float g);
+};
+
+} } // End of namespaces

@@ -17,35 +17,41 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include <sys/types.h>
-#include <stdint.h>
+#include "audioprocess.h"
+#include <lxivecintrin/vectypes>
+#include <cmath>
 
-int16_t LXiStream_SAudioNormalizeNode_measure
- (const int16_t * __restrict srcData, unsigned numSamples, unsigned srcNumChannels)
+namespace LXiStream {
+namespace Algorithms {
+
+using namespace lxivec;
+
+int16_t AudioProcess::avg(const int16_t * src, int n)
 {
-  const unsigned totalSamples = numSamples * srcNumChannels;
-  unsigned i;
   int64_t result = 0;
 
-  for (i=0; i<totalSamples; i++)
-    result += srcData[i] < 0 ? -srcData[i] : srcData[i];
+  int i = 0;
+  for (; i + int16_v::count <= n; i += int16_v::count)
+    result += hsum(abs(int32_dv(int16_v::load(src + i))));
 
-  return (int16_t)(result / totalSamples);
+  for (; i < n; i++)
+    result += abs(int32_t(src[i]));
+
+  return int16_t(result / n);
 }
 
-void LXiStream_SAudioNormalizeNode_gain
- (const int16_t * srcData, unsigned numSamples, unsigned srcNumChannels,
-  int16_t * dstData, int factor)
+void AudioProcess::gain(int16_t * dst, const int16_t * src, int n, float g)
 {
-  const unsigned totalSamples = numSamples * srcNumChannels;
-  unsigned i;
-  int result;
+  const int gi = int((g + 0.5f) * 256.0f);
 
-  for (i=0; i<totalSamples; i++)
+  for (int i = 0; i < n; i += int16_v::count)
   {
-    result = ((int)srcData[i]) * factor;
-    result >>= 8;
+    int32_dv a = int16_v::load(src + i);
+    a *= gi;
+    a >>= 8;
 
-    dstData[i] = (int16_t)(result >= -32768 ? (result <= 32767 ? result : 32767) : -32768);
+    store(dst + i, int16_v(a));
   }
 }
+
+} } // End of namespaces

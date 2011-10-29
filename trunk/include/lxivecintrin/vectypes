@@ -20,15 +20,9 @@
 #ifndef LXIVECINTRIN_VECTYPES
 #define LXIVECINTRIN_VECTYPES
 
-#if defined(__GNUC__)
-# if (__GNUC__ > 5) || ((__GNUC__ > 4) && (__GNUC_MINOR__ > 6))
-#  pragma GCC diagnostic push
-# endif
-# if (__GNUC__ == 4) && (__GNUC_MINOR__ < 5)
-#  pragma GCC diagnostic ignored "-Wstrict-aliasing" // Buggy
-#  pragma GCC diagnostic ignored "-Wuninitialized" // Buggy
-# endif
-# pragma GCC diagnostic ignored "-Wtype-limits"
+#if defined(__GNUC__) && (__GNUC__ == 4) && (__GNUC_MINOR__ < 6)
+# pragma GCC diagnostic ignored "-Wstrict-aliasing" // Buggy
+# pragma GCC diagnostic ignored "-Wuninitialized" // Buggy
 #endif
 
 #include "platform.h"
@@ -36,9 +30,5 @@
 #include "vecbool.h"
 #include "vecfloat.h"
 #include "vecint.h"
-
-#if defined(__GNUC__) && ((__GNUC__ > 5) || ((__GNUC__ > 4) && (__GNUC_MINOR__ > 6)))
-# pragma GCC diagnostic pop
-#endif
 
 #endif

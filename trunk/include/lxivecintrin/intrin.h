@@ -61,14 +61,6 @@ namespace _private {
 #endif
 } // End of namespace
 
-lxivec_always_inline void release(void)
-{
-#if defined(__MMX__) && !defined(__SSE2__)
-  _mm_empty();
-#endif
-}
-
-
 } // End of namespace
 
 #endif

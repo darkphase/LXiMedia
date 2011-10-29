@@ -32,28 +32,34 @@ template <int _size, int _count>
 struct BoolVector : VecObject
 {
   lxivec_always_inline BoolVector(void)
+    : VecObject()
   {
   }
 
-  lxivec_always_inline BoolVector(const BoolVector<_size, _count> &from)
+  lxivec_always_inline BoolVector(
+      const BoolVector<_size, _count> &from)
+    : VecObject(from)
   {
     copy(data, from.data);
   }
 
-  lxivec_always_inline BoolVector<_size, _count> & operator=(const BoolVector<_size, _count> &from)
+  lxivec_always_inline BoolVector<_size, _count> & operator=(
+      const BoolVector<_size, _count> &from)
   {
     copy(data, from.data);
     return *this;
   }
 
-  lxivec_always_inline BoolVector<_size, _count> operator||(const BoolVector<_size, _count> &b) const
+  lxivec_always_inline BoolVector<_size, _count> operator||(
+      const BoolVector<_size, _count> &b) const
   {
     BoolVector<_size, _count> r;
     bor(r.data, data, b.data);
     return r;
   }
 
-  lxivec_always_inline BoolVector<_size, _count> operator&&(const BoolVector<_size, _count> &b) const
+  lxivec_always_inline BoolVector<_size, _count> operator&&(
+      const BoolVector<_size, _count> &b) const
   {
     BoolVector<_size, _count> r;
     band(r.data, data, b.data);
@@ -67,14 +73,16 @@ struct BoolVector : VecObject
     return r;
   }
 
-  lxivec_always_inline BoolVector<_size, _count> operator==(const BoolVector<_size, _count> &b) const
+  lxivec_always_inline BoolVector<_size, _count> operator==(
+      const BoolVector<_size, _count> &b) const
   {
     BoolVector<_size, _count> r;
     cmpeq(r.data, data, b.data);
     return r;
   }
 
-  lxivec_always_inline BoolVector<_size, _count> operator!=(const BoolVector<_size, _count> &b) const
+  lxivec_always_inline BoolVector<_size, _count> operator!=(
+      const BoolVector<_size, _count> &b) const
   {
     BoolVector<_size, _count> r;
     cmpne(r.data, data, b.data);

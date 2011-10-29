@@ -47,18 +47,8 @@ namespace _private {
       dst.vec[vi] = _mm_castps_si128(cmpeq(a.vec[vi], b.vec[vi]));
 
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
-#elif defined(__SSE__)
-    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
-    {
-      const __m128 r = cmpeq(a.vec[vi], b.vec[vi]);
-      _mm_storel_pi(dst.vec + (vi * 2    ), r);
-      _mm_storeh_pi(dst.vec + (vi * 2 + 1), r);
-    }
-
-    i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
 
-    if (i < _count) release();
     for (; i<_count; i++)
       dst.val[i] = (a.val[i] == b.val[i]) ? 0xFFFFFFFFu : 0x00000000u;
   }
@@ -75,7 +65,6 @@ namespace _private {
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
 
-    if (i < _count) release();
     for (; i<_count; i++)
       dst.val[i] = (a.val[i] == b.val[i]) ? 0xFFFFFFFFFFFFFFFFull : 0x0000000000000000ull;
   }
@@ -90,18 +79,8 @@ namespace _private {
       dst.vec[vi] = _mm_castps_si128(cmpgt(a.vec[vi], b.vec[vi]));
 
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
-#elif defined(__SSE__)
-    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
-    {
-      const __m128 r = cmpgt(a.vec[vi], b.vec[vi]);
-      _mm_storel_pi(dst.vec + (vi * 2    ), r);
-      _mm_storeh_pi(dst.vec + (vi * 2 + 1), r);
-    }
-
-    i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
 
-    if (i < _count) release();
     for (; i<_count; i++)
       dst.val[i] = (a.val[i] > b.val[i]) ? 0xFFFFFFFFu : 0x00000000u;
   }
@@ -118,7 +97,6 @@ namespace _private {
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
 
-    if (i < _count) release();
     for (; i<_count; i++)
       dst.val[i] = (a.val[i] > b.val[i]) ? 0xFFFFFFFFFFFFFFFFull : 0x0000000000000000ull;
   }
@@ -133,18 +111,8 @@ namespace _private {
       dst.vec[vi] = _mm_castps_si128(cmplt(a.vec[vi], b.vec[vi]));
 
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
-#elif defined(__SSE__)
-    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
-    {
-      const __m128 r = cmplt(a.vec[vi], b.vec[vi]);
-      _mm_storel_pi(dst.vec + (vi * 2    ), r);
-      _mm_storeh_pi(dst.vec + (vi * 2 + 1), r);
-    }
-
-    i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
 
-    if (i < _count) release();
     for (; i<_count; i++)
       dst.val[i] = (a.val[i] < b.val[i]) ? 0xFFFFFFFFu : 0x00000000u;
   }
@@ -161,7 +129,6 @@ namespace _private {
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
 
-    if (i < _count) release();
     for (; i<_count; i++)
       dst.val[i] = (a.val[i] < b.val[i]) ? 0xFFFFFFFFFFFFFFFFull : 0x0000000000000000ull;
   }
@@ -187,7 +154,6 @@ namespace _private {
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
 
-    if (i < _count) release();
     for (; i<_count; i++)
       dst.val[i] = (a.val[i] <= b.val[i]) ? a.val[i] : b.val[i];
   }
@@ -204,7 +170,6 @@ namespace _private {
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
 
-    if (i < _count) release();
     for (; i<_count; i++)
       dst.val[i] = (a.val[i] >= b.val[i]) ? a.val[i] : b.val[i];
   }
@@ -221,7 +186,6 @@ namespace _private {
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
 
-    if (i < _count) release();
     for (; i<_count; i++)
       dst.val[i] = (a.val[i] <= b.val[i]) ? a.val[i] : b.val[i];
   }
@@ -238,7 +202,6 @@ namespace _private {
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
 
-    if (i < _count) release();
     for (; i<_count; i++)
       dst.val[i] = (a.val[i] >= b.val[i]) ? a.val[i] : b.val[i];
   }
@@ -257,19 +220,8 @@ namespace _private {
     }
 
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
-#elif defined(__SSE__)
-    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
-    {
-      __m128 mv;
-      mv = _mm_loadl_pi(mv, m.vec + (vi * 2    ));
-      mv = _mm_loadh_pi(mv, m.vec + (vi * 2 + 1));
-      dst.vec[vi] = _mm_or_ps(_mm_and_ps(mv, a.vec[vi]), _mm_andnot_ps(mv, b.vec[vi]));
-    }
-
-    i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
 
-    if (i < _count) release();
     for (; i<_count; i++)
       dst.val[i] = (m.val[i] != 0) ? a.val[i] : b.val[i];
   }
@@ -290,7 +242,6 @@ namespace _private {
     i += sizeof(dst.vec) / sizeof(dst.val[0]);
 #endif
 
-    if (i < _count) release();
     for (; i<_count; i++)
       dst.val[i] = (m.val[i] != 0) ? a.val[i] : b.val[i];
   }

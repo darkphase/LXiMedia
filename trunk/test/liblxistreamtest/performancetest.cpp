@@ -40,7 +40,7 @@ void PerformanceTest::DataSwap(void)
 {
   static const int count = 16;
   static const quint8 _lxi_align src[count] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
-  quint8 _lxi_align dst[count] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+  quint8 _lxi_align dst[count] = { 0 };
 
   Algorithms::Data::swapBytes(reinterpret_cast<quint16 *>(dst), reinterpret_cast<const quint16 *>(src), count / sizeof(quint16));
 
@@ -98,7 +98,7 @@ extern "C" unsigned LXiStream_Common_AudioResampler_resampleAudio(
 void PerformanceTest::AudioResample(void)
 {
   const qint16 _lxi_align src[20] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20 };
-  qint16 _lxi_align dst[40] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+  qint16 _lxi_align dst[40] = { 0 };
 
   AudioResampleUp(dst, src, sizeof(dst));
 
@@ -189,14 +189,14 @@ void PerformanceTest::ConvertS8S16(void)
 {
   static const int count = 16;
   static const qint8 _lxi_align src[count] = { 1, -2, 3, -4, 5, -6, 7, -8, 9, -10, 11, -12, 13, -14, 15, -16 };
-  qint16 _lxi_align dst1[count] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+  qint16 _lxi_align dst1[count] = { 0 };
 
   Algorithms::AudioConvert::convert(dst1, src, count);
 
   for (int i=0; i<count; i++)
     QCOMPARE(dst1[i], qint16((qint16(src[i]) << 8)));
 
-  qint8 _lxi_align dst2[count] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+  qint8 _lxi_align dst2[count] = { 0 };
 
   Algorithms::AudioConvert::convert(dst2, dst1, count);
 
@@ -210,14 +210,14 @@ void PerformanceTest::ConvertU8S16(void)
 {
   static const int count = 16;
   static const quint8 _lxi_align src[count] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
-  qint16 _lxi_align dst1[count] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+  qint16 _lxi_align dst1[count] = { 0 };
 
   Algorithms::AudioConvert::convert(dst1, src, count);
 
   for (int i=0; i<count; i++)
     QCOMPARE(dst1[i], qint16((qint16(src[i]) << 8) - 32768));
 
-  quint8 _lxi_align dst2[count] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+  quint8 _lxi_align dst2[count] = { 0 };
 
   Algorithms::AudioConvert::convert(dst2, dst1, count);
 
@@ -231,14 +231,14 @@ void PerformanceTest::ConvertU8U16(void)
 {
   static const int count = 16;
   static const quint8 _lxi_align src[count] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
-  quint16 _lxi_align dst1[count] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+  quint16 _lxi_align dst1[count] = { 0 };
 
   Algorithms::AudioConvert::convert(dst1, src, count);
 
   for (int i=0; i<count; i++)
     QCOMPARE(dst1[i], quint16(quint16(src[i]) << 8));
 
-  quint8 _lxi_align dst2[count] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+  quint8 _lxi_align dst2[count] = { 0 };
 
   Algorithms::AudioConvert::convert(dst2, dst1, count);
 
@@ -252,14 +252,14 @@ void PerformanceTest::ConvertS16S32(void)
 {
   static const int count = 8;
   static const qint16 _lxi_align src[count] = { 1, -2, 3, -4, 5, -6, 7, -8 };
-  qint32 _lxi_align dst1[count] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+  qint32 _lxi_align dst1[count] = { 0 };
 
   Algorithms::AudioConvert::convert(dst1, src, count);
 
   for (int i=0; i<count; i++)
     QCOMPARE(dst1[i], qint32(qint32(src[i]) << 16));
 
-  qint16 _lxi_align dst2[count] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+  qint16 _lxi_align dst2[count] = { 0 };
 
   Algorithms::AudioConvert::convert(dst2, dst1, count);
 
@@ -273,14 +273,14 @@ void PerformanceTest::ConvertU16U32(void)
 {
   static const int count = 8;
   static const quint16 _lxi_align src[count] = { 1, -2, 3, -4, 5, -6, 7, -8 };
-  quint32 _lxi_align dst1[count] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+  quint32 _lxi_align dst1[count] = { 0 };
 
   Algorithms::AudioConvert::convert(dst1, src, count);
 
   for (int i=0; i<count; i++)
     QCOMPARE(dst1[i], quint32(quint32(src[i]) << 16));
 
-  quint16 _lxi_align dst2[count] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+  quint16 _lxi_align dst2[count] = { 0 };
 
   Algorithms::AudioConvert::convert(dst2, dst1, count);
 
@@ -294,14 +294,14 @@ void PerformanceTest::ConvertS16F32(void)
 {
   static const int count = 8;
   static const qint16 _lxi_align src[count] = { 1, -2, 3, -4, 5, -6, 7, -8 };
-  float _lxi_align dst1[count] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+  float _lxi_align dst1[count] = { 0 };
 
   Algorithms::AudioConvert::convert(dst1, src, count);
 
   for (int i=0; i<count; i++)
     QVERIFY(qFuzzyCompare(dst1[i], float(src[i]) / 32768.0f));
 
-  qint16 _lxi_align dst2[count] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+  qint16 _lxi_align dst2[count] = { 0 };
 
   Algorithms::AudioConvert::convert(dst2, dst1, count);
 
@@ -315,14 +315,14 @@ void PerformanceTest::ConvertS32F32(void)
 {
   static const int count = 4;
   static const qint32 _lxi_align src[count] = { 1, -2, 3, -4 };
-  float _lxi_align dst1[count] = { 0, 0, 0, 0 };
+  float _lxi_align dst1[count] = { 0 };
 
   Algorithms::AudioConvert::convert(dst1, src, count);
 
   for (int i=0; i<count; i++)
     QVERIFY(qFuzzyCompare(dst1[i], float(src[i]) / 2147483648.0f));
 
-  qint32 _lxi_align dst2[count] = { 0, 0, 0, 0 };
+  qint32 _lxi_align dst2[count] = { 0 };
 
   Algorithms::AudioConvert::convert(dst2, dst1, count);
 
@@ -336,14 +336,14 @@ void PerformanceTest::ConvertS16F64(void)
 {
   static const int count = 8;
   static const qint16 _lxi_align src[count] = { 1, -2, 3, -4, 5, -6, 7, -8 };
-  double _lxi_align dst1[count] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+  double _lxi_align dst1[count] = { 0 };
 
   Algorithms::AudioConvert::convert(dst1, src, count);
 
   for (int i=0; i<count; i++)
     QVERIFY(qFuzzyCompare(dst1[i], double(src[i]) / 32768.0));
 
-  qint16 _lxi_align dst2[count] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+  qint16 _lxi_align dst2[count] = { 0 };
 
   Algorithms::AudioConvert::convert(dst2, dst1, count);
 
@@ -357,14 +357,14 @@ void PerformanceTest::ConvertS32F64(void)
 {
   static const int count = 4;
   static const qint32 _lxi_align src[count] = { 1, -2, 3, -4 };
-  double _lxi_align dst1[count] = { 0, 0, 0, 0 };
+  double _lxi_align dst1[count] = { 0 };
 
   Algorithms::AudioConvert::convert(dst1, src, count);
 
   for (int i=0; i<count; i++)
     QVERIFY(qFuzzyCompare(dst1[i], double(src[i]) / 2147483648.0));
 
-  qint32 _lxi_align dst2[count] = { 0, 0, 0, 0 };
+  qint32 _lxi_align dst2[count] = { 0 };
 
   Algorithms::AudioConvert::convert(dst2, dst1, count);
 
@@ -378,14 +378,14 @@ void PerformanceTest::ConvertU16S16(void)
 {
   static const int count = 8;
   static const quint16 _lxi_align src[count] = { 1, 2, 3, 4, 5, 6, 7, 8 };
-  qint16 _lxi_align dst1[count] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+  qint16 _lxi_align dst1[count] = { 0 };
 
   Algorithms::AudioConvert::convert(dst1, src, count);
 
   for (int i=0; i<count; i++)
     QCOMPARE(dst1[i], qint16(src[i] + 32768));
 
-  quint16 _lxi_align dst2[count] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+  quint16 _lxi_align dst2[count] = { 0 };
 
   Algorithms::AudioConvert::convert(dst2, dst1, count);
 
@@ -399,14 +399,14 @@ void PerformanceTest::ConvertU32S32(void)
 {
   static const int count = 4;
   static const quint32 _lxi_align src[count] = { 1, 2, 3, 4 };
-  qint32 _lxi_align dst1[count] = { 0, 0, 0, 0 };
+  qint32 _lxi_align dst1[count] = { 0 };
 
   Algorithms::AudioConvert::convert(dst1, src, count);
 
   for (int i=0; i<count; i++)
     QCOMPARE(dst1[i], qint32(src[i] + 2147483648u));
 
-  quint32 _lxi_align dst2[count] = { 0, 0, 0, 0 };
+  quint32 _lxi_align dst2[count] = { 0 };
 
   Algorithms::AudioConvert::convert(dst2, dst1, count);
 
@@ -418,11 +418,11 @@ void PerformanceTest::ConvertU32S32(void)
  */
 void PerformanceTest::DeinterlaceBlend(void)
 {
-  static const int count = 10;
-  static const quint8 _lxi_align srca[count] = { 64, 96, 64, 96, 64, 96, 64, 96, 64, 96 };
-  static const quint8 _lxi_align srcb[count] = { 96, 64, 96, 64, 96, 64, 96, 64, 96, 64 };
+  static const int count = 16;
+  static const quint8 _lxi_align srca[count] = { 64, 96, 64, 96, 64, 96, 64, 96, 64, 96, 64, 96, 64, 96, 64, 96 };
+  static const quint8 _lxi_align srcb[count] = { 96, 64, 96, 64, 96, 64, 96, 64, 96, 64, 96, 64, 96, 64, 96, 64 };
 
-  quint8 _lxi_align dst[count] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+  quint8 _lxi_align dst[count] = { 0 };
 
   Algorithms::Deinterlace::blendFields(dst, srca, srcb, count);
 
@@ -434,12 +434,12 @@ void PerformanceTest::DeinterlaceBlend(void)
  */
 void PerformanceTest::DeinterlaceSmartBlend(void)
 {
-  static const int count = 10;
-  static const quint8 _lxi_align srca[count] = { 64, 144, 64, 144, 64, 144, 64, 144, 64, 144 };
-  static const quint8 _lxi_align srcb[count] = { 96, 192, 96, 192, 96, 192, 96, 192, 96, 192 };
-  static const quint8 _lxi_align srcc[count] = { 192, 48, 192, 48, 192, 48, 192, 48, 192, 48 };
+  static const int count = 16;
+  static const quint8 _lxi_align srca[count] = { 64, 144, 64, 144, 64, 144, 64, 144, 64, 144, 64, 144, 64, 144, 64, 144 };
+  static const quint8 _lxi_align srcb[count] = { 96, 192, 96, 192, 96, 192, 96, 192, 96, 192, 96, 192, 96, 192, 96, 192 };
+  static const quint8 _lxi_align srcc[count] = { 192, 48, 192, 48, 192, 48, 192, 48, 192, 48, 192, 48, 192, 48, 192, 48 };
 
-  quint8 _lxi_align dst[count] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+  quint8 _lxi_align dst[count] = { 0 };
 
   Algorithms::Deinterlace::smartBlendFields(dst, srca, srcb, srcc, count);
 
@@ -451,19 +451,19 @@ void PerformanceTest::DeinterlaceSmartBlend(void)
  */
 void PerformanceTest::ConvertYUYVtoYUV2(void)
 {
-  static const int count = 40;
+  static const int count = 32;
   static const quint8 _lxi_align src[count * 2] =
   {
-//   Y   U    Y    V   Y    U    Y   V   Y   U    Y    V   Y    U    Y   V   Y    U    Y   V
-    96, 64, 160, 192, 96, 192, 160, 64, 96, 64, 160, 192, 96, 192, 160, 64, 96, 192, 160, 64,
-    96, 64, 160, 192, 96, 192, 160, 64, 96, 64, 160, 192, 96, 192, 160, 64, 96, 192, 160, 64,
-    96, 64, 160, 192, 96, 192, 160, 64, 96, 64, 160, 192, 96, 192, 160, 64, 96, 192, 160, 64,
-    96, 64, 160, 192, 96, 192, 160, 64, 96, 64, 160, 192, 96, 192, 160, 64, 96, 192, 160, 64
+//   Y   U    Y    V   Y    U    Y   V   Y   U    Y    V   Y    U    Y   V
+    96, 64, 160, 192, 96, 192, 160, 64, 96, 64, 160, 192, 96, 192, 160, 64,
+    96, 64, 160, 192, 96, 192, 160, 64, 96, 64, 160, 192, 96, 192, 160, 64,
+    96, 64, 160, 192, 96, 192, 160, 64, 96, 64, 160, 192, 96, 192, 160, 64,
+    96, 64, 160, 192, 96, 192, 160, 64, 96, 64, 160, 192, 96, 192, 160, 64
   };
 
-  quint8 _lxi_align dsty[count    ] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-  quint8 _lxi_align dstu[count / 2] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-  quint8 _lxi_align dstv[count / 2] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+  quint8 _lxi_align dsty[count    ] = { 0 };
+  quint8 _lxi_align dstu[count / 2] = { 0 };
+  quint8 _lxi_align dstv[count / 2] = { 0 };
 
   Algorithms::VideoConvert::YUYVtoYUV2(dsty, dstu, dstv, src, count);
 
@@ -488,19 +488,19 @@ void PerformanceTest::ConvertYUYVtoYUV2(void)
  */
 void PerformanceTest::ConvertUYVYtoYUV2(void)
 {
-  static const int count = 40;
+  static const int count = 32;
   static const quint8 _lxi_align src[count * 2] =
   {
-//   U   Y    V    Y    U   Y   V    Y   U   Y    V    Y    U   Y   V    Y   U   Y    V    Y
-    64, 96, 192, 160, 192, 96, 64, 160, 64, 96, 192, 160, 192, 96, 64, 160, 64, 96, 192, 160,
-    64, 96, 192, 160, 192, 96, 64, 160, 64, 96, 192, 160, 192, 96, 64, 160, 64, 96, 192, 160,
-    64, 96, 192, 160, 192, 96, 64, 160, 64, 96, 192, 160, 192, 96, 64, 160, 64, 96, 192, 160,
-    64, 96, 192, 160, 192, 96, 64, 160, 64, 96, 192, 160, 192, 96, 64, 160, 64, 96, 192, 160,
+//   U   Y    V    Y    U   Y   V    Y   U   Y    V    Y    U   Y   V    Y
+    64, 96, 192, 160, 192, 96, 64, 160, 64, 96, 192, 160, 192, 96, 64, 160,
+    64, 96, 192, 160, 192, 96, 64, 160, 64, 96, 192, 160, 192, 96, 64, 160,
+    64, 96, 192, 160, 192, 96, 64, 160, 64, 96, 192, 160, 192, 96, 64, 160,
+    64, 96, 192, 160, 192, 96, 64, 160, 64, 96, 192, 160, 192, 96, 64, 160
   };
 
-  quint8 _lxi_align dsty[count    ] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-  quint8 _lxi_align dstu[count / 2] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-  quint8 _lxi_align dstv[count / 2] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+  quint8 _lxi_align dsty[count    ] = { 0 };
+  quint8 _lxi_align dstu[count / 2] = { 0 };
+  quint8 _lxi_align dstv[count / 2] = { 0 };
 
   Algorithms::VideoConvert::UYVYtoYUV2(dsty, dstu, dstv, src, count);
 
@@ -525,14 +525,14 @@ void PerformanceTest::ConvertUYVYtoYUV2(void)
  */
 void PerformanceTest::MergeUVlines(void)
 {
-  static const int count = 20;
-  static const quint8 _lxi_align srcua[count] = { 64, 96, 64, 96, 64, 96, 64, 96, 64, 96, 64, 96, 64, 96, 64, 96, 64, 96, 64, 96 };
-  static const quint8 _lxi_align srcub[count] = { 192, 160, 192, 160, 192, 160, 192, 160, 192, 160, 192, 160, 192, 160, 192, 160, 192, 160, 192, 160 };
-  static const quint8 _lxi_align srcva[count] = { 96, 64, 96, 64, 96, 64, 96, 64, 96, 64, 96, 64, 96, 64, 96, 64, 96, 64, 96, 64 };
-  static const quint8 _lxi_align srcvb[count] = { 160, 192, 160, 192, 160, 192, 160, 192, 160, 192, 160, 192, 160, 192, 160, 192, 160, 192, 160, 192 };
+  static const int count = 16;
+  static const quint8 _lxi_align srcua[count] = { 64, 96, 64, 96, 64, 96, 64, 96, 64, 96, 64, 96, 64, 96, 64, 96 };
+  static const quint8 _lxi_align srcub[count] = { 192, 160, 192, 160, 192, 160, 192, 160, 192, 160, 192, 160, 192, 160, 192, 160 };
+  static const quint8 _lxi_align srcva[count] = { 96, 64, 96, 64, 96, 64, 96, 64, 96, 64, 96, 64, 96, 64, 96, 64 };
+  static const quint8 _lxi_align srcvb[count] = { 160, 192, 160, 192, 160, 192, 160, 192, 160, 192, 160, 192, 160, 192, 160, 192 };
 
-  quint8 _lxi_align dstu[count] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-  quint8 _lxi_align dstv[count] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+  quint8 _lxi_align dstu[count] = { 0 };
+  quint8 _lxi_align dstv[count] = { 0 };
 
   Algorithms::VideoConvert::mergeUVlines(dstu, dstv, srcua, srcub, srcva, srcvb, count);
 
@@ -553,18 +553,18 @@ void PerformanceTest::MergeUVlines(void)
  */
 void PerformanceTest::ConvertYUYVtoRGB(void)
 {
-  static const int count = 10;
+  static const int count = 8;
   static const quint8 _lxi_align src[count * 2] =
   {
-//   Y   U    Y    V   Y    U    Y   V   Y   U    Y    V   Y    U    Y   V   Y    U    Y   V
-    96, 64, 160, 192, 96, 192, 160, 64, 96, 64, 160, 192, 96, 192, 160, 64, 96, 192, 160, 64
+//   Y   U    Y    V   Y    U    Y   V   Y   U    Y    V   Y    U    Y   V
+    96, 64, 160, 192, 96, 192, 160, 64, 96, 64, 160, 192, 96, 192, 160, 64
   };
 
-  uint32_t _lxi_align dst1[count] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+  uint32_t _lxi_align dst1[count] = { 0 };
 
   Algorithms::VideoConvert::YUYVtoRGB(dst1, src, count);
 
-  quint8 _lxi_align dst2[count * 2] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+  quint8 _lxi_align dst2[count * 2] = { 0 };
 
   Algorithms::VideoConvert::RGBtoYUYV(dst2, dst1, count);
 
@@ -585,18 +585,18 @@ void PerformanceTest::ConvertYUYVtoRGB(void)
  */
 void PerformanceTest::ConvertUYVYtoRGB(void)
 {
-  static const int count = 10;
+  static const int count = 8;
   static const quint8 _lxi_align src[count * 2] =
   {
-//   U   Y    V    Y    U   Y   V    Y   U   Y    V    Y    U   Y   V    Y    U   Y   V    Y
-    64, 96, 192, 160, 192, 96, 64, 160, 64, 96, 192, 160, 192, 96, 64, 160, 192, 96, 64, 160
+//   U   Y    V    Y    U   Y   V    Y   U   Y    V    Y    U   Y   V    Y
+    64, 96, 192, 160, 192, 96, 64, 160, 64, 96, 192, 160, 192, 96, 64, 160
   };
 
-  uint32_t _lxi_align dst1[count] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+  uint32_t _lxi_align dst1[count] = { 0 };
 
   Algorithms::VideoConvert::UYVYtoRGB(dst1, src, count);
 
-  quint8 _lxi_align dst2[count * 2] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+  quint8 _lxi_align dst2[count * 2] = { 0 };
 
   Algorithms::VideoConvert::RGBtoUYVY(dst2, dst1, count);
 
@@ -617,17 +617,17 @@ void PerformanceTest::ConvertUYVYtoRGB(void)
  */
 void PerformanceTest::ConvertBGRtoRGB(void)
 {
-  static const int count = 5;
-  //                                                R  G  B  A  R  G  B  A  R  G  B  A  R  G  B  A  R  G  B  A
-  static const quint8 _lxi_align src[count * 4] = { 1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4 };
-  quint8 _lxi_align dst1[count * 4] =             { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+  static const int count = 4;
+  //                                                R  G  B  A  R  G  B  A  R  G  B  A  R  G  B  A
+  static const quint8 _lxi_align src[count * 4] = { 1, 2, 3, 4, 5, 6, 7, 8, 1, 2, 3, 4, 5, 6, 7, 8 };
+  quint8 _lxi_align dst1[count * 4] =             { 0 };
 
   Algorithms::VideoConvert::BGRtoRGB(
       reinterpret_cast<quint32 *>(dst1),
       reinterpret_cast<const quint32 *>(src),
       count);
 
-  quint8 _lxi_align dst2[count * 4] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+  quint8 _lxi_align dst2[count * 4] = { 0 };
 
   Algorithms::VideoConvert::BGRtoRGB(
       reinterpret_cast<quint32 *>(dst2),
@@ -655,18 +655,18 @@ void PerformanceTest::ConvertBGRtoRGB(void)
  */
 void PerformanceTest::ConvertYUV1toRGB(void)
 {
-  static const int count = 5;
-  static const quint8 _lxi_align srcy[count] = { 96, 160, 96, 160, 96 };
-  static const quint8 _lxi_align srcu[count] = { 64, 192, 64, 192, 64 };
-  static const quint8 _lxi_align srcv[count] = { 192, 64, 192, 64, 192 };
+  static const int count = 16;
+  static const quint8 _lxi_align srcy[count] = { 96, 160, 96, 160, 96, 160, 96, 160, 96, 160, 96, 160, 96, 160, 96, 160 };
+  static const quint8 _lxi_align srcu[count] = { 64, 192, 64, 192, 64, 192, 64, 192, 64, 192, 64, 192, 64, 192, 64, 192 };
+  static const quint8 _lxi_align srcv[count] = { 192, 64, 192, 64, 192, 64, 192, 64, 192, 64, 192, 64, 192, 64, 192, 64 };
 
-  quint8 _lxi_align dst1[count * 4] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+  quint8 _lxi_align dst1[count * 4] = { 0 };
 
   Algorithms::VideoConvert::YUV1toRGB(reinterpret_cast<quint32 *>(dst1), srcy, srcu, srcv, count);
 
-  quint8 _lxi_align dst2y[count] = { 0, 0, 0, 0, 0 };
-  quint8 _lxi_align dst2u[count] = { 0, 0, 0, 0, 0 };
-  quint8 _lxi_align dst2v[count] = { 0, 0, 0, 0, 0 };
+  quint8 _lxi_align dst2y[count] = { 0 };
+  quint8 _lxi_align dst2u[count] = { 0 };
+  quint8 _lxi_align dst2v[count] = { 0 };
 
   Algorithms::VideoConvert::RGBtoYUV1(dst2y, dst2u, dst2v, reinterpret_cast<const quint32 *>(dst1), count);
 
@@ -689,18 +689,18 @@ void PerformanceTest::ConvertYUV1toRGB(void)
  */
 void PerformanceTest::ConvertYUV2toRGB(void)
 {
-  static const int count = 10;
-  static const quint8 _lxi_align srcy[count] = { 96, 160, 96, 160, 96, 160, 96, 160, 96, 160 };
-  static const quint8 _lxi_align srcu[count / 2] = { 64, 192, 64, 192, 64 };
-  static const quint8 _lxi_align srcv[count / 2] = { 192, 64, 192, 64, 192 };
+  static const int count = 32;
+  static const quint8 _lxi_align srcy[count] = { 96, 160, 96, 160, 96, 160, 96, 160, 96, 160, 96, 160, 96, 160, 96, 160, 96, 160, 96, 160, 96, 160, 96, 160, 96, 160, 96, 160, 96, 160, 96, 160 };
+  static const quint8 _lxi_align srcu[count / 2] = { 64, 192, 64, 192, 64, 192, 64, 192, 64, 192, 64, 192, 64, 192, 64, 192 };
+  static const quint8 _lxi_align srcv[count / 2] = { 192, 64, 192, 64, 192, 64, 192, 64, 192, 64, 192, 64, 192, 64, 192, 64 };
 
-  quint8 _lxi_align dst1[count * 4] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+  quint8 _lxi_align dst1[count * 4] = { 0 };
 
   Algorithms::VideoConvert::YUV2toRGB(reinterpret_cast<quint32 *>(dst1), srcy, srcu, srcv, count);
 
-  quint8 _lxi_align dst2y[count] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-  quint8 _lxi_align dst2u[count / 2] = { 0, 0, 0, 0, 0 };
-  quint8 _lxi_align dst2v[count / 2] = { 0, 0, 0, 0, 0 };
+  quint8 _lxi_align dst2y[count] = { 0 };
+  quint8 _lxi_align dst2u[count / 2] = { 0 };
+  quint8 _lxi_align dst2v[count / 2] = { 0 };
 
   Algorithms::VideoConvert::RGBtoYUV2(dst2y, dst2u, dst2v, reinterpret_cast<const quint32 *>(dst1), count);
 

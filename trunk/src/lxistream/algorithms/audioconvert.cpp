@@ -32,7 +32,7 @@ void AudioConvert::convert(int16_t * dst, const int8_t * src, int n)
     int16_dv a = int8_v::load(src + i);
     a <<= 8;
 
-    a.store(dst + i);
+    store(dst + i, a);
   }
 }
 
@@ -42,7 +42,7 @@ void AudioConvert::convert(int8_t * dst, const int16_t * src, int n)
   {
     int8_v a = int16_dv::load(src + i) >> 8;
 
-    a.store(dst + i);
+    store(dst + i, a);
   }
 }
 
@@ -53,7 +53,7 @@ void AudioConvert::convert(uint16_t * dst, const uint8_t * src, int n)
     uint16_dv a = uint8_v::load(src + i);
     a <<= 8;
 
-    a.store(dst + i);
+    store(dst + i, a);
   }
 }
 
@@ -63,7 +63,7 @@ void AudioConvert::convert(uint8_t * dst, const uint16_t * src, int n)
   {
     uint8_v a = uint16_dv::load(src + i) >> 8;
 
-    a.store(dst + i);
+    store(dst + i, a);
   }
 }
 
@@ -74,7 +74,7 @@ void AudioConvert::convert(int16_t * dst, const uint8_t * src, int n)
     int16_dv a = uint8_v::load(src + i);
     a = (a << 8) - 32768;
 
-    a.store(dst + i);
+    store(dst + i, a);
   }
 }
 
@@ -84,7 +84,7 @@ void AudioConvert::convert(uint8_t * dst, const int16_t * src, int n)
   {
     uint8_v a = (int16_dv::load(src + i) + 32768) >> 8;
 
-    a.store(dst + i);
+    store(dst + i, a);
   }
 }
 
@@ -95,7 +95,7 @@ void AudioConvert::convert(int32_t * dst, const int16_t * src, int n)
     int32_dv a = int16_v::load(src + i);
     a <<= 16;
 
-    a.store(dst + i);
+    store(dst + i, a);
   }
 }
 
@@ -105,7 +105,7 @@ void AudioConvert::convert(int16_t * dst, const int32_t * src, int n)
   {
     int16_v a = int32_dv::load(src + i) >> 16;
 
-    a.store(dst + i);
+    store(dst + i, a);
   }
 }
 
@@ -116,7 +116,7 @@ void AudioConvert::convert(uint32_t * dst, const uint16_t * src, int n)
     uint32_dv a = uint16_v::load(src + i);
     a <<= 16;
 
-    a.store(dst + i);
+    store(dst + i, a);
   }
 }
 
@@ -126,7 +126,7 @@ void AudioConvert::convert(uint16_t * dst, const uint32_t * src, int n)
   {
     uint16_v a = uint32_dv::load(src + i) >> 16;
 
-    a.store(dst + i);
+    store(dst + i, a);
   }
 }
 
@@ -136,7 +136,7 @@ void AudioConvert::convert(int16_t * dst, const uint16_t * src, int n)
   {
     int16_v a = uint16_v::load(src + i) + 32768;
 
-    a.store(dst + i);
+    store(dst + i, a);
   }
 }
 
@@ -146,7 +146,7 @@ void AudioConvert::convert(uint16_t * dst, const int16_t * src, int n)
   {
     uint16_v a = int16_v::load(src + i) - 32768;
 
-    a.store(dst + i);
+    store(dst + i, a);
   }
 }
 
@@ -156,7 +156,7 @@ void AudioConvert::convert(int32_t * dst, const uint32_t * src, int n)
   {
     int32_v a = uint32_v::load(src + i) + 2147483648u;
 
-    a.store(dst + i);
+    store(dst + i, a);
   }
 }
 
@@ -166,7 +166,7 @@ void AudioConvert::convert(uint32_t * dst, const int32_t * src, int n)
   {
     uint32_v a = int32_v::load(src + i) - 2147483648u;
 
-    a.store(dst + i);
+    store(dst + i, a);
   }
 }
 
@@ -179,7 +179,7 @@ void AudioConvert::convert(float * dst, const int16_t * src, int n)
     float_dv a = int16_v::load(src + i);
     a *= mul;
 
-    a.store(dst + i);
+    store(dst + i, a);
   }
 }
 
@@ -189,7 +189,7 @@ void AudioConvert::convert(int16_t * dst, const float * src, int n)
   {
     int16_v a = float_dv::load(src + i) * 32768.0f;
 
-    a.store(dst + i);
+    store(dst + i, a);
   }
 }
 
@@ -202,7 +202,7 @@ void AudioConvert::convert(float * dst, const int32_t * src, int n)
     float_v a = int32_v::load(src + i);
     a *= mul;
 
-    a.store(dst + i);
+    store(dst + i, a);
   }
 }
 
@@ -212,7 +212,7 @@ void AudioConvert::convert(int32_t * dst, const float * src, int n)
   {
     int32_v a = float_v::load(src + i) * 2147483648.0f;
 
-    a.store(dst + i);
+    store(dst + i, a);
   }
 }
 
@@ -225,7 +225,7 @@ void AudioConvert::convert(double * dst, const int16_t * src, int n)
     double_qv a = int16_v::load(src + i);
     a *= mul;
 
-    a.store(dst + i);
+    store(dst + i, a);
   }
 }
 
@@ -235,7 +235,7 @@ void AudioConvert::convert(int16_t * dst, const double * src, int n)
   {
     int16_v a = double_qv::load(src + i) * 32768.0;
 
-    a.store(dst + i);
+    store(dst + i, a);
   }
 }
 
@@ -248,7 +248,7 @@ void AudioConvert::convert(double * dst, const int32_t * src, int n)
     double_dv a = int32_v::load(src + i);
     a *= mul;
 
-    a.store(dst + i);
+    store(dst + i, a);
   }
 }
 
@@ -258,7 +258,7 @@ void AudioConvert::convert(int32_t * dst, const double * src, int n)
   {
     int32_v a = double_dv::load(src + i) * 2147483648.0;
 
-    a.store(dst + i);
+    store(dst + i, a);
   }
 }
 

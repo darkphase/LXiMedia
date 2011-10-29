@@ -18,13 +18,7 @@
  ***************************************************************************/
 
 #include "nodes/saudionormalizenode.h"
-
-// Implemented in saudionormalizenode.mul.c
-extern "C" qint16 LXiStream_SAudioNormalizeNode_measure
- (const qint16 * srcData, unsigned numSamples, unsigned srcNumChannels);
-extern "C" void LXiStream_SAudioNormalizeNode_gain
- (const qint16 * srcData, unsigned numSamples, unsigned srcNumChannels,
-  qint16 * dstData, int factor);
+#include "../../algorithms/audioprocess.h"
 
 namespace LXiStream {
 
@@ -67,10 +61,9 @@ void SAudioNormalizeNode::input(const SAudioBuffer &audioBuffer)
     {
       const STime currentTime = audioBuffer.timeStamp();
 
-      d->history.insert(currentTime, LXiStream_SAudioNormalizeNode_measure
-          (reinterpret_cast<const qint16 *>(audioBuffer.data()),
-           audioBuffer.numSamples(),
-           audioBuffer.format().numChannels()));
+      d->history.insert(currentTime, Algorithms::AudioProcess::avg(
+          reinterpret_cast<const qint16 *>(audioBuffer.data()),
+          audioBuffer.numSamples() * audioBuffer.format().numChannels()));
 
       qint64 avg = 0;
       for (QMap<STime, qint16>::Iterator i=d->history.begin(); i!=d->history.end(); )
@@ -97,12 +90,11 @@ void SAudioNormalizeNode::input(const SAudioBuffer &audioBuffer)
         SAudioBuffer destBuffer(audioBuffer.format(), srcBuffer.numSamples());
         destBuffer.setTimeStamp(srcBuffer.timeStamp());
 
-        LXiStream_SAudioNormalizeNode_gain
-            (reinterpret_cast<const qint16 *>(srcBuffer.data()),
-             srcBuffer.numSamples(),
-             srcBuffer.format().numChannels(),
-             reinterpret_cast<qint16 *>(destBuffer.data()),
-             ((4096.0f / float(avg)) * 256.0f) + 0.5f);
+        Algorithms::AudioProcess::gain(
+            reinterpret_cast<qint16 *>(destBuffer.data()),
+            reinterpret_cast<const qint16 *>(srcBuffer.data()),
+            srcBuffer.numSamples() * srcBuffer.format().numChannels(),
+            4096.0f / float(avg));
 
         emit output(destBuffer);
       }
@@ -130,12 +122,11 @@ void SAudioNormalizeNode::input(const SAudioBuffer &audioBuffer)
         SAudioBuffer destBuffer(audioBuffer.format(), srcBuffer.numSamples());
         destBuffer.setTimeStamp(srcBuffer.timeStamp());
 
-        LXiStream_SAudioNormalizeNode_gain
-            (reinterpret_cast<const qint16 *>(srcBuffer.data()),
-             srcBuffer.numSamples(),
-             srcBuffer.format().numChannels(),
-             reinterpret_cast<qint16 *>(destBuffer.data()),
-             ((4096.0f / float(avg)) * 256.0f) + 0.5f);
+        Algorithms::AudioProcess::gain(
+            reinterpret_cast<qint16 *>(destBuffer.data()),
+            reinterpret_cast<const qint16 *>(srcBuffer.data()),
+            srcBuffer.numSamples() * srcBuffer.format().numChannels(),
+            4096.0f / float(avg));
 
         emit output(destBuffer);
       }
