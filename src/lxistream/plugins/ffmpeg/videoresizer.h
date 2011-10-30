@@ -30,6 +30,13 @@ namespace FFMpegBackend {
 class VideoResizer : public SInterfaces::VideoResizer
 {
 Q_OBJECT
+private:
+  struct Slice
+  {
+    int stride[4];
+    quint8 * line[4];
+  };
+
 public:
                                 VideoResizer(const QString &, QObject *);
   virtual                       ~VideoResizer();
@@ -46,18 +53,20 @@ public: // From SInterfaces::VideoResizer
   virtual SVideoBuffer          processBuffer(const SVideoBuffer &);
 
 private:
-  bool                          processSlice(quint8 **source, int *srcLineSize, quint8 **, int *);
+  bool                          processSlice(int, int, int, const Slice &, const Slice &);
 
   static ::SwsFilter          * createDeinterlaceFilter(void);
 
 private:
   const int                     filterFlags;
+  const int                     filterOverlap;
   SSize                         scaleSize;
   Qt::AspectRatioMode           scaleAspectRatioMode;
   SVideoFormat                  lastFormat;
   SVideoFormat                  destFormat;
 
-  ::SwsContext                * swsContext;
+  int                           numThreads;
+  ::SwsContext                * swsContext[2];
   ::SwsFilter                 * preFilter;
 };
 

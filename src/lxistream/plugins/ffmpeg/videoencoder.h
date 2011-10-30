@@ -46,8 +46,6 @@ public: // From SBufferEncoder
   virtual SEncodedVideoBufferList encodeBuffer(const SVideoBuffer &);
 
 private:
-  static const int              bufferSize;
-
   SVideoCodec                   outCodec;
   ::AVCodec                   * codecHandle;
   ::AVCodecContext            * contextHandle;
@@ -66,7 +64,7 @@ private:
   SEncodedVideoBuffer           lastEncodedBuffer;
 #endif
 
-  SBuffer                       outBuffer;
+  int                           bufferSize;
 };
 
 
