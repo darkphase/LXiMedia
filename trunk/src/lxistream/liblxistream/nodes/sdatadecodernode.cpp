@@ -80,8 +80,6 @@ void SDataDecoderNode::stop(void)
 
 void SDataDecoderNode::input(const SEncodedDataBuffer &dataBuffer)
 {
-  LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
-
   if (!dataBuffer.isNull())
   {
     if (d->lastCodec != dataBuffer.codec())

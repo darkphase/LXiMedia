@@ -130,8 +130,6 @@ void SVideoFormatConvertNode::stop(void)
 
 void SVideoFormatConvertNode::input(const SVideoBuffer &videoBuffer)
 {
-  LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
-
   if (!videoBuffer.isNull())
   {
     if (videoBuffer.format() == d->destFormat)

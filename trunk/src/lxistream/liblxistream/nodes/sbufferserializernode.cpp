@@ -80,7 +80,6 @@ template <>
 void SBufferSerializerNode::serialize(const QByteArray &buffer, quint32 bufferId)
 {
   LXI_PROFILE_WAIT(d->mutex.lock());
-  LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
 
   if (d->ioDevice)
   {
@@ -106,7 +105,6 @@ template <class _buffer>
 void SBufferSerializerNode::serialize(const _buffer &buffer, quint32 bufferId)
 {
   LXI_PROFILE_WAIT(d->mutex.lock());
-  LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
 
   if (d->ioDevice)
   {
@@ -156,7 +154,6 @@ void SBufferSerializerNode::input(const SSubpictureBuffer &buffer)
 void SBufferSerializerNode::close(void)
 {
   LXI_PROFILE_WAIT(d->mutex.lock());
-  LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
 
   if (d->ioDevice)
   {

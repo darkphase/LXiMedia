@@ -124,7 +124,6 @@ SInterval STimeStampResamplerNode::roundFrameRate(SInterval frameRate, const QVe
 
 void STimeStampResamplerNode::input(const SAudioBuffer &audioBuffer)
 {
-  LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
   QMutexLocker l(&d->mutex);
 
   if (!audioBuffer.isNull())
@@ -163,7 +162,6 @@ void STimeStampResamplerNode::stop(void)
 
 void STimeStampResamplerNode::input(const SVideoBuffer &videoBuffer)
 {
-  LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
   QMutexLocker l(&d->mutex);
 
   if (!videoBuffer.isNull() && d->frameRate.isValid())
@@ -202,7 +200,6 @@ void STimeStampResamplerNode::input(const SVideoBuffer &videoBuffer)
 
 void STimeStampResamplerNode::input(const SSubpictureBuffer &subpictureBuffer)
 {
-  LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
   QMutexLocker l(&d->mutex);
 
   if (!subpictureBuffer.isNull())
@@ -226,7 +223,6 @@ void STimeStampResamplerNode::input(const SSubpictureBuffer &subpictureBuffer)
 
 void STimeStampResamplerNode::input(const SSubtitleBuffer &subtitleBuffer)
 {
-  LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
   QMutexLocker l(&d->mutex);
 
   if (!subtitleBuffer.isNull())

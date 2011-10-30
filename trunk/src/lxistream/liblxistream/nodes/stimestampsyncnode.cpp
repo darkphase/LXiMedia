@@ -104,7 +104,6 @@ void STimeStampSyncNode::stop(void)
 
 void STimeStampSyncNode::input(const SAudioBuffer &audioBuffer)
 {
-  LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
   QMutexLocker l(&d->mutex);
 
   if (!audioBuffer.isNull())
@@ -163,7 +162,6 @@ void STimeStampSyncNode::input(const SAudioBuffer &audioBuffer)
 
 void STimeStampSyncNode::input(const SVideoBuffer &videoBuffer)
 {
-  LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
   QMutexLocker l(&d->mutex);
 
   if (!videoBuffer.isNull())

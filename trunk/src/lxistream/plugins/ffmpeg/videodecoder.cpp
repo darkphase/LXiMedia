@@ -131,6 +131,8 @@ bool VideoDecoder::openCodec(const SVideoCodec &c, SInterfaces::BufferReader *, 
 
 SVideoBufferList VideoDecoder::decodeBuffer(const SEncodedVideoBuffer &videoBuffer)
 {
+  LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
+
   SVideoBufferList output;
   if (!videoBuffer.isNull() && codecHandle)
   {

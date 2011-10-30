@@ -222,8 +222,6 @@ void SAudioMatrixNode::stop(void)
 
 void SAudioMatrixNode::input(const SAudioBuffer &audioBuffer)
 {
-  LXI_PROFILE_FUNCTION(TaskType_AudioProcessing);
-
   if (!audioBuffer.isNull() && (audioBuffer.format() == SAudioFormat::Format_PCM_S16))
   {
     if (d->inFormat != audioBuffer.format())

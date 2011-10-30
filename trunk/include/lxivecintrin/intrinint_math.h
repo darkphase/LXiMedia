@@ -479,15 +479,6 @@ namespace _private {
   lxivec_always_inline __m128i abs(__m128i a, uint64_t) { return a; }
 #endif
 
-  lxivec_always_inline int8_t    abs(int8_t a)   { return (a >= -a) ? a : -a; }
-  lxivec_always_inline uint8_t   abs(uint8_t a)  { return a; }
-  lxivec_always_inline int16_t   abs(int16_t a)  { return (a >= -a) ? a : -a; }
-  lxivec_always_inline uint16_t  abs(uint16_t a) { return a; }
-  lxivec_always_inline int32_t   abs(int32_t a)  { return (a >= -a) ? a : -a; }
-  lxivec_always_inline uint32_t  abs(uint32_t a) { return a; }
-  lxivec_always_inline int64_t   abs(int64_t a)  { return (a >= -a) ? a : -a; }
-  lxivec_always_inline uint64_t  abs(uint64_t a) { return a; }
-
   template <typename _type, int _count>
   lxivec_always_inline void abs(Ints<_type, _count> &dst, const Ints<_type, _count> &a)
   {
@@ -501,7 +492,7 @@ namespace _private {
 #endif
 
     for (; i<_count; i++)
-      dst.val[i] = abs(a.val[i]);
+      dst.val[i] = lxivec::abs(a.val[i]);
   }
 
 } } // End of namespaces

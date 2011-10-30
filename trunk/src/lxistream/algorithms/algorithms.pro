@@ -33,11 +33,13 @@ HEADERS += audioconvert.h \
     audioprocess.h \
     data.h \
     deinterlace.h \
+    subtitles.h \
     videoconvert.h
 SOURCES += audioconvert.cpp \
     audioprocess.cpp \
     data.cpp \
     deinterlace.cpp \
+    subtitles.cpp \
     videoconvert.cpp
 
 # Platform specific

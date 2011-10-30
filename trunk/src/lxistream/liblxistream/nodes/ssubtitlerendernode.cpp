@@ -18,30 +18,9 @@
  ***************************************************************************/
 
 #include "nodes/ssubtitlerendernode.h"
+#include "../../algorithms/subtitles.h"
 #include "ssubtitlebuffer.h"
 #include "svideobuffer.h"
-
-// Implemented in ssubtitlerendernode.mix.c
-extern "C" void LXiStream_SSubtitleRenderNode_mixSubtitle8(
-    void * srcData, unsigned srcStride, unsigned srcWidth, unsigned srcHeight,
-    void * srcU, unsigned uStride, void * srcV, unsigned vStride,
-    unsigned wf, unsigned hf,
-    const void *lines, const void *characters);
-
-extern "C" void LXiStream_SSubtitleRenderNode_mixSubtitle8_stretch(
-    void * srcData, unsigned srcStride, unsigned srcWidth, unsigned srcHeight,
-    float srcAspect, void * srcU, unsigned uStride, void * srcV,
-    unsigned vStride, unsigned wf, unsigned hf,
-    const void *lines, const void *characters);
-
-extern "C" void LXiStream_SSubtitleRenderNode_mixSubtitle32(
-    void * srcData, unsigned srcStride, unsigned srcWidth, unsigned srcHeight,
-    const void *lines, const void *characters);
-
-extern "C" void LXiStream_SSubtitleRenderNode_mixSubtitle32_stretch(
-    void * srcData, unsigned srcStride, unsigned srcWidth, unsigned srcHeight,
-    float srcAspect,
-    const void *lines, const void *characters);
 
 #if defined(_MSC_VER)
 #pragma warning (disable : 4200)
@@ -49,36 +28,25 @@ extern "C" void LXiStream_SSubtitleRenderNode_mixSubtitle32_stretch(
 
 namespace LXiStream {
 
-// Keep these structures in sync with the ones defined in ssubtitlerendernode.mix.c
-struct SSubtitleRenderNode::Lines
-{
-  quint8                        l[4][160];
-};
-
-struct SSubtitleRenderNode::Char
-{
-  unsigned                      advance, width, height;
-  quint8                        pixels[0];
-};
-
 struct SSubtitleRenderNode::Data
 {
+  typedef QMap<int, QVector<const Algorithms::Subtitles::Char *> > CharMap;
+
   static int                    instances;
   static QByteArray             fontData;
-  static QMap<int, QVector<const Char *> > characters;
+  static CharMap                characters;
 
   unsigned                      ratio;
   volatile bool                 enabled;
   QMap<STime, SSubtitleBuffer>  subtitles;
-  QMap<int, QVector<const Char *> >::ConstIterator font;
-  Lines                       * subtitle;
+  QStringList                   subtitle;
   STime                         subtitleTime;
   bool                          subtitleVisible;
 };
 
 int SSubtitleRenderNode::Data::instances = 0;
 QByteArray SSubtitleRenderNode::Data::fontData;
-QMap<int, QVector<const SSubtitleRenderNode::Char *> > SSubtitleRenderNode::Data::characters;
+SSubtitleRenderNode::Data::CharMap SSubtitleRenderNode::Data::characters;
 
 SSubtitleRenderNode::SSubtitleRenderNode(SGraph *parent)
   : SInterfaces::Node(parent),
@@ -93,15 +61,11 @@ SSubtitleRenderNode::SSubtitleRenderNode(SGraph *parent)
 
   d->ratio = 16;
   d->enabled = false;
-  d->font = d->characters.end();
-  d->subtitle = new Lines();
   d->subtitleVisible = false;
 }
 
 SSubtitleRenderNode::~SSubtitleRenderNode()
 {
-  delete d->subtitle;
-
   if (--d->instances <= 0)
   {
     d->fontData.clear();
@@ -135,8 +99,6 @@ void SSubtitleRenderNode::stop(void)
 
 void SSubtitleRenderNode::input(const SSubtitleBuffer &subtitleBuffer)
 {
-  LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
-
   if (subtitleBuffer.duration().toSec() <= 10)
   {
     d->subtitles.insert(subtitleBuffer.timeStamp(), subtitleBuffer);
@@ -153,8 +115,6 @@ void SSubtitleRenderNode::input(const SSubtitleBuffer &subtitleBuffer)
 
 void SSubtitleRenderNode::input(const SVideoBuffer &videoBuffer)
 {
-  LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
-
   if (!videoBuffer.isNull() && d->enabled)
   {
     for (QMap<STime, SSubtitleBuffer>::Iterator i=d->subtitles.begin(); i!=d->subtitles.end(); )
@@ -184,34 +144,7 @@ void SSubtitleRenderNode::input(const SVideoBuffer &videoBuffer)
       // Render the next subtitle.
       if ((i.key() != d->subtitleTime) && (i.key() <= timeStamp))
       {
-        d->font = d->characters.lowerBound(videoBuffer.format().size().height() / d->ratio);
-        if (d->font == d->characters.end())
-          d->font--;
-
-        const QStringList lines = i->subtitle();
-
-        memset(d->subtitle, 0, sizeof(*d->subtitle));
-        for (int j=0; (j<lines.count()) && (j<4); j++)
-        {
-          QString line = lines[j];
-          if (line.contains("<i>", Qt::CaseInsensitive))
-            d->font = d->characters.find(-int(d->font->first()->height));
-
-          line.replace("<i>", "", Qt::CaseInsensitive);
-          line.replace("</i>", "", Qt::CaseInsensitive);
-          line.replace("<b>", "", Qt::CaseInsensitive);
-          line.replace("</b>", "", Qt::CaseInsensitive);
-          line.replace("<u>", "", Qt::CaseInsensitive);
-          line.replace("</u>", "", Qt::CaseInsensitive);
-
-          const int ln = j + qMax(0, 4 - lines.count());
-          const QByteArray latin1 = line.toLatin1();
-          memset(d->subtitle->l[ln], 0, sizeof(d->subtitle->l[ln]));
-          qstrncpy(reinterpret_cast<char *>(d->subtitle->l[ln]),
-                   latin1.data(),
-                   sizeof(d->subtitle->l[ln]));
-        }
-
+        d->subtitle = i->subtitle();
         d->subtitleVisible = true;
         d->subtitleTime = i.key();
       }
@@ -222,7 +155,9 @@ void SSubtitleRenderNode::input(const SVideoBuffer &videoBuffer)
     if (d->subtitleVisible)
     {
       SVideoBuffer buffer = videoBuffer;
-      renderSubtitles(buffer, d->subtitle, &(d->font->first()));
+      buffer.detach();
+
+      renderSubtitles(buffer, d->subtitle);
 
       emit output(buffer);
     }
@@ -233,86 +168,52 @@ void SSubtitleRenderNode::input(const SVideoBuffer &videoBuffer)
     emit output(videoBuffer);
 }
 
-SVideoBuffer SSubtitleRenderNode::renderSubtitles(const SVideoBuffer &videoBuffer, const QStringList &lines, unsigned ratio)
+void SSubtitleRenderNode::renderSubtitles(SVideoBuffer &videoBuffer, const QStringList &lines)
 {
-  QMap<int, QVector<const Char *> >::ConstIterator font =
-      Data::characters.lowerBound(videoBuffer.format().size().height() / ratio);
-  if (font == Data::characters.end())
-    font--;
+  LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
 
-  Lines subtitle;
-  memset(&subtitle, 0, sizeof(subtitle));
-  for (int j=0; (j<lines.count()) && (j<4); j++)
-  {
-    QString line = lines[j];
-    if (line.contains("<i>", Qt::CaseInsensitive))
-      font = Data::characters.find(-int(font->first()->height));
+  const int count = lines.count();
+  QVector< QFuture<void> > futures;
+  futures.reserve(count);
 
-    line.replace("<i>", "", Qt::CaseInsensitive);
-    line.replace("</i>", "", Qt::CaseInsensitive);
-    line.replace("<b>", "", Qt::CaseInsensitive);
-    line.replace("</b>", "", Qt::CaseInsensitive);
-    line.replace("<u>", "", Qt::CaseInsensitive);
-    line.replace("</u>", "", Qt::CaseInsensitive);
+  for (int i=0; i<count; i++)
+    futures += QtConcurrent::run(this, &SSubtitleRenderNode::renderSubtitle, &videoBuffer, lines[i], count - i - 1);
 
-    const int ln = j + qMax(0, 4 - lines.count());
-    const QByteArray latin1 = line.toLatin1();
-    memset(subtitle.l[ln], 0, sizeof(subtitle.l[ln]));
-    qstrncpy(reinterpret_cast<char *>(subtitle.l[ln]),
-             latin1.data(),
-             sizeof(subtitle.l[ln]));
-  }
-
-  SVideoBuffer buffer = videoBuffer;
-  renderSubtitles(buffer, &subtitle, &(font->first()));
-
-  return buffer;
+  for (int i=0; i<count; i++)
+    futures[i].waitForFinished();
 }
 
-void SSubtitleRenderNode::renderSubtitles(SVideoBuffer &buffer, const Lines *subtitle, const Char * const *font)
+void SSubtitleRenderNode::renderSubtitle(SVideoBuffer *buffer, QString line, int pos)
 {
-  const SSize size = buffer.format().size();
+  LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
 
-  if (buffer.format().numPlanes() >= 3)
+  const SSize size = buffer->format().size();
+
+  Data::CharMap::ConstIterator font = d->characters.lowerBound(size.height() / d->ratio);
+  if (font == d->characters.end())
+    font--;
+
+  if (line.contains("<i>", Qt::CaseInsensitive))
+    font = d->characters.find(-int(font->first()->height));
+
+  line.replace("<i>", "", Qt::CaseInsensitive);
+  line.replace("</i>", "", Qt::CaseInsensitive);
+  line.replace("<b>", "", Qt::CaseInsensitive);
+  line.replace("</b>", "", Qt::CaseInsensitive);
+  line.replace("<u>", "", Qt::CaseInsensitive);
+  line.replace("</u>", "", Qt::CaseInsensitive);
+
+  if (buffer->format().numPlanes() >= 3)
   {
     int wf = 1, hf = 1;
-    buffer.format().planarYUVRatio(wf, hf);
+    buffer->format().planarYUVRatio(wf, hf);
 
-    if (qFuzzyCompare(size.aspectRatio(), 1.0f))
-    {
-      LXiStream_SSubtitleRenderNode_mixSubtitle8(
-          buffer.data() + buffer.offset(0),
-          buffer.lineSize(0), size.width(), size.height(),
-          buffer.data() + buffer.offset(1), buffer.lineSize(1),
-          buffer.data() + buffer.offset(2), buffer.lineSize(2),
-          wf, hf, subtitle, font);
-    }
-    else
-    {
-      LXiStream_SSubtitleRenderNode_mixSubtitle8_stretch(
-          buffer.data() + buffer.offset(0),
-          buffer.lineSize(0), size.width(), size.height(), size.aspectRatio(),
-          buffer.data() + buffer.offset(1), buffer.lineSize(1),
-          buffer.data() + buffer.offset(2), buffer.lineSize(2),
-          wf, hf, subtitle, font);
-    }
-  }
-  else if (buffer.format().sampleSize() == sizeof(quint32))
-  {
-    if (qFuzzyCompare(size.aspectRatio(), 1.0f))
-    {
-      LXiStream_SSubtitleRenderNode_mixSubtitle32(
-          buffer.data() + buffer.offset(0),
-          buffer.lineSize(0) / sizeof(quint32), size.width(), size.height(),
-          subtitle, font);
-    }
-    else
-    {
-      LXiStream_SSubtitleRenderNode_mixSubtitle32_stretch(
-          buffer.data() + buffer.offset(0),
-          buffer.lineSize(0) / sizeof(quint32), size.width(), size.height(), size.aspectRatio(),
-          subtitle, font);
-    }
+    Algorithms::Subtitles::drawLine(
+        reinterpret_cast<uint8_t *>(buffer->data() + buffer->offset(0)), buffer->lineSize(0),
+        reinterpret_cast<uint8_t *>(buffer->data() + buffer->offset(1)), buffer->lineSize(1),
+        reinterpret_cast<uint8_t *>(buffer->data() + buffer->offset(2)), buffer->lineSize(2),
+        wf, hf, size.width(), size.height(), size.aspectRatio(),
+        line.toLatin1(), pos, font->data());
   }
 }
 
@@ -401,22 +302,22 @@ void SSubtitleRenderNode::loadFonts(void)
       {
         const qint32 * const ce = reinterpret_cast<const qint32 *>(bytes + pos);
         const qint32 * const m = reinterpret_cast<const qint32 *>(bytes + pos + sizeof(qint32));
-        const Char * const c = reinterpret_cast<const Char *>(bytes + pos + (sizeof(qint32) * 2));
+        const Algorithms::Subtitles::Char * const c = reinterpret_cast<const Algorithms::Subtitles::Char *>(bytes + pos + (sizeof(qint32) * 2));
 
         const int fid = (*m == 0) ? int(c->height) : -int(c->height);
-        QMap<int, QVector<const SSubtitleRenderNode::Char *> >::Iterator i = Data::characters.find(fid);
+        SSubtitleRenderNode::Data::CharMap::Iterator i = Data::characters.find(fid);
         if (i == Data::characters.end())
         {
-          QVector<const SSubtitleRenderNode::Char *> v;
+          QVector<const Algorithms::Subtitles::Char *> v;
           v.resize(256);
-          memset(&(v.first()), 0, 256 * sizeof(Char *));
+          memset(&(v.first()), 0, 256 * sizeof(Algorithms::Subtitles::Char *));
           i = Data::characters.insert(fid, v);
         }
 
         if (i->size() > *ce)
           (*i)[*ce] = c;
 
-        pos += (sizeof(qint32) * 2) + sizeof(Char) + (c->width * c->height);
+        pos += (sizeof(qint32) * 2) + sizeof(Algorithms::Subtitles::Char) + (c->width * c->height);
       }
     }
   }

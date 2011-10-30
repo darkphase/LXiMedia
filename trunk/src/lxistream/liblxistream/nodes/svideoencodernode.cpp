@@ -99,8 +99,6 @@ void SVideoEncoderNode::stop(void)
 
 void SVideoEncoderNode::input(const SVideoBuffer &videoBuffer)
 {
-  LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
-
   if (d->encoder)
   foreach (const SEncodedVideoBuffer &buffer, d->encoder->encodeBuffer(videoBuffer))
     emit output(buffer);

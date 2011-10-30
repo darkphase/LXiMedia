@@ -206,6 +206,8 @@ SVideoCodec VideoEncoder::codec(void) const
 
 SEncodedVideoBufferList VideoEncoder::encodeBuffer(const SVideoBuffer &videoBuffer)
 {
+  LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
+
   SEncodedVideoBufferList output;
   if (!videoBuffer.isNull() && codecHandle)
   {

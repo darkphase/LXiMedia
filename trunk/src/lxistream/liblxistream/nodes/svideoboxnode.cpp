@@ -77,8 +77,6 @@ void SVideoBoxNode::stop(void)
 
 void SVideoBoxNode::input(const SVideoBuffer &videoBuffer)
 {
-  LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
-
   if (!videoBuffer.isNull())
   {
     if (videoBuffer.format().size() != d->destSize)

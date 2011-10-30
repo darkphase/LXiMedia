@@ -45,13 +45,11 @@ unix {
       }
     }
   }
-
-  QMAKE_CXXFLAGS += -fdiagnostics-show-option
-  QMAKE_CFLAGS += -fdiagnostics-show-option
 }
 
 # Files
-HEADERS += vecbooltest.h \
+HEADERS += scalartest.h \
+    vecbooltest.h \
     vecbooltest.hpp \
     vecfloattest.h \
     vecfloattest.hpp \

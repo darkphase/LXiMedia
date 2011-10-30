@@ -80,6 +80,8 @@ bool VideoFormatConverter::openFormat(void)
 
 SVideoBuffer VideoFormatConverter::convertBuffer(const SVideoBuffer &videoBuffer)
 {
+  LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
+
   if ((width != videoBuffer.format().size().width()) ||
       (height != videoBuffer.format().size().height()))
   {

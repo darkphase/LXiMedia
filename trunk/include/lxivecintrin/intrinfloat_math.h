@@ -332,8 +332,6 @@ namespace _private {
     return _mm_or_pd(_mm_and_pd(a, m), _mm_andnot_pd(m, ai));
   }
 #endif
-  lxivec_always_inline float     abs(float a)    { return (a >= -a) ? a : -a; }
-  lxivec_always_inline double    abs(double a)   { return (a >= -a) ? a : -a; }
 
   template <int _count>
   lxivec_always_inline void abs(Floats<_count> &dst, const Floats<_count> &a)
@@ -348,7 +346,7 @@ namespace _private {
 #endif
 
     for (; i<_count; i++)
-      dst.val[i] = abs(a.val[i]);
+      dst.val[i] = lxivec::abs(a.val[i]);
   }
 
   template <int _count>
@@ -364,7 +362,7 @@ namespace _private {
 #endif
 
     for (; i<_count; i++)
-      dst.val[i] = abs(a.val[i]);
+      dst.val[i] = lxivec::abs(a.val[i]);
   }
 
 } } // End of namespaces

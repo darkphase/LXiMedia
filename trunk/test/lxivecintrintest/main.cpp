@@ -19,6 +19,7 @@
 
 #include <QtCore>
 #include <QTest>
+#include "scalartest.h"
 #include "vecbooltest.h"
 #include "vecfloattest.h"
 #include "vecinttest.h"
@@ -27,6 +28,7 @@ int main(int argc, char *argv[])
 {
   QCoreApplication app(argc, argv);
 
+  if (QTest::qExec(new ScalarTest(&app), app.arguments()) != 0)     return 1;
   if (QTest::qExec(new VecBoolTest(&app), app.arguments()) != 0)    return 1;
   if (QTest::qExec(new VecFloatTest(&app), app.arguments()) != 0)   return 1;
   if (QTest::qExec(new VecIntTest(&app), app.arguments()) != 0)     return 1;

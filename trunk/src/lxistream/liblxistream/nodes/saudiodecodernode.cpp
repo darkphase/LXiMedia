@@ -81,8 +81,6 @@ void SAudioDecoderNode::stop(void)
 
 void SAudioDecoderNode::input(const SEncodedAudioBuffer &audioBuffer)
 {
-  LXI_PROFILE_FUNCTION(TaskType_AudioProcessing);
-
   if (!audioBuffer.isNull())
   {
     if (d->lastCodec != audioBuffer.codec())

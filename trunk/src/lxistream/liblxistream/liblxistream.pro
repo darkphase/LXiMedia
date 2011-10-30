@@ -114,7 +114,6 @@ SOURCES += nodes/saudiodecodernode.cpp \
     nodes/ssubpicturerendernode.cpp \
     nodes/ssubpicturerendernode.mix.c \
     nodes/ssubtitlerendernode.cpp \
-    nodes/ssubtitlerendernode.mix.c \
     nodes/stimestampresamplernode.cpp \
     nodes/stimestampsyncnode.cpp \
     nodes/svideoboxnode.cpp \

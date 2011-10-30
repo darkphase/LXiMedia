@@ -113,8 +113,6 @@ void SIOInputNode::stop(void)
 
 bool SIOInputNode::process(void)
 {
-  LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
-
   if (d->bufferReader)
   {
     if (!d->ioDevice->atEnd())

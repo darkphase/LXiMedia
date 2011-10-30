@@ -33,10 +33,6 @@ namespace LXiStream {
 class LXISTREAM_PUBLIC SSubtitleRenderNode : public SInterfaces::Node
 {
 Q_OBJECT
-private:
-  struct                        Lines;
-  struct                        Char;
-
 public:
   explicit                      SSubtitleRenderNode(SGraph *);
   virtual                       ~SSubtitleRenderNode();
@@ -56,10 +52,10 @@ signals:
   void                          output(const SVideoBuffer &);
 
 public:
-  static SVideoBuffer           renderSubtitles(const SVideoBuffer &, const QStringList &, unsigned ratio = 16);
+  void                          renderSubtitles(SVideoBuffer &, const QStringList &);
 
 private:
-  _lxi_internal static void     renderSubtitles(SVideoBuffer &, const Lines *, const Char * const *);
+  _lxi_internal void            renderSubtitle(SVideoBuffer *, QString line, int pos);
   _lxi_internal static void     loadFonts(void);
 
 private:

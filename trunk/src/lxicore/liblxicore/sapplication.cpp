@@ -432,79 +432,85 @@ void SApplication::profileTask(int startTime, int stopTime, const QByteArray &ta
   {
     QMutexLocker l(&d->profileMutex);
 
-    QMap<QThread *, int>::Iterator threadId = d->profileThreadMap.find(QThread::currentThread());
-    if (threadId == d->profileThreadMap.end())
+    if (d->profileFile)
     {
-      threadId = d->profileThreadMap.insert(QThread::currentThread(), d->profileThreadMap.count());
-
-      d->profileFile->write(
-          "<text x=\"0\" "
-                "y=\"" + QByteArray::number((*threadId * d->profileLineHeight) + 10) + "\" "
-                "style=\"font-size:8px\">"
-            "Thread " + QByteArray::number(*threadId) + "</text>\n");
-    }
-
-    const int duration = stopTime - startTime;
-    const int taskStart = (startTime * d->profileSecWidth / 1000) + 40;
-    const int taskWidth = qMax(1, duration * d->profileSecWidth / 1000);
-
-    d->profileWidth = qMax(d->profileWidth, taskStart + taskWidth);
-
-    if (taskWidth >= d->profileMinTaskWidth)
-    {
-      d->profileFile->write(
-          "<rect x=\"" + QByteArray::number(taskStart) + "\" "
-                "y=\"" + QByteArray::number(*threadId * d->profileLineHeight) + "\" "
-                "width=\"" + QByteArray::number(taskWidth) + "\" "
-                "height=\"" + QByteArray::number(d->profileLineHeight) + "\" "
-                "style=\"fill:#" + QByteArray(taskFill[taskType]) +
-                       ";stroke:#" + QByteArray(taskStroke[taskType]) + ";stroke-width:1\" />\n");
-
-      QByteArray xmlTaskName = taskName;
-      const int par = xmlTaskName.indexOf('(');
-      if (par > 0)
+      QMap<QThread *, int>::Iterator threadId = d->profileThreadMap.find(QThread::currentThread());
+      if (threadId == d->profileThreadMap.end())
       {
-        xmlTaskName = xmlTaskName.left(par);
+        threadId = d->profileThreadMap.insert(QThread::currentThread(), d->profileThreadMap.count());
 
-        const int spc = xmlTaskName.lastIndexOf(' ');
-        if (spc >= 0)
-          xmlTaskName = xmlTaskName.mid(spc + 1);
-
-        int sep = -1;
-        for (int i = xmlTaskName.indexOf("::"); i >= 0; )
-        {
-          const int ns = xmlTaskName.indexOf("::", i + 2);
-          if (ns > i)
-          {
-            sep = i;
-            i = ns;
-          }
-          else
-            break;
-        }
-
-        if (sep >= 0)
-          xmlTaskName = xmlTaskName.mid(sep + 2);
+        d->profileFile->write(
+            "<text x=\"0\" "
+                  "y=\"" + QByteArray::number((*threadId * d->profileLineHeight) + 10) + "\" "
+                  "style=\"font-size:8px\">"
+              "Thread " + QByteArray::number(*threadId) + "</text>\n");
       }
 
-      xmlTaskName.replace("&", "&amp;");
-      xmlTaskName.replace("<", "&lt;");
+      const int duration = stopTime - startTime;
+      const int taskStart = (startTime * d->profileSecWidth / 1000) + 40;
+      const int taskWidth = qMax(1, duration * d->profileSecWidth / 1000);
 
-      d->profileFile->write(
-          "<text x=\"" + QByteArray::number(taskStart) + "\" "
-                "y=\"" + QByteArray::number((*threadId * d->profileLineHeight) + d->profileLineHeight - 7) + "\" "
-                "style=\"font-size:6px\">" + QByteArray::number(duration) + " ms</text>\n"
-          "<text x=\"" + QByteArray::number(taskStart) + "\" "
-                "y=\"" + QByteArray::number((*threadId * d->profileLineHeight) + d->profileLineHeight - 1) + "\" "
-                "style=\"font-size:6px\">" + xmlTaskName + "</text>\n");
+      d->profileWidth = qMax(d->profileWidth, taskStart + taskWidth);
+
+      if (taskWidth >= d->profileMinTaskWidth)
+      {
+        d->profileFile->write(
+            "<rect x=\"" + QByteArray::number(taskStart) + "\" "
+                  "y=\"" + QByteArray::number(*threadId * d->profileLineHeight) + "\" "
+                  "width=\"" + QByteArray::number(taskWidth) + "\" "
+                  "height=\"" + QByteArray::number(d->profileLineHeight) + "\" "
+                  "style=\"fill:#" + QByteArray(taskFill[taskType]) +
+                         ";stroke:#" + QByteArray(taskStroke[taskType]) + ";stroke-width:1\" />\n");
+
+        QByteArray xmlTaskName = taskName;
+        const int par = xmlTaskName.indexOf('(');
+        if (par > 0)
+        {
+          xmlTaskName = xmlTaskName.left(par);
+
+          const int spc = xmlTaskName.lastIndexOf(' ');
+          if (spc >= 0)
+            xmlTaskName = xmlTaskName.mid(spc + 1);
+
+          int sep = -1;
+          for (int i = xmlTaskName.indexOf("::"); i >= 0; )
+          {
+            const int ns = xmlTaskName.indexOf("::", i + 2);
+            if (ns > i)
+            {
+              sep = i;
+              i = ns;
+            }
+            else
+              break;
+          }
+
+          if (sep >= 0)
+            xmlTaskName = xmlTaskName.mid(sep + 2);
+        }
+
+        xmlTaskName.replace("&", "&amp;");
+        xmlTaskName.replace("<", "&lt;");
+
+        d->profileFile->write(
+            "<text x=\"" + QByteArray::number(taskStart) + "\" "
+                  "y=\"" + QByteArray::number((*threadId * d->profileLineHeight) + d->profileLineHeight - 7) + "\" "
+                  "style=\"font-size:6px\">" + QByteArray::number(duration) + " ms</text>\n"
+            "<text x=\"" + QByteArray::number(taskStart) + "\" "
+                  "y=\"" + QByteArray::number((*threadId * d->profileLineHeight) + d->profileLineHeight - 1) + "\" "
+                  "style=\"font-size:6px\">" + xmlTaskName + "</text>\n");
+      }
+//      else
+//      {
+//        d->profileFile->write(
+//            "<!-- " + taskName + " " + QByteArray::number(duration) + " ms -->\n");
+//      }
+
+      d->profileFile->flush();
+
+      if (d->profileFile->size() >= 4194304)
+        disableProfiling();
     }
-//    else
-//    {
-//      d->profileFile->write(
-//          "<!-- " + taskName + " " + QByteArray::number(duration) + " ms -->\n");
-//    }
-
-    d->profileFile->flush();
   }
 }
 

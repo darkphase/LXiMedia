@@ -61,6 +61,48 @@ namespace _private {
 #endif
 } // End of namespace
 
+  lxivec_always_inline int8_t   abs(int8_t a)    { return (a >= 0) ? a : -a; }
+  lxivec_always_inline uint8_t  abs(uint8_t a)   { return a; }
+  lxivec_always_inline int16_t  abs(int16_t a)   { return (a >= 0) ? a : -a; }
+  lxivec_always_inline uint16_t abs(uint16_t a)  { return a; }
+  lxivec_always_inline int32_t  abs(int32_t a)   { return (a >= 0) ? a : -a; }
+  lxivec_always_inline uint32_t abs(uint32_t a)  { return a; }
+  lxivec_always_inline int64_t  abs(int64_t a)   { return (a >= 0) ? a : -a; }
+  lxivec_always_inline uint64_t abs(uint64_t a)  { return a; }
+  lxivec_always_inline float    abs(float a)     { return (a >= 0.0f) ? a : -a; }
+  lxivec_always_inline double   abs(double a)    { return (a >= 0.0) ? a : -a; }
+
+#ifndef __LP64__
+  lxivec_always_inline long abs(long a) { return abs(int32_t(a)); }
+  lxivec_always_inline unsigned long abs(unsigned long a) { return abs(uint32_t(a)); }
+#endif
+  lxivec_always_inline long long abs(long long a) { return abs(int64_t(a)); }
+  lxivec_always_inline unsigned long long abs(unsigned long long a) { return abs(uint64_t(a)); }
+
+  template <typename _type>
+  lxivec_always_inline _type max(_type a, _type b)
+  {
+    return (a >= b) ? a : b;
+  }
+
+  template <typename _type>
+  lxivec_always_inline _type min(_type a, _type b)
+  {
+    return (a <= b) ? a : b;
+  }
+
+  template <typename _type>
+  lxivec_always_inline _type bound(_type min, _type a, _type max)
+  {
+    return (a < min) ? min : ((a > max) ? max : a);
+  }
+
+  template <typename _type>
+  lxivec_always_inline _type select(bool s, _type a, _type b)
+  {
+    return s ? a : b;
+  }
+
 } // End of namespace
 
 #endif

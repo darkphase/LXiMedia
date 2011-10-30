@@ -1089,7 +1089,7 @@ int FFMpegCommon::execute(::AVCodecContext *c, int (*func)(::AVCodecContext *c2,
     future.reserve(count);
 
     for (int i=0; i<count; i++)
-      future += QtConcurrent::run(&FFMpegCommon::executeTask, func, c, reinterpret_cast<char *>(arg2) + (size * i));
+      future += QtConcurrent::run(func, c, reinterpret_cast<char *>(arg2) + (size * i));
 
     for (int i=0; i<count; i++)
     {
@@ -1112,13 +1112,6 @@ int FFMpegCommon::execute(::AVCodecContext *c, int (*func)(::AVCodecContext *c2,
   return 0;
 }
 
-int FFMpegCommon::executeTask(int (*func)(::AVCodecContext *, void *), ::AVCodecContext *c, void *arg)
-{
-  LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
-
-  return func(c, arg);
-}
-
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
 int FFMpegCommon::execute2(::AVCodecContext *c, int (*func)(::AVCodecContext *c2, void *arg, int jobnr, int threadnr), void *arg2, int *ret, int count)
 {
@@ -1130,7 +1123,7 @@ int FFMpegCommon::execute2(::AVCodecContext *c, int (*func)(::AVCodecContext *c2
     for (int i=0; i<count; i+=c->thread_count)
     {
       for (int j=0; (j<c->thread_count) && ((i+j)<count); j++)
-        future += QtConcurrent::run(&FFMpegCommon::execute2Task, func, c, arg2, i, j);
+        future += QtConcurrent::run(func, c, arg2, i, j);
 
       for (int j=0; j<future.count(); j++)
       {
@@ -1154,13 +1147,6 @@ int FFMpegCommon::execute2(::AVCodecContext *c, int (*func)(::AVCodecContext *c2
   }
 
   return 0;
-}
-
-int FFMpegCommon::execute2Task(int (*func)(::AVCodecContext *, void *, int, int), ::AVCodecContext *c, void *arg, int jobnr, int threadnr)
-{
-  LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
-
-  return func(c, arg, jobnr, threadnr);
 }
 #endif
 #endif

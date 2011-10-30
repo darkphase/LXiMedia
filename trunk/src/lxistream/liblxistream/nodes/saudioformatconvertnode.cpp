@@ -130,8 +130,6 @@ void SAudioFormatConvertNode::stop(void)
 
 void SAudioFormatConvertNode::input(const SAudioBuffer &audioBuffer)
 {
-  LXI_PROFILE_FUNCTION(TaskType_AudioProcessing);
-
   if (!audioBuffer.isNull())
   {
     if (audioBuffer.format() == d->destFormat)
