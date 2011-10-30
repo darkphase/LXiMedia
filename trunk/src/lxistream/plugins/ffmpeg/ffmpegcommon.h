@@ -85,7 +85,11 @@ private:
   static int                    lock(void **mutex, AVLockOp op);
 
 private:
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
+  static const int              threadLimit = 16;
+#else
   static const int              threadLimit = 8;
+#endif
   static int                    logLevel;
   static bool                   logDisabled;
 };

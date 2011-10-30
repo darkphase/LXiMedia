@@ -24,8 +24,6 @@
 namespace LXiStream {
 namespace FFMpegBackend {
 
-const int VideoEncoder::bufferSize = qMax(FF_MIN_BUFFER_SIZE, 1048576);
-
 VideoEncoder::VideoEncoder(const QString &, QObject *parent)
   : SInterfaces::VideoEncoder(parent),
     outCodec(),
@@ -42,7 +40,7 @@ VideoEncoder::VideoEncoder(const QString &, QObject *parent)
     enableResend(false),
     lastInBufferId(0),
 #endif
-    outBuffer()
+    bufferSize(FF_MIN_BUFFER_SIZE)
 {
 }
 
@@ -194,7 +192,7 @@ bool VideoEncoder::openCodec(const SVideoCodec &c, SInterfaces::BufferWriter *bu
   if (contextHandle->extradata_size > 0)
     outCodec.setExtraData(QByteArray((const char *)contextHandle->extradata, contextHandle->extradata_size));
 
-  outBuffer.resize(qMax(contextHandle->width * contextHandle->height * 4, 262144));
+  bufferSize = qMax((contextHandle->width * contextHandle->height * 4) + 8192, FF_MIN_BUFFER_SIZE);
 
   return true;
 }
@@ -250,13 +248,16 @@ SEncodedVideoBufferList VideoEncoder::encodeBuffer(const SVideoBuffer &videoBuff
       inputTimeStamps.append(preprocBuffer.timeStamp());
       pictureHandle->pts = inputTimeStamps.last().toClock(contextHandle->time_base.num, contextHandle->time_base.den);
 
+      SBuffer outBuffer(bufferSize);
       int out_size = avcodec_encode_video(contextHandle,
                                           (uint8_t *)outBuffer.data(),
-                                          outBuffer.size(),
+                                          outBuffer.capacity(),
                                           pictureHandle);
       if (out_size > 0)
       {
-        SEncodedVideoBuffer destBuffer(outCodec, outBuffer.data(), out_size);
+        outBuffer.resize(out_size);
+
+        SEncodedVideoBuffer destBuffer(outCodec, outBuffer.memory());
         destBuffer.setKeyFrame((!fastEncode && contextHandle->coded_frame)
                                ? bool(contextHandle->coded_frame->key_frame)
                                : true);
@@ -317,15 +318,18 @@ SEncodedVideoBufferList VideoEncoder::encodeBuffer(const SVideoBuffer &videoBuff
     for (int out_size=1; out_size > 0;)
     {
       // Get any remaining frames
+      SBuffer outBuffer(bufferSize);
       out_size = avcodec_encode_video(contextHandle,
                                       (uint8_t *)outBuffer.data(),
-                                      outBuffer.size(),
+                                      outBuffer.capacity(),
                                       NULL);
       if ((out_size > 0) && !inputTimeStamps.isEmpty())
       {
         const STime dts = inputTimeStamps.takeFirst();
 
-        SEncodedVideoBuffer destBuffer(outCodec, outBuffer.data(), out_size);
+        outBuffer.resize(out_size);
+
+        SEncodedVideoBuffer destBuffer(outCodec, outBuffer.memory());
         destBuffer.setKeyFrame((!fastEncode && contextHandle->coded_frame)
                                ? bool(contextHandle->coded_frame->key_frame)
                                : true);

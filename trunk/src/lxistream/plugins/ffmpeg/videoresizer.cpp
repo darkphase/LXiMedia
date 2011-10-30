@@ -26,19 +26,23 @@ namespace FFMpegBackend {
 VideoResizer::VideoResizer(const QString &scheme, QObject *parent)
   : SInterfaces::VideoResizer(parent),
     filterFlags(algoFlags(scheme)),
+    filterOverlap(filterFlags == SWS_LANCZOS ? 8 : 4),
     scaleSize(),
     scaleAspectRatioMode(Qt::KeepAspectRatio),
     lastFormat(SVideoFormat::Format_Invalid),
     destFormat(SVideoFormat::Format_Invalid),
-    swsContext(NULL),
+    numThreads(0),
     preFilter((scheme == "deinterlace") ? createDeinterlaceFilter() : NULL)
 {
+  for (int i=0; i<2; i++)
+    swsContext[i] = NULL;
 }
 
 VideoResizer::~VideoResizer()
 {
-  if (swsContext)
-    ::sws_freeContext(swsContext);
+  for (int i=0; i<2; i++)
+  if (swsContext[i])
+    ::sws_freeContext(swsContext[i]);
 
   delete preFilter;
 }
@@ -98,60 +102,94 @@ bool VideoResizer::needsResize(const SVideoFormat &format)
         lastFormat.frameRate(),
         lastFormat.fieldMode());
 
-    if (swsContext)
+    for (int i=0; i<2; i++)
+    if (swsContext[i])
     {
-      ::sws_freeContext(swsContext);
-      swsContext = NULL;
+      ::sws_freeContext(swsContext[i]);
+      swsContext[i] = NULL;
     }
 
-    if (destFormat.size() != format.size())
+    if (destFormat.size() != lastFormat.size())
     {
-      const ::PixelFormat pf = FFMpegCommon::toFFMpegPixelFormat(lastFormat);
+      if ((destFormat.size().height() >= 256) && (lastFormat.size().height() >= 256))
+        numThreads = qBound(1, QThread::idealThreadCount(), 2);
+      else
+        numThreads = 1;
 
-      swsContext = ::sws_getContext(lastFormat.size().width(), lastFormat.size().height(), pf,
-                                    destFormat.size().width(), destFormat.size().height(), pf,
-                                    filterFlags,
-                                    preFilter, NULL, NULL);
-      if (swsContext == NULL)
-      { // Fallback
-        swsContext = ::sws_getContext(lastFormat.size().width(), lastFormat.size().height(), pf,
-                                      destFormat.size().width(), destFormat.size().height(), pf,
-                                      0,
-                                      preFilter, NULL, NULL);
+      for (int i=0; i<numThreads; i++)
+      {
+        const ::PixelFormat pf = FFMpegCommon::toFFMpegPixelFormat(lastFormat);
+
+        swsContext[i] = ::sws_getContext(
+            lastFormat.size().width(), lastFormat.size().height(), pf,
+            destFormat.size().width(), destFormat.size().height(), pf,
+            filterFlags,
+            preFilter, NULL, NULL);
+
+        if (swsContext[i] == NULL)
+        { // Fallback
+          swsContext[i] = ::sws_getContext(
+              lastFormat.size().width(), lastFormat.size().height(), pf,
+              destFormat.size().width(), destFormat.size().height(), pf,
+              0,
+              preFilter, NULL, NULL);
+        }
       }
+
+      if (swsContext[1] == NULL)
+        numThreads = 1;
     }
   }
 
-  return swsContext != NULL;
+  return swsContext[0] != NULL;
 }
 
 SVideoBuffer VideoResizer::processBuffer(const SVideoBuffer &videoBuffer)
 {
-  LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
-
   if (!scaleSize.isNull() && !videoBuffer.isNull() && VideoResizer::needsResize(videoBuffer.format()))
   {
-    quint8      * source[4]       = { (quint8 *)videoBuffer.scanLine(0, 0),
-                                      (quint8 *)videoBuffer.scanLine(0, 1),
-                                      (quint8 *)videoBuffer.scanLine(0, 2),
-                                      (quint8 *)videoBuffer.scanLine(0, 3) };
-    int           srcLineSize[4]  = { videoBuffer.lineSize(0),
-                                      videoBuffer.lineSize(1),
-                                      videoBuffer.lineSize(2),
-                                      videoBuffer.lineSize(3) };
-
     SVideoBuffer destBuffer(destFormat);
 
-    quint8      * dest[4]         = { (quint8 *)destBuffer.scanLine(0, 0),
-                                      (quint8 *)destBuffer.scanLine(0, 1),
-                                      (quint8 *)destBuffer.scanLine(0, 2),
-                                      (quint8 *)destBuffer.scanLine(0, 3) };
-    int           dstLineSize[4]  = { destBuffer.lineSize(0),
-                                      destBuffer.lineSize(1),
-                                      destBuffer.lineSize(2),
-                                      destBuffer.lineSize(3) };
+    int wf = 1, hf = 1;
+    destFormat.planarYUVRatio(wf, hf);
 
-    if (processSlice(source, srcLineSize, dest, dstLineSize))
+    QVector< QFuture<bool> > futures;
+    futures.reserve(numThreads);
+
+    const int imageHeight = lastFormat.size().height();
+    const int stripSrcHeight = qMin(imageHeight, (imageHeight / numThreads) + filterOverlap);
+    for (int i=0; i<numThreads; i++)
+    {
+      const int stripSrcPos = (i == 0) ? 0 : (imageHeight - stripSrcHeight);
+
+      Slice src;
+      src.stride[0] = videoBuffer.lineSize(0);
+      src.stride[1] = videoBuffer.lineSize(1);
+      src.stride[2] = videoBuffer.lineSize(2);
+      src.stride[3] = videoBuffer.lineSize(3);
+      src.line[0] = (quint8 *)videoBuffer.scanLine(0, 0) + (stripSrcPos * src.stride[0]);
+      src.line[1] = (quint8 *)videoBuffer.scanLine(0, 1) + ((stripSrcPos / hf) * src.stride[1]);
+      src.line[2] = (quint8 *)videoBuffer.scanLine(0, 2) + ((stripSrcPos / hf) * src.stride[2]);
+      src.line[3] = (quint8 *)videoBuffer.scanLine(0, 3) + ((stripSrcPos / hf) * src.stride[3]);
+
+      Slice dst;
+      dst.stride[0] = destBuffer.lineSize(0);
+      dst.stride[1] = destBuffer.lineSize(1);
+      dst.stride[2] = destBuffer.lineSize(2);
+      dst.stride[3] = destBuffer.lineSize(3);
+      dst.line[0] = (quint8 *)destBuffer.scanLine(0, 0);
+      dst.line[1] = (quint8 *)destBuffer.scanLine(0, 1);
+      dst.line[2] = (quint8 *)destBuffer.scanLine(0, 2);
+      dst.line[3] = (quint8 *)destBuffer.scanLine(0, 3);
+
+      futures += QtConcurrent::run(this, &VideoResizer::processSlice, i, stripSrcPos, stripSrcHeight, src, dst);
+    }
+
+    bool result = true;
+    for (int i=0; i<numThreads; i++)
+      result &= futures[i].result();
+
+    if (result)
     {
       destBuffer.setTimeStamp(videoBuffer.timeStamp());
       return destBuffer;
@@ -161,29 +199,31 @@ SVideoBuffer VideoResizer::processBuffer(const SVideoBuffer &videoBuffer)
   return videoBuffer;
 }
 
-bool VideoResizer::processSlice(quint8 **source, int *srcLineSize, quint8 **dest, int *dstLineSize)
+bool VideoResizer::processSlice(int strip, int stripPos, int stripHeight, const Slice &src, const Slice &dst)
 {
-  int wf = 0, hf = 0;
+  LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
+
+  int wf = 1, hf = 1;
   const bool planar = destFormat.planarYUVRatio(wf, hf);
 
-  const bool result =
-      ::sws_scale(swsContext, source, srcLineSize,
-                  0, lastFormat.size().height(),
-                  dest, dstLineSize) >= 0;
+  const bool result = ::sws_scale(
+      swsContext[strip], src.line, src.stride,
+      stripPos, stripHeight,
+      dst.line, dst.stride) >= 0;
 
   // Correct chroma lines on the top
-  if (planar && result && destFormat.isYUV() && dest[1] && dest[2])
+  if ((strip == 0) && planar && result && destFormat.isYUV() && dst.line[1] && dst.line[2])
   {
     const int skip = 4 / hf;
 
     quint8 * const ref[2] = {
-      dest[1] + (dstLineSize[1] * skip),
-      dest[2] + (dstLineSize[2] * skip) };
+      dst.line[1] + (dst.stride[1] * skip),
+      dst.line[2] + (dst.stride[2] * skip) };
 
     for (int y=0; y<skip-1; y++)
     {
-      memcpy(dest[1] + (dstLineSize[1] * y), ref[0], dstLineSize[1]);
-      memcpy(dest[2] + (dstLineSize[2] * y), ref[1], dstLineSize[2]);
+      memcpy(dst.line[1] + (dst.stride[1] * y), ref[0], dst.stride[1]);
+      memcpy(dst.line[2] + (dst.stride[2] * y), ref[1], dst.stride[2]);
     }
   }
 
