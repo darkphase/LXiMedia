@@ -186,8 +186,6 @@ void SPlaylistNode::stop(void)
 
 bool SPlaylistNode::process(void)
 {
-  LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
-
   if (d->file == NULL)
   {
     d->loadFuture.waitForFinished();

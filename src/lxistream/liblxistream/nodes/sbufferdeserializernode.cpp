@@ -70,8 +70,6 @@ void SBufferDeserializerNode::stop(void)
 template <>
 void SBufferDeserializerNode::deserialize<QByteArray>(void)
 {
-  LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
-
   struct { quint32 dataLen; } header = { 0 };
   if (read(d->ioDevice, reinterpret_cast<char *>(&header), sizeof(header)))
   if (header.dataLen <= 536870912) // 512 MiB
@@ -87,8 +85,6 @@ void SBufferDeserializerNode::deserialize<QByteArray>(void)
 template <class _buffer>
 void SBufferDeserializerNode::deserialize(void)
 {
-  LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
-
   struct { quint32 metaLen, dataLen; } header = { 0, 0 };
   if (read(d->ioDevice, reinterpret_cast<char *>(&header), sizeof(header)))
   if (header.dataLen <= 536870912) // 512 MiB

@@ -105,8 +105,6 @@ void SAudioEncoderNode::stop(void)
 
 void SAudioEncoderNode::input(const SAudioBuffer &audioBuffer)
 {
-  LXI_PROFILE_FUNCTION(TaskType_AudioProcessing);
-
   if (d->encoder)
   foreach (const SEncodedAudioBuffer &buffer, d->encoder->encodeBuffer(audioBuffer))
     emit output(buffer);

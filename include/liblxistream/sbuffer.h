@@ -109,6 +109,7 @@ public:
   void                          resize(int size);
   inline int                    size(void) const                                { return d->size; } //!< Returns the size of the buffer.
   void                          squeeze(void);
+  inline void                   detach(void)                                    { d.detach(); } //!< If the reference count is greater than 1, this creates a deep copy of the data.
 
   inline const MemoryPtr      & memory(void) const                              { return d; } //!< Return s a pointer to the Memory object used by this buffer.
 
@@ -152,6 +153,9 @@ public: // Alignment methods
             memory is 2000 + numPaddingBytes.
    */
   static const int              numPaddingBytes;
+
+protected:
+  static void                   copy(char *dst, const char *src, int size);
 
 private:
   _lxi_internal static QAtomicInt uidCounter;

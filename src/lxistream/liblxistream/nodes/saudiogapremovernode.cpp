@@ -52,8 +52,6 @@ void SAudioGapRemoverNode::stop(void)
 
 void SAudioGapRemoverNode::input(const SAudioBuffer &audioBuffer)
 {
-  LXI_PROFILE_FUNCTION(TaskType_AudioProcessing);
-
   if (!d->audioDelay.isEmpty() &&
       (qAbs(audioBuffer.timeStamp() - d->audioDelay.last().timeStamp()).toMSec() > (d->delay * 2)))
   { // New stream (timestamp gap).

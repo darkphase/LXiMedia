@@ -81,8 +81,6 @@ void SVideoGeneratorNode::stop(void)
 
 void SVideoGeneratorNode::input(const SAudioBuffer &audioBuffer)
 {
-  LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
-
   if (!audioBuffer.isNull())
   {
     if (!d->videoTime.isValid() || (qAbs(d->videoTime - audioBuffer.timeStamp()).toSec() >= 3))

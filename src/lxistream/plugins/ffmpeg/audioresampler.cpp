@@ -50,6 +50,8 @@ unsigned AudioResampler::sampleRate(void)
 
 SAudioBuffer AudioResampler::processBuffer(const SAudioBuffer &audioBuffer)
 {
+  LXI_PROFILE_FUNCTION(TaskType_AudioProcessing);
+
   if (!audioBuffer.isNull() && (outSampleRate > 0))
   {
     Q_ASSERT(audioBuffer.format() == SAudioFormat::Format_PCM_S16);

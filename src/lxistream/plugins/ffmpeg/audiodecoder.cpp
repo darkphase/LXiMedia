@@ -175,6 +175,8 @@ bool AudioDecoder::openCodec(const SAudioCodec &c, SInterfaces::BufferReader *, 
 
 SAudioBufferList AudioDecoder::decodeBuffer(const SEncodedAudioBuffer &audioBuffer)
 {
+  LXI_PROFILE_FUNCTION(TaskType_AudioProcessing);
+
   SAudioBufferList output;
   if (!audioBuffer.isNull())
   {

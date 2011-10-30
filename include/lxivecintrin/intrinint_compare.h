@@ -293,7 +293,7 @@ namespace _private {
 #endif
 
     for (; i<_count; i++)
-      dst.val[i] = (a.val[i] <= b.val[i]) ? a.val[i] : b.val[i];
+      dst.val[i] = lxivec::min(a.val[i], b.val[i]);
   }
 
   template <typename _type, int _count>
@@ -309,7 +309,7 @@ namespace _private {
 #endif
 
     for (; i<_count; i++)
-      dst.val[i] = (a.val[i] >= b.val[i]) ? a.val[i] : b.val[i];
+      dst.val[i] = lxivec::max(a.val[i], b.val[i]);
   }
 
   template <typename _type, int _count>
@@ -329,7 +329,7 @@ namespace _private {
 #endif
 
     for (; i<_count; i++)
-      dst.val[i] = (m.val[i] != 0) ? a.val[i] : b.val[i];
+      dst.val[i] = lxivec::select((m.val[i] != 0), a.val[i], b.val[i]);
   }
 
 } } // End of namespaces

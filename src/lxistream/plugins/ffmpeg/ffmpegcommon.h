@@ -81,13 +81,6 @@ public:
 #endif
 
 private:
-#ifdef OPT_ENABLE_THREADS
-  static int                    executeTask(int (*func)(::AVCodecContext *, void *), ::AVCodecContext *c, void *arg);
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
-  static int                    execute2Task(int (*func)(::AVCodecContext *, void *, int, int), ::AVCodecContext *c, void *arg, int jobnr, int threadnr);
-#endif
-#endif
-
   static void                   log(void * ptr, int level, const char* fmt, va_list vl);
   static int                    lock(void **mutex, AVLockOp op);
 

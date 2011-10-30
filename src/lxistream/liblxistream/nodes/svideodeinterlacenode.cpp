@@ -57,8 +57,6 @@ void SVideoDeinterlaceNode::stop(void)
 
 void SVideoDeinterlaceNode::input(const SVideoBuffer &videoBuffer)
 {
-  LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
-
   if (d->deinterlacer)
   {
     const SSize size = videoBuffer.format().size();

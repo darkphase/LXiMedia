@@ -108,8 +108,6 @@ void SNetworkInputNode::stop(void)
 
 bool SNetworkInputNode::process(void)
 {
-  LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
-
   bool result = false;
   if (d->bufferReader)
   {

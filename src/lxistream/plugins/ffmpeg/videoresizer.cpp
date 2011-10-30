@@ -127,6 +127,8 @@ bool VideoResizer::needsResize(const SVideoFormat &format)
 
 SVideoBuffer VideoResizer::processBuffer(const SVideoBuffer &videoBuffer)
 {
+  LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
+
   if (!scaleSize.isNull() && !videoBuffer.isNull() && VideoResizer::needsResize(videoBuffer.format()))
   {
     quint8      * source[4]       = { (quint8 *)videoBuffer.scanLine(0, 0),

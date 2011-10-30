@@ -185,6 +185,8 @@ SAudioCodec AudioEncoder::codec(void) const
 
 SEncodedAudioBufferList AudioEncoder::encodeBuffer(const SAudioBuffer &audioBuffer)
 {
+  LXI_PROFILE_FUNCTION(TaskType_AudioProcessing);
+
   SEncodedAudioBufferList output;
   if (!audioBuffer.isNull())
   {

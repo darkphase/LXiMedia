@@ -71,8 +71,6 @@ void SAudioResampleNode::stop(void)
 
 void SAudioResampleNode::input(const SAudioBuffer &audioBuffer)
 {
-  LXI_PROFILE_FUNCTION(TaskType_AudioProcessing);
-
   if (!audioBuffer.isNull() && d->resampler)
     emit output(d->resampler->processBuffer(audioBuffer));
   else
@@ -81,8 +79,6 @@ void SAudioResampleNode::input(const SAudioBuffer &audioBuffer)
 
 void SAudioResampleNode::compensate(float frac)
 {
-  LXI_PROFILE_FUNCTION(TaskType_AudioProcessing);
-
   d->resampler->compensate(frac);
 }
 

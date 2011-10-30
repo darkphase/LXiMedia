@@ -80,8 +80,6 @@ void SVideoDecoderNode::stop(void)
 
 void SVideoDecoderNode::input(const SEncodedVideoBuffer &videoBuffer)
 {
-  LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
-
   if (!videoBuffer.isNull())
   {
     if (d->lastCodec != videoBuffer.codec())

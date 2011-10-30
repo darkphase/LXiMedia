@@ -126,8 +126,6 @@ void SVideoResizeNode::stop(void)
 
 void SVideoResizeNode::input(const SVideoBuffer &videoBuffer)
 {
-  LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
-
   if (!videoBuffer.isNull() && d->resizer)
   {
     const SSize size = videoBuffer.format().size();

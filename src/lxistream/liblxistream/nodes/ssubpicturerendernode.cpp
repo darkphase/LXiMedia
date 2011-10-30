@@ -76,8 +76,6 @@ void SSubpictureRenderNode::stop(void)
 
 void SSubpictureRenderNode::input(const SSubpictureBuffer &subpictureBuffer)
 {
-  LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
-
   if (subpictureBuffer.duration().toSec() <= 10)
   {
     d->subpictures.insert(subpictureBuffer.timeStamp(), subpictureBuffer);
@@ -94,8 +92,6 @@ void SSubpictureRenderNode::input(const SSubpictureBuffer &subpictureBuffer)
 
 void SSubpictureRenderNode::input(const SVideoBuffer &videoBuffer)
 {
-  LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
-
   if (!videoBuffer.isNull() && d->enabled)
   {
     const SSize size = videoBuffer.format().size();

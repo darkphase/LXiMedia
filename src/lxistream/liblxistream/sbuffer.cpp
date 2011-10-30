@@ -127,7 +127,7 @@ SBuffer::Memory::Memory(const Memory &c)
     owner(true),
     size(c.size)
 {
-  memcpy(data, c.data, size);
+  copy(data, c.data, size);
   memset(data + size, 0, numPaddingBytes);
 }
 
@@ -166,7 +166,7 @@ SBuffer::Memory::Memory(const char *data, int size)
     owner(true),
     size(size)
 {
-  memcpy(this->data, data, size);
+  copy(this->data, data, size);
   memset(this->data + size, 0, numPaddingBytes);
 }
 
@@ -178,9 +178,32 @@ SBuffer::Memory::Memory(const QByteArray &data)
     owner(true),
     size(data.size())
 {
-  memcpy(this->data, data.data(), data.size());
+  copy(this->data, data.data(), data.size());
   memset(this->data + data.size(), 0, numPaddingBytes);
 }
 
+void SBuffer::copy(char *dst, const char *src, int size)
+{
+  int count = QThread::idealThreadCount();
+  if ((size >= 262144) && (count > 1))
+  {
+    const int chunk = SMemoryPool::align(size / count);
+    count = qMin((size / chunk) + 1, count);
+
+    QVector< QFuture<void> > futures;
+    futures.reserve(count);
+
+    for (int i=0; i<count-1; i++)
+      futures += QtConcurrent::run(&memcpy, dst + (i * chunk), src + (i * chunk), chunk);
+
+    const int pos = (count-1) * chunk;
+    futures += QtConcurrent::run(&memcpy, dst + pos, src + pos, size - pos);
+
+    for (int i=0; i<count; i++)
+      futures[i].waitForFinished();
+  }
+  else
+    memcpy(dst, src, size);
+}
 
 } // End of namespace

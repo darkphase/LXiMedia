@@ -19,7 +19,6 @@
 
 #include "audioprocess.h"
 #include <lxivecintrin/vectypes>
-#include <cmath>
 
 namespace LXiStream {
 namespace Algorithms {
@@ -35,7 +34,7 @@ int16_t AudioProcess::avg(const int16_t * src, int n)
     result += hsum(abs(int32_dv(int16_v::load(src + i))));
 
   for (; i < n; i++)
-    result += abs(int32_t(src[i]));
+    result += lxivec::abs(int32_t(src[i]));
 
   return int16_t(result / n);
 }
