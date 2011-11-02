@@ -101,6 +101,9 @@ bool SAudioEncoderNode::start(void)
 
 void SAudioEncoderNode::stop(void)
 {
+
+  delete d->encoder;
+  d->encoder = NULL;
 }
 
 void SAudioEncoderNode::input(const SAudioBuffer &audioBuffer)

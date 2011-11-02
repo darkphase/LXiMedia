@@ -44,11 +44,13 @@ AudioEncoder::AudioEncoder(const QString &, QObject *parent)
 
 AudioEncoder::~AudioEncoder()
 {
-  if (codecHandle && contextHandle)
-    avcodec_close(contextHandle);
-
   if (contextHandle && contextHandleOwner)
-    av_free(contextHandle);
+  {
+    if (codecHandle)
+      ::avcodec_close(contextHandle);
+
+    ::av_free(contextHandle);
+  }
 
   delete [] inFrameBufferRaw;
 }

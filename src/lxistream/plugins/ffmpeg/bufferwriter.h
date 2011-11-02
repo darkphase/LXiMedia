@@ -50,6 +50,8 @@ public: // From SInterfaces::BufferWriter
   virtual void                  process(const SEncodedDataBuffer &);
 
 private:
+  void                          clear(void);
+
   static int                    write(void *opaque, uint8_t *buf, int buf_size);
   static int64_t                seek(void *opaque, int64_t offset, int whence);
 

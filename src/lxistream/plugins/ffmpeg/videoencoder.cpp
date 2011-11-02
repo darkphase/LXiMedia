@@ -46,14 +46,16 @@ VideoEncoder::VideoEncoder(const QString &, QObject *parent)
 
 VideoEncoder::~VideoEncoder()
 {
-  if (codecHandle && contextHandle)
-    avcodec_close(contextHandle);
-
   if (contextHandle && contextHandleOwner)
-    av_free(contextHandle);
+  {
+    if (codecHandle)
+      ::avcodec_close(contextHandle);
+
+    ::av_free(contextHandle);
+  }
 
   if (pictureHandle)
-    av_free(pictureHandle);
+    ::av_free(pictureHandle);
 }
 
 bool VideoEncoder::openCodec(const SVideoCodec &c, SInterfaces::BufferWriter *bufferWriter, Flags flags)
@@ -63,7 +65,7 @@ bool VideoEncoder::openCodec(const SVideoCodec &c, SInterfaces::BufferWriter *bu
 
   outCodec = c;
 
-  if ((codecHandle = avcodec_find_encoder(FFMpegCommon::toFFMpegCodecID(outCodec))) == NULL)
+  if ((codecHandle = ::avcodec_find_encoder(FFMpegCommon::toFFMpegCodecID(outCodec))) == NULL)
   {
     qCritical() << "VideoEncoder: Video codec not found " << outCodec.codec();
     return false;
