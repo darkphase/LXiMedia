@@ -39,19 +39,7 @@ BufferWriter::BufferWriter(const QString &, QObject *parent)
 
 BufferWriter::~BufferWriter()
 {
-  if (formatContext)
-  {
-    for (unsigned i=0; i<formatContext->nb_streams; i++)
-      ::av_free(formatContext->streams[i]);
-
-    ::av_free(formatContext);
-  }
-
-  if (ioContext)
-  {
-    ::av_free(ioContext->buffer);
-    ::av_free(ioContext);
-  }
+  clear();
 }
 
 bool BufferWriter::openFormat(const QString &name)
@@ -324,30 +312,10 @@ bool BufferWriter::start(WriteCallback *c, bool seq)
 
 void BufferWriter::stop(void)
 {
-  if (!streams.isEmpty())
-  {
+  if (formatContext)
     ::av_write_trailer(formatContext);
 
-    foreach (::AVStream *stream, streams)
-    {
-      ::av_freep(&stream->codec);
-      ::av_freep(&stream);
-    }
-
-    streams.clear();
-
-    ::av_free(formatContext);
-    formatContext = NULL;
-
-    if (ioContext)
-    {
-      ::av_free(ioContext->buffer);
-      ::av_free(ioContext);
-      ioContext = NULL;
-    }
-
-    callback = NULL;
-  }
+  clear();
 }
 
 void BufferWriter::process(const SEncodedAudioBuffer &buffer)
@@ -408,6 +376,38 @@ void BufferWriter::process(const SEncodedDataBuffer &buffer)
 
     break;
   }
+}
+
+void BufferWriter::clear(void)
+{
+  if (!streams.isEmpty())
+  {
+    foreach (::AVStream *stream, streams)
+    {
+      if (stream->codec->codec)
+        ::avcodec_close(stream->codec);
+
+      ::av_freep(&stream->codec);
+      ::av_freep(&stream);
+    }
+
+    streams.clear();
+  }
+
+  if (formatContext)
+  {
+    ::av_free(formatContext);
+    formatContext = NULL;
+  }
+
+  if (ioContext)
+  {
+    ::av_free(ioContext->buffer);
+    ::av_free(ioContext);
+    ioContext = NULL;
+  }
+
+  callback = NULL;
 }
 
 int BufferWriter::write(void *opaque, uint8_t *buf, int buf_size)
