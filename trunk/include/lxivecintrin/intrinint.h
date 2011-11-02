@@ -309,7 +309,7 @@ namespace _private {
 
   lxivec_always_inline int32_t saturate_int32(int64_t v)
   {
-    return (v >= -2147483648ll) ? ((v <= 2147483647ll) ? int32_t(v) : int32_t(2147483647)) : int32_t(-2147483648);
+    return (v >= -2147483648ll) ? ((v <= 2147483647ll) ? int32_t(v) : int32_t(2147483647)) : int32_t(-2147483647 - 1);
   }
 
   lxivec_always_inline int32_t saturate_int32(uint64_t v)

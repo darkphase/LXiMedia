@@ -75,9 +75,10 @@ namespace _private {
 #ifndef __LP64__
   lxivec_always_inline long abs(long a) { return abs(int32_t(a)); }
   lxivec_always_inline unsigned long abs(unsigned long a) { return abs(uint32_t(a)); }
-#endif
+#else
   lxivec_always_inline long long abs(long long a) { return abs(int64_t(a)); }
   lxivec_always_inline unsigned long long abs(unsigned long long a) { return abs(uint64_t(a)); }
+#endif
 
   template <typename _type>
   lxivec_always_inline _type max(_type a, _type b)
