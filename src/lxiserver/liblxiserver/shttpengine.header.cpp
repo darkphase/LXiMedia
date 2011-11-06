@@ -79,7 +79,7 @@ void SHttpEngine::Header::setHost(const QString &hostname, quint16 port)
   else
     host += '[' + hostname + ']';
 
-  if (port > 0)
+  if ((port > 0) && (port != 80))
     host += ':' + QString::number(port);
 
   setHost(host);
@@ -93,7 +93,7 @@ void SHttpEngine::Header::setHost(const QHostAddress &address, quint16 port)
   else if (address.protocol() == QAbstractSocket::IPv6Protocol)
     host += '[' + address.toString() + ']';
 
-  if (port > 0)
+  if ((port > 0) && (port != 80))
     host += ':' + QString::number(port);
 
   setHost(host);
@@ -249,7 +249,8 @@ void SHttpEngine::ResponseHeader::parse(const QByteArray &header)
 SHttpEngine::RequestMessage::RequestMessage(const SHttpEngine *server)
   : RequestHeader(server)
 {
-  setContentLength(data.length());
+  if (data.length() > 0)
+    setContentLength(data.length());
 }
 
 bool SHttpEngine::RequestMessage::isComplete(void) const
@@ -260,7 +261,9 @@ bool SHttpEngine::RequestMessage::isComplete(void) const
 void SHttpEngine::RequestMessage::setContent(const QByteArray &content)
 {
   data = content;
-  setContentLength(data.length());
+
+  if (data.length() > 0)
+    setContentLength(data.length());
 }
 
 QByteArray SHttpEngine::RequestMessage::toByteArray(void) const

@@ -76,7 +76,7 @@ QString ConfigServer::serverIconPath(void) const
   return "/img/control.png";
 }
 
-SHttpServer::ResponseMessage ConfigServer::httpRequest(const SHttpServer::RequestMessage &request, QIODevice *socket)
+SHttpServer::ResponseMessage ConfigServer::httpRequest(const SHttpServer::RequestMessage &request, QIODevice *)
 {
   if (request.isGet() || request.isPost())
   {

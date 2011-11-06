@@ -207,7 +207,7 @@ void SGraph::timerEvent(QTimerEvent *e)
         produced |= source->process();
 
       if (!produced)
-        QThread::sleep(10);
+        QThread::msleep(10);
     }
     else if (QThread::currentThread() == this)
       QThread::exit(0);

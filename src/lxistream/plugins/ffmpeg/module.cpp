@@ -134,9 +134,15 @@ bool Module::registerClasses(void)
   const QSet<QByteArray> unsupportedProtocols = QSet<QByteArray>()
       ;
 
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+  void *opaque = NULL;
+  for (const char *protocol = avio_enum_protocols(&opaque, 0); protocol; protocol = avio_enum_protocols(&opaque, 0))
+    NetworkBufferReader::registerClass<NetworkBufferReader>(protocol);
+#else
   for (::URLProtocol *protocol=::av_protocol_next(NULL); protocol; protocol=::av_protocol_next(protocol))
   if (!unsupportedProtocols.contains(protocol->name))
     NetworkBufferReader::registerClass<NetworkBufferReader>(protocol->name);
+#endif
 
   // Filters
   AudioResampler::registerClass<AudioResampler>("fir");

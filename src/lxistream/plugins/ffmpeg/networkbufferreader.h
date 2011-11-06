@@ -43,6 +43,9 @@ public: // From SInterfaces::NetworkBufferReader
   virtual void                  stop(void);
 
   virtual bool                  process(void);
+
+private:
+  QList<QUrl>                   resolveAsf(const QUrl &);
 };
 
 } } // End of namespaces

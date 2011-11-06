@@ -35,7 +35,9 @@ BufferReader::~BufferReader()
   if (ioContext)
   {
     ::av_free(ioContext->buffer);
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(53, 0, 0)
     ::av_free(ioContext);
+#endif
   }
 }
 
@@ -81,9 +83,16 @@ bool BufferReader::start(ReadCallback *readCallback, ProduceCallback *produceCal
     ioContext->is_streamed = streamed;
 #endif
 
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+    ::AVFormatContext * formatContext = avformat_alloc_context();
+    formatContext->pb = ioContext;
+    if (::avformat_open_input(&formatContext, "", format, NULL) == 0)
+      return BufferReaderBase::start(produceCallback, formatContext);
+#else
     ::AVFormatContext * formatContext = NULL;
     if (::av_open_input_stream(&formatContext, ioContext, "", format, NULL) == 0)
       return BufferReaderBase::start(produceCallback, formatContext);
+#endif
   }
 
   return false;
