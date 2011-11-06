@@ -40,6 +40,8 @@ public:
   void                          setFrameRate(const SInterval &);
   SAudioFormat::Channels        channelSetup(void) const;
   void                          setChannelSetup(SAudioFormat::Channels);
+  unsigned                      sampleRate(void) const;
+  void                          setSampleRate(unsigned);
 
   bool                          open(bool hasVideo, bool generateVideo);
 
@@ -71,6 +73,7 @@ private:
   SAudioBuffer                  audioBuffer;
   SInterval                     baseFrameRate;
   SAudioFormat::Channels        baseChannelSetup;
+  unsigned                      baseSampleRate;
 
   SNetworkInputNode             networkInput;
   SAudioDecoderNode             audioDecoder;
@@ -87,8 +90,7 @@ private:
   static const qint64           minBufferingTimeMs;
   STime                         correctTime;
 
-  QFuture<bool>                 startFuture;
-  QFuture<void>                 future;
+  QSemaphore                    startSem;
 };
 
 } } // End of namespaces

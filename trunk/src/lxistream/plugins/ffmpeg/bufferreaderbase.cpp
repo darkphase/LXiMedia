@@ -42,7 +42,13 @@ BufferReaderBase::~BufferReaderBase()
   }
 
   if (formatContext)
+  {
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+    ::av_close_input_file(formatContext);
+#else
     ::av_close_input_stream(formatContext);
+#endif
+  }
 }
 
 bool BufferReaderBase::start(ProduceCallback *produceCallback, ::AVFormatContext *formatContext)
@@ -243,7 +249,12 @@ void BufferReaderBase::stop(void)
 
   if (formatContext)
   {
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+    ::av_close_input_file(formatContext);
+#else
     ::av_close_input_stream(formatContext);
+#endif
+
     formatContext = NULL;
   }
 

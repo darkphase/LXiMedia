@@ -30,6 +30,7 @@ StreamInputNode::StreamInputNode(SGraph *parent, const QUrl &url)
     outSize(768, 576),
     baseFrameRate(SInterval::fromFrequency(25)),
     baseChannelSetup(SAudioFormat::Channels_Stereo),
+    baseSampleRate(48000),
     networkInput(NULL, url),
     audioDecoder(parent),
     videoDecoder(parent),
@@ -38,15 +39,15 @@ StreamInputNode::StreamInputNode(SGraph *parent, const QUrl &url)
     bufferState(false),
     bufferProgress(0.0f),
     bufferingTime(STime::null),
-    correctTime()
+    correctTime(),
+    startSem(1)
 {
   networkInput.setParent(this);
 }
 
 StreamInputNode::~StreamInputNode()
 {
-  startFuture.waitForFinished();
-  future.waitForFinished();
+  startSem.acquire();
 }
 
 SSize StreamInputNode::size(void) const
@@ -77,6 +78,16 @@ SAudioFormat::Channels StreamInputNode::channelSetup(void) const
 void StreamInputNode::setChannelSetup(SAudioFormat::Channels c)
 {
   baseChannelSetup = c;
+}
+
+unsigned StreamInputNode::sampleRate(void) const
+{
+  return baseSampleRate;
+}
+
+void StreamInputNode::setSampleRate(unsigned r)
+{
+  baseSampleRate = r;
 }
 
 bool StreamInputNode::open(bool hasVideo, bool generateVideo)
@@ -157,7 +168,27 @@ bool StreamInputNode::start(void)
   // Open the network stream in the background.
   if (networkInput.open())
   {
-    startFuture = QtConcurrent::run(&networkInput, &SNetworkInputNode::start);
+    struct StartThread : QThread
+    {
+      StartThread(QObject *parent, SNetworkInputNode *networkInput, QSemaphore *startSem)
+        : QThread(parent), networkInput(networkInput), startSem(startSem)
+      {
+      }
+
+      virtual void run(void)
+      {
+        networkInput->start();
+        startSem->release();
+
+        deleteLater();
+      }
+
+      SNetworkInputNode * const networkInput;
+      QSemaphore * const startSem;
+    };
+
+    if (startSem.tryAcquire(1, 0))
+      (new StartThread(this, &networkInput, &startSem))->start();
 
     return true;
   }
@@ -167,8 +198,8 @@ bool StreamInputNode::start(void)
 
 void StreamInputNode::stop(void)
 {
-  startFuture.waitForFinished();
-  future.waitForFinished();
+  startSem.acquire();
+  startSem.release();
 
   networkInput.stop();
 
@@ -180,16 +211,13 @@ void StreamInputNode::stop(void)
 
 bool StreamInputNode::process(void)
 {
-  LXI_PROFILE_WAIT(future.waitForFinished());
-  LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
-
   if (bufferState && (bufferingTime.isNull() || (bufferingTime.toMSec() >= minBufferingTimeMs)))
   {
     return networkInput.process();
   }
   else
   {
-    if (startFuture.isFinished())
+    if (startSem.available() > 0)
       networkInput.fillBuffer();
 
     if (bufferingTime.isNull())
@@ -199,10 +227,14 @@ bool StreamInputNode::process(void)
     const STime correctedTime = STime::fromMSec(qint64(float(bufferingTime.toMSec()) / 1.1f));
     if (correctedTime < bufferingTimer.timeStamp())
     {
-      future = QtConcurrent::run(this, &StreamInputNode::computeBufferingFrame, bufferingTime);
+      computeBufferingFrame(bufferingTime);
+
       bufferingTime += STime(1, baseFrameRate);
+
       if (correctTime.isValid())
         correctTime += STime(1, baseFrameRate);
+
+      return true;
     }
   }
 
@@ -211,7 +243,8 @@ bool StreamInputNode::process(void)
 
 void StreamInputNode::setBufferState(bool b, float p)
 {
-  startFuture.waitForFinished();
+  startSem.acquire();
+  startSem.release();
 
   bufferState = b;
   bufferProgress = p;
