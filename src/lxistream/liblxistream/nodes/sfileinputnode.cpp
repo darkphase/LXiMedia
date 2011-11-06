@@ -35,8 +35,8 @@ struct SFileInputNode::Data
   SEncodedDataBuffer            nextSubtitle;
 };
 
-SFileInputNode::SFileInputNode(SGraph *parent, const QString &path)
-  : SIOInputNode(parent, NULL, path),
+SFileInputNode::SFileInputNode(SGraph *parent, const QString &fileName)
+  : SIOInputNode(parent, NULL, fileName),
     d(new Data(path))
 {
 }
@@ -46,6 +46,12 @@ SFileInputNode::~SFileInputNode()
   delete d->subtitleFile;
   delete d;
   *const_cast<Data **>(&d) = NULL;
+}
+
+void SFileInputNode::setFileName(const QString &fileName)
+{
+  d->mediaFile.close();
+  d->mediaFile.setFileName(fileName);
 }
 
 bool SFileInputNode::open(quint16 programId)

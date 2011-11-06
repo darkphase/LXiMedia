@@ -154,7 +154,7 @@ bool AudioEncoder::openCodec(const SAudioCodec &c, SInterfaces::BufferWriter *bu
 
   if (ffBufferWriter)
   if (ffBufferWriter->avFormat()->flags & AVFMT_GLOBALHEADER)
-      contextHandle->flags |= CODEC_FLAG_GLOBAL_HEADER;
+    contextHandle->flags |= CODEC_FLAG_GLOBAL_HEADER;
 
   if (avcodec_open(contextHandle, codecHandle) < 0)
   {
@@ -173,9 +173,6 @@ bool AudioEncoder::openCodec(const SAudioCodec &c, SInterfaces::BufferWriter *bu
 
   outCodec.setFrameSize(contextHandle->frame_size);
   outCodec.setBitRate(contextHandle->bit_rate + contextHandle->bit_rate_tolerance);
-
-  if (contextHandle->extradata_size > 0)
-    outCodec.setExtraData(QByteArray((const char *)contextHandle->extradata, contextHandle->extradata_size));
 
   return true;
 }
@@ -247,16 +244,19 @@ SEncodedAudioBufferList AudioEncoder::encodeBuffer(const SAudioBuffer &audioBuff
                 reinterpret_cast<uint8_t *>(destBuffer.data()), destBuffer.capacity(),
                 reinterpret_cast<const short *>(buffer + ptr));
 
-            if (out_size > 0)
+            if (out_size >= 0)
             {
               size -= inFrameSize;
               ptr += inFrameSize;
 
-              destBuffer.resize(out_size);
-              destBuffer.setPresentationTimeStamp(timeStamp);
+              if (out_size > 0)
+              {
+                destBuffer.resize(out_size);
+                destBuffer.setPresentationTimeStamp(timeStamp);
 
-              output << destBuffer;
-              timeStamp += STime::fromClock(numSamples(inFrameSize), contextHandle->sample_rate);
+                output << destBuffer;
+                timeStamp += STime::fromClock(numSamples(inFrameSize), contextHandle->sample_rate);
+              }
             }
             else
               size = 0;

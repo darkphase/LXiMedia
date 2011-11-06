@@ -36,6 +36,8 @@ public:
   explicit                      SFileInputNode(SGraph *, const QString &fileName);
   virtual                       ~SFileInputNode();
 
+  void                          setFileName(const QString &fileName);
+
   virtual bool                  open(quint16 programId = 0);
 
 public: // From SInterfaces::SourceNode

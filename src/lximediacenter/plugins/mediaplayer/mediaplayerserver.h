@@ -81,8 +81,8 @@ protected:
 
   virtual SHttpServer::ResponseMessage httpRequest(const SHttpServer::RequestMessage &, QIODevice *);
 
-  QByteArray                    buildVideoPlayer(MediaDatabase::UniqueID, const QString &, const SMediaInfo::Program &, const QUrl &, const QSize & = QSize(768, 432));
-  QByteArray                    buildVideoPlayer(const QByteArray &, const QString &, const QUrl &, const QSize & = QSize(768, 432));
+  QByteArray                    buildVideoPlayer(MediaDatabase::UniqueID, const QString &, const SMediaInfo::Program &, const QUrl &, const QSize & = defaultSize);
+  QByteArray                    buildVideoPlayer(const QByteArray &, const QString &, const QUrl &, const QSize & = defaultSize);
 
 private slots:
   void                          consoleLine(const QString &);

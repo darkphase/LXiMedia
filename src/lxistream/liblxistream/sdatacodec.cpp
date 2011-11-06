@@ -26,29 +26,30 @@ SDataCodec::SDataCodec(void)
   d.codec = QString::null;
 }
 
-SDataCodec::SDataCodec(const QString &codec)
+SDataCodec::SDataCodec(const QString &codec, int streamId)
 {
-  setCodec(codec);
+  setCodec(codec, streamId);
 }
 
 bool SDataCodec::operator==(const SDataCodec &comp) const
 {
-  return (d.codec == comp.d.codec);
+  return (d.codec == comp.d.codec) &&
+      (d.streamId == comp.d.streamId);
 }
 
 /*! Sets this codec to the specified format.
  */
-void SDataCodec::setCodec(const QString &codec)
+void SDataCodec::setCodec(const QString &codec, int streamId)
 {
   d.codec = codec;
+  d.streamId = streamId;
 }
 
-QString SDataCodec::toString(bool addExtraData) const
+QString SDataCodec::toString(void) const
 {
-  QString result = d.codec;
-
-  if (addExtraData && !d.extraData.isEmpty())
-    result += ';' + QString::fromAscii(d.extraData.toBase64());
+  QString result =
+      d.codec + ';' +
+      QString::number(d.streamId);
 
   return result;
 }
@@ -58,13 +59,11 @@ SDataCodec SDataCodec::fromString(const QString &str)
   const QStringList items = str.split(';');
   SDataCodec result;
 
-  if (items.count() >= 1)
+  if (items.count() >= 2)
   {
     result.d.codec = items[0].toAscii();
+    result.d.streamId = items[1].toInt();
   }
-
-  if (items.count() >= 2)
-    result.d.extraData = QByteArray::fromBase64(items[1].toAscii());
 
   return result;
 }

@@ -18,6 +18,8 @@
  ***************************************************************************/
 
 #include "videodecoder.h"
+#include "bufferreader.h"
+#include "networkbufferreader.h"
 
 namespace LXiStream {
 namespace FFMpegBackend {
@@ -28,6 +30,7 @@ VideoDecoder::VideoDecoder(const QString &, QObject *parent)
     inCodec(),
     codecHandle(NULL),
     contextHandle(NULL),
+    contextHandleOwner(false),
     pictureHandle(NULL),
     outFormat(),
     timeStamp(STime::null)
@@ -36,22 +39,19 @@ VideoDecoder::VideoDecoder(const QString &, QObject *parent)
 
 VideoDecoder::~VideoDecoder()
 {
-  if (codecHandle && contextHandle)
-    avcodec_close(contextHandle);
-
-  if (contextHandle)
+  if (contextHandle && contextHandleOwner)
   {
-    if (contextHandle->extradata)
-      delete [] contextHandle->extradata;
+    if (codecHandle)
+      ::avcodec_close(contextHandle);
 
-    av_free(contextHandle);
+    ::av_free(contextHandle);
   }
 
   if (pictureHandle)
     av_free(pictureHandle);
 }
 
-bool VideoDecoder::openCodec(const SVideoCodec &c, SInterfaces::BufferReader *, Flags flags)
+bool VideoDecoder::openCodec(const SVideoCodec &c, SInterfaces::BufferReader *bufferReader, Flags flags)
 {
   if (contextHandle)
     qFatal("VideoDecoder already opened a codec.");
@@ -66,30 +66,45 @@ bool VideoDecoder::openCodec(const SVideoCodec &c, SInterfaces::BufferReader *, 
     return false;
   }
 
-  pictureHandle = avcodec_alloc_frame();
-  avcodec_get_frame_defaults(pictureHandle);
+  BufferReaderBase * ffBufferReader = qobject_cast<BufferReader *>(bufferReader);
+  if (ffBufferReader == NULL)
+    ffBufferReader = qobject_cast<NetworkBufferReader *>(bufferReader);
 
-  contextHandle = avcodec_alloc_context();
+  if (ffBufferReader && (inCodec.streamId() >= 0))
+  {
+    contextHandle = ffBufferReader->getStream(inCodec.streamId())->codec;
+    contextHandleOwner = false;
+  }
+  else
+  {
+    contextHandle = avcodec_alloc_context();
+    contextHandleOwner = true;
+
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+    contextHandle->codec_type = AVMEDIA_TYPE_VIDEO;
+#else
+    contextHandle->codec_type = CODEC_TYPE_VIDEO;
+#endif
+
+    contextHandle->coded_width = inCodec.size().width();
+    contextHandle->coded_height = inCodec.size().height();
+    contextHandle->time_base.num = inCodec.frameRate().num();
+    contextHandle->time_base.den = inCodec.frameRate().den();
+
+    contextHandle->bit_rate = inCodec.bitRate();
+  }
+
+  contextHandle->flags2 |= CODEC_FLAG2_CHUNKS;
   contextHandle->error_recognition = FF_ER_COMPLIANT;
   contextHandle->error_concealment = FF_EC_DEBLOCK;
-  contextHandle->flags2 |= CODEC_FLAG2_CHUNKS;
 
 #ifdef FF_BUG_NO_PADDING
   if (codecHandle->id == CODEC_ID_MPEG4)
     contextHandle->workaround_bugs = FF_BUG_NO_PADDING;
 #endif
 
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
-  contextHandle->codec_type = AVMEDIA_TYPE_VIDEO;
-#else
-  contextHandle->codec_type = CODEC_TYPE_VIDEO;
-#endif
   contextHandle->width = 0;
   contextHandle->height = 0;
-  contextHandle->coded_width = inCodec.size().width();
-  contextHandle->coded_height = inCodec.size().height();
-  contextHandle->time_base.num = inCodec.frameRate().num();
-  contextHandle->time_base.den = inCodec.frameRate().den();
 
   if (flags & Flag_KeyframesOnly)
     contextHandle->skip_frame = AVDISCARD_NONKEY;
@@ -98,18 +113,6 @@ bool VideoDecoder::openCodec(const SVideoCodec &c, SInterfaces::BufferReader *, 
 
   if (flags & Flag_Fast)
     contextHandle->flags2 |= CODEC_FLAG2_FAST;
-
-  contextHandle->bit_rate = inCodec.bitRate();
-
-  contextHandle->extradata_size = inCodec.extraData().size();
-  if (contextHandle->extradata_size > 0)
-  {
-    contextHandle->extradata = new uint8_t[contextHandle->extradata_size + FF_INPUT_BUFFER_PADDING_SIZE];
-    memcpy(contextHandle->extradata, inCodec.extraData().data(), contextHandle->extradata_size);
-    memset(contextHandle->extradata + contextHandle->extradata_size, 0, FF_INPUT_BUFFER_PADDING_SIZE);
-  }
-  else
-    contextHandle->extradata = NULL;
 
 #ifdef OPT_ENABLE_THREADS
   contextHandle->thread_count = FFMpegCommon::decodeThreadCount(codecHandle->id);
@@ -125,6 +128,9 @@ bool VideoDecoder::openCodec(const SVideoCodec &c, SInterfaces::BufferReader *, 
     codecHandle = NULL;
     return false;
   }
+
+  pictureHandle = avcodec_alloc_frame();
+  avcodec_get_frame_defaults(pictureHandle);
 
   return true;
 }

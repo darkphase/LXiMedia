@@ -26,45 +26,45 @@ SVideoCodec::SVideoCodec(void)
   d.codec = QString::null;
   d.size = SSize();
   d.frameRate = SInterval();
+  d.streamId = -1;
   d.bitRate = 0;
 }
 
-SVideoCodec::SVideoCodec(const char *codec, SSize size, SInterval frameRate, int bitRate)
+SVideoCodec::SVideoCodec(const char *codec, SSize size, SInterval frameRate, int streamId, int bitRate)
 {
-  setCodec(codec, size, frameRate, bitRate);
+  setCodec(codec, size, frameRate, streamId, bitRate);
 }
 
-SVideoCodec::SVideoCodec(const QString &codec, SSize size, SInterval frameRate, int bitRate)
+SVideoCodec::SVideoCodec(const QString &codec, SSize size, SInterval frameRate, int streamId, int bitRate)
 {
-  setCodec(codec, size, frameRate, bitRate);
+  setCodec(codec, size, frameRate, streamId, bitRate);
 }
 
 bool SVideoCodec::operator==(const SVideoCodec &comp) const
 {
   return (d.codec == comp.d.codec) && (d.size == comp.d.size) &&
       qFuzzyCompare(d.frameRate.toFrequency(), comp.d.frameRate.toFrequency()) &&
-      (d.bitRate == comp.d.bitRate);
+      (d.streamId == comp.d.streamId) && (d.bitRate == comp.d.bitRate);
 }
 
 /*! Sets this codec to the specified video codec.
  */
-void SVideoCodec::setCodec(const QString &codec, SSize size, SInterval frameRate, int bitRate)
+void SVideoCodec::setCodec(const QString &codec, SSize size, SInterval frameRate, int streamId, int bitRate)
 {
   d.codec = codec;
   d.size = size;
   d.frameRate = frameRate;
+  d.streamId = streamId;
   d.bitRate = bitRate;
 }
 
-QString SVideoCodec::toString(bool addExtraData) const
+QString SVideoCodec::toString(void) const
 {
   QString result = d.codec + ';' +
     d.size.toString() + ';' +
     QString::number(d.frameRate.toFrequency()) + ';' +
+    QString::number(d.streamId) + ';' +
     QString::number(d.bitRate);
-
-  if (addExtraData && !d.extraData.isEmpty())
-    result += ';' + QString::fromAscii(d.extraData.toBase64());
 
   return result;
 }
@@ -74,16 +74,14 @@ SVideoCodec SVideoCodec::fromString(const QString &str)
   const QStringList items = str.split(';');
   SVideoCodec result;
 
-  if (items.count() >= 4)
+  if (items.count() >= 5)
   {
     result.d.codec = items[0].toAscii();
     result.d.size = SSize::fromString(items[1]);
     result.d.frameRate = SInterval::fromFrequency(items[2].toFloat());
-    result.d.bitRate = items[3].toInt();
+    result.d.streamId = items[3].toInt();
+    result.d.bitRate = items[4].toInt();
   }
-
-  if (items.count() >= 5)
-    result.d.extraData = QByteArray::fromBase64(items[4].toAscii());
 
   return result;
 }

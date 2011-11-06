@@ -56,6 +56,8 @@ bool SDataDecoderNode::open(SIOInputNode *inputNode, Flags flags)
   d->inputNode = inputNode;
   d->flags = flags;
 
+  connect(inputNode, SIGNAL(closeDecoder()), SLOT(closeDecoder()));
+
   return true;
 }
 
@@ -82,7 +84,7 @@ void SDataDecoderNode::input(const SEncodedDataBuffer &dataBuffer)
 {
   if (!dataBuffer.isNull())
   {
-    if (d->lastCodec != dataBuffer.codec())
+    if ((d->decoder == NULL) || (d->lastCodec != dataBuffer.codec()))
     {
       delete d->decoder;
 
@@ -112,6 +114,12 @@ void SDataDecoderNode::input(const SEncodedDataBuffer &dataBuffer)
       break;
     }
   }
+}
+
+void SDataDecoderNode::closeDecoder(void)
+{
+  delete d->decoder;
+  d->decoder = NULL;
 }
 
 } // End of namespace

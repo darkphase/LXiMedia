@@ -36,13 +36,14 @@ public:
   virtual                       ~DataDecoder();
 
 public: // From SBufferDecoder
-  virtual bool                  openCodec(const SDataCodec &, const SInterfaces::BufferReader *, Flags = Flag_None);
+  virtual bool                  openCodec(const SDataCodec &, SInterfaces::BufferReader *, Flags = Flag_None);
   virtual SDataBufferList       decodeBuffer(const SEncodedDataBuffer &);
 
 private:
   SDataCodec                    inCodec;
   AVCodec                     * codecHandle;
   AVCodecContext              * contextHandle;
+  bool                          contextHandleOwner;
 };
 
 

@@ -26,15 +26,23 @@ namespace LXiStream {
 
 struct SGraph::Data
 {
-  QVector<SInterfaces::Node *> nodes;
   QVector<SInterfaces::SourceNode *> sourceNodes;
+  QVector<SInterfaces::Node *>  nodes;
   QVector<SInterfaces::SinkNode *> sinkNodes;
+
+  QList<SInterfaces::SourceNode *> startedSources;
+  QList<SInterfaces::Node *>    startedNodes;
+  QList<SInterfaces::SinkNode *> startedSinks;
 
   QThread                     * parentThread;
   STimer                        timer;
   int                           processTimer;
   volatile bool                 running;
+
+  static const QEvent::Type     stopEventType;
 };
+
+const QEvent::Type  SGraph::Data::stopEventType = QEvent::Type(QEvent::registerEventType());
 
 SGraph::SGraph(void)
        :QThread(NULL),
@@ -47,21 +55,16 @@ SGraph::SGraph(void)
 
 SGraph::~SGraph()
 {
-  if (QThread::currentThread() == this)
+  if (QThread::currentThread() != this)
+  {
+    if (!QThread::wait(1000))
+      QThread::terminate();
+  }
+  else
     qFatal("An SGraph can not delete itself");
 
   delete d;
   *const_cast<Data **>(&d) = NULL;
-}
-
-bool SGraph::connect(const QObject *sender, const char *signal, const QObject *receiver, const char *member)
-{
-  return QThread::connect(sender, signal, receiver, member, Qt::DirectConnection);
-}
-
-bool SGraph::connect(const QObject *sender, const char *signal, const char *member) const
-{
-  return QThread::connect(sender, signal, member, Qt::DirectConnection);
 }
 
 bool SGraph::isRunning(void) const
@@ -86,52 +89,13 @@ void SGraph::addNode(SInterfaces::SinkNode *node)
 
 bool SGraph::start(void)
 {
+  QThread::setTerminationEnabled();
+
   if (!d->running)
   {
-    // Start nodes
-    QVector<SInterfaces::SourceNode *> startedSources;
-    QVector<SInterfaces::Node *> startedNodes;
-    QVector<SInterfaces::SinkNode *> startedSinks;
-
-    d->running = true;
-
-    foreach (SInterfaces::SourceNode *source, d->sourceNodes)
-    if (!source->start())
+    if (startNodes())
     {
-      qWarning() << "Failed to start source:" << source->metaObject()->className();
-
-      d->running = false;
-      break;
-    }
-    else
-      startedSources += source;
-
-    if (d->running)
-    foreach (SInterfaces::Node *node, d->nodes)
-    if (!node->start())
-    {
-      qWarning() << "Failed to start node:" << node->metaObject()->className();
-
-      d->running = false;
-      break;
-    }
-    else
-      startedNodes += node;
-
-    if (d->running)
-    foreach (SInterfaces::SinkNode *sink, d->sinkNodes)
-    if (!sink->start(&(d->timer)))
-    {
-      qWarning() << "Failed to start sink node:" << sink->metaObject()->className();
-
-      d->running = false;
-      break;
-    }
-    else
-      startedSinks += sink;
-
-    if (d->running)
-    {
+      d->running = true;
       d->timer.reset();
 
       // Ensure event handling occurs on the running thread.
@@ -140,17 +104,8 @@ bool SGraph::start(void)
 
       return true;
     }
-
-    foreach (SInterfaces::SourceNode *source, startedSources)
-      source->stop();
-
-    foreach (SInterfaces::Node *node, startedNodes)
-      node->stop();
-
-    foreach (SInterfaces::SinkNode *sink, startedSinks)
-      sink->stop();
-
-    return false;
+    else
+      return false;
   }
   else
   {
@@ -166,7 +121,11 @@ void SGraph::stop(void)
     d->running = false;
 
     if (QThread::currentThread() != this)
+    {
       QThread::wait();
+
+      stopNodes();
+    }
   }
 }
 
@@ -182,18 +141,11 @@ void SGraph::run(void)
     d->processTimer = -1;
   }
 
-  foreach (SInterfaces::SourceNode *source, d->sourceNodes)
-    source->stop();
-
-  foreach (SInterfaces::Node *node, d->nodes)
-    node->stop();
-
-  foreach (SInterfaces::SinkNode *sink, d->sinkNodes)
-    sink->stop();
-
   // Ensure event handling occurs on the parent thread again.
   QThread::moveToThread(d->parentThread);
   d->running = false;
+
+  qApp->postEvent(this, new QEvent(d->stopEventType));
 }
 
 void SGraph::timerEvent(QTimerEvent *e)
@@ -214,6 +166,71 @@ void SGraph::timerEvent(QTimerEvent *e)
   }
   else
     QThread::timerEvent(e);
+}
+
+void SGraph::customEvent(QEvent *e)
+{
+  if (e->type() == d->stopEventType)
+    stopNodes();
+  else
+    SGraph::customEvent(e);
+}
+
+bool SGraph::startNodes(void)
+{
+  bool result = true;
+
+  foreach (SInterfaces::SourceNode *source, d->sourceNodes)
+  if (!source->start())
+  {
+    qWarning() << "Failed to start source:" << source->metaObject()->className();
+
+    result = false;
+    break;
+  }
+  else
+    d->startedSources += source;
+
+  if (result)
+  foreach (SInterfaces::Node *node, d->nodes)
+  if (!node->start())
+  {
+    qWarning() << "Failed to start node:" << node->metaObject()->className();
+
+    result = false;
+    break;
+  }
+  else
+    d->startedNodes += node;
+
+  if (result)
+  foreach (SInterfaces::SinkNode *sink, d->sinkNodes)
+  if (!sink->start(&(d->timer)))
+  {
+    qWarning() << "Failed to start sink node:" << sink->metaObject()->className();
+
+    result = false;
+    break;
+  }
+  else
+    d->startedSinks += sink;
+
+  if (!result)
+    stopNodes();
+
+  return result;
+}
+
+void SGraph::stopNodes(void)
+{
+  while (!d->startedSources.isEmpty())
+    d->startedSources.takeFirst()->stop();
+
+  while (!d->startedNodes.isEmpty())
+    d->startedNodes.takeFirst()->stop();
+
+  while (!d->startedSinks.isEmpty())
+    d->startedSinks.takeFirst()->stop();
 }
 
 } // End of namespace

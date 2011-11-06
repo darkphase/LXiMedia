@@ -50,6 +50,7 @@ public:
   bool                          hasIODevice(void) const;
 
   virtual bool                  open(quint16 programId = 0);
+  virtual void                  close();
 
 public: // From SInterfaces::SourceNode
   virtual bool                  start(void);
@@ -72,6 +73,10 @@ signals:
   void                          output(const SEncodedVideoBuffer &);
   void                          output(const SEncodedDataBuffer &);
   void                          finished(void);
+  void                          closeDecoder(void);
+
+protected:
+  virtual void                  endReached(void);
 
 protected: // From SInterfaces::BufferReader::ReadCallback
   virtual qint64                read(uchar *, qint64);

@@ -20,6 +20,7 @@
 #include "nodes/saudiodecodernode.h"
 #include "saudiobuffer.h"
 #include "nodes/sioinputnode.h"
+#include "nodes/splaylistnode.h"
 
 namespace LXiStream {
 
@@ -57,6 +58,8 @@ bool SAudioDecoderNode::open(SIOInputNode *inputNode, Flags flags)
   d->inputNode = inputNode;
   d->flags = flags;
 
+  connect(inputNode, SIGNAL(closeDecoder()), SLOT(closeDecoder()));
+
   return true;
 }
 
@@ -83,7 +86,7 @@ void SAudioDecoderNode::input(const SEncodedAudioBuffer &audioBuffer)
 {
   if (!audioBuffer.isNull())
   {
-    if (d->lastCodec != audioBuffer.codec())
+    if ((d->decoder == NULL) || (d->lastCodec != audioBuffer.codec()))
     {
       delete d->decoder;
 
@@ -101,6 +104,12 @@ void SAudioDecoderNode::input(const SEncodedAudioBuffer &audioBuffer)
   if (d->decoder)
   foreach (const SAudioBuffer &buffer, d->decoder->decodeBuffer(audioBuffer))
     emit output(buffer);
+}
+
+void SAudioDecoderNode::closeDecoder(void)
+{
+  delete d->decoder;
+  d->decoder = NULL;
 }
 
 } // End of namespace

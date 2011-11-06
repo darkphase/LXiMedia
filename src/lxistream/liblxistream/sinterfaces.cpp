@@ -278,7 +278,7 @@ VideoDecoder * VideoDecoder::create(QObject *parent, const SVideoCodec &codec, B
                         When false, the method will return a null pointer if the
                         object can not be created.
  */
-DataDecoder * DataDecoder::create(QObject *parent, const SDataCodec &codec, const BufferReader *bufferReader, Flags flags, bool nonNull)
+DataDecoder * DataDecoder::create(QObject *parent, const SDataCodec &codec, BufferReader *bufferReader, Flags flags, bool nonNull)
 {
   DataDecoder * dataDecoder =
       static_cast<DataDecoder *>(factory().createObject(staticMetaObject.className(), parent, codec.codec(), nonNull));

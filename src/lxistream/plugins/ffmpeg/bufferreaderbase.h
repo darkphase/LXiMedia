@@ -78,6 +78,8 @@ public:
 #else
   inline const ::AVFormatContext * context(void) const                          { return formatContext; }
 #endif
+  
+  ::AVStream                  * getStream(int index) const;
 
   bool                          setPosition(STime, bool fast);
 
@@ -109,6 +111,7 @@ private: // DTS framing
   static SEncodedAudioBufferList parseDTSFrames(StreamContext *, const SBuffer &);
 
 private:
+  void                          clear(void);
   static StreamContext        * initStreamContext(const ::AVStream *);
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
   static QString                readMetadata(::AVDictionary *, const char *tagName);

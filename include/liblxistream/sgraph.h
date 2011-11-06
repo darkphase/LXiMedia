@@ -41,9 +41,6 @@ public:
   explicit                      SGraph(void);
   virtual                       ~SGraph();
 
-  static bool                   connect(const QObject *, const char *, const QObject *, const char *);
-  bool                          connect(const QObject *, const char *, const char *) const;
-
   bool                          isRunning(void) const;
 
   void                          addNode(SInterfaces::Node *);
@@ -57,6 +54,11 @@ public slots:
 protected: // From QThread and QObject
   virtual void                  run(void);
   virtual void                  timerEvent(QTimerEvent *);
+  virtual void                  customEvent(QEvent *);
+
+private:
+  _lxi_internal bool            startNodes(void);
+  _lxi_internal void            stopNodes(void);
 
 private:
   struct Data;

@@ -385,12 +385,12 @@ public:
   Q_DECLARE_FLAGS(Flags, Flag)
 
 public:
-  static DataDecoder          * create(QObject *parent, const SDataCodec &codec, const BufferReader *, Flags = Flag_None, bool nonNull = true);
+  static DataDecoder          * create(QObject *parent, const SDataCodec &codec, BufferReader *, Flags = Flag_None, bool nonNull = true);
 
 protected:
   inline explicit               DataDecoder(QObject *parent) : QObject(parent) { }
 
-  virtual bool                  openCodec(const SDataCodec &, const BufferReader *, Flags) = 0;
+  virtual bool                  openCodec(const SDataCodec &, BufferReader *, Flags) = 0;
 
 public:
   virtual SDataBufferList       decodeBuffer(const SEncodedDataBuffer &) = 0;

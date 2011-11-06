@@ -199,11 +199,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
     else if (file.fileName().endsWith(".ogg", Qt::CaseInsensitive) ||
              file.fileName().endsWith(".ogv", Qt::CaseInsensitive))
     {
-      if (SAudioEncoderNode::codecs().contains("VORBIS"))
-        audioCodec = SAudioCodec("VORBIS", audioFormat.channelSetup(), audioFormat.sampleRate());
-      else
-        audioCodec = SAudioCodec("FLAC", audioFormat.channelSetup(), audioFormat.sampleRate());
-
+      audioCodec = SAudioCodec("VORBIS", SAudioFormat::Channels_Stereo, 44100);
       videoCodec = SVideoCodec("THEORA", videoFormat.size(), videoFormat.frameRate());
       format = "ogg";
       header.setContentType(SHttpEngine::mimeVideoOgg);
@@ -382,23 +378,20 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
     }
     else if (file.fileName().endsWith(".mp2", Qt::CaseInsensitive))
     {
-      audioCodec = SAudioCodec("MP2", SAudioFormat::Channels_Stereo, audioFormat.sampleRate());
+      audioCodec = SAudioCodec("MP2", SAudioFormat::Channels_Stereo, 48000);
       format = "mp2";
       header.setContentType(SHttpEngine::mimeAudioMpeg);
     }
     else if (file.fileName().endsWith(".mp3", Qt::CaseInsensitive))
     {
-      audioCodec = SAudioCodec("MP3", SAudioFormat::Channels_Stereo, audioFormat.sampleRate());
+      audioCodec = SAudioCodec("MP3", SAudioFormat::Channels_Stereo, 44100);
       format = "mp3";
       header.setContentType(SHttpEngine::mimeAudioMp3);
     }
     else if (file.fileName().endsWith(".ogg", Qt::CaseInsensitive) ||
              file.fileName().endsWith(".oga", Qt::CaseInsensitive))
     {
-      if (SAudioEncoderNode::codecs().contains("VORBIS"))
-        audioCodec = SAudioCodec("VORBIS", audioFormat.channelSetup(), 44100);
-      else
-        audioCodec = SAudioCodec("FLAC", audioFormat.channelSetup(), audioFormat.sampleRate());
+      audioCodec = SAudioCodec("VORBIS", SAudioFormat::Channels_Stereo, 44100);
 
       format = "ogg";
       header.setContentType(SHttpEngine::mimeAudioOgg);
@@ -571,17 +564,18 @@ MediaTranscodeStream::MediaTranscodeStream(void)
 {
 }
 
-bool MediaTranscodeStream::setup(const SHttpServer::RequestMessage &request,
-                                 QIODevice *socket,
-                                 SInterfaces::AbstractBufferReader *input,
-                                 STime duration,
-                                 bool musicPlaylist,
-                                 SInterfaces::AudioEncoder::Flags audioEncodeFlags,
-                                 SInterfaces::VideoEncoder::Flags videoEncodeFlags)
+bool MediaTranscodeStream::setup(
+    const SHttpServer::RequestMessage &request,
+    QIODevice *socket,
+    SIOInputNode *input,
+    STime duration,
+    bool musicPlaylist,
+    SInterfaces::AudioEncoder::Flags audioEncodeFlags,
+    SInterfaces::VideoEncoder::Flags videoEncodeFlags)
 {
   const MediaServer::File file(request);
 
-  if (audioDecoder.open(NULL) && videoDecoder.open(NULL) && dataDecoder.open(NULL))
+  if (audioDecoder.open(input) && videoDecoder.open(input) && dataDecoder.open(input))
   {
     // Select streams
     QList<SIOInputNode::AudioStreamInfo> audioStreams = input->audioStreams();

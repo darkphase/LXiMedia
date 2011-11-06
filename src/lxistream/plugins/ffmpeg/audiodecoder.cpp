@@ -18,6 +18,8 @@
  ***************************************************************************/
 
 #include "audiodecoder.h"
+#include "bufferreader.h"
+#include "networkbufferreader.h"
 
 namespace LXiStream {
 namespace FFMpegBackend {
@@ -27,6 +29,7 @@ AudioDecoder::AudioDecoder(const QString &, QObject *parent)
     inCodec(),
     codecHandle(NULL),
     contextHandle(NULL),
+    contextHandleOwner(false),
     postFilter(NULL),
     passThrough(false),
     audioSamplesSeen(0)
@@ -35,19 +38,16 @@ AudioDecoder::AudioDecoder(const QString &, QObject *parent)
 
 AudioDecoder::~AudioDecoder()
 {
-  if (codecHandle && contextHandle)
-    avcodec_close(contextHandle);
-
-  if (contextHandle)
+  if (contextHandle && contextHandleOwner)
   {
-    if (contextHandle->extradata)
-      delete [] contextHandle->extradata;
+    if (codecHandle)
+      ::avcodec_close(contextHandle);
 
-    av_free(contextHandle);
+    ::av_free(contextHandle);
   }
 }
 
-bool AudioDecoder::openCodec(const SAudioCodec &c, SInterfaces::BufferReader *, Flags flags)
+bool AudioDecoder::openCodec(const SAudioCodec &c, SInterfaces::BufferReader *bufferReader, Flags flags)
 {
   if (contextHandle)
     qFatal("AudioDecoder already opened a codec.");
@@ -75,37 +75,42 @@ bool AudioDecoder::openCodec(const SAudioCodec &c, SInterfaces::BufferReader *, 
     return false;
   }
 
-  contextHandle = avcodec_alloc_context();
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
-  contextHandle->codec_type = AVMEDIA_TYPE_AUDIO;
-#else
-  contextHandle->codec_type = CODEC_TYPE_AUDIO;
-#endif
-  contextHandle->flags2 |= CODEC_FLAG2_CHUNKS;
+  BufferReaderBase * ffBufferReader = qobject_cast<BufferReader *>(bufferReader);
+  if (ffBufferReader == NULL)
+    ffBufferReader = qobject_cast<NetworkBufferReader *>(bufferReader);
 
-  if (inCodec.sampleRate() != 0)
-    contextHandle->sample_rate = inCodec.sampleRate();
-
-  if (inCodec.channelSetup() != SAudioFormat::Channel_None)
+  if (ffBufferReader && (inCodec.streamId() >= 0))
   {
-    contextHandle->channels = inCodec.numChannels();
-    contextHandle->channel_layout = FFMpegCommon::toFFMpegChannelLayout(inCodec.channelSetup());
+    contextHandle = ffBufferReader->getStream(inCodec.streamId())->codec;
+    contextHandleOwner = false;
   }
+  else
+  {
+    contextHandle = avcodec_alloc_context();
+    contextHandleOwner = true;
+
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+    contextHandle->codec_type = AVMEDIA_TYPE_AUDIO;
+#else
+    contextHandle->codec_type = CODEC_TYPE_AUDIO;
+#endif
+
+    if (inCodec.sampleRate() != 0)
+      contextHandle->sample_rate = inCodec.sampleRate();
+
+    if (inCodec.channelSetup() != SAudioFormat::Channel_None)
+    {
+      contextHandle->channels = inCodec.numChannels();
+      contextHandle->channel_layout = FFMpegCommon::toFFMpegChannelLayout(inCodec.channelSetup());
+    }
+
+    contextHandle->bit_rate = inCodec.bitRate();
+  }
+
+  contextHandle->flags2 |= CODEC_FLAG2_CHUNKS;
 
   if ((flags & Flag_DownsampleToStereo) && (contextHandle->channels != 2))
     contextHandle->request_channel_layout = CH_LAYOUT_STEREO_DOWNMIX;
-
-  contextHandle->bit_rate = inCodec.bitRate();
-
-  contextHandle->extradata_size = inCodec.extraData().size();
-  if (contextHandle->extradata_size > 0)
-  {
-    contextHandle->extradata = new uint8_t[contextHandle->extradata_size + FF_INPUT_BUFFER_PADDING_SIZE];
-    memcpy(contextHandle->extradata, inCodec.extraData().data(), contextHandle->extradata_size);
-    memset(contextHandle->extradata + contextHandle->extradata_size, 0, FF_INPUT_BUFFER_PADDING_SIZE);
-  }
-  else
-    contextHandle->extradata = NULL;
 
 #ifdef OPT_ENABLE_THREADS
   contextHandle->thread_count = FFMpegCommon::decodeThreadCount(codecHandle->id);
