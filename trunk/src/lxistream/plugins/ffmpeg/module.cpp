@@ -59,7 +59,7 @@ bool Module::registerClasses(void)
   const QSet<QByteArray> unsupportedEncoders = QSet<QByteArray>()
       // Audio
       << "GSM" << "GSM_MS" << "NELLYMOSER" << "PCM/S16LE" << "PCM/S16BE"
-      << "PCM/U16LE" << "PCM/U16BE" << "PCM/MULAW" << "PCM/ALAW" << "VORBIS"
+      << "PCM/U16LE" << "PCM/U16BE" << "PCM/MULAW" << "PCM/ALAW"
 //      << "WMAV1" << "WMAV2"
       // Video
       << "BMP" << "DVVIDEO" << "DNXHD" << "HUFFYUV" << "JPEGLS" << "MSMPEG4V1"
@@ -68,7 +68,7 @@ bool Module::registerClasses(void)
       << "VP8" << "ZLIB"
 #if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(52, 72, 0)
       // Audio
-      << "FLAC"
+      << "FLAC" << "VORBIS"
       // Video
       << "THEORA"
 #endif

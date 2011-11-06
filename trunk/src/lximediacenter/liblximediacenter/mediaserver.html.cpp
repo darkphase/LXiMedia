@@ -24,6 +24,7 @@
 namespace LXiMediaCenter {
 
 bool                MediaServer::html5Enabled = false;
+const QSize         MediaServer::defaultSize(768, 432);
 const char          MediaServer::audioTimeFormat[] = "m:ss";
 const char          MediaServer::videoTimeFormat[] = "h:mm:ss";
 
@@ -560,7 +561,8 @@ QByteArray MediaServer::buildVideoPlayer(const QByteArray &item, const QString &
         "&channels=" + QByteArray::number(channels, 16) +
         "&language=" + url.queryItemValue("language").toAscii() +
         "&subtitles=" + url.queryItemValue("subtitles").toAscii() +
-        "&position=" + url.queryItemValue("position").toAscii();
+        "&position=" + url.queryItemValue("position").toAscii() +
+        "&encodemode=fast";
 
     if (html5Enabled)
     {
@@ -568,7 +570,7 @@ QByteArray MediaServer::buildVideoPlayer(const QByteArray &item, const QString &
       htmlParser.setField("FLV_PLAYER", htmlParser.parse(htmlPlayerVideoItemFlv));
 
       htmlParser.setField("SOURCE_URL", SUPnPContentDirectory::toQueryPath(item, query, ".ogg"));
-      htmlParser.setField("SOURCE_CODEC", QByteArray("video/ogg; codecs=\"theora, flac\""));
+      htmlParser.setField("SOURCE_CODEC", QByteArray(SHttpEngine::mimeVideoOgg) + "; codecs=\"theora, vorbis\"");
       htmlParser.setField("SOURCES", htmlParser.parse(htmlPlayerVideoSourceItemHtml5));
       htmlParser.setField("PLAYER", htmlParser.parse(htmlPlayerVideoItemHtml5));
     }
@@ -684,7 +686,8 @@ QByteArray MediaServer::buildVideoPlayer(const QByteArray &item, const QString &
   {
     const QByteArray query =
         "resolution=" + QByteArray::number(size.width()) + "x" + QByteArray::number(size.height()) +
-        "&channels=" + QByteArray::number(channels, 16);
+        "&channels=" + QByteArray::number(channels, 16) +
+        "&encodemode=fast";
 
     if (html5Enabled)
     {
@@ -692,7 +695,7 @@ QByteArray MediaServer::buildVideoPlayer(const QByteArray &item, const QString &
       htmlParser.setField("FLV_PLAYER", htmlParser.parse(htmlPlayerVideoItemFlv));
 
       htmlParser.setField("SOURCE_URL", SUPnPContentDirectory::toQueryPath(item, query, ".ogg"));
-      htmlParser.setField("SOURCE_CODEC", QByteArray("video/ogg; codecs=\"theora, flac\""));
+      htmlParser.setField("SOURCE_CODEC", QByteArray(SHttpEngine::mimeVideoOgg) + "; codecs=\"theora, vorbis\"");
       htmlParser.setField("SOURCES", htmlParser.parse(htmlPlayerVideoSourceItemHtml5));
       htmlParser.setField("PLAYER", htmlParser.parse(htmlPlayerVideoItemHtml5));
     }

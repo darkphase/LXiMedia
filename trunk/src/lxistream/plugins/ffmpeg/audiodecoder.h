@@ -51,6 +51,7 @@ private:
   SAudioCodec                   inCodec;
   AVCodec                     * codecHandle;
   AVCodecContext              * contextHandle;
+  bool                          contextHandleOwner;
   PostFilterFunc                postFilter;
   bool                          passThrough;
 

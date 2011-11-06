@@ -56,6 +56,8 @@ bool SVideoDecoderNode::open(SIOInputNode *inputNode, Flags flags)
   d->inputNode = inputNode;
   d->flags = flags;
 
+  connect(inputNode, SIGNAL(closeDecoder()), SLOT(closeDecoder()));
+
   return true;
 }
 
@@ -82,7 +84,7 @@ void SVideoDecoderNode::input(const SEncodedVideoBuffer &videoBuffer)
 {
   if (!videoBuffer.isNull())
   {
-    if (d->lastCodec != videoBuffer.codec())
+    if ((d->decoder == NULL) || (d->lastCodec != videoBuffer.codec()))
     {
       delete d->decoder;
 
@@ -100,6 +102,12 @@ void SVideoDecoderNode::input(const SEncodedVideoBuffer &videoBuffer)
   if (d->decoder)
   foreach (const SVideoBuffer &buffer, d->decoder->decodeBuffer(videoBuffer))
     emit output(buffer);
+}
+
+void SVideoDecoderNode::closeDecoder(void)
+{
+  delete d->decoder;
+  d->decoder = NULL;
 }
 
 } // End of namespace

@@ -30,28 +30,19 @@ struct SPlaylistNode::Data
   STime                         duration;
   STime                         firstFileOffset;
   int                           fileId;
-  int                           nextFileId;
-  SFileInputNode              * file;
-  SFileInputNode              * nextFile;
 
   AudioStreamInfo               audioStreamInfo;
   bool                          hasVideo;
   VideoStreamInfo               videoStreamInfo;
-
-  QFuture<void>                 loadFuture;
 };
 
 SPlaylistNode::SPlaylistNode(SGraph *parent, const SMediaInfoList &files)
-  : SInterfaces::SourceNode(parent),
+  : SFileInputNode(parent, QString::null),
     d(new Data())
 {
   d->duration = STime::null;
   d->firstFileOffset = STime();
-
   d->fileId = -1;
-  d->nextFileId = -1;
-  d->file = NULL;
-  d->nextFile = NULL;
 
   d->hasVideo = true;
 
@@ -129,25 +120,11 @@ SPlaylistNode::SPlaylistNode(SGraph *parent, const SMediaInfoList &files)
 
 SPlaylistNode::~SPlaylistNode()
 {
-  d->loadFuture.waitForFinished();
-
-  if (d->file)
-  {
-    d->file->stop();
-    delete d->file;
-  }
-
-  if (d->nextFile)
-  {
-    d->nextFile->stop();
-    delete d->nextFile;
-  }
-
   delete d;
   *const_cast<Data **>(&d) = NULL;
 }
 
-bool SPlaylistNode::open(void)
+bool SPlaylistNode::open(quint16)
 {
   return !d->fileNames.isEmpty();
 }
@@ -155,67 +132,16 @@ bool SPlaylistNode::open(void)
 bool SPlaylistNode::start(void)
 {
   d->fileId = -1;
-  d->nextFileId = -1;
 
-  d->loadFuture = QtConcurrent::run(this, &SPlaylistNode::openNext);
-
-  return true;
+  return openNext();
 }
 
 void SPlaylistNode::stop(void)
 {
-  d->loadFuture.waitForFinished();
-
-  if (d->file)
-  {
-    d->file->stop();
-    delete d->file;
-    d->file = NULL;
-  }
-
-  if (d->nextFile)
-  {
-    d->nextFile->stop();
-    delete d->nextFile;
-    d->nextFile = NULL;
-  }
+  if ((d->fileId >= 0) && (d->fileId < d->fileNames.count()))
+    emit closed(d->fileNames[d->fileId].first, d->fileNames[d->fileId].second);
 
   d->fileId = -1;
-  d->nextFileId = -1;
-}
-
-bool SPlaylistNode::process(void)
-{
-  if (d->file == NULL)
-  {
-    d->loadFuture.waitForFinished();
-
-    if (d->nextFileId == -2)
-    {
-      emit finished();
-      return true;
-    }
-
-    d->fileId = d->nextFileId;
-    d->file = d->nextFile;
-
-    // Start loading next
-    if ((d->nextFileId >= 0) && (d->nextFileId < d->fileNames.count()))
-      d->loadFuture = QtConcurrent::run(this, &SPlaylistNode::openNext);
-    else
-      d->nextFileId = -2;
-
-    if ((d->fileId >= 0) && (d->fileId < d->fileNames.count()))
-    {
-      qDebug() << "SPlaylistNode playing next file:" << d->fileNames[d->fileId].first << d->fileNames[d->fileId].second;
-      emit opened(d->fileNames[d->fileId].first, d->fileNames[d->fileId].second);
-    }
-  }
-
-  if (d->file)
-    return d->file->process();
-
-  return false;
 }
 
 STime SPlaylistNode::duration(void) const
@@ -225,30 +151,25 @@ STime SPlaylistNode::duration(void) const
 
 bool SPlaylistNode::setPosition(STime pos)
 {
-  if (d->nextFileId == -1)
+  STime curPos = pos;
+  while (!d->fileNames.isEmpty() && !d->fileOffsets.isEmpty())
   {
-    STime curPos = pos;
-    while (!d->fileNames.isEmpty() && !d->fileOffsets.isEmpty())
+    if (d->fileOffsets.count() > 1)
+    if (curPos > d->fileOffsets[1])
     {
-      if (d->fileOffsets.count() > 1)
-      if (curPos > d->fileOffsets[1])
-      {
-        d->fileNames.takeFirst();
-        d->fileOffsets.takeFirst();
-        curPos = pos - d->fileOffsets.first();
-        continue;
-      }
-
-      break;
+      d->fileNames.takeFirst();
+      d->fileOffsets.takeFirst();
+      curPos = pos - d->fileOffsets.first();
+      continue;
     }
 
-    if (!d->fileNames.isEmpty() && !d->fileOffsets.isEmpty())
-      d->firstFileOffset = curPos;
-
-    return true;
+    break;
   }
 
-  return false;
+  if (!d->fileNames.isEmpty() && !d->fileOffsets.isEmpty())
+    d->firstFileOffset = curPos;
+
+  return true;
 }
 
 STime SPlaylistNode::position(void) const
@@ -283,56 +204,33 @@ void SPlaylistNode::selectStreams(const QVector<StreamId> &)
 {
 }
 
-SFileInputNode * SPlaylistNode::openFile(const QString &fileName, quint16 programId)
+void SPlaylistNode::endReached(void)
 {
-  LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
-
-  SFileInputNode * const file = new SFileInputNode(NULL, fileName);
-  if (file->open(programId) && file->start())
-  {
-    connect(file, SIGNAL(output(SEncodedAudioBuffer)), SIGNAL(output(SEncodedAudioBuffer)));
-    connect(file, SIGNAL(output(SEncodedVideoBuffer)), SIGNAL(output(SEncodedVideoBuffer)));
-    connect(file, SIGNAL(output(SEncodedDataBuffer)), SIGNAL(output(SEncodedDataBuffer)));
-    connect(file, SIGNAL(finished()), SLOT(closeFile()), Qt::QueuedConnection);
-
-    return file;
-  }
-
-  delete file;
-  return NULL;
+  if (!openNext())
+    SFileInputNode::endReached();
 }
 
-void SPlaylistNode::openNext(void)
+bool SPlaylistNode::openNext(void)
 {
-  for (d->nextFileId++; d->nextFileId < d->fileNames.count(); d->nextFileId++)
-  {
-    SFileInputNode * const file = openFile(d->fileNames[d->nextFileId].first, d->fileNames[d->nextFileId].second);
-    if (file)
-    {
-      d->nextFile = file;
+  SFileInputNode::stop();
 
-      if ((d->nextFileId == 0) && d->firstFileOffset.isValid())
-        d->nextFile->setPosition(d->firstFileOffset);
-
-      return;
-    }
-  }
-
-  d->nextFile = NULL;
-  d->nextFileId = -2;
-}
-
-void SPlaylistNode::closeFile(void)
-{
   if ((d->fileId >= 0) && (d->fileId < d->fileNames.count()))
     emit closed(d->fileNames[d->fileId].first, d->fileNames[d->fileId].second);
 
-  if (d->file)
+  for (d->fileId++; d->fileId < d->fileNames.count(); d->fileId++)
   {
-    d->file->stop();
-    delete d->file;
-    d->file = NULL;
+    setFileName(d->fileNames[d->fileId].first);
+    if (SFileInputNode::open(d->fileNames[d->fileId].second))
+    {
+      SFileInputNode::start();
+
+      emit opened(d->fileNames[d->fileId].first, d->fileNames[d->fileId].second);
+      return true;
+    }
   }
+
+  d->fileId = -1;
+  return false;
 }
 
 } // End of namespace

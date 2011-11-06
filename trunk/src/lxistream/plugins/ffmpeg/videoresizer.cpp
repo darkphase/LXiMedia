@@ -54,13 +54,7 @@ int VideoResizer::algoFlags(const QString &name)
   else if (name == "bicubic")
     return SWS_BICUBIC;
   else // if ((name == "bilinear") || (name == "deinterlace"))
-  {
-#ifndef Q_OS_MACX
-    return SWS_FAST_BILINEAR; // Crashes on Mac
-#else
     return SWS_BILINEAR;
-#endif
-  }
 }
 
 void VideoResizer::setSize(const SSize &size)
@@ -120,7 +114,8 @@ bool VideoResizer::needsResize(const SVideoFormat &format)
       {
         const ::PixelFormat pf = FFMpegCommon::toFFMpegPixelFormat(lastFormat);
 
-        swsContext[i] = ::sws_getContext(
+        swsContext[i] = ::sws_getCachedContext(
+            NULL,
             lastFormat.size().width(), lastFormat.size().height(), pf,
             destFormat.size().width(), destFormat.size().height(), pf,
             filterFlags,
@@ -128,7 +123,8 @@ bool VideoResizer::needsResize(const SVideoFormat &format)
 
         if (swsContext[i] == NULL)
         { // Fallback
-          swsContext[i] = ::sws_getContext(
+          swsContext[i] = ::sws_getCachedContext(
+              NULL,
               lastFormat.size().width(), lastFormat.size().height(), pf,
               destFormat.size().width(), destFormat.size().height(), pf,
               0,

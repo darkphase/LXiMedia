@@ -22,7 +22,7 @@
 
 #include <QtCore>
 #include <LXiCore>
-#include "sioinputnode.h"
+#include "sfileinputnode.h"
 #include "../smediainfo.h"
 #include "../export.h"
 
@@ -30,20 +30,18 @@ namespace LXiStream {
 
 class SFileInputNode;
 
-class LXISTREAM_PUBLIC SPlaylistNode : public SInterfaces::SourceNode,
-                                       public SInterfaces::AbstractBufferReader
+class LXISTREAM_PUBLIC SPlaylistNode : public SFileInputNode
 {
 Q_OBJECT
 public:
   explicit                      SPlaylistNode(SGraph *, const SMediaInfoList &files);
   virtual                       ~SPlaylistNode();
 
-  virtual bool                  open(void);
+  virtual bool                  open(quint16 programId = 0);
 
 public: // From SInterfaces::SourceNode
   virtual bool                  start(void);
   virtual void                  stop(void);
-  virtual bool                  process(void);
 
 public: // From SInterfaces::AbstractBufferReader
   virtual STime                 duration(void) const;
@@ -57,19 +55,14 @@ public: // From SInterfaces::AbstractBufferReader
   virtual void                  selectStreams(const QVector<StreamId> &);
 
 signals:
-  void                          output(const SEncodedAudioBuffer &);
-  void                          output(const SEncodedVideoBuffer &);
-  void                          output(const SEncodedDataBuffer &);
-  void                          finished(void);
   void                          opened(const QString &, quint16);
   void                          closed(const QString &, quint16);
 
-private:
-  _lxi_internal SFileInputNode * openFile(const QString &, quint16);
-  _lxi_internal void            openNext(void);
+protected:
+  virtual void                  endReached(void);
 
-private slots:
-  _lxi_internal void            closeFile(void);
+private:
+  _lxi_internal bool            openNext(void);
 
 private:
   struct Data;

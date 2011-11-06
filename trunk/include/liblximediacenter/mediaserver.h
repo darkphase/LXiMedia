@@ -162,6 +162,7 @@ public: // Implemented in mediaserver.html.cpp
 
 protected: // Implemented in mediaserver.html.cpp
   static bool                   html5Enabled;
+  static const QSize            defaultSize;
   static const char             audioTimeFormat[];
   static const char             videoTimeFormat[];
 
@@ -202,8 +203,8 @@ protected: // Implemented in mediaserver.html.cpp
   QByteArray                    buildDetailedView(const QString &title, const QList< QPair<QString, bool> > &columns, const DetailedListItemList &);
   QByteArray                    buildDetailedLoader(const QString &title, const QList< QPair<QString, bool> > &columns);
   QByteArray                    buildDetailedItems(const DetailedListItemList &);
-  QByteArray                    buildVideoPlayer(const QByteArray &item, const QString &title, const SMediaInfo::Program &, const QUrl &, const QSize & = QSize(768, 432), SAudioFormat::Channels = SAudioFormat::Channels_Stereo);
-  QByteArray                    buildVideoPlayer(const QByteArray &item, const QString &title, const QUrl &, const QSize & = QSize(768, 432), SAudioFormat::Channels = SAudioFormat::Channels_Stereo);
+  QByteArray                    buildVideoPlayer(const QByteArray &item, const QString &title, const SMediaInfo::Program &, const QUrl &, const QSize & = defaultSize, SAudioFormat::Channels = SAudioFormat::Channels_Stereo);
+  QByteArray                    buildVideoPlayer(const QByteArray &item, const QString &title, const QUrl &, const QSize & = defaultSize, SAudioFormat::Channels = SAudioFormat::Channels_Stereo);
 };
 
 } // End of namespace

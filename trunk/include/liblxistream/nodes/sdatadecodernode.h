@@ -58,6 +58,9 @@ signals:
   void                          output(const SSubtitleBuffer &);
   void                          output(const SSubpictureBuffer &);
 
+private slots:
+  void                          closeDecoder(void);
+
 private:
   struct Data;
   Data                  * const d;

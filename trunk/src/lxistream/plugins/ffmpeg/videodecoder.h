@@ -46,6 +46,7 @@ private:
   SVideoCodec                   inCodec;
   AVCodec                     * codecHandle;
   AVCodecContext              * contextHandle;
+  bool                          contextHandleOwner;
   AVFrame                     * pictureHandle;
 
   SVideoFormat                  outFormat;

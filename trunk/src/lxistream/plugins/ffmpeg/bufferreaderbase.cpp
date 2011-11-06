@@ -34,21 +34,15 @@ BufferReaderBase::BufferReaderBase(void)
 
 BufferReaderBase::~BufferReaderBase()
 {
-  foreach (StreamContext *context, streamContext)
-  if (context)
-  {
-    delete [] context->dtsBuffer;
-    delete context;
-  }
+  clear();
+}
 
-  if (formatContext)
-  {
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
-    ::av_close_input_file(formatContext);
-#else
-    ::av_close_input_stream(formatContext);
-#endif
-  }
+::AVStream * BufferReaderBase::getStream(int index) const
+{
+  if (formatContext && (index < int(formatContext->nb_streams)))
+    return formatContext->streams[index];
+
+  return NULL;
 }
 
 bool BufferReaderBase::start(ProduceCallback *produceCallback, ::AVFormatContext *formatContext)
@@ -238,27 +232,7 @@ bool BufferReaderBase::start(ProduceCallback *produceCallback, ::AVFormatContext
 
 void BufferReaderBase::stop(void)
 {
-  foreach (StreamContext *context, streamContext)
-  if (context)
-  {
-    delete [] context->dtsBuffer;
-    delete context;
-  }
-
-  streamContext.clear();
-
-  if (formatContext)
-  {
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
-    ::av_close_input_file(formatContext);
-#else
-    ::av_close_input_stream(formatContext);
-#endif
-
-    formatContext = NULL;
-  }
-
-  produceCallback = NULL;
+  clear();
 }
 
 BufferReaderBase::Packet BufferReaderBase::read(bool fast)
@@ -351,7 +325,8 @@ bool BufferReaderBase::demux(const Packet &packet)
                       SAudioCodec("DTS",
                                   FFMpegCommon::fromFFMpegChannelLayout(stream->codec->channel_layout,
                                                                         stream->codec->channels),
-                                  stream->codec->sample_rate);
+                                  stream->codec->sample_rate,
+                                  stream->index);
                 }
 
                 context->dtsChecked = true; // Checked for DTS.
@@ -823,6 +798,35 @@ SEncodedAudioBufferList BufferReaderBase::parseDTSFrames(StreamContext *context,
   return result;
 }
 
+void BufferReaderBase::clear(void)
+{
+  foreach (StreamContext *context, streamContext)
+  if (context)
+  {
+    delete [] context->dtsBuffer;
+    delete context;
+  }
+
+  streamContext.clear();
+
+  if (formatContext)
+  {
+    for (unsigned i=0; i<formatContext->nb_streams; i++)
+    if (formatContext->streams[i]->codec->codec)
+      ::avcodec_close(formatContext->streams[i]->codec);
+
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+    ::av_close_input_file(formatContext);
+#else
+    ::av_close_input_stream(formatContext);
+#endif
+
+    formatContext = NULL;
+  }
+
+  produceCallback = NULL;
+}
+
 BufferReaderBase::StreamContext * BufferReaderBase::initStreamContext(const ::AVStream *stream)
 {
   StreamContext * const streamContext = new StreamContext();
@@ -845,12 +849,8 @@ BufferReaderBase::StreamContext * BufferReaderBase::initStreamContext(const ::AV
         SAudioCodec(FFMpegCommon::fromFFMpegCodecID(stream->codec->codec_id),
                     FFMpegCommon::fromFFMpegChannelLayout(stream->codec->channel_layout, stream->codec->channels),
                     stream->codec->sample_rate,
+                    stream->index,
                     stream->codec->bit_rate);
-
-    if (stream->codec->extradata && (stream->codec->extradata_size > 0))
-      streamContext->audioCodec.setExtraData(
-          QByteArray((const char *)stream->codec->extradata,
-                     stream->codec->extradata_size));
   }
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
   else if (stream->codec->codec_type == AVMEDIA_TYPE_VIDEO)
@@ -879,12 +879,8 @@ BufferReaderBase::StreamContext * BufferReaderBase::initStreamContext(const ::AV
         SVideoCodec(FFMpegCommon::fromFFMpegCodecID(stream->codec->codec_id),
                     SSize(stream->codec->width, stream->codec->height, ar),
                     fr,
+                    stream->index,
                     stream->codec->bit_rate);
-
-    if (stream->codec->extradata && (stream->codec->extradata_size > 0))
-      streamContext->videoCodec.setExtraData(
-          QByteArray((const char *)stream->codec->extradata,
-                     stream->codec->extradata_size));
 
     streamContext->measurement.reserve(streamContext->measurementSize);
   }
@@ -895,12 +891,8 @@ BufferReaderBase::StreamContext * BufferReaderBase::initStreamContext(const ::AV
 #endif
   {
     streamContext->dataCodec =
-        SDataCodec(FFMpegCommon::fromFFMpegCodecID(stream->codec->codec_id));
-
-    if (stream->codec->extradata && (stream->codec->extradata_size > 0))
-      streamContext->dataCodec.setExtraData(
-          QByteArray((const char *)stream->codec->extradata,
-                     stream->codec->extradata_size));
+        SDataCodec(FFMpegCommon::fromFFMpegCodecID(stream->codec->codec_id),
+                   stream->index);
   }
 
   return streamContext;

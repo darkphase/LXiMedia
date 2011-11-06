@@ -18,6 +18,8 @@
  ***************************************************************************/
 
 #include "datadecoder.h"
+#include "bufferreader.h"
+#include "networkbufferreader.h"
 
 namespace LXiStream {
 namespace FFMpegBackend {
@@ -27,25 +29,23 @@ DataDecoder::DataDecoder(const QString &, QObject *parent)
   : SInterfaces::DataDecoder(parent),
     inCodec(),
     codecHandle(NULL),
-    contextHandle(NULL)
+    contextHandle(NULL),
+    contextHandleOwner(false)
 {
 }
 
 DataDecoder::~DataDecoder()
 {
-  if (codecHandle && contextHandle)
-    avcodec_close(contextHandle);
-
-  if (contextHandle)
+  if (contextHandle && contextHandleOwner)
   {
-    if (contextHandle->extradata)
-      delete [] contextHandle->extradata;
+    if (codecHandle)
+      ::avcodec_close(contextHandle);
 
-    av_free(contextHandle);
+    ::av_free(contextHandle);
   }
 }
 
-bool DataDecoder::openCodec(const SDataCodec &c, const SInterfaces::BufferReader *, Flags)
+bool DataDecoder::openCodec(const SDataCodec &c, SInterfaces::BufferReader *bufferReader, Flags)
 {
   if (contextHandle)
     qFatal("DataDecoder already opened a codec.");
@@ -58,22 +58,27 @@ bool DataDecoder::openCodec(const SDataCodec &c, const SInterfaces::BufferReader
     return false;
   }
 
-  contextHandle = avcodec_alloc_context();
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
-  contextHandle->codec_type = AVMEDIA_TYPE_SUBTITLE;
-#else
-  contextHandle->codec_type = CODEC_TYPE_SUBTITLE;
-#endif
+  BufferReaderBase * ffBufferReader = qobject_cast<BufferReader *>(bufferReader);
+  if (ffBufferReader == NULL)
+    ffBufferReader = qobject_cast<NetworkBufferReader *>(bufferReader);
 
-  contextHandle->extradata_size = inCodec.extraData().size();
-  if (contextHandle->extradata_size > 0)
+  if (ffBufferReader && (inCodec.streamId() >= 0))
   {
-    contextHandle->extradata = new uint8_t[contextHandle->extradata_size + FF_INPUT_BUFFER_PADDING_SIZE];
-    memcpy(contextHandle->extradata, inCodec.extraData().data(), contextHandle->extradata_size);
-    memset(contextHandle->extradata + contextHandle->extradata_size, 0, FF_INPUT_BUFFER_PADDING_SIZE);
+    contextHandle = ffBufferReader->getStream(inCodec.streamId())->codec;
+    contextHandleOwner = false;
   }
   else
-    contextHandle->extradata = NULL;
+  {
+    contextHandle = avcodec_alloc_context();
+    contextHandleOwner = true;
+
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+    contextHandle->codec_type = AVMEDIA_TYPE_SUBTITLE;
+#else
+    contextHandle->codec_type = CODEC_TYPE_SUBTITLE;
+#endif
+    contextHandle->flags2 |= CODEC_FLAG2_CHUNKS;
+  }
 
   if (avcodec_open(contextHandle, codecHandle) < 0)
   {

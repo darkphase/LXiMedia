@@ -34,7 +34,7 @@ class LXISTREAM_PUBLIC SDataCodec
 {
 public:
                                 SDataCodec(void);
-                                SDataCodec(const QString &name);
+                                SDataCodec(const QString &name, int streamId = -1);
 
   inline                        operator const QString &() const                { return codec(); }
 
@@ -45,20 +45,19 @@ public:
 
   inline bool                   isNull(void) const                              { return d.codec.isEmpty(); }
   inline const QString        & codec(void) const                               { return d.codec; }
-  inline void                   setCodec(const QString &codec);
+  void                          setCodec(const QString &codec, int streamId = -1);
 
-  inline const QByteArray     & extraData(void) const                           { return d.extraData; }
-  inline void                   setExtraData(const QByteArray &data)            { d.extraData = data; }
+  inline int                    streamId(void) const                            { return d.streamId; }
+  inline void                   setStreamId(int i)                              { d.streamId = i; }
 
-  QString                       toString(bool addExtraData = true) const;
+  QString                       toString(void) const;
   static SDataCodec             fromString(const QString &);
 
 private:
   struct
   {
     QString                     codec;
-
-    QByteArray                  extraData;
+    int                         streamId;
   }                             d;
 };
 

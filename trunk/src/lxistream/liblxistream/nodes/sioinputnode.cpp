@@ -47,6 +47,8 @@ SIOInputNode::~SIOInputNode()
 
 void SIOInputNode::setIODevice(QIODevice *ioDevice)
 {
+  close();
+
   d->ioDevice = ioDevice;
 }
 
@@ -57,6 +59,8 @@ bool SIOInputNode::hasIODevice(void) const
 
 bool SIOInputNode::open(quint16 programId)
 {
+  close();
+
   QByteArray buffer;
   bool sequential = true;
 
@@ -92,6 +96,21 @@ bool SIOInputNode::open(quint16 programId)
   return false;
 }
 
+void SIOInputNode::close()
+{
+  if (d->bufferReader)
+  {
+    emit closeDecoder();
+
+    d->bufferReader->stop();
+
+    delete d->bufferReader;
+    d->bufferReader = NULL;
+  }
+
+  d->opened = false;
+}
+
 bool SIOInputNode::start(void)
 {
   if (!d->opened)
@@ -102,13 +121,8 @@ bool SIOInputNode::start(void)
 
 void SIOInputNode::stop(void)
 {
-  if (d->bufferReader)
-  {
-    d->bufferReader->stop();
-
-    delete d->bufferReader;
-    d->bufferReader = NULL;
-  }
+  if (d->opened)
+    close();
 }
 
 bool SIOInputNode::process(void)
@@ -119,20 +133,22 @@ bool SIOInputNode::process(void)
     if (d->bufferReader->process())
       return true;
 
-    // Finished; close input.
-    d->bufferReader->stop();
+    endReached();
 
-    delete d->bufferReader;
-    d->bufferReader = NULL;
-
-    emit output(SEncodedAudioBuffer());
-    emit output(SEncodedVideoBuffer());
-    emit output(SEncodedDataBuffer());
-    emit finished();
     return true;
   }
 
   return false;
+}
+
+void SIOInputNode::endReached(void)
+{
+  close();
+
+  emit output(SEncodedAudioBuffer());
+  emit output(SEncodedVideoBuffer());
+  emit output(SEncodedDataBuffer());
+  emit finished();
 }
 
 qint64 SIOInputNode::read(uchar *buffer, qint64 size)

@@ -75,7 +75,7 @@ QByteArray FileNode::toByteArray(int indent) const
       elm.setAttribute("id", audioStream.toString());
       elm.setAttribute("language", audioStream.language);
       elm.setAttribute("title", audioStream.title);
-      elm.setAttribute("codec", audioStream.codec.toString(false));
+      elm.setAttribute("codec", audioStream.codec.toString());
       programElm.appendChild(elm);
     }
 
@@ -85,7 +85,7 @@ QByteArray FileNode::toByteArray(int indent) const
       elm.setAttribute("id", videoStream.toString());
       elm.setAttribute("language", videoStream.language);
       elm.setAttribute("title", videoStream.title);
-      elm.setAttribute("codec", videoStream.codec.toString(false));
+      elm.setAttribute("codec", videoStream.codec.toString());
       programElm.appendChild(elm);
     }
 
@@ -96,14 +96,14 @@ QByteArray FileNode::toByteArray(int indent) const
       elm.setAttribute("language", dataStream.language);
       elm.setAttribute("title", dataStream.title);
       elm.setAttribute("file", dataStream.file);
-      elm.setAttribute("codec", dataStream.codec.toString(false));
+      elm.setAttribute("codec", dataStream.codec.toString());
       programElm.appendChild(elm);
     }
 
     if (!program.imageCodec.isNull())
     {
       QDomElement elm = doc.createElement("imagecodec");
-      elm.setAttribute("codec", program.imageCodec.toString(false));
+      elm.setAttribute("codec", program.imageCodec.toString());
       programElm.appendChild(elm);
     }
 

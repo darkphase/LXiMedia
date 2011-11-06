@@ -167,7 +167,7 @@ bool VideoEncoder::openCodec(const SVideoCodec &c, SInterfaces::BufferWriter *bu
 
   if (ffBufferWriter)
   if (ffBufferWriter->avFormat()->flags & AVFMT_GLOBALHEADER)
-      contextHandle->flags |= CODEC_FLAG_GLOBAL_HEADER;
+    contextHandle->flags |= CODEC_FLAG_GLOBAL_HEADER;
 
   // Determine rate-control buffer size.
   if (contextHandle->rc_max_rate > 0)
@@ -190,9 +190,6 @@ bool VideoEncoder::openCodec(const SVideoCodec &c, SInterfaces::BufferWriter *bu
   avcodec_get_frame_defaults(pictureHandle);
 
   outCodec.setBitRate(contextHandle->bit_rate + contextHandle->bit_rate_tolerance);
-
-  if (contextHandle->extradata_size > 0)
-    outCodec.setExtraData(QByteArray((const char *)contextHandle->extradata, contextHandle->extradata_size));
 
   bufferSize = qMax((contextHandle->width * contextHandle->height * 4) + 8192, FF_MIN_BUFFER_SIZE);
 

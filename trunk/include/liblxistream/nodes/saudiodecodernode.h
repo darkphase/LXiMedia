@@ -57,6 +57,9 @@ public slots:
 signals:
   void                          output(const SAudioBuffer &);
 
+private slots:
+  void                          closeDecoder(void);
+
 private:
   struct Data;
   Data                  * const d;

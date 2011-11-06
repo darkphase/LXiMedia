@@ -268,7 +268,7 @@ void Backend::start(const SHttpEngine::ResponseMessage &formats)
   masterConnectionManager.setSinkProtocols(SUPnPBase::ProtocolList());
 
   if (outFormats.contains("ogg") &&
-      outVideoCodecs.contains("THEORA") && outAudioCodecs.contains("FLAC"))
+      outVideoCodecs.contains("THEORA") && outAudioCodecs.contains("VORBIS"))
   {
     MediaServer::enableHtml5();
   }
