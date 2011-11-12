@@ -90,6 +90,8 @@ bool VideoResizer::needsResize(const SVideoFormat &format)
     else if (scaleSize.aspectRatio() < 1.0)
       size.setHeight(int(size.height() / (1.0f / scaleSize.aspectRatio())));
 
+    size.setHeight((size.height() + 1) & ~1);
+
     destFormat = SVideoFormat(
         lastFormat.format(),
         size,
@@ -149,6 +151,7 @@ SVideoBuffer VideoResizer::processBuffer(const SVideoBuffer &videoBuffer)
     int wf = 1, hf = 1;
     destFormat.planarYUVRatio(wf, hf);
 
+    bool result = true;
     QVector< QFuture<bool> > futures;
     futures.reserve(numThreads);
 
@@ -178,10 +181,13 @@ SVideoBuffer VideoResizer::processBuffer(const SVideoBuffer &videoBuffer)
       dst.line[2] = (quint8 *)destBuffer.scanLine(0, 2);
       dst.line[3] = (quint8 *)destBuffer.scanLine(0, 3);
 
-      futures += QtConcurrent::run(this, &VideoResizer::processSlice, i, stripSrcPos, stripSrcHeight, src, dst);
+      if (numThreads > 1)
+        futures += QtConcurrent::run(this, &VideoResizer::processSlice, i, stripSrcPos, stripSrcHeight, src, dst);
+      else
+        result = processSlice(i, stripSrcPos, stripSrcHeight, src, dst);
     }
 
-    bool result = true;
+    if (numThreads > 1)
     for (int i=0; i<numThreads; i++)
       result &= futures[i].result();
 

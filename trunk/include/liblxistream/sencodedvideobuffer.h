@@ -47,6 +47,8 @@ public:
   inline void                   setDecodingTimeStamp(STime t)                   { d.decodingTimeStamp = t; }
   inline STime                  presentationTimeStamp(void) const               { return d.presentationTimeStamp; }
   inline void                   setPresentationTimeStamp(STime t)               { d.presentationTimeStamp = t; }
+  inline STime                  duration(void) const                            { return d.duration; }
+  inline void                   setDuration(STime t)                            { d.duration = t; }
 
   inline bool                   isKeyFrame(void) const                          { return d.keyFrame; }
   inline void                   setKeyFrame(bool k)                             { d.keyFrame = k; }
@@ -57,6 +59,7 @@ private:
     SVideoCodec                 codec;
     STime                       decodingTimeStamp;
     STime                       presentationTimeStamp;
+    STime                       duration;
     bool                        keyFrame;
   }                             d;
 };

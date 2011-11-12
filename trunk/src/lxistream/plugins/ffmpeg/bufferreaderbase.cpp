@@ -339,11 +339,13 @@ bool BufferReaderBase::demux(const Packet &packet)
                 const QPair<STime, STime> ts = correctTimeStampToVideo(packet);
                 buffer.setPresentationTimeStamp(ts.first);
                 buffer.setDecodingTimeStamp(ts.second);
+                buffer.setDuration(STime(packet.duration, context->timeBase));
 
 //                  qDebug() << "Audio timestamp" << packet.streamIndex
 //                      << ", pts = " << buffer.presentationTimeStamp().toMSec()
 //                      << ", dts = " << buffer.decodingTimeStamp().toMSec()
-//                      << ", ppts = " << packet.pts << ", pdts = " << packet.dts;
+//                      << ", ppts = " << packet.pts << ", pdts = " << packet.dts
+//                      << ", duration =" << buffer.duration().toMSec();
 
                 if (produceCallback)
                   produceCallback->produce(buffer);
@@ -353,11 +355,13 @@ bool BufferReaderBase::demux(const Packet &packet)
                 const QPair<STime, STime> ts = correctTimeStampToVideo(packet);
                 buffer.setPresentationTimeStamp(ts.first);
                 buffer.setDecodingTimeStamp(ts.second);
+                buffer.setDuration(STime(packet.duration, context->timeBase));
 
 //                qDebug() << "Audio timestamp" << packet.streamIndex
 //                    << ", pts = " << buffer.presentationTimeStamp().toMSec()
 //                    << ", dts = " << buffer.decodingTimeStamp().toMSec()
-//                    << ", ppts = " << packet.pts << ", pdts = " << packet.dts;
+//                    << ", ppts = " << packet.pts << ", pdts = " << packet.dts
+//                    << ", duration =" << buffer.duration().toMSec();
 
                 if (produceCallback)
                   produceCallback->produce(buffer);
@@ -377,6 +381,7 @@ bool BufferReaderBase::demux(const Packet &packet)
               const QPair<STime, STime> ts = correctTimeStamp(packet);
               buffer.setPresentationTimeStamp(ts.first);
               buffer.setDecodingTimeStamp(ts.second);
+              buffer.setDuration(STime(packet.duration, context->timeBase));
 
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
               buffer.setKeyFrame((packet.flags & AV_PKT_FLAG_KEY) != 0);
@@ -387,6 +392,7 @@ bool BufferReaderBase::demux(const Packet &packet)
 //              qDebug() << "Video timestamp" << packet.streamIndex
 //                  << ", dts =" << buffer.decodingTimeStamp().toMSec()
 //                  << ", pts =" << buffer.presentationTimeStamp().toMSec()
+//                  << ", duration =" << buffer.duration().toMSec()
 //                  << ", key =" << buffer.isKeyFrame();
 
               if (produceCallback)

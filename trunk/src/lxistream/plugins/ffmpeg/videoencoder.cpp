@@ -183,6 +183,8 @@ bool VideoEncoder::openCodec(const SVideoCodec &c, SInterfaces::BufferWriter *bu
     return false;
   }
 
+  frameTime = STime(contextHandle->ticks_per_frame, SInterval(contextHandle->time_base.num, contextHandle->time_base.den));
+
   formatConvert.setDestFormat(FFMpegCommon::fromFFMpegPixelFormat(contextHandle->pix_fmt));
 
   // Determine intermediate buffer size.
@@ -214,8 +216,6 @@ SEncodedVideoBufferList VideoEncoder::encodeBuffer(const SVideoBuffer &videoBuff
     if (enableResend && (videoBuffer.memory()->uid == lastInBufferId) &&
         lastEncodedBuffer.isKeyFrame())
     {
-      const STime frameTime = STime(contextHandle->ticks_per_frame, SInterval(contextHandle->time_base.num, contextHandle->time_base.den));
-
       lastEncodedBuffer.setPresentationTimeStamp(lastEncodedBuffer.presentationTimeStamp() + frameTime);
       lastEncodedBuffer.setDecodingTimeStamp(lastEncodedBuffer.decodingTimeStamp() + frameTime);
 
@@ -288,10 +288,14 @@ SEncodedVideoBufferList VideoEncoder::encodeBuffer(const SVideoBuffer &videoBuff
           destBuffer.setDecodingTimeStamp(dts);
         }
 
-  //      qDebug() << "Output timestamp" << fastEncode
-  //          << "dts =" << destBuffer.decodingTimeStamp().toMSec() << inputTimeStamps.count()
-  //          << ", pts =" << destBuffer.presentationTimeStamp().toMSec()
-  //          << ", size =" << out_size;
+        destBuffer.setDuration(frameTime);
+
+//        qDebug() << "Output timestamp" << fastEncode
+//            << "dts =" << destBuffer.decodingTimeStamp().toMSec() << inputTimeStamps.count()
+//            << ", pts =" << destBuffer.presentationTimeStamp().toMSec()
+//            << ", size =" << out_size
+//            << ", duration =" << destBuffer.duration().toMSec()
+//            << ", key =" << destBuffer.isKeyFrame();
 
   #ifdef OPT_RESEND_LAST_FRAME
         if (enableResend)
@@ -350,6 +354,8 @@ SEncodedVideoBufferList VideoEncoder::encodeBuffer(const SVideoBuffer &videoBuff
           destBuffer.setPresentationTimeStamp(dts);
           destBuffer.setDecodingTimeStamp(dts);
         }
+
+        destBuffer.setDuration(frameTime);
 
         output << destBuffer;
       }

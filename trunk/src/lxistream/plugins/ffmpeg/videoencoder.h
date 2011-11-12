@@ -50,8 +50,10 @@ private:
   ::AVCodec                   * codecHandle;
   ::AVCodecContext            * contextHandle;
   bool                          contextHandleOwner;
+
   ::AVFrame                   * pictureHandle;
   SVideoBuffer                  pictureBuffer;
+  STime                         frameTime;
 
   SVideoFormatConvertNode       formatConvert;
   QList<STime>                  inputTimeStamps;

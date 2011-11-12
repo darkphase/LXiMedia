@@ -943,6 +943,8 @@ SAudioFormat::Channels FFMpegCommon::fromFFMpegChannelLayout(int64_t layout, int
       packet.pts = packet.dts;
 
     stream->pts.val = packet.pts;
+
+    packet.duration = buffer.duration().toClock(stream->time_base.num, stream->time_base.den);
   }
 
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
@@ -980,6 +982,8 @@ SAudioFormat::Channels FFMpegCommon::fromFFMpegChannelLayout(int64_t layout, int
       packet.pts = packet.dts;
 
     stream->pts.val = packet.pts;
+
+    packet.duration = buffer.duration().toClock(stream->time_base.num, stream->time_base.den);
   }
 
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
@@ -1020,6 +1024,8 @@ SAudioFormat::Channels FFMpegCommon::fromFFMpegChannelLayout(int64_t layout, int
       packet.pts = packet.dts;
 
     stream->pts.val = packet.pts;
+
+    packet.convergence_duration = buffer.duration().toClock(stream->time_base.num, stream->time_base.den);
   }
 
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
