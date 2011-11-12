@@ -199,7 +199,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
     else if (file.fileName().endsWith(".ogg", Qt::CaseInsensitive) ||
              file.fileName().endsWith(".ogv", Qt::CaseInsensitive))
     {
-      audioCodec = SAudioCodec("VORBIS", SAudioFormat::Channels_Stereo, 44100);
+      audioCodec = SAudioCodec("VORBIS", SAudioFormat::Channels_Stereo, 48000);
       videoCodec = SVideoCodec("THEORA", videoFormat.size(), videoFormat.frameRate());
       format = "ogg";
       header.setContentType(SHttpEngine::mimeVideoOgg);
@@ -391,8 +391,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
     else if (file.fileName().endsWith(".ogg", Qt::CaseInsensitive) ||
              file.fileName().endsWith(".oga", Qt::CaseInsensitive))
     {
-      audioCodec = SAudioCodec("VORBIS", SAudioFormat::Channels_Stereo, 44100);
-
+      audioCodec = SAudioCodec("VORBIS", SAudioFormat::Channels_Stereo, 48000);
       format = "ogg";
       header.setContentType(SHttpEngine::mimeAudioOgg);
     }
@@ -664,16 +663,16 @@ bool MediaTranscodeStream::setup(
       const SAudioCodec audioInCodec = audioStreams.first().codec;
       const SVideoCodec videoInCodec = videoStreams.first().codec;
 
-    if (MediaStream::setup(request, socket,
-                           input->position(), duration,
-                           SAudioFormat(SAudioFormat::Format_Invalid, audioInCodec.channelSetup(), audioInCodec.sampleRate()),
-                           SVideoFormat(SVideoFormat::Format_Invalid, videoInCodec.size(), videoInCodec.frameRate()),
-                           musicPlaylist,
-                           audioEncodeFlags, videoEncodeFlags))
-    {
-      // Audio
-      connect(&audioDecoder, SIGNAL(output(SAudioBuffer)), &timeStampResampler, SLOT(input(SAudioBuffer)));
-      connect(&timeStampResampler, SIGNAL(output(SAudioBuffer)), &audio->matrix, SLOT(input(SAudioBuffer)));
+      if (MediaStream::setup(request, socket,
+                             input->position(), duration,
+                             SAudioFormat(SAudioFormat::Format_Invalid, audioInCodec.channelSetup(), audioInCodec.sampleRate()),
+                             SVideoFormat(SVideoFormat::Format_Invalid, videoInCodec.size(), videoInCodec.frameRate()),
+                             musicPlaylist,
+                             audioEncodeFlags, videoEncodeFlags))
+      {
+        // Audio
+        connect(&audioDecoder, SIGNAL(output(SAudioBuffer)), &timeStampResampler, SLOT(input(SAudioBuffer)));
+        connect(&timeStampResampler, SIGNAL(output(SAudioBuffer)), &audio->matrix, SLOT(input(SAudioBuffer)));
 
         // Video
         connect(&videoDecoder, SIGNAL(output(SVideoBuffer)), &timeStampResampler, SLOT(input(SVideoBuffer)));

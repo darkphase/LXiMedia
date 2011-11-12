@@ -61,6 +61,7 @@ private:
 
   unsigned                      inSampleSize;
   size_t                        inFrameSize;
+  STime                         inFrameDuration;
   char                        * inFrameBufferRaw;
   char                        * inFrameBuffer;
   size_t                        inFrameBufferSize;

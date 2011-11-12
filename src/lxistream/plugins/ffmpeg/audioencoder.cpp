@@ -167,6 +167,7 @@ bool AudioEncoder::openCodec(const SAudioCodec &c, SInterfaces::BufferWriter *bu
 
   inSampleSize = SAudioFormat::sampleSize(formatConvert.destFormat());
   inFrameSize = contextHandle->frame_size * inSampleSize * outCodec.numChannels();
+  inFrameDuration = STime(contextHandle->frame_size, SInterval(contextHandle->time_base.num, contextHandle->time_base.den));
   inFrameBufferRaw = new char[inFrameSize + SBuffer::optimalAlignVal + SBuffer::optimalAlignVal];
   inFrameBuffer = SBuffer::align(inFrameBufferRaw);
   inFrameBufferSize = 0;
@@ -191,7 +192,11 @@ SEncodedAudioBufferList AudioEncoder::encodeBuffer(const SAudioBuffer &audioBuff
   {
     if (passThrough)
     {
-      output << SEncodedAudioBuffer(outCodec, audioBuffer.memory());
+      SEncodedAudioBuffer destBuffer(outCodec, audioBuffer.memory());
+      destBuffer.setPresentationTimeStamp(audioBuffer.timeStamp());
+      destBuffer.setDuration(audioBuffer.duration());
+
+      output << destBuffer;
     }
     else if (audioBuffer.format().numChannels() == unsigned(contextHandle->channels))
     {
@@ -229,6 +234,7 @@ SEncodedAudioBufferList AudioEncoder::encodeBuffer(const SAudioBuffer &audioBuff
 
               destBuffer.resize(out_size);
               destBuffer.setPresentationTimeStamp(timeStamp);
+              destBuffer.setDuration(inFrameDuration);
 
               output << destBuffer;
               timeStamp += STime::fromClock(numSamples(inFrameSize), contextHandle->sample_rate);
@@ -253,6 +259,7 @@ SEncodedAudioBufferList AudioEncoder::encodeBuffer(const SAudioBuffer &audioBuff
               {
                 destBuffer.resize(out_size);
                 destBuffer.setPresentationTimeStamp(timeStamp);
+                destBuffer.setDuration(inFrameDuration);
 
                 output << destBuffer;
                 timeStamp += STime::fromClock(numSamples(inFrameSize), contextHandle->sample_rate);

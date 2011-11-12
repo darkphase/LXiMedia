@@ -470,8 +470,11 @@ int MediaProfiles::correctFormat(AudioProfile profile, SAudioFormat &format)
   case MP3:
   case AAC_ADTS:
   case WMABASE:
-  case VORBIS:
     format.setSampleRate(44100);
+    return correctFormatStereo(format);
+
+  case VORBIS:
+    format.setSampleRate(48000);
     return correctFormatStereo(format);
 
   case AC3:
