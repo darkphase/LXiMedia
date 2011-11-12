@@ -42,6 +42,25 @@ public:
 
 public: // From SInterfaces::VideoFormatConverter
   virtual bool                  openFormat(const SVideoFormat &srcFormat, const SVideoFormat &dstFormat);
+
+protected:
+  template <typename _funcType>
+  SVideoBuffer                  convert(_funcType, const SVideoBuffer &, int subsample = 0);
+
+private:
+  struct Buffers
+  {
+    SVideoBuffer *dst;
+    const SVideoBuffer *src;
+    int width;
+  };
+
+  template <typename _srcType, typename _dstType>
+  QFuture<void>                 convertSlice(void(*)(_dstType *, const _srcType *, int), const Buffers &, int, int, int);
+  template <typename _srcType, typename _dstType>
+  QFuture<void>                 convertSlice(void(*)(_dstType *, const _srcType *, const _srcType *, const _srcType *, int), const Buffers &, int, int, int);
+  template <typename _srcType, typename _dstType>
+  QFuture<void>                 convertSlice(void(*)(_dstType *, _dstType *, _dstType *, const _srcType *, int), const Buffers &, int, int, int);
 };
 
 class VideoFormatConverter_Format_YUYV422_Format_RGB32 : public VideoFormatConverterBase<SVideoFormat::Format_YUYV422, SVideoFormat::Format_RGB32>
