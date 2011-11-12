@@ -19,22 +19,7 @@
 
 #include "nodes/svideoboxnode.h"
 #include "svideobuffer.h"
-
-// Implemented in svideobox.box.c
-extern "C" void LXiStream_SVideoBoxNode_boxVideo8y(
-    const void * srcData, unsigned srcWidth, unsigned srcStride, unsigned srcNumLines,
-    void * dstData, unsigned dstWidth, unsigned dstStride, unsigned dstNumLines,
-    int nullPixel);
-
-extern "C" void LXiStream_SVideoBoxNode_boxVideo8uv(
-    const void * srcData, unsigned srcWidth, unsigned srcStride, unsigned srcNumLines,
-    void * dstData, unsigned dstWidth, unsigned dstStride, unsigned dstNumLines,
-    int nullPixel);
-
-extern "C" void LXiStream_SVideoBoxNode_boxVideo32(
-    const void * srcData, unsigned srcWidth, unsigned srcStride, unsigned srcNumLines,
-    void * dstData, unsigned dstWidth, unsigned dstStride, unsigned dstNumLines,
-    quint32 nullPixel);
+#include <cstring>
 
 namespace LXiStream {
 
@@ -81,62 +66,23 @@ void SVideoBoxNode::input(const SVideoBuffer &videoBuffer)
   {
     if (videoBuffer.format().size() != d->destSize)
     {
-      const SSize size = videoBuffer.format().size();
-
       SVideoBuffer destBuffer(SVideoFormat(videoBuffer.format().format(),
                                            d->destSize,
                                            videoBuffer.format().frameRate(),
                                            videoBuffer.format().fieldMode()));
 
-      if (destBuffer.format().sampleSize() == 1)
-      {
-        int wr = 1, hr = 1;
-        videoBuffer.format().planarYUVRatio(wr, hr);
+      const int threadCount = QThread::idealThreadCount();
+      const int h = d->destSize.height();
+      const int sh = (((h + threadCount - 1) / threadCount) + 1) & ~1;
 
-        if (destBuffer.lineSize(0) > 0)
-          LXiStream_SVideoBoxNode_boxVideo8y(
-              videoBuffer.scanLine(0, 0),
-              size.width(), videoBuffer.lineSize(0),
-              size.height(), destBuffer.scanLine(0, 0),
-              d->destSize.width(), destBuffer.lineSize(0),
-              d->destSize.height(), 0);
+      QVector< QFuture<void> > future;
+      future.reserve(threadCount);
 
-        if (destBuffer.lineSize(1) > 0)
-          LXiStream_SVideoBoxNode_boxVideo8uv(
-              videoBuffer.scanLine(0, 1),
-              size.width() / wr, videoBuffer.lineSize(1),
-              size.height() / hr, destBuffer.scanLine(0, 1),
-              d->destSize.width() / wr, destBuffer.lineSize(1),
-              d->destSize.height() / hr, 127);
+      for (int y=0; y<h; y+=sh)
+        future += QtConcurrent::run(&SVideoBoxNode::boxSlice, &destBuffer, &videoBuffer, y, qMin(y + sh, h));
 
-        if (destBuffer.lineSize(2) > 0)
-          LXiStream_SVideoBoxNode_boxVideo8uv(
-              videoBuffer.scanLine(0, 2),
-              size.width() / wr, videoBuffer.lineSize(2),
-              size.height() / hr, destBuffer.scanLine(0, 2),
-              d->destSize.width() / wr, destBuffer.lineSize(2),
-              d->destSize.height() / hr, 127);
-      }
-      if (destBuffer.format().sampleSize() == 2)
-      {
-        if (destBuffer.lineSize(0) > 0)
-          LXiStream_SVideoBoxNode_boxVideo32(
-              videoBuffer.scanLine(0, 0),
-              size.width() / 2, videoBuffer.lineSize(0),
-              size.height(), destBuffer.scanLine(0, 0),
-              d->destSize.width() / 2, destBuffer.lineSize(0),
-              d->destSize.height(), videoBuffer.format().nullPixelValue());
-      }
-      if (destBuffer.format().sampleSize() == 4)
-      {
-        if (destBuffer.lineSize(0) > 0)
-          LXiStream_SVideoBoxNode_boxVideo32(
-              videoBuffer.scanLine(0, 0),
-              size.width(), videoBuffer.lineSize(0),
-              size.height(), destBuffer.scanLine(0, 0),
-              d->destSize.width(), destBuffer.lineSize(0),
-              d->destSize.height(), videoBuffer.format().nullPixelValue());
-      }
+      for (int i=0; i<future.count(); i++)
+        future[i].waitForFinished();
 
       destBuffer.setTimeStamp(videoBuffer.timeStamp());
       emit output(destBuffer);
@@ -146,6 +92,141 @@ void SVideoBoxNode::input(const SVideoBuffer &videoBuffer)
   }
   else
     emit output(videoBuffer);
+}
+
+void SVideoBoxNode::boxSlice(SVideoBuffer *dst, const SVideoBuffer *src, int top, int bottom)
+{
+  const SSize dstSize = dst->format().size();
+  const SSize srcSize = src->format().size();
+
+  const int inLineOffset = (dstSize.height() < srcSize.height()) ? ((((srcSize.height() - dstSize.height()) / 2) + 1) & ~1) : 0;
+  const int inPixelOffset = (dstSize.width() < srcSize.width()) ? ((srcSize.width() - dstSize.width()) / 2) : 0;
+  const int inHeight = srcSize.height() & ~1;
+  const int outLineOffset = (srcSize.height() < dstSize.height()) ? ((((dstSize.height() - srcSize.height()) / 2) + 1) & ~1) : 0;
+  const int outPixelOffset = (srcSize.width() < dstSize.width()) ? ((dstSize.width() - srcSize.width()) / 2) : 0;
+  const int outWidth = (srcSize.width() < dstSize.width()) ? srcSize.width() : dstSize.width();
+
+  int line = top;
+
+  switch (src->format().format())
+  {
+  case SVideoFormat::Format_Invalid:
+    break;
+
+  case SVideoFormat::Format_RGB555:
+  case SVideoFormat::Format_BGR555:
+  case SVideoFormat::Format_RGB565:
+  case SVideoFormat::Format_BGR565:
+  case SVideoFormat::Format_RGB24:
+  case SVideoFormat::Format_BGR24:
+  case SVideoFormat::Format_RGB32:
+  case SVideoFormat::Format_BGR32:
+  case SVideoFormat::Format_GRAY8:
+  case SVideoFormat::Format_GRAY16BE:
+  case SVideoFormat::Format_GRAY16LE:
+
+  case SVideoFormat::Format_BGGR8:
+  case SVideoFormat::Format_GBRG8:
+  case SVideoFormat::Format_GRBG8:
+  case SVideoFormat::Format_RGGB8:
+  case SVideoFormat::Format_BGGR10:
+  case SVideoFormat::Format_GBRG10:
+  case SVideoFormat::Format_GRBG10:
+  case SVideoFormat::Format_RGGB10:
+  case SVideoFormat::Format_BGGR16:
+  case SVideoFormat::Format_GBRG16:
+  case SVideoFormat::Format_GRBG16:
+  case SVideoFormat::Format_RGGB16:
+    {
+      const int sampleSize = dst->format().sampleSize();
+
+      // Draw black bar on top.
+      for (; (line < outLineOffset) && (line < bottom); line++)
+        ::memset(dst->scanLine(line, 0), 0, dstSize.width() * sampleSize);
+
+      // Copy image data with black bars left and right.
+      for (; (line < inHeight + outLineOffset) && (line < bottom); line++)
+      {
+        const char * const srcLine = src->scanLine(line + inLineOffset - outLineOffset, 0) + (inPixelOffset * sampleSize);
+        char * const dstLine = dst->scanLine(line, 0);
+
+        ::memset(dstLine, 0, outPixelOffset * sampleSize);
+        ::memcpy(dstLine + (outPixelOffset * sampleSize), srcLine, outWidth * sampleSize);
+        ::memset(dstLine + ((outPixelOffset + outWidth) * sampleSize), 0, (dstSize.width() - (outPixelOffset + outWidth)) * sampleSize);
+      }
+
+      // Draw black bar on the bottom.
+      for (; (line < dstSize.height()) && (line < bottom); line++)
+        ::memset(dst->scanLine(line, 0), 0, dstSize.width() * sampleSize);
+    }
+    break;
+
+  case SVideoFormat::Format_YUYV422:
+  case SVideoFormat::Format_UYVY422:
+  case SVideoFormat::Format_YUV410P:
+  case SVideoFormat::Format_YUV411P:
+  case SVideoFormat::Format_YUV420P:
+  case SVideoFormat::Format_YUV422P:
+  case SVideoFormat::Format_YUV444P:
+    {
+      int wf = 1, hf = 1;
+      if (dst->format().planarYUVRatio(wf, hf))
+      {
+        // Draw black bar on the top.
+        for (; (line < outLineOffset) && (line < bottom); line++)
+        {
+          ::memset(dst->scanLine(line, 0), 0, dstSize.width());
+
+          if ((line % hf) == 0)
+          {
+            ::memset(dst->scanLine(line / hf, 1), 0x7F, dstSize.width() / wf);
+            ::memset(dst->scanLine(line / hf, 2), 0x7F, dstSize.width() / wf);
+          }
+        }
+
+        // Copy image data with black bars left and right.
+        for (; (line < inHeight + outLineOffset) && (line < bottom); line++)
+        {
+          const char * const srcLine0 = src->scanLine(line + inLineOffset - outLineOffset, 0) + inPixelOffset;
+          char * const dstLine0 = dst->scanLine(line, 0);
+
+          ::memset(dstLine0, 0, outPixelOffset);
+          ::memcpy(dstLine0 + outPixelOffset, srcLine0, outWidth);
+          ::memset(dstLine0 + (outPixelOffset + outWidth), 0, dstSize.width() - (outPixelOffset + outWidth));
+
+          if ((line % hf) == 0)
+          {
+            const char * const srcLine1 = src->scanLine((line + inLineOffset - outLineOffset) / hf, 1) + (inPixelOffset / wf);
+            char * const dstLine1 = dst->scanLine(line / hf, 1);
+
+            ::memset(dstLine1, 0x7F, outPixelOffset / wf);
+            ::memcpy(dstLine1 + (outPixelOffset / wf), srcLine1, outWidth / wf);
+            ::memset(dstLine1 + (outPixelOffset / wf) + (outWidth / wf), 0x7F, (dstSize.width() / wf) - ((outPixelOffset / wf) + (outWidth / wf)));
+
+            const char * const srcLine2 = src->scanLine((line + inLineOffset - outLineOffset) / hf, 2) + (inPixelOffset / wf);
+            char * const dstLine2 = dst->scanLine(line / hf, 2);
+
+            ::memset(dstLine2, 0x7F, outPixelOffset / wf);
+            ::memcpy(dstLine2 + (outPixelOffset / wf), srcLine2, outWidth / wf);
+            ::memset(dstLine2 + (outPixelOffset / wf) + (outWidth / wf), 0x7F, (dstSize.width() / wf) - ((outPixelOffset / wf) + (outWidth / wf)));
+          }
+        }
+
+        // Draw black bar on the bottom.
+        for (; (line < dstSize.height()) && (line < bottom); line++)
+        {
+          ::memset(dst->scanLine(line, 0), 0, dstSize.width());
+
+          if ((line % hf) == 0)
+          {
+            ::memset(dst->scanLine(line / hf, 1), 0x7F, dstSize.width() / wf);
+            ::memset(dst->scanLine(line / hf, 2), 0x7F, dstSize.width() / wf);
+          }
+        }
+      }
+    }
+    break;
+  }
 }
 
 } // End of namespace

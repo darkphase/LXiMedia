@@ -117,7 +117,6 @@ SOURCES += nodes/saudiodecodernode.cpp \
     nodes/stimestampresamplernode.cpp \
     nodes/stimestampsyncnode.cpp \
     nodes/svideoboxnode.cpp \
-    nodes/svideoboxnode.box.c \
     nodes/svideodecodernode.cpp \
     nodes/svideodeinterlacenode.cpp \
     nodes/svideoencodernode.cpp \

@@ -214,12 +214,13 @@ _lxi_always_inline SVideoBuffer VideoFormatConverterBase<_srcFormat, _dstFormat>
         srcBuffer.format().frameRate(),
         srcBuffer.format().fieldMode()));
 
+    const int threadCount = QThread::idealThreadCount();
     const Buffers buffers = { &dstBuffer, &srcBuffer, srcBuffer.format().size().width() };
     const int h = srcBuffer.format().size().height();
-    const int sh = ((h / QThread::idealThreadCount()) + subsample) & ~subsample;
+    const int sh = (((h + threadCount - 1) / threadCount) + 1) & ~1;
 
     QVector< QFuture<void> > future;
-    future.reserve(QThread::idealThreadCount());
+    future.reserve(threadCount);
 
     for (int y=0; y<h; y+=sh)
       future += convertSlice(func, buffers, y, qMin(y + sh, h), subsample);
