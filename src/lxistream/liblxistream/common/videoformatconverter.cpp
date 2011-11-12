@@ -59,348 +59,241 @@ bool VideoFormatConverterBase<_srcFormat, _dstFormat>::openFormat(const SVideoFo
   return false;
 }
 
-SVideoBuffer VideoFormatConverter_Format_YUYV422_Format_RGB32::convertBuffer(const SVideoBuffer &videoBuffer)
+template <SVideoFormat::Format _srcFormat, SVideoFormat::Format _dstFormat>
+template <typename _srcType, typename _dstType>
+_lxi_always_inline QFuture<void> VideoFormatConverterBase<_srcFormat, _dstFormat>::convertSlice(
+    void(* func)(_dstType *, const _srcType *, int),
+    const Buffers &buffers,
+    int top, int bottom,
+    int)
 {
-  if ((videoBuffer.format() == SVideoFormat::Format_YUYV422))
+  struct T
   {
-    SVideoBuffer destBuffer(SVideoFormat(SVideoFormat::Format_RGB32,
-                                         videoBuffer.format().size(),
-                                         videoBuffer.format().frameRate(),
-                                         videoBuffer.format().fieldMode()));
-
-    const int w = videoBuffer.format().size().width(), h = videoBuffer.format().size().height();
-    for (int y=0; y<h; y++)
+    static void processSlice(void(* func)(_dstType *, const _srcType *, int), const Buffers *buffers, int top, int bottom)
     {
-      Algorithms::VideoConvert::YUYVtoRGB(
-          reinterpret_cast<quint32 *>(destBuffer.scanLine(y, 0)),
-          reinterpret_cast<const quint8 *>(videoBuffer.scanLine(y, 0)),
-          w);
+      LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
+
+      for (int y=top; y<bottom; y++)
+      {
+        func(
+            reinterpret_cast<_dstType *>(buffers->dst->scanLine(y, 0)),
+            reinterpret_cast<const _srcType *>(buffers->src->scanLine(y, 0)),
+            buffers->width);
+      }
+    }
+  };
+
+  return QtConcurrent::run(&T::processSlice, func, &buffers, top, bottom);
+}
+
+template <SVideoFormat::Format _srcFormat, SVideoFormat::Format _dstFormat>
+template <typename _srcType, typename _dstType>
+_lxi_always_inline QFuture<void> VideoFormatConverterBase<_srcFormat, _dstFormat>::convertSlice(
+    void(* func)(_dstType *, const _srcType *, const _srcType *, const _srcType *, int),
+    const Buffers &buffers,
+    int top, int bottom,
+    int subsample)
+{
+  struct T
+  {
+    static void processSlice0(void(* func)(_dstType *, const _srcType *, const _srcType *, const _srcType *, int), const Buffers *buffers, int top, int bottom)
+    {
+      LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
+
+      for (int y=top; y<bottom; y++)
+      {
+        func(
+            reinterpret_cast<_dstType *>(buffers->dst->scanLine(y, 0)),
+            reinterpret_cast<const _srcType *>(buffers->src->scanLine(y, 0)),
+            reinterpret_cast<const _srcType *>(buffers->src->scanLine(y, 1)),
+            reinterpret_cast<const _srcType *>(buffers->src->scanLine(y, 2)),
+            buffers->width);
+      }
     }
 
-    destBuffer.setTimeStamp(videoBuffer.timeStamp());
+    static void processSlice1(void(* func)(_dstType *, const _srcType *, const _srcType *, const _srcType *, int), const Buffers *buffers, int top, int bottom)
+    {
+      LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
 
-    return destBuffer;
+      for (int y=top; y<bottom; y++)
+      {
+        func(
+            reinterpret_cast<_dstType *>(buffers->dst->scanLine(y, 0)),
+            reinterpret_cast<const _srcType *>(buffers->src->scanLine(y, 0)),
+            reinterpret_cast<const _srcType *>(buffers->src->scanLine(y / 2, 1)),
+            reinterpret_cast<const _srcType *>(buffers->src->scanLine(y / 2, 2)),
+            buffers->width);
+      }
+    }
+  };
+
+  if (subsample == 0)
+    return QtConcurrent::run(&T::processSlice0, func, &buffers, top, bottom);
+  else
+    return QtConcurrent::run(&T::processSlice1, func, &buffers, top, bottom);
+}
+
+template <SVideoFormat::Format _srcFormat, SVideoFormat::Format _dstFormat>
+template <typename _srcType, typename _dstType>
+_lxi_always_inline QFuture<void> VideoFormatConverterBase<_srcFormat, _dstFormat>::convertSlice(
+    void(* func)(_dstType *, _dstType *, _dstType *, const _srcType *, int),
+    const Buffers &buffers,
+    int top, int bottom,
+    int subsample)
+{
+  struct T
+  {
+    static void processSlice0(void(* func)(_dstType *, _dstType *, _dstType *, const _srcType *, int), const Buffers *buffers, int top, int bottom)
+    {
+      LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
+
+      for (int y=top; y<bottom; y++)
+      {
+        func(
+            reinterpret_cast<_dstType *>(buffers->dst->scanLine(y, 0)),
+            reinterpret_cast<_dstType *>(buffers->dst->scanLine(y, 1)),
+            reinterpret_cast<_dstType *>(buffers->dst->scanLine(y, 2)),
+            reinterpret_cast<const _srcType *>(buffers->src->scanLine(y, 0)),
+            buffers->width);
+      }
+    }
+
+    static void processSlice1(void(* func)(_dstType *, _dstType *, _dstType *, const _srcType *, int), const Buffers *buffers, int top, int bottom)
+    {
+      LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
+
+      _dstType _lxi_align ulinea[buffers->width / 2];
+      _dstType _lxi_align vlinea[buffers->width / 2];
+      _dstType _lxi_align ulineb[buffers->width / 2];
+      _dstType _lxi_align vlineb[buffers->width / 2];
+
+      for (int y=top; y<bottom; y+=2)
+      {
+        func(
+            reinterpret_cast<_dstType *>(buffers->dst->scanLine(y, 0)),
+            ulinea,
+            vlinea,
+            reinterpret_cast<const _srcType *>(buffers->src->scanLine(y, 0)),
+            buffers->width);
+
+        func(
+            reinterpret_cast<_dstType *>(buffers->dst->scanLine(y + 1, 0)),
+            ulineb,
+            vlineb,
+            reinterpret_cast<const _srcType *>(buffers->src->scanLine(y + 1, 0)),
+            buffers->width);
+
+        Algorithms::VideoConvert::mergeUVlines(
+            reinterpret_cast<_dstType *>(buffers->dst->scanLine(y / 2, 1)),
+            reinterpret_cast<_dstType *>(buffers->dst->scanLine(y / 2, 2)),
+            ulinea, ulineb,
+            vlinea, vlineb,
+            buffers->width / 2);
+      }
+    }
+  };
+
+  if (subsample == 0)
+    return QtConcurrent::run(&T::processSlice0, func, &buffers, top, bottom);
+  else
+    return QtConcurrent::run(&T::processSlice1, func, &buffers, top, bottom);
+}
+
+template <SVideoFormat::Format _srcFormat, SVideoFormat::Format _dstFormat>
+template <typename _funcType>
+_lxi_always_inline SVideoBuffer VideoFormatConverterBase<_srcFormat, _dstFormat>::convert(
+    _funcType func,
+    const SVideoBuffer &srcBuffer,
+    int subsample)
+{
+  if ((srcBuffer.format() == _srcFormat))
+  {
+    SVideoBuffer dstBuffer(SVideoFormat(
+        _dstFormat,
+        srcBuffer.format().size(),
+        srcBuffer.format().frameRate(),
+        srcBuffer.format().fieldMode()));
+
+    const Buffers buffers = { &dstBuffer, &srcBuffer, srcBuffer.format().size().width() };
+    const int h = srcBuffer.format().size().height();
+    const int sh = ((h / QThread::idealThreadCount()) + subsample) & ~subsample;
+
+    QVector< QFuture<void> > future;
+    future.reserve(QThread::idealThreadCount());
+
+    for (int y=0; y<h; y+=sh)
+      future += convertSlice(func, buffers, y, qMin(y + sh, h), subsample);
+
+    for (int i=0; i<future.count(); i++)
+      future[i].waitForFinished();
+
+    dstBuffer.setTimeStamp(srcBuffer.timeStamp());
+
+    return dstBuffer;
   }
 
   return SVideoBuffer();
+}
+
+
+SVideoBuffer VideoFormatConverter_Format_YUYV422_Format_RGB32::convertBuffer(const SVideoBuffer &videoBuffer)
+{
+  return convert(&Algorithms::VideoConvert::YUYVtoRGB, videoBuffer);
 }
 
 SVideoBuffer VideoFormatConverter_Format_RGB32_Format_YUYV422::convertBuffer(const SVideoBuffer &videoBuffer)
 {
-  if ((videoBuffer.format() == SVideoFormat::Format_RGB32))
-  {
-    SVideoBuffer destBuffer(SVideoFormat(SVideoFormat::Format_YUYV422,
-                                         videoBuffer.format().size(),
-                                         videoBuffer.format().frameRate(),
-                                         videoBuffer.format().fieldMode()));
-
-    const int w = videoBuffer.format().size().width(), h = videoBuffer.format().size().height();
-    for (int y=0; y<h; y++)
-    {
-      Algorithms::VideoConvert::RGBtoYUYV(
-          reinterpret_cast<quint8 *>(destBuffer.scanLine(y, 0)),
-          reinterpret_cast<const quint32 *>(videoBuffer.scanLine(y, 0)),
-          w);
-    }
-
-    destBuffer.setTimeStamp(videoBuffer.timeStamp());
-
-    return destBuffer;
-  }
-
-  return SVideoBuffer();
+  return convert(&Algorithms::VideoConvert::RGBtoYUYV, videoBuffer);
 }
 
 SVideoBuffer VideoFormatConverter_Format_UYVY422_Format_RGB32::convertBuffer(const SVideoBuffer &videoBuffer)
 {
-  if ((videoBuffer.format() == SVideoFormat::Format_UYVY422))
-  {
-    SVideoBuffer destBuffer(SVideoFormat(SVideoFormat::Format_RGB32,
-                                         videoBuffer.format().size(),
-                                         videoBuffer.format().frameRate(),
-                                         videoBuffer.format().fieldMode()));
-
-    const int w = videoBuffer.format().size().width(), h = videoBuffer.format().size().height();
-    for (int y=0; y<h; y++)
-    {
-      Algorithms::VideoConvert::UYVYtoRGB(
-          reinterpret_cast<quint32 *>(destBuffer.scanLine(y, 0)),
-          reinterpret_cast<const quint8 *>(videoBuffer.scanLine(y, 0)),
-          w);
-    }
-
-    destBuffer.setTimeStamp(videoBuffer.timeStamp());
-
-    return destBuffer;
-  }
-
-  return SVideoBuffer();
+  return convert(&Algorithms::VideoConvert::UYVYtoRGB, videoBuffer);
 }
 
 SVideoBuffer VideoFormatConverter_Format_RGB32_Format_UYVY422::convertBuffer(const SVideoBuffer &videoBuffer)
 {
-  if ((videoBuffer.format() == SVideoFormat::Format_RGB32))
-  {
-    SVideoBuffer destBuffer(SVideoFormat(SVideoFormat::Format_UYVY422,
-                                         videoBuffer.format().size(),
-                                         videoBuffer.format().frameRate(),
-                                         videoBuffer.format().fieldMode()));
-
-    const int w = videoBuffer.format().size().width(), h = videoBuffer.format().size().height();
-    for (int y=0; y<h; y++)
-    {
-      Algorithms::VideoConvert::RGBtoUYVY(
-          reinterpret_cast<quint8 *>(destBuffer.scanLine(y, 0)),
-          reinterpret_cast<const quint32 *>(videoBuffer.scanLine(y, 0)),
-          w);
-    }
-
-    destBuffer.setTimeStamp(videoBuffer.timeStamp());
-
-    return destBuffer;
-  }
-
-  return SVideoBuffer();
+  return convert(&Algorithms::VideoConvert::RGBtoUYVY, videoBuffer);
 }
 
 SVideoBuffer VideoFormatConverter_Format_BGR32_Format_RGB32::convertBuffer(const SVideoBuffer &videoBuffer)
 {
-  if ((videoBuffer.format() == SVideoFormat::Format_BGR32))
-  {
-    SVideoBuffer destBuffer(SVideoFormat(SVideoFormat::Format_RGB32,
-                                         videoBuffer.format().size(),
-                                         videoBuffer.format().frameRate(),
-                                         videoBuffer.format().fieldMode()));
-
-    const int w = videoBuffer.format().size().width(), h = videoBuffer.format().size().height();
-    for (int y=0; y<h; y++)
-    {
-      Algorithms::VideoConvert::BGRtoRGB(
-          reinterpret_cast<quint32 *>(destBuffer.scanLine(y, 0)),
-          reinterpret_cast<const quint32 *>(videoBuffer.scanLine(y, 0)),
-          w);
-    }
-
-    destBuffer.setTimeStamp(videoBuffer.timeStamp());
-
-    return destBuffer;
-  }
-
-  return SVideoBuffer();
+  return convert(&Algorithms::VideoConvert::BGRtoRGB, videoBuffer);
 }
 
 SVideoBuffer VideoFormatConverter_Format_RGB32_Format_BGR32::convertBuffer(const SVideoBuffer &videoBuffer)
 {
-  if ((videoBuffer.format() == SVideoFormat::Format_RGB32))
-  {
-    SVideoBuffer destBuffer(SVideoFormat(SVideoFormat::Format_BGR32,
-                                         videoBuffer.format().size(),
-                                         videoBuffer.format().frameRate(),
-                                         videoBuffer.format().fieldMode()));
-
-    const int w = videoBuffer.format().size().width(), h = videoBuffer.format().size().height();
-    for (int y=0; y<h; y++)
-    {
-      Algorithms::VideoConvert::BGRtoRGB(
-          reinterpret_cast<quint32 *>(destBuffer.scanLine(y, 0)),
-          reinterpret_cast<const quint32 *>(videoBuffer.scanLine(y, 0)),
-          w);
-    }
-
-    destBuffer.setTimeStamp(videoBuffer.timeStamp());
-
-    return destBuffer;
-  }
-
-  return SVideoBuffer();
+  return convert(&Algorithms::VideoConvert::BGRtoRGB, videoBuffer);
 }
 
 SVideoBuffer VideoFormatConverter_Format_YUV420P_Format_RGB32::convertBuffer(const SVideoBuffer &videoBuffer)
 {
-  if ((videoBuffer.format() == SVideoFormat::Format_YUV420P))
-  {
-    SVideoBuffer destBuffer(SVideoFormat(SVideoFormat::Format_RGB32,
-                                         videoBuffer.format().size(),
-                                         videoBuffer.format().frameRate(),
-                                         videoBuffer.format().fieldMode()));
-
-    const int w = videoBuffer.format().size().width(), h = videoBuffer.format().size().height();
-    for (int y=0; y<h; y++)
-    {
-      Algorithms::VideoConvert::YUV2toRGB(
-          reinterpret_cast<quint32 *>(destBuffer.scanLine(y, 0)),
-          reinterpret_cast<const quint8 *>(videoBuffer.scanLine(y, 0)),
-          reinterpret_cast<const quint8 *>(videoBuffer.scanLine(y >> 1, 1)),
-          reinterpret_cast<const quint8 *>(videoBuffer.scanLine(y >> 1, 2)),
-          w);
-    }
-
-    destBuffer.setTimeStamp(videoBuffer.timeStamp());
-
-    return destBuffer;
-  }
-
-  return SVideoBuffer();
+  return convert(&Algorithms::VideoConvert::YUV2toRGB, videoBuffer, 1);
 }
 
 SVideoBuffer VideoFormatConverter_Format_RGB32_Format_YUV420P::convertBuffer(const SVideoBuffer &videoBuffer)
 {
-  if ((videoBuffer.format() == SVideoFormat::Format_RGB32))
-  {
-    SVideoBuffer destBuffer(SVideoFormat(SVideoFormat::Format_YUV420P,
-                                         videoBuffer.format().size(),
-                                         videoBuffer.format().frameRate(),
-                                         videoBuffer.format().fieldMode()));
-
-    const int w = videoBuffer.format().size().width(), h = videoBuffer.format().size().height();
-    for (int y=0; y<h; y+=2)
-    {
-      quint8 _lxi_align ulinea[w / 2];
-      quint8 _lxi_align vlinea[w / 2];
-
-      Algorithms::VideoConvert::RGBtoYUV2(
-          reinterpret_cast<quint8 *>(destBuffer.scanLine(y, 0)),
-          ulinea,
-          vlinea,
-          reinterpret_cast<const quint32 *>(videoBuffer.scanLine(y, 0)),
-          w);
-
-      quint8 _lxi_align ulineb[w / 2];
-      quint8 _lxi_align vlineb[w / 2];
-
-      Algorithms::VideoConvert::RGBtoYUV2(
-          reinterpret_cast<quint8 *>(destBuffer.scanLine(y + 1, 0)),
-          ulineb,
-          vlineb,
-          reinterpret_cast<const quint32 *>(videoBuffer.scanLine(y + 1, 0)),
-          w);
-
-      Algorithms::VideoConvert::mergeUVlines(
-          reinterpret_cast<quint8 *>(destBuffer.scanLine(y / 2, 1)),
-          reinterpret_cast<quint8 *>(destBuffer.scanLine(y / 2, 2)),
-          ulinea, ulineb,
-          vlinea, vlineb,
-          w / 2);
-    }
-
-    destBuffer.setTimeStamp(videoBuffer.timeStamp());
-
-    return destBuffer;
-  }
-
-  return SVideoBuffer();
+  return convert(&Algorithms::VideoConvert::RGBtoYUV2, videoBuffer, 1);
 }
 
 SVideoBuffer VideoFormatConverter_Format_YUV422P_Format_RGB32::convertBuffer(const SVideoBuffer &videoBuffer)
 {
-  if ((videoBuffer.format() == SVideoFormat::Format_YUV422P))
-  {
-    SVideoBuffer destBuffer(SVideoFormat(SVideoFormat::Format_RGB32,
-                                         videoBuffer.format().size(),
-                                         videoBuffer.format().frameRate(),
-                                         videoBuffer.format().fieldMode()));
-
-    const int w = videoBuffer.format().size().width(), h = videoBuffer.format().size().height();
-    for (int y=0; y<h; y++)
-    {
-      Algorithms::VideoConvert::YUV2toRGB(
-          reinterpret_cast<quint32 *>(destBuffer.scanLine(y, 0)),
-          reinterpret_cast<const quint8 *>(videoBuffer.scanLine(y, 0)),
-          reinterpret_cast<const quint8 *>(videoBuffer.scanLine(y, 1)),
-          reinterpret_cast<const quint8 *>(videoBuffer.scanLine(y, 2)),
-          w);
-    }
-
-    destBuffer.setTimeStamp(videoBuffer.timeStamp());
-
-    return destBuffer;
-  }
-
-  return SVideoBuffer();
+  return convert(&Algorithms::VideoConvert::YUV2toRGB, videoBuffer);
 }
 
 SVideoBuffer VideoFormatConverter_Format_RGB32_Format_YUV422P::convertBuffer(const SVideoBuffer &videoBuffer)
 {
-  if ((videoBuffer.format() == SVideoFormat::Format_RGB32))
-  {
-    SVideoBuffer destBuffer(SVideoFormat(SVideoFormat::Format_YUV422P,
-                                         videoBuffer.format().size(),
-                                         videoBuffer.format().frameRate(),
-                                         videoBuffer.format().fieldMode()));
-
-    const int w = videoBuffer.format().size().width(), h = videoBuffer.format().size().height();
-    for (int y=0; y<h; y++)
-    {
-      Algorithms::VideoConvert::RGBtoYUV2(
-          reinterpret_cast<quint8 *>(destBuffer.scanLine(y, 0)),
-          reinterpret_cast<quint8 *>(destBuffer.scanLine(y, 1)),
-          reinterpret_cast<quint8 *>(destBuffer.scanLine(y, 2)),
-          reinterpret_cast<const quint32 *>(videoBuffer.scanLine(y, 0)),
-          w);
-    }
-
-    destBuffer.setTimeStamp(videoBuffer.timeStamp());
-
-    return destBuffer;
-  }
-
-  return SVideoBuffer();
+  return convert(&Algorithms::VideoConvert::RGBtoYUV2, videoBuffer);
 }
 
 SVideoBuffer VideoFormatConverter_Format_YUV444P_Format_RGB32::convertBuffer(const SVideoBuffer &videoBuffer)
 {
-  if ((videoBuffer.format() == SVideoFormat::Format_YUV444P))
-  {
-    SVideoBuffer destBuffer(SVideoFormat(SVideoFormat::Format_RGB32,
-                                         videoBuffer.format().size(),
-                                         videoBuffer.format().frameRate(),
-                                         videoBuffer.format().fieldMode()));
-
-    const int w = videoBuffer.format().size().width(), h = videoBuffer.format().size().height();
-    for (int y=0; y<h; y++)
-    {
-      Algorithms::VideoConvert::YUV1toRGB(
-          reinterpret_cast<quint32 *>(destBuffer.scanLine(y, 0)),
-          reinterpret_cast<const quint8 *>(videoBuffer.scanLine(y, 0)),
-          reinterpret_cast<const quint8 *>(videoBuffer.scanLine(y, 1)),
-          reinterpret_cast<const quint8 *>(videoBuffer.scanLine(y, 2)),
-          w);
-    }
-
-    destBuffer.setTimeStamp(videoBuffer.timeStamp());
-
-    return destBuffer;
-  }
-
-  return SVideoBuffer();
+  return convert(&Algorithms::VideoConvert::YUV1toRGB, videoBuffer);
 }
 
 SVideoBuffer VideoFormatConverter_Format_RGB32_Format_YUV444P::convertBuffer(const SVideoBuffer &videoBuffer)
 {
-  if ((videoBuffer.format() == SVideoFormat::Format_RGB32))
-  {
-    SVideoBuffer destBuffer(SVideoFormat(SVideoFormat::Format_YUV444P,
-                                         videoBuffer.format().size(),
-                                         videoBuffer.format().frameRate(),
-                                         videoBuffer.format().fieldMode()));
-
-    const int w = videoBuffer.format().size().width(), h = videoBuffer.format().size().height();
-    for (int y=0; y<h; y++)
-    {
-      Algorithms::VideoConvert::RGBtoYUV1(
-          reinterpret_cast<quint8 *>(destBuffer.scanLine(y, 0)),
-          reinterpret_cast<quint8 *>(destBuffer.scanLine(y, 1)),
-          reinterpret_cast<quint8 *>(destBuffer.scanLine(y, 2)),
-          reinterpret_cast<const quint32 *>(videoBuffer.scanLine(y, 0)),
-          w);
-    }
-
-    destBuffer.setTimeStamp(videoBuffer.timeStamp());
-
-    return destBuffer;
-  }
-
-  return SVideoBuffer();
+  return convert(&Algorithms::VideoConvert::RGBtoYUV1, videoBuffer);
 }
 
 template class VideoFormatConverterBase<SVideoFormat::Format_YUYV422, SVideoFormat::Format_RGB32>;
@@ -523,158 +416,22 @@ template class VideoFormatConverterBase<SVideoFormat::Format_BGGR8, SVideoFormat
 
 SVideoBuffer VideoFormatConverter_Format_YUYV422_Format_YUV420P::convertBuffer(const SVideoBuffer &videoBuffer)
 {
-  if ((videoBuffer.format() == SVideoFormat::Format_YUYV422))
-  {
-    SVideoBuffer destBuffer(SVideoFormat(SVideoFormat::Format_YUV420P,
-                                         SSize(videoBuffer.format().size().width(),
-                                               videoBuffer.format().size().height() & ~1u,
-                                               videoBuffer.format().size().aspectRatio()),
-                                         videoBuffer.format().frameRate(),
-                                         videoBuffer.format().fieldMode()));
-
-    const int w = destBuffer.format().size().width(), h = destBuffer.format().size().height();
-    for (int y=0; y<h; y+=2)
-    {
-      quint8 _lxi_align ulinea[w / 2];
-      quint8 _lxi_align vlinea[w / 2];
-
-      Algorithms::VideoConvert::YUYVtoYUV2(
-          reinterpret_cast<quint8 *>(destBuffer.scanLine(y, 0)),
-          ulinea,
-          vlinea,
-          reinterpret_cast<const quint8 *>(videoBuffer.scanLine(y, 0)),
-          w);
-
-      quint8 _lxi_align ulineb[w / 2];
-      quint8 _lxi_align vlineb[w / 2];
-
-      Algorithms::VideoConvert::YUYVtoYUV2(
-          reinterpret_cast<quint8 *>(destBuffer.scanLine(y + 1, 0)),
-          ulineb,
-          vlineb,
-          reinterpret_cast<const quint8 *>(videoBuffer.scanLine(y + 1, 0)),
-          w);
-
-      Algorithms::VideoConvert::mergeUVlines(
-          reinterpret_cast<quint8 *>(destBuffer.scanLine(y / 2, 1)),
-          reinterpret_cast<quint8 *>(destBuffer.scanLine(y / 2, 2)),
-          ulinea, ulineb,
-          vlinea, vlineb,
-          w / 2);
-    }
-
-    destBuffer.setTimeStamp(videoBuffer.timeStamp());
-
-    return destBuffer;
-  }
-
-  return SVideoBuffer();
+  return convert(&Algorithms::VideoConvert::YUYVtoYUV2, videoBuffer, 1);
 }
 
 SVideoBuffer VideoFormatConverter_Format_UYVY422_Format_YUV420P::convertBuffer(const SVideoBuffer &videoBuffer)
 {
-  if ((videoBuffer.format() == SVideoFormat::Format_UYVY422))
-  {
-    SVideoBuffer destBuffer(SVideoFormat(SVideoFormat::Format_YUV420P,
-                                         SSize(videoBuffer.format().size().width(),
-                                               videoBuffer.format().size().height() & ~1u,
-                                               videoBuffer.format().size().aspectRatio()),
-                                         videoBuffer.format().frameRate(),
-                                         videoBuffer.format().fieldMode()));
-
-    const int w = destBuffer.format().size().width(), h = destBuffer.format().size().height();
-    for (int y=0; y<h; y+=2)
-    {
-      quint8 _lxi_align ulinea[w / 2];
-      quint8 _lxi_align vlinea[w / 2];
-
-      Algorithms::VideoConvert::UYVYtoYUV2(
-          reinterpret_cast<quint8 *>(destBuffer.scanLine(y, 0)),
-          ulinea,
-          vlinea,
-          reinterpret_cast<const quint8 *>(videoBuffer.scanLine(y, 0)),
-          w);
-
-      quint8 _lxi_align ulineb[w / 2];
-      quint8 _lxi_align vlineb[w / 2];
-
-      Algorithms::VideoConvert::UYVYtoYUV2(
-          reinterpret_cast<quint8 *>(destBuffer.scanLine(y + 1, 0)),
-          ulineb,
-          vlineb,
-          reinterpret_cast<const quint8 *>(videoBuffer.scanLine(y + 1, 0)),
-          w);
-
-      Algorithms::VideoConvert::mergeUVlines(
-          reinterpret_cast<quint8 *>(destBuffer.scanLine(y / 2, 1)),
-          reinterpret_cast<quint8 *>(destBuffer.scanLine(y / 2, 2)),
-          ulinea, ulineb,
-          vlinea, vlineb,
-          w / 2);
-    }
-
-    destBuffer.setTimeStamp(videoBuffer.timeStamp());
-
-    return destBuffer;
-  }
-
-  return SVideoBuffer();
+  return convert(&Algorithms::VideoConvert::UYVYtoYUV2, videoBuffer, 1);
 }
 
 SVideoBuffer VideoFormatConverter_Format_YUYV422_Format_YUV422P::convertBuffer(const SVideoBuffer &videoBuffer)
 {
-  if ((videoBuffer.format() == SVideoFormat::Format_YUYV422))
-  {
-    SVideoBuffer destBuffer(SVideoFormat(SVideoFormat::Format_YUV422P,
-                                         videoBuffer.format().size(),
-                                         videoBuffer.format().frameRate(),
-                                         videoBuffer.format().fieldMode()));
-
-    const int w = videoBuffer.format().size().width(), h = videoBuffer.format().size().height();
-    for (int y=0; y<h; y++)
-    {
-      Algorithms::VideoConvert::YUYVtoYUV2(
-          reinterpret_cast<quint8 *>(destBuffer.scanLine(y, 0)),
-          reinterpret_cast<quint8 *>(destBuffer.scanLine(y, 1)),
-          reinterpret_cast<quint8 *>(destBuffer.scanLine(y, 2)),
-          reinterpret_cast<const quint8 *>(videoBuffer.scanLine(y, 0)),
-          w);
-    }
-
-    destBuffer.setTimeStamp(videoBuffer.timeStamp());
-
-    return destBuffer;
-  }
-
-  return SVideoBuffer();
+  return convert(&Algorithms::VideoConvert::YUYVtoYUV2, videoBuffer);
 }
 
 SVideoBuffer VideoFormatConverter_Format_UYVY422_Format_YUV422P::convertBuffer(const SVideoBuffer &videoBuffer)
 {
-  if ((videoBuffer.format() == SVideoFormat::Format_UYVY422))
-  {
-    SVideoBuffer destBuffer(SVideoFormat(SVideoFormat::Format_YUV422P,
-                                         videoBuffer.format().size(),
-                                         videoBuffer.format().frameRate(),
-                                         videoBuffer.format().fieldMode()));
-
-    const int w = videoBuffer.format().size().width(), h = videoBuffer.format().size().height();
-    for (int y=0; y<h; y++)
-    {
-      Algorithms::VideoConvert::UYVYtoYUV2(
-          reinterpret_cast<quint8 *>(destBuffer.scanLine(y, 0)),
-          reinterpret_cast<quint8 *>(destBuffer.scanLine(y, 1)),
-          reinterpret_cast<quint8 *>(destBuffer.scanLine(y, 2)),
-          reinterpret_cast<const quint8 *>(videoBuffer.scanLine(y, 0)),
-          w);
-    }
-
-    destBuffer.setTimeStamp(videoBuffer.timeStamp());
-
-    return destBuffer;
-  }
-
-  return SVideoBuffer();
+  return convert(&Algorithms::VideoConvert::UYVYtoYUV2, videoBuffer);
 }
 
 template class VideoFormatConverterBase<SVideoFormat::Format_YUYV422, SVideoFormat::Format_YUV420P>;
