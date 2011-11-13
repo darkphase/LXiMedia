@@ -35,10 +35,11 @@ struct SFileInputNode::Data
   SEncodedDataBuffer            nextSubtitle;
 };
 
-SFileInputNode::SFileInputNode(SGraph *parent, const QString &fileName)
-  : SIOInputNode(parent, NULL, fileName),
+SFileInputNode::SFileInputNode(SGraph *parent, const QString &fileName, quint16 programId)
+  : SIOInputNode(parent),
     d(new Data(path))
 {
+  setFileName(fileName, programId);
 }
 
 SFileInputNode::~SFileInputNode()
@@ -48,44 +49,18 @@ SFileInputNode::~SFileInputNode()
   *const_cast<Data **>(&d) = NULL;
 }
 
-void SFileInputNode::setFileName(const QString &fileName)
+void SFileInputNode::setFileName(const QString &fileName, quint16 programId)
 {
   d->mediaFile.close();
   d->mediaFile.setFileName(fileName);
-}
 
-bool SFileInputNode::open(quint16 programId)
-{
   if (d->mediaFile.open(QFile::ReadOnly))
-  {
-    SIOInputNode::setIODevice(&d->mediaFile);
-
-    if (SIOInputNode::open(programId))
-      return true;
-
-    d->mediaFile.close();
-  }
-  else if (SIOInputNode::open(programId))
-    return true;
-
-  return false;
+    SIOInputNode::setIODevice(&d->mediaFile, programId);
 }
 
-void SFileInputNode::stop(void)
+QString SFileInputNode::fileName(void) const
 {
-  SIOInputNode::stop();
-
-  SIOInputNode::setIODevice(NULL);
-  d->mediaFile.close();
-
-  if (d->subtitleFile)
-  {
-    disconnect(this, SIGNAL(output(const SEncodedVideoBuffer &)), this, SLOT(parseSubtitle(const SEncodedVideoBuffer &)));
-    delete d->subtitleFile;
-    d->subtitleFile = NULL;
-
-    d->nextSubtitle.clear();
-  }
+  return d->mediaFile.fileName();
 }
 
 bool SFileInputNode::setPosition(STime pos)
@@ -146,6 +121,23 @@ void SFileInputNode::selectStreams(const QVector<StreamId> &streamIds)
     nextStreamIds += id;
 
   SIOInputNode::selectStreams(nextStreamIds);
+}
+
+void SFileInputNode::stop(void)
+{
+  SIOInputNode::stop();
+
+  SIOInputNode::setIODevice(NULL);
+  d->mediaFile.close();
+
+  if (d->subtitleFile)
+  {
+    disconnect(this, SIGNAL(output(const SEncodedVideoBuffer &)), this, SLOT(parseSubtitle(const SEncodedVideoBuffer &)));
+    delete d->subtitleFile;
+    d->subtitleFile = NULL;
+
+    d->nextSubtitle.clear();
+  }
 }
 
 void SFileInputNode::parseSubtitle(const SEncodedVideoBuffer &videoBuffer)

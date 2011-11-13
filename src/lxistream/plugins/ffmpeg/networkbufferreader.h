@@ -36,13 +36,27 @@ public:
   explicit                      NetworkBufferReader(const QString &, QObject *);
   virtual                       ~NetworkBufferReader();
 
+public: // From SInterfaces::AbstractBufferReader
+  inline virtual STime          duration(void) const                            { return BufferReaderBase::duration(); }
+  inline virtual bool           setPosition(STime p)                            { return BufferReaderBase::setPosition(p); }
+  inline virtual STime          position(void) const                            { return BufferReaderBase::position(); }
+  inline virtual QList<Chapter> chapters(void) const                            { return BufferReaderBase::chapters(); }
+
+  inline virtual QList<AudioStreamInfo> audioStreams(void) const                { return BufferReaderBase::audioStreams(); }
+  inline virtual QList<VideoStreamInfo> videoStreams(void) const                { return BufferReaderBase::videoStreams(); }
+  inline virtual QList<DataStreamInfo> dataStreams(void) const                  { return BufferReaderBase::dataStreams(); }
+  inline virtual void           selectStreams(const QVector<StreamId> &s)       { return BufferReaderBase::selectStreams(s); }
+
+  virtual bool                  process(void);
+
 public: // From SInterfaces::NetworkBufferReader
   virtual bool                  openProtocol(const QString &);
 
   virtual bool                  start(const QUrl &url, ProduceCallback *, quint16 programId);
   virtual void                  stop(void);
 
-  virtual bool                  process(void);
+  inline virtual bool           buffer(void)                                    { return BufferReaderBase::buffer(); }
+  inline virtual STime          bufferDuration(void) const                      { return BufferReaderBase::bufferDuration(); }
 
 private:
   QList<QUrl>                   resolveAsf(const QUrl &);

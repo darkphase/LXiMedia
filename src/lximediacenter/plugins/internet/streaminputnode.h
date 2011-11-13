@@ -27,13 +27,13 @@
 namespace LXiMediaCenter {
 namespace InternetBackend {
 
-class StreamInputNode : public SInterfaces::SourceNode
+class StreamInputNode : public SNetworkInputNode
 {
 Q_OBJECT
 public:
-                                StreamInputNode(SGraph *parent, const QUrl &url);
+                                StreamInputNode(SGraph *parent);
   virtual                       ~StreamInputNode();
-
+  
   SSize                         size(void) const;
   void                          setSize(const SSize &size);
   SInterval                     frameRate(void) const;
@@ -43,7 +43,7 @@ public:
   unsigned                      sampleRate(void) const;
   void                          setSampleRate(unsigned);
 
-  bool                          open(bool hasVideo, bool generateVideo);
+  void                          setUrl(const QUrl &, bool generateVideo, quint16 programId = 0);
 
 public: // From SInterfaces::SourceNode
   virtual bool                  start(void);
@@ -53,20 +53,19 @@ public: // From SInterfaces::SourceNode
 signals:
   void                          output(const SAudioBuffer &);
   void                          output(const SVideoBuffer &);
-  void                          output(const SSubpictureBuffer &);
-  void                          output(const SSubtitleBuffer &);
-  void                          finished(void);
+
+protected: // From SInterfaces::AbstractBufferReader::ProduceCallback
+  virtual void                  produce(const SEncodedAudioBuffer &);
+  virtual void                  produce(const SEncodedVideoBuffer &);
+  virtual void                  produce(const SEncodedDataBuffer &);
 
 private slots:
   void                          setBufferState(bool, float);
-  void                          correct(SAudioBuffer);
-  void                          correct(SVideoBuffer);
-  void                          correct(SSubpictureBuffer);
-  void                          correct(SSubtitleBuffer);
 
 private:
   STime                         correct(const STime &);
   void                          computeBufferingFrame(const STime &);
+  void                          startTask(void);
 
 private:
   SSize                         outSize;
@@ -75,20 +74,12 @@ private:
   SAudioFormat::Channels        baseChannelSetup;
   unsigned                      baseSampleRate;
 
-  SNetworkInputNode             networkInput;
-  SAudioDecoderNode             audioDecoder;
-  SVideoDecoderNode             videoDecoder;
-  SDataDecoderNode              dataDecoder;
-  SVideoGeneratorNode           videoGenerator;
-
   SImage                        baseImage;
-  bool                          bufferState;
-  float                         bufferProgress;
   QList<QImage>                 bufferingImages;
   STime                         bufferingTime;
   STimer                        bufferingTimer;
-  static const qint64           minBufferingTimeMs;
   STime                         correctTime;
+  STime                         streamTime;
 
   QSemaphore                    startSem;
 };

@@ -35,7 +35,7 @@ public:
   virtual                       ~RawSubtitleDecoder();
 
 public: // From SBufferDecoder
-  virtual bool                  openCodec(const SDataCodec &, SInterfaces::BufferReader *, Flags = Flag_None);
+  virtual bool                  openCodec(const SDataCodec &, SInterfaces::AbstractBufferReader *, Flags = Flag_None);
   virtual SDataBufferList       decodeBuffer(const SEncodedDataBuffer &);
 
 private:

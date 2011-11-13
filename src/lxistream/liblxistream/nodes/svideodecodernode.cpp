@@ -24,7 +24,7 @@ namespace LXiStream {
 
 struct SVideoDecoderNode::Data
 {
-  SIOInputNode                * inputNode;
+  SInputNode                  * inputNode;
   SVideoDecoderNode::Flags      flags;
   SVideoCodec                   lastCodec;
   SInterfaces::VideoDecoder   * decoder;
@@ -51,7 +51,7 @@ QStringList SVideoDecoderNode::codecs(void)
   return SInterfaces::VideoDecoder::available();
 }
 
-bool SVideoDecoderNode::open(SIOInputNode *inputNode, Flags flags)
+bool SVideoDecoderNode::open(SInputNode *inputNode, Flags flags)
 {
   d->inputNode = inputNode;
   d->flags = flags;
@@ -88,7 +88,7 @@ void SVideoDecoderNode::input(const SEncodedVideoBuffer &videoBuffer)
     {
       delete d->decoder;
 
-      SInterfaces::BufferReader * const bufferReader =
+      SInterfaces::AbstractBufferReader * const bufferReader =
           d->inputNode ? d->inputNode->bufferReader() : NULL;
 
       d->lastCodec = videoBuffer.codec();

@@ -28,7 +28,7 @@
 namespace LXiStream {
 
 class SAudioBuffer;
-class SIOInputNode;
+class SInputNode;
 
 class LXISTREAM_PUBLIC SAudioDecoderNode : public SInterfaces::Node
 {
@@ -42,7 +42,7 @@ public:
 
   static QStringList            codecs(void);
 
-  bool                          open(SIOInputNode *, Flags = SInterfaces::AudioDecoder::Flag_None);
+  bool                          open(SInputNode *, Flags = SInterfaces::AudioDecoder::Flag_None);
 
   Flags                         flags(void) const;
   void                          setFlags(Flags);

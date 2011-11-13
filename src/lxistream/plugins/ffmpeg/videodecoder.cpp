@@ -51,7 +51,7 @@ VideoDecoder::~VideoDecoder()
     av_free(pictureHandle);
 }
 
-bool VideoDecoder::openCodec(const SVideoCodec &c, SInterfaces::BufferReader *bufferReader, Flags flags)
+bool VideoDecoder::openCodec(const SVideoCodec &c, SInterfaces::AbstractBufferReader *bufferReader, Flags flags)
 {
   if (contextHandle)
     qFatal("VideoDecoder already opened a codec.");

@@ -122,7 +122,7 @@ SBuffer::Memory::Memory(int capacity, char *data, int size)
 SBuffer::Memory::Memory(const Memory &c)
   : QSharedData(c),
     uid(uidCounter.fetchAndAddRelaxed(1)),
-    capacity(SMemoryPool::align(c.size + numPaddingBytes) - numPaddingBytes),
+    capacity(SMemoryPool::alignSize(c.size + numPaddingBytes) - numPaddingBytes),
     data(reinterpret_cast<char *>(SMemoryPool::alloc(capacity + numPaddingBytes))),
     owner(true),
     size(c.size)
@@ -150,7 +150,7 @@ SBuffer::Memory::Memory(void)
 SBuffer::Memory::Memory(int capacity)
   : QSharedData(),
     uid(uidCounter.fetchAndAddRelaxed(1)),
-    capacity(SMemoryPool::align(capacity + numPaddingBytes) - numPaddingBytes),
+    capacity(SMemoryPool::alignSize(capacity + numPaddingBytes) - numPaddingBytes),
     data(reinterpret_cast<char *>(SMemoryPool::alloc(this->capacity + numPaddingBytes))),
     owner(true),
     size(0)
@@ -161,7 +161,7 @@ SBuffer::Memory::Memory(int capacity)
 SBuffer::Memory::Memory(const char *data, int size)
   : QSharedData(),
     uid(uidCounter.fetchAndAddRelaxed(1)),
-    capacity(SMemoryPool::align(size + numPaddingBytes) - numPaddingBytes),
+    capacity(SMemoryPool::alignSize(size + numPaddingBytes) - numPaddingBytes),
     data(reinterpret_cast<char *>(SMemoryPool::alloc(capacity + numPaddingBytes))),
     owner(true),
     size(size)
@@ -173,7 +173,7 @@ SBuffer::Memory::Memory(const char *data, int size)
 SBuffer::Memory::Memory(const QByteArray &data)
   : QSharedData(),
     uid(uidCounter.fetchAndAddRelaxed(1)),
-    capacity(SMemoryPool::align(data.size() + numPaddingBytes) - numPaddingBytes),
+    capacity(SMemoryPool::alignSize(data.size() + numPaddingBytes) - numPaddingBytes),
     data(reinterpret_cast<char *>(SMemoryPool::alloc(capacity + numPaddingBytes))),
     owner(true),
     size(data.size())
@@ -187,7 +187,7 @@ void SBuffer::copy(char *dst, const char *src, int size)
   int count = QThread::idealThreadCount();
   if ((size >= 262144) && (count > 1))
   {
-    const int chunk = SMemoryPool::align(size / count);
+    const int chunk = SMemoryPool::alignAddr(size / count);
     count = qMin((size / chunk) + 1, count);
 
     QVector< QFuture<void> > futures;

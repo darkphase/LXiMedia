@@ -60,7 +60,12 @@ public:
   bool                          setup(const SHttpServer::RequestMessage &, QIODevice *);
 
 public:
-  StreamInputNode               source;
+  const QUrl                    url;
+  StreamInputNode               streamInput;
+  SAudioDecoderNode             audioDecoder;
+  SVideoDecoderNode             videoDecoder;
+  SDataDecoderNode              dataDecoder;
+  SVideoGeneratorNode           videoGenerator;
 };
 
 } } // End of namespaces

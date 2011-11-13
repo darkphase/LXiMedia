@@ -46,6 +46,17 @@ SPlaylistNode::SPlaylistNode(SGraph *parent, const SMediaInfoList &files)
 
   d->hasVideo = true;
 
+  setFiles(files);
+}
+
+SPlaylistNode::~SPlaylistNode()
+{
+  delete d;
+  *const_cast<Data **>(&d) = NULL;
+}
+
+void SPlaylistNode::setFiles(const SMediaInfoList &files)
+{
   bool surround = true;
   int fps15 = 0, fps24 = 0, fps25 = 0, fps30 = 0;
   int sizeSD = 0, size720 = 0, size1080 = 0;
@@ -118,32 +129,6 @@ SPlaylistNode::SPlaylistNode(SGraph *parent, const SMediaInfoList &files)
   }
 }
 
-SPlaylistNode::~SPlaylistNode()
-{
-  delete d;
-  *const_cast<Data **>(&d) = NULL;
-}
-
-bool SPlaylistNode::open(quint16)
-{
-  return !d->fileNames.isEmpty();
-}
-
-bool SPlaylistNode::start(void)
-{
-  d->fileId = -1;
-
-  return openNext();
-}
-
-void SPlaylistNode::stop(void)
-{
-  if ((d->fileId >= 0) && (d->fileId < d->fileNames.count()))
-    emit closed(d->fileNames[d->fileId].first, d->fileNames[d->fileId].second);
-
-  d->fileId = -1;
-}
-
 STime SPlaylistNode::duration(void) const
 {
   return d->duration;
@@ -204,6 +189,29 @@ void SPlaylistNode::selectStreams(const QVector<StreamId> &)
 {
 }
 
+bool SPlaylistNode::start(void)
+{
+  if (!d->fileNames.isEmpty())
+  if (SFileInputNode::start())
+  {
+    d->fileId = -1;
+
+    return openNext();
+  }
+
+  return false;
+}
+
+void SPlaylistNode::stop(void)
+{
+  SFileInputNode::stop();
+
+  if ((d->fileId >= 0) && (d->fileId < d->fileNames.count()))
+    emit closed(d->fileNames[d->fileId].first, d->fileNames[d->fileId].second);
+
+  d->fileId = -1;
+}
+
 void SPlaylistNode::endReached(void)
 {
   if (!openNext())
@@ -219,11 +227,9 @@ bool SPlaylistNode::openNext(void)
 
   for (d->fileId++; d->fileId < d->fileNames.count(); d->fileId++)
   {
-    setFileName(d->fileNames[d->fileId].first);
-    if (SFileInputNode::open(d->fileNames[d->fileId].second))
+    setFileName(d->fileNames[d->fileId].first, d->fileNames[d->fileId].second);
+    if (SFileInputNode::start())
     {
-      SFileInputNode::start();
-
       emit opened(d->fileNames[d->fileId].first, d->fileNames[d->fileId].second);
       return true;
     }

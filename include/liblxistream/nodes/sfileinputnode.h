@@ -33,21 +33,19 @@ class LXISTREAM_PUBLIC SFileInputNode : public SIOInputNode
 {
 Q_OBJECT
 public:
-  explicit                      SFileInputNode(SGraph *, const QString &fileName);
+  explicit                      SFileInputNode(SGraph *, const QString &fileName = QString::null, quint16 programId = 0);
   virtual                       ~SFileInputNode();
 
-  void                          setFileName(const QString &fileName);
+  void                          setFileName(const QString &fileName, quint16 programId = 0);
+  QString                       fileName(void) const;
 
-  virtual bool                  open(quint16 programId = 0);
-
-public: // From SInterfaces::SourceNode
-  virtual void                  stop(void);
-
-public: // From SInterfaces::AbstractBufferReader
   virtual bool                  setPosition(STime);
 
   virtual QList<DataStreamInfo> dataStreams(void) const;
   virtual void                  selectStreams(const QVector<StreamId> &);
+
+public: // From SInterfaces::SourceNode
+  virtual void                  stop(void);
 
 private slots:
   _lxi_internal void            parseSubtitle(const SEncodedVideoBuffer &);

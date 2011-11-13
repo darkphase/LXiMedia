@@ -22,73 +22,39 @@
 
 #include <QtCore>
 #include <LXiCore>
-#include "../sinterfaces.h"
+#include "sinputnode.h"
 #include "../export.h"
 
 namespace LXiStream {
 
-class SAudioDecoderNode;
-class SVideoDecoderNode;
-class SDataDecoderNode;
-
 /*! This is a generic input node, reading to a QIODevice.
  */
-class LXISTREAM_PUBLIC SIOInputNode : public SInterfaces::SourceNode,
-                                      public SInterfaces::AbstractBufferReader,
-                                      protected SInterfaces::BufferReader::ReadCallback,
-                                      protected SInterfaces::BufferReader::ProduceCallback
+class LXISTREAM_PUBLIC SIOInputNode : public SInputNode,
+                                      protected SInterfaces::BufferReader::ReadCallback
 {
 Q_OBJECT
-friend class SAudioDecoderNode;
-friend class SVideoDecoderNode;
-friend class SDataDecoderNode;
 public:
-  explicit                      SIOInputNode(SGraph *, QIODevice * = NULL, const QString &path = QString::null);
+  explicit                      SIOInputNode(SGraph *, QIODevice * = NULL, quint16 programId = 0);
   virtual                       ~SIOInputNode();
 
-  void                          setIODevice(QIODevice *);
-  bool                          hasIODevice(void) const;
-
-  virtual bool                  open(quint16 programId = 0);
-  virtual void                  close();
+  void                          setIODevice(QIODevice *, quint16 programId = 0);
+  const QIODevice             * ioDevice(void) const;
+  QIODevice                   * ioDevice(void);
 
 public: // From SInterfaces::SourceNode
   virtual bool                  start(void);
   virtual void                  stop(void);
   virtual bool                  process(void);
 
-public: // From SInterfaces::AbstractBufferReader
-  virtual STime                 duration(void) const;
-  virtual bool                  setPosition(STime);
-  virtual STime                 position(void) const;
-  virtual QList<Chapter>        chapters(void) const;
-
-  virtual QList<AudioStreamInfo> audioStreams(void) const;
-  virtual QList<VideoStreamInfo> videoStreams(void) const;
-  virtual QList<DataStreamInfo>  dataStreams(void) const;
-  virtual void                  selectStreams(const QVector<StreamId> &);
-
-signals:
-  void                          output(const SEncodedAudioBuffer &);
-  void                          output(const SEncodedVideoBuffer &);
-  void                          output(const SEncodedDataBuffer &);
-  void                          finished(void);
-  void                          closeDecoder(void);
-
-protected:
-  virtual void                  endReached(void);
-
 protected: // From SInterfaces::BufferReader::ReadCallback
   virtual qint64                read(uchar *, qint64);
   virtual qint64                seek(qint64, int);
 
-protected: // From SInterfaces::BufferReader::ProduceCallback
-  virtual void                  produce(const SEncodedAudioBuffer &);
-  virtual void                  produce(const SEncodedVideoBuffer &);
-  virtual void                  produce(const SEncodedDataBuffer &);
+signals:
+  void                          finished(void);
 
-private:
-  _lxi_internal SInterfaces::BufferReader * bufferReader(void);
+protected:
+  virtual void                  endReached(void);
 
 private:
   struct Data;

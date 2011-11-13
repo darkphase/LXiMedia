@@ -45,7 +45,7 @@ BufferReaderBase::~BufferReaderBase()
   return NULL;
 }
 
-bool BufferReaderBase::start(ProduceCallback *produceCallback, ::AVFormatContext *formatContext)
+bool BufferReaderBase::start(SInterfaces::AbstractBufferReader::ProduceCallback *produceCallback, ::AVFormatContext *formatContext)
 {
   this->produceCallback = produceCallback;
   this->formatContext = formatContext;
@@ -71,7 +71,7 @@ bool BufferReaderBase::start(ProduceCallback *produceCallback, ::AVFormatContext
 #endif
       {
         if (!hasAudio)
-            selectedStreams += StreamId(StreamId::Type_Audio, stream->index);
+            selectedStreams += SInterfaces::AbstractBufferReader::StreamId(SInterfaces::AbstractBufferReader::StreamId::Type_Audio, stream->index);
 
         hasAudio = true;
       }
@@ -82,7 +82,7 @@ bool BufferReaderBase::start(ProduceCallback *produceCallback, ::AVFormatContext
 #endif
       {
         if (!hasVideo)
-            selectedStreams += StreamId(StreamId::Type_Video, stream->index);
+            selectedStreams += SInterfaces::AbstractBufferReader::StreamId(SInterfaces::AbstractBufferReader::StreamId::Type_Video, stream->index);
 
         hasVideo = true;
       }
@@ -93,7 +93,7 @@ bool BufferReaderBase::start(ProduceCallback *produceCallback, ::AVFormatContext
 #endif
       {
         if (!hasSubtitle)
-            selectedStreams += StreamId(StreamId::Type_Subtitle, stream->index);
+            selectedStreams += SInterfaces::AbstractBufferReader::StreamId(SInterfaces::AbstractBufferReader::StreamId::Type_Subtitle, stream->index);
 
         hasSubtitle = true;
       }
@@ -453,10 +453,16 @@ bool BufferReaderBase::buffer(void)
 
 STime BufferReaderBase::bufferDuration(void) const
 {
-  if (!packetBuffer.isEmpty())
+  const int count = packetBuffer.count();
+  if (count > 0)
   {
-    const STime first = timeStamp(packetBuffer.first());
-    const STime last  = timeStamp(packetBuffer.last());
+    STime first = timeStamp(packetBuffer.first());
+    STime last = timeStamp(packetBuffer.last());
+    for (int i=1; (i<16) && (i<count); i++)
+    {
+      first = qMin(first, timeStamp(packetBuffer[i]));
+      last = qMax(last, timeStamp(packetBuffer[count - i - 1]));
+    }
 
     if (first.isValid() && last.isValid())
       return last - first;
@@ -506,16 +512,16 @@ STime BufferReaderBase::position(void) const
   return STime();
 }
 
-QList<BufferReaderBase::Chapter> BufferReaderBase::chapters(void) const
+QList<SInterfaces::AbstractBufferReader::Chapter> BufferReaderBase::chapters(void) const
 {
-  QMultiMap<STime, Chapter> chapters;
+  QMultiMap<STime, SInterfaces::AbstractBufferReader::Chapter> chapters;
 
   if (formatContext)
   for (unsigned i=0; i<formatContext->nb_chapters; i++)
   {
     const SInterval interval(formatContext->chapters[i]->time_base.num, formatContext->chapters[i]->time_base.den);
 
-    Chapter chapter;
+    SInterfaces::AbstractBufferReader::Chapter chapter;
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
     chapter.title = readMetadata(formatContext->chapters[i]->metadata, "title");
 #else
@@ -532,9 +538,9 @@ QList<BufferReaderBase::Chapter> BufferReaderBase::chapters(void) const
   return chapters.values();
 }
 
-QList<BufferReaderBase::AudioStreamInfo> BufferReaderBase::audioStreams(void) const
+QList<SInterfaces::AbstractBufferReader::AudioStreamInfo> BufferReaderBase::audioStreams(void) const
 {
-  QList<AudioStreamInfo> streams;
+  QList<SInterfaces::AbstractBufferReader::AudioStreamInfo> streams;
 
   if (formatContext)
   for (int i=0; i<streamContext.count(); i++)
@@ -545,8 +551,10 @@ QList<BufferReaderBase::AudioStreamInfo> BufferReaderBase::audioStreams(void) co
 #endif
   if (streamContext[i])
   {
-    AudioStreamInfo streamInfo(
-        StreamId(StreamId::Type_Audio, formatContext->streams[i]->index),
+    SInterfaces::AbstractBufferReader::AudioStreamInfo streamInfo(
+        SInterfaces::AbstractBufferReader::StreamId(
+            SInterfaces::AbstractBufferReader::StreamId::Type_Audio,
+            formatContext->streams[i]->index),
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
         readMetadata(formatContext->streams[i]->metadata, "language"),
 #else
@@ -557,7 +565,7 @@ QList<BufferReaderBase::AudioStreamInfo> BufferReaderBase::audioStreams(void) co
 
     if (formatContext->streams[i]->id > 0)
     {
-      streamInfo.type |= StreamId::Type_Flag_Native;
+      streamInfo.type |= SInterfaces::AbstractBufferReader::StreamId::Type_Flag_Native;
       streamInfo.id = formatContext->streams[i]->id;
     }
 
@@ -567,9 +575,9 @@ QList<BufferReaderBase::AudioStreamInfo> BufferReaderBase::audioStreams(void) co
   return streams;
 }
 
-QList<BufferReaderBase::VideoStreamInfo> BufferReaderBase::videoStreams(void) const
+QList<SInterfaces::AbstractBufferReader::VideoStreamInfo> BufferReaderBase::videoStreams(void) const
 {
-  QList<VideoStreamInfo> streams;
+  QList<SInterfaces::AbstractBufferReader::VideoStreamInfo> streams;
 
   if (formatContext)
   for (int i=0; i<streamContext.count(); i++)
@@ -580,8 +588,10 @@ QList<BufferReaderBase::VideoStreamInfo> BufferReaderBase::videoStreams(void) co
 #endif
   if (streamContext[i])
   {
-    VideoStreamInfo streamInfo(
-        StreamId(StreamId::Type_Video, formatContext->streams[i]->index),
+    SInterfaces::AbstractBufferReader::VideoStreamInfo streamInfo(
+        SInterfaces::AbstractBufferReader::StreamId(
+            SInterfaces::AbstractBufferReader::StreamId::Type_Video,
+            formatContext->streams[i]->index),
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
         readMetadata(formatContext->streams[i]->metadata, "language"),
 #else
@@ -592,7 +602,7 @@ QList<BufferReaderBase::VideoStreamInfo> BufferReaderBase::videoStreams(void) co
 
     if (formatContext->streams[i]->id > 0)
     {
-      streamInfo.type |= StreamId::Type_Flag_Native;
+      streamInfo.type |= SInterfaces::AbstractBufferReader::StreamId::Type_Flag_Native;
       streamInfo.id = formatContext->streams[i]->id;
     }
 
@@ -602,9 +612,9 @@ QList<BufferReaderBase::VideoStreamInfo> BufferReaderBase::videoStreams(void) co
   return streams;
 }
 
-QList<BufferReaderBase::DataStreamInfo> BufferReaderBase::dataStreams(void) const
+QList<SInterfaces::AbstractBufferReader::DataStreamInfo> BufferReaderBase::dataStreams(void) const
 {
-  QList<DataStreamInfo> streams;
+  QList<SInterfaces::AbstractBufferReader::DataStreamInfo> streams;
 
   if (formatContext)
   for (int i=0; i<streamContext.count(); i++)
@@ -615,8 +625,10 @@ QList<BufferReaderBase::DataStreamInfo> BufferReaderBase::dataStreams(void) cons
 #endif
   if (streamContext[i])
   {
-    DataStreamInfo streamInfo(
-        StreamId(DataStreamInfo::Type_Subtitle, formatContext->streams[i]->index),
+    SInterfaces::AbstractBufferReader::DataStreamInfo streamInfo(
+        SInterfaces::AbstractBufferReader::StreamId(
+            SInterfaces::AbstractBufferReader::DataStreamInfo::Type_Subtitle,
+            formatContext->streams[i]->index),
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
         readMetadata(formatContext->streams[i]->metadata, "language"),
 #else
@@ -627,7 +639,7 @@ QList<BufferReaderBase::DataStreamInfo> BufferReaderBase::dataStreams(void) cons
 
     if (formatContext->streams[i]->id > 0)
     {
-      streamInfo.type |= StreamId::Type_Flag_Native;
+      streamInfo.type |= SInterfaces::AbstractBufferReader::StreamId::Type_Flag_Native;
       streamInfo.id = formatContext->streams[i]->id;
     }
 
@@ -637,7 +649,7 @@ QList<BufferReaderBase::DataStreamInfo> BufferReaderBase::dataStreams(void) cons
   return streams;
 }
 
-void BufferReaderBase::selectStreams(const QVector<StreamId> &streams)
+void BufferReaderBase::selectStreams(const QVector<SInterfaces::AbstractBufferReader::StreamId> &streams)
 {
   selectedStreams = streams;
 }
@@ -932,9 +944,9 @@ QString BufferReaderBase::readMetadata(::AVMetadata *metadata, const char *tagNa
 
 bool BufferReaderBase::isSelected(const ::AVStream *stream) const
 {
-  foreach (const StreamId &selectedStream, selectedStreams)
+  foreach (const SInterfaces::AbstractBufferReader::StreamId &selectedStream, selectedStreams)
   {
-    if ((selectedStream.type & StreamId::Type_Flag_Native) != 0)
+    if ((selectedStream.type & SInterfaces::AbstractBufferReader::StreamId::Type_Flag_Native) != 0)
     {
       if (selectedStream.id == stream->id)
         return true;

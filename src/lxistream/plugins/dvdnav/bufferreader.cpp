@@ -223,16 +223,6 @@ void BufferReader::stop(void)
   bufferReader = NULL;
 }
 
-bool BufferReader::buffer(void)
-{
-  return bufferReader->buffer();
-}
-
-STime BufferReader::bufferDuration(void) const
-{
-  return bufferReader->bufferDuration();
-}
-
 bool BufferReader::process(void)
 {
   return bufferReader->process();

@@ -22,39 +22,89 @@
 
 namespace LXiStream {
 
+class SNetworkInputNode::BufferThread : public QThread
+{
+public:
+                                BufferThread(SNetworkInputNode *parent);
+  virtual                       ~BufferThread();
+
+protected:
+  virtual void                  run(void);
+  virtual void                  customEvent(QEvent *);
+
+public:
+  static const QEvent::Type     bufferEventType;
+  static const QEvent::Type     stopThreadEventType;
+
+private:
+  SNetworkInputNode     * const parent;
+};
 
 struct SNetworkInputNode::Data
 {
   QUrl                          url;
   quint16                       programId;
+  QMutex                        bufferMutex;
   STime                         bufferDuration;
-  SInterfaces::NetworkBufferReader * bufferReader;
+  float                         bufferSize;
+  bool                          bufferReady;
 
-  QSemaphore                    bufferSem;
-  bool                          bufferState;
-  QFuture<void>                 future;
-  QFutureWatcher<void>          futureWatcher;
+  BufferThread                * bufferThread;
 };
 
-SNetworkInputNode::SNetworkInputNode(SGraph *parent, const QUrl &url)
-  : SInterfaces::SourceNode(parent),
+SNetworkInputNode::SNetworkInputNode(SGraph *parent, const QUrl &url, quint16 programId)
+  : SInputNode(parent),
     d(new Data())
 {
-  d->url = url;
   d->programId = 0;
-  d->bufferDuration = STime::fromSec(10);
-  d->bufferReader = NULL;
-  d->bufferSem.release(1);
-  d->bufferState = false;
+  d->bufferDuration = STime::fromSec(5);
+  d->bufferSize = 0.0f;
+  d->bufferReady = false;
+  d->bufferThread = NULL;
 
-  connect(&d->futureWatcher, SIGNAL(finished()), SLOT(fillBuffer()), Qt::QueuedConnection);
+  setUrl(url, programId);
 }
 
 SNetworkInputNode::~SNetworkInputNode()
 {
-  d->future.waitForFinished();
+  delete d->bufferThread;
+  delete bufferReader();
   delete d;
   *const_cast<Data **>(&d) = NULL;
+}
+
+void SNetworkInputNode::setUrl(const QUrl &url, quint16 programId)
+{
+  if (bufferReader())
+  {
+    delete bufferReader();
+    setBufferReader(NULL);
+  }
+
+  d->bufferSize = 0.0f;
+  d->bufferReady = false;
+
+  delete d->bufferThread;
+  d->bufferThread = NULL;
+
+  if (url.isValid() && !url.isEmpty())
+  {
+    SInterfaces::NetworkBufferReader * const bufferReader = SInterfaces::NetworkBufferReader::create(this, url.scheme(), false);
+    if (bufferReader)
+    {
+      d->url = url;
+      d->programId = programId;
+
+      d->bufferThread = new BufferThread(this);
+
+      setBufferReader(bufferReader);
+    }
+  }
+}
+
+QUrl SNetworkInputNode::url(void) const
+{
+  return d->url;
 }
 
 void SNetworkInputNode::setBufferDuration(const STime &bufferDuration)
@@ -67,27 +117,34 @@ STime SNetworkInputNode::bufferDuration(void) const
   return d->bufferDuration;
 }
 
-bool SNetworkInputNode::open(quint16 programId)
+bool SNetworkInputNode::fillBuffer(void)
 {
-  d->bufferReader = SInterfaces::NetworkBufferReader::create(this, d->url.scheme(), false);
-  d->programId = programId;
-  d->bufferState = false;
+  qApp->postEvent(d->bufferThread, new QEvent(BufferThread::bufferEventType));
 
-  return true;
+  return d->bufferReady;
+}
+
+bool SNetworkInputNode::bufferReady(void) const
+{
+  return d->bufferReady;
+}
+
+float SNetworkInputNode::bufferProgress(void) const
+{
+  return d->bufferSize;
 }
 
 bool SNetworkInputNode::start(void)
 {
-  if (d->bufferReader == NULL)
-    open();
-
-  if (d->bufferReader)
+  SInterfaces::NetworkBufferReader * const bufferReader = static_cast<SInterfaces::NetworkBufferReader *>(SInputNode::bufferReader());
+  if (bufferReader && d->url.isValid() && !d->url.isEmpty())
+  if (bufferReader->start(d->url, this, d->programId))
+  if (SInputNode::start())
   {
-    if (d->bufferReader->start(d->url, this, d->programId))
-      return true;
+    if (!d->bufferThread->isRunning())
+      d->bufferThread->start();
 
-    delete d->bufferReader;
-    d->bufferReader = NULL;
+    return true;
   }
 
   return false;
@@ -95,178 +152,88 @@ bool SNetworkInputNode::start(void)
 
 void SNetworkInputNode::stop(void)
 {
-  d->future.waitForFinished();
+  SInterfaces::NetworkBufferReader * const bufferReader = static_cast<SInterfaces::NetworkBufferReader *>(SInputNode::bufferReader());
+  if (bufferReader)
+    bufferReader->stop();
 
-  if (d->bufferReader)
-  {
-    d->bufferReader->stop();
-
-    delete d->bufferReader;
-    d->bufferReader = NULL;
-  }
+  SInputNode::stop();
 }
 
 bool SNetworkInputNode::process(void)
 {
   bool result = false;
-  if (d->bufferReader)
+  if (d->bufferMutex.tryLock(0))
   {
-    if (d->bufferSem.tryAcquire(1, 15))
-    {
-      if (d->bufferState)
-      if (!d->bufferReader->process())
-      {
-        // Finished; close input.
-        d->bufferReader->stop();
+    result = SInputNode::process();
 
-        delete d->bufferReader;
-        d->bufferReader = NULL;
+    d->bufferMutex.unlock();
 
-        emit output(SEncodedAudioBuffer());
-        emit output(SEncodedVideoBuffer());
-        emit output(SEncodedDataBuffer());
-        emit finished();
-      }
-
-      d->bufferSem.release(1);
-      result = true;
-    }
-
-    fillBuffer();
+    if (result)
+      qApp->postEvent(d->bufferThread, new QEvent(BufferThread::bufferEventType));
   }
 
   return result;
 }
 
-STime SNetworkInputNode::duration(void) const
+const QEvent::Type  SNetworkInputNode::BufferThread::bufferEventType = QEvent::Type(QEvent::registerEventType());
+const QEvent::Type  SNetworkInputNode::BufferThread::stopThreadEventType = QEvent::Type(QEvent::registerEventType());
+
+SNetworkInputNode::BufferThread::BufferThread(SNetworkInputNode *parent)
+  : QThread(parent),
+    parent(parent)
 {
-  d->future.waitForFinished();
-
-  if (d->bufferReader)
-    return d->bufferReader->duration();
-
-  return STime();
 }
 
-bool SNetworkInputNode::setPosition(STime pos)
+SNetworkInputNode::BufferThread::~BufferThread()
 {
-  d->future.waitForFinished();
-
-  if (d->bufferReader)
-    return d->bufferReader->setPosition(pos);
-
-  return false;
-}
-
-STime SNetworkInputNode::position(void) const
-{
-  d->future.waitForFinished();
-
-  if (d->bufferReader)
-    return d->bufferReader->position();
-
-  return STime();
-}
-
-QList<SNetworkInputNode::Chapter> SNetworkInputNode::chapters(void) const
-{
-  d->future.waitForFinished();
-
-  if (d->bufferReader)
-    return d->bufferReader->chapters();
-
-  return QList<Chapter>();
-}
-
-QList<SNetworkInputNode::AudioStreamInfo> SNetworkInputNode::audioStreams(void) const
-{
-  d->future.waitForFinished();
-
-  if (d->bufferReader)
-    return d->bufferReader->audioStreams();
-
-  return QList<AudioStreamInfo>();
-}
-
-QList<SNetworkInputNode::VideoStreamInfo> SNetworkInputNode::videoStreams(void) const
-{
-  d->future.waitForFinished();
-
-  if (d->bufferReader)
-    return d->bufferReader->videoStreams();
-
-  return QList<VideoStreamInfo>();
-}
-
-QList<SNetworkInputNode::DataStreamInfo> SNetworkInputNode::dataStreams(void) const
-{
-  d->future.waitForFinished();
-
-  if (d->bufferReader)
-    return d->bufferReader->dataStreams();
-
-  return QList<DataStreamInfo>();
-}
-
-void SNetworkInputNode::selectStreams(const QVector<StreamId> &streamIds)
-{
-  d->future.waitForFinished();
-
-  if (d->bufferReader)
-    d->bufferReader->selectStreams(streamIds);
-}
-
-void SNetworkInputNode::fillBuffer(void)
-{
-  if (d->bufferReader)
-  if (d->bufferSem.tryAcquire(1, 0))
+  if (isRunning())
   {
-    const STime currentDuration = d->bufferReader->bufferDuration();
-    const float currentProgress = float(currentDuration.toMSec()) / float(d->bufferDuration.toMSec());
-
-    if (currentDuration < d->bufferDuration)
-    {
-      if (d->future.isFinished())
-      {
-        d->future = QtConcurrent::run(this, &SNetworkInputNode::bufferTask);
-        d->futureWatcher.setFuture(d->future);
-      }
-
-      if (d->bufferState && (currentDuration < STime::fromSec(1)))
-        emit bufferState(d->bufferState = false, currentProgress);
-      else if (!d->bufferState)
-        emit bufferState(d->bufferState, currentProgress);
-    }
-    else if (!d->bufferState)
-      emit bufferState(d->bufferState = true, currentProgress);
-
-    d->bufferSem.release(1);
+    qApp->postEvent(this, new QEvent(stopThreadEventType));
+    if (!wait(5000))
+      terminate();
   }
 }
 
-void SNetworkInputNode::produce(const SEncodedAudioBuffer &buffer)
+void SNetworkInputNode::BufferThread::run(void)
 {
-  emit output(buffer);
+  setTerminationEnabled();
+
+  exec();
 }
 
-void SNetworkInputNode::produce(const SEncodedVideoBuffer &buffer)
+void SNetworkInputNode::BufferThread::customEvent(QEvent *e)
 {
-  emit output(buffer);
-}
+  if (e->type() == bufferEventType)
+  {
+    QMutexLocker l(&parent->d->bufferMutex);
 
-void SNetworkInputNode::produce(const SEncodedDataBuffer &buffer)
-{
-  emit output(buffer);
-}
+    SInterfaces::NetworkBufferReader * const bufferReader = static_cast<SInterfaces::NetworkBufferReader *>(parent->bufferReader());
+    if (bufferReader)
+    {
+      QTime timer; timer.start();
+      while (qAbs(timer.elapsed()) < 10)
+      if (bufferReader->bufferDuration() < parent->d->bufferDuration)
+        bufferReader->buffer();
+      else
+        break;
 
-void SNetworkInputNode::bufferTask(void)
-{
-  LXI_PROFILE_WAIT(d->bufferSem.acquire(1));
-  LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
+      const STime duration = bufferReader->bufferDuration();
+      if (duration < parent->d->bufferDuration)
+      {
+        if (parent->d->bufferReady && (duration.toMSec() < 250))
+          parent->d->bufferReady = false;
+      }
+      else
+        parent->d->bufferReady = true;
 
-  d->bufferReader->buffer();
-
-  d->bufferSem.release(1);
+      parent->d->bufferSize = float(duration.toMSec()) / float(parent->d->bufferDuration.toMSec());
+      qDebug() << parent->d->bufferSize;
+    }
+  }
+  else if (e->type() == stopThreadEventType)
+    exit();
+  else
+    QThread::customEvent(e);
 }
 
 } // End of namespace

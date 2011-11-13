@@ -18,31 +18,21 @@
  ***************************************************************************/
 
 #include "streaminputnode.h"
-#include <LXiStreamGui>
 
 namespace LXiMediaCenter {
 namespace InternetBackend {
 
-const qint64 StreamInputNode::minBufferingTimeMs = 3000;
-
-StreamInputNode::StreamInputNode(SGraph *parent, const QUrl &url)
-  : SInterfaces::SourceNode(parent),
+StreamInputNode::StreamInputNode(SGraph *parent)
+  : SNetworkInputNode(parent),
     outSize(768, 576),
     baseFrameRate(SInterval::fromFrequency(25)),
     baseChannelSetup(SAudioFormat::Channels_Stereo),
     baseSampleRate(48000),
-    networkInput(NULL, url),
-    audioDecoder(parent),
-    videoDecoder(parent),
-    dataDecoder(parent),
-    videoGenerator(parent),
-    bufferState(false),
-    bufferProgress(0.0f),
     bufferingTime(STime::null),
     correctTime(),
+    streamTime(STime::null),
     startSem(1)
 {
-  networkInput.setParent(this);
 }
 
 StreamInputNode::~StreamInputNode()
@@ -90,55 +80,9 @@ void StreamInputNode::setSampleRate(unsigned r)
   baseSampleRate = r;
 }
 
-bool StreamInputNode::open(bool hasVideo, bool generateVideo)
+void StreamInputNode::setUrl(const QUrl &url, bool generateVideo, quint16 programId)
 {
-  connect(&networkInput, SIGNAL(bufferState(bool, float)), SLOT(setBufferState(bool, float)));
-  connect(&networkInput, SIGNAL(finished()), SIGNAL(finished()));
-
-  if (hasVideo)
-  {
-    // Audio
-    SGraph::connect(&networkInput, SIGNAL(output(SEncodedAudioBuffer)), &audioDecoder, SLOT(input(SEncodedAudioBuffer)));
-    SGraph::connect(&audioDecoder, SIGNAL(output(SAudioBuffer)), this, SLOT(correct(SAudioBuffer)));
-
-    // Video
-    SGraph::connect(&networkInput, SIGNAL(output(SEncodedVideoBuffer)), &videoDecoder, SLOT(input(SEncodedVideoBuffer)));
-    SGraph::connect(&videoDecoder, SIGNAL(output(SVideoBuffer)), this, SLOT(correct(SVideoBuffer)));
-
-    // Data
-    SGraph::connect(&networkInput, SIGNAL(output(SEncodedDataBuffer)), &dataDecoder, SLOT(input(SEncodedDataBuffer)));
-    SGraph::connect(&dataDecoder, SIGNAL(output(SSubpictureBuffer)), this, SLOT(correct(SSubpictureBuffer)));
-    SGraph::connect(&dataDecoder, SIGNAL(output(SSubtitleBuffer)), this, SLOT(correct(SSubtitleBuffer)));
-  }
-  else if (generateVideo)
-  {
-    // Audio
-    SGraph::connect(&networkInput, SIGNAL(output(SEncodedAudioBuffer)), &audioDecoder, SLOT(input(SEncodedAudioBuffer)));
-    SGraph::connect(&audioDecoder, SIGNAL(output(SAudioBuffer)), this, SLOT(correct(SAudioBuffer)));
-
-    // Video
-    SGraph::connect(&audioDecoder, SIGNAL(output(SAudioBuffer)), &videoGenerator, SLOT(input(SAudioBuffer)));
-    SGraph::connect(&videoGenerator, SIGNAL(output(SVideoBuffer)), this, SLOT(correct(SVideoBuffer)));
-
-    // Data
-    SGraph::connect(&networkInput, SIGNAL(output(SEncodedDataBuffer)), &dataDecoder, SLOT(input(SEncodedDataBuffer)));
-    SGraph::connect(&dataDecoder, SIGNAL(output(SSubpictureBuffer)), this, SLOT(correct(SSubpictureBuffer)));
-    SGraph::connect(&dataDecoder, SIGNAL(output(SSubtitleBuffer)), this, SLOT(correct(SSubtitleBuffer)));
-
-    SImage blackImage(outSize, SImage::Format_RGB32);
-    blackImage.fill(0);
-    videoGenerator.setImage(blackImage);
-    videoGenerator.setFrameRate(baseFrameRate);
-  }
-  else
-  {
-    // Audio
-    SGraph::connect(&networkInput, SIGNAL(output(SEncodedAudioBuffer)), &audioDecoder, SLOT(input(SEncodedAudioBuffer)));
-    SGraph::connect(&audioDecoder, SIGNAL(output(SAudioBuffer)), this, SLOT(correct(SAudioBuffer)));
-  }
-
-  // Create images to overlay.
-  if (hasVideo || generateVideo)
+  if (generateVideo)
   {
     QList< QFuture<SImage> > futures;
     futures += QtConcurrent::run(&SVideoGeneratorNode::drawCorneredImage, outSize);
@@ -157,43 +101,37 @@ bool StreamInputNode::open(bool hasVideo, bool generateVideo)
   audioBuffer.setNumSamples(audioFormat.sampleRate() / baseFrameRate.toFrequency());
   memset(audioBuffer.data(), 0, audioBuffer.size());
 
-  return true;
+  SNetworkInputNode::setUrl(url, programId);
 }
 
 bool StreamInputNode::start(void)
 {
   bufferingTime = STime::null;
   correctTime = STime();
+  streamTime = STime::null;
 
   // Open the network stream in the background.
-  if (networkInput.open())
+  struct StartThread : QThread
   {
-    struct StartThread : QThread
+    StartThread(StreamInputNode *parent)
+      : QThread(parent), parent(parent)
     {
-      StartThread(QObject *parent, SNetworkInputNode *networkInput, QSemaphore *startSem)
-        : QThread(parent), networkInput(networkInput), startSem(startSem)
-      {
-      }
+    }
 
-      virtual void run(void)
-      {
-        networkInput->start();
-        startSem->release();
+    virtual void run(void)
+    {
+      parent->startTask();
 
-        deleteLater();
-      }
+      deleteLater();
+    }
 
-      SNetworkInputNode * const networkInput;
-      QSemaphore * const startSem;
-    };
+    StreamInputNode * const parent;
+  };
 
-    if (startSem.tryAcquire(1, 0))
-      (new StartThread(this, &networkInput, &startSem))->start();
+  if (startSem.tryAcquire(1, 0))
+    (new StartThread(this))->start();
 
-    return true;
-  }
-
-  return false;
+  return true;
 }
 
 void StreamInputNode::stop(void)
@@ -201,35 +139,35 @@ void StreamInputNode::stop(void)
   startSem.acquire();
   startSem.release();
 
-  networkInput.stop();
+  SNetworkInputNode::stop();
 
   bufferingImages.clear();
 
   bufferingTime = STime::null;
   correctTime = STime();
+  streamTime = STime::null;
 }
 
 bool StreamInputNode::process(void)
 {
-  if (bufferState && (bufferingTime.isNull() || (bufferingTime.toMSec() >= minBufferingTimeMs)))
+  if (bufferReady())
   {
-    return networkInput.process();
+    return SNetworkInputNode::process();
   }
   else
   {
     if (startSem.available() > 0)
-      networkInput.fillBuffer();
+      SNetworkInputNode::fillBuffer();
 
     if (bufferingTime.isNull())
-      bufferingTimer.setTimeStamp(bufferingTime);
+      bufferingTimer.setTimeStamp(STime::fromSec(1));
 
-    // Allow slightly faster than realtime.
-    const STime correctedTime = STime::fromMSec(qint64(float(bufferingTime.toMSec()) / 1.1f));
-    if (correctedTime < bufferingTimer.timeStamp())
+    if (bufferingTime < bufferingTimer.timeStamp())
     {
-      computeBufferingFrame(bufferingTime);
+      computeBufferingFrame(streamTime);
 
       bufferingTime += STime(1, baseFrameRate);
+      streamTime += STime(1, baseFrameRate);
 
       if (correctTime.isValid())
         correctTime += STime(1, baseFrameRate);
@@ -241,41 +179,36 @@ bool StreamInputNode::process(void)
   return false;
 }
 
-void StreamInputNode::setBufferState(bool b, float p)
+void StreamInputNode::produce(const SEncodedAudioBuffer &buffer)
 {
-  startSem.acquire();
-  startSem.release();
+  SEncodedAudioBuffer outBuffer(buffer);
+  outBuffer.setDecodingTimeStamp(correct(buffer.decodingTimeStamp()));
+  outBuffer.setPresentationTimeStamp(correct(buffer.presentationTimeStamp()));
 
-  bufferState = b;
-  bufferProgress = p;
+  if (outBuffer.decodingTimeStamp().isValid())
+    streamTime = outBuffer.decodingTimeStamp() + STime(1, baseFrameRate);
+  else if (outBuffer.presentationTimeStamp().isValid())
+    streamTime = outBuffer.presentationTimeStamp() + STime(1, baseFrameRate);
+
+  emit SNetworkInputNode::output(outBuffer);
 }
 
-void StreamInputNode::correct(SAudioBuffer buffer)
+void StreamInputNode::produce(const SEncodedVideoBuffer &buffer)
 {
-  buffer.setTimeStamp(correct(buffer.timeStamp()));
+  SEncodedVideoBuffer outBuffer(buffer);
+  outBuffer.setDecodingTimeStamp(correct(buffer.decodingTimeStamp()));
+  outBuffer.setPresentationTimeStamp(correct(buffer.presentationTimeStamp()));
 
-  emit output(buffer);
+  emit SNetworkInputNode::output(outBuffer);
 }
 
-void StreamInputNode::correct(SVideoBuffer buffer)
+void StreamInputNode::produce(const SEncodedDataBuffer &buffer)
 {
-  buffer.setTimeStamp(correct(buffer.timeStamp()));
+  SEncodedDataBuffer outBuffer(buffer);
+  outBuffer.setDecodingTimeStamp(correct(buffer.decodingTimeStamp()));
+  outBuffer.setPresentationTimeStamp(correct(buffer.presentationTimeStamp()));
 
-  emit output(buffer);
-}
-
-void StreamInputNode::correct(SSubpictureBuffer buffer)
-{
-  buffer.setTimeStamp(correct(buffer.timeStamp()));
-
-  emit output(buffer);
-}
-
-void StreamInputNode::correct(SSubtitleBuffer buffer)
-{
-  buffer.setTimeStamp(correct(buffer.timeStamp()));
-
-  emit output(buffer);
+  emit SNetworkInputNode::output(outBuffer);
 }
 
 STime StreamInputNode::correct(const STime &ts)
@@ -311,30 +244,25 @@ void StreamInputNode::computeBufferingFrame(const STime &time)
           (img.height() / 2) - (overlay.height() / 2),
           overlay);
 
-      if (!qFuzzyCompare(bufferProgress, 0.0f))
-      {
-        const QRect progressBar(
-            (img.width() / 2) - (img.width() / 16),
-            (img.height() / 2) + (img.height() / 3),
-            img.width() / 8,
-            img.height() / 32);
+      const QRect progressBar(
+          (img.width() / 2) - (img.width() / 16),
+          (img.height() / 2) + (img.height() / 3),
+          img.width() / 8,
+          img.height() / 32);
 
-        const qreal radius = img.width() / 256;
+      const qreal radius = img.width() / 256;
 
-        p.setRenderHint(QPainter::Antialiasing);
-        p.setPen(QPen(Qt::gray, 2.0));
-        p.setBrush(Qt::transparent);
-        p.drawRoundedRect(progressBar, radius, radius);
+      p.setRenderHint(QPainter::Antialiasing);
+      p.setPen(QPen(Qt::gray, 2.0));
+      p.setBrush(Qt::transparent);
+      p.drawRoundedRect(progressBar, radius, radius);
 
-        QRect filledBar = progressBar.adjusted(radius, radius, -radius, -radius);
-        filledBar.setWidth(
-            0.5f + (float(filledBar.width()) * bufferProgress *
-            (float(qMin(time.toMSec(), minBufferingTimeMs)) / float(minBufferingTimeMs))));
+      QRect filledBar = progressBar.adjusted(radius, radius, -radius, -radius);
+      filledBar.setWidth(0.5f + (float(filledBar.width()) * bufferProgress()));
 
-        p.setPen(Qt::gray);
-        p.setBrush(Qt::gray);
-        p.drawRoundedRect(filledBar, radius / 2, radius / 2);
-      }
+      p.setPen(Qt::gray);
+      p.setBrush(Qt::gray);
+      p.drawRoundedRect(filledBar, radius / 2, radius / 2);
     p.end();
 
     SVideoBuffer videoBuffer = img.toVideoBuffer(baseFrameRate);
@@ -344,6 +272,13 @@ void StreamInputNode::computeBufferingFrame(const STime &time)
 
   audioBuffer.setTimeStamp(time);
   emit output(audioBuffer);
+}
+
+void StreamInputNode::startTask(void)
+{
+  SNetworkInputNode::start();
+
+  startSem.release();
 }
 
 } } // End of namespaces

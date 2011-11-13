@@ -96,9 +96,13 @@ void InternetSandbox::cleanStreams(void)
 
 SandboxNetworkStream::SandboxNetworkStream(const QUrl &url)
   : MediaStream(),
-    source(this, url)
+    url(url),
+    streamInput(this),
+    audioDecoder(this),
+    videoDecoder(this),
+    dataDecoder(this),
+    videoGenerator(this)
 {
-  connect(&source, SIGNAL(finished()), SLOT(stop()));
 }
 
 SandboxNetworkStream::~SandboxNetworkStream()
@@ -109,53 +113,81 @@ bool SandboxNetworkStream::setup(const SHttpServer::RequestMessage &request, QIO
 {
   const MediaServer::File file(request);
 
-  if (file.url().hasQueryItem("resolution"))
+  if (audioDecoder.open(&streamInput) && videoDecoder.open(&streamInput) && dataDecoder.open(&streamInput))
   {
-    const QStringList formatTxt = file.url().queryItemValue("resolution").split(',');
-
-    const QStringList sizeTxt = formatTxt.first().split('x');
-    if (sizeTxt.count() >= 2)
+    if (file.url().hasQueryItem("resolution"))
     {
-      SSize size = source.size();
-      size.setWidth(sizeTxt[0].toInt());
-      size.setHeight(sizeTxt[1].toInt());
-      if (sizeTxt.count() >= 3)
-        size.setAspectRatio(sizeTxt[2].toFloat());
-      else
-        size.setAspectRatio(1.0f);
+      const QStringList formatTxt = file.url().queryItemValue("resolution").split(',');
 
-      source.setSize(size);
+      const QStringList sizeTxt = formatTxt.first().split('x');
+      if (sizeTxt.count() >= 2)
+      {
+        SSize size = streamInput.size();
+        size.setWidth(sizeTxt[0].toInt());
+        size.setHeight(sizeTxt[1].toInt());
+        if (sizeTxt.count() >= 3)
+          size.setAspectRatio(sizeTxt[2].toFloat());
+        else
+          size.setAspectRatio(1.0f);
+
+        streamInput.setSize(size);
+      }
     }
-  }
 
-  if (file.url().hasQueryItem("channels"))
-  {
-    const QStringList cl = file.url().queryItemValue("channels").split(',');
+    if (file.url().hasQueryItem("channels"))
+    {
+      const QStringList cl = file.url().queryItemValue("channels").split(',');
 
-    if ((file.url().queryItemValue("music") == "true") && (cl.count() >= 2))
-      source.setChannelSetup(SAudioFormat::Channels(cl[1].toUInt(NULL, 16)));
-    else if (!cl.isEmpty())
-      source.setChannelSetup(SAudioFormat::Channels(cl[0].toUInt(NULL, 16)));
-  }
+      if ((file.url().queryItemValue("music") == "true") && (cl.count() >= 2))
+        streamInput.setChannelSetup(SAudioFormat::Channels(cl[1].toUInt(NULL, 16)));
+      else if (!cl.isEmpty())
+        streamInput.setChannelSetup(SAudioFormat::Channels(cl[0].toUInt(NULL, 16)));
+    }
 
-  const bool hasVideo = file.url().queryItemValue("music") != "true";
-  const bool generateVideo = file.url().queryItemValue("musicmode").startsWith("addvideo");
+    const bool hasVideo = file.url().queryItemValue("music") != "true";
+    const bool generateVideo = file.url().queryItemValue("musicmode").startsWith("addvideo");
 
-  if (source.open(hasVideo, generateVideo))
-  {
-    if (hasVideo || generateVideo)
+    streamInput.setUrl(url, hasVideo || generateVideo);
+    connect(&streamInput, SIGNAL(finished()), SLOT(stop()));
+
+    if (hasVideo)
     {
       if (MediaStream::setup(
             request, socket,
             STime::null, STime::null,
-            SAudioFormat(SAudioFormat::Format_Invalid, source.channelSetup(), source.sampleRate()),
-            SVideoFormat(SVideoFormat::Format_Invalid, source.size(), source.frameRate()),
+            SAudioFormat(SAudioFormat::Format_Invalid, streamInput.channelSetup(), streamInput.sampleRate()),
+            SVideoFormat(SVideoFormat::Format_Invalid, streamInput.size(), streamInput.frameRate()),
             false))
       {
-        connect(&source, SIGNAL(output(SAudioBuffer)), &audio->matrix, SLOT(input(SAudioBuffer)));
-        connect(&source, SIGNAL(output(SVideoBuffer)), &video->deinterlacer, SLOT(input(SVideoBuffer)));
-        connect(&source, SIGNAL(output(SSubpictureBuffer)), &video->subpictureRenderer, SLOT(input(SSubpictureBuffer)));
-        connect(&source, SIGNAL(output(SSubtitleBuffer)), &video->subtitleRenderer, SLOT(input(SSubtitleBuffer)));
+        connect(&streamInput, SIGNAL(output(SAudioBuffer)), &audio->matrix, SLOT(input(SAudioBuffer)));
+        connect(&streamInput, SIGNAL(output(SEncodedAudioBuffer)), &audioDecoder, SLOT(input(SEncodedAudioBuffer)));
+        connect(&audioDecoder, SIGNAL(output(SAudioBuffer)), &audio->matrix, SLOT(input(SAudioBuffer)));
+
+        connect(&streamInput, SIGNAL(output(SVideoBuffer)), &video->deinterlacer, SLOT(input(SVideoBuffer)));
+        connect(&streamInput, SIGNAL(output(SEncodedVideoBuffer)), &videoDecoder, SLOT(input(SEncodedVideoBuffer)));
+        connect(&videoDecoder, SIGNAL(output(SVideoBuffer)), &video->deinterlacer, SLOT(input(SVideoBuffer)));
+
+        connect(&streamInput, SIGNAL(output(SEncodedDataBuffer)), &dataDecoder, SLOT(input(SEncodedDataBuffer)));
+        connect(&dataDecoder, SIGNAL(output(SSubpictureBuffer)), &video->subpictureRenderer, SLOT(input(SSubpictureBuffer)));
+        connect(&dataDecoder, SIGNAL(output(SSubtitleBuffer)), &video->subtitleRenderer, SLOT(input(SSubtitleBuffer)));
+
+        return true;
+      }
+    }
+    else if (generateVideo)
+    {
+      if (MediaStream::setup(
+            request, socket,
+            STime::null, STime::null,
+            SAudioFormat(SAudioFormat::Format_Invalid, streamInput.channelSetup()),
+            false))
+      {
+        connect(&streamInput, SIGNAL(output(SAudioBuffer)), &audio->matrix, SLOT(input(SAudioBuffer)));
+        connect(&streamInput, SIGNAL(output(SEncodedAudioBuffer)), &audioDecoder, SLOT(input(SEncodedAudioBuffer)));
+        connect(&audioDecoder, SIGNAL(output(SAudioBuffer)), &audio->matrix, SLOT(input(SAudioBuffer)));
+
+        connect(&audioDecoder, SIGNAL(output(SAudioBuffer)), &videoGenerator, SLOT(input(SAudioBuffer)));
+        connect(&videoGenerator, SIGNAL(output(SVideoBuffer)), &video->deinterlacer, SLOT(input(SVideoBuffer)));
 
         return true;
       }
@@ -165,10 +197,12 @@ bool SandboxNetworkStream::setup(const SHttpServer::RequestMessage &request, QIO
       if (MediaStream::setup(
             request, socket,
             STime::null, STime::null,
-            SAudioFormat(SAudioFormat::Format_Invalid, source.channelSetup()),
+            SAudioFormat(SAudioFormat::Format_Invalid, streamInput.channelSetup()),
             false))
       {
-        connect(&source, SIGNAL(output(SAudioBuffer)), &audio->matrix, SLOT(input(SAudioBuffer)));
+        connect(&streamInput, SIGNAL(output(SAudioBuffer)), &audio->matrix, SLOT(input(SAudioBuffer)));
+        connect(&streamInput, SIGNAL(output(SEncodedAudioBuffer)), &audioDecoder, SLOT(input(SEncodedAudioBuffer)));
+        connect(&audioDecoder, SIGNAL(output(SAudioBuffer)), &audio->matrix, SLOT(input(SAudioBuffer)));
 
         return true;
       }

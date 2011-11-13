@@ -86,42 +86,39 @@ FileTester::FileTester(const QString &fileName)
 bool FileTester::setup(void)
 {
   // Select streams
-  if (file.open(0))
+  const QList<SInputNode::AudioStreamInfo> audioStreams = file.audioStreams();
+  const QList<SInputNode::VideoStreamInfo> videoStreams = file.videoStreams();
+  const QList<SInputNode::DataStreamInfo>  dataStreams  = file.dataStreams();
+
+  QVector<SInputNode::StreamId> selectedStreams;
+  if (!audioStreams.isEmpty())
+    selectedStreams += audioStreams.first();
+
+  if (!videoStreams.isEmpty())
+    selectedStreams += videoStreams.first();
+
+  if (!dataStreams.isEmpty())
+    selectedStreams += dataStreams.first();
+
+  file.selectStreams(selectedStreams);
+
+  // Set stream properties
+  if (!audioStreams.isEmpty() && !videoStreams.isEmpty())
   {
-    const QList<SIOInputNode::AudioStreamInfo> audioStreams = file.audioStreams();
-    const QList<SIOInputNode::VideoStreamInfo> videoStreams = file.videoStreams();
-    const QList<SIOInputNode::DataStreamInfo>  dataStreams  = file.dataStreams();
+    // Graph options.
+    timeStampResampler.setFrameRate(SInterval::fromFrequency(15));
+    audioDecoder.setFlags(SInterfaces::AudioDecoder::Flag_DownsampleToStereo);
+    audioMatrix.guessMatrices(SAudioFormat::Channels_Stereo);
+    audioResampler.setSampleRate(48000);
 
-    QVector<SIOInputNode::StreamId> selectedStreams;
-    if (!audioStreams.isEmpty())
-      selectedStreams += audioStreams.first();
+    return true;
+  }
+  else if (!audioStreams.isEmpty())
+  {
+    audioMatrix.guessMatrices(SAudioFormat::Channels_Stereo);
+    audioResampler.setSampleRate(48000);
 
-    if (!videoStreams.isEmpty())
-      selectedStreams += videoStreams.first();
-
-    if (!dataStreams.isEmpty())
-      selectedStreams += dataStreams.first();
-
-    file.selectStreams(selectedStreams);
-
-    // Set stream properties
-    if (!audioStreams.isEmpty() && !videoStreams.isEmpty())
-    {
-      // Graph options.
-      timeStampResampler.setFrameRate(SInterval::fromFrequency(15));
-      audioDecoder.setFlags(SInterfaces::AudioDecoder::Flag_DownsampleToStereo);
-      audioMatrix.guessMatrices(SAudioFormat::Channels_Stereo);
-      audioResampler.setSampleRate(48000);
-
-      return true;
-    }
-    else if (!audioStreams.isEmpty())
-    {
-      audioMatrix.guessMatrices(SAudioFormat::Channels_Stereo);
-      audioResampler.setSampleRate(48000);
-
-      return true;
-    }
+    return true;
   }
 
   return false;

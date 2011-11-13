@@ -28,7 +28,7 @@
 namespace LXiStream {
 
 class SVideoBuffer;
-class SIOInputNode;
+class SInputNode;
 
 class LXISTREAM_PUBLIC SVideoDecoderNode : public SInterfaces::Node
 {
@@ -42,7 +42,7 @@ public:
 
   static QStringList            codecs(void);
 
-  bool                          open(SIOInputNode *, Flags = SInterfaces::VideoDecoder::Flag_None);
+  bool                          open(SInputNode *, Flags = SInterfaces::VideoDecoder::Flag_None);
 
   Flags                         flags(void) const;
   void                          setFlags(Flags);
