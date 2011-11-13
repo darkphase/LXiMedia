@@ -132,7 +132,12 @@ QList<QUrl> NetworkBufferReader::resolveAsf(const QUrl &url)
           {
             const QString href = ref.attribute("href");
             if (!href.isEmpty())
-              result.append(resolveAsf(href));
+            {
+              if (href.startsWith("http://"))
+                result.append(resolveAsf(href));
+              else
+                result.append(href);
+            }
           }
 
           if (!result.isEmpty())

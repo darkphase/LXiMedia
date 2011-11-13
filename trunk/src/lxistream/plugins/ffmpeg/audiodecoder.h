@@ -44,7 +44,7 @@ public:
   virtual                       ~AudioDecoder();
 
 public: // From SBufferDecoder
-  virtual bool                  openCodec(const SAudioCodec &, SInterfaces::BufferReader *, Flags = Flag_None);
+  virtual bool                  openCodec(const SAudioCodec &, SInterfaces::AbstractBufferReader *, Flags = Flag_None);
   virtual SAudioBufferList      decodeBuffer(const SEncodedAudioBuffer &);
 
 private:

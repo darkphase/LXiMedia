@@ -74,8 +74,7 @@ SSandboxServer::ResponseMessage MediaPlayerSandbox::httpRequest(const SSandboxSe
       const SMediaInfo info = FileNode::fromByteArray(request.content());
       if (!info.isNull())
       {
-        SandboxFileStream * const stream = new SandboxFileStream(info.filePath());
-        if (stream->file.open(file.url().queryItemValue("pid").toUShort()))
+        SandboxFileStream * const stream = new SandboxFileStream(info.filePath(), file.url().queryItemValue("pid").toUShort());
         if (stream->setup(request, socket))
         if (stream->start())
         {
@@ -169,9 +168,9 @@ void MediaPlayerSandbox::cleanStreams(void)
 }
 
 
-SandboxFileStream::SandboxFileStream(const QString &fileName)
+SandboxFileStream::SandboxFileStream(const QString &fileName, quint16 programId)
   : MediaTranscodeStream(),
-    file(this, fileName)
+    file(this, fileName, programId)
 {
   connect(&file, SIGNAL(finished()), SLOT(stop()));
 

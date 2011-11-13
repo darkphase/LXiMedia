@@ -17,27 +17,43 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef LXISTREAM_SPLAYLISTNODE_H
-#define LXISTREAM_SPLAYLISTNODE_H
+#ifndef LXISTREAM_SINPUTNODE_H
+#define LXISTREAM_SINPUTNODE_H
 
 #include <QtCore>
 #include <LXiCore>
-#include "sfileinputnode.h"
-#include "../smediainfo.h"
+#include "../sinterfaces.h"
 #include "../export.h"
 
 namespace LXiStream {
 
-class SFileInputNode;
+class SAudioDecoderNode;
+class SVideoDecoderNode;
+class SDataDecoderNode;
 
-class LXISTREAM_PUBLIC SPlaylistNode : public SFileInputNode
+/*! This is a generic input node, reading to a QIODevice.
+ */
+class LXISTREAM_PUBLIC SInputNode : public SInterfaces::SourceNode,
+                                    protected SInterfaces::AbstractBufferReader::ProduceCallback
 {
 Q_OBJECT
+friend class SAudioDecoderNode;
+friend class SVideoDecoderNode;
+friend class SDataDecoderNode;
 public:
-  explicit                      SPlaylistNode(SGraph *, const SMediaInfoList &files);
-  virtual                       ~SPlaylistNode();
+  typedef SInterfaces::AbstractBufferReader::StreamId        StreamId;
+  typedef SInterfaces::AbstractBufferReader::AudioStreamInfo AudioStreamInfo;
+  typedef SInterfaces::AbstractBufferReader::VideoStreamInfo VideoStreamInfo;
+  typedef SInterfaces::AbstractBufferReader::DataStreamInfo  DataStreamInfo;
+  typedef SInterfaces::AbstractBufferReader::Chapter         Chapter;
 
-  void                          setFiles(const SMediaInfoList &files);
+public:
+  explicit                      SInputNode(SGraph *, SInterfaces::AbstractBufferReader * = NULL);
+  virtual                       ~SInputNode();
+
+  void                          setBufferReader(SInterfaces::AbstractBufferReader *);
+  const SInterfaces::AbstractBufferReader * bufferReader(void) const;
+  SInterfaces::AbstractBufferReader * bufferReader(void);
 
   virtual STime                 duration(void) const;
   virtual bool                  setPosition(STime);
@@ -52,16 +68,18 @@ public:
 public: // From SInterfaces::SourceNode
   virtual bool                  start(void);
   virtual void                  stop(void);
+  virtual bool                  process(void);
 
 signals:
-  void                          opened(const QString &, quint16);
-  void                          closed(const QString &, quint16);
+  void                          output(const SEncodedAudioBuffer &);
+  void                          output(const SEncodedVideoBuffer &);
+  void                          output(const SEncodedDataBuffer &);
+  void                          closeDecoder(void);
 
-protected:
-  virtual void                  endReached(void);
-
-private:
-  _lxi_internal bool            openNext(void);
+protected: // From SInterfaces::AbstractBufferReader::ProduceCallback
+  virtual void                  produce(const SEncodedAudioBuffer &);
+  virtual void                  produce(const SEncodedVideoBuffer &);
+  virtual void                  produce(const SEncodedDataBuffer &);
 
 private:
   struct Data;

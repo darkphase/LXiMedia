@@ -566,7 +566,7 @@ MediaTranscodeStream::MediaTranscodeStream(void)
 bool MediaTranscodeStream::setup(
     const SHttpServer::RequestMessage &request,
     QIODevice *socket,
-    SIOInputNode *input,
+    SInputNode *input,
     STime duration,
     bool musicPlaylist,
     SInterfaces::AudioEncoder::Flags audioEncodeFlags,
@@ -577,13 +577,13 @@ bool MediaTranscodeStream::setup(
   if (audioDecoder.open(input) && videoDecoder.open(input) && dataDecoder.open(input))
   {
     // Select streams
-    QList<SIOInputNode::AudioStreamInfo> audioStreams = input->audioStreams();
-    QList<SIOInputNode::VideoStreamInfo> videoStreams = input->videoStreams();
-    QList<SIOInputNode::DataStreamInfo>  dataStreams  = input->dataStreams();
+    QList<SInputNode::AudioStreamInfo> audioStreams = input->audioStreams();
+    QList<SInputNode::VideoStreamInfo> videoStreams = input->videoStreams();
+    QList<SInputNode::DataStreamInfo>  dataStreams  = input->dataStreams();
 
-    QVector<SIOInputNode::StreamId> selectedStreams;
+    QVector<SInputNode::StreamId> selectedStreams;
     if (file.url().hasQueryItem("language"))
-      selectedStreams += SIOInputNode::StreamId::fromString(file.url().queryItemValue("language"));
+      selectedStreams += SInputNode::StreamId::fromString(file.url().queryItemValue("language"));
     else if (!audioStreams.isEmpty())
       selectedStreams += audioStreams.first();
 
@@ -593,7 +593,7 @@ bool MediaTranscodeStream::setup(
     if (file.url().hasQueryItem("subtitles"))
     {
       if (!file.url().queryItemValue("subtitles").isEmpty())
-        selectedStreams += SIOInputNode::StreamId::fromString(file.url().queryItemValue("subtitles"));
+        selectedStreams += SInputNode::StreamId::fromString(file.url().queryItemValue("subtitles"));
     }
     else if (!dataStreams.isEmpty())
       selectedStreams += dataStreams.first();
@@ -701,16 +701,16 @@ bool MediaTranscodeStream::setup(
 
       videoEncodeFlags |= SInterfaces::VideoEncoder::Flag_Fast;
 
-    if (MediaStream::setup(request, socket,
-                           input->position(), duration,
-                           SAudioFormat(SAudioFormat::Format_Invalid, audioInCodec.channelSetup(), audioInCodec.sampleRate()),
-                           SVideoFormat(SVideoFormat::Format_Invalid, videoGenerator.image().size(), frameRate),
-                           musicPlaylist,
-                           audioEncodeFlags, videoEncodeFlags))
-    {
-      // Audio
-      connect(&audioDecoder, SIGNAL(output(SAudioBuffer)), &timeStampResampler, SLOT(input(SAudioBuffer)));
-      connect(&timeStampResampler, SIGNAL(output(SAudioBuffer)), &audio->matrix, SLOT(input(SAudioBuffer)));
+      if (MediaStream::setup(request, socket,
+                             input->position(), duration,
+                             SAudioFormat(SAudioFormat::Format_Invalid, audioInCodec.channelSetup(), audioInCodec.sampleRate()),
+                             SVideoFormat(SVideoFormat::Format_Invalid, videoGenerator.image().size(), frameRate),
+                             musicPlaylist,
+                             audioEncodeFlags, videoEncodeFlags))
+      {
+        // Audio
+        connect(&audioDecoder, SIGNAL(output(SAudioBuffer)), &timeStampResampler, SLOT(input(SAudioBuffer)));
+        connect(&timeStampResampler, SIGNAL(output(SAudioBuffer)), &audio->matrix, SLOT(input(SAudioBuffer)));
 
         // Video
         connect(&audioDecoder, SIGNAL(output(SAudioBuffer)), &videoGenerator, SLOT(input(SAudioBuffer)));
@@ -733,12 +733,12 @@ bool MediaTranscodeStream::setup(
     { // Decode audio
       const SAudioCodec audioInCodec = audioStreams.first().codec;
 
-    if (MediaStream::setup(request, socket,
-                           input->position(), duration,
-                           SAudioFormat(SAudioFormat::Format_Invalid, audioInCodec.channelSetup(), audioInCodec.sampleRate()),
-                           musicPlaylist))
-    {
-      connect(&audioDecoder, SIGNAL(output(SAudioBuffer)), &audio->matrix, SLOT(input(SAudioBuffer)));
+      if (MediaStream::setup(request, socket,
+                             input->position(), duration,
+                             SAudioFormat(SAudioFormat::Format_Invalid, audioInCodec.channelSetup(), audioInCodec.sampleRate()),
+                             musicPlaylist))
+      {
+        connect(&audioDecoder, SIGNAL(output(SAudioBuffer)), &audio->matrix, SLOT(input(SAudioBuffer)));
 
         if (audio->outChannels == SAudioFormat::Channels_Stereo)
           audioDecoder.setFlags(SInterfaces::AudioDecoder::Flag_DownsampleToStereo);

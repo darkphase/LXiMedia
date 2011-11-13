@@ -38,15 +38,26 @@ public:
 
   inline bool                   process(bool fast)                              { return BufferReaderBase::demux(BufferReaderBase::read(fast)); }
 
+public: // From SInterfaces::AbstractBufferReader
+  inline virtual STime          duration(void) const                            { return BufferReaderBase::duration(); }
+  inline virtual bool           setPosition(STime p)                            { return BufferReaderBase::setPosition(p); }
+  inline virtual STime          position(void) const                            { return BufferReaderBase::position(); }
+  inline virtual QList<Chapter> chapters(void) const                            { return BufferReaderBase::chapters(); }
+
+  inline virtual QList<AudioStreamInfo> audioStreams(void) const                { return BufferReaderBase::audioStreams(); }
+  inline virtual QList<VideoStreamInfo> videoStreams(void) const                { return BufferReaderBase::videoStreams(); }
+  inline virtual QList<DataStreamInfo> dataStreams(void) const                  { return BufferReaderBase::dataStreams(); }
+  inline virtual void           selectStreams(const QVector<StreamId> &s)       { return BufferReaderBase::selectStreams(s); }
+
+  inline virtual bool           process(void)                                   { return BufferReaderBase::demux(BufferReaderBase::read()); }
+
 public: // From SInterfaces::BufferReader
   virtual bool                  openFormat(const QString &);
 
   virtual bool                  start(ReadCallback *, ProduceCallback *, quint16 programId, bool streamed);
   virtual void                  stop(void);
-  inline virtual bool           process(void)                                   { return BufferReaderBase::demux(BufferReaderBase::read()); }
 
 private:
-
   static int                    read(void *opaque, uint8_t *buf, int buf_size);
   static int64_t                seek(void *opaque, int64_t offset, int whence);
 

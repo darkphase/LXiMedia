@@ -99,7 +99,7 @@ public:
 
   bool                          setup(const SHttpServer::RequestMessage &,
                                       QIODevice *,
-                                      SIOInputNode *,
+                                      SInputNode *,
                                       STime duration = STime(),
                                       bool musicPlaylist = false,
                                       SInterfaces::AudioEncoder::Flags = SInterfaces::AudioEncoder::Flag_None,

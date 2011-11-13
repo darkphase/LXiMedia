@@ -309,7 +309,7 @@ public:
   virtual void                  probeMetadata(ProbeInfo &probeInfo, ReadCallback *callback) = 0;
 };
 
-class BufferReader;
+class AbstractBufferReader;
 
 /*! The AudioDecoder interface can be used to decode audio buffers.
  */
@@ -326,12 +326,12 @@ public:
   Q_DECLARE_FLAGS(Flags, Flag)
 
 public:
-  static AudioDecoder         * create(QObject *parent, const SAudioCodec &codec, BufferReader * = NULL, Flags = Flag_None, bool nonNull = true);
+  static AudioDecoder         * create(QObject *parent, const SAudioCodec &codec, AbstractBufferReader * = NULL, Flags = Flag_None, bool nonNull = true);
 
 protected:
   inline explicit               AudioDecoder(QObject *parent) : QObject(parent) { }
 
-  virtual bool                  openCodec(const SAudioCodec &, BufferReader *, Flags) = 0;
+  virtual bool                  openCodec(const SAudioCodec &, AbstractBufferReader *, Flags) = 0;
 
 public:
   virtual SAudioBufferList      decodeBuffer(const SEncodedAudioBuffer &) = 0;
@@ -360,12 +360,12 @@ public:
   Q_DECLARE_FLAGS(Flags, Flag)
 
 public:
-  static VideoDecoder         * create(QObject *parent, const SVideoCodec &codec, BufferReader * = NULL, Flags = Flag_None, bool nonNull = true);
+  static VideoDecoder         * create(QObject *parent, const SVideoCodec &codec, AbstractBufferReader * = NULL, Flags = Flag_None, bool nonNull = true);
 
 protected:
   inline explicit               VideoDecoder(QObject *parent) : QObject(parent) { }
 
-  virtual bool                  openCodec(const SVideoCodec &, BufferReader *, Flags) = 0;
+  virtual bool                  openCodec(const SVideoCodec &, AbstractBufferReader *, Flags) = 0;
 
 public:
   virtual SVideoBufferList      decodeBuffer(const SEncodedVideoBuffer &) = 0;
@@ -385,12 +385,12 @@ public:
   Q_DECLARE_FLAGS(Flags, Flag)
 
 public:
-  static DataDecoder          * create(QObject *parent, const SDataCodec &codec, BufferReader *, Flags = Flag_None, bool nonNull = true);
+  static DataDecoder          * create(QObject *parent, const SDataCodec &codec, AbstractBufferReader *, Flags = Flag_None, bool nonNull = true);
 
 protected:
   inline explicit               DataDecoder(QObject *parent) : QObject(parent) { }
 
-  virtual bool                  openCodec(const SDataCodec &, BufferReader *, Flags) = 0;
+  virtual bool                  openCodec(const SDataCodec &, AbstractBufferReader *, Flags) = 0;
 
 public:
   virtual SDataBufferList       decodeBuffer(const SEncodedDataBuffer &) = 0;
@@ -399,8 +399,9 @@ public:
 /*! The AbstractBufferReader interface is used for interfaces and nodes that
     provide access to buffer streams.
  */
-class LXISTREAM_PUBLIC AbstractBufferReader
+class LXISTREAM_PUBLIC AbstractBufferReader : public QObject
 {
+Q_OBJECT
 public:
   typedef FormatProber::StreamId        StreamId;
   typedef FormatProber::AudioStreamInfo AudioStreamInfo;
@@ -416,6 +417,8 @@ public:
   };
 
 public:
+  inline explicit               AbstractBufferReader(QObject *parent) : QObject(parent) { }
+
   virtual STime                 duration(void) const = 0;
   virtual bool                  setPosition(STime) = 0;
   virtual STime                 position(void) const = 0;
@@ -425,15 +428,58 @@ public:
   virtual QList<VideoStreamInfo> videoStreams(void) const = 0;
   virtual QList<DataStreamInfo> dataStreams(void) const = 0;
   virtual void                  selectStreams(const QVector<StreamId> &) = 0;
+
+  /*! Shall demux a packet from the stream.
+      \returns false if an error occured.
+   */
+  virtual bool                  process(void) = 0;
 };
 
-
-/*! The AbstractBufferedReader interface is used for interfaces and nodes that
-    provide access to buffered streams (e.g. network streams).
+/*! The BufferReader interface can be used to read serialized buffers from a
+    byte stream.
  */
-class LXISTREAM_PUBLIC AbstractBufferedReader : public AbstractBufferReader
+class LXISTREAM_PUBLIC BufferReader : public AbstractBufferReader
 {
+Q_OBJECT
+S_FACTORIZABLE_NO_CREATE(BufferReader)
 public:
+  typedef FormatProber::ReadCallback ReadCallback;
+
+public:
+  static BufferReader         * create(QObject *parent, const QString &format, bool nonNull = true);
+
+protected:
+  inline explicit               BufferReader(QObject *parent) : AbstractBufferReader(parent) { }
+
+  virtual bool                  openFormat(const QString &) = 0;
+
+public:
+  virtual bool                  start(ReadCallback *, ProduceCallback *, quint16 programId, bool streamed) = 0;
+  virtual void                  stop(void) = 0;
+};
+
+/*! The NetworkBufferReader interface can be used to read serialized buffers
+    from a network stream.
+ */
+class LXISTREAM_PUBLIC NetworkBufferReader : public AbstractBufferReader
+{
+Q_OBJECT
+S_FACTORIZABLE_NO_CREATE(NetworkBufferReader)
+public:
+  typedef BufferReader::ProduceCallback ProduceCallback;
+
+public:
+  static NetworkBufferReader  * create(QObject *parent, const QString &protocol, bool nonNull = true);
+
+protected:
+  inline explicit               NetworkBufferReader(QObject *parent) : AbstractBufferReader(parent) { }
+
+  virtual bool                  openProtocol(const QString &) = 0;
+
+public:
+  virtual bool                  start(const QUrl &url, ProduceCallback *, quint16 programId) = 0;
+  virtual void                  stop(void) = 0;
+
   /*! Shall buffer more data, use bufferDuration() to check the amount of data
       buffered.
       \returns false if an error occured.
@@ -445,65 +491,6 @@ public:
   /*! Shall return the amount of time buffered.
    */
   virtual STime                 bufferDuration(void) const = 0;
-};
-
-/*! The BufferReader interface can be used to read serialized buffers from a
-    byte stream.
- */
-class LXISTREAM_PUBLIC BufferReader : public QObject,
-                                      public virtual AbstractBufferedReader
-{
-Q_OBJECT
-S_FACTORIZABLE_NO_CREATE(BufferReader)
-public:
-  typedef FormatProber::ReadCallback ReadCallback;
-
-public:
-  static BufferReader         * create(QObject *parent, const QString &format, bool nonNull = true);
-
-protected:
-  inline explicit               BufferReader(QObject *parent) : QObject(parent) { }
-
-  virtual bool                  openFormat(const QString &) = 0;
-
-public:
-  virtual bool                  start(ReadCallback *, ProduceCallback *, quint16 programId, bool streamed) = 0;
-  virtual void                  stop(void) = 0;
-
-  /*! Shall demux a packet from the stream.
-      \returns false if an error occured.
-   */
-  virtual bool                  process(void) = 0;
-};
-
-/*! The NetworkBufferReader interface can be used to read serialized buffers
-    from a network stream.
- */
-class LXISTREAM_PUBLIC NetworkBufferReader : public QObject,
-                                             public virtual AbstractBufferedReader
-{
-Q_OBJECT
-S_FACTORIZABLE_NO_CREATE(NetworkBufferReader)
-public:
-  typedef BufferReader::ProduceCallback ProduceCallback;
-
-public:
-  static NetworkBufferReader  * create(QObject *parent, const QString &protocol, bool nonNull = true);
-
-protected:
-  inline explicit               NetworkBufferReader(QObject *parent) : QObject(parent) { }
-
-  virtual bool                  openProtocol(const QString &) = 0;
-
-public:
-  virtual bool                  start(const QUrl &url, ProduceCallback *, quint16 programId) = 0;
-  virtual void                  stop(void) = 0;
-
-  /*! Shall demux a packet from the buffer, or the stream if the buffer is
-      empty.
-      \returns false if an error occured.
-   */
-  virtual bool                  process(void) = 0;
 };
 
 class BufferWriter;

@@ -22,62 +22,51 @@
 
 #include <QtCore>
 #include <LXiCore>
-#include "../sinterfaces.h"
+#include "sinputnode.h"
 #include "../export.h"
 
 namespace LXiStream {
 
 class SEncodedVideoBuffer;
 
-class LXISTREAM_PUBLIC SNetworkInputNode : public SInterfaces::SourceNode,
-                                           public SInterfaces::AbstractBufferReader,
-                                           protected SInterfaces::BufferReader::ProduceCallback
+class LXISTREAM_PUBLIC SNetworkInputNode : public SInputNode
 {
 Q_OBJECT
 public:
-  explicit                      SNetworkInputNode(SGraph *, const QUrl &url);
+  explicit                      SNetworkInputNode(SGraph *, const QUrl & = QUrl(), quint16 programId = 0);
   virtual                       ~SNetworkInputNode();
+
+  void                          setUrl(const QUrl &, quint16 programId = 0);
+  QUrl                          url(void) const;
 
   void                          setBufferDuration(const STime &);
   STime                         bufferDuration(void) const;
 
-  virtual bool                  open(quint16 programId = 0);
+  /*! Fills the buffer by receiving data.
+      \returns true if the buffer is properly filled, false if another call to\
+               fillBuffer() is needed to receive more data.
+   */
+  bool                          fillBuffer(void);
+
+  /*! Returns true if the buffer is properly filled.
+   */
+  bool                          bufferReady(void) const;
+
+  /*! Returns a value indicating the buffering progress; 1.0 means finished and
+      bufferReady becomes true.
+   */
+  float                         bufferProgress(void) const;
 
 public: // From SInterfaces::SourceNode
   virtual bool                  start(void);
   virtual void                  stop(void);
   virtual bool                  process(void);
 
-public: // From SInterfaces::AbstractBufferReader
-  virtual STime                 duration(void) const;
-  virtual bool                  setPosition(STime);
-  virtual STime                 position(void) const;
-  virtual QList<Chapter>        chapters(void) const;
-
-  virtual QList<AudioStreamInfo> audioStreams(void) const;
-  virtual QList<VideoStreamInfo> videoStreams(void) const;
-  virtual QList<DataStreamInfo>  dataStreams(void) const;
-  virtual void                  selectStreams(const QVector<StreamId> &);
-
-public slots:
-  void                          fillBuffer(void);
-
 signals:
-  void                          bufferState(bool, float);
-  void                          output(const SEncodedAudioBuffer &);
-  void                          output(const SEncodedVideoBuffer &);
-  void                          output(const SEncodedDataBuffer &);
   void                          finished(void);
 
-protected: // From SInterfaces::BufferReader::ProduceCallback
-  virtual void                  produce(const SEncodedAudioBuffer &);
-  virtual void                  produce(const SEncodedVideoBuffer &);
-  virtual void                  produce(const SEncodedDataBuffer &);
-
 private:
-  _lxi_internal void            bufferTask(void);
-
-private:
+  class BufferThread;
   struct Data;
   Data                  * const d;
 };

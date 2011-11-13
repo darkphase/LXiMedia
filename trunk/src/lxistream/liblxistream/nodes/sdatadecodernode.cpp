@@ -24,7 +24,7 @@ namespace LXiStream {
 
 struct SDataDecoderNode::Data
 {
-  SIOInputNode                * inputNode;
+  SInputNode                  * inputNode;
   SDataDecoderNode::Flags       flags;
   SDataCodec                    lastCodec;
   SInterfaces::DataDecoder    * decoder;
@@ -51,7 +51,7 @@ QStringList SDataDecoderNode::codecs(void)
   return SInterfaces::AudioDecoder::available();
 }
 
-bool SDataDecoderNode::open(SIOInputNode *inputNode, Flags flags)
+bool SDataDecoderNode::open(SInputNode *inputNode, Flags flags)
 {
   d->inputNode = inputNode;
   d->flags = flags;
@@ -88,7 +88,7 @@ void SDataDecoderNode::input(const SEncodedDataBuffer &dataBuffer)
     {
       delete d->decoder;
 
-      SInterfaces::BufferReader * const bufferReader =
+      SInterfaces::AbstractBufferReader * const bufferReader =
           d->inputNode ? d->inputNode->bufferReader() : NULL;
 
       d->lastCodec = dataBuffer.codec();

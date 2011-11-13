@@ -77,7 +77,7 @@ class SandboxFileStream : public MediaTranscodeStream
 {
 Q_OBJECT
 public:
-  explicit                      SandboxFileStream(const QString &fileName);
+  explicit                      SandboxFileStream(const QString &fileName, quint16 programId = 0);
   virtual                       ~SandboxFileStream();
 
   bool                          setup(const SHttpServer::RequestMessage &, QIODevice *);

@@ -218,7 +218,7 @@ BufferWriter * BufferWriter::create(QObject *parent, const QString &format, bool
                         When false, the method will return a null pointer if the
                         object can not be created.
  */
-AudioDecoder * AudioDecoder::create(QObject *parent, const SAudioCodec &codec, BufferReader *bufferReader, Flags flags, bool nonNull)
+AudioDecoder * AudioDecoder::create(QObject *parent, const SAudioCodec &codec, AbstractBufferReader *bufferReader, Flags flags, bool nonNull)
 {
   AudioDecoder * audioDecoder =
       static_cast<AudioDecoder *>(factory().createObject(staticMetaObject.className(), parent, codec.codec(), nonNull));
@@ -248,7 +248,7 @@ AudioDecoder * AudioDecoder::create(QObject *parent, const SAudioCodec &codec, B
                         When false, the method will return a null pointer if the
                         object can not be created.
  */
-VideoDecoder * VideoDecoder::create(QObject *parent, const SVideoCodec &codec, BufferReader *bufferReader, Flags flags, bool nonNull)
+VideoDecoder * VideoDecoder::create(QObject *parent, const SVideoCodec &codec, AbstractBufferReader *bufferReader, Flags flags, bool nonNull)
 {
   VideoDecoder * videoDecoder =
       static_cast<VideoDecoder *>(factory().createObject(staticMetaObject.className(), parent, codec.codec(), nonNull));
@@ -278,7 +278,7 @@ VideoDecoder * VideoDecoder::create(QObject *parent, const SVideoCodec &codec, B
                         When false, the method will return a null pointer if the
                         object can not be created.
  */
-DataDecoder * DataDecoder::create(QObject *parent, const SDataCodec &codec, BufferReader *bufferReader, Flags flags, bool nonNull)
+DataDecoder * DataDecoder::create(QObject *parent, const SDataCodec &codec, AbstractBufferReader *bufferReader, Flags flags, bool nonNull)
 {
   DataDecoder * dataDecoder =
       static_cast<DataDecoder *>(factory().createObject(staticMetaObject.className(), parent, codec.codec(), nonNull));

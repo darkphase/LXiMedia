@@ -32,11 +32,9 @@ namespace LXiCore {
 class LXICORE_PUBLIC SMemoryPool
 {
 private:
-  struct Block
+  struct Header
   {
-    inline                      Block(void *addr, size_t size) : addr(addr), size(size) { }
-
-    void                      * addr;
+    quint8                    * addr;
     size_t                      size;
   };
 
@@ -50,27 +48,26 @@ private: // No instances
 
 public:
   static size_t                 poolSize(Pool);
-  static size_t                 align(size_t);
+  static quintptr               alignAddr(quintptr);
+  static size_t                 alignSize(size_t);
   static void                 * alloc(size_t);
   static void                   free(void *);
 
 private:
-  _lxi_internal static void   * allocPages(size_t);
-  _lxi_internal static void     freePages(void *, size_t);
+  _lxi_internal static Header * allocMemory(size_t);
+  _lxi_internal static void     freeMemory(Header *);
 
 private:
   struct Init;
   _lxi_internal static Init     init;
-  _lxi_internal static int      pageSize;
+  _lxi_internal static const int addrAlign;
+  _lxi_internal static const int sizeAlign;
   _lxi_internal static int      maxFreeCount;
-#if defined(Q_OS_UNIX)
-  _lxi_internal static int      zeroDev;
-#endif
+  _lxi_internal static size_t   allocSize;
 
   _lxi_pure _lxi_internal static QMutex * mutex(void);
-  _lxi_pure _lxi_internal static QMultiMap<size_t, Block> & freePool(void);
+  _lxi_pure _lxi_internal static QMultiMap<size_t, Header *> & freePool(void);
   _lxi_pure _lxi_internal static QList<size_t> & freeQueue(void);
-  _lxi_pure _lxi_internal static QHash<void *, Block> & allocPool(void);
 };
 
 } // End of namespace

@@ -24,114 +24,99 @@ namespace LXiStream {
 struct SIOInputNode::Data
 {
   QIODevice                   * ioDevice;
-  bool                          opened;
-  SInterfaces::BufferReader   * bufferReader;
 };
 
-SIOInputNode::SIOInputNode(SGraph *parent, QIODevice *ioDevice, const QString &path)
-  : SInterfaces::SourceNode(parent),
-    SInterfaces::BufferReader::ReadCallback(path),
+SIOInputNode::SIOInputNode(SGraph *parent, QIODevice *ioDevice, quint16 programId)
+  : SInputNode(parent),
+    SInterfaces::BufferReader::ReadCallback(QString::null),
     d(new Data())
 {
-  d->ioDevice = ioDevice;
-  d->opened = false;
-  d->bufferReader = NULL;
+  setIODevice(ioDevice, programId);
 }
 
 SIOInputNode::~SIOInputNode()
 {
-  delete d->bufferReader;
+  delete bufferReader();
   delete d;
   *const_cast<Data **>(&d) = NULL;
 }
 
-void SIOInputNode::setIODevice(QIODevice *ioDevice)
+void SIOInputNode::setIODevice(QIODevice *ioDevice, quint16 programId)
 {
-  close();
+  if (bufferReader())
+  {
+    delete bufferReader();
+    setBufferReader(NULL);
+  }
 
   d->ioDevice = ioDevice;
-}
 
-bool SIOInputNode::hasIODevice(void) const
-{
-  return d->ioDevice != NULL;
-}
-
-bool SIOInputNode::open(quint16 programId)
-{
-  close();
-
-  QByteArray buffer;
-  bool sequential = true;
-
-  if (d->ioDevice && d->ioDevice->isOpen())
+  if (ioDevice && ioDevice->isOpen())
   {
-    buffer = d->ioDevice->peek(SInterfaces::FormatProber::defaultProbeSize);
-    sequential = d->ioDevice->isSequential();
-  }
+    const QByteArray buffer = ioDevice->peek(SInterfaces::FormatProber::defaultProbeSize);
 
-  QMultiMap<int, QString> formats;
-  foreach (SInterfaces::FormatProber *prober, SInterfaces::FormatProber::create(this))
-  {
-    foreach (const SInterfaces::FormatProber::Format &format, prober->probeFormat(buffer, path))
-      formats.insert(-format.confidence, format.name);
-
-    delete prober;
-  }
-
-  // Now try to open a parser.
-  foreach (const QString &format, formats)
-  {
-    d->bufferReader = SInterfaces::BufferReader::create(this, format, false);
-    if (d->bufferReader)
+    QMultiMap<int, QString> formats;
+    foreach (SInterfaces::FormatProber *prober, SInterfaces::FormatProber::create(this))
     {
-      if (d->bufferReader->start(this, this, programId, sequential))
-        return d->opened = true;
+      foreach (const SInterfaces::FormatProber::Format &format, prober->probeFormat(buffer, QString::null))
+        formats.insert(-format.confidence, format.name);
 
-      delete d->bufferReader;
-      d->bufferReader = NULL;
+      delete prober;
+    }
+
+    // Now try to open a parser.
+    foreach (const QString &format, formats)
+    {
+      SInterfaces::BufferReader * const bufferReader = SInterfaces::BufferReader::create(this, format, false);
+      if (bufferReader)
+      {
+        if (bufferReader->start(this, this, programId, ioDevice->isSequential()))
+        {
+          setBufferReader(bufferReader);
+          return;
+        }
+
+        delete bufferReader;
+      }
     }
   }
 
-  return false;
+  d->ioDevice = NULL;
 }
 
-void SIOInputNode::close()
+const QIODevice * SIOInputNode::ioDevice(void) const
 {
-  if (d->bufferReader)
-  {
-    emit closeDecoder();
+  return d->ioDevice;
+}
 
-    d->bufferReader->stop();
-
-    delete d->bufferReader;
-    d->bufferReader = NULL;
-  }
-
-  d->opened = false;
+QIODevice * SIOInputNode::ioDevice(void)
+{
+  return d->ioDevice;
 }
 
 bool SIOInputNode::start(void)
 {
-  if (!d->opened)
-    open(0);
+  if (d->ioDevice)
+    return SInputNode::start();
 
-  return d->opened;
+  return false;
 }
 
 void SIOInputNode::stop(void)
 {
-  if (d->opened)
-    close();
+  SInterfaces::BufferReader * const bufferReader = static_cast<SInterfaces::BufferReader *>(SInputNode::bufferReader());
+  if (bufferReader)
+    bufferReader->stop();
+
+  SInputNode::stop();
 }
 
 bool SIOInputNode::process(void)
 {
-  if (d->bufferReader)
+  if (d->ioDevice)
   {
     if (!d->ioDevice->atEnd())
-    if (d->bufferReader->process())
-      return true;
+      return SInputNode::process();
 
     endReached();
 
@@ -139,16 +124,6 @@ bool SIOInputNode::process(void)
   }
 
   return false;
-}
-
-void SIOInputNode::endReached(void)
-{
-  close();
-
-  emit output(SEncodedAudioBuffer());
-  emit output(SEncodedVideoBuffer());
-  emit output(SEncodedDataBuffer());
-  emit finished();
 }
 
 qint64 SIOInputNode::read(uchar *buffer, qint64 size)
@@ -176,86 +151,17 @@ qint64 SIOInputNode::seek(qint64 offset, int whence)
   return -1;
 }
 
-STime SIOInputNode::duration(void) const
+void SIOInputNode::endReached(void)
 {
-  if (d->bufferReader)
-    return d->bufferReader->duration();
+  while (SInputNode::process())
+    continue;
 
-  return STime();
-}
+  stop();
 
-bool SIOInputNode::setPosition(STime pos)
-{
-  if (d->bufferReader)
-    return d->bufferReader->setPosition(pos);
-
-  return false;
-}
-
-STime SIOInputNode::position(void) const
-{
-  if (d->bufferReader)
-    return d->bufferReader->position();
-
-  return STime();
-}
-
-QList<SIOInputNode::Chapter> SIOInputNode::chapters(void) const
-{
-  if (d->bufferReader)
-    return d->bufferReader->chapters();
-
-  return QList<Chapter>();
-}
-
-QList<SIOInputNode::AudioStreamInfo> SIOInputNode::audioStreams(void) const
-{
-  if (d->bufferReader)
-    return d->bufferReader->audioStreams();
-
-  return QList<AudioStreamInfo>();
-}
-
-QList<SIOInputNode::VideoStreamInfo> SIOInputNode::videoStreams(void) const
-{
-  if (d->bufferReader)
-    return d->bufferReader->videoStreams();
-
-  return QList<VideoStreamInfo>();
-}
-
-QList<SIOInputNode::DataStreamInfo> SIOInputNode::dataStreams(void) const
-{
-  if (d->bufferReader)
-    return d->bufferReader->dataStreams();
-
-  return QList<DataStreamInfo>();
-}
-
-void SIOInputNode::selectStreams(const QVector<StreamId> &streamIds)
-{
-  if (d->bufferReader)
-    d->bufferReader->selectStreams(streamIds);
-}
-
-void SIOInputNode::produce(const SEncodedAudioBuffer &buffer)
-{
-  emit output(buffer);
-}
-
-void SIOInputNode::produce(const SEncodedVideoBuffer &buffer)
-{
-  emit output(buffer);
-}
-
-void SIOInputNode::produce(const SEncodedDataBuffer &buffer)
-{
-  emit output(buffer);
-}
-
-SInterfaces::BufferReader * SIOInputNode::bufferReader(void)
-{
-  return d->bufferReader;
+  emit output(SEncodedAudioBuffer());
+  emit output(SEncodedVideoBuffer());
+  emit output(SEncodedDataBuffer());
+  emit finished();
 }
 
 } // End of namespace

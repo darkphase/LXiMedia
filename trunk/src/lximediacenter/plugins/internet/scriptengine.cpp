@@ -99,11 +99,11 @@ QList<MediaServer::Item> ScriptEngine::listItems(const QString &path)
         MediaServer::Item item;
         item.seekable = false;
 
-        if (type.compare("Video", Qt::CaseInsensitive))
+        if (type.compare("Video", Qt::CaseInsensitive) == 0)
           item.type = SUPnPContentDirectory::Item::Type_Video;
-        else if (type.compare("Audio", Qt::CaseInsensitive))
+        else if (type.compare("Audio", Qt::CaseInsensitive) == 0)
           item.type = SUPnPContentDirectory::Item::Type_Audio;
-        else if (type.compare("Image", Qt::CaseInsensitive))
+        else if (type.compare("Image", Qt::CaseInsensitive) == 0)
           item.type = SUPnPContentDirectory::Item::Type_Image;
         else
           item.type = SUPnPContentDirectory::Item::Type_None;

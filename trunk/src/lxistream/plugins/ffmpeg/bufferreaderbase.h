@@ -27,7 +27,7 @@
 namespace LXiStream {
 namespace FFMpegBackend {
 
-class BufferReaderBase : public virtual SInterfaces::AbstractBufferedReader
+class BufferReaderBase
 {
 public:
   class Packet : public SBuffer
@@ -71,7 +71,7 @@ private:
 
 public:
                                 BufferReaderBase(void);
-  virtual                       ~BufferReaderBase();
+                                ~BufferReaderBase();
 
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
   inline QString                readMetadata(const char *tagName) const         { return readMetadata(formatContext->metadata, tagName); }
@@ -83,7 +83,7 @@ public:
 
   bool                          setPosition(STime, bool fast);
 
-  bool                          start(ProduceCallback *, ::AVFormatContext *);
+  bool                          start(SInterfaces::AbstractBufferReader::ProduceCallback *, ::AVFormatContext *);
   void                          stop(void);
 
   Packet                        read(bool fast = false);
@@ -91,18 +91,18 @@ public:
   bool                          demux(const Packet &);
 
 public: // From SInterfaces::AbstractBufferedReader
-  virtual bool                  buffer(void);
-  virtual STime                 bufferDuration(void) const;
+  bool                          buffer(void);
+  STime                         bufferDuration(void) const;
 
-  virtual STime                 duration(void) const;
-  inline virtual bool           setPosition(STime pos)                          { return setPosition(pos, false); }
-  virtual STime                 position(void) const;
-  virtual QList<Chapter>        chapters(void) const;
+  STime                         duration(void) const;
+  inline bool                   setPosition(STime pos)                          { return setPosition(pos, false); }
+  STime                         position(void) const;
+  QList<SInterfaces::AbstractBufferReader::Chapter> chapters(void) const;
 
-  virtual QList<AudioStreamInfo> audioStreams(void) const;
-  virtual QList<VideoStreamInfo> videoStreams(void) const;
-  virtual QList<DataStreamInfo> dataStreams(void) const;
-  virtual void                  selectStreams(const QVector<StreamId> &);
+  QList<SInterfaces::AbstractBufferReader::AudioStreamInfo> audioStreams(void) const;
+  QList<SInterfaces::AbstractBufferReader::VideoStreamInfo> videoStreams(void) const;
+  QList<SInterfaces::AbstractBufferReader::DataStreamInfo> dataStreams(void) const;
+  void                          selectStreams(const QVector<SInterfaces::AbstractBufferReader::StreamId> &);
 
 private: // DTS framing
   static bool                   isDTS(const SBuffer &);
@@ -126,12 +126,12 @@ private:
 private:
   static const STime            maxJumpTime;
 
-  ProduceCallback             * produceCallback;
+  SInterfaces::AbstractBufferReader::ProduceCallback * produceCallback;
   ::AVFormatContext           * formatContext;
 
 
   QVector<StreamContext *>      streamContext;
-  QVector<StreamId>             selectedStreams;
+  QVector<SInterfaces::AbstractBufferReader::StreamId> selectedStreams;
 
   static const int              maxBufferCount;
   QList<Packet>                 packetBuffer;
