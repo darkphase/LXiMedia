@@ -28,6 +28,8 @@ public:
                                 BufferThread(SNetworkInputNode *parent);
   virtual                       ~BufferThread();
 
+  void                          start(void);
+
 protected:
   virtual void                  run(void);
   virtual void                  customEvent(QEvent *);
@@ -38,6 +40,7 @@ public:
 
 private:
   SNetworkInputNode     * const parent;
+  bool                          running;
 };
 
 struct SNetworkInputNode::Data
@@ -67,6 +70,8 @@ SNetworkInputNode::SNetworkInputNode(SGraph *parent, const QUrl &url, quint16 pr
 
 SNetworkInputNode::~SNetworkInputNode()
 {
+  d->bufferMutex.lock();
+
   delete d->bufferThread;
   delete bufferReader();
   delete d;
@@ -75,6 +80,8 @@ SNetworkInputNode::~SNetworkInputNode()
 
 void SNetworkInputNode::setUrl(const QUrl &url, quint16 programId)
 {
+  QMutexLocker l(&d->bufferMutex);
+
   if (bufferReader())
   {
     delete bufferReader();
@@ -136,6 +143,8 @@ float SNetworkInputNode::bufferProgress(void) const
 
 bool SNetworkInputNode::start(void)
 {
+  QMutexLocker l(&d->bufferMutex);
+
   SInterfaces::NetworkBufferReader * const bufferReader = static_cast<SInterfaces::NetworkBufferReader *>(SInputNode::bufferReader());
   if (bufferReader && d->url.isValid() && !d->url.isEmpty())
   if (bufferReader->start(d->url, this, d->programId))
@@ -152,52 +161,61 @@ bool SNetworkInputNode::start(void)
 
 void SNetworkInputNode::stop(void)
 {
+  QMutexLocker l(&d->bufferMutex);
+
   SInterfaces::NetworkBufferReader * const bufferReader = static_cast<SInterfaces::NetworkBufferReader *>(SInputNode::bufferReader());
   if (bufferReader)
     bufferReader->stop();
 
   SInputNode::stop();
+
+  delete d->bufferThread;
+  d->bufferThread = new BufferThread(this);
 }
 
 bool SNetworkInputNode::process(void)
 {
-  bool result = false;
-  if (d->bufferMutex.tryLock(0))
+  QTime timer; timer.start();
+  QMutexLocker l(&d->bufferMutex);
+
+  if (SInputNode::process())
   {
-    result = SInputNode::process();
+    qApp->postEvent(d->bufferThread, new QEvent(BufferThread::bufferEventType));
 
-    d->bufferMutex.unlock();
-
-    if (result)
-      qApp->postEvent(d->bufferThread, new QEvent(BufferThread::bufferEventType));
+    return true;
   }
 
-  return result;
+  return false;
 }
 
 const QEvent::Type  SNetworkInputNode::BufferThread::bufferEventType = QEvent::Type(QEvent::registerEventType());
 const QEvent::Type  SNetworkInputNode::BufferThread::stopThreadEventType = QEvent::Type(QEvent::registerEventType());
 
 SNetworkInputNode::BufferThread::BufferThread(SNetworkInputNode *parent)
-  : QThread(parent),
-    parent(parent)
+  : QThread(),
+    parent(parent),
+    running(false)
 {
+  QThread::moveToThread(this);
 }
 
 SNetworkInputNode::BufferThread::~BufferThread()
 {
-  if (isRunning())
-  {
-    qApp->postEvent(this, new QEvent(stopThreadEventType));
-    if (!wait(5000))
-      terminate();
-  }
+  if (running)
+    qApp->postEvent(this, new QEvent(stopThreadEventType), Qt::HighEventPriority);
+
+  wait();
+}
+
+void SNetworkInputNode::BufferThread::start(void)
+{
+  running = true;
+
+  QThread::start();
 }
 
 void SNetworkInputNode::BufferThread::run(void)
 {
-  setTerminationEnabled();
-
   exec();
 }
 
@@ -205,33 +223,49 @@ void SNetworkInputNode::BufferThread::customEvent(QEvent *e)
 {
   if (e->type() == bufferEventType)
   {
-    QMutexLocker l(&parent->d->bufferMutex);
+    static const int timeslot = 250;
 
-    SInterfaces::NetworkBufferReader * const bufferReader = static_cast<SInterfaces::NetworkBufferReader *>(parent->bufferReader());
-    if (bufferReader)
+    if (running)
+    if (parent->d->bufferMutex.tryLock(timeslot))
     {
       QTime timer; timer.start();
-      while (qAbs(timer.elapsed()) < 10)
-      if (bufferReader->bufferDuration() < parent->d->bufferDuration)
-        bufferReader->buffer();
-      else
-        break;
 
-      const STime duration = bufferReader->bufferDuration();
-      if (duration < parent->d->bufferDuration)
+      SInterfaces::NetworkBufferReader * const bufferReader = static_cast<SInterfaces::NetworkBufferReader *>(parent->bufferReader());
+      if (bufferReader)
       {
-        if (parent->d->bufferReady && (duration.toMSec() < 250))
-          parent->d->bufferReady = false;
-      }
-      else
-        parent->d->bufferReady = true;
+        STime duration;
+        while (((duration = bufferReader->bufferDuration()) < parent->d->bufferDuration) &&
+               (qAbs(timer.elapsed()) < (timeslot / 2)))
+        {
+          bufferReader->buffer();
+        }
 
-      parent->d->bufferSize = float(duration.toMSec()) / float(parent->d->bufferDuration.toMSec());
-      qDebug() << parent->d->bufferSize;
+        if (parent->d->bufferReady && (duration.toMSec() < timeslot * 4))
+        {
+          parent->d->bufferReady = false;
+          parent->d->bufferDuration *= 2;
+        }
+        else if (duration >= parent->d->bufferDuration)
+          parent->d->bufferReady = true;
+
+        parent->d->bufferSize = float(duration.toMSec()) / float(parent->d->bufferDuration.toMSec());
+      }
+
+      parent->d->bufferMutex.unlock();
+
+      // Give the processor some time to process received buffers.
+      msleep(timeslot);
+
+      if (!parent->d->bufferReady)
+        qApp->postEvent(this, new QEvent(BufferThread::bufferEventType));
     }
   }
   else if (e->type() == stopThreadEventType)
+  {
+    running = false;
+
     exit();
+  }
   else
     QThread::customEvent(e);
 }
