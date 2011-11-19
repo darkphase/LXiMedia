@@ -55,7 +55,8 @@ private:
   PostFilterFunc                postFilter;
   bool                          passThrough;
 
-  quint64                       audioSamplesSeen;
+  static const int              defaultBufferLen = 40; // msec
+  STime                         timeStamp;
 };
 
 

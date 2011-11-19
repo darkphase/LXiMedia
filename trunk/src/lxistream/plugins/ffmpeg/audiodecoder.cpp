@@ -32,7 +32,7 @@ AudioDecoder::AudioDecoder(const QString &, QObject *parent)
     contextHandleOwner(false),
     postFilter(NULL),
     passThrough(false),
-    audioSamplesSeen(0)
+    timeStamp(STime::null)
 {
 }
 
@@ -201,17 +201,12 @@ SAudioBufferList AudioDecoder::decodeBuffer(const SEncodedAudioBuffer &audioBuff
       const uint8_t *inPtr = reinterpret_cast<const uint8_t *>(audioBuffer.data());
       int inSize = audioBuffer.size();
 
-      STime timeStamp = audioBuffer.presentationTimeStamp();
-      if (contextHandle->sample_rate > 0)
-      {
-        if (!timeStamp.isValid())
-          timeStamp = STime::fromClock(audioSamplesSeen, contextHandle->sample_rate);
-        else
-          audioSamplesSeen = timeStamp.toClock(contextHandle->sample_rate);
-      }
+      STime currentTime = audioBuffer.presentationTimeStamp();
+      if (!currentTime.isValid())
+        currentTime = audioBuffer.decodingTimeStamp();
 
-      if (!timeStamp.isValid())
-        timeStamp = audioBuffer.decodingTimeStamp();
+      if (qAbs(timeStamp - currentTime).toMSec() > defaultBufferLen)
+        timeStamp = currentTime;
 
       _lxi_align qint16 tempBuffer[(AVCODEC_MAX_AUDIO_FRAME_SIZE + FF_INPUT_BUFFER_PADDING_SIZE) / sizeof(int16_t)];
       while (inSize > 0)
@@ -229,26 +224,42 @@ SAudioBufferList AudioDecoder::decodeBuffer(const SEncodedAudioBuffer &audioBuff
 
         if (len >= 0)
         {
-          if (outSize > 0)
+          if ((outSize > 0) && (contextHandle->sample_rate > 0))
           {
             const SAudioFormat outFormat(SAudioFormat::Format_PCM_S16,
                                          FFMpegCommon::fromFFMpegChannelLayout(contextHandle->channel_layout, contextHandle->channels),
                                          contextHandle->sample_rate);
-            SAudioBuffer destBuffer(outFormat, outSize / (outFormat.sampleSize() * outFormat.numChannels()));
-            destBuffer.setTimeStamp(timeStamp);
 
-            postFilter(reinterpret_cast<qint16 *>(destBuffer.data()), tempBuffer, outSize, outFormat.numChannels());
+            const int sampleSize = outFormat.sampleSize() * outFormat.numChannels();
+            const int totalSamples = outSize / sampleSize;
+            const int defaultSamples = (contextHandle->sample_rate * defaultBufferLen) / 1000;
+            const int maxSamples = defaultSamples + (defaultSamples / 2);
 
-//            qDebug() << "Audio timestamp" << timeStamp.toMSec()
-//                << ", pts =" << audioBuffer.presentationTimeStamp().toMSec()
-//                << ", dts =" << audioBuffer.decodingTimeStamp().toMSec();
+            for (int i=0; i<totalSamples; )
+            {
+              const int numSamples = ((totalSamples - i) <= maxSamples) ? (totalSamples - i) : defaultSamples;
+              SAudioBuffer destBuffer(outFormat, numSamples);
+              destBuffer.setTimeStamp(timeStamp);
 
-            output << destBuffer;
+              postFilter(
+                  reinterpret_cast<qint16 *>(destBuffer.data()),
+                  tempBuffer + ((i * sampleSize) / sizeof(*tempBuffer)),
+                  numSamples * sampleSize,
+                  outFormat.numChannels());
 
-            if (contextHandle->sample_rate > 0)
+//              static STime lastTs = STime::fromSec(0);
+//              qDebug() << "Audio timestamp" << timeStamp.toMSec() << (timeStamp - lastTs).toMSec()
+//                  << ", pts =" << audioBuffer.presentationTimeStamp().toMSec()
+//                  << ", dts =" << audioBuffer.decodingTimeStamp().toMSec()
+//                  << ", duration =" << destBuffer.duration().toMSec();
+//              lastTs = timeStamp;
+
+              output << destBuffer;
+
               timeStamp += STime::fromClock(destBuffer.numSamples(), contextHandle->sample_rate);
 
-            audioSamplesSeen += destBuffer.numSamples();
+              i += numSamples;
+            }
           }
 
           inPtr += len;

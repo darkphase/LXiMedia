@@ -45,6 +45,8 @@ private:
 
 struct SNetworkInputNode::Data
 {
+  static const int              timeslot = 250;
+
   QUrl                          url;
   quint16                       programId;
   QMutex                        bufferMutex;
@@ -60,7 +62,7 @@ SNetworkInputNode::SNetworkInputNode(SGraph *parent, const QUrl &url, quint16 pr
     d(new Data())
 {
   d->programId = 0;
-  d->bufferDuration = STime::fromSec(5);
+  d->bufferDuration = STime::fromSec(10);
   d->bufferSize = 0.0f;
   d->bufferReady = false;
   d->bufferThread = NULL;
@@ -175,7 +177,6 @@ void SNetworkInputNode::stop(void)
 
 bool SNetworkInputNode::process(void)
 {
-  QTime timer; timer.start();
   QMutexLocker l(&d->bufferMutex);
 
   if (SInputNode::process())
@@ -223,10 +224,8 @@ void SNetworkInputNode::BufferThread::customEvent(QEvent *e)
 {
   if (e->type() == bufferEventType)
   {
-    static const int timeslot = 250;
-
     if (running)
-    if (parent->d->bufferMutex.tryLock(timeslot))
+    if (parent->d->bufferMutex.tryLock(parent->d->timeslot / 2))
     {
       QTime timer; timer.start();
 
@@ -235,12 +234,12 @@ void SNetworkInputNode::BufferThread::customEvent(QEvent *e)
       {
         STime duration;
         while (((duration = bufferReader->bufferDuration()) < parent->d->bufferDuration) &&
-               (qAbs(timer.elapsed()) < (timeslot / 2)))
+               (qAbs(timer.elapsed()) < (parent->d->timeslot / 4)))
         {
           bufferReader->buffer();
         }
 
-        if (parent->d->bufferReady && (duration.toMSec() < timeslot * 4))
+        if (parent->d->bufferReady && (duration.toMSec() < parent->d->timeslot * 2))
         {
           parent->d->bufferReady = false;
           parent->d->bufferDuration *= 2;
@@ -254,7 +253,7 @@ void SNetworkInputNode::BufferThread::customEvent(QEvent *e)
       parent->d->bufferMutex.unlock();
 
       // Give the processor some time to process received buffers.
-      msleep(timeslot);
+      msleep(parent->d->timeslot / 2);
 
       if (!parent->d->bufferReady)
         qApp->postEvent(this, new QEvent(BufferThread::bufferEventType));

@@ -102,10 +102,9 @@ bool BufferReaderBase::start(SInterfaces::AbstractBufferReader::ProduceCallback 
     if (hasVideo)
     { // Determine the framerate
       QList<Packet> readAheadBuffer;
+      bool prependBuffer = false;
       for (int i=0, f=0; (i<maxBufferCount) && (f==0); i++)
       {
-        f = 1;
-
         const Packet packet = read(false);
         if (packet.streamIndex >= 0)
         {
@@ -132,6 +131,9 @@ bool BufferReaderBase::start(SInterfaces::AbstractBufferReader::ProduceCallback 
 
                   if (ts.isValid())
                   {
+                    if (context->measurement.isEmpty())
+                      prependBuffer = true;
+
                     // Remove invalid timestamps
                     foreach (const STime &t, context->measurement)
                     if (qAbs(t - ts) > STime::fromSec(context->measurementSize + 4))
@@ -144,7 +146,7 @@ bool BufferReaderBase::start(SInterfaces::AbstractBufferReader::ProduceCallback 
                   }
                 }
                 else
-                  f = 0; // Finished
+                  f = 1; // Finished
               }
             }
           }
@@ -152,7 +154,14 @@ bool BufferReaderBase::start(SInterfaces::AbstractBufferReader::ProduceCallback 
             break;
         }
 
-        readAheadBuffer += packet;
+        // Make sure a video buffer is first, to properly correct the timestamps.
+        if (prependBuffer)
+        {
+          readAheadBuffer.prepend(packet);
+          prependBuffer = false;
+        }
+        else
+          readAheadBuffer.append(packet);
       }
 
       // And determine the framerate for each video stream          .
@@ -393,6 +402,7 @@ bool BufferReaderBase::demux(const Packet &packet)
 //                  << ", dts =" << buffer.decodingTimeStamp().toMSec()
 //                  << ", pts =" << buffer.presentationTimeStamp().toMSec()
 //                  << ", duration =" << buffer.duration().toMSec()
+//                  << ", ppts = " << packet.pts << ", pdts = " << packet.dts
 //                  << ", key =" << buffer.isKeyFrame();
 
               if (produceCallback)
@@ -417,6 +427,7 @@ bool BufferReaderBase::demux(const Packet &packet)
 //              qDebug() << "Data timestamp" << packet.streamIndex
 //                  << ", dts =" << buffer.decodingTimeStamp().toMSec()
 //                  << ", pts =" << buffer.presentationTimeStamp().toMSec()
+//                  << ", ppts = " << packet.pts << ", pdts = " << packet.dts
 //                  << ", duration =" << buffer.duration().toMSec();
 
               if (produceCallback)
@@ -506,8 +517,8 @@ STime BufferReaderBase::position(void) const
 {
   foreach (StreamContext *context, streamContext)
   if (context)
-  if (context->lastTimeStamp.isValid() && context->firstTimeStamp.isValid())
-    return context->lastTimeStamp - context->firstTimeStamp;
+  if (context->lastTimeStamp.isValid())
+    return context->lastTimeStamp;
 
   return STime();
 }
@@ -851,7 +862,6 @@ BufferReaderBase::StreamContext * BufferReaderBase::initStreamContext(const ::AV
   streamContext->timeBase = SInterval(stream->time_base.num, stream->time_base.den);
   streamContext->dtsChecked = false;
   streamContext->needsDTSFraming = false;
-  streamContext->firstTimeStamp = STime();
   streamContext->lastTimeStamp = STime();
   streamContext->timeStampGap = STime::null;
   streamContext->dtsBuffer = NULL;
@@ -962,24 +972,18 @@ QPair<STime, STime> BufferReaderBase::correctTimeStamp(const Packet &packet)
 {
   StreamContext * const context = streamContext[packet.streamIndex];
 
-  // Ensure the timestamps are zero-based. Non-zero bases streams can occur
-  // when captured from DVB or a sample has been cut from a larger file.
-  STime subtract = context->timeStampGap;
-  if (context->firstTimeStamp.isValid())
-    subtract += context->firstTimeStamp;
-
   // Determine the baseTimeStamp, decodingTimeStamp and presentationTimeStamp.
   STime baseTimeStamp, decodingTimeStamp, presentationTimeStamp;
 
   if (packet.dts != AV_NOPTS_VALUE)
   {
     baseTimeStamp = decodingTimeStamp =
-                    STime(packet.dts, context->timeBase) - subtract;
+                    STime(packet.dts, context->timeBase) - context->timeStampGap;
 
     if (packet.pts != AV_NOPTS_VALUE)
     {
       presentationTimeStamp =
-          STime(packet.pts, context->timeBase) - subtract;
+          STime(packet.pts, context->timeBase) - context->timeStampGap;
 
       if (qAbs(presentationTimeStamp - decodingTimeStamp) <= maxJumpTime)
       {
@@ -995,47 +999,10 @@ QPair<STime, STime> BufferReaderBase::correctTimeStamp(const Packet &packet)
   else if (packet.pts != AV_NOPTS_VALUE)
   {
     baseTimeStamp = decodingTimeStamp = presentationTimeStamp =
-        STime(packet.pts, context->timeBase) - subtract;
+        STime(packet.pts, context->timeBase) - context->timeStampGap;
   }
   else
     baseTimeStamp = context->lastTimeStamp;
-
-  if (!context->firstTimeStamp.isValid() || (context->firstTimeStamp > baseTimeStamp))
-  {
-    // Ensure all streams stay syncronized.
-    STime firstTimeStamp = baseTimeStamp;
-    for (int i=0; i<streamContext.count(); i++)
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
-    if ((formatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO) ||
-        (formatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO))
-#else
-    if ((formatContext->streams[i]->codec->codec_type == CODEC_TYPE_AUDIO) ||
-        (formatContext->streams[i]->codec->codec_type == CODEC_TYPE_VIDEO))
-#endif
-    if (streamContext[i])
-    if (streamContext[i]->firstTimeStamp.isValid() && baseTimeStamp.isValid() &&
-        (qAbs(streamContext[i]->firstTimeStamp - baseTimeStamp) < maxJumpTime))
-    {
-      firstTimeStamp = qMin(firstTimeStamp, streamContext[i]->firstTimeStamp);
-    }
-
-    context->firstTimeStamp = firstTimeStamp;
-    for (int i=0; i<streamContext.count(); i++)
-    if (streamContext[i])
-    if (streamContext[i]->firstTimeStamp.isValid() && baseTimeStamp.isValid() &&
-        (qAbs(streamContext[i]->firstTimeStamp - baseTimeStamp) < maxJumpTime))
-    {
-      streamContext[i]->firstTimeStamp = firstTimeStamp;
-    }
-
-    if (decodingTimeStamp.isValid())
-      decodingTimeStamp -= firstTimeStamp;
-
-    if (presentationTimeStamp.isValid())
-      presentationTimeStamp -= firstTimeStamp;
-
-    baseTimeStamp -= firstTimeStamp;
-  }
 
   if (context->lastTimeStamp.isValid())
   {
@@ -1052,6 +1019,17 @@ QPair<STime, STime> BufferReaderBase::correctTimeStamp(const Packet &packet)
         presentationTimeStamp -= delta;
     }
   }
+  else
+  {
+    context->timeStampGap = baseTimeStamp;
+    baseTimeStamp -= context->timeStampGap;
+
+    if (decodingTimeStamp.isValid())
+      decodingTimeStamp -= context->timeStampGap;
+
+    if (presentationTimeStamp.isValid())
+      presentationTimeStamp -= context->timeStampGap;
+  }
 
   context->lastTimeStamp = baseTimeStamp;
 
@@ -1062,13 +1040,7 @@ QPair<STime, STime> BufferReaderBase::correctTimeStampToVideo(const Packet &pack
 {
   StreamContext * const context = streamContext[packet.streamIndex];
 
-  // Ensure the timestamps are zero-based. Non-zero based streams can occur
-  // when captured from DVB or a sample has been cut from a larger file.
-  STime baseSubtract = context->timeStampGap;
-  if (context->firstTimeStamp.isValid())
-    baseSubtract += context->firstTimeStamp;
-
-  STime subtract;
+  STime timeStampGap;
   for (int i=0; i<streamContext.count(); i++)
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
   if (formatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO)
@@ -1077,23 +1049,20 @@ QPair<STime, STime> BufferReaderBase::correctTimeStampToVideo(const Packet &pack
 #endif
   if (streamContext[i])
   {
-    subtract = streamContext[i]->timeStampGap;
-    if (streamContext[i]->firstTimeStamp.isValid())
-      subtract += streamContext[i]->firstTimeStamp;
-
+    timeStampGap = streamContext[i]->timeStampGap;
     break;
   }
 
-  if (subtract.isValid() && (qAbs(baseSubtract - subtract).toSec() < 15))
+  if (timeStampGap.isValid() && (qAbs(context->timeStampGap - timeStampGap).toSec() < 15))
   {
     // Determine the decodingTimeStamp and presentationTimeStamp.
     STime decodingTimeStamp, presentationTimeStamp;
 
     if (packet.dts != AV_NOPTS_VALUE)
-      decodingTimeStamp = STime(packet.dts, context->timeBase) - subtract;
+      decodingTimeStamp = STime(packet.dts, context->timeBase) - timeStampGap;
 
     if (packet.pts != AV_NOPTS_VALUE)
-      presentationTimeStamp = STime(packet.pts, context->timeBase) - subtract;
+      presentationTimeStamp = STime(packet.pts, context->timeBase) - timeStampGap;
 
     return qMakePair(presentationTimeStamp, decodingTimeStamp);
   }
@@ -1105,7 +1074,7 @@ QPair<STime, STime> BufferReaderBase::correctTimeStampToVideoOnly(const Packet &
 {
   StreamContext * const context = streamContext[packet.streamIndex];
 
-  STime subtract = STime::null;
+  STime timeStampGap = STime::null;
   for (int i=0; i<streamContext.count(); i++)
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
   if (formatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO)
@@ -1114,10 +1083,7 @@ QPair<STime, STime> BufferReaderBase::correctTimeStampToVideoOnly(const Packet &
 #endif
   if (streamContext[i])
   {
-    subtract = streamContext[i]->timeStampGap;
-    if (streamContext[i]->firstTimeStamp.isValid())
-      subtract += streamContext[i]->firstTimeStamp;
-
+    timeStampGap = streamContext[i]->timeStampGap;
     break;
   }
 
@@ -1125,10 +1091,10 @@ QPair<STime, STime> BufferReaderBase::correctTimeStampToVideoOnly(const Packet &
   STime decodingTimeStamp, presentationTimeStamp;
 
   if (packet.dts != AV_NOPTS_VALUE)
-    decodingTimeStamp = STime(packet.dts, context->timeBase) - subtract;
+    decodingTimeStamp = STime(packet.dts, context->timeBase) - timeStampGap;
 
   if (packet.pts != AV_NOPTS_VALUE)
-    presentationTimeStamp = STime(packet.pts, context->timeBase) - subtract;
+    presentationTimeStamp = STime(packet.pts, context->timeBase) - timeStampGap;
 
   return qMakePair(presentationTimeStamp, decodingTimeStamp);
 }

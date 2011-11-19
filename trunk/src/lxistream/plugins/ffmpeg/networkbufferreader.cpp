@@ -72,6 +72,8 @@ bool NetworkBufferReader::start(const QUrl &url, ProduceCallback *produceCallbac
     }
   }
 
+  qDebug() << url.toEncoded();
+
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
   ::AVFormatContext * formatContext = NULL;
   if (::avformat_open_input(&formatContext, url.toEncoded(), NULL, NULL) == 0)
