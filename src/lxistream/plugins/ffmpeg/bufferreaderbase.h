@@ -55,7 +55,6 @@ private:
     bool                        dtsChecked;
     bool                        needsDTSFraming;
 
-    STime                       firstTimeStamp;
     STime                       lastTimeStamp;
     STime                       timeStampGap;
 
