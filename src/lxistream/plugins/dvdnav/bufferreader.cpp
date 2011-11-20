@@ -52,7 +52,7 @@ bool BufferReader::isDiscPath(const QString &path)
 
 BufferReader::BufferReader(const QString &, QObject *parent)
   : SInterfaces::BufferReader(parent),
-    SInterfaces::BufferReader::ReadCallback(QString::null),
+    SInterfaces::BufferReader::ReadCallback(),
     mutex(QMutex::Recursive),
     dvdHandle(NULL),
     currentTitle(0),
@@ -188,16 +188,16 @@ bool BufferReader::start(SInterfaces::BufferReader::ReadCallback *rc, SInterface
   if (dvdHandle)
     qFatal("BufferReader already opened a stream.");
 
-  if (openFile(rc->path))
-  {
-    produceCallback = pc;
-
-    if (selectTitle(programId))
-    if (reopenBufferReader())
-      return true;
-
-    ::dvdnav_close(dvdHandle);
-  }
+//  if (openFile(rc->path))
+//  {
+//    produceCallback = pc;
+//
+//    if (selectTitle(programId))
+//    if (reopenBufferReader())
+//      return true;
+//
+//    ::dvdnav_close(dvdHandle);
+//  }
 
   dvdHandle = NULL;
   return false;

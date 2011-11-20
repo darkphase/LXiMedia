@@ -472,7 +472,8 @@ void HttpSocketRequest::failed(void)
 SandboxProcess::SandboxProcess(SSandboxClient *parent, const QString &cmd)
   : QObject(parent),
     parent(parent),
-    process(new QProcess(parent))
+    process(new QProcess(parent)),
+    started(false)
 {
   Q_ASSERT(QThread::currentThread() == thread());
 
@@ -480,7 +481,7 @@ SandboxProcess::SandboxProcess(SSandboxClient *parent, const QString &cmd)
   qDebug() << this << "SandboxProcess::SandboxProcess" << cmd;
 #endif
 
-  connect(process, SIGNAL(readyRead()), SLOT(readyRead()), Qt::QueuedConnection);
+  connect(process, SIGNAL(readyRead()), SLOT(readyRead()));
   connect(process, SIGNAL(finished(int, QProcess::ExitStatus)), SLOT(finished(int, QProcess::ExitStatus)), Qt::QueuedConnection);
 
   process->setReadChannel(QProcess::StandardError);
@@ -514,6 +515,24 @@ SandboxProcess::~SandboxProcess()
     delete process;
 }
 
+bool SandboxProcess::waitForStarted(int timeout)
+{
+  Q_ASSERT(QThread::currentThread() == thread());
+
+#ifdef TRACE_CONNECTIONS
+  qDebug() << this << "SandboxProcess::waitForStarted" << timeout;
+#endif
+
+  QTime timer; timer.start();
+
+  if (process->waitForStarted(qMax(0, timeout - timer.elapsed())))
+  while (!started)
+  if (!process->waitForReadyRead(qMax(0, timeout - timer.elapsed())))
+    break;
+
+  return started;
+}
+
 void SandboxProcess::kill(void)
 {
   Q_ASSERT(QThread::currentThread() == thread());
@@ -544,7 +563,10 @@ void SandboxProcess::readyRead()
 
           const QList<QByteArray> items = line.simplified().split(' ');
           if (items.count() >= 2)
+          {
             emit ready(QString::fromAscii(items[1]));
+            started = true;
+          }
         }
         else if (line.startsWith("##STOP"))
         {

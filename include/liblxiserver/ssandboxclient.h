@@ -52,6 +52,8 @@ public:
 
 public: // From HttpClientEngine
   virtual void                  openRequest(const RequestMessage &header, QObject *receiver, const char *slot);
+  
+  virtual ResponseMessage       blockingRequest(const RequestMessage &, int timeout = 30000);
 
 signals:
   /*! This signal is emitted when a line is written to stderr that starts with
@@ -64,6 +66,7 @@ protected:
   virtual void                  socketDestroyed(void);
 
 private slots:
+  _lxi_internal void            startProcess(void);
   _lxi_internal void            processStarted(const QString &);
   _lxi_internal void            openRequest(void);
   _lxi_internal void            stop(void);

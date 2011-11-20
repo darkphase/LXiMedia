@@ -133,10 +133,9 @@ SHttpServer::ResponseMessage ConfigServer::handleHtmlRequest(const SHttpServer::
 
   if (file.fileName().endsWith("-tree.html"))
   {
-    PluginSettings settings(pluginName());
-    settings.beginGroup(file.fileName().left(file.fileName().length() - 10));
+    const QString category = file.fileName().left(file.fileName().length() - 10);
 
-    QStringList rootPaths = settings.value("Paths").toStringList();
+    QStringList rootPaths = mediaDatabase->rootPaths(category);
 
     const QString open = file.url().queryItemValue("open");
     const QStringList allopen = !open.isEmpty()
@@ -157,9 +156,7 @@ SHttpServer::ResponseMessage ConfigServer::handleHtmlRequest(const SHttpServer::
       else
         i++;
 
-      settings.setValue("Paths", rootPaths);
-
-      mediaDatabase->rescanRoots();
+      mediaDatabase->setRootPaths(category, rootPaths);
     }
 
     htmlParser.setField("FILE", file.fileName());

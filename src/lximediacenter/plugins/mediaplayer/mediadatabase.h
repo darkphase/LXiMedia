@@ -34,46 +34,19 @@ class MediaDatabase : public QObject
 {
 Q_OBJECT
 public:
-  struct UniqueID
-  {
-    inline                      UniqueID(qint64 fid = 0, quint16 pid = 0) : fid(fid), pid(pid) { }
-
-    inline bool                 operator==(const UniqueID &other) const         { return (fid == other.fid) && (pid == other.pid); }
-    inline bool                 operator!=(const UniqueID &other) const         { return !operator==(other); }
-
-    qint64                      fid;  //!< Uniquely identifies a file.
-    quint16                     pid;  //!< Uniquely identifies a program in a file.
-  };
-
-  struct File
-  {
-    inline                      File(UniqueID uid, const QString &name) : uid(uid), name(name) { }
-
-    UniqueID                    uid;
-    QString                     name;
-  };
+  typedef qint64 UniqueID;
 
   enum Category
   {
     Category_None             =  0,
-    Category_Movies           = 10,
-    Category_TVShows          = 20,
-    Category_Clips            = 30,
-    Category_HomeVideos       = 40,
-    Category_Photos           = 50,
-    Category_Music            = 60
+    Category_Movies,
+    Category_TVShows,
+    Category_Clips,
+    Category_HomeVideos,
+    Category_Photos,
+    Category_Music
+    // Keep in sync with categoryNames.
   };
-
-private:
-  struct CatecoryDesc
-  {
-    const char          * const name;
-    const Category              category;
-  };
-
-  struct QuerySet;
-  class ScanDirEvent;
-  class QueryImdbItemEvent;
 
 public:
   static MediaDatabase        * createInstance(BackendServer::MasterServer *);
@@ -96,64 +69,29 @@ public:
   QDateTime                     lastPlayed(UniqueID) const;
   QDateTime                     lastPlayed(const QString &filePath) const;
 
-  QStringList                   allAlbums(Category) const;
-  bool                          hasAlbum(Category, const QString &album) const;
-  int                           countAlbumFiles(Category, const QString &album) const;
-  QList<File>                   getAlbumFiles(Category, const QString &album, unsigned start = 0, unsigned count = 0) const;
-  QList<File>                   queryAlbums(Category, const QStringList &query, unsigned start = 0, unsigned count = 0) const;
+  bool                          hasAlbum(Category, const QString &path) const;
+  int                           countAlbums(Category, const QString &path) const;
+  QStringList                   getAlbums(Category, const QString &path, unsigned start = 0, unsigned count = 0) const;
+  int                           countAlbumFiles(Category, const QString &path) const;
+  QVector<UniqueID>             getAlbumFiles(Category, const QString &path, unsigned start = 0, unsigned count = 0) const;
 
-  ImdbClient::Entry             getImdbEntry(UniqueID) const;
-  QList<UniqueID>               allFilesInDirOf(UniqueID) const;
-
-  void                          rescanRoots(void);
+  QStringList                   rootPaths(Category) const;
+  QStringList                   rootPaths(const QString &) const;
+  void                          setRootPaths(Category, const QStringList &paths);
+  void                          setRootPaths(const QString &, const QStringList &paths);
 
 signals:
   void                          modified(void);
 
-protected:
-  virtual void                  customEvent(QEvent *);
-
-private slots:
-  void                          scanRoots(void);
-  void                          scanDirs(void);
-  void                          directoryChanged(const QString &);
-  void                          probeFinished(const SHttpEngine::ResponseMessage &);
-  void                          probeNext(void);
-
 private:
   QByteArray                    readNodeData(UniqueID) const;
 
-  void                          updateDir(const QString &, qint64, QuerySet &);
-  void                          probeFile(const QString &);
-
-  QMap<Category, QString>       findCategories(const QString &) const;
-
-public:
-  static const int              maxSongDurationMin;
-  static const int              scanDirPriority = INT_MIN;
-  static const int              matchImdbItemPriority = scanDirPriority + 1;
-
 private:
-  static const QEvent::Type     scanDirEventType;
-  static const QEvent::Type     queryImdbItemEventType;
-  static const QEvent::Type     scanRootsEventType;
-
-  static const int              scanDelay = 30000;
-  static const CatecoryDesc     categories[];
+  static const char     * const categoryNames[7];
   static MediaDatabase        * self;
 
   ImdbClient            * const imdbClient;
   SSandboxClient        * const probeSandbox;
-
-  QFileSystemWatcher            fileSystemWatcher;
-  QMap<QString, QStringList>    rootPaths;
-  QTimer                        scanRootTimer;
-  QTimer                        scanRootSingleTimer;
-  QTimer                        scanDirsSingleTimer;
-  QHash<QString, ScanDirEvent *> scanDirsQueue;
-  QAtomicInt                    scanning;
-  QSet<QString>                 probeQueue;
-  int                           probeTokens;
 };
 
 

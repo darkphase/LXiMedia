@@ -28,7 +28,7 @@ struct SIOInputNode::Data
 
 SIOInputNode::SIOInputNode(SGraph *parent, QIODevice *ioDevice, quint16 programId)
   : SInputNode(parent),
-    SInterfaces::BufferReader::ReadCallback(QString::null),
+    SInterfaces::BufferReader::ReadCallback(),
     d(new Data())
 {
   setIODevice(ioDevice, programId);

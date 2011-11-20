@@ -116,6 +116,8 @@ public:
   explicit                      SandboxProcess(SSandboxClient *, const QString &);
   virtual                       ~SandboxProcess();
 
+  bool                          waitForStarted(int msecs = 30000);
+
 public slots:
   void                          kill(void);
 
@@ -132,6 +134,7 @@ private slots:
 private:
   const QPointer<SSandboxClient> parent;
   QProcess              * const process;
+  bool                          started;
 };
 
 #endif

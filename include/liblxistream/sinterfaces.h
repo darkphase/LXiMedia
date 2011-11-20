@@ -117,9 +117,6 @@ S_FACTORIZABLE_NO_CREATE(FormatProber)
 public:
   struct ReadCallback
   {
-    inline explicit             ReadCallback(const QString &path) : path(path)  { }
-
-    const QString               path;
     virtual qint64              read(uchar *, qint64) = 0;
     virtual qint64              seek(qint64, int) = 0;
   };

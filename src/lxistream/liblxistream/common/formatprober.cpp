@@ -44,12 +44,11 @@ QList<FormatProber::Format> FormatProber::probeFormat(const QByteArray &, const 
   return formats;
 }
 
-void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *callback)
+void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *)
 {
-  if (callback)
-  if (!callback->path.isEmpty())
+  if (!pi.filePath.isEmpty())
   {
-    const QFileInfo info(callback->path);
+    const QFileInfo info(pi.filePath);
     const QString suffix = info.suffix().toLower();
 
     if (pi.programs.isEmpty())

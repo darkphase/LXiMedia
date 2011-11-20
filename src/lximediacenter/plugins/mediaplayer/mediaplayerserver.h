@@ -75,7 +75,7 @@ protected:
   bool                          isEmpty(const QString &path);
   int                           countAlbums(const QString &path);
   QList<Item>                   listAlbums(const QString &path, unsigned &start, unsigned &count);
-  Item                          makeItem(MediaDatabase::UniqueID, bool recursePrograms = true);
+  Item                          makeItem(MediaDatabase::UniqueID, int programId = -1);
   QUrl                          findAlbumIcon(const QString &path);
   Item::Type                    defaultItemType(Item::Type = Item::Type_None) const;
 

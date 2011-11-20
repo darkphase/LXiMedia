@@ -47,16 +47,15 @@ QList<FormatProber::Format> FormatProber::probeFormat(const QByteArray &, const 
   return result;
 }
 
-void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *callback)
+void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *)
 {
-  if (callback)
-  if (BufferReader::isDiscPath(callback->path))
+  if (BufferReader::isDiscPath(pi.filePath))
   {
     BufferReader bufferReader(QString::null, this);
-    if (bufferReader.openFile(callback->path))
+    if (bufferReader.openFile(pi.filePath))
     {
-      if (BufferReader::isExtractedDiscPath(callback->path))
-        pi.path = QFileInfo(BufferReader::discPath(callback->path)).path();
+      if (BufferReader::isExtractedDiscPath(pi.filePath))
+        pi.path = QFileInfo(BufferReader::discPath(pi.filePath)).path();
 
       pi.format = BufferReader::formatName;
       pi.isReadable = true;

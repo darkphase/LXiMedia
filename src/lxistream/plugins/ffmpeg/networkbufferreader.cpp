@@ -101,19 +101,21 @@ QList<QUrl> NetworkBufferReader::resolveAsf(const QUrl &url)
 {
   if (url.scheme() == "http")
   {
-    SHttpEngine::RequestMessage request(NULL);
+    SHttpClient httpClient;
+
+    SHttpEngine::RequestMessage request(&httpClient);
     request.setHost(url.host(), url.port(80));
     request.setField("Icy-MetaData", "1");
 
     request.setRequest("HEAD", url.toEncoded(QUrl::RemoveScheme | QUrl::RemoveAuthority));
 
-    SHttpEngine::ResponseMessage response = SHttpClient::blockedRequest(request, 5000);
+    SHttpEngine::ResponseMessage response = httpClient.blockingRequest(request, 5000);
     if ((response.status() == SHttpEngine::Status_Ok) &&
         (response.contentType() == "video/x-ms-asf"))
     {
       request.setRequest("GET", url.toEncoded(QUrl::RemoveScheme | QUrl::RemoveAuthority));
 
-      response = SHttpClient::blockedRequest(request, 5000);
+      response = httpClient.blockingRequest(request, 5000);
       if (response.status() == SHttpEngine::Status_Ok)
       {
         // Correct corrupted Microsoft XMLs

@@ -573,9 +573,34 @@ SSandboxClient * Backend::createSandbox(SSandboxClient::Priority priority)
 #ifndef DEBUG_USE_LOCAL_SANDBOX
   return new SSandboxClient(sandboxApplication, priority);
 #else
-  Sandbox * sandbox = new Sandbox();
-  sandbox->start("local");
-  return new SSandboxClient(sandbox->server(), priority);
+  struct SandboxThread : QThread
+  {
+    SandboxThread()
+      : startSem(0), sandbox(NULL)
+    {
+    }
+
+    virtual void run(void)
+    {
+      sandbox = new Sandbox();
+      sandbox->start("local");
+
+      startSem.release(1);
+
+      exec();
+
+      delete sandbox;
+    }
+
+    QSemaphore startSem;
+    Sandbox * volatile sandbox;
+  };
+
+  SandboxThread * const thread = new SandboxThread();
+  thread->start();
+  thread->startSem.acquire(1);
+
+  return new SSandboxClient(thread->sandbox->server(), priority);
 #endif
 }
 

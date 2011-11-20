@@ -57,9 +57,9 @@ PlaylistServer::Stream * PlaylistServer::streamVideo(const SHttpServer::RequestM
     {
       const QString path = albums.takeFirst();
 
-      foreach (const MediaDatabase::File &file, mediaDatabase->getAlbumFiles(category, path))
+      foreach (MediaDatabase::UniqueID uid, mediaDatabase->getAlbumFiles(category, path))
       {
-        const FileNode node = mediaDatabase->readNode(file.uid);
+        const FileNode node = mediaDatabase->readNode(uid);
         if (!node.isNull())
         {
           const QDateTime lastPlayed = mediaDatabase->lastPlayed(node.filePath());
@@ -73,9 +73,8 @@ PlaylistServer::Stream * PlaylistServer::streamVideo(const SHttpServer::RequestM
         }
       }
 
-      foreach (const QString &album, mediaDatabase->allAlbums(category))
-      if (album.startsWith(path) && (album.mid(path.length()).count('/') == 1))
-        albums += album;
+      foreach (const QString &album, mediaDatabase->getAlbums(category, path))
+        albums += path + '/' + album;
     }
 
     if (!files.isEmpty())
@@ -124,8 +123,8 @@ QList<PlaylistServer::Item> PlaylistServer::listItems(const QString &path, unsig
     result += listPlayAllItem(path, start, count, 0, result);
 
     if (returnAll || (count > 0))
-    foreach (const MediaDatabase::File &file, mediaDatabase->getAlbumFiles(category, path, start, count))
-      result.append(makeItem(file.uid));
+    foreach (MediaDatabase::UniqueID uid, mediaDatabase->getAlbumFiles(category, path, start, count))
+      result.append(makeItem(uid));
   }
 
   return result;
@@ -168,9 +167,9 @@ QList<PlaylistServer::Item> PlaylistServer::listPlayAllItem(const QString &path,
 
       if (thumbUid == 0)
       {
-        const QList<MediaDatabase::File> first = mediaDatabase->getAlbumFiles(category, path, 0, 1);
+        const QVector<MediaDatabase::UniqueID> first = mediaDatabase->getAlbumFiles(category, path, 0, 1);
         if (!first.isEmpty())
-          thumbUid = first.first().uid;
+          thumbUid = first.first();
       }
 
       if (thumbUid != 0)

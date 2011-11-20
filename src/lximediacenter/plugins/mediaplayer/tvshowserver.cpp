@@ -225,25 +225,25 @@ QList<TvShowServer::Item> TvShowServer::listItems(const QString &path, unsigned 
 
 void TvShowServer::categorizeSeasons(const QString &path, QMap<unsigned, QVector<MediaDatabase::UniqueID> > &seasons, bool &useSeasons)
 {
-  const QList<MediaDatabase::File> files = mediaDatabase->getAlbumFiles(category, path);
+  const QVector<MediaDatabase::UniqueID> files = mediaDatabase->getAlbumFiles(category, path);
 
   seasons.clear();
   useSeasons = true;
-  foreach (const MediaDatabase::File &file, files)
+  foreach (MediaDatabase::UniqueID uid, files)
   {
-    const unsigned track = file.name.left(10).toUInt();
-    if ((track > 0) && (track < SMediaInfo::tvShowSeason))
+    const FileNode node = mediaDatabase->readNode(uid);
+    if ((node.track() > 0) && (node.track() < SMediaInfo::tvShowSeason))
     {
       // Don't use seasons
       seasons.clear();
       useSeasons = false;
-      foreach (const MediaDatabase::File &file, files)
-        seasons[0].append(file.uid);
+      foreach (MediaDatabase::UniqueID uid, files)
+        seasons[0].append(uid);
 
       return;
     }
 
-    seasons[track / SMediaInfo::tvShowSeason].append(file.uid);
+    seasons[node.track() / SMediaInfo::tvShowSeason].append(uid);
   }
 
   if (seasons.count() == 1)
