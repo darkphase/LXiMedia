@@ -51,7 +51,14 @@ QList<FormatProber::Format> FormatProber::probeFormat(const QByteArray &data, co
 
 void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *readCallback)
 {
-  if (readCallback)
+  SImage thumbnail;
+
+  const QFileInfo fileInfo(pi.filePath);
+  if (fileInfo.exists() && fileInfo.isReadable())
+  {
+    thumbnail = SImage::fromFile(fileInfo.absoluteFilePath(), QSize(128, 128));
+  }
+  else if (readCallback)
   {
     const qint64 size = readCallback->seek(0, -1);
     if ((size > 0) && (size <= (16384 * 1024)))
@@ -60,38 +67,30 @@ void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *readCallback)
       data.reserve(qMax(Q_INT64_C(4), size) + 1); // Terminating \0.
       data.resize(readCallback->read(reinterpret_cast<uchar *>(data.data()), 4));
 
-      if (!FormatProber::probeFormat(data, readCallback->path).isEmpty())
+      if (!FormatProber::probeFormat(data, pi.filePath).isEmpty())
       {
         data.resize(readCallback->read(reinterpret_cast<uchar *>(data.data() + 4), data.capacity() - 5) + 4);
 
-        const SImage image = SImage::fromData(data);
-        if (!image.isNull())
-        {
-          pi.isProbed = true;
-          pi.isReadable = true;
-
-          if (pi.programs.isEmpty())
-            pi.programs.append(ProbeInfo::Program(0));
-
-          ProbeInfo::Program &program = pi.programs.first();
-
-          program.imageCodec = SVideoCodec(program.imageCodec.codec(), image.size());
-
-          if ((program.imageCodec.size().width() >= 128) && (program.imageCodec.size().height() >= 128))
-          {
-            SImage thumbnail;
-            if ((program.imageCodec.size().width() >= 1024) || (program.imageCodec.size().height() >= 1024))
-              thumbnail = image.scaled(128, 128, Qt::KeepAspectRatio, Qt::FastTransformation);
-            else
-              thumbnail = image.scaled(128, 128, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-
-            QBuffer b;
-            if (thumbnail.save(&b, "JPEG", 50))
-              program.thumbnail = b.data();
-          }
-        }
+        thumbnail = SImage::fromData(data, QSize(128, 128));
       }
     }
+  }
+
+  if (!thumbnail.isNull())
+  {
+    pi.isProbed = true;
+    pi.isReadable = true;
+
+    if (pi.programs.isEmpty())
+      pi.programs.append(ProbeInfo::Program(0));
+
+    ProbeInfo::Program &program = pi.programs.first();
+
+    program.imageCodec = SVideoCodec(program.imageCodec.codec(), thumbnail.originalSize());
+
+    QBuffer b;
+    if (thumbnail.save(&b, "JPEG", 50))
+      program.thumbnail = b.data();
   }
 }
 

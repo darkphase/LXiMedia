@@ -18,7 +18,6 @@
  ***************************************************************************/
 
 #include "mediaplayersandbox.h"
-#include <QtConcurrentRun>
 #include <iostream>
 #include "filenode.h"
 
@@ -26,7 +25,6 @@ namespace LXiMediaCenter {
 namespace MediaPlayerBackend {
 
 const char  * const MediaPlayerSandbox::path = "/mediaplayer/";
-const QEvent::Type  MediaPlayerSandbox::probeResponseEventType = QEvent::Type(QEvent::registerEventType());
 
 MediaPlayerSandbox::MediaPlayerSandbox(const QString &, QObject *parent)
   : BackendSandbox(parent),
@@ -62,9 +60,15 @@ SSandboxServer::ResponseMessage MediaPlayerSandbox::httpRequest(const SSandboxSe
   {
     if (file.url().hasQueryItem("probe"))
     {
-      QtConcurrent::run(this, &MediaPlayerSandbox::probe, request, socket, QString::fromUtf8(QByteArray::fromHex(file.url().queryItemValue("probe").toAscii())));
+      const QString path = QString::fromUtf8(QByteArray::fromHex(file.url().queryItemValue("probe").toAscii()));
 
-      return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_None);
+      qDebug() << "Probing:" << path;
+
+      FileNode fileNode(path);
+      if (!fileNode.isNull())
+        return SHttpServer::ResponseMessage(request, SSandboxServer::Status_Ok, fileNode.toByteArray(-1), SHttpEngine::mimeTextXml);
+      else
+        return SHttpServer::ResponseMessage(request, SSandboxServer::Status_NotFound);
     }
   }
   else if (request.isPost())
@@ -125,34 +129,6 @@ SSandboxServer::ResponseMessage MediaPlayerSandbox::httpRequest(const SSandboxSe
   }
 
   return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_NotFound);
-}
-
-void MediaPlayerSandbox::customEvent(QEvent *e)
-{
-  if (e->type() == probeResponseEventType)
-  {
-    const ProbeResponseEvent * const event = static_cast<ProbeResponseEvent *>(e);
-
-    SHttpServer::ResponseMessage response =
-        event->data.isEmpty()
-        ? SHttpServer::ResponseMessage(event->request, SSandboxServer::Status_NotFound)
-        : SHttpServer::ResponseMessage(event->request, SSandboxServer::Status_Ok, event->data, SHttpEngine::mimeTextXml);
-
-    SSandboxServer::sendHttpResponse(event->request, response, event->socket, false);
-  }
-  else
-    BackendSandbox::customEvent(e);
-}
-
-void MediaPlayerSandbox::probe(const SSandboxServer::RequestMessage &request, QIODevice *socket, const QString &file)
-{
-  qDebug() << "Probing:" << file;
-
-  FileNode fileNode(file);
-  if (!fileNode.isNull())
-    qApp->postEvent(this, new ProbeResponseEvent(request, socket, fileNode.toByteArray(-1)));
-  else
-    qApp->postEvent(this, new ProbeResponseEvent(request, socket, QByteArray()));
 }
 
 void MediaPlayerSandbox::cleanStreams(void)

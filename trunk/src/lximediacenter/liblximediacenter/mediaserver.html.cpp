@@ -50,7 +50,7 @@ const char MediaServer::htmlThumbnailLoader[] =
     "  <h1>{TITLE}</h1>\n"
     "  <div class=\"thumbnaillist\" id=\"items\">\n"
     "  </div>\n"
-    "  <script type=\"text/javascript\">loadListContent(\"items\", 0, 128);</script>\n"
+    "  <script type=\"text/javascript\">loadListContent(\"items\", 0, 10);</script>\n"
     " </div>\n";
 
 const char MediaServer::htmlThumbnailItem[] =
@@ -87,7 +87,7 @@ const char MediaServer::htmlDetailedLoader[] =
     "  <table class=\"detailedlist\" id=\"items\">\n"
     "{HEADROW}"
     "  </table>\n"
-    "  <script type=\"text/javascript\">loadListContent(\"items\", 0, 128);</script>\n"
+    "  <script type=\"text/javascript\">loadListContent(\"items\", 0, 10);</script>\n"
     " </div>\n";
 
 const char MediaServer::htmlDetailedListRow[] =

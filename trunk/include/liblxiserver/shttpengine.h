@@ -341,8 +341,24 @@ public:
   virtual const char          * senderType(void) const;
   virtual const QString       & senderId(void) const;
 
+  /*! This sends a request message to the server specified by the host in the
+      message. After the connection has been established and the message has been
+      sent, the provided slot is invoked with the opened socket (QIODevice *) as
+      the first argument.
+   */
   virtual void                  openRequest(const RequestMessage &message, QObject *receiver, const char *slot) = 0;
+
   void                          sendRequest(const RequestMessage &);
+
+  /*! Sends a request to the host mentioned in the RequestMessage and receives a
+      result message.
+      \param  request           The request message to send.
+      \param  timeout           The timeout in millicesonds.
+      \returns                  A ResponseMessage containing the response.
+      \note This method blocks until a response has been received or the timeout
+            expires.
+   */
+  virtual ResponseMessage       blockingRequest(const RequestMessage &, int timeout = 30000) = 0;
 
 signals:
   void                          response(const SHttpEngine::ResponseMessage &);

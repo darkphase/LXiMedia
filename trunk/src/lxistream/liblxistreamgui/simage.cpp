@@ -29,9 +29,10 @@ namespace LXiStreamGui {
 using namespace LXiStream;
 
 SImage::SImage(const SVideoBuffer &inBuffer, bool fast)
-  : QImage(),
-    aspectRatio(1.0f)
+  : QImage()
 {
+  d.aspectRatio = 1.0f;
+
   if (!inBuffer.isNull())
   {
     SVideoBuffer videoBuffer = inBuffer;
@@ -81,23 +82,17 @@ SImage::SImage(const SVideoBuffer &inBuffer, bool fast)
   }
 }
 
-SImage::SImage(const QString &fileName, const char *format)
-  : QImage(),
-    aspectRatio(1.0f)
+SImage::SImage(const QString &fileName, const QSize &maxsize, const char *format)
+  : QImage()
 {
-  QFile file(fileName);
-  if (file.open(QFile::ReadOnly))
-    *this = fromData(file.readAll(), format);
+  *this = fromFile(fileName, maxsize, format);
 }
 
 #ifndef QT_NO_CAST_FROM_ASCII
-SImage::SImage(const char *fileName, const char *format)
-  : QImage(),
-    aspectRatio(1.0f)
+SImage::SImage(const char *fileName, const QSize &maxsize, const char *format)
+  : QImage()
 {
-  QFile file(fileName);
-  if (file.open(QFile::ReadOnly))
-    *this = fromData(file.readAll(), format);
+  *this = fromFile(fileName, maxsize, format);
 }
 #endif
 
@@ -179,16 +174,98 @@ SVideoBuffer SImage::toVideoBuffer(SInterval frameRate) const
   return SVideoBuffer();
 }
 
-SImage SImage::fromData(const uchar *data, int size, const char *format)
+SImage SImage::fromData(const char *data, int size, const QSize &maxsize, const char *format)
 {
-  SImage image = QImage::fromData(data, size, format);
-  if (!image.isNull())
+  QByteArray byteArray = QByteArray::fromRawData(data, size);
+  QBuffer buffer(&byteArray);
+  if (buffer.open(QBuffer::ReadOnly))
   {
-    ExifData * const exifData = exif_data_new_from_data(data, size);
-    if (exifData)
+    QImageReader imageReader(&buffer, format ? QByteArray(format) : QByteArray());
+    if (imageReader.canRead())
     {
-      exif_data_ref(exifData);
+      ExifData * exifData = NULL;
+      if (imageReader.format() == "jpeg")
+        exifData = exif_data_new_from_data(reinterpret_cast<const uchar *>(data), size);
 
+      return handleFile(imageReader, maxsize, exifData);
+    }
+  }
+
+  return SImage();
+}
+
+SImage SImage::fromFile(const QString &fileName, const QSize &maxsize, const char *format)
+{
+  QFile file(fileName);
+  if (file.open(QBuffer::ReadOnly))
+  {
+    QImageReader imageReader(&file, format ? QByteArray(format) : QByteArray());
+    if (imageReader.canRead())
+    {
+      ExifData * exifData = NULL;
+      if (imageReader.format() == "jpeg")
+        exifData = exif_data_new_from_file(fileName.toUtf8());
+
+      return handleFile(imageReader, maxsize, exifData);
+    }
+  }
+
+  return SImage();
+}
+
+SImage SImage::handleFile(QImageReader &imageReader, QSize maxsize, void *exifDataVoid)
+{
+  ExifData * const exifData = (ExifData *)exifDataVoid;
+
+  SImage image;
+
+  if (exifData)
+  {
+    exif_data_ref(exifData);
+
+    if (maxsize.isValid() && !maxsize.isNull() && (maxsize.width() <= 256) && (maxsize.height() < 256))
+    if (exifData->data && (exifData->size > 0))
+      image = QImage::fromData(exifData->data, exifData->size, "jpeg");
+
+    ExifEntry * const orientation = exif_content_get_entry(exifData->ifd[EXIF_IFD_0], EXIF_TAG_ORIENTATION);
+    if (orientation)
+    {
+      exif_entry_ref(orientation);
+
+      switch (exif_get_short(orientation->data, exif_data_get_byte_order(exifData)))
+      {
+      case 6:
+      case 8:
+        maxsize = QSize(maxsize.height(), maxsize.width());
+
+      default:
+        break;
+      }
+
+      exif_entry_unref(orientation);
+    }
+  }
+
+  if (image.isNull())
+  {
+    if (maxsize.isValid() && !maxsize.isNull())
+    {
+      QSize size = imageReader.size();
+      size.scale(maxsize, Qt::KeepAspectRatio);
+      imageReader.setScaledSize(size);
+    }
+
+    image = imageReader.read();
+  }
+
+  if (!image.isNull() && maxsize.isValid() && !maxsize.isNull())
+  if ((image.width() > maxsize.width()) || (image.height() > maxsize.height()))
+    image = image.scaled(maxsize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+
+  if (exifData)
+  {
+    if (!image.isNull())
+    {
       ExifEntry * const orientation = exif_content_get_entry(exifData->ifd[EXIF_IFD_0], EXIF_TAG_ORIENTATION);
       if (orientation)
       {
@@ -213,17 +290,14 @@ SImage SImage::fromData(const uchar *data, int size, const char *format)
 
         exif_entry_unref(orientation);
       }
-
-      exif_data_unref(exifData);
     }
+
+    exif_data_unref(exifData);
   }
 
-  return image;
-}
+  image.d.originalSize = imageReader.size();
 
-SImage SImage::fromData(const QByteArray &data, const char *format)
-{
-  return fromData(reinterpret_cast<const uchar *>(data.data()), data.size(), format);
+  return image;
 }
 
 } // End of namespace

@@ -58,8 +58,9 @@ private:
   static ::SwsFilter          * createDeinterlaceFilter(void);
 
 private:
+  static const int              baseOverlap = 8;
   const int                     filterFlags;
-  const int                     filterOverlap;
+  int                           filterOverlap;
   SSize                         scaleSize;
   Qt::AspectRatioMode           scaleAspectRatioMode;
   SVideoFormat                  lastFormat;

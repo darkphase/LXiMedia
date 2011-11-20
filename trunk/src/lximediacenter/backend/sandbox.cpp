@@ -59,7 +59,6 @@ Sandbox::~Sandbox()
 void Sandbox::start(const QString &mode)
 {
   this->mode = mode;
-  stopTimer.start();
 
   sandboxServer.registerCallback("/", this);
 

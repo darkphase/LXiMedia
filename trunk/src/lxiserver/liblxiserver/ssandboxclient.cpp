@@ -86,6 +86,13 @@ struct SSandboxClient::Data
       return NULL;
     }
 
+    inline void connectToServer(const QString &serverName)
+    {
+      QString address; quint16 port = 0;
+      if (splitHost(serverName, address, port))
+        QTcpSocket::connectToHost(address, port);
+    }
+
   private:
     const QPointer<SHttpClientEngine> parent;
   };
@@ -171,11 +178,68 @@ void SSandboxClient::openRequest(const RequestMessage &message, QObject *receive
   openRequest();
 }
 
+SSandboxClient::ResponseMessage SSandboxClient::blockingRequest(const RequestMessage &request, int timeout)
+{
+  QTime timer; timer.start();
+
+  if (!d->processStarted && !d->application.isEmpty())
+  {
+    startProcess();
+    if (d->serverProcess)
+      d->serverProcess->waitForStarted(qMax(0, timeout - timer.elapsed()));
+  }
+
+  Data::Socket socket(NULL);
+  socket.connectToServer(d->serverName);
+  if (socket.waitForConnected(qMax(0, timeout - timer.elapsed())))
+  {
+    socket.write(request);
+    if (socket.waitForBytesWritten(qMax(0, timeout - timer.elapsed())))
+    {
+      QByteArray data;
+      while (!data.endsWith("\r\n\r\n") &&
+             socket.waitForReadyRead(qMax(0, timeout - timer.elapsed())))
+      {
+        while (socket.canReadLine() && !data.endsWith("\r\n\r\n"))
+          data += socket.readLine();
+      }
+
+      ResponseMessage response(NULL);
+      response.parse(data);
+
+      data = socket.readAll();
+      while (((response.contentLength() == 0) || (data.length() < response.contentLength())) &&
+             socket.waitForReadyRead(qMax(0, timeout - timer.elapsed())))
+      {
+        data += socket.readAll();
+      }
+
+      response.setContent(data);
+      return response;
+    }
+  }
+
+  return ResponseMessage(request, Status_BadRequest);
+}
+
 void SSandboxClient::socketDestroyed(void)
 {
   SHttpClientEngine::socketDestroyed();
 
   openRequest();
+}
+
+void SSandboxClient::startProcess(void)
+{
+  if ((d->processStarted == false) && (d->serverProcess == NULL) && !d->application.isEmpty())
+  {
+    d->serverProcess = new SandboxProcess(this, d->application + " " + d->modeText);
+
+    connect(d->serverProcess, SIGNAL(ready(QString)), SLOT(processStarted(QString)));
+    connect(d->serverProcess, SIGNAL(stop()), SLOT(stop()));
+    connect(d->serverProcess, SIGNAL(finished(QProcess::ExitStatus)), SLOT(finished(QProcess::ExitStatus)));
+    connect(d->serverProcess, SIGNAL(consoleLine(QString)), SIGNAL(consoleLine(QString)));
+  }
 }
 
 void SSandboxClient::processStarted(const QString &serverName)
@@ -188,14 +252,9 @@ void SSandboxClient::processStarted(const QString &serverName)
 
 void SSandboxClient::openRequest(void)
 {
-  if ((d->processStarted == false) && (d->serverProcess == NULL) && !d->application.isEmpty())
+  if (!d->processStarted)
   {
-    d->serverProcess = new SandboxProcess(this, d->application + " " + d->modeText);
-
-    connect(d->serverProcess, SIGNAL(ready(QString)), SLOT(processStarted(QString)));
-    connect(d->serverProcess, SIGNAL(stop()), SLOT(stop()));
-    connect(d->serverProcess, SIGNAL(finished(QProcess::ExitStatus)), SLOT(finished(QProcess::ExitStatus)));
-    connect(d->serverProcess, SIGNAL(consoleLine(QString)), SIGNAL(consoleLine(QString)));
+    startProcess();
   }
   else while (d->processStarted && !d->requests.isEmpty() && (socketsAvailable() > 0))
   {

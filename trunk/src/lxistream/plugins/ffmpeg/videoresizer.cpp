@@ -26,7 +26,7 @@ namespace FFMpegBackend {
 VideoResizer::VideoResizer(const QString &scheme, QObject *parent)
   : SInterfaces::VideoResizer(parent),
     filterFlags(algoFlags(scheme)),
-    filterOverlap(filterFlags == SWS_LANCZOS ? 8 : 4),
+    filterOverlap(baseOverlap),
     scaleSize(),
     scaleAspectRatioMode(Qt::KeepAspectRatio),
     lastFormat(SVideoFormat::Format_Invalid),
@@ -107,7 +107,14 @@ bool VideoResizer::needsResize(const SVideoFormat &format)
 
     if (destFormat.size() != lastFormat.size())
     {
-      if ((destFormat.size().height() >= 256) && (lastFormat.size().height() >= 256))
+      QSize dstSize = lastFormat.size().size();
+      dstSize.scale(destFormat.size().size(), Qt::KeepAspectRatio);
+
+      filterOverlap = qMax(
+          int((float(baseOverlap) * (float(lastFormat.size().height()) / float(dstSize.height()))) + 0.5f),
+          baseOverlap + 0);
+
+      if (filterOverlap < (lastFormat.size().height() / 4))
         numThreads = qBound(1, QThread::idealThreadCount(), 2);
       else
         numThreads = 1;

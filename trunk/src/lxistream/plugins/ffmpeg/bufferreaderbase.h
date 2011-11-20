@@ -80,8 +80,6 @@ public:
   
   ::AVStream                  * getStream(int index) const;
 
-  bool                          setPosition(STime, bool fast);
-
   bool                          start(SInterfaces::AbstractBufferReader::ProduceCallback *, ::AVFormatContext *);
   void                          stop(void);
 
@@ -94,7 +92,7 @@ public: // From SInterfaces::AbstractBufferedReader
   STime                         bufferDuration(void) const;
 
   STime                         duration(void) const;
-  inline bool                   setPosition(STime pos)                          { return setPosition(pos, false); }
+  bool                          setPosition(STime);
   STime                         position(void) const;
   QList<SInterfaces::AbstractBufferReader::Chapter> chapters(void) const;
 

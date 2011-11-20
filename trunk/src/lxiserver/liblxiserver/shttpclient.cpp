@@ -83,7 +83,22 @@ SHttpClient::~SHttpClient()
   *const_cast<Data **>(&d) = NULL;
 }
 
-SHttpClient::ResponseMessage SHttpClient::blockedRequest(const RequestMessage &request, int timeout)
+void SHttpClient::openRequest(const RequestMessage &message, QObject *receiver, const char *slot)
+{
+  if (QThread::currentThread() != thread())
+    qFatal("SHttpClient::openRequest() should be invoked from the thread "
+           "that owns the SHttpClient object.");
+
+  QString hostname;
+  quint16 port = 80;
+  if (splitHost(message.host(), hostname, port))
+  {
+    d->requests.append(Data::Request(hostname, port, message, receiver, slot));
+    openRequest();
+  }
+}
+
+SHttpClient::ResponseMessage SHttpClient::blockingRequest(const RequestMessage &request, int timeout)
 {
   QTime timer; timer.start();
 
@@ -91,7 +106,7 @@ SHttpClient::ResponseMessage SHttpClient::blockedRequest(const RequestMessage &r
   quint16 port = 80;
   if (splitHost(request.host(), hostname, port))
   {
-    QTcpSocket socket;
+    Data::Socket socket(NULL);
     socket.connectToHost(hostname, port);
     if (socket.waitForConnected(qMax(0, timeout - timer.elapsed())))
     {
@@ -123,21 +138,6 @@ SHttpClient::ResponseMessage SHttpClient::blockedRequest(const RequestMessage &r
   }
 
   return ResponseMessage(request, Status_BadRequest);
-}
-
-void SHttpClient::openRequest(const RequestMessage &message, QObject *receiver, const char *slot)
-{
-  if (QThread::currentThread() != thread())
-    qFatal("SHttpClient::openRequest() should be invoked from the thread "
-           "that owns the SHttpClient object.");
-
-  QString hostname;
-  quint16 port = 80;
-  if (splitHost(message.host(), hostname, port))
-  {
-    d->requests.append(Data::Request(hostname, port, message, receiver, slot));
-    openRequest();
-  }
 }
 
 void SHttpClient::socketDestroyed(void)

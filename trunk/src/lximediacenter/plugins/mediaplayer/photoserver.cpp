@@ -56,16 +56,15 @@ PhotoServer::Stream * PhotoServer::streamVideo(const SHttpServer::RequestMessage
     {
       const QString path = albums.takeFirst();
 
-      foreach (const MediaDatabase::File &file, mediaDatabase->getAlbumFiles(MediaDatabase::Category_Photos, path))
+      foreach (MediaDatabase::UniqueID uid, mediaDatabase->getAlbumFiles(MediaDatabase::Category_Photos, path))
       {
-        const FileNode node = mediaDatabase->readNode(file.uid);
+        const FileNode node = mediaDatabase->readNode(uid);
         if (!node.isNull())
-          files.insert(path + file.name, node.toByteArray(-1));
+          files.insert(path + node.fileName(), node.toByteArray(-1));
       }
 
-      foreach (const QString &album, mediaDatabase->allAlbums(MediaDatabase::Category_Photos))
-      if (album.startsWith(path) && (album.mid(path.length()).count('/') == 1))
-        albums += album;
+      foreach (const QString &album, mediaDatabase->getAlbums(MediaDatabase::Category_Photos, path))
+        albums += path + '/' + album;
     }
 
     if (!files.isEmpty())
@@ -183,7 +182,7 @@ SHttpServer::ResponseMessage PhotoServer::sendPhoto(const SHttpServer::RequestMe
     if (imageProfile != 0) // DLNA stream.
       MediaProfiles::correctFormat(imageProfile, size);
 
-    SImage image(node.filePath());
+    SImage image(node.filePath(), size.size());
     if (!image.isNull())
     {
       SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
@@ -201,9 +200,6 @@ SHttpServer::ResponseMessage PhotoServer::sendPhoto(const SHttpServer::RequestMe
         QByteArray jpgData;
         QBuffer buffer(&jpgData);
         buffer.open(QAbstractSocket::WriteOnly);
-
-        if (!size.isNull())
-          image = image.scaled(size.size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);
 
         image.save(&buffer, format.toUpper().toAscii(), 80);
         buffer.close();

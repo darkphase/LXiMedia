@@ -2,6 +2,7 @@
 #define LXSTREAM_SDISPLAY_H
 
 #include <QtCore>
+#include <QtGui>
 #include <LXiCore>
 #include "export.h"
 

@@ -27,8 +27,6 @@ namespace LXiStream {
 
 struct SFileInputNode::Data
 {
-  inline Data(const QString &path) : mediaFile(path), subtitleFile(NULL) { }
-
   QFile                         mediaFile;
   QMap<StreamId, QString>       subtitleStreams;
   SSubtitleFile               * subtitleFile;
@@ -37,8 +35,10 @@ struct SFileInputNode::Data
 
 SFileInputNode::SFileInputNode(SGraph *parent, const QString &fileName, quint16 programId)
   : SIOInputNode(parent),
-    d(new Data(path))
+    d(new Data())
 {
+  d->subtitleFile = NULL;
+
   setFileName(fileName, programId);
 }
 

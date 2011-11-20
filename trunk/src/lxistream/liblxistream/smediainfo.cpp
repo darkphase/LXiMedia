@@ -206,7 +206,7 @@ void SMediaInfo::probe(const QString &filePath)
 {
   struct Callback : SInterfaces::BufferReader::ReadCallback
   {
-    Callback(const QString &path) : ReadCallback(path), file(path)
+    Callback(const QString &path) : ReadCallback(), file(path)
     {
       file.open(QFile::ReadOnly);
     }

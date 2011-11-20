@@ -490,7 +490,7 @@ STime BufferReaderBase::duration(void) const
   return STime();
 }
 
-bool BufferReaderBase::setPosition(STime pos, bool fast)
+bool BufferReaderBase::setPosition(STime pos)
 {
   if (formatContext)
   {
@@ -500,7 +500,7 @@ bool BufferReaderBase::setPosition(STime pos, bool fast)
       return true; // Not started yet and seeking to start.
 
     if (pos.isValid())
-    if (::av_seek_frame(formatContext, -1, pos.toClock(AV_TIME_BASE), fast ? AVSEEK_FLAG_BYTE : 0) >= 0)
+    if (::av_seek_frame(formatContext, -1, pos.toClock(AV_TIME_BASE), 0) >= 0)
     {
       foreach (StreamContext *context, streamContext)
       if (context)
