@@ -36,6 +36,8 @@ public:
   explicit                      BufferReader(const QString &, QObject *);
   virtual                       ~BufferReader();
 
+  bool                          start(ReadCallback *, ProduceCallback *, quint16 programId, bool streamed, bool fast);
+
   inline bool                   process(bool fast)                              { return BufferReaderBase::demux(BufferReaderBase::read(fast)); }
 
 public: // From SInterfaces::AbstractBufferReader
@@ -54,7 +56,7 @@ public: // From SInterfaces::AbstractBufferReader
 public: // From SInterfaces::BufferReader
   virtual bool                  openFormat(const QString &);
 
-  virtual bool                  start(ReadCallback *, ProduceCallback *, quint16 programId, bool streamed);
+  inline virtual bool           start(ReadCallback *rc, ProduceCallback *pc, quint16 programId, bool streamed) { return start(rc, pc, programId, streamed, false); }
   virtual void                  stop(void);
 
 private:

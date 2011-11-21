@@ -67,13 +67,6 @@ void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *readCallback)
     {
     }
 
-    static void produceBuffers(SEncodedVideoBufferList *videoBuffers, BufferReader *bufferReader, QTime *timer, int count)
-    {
-      while ((videoBuffers->count() < count) && (qAbs(timer->elapsed()) < maxProbeTime))
-      if (!bufferReader->process(true))
-        break;
-    }
-
     virtual void produce(const SEncodedAudioBuffer &)
     {
     }
@@ -118,7 +111,7 @@ void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *readCallback)
         qDebug() << "C" << timer.elapsed();
 
         ProduceCallback produceCallback;
-        if (bufferReader.start(readCallback, &produceCallback, 0, false))
+        if (bufferReader.start(readCallback, &produceCallback, 0, false, true))
         {
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
           pi.title = bestOf(pi.title, SStringParser::removeControl(bufferReader.readMetadata("title")).trimmed());
@@ -175,7 +168,14 @@ void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *readCallback)
             static const int minDist = 80;
 
             bufferReader.selectStreams(QVector<StreamId>() << (*videoStream));
-            produceCallback.produceBuffers(&produceCallback.videoBuffers, &bufferReader, &timer, bufferCount);
+
+            while ((produceCallback.videoBuffers.count() < bufferCount) &&
+                   (qAbs(timer.elapsed()) < maxProbeTime))
+            {
+              if (!bufferReader.process(true))
+                break;
+            }
+
             bufferReader.setPosition(program.duration / 20);
 
             qDebug() << "E" << timer.elapsed();
@@ -199,8 +199,6 @@ void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *readCallback)
                 {
                   const SEncodedVideoBufferList videoBuffers = produceCallback.videoBuffers;
                   produceCallback.videoBuffers.clear();
-
-                  QFuture<void> future = QtConcurrent::run(&ProduceCallback::produceBuffers, &produceCallback.videoBuffers, &bufferReader, &timer, bufferCount);
 
                   foreach (const SEncodedVideoBuffer &encoded, videoBuffers)
                   foreach (const SVideoBuffer &decoded, videoDecoder.decodeBuffer(encoded))
@@ -227,7 +225,13 @@ void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *readCallback)
                     counter++;
                   }
 
-                  future.waitForFinished();
+                  if (bestDist < minDist)
+                  while ((produceCallback.videoBuffers.count() < bufferCount) &&
+                         (qAbs(timer.elapsed()) < maxProbeTime))
+                  {
+                    if (!bufferReader.process(true))
+                      break;
+                  }
                 }
 
                 qDebug() << "F" << timer.elapsed() << bestDist << counter;
