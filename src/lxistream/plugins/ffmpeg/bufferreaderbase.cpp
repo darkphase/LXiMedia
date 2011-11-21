@@ -45,13 +45,14 @@ BufferReaderBase::~BufferReaderBase()
   return NULL;
 }
 
-bool BufferReaderBase::start(SInterfaces::AbstractBufferReader::ProduceCallback *produceCallback, ::AVFormatContext *formatContext)
+bool BufferReaderBase::start(SInterfaces::AbstractBufferReader::ProduceCallback *produceCallback, ::AVFormatContext *formatContext, bool fast)
 {
   this->produceCallback = produceCallback;
   this->formatContext = formatContext;
 
   formatContext->flags |= AVFMT_FLAG_GENPTS;
-  formatContext->max_analyze_duration = 3 * AV_TIME_BASE;
+  formatContext->probesize = fast ? 524288 : 4194304;
+  formatContext->max_analyze_duration = fast ? (AV_TIME_BASE / 4) : (AV_TIME_BASE * 2);
   if (::av_find_stream_info(formatContext) >= 0)
   {
     //::dump_format(formatContext, 0, "", false);

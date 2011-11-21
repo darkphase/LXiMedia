@@ -53,7 +53,7 @@ bool BufferReader::openFormat(const QString &name)
   return format != NULL;
 }
 
-bool BufferReader::start(ReadCallback *readCallback, ProduceCallback *produceCallback, quint16 /*programId*/, bool streamed)
+bool BufferReader::start(ReadCallback *readCallback, ProduceCallback *produceCallback, quint16 /*programId*/, bool streamed, bool fast)
 {
   if (format)
   {
@@ -87,11 +87,11 @@ bool BufferReader::start(ReadCallback *readCallback, ProduceCallback *produceCal
     ::AVFormatContext * formatContext = avformat_alloc_context();
     formatContext->pb = ioContext;
     if (::avformat_open_input(&formatContext, "", format, NULL) == 0)
-      return BufferReaderBase::start(produceCallback, formatContext);
+      return BufferReaderBase::start(produceCallback, formatContext, fast);
 #else
     ::AVFormatContext * formatContext = NULL;
     if (::av_open_input_stream(&formatContext, ioContext, "", format, NULL) == 0)
-      return BufferReaderBase::start(produceCallback, formatContext);
+      return BufferReaderBase::start(produceCallback, formatContext, fast);
 #endif
   }
 

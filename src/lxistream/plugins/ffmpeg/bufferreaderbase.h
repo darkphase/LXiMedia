@@ -80,7 +80,7 @@ public:
   
   ::AVStream                  * getStream(int index) const;
 
-  bool                          start(SInterfaces::AbstractBufferReader::ProduceCallback *, ::AVFormatContext *);
+  bool                          start(SInterfaces::AbstractBufferReader::ProduceCallback *, ::AVFormatContext *, bool fast);
   void                          stop(void);
 
   Packet                        read(bool fast = false);

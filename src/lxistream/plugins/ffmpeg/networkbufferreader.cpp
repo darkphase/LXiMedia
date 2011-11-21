@@ -77,11 +77,11 @@ bool NetworkBufferReader::start(const QUrl &url, ProduceCallback *produceCallbac
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
   ::AVFormatContext * formatContext = NULL;
   if (::avformat_open_input(&formatContext, url.toEncoded(), NULL, NULL) == 0)
-    return BufferReaderBase::start(produceCallback, formatContext);
+    return BufferReaderBase::start(produceCallback, formatContext, true);
 #else
   ::AVFormatContext * formatContext = NULL;
   if (::av_open_input_file(&formatContext, url.toEncoded(), NULL, 0, NULL) == 0)
-    return BufferReaderBase::start(produceCallback, formatContext);
+    return BufferReaderBase::start(produceCallback, formatContext, true);
 #endif
 
   return false;
