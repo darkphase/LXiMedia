@@ -333,7 +333,7 @@ MediaPlayerServer::Item MediaPlayerServer::makeItem(MediaDatabase::UniqueID uid,
 QUrl MediaPlayerServer::findAlbumIcon(const QString &path)
 {
   // First check files.
-  foreach (MediaDatabase::UniqueID uid, mediaDatabase->getAlbumFiles(category, path, 0, 1))
+  foreach (MediaDatabase::UniqueID uid, mediaDatabase->getAlbumFiles(category, path, 0, QThread::idealThreadCount()))
     return QUrl(serverPath() + MediaDatabase::toUidString(uid) + "-thumb.png?overlay=folder-video");
 
   // Recursively check albums

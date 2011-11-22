@@ -83,7 +83,7 @@ public:
   bool                          start(SInterfaces::AbstractBufferReader::ProduceCallback *, ::AVFormatContext *, bool fast);
   void                          stop(void);
 
-  Packet                        read(bool fast = false);
+  Packet                        read(void);
   STime                         timeStamp(const Packet &) const;
   bool                          demux(const Packet &);
 

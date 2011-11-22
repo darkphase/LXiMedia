@@ -197,11 +197,15 @@ SSandboxClient::ResponseMessage SSandboxClient::blockingRequest(const RequestMes
     if (socket.waitForBytesWritten(qMax(0, timeout - timer.elapsed())))
     {
       QByteArray data;
-      while (!data.endsWith("\r\n\r\n") &&
-             socket.waitForReadyRead(qMax(0, timeout - timer.elapsed())))
+      while (!data.endsWith("\r\n\r\n") && (qAbs(timer.elapsed()) < timeout))
       {
-        while (socket.canReadLine() && !data.endsWith("\r\n\r\n"))
-          data += socket.readLine();
+        if (socket.waitForReadyRead(qBound(0, timeout - timer.elapsed(), 50)))
+        {
+          while (socket.canReadLine() && !data.endsWith("\r\n\r\n"))
+            data += socket.readLine();
+        }
+        else
+          d->serverProcess->waitForReadyRead(qBound(0, timeout - timer.elapsed(), 50));
       }
 
       ResponseMessage response(NULL);
@@ -209,9 +213,12 @@ SSandboxClient::ResponseMessage SSandboxClient::blockingRequest(const RequestMes
 
       data = socket.readAll();
       while (((response.contentLength() == 0) || (data.length() < response.contentLength())) &&
-             socket.waitForReadyRead(qMax(0, timeout - timer.elapsed())))
+             (qAbs(timer.elapsed()) < timeout))
       {
-        data += socket.readAll();
+        if (socket.waitForReadyRead(qBound(0, timeout - timer.elapsed(), 50)))
+          data += socket.readAll();
+        else
+          d->serverProcess->waitForReadyRead(qBound(0, timeout - timer.elapsed(), 50));
       }
 
       response.setContent(data);
