@@ -38,8 +38,6 @@ public:
 
   bool                          start(ReadCallback *, ProduceCallback *, quint16 programId, bool streamed, bool fast);
 
-  inline bool                   process(bool fast)                              { return BufferReaderBase::demux(BufferReaderBase::read(fast)); }
-
 public: // From SInterfaces::AbstractBufferReader
   inline virtual STime          duration(void) const                            { return BufferReaderBase::duration(); }
   inline virtual bool           setPosition(STime p)                            { return BufferReaderBase::setPosition(p); }

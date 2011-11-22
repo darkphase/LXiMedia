@@ -41,6 +41,9 @@ public: // From SSandboxServer::Callback
 private slots:
   void                          cleanStreams(void);
 
+private:
+  static QByteArray             probeFile(const QString &fileName);
+
 public:
   static const char     * const path;
 

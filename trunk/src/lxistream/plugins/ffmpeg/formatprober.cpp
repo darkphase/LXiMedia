@@ -94,21 +94,15 @@ void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *readCallback)
     QByteArray data(SInterfaces::FormatProber::defaultProbeSize, 0);
     data.resize(readCallback->read(reinterpret_cast<uchar *>(data.data()), data.size()));
 
-    qDebug() << "A" << timer.elapsed();
-
     QList<SInterfaces::FormatProber::Format> formats = FormatProber::probeFormat(data, pi.filePath);
     if (!formats.isEmpty())
     {
       pi.format = formats.first().name;
 
-      qDebug() << "B" << timer.elapsed();
-
       BufferReader bufferReader(QString::null, this);
       if (bufferReader.openFormat(pi.format))
       {
         readCallback->seek(0, SEEK_SET);
-
-        qDebug() << "C" << timer.elapsed();
 
         ProduceCallback produceCallback;
         if (bufferReader.start(readCallback, &produceCallback, 0, false, true))
@@ -157,8 +151,6 @@ void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *readCallback)
           pi.isProbed = true;
           pi.isReadable = true;
 
-          qDebug() << "D" << timer.elapsed();
-
           // Get thumbnails
           for (QList<VideoStreamInfo>::Iterator videoStream = program.videoStreams.begin();
                videoStream != program.videoStreams.end();
@@ -169,16 +161,18 @@ void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *readCallback)
 
             bufferReader.selectStreams(QVector<StreamId>() << (*videoStream));
 
-            while ((produceCallback.videoBuffers.count() < bufferCount) &&
+            while (produceCallback.videoBuffers.isEmpty() &&
                    (qAbs(timer.elapsed()) < maxProbeTime))
             {
-              if (!bufferReader.process(true))
+              if (!bufferReader.process())
                 break;
+
+              while (!produceCallback.videoBuffers.isEmpty() &&
+                     produceCallback.videoBuffers.first().codec().isNull())
+              {
+                produceCallback.videoBuffers.takeFirst();
+              }
             }
-
-            bufferReader.setPosition(program.duration / 20);
-
-            qDebug() << "E" << timer.elapsed();
 
             // Extract the thumbnail
             if (!produceCallback.videoBuffers.isEmpty() &&
@@ -188,14 +182,12 @@ void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *readCallback)
               if (videoDecoder.openCodec(
                       produceCallback.videoBuffers.first().codec(),
                       &bufferReader,
-                      VideoDecoder::Flag_KeyframesOnly | VideoDecoder::Flag_Fast))
+                      VideoDecoder::Flag_Fast))
               {
                 SVideoBuffer thumbnail;
                 int bestDist = -1, counter = 0;
 
-                while (!produceCallback.videoBuffers.isEmpty() &&
-                       (bestDist < minDist) &&
-                       (qAbs(timer.elapsed()) < maxProbeTime))
+                do
                 {
                   const SEncodedVideoBufferList videoBuffers = produceCallback.videoBuffers;
                   produceCallback.videoBuffers.clear();
@@ -229,12 +221,13 @@ void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *readCallback)
                   while ((produceCallback.videoBuffers.count() < bufferCount) &&
                          (qAbs(timer.elapsed()) < maxProbeTime))
                   {
-                    if (!bufferReader.process(true))
+                    if (!bufferReader.process())
                       break;
                   }
                 }
-
-                qDebug() << "F" << timer.elapsed() << bestDist << counter;
+                while (!produceCallback.videoBuffers.isEmpty() &&
+                       (bestDist < minDist) &&
+                       (qAbs(timer.elapsed()) < maxProbeTime));
 
                 const SInterval frameRate = thumbnail.format().frameRate();
                 if (qAbs(videoStream->codec.frameRate().toFrequency() - frameRate.toFrequency()) > 0.1f)
@@ -261,8 +254,6 @@ void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *readCallback)
                 }
               }
             }
-
-            qDebug() << "G" << timer.elapsed();
           }
 
           // Subtitle streams may not be visible after reading some data (as the
@@ -272,8 +263,6 @@ void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *readCallback)
             program.dataStreams = dataStreams;
 
           bufferReader.stop();
-
-          qDebug() << "H" << timer.elapsed();
         }
       }
     }

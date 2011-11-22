@@ -533,6 +533,13 @@ bool SandboxProcess::waitForStarted(int timeout)
   return started;
 }
 
+bool SandboxProcess::waitForReadyRead(int timeout)
+{
+  Q_ASSERT(QThread::currentThread() == thread());
+
+  return process->waitForReadyRead(timeout);
+}
+
 void SandboxProcess::kill(void)
 {
   Q_ASSERT(QThread::currentThread() == thread());

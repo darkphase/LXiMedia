@@ -50,7 +50,7 @@ const char MediaServer::htmlThumbnailLoader[] =
     "  <h1>{TITLE}</h1>\n"
     "  <div class=\"thumbnaillist\" id=\"items\">\n"
     "  </div>\n"
-    "  <script type=\"text/javascript\">loadListContent(\"items\", 0, 10);</script>\n"
+    "  <script type=\"text/javascript\">loadListContent(\"items\", 0, {LOAD_ITEM_COUNT});</script>\n"
     " </div>\n";
 
 const char MediaServer::htmlThumbnailItem[] =
@@ -87,7 +87,7 @@ const char MediaServer::htmlDetailedLoader[] =
     "  <table class=\"detailedlist\" id=\"items\">\n"
     "{HEADROW}"
     "  </table>\n"
-    "  <script type=\"text/javascript\">loadListContent(\"items\", 0, 10);</script>\n"
+    "  <script type=\"text/javascript\">loadListContent(\"items\", 0, {LOAD_ITEM_COUNT});</script>\n"
     " </div>\n";
 
 const char MediaServer::htmlDetailedListRow[] =
@@ -301,6 +301,8 @@ QByteArray MediaServer::buildThumbnailLoader(const QString &title)
 {
   HtmlParser htmlParser;
   htmlParser.setField("TITLE", title);
+  htmlParser.setField("LOAD_ITEM_COUNT", QString::number(qBound(1, QThread::idealThreadCount(), 16) * 2));
+
   return htmlParser.parse(htmlThumbnailLoader);
 }
 
@@ -325,6 +327,7 @@ QByteArray MediaServer::buildDetailedView(const QString &title, const QList< QPa
 {
   HtmlParser htmlParser;
   htmlParser.setField("TITLE", title);
+  htmlParser.setField("LOAD_ITEM_COUNT", QString::number(qBound(1, QThread::idealThreadCount(), 16) * 2));
 
   // Build the table head
   htmlParser.setField("COLUMNS", QByteArray(""));

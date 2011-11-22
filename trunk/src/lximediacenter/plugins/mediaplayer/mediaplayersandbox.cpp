@@ -56,24 +56,22 @@ SSandboxServer::ResponseMessage MediaPlayerSandbox::httpRequest(const SSandboxSe
 {
   const MediaServer::File file(request);
 
-  if (request.isGet())
+  if (request.isPost())
   {
     if (file.url().hasQueryItem("probe"))
     {
-      const QString path = QString::fromUtf8(QByteArray::fromHex(file.url().queryItemValue("probe").toAscii()));
+      QList< QFuture<QByteArray> > futures;
+      foreach (const QByteArray &path, request.content().split('\n'))
+      if (!path.isEmpty())
+        futures += QtConcurrent::run(&MediaPlayerSandbox::probeFile, QString::fromUtf8(path));
 
-      qDebug() << "Probing:" << path;
+      QByteArray content;
+      foreach (const QFuture<QByteArray> &future, futures)
+        content += future.result() + '\n';
 
-      FileNode fileNode(path);
-      if (!fileNode.isNull())
-        return SHttpServer::ResponseMessage(request, SSandboxServer::Status_Ok, fileNode.toByteArray(-1), SHttpEngine::mimeTextXml);
-      else
-        return SHttpServer::ResponseMessage(request, SSandboxServer::Status_NotFound);
+      return SHttpServer::ResponseMessage(request, SSandboxServer::Status_Ok, content, SHttpEngine::mimeTextXml);
     }
-  }
-  else if (request.isPost())
-  {
-    if (file.url().hasQueryItem("playfile"))
+    else if (file.url().hasQueryItem("playfile"))
     {
       const SMediaInfo info = FileNode::fromByteArray(request.content());
       if (!info.isNull())
@@ -141,6 +139,17 @@ void MediaPlayerSandbox::cleanStreams(void)
   }
   else
     i++;
+}
+
+QByteArray MediaPlayerSandbox::probeFile(const QString &fileName)
+{
+  qDebug() << "Probing:" << fileName;
+
+  FileNode fileNode(fileName);
+  if (!fileNode.isNull())
+    return fileNode.toByteArray(-1);
+
+  return QByteArray();
 }
 
 

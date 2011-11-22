@@ -415,11 +415,13 @@ QVector<MediaDatabase::UniqueID> MediaDatabase::getAlbumFiles(Category category,
       const QVariant parentUid = fromPath(dir.absolutePath());
       if (!parentUid.isNull() && (parentUid.toLongLong() != 0))
       {
+        QByteArray probeFiles;
+        int numProbeFiles = 0;
+
         const QStringList files = dir.entryList(QDir::Files, QDir::Name);
         for (int i=start, n=0; (i<files.count()) && (returnAll || (n<int(count))); i++, n++)
         {
           const QFileInfo fileInfo(dir.cleanPath(dir.absoluteFilePath(files[i])));
-          UniqueID uid = 0;
 
           Database::Query query;
           query.prepare("SELECT uid, size, lastModified FROM MediaplayerFiles WHERE path = :path");
@@ -433,45 +435,58 @@ QVector<MediaDatabase::UniqueID> MediaDatabase::getAlbumFiles(Category category,
               result += query.value(0).toLongLong();
               continue;
             }
-            else
-              uid = query.value(0).toLongLong();
           }
 
+          probeFiles += fileInfo.absoluteFilePath().toUtf8() + '\n';
+          numProbeFiles++;
+        }
+
+        if (!probeFiles.isEmpty())
+        {
           SSandboxClient::RequestMessage request(probeSandbox);
-          request.setRequest("GET", QByteArray(MediaPlayerSandbox::path) + "?probe=" + fileInfo.absoluteFilePath().toUtf8().toHex());
+          request.setRequest("POST", QByteArray(MediaPlayerSandbox::path) + "?probe=");
+          request.setContent(probeFiles);
 
-          const SHttpEngine::ResponseMessage response = probeSandbox->blockingRequest(request, 5000);
+          const SHttpEngine::ResponseMessage response = probeSandbox->blockingRequest(request, 15000);
           if (response.status() == SHttpEngine::Status_Ok)
+          foreach (const QByteArray &entry, response.content().split('\n'))
+          if (!entry.isEmpty())
           {
-            const FileNode mediaInfo = FileNode::fromByteArray(response.content());
+            const FileNode mediaInfo = FileNode::fromByteArray(entry);
 
-            if (uid == 0)
+            Database::Query query;
+            query.prepare("SELECT uid FROM MediaplayerFiles WHERE path = :path");
+            query.bindValue(0, mediaInfo.filePath());
+            query.exec();
+            if (query.next())
             {
-              query.prepare("INSERT INTO MediaplayerFiles "
-                            "VALUES (:uid, :parentDir, :path, :size, :lastModified, :mediaInfo)");
-              query.bindValue(0, QVariant(QVariant::LongLong));
-              query.bindValue(1, parentUid);
-              query.bindValue(2, fileInfo.absoluteFilePath());
-              query.bindValue(3, qMax(Q_INT64_C(0), mediaInfo.size()));
-              query.bindValue(4, mediaInfo.lastModified());
-              query.bindValue(5, response.content());
-              query.exec();
+              const UniqueID uid = query.value(0).toLongLong();
 
-              result += query.lastInsertId().toLongLong();
-              continue;
-            }
-            else
-            {
               query.prepare("UPDATE MediaplayerFiles "
                             "SET size = :size, lastModified = :lastModified, mediaInfo = :mediaInfo "
                             "WHERE uid = :uid");
               query.bindValue(0, qMax(Q_INT64_C(0), mediaInfo.size()));
               query.bindValue(1, mediaInfo.lastModified());
-              query.bindValue(2, response.content());
+              query.bindValue(2, entry);
               query.bindValue(3, uid);
               query.exec();
 
               result += uid;
+              continue;
+            }
+            else
+            {
+              query.prepare("INSERT INTO MediaplayerFiles "
+                            "VALUES (:uid, :parentDir, :path, :size, :lastModified, :mediaInfo)");
+              query.bindValue(0, QVariant(QVariant::LongLong));
+              query.bindValue(1, parentUid);
+              query.bindValue(2, mediaInfo.filePath());
+              query.bindValue(3, qMax(Q_INT64_C(0), mediaInfo.size()));
+              query.bindValue(4, mediaInfo.lastModified());
+              query.bindValue(5, entry);
+              query.exec();
+
+              result += query.lastInsertId().toLongLong();
               continue;
             }
           }

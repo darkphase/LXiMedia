@@ -50,9 +50,14 @@ bool BufferReaderBase::start(SInterfaces::AbstractBufferReader::ProduceCallback 
   this->produceCallback = produceCallback;
   this->formatContext = formatContext;
 
-  formatContext->flags |= AVFMT_FLAG_GENPTS;
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
+  if (!fast)
+    formatContext->flags |= AVFMT_FLAG_GENPTS;
+#endif
+
   formatContext->probesize = fast ? 524288 : 4194304;
   formatContext->max_analyze_duration = fast ? (AV_TIME_BASE / 4) : (AV_TIME_BASE * 2);
+
   if (::av_find_stream_info(formatContext) >= 0)
   {
     //::dump_format(formatContext, 0, "", false);
@@ -106,7 +111,7 @@ bool BufferReaderBase::start(SInterfaces::AbstractBufferReader::ProduceCallback 
       bool prependBuffer = false;
       for (int i=0, f=0; (i<maxBufferCount) && (f==0); i++)
       {
-        const Packet packet = read(false);
+        const Packet packet = read();
         if (packet.streamIndex >= 0)
         {
           if (packet.streamIndex < streamContext.count())
@@ -245,19 +250,12 @@ void BufferReaderBase::stop(void)
   clear();
 }
 
-BufferReaderBase::Packet BufferReaderBase::read(bool fast)
+BufferReaderBase::Packet BufferReaderBase::read(void)
 {
   if (packetBuffer.isEmpty())
   {
     ::AVPacket avPacket;
     ::av_init_packet(&avPacket);
-
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
-    if (fast)
-      formatContext->flags |= AVFMT_FLAG_NOFILLIN;
-    else
-      formatContext->flags &= ~int(AVFMT_FLAG_NOFILLIN);
-#endif
 
     if (::av_read_frame(formatContext, &avPacket) >= 0)
       return avPacket;
