@@ -63,7 +63,7 @@ void BackendServer::close(void)
 
 QString BackendServer::serverPath(void) const
 {
-  return '/' + pluginName() + '/' + serverName() + '/';
+  return '/' + serverName() + '/';
 }
 
 QByteArray BackendServer::frontPageWidget(void) const
@@ -105,27 +105,6 @@ SHttpServer::ResponseMessage BackendServer::makeHtmlContent(const SHttpServer::R
     response.setContent(d->masterServer->parseHtmlContent(url, content, head));
 
   return response;
-}
-
-QString BackendServer::basePath(const QString &path) const
-{
-  QString result = path.mid(serverPath().length());
-  result = result.startsWith('/') ? result : ('/' + result);
-  
-  return result;
-}
-
-QString BackendServer::dirName(const QString &path)
-{
-  QString result = path;
-  while (result.endsWith('/'))
-    result = result.left(result.length() - 1);
-
-  int ls = result.lastIndexOf('/');
-  if (result >= 0)
-    result = result.mid(ls + 1);
-  
-  return result;
 }
 
 

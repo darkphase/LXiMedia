@@ -52,7 +52,6 @@ bool BufferReader::isDiscPath(const QString &path)
 
 BufferReader::BufferReader(const QString &, QObject *parent)
   : SInterfaces::BufferReader(parent),
-    SInterfaces::BufferReader::ReadCallback(),
     mutex(QMutex::Recursive),
     dvdHandle(NULL),
     currentTitle(0),
@@ -166,13 +165,13 @@ bool BufferReader::reopenBufferReader(void)
   bufferReader = SInterfaces::BufferReader::create(this, "mpeg", false);
   if (bufferReader)
   {
-    if (bufferReader->start(this, produceCallback, 0, true))
-    {
-      if (!selectedStreams.isEmpty())
-        bufferReader->selectStreams(selectedStreams);
-
-      return true;
-    }
+//    if (bufferReader->start(this, produceCallback, 0, true))
+//    {
+//      if (!selectedStreams.isEmpty())
+//        bufferReader->selectStreams(selectedStreams);
+//
+//      return true;
+//    }
 
     delete bufferReader;
     bufferReader = NULL;
@@ -181,7 +180,7 @@ bool BufferReader::reopenBufferReader(void)
   return false;
 }
 
-bool BufferReader::start(SInterfaces::BufferReader::ReadCallback *rc, SInterfaces::BufferReader::ProduceCallback *pc, quint16 programId, bool)
+bool BufferReader::start(QIODevice *rc, SInterfaces::BufferReader::ProduceCallback *pc, bool)
 {
   QMutexLocker l(&mutex);
 
@@ -415,97 +414,97 @@ void BufferReader::selectStreams(const QVector<StreamId> &streams)
     bufferReader->selectStreams(selectedStreams);
 }
 
-qint64 BufferReader::read(uchar *buffer, qint64 size)
-{
-  QMutexLocker l(&mutex);
-
-  if (dvdHandle)
-  {
-    if (playing && (size >= blockSize))
-    {
-      if (skipStill)
-        ::dvdnav_still_skip(dvdHandle);
-
-      if (skipWait)
-        ::dvdnav_wait_skip(dvdHandle);
-
-      qint64 bytes = 0;
-      for (unsigned i=0; (bytes <= (size - blockSize)) && (i < 1024); i++)
-      {
-        int32_t event = 0, len = blockSize;
-        if (::dvdnav_get_next_block(dvdHandle, buffer + bytes, &event, &len) == DVDNAV_STATUS_OK)
-        {
-          if (event == DVDNAV_BLOCK_OK)
-          {
-            bytes += len;
-          }
-          else if (event == DVDNAV_STILL_FRAME)
-          {
-            skipStill = true;
-            break;
-          }
-          else if (event == DVDNAV_STOP)
-          {
-            playing = false;
-            break;
-          }
-          else if (event == DVDNAV_WAIT)
-          {
-            skipWait = true;
-            break;
-          }
-        }
-        else
-        {
-          qWarning() << ::dvdnav_err_to_string(dvdHandle);
-
-          if (seekEnabled)
-          {
-            seekEnabled = false;
-
-            if (currentChapter < 0)
-            {
-              if (::dvdnav_title_play(dvdHandle, currentTitle + 1) != DVDNAV_STATUS_OK)
-                break;
-            }
-            else if (::dvdnav_part_play(dvdHandle, currentTitle + 1, currentChapter + 1) != DVDNAV_STATUS_OK)
-              break;
-          }
-          else
-            break;
-        }
-      }
-
-      return bytes > 0 ? bytes : Q_INT64_C(-1);
-    }
-    else
-      qWarning() << "Read buffer is too small" << size;
-  }
-
-  return -1;
-}
-
-qint64 BufferReader::seek(qint64 offset, int whence)
-{
-  if (flushing)
-    return 0;
-
-  if (seekEnabled && dvdHandle && playing)
-  {
-    if (whence != -1)
-    {
-      if (::dvdnav_sector_search(dvdHandle, offset / blockSize, whence) == DVDNAV_STATUS_OK)
-        return 0;
-    }
-    else
-    {
-      uint32_t pos = 0, len = 0;
-      if (::dvdnav_get_position(dvdHandle, &pos, &len) == DVDNAV_STATUS_OK)
-        return qint64(len) * blockSize;
-    }
-  }
-
-  return -1;
-}
+//qint64 BufferReader::read(uchar *buffer, qint64 size)
+//{
+//  QMutexLocker l(&mutex);
+//
+//  if (dvdHandle)
+//  {
+//    if (playing && (size >= blockSize))
+//    {
+//      if (skipStill)
+//        ::dvdnav_still_skip(dvdHandle);
+//
+//      if (skipWait)
+//        ::dvdnav_wait_skip(dvdHandle);
+//
+//      qint64 bytes = 0;
+//      for (unsigned i=0; (bytes <= (size - blockSize)) && (i < 1024); i++)
+//      {
+//        int32_t event = 0, len = blockSize;
+//        if (::dvdnav_get_next_block(dvdHandle, buffer + bytes, &event, &len) == DVDNAV_STATUS_OK)
+//        {
+//          if (event == DVDNAV_BLOCK_OK)
+//          {
+//            bytes += len;
+//          }
+//          else if (event == DVDNAV_STILL_FRAME)
+//          {
+//            skipStill = true;
+//            break;
+//          }
+//          else if (event == DVDNAV_STOP)
+//          {
+//            playing = false;
+//            break;
+//          }
+//          else if (event == DVDNAV_WAIT)
+//          {
+//            skipWait = true;
+//            break;
+//          }
+//        }
+//        else
+//        {
+//          qWarning() << ::dvdnav_err_to_string(dvdHandle);
+//
+//          if (seekEnabled)
+//          {
+//            seekEnabled = false;
+//
+//            if (currentChapter < 0)
+//            {
+//              if (::dvdnav_title_play(dvdHandle, currentTitle + 1) != DVDNAV_STATUS_OK)
+//                break;
+//            }
+//            else if (::dvdnav_part_play(dvdHandle, currentTitle + 1, currentChapter + 1) != DVDNAV_STATUS_OK)
+//              break;
+//          }
+//          else
+//            break;
+//        }
+//      }
+//
+//      return bytes > 0 ? bytes : Q_INT64_C(-1);
+//    }
+//    else
+//      qWarning() << "Read buffer is too small" << size;
+//  }
+//
+//  return -1;
+//}
+//
+//qint64 BufferReader::seek(qint64 offset, int whence)
+//{
+//  if (flushing)
+//    return 0;
+//
+//  if (seekEnabled && dvdHandle && playing)
+//  {
+//    if (whence != -1)
+//    {
+//      if (::dvdnav_sector_search(dvdHandle, offset / blockSize, whence) == DVDNAV_STATUS_OK)
+//        return 0;
+//    }
+//    else
+//    {
+//      uint32_t pos = 0, len = 0;
+//      if (::dvdnav_get_position(dvdHandle, &pos, &len) == DVDNAV_STATUS_OK)
+//        return qint64(len) * blockSize;
+//    }
+//  }
+//
+//  return -1;
+//}
 
 } } // End of namespaces

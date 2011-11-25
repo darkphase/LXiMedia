@@ -58,12 +58,25 @@ SSandboxServer::ResponseMessage MediaPlayerSandbox::httpRequest(const SSandboxSe
 
   if (request.isPost())
   {
-    if (file.url().hasQueryItem("probe"))
+    if (file.url().hasQueryItem("probeformat"))
     {
       QList< QFuture<QByteArray> > futures;
       foreach (const QByteArray &path, request.content().split('\n'))
       if (!path.isEmpty())
-        futures += QtConcurrent::run(&MediaPlayerSandbox::probeFile, QString::fromUtf8(path));
+        futures += QtConcurrent::run(&MediaPlayerSandbox::probeFormat, QString::fromUtf8(path));
+
+      QByteArray content;
+      foreach (const QFuture<QByteArray> &future, futures)
+        content += future.result() + '\n';
+
+      return SHttpServer::ResponseMessage(request, SSandboxServer::Status_Ok, content, SHttpEngine::mimeTextXml);
+    }
+    else if (file.url().hasQueryItem("probecontent"))
+    {
+      QList< QFuture<QByteArray> > futures;
+      foreach (const QByteArray &path, request.content().split('\n'))
+      if (!path.isEmpty())
+        futures += QtConcurrent::run(&MediaPlayerSandbox::probeContent, QString::fromUtf8(path));
 
       QByteArray content;
       foreach (const QFuture<QByteArray> &future, futures)
@@ -73,10 +86,10 @@ SSandboxServer::ResponseMessage MediaPlayerSandbox::httpRequest(const SSandboxSe
     }
     else if (file.url().hasQueryItem("playfile"))
     {
-      const SMediaInfo info = FileNode::fromByteArray(request.content());
-      if (!info.isNull())
+      const QString path = QString::fromUtf8(request.content());
+      if (!path.isEmpty())
       {
-        SandboxFileStream * const stream = new SandboxFileStream(info.filePath(), file.url().queryItemValue("pid").toUShort());
+        SandboxFileStream * const stream = new SandboxFileStream(path);
         if (stream->setup(request, socket))
         if (stream->start())
         {
@@ -141,21 +154,32 @@ void MediaPlayerSandbox::cleanStreams(void)
     i++;
 }
 
-QByteArray MediaPlayerSandbox::probeFile(const QString &fileName)
+QByteArray MediaPlayerSandbox::probeFormat(const QString &fileName)
 {
-  qDebug() << "Probing:" << fileName;
+  qDebug() << "Probing format:" << fileName;
 
   FileNode fileNode(fileName);
   if (!fileNode.isNull())
-    return fileNode.toByteArray(-1);
+    return fileNode.probeFormat(-1);
+
+  return QByteArray();
+}
+
+QByteArray MediaPlayerSandbox::probeContent(const QString &fileName)
+{
+  qDebug() << "Probing content:" << fileName;
+
+  FileNode fileNode(fileName);
+  if (!fileNode.isNull())
+    return fileNode.probeContent(-1);
 
   return QByteArray();
 }
 
 
-SandboxFileStream::SandboxFileStream(const QString &fileName, quint16 programId)
+SandboxFileStream::SandboxFileStream(const QString &fileName)
   : MediaTranscodeStream(),
-    file(this, fileName, programId)
+    file(this, fileName)
 {
   connect(&file, SIGNAL(finished()), SLOT(stop()));
 
@@ -194,8 +218,8 @@ bool SandboxPlaylistStream::setup(const SHttpServer::RequestMessage &request, QI
       file.url().queryItemValue("music") == "true"))
   {
     connect(&playlistNode, SIGNAL(finished()), SLOT(stop()));
-    connect(&playlistNode, SIGNAL(opened(QString, quint16)), SLOT(opened(QString, quint16)));
-    connect(&playlistNode, SIGNAL(closed(QString, quint16)), SLOT(closed(QString, quint16)));
+    connect(&playlistNode, SIGNAL(opened(QString)), SLOT(opened(QString)));
+    connect(&playlistNode, SIGNAL(closed(QString)), SLOT(closed(QString)));
     connect(&playlistNode, SIGNAL(output(SEncodedAudioBuffer)), &audioDecoder, SLOT(input(SEncodedAudioBuffer)));
     connect(&playlistNode, SIGNAL(output(SEncodedVideoBuffer)), &videoDecoder, SLOT(input(SEncodedVideoBuffer)));
     connect(&playlistNode, SIGNAL(output(SEncodedDataBuffer)), &dataDecoder, SLOT(input(SEncodedDataBuffer)));
@@ -206,7 +230,7 @@ bool SandboxPlaylistStream::setup(const SHttpServer::RequestMessage &request, QI
   return false;
 }
 
-void SandboxPlaylistStream::opened(const QString &filePath, quint16 /*programId*/)
+void SandboxPlaylistStream::opened(const QString &filePath)
 {
   // Mark as played:
   std::cerr << ("#PLAYED:" + filePath.toUtf8().toHex()).data() << std::endl;
@@ -214,7 +238,7 @@ void SandboxPlaylistStream::opened(const QString &filePath, quint16 /*programId*
   currentFile = filePath;
 }
 
-void SandboxPlaylistStream::closed(const QString &filePath, quint16 /*programId*/)
+void SandboxPlaylistStream::closed(const QString &filePath)
 {
   if (currentFile == filePath)
     currentFile = QString::null;

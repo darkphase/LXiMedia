@@ -18,57 +18,18 @@
  ***************************************************************************/
 
 #include "module.h"
-#include "configserver.h"
 #include "mediadatabase.h"
 #include "mediaplayersandbox.h"
 #include "mediaplayerserver.h"
-#include "movieserver.h"
-#include "musicserver.h"
-#include "photoserver.h"
-#include "tvshowserver.h"
 
 namespace LXiMediaCenter {
 namespace MediaPlayerBackend {
 
-template <class _base, MediaDatabase::Category _category, const char * _name, const char * _icon>
-class Server : public _base
-{
-public:
-  explicit Server(const QString &, QObject *parent)
-    : _base(_category, parent)
-  {
-  }
-
-  virtual QString serverName(void) const
-  {
-    return _name;
-  }
-
-  virtual QString serverIconPath(void) const
-  {
-    return _icon;
-  }
-};
-
 const char Module::pluginName[]     = QT_TR_NOOP("Media Player");
-
-const char Module::moviesName[]     = QT_TR_NOOP("Movies"),       Module::moviesIcon[] = "/img/media-optical.png";
-const char Module::tvShowsName[]    = QT_TR_NOOP("TV Shows"),     Module::tvShowsIcon[] = "/img/video-television.png";
-const char Module::clipsName[]      = QT_TR_NOOP("Video Clips"),  Module::clipsIcon[] = "/img/phone.png";
-const char Module::homeVideosName[] = QT_TR_NOOP("Home Videos"),  Module::homeVideosIcon[] = "/img/media-tape.png";
-const char Module::photosName[]     = QT_TR_NOOP("Photos"),       Module::photosIcon[] = "/img/camera-photo.png";
-const char Module::musicName[]      = QT_TR_NOOP("Music"),        Module::musicIcon[] = "/img/audio-headset.png";
 
 bool Module::registerClasses(void)
 {
-  MediaPlayerServer::registerClass< Server<MovieServer,       MediaDatabase::Category_Movies,     moviesName,     moviesIcon> >(0);
-  MediaPlayerServer::registerClass< Server<TvShowServer,      MediaDatabase::Category_TVShows,    tvShowsName,    tvShowsIcon> >(-1);
-  MediaPlayerServer::registerClass< Server<PlaylistServer,    MediaDatabase::Category_Clips,      clipsName,      clipsIcon> >(-2);
-  MediaPlayerServer::registerClass< Server<PlaylistServer,    MediaDatabase::Category_HomeVideos, homeVideosName, homeVideosIcon> >(-3);
-  MediaPlayerServer::registerClass< Server<PhotoServer,       MediaDatabase::Category_Photos,     photosName,     photosIcon> >(-4);
-  MediaPlayerServer::registerClass< Server<MusicServer,       MediaDatabase::Category_Music,      musicName,      musicIcon> >(-5);
-  ConfigServer::registerClass<ConfigServer>(-6);
-
+  MediaPlayerServer::registerClass<MediaPlayerServer>(0);
   MediaPlayerSandbox::registerClass<MediaPlayerSandbox>(0);
 
   return true;

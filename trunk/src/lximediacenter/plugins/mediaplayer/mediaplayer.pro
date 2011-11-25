@@ -14,30 +14,18 @@ HEADERS += configserver.h \
     mediaplayersandbox.h \
     mediaplayerserver.h \
     module.h \
-    movieserver.h \
-    musicserver.h \
-    photoserver.h \
     playlist.h \
-    playlistserver.h \
-    slideshownode.h \
-    tvshowserver.h
+    slideshownode.h
 
-SOURCES += configserver.cpp \
-    configserver.html.cpp \
-    filenode.cpp \
+SOURCES += filenode.cpp \
     mediadatabase.cpp \
     mediaplayersandbox.cpp \
     mediaplayerserver.cpp \
+    mediaplayerserver.html.cpp \
     module.cpp \
-    movieserver.cpp \
-    musicserver.cpp \
-    photoserver.cpp \
-    photoserver.html.cpp \
     playlist.cpp \
-    playlistserver.cpp \
     slideshownode.cpp \
-    slideshownode.blend.c \
-    tvshowserver.cpp
+    slideshownode.blend.c
 
 # Windows specific
 win32-msvc2005|win32-msvc2008|win32-msvc2010 {

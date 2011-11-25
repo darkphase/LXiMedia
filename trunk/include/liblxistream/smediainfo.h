@@ -34,7 +34,6 @@ class LXISTREAM_PUBLIC SMediaInfo
 {
 public:
   typedef SInterfaces::FormatProber::ProbeInfo          ProbeInfo;
-  typedef SInterfaces::FormatProber::ProbeInfo::Program Program;
   typedef SInterfaces::FormatProber::Chapter            Chapter;
   typedef SInterfaces::FormatProber::StreamId           StreamId;
   typedef SInterfaces::FormatProber::AudioStreamInfo    AudioStreamInfo;
@@ -44,7 +43,7 @@ public:
 public:
                                 SMediaInfo(void);
                                 SMediaInfo(const SMediaInfo &);
-  explicit                      SMediaInfo(const QString &path);
+  explicit                      SMediaInfo(const QString &filePath);
   explicit                      SMediaInfo(const QSharedDataPointer<ProbeInfo> &);
   virtual                       ~SMediaInfo();
 
@@ -58,39 +57,40 @@ public:
   QString                       path(void) const;                               //!< Returns the path to the file, without the file name.
   qint64                        size(void) const;                               //!< Returns the file size.
   QDateTime                     lastModified(void) const;                       //!< Returns the date the file was last modified.
+  bool                          isReadable(void) const;                         //!< Returns true if the file can be read.
 
   QString                       format(void) const;                             //!< The format name of the media (e.g. matroska, mpeg, dvd, etc.)
-
-  STime                         totalDuration(void) const;                      //!< Returns the total duration of all programs, if available.
-  bool                          containsAudio(void) const;                      //!< True if the resource contains audio data.
-  bool                          containsVideo(void) const;                      //!< True if the resource contains video data.
-  bool                          containsImage(void) const;                      //!< True if the resource contains an image.
-  bool                          isProbed(void) const;                           //!< True if the resource was deep-probed (i.e. the resource was opened and scanned).
-  bool                          isReadable(void) const;                         //!< True if the resource is readable (is set to true if deep-probe can read it).
-
+  ProbeInfo::FileType           fileType(void) const;                           //!< The detected file type.
   QString                       fileTypeName(void) const;                       //!< A user-friendly description of the file type.
 
-  const QList<Program>        & programs(void) const;                           //!< The programs available in the resource, if applicable.
+  STime                         duration(void) const;                           //!< The file duration.
+  const QList<Chapter>        & chapters(void) const;                           //!< The chapters in the file.
 
-  QString                       title(void) const;                              //!< The title (e.g. from ID3).
-  QString                       author(void) const;                             //!< The author (e.g. from ID3).
-  QString                       copyright(void) const;                          //!< The copyright (e.g. from ID3).
-  QString                       comment(void) const;                            //!< The comment (e.g. from ID3).
-  QString                       album(void) const;                              //!< The album (e.g. from ID3).
-  QString                       genre(void) const;                              //!< The genre (e.g. from ID3).
-  unsigned                      year(void) const;                               //!< The year (e.g. from ID3).
-  unsigned                      track(void) const;                              //!< The track (e.g. from ID3).
+  const QList<AudioStreamInfo> & audioStreams(void) const;                       //!< The audio streams in the file.
+  const QList<VideoStreamInfo> & videoStreams(void) const;                       //!< The video streams in the file.
+  const QList<DataStreamInfo> & dataStreams(void) const;                        //!< The data streams in the file.
+  const SVideoCodec           & imageCodec(void) const;                         //!< The image codec of the file.
+
+  /*! Returns metadata entries for the file. For example: title, author,
+      copyright, comment, album, genre, year, track.
+   */
+  const QMap<QString, QVariant> & metadata(void) const;
+
+  QVariant                      metadata(const QString &) const;                //!< Returns the requested metadata entry.
+
+  const SVideoBuffer          & thumbnail(void) const;                          //!< A thumbnail for the file, if applicable.
 
 protected:
   inline const ProbeInfo      & probeInfo(void) const                           { return *pi; }
   inline ProbeInfo            & probeInfo(void)                                 { return *pi; }
 
-public:
-  static const unsigned         tvShowSeason;
+  void                          readFileInfo(void);
+  void                          probeFormat(void);
+  void                          probeContent(void);
+  void                          probeDataStreams(void);
 
-private:
-  _lxi_internal void            probe(const QString &);
-  _lxi_internal void            probeDataStreams(void);
+public:
+  static const int              tvShowSeason;
 
 private:
   QSharedDataPointer<ProbeInfo> pi;

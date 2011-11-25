@@ -19,6 +19,7 @@
 
 #include <QtCore>
 #include <LXiStream>
+#include <LXiStreamGui>
 
 class IOTest : public QObject
 {

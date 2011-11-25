@@ -44,36 +44,38 @@ QList<FormatProber::Format> FormatProber::probeFormat(const QByteArray &, const 
   return formats;
 }
 
-void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *)
+void FormatProber::probeFormat(ProbeInfo &pi, QIODevice *)
 {
   if (!pi.filePath.isEmpty())
   {
     const QFileInfo info(pi.filePath);
     const QString suffix = info.suffix().toLower();
 
-    if (pi.programs.isEmpty())
-      pi.programs.append(ProbeInfo::Program(0));
+    QString title, author, album;
+    int track = 0;
 
-    ProbeInfo::Program &program = pi.programs.first();
     if (imageSuffixes().contains(suffix))
     {
-      program.imageCodec = SVideoCodec(suffix.toUpper());
+      pi.imageCodec = SVideoCodec(suffix.toUpper());
+      pi.fileType = ProbeInfo::FileType_Image;
       pi.fileTypeName = imageDescription(suffix);
     }
     else if (audioSuffixes().contains(suffix))
     {
-      program.audioStreams = QList<AudioStreamInfo>() << AudioStreamInfo(StreamId(), NULL, QString::null, SAudioCodec(suffix.toUpper()));
+      pi.audioStreams = QList<AudioStreamInfo>() << AudioStreamInfo(StreamId(), NULL, QString::null, SAudioCodec(suffix.toUpper()));
+      pi.fileType = ProbeInfo::FileType_Audio;
       pi.fileTypeName = audioDescription(suffix);
 
-      splitFileName(info.completeBaseName(), pi.title, pi.author, pi.album, pi.track);
+      splitFileName(info.completeBaseName(), title, author, album, track);
     }
     else if (videoSuffixes().contains(suffix))
     {
-      program.audioStreams = QList<AudioStreamInfo>() << AudioStreamInfo(StreamId(), NULL, QString::null, SAudioCodec(suffix.toUpper()));
-      program.videoStreams = QList<VideoStreamInfo>() << VideoStreamInfo(StreamId(), NULL, QString::null, SVideoCodec(suffix.toUpper()));
+      pi.audioStreams = QList<AudioStreamInfo>() << AudioStreamInfo(StreamId(), NULL, QString::null, SAudioCodec(suffix.toUpper()));
+      pi.videoStreams = QList<VideoStreamInfo>() << VideoStreamInfo(StreamId(), NULL, QString::null, SVideoCodec(suffix.toUpper()));
+      pi.fileType = ProbeInfo::FileType_Video;
       pi.fileTypeName = videoDescription(suffix);
 
-      splitFileName(info.completeBaseName(), pi.title, pi.author, pi.album, pi.track);
+      splitFileName(info.completeBaseName(), title, author, album, track);
 
       QDir dir = info.absoluteDir();
       QString dirName = dir.dirName();
@@ -81,7 +83,7 @@ void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *)
       if (dirName.contains("season", Qt::CaseInsensitive) &&
           (dirName.length() < 10))
       {
-        pi.track = (pi.track % SMediaInfo::tvShowSeason) + (dirName.mid(7).toUInt() * SMediaInfo::tvShowSeason);
+        track = (track % SMediaInfo::tvShowSeason) + (dirName.mid(7).toUInt() * SMediaInfo::tvShowSeason);
 
         const QString path = dir.absolutePath();
 
@@ -89,27 +91,36 @@ void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *)
         dirName = dir.dirName();
       }
 
-      if (pi.track > 0)
+      if (track > 0)
       {
         QString dummy1, dummy2;
-        unsigned dummy3 = 0;
-        splitFileName(dirName, pi.album, dummy1, dummy2, dummy3);
+        int dummy3 = 0;
+        splitFileName(dirName, album, dummy1, dummy2, dummy3);
       }
       else
-        pi.title = info.completeBaseName();
+        title = info.completeBaseName();
     }
     else if (rawImageSuffixes().contains(suffix))
     {
       pi.fileTypeName = imageDescription(suffix);
-      pi.isProbed = true; // Don't probe RAW image formats.
+      pi.isFormatProbed = pi.isContentProbed = true; // Don't probe RAW image formats.
     }
 
-    if (pi.title.length() <= 3)
-      pi.title = info.completeBaseName();
+    if (title.length() <= 3)
+      title = info.completeBaseName();
+
+    if (!title.isEmpty())   pi.metadata.insert("title", title);
+    if (!author.isEmpty())  pi.metadata.insert("author", author);
+    if (!album.isEmpty())   pi.metadata.insert("album", album);
+    if (track > 0)          pi.metadata.insert("track", QString::number(track));
   }
 }
 
-void FormatProber::splitFileName(QString baseName, QString &title, QString &author, QString &album, unsigned &episode)
+void FormatProber::probeContent(ProbeInfo &, QIODevice *)
+{
+}
+
+void FormatProber::splitFileName(QString baseName, QString &title, QString &author, QString &album, int &episode)
 {
   static const QString videoChars = " &()-[]";
 
@@ -128,7 +139,7 @@ void FormatProber::splitFileName(QString baseName, QString &title, QString &auth
     // Finds sNNeNN or NNxNN
     foreach (const QString &word, baseName.split(' ', QString::SkipEmptyParts))
     {
-      unsigned se = 0, ep = 0, digits = 0;
+      int se = 0, ep = 0, digits = 0;
 
       if (word == "-")
       {
@@ -168,7 +179,7 @@ void FormatProber::splitFileName(QString baseName, QString &title, QString &auth
         {
           if (c.isNumber())
           {
-            ep = (ep * 10) + unsigned(c.toAscii() - '0');
+            ep = (ep * 10) + (c.toAscii() - '0');
             digits++;
           }
           else if ((c.toLower() == 'e') || (c.toLower() == 'x'))

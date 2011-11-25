@@ -52,7 +52,7 @@ public: // From SInterfaces::AbstractBufferReader
 public: // From SInterfaces::NetworkBufferReader
   virtual bool                  openProtocol(const QString &);
 
-  virtual bool                  start(const QUrl &url, ProduceCallback *, quint16 programId);
+  virtual bool                  start(const QUrl &url, ProduceCallback *);
   virtual void                  stop(void);
 
   inline virtual bool           buffer(void)                                    { return BufferReaderBase::buffer(); }

@@ -2,7 +2,6 @@
     <qresource>
         <file>devices.ini</file>
         <file>css/main.css</file>
-        <file>css/phone.css</file>
         <file>js/dynamiclist.js</file>
     </qresource>
 </RCC>

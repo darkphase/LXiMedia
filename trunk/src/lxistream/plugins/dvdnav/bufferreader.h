@@ -29,8 +29,7 @@
 namespace LXiStream {
 namespace DVDNavBackend {
 
-class BufferReader : public SInterfaces::BufferReader,
-                     public SInterfaces::BufferReader::ReadCallback
+class BufferReader : public SInterfaces::BufferReader
 {
 Q_OBJECT
 public:
@@ -56,7 +55,7 @@ public:
 public: // From SInterfaces::BufferReader
   virtual bool                  openFormat(const QString &);
 
-  virtual bool                  start(SInterfaces::BufferReader::ReadCallback *, SInterfaces::BufferReader::ProduceCallback *, quint16 programId, bool streamed);
+  virtual bool                  start(QIODevice *, SInterfaces::BufferReader::ProduceCallback *, bool streamed);
   virtual void                  stop(void);
   virtual bool                  process(void);
 
@@ -69,10 +68,6 @@ public: // From SInterfaces::BufferReader
   virtual QList<VideoStreamInfo> videoStreams(void) const;
   virtual QList<DataStreamInfo>  dataStreams(void) const;
   virtual void                  selectStreams(const QVector<StreamId> &);
-
-public: // From SInterfaces::BufferReader::ReadCallback
-  virtual qint64                read(uchar *buffer, qint64 size);
-  virtual qint64                seek(qint64 offset, int whence);
 
 private:
   mutable QMutex                mutex;

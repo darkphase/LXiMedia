@@ -24,7 +24,7 @@
 
 namespace LXiStream {
 
-const unsigned SMediaInfo::tvShowSeason = 100u;
+const int SMediaInfo::tvShowSeason = 100;
 
 SMediaInfo::SMediaInfo(void)
   : pi(NULL)
@@ -36,10 +36,11 @@ SMediaInfo::SMediaInfo(const SMediaInfo &from)
 {
 }
 
-SMediaInfo::SMediaInfo(const QString &path)
+SMediaInfo::SMediaInfo(const QString &filePath)
   : pi(new ProbeInfo())
 {
-  probe(path);
+  pi->filePath = filePath;
+  pi->isReadable = true;
 }
 
 SMediaInfo::SMediaInfo(const QSharedDataPointer<ProbeInfo> &pi)
@@ -80,179 +81,172 @@ QString SMediaInfo::baseName(void) const
 
 QString SMediaInfo::path(void) const
 {
-  if (pi->path.isEmpty())
-    return QFileInfo(pi->filePath).path();
-  else
-    return pi->path;
+  return QFileInfo(pi->filePath).path();
 }
 
 qint64 SMediaInfo::size(void) const
 {
+  if (pi->isReadable && !pi->isFormatProbed)
+    const_cast<SMediaInfo *>(this)->readFileInfo();
+
   return pi->size;
 }
 
 QDateTime SMediaInfo::lastModified(void) const
 {
+  if (pi->isReadable && !pi->isFormatProbed)
+    const_cast<SMediaInfo *>(this)->readFileInfo();
+
   return pi->lastModified;
-}
-
-QString SMediaInfo::format(void) const
-{
-  return pi->format;
-}
-
-STime SMediaInfo::totalDuration(void) const
-{
-  STime result = STime::null;
-
-  foreach (const Program &p, pi->programs)
-  if (p.duration.isValid())
-    result += p.duration;
-
-  return result.isPositive() ? result : STime();
-}
-
-bool SMediaInfo::containsAudio(void) const
-{
-  foreach (const Program &p, pi->programs)
-  if (!p.audioStreams.isEmpty())
-    return true;
-
-  return false;
-}
-
-bool SMediaInfo::containsVideo(void) const
-{
-  foreach (const Program &p, pi->programs)
-  if (!p.videoStreams.isEmpty())
-    return true;
-
-  return false;
-}
-
-bool SMediaInfo::containsImage(void) const
-{
-  foreach (const Program &p, pi->programs)
-  if (!p.imageCodec.isNull())
-    return true;
-
-  return false;
-}
-
-bool SMediaInfo::isProbed(void) const
-{
-  return pi->isProbed;
 }
 
 bool SMediaInfo::isReadable(void) const
 {
+  if (pi->isReadable && !pi->isFormatProbed)
+    const_cast<SMediaInfo *>(this)->readFileInfo();
+
   return pi->isReadable;
+}
+
+QString SMediaInfo::format(void) const
+{
+  if (pi->isReadable && !pi->isFormatProbed)
+    const_cast<SMediaInfo *>(this)->probeFormat();
+
+  return pi->format;
+}
+
+SMediaInfo::ProbeInfo::FileType SMediaInfo::fileType(void) const
+{
+  if (pi->isReadable && !pi->isFormatProbed)
+    const_cast<SMediaInfo *>(this)->probeFormat();
+
+  return pi->fileType;
 }
 
 QString SMediaInfo::fileTypeName(void) const
 {
+  if (pi->isReadable && !pi->isFormatProbed)
+    const_cast<SMediaInfo *>(this)->probeFormat();
+
   return pi->fileTypeName;
 }
 
-const QList<SMediaInfo::Program> & SMediaInfo::programs(void) const
+STime SMediaInfo::duration(void) const
 {
-  return pi->programs;
+  if (pi->isReadable && !pi->isContentProbed)
+    const_cast<SMediaInfo *>(this)->probeContent();
+
+  return pi->duration;
 }
 
-QString SMediaInfo::title(void) const
+const QList<SMediaInfo::Chapter> & SMediaInfo::chapters(void) const
 {
-  if (pi->title.isEmpty())
-    return SStringParser::toCleanName(QFileInfo(pi->filePath).completeBaseName());
-  else
-    return pi->title;
+  if (pi->isReadable && !pi->isContentProbed)
+    const_cast<SMediaInfo *>(this)->probeContent();
+
+  return pi->chapters;
 }
 
-QString SMediaInfo::author(void) const
+const QList<SMediaInfo::AudioStreamInfo> & SMediaInfo::audioStreams(void) const
 {
-  return pi->author;
+  if (pi->isReadable && !pi->isContentProbed)
+    const_cast<SMediaInfo *>(this)->probeContent();
+
+  return pi->audioStreams;
 }
 
-QString SMediaInfo::copyright(void) const
+const QList<SMediaInfo::VideoStreamInfo> & SMediaInfo::videoStreams(void) const
 {
-  return pi->copyright;
+  if (pi->isReadable && !pi->isContentProbed)
+    const_cast<SMediaInfo *>(this)->probeContent();
+
+  return pi->videoStreams;
 }
 
-QString SMediaInfo::comment(void) const
+const QList<SMediaInfo::DataStreamInfo> & SMediaInfo::dataStreams(void) const
 {
-  return pi->comment;
+  if (pi->isReadable && !pi->isContentProbed)
+    const_cast<SMediaInfo *>(this)->probeContent();
+
+  return pi->dataStreams;
 }
 
-QString SMediaInfo::album(void) const
+const SVideoCodec & SMediaInfo::imageCodec(void) const
 {
-  return pi->album;
+  if (pi->isReadable && !pi->isContentProbed)
+    const_cast<SMediaInfo *>(this)->probeContent();
+
+  return pi->imageCodec;
 }
 
-QString SMediaInfo::genre(void) const
+const QMap<QString, QVariant> & SMediaInfo::metadata(void) const
 {
-  return pi->genre;
+  if (pi->isReadable && !pi->isContentProbed)
+    const_cast<SMediaInfo *>(this)->probeContent();
+
+  return pi->metadata;
 }
 
-unsigned SMediaInfo::year(void) const
+QVariant SMediaInfo::metadata(const QString &key) const
 {
-  return pi->year;
+  if (pi->isReadable && !pi->isContentProbed)
+    const_cast<SMediaInfo *>(this)->probeContent();
+
+  QMap<QString, QVariant>::ConstIterator i = pi->metadata.find(key);
+  if (i != pi->metadata.end())
+    return i.value();
+
+  return QVariant();
 }
 
-unsigned SMediaInfo::track(void) const
+const SVideoBuffer & SMediaInfo::thumbnail(void) const
 {
-  return pi->track;
+  if (pi->isReadable && !pi->isContentProbed)
+    const_cast<SMediaInfo *>(this)->probeContent();
+
+  return pi->thumbnail;
 }
 
-void SMediaInfo::probe(const QString &filePath)
+void SMediaInfo::readFileInfo(void)
 {
-  struct Callback : SInterfaces::BufferReader::ReadCallback
-  {
-    Callback(const QString &path) : ReadCallback(), file(path)
-    {
-      file.open(QFile::ReadOnly);
-    }
-
-    virtual qint64 read(uchar *buffer, qint64 size)
-    {
-      if (file.isOpen())
-        return file.read((char *)buffer, size);
-      else
-        return -1;
-    }
-
-    virtual qint64 seek(qint64 offset, int whence)
-    {
-      if (file.isOpen())
-      {
-        if (whence == SEEK_SET)
-          return file.seek(offset) ? 0 : -1;
-        else if (whence == SEEK_CUR)
-          return file.seek(file.pos() + offset) ? 0 : -1;
-        else if (whence == SEEK_END)
-          return file.seek(file.size() + offset) ? 0 : -1;
-        else if (whence == -1) // get size
-          return file.size();
-      }
-
-      return -1;
-    }
-
-    QFile file;
-  };
-
-  const QFileInfo fileInfo(filePath);
+  const QFileInfo fileInfo(pi->filePath);
   if (fileInfo.exists())
   {
-    pi->filePath = filePath;
     pi->size = fileInfo.size();
     pi->lastModified = fileInfo.lastModified();
+    pi->isReadable = fileInfo.isReadable();
+  }
+}
 
-    Callback callback(filePath);
+void SMediaInfo::probeFormat(void)
+{
+  QFile file(pi->filePath);
+  if (file.open(QFile::ReadOnly))
+  {
     foreach (SInterfaces::FormatProber *prober, SInterfaces::FormatProber::create(NULL))
     {
-      if (!pi->isProbed)
+      if (!pi->isFormatProbed)
+        prober->probeFormat(*pi, &file);
+
+      delete prober;
+    }
+
+    pi->isFormatProbed = true;
+  }
+}
+
+void SMediaInfo::probeContent(void)
+{
+  QFile file(pi->filePath);
+  if (file.open(QFile::ReadOnly))
+  {
+    foreach (SInterfaces::FormatProber *prober, SInterfaces::FormatProber::create(NULL))
+    {
+      if (!pi->isContentProbed)
       {
-        callback.seek(0, SEEK_SET);
-        prober->probeMetadata(*pi, &callback);
+        file.seek(0);
+        prober->probeContent(*pi, &file);
       }
 
       delete prober;
@@ -260,60 +254,56 @@ void SMediaInfo::probe(const QString &filePath)
 
     probeDataStreams();
 
-    pi->isProbed = true;
+    pi->isContentProbed = true;
   }
 }
 
 // Subtitles in separate files need to be verified every time
 void SMediaInfo::probeDataStreams(void)
 {
-  if (pi->programs.count() == 1)
+  if (!pi->videoStreams.isEmpty())
   {
-    Program * const program = &(pi->programs.first());
-    if (!program->videoStreams.isEmpty())
+    // Remove subtitles.
+    QList<DataStreamInfo> subs;
+    for (QList<DataStreamInfo>::Iterator i=pi->dataStreams.begin();
+         i != pi->dataStreams.end(); )
+    if (!i->file.isEmpty())
     {
-      // Remove subtitles.
-      QList<DataStreamInfo> subs;
-      for (QList<DataStreamInfo>::Iterator i=program->dataStreams.begin();
-           i != program->dataStreams.end(); )
-      if (!i->file.isEmpty())
+      subs += *i;
+      i = pi->dataStreams.erase(i);
+    }
+    else
+      i++;
+
+    // Add subtitles with new ID (To ensure IDs match SFileInputNode).
+    quint16 nextStreamId = 0xF000;
+    foreach (const QString &fileName, SSubtitleFile::findSubtitleFiles(pi->filePath))
+    {
+      bool found = false;
+      for (QList<DataStreamInfo>::Iterator i=subs.begin(); i!=subs.end(); i++)
+      if (i->file == fileName)
       {
-        subs += *i;
-        i = program->dataStreams.erase(i);
+        i->type = DataStreamInfo::Type_Subtitle;
+        i->id = nextStreamId++;
+        pi->dataStreams += *i;
+
+        found = true;
+        break;
       }
-      else
-        i++;
 
-      // Add subtitles with new ID (To ensure IDs match SFileInputNode).
-      quint16 nextStreamId = 0xF000;
-      foreach (const QString &fileName, SSubtitleFile::findSubtitleFiles(pi->filePath))
+      if (!found)
       {
-        bool found = false;
-        for (QList<DataStreamInfo>::Iterator i=subs.begin(); i!=subs.end(); i++)
-        if (i->file == fileName)
+        SSubtitleFile file(fileName);
+        if (file.open())
         {
-          i->type = DataStreamInfo::Type_Subtitle;
-          i->id = nextStreamId++;
-          program->dataStreams += *i;
+          DataStreamInfo stream(
+              StreamId(DataStreamInfo::Type_Subtitle, nextStreamId++),
+              file.language(),
+              QString::null,
+              file.codec());
 
-          found = true;
-          break;
-        }
-
-        if (!found)
-        {
-          SSubtitleFile file(fileName);
-          if (file.open())
-          {
-            DataStreamInfo stream(
-                StreamId(DataStreamInfo::Type_Subtitle, nextStreamId++),
-                file.language(),
-                QString::null,
-                file.codec());
-
-            stream.file = fileName;
-            program->dataStreams += stream;
-          }
+          stream.file = fileName;
+          pi->dataStreams += stream;
         }
       }
     }

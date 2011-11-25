@@ -35,15 +35,15 @@ Playlist::~Playlist()
 {
 }
 
-void Playlist::append(MediaDatabase::UniqueID uid)
+void Playlist::append(const QString &filePath)
 {
-  list.append(Entry(uid));
+  list.append(Entry(filePath));
 }
 
-void Playlist::remove(MediaDatabase::UniqueID uid)
+void Playlist::remove(const QString &filePath)
 {
   for (QVector<Entry>::Iterator i=list.begin(); i!=list.end(); )
-  if (i->uid == uid)
+  if (i->filePath == filePath)
   {
     if (i->played)
       played--;
@@ -65,22 +65,21 @@ int Playlist::count(void) const
   return list.count();
 }
 
-MediaDatabase::UniqueID Playlist::checkout(void)
+QString Playlist::checkout(void)
 {
   return random();
 }
 
-QList<MediaDatabase::UniqueID> Playlist::next(void)
+QStringList Playlist::next(void)
 {
-  QList<MediaDatabase::UniqueID> result;
-
+  QStringList result;
   for (int i=0, n=list.count(); i<n; i++)
-    result += list[i].uid;
+    result += list[i].filePath;
 
   return result;
 }
 
-MediaDatabase::UniqueID Playlist::random(void)
+QString Playlist::random(void)
 {
   const int fresh = list.count() - played;
   if (fresh > 0)
@@ -93,11 +92,11 @@ MediaDatabase::UniqueID Playlist::random(void)
       list[i].played = true;
       played++;
 
-      return list[i].uid;
+      return list[i].filePath;
     }
   }
 
-  return 0;
+  return QString::null;
 }
 
 QByteArray Playlist::serialize(void) const
@@ -106,25 +105,24 @@ QByteArray Playlist::serialize(void) const
 
   for (int i=0, n=list.count(); i<n; i++)
   {
-    const FileNode node = mediaDatabase->readNode(list[i].uid);
+    const FileNode node = mediaDatabase->readNode(list[i].filePath);
     if (!node.isNull())
-    foreach (const SMediaInfo::Program &program, node.programs())
     {
       data.append("#EXTINF:");
-      if (program.duration.isPositive())
-        data.append(QByteArray::number(program.duration.toSec()));
+      if (node.duration().isPositive())
+        data.append(QByteArray::number(node.duration().toSec()));
       else
         data.append("-1");
 
-      if (!node.author().isEmpty())
-        data.append(',' + node.author());
+      const QString author = node.metadata("author").toString();
+      if (!author.isEmpty())
+        data.append(',' + author);
       else
         data.append(",");
 
-      if (!program.title.isEmpty())
-        data.append(" - " + program.title);
-      else if (!node.title().isEmpty())
-        data.append(" - " + node.title());
+      const QString title = node.metadata("title").toString();
+      if (!title.isEmpty())
+        data.append(" - " + title);
 
       data.append('\n');
       data.append(QDir::toNativeSeparators(node.filePath()).toUtf8());
@@ -147,11 +145,7 @@ bool Playlist::deserialize(const QByteArray &data)
       line = line.left(line.length() - 1);
 
     if (!line.isEmpty())
-    {
-      const MediaDatabase::UniqueID uid = mediaDatabase->fromPath(QDir::fromNativeSeparators(QString::fromUtf8(line)));
-      if (uid != 0)
-        list.append(Entry(uid));
-    }
+      list.append(Entry(QDir::fromNativeSeparators(QString::fromUtf8(line))));
   }
 
   return !list.isEmpty();

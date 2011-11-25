@@ -22,6 +22,7 @@
 
 #include <QtCore>
 #include <LXiStream>
+#include <LXiStreamGui>
 
 namespace LXiMediaCenter {
 namespace MediaPlayerBackend {
@@ -40,6 +41,9 @@ public:
 
   inline FileNode             & operator=(const FileNode &from) { SMediaInfo::operator=(from); return *this; }
   inline FileNode             & operator=(const SMediaInfo &from) { SMediaInfo::operator=(from); return *this; }
+
+  QByteArray                    probeFormat(int = 1);
+  QByteArray                    probeContent(int = 1);
 
   QByteArray                    toByteArray(int = 1) const;
   static FileNode               fromByteArray(const QByteArray &);

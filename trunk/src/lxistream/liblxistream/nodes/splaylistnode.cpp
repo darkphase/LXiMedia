@@ -25,7 +25,7 @@ namespace LXiStream {
 
 struct SPlaylistNode::Data
 {
-  QList< QPair<QString, quint16> > fileNames;
+  QStringList                   fileNames;
   QList<STime>                  fileOffsets;
   STime                         duration;
   STime                         firstFileOffset;
@@ -63,41 +63,37 @@ void SPlaylistNode::setFiles(const SMediaInfoList &files)
   SSize maxSize;
   foreach (const SMediaInfo &file, files)
   {
-    quint16 programId = 0;
-    foreach (const SMediaInfo::Program &program, file.programs())
+    foreach (const AudioStreamInfo &info, file.audioStreams())
+      surround &= info.codec.numChannels() >= 5;
+
+    d->hasVideo &= !file.videoStreams().isEmpty();
+    if (d->hasVideo)
+    foreach (const VideoStreamInfo &info, file.videoStreams())
     {
-      foreach (const AudioStreamInfo &info, program.audioStreams)
-        surround &= info.codec.numChannels() >= 5;
+      const double frameRate = info.codec.frameRate().toFrequency();
+      if (frameRate < 23.0)
+        fps15++;
+      else if ((frameRate < 24.5) || ((frameRate >= 44.0) && (frameRate < 49.0)))
+        fps24++;
+      else if ((frameRate < 27.5) || ((frameRate >= 44.0) && (frameRate < 55.0)))
+        fps25++;
+      else if ((frameRate < 32.5) || ((frameRate >= 55.0) && (frameRate < 65.0)))
+        fps30++;
 
-      d->hasVideo &= !program.videoStreams.isEmpty();
-      if (d->hasVideo)
-      foreach (const VideoStreamInfo &info, program.videoStreams)
-      {
-        const double frameRate = info.codec.frameRate().toFrequency();
-        if (frameRate < 23.0)
-          fps15++;
-        else if ((frameRate < 24.5) || ((frameRate >= 44.0) && (frameRate < 49.0)))
-          fps24++;
-        else if ((frameRate < 27.5) || ((frameRate >= 44.0) && (frameRate < 55.0)))
-          fps25++;
-        else if ((frameRate < 32.5) || ((frameRate >= 55.0) && (frameRate < 65.0)))
-          fps30++;
+      if ((info.codec.size().width() < 1280) && (info.codec.size().height() < 720))
+        sizeSD++;
+      else if ((info.codec.size().width() < 1920) && (info.codec.size().height() < 1080))
+        size720++;
+      else
+        size1080++;
 
-        if ((info.codec.size().width() < 1280) && (info.codec.size().height() < 720))
-          sizeSD++;
-        else if ((info.codec.size().width() < 1920) && (info.codec.size().height() < 1080))
-          size720++;
-        else
-          size1080++;
-
-        if (maxSize.isNull() || (info.codec.size() > maxSize))
-          maxSize = info.codec.size();
-      }
-
-      d->fileNames += qMakePair(file.filePath(), programId++);
-      d->fileOffsets += d->duration;
-      d->duration += program.duration;
+      if (maxSize.isNull() || (info.codec.size() > maxSize))
+        maxSize = info.codec.size();
     }
+
+    d->fileNames += file.filePath();
+    d->fileOffsets += d->duration;
+    d->duration += file.duration();
   }
 
   if (surround)
@@ -207,7 +203,7 @@ void SPlaylistNode::stop(void)
   SFileInputNode::stop();
 
   if ((d->fileId >= 0) && (d->fileId < d->fileNames.count()))
-    emit closed(d->fileNames[d->fileId].first, d->fileNames[d->fileId].second);
+    emit closed(d->fileNames[d->fileId]);
 
   d->fileId = -1;
 }
@@ -223,14 +219,14 @@ bool SPlaylistNode::openNext(void)
   SFileInputNode::stop();
 
   if ((d->fileId >= 0) && (d->fileId < d->fileNames.count()))
-    emit closed(d->fileNames[d->fileId].first, d->fileNames[d->fileId].second);
+    emit closed(d->fileNames[d->fileId]);
 
   for (d->fileId++; d->fileId < d->fileNames.count(); d->fileId++)
   {
-    setFileName(d->fileNames[d->fileId].first, d->fileNames[d->fileId].second);
+    setFileName(d->fileNames[d->fileId]);
     if (SFileInputNode::start())
     {
-      emit opened(d->fileNames[d->fileId].first, d->fileNames[d->fileId].second);
+      emit opened(d->fileNames[d->fileId]);
       return true;
     }
   }

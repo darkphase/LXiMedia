@@ -36,7 +36,7 @@ public:
   explicit                      BufferReader(const QString &, QObject *);
   virtual                       ~BufferReader();
 
-  bool                          start(ReadCallback *, ProduceCallback *, quint16 programId, bool streamed, bool fast);
+  bool                          start(QIODevice *, ProduceCallback *, bool streamed, bool fast);
 
 public: // From SInterfaces::AbstractBufferReader
   inline virtual STime          duration(void) const                            { return BufferReaderBase::duration(); }
@@ -54,7 +54,7 @@ public: // From SInterfaces::AbstractBufferReader
 public: // From SInterfaces::BufferReader
   virtual bool                  openFormat(const QString &);
 
-  inline virtual bool           start(ReadCallback *rc, ProduceCallback *pc, quint16 programId, bool streamed) { return start(rc, pc, programId, streamed, false); }
+  inline virtual bool           start(QIODevice *rc, ProduceCallback *pc, bool streamed) { return start(rc, pc, streamed, false); }
   virtual void                  stop(void);
 
 private:
@@ -62,7 +62,7 @@ private:
   static int64_t                seek(void *opaque, int64_t offset, int whence);
 
 private:
-  ReadCallback                * readCallback;
+  QIODevice                   * ioDevice;
   ::AVInputFormat             * format;
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
   ::AVIOContext               * ioContext;

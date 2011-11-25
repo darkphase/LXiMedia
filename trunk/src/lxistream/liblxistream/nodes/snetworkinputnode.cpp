@@ -48,7 +48,6 @@ struct SNetworkInputNode::Data
   static const int              timeslot = 250;
 
   QUrl                          url;
-  quint16                       programId;
   QMutex                        bufferMutex;
   STime                         bufferDuration;
   float                         bufferSize;
@@ -57,17 +56,16 @@ struct SNetworkInputNode::Data
   BufferThread                * bufferThread;
 };
 
-SNetworkInputNode::SNetworkInputNode(SGraph *parent, const QUrl &url, quint16 programId)
+SNetworkInputNode::SNetworkInputNode(SGraph *parent, const QUrl &url)
   : SInputNode(parent),
     d(new Data())
 {
-  d->programId = 0;
   d->bufferDuration = STime::fromSec(10);
   d->bufferSize = 0.0f;
   d->bufferReady = false;
   d->bufferThread = NULL;
 
-  setUrl(url, programId);
+  setUrl(url);
 }
 
 SNetworkInputNode::~SNetworkInputNode()
@@ -80,7 +78,7 @@ SNetworkInputNode::~SNetworkInputNode()
   *const_cast<Data **>(&d) = NULL;
 }
 
-void SNetworkInputNode::setUrl(const QUrl &url, quint16 programId)
+void SNetworkInputNode::setUrl(const QUrl &url)
 {
   QMutexLocker l(&d->bufferMutex);
 
@@ -102,8 +100,6 @@ void SNetworkInputNode::setUrl(const QUrl &url, quint16 programId)
     if (bufferReader)
     {
       d->url = url;
-      d->programId = programId;
-
       d->bufferThread = new BufferThread(this);
 
       setBufferReader(bufferReader);
@@ -149,7 +145,7 @@ bool SNetworkInputNode::start(void)
 
   SInterfaces::NetworkBufferReader * const bufferReader = static_cast<SInterfaces::NetworkBufferReader *>(SInputNode::bufferReader());
   if (bufferReader && d->url.isValid() && !d->url.isEmpty())
-  if (bufferReader->start(d->url, this, d->programId))
+  if (bufferReader->start(d->url, this))
   if (SInputNode::start())
   {
     if (!d->bufferThread->isRunning())

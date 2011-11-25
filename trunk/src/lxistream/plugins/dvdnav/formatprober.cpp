@@ -47,58 +47,64 @@ QList<FormatProber::Format> FormatProber::probeFormat(const QByteArray &, const 
   return result;
 }
 
-void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *)
+void FormatProber::probeFormat(ProbeInfo &pi, QIODevice *)
+{
+  if (BufferReader::isDiscPath(pi.filePath))
+  {
+    pi.format = BufferReader::formatName;
+    pi.fileType = ProbeInfo::FileType_Disc;
+    pi.fileTypeName = "Digital Versatile Disc";
+    pi.isFormatProbed = true;
+  }
+}
+
+void FormatProber::probeContent(ProbeInfo &pi, QIODevice *)
 {
   if (BufferReader::isDiscPath(pi.filePath))
   {
     BufferReader bufferReader(QString::null, this);
     if (bufferReader.openFile(pi.filePath))
     {
-      if (BufferReader::isExtractedDiscPath(pi.filePath))
-        pi.path = QFileInfo(BufferReader::discPath(pi.filePath)).path();
+//      pi.programs.clear();
+//      for (quint16 i=0, n=bufferReader.numTitles(); i<n; i++)
+//      if (bufferReader.selectTitle(i))
+//      {
+//        ProbeInfo fpi;
+//        fpi.programs.append(ProbeInfo::Program(i));
+//
+//        fpi.programs.first().duration = bufferReader.duration();
+//
+//        foreach (SInterfaces::FormatProber *prober, SInterfaces::FormatProber::create(NULL))
+//        {
+//          if ((qobject_cast<FormatProber *>(prober) == NULL) && !fpi.isContentProbed)
+//          {
+//            bufferReader.setPosition(STime::null);
+//            prober->probeContent(fpi, &bufferReader);
+//          }
+//
+//          delete prober;
+//        }
+//
+//        if (!fpi.programs.isEmpty())
+//        {
+//          ProbeInfo::Program &program = fpi.programs.first();
+//
+//          program.programId = i;
+//          program.duration = bufferReader.duration();
+//          program.chapters = bufferReader.chapters();
+//
+//          program.audioStreams = bufferReader.filterAudioStreams(program.audioStreams);
+//          program.videoStreams = bufferReader.filterVideoStreams(program.videoStreams);
+//          program.dataStreams = bufferReader.filterDataStreams(program.dataStreams);
+//
+//          if (program.duration.isValid() && (program.duration.toSec() >= 60))
+//            pi.programs.append(program);
+//        }
+//      }
 
-      pi.format = BufferReader::formatName;
-      pi.isReadable = true;
-      pi.isProbed = true;
+      pi.metadata.insert("title", bufferReader.discTitle());
 
-      pi.title = bufferReader.discTitle();
-
-      pi.programs.clear();
-      for (quint16 i=0, n=bufferReader.numTitles(); i<n; i++)
-      if (bufferReader.selectTitle(i))
-      {
-        ProbeInfo fpi;
-        fpi.programs.append(ProbeInfo::Program(i));
-
-        fpi.programs.first().duration = bufferReader.duration();
-
-        foreach (SInterfaces::FormatProber *prober, SInterfaces::FormatProber::create(NULL))
-        {
-          if ((qobject_cast<FormatProber *>(prober) == NULL) && !fpi.isProbed)
-          {
-            bufferReader.setPosition(STime::null);
-            prober->probeMetadata(fpi, &bufferReader);
-          }
-
-          delete prober;
-        }
-
-        if (!fpi.programs.isEmpty())
-        {
-          ProbeInfo::Program &program = fpi.programs.first();
-
-          program.programId = i;
-          program.duration = bufferReader.duration();
-          program.chapters = bufferReader.chapters();
-
-          program.audioStreams = bufferReader.filterAudioStreams(program.audioStreams);
-          program.videoStreams = bufferReader.filterVideoStreams(program.videoStreams);
-          program.dataStreams = bufferReader.filterDataStreams(program.dataStreams);
-
-          if (program.duration.isValid() && (program.duration.toSec() >= 60))
-            pi.programs.append(program);
-        }
-      }
+      pi.isContentProbed = true;
     }
   }
 }

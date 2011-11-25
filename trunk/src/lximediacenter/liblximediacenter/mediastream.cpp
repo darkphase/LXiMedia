@@ -158,12 +158,25 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
   {
     SAudioCodec audioCodec;
     SVideoCodec videoCodec;
-    QString format;
+    QString format = file.url().queryItemValue("format");
 
-    if (file.fileName().endsWith(".mpeg", Qt::CaseInsensitive) ||
-        file.fileName().endsWith(".mpg", Qt::CaseInsensitive) ||
-        file.fileName().endsWith(".ts", Qt::CaseInsensitive) ||
-        file.fileName().endsWith(".m2ts", Qt::CaseInsensitive))
+    if (format == "ogg")
+    {
+      audioCodec = SAudioCodec("VORBIS", SAudioFormat::Channels_Stereo, 48000);
+      videoCodec = SVideoCodec("THEORA", videoFormat.size(), videoFormat.frameRate());
+      header.setContentType(SHttpEngine::mimeVideoOgg);
+    }
+    else if (format == "flv")
+    {
+      if (SAudioEncoderNode::codecs().contains("MP3"))
+        audioCodec = SAudioCodec("MP3", SAudioFormat::Channels_Stereo, 44100);
+      else
+        audioCodec = SAudioCodec("PCM/S16LE", SAudioFormat::Channels_Stereo, 44100);
+
+      videoCodec = SVideoCodec("FLV1", videoFormat.size(), videoFormat.frameRate());
+      header.setContentType(SHttpEngine::mimeVideoFlv);
+    }
+    else // Default to mpeg
     {
       const SInterval roundedFrameRate =
           STimeStampResamplerNode::roundFrameRate(
@@ -180,14 +193,12 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
 
       videoCodec = SVideoCodec("MPEG2", videoFormat.size(), roundedFrameRate);
 
-      if (file.fileName().endsWith(".ts", Qt::CaseInsensitive))
+      if (format == "mpegts")
       {
-        format = "mpegts";
         header.setContentType(SHttpEngine::mimeVideoMpeg);
       }
-      else if (file.fileName().endsWith(".m2ts", Qt::CaseInsensitive))
+      else if (format == "m2ts")
       {
-        format = "m2ts";
         header.setContentType(SHttpEngine::mimeVideoMpegM2TS);
       }
       else
@@ -195,30 +206,6 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
         format = "vob";
         header.setContentType(SHttpEngine::mimeVideoMpeg);
       }
-    }
-    else if (file.fileName().endsWith(".ogg", Qt::CaseInsensitive) ||
-             file.fileName().endsWith(".ogv", Qt::CaseInsensitive))
-    {
-      audioCodec = SAudioCodec("VORBIS", SAudioFormat::Channels_Stereo, 48000);
-      videoCodec = SVideoCodec("THEORA", videoFormat.size(), videoFormat.frameRate());
-      format = "ogg";
-      header.setContentType(SHttpEngine::mimeVideoOgg);
-    }
-    else if (file.fileName().endsWith(".flv", Qt::CaseInsensitive))
-    {
-      if (SAudioEncoderNode::codecs().contains("MP3"))
-        audioCodec = SAudioCodec("MP3", SAudioFormat::Channels_Stereo, 44100);
-      else
-        audioCodec = SAudioCodec("PCM/S16LE", SAudioFormat::Channels_Stereo, 44100);
-
-      videoCodec = SVideoCodec("FLV1", videoFormat.size(), videoFormat.frameRate());
-      format = "flv";
-      header.setContentType(SHttpEngine::mimeVideoFlv);
-    }
-    else
-    {
-      qWarning() << "Could not determine format for file:" << file.fileName();
-      return false;
     }
 
     if (!output.openFormat(format))
@@ -338,89 +325,52 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
   else // Non-DLNA stream.
   {
     SAudioCodec audioCodec;
-    QString format;
+    QString format = file.url().queryItemValue("format");
 
-    if (file.fileName().endsWith(".mpeg", Qt::CaseInsensitive) ||
-        file.fileName().endsWith(".mpg", Qt::CaseInsensitive) ||
-        file.fileName().endsWith(".mpa", Qt::CaseInsensitive) ||
-        file.fileName().endsWith(".ts", Qt::CaseInsensitive) ||
-        file.fileName().endsWith(".m2ts", Qt::CaseInsensitive))
-    {
-      audioCodec = SAudioCodec("AC3", audioFormat.channelSetup(), audioFormat.sampleRate());
-
-      if (file.fileName().endsWith(".ts", Qt::CaseInsensitive))
-      {
-        format = "mpegts";
-        header.setContentType(SHttpEngine::mimeVideoMpeg);
-      }
-      else if (file.fileName().endsWith(".m2ts", Qt::CaseInsensitive))
-      {
-        format = "m2ts";
-        header.setContentType(SHttpEngine::mimeVideoMpegM2TS);
-      }
-      else
-      {
-        format = "vob";
-        header.setContentType(SHttpEngine::mimeVideoMpeg);
-      }
-    }
-    else if (file.fileName().endsWith(".aac", Qt::CaseInsensitive))
+    if (format == "adts")
     {
       audioCodec = SAudioCodec("AAC", SAudioFormat::Channels_Stereo, audioFormat.sampleRate());
-      format = "adts";
       header.setContentType(SHttpEngine::mimeAudioAac);
     }
-    else if (file.fileName().endsWith(".ac3", Qt::CaseInsensitive))
+    else if (format == "ac3")
     {
       audioCodec = SAudioCodec("AC3", SAudioFormat::Channels_Stereo, audioFormat.sampleRate());
-      format = "ac3";
       header.setContentType(SHttpEngine::mimeAudioAc3);
     }
-    else if (file.fileName().endsWith(".mp2", Qt::CaseInsensitive))
-    {
-      audioCodec = SAudioCodec("MP2", SAudioFormat::Channels_Stereo, 48000);
-      format = "mp2";
-      header.setContentType(SHttpEngine::mimeAudioMpeg);
-    }
-    else if (file.fileName().endsWith(".mp3", Qt::CaseInsensitive))
+    else if (format == "mp3")
     {
       audioCodec = SAudioCodec("MP3", SAudioFormat::Channels_Stereo, 44100);
-      format = "mp3";
       header.setContentType(SHttpEngine::mimeAudioMp3);
     }
-    else if (file.fileName().endsWith(".ogg", Qt::CaseInsensitive) ||
-             file.fileName().endsWith(".oga", Qt::CaseInsensitive))
+    else if (format == "ogg")
     {
       audioCodec = SAudioCodec("VORBIS", SAudioFormat::Channels_Stereo, 48000);
-      format = "ogg";
       header.setContentType(SHttpEngine::mimeAudioOgg);
     }
-    else if (file.fileName().endsWith(".lpcm", Qt::CaseInsensitive))
+    else if (format == "s16be")
     {
       audioCodec = SAudioCodec("PCM/S16BE", SAudioFormat::Channels_Stereo, 48000);
-      format = "s16be";
       header.setContentType(SHttpEngine::mimeAudioLpcm);
     }
-    else if (file.fileName().endsWith(".wav", Qt::CaseInsensitive))
+    else if (format == "wav")
     {
       audioCodec = SAudioCodec("PCM/S16LE", SAudioFormat::Channels_Stereo, 48000);
-      format = "wav";
       header.setContentType(SHttpEngine::mimeAudioWave);
     }
-    else if (file.fileName().endsWith(".flv", Qt::CaseInsensitive))
+    else if (format == "flv")
     {
       if (SAudioEncoderNode::codecs().contains("MP3"))
         audioCodec = SAudioCodec("MP3", SAudioFormat::Channels_Stereo, 44100);
       else
         audioCodec = SAudioCodec("PCM/S16LE", SAudioFormat::Channels_Stereo, 44100);
 
-      format = "flv";
       header.setContentType(SHttpEngine::mimeVideoFlv);
     }
-    else
+    else // Default to mpeg
     {
-      qWarning() << "Could not determine format for file:" << file.fileName();
-      return false;
+      audioCodec = SAudioCodec("MP2", SAudioFormat::Channels_Stereo, 48000);
+      format = "mp2";
+      header.setContentType(SHttpEngine::mimeAudioMpeg);
     }
 
     if (!output.openFormat(format))

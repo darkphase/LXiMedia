@@ -33,13 +33,13 @@ struct SFileInputNode::Data
   SEncodedDataBuffer            nextSubtitle;
 };
 
-SFileInputNode::SFileInputNode(SGraph *parent, const QString &fileName, quint16 programId)
+SFileInputNode::SFileInputNode(SGraph *parent, const QString &fileName)
   : SIOInputNode(parent),
     d(new Data())
 {
   d->subtitleFile = NULL;
 
-  setFileName(fileName, programId);
+  setFileName(fileName);
 }
 
 SFileInputNode::~SFileInputNode()
@@ -49,13 +49,13 @@ SFileInputNode::~SFileInputNode()
   *const_cast<Data **>(&d) = NULL;
 }
 
-void SFileInputNode::setFileName(const QString &fileName, quint16 programId)
+void SFileInputNode::setFileName(const QString &fileName)
 {
   d->mediaFile.close();
   d->mediaFile.setFileName(fileName);
 
   if (d->mediaFile.open(QFile::ReadOnly))
-    SIOInputNode::setIODevice(&d->mediaFile, programId);
+    SIOInputNode::setIODevice(&d->mediaFile);
 }
 
 QString SFileInputNode::fileName(void) const

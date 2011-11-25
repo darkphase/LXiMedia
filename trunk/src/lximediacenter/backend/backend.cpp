@@ -152,45 +152,9 @@ void Backend::start(void)
   // This call may take a while if the database needs to be updated ...
   masterImdbClient = new ImdbClient(this);
 
-  // Build the menu
-  QList<MenuItem> generalMenu;
-  generalMenu += MenuItem(tr("Main"),      "/",                 "/lximedia.png");
-  generalMenu += MenuItem(tr("Log"),       "/main.log#bottom",  "/img/journal.png");
-#ifndef QT_NO_DEBUG
-  generalMenu += MenuItem(tr("Exit"),      "/?exit",            "/img/control.png");
-  generalMenu += MenuItem(tr("Restart"),   "/?restart",         "/img/control.png");
-#endif
-  generalMenu += MenuItem(tr("Settings"),  "/settings.html",    "/img/control.png");
-  generalMenu += MenuItem(tr("About"),     "/about.html",       "/img/glossary.png");
-  submenuItems[tr("General")] = generalMenu;
-
   backendServers = BackendServer::create(this);
   foreach (BackendServer *server, backendServers)
-  {
     server->initialize(this);
-
-    submenuItems[server->pluginName()] +=
-        MenuItem(server->serverName(), server->serverPath(), server->serverIconPath());
-  }
-
-  htmlParser.setField("MAIN_MENUGROUPS", QByteArray(""));
-  for (QMap<QString, QList<MenuItem> >::ConstIterator i=submenuItems.begin();
-       i!=submenuItems.end();
-       i++)
-  {
-    HtmlParser localParser(htmlParser);
-    localParser.setField("ITEMS", QByteArray(""));
-    foreach (const MenuItem &item, *i)
-    {
-      localParser.setField("ITEM_TITLE", item.title);
-      localParser.setField("ITEM_URL", QUrl(item.url).toEncoded());
-      localParser.setField("ITEM_ICONURL", QUrl(item.iconurl + "?scale=32").toEncoded());
-      localParser.appendField("ITEMS", localParser.parse(htmlMenuItem));
-    }
-
-    localParser.setField("TEXT", i.key());
-    htmlParser.appendField("MAIN_MENUGROUPS", localParser.parse(htmlMenuGroup));
-  }
 
   // Setup SSDP server
   masterSsdpServer.initialize(settings.defaultBackendInterfaces());
@@ -481,18 +445,11 @@ SHttpServer::ResponseMessage Backend::httpRequest(const SHttpServer::RequestMess
       }
     }
 
-    // Check if the root directory of a plugin was requested.
-    QString pluginName = path.mid(1, path.length() - 2);
-    foreach (BackendServer *server, backendServers)
-    if (pluginName == server->pluginName())
-      return handleHtmlRequest(request, pluginName);
-
     QString sendFile;
     if      (path == "/favicon.ico")                sendFile = ":/lximedia.ico";
     else if (path == "/lximedia.png")               sendFile = ":/lximedia.png";
 
     else if (path == "/css/main.css")               sendFile = ":/css/main.css";
-    else if (path == "/css/phone.css")              sendFile = ":/css/phone.css";
 
     else if (path == "/js/dynamiclist.js")          sendFile = ":/js/dynamiclist.js";
 

@@ -25,7 +25,7 @@
 
 // This starts the sandboxes in the local process, so they can be debugged.
 #ifndef QT_NO_DEBUG
-//#define DEBUG_USE_LOCAL_SANDBOX
+#define DEBUG_USE_LOCAL_SANDBOX
 #endif
 
 class Backend : public QObject,
@@ -113,8 +113,6 @@ private:
   HtmlParser                    cssParser;
   HtmlParser                    htmlParser;
   QList<BackendServer *>        backendServers;
-  QMap<QString, QList<MenuItem> > submenuItems;
-  QByteArray                    menuHtml;
 
   SSandboxClient              * initSandbox;
 

@@ -204,7 +204,7 @@ SSandboxClient::ResponseMessage SSandboxClient::blockingRequest(const RequestMes
           while (socket.canReadLine() && !data.endsWith("\r\n\r\n"))
             data += socket.readLine();
         }
-        else
+        else if (d->serverProcess)
           d->serverProcess->waitForReadyRead(qBound(0, timeout - timer.elapsed(), 50));
       }
 
@@ -217,7 +217,7 @@ SSandboxClient::ResponseMessage SSandboxClient::blockingRequest(const RequestMes
       {
         if (socket.waitForReadyRead(qBound(0, timeout - timer.elapsed(), 50)))
           data += socket.readAll();
-        else
+        else if (d->serverProcess)
           d->serverProcess->waitForReadyRead(qBound(0, timeout - timer.elapsed(), 50));
       }
 

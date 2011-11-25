@@ -49,48 +49,31 @@ QList<FormatProber::Format> FormatProber::probeFormat(const QByteArray &data, co
   return result;
 }
 
-void FormatProber::probeMetadata(ProbeInfo &pi, ReadCallback *readCallback)
+void FormatProber::probeFormat(ProbeInfo &pi, QIODevice *ioDevice)
 {
-  SImage thumbnail;
+  QList<FormatProber::Format> format = FormatProber::probeFormat(ioDevice->read(4), QString::null);
+  if (!format.isEmpty())
+  {
+    pi.format = format.first().name;
+    pi.fileType = ProbeInfo::FileType_Image;
 
-  const QFileInfo fileInfo(pi.filePath);
-  if (fileInfo.exists() && fileInfo.isReadable())
-  {
-    thumbnail = SImage::fromFile(fileInfo.absoluteFilePath(), QSize(128, 128));
+    pi.isFormatProbed = true;
   }
-  else if (readCallback)
+}
+
+void FormatProber::probeContent(ProbeInfo &pi, QIODevice *ioDevice)
+{
+  QList<FormatProber::Format> format = FormatProber::probeFormat(ioDevice->peek(4), QString::null);
+  if (!format.isEmpty())
   {
-    const qint64 size = readCallback->seek(0, -1);
-    if ((size > 0) && (size <= (16384 * 1024)))
+    const SImage thumbnail = SImage::fromData(ioDevice, QSize(128, 128));
+    if (!thumbnail.isNull())
     {
-      QByteArray data;
-      data.reserve(qMax(Q_INT64_C(4), size) + 1); // Terminating \0.
-      data.resize(readCallback->read(reinterpret_cast<uchar *>(data.data()), 4));
+      pi.imageCodec = SVideoCodec(format.first().name.toUpper(), thumbnail.originalSize());
+      pi.thumbnail = thumbnail.toVideoBuffer();
 
-      if (!FormatProber::probeFormat(data, pi.filePath).isEmpty())
-      {
-        data.resize(readCallback->read(reinterpret_cast<uchar *>(data.data() + 4), data.capacity() - 5) + 4);
-
-        thumbnail = SImage::fromData(data, QSize(128, 128));
-      }
+      pi.isContentProbed = true;
     }
-  }
-
-  if (!thumbnail.isNull())
-  {
-    pi.isProbed = true;
-    pi.isReadable = true;
-
-    if (pi.programs.isEmpty())
-      pi.programs.append(ProbeInfo::Program(0));
-
-    ProbeInfo::Program &program = pi.programs.first();
-
-    program.imageCodec = SVideoCodec(program.imageCodec.codec(), thumbnail.originalSize());
-
-    QBuffer b;
-    if (thumbnail.save(&b, "JPEG", 50))
-      program.thumbnail = b.data();
   }
 }
 

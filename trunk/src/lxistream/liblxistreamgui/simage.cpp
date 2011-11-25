@@ -194,6 +194,29 @@ SImage SImage::fromData(const char *data, int size, const QSize &maxsize, const 
   return SImage();
 }
 
+SImage SImage::fromData(QIODevice *ioDevice, const QSize &maxsize, const char *format)
+{
+  QImageReader imageReader(ioDevice, format ? QByteArray(format) : QByteArray());
+  if (imageReader.canRead())
+  {
+    QByteArray data;
+    ExifData * exifData = NULL;
+    if (imageReader.format() == "jpeg")
+    {
+      const qint64 pos = ioDevice->pos();
+      ioDevice->seek(0);
+      data = ioDevice->readAll();
+      ioDevice->seek(pos);
+
+      exifData = exif_data_new_from_data(reinterpret_cast<const uchar *>(data.data()), data.size());
+    }
+
+    return handleFile(imageReader, maxsize, exifData);
+  }
+
+  return SImage();
+}
+
 SImage SImage::fromFile(const QString &fileName, const QSize &maxsize, const char *format)
 {
   QFile file(fileName);
