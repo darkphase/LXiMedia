@@ -32,6 +32,7 @@ public:
 
   static SImage                 fromData(const char *, int, const QSize &maxsize = QSize(), const char *format = NULL);
   inline static SImage          fromData(const QByteArray &data, const QSize &maxsize = QSize(), const char *format = NULL) { return fromData(data.data(), data.size(), maxsize, format); }
+  static SImage                 fromData(QIODevice *, const QSize &maxsize = QSize(), const char *format = NULL);
   static SImage                 fromFile(const QString &fileName, const QSize &maxsize = QSize(), const char *format = NULL);
 
 private:

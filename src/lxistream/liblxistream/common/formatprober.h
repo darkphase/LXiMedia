@@ -36,10 +36,11 @@ public:
 
 public: // From SInterfaces::FormatProber
   virtual QList<Format>         probeFormat(const QByteArray &, const QString &);
-  virtual void                  probeMetadata(ProbeInfo &, ReadCallback *);
+  virtual void                  probeFormat(ProbeInfo &, QIODevice *);
+  virtual void                  probeContent(ProbeInfo &, QIODevice *);
 
 public:
-  static void                   splitFileName(QString, QString &, QString &, QString &, unsigned &);
+  static void                   splitFileName(QString, QString &, QString &, QString &, int &);
   static QString                toGenre(const QString &);
 
   static QString                audioDescription(const QString &suffix);

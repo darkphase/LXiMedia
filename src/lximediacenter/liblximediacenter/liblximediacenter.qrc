@@ -32,5 +32,6 @@
   <file>images/audio-file.png</file>
   <file>images/video-file.png</file>
   <file>images/image-file.png</file>
+  <file>images/misc.png</file>
 </qresource>
 </RCC>

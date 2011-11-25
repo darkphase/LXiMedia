@@ -23,7 +23,8 @@
 void FileTester::testFile(const QString &fileName)
 {
   const SMediaInfo mediaInfo(fileName);
-  if (mediaInfo.containsAudio())
+  if ((mediaInfo.fileType() == SMediaInfo::ProbeInfo::FileType_Audio) ||
+      (mediaInfo.fileType() == SMediaInfo::ProbeInfo::FileType_Video))
   {
     FileTester * const tester = new FileTester(fileName);
 

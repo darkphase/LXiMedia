@@ -54,8 +54,8 @@ public: // From SInterfaces::SourceNode
   virtual void                  stop(void);
 
 signals:
-  void                          opened(const QString &, quint16);
-  void                          closed(const QString &, quint16);
+  void                          opened(const QString &);
+  void                          closed(const QString &);
 
 protected:
   virtual void                  endReached(void);

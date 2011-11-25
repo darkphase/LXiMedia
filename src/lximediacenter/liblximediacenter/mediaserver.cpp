@@ -107,7 +107,7 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
   if (request.isGet())
   {
     const MediaServer::File file(request);
-    if (file.fileName().isEmpty())
+    if (file.file().endsWith('/'))
     {
       if (file.url().hasQueryItem("items"))
       {
@@ -121,7 +121,7 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
         }
 
         ThumbnailListItemList thumbItems;
-        foreach (const SUPnPContentDirectory::Item &item, listItems(basePath(file.url().path()), start, count))
+        foreach (const SUPnPContentDirectory::Item &item, listItems(file.url().path(), start, count))
         {
           if (item.isDir)
           {
@@ -138,7 +138,7 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
             thumbItem.title = item.title;
             thumbItem.iconurl = item.iconUrl;
             thumbItem.url = item.url;
-            thumbItem.url.setPath(thumbItem.url.path() + ".html");
+            thumbItem.url.addQueryItem("player", QString::null);
             thumbItem.played = item.played;
 
             if (item.played)
@@ -154,7 +154,7 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
         return makeResponse(request, buildThumbnailItems(thumbItems), SHttpEngine::mimeTextHtml, false);
       }
       else
-        return makeHtmlContent(request, file.url(), buildThumbnailLoader(dirName(file.url().path())), headList);
+        return makeHtmlContent(request, file.url(), buildThumbnailLoader(), headList);
     }
     else if (!request.isHead())
     {
@@ -191,10 +191,7 @@ int MediaServer::countContentDirItems(const QString &client, const QString &dirP
   if (!activeClients().contains(client))
     activeClients().insert(client);
 
-  QString subPath = dirPath.mid(serverPath().length());
-  subPath = subPath.startsWith('/') ? subPath : ('/' + subPath);
-
-  return countItems(subPath);
+  return countItems(dirPath);
 }
 
 QList<SUPnPContentDirectory::Item> MediaServer::listContentDirItems(const QString &client, const QString &dirPath, unsigned start, unsigned count)
@@ -202,25 +199,9 @@ QList<SUPnPContentDirectory::Item> MediaServer::listContentDirItems(const QStrin
   if (!activeClients().contains(client))
     activeClients().insert(client);
 
-  QString subPath = dirPath.mid(serverPath().length());
-  subPath = subPath.startsWith('/') ? subPath : ('/' + subPath);
-
-  QString basePath = serverPath();
-  basePath = basePath.endsWith('/') ? basePath.left(basePath.length() - 1) : basePath;
-  basePath += subPath;
-  basePath = basePath.endsWith('/') ? basePath.left(basePath.length() - 1) : basePath;
-
   QList<SUPnPContentDirectory::Item> result;
-  foreach (Item item, listItems(subPath, start, count))
+  foreach (Item item, listItems(dirPath, start, count))
   {
-    const QString itemPath = item.url.path(), iconPath = item.iconUrl.path();
-
-    if (!itemPath.isEmpty())
-      item.url.setPath(itemPath.startsWith('/') ? itemPath : (basePath + '/' + itemPath));
-
-    if (!iconPath.isEmpty())
-      item.iconUrl.setPath(iconPath.startsWith('/') ? iconPath : (basePath + '/' + iconPath));
-
     if (item.isImage())
     {
       item.protocols = mediaProfiles().listProtocols(client, item.imageSize);
@@ -470,25 +451,36 @@ MediaServer::File::File(const SHttpServer::RequestMessage &request)
 {
   const QUrl url = QUrl::fromEncoded(request.path());
 
-  QByteArray query;
-  if (SUPnPContentDirectory::fromQueryPath(request.file(), d.fileName, query))
-  {
-    const QString path = url.path();
-    d.url = path.left(path.lastIndexOf('/') + 1) + d.fileName + '?' + query;
-  }
-  else
-  {
-    d.fileName = request.file();
-    d.url = url;
-  }
-
-  QString path = url.path();
-  path = path.left(path.lastIndexOf('/'));
-  d.parentDir = path.mid(path.lastIndexOf('/') + 1);
+  d.file = request.file();
+  d.url = url;
 }
 
 MediaServer::File::~File()
 {
+}
+
+QString MediaServer::File::fileName(void) const
+{
+  const int ls = d.file.lastIndexOf('/');
+  if (ls >= 1)
+    return d.file.mid(ls + 1);
+
+  return d.file;
+}
+
+QString MediaServer::File::parentDir(void) const
+{
+  QString result = d.file;
+
+  const int ls = d.file.lastIndexOf('/');
+  if (ls >= 1)
+    result = d.file.left(ls);
+
+  const int s = result.lastIndexOf('/');
+  if (s >= 0)
+    return result.mid(s + 1);
+
+  return result;
 }
 
 MediaServer::Stream::Stream(MediaServer *parent, const QString &url)

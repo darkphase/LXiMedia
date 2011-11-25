@@ -42,7 +42,8 @@ private slots:
   void                          cleanStreams(void);
 
 private:
-  static QByteArray             probeFile(const QString &fileName);
+  static QByteArray             probeFormat(const QString &fileName);
+  static QByteArray             probeContent(const QString &fileName);
 
 public:
   static const char     * const path;
@@ -57,7 +58,7 @@ class SandboxFileStream : public MediaTranscodeStream
 {
 Q_OBJECT
 public:
-  explicit                      SandboxFileStream(const QString &fileName, quint16 programId = 0);
+  explicit                      SandboxFileStream(const QString &fileName);
   virtual                       ~SandboxFileStream();
 
   bool                          setup(const SHttpServer::RequestMessage &, QIODevice *);
@@ -75,8 +76,8 @@ public:
   bool                          setup(const SHttpServer::RequestMessage &, QIODevice *);
 
 public slots:
-  void                          opened(const QString &, quint16);
-  void                          closed(const QString &, quint16);
+  void                          opened(const QString &);
+  void                          closed(const QString &);
 
 private:
   QString                       currentFile;

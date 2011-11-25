@@ -72,16 +72,14 @@ public:
                                 BufferReaderBase(void);
                                 ~BufferReaderBase();
 
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
-  inline QString                readMetadata(const char *tagName) const         { return readMetadata(formatContext->metadata, tagName); }
-#else
   inline const ::AVFormatContext * context(void) const                          { return formatContext; }
-#endif
   
   ::AVStream                  * getStream(int index) const;
 
   bool                          start(SInterfaces::AbstractBufferReader::ProduceCallback *, ::AVFormatContext *, bool fast);
   void                          stop(void);
+
+  QString                       formatName(void) const;
 
   Packet                        read(void);
   STime                         timeStamp(const Packet &) const;

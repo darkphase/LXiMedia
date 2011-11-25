@@ -143,112 +143,12 @@ table.location {
 .location a:visited { color: #000000; text-decoration: none; }
 .location a:active  { color: #000000; text-decoration: underline; }
 .location a:hover   { color: #000000; text-decoration: underline; }
-div.menu {
- padding: 0.7em 1em 0.7em 1em;
- margin: 0;
- width: 14em;
- float: left;
- clear: left;
- background-color: #F0EFEF;
-}
-.menu ul {
- padding: 0;
- margin: 0;
- list-style-type: none;
- border: 1px solid #D0CFCF;
- background-color: #D0CFCF;
-}
-.menu li:first-child {
- padding: 0.3em 1em;
- margin: 0;
- overflow: hidden;
- font-weight: bold;
- background-color: #D0CFCF;
-}
-.menu li {
- padding: 0.3em 1em;
- margin: 0;
- overflow: hidden;
- vertical-align: middle;
- background-color: #FFFFFF;
-}
-.menu img {
- padding: 0;
- margin: 0 0.2em 0 0;
- width: 1.2em;
- height: 1.2em;
- border: none;
-}
-.menu a:link    { color: #000000; text-decoration: none; }
-.menu a:visited { color: #000000; text-decoration: none; }
-.menu a:active  { color: #000000; text-decoration: underline; }
-.menu a:hover   { color: #000000; text-decoration: underline; }
 div.content {
  padding: 0;
  margin: 0;
  display: table-cell;
  clear: both;
 }
-table.detailedlist {
- padding: 0;
- margin: 0;
- width: 100%;
- border-spacing: 0;
- border: none;
-}
-.detailedlist tr {
-  vertical-align: middle;
-}
-.detailedlist th {
- padding: 0 0.25em;
- font-weight: bold;
- text-align: center;
- white-space: nowrap;
- border: 1px solid #C0BFBF;
- border-bottom-color: #C0BFBF;
- border-right-color: #C0BFBF;
- border-top-color: #F0EFEF;
- border-left-color: #F0EFEF;
- background-color: #E0DFDF;
-}
-.detailedlist th.nostretch {
-}
-.detailedlist th.stretch {
- width: 1000em;
-}
-.detailedlist td {
- padding: 0 0.25em;
- text-align: left;
- vertical-align: top;
- white-space: nowrap;
-}
-.detailedlist td.nostretch_a {
- white-space: nowrap;
-}
-.detailedlist td.nostretch_b {
- white-space: nowrap;
- background-color: #F0EFEF;
-}
-.detailedlist td.stretch_a {
- width: 1000em;
- white-space: normal;
-}
-.detailedlist td.stretch_b {
- width: 1000em;
- white-space: normal;
- background-color: #F0EFEF;
-}
-.detailedlist img {
- padding: 0;
- margin: 0 0.3em 0 0;
- width: 1em;
- height: 1em;
- border: none;
-}
-.detailedlist a:link    { color: #000000; text-decoration: none; }
-.detailedlist a:visited { color: #000000; text-decoration: none; }
-.detailedlist a:active  { color: #000000; text-decoration: underline; }
-.detailedlist a:hover   { color: #000000; text-decoration: underline; }
 div.thumbnaillist {
  display: table-cell;
 }
@@ -256,13 +156,13 @@ div.thumbnaillistitem {
  padding: 1px 0.25em 1px 0.25em;
  margin: 0;
  width: 144px;
- height: 158px;
+ height: 152px;
  float: left;
  text-align: center;
 }
 .thumbnaillistitem div.thumbnail {
  padding: 0;
- margin: 0 8px 0 8px;
+ margin: 8px 8px 0 8px;
  width: 128px;
  height: 128px;
  border: 1px solid #D0CFCF;
@@ -271,11 +171,6 @@ div.thumbnaillistitem {
  overflow: hidden;
  white-space: nowrap;
  font-size: 1em;
-}
-.thumbnaillistitem div.subtitle {
- overflow: hidden;
- white-space: nowrap;
- font-size: 0.75em;
 }
 .thumbnail img {
  padding: 0;

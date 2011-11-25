@@ -55,15 +55,15 @@ public:
                                 File(const SHttpServer::RequestMessage &);
                                 ~File();
 
-    inline const QString      & fileName(void) const                            { return d.fileName; }
-    inline const QString      & parentDir(void) const                           { return d.parentDir; }
+    inline const QString      & file(void) const                                { return d.file; }
     inline const QUrl         & url(void) const                                 { return d.url; }
+    QString                     fileName(void) const;
+    QString                     parentDir(void) const;
 
   private:
     struct
     {
-      QString                   fileName;
-      QString                   parentDir;
+      QString                   file;
       QUrl                      url;
     }                           d;
   };
@@ -86,7 +86,6 @@ public:
                                 ~ThumbnailListItem();
 
     QString                     title;
-    QString                     subtitle;
     QUrl                        iconurl;
     QUrl                        url;
     bool                        played;
@@ -162,7 +161,6 @@ public: // Implemented in mediaserver.html.cpp
 
 protected: // Implemented in mediaserver.html.cpp
   static bool                   html5Enabled;
-  static const QSize            defaultSize;
   static const char             audioTimeFormat[];
   static const char             videoTimeFormat[];
 
@@ -172,14 +170,8 @@ protected: // Implemented in mediaserver.html.cpp
   static const char             htmlThumbnailLoader[];
   static const char             htmlThumbnailItem[];
   static const char             htmlThumbnailItemNoTitle[];
-  static const char             htmlDetailedList[];
-  static const char             htmlDetailedLoader[];
-  static const char             htmlDetailedListRow[];
-  static const char             htmlDetailedListHead[];
-  static const char             htmlDetailedListColumn[];
-  static const char             htmlDetailedListColumnIcon[];
-  static const char             htmlDetailedListColumnLink[];
-  static const char             htmlDetailedListColumnLinkIcon[];
+  static const char             htmlThumbnailItemNoLink[];
+  static const char             htmlThumbnailItemNoLinkNoTitle[];
   static const char             htmlPlayerAudioItem[];
   static const char             htmlPlayerAudioItemHtml5[];
   static const char             htmlPlayerAudioSourceItemHtml5[];
@@ -195,16 +187,12 @@ protected: // Implemented in mediaserver.html.cpp
   static const char             headList[];
   static const char             headPlayer[];
 
-  static QString                audioFormatString(const SMediaInfo::Program &);
-  static QString                videoFormatString(const SMediaInfo::Program &);
+  static QString                audioFormatString(const SMediaInfo &);
+  static QString                videoFormatString(const SMediaInfo &);
   QByteArray                    buildThumbnailView(const QString &title, const ThumbnailListItemList &);
-  QByteArray                    buildThumbnailLoader(const QString &title);
+  QByteArray                    buildThumbnailLoader(void);
   QByteArray                    buildThumbnailItems(const ThumbnailListItemList &);
-  QByteArray                    buildDetailedView(const QString &title, const QList< QPair<QString, bool> > &columns, const DetailedListItemList &);
-  QByteArray                    buildDetailedLoader(const QString &title, const QList< QPair<QString, bool> > &columns);
-  QByteArray                    buildDetailedItems(const DetailedListItemList &);
-  QByteArray                    buildVideoPlayer(const QByteArray &item, const QString &title, const SMediaInfo::Program &, const QUrl &, const QSize & = defaultSize, SAudioFormat::Channels = SAudioFormat::Channels_Stereo);
-  QByteArray                    buildVideoPlayer(const QByteArray &item, const QString &title, const QUrl &, const QSize & = defaultSize, SAudioFormat::Channels = SAudioFormat::Channels_Stereo);
+  QByteArray                    buildPlayer(const QUrl &, SMediaInfo::ProbeInfo::FileType);
 };
 
 } // End of namespace

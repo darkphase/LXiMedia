@@ -40,7 +40,6 @@ public:
   virtual void                  initialize(MasterServer *);
   virtual void                  close(void);
 
-  virtual QString               pluginName(void) const;
   virtual QString               serverName(void) const;
   virtual QString               serverIconPath(void) const;
 

@@ -115,12 +115,6 @@ class LXISTREAM_PUBLIC FormatProber : public QObject
 Q_OBJECT
 S_FACTORIZABLE_NO_CREATE(FormatProber)
 public:
-  struct ReadCallback
-  {
-    virtual qint64              read(uchar *, qint64) = 0;
-    virtual qint64              seek(qint64, int) = 0;
-  };
-
   struct Format
   {
     inline                      Format(void) : name(), confidence(0) { }
@@ -215,47 +209,43 @@ public:
 
   struct ProbeInfo : QSharedData
   {
-    inline                      ProbeInfo(void) : size(0), isProbed(false), isReadable(false), year(0), track(0) { }
+    enum FileType
+    {
+      FileType_None             = 0,
+      FileType_Audio,
+      FileType_Video,
+      FileType_Image,
+      FileType_Disc
+    };
+
+    inline ProbeInfo(void)
+      : size(0), isReadable(false), isFormatProbed(false), isContentProbed(false),
+        fileType(FileType_None)
+    {
+    }
 
     QString                     filePath;
-    QString                     path;                                           //!< Only use this if the path deviates from the filePath.
     qint64                      size;
     QDateTime                   lastModified;
 
-    QString                     format;
-
-    bool                        isProbed;
     bool                        isReadable;
+    bool                        isFormatProbed;
+    bool                        isContentProbed;
 
+    QString                     format;
+    FileType                    fileType;
     QString                     fileTypeName;
 
-    struct Program
-    {
-      inline explicit           Program(quint16 programId) : programId(programId) { }
+    STime                       duration;
+    QList<Chapter>              chapters;
 
-      quint16                   programId;
-      QString                   title;
-      STime                     duration;
-      QList<Chapter>            chapters;
+    QList<AudioStreamInfo>      audioStreams;
+    QList<VideoStreamInfo>      videoStreams;
+    QList<DataStreamInfo>       dataStreams;
+    SVideoCodec                 imageCodec;
+    QMap<QString, QVariant>     metadata;
 
-      QList<AudioStreamInfo>    audioStreams;
-      QList<VideoStreamInfo>    videoStreams;
-      QList<DataStreamInfo>     dataStreams;
-      SVideoCodec               imageCodec;
-
-      QByteArray                thumbnail;
-    };
-
-    QList<Program>              programs;
-
-    QString                     title;
-    QString                     author;
-    QString                     copyright;
-    QString                     comment;
-    QString                     album;
-    QString                     genre;
-    unsigned                    year;
-    unsigned                    track;
+    SVideoBuffer                thumbnail;
   };
 
 public:
@@ -288,22 +278,27 @@ public:
    */
   virtual QList<Format>         probeFormat(const QByteArray &buffer, const QString &filePath) = 0;
 
-  /*! Should probe the provided object and retrieve as much information from it
-      as possible. Note that for probing a file, probeMetadata() should be
-      invoked on all probers returned by create() until probeInfo.isProbed is
-      set to true.
+  /*! Should probe the provided buffer and retrieve as much information from it
+      as possible. Note that for probing a file, probeFormat() should be invoked
+      on all probers returned by create() until probeInfo.isFormatProbed is set
+      to true.
 
       \param probeInfo          The ProbeInfo structure that needs to be filled
                                 with data.
-      \param callback           The callback interface that is to be used to
-                                read data from the object.
-      \param filePath           The filename of the object to probe, the file
-                                should not be opened as the provided callback
-                                should be used to determine the format. One
-                                exception is when a device path is provided to
-                                probe the metadata of a disc.
+      \param ioDevice           The QIODevice that is to be used to read data.
    */
-  virtual void                  probeMetadata(ProbeInfo &probeInfo, ReadCallback *callback) = 0;
+  virtual void                  probeFormat(ProbeInfo &probeInfo, QIODevice *ioDevice) = 0;
+
+  /*! Should probe the provided object and retrieve as much information from it
+      as possible. Note that for probing a file, probeContent() should be
+      invoked on all probers returned by create() until
+      probeInfo.isContentProbed is set to true.
+
+      \param probeInfo          The ProbeInfo structure that needs to be filled
+                                with data.
+      \param ioDevice           The QIODevice that is to be used to read data.
+   */
+  virtual void                  probeContent(ProbeInfo &probeInfo, QIODevice *ioDevice) = 0;
 };
 
 class AbstractBufferReader;
@@ -440,9 +435,6 @@ class LXISTREAM_PUBLIC BufferReader : public AbstractBufferReader
 Q_OBJECT
 S_FACTORIZABLE_NO_CREATE(BufferReader)
 public:
-  typedef FormatProber::ReadCallback ReadCallback;
-
-public:
   static BufferReader         * create(QObject *parent, const QString &format, bool nonNull = true);
 
 protected:
@@ -451,7 +443,7 @@ protected:
   virtual bool                  openFormat(const QString &) = 0;
 
 public:
-  virtual bool                  start(ReadCallback *, ProduceCallback *, quint16 programId, bool streamed) = 0;
+  virtual bool                  start(QIODevice *, ProduceCallback *, bool streamed) = 0;
   virtual void                  stop(void) = 0;
 };
 
@@ -474,7 +466,7 @@ protected:
   virtual bool                  openProtocol(const QString &) = 0;
 
 public:
-  virtual bool                  start(const QUrl &url, ProduceCallback *, quint16 programId) = 0;
+  virtual bool                  start(const QUrl &url, ProduceCallback *) = 0;
   virtual void                  stop(void) = 0;
 
   /*! Shall buffer more data, use bufferDuration() to check the amount of data

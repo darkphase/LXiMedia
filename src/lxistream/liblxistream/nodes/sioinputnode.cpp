@@ -26,12 +26,11 @@ struct SIOInputNode::Data
   QIODevice                   * ioDevice;
 };
 
-SIOInputNode::SIOInputNode(SGraph *parent, QIODevice *ioDevice, quint16 programId)
+SIOInputNode::SIOInputNode(SGraph *parent, QIODevice *ioDevice)
   : SInputNode(parent),
-    SInterfaces::BufferReader::ReadCallback(),
     d(new Data())
 {
-  setIODevice(ioDevice, programId);
+  setIODevice(ioDevice);
 }
 
 SIOInputNode::~SIOInputNode()
@@ -41,7 +40,7 @@ SIOInputNode::~SIOInputNode()
   *const_cast<Data **>(&d) = NULL;
 }
 
-void SIOInputNode::setIODevice(QIODevice *ioDevice, quint16 programId)
+void SIOInputNode::setIODevice(QIODevice *ioDevice)
 {
   if (bufferReader())
   {
@@ -70,7 +69,7 @@ void SIOInputNode::setIODevice(QIODevice *ioDevice, quint16 programId)
       SInterfaces::BufferReader * const bufferReader = SInterfaces::BufferReader::create(this, format, false);
       if (bufferReader)
       {
-        if (bufferReader->start(this, this, programId, ioDevice->isSequential()))
+        if (bufferReader->start(d->ioDevice, this, ioDevice->isSequential()))
         {
           setBufferReader(bufferReader);
           return;
@@ -124,31 +123,6 @@ bool SIOInputNode::process(void)
   }
 
   return false;
-}
-
-qint64 SIOInputNode::read(uchar *buffer, qint64 size)
-{
-  if (d->ioDevice)
-    return d->ioDevice->read((char *)buffer, size);
-
-  return -1;
-}
-
-qint64 SIOInputNode::seek(qint64 offset, int whence)
-{
-  if (d->ioDevice)
-  {
-    if (whence == SEEK_SET)
-      return d->ioDevice->seek(offset) ? 0 : -1;
-    else if (whence == SEEK_CUR)
-      return d->ioDevice->seek(d->ioDevice->pos() + offset) ? 0 : -1;
-    else if (whence == SEEK_END)
-      return d->ioDevice->seek(d->ioDevice->size() + offset) ? 0 : -1;
-    else if (whence == -1) // get size
-      return d->ioDevice->size();
-  }
-
-  return -1;
 }
 
 void SIOInputNode::endReached(void)

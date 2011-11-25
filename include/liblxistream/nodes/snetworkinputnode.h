@@ -33,10 +33,10 @@ class LXISTREAM_PUBLIC SNetworkInputNode : public SInputNode
 {
 Q_OBJECT
 public:
-  explicit                      SNetworkInputNode(SGraph *, const QUrl & = QUrl(), quint16 programId = 0);
+  explicit                      SNetworkInputNode(SGraph *, const QUrl & = QUrl());
   virtual                       ~SNetworkInputNode();
 
-  void                          setUrl(const QUrl &, quint16 programId = 0);
+  void                          setUrl(const QUrl &);
   QUrl                          url(void) const;
 
   void                          setBufferDuration(const STime &);

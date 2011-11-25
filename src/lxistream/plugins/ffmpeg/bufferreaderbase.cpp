@@ -250,6 +250,16 @@ void BufferReaderBase::stop(void)
   clear();
 }
 
+
+QString BufferReaderBase::formatName(void) const
+{
+  if (formatContext)
+  if (formatContext->iformat)
+    return formatContext->iformat->long_name;
+
+  return QString::null;
+}
+
 BufferReaderBase::Packet BufferReaderBase::read(void)
 {
   if (packetBuffer.isEmpty())

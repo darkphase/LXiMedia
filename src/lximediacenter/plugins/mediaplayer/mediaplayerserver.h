@@ -47,50 +47,63 @@ protected:
     SSandboxClient      * const sandbox;
   };
 
-  struct PlayItem
-  {
-    inline PlayItem(MediaDatabase::UniqueID uid, const SMediaInfo &mediaInfo) : uid(uid), mediaInfo(mediaInfo) { }
-
-    MediaDatabase::UniqueID     uid;
-    SMediaInfo                  mediaInfo;
-  };
-
 public:
-                                MediaPlayerServer(MediaDatabase::Category, QObject *);
+                                MediaPlayerServer(const QString &, QObject *);
 
   virtual void                  initialize(MasterServer *);
   virtual void                  close(void);
 
-  virtual QString               pluginName(void) const;
+  virtual QString               serverName(void) const;
+  virtual QString               serverIconPath(void) const;
 
   virtual SearchResultList      search(const QStringList &) const;
 
 protected: // From MediaServer
   virtual Stream              * streamVideo(const SHttpServer::RequestMessage &);
 
-  virtual int                   countItems(const QString &path);
-  virtual QList<Item>           listItems(const QString &path, unsigned start = 0, unsigned count = 0);
+  virtual int                   countItems(const QString &virtualPath);
+  virtual QList<Item>           listItems(const QString &virtualPath, unsigned start = 0, unsigned count = 0);
 
-protected:
+private:
+  static bool                   isHidden(const QString &path);
+
+  void                          setRootPaths(const QStringList &paths);
+  QString                       virtualPath(const QString &realPath) const;
+  QString                       realPath(const QString &virtualPath) const;
+
   bool                          isEmpty(const QString &path);
   int                           countAlbums(const QString &path);
   QList<Item>                   listAlbums(const QString &path, unsigned &start, unsigned &count);
-  Item                          makeItem(MediaDatabase::UniqueID, int programId = -1);
-  QUrl                          findAlbumIcon(const QString &path);
-  Item::Type                    defaultItemType(Item::Type = Item::Type_None) const;
+  Item                          makeItem(const FileNode &);
 
   virtual SHttpServer::ResponseMessage httpRequest(const SHttpServer::RequestMessage &, QIODevice *);
-
-  QByteArray                    buildVideoPlayer(MediaDatabase::UniqueID, const QString &, const SMediaInfo::Program &, const QUrl &, const QSize & = defaultSize);
-  QByteArray                    buildVideoPlayer(const QByteArray &, const QString &, const QUrl &, const QSize & = defaultSize);
 
 private slots:
   void                          consoleLine(const QString &);
 
-protected:
-  const MediaDatabase::Category category;
+private:
+  SHttpServer::ResponseMessage  handleHtmlRequest(const SHttpServer::RequestMessage &, const MediaServer::File &);
+  void                          generateDirs(HtmlParser &, const QFileInfoList &, int, const QStringList &, const QStringList &);
+  void                          scanDrives(void);
+
+private:
+  static const char             dirSplit;
+  static const Qt::CaseSensitivity caseSensitivity;
   MasterServer                * masterServer;
   MediaDatabase               * mediaDatabase;
+
+  QMap<QString, QString>        rootPaths;
+  QMap<QString, QFileInfo>      driveInfoList;
+  QMap<QString, QString>        driveLabelList;
+
+private:
+  static const char     * const htmlMain;
+  static const char     * const htmlDirTreeIndex;
+  static const char     * const htmlDirTreeDir;
+  static const char     * const htmlDirTreeIndent;
+  static const char     * const htmlDirTreeExpand;
+  static const char     * const htmlDirTreeCheck;
+  static const char     * const htmlDirTreeCheckLink;
 };
 
 } } // End of namespaces

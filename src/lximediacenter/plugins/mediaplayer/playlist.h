@@ -33,12 +33,12 @@ Q_OBJECT
 private:
   struct Entry
   {
-    inline explicit Entry(MediaDatabase::UniqueID uid = MediaDatabase::UniqueID(), bool played = false)
-      : uid(uid), played(played)
+    inline explicit Entry(const QString &filePath = QString::null, bool played = false)
+      : filePath(filePath), played(played)
     {
     }
     
-    MediaDatabase::UniqueID     uid;
+    QString                     filePath;
     bool                        played;
   };
 
@@ -46,24 +46,24 @@ public:
                                 Playlist(MediaDatabase *, QObject * = NULL);
   virtual                       ~Playlist();
 
-  void                          append(MediaDatabase::UniqueID);
-  void                          remove(MediaDatabase::UniqueID);
+  void                          append(const QString &filePath);
+  void                          remove(const QString &filePath);
   void                          clear(void);
   int                           count(void) const;
-  MediaDatabase::UniqueID       checkout(void);
-  QList<MediaDatabase::UniqueID> next(void);
+  QString                       checkout(void);
+  QStringList                   next(void);
 
   QByteArray                    serialize(void) const;
   bool                          deserialize(const QByteArray &);
 
 private:
-  MediaDatabase::UniqueID       random(void);
+  QString                       random(void);
 
 private:
   MediaDatabase         * const mediaDatabase;
 
   QVector<Entry>                list;
-  QList<MediaDatabase::UniqueID> pending;
+  QStringList                   pending;
   int                           played;
 };
 

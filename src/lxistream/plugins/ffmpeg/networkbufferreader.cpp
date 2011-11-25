@@ -37,7 +37,7 @@ bool NetworkBufferReader::openProtocol(const QString &)
   return true;
 }
 
-bool NetworkBufferReader::start(const QUrl &url, ProduceCallback *produceCallback, quint16 programId)
+bool NetworkBufferReader::start(const QUrl &url, ProduceCallback *produceCallback)
 {
   if (url.scheme() == "mms")
   {
@@ -45,15 +45,15 @@ bool NetworkBufferReader::start(const QUrl &url, ProduceCallback *produceCallbac
     QUrl rurl = url;
 
     rurl.setScheme("mmst");
-    if (NetworkBufferReader::start(rurl, produceCallback, programId))
+    if (NetworkBufferReader::start(rurl, produceCallback))
       return true;
 
     rurl.setScheme("mmsh");
-    if (NetworkBufferReader::start(rurl, produceCallback, programId))
+    if (NetworkBufferReader::start(rurl, produceCallback))
       return true;
 
     rurl.setScheme("rtsp");
-    if (NetworkBufferReader::start(rurl, produceCallback, programId))
+    if (NetworkBufferReader::start(rurl, produceCallback))
       return true;
 
     return false;
@@ -65,7 +65,7 @@ bool NetworkBufferReader::start(const QUrl &url, ProduceCallback *produceCallbac
     if (!resolved.isEmpty())
     {
       foreach (const QUrl &rurl, resolved)
-      if (NetworkBufferReader::start(rurl, produceCallback, programId))
+      if (NetworkBufferReader::start(rurl, produceCallback))
         return true;
 
       return false;

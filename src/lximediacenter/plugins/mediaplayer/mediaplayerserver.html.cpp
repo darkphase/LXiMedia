@@ -17,8 +17,9 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "configserver.h"
+#include "mediaplayerserver.h"
 #include "mediadatabase.h"
+#include "module.h"
 
 #ifdef Q_OS_WIN
 #include <windows.h>
@@ -27,7 +28,7 @@
 namespace LXiMediaCenter {
 namespace MediaPlayerBackend {
 
-const char * const ConfigServer::htmlMain =
+const char * const MediaPlayerServer::htmlMain =
     " <div class=\"content\">\n"
     "  <fieldset>\n"
     "   <legend>{TR_SETTINGS}</legend>\n"
@@ -42,52 +43,13 @@ const char * const ConfigServer::htmlMain =
     "  <fieldset>\n"
     "   <legend>{TR_MEDIADIRS}</legend>\n"
     "   {TR_RIGHTS_EXPLAIN}<br />\n"
-    "   <fieldset style=\"float:left;\">\n"
-    "    <legend>{TR_MOVIES}</legend>\n"
-    "    {TR_MOVIES_EXPLAIN}<br />\n"
-    "    <iframe style=\"width:30em;height:30em;\" src=\"movies-tree.html\" frameborder=\"0\">\n"
-    "     <a href=\"movies-tree.html\" target=\"_blank\">{TR_MOVIES}</a>\n"
-    "    </iframe>\n"
-    "   </fieldset>\n"
-    "   <fieldset style=\"float:left;\">\n"
-    "    <legend>{TR_TVSHOWS}</legend>\n"
-    "    {TR_TVSHOWS_EXPLAIN}<br />\n"
-    "    <iframe style=\"width:30em;height:30em;\" src=\"tvshows-tree.html\" frameborder=\"0\">\n"
-    "     <a href=\"tvshows-tree.html\" target=\"_blank\">{TR_TVSHOWS}</a>\n"
-    "    </iframe>\n"
-    "   </fieldset>\n"
-    "   <fieldset style=\"float:left;\">\n"
-    "    <legend>{TR_CLIPS}</legend>\n"
-    "    {TR_CLIPS_EXPLAIN}<br />\n"
-    "    <iframe style=\"width:30em;height:30em;\" src=\"clips-tree.html\" frameborder=\"0\">\n"
-    "     <a href=\"clips-tree.html\" target=\"_blank\">{TR_CLIPS}</a>\n"
-    "    </iframe>\n"
-    "   </fieldset>\n"
-    "   <fieldset style=\"float:left;\">\n"
-    "    <legend>{TR_MUSIC}</legend>\n"
-    "    {TR_MUSIC_EXPLAIN}<br />\n"
-    "    <iframe style=\"width:30em;height:30em;\" src=\"music-tree.html\" frameborder=\"0\">\n"
-    "     <a href=\"music-tree.html\" target=\"_blank\">{TR_MUSIC}</a>\n"
-    "    </iframe>\n"
-    "   </fieldset>\n"
-    "   <fieldset style=\"float:left;\">\n"
-    "    <legend>{TR_PHOTOS}</legend>\n"
-    "    {TR_PHOTOS_EXPLAIN}<br />\n"
-    "    <iframe style=\"width:30em;height:30em;\" src=\"photos-tree.html\" frameborder=\"0\">\n"
-    "     <a href=\"photos-tree.html\" target=\"_blank\">{TR_PHOTOS}</a>\n"
-    "    </iframe>\n"
-    "   </fieldset>\n"
-    "   <fieldset style=\"float:left;\">\n"
-    "    <legend>{TR_HOMEVIDEOS}</legend>\n"
-    "    {TR_HOMEVIDEOS_EXPLAIN}<br />\n"
-    "    <iframe style=\"width:30em;height:30em;\" src=\"homevideos-tree.html\" frameborder=\"0\">\n"
-    "     <a href=\"homevideos-tree.html\" target=\"_blank\">{TR_HOMEVIDEOS}</a>\n"
-    "    </iframe>\n"
-    "   </fieldset>\n"
+    "   <iframe style=\"width:30em;height:30em;\" src=\"movies-tree.html\" frameborder=\"0\">\n"
+    "    <a href=\"media-tree.html\" target=\"_blank\">{TR_MOVIES}</a>\n"
+    "   </iframe>\n"
     "  </fieldset>\n"
     " </div>\n";
 
-const char * const ConfigServer::htmlDirTreeIndex =
+const char * const MediaPlayerServer::htmlDirTreeIndex =
     "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
     "<!DOCTYPE html>\n"
     "<html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"en\" xml:lang=\"en\">\n"
@@ -102,7 +64,7 @@ const char * const ConfigServer::htmlDirTreeIndex =
     "</body>\n"
     "</html>\n";
 
-const char * const ConfigServer::htmlDirTreeDir =
+const char * const MediaPlayerServer::htmlDirTreeDir =
     " <tr align=\"middle\"><td align=\"left\">\n"
     "  <a class=\"hidden\" name=\"{DIR_FULLPATH}\" />\n"
     "{DIR_INDENT}"
@@ -111,31 +73,29 @@ const char * const ConfigServer::htmlDirTreeDir =
     "  {DIR_NAME}\n"
     " </td></tr>\n";
 
-const char * const ConfigServer::htmlDirTreeIndent =
+const char * const MediaPlayerServer::htmlDirTreeIndent =
     "  <img src=\"/img/null.png\" width=\"16\" height=\"16\" />\n";
 
-const char * const ConfigServer::htmlDirTreeExpand =
+const char * const MediaPlayerServer::htmlDirTreeExpand =
     "  <a class=\"hidden\" href=\"{FILE}?open={DIR_ALLOPEN}#{DIR_FULLPATH}\">\n"
     "   <img src=\"/img/tree{DIR_OPEN}.png\" width=\"16\" height=\"16\" />\n"
     "  </a>\n";
 
-const char * const ConfigServer::htmlDirTreeCheck =
+const char * const MediaPlayerServer::htmlDirTreeCheck =
     "  <img src=\"/img/check{DIR_CHECKED}.png\" title=\"{DIR_TITLE}\" width=\"16\" height=\"16\" />\n";
 
-const char * const ConfigServer::htmlDirTreeCheckLink =
+const char * const MediaPlayerServer::htmlDirTreeCheckLink =
     "  <a class=\"hidden\" href=\"{FILE}?open={DIR_ALLOPEN}&amp;{DIR_CHECKTYPE}={DIR_FULLPATH}#{DIR_FULLPATH}\">\n"
     "   <img src=\"/img/check{DIR_CHECKED}.png\" width=\"16\" height=\"16\" />\n"
     "  </a>\n";
 
-SHttpServer::ResponseMessage ConfigServer::handleHtmlRequest(const SHttpServer::RequestMessage &request, const MediaServer::File &file)
+SHttpServer::ResponseMessage MediaPlayerServer::handleHtmlRequest(const SHttpServer::RequestMessage &request, const MediaServer::File &file)
 {
   HtmlParser htmlParser;
 
   if (file.fileName().endsWith("-tree.html"))
   {
-    const QString category = file.fileName().left(file.fileName().length() - 10);
-
-    QStringList rootPaths = mediaDatabase->rootPaths(category);
+    QStringList paths = rootPaths.values();
 
     const QString open = file.url().queryItemValue("open");
     const QStringList allopen = !open.isEmpty()
@@ -147,21 +107,21 @@ SHttpServer::ResponseMessage ConfigServer::handleHtmlRequest(const SHttpServer::
     if (!checkon.isEmpty() || !checkoff.isEmpty())
     {
       if (!checkon.isEmpty())
-        rootPaths.append(checkon.endsWith('/') ? checkon : (checkon + '/'));
+        paths.append(checkon.endsWith('/') ? checkon : (checkon + '/'));
 
       if (!checkoff.isEmpty())
-      for (QStringList::Iterator i=rootPaths.begin(); i!=rootPaths.end(); )
+      for (QStringList::Iterator i=paths.begin(); i!=paths.end(); )
       if (i->compare(checkoff, caseSensitivity) == 0)
-        i = rootPaths.erase(i);
+        i = paths.erase(i);
       else
         i++;
 
-      mediaDatabase->setRootPaths(category, rootPaths);
+      setRootPaths(paths);
     }
 
     htmlParser.setField("FILE", file.fileName());
     htmlParser.setField("DIRS", QByteArray(""));
-    generateDirs(htmlParser, driveInfoList.values(), 0, allopen, rootPaths);
+    generateDirs(htmlParser, driveInfoList.values(), 0, allopen, paths);
 
     SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
     response.setField("Cache-Control", "no-cache");
@@ -192,20 +152,7 @@ SHttpServer::ResponseMessage ConfigServer::handleHtmlRequest(const SHttpServer::
         "Furthermore, certain system directories can not be selected to prevent security issues."
         ));
   
-    htmlParser.setField("TR_CLIPS", tr("Video clips"));
-    htmlParser.setField("TR_CLIPS_EXPLAIN", tr("Directories containing video clips:"));
-    htmlParser.setField("TR_HOMEVIDEOS", tr("Home videos"));
-    htmlParser.setField("TR_HOMEVIDEOS_EXPLAIN", tr("Directories containing home video files:"));
-    htmlParser.setField("TR_MOVIES", tr("Movies"));
-    htmlParser.setField("TR_MOVIES_EXPLAIN", tr("Directories containing movie files:"));
-    htmlParser.setField("TR_MUSIC", tr("Music"));
-    htmlParser.setField("TR_MUSIC_EXPLAIN", tr("Directories containing music files, including music videos:"));
-    htmlParser.setField("TR_PHOTOS", tr("Photos"));
-    htmlParser.setField("TR_PHOTOS_EXPLAIN", tr("Directories containing photo albums:"));
-    htmlParser.setField("TR_TVSHOWS", tr("TV Shows"));
-    htmlParser.setField("TR_TVSHOWS_EXPLAIN", tr("Directories containing TV shows:"));
-
-    PluginSettings settings(pluginName());
+    PluginSettings settings(Module::pluginName);
     if (file.url().hasQueryItem("settings"))
     {
       settings.setValue("SlideDuration", qBound(2500, file.url().queryItemValue("slideduration").toInt(), 60000));
@@ -219,7 +166,7 @@ SHttpServer::ResponseMessage ConfigServer::handleHtmlRequest(const SHttpServer::
   }
 }
 
-void ConfigServer::generateDirs(HtmlParser &htmlParser, const QFileInfoList &dirs, int indent, const QStringList &allopen, const QStringList &rootPaths)
+void MediaPlayerServer::generateDirs(HtmlParser &htmlParser, const QFileInfoList &dirs, int indent, const QStringList &allopen, const QStringList &rootPaths)
 {
   foreach (const QFileInfo &info, dirs)
   if (!info.fileName().startsWith('.'))
@@ -340,7 +287,7 @@ void ConfigServer::generateDirs(HtmlParser &htmlParser, const QFileInfoList &dir
   }
 }
 
-void ConfigServer::scanDrives(void)
+void MediaPlayerServer::scanDrives(void)
 {
   driveInfoList.clear();
   driveLabelList.clear();

@@ -26,7 +26,6 @@ const char * const Backend::htmlIndex =
     " <title>{_PRODUCT} @ {_HOSTNAME}</title>\n"
     " <meta http-equiv=\"Content-Type\" content=\"text/html;charset=utf-8\" />\n"
     " <link rel=\"stylesheet\" href=\"/css/main.css\" type=\"text/css\" media=\"screen, projection\" />\n"
-    " <link rel=\"stylesheet\" href=\"/css/phone.css\" type=\"text/css\" media=\"handheld, tv\" />\n"
     "{HEAD}"
     "</head>\n"
     "<body>\n"
@@ -48,7 +47,6 @@ const char * const Backend::htmlIndex =
     "   </div>\n"
     "  </td></tr>\n"
     " </table>\n"
-    "{MAIN_MENUGROUPS}"
     "{CONTENT}"
     "</body>\n"
     "</html>\n";
@@ -388,25 +386,6 @@ SHttpServer::ResponseMessage Backend::handleHtmlRequest(const SHttpServer::Reque
   response.setField("Cache-Control", "no-cache");
 
   htmlParser.setField("LOG_ERRORS", parseHtmlLogErrors());
-
-  htmlParser.setField("GROUPS", QByteArray(""));
-  for (QMap<QString, QList<MenuItem> >::ConstIterator i=submenuItems.begin();
-       i!=submenuItems.end();
-       i++)
-  if (file.isEmpty() || (file == i.key()))
-  {
-    htmlParser.setField("ITEMS", QByteArray(""));
-    foreach (const MenuItem &item, *i)
-    {
-      htmlParser.setField("ITEM_TITLE", item.title);
-      htmlParser.setField("ITEM_URL", QUrl(item.url).toEncoded());
-      htmlParser.setField("ITEM_ICONURL", QUrl(item.iconurl).toEncoded());
-      htmlParser.appendField("ITEMS", htmlParser.parse(htmlMainServerItem));
-    }
-
-    htmlParser.setField("ITEM_TITLE", i.key());
-    htmlParser.appendField("GROUPS", htmlParser.parse(htmlMainGroupItem));
-  }
 
   response.setContent(parseHtmlContent(QUrl(request.path()), htmlParser.parse(htmlMain), ""));
 

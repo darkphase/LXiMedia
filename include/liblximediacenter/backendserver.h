@@ -73,10 +73,9 @@ public:
   virtual void                  initialize(MasterServer *);
   virtual void                  close(void);
 
-  virtual QString               pluginName(void) const = 0;
   virtual QString               serverName(void) const = 0;
   virtual QString               serverIconPath(void) const = 0;
-  virtual QString               serverPath(void) const;
+  QString                       serverPath(void) const;
 
   virtual QByteArray            frontPageWidget(void) const;
   virtual SearchResultList      search(const QStringList &rawQuery) const;
@@ -85,9 +84,6 @@ public:
   SHttpServer::ResponseMessage  makeResponse(const SHttpServer::RequestHeader &, const QByteArray &, const char * = SHttpEngine::mimeAppOctet, bool allowCache = false) const;
   SHttpServer::ResponseMessage  makeResponse(const SHttpServer::RequestHeader &, const QString &, const char * = SHttpEngine::mimeTextPlain, bool allowCache = false) const;
   SHttpServer::ResponseMessage  makeHtmlContent(const SHttpServer::RequestHeader &, const QUrl &, const QByteArray &content, const QByteArray &head = QByteArray()) const;
-
-  QString                       basePath(const QString &) const;
-  static QString                dirName(const QString &);
 
 public:
   static const int              maxRequestTime;

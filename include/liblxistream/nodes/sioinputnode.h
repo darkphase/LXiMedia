@@ -27,17 +27,16 @@
 
 namespace LXiStream {
 
-/*! This is a generic input node, reading to a QIODevice.
+/*! This is a generic input node, reading from a QIODevice.
  */
-class LXISTREAM_PUBLIC SIOInputNode : public SInputNode,
-                                      protected SInterfaces::BufferReader::ReadCallback
+class LXISTREAM_PUBLIC SIOInputNode : public SInputNode
 {
 Q_OBJECT
 public:
-  explicit                      SIOInputNode(SGraph *, QIODevice * = NULL, quint16 programId = 0);
+  explicit                      SIOInputNode(SGraph *, QIODevice * = NULL);
   virtual                       ~SIOInputNode();
 
-  void                          setIODevice(QIODevice *, quint16 programId = 0);
+  void                          setIODevice(QIODevice *);
   const QIODevice             * ioDevice(void) const;
   QIODevice                   * ioDevice(void);
 
@@ -45,10 +44,6 @@ public: // From SInterfaces::SourceNode
   virtual bool                  start(void);
   virtual void                  stop(void);
   virtual bool                  process(void);
-
-protected: // From SInterfaces::BufferReader::ReadCallback
-  virtual qint64                read(uchar *, qint64);
-  virtual qint64                seek(qint64, int);
 
 signals:
   void                          finished(void);

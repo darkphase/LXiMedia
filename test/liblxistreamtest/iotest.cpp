@@ -18,7 +18,6 @@
  ***************************************************************************/
 
 #include "iotest.h"
-#include <QtGui/QImage>
 #include <QtTest>
 
 void IOTest::initTestCase(void)
@@ -45,19 +44,17 @@ void IOTest::MediaFileInfoImage(void)
 {
   const SMediaInfo mediaInfo(":/ImageTest.jpeg");
 
-  QVERIFY(mediaInfo.programs().first().audioStreams.isEmpty());
-  QVERIFY(mediaInfo.programs().first().videoStreams.isEmpty());
-  QVERIFY(!mediaInfo.programs().first().imageCodec.isNull());
-  QCOMPARE(mediaInfo.programs().first().imageCodec.size().width(), 570);
-  QCOMPARE(mediaInfo.programs().first().imageCodec.size().height(), 717);
-  QVERIFY(qFuzzyCompare(mediaInfo.programs().first().imageCodec.size().aspectRatio(), 1.0f));
-  QVERIFY(!mediaInfo.containsAudio());
-  QVERIFY(!mediaInfo.containsVideo());
-  QVERIFY(mediaInfo.containsImage());
-  QCOMPARE(mediaInfo.title(), QString("ImageTest"));
-  QVERIFY(!mediaInfo.programs().first().thumbnail.isEmpty());
+  QVERIFY(mediaInfo.audioStreams().isEmpty());
+  QVERIFY(mediaInfo.videoStreams().isEmpty());
+  QVERIFY(!mediaInfo.imageCodec().isNull());
+  QCOMPARE(mediaInfo.imageCodec().size().width(), 570);
+  QCOMPARE(mediaInfo.imageCodec().size().height(), 717);
+  QVERIFY(qFuzzyCompare(mediaInfo.imageCodec().size().aspectRatio(), 1.0f));
+  QCOMPARE(mediaInfo.fileType(), SMediaInfo::ProbeInfo::FileType_Image);
+  QCOMPARE(mediaInfo.metadata("title").toString(), QString("ImageTest"));
+  QVERIFY(!mediaInfo.thumbnail().isNull());
 
-  const QImage image = QImage::fromData(mediaInfo.programs().first().thumbnail);
+  const SImage image = mediaInfo.thumbnail();
   QVERIFY(image.width() <= 128);
   QVERIFY(image.width() > 64);
   QVERIFY(image.height() <= 128);

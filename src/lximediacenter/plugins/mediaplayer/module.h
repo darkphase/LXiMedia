@@ -39,14 +39,6 @@ public:
 
 public:
   static const char             pluginName[];
-
-private:
-  static const char             moviesName[],       moviesIcon[];
-  static const char             tvShowsName[],      tvShowsIcon[];
-  static const char             clipsName[],        clipsIcon[];
-  static const char             homeVideosName[],   homeVideosIcon[];
-  static const char             photosName[],       photosIcon[];
-  static const char             musicName[],        musicIcon[];
 };
 
 } } // End of namespaces

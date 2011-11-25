@@ -24,7 +24,7 @@ namespace FFMpegBackend {
 
 BufferReader::BufferReader(const QString &, QObject *parent)
   : SInterfaces::BufferReader(parent),
-    readCallback(NULL),
+    ioDevice(NULL),
     format(NULL),
     ioContext(NULL)
 {
@@ -53,7 +53,7 @@ bool BufferReader::openFormat(const QString &name)
   return format != NULL;
 }
 
-bool BufferReader::start(ReadCallback *readCallback, ProduceCallback *produceCallback, quint16 /*programId*/, bool streamed, bool fast)
+bool BufferReader::start(QIODevice *ioDevice, ProduceCallback *produceCallback, bool streamed, bool fast)
 {
   if (format)
   {
@@ -62,7 +62,7 @@ bool BufferReader::start(ReadCallback *readCallback, ProduceCallback *produceCal
 
     static const int ioBufferSize = 350 * 188;
 
-    this->readCallback = readCallback;
+    this->ioDevice = ioDevice;
 
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
     ioContext = ::avio_alloc_context(
@@ -109,17 +109,28 @@ void BufferReader::stop(void)
     ioContext = NULL;
   }
 
-  readCallback = NULL;
+  ioDevice = NULL;
 }
 
 int BufferReader::read(void *opaque, uint8_t *buf, int buf_size)
 {
-  return reinterpret_cast<BufferReader *>(opaque)->readCallback->read(buf, buf_size);
+  return reinterpret_cast<BufferReader *>(opaque)->ioDevice->read(reinterpret_cast<char *>(buf), buf_size);
 }
 
 int64_t BufferReader::seek(void *opaque, int64_t offset, int whence)
 {
-  return reinterpret_cast<BufferReader *>(opaque)->readCallback->seek(offset, (whence == AVSEEK_SIZE) ? -1 : whence);
+  QIODevice * const ioDevice = reinterpret_cast<BufferReader *>(opaque)->ioDevice;
+
+  if (whence == SEEK_SET)
+    return ioDevice->seek(offset) ? 0 : -1;
+  else if (whence == SEEK_CUR)
+    return ioDevice->seek(ioDevice->pos() + offset) ? 0 : -1;
+  else if (whence == SEEK_END)
+    return ioDevice->seek(ioDevice->size() + offset) ? 0 : -1;
+  else if (whence == AVSEEK_SIZE)
+    return ioDevice->size();
+
+  return -1;
 }
 
 
