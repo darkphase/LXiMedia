@@ -73,16 +73,37 @@ SSandboxServer::ResponseMessage MediaPlayerSandbox::httpRequest(const SSandboxSe
     }
     else if (file.url().hasQueryItem("probecontent"))
     {
+      QSize thumbSize(128, 128);
+      if (file.url().hasQueryItem("thumbsize"))
+        thumbSize = SSize::fromString(file.url().queryItemValue("thumbsize")).size();
+
       QList< QFuture<QByteArray> > futures;
       foreach (const QByteArray &path, request.content().split('\n'))
       if (!path.isEmpty())
-        futures += QtConcurrent::run(&MediaPlayerSandbox::probeContent, QString::fromUtf8(path));
+        futures += QtConcurrent::run(&MediaPlayerSandbox::probeContent, QString::fromUtf8(path), thumbSize);
 
       QByteArray content;
       foreach (const QFuture<QByteArray> &future, futures)
         content += future.result() + '\n';
 
       return SHttpServer::ResponseMessage(request, SSandboxServer::Status_Ok, content, SHttpEngine::mimeTextXml);
+    }
+    else if (file.url().hasQueryItem("readimage"))
+    {
+      QSize maxsize;
+      if (file.url().hasQueryItem("maxsize"))
+        maxsize = SSize::fromString(file.url().queryItemValue("maxsize")).size();
+
+      QByteArray format = "png";
+      if (file.url().hasQueryItem("format"))
+        format = file.url().queryItemValue("format").toAscii();
+
+      QBuffer buffer;
+      buffer.open(QAbstractSocket::WriteOnly);
+      SImage::fromFile(QString::fromUtf8(request.content()), maxsize).save(&buffer, format, 80);
+      buffer.close();
+
+      return SHttpServer::ResponseMessage(request, SSandboxServer::Status_Ok, buffer.data(), "image/" + format.toLower());
     }
     else if (file.url().hasQueryItem("playfile"))
     {
@@ -165,13 +186,13 @@ QByteArray MediaPlayerSandbox::probeFormat(const QString &fileName)
   return QByteArray();
 }
 
-QByteArray MediaPlayerSandbox::probeContent(const QString &fileName)
+QByteArray MediaPlayerSandbox::probeContent(const QString &fileName, const QSize &thumbSize)
 {
   qDebug() << "Probing content:" << fileName;
 
   FileNode fileNode(fileName);
   if (!fileNode.isNull())
-    return fileNode.probeContent(-1);
+    return fileNode.probeContent(thumbSize, -1);
 
   return QByteArray();
 }

@@ -8,8 +8,7 @@ CONFIG += precompile_header
 PRECOMPILED_HEADER = $${PWD}/$${LXIMEDIA_DIR}/include/LXiMediaCenter
 
 # Files
-HEADERS += configserver.h \
-    filenode.h \
+HEADERS += filenode.h \
     mediadatabase.h \
     mediaplayersandbox.h \
     mediaplayerserver.h \

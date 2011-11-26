@@ -116,7 +116,7 @@ void FormatProber::probeFormat(ProbeInfo &pi, QIODevice *)
   }
 }
 
-void FormatProber::probeContent(ProbeInfo &, QIODevice *)
+void FormatProber::probeContent(ProbeInfo &, QIODevice *, const QSize &)
 {
 }
 

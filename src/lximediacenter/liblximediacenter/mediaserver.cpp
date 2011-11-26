@@ -137,9 +137,10 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
             ThumbnailListItem thumbItem;
             thumbItem.title = item.title;
             thumbItem.iconurl = item.iconUrl;
-            thumbItem.url = item.url;
-            thumbItem.url.addQueryItem("player", QString::null);
             thumbItem.played = item.played;
+            thumbItem.url = item.url;
+            if (!thumbItem.url.isEmpty())
+              thumbItem.url.addQueryItem("player", QString::number(item.type));
 
             if (item.played)
             {
@@ -156,30 +157,74 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
       else
         return makeHtmlContent(request, file.url(), buildThumbnailLoader(), headList);
     }
-    else if (!request.isHead())
+    else if (file.url().hasQueryItem("player"))
     {
-      foreach (Stream *stream, d->streams)
-      if (stream->url == request.path())
-      if (stream->proxy.addSocket(socket))
-        return SHttpServer::ResponseMessage(request, SHttpServer::Status_None);
+      const SUPnPContentDirectory::Item::Type playerType =
+          SUPnPContentDirectory::Item::Type(file.url().queryItemValue("player").toInt());
 
-      Stream * const stream = streamVideo(request);
-      if (stream)
+      if (file.url().hasQueryItem("size"))
       {
-        stream->proxy.addSocket(socket);
-        return SHttpServer::ResponseMessage(request, SHttpServer::Status_None);
+        const QSize size = SSize::fromString(file.url().queryItemValue("size")).size();
+
+        switch (playerType)
+        {
+        case SUPnPContentDirectory::Item::Type_Image:
+        case SUPnPContentDirectory::Item::Type_Photo:
+          return makeResponse(request, buildPhotoViewer(file.file(), size), SHttpEngine::mimeTextHtml, false);
+
+        case SUPnPContentDirectory::Item::Type_Video:
+        case SUPnPContentDirectory::Item::Type_Movie:
+        case SUPnPContentDirectory::Item::Type_VideoBroadcast:
+        case SUPnPContentDirectory::Item::Type_MusicVideo:
+          return makeResponse(request, buildVideoPlayer(file.file(), size), SHttpEngine::mimeTextHtml, false);
+        }
       }
       else
-        return SHttpServer::ResponseMessage(request, SHttpServer::Status_NotFound);
+        return makeHtmlContent(request, file.url(), buildPlayerLoader(file.file(), playerType), headPlayer);
     }
-    else // Return head only.
+    else // Stream file
     {
-      SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
-      response.setField("transferMode.dlna.org", "Streaming");
-      if (file.url().hasQueryItem("contentFeatures"))
-        response.setField("contentFeatures.dlna.org", QByteArray::fromHex(file.url().queryItemValue("contentFeatures").toAscii()));
+      const QString contentFeatures = QByteArray::fromHex(file.url().queryItemValue("contentFeatures").toAscii());
 
-      return response;
+      if (!request.isHead())
+      {
+        // Check for image
+        const MediaProfiles::ImageProfile imageProfile = mediaProfiles().imageProfileFor(contentFeatures);
+        const QString format = file.url().queryItemValue("format");
+        if ((imageProfile != 0) || (format == "jpeg") || (format == "png"))
+        {
+          SHttpServer::ResponseMessage response = sendPhoto(request);
+          response.setField("transferMode.dlna.org", "Streaming");
+          if (!contentFeatures.isEmpty())
+            response.setField("contentFeatures.dlna.org", contentFeatures);
+
+          return response;
+        }
+
+        // Else Audio/Video stream
+        foreach (Stream *stream, d->streams)
+        if (stream->url == request.path())
+        if (stream->proxy.addSocket(socket))
+          return SHttpServer::ResponseMessage(request, SHttpServer::Status_None);
+
+        Stream * const stream = streamVideo(request);
+        if (stream)
+        {
+          stream->proxy.addSocket(socket);
+          return SHttpServer::ResponseMessage(request, SHttpServer::Status_None);
+        }
+        else
+          return SHttpServer::ResponseMessage(request, SHttpServer::Status_NotFound);
+      }
+      else // Return head only.
+      {
+        SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
+        response.setField("transferMode.dlna.org", "Streaming");
+        if (!contentFeatures.isEmpty())
+          response.setField("contentFeatures.dlna.org", contentFeatures);
+
+        return response;
+      }
     }
   }
 
@@ -202,55 +247,24 @@ QList<SUPnPContentDirectory::Item> MediaServer::listContentDirItems(const QStrin
   QList<SUPnPContentDirectory::Item> result;
   foreach (Item item, listItems(dirPath, start, count))
   {
-    if (item.isImage())
-    {
-      item.protocols = mediaProfiles().listProtocols(client, item.imageSize);
-    }
-    else
-    {
-      int addVideo = 0;
-      SAudioFormat audioFormat = audioFormatFor(client, item, addVideo);
-      if (!item.isMusic() && (audioFormat.numChannels() > 2) &&
-          ((item.audioFormat.channelSetup() == SAudioFormat::Channels_Mono) ||
-           (item.audioFormat.channelSetup() == SAudioFormat::Channels_Stereo))
-          )
-      {
-        audioFormat.setChannelSetup(SAudioFormat::Channels_Stereo);
-      }
-
-      SVideoFormat videoFormat = videoFormatFor(client, item);
-      videoFormat.setFrameRate(item.videoFormat.frameRate());
-
-      if ((item.isVideo() && (addVideo >= 0)) || (addVideo > 0))
-      {
-        if ((item.type == Item::Type_Audio) || (item.type == Item::Type_AudioBook))
-          item.type = Item::Type_Video;
-        else if (item.type == Item::Type_Music)
-          item.type = Item::Type_MusicVideo;
-        else if (item.type == Item::Type_AudioBroadcast)
-          item.type = Item::Type_VideoBroadcast;
-
-        item.protocols = mediaProfiles().listProtocols(client, audioFormat, videoFormat, item.seekable);
-      }
-      else
-      {
-        if ((item.type == Item::Type_Video) || (item.type == Item::Type_Movie))
-          item.type = Item::Type_Audio;
-        else if (item.type == Item::Type_MusicVideo)
-          item.type = Item::Type_Music;
-        else if (item.type == Item::Type_VideoBroadcast)
-          item.type = Item::Type_AudioBroadcast;
-
-        item.protocols = mediaProfiles().listProtocols(client, audioFormat, item.seekable);
-      }
-    }
-
-    setQueryItemsFor(client, item.url);
+    processItem(client, item);
 
     result += item;
   }
 
   return result;
+}
+
+SUPnPContentDirectory::Item MediaServer::getContentDirItem(const QString &client, const QString &path)
+{
+  if (!activeClients().contains(client))
+    activeClients().insert(client);
+
+  Item item = getItem(path);
+  if (!item.isNull())
+    processItem(client, item);
+
+  return item;
 }
 
 SAudioFormat MediaServer::audioFormatFor(const QString &client, const Item &item, int &addVideo)
@@ -343,6 +357,57 @@ SVideoFormat MediaServer::videoFormatFor(const QString &client, const Item &)
   return result;
 }
 
+void MediaServer::processItem(const QString &client, Item &item)
+{
+  if (!item.isNull())
+  {
+    if (item.isImage())
+    {
+      item.protocols = mediaProfiles().listProtocols(client, item.imageSize);
+    }
+    else
+    {
+      int addVideo = 0;
+      SAudioFormat audioFormat = audioFormatFor(client, item, addVideo);
+      if (!item.isMusic() && (audioFormat.numChannels() > 2) &&
+          ((item.audioFormat.channelSetup() == SAudioFormat::Channels_Mono) ||
+           (item.audioFormat.channelSetup() == SAudioFormat::Channels_Stereo))
+          )
+      {
+        audioFormat.setChannelSetup(SAudioFormat::Channels_Stereo);
+      }
+
+      SVideoFormat videoFormat = videoFormatFor(client, item);
+      videoFormat.setFrameRate(item.videoFormat.frameRate());
+
+      if ((item.isVideo() && (addVideo >= 0)) || (addVideo > 0))
+      {
+        if ((item.type == Item::Type_Audio) || (item.type == Item::Type_AudioBook))
+          item.type = Item::Type_Video;
+        else if (item.type == Item::Type_Music)
+          item.type = Item::Type_MusicVideo;
+        else if (item.type == Item::Type_AudioBroadcast)
+          item.type = Item::Type_VideoBroadcast;
+
+        item.protocols = mediaProfiles().listProtocols(client, audioFormat, videoFormat);
+      }
+      else
+      {
+        if ((item.type == Item::Type_Video) || (item.type == Item::Type_Movie))
+          item.type = Item::Type_Audio;
+        else if (item.type == Item::Type_MusicVideo)
+          item.type = Item::Type_Music;
+        else if (item.type == Item::Type_VideoBroadcast)
+          item.type = Item::Type_AudioBroadcast;
+
+        item.protocols = mediaProfiles().listProtocols(client, audioFormat);
+      }
+    }
+
+    setQueryItemsFor(client, item.url);
+  }
+}
+
 void MediaServer::setQueryItemsFor(const QString &client, QUrl &url)
 {
   GlobalSettings settings;
@@ -368,8 +433,6 @@ void MediaServer::setQueryItemsFor(const QString &client, QUrl &url)
   {
     if (!group.isEmpty())
       settings.beginGroup(group);
-
-    QMap<QString, QString> queryItems;
 
     const QString transcodeSize = settings.value("TranscodeSize", genericTranscodeSize).toString();
     const QString transcodeCrop = settings.value("TranscodeCrop", genericTranscodeCrop).toString();

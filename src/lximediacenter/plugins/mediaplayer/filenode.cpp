@@ -31,10 +31,10 @@ QByteArray FileNode::probeFormat(int indent)
   return toByteArray(indent);
 }
 
-QByteArray FileNode::probeContent(int indent)
+QByteArray FileNode::probeContent(const QSize &thumbSize, int indent)
 {
   SMediaInfo::readFileInfo();
-  SMediaInfo::probeContent();
+  SMediaInfo::probeContent(thumbSize);
 
   return toByteArray(indent);
 }

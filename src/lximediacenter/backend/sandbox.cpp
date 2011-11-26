@@ -29,10 +29,6 @@ Sandbox::Sandbox()
 
   // Seed the random number generator.
   qsrand(int(QDateTime::currentDateTime().toTime_t()));
-
-  connect(&stopTimer, SIGNAL(timeout()), SLOT(deleteLater()));
-  connect(&sandboxServer, SIGNAL(busy()), &stopTimer, SLOT(stop()));
-  connect(&sandboxServer, SIGNAL(idle()), &stopTimer, SLOT(start()));
 }
 
 Sandbox::~Sandbox()
@@ -71,6 +67,10 @@ void Sandbox::start(const QString &mode)
 
   if (mode != "local")
   {
+    connect(&stopTimer, SIGNAL(timeout()), SLOT(deleteLater()));
+    connect(&sandboxServer, SIGNAL(busy()), &stopTimer, SLOT(stop()));
+    connect(&sandboxServer, SIGNAL(idle()), &stopTimer, SLOT(start()));
+
     stopTimer.setSingleShot(true);
     stopTimer.setInterval(60000);
     stopTimer.start();

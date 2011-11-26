@@ -60,9 +60,11 @@ public:
 
 protected: // From MediaServer
   virtual Stream              * streamVideo(const SHttpServer::RequestMessage &);
+  virtual SHttpServer::ResponseMessage sendPhoto(const SHttpServer::RequestMessage &);
 
   virtual int                   countItems(const QString &virtualPath);
   virtual QList<Item>           listItems(const QString &virtualPath, unsigned start = 0, unsigned count = 0);
+  virtual Item                  getItem(const QString &path);
 
 private:
   static bool                   isHidden(const QString &path);
@@ -71,9 +73,8 @@ private:
   QString                       virtualPath(const QString &realPath) const;
   QString                       realPath(const QString &virtualPath) const;
 
-  bool                          isEmpty(const QString &path);
-  int                           countAlbums(const QString &path);
-  QList<Item>                   listAlbums(const QString &path, unsigned &start, unsigned &count);
+  int                           countAlbums(const QString &virtualPath);
+  QList<Item>                   listAlbums(const QString &virtualPath, unsigned &start, unsigned &count);
   Item                          makeItem(const FileNode &);
 
   virtual SHttpServer::ResponseMessage httpRequest(const SHttpServer::RequestMessage &, QIODevice *);

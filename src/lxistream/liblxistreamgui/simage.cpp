@@ -240,6 +240,7 @@ SImage SImage::handleFile(QImageReader &imageReader, QSize maxsize, void *exifDa
 {
   ExifData * const exifData = (ExifData *)exifDataVoid;
 
+  const QSize originalSize = imageReader.size();
   SImage image;
 
   if (exifData)
@@ -273,7 +274,7 @@ SImage SImage::handleFile(QImageReader &imageReader, QSize maxsize, void *exifDa
   {
     if (maxsize.isValid() && !maxsize.isNull())
     {
-      QSize size = imageReader.size();
+      QSize size = originalSize;
       size.scale(maxsize, Qt::KeepAspectRatio);
       imageReader.setScaledSize(size);
     }
@@ -318,7 +319,7 @@ SImage SImage::handleFile(QImageReader &imageReader, QSize maxsize, void *exifDa
     exif_data_unref(exifData);
   }
 
-  image.d.originalSize = imageReader.size();
+  image.d.originalSize = originalSize;
 
   return image;
 }

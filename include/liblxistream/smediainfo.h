@@ -86,7 +86,7 @@ protected:
 
   void                          readFileInfo(void);
   void                          probeFormat(void);
-  void                          probeContent(void);
+  void                          probeContent(const QSize &thumbSize = QSize(128, 128));
   void                          probeDataStreams(void);
 
 public:

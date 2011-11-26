@@ -146,8 +146,8 @@ table.location {
 div.content {
  padding: 0;
  margin: 0;
- display: table-cell;
- clear: both;
+ width: 100%;
+ display: block;
 }
 div.thumbnaillist {
  display: table-cell;
@@ -181,7 +181,17 @@ div.thumbnaillistitem {
 }
 div.player {
  padding: 0;
- margin: 0.5em;
+ margin: 0;
+ width: 100%;
  display: block;
  text-align: center;
+}
+.player img {
+ padding: 0;
+ margin-left: auto;
+ margin-right: auto;
+ display: block;
+}
+.player video {
+ background-color: #000000;
 }

@@ -69,7 +69,8 @@ const char  SHttpEngine::mimeTextJs[]        = "text/javascript;charset=\"utf-8\
 const char  SHttpEngine::mimeTextPlain[]     = "text/plain;charset=\"utf-8\"";
 const char  SHttpEngine::mimeTextXml[]       = "text/xml;charset=\"utf-8\"";
 
-SHttpEngine::SHttpEngine(void)
+SHttpEngine::SHttpEngine(QObject *parent)
+  : QObject(parent)
 {
 }
 
@@ -250,7 +251,7 @@ struct SHttpServerEngine::Data
 };
 
 SHttpServerEngine::SHttpServerEngine(const QString &protocol, QObject *parent)
-  : QObject(parent),
+  : SHttpEngine(parent),
     d(new Data())
 {
 #if defined(Q_OS_UNIX)
@@ -303,7 +304,7 @@ const QString & SHttpServerEngine::senderId(void) const
   return d->senderId;
 }
 
-SHttpServerEngine::ResponseMessage SHttpServerEngine::handleHttpRequest(const SHttpEngine::RequestMessage &request, QIODevice *socket)
+SHttpServerEngine::ResponseMessage SHttpServerEngine::handleHttpRequest(const SHttpEngine::RequestMessage &request, QIODevice *socket) const
 {
   if (request.method() == "OPTIONS")
   {
@@ -420,7 +421,7 @@ struct SHttpClientEngine::Data
 };
 
 SHttpClientEngine::SHttpClientEngine(QObject *parent)
-  : QObject(parent),
+  : SHttpEngine(parent),
     d(new Data())
 {
   d->senderId = qApp->applicationName() + "/" + qApp->applicationVersion();

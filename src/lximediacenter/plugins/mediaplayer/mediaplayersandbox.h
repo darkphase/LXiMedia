@@ -43,7 +43,7 @@ private slots:
 
 private:
   static QByteArray             probeFormat(const QString &fileName);
-  static QByteArray             probeContent(const QString &fileName);
+  static QByteArray             probeContent(const QString &fileName, const QSize &thumbSize);
 
 public:
   static const char     * const path;

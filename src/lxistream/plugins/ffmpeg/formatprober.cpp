@@ -81,7 +81,7 @@ void FormatProber::probeFormat(ProbeInfo &pi, QIODevice *ioDevice)
   }
 }
 
-void FormatProber::probeContent(ProbeInfo &pi, QIODevice *ioDevice)
+void FormatProber::probeContent(ProbeInfo &pi, QIODevice *ioDevice, const QSize &thumbSize)
 {
   static const int maxProbeTime = 500; // msec
 
@@ -158,7 +158,7 @@ void FormatProber::probeContent(ProbeInfo &pi, QIODevice *ioDevice)
 
           bufferReader.selectStreams(QVector<StreamId>() << videoStreams.first());
 
-          while (produceCallback.videoBuffers.isEmpty() &&
+          while ((produceCallback.videoBuffers.count() < bufferCount) &&
                  (qAbs(timer.elapsed()) < maxProbeTime))
           {
             if (!bufferReader.process())
@@ -170,6 +170,10 @@ void FormatProber::probeContent(ProbeInfo &pi, QIODevice *ioDevice)
               produceCallback.videoBuffers.takeFirst();
             }
           }
+
+          // Skip first 5%
+          if (pi.format != "mpegts") // mpegts has very slow seeking.
+            bufferReader.setPosition(pi.duration / 20);
 
           // Extract the thumbnail
           if (!produceCallback.videoBuffers.isEmpty() &&
@@ -230,7 +234,7 @@ void FormatProber::probeContent(ProbeInfo &pi, QIODevice *ioDevice)
               if (!thumbnail.isNull())
               {
                 VideoResizer videoResizer("bilinear", this);
-                videoResizer.setSize(SSize(128, 128));
+                videoResizer.setSize(thumbSize);
                 videoResizer.setAspectRatioMode(Qt::KeepAspectRatio);
                 pi.thumbnail = videoResizer.processBuffer(thumbnail);
               }

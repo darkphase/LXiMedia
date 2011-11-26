@@ -42,7 +42,8 @@ private:
   virtual                       ~MediaDatabase();
 
 public:
-  FileNode                      readNode(const QString &filePath) const;
+  FileNode                      readNode(const QString &filePath, const QSize &thumbSize = QSize(128, 128)) const;
+  QByteArray                    readImage(const QString &filePath, const QSize &maxSize, const QString &format) const;
 
   void                          setLastPlayed(const QString &filePath, const QDateTime & = QDateTime::currentDateTime());
   QDateTime                     lastPlayed(const QString &filePath) const;

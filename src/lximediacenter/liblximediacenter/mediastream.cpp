@@ -162,7 +162,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
 
     if (format == "ogg")
     {
-      audioCodec = SAudioCodec("VORBIS", SAudioFormat::Channels_Stereo, 48000);
+      audioCodec = SAudioCodec("FLAC", SAudioFormat::Channels_Stereo, 48000);
       videoCodec = SVideoCodec("THEORA", videoFormat.size(), videoFormat.frameRate());
       header.setContentType(SHttpEngine::mimeVideoOgg);
     }

@@ -29,8 +29,9 @@ namespace LXiServer {
 
 /*! This class provides some basics for HTTP clients and servers.
  */
-class LXISERVER_PUBLIC SHttpEngine
+class LXISERVER_PUBLIC SHttpEngine : public QObject
 {
+Q_OBJECT
 public:
   /*! The HTTP status codes.
    */
@@ -236,7 +237,7 @@ public:
   };
 
 public:
-                                SHttpEngine(void);
+                                SHttpEngine(QObject * = NULL);
   virtual                       ~SHttpEngine();
 
   virtual const char          * senderType(void) const = 0;
@@ -297,8 +298,7 @@ public:
 
 /*! This class provides the basics for a HTTP server.
  */
-class LXISERVER_PUBLIC SHttpServerEngine : public QObject,
-                                           public SHttpEngine
+class LXISERVER_PUBLIC SHttpServerEngine : public SHttpEngine
 {
 Q_OBJECT
 public:
@@ -318,7 +318,7 @@ public:
   virtual const char          * senderType(void) const;
   virtual const QString       & senderId(void) const;
 
-  ResponseMessage               handleHttpRequest(const RequestMessage &, QIODevice *);
+  ResponseMessage               handleHttpRequest(const RequestMessage &, QIODevice *) const;
   static bool                   sendHttpResponse(const RequestHeader &, ResponseMessage &, QIODevice *, bool reuse = true);
   
 private:
@@ -329,8 +329,7 @@ private:
 
 /*! This class provides the basics for a HTTP client.
  */
-class LXISERVER_PUBLIC SHttpClientEngine : public QObject,
-                                           public SHttpEngine
+class LXISERVER_PUBLIC SHttpClientEngine : public SHttpEngine
 {
 Q_OBJECT
 public:

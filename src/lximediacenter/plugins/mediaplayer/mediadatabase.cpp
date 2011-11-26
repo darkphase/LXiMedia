@@ -54,12 +54,12 @@ MediaDatabase::~MediaDatabase()
   delete probeSandbox;
 }
 
-FileNode MediaDatabase::readNode(const QString &filePath) const
+FileNode MediaDatabase::readNode(const QString &filePath, const QSize &thumbSize) const
 {
   if (!filePath.isEmpty())
   {
     SSandboxClient::RequestMessage request(probeSandbox);
-    request.setRequest("POST", QByteArray(MediaPlayerSandbox::path) + "?probecontent=");
+    request.setRequest("POST", QByteArray(MediaPlayerSandbox::path) + "?probecontent=&thumbsize=" + SSize(thumbSize).toString().toAscii());
     request.setContent(filePath.toUtf8());
 
     const SHttpEngine::ResponseMessage response = probeSandbox->blockingRequest(request);
@@ -68,6 +68,22 @@ FileNode MediaDatabase::readNode(const QString &filePath) const
   }
 
   return FileNode();
+}
+
+QByteArray MediaDatabase::readImage(const QString &filePath, const QSize &size, const QString &format) const
+{
+  if (!filePath.isEmpty())
+  {
+    SSandboxClient::RequestMessage request(probeSandbox);
+    request.setRequest("POST", QByteArray(MediaPlayerSandbox::path) + "?readimage=&maxsize=" + SSize(size).toString().toAscii() + "&format=" + format.toAscii());
+    request.setContent(filePath.toUtf8());
+
+    const SHttpEngine::ResponseMessage response = probeSandbox->blockingRequest(request);
+    if (response.status() == SHttpEngine::Status_Ok)
+      return response.content();
+  }
+
+  return QByteArray();
 }
 
 void MediaDatabase::setLastPlayed(const QString &filePath, const QDateTime &lastPlayed)
