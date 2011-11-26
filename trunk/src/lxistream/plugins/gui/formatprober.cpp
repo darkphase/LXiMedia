@@ -61,12 +61,12 @@ void FormatProber::probeFormat(ProbeInfo &pi, QIODevice *ioDevice)
   }
 }
 
-void FormatProber::probeContent(ProbeInfo &pi, QIODevice *ioDevice)
+void FormatProber::probeContent(ProbeInfo &pi, QIODevice *ioDevice, const QSize &thumbSize)
 {
   QList<FormatProber::Format> format = FormatProber::probeFormat(ioDevice->peek(4), QString::null);
   if (!format.isEmpty())
   {
-    const SImage thumbnail = SImage::fromData(ioDevice, QSize(128, 128));
+    const SImage thumbnail = SImage::fromData(ioDevice, thumbSize);
     if (!thumbnail.isNull())
     {
       pi.imageCodec = SVideoCodec(format.first().name.toUpper(), thumbnail.originalSize());

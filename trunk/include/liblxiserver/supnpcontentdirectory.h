@@ -84,10 +84,10 @@ public:
 
     bool                        isDir;
     bool                        played;
-    bool                        seekable;
     quint8                      type;
     QUrl                        url;
     QUrl                        iconUrl;
+    QString                     path;
 
     QString                     title;
     QString                     artist;
@@ -105,6 +105,7 @@ public:
   {
     virtual int                 countContentDirItems(const QString &client, const QString &path) = 0;
     virtual QList<Item>         listContentDirItems(const QString &client, const QString &path, unsigned start = 0, unsigned count = 0) = 0;
+    virtual Item                getContentDirItem(const QString &client, const QString &path) = 0;
   };
 
 public:
@@ -118,11 +119,11 @@ public:
   void                          registerCallback(const QString &path, Callback *);
   void                          unregisterCallback(Callback *);
 
-  static QByteArray             toQueryPath(const QByteArray &path, const QByteArray &query, const QByteArray &suffix);
-  static bool                   fromQueryPath(const QString &queryStr, QString &path, QByteArray &query);
-
 public slots:
   void                          modified(void);
+
+protected: // From SHttpServer::Callback
+  virtual SHttpServer::ResponseMessage httpRequest(const SHttpServer::RequestMessage &, QIODevice *);
 
 protected: // From SUPnPBase
   virtual void                  buildDescription(QDomDocument &, QDomElement &);
@@ -147,6 +148,8 @@ private:
   _lxi_internal static QString  parentDir(const QString &);
   _lxi_internal QByteArray      toObjectID(const QString &path);
   _lxi_internal QString         fromObjectID(const QByteArray &id);
+  _lxi_internal QByteArray      toObjectURL(const QUrl &path, const QByteArray &suffix);
+  _lxi_internal QByteArray      fromObjectURL(const QByteArray &url);
 
 public:
   static const char             contentDirectoryNS[];

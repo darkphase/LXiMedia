@@ -237,7 +237,7 @@ SUPnPBase::ProtocolList MediaProfiles::listProtocols(const QString &client)
   return result.values();
 }
 
-SUPnPBase::ProtocolList MediaProfiles::listProtocols(const QString &client, const SAudioFormat &audioFormat, bool seekable)
+SUPnPBase::ProtocolList MediaProfiles::listProtocols(const QString &client, const SAudioFormat &audioFormat)
 {
   QMultiMap<int, SUPnPBase::Protocol> result;
 
@@ -255,7 +255,7 @@ SUPnPBase::ProtocolList MediaProfiles::listProtocols(const QString &client, cons
       result.insert(priority, SUPnPBase::Protocol(
           "http-get",
           mimeTypeFor(i.value()),
-          true, false, seekable,
+          true, false, false,
           name,
           suffixFor(i.value()),
           audioFormat.sampleRate(), audioFormat.numChannels()));
@@ -265,7 +265,7 @@ SUPnPBase::ProtocolList MediaProfiles::listProtocols(const QString &client, cons
   return result.values();
 }
 
-SUPnPBase::ProtocolList MediaProfiles::listProtocols(const QString &client, const SAudioFormat &audioFormat, const SVideoFormat &videoFormat, bool seekable)
+SUPnPBase::ProtocolList MediaProfiles::listProtocols(const QString &client, const SAudioFormat &audioFormat, const SVideoFormat &videoFormat)
 {
   QMultiMap<int, SUPnPBase::Protocol> result;
 
@@ -289,7 +289,7 @@ SUPnPBase::ProtocolList MediaProfiles::listProtocols(const QString &client, cons
         result.insert(priority, SUPnPBase::Protocol(
             "http-get",
             mimeTypeFor(i.value()),
-            true, false, seekable,
+            true, false, false,
             name,
             suffixFor(i.value()),
             correctedAudioFormat.sampleRate(), correctedAudioFormat.numChannels(),
@@ -832,8 +832,6 @@ MediaProfiles::AudioProfile MediaProfiles::audioProfileFor(const QString &conten
     QMap<QByteArray, AudioProfile>::ConstIterator i = d->audioProfileNames.find(profileName.toAscii());
     if (i != d->audioProfileNames.end())
       return i.value();
-
-    Q_ASSERT_X(false, "Could not find", profileName.toAscii().data());
   }
 
   return AudioProfile(0);
@@ -850,8 +848,6 @@ MediaProfiles::VideoProfile MediaProfiles::videoProfileFor(const QString &conten
     QMap<QByteArray, VideoProfile>::ConstIterator i = d->videoProfileNames.find(profileName.toAscii());
     if (i != d->videoProfileNames.end())
       return i.value();
-
-    Q_ASSERT_X(false, "Could not find", profileName.toAscii().data());
   }
 
   return VideoProfile(0);
@@ -868,8 +864,6 @@ MediaProfiles::ImageProfile MediaProfiles::imageProfileFor(const QString &conten
     QMap<QByteArray, ImageProfile>::ConstIterator i = d->imageProfileNames.find(profileName.toAscii());
     if (i != d->imageProfileNames.end())
       return i.value();
-
-    Q_ASSERT_X(false, "Could not find", profileName.toAscii().data());
   }
 
   return ImageProfile(0);
@@ -1127,6 +1121,24 @@ QString MediaProfiles::formatFor(VideoProfile profile)
   case MPEG4_P2_MATROSKA_AC3_SD_NONSTD:
   case MPEG4_P2_MATROSKA_AC3_HD_NONSTD:
     return "matroska";
+  }
+
+  return QString::null;
+}
+
+QString MediaProfiles::formatFor(ImageProfile profile)
+{
+  switch (profile)
+  {
+  case JPEG_TN:
+  case JPEG_SM:
+  case JPEG_MED:
+  case JPEG_LRG:
+    return "jpeg";
+
+  case PNG_TN:
+  case PNG_LRG:
+    return "png";
   }
 
   return QString::null;

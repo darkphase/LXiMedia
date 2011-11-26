@@ -126,9 +126,11 @@ public:
 
 protected:
   virtual Stream              * streamVideo(const SHttpServer::RequestMessage &) = 0;
+  virtual SHttpServer::ResponseMessage sendPhoto(const SHttpServer::RequestMessage &) = 0;
 
   virtual int                   countItems(const QString &path) = 0;
   virtual QList<Item>           listItems(const QString &path, unsigned start = 0, unsigned count = 0) = 0;
+  virtual Item                  getItem(const QString &path) = 0;
 
 protected slots:
   virtual void                  cleanStreams(void);
@@ -139,10 +141,12 @@ protected: // From SHttpServer::Callback
 private: // From UPnPContentDirectory::Callback
   virtual int                   countContentDirItems(const QString &client, const QString &path);
   virtual QList<SUPnPContentDirectory::Item> listContentDirItems(const QString &client, const QString &path, unsigned start, unsigned count);
+  virtual SUPnPContentDirectory::Item getContentDirItem(const QString &client, const QString &path);
 
 private:
   _lxi_internal static SAudioFormat audioFormatFor(const QString &client, const Item &item, int &addVideo);
   _lxi_internal static SVideoFormat videoFormatFor(const QString &client, const Item &item);
+  _lxi_internal static void     processItem(const QString &client, Item &);
   _lxi_internal static void     setQueryItemsFor(const QString &client, QUrl &);
   _lxi_internal void            addStream(Stream *);
   _lxi_internal void            removeStream(Stream *);
@@ -156,14 +160,7 @@ private:
   struct Data;
   Data                  * const d;
 
-public: // Implemented in mediaserver.html.cpp
-  static void                   enableHtml5(bool = true);
-
 protected: // Implemented in mediaserver.html.cpp
-  static bool                   html5Enabled;
-  static const char             audioTimeFormat[];
-  static const char             videoTimeFormat[];
-
   static const char             m3uPlaylist[];
   static const char             m3uPlaylistItem[];
   static const char             htmlThumbnailList[];
@@ -172,27 +169,19 @@ protected: // Implemented in mediaserver.html.cpp
   static const char             htmlThumbnailItemNoTitle[];
   static const char             htmlThumbnailItemNoLink[];
   static const char             htmlThumbnailItemNoLinkNoTitle[];
-  static const char             htmlPlayerAudioItem[];
-  static const char             htmlPlayerAudioItemHtml5[];
-  static const char             htmlPlayerAudioSourceItemHtml5[];
-  static const char             htmlPlayerAudioItemFlv[];
-  static const char             htmlPlayerVideoItem[];
-  static const char             htmlPlayerVideoItemHtml5[];
-  static const char             htmlPlayerVideoSourceItemHtml5[];
-  static const char             htmlPlayerVideoItemFlv[];
-  static const char             htmlPlayerThumbItem[];
-  static const char             htmlPlayerThumbItemOption[];
-  static const char             htmlDetail[];
+  static const char             htmlPlayerLoader[];
+  static const char             htmlPhotoViewer[];
+  static const char             htmlVideoPlayer[];
 
   static const char             headList[];
   static const char             headPlayer[];
 
-  static QString                audioFormatString(const SMediaInfo &);
-  static QString                videoFormatString(const SMediaInfo &);
   QByteArray                    buildThumbnailView(const QString &title, const ThumbnailListItemList &);
   QByteArray                    buildThumbnailLoader(void);
   QByteArray                    buildThumbnailItems(const ThumbnailListItemList &);
-  QByteArray                    buildPlayer(const QUrl &, SMediaInfo::ProbeInfo::FileType);
+  QByteArray                    buildPlayerLoader(const QString &, SUPnPContentDirectory::Item::Type);
+  QByteArray                    buildPhotoViewer(const QString &file, const QSize &);
+  QByteArray                    buildVideoPlayer(const QString &file, const QSize &);
 };
 
 } // End of namespace

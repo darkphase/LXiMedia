@@ -21,7 +21,7 @@
 #include "supnpgenaserver.h"
 
 #define USE_SMALL_OBJECTIDS
-#define USE_SMALL_QUERYIDS
+#define USE_SMALL_OBJECTURLS
 
 namespace LXiServer {
 
@@ -32,6 +32,7 @@ struct SUPnPContentDirectory::Data : SUPnPContentDirectory::Callback
 {
   virtual int                   countContentDirItems(const QString &client, const QString &path);
   virtual QList<Item>           listContentDirItems(const QString &client, const QString &path, unsigned start, unsigned count);
+  virtual Item                  getContentDirItem(const QString &client, const QString &path);
 
   SUPnPGenaServer             * genaServer;
 
@@ -42,17 +43,12 @@ struct SUPnPContentDirectory::Data : SUPnPContentDirectory::Callback
   QVector<QByteArray>           objectIdList;
   QHash<QByteArray, qint32>     objectIdHash;
 #endif
-
-#ifdef USE_SMALL_QUERYIDS
-  static QVector<QByteArray>    queryIdList;
-  static QHash<QByteArray, qint32> queryIdHash;
+#ifdef USE_SMALL_OBJECTURLS
+  QByteArray                    objectUrlPath;
+  QVector<QByteArray>           objectUrlList;
+  QHash<QByteArray, qint32>     objectUrlHash;
 #endif
 };
-
-#ifdef USE_SMALL_QUERYIDS
-QVector<QByteArray>       SUPnPContentDirectory::Data::queryIdList;
-QHash<QByteArray, qint32> SUPnPContentDirectory::Data::queryIdHash;
-#endif
 
 SUPnPContentDirectory::SUPnPContentDirectory(const QString &basePath, QObject *parent)
     : SUPnPBase(basePath + "contentdirectory/", parent),
@@ -68,6 +64,9 @@ SUPnPContentDirectory::SUPnPContentDirectory(const QString &basePath, QObject *p
 #ifdef USE_SMALL_OBJECTIDS
   d->objectIdList.append(QByteArray());
   d->objectIdHash.insert(d->objectIdList.last(), d->objectIdList.count() - 1);
+#endif
+#ifdef USE_SMALL_OBJECTURLS
+  d->objectUrlPath = SUPnPBase::basePath().toUtf8() + "files/";
 #endif
 }
 
@@ -110,6 +109,10 @@ void SUPnPContentDirectory::reset(void)
   d->objectIdList.append(QByteArray());
   d->objectIdHash.insert(d->objectIdList.last(), d->objectIdList.count() - 1);
 #endif
+#ifdef USE_SMALL_OBJECTURLS
+  d->objectUrlList.clear();
+  d->objectUrlHash.clear();
+#endif
 }
 
 void SUPnPContentDirectory::registerCallback(const QString &path, Callback *callback)
@@ -126,53 +129,24 @@ void SUPnPContentDirectory::unregisterCallback(Callback *callback)
     i++;
 }
 
-QByteArray SUPnPContentDirectory::toQueryPath(const QByteArray &path, const QByteArray &query, const QByteArray &suffix)
-{
-#ifdef USE_SMALL_QUERYIDS
-  QHash<QByteArray, qint32>::ConstIterator i = Data::queryIdHash.find(query);
-  if (i != Data::queryIdHash.end())
-    return path + ".." + ("0000000" + QByteArray::number(*i, 16)).right(8) + suffix;
-
-  Data::queryIdList.append(query);
-  Data::queryIdList.last().squeeze();
-  Data::queryIdHash.insert(Data::queryIdList.last(), Data::queryIdList.count() - 1);
-
-  return path + ".." + ("0000000" + QByteArray::number(Data::queryIdList.count() - 1, 16)).right(8) + suffix;
-#else
-  return path + ".." + qCompress(query, 9).toHex() + suffix;
-#endif
-}
-
-bool SUPnPContentDirectory::fromQueryPath(const QString &queryStr, QString &path, QByteArray &query)
-{
-  const int lastDot = queryStr.lastIndexOf('.');
-  const int lastDotDot = queryStr.lastIndexOf("..");
-  if ((lastDot > (lastDotDot + 1)) && (lastDotDot >= 0))
-  {
-    path = queryStr.left(lastDotDot) + queryStr.mid(lastDot);
-    const QByteArray q = queryStr.mid(lastDotDot + 2, (lastDot - lastDotDot) - 2).toAscii();
-
-#ifdef USE_SMALL_QUERYIDS
-    const qint32 id = q.toInt(NULL, 16);
-    if (id < Data::queryIdList.count())
-    {
-      query = Data::queryIdList[id];
-      return true;
-    }
-
-    return false;
-#else
-    query = qUncompress(QByteArray::fromHex(q));
-    return true;
-#endif
-  }
-
-  return false;
-}
-
 void SUPnPContentDirectory::modified(void)
 {
   emitEvent(true);
+}
+
+SHttpServer::ResponseMessage SUPnPContentDirectory::httpRequest(const SHttpServer::RequestMessage &request, QIODevice *socket)
+{
+#ifdef USE_SMALL_OBJECTURLS
+  if (request.file().startsWith(d->objectUrlPath))
+  {
+    SHttpServer::RequestMessage newRequest = request;
+    newRequest.setPath(fromObjectURL(request.path()));
+
+    return httpServer()->handleHttpRequest(newRequest, socket);
+  }
+#endif
+
+  return SUPnPBase::httpRequest(request, socket);
 }
 
 void SUPnPContentDirectory::buildDescription(QDomDocument &doc, QDomElement &scpdElm)
@@ -333,21 +307,35 @@ bool SUPnPContentDirectory::handleBrowse(const QDomElement &elem, QDomDocument &
       root.setAttribute("xmlns:dlna", dlnaNS);
       root.setAttribute("xmlns:upnp", metadataNS);
 
-      unsigned itemIndex = start;
       foreach (const Item &item, (*callback)->listContentDirItems(client, path, start, count))
       {
         if (!item.isDir)
         {
           const QString title = (item.played ? "*" : "") + item.title;
-          if (!item.seekable)
-            didlFile(subDoc, root, host, item, path + QString::number(itemIndex), title);
-          else
-            didlContainer(subDoc, root, Item::Type(item.type), path + QString::number(itemIndex), title, allItems(item, QStringList()).count());
+          switch (item.type)
+          {
+          case Item::Type_None:
+          case Item::Type_Playlist:
+          case Item::Type_Image:
+          case Item::Type_Photo:
+          case Item::Type_Music:
+          case Item::Type_MusicVideo:
+          case Item::Type_AudioBroadcast:
+          case Item::Type_VideoBroadcast:
+            didlFile(subDoc, root, host, item, item.path, title);
+            break;
+
+          case Item::Type_Audio:
+          case Item::Type_AudioBook:
+          case Item::Type_Video:
+          case Item::Type_Movie:
+            didlContainer(subDoc, root, Item::Type(item.type), item.path, title, allItems(item, QStringList()).count());
+            break;
+          }
         }
         else
-          didlDirectory(subDoc, root, Item::Type(item.type), client, path + item.title + '/');
+          didlDirectory(subDoc, root, Item::Type(item.type), client, item.path);
 
-        itemIndex++;
         totalReturned++;
       }
 
@@ -378,18 +366,13 @@ bool SUPnPContentDirectory::handleBrowse(const QDomElement &elem, QDomDocument &
   }
   else
   {
-    const QString file = path.mid(basePath.length());
-    const QStringList itemProps = splitItemProps(file);
-    const unsigned itemIndex = itemProps.first().toUInt();
+    const QStringList itemProps = splitItemProps(path);
 
     // Get the item
-    Item item;
-    foreach (const Item &i, (*callback)->listContentDirItems(client, basePath, itemIndex, 1))
-      item = i;
-
+    const Item item = (*callback)->getContentDirItem(client, itemProps[0]);
     if (item.isNull())
     {
-      qDebug() << "SUPnPContentDirectory: could not find item" << itemIndex << "in path:" << basePath;
+      qDebug() << "SUPnPContentDirectory: could not find item" << itemProps[0];
       return false;
     }
 
@@ -408,11 +391,11 @@ bool SUPnPContentDirectory::handleBrowse(const QDomElement &elem, QDomDocument &
       // Only select the items that were requested.
       for (int i=start, n=0; (i<items.count()) && ((count == 0) || (n<int(count))); i++, n++)
       {
-        const QStringList props = splitItemProps(file + '|' + items[i]);
+        const QStringList props = splitItemProps(itemProps[0] + '\t' + items[i]);
         if (props[1] == "p")
-          didlFile(subDoc, root, host, makePlayItem(item, props), path + '|' + items[i]);
+          didlFile(subDoc, root, host, makePlayItem(item, props), path + '\t' + items[i]);
         else
-          didlContainer(subDoc, root, Item::Type(item.type), path + '|' + items[i], props[3], allItems(item, splitItemProps(items[i])).count());
+          didlContainer(subDoc, root, Item::Type(item.type), path + '\t' + items[i], props[3], allItems(item, splitItemProps(items[i])).count());
 
         totalReturned++;
       }
@@ -586,8 +569,7 @@ void SUPnPContentDirectory::didlFile(QDomDocument &doc, QDomElement &root, const
     url.addQueryItem("contentFeatures", protocol.contentFeatures().toHex());
 
     // Encode the filename
-    const QString path = toQueryPath(url.toEncoded(QUrl::RemoveQuery), url.encodedQuery(), protocol.suffix);
-    resElm.appendChild(doc.createTextNode(path));
+    resElm.appendChild(doc.createTextNode(toObjectURL(url, protocol.suffix)));
     itemElm.appendChild(resElm);
   }
 
@@ -693,7 +675,7 @@ QStringList SUPnPContentDirectory::chapterItems(const Item &item)
 QStringList SUPnPContentDirectory::splitItemProps(const QString &text)
 {
   QStringList itemProps = QStringList() << QString::null << QString::null << QString::null << QString::null;
-  foreach (const QString &section, text.split('|'))
+  foreach (const QString &section, text.split('\t'))
   {
     const int hash = section.indexOf('#');
     if (hash > 0)
@@ -738,7 +720,7 @@ QString SUPnPContentDirectory::parentDir(const QString &dir)
   {
     const int last =
         qMax(dir.left(dir.length() - 1).lastIndexOf('/'),
-             dir.left(dir.length() - 1).lastIndexOf('|') - 1);
+             dir.left(dir.length() - 1).lastIndexOf('\t') - 1);
 
     if (last >= 0)
       return dir.left(last + 1);
@@ -799,10 +781,53 @@ QString SUPnPContentDirectory::fromObjectID(const QByteArray &idStr)
   }
 }
 
+QByteArray SUPnPContentDirectory::toObjectURL(const QUrl &url, const QByteArray &suffix)
+{
+#ifdef USE_SMALL_OBJECTURLS
+  const QByteArray encoded = url.toEncoded(QUrl::RemoveScheme | QUrl::RemoveAuthority);
+
+  QUrl newUrl;
+  QHash<QByteArray, qint32>::ConstIterator i = d->objectUrlHash.find(encoded);
+  if (i == d->objectUrlHash.end())
+  {
+    d->objectUrlList.append(encoded);
+    d->objectUrlList.last().squeeze();
+    d->objectUrlHash.insert(d->objectUrlList.last(), d->objectUrlList.count() - 1);
+
+    newUrl = d->objectUrlPath + ("0000000" + QByteArray::number(d->objectUrlList.count() - 1, 16)).right(8) + suffix;
+  }
+  else
+    newUrl = d->objectUrlPath + ("0000000" + QByteArray::number(*i, 16)).right(8) + suffix;
+
+  newUrl.setScheme("http");
+  newUrl.setAuthority(url.authority());
+  return newUrl.toEncoded();
+#else
+  suffix;
+  return url.toEncoded();
+#endif
+}
+
+QByteArray SUPnPContentDirectory::fromObjectURL(const QByteArray &url)
+{
+#ifdef USE_SMALL_OBJECTURLS
+  const int lastSlash = url.lastIndexOf('/');
+  if (lastSlash >= 0)
+  {
+    const qint32 id = url.mid(lastSlash + 1, 8).toInt(NULL, 16);
+    if ((id >= 0) && (id < d->objectUrlList.count()))
+      return d->objectUrlList[id];
+  }
+
+  return QByteArray();
+#else
+  return url;
+#endif
+}
+
 
 SUPnPContentDirectory::Item::Item(void)
-  : isDir(false), played(false), seekable(false), type(Type_None),
-    track(0), duration(0)
+  : isDir(false), played(false), type(Type_None), track(0), duration(0)
 {
 }
 
@@ -896,6 +921,7 @@ QList<SUPnPContentDirectory::Item> SUPnPContentDirectory::Data::listContentDirIt
         {
           Item item;
           item.isDir = true;
+          item.path = sub;
           item.title = sub;
           item.title = item.title.startsWith('/') ? item.title.mid(1) : item.title;
           item.title = item.title.endsWith('/') ? item.title.left(item.title.length() - 1) : item.title;
@@ -911,6 +937,11 @@ QList<SUPnPContentDirectory::Item> SUPnPContentDirectory::Data::listContentDirIt
   }
 
   return result;
+}
+
+SUPnPContentDirectory::Item SUPnPContentDirectory::Data::getContentDirItem(const QString &, const QString &)
+{
+  return Item();
 }
 
 } // End of namespace

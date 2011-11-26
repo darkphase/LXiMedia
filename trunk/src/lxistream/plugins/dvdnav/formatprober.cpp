@@ -58,7 +58,7 @@ void FormatProber::probeFormat(ProbeInfo &pi, QIODevice *)
   }
 }
 
-void FormatProber::probeContent(ProbeInfo &pi, QIODevice *)
+void FormatProber::probeContent(ProbeInfo &pi, QIODevice *, const QSize &)
 {
   if (BufferReader::isDiscPath(pi.filePath))
   {

@@ -108,8 +108,8 @@ public:
   QStringList                   enabledImageProfiles(void);
 
   SUPnPBase::ProtocolList       listProtocols(const QString &client);
-  SUPnPBase::ProtocolList       listProtocols(const QString &client, const SAudioFormat &, bool seekable);
-  SUPnPBase::ProtocolList       listProtocols(const QString &client, const SAudioFormat &, const SVideoFormat &, bool seekable);
+  SUPnPBase::ProtocolList       listProtocols(const QString &client, const SAudioFormat &);
+  SUPnPBase::ProtocolList       listProtocols(const QString &client, const SAudioFormat &, const SVideoFormat &);
   SUPnPBase::ProtocolList       listProtocols(const QString &client, const SSize &imageSize);
 
   QStringList                   supportedAudioProfiles(const QString &client);
@@ -132,6 +132,7 @@ public:
 
   static QString                formatFor(AudioProfile);
   static QString                formatFor(VideoProfile);
+  static QString                formatFor(ImageProfile);
 
   static const char           * mimeTypeFor(AudioProfile);
   static const char           * mimeTypeFor(VideoProfile);

@@ -58,7 +58,7 @@ STime STime::add(const STime &a, const STime &b)
     return STime((a.d.count * a.d.interval.num()) + (b.d.count * b.d.interval.num()),
                  SInterval(1, a.d.interval.den()));
   }
-  else
+  else if (a.d.interval.isValid() && b.d.interval.isValid())
   {
     const qint64 num =
         (a.d.count * qint64(a.d.interval.num()) * qint64(b.d.interval.den())) +

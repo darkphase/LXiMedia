@@ -231,12 +231,6 @@ void Backend::start(const SHttpEngine::ResponseMessage &formats)
   masterConnectionManager.setSourceProtocols(MediaServer::mediaProfiles().listProtocols(QString::null));
   masterConnectionManager.setSinkProtocols(SUPnPBase::ProtocolList());
 
-  if (outFormats.contains("ogg") &&
-      outVideoCodecs.contains("THEORA") && outAudioCodecs.contains("VORBIS"))
-  {
-    MediaServer::enableHtml5();
-  }
-
   qDebug() << "Finished initialization.";
 }
 
@@ -451,11 +445,7 @@ SHttpServer::ResponseMessage Backend::httpRequest(const SHttpServer::RequestMess
 
     else if (path == "/css/main.css")               sendFile = ":/css/main.css";
 
-    else if (path == "/js/dynamiclist.js")          sendFile = ":/js/dynamiclist.js";
-
-    else if (path == "/swf/flowplayer.swf")         sendFile = ":/flowplayer/flowplayer-3.2.5.swf";
-    else if (path == "/swf/flowplayer.controls.swf")sendFile = ":/flowplayer/flowplayer.controls-3.2.3.swf";
-    else if (path == "/swf/flowplayer.js")          sendFile = ":/flowplayer/flowplayer-3.2.4.min.js";
+    else if (path == "/js/contentloader.js")        sendFile = ":/js/contentloader.js";
 
     else if (path.startsWith("/img/"))
     {

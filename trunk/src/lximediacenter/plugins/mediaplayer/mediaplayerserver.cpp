@@ -152,14 +152,59 @@ MediaPlayerServer::Stream * MediaPlayerServer::streamVideo(const SHttpServer::Re
   return NULL;
 }
 
+SHttpServer::ResponseMessage MediaPlayerServer::sendPhoto(const SHttpServer::RequestMessage &request)
+{
+  const MediaServer::File file(request);
+
+  const QString filePath = realPath(file.file());
+  if (!filePath.isEmpty())
+  {
+    SSize size(4096, 4096);
+    if (file.url().hasQueryItem("resolution"))
+      size = SSize::fromString(file.url().queryItemValue("resolution"));
+
+    QString format = "png";
+    if (file.url().hasQueryItem("format"))
+      format = file.url().queryItemValue("format");
+
+    QString contentType = "image/" + format.toLower();
+
+    const QString contentFeatures = QByteArray::fromHex(file.url().queryItemValue("contentFeatures").toAscii());
+    const MediaProfiles::ImageProfile imageProfile = mediaProfiles().imageProfileFor(contentFeatures);
+    if (imageProfile != 0) // DLNA stream.
+    {
+      MediaProfiles::correctFormat(imageProfile, size);
+      format = mediaProfiles().formatFor(imageProfile);
+      contentType = mediaProfiles().mimeTypeFor(imageProfile);
+    }
+
+    SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
+    response.setContentType(contentType);
+    if (!contentFeatures.isEmpty())
+    {
+      response.setField("transferMode.dlna.org", "Interactive");
+      response.setField("contentFeatures.dlna.org", contentFeatures);
+    }
+
+    if (!request.isHead())
+    {
+      const QByteArray result = mediaDatabase->readImage(filePath, size.size(), format);
+      if (!result.isEmpty())
+        response.setContent(result);
+      else
+        return SHttpServer::ResponseMessage(request, SHttpServer::Status_NotFound);
+    }
+
+    return response;
+  }
+
+  return SHttpServer::ResponseMessage(request, SHttpServer::Status_NotFound);
+}
+
 int MediaPlayerServer::countItems(const QString &virtualPath)
 {
   if (virtualPath != serverPath())
-  {
-    const QString path = realPath(virtualPath);
-
-    return countAlbums(path) + mediaDatabase->countAlbumFiles(path);
-  }
+    return countAlbums(virtualPath) + mediaDatabase->countAlbumFiles(realPath(virtualPath));
   else
     return rootPaths.count();
 }
@@ -170,12 +215,14 @@ QList<MediaPlayerServer::Item> MediaPlayerServer::listItems(const QString &virtu
 
   if (virtualPath != serverPath())
   {
-    const QString path = realPath(virtualPath);
-    QList<Item> result = listAlbums(path, start, count);
+    QList<Item> result = listAlbums(virtualPath, start, count);
 
     if (returnAll || (count > 0))
-    foreach (const FileNode &node, mediaDatabase->getAlbumFiles(path, start, count))
-      result.append(makeItem(node));
+    {
+      const QString path = realPath(virtualPath);
+      foreach (const FileNode &node, mediaDatabase->getAlbumFiles(path, start, count))
+        result.append(makeItem(node));
+    }
 
     return result;
   }
@@ -189,6 +236,7 @@ QList<MediaPlayerServer::Item> MediaPlayerServer::listItems(const QString &virtu
       Item item;
       item.isDir = true;
       item.title = paths[i];
+      item.path = virtualPath + paths[i] + '/';
       item.iconUrl = "/img/folder-video.png";
 
       result += item;
@@ -196,6 +244,11 @@ QList<MediaPlayerServer::Item> MediaPlayerServer::listItems(const QString &virtu
 
     return result;
   }
+}
+
+MediaPlayerServer::Item MediaPlayerServer::getItem(const QString &virtualPath)
+{
+  return makeItem(mediaDatabase->readNode(realPath(virtualPath)));
 }
 
 bool MediaPlayerServer::isHidden(const QString &path)
@@ -320,29 +373,22 @@ QString MediaPlayerServer::realPath(const QString &virtualPath) const
   return QString::null;
 }
 
-bool MediaPlayerServer::isEmpty(const QString &path)
+int MediaPlayerServer::countAlbums(const QString &virtualPath)
 {
-  if (mediaDatabase->countAlbumFiles(path) == 0)
-  if (countAlbums(path) == 0)
-    return true;
-
-  return false;
+  return mediaDatabase->countAlbums(realPath(virtualPath));
 }
 
-int MediaPlayerServer::countAlbums(const QString &path)
-{
-  return mediaDatabase->countAlbums(path);
-}
-
-QList<MediaPlayerServer::Item> MediaPlayerServer::listAlbums(const QString &path, unsigned &start, unsigned &count)
+QList<MediaPlayerServer::Item> MediaPlayerServer::listAlbums(const QString &virtualPath, unsigned &start, unsigned &count)
 {
   QList<Item> result;
 
+  const QString path = realPath(virtualPath);
   foreach (const QString &album, mediaDatabase->getAlbums(path, start, count))
   {
     Item item;
     item.isDir = true;
     item.title = album;
+    item.path = virtualPath + album + '/';
     item.iconUrl = "/img/folder-video.png";
 
     result += item;
@@ -372,14 +418,16 @@ MediaPlayerServer::Item MediaPlayerServer::makeItem(const FileNode &node)
   
     if (item.type != SUPnPContentDirectory::Item::Type_None)
     {
-
       item.played = mediaDatabase->lastPlayed(node.filePath()).isValid();
-      item.seekable = true;
-      item.url = virtualPath(node.filePath());
+      item.path = virtualPath(node.filePath());
+      item.url = item.path;
       item.iconUrl = item.url;
-      item.iconUrl.addQueryItem("thumbnail", QString::null);
+      item.iconUrl.addQueryItem("thumbnail", "128x128");
 
       item.title = node.metadata("title").toString();
+      if (item.title.isEmpty())
+        item.title = node.fileName();
+
       item.artist = node.metadata("author").toString();
       item.album = node.metadata("album").toString();
       item.track = node.metadata("track").toInt();
@@ -427,8 +475,10 @@ MediaPlayerServer::Item MediaPlayerServer::makeItem(const FileNode &node)
     }
     else
     {
+      item.path = virtualPath(node.filePath());
       item.url = "";
       item.iconUrl = "/img/misc.png";
+      item.title = node.fileName();
     }
   }
 
@@ -447,17 +497,9 @@ SHttpServer::ResponseMessage MediaPlayerServer::httpRequest(const SHttpServer::R
     }
     else if (file.url().hasQueryItem("thumbnail"))
     {
-      QSize size(128, 128);
-      if (file.url().hasQueryItem("resolution"))
-      {
-        const QStringList sizeTxt = file.url().queryItemValue("resolution").split('x');
-        if (sizeTxt.count() >= 2)
-          size = QSize(sizeTxt[0].toInt(), sizeTxt[1].toInt());
-        else if (sizeTxt.count() >= 1)
-          size = QSize(sizeTxt[0].toInt(), sizeTxt[0].toInt());
-      }
+      const QSize size = SSize::fromString(file.url().queryItemValue("thumbnail")).size();
 
-      const FileNode node = mediaDatabase->readNode(realPath(file.file()));
+      const FileNode node = mediaDatabase->readNode(realPath(file.file()), size);
       if (!node.isNull())
       {
         if (!node.thumbnail().isNull())
@@ -527,14 +569,6 @@ SHttpServer::ResponseMessage MediaPlayerServer::httpRequest(const SHttpServer::R
       SHttpServer::ResponseMessage response(request, SHttpServer::Status_MovedPermanently);
       response.setField("Location", "http://" + request.host() + "/img/null.png");
       return response;
-    }
-    else if (file.url().hasQueryItem("player"))
-    {
-//      const FileNode node = mediaDatabase->readNode(realPath(file.file()));
-//      if (!node.isNull())
-//      foreach (const SMediaInfo::Program &program, node.programs())
-//      if ((pid == -1) || (program.programId == pid))
-//        return makeHtmlContent(request, file.url(), buildVideoPlayer(node, file.url()), headPlayer);
     }
   }
 

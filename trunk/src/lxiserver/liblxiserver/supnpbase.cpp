@@ -40,7 +40,7 @@ const char          SUPnPBase::soapNS[]         = "http://schemas.xmlsoap.org/so
 struct SUPnPBase::Data
 {
   QString                       basePath;
-  SHttpServer                  * httpServer;
+  SHttpServer                 * httpServer;
 };
 
 SUPnPBase::SUPnPBase(const QString &basePath, QObject *parent)

@@ -23,10 +23,6 @@
 
 namespace LXiMediaCenter {
 
-bool                MediaServer::html5Enabled = false;
-const char          MediaServer::audioTimeFormat[] = "m:ss";
-const char          MediaServer::videoTimeFormat[] = "h:mm:ss";
-
 const char MediaServer::m3uPlaylist[] =
     "#EXTM3U\n"
     "\n"
@@ -85,184 +81,29 @@ const char MediaServer::htmlThumbnailItemNoLinkNoTitle[] =
     "    </div>\n"
     "   </div>\n";
 
-const char MediaServer::htmlPlayerAudioItem[] =
-    " <div class=\"menu\">\n"
-    "  <ul>\n"
-    "   <li>{TR_DETAILS}</li>\n"
-    "{DETAILS}"
-    "  </ul>\n"
-    " </div>\n"
+const char MediaServer::htmlPlayerLoader[] =
     " <div class=\"content\">\n"
-    "  <h1>{TITLE}</h1>\n"
-    "  <div class=\"player\">\n"
-    "{PLAYER}"
+    "  <div class=\"player\" id=\"player\">\n"
     "  </div>\n"
+    "  <script type=\"text/javascript\">loadPlayer(\"player\", \"{ITEM_URL}\");</script>\n"
     " </div>\n";
 
-const char MediaServer::htmlPlayerAudioItemHtml5[] =
-    "   <audio autoplay=\"autoplay\" controls=\"controls\">\n"
-    "{SOURCES}"
-    "{FLV_PLAYER}"
-    "   </audio>\n";
+const char MediaServer::htmlPhotoViewer[] =
+    "   <img src=\"{ITEM_URL}\" alt=\"...\">\n";
 
-const char MediaServer::htmlPlayerAudioSourceItemHtml5[] =
-    "    <source src='{SOURCE_URL}' type='{SOURCE_CODEC}' />\n";
-
-const char MediaServer::htmlPlayerAudioItemFlv[] =
-    "    <div id=\"player\" style=\"display:block;height:{HEIGHT}px;\" href=\"{PLAYER_URL}\"></div>\n"
-    "    <script type=\"text/javascript\"><!--\n"
-    "     flowplayer(\"player\", \"/swf/flowplayer.swf\", {\n"
-    "       clip: { autoPlay: true }\n"
-    "      } );\n"
-    "     //-->\n"
-    "    </script>\n";
-
-const char MediaServer::htmlPlayerVideoItem[] =
-    " <div class=\"menu\">\n"
-    "  <ul>\n"
-    "   <li>{TR_DETAILS}</li>\n"
-    "{DETAILS}"
-    "  </ul>\n"
-    " </div>\n"
-    " <div class=\"content\">\n"
-    "  <h1>{TITLE}</h1>\n"
-    "  <div class=\"player\">\n"
-    "{PLAYER}"
-    "  </div>\n"
-    " </div>\n";
-
-const char MediaServer::htmlPlayerVideoItemHtml5[] =
-    "   <video width=\"{WIDTH}\" height=\"{HEIGHT}\" autoplay=\"autoplay\" controls=\"controls\" poster=\"{PLAYER_ITEM}-thumb.png?resolution={WIDTH}x{HEIGHT}\">\n"
-    "{SOURCES}"
-    "{FLV_PLAYER}"
+const char MediaServer::htmlVideoPlayer[] =
+    "   <video width=\"{ITEM_WIDTH}\" height=\"{ITEM_HEIGHT}\" autoplay=\"autoplay\" controls=\"controls\">\n"
+    "    <source src=\"{ITEM_URL}?format=ogg\" type=\"video/ogg\" />\n"
+    "    <source src=\"{ITEM_URL}?format=mpeg\" type=\"video/mpeg\" />\n"
+    "    <img src=\"{ITEM_URL}?thumbnail=256x256\" alt=\"...\" width=\"256\" height=\"256\" /><br/>\n"
+    "    {TR_HTML5_BROWSER}\n"
     "   </video>\n";
 
-const char MediaServer::htmlPlayerVideoSourceItemHtml5[] =
-    "    <source src='{SOURCE_URL}' type='{SOURCE_CODEC}' />\n";
-
-const char MediaServer::htmlPlayerVideoItemFlv[] =
-    "    <div id=\"player\" style=\"display:block;width:{WIDTH}px;height:{HEIGHT}px;\" href=\"{PLAYER_URL}\"></div>\n"
-    "    <script type=\"text/javascript\">\n"
-    "     flowplayer(\"player\", \"/swf/flowplayer.swf\", {\n"
-    "       clip: { scaling: 'fit', accelerated: true, autoPlay: true }\n"
-    "      } );\n"
-    "    </script>\n";
-
-const char MediaServer::htmlPlayerThumbItem[] =
-    " <div class=\"menu\">\n"
-    "  <ul>\n"
-    "   <li>{TR_DETAILS}</li>\n"
-    "{DETAILS}"
-    "  </ul>\n"
-    " </div>\n"
-    " <div class=\"content\">\n"
-    "  <h1>{TITLE}</h1>\n"
-    "  <div class=\"player\">\n"
-    "   <div style=\"padding:0;margin:0;display:table-cell;"
-                    "width:{WIDTH}px;height:{HEIGHT}px;vertical-align:middle;"
-                    "background-image:url('{PLAYER_ITEM}-thumb.png?resolution={WIDTH}x{HEIGHT}');"
-                    "background-position:center;background-repeat:no-repeat;background-color:#000000;\">\n"
-    "    <div style=\"padding:1em;margin:1em auto;width:{WIDTH23}px;background-color:rgb(176,176,176);background-color:rgba(255,255,255,0.7);\">\n"
-    "     {TR_DOWNLOAD_OPTIONS_EXPLAIN}\n"
-    "     <br /><br />\n"
-    "     <form name=\"play\" action=\"{PLAYER_ITEM}.html\" method=\"get\">\n"
-    "      <input type=\"hidden\" name=\"play\" value=\"play\" />\n"
-    "      {TR_LANGUAGE}:\n"
-    "      <select name=\"language\">\n"
-    "{LANGUAGES}"
-    "      </select>\n"
-    "      {TR_SUBTITLES}:\n"
-    "      <select name=\"subtitles\">\n"
-    "{SUBTITLES}"
-    "      </select>\n"
-    "      <br /><br />\n"
-    "      {TR_START_FROM}:\n"
-    "      <select name=\"position\">\n"
-    "{CHAPTERS}"
-    "      </select>\n"
-    "      <br /><br />\n"
-    "      <input type=\"submit\" value=\"{TR_PLAY_HERE}\" />\n"
-    "     </form>\n"
-    "    </div>\n"
-    "    <div style=\"padding:1em;margin:1em auto;width:{WIDTH23}px;background-color:rgb(176,176,176);background-color:rgba(255,255,255,0.7);\">\n"
-    "     {TR_TRANSCODE_OPTIONS_EXPLAIN}\n"
-    "     <br /><br />\n"
-    "     <form name=\"dlnasettings\" action=\"{ENCODED_TITLE}.mpeg\" method=\"get\">\n"
-    "      <input type=\"hidden\" name=\"item\" value=\"{PLAYER_ITEM}\" />\n"
-    "      <input type=\"hidden\" name=\"encodemode\" value=\"slow\" />\n"
-    "      <input type=\"hidden\" name=\"priority\" value=\"low\" />\n"
-    "      {TR_LANGUAGE}:\n"
-    "      <select name=\"language\">\n"
-    "{LANGUAGES}"
-    "      </select>\n"
-    "      {TR_SUBTITLES}:\n"
-    "      <select name=\"subtitles\">\n"
-    "{SUBTITLES}"
-    "      </select>\n"
-    "      <br /><br />\n"
-    "      {TR_TRANSCODE_TO}:\n"
-    "      <select name=\"resolution\">\n"
-    "{FORMATS}"
-    "      </select>\n"
-    "      <select name=\"requestchannels\">\n"
-    "{CHANNELS}"
-    "      </select>\n"
-    "      <br /><br />\n"
-    "      <input type=\"submit\" value=\"{TR_DOWNLOAD}\" />\n"
-    "     </form>\n"
-    "    </div>\n"
-    "   </div>\n"
-    "  </div>\n"
-    " </div>\n";
-
-const char MediaServer::htmlPlayerThumbItemOption[] =
-    "           <option value=\"{VALUE}\" {SELECTED}>{TEXT}</option>\n";
-
-const char MediaServer::htmlDetail[] =
-    "   <li>{ITEM_NAME}: {ITEM_VALUE}</li>\n";
-
-
 const char MediaServer::headList[] =
-    " <script type=\"text/javascript\" src=\"/js/dynamiclist.js\"></script>\n"; // Open and close tag due to IE bug
+    " <script type=\"text/javascript\" src=\"/js/contentloader.js\"></script>\n"; // Open and close tag due to IE bug
 
 const char MediaServer::headPlayer[] =
-    " <script type=\"text/javascript\" src=\"/swf/flowplayer.js\"></script>\n"; // Open and close tag due to IE bug
-
-void MediaServer::enableHtml5(bool enabled)
-{
-  html5Enabled = enabled;
-}
-
-QString MediaServer::audioFormatString(const SMediaInfo &mediaInfo)
-{
-  QString result;
-  foreach (const SMediaInfo::AudioStreamInfo &stream, mediaInfo.audioStreams())
-  {
-    const QString setupName = SAudioFormat::channelSetupName(stream.codec.channelSetup());
-    if (!setupName.isEmpty())
-      result += ", " + setupName;
-  }
-
-  return result.isEmpty() ? tr("Unknown") : result.mid(2);
-}
-
-QString MediaServer::videoFormatString(const SMediaInfo &mediaInfo)
-{
-  QString result;
-  foreach (const SMediaInfo::VideoStreamInfo &stream, mediaInfo.videoStreams())
-  {
-    if (!stream.codec.size().isNull())
-    {
-      result += ", " + QString::number(stream.codec.size().width()) +
-                " x " + QString::number(stream.codec.size().height());
-
-      if (stream.codec.frameRate().isValid())
-        result +=  " @ " + QString::number(stream.codec.frameRate().toFrequency(), 'f', 2) + " fps";
-    }
-  }
-
-  return result.isEmpty() ? tr("Unknown") : result.mid(2);
-}
+    " <script type=\"text/javascript\" src=\"/js/contentloader.js\"></script>\n"; // Open and close tag due to IE bug
 
 QByteArray MediaServer::buildThumbnailView(const QString &title, const ThumbnailListItemList &items)
 {
@@ -303,196 +144,46 @@ QByteArray MediaServer::buildThumbnailItems(const ThumbnailListItemList &items)
   return result;
 }
 
-QByteArray MediaServer::buildPlayer(const QUrl &url, SMediaInfo::ProbeInfo::FileType fileType)
+QByteArray MediaServer::buildPlayerLoader(const QString &file, SUPnPContentDirectory::Item::Type playerType)
 {
-//  HtmlParser htmlParser;
-//  htmlParser.setField("TITLE", title);
-//  htmlParser.setField("TR_DETAILS", tr("Details"));
-//
-//  htmlParser.setField("DETAILS", QByteArray(""));
-//  htmlParser.setField("ITEM_NAME", tr("Duration"));
-//  htmlParser.setField("ITEM_VALUE", QTime().addSecs(program.duration.toSec()).toString("h:mm:ss"));
-//  htmlParser.appendField("DETAILS", htmlParser.parse(htmlDetail));
-//  htmlParser.setField("ITEM_NAME", tr("Audio"));
-//  htmlParser.setField("ITEM_VALUE", audioFormatString(program));
-//  htmlParser.appendField("DETAILS", htmlParser.parse(htmlDetail));
-//  htmlParser.setField("ITEM_NAME", tr("Video"));
-//  htmlParser.setField("ITEM_VALUE", videoFormatString(program));
-//  htmlParser.appendField("DETAILS", htmlParser.parse(htmlDetail));
-//
-//  htmlParser.setField("ENCODED_TITLE", SStringParser::toCleanName(title).toUtf8().toPercentEncoding());
-//  htmlParser.setField("PLAYER_ITEM", item);
-//  htmlParser.setField("TR_PLAY_HERE", tr("Play now"));
-//  htmlParser.setField("TR_PLAY_EXTERNAL", tr("Play in external player"));
-//  htmlParser.setField("TR_DOWNLOAD", tr("Download file"));
-//  htmlParser.setField("TR_LANGUAGE", tr("Language"));
-//  htmlParser.setField("TR_SUBTITLES", tr("Subtitles"));
-//  htmlParser.setField("TR_START_FROM", tr("Start from"));
-//  htmlParser.setField("TR_TRANSCODE_TO", tr("Transcode to"));
-//
-//  htmlParser.setField("TR_DOWNLOAD_OPTIONS_EXPLAIN",
-//    tr("The file can be played in your web browser."));
-//
-//  htmlParser.setField("TR_TRANSCODE_OPTIONS_EXPLAIN",
-//    tr("The file can be transcoded to standard MPEG and placed on a USB stick "
-//       "or network storage to be played on a TV or media player."));
-//
-//  htmlParser.setField("WIDTH", QByteArray::number(size.width()));
-//  htmlParser.setField("WIDTH23", QByteArray::number(size.width() * 2 / 3));
-//  htmlParser.setField("HEIGHT", QByteArray::number(size.height()));
-//  htmlParser.setField("LANGUAGE", url.queryItemValue("language"));
-//
-//  int count = 1;
-//  htmlParser.setField("LANGUAGES", QByteArray(""));
-//  htmlParser.setField("SELECTED", QByteArray(""));
-//  foreach (const SMediaInfo::AudioStreamInfo &stream, program.audioStreams)
-//  {
-//    QString title = stream.title + " ";
-//    if (!stream.language.isEmpty())
-//      title += " " + SStringParser::iso639Language(stream.language);
-//    else
-//      title += " " + tr("Unknown");
-//
-//    htmlParser.setField("VALUE", stream.toString());
-//    htmlParser.setField("TEXT", QString::number(count++) + ". " + title.simplified());
-//    htmlParser.appendField("LANGUAGES", htmlParser.parse(htmlPlayerThumbItemOption));
-//  }
-//
-//  count = 1;
-//  htmlParser.setField("SUBTITLES", QByteArray(""));
-//  htmlParser.setField("SELECTED", QByteArray(""));
-//  foreach (const SMediaInfo::DataStreamInfo &stream, program.dataStreams)
-//  {
-//    QString title = stream.title + " ";
-//    if (!stream.language.isEmpty())
-//      title += " " + SStringParser::iso639Language(stream.language);
-//    else
-//      title += " " + tr("Unknown");
-//
-//    htmlParser.setField("VALUE", stream.toString());
-//    htmlParser.setField("TEXT", QString::number(count++) + ". " + title.simplified());
-//    htmlParser.appendField("SUBTITLES", htmlParser.parse(htmlPlayerThumbItemOption));
-//  }
-//
-//  htmlParser.setField("VALUE", QByteArray(""));
-//  htmlParser.setField("TEXT", tr("None"));
-//  htmlParser.appendField("SUBTITLES", htmlParser.parse(htmlPlayerThumbItemOption));
-//
-//  GlobalSettings settings;
-//  settings.beginGroup("DLNA");
-//
-//  const QString genericTranscodeSize =
-//      settings.value("TranscodeSize", settings.defaultTranscodeSizeName()).toString();
-//  const QString genericTranscodeChannels =
-//      settings.value("TranscodeChannels", settings.defaultTranscodeChannelName()).toString();
-//
-//  struct T
-//  {
-//    static void addFormat(HtmlParser &htmlParser, GlobalSettings &settings, const QString &genericTranscodeSize, const GlobalSettings::TranscodeSize &size)
-//    {
-//      if (settings.value("TranscodeSize", genericTranscodeSize).toString() == size.name)
-//        htmlParser.setField("SELECTED", QByteArray("selected=\"selected\""));
-//      else
-//        htmlParser.setField("SELECTED", QByteArray(""));
-//
-//      htmlParser.setField("VALUE", QString::number(size.size.width()) +
-//                                   "x" + QString::number(size.size.height()) +
-//                                   "x" + QString::number(size.size.aspectRatio()));
-//      htmlParser.setField("TEXT", size.name +
-//                          " (" + QString::number(size.size.width()) +
-//                          "x" + QString::number(size.size.height()) + ")");
-//      htmlParser.appendField("FORMATS", htmlParser.parse(htmlPlayerThumbItemOption));
-//    }
-//
-//    static void addChannel(HtmlParser &htmlParser, GlobalSettings &settings, const QString &genericTranscodeChannels, const GlobalSettings::TranscodeChannel &channel)
-//    {
-//      if (settings.value("TranscodeChannels", genericTranscodeChannels).toString() == channel.name)
-//        htmlParser.setField("SELECTED", QByteArray("selected=\"selected\""));
-//      else
-//        htmlParser.setField("SELECTED", QByteArray(""));
-//
-//      htmlParser.setField("VALUE", QString::number(channel.channels, 16));
-//      htmlParser.setField("TEXT", channel.name);
-//      htmlParser.appendField("CHANNELS", htmlParser.parse(htmlPlayerThumbItemOption));
-//    }
-//  };
-//
-//  htmlParser.setField("FORMATS", QByteArray(""));
-//  htmlParser.setField("CHANNELS", QByteArray(""));
-//
-//  foreach (const GlobalSettings::TranscodeSize &size, settings.allTranscodeSizes())
-//    T::addFormat(htmlParser, settings, genericTranscodeSize,  size);
-//
-//  foreach (const GlobalSettings::TranscodeChannel &channel, settings.allTranscodeChannels())
-//    T::addChannel(htmlParser, settings, genericTranscodeChannels, channel);
-//
-//  htmlParser.setField("CHAPTERS", QByteArray(""));
-//  htmlParser.setField("SELECTED", QByteArray(""));
-//  if (!program.chapters.isEmpty())
-//  {
-//    htmlParser.setField("VALUE", QByteArray::number(0));
-//    htmlParser.setField("TEXT", tr("Begin") + ", " + QTime().addSecs(0).toString(videoTimeFormat));
-//    htmlParser.appendField("CHAPTERS", htmlParser.parse(htmlPlayerThumbItemOption));
-//
-//    int chapterNum = 1;
-//    foreach (const SMediaInfo::Chapter &chapter, program.chapters)
-//    {
-//      htmlParser.setField("VALUE", QByteArray::number(chapter.begin.toSec()));
-//      htmlParser.setField("TEXT", tr("Chapter") + " " + QString::number(chapterNum++));
-//      if (!chapter.title.isEmpty())
-//        htmlParser.appendField("TEXT", ", " + chapter.title);
-//
-//      htmlParser.appendField("CHAPTERS", htmlParser.parse(htmlPlayerThumbItemOption));
-//    }
-//  }
-//  else if (program.duration.isValid())
-//  {
-//    for (int i=0, n=program.duration.toSec(); i<n; i+=seekBySecs)
-//    {
-//      htmlParser.setField("VALUE", QByteArray::number(i));
-//      htmlParser.setField("TEXT", QTime().addSecs(i).toString(videoTimeFormat));
-//      htmlParser.appendField("CHAPTERS", htmlParser.parse(htmlPlayerThumbItemOption));
-//    }
-//  }
-//  else
-//  {
-//    htmlParser.setField("VALUE", QByteArray("0"));
-//    htmlParser.setField("TEXT", QTime().addSecs(0).toString(videoTimeFormat));
-//    htmlParser.appendField("CHAPTERS", htmlParser.parse(htmlPlayerThumbItemOption));
-//  }
-//
-//  if (url.hasQueryItem("play"))
-//  {
-//    const QByteArray query =
-//        "resolution=" + QByteArray::number(size.width()) + "x" + QByteArray::number(size.height()) +
-//        "&channels=" + QByteArray::number(channels, 16) +
-//        "&language=" + url.queryItemValue("language").toAscii() +
-//        "&subtitles=" + url.queryItemValue("subtitles").toAscii() +
-//        "&position=" + url.queryItemValue("position").toAscii() +
-//        "&encodemode=fast";
-//
-//    if (html5Enabled)
-//    {
-//      htmlParser.setField("PLAYER_URL", SUPnPContentDirectory::toQueryPath(item, query, ".flv"));
-//      htmlParser.setField("FLV_PLAYER", htmlParser.parse(htmlPlayerVideoItemFlv));
-//
-//      htmlParser.setField("SOURCE_URL", SUPnPContentDirectory::toQueryPath(item, query, ".ogg"));
-//      htmlParser.setField("SOURCE_CODEC", QByteArray(SHttpEngine::mimeVideoOgg) + "; codecs=\"theora, vorbis\"");
-//      htmlParser.setField("SOURCES", htmlParser.parse(htmlPlayerVideoSourceItemHtml5));
-//      htmlParser.setField("PLAYER", htmlParser.parse(htmlPlayerVideoItemHtml5));
-//    }
-//    else
-//    {
-//      htmlParser.setField("PLAYER_URL", SUPnPContentDirectory::toQueryPath(item, query, ".flv"));
-//      htmlParser.setField("PLAYER", htmlParser.parse(htmlPlayerVideoItemFlv));
-//    }
-//
-//    return htmlParser.parse(htmlPlayerVideoItem);
-//  }
-//  else
-//    return htmlParser.parse(htmlPlayerThumbItem);
+  HtmlParser htmlParser;
 
-  return "";
+  QUrl url = file;
+  url.addQueryItem("player", QString::number(playerType));
+  htmlParser.setField("ITEM_URL", url.toEncoded());
+
+  return htmlParser.parse(htmlPlayerLoader);
+}
+
+QByteArray MediaServer::buildPhotoViewer(const QString &file, const QSize &size)
+{
+  HtmlParser htmlParser;
+
+  QUrl url = file;
+  url.addQueryItem("format", "jpeg");
+  url.addQueryItem("resolution", SSize(size).toString());
+  htmlParser.setField("ITEM_URL", url.toEncoded());
+
+  return htmlParser.parse(htmlPhotoViewer);
+}
+
+QByteArray MediaServer::buildVideoPlayer(const QString &file, const QSize &size)
+{
+  HtmlParser htmlParser;
+
+  htmlParser.setField("TR_HTML5_BROWSER",
+      tr("Your browser does not support HTML5 video, please upgrade to a "
+         "browser that does support it. Please refer to "
+         "<a href=\"http://en.wikipedia.org/wiki/HTML5_video\">Wikipedia</a> "
+         "for more information."));
+
+  htmlParser.setField("ITEM_WIDTH", QByteArray::number(size.width()));
+  htmlParser.setField("ITEM_HEIGHT", QByteArray::number(size.height()));
+
+  QUrl url = file;
+  htmlParser.setField("ITEM_URL", url.toEncoded());
+
+  return htmlParser.parse(htmlVideoPlayer);
 }
 
 } // End of namespace
