@@ -32,90 +32,98 @@ const char MediaServer::m3uPlaylistItem[] =
     "#EXTINF:{ITEM_LENGTH},{ITEM_NAME}\n"
     "{ITEM_URL}\n";
 
-const char MediaServer::htmlThumbnailList[] =
-    " <div class=\"content\">\n"
-    "  <h1>{TITLE}</h1>\n"
-    "  <div class=\"thumbnaillist\">\n"
-    "{ITEMS}"
-    "  </div>\n"
-    " </div>\n";
-
 const char MediaServer::htmlThumbnailLoader[] =
-    " <div class=\"content\">\n"
-    "  <div class=\"thumbnaillist\" id=\"items\">\n"
-    "  </div>\n"
-    "  <script type=\"text/javascript\">loadListContent(\"items\", 0, {LOAD_ITEM_COUNT});</script>\n"
-    " </div>\n";
+    " <div class=\"thumbnaillist\" id=\"mediaplayeritems\">\n"
+    " </div>\n"
+    " <script type=\"text/javascript\">loadListContent(\"mediaplayeritems\", \"{PATH}\", 0, {LOAD_ITEM_COUNT});</script>\n";
 
 const char MediaServer::htmlThumbnailItem[] =
-    "   <div class=\"thumbnaillistitem\">\n"
-    "    <div class=\"thumbnail\">\n"
-    "     <a title=\"{ITEM_TITLE}\" href=\"{ITEM_URL}\">\n"
-    "      <img src=\"{ITEM_ICONURL}\" alt=\"{ITEM_TITLE}\" />\n"
-    "     </a>\n"
-    "    </div>\n"
-    "    <div class=\"title\">{ITEM_TITLE}</div>\n"
-    "   </div>\n";
+    "  <div class=\"thumbnaillistitem\">\n"
+    "   <div class=\"thumbnail\">\n"
+    "    <a title=\"{ITEM_TITLE}\" href=\"{ITEM_URL}\">\n"
+    "     <img src=\"{ITEM_ICONURL}\" alt=\"{ITEM_TITLE}\" />\n"
+    "    </a>\n"
+    "   </div>\n"
+    "   <div class=\"title\">{ITEM_TITLE}</div>\n"
+    "  </div>\n";
 
 const char MediaServer::htmlThumbnailItemNoTitle[] =
-    "   <div class=\"thumbnaillistitem\">\n"
-    "    <div class=\"thumbnail\">\n"
-    "     <a title=\"{ITEM_TITLE}\" href=\"{ITEM_URL}\">\n"
-    "      <img src=\"{ITEM_ICONURL}\" alt=\"{ITEM_TITLE}\" />\n"
-    "     </a>\n"
-    "    </div>\n"
-    "   </div>\n";
+    "  <div class=\"thumbnaillistitem\">\n"
+    "   <div class=\"thumbnail\">\n"
+    "    <a title=\"{ITEM_TITLE}\" href=\"{ITEM_URL}\">\n"
+    "     <img src=\"{ITEM_ICONURL}\" alt=\"{ITEM_TITLE}\" />\n"
+    "    </a>\n"
+    "   </div>\n"
+    "  </div>\n";
 
 const char MediaServer::htmlThumbnailItemNoLink[] =
-    "   <div class=\"thumbnaillistitem\">\n"
-    "    <div class=\"thumbnail\">\n"
-    "     <img src=\"{ITEM_ICONURL}\" alt=\"{ITEM_TITLE}\" />\n"
-    "    </div>\n"
-    "    <div class=\"title\">{ITEM_TITLE}</div>\n"
-    "   </div>\n";
+    "  <div class=\"thumbnaillistitem\">\n"
+    "   <div class=\"thumbnail\">\n"
+    "    <img src=\"{ITEM_ICONURL}\" alt=\"{ITEM_TITLE}\" />\n"
+    "   </div>\n"
+    "   <div class=\"title\">{ITEM_TITLE}</div>\n"
+    "  </div>\n";
 
 const char MediaServer::htmlThumbnailItemNoLinkNoTitle[] =
-    "   <div class=\"thumbnaillistitem\">\n"
-    "    <div class=\"thumbnail\">\n"
-    "     <img src=\"{ITEM_ICONURL}\" alt=\"{ITEM_TITLE}\" />\n"
-    "    </div>\n"
-    "   </div>\n";
-
-const char MediaServer::htmlPlayerLoader[] =
-    " <div class=\"content\">\n"
-    "  <div class=\"player\" id=\"player\">\n"
-    "  </div>\n"
-    "  <script type=\"text/javascript\">loadPlayer(\"player\", \"{ITEM_URL}\");</script>\n"
-    " </div>\n";
+    "  <div class=\"thumbnaillistitem\">\n"
+    "   <div class=\"thumbnail\">\n"
+    "    <img src=\"{ITEM_ICONURL}\" alt=\"{ITEM_TITLE}\" />\n"
+    "   </div>\n"
+    "  </div>\n";
 
 const char MediaServer::htmlPhotoViewer[] =
-    "   <img src=\"{ITEM_URL}\" alt=\"...\">\n";
+    "<!DOCTYPE html>\n"
+    "<html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"en\" xml:lang=\"en\">\n"
+    "<head>\n"
+    " <meta http-equiv=\"Content-Type\" content=\"text/html;charset=utf-8\" />\n"
+    " <link rel=\"stylesheet\" href=\"/css/player.css\" type=\"text/css\" media=\"screen, handheld, projection\" />\n"
+    " <script type=\"text/javascript\" src=\"/js/player.js\"></script>\n" // Open and close tag due to IE bug
+    "</head>\n"
+    "<body id=\"body\">\n"
+    " <div id=\"image\">\n"
+    " </div>\n"
+    " <script type=\"text/javascript\">loadStretchedImage(\"image\", \"{ITEM_URL}\");</script>\n"
+    "</body>\n"
+    "</html>\n";
 
 const char MediaServer::htmlVideoPlayer[] =
-    "   <video width=\"{ITEM_WIDTH}\" height=\"{ITEM_HEIGHT}\" autoplay=\"autoplay\" controls=\"controls\">\n"
-    "    <source src=\"{ITEM_URL}?format=ogg\" type=\"video/ogg\" />\n"
-    "    <source src=\"{ITEM_URL}?format=mpeg\" type=\"video/mpeg\" />\n"
-    "    <img src=\"{ITEM_URL}?thumbnail=256x256\" alt=\"...\" width=\"256\" height=\"256\" /><br/>\n"
-    "    {TR_HTML5_BROWSER}\n"
-    "   </video>\n";
+    "<!DOCTYPE html>\n"
+    "<html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"en\" xml:lang=\"en\">\n"
+    "<head>\n"
+    " <meta http-equiv=\"Content-Type\" content=\"text/html;charset=utf-8\" />\n"
+    " <link rel=\"stylesheet\" href=\"/css/player.css\" type=\"text/css\" media=\"screen, handheld, projection\" />\n"
+    "</head>\n"
+    "<body>\n"
+    " <video autoplay=\"autoplay\" controls=\"controls\">\n"
+    "  <source src=\"{ITEM_URL}?format=ogg\" type=\"video/ogg\" />\n"
+    "  <source src=\"{ITEM_URL}?format=mpeg\" type=\"video/mpeg\" />\n"
+    "  <img src=\"{ITEM_URL}?thumbnail=256x256\" alt=\"...\" width=\"256\" height=\"256\" /><br/>\n"
+    "  {TR_HTML5_BROWSER}\n"
+    " </video>\n"
+    "</body>\n"
+    "</html>\n";
 
-const char MediaServer::headList[] =
-    " <script type=\"text/javascript\" src=\"/js/contentloader.js\"></script>\n"; // Open and close tag due to IE bug
+const char MediaServer::htmlAudioPlayer[] =
+    "<!DOCTYPE html>\n"
+    "<html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"en\" xml:lang=\"en\">\n"
+    "<head>\n"
+    " <meta http-equiv=\"Content-Type\" content=\"text/html;charset=utf-8\" />\n"
+    " <link rel=\"stylesheet\" href=\"/css/player.css\" type=\"text/css\" media=\"screen, handheld, projection\" />\n"
+    "</head>\n"
+    "<body>\n"
+    " <img src=\"{ITEM_URL}?thumbnail=64x64\" alt=\"...\" width=\"256\" height=\"256\" />\n"
+    " <audio autoplay=\"autoplay\" controls=\"controls\">\n"
+    "  <source src=\"{ITEM_URL}?format=ogg\" type=\"audio/ogg\" />\n"
+    "  <source src=\"{ITEM_URL}?format=mpeg\" type=\"audio/mpeg\" />\n"
+    "  {TR_HTML5_BROWSER}\n"
+    " </audio>\n"
+    "</body>\n"
+    "</html>\n";
 
-const char MediaServer::headPlayer[] =
-    " <script type=\"text/javascript\" src=\"/js/contentloader.js\"></script>\n"; // Open and close tag due to IE bug
-
-QByteArray MediaServer::buildThumbnailView(const QString &title, const ThumbnailListItemList &items)
+QByteArray MediaServer::buildThumbnailLoader(const QString &path)
 {
   HtmlParser htmlParser;
-  htmlParser.setField("TITLE", title);
-  htmlParser.setField("ITEMS", buildThumbnailItems(items));
-  return htmlParser.parse(htmlThumbnailList);
-}
-
-QByteArray MediaServer::buildThumbnailLoader(void)
-{
-  HtmlParser htmlParser;
+  htmlParser.setField("PATH", QUrl(path).toEncoded());
   htmlParser.setField("LOAD_ITEM_COUNT", QString::number(qBound(1, QThread::idealThreadCount(), 16) * 8));
 
   return htmlParser.parse(htmlThumbnailLoader);
@@ -144,30 +152,26 @@ QByteArray MediaServer::buildThumbnailItems(const ThumbnailListItemList &items)
   return result;
 }
 
-QByteArray MediaServer::buildPlayerLoader(const QString &file, SUPnPContentDirectory::Item::Type playerType)
+SHttpServer::ResponseMessage MediaServer::buildPhotoViewer(const SHttpServer::RequestMessage &request)
 {
   HtmlParser htmlParser;
 
-  QUrl url = file;
-  url.addQueryItem("player", QString::number(playerType));
-  htmlParser.setField("ITEM_URL", url.toEncoded());
+  QString path = request.file();
+  path = path.left(path.lastIndexOf('/') + 1);
+  htmlParser.setField("PATH", QUrl(path).toEncoded());
 
-  return htmlParser.parse(htmlPlayerLoader);
-}
-
-QByteArray MediaServer::buildPhotoViewer(const QString &file, const QSize &size)
-{
-  HtmlParser htmlParser;
-
-  QUrl url = file;
+  QUrl url = request.file();
   url.addQueryItem("format", "jpeg");
-  url.addQueryItem("resolution", SSize(size).toString());
   htmlParser.setField("ITEM_URL", url.toEncoded());
 
-  return htmlParser.parse(htmlPhotoViewer);
+  SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
+  response.setField("Cache-Control", "no-cache");
+  response.setContentType(SHttpEngine::mimeTextHtml);
+  response.setContent(htmlParser.parse(htmlPhotoViewer));
+  return response;
 }
 
-QByteArray MediaServer::buildVideoPlayer(const QString &file, const QSize &size)
+SHttpServer::ResponseMessage MediaServer::buildVideoPlayer(const SHttpServer::RequestMessage &request)
 {
   HtmlParser htmlParser;
 
@@ -177,13 +181,40 @@ QByteArray MediaServer::buildVideoPlayer(const QString &file, const QSize &size)
          "<a href=\"http://en.wikipedia.org/wiki/HTML5_video\">Wikipedia</a> "
          "for more information."));
 
-  htmlParser.setField("ITEM_WIDTH", QByteArray::number(size.width()));
-  htmlParser.setField("ITEM_HEIGHT", QByteArray::number(size.height()));
+  QString path = request.file();
+  path = path.left(path.lastIndexOf('/') + 1);
+  htmlParser.setField("PATH", QUrl(path).toEncoded());
 
-  QUrl url = file;
-  htmlParser.setField("ITEM_URL", url.toEncoded());
+  htmlParser.setField("ITEM_URL", QUrl(request.file()).toEncoded());
 
-  return htmlParser.parse(htmlVideoPlayer);
+  SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
+  response.setField("Cache-Control", "no-cache");
+  response.setContentType(SHttpEngine::mimeTextHtml);
+  response.setContent(htmlParser.parse(htmlVideoPlayer));
+  return response;
+}
+
+SHttpServer::ResponseMessage MediaServer::buildAudioPlayer(const SHttpServer::RequestMessage &request)
+{
+  HtmlParser htmlParser;
+
+  htmlParser.setField("TR_HTML5_BROWSER",
+      tr("Your browser does not support HTML5 audio, please upgrade to a "
+         "browser that does support it. Please refer to "
+         "<a href=\"http://en.wikipedia.org/wiki/HTML5_video\">Wikipedia</a> "
+         "for more information."));
+
+  QString path = request.file();
+  path = path.left(path.lastIndexOf('/') + 1);
+  htmlParser.setField("PATH", QUrl(path).toEncoded());
+
+  htmlParser.setField("ITEM_URL", QUrl(request.file()).toEncoded());
+
+  SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
+  response.setField("Cache-Control", "no-cache");
+  response.setContentType(SHttpEngine::mimeTextHtml);
+  response.setContent(htmlParser.parse(htmlAudioPlayer));
+  return response;
 }
 
 } // End of namespace

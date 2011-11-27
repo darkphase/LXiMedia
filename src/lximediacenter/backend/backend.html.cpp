@@ -19,97 +19,71 @@
 
 #include "backend.h"
 
-const char * const Backend::htmlIndex =
+const char Backend::htmlIndex[] =
     "<!DOCTYPE html>\n"
     "<html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"en\" xml:lang=\"en\">\n"
     "<head>\n"
     " <title>{_PRODUCT} @ {_HOSTNAME}</title>\n"
     " <meta http-equiv=\"Content-Type\" content=\"text/html;charset=utf-8\" />\n"
-    " <link rel=\"stylesheet\" href=\"/css/main.css\" type=\"text/css\" media=\"screen, projection\" />\n"
+    " <link rel=\"stylesheet\" href=\"/css/main.css\" type=\"text/css\" media=\"screen, handheld, projection\" />\n"
+    " <script type=\"text/javascript\" src=\"/js/list.js\"></script>\n" // Open and close tag due to IE bug
     "{HEAD}"
     "</head>\n"
     "<body>\n"
-    " <table class=\"location\">\n"
-    "  <tr><td>\n"
-    "   <div>\n"
-    "    <img src=\"/lximedia.png?scale=32\" alt=\"..\" />\n"
-    "    <ul>\n"
-    "     <li><a href=\"/\">{_HOSTNAME}</a></li>\n"
-    "{PATH}"
-    "    </ul>\n"
-    "   </div>\n"
-    "  </td><td>\n"
-    "   <div>\n"
-    "    <form name=\"search\" action=\"/\" method=\"get\">\n"
-    "     <input type=\"text\" size=\"40\" name=\"q\" value=\"{SEARCH_QUERY}\" />\n"
-    "     <input type=\"image\" src=\"/img/database-query.png\" alt=\"{TR_SEARCH}\"/>\n"
-    "    </form>\n"
-    "   </div>\n"
-    "  </td></tr>\n"
-    " </table>\n"
+    " <div class=\"main_navigator\" id=\"navigator\">\n"
+    "  <table>\n"
+    "   <tr>\n"
+    "    <td width=\"100%\">"
+    "{NAVIGATOR_PATH}"
+    "    </td>\n"
+    "    <td>\n"
+    "     <a href=\"/\">\n"
+    "      <img src=\"/lximedia.png?scale=32\" alt=\"Home\" />\n"
+    "     </a>\n"
+    "    </td>\n"
+    "    <td>\n"
+    "     <a href=\"/settings\">\n"
+    "      <img src=\"/img/control.png?scale=32\" alt=\"Settings\" />\n"
+    "     </a>\n"
+    "    </td>\n"
+    "    <td>\n"
+    "     <a href=\"/log\">\n"
+    "      <img src=\"/img/journal.png?scale=32\" alt=\"Log\" />\n"
+    "     </a>\n"
+    "    </td>\n"
+    "    <td>\n"
+    "     <a href=\"/about\">\n"
+    "      <img src=\"/img/glossary.png?scale=32\" alt=\"About\" />\n"
+    "     </a>\n"
+    "    </td>\n"
+#ifndef QT_NO_DEBUG
+    "    <td>\n"
+    "     <a href=\"/exit\">\n"
+    "      <img src=\"/img/control.png?scale=32\" alt=\"Exit\" />\n"
+    "     </a>\n"
+    "    </td>\n"
+#endif
+    "   </tr>\n"
+    "  </table>\n"
+    " </div>\n"
     "{CONTENT}"
     "</body>\n"
     "</html>\n";
 
-const char * const Backend::htmlLocationItem =
-    "     <li><a href=\"{ITEM_LINK}\">{ITEM_NAME}</a></li>\n";
+const char Backend::htmlNavigatorRoot[] =
+    "     <h1>{_HOSTNAME}</h1>\n";
 
-const char * const Backend::htmlMenuGroup =
-    " <div class=\"menu\">\n"
-    "  <ul>\n"
-    "   <li>{TEXT}</li>\n"
-    "{ITEMS}"
-    "  </ul>\n"
-    " </div>\n";
+const char Backend::htmlNavigatorPath[] =
+    "     <ul>\n"
+    "{NAVIGATOR_ITEMS}"
+    "     </ul>\n";
 
-const char * const Backend::htmlMenuItem =
-    "   <li><a href=\"{ITEM_URL}\"><img src=\"{ITEM_ICONURL}\" alt=\"..\" />{ITEM_TITLE}</a></li>\n";
+const char Backend::htmlNavigatorItem[] =
+    "      <li><a href=\"{ITEM_LINK}\">{ITEM_NAME}</a></li>\n";
 
-const char * const Backend::htmlMain =
-    "{LOG_ERRORS}"
-    " <div class=\"content\">\n"
-    "{GROUPS}"
-    " </div>\n";
-
-const char * const Backend::htmlMainGroupItem =
-    "  <h1>{ITEM_TITLE}</h1>\n"
-    "  <div class=\"thumbnaillist\">\n"
-    "{ITEMS}"
-    "  </div>\n";
-
-const char * const Backend::htmlMainServerItem =
-    "  <div class=\"thumbnaillistitem\">\n"
-    "   <div class=\"thumbnail\">\n"
-    "    <a title=\"{ITEM_TITLE}\" href=\"{ITEM_URL}\">\n"
-    "     <img src=\"{ITEM_ICONURL}\" alt=\"{ITEM_TITLE}\" />\n"
-    "    </a>\n"
-    "   </div>\n"
-    "   {ITEM_TITLE}\n"
-    "  </div>\n";
-
-const char * const Backend::htmlSearchResults =
-    " <div class=\"content\">\n"
-    "  <h1>{ITEM_TITLE}</h1>\n"
-    "  <div class=\"thumbnaillist\">\n"
-    "{SEARCHRESULTS}"
-    "  </div>\n"
-    " </div>\n";
-
-const char * const Backend::htmlSearchResultsItem =
-    "  <div class=\"thumbnaillistitem\">\n"
-    "   <div class=\"thumbnail\">\n"
-    "    <a title=\"{ITEM_TITLE}\" href=\"{ITEM_URL}\">\n"
-    "     <img src=\"{ITEM_ICONURL}\" alt=\"{ITEM_TITLE}\" />\n"
-    "    </a>\n"
-    "   </div>\n"
-    "   <div class=\"title\">{ITEM_TITLE}</div>\n"
-    "   <div class=\"subtitle\">{TR_RELEVANCE}: {ITEM_RELEVANCE}</div>\n"
-    "  </div>\n";
-
-const char * const Backend::htmlLogFile =
-    "{LOG_ERRORS}"
-    " <div class=\"content\">\n"
-    "  <table class=\"detailedlist\">\n"
+const char Backend::htmlLogFile[] =
+    " <div class=\"main_log\">\n"
+    "  <table>\n"
     "   <tr>\n"
     "    <th class=\"nostretch\">{TR_DATE}</th>\n"
     "    <th class=\"nostretch\">{TR_TYPE}</th>\n"
@@ -121,42 +95,42 @@ const char * const Backend::htmlLogFile =
     "  <a name=\"bottom\"></a>\n"
     " </div>\n";
 
-const char * const Backend::htmlLogFileHeadline =
+const char Backend::htmlLogFileHeadline[] =
     "   <tr>\n"
-    "    <td class=\"nostretch_a\" rowspan=\"{ITEM_ROWS}\">\n"
+    "    <td class=\"nostretch\" rowspan=\"{ITEM_ROWS}\">\n"
     "     {ITEM_DATE}\n"
     "    </td>\n"
-    "    <td class=\"nostretch_a\" rowspan=\"{ITEM_ROWS}\">\n"
+    "    <td class=\"nostretch\" rowspan=\"{ITEM_ROWS}\">\n"
     "     {ITEM_TYPE}\n"
     "    </td>\n"
-    "    <td class=\"nostretch_a\" rowspan=\"{ITEM_ROWS}\">\n"
+    "    <td class=\"nostretch\" rowspan=\"{ITEM_ROWS}\">\n"
     "     {ITEM_PID}:{ITEM_TID}\n"
     "    </td>\n"
-    "    <td class=\"stretch_a\">\n"
+    "    <td class=\"stretch\">\n"
     "     {ITEM_HEADLINE}\n"
     "    </td>\n"
     "   </tr>\n";
 
-const char * const Backend::htmlLogFileMessage =
+const char Backend::htmlLogFileMessage[] =
     "   <tr>\n"
     "    <td>\n"
     "{ITEM_MESSAGE}\n"
     "    </td>\n"
     "   </tr>\n";
 
-const char * const Backend::htmlAbout =
-    " <div class=\"content\">\n"
+const char Backend::htmlAbout[] =
+    " <div class=\"main_about\">\n"
     "{ABOUT_LXIMEDIA}"
     " </div>\n";
 
-const char * const Backend::htmlConfigMain =
-    " <div class=\"content\">\n"
+const char Backend::htmlSettingsMain[] =
+    " <div class=\"main_settings\">\n"
     "  <fieldset>\n"
-    "   <legend>{TR_SERVER_SETTINGS}</legend>\n"
+    "   <legend>{TR_HTTP_SERVER}</legend>\n"
     "   {TR_HTTPSERVER_EXPLAIN}<br />\n"
     "   <br />\n"
-    "   <form name=\"httpsettings\" action=\"settings.html\" method=\"get\">\n"
-    "    <input type=\"hidden\" name=\"httpsettings\" value=\"httpsettings\" />\n"
+    "   <form name=\"httpsettings\" action=\"/settings\" method=\"get\">\n"
+    "    <input type=\"hidden\" name=\"save_settings\" value=\"http\" />\n"
     "    {TR_HTTP_PORT_NUMBER}:\n"
     "    <input type=\"text\" size=\"6\" name=\"httpport\" value=\"{HTTPPORT}\" />\n"
     "    {TR_DEVICE_NAME}:\n"
@@ -166,27 +140,22 @@ const char * const Backend::htmlConfigMain =
     "   </form>\n"
     "  </fieldset>\n"
     "  <fieldset>\n"
-    "   <legend>{TR_IMDB_SETTINGS}</legend>\n"
-    "   {TR_DOWNLOAD_IMDB_EXPLAIN}<br />\n"
-    "   <a href=\"http://www.imdb.com/interfaces\">www.imdb.com/interfaces</a><br />\n"
-    "   <br />\n"
-    "{IMDB_ACTION}"
-    "  </fieldset>\n"
-    "  <fieldset>\n"
-    "   <legend>{TR_DLNA_SETTINGS}</legend>\n"
+    "   <legend>{TR_DLNA}</legend>\n"
     "   {TR_MEDIA_TRANSCODE_SETTINGS_EXPLAIN}<br />\n"
     "   <br />\n"
     "   {TR_AUDIO_TRANSCODE_SETTINGS_EXPLAIN}<br />\n"
     "   <br />\n"
     "{CLIENT_ROWS}"
     "  </fieldset>\n"
+    "{PLUGIN_SETTINGS}"
     " </div>\n";
 
-const char * const Backend::htmlConfigDlnaRow =
+const char Backend::htmlSettingsDlnaRow[] =
     "   <a name=\"{CLIENT_NAME}\"></a>\n"
     "   <fieldset>\n"
     "    <legend>{NAME}</legend>\n"
-    "    <form name=\"dlnasettings\" action=\"settings.html#{CLIENT_NAME}\" method=\"get\">\n"
+    "    <form name=\"dlnasettings\" action=\"/settings\" method=\"get\">\n"
+    "     <input type=\"hidden\" name=\"save_settings\" value=\"dlna\" />\n"
     "     <input type=\"hidden\" name=\"client\" value=\"{CLIENT_NAME}\" />\n"
     "     <table>\n"
     "      <tr>\n"
@@ -229,17 +198,17 @@ const char * const Backend::htmlConfigDlnaRow =
     "    </form>\n"
     "   </fieldset>\n";
 
-const char * const Backend::htmlConfigDlnaRowProfilesClosed =
+const char Backend::htmlSettingsDlnaRowProfilesClosed[] =
     "      <tr>\n"
     "       <td class=\"top\">{TR_SUPPORTED_DLNA_PROFILES}:</td>\n"
     "       <td>\n"
-    "        <a href=\"settings.html?expand={CLIENT_NAME}\">\n"
+    "        <a href=\"settings?expand={CLIENT_NAME}\">\n"
     "         {TR_SHOW_PROFILE_SETTINGS}\n"
     "        </a>\n"
     "       </td>\n"
     "      </tr>\n";
 
-const char * const Backend::htmlConfigDlnaRowProfiles =
+const char Backend::htmlSettingsDlnaRowProfiles[] =
     "      <tr>\n"
     "       <td class=\"top\">{TR_SUPPORTED_DLNA_PROFILES}:</td>\n"
     "       </td>\n"
@@ -279,261 +248,181 @@ const char * const Backend::htmlConfigDlnaRowProfiles =
     "       </td>\n"
     "      </tr>\n";
 
-const char * const Backend::htmlConfigDlnaRowProfilesCheck =
+const char Backend::htmlSettingsDlnaRowProfilesCheck[] =
     "           <input type=\"checkbox\" name=\"profile_{PROFILE_NAME}\" value=\"on\" {CHECKED}/>{PROFILE_NAME}<br/>\n";
 
-const char * const Backend::htmlConfigOption =
+const char Backend::htmlSettingsOption[] =
     "         <option value=\"{VALUE}\" {SELECTED}>{TEXT}</option>\n";
 
-const char * const Backend::htmlConfigImdbDownload =
-    "   <form name=\"imdbsettings\" action=\"settings.html\" method=\"get\">\n"
-    "    <input type=\"hidden\" name=\"imdbsettings\" value=\"imdbsettings\" />\n"
-    "    <input type=\"submit\" name=\"download\" value=\"{TR_DOWNLOAD_IMDB}\" />\n"
-    "   </form>\n";
 
-
-QByteArray Backend::parseHtmlContent(const QUrl &url, const QByteArray &content, const QByteArray &head) const
+SHttpServer::ResponseMessage Backend::httpRequest(const SHttpServer::RequestMessage &request, QIODevice *)
 {
-  HtmlParser localParser(htmlParser);
-  localParser.setField("TR_SEARCH", tr("Search"));
-  localParser.setField("SEARCH_QUERY", QByteArray(""));
-  localParser.setField("PATH", QByteArray(""));
-
-  const QString path = url.path();
-  const int lastSlash = path.lastIndexOf('/');
-  if (lastSlash > 0)
+  if (request.isGet())
   {
-    QString fullPath = "/";
-    foreach (const QString &dir, path.left(lastSlash).split('/', QString::SkipEmptyParts))
+    QString dir = request.file();
+    dir = dir.left(dir.lastIndexOf('/') + 1);
+
+    if (dir == "/")
     {
-      fullPath += dir + "/";
-      localParser.setField("ITEM_LINK", QUrl(fullPath).toEncoded());
-      localParser.setField("ITEM_NAME", dir);
-      localParser.appendField("PATH", localParser.parse(htmlLocationItem));
-    }
-  }
+      HtmlParser htmlParser(this->htmlParser);
+      QByteArray content;
 
-  if (url.hasQueryItem("q"))
-  {
-    const QString queryValue = url.queryItemValue("q");
-    const QString queryString = QByteArray::fromPercentEncoding(queryValue.toAscii().replace('+', ' '));
-    localParser.setField("TR_SEARCH", tr("Search"));
-    localParser.setField("SEARCH_QUERY", queryString);
-
-    localParser.setField("ITEM_LINK", QUrl("/?q=" + queryValue).toEncoded());
-    localParser.setField("ITEM_NAME", tr("Search") + ": " + queryString);
-    localParser.appendField("PATH", localParser.parse(htmlLocationItem));
-  }
-
-  localParser.setField("HEAD", head);
-  localParser.setField("CONTENT", content);
-  return localParser.parse(htmlIndex);
-}
-
-QByteArray Backend::parseHtmlLogErrors(void) const
-{
-  HtmlParser htmlParser(this->htmlParser);
-
-  // Submit error log
-  const QSet<QString> dismissedFiles =
-      QSet<QString>::fromList(GlobalSettings().value("DismissedErrors").toStringList());
-
-  QStringList errorLogFiles;
-  foreach (const QString &file, sApp->errorLogFiles())
-  if (!dismissedFiles.contains(file))
-    errorLogFiles += file;
-
-  if (!errorLogFiles.isEmpty())
-  {
-    htmlParser.setField("TR_ERRORS",tr("Program errors"));
-    htmlParser.setField("TR_DISMISS",tr("Dismiss all errors"));
-
-    htmlParser.setField("ITEM_ICONURL", QUrl("/img/journal.png?scale=32").toEncoded());
-
-    htmlParser.setField("ERROR_LOG_FILES", QByteArray(""));
-    QString lastDate;
-    for (int i=0; i<errorLogFiles.count(); i++)
-    {
-      const QFileInfo info(errorLogFiles[i]);
-
-      htmlParser.setField("ITEM_TITLE", info.created().toString("yyyy-MM-dd hh:mm"));
-      htmlParser.setField("ITEM_URL", QUrl("/" + info.fileName()).toEncoded());
-      htmlParser.appendField("ITEMS", htmlParser.parse(htmlMenuItem));
-    }
-
-    htmlParser.setField("ITEM_TITLE", tr("Dismiss all errors"));
-    htmlParser.setField("ITEM_URL", QUrl("/?dismisserrors").toEncoded());
-    htmlParser.appendField("ITEMS", htmlParser.parse(htmlMenuItem));
-
-    htmlParser.setField("TEXT", tr("Program errors"));
-    return htmlParser.parse(htmlMenuGroup);
-  }
-
-  return QByteArray();
-}
-
-SHttpServer::ResponseMessage Backend::handleHtmlRequest(const SHttpServer::RequestMessage &request, const MediaServer::File &file)
-{
-  return handleHtmlRequest(request, file.fileName());
-}
-
-SHttpServer::ResponseMessage Backend::handleHtmlRequest(const SHttpServer::RequestMessage &request, const QString &file)
-{
-  HtmlParser htmlParser(this->htmlParser);
-
-  SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
-  response.setContentType(SHttpEngine::mimeTextHtml);
-  response.setField("Cache-Control", "no-cache");
-
-  htmlParser.setField("LOG_ERRORS", parseHtmlLogErrors());
-
-  response.setContent(parseHtmlContent(QUrl(request.path()), htmlParser.parse(htmlMain), ""));
-
-  return response;
-}
-
-SHttpServer::ResponseMessage Backend::handleHtmlSearch(const SHttpServer::RequestMessage &request, const MediaServer::File &)
-{
-  HtmlParser htmlParser(this->htmlParser);
-  htmlParser.setField("TR_OF", tr("of"));
-  htmlParser.setField("TR_RELEVANCE", tr("Relevance"));
-  htmlParser.setField("TR_RESULTS", tr("Results"));
-
-  SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
-  response.setContentType(SHttpEngine::mimeTextHtml);
-  response.setField("Cache-Control", "no-cache");
-
-  const MediaServer::File file(request);
-  const QString queryValue = file.url().queryItemValue("q");
-  const QString queryString = QByteArray::fromPercentEncoding(queryValue.toAscii().replace('+', ' '));
-  const SearchCacheEntry entry = search(queryString);
-  htmlParser.setField("SEARCHRESULTS", QByteArray(""));
-
-  foreach (const BackendServer::SearchResult &result, entry.results)
-  {
-    htmlParser.setField("ITEM_TITLE", result.headline);
-    htmlParser.setField("ITEM_RELEVANCE", QString::number(qBound(0, int(result.relevance * 100.0), 100)) + "%");
-    htmlParser.setField("ITEM_URL", QUrl(result.location).toEncoded());
-    htmlParser.setField("ITEM_ICONURL", QUrl(result.thumbLocation).toEncoded());
-
-    htmlParser.appendField("SEARCHRESULTS", htmlParser.parse(htmlSearchResultsItem));
-  }
-
-  htmlParser.setField("ITEM_TITLE", tr("Search") + ": " + queryString);
-
-  response.setContent(parseHtmlContent(file.url(), htmlParser.parse(htmlSearchResults), ""));
-
-  return response;
-}
-
-SHttpServer::ResponseMessage Backend::handleHtmlLogFileRequest(const SHttpServer::RequestMessage &request, const MediaServer::File &file)
-{
-  QString logFileName;
-  if (file.fileName() == "main.log")
-  {
-    logFileName = sApp->activeLogFile();
-  }
-  else foreach (const QString &f, sApp->allLogFiles())
-  if (f.endsWith("/" + file.fileName()))
-  {
-    logFileName = f;
-    break;
-  }
-
-  SApplication::LogFile logFile(logFileName);
-  if (logFile.open(SApplication::LogFile::ReadOnly))
-  {
-    const MediaServer::File file(request);
-
-    HtmlParser htmlParser(this->htmlParser);
-    htmlParser.setField("TR_DATE", tr("Date"));
-    htmlParser.setField("TR_TYPE", tr("Type"));
-    htmlParser.setField("TR_MESSAGE", tr("Message"));
-
-    htmlParser.setField("LOG_ERRORS", parseHtmlLogErrors());
-
-    htmlParser.setField("LOG_MESSAGES", QByteArray(""));
-
-    for (SApplication::LogFile::Message msg=logFile.readMessage();
-         msg.date.isValid();
-         msg=logFile.readMessage())
-    {
-      const bool mr = !msg.message.isEmpty();
-
-      htmlParser.setField("ITEM_ROWS", QByteArray::number(mr ? 2 : 1));
-
-      htmlParser.setField("ITEM_ROWS", QByteArray::number(mr ? 2 : 1));
-      htmlParser.setField("ITEM_DATE", msg.date.toString("yyyy-MM-dd/hh:mm:ss"));
-      htmlParser.setField("ITEM_TYPE", msg.type);
-      htmlParser.setField("ITEM_PID", QByteArray::number(msg.pid));
-      htmlParser.setField("ITEM_TID", QByteArray::number(msg.tid));
-      htmlParser.setField("ITEM_TYPE", msg.type);
-      htmlParser.setField("ITEM_HEADLINE", msg.headline);
-      htmlParser.appendField("LOG_MESSAGES", htmlParser.parse(htmlLogFileHeadline));
-
-      if (mr)
+      if (request.fileName().isEmpty())
       {
-        htmlParser.setField("ITEM_MESSAGE", msg.message.replace('\n', "<br />\n"));
-        htmlParser.appendField("LOG_MESSAGES", htmlParser.parse(htmlLogFileMessage));
+        foreach (BackendServer *backendServer, backendServers)
+          content += backendServer->frontPageContent();
       }
+      else if (request.fileName() == "settings")
+      {
+        if (request.url().hasQueryItem("save_settings"))
+        {
+          saveHtmlSettings(request);
+
+          SHttpServer::ResponseMessage response(request, SHttpServer::Status_MovedPermanently);
+          response.setField("Location", "http://" + request.host() + "/settings");
+          return response;
+        }
+
+        content = handleHtmlSettings(request);
+      }
+      else if (request.fileName() == "log")
+      {
+        SApplication::LogFile logFile(sApp->activeLogFile());
+        if (logFile.open(SApplication::LogFile::ReadOnly))
+        {
+          htmlParser.setField("TR_DATE", tr("Date"));
+          htmlParser.setField("TR_TYPE", tr("Type"));
+          htmlParser.setField("TR_MESSAGE", tr("Message"));
+
+          htmlParser.setField("LOG_MESSAGES", QByteArray(""));
+
+          for (SApplication::LogFile::Message msg=logFile.readMessage();
+               msg.date.isValid();
+               msg=logFile.readMessage())
+          {
+            const bool mr = !msg.message.isEmpty();
+
+            htmlParser.setField("ITEM_ROWS", QByteArray::number(mr ? 2 : 1));
+
+            htmlParser.setField("ITEM_ROWS", QByteArray::number(mr ? 2 : 1));
+            htmlParser.setField("ITEM_DATE", msg.date.toString("yyyy-MM-dd/hh:mm:ss"));
+            htmlParser.setField("ITEM_TYPE", msg.type);
+            htmlParser.setField("ITEM_PID", QByteArray::number(msg.pid));
+            htmlParser.setField("ITEM_TID", QByteArray::number(msg.tid));
+            htmlParser.setField("ITEM_TYPE", msg.type);
+            htmlParser.setField("ITEM_HEADLINE", msg.headline);
+            htmlParser.appendField("LOG_MESSAGES", htmlParser.parse(htmlLogFileHeadline));
+
+            if (mr)
+            {
+              htmlParser.setField("ITEM_MESSAGE", msg.message.replace('\n', "<br />\n"));
+              htmlParser.appendField("LOG_MESSAGES", htmlParser.parse(htmlLogFileMessage));
+            }
+          }
+
+          content = htmlParser.parse(htmlLogFile);
+        }
+      }
+      else if (request.fileName() == "about")
+      {
+        htmlParser.setField("ABOUT_LXIMEDIA", sApp->about());
+        content = htmlParser.parse(htmlAbout);
+      }
+#ifndef QT_NO_DEBUG
+      else if (request.fileName() == "exit")
+      {
+        QCoreApplication::postEvent(this, new QEvent(exitEventType));
+        return SHttpServer::ResponseMessage(request, SHttpServer::Status_NoContent);
+      }
+#endif
+      else if (request.fileName() == "favicon.ico")
+        return sendFile(request, ":/lximedia.ico");
+      else if (request.fileName() == "lximedia.png")
+        return sendFile(request, ":/lximedia.png");
+
+      SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
+      response.setContentType(SHttpEngine::mimeTextHtml);
+      response.setField("Cache-Control", "no-cache");
+      response.setContent(parseHtmlContent(request.url(), content, ""));
+      return response;
     }
-
-    SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
-    response.setContentType(SHttpEngine::mimeTextHtml);
-    response.setField("Cache-Control", "no-cache");
-    if (logFileName == sApp->activeLogFile())
-      response.setField("Refresh", "10;URL=#bottom");
-
-    response.setContent(parseHtmlContent(file.url(), htmlParser.parse(htmlLogFile), ""));
-
-    return response;
+    else if ((dir == "/css/") || (dir == "/js/") || (dir == "/img/"))
+      return sendFile(request, ":" + request.file());
   }
 
   return SHttpServer::ResponseMessage(request, SHttpServer::Status_NotFound);
 }
 
-SHttpServer::ResponseMessage Backend::showAbout(const SHttpServer::RequestMessage &request)
+QByteArray Backend::parseHtmlContent(const QUrl &url, const QByteArray &content, const QByteArray &head) const
 {
   HtmlParser htmlParser(this->htmlParser);
 
-  SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
-  response.setContentType(SHttpEngine::mimeTextHtml);
-  response.setField("Cache-Control", "no-cache");
+  htmlParser.setField("HEAD", head);
 
-  htmlParser.setField("ABOUT_LXIMEDIA", sApp->about());
-
-  response.setContent(parseHtmlContent(QUrl(request.path()), htmlParser.parse(htmlAbout), ""));
-
-  return response;
-}
-
-SHttpServer::ResponseMessage Backend::handleHtmlConfig(const SHttpServer::RequestMessage &request)
-{
-  SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
-  response.setContentType(SHttpEngine::mimeTextHtml);
-  response.setField("Cache-Control", "no-cache");
-
-  GlobalSettings settings;
-
-  // HTTP server
-  const MediaServer::File file(request);
-  if (file.url().hasQueryItem("httpsettings") && file.url().hasQueryItem("httpport") && file.url().hasQueryItem("devicename"))
+  QString path = url.path();
+  path = path.left(path.lastIndexOf('/'));
+  if (!path.isEmpty())
   {
-    const int portValue = file.url().queryItemValue("httpport").toInt();
-    if ((portValue > 0) && (portValue < 65536))
-      settings.setValue("HttpPort", portValue);
+    htmlParser.setField("NAVIGATOR_ITEMS", QByteArray(""));
 
-    const QString deviceName = file.url().queryItemValue("devicename").replace('+', ' ');
-    if (!deviceName.isEmpty())
+    QString fullPath = "/";
+    foreach (const QString &dir, path.split('/', QString::SkipEmptyParts))
     {
-      settings.setValue("DeviceName", deviceName);
-      masterMediaServer.setDeviceName(deviceName);
+      fullPath += dir + "/";
+      htmlParser.setField("ITEM_LINK", QUrl(fullPath).toEncoded());
+      htmlParser.setField("ITEM_NAME", dir);
+      htmlParser.appendField("NAVIGATOR_ITEMS", htmlParser.parse(htmlNavigatorItem));
     }
 
-    reset();
+    htmlParser.setField("NAVIGATOR_PATH", htmlParser.parse(htmlNavigatorPath));
   }
+  else
+    htmlParser.setField("NAVIGATOR_PATH", htmlParser.parse(htmlNavigatorRoot));
 
-  htmlParser.setField("TR_SERVER_SETTINGS", tr("Server settings"));
+  htmlParser.setField("CONTENT", content);
+  return htmlParser.parse(htmlIndex);
+}
+
+//SHttpServer::ResponseMessage Backend::handleHtmlSearch(const SHttpServer::RequestMessage &request, const MediaServer::File &)
+//{
+//  HtmlParser htmlParser(this->htmlParser);
+//  htmlParser.setField("TR_OF", tr("of"));
+//  htmlParser.setField("TR_RELEVANCE", tr("Relevance"));
+//  htmlParser.setField("TR_RESULTS", tr("Results"));
+//
+//  SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
+//  response.setContentType(SHttpEngine::mimeTextHtml);
+//  response.setField("Cache-Control", "no-cache");
+//
+//  const MediaServer::File file(request);
+//  const QString queryValue = file.url().queryItemValue("q");
+//  const QString queryString = QByteArray::fromPercentEncoding(queryValue.toAscii().replace('+', ' '));
+//  const SearchCacheEntry entry = search(queryString);
+//  htmlParser.setField("SEARCHRESULTS", QByteArray(""));
+//
+//  foreach (const BackendServer::SearchResult &result, entry.results)
+//  {
+//    htmlParser.setField("ITEM_TITLE", result.headline);
+//    htmlParser.setField("ITEM_RELEVANCE", QString::number(qBound(0, int(result.relevance * 100.0), 100)) + "%");
+//    htmlParser.setField("ITEM_URL", QUrl(result.location).toEncoded());
+//    htmlParser.setField("ITEM_ICONURL", QUrl(result.thumbLocation).toEncoded());
+//
+//    htmlParser.appendField("SEARCHRESULTS", htmlParser.parse(htmlSearchResultsItem));
+//  }
+//
+//  htmlParser.setField("ITEM_TITLE", tr("Search") + ": " + queryString);
+//
+//  response.setContent(parseHtmlContent(file.url(), htmlParser.parse(htmlSearchResults), ""));
+//
+//  return response;
+//}
+
+QByteArray Backend::handleHtmlSettings(const SHttpServer::RequestMessage &request)
+{
+  GlobalSettings settings;
+
+  HtmlParser htmlParser;
+  htmlParser.setField("TR_HTTP_SERVER", tr("HTTP server"));
   htmlParser.setField("TR_HTTP_PORT_NUMBER", tr("Preferred HTTP port number"));
   htmlParser.setField("TR_DEVICE_NAME", tr("Device name"));
   htmlParser.setField("TR_HTTPSERVER_EXPLAIN",
@@ -542,146 +431,11 @@ SHttpServer::ResponseMessage Backend::handleHtmlConfig(const SHttpServer::Reques
   htmlParser.setField("HTTPPORT", settings.value("HttpPort", settings.defaultBackendHttpPort()).toString());
   htmlParser.setField("DEVICENAME", settings.value("DeviceName", settings.defaultDeviceName()).toString());
 
-  // IMDB
-  if (masterImdbClient && file.url().hasQueryItem("imdbsettings") && file.url().hasQueryItem("download"))
-  {
-    masterImdbClient->obtainIMDBFiles();
-  }
-
-  htmlParser.setField("TR_IMDB_SETTINGS", tr("IMDb settings"));
-  htmlParser.setField("TR_DOWNLOAD_IMDB_EXPLAIN",
-    tr("This will allow the imdb.com data files to be downloaded to provide "
-       "additional information on the media files that are available. "
-       "Downloading and parsing the files will take several minutes."));
-
-  if (masterImdbClient && masterImdbClient->isAvailable() && !masterImdbClient->needUpdate())
-  {
-    htmlParser.setField("IMDB_ACTION", "    <b>" + tr("IMDb files are available") + "</b>\n");
-  }
-  else if (masterImdbClient && (masterImdbClient->isDownloading() || !masterImdbClient->needUpdate()))
-  {
-    htmlParser.setField("IMDB_ACTION", "    <b>" + tr("Downloading and parsing IMBb files") + " ...</b>\n");
-  }
-  else if (masterImdbClient)
-  {
-    htmlParser.setField("TR_DOWNLOAD_IMDB", masterImdbClient->needUpdate() ? tr("Update IMDb files") : tr("Download IMDb files"));
-    htmlParser.setField("IMDB_ACTION", htmlParser.parse(htmlConfigImdbDownload));
-  }
-  else
-    htmlParser.setField("IMDB_ACTION", QByteArray(""));
-
-  // DLNA
   settings.beginGroup("DLNA");
 
   const QStringList enabledAudioProfiles = MediaServer::mediaProfiles().enabledAudioProfiles();
   const QStringList enabledVideoProfiles = MediaServer::mediaProfiles().enabledVideoProfiles();
   const QStringList enabledImageProfiles = MediaServer::mediaProfiles().enabledImageProfiles();
-
-  if (file.url().hasQueryItem("client"))
-  {
-    const QString group = "Client_" + file.url().queryItemValue("client");
-
-    bool needEndGroup = false;
-    if ((group.length() > 7) && (group != "Client__default"))
-    {
-      settings.beginGroup(group);
-      needEndGroup = true;
-    }
-
-    if (file.url().hasQueryItem("save"))
-    {
-      const QString sizeName =
-          QByteArray::fromPercentEncoding(file.url().queryItemValue("transcodesize").toAscii().replace('+', ' '));
-      if (!sizeName.isEmpty())
-        settings.setValue("TranscodeSize", sizeName);
-      else
-        settings.remove("TranscodeSize");
-
-      const QString cropName =
-          QByteArray::fromPercentEncoding(file.url().queryItemValue("cropmode").toAscii().replace('+', ' '));
-      if (!cropName.isEmpty())
-        settings.setValue("TranscodeCrop", cropName);
-      else
-        settings.remove("TranscodeCrop");
-
-      const QString encodeModeName =
-          QByteArray::fromPercentEncoding(file.url().queryItemValue("encodemode").toAscii().replace('+', ' '));
-      if (!encodeModeName.isEmpty())
-        settings.setValue("EncodeMode", encodeModeName);
-      else
-        settings.remove("EncodeMode");
-
-      const QString channelsName =
-          QByteArray::fromPercentEncoding(file.url().queryItemValue("channels").toAscii().replace('+', ' '));
-      if (!channelsName.isEmpty())
-        settings.setValue("TranscodeChannels", channelsName);
-      else
-        settings.remove("TranscodeChannels");
-
-      const QString musicChannelsName =
-          QByteArray::fromPercentEncoding(file.url().queryItemValue("musicchannels").toAscii().replace('+', ' '));
-      if (!musicChannelsName.isEmpty())
-        settings.setValue("TranscodeMusicChannels", musicChannelsName);
-      else
-        settings.remove("TranscodeMusicChannels");
-
-      const QString musicModeName =
-          QByteArray::fromPercentEncoding(file.url().queryItemValue("musicmode").toAscii().replace('+', ' '));
-      if (!musicModeName.isEmpty())
-        settings.setValue("MusicMode", musicModeName);
-      else
-        settings.remove("MusicMode");
-
-      QStringList audioProfiles;
-      foreach (const QString &profile, enabledAudioProfiles)
-      if (file.url().hasQueryItem("profile_" + profile))
-        audioProfiles += profile;
-
-      if (!audioProfiles.isEmpty())
-        settings.setValue("SupportedAudioProfiles", audioProfiles);
-      else
-        settings.remove("SupportedAudioProfiles");
-
-      QStringList videoProfiles;
-      foreach (const QString &profile, enabledVideoProfiles)
-      if (file.url().hasQueryItem("profile_" + profile))
-        videoProfiles += profile;
-
-      if (!videoProfiles.isEmpty())
-        settings.setValue("SupportedVideoProfiles", videoProfiles);
-      else
-        settings.remove("SupportedVideoProfiles");
-
-      QStringList imageProfiles;
-      foreach (const QString &profile, enabledImageProfiles)
-      if (file.url().hasQueryItem("profile_" + profile))
-        imageProfiles += profile;
-
-      if (!imageProfiles.isEmpty())
-        settings.setValue("SupportedImageProfiles", imageProfiles);
-      else
-        settings.remove("SupportedImageProfiles");
-
-      reset();
-    }
-    else if (file.url().hasQueryItem("defaults"))
-    {
-      settings.remove("TranscodeSize");
-      settings.remove("TranscodeCrop");
-      settings.remove("EncodeMode");
-      settings.remove("TranscodeChannels");
-      settings.remove("TranscodeMusicChannels");
-      settings.remove("MusicMode");
-      settings.remove("SupportedAudioProfiles");
-      settings.remove("SupportedVideoProfiles");
-      settings.remove("SupportedImageProfiles");
-
-      reset();
-    }
-
-    if (needEndGroup)
-      settings.endGroup();
-  }
 
   const QString genericTranscodeSize =
       settings.value("TranscodeSize", settings.defaultTranscodeSizeName()).toString();
@@ -696,8 +450,7 @@ SHttpServer::ResponseMessage Backend::handleHtmlConfig(const SHttpServer::Reques
   const QString genericMusicMode =
       settings.value("MusicMode", settings.defaultMusicModeName()).toString();
 
-  HtmlParser htmlParser;
-  htmlParser.setField("TR_DLNA_SETTINGS", tr("DLNA transcode settings"));
+  htmlParser.setField("TR_DLNA", tr("DLNA"));
   htmlParser.setField("TR_VIDEO_SETTINGS", tr("Video transcode settings"));
   htmlParser.setField("TR_MUSIC_SETTINGS", tr("Music transcode settings"));
   htmlParser.setField("TR_SUPPORTED_DLNA_PROFILES", tr("Supported DLNA profiles"));
@@ -755,7 +508,7 @@ SHttpServer::ResponseMessage Backend::handleHtmlConfig(const SHttpServer::Reques
       htmlParser.setField("TEXT", size.name +
                           " (" + QString::number(size.size.width()) +
                           "x" + QString::number(size.size.height()) + ")");
-      htmlParser.appendField("FORMATS", htmlParser.parse(htmlConfigOption));
+      htmlParser.appendField("FORMATS", htmlParser.parse(htmlSettingsOption));
     }
 
     static void addChannel(HtmlParser &htmlParser, GlobalSettings &settings, const QString &genericTranscodeChannels, const GlobalSettings::TranscodeChannel &channel)
@@ -767,7 +520,7 @@ SHttpServer::ResponseMessage Backend::handleHtmlConfig(const SHttpServer::Reques
 
       htmlParser.setField("VALUE", channel.name);
       htmlParser.setField("TEXT", channel.name);
-      htmlParser.appendField("CHANNELS", htmlParser.parse(htmlConfigOption));
+      htmlParser.appendField("CHANNELS", htmlParser.parse(htmlSettingsOption));
     }
 
     static void addMusicChannel(HtmlParser &htmlParser, GlobalSettings &settings, const QString &genericTranscodeMusicChannels, const GlobalSettings::TranscodeChannel &channel)
@@ -779,7 +532,7 @@ SHttpServer::ResponseMessage Backend::handleHtmlConfig(const SHttpServer::Reques
 
       htmlParser.setField("VALUE", channel.name);
       htmlParser.setField("TEXT", channel.name);
-      htmlParser.appendField("MUSICCHANNELS", htmlParser.parse(htmlConfigOption));
+      htmlParser.appendField("MUSICCHANNELS", htmlParser.parse(htmlSettingsOption));
     }
   };
 
@@ -842,7 +595,7 @@ SHttpServer::ResponseMessage Backend::handleHtmlConfig(const SHttpServer::Reques
 
   htmlParser.setField("PROFILES", QByteArray(""));
 
-  htmlParser.appendField("CLIENT_ROWS", htmlParser.parse(htmlConfigDlnaRow));
+  htmlParser.appendField("CLIENT_ROWS", htmlParser.parse(htmlSettingsDlnaRow));
 
   // DLNA clients
   QStringList activeClients = MediaServer::activeClients().toList();
@@ -910,7 +663,7 @@ SHttpServer::ResponseMessage Backend::handleHtmlConfig(const SHttpServer::Reques
       htmlParser.setField("SELECTED_LEAVEVIDEO", QByteArray("selected=\"selected\""));
     }
 
-    if (file.url().queryItemValue("expand") == clientTag)
+    if (request.url().queryItemValue("expand") == clientTag)
     {
       htmlParser.setField("INI_NAME", activeClient.split('@').first());
 
@@ -928,7 +681,7 @@ SHttpServer::ResponseMessage Backend::handleHtmlConfig(const SHttpServer::Reques
       {
         htmlParser.setField("PROFILE_NAME", profile);
         htmlParser.setField("CHECKED", QByteArray(checkedAudioProfiles.contains(profile) ? "checked=\"checked\"" : ""));
-        htmlParser.appendField("AUDIO_PROFILES", htmlParser.parse(htmlConfigDlnaRowProfilesCheck));
+        htmlParser.appendField("AUDIO_PROFILES", htmlParser.parse(htmlSettingsDlnaRowProfilesCheck));
       }
 
       htmlParser.setField("INI_AUDIO_PROFILES", checkedAudioProfiles.join(", "));
@@ -947,7 +700,7 @@ SHttpServer::ResponseMessage Backend::handleHtmlConfig(const SHttpServer::Reques
       {
         htmlParser.setField("PROFILE_NAME", profile);
         htmlParser.setField("CHECKED", QByteArray(checkedVideoProfiles.contains(profile) ? "checked=\"checked\"" : ""));
-        htmlParser.appendField("VIDEO_PROFILES", htmlParser.parse(htmlConfigDlnaRowProfilesCheck));
+        htmlParser.appendField("VIDEO_PROFILES", htmlParser.parse(htmlSettingsDlnaRowProfilesCheck));
       }
 
       htmlParser.setField("INI_VIDEO_PROFILES", checkedVideoProfiles.join(", "));
@@ -966,21 +719,163 @@ SHttpServer::ResponseMessage Backend::handleHtmlConfig(const SHttpServer::Reques
       {
         htmlParser.setField("PROFILE_NAME", profile);
         htmlParser.setField("CHECKED", QByteArray(checkedImageProfiles.contains(profile) ? "checked=\"checked\"" : ""));
-        htmlParser.appendField("IMAGE_PROFILES", htmlParser.parse(htmlConfigDlnaRowProfilesCheck));
+        htmlParser.appendField("IMAGE_PROFILES", htmlParser.parse(htmlSettingsDlnaRowProfilesCheck));
       }
 
       htmlParser.setField("INI_IMAGE_PROFILES", checkedImageProfiles.join(", "));
 
-      htmlParser.setField("PROFILES", htmlParser.parse(htmlConfigDlnaRowProfiles));
+      htmlParser.setField("PROFILES", htmlParser.parse(htmlSettingsDlnaRowProfiles));
     }
     else
-      htmlParser.setField("PROFILES", htmlParser.parse(htmlConfigDlnaRowProfilesClosed));
+      htmlParser.setField("PROFILES", htmlParser.parse(htmlSettingsDlnaRowProfilesClosed));
 
     settings.endGroup();
-    htmlParser.appendField("CLIENT_ROWS", htmlParser.parse(htmlConfigDlnaRow));
+    htmlParser.appendField("CLIENT_ROWS", htmlParser.parse(htmlSettingsDlnaRow));
   }
 
-  response.setContent(parseHtmlContent(file.url(), htmlParser.parse(htmlConfigMain), ""));
+  htmlParser.setField("PLUGIN_SETTINGS", QByteArray(""));
+  foreach (BackendServer *backendServer, backendServers)
+    htmlParser.appendField("PLUGIN_SETTINGS", backendServer->settingsContent());
 
-  return response;
+  return htmlParser.parse(htmlSettingsMain);
+}
+
+void Backend::saveHtmlSettings(const SHttpServer::RequestMessage &request)
+{
+  GlobalSettings settings;
+
+  if ((request.url().queryItemValue("save_settings") == "http") &&
+      request.url().hasQueryItem("httpport") &&
+      request.url().hasQueryItem("devicename"))
+  {
+    const int portValue = request.url().queryItemValue("httpport").toInt();
+    if ((portValue > 0) && (portValue < 65536))
+      settings.setValue("HttpPort", portValue);
+
+    const QString deviceName = request.url().queryItemValue("devicename").replace('+', ' ');
+    if (!deviceName.isEmpty())
+    {
+      settings.setValue("DeviceName", deviceName);
+      masterMediaServer.setDeviceName(deviceName);
+    }
+
+    reset();
+  }
+
+  if ((request.url().queryItemValue("save_settings") == "dlna"))
+  {
+    const QStringList enabledAudioProfiles = MediaServer::mediaProfiles().enabledAudioProfiles();
+    const QStringList enabledVideoProfiles = MediaServer::mediaProfiles().enabledVideoProfiles();
+    const QStringList enabledImageProfiles = MediaServer::mediaProfiles().enabledImageProfiles();
+
+    settings.beginGroup("DLNA");
+
+    if (request.url().hasQueryItem("client"))
+    {
+      const QString group = "Client_" + request.url().queryItemValue("client");
+
+      bool needEndGroup = false;
+      if ((group.length() > 7) && (group != "Client__default"))
+      {
+        settings.beginGroup(group);
+        needEndGroup = true;
+      }
+
+      if (request.url().hasQueryItem("save"))
+      {
+        const QString sizeName =
+            QByteArray::fromPercentEncoding(request.url().queryItemValue("transcodesize").toAscii().replace('+', ' '));
+        if (!sizeName.isEmpty())
+          settings.setValue("TranscodeSize", sizeName);
+        else
+          settings.remove("TranscodeSize");
+
+        const QString cropName =
+            QByteArray::fromPercentEncoding(request.url().queryItemValue("cropmode").toAscii().replace('+', ' '));
+        if (!cropName.isEmpty())
+          settings.setValue("TranscodeCrop", cropName);
+        else
+          settings.remove("TranscodeCrop");
+
+        const QString encodeModeName =
+            QByteArray::fromPercentEncoding(request.url().queryItemValue("encodemode").toAscii().replace('+', ' '));
+        if (!encodeModeName.isEmpty())
+          settings.setValue("EncodeMode", encodeModeName);
+        else
+          settings.remove("EncodeMode");
+
+        const QString channelsName =
+            QByteArray::fromPercentEncoding(request.url().queryItemValue("channels").toAscii().replace('+', ' '));
+        if (!channelsName.isEmpty())
+          settings.setValue("TranscodeChannels", channelsName);
+        else
+          settings.remove("TranscodeChannels");
+
+        const QString musicChannelsName =
+            QByteArray::fromPercentEncoding(request.url().queryItemValue("musicchannels").toAscii().replace('+', ' '));
+        if (!musicChannelsName.isEmpty())
+          settings.setValue("TranscodeMusicChannels", musicChannelsName);
+        else
+          settings.remove("TranscodeMusicChannels");
+
+        const QString musicModeName =
+            QByteArray::fromPercentEncoding(request.url().queryItemValue("musicmode").toAscii().replace('+', ' '));
+        if (!musicModeName.isEmpty())
+          settings.setValue("MusicMode", musicModeName);
+        else
+          settings.remove("MusicMode");
+
+        QStringList audioProfiles;
+        foreach (const QString &profile, enabledAudioProfiles)
+        if (request.url().hasQueryItem("profile_" + profile))
+          audioProfiles += profile;
+
+        if (!audioProfiles.isEmpty())
+          settings.setValue("SupportedAudioProfiles", audioProfiles);
+        else
+          settings.remove("SupportedAudioProfiles");
+
+        QStringList videoProfiles;
+        foreach (const QString &profile, enabledVideoProfiles)
+        if (request.url().hasQueryItem("profile_" + profile))
+          videoProfiles += profile;
+
+        if (!videoProfiles.isEmpty())
+          settings.setValue("SupportedVideoProfiles", videoProfiles);
+        else
+          settings.remove("SupportedVideoProfiles");
+
+        QStringList imageProfiles;
+        foreach (const QString &profile, enabledImageProfiles)
+        if (request.url().hasQueryItem("profile_" + profile))
+          imageProfiles += profile;
+
+        if (!imageProfiles.isEmpty())
+          settings.setValue("SupportedImageProfiles", imageProfiles);
+        else
+          settings.remove("SupportedImageProfiles");
+
+        reset();
+      }
+      else if (request.url().hasQueryItem("defaults"))
+      {
+        settings.remove("TranscodeSize");
+        settings.remove("TranscodeCrop");
+        settings.remove("EncodeMode");
+        settings.remove("TranscodeChannels");
+        settings.remove("TranscodeMusicChannels");
+        settings.remove("MusicMode");
+        settings.remove("SupportedAudioProfiles");
+        settings.remove("SupportedVideoProfiles");
+        settings.remove("SupportedImageProfiles");
+
+        reset();
+      }
+
+      if (needEndGroup)
+        settings.endGroup();
+    }
+
+    settings.endGroup();
+  }
 }

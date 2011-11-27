@@ -143,6 +143,8 @@ void SHttpEngine::Header::parse(const QByteArray &header)
 SHttpEngine::RequestHeader::RequestHeader(const SHttpEngine *httpEngine)
   : Header(httpEngine)
 {
+  cache.valid = false;
+
   head << "GET" << "/" << httpVersion;
 
   if (httpEngine)
@@ -164,15 +166,53 @@ bool SHttpEngine::RequestHeader::isPost(void) const
   return method() == "POST";
 }
 
-QString SHttpEngine::RequestHeader::file(void) const
+void SHttpEngine::RequestHeader::setMethod(const QByteArray &method)
 {
-  QByteArray result = path();
+  if (head.size() > 0)
+    head[0] = method;
+  else
+    head << method;
+}
 
-  const int q = result.indexOf('?');
+void SHttpEngine::RequestHeader::setPath(const QByteArray &path)
+{
+  if (head.size() > 1)
+    head[1] = path;
+  else if (head.size() > 0)
+    head << path;
+  else
+    head << "GET" << path;
+
+  cache.valid = false;
+}
+
+void SHttpEngine::RequestHeader::setVersion(const QByteArray &version)
+{
+  if (head.size() < 2)
+    cache.valid = false;
+
+  if (head.size() > 2)
+    head[2] = version;
+  else if (head.size() > 1)
+    head << version;
+  else if (head.size() > 0)
+    head << "/" << version;
+  else
+    head << "GET" << "/" << version;
+}
+
+void SHttpEngine::RequestHeader::update(void) const
+{
+  QByteArray file = path();
+  cache.url = QUrl::fromEncoded(file);
+
+  const int q = file.indexOf('?');
   if (q >= 0)
-    result = result.left(q);
+    file = file.left(q);
 
-  return QString::fromUtf8(QByteArray::fromPercentEncoding(result));
+  cache.file = QString::fromUtf8(QByteArray::fromPercentEncoding(file));
+  cache.fileName = cache.file.mid(cache.file.lastIndexOf('/') + 1);
+  cache.valid = true;
 }
 
 SHttpEngine::ResponseHeader::ResponseHeader(const SHttpEngine *httpEngine)

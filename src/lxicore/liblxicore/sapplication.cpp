@@ -305,7 +305,6 @@ QMap<QString, SModule *> SApplication::modules(void) const
 QByteArray SApplication::about(void) const
 {
   QByteArray text =
-      "<h1>About " + QByteArray(name()) + "</h1>\n"
       "Version: " + QByteArray(version()) + "<br />\n"
       "Website: <a href=\"http://lximedia.sourceforge.net/\">lximedia.sourceforge.net</a><br />\n"
       "<br />\n"

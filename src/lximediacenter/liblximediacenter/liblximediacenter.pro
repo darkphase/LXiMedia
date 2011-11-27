@@ -50,8 +50,6 @@ SOURCES += backendsandbox.cpp \
 HEADERS += lximediacenterprivate.h
 SOURCES += lximediacenterprivate.cpp
 
-RESOURCES = liblximediacenter.qrc
-
 unix {
   LIBS += -lz
 

@@ -28,29 +28,37 @@
 namespace LXiMediaCenter {
 namespace MediaPlayerBackend {
 
-const char * const MediaPlayerServer::htmlMain =
-    " <div class=\"content\">\n"
-    "  <fieldset>\n"
-    "   <legend>{TR_SETTINGS}</legend>\n"
-    "   <form name=\"settings\" action=\"\" method=\"get\">\n"
-    "    <input type=\"hidden\" name=\"settings\" value=\"settings\" />\n"
-    "    {TR_SLIDEDURATION}:\n"
-    "    <input type=\"text\" size=\"6\" name=\"slideduration\" value=\"{SLIDEDURATION}\" />ms.\n"
-    "    <br /><br />\n"
-    "    <input type=\"submit\" name=\"save\" value=\"{TR_SAVE}\" />\n"
-    "   </form>\n"
-    "  </fieldset>\n"
-    "  <fieldset>\n"
-    "   <legend>{TR_MEDIADIRS}</legend>\n"
-    "   {TR_RIGHTS_EXPLAIN}<br />\n"
-    "   <iframe style=\"width:30em;height:30em;\" src=\"movies-tree.html\" frameborder=\"0\">\n"
-    "    <a href=\"media-tree.html\" target=\"_blank\">{TR_MOVIES}</a>\n"
-    "   </iframe>\n"
-    "  </fieldset>\n"
-    " </div>\n";
+const char MediaPlayerServer::htmlFrontPageContent[] =
+    " <div class=\"thumbnaillist\" id=\"mediaplayeritems\">\n"
+    " </div>\n"
+    " <script type=\"text/javascript\">loadListContent(\"mediaplayeritems\", \"{SERVER_PATH}\", 0, 0);</script>\n";
 
-const char * const MediaPlayerServer::htmlDirTreeIndex =
-    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
+const char MediaPlayerServer::htmlSettingsMain[] =
+    "  <fieldset>\n"
+    "   <legend>{TR_MEDIAPLAYER}</legend>\n"
+    "   <form name=\"settings\" action=\"{SERVER_PATH}\" method=\"get\">\n"
+    "    <input type=\"hidden\" name=\"save_settings\" value=\"settings\" />\n"
+    "    <table>\n"
+    "     <tr>\n"
+    "      <td>\n"
+    "       <iframe style=\"width:30em;height:30em;\" src=\"{SERVER_PATH}?folder_tree=\" frameborder=\"0\">\n"
+    "        <a href=\"{SERVER_PATH}?folder_tree=\" target=\"_blank\">frame</a>\n"
+    "       </iframe>\n"
+    "      </td>\n"
+    "      <td class=\"top\">\n"
+    "       {TR_RIGHTS_EXPLAIN}<br /><br />\n"
+    "       {TR_SLIDEDURATION}:\n"
+    "       <input type=\"text\" size=\"6\" name=\"slideduration\" value=\"{SLIDEDURATION}\" />ms.\n"
+    "      </td>\n"
+    "     </tr>\n"
+    "     <tr><td colspan=\"2\">\n"
+    "      <input type=\"submit\" name=\"save\" value=\"{TR_SAVE}\" />\n"
+    "     </td></tr>\n"
+    "    </table>\n"
+    "   </form>\n"
+    "  </fieldset>\n";
+
+const char MediaPlayerServer::htmlSettingsDirTreeIndex[] =
     "<!DOCTYPE html>\n"
     "<html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"en\" xml:lang=\"en\">\n"
     "<head>\n"
@@ -64,7 +72,7 @@ const char * const MediaPlayerServer::htmlDirTreeIndex =
     "</body>\n"
     "</html>\n";
 
-const char * const MediaPlayerServer::htmlDirTreeDir =
+const char MediaPlayerServer::htmlSettingsDirTreeDir[] =
     " <tr align=\"middle\"><td align=\"left\">\n"
     "  <a class=\"hidden\" name=\"{DIR_FULLPATH}\" />\n"
     "{DIR_INDENT}"
@@ -73,97 +81,60 @@ const char * const MediaPlayerServer::htmlDirTreeDir =
     "  {DIR_NAME}\n"
     " </td></tr>\n";
 
-const char * const MediaPlayerServer::htmlDirTreeIndent =
+const char MediaPlayerServer::htmlSettingsDirTreeIndent[] =
     "  <img src=\"/img/null.png\" width=\"16\" height=\"16\" />\n";
 
-const char * const MediaPlayerServer::htmlDirTreeExpand =
-    "  <a class=\"hidden\" href=\"{FILE}?open={DIR_ALLOPEN}#{DIR_FULLPATH}\">\n"
+const char MediaPlayerServer::htmlSettingsDirTreeExpand[] =
+    "  <a class=\"hidden\" href=\"{SERVER_PATH}?folder_tree=&open={DIR_ALLOPEN}#{DIR_FULLPATH}\">\n"
     "   <img src=\"/img/tree{DIR_OPEN}.png\" width=\"16\" height=\"16\" />\n"
     "  </a>\n";
 
-const char * const MediaPlayerServer::htmlDirTreeCheck =
+const char MediaPlayerServer::htmlSettingsDirTreeCheck[] =
     "  <img src=\"/img/check{DIR_CHECKED}.png\" title=\"{DIR_TITLE}\" width=\"16\" height=\"16\" />\n";
 
-const char * const MediaPlayerServer::htmlDirTreeCheckLink =
-    "  <a class=\"hidden\" href=\"{FILE}?open={DIR_ALLOPEN}&amp;{DIR_CHECKTYPE}={DIR_FULLPATH}#{DIR_FULLPATH}\">\n"
+const char MediaPlayerServer::htmlSettingsDirTreeCheckLink[] =
+    "  <a class=\"hidden\" href=\"{SERVER_PATH}?folder_tree=&open={DIR_ALLOPEN}&amp;{DIR_CHECKTYPE}={DIR_FULLPATH}#{DIR_FULLPATH}\">\n"
     "   <img src=\"/img/check{DIR_CHECKED}.png\" width=\"16\" height=\"16\" />\n"
     "  </a>\n";
 
-SHttpServer::ResponseMessage MediaPlayerServer::handleHtmlRequest(const SHttpServer::RequestMessage &request, const MediaServer::File &file)
+QByteArray MediaPlayerServer::frontPageContent(void)
 {
   HtmlParser htmlParser;
+  htmlParser.setField("SERVER_PATH", QUrl(serverPath()).toEncoded());
 
-  if (file.fileName().endsWith("-tree.html"))
-  {
-    QStringList paths = rootPaths.values();
+  return htmlParser.parse(htmlFrontPageContent);
+}
 
-    const QString open = file.url().queryItemValue("open");
-    const QStringList allopen = !open.isEmpty()
-                                ? QString::fromUtf8(qUncompress(QByteArray::fromHex(open.toAscii()))).split(dirSplit)
-                                : QStringList();
-
-    const QString checkon = QString::fromUtf8(QByteArray::fromHex(file.url().queryItemValue("checkon").toAscii()));
-    const QString checkoff = QString::fromUtf8(QByteArray::fromHex(file.url().queryItemValue("checkoff").toAscii()));
-    if (!checkon.isEmpty() || !checkoff.isEmpty())
-    {
-      if (!checkon.isEmpty())
-        paths.append(checkon.endsWith('/') ? checkon : (checkon + '/'));
-
-      if (!checkoff.isEmpty())
-      for (QStringList::Iterator i=paths.begin(); i!=paths.end(); )
-      if (i->compare(checkoff, caseSensitivity) == 0)
-        i = paths.erase(i);
-      else
-        i++;
-
-      setRootPaths(paths);
-    }
-
-    htmlParser.setField("FILE", file.fileName());
-    htmlParser.setField("DIRS", QByteArray(""));
-    generateDirs(htmlParser, driveInfoList.values(), 0, allopen, paths);
-
-    SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
-    response.setField("Cache-Control", "no-cache");
-    response.setContentType(SHttpEngine::mimeTextHtml);
-    response.setContent(htmlParser.parse(htmlDirTreeIndex));
-
-    return response;
-  }
-  else
-  {
-    htmlParser.setField("TR_SETTINGS", tr("Settings"));
-    htmlParser.setField("TR_SLIDEDURATION", tr("Photo slideshow slide duration"));
-    htmlParser.setField("TR_SAVE", tr("Save"));
-    htmlParser.setField("TR_MEDIADIRS", tr("Media directories"));
-    htmlParser.setField("TR_RIGHTS_EXPLAIN", tr(
-        "By default, the LXiMediaCenter backend (lximcbackend) runs as a restricted user.\n"
+QByteArray MediaPlayerServer::settingsContent(void)
+{
+  HtmlParser htmlParser;
+  htmlParser.setField("SERVER_PATH", QUrl(serverPath()).toEncoded());
+  htmlParser.setField("TR_MEDIAPLAYER", tr(Module::pluginName));
+  htmlParser.setField("TR_SLIDEDURATION", tr("Photo slideshow slide duration"));
+  htmlParser.setField("TR_SAVE", tr("Save"));
+  htmlParser.setField("TR_MEDIADIRS", tr("Media directories"));
+  htmlParser.setField("TR_RIGHTS_EXPLAIN", tr(
+      "By default, the LXiMediaCenter backend (lximcbackend) runs as a restricted user.\n"
 #if defined(Q_OS_LINUX)
-        "The user and group \"lximediacenter\" were created during installation for this purpose.\n"
+      "The user and group \"lximediacenter\" were created during installation for this purpose.\n"
 #elif defined(Q_OS_WIN)
-        "The  \"Local Service\" user is used for this purpose.\n"
+      "The  \"Local Service\" user is used for this purpose.\n"
 #endif
-        "This means that all files that need to be accessed by LXiMediaCenter, need to be accessible by this user.\n"
+      "This means that all files that need to be accessed by LXiMediaCenter, need to be accessible by this user.\n"
 #if defined(Q_OS_LINUX)
-        "This can be done by setting the read permission for \"other\" users on the files and directories that need to be accessed by the LXiMediaCenter backend.\n"
+      "This can be done by setting the read permission for \"other\" users on the files and directories that need to be accessed by the LXiMediaCenter backend.\n"
 #elif defined(Q_OS_WIN)
-        "This can be done by adding \"Everyone\" with the read permission set to the files and directories that need to be accessed by the LXiMediaCenter backend.\n"
+      "This can be done by adding \"Everyone\" with the read permission set to the files and directories that need to be accessed by the LXiMediaCenter backend.\n"
 #endif
-        "Furthermore, certain system directories can not be selected to prevent security issues."
-        ));
-  
-    PluginSettings settings(Module::pluginName);
-    if (file.url().hasQueryItem("settings"))
-    {
-      settings.setValue("SlideDuration", qBound(2500, file.url().queryItemValue("slideduration").toInt(), 60000));
-    }
+      "Furthermore, certain system directories can not be selected to prevent security issues."
+      ));
 
-    htmlParser.setField("SLIDEDURATION", QByteArray::number(settings.value("SlideDuration", 7500).toInt()));
+  PluginSettings settings(Module::pluginName);
+  htmlParser.setField("SLIDEDURATION", QByteArray::number(settings.value("SlideDuration", 7500).toInt()));
 
-    scanDrives();
+  scanDrives();
 
-    return makeHtmlContent(request, file.url(), htmlParser.parse(htmlMain));
-  }
+  return htmlParser.parse(htmlSettingsMain);
 }
 
 void MediaPlayerServer::generateDirs(HtmlParser &htmlParser, const QFileInfoList &dirs, int indent, const QStringList &allopen, const QStringList &rootPaths)
@@ -186,10 +157,10 @@ void MediaPlayerServer::generateDirs(HtmlParser &htmlParser, const QFileInfoList
     // Indentation
     htmlParser.setField("DIR_INDENT", QByteArray(""));
     for (int i=0; i<indent; i++)
-      htmlParser.appendField("DIR_INDENT", htmlParser.parse(htmlDirTreeIndent));
+      htmlParser.appendField("DIR_INDENT", htmlParser.parse(htmlSettingsDirTreeIndent));
 
     // Expand
-    htmlParser.setField("DIR_EXPAND", htmlParser.parse(htmlDirTreeIndent));
+    htmlParser.setField("DIR_EXPAND", htmlParser.parse(htmlSettingsDirTreeIndent));
     if (!isHidden(absoluteName))
     if ((indent > 0) && !children.isEmpty())
     {
@@ -211,7 +182,7 @@ void MediaPlayerServer::generateDirs(HtmlParser &htmlParser, const QFileInfoList
       }
 
       htmlParser.setField("DIR_ALLOPEN", qCompress(all.join(QString(dirSplit)).toUtf8()).toHex());
-      htmlParser.setField("DIR_EXPAND", htmlParser.parse(htmlDirTreeExpand));
+      htmlParser.setField("DIR_EXPAND", htmlParser.parse(htmlSettingsDirTreeExpand));
     }
 
     // Check
@@ -261,7 +232,7 @@ void MediaPlayerServer::generateDirs(HtmlParser &htmlParser, const QFileInfoList
     }
 
     htmlParser.setField("DIR_ALLOPEN", qCompress(allopen.join(QString(dirSplit)).toUtf8()).toHex());
-    htmlParser.setField("DIR_CHECK", htmlParser.parse(checkEnabled ? htmlDirTreeCheckLink : htmlDirTreeCheck));
+    htmlParser.setField("DIR_CHECK", htmlParser.parse(checkEnabled ? htmlSettingsDirTreeCheckLink : htmlSettingsDirTreeCheck));
 
     // Name
     if (fileName.isEmpty())
@@ -278,7 +249,7 @@ void MediaPlayerServer::generateDirs(HtmlParser &htmlParser, const QFileInfoList
     if (info.isSymLink())
       htmlParser.appendField("DIR_NAME", " (" + tr("symbolic link to") + " " + info.symLinkTarget() + ")");
 
-    htmlParser.appendField("DIRS", htmlParser.parse(htmlDirTreeDir));
+    htmlParser.appendField("DIRS", htmlParser.parse(htmlSettingsDirTreeDir));
 
     // Recurse
     if (!isHidden(absoluteName))

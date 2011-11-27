@@ -49,25 +49,6 @@ public:
     SSize                       imageSize;
   };
 
-  class LXIMEDIACENTER_PUBLIC File
-  {
-  public:
-                                File(const SHttpServer::RequestMessage &);
-                                ~File();
-
-    inline const QString      & file(void) const                                { return d.file; }
-    inline const QUrl         & url(void) const                                 { return d.url; }
-    QString                     fileName(void) const;
-    QString                     parentDir(void) const;
-
-  private:
-    struct
-    {
-      QString                   file;
-      QUrl                      url;
-    }                           d;
-  };
-
   class LXIMEDIACENTER_PUBLIC Stream
   {
   public:
@@ -163,25 +144,20 @@ private:
 protected: // Implemented in mediaserver.html.cpp
   static const char             m3uPlaylist[];
   static const char             m3uPlaylistItem[];
-  static const char             htmlThumbnailList[];
   static const char             htmlThumbnailLoader[];
   static const char             htmlThumbnailItem[];
   static const char             htmlThumbnailItemNoTitle[];
   static const char             htmlThumbnailItemNoLink[];
   static const char             htmlThumbnailItemNoLinkNoTitle[];
-  static const char             htmlPlayerLoader[];
   static const char             htmlPhotoViewer[];
   static const char             htmlVideoPlayer[];
+  static const char             htmlAudioPlayer[];
 
-  static const char             headList[];
-  static const char             headPlayer[];
-
-  QByteArray                    buildThumbnailView(const QString &title, const ThumbnailListItemList &);
-  QByteArray                    buildThumbnailLoader(void);
+  QByteArray                    buildThumbnailLoader(const QString &path);
   QByteArray                    buildThumbnailItems(const ThumbnailListItemList &);
-  QByteArray                    buildPlayerLoader(const QString &, SUPnPContentDirectory::Item::Type);
-  QByteArray                    buildPhotoViewer(const QString &file, const QSize &);
-  QByteArray                    buildVideoPlayer(const QString &file, const QSize &);
+  SHttpServer::ResponseMessage  buildPhotoViewer(const SHttpServer::RequestMessage &);
+  SHttpServer::ResponseMessage  buildVideoPlayer(const SHttpServer::RequestMessage &);
+  SHttpServer::ResponseMessage  buildAudioPlayer(const SHttpServer::RequestMessage &);
 };
 
 } // End of namespace

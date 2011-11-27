@@ -315,7 +315,6 @@ bool SUPnPContentDirectory::handleBrowse(const QDomElement &elem, QDomDocument &
           switch (item.type)
           {
           case Item::Type_None:
-          case Item::Type_Playlist:
           case Item::Type_Image:
           case Item::Type_Photo:
           case Item::Type_Music:
@@ -473,7 +472,6 @@ void SUPnPContentDirectory::didlContainer(QDomDocument &doc, QDomElement &root, 
   switch (type)
   {
   case Item::Type_None:           addTextElm(doc, containerElm, "upnp:class", "object.container.album"); break;
-  case Item::Type_Playlist:       addTextElm(doc, containerElm, "upnp:class", "object.container.playlistContainer"); break;
 
   case Item::Type_Audio:
   case Item::Type_AudioBroadcast:
@@ -527,7 +525,6 @@ void SUPnPContentDirectory::didlFile(QDomDocument &doc, QDomElement &root, const
   switch (item.type)
   {
   case Item::Type_None:           addTextElm(doc, itemElm, "upnp:class", "object.item"); break;
-  case Item::Type_Playlist:       addTextElm(doc, itemElm, "upnp:class", "object.item.playlistItem"); break;
 
   case Item::Type_Audio:          addTextElm(doc, itemElm, "upnp:class", "object.item.audioItem"); break;
   case Item::Type_Music:          addTextElm(doc, itemElm, "upnp:class", "object.item.audioItem.musicTrack"); break;

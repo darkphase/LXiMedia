@@ -144,16 +144,29 @@ public:
     bool                        isPost(void) const;                             //!< returns true if the method is POST.
 
     inline QByteArray           method(void) const                              { return isValid() ? head[0] : QByteArray(); }
-    inline void                 setMethod(const QByteArray &method)             { if (head.size() > 0) head[0] = method; else head.append(method); }
+    void                        setMethod(const QByteArray &);
     inline QByteArray           path(void) const                                { return isValid() ? head[1] : QByteArray(); }
-    inline void                 setPath(const QByteArray &path)                 { if (head.size() > 1) head[1] = path; else head.append(path); }
+    void                        setPath(const QByteArray &);
     inline QByteArray           version(void) const                             { return isValid() ? head[2] : QByteArray(); }
-    inline void                 setVersion(const QByteArray &version)           { if (head.size() > 2) head[2] = version; else head.append(version); }
+    void                        setVersion(const QByteArray &);
 
     inline void                 setRequest(const QByteArray &method, const QByteArray &path) { setMethod(method); setPath(path);  }
     inline void                 setRequest(const QByteArray &method, const QByteArray &path, const QByteArray &version) { setMethod(method); setPath(path); setVersion(version); }
 
-    QString                     file(void) const;
+    inline const QUrl         & url(void) const                                 { if (!cache.valid) update(); return cache.url; }
+    inline const QString      & file(void) const                                { if (!cache.valid) update(); return cache.file; }
+    inline const QString      & fileName(void) const                            { if (!cache.valid) update(); return cache.fileName; }
+
+  private:
+    void                        update(void) const;
+
+    mutable struct
+    {
+      QUrl                      url;
+      QString                   file;
+      QString                   fileName;
+      bool                      valid;
+    }                           cache;
   };
 
   class LXISERVER_PUBLIC Status

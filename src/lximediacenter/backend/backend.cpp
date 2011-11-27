@@ -23,11 +23,9 @@
 #endif
 #include <iostream>
 
-
+#ifndef QT_NO_DEBUG
 const QEvent::Type  Backend::exitEventType = QEvent::Type(QEvent::registerEventType());
-const QEvent::Type  Backend::restartEventType = QEvent::Type(QEvent::registerEventType());
-const QEvent::Type  Backend::shutdownEventType = QEvent::Type(QEvent::registerEventType());
-const QUrl          Backend::submitErrorUrl("http://www.admiraal.dds.nl/submitlog.php");
+#endif
 
 QString Backend::createLogDir(void)
 {
@@ -280,219 +278,14 @@ void Backend::addModules(const SHttpEngine::ResponseMessage &modules)
   }
 }
 
-Backend::SearchCacheEntry Backend::search(const QString &query) const
-{
-  GlobalSettings settings;
-
-  const QString queryText = query.simplified();
-  const QStringList queryRaw = SStringParser::toRawName(queryText.split(' '));
-
-  // Look for a cache entry
-  QMap<QString, SearchCacheEntry>::ConstIterator i = searchCache.find(queryText);
-  if (i != searchCache.end())
-  if (i->update.elapsed() < 60000)
-    return *i;
-
-  QTime timer;
-  timer.start();
-  SearchCacheEntry entry;
-
-  foreach (const BackendServer *backendServer, backendServers)
-  {
-    const QString baseUrl = backendServer->serverPath();
-
-    foreach (BackendServer::SearchResult result, backendServer->search(queryRaw))
-    {
-      if (!result.location.isEmpty())
-        result.location = baseUrl + result.location;
-
-      if (!result.thumbLocation.isEmpty())
-        result.thumbLocation = baseUrl + result.thumbLocation;
-
-      entry.results.insert(1.0 - result.relevance, result);
-    }
-  }
-
-  entry.duration = timer.elapsed();
-
-  while (searchCache.count() > 64)
-    searchCache.erase(searchCache.begin());
-
-  entry.update.start();
-  searchCache.insert(queryText, entry);
-
-  // Remove old searches
-  for (QMap<QString, SearchCacheEntry>::Iterator i=searchCache.begin(); i!=searchCache.end(); )
-  if (i->update.elapsed() >= 60000)
-    i = searchCache.erase(i);
-  else
-    i++;
-
-  return entry;
-}
-
 void Backend::customEvent(QEvent *e)
 {
+#ifndef QT_NO_DEBUG
   if (e->type() == exitEventType)
-  {
     qApp->exit(0);
-  }
-  else if (e->type() == restartEventType)
-  {
-    // This exitcode instructs main.cpp to restart.
-    qApp->exit(-1);
-  }
-  else if (e->type() == shutdownEventType)
-  {
-    qApp->exit(0);
-  }
-}
-
-SHttpServer::ResponseMessage Backend::httpRequest(const SHttpServer::RequestMessage &request, QIODevice *)
-{
-  if (request.isGet())
-  {
-    const MediaServer::File file(request);
-    const QString path = file.url().path();
-
-    if (path.left(path.lastIndexOf('/') + 1) == "/")
-    {
-      if (file.url().hasQueryItem("exit"))
-      {
-        QCoreApplication::postEvent(this, new QEvent(exitEventType));
-
-        return SHttpServer::ResponseMessage(request, SHttpServer::Status_NoContent);
-      }
-      else if (file.url().hasQueryItem("restart"))
-      {
-        QCoreApplication::postEvent(this, new QEvent(restartEventType));
-
-        return SHttpServer::ResponseMessage(request, SHttpServer::Status_NoContent);
-      }
-      else if (file.url().hasQueryItem("shutdown"))
-      {
-        QCoreApplication::postEvent(this, new QEvent(shutdownEventType));
-
-        return SHttpServer::ResponseMessage(request, SHttpServer::Status_NoContent);
-      }
-      else if (file.url().hasQueryItem("dismisserrors"))
-      {
-        GlobalSettings().setValue("DismissedErrors", sApp->errorLogFiles());
-
-        return handleHtmlRequest(request, file);
-      }
-      else if (file.fileName() == "traystatus.xml")
-      {
-        GlobalSettings settings;
-
-        QDomDocument doc("");
-        QDomElement root = doc.createElement("traystatus");
-        doc.appendChild(root);
-
-        // Hostinfo
-        QDomElement hostInfo = doc.createElement("hostinfo");
-        root.appendChild(hostInfo);
-        hostInfo.setAttribute("hostname", settings.value("DeviceName", settings.defaultDeviceName()).toString());
-
-        // Error logs
-        const QSet<QString> dismissedFiles =
-            QSet<QString>::fromList(settings.value("DismissedErrors").toStringList());
-
-        QStringList errorLogFiles;
-        foreach (const QString &file, sApp->errorLogFiles())
-        if (!dismissedFiles.contains(file))
-          errorLogFiles += file;
-
-        foreach (const QString &file, errorLogFiles)
-        {
-          QDomElement errorLogFile = doc.createElement("errorlogfile");
-          root.appendChild(errorLogFile);
-          errorLogFile.setAttribute("name", QFileInfo(file).fileName());
-        }
-
-        SHttpServer::ResponseMessage response(
-            request, SHttpServer::Status_Ok,
-            doc.toByteArray(-1), SHttpEngine::mimeTextXml);
-
-        response.setField("Cache-Control", "no-cache");
-        return response;
-      }
-      else if (file.url().hasQueryItem("q"))
-      {
-        return handleHtmlSearch(request, file);
-      }
-      else if (request.path() == "/")
-      {
-        return handleHtmlRequest(request, file);
-      }
-      else if (file.fileName().endsWith(".log", Qt::CaseInsensitive))
-      {
-        return handleHtmlLogFileRequest(request, file);
-      }
-      else if (file.fileName() == "settings.html")
-      {
-        return handleHtmlConfig(request);
-      }
-      else if (file.fileName() == "about.html")
-      {
-        return showAbout(request);
-      }
-    }
-
-    QString sendFile;
-    if      (path == "/favicon.ico")                sendFile = ":/lximedia.ico";
-    else if (path == "/lximedia.png")               sendFile = ":/lximedia.png";
-
-    else if (path == "/css/main.css")               sendFile = ":/css/main.css";
-
-    else if (path == "/js/contentloader.js")        sendFile = ":/js/contentloader.js";
-
-    else if (path.startsWith("/img/"))
-    {
-      static const QDir imgDir(":/lximediacenter/images/");
-      if (imgDir.exists(path.mid(5)))
-        sendFile = imgDir.absoluteFilePath(path.mid(5));
-    }
-
-    if (!sendFile.isEmpty())
-    {
-      SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
-      response.setContentType(SHttpServer::toMimeType(sendFile));
-
-      if (file.url().hasQueryItem("scale") && path.endsWith(".png"))
-      {
-        QImage image(sendFile);
-        if (!image.isNull())
-        {
-          QSize size = image.size();
-          const QStringList sizeTxt = file.url().queryItemValue("scale").split('x');
-          if (sizeTxt.count() >= 2)
-            size = QSize(sizeTxt[0].toInt(), sizeTxt[1].toInt());
-          else if (sizeTxt.count() >= 1)
-            size = QSize(sizeTxt[0].toInt(), sizeTxt[0].toInt());
-
-          image = image.scaled(size, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-
-          QBuffer b;
-          image.save(&b, "PNG");
-
-          response.setContent(b.data());
-          return response;
-        }
-      }
-      else
-      {
-        QFile file(sendFile);
-        if (file.open(QFile::ReadOnly))
-        {
-          response.setContent(file.readAll());
-          return response;
-        }
-      }
-    }
-  }
-
-  return SHttpServer::ResponseMessage(request, SHttpServer::Status_NotFound);
+  else
+#endif
+    QObject::customEvent(e);
 }
 
 SHttpServer * Backend::httpServer(void)
@@ -561,4 +354,39 @@ void Backend::recycleSandbox(SSandboxClient *sandboxClient)
     sandboxClient->openRequest(message, NULL, NULL);
     QTimer::singleShot(30000, sandboxClient, SLOT(deleteLater()));
   }
+}
+
+SHttpServer::ResponseMessage Backend::sendFile(const SHttpServer::RequestMessage &request, const QString &fileName)
+{
+  SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
+  response.setContentType(SHttpServer::toMimeType(fileName));
+
+  if (request.url().hasQueryItem("scale") && fileName.endsWith(".png"))
+  {
+    QImage image(fileName);
+    if (!image.isNull())
+    {
+      image = image.scaled(
+          SSize::fromString(request.url().queryItemValue("scale")).size(),
+          Qt::KeepAspectRatio,
+          Qt::SmoothTransformation);
+
+      QBuffer b;
+      image.save(&b, "PNG");
+
+      response.setContent(b.data());
+      return response;
+    }
+  }
+  else
+  {
+    QFile file(fileName);
+    if (file.open(QFile::ReadOnly))
+    {
+      response.setContent(file.readAll());
+      return response;
+    }
+  }
+
+  return SHttpServer::ResponseMessage(request, SHttpServer::Status_NotFound);
 }

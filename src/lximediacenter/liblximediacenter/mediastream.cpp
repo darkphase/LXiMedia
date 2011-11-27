@@ -49,8 +49,6 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
                         SInterfaces::AudioEncoder::Flags audioEncodeFlags,
                         SInterfaces::VideoEncoder::Flags videoEncodeFlags)
 {
-  const MediaServer::File file(request);
-
   connect(&output, SIGNAL(closed()), SLOT(stop()));
 
   delete audio;
@@ -89,11 +87,11 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
   SAudioFormat audioFormat = inputAudioFormat;
   SVideoFormat videoFormat = inputVideoFormat;
 
-  decodeSize(file.url(), videoFormat, aspectRatioMode);
+  decodeSize(request.url(), videoFormat, aspectRatioMode);
 
-  decodeChannels(file.url(), audioFormat);
+  decodeChannels(request.url(), audioFormat);
 
-  if (file.url().queryItemValue("encodemode") == "fast")
+  if (request.url().queryItemValue("encodemode") == "fast")
   {
     audioEncodeFlags |= SInterfaces::AudioEncoder::Flag_Fast;
     videoEncodeFlags |= SInterfaces::VideoEncoder::Flag_Fast;
@@ -108,7 +106,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
   header.setField("Cache-Control", "no-cache");
 
   // Match with DLNA profile
-  const QString contentFeatures = QByteArray::fromHex(file.url().queryItemValue("contentFeatures").toAscii());
+  const QString contentFeatures = QByteArray::fromHex(request.url().queryItemValue("contentFeatures").toAscii());
   const MediaProfiles::VideoProfile videoProfile = MediaServer::mediaProfiles().videoProfileFor(contentFeatures);
   if (videoProfile != 0) // DLNA stream.
   {
@@ -158,7 +156,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
   {
     SAudioCodec audioCodec;
     SVideoCodec videoCodec;
-    QString format = file.url().queryItemValue("format");
+    QString format = request.url().queryItemValue("format");
 
     if (format == "ogg")
     {
@@ -256,8 +254,6 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
                         bool musicPlaylist,
                         SInterfaces::AudioEncoder::Flags audioEncodeFlags)
 {
-  const MediaServer::File file(request);
-
   delete audio;
   audio = new Audio(this);
   connect(&audio->matrix, SIGNAL(output(SAudioBuffer)), &audio->resampler, SLOT(input(SAudioBuffer)));
@@ -280,16 +276,16 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
   // Set output stream properties
   SAudioFormat audioFormat = inputAudioFormat;
 
-  decodeChannels(file.url(), audioFormat);
+  decodeChannels(request.url(), audioFormat);
 
-  if (file.url().queryItemValue("encodemode") == "fast")
+  if (request.url().queryItemValue("encodemode") == "fast")
     audioEncodeFlags |= SInterfaces::AudioEncoder::Flag_Fast;
 
   SHttpServer::ResponseHeader header(request, SHttpServer::Status_Ok);
   header.setField("Cache-Control", "no-cache");
 
   // Match with DLNA profile
-  const QString contentFeatures = QByteArray::fromHex(file.url().queryItemValue("contentFeatures").toAscii());
+  const QString contentFeatures = QByteArray::fromHex(request.url().queryItemValue("contentFeatures").toAscii());
   const MediaProfiles::AudioProfile audioProfile = MediaServer::mediaProfiles().audioProfileFor(contentFeatures);
   if (audioProfile != 0) // DLNA stream.
   {
@@ -325,7 +321,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
   else // Non-DLNA stream.
   {
     SAudioCodec audioCodec;
-    QString format = file.url().queryItemValue("format");
+    QString format = request.url().queryItemValue("format");
 
     if (format == "adts")
     {
@@ -344,7 +340,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
     }
     else if (format == "ogg")
     {
-      audioCodec = SAudioCodec("VORBIS", SAudioFormat::Channels_Stereo, 48000);
+      audioCodec = SAudioCodec("FLAC", SAudioFormat::Channels_Stereo, 48000);
       header.setContentType(SHttpEngine::mimeAudioOgg);
     }
     else if (format == "s16be")
@@ -522,8 +518,6 @@ bool MediaTranscodeStream::setup(
     SInterfaces::AudioEncoder::Flags audioEncodeFlags,
     SInterfaces::VideoEncoder::Flags videoEncodeFlags)
 {
-  const MediaServer::File file(request);
-
   if (audioDecoder.open(input) && videoDecoder.open(input) && dataDecoder.open(input))
   {
     // Select streams
@@ -532,18 +526,18 @@ bool MediaTranscodeStream::setup(
     QList<SInputNode::DataStreamInfo>  dataStreams  = input->dataStreams();
 
     QVector<SInputNode::StreamId> selectedStreams;
-    if (file.url().hasQueryItem("language"))
-      selectedStreams += SInputNode::StreamId::fromString(file.url().queryItemValue("language"));
+    if (request.url().hasQueryItem("language"))
+      selectedStreams += SInputNode::StreamId::fromString(request.url().queryItemValue("language"));
     else if (!audioStreams.isEmpty())
       selectedStreams += audioStreams.first();
 
     if (!videoStreams.isEmpty())
       selectedStreams += videoStreams.first();
 
-    if (file.url().hasQueryItem("subtitles"))
+    if (request.url().hasQueryItem("subtitles"))
     {
-      if (!file.url().queryItemValue("subtitles").isEmpty())
-        selectedStreams += SInputNode::StreamId::fromString(file.url().queryItemValue("subtitles"));
+      if (!request.url().queryItemValue("subtitles").isEmpty())
+        selectedStreams += SInputNode::StreamId::fromString(request.url().queryItemValue("subtitles"));
     }
     else if (!dataStreams.isEmpty())
       selectedStreams += dataStreams.first();
@@ -554,9 +548,9 @@ bool MediaTranscodeStream::setup(
     if (!duration.isValid())
       duration = input->duration();
 
-    if (file.url().hasQueryItem("position"))
+    if (request.url().hasQueryItem("position"))
     {
-      const STime pos = STime::fromSec(file.url().queryItemValue("position").toInt());
+      const STime pos = STime::fromSec(request.url().queryItemValue("position").toInt());
       input->setPosition(pos);
 
       if (duration > pos)
@@ -565,9 +559,9 @@ bool MediaTranscodeStream::setup(
         duration = STime::null;
     }
 
-    if (file.url().hasQueryItem("starttime"))
+    if (request.url().hasQueryItem("starttime"))
     {
-      const STime pos = STime::fromSec(file.url().queryItemValue("starttime").toInt());
+      const STime pos = STime::fromSec(request.url().queryItemValue("starttime").toInt());
       sync.setStartTime(pos);
 
       if (duration.isPositive())
@@ -575,15 +569,15 @@ bool MediaTranscodeStream::setup(
     }
 
     bool generateVideo = false;
-    if (file.url().queryItemValue("music") == "true")
+    if (request.url().queryItemValue("music") == "true")
     {
-      const QString musicMode = file.url().queryItemValue("musicmode");
+      const QString musicMode = request.url().queryItemValue("musicmode");
       if (musicMode.startsWith("addvideo"))
       {
         SSize size(352, 288);
-        if (file.url().hasQueryItem("resolution"))
+        if (request.url().hasQueryItem("resolution"))
         {
-          const QStringList formatTxt = file.url().queryItemValue("resolution").split(',');
+          const QStringList formatTxt = request.url().queryItemValue("resolution").split(',');
 
           const QStringList sizeTxt = formatTxt.first().split('x');
           if (sizeTxt.count() >= 2)

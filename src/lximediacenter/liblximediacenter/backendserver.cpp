@@ -66,14 +66,14 @@ QString BackendServer::serverPath(void) const
   return '/' + serverName() + '/';
 }
 
-QByteArray BackendServer::frontPageWidget(void) const
+QByteArray BackendServer::frontPageContent(void)
 {
-  return QByteArray("");
+  return QByteArray();
 }
 
-BackendServer::SearchResultList BackendServer::search(const QStringList &) const
+QByteArray BackendServer::settingsContent(void)
 {
-  return SearchResultList();
+  return QByteArray();
 }
 
 SHttpServer::ResponseMessage BackendServer::makeResponse(const SHttpServer::RequestHeader &request, const QByteArray &data, const char *mime, bool allowCache) const

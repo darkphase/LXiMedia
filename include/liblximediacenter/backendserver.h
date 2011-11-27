@@ -77,8 +77,8 @@ public:
   virtual QString               serverIconPath(void) const = 0;
   QString                       serverPath(void) const;
 
-  virtual QByteArray            frontPageWidget(void) const;
-  virtual SearchResultList      search(const QStringList &rawQuery) const;
+  virtual QByteArray            frontPageContent(void);
+  virtual QByteArray            settingsContent(void);
 
 public:
   SHttpServer::ResponseMessage  makeResponse(const SHttpServer::RequestHeader &, const QByteArray &, const char * = SHttpEngine::mimeAppOctet, bool allowCache = false) const;
