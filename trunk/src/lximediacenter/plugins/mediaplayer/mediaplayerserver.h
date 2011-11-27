@@ -50,13 +50,15 @@ protected:
 public:
                                 MediaPlayerServer(const QString &, QObject *);
 
+protected: // From BackendServer
   virtual void                  initialize(MasterServer *);
   virtual void                  close(void);
 
   virtual QString               serverName(void) const;
   virtual QString               serverIconPath(void) const;
 
-  virtual SearchResultList      search(const QStringList &) const;
+  virtual QByteArray            frontPageContent(void);
+  virtual QByteArray            settingsContent(void);
 
 protected: // From MediaServer
   virtual Stream              * streamVideo(const SHttpServer::RequestMessage &);
@@ -83,7 +85,6 @@ private slots:
   void                          consoleLine(const QString &);
 
 private:
-  SHttpServer::ResponseMessage  handleHtmlRequest(const SHttpServer::RequestMessage &, const MediaServer::File &);
   void                          generateDirs(HtmlParser &, const QFileInfoList &, int, const QStringList &, const QStringList &);
   void                          scanDrives(void);
 
@@ -98,13 +99,14 @@ private:
   QMap<QString, QString>        driveLabelList;
 
 private:
-  static const char     * const htmlMain;
-  static const char     * const htmlDirTreeIndex;
-  static const char     * const htmlDirTreeDir;
-  static const char     * const htmlDirTreeIndent;
-  static const char     * const htmlDirTreeExpand;
-  static const char     * const htmlDirTreeCheck;
-  static const char     * const htmlDirTreeCheckLink;
+  static const char             htmlFrontPageContent[];
+  static const char             htmlSettingsMain[];
+  static const char             htmlSettingsDirTreeIndex[];
+  static const char             htmlSettingsDirTreeDir[];
+  static const char             htmlSettingsDirTreeIndent[];
+  static const char             htmlSettingsDirTreeExpand[];
+  static const char             htmlSettingsDirTreeCheck[];
+  static const char             htmlSettingsDirTreeCheckLink[];
 };
 
 } } // End of namespaces

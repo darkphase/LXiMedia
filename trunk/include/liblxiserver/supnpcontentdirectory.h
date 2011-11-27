@@ -39,7 +39,6 @@ public:
     enum Type
     {
       Type_None                 = 0,
-      Type_Playlist,
 
       Type_Audio                = 10,
       Type_Music,

@@ -65,15 +65,10 @@ public:
     mediaApp.installExcpetionHandler();
 #endif
 
-    int exitCode = 0;
-    do
-    {
-      Backend backend;
-      backend.start();
+    Backend backend;
+    backend.start();
 
-      exitCode = qApp->exec();
-    }
-    while (exitCode == -1);
+    const int exitCode = qApp->exec();
 
     qDebug() << "Daemon has finished with exit code" << exitCode;
     return exitCode;

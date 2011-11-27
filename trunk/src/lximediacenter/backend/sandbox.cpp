@@ -81,11 +81,9 @@ void Sandbox::start(const QString &mode)
 
 SSandboxServer::ResponseMessage Sandbox::httpRequest(const SSandboxServer::RequestMessage &request, QIODevice *)
 {
-  const MediaServer::File file(request);
-
-  if (request.isGet() && (file.url().path() == "/"))
+  if (request.isGet() && (request.url().path() == "/"))
   {
-    if (file.url().hasQueryItem("formats"))
+    if (request.url().hasQueryItem("formats"))
     {
       QDomDocument doc("");
       QDomElement rootElm = doc.createElement("formats");
@@ -115,7 +113,7 @@ SSandboxServer::ResponseMessage Sandbox::httpRequest(const SSandboxServer::Reque
           request, SSandboxServer::Status_Ok,
           doc.toByteArray(-1), SHttpEngine::mimeTextXml);
     }
-    else if (file.url().hasQueryItem("modules"))
+    else if (request.url().hasQueryItem("modules"))
     {
       QDomDocument doc("");
       QDomElement rootElm = doc.createElement("modules");
@@ -142,7 +140,7 @@ SSandboxServer::ResponseMessage Sandbox::httpRequest(const SSandboxServer::Reque
           request, SSandboxServer::Status_Ok,
           doc.toByteArray(-1), SHttpEngine::mimeTextXml);
     }
-    else if (file.url().hasQueryItem("exit"))
+    else if (request.url().hasQueryItem("exit"))
     {
       QTimer::singleShot(5000, this, SLOT(deleteLater()));
 

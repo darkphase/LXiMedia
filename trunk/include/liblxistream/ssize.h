@@ -34,25 +34,23 @@ class SSize; // For QtCreator autocompletion.
     meaning a 16:9 image at a resoltion of 720x576 pixels at an absolute size of
     1024x576.
 
-    \note All methods have been inlined and there is no penalty of invoking them
-          in loops over first copying them to a local variable, with the
-          exception of the absolute* methods that do a floating point
-          computation.
+    \note Most methods have been inlined and there is no penalty of invoking
+          them in loops over first copying them to a local variable.
     \note This class can be serialized.
  */
 class LXISTREAM_PUBLIC SSize
 {
 public:
-  inline                        SSize(void)                                     { Q_ASSERT(sizeof(*this) == sizeof(d)); d.width = 0; d.height = 0; d.aspectRatio = 1.0f; }
-  inline                        SSize(const SSize &c)                           { Q_ASSERT(sizeof(*this) == sizeof(d)); d.width = c.d.width; d.height = c.d.height; d.aspectRatio = c.d.aspectRatio; }
-  inline                        SSize(const QSize &c, float aspectRatio = 1.0f) { Q_ASSERT(sizeof(*this) == sizeof(d)); d.width = c.width(); d.height = c.height(); d.aspectRatio = aspectRatio; }
-  inline                        SSize(int width, int height, float aspectRatio = 1.0f) { Q_ASSERT(sizeof(SSize) == sizeof(d)); d.width = width; d.height = height; d.aspectRatio = aspectRatio; }
+                                SSize(void);
+                                SSize(const SSize &c);
+                                SSize(const QSize &c, float aspectRatio = 1.0f);
+                                SSize(int width, int height, float aspectRatio = 1.0f);
 
-  inline bool                   isValid(void) const                             { return (d.width > 0) && (d.height > 0) && (d.aspectRatio > 0.0f); }
-  inline bool                   isNull(void) const                              { return (d.width == 0) || (d.height == 0) || qFuzzyCompare(d.aspectRatio, 0.0f); }
+  bool                          isValid(void) const;
+  bool                          isNull(void) const;
 
-  inline SSize                & operator=(const SSize &c)                       { d.width = c.d.width; d.height = c.d.height; d.aspectRatio = c.d.aspectRatio; return *this; }
-  inline bool                   operator==(const SSize &c) const                { return (d.width == c.d.width) && (d.height == c.d.height) && (d.aspectRatio == c.d.aspectRatio); }
+  SSize                       & operator=(const SSize &c);
+  bool                          operator==(const SSize &c) const;
   inline bool                   operator!=(const SSize &c) const                { return !operator==(c); }
   inline bool                   operator<(const SSize &c) const                 { return (absoluteWidth() * absoluteHeight()) <  (c.absoluteWidth() * c.absoluteHeight()); }
   inline bool                   operator<=(const SSize &c) const                { return (absoluteWidth() * absoluteHeight()) <= (c.absoluteWidth() * c.absoluteHeight()); }
@@ -67,16 +65,24 @@ public:
   inline void                   setAspectRatio(float na)                        { d.aspectRatio = na; }
   inline QSize                  size(void) const                                { return QSize(d.width, d.height); }
 
-  inline int                    absoluteWidth(void) const                       { return (d.aspectRatio > 1.0f) ? int((d.width * d.aspectRatio) + 0.5f) : d.width; }
-  inline int                    absoluteHeight(void) const                      { return (d.aspectRatio < 1.0f) ? int((d.height * (1.0f / d.aspectRatio)) + 0.5f) : d.height; }
+  int                           absoluteWidth(void) const;
+  int                           absoluteHeight(void) const;
   inline QSize                  absoluteSize(void) const                        { return QSize(absoluteWidth(), absoluteHeight()); }
 
-  inline QString                toString(void) const                            { return QString::number(d.width) + 'x' + QString::number(d.height) + 'x' + QString::number(d.aspectRatio); }
-  inline static SSize           fromString(const QString &str)                  { const QStringList l = str.split('x'); return SSize(l.count() >= 1 ? l[0].toInt() : 0, l.count() >= 2 ? l[1].toInt() : 0, l.count() >= 3 ? l[2].toFloat() : 1.0f); }
+  /*! Serializes the size to a string in the form of "WxHxA".
+   */
+  QString                       toString(void) const;
+
+  /*! Parses a size string in the form of "WxHxA". For example:
+      "32" -> { 32, 32, 1.0f },
+      "32x64" -> { 32, 64, 1.0f },
+      "32x64x1.5" -> { 32, 64, 1.5f }.
+   */
+  static SSize                  fromString(const QString &);
 
   /*! Scales the size to the specified size retaining the correct aspect ratio.
    */
-  inline SSize                  scaled(int nw, int nh) const                    { return SSize(nw, nh, (float(absoluteWidth() * nh) / float(absoluteHeight())) / float(nw)); }
+  SSize                         scaled(int nw, int nh) const;
 
 private:
   // Ensure all these struct members are serializable.

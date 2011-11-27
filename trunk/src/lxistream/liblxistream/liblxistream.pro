@@ -57,6 +57,7 @@ SOURCES += saudiobuffer.cpp \
     smediainfo.cpp \
     spixels.cpp \
     spixels.convert.c \
+    ssize.cpp \
     ssubpicturebuffer.cpp \
     ssubtitlebuffer.cpp \
     ssubtitlefile.cpp \

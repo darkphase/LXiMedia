@@ -106,12 +106,11 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
 {
   if (request.isGet())
   {
-    const MediaServer::File file(request);
-    if (file.file().endsWith('/'))
+    if (request.file().endsWith('/'))
     {
-      if (file.url().hasQueryItem("items"))
+      if (request.url().hasQueryItem("mediaplayeritems"))
       {
-        const QStringList range = file.url().queryItemValue("items").split(',');
+        const QStringList range = request.url().queryItemValue("mediaplayeritems").split(',');
         unsigned start = 0, count = 0;
         if (!range.isEmpty())
         {
@@ -121,14 +120,14 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
         }
 
         ThumbnailListItemList thumbItems;
-        foreach (const SUPnPContentDirectory::Item &item, listItems(file.url().path(), start, count))
+        foreach (const SUPnPContentDirectory::Item &item, listItems(request.url().path(), start, count))
         {
           if (item.isDir)
           {
             ThumbnailListItem thumbItem;
             thumbItem.title = item.title;
             thumbItem.iconurl = item.iconUrl;
-            thumbItem.url = item.title + '/';
+            thumbItem.url = item.path;
 
             thumbItems.append(thumbItem);
           }
@@ -155,42 +154,44 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
         return makeResponse(request, buildThumbnailItems(thumbItems), SHttpEngine::mimeTextHtml, false);
       }
       else
-        return makeHtmlContent(request, file.url(), buildThumbnailLoader(), headList);
+        return makeHtmlContent(request, request.url(), buildThumbnailLoader(request.file()));
     }
-    else if (file.url().hasQueryItem("player"))
+    else if (request.url().hasQueryItem("player"))
     {
       const SUPnPContentDirectory::Item::Type playerType =
-          SUPnPContentDirectory::Item::Type(file.url().queryItemValue("player").toInt());
+          SUPnPContentDirectory::Item::Type(request.url().queryItemValue("player").toInt());
 
-      if (file.url().hasQueryItem("size"))
+      switch (playerType)
       {
-        const QSize size = SSize::fromString(file.url().queryItemValue("size")).size();
+      case SUPnPContentDirectory::Item::Type_None:
+        return SHttpServer::ResponseMessage(request, SHttpServer::Status_NotFound);
 
-        switch (playerType)
-        {
-        case SUPnPContentDirectory::Item::Type_Image:
-        case SUPnPContentDirectory::Item::Type_Photo:
-          return makeResponse(request, buildPhotoViewer(file.file(), size), SHttpEngine::mimeTextHtml, false);
+      case SUPnPContentDirectory::Item::Type_Audio:
+      case SUPnPContentDirectory::Item::Type_Music:
+      case SUPnPContentDirectory::Item::Type_AudioBroadcast:
+      case SUPnPContentDirectory::Item::Type_AudioBook:
+        return buildAudioPlayer(request);
 
-        case SUPnPContentDirectory::Item::Type_Video:
-        case SUPnPContentDirectory::Item::Type_Movie:
-        case SUPnPContentDirectory::Item::Type_VideoBroadcast:
-        case SUPnPContentDirectory::Item::Type_MusicVideo:
-          return makeResponse(request, buildVideoPlayer(file.file(), size), SHttpEngine::mimeTextHtml, false);
-        }
+      case SUPnPContentDirectory::Item::Type_Video:
+      case SUPnPContentDirectory::Item::Type_Movie:
+      case SUPnPContentDirectory::Item::Type_VideoBroadcast:
+      case SUPnPContentDirectory::Item::Type_MusicVideo:
+        return buildVideoPlayer(request);
+
+      case SUPnPContentDirectory::Item::Type_Image:
+      case SUPnPContentDirectory::Item::Type_Photo:
+        return buildPhotoViewer(request);
       }
-      else
-        return makeHtmlContent(request, file.url(), buildPlayerLoader(file.file(), playerType), headPlayer);
     }
     else // Stream file
     {
-      const QString contentFeatures = QByteArray::fromHex(file.url().queryItemValue("contentFeatures").toAscii());
+      const QString contentFeatures = QByteArray::fromHex(request.url().queryItemValue("contentFeatures").toAscii());
 
       if (!request.isHead())
       {
         // Check for image
         const MediaProfiles::ImageProfile imageProfile = mediaProfiles().imageProfileFor(contentFeatures);
-        const QString format = file.url().queryItemValue("format");
+        const QString format = request.url().queryItemValue("format");
         if ((imageProfile != 0) || (format == "jpeg") || (format == "png"))
         {
           SHttpServer::ResponseMessage response = sendPhoto(request);
@@ -509,42 +510,6 @@ MediaServer::Item::~Item()
 {
 }
 
-
-MediaServer::File::File(const SHttpServer::RequestMessage &request)
-{
-  const QUrl url = QUrl::fromEncoded(request.path());
-
-  d.file = request.file();
-  d.url = url;
-}
-
-MediaServer::File::~File()
-{
-}
-
-QString MediaServer::File::fileName(void) const
-{
-  const int ls = d.file.lastIndexOf('/');
-  if (ls >= 1)
-    return d.file.mid(ls + 1);
-
-  return d.file;
-}
-
-QString MediaServer::File::parentDir(void) const
-{
-  QString result = d.file;
-
-  const int ls = d.file.lastIndexOf('/');
-  if (ls >= 1)
-    result = d.file.left(ls);
-
-  const int s = result.lastIndexOf('/');
-  if (s >= 0)
-    return result.mid(s + 1);
-
-  return result;
-}
 
 MediaServer::Stream::Stream(MediaServer *parent, const QString &url)
   : parent(parent),

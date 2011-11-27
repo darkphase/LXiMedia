@@ -72,9 +72,7 @@ protected:
 protected: // From SHttpServer::Callback
   virtual SHttpServer::ResponseMessage httpRequest(const SHttpServer::RequestMessage &, QIODevice *);
 
-private:
-  SearchCacheEntry              search(const QString &) const;
-
+protected: // From BackendServer::MasterServer
   virtual QByteArray            parseHtmlContent(const QUrl &, const QByteArray &content, const QByteArray &head) const;
 
   virtual SHttpServer         * httpServer(void);
@@ -85,20 +83,15 @@ private:
   virtual SSandboxClient      * createSandbox(SSandboxClient::Priority);
   virtual void                  recycleSandbox(SSandboxClient *);
 
-  QByteArray                    parseHtmlLogErrors(void) const;
-
-  SHttpServer::ResponseMessage  handleHtmlRequest(const SHttpServer::RequestMessage &, const MediaServer::File &);
-  SHttpServer::ResponseMessage  handleHtmlRequest(const SHttpServer::RequestMessage &, const QString &);
-  SHttpServer::ResponseMessage  handleHtmlSearch(const SHttpServer::RequestMessage &, const MediaServer::File &);
-  SHttpServer::ResponseMessage  handleHtmlLogFileRequest(const SHttpServer::RequestMessage &, const MediaServer::File &);
-  SHttpServer::ResponseMessage  showAbout(const SHttpServer::RequestMessage &);
-  SHttpServer::ResponseMessage  handleHtmlConfig(const SHttpServer::RequestMessage &);
+private:
+  SHttpServer::ResponseMessage  sendFile(const SHttpServer::RequestMessage &, const QString &fileName);
+  QByteArray                    handleHtmlSettings(const SHttpServer::RequestMessage &);
+  void                          saveHtmlSettings(const SHttpServer::RequestMessage &);
 
 private:
+#ifndef QT_NO_DEBUG
   static const QEvent::Type     exitEventType;
-  static const QEvent::Type     restartEventType;
-  static const QEvent::Type     shutdownEventType;
-  static const QUrl             submitErrorUrl;
+#endif
 
   SHttpServer                   masterHttpServer;
   SSsdpServer                   masterSsdpServer;
@@ -116,37 +109,22 @@ private:
 
   SSandboxClient              * initSandbox;
 
-  mutable QMap<QString, SearchCacheEntry> searchCache;
-
 private:
-  static const char     * const cssMain;
-  static const char     * const cssLogin;
-  static const char     * const cssMenu;
-  static const char     * const csslist;
-  static const char     * const csslog;
+  static const char             htmlIndex[];
+  static const char             htmlNavigatorRoot[];
+  static const char             htmlNavigatorPath[];
+  static const char             htmlNavigatorItem[];
+  static const char             htmlLogFile[];
+  static const char             htmlLogFileHeadline[];
+  static const char             htmlLogFileMessage[];
+  static const char             htmlAbout[];
 
-  static const char     * const htmlIndex;
-  static const char     * const htmlLocationItem;
-  static const char     * const htmlMenuGroup;
-  static const char     * const htmlMenuItem;
-  static const char     * const htmlMain;
-  static const char     * const htmlMainGroupItem;
-  static const char     * const htmlMainServerItem;
-  static const char     * const htmlSearchResults;
-  static const char     * const htmlSearchResultsItem;
-  static const char     * const htmlLogFile;
-  static const char     * const htmlLogFileHeadline;
-  static const char     * const htmlLogFileMessage;
-
-  static const char     * const htmlAbout;
-
-  static const char     * const htmlConfigMain;
-  static const char     * const htmlConfigDlnaRow;
-  static const char     * const htmlConfigDlnaRowProfilesClosed;
-  static const char     * const htmlConfigDlnaRowProfiles;
-  static const char     * const htmlConfigDlnaRowProfilesCheck;
-  static const char     * const htmlConfigOption;
-  static const char     * const htmlConfigImdbDownload;
+  static const char             htmlSettingsMain[];
+  static const char             htmlSettingsDlnaRow[];
+  static const char             htmlSettingsDlnaRowProfilesClosed[];
+  static const char             htmlSettingsDlnaRowProfiles[];
+  static const char             htmlSettingsDlnaRowProfilesCheck[];
+  static const char             htmlSettingsOption[];
 };
 
 #endif
