@@ -34,6 +34,25 @@ class MediaPlayerServer : public MediaServer
 {
 Q_OBJECT
 friend class MediaPlayerServerDir;
+private:
+  class ResponseEvent : public QEvent
+  {
+  public:
+    inline ResponseEvent(
+        const SSandboxServer::RequestMessage &request,
+        const SHttpServer::ResponseMessage &response,
+        QIODevice *socket)
+      : QEvent(responseEventType),
+        request(request), response(response), socket(socket)
+    {
+    }
+
+  public:
+    const SSandboxServer::RequestHeader request;
+    SHttpServer::ResponseMessage response;
+    QIODevice           * const socket;
+  };
+
 protected:
   class Stream : public MediaServer::Stream
   {
@@ -60,6 +79,9 @@ protected: // From BackendServer
   virtual QByteArray            frontPageContent(void);
   virtual QByteArray            settingsContent(void);
 
+protected: // From SHttpServer::Callback
+  virtual SHttpServer::ResponseMessage httpRequest(const SHttpServer::RequestMessage &, QIODevice *);
+
 protected: // From MediaServer
   virtual Stream              * streamVideo(const SHttpServer::RequestMessage &);
   virtual SHttpServer::ResponseMessage sendPhoto(const SHttpServer::RequestMessage &);
@@ -67,6 +89,9 @@ protected: // From MediaServer
   virtual int                   countItems(const QString &virtualPath);
   virtual QList<Item>           listItems(const QString &virtualPath, unsigned start = 0, unsigned count = 0);
   virtual Item                  getItem(const QString &path);
+
+protected: // From QObject
+  virtual void                  customEvent(QEvent *);
 
 private:
   static bool                   isHidden(const QString &path);
@@ -78,8 +103,7 @@ private:
   int                           countAlbums(const QString &virtualPath);
   QList<Item>                   listAlbums(const QString &virtualPath, unsigned &start, unsigned &count);
   Item                          makeItem(const FileNode &);
-
-  virtual SHttpServer::ResponseMessage httpRequest(const SHttpServer::RequestMessage &, QIODevice *);
+  Item                          makePlayAllItem(const QString &virtualPath);
 
 private slots:
   void                          consoleLine(const QString &);
@@ -91,6 +115,7 @@ private:
 private:
   static const char             dirSplit;
   static const Qt::CaseSensitivity caseSensitivity;
+  static const QEvent::Type     responseEventType;
   MasterServer                * masterServer;
   MediaDatabase               * mediaDatabase;
 

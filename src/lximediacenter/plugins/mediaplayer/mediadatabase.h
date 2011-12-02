@@ -42,7 +42,7 @@ private:
   virtual                       ~MediaDatabase();
 
 public:
-  FileNode                      readNode(const QString &filePath, const QSize &thumbSize = QSize(128, 128)) const;
+  FileNode                      readNode(const QString &filePath) const;
   QByteArray                    readImage(const QString &filePath, const QSize &maxSize, const QString &format) const;
 
   void                          setLastPlayed(const QString &filePath, const QDateTime & = QDateTime::currentDateTime());
@@ -63,6 +63,10 @@ private:
 
   ImdbClient            * const imdbClient;
   SSandboxClient        * const probeSandbox;
+
+  static const int              cacheSize;
+  mutable QMap<QString, QByteArray> nodeCache;
+  mutable QQueue<QString>       cacheQueue;
 };
 
 

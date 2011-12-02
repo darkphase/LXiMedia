@@ -31,7 +31,7 @@ class SlideShowNode : public SInterfaces::SourceNode
 {
 Q_OBJECT
 public:
-                                SlideShowNode(SGraph *parent, const SMediaInfoList &files);
+                                SlideShowNode(SGraph *parent, const QStringList &files);
   virtual                       ~SlideShowNode();
 
   SSize                         size(void) const;
@@ -60,7 +60,7 @@ public:
   static const int              frameRate = 24;
 
 private:
-  const SMediaInfoList          files;
+  const QStringList             files;
 
   SSize                         outSize;
   int                           slideFrameCount;

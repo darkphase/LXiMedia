@@ -268,7 +268,7 @@ SUPnPContentDirectory::Item MediaServer::getContentDirItem(const QString &client
   return item;
 }
 
-SAudioFormat MediaServer::audioFormatFor(const QString &client, const Item &item, int &addVideo)
+SAudioFormat MediaServer::audioFormatFor(const QString &client, const Item &item, bool &addVideo)
 {
   GlobalSettings settings;
   settings.beginGroup("DLNA");
@@ -277,8 +277,8 @@ SAudioFormat MediaServer::audioFormatFor(const QString &client, const Item &item
       settings.value("TranscodeChannels", settings.defaultTranscodeChannelName()).toString();
   const QString genericTranscodeMusicChannels =
       settings.value("TranscodeMusicChannels", settings.defaultTranscodeMusicChannelName()).toString();
-  const QString genericMusicMode =
-      settings.value("MusicMode", settings.defaultMusicModeName()).toString();
+  const bool genericMusicAddBlackVideo =
+      settings.value("MusicAddBlackVideo", settings.defaultMusicAddBlackVideo()).toBool();
 
   SAudioFormat result;
   result.setSampleRate(48000);
@@ -301,13 +301,7 @@ SAudioFormat MediaServer::audioFormatFor(const QString &client, const Item &item
         break;
       }
 
-      const QString musicMode = settings.value("MusicMode", genericMusicMode).toString();
-      if (musicMode.compare("AddVideoBlack", Qt::CaseInsensitive) == 0)
-        addVideo = 1;
-      else if (musicMode.compare("RemoveVideo", Qt::CaseInsensitive) == 0)
-        addVideo = -1;
-      else
-        addVideo = 0;
+      addVideo = settings.value("MusicAddBlackVideo", genericMusicAddBlackVideo).toBool();
     }
     else
     {
@@ -368,7 +362,7 @@ void MediaServer::processItem(const QString &client, Item &item)
     }
     else
     {
-      int addVideo = 0;
+      bool addVideo = false;
       SAudioFormat audioFormat = audioFormatFor(client, item, addVideo);
       if (!item.isMusic() && (audioFormat.numChannels() > 2) &&
           ((item.audioFormat.channelSetup() == SAudioFormat::Channels_Mono) ||
@@ -381,7 +375,7 @@ void MediaServer::processItem(const QString &client, Item &item)
       SVideoFormat videoFormat = videoFormatFor(client, item);
       videoFormat.setFrameRate(item.videoFormat.frameRate());
 
-      if ((item.isVideo() && (addVideo >= 0)) || (addVideo > 0))
+      if (item.isVideo() || addVideo)
       {
         if ((item.type == Item::Type_Audio) || (item.type == Item::Type_AudioBook))
           item.type = Item::Type_Video;
@@ -405,11 +399,11 @@ void MediaServer::processItem(const QString &client, Item &item)
       }
     }
 
-    setQueryItemsFor(client, item.url);
+    setQueryItemsFor(client, item.url, item.isMusic());
   }
 }
 
-void MediaServer::setQueryItemsFor(const QString &client, QUrl &url)
+void MediaServer::setQueryItemsFor(const QString &client, QUrl &url, bool isMusic)
 {
   GlobalSettings settings;
   settings.beginGroup("DLNA");
@@ -424,8 +418,8 @@ void MediaServer::setQueryItemsFor(const QString &client, QUrl &url)
       settings.value("TranscodeChannels", settings.defaultTranscodeChannelName()).toString();
   const QString genericTranscodeMusicChannels =
       settings.value("TranscodeMusicChannels", settings.defaultTranscodeMusicChannelName()).toString();
-  const QString genericMusicMode =
-      settings.value("MusicMode", settings.defaultMusicModeName()).toString();
+  const bool genericMusicAddBlackVideo =
+      settings.value("MusicAddBlackVideo", settings.defaultMusicAddBlackVideo()).toBool();
 
   const QString clientTag = SStringParser::toCleanName(client).replace(' ', '_');
 
@@ -453,20 +447,25 @@ void MediaServer::setQueryItemsFor(const QString &client, QUrl &url)
     }
 
     QString channels = QString::number(SAudioFormat::Channels_Stereo, 16);
-    const QString transcodeChannels = settings.value("TranscodeChannels", genericTranscodeChannels).toString();
-    foreach (const GlobalSettings::TranscodeChannel &channel, GlobalSettings::allTranscodeChannels())
-    if (channel.name == transcodeChannels)
+    if (!isMusic)
     {
-      channels = QString::number(channel.channels, 16);
-      break;
+      const QString transcodeChannels = settings.value("TranscodeChannels", genericTranscodeChannels).toString();
+      foreach (const GlobalSettings::TranscodeChannel &channel, GlobalSettings::allTranscodeChannels())
+      if (channel.name == transcodeChannels)
+      {
+        channels = QString::number(channel.channels, 16);
+        break;
+      }
     }
-
-    const QString transcodeMusicChannels = settings.value("TranscodeMusicChannels", genericTranscodeMusicChannels).toString();
-    foreach (const GlobalSettings::TranscodeChannel &channel, GlobalSettings::allTranscodeChannels())
-    if (channel.name == transcodeMusicChannels)
+    else
     {
-      channels += "," + QString::number(channel.channels, 16);
-      break;
+      const QString transcodeMusicChannels = settings.value("TranscodeMusicChannels", genericTranscodeMusicChannels).toString();
+      foreach (const GlobalSettings::TranscodeChannel &channel, GlobalSettings::allTranscodeChannels())
+      if (channel.name == transcodeMusicChannels)
+      {
+        channels += "," + QString::number(channel.channels, 16);
+        break;
+      }
     }
 
     url.addQueryItem("channels", channels);
@@ -478,11 +477,8 @@ void MediaServer::setQueryItemsFor(const QString &client, QUrl &url)
     else
       url.addQueryItem("encodemode", "fast");
 
-    const QString musicMode = settings.value("MusicMode", genericMusicMode).toString();
-    if (!musicMode.isEmpty())
-      url.addQueryItem("musicmode", musicMode.toLower());
-    else
-      url.addQueryItem("musicmode", "leavevideo");
+    if (settings.value("MusicAddBlackVideo", genericMusicAddBlackVideo).toBool())
+      url.addQueryItem("addvideo", QString::null);
 
     break;
   }

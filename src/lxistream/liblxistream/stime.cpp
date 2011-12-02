@@ -91,6 +91,8 @@ STime STime::add(const STime &a, const STime &b)
       return STime(num / gcd, SInterval(1, den / gcd));
     }
   }
+  else
+    return a.d.interval.isValid() ? a : b;
 }
 
 STime STime::div(const STime &t, int d)

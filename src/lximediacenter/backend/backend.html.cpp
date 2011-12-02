@@ -33,7 +33,7 @@ const char Backend::htmlIndex[] =
     " <div class=\"main_navigator\" id=\"navigator\">\n"
     "  <table>\n"
     "   <tr>\n"
-    "    <td width=\"100%\">"
+    "    <td width=\"100%\">\n"
     "{NAVIGATOR_PATH}"
     "    </td>\n"
     "    <td>\n"
@@ -146,6 +146,7 @@ const char Backend::htmlSettingsMain[] =
     "   {TR_AUDIO_TRANSCODE_SETTINGS_EXPLAIN}<br />\n"
     "   <br />\n"
     "{CLIENT_ROWS}"
+    "   {TR_CLIENT_SETTINGS_EXPLAIN}<br />\n"
     "  </fieldset>\n"
     "{PLUGIN_SETTINGS}"
     " </div>\n";
@@ -183,11 +184,7 @@ const char Backend::htmlSettingsDlnaRow[] =
     "        <select name=\"musicchannels\">\n"
     "{MUSICCHANNELS}"
     "        </select>\n"
-    "        <select name=\"musicmode\">\n"
-    "         <option value=\"LeaveVideo\" {SELECTED_LEAVEVIDEO}>{TR_LEAVE_VIDEO}</option>\n"
-    "         <option value=\"AddVideoBlack\" {SELECTED_ADDBLACKVIDEO}>{TR_ADD_BLACK_VIDEO}</option>\n"
-    "         <option value=\"RemoveVideo\" {SELECTED_REMOVEVIDEO}>{TR_REMOVE_VIDEO}</option>\n"
-    "        </select>\n"
+    "        <input type=\"checkbox\" name=\"musicaddvideo\" value=\"on\" {CHECKED_ADDBLACKVIDEO} />{TR_ADD_BLACK_VIDEO}\n"
     "       </td>\n"
     "      </tr>\n"
     "{PROFILES}"
@@ -447,8 +444,8 @@ QByteArray Backend::handleHtmlSettings(const SHttpServer::RequestMessage &reques
       settings.value("TranscodeChannels", settings.defaultTranscodeChannelName()).toString();
   const QString genericTranscodeMusicChannels =
       settings.value("TranscodeMusicChannels", settings.defaultTranscodeMusicChannelName()).toString();
-  const QString genericMusicMode =
-      settings.value("MusicMode", settings.defaultMusicModeName()).toString();
+  const bool genericMusicAddBlackVideo =
+      settings.value("MusicAddBlackVideo", settings.defaultMusicAddBlackVideo()).toBool();
 
   htmlParser.setField("TR_DLNA", tr("DLNA"));
   htmlParser.setField("TR_VIDEO_SETTINGS", tr("Video transcode settings"));
@@ -465,9 +462,7 @@ QByteArray Backend::handleHtmlSettings(const SHttpServer::RequestMessage &reques
   htmlParser.setField("TR_FULLSCREEN", tr("Fullscreen"));
   htmlParser.setField("TR_FAST", tr("Fast"));
   htmlParser.setField("TR_HIGH_QUALITY", tr("High quality"));
-  htmlParser.setField("TR_LEAVE_VIDEO", tr("Leave video"));
   htmlParser.setField("TR_ADD_BLACK_VIDEO", tr("Add black video"));
-  htmlParser.setField("TR_REMOVE_VIDEO", tr("Remove video"));
 
   htmlParser.setField("TR_MEDIA_TRANSCODE_SETTINGS_EXPLAIN",
     tr("This form will allow adjustment of the transcode settings for the DLNA "
@@ -484,6 +479,10 @@ QByteArray Backend::handleHtmlSettings(const SHttpServer::RequestMessage &reques
        "to the rear channels. Furthermore, the \"Add black video\" setting can "
        "be used to add a video stream with black images to simulate that a TV is "
        "switched off (audio only)."));
+
+  htmlParser.setField("TR_CLIENT_SETTINGS_EXPLAIN",
+    tr("A box will appear here for each DLNA device that connects to this "
+       "server, these boxes provide device specific settings."));
 
   htmlParser.setField("TR_POST_PROFILES",
     tr("If your device does not work with the default enabled DLNA profiles and "
@@ -574,24 +573,10 @@ QByteArray Backend::handleHtmlSettings(const SHttpServer::RequestMessage &reques
     htmlParser.setField("SELECTED_SLOW", QByteArray("selected=\"selected\""));
   }
 
-  if (settings.value("MusicMode", genericMusicMode).toString() == "AddVideoBlack")
-  {
-    htmlParser.setField("SELECTED_ADDBLACKVIDEO", QByteArray("selected=\"selected\""));
-    htmlParser.setField("SELECTED_REMOVEVIDEO", QByteArray(""));
-    htmlParser.setField("SELECTED_LEAVEVIDEO", QByteArray(""));
-  }
-  else if (settings.value("MusicMode", genericMusicMode).toString() == "RemoveVideo")
-  {
-    htmlParser.setField("SELECTED_ADDBLACKVIDEO", QByteArray(""));
-    htmlParser.setField("SELECTED_REMOVEVIDEO", QByteArray("selected=\"selected\""));
-    htmlParser.setField("SELECTED_LEAVEVIDEO", QByteArray(""));
-  }
+  if (settings.value("MusicAddBlackVideo", genericMusicAddBlackVideo).toBool())
+    htmlParser.setField("CHECKED_ADDBLACKVIDEO", QByteArray("checked=\"checked\""));
   else
-  {
-    htmlParser.setField("SELECTED_ADDBLACKVIDEO", QByteArray(""));
-    htmlParser.setField("SELECTED_REMOVEVIDEO", QByteArray(""));
-    htmlParser.setField("SELECTED_LEAVEVIDEO", QByteArray("selected=\"selected\""));
-  }
+    htmlParser.setField("CHECKED_ADDBLACKVIDEO", QByteArray(""));
 
   htmlParser.setField("PROFILES", QByteArray(""));
 
@@ -644,24 +629,10 @@ QByteArray Backend::handleHtmlSettings(const SHttpServer::RequestMessage &reques
       htmlParser.setField("SELECTED_SLOW", QByteArray("selected=\"selected\""));
     }
 
-    if (settings.value("MusicMode", genericMusicMode).toString() == "AddVideoBlack")
-    {
-      htmlParser.setField("SELECTED_ADDBLACKVIDEO", QByteArray("selected=\"selected\""));
-      htmlParser.setField("SELECTED_REMOVEVIDEO", QByteArray(""));
-      htmlParser.setField("SELECTED_LEAVEVIDEO", QByteArray(""));
-    }
-    else if (settings.value("MusicMode", genericMusicMode).toString() == "RemoveVideo")
-    {
-      htmlParser.setField("SELECTED_ADDBLACKVIDEO", QByteArray(""));
-      htmlParser.setField("SELECTED_REMOVEVIDEO", QByteArray("selected=\"selected\""));
-      htmlParser.setField("SELECTED_LEAVEVIDEO", QByteArray(""));
-    }
+    if (settings.value("MusicAddBlackVideo", genericMusicAddBlackVideo).toBool())
+      htmlParser.setField("CHECKED_ADDBLACKVIDEO", QByteArray("checked=\"checked\""));
     else
-    {
-      htmlParser.setField("SELECTED_ADDBLACKVIDEO", QByteArray(""));
-      htmlParser.setField("SELECTED_REMOVEVIDEO", QByteArray(""));
-      htmlParser.setField("SELECTED_LEAVEVIDEO", QByteArray("selected=\"selected\""));
-    }
+      htmlParser.setField("CHECKED_ADDBLACKVIDEO", QByteArray(""));
 
     if (request.url().queryItemValue("expand") == clientTag)
     {
@@ -818,12 +789,10 @@ void Backend::saveHtmlSettings(const SHttpServer::RequestMessage &request)
         else
           settings.remove("TranscodeMusicChannels");
 
-        const QString musicModeName =
-            QByteArray::fromPercentEncoding(request.url().queryItemValue("musicmode").toAscii().replace('+', ' '));
-        if (!musicModeName.isEmpty())
-          settings.setValue("MusicMode", musicModeName);
+        if (request.url().queryItemValue("musicaddvideo") == "on")
+          settings.setValue("MusicAddBlackVideo", true);
         else
-          settings.remove("MusicMode");
+          settings.remove("MusicAddBlackVideo");
 
         QStringList audioProfiles;
         foreach (const QString &profile, enabledAudioProfiles)
@@ -864,7 +833,7 @@ void Backend::saveHtmlSettings(const SHttpServer::RequestMessage &request)
         settings.remove("EncodeMode");
         settings.remove("TranscodeChannels");
         settings.remove("TranscodeMusicChannels");
-        settings.remove("MusicMode");
+        settings.remove("MusicAddBlackVideo");
         settings.remove("SupportedAudioProfiles");
         settings.remove("SupportedVideoProfiles");
         settings.remove("SupportedImageProfiles");

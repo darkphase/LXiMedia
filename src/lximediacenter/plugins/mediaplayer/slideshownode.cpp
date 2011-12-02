@@ -28,10 +28,10 @@ extern "C" void LXiMediaCenter_MediaPlayerBackend_SlideShowNode_blendImages(
 namespace LXiMediaCenter {
 namespace MediaPlayerBackend {
 
-SlideShowNode::SlideShowNode(SGraph *parent, const SMediaInfoList &files)
+SlideShowNode::SlideShowNode(SGraph *parent, const QStringList &files)
   : SInterfaces::SourceNode(parent),
     files(files),
-    outSize(768, 576),
+    outSize(1280, 720),
     slideFrameCount(180),
     time(STime::null),
     currentPicture(-1),
@@ -90,17 +90,17 @@ bool SlideShowNode::start(void)
   currentPicture = 0;
   currentFrame = 0;
 
-  if (currentPicture < files.count())
+  while (currentPicture < files.count())
   {
-    const SMediaInfo node = files[currentPicture++];
-    if (!node.isNull())
-      loadFuture = QtConcurrent::run(this, &SlideShowNode::loadImage, node.filePath());
-    else
-      nextBuffer = blackBuffer();
+    const QString fileName = files[currentPicture++];
+    if (SMediaInfo(fileName).fileType() == SMediaInfo::ProbeInfo::FileType_Image)
+    {
+      loadFuture = QtConcurrent::run(this, &SlideShowNode::loadImage, fileName);
+      return true;
+    }
   }
-  else
-    currentPicture = -1;
 
+  currentPicture = -1;
   return true;
 }
 
@@ -130,20 +130,23 @@ bool SlideShowNode::process(void)
       currentBuffer = nextBuffer;
 
       // Start loading next
-      if (currentPicture < files.count())
+      bool loading = false;
+      while (!loading && (currentPicture < files.count()))
       {
-        const SMediaInfo node = files[currentPicture++];
-        if (!node.isNull())
-          loadFuture = QtConcurrent::run(this, &SlideShowNode::loadImage, node.filePath());
-        else
-          nextBuffer = blackBuffer();
+        const QString fileName = files[currentPicture++];
+        if (SMediaInfo(fileName).fileType() == SMediaInfo::ProbeInfo::FileType_Image)
+        {
+          loadFuture = QtConcurrent::run(this, &SlideShowNode::loadImage, fileName);
+          loading = true;
+        }
       }
-      else if (currentPicture == files.count())
+
+      if (!loading && (currentPicture == files.count()))
       {
         nextBuffer = blackBuffer();
         currentPicture++;
       }
-      else
+      else if (!loading)
         currentPicture = -1;
     }
     else
@@ -179,17 +182,18 @@ void SlideShowNode::loadImage(const QString &fileName)
 {
   LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
 
+  const float ar = outSize.aspectRatio();
+  const QSize baseSize(int(baseImage.width() * ar), baseImage.height());
+
   SImage img = baseImage;
 
   QPainter p;
   p.begin(&img);
-    const float ar = outSize.aspectRatio();
-
-    SImage src(fileName);
+    SImage src(fileName, baseSize);
     if (!src.isNull())
     {
       QSize size = src.size().size();
-      size.scale(int(img.width() * ar), img.height(), Qt::KeepAspectRatio);
+      size.scale(baseSize, Qt::KeepAspectRatio);
       src = src.scaled(int(size.width() / ar), size.height(), Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
       p.drawImage((img.width() / 2) - (src.width() / 2),
                   (img.height() / 2) - (src.height() / 2),

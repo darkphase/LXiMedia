@@ -43,7 +43,7 @@ public:
   inline FileNode             & operator=(const SMediaInfo &from) { SMediaInfo::operator=(from); return *this; }
 
   QByteArray                    probeFormat(int = 1);
-  QByteArray                    probeContent(const QSize &thumbSize = QSize(128, 128), int = 1);
+  QByteArray                    probeContent(int = 1);
 
   QByteArray                    toByteArray(int = 1) const;
   static FileNode               fromByteArray(const QByteArray &);
