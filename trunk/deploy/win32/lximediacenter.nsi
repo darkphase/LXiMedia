@@ -39,7 +39,6 @@ Section "-Shared Files" SecShared
   File QtCore4.dll
   File QtGui4.dll
   File QtNetwork4.dll
-  File QtSql4.dll
   File QtXml4.dll
   File LXiCore.dll
   File LXiMediaCenter.dll
@@ -51,10 +50,6 @@ Section "-Shared Files" SecShared
   SetOverwrite ifnewer
   File imageformats\qjpeg4.dll
   File imageformats\qtiff4.dll
-
-  SetOutPath $INSTDIR\sqldrivers
-  SetOverwrite ifnewer
-  File sqldrivers\qsqlite4.dll
 
   SetOutPath $INSTDIR\lximedia
   SetOverwrite ifnewer

@@ -78,7 +78,6 @@ protected: // From BackendServer::MasterServer
   virtual SHttpServer         * httpServer(void);
   virtual SSsdpServer         * ssdpServer(void);
   virtual SUPnPContentDirectory * contentDirectory(void);
-  virtual ImdbClient          * imdbClient(void);
 
   virtual SSandboxClient      * createSandbox(SSandboxClient::Priority);
   virtual void                  recycleSandbox(SSandboxClient *);
@@ -99,7 +98,6 @@ private:
   SUPnPConnectionManager        masterConnectionManager;
   SUPnPContentDirectory         masterContentDirectory;
   SUPnPMediaReceiverRegistrar   masterMediaReceiverRegistrar;
-  ImdbClient                  * masterImdbClient;
 
   const QString                 sandboxApplication;
 

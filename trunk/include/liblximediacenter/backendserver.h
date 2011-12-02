@@ -26,8 +26,6 @@
 
 namespace LXiMediaCenter {
 
-class ImdbClient;
-
 class LXIMEDIACENTER_PUBLIC BackendServer : public QObject
 {
 Q_OBJECT
@@ -41,7 +39,6 @@ public:
     virtual SHttpServer       * httpServer(void) = 0;
     virtual SSsdpServer       * ssdpServer(void) = 0;
     virtual SUPnPContentDirectory * contentDirectory(void) = 0;
-    virtual ImdbClient        * imdbClient(void) = 0;
 
     virtual SSandboxClient    * createSandbox(SSandboxClient::Priority) = 0;
     virtual void                recycleSandbox(SSandboxClient *) = 0;
