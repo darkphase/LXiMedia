@@ -43,6 +43,7 @@ const Qt::CaseSensitivity MediaPlayerServer::caseSensitivity =
 #endif
 
 const QEvent::Type  MediaPlayerServer::responseEventType = QEvent::Type(QEvent::registerEventType());
+const int           MediaPlayerServer::maxSongDurationMin = 7;
 
 MediaPlayerServer::MediaPlayerServer(const QString &, QObject *parent)
   : MediaServer(parent),
@@ -373,7 +374,10 @@ QList<MediaPlayerServer::Item> MediaPlayerServer::listItems(const QString &virtu
 
 MediaPlayerServer::Item MediaPlayerServer::getItem(const QString &virtualPath)
 {
-  return makeItem(mediaDatabase->readNode(realPath(virtualPath)));
+  if (virtualPath.endsWith("/.all"))
+    return makePlayAllItem(virtualPath.left(virtualPath.length() - 4));
+  else
+    return makeItem(mediaDatabase->readNode(realPath(virtualPath)));
 }
 
 void MediaPlayerServer::customEvent(QEvent *e)
@@ -545,11 +549,20 @@ MediaPlayerServer::Item MediaPlayerServer::makeItem(const FileNode &node)
   if (!node.isNull())
   {
     if (!node.audioStreams().isEmpty() && !node.videoStreams().isEmpty())
+    {
       item.type = Item::Type_Video;
+    }
     else if (!node.audioStreams().isEmpty())
-      item.type = Item::Type_Audio;
+    {
+      if (node.duration().toMin() <= maxSongDurationMin)
+        item.type = Item::Type_Music;
+      else
+        item.type = Item::Type_Audio;
+    }
     else if (!node.imageCodec().isNull())
+    {
       item.type = Item::Type_Image;
+    }
     else
       item.type = Item::Type_None;
   
@@ -633,6 +646,9 @@ MediaPlayerServer::Item MediaPlayerServer::makePlayAllItem(const QString &virtua
   item.url = item.path;
   item.iconUrl = "/img/arrow-right.png";
 
+  item.type = Item::Type_Video;
+  item.title = tr("Play all");
+
   int audio = 0, video = 0, image = 0;
   foreach (const FileNode &node, mediaDatabase->getAlbumFiles(path, qMax(0, (numItems / 2) - 8), 16))
   if (!node.audioStreams().isEmpty() && !node.videoStreams().isEmpty())
@@ -643,15 +659,20 @@ MediaPlayerServer::Item MediaPlayerServer::makePlayAllItem(const QString &virtua
     image++;
 
   if ((audio > video) && (audio > image))
-    item.type = Item::Type_Audio;
+  {
+    item.type = Item::Type_AudioBroadcast;
+    item.title = tr("Play all");
+  }
   else if ((video > audio) && (video > image))
-    item.type = Item::Type_Video;
+  {
+    item.type = Item::Type_VideoBroadcast;
+    item.title = tr("Play all");
+  }
   else if ((image > audio) && (image > video))
-    item.type = Item::Type_Image;
-  else
-    item.type = Item::Type_Video;
-
-  item.title = (item.type == Item::Type_Image) ? tr("Slideshow") : tr("Play all");
+  {
+    item.type = Item::Type_VideoBroadcast;
+    item.title = tr("Slideshow");
+  }
 
   return item;
 }
