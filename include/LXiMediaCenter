@@ -8,14 +8,10 @@
 
 #ifdef __cplusplus
 
-#include <QtSql>
-
 #include "liblximediacenter/backendsandbox.h"
 #include "liblximediacenter/backendserver.h"
-#include "liblximediacenter/database.h"
 #include "liblximediacenter/globalsettings.h"
 #include "liblximediacenter/htmlparser.h"
-#include "liblximediacenter/imdbclient.h"
 #include "liblximediacenter/mediaprofiles.h"
 #include "liblximediacenter/mediaserver.h"
 #include "liblximediacenter/mediastream.h"

@@ -5,7 +5,6 @@ include($${PWD}/../liblxistream/linklxistream.pri)
 include($${PWD}/../liblxistreamgui/linklxistreamgui.pri)
 
 !contains(LINKED, LXiMediaCenter) {
-  QT += sql
   LINKED += LXiMediaCenter
   
   !contains(CONFIG, staticlib) {

@@ -23,7 +23,6 @@ Build-Depends: debhelper (>= 7),
                libqtcore4,
                libqtgui4,
                libqt4-network,
-               libqt4-sql,
                libqt4-xml,
                libx11-dev,
                libxext-dev,
@@ -137,9 +136,7 @@ Depends: ${misc:Depends},
          liblxistream1 (= ${binary:Version}), 
          libqtcore4,
          libqtgui4,
-         libqt4-xml,
-         libqt4-sql,
-         libqt4-sql-sqlite
+         libqt4-xml
 Description: A DLNA based transcoding media server
  This package provides the base library for LXiMediaCenter.
 
@@ -175,8 +172,6 @@ Depends: ${misc:Depends},
          libqtcore4,
          libqtgui4,
          libqt4-xml,
-         libqt4-sql,
-         libqt4-sql-sqlite,
          libx11-6,
          libxrandr2,
          libxext6,

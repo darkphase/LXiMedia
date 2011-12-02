@@ -44,7 +44,6 @@ Backend::Backend()
     masterConnectionManager("/upnp/"),
     masterContentDirectory("/upnp/"),
     masterMediaReceiverRegistrar("/upnp/"),
-    masterImdbClient(NULL),
     sandboxApplication("\"" + qApp->applicationFilePath() + "\" --sandbox"),
     cssParser(),
     htmlParser(),
@@ -77,9 +76,6 @@ Backend::Backend()
 
   // Open device configuration
   MediaServer::mediaProfiles().openDeviceConfig(":/devices.ini");
-
-  // Open database
-  Database::initialize();
 }
 
 Backend::~Backend()
@@ -101,18 +97,12 @@ Backend::~Backend()
 
   QThreadPool::globalInstance()->waitForDone();
 
-  delete masterImdbClient;
-  masterImdbClient = NULL;
-
   // Remove backup settings
   const QString settingsFile = GlobalSettings::settingsFile();
   if (QFile::exists(settingsFile))
     QFile::remove(settingsFile + ".bak");
 
   qDebug() << "LXiMediaCenter backend stopped.";
-
-  // Close database
-  Database::shutdown();
 }
 
 void Backend::start(void)
@@ -146,9 +136,6 @@ void Backend::start(void)
   HtmlParser::setPalette(palette);
   cssParser.clear();
   htmlParser.clear();
-
-  // This call may take a while if the database needs to be updated ...
-  masterImdbClient = new ImdbClient(this);
 
   backendServers = BackendServer::create(this);
   foreach (BackendServer *server, backendServers)
@@ -301,11 +288,6 @@ SSsdpServer * Backend::ssdpServer(void)
 SUPnPContentDirectory * Backend::contentDirectory(void)
 {
   return &masterContentDirectory;
-}
-
-ImdbClient * Backend::imdbClient(void)
-{
-  return masterImdbClient;
 }
 
 SSandboxClient * Backend::createSandbox(SSandboxClient::Priority priority)

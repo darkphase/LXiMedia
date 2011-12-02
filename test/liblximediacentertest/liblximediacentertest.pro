@@ -1,6 +1,6 @@
 TEMPLATE = app
 CONFIG += qtestlib
-QT += network sql xml
+QT += network xml
 LXIMEDIA_DIR = ../..
 DESTDIR = $${OUT_PWD}/$${LXIMEDIA_DIR}/bin
 TARGET = lximediacentertest

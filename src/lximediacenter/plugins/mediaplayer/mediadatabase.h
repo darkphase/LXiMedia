@@ -61,7 +61,6 @@ private:
   static const char     * const categoryNames[7];
   static MediaDatabase        * self;
 
-  ImdbClient            * const imdbClient;
   SSandboxClient        * const probeSandbox;
 
   static const int              cacheSize;

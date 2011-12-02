@@ -1,6 +1,6 @@
 TEMPLATE = lib
 CONFIG += dll
-QT += network xml sql
+QT += network xml
 LXIMEDIA_DIR = ../../..
 DESTDIR = $${OUT_PWD}/$${LXIMEDIA_DIR}/bin
 TARGET = LXiMediaCenter
@@ -24,10 +24,8 @@ HEADERS += $${PWD}/$${LXIMEDIA_DIR}/include/LXiMediaCenter \
  $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/export.h \
  $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/backendsandbox.h \
  $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/backendserver.h \
- $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/database.h \
  $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/globalsettings.h \
  $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/htmlparser.h \
- $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/imdbclient.h \
  $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/mediaprofiles.h \
  $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/mediaserver.h \
  $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/mediastream.h \
@@ -36,10 +34,8 @@ HEADERS += $${PWD}/$${LXIMEDIA_DIR}/include/LXiMediaCenter \
 
 SOURCES += backendsandbox.cpp \
  backendserver.cpp \
- database.cpp \
  globalsettings.cpp \
  htmlparser.cpp \
- imdbclient.cpp \
  mediaprofiles.cpp \
  mediaserver.cpp \
  mediaserver.html.cpp \
@@ -68,18 +64,13 @@ win32 {
   OUT_DIR = $$replace(OUT_PWD,/,\\)\\$$replace(LXIMEDIA_DIR,/,\\)\\bin
 
   system(mkdir $${OUT_DIR} > NUL 2>&1)
-  system(mkdir $${OUT_DIR}\\sqldrivers > NUL 2>&1)
   release {
     system(copy /Y $$(QTDIR)\\bin\\QtCore4.dll $${OUT_DIR} > NUL)
-    system(copy /Y $$(QTDIR)\\bin\\QtSql4.dll $${OUT_DIR} > NUL)
     system(copy /Y $$(QTDIR)\\bin\\QtXml4.dll $${OUT_DIR} > NUL)
-    system(copy /Y $$(QTDIR)\\plugins\\sqldrivers\\qsqlite4.dll $${OUT_DIR}\\sqldrivers > NUL)
   }
   debug {
     system(copy /Y $$(QTDIR)\\bin\\QtCored4.dll $${OUT_DIR} > NUL)
-    system(copy /Y $$(QTDIR)\\bin\\QtSqld4.dll $${OUT_DIR} > NUL)
     system(copy /Y $$(QTDIR)\\bin\\QtXmld4.dll $${OUT_DIR} > NUL)
-    system(copy /Y $$(QTDIR)\\plugins\\sqldrivers\\qsqlited4.dll $${OUT_DIR}\\sqldrivers > NUL)
   }
 }
 win32-g++ {
