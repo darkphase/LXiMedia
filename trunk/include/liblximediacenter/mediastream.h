@@ -70,14 +70,14 @@ public:
                                       STime position, STime duration,
                                       const SAudioFormat &,
                                       const SVideoFormat &,
-                                      bool musicPlaylist = false,
+                                      bool enableNormalize = false,
                                       SInterfaces::AudioEncoder::Flags = SInterfaces::AudioEncoder::Flag_None,
                                       SInterfaces::VideoEncoder::Flags = SInterfaces::VideoEncoder::Flag_None);
   bool                          setup(const SHttpServer::RequestMessage &,
                                       QIODevice *,
                                       STime position, STime duration,
                                       const SAudioFormat &,
-                                      bool musicPlaylist = false,
+                                      bool enableNormalize = false,
                                       SInterfaces::AudioEncoder::Flags = SInterfaces::AudioEncoder::Flag_None);
 
   static SSize                  decodeSize(const QUrl &);
@@ -101,7 +101,7 @@ public:
                                       QIODevice *,
                                       SInputNode *,
                                       STime duration = STime(),
-                                      bool musicPlaylist = false,
+                                      bool enableNormalize = false,
                                       SInterfaces::AudioEncoder::Flags = SInterfaces::AudioEncoder::Flag_None,
                                       SInterfaces::VideoEncoder::Flags = SInterfaces::VideoEncoder::Flag_None);
 

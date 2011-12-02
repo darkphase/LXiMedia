@@ -25,6 +25,7 @@ namespace LXiMediaCenter {
 namespace MediaPlayerBackend {
 
 const char  * const MediaPlayerSandbox::path = "/mediaplayer/";
+const QEvent::Type  MediaPlayerSandbox::responseEventType = QEvent::Type(QEvent::registerEventType());
 
 MediaPlayerSandbox::MediaPlayerSandbox(const QString &, QObject *parent)
   : BackendSandbox(parent),
@@ -58,107 +59,131 @@ SSandboxServer::ResponseMessage MediaPlayerSandbox::httpRequest(const SSandboxSe
   {
     if (request.url().hasQueryItem("probeformat"))
     {
-      QList< QFuture<QByteArray> > futures;
-      foreach (const QByteArray &path, request.content().split('\n'))
-      if (!path.isEmpty())
-        futures += QtConcurrent::run(&MediaPlayerSandbox::probeFormat, QString::fromUtf8(path));
+      QtConcurrent::run(this, &MediaPlayerSandbox::probeFormat, request, socket);
 
-      QByteArray content;
-      foreach (const QFuture<QByteArray> &future, futures)
-        content += future.result() + '\n';
-
-      return SHttpServer::ResponseMessage(request, SSandboxServer::Status_Ok, content, SHttpEngine::mimeTextXml);
+      return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_None);
     }
     else if (request.url().hasQueryItem("probecontent"))
     {
-      QSize thumbSize(128, 128);
-      if (request.url().hasQueryItem("thumbsize"))
-        thumbSize = SSize::fromString(request.url().queryItemValue("thumbsize")).size();
+      QtConcurrent::run(this, &MediaPlayerSandbox::probeContent, request, socket);
 
-      QList< QFuture<QByteArray> > futures;
-      foreach (const QByteArray &path, request.content().split('\n'))
-      if (!path.isEmpty())
-        futures += QtConcurrent::run(&MediaPlayerSandbox::probeContent, QString::fromUtf8(path), thumbSize);
-
-      QByteArray content;
-      foreach (const QFuture<QByteArray> &future, futures)
-        content += future.result() + '\n';
-
-      return SHttpServer::ResponseMessage(request, SSandboxServer::Status_Ok, content, SHttpEngine::mimeTextXml);
+      return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_None);
     }
     else if (request.url().hasQueryItem("readimage"))
     {
-      QSize maxsize;
-      if (request.url().hasQueryItem("maxsize"))
-        maxsize = SSize::fromString(request.url().queryItemValue("maxsize")).size();
+      QtConcurrent::run(this, &MediaPlayerSandbox::readImage, request, socket);
 
-      QByteArray format = "png";
-      if (request.url().hasQueryItem("format"))
-        format = request.url().queryItemValue("format").toAscii();
-
-      QBuffer buffer;
-      buffer.open(QAbstractSocket::WriteOnly);
-      SImage::fromFile(QString::fromUtf8(request.content()), maxsize).save(&buffer, format, 80);
-      buffer.close();
-
-      return SHttpServer::ResponseMessage(request, SSandboxServer::Status_Ok, buffer.data(), "image/" + format.toLower());
+      return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_None);
     }
-    else if (request.url().hasQueryItem("playfile"))
+    else if (request.url().hasQueryItem("play"))
     {
       const QString path = QString::fromUtf8(request.content());
       if (!path.isEmpty())
       {
-        SandboxFileStream * const stream = new SandboxFileStream(path);
-        if (stream->setup(request, socket))
-        if (stream->start())
+        if (path.endsWith("/.all"))
         {
-          streams.append(stream);
-          return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_None);
+          QStringList files;
+
+          QDir dir(path.left(path.length() - 4));
+          foreach (const QString &file, dir.entryList(QDir::Files, QDir::Name | QDir::IgnoreCase))
+            files += dir.absoluteFilePath(file);
+
+          QList< QFuture<SMediaInfo::ProbeInfo::FileType> > futures;
+          for (int i=qMax(0, (files.count() / 2) - 8), n=qMin(i+16, files.count()); i<n; i++)
+            futures += QtConcurrent::run(&MediaPlayerSandbox::probeFileType, files[i]);
+
+          int audio = 0, video = 0, image = 0;
+          for (int i=0; i<futures.count(); i++)
+          switch (futures[i].result())
+          {
+          case SMediaInfo::ProbeInfo::FileType_Disc:
+          case SMediaInfo::ProbeInfo::FileType_None:
+            break;
+
+          case SMediaInfo::ProbeInfo::FileType_Audio:
+            audio++;
+            break;
+
+          case SMediaInfo::ProbeInfo::FileType_Video:
+            video++;
+            break;
+
+          case SMediaInfo::ProbeInfo::FileType_Image:
+            image++;
+            break;
+          }
+
+          SMediaInfo::ProbeInfo::FileType fileType = SMediaInfo::ProbeInfo::FileType_None;
+          if ((audio > video) && (audio > image))
+          {
+            fileType = SMediaInfo::ProbeInfo::FileType_Audio;
+
+            qsrand(QDateTime::currentDateTime().toTime_t());
+            for (int i=0; i<files.count(); i++)
+              qSwap(files[i], files[qrand() % files.count()]);
+          }
+          else if ((video > audio) && (video > image))
+            fileType = SMediaInfo::ProbeInfo::FileType_Video;
+          else if ((image > audio) && (image > video))
+            fileType = SMediaInfo::ProbeInfo::FileType_Image;
+
+          if ((fileType == SMediaInfo::ProbeInfo::FileType_Audio) ||
+              (fileType == SMediaInfo::ProbeInfo::FileType_Video))
+          {
+            SandboxPlaylistStream * const stream = new SandboxPlaylistStream(files, fileType);
+            if (stream->setup(request, socket))
+            if (stream->start())
+            {
+              streams.append(stream);
+              return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_None);
+            }
+
+            delete stream;
+          }
+          else if (fileType == SMediaInfo::ProbeInfo::FileType_Image)
+          {
+            SandboxSlideShowStream * const stream = new SandboxSlideShowStream(files);
+            if (stream->setup(request, socket))
+            if (stream->start())
+            {
+              streams.append(stream);
+              return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_None);
+            }
+
+            delete stream;
+          }
         }
+        else
+        {
+          SandboxFileStream * const stream = new SandboxFileStream(path);
+          if (stream->setup(request, socket))
+          if (stream->start())
+          {
+            streams.append(stream);
+            return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_None);
+          }
 
-        delete stream;
+          delete stream;
+        }
       }
 
-      return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_InternalServerError);
-    }
-    else if (request.url().hasQueryItem("playlist"))
-    {
-      SMediaInfoList files;
-      foreach (const QByteArray &node, request.content().split('\n'))
-      if (!node.isEmpty())
-        files.append(FileNode::fromByteArray(node));
-
-      SandboxPlaylistStream * const stream = new SandboxPlaylistStream(files);
-      if (stream->setup(request, socket))
-      if (stream->start())
-      {
-        streams.append(stream);
-        return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_None);
-      }
-
-      delete stream;
-      return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_InternalServerError);
-    }
-    else if (request.url().hasQueryItem("playslideshow"))
-    {
-      SMediaInfoList files;
-      foreach (const QByteArray &node, request.content().split('\n'))
-        files.append(FileNode::fromByteArray(node));
-
-      SandboxSlideShowStream * const stream = new SandboxSlideShowStream(files);
-      if (stream->setup(request, socket))
-      if (stream->start())
-      {
-        streams.append(stream);
-        return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_None);
-      }
-
-      delete stream;
       return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_InternalServerError);
     }
   }
 
   return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_NotFound);
+}
+
+void MediaPlayerSandbox::customEvent(QEvent *e)
+{
+  if (e->type() == responseEventType)
+  {
+    ResponseEvent * const event = static_cast<ResponseEvent *>(e);
+
+    SSandboxServer::sendHttpResponse(event->request, event->response, event->socket, false);
+  }
+  else
+    BackendSandbox::customEvent(e);
 }
 
 void MediaPlayerSandbox::cleanStreams(void)
@@ -173,7 +198,33 @@ void MediaPlayerSandbox::cleanStreams(void)
     i++;
 }
 
-QByteArray MediaPlayerSandbox::probeFormat(const QString &fileName)
+SMediaInfo::ProbeInfo::FileType MediaPlayerSandbox::probeFileType(const QString &fileName)
+{
+  return SMediaInfo(fileName).fileType();
+}
+
+void MediaPlayerSandbox::probeFormat(const SSandboxServer::RequestMessage &request, QIODevice *socket)
+{
+  QList< QFuture<QByteArray> > futures;
+  foreach (const QByteArray &path, request.content().split('\n'))
+  if (!path.isEmpty())
+    futures += QtConcurrent::run(&MediaPlayerSandbox::probeFileFormat, QString::fromUtf8(path));
+
+  QByteArray content;
+  foreach (const QFuture<QByteArray> &future, futures)
+    content += future.result() + '\n';
+
+  qApp->postEvent(this, new ResponseEvent(
+      request,
+      SHttpServer::ResponseMessage(
+          request,
+          SSandboxServer::Status_Ok,
+          content,
+          SHttpEngine::mimeTextXml),
+      socket));
+}
+
+QByteArray MediaPlayerSandbox::probeFileFormat(const QString &fileName)
 {
   qDebug() << "Probing format:" << fileName;
 
@@ -184,15 +235,61 @@ QByteArray MediaPlayerSandbox::probeFormat(const QString &fileName)
   return QByteArray();
 }
 
-QByteArray MediaPlayerSandbox::probeContent(const QString &fileName, const QSize &thumbSize)
+void MediaPlayerSandbox::probeContent(const SSandboxServer::RequestMessage &request, QIODevice *socket)
+{
+  QList< QFuture<QByteArray> > futures;
+  foreach (const QByteArray &path, request.content().split('\n'))
+  if (!path.isEmpty())
+    futures += QtConcurrent::run(&MediaPlayerSandbox::probeFileContent, QString::fromUtf8(path));
+
+  QByteArray content;
+  foreach (const QFuture<QByteArray> &future, futures)
+    content += future.result() + '\n';
+
+  qApp->postEvent(this, new ResponseEvent(
+      request,
+      SHttpServer::ResponseMessage(
+          request,
+          SSandboxServer::Status_Ok,
+          content,
+          SHttpEngine::mimeTextXml),
+      socket));
+}
+
+QByteArray MediaPlayerSandbox::probeFileContent(const QString &fileName)
 {
   qDebug() << "Probing content:" << fileName;
 
   FileNode fileNode(fileName);
   if (!fileNode.isNull())
-    return fileNode.probeContent(thumbSize, -1);
+    return fileNode.probeContent(-1);
 
   return QByteArray();
+}
+
+void MediaPlayerSandbox::readImage(const SSandboxServer::RequestMessage &request, QIODevice *socket)
+{
+  QSize maxsize;
+  if (request.url().hasQueryItem("maxsize"))
+    maxsize = SSize::fromString(request.url().queryItemValue("maxsize")).size();
+
+  QByteArray format = "png";
+  if (request.url().hasQueryItem("format"))
+    format = request.url().queryItemValue("format").toAscii();
+
+  QBuffer buffer;
+  buffer.open(QAbstractSocket::WriteOnly);
+  SImage::fromFile(QString::fromUtf8(request.content()), maxsize).save(&buffer, format, 80);
+  buffer.close();
+
+  qApp->postEvent(this, new ResponseEvent(
+      request,
+      SHttpServer::ResponseMessage(
+          request,
+          SSandboxServer::Status_Ok,
+          buffer.data(),
+          "image/" + format.toLower()),
+      socket));
 }
 
 
@@ -220,19 +317,19 @@ bool SandboxFileStream::setup(const SHttpServer::RequestMessage &request, QIODev
 }
 
 
-SandboxPlaylistStream::SandboxPlaylistStream(const SMediaInfoList &files)
+SandboxPlaylistStream::SandboxPlaylistStream(const QStringList &files, SMediaInfo::ProbeInfo::FileType fileType)
   : MediaTranscodeStream(),
-    playlistNode(this, files)
+    playlistNode(this, files, fileType)
 {
 }
 
 bool SandboxPlaylistStream::setup(const SHttpServer::RequestMessage &request, QIODevice *socket)
 {
   if (MediaTranscodeStream::setup(
-      request, socket,
-      &playlistNode,
-      STime(),
-      request.url().queryItemValue("music") == "true"))
+        request, socket,
+        &playlistNode,
+        STime(),
+        true))
   {
     connect(&playlistNode, SIGNAL(finished()), SLOT(stop()));
     connect(&playlistNode, SIGNAL(opened(QString)), SLOT(opened(QString)));
@@ -262,7 +359,7 @@ void SandboxPlaylistStream::closed(const QString &filePath)
 }
 
 
-SandboxSlideShowStream::SandboxSlideShowStream(const SMediaInfoList &files)
+SandboxSlideShowStream::SandboxSlideShowStream(const QStringList &files)
   : MediaStream(),
     slideShow(this, files)
 {

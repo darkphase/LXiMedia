@@ -45,7 +45,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
                         STime position, STime duration,
                         const SAudioFormat &inputAudioFormat,
                         const SVideoFormat &inputVideoFormat,
-                        bool musicPlaylist,
+                        bool enableNormalize,
                         SInterfaces::AudioEncoder::Flags audioEncodeFlags,
                         SInterfaces::VideoEncoder::Flags videoEncodeFlags)
 {
@@ -56,7 +56,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
   connect(&audio->matrix, SIGNAL(output(SAudioBuffer)), &audio->resampler, SLOT(input(SAudioBuffer)));
   connect(&sync, SIGNAL(compensateAudio(float)), &audio->resampler, SLOT(compensate(float)));
 
-  if (musicPlaylist)
+  if (enableNormalize)
   {
     connect(&audio->resampler, SIGNAL(output(SAudioBuffer)), &audio->gapRemover, SLOT(input(SAudioBuffer)));
     connect(&audio->gapRemover, SIGNAL(output(SAudioBuffer)), &sync, SLOT(input(SAudioBuffer)));
@@ -158,7 +158,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
     SVideoCodec videoCodec;
     QString format = request.url().queryItemValue("format");
 
-    if (format == "ogg")
+    if (format == "ogv")
     {
       audioCodec = SAudioCodec("FLAC", SAudioFormat::Channels_Stereo, 48000);
       videoCodec = SVideoCodec("THEORA", videoFormat.size(), videoFormat.frameRate());
@@ -251,14 +251,14 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
                         QIODevice *socket,
                         STime position, STime duration,
                         const SAudioFormat &inputAudioFormat,
-                        bool musicPlaylist,
+                        bool enableNormalize,
                         SInterfaces::AudioEncoder::Flags audioEncodeFlags)
 {
   delete audio;
   audio = new Audio(this);
   connect(&audio->matrix, SIGNAL(output(SAudioBuffer)), &audio->resampler, SLOT(input(SAudioBuffer)));
 
-  if (musicPlaylist)
+  if (enableNormalize)
   {
     connect(&audio->resampler, SIGNAL(output(SAudioBuffer)), &audio->gapRemover, SLOT(input(SAudioBuffer)));
     connect(&audio->gapRemover, SIGNAL(output(SAudioBuffer)), &sync, SLOT(input(SAudioBuffer)));
@@ -338,7 +338,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
       audioCodec = SAudioCodec("MP3", SAudioFormat::Channels_Stereo, 44100);
       header.setContentType(SHttpEngine::mimeAudioMp3);
     }
-    else if (format == "ogg")
+    else if (format == "oga")
     {
       audioCodec = SAudioCodec("FLAC", SAudioFormat::Channels_Stereo, 48000);
       header.setContentType(SHttpEngine::mimeAudioOgg);
@@ -352,15 +352,6 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
     {
       audioCodec = SAudioCodec("PCM/S16LE", SAudioFormat::Channels_Stereo, 48000);
       header.setContentType(SHttpEngine::mimeAudioWave);
-    }
-    else if (format == "flv")
-    {
-      if (SAudioEncoderNode::codecs().contains("MP3"))
-        audioCodec = SAudioCodec("MP3", SAudioFormat::Channels_Stereo, 44100);
-      else
-        audioCodec = SAudioCodec("PCM/S16LE", SAudioFormat::Channels_Stereo, 44100);
-
-      header.setContentType(SHttpEngine::mimeVideoFlv);
     }
     else // Default to mpeg
     {
@@ -514,7 +505,7 @@ bool MediaTranscodeStream::setup(
     QIODevice *socket,
     SInputNode *input,
     STime duration,
-    bool musicPlaylist,
+    bool enableNormalize,
     SInterfaces::AudioEncoder::Flags audioEncodeFlags,
     SInterfaces::VideoEncoder::Flags videoEncodeFlags)
 {
@@ -569,9 +560,9 @@ bool MediaTranscodeStream::setup(
     }
 
     bool generateVideo = false;
-    if (request.url().queryItemValue("music") == "true")
+    if (videoStreams.isEmpty())
     {
-      const QString musicMode = request.url().queryItemValue("musicmode");
+      const QString musicMode = request.url().queryItemValue("addvideo");
       if (musicMode.startsWith("addvideo"))
       {
         SSize size(352, 288);
@@ -597,8 +588,6 @@ bool MediaTranscodeStream::setup(
         videoGenerator.setFrameRate(SInterval::fromFrequency(24));
         generateVideo = true;
       }
-      else if (musicMode == "removevideo")
-        videoStreams.clear();
     }
 
     // Set stream properties
@@ -608,11 +597,11 @@ bool MediaTranscodeStream::setup(
       const SVideoCodec videoInCodec = videoStreams.first().codec;
 
       if (MediaStream::setup(request, socket,
-                             input->position(), duration,
-                             SAudioFormat(SAudioFormat::Format_Invalid, audioInCodec.channelSetup(), audioInCodec.sampleRate()),
-                             SVideoFormat(SVideoFormat::Format_Invalid, videoInCodec.size(), videoInCodec.frameRate()),
-                             musicPlaylist,
-                             audioEncodeFlags, videoEncodeFlags))
+              input->position(), duration,
+              SAudioFormat(SAudioFormat::Format_Invalid, audioInCodec.channelSetup(), audioInCodec.sampleRate()),
+              SVideoFormat(SVideoFormat::Format_Invalid, videoInCodec.size(), videoInCodec.frameRate()),
+              false,
+              audioEncodeFlags, videoEncodeFlags))
       {
         // Audio
         connect(&audioDecoder, SIGNAL(output(SAudioBuffer)), &timeStampResampler, SLOT(input(SAudioBuffer)));
@@ -646,11 +635,11 @@ bool MediaTranscodeStream::setup(
       videoEncodeFlags |= SInterfaces::VideoEncoder::Flag_Fast;
 
       if (MediaStream::setup(request, socket,
-                             input->position(), duration,
-                             SAudioFormat(SAudioFormat::Format_Invalid, audioInCodec.channelSetup(), audioInCodec.sampleRate()),
-                             SVideoFormat(SVideoFormat::Format_Invalid, videoGenerator.image().size(), frameRate),
-                             musicPlaylist,
-                             audioEncodeFlags, videoEncodeFlags))
+              input->position(), duration,
+              SAudioFormat(SAudioFormat::Format_Invalid, audioInCodec.channelSetup(), audioInCodec.sampleRate()),
+              SVideoFormat(SVideoFormat::Format_Invalid, videoGenerator.image().size(), frameRate),
+              enableNormalize,
+              audioEncodeFlags, videoEncodeFlags))
       {
         // Audio
         connect(&audioDecoder, SIGNAL(output(SAudioBuffer)), &timeStampResampler, SLOT(input(SAudioBuffer)));
@@ -678,9 +667,9 @@ bool MediaTranscodeStream::setup(
       const SAudioCodec audioInCodec = audioStreams.first().codec;
 
       if (MediaStream::setup(request, socket,
-                             input->position(), duration,
-                             SAudioFormat(SAudioFormat::Format_Invalid, audioInCodec.channelSetup(), audioInCodec.sampleRate()),
-                             musicPlaylist))
+              input->position(), duration,
+              SAudioFormat(SAudioFormat::Format_Invalid, audioInCodec.channelSetup(), audioInCodec.sampleRate()),
+              enableNormalize))
       {
         connect(&audioDecoder, SIGNAL(output(SAudioBuffer)), &audio->matrix, SLOT(input(SAudioBuffer)));
 

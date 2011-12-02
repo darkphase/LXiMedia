@@ -25,7 +25,7 @@ namespace LXiMediaCenter {
 PluginSettings::PluginSettings(const QString &name)
                :QSettings(GlobalSettings::settingsFile(), QSettings::IniFormat)
 {
-  beginGroup(SStringParser::toRawName(name).toLower());
+  beginGroup(SStringParser::toCleanName(name).replace(" ", ""));
 }
 
 } // End of namespace

@@ -42,6 +42,8 @@ const Qt::CaseSensitivity MediaPlayerServer::caseSensitivity =
 #error Not implemented.
 #endif
 
+const QEvent::Type  MediaPlayerServer::responseEventType = QEvent::Type(QEvent::registerEventType());
+
 MediaPlayerServer::MediaPlayerServer(const QString &, QObject *parent)
   : MediaServer(parent),
     masterServer(NULL),
@@ -80,6 +82,134 @@ QString MediaPlayerServer::serverIconPath(void) const
   return "/img/media-tape.png";
 }
 
+SHttpServer::ResponseMessage MediaPlayerServer::httpRequest(const SHttpServer::RequestMessage &request, QIODevice *socket)
+{
+  if (request.isGet())
+  {
+    if (request.url().hasQueryItem("thumbnail"))
+    {
+      const QSize size = SSize::fromString(request.url().queryItemValue("thumbnail")).size();
+      QString defaultIcon = ":/img/null.png";
+      QByteArray content;
+
+      const FileNode node = mediaDatabase->readNode(realPath(request.file()));
+      if (!node.isNull())
+      {
+        if (!node.thumbnail().isNull())
+        {
+          SImage image = node.thumbnail();
+          if (!image.isNull())
+            image = image.scaled(size, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+
+          QImage result(size, QImage::Format_ARGB32);
+          QPainter p;
+          p.begin(&result);
+          p.setCompositionMode(QPainter::CompositionMode_Source); // Ignore alpha
+          p.fillRect(result.rect(), Qt::transparent);
+          p.setCompositionMode(QPainter::CompositionMode_SourceOver); // Process alpha
+          p.drawImage(
+              (result.width() / 2) - (image.width() / 2),
+              (result.height() / 2) - (image.height() / 2),
+              image);
+
+          if (request.url().hasQueryItem("overlay"))
+          {
+            QImage overlayImage(":/lximediacenter/images/" + request.url().queryItemValue("overlay") + ".png");
+            if (!overlayImage.isNull())
+            {
+              overlayImage = overlayImage.scaled(size / 2, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+
+              p.drawImage(
+                  (result.width() / 2) - (overlayImage.width() / 2),
+                  (result.height() / 2) - (overlayImage.height() / 2),
+                  overlayImage);
+            }
+          }
+
+          p.end();
+
+          QBuffer b(&content);
+          result.save(&b, "PNG");
+        }
+
+        switch (node.fileType())
+        {
+        case FileNode::ProbeInfo::FileType_None:  defaultIcon = ":/img/misc.png";           break;
+        case FileNode::ProbeInfo::FileType_Audio: defaultIcon = ":/img/audio-file.png";     break;
+        case FileNode::ProbeInfo::FileType_Video: defaultIcon = ":/img/video-file.png";     break;
+        case FileNode::ProbeInfo::FileType_Image: defaultIcon = ":/img/image-file.png";     break;
+        case FileNode::ProbeInfo::FileType_Disc:  defaultIcon = ":/img/media-optical.png";  break;
+        }
+      }
+
+      if (content.isEmpty())
+      {
+        QImage image(defaultIcon);
+        if (!image.isNull())
+        {
+          image = image.scaled(size, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+
+          QBuffer b(&content);
+          image.save(&b, "PNG");
+        }
+      }
+
+      if (!content.isEmpty())
+        return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_Ok, content, SHttpEngine::mimeImagePng);
+      else
+        return SSandboxServer::ResponseMessage(request, SHttpServer::Status_NotFound);
+    }
+    else if (request.url().hasQueryItem("save_settings"))
+    {
+      PluginSettings settings(Module::pluginName);
+      settings.setValue("SlideDuration", qBound(2500, request.url().queryItemValue("slideduration").toInt(), 60000));
+
+      SHttpServer::ResponseMessage response(request, SHttpServer::Status_MovedPermanently);
+      response.setField("Location", "http://" + request.host() + "/settings");
+      return response;
+    }
+    else if (request.url().hasQueryItem("folder_tree"))
+    {
+      QStringList paths = rootPaths.values();
+
+      const QString open = request.url().queryItemValue("open");
+      const QStringList allopen = !open.isEmpty()
+                                  ? QString::fromUtf8(qUncompress(QByteArray::fromHex(open.toAscii()))).split(dirSplit)
+                                  : QStringList();
+
+      const QString checkon = QString::fromUtf8(QByteArray::fromHex(request.url().queryItemValue("checkon").toAscii()));
+      const QString checkoff = QString::fromUtf8(QByteArray::fromHex(request.url().queryItemValue("checkoff").toAscii()));
+      if (!checkon.isEmpty() || !checkoff.isEmpty())
+      {
+        if (!checkon.isEmpty())
+          paths.append(checkon.endsWith('/') ? checkon : (checkon + '/'));
+
+        if (!checkoff.isEmpty())
+        for (QStringList::Iterator i=paths.begin(); i!=paths.end(); )
+        if (i->compare(checkoff, caseSensitivity) == 0)
+          i = paths.erase(i);
+        else
+          i++;
+
+        setRootPaths(paths);
+      }
+
+      HtmlParser htmlParser;
+      htmlParser.setField("SERVER_PATH", QUrl(serverPath()).toEncoded());
+      htmlParser.setField("DIRS", QByteArray(""));
+      generateDirs(htmlParser, driveInfoList.values(), 0, allopen, paths);
+
+      SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
+      response.setField("Cache-Control", "no-cache");
+      response.setContentType(SHttpEngine::mimeTextHtml);
+      response.setContent(htmlParser.parse(htmlSettingsDirTreeIndex));
+      return response;
+    }
+  }
+
+  return MediaServer::httpRequest(request, socket);
+}
+
 MediaPlayerServer::Stream * MediaPlayerServer::streamVideo(const SHttpServer::RequestMessage &request)
 {
   SSandboxClient::Priority priority = SSandboxClient::Priority_Normal;
@@ -97,7 +227,7 @@ MediaPlayerServer::Stream * MediaPlayerServer::streamVideo(const SHttpServer::Re
   {
     QUrl rurl;
     rurl.setPath(MediaPlayerSandbox::path);
-    rurl.addQueryItem("playfile", QString::null);
+    rurl.addQueryItem("play", QString::null);
     typedef QPair<QString, QString> QStringPair;
     foreach (const QStringPair &queryItem, request.url().queryItems())
       rurl.addQueryItem(queryItem.first, queryItem.second);
@@ -178,7 +308,14 @@ SHttpServer::ResponseMessage MediaPlayerServer::sendPhoto(const SHttpServer::Req
 int MediaPlayerServer::countItems(const QString &virtualPath)
 {
   if (virtualPath != serverPath())
-    return countAlbums(virtualPath) + mediaDatabase->countAlbumFiles(realPath(virtualPath));
+  {
+    int result = mediaDatabase->countAlbumFiles(realPath(virtualPath));
+    if (result > 1)
+      result++; // "Play all" item
+
+    result += countAlbums(virtualPath);
+    return result;
+  }
   else
     return rootPaths.count();
 }
@@ -194,8 +331,22 @@ QList<MediaPlayerServer::Item> MediaPlayerServer::listItems(const QString &virtu
     if (returnAll || (count > 0))
     {
       const QString path = realPath(virtualPath);
-      foreach (const FileNode &node, mediaDatabase->getAlbumFiles(path, start, count))
-        result.append(makeItem(node));
+      if (mediaDatabase->countAlbumFiles(path) > 1)
+      {
+        if (start == 0)
+        {
+          result += makePlayAllItem(virtualPath);
+          count--;
+        }
+        else
+          start--;
+      }
+
+      if (returnAll || (count > 0))
+      {
+        foreach (const FileNode &node, mediaDatabase->getAlbumFiles(path, start, count))
+          result.append(makeItem(node));
+      }
     }
 
     return result;
@@ -223,6 +374,18 @@ QList<MediaPlayerServer::Item> MediaPlayerServer::listItems(const QString &virtu
 MediaPlayerServer::Item MediaPlayerServer::getItem(const QString &virtualPath)
 {
   return makeItem(mediaDatabase->readNode(realPath(virtualPath)));
+}
+
+void MediaPlayerServer::customEvent(QEvent *e)
+{
+  if (e->type() == responseEventType)
+  {
+    ResponseEvent * const event = static_cast<ResponseEvent *>(e);
+
+    SSandboxServer::sendHttpResponse(event->request, event->response, event->socket, false);
+  }
+  else
+    MediaServer::customEvent(e);
 }
 
 bool MediaPlayerServer::isHidden(const QString &path)
@@ -382,15 +545,15 @@ MediaPlayerServer::Item MediaPlayerServer::makeItem(const FileNode &node)
   if (!node.isNull())
   {
     if (!node.audioStreams().isEmpty() && !node.videoStreams().isEmpty())
-      item.type = SUPnPContentDirectory::Item::Type_Video;
+      item.type = Item::Type_Video;
     else if (!node.audioStreams().isEmpty())
-      item.type = SUPnPContentDirectory::Item::Type_Audio;
+      item.type = Item::Type_Audio;
     else if (!node.imageCodec().isNull())
-      item.type = SUPnPContentDirectory::Item::Type_Image;
+      item.type = Item::Type_Image;
     else
-      item.type = SUPnPContentDirectory::Item::Type_None;
+      item.type = Item::Type_None;
   
-    if (item.type != SUPnPContentDirectory::Item::Type_None)
+    if (item.type != Item::Type_None)
     {
       item.played = mediaDatabase->lastPlayed(node.filePath()).isValid();
       item.path = virtualPath(node.filePath());
@@ -459,129 +622,38 @@ MediaPlayerServer::Item MediaPlayerServer::makeItem(const FileNode &node)
   return item;
 }
 
-SHttpServer::ResponseMessage MediaPlayerServer::httpRequest(const SHttpServer::RequestMessage &request, QIODevice *socket)
+MediaPlayerServer::Item MediaPlayerServer::makePlayAllItem(const QString &virtualPath)
 {
-  if (request.isGet())
-  {
-    if (request.url().hasQueryItem("thumbnail"))
-    {
-      const QSize size = SSize::fromString(request.url().queryItemValue("thumbnail")).size();
-      QString defaultIcon = ":/img/null.png";
+  const QString path = realPath(virtualPath);
+  const int numItems = mediaDatabase->countAlbumFiles(path);
 
-      const FileNode node = mediaDatabase->readNode(realPath(request.file()), size);
-      if (!node.isNull())
-      {
-        if (!node.thumbnail().isNull())
-        {
-          SImage image = node.thumbnail();
-          if (!image.isNull())
-            image = image.scaled(size, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+  Item item;
+  item.isDir = false;
+  item.path = virtualPath + ".all";
+  item.url = item.path;
+  item.iconUrl = "/img/arrow-right.png";
 
-          QImage result(size, QImage::Format_ARGB32);
-          QPainter p;
-          p.begin(&result);
-          p.setCompositionMode(QPainter::CompositionMode_Source); // Ignore alpha
-          p.fillRect(result.rect(), Qt::transparent);
-          p.setCompositionMode(QPainter::CompositionMode_SourceOver); // Process alpha
-          p.drawImage(
-              (result.width() / 2) - (image.width() / 2),
-              (result.height() / 2) - (image.height() / 2),
-              image);
+  int audio = 0, video = 0, image = 0;
+  foreach (const FileNode &node, mediaDatabase->getAlbumFiles(path, qMax(0, (numItems / 2) - 8), 16))
+  if (!node.audioStreams().isEmpty() && !node.videoStreams().isEmpty())
+    video++;
+  else if (!node.audioStreams().isEmpty())
+    audio++;
+  else if (!node.imageCodec().isNull())
+    image++;
 
-          if (request.url().hasQueryItem("overlay"))
-          {
-            QImage overlayImage(":/lximediacenter/images/" + request.url().queryItemValue("overlay") + ".png");
-            if (!overlayImage.isNull())
-            {
-              overlayImage = overlayImage.scaled(size / 2, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+  if ((audio > video) && (audio > image))
+    item.type = Item::Type_Audio;
+  else if ((video > audio) && (video > image))
+    item.type = Item::Type_Video;
+  else if ((image > audio) && (image > video))
+    item.type = Item::Type_Image;
+  else
+    item.type = Item::Type_Video;
 
-              p.drawImage(
-                  (result.width() / 2) - (overlayImage.width() / 2),
-                  (result.height() / 2) - (overlayImage.height() / 2),
-                  overlayImage);
-            }
-          }
+  item.title = (item.type == Item::Type_Image) ? tr("Slideshow") : tr("Play all");
 
-          p.end();
-
-          QBuffer b;
-          result.save(&b, "PNG");
-
-          return makeResponse(request, b.data(), SHttpEngine::mimeImagePng, true);
-        }
-
-        switch (node.fileType())
-        {
-        case FileNode::ProbeInfo::FileType_None:  defaultIcon = ":/img/misc.png";           break;
-        case FileNode::ProbeInfo::FileType_Audio: defaultIcon = ":/img/audio-file.png";     break;
-        case FileNode::ProbeInfo::FileType_Video: defaultIcon = ":/img/video-file.png";     break;
-        case FileNode::ProbeInfo::FileType_Image: defaultIcon = ":/img/image-file.png";     break;
-        case FileNode::ProbeInfo::FileType_Disc:  defaultIcon = ":/img/media-optical.png";  break;
-        }
-      }
-
-      QImage image(defaultIcon);
-      if (!image.isNull())
-      {
-        image = image.scaled(size, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-
-        QBuffer b;
-        image.save(&b, "PNG");
-
-        return makeResponse(request, b.data(), SHttpEngine::mimeImagePng, true);
-      }
-
-      return SHttpServer::ResponseMessage(request, SHttpServer::Status_NotFound);
-    }
-    else if (request.url().hasQueryItem("save_settings"))
-    {
-      PluginSettings settings(Module::pluginName);
-      settings.setValue("SlideDuration", qBound(2500, request.url().queryItemValue("slideduration").toInt(), 60000));
-
-      SHttpServer::ResponseMessage response(request, SHttpServer::Status_MovedPermanently);
-      response.setField("Location", "http://" + request.host() + "/settings");
-      return response;
-    }
-    else if (request.url().hasQueryItem("folder_tree"))
-    {
-      QStringList paths = rootPaths.values();
-
-      const QString open = request.url().queryItemValue("open");
-      const QStringList allopen = !open.isEmpty()
-                                  ? QString::fromUtf8(qUncompress(QByteArray::fromHex(open.toAscii()))).split(dirSplit)
-                                  : QStringList();
-
-      const QString checkon = QString::fromUtf8(QByteArray::fromHex(request.url().queryItemValue("checkon").toAscii()));
-      const QString checkoff = QString::fromUtf8(QByteArray::fromHex(request.url().queryItemValue("checkoff").toAscii()));
-      if (!checkon.isEmpty() || !checkoff.isEmpty())
-      {
-        if (!checkon.isEmpty())
-          paths.append(checkon.endsWith('/') ? checkon : (checkon + '/'));
-
-        if (!checkoff.isEmpty())
-        for (QStringList::Iterator i=paths.begin(); i!=paths.end(); )
-        if (i->compare(checkoff, caseSensitivity) == 0)
-          i = paths.erase(i);
-        else
-          i++;
-
-        setRootPaths(paths);
-      }
-
-      HtmlParser htmlParser;
-      htmlParser.setField("SERVER_PATH", QUrl(serverPath()).toEncoded());
-      htmlParser.setField("DIRS", QByteArray(""));
-      generateDirs(htmlParser, driveInfoList.values(), 0, allopen, paths);
-
-      SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
-      response.setField("Cache-Control", "no-cache");
-      response.setContentType(SHttpEngine::mimeTextHtml);
-      response.setContent(htmlParser.parse(htmlSettingsDirTreeIndex));
-      return response;
-    }
-  }
-
-  return MediaServer::httpRequest(request, socket);
+  return item;
 }
 
 void MediaPlayerServer::consoleLine(const QString &line)

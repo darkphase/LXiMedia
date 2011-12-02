@@ -26,6 +26,7 @@ namespace LXiMediaCenter {
 namespace MediaPlayerBackend {
 
 MediaDatabase     * MediaDatabase::self = NULL;
+const int           MediaDatabase::cacheSize = 4096;
 
 MediaDatabase * MediaDatabase::createInstance(BackendServer::MasterServer *masterServer)
 {
@@ -54,17 +55,46 @@ MediaDatabase::~MediaDatabase()
   delete probeSandbox;
 }
 
-FileNode MediaDatabase::readNode(const QString &filePath, const QSize &thumbSize) const
+FileNode MediaDatabase::readNode(const QString &filePath) const
 {
   if (!filePath.isEmpty())
   {
+    QMap<QString, QByteArray>::ConstIterator i = nodeCache.find(filePath);
+    if (i != nodeCache.end())
+    {
+      const FileNode node = FileNode::fromByteArray(*i);
+      if (QFileInfo(filePath).lastModified() <= node.lastModified())
+        return node;
+    }
+
     SSandboxClient::RequestMessage request(probeSandbox);
-    request.setRequest("POST", QByteArray(MediaPlayerSandbox::path) + "?probecontent=&thumbsize=" + SSize(thumbSize).toString().toAscii());
+    request.setRequest("POST", QByteArray(MediaPlayerSandbox::path) + "?probecontent=");
     request.setContent(filePath.toUtf8());
 
     const SHttpEngine::ResponseMessage response = probeSandbox->blockingRequest(request);
     if (response.status() == SHttpEngine::Status_Ok)
-      return FileNode::fromByteArray(response.content());
+    {
+      QString file = filePath;
+      file.squeeze();
+      QByteArray data = response.content();
+      data.squeeze();
+
+      QMap<QString, QByteArray>::Iterator i = nodeCache.find(filePath);
+      if (i != nodeCache.end())
+      {
+        *i = data;
+      }
+      else
+      {
+        i = nodeCache.insert(file, data);
+        cacheQueue.enqueue(file);
+      }
+
+      while (cacheQueue.size() > cacheSize)
+        nodeCache.remove(cacheQueue.dequeue());
+
+      return FileNode::fromByteArray(data);
+    }
   }
 
   return FileNode();
@@ -179,7 +209,7 @@ FileNodeList MediaDatabase::getAlbumFiles(const QString &filePath, unsigned star
     QByteArray probeFiles;
     int numProbeFiles = 0;
 
-    const QStringList files = dir.entryList(QDir::Files, QDir::Name);
+    const QStringList files = dir.entryList(QDir::Files, QDir::Name | QDir::IgnoreCase);
     for (int i=start, n=0; (i<files.count()) && (returnAll || (n<int(count))); i++, n++)
     {
       probeFiles += dir.cleanPath(dir.absoluteFilePath(files[i])).toUtf8() + '\n';

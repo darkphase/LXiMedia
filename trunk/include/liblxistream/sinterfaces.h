@@ -297,7 +297,6 @@ public:
       \param probeInfo          The ProbeInfo structure that needs to be filled
                                 with data.
       \param ioDevice           The QIODevice that is to be used to read data.
-      \param thumbSize          The preferred size of a thumbnail.
    */
   virtual void                  probeContent(ProbeInfo &probeInfo, QIODevice *ioDevice, const QSize &thumbSize) = 0;
 };

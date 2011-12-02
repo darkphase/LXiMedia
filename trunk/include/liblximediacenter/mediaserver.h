@@ -125,10 +125,10 @@ private: // From UPnPContentDirectory::Callback
   virtual SUPnPContentDirectory::Item getContentDirItem(const QString &client, const QString &path);
 
 private:
-  _lxi_internal static SAudioFormat audioFormatFor(const QString &client, const Item &item, int &addVideo);
+  _lxi_internal static SAudioFormat audioFormatFor(const QString &client, const Item &item, bool &addVideo);
   _lxi_internal static SVideoFormat videoFormatFor(const QString &client, const Item &item);
   _lxi_internal static void     processItem(const QString &client, Item &);
-  _lxi_internal static void     setQueryItemsFor(const QString &client, QUrl &);
+  _lxi_internal static void     setQueryItemsFor(const QString &client, QUrl &, bool isMusic);
   _lxi_internal void            addStream(Stream *);
   _lxi_internal void            removeStream(Stream *);
 

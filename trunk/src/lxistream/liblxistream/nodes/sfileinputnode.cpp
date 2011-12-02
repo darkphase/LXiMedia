@@ -54,6 +54,7 @@ void SFileInputNode::setFileName(const QString &fileName)
   d->mediaFile.close();
   d->mediaFile.setFileName(fileName);
 
+  if (!fileName.isEmpty())
   if (d->mediaFile.open(QFile::ReadOnly))
     SIOInputNode::setIODevice(&d->mediaFile);
 }

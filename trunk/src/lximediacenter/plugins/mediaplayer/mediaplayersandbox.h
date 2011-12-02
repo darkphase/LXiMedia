@@ -29,6 +29,25 @@ namespace MediaPlayerBackend {
 class MediaPlayerSandbox : public BackendSandbox
 {
 Q_OBJECT
+private:
+  class ResponseEvent : public QEvent
+  {
+  public:
+    inline ResponseEvent(
+        const SSandboxServer::RequestMessage &request,
+        const SHttpServer::ResponseMessage &response,
+        QIODevice *socket)
+      : QEvent(responseEventType),
+        request(request), response(response), socket(socket)
+    {
+    }
+
+  public:
+    const SSandboxServer::RequestHeader request;
+    SHttpServer::ResponseMessage response;
+    QIODevice           * const socket;
+  };
+
 public:
   explicit                      MediaPlayerSandbox(const QString &, QObject *parent = NULL);
 
@@ -38,17 +57,25 @@ public:
 public: // From SSandboxServer::Callback
   virtual SSandboxServer::ResponseMessage httpRequest(const SSandboxServer::RequestMessage &, QIODevice *);
 
+protected: // From QObject
+  virtual void                  customEvent(QEvent *);
+
 private slots:
   void                          cleanStreams(void);
 
 private:
-  static QByteArray             probeFormat(const QString &fileName);
-  static QByteArray             probeContent(const QString &fileName, const QSize &thumbSize);
+  static SMediaInfo::ProbeInfo::FileType probeFileType(const QString &fileName);
+  void                          probeFormat(const SSandboxServer::RequestMessage &request, QIODevice *);
+  static QByteArray             probeFileFormat(const QString &fileName);
+  void                          probeContent(const SSandboxServer::RequestMessage &request, QIODevice *);
+  static QByteArray             probeFileContent(const QString &fileName);
+  void                          readImage(const SSandboxServer::RequestMessage &request, QIODevice *);
 
 public:
   static const char     * const path;
 
 private:
+  static const QEvent::Type     responseEventType;
   SSandboxServer              * server;
   QList<MediaStream *>          streams;
   QTimer                        cleanStreamsTimer;
@@ -71,7 +98,7 @@ class SandboxPlaylistStream : public MediaTranscodeStream
 {
 Q_OBJECT
 public:
-  explicit                      SandboxPlaylistStream(const SMediaInfoList &files);
+  explicit                      SandboxPlaylistStream(const QStringList &files, SMediaInfo::ProbeInfo::FileType);
 
   bool                          setup(const SHttpServer::RequestMessage &, QIODevice *);
 
@@ -88,7 +115,7 @@ class SandboxSlideShowStream : public MediaStream
 {
 Q_OBJECT
 public:
-  explicit                      SandboxSlideShowStream(const SMediaInfoList &files);
+  explicit                      SandboxSlideShowStream(const QStringList &files);
 
   bool                          setup(const SHttpServer::RequestMessage &, QIODevice *);
 

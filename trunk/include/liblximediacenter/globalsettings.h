@@ -69,7 +69,7 @@ public:
   _lxi_pure static QList<TranscodeChannel> allTranscodeChannels(void);
   _lxi_pure static QString      defaultTranscodeChannelName(void);
   _lxi_pure static QString      defaultTranscodeMusicChannelName(void);
-  _lxi_pure static QString      defaultMusicModeName(void);
+  _lxi_pure static bool         defaultMusicAddBlackVideo(void);
 };
 
 } // End of namespace

@@ -31,7 +31,7 @@ class SAudioDecoderNode;
 class SVideoDecoderNode;
 class SDataDecoderNode;
 
-/*! This is a generic input node, reading to a QIODevice.
+/*! This is a generic input node, reading from a QIODevice.
  */
 class LXISTREAM_PUBLIC SInputNode : public SInterfaces::SourceNode,
                                     protected SInterfaces::AbstractBufferReader::ProduceCallback

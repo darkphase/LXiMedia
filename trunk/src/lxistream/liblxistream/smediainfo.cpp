@@ -236,7 +236,7 @@ void SMediaInfo::probeFormat(void)
   }
 }
 
-void SMediaInfo::probeContent(const QSize &thumbSize)
+void SMediaInfo::probeContent(void)
 {
   QFile file(pi->filePath);
   if (file.open(QFile::ReadOnly))
@@ -246,7 +246,7 @@ void SMediaInfo::probeContent(const QSize &thumbSize)
       if (!pi->isContentProbed)
       {
         file.seek(0);
-        prober->probeContent(*pi, &file, thumbSize);
+        prober->probeContent(*pi, &file, QSize(128, 128));
       }
 
       delete prober;

@@ -34,10 +34,10 @@ class LXISTREAM_PUBLIC SPlaylistNode : public SFileInputNode
 {
 Q_OBJECT
 public:
-  explicit                      SPlaylistNode(SGraph *, const SMediaInfoList &files);
+  explicit                      SPlaylistNode(SGraph *, const QStringList &files, SMediaInfo::ProbeInfo::FileType);
   virtual                       ~SPlaylistNode();
 
-  void                          setFiles(const SMediaInfoList &files);
+  void                          setFiles(const QStringList &files, SMediaInfo::ProbeInfo::FileType);
 
   virtual STime                 duration(void) const;
   virtual bool                  setPosition(STime);
