@@ -116,6 +116,7 @@ private:
   static const char             dirSplit;
   static const Qt::CaseSensitivity caseSensitivity;
   static const QEvent::Type     responseEventType;
+  static const int              maxSongDurationMin;
   MasterServer                * masterServer;
   MediaDatabase               * mediaDatabase;
 
