@@ -216,9 +216,12 @@ bool VideoResizer::processSlice(int strip, int stripPos, int stripHeight, const 
   const bool planar = destFormat.planarYUVRatio(wf, hf);
 
   const bool result = ::sws_scale(
-      swsContext[strip], src.line, src.stride,
+      swsContext[strip],
+      (uint8_t **)src.line,
+      (int *)src.stride,
       stripPos, stripHeight,
-      dst.line, dst.stride) >= 0;
+      (uint8_t **)dst.line,
+      (int *)dst.stride) >= 0;
 
   // Correct chroma lines on the top
   if ((strip == 0) && planar && result && destFormat.isYUV() && dst.line[1] && dst.line[2])
