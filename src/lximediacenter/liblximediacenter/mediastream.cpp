@@ -162,6 +162,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
     {
       audioCodec = SAudioCodec("FLAC", SAudioFormat::Channels_Stereo, 48000);
       videoCodec = SVideoCodec("THEORA", videoFormat.size(), videoFormat.frameRate());
+      format = "ogg";
       header.setContentType(SHttpEngine::mimeVideoOgg);
     }
     else if (format == "flv")
@@ -341,6 +342,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
     else if (format == "oga")
     {
       audioCodec = SAudioCodec("FLAC", SAudioFormat::Channels_Stereo, 48000);
+      format = "ogg";
       header.setContentType(SHttpEngine::mimeAudioOgg);
     }
     else if (format == "s16be")

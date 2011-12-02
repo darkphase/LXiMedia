@@ -59,7 +59,7 @@ void FFMpegTest::MediaFileInfoAudioDeep(void)
 void FFMpegTest::AudioEncodeDecode(void)
 {
   static const QSet<QString> skipCodecs = QSet<QString>()
-      << "AAC" << "ALAC" << "MP3" << "VORBIS" << "WMAV1" << "WMAV2"
+      << "AAC" << "ALAC" << "MP3" << "SONIC" << "VORBIS" << "WMAV1" << "WMAV2"
       << "PCM/S16LE" << "PCM/S16BE" << "PCM/U16LE" << "PCM/U16BE" << "PCM/S8"
       << "PCM/U8" << "PCM/MULAW" << "PCM/ALAW" << "PCM/S32LE" << "PCM/S32BE"
       << "PCM/U32LE" << "PCM/U32BE" << "PCM/S24LE" << "PCM/S24BE" << "PCM/U24LE"
