@@ -105,16 +105,18 @@ bool BufferReaderBase::start(SInterfaces::AbstractBufferReader::ProduceCallback 
       }
     }
 
-    if (hasVideo)
-    { // Determine the framerate
-      QList<Packet> readAheadBuffer;
-      bool prependBuffer = false;
-      for (int i=0, f=0; (i<maxBufferCount) && (f==0); i++)
+    QList<Packet> readAheadBuffer;
+    bool prependBuffer = false;
+    for (int i=0, f=0; (i<maxBufferCount) && (f==0); i++)
+    {
+      const Packet packet = read();
+      if (packet.streamIndex >= 0)
       {
-        const Packet packet = read();
-        if (packet.streamIndex >= 0)
+        if (packet.streamIndex < streamContext.count())
         {
-          if (packet.streamIndex < streamContext.count())
+          correctTimeStamp(packet);
+
+          if (hasVideo)
           {
             const ::AVStream * const stream = formatContext->streams[packet.streamIndex];
             StreamContext * const context = streamContext[packet.streamIndex];
@@ -157,87 +159,100 @@ bool BufferReaderBase::start(SInterfaces::AbstractBufferReader::ProduceCallback 
             }
           }
           else
-            break;
-        }
-
-        // Make sure a video buffer is first, to properly correct the timestamps.
-        if (prependBuffer)
-        {
-          readAheadBuffer.prepend(packet);
-          prependBuffer = false;
+          {
+            // Continue until all streams have been seen.
+            f = 1;
+            foreach (StreamContext *context, streamContext)
+            if (!context->lastTimeStamp.isValid())
+              f = 0;
+          }
         }
         else
-          readAheadBuffer.append(packet);
+          break;
       }
 
-      // And determine the framerate for each video stream          .
-      for (int i=0; i<streamContext.count(); i++)
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
-      if (formatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO)
-#else
-      if (formatContext->streams[i]->codec->codec_type == CODEC_TYPE_VIDEO)
-#endif
+      // Make sure a video buffer is first, to properly correct the timestamps.
+      if (prependBuffer)
       {
-        if (streamContext[i]->measurement.count() >= streamContext[i]->measurementSize)
+        readAheadBuffer.prepend(packet);
+        prependBuffer = false;
+      }
+      else
+        readAheadBuffer.append(packet);
+    }
+
+    // And determine the framerate for each video stream          .
+    if (hasVideo)
+    for (int i=0; i<streamContext.count(); i++)
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+    if (formatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO)
+#else
+    if (formatContext->streams[i]->codec->codec_type == CODEC_TYPE_VIDEO)
+#endif
+    {
+      if (streamContext[i]->measurement.count() >= streamContext[i]->measurementSize)
+      {
+        qSort(streamContext[i]->measurement);
+
+        // Get the frame intervals
+        QMap<qint64, QAtomicInt> intervals;
+        for (int j=1; j<streamContext[i]->measurementSize; j++)
+          intervals[(streamContext[i]->measurement[j] - streamContext[i]->measurement[j-1]).toUSec()].ref();
+
+        // Keep only the ones that reoccur
+        int maxCount = 0;
+        for (QMap<qint64, QAtomicInt>::Iterator j=intervals.begin(); j!=intervals.end(); j++)
+          maxCount = qMax(int(*j), maxCount);
+
+        for (QMap<qint64, QAtomicInt>::Iterator j=intervals.begin(); j!=intervals.end();)
+        if ((j.key() > 10000) && (j.key() < 100000) && (*j > (maxCount / 4)))
         {
-          qSort(streamContext[i]->measurement);
-
-          // Get the frame intervals
-          QMap<qint64, QAtomicInt> intervals;
-          for (int j=1; j<streamContext[i]->measurementSize; j++)
-            intervals[(streamContext[i]->measurement[j] - streamContext[i]->measurement[j-1]).toUSec()].ref();
-
-          // Keep only the ones that reoccur
-          int maxCount = 0;
-          for (QMap<qint64, QAtomicInt>::Iterator j=intervals.begin(); j!=intervals.end(); j++)
-            maxCount = qMax(int(*j), maxCount);
-
-          for (QMap<qint64, QAtomicInt>::Iterator j=intervals.begin(); j!=intervals.end();)
-          if ((j.key() > 10000) && (j.key() < 100000) && (*j > (maxCount / 4)))
-          {
-            if (*j > ((maxCount / 2) + (maxCount / 4)))
-              *j = maxCount;
-            else if (*j > ((maxCount / 3) + (maxCount / 4)))
-              *j = maxCount / 2;
-            else
-              *j = maxCount / 3;
-
-            j++;
-          }
+          if (*j > ((maxCount / 2) + (maxCount / 4)))
+            *j = maxCount;
+          else if (*j > ((maxCount / 3) + (maxCount / 4)))
+            *j = maxCount / 2;
           else
-            j = intervals.erase(j);
+            *j = maxCount / 3;
+
+          j++;
+        }
+        else
+          j = intervals.erase(j);
 
 //              for (QMap<qint64, QAtomicInt>::Iterator j=intervals.begin(); j!=intervals.end(); j++)
 //                qDebug() << "Interval" << j.key() << j.value();
 
-          if (!intervals.isEmpty())
+        if (!intervals.isEmpty())
+        {
+          qint64 sum = 0;
+          int count = 0;
+          for (QMap<qint64, QAtomicInt>::Iterator j=intervals.begin(); j!=intervals.end(); j++)
           {
-            qint64 sum = 0;
-            int count = 0;
-            for (QMap<qint64, QAtomicInt>::Iterator j=intervals.begin(); j!=intervals.end(); j++)
-            {
-              sum += j.key() * j.value();
-              count += j.value();
-            }
+            sum += j.key() * j.value();
+            count += j.value();
+          }
 
-            const SInterval refFrameRate = streamContext[i]->videoCodec.frameRate();
-            SInterval frameRate(sum, count * 1000000);
+          const SInterval refFrameRate = streamContext[i]->videoCodec.frameRate();
+          SInterval frameRate(sum, count * 1000000);
 
-            // Check if a 1/1, 1/2, 1/3 or 1/4 of the refFrameRate is a better match.
-            for (int j=1; j<=4; j++)
-            if (qAbs((refFrameRate.toFrequency() / j) - frameRate.toFrequency()) < 1.0)
-              frameRate = SInterval(refFrameRate.num() * j, refFrameRate.den());
+          // Check if a 1/1, 1/2, 1/3 or 1/4 of the refFrameRate is a better match.
+          for (int j=1; j<=4; j++)
+          if (qAbs((refFrameRate.toFrequency() / j) - frameRate.toFrequency()) < 1.0)
+            frameRate = SInterval(refFrameRate.num() * j, refFrameRate.den());
 
 //                qDebug() << "Framerate" << frameRate.toFrequency() << refFrameRate.toFrequency();
-            streamContext[i]->videoCodec.setFrameRate(frameRate.simplified());
-          }
+          streamContext[i]->videoCodec.setFrameRate(frameRate.simplified());
         }
-
-        streamContext[i]->measurement.clear();
       }
 
-      packetBuffer = readAheadBuffer;
+      streamContext[i]->measurement.clear();
     }
+
+    foreach (StreamContext *context, streamContext)
+    if (context->lastTimeStamp.isValid())
+      context->lastTimeStamp = STime::null;
+
+    packetBuffer = readAheadBuffer;
 
     return true;
   }
@@ -513,7 +528,7 @@ bool BufferReaderBase::setPosition(STime pos)
     {
       foreach (StreamContext *context, streamContext)
       if (context)
-        context->lastTimeStamp = STime();
+        context->lastTimeStamp = STime::null;
 
       return true;
     }
@@ -1015,17 +1030,20 @@ QPair<STime, STime> BufferReaderBase::correctTimeStamp(const Packet &packet)
 
   if (context->lastTimeStamp.isValid())
   {
-    const STime delta = baseTimeStamp - context->lastTimeStamp;
-    if (qAbs(delta) > maxJumpTime)
+    if (!context->lastTimeStamp.isNull())
     {
-      context->timeStampGap += delta;
-      baseTimeStamp -= delta;
+      const STime delta = baseTimeStamp - context->lastTimeStamp;
+      if (qAbs(delta) > maxJumpTime)
+      {
+        context->timeStampGap += delta;
+        baseTimeStamp -= delta;
 
-      if (decodingTimeStamp.isValid())
-        decodingTimeStamp -= delta;
+        if (decodingTimeStamp.isValid())
+          decodingTimeStamp -= delta;
 
-      if (presentationTimeStamp.isValid())
-        presentationTimeStamp -= delta;
+        if (presentationTimeStamp.isValid())
+          presentationTimeStamp -= delta;
+      }
     }
   }
   else

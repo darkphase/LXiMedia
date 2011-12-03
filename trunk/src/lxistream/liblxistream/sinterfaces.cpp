@@ -85,7 +85,7 @@ QString FormatProber::StreamId::toString(void) const
   if (type & Type_Flag_Native)
     h += "n";
 
-  return h + ("000" + QString::number(id, 16)).right(4);
+  return h + ("000" + QString::number(int(id), 16)).right(4);
 }
 
 FormatProber::StreamId FormatProber::StreamId::fromString(const QString &txt)

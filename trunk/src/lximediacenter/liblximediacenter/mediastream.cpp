@@ -106,7 +106,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
   header.setField("Cache-Control", "no-cache");
 
   // Match with DLNA profile
-  const QString contentFeatures = QByteArray::fromHex(request.url().queryItemValue("contentFeatures").toAscii());
+  const QString contentFeatures = QByteArray::fromBase64(request.url().queryItemValue("contentFeatures").toAscii());
   const MediaProfiles::VideoProfile videoProfile = MediaServer::mediaProfiles().videoProfileFor(contentFeatures);
   if (videoProfile != 0) // DLNA stream.
   {
@@ -286,7 +286,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
   header.setField("Cache-Control", "no-cache");
 
   // Match with DLNA profile
-  const QString contentFeatures = QByteArray::fromHex(request.url().queryItemValue("contentFeatures").toAscii());
+  const QString contentFeatures = QByteArray::fromBase64(request.url().queryItemValue("contentFeatures").toAscii());
   const MediaProfiles::AudioProfile audioProfile = MediaServer::mediaProfiles().audioProfileFor(contentFeatures);
   if (audioProfile != 0) // DLNA stream.
   {
@@ -517,8 +517,6 @@ bool MediaTranscodeStream::setup(
     QList<SInputNode::AudioStreamInfo> audioStreams = input->audioStreams();
     QList<SInputNode::VideoStreamInfo> videoStreams = input->videoStreams();
     QList<SInputNode::DataStreamInfo>  dataStreams  = input->dataStreams();
-
-    qDebug() << request.url().toString();
 
     QVector<SInputNode::StreamId> selectedStreams;
     if (request.url().hasQueryItem("language"))
