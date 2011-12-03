@@ -274,7 +274,7 @@ SHttpServer::ResponseMessage MediaPlayerServer::sendPhoto(const SHttpServer::Req
 
     QString contentType = "image/" + format.toLower();
 
-    const QString contentFeatures = QByteArray::fromHex(request.url().queryItemValue("contentFeatures").toAscii());
+    const QString contentFeatures = QByteArray::fromBase64(request.url().queryItemValue("contentFeatures").toAscii());
     const MediaProfiles::ImageProfile imageProfile = mediaProfiles().imageProfileFor(contentFeatures);
     if (imageProfile != 0) // DLNA stream.
     {

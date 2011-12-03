@@ -390,7 +390,7 @@ bool SUPnPContentDirectory::handleBrowse(const QDomElement &elem, QDomDocument &
       // Only select the items that were requested.
       for (int i=start, n=0; (i<items.count()) && ((count == 0) || (n<int(count))); i++, n++)
       {
-        const QStringList props = splitItemProps(itemProps[0] + '\t' + items[i]);
+        const QStringList props = splitItemProps(path + '\t' + items[i]);
         if (props[1] == "p")
           didlFile(subDoc, root, host, makePlayItem(item, props), path + '\t' + items[i]);
         else
@@ -563,7 +563,7 @@ void SUPnPContentDirectory::didlFile(QDomDocument &doc, QDomElement &root, const
     QUrl url = item.url;
     url.setScheme("http");
     url.setAuthority(host);
-    url.addQueryItem("contentFeatures", protocol.contentFeatures().toHex());
+    url.addQueryItem("contentFeatures", protocol.contentFeatures().toBase64());
 
     // Encode the filename
     resElm.appendChild(doc.createTextNode(toObjectURL(url, protocol.suffix)));
@@ -614,7 +614,7 @@ QStringList SUPnPContentDirectory::streamItems(const Item &item)
       for (int i=0; i<stream.queryItems.count(); i++)
         query += '&' + stream.queryItems[i].first + '=' + stream.queryItems[i].second;
 
-      result += ("r" + query + "#" + stream.title);
+      result += ('r' + query + '#' + stream.title);
     }
 
     return result;
@@ -696,7 +696,7 @@ SUPnPContentDirectory::Item SUPnPContentDirectory::makePlayItem(const Item &base
     item.title = itemProps[3];
 
   if (!itemProps[2].isEmpty())
-  foreach (const QString &qi, itemProps[2].split('&'))
+  foreach (const QString &qi, itemProps[2].split('&', QString::SkipEmptyParts))
   {
     const QStringList qil = qi.split('=');
     if (qil.count() == 2)
@@ -800,7 +800,6 @@ QByteArray SUPnPContentDirectory::toObjectURL(const QUrl &url, const QByteArray 
   newUrl.setAuthority(url.authority());
   return newUrl.toEncoded();
 #else
-  suffix;
   return url.toEncoded();
 #endif
 }

@@ -185,7 +185,7 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
     }
     else // Stream file
     {
-      const QString contentFeatures = QByteArray::fromHex(request.url().queryItemValue("contentFeatures").toAscii());
+      const QString contentFeatures = QByteArray::fromBase64(request.url().queryItemValue("contentFeatures").toAscii());
 
       if (!request.isHead())
       {
