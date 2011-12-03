@@ -65,7 +65,7 @@ public:
   quint8                      * lines(int rectId);
 
 private:
-  _lxi_internal static int      rectSize(const Rect &rect);
+  static int                    rectSize(const Rect &rect);
 
 private:
   // Ensure all these struct members are serializable.

@@ -48,7 +48,7 @@ public: // From SInterfaces::SourceNode
   virtual void                  stop(void);
 
 private slots:
-  _lxi_internal void            parseSubtitle(const SEncodedVideoBuffer &);
+  void                          parseSubtitle(const SEncodedVideoBuffer &);
 
 private:
   struct Data;

@@ -47,13 +47,13 @@ protected: // From SUPnPBase
   virtual SHttpServer::Status   handleSoapMessage(const QDomElement &, QDomDocument &, QDomElement &, const SHttpServer::RequestMessage &, const QHostAddress &);
 
 private:
-  _lxi_internal void            emitEvent(void);
+  void                          emitEvent(void);
 
 public:
   static const char             mediaReceiverRegistrarNS[];
 
 private:
-  _lxi_internal static const char datatypesNS[];
+  static const char             datatypesNS[];
 
   struct Data;
   Data                  * const d;

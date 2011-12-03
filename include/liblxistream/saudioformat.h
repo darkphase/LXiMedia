@@ -149,14 +149,14 @@ public:
   inline unsigned               numChannels(void) const                         { return numChannels(channelSetup()); }
   inline unsigned               sampleSize(void) const                          { return sampleSize(format()); }
 
-  _lxi_pure static unsigned     numChannels(Channels);
-  _lxi_pure static Channels     guessChannels(unsigned numChannels);
-  _lxi_pure static int          channelPos(Channels channelSetup, Channel channel);
-  _lxi_pure static unsigned     sampleSize(Format);
-  _lxi_pure static const char * formatName(Format);
-  _lxi_pure static const char * channelName(Channel);
-  _lxi_pure static QString      channelNames(Channels);
-  _lxi_pure static const char * channelSetupName(Channels);
+  static unsigned               numChannels(Channels);
+  static Channels               guessChannels(unsigned numChannels);
+  static int                    channelPos(Channels channelSetup, Channel channel);
+  static unsigned               sampleSize(Format);
+  static const char           * formatName(Format);
+  static const char           * channelName(Channel);
+  static QString                channelNames(Channels);
+  static const char           * channelSetupName(Channels);
 
 private:
   struct

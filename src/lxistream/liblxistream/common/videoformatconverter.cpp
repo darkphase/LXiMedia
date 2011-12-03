@@ -19,6 +19,7 @@
 
 #include "videoformatconverter.h"
 #include "../../algorithms/videoconvert.h"
+#include <lxivecintrin/vectypes>
 
 // Implemented in videoformatconverter.demosaic.c
 extern "C" void LXiStream_Common_VideoFormatConverter_demosaic_GRBG8(
@@ -61,7 +62,7 @@ bool VideoFormatConverterBase<_srcFormat, _dstFormat>::openFormat(const SVideoFo
 
 template <SVideoFormat::Format _srcFormat, SVideoFormat::Format _dstFormat>
 template <typename _srcType, typename _dstType>
-_lxi_always_inline QFuture<void> VideoFormatConverterBase<_srcFormat, _dstFormat>::convertSlice(
+lxivec_always_inline QFuture<void> VideoFormatConverterBase<_srcFormat, _dstFormat>::convertSlice(
     void(* func)(_dstType *, const _srcType *, int),
     const Buffers &buffers,
     int top, int bottom,
@@ -88,7 +89,7 @@ _lxi_always_inline QFuture<void> VideoFormatConverterBase<_srcFormat, _dstFormat
 
 template <SVideoFormat::Format _srcFormat, SVideoFormat::Format _dstFormat>
 template <typename _srcType, typename _dstType>
-_lxi_always_inline QFuture<void> VideoFormatConverterBase<_srcFormat, _dstFormat>::convertSlice(
+lxivec_always_inline QFuture<void> VideoFormatConverterBase<_srcFormat, _dstFormat>::convertSlice(
     void(* func)(_dstType *, const _srcType *, const _srcType *, const _srcType *, int),
     const Buffers &buffers,
     int top, int bottom,
@@ -135,7 +136,7 @@ _lxi_always_inline QFuture<void> VideoFormatConverterBase<_srcFormat, _dstFormat
 
 template <SVideoFormat::Format _srcFormat, SVideoFormat::Format _dstFormat>
 template <typename _srcType, typename _dstType>
-_lxi_always_inline QFuture<void> VideoFormatConverterBase<_srcFormat, _dstFormat>::convertSlice(
+lxivec_always_inline QFuture<void> VideoFormatConverterBase<_srcFormat, _dstFormat>::convertSlice(
     void(* func)(_dstType *, _dstType *, _dstType *, const _srcType *, int),
     const Buffers &buffers,
     int top, int bottom,
@@ -162,10 +163,10 @@ _lxi_always_inline QFuture<void> VideoFormatConverterBase<_srcFormat, _dstFormat
     {
       LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
 
-      _dstType _lxi_align ulinea[buffers->width / 2];
-      _dstType _lxi_align vlinea[buffers->width / 2];
-      _dstType _lxi_align ulineb[buffers->width / 2];
-      _dstType _lxi_align vlineb[buffers->width / 2];
+      _dstType lxivec_align ulinea[lxivec_salloc(buffers->width / 2, 4096)];
+      _dstType lxivec_align vlinea[lxivec_salloc(buffers->width / 2, 4096)];
+      _dstType lxivec_align ulineb[lxivec_salloc(buffers->width / 2, 4096)];
+      _dstType lxivec_align vlineb[lxivec_salloc(buffers->width / 2, 4096)];
 
       for (int y=top; y<bottom; y+=2)
       {
@@ -201,7 +202,7 @@ _lxi_always_inline QFuture<void> VideoFormatConverterBase<_srcFormat, _dstFormat
 
 template <SVideoFormat::Format _srcFormat, SVideoFormat::Format _dstFormat>
 template <typename _funcType>
-_lxi_always_inline SVideoBuffer VideoFormatConverterBase<_srcFormat, _dstFormat>::convert(
+lxivec_always_inline SVideoBuffer VideoFormatConverterBase<_srcFormat, _dstFormat>::convert(
     _funcType func,
     const SVideoBuffer &srcBuffer,
     int subsample)

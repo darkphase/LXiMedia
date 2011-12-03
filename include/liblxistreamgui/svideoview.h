@@ -44,7 +44,7 @@ protected:
   void                          blitVideo(void);
 
 private:
-  _lxi_internal void            setSource(SVideoView *);
+  void                          setSource(SVideoView *);
 
 private:
   struct Private;

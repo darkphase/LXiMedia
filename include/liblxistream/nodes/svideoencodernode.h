@@ -57,7 +57,7 @@ signals:
   void                          output(const SEncodedVideoBuffer &);
 
 private:
-  _lxi_internal const SInterfaces::VideoEncoder * encoder(void) const;
+  const SInterfaces::VideoEncoder * encoder(void) const;
 
 private:
   struct Data;

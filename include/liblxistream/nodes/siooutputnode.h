@@ -70,11 +70,11 @@ protected: // From SInterfaces::BufferReader::WriteCallback
   virtual qint64                seek(qint64, int);
 
 private:
-  _lxi_internal SInterfaces::BufferWriter * bufferWriter(void);
-  _lxi_internal void            blockUntil(STime);
+  SInterfaces::BufferWriter   * bufferWriter(void);
+  void                          blockUntil(STime);
 
 private slots:
-  _lxi_internal void            close(void);
+  void                          close(void);
 
 public:
   static const int              outBufferSize;

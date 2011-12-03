@@ -65,7 +65,7 @@ public:
   static const char             dlnaDeviceNS[];
 
 private:
-  _lxi_internal static const char deviceType[];
+  static const char             deviceType[];
 
   struct Data;
   Data                  * const d;

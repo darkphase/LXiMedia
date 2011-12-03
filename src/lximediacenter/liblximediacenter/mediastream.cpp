@@ -518,6 +518,8 @@ bool MediaTranscodeStream::setup(
     QList<SInputNode::VideoStreamInfo> videoStreams = input->videoStreams();
     QList<SInputNode::DataStreamInfo>  dataStreams  = input->dataStreams();
 
+    qDebug() << request.url().toString();
+
     QVector<SInputNode::StreamId> selectedStreams;
     if (request.url().hasQueryItem("language"))
       selectedStreams += SInputNode::StreamId::fromString(request.url().queryItemValue("language"));

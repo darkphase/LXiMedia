@@ -57,7 +57,7 @@ signals:
   void                          output(const SEncodedAudioBuffer &);
 
 private:
-  _lxi_internal const SInterfaces::AudioEncoder * encoder(void) const;
+  const SInterfaces::AudioEncoder * encoder(void) const;
 
 private:
   struct Data;

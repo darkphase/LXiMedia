@@ -36,6 +36,8 @@ struct STimeStampResamplerNode::Data
   QList<STime>                  outputOffset;
 };
 
+const int STimeStampResamplerNode::numChannels = 4;
+
 STimeStampResamplerNode::STimeStampResamplerNode(SGraph *parent)
   : SInterfaces::Node(parent),
     d(new Data())

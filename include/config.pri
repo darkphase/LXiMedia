@@ -58,6 +58,13 @@ unix|win32-g++ {
   QMAKE_CFLAGS += -O3 -ffast-math
 }
 
+win32-g++ {
+  # Required for 32-bit Windows/MingW to prevent crashing SSE code on unaligned
+  # stack data.
+  QMAKE_CXXFLAGS += -mstackrealign
+  QMAKE_CFLAGS += -mstackrealign
+}
+
 # Debug information is added in release to make stack tracing possible.
 win32-g++ {
   !contains(QMAKE_CXXFLAGS_RELEASE, -g) {

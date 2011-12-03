@@ -158,7 +158,7 @@ protected:
   static void                   copy(char *dst, const char *src, int size);
 
 private:
-  _lxi_internal static QAtomicInt uidCounter;
+  static QAtomicInt             uidCounter;
 
   MemoryPtr                     d;
 };

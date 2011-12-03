@@ -51,9 +51,9 @@ protected: // From SUPnPBase
   virtual SHttpServer::Status   handleSoapMessage(const QDomElement &, QDomDocument &, QDomElement &, const SHttpServer::RequestMessage &, const QHostAddress &);
 
 private:
-  _lxi_internal void            emitEvent(void);
-  _lxi_internal QByteArray      listSourceProtocols(void) const;
-  _lxi_internal QByteArray      listSinkProtocols(void) const;
+  void                          emitEvent(void);
+  QByteArray                    listSourceProtocols(void) const;
+  QByteArray                    listSinkProtocols(void) const;
 
 public:
   static const char             connectionManagerNS[];

@@ -53,23 +53,23 @@ public:
                                 GlobalSettings(void);
 
 public:
-  _lxi_pure static QList<QHostAddress> defaultBackendInterfaces(void);
-  _lxi_pure static quint16      defaultBackendHttpPort(void);
-  _lxi_pure static QString      defaultDeviceName(void);
+  static QList<QHostAddress>    defaultBackendInterfaces(void);
+  static quint16                defaultBackendHttpPort(void);
+  static QString                defaultDeviceName(void);
 
-  _lxi_pure static QUuid        serverUuid(void);
-  _lxi_pure static QString      settingsFile(void);
-  _lxi_pure static QString      databaseFile(void);
-  _lxi_pure static QString      applicationDataDir(void);
+  static QUuid                  serverUuid(void);
+  static QString                settingsFile(void);
+  static QString                databaseFile(void);
+  static QString                applicationDataDir(void);
 
-  _lxi_pure static QList<TranscodeSize> allTranscodeSizes(void);
-  _lxi_pure static QString      defaultTranscodeSizeName(void);
-  _lxi_pure static QString      defaultTranscodeCropName(void);
-  _lxi_pure static QString      defaultEncodeModeName(void);
-  _lxi_pure static QList<TranscodeChannel> allTranscodeChannels(void);
-  _lxi_pure static QString      defaultTranscodeChannelName(void);
-  _lxi_pure static QString      defaultTranscodeMusicChannelName(void);
-  _lxi_pure static bool         defaultMusicAddBlackVideo(void);
+  static QList<TranscodeSize>   allTranscodeSizes(void);
+  static QString                defaultTranscodeSizeName(void);
+  static QString                defaultTranscodeCropName(void);
+  static QString                defaultEncodeModeName(void);
+  static QList<TranscodeChannel> allTranscodeChannels(void);
+  static QString                defaultTranscodeChannelName(void);
+  static QString                defaultTranscodeMusicChannelName(void);
+  static bool                   defaultMusicAddBlackVideo(void);
 };
 
 } // End of namespace

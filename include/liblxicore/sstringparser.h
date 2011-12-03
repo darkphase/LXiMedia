@@ -21,7 +21,6 @@
 #define LXICORE_SSTRINGPARSER_H
 
 #include <QtCore>
-#include "splatform.h"
 #include "export.h"
 
 namespace LXiCore {

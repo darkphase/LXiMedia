@@ -57,8 +57,8 @@ protected: // From QThread and QObject
   virtual void                  customEvent(QEvent *);
 
 private:
-  _lxi_internal bool            startNodes(void);
-  _lxi_internal void            stopNodes(void);
+  bool                          startNodes(void);
+  void                          stopNodes(void);
 
 private:
   struct Data;

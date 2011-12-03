@@ -102,8 +102,8 @@ public:
   virtual void                  initialize(MasterServer *);
   virtual void                  close(void);
 
-  _lxi_pure static MediaProfiles & mediaProfiles(void);
-  _lxi_pure static QSet<QString> & activeClients(void);
+  static MediaProfiles        & mediaProfiles(void);
+  static QSet<QString>        & activeClients(void);
 
 protected:
   virtual Stream              * streamVideo(const SHttpServer::RequestMessage &) = 0;
@@ -125,17 +125,17 @@ private: // From UPnPContentDirectory::Callback
   virtual SUPnPContentDirectory::Item getContentDirItem(const QString &client, const QString &path);
 
 private:
-  _lxi_internal static SAudioFormat audioFormatFor(const QString &client, const Item &item, bool &addVideo);
-  _lxi_internal static SVideoFormat videoFormatFor(const QString &client, const Item &item);
-  _lxi_internal static void     processItem(const QString &client, Item &);
-  _lxi_internal static void     setQueryItemsFor(const QString &client, QUrl &, bool isMusic);
-  _lxi_internal void            addStream(Stream *);
-  _lxi_internal void            removeStream(Stream *);
+  static SAudioFormat           audioFormatFor(const QString &client, const Item &item, bool &addVideo);
+  static SVideoFormat           videoFormatFor(const QString &client, const Item &item);
+  static void                   processItem(const QString &client, Item &);
+  static void                   setQueryItemsFor(const QString &client, QUrl &, bool isMusic);
+  void                          addStream(Stream *);
+  void                          removeStream(Stream *);
 
 public:
-  _lxi_internal static const qint32 defaultDirSortOrder;
-  _lxi_internal static const qint32 defaultFileSortOrder;
-  _lxi_internal static const int seekBySecs;
+  static const qint32           defaultDirSortOrder;
+  static const qint32           defaultFileSortOrder;
+  static const int              seekBySecs;
 
 private:
   struct Data;

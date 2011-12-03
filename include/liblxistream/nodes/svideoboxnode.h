@@ -52,7 +52,7 @@ signals:
   void                          output(const SVideoBuffer &);
 
 private:
-  _lxi_internal static void     boxSlice(SVideoBuffer *, const SVideoBuffer *, int, int);
+  static void                   boxSlice(SVideoBuffer *, const SVideoBuffer *, int, int);
 
 private:
   struct Data;

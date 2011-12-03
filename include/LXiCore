@@ -10,14 +10,9 @@
 #include "liblxicore/sfactory.h"
 #include "liblxicore/smemorypool.h"
 #include "liblxicore/smodule.h"
-#include "liblxicore/splatform.h"
 #include "liblxicore/sstringparser.h"
 
 using namespace LXiCore;
-
-#else
-
-#include "liblxicore/splatform.h"
 
 #endif
 

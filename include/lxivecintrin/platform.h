@@ -55,6 +55,7 @@ namespace lxivec {
 #undef lxivec_always_inline
 #undef lxivec_packed
 #undef lxivec_align
+#undef lxivec_salloc
 
 #if defined(__unix__) && defined(__GNUC__)
 # define lxivec_always_inline     inline __attribute__((always_inline))
@@ -64,6 +65,7 @@ namespace lxivec {
 # else
 #  define lxivec_align            __attribute__((aligned(4)))
 # endif
+# define lxivec_salloc(dyn, stat) (dyn)
 
 #elif defined(__APPLE__) && defined(__GNUC__)
 # define lxivec_always_inline     inline __attribute__((always_inline))
@@ -73,6 +75,7 @@ namespace lxivec {
 # else
 #  define lxivec_align            __attribute__((aligned(4)))
 # endif
+# define lxivec_salloc(dyn, stat) (dyn)
 
 #elif defined(WIN32) && defined(__GNUC__)
 # define lxivec_always_inline     inline __attribute__((always_inline))
@@ -82,6 +85,7 @@ namespace lxivec {
 # else
 #  define lxivec_align            __attribute__((aligned(4)))
 # endif
+# define lxivec_salloc(dyn, stat) (stat) // dyn causes internal compiler error.
 
 #elif defined(WIN32) && defined(_MSC_VER)
 # define lxivec_always_inline     __forceinline
@@ -91,6 +95,7 @@ namespace lxivec {
 # else
 #  define lxivec_align            __declspec(align(4))
 # endif
+# define lxivec_salloc(dyn, stat) (stat)
 
 #else
 # error Platform not supported

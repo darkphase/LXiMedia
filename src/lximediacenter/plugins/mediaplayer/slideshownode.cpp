@@ -85,22 +85,13 @@ bool SlideShowNode::start(void)
   baseImage = SVideoGeneratorNode::drawCorneredImage(outSize);
 
   // Create a black video buffer
-  lastBuffer = blackBuffer();
+  lastBuffer = baseImage;
 
   currentPicture = 0;
   currentFrame = 0;
 
-  while (currentPicture < files.count())
-  {
-    const QString fileName = files[currentPicture++];
-    if (SMediaInfo(fileName).fileType() == SMediaInfo::ProbeInfo::FileType_Image)
-    {
-      loadFuture = QtConcurrent::run(this, &SlideShowNode::loadImage, fileName);
-      return true;
-    }
-  }
+  loadFuture = QtConcurrent::run(this, &SlideShowNode::loadNextImage);
 
-  currentPicture = -1;
   return true;
 }
 
@@ -114,7 +105,7 @@ void SlideShowNode::stop(void)
   nextBuffer.clear();
 
   time = STime::null;
-  currentPicture = -1;
+  currentPicture = -2;
   currentFrame = -1;
 }
 
@@ -124,30 +115,17 @@ bool SlideShowNode::process(void)
 
   if (currentFrame == 0)
   {
+    loadFuture.waitForFinished();
+
     if (currentPicture >= 0)
     {
-      loadFuture.waitForFinished();
       currentBuffer = nextBuffer;
-
-      // Start loading next
-      bool loading = false;
-      while (!loading && (currentPicture < files.count()))
-      {
-        const QString fileName = files[currentPicture++];
-        if (SMediaInfo(fileName).fileType() == SMediaInfo::ProbeInfo::FileType_Image)
-        {
-          loadFuture = QtConcurrent::run(this, &SlideShowNode::loadImage, fileName);
-          loading = true;
-        }
-      }
-
-      if (!loading && (currentPicture == files.count()))
-      {
-        nextBuffer = blackBuffer();
-        currentPicture++;
-      }
-      else if (!loading)
-        currentPicture = -1;
+      loadFuture = QtConcurrent::run(this, &SlideShowNode::loadNextImage);
+    }
+    else if (currentPicture == -1)
+    {
+      currentBuffer = nextBuffer;
+      currentPicture = -2;
     }
     else
     {
@@ -178,30 +156,40 @@ bool SlideShowNode::process(void)
   return false;
 }
 
-void SlideShowNode::loadImage(const QString &fileName)
+void SlideShowNode::loadNextImage(void)
 {
   LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
 
   const float ar = outSize.aspectRatio();
-  const QSize baseSize(int(baseImage.width() * ar), baseImage.height());
+  const QSize baseSize = outSize.absoluteSize();
 
-  SImage img = baseImage;
-
-  QPainter p;
-  p.begin(&img);
-    SImage src(fileName, baseSize);
+  while (currentPicture < files.count())
+  {
+    SImage src(files[currentPicture++], baseSize);
     if (!src.isNull())
     {
-      QSize size = src.size().size();
-      size.scale(baseSize, Qt::KeepAspectRatio);
-      src = src.scaled(int(size.width() / ar), size.height(), Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
-      p.drawImage((img.width() / 2) - (src.width() / 2),
-                  (img.height() / 2) - (src.height() / 2),
-                  src);
-    }
-  p.end();
+      SImage img = baseImage;
 
-  nextBuffer = img.toVideoBuffer(SInterval::fromFrequency(frameRate));
+      QPainter p;
+      p.begin(&img);
+        QSize size = src.size().size();
+        size.scale(baseSize, Qt::KeepAspectRatio);
+
+        const QImage srcs =
+            src.scaled(int(size.width() / ar), size.height(), Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+
+        p.drawImage((img.width() / 2) - (srcs.width() / 2),
+                    (img.height() / 2) - (srcs.height() / 2),
+                    srcs);
+      p.end();
+
+      nextBuffer = img.toVideoBuffer(SInterval::fromFrequency(frameRate));
+      return;
+    }
+  }
+
+  currentPicture = -1;
+  nextBuffer = baseImage;
 }
 
 void SlideShowNode::computeVideoBuffer(const SVideoBuffer &a, const SVideoBuffer &b, int fade)
@@ -231,18 +219,6 @@ void SlideShowNode::computeVideoBuffer(const SVideoBuffer &a, const SVideoBuffer
   emit output(audioBuffer);
 
   time += STime(1, SInterval::fromFrequency(frameRate));
-}
-
-SVideoBuffer SlideShowNode::blackBuffer(void) const
-{
-  SImage img(outSize, QImage::Format_RGB32);
-
-  QPainter p;
-  p.begin(&img);
-    p.fillRect(img.rect(), Qt::black);
-  p.end();
-
-  return img.toVideoBuffer(SInterval::fromFrequency(frameRate));
 }
 
 } } // End of namespaces

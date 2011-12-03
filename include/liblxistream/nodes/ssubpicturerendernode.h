@@ -49,7 +49,7 @@ signals:
   void                          output(const SVideoBuffer &);
 
 private:
-  _lxi_internal static void     buildPalette(const SPixels::RGBAPixel *, unsigned, SVideoFormat::Format, QByteArray &);
+  static void                   buildPalette(const SPixels::RGBAPixel *, unsigned, SVideoFormat::Format, QByteArray &);
 
 private:
   struct Data;
