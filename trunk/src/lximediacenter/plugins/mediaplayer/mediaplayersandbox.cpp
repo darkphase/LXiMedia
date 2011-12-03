@@ -89,7 +89,7 @@ SSandboxServer::ResponseMessage MediaPlayerSandbox::httpRequest(const SSandboxSe
             files += dir.absoluteFilePath(file);
 
           QList< QFuture<SMediaInfo::ProbeInfo::FileType> > futures;
-          for (int i=qMax(0, (files.count() / 2) - 8), n=qMin(i+16, files.count()); i<n; i++)
+          for (int i=qMax(0, (files.count() / 2) - 4), n=qMin(i+8, files.count()); i<n; i++)
             futures += QtConcurrent::run(&MediaPlayerSandbox::probeFileType, files[i]);
 
           int audio = 0, video = 0, image = 0;

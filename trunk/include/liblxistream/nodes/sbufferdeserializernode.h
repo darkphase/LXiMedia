@@ -50,9 +50,9 @@ signals:
   void                          finished(void);
 
 private:
-  _lxi_internal static bool     read(QIODevice *, char *, unsigned);
+  static bool                   read(QIODevice *, char *, unsigned);
   template <class _buffer>
-  _lxi_internal void            deserialize(void);
+  void                          deserialize(void);
 
 private:
   struct Data;

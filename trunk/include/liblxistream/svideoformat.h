@@ -105,11 +105,11 @@ public:
   static inline bool            isYUV(Format f)                                 { return (f >= 0x2100) && (f < 0x2200); }
   static inline bool            isBayerArray(Format f)                          { return (f >= 0x2200) && (f < 0x2300); }
 
-  _lxi_pure static int          sampleSize(Format);
-  _lxi_pure static int          numPlanes(Format);
+  static int                    sampleSize(Format);
+  static int                    numPlanes(Format);
   static bool                   planarYUVRatio(Format, int &w, int &h);
-  _lxi_pure static quint32      nullPixelValue(Format);
-  _lxi_pure static const char * formatName(Format);
+  static quint32                nullPixelValue(Format);
+  static const char           * formatName(Format);
 
 private:
   // Ensure all these struct members are serializable.

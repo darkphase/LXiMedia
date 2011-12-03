@@ -208,18 +208,20 @@ SAudioBufferList AudioDecoder::decodeBuffer(const SEncodedAudioBuffer &audioBuff
       if (qAbs(timeStamp - currentTime).toMSec() > defaultBufferLen)
         timeStamp = currentTime;
 
-      _lxi_align qint16 tempBuffer[(AVCODEC_MAX_AUDIO_FRAME_SIZE + FF_INPUT_BUFFER_PADDING_SIZE) / sizeof(int16_t)];
+      qint16 tempu[(AVCODEC_MAX_AUDIO_FRAME_SIZE + FF_INPUT_BUFFER_PADDING_SIZE + SBuffer::optimalAlignVal) / sizeof(int16_t)];
+      qint16 * const temp = SBuffer::align(tempu, SBuffer::optimalAlignVal);
+
       while (inSize > 0)
       {
         // decode the audio
-        int outSize = sizeof(tempBuffer);
+        int outSize = AVCODEC_MAX_AUDIO_FRAME_SIZE;
 
 #if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(52, 72, 0)
-        const int len = ::avcodec_decode_audio2(contextHandle, tempBuffer, &outSize, (quint8 *)inPtr, inSize);
+        const int len = ::avcodec_decode_audio2(contextHandle, temp, &outSize, (quint8 *)inPtr, inSize);
 #else
         packet.data = (uint8_t *)inPtr;
         packet.size = inSize;
-        const int len = ::avcodec_decode_audio3(contextHandle, tempBuffer, &outSize, &packet);
+        const int len = ::avcodec_decode_audio3(contextHandle, temp, &outSize, &packet);
 #endif
 
         if (len >= 0)
@@ -243,7 +245,7 @@ SAudioBufferList AudioDecoder::decodeBuffer(const SEncodedAudioBuffer &audioBuff
 
               postFilter(
                   reinterpret_cast<qint16 *>(destBuffer.data()),
-                  tempBuffer + ((i * sampleSize) / sizeof(*tempBuffer)),
+                  temp + ((i * sampleSize) / sizeof(qint16)),
                   numSamples * sampleSize,
                   outFormat.numChannels());
 

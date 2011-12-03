@@ -52,9 +52,8 @@ signals:
   void                          finished(void);
 
 private:
-  void                          loadImage(const QString &);
+  void                          loadNextImage(void);
   void                          computeVideoBuffer(const SVideoBuffer &, const SVideoBuffer &, int);
-  SVideoBuffer                  blackBuffer(void) const;
 
 public:
   static const int              frameRate = 24;
@@ -66,7 +65,7 @@ private:
   int                           slideFrameCount;
   SAudioBuffer                  audioBuffer;
   STime                         time;
-  int                           currentPicture;
+  volatile int                  currentPicture;
   int                           currentFrame;
   SImage                        baseImage;
   SVideoBuffer                  lastBuffer, currentBuffer, nextBuffer;

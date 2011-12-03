@@ -66,11 +66,11 @@ protected:
   virtual void                  socketDestroyed(void);
 
 private slots:
-  _lxi_internal void            startProcess(void);
-  _lxi_internal void            processStarted(const QString &);
-  _lxi_internal void            openRequest(void);
-  _lxi_internal void            stop(void);
-  _lxi_internal void            finished(QProcess::ExitStatus);
+  void                          startProcess(void);
+  void                          processStarted(const QString &);
+  void                          openRequest(void);
+  void                          stop(void);
+  void                          finished(QProcess::ExitStatus);
 
 private:
   struct Data;

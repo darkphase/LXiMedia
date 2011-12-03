@@ -51,11 +51,11 @@ signals:
   void                          closed(void);
 
 private slots:
-  _lxi_internal void            close(void);
+  void                          close(void);
 
 private:
   template <class _buffer>
-  _lxi_internal void            serialize(const _buffer &, quint32 bufferId);
+  void                          serialize(const _buffer &, quint32 bufferId);
 
 private:
   struct Data;

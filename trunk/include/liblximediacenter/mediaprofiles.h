@@ -143,19 +143,19 @@ public:
   static const char           * suffixFor(ImageProfile);
 
 private:
-  _lxi_internal static int      profilePriority(AudioProfile);
-  _lxi_internal static int      profilePriority(VideoProfile);
-  _lxi_internal static int      profilePriority(ImageProfile);
+  static int                    profilePriority(AudioProfile);
+  static int                    profilePriority(VideoProfile);
+  static int                    profilePriority(ImageProfile);
 
-  _lxi_internal QString         findBestClient(const QString &);
+  QString                       findBestClient(const QString &);
 
-  _lxi_internal static int      correctFormatStereo(SAudioFormat &);
-  _lxi_internal static int      correctFormatSurround51(SAudioFormat &);
-  _lxi_internal static int      correctFormatSurround71(SAudioFormat &);
+  static int                    correctFormatStereo(SAudioFormat &);
+  static int                    correctFormatSurround51(SAudioFormat &);
+  static int                    correctFormatSurround71(SAudioFormat &);
 
-  _lxi_internal static QByteArray profileName(AudioProfile);
-  _lxi_internal static QByteArray profileName(VideoProfile);
-  _lxi_internal static QByteArray profileName(ImageProfile);
+  static QByteArray             profileName(AudioProfile);
+  static QByteArray             profileName(VideoProfile);
+  static QByteArray             profileName(ImageProfile);
 
 private:
   struct Data;

@@ -40,11 +40,14 @@ namespace SPixels {
 #define EXTC
 #endif
 
-#ifdef _MSC_VER
-#pragma pack(1)
+#if defined(__GNUC__)
+# define packed __attribute__((packed))
+#elif defined(_MSC_VER)
+# pragma pack(1)
+# define packed
 #endif
 
-typedef union { struct _lxi_packed { uint8_t b, g, r, a; }; OP32 } RGBAPixel;
+typedef union { struct packed { uint8_t b, g, r, a; }; OP32 } RGBAPixel;
   
 static const RGBAPixel RGBAPixel_Black     = { { 0x00, 0x00, 0x00, 0xFF } };
 static const RGBAPixel RGBAPixel_White     = { { 0xFF, 0xFF, 0xFF, 0xFF } };
@@ -53,7 +56,7 @@ static const RGBAPixel RGBAPixel_Green     = { { 0x00, 0xFF, 0x00, 0xFF } };
 static const RGBAPixel RGBAPixel_Blue      = { { 0xFF, 0x00, 0x00, 0xFF } };
 
 
-typedef union { struct _lxi_packed { uint8_t r, g, b, a; }; OP32 } BGRAPixel;
+typedef union { struct packed { uint8_t r, g, b, a; }; OP32 } BGRAPixel;
 
 static const BGRAPixel BGRAPixel_Black     = { { 0x00, 0x00, 0x00, 0xFF } };
 static const BGRAPixel BGRAPixel_White     = { { 0xFF, 0xFF, 0xFF, 0xFF } };
@@ -62,43 +65,43 @@ static const BGRAPixel BGRAPixel_Green     = { { 0x00, 0xFF, 0x00, 0xFF } };
 static const BGRAPixel BGRAPixel_Blue      = { { 0x00, 0x00, 0xFF, 0xFF } };
 
 
-typedef union { struct _lxi_packed { unsigned b:5, g:5, r:5, res:1; }; OP16 } RGB555Pixel;
+typedef union { struct packed { unsigned b:5, g:5, r:5, res:1; }; OP16 } RGB555Pixel;
 
 static const RGB555Pixel RGB555Pixel_Black = { { 0x00, 0x00, 0x00, 0 } };
 static const RGB555Pixel RGB555Pixel_White = { { 0x1F, 0x1F, 0x1F, 0 } };
 
 
-typedef union { struct _lxi_packed { unsigned r:5, g:5, b:5, res:1; }; OP16 } BGR555Pixel;
+typedef union { struct packed { unsigned r:5, g:5, b:5, res:1; }; OP16 } BGR555Pixel;
 
 static const BGR555Pixel BGR555Pixel_Black = { { 0x00, 0x00, 0x00, 0 } };
 static const BGR555Pixel BGR555Pixel_White = { { 0x1F, 0x1F, 0x1F, 0 } };
 
 
-typedef union { struct _lxi_packed { unsigned b:5, g:6, r:5; }; OP16 } RGB565Pixel;
+typedef union { struct packed { unsigned b:5, g:6, r:5; }; OP16 } RGB565Pixel;
 
 static const RGB565Pixel RGB565Pixel_Black = { { 0x00, 0x00, 0x00 } };
 static const RGB565Pixel RGB565Pixel_White = { { 0x1F, 0x3F, 0x1F } };
 
 
-typedef union { struct _lxi_packed { unsigned r:5, g:6, b:5; }; OP16 } BGR565Pixel;
+typedef union { struct packed { unsigned r:5, g:6, b:5; }; OP16 } BGR565Pixel;
 
 static const BGR565Pixel BGR565Pixel_Black = { { 0x00, 0x00, 0x00 } };
 static const BGR565Pixel BGR565Pixel_White = { { 0x1F, 0x3F, 0x1F } };
 
 
-typedef union { struct _lxi_packed { uint8_t y0, u, y1, v; }; OP32 } YUYVPixel;
+typedef union { struct packed { uint8_t y0, u, y1, v; }; OP32 } YUYVPixel;
 
 static const YUYVPixel YUYVPixel_Black     = { { 0x00, 0x7F, 0x00, 0x7F } };
 static const YUYVPixel YUYVPixel_White     = { { 0xFF, 0x7F, 0xFF, 0x7F } };
 
 
-typedef union { struct _lxi_packed { uint8_t u, y0, v, y1; }; OP32 } UYVYPixel;
+typedef union { struct packed { uint8_t u, y0, v, y1; }; OP32 } UYVYPixel;
 
 static const UYVYPixel UYVYPixel_Black     = { { 0x7F, 0x00, 0x7F, 0x00 } };
 static const UYVYPixel UYVYPixel_White     = { { 0x7F, 0xFF, 0x7F, 0xFF } };
 
 
-typedef union { struct _lxi_packed { uint8_t y, u, v, a; }; OP32 } YUVAPixel;
+typedef union { struct packed { uint8_t y, u, v, a; }; OP32 } YUVAPixel;
 
 static const YUVAPixel YUVAPixel_Black     = { { 0x00, 0x7F, 0x7F, 0xFF } };
 static const YUVAPixel YUVAPixel_White     = { { 0xFF, 0x7F, 0x7F, 0xFF } };
@@ -108,6 +111,7 @@ EXTC YUVAPixel RGBA2YUVA(RGBAPixel p);
 #ifdef _MSC_VER
 #pragma pack()
 #endif
+#undef packed
 
 struct YUVConstData
 {

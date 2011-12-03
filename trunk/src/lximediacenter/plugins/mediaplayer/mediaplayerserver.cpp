@@ -584,18 +584,22 @@ MediaPlayerServer::Item MediaPlayerServer::makeItem(const FileNode &node)
 
       item.duration = node.duration().toSec();
 
-      for (int a=0, an=node.audioStreams().count(); a < an; a++)
-      for (int d=0, dn=node.dataStreams().count(); d <= dn; d++)
+      const QList<SMediaInfo::AudioStreamInfo> &audioStreams = node.audioStreams();
+      const QList<SMediaInfo::VideoStreamInfo> &videoStreams = node.videoStreams();
+      const QList<SMediaInfo::DataStreamInfo> &dataStreams = node.dataStreams();
+
+      for (int a=0, an=audioStreams.count(); a < an; a++)
+      for (int d=0, dn=dataStreams.count(); d <= dn; d++)
       {
         Item::Stream stream;
 
-        stream.title = QString::number(a + 1) + ". " + node.audioStreams()[a].fullName();
-        stream.queryItems += qMakePair(QString("language"), node.audioStreams()[a].toString());
+        stream.title = QString::number(a + 1) + ". " + audioStreams[a].fullName();
+        stream.queryItems += qMakePair(QString("language"), audioStreams[a].toString());
 
         if (d < dn)
         {
-          stream.title += ", " + QString::number(d + 1) + ". " + node.dataStreams()[d].fullName() + " " + tr("subtitles");
-          stream.queryItems += qMakePair(QString("subtitles"), node.dataStreams()[d].toString());
+          stream.title += ", " + QString::number(d + 1) + ". " + dataStreams[d].fullName() + " " + tr("subtitles");
+          stream.queryItems += qMakePair(QString("subtitles"), dataStreams[d].toString());
         }
         else
           stream.queryItems += qMakePair(QString("subtitles"), QString());
@@ -606,16 +610,16 @@ MediaPlayerServer::Item MediaPlayerServer::makeItem(const FileNode &node)
       foreach (const SMediaInfo::Chapter &chapter, node.chapters())
         item.chapters += Item::Chapter(chapter.title, chapter.begin.toSec());
 
-      if (!node.audioStreams().isEmpty())
+      if (!audioStreams.isEmpty())
       {
-        const SAudioCodec &codec = node.audioStreams().first().codec;
+        const SAudioCodec &codec = audioStreams.first().codec;
         item.audioFormat.setChannelSetup(codec.channelSetup());
         item.audioFormat.setSampleRate(codec.sampleRate());
       }
 
-      if (!node.videoStreams().isEmpty())
+      if (!videoStreams.isEmpty())
       {
-        const SVideoCodec &codec = node.videoStreams().first().codec;
+        const SVideoCodec &codec = videoStreams.first().codec;
         item.videoFormat.setSize(codec.size());
         item.videoFormat.setFrameRate(codec.frameRate());
       }
@@ -650,7 +654,7 @@ MediaPlayerServer::Item MediaPlayerServer::makePlayAllItem(const QString &virtua
   item.title = tr("Play all");
 
   int audio = 0, video = 0, image = 0;
-  foreach (const FileNode &node, mediaDatabase->getAlbumFiles(path, qMax(0, (numItems / 2) - 8), 16))
+  foreach (const FileNode &node, mediaDatabase->getAlbumFiles(path, qMax(0, (numItems / 2) - 4), 8))
   if (!node.audioStreams().isEmpty() && !node.videoStreams().isEmpty())
     video++;
   else if (!node.audioStreams().isEmpty())

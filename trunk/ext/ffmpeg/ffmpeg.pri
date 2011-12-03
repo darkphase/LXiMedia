@@ -10,8 +10,4 @@ win32-msvc2005|win32-msvc2008|win32-msvc2010:LIBS += $$replace(PWD,/,\\)\\bin.wi
 
 win32-g++ {
   QMAKE_LFLAGS += -Wl,-allow-multiple-definition
-
-  # Required for 32-bit Windows/MingW to prevent crashing SSE code on unaligned
-  # stack data.
-  QMAKE_CXXFLAGS += -mstackrealign
 }

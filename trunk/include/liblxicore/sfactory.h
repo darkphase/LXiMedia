@@ -21,7 +21,6 @@
 #define LXICORE_SFACTORY_H
 
 #include <QtCore>
-#include "splatform.h"
 #include "export.h"
 
 namespace LXiCore {
@@ -191,10 +190,10 @@ QObject * SFactory::createFunc(const QString &scheme, QObject *parent)
       factory().registerClass<_instance>(scheme); \
     } \
   \
-    _lxi_pure static QStringList available(void); \
+    static QStringList available(void); \
   \
   private: \
-    _lxi_pure static ::LXiCore::SFactory & factory(void);
+    static ::LXiCore::SFactory & factory(void);
 
 #define S_FACTORIZABLE(_interface) \
   public: \

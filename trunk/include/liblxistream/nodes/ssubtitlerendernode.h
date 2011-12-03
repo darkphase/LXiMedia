@@ -55,8 +55,8 @@ public:
   void                          renderSubtitles(SVideoBuffer &, const QStringList &);
 
 private:
-  _lxi_internal void            renderSubtitle(SVideoBuffer *, QString line, int pos);
-  _lxi_internal static void     loadFonts(void);
+  void                          renderSubtitle(SVideoBuffer *, QString line, int pos);
+  static void                   loadFonts(void);
 
 private:
   struct Data;

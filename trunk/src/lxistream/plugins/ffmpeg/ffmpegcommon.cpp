@@ -20,6 +20,10 @@
 #include "ffmpegcommon.h"
 #include <cstring>
 
+#ifdef __MMX__
+#include <mmintrin.h>
+#endif
+
 namespace LXiStream {
 namespace FFMpegBackend {
 
@@ -1090,13 +1094,30 @@ int FFMpegCommon::decodeThreadCount(::CodecID codec)
 
 int FFMpegCommon::execute(::AVCodecContext *c, int (*func)(::AVCodecContext *c2, void *arg), void *arg2, int *ret, int count, int size)
 {
+  struct T
+  {
+    static int run(int (*func)(::AVCodecContext *c, void *arg), ::AVCodecContext *c, void *arg)
+    {
+      LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
+
+      const int result = func(c, arg);
+
+#ifdef __MMX__
+      // Prevent floating point errors.
+      _mm_empty();
+#endif
+
+      return result;
+    }
+  };
+
   if ((count > 1) && (c->thread_count > 1))
   {
     QVector< QFuture<int> > future;
     future.reserve(count);
 
     for (int i=0; i<count; i++)
-      future += QtConcurrent::run(func, c, reinterpret_cast<char *>(arg2) + (size * i));
+      future += QtConcurrent::run(&T::run, func, c, reinterpret_cast<char *>(arg2) + (size * i));
 
     for (int i=0; i<count; i++)
     {
@@ -1122,6 +1143,23 @@ int FFMpegCommon::execute(::AVCodecContext *c, int (*func)(::AVCodecContext *c2,
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
 int FFMpegCommon::execute2(::AVCodecContext *c, int (*func)(::AVCodecContext *c2, void *arg, int jobnr, int threadnr), void *arg2, int *ret, int count)
 {
+  struct T
+  {
+    static int run(int (*func)(::AVCodecContext *c, void *arg, int jobnr, int threadnr), ::AVCodecContext *c, void *arg, int jobnr, int threadnr)
+    {
+      LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
+
+      const int result = func(c, arg, jobnr, threadnr);
+
+#ifdef __MMX__
+      // Prevent floating point errors.
+      _mm_empty();
+#endif
+
+      return result;
+    }
+  };
+
   if ((count > 1) && (c->thread_count > 1))
   {
     QVector< QFuture<int> > future;
@@ -1130,7 +1168,7 @@ int FFMpegCommon::execute2(::AVCodecContext *c, int (*func)(::AVCodecContext *c2
     for (int i=0; i<count; i+=c->thread_count)
     {
       for (int j=0; (j<c->thread_count) && ((i+j)<count); j++)
-        future += QtConcurrent::run(func, c, arg2, i, j);
+        future += QtConcurrent::run(&T::run, func, c, arg2, i, j);
 
       for (int j=0; j<future.count(); j++)
       {

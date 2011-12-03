@@ -29,10 +29,10 @@ protected:
   virtual void                  timerEvent(QTimerEvent *);
 
 private:
-  _lxi_internal QVector<int>    determinePos(const QVector<qreal> &, const QVector< QQueue<qreal> > &) const;
+  QVector<int>                  determinePos(const QVector<qreal> &, const QVector< QQueue<qreal> > &) const;
 
 private:
-  _lxi_internal static const qreal maxRms;
+  static const qreal            maxRms;
 
   mutable QMutex                mutex;
   bool                          slowUpdate;

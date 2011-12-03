@@ -61,7 +61,7 @@ protected:
   virtual void                  endReached(void);
 
 private:
-  _lxi_internal bool            openNext(void);
+  bool                          openNext(void);
 
 private:
   struct Data;

@@ -62,7 +62,8 @@ QString SVideoCodec::toString(void) const
 {
   QString result = d.codec + ';' +
     d.size.toString() + ';' +
-    QString::number(d.frameRate.toFrequency()) + ';' +
+    QString::number(d.frameRate.num()) + '/' +
+    QString::number(d.frameRate.den()) + ';' +
     QString::number(d.streamId) + ';' +
     QString::number(d.bitRate);
 
@@ -78,7 +79,11 @@ SVideoCodec SVideoCodec::fromString(const QString &str)
   {
     result.d.codec = items[0].toAscii();
     result.d.size = SSize::fromString(items[1]);
-    result.d.frameRate = SInterval::fromFrequency(items[2].toFloat());
+
+    const QStringList rate = items[2].split('/');
+    if (rate.count() >= 2)
+      result.d.frameRate = SInterval(rate[0].toLongLong(), rate[1].toLongLong());
+
     result.d.streamId = items[3].toInt();
     result.d.bitRate = items[4].toInt();
   }

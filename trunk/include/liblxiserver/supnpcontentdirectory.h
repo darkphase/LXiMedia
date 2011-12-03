@@ -129,32 +129,32 @@ protected: // From SUPnPBase
   virtual SHttpServer::Status   handleSoapMessage(const QDomElement &, QDomDocument &, QDomElement &, const SHttpServer::RequestMessage &, const QHostAddress &);
 
 private:
-  _lxi_internal bool            handleBrowse(const QDomElement &, QDomDocument &, QDomElement &, const SHttpServer::RequestMessage &, const QHostAddress &);
-  _lxi_internal void            didlDirectory(QDomDocument &, QDomElement &, Item::Type, const QString &client, const QString &path, const QString &title = QString::null);
-  _lxi_internal void            didlContainer(QDomDocument &, QDomElement &, Item::Type, const QString &path, const QString &title = QString::null, int childCount = 0);
-  _lxi_internal void            didlFile(QDomDocument &, QDomElement &, const QString &host, const Item &, const QString &path, const QString &title = QString::null);
-  _lxi_internal void            emitEvent(bool dirty);
+  bool                          handleBrowse(const QDomElement &, QDomDocument &, QDomElement &, const SHttpServer::RequestMessage &, const QHostAddress &);
+  void                          didlDirectory(QDomDocument &, QDomElement &, Item::Type, const QString &client, const QString &path, const QString &title = QString::null);
+  void                          didlContainer(QDomDocument &, QDomElement &, Item::Type, const QString &path, const QString &title = QString::null, int childCount = 0);
+  void                          didlFile(QDomDocument &, QDomElement &, const QString &host, const Item &, const QString &path, const QString &title = QString::null);
+  void                          emitEvent(bool dirty);
 
-  _lxi_internal static QStringList allItems(const Item &, const QStringList &itemProps);
-  _lxi_internal static QStringList streamItems(const Item &);
-  _lxi_internal static QStringList playSeekItems(const Item &);
-  _lxi_internal static QStringList seekItems(const Item &);
-  _lxi_internal static QStringList chapterItems(const Item &);
-  _lxi_internal static QStringList splitItemProps(const QString &);
-  _lxi_internal static Item     makePlayItem(const Item &, const QStringList &);
+  static QStringList            allItems(const Item &, const QStringList &itemProps);
+  static QStringList            streamItems(const Item &);
+  static QStringList            playSeekItems(const Item &);
+  static QStringList            seekItems(const Item &);
+  static QStringList            chapterItems(const Item &);
+  static QStringList            splitItemProps(const QString &);
+  static Item                   makePlayItem(const Item &, const QStringList &);
 
-  _lxi_internal static QString  baseDir(const QString &);
-  _lxi_internal static QString  parentDir(const QString &);
-  _lxi_internal QByteArray      toObjectID(const QString &path);
-  _lxi_internal QString         fromObjectID(const QByteArray &id);
-  _lxi_internal QByteArray      toObjectURL(const QUrl &path, const QByteArray &suffix);
-  _lxi_internal QByteArray      fromObjectURL(const QByteArray &url);
+  static QString                baseDir(const QString &);
+  static QString                parentDir(const QString &);
+  QByteArray                    toObjectID(const QString &path);
+  QString                       fromObjectID(const QByteArray &id);
+  QByteArray                    toObjectURL(const QUrl &path, const QByteArray &suffix);
+  QByteArray                    fromObjectURL(const QByteArray &url);
 
 public:
   static const char             contentDirectoryNS[];
 
 private:
-  _lxi_internal static const unsigned seekSec;
+  static const unsigned seekSec;
 
   struct Data;
   Data                  * const d;

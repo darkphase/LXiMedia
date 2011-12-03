@@ -51,19 +51,19 @@ signals:
   void                          disconnected(void);
 
 private:
-  _lxi_internal void            disconnectAllSockets(void);
+  void                          disconnectAllSockets(void);
 
 private slots:
-  _lxi_internal void            processData(void);
-  _lxi_internal void            flushData(void);
+  void                          processData(void);
+  void                          flushData(void);
 
 private:
-  _lxi_internal static const QEvent::Type setSourceEventType;
-  _lxi_internal static const QEvent::Type addSocketEventType;
-  _lxi_internal static const QEvent::Type disconnectEventType;
+  static const QEvent::Type     setSourceEventType;
+  static const QEvent::Type     addSocketEventType;
+  static const QEvent::Type     disconnectEventType;
 
-  _lxi_internal static const int inBufferSize;
-  _lxi_internal static const int outBufferSize;
+  static const int              inBufferSize;
+  static const int              outBufferSize;
 
   class SetSourceEvent;
   class AddSocketEvent;

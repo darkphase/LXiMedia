@@ -45,8 +45,11 @@ static const quint8             programEndCode[4] = { 0x00, 0x00, 0x01, 0xB9 };
 ////////////////////////////////////////////////////////////////////////////////
 // Structures
 
-#ifdef _MSC_VER
-#pragma pack(1)
+#if defined(__GNUC__)
+# define packed __attribute__((packed))
+#elif defined(_MSC_VER)
+# pragma pack(1)
+# define packed
 #endif
 
 /*! This structure represents an MPEG-2 Part 1 Transport Stream packet. This is
@@ -55,13 +58,13 @@ static const quint8             programEndCode[4] = { 0x00, 0x00, 0x01, 0xB9 };
 
     \author A.J. Admiraal
  */
-struct _lxi_packed TSPacket
+struct packed TSPacket
 {
   /*! This structure represents an MPEG-2 Part 1 adaptation field.
 
     \author A.J. Admiraal
   */
-  struct _lxi_packed AdaptationField
+  struct packed AdaptationField
   {
     inline size_t               getLength(void) const                           { return size_t(data[0]) + 1; }     //!< Returns the length of the adaptation field in bytes
     inline bool                 hasDiscontinuity(void) const                    { return (data[1] & 0x80) != 0; }   //!< Returns true if the Discontinuity Indicator is set.
@@ -115,7 +118,7 @@ struct _lxi_packed TSPacket
 
     \author A.J. Admiraal
  */
-struct _lxi_packed PESHeader
+struct packed PESHeader
 {
   enum StreamId
   {
@@ -148,7 +151,7 @@ struct _lxi_packed PESHeader
 
     \author A.J. Admiraal
  */
-struct _lxi_packed PESPacket : PESHeader
+struct packed PESPacket : PESHeader
 {
   inline                        PESPacket(void)                                 { memset(_data, 0, 32 - sizeof(PESHeader)); }
 
@@ -178,7 +181,7 @@ struct _lxi_packed PESPacket : PESHeader
 
     \author A.J. Admiraal
  */
-struct _lxi_packed PSMap : PESHeader
+struct packed PSMap : PESHeader
 {
   enum StreamType
   {
@@ -195,7 +198,7 @@ struct _lxi_packed PSMap : PESHeader
     StreamType_DTSAudio       = 0x8A
   };
 
-  struct _lxi_packed Stream
+  struct packed Stream
   {
     inline                      Stream(void)                                    { memset(data, 0, sizeof(data)); }
     inline StreamType           getStreamType(void) const                       { return StreamType(data[0]); }
@@ -230,7 +233,7 @@ struct _lxi_packed PSMap : PESHeader
 
     \author A.J. Admiraal
  */
-struct _lxi_packed PSPackHeader
+struct packed PSPackHeader
 {
   inline                        PSPackHeader(void)                              { initialize(); }
 
@@ -252,7 +255,7 @@ struct _lxi_packed PSPackHeader
 
     \author A.J. Admiraal
  */
-struct _lxi_packed PSSystemHeader : PESHeader
+struct packed PSSystemHeader : PESHeader
 {
   inline                        PSSystemHeader(void)                            { initialize(); }
 
@@ -264,7 +267,7 @@ struct _lxi_packed PSSystemHeader : PESHeader
 #ifdef _MSC_VER
 #pragma pack()
 #endif
-
+#undef packed
 
 ////////////////////////////////////////////////////////////////////////////////
 // Support classes

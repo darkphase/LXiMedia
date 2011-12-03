@@ -21,7 +21,6 @@
 #define LXICORE_SMEMORYPOOL_H
 
 #include <QtCore>
-#include "splatform.h"
 #include "export.h"
 
 namespace LXiCore {
@@ -54,20 +53,20 @@ public:
   static void                   free(void *);
 
 private:
-  _lxi_internal static Header * allocMemory(size_t);
-  _lxi_internal static void     freeMemory(Header *);
+  static Header * allocMemory(size_t);
+  static void     freeMemory(Header *);
 
 private:
   struct Init;
-  _lxi_internal static Init     init;
-  _lxi_internal static const int addrAlign;
-  _lxi_internal static const int sizeAlign;
-  _lxi_internal static int      maxFreeCount;
-  _lxi_internal static size_t   allocSize;
+  static Init                   init;
+  static const int              addrAlign;
+  static const int              sizeAlign;
+  static int                    maxFreeCount;
+  static size_t                 allocSize;
 
-  _lxi_pure _lxi_internal static QMutex * mutex(void);
-  _lxi_pure _lxi_internal static QMultiMap<size_t, Header *> & freePool(void);
-  _lxi_pure _lxi_internal static QList<size_t> & freeQueue(void);
+  static QMutex               * mutex(void);
+  static QMultiMap<size_t, Header *> & freePool(void);
+  static QList<size_t>        & freeQueue(void);
 };
 
 } // End of namespace

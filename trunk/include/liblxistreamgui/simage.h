@@ -36,7 +36,7 @@ public:
   static SImage                 fromFile(const QString &fileName, const QSize &maxsize = QSize(), const char *format = NULL);
 
 private:
-  _lxi_internal static SImage   handleFile(QImageReader &, QSize, void *);
+  static SImage                 handleFile(QImageReader &, QSize, void *);
 
 private:
   struct

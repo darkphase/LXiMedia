@@ -61,7 +61,7 @@ signals:
   void                          compensateAudio(float);
 
 private:
-  _lxi_internal void            output(void);
+  void                          output(void);
 
 private:
   template <class _buffer> struct Queue;

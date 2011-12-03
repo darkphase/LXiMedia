@@ -67,11 +67,11 @@ signals:
   void                          output(const SSubtitleBuffer &);
 
 private:
-  _lxi_internal STime           correct(const STime &);
-  _lxi_internal STime           correctOnly(const STime &) const;
+  STime                         correct(const STime &);
+  STime                         correctOnly(const STime &) const;
 
 private:
-  _lxi_internal static const int numChannels = 4;
+  static const int              numChannels;
 
   struct Data;
   Data                  * const d;

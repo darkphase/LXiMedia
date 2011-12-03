@@ -95,8 +95,8 @@ signals:
   void                          output(const SAudioBuffer &);
 
 private:
-  _lxi_pure _lxi_internal static int channelId(SAudioFormat::Channel);
-  _lxi_internal void            buildMatrix(void);
+  static int                    channelId(SAudioFormat::Channel);
+  void                          buildMatrix(void);
 
 private:
   struct Data;

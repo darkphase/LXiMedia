@@ -51,8 +51,8 @@ protected:
   void                          sendSearchResponse(SsdpClientInterface *, const QString &st, const QString &url, const QHostAddress &, quint16) const;
 
 private slots:
-  _lxi_internal void            publishServices(void);
-  _lxi_internal void            unpublishServices(void);
+  void                          publishServices(void);
+  void                          unpublishServices(void);
 
 private:
   struct Private;

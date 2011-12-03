@@ -21,7 +21,6 @@
 #define LXICORE_SAPPLICATION_H
 
 #include <QtCore>
-#include "splatform.h"
 #include "export.h"
 
 #define sApp (::LXiCore::SApplication::instance())
@@ -163,9 +162,9 @@ public:
   explicit                      SApplication(const QString &logDir = QString::null, const QStringList &skipModules = QStringList(), QObject * = NULL);
   virtual                       ~SApplication();
 
-  _lxi_pure static const char * name(void);
-  _lxi_pure static const char * version(void);
-  _lxi_pure static SApplication * instance(void);
+  static const char           * name(void);
+  static const char           * version(void);
+  static SApplication         * instance(void);
 
   static QStringList            pluginPaths(void);
   void                          addModuleFilter(const QString &);
@@ -196,13 +195,13 @@ public:
   static SApplication         * createForQTest(QObject *);
 
 private:
-  _lxi_internal explicit        SApplication(QObject *);
+  explicit                      SApplication(QObject *);
 
-  _lxi_internal static QList<SFactory *> & factories(void);
+  static QList<SFactory *>    & factories(void);
 
 private:
-  _lxi_internal static Initializer * initializers;
-  _lxi_internal static SApplication * self;
+  static Initializer          * initializers;
+  static SApplication         * self;
 
   struct Data;
   Data                  * const d;
