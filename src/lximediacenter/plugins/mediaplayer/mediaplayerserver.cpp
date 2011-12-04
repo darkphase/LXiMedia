@@ -97,41 +97,7 @@ SHttpServer::ResponseMessage MediaPlayerServer::httpRequest(const SHttpServer::R
       if (!node.isNull())
       {
         if (!node.thumbnail().isNull())
-        {
-          SImage image = node.thumbnail();
-          if (!image.isNull())
-            image = image.scaled(size, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-
-          QImage result(size, QImage::Format_ARGB32);
-          QPainter p;
-          p.begin(&result);
-          p.setCompositionMode(QPainter::CompositionMode_Source); // Ignore alpha
-          p.fillRect(result.rect(), Qt::transparent);
-          p.setCompositionMode(QPainter::CompositionMode_SourceOver); // Process alpha
-          p.drawImage(
-              (result.width() / 2) - (image.width() / 2),
-              (result.height() / 2) - (image.height() / 2),
-              image);
-
-          if (request.url().hasQueryItem("overlay"))
-          {
-            QImage overlayImage(":/lximediacenter/images/" + request.url().queryItemValue("overlay") + ".png");
-            if (!overlayImage.isNull())
-            {
-              overlayImage = overlayImage.scaled(size / 2, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-
-              p.drawImage(
-                  (result.width() / 2) - (overlayImage.width() / 2),
-                  (result.height() / 2) - (overlayImage.height() / 2),
-                  overlayImage);
-            }
-          }
-
-          p.end();
-
-          QBuffer b(&content);
-          result.save(&b, "PNG");
-        }
+          content = makeThumbnail(size, SImage(node.thumbnail()), request.url().queryItemValue("overlay"));
 
         switch (node.fileType())
         {
@@ -144,21 +110,9 @@ SHttpServer::ResponseMessage MediaPlayerServer::httpRequest(const SHttpServer::R
       }
 
       if (content.isEmpty())
-      {
-        QImage image(defaultIcon);
-        if (!image.isNull())
-        {
-          image = image.scaled(size, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+        content = makeThumbnail(size, QImage(defaultIcon));
 
-          QBuffer b(&content);
-          image.save(&b, "PNG");
-        }
-      }
-
-      if (!content.isEmpty())
-        return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_Ok, content, SHttpEngine::mimeImagePng);
-      else
-        return SSandboxServer::ResponseMessage(request, SHttpServer::Status_NotFound);
+      return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_Ok, content, SHttpEngine::mimeImagePng);
     }
     else if (request.url().hasQueryItem("save_settings"))
     {
@@ -572,7 +526,7 @@ MediaPlayerServer::Item MediaPlayerServer::makeItem(const FileNode &node)
       item.path = virtualPath(node.filePath());
       item.url = item.path;
       item.iconUrl = item.url;
-      item.iconUrl.addQueryItem("thumbnail", "128x128");
+      item.iconUrl.addQueryItem("thumbnail", QString::null);
 
       item.title = node.metadata("title").toString();
       if (item.title.isEmpty())

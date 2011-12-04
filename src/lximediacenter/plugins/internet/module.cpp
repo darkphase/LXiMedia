@@ -18,7 +18,6 @@
  ***************************************************************************/
 
 #include "module.h"
-#include "configserver.h"
 #include "internetsandbox.h"
 #include "internetserver.h"
 #include "sitedatabase.h"
@@ -26,35 +25,11 @@
 namespace LXiMediaCenter {
 namespace InternetBackend {
 
-template <const char * _name, const char * _icon>
-class Server : public InternetServer
-{
-public:
-  explicit Server(const QString &, QObject *parent)
-    : InternetServer(_name, parent)
-  {
-  }
-
-  virtual QString serverName(void) const
-  {
-    return _name;
-  }
-
-  virtual QString serverIconPath(void) const
-  {
-    return _icon;
-  }
-};
-
 const char Module::pluginName[]     = QT_TR_NOOP("Internet");
-
-const char Module::sitesName[]      = QT_TR_NOOP("Sites"),        Module::sitesIcon[] = "/img/homepage.png";
 
 bool Module::registerClasses(void)
 {
-  InternetServer::registerClass< Server<sitesName,  sitesIcon> >(0);
-  ConfigServer::registerClass<ConfigServer>(-1);
-
+  InternetServer::registerClass<InternetServer>(0);
   InternetSandbox::registerClass<InternetSandbox>(0);
 
   return true;

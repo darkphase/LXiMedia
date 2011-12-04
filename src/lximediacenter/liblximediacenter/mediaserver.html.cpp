@@ -33,9 +33,9 @@ const char MediaServer::m3uPlaylistItem[] =
     "{ITEM_URL}\n";
 
 const char MediaServer::htmlThumbnailLoader[] =
-    " <div class=\"thumbnaillist\" id=\"mediaplayeritems\">\n"
+    " <div class=\"thumbnaillist\" id=\"items\">\n"
     " </div>\n"
-    " <script type=\"text/javascript\">loadListContent(\"mediaplayeritems\", \"{PATH}\", 0, {LOAD_ITEM_COUNT});</script>\n";
+    " <script type=\"text/javascript\">loadListContent(\"items\", \"{PATH}\", 0, {LOAD_ITEM_COUNT});</script>\n";
 
 const char MediaServer::htmlThumbnailItem[] =
     "  <div class=\"thumbnaillistitem\">\n"

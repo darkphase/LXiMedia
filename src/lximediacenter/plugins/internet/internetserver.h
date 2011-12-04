@@ -28,7 +28,7 @@
 namespace LXiMediaCenter {
 namespace InternetBackend {
 
-class MediaPlayerServerDir;
+class ScriptEngine;
 
 class InternetServer : public MediaServer
 {
@@ -53,27 +53,46 @@ public:
   virtual void                  initialize(MasterServer *);
   virtual void                  close(void);
 
-  virtual QString               pluginName(void) const;
+  virtual QString               serverName(void) const;
+  virtual QString               serverIconPath(void) const;
 
-  virtual SearchResultList      search(const QStringList &) const;
+  virtual QByteArray            frontPageContent(void);
+  virtual QByteArray            settingsContent(void);
 
 protected: // From MediaServer
   virtual Stream              * streamVideo(const SHttpServer::RequestMessage &);
+  virtual SHttpServer::ResponseMessage sendPhoto(const SHttpServer::RequestMessage &);
 
   virtual int                   countItems(const QString &path);
   virtual QList<Item>           listItems(const QString &path, unsigned start = 0, unsigned count = 0);
+  virtual Item                  getItem(const QString &path);
 
 protected: // From SHttpServer::Callback
   virtual SHttpServer::ResponseMessage httpRequest(const SHttpServer::RequestMessage &, QIODevice *);
 
 private:
-  const QList<Item>           & cachedItems(const QString &path);
+  QString                       sitePath(const QString &path) const;
+  ScriptEngine                * getScriptEngine(const QString &name);
 
-protected:
+private:
+  static const char             dirSplit;
   MasterServer                * masterServer;
   SiteDatabase                * siteDatabase;
-  QMap<QString, QList<Item> >   itemCache;
-  QTime                         cacheTimer;
+  QMap<QString, ScriptEngine *> scriptEngines;
+
+private:
+  static const char             htmlFrontPageContent[];
+  static const char             htmlSettingsMain[];
+
+  static const char             htmlSiteTreeIndex[];
+  static const char             htmlSiteTreeDir[];
+  static const char             htmlSiteTreeIndent[];
+  static const char             htmlSiteTreeExpand[];
+  static const char             htmlSiteTreeCheckLink[];
+  static const char             htmlSiteTreeCheckIcon[];
+  static const char             htmlSiteTreeScriptLink[];
+
+  static const char             htmlSiteEditIndex[];
 };
 
 } } // End of namespaces

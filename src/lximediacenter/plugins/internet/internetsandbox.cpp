@@ -54,11 +54,9 @@ void InternetSandbox::close(void)
 
 SSandboxServer::ResponseMessage InternetSandbox::httpRequest(const SSandboxServer::RequestMessage &request, QIODevice *socket)
 {
-  const MediaServer::File file(request);
-
   if (request.method() == "POST")
   {
-    if (file.url().hasQueryItem("playstream"))
+    if (request.url().hasQueryItem("playstream"))
     {
       const QUrl url = QString::fromUtf8(request.content());
       if (url.isValid())
@@ -111,13 +109,11 @@ SandboxNetworkStream::~SandboxNetworkStream()
 
 bool SandboxNetworkStream::setup(const SHttpServer::RequestMessage &request, QIODevice *socket)
 {
-  const MediaServer::File file(request);
-
   if (audioDecoder.open(&streamInput) && videoDecoder.open(&streamInput) && dataDecoder.open(&streamInput))
   {
-    if (file.url().hasQueryItem("resolution"))
+    if (request.url().hasQueryItem("resolution"))
     {
-      const QStringList formatTxt = file.url().queryItemValue("resolution").split(',');
+      const QStringList formatTxt = request.url().queryItemValue("resolution").split(',');
 
       const QStringList sizeTxt = formatTxt.first().split('x');
       if (sizeTxt.count() >= 2)
@@ -134,18 +130,17 @@ bool SandboxNetworkStream::setup(const SHttpServer::RequestMessage &request, QIO
       }
     }
 
-    if (file.url().hasQueryItem("channels"))
+    if (url.hasQueryItem("channels"))
     {
-      const QStringList cl = file.url().queryItemValue("channels").split(',');
+      const SAudioFormat::Channels c =
+          SAudioFormat::Channels(url.queryItemValue("channels").toUInt(NULL, 16));
 
-      if ((file.url().queryItemValue("music") == "true") && (cl.count() >= 2))
-        streamInput.setChannelSetup(SAudioFormat::Channels(cl[1].toUInt(NULL, 16)));
-      else if (!cl.isEmpty())
-        streamInput.setChannelSetup(SAudioFormat::Channels(cl[0].toUInt(NULL, 16)));
+      if (SAudioFormat::numChannels(c) > 0)
+        streamInput.setChannelSetup(c);
     }
 
-    const bool hasVideo = file.url().queryItemValue("music") != "true";
-    const bool generateVideo = file.url().queryItemValue("musicmode").startsWith("addvideo");
+    const bool hasVideo = request.url().queryItemValue("music") != "true";
+    const bool generateVideo = request.url().queryItemValue("musicmode").startsWith("addvideo");
 
     streamInput.setUrl(url, hasVideo || generateVideo);
     connect(&streamInput, SIGNAL(finished()), SLOT(stop()));

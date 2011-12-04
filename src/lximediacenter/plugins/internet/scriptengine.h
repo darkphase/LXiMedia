@@ -28,21 +28,29 @@
 namespace LXiMediaCenter {
 namespace InternetBackend {
 
-class MediaPlayerServerDir;
-
 class ScriptEngine : public QObject
 {
 Q_OBJECT
 public:
+  struct Item
+  {
+    QString                     name;
+    MediaServer::Item::Type     type;
+  };
+
+public:
   explicit                      ScriptEngine(const QString &script, QObject *parent = NULL);
+
+  bool                          isValid(void) const;
 
   QString                       version(void);
   bool                          isCompatible(void);
-  QString                       targetAudience(void);
+  QString                       name(void);
+  QString                       audience(void);
 
-  QImage                        icon(const QString &id);
-  QList<MediaServer::Item>      listItems(const QString &path);
-  QString                       streamLocation(const QString &id);
+  QImage                        icon(const QString &name);
+  QList<Item>                   listItems(const QString &path, unsigned start = 0, unsigned count = 0);
+  QString                       streamLocation(const QString &name);
 
 private slots:
   void                          exceptionHandler(const QScriptValue &exception);
@@ -53,11 +61,15 @@ private:
   QScriptValue                  me;
 
   QScriptValue                  versionFunc;
-  QScriptValue                  targetAudienceFunc;
+  QScriptValue                  nameFunc;
+  QScriptValue                  audienceFunc;
 
   QScriptValue                  iconFunc;
   QScriptValue                  listItemsFunc;
   QScriptValue                  streamLocationFunc;
+
+  QMap<QString, QList<Item> >   itemCache;
+  QMap<QString, QByteArray>     iconCache;
 };
 
 } } // End of namespaces

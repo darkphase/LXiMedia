@@ -1,5 +1,6 @@
 function version()              { return "0.3.0"; }
-function targetAudience()       { return "NL"; }
+function name()                 { return "Publieke Omroep"; }
+function audience()             { return "NL"; }
 
 function listItems(path)
 {
@@ -7,14 +8,14 @@ function listItems(path)
   {
     var items =
       [ // Radio
-        ["radio1",      "Radio 1",      "Audio"],
-        ["radio2",      "Radio 2",      "Audio"],
-        ["radio3",      "3FM",          "Audio"],
-        ["radio4",      "Radio 4",      "Audio"],
-        ["radio5",      "Radio 5",      "Audio"],
-        ["radio6",      "Radio 6",      "Audio"],
+        ["Radio 1",      "Audio"],
+        ["Radio 2",      "Audio"],
+        ["3FM",          "Audio"],
+        ["Radio 4",      "Audio"],
+        ["Radio 5",      "Audio"],
+        ["Radio 6",      "Audio"],
         // TV
-        ["journaal24",  "Journaal 24",  "Video"] ];
+        ["Journaal 24",  "Video"] ];
 
     return items;
   }
@@ -22,27 +23,28 @@ function listItems(path)
     return [];
 }
 
-function icon(id)
+function icon(name)
 { 
-  if      (id == "radio1")      return radio1_png;
-  else if (id == "radio2")      return radio2_png;
-  else if (id == "radio3")      return driefm_png;
-  else if (id == "radio4")      return radio4_png;
-  else if (id == "radio5")      return radio5_png;
-  else if (id == "radio6")      return radio6_png;
-  else                          return npo_png;
+  if      (name == "Radio 1")       return radio1_png;
+  else if (name == "Radio 2")       return radio2_png;
+  else if (name == "3FM")           return driefm_png;
+  else if (name == "Radio 4")       return radio4_png;
+  else if (name == "Radio 5")       return radio5_png;
+  else if (name == "Radio 6")       return radio6_png;
+  else if (name == "Journaal 24")   return npo_png;
+  else                              return npo_png;
 }
 
-function streamLocation(id)
+function streamLocation(name)
 {
-  if      (id == "radio1")      return "http://shoutcast2.omroep.nl:8100/";
-  else if (id == "radio2")      return "http://shoutcast2.omroep.nl:8102/";
-  else if (id == "radio3")      return "http://shoutcast2.omroep.nl:8104/";
-  else if (id == "radio4")      return "http://shoutcast2.omroep.nl:8106/";
-  else if (id == "radio5")      return "http://shoutcast2.omroep.nl:8108/";
-  else if (id == "radio6")      return "http://shoutcast2.omroep.nl:8110/";
-  else if (id == "journaal24")  return "http://livestreams.omroep.nl/nos/journaal24-bb";
-  else                          return "";
+  if      (name == "Radio 1")       return "http://shoutcast2.omroep.nl:8100/";
+  else if (name == "Radio 2")       return "http://shoutcast2.omroep.nl:8102/";
+  else if (name == "3FM")           return "http://shoutcast2.omroep.nl:8104/";
+  else if (name == "Radio 4")       return "http://shoutcast2.omroep.nl:8106/";
+  else if (name == "Radio 5")       return "http://shoutcast2.omroep.nl:8108/";
+  else if (name == "Radio 6")       return "http://shoutcast2.omroep.nl:8110/";
+  else if (name == "Journaal 24")   return "http://livestreams.omroep.nl/nos/journaal24-bb";
+  else                              return "";
 }
 
 var npo_png    = "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";

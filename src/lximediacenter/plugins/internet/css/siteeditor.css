@@ -1,0 +1,36 @@
+div.siteeditor {
+ padding: 0;
+ margin: 0;
+}
+.siteeditor h1 {
+ padding: 0;
+ margin: 0;
+ font-size: 1.2em;
+ font-weight: bold;
+ color: #808080;
+}
+.siteeditor div.toolbar {
+ padding: 0;
+ margin: 0;
+ height: 25px;
+ background: #D0D0D0;
+}
+.siteeditor input {
+ border: 1px solid #000000;
+}
+.siteeditor div.texteditor {
+ padding: 0;
+ margin: 0;
+ border: 1px solid black;
+}
+.siteeditor textarea.text {
+ padding: 0;
+ margin: 0;
+ border: none;
+}
+.siteeditor textarea.linenumbers {
+ display: block;
+ margin: 0;
+ border: none;
+ background: #D0D0D0;
+}

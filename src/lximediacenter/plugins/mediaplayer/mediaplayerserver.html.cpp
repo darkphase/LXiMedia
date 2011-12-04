@@ -29,9 +29,9 @@ namespace LXiMediaCenter {
 namespace MediaPlayerBackend {
 
 const char MediaPlayerServer::htmlFrontPageContent[] =
-    " <div class=\"thumbnaillist\" id=\"mediaplayeritems\">\n"
-    " </div>\n"
-    " <script type=\"text/javascript\">loadListContent(\"mediaplayeritems\", \"{SERVER_PATH}\", 0, 0);</script>\n";
+    "   <div class=\"thumbnaillist\" id=\"mediaplayeritems\">\n"
+    "   </div>\n"
+    "   <script type=\"text/javascript\">loadListContent(\"mediaplayeritems\", \"{SERVER_PATH}\", 0, 0);</script>\n";
 
 const char MediaPlayerServer::htmlSettingsMain[] =
     "  <fieldset>\n"
@@ -112,7 +112,6 @@ QByteArray MediaPlayerServer::settingsContent(void)
   htmlParser.setField("TR_MEDIAPLAYER", tr(Module::pluginName));
   htmlParser.setField("TR_SLIDEDURATION", tr("Photo slideshow slide duration"));
   htmlParser.setField("TR_SAVE", tr("Save"));
-  htmlParser.setField("TR_MEDIADIRS", tr("Media directories"));
   htmlParser.setField("TR_RIGHTS_EXPLAIN", tr(
       "By default, the LXiMediaCenter backend (lximcbackend) runs as a restricted user.\n"
 #if defined(Q_OS_LINUX)

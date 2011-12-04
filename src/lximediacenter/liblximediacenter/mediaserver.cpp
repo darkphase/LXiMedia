@@ -77,6 +77,56 @@ void MediaServer::close(void)
   d->masterServer->contentDirectory()->unregisterCallback(this);
 }
 
+QByteArray MediaServer::makeThumbnail(QSize size, const QImage &image, const QString &overlay)
+{
+  if (size.isNull())
+    size = !image.isNull() ? image.size() : QSize(128, 128);
+
+  QImage result(size, QImage::Format_ARGB32);
+  QPainter p;
+  p.begin(&result);
+
+  if (!image.isNull())
+  {
+    const QImage baseImage = image.scaled(size, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+
+    p.setCompositionMode(QPainter::CompositionMode_Source); // Ignore alpha
+    p.fillRect(result.rect(), Qt::transparent);
+    p.setCompositionMode(QPainter::CompositionMode_SourceOver); // Process alpha
+    p.drawImage(
+        (result.width() / 2) - (baseImage.width() / 2),
+        (result.height() / 2) - (baseImage.height() / 2),
+        baseImage);
+  }
+  else
+  {
+    p.setCompositionMode(QPainter::CompositionMode_Source); // Ignore alpha
+    p.fillRect(result.rect(), Qt::transparent);
+    p.setCompositionMode(QPainter::CompositionMode_SourceOver); // Process alpha
+  }
+
+  if (!overlay.isEmpty())
+  {
+    QImage overlayImage(":/img/" + overlay + ".png");
+    if (!overlayImage.isNull())
+    {
+      overlayImage = overlayImage.scaled(size / 2, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+
+      p.drawImage(
+          (result.width() / 2) - (overlayImage.width() / 2),
+          (result.height() / 2) - (overlayImage.height() / 2),
+          overlayImage);
+    }
+  }
+
+  p.end();
+
+  QBuffer buffer;
+  result.save(&buffer, "PNG");
+
+  return buffer.data();
+}
+
 MediaProfiles & MediaServer::mediaProfiles(void)
 {
   static MediaProfiles p;
@@ -108,9 +158,9 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
   {
     if (request.file().endsWith('/'))
     {
-      if (request.url().hasQueryItem("mediaplayeritems"))
+      if (request.url().hasQueryItem("items"))
       {
-        const QStringList range = request.url().queryItemValue("mediaplayeritems").split(',');
+        const QStringList range = request.url().queryItemValue("items").split(',');
         unsigned start = 0, count = 0;
         if (!range.isEmpty())
         {
@@ -463,7 +513,7 @@ void MediaServer::setQueryItemsFor(const QString &client, QUrl &url, bool isMusi
       foreach (const GlobalSettings::TranscodeChannel &channel, GlobalSettings::allTranscodeChannels())
       if (channel.name == transcodeMusicChannels)
       {
-        channels += "," + QString::number(channel.channels, 16);
+        channels = QString::number(channel.channels, 16);
         break;
       }
     }

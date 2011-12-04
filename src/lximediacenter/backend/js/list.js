@@ -13,6 +13,6 @@ function loadListContent(id, path, start, count)
     }
   }
 
-  request.open("GET", path + "?" + id + "=" + start + "," + count, true);
+  request.open("GET", path + "?items=" + start + "," + count, true);
   request.send();
 }
