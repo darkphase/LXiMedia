@@ -25,6 +25,15 @@
 namespace LXiMediaCenter {
 namespace InternetBackend {
 
+const char InternetServer::dirSplit =
+#if defined(Q_OS_UNIX)
+    ':';
+#elif  defined(Q_OS_WIN)
+    ';';
+#else
+#error Not implemented.
+#endif
+
 InternetServer::InternetServer(const QString &, QObject *parent)
   : MediaServer(parent),
     masterServer(NULL),
@@ -34,12 +43,13 @@ InternetServer::InternetServer(const QString &, QObject *parent)
 
 void InternetServer::initialize(MasterServer *masterServer)
 {
+  foreach (ScriptEngine *engine, scriptEngines)
+    delete engine;
+
   this->masterServer = masterServer;
   this->siteDatabase = SiteDatabase::createInstance();
 
   MediaServer::initialize(masterServer);
-
-  cacheTimer.start();
 }
 
 void InternetServer::close(void)
@@ -47,231 +57,319 @@ void InternetServer::close(void)
   MediaServer::close();
 }
 
-QString InternetServer::pluginName(void) const
+QString InternetServer::serverName(void) const
 {
   return Module::pluginName;
 }
 
-InternetServer::SearchResultList InternetServer::search(const QStringList &rawQuery) const
+QString InternetServer::serverIconPath(void) const
 {
-  SearchResultList list;
-
-  return list;
+  return "/img/homepage.png";
 }
 
 InternetServer::Stream * InternetServer::streamVideo(const SHttpServer::RequestMessage &request)
 {
-  const MediaServer::File file(request);
-
   SSandboxClient::Priority priority = SSandboxClient::Priority_Normal;
-  if (file.url().queryItemValue("priority") == "low")
+  if (request.url().queryItemValue("priority") == "low")
     priority = SSandboxClient::Priority_Low;
-  else if (file.url().queryItemValue("priority") == "high")
+  else if (request.url().queryItemValue("priority") == "high")
     priority = SSandboxClient::Priority_High;
 
   SSandboxClient * const sandbox = masterServer->createSandbox(priority);
   sandbox->ensureStarted();
 
-  const QString item = file.url().hasQueryItem("item")
-    ? file.url().queryItemValue("item")
-    : file.fileName().left(file.fileName().lastIndexOf('.'));
+  const QString localPath = sitePath(request.file());
+  const QString name = localPath.left(localPath.indexOf('/'));
 
-  if (!item.isEmpty())
+  ScriptEngine * const engine = getScriptEngine(name);
+  if (engine)
   {
-    const QString script = siteDatabase->script(siteDatabase->reverseDomain(file.parentDir()));
-    if (!script.isEmpty())
+    const QString location = engine->streamLocation(localPath.mid(name.length()));
+    if (!location.isEmpty())
     {
-      ScriptEngine engine(script);
-      const QString location = engine.streamLocation(item);
-      if (!location.isEmpty())
-      {
-        QUrl rurl;
-        rurl.setPath(InternetSandbox::path + file.fileName());
-        rurl.addQueryItem("playstream", QString::null);
-        typedef QPair<QString, QString> QStringPair;
-        foreach (const QStringPair &queryItem, file.url().queryItems())
-          rurl.addQueryItem(queryItem.first, queryItem.second);
+      QUrl rurl;
+      rurl.setPath(InternetSandbox::path + request.fileName());
+      rurl.addQueryItem("playstream", QString::null);
+      typedef QPair<QString, QString> QStringPair;
+      foreach (const QStringPair &queryItem, request.url().queryItems())
+        rurl.addQueryItem(queryItem.first, queryItem.second);
 
-        Stream *stream = new Stream(this, sandbox, request.path());
-        if (stream->setup(rurl, location.toUtf8()))
-          return stream; // The graph owns the socket now.
+      Stream *stream = new Stream(this, sandbox, request.path());
+      if (stream->setup(rurl, location.toUtf8()))
+        return stream; // The graph owns the socket now.
 
-        delete stream;
-      }
+      delete stream;
     }
   }
 
   masterServer->recycleSandbox(sandbox);
-
   return NULL;
+}
+
+SHttpServer::ResponseMessage InternetServer::sendPhoto(const SHttpServer::RequestMessage &request)
+{
+  return SHttpServer::ResponseMessage(request, SHttpServer::Status_NotFound);
 }
 
 int InternetServer::countItems(const QString &path)
 {
-  if (path == "/")
+  if (path == serverPath())
   {
-    PluginSettings settings(pluginName());
+    PluginSettings settings(Module::pluginName);
 
     return siteDatabase->countSites(settings.value("Audiences").toStringList());
   }
   else
-    return cachedItems(path).count();
+  {
+    const QString localPath = sitePath(path);
+    const QString name = localPath.left(localPath.indexOf('/'));
+
+    ScriptEngine * const engine = getScriptEngine(name);
+    if (engine)
+      return engine->listItems(localPath.mid(name.length())).count();
+  }
+
+  return 0;
 }
 
 QList<InternetServer::Item> InternetServer::listItems(const QString &path, unsigned start, unsigned count)
 {
   QList<Item> result;
 
-  if (path == "/")
+  if (path == serverPath())
   {
-    PluginSettings settings(pluginName());
+    PluginSettings settings(Module::pluginName);
 
-    foreach (const QString &identifier, siteDatabase->getSites(settings.value("Audiences").toStringList(), start, count))
+    foreach (const QString &name, siteDatabase->getSites(settings.value("Audiences").toStringList(), start, count))
     {
       Item item;
       item.isDir = true;
       item.type = Item::Type_None;
-      item.title = siteDatabase->reverseDomain(identifier);
-      item.iconUrl = siteDatabase->reverseDomain(identifier) + "/-thumb.png";
+      item.path = serverPath() + name + '/';
+      item.url = item.path;
+      item.iconUrl = item.url;
+      item.iconUrl.addQueryItem("thumbnail", QString::null);
+
+      item.title = name;
 
       result += item;
     }
   }
   else
   {
-    const QList<Item> &items = cachedItems(path);
+    const QString localPath = sitePath(path);
+    const QString name = localPath.left(localPath.indexOf('/'));
 
-    const bool returnAll = count == 0;
-    for (int i=start, n=0; (i<items.count()) && (returnAll || (n<int(count))); i++, n++)
-      result.append(items[i]);
+    ScriptEngine * const engine = getScriptEngine(name);
+    if (engine)
+    foreach (const ScriptEngine::Item &sitem, engine->listItems(localPath.mid(name.length()), start, count))
+    {
+      Item item;
+      item.isDir = false;
+      item.type = sitem.type;
+      item.path = serverPath() + localPath + sitem.name;
+      item.url = item.path;
+      item.iconUrl = item.url;
+      item.iconUrl.addQueryItem("thumbnail", QString::null);
+
+      item.title = sitem.name;
+
+      result += item;
+    }
   }
 
   return result;
+}
+
+InternetServer::Item InternetServer::getItem(const QString &path)
+{
+  Item item;
+
+  if (path.endsWith('/'))
+  {
+    item.isDir = true;
+    item.type = Item::Type_None;
+    item.path = path;
+    item.url = item.path;
+    item.iconUrl = item.url;
+    item.iconUrl.addQueryItem("thumbnail", QString::null);
+
+    item.title = sitePath(path);
+    item.title = item.title.left(item.title.indexOf('/'));
+  }
+
+  return item;
 }
 
 SHttpServer::ResponseMessage InternetServer::httpRequest(const SHttpServer::RequestMessage &request, QIODevice *socket)
 {
   if (request.isGet())
   {
-    const MediaServer::File file(request);
-    if (file.fileName().endsWith("-thumb.png"))
+    if (request.url().hasQueryItem("thumbnail"))
     {
-      QSize size(128, 128);
-      if (file.url().hasQueryItem("resolution"))
+      const QSize size = SSize::fromString(request.url().queryItemValue("thumbnail")).size();
+      QString defaultIcon = ":/img/null.png";
+      QByteArray content;
+
+      QString name = sitePath(request.file());
+      name = name.left(name.indexOf('/'));
+
+      ScriptEngine * const engine = getScriptEngine(name);
+      if (engine)
+        content = makeThumbnail(size, engine->icon(request.fileName()), request.url().queryItemValue("overlay"));
+
+      if (content.isEmpty())
+        content = makeThumbnail(size, QImage(defaultIcon));
+
+      return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_Ok, content, SHttpEngine::mimeImagePng);
+    }
+    else if (request.url().hasQueryItem("site_tree"))
+    {
+      PluginSettings settings(Module::pluginName);
+
+      QStringList selectedAudiences = settings.value("Audiences").toStringList();
+
+      const QString checkon = QString::fromUtf8(QByteArray::fromHex(request.url().queryItemValue("checkon").toAscii()));
+      const QString checkoff = QString::fromUtf8(QByteArray::fromHex(request.url().queryItemValue("checkoff").toAscii()));
+      if (!checkon.isEmpty() || !checkoff.isEmpty())
       {
-        const QStringList sizeTxt = file.url().queryItemValue("resolution").split('x');
-        if (sizeTxt.count() >= 2)
-          size = QSize(sizeTxt[0].toInt(), sizeTxt[1].toInt());
-        else if (sizeTxt.count() >= 1)
-          size = QSize(sizeTxt[0].toInt(), sizeTxt[0].toInt());
+        if (!checkon.isEmpty())
+          selectedAudiences.append(checkon);
+
+        if (!checkoff.isEmpty())
+          selectedAudiences.removeAll(checkoff);
+
+        settings.setValue("Audiences", selectedAudiences);
       }
 
-      const QString script = siteDatabase->script(siteDatabase->reverseDomain(file.parentDir()));
-      if (!script.isEmpty())
+      const QString open = request.url().queryItemValue("open");
+      const QSet<QString> allopen = !open.isEmpty()
+                                    ? QSet<QString>::fromList(QString::fromUtf8(qUncompress(QByteArray::fromHex(open.toAscii()))).split(dirSplit))
+                                    : QSet<QString>();
+
+      HtmlParser htmlParser;
+      htmlParser.setField("SERVER_PATH", QUrl(serverPath()).toEncoded());
+      htmlParser.setField("DIRS", QByteArray(""));
+      foreach (const QString &targetAudience, siteDatabase->allAudiences())
       {
-        ScriptEngine engine(script);
-        QImage image = engine.icon(file.fileName().left(file.fileName().length() - 10));
-        if (!image.isNull())
-          image = image.scaled(size, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+        htmlParser.setField("DIR_FULLPATH", targetAudience.toUtf8().toHex());
+        htmlParser.setField("DIR_INDENT", QByteArray(""));
 
-        QImage result(size, QImage::Format_ARGB32);
-        QPainter p;
-        p.begin(&result);
-        p.setCompositionMode(QPainter::CompositionMode_Source); // Ignore alpha
-        p.fillRect(result.rect(), Qt::transparent);
-        p.setCompositionMode(QPainter::CompositionMode_SourceOver); // Process alpha
-        p.drawImage(
-            (result.width() / 2) - (image.width() / 2),
-            (result.height() / 2) - (image.height() / 2),
-            image);
-
-        if (file.url().hasQueryItem("overlay"))
+        // Expand
+        bool addChildren = false;
+        QSet<QString> all = allopen;
+        if (all.contains(targetAudience))
         {
-          QImage overlayImage(":/lximediacenter/images/" + file.url().queryItemValue("overlay") + ".png");
-          if (!overlayImage.isNull())
-          {
-            overlayImage = overlayImage.scaled(size / 2, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-
-            p.drawImage(
-                (result.width() / 2) - (overlayImage.width() / 2),
-                (result.height() / 2) - (overlayImage.height() / 2),
-                overlayImage);
-          }
+          all.remove(targetAudience);
+          htmlParser.setField("DIR_OPEN", QByteArray("open"));
+          addChildren = true;
+        }
+        else
+        {
+          all.insert(targetAudience);
+          htmlParser.setField("DIR_OPEN", QByteArray("close"));
         }
 
-        p.end();
+        htmlParser.setField("DIR_ALLOPEN", qCompress(QStringList(all.toList()).join(QString(dirSplit)).toUtf8()).toHex());
+        htmlParser.setField("DIR_EXPAND", htmlParser.parse(htmlSiteTreeExpand));
 
-        QBuffer b;
-        result.save(&b, "PNG");
+        if (selectedAudiences.contains(targetAudience))
+        {
+          htmlParser.setField("DIR_CHECKED", QByteArray("full"));
+          htmlParser.setField("DIR_CHECKTYPE", QByteArray("checkoff"));
+        }
+        else
+        {
+          htmlParser.setField("DIR_CHECKED", QByteArray("none"));
+          htmlParser.setField("DIR_CHECKTYPE", QByteArray("checkon"));
+        }
 
-        return makeResponse(request, b.data(), "image/png", true);
+        htmlParser.setField("DIR_CHECK", htmlParser.parse(htmlSiteTreeCheckLink));
+
+        htmlParser.setField("DIR_NAME", targetAudience);
+
+        htmlParser.appendField("DIRS", htmlParser.parse(htmlSiteTreeDir));
+
+        if (addChildren)
+        foreach (const QString &name, siteDatabase->getSites(targetAudience))
+        {
+          htmlParser.setField("DIR_FULLPATH", name.toUtf8().toHex());
+          htmlParser.setField("DIR_INDENT", htmlParser.parse(htmlSiteTreeIndent) + htmlParser.parse(htmlSiteTreeIndent));
+          htmlParser.setField("DIR_ALLOPEN", qCompress(QStringList(allopen.toList()).join(QString(dirSplit)).toUtf8()).toHex());
+          htmlParser.setField("DIR_EXPAND", QByteArray(""));
+
+          htmlParser.setField("ITEM_ICON", serverPath() + name + "/?thumbnail=16");
+          htmlParser.setField("DIR_CHECK", htmlParser.parse(htmlSiteTreeCheckIcon));
+
+          htmlParser.setField("ITEM_NAME", name);
+          htmlParser.setField("DIR_NAME", htmlParser.parse(htmlSiteTreeScriptLink));
+
+          htmlParser.appendField("DIRS", htmlParser.parse(htmlSiteTreeDir));
+        }
       }
 
-      QImage image(":/lximediacenter/images/video-template.png");
-      if (!image.isNull())
-      {
-        if (file.url().hasQueryItem("resolution"))
-          image = image.scaled(size / 2, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-
-        QImage sum(size, QImage::Format_ARGB32);
-        QPainter p;
-        p.begin(&sum);
-        p.setCompositionMode(QPainter::CompositionMode_Source); // Ignore alpha
-        p.fillRect(sum.rect(), Qt::transparent);
-        p.setCompositionMode(QPainter::CompositionMode_SourceOver); // Process alpha
-        p.drawImage(
-            (sum.width() / 2) - (image.width() / 2),
-            (sum.height() / 2) - (image.height() / 2),
-            image);
-        p.end();
-
-        QBuffer b;
-        sum.save(&b, "PNG");
-
-        return makeResponse(request, b.data(), "image/png", true);
-      }
-
-      SHttpServer::ResponseMessage response(request, SHttpServer::Status_MovedPermanently);
-      response.setField("Location", "http://" + request.host() + "/img/null.png");
+      SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
+      response.setField("Cache-Control", "no-cache");
+      response.setContentType("text/html;charset=utf-8");
+      response.setContent(htmlParser.parse(htmlSiteTreeIndex));
       return response;
     }
-    else if (file.fileName().endsWith(".html", Qt::CaseInsensitive)) // Show player
+    else if (request.url().hasQueryItem("edit"))
     {
-      const QString title = file.fileName().left(file.fileName().length() - 5);
+      QString name = QString::fromUtf8(QByteArray::fromHex(request.url().queryItemValue("edit").toAscii()));
+      name = name.left(name.indexOf('/'));
 
-      return makeHtmlContent(request, file.url(), buildVideoPlayer(title.toUtf8(), title, file.url()), headPlayer);
+      const QString script = siteDatabase->getScript(name);
+      if (!script.isEmpty())
+      {
+        HtmlParser htmlParser;
+        htmlParser.setField("TR_SCRIPT_EDITOR", tr("Script editor"));
+        htmlParser.setField("TR_SAVE", tr("Save"));
+
+        htmlParser.setField("SCRIPT_NAME", name);
+        htmlParser.setField("ENCODED_SCRIPT_NAME", name.toUtf8().toHex());
+        htmlParser.setField("SCRIPT", script);
+
+        SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
+        response.setField("Cache-Control", "no-cache");
+        response.setContentType("text/html;charset=utf-8");
+        response.setContent(htmlParser.parse(htmlSiteEditIndex));
+        return response;
+      }
     }
   }
 
   return MediaServer::httpRequest(request, socket);
 }
 
-const QList<InternetServer::Item> & InternetServer::cachedItems(const QString &path)
+QString InternetServer::sitePath(const QString &path) const
 {
-  static const QList<Item> null;
+  return path.mid(serverPath().length());
+}
 
-  if (qAbs(cacheTimer.restart()) >= 5 * 60000)
-    itemCache.clear();
-
-  const int sep = path.indexOf('/', 1);
-  const QString identifier = siteDatabase->reverseDomain(path.mid(1, sep - 1));
-
-  QMap<QString, QList<Item> >::Iterator i = itemCache.find(path);
-  if (i == itemCache.end())
+ScriptEngine * InternetServer::getScriptEngine(const QString &name)
+{
+  if (!name.isEmpty())
   {
-    const QString script = siteDatabase->script(identifier);
-    if (!script.isEmpty())
+    QMap<QString, ScriptEngine *>::Iterator i = scriptEngines.find(name);
+    if (i == scriptEngines.end())
     {
-      ScriptEngine engine(script);
+      ScriptEngine * const engine =
+          new ScriptEngine(siteDatabase->getScript(name));
 
-      i = itemCache.insert(path, engine.listItems(path.mid(sep)));
+      if (engine->isValid())
+        i = scriptEngines.insert(name, engine);
+      else
+        delete engine;
     }
-    else
-      return null;
+
+    if (i != scriptEngines.end())
+      return *i;
   }
 
-  return *i;
+  return NULL;
 }
+
 
 InternetServer::Stream::Stream(InternetServer *parent, SSandboxClient *sandbox, const QString &url)
   : MediaServer::Stream(parent, url),

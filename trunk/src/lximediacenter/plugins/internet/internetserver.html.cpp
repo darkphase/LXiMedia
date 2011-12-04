@@ -17,26 +17,42 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "configserver.h"
-#include <QtScript>
+#include "internetserver.h"
 #include "sitedatabase.h"
+#include "module.h"
 
 namespace LXiMediaCenter {
 namespace InternetBackend {
 
-const char ConfigServer::htmlMain[] =
-    " <div class=\"content\">\n"
-    "  <fieldset style=\"float:left;\">\n"
-    "   <legend>{TR_SITE_SELECTION}</legend>\n"
-    "   {TR_SITES_EXPLAIN}<br />\n"
-    "   <iframe style=\"width:40em;height:40em;\" src=\"site-tree.html\" frameborder=\"0\" name=\"tree\">\n"
-    "   </iframe><br />\n"
-    "  </fieldset>\n"
-    " </div>\n";
+const char InternetServer::htmlFrontPageContent[] =
+    "   <div class=\"thumbnaillist\" id=\"internetitems\">\n"
+    "   </div>\n"
+    "   <script type=\"text/javascript\">loadListContent(\"internetitems\", \"{SERVER_PATH}\", 0, 0);</script>\n";
 
-const char ConfigServer::htmlTreeIndex[] =
-    "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n"
-    "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">\n"
+const char InternetServer::htmlSettingsMain[] =
+    "  <fieldset>\n"
+    "   <legend>{TR_INTERNET}</legend>\n"
+    "   <form name=\"settings\" action=\"{SERVER_PATH}\" method=\"get\">\n"
+    "    <input type=\"hidden\" name=\"save_settings\" value=\"settings\" />\n"
+    "    <table>\n"
+    "     <tr>\n"
+    "      <td>\n"
+    "       <iframe style=\"width:30em;height:30em;\" src=\"{SERVER_PATH}?site_tree=\" frameborder=\"0\">\n"
+    "        <a href=\"{SERVER_PATH}?site_tree=\" target=\"_blank\">frame</a>\n"
+    "       </iframe>\n"
+    "      </td>\n"
+    "      <td class=\"top\">\n"
+    "      </td>\n"
+    "     </tr>\n"
+    "     <tr><td colspan=\"2\">\n"
+    "      <input type=\"submit\" name=\"save\" value=\"{TR_SAVE}\" />\n"
+    "     </td></tr>\n"
+    "    </table>\n"
+    "   </form>\n"
+    "  </fieldset>\n";
+
+const char InternetServer::htmlSiteTreeIndex[] =
+    "<!DOCTYPE html>\n"
     "<html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"en\" xml:lang=\"en\">\n"
     "<head>\n"
     " <meta http-equiv=\"Content-Type\" content=\"text/html;charset=utf-8\" />\n"
@@ -49,7 +65,7 @@ const char ConfigServer::htmlTreeIndex[] =
     "</body>\n"
     "</html>\n";
 
-const char ConfigServer::htmlTreeDir[] =
+const char InternetServer::htmlSiteTreeDir[] =
     " <tr valign=\"middle\"><td align=\"left\">\n"
     "  <a class=\"hidden\" name=\"{DIR_FULLPATH}\" />\n"
     "{DIR_INDENT}"
@@ -58,127 +74,70 @@ const char ConfigServer::htmlTreeDir[] =
     "  {DIR_NAME}\n"
     " </td></tr>\n";
 
-const char ConfigServer::htmlTreeIndent[] =
+const char InternetServer::htmlSiteTreeIndent[] =
     "  <img src=\"/img/null.png\" width=\"16\" height=\"16\" />\n";
 
-const char ConfigServer::htmlTreeExpand[] =
-    "  <a class=\"hidden\" href=\"{FILE}?open={DIR_ALLOPEN}#{DIR_FULLPATH}\">\n"
+const char InternetServer::htmlSiteTreeExpand[] =
+    "  <a class=\"hidden\" href=\"{SERVER_PATH}?site_tree=&amp;open={DIR_ALLOPEN}#{DIR_FULLPATH}\">\n"
     "   <img src=\"/img/tree{DIR_OPEN}.png\" width=\"16\" height=\"16\" />\n"
     "  </a>\n";
 
-const char ConfigServer::htmlTreeCheckLink[] =
-    "  <a class=\"hidden\" href=\"{FILE}?open={DIR_ALLOPEN}&amp;{DIR_CHECKTYPE}={DIR_FULLPATH}#{DIR_FULLPATH}\">\n"
+const char InternetServer::htmlSiteTreeCheckLink[] =
+    "  <a class=\"hidden\" href=\"{SERVER_PATH}?site_tree=&amp;open={DIR_ALLOPEN}&amp;{DIR_CHECKTYPE}={DIR_FULLPATH}#{DIR_FULLPATH}\">\n"
     "   <img src=\"/img/check{DIR_CHECKED}.png\" width=\"16\" height=\"16\" />\n"
     "  </a>\n";
 
-const char ConfigServer::htmlTreeCheckIcon[] =
-    "  <img class=\"thumbnail\" src=\"{ITEM_ICON}?resolution=16x16\" width=\"16\" height=\"16\" />\n";
+const char InternetServer::htmlSiteTreeCheckIcon[] =
+    "  <img class=\"thumbnail\" src=\"{ITEM_ICON}\" width=\"16\" height=\"16\" />\n";
 
-const char ConfigServer::htmlTreeScriptLink[] =
-    "  <a class=\"hidden\" href=\"edit.html?identifier={ITEM_IDENTIFIER}\" target=\"_parent\">{ITEM_NAME}</a>\n";
+const char InternetServer::htmlSiteTreeScriptLink[] =
+    "  <a class=\"hidden\" href=\"{SERVER_PATH}?edit={DIR_FULLPATH}\" target=\"_blank\">{ITEM_NAME}</a>\n";
 
-const char ConfigServer::htmlEditMain[] =
-    " <div class=\"content\">\n"
-    "  <fieldset style=\"float:left;\">\n"
-    "   <legend>{IDENTIFIER}.js - {TR_SCRIPT_EDITOR}</legend>\n"
-    "   <form name=\"edit\" action=\"edit.html\" method=\"get\">\n"
-    "    <table class=\"editmenu\"><tr>\n"
-    "     <td>\n"
-    "      <input type=\"text\" size=\"40\" name=\"identifier\" value=\"{IDENTIFIER}\" />\n"
-    "      <input type=\"submit\" name=\"save\" value=\"{TR_SAVE}\" />\n"
-    "      <input type=\"submit\" name=\"remove\" value=\"{TR_REMOVE}\" />\n"
-    "     </td><td>\n"
-    "      <a href=\"README.txt\" target=\"_blank\">{TR_SCRIPT_INFO}</a>\n"
-    "     </td>\n"
-    "    </tr></table>\n"
-    "    <div class=\"error\">{ERROR}</div>\n"
-    "    <textarea name=\"script\" id=\"script\" wrap=\"off\">{SCRIPT}</textarea><br />\n"
-    "    <script type=\"text/javascript\">createScriptArea('script');</script>\n"
-    "   </form>\n"
-    "  </fieldset>\n"
-    " </div>\n";
+const char InternetServer::htmlSiteEditIndex[] =
+    "<!DOCTYPE html>\n"
+    "<html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"en\" xml:lang=\"en\">\n"
+    "<head>\n"
+    " <title>{SCRIPT_NAME} - {TR_SCRIPT_EDITOR}</title>\n"
+    " <meta http-equiv=\"Content-Type\" content=\"text/html;charset=utf-8\" />\n"
+    " <link rel=\"stylesheet\" href=\"/css/main.css\" type=\"text/css\" media=\"screen, handheld, projection\" />\n"
+    " <link rel=\"stylesheet\" href=\"/css/siteeditor.css\" type=\"text/css\" media=\"screen, handheld, projection\" />\n"
+    " <script type=\"text/javascript\" src=\"/js/siteeditor.js\"></script>\n" // Open and close tag due to IE bug
+    "</head>\n"
+    "<body>\n"
+    " <div class=\"siteeditor\">\n"
+    "  <form name=\"edit\" action=\"{SERVER_PATH}\" method=\"get\">\n"
+    "   <input type=\"hidden\" name=\"save\" value=\"{ENCODED_SCRIPT_NAME}\" />\n"
+    "   <div class=\"toolbar\">\n"
+    "    <input type=\"submit\" name=\"save\" value=\"{TR_SAVE}\" />\n"
+    "   </div>\n"
+    "   <div class=\"texteditor\">\n"
+    "    <textarea class=\"text\" name=\"script\" id=\"script\" wrap=\"off\">{SCRIPT}</textarea><br />\n"
+    "    <script type=\"text/javascript\">createScriptArea(\"script\");</script>\n"
+    "   </div>\n"
+    "  </form>\n"
+    " </div>\n"
+    "</body>\n"
+    "</html>\n";
 
-const char ConfigServer::htmlEditHead[] =
-    " <style>\n"
-    "  table.editmenu {\n"
-    "   padding: 0;\n"
-    "   margin: 0;\n"
-    "   width: 100%;\n"
-    "   border: none;\n"
-    "  }\n"
-    "  .editmenu td {\n"
-    "   text-align: right;\n"
-    "  }\n"
-    "  .editmenu td:first-child {\n"
-    "   text-align: left;\n"
-    "  }\n"
-    "  textarea {\n"
-    "   font-size: 1em;\n"
-    "   width: 80em;\n"
-    "   height: 50em;\n"
-    "  }\n"
-    "  #script {\n"
-    "   margin-left: 30px;\n"
-    "   border: 1px solid black;\n"
-    "  }\n"
-    " .scriptarea {\n"
-    "   display: block;\n"
-    "   margin: 0;\n"
-    "   border: 1px solid black;\n"
-    "   border-right: none;\n"
-    "   background: #F0EFEF;\n"
-    "  } \n"
-    "  div.error {\n"
-    "   margin-top: 0.25em;\n"
-    "   margin-bottom: 0.25em;\n"
-    "   color: #800000;\n"
-    "   font-weight: bold;\n"
-    "  }\n"
-    " </style>\n"
-    " <script type=\"text/javascript\"><!--\n"
-    "  function createScriptArea(id)\n"
-    "  {\n"
-    "   var el = document.createElement('TEXTAREA');\n"
-    "   var ta = document.getElementById(id);\n"
-    "   var string = '';\n"
-    "   for (var no=1;no<300;no++) {\n"
-    "    if (string.length>0) string += '\\n';\n"
-    "    string += no;\n"
-    "   }\n"
-    "   el.className      = 'scriptarea';\n"
-    "   el.style.height   = (ta.offsetHeight-4) + \"px\";\n"
-    "   el.style.width    = \"25px\";\n"
-    "   el.style.position = \"absolute\";\n"
-    "   el.style.overflow = 'hidden';\n"
-    "   el.style.textAlign = 'right';\n"
-    "   el.style.paddingRight = '0.2em';\n"
-    "   el.innerHTML      = string;\n"
-    "   el.innerText      = string;\n"
-    "   el.style.zIndex   = 0;\n"
-    "   ta.style.zIndex   = 1;\n"
-    "   ta.style.position = \"relative\";\n"
-    "   ta.parentNode.insertBefore(el, ta.nextSibling);\n"
-    "   setLine();\n"
-    "   ta.focus();\n"
-    "\n"
-    "   ta.onkeydown    = function() { setLine(); }\n"
-    "   ta.onmousedown  = function() { setLine(); }\n"
-    "   ta.onscroll     = function() { setLine(); }\n"
-    "   ta.onblur       = function() { setLine(); }\n"
-    "   ta.onfocus      = function() { setLine(); }\n"
-    "   ta.onmousewheel = function() { setLine(); }\n"
-    "   ta.onmouseover  = function() { setLine(); }\n"
-    "   ta.onmouseup    = function() { setLine(); }\n"
-    "\n"
-    "   function setLine() {\n"
-    "    el.scrollTop   = ta.scrollTop;\n"
-    "    el.style.top   = (ta.offsetTop) + \"px\";\n"
-    "    el.style.left  = (ta.offsetLeft - 27) + \"px\";\n"
-    "   }\n"
-    "  }//-->\n"
-    " </script>\n";
+QByteArray InternetServer::frontPageContent(void)
+{
+  HtmlParser htmlParser;
+  htmlParser.setField("SERVER_PATH", QUrl(serverPath()).toEncoded());
 
-SHttpServer::ResponseMessage ConfigServer::handleHtmlRequest(const SHttpServer::RequestMessage &request, const MediaServer::File &file)
+  return htmlParser.parse(htmlFrontPageContent);
+}
+
+QByteArray InternetServer::settingsContent(void)
+{
+  HtmlParser htmlParser;
+  htmlParser.setField("SERVER_PATH", QUrl(serverPath()).toEncoded());
+  htmlParser.setField("TR_INTERNET", tr(Module::pluginName));
+  htmlParser.setField("TR_SAVE", tr("Save"));
+
+  return htmlParser.parse(htmlSettingsMain);
+}
+
+/*SHttpServer::ResponseMessage ConfigServer::handleHtmlRequest(const SHttpServer::RequestMessage &request, const MediaServer::File &file)
 {
   HtmlParser htmlParser;
 
@@ -241,7 +200,7 @@ SHttpServer::ResponseMessage ConfigServer::handleHtmlRequest(const SHttpServer::
       }
 
       htmlParser.setField("DIR_ALLOPEN", qCompress(QStringList(all.toList()).join(QString(dirSplit)).toUtf8()).toHex());
-      htmlParser.setField("DIR_EXPAND", htmlParser.parse(htmlTreeExpand));
+      htmlParser.setField("DIR_EXPAND", htmlParser.parse(htmlSiteTreeExpand));
 
       if (selectedAudiences.contains(targetAudience))
       {
@@ -254,35 +213,35 @@ SHttpServer::ResponseMessage ConfigServer::handleHtmlRequest(const SHttpServer::
         htmlParser.setField("DIR_CHECKTYPE", QByteArray("checkon"));
       }
 
-      htmlParser.setField("DIR_CHECK", htmlParser.parse(htmlTreeCheckLink));
+      htmlParser.setField("DIR_CHECK", htmlParser.parse(htmlSiteTreeCheckLink));
 
       htmlParser.setField("DIR_NAME", targetAudience);
 
-      htmlParser.appendField("DIRS", htmlParser.parse(htmlTreeDir));
+      htmlParser.appendField("DIRS", htmlParser.parse(htmlSiteTreeDir));
 
       if (addChildren)
       foreach (const QString &identifier, siteDatabase->getSites(targetAudience))
       {
         htmlParser.setField("DIR_FULLPATH", identifier.toUtf8().toHex());
-        htmlParser.setField("DIR_INDENT", htmlParser.parse(htmlTreeIndent) + htmlParser.parse(htmlTreeIndent));
+        htmlParser.setField("DIR_INDENT", htmlParser.parse(htmlSiteTreeIndent) + htmlParser.parse(htmlSiteTreeIndent));
         htmlParser.setField("DIR_ALLOPEN", qCompress(QStringList(allopen.toList()).join(QString(dirSplit)).toUtf8()).toHex());
         htmlParser.setField("DIR_EXPAND", QByteArray(""));
 
         htmlParser.setField("ITEM_ICON", QUrl('/' + pluginName() + "/Sites/" + siteDatabase->reverseDomain(identifier) + "/-thumb.png").toEncoded());
-        htmlParser.setField("DIR_CHECK", htmlParser.parse(htmlTreeCheckIcon));
+        htmlParser.setField("DIR_CHECK", htmlParser.parse(htmlSiteTreeCheckIcon));
 
         htmlParser.setField("ITEM_NAME", siteDatabase->reverseDomain(identifier));
         htmlParser.setField("ITEM_IDENTIFIER", siteDatabase->fullIdentifier(identifier));
-        htmlParser.setField("DIR_NAME", htmlParser.parse(htmlTreeScriptLink));
+        htmlParser.setField("DIR_NAME", htmlParser.parse(htmlSiteTreeScriptLink));
 
-        htmlParser.appendField("DIRS", htmlParser.parse(htmlTreeDir));
+        htmlParser.appendField("DIRS", htmlParser.parse(htmlSiteTreeDir));
       }
     }
 
     SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
     response.setField("Cache-Control", "no-cache");
     response.setContentType("text/html;charset=utf-8");
-    response.setContent(htmlParser.parse(htmlTreeIndex));
+    response.setContent(htmlParser.parse(htmlSiteTreeIndex));
 
     return response;
   }
@@ -335,6 +294,6 @@ SHttpServer::ResponseMessage ConfigServer::handleHtmlRequest(const SHttpServer::
   }
   else
     return makeHtmlContent(request, file.url(), htmlParser.parse(htmlMain));
-}
+}*/
 
 } } // End of namespaces

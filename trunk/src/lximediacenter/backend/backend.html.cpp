@@ -81,6 +81,17 @@ const char Backend::htmlNavigatorPath[] =
 const char Backend::htmlNavigatorItem[] =
     "      <li><a href=\"{ITEM_LINK}\">{ITEM_NAME}</a></li>\n";
 
+const char Backend::htmlFrontPages[] =
+    " <div class=\"main_frontpages\">\n"
+    "{FRONTPAGES}"
+    " </div>\n";
+
+const char Backend::htmlFrontPageItem[] =
+    "  <div class=\"frontpage\">\n"
+    "   <h1>{ITEM_TITLE}</h1>\n"
+    "{ITEM_CONTENT}"
+    "  </div>\n";
+
 const char Backend::htmlLogFile[] =
     " <div class=\"main_log\">\n"
     "  <table>\n"
@@ -266,8 +277,15 @@ SHttpServer::ResponseMessage Backend::httpRequest(const SHttpServer::RequestMess
 
       if (request.fileName().isEmpty())
       {
+        htmlParser.setField("FRONTPAGES", QByteArray(""));
         foreach (BackendServer *backendServer, backendServers)
-          content += backendServer->frontPageContent();
+        {
+          htmlParser.setField("ITEM_TITLE", backendServer->serverName());
+          htmlParser.setField("ITEM_CONTENT", backendServer->frontPageContent());
+          htmlParser.appendField("FRONTPAGES", htmlParser.parse(htmlFrontPageItem));
+        }
+
+        content = htmlParser.parse(htmlFrontPages);
       }
       else if (request.fileName() == "settings")
       {

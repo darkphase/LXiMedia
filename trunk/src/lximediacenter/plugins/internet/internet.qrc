@@ -1,10 +1,10 @@
 <RCC>
     <qresource prefix="/internet">
-        <file>sites/README</file>
-        <file>sites/fm.fresh!1.js</file>
-        <file>sites/nl.npo!1.js</file>
-        <file>sites/nl.radioveronica!1.js</file>
-        <file>sites/nl.rtl!1.js</file>
-        <file>sites/nl.skyradio!1.js</file>
+        <file>sites/fresh.fm</file>
+        <file>sites/npo.nl</file>
+    </qresource>
+    <qresource prefix="/">
+        <file>css/siteeditor.css</file>
+        <file>js/siteeditor.js</file>
     </qresource>
 </RCC>

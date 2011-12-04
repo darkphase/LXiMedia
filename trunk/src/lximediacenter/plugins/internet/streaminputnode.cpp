@@ -80,7 +80,7 @@ void StreamInputNode::setSampleRate(unsigned r)
   baseSampleRate = r;
 }
 
-void StreamInputNode::setUrl(const QUrl &url, bool generateVideo, quint16 programId)
+void StreamInputNode::setUrl(const QUrl &url, bool generateVideo)
 {
   if (generateVideo)
   {
@@ -101,7 +101,7 @@ void StreamInputNode::setUrl(const QUrl &url, bool generateVideo, quint16 progra
   audioBuffer.setNumSamples(audioFormat.sampleRate() / baseFrameRate.toFrequency());
   memset(audioBuffer.data(), 0, audioBuffer.size());
 
-  SNetworkInputNode::setUrl(url, programId);
+  SNetworkInputNode::setUrl(url);
 }
 
 bool StreamInputNode::start(void)

@@ -43,7 +43,7 @@ public:
   unsigned                      sampleRate(void) const;
   void                          setSampleRate(unsigned);
 
-  void                          setUrl(const QUrl &, bool generateVideo, quint16 programId = 0);
+  void                          setUrl(const QUrl &, bool generateVideo);
 
 public: // From SInterfaces::SourceNode
   virtual bool                  start(void);

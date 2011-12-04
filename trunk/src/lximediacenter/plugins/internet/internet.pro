@@ -2,24 +2,22 @@ MODULE_NAME = lximediacenter_internet
 LXIMEDIA_DIR = ../../../..
 include($${PWD}/$${LXIMEDIA_DIR}/include/liblxicore/module.pri)
 include($${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/linklximediacenter.pri)
-QT += network xml sql script
+QT += network xml script
 
 CONFIG += precompile_header
 PRECOMPILED_HEADER = $${PWD}/$${LXIMEDIA_DIR}/include/LXiMediaCenter
 
 # Files
-HEADERS += configserver.h \
-    internetsandbox.h \
+HEADERS += internetsandbox.h \
     internetserver.h \
     module.h \
     scriptengine.h \
     sitedatabase.h \
     streaminputnode.h
 
-SOURCES += configserver.cpp \
-    internetsandbox.cpp \
+SOURCES += internetsandbox.cpp \
     internetserver.cpp \
-    configserver.html.cpp \
+    internetserver.html.cpp \
     module.cpp \
     scriptengine.cpp \
     sitedatabase.cpp \

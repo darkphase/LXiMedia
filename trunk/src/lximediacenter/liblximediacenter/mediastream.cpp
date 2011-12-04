@@ -442,20 +442,13 @@ void MediaStream::decodeChannels(const QUrl &url, SAudioFormat &audioFormat)
 {
   if (url.hasQueryItem("channels"))
   {
-    const QStringList cl = url.queryItemValue("channels").split(',');
+    const SAudioFormat::Channels c =
+        SAudioFormat::Channels(url.queryItemValue("channels").toUInt(NULL, 16));
 
-    if ((url.queryItemValue("music") == "true") && (cl.count() >= 2))
+    if ((SAudioFormat::numChannels(c) > 0) &&
+        (audioFormat.numChannels() > SAudioFormat::numChannels(c)))
     {
-      audioFormat.setChannelSetup(SAudioFormat::Channels(cl[1].toUInt(NULL, 16)));
-    }
-    else if (!cl.isEmpty())
-    {
-      const SAudioFormat::Channels c = SAudioFormat::Channels(cl[0].toUInt(NULL, 16));
-      if ((SAudioFormat::numChannels(c) > 0) &&
-          (audioFormat.numChannels() > SAudioFormat::numChannels(c)))
-      {
-        audioFormat.setChannelSetup(c);
-      }
+      audioFormat.setChannelSetup(c);
     }
   }
 }

@@ -1,13 +1,14 @@
 function version()              { return "0.3.0"; }
-function targetAudience()       { return "NL"; }
+function name()                 { return "Fresh FM"; }
+function audience()             { return "NL"; }
 
 function listItems(path)
 {
   if (path == "/")
   {
     var items =
-      [ ["stream", "Play live stream", "Audio"],
-        ["test",   "Test",             "Audio"] ];
+      [ ["Live stream", "Audio"],
+        ["Test",        "Audio"] ];
 
     return items;
   }
@@ -15,14 +16,14 @@ function listItems(path)
     return [];
 }
 
-function icon(id)
+function icon(name)
 { 
   return freshfm_png;
 }
 
-function streamLocation(id)
+function streamLocation(name)
 {
-  if (id == "stream")
+  if (name == "Live stream")
     return "http://streams.fresh.fm:8100/";
   else
     return "http://10.0.0.101:4280/Media%20player/Music/playlist.mpa";

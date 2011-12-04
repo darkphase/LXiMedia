@@ -26,17 +26,29 @@ ScriptEngine::ScriptEngine(const QString &script, QObject *parent)
   : QObject(parent),
     engine(this)
 {
-  connect(&engine, SIGNAL(signalHandlerException(QScriptValue)), SLOT(exceptionHandler(QScriptValue)));
+  if (!script.isEmpty())
+  {
+    connect(&engine, SIGNAL(signalHandlerException(QScriptValue)), SLOT(exceptionHandler(QScriptValue)));
 
-  engine.evaluate(script);
-  global = engine.globalObject();
+    engine.evaluate(script);
+    global = engine.globalObject();
 
-  versionFunc = global.property("version");
-  targetAudienceFunc = global.property("targetAudience");
+    versionFunc = global.property("version");
+    nameFunc = global.property("name");
+    audienceFunc = global.property("audience");
 
-  iconFunc = global.property("icon");
-  listItemsFunc = global.property("listItems");
-  streamLocationFunc = global.property("streamLocation");
+    iconFunc = global.property("icon");
+    listItemsFunc = global.property("listItems");
+    streamLocationFunc = global.property("streamLocation");
+  }
+}
+
+bool ScriptEngine::isValid(void) const
+{
+  return
+      !versionFunc.isNull() &&
+      !nameFunc.isNull() &&
+      !audienceFunc.isNull();
 }
 
 QString ScriptEngine::version(void)
@@ -64,69 +76,83 @@ bool ScriptEngine::isCompatible(void)
   return false;
 }
 
-QString ScriptEngine::targetAudience(void)
+QString ScriptEngine::name(void)
 {
-  if (!targetAudienceFunc.isNull())
-    return targetAudienceFunc.call(me).toString();
+  if (!nameFunc.isNull())
+    return nameFunc.call(me).toString();
 
   return QString::null;
 }
 
-QImage ScriptEngine::icon(const QString &id)
+QString ScriptEngine::audience(void)
 {
-  if (!iconFunc.isNull())
-    return QImage::fromData(QByteArray::fromBase64(iconFunc.call(me, QScriptValueList() << id).toString().toAscii()));
+  if (!audienceFunc.isNull())
+    return audienceFunc.call(me).toString();
+
+  return QString::null;
+}
+
+QImage ScriptEngine::icon(const QString &name)
+{
+  QMap<QString, QByteArray>::Iterator icon = iconCache.find(name);
+  if ((icon == iconCache.end()) && !iconFunc.isNull())
+    icon = iconCache.insert(name, QByteArray::fromBase64(iconFunc.call(me, QScriptValueList() << name).toString().toAscii()));
+
+  if (icon != iconCache.end())
+    return QImage::fromData(*icon);
 
   return QImage();
 }
 
-QList<MediaServer::Item> ScriptEngine::listItems(const QString &path)
+QList<ScriptEngine::Item> ScriptEngine::listItems(const QString &path, unsigned start, unsigned count)
 {
-  QList<MediaServer::Item> result;
+  QList<ScriptEngine::Item> result;
 
-  if (!listItemsFunc.isNull())
+  QMap<QString, QList<Item> >::Iterator items = itemCache.find(path);
+  if ((items == itemCache.end()) && !listItemsFunc.isNull())
   {
-    const QScriptValue items = listItemsFunc.call(me, QScriptValueList() << path);
+    items = itemCache.insert(path, QList<Item>());
+
+    const QScriptValue fresult = listItemsFunc.call(me, QScriptValueList() << path);
     for (int i=0; true; i++)
     {
-      const QScriptValue item = items.property(i);
-      if (item.isArray())
+      const QScriptValue fresultitem = fresult.property(i);
+      if (fresultitem .isArray())
       {
-        const QString streamId = item.property(0).toString();
-        const QString name = item.property(1).toString();
-        const QString type = item.property(2).toString();
+        Item item;
+        item.name = fresultitem .property(0).toString();
 
-        MediaServer::Item item;
-        item.seekable = false;
-
+        const QString type = fresultitem .property(1).toString();
         if (type.compare("Video", Qt::CaseInsensitive) == 0)
-          item.type = SUPnPContentDirectory::Item::Type_Video;
+          item.type = MediaServer::Item::Type_Video;
         else if (type.compare("Audio", Qt::CaseInsensitive) == 0)
-          item.type = SUPnPContentDirectory::Item::Type_Audio;
+          item.type = MediaServer::Item::Type_Audio;
         else if (type.compare("Image", Qt::CaseInsensitive) == 0)
-          item.type = SUPnPContentDirectory::Item::Type_Image;
+          item.type = MediaServer::Item::Type_Image;
         else
-          item.type = SUPnPContentDirectory::Item::Type_None;
+          item.type = MediaServer::Item::Type_None;
 
-        item.url = streamId;
-        item.iconUrl = streamId + "-thumb.png";
-
-        item.title = name;
-
-        result += item;
+        items->append(item);
       }
       else
         break;
     }
   }
 
+  if (items != itemCache.end())
+  {
+    const bool returnAll = count == 0;
+    for (unsigned i=start, n=0; (int(i)<items->count()) && (returnAll || (n<count)); i++, n++)
+      result += (*items)[i];
+  }
+
   return result;
 }
 
-QString ScriptEngine::streamLocation(const QString &id)
+QString ScriptEngine::streamLocation(const QString &name)
 {
   if (!streamLocationFunc.isNull())
-    return streamLocationFunc.call(me, QScriptValueList() << id).toString();
+    return streamLocationFunc.call(me, QScriptValueList() << name).toString();
 
   return QString::null;
 }

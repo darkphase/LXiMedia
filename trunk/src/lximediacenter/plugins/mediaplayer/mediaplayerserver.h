@@ -127,6 +127,7 @@ private:
 private:
   static const char             htmlFrontPageContent[];
   static const char             htmlSettingsMain[];
+
   static const char             htmlSettingsDirTreeIndex[];
   static const char             htmlSettingsDirTreeDir[];
   static const char             htmlSettingsDirTreeIndent[];

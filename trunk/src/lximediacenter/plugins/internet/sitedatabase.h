@@ -39,34 +39,30 @@ private:
   virtual                       ~SiteDatabase();
 
 public:
-  bool                          needsUpdate(const QString &identifier) const;
-  void                          update(const QString &identifier, const QString &script);
-  void                          update(const QString &identifier, const QString &targetAudience, const QString &script);
-  void                          remove(const QString &identifier);
-  QString                       fullIdentifier(const QString &identifier) const;
+  QStringList                   allAudiences(void) const;
+  int                           countSites(const QString &audience) const;
+  int                           countSites(const QStringList &audiences) const;
+  QStringList                   getSites(const QString &audience, unsigned start = 0, unsigned count = 0) const;
+  QStringList                   getSites(const QStringList &audiences, unsigned start = 0, unsigned count = 0) const;
 
-  QString                       script(const QString &identifier) const;
-
-  QStringList                   allTargetAudiences(void) const;
-  int                           countSites(const QString &targetAudience) const;
-  int                           countSites(const QStringList &targetAudiences) const;
-  QStringList                   getSites(const QString &targetAudience, unsigned start = 0, unsigned count = 0) const;
-  QStringList                   getSites(const QStringList &targetAudiences, unsigned start = 0, unsigned count = 0) const;
-
-  static QString                reverseDomain(const QString &);
+  QString                       getScript(const QString &name) const;
 
 protected:
   virtual void                  customEvent(QEvent *);
 
 private:
-  void                          updateScript(const QFileInfo &filename);
-  void                          updateScript(const QString &identifier, const QString &script);
+  void                          readScript(const QString &fileName);
+  void                          addScript(const QString &name, const QString &audience, const QString &script);
 
 private:
   class ScriptUpdateEvent;
 
   static const QEvent::Type     scriptUpdateEventType;
   static SiteDatabase         * self;
+
+  QList< QFuture<void> >        loadFutures;
+  QMap<QString, QString>        scripts;
+  QMap<QString, QStringList>    audiences;
 };
 
 } } // End of namespaces

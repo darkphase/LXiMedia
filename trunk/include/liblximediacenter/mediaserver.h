@@ -102,6 +102,8 @@ public:
   virtual void                  initialize(MasterServer *);
   virtual void                  close(void);
 
+  static QByteArray             makeThumbnail(QSize, const QImage &, const QString & = QString::null);
+
   static MediaProfiles        & mediaProfiles(void);
   static QSet<QString>        & activeClients(void);
 
