@@ -45,14 +45,24 @@ public:
   QStringList                   getSites(const QString &audience, unsigned start = 0, unsigned count = 0) const;
   QStringList                   getSites(const QStringList &audiences, unsigned start = 0, unsigned count = 0) const;
 
-  QString                       getScript(const QString &name) const;
+  QString                       getScript(const QString &host) const;
+  bool                          updateScript(const QString &host, const QString &script);
+  bool                          deleteLocalScript(const QString &host);
+  bool                          isLocal(const QString &host) const;
+  bool                          isGlobal(const QString &host) const;
+
+  QString                       getHost(const QString &name) const;
+  QString                       getName(const QString &host) const;
 
 protected:
   virtual void                  customEvent(QEvent *);
 
 private:
-  void                          readScript(const QString &fileName);
-  void                          addScript(const QString &name, const QString &audience, const QString &script);
+  bool                          readScript(const QString &host, const QString &script);
+  void                          addScript(const QString &host, const QString &name, const QString &audience);
+  void                          removeScript(const QString &host);
+
+  static QString                localScriptDirPath(void);
 
 private:
   class ScriptUpdateEvent;
@@ -60,9 +70,14 @@ private:
   static const QEvent::Type     scriptUpdateEventType;
   static SiteDatabase         * self;
 
-  QList< QFuture<void> >        loadFutures;
-  QMap<QString, QString>        scripts;
-  QMap<QString, QStringList>    audiences;
+  QDir                          localScriptDir;
+  QDir                          globalScriptDir;
+  QSet<QString>                 names;
+  QMap<QString, QString>        hostByName;
+  QMap<QString, QString>        nameByHost;
+  QMap<QString, QSet<QString> > audiences;
+
+  mutable QList< QFuture<bool> > loadFutures;
 };
 
 } } // End of namespaces

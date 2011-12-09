@@ -71,8 +71,10 @@ protected: // From SHttpServer::Callback
   virtual SHttpServer::ResponseMessage httpRequest(const SHttpServer::RequestMessage &, QIODevice *);
 
 private:
+  SHttpServer::ResponseMessage  editRequest(const SHttpServer::RequestMessage &, const QString &host, const QString &script, const QString & = QString::null);
   QString                       sitePath(const QString &path) const;
-  ScriptEngine                * getScriptEngine(const QString &name);
+  ScriptEngine                * getScriptEngine(const QString &host);
+  void                          deleteScriptEngine(const QString &host);
 
 private:
   static const char             dirSplit;
@@ -93,6 +95,8 @@ private:
   static const char             htmlSiteTreeScriptLink[];
 
   static const char             htmlSiteEditIndex[];
+  static const char             htmlSiteEditButton[];
+  static const char             htmlSiteEditCloseIndex[];
 };
 
 } } // End of namespaces

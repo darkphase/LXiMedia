@@ -55,6 +55,11 @@ void InternetServer::initialize(MasterServer *masterServer)
 void InternetServer::close(void)
 {
   MediaServer::close();
+
+  for (QMap<QString, ScriptEngine *>::Iterator i=scriptEngines.begin(); i!=scriptEngines.end(); i++)
+    delete *i;
+
+  scriptEngines.clear();
 }
 
 QString InternetServer::serverName(void) const
@@ -140,17 +145,16 @@ QList<InternetServer::Item> InternetServer::listItems(const QString &path, unsig
   {
     PluginSettings settings(Module::pluginName);
 
-    foreach (const QString &name, siteDatabase->getSites(settings.value("Audiences").toStringList(), start, count))
+    foreach (const QString &host, siteDatabase->getSites(settings.value("Audiences").toStringList(), start, count))
     {
       Item item;
       item.isDir = true;
       item.type = Item::Type_None;
-      item.path = serverPath() + name + '/';
+      item.title = siteDatabase->getName(host);
+      item.path = serverPath() + item.title + '/';
       item.url = item.path;
-      item.iconUrl = item.url;
+      item.iconUrl = serverPath() + item.title + '/';
       item.iconUrl.addQueryItem("thumbnail", QString::null);
-
-      item.title = name;
 
       result += item;
     }
@@ -159,8 +163,9 @@ QList<InternetServer::Item> InternetServer::listItems(const QString &path, unsig
   {
     const QString localPath = sitePath(path);
     const QString name = localPath.left(localPath.indexOf('/'));
+    const QString host = siteDatabase->getHost(name);
 
-    ScriptEngine * const engine = getScriptEngine(name);
+    ScriptEngine * const engine = getScriptEngine(host);
     if (engine)
     foreach (const ScriptEngine::Item &sitem, engine->listItems(localPath.mid(name.length()), start, count))
     {
@@ -201,164 +206,23 @@ InternetServer::Item InternetServer::getItem(const QString &path)
   return item;
 }
 
-SHttpServer::ResponseMessage InternetServer::httpRequest(const SHttpServer::RequestMessage &request, QIODevice *socket)
-{
-  if (request.isGet())
-  {
-    if (request.url().hasQueryItem("thumbnail"))
-    {
-      const QSize size = SSize::fromString(request.url().queryItemValue("thumbnail")).size();
-      QString defaultIcon = ":/img/null.png";
-      QByteArray content;
-
-      QString name = sitePath(request.file());
-      name = name.left(name.indexOf('/'));
-
-      ScriptEngine * const engine = getScriptEngine(name);
-      if (engine)
-        content = makeThumbnail(size, engine->icon(request.fileName()), request.url().queryItemValue("overlay"));
-
-      if (content.isEmpty())
-        content = makeThumbnail(size, QImage(defaultIcon));
-
-      return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_Ok, content, SHttpEngine::mimeImagePng);
-    }
-    else if (request.url().hasQueryItem("site_tree"))
-    {
-      PluginSettings settings(Module::pluginName);
-
-      QStringList selectedAudiences = settings.value("Audiences").toStringList();
-
-      const QString checkon = QString::fromUtf8(QByteArray::fromHex(request.url().queryItemValue("checkon").toAscii()));
-      const QString checkoff = QString::fromUtf8(QByteArray::fromHex(request.url().queryItemValue("checkoff").toAscii()));
-      if (!checkon.isEmpty() || !checkoff.isEmpty())
-      {
-        if (!checkon.isEmpty())
-          selectedAudiences.append(checkon);
-
-        if (!checkoff.isEmpty())
-          selectedAudiences.removeAll(checkoff);
-
-        settings.setValue("Audiences", selectedAudiences);
-      }
-
-      const QString open = request.url().queryItemValue("open");
-      const QSet<QString> allopen = !open.isEmpty()
-                                    ? QSet<QString>::fromList(QString::fromUtf8(qUncompress(QByteArray::fromHex(open.toAscii()))).split(dirSplit))
-                                    : QSet<QString>();
-
-      HtmlParser htmlParser;
-      htmlParser.setField("SERVER_PATH", QUrl(serverPath()).toEncoded());
-      htmlParser.setField("DIRS", QByteArray(""));
-      foreach (const QString &targetAudience, siteDatabase->allAudiences())
-      {
-        htmlParser.setField("DIR_FULLPATH", targetAudience.toUtf8().toHex());
-        htmlParser.setField("DIR_INDENT", QByteArray(""));
-
-        // Expand
-        bool addChildren = false;
-        QSet<QString> all = allopen;
-        if (all.contains(targetAudience))
-        {
-          all.remove(targetAudience);
-          htmlParser.setField("DIR_OPEN", QByteArray("open"));
-          addChildren = true;
-        }
-        else
-        {
-          all.insert(targetAudience);
-          htmlParser.setField("DIR_OPEN", QByteArray("close"));
-        }
-
-        htmlParser.setField("DIR_ALLOPEN", qCompress(QStringList(all.toList()).join(QString(dirSplit)).toUtf8()).toHex());
-        htmlParser.setField("DIR_EXPAND", htmlParser.parse(htmlSiteTreeExpand));
-
-        if (selectedAudiences.contains(targetAudience))
-        {
-          htmlParser.setField("DIR_CHECKED", QByteArray("full"));
-          htmlParser.setField("DIR_CHECKTYPE", QByteArray("checkoff"));
-        }
-        else
-        {
-          htmlParser.setField("DIR_CHECKED", QByteArray("none"));
-          htmlParser.setField("DIR_CHECKTYPE", QByteArray("checkon"));
-        }
-
-        htmlParser.setField("DIR_CHECK", htmlParser.parse(htmlSiteTreeCheckLink));
-
-        htmlParser.setField("DIR_NAME", targetAudience);
-
-        htmlParser.appendField("DIRS", htmlParser.parse(htmlSiteTreeDir));
-
-        if (addChildren)
-        foreach (const QString &name, siteDatabase->getSites(targetAudience))
-        {
-          htmlParser.setField("DIR_FULLPATH", name.toUtf8().toHex());
-          htmlParser.setField("DIR_INDENT", htmlParser.parse(htmlSiteTreeIndent) + htmlParser.parse(htmlSiteTreeIndent));
-          htmlParser.setField("DIR_ALLOPEN", qCompress(QStringList(allopen.toList()).join(QString(dirSplit)).toUtf8()).toHex());
-          htmlParser.setField("DIR_EXPAND", QByteArray(""));
-
-          htmlParser.setField("ITEM_ICON", serverPath() + name + "/?thumbnail=16");
-          htmlParser.setField("DIR_CHECK", htmlParser.parse(htmlSiteTreeCheckIcon));
-
-          htmlParser.setField("ITEM_NAME", name);
-          htmlParser.setField("DIR_NAME", htmlParser.parse(htmlSiteTreeScriptLink));
-
-          htmlParser.appendField("DIRS", htmlParser.parse(htmlSiteTreeDir));
-        }
-      }
-
-      SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
-      response.setField("Cache-Control", "no-cache");
-      response.setContentType("text/html;charset=utf-8");
-      response.setContent(htmlParser.parse(htmlSiteTreeIndex));
-      return response;
-    }
-    else if (request.url().hasQueryItem("edit"))
-    {
-      QString name = QString::fromUtf8(QByteArray::fromHex(request.url().queryItemValue("edit").toAscii()));
-      name = name.left(name.indexOf('/'));
-
-      const QString script = siteDatabase->getScript(name);
-      if (!script.isEmpty())
-      {
-        HtmlParser htmlParser;
-        htmlParser.setField("TR_SCRIPT_EDITOR", tr("Script editor"));
-        htmlParser.setField("TR_SAVE", tr("Save"));
-
-        htmlParser.setField("SCRIPT_NAME", name);
-        htmlParser.setField("ENCODED_SCRIPT_NAME", name.toUtf8().toHex());
-        htmlParser.setField("SCRIPT", script);
-
-        SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
-        response.setField("Cache-Control", "no-cache");
-        response.setContentType("text/html;charset=utf-8");
-        response.setContent(htmlParser.parse(htmlSiteEditIndex));
-        return response;
-      }
-    }
-  }
-
-  return MediaServer::httpRequest(request, socket);
-}
-
 QString InternetServer::sitePath(const QString &path) const
 {
   return path.mid(serverPath().length());
 }
 
-ScriptEngine * InternetServer::getScriptEngine(const QString &name)
+ScriptEngine * InternetServer::getScriptEngine(const QString &host)
 {
-  if (!name.isEmpty())
+  if (!host.isEmpty())
   {
-    QMap<QString, ScriptEngine *>::Iterator i = scriptEngines.find(name);
+    QMap<QString, ScriptEngine *>::Iterator i = scriptEngines.find(host);
     if (i == scriptEngines.end())
     {
       ScriptEngine * const engine =
-          new ScriptEngine(siteDatabase->getScript(name));
+          new ScriptEngine(siteDatabase->getScript(host));
 
       if (engine->isValid())
-        i = scriptEngines.insert(name, engine);
+        i = scriptEngines.insert(host, engine);
       else
         delete engine;
     }
@@ -368,6 +232,19 @@ ScriptEngine * InternetServer::getScriptEngine(const QString &name)
   }
 
   return NULL;
+}
+
+void InternetServer::deleteScriptEngine(const QString &host)
+{
+  if (!host.isEmpty())
+  {
+    QMap<QString, ScriptEngine *>::Iterator i = scriptEngines.find(host);
+    if (i != scriptEngines.end())
+    {
+      delete *i;
+      scriptEngines.erase(i);
+    }
+  }
 }
 
 

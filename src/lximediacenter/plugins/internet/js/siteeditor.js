@@ -1,5 +1,11 @@
-function createScriptArea(id)
+var txt, msg, path, timer;
+
+function createScriptArea(scriptid, messageid, serverpath)
 {
+  txt = document.getElementById(scriptid);
+  msg = document.getElementById(messageid);
+  path = serverpath;
+
   var width = 630, height = 460;
   if (window.innerWidth && window.innerHeight)
   {
@@ -8,16 +14,15 @@ function createScriptArea(id)
   }
 
   var lnb = document.createElement("TEXTAREA");
-  var txt = document.getElementById(id);
-  var string = '';
 
-  for (var no=1;no<300;no++)
+  var string = "";
+  for (var i=1; i<9999; i++)
   {
-    if (string.length>0) string += '\n';
-    string += no;
+    if (string.length > 0) string += '\n';
+    string += i;
   }
 
-  var lnwidth = 25, tbheight = 25;
+  var lnwidth = 30, tbheight = 25;
 
   lnb.className             = "linenumbers";
   lnb.style.width           = lnwidth + "px";
@@ -41,12 +46,12 @@ function createScriptArea(id)
   {
     lnb.scrollTop   = txt.scrollTop;
     lnb.style.top   = (txt.offsetTop) + "px";
-    lnb.style.left  = (txt.offsetLeft - 27) + "px";
+    lnb.style.left  = (txt.offsetLeft - (lnwidth + 2)) + "px";
   }
 
   setLine();
   txt.focus();
-  txt.onkeydown    = function() { setLine(); }
+  txt.onkeydown    = function() { setLine(); clearTimeout(timer); timer=setTimeout("parseCode()", 1000); }
   txt.onmousedown  = function() { setLine(); }
   txt.onscroll     = function() { setLine(); }
   txt.onblur       = function() { setLine(); }
@@ -54,4 +59,25 @@ function createScriptArea(id)
   txt.onmousewheel = function() { setLine(); }
   txt.onmouseover  = function() { setLine(); }
   txt.onmouseup    = function() { setLine(); }
+}
+
+function parseCode()
+{
+  var request = new XMLHttpRequest();
+  request.onreadystatechange = function()
+  {
+    if ((request.readyState == 4) && (request.status == 200))
+      msg.innerHTML = request.responseText;
+  }
+
+  var code = txt.innerText;
+  request.open("POST", path + "?parse=", true);
+  request.setRequestHeader("Content-length", code.length);
+  request.send(code);
+}
+
+function closeWindow()
+{
+  window.opener="dummy"; // Prevents warning.
+  window.close();
 }

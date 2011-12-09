@@ -27,15 +27,16 @@ namespace InternetBackend {
 class SiteDatabase::ScriptUpdateEvent : public QEvent
 {
 public:
-  inline ScriptUpdateEvent(const QString &name, const QString &audience, const QString &script)
-    : QEvent(scriptUpdateEventType), name(name), audience(audience), script(script)
+  inline ScriptUpdateEvent(const QString &host, const QString &name, const QString &audience)
+    : QEvent(scriptUpdateEventType), host(host), name(name), audience(audience)
   {
+    this->host.squeeze();
+    this->name.squeeze();
+    this->audience.squeeze();
   }
 
 public:
-  const QString                 name;
-  const QString                 audience;
-  const QString                 script;
+  QString host, name, audience;
 };
 
 const QEvent::Type  SiteDatabase::scriptUpdateEventType = QEvent::Type(QEvent::registerEventType());
@@ -55,11 +56,49 @@ void SiteDatabase::destroyInstance(void)
 }
 
 SiteDatabase::SiteDatabase(QObject *parent)
-  : QObject(parent)
+  : QObject(parent),
+    localScriptDir(localScriptDirPath()),
+    globalScriptDir(":/internet/sites/")
 {
-  QDir dir(":/internet/sites/");
-  foreach (const QString &fileName, dir.entryList(QDir::Files))
-    loadFutures += QtConcurrent::run(this, &SiteDatabase::readScript, dir.absoluteFilePath(fileName));
+  if (!localScriptDir.exists())
+    localScriptDir.mkpath(localScriptDir.absolutePath());
+
+  QSet<QString> hosts;
+
+  foreach (const QString &fileName, localScriptDir.entryList(QStringList("*.js"), QDir::Files))
+  {
+    QFile file(localScriptDir.absoluteFilePath(fileName));
+    if (file.open(QFile::ReadOnly))
+    {
+      const QString host = QFileInfo(fileName).completeBaseName();
+      if (!hosts.contains(host))
+      {
+        hosts.insert(host);
+
+        loadFutures += QtConcurrent::run(
+            this, &SiteDatabase::readScript,
+            host, QString::fromUtf8(file.readAll()));
+      }
+    }
+  }
+
+  foreach (const QString &fileName, globalScriptDir.entryList(QStringList("*.js"), QDir::Files))
+  {
+    QFile file(globalScriptDir.absoluteFilePath(fileName));
+    if (file.open(QFile::ReadOnly))
+    {
+      const QString host = QFileInfo(fileName).completeBaseName();
+      if (!hosts.contains(host))
+      {
+        hosts.insert(host);
+
+        loadFutures += QtConcurrent::run(
+            this, &SiteDatabase::readScript,
+            QFileInfo(fileName).completeBaseName(),
+            QString::fromUtf8(file.readAll()));
+      }
+    }
+  }
 }
 
 SiteDatabase::~SiteDatabase()
@@ -84,9 +123,12 @@ int SiteDatabase::countSites(const QStringList &audiences) const
 {
   int result = 0;
 
+  while (!loadFutures.isEmpty())
+    loadFutures.takeFirst().waitForFinished();
+
   foreach (const QString &audience, audiences)
   {
-    QMap<QString, QStringList>::ConstIterator i = this->audiences.find(audience);
+    QMap<QString, QSet<QString> >::ConstIterator i = this->audiences.find(audience);
     if (i != this->audiences.end())
       result += i->count();
   }
@@ -101,34 +143,102 @@ QStringList SiteDatabase::getSites(const QString &audience, unsigned start, unsi
 
 QStringList SiteDatabase::getSites(const QStringList &audiences, unsigned start, unsigned count) const
 {
+  while (!loadFutures.isEmpty())
+    loadFutures.takeFirst().waitForFinished();
+
+  QMap<QString, QString> sortedItems;
+  foreach (const QString &audience, audiences)
+  {
+    QMap<QString, QSet<QString> >::ConstIterator i = this->audiences.find(audience);
+    if (i != this->audiences.end())
+    foreach (const QString &host, *i)
+      sortedItems.insert(getName(host), host);
+  }
+
   const bool returnAll = count == 0;
   QStringList result;
 
-  unsigned n = 0;
-  foreach (const QString &audience, audiences)
-  {
-    QMap<QString, QStringList>::ConstIterator i = this->audiences.find(audience);
-    if (i != this->audiences.end())
-    {
-      if (i->count() > int(start))
-      {
-        for (unsigned j=start; (int(j)<i->count()) && (returnAll || (n<count)); j++, n++)
-          result.append((*i)[j]);
-
-        start = 0;
-      }
-      else
-        start -= i->count();
-    }
-  }
+  const QStringList sortedValues = sortedItems.values();
+  for (unsigned i=start, n=0; (int(i)<sortedValues.count()) && (returnAll || (n<count)); i++, n++)
+    result.append(sortedValues[i]);
 
   return result;
 }
 
-QString SiteDatabase::getScript(const QString &name) const
+QString SiteDatabase::getScript(const QString &host) const
 {
-  QMap<QString, QString>::ConstIterator i = scripts.find(name);
-  if (i != scripts.end())
+  QFile localFile(localScriptDir.absoluteFilePath(host + ".js"));
+  if (localFile.open(QFile::ReadOnly))
+    return QString::fromUtf8(localFile.readAll());
+
+  QFile globalFile(globalScriptDir.absoluteFilePath(host + ".js"));
+  if (globalFile.open(QFile::ReadOnly))
+    return QString::fromUtf8(globalFile.readAll());
+
+  return QString::null;
+}
+
+bool SiteDatabase::updateScript(const QString &host, const QString &script)
+{
+  QFile file(localScriptDir.absoluteFilePath(host + ".js"));
+  if (file.open(QFile::WriteOnly))
+  {
+    file.write(script.toUtf8());
+
+    if (readScript(host, script))
+    {
+      removeScript(host);
+      qApp->sendPostedEvents(this, scriptUpdateEventType);
+
+      return true;
+    }
+  }
+
+  return false;
+}
+
+bool SiteDatabase::deleteLocalScript(const QString &host)
+{
+  foreach (const QString &fileName, localScriptDir.entryList(QStringList() << (host + ".js"), QDir::Files))
+  if (localScriptDir.remove(fileName))
+  {
+    removeScript(host);
+
+    QFile file(globalScriptDir.absoluteFilePath(host + ".js"));
+    if (file.open(QFile::ReadOnly))
+      readScript(host, QString::fromUtf8(file.readAll()));
+
+    qApp->sendPostedEvents(this, scriptUpdateEventType);
+
+    return true;
+  }
+
+  return false;
+}
+
+bool SiteDatabase::isLocal(const QString &host) const
+{
+  return localScriptDir.exists(host + ".js");
+}
+
+bool SiteDatabase::isGlobal(const QString &host) const
+{
+  return globalScriptDir.exists(host + ".js");
+}
+
+QString SiteDatabase::getHost(const QString &name) const
+{
+  QMap<QString, QString>::ConstIterator i = hostByName.find(name);
+  if (i != hostByName.end())
+    return *i;
+
+  return QString::null;
+}
+
+QString SiteDatabase::getName(const QString &host) const
+{
+  QMap<QString, QString>::ConstIterator i = nameByHost.find(host);
+  if (i != nameByHost.end())
     return *i;
 
   return QString::null;
@@ -140,48 +250,97 @@ void SiteDatabase::customEvent(QEvent *e)
   {
     const ScriptUpdateEvent * const event = static_cast<const ScriptUpdateEvent *>(e);
 
-    addScript(event->name, event->audience, event->script);
+    addScript(event->host, event->name, event->audience);
   }
   else
     QObject::customEvent(e);
 }
 
-void SiteDatabase::readScript(const QString &fileName)
+bool SiteDatabase::readScript(const QString &host, const QString &script)
 {
-  QFile file(fileName);
-  if (file.open(QFile::ReadOnly))
+  const QScriptSyntaxCheckResult result = QScriptEngine::checkSyntax(script);
+  if (result.state() == QScriptSyntaxCheckResult::Valid)
   {
-    const QString script = QString::fromUtf8(file.readAll());
-
-    const QScriptSyntaxCheckResult syntaxCheckResult = QScriptEngine::checkSyntax(script);
-    if (syntaxCheckResult.state() == QScriptSyntaxCheckResult::Valid)
+    ScriptEngine engine(script);
+    if (engine.isCompatible())
     {
-      ScriptEngine engine(script);
-      if (engine.isCompatible())
+      qApp->postEvent(this, new ScriptUpdateEvent(host, engine.name(), engine.audience()));
+
+      return true;
+    }
+  }
+  else
+    qWarning() << host << ":" << result.errorLineNumber() << ": " << result.errorMessage();
+
+  return false;
+}
+
+void SiteDatabase::addScript(const QString &host, const QString &name, const QString &audience)
+{
+  if (!host.isEmpty() && !name.isEmpty() && !audience.isEmpty())
+  {
+    QString fullName = name;
+    if (names.contains(name))
+    {
+      fullName += " (" + host + ")";
+      fullName.squeeze();
+
+      for (QMap<QString, QString>::Iterator i = hostByName.find(name);
+           i != hostByName.end();
+           i = hostByName.find(name))
       {
-        qApp->postEvent(this, new ScriptUpdateEvent(
-            engine.name(),
-            engine.audience(),
-            script));
+        const QString h = *i;
+        const QString n = name + " (" + h + ")";
+
+        nameByHost.remove(*i);
+        hostByName.erase(i);
+
+        hostByName.insert(n, h);
+        nameByHost.insert(h, n);
       }
     }
     else
+      names.insert(name);
+
+    hostByName.insert(fullName, host);
+    nameByHost.insert(host, fullName);
+    audiences[audience].insert(host);
+  }
+}
+
+void SiteDatabase::removeScript(const QString &host)
+{
+  QMap<QString, QString>::Iterator iname = nameByHost.find(host);
+  if (iname != nameByHost.end())
+  {
+    names.remove(*iname);
+
+    QMap<QString, QString>::Iterator ihost = hostByName.find(*iname);
+    if (ihost != hostByName.end())
+      hostByName.erase(ihost);
+
+    if (iname != nameByHost.end())
+      nameByHost.erase(iname);
+
+    for (QMap<QString, QSet<QString> >::Iterator i=audiences.begin(); i!=audiences.end(); )
     {
-      qWarning()
-          << fileName
-          << ":" << syntaxCheckResult.errorLineNumber() << ":" << syntaxCheckResult.errorColumnNumber()
-          << syntaxCheckResult.errorMessage();
+      i->remove(host);
+      if (i->isEmpty())
+        i = audiences.erase(i);
+      else
+        i++;
     }
   }
 }
 
-void SiteDatabase::addScript(const QString &name, const QString &audience, const QString &script)
+QString SiteDatabase::localScriptDirPath(void)
 {
-  if (!name.isEmpty() && !audience.isEmpty() && !script.isEmpty())
-  {
-    scripts.insert(name, script);
-    audiences[audience].append(name);
-  }
+  const QFileInfo settingsFile = QSettings().fileName();
+
+  return
+      settingsFile.absolutePath() + "/" +
+      settingsFile.completeBaseName() + "." +
+      Module::pluginName + ".Sites";
 }
 
 } } // End of namespaces
