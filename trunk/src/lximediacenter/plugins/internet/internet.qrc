@@ -1,7 +1,8 @@
 <RCC>
     <qresource prefix="/internet">
-        <file>sites/fresh.fm</file>
-        <file>sites/npo.nl</file>
+        <file>example.js</file>
+        <file>sites/fresh.fm.js</file>
+        <file>sites/npo.nl.js</file>
     </qresource>
     <qresource prefix="/">
         <file>css/siteeditor.css</file>

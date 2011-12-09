@@ -249,6 +249,14 @@ public:
     QByteArray                  data;
   };
 
+  struct MimePart
+  {
+    QMap<QString, QString>      fields;
+    QByteArray                  content;
+  };
+
+  typedef QMap<QString, MimePart> MimePartMap;
+
 public:
                                 SHttpEngine(QObject * = NULL);
   virtual                       ~SHttpEngine();
@@ -259,6 +267,7 @@ public:
   static const char           * errorDescription(StatusCode);
   static const char           * toMimeType(const QString &fileName);
   static bool                   splitHost(const QString &host, QString &hostname, quint16 &port);
+  static MimePartMap            splitMultipartMime(const QByteArray &content);
 
   static void                   closeSocket(QIODevice *);
 

@@ -41,6 +41,7 @@ const char MediaPlayerServer::htmlSettingsMain[] =
     "    <table>\n"
     "     <tr>\n"
     "      <td>\n"
+    "       {TR_SELECT_MEDIA_DIRECTORIES}:<br />\n"
     "       <iframe style=\"width:30em;height:30em;\" src=\"{SERVER_PATH}?folder_tree=\" frameborder=\"0\">\n"
     "        <a href=\"{SERVER_PATH}?folder_tree=\" target=\"_blank\">frame</a>\n"
     "       </iframe>\n"
@@ -112,6 +113,8 @@ QByteArray MediaPlayerServer::settingsContent(void)
   htmlParser.setField("TR_MEDIAPLAYER", tr(Module::pluginName));
   htmlParser.setField("TR_SLIDEDURATION", tr("Photo slideshow slide duration"));
   htmlParser.setField("TR_SAVE", tr("Save"));
+  htmlParser.setField("TR_SELECT_MEDIA_DIRECTORIES", tr("Select media directories"));
+
   htmlParser.setField("TR_RIGHTS_EXPLAIN", tr(
       "By default, the LXiMediaCenter backend (lximcbackend) runs as a restricted user.\n"
 #if defined(Q_OS_LINUX)
@@ -290,6 +293,88 @@ void MediaPlayerServer::scanDrives(void)
       driveLabelList.insert(drive.absoluteFilePath(), tr("Root"));
 #endif
   }
+}
+
+SHttpServer::ResponseMessage MediaPlayerServer::httpRequest(const SHttpServer::RequestMessage &request, QIODevice *socket)
+{
+  if (request.isGet())
+  {
+    if (request.url().hasQueryItem("thumbnail"))
+    {
+      const QSize size = SSize::fromString(request.url().queryItemValue("thumbnail")).size();
+      QString defaultIcon = ":/img/null.png";
+      QByteArray content;
+
+      const FileNode node = mediaDatabase->readNode(realPath(request.file()));
+      if (!node.isNull())
+      {
+        if (!node.thumbnail().isNull())
+          content = makeThumbnail(size, SImage(node.thumbnail()), request.url().queryItemValue("overlay"));
+
+        switch (node.fileType())
+        {
+        case FileNode::ProbeInfo::FileType_None:  defaultIcon = ":/img/misc.png";           break;
+        case FileNode::ProbeInfo::FileType_Audio: defaultIcon = ":/img/audio-file.png";     break;
+        case FileNode::ProbeInfo::FileType_Video: defaultIcon = ":/img/video-file.png";     break;
+        case FileNode::ProbeInfo::FileType_Image: defaultIcon = ":/img/image-file.png";     break;
+        case FileNode::ProbeInfo::FileType_Disc:  defaultIcon = ":/img/media-optical.png";  break;
+        }
+      }
+
+      if (content.isEmpty())
+        content = makeThumbnail(size, QImage(defaultIcon));
+
+      return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_Ok, content, SHttpEngine::mimeImagePng);
+    }
+    else if (request.url().hasQueryItem("save_settings"))
+    {
+      PluginSettings settings(Module::pluginName);
+      settings.setValue("SlideDuration", qBound(2500, request.url().queryItemValue("slideduration").toInt(), 60000));
+
+      SHttpServer::ResponseMessage response(request, SHttpServer::Status_MovedPermanently);
+      response.setField("Location", "http://" + request.host() + "/settings");
+      return response;
+    }
+    else if (request.url().hasQueryItem("folder_tree"))
+    {
+      QStringList paths = rootPaths.values();
+
+      const QString open = request.url().queryItemValue("open");
+      const QStringList allopen = !open.isEmpty()
+                                  ? QString::fromUtf8(qUncompress(QByteArray::fromHex(open.toAscii()))).split(dirSplit)
+                                  : QStringList();
+
+      const QString checkon = QString::fromUtf8(QByteArray::fromHex(request.url().queryItemValue("checkon").toAscii()));
+      const QString checkoff = QString::fromUtf8(QByteArray::fromHex(request.url().queryItemValue("checkoff").toAscii()));
+      if (!checkon.isEmpty() || !checkoff.isEmpty())
+      {
+        if (!checkon.isEmpty())
+          paths.append(checkon.endsWith('/') ? checkon : (checkon + '/'));
+
+        if (!checkoff.isEmpty())
+        for (QStringList::Iterator i=paths.begin(); i!=paths.end(); )
+        if (i->compare(checkoff, caseSensitivity) == 0)
+          i = paths.erase(i);
+        else
+          i++;
+
+        setRootPaths(paths);
+      }
+
+      HtmlParser htmlParser;
+      htmlParser.setField("SERVER_PATH", QUrl(serverPath()).toEncoded());
+      htmlParser.setField("DIRS", QByteArray(""));
+      generateDirs(htmlParser, driveInfoList.values(), 0, allopen, paths);
+
+      SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
+      response.setField("Cache-Control", "no-cache");
+      response.setContentType(SHttpEngine::mimeTextHtml);
+      response.setContent(htmlParser.parse(htmlSettingsDirTreeIndex));
+      return response;
+    }
+  }
+
+  return MediaServer::httpRequest(request, socket);
 }
 
 } } // End of namespaces

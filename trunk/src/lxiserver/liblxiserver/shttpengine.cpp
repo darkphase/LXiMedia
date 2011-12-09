@@ -226,6 +226,56 @@ bool SHttpEngine::splitHost(const QString &host, QString &hostname, quint16 &por
   return result;
 }
 
+SHttpEngine::MimePartMap SHttpEngine::splitMultipartMime(const QByteArray &content)
+{
+  MimePartMap result;
+
+  const QByteArray boundary = content.left(content.indexOf("\r\n"));
+  if (!boundary.isEmpty())
+  for (int i=content.indexOf(boundary), n=-1; i>=0; i=n)
+  {
+    i += boundary.length() + 2;
+    n = content.indexOf(boundary, i);
+
+    if (n > i)
+    {
+      const QByteArray part = content.mid(i, (n - 2) - i);
+      const int d = part.indexOf("\r\n\r\n");
+      if (d >= 0)
+      {
+        MimePart mimePart;
+        mimePart.content = part.mid(d + 4);
+
+        foreach (const QByteArray &line, part.left(d).split('\n'))
+        if (line.startsWith("Content-Disposition:"))
+        foreach (QByteArray head, line.mid(21).split(';'))
+        {
+          head = head.trimmed();
+          const int e = head.indexOf('=');
+          if (e > 0)
+          {
+            const QString name = QString::fromUtf8(head.left(e)).trimmed();
+            QString value = QString::fromUtf8(head.mid(e + 1)).trimmed();
+
+            if (value.startsWith('\"') && value.endsWith('\"'))
+              value = value.mid(1, value.length() - 2);
+
+            mimePart.fields[name] = value;
+          }
+        }
+
+        if (mimePart.fields.contains("name"))
+          result.insert(mimePart.fields["name"], mimePart);
+      }
+    }
+
+    if (content.mid(n + boundary.length(), 2) == "--")
+      break;
+  }
+
+  return result;
+}
+
 void SHttpEngine::closeSocket(QIODevice *socket)
 {
   if (socket)

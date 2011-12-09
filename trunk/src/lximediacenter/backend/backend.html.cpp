@@ -410,7 +410,7 @@ QByteArray Backend::parseHtmlContent(const QUrl &url, const QByteArray &content,
 //  response.setField("Cache-Control", "no-cache");
 //
 //  const MediaServer::File file(request);
-//  const QString queryValue = file.url().queryItemValue("q");
+//  const QString queryValue = file.url().encodedQueryItemValue("q");
 //  const QString queryString = QByteArray::fromPercentEncoding(queryValue.toAscii().replace('+', ' '));
 //  const SearchCacheEntry entry = search(queryString);
 //  htmlParser.setField("SEARCHRESULTS", QByteArray(""));
@@ -741,7 +741,10 @@ void Backend::saveHtmlSettings(const SHttpServer::RequestMessage &request)
     if ((portValue > 0) && (portValue < 65536))
       settings.setValue("HttpPort", portValue);
 
-    const QString deviceName = request.url().queryItemValue("devicename").replace('+', ' ');
+    const QString deviceName =
+        QString::fromUtf8(QByteArray::fromPercentEncoding(
+          request.url().encodedQueryItemValue("devicename").replace('+', ' ')));
+
     if (!deviceName.isEmpty())
     {
       settings.setValue("DeviceName", deviceName);
@@ -773,35 +776,43 @@ void Backend::saveHtmlSettings(const SHttpServer::RequestMessage &request)
       if (request.url().hasQueryItem("save"))
       {
         const QString sizeName =
-            QByteArray::fromPercentEncoding(request.url().queryItemValue("transcodesize").toAscii().replace('+', ' '));
+            QByteArray::fromPercentEncoding(request.url().encodedQueryItemValue("transcodesize").replace('+', ' '));
         if (!sizeName.isEmpty())
           settings.setValue("TranscodeSize", sizeName);
         else
           settings.remove("TranscodeSize");
 
         const QString cropName =
-            QByteArray::fromPercentEncoding(request.url().queryItemValue("cropmode").toAscii().replace('+', ' '));
+            QString::fromUtf8(QByteArray::fromPercentEncoding(
+                request.url().encodedQueryItemValue("cropmode").replace('+', ' ')));
+
         if (!cropName.isEmpty())
           settings.setValue("TranscodeCrop", cropName);
         else
           settings.remove("TranscodeCrop");
 
         const QString encodeModeName =
-            QByteArray::fromPercentEncoding(request.url().queryItemValue("encodemode").toAscii().replace('+', ' '));
+            QString::fromUtf8(QByteArray::fromPercentEncoding(
+                request.url().encodedQueryItemValue("encodemode").replace('+', ' ')));
+
         if (!encodeModeName.isEmpty())
           settings.setValue("EncodeMode", encodeModeName);
         else
           settings.remove("EncodeMode");
 
         const QString channelsName =
-            QByteArray::fromPercentEncoding(request.url().queryItemValue("channels").toAscii().replace('+', ' '));
+            QString::fromUtf8(QByteArray::fromPercentEncoding(
+                request.url().encodedQueryItemValue("channels").replace('+', ' ')));
+
         if (!channelsName.isEmpty())
           settings.setValue("TranscodeChannels", channelsName);
         else
           settings.remove("TranscodeChannels");
 
         const QString musicChannelsName =
-            QByteArray::fromPercentEncoding(request.url().queryItemValue("musicchannels").toAscii().replace('+', ' '));
+            QString::fromUtf8(QByteArray::fromPercentEncoding(
+                request.url().encodedQueryItemValue("musicchannels").replace('+', ' ')));
+
         if (!musicChannelsName.isEmpty())
           settings.setValue("TranscodeMusicChannels", musicChannelsName);
         else
