@@ -183,7 +183,8 @@ SHttpServer::ResponseMessage InternetServer::httpRequest(const SHttpServer::Requ
   {
     if (request.url().hasQueryItem("site_tree"))
     {
-      PluginSettings settings(Module::pluginName);
+      QSettings settings;
+      settings.beginGroup(Module::pluginName);
 
       QStringList selectedAudiences = settings.value("Audiences").toStringList();
 

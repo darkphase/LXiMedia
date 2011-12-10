@@ -120,7 +120,8 @@ int InternetServer::countItems(const QString &path)
 {
   if (path == serverPath())
   {
-    PluginSettings settings(Module::pluginName);
+    QSettings settings;
+    settings.beginGroup(Module::pluginName);
 
     return siteDatabase->countSites(settings.value("Audiences").toStringList());
   }
@@ -143,7 +144,8 @@ QList<InternetServer::Item> InternetServer::listItems(const QString &path, unsig
 
   if (path == serverPath())
   {
-    PluginSettings settings(Module::pluginName);
+    QSettings settings;
+    settings.beginGroup(Module::pluginName);
 
     foreach (const QString &host, siteDatabase->getSites(settings.value("Audiences").toStringList(), start, count))
     {

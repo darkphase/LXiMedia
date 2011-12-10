@@ -24,7 +24,6 @@ HEADERS += $${PWD}/$${LXIMEDIA_DIR}/include/LXiCore \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxicore/smodule.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxicore/sstringparser.h
 SOURCES += sapplication.cpp \
-    sapplication.log.cpp \
     sfactory.cpp \
     smemorypool.cpp \
     smodule.cpp \

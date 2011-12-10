@@ -55,11 +55,11 @@ public:
   virtual int run(int &argc, char *argv[])
   {
     QCoreApplication app(argc, argv); configApp();
-    SApplication mediaApp(Backend::createLogDir()
 #if !defined(DEBUG_USE_LOCAL_SANDBOX)
-                          , QStringList() << "lxistream" << "lxistreamgui"
+    SApplication mediaApp(true, QStringList() << "lxistream" << "lxistreamgui");
+#else
+    SApplication mediaApp(true);
 #endif
-                          );
 
 #if defined(Q_OS_WIN)
     mediaApp.installExcpetionHandler();
@@ -94,7 +94,7 @@ int main(int argc, char *argv[])
   if ((argc >= 3) && (strcmp(argv[1], "--sandbox") == 0))
   {
     QCoreApplication app(argc, argv); configApp();
-    SApplication mediaApp;
+    SApplication mediaApp(false);
 #if defined(Q_OS_WIN)
     mediaApp.installExcpetionHandler();
 #endif
@@ -116,7 +116,7 @@ int main(int argc, char *argv[])
 
   if ((argc >= 3) && (strcmp(argv[1], "--sandbox") == 0))
   {
-    SApplication mediaApp;
+    SApplication mediaApp(false);
 
     (new Sandbox())->start(argv[2]);
 
@@ -124,11 +124,11 @@ int main(int argc, char *argv[])
   }
   else
   {
-    SApplication mediaApp(Backend::createLogDir()
 #if !defined(DEBUG_USE_LOCAL_SANDBOX)
-                          , QStringList() << "lxistream" << "lxistreamgui"
+    SApplication mediaApp(true, QStringList() << "lxistream" << "lxistreamgui");
+#else
+    SApplication mediaApp(true);
 #endif
-                          );
 
     int exitCode = 0;
     do

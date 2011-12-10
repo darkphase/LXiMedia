@@ -43,6 +43,7 @@ void MediaDatabase::destroyInstance(void)
 
 MediaDatabase::MediaDatabase(BackendServer::MasterServer *masterServer, QObject *parent)
   : QObject(parent),
+    lastPlayedFileName(lastPlayedFile()),
     probeSandbox(masterServer->createSandbox(SSandboxClient::Priority_Low))
 {
 }
@@ -115,16 +116,13 @@ QByteArray MediaDatabase::readImage(const QString &filePath, const QSize &size, 
   return QByteArray();
 }
 
-void MediaDatabase::setLastPlayed(const QString &filePath, const QDateTime &lastPlayed)
+void MediaDatabase::setLastPlayed(const FileNode &node, const QDateTime &lastPlayed)
 {
-  if (!filePath.isEmpty())
+  if (!node.isNull())
   {
-    QSettings settings(GlobalSettings::applicationDataDir() + "/lastplayed.db", QSettings::IniFormat);
+    QSettings settings(lastPlayedFileName, QSettings::IniFormat);
 
-    QString key = filePath;
-    key.replace('/', '|');
-    key.replace('\\', '|');
-
+    const QByteArray key = node.fastHash().toBase64();
     if (lastPlayed.isValid())
       settings.setValue(key, lastPlayed);
     else
@@ -132,16 +130,13 @@ void MediaDatabase::setLastPlayed(const QString &filePath, const QDateTime &last
   }
 }
 
-QDateTime MediaDatabase::lastPlayed(const QString &filePath) const
+QDateTime MediaDatabase::lastPlayed(const FileNode &node) const
 {
-  if (!filePath.isEmpty())
+  if (!node.isNull())
   {
-    QSettings settings(GlobalSettings::applicationDataDir() + "/lastplayed.db", QSettings::IniFormat);
+    QSettings settings(lastPlayedFileName, QSettings::IniFormat);
 
-    QString key = filePath;
-    key.replace('/', '|');
-    key.replace('\\', '|');
-
+    const QByteArray key = node.fastHash().toBase64();
     return settings.value(key, QDateTime()).toDateTime();
   }
 
@@ -230,6 +225,16 @@ FileNodeList MediaDatabase::getAlbumFiles(const QString &filePath, unsigned star
   }
 
   return result;
+}
+
+QString MediaDatabase::lastPlayedFile(void)
+{
+  const QFileInfo settingsFile = QSettings().fileName();
+
+  return
+      settingsFile.absolutePath() + "/" +
+      settingsFile.completeBaseName() + "." +
+      Module::pluginName + ".LastPlayed.db";
 }
 
 } } // End of namespaces

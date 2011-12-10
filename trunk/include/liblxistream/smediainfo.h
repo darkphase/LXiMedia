@@ -59,6 +59,8 @@ public:
   QDateTime                     lastModified(void) const;                       //!< Returns the date the file was last modified.
   bool                          isReadable(void) const;                         //!< Returns true if the file can be read.
 
+  QByteArray                    fastHash(void) const;                           //!< Returns a hash of a part of the file.
+
   QString                       format(void) const;                             //!< The format name of the media (e.g. matroska, mpeg, dvd, etc.)
   ProbeInfo::FileType           fileType(void) const;                           //!< The detected file type.
   QString                       fileTypeName(void) const;                       //!< A user-friendly description of the file type.

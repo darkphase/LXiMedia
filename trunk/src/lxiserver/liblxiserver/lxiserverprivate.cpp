@@ -587,7 +587,7 @@ void SandboxProcess::readyRead()
           emit consoleLine(QString::fromUtf8(line.trimmed()));
       }
       else
-        sApp->logLineToActiveLogFile(line.trimmed());
+        sApp->logLine(line.trimmed());
     }
   }
 }

@@ -22,12 +22,9 @@
 #include <QtWebKit>
 #endif
 #include <QtXml>
-#include <liblximediacenter/globalsettings.h>
 #if defined(Q_OS_WIN)
 #include <windows.h>
 #endif
-
-using namespace LXiMediaCenter;
 
 #if defined(Q_OS_WIN)
 const int   TrayIcon::iconSize = 16;
@@ -56,7 +53,7 @@ TrayIcon::TrayIcon()
     trayIcon(),
 #endif
     icon(":/lximedia.png"),
-    ssdpClient(QString("uuid:" + GlobalSettings::serverUuid().toString()).replace("{", "").replace("}", "")),
+    ssdpClient(QString("uuid:" + QUuid::createUuid().toString()).replace("{", "").replace("}", "")),
     localhostRunning(false),
     aboutBox(NULL)
 {
@@ -113,7 +110,7 @@ void TrayIcon::show(void)
 
 void TrayIcon::startSSDP(void)
 {
-  ssdpClient.initialize(GlobalSettings::defaultBackendInterfaces());
+  ssdpClient.initialize(SSsdpClient::localInterfaces());
   ssdpClient.sendSearch(qApp->applicationName() + QString(":server"));
 
   connect(&ssdpClient, SIGNAL(searchUpdated()), SLOT(updateMenu()));

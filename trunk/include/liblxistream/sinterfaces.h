@@ -236,6 +236,8 @@ public:
     FileType                    fileType;
     QString                     fileTypeName;
 
+    QByteArray                  fastHash;
+
     STime                       duration;
     QList<Chapter>              chapters;
 

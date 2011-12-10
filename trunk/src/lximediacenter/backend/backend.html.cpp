@@ -115,7 +115,7 @@ const char Backend::htmlLogFileHeadline[] =
     "     {ITEM_TYPE}\n"
     "    </td>\n"
     "    <td class=\"nostretch\" rowspan=\"{ITEM_ROWS}\">\n"
-    "     {ITEM_PID}:{ITEM_TID}\n"
+    "     {ITEM_PID}\n"
     "    </td>\n"
     "    <td class=\"stretch\">\n"
     "     {ITEM_HEADLINE}\n"
@@ -302,41 +302,49 @@ SHttpServer::ResponseMessage Backend::httpRequest(const SHttpServer::RequestMess
       }
       else if (request.fileName() == "log")
       {
-        SApplication::LogFile logFile(sApp->activeLogFile());
-        if (logFile.open(SApplication::LogFile::ReadOnly))
+        htmlParser.setField("TR_DATE", tr("Date"));
+        htmlParser.setField("TR_TYPE", tr("Type"));
+        htmlParser.setField("TR_MESSAGE", tr("Message"));
+
+        htmlParser.setField("LOG_MESSAGES", QByteArray(""));
+
+        const QByteArray logFile = sApp->log();
+        for (int i=0, n=-1; i>=0; i=n)
         {
-          htmlParser.setField("TR_DATE", tr("Date"));
-          htmlParser.setField("TR_TYPE", tr("Type"));
-          htmlParser.setField("TR_MESSAGE", tr("Message"));
-
-          htmlParser.setField("LOG_MESSAGES", QByteArray(""));
-
-          for (SApplication::LogFile::Message msg=logFile.readMessage();
-               msg.date.isValid();
-               msg=logFile.readMessage())
+          n = logFile.indexOf("\t\n", i + 2);
+          if (n > i)
           {
-            const bool mr = !msg.message.isEmpty();
+            const QByteArray message = logFile.mid(i, n - i);
+            n += 2;
 
-            htmlParser.setField("ITEM_ROWS", QByteArray::number(mr ? 2 : 1));
+            const int t1 = message.indexOf('\t');
+            const int t2 = message.indexOf('\t', t1 + 1);
+            const int t3 = message.indexOf('\t', t2 + 1);
 
-            htmlParser.setField("ITEM_ROWS", QByteArray::number(mr ? 2 : 1));
-            htmlParser.setField("ITEM_DATE", msg.date.toString("yyyy-MM-dd/hh:mm:ss"));
-            htmlParser.setField("ITEM_TYPE", msg.type);
-            htmlParser.setField("ITEM_PID", QByteArray::number(msg.pid));
-            htmlParser.setField("ITEM_TID", QByteArray::number(msg.tid));
-            htmlParser.setField("ITEM_TYPE", msg.type);
-            htmlParser.setField("ITEM_HEADLINE", msg.headline);
-            htmlParser.appendField("LOG_MESSAGES", htmlParser.parse(htmlLogFileHeadline));
+            htmlParser.setField("ITEM_DATE", (t1 >= 0) ? message.left(t1) : QByteArray());
+            htmlParser.setField("ITEM_TYPE", (t2 > t1) ? message.mid(t1 + 1, t2 - t1 - 1) : QByteArray());
+            htmlParser.setField("ITEM_PID", (t3 > t2) ? message.mid(t2 + 1, t3 - t2 - 1) : QByteArray());
 
-            if (mr)
+            const QByteArray msg  = (t3 > t2) ? message.mid(t3 + 1) : QByteArray();
+            const int nl = msg.indexOf('\n');
+            if (nl < 0)
             {
-              htmlParser.setField("ITEM_MESSAGE", msg.message.replace('\n', "<br />\n"));
+              htmlParser.setField("ITEM_ROWS", QByteArray("1"));
+              htmlParser.setField("ITEM_HEADLINE", msg);
+              htmlParser.appendField("LOG_MESSAGES", htmlParser.parse(htmlLogFileHeadline));
+            }
+            else
+            {
+              htmlParser.setField("ITEM_ROWS", QByteArray("2"));
+              htmlParser.setField("ITEM_HEADLINE", msg.left(nl));
+              htmlParser.appendField("LOG_MESSAGES", htmlParser.parse(htmlLogFileHeadline));
+              htmlParser.setField("ITEM_MESSAGE", msg.mid(nl + 1));
               htmlParser.appendField("LOG_MESSAGES", htmlParser.parse(htmlLogFileMessage));
             }
           }
-
-          content = htmlParser.parse(htmlLogFile);
         }
+
+        content = htmlParser.parse(htmlLogFile);
       }
       else if (request.fileName() == "about")
       {
@@ -434,7 +442,7 @@ QByteArray Backend::parseHtmlContent(const QUrl &url, const QByteArray &content,
 
 QByteArray Backend::handleHtmlSettings(const SHttpServer::RequestMessage &request)
 {
-  GlobalSettings settings;
+  QSettings settings;
 
   HtmlParser htmlParser;
   htmlParser.setField("TR_HTTP_SERVER", tr("HTTP server"));
@@ -443,8 +451,8 @@ QByteArray Backend::handleHtmlSettings(const SHttpServer::RequestMessage &reques
   htmlParser.setField("TR_HTTPSERVER_EXPLAIN",
     tr("This configures the internal HTTP server."));
 
-  htmlParser.setField("HTTPPORT", settings.value("HttpPort", settings.defaultBackendHttpPort()).toString());
-  htmlParser.setField("DEVICENAME", settings.value("DeviceName", settings.defaultDeviceName()).toString());
+  htmlParser.setField("HTTPPORT", settings.value("HttpPort", defaultPort).toString());
+  htmlParser.setField("DEVICENAME", settings.value("DeviceName", defaultDeviceName()).toString());
 
   settings.beginGroup("DLNA");
 
@@ -453,17 +461,17 @@ QByteArray Backend::handleHtmlSettings(const SHttpServer::RequestMessage &reques
   const QStringList enabledImageProfiles = MediaServer::mediaProfiles().enabledImageProfiles();
 
   const QString genericTranscodeSize =
-      settings.value("TranscodeSize", settings.defaultTranscodeSizeName()).toString();
+      settings.value("TranscodeSize", MediaServer::defaultTranscodeSizeName()).toString();
   const QString genericTranscodeCrop =
-      settings.value("TranscodeCrop", settings.defaultTranscodeCropName()).toString();
+      settings.value("TranscodeCrop", MediaServer::defaultTranscodeCropName()).toString();
   const QString genericEncodeMode =
-      settings.value("EncodeMode", settings.defaultEncodeModeName()).toString();
+      settings.value("EncodeMode", MediaServer::defaultEncodeModeName()).toString();
   const QString genericTranscodeChannels =
-      settings.value("TranscodeChannels", settings.defaultTranscodeChannelName()).toString();
+      settings.value("TranscodeChannels", MediaServer::defaultTranscodeChannelName()).toString();
   const QString genericTranscodeMusicChannels =
-      settings.value("TranscodeMusicChannels", settings.defaultTranscodeMusicChannelName()).toString();
+      settings.value("TranscodeMusicChannels", MediaServer::defaultTranscodeMusicChannelName()).toString();
   const bool genericMusicAddBlackVideo =
-      settings.value("MusicAddBlackVideo", settings.defaultMusicAddBlackVideo()).toBool();
+      settings.value("MusicAddBlackVideo", MediaServer::defaultMusicAddBlackVideo()).toBool();
 
   htmlParser.setField("TR_DLNA", tr("DLNA"));
   htmlParser.setField("TR_VIDEO_SETTINGS", tr("Video transcode settings"));
@@ -514,7 +522,7 @@ QByteArray Backend::handleHtmlSettings(const SHttpServer::RequestMessage &reques
 
   struct T
   {
-    static void addFormat(HtmlParser &htmlParser, GlobalSettings &settings, const QString &genericTranscodeSize, const GlobalSettings::TranscodeSize &size)
+    static void addFormat(HtmlParser &htmlParser, QSettings &settings, const QString &genericTranscodeSize, const MediaServer::TranscodeSize &size)
     {
       if (settings.value("TranscodeSize", genericTranscodeSize).toString() == size.name)
         htmlParser.setField("SELECTED", QByteArray("selected=\"selected\""));
@@ -528,7 +536,7 @@ QByteArray Backend::handleHtmlSettings(const SHttpServer::RequestMessage &reques
       htmlParser.appendField("FORMATS", htmlParser.parse(htmlSettingsOption));
     }
 
-    static void addChannel(HtmlParser &htmlParser, GlobalSettings &settings, const QString &genericTranscodeChannels, const GlobalSettings::TranscodeChannel &channel)
+    static void addChannel(HtmlParser &htmlParser, QSettings &settings, const QString &genericTranscodeChannels, const MediaServer::TranscodeChannel &channel)
     {
       if (settings.value("TranscodeChannels", genericTranscodeChannels).toString() == channel.name)
         htmlParser.setField("SELECTED", QByteArray("selected=\"selected\""));
@@ -540,7 +548,7 @@ QByteArray Backend::handleHtmlSettings(const SHttpServer::RequestMessage &reques
       htmlParser.appendField("CHANNELS", htmlParser.parse(htmlSettingsOption));
     }
 
-    static void addMusicChannel(HtmlParser &htmlParser, GlobalSettings &settings, const QString &genericTranscodeMusicChannels, const GlobalSettings::TranscodeChannel &channel)
+    static void addMusicChannel(HtmlParser &htmlParser, QSettings &settings, const QString &genericTranscodeMusicChannels, const MediaServer::TranscodeChannel &channel)
     {
       if (settings.value("TranscodeMusicChannels", genericTranscodeMusicChannels).toString() == channel.name)
         htmlParser.setField("SELECTED", QByteArray("selected=\"selected\""));
@@ -560,13 +568,13 @@ QByteArray Backend::handleHtmlSettings(const SHttpServer::RequestMessage &reques
   htmlParser.setField("CHANNELS", QByteArray(""));
   htmlParser.setField("MUSICCHANNELS", QByteArray(""));
 
-  foreach (const GlobalSettings::TranscodeSize &size, settings.allTranscodeSizes())
+  foreach (const MediaServer::TranscodeSize &size, MediaServer::allTranscodeSizes())
     T::addFormat(htmlParser, settings, genericTranscodeSize,  size);
 
-  foreach (const GlobalSettings::TranscodeChannel &channel, settings.allTranscodeChannels())
+  foreach (const MediaServer::TranscodeChannel &channel, MediaServer::allTranscodeChannels())
     T::addChannel(htmlParser, settings, genericTranscodeChannels, channel);
 
-  foreach (const GlobalSettings::TranscodeChannel &channel, settings.allTranscodeChannels())
+  foreach (const MediaServer::TranscodeChannel &channel, MediaServer::allTranscodeChannels())
     T::addMusicChannel(htmlParser, settings, genericTranscodeMusicChannels, channel);
 
   if (settings.value("TranscodeCrop", genericTranscodeCrop).toString() == "Box")
@@ -616,13 +624,13 @@ QByteArray Backend::handleHtmlSettings(const SHttpServer::RequestMessage &reques
     htmlParser.setField("CHANNELS", QByteArray(""));
     htmlParser.setField("MUSICCHANNELS", QByteArray(""));
 
-    foreach (const GlobalSettings::TranscodeSize &size, settings.allTranscodeSizes())
+    foreach (const MediaServer::TranscodeSize &size, MediaServer::allTranscodeSizes())
       T::addFormat(htmlParser, settings, genericTranscodeSize,  size);
 
-    foreach (const GlobalSettings::TranscodeChannel &channel, settings.allTranscodeChannels())
+    foreach (const MediaServer::TranscodeChannel &channel, MediaServer::allTranscodeChannels())
       T::addChannel(htmlParser, settings, genericTranscodeChannels, channel);
 
-    foreach (const GlobalSettings::TranscodeChannel &channel, settings.allTranscodeChannels())
+    foreach (const MediaServer::TranscodeChannel &channel, MediaServer::allTranscodeChannels())
       T::addMusicChannel(htmlParser, settings, genericTranscodeMusicChannels, channel);
 
     if (settings.value("TranscodeCrop", genericTranscodeCrop).toString() == "Box")
@@ -731,7 +739,7 @@ QByteArray Backend::handleHtmlSettings(const SHttpServer::RequestMessage &reques
 
 void Backend::saveHtmlSettings(const SHttpServer::RequestMessage &request)
 {
-  GlobalSettings settings;
+  QSettings settings;
 
   if ((request.url().queryItemValue("save_settings") == "http") &&
       request.url().hasQueryItem("httpport") &&

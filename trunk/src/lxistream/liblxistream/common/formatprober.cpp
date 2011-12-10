@@ -116,8 +116,18 @@ void FormatProber::probeFormat(ProbeInfo &pi, QIODevice *)
   }
 }
 
-void FormatProber::probeContent(ProbeInfo &, QIODevice *, const QSize &)
+void FormatProber::probeContent(ProbeInfo &pi, QIODevice *device, const QSize &)
 {
+  static const int hashSize = 4194304;
+
+  if (device->isOpen())
+  if (device->seek(qMax(Q_INT64_C(0), (device->size() / 2) - (hashSize / 2))))
+  {
+    QCryptographicHash hash(QCryptographicHash::Sha1);
+    hash.addData(device->read(hashSize));
+
+    pi.fastHash = hash.result();
+  }
 }
 
 void FormatProber::splitFileName(QString baseName, QString &title, QString &author, QString &album, int &episode)

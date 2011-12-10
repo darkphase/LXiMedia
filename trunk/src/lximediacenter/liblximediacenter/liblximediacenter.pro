@@ -24,23 +24,19 @@ HEADERS += $${PWD}/$${LXIMEDIA_DIR}/include/LXiMediaCenter \
  $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/export.h \
  $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/backendsandbox.h \
  $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/backendserver.h \
- $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/globalsettings.h \
  $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/htmlparser.h \
  $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/mediaprofiles.h \
  $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/mediaserver.h \
  $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/mediastream.h \
- $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/pluginsettings.h \
  $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/teletext.h
 
 SOURCES += backendsandbox.cpp \
  backendserver.cpp \
- globalsettings.cpp \
  htmlparser.cpp \
  mediaprofiles.cpp \
  mediaserver.cpp \
  mediaserver.html.cpp \
  mediastream.cpp \
- pluginsettings.cpp \
  teletext.cpp
 
 HEADERS += lximediacenterprivate.h

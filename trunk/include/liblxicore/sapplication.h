@@ -51,10 +51,9 @@ class SModule;
     need to be located in a directory called "lximedia" that is located in the
     directory that contains LXiCore0.dll.
 
-    The SApplication instance will also provide a logging system if a log
-    directory is provided to its constructor. Everyting logged with qDebug(),
-    qWarning(), qCritical() and qFatal() will be witten to a log file in that
-    directory.
+    The SApplication instance will also provide a logging system, everyting
+    logged with qDebug(), qWarning(), qCritical() and qFatal() will be witten to
+    a log in memory.
  */
 class LXICORE_PUBLIC SApplication : public QObject
 {
@@ -107,29 +106,6 @@ public:
     void                      * framePointer;
   };
 
-  /*! This is a helper class to read log messages from a log file. It can be
-      used as a QFile, read messages from the file with the readMessage()
-      method, similar to QFile::readLine().
-   */
-  class LXICORE_PUBLIC LogFile : public QFile
-  {
-  public:
-    struct Message
-    {
-      QDateTime                 date;
-      QString                   type;
-      unsigned                  pid;
-      unsigned                  tid;
-      QString                   headline;
-      QString                   message;
-    };
-
-  public:
-    explicit                    LogFile(const QString &, QObject * = NULL);
-
-    Message                     readMessage(void);
-  };
-
   /*! Enumerates different task types for use with profiling. They determine the
       color of the block in the profile.
    */
@@ -159,7 +135,7 @@ public:
   };
 
 public:
-  explicit                      SApplication(const QString &logDir = QString::null, const QStringList &skipModules = QStringList(), QObject * = NULL);
+  explicit                      SApplication(bool useLogFile = false, const QStringList &skipModules = QStringList(), QObject * = NULL);
   virtual                       ~SApplication();
 
   static const char           * name(void);
@@ -179,11 +155,11 @@ public: // Exception handler
 #endif
 
 public: // Logging
-  const QString               & logDir(void) const;
-  const QStringList           & errorLogFiles(void) const;
-  const QStringList           & allLogFiles(void) const;
-  const QString               & activeLogFile(void) const;
-  static void                   logLineToActiveLogFile(const QString &line);
+  QByteArray                    log(void);
+  void                          logLine(const QByteArray &line);
+
+private:
+  static void                   logMessage(QtMsgType, const char *);
 
 public: // Profiling
   bool                          enableProfiling(const QString &fileName);

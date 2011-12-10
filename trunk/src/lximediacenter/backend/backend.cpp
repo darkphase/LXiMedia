@@ -27,18 +27,9 @@
 const QEvent::Type  Backend::exitEventType = QEvent::Type(QEvent::registerEventType());
 #endif
 
-QString Backend::createLogDir(void)
-{
-  QDir logDir(GlobalSettings::applicationDataDir() + "/log");
-  if (!logDir.exists())
-    logDir.mkpath(logDir.absolutePath());
-
-  return logDir.absolutePath();
-}
-
 Backend::Backend()
   : BackendServer::MasterServer(),
-    masterHttpServer(SUPnPBase::protocol(), GlobalSettings::serverUuid()),
+    masterHttpServer(SUPnPBase::protocol(), serverUuid()),
     masterSsdpServer(&masterHttpServer),
     masterMediaServer("/upnp/"),
     masterConnectionManager("/upnp/"),
@@ -52,27 +43,6 @@ Backend::Backend()
 {
   // Seed the random number generator.
   qsrand(int(QDateTime::currentDateTime().toTime_t()));
-
-  qDebug() << "Using data directory" << GlobalSettings::applicationDataDir();
-
-  // Check and backup settings file
-  const QString settingsFile = GlobalSettings::settingsFile();
-  const QString bakSettingsFile = settingsFile + ".bak";
-  if (QFile::exists(bakSettingsFile))
-  {
-    if (!QFile::exists(settingsFile) || (QFileInfo(settingsFile).size() == 0))
-    {
-      qDebug() << "Using backup settings " << bakSettingsFile;
-
-      // Backup exists, use it.
-      QFile::remove(settingsFile);
-      QFile::rename(bakSettingsFile, settingsFile);
-    }
-    else
-      QFile::remove(bakSettingsFile);
-  }
-
-  QFile::copy(settingsFile, bakSettingsFile);
 
   // Open device configuration
   MediaServer::mediaProfiles().openDeviceConfig(":/devices.ini");
@@ -97,21 +67,16 @@ Backend::~Backend()
 
   QThreadPool::globalInstance()->waitForDone();
 
-  // Remove backup settings
-  const QString settingsFile = GlobalSettings::settingsFile();
-  if (QFile::exists(settingsFile))
-    QFile::remove(settingsFile + ".bak");
-
   qDebug() << "LXiMediaCenter backend stopped.";
 }
 
 void Backend::start(void)
 {
-  GlobalSettings settings;
+  QSettings settings;
 
   masterHttpServer.initialize(
-      settings.defaultBackendInterfaces(),
-      settings.value("HttpPort", settings.defaultBackendHttpPort()).toInt());
+      SSsdpClient::localInterfaces(),
+      settings.value("HttpPort", defaultPort).toInt());
 
   // Setup HTTP server
   masterHttpServer.registerCallback("/", this);
@@ -136,13 +101,15 @@ void Backend::start(void)
   HtmlParser::setPalette(palette);
   cssParser.clear();
   htmlParser.clear();
+  htmlParser.setField("_PRODUCT", qApp->applicationName());
+  htmlParser.setField("_HOSTNAME", (settings.value("DeviceName", defaultDeviceName())).toString());
 
   backendServers = BackendServer::create(this);
   foreach (BackendServer *server, backendServers)
     server->initialize(this);
 
   // Setup SSDP server
-  masterSsdpServer.initialize(settings.defaultBackendInterfaces());
+  masterSsdpServer.initialize(SSsdpClient::localInterfaces());
   masterSsdpServer.publish(qApp->applicationName() + QString(":server"), "/", 1);
 
   // Setup DLNA server
@@ -151,7 +118,7 @@ void Backend::start(void)
   masterContentDirectory.initialize(&masterHttpServer, &masterMediaServer);
   masterMediaReceiverRegistrar.initialize(&masterHttpServer, &masterMediaServer);
 
-  masterMediaServer.setDeviceName(settings.value("DeviceName", settings.defaultDeviceName()).toString());
+  masterMediaServer.setDeviceName(settings.value("DeviceName", defaultDeviceName()).toString());
 
   const QImage icon(":/lximedia.png");
   if (!icon.isNull())
@@ -221,17 +188,21 @@ void Backend::start(const SHttpEngine::ResponseMessage &formats)
 
 void Backend::reset(void)
 {
-  GlobalSettings settings;
+  QSettings settings;
 
-  const quint16 newPort = settings.value("HttpPort", settings.defaultBackendHttpPort()).toInt();
+  const quint16 newPort = settings.value("HttpPort", defaultPort).toInt();
   if (newPort != masterHttpServer.defaultPort())
-    masterHttpServer.reset(settings.defaultBackendInterfaces(), newPort);
+    masterHttpServer.reset(SSsdpClient::localInterfaces(), newPort);
 
   masterSsdpServer.reset();
   masterMediaServer.reset();
   masterConnectionManager.reset();
   masterContentDirectory.reset();
   masterMediaReceiverRegistrar.reset();
+
+  htmlParser.clear();
+  htmlParser.setField("_PRODUCT", qApp->applicationName());
+  htmlParser.setField("_HOSTNAME", (settings.value("DeviceName", defaultDeviceName())).toString());
 }
 
 void Backend::addModules(const SHttpEngine::ResponseMessage &modules)
@@ -336,6 +307,26 @@ void Backend::recycleSandbox(SSandboxClient *sandboxClient)
     sandboxClient->openRequest(message, NULL, NULL);
     QTimer::singleShot(30000, sandboxClient, SLOT(deleteLater()));
   }
+}
+
+QUuid Backend::serverUuid(void)
+{
+  QString uuid = "00000000-0000-0000-0000-000000000000";
+
+  QSettings settings;
+
+  if (settings.contains("UUID"))
+    return settings.value("UUID", uuid).toString();
+
+  uuid = QUuid::createUuid();
+  settings.setValue("UUID", uuid);
+
+  return uuid;
+}
+
+QString Backend::defaultDeviceName(void)
+{
+  return QHostInfo::localHostName() + ": " + qApp->applicationName();
 }
 
 SHttpServer::ResponseMessage Backend::sendFile(const SHttpServer::RequestMessage &request, const QString &fileName)

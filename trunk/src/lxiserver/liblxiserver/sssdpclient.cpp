@@ -42,6 +42,27 @@ const QHostAddress  SSsdpClient::ssdpAddressIPv6("FF02::C");
 const quint16       SSsdpClient::ssdpPort = 1900;
 const int           SSsdpClient::cacheTimeout = 7200; // Alive messages are broadcast every (cacheTimeout/2)-300 seconds.
 
+const QList<QHostAddress> & SSsdpClient::localInterfaces(void)
+{
+  static QList<QHostAddress> interfaces;
+
+  if (interfaces.isEmpty())
+  foreach (const QHostAddress &address, QNetworkInterface::allAddresses())
+  if (address.protocol() == QAbstractSocket::IPv4Protocol)
+  {
+    const quint32 addr = address.toIPv4Address();
+    if (((addr & 0xFF000000u) == 0x0A000000u) || //10.0.0.0/8
+        ((addr & 0xFF000000u) == 0x7F000000u) || //127.0.0.0/8
+        ((addr & 0xFFFF0000u) == 0xA9FE0000u) || //169.254.0.0/16
+        ((addr & 0xFFF00000u) == 0xAC100000u) || //172.16.0.0/12
+        ((addr & 0xFFFF0000u) == 0xC0A80000u))   //192.168.0.0/16
+    {
+      interfaces += address;
+    }
+  }
+
+  return interfaces;
+}
 
 SSsdpClient::SSsdpClient(const QString &serverUdn)
            :QObject(),

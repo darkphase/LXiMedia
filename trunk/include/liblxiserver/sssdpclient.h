@@ -47,6 +47,12 @@ public:
   };
 
 public:
+  /*! Returns a list of local IP addresses (i.e. in 10.0.0.0/8, 127.0.0.0/8,
+      169.254.0.0/16, 172.16.0.0/12 or 192.168.0.0/16). This list can be used to
+      prevent binding internet interfaces.
+   */
+  static const QList<QHostAddress> & localInterfaces(void);
+
   explicit                      SSsdpClient(const QString &serverUdn);
   virtual                       ~SSsdpClient();
 
@@ -69,7 +75,7 @@ protected:
   static void                   sendSearch(SsdpClientInterface *, const QString &st, unsigned mx = 5);
 
 private:
-  void                         addNode(const SHttpServer::Header &, const QString &);
+  void                          addNode(const SHttpServer::Header &, const QString &);
   void                          removeNode(const SHttpServer::Header &);
 
 public:

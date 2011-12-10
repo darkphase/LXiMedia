@@ -50,7 +50,8 @@ MediaPlayerServer::MediaPlayerServer(const QString &, QObject *parent)
     masterServer(NULL),
     mediaDatabase(NULL)
 {
-  PluginSettings settings(Module::pluginName);
+  QSettings settings;
+  settings.beginGroup(Module::pluginName);
 
   QStringList paths;
   foreach (const QString &root, settings.value("RootPaths").toStringList())
@@ -344,8 +345,8 @@ void MediaPlayerServer::setRootPaths(const QStringList &paths)
     }
   };
 
-  PluginSettings settings(Module::pluginName);
-
+  QSettings settings;
+  settings.beginGroup(Module::pluginName);
   settings.setValue("RootPaths", paths);
 
   rootPaths.clear();
@@ -440,7 +441,7 @@ MediaPlayerServer::Item MediaPlayerServer::makeItem(const FileNode &node)
   
     if (item.type != Item::Type_None)
     {
-      item.played = mediaDatabase->lastPlayed(node.filePath()).isValid();
+      item.played = mediaDatabase->lastPlayed(node).isValid();
       item.path = virtualPath(node.filePath());
       item.url = item.path;
       item.iconUrl = item.url;
@@ -556,7 +557,11 @@ MediaPlayerServer::Item MediaPlayerServer::makePlayAllItem(const QString &virtua
 void MediaPlayerServer::consoleLine(const QString &line)
 {
   if (line.startsWith("#PLAYED:"))
-    mediaDatabase->setLastPlayed(QString::fromUtf8(QByteArray::fromHex(line.mid(8).toAscii())));
+  {
+    mediaDatabase->setLastPlayed(
+        mediaDatabase->readNode(
+            QString::fromUtf8(QByteArray::fromHex(line.mid(8).toAscii()))));
+  }
 }
 
 

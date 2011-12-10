@@ -10,12 +10,10 @@
 
 #include "liblximediacenter/backendsandbox.h"
 #include "liblximediacenter/backendserver.h"
-#include "liblximediacenter/globalsettings.h"
 #include "liblximediacenter/htmlparser.h"
 #include "liblximediacenter/mediaprofiles.h"
 #include "liblximediacenter/mediaserver.h"
 #include "liblximediacenter/mediastream.h"
-#include "liblximediacenter/pluginsettings.h"
 #include "liblximediacenter/teletext.h"
 
 using namespace LXiMediaCenter;

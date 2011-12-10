@@ -25,7 +25,7 @@
 
 // This starts the sandboxes in the local process, so they can be debugged.
 #ifndef QT_NO_DEBUG
-#define DEBUG_USE_LOCAL_SANDBOX
+//#define DEBUG_USE_LOCAL_SANDBOX
 #endif
 
 class Backend : public QObject,
@@ -54,8 +54,6 @@ private:
   };
 
 public:
-  static QString                createLogDir(void);
-
                                 Backend();
   virtual                       ~Backend();
 
@@ -83,11 +81,15 @@ protected: // From BackendServer::MasterServer
   virtual void                  recycleSandbox(SSandboxClient *);
 
 private:
+  static QUuid                  serverUuid(void);
+  static QString                defaultDeviceName(void);
+
   SHttpServer::ResponseMessage  sendFile(const SHttpServer::RequestMessage &, const QString &fileName);
   QByteArray                    handleHtmlSettings(const SHttpServer::RequestMessage &);
   void                          saveHtmlSettings(const SHttpServer::RequestMessage &);
 
 private:
+  static const quint16          defaultPort = 4280;
 #ifndef QT_NO_DEBUG
   static const QEvent::Type     exitEventType;
 #endif
