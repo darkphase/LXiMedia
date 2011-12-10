@@ -149,11 +149,6 @@ public:
   QMap<QString, SModule *>      modules(void) const;
   QByteArray                    about(void) const;
 
-#ifdef Q_OS_WIN
-public: // Exception handler
-  static void                   installExcpetionHandler(void);
-#endif
-
 public: // Logging
   QByteArray                    log(void);
   void                          logLine(const QByteArray &line);

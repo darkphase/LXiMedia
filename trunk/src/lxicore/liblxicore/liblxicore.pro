@@ -41,8 +41,7 @@ unix {
   }
 }
 win32 {
-  SOURCES += sdaemon.win.cpp \
-    sapplication.exchandler.cpp
+  SOURCES += sdaemon.win.cpp
 }
 win32-g++ {
   LIBS += -lbfd -liberty

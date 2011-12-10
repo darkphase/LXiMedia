@@ -406,7 +406,7 @@ void SApplication::logMessage(QtMsgType type, const char *msg)
 #if defined(Q_OS_LINUX)
       + ':' + QByteArray::number(qint64(::syscall(SYS_gettid)))
 #elif defined(Q_OS_WIN)
-      + ':' + QByteArray::number(::GetCurrentThreadId());
+      + ':' + QByteArray::number(quint32(::GetCurrentThreadId()));
 #endif
       ;
 
