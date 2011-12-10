@@ -66,6 +66,9 @@ void MediaPlayerServer::initialize(MasterServer *masterServer)
   this->masterServer = masterServer;
   this->mediaDatabase = MediaDatabase::createInstance(masterServer);
 
+  connect(mediaDatabase, SIGNAL(nodeRead(FileNode)), SLOT(nodeRead(FileNode)), Qt::QueuedConnection);
+  connect(mediaDatabase, SIGNAL(aborted()), SLOT(aborted()), Qt::QueuedConnection);
+
   MediaServer::initialize(masterServer);
 }
 
@@ -421,23 +424,37 @@ MediaPlayerServer::Item MediaPlayerServer::makeItem(const FileNode &node)
 
   if (!node.isNull())
   {
-    if (!node.audioStreams().isEmpty() && !node.videoStreams().isEmpty())
+    item.type = Item::Type_None;
+
+    if (node.isContentProbed())
     {
-      item.type = Item::Type_Video;
+      if (!node.audioStreams().isEmpty() && !node.videoStreams().isEmpty())
+      {
+        item.type = Item::Type_Video;
+      }
+      else if (!node.audioStreams().isEmpty())
+      {
+        if (node.duration().toMin() <= maxSongDurationMin)
+          item.type = Item::Type_Music;
+        else
+          item.type = Item::Type_Audio;
+      }
+      else if (!node.imageCodec().isNull())
+      {
+        item.type = Item::Type_Image;
+      }
     }
-    else if (!node.audioStreams().isEmpty())
+    else if (node.isFormatProbed())
     {
-      if (node.duration().toMin() <= maxSongDurationMin)
-        item.type = Item::Type_Music;
-      else
-        item.type = Item::Type_Audio;
+      switch (node.fileType())
+      {
+      case SMediaInfo::ProbeInfo::FileType_None:    break;
+      case SMediaInfo::ProbeInfo::FileType_Audio:   item.type = Item::Type_Audio; break;
+      case SMediaInfo::ProbeInfo::FileType_Disc:
+      case SMediaInfo::ProbeInfo::FileType_Video:   item.type = Item::Type_Video; break;
+      case SMediaInfo::ProbeInfo::FileType_Image:   item.type = Item::Type_Image; break;
+      }
     }
-    else if (!node.imageCodec().isNull())
-    {
-      item.type = Item::Type_Image;
-    }
-    else
-      item.type = Item::Type_None;
   
     if (item.type != Item::Type_None)
     {
@@ -528,12 +545,14 @@ MediaPlayerServer::Item MediaPlayerServer::makePlayAllItem(const QString &virtua
 
   int audio = 0, video = 0, image = 0;
   foreach (const FileNode &node, mediaDatabase->getAlbumFiles(path, qMax(0, (numItems / 2) - 4), 8))
-  if (!node.audioStreams().isEmpty() && !node.videoStreams().isEmpty())
-    video++;
-  else if (!node.audioStreams().isEmpty())
-    audio++;
-  else if (!node.imageCodec().isNull())
-    image++;
+  switch (node.fileType())
+  {
+  case SMediaInfo::ProbeInfo::FileType_Disc:
+  case SMediaInfo::ProbeInfo::FileType_None:    break;
+  case SMediaInfo::ProbeInfo::FileType_Audio:   audio++; break;
+  case SMediaInfo::ProbeInfo::FileType_Video:   video++; break;
+  case SMediaInfo::ProbeInfo::FileType_Image:   image++; break;
+  }
 
   if ((audio > video) && (audio > image))
   {
@@ -561,6 +580,74 @@ void MediaPlayerServer::consoleLine(const QString &line)
     mediaDatabase->setLastPlayed(
         mediaDatabase->readNode(
             QString::fromUtf8(QByteArray::fromHex(line.mid(8).toAscii()))));
+  }
+}
+
+void MediaPlayerServer::nodeRead(const FileNode &node)
+{
+  if (!node.isNull())
+  {
+    QMap<QString, QPair<SHttpServer::RequestMessage, QIODevice *> >::Iterator i =
+        nodeReadQueue.find(node.filePath());
+
+    if (i != nodeReadQueue.end())
+    {
+      if (i->first.url().hasQueryItem("thumbnail"))
+      {
+        const QSize size = SSize::fromString(i->first.url().queryItemValue("thumbnail")).size();
+        QByteArray content;
+
+        if (!node.thumbnail().isNull())
+          content = makeThumbnail(size, SImage(node.thumbnail()), i->first.url().queryItemValue("overlay"));
+
+        if (content.isEmpty())
+        {
+          QString defaultIcon = ":/img/null.png";
+          switch (node.fileType())
+          {
+          case FileNode::ProbeInfo::FileType_None:  defaultIcon = ":/img/misc.png";           break;
+          case FileNode::ProbeInfo::FileType_Audio: defaultIcon = ":/img/audio-file.png";     break;
+          case FileNode::ProbeInfo::FileType_Video: defaultIcon = ":/img/video-file.png";     break;
+          case FileNode::ProbeInfo::FileType_Image: defaultIcon = ":/img/image-file.png";     break;
+          case FileNode::ProbeInfo::FileType_Disc:  defaultIcon = ":/img/media-optical.png";  break;
+          }
+
+          content = makeThumbnail(size, QImage(defaultIcon));
+        }
+
+        SSandboxServer::ResponseMessage response(
+            i->first,
+            SSandboxServer::Status_Ok,
+            content,
+            SHttpEngine::mimeImagePng);
+
+        SHttpServerEngine::sendHttpResponse(i->first, response, i->second);
+      }
+      else
+      {
+        SSandboxServer::ResponseMessage response(
+            i->first,
+            SSandboxServer::Status_InternalServerError);
+
+        SHttpServerEngine::sendHttpResponse(i->first, response, i->second);
+      }
+
+      nodeReadQueue.erase(i);
+    }
+  }
+}
+
+void MediaPlayerServer::aborted(void)
+{
+  for (QMap<QString, QPair<SHttpServer::RequestMessage, QIODevice *> >::Iterator i = nodeReadQueue.begin();
+       i != nodeReadQueue.end();
+       i = nodeReadQueue.erase(i))
+  {
+    SSandboxServer::ResponseMessage response(
+        i->first,
+        SSandboxServer::Status_InternalServerError);
+
+    SHttpServerEngine::sendHttpResponse(i->first, response, i->second);
   }
 }
 

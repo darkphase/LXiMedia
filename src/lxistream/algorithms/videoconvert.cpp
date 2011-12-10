@@ -305,10 +305,10 @@ void VideoConvert::YUV2toRGB(uint32_t *dst, const uint8_t *srcy, const uint8_t *
   // Manually unroll the last item of the loop, as GCC will not do that automatically.
   int i = 0;
   for (; i + uint8_dv::count <= n; i += uint8_dv::count)
-    T::process(dst + i, srcy + i, srcu + i, srcv + i, uint8_dv::count);
+    T::process(dst + i, srcy + i, srcu + (i / 2), srcv + (i / 2), uint8_dv::count);
 
   if (i < n)
-    T::process(dst + i, srcy + i, srcu + i, srcv + i, n - i);
+    T::process(dst + i, srcy + i, srcu + (i / 2), srcv + (i / 2), n - i);
 }
 
 /*! Converts RGB to YUYV using the following formula:

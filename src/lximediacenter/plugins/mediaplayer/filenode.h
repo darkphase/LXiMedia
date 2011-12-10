@@ -42,6 +42,9 @@ public:
   inline FileNode             & operator=(const FileNode &from) { SMediaInfo::operator=(from); return *this; }
   inline FileNode             & operator=(const SMediaInfo &from) { SMediaInfo::operator=(from); return *this; }
 
+  bool                          isFormatProbed(void) const;
+  bool                          isContentProbed(void) const;
+
   QByteArray                    probeFormat(int = 1);
   QByteArray                    probeContent(int = 1);
 

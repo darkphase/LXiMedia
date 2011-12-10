@@ -62,6 +62,8 @@ signals:
    */
   void                          consoleLine(const QString &);
 
+  void                          terminated(void);
+
 protected:
   virtual void                  socketDestroyed(void);
 

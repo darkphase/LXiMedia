@@ -101,34 +101,9 @@ QString Playlist::random(void)
 
 QByteArray Playlist::serialize(void) const
 {
-  QByteArray data = "#EXTM3U\n\n";
-
+  QByteArray data;
   for (int i=0, n=list.count(); i<n; i++)
-  {
-    const FileNode node = mediaDatabase->readNode(list[i].filePath);
-    if (!node.isNull())
-    {
-      data.append("#EXTINF:");
-      if (node.duration().isPositive())
-        data.append(QByteArray::number(node.duration().toSec()));
-      else
-        data.append("-1");
-
-      const QString author = node.metadata("author").toString();
-      if (!author.isEmpty())
-        data.append(',' + author);
-      else
-        data.append(",");
-
-      const QString title = node.metadata("title").toString();
-      if (!title.isEmpty())
-        data.append(" - " + title);
-
-      data.append('\n');
-      data.append(QDir::toNativeSeparators(node.filePath()).toUtf8());
-      data.append("\n\n");
-    }
-  }
+    data += QDir::toNativeSeparators(list[i].filePath).toUtf8() + "\r\n";
 
   return data;
 }

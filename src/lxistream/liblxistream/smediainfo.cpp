@@ -234,7 +234,7 @@ void SMediaInfo::probeFormat(void)
   {
     foreach (SInterfaces::FormatProber *prober, SInterfaces::FormatProber::create(NULL))
     {
-      if (!pi->isFormatProbed)
+      if (!pi->isFormatProbed && file.seek(0))
         prober->probeFormat(*pi, &file);
 
       delete prober;

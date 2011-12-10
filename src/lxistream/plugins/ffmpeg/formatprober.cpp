@@ -61,6 +61,8 @@ void FormatProber::probeFormat(ProbeInfo &pi, QIODevice *ioDevice)
     BufferReader bufferReader(QString::null, this);
     if (bufferReader.openFormat(format.name))
     {
+      ioDevice->seek(0);
+
       if (bufferReader.start(ioDevice, NULL, false, true))
       {
         pi.format = format.name;
@@ -68,7 +70,7 @@ void FormatProber::probeFormat(ProbeInfo &pi, QIODevice *ioDevice)
 
         if (!bufferReader.audioStreams().isEmpty() && !bufferReader.videoStreams().isEmpty())
           pi.fileType = ProbeInfo::FileType_Video;
-        if (!bufferReader.audioStreams().isEmpty())
+        else if (!bufferReader.audioStreams().isEmpty())
           pi.fileType = ProbeInfo::FileType_Audio;
 
         pi.isFormatProbed = true;
@@ -83,8 +85,6 @@ void FormatProber::probeFormat(ProbeInfo &pi, QIODevice *ioDevice)
 
 void FormatProber::probeContent(ProbeInfo &pi, QIODevice *ioDevice, const QSize &thumbSize)
 {
-  static const int maxProbeTime = 500; // msec
-
   struct ProduceCallback : SInterfaces::BufferReader::ProduceCallback
   {
     SEncodedVideoBufferList videoBuffers;
@@ -112,8 +112,8 @@ void FormatProber::probeContent(ProbeInfo &pi, QIODevice *ioDevice, const QSize 
     }
   };
 
-  QTime timer; timer.start();
-  const QByteArray buffer = ioDevice->read(defaultProbeSize);
+//  QTime timer; timer.start();
+  const QByteArray buffer = ioDevice->peek(defaultProbeSize);
   foreach (const SInterfaces::FormatProber::Format &format, FormatProber::probeFormat(buffer, pi.filePath))
   {
     BufferReader bufferReader(QString::null, this);
@@ -145,7 +145,7 @@ void FormatProber::probeContent(ProbeInfo &pi, QIODevice *ioDevice, const QSize 
 
         if (!audioStreams.isEmpty() && !videoStreams.isEmpty())
           pi.fileType = ProbeInfo::FileType_Video;
-        if (!audioStreams.isEmpty())
+        else if (!audioStreams.isEmpty())
           pi.fileType = ProbeInfo::FileType_Audio;
 
         pi.isFormatProbed = true;
@@ -153,13 +153,14 @@ void FormatProber::probeContent(ProbeInfo &pi, QIODevice *ioDevice, const QSize 
         // Get thumbnail
         if (!videoStreams.isEmpty())
         {
-          static const int bufferCount = 25;
+          static const int minBufferCount = 25;
+          static const int maxBufferCount = 32;
           static const int minDist = 80;
+          int iter = 4096;
 
           bufferReader.selectStreams(QVector<StreamId>() << videoStreams.first());
 
-          while ((produceCallback.videoBuffers.count() < bufferCount) &&
-                 (qAbs(timer.elapsed()) < maxProbeTime))
+          while ((produceCallback.videoBuffers.count() < minBufferCount) && (--iter > 0))
           {
             if (!bufferReader.process())
               break;
@@ -172,7 +173,7 @@ void FormatProber::probeContent(ProbeInfo &pi, QIODevice *ioDevice, const QSize 
           }
 
           // Skip first 5%
-          if (pi.format != "mpegts") // mpegts has very slow seeking.
+          if (!pi.format.contains("mpegts")) // mpegts has very slow seeking.
             bufferReader.setPosition(pi.duration / 20);
 
           // Extract the thumbnail
@@ -219,16 +220,13 @@ void FormatProber::probeContent(ProbeInfo &pi, QIODevice *ioDevice, const QSize 
                 }
 
                 if (bestDist < minDist)
-                while ((produceCallback.videoBuffers.count() < bufferCount) &&
-                       (qAbs(timer.elapsed()) < maxProbeTime))
+                while ((produceCallback.videoBuffers.count() < minBufferCount) && (--iter > 0))
                 {
                   if (!bufferReader.process())
                     break;
                 }
               }
-              while (!produceCallback.videoBuffers.isEmpty() &&
-                     (bestDist < minDist) &&
-                     (qAbs(timer.elapsed()) < maxProbeTime));
+              while (!produceCallback.videoBuffers.isEmpty() && (bestDist < minDist) && (counter < maxBufferCount));
 
               // Build thumbnail
               if (!thumbnail.isNull())
@@ -269,6 +267,8 @@ void FormatProber::probeContent(ProbeInfo &pi, QIODevice *ioDevice, const QSize 
       }
     }
   }
+
+//  qDebug() << pi.filePath << pi.format << timer.elapsed();
 }
 
 void FormatProber::setMetadata(ProbeInfo &pi, const char *name, const QString &value)

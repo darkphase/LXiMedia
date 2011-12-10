@@ -275,19 +275,11 @@ void HttpServerRequest::readyRead()
 
         SHttpEngine::ResponseMessage response = parent->handleHttpRequest(request, socket);
 
-        if (socket && parent->sendHttpResponse(request, response, socket))
-        {
-#ifdef TRACE_CONNECTIONS
-          qDebug() << this << "HttpServerRequest::readyRead reuse";
-#endif
-          // Reuse the socket
-          start(socket);
-        }
-        else
-        {
-          socket = NULL;
-          deleteLater();
-        }
+        if (socket)
+          parent->sendHttpResponse(request, response, socket);
+
+        socket = NULL;
+        deleteLater();
       }
     }
   }
