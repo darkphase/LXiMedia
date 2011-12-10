@@ -303,6 +303,8 @@ void SSandboxClient::finished(QProcess::ExitStatus status)
   }
 
   d->processStarted = false;
+
+  emit terminated();
 }
 
 } // End of namespace

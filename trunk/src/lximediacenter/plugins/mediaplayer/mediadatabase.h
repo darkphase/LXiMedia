@@ -42,6 +42,7 @@ private:
   virtual                       ~MediaDatabase();
 
 public:
+  void                          queueReadNode(const QString &filePath) const;
   FileNode                      readNode(const QString &filePath) const;
   QByteArray                    readImage(const QString &filePath, const QSize &maxSize, const QString &format) const;
 
@@ -55,9 +56,17 @@ public:
   FileNodeList                  getAlbumFiles(const QString &path, unsigned start = 0, unsigned count = 0) const;
 
 signals:
-  void                          modified(void);
+  void                          nodeRead(const FileNode &);
+  void                          aborted(void);
+
+private slots:
+  void                          handleResponse(const SHttpEngine::ResponseMessage &);
 
 private:
+  FileNodeList                  readNodeFormat(const QStringList &filePaths) const;
+  FileNode                      readNodeCache(const QString &filePath) const;
+  void                           writeNodeCache(const FileNode &) const;
+
   static QString                lastPlayedFile(void);
 
 private:

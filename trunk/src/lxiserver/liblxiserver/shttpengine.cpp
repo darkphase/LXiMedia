@@ -413,7 +413,7 @@ SHttpServerEngine::ResponseMessage SHttpServerEngine::handleHttpRequest(const SH
   }
 }
 
-bool SHttpServerEngine::sendHttpResponse(const SHttpEngine::RequestHeader &request, SHttpEngine::ResponseMessage &response, QIODevice *socket, bool reuse)
+void SHttpServerEngine::sendHttpResponse(const SHttpEngine::RequestHeader &request, SHttpEngine::ResponseMessage &response, QIODevice *socket, bool reuse)
 {
   if (response.status() != SHttpEngine::Status_None)
   {
@@ -422,32 +422,39 @@ bool SHttpServerEngine::sendHttpResponse(const SHttpEngine::RequestHeader &reque
         ((response.version() >= SHttpEngine::httpVersion) ||
          (request.connection().compare("Keep-Alive", Qt::CaseInsensitive) == 0)))
     {
-      response.setConnection("Keep-Alive");
+      // Reuse the socket if possible
+      SHttpServerEngine * const serverEngine =
+          qobject_cast<SHttpServerEngine *>(
+              const_cast<SHttpEngine *>(request.httpEngine));
 
-      if (request.isHead())
-        response.setContent(QByteArray());
+      QString hostname; quint16 port = 0;
+      if (serverEngine && splitHost(request.host(), hostname, port))
+      {
+        response.setConnection("Keep-Alive");
 
-      socket->write(response);
+        if (request.isHead())
+          response.setContent(QByteArray());
 
-      QAbstractSocket * const aSocket = qobject_cast<QAbstractSocket *>(socket);
-      if (aSocket)
-        aSocket->flush();
+        socket->write(response);
 
-      QLocalSocket * const lSocket = qobject_cast<QLocalSocket *>(socket);
-      if (lSocket)
-        lSocket->flush();
+        QAbstractSocket * const aSocket = qobject_cast<QAbstractSocket *>(socket);
+        if (aSocket)
+          aSocket->flush();
 
-      return true; // Reuse the socket
+        QLocalSocket * const lSocket = qobject_cast<QLocalSocket *>(socket);
+        if (lSocket)
+          lSocket->flush();
+
+        (new HttpServerRequest(serverEngine, port))->start(socket);
+
+        return;
+      }
     }
-    else
-    {
-      response.setConnection("Close");
-      socket->write(response);
-      SHttpEngine::closeSocket(socket);
-    }
+
+    response.setConnection("Close");
+    socket->write(response);
+    SHttpEngine::closeSocket(socket);
   }
-
-  return false;
 }
 
 SHttpServerEngine::ResponseMessage SHttpServerEngine::Callback::httpOptions(const RequestMessage &request)

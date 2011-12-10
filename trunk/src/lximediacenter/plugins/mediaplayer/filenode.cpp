@@ -23,6 +23,16 @@
 namespace LXiMediaCenter {
 namespace MediaPlayerBackend {
 
+bool FileNode::isFormatProbed(void) const
+{
+  return probeInfo().isFormatProbed;
+}
+
+bool FileNode::isContentProbed(void) const
+{
+  return probeInfo().isContentProbed;
+}
+
 QByteArray FileNode::probeFormat(int indent)
 {
   SMediaInfo::readFileInfo();
@@ -58,9 +68,14 @@ QByteArray FileNode::toByteArray(int indent) const
   mediaInfoElm.setAttribute("size", pi.size);
   mediaInfoElm.setAttribute("lastModified", pi.lastModified.toString(Qt::ISODate));
 
+  mediaInfoElm.setAttribute("isFormatProbed", pi.isFormatProbed ? 1 : 0);
+  mediaInfoElm.setAttribute("isContentProbed", pi.isContentProbed ? 1 : 0);
+
   mediaInfoElm.setAttribute("format", SStringParser::removeControl(pi.format));
   mediaInfoElm.setAttribute("type", QString::number(pi.fileType));
   mediaInfoElm.setAttribute("typename", SStringParser::removeControl(pi.fileTypeName));
+
+  mediaInfoElm.setAttribute("fastHash", QString(pi.fastHash.toBase64()));
 
   if (pi.duration.isValid())
     mediaInfoElm.setAttribute("duration", QString::number(pi.duration.toMSec()));
@@ -157,12 +172,14 @@ FileNode FileNode::fromByteArray(const QByteArray &str)
     pi->lastModified = QDateTime::fromString(mediaInfoElm.attribute("lastModified"), Qt::ISODate);
 
     pi->isReadable = false;
-    pi->isFormatProbed = false;
-    pi->isContentProbed = false;
+    pi->isFormatProbed = mediaInfoElm.attribute("isFormatProbed").toInt() != 0;
+    pi->isContentProbed = mediaInfoElm.attribute("isContentProbed").toInt() != 0;
 
     pi->format = mediaInfoElm.attribute("format");
     pi->fileType = ProbeInfo::FileType(mediaInfoElm.attribute("type").toInt());
     pi->fileTypeName = mediaInfoElm.attribute("typename");
+
+    pi->fastHash = QByteArray::fromBase64(mediaInfoElm.attribute("fastHash").toAscii());
 
     const qint64 duration = mediaInfoElm.attribute("duration", "-1").toLongLong();
     pi->duration = duration >= 0 ? STime::fromMSec(duration) : STime();

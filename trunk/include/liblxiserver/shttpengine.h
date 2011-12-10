@@ -341,7 +341,7 @@ public:
   virtual const QString       & senderId(void) const;
 
   ResponseMessage               handleHttpRequest(const RequestMessage &, QIODevice *) const;
-  static bool                   sendHttpResponse(const RequestHeader &, ResponseMessage &, QIODevice *, bool reuse = true);
+  static void                   sendHttpResponse(const RequestHeader &, ResponseMessage &, QIODevice *, bool reuse = true);
   
 private:
   struct Data;

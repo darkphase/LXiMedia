@@ -303,30 +303,11 @@ SHttpServer::ResponseMessage MediaPlayerServer::httpRequest(const SHttpServer::R
   {
     if (request.url().hasQueryItem("thumbnail"))
     {
-      const QSize size = SSize::fromString(request.url().queryItemValue("thumbnail")).size();
-      QString defaultIcon = ":/img/null.png";
-      QByteArray content;
+      const QString filePath = realPath(request.file());
+      nodeReadQueue.insert(filePath, qMakePair(request, socket));
+      mediaDatabase->queueReadNode(filePath);
 
-      const FileNode node = mediaDatabase->readNode(realPath(request.file()));
-      if (!node.isNull())
-      {
-        if (!node.thumbnail().isNull())
-          content = makeThumbnail(size, SImage(node.thumbnail()), request.url().queryItemValue("overlay"));
-
-        switch (node.fileType())
-        {
-        case FileNode::ProbeInfo::FileType_None:  defaultIcon = ":/img/misc.png";           break;
-        case FileNode::ProbeInfo::FileType_Audio: defaultIcon = ":/img/audio-file.png";     break;
-        case FileNode::ProbeInfo::FileType_Video: defaultIcon = ":/img/video-file.png";     break;
-        case FileNode::ProbeInfo::FileType_Image: defaultIcon = ":/img/image-file.png";     break;
-        case FileNode::ProbeInfo::FileType_Disc:  defaultIcon = ":/img/media-optical.png";  break;
-        }
-      }
-
-      if (content.isEmpty())
-        content = makeThumbnail(size, QImage(defaultIcon));
-
-      return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_Ok, content, SHttpEngine::mimeImagePng);
+      return SHttpServer::ResponseMessage(request, SHttpServer::Status_None);
     }
     else if (request.url().hasQueryItem("save_settings"))
     {

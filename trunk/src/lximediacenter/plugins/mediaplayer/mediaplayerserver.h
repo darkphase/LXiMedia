@@ -107,6 +107,8 @@ private:
 
 private slots:
   void                          consoleLine(const QString &);
+  void                          nodeRead(const FileNode &);
+  void                          aborted(void);
 
 private:
   void                          generateDirs(HtmlParser &, const QFileInfoList &, int, const QStringList &, const QStringList &);
@@ -123,6 +125,8 @@ private:
   QMap<QString, QString>        rootPaths;
   QMap<QString, QFileInfo>      driveInfoList;
   QMap<QString, QString>        driveLabelList;
+
+  QMap<QString, QPair<SHttpServer::RequestMessage, QIODevice *> > nodeReadQueue;
 
 private:
   static const char             htmlFrontPageContent[];

@@ -46,6 +46,8 @@ MediaDatabase::MediaDatabase(BackendServer::MasterServer *masterServer, QObject 
     lastPlayedFileName(lastPlayedFile()),
     probeSandbox(masterServer->createSandbox(SSandboxClient::Priority_Low))
 {
+  connect(probeSandbox, SIGNAL(response(SHttpEngine::ResponseMessage)), SLOT(handleResponse(SHttpEngine::ResponseMessage)));
+  connect(probeSandbox, SIGNAL(terminated()), SIGNAL(aborted()));
 }
 
 MediaDatabase::~MediaDatabase()
@@ -59,13 +61,9 @@ FileNode MediaDatabase::readNode(const QString &filePath) const
 {
   if (!filePath.isEmpty())
   {
-    QMap<QString, QByteArray>::ConstIterator i = nodeCache.find(filePath);
-    if (i != nodeCache.end())
-    {
-      const FileNode node = FileNode::fromByteArray(*i);
-      if (QFileInfo(filePath).lastModified() <= node.lastModified())
-        return node;
-    }
+    FileNode node = readNodeCache(filePath);
+    if (!node.isNull() && node.isContentProbed())
+      return node;
 
     SSandboxClient::RequestMessage request(probeSandbox);
     request.setRequest("POST", QByteArray(MediaPlayerSandbox::path) + "?probecontent=");
@@ -74,30 +72,36 @@ FileNode MediaDatabase::readNode(const QString &filePath) const
     const SHttpEngine::ResponseMessage response = probeSandbox->blockingRequest(request);
     if (response.status() == SHttpEngine::Status_Ok)
     {
-      QString file = filePath;
-      file.squeeze();
-      QByteArray data = response.content();
-      data.squeeze();
-
-      QMap<QString, QByteArray>::Iterator i = nodeCache.find(filePath);
-      if (i != nodeCache.end())
+      const FileNode node = FileNode::fromByteArray(response.content());
+      if (!node.isNull())
       {
-        *i = data;
-      }
-      else
-      {
-        i = nodeCache.insert(file, data);
-        cacheQueue.enqueue(file);
-      }
+        writeNodeCache(node);
 
-      while (cacheQueue.size() > cacheSize)
-        nodeCache.remove(cacheQueue.dequeue());
-
-      return FileNode::fromByteArray(data);
+        return node;
+      }
     }
   }
 
   return FileNode();
+}
+
+void MediaDatabase::queueReadNode(const QString &filePath) const
+{
+  if (!filePath.isEmpty())
+  {
+    FileNode node = readNodeCache(filePath);
+    if (!node.isNull() && node.isContentProbed())
+    {
+      emit const_cast<MediaDatabase *>(this)->nodeRead(node);
+      return;
+    }
+
+    SSandboxClient::RequestMessage request(probeSandbox);
+    request.setRequest("POST", QByteArray(MediaPlayerSandbox::path) + "?probecontent=");
+    request.setContent(filePath.toUtf8());
+
+    probeSandbox->sendRequest(request);
+  }
 }
 
 QByteArray MediaDatabase::readImage(const QString &filePath, const QSize &size, const QString &format) const
@@ -192,22 +196,56 @@ int MediaDatabase::countAlbumFiles(const QString &filePath) const
 
 FileNodeList MediaDatabase::getAlbumFiles(const QString &filePath, unsigned start, unsigned count) const
 {
-  QTime timer; timer.start();
-
-  const bool returnAll = count == 0;
-  FileNodeList result;
+  QStringList probeFiles;
 
   QDir dir(filePath);
   if (!filePath.isEmpty() && dir.exists())
   {
-    QByteArray probeFiles;
-    int numProbeFiles = 0;
+    const bool returnAll = count == 0;
 
     const QStringList files = dir.entryList(QDir::Files, QDir::Name | QDir::IgnoreCase);
     for (int i=start, n=0; (i<files.count()) && (returnAll || (n<int(count))); i++, n++)
+      probeFiles += dir.cleanPath(dir.absoluteFilePath(files[i]));
+  }
+
+  return readNodeFormat(probeFiles);
+}
+
+void MediaDatabase::handleResponse(const SHttpEngine::ResponseMessage &response)
+{
+  if (response.status() == SHttpEngine::Status_Ok)
+  {
+    const FileNode node = FileNode::fromByteArray(response.content());
+    if (!node.isNull())
     {
-      probeFiles += dir.cleanPath(dir.absoluteFilePath(files[i])).toUtf8() + '\n';
-      numProbeFiles++;
+      writeNodeCache(node);
+
+      emit nodeRead(node);
+    }
+  }
+}
+
+FileNodeList MediaDatabase::readNodeFormat(const QStringList &filePaths) const
+{
+  FileNodeList result;
+
+  if (!filePaths.isEmpty())
+  {
+    QByteArray probeFiles;
+    QList<int> probeFilePos;
+    foreach (const QString &filePath, filePaths)
+    {
+      const FileNode node = readNodeCache(filePath);
+      if (!node.isNull() && node.isFormatProbed())
+      {
+        result += node;
+      }
+      else
+      {
+        probeFiles += filePath + '\n';
+        probeFilePos += result.count();
+        result += FileNode();
+      }
     }
 
     if (!probeFiles.isEmpty())
@@ -219,12 +257,53 @@ FileNodeList MediaDatabase::getAlbumFiles(const QString &filePath, unsigned star
       const SHttpEngine::ResponseMessage response = probeSandbox->blockingRequest(request);
       if (response.status() == SHttpEngine::Status_Ok)
       foreach (const QByteArray &entry, response.content().split('\n'))
-      if (!entry.isEmpty())
-        result += FileNode::fromByteArray(entry);
+      if (!entry.isEmpty() && !probeFilePos.isEmpty())
+      {
+        const FileNode node = FileNode::fromByteArray(entry);
+        if (!node.isNull())
+          writeNodeCache(node);
+
+        result[probeFilePos.takeFirst()] = node;
+      }
     }
   }
 
   return result;
+}
+
+FileNode MediaDatabase::readNodeCache(const QString &filePath) const
+{
+  QMap<QString, QByteArray>::ConstIterator i = nodeCache.find(filePath);
+  if (i != nodeCache.end())
+  {
+    const FileNode node = FileNode::fromByteArray(qUncompress(*i));
+    if (QFileInfo(filePath).lastModified() <= node.lastModified())
+      return node;
+  }
+
+  return FileNode();
+}
+
+void MediaDatabase::writeNodeCache(const FileNode &node) const
+{
+  QString filePath = node.filePath();
+  filePath.squeeze();
+
+  QMap<QString, QByteArray>::Iterator i = nodeCache.find(filePath);
+  if (i != nodeCache.end())
+  {
+    *i = qCompress(node.toByteArray(-1), 9);
+  }
+  else
+  {
+    i = nodeCache.insert(filePath, qCompress(node.toByteArray(-1), 9));
+    cacheQueue.enqueue(filePath);
+  }
+
+  i->squeeze();
+
+  while (cacheQueue.size() > cacheSize)
+    nodeCache.remove(cacheQueue.dequeue());
 }
 
 QString MediaDatabase::lastPlayedFile(void)

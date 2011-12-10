@@ -97,20 +97,10 @@ SSandboxServer::ResponseMessage MediaPlayerSandbox::httpRequest(const SSandboxSe
           switch (futures[i].result())
           {
           case SMediaInfo::ProbeInfo::FileType_Disc:
-          case SMediaInfo::ProbeInfo::FileType_None:
-            break;
-
-          case SMediaInfo::ProbeInfo::FileType_Audio:
-            audio++;
-            break;
-
-          case SMediaInfo::ProbeInfo::FileType_Video:
-            video++;
-            break;
-
-          case SMediaInfo::ProbeInfo::FileType_Image:
-            image++;
-            break;
+          case SMediaInfo::ProbeInfo::FileType_None:    break;
+          case SMediaInfo::ProbeInfo::FileType_Audio:   audio++; break;
+          case SMediaInfo::ProbeInfo::FileType_Video:   video++; break;
+          case SMediaInfo::ProbeInfo::FileType_Image:   image++; break;
           }
 
           SMediaInfo::ProbeInfo::FileType fileType = SMediaInfo::ProbeInfo::FileType_None;
