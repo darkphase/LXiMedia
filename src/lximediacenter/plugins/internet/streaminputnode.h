@@ -59,9 +59,6 @@ protected: // From SInterfaces::AbstractBufferReader::ProduceCallback
   virtual void                  produce(const SEncodedVideoBuffer &);
   virtual void                  produce(const SEncodedDataBuffer &);
 
-private slots:
-  void                          setBufferState(bool, float);
-
 private:
   STime                         correct(const STime &);
   void                          computeBufferingFrame(const STime &);
