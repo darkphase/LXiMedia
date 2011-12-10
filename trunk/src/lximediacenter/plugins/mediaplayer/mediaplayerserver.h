@@ -89,6 +89,7 @@ protected: // From MediaServer
   virtual int                   countItems(const QString &virtualPath);
   virtual QList<Item>           listItems(const QString &virtualPath, unsigned start = 0, unsigned count = 0);
   virtual Item                  getItem(const QString &path);
+  virtual ListType              listType(const QString &path);
 
 protected: // From QObject
   virtual void                  customEvent(QEvent *);
@@ -104,6 +105,7 @@ private:
   QList<Item>                   listAlbums(const QString &virtualPath, unsigned &start, unsigned &count);
   Item                          makeItem(const FileNode &);
   Item                          makePlayAllItem(const QString &virtualPath);
+  SMediaInfo::ProbeInfo::FileType dirType(const QString &virtualPath);
 
 private slots:
   void                          consoleLine(const QString &);

@@ -114,6 +114,7 @@ private:
   static const char             htmlNavigatorRoot[];
   static const char             htmlNavigatorPath[];
   static const char             htmlNavigatorItem[];
+  static const char             htmlFrontPagesHead[];
   static const char             htmlFrontPages[];
   static const char             htmlFrontPageItem[];
   static const char             htmlLogFile[];

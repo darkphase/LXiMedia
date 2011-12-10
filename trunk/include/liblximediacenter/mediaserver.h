@@ -67,6 +67,7 @@ public:
                                 ~ThumbnailListItem();
 
     QString                     title;
+    QStringList                 text;
     QUrl                        iconurl;
     QUrl                        url;
     bool                        played;
@@ -113,6 +114,12 @@ public:
     SAudioFormat::Channels      channels;
   };
 
+  enum ListType
+  {
+    ListType_Thumbnails,
+    ListType_Details
+  };
+
 public:
   explicit                      MediaServer(QObject * = NULL);
   virtual                       ~MediaServer();
@@ -141,6 +148,7 @@ protected:
   virtual int                   countItems(const QString &path) = 0;
   virtual QList<Item>           listItems(const QString &path, unsigned start = 0, unsigned count = 0) = 0;
   virtual Item                  getItem(const QString &path) = 0;
+  virtual ListType              listType(const QString &path);
 
 protected slots:
   virtual void                  cleanStreams(void);
@@ -173,17 +181,19 @@ private:
 protected: // Implemented in mediaserver.html.cpp
   static const char             m3uPlaylist[];
   static const char             m3uPlaylistItem[];
-  static const char             htmlThumbnailLoader[];
-  static const char             htmlThumbnailItem[];
-  static const char             htmlThumbnailItemNoTitle[];
-  static const char             htmlThumbnailItemNoLink[];
-  static const char             htmlThumbnailItemNoLinkNoTitle[];
+  static const char             htmlListHead[];
+  static const char             htmlListLoader[];
+  static const char             htmlListItem[];
+  static const char             htmlListItemNoTitle[];
+  static const char             htmlListItemNoLink[];
+  static const char             htmlListItemNoLinkNoTitle[];
+  static const char             htmlListItemTextLine[];
   static const char             htmlPhotoViewer[];
   static const char             htmlVideoPlayer[];
   static const char             htmlAudioPlayer[];
 
-  QByteArray                    buildThumbnailLoader(const QString &path);
-  QByteArray                    buildThumbnailItems(const ThumbnailListItemList &);
+  QByteArray                    buildListLoader(const QString &path, ListType);
+  QByteArray                    buildListItems(const ThumbnailListItemList &);
   SHttpServer::ResponseMessage  buildPhotoViewer(const SHttpServer::RequestMessage &);
   SHttpServer::ResponseMessage  buildVideoPlayer(const SHttpServer::RequestMessage &);
   SHttpServer::ResponseMessage  buildAudioPlayer(const SHttpServer::RequestMessage &);

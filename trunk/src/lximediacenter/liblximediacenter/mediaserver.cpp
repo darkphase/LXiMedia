@@ -205,6 +205,11 @@ bool MediaServer::defaultMusicAddBlackVideo(void)
   return false;
 }
 
+MediaServer::ListType MediaServer::listType(const QString &)
+{
+  return ListType_Thumbnails;
+}
+
 void MediaServer::cleanStreams(void)
 {
   QList<Stream *> obsolete;
@@ -240,6 +245,7 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
           {
             ThumbnailListItem thumbItem;
             thumbItem.title = item.title;
+            thumbItem.text += QString::number(countItems(item.path)) + ' ' + tr("items");
             thumbItem.iconurl = item.iconUrl;
             thumbItem.url = item.path;
 
@@ -249,6 +255,26 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
           {
             ThumbnailListItem thumbItem;
             thumbItem.title = item.title;
+
+            if (!item.artist.isEmpty())
+              thumbItem.text += tr("Artist") + ": " + item.artist;
+
+            if (!item.album.isEmpty())
+              thumbItem.text += tr("Album") + ": " + item.album;
+
+            if (item.track > SMediaInfo::tvShowSeason)
+            {
+              thumbItem.text +=
+                  tr("Track") + ": " +
+                  QString::number(item.track / SMediaInfo::tvShowSeason) + 'x' +
+                  ('0' + QString::number(item.track % SMediaInfo::tvShowSeason)).right(2);
+            }
+            else if (item.track > 0)
+              thumbItem.text += tr("Track") + ": " + QString::number(item.track);
+
+            if (item.duration > 0)
+              thumbItem.text += tr("Duration") + ": " + QTime(0, 0, 0).addSecs(item.duration).toString("h:mm:ss");
+
             thumbItem.iconurl = item.iconUrl;
             thumbItem.played = item.played;
             thumbItem.url = item.url;
@@ -265,10 +291,10 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
           }
         }
 
-        return makeResponse(request, buildThumbnailItems(thumbItems), SHttpEngine::mimeTextHtml, false);
+        return makeResponse(request, buildListItems(thumbItems), SHttpEngine::mimeTextHtml, false);
       }
       else
-        return makeHtmlContent(request, request.url(), buildThumbnailLoader(request.file()));
+        return makeHtmlContent(request, request.url(), buildListLoader(request.file(), listType(request.file())), htmlListHead);
     }
     else if (request.url().hasQueryItem("player"))
     {

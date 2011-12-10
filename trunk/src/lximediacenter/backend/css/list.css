@@ -1,0 +1,84 @@
+div.list_thumbnails {
+ display: table-cell;
+}
+.list_thumbnails div.listitem {
+ padding: 1px 0.25em 1px 0.25em;
+ margin: 0;
+ width: 144px;
+ height: 152px;
+ float: left;
+ text-align: center;
+}
+.list_thumbnails div.thumbnail {
+ padding: 0;
+ margin: 8px 8px 0 8px;
+ width: 128px;
+ height: 128px;
+ border: 1px solid #D0D0D0;
+}
+.list_thumbnails div.title {
+ overflow: hidden;
+ white-space: nowrap;
+ font-size: 1em;
+}
+.list_thumbnails div.text {
+ display: none;
+}
+.list_details p.text {
+ display: none;
+}
+.list_thumbnails img {
+ padding: 0;
+ margin: 0;
+ width: 128px;
+ height: 128px;
+ border: none;
+}
+
+div.list_details {
+ display: table-cell;
+}
+.list_details div.listitem {
+ padding: 1px 0.25em 1px 0.25em;
+ margin: 0;
+ width: 368px;
+ height: 112px;
+ float: left;
+ text-align: left;
+}
+.list_details div.thumbnail {
+ padding: 0;
+ margin: 8px 8px 8px 8px;
+ width: 96px;
+ height: 96px;
+ border: 1px solid #D0D0D0;
+ float: left;
+}
+.list_details div.title {
+ padding: 0;
+ margin: 8px 8px 8px 8px;
+ float: top;
+ overflow: hidden;
+ white-space: wrap;
+ font-size: 1em;
+}
+.list_details div.text {
+ padding: 0;
+ margin: 8px 8px 8px 8px;
+ float: top;
+ overflow: hidden;
+}
+.list_details p.text {
+ padding: 0;
+ margin: 0;
+ display: block;
+ white-space: wrap;
+ font-size: 0.7em;
+}
+.list_details img {
+ padding: 0;
+ margin: 0;
+ width: 96px;
+ height: 96px;
+ border: none;
+}

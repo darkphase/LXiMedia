@@ -182,34 +182,3 @@ div.main_about {
  border: 1px dotted #FFFFFF;
  border-bottom-color: #808080;
 }
-
-div.thumbnaillist {
- display: table-cell;
-}
-div.thumbnaillistitem {
- padding: 1px 0.25em 1px 0.25em;
- margin: 0;
- width: 144px;
- height: 152px;
- float: left;
- text-align: center;
-}
-.thumbnaillistitem div.thumbnail {
- padding: 0;
- margin: 8px 8px 0 8px;
- width: 128px;
- height: 128px;
- border: 1px solid #D0D0D0;
-}
-.thumbnaillistitem div.title {
- overflow: hidden;
- white-space: nowrap;
- font-size: 1em;
-}
-.thumbnail img {
- padding: 0;
- margin: 0;
- width: 128px;
- height: 128px;
- border: none;
-}

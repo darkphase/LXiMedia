@@ -69,7 +69,7 @@ QByteArray HtmlParser::field(const QByteArray &name) const
 
 QByteArray HtmlParser::parseAmp(QByteArray data)
 {
-  return data.replace("&amp;", "&").replace("&", "&amp;");
+  return data.replace("&amp;", "&").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
 }
 
 QByteArray HtmlParser::parse(const char *txt) const

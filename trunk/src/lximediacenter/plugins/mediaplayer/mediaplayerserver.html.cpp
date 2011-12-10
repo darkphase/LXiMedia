@@ -29,7 +29,7 @@ namespace LXiMediaCenter {
 namespace MediaPlayerBackend {
 
 const char MediaPlayerServer::htmlFrontPageContent[] =
-    "   <div class=\"thumbnaillist\" id=\"mediaplayeritems\">\n"
+    "   <div class=\"list_thumbnails\" id=\"mediaplayeritems\">\n"
     "   </div>\n"
     "   <script type=\"text/javascript\">loadListContent(\"mediaplayeritems\", \"{SERVER_PATH}\", 0, 0);</script>\n";
 

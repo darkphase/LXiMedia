@@ -66,8 +66,8 @@ public:
   QString                       fileTypeName(void) const;                       //!< A user-friendly description of the file type.
 
   STime                         duration(void) const;                           //!< The file duration.
-  const QList<Chapter>        & chapters(void) const;                           //!< The chapters in the file.
 
+  const QList<Chapter>        & chapters(void) const;                           //!< The chapters in the file.
   const QList<AudioStreamInfo> & audioStreams(void) const;                       //!< The audio streams in the file.
   const QList<VideoStreamInfo> & videoStreams(void) const;                       //!< The video streams in the file.
   const QList<DataStreamInfo> & dataStreams(void) const;                        //!< The data streams in the file.

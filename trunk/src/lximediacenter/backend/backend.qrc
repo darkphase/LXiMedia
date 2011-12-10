@@ -1,6 +1,7 @@
 <RCC>
     <qresource prefix="/">
         <file>devices.ini</file>
+        <file>css/list.css</file>
         <file>css/main.css</file>
         <file>css/player.css</file>
         <file>img/arrow-right.png</file>
