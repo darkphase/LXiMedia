@@ -58,7 +58,7 @@ public: // From HttpClientEngine
 signals:
   /*! This signal is emitted when a line is written to stderr that starts with
       '#'. Other lines written to stderr are routed to
-      SApplication::logLineToActiveLogFile().
+      SApplication::logLine().
    */
   void                          consoleLine(const QString &);
 

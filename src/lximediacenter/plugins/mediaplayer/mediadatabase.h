@@ -45,8 +45,8 @@ public:
   FileNode                      readNode(const QString &filePath) const;
   QByteArray                    readImage(const QString &filePath, const QSize &maxSize, const QString &format) const;
 
-  void                          setLastPlayed(const QString &filePath, const QDateTime & = QDateTime::currentDateTime());
-  QDateTime                     lastPlayed(const QString &filePath) const;
+  void                          setLastPlayed(const FileNode &, const QDateTime & = QDateTime::currentDateTime());
+  QDateTime                     lastPlayed(const FileNode &) const;
 
   bool                          hasAlbum(const QString &path) const;
   int                           countAlbums(const QString &path) const;
@@ -58,9 +58,12 @@ signals:
   void                          modified(void);
 
 private:
-  static const char     * const categoryNames[7];
+  static QString                lastPlayedFile(void);
+
+private:
   static MediaDatabase        * self;
 
+  const QString                 lastPlayedFileName;
   SSandboxClient        * const probeSandbox;
 
   static const int              cacheSize;

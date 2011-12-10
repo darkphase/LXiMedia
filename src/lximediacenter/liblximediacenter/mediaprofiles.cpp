@@ -352,7 +352,7 @@ QStringList MediaProfiles::supportedAudioProfiles(const QString &client)
     d->settings->endGroup();
   }
 
-  GlobalSettings settings;
+  QSettings settings;
   settings.beginGroup("DLNA");
   settings.beginGroup("Client_" + SStringParser::toCleanName(client).replace(' ', '_'));
   return settings.value("SupportedAudioProfiles", result).toStringList();
@@ -370,7 +370,7 @@ QStringList MediaProfiles::supportedVideoProfiles(const QString &client)
     d->settings->endGroup();
   }
 
-  GlobalSettings settings;
+  QSettings settings;
   settings.beginGroup("DLNA");
   settings.beginGroup("Client_" + SStringParser::toCleanName(client).replace(' ', '_'));
   return settings.value("SupportedVideoProfiles", result).toStringList();
@@ -388,7 +388,7 @@ QStringList MediaProfiles::supportedImageProfiles(const QString &client)
     d->settings->endGroup();
   }
 
-  GlobalSettings settings;
+  QSettings settings;
   settings.beginGroup("DLNA");
   settings.beginGroup("Client_" + SStringParser::toCleanName(client).replace(' ', '_'));
   return settings.value("SupportedImageProfiles", result).toStringList();

@@ -108,6 +108,9 @@ QByteArray MediaPlayerServer::frontPageContent(void)
 
 QByteArray MediaPlayerServer::settingsContent(void)
 {
+  QSettings settings;
+  settings.beginGroup(Module::pluginName);
+
   HtmlParser htmlParser;
   htmlParser.setField("SERVER_PATH", QUrl(serverPath()).toEncoded());
   htmlParser.setField("TR_MEDIAPLAYER", tr(Module::pluginName));
@@ -131,7 +134,6 @@ QByteArray MediaPlayerServer::settingsContent(void)
       "Furthermore, certain system directories can not be selected to prevent security issues."
       ));
 
-  PluginSettings settings(Module::pluginName);
   htmlParser.setField("SLIDEDURATION", QByteArray::number(settings.value("SlideDuration", 7500).toInt()));
 
   scanDrives();
@@ -328,7 +330,9 @@ SHttpServer::ResponseMessage MediaPlayerServer::httpRequest(const SHttpServer::R
     }
     else if (request.url().hasQueryItem("save_settings"))
     {
-      PluginSettings settings(Module::pluginName);
+      QSettings settings;
+      settings.beginGroup(Module::pluginName);
+
       settings.setValue("SlideDuration", qBound(2500, request.url().queryItemValue("slideduration").toInt(), 60000));
 
       SHttpServer::ResponseMessage response(request, SHttpServer::Status_MovedPermanently);

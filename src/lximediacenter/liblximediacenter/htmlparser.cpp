@@ -19,7 +19,6 @@
 
 #include "htmlparser.h"
 #include <QtNetwork>
-#include "globalsettings.h"
 
 namespace LXiMediaCenter {
 
@@ -35,49 +34,7 @@ HtmlParser::~HtmlParser()
 
 void HtmlParser::clear(void)
 {
-  GlobalSettings settings;
-
   fields.clear();
-  fields["_PRODUCT"]  = qApp->applicationName().toUtf8();
-  fields["_HOSTNAME"] = (settings.value("DeviceName", settings.defaultDeviceName())).toString().toUtf8();
-
-  fields["_PALETTE_WINDOW"]      = palette().window.toByteArray();
-  fields["_PALETTE_WINDOWTEXT"]  = palette().windowText.toByteArray();
-  fields["_PALETTE_BASE"]        = palette().base.toByteArray();
-  fields["_PALETTE_ALTBASE"]     = palette().altBase.toByteArray();
-  fields["_PALETTE_TEXT"]        = palette().text.toByteArray();
-  fields["_PALETTE_BUTTON"]      = palette().button.toByteArray();
-  fields["_PALETTE_BUTTONTEXT"]  = palette().buttonText.toByteArray();
-
-  Palette::Rgb windowTextLight = palette().windowText;
-  windowTextLight.r = (int(windowTextLight.r) + int(palette().window.r)) / 2;
-  windowTextLight.g = (int(windowTextLight.g) + int(palette().window.g)) / 2;
-  windowTextLight.b = (int(windowTextLight.b) + int(palette().window.b)) / 2;
-  fields["_PALETTE_WINDOWTEXT_LIGHT"] = windowTextLight.toByteArray();
-
-  Palette::Rgb textLight = palette().text;
-  textLight.r = (int(textLight.r) + int(palette().base.r)) / 2;
-  textLight.g = (int(textLight.g) + int(palette().base.g)) / 2;
-  textLight.b = (int(textLight.b) + int(palette().base.b)) / 2;
-  fields["_PALETTE_TEXT_LIGHT"] = textLight.toByteArray();
-
-  Palette::Rgb buttonTextLight = palette().buttonText;
-  buttonTextLight.r = (int(buttonTextLight.r) + int(palette().button.r)) / 2;
-  buttonTextLight.g = (int(buttonTextLight.g) + int(palette().button.g)) / 2;
-  buttonTextLight.b = (int(buttonTextLight.b) + int(palette().button.b)) / 2;
-  fields["_PALETTE_BUTTONTEXT_LIGHT"] = buttonTextLight.toByteArray();
-
-  Palette::Rgb buttonRed = palette().button;
-  buttonRed.r = qMin(int(buttonRed.r) * 2, 255);
-  fields["_PALETTE_BUTTON_RED"] = buttonRed.toByteArray();
-
-  Palette::Rgb buttonGreen = palette().button;
-  buttonGreen.g = qMin(int(buttonGreen.g) * 2, 255);
-  fields["_PALETTE_BUTTON_GREEN"] = buttonGreen.toByteArray();
-
-  Palette::Rgb buttonBlue = palette().button;
-  buttonBlue.b = qMin(int(buttonBlue.b) * 2, 255);
-  fields["_PALETTE_BUTTON_BLUE"] = buttonBlue.toByteArray();
 }
 
 void HtmlParser::setField(const QByteArray &name, const QByteArray &content)

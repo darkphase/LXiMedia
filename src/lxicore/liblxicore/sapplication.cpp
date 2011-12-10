@@ -20,18 +20,24 @@
 #include "sapplication.h"
 #include "sfactory.h"
 #include "smodule.h"
-#if defined(Q_OS_WIN)
-#include <windows.h>
+#if defined(Q_OS_LINUX)
+# include <unistd.h>
+# include <sys/syscall.h>
+#elif defined(Q_OS_WIN)
+# include <windows.h>
 #endif
-#include <cstdio>
+#include <iostream>
 
 namespace LXiCore {
 
 struct SApplication::Data
 {
-  QString                       logDir;
   QStringList                   moduleFilter;
   QList< QPair<QPluginLoader *, SModule *> > modules;
+
+  QMutex                        logMutex;
+  QtMsgHandler                  defaultMsgHandler;
+  QTemporaryFile                logFile;
 
   QMutex                        profileMutex;
   QFile                       * profileFile;
@@ -54,18 +60,25 @@ SApplication              * SApplication::self = NULL;
                             are written if this is an empty string.
     \param parent           The parent QObject.
  */
-SApplication::SApplication(const QString &logDir, const QStringList &skipModules, QObject *parent)
+SApplication::SApplication(bool useLogFile, const QStringList &skipModules, QObject *parent)
   : QObject(parent),
     d(new Data())
 {
   if (self != NULL)
     qFatal("Only one instance of the SApplication class is allowed.");
 
-  d->logDir = logDir;
+  if (useLogFile)
+  {
+    d->logFile.setFileTemplate(QDir::temp().absoluteFilePath(QFileInfo(qApp->applicationFilePath()).baseName() + ".XXXXXX.log"));
+    d->logFile.open();
+  }
+
   d->profileFile = NULL;
   d->profileWidth = 0;
 
   self = this;
+
+  d->defaultMsgHandler = qInstallMsgHandler(&SApplication::logMessage);
 
   for (Initializer *i = initializers; i; i = i->next)
     i->startup();
@@ -352,12 +365,55 @@ QByteArray SApplication::about(void) const
   return text;
 }
 
-/*! Returns the directory containing the log files or an emty string of not
-    applicable.
- */
-const QString & SApplication::logDir(void) const
+QByteArray SApplication::log(void)
 {
-  return d->logDir;
+  QMutexLocker l(&d->logMutex);
+
+  if (d->logFile.isOpen())
+  if (d->logFile.seek(0))
+    return d->logFile.readAll();
+
+  return QByteArray();
+}
+
+void SApplication::logLine(const QByteArray &line)
+{
+  QMutexLocker l(&d->logMutex);
+
+  if (d->logFile.isOpen())
+  {
+    d->logFile.write(line + "\t\n");
+    d->logFile.flush();
+  }
+
+  std::cerr << line.data() << std::endl;
+}
+
+void SApplication::logMessage(QtMsgType type, const char *msg)
+{
+  QByteArray message = QDateTime::currentDateTime().toString(Qt::ISODate).toAscii();
+
+  switch (type)
+  {
+  case QtDebugMsg:    message += "\tDBG"; break;
+  case QtWarningMsg:  message += "\tWRN"; break;
+  case QtCriticalMsg: message += "\tCRT"; break;
+  case QtFatalMsg:    message += "\tFTL"; break;
+  }
+
+  message +=
+      '\t' + QByteArray::number(QCoreApplication::applicationPid())
+#if defined(Q_OS_LINUX)
+      + ':' + QByteArray::number(qint64(::syscall(SYS_gettid)))
+#elif defined(Q_OS_WIN)
+      + ':' + QByteArray::number(::GetCurrentThreadId());
+#endif
+      ;
+
+  message += '\t';
+  message += msg;
+
+  self->logLine(message);
 }
 
 bool SApplication::enableProfiling(const QString &fileName)
@@ -529,7 +585,6 @@ SApplication::SApplication(QObject *parent)
   if (self != NULL)
     qFatal("Only one instance of the SApplication class is allowed.");
 
-  d->logDir = "::";
   d->profileFile = NULL;
   d->profileWidth = 0;
 

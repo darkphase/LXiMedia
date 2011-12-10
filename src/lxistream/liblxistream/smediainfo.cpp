@@ -132,6 +132,14 @@ QString SMediaInfo::fileTypeName(void) const
   return pi->fileTypeName;
 }
 
+QByteArray SMediaInfo::fastHash(void) const
+{
+  if (pi->isReadable && !pi->isContentProbed)
+    const_cast<SMediaInfo *>(this)->probeContent();
+
+  return pi->fastHash;
+}
+
 STime SMediaInfo::duration(void) const
 {
   if (pi->isReadable && !pi->isContentProbed)

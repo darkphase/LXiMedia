@@ -18,7 +18,6 @@
  ***************************************************************************/
 
 #include "mediaserver.h"
-#include "globalsettings.h"
 #include "htmlparser.h"
 
 namespace LXiMediaCenter {

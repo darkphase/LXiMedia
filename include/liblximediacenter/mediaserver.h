@@ -95,6 +95,24 @@ public:
 
   typedef QList<DetailedListItem> DetailedListItemList;
 
+  struct TranscodeSize
+  {
+    inline TranscodeSize(void) { }
+    inline TranscodeSize(const QString &name, const SSize &size) : name(name), size(size) { }
+
+    QString                     name;
+    SSize                       size;
+  };
+
+  struct TranscodeChannel
+  {
+    inline TranscodeChannel(void) { }
+    inline TranscodeChannel(const QString &name, const SAudioFormat::Channels &channels) : name(name), channels(channels) { }
+
+    QString                     name;
+    SAudioFormat::Channels      channels;
+  };
+
 public:
   explicit                      MediaServer(QObject * = NULL);
   virtual                       ~MediaServer();
@@ -106,6 +124,15 @@ public:
 
   static MediaProfiles        & mediaProfiles(void);
   static QSet<QString>        & activeClients(void);
+
+  static QList<TranscodeSize>   allTranscodeSizes(void);
+  static QString                defaultTranscodeSizeName(void);
+  static QString                defaultTranscodeCropName(void);
+  static QString                defaultEncodeModeName(void);
+  static QList<TranscodeChannel> allTranscodeChannels(void);
+  static QString                defaultTranscodeChannelName(void);
+  static QString                defaultTranscodeMusicChannelName(void);
+  static bool                   defaultMusicAddBlackVideo(void);
 
 protected:
   virtual Stream              * streamVideo(const SHttpServer::RequestMessage &) = 0;
