@@ -26,7 +26,7 @@ namespace LXiMediaCenter {
 namespace InternetBackend {
 
 const char InternetServer::htmlFrontPageContent[] =
-    "   <div class=\"thumbnaillist\" id=\"internetitems\">\n"
+    "   <div class=\"list_thumbnails\" id=\"internetitems\">\n"
     "   </div>\n"
     "   <script type=\"text/javascript\">loadListContent(\"internetitems\", \"{SERVER_PATH}\", 0, 0);</script>\n";
 

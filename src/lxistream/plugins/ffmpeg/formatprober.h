@@ -27,6 +27,7 @@
 namespace LXiStream {
 namespace FFMpegBackend {
 
+class BufferReader;
 
 class FormatProber : public SInterfaces::FormatProber
 {
@@ -41,9 +42,9 @@ public: // From SInterfaces::FormatProber
   virtual void                  probeContent(ProbeInfo &, QIODevice *, const QSize &);
 
 private:
+  static void                   setMetadata(ProbeInfo &, const BufferReader &);
   static void                   setMetadata(ProbeInfo &, const char *, const QString &);
 };
-
 
 } } // End of namespaces
 

@@ -256,6 +256,23 @@ MediaPlayerServer::Item MediaPlayerServer::getItem(const QString &virtualPath)
     return makeItem(mediaDatabase->readNode(realPath(virtualPath)));
 }
 
+MediaPlayerServer::ListType MediaPlayerServer::listType(const QString &virtualPath)
+{
+  switch (dirType(virtualPath))
+  {
+  case SMediaInfo::ProbeInfo::FileType_Disc:
+  case SMediaInfo::ProbeInfo::FileType_Audio:
+  case SMediaInfo::ProbeInfo::FileType_Video:
+    return ListType_Details;
+
+  case SMediaInfo::ProbeInfo::FileType_None:
+  case SMediaInfo::ProbeInfo::FileType_Image:
+    return ListType_Thumbnails;
+  }
+
+  return MediaServer::listType(virtualPath);
+}
+
 void MediaPlayerServer::customEvent(QEvent *e)
 {
   if (e->type() == responseEventType)
@@ -531,46 +548,59 @@ MediaPlayerServer::Item MediaPlayerServer::makeItem(const FileNode &node)
 
 MediaPlayerServer::Item MediaPlayerServer::makePlayAllItem(const QString &virtualPath)
 {
-  const QString path = realPath(virtualPath);
-  const int numItems = mediaDatabase->countAlbumFiles(path);
-
   Item item;
   item.isDir = false;
   item.path = virtualPath + ".all";
   item.url = item.path;
   item.iconUrl = "/img/arrow-right.png";
 
-  item.type = Item::Type_Video;
-  item.title = tr("Play all");
+  switch (dirType(virtualPath))
+  {
+  case SMediaInfo::ProbeInfo::FileType_Audio:
+    item.type = Item::Type_AudioBroadcast;
+    item.title = tr("Play all");
+    break;
+
+  case SMediaInfo::ProbeInfo::FileType_Disc:
+  case SMediaInfo::ProbeInfo::FileType_None:
+  case SMediaInfo::ProbeInfo::FileType_Video:
+    item.type = Item::Type_VideoBroadcast;
+    item.title = tr("Play all");
+    break;
+
+  case SMediaInfo::ProbeInfo::FileType_Image:
+    item.type = Item::Type_VideoBroadcast;
+    item.title = tr("Slideshow");
+    break;
+  }
+
+  return item;
+}
+
+SMediaInfo::ProbeInfo::FileType MediaPlayerServer::dirType(const QString &virtualPath)
+{
+  const QString path = realPath(virtualPath);
+  const int numItems = mediaDatabase->countAlbumFiles(path);
 
   int audio = 0, video = 0, image = 0;
   foreach (const FileNode &node, mediaDatabase->getAlbumFiles(path, qMax(0, (numItems / 2) - 4), 8))
   switch (node.fileType())
   {
-  case SMediaInfo::ProbeInfo::FileType_Disc:
   case SMediaInfo::ProbeInfo::FileType_None:    break;
   case SMediaInfo::ProbeInfo::FileType_Audio:   audio++; break;
+  case SMediaInfo::ProbeInfo::FileType_Disc:
   case SMediaInfo::ProbeInfo::FileType_Video:   video++; break;
   case SMediaInfo::ProbeInfo::FileType_Image:   image++; break;
   }
 
   if ((audio > video) && (audio > image))
-  {
-    item.type = Item::Type_AudioBroadcast;
-    item.title = tr("Play all");
-  }
+    return SMediaInfo::ProbeInfo::FileType_Audio;
   else if ((video > audio) && (video > image))
-  {
-    item.type = Item::Type_VideoBroadcast;
-    item.title = tr("Play all");
-  }
+    return SMediaInfo::ProbeInfo::FileType_Video;
   else if ((image > audio) && (image > video))
-  {
-    item.type = Item::Type_VideoBroadcast;
-    item.title = tr("Slideshow");
-  }
+    return SMediaInfo::ProbeInfo::FileType_Image;
 
-  return item;
+  return SMediaInfo::ProbeInfo::FileType_None;
 }
 
 void MediaPlayerServer::consoleLine(const QString &line)

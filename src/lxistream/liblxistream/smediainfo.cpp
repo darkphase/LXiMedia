@@ -108,6 +108,14 @@ bool SMediaInfo::isReadable(void) const
   return pi->isReadable;
 }
 
+QByteArray SMediaInfo::fastHash(void) const
+{
+  if (pi->isReadable && !pi->isFormatProbed)
+    const_cast<SMediaInfo *>(this)->probeContent();
+
+  return pi->fastHash;
+}
+
 QString SMediaInfo::format(void) const
 {
   if (pi->isReadable && !pi->isFormatProbed)
@@ -132,18 +140,10 @@ QString SMediaInfo::fileTypeName(void) const
   return pi->fileTypeName;
 }
 
-QByteArray SMediaInfo::fastHash(void) const
-{
-  if (pi->isReadable && !pi->isContentProbed)
-    const_cast<SMediaInfo *>(this)->probeContent();
-
-  return pi->fastHash;
-}
-
 STime SMediaInfo::duration(void) const
 {
-  if (pi->isReadable && !pi->isContentProbed)
-    const_cast<SMediaInfo *>(this)->probeContent();
+  if (pi->isReadable && !pi->isFormatProbed)
+    const_cast<SMediaInfo *>(this)->probeFormat();
 
   return pi->duration;
 }

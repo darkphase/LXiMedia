@@ -75,6 +75,12 @@ void FormatProber::probeFormat(ProbeInfo &pi, QIODevice *ioDevice)
 
         pi.isFormatProbed = true;
 
+        const STime duration = bufferReader.duration();
+        if (duration.isValid() && (duration > pi.duration))
+          pi.duration = duration;
+
+        setMetadata(pi, bufferReader);
+
         bufferReader.stop();
 
         return;
@@ -124,10 +130,6 @@ void FormatProber::probeContent(ProbeInfo &pi, QIODevice *ioDevice, const QSize 
       ProduceCallback produceCallback;
       if (bufferReader.start(ioDevice, &produceCallback, false, true))
       {
-        const STime duration = bufferReader.duration();
-        if (duration.isValid() && (duration > pi.duration))
-          pi.duration = duration;
-
         const QList<Chapter> chapters = bufferReader.chapters();
         if (!chapters.isEmpty())
           pi.chapters = chapters;
@@ -154,7 +156,7 @@ void FormatProber::probeContent(ProbeInfo &pi, QIODevice *ioDevice, const QSize 
         if (!videoStreams.isEmpty())
         {
           static const int minBufferCount = 25;
-          static const int maxBufferCount = 32;
+          static const int maxBufferCount = 50;
           static const int minDist = 80;
           int iter = 4096;
 
@@ -191,11 +193,8 @@ void FormatProber::probeContent(ProbeInfo &pi, QIODevice *ioDevice, const QSize 
 
               do
               {
-                const SEncodedVideoBufferList videoBuffers = produceCallback.videoBuffers;
-                produceCallback.videoBuffers.clear();
-
-                foreach (const SEncodedVideoBuffer &encoded, videoBuffers)
-                foreach (const SVideoBuffer &decoded, videoDecoder.decodeBuffer(encoded))
+                while (!produceCallback.videoBuffers.isEmpty())
+                foreach (const SVideoBuffer &decoded, videoDecoder.decodeBuffer(produceCallback.videoBuffers.takeFirst()))
                 if (!decoded.isNull())
                 {
                   // Get all greyvalues
@@ -245,23 +244,8 @@ void FormatProber::probeContent(ProbeInfo &pi, QIODevice *ioDevice, const QSize 
           if (!dataStreams.isEmpty())
             pi.dataStreams = dataStreams;
 
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
-          for (AVDictionaryEntry *e = av_dict_get(bufferReader.context()->metadata, "", NULL, AV_DICT_IGNORE_SUFFIX);
-               e != NULL;
-               e = av_dict_get(bufferReader.context()->metadata, "", e, AV_DICT_IGNORE_SUFFIX))
-          {
-            setMetadata(pi, e->key, QString::fromUtf8(e->value));
-          }
-#else
-          setMetadata(pi, "title", SStringParser::removeControl(QString::fromUtf8(bufferReader.context()->title)).trimmed());
-          setMetadata(pi, "author", SStringParser::removeControl(QString::fromUtf8(bufferReader.context()->author)).trimmed());
-          setMetadata(pi, "copyright", SStringParser::removeControl(QString::fromUtf8(bufferReader.context()->copyright)).trimmed());
-          setMetadata(pi, "comment", SStringParser::removeControl(QString::fromUtf8(bufferReader.context()->comment)).trimmed());
-          setMetadata(pi, "album", SStringParser::removeControl(QString::fromUtf8(bufferReader.context()->album)).trimmed());
-          setMetadata(pi, "genre", SStringParser::removeControl(QString::fromUtf8(bufferReader.context()->genre)).trimmed());
-          setMetadata(pi, "year", bufferReader.context()->year > 0 ? QString::number(bufferReader.context()->year) : QString::null);
-          setMetadata(pi, "track", bufferReader.context()->track > 0 ? QString::number(bufferReader.context()->track) : QString::null);
-#endif
+          setMetadata(pi, bufferReader);
+
           bufferReader.stop();
         }
       }
@@ -271,20 +255,31 @@ void FormatProber::probeContent(ProbeInfo &pi, QIODevice *ioDevice, const QSize 
 //  qDebug() << pi.filePath << pi.format << timer.elapsed();
 }
 
+void FormatProber::setMetadata(ProbeInfo &pi, const BufferReader &bufferReader)
+{
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
+  for (AVDictionaryEntry *e = av_dict_get(bufferReader.context()->metadata, "", NULL, AV_DICT_IGNORE_SUFFIX);
+       e != NULL;
+       e = av_dict_get(bufferReader.context()->metadata, "", e, AV_DICT_IGNORE_SUFFIX))
+  {
+    setMetadata(pi, e->key, QString::fromUtf8(e->value));
+  }
+#else
+  setMetadata(pi, "title", SStringParser::removeControl(QString::fromUtf8(bufferReader.context()->title)).trimmed());
+  setMetadata(pi, "author", SStringParser::removeControl(QString::fromUtf8(bufferReader.context()->author)).trimmed());
+  setMetadata(pi, "copyright", SStringParser::removeControl(QString::fromUtf8(bufferReader.context()->copyright)).trimmed());
+  setMetadata(pi, "comment", SStringParser::removeControl(QString::fromUtf8(bufferReader.context()->comment)).trimmed());
+  setMetadata(pi, "album", SStringParser::removeControl(QString::fromUtf8(bufferReader.context()->album)).trimmed());
+  setMetadata(pi, "genre", SStringParser::removeControl(QString::fromUtf8(bufferReader.context()->genre)).trimmed());
+  setMetadata(pi, "year", bufferReader.context()->year > 0 ? QString::number(bufferReader.context()->year) : QString::null);
+  setMetadata(pi, "track", bufferReader.context()->track > 0 ? QString::number(bufferReader.context()->track) : QString::null);
+#endif
+}
+
 void FormatProber::setMetadata(ProbeInfo &pi, const char *name, const QString &value)
 {
   if (!value.isEmpty())
-  {
-    QMap<QString, QVariant>::Iterator i = pi.metadata.find(name);
-    if (i != pi.metadata.end())
-    {
-      if (i->toString().length() < value.length())
-        *i = QVariant(value);
-    }
-    else
-      pi.metadata.insert(QString::fromUtf8(name), value);
-  }
+    pi.metadata.insert(QString::fromUtf8(name), value);
 }
-
 
 } } // End of namespaces

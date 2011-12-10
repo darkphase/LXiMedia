@@ -26,7 +26,6 @@ const char Backend::htmlIndex[] =
     " <title>{_PRODUCT} @ {_HOSTNAME}</title>\n"
     " <meta http-equiv=\"Content-Type\" content=\"text/html;charset=utf-8\" />\n"
     " <link rel=\"stylesheet\" href=\"/css/main.css\" type=\"text/css\" media=\"screen, handheld, projection\" />\n"
-    " <script type=\"text/javascript\" src=\"/js/list.js\"></script>\n" // Open and close tag due to IE bug
     "{HEAD}"
     "</head>\n"
     "<body>\n"
@@ -80,6 +79,10 @@ const char Backend::htmlNavigatorPath[] =
 
 const char Backend::htmlNavigatorItem[] =
     "      <li><a href=\"{ITEM_LINK}\">{ITEM_NAME}</a></li>\n";
+
+const char Backend::htmlFrontPagesHead[] =
+    " <link rel=\"stylesheet\" href=\"/css/list.css\" type=\"text/css\" media=\"screen, handheld, projection\" />\n"
+    " <script type=\"text/javascript\" src=\"/js/list.js\"></script>\n"; // Open and close tag due to IE bug
 
 const char Backend::htmlFrontPages[] =
     " <div class=\"main_frontpages\">\n"
@@ -366,7 +369,7 @@ SHttpServer::ResponseMessage Backend::httpRequest(const SHttpServer::RequestMess
       SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
       response.setContentType(SHttpEngine::mimeTextHtml);
       response.setField("Cache-Control", "no-cache");
-      response.setContent(parseHtmlContent(request.url(), content, ""));
+      response.setContent(parseHtmlContent(request.url(), content, htmlFrontPagesHead));
       return response;
     }
     else if ((dir == "/css/") || (dir == "/js/") || (dir == "/img/"))

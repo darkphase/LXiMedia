@@ -31,23 +31,30 @@ const char MediaServer::m3uPlaylistItem[] =
     "#EXTINF:{ITEM_LENGTH},{ITEM_NAME}\n"
     "{ITEM_URL}\n";
 
-const char MediaServer::htmlThumbnailLoader[] =
-    " <div class=\"thumbnaillist\" id=\"items\">\n"
+const char MediaServer::htmlListHead[] =
+    " <link rel=\"stylesheet\" href=\"/css/list.css\" type=\"text/css\" media=\"screen, handheld, projection\" />\n"
+    " <script type=\"text/javascript\" src=\"/js/list.js\"></script>\n"; // Open and close tag due to IE bug
+
+const char MediaServer::htmlListLoader[] =
+    " <div class=\"list_{LIST_TYPE}\" id=\"items\">\n"
     " </div>\n"
     " <script type=\"text/javascript\">loadListContent(\"items\", \"{PATH}\", 0, {LOAD_ITEM_COUNT});</script>\n";
 
-const char MediaServer::htmlThumbnailItem[] =
-    "  <div class=\"thumbnaillistitem\">\n"
+const char MediaServer::htmlListItem[] =
+    "  <div class=\"listitem\">\n"
     "   <div class=\"thumbnail\">\n"
     "    <a title=\"{ITEM_TITLE}\" href=\"{ITEM_URL}\">\n"
     "     <img src=\"{ITEM_ICONURL}\" alt=\"{ITEM_TITLE}\" />\n"
     "    </a>\n"
     "   </div>\n"
     "   <div class=\"title\">{ITEM_TITLE}</div>\n"
+    "   <div class=\"text\">\n"
+    "{ITEM_TEXT}\n"
+    "   </div>\n"
     "  </div>\n";
 
-const char MediaServer::htmlThumbnailItemNoTitle[] =
-    "  <div class=\"thumbnaillistitem\">\n"
+const char MediaServer::htmlListItemNoTitle[] =
+    "  <div class=\"listitem\">\n"
     "   <div class=\"thumbnail\">\n"
     "    <a title=\"{ITEM_TITLE}\" href=\"{ITEM_URL}\">\n"
     "     <img src=\"{ITEM_ICONURL}\" alt=\"{ITEM_TITLE}\" />\n"
@@ -55,20 +62,26 @@ const char MediaServer::htmlThumbnailItemNoTitle[] =
     "   </div>\n"
     "  </div>\n";
 
-const char MediaServer::htmlThumbnailItemNoLink[] =
-    "  <div class=\"thumbnaillistitem\">\n"
+const char MediaServer::htmlListItemNoLink[] =
+    "  <div class=\"listitem\">\n"
     "   <div class=\"thumbnail\">\n"
     "    <img src=\"{ITEM_ICONURL}\" alt=\"{ITEM_TITLE}\" />\n"
     "   </div>\n"
     "   <div class=\"title\">{ITEM_TITLE}</div>\n"
+    "   <div class=\"text\">\n"
+    "{ITEM_TEXT}\n"
+    "   </div>\n"
     "  </div>\n";
 
-const char MediaServer::htmlThumbnailItemNoLinkNoTitle[] =
-    "  <div class=\"thumbnaillistitem\">\n"
+const char MediaServer::htmlListItemNoLinkNoTitle[] =
+    "  <div class=\"listitem\">\n"
     "   <div class=\"thumbnail\">\n"
     "    <img src=\"{ITEM_ICONURL}\" alt=\"{ITEM_TITLE}\" />\n"
     "   </div>\n"
     "  </div>\n";
+
+const char MediaServer::htmlListItemTextLine[] =
+    "    <p class=\"text\">{TEXT_LINE}</p>\n";
 
 const char MediaServer::htmlPhotoViewer[] =
     "<!DOCTYPE html>\n"
@@ -119,16 +132,28 @@ const char MediaServer::htmlAudioPlayer[] =
     "</body>\n"
     "</html>\n";
 
-QByteArray MediaServer::buildThumbnailLoader(const QString &path)
+QByteArray MediaServer::buildListLoader(const QString &path, ListType listType)
 {
   HtmlParser htmlParser;
+
+  switch(listType)
+  {
+  case ListType_Thumbnails:
+    htmlParser.setField("LIST_TYPE", QByteArray("thumbnails"));
+    break;
+
+  case ListType_Details:
+    htmlParser.setField("LIST_TYPE", QByteArray("details"));
+    break;
+  }
+
   htmlParser.setField("PATH", QUrl(path).toEncoded());
   htmlParser.setField("LOAD_ITEM_COUNT", QString::number(qBound(1, QThread::idealThreadCount(), 16) * 8));
 
-  return htmlParser.parse(htmlThumbnailLoader);
+  return htmlParser.parse(htmlListLoader);
 }
 
-QByteArray MediaServer::buildThumbnailItems(const ThumbnailListItemList &items)
+QByteArray MediaServer::buildListItems(const ThumbnailListItemList &items)
 {
   HtmlParser htmlParser;
 
@@ -136,16 +161,24 @@ QByteArray MediaServer::buildThumbnailItems(const ThumbnailListItemList &items)
   foreach (const ThumbnailListItem &item, items)
   {
     htmlParser.setField("ITEM_TITLE", item.title);
+
+    htmlParser.setField("ITEM_TEXT", QByteArray(""));
+    foreach (const QString &text, item.text)
+    {
+      htmlParser.setField("TEXT_LINE", text);
+      htmlParser.appendField("ITEM_TEXT", htmlParser.parse(htmlListItemTextLine));
+    }
+
     htmlParser.setField("ITEM_ICONURL", item.iconurl.toEncoded());
 
     if (!item.url.isEmpty())
     {
       htmlParser.setField("ITEM_URL", item.url.toEncoded());
 
-      result += htmlParser.parse(item.title.isEmpty() ? htmlThumbnailItemNoTitle : htmlThumbnailItem);
+      result += htmlParser.parse(item.title.isEmpty() ? htmlListItemNoTitle : htmlListItem);
     }
     else
-      result += htmlParser.parse(item.title.isEmpty() ? htmlThumbnailItemNoLinkNoTitle : htmlThumbnailItemNoLink);
+      result += htmlParser.parse(item.title.isEmpty() ? htmlListItemNoLinkNoTitle : htmlListItemNoLink);
   }
 
   return result;
