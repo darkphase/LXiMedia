@@ -51,29 +51,41 @@ QList<FormatProber::Format> FormatProber::probeFormat(const QByteArray &data, co
 
 void FormatProber::probeFormat(ProbeInfo &pi, QIODevice *ioDevice)
 {
-  QList<FormatProber::Format> format = FormatProber::probeFormat(ioDevice->read(4), QString::null);
-  if (!format.isEmpty())
+  if (ioDevice)
+  foreach (
+      const Format &format,
+      FormatProber::probeFormat(ioDevice->peek(4), QString::null))
   {
-    pi.format = format.first().name;
-    pi.fileType = ProbeInfo::FileType_Image;
+    pi.format.format = format.name;
+    pi.format.fileType = ProbeInfo::FileType_Image;
 
     pi.isFormatProbed = true;
+    break;
   }
 }
 
 void FormatProber::probeContent(ProbeInfo &pi, QIODevice *ioDevice, const QSize &thumbSize)
 {
-  QList<FormatProber::Format> format = FormatProber::probeFormat(ioDevice->peek(4), QString::null);
-  if (!format.isEmpty())
+  if (ioDevice)
+  foreach (
+      const Format &format,
+      FormatProber::probeFormat(ioDevice->peek(4), QString::null))
   {
     const SImage thumbnail = SImage::fromData(ioDevice, thumbSize);
     if (!thumbnail.isNull())
     {
-      pi.imageCodec = SVideoCodec(format.first().name.toUpper(), thumbnail.originalSize());
-      pi.thumbnail = thumbnail.toVideoBuffer();
+      if (pi.content.titles.isEmpty())
+        pi.content.titles += ProbeInfo::Title();
+
+      ProbeInfo::Title &mainTitle = pi.content.titles.first();
+
+      mainTitle.imageCodec = SVideoCodec(format.name.toUpper(), thumbnail.originalSize());
+      mainTitle.thumbnail = thumbnail.toVideoBuffer();
 
       pi.isContentProbed = true;
     }
+
+    break;
   }
 }
 

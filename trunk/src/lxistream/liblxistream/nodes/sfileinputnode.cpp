@@ -72,9 +72,9 @@ bool SFileInputNode::setPosition(STime pos)
   return SIOInputNode::setPosition(pos);
 }
 
-QList<SFileInputNode::DataStreamInfo> SFileInputNode::dataStreams(void) const
+QList<SFileInputNode::DataStreamInfo> SFileInputNode::dataStreams(int title) const
 {
-  QList<DataStreamInfo> dataStreams = SIOInputNode::dataStreams();
+  QList<DataStreamInfo> dataStreams = SIOInputNode::dataStreams(title);
 
   // Add subtitles.
   quint16 nextStreamId = 0xF000;
@@ -99,7 +99,7 @@ QList<SFileInputNode::DataStreamInfo> SFileInputNode::dataStreams(void) const
   return dataStreams;
 }
 
-void SFileInputNode::selectStreams(const QVector<StreamId> &streamIds)
+void SFileInputNode::selectStreams(int title, const QVector<StreamId> &streamIds)
 {
   QVector<StreamId> nextStreamIds;
   foreach (StreamId id, streamIds)
@@ -121,7 +121,7 @@ void SFileInputNode::selectStreams(const QVector<StreamId> &streamIds)
   else
     nextStreamIds += id;
 
-  SIOInputNode::selectStreams(nextStreamIds);
+  SIOInputNode::selectStreams(title, nextStreamIds);
 }
 
 void SFileInputNode::stop(void)

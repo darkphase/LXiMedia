@@ -245,7 +245,6 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
           {
             ThumbnailListItem thumbItem;
             thumbItem.title = item.title;
-            thumbItem.text += QString::number(countItems(item.path)) + ' ' + tr("items");
             thumbItem.iconurl = item.iconUrl;
             thumbItem.url = item.path;
 

@@ -39,9 +39,13 @@ QList<FormatProber::Format> FormatProber::probeFormat(const QByteArray &, const 
 
   if (BufferReader::isDiscPath(filePath))
   {
-    BufferReader bufferReader(QString::null, this);
-    if (bufferReader.openFile(filePath))
+    ::dvdnav_t * dvdHandle = NULL;
+    if (::dvdnav_open(&dvdHandle, filePath.toUtf8()) == DVDNAV_STATUS_OK)
+    {
       result += Format(BufferReader::formatName, 0);
+
+      ::dvdnav_close(dvdHandle);
+    }
   }
 
   return result;
@@ -51,58 +55,74 @@ void FormatProber::probeFormat(ProbeInfo &pi, QIODevice *)
 {
   if (BufferReader::isDiscPath(pi.filePath))
   {
-    pi.format = BufferReader::formatName;
-    pi.fileType = ProbeInfo::FileType_Disc;
-    pi.fileTypeName = "Digital Versatile Disc";
-    pi.isFormatProbed = true;
+    QFile file(pi.filePath);
+    BufferReader bufferReader(QString::null, this);
+    if (bufferReader.start(&file, NULL, false))
+    {
+      pi.format.format = BufferReader::formatName;
+      pi.format.fileType = ProbeInfo::FileType_Disc;
+      pi.format.fileTypeName = "Digital Versatile Disc";
+
+      const QString discName = bufferReader.discName();
+      if (!discName.isEmpty())
+        pi.format.metadata.insert("title", discName);
+
+      pi.isFormatProbed = true;
+
+      bufferReader.stop();
+    }
   }
 }
 
-void FormatProber::probeContent(ProbeInfo &pi, QIODevice *, const QSize &)
+void FormatProber::probeContent(ProbeInfo &pi, QIODevice *, const QSize &thumbSize)
 {
   if (BufferReader::isDiscPath(pi.filePath))
   {
+    QFile file(pi.filePath);
     BufferReader bufferReader(QString::null, this);
-    if (bufferReader.openFile(pi.filePath))
+    if (bufferReader.start(&file, NULL, false))
     {
-//      pi.programs.clear();
-//      for (quint16 i=0, n=bufferReader.numTitles(); i<n; i++)
-//      if (bufferReader.selectTitle(i))
-//      {
-//        ProbeInfo fpi;
-//        fpi.programs.append(ProbeInfo::Program(i));
-//
-//        fpi.programs.first().duration = bufferReader.duration();
-//
-//        foreach (SInterfaces::FormatProber *prober, SInterfaces::FormatProber::create(NULL))
-//        {
-//          if ((qobject_cast<FormatProber *>(prober) == NULL) && !fpi.isContentProbed)
-//          {
-//            bufferReader.setPosition(STime::null);
-//            prober->probeContent(fpi, &bufferReader);
-//          }
-//
-//          delete prober;
-//        }
-//
-//        if (!fpi.programs.isEmpty())
-//        {
-//          ProbeInfo::Program &program = fpi.programs.first();
-//
-//          program.programId = i;
-//          program.duration = bufferReader.duration();
-//          program.chapters = bufferReader.chapters();
-//
-//          program.audioStreams = bufferReader.filterAudioStreams(program.audioStreams);
-//          program.videoStreams = bufferReader.filterVideoStreams(program.videoStreams);
-//          program.dataStreams = bufferReader.filterDataStreams(program.dataStreams);
-//
-//          if (program.duration.isValid() && (program.duration.toSec() >= 60))
-//            pi.programs.append(program);
-//        }
-//      }
+      pi.content.titles.clear();
 
-      pi.metadata.insert("title", bufferReader.discTitle());
+      for (int i=0, n=bufferReader.numTitles(); i<n; i++)
+      if (bufferReader.selectTitle(i))
+      {
+        ProbeInfo fpi;
+        fpi.content.titles += ProbeInfo::Title();
+        fpi.content.titles.first().duration = bufferReader.duration();
+
+        QIODevice * const ioDevice = bufferReader.getIODevice();
+        foreach (SInterfaces::FormatProber *prober, SInterfaces::FormatProber::create(NULL))
+        {
+          if (ioDevice->seek(0))
+          {
+            if (!fpi.isFormatProbed)
+              prober->probeFormat(fpi, ioDevice);
+
+            if (fpi.isFormatProbed && !fpi.isContentProbed)
+              prober->probeContent(fpi, ioDevice, thumbSize);
+          }
+
+          delete prober;
+        }
+
+        if (!fpi.content.titles.isEmpty())
+        {
+          ProbeInfo::Title &title = fpi.content.titles.first();
+
+          title.duration = bufferReader.duration();
+          if (title.duration.isValid() && (title.duration.toSec() >= 60))
+          {
+            title.chapters = bufferReader.chapters();
+
+            title.audioStreams = bufferReader.filterAudioStreams(title.audioStreams);
+            title.videoStreams = bufferReader.filterVideoStreams(title.videoStreams);
+            title.dataStreams = bufferReader.filterDataStreams(title.dataStreams);
+
+            pi.content.titles += title;
+          }
+        }
+      }
 
       pi.isContentProbed = true;
     }

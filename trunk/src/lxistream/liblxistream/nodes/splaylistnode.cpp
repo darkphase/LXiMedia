@@ -144,8 +144,8 @@ bool SPlaylistNode::openNext(void)
   {
     setFileName(d->files[d->fileId]);
 
-    if (d->audioStreams.isEmpty() || !SFileInputNode::audioStreams().isEmpty())
-    if (d->videoStreams.isEmpty() || !SFileInputNode::videoStreams().isEmpty())
+    if (d->audioStreams.isEmpty() || !SFileInputNode::audioStreams(0).isEmpty())
+    if (d->videoStreams.isEmpty() || !SFileInputNode::videoStreams(0).isEmpty())
     if (SFileInputNode::start())
     {
       emit opened(d->files[d->fileId]);

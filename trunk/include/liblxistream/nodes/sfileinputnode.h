@@ -41,8 +41,8 @@ public:
 
   virtual bool                  setPosition(STime);
 
-  virtual QList<DataStreamInfo> dataStreams(void) const;
-  virtual void                  selectStreams(const QVector<StreamId> &);
+  virtual QList<DataStreamInfo> dataStreams(int title) const;
+  virtual void                  selectStreams(int title, const QVector<StreamId> &);
 
 public: // From SInterfaces::SourceNode
   virtual void                  stop(void);

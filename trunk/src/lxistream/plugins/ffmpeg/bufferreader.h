@@ -44,10 +44,11 @@ public: // From SInterfaces::AbstractBufferReader
   inline virtual STime          position(void) const                            { return BufferReaderBase::position(); }
   inline virtual QList<Chapter> chapters(void) const                            { return BufferReaderBase::chapters(); }
 
-  inline virtual QList<AudioStreamInfo> audioStreams(void) const                { return BufferReaderBase::audioStreams(); }
-  inline virtual QList<VideoStreamInfo> videoStreams(void) const                { return BufferReaderBase::videoStreams(); }
-  inline virtual QList<DataStreamInfo> dataStreams(void) const                  { return BufferReaderBase::dataStreams(); }
-  inline virtual void           selectStreams(const QVector<StreamId> &s)       { return BufferReaderBase::selectStreams(s); }
+  inline virtual int            numTitles(void) const                           { return 1; }
+  inline virtual QList<AudioStreamInfo> audioStreams(int) const                 { return BufferReaderBase::audioStreams(); }
+  inline virtual QList<VideoStreamInfo> videoStreams(int) const                 { return BufferReaderBase::videoStreams(); }
+  inline virtual QList<DataStreamInfo> dataStreams(int) const                   { return BufferReaderBase::dataStreams(); }
+  inline virtual void           selectStreams(int, const QVector<StreamId> &s)  { return BufferReaderBase::selectStreams(s); }
 
   inline virtual bool           process(void)                                   { return BufferReaderBase::demux(BufferReaderBase::read()); }
 

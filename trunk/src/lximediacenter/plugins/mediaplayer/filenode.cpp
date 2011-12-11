@@ -65,85 +65,115 @@ QByteArray FileNode::toByteArray(int indent) const
   const ProbeInfo &pi = probeInfo();
 
   mediaInfoElm.setAttribute("filePath", pi.filePath);
-  mediaInfoElm.setAttribute("size", pi.size);
-  mediaInfoElm.setAttribute("lastModified", pi.lastModified.toString(Qt::ISODate));
 
-  mediaInfoElm.setAttribute("isFormatProbed", pi.isFormatProbed ? 1 : 0);
-  mediaInfoElm.setAttribute("isContentProbed", pi.isContentProbed ? 1 : 0);
+  mediaInfoElm.setAttribute("isFileInfoRead", T::trueFalse(pi.isFileInfoRead));
+  mediaInfoElm.setAttribute("isFormatProbed", T::trueFalse(pi.isFormatProbed));
+  mediaInfoElm.setAttribute("isContentProbed", T::trueFalse(pi.isContentProbed));
 
-  mediaInfoElm.setAttribute("format", SStringParser::removeControl(pi.format));
-  mediaInfoElm.setAttribute("type", QString::number(pi.fileType));
-  mediaInfoElm.setAttribute("typename", SStringParser::removeControl(pi.fileTypeName));
-
-  mediaInfoElm.setAttribute("fastHash", QString(pi.fastHash.toBase64()));
-
-  if (pi.duration.isValid())
-    mediaInfoElm.setAttribute("duration", QString::number(pi.duration.toMSec()));
-
-  foreach (const Chapter &chapter, pi.chapters)
+  if (pi.isFileInfoRead)
   {
-    QDomElement elm = doc.createElement("chapter");
-    elm.setAttribute("title", chapter.title);
-    elm.setAttribute("begin", chapter.begin.toUSec());
-    elm.setAttribute("end", chapter.end.toUSec());
-    mediaInfoElm.appendChild(elm);
+    QDomElement fileInfoElm = doc.createElement("fileInfo");
+
+    fileInfoElm.setAttribute("isDir", T::trueFalse(pi.fileInfo.isDir));
+    fileInfoElm.setAttribute("size", pi.fileInfo.size);
+    fileInfoElm.setAttribute("lastModified", pi.fileInfo.lastModified.toString(Qt::ISODate));
+
+    mediaInfoElm.appendChild(fileInfoElm);
   }
 
-  foreach (const AudioStreamInfo &audioStream, pi.audioStreams)
+  if (pi.isFormatProbed)
   {
-    QDomElement elm = doc.createElement("audiostream");
-    elm.setAttribute("id", audioStream.toString());
-    elm.setAttribute("language", audioStream.language);
-    elm.setAttribute("title", audioStream.title);
-    elm.setAttribute("codec", audioStream.codec.toString());
-    mediaInfoElm.appendChild(elm);
+    QDomElement formatElm = doc.createElement("format");
+
+    formatElm.setAttribute("format", SStringParser::removeControl(pi.format.format));
+    formatElm.setAttribute("fileType", QString::number(pi.format.fileType));
+    formatElm.setAttribute("fileTypeName", SStringParser::removeControl(pi.format.fileTypeName));
+    formatElm.setAttribute("quickHash", QString(pi.format.quickHash.toBase64()));
+
+    for (QMap<QString, QVariant>::ConstIterator i = pi.format.metadata.begin();
+         i != pi.format.metadata.end();
+         i++)
+    {
+      QDomElement metadataElm = doc.createElement("metadata");
+      metadataElm.setAttribute("key", i.key());
+      metadataElm.setAttribute("value", SStringParser::removeControl(i.value().toString()));
+
+      formatElm.appendChild(metadataElm);
+    }
+
+    mediaInfoElm.appendChild(formatElm);
   }
 
-  foreach (const VideoStreamInfo &videoStream, pi.videoStreams)
+  if (pi.isContentProbed)
   {
-    QDomElement elm = doc.createElement("videostream");
-    elm.setAttribute("id", videoStream.toString());
-    elm.setAttribute("language", videoStream.language);
-    elm.setAttribute("title", videoStream.title);
-    elm.setAttribute("codec", videoStream.codec.toString());
-    mediaInfoElm.appendChild(elm);
-  }
+    QDomElement contentElm = doc.createElement("content");
 
-  foreach (const DataStreamInfo &dataStream, pi.dataStreams)
-  {
-    QDomElement elm = doc.createElement("datastream");
-    elm.setAttribute("id", dataStream.toString());
-    elm.setAttribute("language", dataStream.language);
-    elm.setAttribute("title", dataStream.title);
-    elm.setAttribute("file", dataStream.file);
-    elm.setAttribute("codec", dataStream.codec.toString());
-    mediaInfoElm.appendChild(elm);
-  }
+    foreach (const ProbeInfo::Title &title, pi.content.titles)
+    {
+      QDomElement titleElm = doc.createElement("title");
 
-  if (!pi.imageCodec.isNull())
-  {
-    QDomElement elm = doc.createElement("imagecodec");
-    elm.setAttribute("codec", pi.imageCodec.toString());
-    mediaInfoElm.appendChild(elm);
-  }
+      if (title.duration.isValid())
+        titleElm.setAttribute("duration", QString::number(title.duration.toMSec()));
 
-  QBuffer b;
-  if (SImage(pi.thumbnail).save(&b, "JPEG", 50))
-  {
-    QDomElement thumbElm = doc.createElement("thumbnail");
-    thumbElm.appendChild(doc.createTextNode(b.data().toBase64()));
-    mediaInfoElm.appendChild(thumbElm);
-  }
+      foreach (const Chapter &chapter, title.chapters)
+      {
+        QDomElement elm = doc.createElement("chapter");
+        elm.setAttribute("title", chapter.title);
+        elm.setAttribute("begin", chapter.begin.toUSec());
+        elm.setAttribute("end", chapter.end.toUSec());
+        titleElm.appendChild(elm);
+      }
 
-  for (QMap<QString, QVariant>::ConstIterator i = pi.metadata.begin();
-       i != pi.metadata.end();
-       i++)
-  {
-    QDomElement metadataElm = doc.createElement("metadata");
-    metadataElm.setAttribute("key", i.key());
-    metadataElm.setAttribute("value", i.value().toString());
+      foreach (const AudioStreamInfo &audioStream, title.audioStreams)
+      {
+        QDomElement elm = doc.createElement("audiostream");
+        elm.setAttribute("id", audioStream.toString());
+        elm.setAttribute("language", audioStream.language);
+        elm.setAttribute("title", audioStream.title);
+        elm.setAttribute("codec", audioStream.codec.toString());
+        titleElm.appendChild(elm);
+      }
 
-    mediaInfoElm.appendChild(metadataElm);
+      foreach (const VideoStreamInfo &videoStream, title.videoStreams)
+      {
+        QDomElement elm = doc.createElement("videostream");
+        elm.setAttribute("id", videoStream.toString());
+        elm.setAttribute("language", videoStream.language);
+        elm.setAttribute("title", videoStream.title);
+        elm.setAttribute("codec", videoStream.codec.toString());
+        titleElm.appendChild(elm);
+      }
+
+      foreach (const DataStreamInfo &dataStream, title.dataStreams)
+      {
+        QDomElement elm = doc.createElement("datastream");
+        elm.setAttribute("id", dataStream.toString());
+        elm.setAttribute("language", dataStream.language);
+        elm.setAttribute("title", dataStream.title);
+        elm.setAttribute("file", dataStream.file);
+        elm.setAttribute("codec", dataStream.codec.toString());
+        titleElm.appendChild(elm);
+      }
+
+      if (!title.imageCodec.isNull())
+      {
+        QDomElement elm = doc.createElement("imagecodec");
+        elm.setAttribute("codec", title.imageCodec.toString());
+        titleElm.appendChild(elm);
+      }
+
+      QBuffer b;
+      if (SImage(title.thumbnail).save(&b, "JPEG", 50))
+      {
+        QDomElement thumbElm = doc.createElement("thumbnail");
+        thumbElm.appendChild(doc.createTextNode(b.data().toBase64()));
+        titleElm.appendChild(thumbElm);
+      }
+
+      contentElm.appendChild(titleElm);
+    }
+
+    mediaInfoElm.appendChild(contentElm);
   }
 
   doc.appendChild(mediaInfoElm);
@@ -168,85 +198,108 @@ FileNode FileNode::fromByteArray(const QByteArray &str)
 
     ProbeInfo * const pi = new ProbeInfo();
     pi->filePath = mediaInfoElm.attribute("filePath");
-    pi->size = mediaInfoElm.attribute("size").toLongLong();
-    pi->lastModified = QDateTime::fromString(mediaInfoElm.attribute("lastModified"), Qt::ISODate);
 
     pi->isReadable = false;
-    pi->isFormatProbed = mediaInfoElm.attribute("isFormatProbed").toInt() != 0;
-    pi->isContentProbed = mediaInfoElm.attribute("isContentProbed").toInt() != 0;
+    pi->isFileInfoRead = T::trueFalse(mediaInfoElm.attribute("isFileInfoRead"));
+    pi->isFormatProbed = T::trueFalse(mediaInfoElm.attribute("isFormatProbed"));
+    pi->isContentProbed = T::trueFalse(mediaInfoElm.attribute("isContentProbed"));
 
-    pi->format = mediaInfoElm.attribute("format");
-    pi->fileType = ProbeInfo::FileType(mediaInfoElm.attribute("type").toInt());
-    pi->fileTypeName = mediaInfoElm.attribute("typename");
-
-    pi->fastHash = QByteArray::fromBase64(mediaInfoElm.attribute("fastHash").toAscii());
-
-    const qint64 duration = mediaInfoElm.attribute("duration", "-1").toLongLong();
-    pi->duration = duration >= 0 ? STime::fromMSec(duration) : STime();
-
-    for (QDomElement elm = mediaInfoElm.firstChildElement("chapter");
-         !elm.isNull();
-         elm = elm.nextSiblingElement("chapter"))
+    QDomElement fileInfoElm = mediaInfoElm.firstChildElement("fileInfo");
+    if (!fileInfoElm.isNull())
     {
-      Chapter chapter;
-      chapter.title = elm.attribute("title");
-      chapter.begin = STime::fromUSec(elm.attribute("begin").toLongLong());
-      chapter.end = STime::fromUSec(elm.attribute("end").toLongLong());
-
-      pi->chapters.append(chapter);
+      pi->fileInfo.isDir = T::trueFalse(fileInfoElm.attribute("isDir"));
+      pi->fileInfo.size = fileInfoElm.attribute("size").toLongLong();
+      pi->fileInfo.lastModified = QDateTime::fromString(fileInfoElm.attribute("lastModified"), Qt::ISODate);
     }
 
-    for (QDomElement elm = mediaInfoElm.firstChildElement("audiostream");
-         !elm.isNull();
-         elm = elm.nextSiblingElement("audiostream"))
+    QDomElement formatElm = mediaInfoElm.firstChildElement("format");
+    if (!formatElm.isNull())
     {
-      pi->audioStreams.append(
-          AudioStreamInfo(
+      pi->format.format = formatElm.attribute("format");
+      pi->format.fileType = ProbeInfo::FileType(formatElm.attribute("fileType").toInt());
+      pi->format.fileTypeName = formatElm.attribute("fileTypeName");
+      pi->format.quickHash = QByteArray::fromBase64(formatElm.attribute("quickHash").toAscii());
+
+      for (QDomElement metadataElm = formatElm.firstChildElement("metadata");
+           !metadataElm.isNull();
+           metadataElm = metadataElm.nextSiblingElement("metadata"))
+      {
+        pi->format.metadata.insert(metadataElm.attribute("key"), metadataElm.attribute("value"));
+      }
+    }
+
+    QDomElement contentElm = mediaInfoElm.firstChildElement("content");
+    if (!contentElm.isNull())
+    {
+      for (QDomElement titleElm = contentElm.firstChildElement("title");
+           !titleElm.isNull();
+           titleElm = titleElm.nextSiblingElement("title"))
+      {
+        ProbeInfo::Title title;
+
+        const qint64 duration = titleElm.attribute("duration", "-1").toLongLong();
+        title.duration = duration >= 0 ? STime::fromMSec(duration) : STime();
+
+        for (QDomElement elm = titleElm.firstChildElement("chapter");
+             !elm.isNull();
+             elm = elm.nextSiblingElement("chapter"))
+        {
+          Chapter chapter;
+          chapter.title = elm.attribute("title");
+          chapter.begin = STime::fromUSec(elm.attribute("begin").toLongLong());
+          chapter.end = STime::fromUSec(elm.attribute("end").toLongLong());
+
+          title.chapters.append(chapter);
+        }
+
+        for (QDomElement elm = titleElm.firstChildElement("audiostream");
+             !elm.isNull();
+             elm = elm.nextSiblingElement("audiostream"))
+        {
+          title.audioStreams.append(
+              AudioStreamInfo(
+                  StreamId::fromString(elm.attribute("id")),
+                  elm.attribute("language").toAscii(),
+                  elm.attribute("title"),
+                  SAudioCodec::fromString(elm.attribute("codec"))));
+        }
+
+        for (QDomElement elm = titleElm.firstChildElement("videostream");
+             !elm.isNull();
+             elm = elm.nextSiblingElement("videostream"))
+        {
+          title.videoStreams.append(
+              VideoStreamInfo(
+                  StreamId::fromString(elm.attribute("id")),
+                  elm.attribute("language").toAscii(),
+                  elm.attribute("title"),
+                  SVideoCodec::fromString(elm.attribute("codec"))));
+        }
+
+        for (QDomElement elm = titleElm.firstChildElement("datastream");
+             !elm.isNull();
+             elm = elm.nextSiblingElement("datastream"))
+        {
+          DataStreamInfo stream(
               StreamId::fromString(elm.attribute("id")),
               elm.attribute("language").toAscii(),
               elm.attribute("title"),
-              SAudioCodec::fromString(elm.attribute("codec"))));
-    }
+              SDataCodec::fromString(elm.attribute("codec")));
 
-    for (QDomElement elm = mediaInfoElm.firstChildElement("videostream");
-         !elm.isNull();
-         elm = elm.nextSiblingElement("videostream"))
-    {
-      pi->videoStreams.append(
-          VideoStreamInfo(
-              StreamId::fromString(elm.attribute("id")),
-              elm.attribute("language").toAscii(),
-              elm.attribute("title"),
-              SVideoCodec::fromString(elm.attribute("codec"))));
-    }
+          stream.file = elm.attribute("file");
+          title.dataStreams.append(stream);
+        }
 
-    for (QDomElement elm = mediaInfoElm.firstChildElement("datastream");
-         !elm.isNull();
-         elm = elm.nextSiblingElement("datastream"))
-    {
-      DataStreamInfo stream(
-          StreamId::fromString(elm.attribute("id")),
-          elm.attribute("language").toAscii(),
-          elm.attribute("title"),
-          SDataCodec::fromString(elm.attribute("codec")));
+        QDomElement imageCodecElm = titleElm.firstChildElement("imagecodec");
+        if (!imageCodecElm.isNull())
+          title.imageCodec = SVideoCodec::fromString(imageCodecElm.attribute("codec"));
 
-      stream.file = elm.attribute("file");
-      pi->dataStreams.append(stream);
-    }
+        QDomElement thumbElm = titleElm.firstChildElement("thumbnail");
+        if (!thumbElm.isNull())
+          title.thumbnail = SImage::fromData(QByteArray::fromBase64(thumbElm.text().toAscii())).toVideoBuffer();
 
-    QDomElement imageCodecElm = mediaInfoElm.firstChildElement("imagecodec");
-    if (!imageCodecElm.isNull())
-      pi->imageCodec = SVideoCodec::fromString(imageCodecElm.attribute("codec"));
-
-    QDomElement thumbElm = mediaInfoElm.firstChildElement("thumbnail");
-    if (!thumbElm.isNull())
-      pi->thumbnail = SImage::fromData(QByteArray::fromBase64(thumbElm.text().toAscii())).toVideoBuffer();
-
-    for (QDomElement metadataElm = mediaInfoElm.firstChildElement("metadata");
-         !metadataElm.isNull();
-         metadataElm = metadataElm.nextSiblingElement("metadata"))
-    {
-      pi->metadata.insert(metadataElm.attribute("key"), metadataElm.attribute("value"));
+        pi->content.titles += title;
+      }
     }
 
     return FileNode(QSharedDataPointer<ProbeInfo>(pi));

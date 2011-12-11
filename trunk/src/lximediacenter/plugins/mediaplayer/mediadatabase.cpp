@@ -126,7 +126,7 @@ void MediaDatabase::setLastPlayed(const FileNode &node, const QDateTime &lastPla
   {
     QSettings settings(lastPlayedFileName, QSettings::IniFormat);
 
-    const QByteArray key = node.fastHash().toBase64();
+    const QByteArray key = node.quickHash().toBase64();
     if (lastPlayed.isValid())
       settings.setValue(key, lastPlayed);
     else
@@ -140,75 +140,46 @@ QDateTime MediaDatabase::lastPlayed(const FileNode &node) const
   {
     QSettings settings(lastPlayedFileName, QSettings::IniFormat);
 
-    const QByteArray key = node.fastHash().toBase64();
+    const QByteArray key = node.quickHash().toBase64();
     return settings.value(key, QDateTime()).toDateTime();
   }
 
   return QDateTime();
 }
 
-bool MediaDatabase::hasAlbum(const QString &filePath) const
-{
-  QDir dir(filePath);
-  if (!filePath.isEmpty() && dir.exists())
-    return true;
-
-  return false;
-}
-
-int MediaDatabase::countAlbums(const QString &filePath) const
+int MediaDatabase::countItems(const QString &filePath) const
 {
   int result = 0;
 
   QDir dir(filePath);
   if (!filePath.isEmpty() && dir.exists())
-    result += dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot).count();
+    result += dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot | QDir::Files).count();
 
   return result;
 }
 
-QStringList MediaDatabase::getAlbums(const QString &filePath, unsigned start, unsigned count) const
+FileNodeList MediaDatabase::listItems(const QString &filePath, unsigned start, unsigned count) const
 {
   const bool returnAll = count == 0;
-  QStringList result;
+  FileNodeList result;
 
   QDir dir(filePath);
   if (!filePath.isEmpty() && dir.exists())
   {
-    const QStringList albums = dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
-    for (int i=start, n=0; (i<albums.count()) && (returnAll || (n<int(count))); i++, n++)
-      result += albums[i];
+    QStringList probeFiles;
+
+    const QStringList items =
+        dir.entryList(
+            QDir::Dirs | QDir::NoDotAndDotDot | QDir::Files,
+            QDir::DirsFirst | QDir::Name | QDir::IgnoreCase);
+
+    for (int i=start, n=0; (i<items.count()) && (returnAll || (n<int(count))); i++, n++)
+      probeFiles += dir.cleanPath(dir.absoluteFilePath(items[i]));
+
+    result += readNodeFormat(probeFiles);
   }
 
   return result;
-}
-
-int MediaDatabase::countAlbumFiles(const QString &filePath) const
-{
-  int result = 0;
-
-  QDir dir(filePath);
-  if (!filePath.isEmpty() && dir.exists())
-    result += dir.entryList(QDir::Files).count();
-
-  return result;
-}
-
-FileNodeList MediaDatabase::getAlbumFiles(const QString &filePath, unsigned start, unsigned count) const
-{
-  QStringList probeFiles;
-
-  QDir dir(filePath);
-  if (!filePath.isEmpty() && dir.exists())
-  {
-    const bool returnAll = count == 0;
-
-    const QStringList files = dir.entryList(QDir::Files, QDir::Name | QDir::IgnoreCase);
-    for (int i=start, n=0; (i<files.count()) && (returnAll || (n<int(count))); i++, n++)
-      probeFiles += dir.cleanPath(dir.absoluteFilePath(files[i]));
-  }
-
-  return readNodeFormat(probeFiles);
 }
 
 void MediaDatabase::handleResponse(const SHttpEngine::ResponseMessage &response)

@@ -504,12 +504,16 @@ bool MediaTranscodeStream::setup(
     SInterfaces::AudioEncoder::Flags audioEncodeFlags,
     SInterfaces::VideoEncoder::Flags videoEncodeFlags)
 {
+  int titleId = 0;
+  if (request.url().hasQueryItem("title"))
+    titleId = request.url().queryItemValue("title").toInt();
+
   if (audioDecoder.open(input) && videoDecoder.open(input) && dataDecoder.open(input))
   {
     // Select streams
-    QList<SInputNode::AudioStreamInfo> audioStreams = input->audioStreams();
-    QList<SInputNode::VideoStreamInfo> videoStreams = input->videoStreams();
-    QList<SInputNode::DataStreamInfo>  dataStreams  = input->dataStreams();
+    QList<SInputNode::AudioStreamInfo> audioStreams = input->audioStreams(titleId);
+    QList<SInputNode::VideoStreamInfo> videoStreams = input->videoStreams(titleId);
+    QList<SInputNode::DataStreamInfo>  dataStreams  = input->dataStreams(titleId);
 
     QVector<SInputNode::StreamId> selectedStreams;
     if (request.url().hasQueryItem("language"))
@@ -528,7 +532,7 @@ bool MediaTranscodeStream::setup(
     else if (!dataStreams.isEmpty())
       selectedStreams += dataStreams.first();
 
-    input->selectStreams(selectedStreams);
+    input->selectStreams(titleId, selectedStreams);
 
     // Seek to start
     if (!duration.isValid())
