@@ -100,12 +100,11 @@ private:
   void                          setRootPaths(const QStringList &paths);
   QString                       virtualPath(const QString &realPath) const;
   QString                       realPath(const QString &virtualPath) const;
+  static QString                virtualFile(const QString &virtualPath);
 
-  int                           countAlbums(const QString &virtualPath);
-  QList<Item>                   listAlbums(const QString &virtualPath, unsigned &start, unsigned &count);
-  Item                          makeItem(const FileNode &);
+  Item                          makeItem(const FileNode &, int titleId = -1);
   Item                          makePlayAllItem(const QString &virtualPath);
-  SMediaInfo::ProbeInfo::FileType dirType(const QString &virtualPath);
+  FileNode::ProbeInfo::FileType dirType(const QString &virtualPath);
 
 private slots:
   void                          consoleLine(const QString &);

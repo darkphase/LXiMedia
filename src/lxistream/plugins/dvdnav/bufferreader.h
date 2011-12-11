@@ -30,23 +30,55 @@ namespace LXiStream {
 namespace DVDNavBackend {
 
 class BufferReader : public SInterfaces::BufferReader
+
 {
 Q_OBJECT
+private:
+  class DvdDevice : public QIODevice
+  {
+  public:
+    explicit                    DvdDevice(BufferReader *parent);
+
+    QString                     discName(void) const;
+    int                         numTitles(void) const;
+    QList<STime>                chapters(void) const;
+
+    quint16                     audioLanguage(int) const;
+    quint16                     subtitleLanguage(int) const;
+    qint8                       subtitleLogicalStream(int) const;
+
+  public: // From QIODevice
+    virtual bool                open(OpenMode mode);
+    virtual void                close(void);
+
+    virtual bool                reset(void);
+    virtual bool                seek(qint64 pos);
+    virtual qint64              size(void) const;
+
+    virtual qint64              readData(char *data, qint64 maxSize);
+    virtual qint64              writeData(const char *data, qint64 maxSize);
+
+  private:
+    bool                        resetStream(void);
+
+  private:
+    BufferReader        * const parent;
+    ::dvdnav_t                * dvdHandle;
+  };
+
 public:
   static const char             formatName[];
 
-  static QString                discPath(const QString &path);
-  static bool                   isExtractedDiscPath(const QString &path);
   static bool                   isDiscPath(const QString &path);
 
   explicit                      BufferReader(const QString &, QObject *);
   virtual                       ~BufferReader();
 
-  bool                          openFile(const QString &);
-  QString                       discTitle(void) const;
-  unsigned                      numTitles(void) const;
-  bool                          selectTitle(quint16);
-  bool                          reopenBufferReader(void);
+  inline QIODevice            * getIODevice(void)                               { return &dvdDevice; }
+
+  inline QString                discName(void) const                            { return dvdDevice.discName(); }
+  bool                          selectTitle(int);
+  bool                          openBufferReader(void);
 
   QList<AudioStreamInfo>        filterAudioStreams(const QList<AudioStreamInfo> &) const;
   QList<VideoStreamInfo>        filterVideoStreams(const QList<VideoStreamInfo> &) const;
@@ -64,16 +96,17 @@ public: // From SInterfaces::BufferReader
   virtual STime                 position(void) const;
   virtual QList<Chapter>        chapters(void) const;
 
-  virtual QList<AudioStreamInfo> audioStreams(void) const;
-  virtual QList<VideoStreamInfo> videoStreams(void) const;
-  virtual QList<DataStreamInfo>  dataStreams(void) const;
-  virtual void                  selectStreams(const QVector<StreamId> &);
+  virtual int                   numTitles(void) const;
+  virtual QList<AudioStreamInfo> audioStreams(int title) const;
+  virtual QList<VideoStreamInfo> videoStreams(int title) const;
+  virtual QList<DataStreamInfo>  dataStreams(int title) const;
+  virtual void                  selectStreams(int title, const QVector<StreamId> &);
 
 private:
-  mutable QMutex                mutex;
-  ::dvdnav_t                  * dvdHandle;
+  DvdDevice                     dvdDevice;
 
-  unsigned                      currentTitle;
+  QString                       path;
+  int                           currentTitle;
   int                           currentChapter;
   QList<STime>                  titleChapters;
   STime                         titleDuration;
@@ -83,8 +116,6 @@ private:
   QVector<StreamId>             selectedStreams;
 
   static const unsigned         blockSize = 2048;
-  bool                          seekEnabled, flushing;
-  bool                          playing, skipStill, skipWait;
 };
 
 } } // End of namespaces

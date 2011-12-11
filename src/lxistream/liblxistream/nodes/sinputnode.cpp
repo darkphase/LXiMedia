@@ -86,34 +86,42 @@ QList<SInputNode::Chapter> SInputNode::chapters(void) const
   return QList<Chapter>();
 }
 
-QList<SInputNode::AudioStreamInfo> SInputNode::audioStreams(void) const
+int SInputNode::numTitles(void) const
 {
   if (d->bufferReader)
-    return d->bufferReader->audioStreams();
+    return d->bufferReader->numTitles();
+
+  return 0;
+}
+
+QList<SInputNode::AudioStreamInfo> SInputNode::audioStreams(int title) const
+{
+  if (d->bufferReader)
+    return d->bufferReader->audioStreams(title);
 
   return QList<AudioStreamInfo>();
 }
 
-QList<SInputNode::VideoStreamInfo> SInputNode::videoStreams(void) const
+QList<SInputNode::VideoStreamInfo> SInputNode::videoStreams(int title) const
 {
   if (d->bufferReader)
-    return d->bufferReader->videoStreams();
+    return d->bufferReader->videoStreams(title);
 
   return QList<VideoStreamInfo>();
 }
 
-QList<SInputNode::DataStreamInfo> SInputNode::dataStreams(void) const
+QList<SInputNode::DataStreamInfo> SInputNode::dataStreams(int title) const
 {
   if (d->bufferReader)
-    return d->bufferReader->dataStreams();
+    return d->bufferReader->dataStreams(title);
 
   return QList<DataStreamInfo>();
 }
 
-void SInputNode::selectStreams(const QVector<StreamId> &streamIds)
+void SInputNode::selectStreams(int title, const QVector<StreamId> &streamIds)
 {
   if (d->bufferReader)
-    d->bufferReader->selectStreams(streamIds);
+    d->bufferReader->selectStreams(title, streamIds);
 }
 
 bool SInputNode::start(void)

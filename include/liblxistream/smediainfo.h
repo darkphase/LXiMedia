@@ -55,32 +55,18 @@ public:
   QString                       fileName(void) const;                           //!< Returns the name of the file, without the path.
   QString                       baseName(void) const;                           //!< Returns the name of the file, without the path and extension.
   QString                       path(void) const;                               //!< Returns the path to the file, without the file name.
+
+  bool                          isReadable(void) const;                         //!< Returns true if the file can be read.
   qint64                        size(void) const;                               //!< Returns the file size.
   QDateTime                     lastModified(void) const;                       //!< Returns the date the file was last modified.
-  bool                          isReadable(void) const;                         //!< Returns true if the file can be read.
-
-  QByteArray                    fastHash(void) const;                           //!< Returns a hash of a part of the file.
 
   QString                       format(void) const;                             //!< The format name of the media (e.g. matroska, mpeg, dvd, etc.)
   ProbeInfo::FileType           fileType(void) const;                           //!< The detected file type.
   QString                       fileTypeName(void) const;                       //!< A user-friendly description of the file type.
+  QByteArray                    quickHash(void) const;                          //!< Returns a hash of a part of the file.
+  QVariant                      metadata(const QString &key) const;             //!< Returns the requested metadata value or an empty QVariant if not present.
 
-  STime                         duration(void) const;                           //!< The file duration.
-
-  const QList<Chapter>        & chapters(void) const;                           //!< The chapters in the file.
-  const QList<AudioStreamInfo> & audioStreams(void) const;                       //!< The audio streams in the file.
-  const QList<VideoStreamInfo> & videoStreams(void) const;                       //!< The video streams in the file.
-  const QList<DataStreamInfo> & dataStreams(void) const;                        //!< The data streams in the file.
-  const SVideoCodec           & imageCodec(void) const;                         //!< The image codec of the file.
-
-  /*! Returns metadata entries for the file. For example: title, author,
-      copyright, comment, album, genre, year, track.
-   */
-  const QMap<QString, QVariant> & metadata(void) const;
-
-  QVariant                      metadata(const QString &) const;                //!< Returns the requested metadata entry.
-
-  const SVideoBuffer          & thumbnail(void) const;                          //!< A thumbnail for the file, if applicable.
+  const QList<ProbeInfo::Title> & titles(void) const;                           //!< The titles in the file.
 
 protected:
   inline const ProbeInfo      & probeInfo(void) const                           { return *pi; }

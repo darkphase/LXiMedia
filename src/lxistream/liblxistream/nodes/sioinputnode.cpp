@@ -52,12 +52,17 @@ void SIOInputNode::setIODevice(QIODevice *ioDevice)
 
   if (ioDevice && ioDevice->isOpen())
   {
+    QString filePath;
+    QFile * const file = qobject_cast<QFile *>(ioDevice);
+    if (file)
+      filePath = file->fileName();
+
     const QByteArray buffer = ioDevice->peek(SInterfaces::FormatProber::defaultProbeSize);
 
     QMultiMap<int, QString> formats;
     foreach (SInterfaces::FormatProber *prober, SInterfaces::FormatProber::create(this))
     {
-      foreach (const SInterfaces::FormatProber::Format &format, prober->probeFormat(buffer, QString::null))
+      foreach (const SInterfaces::FormatProber::Format &format, prober->probeFormat(buffer, filePath))
         formats.insert(-format.confidence, format.name);
 
       delete prober;

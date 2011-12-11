@@ -44,17 +44,17 @@ void IOTest::MediaFileInfoImage(void)
 {
   const SMediaInfo mediaInfo(":/ImageTest.jpeg");
 
-  QVERIFY(mediaInfo.audioStreams().isEmpty());
-  QVERIFY(mediaInfo.videoStreams().isEmpty());
-  QVERIFY(!mediaInfo.imageCodec().isNull());
-  QCOMPARE(mediaInfo.imageCodec().size().width(), 570);
-  QCOMPARE(mediaInfo.imageCodec().size().height(), 717);
-  QVERIFY(qFuzzyCompare(mediaInfo.imageCodec().size().aspectRatio(), 1.0f));
+  QVERIFY(mediaInfo.titles().first().audioStreams.isEmpty());
+  QVERIFY(mediaInfo.titles().first().videoStreams.isEmpty());
+  QVERIFY(!mediaInfo.titles().first().imageCodec.isNull());
+  QCOMPARE(mediaInfo.titles().first().imageCodec.size().width(), 570);
+  QCOMPARE(mediaInfo.titles().first().imageCodec.size().height(), 717);
+  QVERIFY(qFuzzyCompare(mediaInfo.titles().first().imageCodec.size().aspectRatio(), 1.0f));
   QCOMPARE(mediaInfo.fileType(), SMediaInfo::ProbeInfo::FileType_Image);
   QCOMPARE(mediaInfo.metadata("title").toString(), QString("ImageTest"));
-  QVERIFY(!mediaInfo.thumbnail().isNull());
+  QVERIFY(!mediaInfo.titles().first().thumbnail.isNull());
 
-  const SImage image = mediaInfo.thumbnail();
+  const SImage image = mediaInfo.titles().first().thumbnail;
   QVERIFY(image.width() <= 128);
   QVERIFY(image.width() > 64);
   QVERIFY(image.height() <= 128);

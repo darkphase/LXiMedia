@@ -49,11 +49,8 @@ public:
   void                          setLastPlayed(const FileNode &, const QDateTime & = QDateTime::currentDateTime());
   QDateTime                     lastPlayed(const FileNode &) const;
 
-  bool                          hasAlbum(const QString &path) const;
-  int                           countAlbums(const QString &path) const;
-  QStringList                   getAlbums(const QString &path, unsigned start = 0, unsigned count = 0) const;
-  int                           countAlbumFiles(const QString &path) const;
-  FileNodeList                  getAlbumFiles(const QString &path, unsigned start = 0, unsigned count = 0) const;
+  int                           countItems(const QString &path) const;
+  FileNodeList                  listItems(const QString &path, unsigned start = 0, unsigned count = 0) const;
 
 signals:
   void                          nodeRead(const FileNode &);

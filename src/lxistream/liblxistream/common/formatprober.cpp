@@ -46,83 +46,89 @@ QList<FormatProber::Format> FormatProber::probeFormat(const QByteArray &, const 
 
 void FormatProber::probeFormat(ProbeInfo &pi, QIODevice *device)
 {
-  static const int hashSize = 4194304;
+  static const int hashSize = 524288;
 
   if (!pi.filePath.isEmpty())
   {
     const QFileInfo info(pi.filePath);
-    const QString suffix = info.suffix().toLower();
-
-    QString title, author, album;
-    int track = 0;
-
-    if (imageSuffixes().contains(suffix))
+    if (info.isDir())
     {
-      pi.imageCodec = SVideoCodec(suffix.toUpper());
-      pi.fileType = ProbeInfo::FileType_Image;
-      pi.fileTypeName = imageDescription(suffix);
+      pi.format.fileType = ProbeInfo::FileType_Directory;
+      pi.format.fileTypeName = "Directory";
+
+      pi.format.metadata.insert("title", info.fileName());
     }
-    else if (audioSuffixes().contains(suffix))
+    else if (info.isFile())
     {
-      pi.audioStreams = QList<AudioStreamInfo>() << AudioStreamInfo(StreamId(), NULL, QString::null, SAudioCodec(suffix.toUpper()));
-      pi.fileType = ProbeInfo::FileType_Audio;
-      pi.fileTypeName = audioDescription(suffix);
+      const QString suffix = info.suffix().toLower();
 
-      splitFileName(info.completeBaseName(), title, author, album, track);
-    }
-    else if (videoSuffixes().contains(suffix))
-    {
-      pi.audioStreams = QList<AudioStreamInfo>() << AudioStreamInfo(StreamId(), NULL, QString::null, SAudioCodec(suffix.toUpper()));
-      pi.videoStreams = QList<VideoStreamInfo>() << VideoStreamInfo(StreamId(), NULL, QString::null, SVideoCodec(suffix.toUpper()));
-      pi.fileType = ProbeInfo::FileType_Video;
-      pi.fileTypeName = videoDescription(suffix);
+      QString title, author, album;
+      int track = 0;
 
-      splitFileName(info.completeBaseName(), title, author, album, track);
-
-      QDir dir = info.absoluteDir();
-      QString dirName = dir.dirName();
-
-      if (dirName.contains("season", Qt::CaseInsensitive) &&
-          (dirName.length() < 10))
+      if (imageSuffixes().contains(suffix))
       {
-        track = (track % SMediaInfo::tvShowSeason) + (dirName.mid(7).toUInt() * SMediaInfo::tvShowSeason);
+        pi.format.fileType = ProbeInfo::FileType_Image;
+        pi.format.fileTypeName = imageDescription(suffix);
+      }
+      else if (audioSuffixes().contains(suffix))
+      {
+        pi.format.fileType = ProbeInfo::FileType_Audio;
+        pi.format.fileTypeName = audioDescription(suffix);
 
-        const QString path = dir.absolutePath();
+        splitFileName(info.completeBaseName(), title, author, album, track);
+      }
+      else if (videoSuffixes().contains(suffix))
+      {
+        pi.format.fileType = ProbeInfo::FileType_Video;
+        pi.format.fileTypeName = videoDescription(suffix);
 
-        dir = QDir(path.left(path.length() - dirName.length()));
-        dirName = dir.dirName();
+        splitFileName(info.completeBaseName(), title, author, album, track);
+
+        QDir dir = info.absoluteDir();
+        QString dirName = dir.dirName();
+
+        if (dirName.contains("season", Qt::CaseInsensitive) &&
+            (dirName.length() < 10))
+        {
+          track = (track % SMediaInfo::tvShowSeason) + (dirName.mid(7).toUInt() * SMediaInfo::tvShowSeason);
+
+          const QString path = dir.absolutePath();
+
+          dir = QDir(path.left(path.length() - dirName.length()));
+          dirName = dir.dirName();
+        }
+
+        if (track > 0)
+        {
+          QString dummy1, dummy2;
+          int dummy3 = 0;
+          splitFileName(dirName, album, dummy1, dummy2, dummy3);
+        }
+        else
+          title = info.completeBaseName();
+      }
+      else if (rawImageSuffixes().contains(suffix))
+      {
+        pi.format.fileType = ProbeInfo::FileType_Image;
+        pi.format.fileTypeName = imageDescription(suffix);
       }
 
-      if (track > 0)
+      if (device->isOpen())
+      if (device->seek(qMax(Q_INT64_C(0), (device->size() / 2) - (hashSize / 2))))
       {
-        QString dummy1, dummy2;
-        int dummy3 = 0;
-        splitFileName(dirName, album, dummy1, dummy2, dummy3);
+        QCryptographicHash hash(QCryptographicHash::Sha1);
+        hash.addData(device->read(hashSize));
+
+        pi.format.quickHash = hash.result();
       }
-      else
+
+      if (title.length() <= 3)
         title = info.completeBaseName();
-    }
-    else if (rawImageSuffixes().contains(suffix))
-    {
-      pi.fileTypeName = imageDescription(suffix);
-      pi.isFormatProbed = pi.isContentProbed = true; // Don't probe RAW image formats.
-    }
 
-    if (title.length() <= 3)
-      title = info.completeBaseName();
-
-    if (!title.isEmpty())   pi.metadata.insert("title", title);
-    if (!author.isEmpty())  pi.metadata.insert("author", author);
-    if (!album.isEmpty())   pi.metadata.insert("album", album);
-    if (track > 0)          pi.metadata.insert("track", QString::number(track));
-
-    if (device->isOpen())
-    if (device->seek(qMax(Q_INT64_C(0), (device->size() / 2) - (hashSize / 2))))
-    {
-      QCryptographicHash hash(QCryptographicHash::Sha1);
-      hash.addData(device->read(hashSize));
-
-      pi.fastHash = hash.result();
+      if (!title.isEmpty())   pi.format.metadata.insert("title", title);
+      if (!author.isEmpty())  pi.format.metadata.insert("author", author);
+      if (!album.isEmpty())   pi.format.metadata.insert("album", album);
+      if (track > 0)          pi.format.metadata.insert("track", QString::number(track));
     }
   }
 }

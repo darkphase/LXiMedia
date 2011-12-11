@@ -29,7 +29,8 @@ namespace FFMpegBackend {
 
 class BufferReader;
 
-class FormatProber : public SInterfaces::FormatProber
+class FormatProber : public SInterfaces::FormatProber,
+                     private SInterfaces::BufferReader::ProduceCallback
 {
 Q_OBJECT
 public:
@@ -41,9 +42,25 @@ public: // From SInterfaces::FormatProber
   virtual void                  probeFormat(ProbeInfo &, QIODevice *);
   virtual void                  probeContent(ProbeInfo &, QIODevice *, const QSize &);
 
+private: // SInterfaces::BufferReader::ProduceCallback
+  virtual void                  produce(const SEncodedAudioBuffer &);
+  virtual void                  produce(const SEncodedVideoBuffer &);
+  virtual void                  produce(const SEncodedDataBuffer &);
+
 private:
-  static void                   setMetadata(ProbeInfo &, const BufferReader &);
+  BufferReader                * createBufferReader(QIODevice *, const QString &);
+
+  static void                   setMetadata(ProbeInfo &, const BufferReader *);
   static void                   setMetadata(ProbeInfo &, const char *, const QString &);
+
+private:
+  QList<Format>                 formats;
+  QString                       lastFilePath;
+  BufferReader                * bufferReader;
+  QIODevice                   * lastIoDevice;
+
+  SEncodedVideoBufferList       videoBuffers;
+  bool                          waitForKeyFrame;
 };
 
 } } // End of namespaces

@@ -211,43 +211,66 @@ public:
   {
     enum FileType
     {
-      FileType_None             = 0,
-      FileType_Audio,
+      FileType_None           = 0,
+
+      FileType_Audio          = 10,
       FileType_Video,
       FileType_Image,
+
+      FileType_Directory      = 20,
+      FileType_Drive,
       FileType_Disc
     };
 
-    inline ProbeInfo(void)
-      : size(0), isReadable(false), isFormatProbed(false), isContentProbed(false),
-        fileType(FileType_None)
+    struct Title
     {
+      STime                     duration;
+      QList<Chapter>            chapters;
+
+      QList<AudioStreamInfo>    audioStreams;
+      QList<VideoStreamInfo>    videoStreams;
+      QList<DataStreamInfo>     dataStreams;
+      SVideoCodec               imageCodec;
+
+      SVideoBuffer              thumbnail;
+    };
+
+    inline ProbeInfo(void)
+      : isReadable(false), isFileInfoRead(false),
+        isFormatProbed(false), isContentProbed(false)
+    {
+      fileInfo.isDir = false;
+      fileInfo.size = 0;
+      format.fileType = FileType_None;
     }
 
     QString                     filePath;
-    qint64                      size;
-    QDateTime                   lastModified;
 
     bool                        isReadable;
+    bool                        isFileInfoRead;
     bool                        isFormatProbed;
     bool                        isContentProbed;
 
-    QString                     format;
-    FileType                    fileType;
-    QString                     fileTypeName;
+    struct
+    {
+      bool                      isDir;
+      qint64                    size;
+      QDateTime                 lastModified;
+    }                           fileInfo;
 
-    QByteArray                  fastHash;
+    struct
+    {
+      QString                   format;
+      FileType                  fileType;
+      QString                   fileTypeName;
+      QByteArray                quickHash;
+      QMap<QString, QVariant>   metadata;
+    }                           format;
 
-    STime                       duration;
-    QList<Chapter>              chapters;
-
-    QList<AudioStreamInfo>      audioStreams;
-    QList<VideoStreamInfo>      videoStreams;
-    QList<DataStreamInfo>       dataStreams;
-    SVideoCodec                 imageCodec;
-    QMap<QString, QVariant>     metadata;
-
-    SVideoBuffer                thumbnail;
+    struct
+    {
+      QList<Title>              titles;
+    }                           content;
   };
 
 public:
@@ -280,10 +303,10 @@ public:
    */
   virtual QList<Format>         probeFormat(const QByteArray &buffer, const QString &filePath) = 0;
 
-  /*! Should probe the provided buffer and retrieve as much information from it
-      as possible. Note that for probing a file, probeFormat() should be invoked
-      on all probers returned by create() until probeInfo.isFormatProbed is set
-      to true.
+  /*! Should probe the provided device and retrieve all information in
+      probeInfo.format. Note that for probing a file, probeFormat() should be
+      invoked on all probers returned by create() until probeInfo.isFormatProbed
+      is set to true.
 
       \param probeInfo          The ProbeInfo structure that needs to be filled
                                 with data.
@@ -291,8 +314,8 @@ public:
    */
   virtual void                  probeFormat(ProbeInfo &probeInfo, QIODevice *ioDevice) = 0;
 
-  /*! Should probe the provided object and retrieve as much information from it
-      as possible. Note that for probing a file, probeContent() should be
+  /*! Should probe the provided object and retrieve all information in
+      probeInfo.content. Note that for probing a file, probeContent() should be
       invoked on all probers returned by create() until
       probeInfo.isContentProbed is set to true.
 
@@ -418,10 +441,11 @@ public:
   virtual STime                 position(void) const = 0;
   virtual QList<Chapter>        chapters(void) const = 0;
 
-  virtual QList<AudioStreamInfo> audioStreams(void) const = 0;
-  virtual QList<VideoStreamInfo> videoStreams(void) const = 0;
-  virtual QList<DataStreamInfo> dataStreams(void) const = 0;
-  virtual void                  selectStreams(const QVector<StreamId> &) = 0;
+  virtual int                   numTitles(void) const = 0;
+  virtual QList<AudioStreamInfo> audioStreams(int title) const = 0;
+  virtual QList<VideoStreamInfo> videoStreams(int title) const = 0;
+  virtual QList<DataStreamInfo> dataStreams(int title) const = 0;
+  virtual void                  selectStreams(int title, const QVector<StreamId> &) = 0;
 
   /*! Shall demux a packet from the stream.
       \returns false if an error occured.

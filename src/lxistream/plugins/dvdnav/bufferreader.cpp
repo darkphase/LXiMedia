@@ -24,27 +24,25 @@ namespace DVDNavBackend {
 
 const char BufferReader::formatName[] = "disc.dvd";
 
-QString BufferReader::discPath(const QString &path)
-{
-  return isExtractedDiscPath(path) ? path.left(path.length() - 22) : path;
-}
-
-bool BufferReader::isExtractedDiscPath(const QString &path)
-{
-  return path.endsWith("/video_ts/video_ts.ifo", Qt::CaseInsensitive);
-}
-
 bool BufferReader::isDiscPath(const QString &path)
 {
-  const QString canonicalPath = QFileInfo(discPath(path)).canonicalFilePath();
+  const QString canonicalPath = QFileInfo(path).canonicalFilePath();
 
-  if (canonicalPath.endsWith(".iso", Qt::CaseInsensitive) ||
-#ifdef Q_OS_UNIX
-      canonicalPath.startsWith("/dev/") ||
-#endif
-      QDir(canonicalPath).entryList().contains("video_ts", Qt::CaseInsensitive))
+  if (canonicalPath.endsWith(".iso", Qt::CaseInsensitive))
   {
     return true;
+  }
+  else
+  {
+    QDir dir(canonicalPath);
+    foreach (const QString &name, dir.entryList(QStringList("video_ts"), QDir::Dirs))
+    if (dir.cd(name))
+    {
+      if (!dir.entryList(QStringList("video_ts.ifo"), QDir::Files).isEmpty())
+        return true;
+
+      dir.cdUp();
+    }
   }
 
   return false;
@@ -52,17 +50,11 @@ bool BufferReader::isDiscPath(const QString &path)
 
 BufferReader::BufferReader(const QString &, QObject *parent)
   : SInterfaces::BufferReader(parent),
-    mutex(QMutex::Recursive),
-    dvdHandle(NULL),
-    currentTitle(0),
+    dvdDevice(this),
+    currentTitle(-1),
     currentChapter(-1),
     produceCallback(NULL),
-    bufferReader(NULL),
-    seekEnabled(false),
-    flushing(false),
-    playing(false),
-    skipStill(false),
-    skipWait(false)
+    bufferReader(NULL)
 {
 }
 
@@ -70,8 +62,8 @@ BufferReader::~BufferReader()
 {
   delete bufferReader;
 
-  if (dvdHandle)
-    ::dvdnav_close(dvdHandle);
+  if (dvdDevice.isOpen())
+    dvdDevice.close();
 }
 
 bool BufferReader::openFormat(const QString &)
@@ -79,21 +71,337 @@ bool BufferReader::openFormat(const QString &)
   return true;
 }
 
-bool BufferReader::openFile(const QString &filePath)
+bool BufferReader::selectTitle(int titleId)
 {
-  if (::dvdnav_open(&dvdHandle, discPath(filePath).toUtf8()) == DVDNAV_STATUS_OK)
+  if ((titleId >= 0) && (titleId < dvdDevice.numTitles()))
   {
+    titleChapters.clear();
+    titleDuration = STime();
+
+    currentTitle = titleId;
+    currentChapter = -1;
+
+    if (dvdDevice.reset())
+    {
+      titleChapters = dvdDevice.chapters();
+      if (!titleChapters.isEmpty())
+        titleDuration = titleChapters.takeLast();
+    }
+
+    delete bufferReader;
+    bufferReader = NULL;
+
     return true;
   }
 
-  dvdHandle = NULL;
   return false;
 }
 
-QString BufferReader::discTitle(void) const
+bool BufferReader::openBufferReader(void)
 {
-  QMutexLocker l(&mutex);
+  delete bufferReader;
 
+  bufferReader = SInterfaces::BufferReader::create(this, "mpeg", false);
+  if (bufferReader)
+  {
+    if (bufferReader->start(&dvdDevice, produceCallback, true))
+    {
+      if (!selectedStreams.isEmpty())
+        bufferReader->selectStreams(0, selectedStreams);
+
+      return true;
+    }
+
+    delete bufferReader;
+    bufferReader = NULL;
+  }
+
+  return false;
+}
+
+bool BufferReader::start(QIODevice *device, SInterfaces::BufferReader::ProduceCallback *pc, bool)
+{
+  if (dvdDevice.isOpen())
+    qFatal("BufferReader already opened a stream.");
+
+  path = "";
+
+  QFile * const file = qobject_cast<QFile *>(device);
+  if (file)
+    path = file->fileName();
+
+  if (!path.isEmpty() && dvdDevice.open(QIODevice::ReadOnly))
+  {
+    currentTitle = -1;
+    currentChapter = -1;
+    titleChapters.clear();
+    titleDuration = STime();
+
+    produceCallback = pc;
+    delete bufferReader;
+    bufferReader = NULL;
+
+    return true;
+  }
+
+  return false;
+}
+
+void BufferReader::stop(void)
+{
+  dvdDevice.close();
+
+  currentTitle = -1;
+  currentChapter = -1;
+  titleChapters.clear();
+  titleDuration = STime();
+
+  produceCallback = NULL;
+  delete bufferReader;
+  bufferReader = NULL;
+}
+
+bool BufferReader::process(void)
+{
+  if (dvdDevice.isOpen())
+  {
+    if (currentTitle < 0)
+      selectTitle(0);
+
+    if (bufferReader == NULL)
+      openBufferReader();
+
+    if (bufferReader)
+      return bufferReader->process();
+  }
+
+  return false;
+}
+
+STime BufferReader::duration(void) const
+{
+  return titleDuration;
+}
+
+bool BufferReader::setPosition(STime pos)
+{
+  if (dvdDevice.isOpen())
+  {
+    if (currentTitle < 0)
+      selectTitle(0);
+
+    int bestChapter = -1;
+    STime bestDelta;
+    for (int i=0, n=titleChapters.count(); i<n; i++)
+    {
+      const STime delta = pos - titleChapters[i];
+      if (delta.isPositive() && (!bestDelta.isValid() || (delta < bestDelta)))
+      {
+        bestChapter = i;
+        bestDelta = delta;
+      }
+    }
+
+    if (bestChapter >= 0)
+      currentChapter = bestChapter;
+    else
+      currentChapter = -1;
+
+    if (dvdDevice.reset())
+    {
+      openBufferReader();
+
+      if (bufferReader)
+        return bufferReader->setPosition(pos - (currentChapter >= 0 ? titleChapters[currentChapter] : STime::null));
+    }
+  }
+
+  return false;
+}
+
+STime BufferReader::position(void) const
+{
+  if (dvdDevice.isOpen())
+  {
+    if (currentTitle < 0)
+      return STime::null;
+
+    if (bufferReader)
+      return bufferReader->position() + (currentChapter >= 0 ? titleChapters[currentChapter] : STime::null);
+    else
+      return STime::null;
+  }
+
+  return STime();
+}
+
+QList<BufferReader::Chapter> BufferReader::chapters(void) const
+{
+  QList<Chapter> result;
+
+  if (dvdDevice.isOpen())
+  {
+    if (currentTitle < 0)
+      const_cast<BufferReader *>(this)->selectTitle(0);
+
+    foreach (const STime &time, titleChapters)
+    {
+      SInterfaces::FormatProber::Chapter chapter;
+      chapter.title = QTime(0, 0).addSecs(time.toSec()).toString("h:mm:ss");
+      chapter.begin = time;
+      result += chapter;
+    }
+  }
+
+  return result;
+}
+
+int BufferReader::numTitles(void) const
+{
+  return dvdDevice.numTitles();
+}
+
+QList<BufferReader::AudioStreamInfo> BufferReader::audioStreams(int title) const
+{
+  if (dvdDevice.isOpen())
+  {
+    if (currentTitle != title)
+      const_cast<BufferReader *>(this)->selectTitle(title);
+
+    if (bufferReader == NULL)
+      const_cast<BufferReader *>(this)->openBufferReader();
+
+    if (bufferReader)
+      return filterAudioStreams(bufferReader->audioStreams(0));
+  }
+
+  return QList<AudioStreamInfo>();
+}
+
+QList<BufferReader::AudioStreamInfo> BufferReader::filterAudioStreams(const QList<AudioStreamInfo> &streams) const
+{
+  QList<AudioStreamInfo> result = streams;
+  qSort(result);
+
+  for (int i=0; i<result.count(); i++)
+  {
+    const quint16 lang = dvdDevice.audioLanguage(i);
+    if (lang != 0xFFFF)
+    {
+      const char language[] = { char(lang >> 8), char(lang & 0xFF), '\0' };
+      result[i].language = language;
+    }
+  }
+
+  return result;
+}
+
+QList<BufferReader::VideoStreamInfo> BufferReader::videoStreams(int title) const
+{
+  if (dvdDevice.isOpen())
+  {
+    if (currentTitle != title)
+      const_cast<BufferReader *>(this)->selectTitle(title);
+
+    if (bufferReader == NULL)
+      const_cast<BufferReader *>(this)->openBufferReader();
+
+    if (bufferReader)
+      return filterVideoStreams(bufferReader->videoStreams(0));
+  }
+
+  return QList<VideoStreamInfo>();
+}
+
+QList<BufferReader::VideoStreamInfo> BufferReader::filterVideoStreams(const QList<VideoStreamInfo> &streams) const
+{
+  QList<VideoStreamInfo> result = streams;
+  qSort(result);
+
+  return result;
+}
+
+QList<BufferReader::DataStreamInfo> BufferReader::dataStreams(int title) const
+{
+  if (dvdDevice.isOpen())
+  {
+    if (currentTitle != title)
+      const_cast<BufferReader *>(this)->selectTitle(title);
+
+    if (bufferReader == NULL)
+      const_cast<BufferReader *>(this)->openBufferReader();
+
+    if (bufferReader)
+      return filterDataStreams(bufferReader->dataStreams(0));
+  }
+
+  return QList<DataStreamInfo>();
+}
+
+QList<BufferReader::DataStreamInfo> BufferReader::filterDataStreams(const QList<DataStreamInfo> &streams) const
+{
+  QList<DataStreamInfo> result = streams;
+  qSort(result);
+
+  // Match the subtitle streams.
+  bool found = false;
+  for (int i=0; i<0x1F; i++)
+  {
+    const quint16 lang = dvdDevice.subtitleLanguage(i);
+    if (lang != 0xFFFF)
+    {
+      const qint8 lid = dvdDevice.subtitleLogicalStream(i);
+      const quint16 id = (lid >= 0 ? int(lid) : i) + 0x20;
+
+      for (int i=0; i<result.count(); i++)
+      if (((result[i].type & StreamId::Type_Flag_Native) != 0) && result[i].id == id)
+      {
+        result[i].language[0] = (lang >> 8) & 0xFF;
+        result[i].language[1] = lang & 0xFF;
+        result[i].language[2] = 0;
+        result[i].language[3] = 0;
+
+        found = true;
+      }
+    }
+  }
+
+  // Remove any unidentified subtitle streams.
+  if (found)
+  for (QList<DataStreamInfo>::Iterator i=result.begin(); i!=result.end(); )
+  if (i->language.isEmpty())
+    i = result.erase(i);
+  else
+    i++;
+
+  return result;
+}
+
+void BufferReader::selectStreams(int title, const QVector<StreamId> &streams)
+{
+  if (dvdDevice.isOpen())
+  {
+    if (currentTitle != title)
+      selectTitle(title);
+
+    selectedStreams = streams;
+
+    if (bufferReader)
+      bufferReader->selectStreams(0, selectedStreams);
+    else
+      openBufferReader(); // Will select the streams.
+  }
+}
+
+
+BufferReader::DvdDevice::DvdDevice(BufferReader *parent)
+  : parent(parent),
+    dvdHandle(NULL)
+{
+}
+
+QString BufferReader::DvdDevice::discName(void) const
+{
   if (dvdHandle)
   {
     const char *title = NULL;
@@ -109,10 +417,8 @@ QString BufferReader::discTitle(void) const
   return QString::null;
 }
 
-unsigned BufferReader::numTitles(void) const
+int BufferReader::DvdDevice::numTitles(void) const
 {
-  QMutexLocker l(&mutex);
-
   if (dvdHandle)
   {
     int32_t titles = 0;
@@ -123,388 +429,192 @@ unsigned BufferReader::numTitles(void) const
   return 0;
 }
 
-bool BufferReader::selectTitle(quint16 programId)
+QList<STime> BufferReader::DvdDevice::chapters(void) const
 {
-  if (::dvdnav_title_play(dvdHandle, programId + 1) == DVDNAV_STATUS_OK)
+  QList<STime> result;
+
+  if (dvdHandle)
   {
-    titleChapters.clear();
-    titleDuration = STime();
-
-    currentTitle = programId;
-    currentChapter = -1;
-    playing = true;
-    skipStill = false;
-    skipWait = false;
-
     const SInterval clock(1, 90000);
+
     uint64_t * chapters = NULL;
     uint64_t duration = 0;
-    const uint32_t count = ::dvdnav_describe_title_chapters(dvdHandle, programId + 1, &chapters, &duration);
+    const uint32_t count = ::dvdnav_describe_title_chapters(dvdHandle, parent->currentTitle + 1, &chapters, &duration);
     if (chapters)
     {
-      titleChapters += STime::null;
+      result += STime::null;
 
       for (uint32_t i=0; i<count; i++)
-        titleChapters += STime(chapters[i], clock);
+        result += STime(chapters[i], clock);
 
-      titleDuration = STime(duration, clock);
+      result += STime(duration, clock);
 
       ::free(chapters);
     }
-
-    return true;
   }
 
-  return false;
+  return result;
 }
 
-bool BufferReader::reopenBufferReader(void)
+quint16 BufferReader::DvdDevice::audioLanguage(int stream) const
 {
-  delete bufferReader;
-
-  bufferReader = SInterfaces::BufferReader::create(this, "mpeg", false);
-  if (bufferReader)
-  {
-//    if (bufferReader->start(this, produceCallback, 0, true))
-//    {
-//      if (!selectedStreams.isEmpty())
-//        bufferReader->selectStreams(selectedStreams);
-//
-//      return true;
-//    }
-
-    delete bufferReader;
-    bufferReader = NULL;
-  }
-
-  return false;
-}
-
-bool BufferReader::start(QIODevice *rc, SInterfaces::BufferReader::ProduceCallback *pc, bool)
-{
-  QMutexLocker l(&mutex);
-
   if (dvdHandle)
-    qFatal("BufferReader already opened a stream.");
+    return ::dvdnav_audio_stream_to_lang(dvdHandle, stream);
 
-//  if (openFile(rc->path))
-//  {
-//    produceCallback = pc;
-//
-//    if (selectTitle(programId))
-//    if (reopenBufferReader())
-//      return true;
-//
-//    ::dvdnav_close(dvdHandle);
-//  }
+  return 0xFFFF;
+}
+
+quint16 BufferReader::DvdDevice::subtitleLanguage(int stream) const
+{
+  if (dvdHandle)
+    return ::dvdnav_spu_stream_to_lang(dvdHandle, stream);
+
+  return 0xFFFF;
+}
+
+qint8 BufferReader::DvdDevice::subtitleLogicalStream(int stream) const
+{
+  if (dvdHandle)
+    return ::dvdnav_get_spu_logical_stream(dvdHandle, stream);
+
+  return 0;
+}
+
+bool BufferReader::DvdDevice::open(OpenMode mode)
+{
+  if (!isOpen() && (mode == QIODevice::ReadOnly))
+  {
+    if (::dvdnav_open(&dvdHandle, parent->path.toUtf8()) == DVDNAV_STATUS_OK)
+    {
+      ::dvdnav_set_readahead_flag(dvdHandle, 0);
+
+      return QIODevice::open(mode);
+    }
+    else
+      qWarning() << ::dvdnav_err_to_string(dvdHandle);
+
+    dvdHandle = NULL;
+  }
+
+  return false;
+}
+
+void BufferReader::DvdDevice::close(void)
+{
+  if (dvdHandle)
+    ::dvdnav_close(dvdHandle);
 
   dvdHandle = NULL;
+  QIODevice::close();
+}
+
+bool BufferReader::DvdDevice::reset(void)
+{
+  if (resetStream())
+    return QIODevice::reset();
+
   return false;
 }
 
-void BufferReader::stop(void)
+bool BufferReader::DvdDevice::seek(qint64 newPos)
 {
-  if (dvdHandle)
+  qint64 curPos = QIODevice::pos();
+
+  if (((curPos + QIODevice::bytesAvailable()) >= newPos) && (curPos <= newPos))
   {
-    ::dvdnav_close(dvdHandle);
-    dvdHandle = NULL;
-
-    currentTitle = 0;
-    currentChapter = 0;
-    titleChapters.clear();
-    titleDuration = STime();
-
-    seekEnabled = flushing = playing = skipStill = skipWait = false;
+    return QIODevice::seek(newPos);
   }
-
-  produceCallback = NULL;
-  delete bufferReader;
-  bufferReader = NULL;
-}
-
-bool BufferReader::process(void)
-{
-  return bufferReader->process();
-}
-
-STime BufferReader::duration(void) const
-{
-  QMutexLocker l(&mutex);
-
-  return titleDuration;
-}
-
-bool BufferReader::setPosition(STime pos)
-{
-  QMutexLocker l(&mutex);
-
-  if (dvdHandle)
+  else if (dvdHandle)
   {
-    if (pos.isNull())
+    if ((newPos - curPos) < 0)
+    if (resetStream())
+      curPos = 0;
+
+    if (QIODevice::seek(curPos))
     {
-      if (::dvdnav_title_play(dvdHandle, currentTitle + 1) == DVDNAV_STATUS_OK)
+      qint64 delta = newPos - curPos;
+      while (delta > 0)
       {
-        currentChapter = -1;
-        playing = true;
-        skipStill = false;
-        skipWait = false;
+        char buffer[blockSize];
 
-        return reopenBufferReader();
+        const qint64 r = QIODevice::read(buffer, qMin(delta, qint64(sizeof(buffer))));
+        if (r > 0)
+          delta -= r;
+        else
+          break;
       }
-    }
-    else if (!titleChapters.isEmpty())
-    {
-      int bestChapter = -1;
-      STime bestDelta;
-      for (int i=0; i<titleChapters.count(); i++)
-      {
-        const STime delta = qAbs(titleChapters[i] - pos);
-        if (!bestDelta.isValid() || (delta < bestDelta))
-        {
-          bestChapter = i;
-          bestDelta = delta;
-        }
-      }
-  
-      if (bestChapter >= 0)
-      if (::dvdnav_part_play(dvdHandle, currentTitle + 1, bestChapter + 1) == DVDNAV_STATUS_OK)
-      {
-        currentChapter = bestChapter;
-        playing = true;
-        skipStill = false;
-        skipWait = false;
 
-        flushing = true;
-        bufferReader->setPosition(STime::fromMin(1));
-        bufferReader->setPosition(STime::null);
-        flushing = false;
-
-        return reopenBufferReader();
-      }
+      return delta == 0;
     }
   }
 
   return false;
 }
 
-STime BufferReader::position(void) const
+qint64 BufferReader::DvdDevice::size(void) const
 {
-  QMutexLocker l(&mutex);
-
-  if (dvdHandle)
-    return STime(::dvdnav_get_current_time(dvdHandle), SInterval(1, 90000));
-
-  return STime();
-}
-
-QList<BufferReader::Chapter> BufferReader::chapters(void) const
-{
-  QMutexLocker l(&mutex);
-
-  QList<Chapter> chapters;
-  foreach (const STime &time, titleChapters)
-  {
-    SInterfaces::FormatProber::Chapter chapter;
-    chapter.title = QTime(0, 0).addSecs(time.toSec()).toString("h:mm:ss");
-    chapter.begin = time;
-    chapters += chapter;
-  }
-
-  return chapters;
-}
-
-QList<BufferReader::AudioStreamInfo> BufferReader::audioStreams(void) const
-{
-  QMutexLocker l(&mutex);
-
-  return filterAudioStreams(bufferReader->audioStreams());
-}
-
-QList<BufferReader::AudioStreamInfo> BufferReader::filterAudioStreams(const QList<AudioStreamInfo> &streams) const
-{
-  QMutexLocker l(&mutex);
-
-  QList<AudioStreamInfo> result = streams;
-  qSort(result);
-
-  if (dvdHandle)
-  for (int i=0; i<result.count(); i++)
-  {
-    const uint16_t lang = ::dvdnav_audio_stream_to_lang(dvdHandle, i);
-    if (lang != 0xFFFF)
-    {
-      const char language[] = { char(lang >> 8), char(lang & 0xFF), '\0' };
-      result[i].language = language;
-    }
-  }
-
-  return result;
-}
-
-QList<BufferReader::VideoStreamInfo> BufferReader::videoStreams(void) const
-{
-  QMutexLocker l(&mutex);
-
-  return filterVideoStreams(bufferReader->videoStreams());
-}
-
-QList<BufferReader::VideoStreamInfo> BufferReader::filterVideoStreams(const QList<VideoStreamInfo> &streams) const
-{
-  QList<VideoStreamInfo> result = streams;
-  qSort(result);
-
-  return result;
-}
-
-QList<BufferReader::DataStreamInfo> BufferReader::dataStreams(void) const
-{
-  QMutexLocker l(&mutex);
-
-  return filterDataStreams(bufferReader->dataStreams());
-}
-
-QList<BufferReader::DataStreamInfo> BufferReader::filterDataStreams(const QList<DataStreamInfo> &streams) const
-{
-  QMutexLocker l(&mutex);
-
-  QList<DataStreamInfo> result = streams;
-  qSort(result);
-
   if (dvdHandle)
   {
-    // Match the subtitle streams.
-    bool found = false;
-    for (int i=0; i<0x1F; i++)
-    {
-      const uint16_t lang = ::dvdnav_spu_stream_to_lang(dvdHandle, i);
-      if (lang != 0xFFFF)
-      {
-        const qint8 lid = ::dvdnav_get_spu_logical_stream(dvdHandle, i);
-        const quint16 id = (lid >= 0 ? int(lid) : i) + 0x20;
-
-        for (int i=0; i<result.count(); i++)
-        if (((result[i].type & StreamId::Type_Flag_Native) != 0) && result[i].id == id)
-        {
-          result[i].language[0] = (lang >> 8) & 0xFF;
-          result[i].language[1] = lang & 0xFF;
-          result[i].language[2] = 0;
-          result[i].language[3] = 0;
-
-          found = true;
-        }
-      }
-    }
-
-    // Remove any unidentified subtitle streams.
-    if (found)
-    for (QList<DataStreamInfo>::Iterator i=result.begin(); i!=result.end(); )
-    if (i->language.isEmpty())
-      i = result.erase(i);
+    uint32_t pos = 0, len = 0;
+    if (::dvdnav_get_position(dvdHandle, &pos, &len) == DVDNAV_STATUS_OK)
+      return qint64(len) * blockSize;
     else
-      i++;
+      qWarning() << ::dvdnav_err_to_string(dvdHandle);
   }
 
-  return result;
+  return -1;
 }
 
-void BufferReader::selectStreams(const QVector<StreamId> &streams)
+qint64 BufferReader::DvdDevice::readData(char *data, qint64 maxSize)
 {
-  selectedStreams = streams;
-  if (bufferReader)
-    bufferReader->selectStreams(selectedStreams);
+  Q_ASSERT(maxSize >= blockSize);
+
+  if (dvdHandle && (maxSize >= blockSize))
+  {
+    qint64 bytes = 0;
+    for (unsigned i=0; (bytes <= (maxSize - blockSize)) && (i < 1024); i++)
+    {
+      int32_t event = 0, len = maxSize - bytes;
+      if (::dvdnav_get_next_block(dvdHandle, reinterpret_cast<uint8_t *>(data) + bytes, &event, &len) == DVDNAV_STATUS_OK)
+      {
+        if (event == DVDNAV_BLOCK_OK)
+          bytes += len;
+        else if (event == DVDNAV_STILL_FRAME)
+          ::dvdnav_still_skip(dvdHandle);
+        else if (event == DVDNAV_WAIT)
+          ::dvdnav_wait_skip(dvdHandle);
+        else if (event == DVDNAV_STOP)
+          return -1;
+      }
+      else
+      {
+        qWarning() << ::dvdnav_err_to_string(dvdHandle);
+        return -1;
+      }
+    }
+
+    return bytes;
+  }
+
+  return -1;
 }
 
-//qint64 BufferReader::read(uchar *buffer, qint64 size)
-//{
-//  QMutexLocker l(&mutex);
-//
-//  if (dvdHandle)
-//  {
-//    if (playing && (size >= blockSize))
-//    {
-//      if (skipStill)
-//        ::dvdnav_still_skip(dvdHandle);
-//
-//      if (skipWait)
-//        ::dvdnav_wait_skip(dvdHandle);
-//
-//      qint64 bytes = 0;
-//      for (unsigned i=0; (bytes <= (size - blockSize)) && (i < 1024); i++)
-//      {
-//        int32_t event = 0, len = blockSize;
-//        if (::dvdnav_get_next_block(dvdHandle, buffer + bytes, &event, &len) == DVDNAV_STATUS_OK)
-//        {
-//          if (event == DVDNAV_BLOCK_OK)
-//          {
-//            bytes += len;
-//          }
-//          else if (event == DVDNAV_STILL_FRAME)
-//          {
-//            skipStill = true;
-//            break;
-//          }
-//          else if (event == DVDNAV_STOP)
-//          {
-//            playing = false;
-//            break;
-//          }
-//          else if (event == DVDNAV_WAIT)
-//          {
-//            skipWait = true;
-//            break;
-//          }
-//        }
-//        else
-//        {
-//          qWarning() << ::dvdnav_err_to_string(dvdHandle);
-//
-//          if (seekEnabled)
-//          {
-//            seekEnabled = false;
-//
-//            if (currentChapter < 0)
-//            {
-//              if (::dvdnav_title_play(dvdHandle, currentTitle + 1) != DVDNAV_STATUS_OK)
-//                break;
-//            }
-//            else if (::dvdnav_part_play(dvdHandle, currentTitle + 1, currentChapter + 1) != DVDNAV_STATUS_OK)
-//              break;
-//          }
-//          else
-//            break;
-//        }
-//      }
-//
-//      return bytes > 0 ? bytes : Q_INT64_C(-1);
-//    }
-//    else
-//      qWarning() << "Read buffer is too small" << size;
-//  }
-//
-//  return -1;
-//}
-//
-//qint64 BufferReader::seek(qint64 offset, int whence)
-//{
-//  if (flushing)
-//    return 0;
-//
-//  if (seekEnabled && dvdHandle && playing)
-//  {
-//    if (whence != -1)
-//    {
-//      if (::dvdnav_sector_search(dvdHandle, offset / blockSize, whence) == DVDNAV_STATUS_OK)
-//        return 0;
-//    }
-//    else
-//    {
-//      uint32_t pos = 0, len = 0;
-//      if (::dvdnav_get_position(dvdHandle, &pos, &len) == DVDNAV_STATUS_OK)
-//        return qint64(len) * blockSize;
-//    }
-//  }
-//
-//  return -1;
-//}
+qint64 BufferReader::DvdDevice::writeData(const char *, qint64)
+{
+  return -1;
+}
+
+bool BufferReader::DvdDevice::resetStream(void)
+{
+  if (parent->currentChapter >= 0)
+  {
+    if (::dvdnav_part_play(dvdHandle, parent->currentTitle + 1, parent->currentChapter + 1) == DVDNAV_STATUS_OK)
+      return true;
+  }
+  else if (::dvdnav_title_play(dvdHandle, parent->currentTitle + 1) == DVDNAV_STATUS_OK)
+    return true;
+
+  return false;
+}
 
 } } // End of namespaces
