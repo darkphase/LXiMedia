@@ -7,5 +7,6 @@
     <qresource prefix="/">
         <file>css/siteeditor.css</file>
         <file>js/siteeditor.js</file>
+        <file>img/homepage.png</file>
     </qresource>
 </RCC>

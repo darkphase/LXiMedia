@@ -114,7 +114,7 @@ const char MediaServer::htmlPhotoViewer[] =
     " </div>\n"
     " <script type=\"text/javascript\">loadImage(\"{ITEM_URL}\");</script>\n"
     " <div class=\"imageplayercontrols\" id=\"controls\" onmousemove=\"showControls()\">\n"
-    "  <span class=\"button\" onclick=\"history.back()\">{TR_CLOSE}</span>\n"
+    "  <img src=\"/img/close.png?invert=\" alt=\"[X]\" onclick=\"history.back()\" />\n"
     "  <div class=\"thumbnailbar\" id=\"items\" onmouseover=\"lockControls()\" onmouseout=\"unlockControls()\">\n"
     "  </div>\n"
     "  <script type=\"text/javascript\">loadThumbnailBar(\"{PATH}\", 0, {LOAD_ITEM_COUNT});</script>\n"
@@ -219,7 +219,6 @@ QByteArray MediaServer::buildListItems(const ThumbnailListItemList &items, const
 SHttpServer::ResponseMessage MediaServer::buildPhotoViewer(const SHttpServer::RequestMessage &request)
 {
   HtmlParser htmlParser;
-  htmlParser.setField("TR_CLOSE", tr("Close"));
 
   QString path = request.file();
   path = path.left(path.lastIndexOf('/') + 1);

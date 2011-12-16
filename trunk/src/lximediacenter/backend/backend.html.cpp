@@ -42,7 +42,7 @@ const char Backend::htmlIndex[] =
     "    </td>\n"
     "    <td>\n"
     "     <a href=\"/settings\">\n"
-    "      <img src=\"/img/control.png\" alt=\"Settings\" />\n"
+    "      <img src=\"/img/settings.png\" alt=\"Settings\" />\n"
     "     </a>\n"
     "    </td>\n"
     "    <td>\n"
@@ -58,7 +58,7 @@ const char Backend::htmlIndex[] =
 #ifndef QT_NO_DEBUG
     "    <td>\n"
     "     <a href=\"/exit\">\n"
-    "      <img src=\"/img/control.png\" alt=\"Exit\" />\n"
+    "      <img src=\"/img/close.png\" alt=\"Exit\" />\n"
     "     </a>\n"
     "    </td>\n"
 #endif

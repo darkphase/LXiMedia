@@ -265,7 +265,7 @@ QList<MediaPlayerServer::Item> MediaPlayerServer::listItems(const QString &virtu
       item.isDir = true;
       item.title = paths[i];
       item.path = virtualPath + paths[i] + '/';
-      item.iconUrl = "/img/folder-video.png";
+      item.iconUrl = "/img/directory.png";
 
       result += item;
     }
@@ -466,14 +466,14 @@ MediaPlayerServer::Item MediaPlayerServer::makeItem(const FileNode &node, int ti
       item.isDir = true;
       item.title = node.fileName();
       item.path = virtualPath(node.filePath()) + '/';
-      item.iconUrl = "/img/folder-video.png";
+      item.iconUrl = "/img/directory.png";
     }
     else if ((node.fileType() == SMediaInfo::ProbeInfo::FileType_Drive))
     {
       item.isDir = true;
       item.title = node.fileName();
       item.path = virtualPath(node.filePath()) + '/';
-      item.iconUrl = "/img/folder-video.png";
+      item.iconUrl = "/img/drive.png";
     }
     else if ((node.fileType() == SMediaInfo::ProbeInfo::FileType_Disc) && (titleId < 0))
     {
@@ -600,7 +600,7 @@ MediaPlayerServer::Item MediaPlayerServer::makeItem(const FileNode &node, int ti
       else
       {
         item.url = "";
-        item.iconUrl = "/img/misc.png";
+        item.iconUrl = "/img/null.png";
         item.title = node.fileName();
       }
     }
@@ -615,7 +615,7 @@ MediaPlayerServer::Item MediaPlayerServer::makePlayAllItem(const QString &virtua
   item.isDir = false;
   item.path = virtualPath + ".all";
   item.url = item.path;
-  item.iconUrl = "/img/arrow-right.png";
+  item.iconUrl = "/img/play-all.png";
 
   switch (dirType(virtualPath))
   {
@@ -723,12 +723,12 @@ void MediaPlayerServer::nodeRead(const FileNode &node)
           QString defaultIcon = ":/img/null.png";
           switch (node.fileType())
           {
-          case FileNode::ProbeInfo::FileType_None:      defaultIcon = ":/img/misc.png";           break;
+          case FileNode::ProbeInfo::FileType_None:      defaultIcon = ":/img/null.png";           break;
           case FileNode::ProbeInfo::FileType_Audio:     defaultIcon = ":/img/audio-file.png";     break;
           case FileNode::ProbeInfo::FileType_Video:     defaultIcon = ":/img/video-file.png";     break;
           case FileNode::ProbeInfo::FileType_Image:     defaultIcon = ":/img/image-file.png";     break;
-          case FileNode::ProbeInfo::FileType_Directory: defaultIcon = ":/img/folder-video.png";   break;
-          case FileNode::ProbeInfo::FileType_Drive:     defaultIcon = ":/img/folder-video.png";   break;
+          case FileNode::ProbeInfo::FileType_Directory: defaultIcon = ":/img/directory.png";      break;
+          case FileNode::ProbeInfo::FileType_Drive:     defaultIcon = ":/img/drive.png";          break;
           case FileNode::ProbeInfo::FileType_Disc:      defaultIcon = ":/img/media-optical.png";  break;
           }
 
