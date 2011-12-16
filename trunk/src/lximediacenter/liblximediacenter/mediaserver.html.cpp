@@ -110,11 +110,12 @@ const char MediaServer::htmlPhotoViewer[] =
     " <script type=\"text/javascript\" src=\"/js/player.js\"></script>\n" // Open and close tag due to IE bug
     "</head>\n"
     "<body id=\"body\" onresize=\"resizeWindow()\">\n"
-    " <div class=\"imageplayer\" id=\"player\" onmousemove=\"tempControls()\">\n"
+    " <div class=\"imageplayer\" id=\"player\" onmousemove=\"showControls()\">\n"
     " </div>\n"
     " <script type=\"text/javascript\">loadImage(\"{ITEM_URL}\");</script>\n"
-    " <div class=\"imageplayercontrols\" id=\"controls\">\n"
-    "  <div class=\"thumbnailbar\" id=\"items\" onmouseover=\"showControls()\" onmouseout=\"tempControls()\">\n"
+    " <div class=\"imageplayercontrols\" id=\"controls\" onmousemove=\"showControls()\">\n"
+    "  <span class=\"button\" onclick=\"history.back()\">{TR_CLOSE}</span>\n"
+    "  <div class=\"thumbnailbar\" id=\"items\" onmouseover=\"lockControls()\" onmouseout=\"unlockControls()\">\n"
     "  </div>\n"
     "  <script type=\"text/javascript\">loadThumbnailBar(\"{PATH}\", 0, {LOAD_ITEM_COUNT});</script>\n"
     " </div>\n"
@@ -218,6 +219,7 @@ QByteArray MediaServer::buildListItems(const ThumbnailListItemList &items, const
 SHttpServer::ResponseMessage MediaServer::buildPhotoViewer(const SHttpServer::RequestMessage &request)
 {
   HtmlParser htmlParser;
+  htmlParser.setField("TR_CLOSE", tr("Close"));
 
   QString path = request.file();
   path = path.left(path.lastIndexOf('/') + 1);

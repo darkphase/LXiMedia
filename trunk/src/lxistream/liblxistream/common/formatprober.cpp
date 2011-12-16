@@ -111,6 +111,9 @@ void FormatProber::probeFormat(ProbeInfo &pi, QIODevice *device)
       {
         pi.format.fileType = ProbeInfo::FileType_Image;
         pi.format.fileTypeName = imageDescription(suffix);
+
+        // Raw formats may cause long probes from other plugins.
+        pi.isFormatProbed = pi.isContentProbed = true;
       }
 
       if (device->isOpen())
