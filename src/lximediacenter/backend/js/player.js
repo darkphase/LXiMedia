@@ -1,3 +1,40 @@
+// Show and hide controls.
+var controlsLocked;
+
+function showControls()
+{
+  if (!controlsLocked)
+  {
+    clearTimeout(timer);
+    timer = setTimeout("hideControls()", 1000);
+  
+    document.getElementById("controls").style.visibility = "visible";
+  }
+}
+
+function hideControls()
+{
+  if (!controlsLocked)
+  {
+    document.getElementById("controls").style.visibility = "hidden";
+  }
+}
+
+function lockControls()
+{
+  clearTimeout(timer);
+  controlsLocked = true;
+  
+  document.getElementById("controls").style.visibility = "visible";
+}
+
+function unlockControls()
+{
+  timer = setTimeout("hideControls()", 1000);
+  controlsLocked = false;
+}
+
+// Player
 var width, height, timer, lastImageUrl;
 
 function resizeWindow()
@@ -10,12 +47,16 @@ function resizeWindow()
     width = window.innerWidth;
     height = window.innerHeight;
   }
+  else if (document.body && document.body.offsetWidth) 
+  {
+    width = document.body.offsetWidth;
+    height = document.body.offsetHeight;
+  }
   
   if (lastImageUrl)
     loadImage(lastImageUrl);
 }
 
-// Loads an image.
 function loadImage(imageUrl)
 {
   if (!lastImageUrl)
@@ -27,7 +68,6 @@ function loadImage(imageUrl)
       "<img src=\"" + imageUrl + "?format=jpeg&resolution=" + width + "x" + height + "&bgcolor=000000\" alt=\"...\" />";
 }
 
-// Recursively loads thumbnail bar.
 function loadThumbnailBar(path, start, count)
 {
   var request = new XMLHttpRequest();
@@ -44,23 +84,4 @@ function loadThumbnailBar(path, start, count)
 
   request.open("GET", path + "?items=" + start + "," + count + "&type=30" + "&func=loadImage", true);
   request.send();
-}
-
-function tempControls()
-{
-  showControls();
-
-  timer = setTimeout("hideControls()", 1000);
-}
-
-function showControls()
-{
-  clearTimeout(timer);
-  
-  document.getElementById("controls").style.visibility = "visible";
-}
-
-function hideControls()
-{
-  document.getElementById("controls").style.visibility = "hidden";
 }
