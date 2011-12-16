@@ -148,6 +148,10 @@ SHttpServer::ResponseMessage MediaPlayerServer::sendPhoto(const SHttpServer::Req
     if (request.url().hasQueryItem("resolution"))
       size = SSize::fromString(request.url().queryItemValue("resolution"));
 
+    QColor backgroundColor;
+    if (request.url().hasQueryItem("bgcolor"))
+      backgroundColor.setNamedColor('#' + request.url().queryItemValue("bgcolor"));
+
     QString format = "png";
     if (request.url().hasQueryItem("format"))
       format = request.url().queryItemValue("format");
@@ -173,7 +177,7 @@ SHttpServer::ResponseMessage MediaPlayerServer::sendPhoto(const SHttpServer::Req
 
     if (!request.isHead())
     {
-      const QByteArray result = mediaDatabase->readImage(filePath, size.size(), format);
+      const QByteArray result = mediaDatabase->readImage(filePath, size.size(), backgroundColor, format);
       if (!result.isEmpty())
         response.setContent(result);
       else
@@ -646,7 +650,7 @@ FileNode::ProbeInfo::FileType MediaPlayerServer::dirType(const QString &virtualP
   if (numItems > 0)
   {
     int audio = 0, video = 0, image = 0;
-    foreach (const FileNode &node, mediaDatabase->listItems(path, qMax(0, (numItems / 2) - 4), 8))
+    foreach (const FileNode &node, mediaDatabase->representativeItems(path))
     switch (node.fileType())
     {
     case FileNode::ProbeInfo::FileType_Audio:     audio++; break;

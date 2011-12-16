@@ -43,6 +43,7 @@ private:
 
   void                          testQtClient(const QHostAddress &);
   void                          testHttpClient(const QHostAddress &);
+  void                          testBlockingHttpClient(const QHostAddress &);
 
 private slots:
   void                          serverReply(QNetworkReply *);

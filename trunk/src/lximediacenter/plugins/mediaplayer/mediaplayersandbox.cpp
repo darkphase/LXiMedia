@@ -267,22 +267,58 @@ void MediaPlayerSandbox::readImage(const SSandboxServer::RequestMessage &request
   if (request.url().hasQueryItem("maxsize"))
     maxsize = SSize::fromString(request.url().queryItemValue("maxsize")).size();
 
+  QColor backgroundColor = Qt::black;
+  if (request.url().hasQueryItem("bgcolor"))
+    backgroundColor.setNamedColor('#' + request.url().queryItemValue("bgcolor"));
+
   QByteArray format = "png";
   if (request.url().hasQueryItem("format"))
     format = request.url().queryItemValue("format").toAscii();
 
-  QBuffer buffer;
-  buffer.open(QAbstractSocket::WriteOnly);
-  SImage::fromFile(QString::fromUtf8(request.content()), maxsize).save(&buffer, format, 80);
-  buffer.close();
+  QImage image = SImage::fromFile(QString::fromUtf8(request.content()), maxsize);
+  if (!image.isNull())
+  {
+    if (maxsize.isNull())
+      maxsize = image.size();
+
+    if (maxsize != image.size())
+    {
+      QImage result(maxsize, QImage::Format_ARGB32);
+      QPainter p;
+      p.begin(&result);
+        p.setCompositionMode(QPainter::CompositionMode_Source); // Ignore alpha
+        p.fillRect(result.rect(), backgroundColor);
+        p.setCompositionMode(QPainter::CompositionMode_SourceOver); // Process alpha
+        p.drawImage(
+            (result.width() / 2) - (image.width() / 2),
+            (result.height() / 2) - (image.height() / 2),
+            image);
+      p.end();
+      image = result;
+    }
+
+    QBuffer buffer;
+    buffer.open(QBuffer::WriteOnly);
+    if (image.save(&buffer, format, 80))
+    {
+      buffer.close();
+
+      qApp->postEvent(this, new ResponseEvent(
+          request,
+          SHttpServer::ResponseMessage(
+              request,
+              SSandboxServer::Status_Ok,
+              buffer.data(),
+              "image/" + format.toLower()),
+          socket));
+
+      return;
+    }
+  }
 
   qApp->postEvent(this, new ResponseEvent(
       request,
-      SHttpServer::ResponseMessage(
-          request,
-          SSandboxServer::Status_Ok,
-          buffer.data(),
-          "image/" + format.toLower()),
+      SHttpServer::ResponseMessage(request, SSandboxServer::Status_NotFound),
       socket));
 }
 

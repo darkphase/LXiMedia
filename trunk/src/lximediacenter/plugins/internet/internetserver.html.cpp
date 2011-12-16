@@ -378,8 +378,10 @@ SHttpServer::ResponseMessage InternetServer::httpRequest(const SHttpServer::Requ
                 image);
           p.end();
 
-          QBuffer b;
-          result.convertToFormat(QImage::Format_Indexed8).save(&b, "PNG");
+          QBuffer buffer;
+          buffer.open(QBuffer::WriteOnly);
+          result.convertToFormat(QImage::Format_Indexed8).save(&buffer, "PNG");
+          buffer.close();
 
           QString fileName = "image";
           if (parts["image"].fields.contains("filename"))
@@ -389,7 +391,7 @@ SHttpServer::ResponseMessage InternetServer::httpRequest(const SHttpServer::Requ
           if (script.endsWith('}'))
             script += '\n';
 
-          script += "\nvar " + fileName + "_png = \"" +  b.data().toBase64() + "\";\n";
+          script += "\nvar " + fileName + "_png = \"" +  buffer.data().toBase64() + "\";\n";
         }
       }
 

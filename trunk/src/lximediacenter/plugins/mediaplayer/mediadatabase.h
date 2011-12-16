@@ -44,13 +44,14 @@ private:
 public:
   void                          queueReadNode(const QString &filePath) const;
   FileNode                      readNode(const QString &filePath) const;
-  QByteArray                    readImage(const QString &filePath, const QSize &maxSize, const QString &format) const;
+  QByteArray                    readImage(const QString &filePath, const QSize &maxSize, const QColor &backgroundColor, const QString &format) const;
 
   void                          setLastPlayed(const FileNode &, const QDateTime & = QDateTime::currentDateTime());
   QDateTime                     lastPlayed(const FileNode &) const;
 
   int                           countItems(const QString &path) const;
   FileNodeList                  listItems(const QString &path, unsigned start = 0, unsigned count = 0) const;
+  FileNodeList                  representativeItems(const QString &path) const;
 
 signals:
   void                          nodeRead(const FileNode &);
@@ -58,11 +59,12 @@ signals:
 
 private slots:
   void                          handleResponse(const SHttpEngine::ResponseMessage &);
+  void                          flushCache(void);
 
 private:
   FileNodeList                  readNodeFormat(const QStringList &filePaths) const;
   FileNode                      readNodeCache(const QString &filePath) const;
-  void                           writeNodeCache(const FileNode &) const;
+  void                          writeNodeCache(const QString &filePath, const QByteArray &) const;
 
   static QString                lastPlayedFile(void);
 
@@ -72,9 +74,10 @@ private:
   const QString                 lastPlayedFileName;
   SSandboxClient        * const probeSandbox;
 
-  static const int              cacheSize;
-  mutable QMap<QString, QByteArray> nodeCache;
-  mutable QQueue<QString>       cacheQueue;
+  static const int              cacheTimeout = 150 * 60000; // Flush cache after 2.5 hrs.
+  mutable QTimer                cacheTimer;
+  mutable QTemporaryFile        cacheFile;
+  mutable QMap<QString, qint64> cachePos;
 };
 
 

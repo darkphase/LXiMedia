@@ -121,7 +121,9 @@ QByteArray MediaServer::makeThumbnail(QSize size, const QImage &image, const QSt
   p.end();
 
   QBuffer buffer;
+  buffer.open(QBuffer::WriteOnly);
   result.save(&buffer, "PNG");
+  buffer.close();
 
   return buffer.data();
 }
@@ -205,6 +207,11 @@ bool MediaServer::defaultMusicAddBlackVideo(void)
   return false;
 }
 
+int MediaServer::loadItemCount(void)
+{
+  return qBound(1, QThread::idealThreadCount(), 16) * 8;
+}
+
 MediaServer::ListType MediaServer::listType(const QString &)
 {
   return ListType_Thumbnails;
@@ -238,10 +245,14 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
             count = range[1].toUInt();
         }
 
+        int type = 0;
+        if (request.url().hasQueryItem("type"))
+          type = request.url().queryItemValue("type").toInt();
+
         ThumbnailListItemList thumbItems;
         foreach (const SUPnPContentDirectory::Item &item, listItems(request.url().path(), start, count))
         {
-          if (item.isDir)
+          if ((type == 0) && item.isDir)
           {
             ThumbnailListItem thumbItem;
             thumbItem.title = item.title;
@@ -250,7 +261,7 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
 
             thumbItems.append(thumbItem);
           }
-          else
+          else if ((type == 0) || (item.type == type))
           {
             ThumbnailListItem thumbItem;
             thumbItem.title = item.title;
@@ -290,7 +301,7 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
           }
         }
 
-        return makeResponse(request, buildListItems(thumbItems), SHttpEngine::mimeTextHtml, false);
+        return makeResponse(request, buildListItems(thumbItems, request.url().queryItemValue("func")), SHttpEngine::mimeTextHtml, false);
       }
       else
         return makeHtmlContent(request, request.url(), buildListLoader(request.file(), listType(request.file())), htmlListHead);
