@@ -141,6 +141,8 @@ public:
   static QString                defaultTranscodeMusicChannelName(void);
   static bool                   defaultMusicAddBlackVideo(void);
 
+  static int                    loadItemCount(void);
+
 protected:
   virtual Stream              * streamVideo(const SHttpServer::RequestMessage &) = 0;
   virtual SHttpServer::ResponseMessage sendPhoto(const SHttpServer::RequestMessage &) = 0;
@@ -178,13 +180,15 @@ private:
   struct Data;
   Data                  * const d;
 
-protected: // Implemented in mediaserver.html.cpp
+private: // Implemented in mediaserver.html.cpp
   static const char             m3uPlaylist[];
   static const char             m3uPlaylistItem[];
   static const char             htmlListHead[];
   static const char             htmlListLoader[];
-  static const char             htmlListItem[];
-  static const char             htmlListItemNoTitle[];
+  static const char             htmlListItemLink[];
+  static const char             htmlListItemLinkNoTitle[];
+  static const char             htmlListItemFunc[];
+  static const char             htmlListItemFuncNoTitle[];
   static const char             htmlListItemNoLink[];
   static const char             htmlListItemNoLinkNoTitle[];
   static const char             htmlListItemTextLine[];
@@ -193,7 +197,7 @@ protected: // Implemented in mediaserver.html.cpp
   static const char             htmlAudioPlayer[];
 
   QByteArray                    buildListLoader(const QString &path, ListType);
-  QByteArray                    buildListItems(const ThumbnailListItemList &);
+  QByteArray                    buildListItems(const ThumbnailListItemList &, const QString &func);
   SHttpServer::ResponseMessage  buildPhotoViewer(const SHttpServer::RequestMessage &);
   SHttpServer::ResponseMessage  buildVideoPlayer(const SHttpServer::RequestMessage &);
   SHttpServer::ResponseMessage  buildAudioPlayer(const SHttpServer::RequestMessage &);

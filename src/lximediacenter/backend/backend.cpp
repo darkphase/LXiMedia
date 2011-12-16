@@ -344,11 +344,15 @@ SHttpServer::ResponseMessage Backend::sendFile(const SHttpServer::RequestMessage
           Qt::KeepAspectRatio,
           Qt::SmoothTransformation);
 
-      QBuffer b;
-      image.save(&b, "PNG");
+      QBuffer buffer;
+      buffer.open(QBuffer::WriteOnly);
+      if (image.save(&buffer, "PNG"))
+      {
+        buffer.close();
 
-      response.setContent(b.data());
-      return response;
+        response.setContent(buffer.data());
+        return response;
+      }
     }
   }
   else

@@ -60,14 +60,19 @@ SEncodedVideoBufferList ImageEncoder::encodeBuffer(const SVideoBuffer &input)
     {
       outCodec = SVideoCodec(outCodec.codec(), image.size());
 
-      QBuffer b;
-      image.save(&b, outCodec.codec().toAscii().data(), quality);
-      SEncodedVideoBuffer destBuffer(outCodec, b.data());
+      QBuffer buffer;
+      buffer.open(QBuffer::WriteOnly);
+      if (image.save(&buffer, outCodec.codec().toAscii().data(), quality))
+      {
+        buffer.close();
 
-      destBuffer.setPresentationTimeStamp(input.timeStamp());
-      destBuffer.setDecodingTimeStamp(input.timeStamp());
-      destBuffer.setKeyFrame(true);
-      return SEncodedVideoBufferList() << destBuffer;
+        SEncodedVideoBuffer destBuffer(outCodec, buffer.data());
+
+        destBuffer.setPresentationTimeStamp(input.timeStamp());
+        destBuffer.setDecodingTimeStamp(input.timeStamp());
+        destBuffer.setKeyFrame(true);
+        return SEncodedVideoBufferList() << destBuffer;
+      }
     }
   }
 

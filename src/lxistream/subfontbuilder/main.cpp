@@ -34,7 +34,7 @@ int main(int argc, char *argv[])
     data.reserve(67108864);
     {
       QBuffer buffer(&data);
-      buffer.open(QIODevice::WriteOnly);
+      buffer.open(QBuffer::WriteOnly);
 
       for (unsigned p=0; p<(sizeof(pixelSizes)/sizeof(pixelSizes[0])); p++)
       {

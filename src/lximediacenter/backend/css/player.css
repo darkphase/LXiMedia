@@ -15,17 +15,20 @@ body {
  background-color: #000000;
  color: #FFFFFF;
 }
-div {
+div.imageplayer {
  padding: 0;
  margin: 0;
  width: 100%;
  height: 100%;
+ position: absolute;
+ left: 0;
+ top: 0; 
+ z-index: 0;
  border: none;
+ display: block;
 }
-img {
+.imageplayer img {
  padding: 0;
- margin: auto;
- border: none;
  display: block;
 }
 video {
@@ -35,4 +38,65 @@ video {
  width: 100%;
  height: 100%;
  display: block;
+}
+
+div.imageplayercontrols {
+ padding: 0;
+ margin: 0;
+ width: 100%;
+ height: 100%;
+ position: absolute;
+ left: 0;
+ top: 0; 
+ z-index: 1;
+ display: block;
+ visibility: hidden;
+}
+div.thumbnailbar {
+ padding: 0;
+ margin: 0;
+ width: 100%;
+ height: 14em;
+ position: absolute;
+ left: 0;
+ bottom: 0; 
+ background-color: rgba(0, 0, 0, 0.5);
+ overflow: scroll;
+ overflow-y: hidden;
+ white-space: nowrap;
+}
+.thumbnailbar div.listitem {
+ padding: 0.25em 0.25em 0 0.25em;
+ margin: 0;
+ width: 11em;
+ height: 12em;
+ text-align: center;
+ display: table-cell;
+}
+.thumbnailbar div.thumbnail {
+ padding: 0;
+ margin: 0 0.5em 0 0.5em;
+ width: 10em;
+ height: 10em;
+ background-color: #000000;
+ border: 1px solid #D0D0D0;
+}
+.thumbnailbar div.title {
+ width: 11em;
+ overflow: hidden;
+ white-space: nowrap;
+ font-size: 1em;
+}
+.thumbnailbar div.text {
+ display: none;
+}
+.thumbnailbar p.text {
+ display: none;
+}
+.thumbnailbar img {
+ padding: 0;
+ margin: 0;
+ width: 10em;
+ height: 10em;
+ border: none;
 }

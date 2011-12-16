@@ -79,6 +79,7 @@ void HttpEngineTest::HttpClientIPv4(void)
   if (startServer(QHostAddress::LocalHost))
   {
     testHttpClient(QHostAddress::LocalHost);
+    testBlockingHttpClient(QHostAddress::LocalHost);
     stopServer();
   }
   else
@@ -95,6 +96,7 @@ void HttpEngineTest::HttpClientIPv6(void)
   if (startServer(QHostAddress::LocalHostIPv6))
   {
     testHttpClient(QHostAddress::LocalHostIPv6);
+    testBlockingHttpClient(QHostAddress::LocalHostIPv6);
     stopServer();
   }
   else
@@ -189,6 +191,43 @@ void HttpEngineTest::testHttpClient(const QHostAddress &address)
     httpClient.sendRequest(request);
 
   for (unsigned i=0; (i<100) && (responseCount<numResponses); i++)
+    QTest::qWait(100);
+
+  QCOMPARE(responseCount, numResponses);
+}
+
+void HttpEngineTest::testBlockingHttpClient(const QHostAddress &address)
+{
+  responseCount = 0;
+
+  class Thread : public QThread
+  {
+  public:
+    inline Thread(HttpEngineTest *parent, const QHostAddress &address)
+      : parent(parent), address(address)
+    {
+    }
+
+    inline virtual void run(void)
+    {
+      SHttpClient httpClient;
+
+      SHttpEngine::RequestMessage request(&httpClient);
+      request.setRequest("GET", "/test.txt");
+      request.setHost(address, parent->httpServer->serverPort(address));
+
+      for (int i=0; i<parent->numResponses; i++)
+      if (httpClient.blockingRequest(request).status() == SHttpEngine::Status_Ok)
+        parent->responseCount++;
+    }
+
+    HttpEngineTest * const parent;
+    const QHostAddress address;
+  };
+
+  Thread thread(this, address);
+  thread.start();
+  while (!thread.wait(0))
     QTest::qWait(100);
 
   QCOMPARE(responseCount, numResponses);

@@ -40,7 +40,7 @@ const char MediaServer::htmlListLoader[] =
     " </div>\n"
     " <script type=\"text/javascript\">loadListContent(\"items\", \"{PATH}\", 0, {LOAD_ITEM_COUNT});</script>\n";
 
-const char MediaServer::htmlListItem[] =
+const char MediaServer::htmlListItemLink[] =
     "  <div class=\"listitem\">\n"
     "   <div class=\"thumbnail\">\n"
     "    <a title=\"{ITEM_TITLE}\" href=\"{ITEM_URL}\">\n"
@@ -53,12 +53,30 @@ const char MediaServer::htmlListItem[] =
     "   </div>\n"
     "  </div>\n";
 
-const char MediaServer::htmlListItemNoTitle[] =
+const char MediaServer::htmlListItemLinkNoTitle[] =
     "  <div class=\"listitem\">\n"
     "   <div class=\"thumbnail\">\n"
     "    <a title=\"{ITEM_TITLE}\" href=\"{ITEM_URL}\">\n"
     "     <img src=\"{ITEM_ICONURL}\" alt=\"{ITEM_TITLE}\" />\n"
     "    </a>\n"
+    "   </div>\n"
+    "  </div>\n";
+
+const char MediaServer::htmlListItemFunc[] =
+    "  <div class=\"listitem\">\n"
+    "   <div class=\"thumbnail\" onclick=\"{ITEM_FUNC}('{ITEM_FILE}')\">\n"
+    "    <img src=\"{ITEM_ICONURL}\" alt=\"{ITEM_TITLE}\" />\n"
+    "   </div>\n"
+    "   <div class=\"title\">{ITEM_TITLE}</div>\n"
+    "   <div class=\"text\">\n"
+    "{ITEM_TEXT}\n"
+    "   </div>\n"
+    "  </div>\n";
+
+const char MediaServer::htmlListItemFuncNoTitle[] =
+    "  <div class=\"listitem\">\n"
+    "   <div class=\"thumbnail\" onclick=\"{ITEM_FUNC}('{ITEM_FILE}')\">\n"
+    "    <img src=\"{ITEM_ICONURL}\" alt=\"{ITEM_TITLE}\" />\n"
     "   </div>\n"
     "  </div>\n";
 
@@ -91,10 +109,15 @@ const char MediaServer::htmlPhotoViewer[] =
     " <link rel=\"stylesheet\" href=\"/css/player.css\" type=\"text/css\" media=\"screen, handheld, projection\" />\n"
     " <script type=\"text/javascript\" src=\"/js/player.js\"></script>\n" // Open and close tag due to IE bug
     "</head>\n"
-    "<body id=\"body\">\n"
-    " <div id=\"image\">\n"
+    "<body id=\"body\" onresize=\"resizeWindow()\">\n"
+    " <div class=\"imageplayer\" id=\"player\" onmousemove=\"tempControls()\">\n"
     " </div>\n"
-    " <script type=\"text/javascript\">loadStretchedImage(\"image\", \"{ITEM_URL}\");</script>\n"
+    " <script type=\"text/javascript\">loadImage(\"{ITEM_URL}\");</script>\n"
+    " <div class=\"imageplayercontrols\" id=\"controls\">\n"
+    "  <div class=\"thumbnailbar\" id=\"items\" onmouseover=\"showControls()\" onmouseout=\"tempControls()\">\n"
+    "  </div>\n"
+    "  <script type=\"text/javascript\">loadThumbnailBar(\"{PATH}\", 0, {LOAD_ITEM_COUNT});</script>\n"
+    " </div>\n"
     "</body>\n"
     "</html>\n";
 
@@ -148,12 +171,12 @@ QByteArray MediaServer::buildListLoader(const QString &path, ListType listType)
   }
 
   htmlParser.setField("PATH", QUrl(path).toEncoded());
-  htmlParser.setField("LOAD_ITEM_COUNT", QString::number(qBound(1, QThread::idealThreadCount(), 16) * 8));
+  htmlParser.setField("LOAD_ITEM_COUNT", QString::number(loadItemCount()));
 
   return htmlParser.parse(htmlListLoader);
 }
 
-QByteArray MediaServer::buildListItems(const ThumbnailListItemList &items)
+QByteArray MediaServer::buildListItems(const ThumbnailListItemList &items, const QString &func)
 {
   HtmlParser htmlParser;
 
@@ -173,9 +196,17 @@ QByteArray MediaServer::buildListItems(const ThumbnailListItemList &items)
 
     if (!item.url.isEmpty())
     {
-      htmlParser.setField("ITEM_URL", item.url.toEncoded());
-
-      result += htmlParser.parse(item.title.isEmpty() ? htmlListItemNoTitle : htmlListItem);
+      if (func.isEmpty())
+      {
+        htmlParser.setField("ITEM_URL", item.url.toEncoded());
+        result += htmlParser.parse(item.title.isEmpty() ? htmlListItemLinkNoTitle : htmlListItemLink);
+      }
+      else
+      {
+        htmlParser.setField("ITEM_FUNC", func);
+        htmlParser.setField("ITEM_FILE", item.url.toEncoded(QUrl::RemoveQuery));
+        result += htmlParser.parse(item.title.isEmpty() ? htmlListItemFuncNoTitle : htmlListItemFunc);
+      }
     }
     else
       result += htmlParser.parse(item.title.isEmpty() ? htmlListItemNoLinkNoTitle : htmlListItemNoLink);
@@ -191,10 +222,8 @@ SHttpServer::ResponseMessage MediaServer::buildPhotoViewer(const SHttpServer::Re
   QString path = request.file();
   path = path.left(path.lastIndexOf('/') + 1);
   htmlParser.setField("PATH", QUrl(path).toEncoded());
-
-  QUrl url = request.file();
-  url.addQueryItem("format", "jpeg");
-  htmlParser.setField("ITEM_URL", url.toEncoded());
+  htmlParser.setField("LOAD_ITEM_COUNT", QString::number(loadItemCount()));
+  htmlParser.setField("ITEM_URL", request.file());
 
   SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
   response.setField("Cache-Control", "no-cache");

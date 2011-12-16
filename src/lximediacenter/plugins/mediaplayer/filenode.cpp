@@ -162,11 +162,14 @@ QByteArray FileNode::toByteArray(int indent) const
         titleElm.appendChild(elm);
       }
 
-      QBuffer b;
-      if (SImage(title.thumbnail).save(&b, "JPEG", 50))
+      QBuffer buffer;
+      buffer.open(QBuffer::WriteOnly);
+      if (SImage(title.thumbnail).save(&buffer, "JPEG", 50))
       {
+        buffer.close();
+
         QDomElement thumbElm = doc.createElement("thumbnail");
-        thumbElm.appendChild(doc.createTextNode(b.data().toBase64()));
+        thumbElm.appendChild(doc.createTextNode(buffer.data().toBase64()));
         titleElm.appendChild(thumbElm);
       }
 
