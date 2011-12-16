@@ -334,35 +334,48 @@ SHttpServer::ResponseMessage Backend::sendFile(const SHttpServer::RequestMessage
   SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
   response.setContentType(SHttpServer::toMimeType(fileName));
 
-  if (request.url().hasQueryItem("scale") && fileName.endsWith(".png"))
+  if (fileName.endsWith(".png"))
   {
     QImage image(fileName);
     if (!image.isNull())
     {
-      image = image.scaled(
-          SSize::fromString(request.url().queryItemValue("scale")).size(),
-          Qt::KeepAspectRatio,
-          Qt::SmoothTransformation);
+      bool render = false;
 
-      QBuffer buffer;
-      buffer.open(QBuffer::WriteOnly);
-      if (image.save(&buffer, "PNG"))
+      if (request.url().hasQueryItem("scale"))
       {
-        buffer.close();
+        render = true;
+        image = image.scaled(
+            SSize::fromString(request.url().queryItemValue("scale")).size(),
+            Qt::KeepAspectRatio,
+            Qt::SmoothTransformation);
+      }
 
-        response.setContent(buffer.data());
-        return response;
+      if (request.url().hasQueryItem("invert"))
+      {
+        render = true;
+        image.invertPixels();
+      }
+
+      if (render)
+      {
+        QBuffer buffer;
+        buffer.open(QBuffer::WriteOnly);
+        if (image.save(&buffer, "PNG"))
+        {
+          buffer.close();
+
+          response.setContent(buffer.data());
+          return response;
+        }
       }
     }
   }
-  else
+
+  QFile file(fileName);
+  if (file.open(QFile::ReadOnly))
   {
-    QFile file(fileName);
-    if (file.open(QFile::ReadOnly))
-    {
-      response.setContent(file.readAll());
-      return response;
-    }
+    response.setContent(file.readAll());
+    return response;
   }
 
   return SHttpServer::ResponseMessage(request, SHttpServer::Status_NotFound);

@@ -26,6 +26,8 @@ SOURCES += filenode.cpp \
     slideshownode.cpp \
     slideshownode.blend.c
 
+RESOURCES = mediaplayer.qrc
+
 # Windows specific
 win32-msvc2005|win32-msvc2008|win32-msvc2010 {
   TEMPLATE = vclib

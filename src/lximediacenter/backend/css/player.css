@@ -51,13 +51,14 @@ div.imageplayercontrols {
  top: 0; 
  z-index: 1;
  display: block;
+ text-align: right;
  visibility: hidden;
 }
-.imageplayercontrols span.button {
+.imageplayercontrols img {
  padding: 0.5em;
  margin: 0.5em;
- font-size: 2em;
- font-weight: bold;
+ width: 2em;
+ height: 2em;
  background-color: rgba(0, 0, 0, 0.5);
  display: inline-block;
  cursor: pointer;
