@@ -167,7 +167,11 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
         videoFormat.setSize(size);
       }
 
-      audioCodec = SAudioCodec("FLAC", SAudioFormat::Channels_Stereo, 48000);
+      if (SAudioEncoderNode::codecs().contains("VORBIS"))
+        audioCodec = SAudioCodec("VORBIS", SAudioFormat::Channels_Stereo, 44100);
+      else
+        audioCodec = SAudioCodec("FLAC", SAudioFormat::Channels_Stereo, 44100);
+
       videoCodec = SVideoCodec("THEORA", videoFormat.size(), videoFormat.frameRate());
       format = "ogg";
       header.setContentType(SHttpEngine::mimeVideoOgg);
@@ -355,7 +359,11 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
     }
     else if (format == "oga")
     {
-      audioCodec = SAudioCodec("FLAC", SAudioFormat::Channels_Stereo, 48000);
+      if (SAudioEncoderNode::codecs().contains("VORBIS"))
+        audioCodec = SAudioCodec("VORBIS", SAudioFormat::Channels_Stereo, 44100);
+      else
+        audioCodec = SAudioCodec("FLAC", SAudioFormat::Channels_Stereo, 44100);
+
       format = "ogg";
       header.setContentType(SHttpEngine::mimeAudioOgg);
     }
@@ -366,12 +374,12 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
     }
     else if (format == "wav")
     {
-      audioCodec = SAudioCodec("PCM/S16LE", SAudioFormat::Channels_Stereo, 48000);
+      audioCodec = SAudioCodec("PCM/S16LE", SAudioFormat::Channels_Stereo, 44100);
       header.setContentType(SHttpEngine::mimeAudioWave);
     }
     else // Default to mpeg
     {
-      audioCodec = SAudioCodec("MP2", SAudioFormat::Channels_Stereo, 48000);
+      audioCodec = SAudioCodec("MP2", SAudioFormat::Channels_Stereo, 44100);
       format = "mp2";
       header.setContentType(SHttpEngine::mimeAudioMpeg);
     }

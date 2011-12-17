@@ -70,6 +70,7 @@ public:
     QStringList                 text;
     QUrl                        iconurl;
     QUrl                        url;
+    QString                     func;
     bool                        played;
   };
 
@@ -192,15 +193,13 @@ private: // Implemented in mediaserver.html.cpp
   static const char             htmlListItemNoLink[];
   static const char             htmlListItemNoLinkNoTitle[];
   static const char             htmlListItemTextLine[];
-  static const char             htmlPhotoViewer[];
-  static const char             htmlVideoPlayer[];
   static const char             htmlAudioPlayer[];
+  static const char             htmlPlayer[];
 
   QByteArray                    buildListLoader(const QString &path, ListType);
-  QByteArray                    buildListItems(const ThumbnailListItemList &, const QString &func);
-  SHttpServer::ResponseMessage  buildPhotoViewer(const SHttpServer::RequestMessage &);
-  SHttpServer::ResponseMessage  buildVideoPlayer(const SHttpServer::RequestMessage &);
+  QByteArray                    buildListItems(const ThumbnailListItemList &);
   SHttpServer::ResponseMessage  buildAudioPlayer(const SHttpServer::RequestMessage &);
+  SHttpServer::ResponseMessage  buildPlayer(const SHttpServer::RequestMessage &);
 };
 
 } // End of namespace
