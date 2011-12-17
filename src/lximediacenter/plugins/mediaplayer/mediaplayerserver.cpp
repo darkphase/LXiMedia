@@ -595,7 +595,6 @@ MediaPlayerServer::Item MediaPlayerServer::makeItem(const FileNode &node, int ti
         item.artist = node.metadata("author").toString();
         item.album = node.metadata("album").toString();
         item.track = node.metadata("track").toInt();
-
       }
       else
       {

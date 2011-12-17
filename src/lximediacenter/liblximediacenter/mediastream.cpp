@@ -160,6 +160,13 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
 
     if (format == "ogv")
     {
+      QSize size = videoFormat.size().absoluteSize();
+      if ((size.width() > 768) || (size.height() > 576))
+      {
+        size.scale(768, 576, Qt::KeepAspectRatio);
+        videoFormat.setSize(size);
+      }
+
       audioCodec = SAudioCodec("FLAC", SAudioFormat::Channels_Stereo, 48000);
       videoCodec = SVideoCodec("THEORA", videoFormat.size(), videoFormat.frameRate());
       format = "ogg";
@@ -167,6 +174,13 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
     }
     else if (format == "flv")
     {
+      QSize size = videoFormat.size().absoluteSize();
+      if ((size.width() > 768) || (size.height() > 576))
+      {
+        size.scale(768, 576, Qt::KeepAspectRatio);
+        videoFormat.setSize(size);
+      }
+
       if (SAudioEncoderNode::codecs().contains("MP3"))
         audioCodec = SAudioCodec("MP3", SAudioFormat::Channels_Stereo, 44100);
       else

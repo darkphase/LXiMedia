@@ -27,7 +27,10 @@ namespace GuiBackend {
 
 bool Module::registerClasses(void)
 {
-  FormatProber::registerClass<FormatProber>(0);
+  // Ensure static initializers have been initialized.
+  SImage::rawImageSuffixes();
+
+  FormatProber::registerClass<FormatProber>(1);
 
   ImageDecoder::registerClass<ImageDecoder>("BMP");
   ImageDecoder::registerClass<ImageDecoder>("JPG");

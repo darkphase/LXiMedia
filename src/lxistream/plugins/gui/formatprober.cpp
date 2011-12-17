@@ -32,7 +32,7 @@ FormatProber::~FormatProber()
 {
 }
 
-QList<FormatProber::Format> FormatProber::probeFormat(const QByteArray &data, const QString &)
+QList<FormatProber::Format> FormatProber::probeFormat(const QByteArray &data, const QString &filePath)
 {
   QList<Format> result;
 
@@ -46,6 +46,10 @@ QList<FormatProber::Format> FormatProber::probeFormat(const QByteArray &data, co
       result += Format("png", -1);
   }
 
+  const QString suffix = QFileInfo(filePath).suffix().toLower();
+  if (SImage::rawImageSuffixes().contains(suffix))
+    result += Format(suffix, -1);
+
   return result;
 }
 
@@ -54,10 +58,13 @@ void FormatProber::probeFormat(ProbeInfo &pi, QIODevice *ioDevice)
   if (ioDevice)
   foreach (
       const Format &format,
-      FormatProber::probeFormat(ioDevice->peek(4), QString::null))
+      FormatProber::probeFormat(ioDevice->peek(4), pi.filePath))
   {
     pi.format.format = format.name;
     pi.format.fileType = ProbeInfo::FileType_Image;
+
+    if (pi.format.fileTypeName.isEmpty())
+      pi.format.fileTypeName = SImage::rawImageDescription(format.name);
 
     pi.isFormatProbed = true;
     break;
@@ -69,9 +76,9 @@ void FormatProber::probeContent(ProbeInfo &pi, QIODevice *ioDevice, const QSize 
   if (ioDevice)
   foreach (
       const Format &format,
-      FormatProber::probeFormat(ioDevice->peek(4), QString::null))
+      FormatProber::probeFormat(ioDevice->peek(4), pi.filePath))
   {
-    const SImage thumbnail = SImage::fromData(ioDevice, thumbSize);
+    const SImage thumbnail = SImage::fromData(ioDevice, thumbSize, format.name.toAscii());
     if (!thumbnail.isNull())
     {
       if (pi.content.titles.isEmpty())

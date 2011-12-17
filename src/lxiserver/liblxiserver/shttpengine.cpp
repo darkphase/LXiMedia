@@ -415,6 +415,25 @@ SHttpServerEngine::ResponseMessage SHttpServerEngine::handleHttpRequest(const SH
 
 void SHttpServerEngine::sendHttpResponse(const SHttpEngine::RequestHeader &request, SHttpEngine::ResponseMessage &response, QIODevice *socket, bool reuse)
 {
+  struct T
+  {
+    static void send(const SHttpEngine::RequestHeader &request, SHttpEngine::ResponseMessage &response, QIODevice *socket)
+    {
+      if (request.isHead())
+        response.setContent(QByteArray());
+
+      socket->write(response);
+
+      QAbstractSocket * const aSocket = qobject_cast<QAbstractSocket *>(socket);
+      if (aSocket)
+        aSocket->flush();
+
+      QLocalSocket * const lSocket = qobject_cast<QLocalSocket *>(socket);
+      if (lSocket)
+        lSocket->flush();
+    }
+  };
+
   if (response.status() != SHttpEngine::Status_None)
   {
     if (reuse && response.hasField(fieldContentLength) &&
@@ -431,19 +450,7 @@ void SHttpServerEngine::sendHttpResponse(const SHttpEngine::RequestHeader &reque
       if (serverEngine && splitHost(request.host(), hostname, port))
       {
         response.setConnection("Keep-Alive");
-
-        if (request.isHead())
-          response.setContent(QByteArray());
-
-        socket->write(response);
-
-        QAbstractSocket * const aSocket = qobject_cast<QAbstractSocket *>(socket);
-        if (aSocket)
-          aSocket->flush();
-
-        QLocalSocket * const lSocket = qobject_cast<QLocalSocket *>(socket);
-        if (lSocket)
-          lSocket->flush();
+        T::send(request, response, socket);
 
         (new HttpServerRequest(serverEngine, port))->start(socket);
 
@@ -452,7 +459,8 @@ void SHttpServerEngine::sendHttpResponse(const SHttpEngine::RequestHeader &reque
     }
 
     response.setConnection("Close");
-    socket->write(response);
+    T::send(request, response, socket);
+
     SHttpEngine::closeSocket(socket);
   }
 }

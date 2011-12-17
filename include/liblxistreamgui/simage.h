@@ -35,8 +35,11 @@ public:
   static SImage                 fromData(QIODevice *, const QSize &maxsize = QSize(), const char *format = NULL);
   static SImage                 fromFile(const QString &fileName, const QSize &maxsize = QSize(), const char *format = NULL);
 
+  static const QSet<QString>  & rawImageSuffixes(void);
+  static QString                rawImageDescription(const QString &suffix);
+
 private:
-  static SImage                 handleFile(QImageReader &, QSize, void *);
+  static SImage                 handleFile(QImageReader &, QSize, void * = NULL);
 
 private:
   struct

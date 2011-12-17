@@ -273,7 +273,7 @@ FileNodeList MediaDatabase::readNodeFormat(const QStringList &filePaths) const
       }
       else
       {
-        probeFiles += filePath + '\n';
+        probeFiles += filePath.toUtf8() + '\n';
         probeFilePos += result.count();
         result += FileNode();
       }
@@ -308,12 +308,12 @@ FileNode MediaDatabase::readNodeCache(const QString &filePath) const
   {
     cacheTimer.start(cacheTimeout);
 
-    QMap<QString, qint64>::ConstIterator i = cachePos.find(filePath);
-    if (i != cachePos.end())
-    if (cacheFile.seek(*i))
+    foreach (qint64 pos, cachePos.values(qHash(filePath)))
+    if (cacheFile.seek(pos))
     {
       const FileNode node = FileNode::fromByteArray(cacheFile.readLine());
       if (!node.isNull())
+      if (node.filePath() == filePath)
       if (QFileInfo(filePath).lastModified() <= node.lastModified())
         return node;
     }
@@ -330,11 +330,8 @@ void MediaDatabase::writeNodeCache(const QString &filePath, const QByteArray &da
 
     if (cacheFile.seek(cacheFile.size()))
     {
-      QString fp = filePath;
-      fp.squeeze();
-
-      cachePos.insert(fp, cacheFile.pos());
-      cacheFile.write(data);
+      cachePos.insert(qHash(filePath), cacheFile.pos());
+      cacheFile.write(data.trimmed());
       cacheFile.write("\n");
     }
   }
