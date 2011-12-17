@@ -50,7 +50,6 @@ public:
   static const QSet<QString>  & audioSuffixes(void);
   static const QSet<QString>  & videoSuffixes(void);
   static const QSet<QString>  & imageSuffixes(void);
-  static const QSet<QString>  & rawImageSuffixes(void);
 };
 
 

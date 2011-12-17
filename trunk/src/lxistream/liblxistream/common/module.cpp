@@ -41,7 +41,6 @@ bool Module::registerClasses(void)
   FormatProber::audioSuffixes();
   FormatProber::videoSuffixes();
   FormatProber::imageSuffixes();
-  FormatProber::rawImageSuffixes();
   FormatProber::registerClass<FormatProber>(INT_MAX); // This one always first.
 
   // Codecs

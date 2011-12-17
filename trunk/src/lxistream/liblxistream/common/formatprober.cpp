@@ -107,14 +107,6 @@ void FormatProber::probeFormat(ProbeInfo &pi, QIODevice *device)
         else
           title = info.completeBaseName();
       }
-      else if (rawImageSuffixes().contains(suffix))
-      {
-        pi.format.fileType = ProbeInfo::FileType_Image;
-        pi.format.fileTypeName = imageDescription(suffix);
-
-        // Raw formats may cause long probes from other plugins.
-        pi.isFormatProbed = pi.isContentProbed = true;
-      }
 
       if (device->isOpen())
       if (device->seek(qMax(Q_INT64_C(0), (device->size() / 2) - (hashSize / 2))))
@@ -335,55 +327,9 @@ QString FormatProber::imageDescription(const QString &suffix)
   else if ((suffix == "jpg") || (suffix == "jpe") || (suffix == "jpeg"))
     return "JPEG Compressed";
   else if ((suffix == "tif") || (suffix == "tiff"))
-    return "TIFF Raw";
+    return "TIFF";
   else if (suffix == "svg")
     return "Vector Graphics";
-  else if ((suffix == "raw"))
-    return "Generic Raw";
-  else if (suffix == "3fr")
-    return "Hasselblad Raw";
-  else if ((suffix == "arw") || (suffix == "srf") || (suffix == "sr2"))
-    return "Sony Raw";
-  else if (suffix == "bay")
-    return "Casio Raw";
-  else if ((suffix == "crw") || (suffix == "cr2"))
-    return "Canon Raw";
-  else if ((suffix == "cap") || (suffix == "iiq") || (suffix == "eip"))
-    return "Phase One Raw";
-  else if ((suffix == "dcs") || (suffix == "dcr") || (suffix == "drf") || (suffix == "k25") || (suffix == "kdc"))
-    return "Kodak Raw";
-  else if (suffix == "dng")
-    return "Adobe Raw";
-  else if (suffix == "erf")
-    return "Epson Raw";
-  else if (suffix == "fff")
-    return "Imacon Raw";
-  else if (suffix == "mef")
-    return "Mamiya Raw";
-  else if (suffix == "mos")
-    return "Leaf Raw";
-  else if (suffix == "mrw")
-    return "Minolta Raw";
-  else if ((suffix == "nef") || (suffix == "nrw"))
-    return "Nikon Raw";
-  else if (suffix == "orf")
-    return "Olympus Raw";
-  else if ((suffix == "ptx") || (suffix == "pef"))
-    return "Pentax Raw";
-  else if (suffix == "pxn")
-    return "Logitech Raw";
-  else if (suffix == "r3d")
-    return "Red Raw";
-  else if (suffix == "raf")
-    return "Fuji Raw";
-  else if (suffix == "rw2")
-    return "Panasonic Raw";
-  else if (suffix == "rw1")
-    return "Leica Raw";
-  else if (suffix == "rwz")
-    return "Rawzor Raw";
-  else if (suffix == "x3f")
-    return "Signa Raw";
 
   return "Image";
 }
@@ -480,51 +426,5 @@ const QSet<QString> & FormatProber::imageSuffixes(void)
 
   return suffixes;
 }
-
-const QSet<QString>  & FormatProber::rawImageSuffixes(void)
-{
-  static QSet<QString> suffixes;
-
-  if (suffixes.isEmpty())
-  {
-    suffixes += "3fr";
-    suffixes += "arw";
-    suffixes += "srf";
-    suffixes += "sr2";
-    suffixes += "bay";
-    suffixes += "crw";
-    suffixes += "cr2";
-    suffixes += "cap";
-    suffixes += "tif";
-    suffixes += "iiq";
-    suffixes += "eip";
-    suffixes += "dcs";
-    suffixes += "dcr";
-    suffixes += "drf";
-    suffixes += "k25";
-    suffixes += "kdc";
-    suffixes += "dng";
-    suffixes += "erf";
-    suffixes += "fff";
-    suffixes += "mos";
-    suffixes += "mrw";
-    suffixes += "nef";
-    suffixes += "nrw";
-    suffixes += "orf";
-    suffixes += "ptx";
-    suffixes += "pef";
-    suffixes += "pxn";
-    suffixes += "r3d";
-    suffixes += "raf";
-    suffixes += "raw";
-    suffixes += "rw1";
-    suffixes += "rw2";
-    suffixes += "rwz";
-    suffixes += "x3f";
-  }
-
-  return suffixes;
-}
-
 
 } } // End of namespaces

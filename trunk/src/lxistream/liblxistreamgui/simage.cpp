@@ -179,39 +179,47 @@ SImage SImage::fromData(const char *data, int size, const QSize &maxsize, const 
   QByteArray byteArray = QByteArray::fromRawData(data, size);
   QBuffer buffer(&byteArray);
   if (buffer.open(QBuffer::ReadOnly))
-  {
-    QImageReader imageReader(&buffer, format ? QByteArray(format) : QByteArray());
-    if (imageReader.canRead())
-    {
-      ExifData * exifData = NULL;
-      if (imageReader.format() == "jpeg")
-        exifData = exif_data_new_from_data(reinterpret_cast<const uchar *>(data), size);
-
-      return handleFile(imageReader, maxsize, exifData);
-    }
-  }
+    return fromData(&buffer, maxsize, format);
 
   return SImage();
 }
 
 SImage SImage::fromData(QIODevice *ioDevice, const QSize &maxsize, const char *format)
 {
-  QImageReader imageReader(ioDevice, format ? QByteArray(format) : QByteArray());
-  if (imageReader.canRead())
+  if (rawImageSuffixes().contains(format))
   {
-    QByteArray data;
-    ExifData * exifData = NULL;
-    if (imageReader.format() == "jpeg")
+    QFile * const file = qobject_cast<QFile *>(ioDevice);
+    if (file)
+      return fromFile(file->fileName(), maxsize, format);
+
+    QTemporaryFile tmpfile(QDir::temp().absoluteFilePath(QFileInfo(qApp->applicationFilePath()).baseName() + ".XXXXXX." + format));
+    if (tmpfile.open())
     {
-      const qint64 pos = ioDevice->pos();
-      ioDevice->seek(0);
-      data = ioDevice->readAll();
-      ioDevice->seek(pos);
+      tmpfile.write(ioDevice->readAll());
+      tmpfile.close();
 
-      exifData = exif_data_new_from_data(reinterpret_cast<const uchar *>(data.data()), data.size());
+      return fromFile(tmpfile.fileName(), maxsize, format);
     }
+  }
+  else
+  {
+    QImageReader imageReader(ioDevice, format ? QByteArray(format) : QByteArray());
+    if (imageReader.canRead())
+    {
+      QByteArray data;
+      ExifData * exifData = NULL;
+      if (imageReader.format() == "jpeg")
+      {
+        const qint64 pos = ioDevice->pos();
+        ioDevice->seek(0);
+        data = ioDevice->readAll();
+        ioDevice->seek(pos);
 
-    return handleFile(imageReader, maxsize, exifData);
+        exifData = exif_data_new_from_data(reinterpret_cast<const uchar *>(data.data()), data.size());
+      }
+
+      return handleFile(imageReader, maxsize, exifData);
+    }
   }
 
   return SImage();
@@ -219,17 +227,61 @@ SImage SImage::fromData(QIODevice *ioDevice, const QSize &maxsize, const char *f
 
 SImage SImage::fromFile(const QString &fileName, const QSize &maxsize, const char *format)
 {
-  QFile file(fileName);
-  if (file.open(QBuffer::ReadOnly))
+  if (rawImageSuffixes().contains(format) ||
+      rawImageSuffixes().contains(QFileInfo(fileName).suffix().toLower()))
   {
-    QImageReader imageReader(&file, format ? QByteArray(format) : QByteArray());
-    if (imageReader.canRead())
+    struct T
     {
-      ExifData * exifData = NULL;
-      if (imageReader.format() == "jpeg")
-        exifData = exif_data_new_from_file(fileName.toUtf8());
+      static SImage rundcraw(const QStringList &options, const QSize &maxsize)
+      {
+        QProcess dcRawProcess;
+        dcRawProcess.start("dcraw", options);
 
-      return handleFile(imageReader, maxsize, exifData);
+        if (dcRawProcess.waitForStarted())
+        if (dcRawProcess.waitForFinished())
+        {
+          if (dcRawProcess.exitCode() == 0)
+          {
+            QImageReader imageReader(&dcRawProcess);
+            if (imageReader.canRead())
+              return handleFile(imageReader, maxsize);
+          }
+          else
+          {
+            dcRawProcess.setReadChannel(QProcess::StandardError);
+            qDebug() << "dcraw:" << dcRawProcess.readAll();
+          }
+        }
+
+        dcRawProcess.kill();
+
+        return SImage();
+      }
+    };
+
+    SImage result;
+    if (maxsize.isValid() && !maxsize.isNull() && (maxsize.width() <= 256) && (maxsize.height() < 256))
+      result = T::rundcraw(QStringList() << "-c" << "-e" << fileName, maxsize);
+
+    if (result.isNull())
+      result = T::rundcraw(QStringList() << "-c" << fileName, maxsize);
+
+    return result;
+  }
+  else
+  {
+    QFile file(fileName);
+    if (file.open(QBuffer::ReadOnly))
+    {
+      QImageReader imageReader(&file, format ? QByteArray(format) : QByteArray());
+      if (imageReader.canRead())
+      {
+        ExifData * exifData = NULL;
+        if (imageReader.format() == "jpeg")
+          exifData = exif_data_new_from_file(fileName.toUtf8());
+
+        return handleFile(imageReader, maxsize, exifData);
+      }
     }
   }
 
@@ -322,6 +374,103 @@ SImage SImage::handleFile(QImageReader &imageReader, QSize maxsize, void *exifDa
   image.d.originalSize = originalSize;
 
   return image;
+}
+
+const QSet<QString>  & SImage::rawImageSuffixes(void)
+{
+  static QSet<QString> suffixes;
+
+  if (suffixes.isEmpty())
+  {
+    suffixes += "3fr";
+    suffixes += "arw";
+    suffixes += "srf";
+    suffixes += "sr2";
+    suffixes += "bay";
+    suffixes += "crw";
+    suffixes += "cr2";
+    suffixes += "cap";
+    suffixes += "tif";
+    suffixes += "iiq";
+    suffixes += "eip";
+    suffixes += "dcs";
+    suffixes += "dcr";
+    suffixes += "drf";
+    suffixes += "k25";
+    suffixes += "kdc";
+    suffixes += "dng";
+    suffixes += "erf";
+    suffixes += "fff";
+    suffixes += "mos";
+    suffixes += "mrw";
+    suffixes += "nef";
+    suffixes += "nrw";
+    suffixes += "orf";
+    suffixes += "ptx";
+    suffixes += "pef";
+    suffixes += "pxn";
+    suffixes += "r3d";
+    suffixes += "raf";
+    suffixes += "raw";
+    suffixes += "rw1";
+    suffixes += "rw2";
+    suffixes += "rwz";
+    suffixes += "x3f";
+  }
+
+  return suffixes;
+}
+
+QString SImage::rawImageDescription(const QString &suffix)
+{
+  if ((suffix == "raw"))
+    return "Generic Raw";
+  else if (suffix == "3fr")
+    return "Hasselblad Raw";
+  else if ((suffix == "arw") || (suffix == "srf") || (suffix == "sr2"))
+    return "Sony Raw";
+  else if (suffix == "bay")
+    return "Casio Raw";
+  else if ((suffix == "crw") || (suffix == "cr2"))
+    return "Canon Raw";
+  else if ((suffix == "cap") || (suffix == "iiq") || (suffix == "eip"))
+    return "Phase One Raw";
+  else if ((suffix == "dcs") || (suffix == "dcr") || (suffix == "drf") || (suffix == "k25") || (suffix == "kdc"))
+    return "Kodak Raw";
+  else if (suffix == "dng")
+    return "Adobe Raw";
+  else if (suffix == "erf")
+    return "Epson Raw";
+  else if (suffix == "fff")
+    return "Imacon Raw";
+  else if (suffix == "mef")
+    return "Mamiya Raw";
+  else if (suffix == "mos")
+    return "Leaf Raw";
+  else if (suffix == "mrw")
+    return "Minolta Raw";
+  else if ((suffix == "nef") || (suffix == "nrw"))
+    return "Nikon Raw";
+  else if (suffix == "orf")
+    return "Olympus Raw";
+  else if ((suffix == "ptx") || (suffix == "pef"))
+    return "Pentax Raw";
+  else if (suffix == "pxn")
+    return "Logitech Raw";
+  else if (suffix == "r3d")
+    return "Red Raw";
+  else if (suffix == "raf")
+    return "Fuji Raw";
+  else if (suffix == "rw2")
+    return "Panasonic Raw";
+  else if (suffix == "rw1")
+    return "Leica Raw";
+  else if (suffix == "rwz")
+    return "Rawzor Raw";
+  else if (suffix == "x3f")
+    return "Signa Raw";
+
+  return "Raw Image";
 }
 
 } // End of namespace
