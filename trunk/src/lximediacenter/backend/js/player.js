@@ -1,5 +1,5 @@
 // Show and hide controls.
-var controlsLocked;
+var controlsLocked, timer;
 
 function showControls()
 {
@@ -35,7 +35,7 @@ function unlockControls()
 }
 
 // Player
-var width, height, timer, lastImageUrl;
+var width, height, lastImageUrl;
 
 function resizeWindow()
 {
@@ -53,19 +53,20 @@ function resizeWindow()
     height = document.body.offsetHeight;
   }
   
+  var browser = document.getElementById("browser");
+  if (browser)
+  {
+    browser.style.width = width + "px";
+    browser.style.height = (height - document.getElementById("audioplayer").offsetHeight) + "px";
+  }
+  
   if (lastImageUrl)
     loadImage(lastImageUrl);
 }
 
-function loadImage(imageUrl)
+function closePlayer()
 {
-  if (!lastImageUrl)
-    resizeWindow();
-
-  lastImageUrl = imageUrl;
-
-  document.getElementById("player").innerHTML = 
-      "<img src=\"" + imageUrl + "?format=jpeg&resolution=" + width + "x" + height + "&bgcolor=000000\" alt=\"...\" />";
+  top.location.href = document.getElementById("browser").contentWindow.location.href;
 }
 
 function loadThumbnailBar(path, start, count)
@@ -82,6 +83,50 @@ function loadThumbnailBar(path, start, count)
       }
     }
 
-  request.open("GET", path + "?items=" + start + "," + count + "&type=30" + "&func=loadImage", true);
+  request.open("GET", path + "?items=" + start + "," + count + "&func=2,loadVideo,3,loadImage", true);
   request.send();
+}
+
+function loadAudio(audioUrl, title)
+{
+  lastImageUrl = false;
+  
+  if (top.location.href != window.location.href)
+  {
+    top.location.href = window.location.href;
+  }
+  else
+  {
+    document.getElementById("player").innerHTML = 
+        "<audio autoplay=\"autoplay\" id=\"player\">" +
+        "<source src=\"" + audioUrl + "?format=oga\" type=\"audio/ogg\" />" +
+        "<source src=\"" + audioUrl + "?format=mp2\" type=\"audio/mpeg\" />" +
+        "<source src=\"" + audioUrl + "?format=wav\" type=\"audio/wave\" />" +
+        "</audio>" +
+        title;
+
+    resizeWindow();
+  }
+}
+
+function loadVideo(videoUrl)
+{
+  lastImageUrl = false;
+  
+  document.getElementById("player").innerHTML = 
+      "<video autoplay=\"autoplay\" id=\"player\">" +
+      "<source src=\"" + videoUrl + "?format=ogv\" type=\"video/ogg\" />" +
+      "<source src=\"" + videoUrl + "?format=mpeg\" type=\"video/mpeg\" />" +
+      "</video>";
+}
+
+function loadImage(imageUrl)
+{
+  if (!lastImageUrl)
+    resizeWindow();
+
+  lastImageUrl = imageUrl;
+
+  document.getElementById("player").innerHTML = 
+      "<img src=\"" + imageUrl + "?format=jpeg&resolution=" + width + "x" + height + "&bgcolor=000000\" alt=\"...\" />";
 }

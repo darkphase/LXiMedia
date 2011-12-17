@@ -16,7 +16,51 @@ body {
  background-color: #000000;
  color: #FFFFFF;
 }
-div.imageplayer {
+
+iframe.browser {
+ padding: 0;
+ margin: 0;
+ width: 100%;
+ height: 100%;
+ border: none;
+}
+div.audioplayer {
+ padding: 0;
+ margin: 0;
+ width: 100%;
+ height: 2em;
+ border: none;
+ display: table;
+}
+.audioplayer audio {
+ display: none;
+}
+.audioplayer span {
+ padding: 0 0.5em 0 0.5em;
+ margin: 0;
+ font-size: 1.2em;
+ font-weight: bold;
+ overflow: hidden;
+ white-space: nowrap;
+ display: table-cell;
+ vertical-align: middle;
+}
+.audioplayer span.player {
+ width: 100%;
+}
+.audioplayer img {
+ padding: 0;
+ margin: 0;
+ width: 1.2em;
+ height: 1.2em;
+ display: block;
+ vertical-align: middle;
+}
+.audioplayer img.button {
+ cursor: pointer;
+}
+
+div.player {
  padding: 0;
  margin: 0;
  width: 100%;
@@ -28,11 +72,7 @@ div.imageplayer {
  border: none;
  display: block;
 }
-.imageplayer img {
- padding: 0;
- display: block;
-}
-video {
+.player video {
  padding: 0;
  margin: auto;
  border: none;
@@ -40,8 +80,11 @@ video {
  height: 100%;
  display: block;
 }
-
-div.imageplayercontrols {
+.player img {
+ padding: 0;
+ display: block;
+}
+div.playercontrols {
  padding: 0;
  margin: 0;
  width: 100%;
@@ -54,7 +97,7 @@ div.imageplayercontrols {
  text-align: right;
  visibility: hidden;
 }
-.imageplayercontrols img {
+.playercontrols img {
  padding: 0.5em;
  margin: 0.5em;
  width: 2em;

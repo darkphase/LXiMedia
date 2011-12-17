@@ -245,14 +245,18 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
             count = range[1].toUInt();
         }
 
-        int type = 0;
-        if (request.url().hasQueryItem("type"))
-          type = request.url().queryItemValue("type").toInt();
+        QMap<int, QString> funcs;
+        if (request.url().hasQueryItem("func"))
+        {
+          const QStringList list = request.url().queryItemValue("func").split(',');
+          for (int i=0; i+1<list.count(); i+=2)
+            funcs.insert(list[i].toInt(), list[i+1]);
+        }
 
         ThumbnailListItemList thumbItems;
         foreach (const SUPnPContentDirectory::Item &item, listItems(request.url().path(), start, count))
         {
-          if ((type == 0) && item.isDir)
+          if (funcs.isEmpty() && item.isDir)
           {
             ThumbnailListItem thumbItem;
             thumbItem.title = item.title;
@@ -261,7 +265,7 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
 
             thumbItems.append(thumbItem);
           }
-          else if ((type == 0) || (item.type == type))
+          else if (funcs.isEmpty() || funcs.contains(item.type / 10))
           {
             ThumbnailListItem thumbItem;
             thumbItem.title = item.title;
@@ -297,11 +301,14 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
               thumbItem.iconurl.addQueryItem("overlay", "played");
             }
 
+            if (!funcs.isEmpty())
+              thumbItem.func = funcs[item.type / 10];
+
             thumbItems.append(thumbItem);
           }
         }
 
-        return makeResponse(request, buildListItems(thumbItems, request.url().queryItemValue("func")), SHttpEngine::mimeTextHtml, false);
+        return makeResponse(request, buildListItems(thumbItems), SHttpEngine::mimeTextHtml, false);
       }
       else
         return makeHtmlContent(request, request.url(), buildListLoader(request.file(), listType(request.file())), htmlListHead);
@@ -326,11 +333,9 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
       case SUPnPContentDirectory::Item::Type_Movie:
       case SUPnPContentDirectory::Item::Type_VideoBroadcast:
       case SUPnPContentDirectory::Item::Type_MusicVideo:
-        return buildVideoPlayer(request);
-
       case SUPnPContentDirectory::Item::Type_Image:
       case SUPnPContentDirectory::Item::Type_Photo:
-        return buildPhotoViewer(request);
+        return buildPlayer(request);
       }
     }
     else // Stream file
