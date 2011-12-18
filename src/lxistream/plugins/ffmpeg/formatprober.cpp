@@ -77,6 +77,7 @@ void FormatProber::probeFormat(ProbeInfo &pi, QIODevice *ioDevice)
   {
     pi.format.format = formats.first().name;
     pi.format.fileTypeName = bufferReader->formatName();
+    pi.format.isComplexFile = bufferReader->duration().toSec() >= 600;
 
     for (int title=0, n=bufferReader->numTitles();
          (title<n) && (pi.format.fileType!=ProbeInfo::FileType_Video);
@@ -89,6 +90,10 @@ void FormatProber::probeFormat(ProbeInfo &pi, QIODevice *ioDevice)
       }
       else if (!bufferReader->audioStreams(title).isEmpty())
         pi.format.fileType = ProbeInfo::FileType_Audio;
+
+      pi.format.isComplexFile |= bufferReader->audioStreams(title).count() > 1;
+      pi.format.isComplexFile |= bufferReader->videoStreams(title).count() > 1;
+      pi.format.isComplexFile |= !bufferReader->dataStreams(title).isEmpty();
     }
 
     setMetadata(pi, bufferReader);

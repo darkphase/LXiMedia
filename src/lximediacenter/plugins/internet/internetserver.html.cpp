@@ -153,10 +153,18 @@ const char InternetServer::htmlSiteEditCloseIndex[] =
 
 QByteArray InternetServer::frontPageContent(void)
 {
-  HtmlParser htmlParser;
-  htmlParser.setField("SERVER_PATH", QUrl(serverPath()).toEncoded());
+  QSettings settings;
+  settings.beginGroup(Module::pluginName);
 
-  return htmlParser.parse(htmlFrontPageContent);
+  if (!settings.value("Audiences").toStringList().isEmpty())
+  {
+    HtmlParser htmlParser;
+    htmlParser.setField("SERVER_PATH", QUrl(serverPath()).toEncoded());
+
+    return htmlParser.parse(htmlFrontPageContent);
+  }
+
+  return QByteArray();
 }
 
 QByteArray InternetServer::settingsContent(void)
@@ -181,7 +189,13 @@ SHttpServer::ResponseMessage InternetServer::httpRequest(const SHttpServer::Requ
 {
   if (request.isGet())
   {
-    if (request.url().hasQueryItem("site_tree"))
+    if (request.url().hasQueryItem("save_settings"))
+    {
+      SHttpServer::ResponseMessage response(request, SHttpServer::Status_MovedPermanently);
+      response.setField("Location", "http://" + request.host() + "/settings");
+      return response;
+    }
+    else if (request.url().hasQueryItem("site_tree"))
     {
       QSettings settings;
       settings.beginGroup(Module::pluginName);

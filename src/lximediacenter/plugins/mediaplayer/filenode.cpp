@@ -88,6 +88,7 @@ QByteArray FileNode::toByteArray(int indent) const
     formatElm.setAttribute("format", SStringParser::removeControl(pi.format.format));
     formatElm.setAttribute("fileType", QString::number(pi.format.fileType));
     formatElm.setAttribute("fileTypeName", SStringParser::removeControl(pi.format.fileTypeName));
+    formatElm.setAttribute("isComplexFile", T::trueFalse(pi.format.isComplexFile));
     formatElm.setAttribute("quickHash", QString(pi.format.quickHash.toBase64()));
 
     for (QMap<QString, QVariant>::ConstIterator i = pi.format.metadata.begin();
@@ -221,6 +222,7 @@ FileNode FileNode::fromByteArray(const QByteArray &str)
       pi->format.format = formatElm.attribute("format");
       pi->format.fileType = ProbeInfo::FileType(formatElm.attribute("fileType").toInt());
       pi->format.fileTypeName = formatElm.attribute("fileTypeName");
+      pi->format.isComplexFile = T::trueFalse(formatElm.attribute("isComplexFile"));
       pi->format.quickHash = QByteArray::fromBase64(formatElm.attribute("quickHash").toAscii());
 
       for (QDomElement metadataElm = formatElm.firstChildElement("metadata");

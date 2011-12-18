@@ -283,9 +283,13 @@ SHttpServer::ResponseMessage Backend::httpRequest(const SHttpServer::RequestMess
         htmlParser.setField("FRONTPAGES", QByteArray(""));
         foreach (BackendServer *backendServer, backendServers)
         {
-          htmlParser.setField("ITEM_TITLE", backendServer->serverName());
-          htmlParser.setField("ITEM_CONTENT", backendServer->frontPageContent());
-          htmlParser.appendField("FRONTPAGES", htmlParser.parse(htmlFrontPageItem));
+          const QByteArray frontPageContent = backendServer->frontPageContent();
+          if (!frontPageContent.isEmpty())
+          {
+            htmlParser.setField("ITEM_TITLE", backendServer->serverName());
+            htmlParser.setField("ITEM_CONTENT", frontPageContent);
+            htmlParser.appendField("FRONTPAGES", htmlParser.parse(htmlFrontPageItem));
+          }
         }
 
         content = htmlParser.parse(htmlFrontPages);

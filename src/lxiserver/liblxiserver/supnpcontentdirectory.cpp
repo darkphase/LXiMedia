@@ -311,24 +311,35 @@ bool SUPnPContentDirectory::handleBrowse(const QDomElement &elem, QDomDocument &
       {
         if (!item.isDir)
         {
-          const QString title = (item.played ? "*" : "") + item.title;
           switch (item.type)
           {
           case Item::Type_None:
-          case Item::Type_Image:
-          case Item::Type_Photo:
           case Item::Type_Music:
           case Item::Type_MusicVideo:
+          case Item::Type_Image:
+          case Item::Type_Photo:
+            didlFile(
+                subDoc, root, host, item,
+                item.path, item.title);
+
+            break;
+
           case Item::Type_AudioBroadcast:
+          case Item::Type_Video:
           case Item::Type_VideoBroadcast:
-            didlFile(subDoc, root, host, item, item.path, title);
+            didlFile(
+                subDoc, root, host, item,
+                item.path, item.played ? ('*' + item.title) : item.title);
+
             break;
 
           case Item::Type_Audio:
           case Item::Type_AudioBook:
-          case Item::Type_Video:
           case Item::Type_Movie:
-            didlContainer(subDoc, root, Item::Type(item.type), item.path, title, allItems(item, QStringList()).count());
+            didlContainer(
+                subDoc, root, Item::Type(item.type),
+                item.path, item.played ? ('*' + item.title) : item.title);
+
             break;
           }
         }
@@ -632,7 +643,7 @@ QStringList SUPnPContentDirectory::playSeekItems(const Item &item)
   if (item.chapters.count() > 1)
     result += ("c#" + tr("Chapters"));
 
-  if (item.duration > 0)
+  if (item.duration > seekSec)
     result += ("s#" + tr("Seek"));
 
   return result;

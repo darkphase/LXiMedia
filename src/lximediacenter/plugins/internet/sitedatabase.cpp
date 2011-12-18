@@ -340,7 +340,8 @@ QString SiteDatabase::localScriptDirPath(void)
   return
       settingsFile.absolutePath() + "/" +
       settingsFile.completeBaseName() + "." +
-      Module::pluginName + ".Sites";
+      QString(Module::pluginName).replace(" ", "") +
+      ".Sites";
 }
 
 } } // End of namespaces

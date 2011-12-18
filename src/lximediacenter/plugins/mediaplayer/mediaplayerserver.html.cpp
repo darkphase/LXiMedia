@@ -100,10 +100,15 @@ const char MediaPlayerServer::htmlSettingsDirTreeCheckLink[] =
 
 QByteArray MediaPlayerServer::frontPageContent(void)
 {
-  HtmlParser htmlParser;
-  htmlParser.setField("SERVER_PATH", QUrl(serverPath()).toEncoded());
+  if (!rootPaths.isEmpty())
+  {
+    HtmlParser htmlParser;
+    htmlParser.setField("SERVER_PATH", QUrl(serverPath()).toEncoded());
 
-  return htmlParser.parse(htmlFrontPageContent);
+    return htmlParser.parse(htmlFrontPageContent);
+  }
+
+  return QByteArray();
 }
 
 QByteArray MediaPlayerServer::settingsContent(void)

@@ -209,30 +209,37 @@ public:
 
   struct ProbeInfo : QSharedData
   {
+    /*! The type of file.
+     */
     enum FileType
     {
-      FileType_None           = 0,
+      FileType_None           = 0,                                              //!< Unknown file type.
 
-      FileType_Audio          = 10,
-      FileType_Video,
-      FileType_Image,
 
-      FileType_Directory      = 20,
-      FileType_Drive,
-      FileType_Disc
+      FileType_Audio          = 10,                                             //!< Audio file.
+      FileType_Video,                                                           //!< Video file.
+      FileType_Image,                                                           //!< Image file.
+
+
+      FileType_Directory      = 20,                                             //!< Filesystem directry.
+      FileType_Drive,                                                           //!< A drive (e.g. removable disk, network drive, etc.).
+      FileType_Disc                                                             //!< A media disc (e.g. DVD).
     };
 
+    /*! A title in the file, usually a file has only one title, but DVD images
+        may have multiple titles.
+     */
     struct Title
     {
-      STime                     duration;
-      QList<Chapter>            chapters;
+      STime                     duration;                                       //!< The duration of the title.
+      QList<Chapter>            chapters;                                       //!< A list of chapters in the title.
 
-      QList<AudioStreamInfo>    audioStreams;
-      QList<VideoStreamInfo>    videoStreams;
-      QList<DataStreamInfo>     dataStreams;
-      SVideoCodec               imageCodec;
+      QList<AudioStreamInfo>    audioStreams;                                   //!< The audio streams in the title.
+      QList<VideoStreamInfo>    videoStreams;                                   //!< The video streams in the title.
+      QList<DataStreamInfo>     dataStreams;                                    //!< The data streams in the title.
+      SVideoCodec               imageCodec;                                     //!< If the title is a signle image, this holds the image codec..
 
-      SVideoBuffer              thumbnail;
+      SVideoBuffer              thumbnail;                                      //!< A thumbnail of the title.
     };
 
     inline ProbeInfo(void)
@@ -242,15 +249,18 @@ public:
       fileInfo.isDir = false;
       fileInfo.size = 0;
       format.fileType = FileType_None;
+      format.isComplexFile = false;
     }
 
-    QString                     filePath;
+    QString                     filePath;                                       //!< The full absolute path to the file.
 
-    bool                        isReadable;
-    bool                        isFileInfoRead;
-    bool                        isFormatProbed;
-    bool                        isContentProbed;
+    bool                        isReadable;                                     //!< True if the file can be read.
+    bool                        isFileInfoRead;                                 //!< True if the fileInfo structure has been read.
+    bool                        isFormatProbed;                                 //!< True if the format structure has been read.
+    bool                        isContentProbed;                                //!< True if the content structure has been read.
 
+    /*! Contains the filesystem information.
+     */
     struct
     {
       bool                      isDir;
@@ -258,15 +268,20 @@ public:
       QDateTime                 lastModified;
     }                           fileInfo;
 
+    /*! Contains the file format information.
+     */
     struct
     {
       QString                   format;
       FileType                  fileType;
       QString                   fileTypeName;
+      bool                      isComplexFile;                                  //!< True if this file has multiple streams or is >= 10 min.
       QByteArray                quickHash;
       QMap<QString, QVariant>   metadata;
     }                           format;
 
+    /*! Contains the file content information.
+     */
     struct
     {
       QList<Title>              titles;

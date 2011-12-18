@@ -139,10 +139,14 @@ void MediaDatabase::setLastPlayed(const FileNode &node, const QDateTime &lastPla
   if (!node.isNull())
   {
     QSettings settings(lastPlayedFileName, QSettings::IniFormat);
+    settings.beginGroup("LastPlayed");
 
-    const QByteArray key = node.quickHash().toBase64();
+    const QByteArray key =
+        node.quickHash().toHex() +
+        ("000000000000000" + QByteArray::number(node.size(), 16)).right(16);
+
     if (lastPlayed.isValid())
-      settings.setValue(key, lastPlayed);
+      settings.setValue(key, lastPlayed.toString(Qt::ISODate));
     else
       settings.remove(key);
   }
@@ -153,9 +157,13 @@ QDateTime MediaDatabase::lastPlayed(const FileNode &node) const
   if (!node.isNull())
   {
     QSettings settings(lastPlayedFileName, QSettings::IniFormat);
+    settings.beginGroup("LastPlayed");
 
-    const QByteArray key = node.quickHash().toBase64();
-    return settings.value(key, QDateTime()).toDateTime();
+    const QByteArray key =
+        node.quickHash().toHex() +
+        ("000000000000000" + QByteArray::number(node.size(), 16)).right(16);
+
+    return QDateTime::fromString(settings.value(key).toString(), Qt::ISODate);
   }
 
   return QDateTime();
@@ -344,7 +352,8 @@ QString MediaDatabase::lastPlayedFile(void)
   return
       settingsFile.absolutePath() + "/" +
       settingsFile.completeBaseName() + "." +
-      Module::pluginName + ".LastPlayed.db";
+      QString(Module::pluginName).replace(" ", "") +
+      ".LastPlayed.db";
 }
 
 } } // End of namespaces
