@@ -158,8 +158,8 @@ QByteArray InternetServer::frontPageContent(void)
 
   if (!settings.value("Audiences").toStringList().isEmpty())
   {
-    HtmlParser htmlParser;
-    htmlParser.setField("SERVER_PATH", QUrl(serverPath()).toEncoded());
+    SStringParser htmlParser;
+    htmlParser.setField("SERVER_PATH", QUrl(serverPath()));
 
     return htmlParser.parse(htmlFrontPageContent);
   }
@@ -169,8 +169,8 @@ QByteArray InternetServer::frontPageContent(void)
 
 QByteArray InternetServer::settingsContent(void)
 {
-  HtmlParser htmlParser;
-  htmlParser.setField("SERVER_PATH", QUrl(serverPath()).toEncoded());
+  SStringParser htmlParser;
+  htmlParser.setField("SERVER_PATH", QUrl(serverPath()));
   htmlParser.setField("TR_INTERNET", tr(Module::pluginName));
   htmlParser.setField("TR_SAVE", tr("Save"));
   htmlParser.setField("TR_SELECT_SITES", tr("Select sites"));
@@ -220,13 +220,13 @@ SHttpServer::ResponseMessage InternetServer::httpRequest(const SHttpServer::Requ
                                     ? QSet<QString>::fromList(QString::fromUtf8(qUncompress(QByteArray::fromHex(open.toAscii()))).split(dirSplit))
                                     : QSet<QString>();
 
-      HtmlParser htmlParser;
-      htmlParser.setField("SERVER_PATH", QUrl(serverPath()).toEncoded());
-      htmlParser.setField("DIRS", QByteArray(""));
+      SStringParser htmlParser;
+      htmlParser.setField("SERVER_PATH", QUrl(serverPath()));
+      htmlParser.setField("DIRS", "");
       foreach (const QString &targetAudience, siteDatabase->allAudiences())
       {
         htmlParser.setField("DIR_FULLPATH", targetAudience.toUtf8().toHex());
-        htmlParser.setField("DIR_INDENT", QByteArray(""));
+        htmlParser.setField("DIR_INDENT", "");
 
         // Expand
         bool addChildren = false;
@@ -234,13 +234,13 @@ SHttpServer::ResponseMessage InternetServer::httpRequest(const SHttpServer::Requ
         if (all.contains(targetAudience))
         {
           all.remove(targetAudience);
-          htmlParser.setField("DIR_OPEN", QByteArray("open"));
+          htmlParser.setField("DIR_OPEN", "open");
           addChildren = true;
         }
         else
         {
           all.insert(targetAudience);
-          htmlParser.setField("DIR_OPEN", QByteArray("close"));
+          htmlParser.setField("DIR_OPEN", "close");
         }
 
         htmlParser.setField("DIR_ALLOPEN", qCompress(QStringList(all.toList()).join(QString(dirSplit)).toUtf8()).toHex());
@@ -248,8 +248,8 @@ SHttpServer::ResponseMessage InternetServer::httpRequest(const SHttpServer::Requ
 
         if (selectedAudiences.contains(targetAudience))
         {
-          htmlParser.setField("DIR_CHECKED", QByteArray("full"));
-          htmlParser.setField("DIR_CHECKTYPE", QByteArray("checkoff"));
+          htmlParser.setField("DIR_CHECKED", "full");
+          htmlParser.setField("DIR_CHECKTYPE", "checkoff");
         }
         else
         {
@@ -271,9 +271,9 @@ SHttpServer::ResponseMessage InternetServer::httpRequest(const SHttpServer::Requ
           htmlParser.setField("DIR_FULLPATH", host.toUtf8().toHex());
           htmlParser.setField("DIR_INDENT", htmlParser.parse(htmlSiteTreeIndent) + htmlParser.parse(htmlSiteTreeIndent));
           htmlParser.setField("DIR_ALLOPEN", qCompress(QStringList(allopen.toList()).join(QString(dirSplit)).toUtf8()).toHex());
-          htmlParser.setField("DIR_EXPAND", QByteArray(""));
+          htmlParser.setField("DIR_EXPAND", "");
 
-          htmlParser.setField("ITEM_ICON", QUrl(serverPath() + name + "/?thumbnail=16").toEncoded());
+          htmlParser.setField("ITEM_ICON", QUrl(serverPath() + name + "/?thumbnail=16"));
           htmlParser.setField("DIR_CHECK", htmlParser.parse(htmlSiteTreeCheckIcon));
 
           htmlParser.setField("ITEM_HOST", host);
@@ -418,7 +418,7 @@ SHttpServer::ResponseMessage InternetServer::httpRequest(const SHttpServer::Requ
 
 SHttpServer::ResponseMessage InternetServer::editRequest(const SHttpServer::RequestMessage &request, const QString &host, const QString &script, const QString &message)
 {
-  HtmlParser htmlParser;
+  SStringParser htmlParser;
   htmlParser.setField("TR_ADD_ICON", tr("Add icon"));
   htmlParser.setField("TR_ADD", tr("Add"));
   htmlParser.setField("TR_CLOSE", tr("Close"));
@@ -430,10 +430,10 @@ SHttpServer::ResponseMessage InternetServer::editRequest(const SHttpServer::Requ
 
   if (!host.isEmpty() && !script.isEmpty())
   {
-    htmlParser.setField("BUTTONS", QByteArray(""));
+    htmlParser.setField("BUTTONS", "");
     if (siteDatabase->isLocal(host))
     {
-      htmlParser.setField("BUTTON_NAME", QByteArray("delete"));
+      htmlParser.setField("BUTTON_NAME", "delete");
 
       if (siteDatabase->isGlobal(host))
         htmlParser.setField("BUTTON_TEXT", tr("Revert"));
@@ -443,7 +443,7 @@ SHttpServer::ResponseMessage InternetServer::editRequest(const SHttpServer::Requ
       htmlParser.appendField("BUTTONS", htmlParser.parse(htmlSiteEditButton));
     }
 
-    htmlParser.setField("SERVER_PATH", QUrl(serverPath()).toEncoded());
+    htmlParser.setField("SERVER_PATH", QUrl(serverPath()));
     htmlParser.setField("SCRIPT_HOST", host);
     htmlParser.setField("SCRIPT_NAME", siteDatabase->getName(host));
     htmlParser.setField("SCRIPT", script);

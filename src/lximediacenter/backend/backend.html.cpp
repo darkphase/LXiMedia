@@ -275,12 +275,12 @@ SHttpServer::ResponseMessage Backend::httpRequest(const SHttpServer::RequestMess
 
     if (dir == "/")
     {
-      HtmlParser htmlParser(this->htmlParser);
+      SStringParser htmlParser(this->htmlParser);
       QByteArray content;
 
       if (request.fileName().isEmpty())
       {
-        htmlParser.setField("FRONTPAGES", QByteArray(""));
+        htmlParser.setField("FRONTPAGES", "");
         foreach (BackendServer *backendServer, backendServers)
         {
           const QByteArray frontPageContent = backendServer->frontPageContent();
@@ -313,7 +313,7 @@ SHttpServer::ResponseMessage Backend::httpRequest(const SHttpServer::RequestMess
         htmlParser.setField("TR_TYPE", tr("Type"));
         htmlParser.setField("TR_MESSAGE", tr("Message"));
 
-        htmlParser.setField("LOG_MESSAGES", QByteArray(""));
+        htmlParser.setField("LOG_MESSAGES", "");
 
         const QByteArray logFile = sApp->log();
         for (int i=0, n=-1; i>=0; i=n)
@@ -336,13 +336,13 @@ SHttpServer::ResponseMessage Backend::httpRequest(const SHttpServer::RequestMess
             const int nl = msg.indexOf('\n');
             if (nl < 0)
             {
-              htmlParser.setField("ITEM_ROWS", QByteArray("1"));
+              htmlParser.setField("ITEM_ROWS", "1");
               htmlParser.setField("ITEM_HEADLINE", msg);
               htmlParser.appendField("LOG_MESSAGES", htmlParser.parse(htmlLogFileHeadline));
             }
             else
             {
-              htmlParser.setField("ITEM_ROWS", QByteArray("2"));
+              htmlParser.setField("ITEM_ROWS", "2");
               htmlParser.setField("ITEM_HEADLINE", msg.left(nl));
               htmlParser.appendField("LOG_MESSAGES", htmlParser.parse(htmlLogFileHeadline));
               htmlParser.setField("ITEM_MESSAGE", msg.mid(nl + 1));
@@ -385,7 +385,7 @@ SHttpServer::ResponseMessage Backend::httpRequest(const SHttpServer::RequestMess
 
 QByteArray Backend::parseHtmlContent(const QUrl &url, const QByteArray &content, const QByteArray &head) const
 {
-  HtmlParser htmlParser(this->htmlParser);
+  SStringParser htmlParser(this->htmlParser);
 
   htmlParser.setField("HEAD", head);
 
@@ -393,13 +393,13 @@ QByteArray Backend::parseHtmlContent(const QUrl &url, const QByteArray &content,
   path = path.left(path.lastIndexOf('/'));
   if (!path.isEmpty())
   {
-    htmlParser.setField("NAVIGATOR_ITEMS", QByteArray(""));
+    htmlParser.setField("NAVIGATOR_ITEMS", "");
 
     QString fullPath = "/";
     foreach (const QString &dir, path.split('/', QString::SkipEmptyParts))
     {
       fullPath += dir + "/";
-      htmlParser.setField("ITEM_LINK", QUrl(fullPath).toEncoded());
+      htmlParser.setField("ITEM_LINK", QUrl(fullPath));
       htmlParser.setField("ITEM_NAME", dir);
       htmlParser.appendField("NAVIGATOR_ITEMS", htmlParser.parse(htmlNavigatorItem));
     }
@@ -413,45 +413,11 @@ QByteArray Backend::parseHtmlContent(const QUrl &url, const QByteArray &content,
   return htmlParser.parse(htmlIndex);
 }
 
-//SHttpServer::ResponseMessage Backend::handleHtmlSearch(const SHttpServer::RequestMessage &request, const MediaServer::File &)
-//{
-//  HtmlParser htmlParser(this->htmlParser);
-//  htmlParser.setField("TR_OF", tr("of"));
-//  htmlParser.setField("TR_RELEVANCE", tr("Relevance"));
-//  htmlParser.setField("TR_RESULTS", tr("Results"));
-//
-//  SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
-//  response.setContentType(SHttpEngine::mimeTextHtml);
-//  response.setField("Cache-Control", "no-cache");
-//
-//  const MediaServer::File file(request);
-//  const QString queryValue = file.url().encodedQueryItemValue("q");
-//  const QString queryString = QByteArray::fromPercentEncoding(queryValue.toAscii().replace('+', ' '));
-//  const SearchCacheEntry entry = search(queryString);
-//  htmlParser.setField("SEARCHRESULTS", QByteArray(""));
-//
-//  foreach (const BackendServer::SearchResult &result, entry.results)
-//  {
-//    htmlParser.setField("ITEM_TITLE", result.headline);
-//    htmlParser.setField("ITEM_RELEVANCE", QString::number(qBound(0, int(result.relevance * 100.0), 100)) + "%");
-//    htmlParser.setField("ITEM_URL", QUrl(result.location).toEncoded());
-//    htmlParser.setField("ITEM_ICONURL", QUrl(result.thumbLocation).toEncoded());
-//
-//    htmlParser.appendField("SEARCHRESULTS", htmlParser.parse(htmlSearchResultsItem));
-//  }
-//
-//  htmlParser.setField("ITEM_TITLE", tr("Search") + ": " + queryString);
-//
-//  response.setContent(parseHtmlContent(file.url(), htmlParser.parse(htmlSearchResults), ""));
-//
-//  return response;
-//}
-
 QByteArray Backend::handleHtmlSettings(const SHttpServer::RequestMessage &request)
 {
   QSettings settings;
 
-  HtmlParser htmlParser;
+  SStringParser htmlParser;
   htmlParser.setField("TR_HTTP_SERVER", tr("HTTP server"));
   htmlParser.setField("TR_HTTP_PORT_NUMBER", tr("Preferred HTTP port number"));
   htmlParser.setField("TR_DEVICE_NAME", tr("Device name"));
@@ -529,12 +495,12 @@ QByteArray Backend::handleHtmlSettings(const SHttpServer::RequestMessage &reques
 
   struct T
   {
-    static void addFormat(HtmlParser &htmlParser, QSettings &settings, const QString &genericTranscodeSize, const MediaServer::TranscodeSize &size)
+    static void addFormat(SStringParser &htmlParser, QSettings &settings, const QString &genericTranscodeSize, const MediaServer::TranscodeSize &size)
     {
       if (settings.value("TranscodeSize", genericTranscodeSize).toString() == size.name)
-        htmlParser.setField("SELECTED", QByteArray("selected=\"selected\""));
+        htmlParser.setField("SELECTED", "selected=\"selected\"");
       else
-        htmlParser.setField("SELECTED", QByteArray(""));
+        htmlParser.setField("SELECTED", "");
 
       htmlParser.setField("VALUE", size.name);
       htmlParser.setField("TEXT", size.name +
@@ -543,24 +509,24 @@ QByteArray Backend::handleHtmlSettings(const SHttpServer::RequestMessage &reques
       htmlParser.appendField("FORMATS", htmlParser.parse(htmlSettingsOption));
     }
 
-    static void addChannel(HtmlParser &htmlParser, QSettings &settings, const QString &genericTranscodeChannels, const MediaServer::TranscodeChannel &channel)
+    static void addChannel(SStringParser &htmlParser, QSettings &settings, const QString &genericTranscodeChannels, const MediaServer::TranscodeChannel &channel)
     {
       if (settings.value("TranscodeChannels", genericTranscodeChannels).toString() == channel.name)
-        htmlParser.setField("SELECTED", QByteArray("selected=\"selected\""));
+        htmlParser.setField("SELECTED", "selected=\"selected\"");
       else
-        htmlParser.setField("SELECTED", QByteArray(""));
+        htmlParser.setField("SELECTED", "");
 
       htmlParser.setField("VALUE", channel.name);
       htmlParser.setField("TEXT", channel.name);
       htmlParser.appendField("CHANNELS", htmlParser.parse(htmlSettingsOption));
     }
 
-    static void addMusicChannel(HtmlParser &htmlParser, QSettings &settings, const QString &genericTranscodeMusicChannels, const MediaServer::TranscodeChannel &channel)
+    static void addMusicChannel(SStringParser &htmlParser, QSettings &settings, const QString &genericTranscodeMusicChannels, const MediaServer::TranscodeChannel &channel)
     {
       if (settings.value("TranscodeMusicChannels", genericTranscodeMusicChannels).toString() == channel.name)
-        htmlParser.setField("SELECTED", QByteArray("selected=\"selected\""));
+        htmlParser.setField("SELECTED", "selected=\"selected\"");
       else
-        htmlParser.setField("SELECTED", QByteArray(""));
+        htmlParser.setField("SELECTED", "");
 
       htmlParser.setField("VALUE", channel.name);
       htmlParser.setField("TEXT", channel.name);
@@ -570,10 +536,10 @@ QByteArray Backend::handleHtmlSettings(const SHttpServer::RequestMessage &reques
 
   // Default settings
   htmlParser.setField("NAME", tr("Default settings"));
-  htmlParser.setField("CLIENT_NAME", QByteArray("_default"));
-  htmlParser.setField("FORMATS", QByteArray(""));
-  htmlParser.setField("CHANNELS", QByteArray(""));
-  htmlParser.setField("MUSICCHANNELS", QByteArray(""));
+  htmlParser.setField("CLIENT_NAME", "_default");
+  htmlParser.setField("FORMATS", "");
+  htmlParser.setField("CHANNELS", "");
+  htmlParser.setField("MUSICCHANNELS", "");
 
   foreach (const MediaServer::TranscodeSize &size, MediaServer::allTranscodeSizes())
     T::addFormat(htmlParser, settings, genericTranscodeSize,  size);
@@ -586,32 +552,32 @@ QByteArray Backend::handleHtmlSettings(const SHttpServer::RequestMessage &reques
 
   if (settings.value("TranscodeCrop", genericTranscodeCrop).toString() == "Box")
   {
-    htmlParser.setField("SELECTED_BOX", QByteArray("selected=\"selected\""));
-    htmlParser.setField("SELECTED_ZOOM", QByteArray(""));
+    htmlParser.setField("SELECTED_BOX", "selected=\"selected\"");
+    htmlParser.setField("SELECTED_ZOOM", "");
   }
   else
   {
-    htmlParser.setField("SELECTED_BOX", QByteArray(""));
-    htmlParser.setField("SELECTED_ZOOM", QByteArray("selected=\"selected\""));
+    htmlParser.setField("SELECTED_BOX", "");
+    htmlParser.setField("SELECTED_ZOOM", "selected=\"selected\"");
   }
 
   if (settings.value("EncodeMode", genericEncodeMode).toString() == "Fast")
   {
-    htmlParser.setField("SELECTED_FAST", QByteArray("selected=\"selected\""));
-    htmlParser.setField("SELECTED_SLOW", QByteArray(""));
+    htmlParser.setField("SELECTED_FAST", "selected=\"selected\"");
+    htmlParser.setField("SELECTED_SLOW", "");
   }
   else
   {
-    htmlParser.setField("SELECTED_FAST", QByteArray(""));
-    htmlParser.setField("SELECTED_SLOW", QByteArray("selected=\"selected\""));
+    htmlParser.setField("SELECTED_FAST", "");
+    htmlParser.setField("SELECTED_SLOW", "selected=\"selected\"");
   }
 
   if (settings.value("MusicAddBlackVideo", genericMusicAddBlackVideo).toBool())
-    htmlParser.setField("CHECKED_ADDBLACKVIDEO", QByteArray("checked=\"checked\""));
+    htmlParser.setField("CHECKED_ADDBLACKVIDEO", "checked=\"checked\"");
   else
-    htmlParser.setField("CHECKED_ADDBLACKVIDEO", QByteArray(""));
+    htmlParser.setField("CHECKED_ADDBLACKVIDEO", "");
 
-  htmlParser.setField("PROFILES", QByteArray(""));
+  htmlParser.setField("PROFILES", "");
 
   htmlParser.appendField("CLIENT_ROWS", htmlParser.parse(htmlSettingsDlnaRow));
 
@@ -627,9 +593,9 @@ QByteArray Backend::handleHtmlSettings(const SHttpServer::RequestMessage &reques
 
     htmlParser.setField("NAME", activeClient);
     htmlParser.setField("CLIENT_NAME", clientTag);
-    htmlParser.setField("FORMATS", QByteArray(""));
-    htmlParser.setField("CHANNELS", QByteArray(""));
-    htmlParser.setField("MUSICCHANNELS", QByteArray(""));
+    htmlParser.setField("FORMATS", "");
+    htmlParser.setField("CHANNELS", "");
+    htmlParser.setField("MUSICCHANNELS", "");
 
     foreach (const MediaServer::TranscodeSize &size, MediaServer::allTranscodeSizes())
       T::addFormat(htmlParser, settings, genericTranscodeSize,  size);
@@ -642,30 +608,30 @@ QByteArray Backend::handleHtmlSettings(const SHttpServer::RequestMessage &reques
 
     if (settings.value("TranscodeCrop", genericTranscodeCrop).toString() == "Box")
     {
-      htmlParser.setField("SELECTED_BOX", QByteArray("selected=\"selected\""));
-      htmlParser.setField("SELECTED_ZOOM", QByteArray(""));
+      htmlParser.setField("SELECTED_BOX", "selected=\"selected\"");
+      htmlParser.setField("SELECTED_ZOOM", "");
     }
     else
     {
-      htmlParser.setField("SELECTED_BOX", QByteArray(""));
-      htmlParser.setField("SELECTED_ZOOM", QByteArray("selected=\"selected\""));
+      htmlParser.setField("SELECTED_BOX", "");
+      htmlParser.setField("SELECTED_ZOOM", "selected=\"selected\"");
     }
 
     if (settings.value("EncodeMode", genericEncodeMode).toString() == "Fast")
     {
-      htmlParser.setField("SELECTED_FAST", QByteArray("selected=\"selected\""));
-      htmlParser.setField("SELECTED_SLOW", QByteArray(""));
+      htmlParser.setField("SELECTED_FAST", "selected=\"selected\"");
+      htmlParser.setField("SELECTED_SLOW", "");
     }
     else
     {
-      htmlParser.setField("SELECTED_FAST", QByteArray(""));
-      htmlParser.setField("SELECTED_SLOW", QByteArray("selected=\"selected\""));
+      htmlParser.setField("SELECTED_FAST", "");
+      htmlParser.setField("SELECTED_SLOW", "selected=\"selected\"");
     }
 
     if (settings.value("MusicAddBlackVideo", genericMusicAddBlackVideo).toBool())
-      htmlParser.setField("CHECKED_ADDBLACKVIDEO", QByteArray("checked=\"checked\""));
+      htmlParser.setField("CHECKED_ADDBLACKVIDEO", "checked=\"checked\"");
     else
-      htmlParser.setField("CHECKED_ADDBLACKVIDEO", QByteArray(""));
+      htmlParser.setField("CHECKED_ADDBLACKVIDEO", "");
 
     if (request.url().queryItemValue("expand") == clientTag)
     {
@@ -680,11 +646,11 @@ QByteArray Backend::handleHtmlSettings(const SHttpServer::RequestMessage &reques
       if (checkedAudioProfiles.isEmpty())
         checkedAudioProfiles = enabledAudioProfiles;
 
-      htmlParser.setField("AUDIO_PROFILES", QByteArray(""));
+      htmlParser.setField("AUDIO_PROFILES", "");
       foreach (const QString &profile, enabledAudioProfiles)
       {
         htmlParser.setField("PROFILE_NAME", profile);
-        htmlParser.setField("CHECKED", QByteArray(checkedAudioProfiles.contains(profile) ? "checked=\"checked\"" : ""));
+        htmlParser.setField("CHECKED", checkedAudioProfiles.contains(profile) ? "checked=\"checked\"" : "");
         htmlParser.appendField("AUDIO_PROFILES", htmlParser.parse(htmlSettingsDlnaRowProfilesCheck));
       }
 
@@ -699,11 +665,11 @@ QByteArray Backend::handleHtmlSettings(const SHttpServer::RequestMessage &reques
       if (checkedVideoProfiles.isEmpty())
         checkedVideoProfiles = enabledVideoProfiles;
 
-      htmlParser.setField("VIDEO_PROFILES", QByteArray(""));
+      htmlParser.setField("VIDEO_PROFILES", "");
       foreach (const QString &profile, enabledVideoProfiles)
       {
         htmlParser.setField("PROFILE_NAME", profile);
-        htmlParser.setField("CHECKED", QByteArray(checkedVideoProfiles.contains(profile) ? "checked=\"checked\"" : ""));
+        htmlParser.setField("CHECKED", checkedVideoProfiles.contains(profile) ? "checked=\"checked\"" : "");
         htmlParser.appendField("VIDEO_PROFILES", htmlParser.parse(htmlSettingsDlnaRowProfilesCheck));
       }
 
@@ -718,11 +684,11 @@ QByteArray Backend::handleHtmlSettings(const SHttpServer::RequestMessage &reques
       if (checkedImageProfiles.isEmpty())
         checkedImageProfiles = enabledImageProfiles;
 
-      htmlParser.setField("IMAGE_PROFILES", QByteArray(""));
+      htmlParser.setField("IMAGE_PROFILES", "");
       foreach (const QString &profile, enabledImageProfiles)
       {
         htmlParser.setField("PROFILE_NAME", profile);
-        htmlParser.setField("CHECKED", QByteArray(checkedImageProfiles.contains(profile) ? "checked=\"checked\"" : ""));
+        htmlParser.setField("CHECKED", checkedImageProfiles.contains(profile) ? "checked=\"checked\"" : "");
         htmlParser.appendField("IMAGE_PROFILES", htmlParser.parse(htmlSettingsDlnaRowProfilesCheck));
       }
 
@@ -737,7 +703,7 @@ QByteArray Backend::handleHtmlSettings(const SHttpServer::RequestMessage &reques
     htmlParser.appendField("CLIENT_ROWS", htmlParser.parse(htmlSettingsDlnaRow));
   }
 
-  htmlParser.setField("PLUGIN_SETTINGS", QByteArray(""));
+  htmlParser.setField("PLUGIN_SETTINGS", "");
   foreach (BackendServer *backendServer, backendServers)
     htmlParser.appendField("PLUGIN_SETTINGS", backendServer->settingsContent());
 

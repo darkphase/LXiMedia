@@ -112,7 +112,7 @@ private slots:
   void                          aborted(void);
 
 private:
-  void                          generateDirs(HtmlParser &, const QFileInfoList &, int, const QStringList &, const QStringList &);
+  void                          generateDirs(SStringParser &, const QFileInfoList &, int, const QStringList &, const QStringList &);
   void                          scanDrives(void);
 
 private:
