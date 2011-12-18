@@ -318,7 +318,7 @@ QUuid Backend::serverUuid(void)
   if (settings.contains("UUID"))
     return settings.value("UUID", uuid).toString();
 
-  uuid = QUuid::createUuid();
+  uuid = QUuid::createUuid().toString().replace("{", "").replace("}", "");
   settings.setValue("UUID", uuid);
 
   return uuid;

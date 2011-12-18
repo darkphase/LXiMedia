@@ -132,6 +132,14 @@ QString SMediaInfo::fileTypeName(void) const
   return pi->format.fileTypeName;
 }
 
+bool SMediaInfo::isComplexFile(void) const
+{
+  if (pi->isReadable && !pi->isFormatProbed)
+    const_cast<SMediaInfo *>(this)->probeFormat();
+
+  return pi->format.isComplexFile;
+}
+
 QByteArray SMediaInfo::quickHash(void) const
 {
   if (pi->isReadable && !pi->isFormatProbed)

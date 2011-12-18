@@ -63,6 +63,7 @@ public:
   QString                       format(void) const;                             //!< The format name of the media (e.g. matroska, mpeg, dvd, etc.)
   ProbeInfo::FileType           fileType(void) const;                           //!< The detected file type.
   QString                       fileTypeName(void) const;                       //!< A user-friendly description of the file type.
+  bool                          isComplexFile(void) const;                      //!< True if this file has multiple streams or is >= 10 min.
   QByteArray                    quickHash(void) const;                          //!< Returns a hash of a part of the file.
   QVariant                      metadata(const QString &key) const;             //!< Returns the requested metadata value or an empty QVariant if not present.
 

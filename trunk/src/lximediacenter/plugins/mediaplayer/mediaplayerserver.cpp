@@ -487,6 +487,33 @@ MediaPlayerServer::Item MediaPlayerServer::makeItem(const FileNode &node, int ti
       item.isDir = false;
       item.path = virtualPath(node.filePath());
 
+      if (node.isFormatProbed())
+      {
+        switch (node.fileType())
+        {
+        case SMediaInfo::ProbeInfo::FileType_Audio:
+          item.type = node.isComplexFile() ? Item::Type_Audio : Item::Type_Music;
+          break;
+
+        case SMediaInfo::ProbeInfo::FileType_Video:
+          item.type = node.isComplexFile() ? Item::Type_Movie : Item::Type_Video;
+          break;
+
+        case SMediaInfo::ProbeInfo::FileType_Disc:
+          item.type = Item::Type_Movie;
+          break;
+
+        case SMediaInfo::ProbeInfo::FileType_Image:
+          item.type = Item::Type_Image;
+          break;
+
+        case SMediaInfo::ProbeInfo::FileType_None:
+        case SMediaInfo::ProbeInfo::FileType_Directory:
+        case SMediaInfo::ProbeInfo::FileType_Drive:
+          break;
+        }
+      }
+
       if (node.isContentProbed())
       {
         const QList<FileNode::ProbeInfo::Title> &titles = node.titles();
@@ -494,22 +521,6 @@ MediaPlayerServer::Item MediaPlayerServer::makeItem(const FileNode &node, int ti
         if (!titles.isEmpty() && (titleId < titles.count()))
         {
           const FileNode::ProbeInfo::Title &title = titles[qMax(0, titleId)];
-
-          if (!title.audioStreams.isEmpty() && !title.videoStreams.isEmpty())
-          {
-            item.type = Item::Type_Video;
-          }
-          else if (!title.audioStreams.isEmpty())
-          {
-            if (title.duration.toMin() <= maxSongDurationMin)
-              item.type = Item::Type_Music;
-            else
-              item.type = Item::Type_Audio;
-          }
-          else if (!title.imageCodec.isNull())
-          {
-            item.type = Item::Type_Image;
-          }
 
           if (item.type != Item::Type_None)
           {
@@ -560,21 +571,6 @@ MediaPlayerServer::Item MediaPlayerServer::makeItem(const FileNode &node, int ti
             item.path += "/." + QString::number(qMax(0, titleId));
             item.title = tr("Title") + ' ' + QString::number(qMax(0, titleId) + 1);
           }
-        }
-      }
-      else if (node.isFormatProbed())
-      {
-        switch (node.fileType())
-        {
-        case SMediaInfo::ProbeInfo::FileType_Audio:     item.type = Item::Type_Audio; break;
-        case SMediaInfo::ProbeInfo::FileType_Disc:
-        case SMediaInfo::ProbeInfo::FileType_Video:     item.type = Item::Type_Video; break;
-        case SMediaInfo::ProbeInfo::FileType_Image:     item.type = Item::Type_Image; break;
-
-        case SMediaInfo::ProbeInfo::FileType_None:
-        case SMediaInfo::ProbeInfo::FileType_Directory:
-        case SMediaInfo::ProbeInfo::FileType_Drive:
-          break;
         }
       }
 
