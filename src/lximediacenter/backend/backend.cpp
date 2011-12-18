@@ -93,7 +93,6 @@ void Backend::start(void)
 
   // Setup SSDP server
   masterSsdpServer.initialize(SSsdpClient::localInterfaces());
-  masterSsdpServer.publish(qApp->applicationName() + QString(":server"), "/", 1);
 
   // Setup DLNA server
   masterMediaServer.initialize(&masterHttpServer, &masterSsdpServer);

@@ -71,7 +71,7 @@ protected: // From SHttpServer::Callback
   virtual SHttpServer::ResponseMessage httpRequest(const SHttpServer::RequestMessage &, QIODevice *);
 
 protected: // From BackendServer::MasterServer
-  virtual QByteArray            parseHtmlContent(const QUrl &, const QByteArray &content, const QByteArray &head) const;
+  virtual QByteArray            parseHtmlContent(const SHttpServer::RequestHeader &, const QByteArray &content, const QByteArray &head) const;
 
   virtual SHttpServer         * httpServer(void);
   virtual SSsdpServer         * ssdpServer(void);
@@ -114,6 +114,7 @@ private:
   static const char             htmlNavigatorRoot[];
   static const char             htmlNavigatorPath[];
   static const char             htmlNavigatorItem[];
+  static const char             htmlNavigatorButton[];
   static const char             htmlFrontPagesHead[];
   static const char             htmlFrontPages[];
   static const char             htmlFrontPageItem[];

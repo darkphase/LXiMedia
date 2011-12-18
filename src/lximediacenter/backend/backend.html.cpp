@@ -30,55 +30,28 @@ const char Backend::htmlIndex[] =
     "</head>\n"
     "<body>\n"
     " <div class=\"main_navigator\" id=\"navigator\">\n"
-    "  <table>\n"
-    "   <tr>\n"
-    "    <td width=\"100%\">\n"
     "{NAVIGATOR_PATH}"
-    "    </td>\n"
-    "    <td>\n"
-    "     <a href=\"/\">\n"
-    "      <img src=\"/lximedia.png\" alt=\"Home\" />\n"
-    "     </a>\n"
-    "    </td>\n"
-    "    <td>\n"
-    "     <a href=\"/settings\">\n"
-    "      <img src=\"/img/settings.png\" alt=\"Settings\" />\n"
-    "     </a>\n"
-    "    </td>\n"
-    "    <td>\n"
-    "     <a href=\"/log\">\n"
-    "      <img src=\"/img/journal.png\" alt=\"Log\" />\n"
-    "     </a>\n"
-    "    </td>\n"
-    "    <td>\n"
-    "     <a href=\"/about\">\n"
-    "      <img src=\"/img/glossary.png\" alt=\"About\" />\n"
-    "     </a>\n"
-    "    </td>\n"
-#ifndef QT_NO_DEBUG
-    "    <td>\n"
-    "     <a href=\"/exit\">\n"
-    "      <img src=\"/img/close.png\" alt=\"Exit\" />\n"
-    "     </a>\n"
-    "    </td>\n"
-#endif
-    "   </tr>\n"
-    "  </table>\n"
+    "{NAVIGATOR_BUTTONS}"
     " </div>\n"
     "{CONTENT}"
     "</body>\n"
     "</html>\n";
 
 const char Backend::htmlNavigatorRoot[] =
-    "     <h1>{_HOSTNAME}</h1>\n";
+    "  <div class=\"root\">{_HOSTNAME}</div>\n";
 
 const char Backend::htmlNavigatorPath[] =
-    "     <ul>\n"
+    "  <div class=\"path\">\n"
+    "   <ul>\n"
     "{NAVIGATOR_ITEMS}"
-    "     </ul>\n";
+    "   </ul>\n"
+    "  </div>\n";
 
 const char Backend::htmlNavigatorItem[] =
-    "      <li><a href=\"{ITEM_LINK}\">{ITEM_NAME}</a></li>\n";
+    "    <li><a href=\"{ITEM_LINK}\">{ITEM_NAME}</a></li>\n";
+
+const char Backend::htmlNavigatorButton[] =
+    "  <div><a href=\"{ITEM_LINK}\"><img src=\"{ITEM_ICON}\" alt=\"..\" /></a></div>\n";
 
 const char Backend::htmlFrontPagesHead[] =
     " <link rel=\"stylesheet\" href=\"/css/list.css\" type=\"text/css\" media=\"screen, handheld, projection\" />\n"
@@ -373,7 +346,7 @@ SHttpServer::ResponseMessage Backend::httpRequest(const SHttpServer::RequestMess
       SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
       response.setContentType(SHttpEngine::mimeTextHtml);
       response.setField("Cache-Control", "no-cache");
-      response.setContent(parseHtmlContent(request.url(), content, htmlFrontPagesHead));
+      response.setContent(parseHtmlContent(request, content, htmlFrontPagesHead));
       return response;
     }
     else if ((dir == "/css/") || (dir == "/js/") || (dir == "/img/"))
@@ -383,13 +356,13 @@ SHttpServer::ResponseMessage Backend::httpRequest(const SHttpServer::RequestMess
   return SHttpServer::ResponseMessage(request, SHttpServer::Status_NotFound);
 }
 
-QByteArray Backend::parseHtmlContent(const QUrl &url, const QByteArray &content, const QByteArray &head) const
+QByteArray Backend::parseHtmlContent(const SHttpServer::RequestHeader &request, const QByteArray &content, const QByteArray &head) const
 {
   SStringParser htmlParser(this->htmlParser);
 
   htmlParser.setField("HEAD", head);
 
-  QString path = url.path();
+  QString path = request.url().path();
   path = path.left(path.lastIndexOf('/'));
   if (!path.isEmpty())
   {
@@ -408,6 +381,38 @@ QByteArray Backend::parseHtmlContent(const QUrl &url, const QByteArray &content,
   }
   else
     htmlParser.setField("NAVIGATOR_PATH", htmlParser.parse(htmlNavigatorRoot));
+
+  htmlParser.setField("NAVIGATOR_BUTTONS", "");
+
+  const QByteArray homeAddressField = qApp->applicationName().toAscii() + ".HomeAddress";
+  if (request.hasField(homeAddressField))
+  {
+    htmlParser.setField("ITEM_LINK", request.field(homeAddressField));
+    htmlParser.setField("ITEM_ICON", "/lximedia.png");
+    htmlParser.appendField("NAVIGATOR_BUTTONS", htmlParser.parse(htmlNavigatorButton));
+  }
+
+  htmlParser.setField("ITEM_LINK", "/");
+  htmlParser.setField("ITEM_ICON", "/img/home.png");
+  htmlParser.appendField("NAVIGATOR_BUTTONS", htmlParser.parse(htmlNavigatorButton));
+
+  htmlParser.setField("ITEM_LINK", "/settings");
+  htmlParser.setField("ITEM_ICON", "/img/settings.png");
+  htmlParser.appendField("NAVIGATOR_BUTTONS", htmlParser.parse(htmlNavigatorButton));
+
+  htmlParser.setField("ITEM_LINK", "/log");
+  htmlParser.setField("ITEM_ICON", "/img/journal.png");
+  htmlParser.appendField("NAVIGATOR_BUTTONS", htmlParser.parse(htmlNavigatorButton));
+
+  htmlParser.setField("ITEM_LINK", "/about");
+  htmlParser.setField("ITEM_ICON", "/img/glossary.png");
+  htmlParser.appendField("NAVIGATOR_BUTTONS", htmlParser.parse(htmlNavigatorButton));
+
+#ifndef QT_NO_DEBUG
+  htmlParser.setField("ITEM_LINK", "/exit");
+  htmlParser.setField("ITEM_ICON", "/img/close.png");
+  htmlParser.appendField("NAVIGATOR_BUTTONS", htmlParser.parse(htmlNavigatorButton));
+#endif
 
   htmlParser.setField("CONTENT", content);
   return htmlParser.parse(htmlIndex);

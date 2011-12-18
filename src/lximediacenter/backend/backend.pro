@@ -13,7 +13,7 @@ SOURCES += main.cpp \
     sandbox.cpp
 HEADERS += $${PWD}/backend.h \
     $${PWD}/sandbox.h
-RESOURCES = backend.qrc
+RESOURCES = ../resources/backend.qrc
 
 # Platform specific
 unix { 

@@ -17,7 +17,7 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include "trayicon.h"
+#include "frontend.h"
 
 int main(int argc, char *argv[])
 {
@@ -29,16 +29,10 @@ int main(int argc, char *argv[])
 #include "_version.h"
       );
 
-  qapp.setQuitOnLastWindowClosed(false);
-
-#if !defined(DEBUG_USE_LOCAL_SANDBOX)
-  SApplication mediaApp(true, QStringList() << "lxistream" << "lxistreamgui");
-#else
   SApplication mediaApp(true);
-#endif
 
-  TrayIcon * const trayIcon = new TrayIcon();
-  trayIcon->show();
+  Frontend * const frontend = new Frontend();
+  frontend->show();
 
   return qapp.exec();
 }
