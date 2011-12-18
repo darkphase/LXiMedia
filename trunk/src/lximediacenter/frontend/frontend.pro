@@ -1,12 +1,12 @@
 TEMPLATE = app
-QT += network xml
+QT += network webkit xml
 LXIMEDIA_DIR = ../../..
 DESTDIR = $${OUT_PWD}/$${LXIMEDIA_DIR}/bin
 
 macx {
   TARGET = LXiMediaCenter
 } else {
-  TARGET = lximctrayicon
+  TARGET = lximcfrontend
 }
 
 include($${PWD}/$${LXIMEDIA_DIR}/include/config.pri)
@@ -19,9 +19,10 @@ macx {
 
 # Files
 SOURCES += main.cpp \
- trayicon.cpp
-
-HEADERS += trayicon.h
+ frontend.cpp \
+ frontend.html.cpp
+HEADERS += frontend.h
+RESOURCES = ../resources/frontend.qrc
 
 unix {
   !macx {
@@ -33,7 +34,7 @@ unix {
 win32 {
   LIBS += -lws2_32
   CONFIG += windows
-  RC_FILE = trayicon.rc
+  RC_FILE = frontend.rc
 }
 
 # Windows specific

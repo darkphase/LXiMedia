@@ -34,7 +34,7 @@ public:
   class LXIMEDIACENTER_PUBLIC MasterServer
   {
   public:
-    virtual QByteArray          parseHtmlContent(const QUrl &url, const QByteArray &content, const QByteArray &head) const = 0;
+    virtual QByteArray          parseHtmlContent(const SHttpServer::RequestHeader &, const QByteArray &content, const QByteArray &head) const = 0;
 
     virtual SHttpServer       * httpServer(void) = 0;
     virtual SSsdpServer       * ssdpServer(void) = 0;
@@ -80,7 +80,7 @@ public:
 public:
   SHttpServer::ResponseMessage  makeResponse(const SHttpServer::RequestHeader &, const QByteArray &, const char * = SHttpEngine::mimeAppOctet, bool allowCache = false) const;
   SHttpServer::ResponseMessage  makeResponse(const SHttpServer::RequestHeader &, const QString &, const char * = SHttpEngine::mimeTextPlain, bool allowCache = false) const;
-  SHttpServer::ResponseMessage  makeHtmlContent(const SHttpServer::RequestHeader &, const QUrl &, const QByteArray &content, const QByteArray &head = QByteArray()) const;
+  SHttpServer::ResponseMessage  makeHtmlContent(const SHttpServer::RequestHeader &, const QByteArray &content, const QByteArray &head = QByteArray()) const;
 
 public:
   static const int              maxRequestTime;

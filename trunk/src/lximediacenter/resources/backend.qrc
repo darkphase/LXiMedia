@@ -25,5 +25,6 @@
         <file>img/checksome.png</file>
         <file>img/checksomedisabled.png</file>
         <file>img/search.png</file>
+        <file>img/home.png</file>
     </qresource>
 </RCC>

@@ -48,7 +48,7 @@ div.list_details {
 }
 .list_details div.thumbnail {
  padding: 0;
- margin: 0.5em 0.5em 0.5em 0.5em;
+ margin: 0.5em;
  width: 8em;
  height: 8em;
  border: 1px solid #D0D0D0;
@@ -56,14 +56,14 @@ div.list_details {
 }
 .list_details div.title {
  padding: 0;
- margin: 0.5em 0.5em 0.5em 0.5em;
+ margin: 0.5em;
  float: none;
  overflow: hidden;
  font-size: 1em;
 }
 .list_details div.text {
  padding: 0;
- margin: 0.5em 0.5em 0.5em 0.5em;
+ margin: 0.5em;
  float: none;
  overflow: hidden;
 }

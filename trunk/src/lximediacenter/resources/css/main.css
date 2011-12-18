@@ -24,29 +24,28 @@ a.hidden:active   { color: #000000; text-decoration: none; }
 a.hidden:hover    { color: #000000; text-decoration: none; }
 
 div.main_navigator {
- padding: 0;
- margin: 0;
- width: 100%;
- display: block;
-}
-.main_navigator table {
  padding: 0.5em 0 0 0;
- margin: 0;
- width: 100%;
+ margin: 0 ;
+ margin-left: auto; 
+ margin-right: auto;
+ display: table;
  border: 1px solid #FFFFFF;
  border-bottom-color: #808080;
 }
-.main_navigator td {
+.main_navigator div {
  padding: 0;
  margin: 0;
  vertical-align: bottom;
+ display: table-cell;
 }
-.main_navigator h1 {
- padding: 0;
- margin: 0;
+.main_navigator div.root {
+ width: 100%;
  font-size: 2em;
  font-weight: bold;
  color: #808080;
+}
+.main_navigator div.path {
+ width: 100%;
 }
 .main_navigator ul {
  padding: 0;

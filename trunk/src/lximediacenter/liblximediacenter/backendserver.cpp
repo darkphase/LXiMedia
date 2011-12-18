@@ -95,14 +95,14 @@ SHttpServer::ResponseMessage BackendServer::makeResponse(const SHttpServer::Requ
   return makeResponse(request, data.toUtf8(), mime, allowCache);
 }
 
-SHttpServer::ResponseMessage BackendServer::makeHtmlContent(const SHttpServer::RequestHeader &request, const QUrl &url, const QByteArray &content, const QByteArray &head) const
+SHttpServer::ResponseMessage BackendServer::makeHtmlContent(const SHttpServer::RequestHeader &request, const QByteArray &content, const QByteArray &head) const
 {
   SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
   response.setContentType(SHttpEngine::mimeTextHtml);
   response.setField("Cache-Control", "no-cache");
 
   if (!request.isHead())
-    response.setContent(d->masterServer->parseHtmlContent(url, content, head));
+    response.setContent(d->masterServer->parseHtmlContent(request, content, head));
 
   return response;
 }

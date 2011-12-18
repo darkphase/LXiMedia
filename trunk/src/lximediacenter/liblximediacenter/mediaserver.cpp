@@ -310,7 +310,7 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
         return makeResponse(request, buildListItems(thumbItems), SHttpEngine::mimeTextHtml, false);
       }
       else
-        return makeHtmlContent(request, request.url(), buildListLoader(request.file(), listType(request.file())), htmlListHead);
+        return makeHtmlContent(request, buildListLoader(request.file(), listType(request.file())), htmlListHead);
     }
     else if (request.url().hasQueryItem("player"))
     {

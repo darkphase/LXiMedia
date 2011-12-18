@@ -25,7 +25,7 @@ RequestExecutionLevel admin
 Section "-Stop Apps" SecStop
   ExecWait 'net stop "LXiMediaCenter Backend"'
   ExecWait 'cmd /C "taskkill /F /IM lximcbackend.exe || tskill lximcbackend.exe /A"'
-  ExecWait 'cmd /C "taskkill /F /IM lximctrayicon.exe || tskill lximctrayicon.exe /A"'
+  ExecWait 'cmd /C "taskkill /F /IM lximcfrontend.exe || tskill lximcfrontend.exe /A"'
 SectionEnd
 
 Section "-Shared Files" SecShared
@@ -55,10 +55,8 @@ Section "-Shared Files" SecShared
   SetOverwrite ifnewer
   File lximedia\lxistream_*.dll
 
-  ; For backwards compatibility with 0.1.x versions, can be removed in the future.
-  RMDir /r /REBOOTOK "$%ALLUSERSPROFILE%\Application Data\lximc"
-  RMDir /r /REBOOTOK "$INSTDIR\liblxistream"
-  RMDir /r /REBOOTOK "$INSTDIR\lximediacenter"
+  ; For backwards compatibility with 0.2.x versions, can be removed in the future.
+  RMDir /r "$%ALLUSERSPROFILE%\..\LocalService\Local Settings\Application Data\LXiMediaCenter"
 
   WriteUninstaller "$INSTDIR\Uninstall.exe"
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\LXiMediaCenter" "DisplayName" "LeX-Interactive MediaCenter"
@@ -80,15 +78,14 @@ Section "Backend service" SecBackend
   ExecWait 'net start "LXiMediaCenter Backend"'
 SectionEnd
 
-Section "Systemtray icon" SecTrayIcon
+Section "Frontend application" SecFrontend
   SetOutPath $INSTDIR
   SetOverwrite ifnewer
-  File lximctrayicon.exe
+  File lximcfrontend.exe
 
-  nsisFirewall::AddAuthorizedApplication "$INSTDIR\lximctrayicon.exe" "LeX-Interactive MediaCenter - Tray icon"
+  nsisFirewall::AddAuthorizedApplication "$INSTDIR\lximcfrontend.exe" "LeX-Interactive MediaCenter - Frontend application"
 
-  WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "LXiMediaCenterTrayIcon" '"$INSTDIR\lximctrayicon.exe"'
-  Exec '"$INSTDIR\lximctrayicon.exe"'
+  Exec '"$INSTDIR\lximcfrontend.exe" --welcome'
 SectionEnd
 
 Section "Uninstall"
@@ -96,21 +93,14 @@ Section "Uninstall"
 
   ExecWait 'net stop "LXiMediaCenter Backend"'
   ExecWait 'cmd /C "taskkill /F /IM lximcbackend.exe || tskill lximcbackend.exe /A"'
-  ExecWait 'cmd /C "taskkill /F /IM lximctrayicon.exe || tskill lximctrayicon.exe /A"'
+  ExecWait 'cmd /C "taskkill /F /IM lximcfrontend.exe || tskill lximcfrontend.exe /A"'
 
   ExecWait '"$INSTDIR\lximcbackend.exe" --uninstall'
-  
-  DeleteRegValue HKLM "Software\Microsoft\Windows\CurrentVersion\Run" "LXiMediaCenterTrayIcon"
 
   nsisFirewall::RemoveAuthorizedApplication "$INSTDIR\lximcbackend.exe"
-  nsisFirewall::RemoveAuthorizedApplication "$INSTDIR\lximctrayicon.exe"
+  nsisFirewall::RemoveAuthorizedApplication "$INSTDIR\lximcfrontend.exe"
 
   RMDir /r /REBOOTOK "$INSTDIR"
 
   DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\LXiMediaCenter"
-  
-  MessageBox MB_YESNO "Would you like to keep the existing settings and databases? Note that building a new database might take several hours." /SD IDYES IDYES noRemoveDb
-    RMDir /r "$%ALLUSERSPROFILE%\..\LocalService\Local Settings\Application Data\LXiMediaCenter"
-  noRemoveDb:
-  
 SectionEnd
