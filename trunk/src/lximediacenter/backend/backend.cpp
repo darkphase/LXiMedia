@@ -81,24 +81,7 @@ void Backend::start(void)
   // Setup HTTP server
   masterHttpServer.registerCallback("/", this);
 
-  // Setup default palette.
-  HtmlParser::Palette palette;
-//  palette.window      = HtmlParser::Palette::Rgb(240, 240, 255);
-//  palette.windowText  = HtmlParser::Palette::Rgb(  0,   0,   0);
-//  palette.base        = HtmlParser::Palette::Rgb(160, 160, 192);
-//  palette.altBase     = HtmlParser::Palette::Rgb(128, 128, 160);
-//  palette.text        = HtmlParser::Palette::Rgb( 32,  32,  48);
-//  palette.button      = HtmlParser::Palette::Rgb( 64,  64,  80);
-//  palette.buttonText  = HtmlParser::Palette::Rgb(255, 255, 255);
-  palette.window      = HtmlParser::Palette::Rgb(160, 160, 192);
-  palette.windowText  = HtmlParser::Palette::Rgb( 32,  32,  48);
-  palette.base        = HtmlParser::Palette::Rgb(240, 240, 255);
-  palette.altBase     = HtmlParser::Palette::Rgb(224, 224, 240);
-  palette.text        = HtmlParser::Palette::Rgb(  0,   0,   0);
-  palette.button      = HtmlParser::Palette::Rgb( 64,  64,  80);
-  palette.buttonText  = HtmlParser::Palette::Rgb(255, 255, 255);
-
-  HtmlParser::setPalette(palette);
+  // Setup template parsers
   cssParser.clear();
   htmlParser.clear();
   htmlParser.setField("_PRODUCT", qApp->applicationName());

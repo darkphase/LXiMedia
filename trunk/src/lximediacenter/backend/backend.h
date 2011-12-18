@@ -103,8 +103,8 @@ private:
 
   const QString                 sandboxApplication;
 
-  HtmlParser                    cssParser;
-  HtmlParser                    htmlParser;
+  SStringParser                 cssParser;
+  SStringParser                 htmlParser;
   QList<BackendServer *>        backendServers;
 
   SSandboxClient              * initSandbox;

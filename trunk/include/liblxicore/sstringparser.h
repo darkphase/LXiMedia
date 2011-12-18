@@ -25,12 +25,45 @@
 
 namespace LXiCore {
 
-/*! This class provides several basig string operations.
+/*! This class provides a simple template engine and several basic string
+    operations. The template engine will replace fields between curly brackets
+    by variables, for example:
+    \code
+      SStringParser p;
+      p.setField("VAR", "world");
+      qDebug() << p.parse("hello {VAR}"); // -> "hello world"
+    \endcode
  */
 class LXICORE_PUBLIC SStringParser
 {
 public:
+  explicit                      SStringParser(bool enableEscapeXml = true);
+                                ~SStringParser();
+
+                                SStringParser(const SStringParser &);
+  SStringParser               & operator=(const SStringParser &);
+
+  void                          clear(void);
+
+  void                          setField(const char *, const char *);
+  void                          setField(const char *, const QByteArray &);
+  void                          setField(const char *, const QString &);
+  void                          setField(const char *, const QUrl &);
+  void                          appendField(const char *, const char *);
+  void                          appendField(const char *, const QByteArray &);
+  void                          appendField(const char *, const QString &);
+  void                          appendField(const char *, const QUrl &);
+  void                          clearField(const char *);
+  void                          copyField(const char *, const char *);
+  QByteArray                    field(const char *) const;
+
+  QByteArray                    parse(const QByteArray &) const;
+
+public:
   static bool                   isUtf8(const QByteArray &);
+
+  static QByteArray             escapeXml(const QByteArray &);
+  static QByteArray             escapeXml(const QString &);
 
   static QString                removeControl(const QString &);
   static QStringList            removeControl(const QStringList &);
@@ -53,6 +86,10 @@ public:
   static const char           * languageOf(const QString &);
   static QString                iso639Language(const QString &);
   static QString                iso639Language(const char *);
+
+private:
+  struct Data;
+  Data                  * const d;
 };
 
 } // End of namespaces

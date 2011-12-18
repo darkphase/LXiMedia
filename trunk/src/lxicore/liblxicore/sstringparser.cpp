@@ -21,6 +21,120 @@
 
 namespace LXiCore {
 
+struct SStringParser::Data
+{
+  QMap<QByteArray, QByteArray>  fields;
+  bool                          enableEscapeXml;
+};
+
+SStringParser::SStringParser(bool enableEscapeXml)
+  : d(new Data())
+{
+  d->enableEscapeXml = enableEscapeXml;
+}
+
+SStringParser::~SStringParser()
+{
+  delete d;
+  *const_cast<Data **>(&d) = NULL;
+}
+
+SStringParser::SStringParser(const SStringParser &from)
+  : d(new Data())
+{
+  d->fields = from.d->fields;
+  d->enableEscapeXml = from.d->enableEscapeXml;
+}
+
+SStringParser & SStringParser::operator=(const SStringParser &from)
+{
+  d->fields = from.d->fields;
+  d->enableEscapeXml = from.d->enableEscapeXml;
+
+  return *this;
+}
+
+void SStringParser::clear(void)
+{
+  d->fields.clear();
+}
+
+void SStringParser::setField(const char *name, const char *content)
+{
+  d->fields[name] = content;
+}
+
+void SStringParser::setField(const char *name, const QByteArray &content)
+{
+  d->fields[name] = content;
+}
+
+void SStringParser::setField(const char *name, const QString &content)
+{
+  if (d->enableEscapeXml)
+    d->fields[name] = escapeXml(content);
+  else
+    d->fields[name] = content.toUtf8();
+}
+
+void SStringParser::setField(const char *name, const QUrl &content)
+{
+  if (d->enableEscapeXml)
+    d->fields[name] = escapeXml(content.toEncoded());
+  else
+    d->fields[name] = content.toEncoded();
+}
+
+void SStringParser::appendField(const char *name, const char *content)
+{
+  d->fields[name] += content;
+}
+
+void SStringParser::appendField(const char *name, const QByteArray &content)
+{
+  d->fields[name] += content;
+}
+
+void SStringParser::appendField(const char *name, const QString &content)
+{
+  if (d->enableEscapeXml)
+    d->fields[name] += escapeXml(content);
+  else
+    d->fields[name] += content.toUtf8();
+}
+
+void SStringParser::appendField(const char *name, const QUrl &content)
+{
+  if (d->enableEscapeXml)
+    d->fields[name] += escapeXml(content.toEncoded());
+  else
+    d->fields[name] += content.toEncoded();
+}
+
+void SStringParser::clearField(const char *name)
+{
+  d->fields.remove(name);
+}
+
+void SStringParser::copyField(const char *to, const char *from)
+{
+  d->fields[to] = d->fields[from];
+}
+
+QByteArray SStringParser::field(const char *name) const
+{
+  return d->fields[name];
+}
+
+QByteArray SStringParser::parse(const QByteArray &data) const
+{
+  QByteArray result = data;
+  for (QMap<QByteArray, QByteArray>::const_iterator i=d->fields.begin(); i!=d->fields.end(); i++)
+    result.replace("{" + i.key() + "}", *i);
+
+  return result;
+}
+
 /*! Returns true if the string is a valid UTF8 string, otherwise returns false.
  */
 bool SStringParser::isUtf8(const QByteArray &text)
@@ -75,6 +189,22 @@ bool SStringParser::isUtf8(const QByteArray &text)
   }
 
   return true;
+}
+
+/*! Ensures a string is properly escaped for use in XML.
+ */
+QByteArray SStringParser::escapeXml(const QByteArray &data)
+{
+  QByteArray result = data;
+
+  return result.replace("&amp;", "&").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
+}
+
+/*! Ensures a string is properly escaped for use in XML.
+ */
+QByteArray SStringParser::escapeXml(const QString &data)
+{
+  return escapeXml(data.toUtf8());
 }
 
 /*! Returns a string with only printable characters; all control characters are

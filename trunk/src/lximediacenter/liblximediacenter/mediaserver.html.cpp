@@ -18,7 +18,6 @@
  ***************************************************************************/
 
 #include "mediaserver.h"
-#include "htmlparser.h"
 
 namespace LXiMediaCenter {
 
@@ -144,20 +143,20 @@ const char MediaServer::htmlPlayer[] =
 
 QByteArray MediaServer::buildListLoader(const QString &path, ListType listType)
 {
-  HtmlParser htmlParser;
+  SStringParser htmlParser;
 
   switch(listType)
   {
   case ListType_Thumbnails:
-    htmlParser.setField("LIST_TYPE", QByteArray("thumbnails"));
+    htmlParser.setField("LIST_TYPE", "thumbnails");
     break;
 
   case ListType_Details:
-    htmlParser.setField("LIST_TYPE", QByteArray("details"));
+    htmlParser.setField("LIST_TYPE", "details");
     break;
   }
 
-  htmlParser.setField("PATH", QUrl(path).toEncoded());
+  htmlParser.setField("PATH", QUrl(path));
   htmlParser.setField("LOAD_ITEM_COUNT", QString::number(loadItemCount()));
 
   return htmlParser.parse(htmlListLoader);
@@ -165,27 +164,27 @@ QByteArray MediaServer::buildListLoader(const QString &path, ListType listType)
 
 QByteArray MediaServer::buildListItems(const ThumbnailListItemList &items)
 {
-  HtmlParser htmlParser;
+  SStringParser htmlParser;
 
   QByteArray result;
   foreach (const ThumbnailListItem &item, items)
   {
     htmlParser.setField("ITEM_TITLE", item.title);
 
-    htmlParser.setField("ITEM_TEXT", QByteArray(""));
+    htmlParser.setField("ITEM_TEXT", "");
     foreach (const QString &text, item.text)
     {
       htmlParser.setField("TEXT_LINE", text);
       htmlParser.appendField("ITEM_TEXT", htmlParser.parse(htmlListItemTextLine));
     }
 
-    htmlParser.setField("ITEM_ICONURL", item.iconurl.toEncoded());
+    htmlParser.setField("ITEM_ICONURL", item.iconurl);
 
     if (!item.url.isEmpty())
     {
       if (item.func.isEmpty())
       {
-        htmlParser.setField("ITEM_URL", item.url.toEncoded());
+        htmlParser.setField("ITEM_URL", item.url);
         result += htmlParser.parse(item.title.isEmpty() ? htmlListItemLinkNoTitle : htmlListItemLink);
       }
       else
@@ -204,12 +203,12 @@ QByteArray MediaServer::buildListItems(const ThumbnailListItemList &items)
 
 SHttpServer::ResponseMessage MediaServer::buildAudioPlayer(const SHttpServer::RequestMessage &request)
 {
-  HtmlParser htmlParser;
+  SStringParser htmlParser;
 
   QString path = request.file();
   path = path.left(path.lastIndexOf('/') + 1);
-  htmlParser.setField("PATH", QUrl(path).toEncoded());
-  htmlParser.setField("ITEM_URL", QUrl(request.file()).toEncoded());
+  htmlParser.setField("PATH", QUrl(path));
+  htmlParser.setField("ITEM_URL", QUrl(request.file()));
 
   const Item item = getItem(request.file());
   htmlParser.setField("ITEM_TITLE", item.title);
@@ -227,19 +226,19 @@ SHttpServer::ResponseMessage MediaServer::buildAudioPlayer(const SHttpServer::Re
 
 SHttpServer::ResponseMessage MediaServer::buildPlayer(const SHttpServer::RequestMessage &request)
 {
-  HtmlParser htmlParser;
+  SStringParser htmlParser;
 
   QString path = request.file();
   path = path.left(path.lastIndexOf('/') + 1);
-  htmlParser.setField("PATH", QUrl(path).toEncoded());
+  htmlParser.setField("PATH", QUrl(path));
   htmlParser.setField("LOAD_ITEM_COUNT", QString::number(loadItemCount()));
-  htmlParser.setField("ITEM_URL", QUrl(request.file()).toEncoded());
+  htmlParser.setField("ITEM_URL", QUrl(request.file()));
 
   const Item item = getItem(request.file());
   if ((int(item.type) / 10) == 2)
-    htmlParser.setField("ITEM_TYPE", QByteArray("Video"));
+    htmlParser.setField("ITEM_TYPE", "Video");
   else if ((int(item.type) / 10) == 3)
-    htmlParser.setField("ITEM_TYPE", QByteArray("Image"));
+    htmlParser.setField("ITEM_TYPE", "Image");
 
   SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
   response.setField("Cache-Control", "no-cache");

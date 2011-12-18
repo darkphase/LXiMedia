@@ -18,7 +18,6 @@
  ***************************************************************************/
 
 #include "mediaserver.h"
-#include "htmlparser.h"
 #include "mediastream.h"
 #include <LXiStreamGui>
 

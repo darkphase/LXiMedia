@@ -102,8 +102,8 @@ QByteArray MediaPlayerServer::frontPageContent(void)
 {
   if (!rootPaths.isEmpty())
   {
-    HtmlParser htmlParser;
-    htmlParser.setField("SERVER_PATH", QUrl(serverPath()).toEncoded());
+    SStringParser htmlParser;
+    htmlParser.setField("SERVER_PATH", QUrl(serverPath()));
 
     return htmlParser.parse(htmlFrontPageContent);
   }
@@ -116,8 +116,8 @@ QByteArray MediaPlayerServer::settingsContent(void)
   QSettings settings;
   settings.beginGroup(Module::pluginName);
 
-  HtmlParser htmlParser;
-  htmlParser.setField("SERVER_PATH", QUrl(serverPath()).toEncoded());
+  SStringParser htmlParser;
+  htmlParser.setField("SERVER_PATH", QUrl(serverPath()));
   htmlParser.setField("TR_MEDIAPLAYER", tr(Module::pluginName));
   htmlParser.setField("TR_SLIDEDURATION", tr("Photo slideshow slide duration"));
   htmlParser.setField("TR_SAVE", tr("Save"));
@@ -146,7 +146,7 @@ QByteArray MediaPlayerServer::settingsContent(void)
   return htmlParser.parse(htmlSettingsMain);
 }
 
-void MediaPlayerServer::generateDirs(HtmlParser &htmlParser, const QFileInfoList &dirs, int indent, const QStringList &allopen, const QStringList &rootPaths)
+void MediaPlayerServer::generateDirs(SStringParser &htmlParser, const QFileInfoList &dirs, int indent, const QStringList &allopen, const QStringList &rootPaths)
 {
   foreach (const QFileInfo &info, dirs)
   if (!info.fileName().startsWith('.'))
@@ -164,7 +164,7 @@ void MediaPlayerServer::generateDirs(HtmlParser &htmlParser, const QFileInfoList
     htmlParser.setField("DIR_FULLPATH", absoluteName.toUtf8().toHex());
 
     // Indentation
-    htmlParser.setField("DIR_INDENT", QByteArray(""));
+    htmlParser.setField("DIR_INDENT", "");
     for (int i=0; i<indent; i++)
       htmlParser.appendField("DIR_INDENT", htmlParser.parse(htmlSettingsDirTreeIndent));
 
@@ -182,12 +182,12 @@ void MediaPlayerServer::generateDirs(HtmlParser &htmlParser, const QFileInfoList
         else
           i++;
 
-        htmlParser.setField("DIR_OPEN", QByteArray("open"));
+        htmlParser.setField("DIR_OPEN", "open");
       }
       else
       {
         all.append(absoluteName);
-        htmlParser.setField("DIR_OPEN", QByteArray("close"));
+        htmlParser.setField("DIR_OPEN", "close");
       }
 
       htmlParser.setField("DIR_ALLOPEN", qCompress(all.join(QString(dirSplit)).toUtf8()).toHex());
@@ -196,46 +196,46 @@ void MediaPlayerServer::generateDirs(HtmlParser &htmlParser, const QFileInfoList
 
     // Check
     bool checkEnabled = true;
-    htmlParser.setField("DIR_CHECKED", QByteArray("none"));
-    htmlParser.setField("DIR_CHECKTYPE", QByteArray("checkon"));
+    htmlParser.setField("DIR_CHECKED", "none");
+    htmlParser.setField("DIR_CHECKTYPE", "checkon");
     foreach (const QString &root, rootPaths)
     {
       if (root.compare(absoluteName, caseSensitivity) == 0)
       {
-        htmlParser.setField("DIR_CHECKED", QByteArray("full"));
-        htmlParser.setField("DIR_CHECKTYPE", QByteArray("checkoff"));
+        htmlParser.setField("DIR_CHECKED", "full");
+        htmlParser.setField("DIR_CHECKTYPE", "checkoff");
         checkEnabled = true;
         break;
       }
       else if (root.startsWith(absoluteName, caseSensitivity))
       {
-        htmlParser.setField("DIR_CHECKED", QByteArray("some"));
-        htmlParser.setField("DIR_TITLE", QByteArray("A child is selected"));
+        htmlParser.setField("DIR_CHECKED", "some");
+        htmlParser.setField("DIR_TITLE", "A child is selected");
         checkEnabled = false;
       }
       else if (absoluteName.startsWith(root, caseSensitivity))
       {
-        htmlParser.setField("DIR_CHECKED", QByteArray("fulldisabled"));
-        htmlParser.setField("DIR_TITLE", QByteArray("A parent is selected"));
+        htmlParser.setField("DIR_CHECKED", "fulldisabled");
+        htmlParser.setField("DIR_TITLE", "A parent is selected");
         checkEnabled = false;
       }
     }
 
     if (isHidden(absoluteName))
     {
-      htmlParser.appendField("DIR_CHECKED", QByteArray("disabled"));
+      htmlParser.appendField("DIR_CHECKED", "disabled");
       htmlParser.setField("DIR_TITLE", tr("This system directory can not be selected"));
       checkEnabled = false;
     }
     else if (!info.isReadable() || !info.isExecutable())
     {
-      htmlParser.appendField("DIR_CHECKED", QByteArray("disabled"));
+      htmlParser.appendField("DIR_CHECKED", "disabled");
       htmlParser.setField("DIR_TITLE", tr("Access denied"));
       checkEnabled = false;
     }
     else if (indent == 0)
     {
-      htmlParser.appendField("DIR_CHECKED", QByteArray("disabled"));
+      htmlParser.appendField("DIR_CHECKED", "disabled");
       htmlParser.setField("DIR_TITLE", tr("The root can not be selected"));
       checkEnabled = false;
     }
@@ -351,9 +351,9 @@ SHttpServer::ResponseMessage MediaPlayerServer::httpRequest(const SHttpServer::R
         setRootPaths(paths);
       }
 
-      HtmlParser htmlParser;
-      htmlParser.setField("SERVER_PATH", QUrl(serverPath()).toEncoded());
-      htmlParser.setField("DIRS", QByteArray(""));
+      SStringParser htmlParser;
+      htmlParser.setField("SERVER_PATH", QUrl(serverPath()));
+      htmlParser.setField("DIRS", "");
       generateDirs(htmlParser, driveInfoList.values(), 0, allopen, paths);
 
       SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
