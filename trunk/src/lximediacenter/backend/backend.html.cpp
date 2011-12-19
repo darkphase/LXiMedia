@@ -110,6 +110,18 @@ const char Backend::htmlAbout[] =
     "{ABOUT_LXIMEDIA}"
     " </div>\n";
 
+const char Backend::htmlSetupDeviceIntro[] =
+    " <div class=\"main_settings\">\n"
+    "  <p>{TR_SETUPDEVICE_EXPLAIN}</p>\n"
+    "  <p><a href=\"setupdevice?selectdevice=\">{TR_START}</a></p>\n"
+    " </div>\n";
+
+const char Backend::htmlSetupDeviceSelectDevice[] =
+    " <div class=\"main_settings\">\n"
+    "  <p>{TR_SELECTDEVICE_EXPLAIN}</p>\n"
+    "  <p><a href=\"setupdevice?selectdevice=\">{TR_START}</a></p>\n"
+    " </div>\n";
+
 const char Backend::htmlSettingsMain[] =
     " <div class=\"main_settings\">\n"
     "  <fieldset>\n"
@@ -267,6 +279,10 @@ SHttpServer::ResponseMessage Backend::httpRequest(const SHttpServer::RequestMess
 
         content = htmlParser.parse(htmlFrontPages);
       }
+      else if (request.fileName() == "setupdevice")
+      {
+        content = handleHtmlSetupDevice(request);
+      }
       else if (request.fileName() == "settings")
       {
         if (request.url().hasQueryItem("save_settings"))
@@ -416,6 +432,35 @@ QByteArray Backend::parseHtmlContent(const SHttpServer::RequestHeader &request, 
 
   htmlParser.setField("CONTENT", content);
   return htmlParser.parse(htmlIndex);
+}
+
+QByteArray Backend::handleHtmlSetupDevice(const SHttpServer::RequestMessage &request)
+{
+  SStringParser htmlParser;
+  htmlParser.setField("TR_START", tr("Start"));
+
+  if (request.url().hasQueryItem("selectdevice"))
+  {
+    htmlParser.setField("TR_SELECTDEVICE_EXPLAIN",
+      tr("A list of DLNA devices that have connected to this server will "
+         "appear below, select the device for which a custom configuration "
+         "needs to be made. If the desired device is not listed, try to "
+         "connect to this server from the device."));
+
+    return htmlParser.parse(htmlSetupDeviceSelectDevice);
+  }
+  else
+  {
+    htmlParser.setField("TR_SETUPDEVICE_EXPLAIN",
+      tr("This will help making a custom configuration for a DLNA playback "
+         "device. Ideally, these devices should work without a special "
+         "configuration, but this is not always true for all devices. The "
+         "following steps will you to play a set of test files on the device and "
+         "provide some feedback, communication with other devices may be briefly "
+         "interrupted. Press start to begin."));
+
+    return htmlParser.parse(htmlSetupDeviceIntro);
+  }
 }
 
 QByteArray Backend::handleHtmlSettings(const SHttpServer::RequestMessage &request)
