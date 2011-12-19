@@ -85,6 +85,7 @@ private:
   static QString                defaultDeviceName(void);
 
   SHttpServer::ResponseMessage  sendFile(const SHttpServer::RequestMessage &, const QString &fileName);
+  QByteArray                    handleHtmlSetupDevice(const SHttpServer::RequestMessage &);
   QByteArray                    handleHtmlSettings(const SHttpServer::RequestMessage &);
   void                          saveHtmlSettings(const SHttpServer::RequestMessage &);
 
@@ -122,6 +123,9 @@ private:
   static const char             htmlLogFileHeadline[];
   static const char             htmlLogFileMessage[];
   static const char             htmlAbout[];
+
+  static const char             htmlSetupDeviceIntro[];
+  static const char             htmlSetupDeviceSelectDevice[];
 
   static const char             htmlSettingsMain[];
   static const char             htmlSettingsDlnaRow[];
