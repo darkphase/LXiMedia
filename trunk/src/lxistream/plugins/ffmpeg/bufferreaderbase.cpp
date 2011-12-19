@@ -279,13 +279,17 @@ BufferReaderBase::Packet BufferReaderBase::read(void)
 {
   if (packetBuffer.isEmpty())
   {
+    Packet result;
+
     ::AVPacket avPacket;
     ::av_init_packet(&avPacket);
-
     if (::av_read_frame(formatContext, &avPacket) >= 0)
-      return avPacket;
+    {
+      result = Packet(avPacket);
+      ::av_free_packet(&avPacket);
+    }
 
-    return Packet();
+    return result;
   }
   else
     return packetBuffer.takeFirst();
@@ -470,16 +474,16 @@ bool BufferReaderBase::demux(const Packet &packet)
 
 bool BufferReaderBase::buffer(void)
 {
-  ::AVPacket avPacket;
-  ::av_init_packet(&avPacket);
-
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
   formatContext->flags &= ~int(AVFMT_FLAG_NOFILLIN);
 #endif
 
+  ::AVPacket avPacket;
+  ::av_init_packet(&avPacket);
   if (::av_read_frame(formatContext, &avPacket) >= 0)
   {
     packetBuffer.append(avPacket);
+    ::av_free_packet(&avPacket);
     return true;
   }
 
