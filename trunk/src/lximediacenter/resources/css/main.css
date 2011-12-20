@@ -14,6 +14,25 @@ img {
  margin: 0;
  border: none;
 }
+p {
+ padding: 0;
+ margin: 0.5em;
+}
+p.idle {
+ font-style: italic;
+ color: #B0B0B0;
+}
+p.title {
+ margin: 0;
+ font-size: 1.5em;
+ font-style: italic;
+ font-weight: bold;
+ color: #B0B0B0;
+}
+span.idle {
+ font-style: italic;
+ color: #B0B0B0;
+}
 a:link            { color: #000000; text-decoration: underline; }
 a:visited         { color: #000000; text-decoration: underline; }
 a:active          { color: #000000; text-decoration: underline; }
@@ -81,14 +100,6 @@ div.main_frontpages {
 .main_frontpages div.frontpage {
  padding: 0.5em 0 0.5em 0;
  margin: 0;
-}
-.main_frontpages h1 {
- padding: 0;
- margin: 0;
- font-size: 1.2em;
- font-weight: bold;
- font-style: italic;
- color: #B0B0B0;
 }
 
 div.main_settings {
