@@ -760,6 +760,31 @@ public:
   virtual SVideoBuffer          processBuffer(const SVideoBuffer &) = 0;
 };
 
+/*! The SubtitleRenderer interface can be used to provide subtitle rendering.
+ */
+class LXISTREAM_PUBLIC SubtitleRenderer : public QObject
+{
+Q_OBJECT
+S_FACTORIZABLE(SubtitleRenderer)
+protected:
+  inline explicit               SubtitleRenderer(QObject *parent) : QObject(parent) { }
+
+public:
+  virtual void                  setFontRatio(float r) = 0;                      //!< Sets the relative font size (1.0 = the font will be as big as the image).
+  virtual float                 fontRatio(void) const = 0;                      //!< Returns the relative font size.
+
+  /*! Shall prepare a subtitle for rendering so that the next  invoke of
+      processBuffer() with this subtitle can be faster. This method shall return
+      immediately, the subtitle will be prepared on a thread of the global
+      QThreadPool.
+   */
+  virtual void                  prepareSubtitle(const SSubtitleBuffer &, const SSize &) = 0;
+
+  /*! Shall render the specified subtitle on the specified video buffer. If the
+      specified subtitle has not been prepared yet it will be prepared first.
+   */
+  virtual SVideoBuffer          processBuffer(const SVideoBuffer &, const SSubtitleBuffer &) = 0;
+};
 
 } } // End of namespaces
 

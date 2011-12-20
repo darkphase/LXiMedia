@@ -1,0 +1,5 @@
+<RCC>
+    <qresource prefix="/freetype">
+        <file>DejaVuSans-Bold.ttf</file>
+    </qresource>
+</RCC>

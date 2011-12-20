@@ -17,17 +17,7 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include <sys/types.h>
-#include <stdint.h>
+#include "module.h"
+#include <QtPlugin>
 
-namespace LXiStream {
-namespace Algorithms {
-
-class Subtitles
-{
-public:
-  static void blendLineY(uint8_t * y, const uint8_t * shadow, const uint8_t * text, int n);
-  static void blendLineUV(uint8_t * u, uint8_t * v, int wf, const uint8_t * text, int n);
-};
-
-} } // End of namespaces
+Q_EXPORT_PLUGIN2(lxistream_freetype, LXiStream::FreeTypeBackend::Module);

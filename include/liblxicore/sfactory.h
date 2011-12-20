@@ -193,7 +193,8 @@ QObject * SFactory::createFunc(const QString &scheme, QObject *parent)
     static QStringList available(void); \
   \
   private: \
-    static ::LXiCore::SFactory & factory(void);
+    static ::LXiCore::SFactory & factory(void); \
+    static const void * const factoryInitializer; // Used to make sure the factory is initialized after main().
 
 #define S_FACTORIZABLE(_interface) \
   public: \
@@ -216,7 +217,9 @@ QObject * SFactory::createFunc(const QString &scheme, QObject *parent)
     static ::LXiCore::SFactory f; \
     \
     return f; \
-  }
+  } \
+  \
+  const void * const _interface::factoryInitializer = &(factory());
 
 #define S_FACTORIZABLE_INSTANCE(_interface) \
   _interface * _interface::create(QObject *parent, const QString &scheme, bool nonNull) \

@@ -37,8 +37,8 @@ public:
   explicit                      SSubtitleRenderNode(SGraph *);
   virtual                       ~SSubtitleRenderNode();
 
-  unsigned                      fontRatio(void) const;
-  void                          setFontRatio(unsigned r);
+  float                         fontRatio(void) const;
+  void                          setFontRatio(float r);
 
 public: // From SInterfaces::Node
   virtual bool                  start(void);
@@ -50,13 +50,6 @@ public slots:
 
 signals:
   void                          output(const SVideoBuffer &);
-
-public:
-  void                          renderSubtitles(SVideoBuffer &, const QStringList &);
-
-private:
-  void                          renderSubtitle(SVideoBuffer *, QString line, int pos);
-  static void                   loadFonts(void);
 
 private:
   struct Data;

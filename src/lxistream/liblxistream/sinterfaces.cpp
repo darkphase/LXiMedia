@@ -36,6 +36,7 @@ S_FACTORIZABLE_INSTANCE_NO_CREATE(VideoFormatConverter);
 S_FACTORIZABLE_INSTANCE(AudioResampler);
 S_FACTORIZABLE_INSTANCE(VideoDeinterlacer);
 S_FACTORIZABLE_INSTANCE(VideoResizer);
+S_FACTORIZABLE_INSTANCE(SubtitleRenderer);
 
 
 Node::Node(SGraph *graph)

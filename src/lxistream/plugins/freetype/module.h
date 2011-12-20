@@ -1,5 +1,5 @@
 /***************************************************************************
- *   Copyright (C) 2010 by A.J. Admiraal                                   *
+ *   Copyright (C) 2011 by A.J. Admiraal                                   *
  *   code@admiraal.dds.nl                                                  *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
@@ -17,17 +17,25 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include <sys/types.h>
-#include <stdint.h>
+#ifndef FREETYPEBACKEND_MODULE_H
+#define FREETYPEBACKEND_MODULE_H
+
+#include <QtCore>
+#include <LXiStream>
 
 namespace LXiStream {
-namespace Algorithms {
+namespace FreeTypeBackend {
 
-class Subtitles
+class Module : public SModule
 {
+Q_OBJECT
 public:
-  static void blendLineY(uint8_t * y, const uint8_t * shadow, const uint8_t * text, int n);
-  static void blendLineUV(uint8_t * u, uint8_t * v, int wf, const uint8_t * text, int n);
+  virtual bool                  registerClasses(void);
+  virtual void                  unload(void);
+  virtual QByteArray            about(void);
+  virtual QByteArray            licenses(void);
 };
 
 } } // End of namespaces
+
+#endif

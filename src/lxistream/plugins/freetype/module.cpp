@@ -17,17 +17,43 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#include <sys/types.h>
-#include <stdint.h>
+#include "module.h"
+#include "subtitlerenderer.h"
 
 namespace LXiStream {
-namespace Algorithms {
+namespace FreeTypeBackend {
 
-class Subtitles
+bool Module::registerClasses(void)
 {
-public:
-  static void blendLineY(uint8_t * y, const uint8_t * shadow, const uint8_t * text, int n);
-  static void blendLineUV(uint8_t * u, uint8_t * v, int wf, const uint8_t * text, int n);
-};
+  SubtitleRenderer::registerClass<SubtitleRenderer>(1);
+
+  return true;
+}
+
+void Module::unload(void)
+{
+}
+
+QByteArray Module::about(void)
+{
+  return "FreeType plugin by A.J. Admiraal";
+}
+
+QByteArray Module::licenses(void)
+{
+  const QByteArray text =
+      "<h3>FreeType</h3>\n"
+      "Version: " + QByteArray::number(FREETYPE_MAJOR) +
+      "." + QByteArray::number(FREETYPE_MINOR) +
+      "." + QByteArray::number(FREETYPE_PATCH) + "<br />\n"
+      "Website: <a href=\"http://freetype.org/\">freetype.org</a><br />\n"
+      "<br />\n"
+      "Used under the terms of the GNU General Public License version 2\n"
+      "as published by the Free Software Foundation.\n"
+      "<h3>DejaVu Sans font</h3>\n"
+      "Website: <a href=\"http://dejavu-fonts.org/\">dejavu-fonts.org</a>\n";
+
+  return text;
+}
 
 } } // End of namespaces

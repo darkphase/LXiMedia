@@ -45,6 +45,16 @@ namespace _private {
   lxivec_always_inline __m128i add(__m128i a, int64_t b)  { return _mm_add_epi64(a, _mm_set1_epi64x(b)); }
   lxivec_always_inline __m128i add(__m128i a, uint64_t b) { return _mm_add_epi64(a, _mm_set1_epi64x(b)); }
 
+  lxivec_always_inline __m128i adds(__m128i a, __m128i b, int8_t)   { return _mm_adds_epi8(a, b); }
+  lxivec_always_inline __m128i adds(__m128i a, __m128i b, uint8_t)  { return _mm_adds_epu8(a, b); }
+  lxivec_always_inline __m128i adds(__m128i a, __m128i b, int16_t)  { return _mm_adds_epi16(a, b); }
+  lxivec_always_inline __m128i adds(__m128i a, __m128i b, uint16_t) { return _mm_adds_epu16(a, b); }
+
+  lxivec_always_inline __m128i adds(__m128i a, int8_t b)   { return _mm_adds_epi8(a, _mm_set1_epi8(b)); }
+  lxivec_always_inline __m128i adds(__m128i a, uint8_t b)  { return _mm_adds_epu8(a, _mm_set1_epi8(b)); }
+  lxivec_always_inline __m128i adds(__m128i a, int16_t b)  { return _mm_adds_epi16(a, _mm_set1_epi16(b)); }
+  lxivec_always_inline __m128i adds(__m128i a, uint16_t b) { return _mm_adds_epu16(a, _mm_set1_epi16(b)); }
+
   lxivec_always_inline __m128i sub(__m128i a, __m128i b, int8_t)   { return _mm_sub_epi8(a, b); }
   lxivec_always_inline __m128i sub(__m128i a, __m128i b, uint8_t)  { return _mm_sub_epi8(a, b); }
   lxivec_always_inline __m128i sub(__m128i a, __m128i b, int16_t)  { return _mm_sub_epi16(a, b); }
@@ -62,6 +72,16 @@ namespace _private {
   lxivec_always_inline __m128i sub(__m128i a, uint32_t b) { return _mm_sub_epi32(a, _mm_set1_epi32(b)); }
   lxivec_always_inline __m128i sub(__m128i a, int64_t b)  { return _mm_sub_epi64(a, _mm_set1_epi64x(b)); }
   lxivec_always_inline __m128i sub(__m128i a, uint64_t b) { return _mm_sub_epi64(a, _mm_set1_epi64x(b)); }
+
+  lxivec_always_inline __m128i subs(__m128i a, __m128i b, int8_t)   { return _mm_subs_epi8(a, b); }
+  lxivec_always_inline __m128i subs(__m128i a, __m128i b, uint8_t)  { return _mm_subs_epu8(a, b); }
+  lxivec_always_inline __m128i subs(__m128i a, __m128i b, int16_t)  { return _mm_subs_epi16(a, b); }
+  lxivec_always_inline __m128i subs(__m128i a, __m128i b, uint16_t) { return _mm_subs_epu16(a, b); }
+
+  lxivec_always_inline __m128i subs(__m128i a, int8_t b)   { return _mm_subs_epi8(a, _mm_set1_epi8(b)); }
+  lxivec_always_inline __m128i subs(__m128i a, uint8_t b)  { return _mm_subs_epu8(a, _mm_set1_epi8(b)); }
+  lxivec_always_inline __m128i subs(__m128i a, int16_t b)  { return _mm_subs_epi16(a, _mm_set1_epi16(b)); }
+  lxivec_always_inline __m128i subs(__m128i a, uint16_t b) { return _mm_subs_epu16(a, _mm_set1_epi16(b)); }
 #endif
 
   template <typename _type, int _count>
@@ -77,6 +97,27 @@ namespace _private {
 #endif
 
     for (; i<_count; i++)
+      dst.val[i] = a.val[i] + b.val[i];
+  }
+
+  template <typename _type, int _count>
+  lxivec_always_inline void adds(Ints<_type, _count> &dst, const Ints<_type, _count> &a, const Ints<_type, _count> &b)
+  {
+    int i = 0;
+
+#if defined(__SSE2__)
+    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
+      dst.vec[vi] = adds(a.vec[vi], b.vec[vi], dst.val[0]);
+
+    i += sizeof(dst.vec) / sizeof(dst.val[0]);
+#endif
+
+    for (; i<_count; i++)
+    if (max_val<_type>() - b.val[i] <= a.val[i])
+      dst.val[i] = max_val<_type>();
+    else if (min_val<_type>() - b.val[i] >= a.val[i])
+      dst.val[i] = min_val<_type>();
+    else
       dst.val[i] = a.val[i] + b.val[i];
   }
 
@@ -97,6 +138,27 @@ namespace _private {
   }
 
   template <typename _type, int _count>
+  lxivec_always_inline void subs(Ints<_type, _count> &dst, const Ints<_type, _count> &a, const Ints<_type, _count> &b)
+  {
+    int i = 0;
+
+#if defined(__SSE2__)
+    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
+      dst.vec[vi] = subs(a.vec[vi], b.vec[vi], dst.val[0]);
+
+    i += sizeof(dst.vec) / sizeof(dst.val[0]);
+#endif
+
+    for (; i<_count; i++)
+    if (max_val<_type>() + b.val[i] <= a.val[i])
+      dst.val[i] = max_val<_type>();
+    else if (min_val<_type>() + b.val[i] >= a.val[i])
+      dst.val[i] = min_val<_type>();
+    else
+      dst.val[i] = a.val[i] - b.val[i];
+  }
+
+  template <typename _type, int _count>
   lxivec_always_inline void add(Ints<_type, _count> &dst, const Ints<_type, _count> &a, _type b)
   {
     int i = 0;
@@ -113,6 +175,27 @@ namespace _private {
   }
 
   template <typename _type, int _count>
+  lxivec_always_inline void adds(Ints<_type, _count> &dst, const Ints<_type, _count> &a, _type b)
+  {
+    int i = 0;
+
+#if defined(__SSE2__)
+    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
+      dst.vec[vi] = adds(a.vec[vi], b);
+
+    i += sizeof(dst.vec) / sizeof(dst.val[0]);
+#endif
+
+    for (; i<_count; i++)
+    if (max_val<_type>() - b <= a.val[i])
+      dst.val[i] = max_val<_type>();
+    else if (min_val<_type>() - b >= a.val[i])
+      dst.val[i] = min_val<_type>();
+    else
+      dst.val[i] = a.val[i] + b;
+  }
+
+  template <typename _type, int _count>
   lxivec_always_inline void sub(Ints<_type, _count> &dst, const Ints<_type, _count> &a, _type b)
   {
     int i = 0;
@@ -125,6 +208,27 @@ namespace _private {
 #endif
 
     for (; i<_count; i++)
+      dst.val[i] = a.val[i] - b;
+  }
+
+  template <typename _type, int _count>
+  lxivec_always_inline void subs(Ints<_type, _count> &dst, const Ints<_type, _count> &a, _type b)
+  {
+    int i = 0;
+
+#if defined(__SSE2__)
+    for (int vi = 0; vi < int(sizeof(dst.vec) / sizeof(dst.vec[0])); vi++)
+      dst.vec[vi] = subs(a.vec[vi], b);
+
+    i += sizeof(dst.vec) / sizeof(dst.val[0]);
+#endif
+
+    for (; i<_count; i++)
+    if (max_val<_type>() + b <= a.val[i])
+      dst.val[i] = max_val<_type>();
+    else if (min_val<_type>() + b >= a.val[i])
+      dst.val[i] = min_val<_type>();
+    else
       dst.val[i] = a.val[i] - b;
   }
 
