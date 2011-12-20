@@ -192,6 +192,40 @@ namespace _private {
   }
 
   template <typename _type, int _count>
+  lxivec_always_inline void loadu(Ints<_type, _count> &dst, const _type *p, int max = _count)
+  {
+    max = max >= _count ? _count : max;
+    int i = 0;
+
+#if defined(__SSE2__)
+    for (int vi = 0; (vi < int(sizeof(dst.vec) / sizeof(dst.vec[0]))) && (vi <= int(max / (sizeof(dst.vec[0]) / sizeof(*p)))); vi++)
+      dst.vec[vi] = _mm_loadu_si128(reinterpret_cast<const __m128i *>(p) + vi);
+
+    i += sizeof(dst.vec) / sizeof(*p);
+#endif
+
+    for (; i<max; i++)
+      dst.val[i] = p[i];
+  }
+
+  template <typename _type, int _count>
+  lxivec_always_inline void storeu(_type *p, const Ints<_type, _count> &src, int max = _count)
+  {
+    max = max >= _count ? _count : max;
+    int i = 0;
+
+#if defined(__SSE2__)
+    for (int vi = 0; (vi < int(sizeof(src.vec) / sizeof(src.vec[0]))) && (vi <= int(max / (sizeof(src.vec[0]) / sizeof(*p)))); vi++)
+      _mm_storeu_si128(reinterpret_cast<__m128i *>(p) + vi, src.vec[vi]);
+
+    i += sizeof(src.vec) / sizeof(*p);
+#endif
+
+    for (; i<max; i++)
+      p[i] = src.val[i];
+  }
+
+  template <typename _type, int _count>
   lxivec_always_inline void copy(Ints<_type, _count> &dst, const Ints<_type, _count> &src)
   {
     int i = 0;
@@ -206,127 +240,110 @@ namespace _private {
     for (; i<_count; i++)
       dst.val[i] = src.val[i];
   }
-
-  lxivec_always_inline int8_t saturate_int8(int16_t v)
+  
+  template <typename _type> lxivec_always_inline _type max_val();
+  template <> lxivec_always_inline int8_t max_val<int8_t>() { return 0x7F; }
+  template <> lxivec_always_inline uint8_t max_val<uint8_t>() { return 0xFF; }
+  template <> lxivec_always_inline int16_t max_val<int16_t>() { return 0x7FFF; }
+  template <> lxivec_always_inline uint16_t max_val<uint16_t>() { return 0xFFFF; }
+  template <> lxivec_always_inline int32_t max_val<int32_t>() { return 0x7FFFFFFF; }
+  template <> lxivec_always_inline uint32_t max_val<uint32_t>() { return 0xFFFFFFFFu; }
+  template <> lxivec_always_inline int64_t max_val<int64_t>() { return 0x7FFFFFFFFFFFFFFFll; }
+  template <> lxivec_always_inline uint64_t max_val<uint64_t>() { return 0xFFFFFFFFFFFFFFFFull; }
+  
+  template <typename _type> lxivec_always_inline _type min_val();
+  template <> lxivec_always_inline int8_t min_val<int8_t>() { return 0x80; }
+  template <> lxivec_always_inline uint8_t min_val<uint8_t>() { return 0; }
+  template <> lxivec_always_inline int16_t min_val<int16_t>() { return 0x8000; }
+  template <> lxivec_always_inline uint16_t min_val<uint16_t>() { return 0; }
+  template <> lxivec_always_inline int32_t min_val<int32_t>() { return 0x80000000; }
+  template <> lxivec_always_inline uint32_t min_val<uint32_t>() { return 0; }
+  template <> lxivec_always_inline int64_t min_val<int64_t>() { return 0x8000000000000000ll; }
+  template <> lxivec_always_inline uint64_t min_val<uint64_t>() { return 0; }
+  
+  template <typename _totype, typename _fromtype>
+  lxivec_always_inline _totype saturate(_fromtype v)
   {
-    return (v >= -128) ? ((v <= 127) ? int8_t(v) : int8_t(127)) : int8_t(-128);
+    if (v < _fromtype(min_val<_totype>()))
+      return min_val<_totype>();
+    else if (v > _fromtype(max_val<_totype>()))
+      return max_val<_totype>();
+    else
+      return _totype(v);
   }
 
-  lxivec_always_inline int8_t saturate_int8(int32_t v)
+  template <>
+  lxivec_always_inline int8_t saturate<int8_t, uint16_t>(uint16_t v)
   {
-    return (v >= -128) ? ((v <= 127) ? int8_t(v) : int8_t(127)) : int8_t(-128);
+    return (v <= uint16_t(max_val<int8_t>())) ? int8_t(v) : max_val<int8_t>();
   }
 
-  lxivec_always_inline int8_t saturate_int8(int64_t v)
+  template <>
+  lxivec_always_inline int8_t saturate<int8_t, uint32_t>(uint32_t v)
   {
-    return (v >= -128) ? ((v <= 127) ? int8_t(v) : int8_t(127)) : int8_t(-128);
+    return (v <= uint32_t(max_val<int8_t>())) ? int8_t(v) : max_val<int8_t>();
   }
 
-  lxivec_always_inline int8_t saturate_int8(uint16_t v)
+  template <>
+  lxivec_always_inline int8_t saturate<int8_t, uint64_t>(uint64_t v)
   {
-    return (v <= 127) ? int8_t(v) : int8_t(127);
+    return (v <= uint64_t(max_val<int8_t>())) ? int8_t(v) : max_val<int8_t>();
   }
 
-  lxivec_always_inline int8_t saturate_int8(uint32_t v)
+  template <>
+  lxivec_always_inline uint8_t saturate<uint8_t, uint16_t>(uint16_t v)
   {
-    return (v <= 127) ? int8_t(v) : int8_t(127);
+    return (v <= uint16_t(max_val<uint8_t>())) ? uint8_t(v) : max_val<uint8_t>();
   }
 
-  lxivec_always_inline int8_t saturate_int8(uint64_t v)
+  template <>
+  lxivec_always_inline uint8_t saturate<uint8_t, uint32_t>(uint32_t v)
   {
-    return (v <= 127) ? int8_t(v) : int8_t(127);
+    return (v <= uint32_t(max_val<uint8_t>())) ? uint8_t(v) : max_val<uint8_t>();
   }
 
-  lxivec_always_inline uint8_t saturate_uint8(int16_t v)
+  template <>
+  lxivec_always_inline uint8_t saturate<uint8_t, uint64_t>(uint64_t v)
   {
-    return (v >= 0) ? ((v <= 255) ? uint8_t(v) : uint8_t(255)) : uint8_t(0);
+    return (v <= uint64_t(max_val<uint8_t>())) ? uint8_t(v) : max_val<uint8_t>();
   }
 
-  lxivec_always_inline uint8_t saturate_uint8(int32_t v)
+  template <>
+  lxivec_always_inline int16_t saturate<int16_t, uint32_t>(uint32_t v)
   {
-    return (v >= 0) ? ((v <= 255) ? uint8_t(v) : uint8_t(255)) : uint8_t(0);
+    return (v <= uint32_t(max_val<int16_t>())) ? int16_t(v) : max_val<int16_t>();
   }
 
-  lxivec_always_inline uint8_t saturate_uint8(int64_t v)
+  template <>
+  lxivec_always_inline int16_t saturate<int16_t, uint64_t>(uint64_t v)
   {
-    return (v >= 0) ? ((v <= 255) ? uint8_t(v) : uint8_t(255)) : uint8_t(0);
+    return (v <= uint64_t(max_val<int16_t>())) ? int16_t(v) : max_val<int16_t>();
   }
 
-  lxivec_always_inline uint8_t saturate_uint8(uint16_t v)
+  template <>
+  lxivec_always_inline uint16_t saturate<uint16_t, uint32_t>(uint32_t v)
   {
-    return (v <= 255) ? uint8_t(v) : uint8_t(255);
+    return (v <= uint32_t(max_val<uint16_t>())) ? uint16_t(v) : max_val<uint16_t>();
   }
 
-  lxivec_always_inline uint8_t saturate_uint8(uint32_t v)
+  template <>
+  lxivec_always_inline uint16_t saturate<uint16_t, uint64_t>(uint64_t v)
   {
-    return (v <= 255) ? uint8_t(v) : uint8_t(255);
+    return (v <= uint64_t(max_val<uint16_t>())) ? uint16_t(v) : max_val<uint16_t>();
   }
 
-  lxivec_always_inline uint8_t saturate_uint8(uint64_t v)
+  template <>
+  lxivec_always_inline int32_t saturate<int32_t, uint64_t>(uint64_t v)
   {
-    return (v <= 255) ? uint8_t(v) : uint8_t(255);
+    return (v <= uint64_t(max_val<int32_t>())) ? int32_t(v) : max_val<int32_t>();
   }
 
-  lxivec_always_inline int16_t saturate_int16(int32_t v)
+  template <>
+  lxivec_always_inline uint32_t saturate<uint32_t, uint64_t>(uint64_t v)
   {
-    return (v >= -32768) ? ((v <= 32767) ? int16_t(v) : int16_t(32767)) : int16_t(-32768);
+    return (v <= uint64_t(max_val<uint32_t>())) ? int32_t(v) : max_val<uint32_t>();
   }
-
-  lxivec_always_inline int16_t saturate_int16(int64_t v)
-  {
-    return (v >= -32768) ? ((v <= 32767) ? int16_t(v) : int16_t(32767)) : int16_t(-32768);
-  }
-
-  lxivec_always_inline int16_t saturate_int16(uint32_t v)
-  {
-    return (v <= 32767) ? int16_t(v) : int16_t(32767);
-  }
-
-  lxivec_always_inline int16_t saturate_int16u(uint64_t v)
-  {
-    return (v <= 32767) ? int16_t(v) : int16_t(32767);
-  }
-
-  lxivec_always_inline uint16_t saturate_uint16(int32_t v)
-  {
-    return (v >= 0) ? ((v <= 65535) ? uint16_t(v) : uint16_t(65535)) : uint16_t(0);
-  }
-
-  lxivec_always_inline uint16_t saturate_uint16(int64_t v)
-  {
-    return (v >= 0) ? ((v <= 65535) ? uint16_t(v) : uint16_t(65535)) : uint16_t(0);
-  }
-
-  lxivec_always_inline uint16_t saturate_uint16(uint32_t v)
-  {
-    return (v <= 65535) ? uint16_t(v) : uint16_t(65535);
-  }
-
-  lxivec_always_inline uint16_t saturate_uint16(uint64_t v)
-  {
-    return (v <= 65535) ? uint16_t(v) : uint16_t(65535);
-  }
-
-  lxivec_always_inline int32_t saturate_int32(int64_t v)
-  {
-    return (v >= -2147483648ll) ? ((v <= 2147483647ll) ? int32_t(v) : int32_t(2147483647)) : int32_t(-2147483647 - 1);
-  }
-
-  lxivec_always_inline int32_t saturate_int32(uint64_t v)
-  {
-    return (v <= 2147483647ll) ? int32_t(v) : int32_t(2147483647);
-  }
-
-  lxivec_always_inline uint32_t saturate_uint32(int64_t v)
-  {
-    return (v >= 0) ? ((v <= 4294967295ll) ? uint32_t(v) : uint32_t(4294967295u)) : uint32_t(0);
-  }
-
-  lxivec_always_inline uint32_t saturate_uint32(uint64_t v)
-  {
-    return (v <= 4294967295ull) ? uint32_t(v) : uint32_t(4294967295u);
-  }
-
+  
 } } // End of namespaces
 
 #include "intrinint_compare.h"

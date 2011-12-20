@@ -4,4 +4,4 @@ DESTDIR = .
 
 SUBDIRS += algorithms
 SUBDIRS += liblxistream liblxistreamdevice liblxistreamgui #liblxistreamgl
-SUBDIRS += plugins subfontbuilder
+SUBDIRS += plugins

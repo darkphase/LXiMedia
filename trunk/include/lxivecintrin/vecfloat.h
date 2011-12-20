@@ -176,6 +176,17 @@ struct FloatVector : VecObject
     return r;
   }
 
+  friend lxivec_always_inline FloatVector<_count> bound(
+      const FloatVector<_count> &low,
+      const FloatVector<_count> &a,
+      const FloatVector<_count> &high)
+  {
+    FloatVector<_count> r;
+    max(r.data, low.data, a.data);
+    min(r.data, high.data, r.data);
+    return r;
+  }
+
   friend lxivec_always_inline FloatVector<_count> select(
       const BoolVector<4, _count> &m,
       const FloatVector<_count> &a,
@@ -490,6 +501,17 @@ struct DoubleVector : VecObject
   {
     DoubleVector<_count> r;
     max(r.data, a.data, b.data);
+    return r;
+  }
+
+  friend lxivec_always_inline DoubleVector<_count> bound(
+      const DoubleVector<_count> &low,
+      const DoubleVector<_count> &a,
+      const DoubleVector<_count> &high)
+  {
+    DoubleVector<_count> r;
+    max(r.data, low.data, a.data);
+    min(r.data, high.data, r.data);
     return r;
   }
 

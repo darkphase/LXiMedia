@@ -86,6 +86,23 @@ struct IntVector : VecObject
     _private::store(p, a.data, max);
   }
 
+  static lxivec_always_inline IntVector<_type, _count> loadu(
+      const _type *p,
+      int max = _count)
+  {
+    IntVector<_type, _count> r;
+    _private::loadu(r.data, p, max);
+    return r;
+  }
+
+  friend lxivec_always_inline void storeu(
+      _type *p,
+      const IntVector<_type, _count> &a,
+      int max = _count)
+  {
+    _private::storeu(p, a.data, max);
+  }
+
   static lxivec_always_inline IntVector<_type, _count> set(
       _type v)
   {
@@ -137,6 +154,24 @@ struct IntVector : VecObject
     return r;
   }
 
+  friend lxivec_always_inline IntVector<_type, _count> adds(
+      const IntVector<_type, _count> &a,
+      const IntVector<_type, _count> &b)
+  {
+    IntVector<_type, _count> r;
+    adds(r.data, a.data, b.data);
+    return r;
+  }
+
+  friend lxivec_always_inline IntVector<_type, _count> adds(
+      const IntVector<_type, _count> &a,
+      _type b)
+  {
+    IntVector<_type, _count> r;
+    adds(r.data, a.data, b);
+    return r;
+  }
+
   friend lxivec_always_inline IntVector<_type, _count / 2> hadd(
       const IntVector<_type, _count> &a)
   {
@@ -166,6 +201,24 @@ struct IntVector : VecObject
   {
     IntVector<_type, _count> r;
     sub(r.data, a.data, b);
+    return r;
+  }
+
+  friend lxivec_always_inline IntVector<_type, _count> subs(
+      const IntVector<_type, _count> &a,
+      const IntVector<_type, _count> &b)
+  {
+    IntVector<_type, _count> r;
+    subs(r.data, a.data, b.data);
+    return r;
+  }
+
+  friend lxivec_always_inline IntVector<_type, _count> subs(
+      const IntVector<_type, _count> &a,
+      _type b)
+  {
+    IntVector<_type, _count> r;
+    subs(r.data, a.data, b);
     return r;
   }
 
@@ -210,6 +263,17 @@ struct IntVector : VecObject
   {
     IntVector<_type, _count> r;
     max(r.data, a.data, b.data);
+    return r;
+  }
+
+  friend lxivec_always_inline IntVector<_type, _count> bound(
+      const IntVector<_type, _count> &low,
+      const IntVector<_type, _count> &a,
+      const IntVector<_type, _count> &high)
+  {
+    IntVector<_type, _count> r;
+    max(r.data, low.data, a.data);
+    min(r.data, high.data, r.data);
     return r;
   }
 

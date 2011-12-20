@@ -43,7 +43,7 @@ namespace _private {
 #endif
 
     for (; i<_count; i++)
-      dst.val[i] = saturate_uint8(int32_t(src.val[i]));
+      dst.val[i] = saturate<uint8_t, int32_t>(int32_t(src.val[i]));
   }
 
   template <int _count>
@@ -63,7 +63,7 @@ namespace _private {
 #endif
 
     for (; i<_count; i++)
-      dst.val[i] = saturate_int8(int32_t(src.val[i]));
+      dst.val[i] = saturate<int8_t, int32_t>(int32_t(src.val[i]));
   }
 
   template <int _count>
@@ -90,7 +90,7 @@ namespace _private {
 #endif
 
     for (; i<_count; i++)
-      dst.val[i] = saturate_uint16(int32_t(src.val[i]));
+      dst.val[i] = saturate<uint16_t, int32_t>(int32_t(src.val[i]));
   }
 
   template <int _count>
@@ -106,7 +106,7 @@ namespace _private {
 #endif
 
     for (; i<_count; i++)
-      dst.val[i] = saturate_int16(int32_t(src.val[i]));
+      dst.val[i] = saturate<int16_t, int32_t>(int32_t(src.val[i]));
   }
 
   template <int _count>
@@ -181,7 +181,7 @@ namespace _private {
 #endif
 
     for (; i<_count; i++)
-      dst.val[i] = saturate_uint8(int32_t(src.val[i]));
+      dst.val[i] = saturate<uint8_t, int32_t>(int32_t(src.val[i]));
   }
 
   template <int _count>
@@ -213,7 +213,7 @@ namespace _private {
 #endif
 
     for (; i<_count; i++)
-      dst.val[i] = saturate_int8(int32_t(src.val[i]));
+      dst.val[i] = saturate<int8_t, int32_t>(int32_t(src.val[i]));
   }
 
   template <int _count>
@@ -276,7 +276,7 @@ namespace _private {
 #endif
 
     for (; i<_count; i++)
-      dst.val[i] = saturate_int16(int32_t(src.val[i]));
+      dst.val[i] = saturate<int16_t, int32_t>(int32_t(src.val[i]));
   }
 
   template <int _count>

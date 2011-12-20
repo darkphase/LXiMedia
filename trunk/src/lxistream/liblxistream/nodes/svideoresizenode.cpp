@@ -89,8 +89,8 @@ SSize SVideoResizeNode::size(void) const
 {
   if (d->resizer)
     return d->resizer->size();
-  else
-    return SSize();
+
+  return SSize();
 }
 
 void SVideoResizeNode::setAspectRatioMode(Qt::AspectRatioMode a)
@@ -106,8 +106,8 @@ Qt::AspectRatioMode SVideoResizeNode::aspectRatioMode(void) const
 {
   if (d->resizer)
     return d->resizer->aspectRatioMode();
-  else
-    return Qt::KeepAspectRatio;
+
+  return Qt::KeepAspectRatio;
 }
 
 QStringList SVideoResizeNode::algorithms(void)

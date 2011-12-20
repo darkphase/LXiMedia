@@ -25,122 +25,63 @@ namespace Algorithms {
 
 using namespace lxivec;
 
-void Subtitles::drawLine(
-    uint8_t *dsty, int yStride, uint8_t *dstu, int uStride, uint8_t *dstv, int vStride,
-    int wf, int hf, int width, int height, float stretch,
-    const char *line, int pos, const Char * const *characters)
+void Subtitles::blendLineY(uint8_t * y, const uint8_t * shadow, const uint8_t * text, int n)
 {
-  int lineWidth = 0, lineHeight = 0;
-  for (int i=0; line[i]; i++)
+  for (int i = 0; i < n; i += uint8_v::count)
   {
-    lineWidth += characters[uint8_t(line[i])]->advance;
-    lineHeight = max(lineHeight, characters[uint8_t(line[i])]->height);
+    uint8_v yv = subs(uint8_v::loadu(y + i), uint8_v::load(shadow + i));
+    yv = adds(yv, uint8_v::load(text + i));
+
+    storeu(y + i, yv);
+  }
+}
+
+void Subtitles::blendLineUV(uint8_t * u, uint8_t * v, int wf, const uint8_t * text, int n)
+{
+  const uint8_v zero = uint8_v::set(0);
+  const uint8_v med = uint8_v::set(127);
+
+  switch (wf)
+  {
+  case 1:
+    for (int i = 0; i < n; i += uint8_v::count)
+    {
+      const bool8_v pv = uint8_v::load(text + i) == zero;
+
+      storeu(u + i, select(pv, uint8_v::loadu(u + i), med));
+      storeu(v + i, select(pv, uint8_v::loadu(v + i), med));
+    }
+
+    break;
+
+  case 2:
+    for (int i = 0, j = 0; j < n; i += uint8_v::count, j += uint8_v::count * 2)
+    {
+      const bool8_v pv = hadd(uint8_dv::load(text + j) >> 1) == zero;
+
+      storeu(u + i, select(pv, uint8_v::loadu(u + i), med));
+      storeu(v + i, select(pv, uint8_v::loadu(v + i), med));
+    }
+
+    break;
+
+  case 4:
+    for (int i = 0, j = 0; j < n; i += uint8_v::count, j += uint8_v::count * 4)
+    {
+      const bool8_v pv = hadd(hadd(uint8_qv::load(text + j) >> 1)) == zero;
+
+      storeu(u + i, select(pv, uint8_v::loadu(u + i), med));
+      storeu(v + i, select(pv, uint8_v::loadu(v + i), med));
+    }
+
+    break;
   }
 
-  lineWidth = int(float(lineWidth) / stretch);
-
-  const int ypos = height - (lineHeight * pos) - lineHeight - (lineHeight / 2);
-
-  if ((lineWidth + (lineHeight * 2)) < width)
-  for (int y=0; y<lineHeight; y++)
-  {
-    uint8_t * const yline = dsty + ((ypos + y) * yStride) + ((width / 2) - (lineWidth / 2));
-    uint8_t * const uline = dstu + (((ypos + y) / hf) * uStride) + (((width / wf) / 2) - ((lineWidth / wf) / 2));
-    uint8_t * const vline = dstv + (((ypos + y) / hf) * vStride) + (((width / wf) / 2) - ((lineWidth / wf) / 2));
-
-    if (abs(1.0f - stretch) < 0.0001f)
-    {
-      // First draw the black shadow.
-      for (int i=0, p=0; line[i]; i++)
-      {
-        const Char * const c = characters[uint8_t(line[i])];
-        const uint8_t * const pixels = c->pixels + (y * c->width);
-
-        for (int x=0; x<c->width; x++)
-        if (pixels[x] < 128)
-          yline[p+x] = ((pixels[x] * 2) >= yline[p+x]) ? 0 : (yline[p+x] - (pixels[x] * 2));
-
-        p += c->advance;
-      }
-
-      // Mext the text (to prevent the shadow overlapping the previous text).
-      for (int i=0, p=0; line[i]; i++)
-      {
-        const Char * const c = characters[uint8_t(line[i])];
-        const uint8_t * const pixels = c->pixels + (y * c->width);
-
-        for (int x=0; x<c->width; x++)
-        if (pixels[x] >= 128)
-          yline[p+x] = (pixels[x] - 128) * 2;
-
-        if ((y % hf) == 0)
-        for (int x=0; x<c->width; x+=wf)
-        if (pixels[x] >= 128)
-          uline[(p+x)/wf] = vline[(p+x)/wf] = uint8_t(127);
-
-        p += c->advance;
-      }
-    }
-    else
-    {
-      // First draw the black shadow.
-      float pf = 0.0f, pw = 0.0f; int p = 0;
-      for (int i=0; line[i]; i++)
-      {
-        const Char * const c = characters[uint8_t(line[i])];
-        const uint8_t * const pixels = c->pixels + (y * c->width);
-
-        for (int x=0, n=c->width/stretch; x<n; x++)
-        {
-          const float xp = (float(x) * stretch) - pw;
-          const int xx[2] = { bound(0, int(xp), c->width - 1), min(int(xp) + 1, c->width - 1) };
-
-          uint8_t yv[2];
-          for (int j=0; j<2; j++)
-          if (pixels[xx[j]] < 128)
-            yv[j] = ((pixels[xx[j]] * 2) >= yline[p+x]) ? 0 : (yline[p+x] - (pixels[xx[j]] * 2));
-          else
-            yv[j] = yline[p+x];
-
-          const float w = xp - float(int(xp));
-          yline[p+x] = uint8_t((float(yv[0]) * (1.0f - w)) + (float(yv[1]) * w));
-        }
-
-        p = int(pf += float(c->advance) / stretch);
-        pw = pf - float(p);
-      }
-
-      // Mext the text (to prevent the shadow overlapping the previous text).
-      pf = 0.0f; pw = 0.0f; p = 0;
-      for (int i=0, p=0; line[i]; i++)
-      {
-        const Char * const c = characters[uint8_t(line[i])];
-        const uint8_t * const pixels = c->pixels + (y * c->width);
-
-        for (int x=0, n=c->width/stretch; x<n; x++)
-        {
-          const float xp = (float(x) * stretch) - pw;
-          const int xx[2] = { bound(0, int(xp), c->width - 1), min(int(xp) + 1, c->width - 1) };
-
-          uint8_t yv[2];
-          for (int j=0; j<2; j++)
-          if (pixels[xx[j]] >= 128)
-            yv[j] = (pixels[xx[j]] - 128) * 2;
-          else
-            yv[j] = yline[p+x];
-
-          const float w = xp - float(int(xp));
-          yline[p+x] = uint8_t((float(yv[0]) * (1.0f - w)) + (float(yv[1]) * w));
-
-          if ((pixels[xx[0]] >= 128) || (pixels[xx[1]] >= 128))
-            uline[(p+x)/wf] = vline[(p+x)/wf] = uint8_t(127);
-        }
-
-        p = int(pf += float(c->advance) / stretch);
-        pw = pf - float(p);
-      }
-    }
-  }
+//  for (int i = 0, j = 0; j < n; i++, j += wf)
+//  {
+//    if (text[j] >= 128)
+//      u[i] = v[i] = 128;
+//  }
 }
 
 } } // End of namespaces
