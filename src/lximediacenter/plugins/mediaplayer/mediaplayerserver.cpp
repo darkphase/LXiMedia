@@ -582,11 +582,7 @@ MediaPlayerServer::Item MediaPlayerServer::makeItem(const FileNode &node, int ti
         item.iconUrl.addQueryItem("thumbnail", QString::null);
 
         if (item.title.isEmpty())
-        {
-          item.title = node.metadata("title").toString();
-          if (item.title.isEmpty())
-            item.title = node.fileName();
-        }
+          item.title = node.baseName();
 
         item.artist = node.metadata("author").toString();
         item.album = node.metadata("album").toString();
