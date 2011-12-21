@@ -205,7 +205,12 @@ SSandboxClient::ResponseMessage SSandboxClient::blockingRequest(const RequestMes
             data += socket.readLine();
         }
         else if (d->serverProcess)
-          d->serverProcess->waitForReadyRead(qBound(0, timeout - timer.elapsed(), 50));
+        {
+          if (d->serverProcess->isRunning())
+            d->serverProcess->waitForReadyRead(qBound(0, timeout - timer.elapsed(), 50));
+          else
+            return ResponseMessage(request, Status_InternalServerError);
+        }
       }
 
       ResponseMessage response(NULL);
@@ -216,9 +221,16 @@ SSandboxClient::ResponseMessage SSandboxClient::blockingRequest(const RequestMes
              (qAbs(timer.elapsed()) < timeout))
       {
         if (socket.waitForReadyRead(qBound(0, timeout - timer.elapsed(), 50)))
+        {
           data += socket.readAll();
+        }
         else if (d->serverProcess)
-          d->serverProcess->waitForReadyRead(qBound(0, timeout - timer.elapsed(), 50));
+        {
+          if (d->serverProcess->isRunning())
+            d->serverProcess->waitForReadyRead(qBound(0, timeout - timer.elapsed(), 50));
+          else
+            return ResponseMessage(request, Status_InternalServerError);
+        }
       }
 
       response.setContent(data);

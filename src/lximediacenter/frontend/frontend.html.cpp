@@ -70,7 +70,11 @@ const char Frontend::htmlStartLocalServer[] =
 #endif
 
 const char Frontend::htmlStopLocalServer[] =
-    " <a href=\"{ITEM_LOCATION}exit\">{TR_STOP}</a>";
+#ifdef Q_OS_LINUX
+    " <span class=\"idle\">{TR_STOP_LINUX}</span>";
+#else
+    " <a href=\"frontend:/stopbackend\">{TR_START}</a>";
+#endif
 
 const char Frontend::htmlConfigureLocalServer[] =
     " <a href=\"{ITEM_LOCATION}settings\">{TR_CONFIGURE}</a>";
@@ -129,6 +133,9 @@ QByteArray Frontend::makeFrontendPage(void) const
 #ifdef Q_OS_LINUX
   htmlParser.setField("TR_START_LINUX",
       tr("To start the server type \"sudo /etc/init.d/lximediacenter start\" "
+         "in a terminal."));
+  htmlParser.setField("TR_STOP_LINUX",
+      tr("To stop the server type \"sudo /etc/init.d/lximediacenter stop\" "
          "in a terminal."));
 #endif
 

@@ -66,7 +66,7 @@ bool Module::registerClasses(void)
       << "PAM" << "PCX" << "PNG" << "QTRLE" << "RAWVIDEO" << "ROQ" << "RV10"
       << "RV20" << "SGI" << "SNOW" << "SVQ1" << "TARGA" << "TIFF" << "V210"
       << "VP8" << "ZLIB"
-#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(52, 72, 0)
+#if (LIBAVCODEC_VERSION_INT < AV_VERSION_INT(52, 72, 0)) || defined(Q_OS_WIN)
       // Audio
       << "FLAC" << "VORBIS"
       // Video

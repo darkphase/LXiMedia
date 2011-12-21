@@ -44,14 +44,14 @@ SDaemon                       * SDaemon::Data::instance = NULL;
 char                            SDaemon::Data::name[256] = { '\0' };
 TCHAR                           SDaemon::Data::serviceName[512];
 SERVICE_STATUS                  SDaemon::Data::serviceStatus;
-SERVICE_STATUS_HANDLE           SDaemon::Data::serviceStatusHandle = NULL;
+SERVICE_STATUS_HANDLE           SDaemon::Data::serviceStatusHandle = 0;
 
 SDaemon::SDaemon(const QString &name)
 {
   qstrncpy(Data::name, name.toAscii(), sizeof(Data::name));
   memcpy(Data::serviceName, name.unicode(), qMin((name.length() + 1) * sizeof(*Data::serviceName), sizeof(Data::serviceName)));
   Data::serviceName[(sizeof(Data::serviceName) / sizeof(*Data::serviceName)) - 1] = 0;
-  Data::serviceStatusHandle = NULL;
+  Data::serviceStatusHandle = 0;
   Data::instance = this;
 }
 
@@ -59,7 +59,7 @@ SDaemon::~SDaemon()
 {
   Data::instance = NULL;
   Data::name[0] = '\0';
-  Data::serviceStatusHandle = NULL;
+  Data::serviceStatusHandle = 0;
 }
 
 int SDaemon::main(int &argc, char *argv[])

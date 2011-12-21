@@ -43,9 +43,6 @@ unix {
 win32 {
   SOURCES += sdaemon.win.cpp
 }
-win32-g++ {
-  LIBS += -lbfd -liberty
-}
 
 # Windows specific
 win32 {

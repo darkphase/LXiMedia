@@ -179,14 +179,14 @@ win32 {
 
   system(mkdir $${OUT_DIR} > NUL 2>&1)
   release {
-    system(copy $$(QTDIR)\\bin\\QtCore4.dll $${OUT_DIR} > NUL)
-    system(copy $$(QTDIR)\\bin\\QtGui4.dll $${OUT_DIR} > NUL)
-    system(copy $$(QTDIR)\\bin\\QtXml4.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\QtCore4.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\QtGui4.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\QtXml4.dll $${OUT_DIR} > NUL)
   }
   debug {
-    system(copy $$(QTDIR)\\bin\\QtCored4.dll $${OUT_DIR} > NUL)
-    system(copy $$(QTDIR)\\bin\\QtGuid4.dll $${OUT_DIR} > NUL)
-    system(copy $$(QTDIR)\\bin\\QtXmld4.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\QtCored4.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\QtGuid4.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\QtXmld4.dll $${OUT_DIR} > NUL)
   }
 }
 win32-g++ {
