@@ -36,6 +36,9 @@ namespace LXiCore {
  */
 class LXICORE_PUBLIC SStringParser
 {
+private:
+  struct Iso639LangCode { const char * const code, * const name; };
+
 public:
   explicit                      SStringParser(bool enableEscapeXml = true);
                                 ~SStringParser();
@@ -84,8 +87,25 @@ public:
   static unsigned               numWords(const QString &);
 
   static const char           * languageOf(const QString &);
+
+  /*! Returns the translated language name for the ISO 639-1 or ISO 639-2 language
+      code.
+   */
   static QString                iso639Language(const QString &);
+
+  /*! Returns the translated language name for the ISO 639-1 or ISO 639-2 language
+      code.
+   */
   static QString                iso639Language(const char *);
+
+  /*! Returns a map with a translated language name for each of the  ISO 639-2
+      language codes.
+   */
+  static QMap<QByteArray, QString> allIso639Languages(void);
+
+private:
+  static const Iso639LangCode * iso639_1Codes(void);
+  static const Iso639LangCode * iso639_2Codes(void);
 
 private:
   struct Data;

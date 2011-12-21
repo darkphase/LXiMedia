@@ -99,7 +99,7 @@ QByteArray SubtitleRenderer::faceData;
 
 SubtitleRenderer::SubtitleRenderer(const QString &, QObject *parent)
   : SInterfaces::SubtitleRenderer(parent),
-    ratio(0.0625f),
+    ratio(0.05f),
     initialized(false),
     rendering(false)
 {
@@ -216,7 +216,7 @@ SubtitleRenderer::RenderedSubtitle SubtitleRenderer::renderSubtitle(const SSubti
 {
   RenderedSubtitle renderedSubtitle;
   renderedSubtitle.uid = subtitleBuffer.memory()->uid;
-  renderedSubtitle.margin = 0;
+  renderedSubtitle.margin = int((float(size.height()) * 0.05f) + 0.5f);
   renderedSubtitle.videoSize = size;
 
   if (initialized)
@@ -232,8 +232,6 @@ SubtitleRenderer::RenderedSubtitle SubtitleRenderer::renderSubtitle(const SSubti
       const int lineOffset = (-face->size->metrics.descender + 31) >> 6;
       const int charWidth = (face->size->metrics.max_advance + 31) >> 6;
       const QStringList lines = subtitleBuffer.subtitle();
-
-      renderedSubtitle.margin = lineHeight / 3;
 
       const SVideoFormat format(
           SVideoFormat::Format_GRAY8,

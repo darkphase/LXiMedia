@@ -205,7 +205,11 @@ private: // Implemented in mediaserver.html.cpp
   static const char             htmlListItemNoLinkNoTitle[];
   static const char             htmlListItemTextLine[];
   static const char             htmlAudioPlayer[];
+  static const char             htmlAudioPlayerElement[];
+  static const char             htmlAudioPlayerSource[];
   static const char             htmlPlayer[];
+  static const char             htmlVideoPlayerElement[];
+  static const char             htmlVideoPlayerSource[];
 
   QByteArray                    buildListLoader(const QString &path, ListType);
   QByteArray                    buildListItems(const ThumbnailListItemList &);

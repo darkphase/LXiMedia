@@ -21,593 +21,617 @@
 
 namespace LXiCore {
 
-/*! Returns the translated language name for the ISO 639-1 or ISO 639-2 language
-    code.
- */
 QString SStringParser::iso639Language(const QString &lang)
 {
   return iso639Language(lang.toAscii().data());
 }
 
-/*! Returns the translated language name for the ISO 639-1 or ISO 639-2 language
-    code.
- */
 QString SStringParser::iso639Language(const char *lang)
 {
   const int langLen = qstrnlen(lang, 4);
 
   if (langLen == 2)
   {
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("aa"))		return QObject::tr("Afar");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ab"))   return QObject::tr("Abkhazian");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("af"))   return QObject::tr("Afrikaans");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("am"))   return QObject::tr("Amharic");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ar"))   return QObject::tr("Arabic");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("as"))   return QObject::tr("Assamese");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ay"))   return QObject::tr("Aymara");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("az"))   return QObject::tr("Azerbaijani");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ba"))   return QObject::tr("Bashkir");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("be"))   return QObject::tr("Byelorussian");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("bg"))   return QObject::tr("Bulgarian");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("bh"))   return QObject::tr("Bihari");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("bi"))   return QObject::tr("Bislama");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("bn"))   return QObject::tr("Bengali");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("bo"))   return QObject::tr("Tibetan");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("br"))   return QObject::tr("Breton");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ca"))   return QObject::tr("Catalan");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("co"))   return QObject::tr("Corsican");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("cs"))   return QObject::tr("Czech");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("cy"))   return QObject::tr("Welsh");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("da"))   return QObject::tr("Danish");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("de"))   return QObject::tr("German");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("dz"))   return QObject::tr("Bhutani");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("el"))   return QObject::tr("Greek");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("en"))   return QObject::tr("English");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("eo"))   return QObject::tr("Esperanto");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("es"))   return QObject::tr("Spanish");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("et"))   return QObject::tr("Estonian");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("eu"))   return QObject::tr("Basque");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("fa"))   return QObject::tr("Persian");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("fi"))   return QObject::tr("Finnish");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("fj"))   return QObject::tr("Fiji");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("fo"))   return QObject::tr("Faeroese");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("fr"))   return QObject::tr("French");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("fy"))   return QObject::tr("Frisian");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ga"))   return QObject::tr("Irish");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("gd"))   return QObject::tr("Gaelic");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("gl"))   return QObject::tr("Galician");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("gn"))   return QObject::tr("Guarani");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("gu"))   return QObject::tr("Gujarati");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ha"))   return QObject::tr("Hausa");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("hi"))   return QObject::tr("Hindi");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("hr"))   return QObject::tr("Croatian");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("hu"))   return QObject::tr("Hungarian");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("hy"))   return QObject::tr("Armenian");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ia"))   return QObject::tr("Interlingua");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ie"))   return QObject::tr("Interlingue");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ik"))   return QObject::tr("Inupiak");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("in"))   return QObject::tr("Indonesian");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("is"))   return QObject::tr("Icelandic");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("it"))   return QObject::tr("Italian");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("iw"))   return QObject::tr("Hebrew");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ja"))   return QObject::tr("Japanese");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ji"))   return QObject::tr("Yiddish");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("jw"))   return QObject::tr("Javanese");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ka"))   return QObject::tr("Georgian");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("kk"))   return QObject::tr("Kazakh");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("kl"))   return QObject::tr("Greenlandic");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("km"))   return QObject::tr("Cambodian");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("kn"))   return QObject::tr("Kannada");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ko"))   return QObject::tr("Korean");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ks"))   return QObject::tr("Kashmiri");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ku"))   return QObject::tr("Kurdish");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ky"))   return QObject::tr("Kirghiz");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("la"))   return QObject::tr("Latin");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ln"))   return QObject::tr("Lingala");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("lo"))   return QObject::tr("Laothian");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("lt"))   return QObject::tr("Lithuanian");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("lv"))   return QObject::tr("Latvian");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("mg"))   return QObject::tr("Malagasy");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("mi"))   return QObject::tr("Maori");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("mk"))   return QObject::tr("Macedonian");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ml"))   return QObject::tr("Malayalam");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("mn"))   return QObject::tr("Mongolian");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("mo"))   return QObject::tr("Moldavian");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("mr"))   return QObject::tr("Marathi");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ms"))   return QObject::tr("Malay");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("mt"))   return QObject::tr("Maltese");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("my"))   return QObject::tr("Burmese");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("na"))   return QObject::tr("Nauru");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ne"))   return QObject::tr("Nepali");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("nl"))   return QObject::tr("Dutch");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("no"))   return QObject::tr("Norwegian");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("oc"))   return QObject::tr("Occitan");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("om"))   return QObject::tr("Oromo");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("or"))   return QObject::tr("Oriya");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("pa"))   return QObject::tr("Punjabi");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("pl"))   return QObject::tr("Polish");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ps"))   return QObject::tr("Pashto");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("pt"))   return QObject::tr("Portuguese");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("qu"))   return QObject::tr("Quechua");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("rm"))   return QObject::tr("Rhaeto-Romance");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("rn"))   return QObject::tr("Kirundi");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ro"))   return QObject::tr("Romanian");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ru"))   return QObject::tr("Russian");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("rw"))   return QObject::tr("Kinyarwanda");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("sa"))   return QObject::tr("Sanskrit");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("sd"))   return QObject::tr("Sindhi");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("sg"))   return QObject::tr("Sangro");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("sh"))   return QObject::tr("Serbo-Croatian");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("si"))   return QObject::tr("Singhalese");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("sk"))   return QObject::tr("Slovak");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("sl"))   return QObject::tr("Slovenian");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("sm"))   return QObject::tr("Samoan");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("sn"))   return QObject::tr("Shona");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("so"))   return QObject::tr("Somali");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("sq"))   return QObject::tr("Albanian");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("sr"))   return QObject::tr("Serbian");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ss"))   return QObject::tr("Siswati");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("st"))   return QObject::tr("Sesotho");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("su"))   return QObject::tr("Sudanese");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("sv"))   return QObject::tr("Swedish");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("sw"))   return QObject::tr("Swahili");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ta"))   return QObject::tr("Tamil");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("te"))   return QObject::tr("Tegulu");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("tg"))   return QObject::tr("Tajik");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("th"))   return QObject::tr("Thai");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ti"))   return QObject::tr("Tigrinya");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("tk"))   return QObject::tr("Turkmen");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("tl"))   return QObject::tr("Tagalog");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("tn"))   return QObject::tr("Setswana");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("to"))   return QObject::tr("Tonga");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("tr"))   return QObject::tr("Turkish");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ts"))   return QObject::tr("Tsonga");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("tt"))   return QObject::tr("Tatar");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("tw"))   return QObject::tr("Twi");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("uk"))   return QObject::tr("Ukrainian");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("ur"))   return QObject::tr("Urdu");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("uz"))   return QObject::tr("Uzbek");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("vi"))   return QObject::tr("Vietnamese");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("vo"))   return QObject::tr("Volapuk");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("wo"))   return QObject::tr("Wolof");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("xh"))   return QObject::tr("Xhosa");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("yo"))   return QObject::tr("Yoruba");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("zh"))   return QObject::tr("Chinese");
-    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>("zu"))   return QObject::tr("Zulu");
+    for (const Iso639LangCode *i = iso639_1Codes(); i->code; i++)
+    if (*reinterpret_cast<const quint16 *>(lang) == *reinterpret_cast<const quint16 *>(i->code))
+      return QObject::tr(i->name);
   }
   else if (langLen == 3)
   {
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("abk"))  return QObject::tr("Abkhazian");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("ace"))  return QObject::tr("Achinese");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("ach"))  return QObject::tr("Acoli");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("ada"))  return QObject::tr("Adangme");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("aar"))  return QObject::tr("Afar");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("afh"))  return QObject::tr("Afrihili");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("afr"))  return QObject::tr("Afrikaans");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("afa"))  return QObject::tr("Afro-Asiatic (Other)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("aka"))  return QObject::tr("Akan");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("akk"))  return QObject::tr("Akkadian");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("alb"))  return QObject::tr("Albanian");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("sqi"))  return QObject::tr("Albanian");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("ale"))  return QObject::tr("Aleut");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("alg"))  return QObject::tr("Algonquian languages");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("tut"))  return QObject::tr("Altaic (Other)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("amh"))  return QObject::tr("Amharic");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("apa"))  return QObject::tr("Apache languages");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("ara"))  return QObject::tr("Arabic");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("arc"))  return QObject::tr("Aramaic");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("arp"))  return QObject::tr("Arapaho");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("arn"))  return QObject::tr("Araucanian");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("arw"))  return QObject::tr("Arawak");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("arm"))  return QObject::tr("Armenian");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("hye"))  return QObject::tr("Armenian");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("art"))  return QObject::tr("Artificial (Other)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("asm"))  return QObject::tr("Assamese");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("ath"))  return QObject::tr("Athapascan languages");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("map"))  return QObject::tr("Austronesian (Other)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("ava"))  return QObject::tr("Avaric");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("ave"))  return QObject::tr("Avestan");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("awa"))  return QObject::tr("Awadhi");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("aym"))  return QObject::tr("Aymara");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("aze"))  return QObject::tr("Azerbaijani");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("nah"))  return QObject::tr("Aztec");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("ban"))  return QObject::tr("Balinese");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("bat"))  return QObject::tr("Baltic (Other)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("bal"))  return QObject::tr("Baluchi");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("bam"))  return QObject::tr("Bambara");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("bai"))  return QObject::tr("Bamileke languages");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("bad"))  return QObject::tr("Banda");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("bnt"))  return QObject::tr("Bantu (Other)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("bas"))  return QObject::tr("Basa");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("bak"))  return QObject::tr("Bashkir");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("baq"))  return QObject::tr("Basque");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("eus"))  return QObject::tr("Basque");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("bej"))  return QObject::tr("Beja");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("bem"))  return QObject::tr("Bemba");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("ben"))  return QObject::tr("Bengali");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("ber"))  return QObject::tr("Berber (Other)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("bho"))  return QObject::tr("Bhojpuri");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("bih"))  return QObject::tr("Bihari");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("bik"))  return QObject::tr("Bikol");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("bin"))  return QObject::tr("Bini");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("bis"))  return QObject::tr("Bislama");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("bra"))  return QObject::tr("Braj");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("bre"))  return QObject::tr("Breton");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("bug"))  return QObject::tr("Buginese");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("bul"))  return QObject::tr("Bulgarian");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("bua"))  return QObject::tr("Buriat");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("bur"))  return QObject::tr("Burmese");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("mya"))  return QObject::tr("Burmese");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("bel"))  return QObject::tr("Byelorussian");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("cad"))  return QObject::tr("Caddo");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("car"))  return QObject::tr("Carib");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("cat"))  return QObject::tr("Catalan");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("cau"))  return QObject::tr("Caucasian (Other)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("ceb"))  return QObject::tr("Cebuano");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("cel"))  return QObject::tr("Celtic (Other)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("cai"))  return QObject::tr("Central American Indian (Other)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("chg"))  return QObject::tr("Chagatai");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("cha"))  return QObject::tr("Chamorro");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("che"))  return QObject::tr("Chechen");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("chr"))  return QObject::tr("Cherokee");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("chy"))  return QObject::tr("Cheyenne");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("chb"))  return QObject::tr("Chibcha");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("chi"))  return QObject::tr("Chinese");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("zho"))  return QObject::tr("Chinese");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("chn"))  return QObject::tr("Chinook jargon");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("cho"))  return QObject::tr("Choctaw");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("chu"))  return QObject::tr("Church Slavic");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("chv"))  return QObject::tr("Chuvash");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("cop"))  return QObject::tr("Coptic");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("cor"))  return QObject::tr("Cornish");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("cos"))  return QObject::tr("Corsican");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("cre"))  return QObject::tr("Cree");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("mus"))  return QObject::tr("Creek");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("crp"))  return QObject::tr("Creoles and Pidgins (Other)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("cpe"))  return QObject::tr("Creoles and Pidgins, English-based (Other)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("cpf"))  return QObject::tr("Creoles and Pidgins, French-based (Other)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("cpp"))  return QObject::tr("Creoles and Pidgins, Portuguese-based (Other)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("cus"))  return QObject::tr("Cushitic (Other)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("ces"))  return QObject::tr("Czech");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("cze"))  return QObject::tr("Czech");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("dak"))  return QObject::tr("Dakota");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("dan"))  return QObject::tr("Danish");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("del"))  return QObject::tr("Delaware");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("din"))  return QObject::tr("Dinka");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("div"))  return QObject::tr("Divehi");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("doi"))  return QObject::tr("Dogri");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("dra"))  return QObject::tr("Dravidian (Other)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("dua"))  return QObject::tr("Duala");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("dut"))  return QObject::tr("Dutch");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("nla"))  return QObject::tr("Dutch");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("dum"))  return QObject::tr("Dutch, Middle (ca. 1050-1350)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("dyu"))  return QObject::tr("Dyula");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("dzo"))  return QObject::tr("Dzongkha");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("efi"))  return QObject::tr("Efik");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("egy"))  return QObject::tr("Egyptian (Ancient)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("eka"))  return QObject::tr("Ekajuk");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("elx"))  return QObject::tr("Elamite");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("eng"))  return QObject::tr("English");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("enm"))  return QObject::tr("English, Middle (ca. 1100-1500)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("ang"))  return QObject::tr("English, Old (ca. 450-1100)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("esk"))  return QObject::tr("Eskimo (Other)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("epo"))  return QObject::tr("Esperanto");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("est"))  return QObject::tr("Estonian");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("ewe"))  return QObject::tr("Ewe");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("ewo"))  return QObject::tr("Ewondo");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("fan"))  return QObject::tr("Fang");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("fat"))  return QObject::tr("Fanti");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("fao"))  return QObject::tr("Faroese");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("fij"))  return QObject::tr("Fijian");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("fin"))  return QObject::tr("Finnish");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("fiu"))  return QObject::tr("Finno-Ugrian (Other)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("fon"))  return QObject::tr("Fon");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("fra"))  return QObject::tr("French");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("fre"))  return QObject::tr("French");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("frm"))  return QObject::tr("French, Middle (ca. 1400-1600)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("fro"))  return QObject::tr("French, Old (842- ca. 1400)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("fry"))  return QObject::tr("Frisian");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("ful"))  return QObject::tr("Fulah");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("gaa"))  return QObject::tr("Ga");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("gae"))  return QObject::tr("Gaelic (Scots)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("gdh"))  return QObject::tr("Gaelic (Scots)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("glg"))  return QObject::tr("Gallegan");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("lug"))  return QObject::tr("Ganda");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("gay"))  return QObject::tr("Gayo");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("gez"))  return QObject::tr("Geez");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("geo"))  return QObject::tr("Georgian");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("kat"))  return QObject::tr("Georgian");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("deu"))  return QObject::tr("German");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("ger"))  return QObject::tr("German");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("gmh"))  return QObject::tr("German, Middle High (ca. 1050-1500)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("goh"))  return QObject::tr("German, Old High (ca. 750-1050)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("gem"))  return QObject::tr("Germanic (Other)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("gil"))  return QObject::tr("Gilbertese");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("gon"))  return QObject::tr("Gondi");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("got"))  return QObject::tr("Gothic");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("grb"))  return QObject::tr("Grebo");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("grc"))  return QObject::tr("Greek, Ancient (to 1453)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("ell"))  return QObject::tr("Greek, Modern (1453-)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("gre"))  return QObject::tr("Greek, Modern (1453-)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("kal"))  return QObject::tr("Greenlandic");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("grn"))  return QObject::tr("Guarani");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("guj"))  return QObject::tr("Gujarati");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("hai"))  return QObject::tr("Haida");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("hau"))  return QObject::tr("Hausa");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("haw"))  return QObject::tr("Hawaiian");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("heb"))  return QObject::tr("Hebrew");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("her"))  return QObject::tr("Herero");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("hil"))  return QObject::tr("Hiligaynon");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("him"))  return QObject::tr("Himachali");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("hin"))  return QObject::tr("Hindi");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("hmo"))  return QObject::tr("Hiri Motu");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("hun"))  return QObject::tr("Hungarian");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("hup"))  return QObject::tr("Hupa");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("iba"))  return QObject::tr("Iban");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("ice"))  return QObject::tr("Icelandic");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("isl"))  return QObject::tr("Icelandic");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("ibo"))  return QObject::tr("Igbo");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("ijo"))  return QObject::tr("Ijo");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("ilo"))  return QObject::tr("Iloko");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("inc"))  return QObject::tr("Indic (Other)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("ine"))  return QObject::tr("Indo-European (Other)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("ind"))  return QObject::tr("Indonesian");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("ina"))  return QObject::tr("Interlingua (International Auxiliary language Association)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("ine"))  return QObject::tr("Interlingue");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("iku"))  return QObject::tr("Inuktitut");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("ipk"))  return QObject::tr("Inupiak");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("ira"))  return QObject::tr("Iranian (Other)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("gai"))  return QObject::tr("Irish");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("iri"))  return QObject::tr("Irish");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("sga"))  return QObject::tr("Irish, Old (to 900)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("mga"))  return QObject::tr("Irish, Middle (900 - 1200)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("iro"))  return QObject::tr("Iroquoian languages");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("ita"))  return QObject::tr("Italian");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("jpn"))  return QObject::tr("Japanese");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("jav"))  return QObject::tr("Javanese");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("jaw"))  return QObject::tr("Javanese");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("jrb"))  return QObject::tr("Judeo-Arabic");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("jpr"))  return QObject::tr("Judeo-Persian");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("kab"))  return QObject::tr("Kabyle");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("kac"))  return QObject::tr("Kachin");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("kam"))  return QObject::tr("Kamba");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("kan"))  return QObject::tr("Kannada");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("kau"))  return QObject::tr("Kanuri");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("kaa"))  return QObject::tr("Kara-Kalpak");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("kar"))  return QObject::tr("Karen");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("kas"))  return QObject::tr("Kashmiri");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("kaw"))  return QObject::tr("Kawi");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("kaz"))  return QObject::tr("Kazakh");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("kha"))  return QObject::tr("Khasi");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("khm"))  return QObject::tr("Khmer");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("khi"))  return QObject::tr("Khoisan (Other)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("kho"))  return QObject::tr("Khotanese");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("kik"))  return QObject::tr("Kikuyu");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("kin"))  return QObject::tr("Kinyarwanda");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("kir"))  return QObject::tr("Kirghiz");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("kom"))  return QObject::tr("Komi");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("kon"))  return QObject::tr("Kongo");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("kok"))  return QObject::tr("Konkani");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("kor"))  return QObject::tr("Korean");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("kpe"))  return QObject::tr("Kpelle");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("kro"))  return QObject::tr("Kru");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("kua"))  return QObject::tr("Kuanyama");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("kum"))  return QObject::tr("Kumyk");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("kur"))  return QObject::tr("Kurdish");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("kru"))  return QObject::tr("Kurukh");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("kus"))  return QObject::tr("Kusaie");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("kut"))  return QObject::tr("Kutenai");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("lad"))  return QObject::tr("Ladino");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("lah"))  return QObject::tr("Lahnda");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("lam"))  return QObject::tr("Lamba");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("oci"))  return QObject::tr("Langue d'Oc (post 1500)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("lao"))  return QObject::tr("Lao");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("lat"))  return QObject::tr("Latin");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("lav"))  return QObject::tr("Latvian");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("ltz"))  return QObject::tr("Letzeburgesch");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("lez"))  return QObject::tr("Lezghian");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("lin"))  return QObject::tr("Lingala");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("lit"))  return QObject::tr("Lithuanian");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("loz"))  return QObject::tr("Lozi");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("lub"))  return QObject::tr("Luba-Katanga");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("lui"))  return QObject::tr("Luiseno");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("lun"))  return QObject::tr("Lunda");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("luo"))  return QObject::tr("Luo (Kenya and Tanzania)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("mac"))  return QObject::tr("Macedonian");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("mak"))  return QObject::tr("Macedonian");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("mad"))  return QObject::tr("Madurese");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("mag"))  return QObject::tr("Magahi");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("mai"))  return QObject::tr("Maithili");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("mak"))  return QObject::tr("Makasar");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("mlg"))  return QObject::tr("Malagasy");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("may"))  return QObject::tr("Malay");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("msa"))  return QObject::tr("Malay");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("mal"))  return QObject::tr("Malayalam");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("mlt"))  return QObject::tr("Maltese");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("man"))  return QObject::tr("Mandingo");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("mni"))  return QObject::tr("Manipuri");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("mno"))  return QObject::tr("Manobo languages");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("max"))  return QObject::tr("Manx");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("mao"))  return QObject::tr("Maori");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("mri"))  return QObject::tr("Maori");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("mar"))  return QObject::tr("Marathi");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("chm"))  return QObject::tr("Mari");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("mah"))  return QObject::tr("Marshall");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("mwr"))  return QObject::tr("Marwari");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("mas"))  return QObject::tr("Masai");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("myn"))  return QObject::tr("Mayan languages");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("men"))  return QObject::tr("Mende");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("mic"))  return QObject::tr("Micmac");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("min"))  return QObject::tr("Minangkabau");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("mis"))  return QObject::tr("Miscellaneous (Other)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("moh"))  return QObject::tr("Mohawk");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("mol"))  return QObject::tr("Moldavian");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("mkh"))  return QObject::tr("Mon-Kmer (Other)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("lol"))  return QObject::tr("Mongo");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("mon"))  return QObject::tr("Mongolian");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("mos"))  return QObject::tr("Mossi");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("mul"))  return QObject::tr("Multiple languages");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("mun"))  return QObject::tr("Munda languages");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("nau"))  return QObject::tr("Nauru");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("nav"))  return QObject::tr("Navajo");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("nde"))  return QObject::tr("Ndebele, North");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("nbl"))  return QObject::tr("Ndebele, South");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("ndo"))  return QObject::tr("Ndongo");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("nep"))  return QObject::tr("Nepali");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("new"))  return QObject::tr("Newari");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("nic"))  return QObject::tr("Niger-Kordofanian (Other)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("ssa"))  return QObject::tr("Nilo-Saharan (Other)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("niu"))  return QObject::tr("Niuean");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("non"))  return QObject::tr("Norse, Old");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("nai"))  return QObject::tr("North American Indian (Other)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("nor"))  return QObject::tr("Norwegian");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("nno"))  return QObject::tr("Norwegian (Nynorsk)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("nub"))  return QObject::tr("Nubian languages");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("nym"))  return QObject::tr("Nyamwezi");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("nya"))  return QObject::tr("Nyanja");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("nyn"))  return QObject::tr("Nyankole");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("nyo"))  return QObject::tr("Nyoro");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("nzi"))  return QObject::tr("Nzima");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("oji"))  return QObject::tr("Ojibwa");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("ori"))  return QObject::tr("Oriya");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("orm"))  return QObject::tr("Oromo");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("osa"))  return QObject::tr("Osage");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("oss"))  return QObject::tr("Ossetic");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("oto"))  return QObject::tr("Otomian languages");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("pal"))  return QObject::tr("Pahlavi");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("pau"))  return QObject::tr("Palauan");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("pli"))  return QObject::tr("Pali");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("pam"))  return QObject::tr("Pampanga");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("pag"))  return QObject::tr("Pangasinan");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("pan"))  return QObject::tr("Panjabi");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("pap"))  return QObject::tr("Papiamento");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("paa"))  return QObject::tr("Papuan-Australian (Other)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("fas"))  return QObject::tr("Persian");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("per"))  return QObject::tr("Persian");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("peo"))  return QObject::tr("Persian, Old (ca 600 - 400 B.C.)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("phn"))  return QObject::tr("Phoenician");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("pol"))  return QObject::tr("Polish");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("pon"))  return QObject::tr("Ponape");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("por"))  return QObject::tr("Portuguese");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("pra"))  return QObject::tr("Prakrit languages");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("pro"))  return QObject::tr("Provencal, Old (to 1500)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("pus"))  return QObject::tr("Pushto");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("que"))  return QObject::tr("Quechua");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("roh"))  return QObject::tr("Rhaeto-Romance");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("raj"))  return QObject::tr("Rajasthani");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("rar"))  return QObject::tr("Rarotongan");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("roa"))  return QObject::tr("Romance (Other)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("ron"))  return QObject::tr("Romanian");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("rum"))  return QObject::tr("Romanian");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("rom"))  return QObject::tr("Romany");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("run"))  return QObject::tr("Rundi");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("rus"))  return QObject::tr("Russian");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("sal"))  return QObject::tr("Salishan languages");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("sam"))  return QObject::tr("Samaritan Aramaic");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("smi"))  return QObject::tr("Sami languages");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("smo"))  return QObject::tr("Samoan");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("sad"))  return QObject::tr("Sandawe");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("sag"))  return QObject::tr("Sango");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("san"))  return QObject::tr("Sanskrit");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("srd"))  return QObject::tr("Sardinian");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("sco"))  return QObject::tr("Scots");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("sel"))  return QObject::tr("Selkup");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("sem"))  return QObject::tr("Semitic (Other)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("scr"))  return QObject::tr("Serbo-Croatian");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("srr"))  return QObject::tr("Serer");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("shn"))  return QObject::tr("Shan");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("sna"))  return QObject::tr("Shona");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("sid"))  return QObject::tr("Sidamo");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("bla"))  return QObject::tr("Siksika");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("snd"))  return QObject::tr("Sindhi");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("sin"))  return QObject::tr("Singhalese");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("sit"))  return QObject::tr("Sino-Tibetan (Other)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("sio"))  return QObject::tr("Siouan languages");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("sla"))  return QObject::tr("Slavic (Other)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("ssw"))  return QObject::tr("Siswant");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("slk"))  return QObject::tr("Slovak");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("slo"))  return QObject::tr("Slovak");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("slv"))  return QObject::tr("Slovenian");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("sog"))  return QObject::tr("Sogdian");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("som"))  return QObject::tr("Somali");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("son"))  return QObject::tr("Songhai");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("wen"))  return QObject::tr("Sorbian languages");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("nso"))  return QObject::tr("Sotho, Northern");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("sot"))  return QObject::tr("Sotho, Southern");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("sai"))  return QObject::tr("South American Indian (Other)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("esl"))  return QObject::tr("Spanish");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("spa"))  return QObject::tr("Spanish");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("suk"))  return QObject::tr("Sukuma");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("sux"))  return QObject::tr("Sumerian");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("sun"))  return QObject::tr("Sudanese");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("sus"))  return QObject::tr("Susu");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("swa"))  return QObject::tr("Swahili");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("ssw"))  return QObject::tr("Swazi");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("sve"))  return QObject::tr("Swedish");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("swe"))  return QObject::tr("Swedish");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("syr"))  return QObject::tr("Syriac");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("tgl"))  return QObject::tr("Tagalog");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("tah"))  return QObject::tr("Tahitian");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("tgk"))  return QObject::tr("Tajik");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("tmh"))  return QObject::tr("Tamashek");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("tam"))  return QObject::tr("Tamil");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("tat"))  return QObject::tr("Tatar");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("tel"))  return QObject::tr("Telugu");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("ter"))  return QObject::tr("Tereno");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("tha"))  return QObject::tr("Thai");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("bod"))  return QObject::tr("Tibetan");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("tib"))  return QObject::tr("Tibetan");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("tig"))  return QObject::tr("Tigre");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("tir"))  return QObject::tr("Tigrinya");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("tem"))  return QObject::tr("Timne");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("tiv"))  return QObject::tr("Tivi");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("tli"))  return QObject::tr("Tlingit");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("tog"))  return QObject::tr("Tonga (Nyasa)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("ton"))  return QObject::tr("Tonga (Tonga Islands)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("tru"))  return QObject::tr("Truk");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("tsi"))  return QObject::tr("Tsimshian");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("tso"))  return QObject::tr("Tsonga");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("tsn"))  return QObject::tr("Tswana");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("tum"))  return QObject::tr("Tumbuka");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("tur"))  return QObject::tr("Turkish");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("ota"))  return QObject::tr("Turkish, Ottoman (1500 - 1928)");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("tuk"))  return QObject::tr("Turkmen");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("tyv"))  return QObject::tr("Tuvinian");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("twi"))  return QObject::tr("Twi");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("uga"))  return QObject::tr("Ugaritic");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("uig"))  return QObject::tr("Uighur");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("ukr"))  return QObject::tr("Ukrainian");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("umb"))  return QObject::tr("Umbundu");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("und"))  return QObject::tr("Undetermined");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("urd"))  return QObject::tr("Urdu");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("uzb"))  return QObject::tr("Uzbek");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("vai"))  return QObject::tr("Vai");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("ven"))  return QObject::tr("Venda");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("vie"))  return QObject::tr("Vietnamese");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("vol"))  return QObject::tr("Volapük");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("vot"))  return QObject::tr("Votic");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("wak"))  return QObject::tr("Wakashan languages");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("wal"))  return QObject::tr("Walamo");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("war"))  return QObject::tr("Waray");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("was"))  return QObject::tr("Washo");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("cym"))  return QObject::tr("Welsh");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("wel"))  return QObject::tr("Welsh");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("wol"))  return QObject::tr("Wolof");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("xho"))  return QObject::tr("Xhosa");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("sah"))  return QObject::tr("Yakut");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("yao"))  return QObject::tr("Yao");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("yap"))  return QObject::tr("Yap");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("yid"))  return QObject::tr("Yiddish");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("yor"))  return QObject::tr("Yoruba");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("zap"))  return QObject::tr("Zapotec");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("zen"))  return QObject::tr("Zenaga");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("zha"))  return QObject::tr("Zhuang");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("zul"))  return QObject::tr("Zulu");
-    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>("zun"))  return QObject::tr("Zuni");
+    for (const Iso639LangCode *i = iso639_2Codes(); i->code; i++)
+    if (*reinterpret_cast<const quint32 *>(lang) == *reinterpret_cast<const quint32 *>(i->code))
+      return QObject::tr(i->name);
   }
 
   return lang;
 }
 
+QMap<QByteArray, QString> SStringParser::allIso639Languages(void)
+{
+  QMap<QByteArray, QString> result;
+  for (const Iso639LangCode *i = iso639_2Codes(); i->code; i++)
+    result.insert(i->code, QObject::tr(i->name));
+
+  return result;
+}
+
+const SStringParser::Iso639LangCode * SStringParser::iso639_1Codes(void)
+{
+  static const Iso639LangCode codes[] =
+      { { "aa", QT_TR_NOOP("Afar")           },
+        { "ab", QT_TR_NOOP("Abkhazian")      },
+        { "af", QT_TR_NOOP("Afrikaans")      },
+        { "am", QT_TR_NOOP("Amharic")        },
+        { "ar", QT_TR_NOOP("Arabic")         },
+        { "as", QT_TR_NOOP("Assamese")       },
+        { "ay", QT_TR_NOOP("Aymara")         },
+        { "az", QT_TR_NOOP("Azerbaijani")    },
+        { "ba", QT_TR_NOOP("Bashkir")        },
+        { "be", QT_TR_NOOP("Byelorussian")   },
+        { "bg", QT_TR_NOOP("Bulgarian")      },
+        { "bh", QT_TR_NOOP("Bihari")         },
+        { "bi", QT_TR_NOOP("Bislama")        },
+        { "bn", QT_TR_NOOP("Bengali")        },
+        { "bo", QT_TR_NOOP("Tibetan")        },
+        { "br", QT_TR_NOOP("Breton")         },
+        { "ca", QT_TR_NOOP("Catalan")        },
+        { "co", QT_TR_NOOP("Corsican")       },
+        { "cs", QT_TR_NOOP("Czech")          },
+        { "cy", QT_TR_NOOP("Welsh")          },
+        { "da", QT_TR_NOOP("Danish")         },
+        { "de", QT_TR_NOOP("German")         },
+        { "dz", QT_TR_NOOP("Bhutani")        },
+        { "el", QT_TR_NOOP("Greek")          },
+        { "en", QT_TR_NOOP("English")        },
+        { "eo", QT_TR_NOOP("Esperanto")      },
+        { "es", QT_TR_NOOP("Spanish")        },
+        { "et", QT_TR_NOOP("Estonian")       },
+        { "eu", QT_TR_NOOP("Basque")         },
+        { "fa", QT_TR_NOOP("Persian")        },
+        { "fi", QT_TR_NOOP("Finnish")        },
+        { "fj", QT_TR_NOOP("Fiji")           },
+        { "fo", QT_TR_NOOP("Faeroese")       },
+        { "fr", QT_TR_NOOP("French")         },
+        { "fy", QT_TR_NOOP("Frisian")        },
+        { "ga", QT_TR_NOOP("Irish")          },
+        { "gd", QT_TR_NOOP("Gaelic")         },
+        { "gl", QT_TR_NOOP("Galician")       },
+        { "gn", QT_TR_NOOP("Guarani")        },
+        { "gu", QT_TR_NOOP("Gujarati")       },
+        { "ha", QT_TR_NOOP("Hausa")          },
+        { "hi", QT_TR_NOOP("Hindi")          },
+        { "hr", QT_TR_NOOP("Croatian")       },
+        { "hu", QT_TR_NOOP("Hungarian")      },
+        { "hy", QT_TR_NOOP("Armenian")       },
+        { "ia", QT_TR_NOOP("Interlingua")    },
+        { "ie", QT_TR_NOOP("Interlingue")    },
+        { "ik", QT_TR_NOOP("Inupiak")        },
+        { "in", QT_TR_NOOP("Indonesian")     },
+        { "is", QT_TR_NOOP("Icelandic")      },
+        { "it", QT_TR_NOOP("Italian")        },
+        { "iw", QT_TR_NOOP("Hebrew")         },
+        { "ja", QT_TR_NOOP("Japanese")       },
+        { "ji", QT_TR_NOOP("Yiddish")        },
+        { "jw", QT_TR_NOOP("Javanese")       },
+        { "ka", QT_TR_NOOP("Georgian")       },
+        { "kk", QT_TR_NOOP("Kazakh")         },
+        { "kl", QT_TR_NOOP("Greenlandic")    },
+        { "km", QT_TR_NOOP("Cambodian")      },
+        { "kn", QT_TR_NOOP("Kannada")        },
+        { "ko", QT_TR_NOOP("Korean")         },
+        { "ks", QT_TR_NOOP("Kashmiri")       },
+        { "ku", QT_TR_NOOP("Kurdish")        },
+        { "ky", QT_TR_NOOP("Kirghiz")        },
+        { "la", QT_TR_NOOP("Latin")          },
+        { "ln", QT_TR_NOOP("Lingala")        },
+        { "lo", QT_TR_NOOP("Laothian")       },
+        { "lt", QT_TR_NOOP("Lithuanian")     },
+        { "lv", QT_TR_NOOP("Latvian")        },
+        { "mg", QT_TR_NOOP("Malagasy")       },
+        { "mi", QT_TR_NOOP("Maori")          },
+        { "mk", QT_TR_NOOP("Macedonian")     },
+        { "ml", QT_TR_NOOP("Malayalam")      },
+        { "mn", QT_TR_NOOP("Mongolian")      },
+        { "mo", QT_TR_NOOP("Moldavian")      },
+        { "mr", QT_TR_NOOP("Marathi")        },
+        { "ms", QT_TR_NOOP("Malay")          },
+        { "mt", QT_TR_NOOP("Maltese")        },
+        { "my", QT_TR_NOOP("Burmese")        },
+        { "na", QT_TR_NOOP("Nauru")          },
+        { "ne", QT_TR_NOOP("Nepali")         },
+        { "nl", QT_TR_NOOP("Dutch")          },
+        { "no", QT_TR_NOOP("Norwegian")      },
+        { "oc", QT_TR_NOOP("Occitan")        },
+        { "om", QT_TR_NOOP("Oromo")          },
+        { "or", QT_TR_NOOP("Oriya")          },
+        { "pa", QT_TR_NOOP("Punjabi")        },
+        { "pl", QT_TR_NOOP("Polish")         },
+        { "ps", QT_TR_NOOP("Pashto")         },
+        { "pt", QT_TR_NOOP("Portuguese")     },
+        { "qu", QT_TR_NOOP("Quechua")        },
+        { "rm", QT_TR_NOOP("Rhaeto-Romance") },
+        { "rn", QT_TR_NOOP("Kirundi")        },
+        { "ro", QT_TR_NOOP("Romanian")       },
+        { "ru", QT_TR_NOOP("Russian")        },
+        { "rw", QT_TR_NOOP("Kinyarwanda")    },
+        { "sa", QT_TR_NOOP("Sanskrit")       },
+        { "sd", QT_TR_NOOP("Sindhi")         },
+        { "sg", QT_TR_NOOP("Sangro")         },
+        { "sh", QT_TR_NOOP("Serbo-Croatian") },
+        { "si", QT_TR_NOOP("Singhalese")     },
+        { "sk", QT_TR_NOOP("Slovak")         },
+        { "sl", QT_TR_NOOP("Slovenian")      },
+        { "sm", QT_TR_NOOP("Samoan")         },
+        { "sn", QT_TR_NOOP("Shona")          },
+        { "so", QT_TR_NOOP("Somali")         },
+        { "sq", QT_TR_NOOP("Albanian")       },
+        { "sr", QT_TR_NOOP("Serbian")        },
+        { "ss", QT_TR_NOOP("Siswati")        },
+        { "st", QT_TR_NOOP("Sesotho")        },
+        { "su", QT_TR_NOOP("Sudanese")       },
+        { "sv", QT_TR_NOOP("Swedish")        },
+        { "sw", QT_TR_NOOP("Swahili")        },
+        { "ta", QT_TR_NOOP("Tamil")          },
+        { "te", QT_TR_NOOP("Tegulu")         },
+        { "tg", QT_TR_NOOP("Tajik")          },
+        { "th", QT_TR_NOOP("Thai")           },
+        { "ti", QT_TR_NOOP("Tigrinya")       },
+        { "tk", QT_TR_NOOP("Turkmen")        },
+        { "tl", QT_TR_NOOP("Tagalog")        },
+        { "tn", QT_TR_NOOP("Setswana")       },
+        { "to", QT_TR_NOOP("Tonga")          },
+        { "tr", QT_TR_NOOP("Turkish")        },
+        { "ts", QT_TR_NOOP("Tsonga")         },
+        { "tt", QT_TR_NOOP("Tatar")          },
+        { "tw", QT_TR_NOOP("Twi")            },
+        { "uk", QT_TR_NOOP("Ukrainian")      },
+        { "ur", QT_TR_NOOP("Urdu")           },
+        { "uz", QT_TR_NOOP("Uzbek")          },
+        { "vi", QT_TR_NOOP("Vietnamese")     },
+        { "vo", QT_TR_NOOP("Volapuk")        },
+        { "wo", QT_TR_NOOP("Wolof")          },
+        { "xh", QT_TR_NOOP("Xhosa")          },
+        { "yo", QT_TR_NOOP("Yoruba")         },
+        { "zh", QT_TR_NOOP("Chinese")        },
+        { "zu", QT_TR_NOOP("Zulu")           },
+        { NULL, NULL } };
+
+  return codes;
+}
+
+const SStringParser::Iso639LangCode * SStringParser::iso639_2Codes(void)
+{
+  static const Iso639LangCode codes[] =
+      { { "abk", QT_TR_NOOP("Abkhazian")                                                   	},
+        { "ace", QT_TR_NOOP("Achinese")                                                     },
+        { "ach", QT_TR_NOOP("Acoli")                                                        },
+        { "ada", QT_TR_NOOP("Adangme")                                                      },
+        { "aar", QT_TR_NOOP("Afar")                                                         },
+        { "afh", QT_TR_NOOP("Afrihili")                                                     },
+        { "afr", QT_TR_NOOP("Afrikaans")                                                    },
+        { "afa", QT_TR_NOOP("Afro-Asiatic (Other)")                                         },
+        { "aka", QT_TR_NOOP("Akan")                                                         },
+        { "akk", QT_TR_NOOP("Akkadian")                                                     },
+        { "alb", QT_TR_NOOP("Albanian")                                                     },
+        { "sqi", QT_TR_NOOP("Albanian")                                                     },
+        { "ale", QT_TR_NOOP("Aleut")                                                        },
+        { "alg", QT_TR_NOOP("Algonquian languages")                                         },
+        { "tut", QT_TR_NOOP("Altaic (Other)")                                               },
+        { "amh", QT_TR_NOOP("Amharic")                                                      },
+        { "apa", QT_TR_NOOP("Apache languages")                                             },
+        { "ara", QT_TR_NOOP("Arabic")                                                       },
+        { "arc", QT_TR_NOOP("Aramaic")                                                      },
+        { "arp", QT_TR_NOOP("Arapaho")                                                      },
+        { "arn", QT_TR_NOOP("Araucanian")                                                   },
+        { "arw", QT_TR_NOOP("Arawak")                                                       },
+        { "arm", QT_TR_NOOP("Armenian")                                                     },
+        { "hye", QT_TR_NOOP("Armenian")                                                     },
+        { "art", QT_TR_NOOP("Artificial (Other)")                                           },
+        { "asm", QT_TR_NOOP("Assamese")                                                     },
+        { "ath", QT_TR_NOOP("Athapascan languages")                                         },
+        { "map", QT_TR_NOOP("Austronesian (Other)")                                         },
+        { "ava", QT_TR_NOOP("Avaric")                                                       },
+        { "ave", QT_TR_NOOP("Avestan")                                                      },
+        { "awa", QT_TR_NOOP("Awadhi")                                                       },
+        { "aym", QT_TR_NOOP("Aymara")                                                       },
+        { "aze", QT_TR_NOOP("Azerbaijani")                                                  },
+        { "nah", QT_TR_NOOP("Aztec")                                                        },
+        { "ban", QT_TR_NOOP("Balinese")                                                     },
+        { "bat", QT_TR_NOOP("Baltic (Other)")                                               },
+        { "bal", QT_TR_NOOP("Baluchi")                                                      },
+        { "bam", QT_TR_NOOP("Bambara")                                                      },
+        { "bai", QT_TR_NOOP("Bamileke languages")                                           },
+        { "bad", QT_TR_NOOP("Banda")                                                        },
+        { "bnt", QT_TR_NOOP("Bantu (Other)")                                                },
+        { "bas", QT_TR_NOOP("Basa")                                                         },
+        { "bak", QT_TR_NOOP("Bashkir")                                                      },
+        { "baq", QT_TR_NOOP("Basque")                                                       },
+        { "eus", QT_TR_NOOP("Basque")                                                       },
+        { "bej", QT_TR_NOOP("Beja")                                                         },
+        { "bem", QT_TR_NOOP("Bemba")                                                        },
+        { "ben", QT_TR_NOOP("Bengali")                                                      },
+        { "ber", QT_TR_NOOP("Berber (Other)")                                               },
+        { "bho", QT_TR_NOOP("Bhojpuri")                                                     },
+        { "bih", QT_TR_NOOP("Bihari")                                                       },
+        { "bik", QT_TR_NOOP("Bikol")                                                        },
+        { "bin", QT_TR_NOOP("Bini")                                                         },
+        { "bis", QT_TR_NOOP("Bislama")                                                      },
+        { "bra", QT_TR_NOOP("Braj")                                                         },
+        { "bre", QT_TR_NOOP("Breton")                                                       },
+        { "bug", QT_TR_NOOP("Buginese")                                                     },
+        { "bul", QT_TR_NOOP("Bulgarian")                                                    },
+        { "bua", QT_TR_NOOP("Buriat")                                                       },
+        { "bur", QT_TR_NOOP("Burmese")                                                      },
+        { "mya", QT_TR_NOOP("Burmese")                                                      },
+        { "bel", QT_TR_NOOP("Byelorussian")                                                 },
+        { "cad", QT_TR_NOOP("Caddo")                                                        },
+        { "car", QT_TR_NOOP("Carib")                                                        },
+        { "cat", QT_TR_NOOP("Catalan")                                                      },
+        { "cau", QT_TR_NOOP("Caucasian (Other)")                                            },
+        { "ceb", QT_TR_NOOP("Cebuano")                                                      },
+        { "cel", QT_TR_NOOP("Celtic (Other)")                                               },
+        { "cai", QT_TR_NOOP("Central American Indian (Other)")                              },
+        { "chg", QT_TR_NOOP("Chagatai")                                                     },
+        { "cha", QT_TR_NOOP("Chamorro")                                                     },
+        { "che", QT_TR_NOOP("Chechen")                                                      },
+        { "chr", QT_TR_NOOP("Cherokee")                                                     },
+        { "chy", QT_TR_NOOP("Cheyenne")                                                     },
+        { "chb", QT_TR_NOOP("Chibcha")                                                      },
+        { "chi", QT_TR_NOOP("Chinese")                                                      },
+        { "zho", QT_TR_NOOP("Chinese")                                                      },
+        { "chn", QT_TR_NOOP("Chinook jargon")                                               },
+        { "cho", QT_TR_NOOP("Choctaw")                                                      },
+        { "chu", QT_TR_NOOP("Church Slavic")                                                },
+        { "chv", QT_TR_NOOP("Chuvash")                                                      },
+        { "cop", QT_TR_NOOP("Coptic")                                                       },
+        { "cor", QT_TR_NOOP("Cornish")                                                      },
+        { "cos", QT_TR_NOOP("Corsican")                                                     },
+        { "cre", QT_TR_NOOP("Cree")                                                         },
+        { "mus", QT_TR_NOOP("Creek")                                                        },
+        { "crp", QT_TR_NOOP("Creoles and Pidgins (Other)")                                  },
+        { "cpe", QT_TR_NOOP("Creoles and Pidgins, English-based (Other)")                   },
+        { "cpf", QT_TR_NOOP("Creoles and Pidgins, French-based (Other)")                    },
+        { "cpp", QT_TR_NOOP("Creoles and Pidgins, Portuguese-based (Other)")                },
+        { "cus", QT_TR_NOOP("Cushitic (Other)")                                             },
+        { "ces", QT_TR_NOOP("Czech")                                                        },
+        { "cze", QT_TR_NOOP("Czech")                                                        },
+        { "dak", QT_TR_NOOP("Dakota")                                                       },
+        { "dan", QT_TR_NOOP("Danish")                                                       },
+        { "del", QT_TR_NOOP("Delaware")                                                     },
+        { "din", QT_TR_NOOP("Dinka")                                                        },
+        { "div", QT_TR_NOOP("Divehi")                                                       },
+        { "doi", QT_TR_NOOP("Dogri")                                                        },
+        { "dra", QT_TR_NOOP("Dravidian (Other)")                                            },
+        { "dua", QT_TR_NOOP("Duala")                                                        },
+        { "dut", QT_TR_NOOP("Dutch")                                                        },
+        { "nla", QT_TR_NOOP("Dutch")                                                        },
+        { "dum", QT_TR_NOOP("Dutch, Middle (ca. 1050-1350)")                                },
+        { "dyu", QT_TR_NOOP("Dyula")                                                        },
+        { "dzo", QT_TR_NOOP("Dzongkha")                                                     },
+        { "efi", QT_TR_NOOP("Efik")                                                         },
+        { "egy", QT_TR_NOOP("Egyptian (Ancient)")                                           },
+        { "eka", QT_TR_NOOP("Ekajuk")                                                       },
+        { "elx", QT_TR_NOOP("Elamite")                                                      },
+        { "eng", QT_TR_NOOP("English")                                                      },
+        { "enm", QT_TR_NOOP("English, Middle (ca. 1100-1500)")                              },
+        { "ang", QT_TR_NOOP("English, Old (ca. 450-1100)")                                  },
+        { "esk", QT_TR_NOOP("Eskimo (Other)")                                               },
+        { "epo", QT_TR_NOOP("Esperanto")                                                    },
+        { "est", QT_TR_NOOP("Estonian")                                                     },
+        { "ewe", QT_TR_NOOP("Ewe")                                                          },
+        { "ewo", QT_TR_NOOP("Ewondo")                                                       },
+        { "fan", QT_TR_NOOP("Fang")                                                         },
+        { "fat", QT_TR_NOOP("Fanti")                                                        },
+        { "fao", QT_TR_NOOP("Faroese")                                                      },
+        { "fij", QT_TR_NOOP("Fijian")                                                       },
+        { "fin", QT_TR_NOOP("Finnish")                                                      },
+        { "fiu", QT_TR_NOOP("Finno-Ugrian (Other)")                                         },
+        { "fon", QT_TR_NOOP("Fon")                                                          },
+        { "fra", QT_TR_NOOP("French")                                                       },
+        { "fre", QT_TR_NOOP("French")                                                       },
+        { "frm", QT_TR_NOOP("French, Middle (ca. 1400-1600)")                               },
+        { "fro", QT_TR_NOOP("French, Old (842- ca. 1400)")                                  },
+        { "fry", QT_TR_NOOP("Frisian")                                                      },
+        { "ful", QT_TR_NOOP("Fulah")                                                        },
+        { "gaa", QT_TR_NOOP("Ga")                                                           },
+        { "gae", QT_TR_NOOP("Gaelic (Scots)")                                               },
+        { "gdh", QT_TR_NOOP("Gaelic (Scots)")                                               },
+        { "glg", QT_TR_NOOP("Gallegan")                                                     },
+        { "lug", QT_TR_NOOP("Ganda")                                                        },
+        { "gay", QT_TR_NOOP("Gayo")                                                         },
+        { "gez", QT_TR_NOOP("Geez")                                                         },
+        { "geo", QT_TR_NOOP("Georgian")                                                     },
+        { "kat", QT_TR_NOOP("Georgian")                                                     },
+        { "deu", QT_TR_NOOP("German")                                                       },
+        { "ger", QT_TR_NOOP("German")                                                       },
+        { "gmh", QT_TR_NOOP("German, Middle High (ca. 1050-1500)")                          },
+        { "goh", QT_TR_NOOP("German, Old High (ca. 750-1050)")                              },
+        { "gem", QT_TR_NOOP("Germanic (Other)")                                             },
+        { "gil", QT_TR_NOOP("Gilbertese")                                                   },
+        { "gon", QT_TR_NOOP("Gondi")                                                        },
+        { "got", QT_TR_NOOP("Gothic")                                                       },
+        { "grb", QT_TR_NOOP("Grebo")                                                        },
+        { "grc", QT_TR_NOOP("Greek, Ancient (to 1453)")                                     },
+        { "ell", QT_TR_NOOP("Greek, Modern (1453-)")                                        },
+        { "gre", QT_TR_NOOP("Greek, Modern (1453-)")                                        },
+        { "kal", QT_TR_NOOP("Greenlandic")                                                  },
+        { "grn", QT_TR_NOOP("Guarani")                                                      },
+        { "guj", QT_TR_NOOP("Gujarati")                                                     },
+        { "hai", QT_TR_NOOP("Haida")                                                        },
+        { "hau", QT_TR_NOOP("Hausa")                                                        },
+        { "haw", QT_TR_NOOP("Hawaiian")                                                     },
+        { "heb", QT_TR_NOOP("Hebrew")                                                       },
+        { "her", QT_TR_NOOP("Herero")                                                       },
+        { "hil", QT_TR_NOOP("Hiligaynon")                                                   },
+        { "him", QT_TR_NOOP("Himachali")                                                    },
+        { "hin", QT_TR_NOOP("Hindi")                                                        },
+        { "hmo", QT_TR_NOOP("Hiri Motu")                                                    },
+        { "hun", QT_TR_NOOP("Hungarian")                                                    },
+        { "hup", QT_TR_NOOP("Hupa")                                                         },
+        { "iba", QT_TR_NOOP("Iban")                                                         },
+        { "ice", QT_TR_NOOP("Icelandic")                                                    },
+        { "isl", QT_TR_NOOP("Icelandic")                                                    },
+        { "ibo", QT_TR_NOOP("Igbo")                                                         },
+        { "ijo", QT_TR_NOOP("Ijo")                                                          },
+        { "ilo", QT_TR_NOOP("Iloko")                                                        },
+        { "inc", QT_TR_NOOP("Indic (Other)")                                                },
+        { "ine", QT_TR_NOOP("Indo-European (Other)")                                        },
+        { "ind", QT_TR_NOOP("Indonesian")                                                   },
+        { "ina", QT_TR_NOOP("Interlingua (International Auxiliary language Association)")   },
+        { "ine", QT_TR_NOOP("Interlingue")                                                  },
+        { "iku", QT_TR_NOOP("Inuktitut")                                                    },
+        { "ipk", QT_TR_NOOP("Inupiak")                                                      },
+        { "ira", QT_TR_NOOP("Iranian (Other)")                                              },
+        { "gai", QT_TR_NOOP("Irish")                                                        },
+        { "iri", QT_TR_NOOP("Irish")                                                        },
+        { "sga", QT_TR_NOOP("Irish, Old (to 900)")                                          },
+        { "mga", QT_TR_NOOP("Irish, Middle (900 - 1200)")                                   },
+        { "iro", QT_TR_NOOP("Iroquoian languages")                                          },
+        { "ita", QT_TR_NOOP("Italian")                                                      },
+        { "jpn", QT_TR_NOOP("Japanese")                                                     },
+        { "jav", QT_TR_NOOP("Javanese")                                                     },
+        { "jaw", QT_TR_NOOP("Javanese")                                                     },
+        { "jrb", QT_TR_NOOP("Judeo-Arabic")                                                 },
+        { "jpr", QT_TR_NOOP("Judeo-Persian")                                                },
+        { "kab", QT_TR_NOOP("Kabyle")                                                       },
+        { "kac", QT_TR_NOOP("Kachin")                                                       },
+        { "kam", QT_TR_NOOP("Kamba")                                                        },
+        { "kan", QT_TR_NOOP("Kannada")                                                      },
+        { "kau", QT_TR_NOOP("Kanuri")                                                       },
+        { "kaa", QT_TR_NOOP("Kara-Kalpak")                                                  },
+        { "kar", QT_TR_NOOP("Karen")                                                        },
+        { "kas", QT_TR_NOOP("Kashmiri")                                                     },
+        { "kaw", QT_TR_NOOP("Kawi")                                                         },
+        { "kaz", QT_TR_NOOP("Kazakh")                                                       },
+        { "kha", QT_TR_NOOP("Khasi")                                                        },
+        { "khm", QT_TR_NOOP("Khmer")                                                        },
+        { "khi", QT_TR_NOOP("Khoisan (Other)")                                              },
+        { "kho", QT_TR_NOOP("Khotanese")                                                    },
+        { "kik", QT_TR_NOOP("Kikuyu")                                                       },
+        { "kin", QT_TR_NOOP("Kinyarwanda")                                                  },
+        { "kir", QT_TR_NOOP("Kirghiz")                                                      },
+        { "kom", QT_TR_NOOP("Komi")                                                         },
+        { "kon", QT_TR_NOOP("Kongo")                                                        },
+        { "kok", QT_TR_NOOP("Konkani")                                                      },
+        { "kor", QT_TR_NOOP("Korean")                                                       },
+        { "kpe", QT_TR_NOOP("Kpelle")                                                       },
+        { "kro", QT_TR_NOOP("Kru")                                                          },
+        { "kua", QT_TR_NOOP("Kuanyama")                                                     },
+        { "kum", QT_TR_NOOP("Kumyk")                                                        },
+        { "kur", QT_TR_NOOP("Kurdish")                                                      },
+        { "kru", QT_TR_NOOP("Kurukh")                                                       },
+        { "kus", QT_TR_NOOP("Kusaie")                                                       },
+        { "kut", QT_TR_NOOP("Kutenai")                                                      },
+        { "lad", QT_TR_NOOP("Ladino")                                                       },
+        { "lah", QT_TR_NOOP("Lahnda")                                                       },
+        { "lam", QT_TR_NOOP("Lamba")                                                        },
+        { "oci", QT_TR_NOOP("Langue d'Oc (post 1500)")                                      },
+        { "lao", QT_TR_NOOP("Lao")                                                          },
+        { "lat", QT_TR_NOOP("Latin")                                                        },
+        { "lav", QT_TR_NOOP("Latvian")                                                      },
+        { "ltz", QT_TR_NOOP("Letzeburgesch")                                                },
+        { "lez", QT_TR_NOOP("Lezghian")                                                     },
+        { "lin", QT_TR_NOOP("Lingala")                                                      },
+        { "lit", QT_TR_NOOP("Lithuanian")                                                   },
+        { "loz", QT_TR_NOOP("Lozi")                                                         },
+        { "lub", QT_TR_NOOP("Luba-Katanga")                                                 },
+        { "lui", QT_TR_NOOP("Luiseno")                                                      },
+        { "lun", QT_TR_NOOP("Lunda")                                                        },
+        { "luo", QT_TR_NOOP("Luo (Kenya and Tanzania)")                                     },
+        { "mac", QT_TR_NOOP("Macedonian")                                                   },
+        { "mak", QT_TR_NOOP("Macedonian")                                                   },
+        { "mad", QT_TR_NOOP("Madurese")                                                     },
+        { "mag", QT_TR_NOOP("Magahi")                                                       },
+        { "mai", QT_TR_NOOP("Maithili")                                                     },
+        { "mak", QT_TR_NOOP("Makasar")                                                      },
+        { "mlg", QT_TR_NOOP("Malagasy")                                                     },
+        { "may", QT_TR_NOOP("Malay")                                                        },
+        { "msa", QT_TR_NOOP("Malay")                                                        },
+        { "mal", QT_TR_NOOP("Malayalam")                                                    },
+        { "mlt", QT_TR_NOOP("Maltese")                                                      },
+        { "man", QT_TR_NOOP("Mandingo")                                                     },
+        { "mni", QT_TR_NOOP("Manipuri")                                                     },
+        { "mno", QT_TR_NOOP("Manobo languages")                                             },
+        { "max", QT_TR_NOOP("Manx")                                                         },
+        { "mao", QT_TR_NOOP("Maori")                                                        },
+        { "mri", QT_TR_NOOP("Maori")                                                        },
+        { "mar", QT_TR_NOOP("Marathi")                                                      },
+        { "chm", QT_TR_NOOP("Mari")                                                         },
+        { "mah", QT_TR_NOOP("Marshall")                                                     },
+        { "mwr", QT_TR_NOOP("Marwari")                                                      },
+        { "mas", QT_TR_NOOP("Masai")                                                        },
+        { "myn", QT_TR_NOOP("Mayan languages")                                              },
+        { "men", QT_TR_NOOP("Mende")                                                        },
+        { "mic", QT_TR_NOOP("Micmac")                                                       },
+        { "min", QT_TR_NOOP("Minangkabau")                                                  },
+        { "mis", QT_TR_NOOP("Miscellaneous (Other)")                                        },
+        { "moh", QT_TR_NOOP("Mohawk")                                                       },
+        { "mol", QT_TR_NOOP("Moldavian")                                                    },
+        { "mkh", QT_TR_NOOP("Mon-Kmer (Other)")                                             },
+        { "lol", QT_TR_NOOP("Mongo")                                                        },
+        { "mon", QT_TR_NOOP("Mongolian")                                                    },
+        { "mos", QT_TR_NOOP("Mossi")                                                        },
+        { "mul", QT_TR_NOOP("Multiple languages")                                           },
+        { "mun", QT_TR_NOOP("Munda languages")                                              },
+        { "nau", QT_TR_NOOP("Nauru")                                                        },
+        { "nav", QT_TR_NOOP("Navajo")                                                       },
+        { "nde", QT_TR_NOOP("Ndebele, North")                                               },
+        { "nbl", QT_TR_NOOP("Ndebele, South")                                               },
+        { "ndo", QT_TR_NOOP("Ndongo")                                                       },
+        { "nep", QT_TR_NOOP("Nepali")                                                       },
+        { "new", QT_TR_NOOP("Newari")                                                       },
+        { "nic", QT_TR_NOOP("Niger-Kordofanian (Other)")                                    },
+        { "ssa", QT_TR_NOOP("Nilo-Saharan (Other)")                                         },
+        { "niu", QT_TR_NOOP("Niuean")                                                       },
+        { "non", QT_TR_NOOP("Norse, Old")                                                   },
+        { "nai", QT_TR_NOOP("North American Indian (Other)")                                },
+        { "nor", QT_TR_NOOP("Norwegian")                                                    },
+        { "nno", QT_TR_NOOP("Norwegian (Nynorsk)")                                          },
+        { "nub", QT_TR_NOOP("Nubian languages")                                             },
+        { "nym", QT_TR_NOOP("Nyamwezi")                                                     },
+        { "nya", QT_TR_NOOP("Nyanja")                                                       },
+        { "nyn", QT_TR_NOOP("Nyankole")                                                     },
+        { "nyo", QT_TR_NOOP("Nyoro")                                                        },
+        { "nzi", QT_TR_NOOP("Nzima")                                                        },
+        { "oji", QT_TR_NOOP("Ojibwa")                                                       },
+        { "ori", QT_TR_NOOP("Oriya")                                                        },
+        { "orm", QT_TR_NOOP("Oromo")                                                        },
+        { "osa", QT_TR_NOOP("Osage")                                                        },
+        { "oss", QT_TR_NOOP("Ossetic")                                                      },
+        { "oto", QT_TR_NOOP("Otomian languages")                                            },
+        { "pal", QT_TR_NOOP("Pahlavi")                                                      },
+        { "pau", QT_TR_NOOP("Palauan")                                                      },
+        { "pli", QT_TR_NOOP("Pali")                                                         },
+        { "pam", QT_TR_NOOP("Pampanga")                                                     },
+        { "pag", QT_TR_NOOP("Pangasinan")                                                   },
+        { "pan", QT_TR_NOOP("Panjabi")                                                      },
+        { "pap", QT_TR_NOOP("Papiamento")                                                   },
+        { "paa", QT_TR_NOOP("Papuan-Australian (Other)")                                    },
+        { "fas", QT_TR_NOOP("Persian")                                                      },
+        { "per", QT_TR_NOOP("Persian")                                                      },
+        { "peo", QT_TR_NOOP("Persian, Old (ca 600 - 400 B.C.)")                             },
+        { "phn", QT_TR_NOOP("Phoenician")                                                   },
+        { "pol", QT_TR_NOOP("Polish")                                                       },
+        { "pon", QT_TR_NOOP("Ponape")                                                       },
+        { "por", QT_TR_NOOP("Portuguese")                                                   },
+        { "pra", QT_TR_NOOP("Prakrit languages")                                            },
+        { "pro", QT_TR_NOOP("Provencal, Old (to 1500)")                                     },
+        { "pus", QT_TR_NOOP("Pushto")                                                       },
+        { "que", QT_TR_NOOP("Quechua")                                                      },
+        { "roh", QT_TR_NOOP("Rhaeto-Romance")                                               },
+        { "raj", QT_TR_NOOP("Rajasthani")                                                   },
+        { "rar", QT_TR_NOOP("Rarotongan")                                                   },
+        { "roa", QT_TR_NOOP("Romance (Other)")                                              },
+        { "ron", QT_TR_NOOP("Romanian")                                                     },
+        { "rum", QT_TR_NOOP("Romanian")                                                     },
+        { "rom", QT_TR_NOOP("Romany")                                                       },
+        { "run", QT_TR_NOOP("Rundi")                                                        },
+        { "rus", QT_TR_NOOP("Russian")                                                      },
+        { "sal", QT_TR_NOOP("Salishan languages")                                           },
+        { "sam", QT_TR_NOOP("Samaritan Aramaic")                                            },
+        { "smi", QT_TR_NOOP("Sami languages")                                               },
+        { "smo", QT_TR_NOOP("Samoan")                                                       },
+        { "sad", QT_TR_NOOP("Sandawe")                                                      },
+        { "sag", QT_TR_NOOP("Sango")                                                        },
+        { "san", QT_TR_NOOP("Sanskrit")                                                     },
+        { "srd", QT_TR_NOOP("Sardinian")                                                    },
+        { "sco", QT_TR_NOOP("Scots")                                                        },
+        { "sel", QT_TR_NOOP("Selkup")                                                       },
+        { "sem", QT_TR_NOOP("Semitic (Other)")                                              },
+        { "scr", QT_TR_NOOP("Serbo-Croatian")                                               },
+        { "srr", QT_TR_NOOP("Serer")                                                        },
+        { "shn", QT_TR_NOOP("Shan")                                                         },
+        { "sna", QT_TR_NOOP("Shona")                                                        },
+        { "sid", QT_TR_NOOP("Sidamo")                                                       },
+        { "bla", QT_TR_NOOP("Siksika")                                                      },
+        { "snd", QT_TR_NOOP("Sindhi")                                                       },
+        { "sin", QT_TR_NOOP("Singhalese")                                                   },
+        { "sit", QT_TR_NOOP("Sino-Tibetan (Other)")                                         },
+        { "sio", QT_TR_NOOP("Siouan languages")                                             },
+        { "sla", QT_TR_NOOP("Slavic (Other)")                                               },
+        { "ssw", QT_TR_NOOP("Siswant")                                                      },
+        { "slk", QT_TR_NOOP("Slovak")                                                       },
+        { "slo", QT_TR_NOOP("Slovak")                                                       },
+        { "slv", QT_TR_NOOP("Slovenian")                                                    },
+        { "sog", QT_TR_NOOP("Sogdian")                                                      },
+        { "som", QT_TR_NOOP("Somali")                                                       },
+        { "son", QT_TR_NOOP("Songhai")                                                      },
+        { "wen", QT_TR_NOOP("Sorbian languages")                                            },
+        { "nso", QT_TR_NOOP("Sotho, Northern")                                              },
+        { "sot", QT_TR_NOOP("Sotho, Southern")                                              },
+        { "sai", QT_TR_NOOP("South American Indian (Other)")                                },
+        { "esl", QT_TR_NOOP("Spanish")                                                      },
+        { "spa", QT_TR_NOOP("Spanish")                                                      },
+        { "suk", QT_TR_NOOP("Sukuma")                                                       },
+        { "sux", QT_TR_NOOP("Sumerian")                                                     },
+        { "sun", QT_TR_NOOP("Sudanese")                                                     },
+        { "sus", QT_TR_NOOP("Susu")                                                         },
+        { "swa", QT_TR_NOOP("Swahili")                                                      },
+        { "ssw", QT_TR_NOOP("Swazi")                                                        },
+        { "sve", QT_TR_NOOP("Swedish")                                                      },
+        { "swe", QT_TR_NOOP("Swedish")                                                      },
+        { "syr", QT_TR_NOOP("Syriac")                                                       },
+        { "tgl", QT_TR_NOOP("Tagalog")                                                      },
+        { "tah", QT_TR_NOOP("Tahitian")                                                     },
+        { "tgk", QT_TR_NOOP("Tajik")                                                        },
+        { "tmh", QT_TR_NOOP("Tamashek")                                                     },
+        { "tam", QT_TR_NOOP("Tamil")                                                        },
+        { "tat", QT_TR_NOOP("Tatar")                                                        },
+        { "tel", QT_TR_NOOP("Telugu")                                                       },
+        { "ter", QT_TR_NOOP("Tereno")                                                       },
+        { "tha", QT_TR_NOOP("Thai")                                                         },
+        { "bod", QT_TR_NOOP("Tibetan")                                                      },
+        { "tib", QT_TR_NOOP("Tibetan")                                                      },
+        { "tig", QT_TR_NOOP("Tigre")                                                        },
+        { "tir", QT_TR_NOOP("Tigrinya")                                                     },
+        { "tem", QT_TR_NOOP("Timne")                                                        },
+        { "tiv", QT_TR_NOOP("Tivi")                                                         },
+        { "tli", QT_TR_NOOP("Tlingit")                                                      },
+        { "tog", QT_TR_NOOP("Tonga (Nyasa)")                                                },
+        { "ton", QT_TR_NOOP("Tonga (Tonga Islands)")                                        },
+        { "tru", QT_TR_NOOP("Truk")                                                         },
+        { "tsi", QT_TR_NOOP("Tsimshian")                                                    },
+        { "tso", QT_TR_NOOP("Tsonga")                                                       },
+        { "tsn", QT_TR_NOOP("Tswana")                                                       },
+        { "tum", QT_TR_NOOP("Tumbuka")                                                      },
+        { "tur", QT_TR_NOOP("Turkish")                                                      },
+        { "ota", QT_TR_NOOP("Turkish, Ottoman (1500 - 1928)")                               },
+        { "tuk", QT_TR_NOOP("Turkmen")                                                      },
+        { "tyv", QT_TR_NOOP("Tuvinian")                                                     },
+        { "twi", QT_TR_NOOP("Twi")                                                          },
+        { "uga", QT_TR_NOOP("Ugaritic")                                                     },
+        { "uig", QT_TR_NOOP("Uighur")                                                       },
+        { "ukr", QT_TR_NOOP("Ukrainian")                                                    },
+        { "umb", QT_TR_NOOP("Umbundu")                                                      },
+        { "und", QT_TR_NOOP("Undetermined")                                                 },
+        { "urd", QT_TR_NOOP("Urdu")                                                         },
+        { "uzb", QT_TR_NOOP("Uzbek")                                                        },
+        { "vai", QT_TR_NOOP("Vai")                                                          },
+        { "ven", QT_TR_NOOP("Venda")                                                        },
+        { "vie", QT_TR_NOOP("Vietnamese")                                                   },
+        { "vol", QT_TR_NOOP("Volapük")                                                      },
+        { "vot", QT_TR_NOOP("Votic")                                                        },
+        { "wak", QT_TR_NOOP("Wakashan languages")                                           },
+        { "wal", QT_TR_NOOP("Walamo")                                                       },
+        { "war", QT_TR_NOOP("Waray")                                                        },
+        { "was", QT_TR_NOOP("Washo")                                                        },
+        { "cym", QT_TR_NOOP("Welsh")                                                        },
+        { "wel", QT_TR_NOOP("Welsh")                                                        },
+        { "wol", QT_TR_NOOP("Wolof")                                                        },
+        { "xho", QT_TR_NOOP("Xhosa")                                                        },
+        { "sah", QT_TR_NOOP("Yakut")                                                        },
+        { "yao", QT_TR_NOOP("Yao")                                                          },
+        { "yap", QT_TR_NOOP("Yap")                                                          },
+        { "yid", QT_TR_NOOP("Yiddish")                                                      },
+        { "yor", QT_TR_NOOP("Yoruba")                                                       },
+        { "zap", QT_TR_NOOP("Zapotec")                                                      },
+        { "zen", QT_TR_NOOP("Zenaga")                                                       },
+        { "zha", QT_TR_NOOP("Zhuang")                                                       },
+        { "zul", QT_TR_NOOP("Zulu")                                                         },
+        { "zun", QT_TR_NOOP("Zuni")                                                         },
+        { NULL, NULL } };
+
+  return codes;
+}
 
 } // End of namespaces

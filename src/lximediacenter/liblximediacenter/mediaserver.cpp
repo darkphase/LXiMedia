@@ -354,6 +354,110 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
         return buildPlayer(request);
       }
     }
+    else if (request.url().hasQueryItem("audioplayer"))
+    {
+      SStringParser htmlParser;
+      htmlParser.setField("SOURCES", "");
+
+      const Item item = getItem(request.file());
+      htmlParser.setField("TITLE", item.title);
+      if (!item.artist.isEmpty())
+        htmlParser.appendField("TITLE", " [" + item.artist + "]");
+      if (item.duration > 0)
+        htmlParser.appendField("TITLE", " (" + QTime(0, 0, 0).addSecs(item.duration).toString("m:ss") + ")");
+
+      if (SIOOutputNode::formats().contains("ogg") &&
+          (SAudioEncoderNode::codecs().contains("VORBIS") ||
+           SAudioEncoderNode::codecs().contains("FLAC")))
+      {
+        QUrl url(request.file());
+        url.addQueryItem("format", "oga");
+
+        htmlParser.setField("SOURCE_URL", url);
+        htmlParser.setField("SOURCE_MIME", SHttpEngine::mimeAudioOgg);
+        htmlParser.appendField("SOURCES", htmlParser.parse(htmlAudioPlayerSource));
+      }
+
+      if (SIOOutputNode::formats().contains("mp3") &&
+          SAudioEncoderNode::codecs().contains("MP3"))
+      {
+        QUrl url(request.file());
+        url.addQueryItem("format", "mp3");
+
+        htmlParser.setField("SOURCE_URL", url);
+        htmlParser.setField("SOURCE_MIME", SHttpEngine::mimeAudioMp3);
+        htmlParser.appendField("SOURCES", htmlParser.parse(htmlAudioPlayerSource));
+      }
+
+      if (SIOOutputNode::formats().contains("mp2") &&
+          SAudioEncoderNode::codecs().contains("MP2"))
+      {
+        QUrl url(request.file());
+        url.addQueryItem("format", "mp2");
+
+        htmlParser.setField("SOURCE_URL", url);
+        htmlParser.setField("SOURCE_MIME", SHttpEngine::mimeAudioMpeg);
+        htmlParser.appendField("SOURCES", htmlParser.parse(htmlAudioPlayerSource));
+      }
+
+      if (SIOOutputNode::formats().contains("wav") &&
+          SAudioEncoderNode::codecs().contains("PCM/S16LE"))
+      {
+        QUrl url(request.file());
+        url.addQueryItem("format", "wav");
+
+        htmlParser.setField("SOURCE_URL", url);
+        htmlParser.setField("SOURCE_MIME", SHttpEngine::mimeAudioWave);
+        htmlParser.appendField("SOURCES", htmlParser.parse(htmlAudioPlayerSource));
+      }
+
+      return makeResponse(request, htmlParser.parse(htmlAudioPlayerElement), SHttpEngine::mimeTextHtml, false);
+    }
+    else if (request.url().hasQueryItem("videoplayer"))
+    {
+      SStringParser htmlParser;
+      htmlParser.setField("SOURCES", "");
+
+      if (SIOOutputNode::formats().contains("ogg") &&
+          (SAudioEncoderNode::codecs().contains("VORBIS") ||
+           SAudioEncoderNode::codecs().contains("FLAC")) &&
+          SVideoEncoderNode::codecs().contains("THEORA"))
+      {
+        QUrl url(request.file());
+        url.addQueryItem("format", "ogv");
+
+        htmlParser.setField("SOURCE_URL", url);
+        htmlParser.setField("SOURCE_MIME", SHttpEngine::mimeVideoOgg);
+        htmlParser.appendField("SOURCES", htmlParser.parse(htmlVideoPlayerSource));
+      }
+
+      if (SIOOutputNode::formats().contains("vob") &&
+          SAudioEncoderNode::codecs().contains("MP2") &&
+          SVideoEncoderNode::codecs().contains("MPEG2"))
+      {
+        QUrl url(request.file());
+        url.addQueryItem("format", "vob");
+
+        htmlParser.setField("SOURCE_URL", url);
+        htmlParser.setField("SOURCE_MIME", SHttpEngine::mimeVideoMpeg);
+        htmlParser.appendField("SOURCES", htmlParser.parse(htmlVideoPlayerSource));
+      }
+
+      if (SIOOutputNode::formats().contains("matroska") &&
+          (SAudioEncoderNode::codecs().contains("MP3") ||
+           SAudioEncoderNode::codecs().contains("MP2")) &&
+          SVideoEncoderNode::codecs().contains("MPEG4"))
+      {
+        QUrl url(request.file());
+        url.addQueryItem("format", "matroska");
+
+        htmlParser.setField("SOURCE_URL", url);
+        htmlParser.setField("SOURCE_MIME", SHttpEngine::mimeVideoMatroska);
+        htmlParser.appendField("SOURCES", htmlParser.parse(htmlVideoPlayerSource));
+      }
+
+      return makeResponse(request, htmlParser.parse(htmlVideoPlayerElement), SHttpEngine::mimeTextHtml, false);
+    }
     else // Stream file
     {
       const QString contentFeatures = QByteArray::fromBase64(request.url().queryItemValue("contentFeatures").toAscii());

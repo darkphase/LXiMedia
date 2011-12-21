@@ -35,7 +35,7 @@ function unlockControls()
 }
 
 // Player
-var width, height, lastImageUrl;
+var width, height, lastImageFileUrl;
 
 function resizeWindow()
 {
@@ -60,8 +60,8 @@ function resizeWindow()
     browser.style.height = (height - document.getElementById("audioplayer").offsetHeight) + "px";
   }
   
-  if (lastImageUrl)
-    loadImage(lastImageUrl);
+  if (lastImageFileUrl)
+    loadImage(lastImageFileUrl);
 }
 
 function closePlayer()
@@ -87,9 +87,9 @@ function loadThumbnailBar(path, start, count)
   request.send();
 }
 
-function loadAudio(audioUrl, title)
+function loadAudio(audioFileUrl)
 {
-  lastImageUrl = false;
+  lastImageFileUrl = false;
   
   if (top.location.href != window.location.href)
   {
@@ -97,36 +97,48 @@ function loadAudio(audioUrl, title)
   }
   else
   {
-    document.getElementById("player").innerHTML = 
-        "<audio autoplay=\"autoplay\" id=\"player\">" +
-        "<source src=\"" + audioUrl + "?format=oga\" type=\"audio/ogg\" />" +
-        "<source src=\"" + audioUrl + "?format=mp2\" type=\"audio/mpeg\" />" +
-        "<source src=\"" + audioUrl + "?format=wav\" type=\"audio/wave\" />" +
-        "</audio>" +
-        title;
+    var request = new XMLHttpRequest();
+    request.onreadystatechange = function()
+      {
+        if ((request.readyState == 4) && (request.status == 200) &&
+            (request.responseText.length > 0))
+        {
+          document.getElementById("player").innerHTML = request.responseText;
 
-    resizeWindow();
+          resizeWindow();
+        }
+      }
+
+    request.open("GET", audioFileUrl + "?audioplayer=", true);
+    request.send();
   }
 }
 
-function loadVideo(videoUrl)
+function loadVideo(videoFileUrl)
 {
-  lastImageUrl = false;
+  lastImageFileUrl = false;
   
-  document.getElementById("player").innerHTML = 
-      "<video autoplay=\"autoplay\" id=\"player\">" +
-      "<source src=\"" + videoUrl + "?format=ogv\" type=\"video/ogg\" />" +
-      "<source src=\"" + videoUrl + "?format=mpeg\" type=\"video/mpeg\" />" +
-      "</video>";
+  var request = new XMLHttpRequest();
+  request.onreadystatechange = function()
+    {
+      if ((request.readyState == 4) && (request.status == 200) &&
+          (request.responseText.length > 0))
+      {
+        document.getElementById("player").innerHTML = request.responseText;
+      }
+    }
+
+  request.open("GET", videoFileUrl + "?videoplayer=", true);
+  request.send();
 }
 
-function loadImage(imageUrl)
+function loadImage(imageFileUrl)
 {
-  if (!lastImageUrl)
+  if (!lastImageFileUrl)
     resizeWindow();
 
-  lastImageUrl = imageUrl;
+  lastImageFileUrl = imageFileUrl;
 
   document.getElementById("player").innerHTML = 
-      "<img src=\"" + imageUrl + "?format=jpeg&resolution=" + width + "x" + height + "&bgcolor=000000\" alt=\"...\" />";
+      "<img src=\"" + imageFileUrl + "?format=jpeg&resolution=" + width + "x" + height + "&bgcolor=000000\" alt=\"...\" />";
 }
