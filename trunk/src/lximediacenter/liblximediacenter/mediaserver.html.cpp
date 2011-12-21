@@ -116,9 +116,15 @@ const char MediaServer::htmlAudioPlayer[] =
     "  <span class=\"player\" id=\"player\"></span>\n"
     "  <span><img class=\"button\" src=\"/img/close.png?invert=\" alt=\"[X]\" onclick=\"closePlayer()\" /></span>\n"
     " </div>\n"
-    " <script type=\"text/javascript\">loadAudio(\"{ITEM_URL}\", \"{ITEM_TITLE}\");</script>\n"
+    " <script type=\"text/javascript\">loadAudio(\"{ITEM_URL}\");</script>\n"
     "</body>\n"
     "</html>\n";
+
+const char MediaServer::htmlAudioPlayerElement[] =
+    "<audio autoplay=\"autoplay\">{SOURCES}</audio>{TITLE}";
+
+const char MediaServer::htmlAudioPlayerSource[] =
+    "<source src=\"{SOURCE_URL}\" type=\"{SOURCE_MIME}\" />";
 
 const char MediaServer::htmlPlayer[] =
     "<!DOCTYPE html>\n"
@@ -140,6 +146,12 @@ const char MediaServer::htmlPlayer[] =
     " </div>\n"
     "</body>\n"
     "</html>\n";
+
+const char MediaServer::htmlVideoPlayerElement[] =
+    "<video autoplay=\"autoplay\">{SOURCES}</video>";
+
+const char MediaServer::htmlVideoPlayerSource[] =
+    "<source src=\"{SOURCE_URL}\" type=\"{SOURCE_MIME}\" />";
 
 QByteArray MediaServer::buildListLoader(const QString &path, ListType listType)
 {
@@ -209,13 +221,6 @@ SHttpServer::ResponseMessage MediaServer::buildAudioPlayer(const SHttpServer::Re
   path = path.left(path.lastIndexOf('/') + 1);
   htmlParser.setField("PATH", QUrl(path));
   htmlParser.setField("ITEM_URL", QUrl(request.file()));
-
-  const Item item = getItem(request.file());
-  htmlParser.setField("ITEM_TITLE", item.title);
-  if (!item.artist.isEmpty())
-    htmlParser.appendField("ITEM_TITLE", " [" + item.artist + "]");
-  if (item.duration > 0)
-    htmlParser.appendField("ITEM_TITLE", " (" + QTime(0, 0, 0).addSecs(item.duration).toString("m:ss") + ")");
 
   SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
   response.setField("Cache-Control", "no-cache");

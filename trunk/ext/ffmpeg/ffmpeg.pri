@@ -3,7 +3,9 @@ FFMPEG_DIR = $${OUT_PWD}/$${LXIMEDIA_DIR}/ext/ffmpeg
 macx:INCLUDEPATH += $${FFMPEG_DIR}/include/
 macx:LIBS += -L$${FFMPEG_DIR}/bin.macx
 
-unix:LIBS += -lavformat -lavcodec -lavutil -lswscale -lmp3lame
+unix:LIBS += -lavformat -lavcodec -lavutil -lswscale
+
+macx:LIBS += -lmp3lame
 
 win32:include($${PWD}/../gnuwin32/gnuwin32.pri)
 win32:INCLUDEPATH += $${FFMPEG_DIR}/include/
