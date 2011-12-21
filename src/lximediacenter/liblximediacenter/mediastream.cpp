@@ -91,6 +91,9 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
 
   decodeChannels(request.url(), audioFormat);
 
+  if (request.url().hasQueryItem("subtitlesize"))
+    video->subtitleRenderer.setFontRatio(request.url().queryItemValue("subtitlesize").toFloat());
+
   if (request.url().queryItemValue("encodemode") == "fast")
   {
     audioEncodeFlags |= SInterfaces::AudioEncoder::Flag_Fast;

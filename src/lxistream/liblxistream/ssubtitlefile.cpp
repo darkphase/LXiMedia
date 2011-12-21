@@ -70,8 +70,8 @@ bool SSubtitleFile::open(void)
       }
       else
       {
-        d->dataCodec = SDataCodec("SUB/RAWLATIN1");
-        d->language = SStringParser::languageOf(QString::fromLatin1(sample));
+        d->dataCodec = SDataCodec("SUB/RAWLOCAL8BIT");
+        d->language = SStringParser::languageOf(QString::fromLocal8Bit(sample));
       }
 
       return true;

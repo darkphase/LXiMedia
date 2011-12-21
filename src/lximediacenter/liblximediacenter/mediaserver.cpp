@@ -206,6 +206,23 @@ bool MediaServer::defaultMusicAddBlackVideo(void)
   return false;
 }
 
+QList<MediaServer::SubtitleSize> MediaServer::allSubtitleSizes(void)
+{
+  QList<SubtitleSize> sizes;
+  sizes << SubtitleSize("Tiny",     0.025)
+        << SubtitleSize("Small",    0.04)
+        << SubtitleSize("Normal",   0.05)
+        << SubtitleSize("Large",    0.0625)
+        << SubtitleSize("Huge",     0.08);
+
+  return sizes;
+}
+
+QString MediaServer::defaultSubtitleSizeName(void)
+{
+  return "Normal";
+}
+
 int MediaServer::loadItemCount(void)
 {
   return qBound(1, QThread::idealThreadCount(), 16) * 8;
@@ -574,6 +591,8 @@ void MediaServer::setQueryItemsFor(const QString &client, QUrl &url, bool isMusi
       settings.value("TranscodeMusicChannels", defaultTranscodeMusicChannelName()).toString();
   const bool genericMusicAddBlackVideo =
       settings.value("MusicAddBlackVideo", defaultMusicAddBlackVideo()).toBool();
+  const QString genericSubtitleSize =
+      settings.value("SubtitleSize", defaultSubtitleSizeName()).toString();
 
   const QString clientTag = SStringParser::toCleanName(client).replace(' ', '_');
 
@@ -633,6 +652,14 @@ void MediaServer::setQueryItemsFor(const QString &client, QUrl &url, bool isMusi
 
     if (settings.value("MusicAddBlackVideo", genericMusicAddBlackVideo).toBool())
       url.addQueryItem("addvideo", QString::null);
+
+    const QString subtitleSize = settings.value("SubtitleSize", genericSubtitleSize).toString();
+    foreach (const SubtitleSize &size, allSubtitleSizes())
+    if (size.name == subtitleSize)
+    {
+      url.addQueryItem("subtitlesize", QString::number(size.ratio, 'f', 3));
+      break;
+    }
 
     break;
   }

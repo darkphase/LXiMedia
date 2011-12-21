@@ -40,7 +40,7 @@ public: // From SBufferDecoder
 
 private:
   static SSubtitleBuffer        decodeUtf8(const SEncodedDataBuffer &);
-  static SSubtitleBuffer        decodeLatin1(const SEncodedDataBuffer &);
+  static SSubtitleBuffer        decodeLocal8Bit(const SEncodedDataBuffer &);
 
 private:
   SSubtitleBuffer               (* decode)(const SEncodedDataBuffer &);
