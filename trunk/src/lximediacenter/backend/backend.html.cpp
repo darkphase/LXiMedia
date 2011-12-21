@@ -175,6 +175,14 @@ const char Backend::htmlSettingsDlnaRow[] =
     "        <input type=\"checkbox\" name=\"musicaddvideo\" value=\"on\" {CHECKED_ADDBLACKVIDEO} />{TR_ADD_BLACK_VIDEO}\n"
     "       </td>\n"
     "      </tr>\n"
+    "      <tr>\n"
+    "       <td>{TR_SUBTITLE_SETTINGS}:</td>\n"
+    "       <td>\n"
+    "        <select name=\"subtitlesize\">\n"
+    "{SUBTITLESIZE}"
+    "        </select>\n"
+    "       </td>\n"
+    "      </tr>\n"
     "{PROFILES}"
     "     </table>\n"
     "     <br />\n"
@@ -456,10 +464,13 @@ QByteArray Backend::handleHtmlSettings(const SHttpServer::RequestMessage &reques
       settings.value("TranscodeMusicChannels", MediaServer::defaultTranscodeMusicChannelName()).toString();
   const bool genericMusicAddBlackVideo =
       settings.value("MusicAddBlackVideo", MediaServer::defaultMusicAddBlackVideo()).toBool();
+  const QString genericSubtitleSize =
+      settings.value("SubtitleSize", MediaServer::defaultSubtitleSizeName()).toString();
 
   htmlParser.setField("TR_DLNA", tr("DLNA"));
   htmlParser.setField("TR_VIDEO_SETTINGS", tr("Video transcode settings"));
   htmlParser.setField("TR_MUSIC_SETTINGS", tr("Music transcode settings"));
+  htmlParser.setField("TR_SUBTITLE_SETTINGS", tr("Subtitle settings"));
   htmlParser.setField("TR_SUPPORTED_DLNA_PROFILES", tr("Supported DLNA profiles"));
   htmlParser.setField("TR_SHOW_PROFILE_SETTINGS", tr("Show profile settings"));
   htmlParser.setField("TR_AUDIO_PROFILES", tr("Audio profiles"));
@@ -543,6 +554,18 @@ QByteArray Backend::handleHtmlSettings(const SHttpServer::RequestMessage &reques
       htmlParser.setField("TEXT", channel.name);
       htmlParser.appendField("MUSICCHANNELS", htmlParser.parse(htmlSettingsOption));
     }
+
+    static void addSubtitleSizel(SStringParser &htmlParser, QSettings &settings, const QString &genericSubtitleSize, const MediaServer::SubtitleSize &size)
+    {
+      if (settings.value("SubtitleSize", genericSubtitleSize).toString() == size.name)
+        htmlParser.setField("SELECTED", "selected=\"selected\"");
+      else
+        htmlParser.setField("SELECTED", "");
+
+      htmlParser.setField("VALUE", size.name);
+      htmlParser.setField("TEXT", size.name);
+      htmlParser.appendField("SUBTITLESIZE", htmlParser.parse(htmlSettingsOption));
+    }
   };
 
   // Default settings
@@ -551,6 +574,7 @@ QByteArray Backend::handleHtmlSettings(const SHttpServer::RequestMessage &reques
   htmlParser.setField("FORMATS", "");
   htmlParser.setField("CHANNELS", "");
   htmlParser.setField("MUSICCHANNELS", "");
+  htmlParser.setField("SUBTITLESIZE", "");
 
   foreach (const MediaServer::TranscodeSize &size, MediaServer::allTranscodeSizes())
     T::addFormat(htmlParser, settings, genericTranscodeSize,  size);
@@ -560,6 +584,9 @@ QByteArray Backend::handleHtmlSettings(const SHttpServer::RequestMessage &reques
 
   foreach (const MediaServer::TranscodeChannel &channel, MediaServer::allTranscodeChannels())
     T::addMusicChannel(htmlParser, settings, genericTranscodeMusicChannels, channel);
+
+  foreach (const MediaServer::SubtitleSize &size, MediaServer::allSubtitleSizes())
+    T::addSubtitleSizel(htmlParser, settings, genericSubtitleSize, size);
 
   if (settings.value("TranscodeCrop", genericTranscodeCrop).toString() == "Box")
   {
@@ -607,6 +634,7 @@ QByteArray Backend::handleHtmlSettings(const SHttpServer::RequestMessage &reques
     htmlParser.setField("FORMATS", "");
     htmlParser.setField("CHANNELS", "");
     htmlParser.setField("MUSICCHANNELS", "");
+    htmlParser.setField("SUBTITLESIZE", "");
 
     foreach (const MediaServer::TranscodeSize &size, MediaServer::allTranscodeSizes())
       T::addFormat(htmlParser, settings, genericTranscodeSize,  size);
@@ -616,6 +644,9 @@ QByteArray Backend::handleHtmlSettings(const SHttpServer::RequestMessage &reques
 
     foreach (const MediaServer::TranscodeChannel &channel, MediaServer::allTranscodeChannels())
       T::addMusicChannel(htmlParser, settings, genericTranscodeMusicChannels, channel);
+
+    foreach (const MediaServer::SubtitleSize &size, MediaServer::allSubtitleSizes())
+      T::addSubtitleSizel(htmlParser, settings, genericSubtitleSize, size);
 
     if (settings.value("TranscodeCrop", genericTranscodeCrop).toString() == "Box")
     {
@@ -815,6 +846,15 @@ void Backend::saveHtmlSettings(const SHttpServer::RequestMessage &request)
         else
           settings.remove("MusicAddBlackVideo");
 
+        const QString subtitleSizeName =
+            QString::fromUtf8(QByteArray::fromPercentEncoding(
+                request.url().encodedQueryItemValue("subtitlesize").replace('+', ' ')));
+
+        if (!subtitleSizeName.isEmpty())
+          settings.setValue("SubtitleSize", subtitleSizeName);
+        else
+          settings.remove("SubtitleSize");
+
         QStringList audioProfiles;
         foreach (const QString &profile, enabledAudioProfiles)
         if (request.url().hasQueryItem("profile_" + profile))
@@ -855,6 +895,7 @@ void Backend::saveHtmlSettings(const SHttpServer::RequestMessage &request)
         settings.remove("TranscodeChannels");
         settings.remove("TranscodeMusicChannels");
         settings.remove("MusicAddBlackVideo");
+        settings.remove("SubtitleSize");
         settings.remove("SupportedAudioProfiles");
         settings.remove("SupportedVideoProfiles");
         settings.remove("SupportedImageProfiles");

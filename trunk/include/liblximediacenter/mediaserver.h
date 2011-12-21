@@ -115,6 +115,15 @@ public:
     SAudioFormat::Channels      channels;
   };
 
+  struct SubtitleSize
+  {
+    inline SubtitleSize(void) { }
+    inline SubtitleSize(const QString &name, float ratio) : name(name), ratio(ratio) { }
+
+    QString                     name;
+    float                       ratio;
+  };
+
   enum ListType
   {
     ListType_Thumbnails,
@@ -141,6 +150,8 @@ public:
   static QString                defaultTranscodeChannelName(void);
   static QString                defaultTranscodeMusicChannelName(void);
   static bool                   defaultMusicAddBlackVideo(void);
+  static QList<SubtitleSize>    allSubtitleSizes(void);
+  static QString                defaultSubtitleSizeName(void);
 
   static int                    loadItemCount(void);
 

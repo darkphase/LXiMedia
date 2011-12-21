@@ -36,8 +36,8 @@ bool RawSubtitleDecoder::openCodec(const SDataCodec &c, SInterfaces::AbstractBuf
 {
   if (c.codec() == "SUB/RAWUTF8")
     decode = &RawSubtitleDecoder::decodeUtf8;
-  else if (c.codec() == "SUB/RAWLATIN1")
-    decode = &RawSubtitleDecoder::decodeLatin1;
+  else if (c.codec() == "SUB/RAWLOCAL8BIT")
+    decode = &RawSubtitleDecoder::decodeLocal8Bit;
 
   return decode != NULL;
 }
@@ -78,13 +78,13 @@ SSubtitleBuffer RawSubtitleDecoder::decodeUtf8(const SEncodedDataBuffer &dataBuf
   return SSubtitleBuffer();
 }
 
-SSubtitleBuffer RawSubtitleDecoder::decodeLatin1(const SEncodedDataBuffer &dataBuffer)
+SSubtitleBuffer RawSubtitleDecoder::decodeLocal8Bit(const SEncodedDataBuffer &dataBuffer)
 {
   const QList<QByteArray> lines = QByteArray(dataBuffer.data(), dataBuffer.size()).split('\n');
 
   QStringList text;
   for (int i=0; i<lines.count(); i++)
-    text += QString::fromLatin1(lines[i].trimmed());
+    text += QString::fromLocal8Bit(lines[i].trimmed());
 
   if (!text.isEmpty())
   {

@@ -75,7 +75,7 @@ bool Module::registerClasses(void)
   PcmAudioEncoder::registerClass<PcmAudioEncoder>(SFactory::Scheme(1, "PCM/F64BE"));
 
   RawSubtitleDecoder::registerClass<RawSubtitleDecoder>(SFactory::Scheme(1, "SUB/RAWUTF8"));
-  RawSubtitleDecoder::registerClass<RawSubtitleDecoder>(SFactory::Scheme(1, "SUB/RAWLATIN1"));
+  RawSubtitleDecoder::registerClass<RawSubtitleDecoder>(SFactory::Scheme(1, "SUB/RAWLOCAL8BIT"));
 
   // Buffer readers and writers
   //PsBufferReader::registerClass<PsBufferReader>(PsBufferWriter::formatName);
