@@ -118,6 +118,7 @@ public:
 
   bool                          waitForStarted(int msecs = 30000);
   bool                          waitForReadyRead(int msecs = 30000);
+  bool                          isRunning(void) const;
 
 public slots:
   void                          kill(void);

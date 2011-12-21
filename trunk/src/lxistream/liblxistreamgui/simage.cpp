@@ -235,7 +235,12 @@ SImage SImage::fromFile(const QString &fileName, const QSize &maxsize, const cha
       static SImage rundcraw(const QStringList &options, const QSize &maxsize)
       {
         QProcess dcRawProcess;
+#ifdef Q_OS_WIN
+        const QDir appDir(qApp->applicationDirPath());
+        dcRawProcess.start(appDir.absoluteFilePath("dcraw.exe"), options);
+#else
         dcRawProcess.start("dcraw", options);
+#endif
 
         if (dcRawProcess.waitForStarted())
         if (dcRawProcess.waitForFinished())

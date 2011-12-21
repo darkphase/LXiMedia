@@ -5,23 +5,35 @@ libswscale-dev packages should be installed instead.
 Mac OS X:
 - Make sure XCode is installed and start a terminal.
 
-- Extract the libexif sources somewhere and cd into the source directory.
+- Extract the libav sources somewhere and cd into the source directory.
 
-- Configure ffmpeg using:
+- Configure libav using:
   ./configure --disable-ffmpeg --disable-ffplay --disable-ffprobe --disable-ffserver --enable-swscale --disable-network --disable-debug --disable-amd3dnow --disable-amd3dnowext --disable-ssse3 --disable-zlib --disable-bzlib
 
 - Run make and copy the libavcodec.a, libavformat.a, libavutil.a and
-  libswscale.a files to ext/exif/bin.macx.
+  libswscale.a files to ext/ffmpeg/bin.macx.
 
 Windows:
-- Make sure MinGW and MSYS are installed and start a MinGW bash shell.
+- Make sure MinGW (including yasm) and MSYS are installed and start a MinGW bash shell.
 
-- Extract the libexif sources somewhere and cd into the source directory.
+- Extract the lame sources somewhere and cd into the source directory.
 
-- Make sure MinGW and MSYS are installed and start a MinGW bash shell.
+- In the mingw installation directory; copy and rename mingw32-make.exe
+  into make.exe.
 
-- Configure ffmpeg using:
-  ./configure --disable-ffmpeg --disable-ffplay --disable-ffprobe --disable-ffserver --enable-swscale --disable-network --disable-debug --enable-memalign-hack --enable-mmx --enable-sse --disable-amd3dnow --disable-amd3dnowext --disable-ssse3 --disable-zlib --disable-bzlib --extra-cflags="-D_ISOC99_SOURCE -D_POSIX_C_SOURCE=200112 -march=i686 -mmmx -msse -msse2 -mfpmath=sse"
+- Configure lame using:
+  ./configure --enable-static CFLAGS="-mtune=generic -march=i686 -mmmx -msse -msse2 -mfpmath=sse -mincoming-stack-boundary=2"
+  
+- Run make and copy the libmp3lame.a to ext/ffmpeg/bin.win32.
+
+- In the mingw installation directory; remove make.exe again.
+
+- Extract the libav sources somewhere and cd into the source directory.
+
+- Create a directory "ext" and copy libmp3lame.a there and create a directory "ext/lame" and copy lame.h there.
+
+- Configure libav using:
+  ./configure --enable-gpl --disable-ffmpeg --disable-ffplay --disable-ffprobe --disable-ffserver --enable-swscale --enable-network --disable-debug --enable-memalign-hack --enable-mmx --enable-sse --disable-amd3dnow --disable-amd3dnowext --disable-ssse3 --disable-avx --disable-zlib --disable-bzlib --disable-pthreads --enable-libmp3lame --extra-cflags="-D_ISOC99_SOURCE -D_POSIX_C_SOURCE=200112 -I./ext/ -mtune=generic -march=i686 -mmmx -msse -msse2 -mfpmath=sse -mincoming-stack-boundary=2" --extra-ldflags="-L./ext/"
 
 - Run mingw32-make and copy the libavcodec.a, libavformat.a, libavutil.a and
   libswscale.a files to ext/ffmpeg/bin.win32.

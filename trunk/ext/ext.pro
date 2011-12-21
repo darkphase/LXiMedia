@@ -2,5 +2,5 @@ TEMPLATE = subdirs
 CONFIG += ordered
 
 macx|win32 {
-  SUBDIRS = dvdnav exif ffmpeg fftw
+  SUBDIRS = dcraw dvdnav exif ffmpeg freetype
 }

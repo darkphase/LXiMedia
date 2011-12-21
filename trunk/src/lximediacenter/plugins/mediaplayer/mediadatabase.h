@@ -59,7 +59,7 @@ signals:
 
 private slots:
   void                          handleResponse(const SHttpEngine::ResponseMessage &);
-  void                          flushCache(void);
+  void                          flushCache(void) const;
 
 private:
   FileNodeList                  readNodeFormat(const QStringList &filePaths) const;

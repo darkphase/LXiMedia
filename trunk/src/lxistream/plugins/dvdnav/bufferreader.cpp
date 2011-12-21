@@ -491,7 +491,7 @@ bool BufferReader::DvdDevice::open(OpenMode mode)
       return QIODevice::open(mode);
     }
     else
-      qWarning() << ::dvdnav_err_to_string(dvdHandle);
+      qWarning() << "DVDNav:" << ::dvdnav_err_to_string(dvdHandle);
 
     dvdHandle = NULL;
   }
@@ -559,7 +559,7 @@ qint64 BufferReader::DvdDevice::size(void) const
     if (::dvdnav_get_position(dvdHandle, &pos, &len) == DVDNAV_STATUS_OK)
       return qint64(len) * blockSize;
     else
-      qWarning() << ::dvdnav_err_to_string(dvdHandle);
+      qWarning() << "DVDNav:" << ::dvdnav_err_to_string(dvdHandle);
   }
 
   return -1;
@@ -588,7 +588,7 @@ qint64 BufferReader::DvdDevice::readData(char *data, qint64 maxSize)
       }
       else
       {
-        qWarning() << ::dvdnav_err_to_string(dvdHandle);
+        qWarning() << "DVDNav:" << ::dvdnav_err_to_string(dvdHandle);
         return -1;
       }
     }

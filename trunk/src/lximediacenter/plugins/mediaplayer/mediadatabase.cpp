@@ -253,7 +253,7 @@ void MediaDatabase::handleResponse(const SHttpEngine::ResponseMessage &response)
   }
 }
 
-void MediaDatabase::flushCache(void)
+void MediaDatabase::flushCache(void) const
 {
   if (cacheFile.isOpen())
   {
@@ -321,9 +321,26 @@ FileNode MediaDatabase::readNodeCache(const QString &filePath) const
     {
       const FileNode node = FileNode::fromByteArray(cacheFile.readLine());
       if (!node.isNull())
-      if (node.filePath() == filePath)
-      if (QFileInfo(filePath).lastModified() <= node.lastModified())
-        return node;
+      {
+        const QFileInfo fileInfo(filePath);
+
+        if ((node.filePath() == filePath) &&
+            (node.size() == fileInfo.size()) &&
+            (qAbs(node.lastModified().secsTo(fileInfo.lastModified())) <= 1))
+        {
+          return node;
+        }
+      }
+      else // Corrupted cache
+      {
+        flushCache();
+        break;
+      }
+    }
+    else // Corrupted cache
+    {
+      flushCache();
+      break;
     }
   }
 

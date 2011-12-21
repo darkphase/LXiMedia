@@ -43,6 +43,9 @@ void configApp(void)
     appDir.cd("PlugIns");
     qApp->setLibraryPaths(QStringList() << appDir.absolutePath());
   }
+#elif defined(Q_OS_WIN)
+  // Do not use the registry on Windows.
+  QSettings::setDefaultFormat(QSettings::IniFormat);
 #endif
 }
 

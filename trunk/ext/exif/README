@@ -7,7 +7,7 @@ Mac OS X:
 - Extract the libexif sources somewhere and cd into the source directory.
 
 - Configure libexif using:
-  ./configure
+  ./configure --enable-static
 
 - Run make and copy the libexif.a file to ext/exif/bin.macx.
 
@@ -17,11 +17,11 @@ Windows:
 - Extract the libexif sources somewhere and cd into the source directory.
 
 - Configure libexif using:
-  ./configure
+  ./configure --enable-static
 
-- In the QtSDK mingw installation directory; copy and rename mingw32-make.exe
+- In the mingw installation directory; copy and rename mingw32-make.exe
   into make.exe.
   
 - Run make and copy the libexif.a file to ext/exif/bin.win32.
 
-- In the QtSDK mingw installation directory; remove make.exe again.
+- In the mingw installation directory; remove make.exe again.

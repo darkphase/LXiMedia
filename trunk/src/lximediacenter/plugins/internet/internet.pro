@@ -26,6 +26,17 @@ SOURCES += internetsandbox.cpp \
 RESOURCES = internet.qrc
 
 # Windows specific
+win32 {
+  OUT_DIR = $$replace(OUT_PWD,/,\\)\\$$replace(LXIMEDIA_DIR,/,\\)\\bin
+
+  system(mkdir $${OUT_DIR} > NUL 2>&1)
+  release {
+    system(copy /Y $$(QTDIR)\\bin\\QtScript4.dll $${OUT_DIR} > NUL)
+  }
+  debug {
+    system(copy /Y $$(QTDIR)\\bin\\QtScriptd4.dll $${OUT_DIR} > NUL)
+  }
+}
 win32-msvc2005|win32-msvc2008|win32-msvc2010 {
   TEMPLATE = vclib
   GUID = c1ad044e-89be-11e0-b796-070444e1d3e8

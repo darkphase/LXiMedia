@@ -646,6 +646,7 @@ FileNode::ProbeInfo::FileType MediaPlayerServer::dirType(const QString &virtualP
   {
     int audio = 0, video = 0, image = 0;
     foreach (const FileNode &node, mediaDatabase->representativeItems(path))
+    if (!node.isNull())
     switch (node.fileType())
     {
     case FileNode::ProbeInfo::FileType_Audio:     audio++; break;

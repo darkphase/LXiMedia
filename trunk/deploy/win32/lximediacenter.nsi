@@ -41,19 +41,12 @@ Section "-Shared Files" SecShared
   File QtNetwork4.dll
   File QtXml4.dll
   File LXiCore.dll
-  File LXiMediaCenter.dll
   File LXiServer.dll
-  File LXiStream.dll
-  File LXiStreamGui.dll
 
   SetOutPath $INSTDIR\imageformats
   SetOverwrite ifnewer
   File imageformats\qjpeg4.dll
   File imageformats\qtiff4.dll
-
-  SetOutPath $INSTDIR\lximedia
-  SetOverwrite ifnewer
-  File lximedia\lxistream_*.dll
 
   ; For backwards compatibility with 0.2.x versions, can be removed in the future.
   RMDir /r "$%ALLUSERSPROFILE%\..\LocalService\Local Settings\Application Data\LXiMediaCenter"
@@ -66,7 +59,16 @@ SectionEnd
 Section "Backend service" SecBackend
   SetOutPath $INSTDIR
   SetOverwrite ifnewer
+  File QtScript4.dll
+  File LXiMediaCenter.dll
+  File LXiStream.dll
+  File LXiStreamGui.dll
+  File dcraw.exe
   File lximcbackend.exe
+
+  SetOutPath $INSTDIR\lximedia
+  SetOverwrite ifnewer
+  File lximedia\lxistream_*.dll
 
   nsisFirewall::AddAuthorizedApplication "$INSTDIR\lximcbackend.exe" "LeX-Interactive MediaCenter - Backend service"
 
@@ -81,7 +83,11 @@ SectionEnd
 Section "Frontend application" SecFrontend
   SetOutPath $INSTDIR
   SetOverwrite ifnewer
+  File phonon4.dll
+  File QtWebKit4.dll
   File lximcfrontend.exe
+
+  CreateShortCut "$SMPROGRAMS\LXiMediaCenter Frontend.lnk" "$INSTDIR\lximcfrontend.exe" "" "$INSTDIR\lximcfrontend.exe" 0
 
   nsisFirewall::AddAuthorizedApplication "$INSTDIR\lximcfrontend.exe" "LeX-Interactive MediaCenter - Frontend application"
 
@@ -99,6 +105,8 @@ Section "Uninstall"
 
   nsisFirewall::RemoveAuthorizedApplication "$INSTDIR\lximcbackend.exe"
   nsisFirewall::RemoveAuthorizedApplication "$INSTDIR\lximcfrontend.exe"
+
+  Delete "$SMPROGRAMS\LXiMediaCenter Frontend.lnk"
 
   RMDir /r /REBOOTOK "$INSTDIR"
 

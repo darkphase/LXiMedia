@@ -76,12 +76,6 @@ void Subtitles::blendLineUV(uint8_t * u, uint8_t * v, int wf, const uint8_t * te
 
     break;
   }
-
-//  for (int i = 0, j = 0; j < n; i++, j += wf)
-//  {
-//    if (text[j] >= 128)
-//      u[i] = v[i] = 128;
-//  }
 }
 
 } } // End of namespaces

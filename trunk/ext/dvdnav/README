@@ -31,13 +31,14 @@ Windows:
 
 - Configure dlfcn using:
   ./configure --enable-static
+  Ignore the error "./configure: line 119: test: too many arguments"
 
 - Run mingw32-make and copy libdl.a to ext/dvdnav/bin.win32.
 
 - Extract the libdvdread sources somewhere and cd into the source directory.
 
 - Configure libdvdread using:
-  ./configure2 --enable-static --disable-shared --extra-cflags="-I../../dlfcn-win32-r19/ -march=i686 -mmmx -msse -msse2 -mfpmath=sse"
+  ./configure2 --enable-static --disable-shared --disable-debug --extra-cflags="-I../../dlfcn-win32-r19/"
   Ignore the error "./configure2: line 95: cd: /usr/local/: No such file or directory"
 
 - Run mingw32-make and copy obj/libdvdread.a to ext/dvdnav/bin.win32.
@@ -49,7 +50,7 @@ Windows:
 - In the libdvdnav source tree; open the "configure2" file and comment out lines 106-114.
  
 - Configure libdvdnav using:
-  ./configure2 --enable-static --disable-shared --extra-cflags="-I../../libdvdread-4.1.3/ -march=i686 -mmmx -msse -msse2 -mfpmath=sse"
+  ./configure2 --enable-static --disable-shared --disable-debug --extra-cflags="-I../../libdvdread-4.2.0/src/"
   Ignore the error "./configure2: line 100: cd: /usr/local/: No such file or directory"
 
 - Run mingw32-make and copy obj/libdvdnav.a to ext/dvdnav/bin.win32.
