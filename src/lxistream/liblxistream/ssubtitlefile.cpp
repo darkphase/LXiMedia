@@ -175,25 +175,41 @@ SEncodedDataBuffer SSubtitleFile::readSubtitle(STime timeStamp)
 
 QStringList SSubtitleFile::findSubtitleFiles(const QString &file)
 {
-  const QFileInfo mediaFileInfo(file);
-  const QString baseName = SStringParser::toRawName(mediaFileInfo.completeBaseName());
-
   struct T
   {
-    static void checkFiles(QStringList &result, const QDir &dir, const QString &baseName)
+    static void exactMatches(QStringList &result, const QDir &dir, const QString &baseName)
+    {
+      foreach (const QFileInfo &info, dir.entryInfoList(QStringList() << "*.srt", QDir::Files | QDir::Readable))
+      if (info.completeBaseName().startsWith(baseName))
+      if (!result.contains(info.absoluteFilePath()))
+        result += info.absoluteFilePath();
+    }
+
+    static void fuzzyMatches(QStringList &result, const QDir &dir, const QString &baseName)
     {
       foreach (const QFileInfo &info, dir.entryInfoList(QStringList() << "*.srt", QDir::Files | QDir::Readable))
       if (SStringParser::toRawName(info.completeBaseName()).startsWith(baseName))
+      if (!result.contains(info.absoluteFilePath()))
         result += info.absoluteFilePath();
     }
   };
 
-  QStringList result;
-  T::checkFiles(result, mediaFileInfo.absoluteDir(), baseName);
+  const QFileInfo fileInfo(file);
+  const QString baseName = fileInfo.completeBaseName();
+  const QString rawBaseName = SStringParser::toRawName(fileInfo.completeBaseName());
 
-  foreach (const QFileInfo &info, mediaFileInfo.absoluteDir().entryInfoList(QDir::Dirs))
+  QStringList result;
+  T::exactMatches(result, fileInfo.absoluteDir(), baseName);
+
+  foreach (const QFileInfo &info, fileInfo.absoluteDir().entryInfoList(QDir::Dirs))
   if ((info.fileName().toLower() == "subtitles") || (info.fileName().toLower() == "subs"))
-    T::checkFiles(result, info.absoluteFilePath(), baseName);
+    T::exactMatches(result, info.absoluteFilePath(), baseName);
+
+  T::fuzzyMatches(result, fileInfo.absoluteDir(), rawBaseName);
+
+  foreach (const QFileInfo &info, fileInfo.absoluteDir().entryInfoList(QDir::Dirs))
+  if ((info.fileName().toLower() == "subtitles") || (info.fileName().toLower() == "subs"))
+    T::fuzzyMatches(result, info.absoluteFilePath(), rawBaseName);
 
   return result;
 }
