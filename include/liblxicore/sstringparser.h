@@ -98,6 +98,14 @@ public:
    */
   static QString                iso639Language(const char *);
 
+  /*! Returns the default codepage for the ISO 639-1 or ISO 639-2 language code.
+   */
+  static const char           * codepageFor(const QString &);
+
+  /*! Returns the default codepage for the ISO 639-1 or ISO 639-2 language code.
+   */
+  static const char           * codepageFor(const char *);
+
   /*! Returns a map with a translated language name for each of the  ISO 639-2
       language codes.
    */

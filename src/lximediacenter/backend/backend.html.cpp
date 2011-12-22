@@ -128,6 +128,20 @@ const char Backend::htmlSettingsMain[] =
     "   </form>\n"
     "  </fieldset>\n"
     "  <fieldset>\n"
+    "   <legend>{TR_LOCALIZATION}</legend>\n"
+    "   {TR_LOCALIZATION_EXPLAIN}<br />\n"
+    "   <br />\n"
+    "   <form name=\"localizationsettings\" action=\"/settings\" method=\"get\">\n"
+    "    <input type=\"hidden\" name=\"save_settings\" value=\"localization\" />\n"
+    "    {TR_DEFAULT_CODEPAGE}:\n"
+    "    <select name=\"defaultcodepage\">\n"
+    "{CODEPAGES}"
+    "    </select><br />\n"
+    "    <br />\n"
+    "    <input type=\"submit\" name=\"save\" value=\"{TR_SAVE}\" />\n"
+    "   </form>\n"
+    "  </fieldset>\n"
+    "  <fieldset>\n"
     "   <legend>{TR_DLNA}</legend>\n"
     "   {TR_MEDIA_TRANSCODE_SETTINGS_EXPLAIN}<br />\n"
     "   <br />\n"
@@ -445,6 +459,27 @@ QByteArray Backend::handleHtmlSettings(const SHttpServer::RequestMessage &reques
 
   htmlParser.setField("HTTPPORT", settings.value("HttpPort", defaultPort).toString());
   htmlParser.setField("DEVICENAME", settings.value("DeviceName", defaultDeviceName()).toString());
+
+  htmlParser.setField("TR_LOCALIZATION", tr("Localization"));
+  htmlParser.setField("TR_DEFAULT_CODEPAGE", tr("Default codepage"));
+  htmlParser.setField("TR_LOCALIZATION_EXPLAIN",
+    tr("This configures the localization settings."));
+
+  const QByteArray defaultCodepage =
+      settings.value("DefaultCodepage", "System").toByteArray();
+
+  htmlParser.setField("CODEPAGES", "");
+  foreach (const QByteArray &name, QTextCodec::availableCodecs())
+  {
+    if (defaultCodepage == name)
+      htmlParser.setField("SELECTED", "selected=\"selected\"");
+    else
+      htmlParser.setField("SELECTED", "");
+
+    htmlParser.setField("VALUE", name);
+    htmlParser.setField("TEXT", name);
+    htmlParser.appendField("CODEPAGES", htmlParser.parse(htmlSettingsOption));
+  }
 
   settings.beginGroup("DLNA");
 
@@ -775,6 +810,23 @@ void Backend::saveHtmlSettings(const SHttpServer::RequestMessage &request)
     }
 
     reset();
+  }
+
+  if ((request.url().queryItemValue("save_settings") == "localization") &&
+      request.url().hasQueryItem("defaultcodepage"))
+  {
+    const QByteArray codepage = QByteArray::fromPercentEncoding(
+          request.url().encodedQueryItemValue("defaultcodepage").replace('+', ' '));
+
+    if (!codepage.isEmpty())
+    {
+      settings.setValue("DefaultCodepage", codepage);
+
+      if (codepage == "System")
+        QTextCodec::setCodecForLocale(NULL);
+      else
+        QTextCodec::setCodecForLocale(QTextCodec::codecForName(codepage));
+    }
   }
 
   if ((request.url().queryItemValue("save_settings") == "dlna"))

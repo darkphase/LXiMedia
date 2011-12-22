@@ -55,6 +55,69 @@ QMap<QByteArray, QString> SStringParser::allIso639Languages(void)
   return result;
 }
 
+const char * SStringParser::codepageFor(const QString &lang)
+{
+  return codepageFor(lang.toAscii().data());
+}
+
+const char * SStringParser::codepageFor(const char *lang)
+{
+  if ((qstrcmp(lang, "cs") == 0) || (qstrcmp(lang, "ces") == 0) || (qstrcmp(lang, "cze") == 0) || // Czech
+      (qstrcmp(lang, "hu") == 0) || (qstrcmp(lang, "hun") == 0) || // Hungarian
+      (qstrcmp(lang, "pl") == 0) || (qstrcmp(lang, "pol") == 0) || // Polish
+      (qstrcmp(lang, "sk") == 0) || (qstrcmp(lang, "slk") == 0) || (qstrcmp(lang, "slo") == 0) || // Slovak
+      (qstrcmp(lang, "sl") == 0) || (qstrcmp(lang, "slv") == 0)) // Slovenian
+  {
+    return "CP1250";
+  }
+  else if ((qstrcmp(lang, "bg") == 0) || (qstrcmp(lang, "bul") == 0) || // Russian
+           (qstrcmp(lang, "ru") == 0) || (qstrcmp(lang, "rus") == 0))   // Bulgarian
+  {
+    return "CP1251";
+  }
+  else if ((qstrcmp(lang, "da") == 0) || (qstrcmp(lang, "dan") == 0) || // Danish
+           (qstrcmp(lang, "de") == 0) || (qstrcmp(lang, "ger") == 0) || // German
+           (qstrcmp(lang, "en") == 0) || (qstrcmp(lang, "eng") == 0) || // English
+           (qstrcmp(lang, "es") == 0) || (qstrcmp(lang, "esl") == 0) || (qstrcmp(lang, "spa") == 0) || // Spanish
+           (qstrcmp(lang, "fi") == 0) || (qstrcmp(lang, "fin") == 0) || // Finnish
+           (qstrcmp(lang, "fr") == 0) || (qstrcmp(lang, "fre") == 0) || (qstrcmp(lang, "fra") == 0) || // French
+           (qstrcmp(lang, "is") == 0) || (qstrcmp(lang, "ice") == 0) || (qstrcmp(lang, "isl") == 0) || // Icelandic
+           (qstrcmp(lang, "it") == 0) || (qstrcmp(lang, "ita") == 0) || // Italian
+           (qstrcmp(lang, "nl") == 0) || (qstrcmp(lang, "dut") == 0) || (qstrcmp(lang, "nla") == 0) || // Dutch
+           (qstrcmp(lang, "no") == 0) || (qstrcmp(lang, "nor") == 0) || (qstrcmp(lang, "nno") == 0) || // Norwegian
+           (qstrcmp(lang, "pt") == 0) || (qstrcmp(lang, "por") == 0) || // Portuguese
+           (qstrcmp(lang, "sv") == 0) || (qstrcmp(lang, "swe") == 0) || (qstrcmp(lang, "sve") == 0)) // Swedish
+  {
+    return "CP1252";
+  }
+  else if ((qstrcmp(lang, "el") == 0) || (qstrcmp(lang, "ell") == 0) || (qstrcmp(lang, "gre") == 0)) // Greek
+  {
+    return "CP1253";
+  }
+  else if ((qstrcmp(lang, "tr") == 0) || (qstrcmp(lang, "tur") == 0)) // Turkish
+  {
+    return "CP1254";
+  }
+  else if ((qstrcmp(lang, "iw") == 0) || (qstrcmp(lang, "heb") == 0)) // Hebrew
+  {
+    return "CP1255";
+  }
+  else if ((qstrcmp(lang, "ar") == 0) || (qstrcmp(lang, "ara") == 0)) // Arabic
+  {
+    return "CP1256";
+  }
+  else if (qstrcmp(lang, "bat") == 0) // Baltic
+  {
+    return "CP1257";
+  }
+  else if ((qstrcmp(lang, "vi") == 0) || (qstrcmp(lang, "vie") == 0)) // Vietnamese
+  {
+    return "CP1258";
+  }
+
+  return NULL;
+}
+
 const SStringParser::Iso639LangCode * SStringParser::iso639_1Codes(void)
 {
   static const Iso639LangCode codes[] =

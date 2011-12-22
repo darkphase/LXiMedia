@@ -102,6 +102,15 @@ void Backend::start(void)
 
   masterMediaServer.setDeviceName(settings.value("DeviceName", defaultDeviceName()).toString());
 
+  // Default codepage
+  const QByteArray defaultCodePage =
+      settings.value("DefaultCodepage", "System").toByteArray();
+
+  if (defaultCodePage == "System")
+    QTextCodec::setCodecForLocale(NULL);
+  else
+    QTextCodec::setCodecForLocale(QTextCodec::codecForName(defaultCodePage));
+
   const QImage icon(":/lximedia.png");
   if (!icon.isNull())
     masterMediaServer.addIcon("/lximedia.png", icon.width(), icon.height(), icon.depth());

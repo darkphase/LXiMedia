@@ -26,9 +26,9 @@ SDataCodec::SDataCodec(void)
   d.codec = QString::null;
 }
 
-SDataCodec::SDataCodec(const QString &codec, int streamId)
+SDataCodec::SDataCodec(const QString &codec, const QByteArray &codepage, int streamId)
 {
-  setCodec(codec, streamId);
+  setCodec(codec, codepage, streamId);
 }
 
 bool SDataCodec::operator==(const SDataCodec &comp) const
@@ -39,9 +39,10 @@ bool SDataCodec::operator==(const SDataCodec &comp) const
 
 /*! Sets this codec to the specified format.
  */
-void SDataCodec::setCodec(const QString &codec, int streamId)
+void SDataCodec::setCodec(const QString &codec, const QByteArray &codepage, int streamId)
 {
   d.codec = codec;
+  d.codepage = codepage;
   d.streamId = streamId;
 }
 

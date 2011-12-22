@@ -948,6 +948,7 @@ BufferReaderBase::StreamContext * BufferReaderBase::initStreamContext(const ::AV
   {
     streamContext->dataCodec =
         SDataCodec(FFMpegCommon::fromFFMpegCodecID(stream->codec->codec_id),
+                   QByteArray(),
                    stream->index);
   }
 
