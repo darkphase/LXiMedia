@@ -80,16 +80,21 @@ SSandboxServer::ResponseMessage MediaPlayerSandbox::httpRequest(const SSandboxSe
       const QString path = QString::fromUtf8(request.content());
       if (!path.isEmpty())
       {
-        if (path.endsWith("/.all"))
+        if (request.url().queryItemValue("play") == "all")
         {
           QStringList files;
+          for (QStringList dirs = QStringList() << path; !dirs.isEmpty(); )
+          {
+            const QDir dir(dirs.takeFirst());
+            foreach (const QString &file, dir.entryList(QDir::Files, QDir::Name | QDir::IgnoreCase))
+              files += dir.absoluteFilePath(file);
 
-          QDir dir(path.left(path.length() - 4));
-          foreach (const QString &file, dir.entryList(QDir::Files, QDir::Name | QDir::IgnoreCase))
-            files += dir.absoluteFilePath(file);
+            foreach (const QString &subDir, dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name | QDir::IgnoreCase))
+              dirs += dir.absoluteFilePath(subDir);
+          }
 
           QList< QFuture<SMediaInfo::ProbeInfo::FileType> > futures;
-          for (int i=qMax(0, (files.count() / 2) - 4), n=qMin(i+8, files.count()); i<n; i++)
+          for (int n = files.count(), ni = qMax(1, n / 16), i = ni / 2; i < n; i += ni)
             futures += QtConcurrent::run(&MediaPlayerSandbox::probeFileType, files[i]);
 
           int audio = 0, video = 0, image = 0;

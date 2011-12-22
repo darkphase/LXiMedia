@@ -159,10 +159,8 @@ QList<MediaServer::TranscodeSize> MediaServer::allTranscodeSizes(void)
 
 QString MediaServer::defaultTranscodeSizeName(void)
 {
-  if (QThread::idealThreadCount() > 2)
-    return "HDTV 720p 16:9";
-  else
-    return "DVD/PAL 16:9";
+  // Use DVD for compatibility, as the HD profiles get hairy.
+  return "DVD/PAL 16:9";
 }
 
 QString MediaServer::defaultTranscodeCropName(void)
