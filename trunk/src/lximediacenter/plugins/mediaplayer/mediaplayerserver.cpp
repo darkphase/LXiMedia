@@ -99,12 +99,11 @@ MediaPlayerServer::Stream * MediaPlayerServer::streamVideo(const SHttpServer::Re
   connect(sandbox, SIGNAL(consoleLine(QString)), SLOT(consoleLine(QString)));
   sandbox->ensureStarted();
 
-  const QString filePath = realPath(request.file());
+  QString filePath = realPath(request.file());
   if (!filePath.isEmpty())
   {
     QUrl rurl;
     rurl.setPath(MediaPlayerSandbox::path);
-    rurl.addQueryItem("play", QString::null);
     typedef QPair<QString, QString> QStringPair;
     foreach (const QStringPair &queryItem, request.url().queryItems())
       rurl.addQueryItem(queryItem.first, queryItem.second);
@@ -122,9 +121,16 @@ MediaPlayerServer::Stream * MediaPlayerServer::streamVideo(const SHttpServer::Re
       rurl.addQueryItem("position", QString::number(pos));
     }
 
-    const QString titleFile = virtualFile(request.file());
-    if (titleFile.length() > 1)
-      rurl.addQueryItem("title", titleFile.mid(1));
+    const QString vFile = virtualFile(request.file());
+    if ((vFile.length() > 1) && vFile[1].isNumber())
+    {
+      rurl.addQueryItem("title", vFile.mid(1));
+      rurl.addQueryItem("play", QString::null);
+    }
+    else if (vFile.length() > 1)
+      rurl.addQueryItem("play", vFile.mid(1));
+    else
+      rurl.addQueryItem("play", QString::null);
 
     Stream *stream = new Stream(this, sandbox, request.path());
     if (stream->setup(rurl, filePath.toUtf8()))
