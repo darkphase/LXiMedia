@@ -72,6 +72,10 @@ bool SSubtitleFile::open(void)
       {
         d->dataCodec = SDataCodec("SUB/RAWLOCAL8BIT");
         d->language = SStringParser::languageOf(QString::fromLocal8Bit(sample));
+
+        const char * const codepage = SStringParser::codepageFor(d->language);
+        if (codepage)
+          d->dataCodec.setCodePage(codepage);
       }
 
       return true;
