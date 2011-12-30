@@ -33,11 +33,11 @@ class LXISTREAM_PUBLIC SFileInputNode : public SIOInputNode
 {
 Q_OBJECT
 public:
-  explicit                      SFileInputNode(SGraph *, const QString &fileName = QString::null);
+  explicit                      SFileInputNode(SGraph *, const QUrl &filePath = QUrl());
   virtual                       ~SFileInputNode();
 
-  void                          setFileName(const QString &fileName);
-  QString                       fileName(void) const;
+  void                          setFilePath(const QUrl &filePath);
+  QUrl                          filePath(void) const;
 
   virtual bool                  setPosition(STime);
 

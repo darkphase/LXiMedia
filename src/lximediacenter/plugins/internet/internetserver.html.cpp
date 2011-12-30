@@ -46,11 +46,9 @@ const char InternetServer::htmlSettingsMain[] =
     "      </td>\n"
     "      <td class=\"top\">\n"
     "       {TR_SITES_EXPLAIN}<br /><br />\n"
+//    "       <input type=\"submit\" name=\"save\" value=\"{TR_SAVE}\" />\n"
     "      </td>\n"
     "     </tr>\n"
-    "     <tr><td colspan=\"2\">\n"
-    "      <input type=\"submit\" name=\"save\" value=\"{TR_SAVE}\" />\n"
-    "     </td></tr>\n"
     "    </table>\n"
     "   </form>\n"
     "  </fieldset>\n";
@@ -191,7 +189,8 @@ SHttpServer::ResponseMessage InternetServer::httpRequest(const SHttpServer::Requ
   {
     if (request.url().hasQueryItem("save_settings"))
     {
-      SHttpServer::ResponseMessage response(request, SHttpServer::Status_MovedPermanently);
+      SHttpServer::ResponseMessage response(request, SHttpServer::Status_TemporaryRedirect);
+      response.setCacheControl(-1);
       response.setField("Location", "http://" + request.host() + "/settings");
       return response;
     }
@@ -264,29 +263,32 @@ SHttpServer::ResponseMessage InternetServer::httpRequest(const SHttpServer::Requ
         htmlParser.appendField("DIRS", htmlParser.parse(htmlSiteTreeDir));
 
         if (addChildren)
-        foreach (const QString &host, siteDatabase->getSites(targetAudience))
         {
-          const QString name = siteDatabase->getName(host);
+          int count = 0;
+          foreach (const QString &host, siteDatabase->listSites(targetAudience, 0, count))
+          {
+            const QString name = siteDatabase->getName(host);
 
-          htmlParser.setField("DIR_FULLPATH", host.toUtf8().toHex());
-          htmlParser.setField("DIR_INDENT", htmlParser.parse(htmlSiteTreeIndent) + htmlParser.parse(htmlSiteTreeIndent));
-          htmlParser.setField("DIR_ALLOPEN", qCompress(QStringList(allopen.toList()).join(QString(dirSplit)).toUtf8()).toHex());
-          htmlParser.setField("DIR_EXPAND", "");
+            htmlParser.setField("DIR_FULLPATH", host.toUtf8().toHex());
+            htmlParser.setField("DIR_INDENT", htmlParser.parse(htmlSiteTreeIndent) + htmlParser.parse(htmlSiteTreeIndent));
+            htmlParser.setField("DIR_ALLOPEN", qCompress(QStringList(allopen.toList()).join(QString(dirSplit)).toUtf8()).toHex());
+            htmlParser.setField("DIR_EXPAND", "");
 
-          htmlParser.setField("ITEM_ICON", QUrl(serverPath() + name + "/?thumbnail=16"));
-          htmlParser.setField("DIR_CHECK", htmlParser.parse(htmlSiteTreeCheckIcon));
+            htmlParser.setField("ITEM_ICON", QUrl(serverPath() + name + "/?thumbnail=16"));
+            htmlParser.setField("DIR_CHECK", htmlParser.parse(htmlSiteTreeCheckIcon));
 
-          htmlParser.setField("ITEM_HOST", host);
-          htmlParser.setField("ITEM_NAME", name);
-          htmlParser.setField("DIR_NAME", htmlParser.parse(htmlSiteTreeScriptLink));
+            htmlParser.setField("ITEM_HOST", host);
+            htmlParser.setField("ITEM_NAME", name);
+            htmlParser.setField("DIR_NAME", htmlParser.parse(htmlSiteTreeScriptLink));
 
-          htmlParser.appendField("DIRS", htmlParser.parse(htmlSiteTreeDir));
+            htmlParser.appendField("DIRS", htmlParser.parse(htmlSiteTreeDir));
+          }
         }
       }
 
       SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
-      response.setField("Cache-Control", "no-cache");
-      response.setContentType("text/html;charset=utf-8");
+      response.setCacheControl(-1);
+      response.setContentType(SHttpServer::mimeTextHtml);
       response.setContent(htmlParser.parse(htmlSiteTreeIndex));
       return response;
     }
@@ -329,6 +331,7 @@ SHttpServer::ResponseMessage InternetServer::httpRequest(const SHttpServer::Requ
           QScriptEngine::checkSyntax(request.content());
 
       SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
+      response.setCacheControl(-1);
 
       if (result.state() != QScriptSyntaxCheckResult::Valid)
       {
@@ -449,16 +452,16 @@ SHttpServer::ResponseMessage InternetServer::editRequest(const SHttpServer::Requ
     htmlParser.setField("SCRIPT", script);
 
     SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
-    response.setField("Cache-Control", "no-cache");
-    response.setContentType("text/html;charset=utf-8");
+    response.setCacheControl(-1);
+    response.setContentType(SHttpServer::mimeTextHtml);
     response.setContent(htmlParser.parse(htmlSiteEditIndex));
     return response;
   }
   else
   {
     SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
-    response.setField("Cache-Control", "no-cache");
-    response.setContentType("text/html;charset=utf-8");
+    response.setCacheControl(-1);
+    response.setContentType(SHttpServer::mimeTextHtml);
     response.setContent(htmlParser.parse(htmlSiteEditCloseIndex));
     return response;
   }

@@ -79,7 +79,7 @@ QByteArray BackendServer::settingsContent(void)
 SHttpServer::ResponseMessage BackendServer::makeResponse(const SHttpServer::RequestHeader &request, const QByteArray &data, const char *mime, bool allowCache) const
 {
   SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
-  response.setField("Cache-Control", allowCache ? "max-age=1800" : "no-cache");
+  response.setCacheControl(allowCache ? 0 : -1);
 
   if (mime != NULL)
     response.setContentType(mime);
@@ -98,8 +98,8 @@ SHttpServer::ResponseMessage BackendServer::makeResponse(const SHttpServer::Requ
 SHttpServer::ResponseMessage BackendServer::makeHtmlContent(const SHttpServer::RequestHeader &request, const QByteArray &content, const QByteArray &head) const
 {
   SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
+  response.setCacheControl(-1);
   response.setContentType(SHttpEngine::mimeTextHtml);
-  response.setField("Cache-Control", "no-cache");
 
   if (!request.isHead())
     response.setContent(d->masterServer->parseHtmlContent(request, content, head));

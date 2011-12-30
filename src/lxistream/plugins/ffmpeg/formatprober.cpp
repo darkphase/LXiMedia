@@ -45,7 +45,7 @@ FormatProber::~FormatProber()
   }
 }
 
-QList<FormatProber::Format> FormatProber::probeFormat(const QByteArray &buffer, const QString &filePath)
+QList<FormatProber::Format> FormatProber::probeFormat(const QByteArray &buffer, const QUrl &filePath)
 {
   if (lastFilePath != filePath)
   {
@@ -53,7 +53,10 @@ QList<FormatProber::Format> FormatProber::probeFormat(const QByteArray &buffer, 
 
     QByteArray fileName("");
     if (!filePath.isEmpty())
-      fileName = QFileInfo(filePath).fileName().toUtf8();
+    {
+      const QString path = filePath.path();
+      fileName = path.mid(path.lastIndexOf('/') + 1).toUtf8();
+    }
 
     ::AVProbeData probeData;
     probeData.filename = fileName.data();
@@ -251,7 +254,7 @@ void FormatProber::produce(const SEncodedDataBuffer &)
 {
 }
 
-BufferReader * FormatProber::createBufferReader(QIODevice *ioDevice, const QString &filePath)
+BufferReader * FormatProber::createBufferReader(QIODevice *ioDevice, const QUrl &filePath)
 {
   if (ioDevice != lastIoDevice)
   {

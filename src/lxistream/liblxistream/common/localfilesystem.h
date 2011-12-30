@@ -17,39 +17,38 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef __FILENODE_H
-#define __FILENODE_H
+#ifndef LXSTREAMCOMMON_LOCALFILESYSTEM_H
+#define LXSTREAMCOMMON_LOCALFILESYSTEM_H
 
 #include <QtCore>
 #include <LXiStream>
-#include <LXiStreamGui>
 
-namespace LXiMediaCenter {
-namespace MediaPlayerBackend {
+namespace LXiStream {
+namespace Common {
 
-class FileNode;
-typedef QList<FileNode> FileNodeList;
-
-class FileNode : public SMediaInfo
+class LocalFilesystem : public SInterfaces::Filesystem
 {
+Q_OBJECT
 public:
-  inline                        FileNode(void) : SMediaInfo() { }
-  inline                        FileNode(const FileNode &from) : SMediaInfo(from) { }
-  inline                        FileNode(const SMediaInfo &from) : SMediaInfo(from) { }
-  inline explicit               FileNode(const QUrl &path) : SMediaInfo(path) { }
-  inline explicit               FileNode(const QSharedDataPointer<ProbeInfo> &pi) : SMediaInfo(pi) { }
+                                LocalFilesystem(const QString &, QObject *parent);
 
-  inline FileNode             & operator=(const FileNode &from) { SMediaInfo::operator=(from); return *this; }
-  inline FileNode             & operator=(const SMediaInfo &from) { SMediaInfo::operator=(from); return *this; }
+public: // From SInterfaces::Filesystem
+  virtual bool                  openDirectory(const QUrl &);
 
-  bool                          isFormatProbed(void) const;
-  bool                          isContentProbed(void) const;
+  virtual QStringList           entryList(QDir::Filters, QDir::SortFlags) const;
+  virtual QUrl                  filePath(const QString &fileName) const;
+  virtual Info                  readInfo(const QString &fileName) const;
+  virtual QIODevice           * openFile(const QString &fileName) const;
 
-  QByteArray                    probeFormat(int = 1);
-  QByteArray                    probeContent(int = 1);
+public:
+  static const char             scheme[];
 
-  QByteArray                    toByteArray(int = 1) const;
-  static FileNode               fromByteArray(const QByteArray &);
+private:
+  static bool                   isHidden(const QString &);
+
+private:
+  QDir                          dir;
+  bool                          root;
 };
 
 } } // End of namespaces

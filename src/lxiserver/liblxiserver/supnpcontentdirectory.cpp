@@ -30,8 +30,7 @@ const unsigned  SUPnPContentDirectory::seekSec = 120;
 
 struct SUPnPContentDirectory::Data : SUPnPContentDirectory::Callback
 {
-  virtual int                   countContentDirItems(const QString &client, const QString &path);
-  virtual QList<Item>           listContentDirItems(const QString &client, const QString &path, unsigned start, unsigned count);
+  virtual QList<Item>           listContentDirItems(const QString &client, const QString &path, int start, int &count);
   virtual Item                  getContentDirItem(const QString &client, const QString &path);
 
   SUPnPGenaServer             * genaServer;
@@ -276,10 +275,10 @@ bool SUPnPContentDirectory::handleBrowse(const QDomElement &elem, QDomDocument &
 {
   const QString path = fromObjectID(elem.firstChildElement("ObjectID").text().toAscii());
   const QString browseFlag = elem.firstChildElement("BrowseFlag").text();
-  const unsigned start = elem.firstChildElement("StartingIndex").text().toUInt();
-  const unsigned count = elem.firstChildElement("RequestedCount").text().toUInt();
   const QString client = toClientString(peerAddress, request);
   const QString host = request.host();
+  const int start = elem.firstChildElement("StartingIndex").text().toInt();
+  const int count = elem.firstChildElement("RequestedCount").text().toInt();
 
   QDomElement browseResponse = createElementNS(doc, elem, "BrowseResponse");
 
@@ -307,7 +306,8 @@ bool SUPnPContentDirectory::handleBrowse(const QDomElement &elem, QDomDocument &
       root.setAttribute("xmlns:dlna", dlnaNS);
       root.setAttribute("xmlns:upnp", metadataNS);
 
-      foreach (const Item &item, (*callback)->listContentDirItems(client, path, start, count))
+      int total = count;
+      foreach (const Item &item, (*callback)->listContentDirItems(client, path, start, total))
       {
         if (!item.isDir)
         {
@@ -349,7 +349,7 @@ bool SUPnPContentDirectory::handleBrowse(const QDomElement &elem, QDomDocument &
         totalReturned++;
       }
 
-      totalMatches = (*callback)->countContentDirItems(client, path);
+      totalMatches = total;
 
       subDoc.appendChild(root);
       result.appendChild(doc.createTextNode(subDoc.toString(-1).replace(">", "&gt;"))); // Crude hack for non-compliant XML parsers
@@ -457,7 +457,7 @@ void SUPnPContentDirectory::didlDirectory(QDomDocument &doc, QDomElement &root, 
     return;
   }
 
-  didlContainer(doc, root, type, path, title, (*callback)->countContentDirItems(client, path));
+  didlContainer(doc, root, type, path, title);
 }
 
 void SUPnPContentDirectory::didlContainer(QDomDocument &doc, QDomElement &root, Item::Type type, const QString &path, const QString &title, int childCount)
@@ -887,26 +887,7 @@ SUPnPContentDirectory::Item::Chapter::~Chapter()
 }
 
 
-int SUPnPContentDirectory::Data::countContentDirItems(const QString &client, const QString &path)
-{
-  QSet<QString> subDirs;
-
-  for (QMap<QString, Callback *>::ConstIterator i=callbacks.begin(); i!=callbacks.end(); i++)
-  if (i.key().startsWith(path))
-  {
-    QString sub = i.key().mid(path.length() - 1);
-    sub = sub.left(sub.indexOf('/', 1) + 1);
-    if ((sub.length() > 1) && !subDirs.contains(sub) &&
-        ((*i)->countContentDirItems(client, i.key()) > 0))
-    {
-      subDirs.insert(sub);
-    }
-  }
-
-  return subDirs.count();
-}
-
-QList<SUPnPContentDirectory::Item> SUPnPContentDirectory::Data::listContentDirItems(const QString &client, const QString &path, unsigned start, unsigned count)
+QList<SUPnPContentDirectory::Item> SUPnPContentDirectory::Data::listContentDirItems(const QString &client, const QString &path, int start, int &count)
 {
   const bool returnAll = count == 0;
   QList<SUPnPContentDirectory::Item> result;
@@ -917,8 +898,7 @@ QList<SUPnPContentDirectory::Item> SUPnPContentDirectory::Data::listContentDirIt
   {
     QString sub = i.key().mid(path.length() - 1);
     sub = sub.left(sub.indexOf('/', 1) + 1);
-    if ((sub.length() > 1) && !names.contains(sub) &&
-        ((*i)->countContentDirItems(client, i.key()) > 0))
+    if ((sub.length() > 1) && !names.contains(sub))
     {
       names.insert(sub);
 
@@ -942,6 +922,8 @@ QList<SUPnPContentDirectory::Item> SUPnPContentDirectory::Data::listContentDirIt
       }
     }
   }
+
+  count = names.count();
 
   return result;
 }

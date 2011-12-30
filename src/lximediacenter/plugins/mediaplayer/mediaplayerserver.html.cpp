@@ -34,9 +34,10 @@ const char MediaPlayerServer::htmlFrontPageContent[] =
     "   <script type=\"text/javascript\">loadListContent(\"mediaplayeritems\", \"{SERVER_PATH}\", 0, 0);</script>\n";
 
 const char MediaPlayerServer::htmlSettingsMain[] =
+    "  <a class=\"hidden\" name=\"mediaplayer\" />\n"
     "  <fieldset>\n"
     "   <legend>{TR_MEDIAPLAYER}</legend>\n"
-    "   <form name=\"settings\" action=\"{SERVER_PATH}\" method=\"get\">\n"
+    "   <form name=\"settings\" action=\"{SERVER_PATH}#mediaplayer\" method=\"get\">\n"
     "    <input type=\"hidden\" name=\"save_settings\" value=\"settings\" />\n"
     "    <table>\n"
     "     <tr>\n"
@@ -49,15 +50,39 @@ const char MediaPlayerServer::htmlSettingsMain[] =
     "      <td class=\"top\">\n"
     "       {TR_RIGHTS_EXPLAIN}<br /><br />\n"
     "       {TR_SLIDEDURATION}:\n"
-    "       <input type=\"text\" size=\"6\" name=\"slideduration\" value=\"{SLIDEDURATION}\" />ms.\n"
+    "       <input type=\"text\" size=\"6\" name=\"slideduration\" value=\"{SLIDEDURATION}\" />ms.<br /><br />\n"
+    "       <input type=\"submit\" name=\"save\" value=\"{TR_SAVE}\" />\n"
     "      </td>\n"
     "     </tr>\n"
-    "     <tr><td colspan=\"2\">\n"
-    "      <input type=\"submit\" name=\"save\" value=\"{TR_SAVE}\" />\n"
-    "     </td></tr>\n"
+    "{ADDNETWORKDRIVE}"
     "    </table>\n"
     "   </form>\n"
     "  </fieldset>\n";
+
+const char MediaPlayerServer::htmlSettingsAddNetworkDrive[] =
+    "     <tr><td colspan=\"2\">\n"
+    "      {TR_ADD_NETWORK_DRIVE_EXPLAIN}<br />\n"
+    "      <table>\n"
+    "       <tr>\n"
+    "        <td></td>\n"
+    "        <td>{TR_HOSTNAME}</td>\n"
+    "        <td></td>\n"
+    "        <td>{TR_SHARE_PATH}</td>\n"
+    "        <td>{TR_USERNAME}</td>\n"
+    "        <td>{TR_PASSWORD}</td>\n"
+    "        <td></td>\n"
+    "       </tr>\n"
+    "       <tr>\n"
+    "        <td>{SMBPREFIX}</td>\n"
+    "        <td><input type=\"text\" size=\"20\" name=\"smbhostname\" value=\"\" /></td>\n"
+    "        <td>{SMBSLASH}</td>\n"
+    "        <td><input type=\"text\" size=\"20\" name=\"smbpath\" value=\"\" /></td>\n"
+    "        <td><input type=\"text\" size=\"10\" name=\"smbusername\" value=\"\" /></td>\n"
+    "        <td><input type=\"password\" size=\"10\" name=\"smbpassword\" value=\"\" /></td>\n"
+    "        <td><input type=\"submit\" name=\"smbadd\" value=\"{TR_ADD}\" /></td>\n"
+    "       </tr>\n"
+    "      </table>\n"
+    "     </td></tr>\n";
 
 const char MediaPlayerServer::htmlSettingsDirTreeIndex[] =
     "<!DOCTYPE html>\n"
@@ -120,8 +145,13 @@ QByteArray MediaPlayerServer::settingsContent(void)
   htmlParser.setField("SERVER_PATH", QUrl(serverPath()));
   htmlParser.setField("TR_MEDIAPLAYER", tr(Module::pluginName));
   htmlParser.setField("TR_SLIDEDURATION", tr("Photo slideshow slide duration"));
+  htmlParser.setField("TR_ADD", tr("Add"));
   htmlParser.setField("TR_SAVE", tr("Save"));
   htmlParser.setField("TR_SELECT_MEDIA_DIRECTORIES", tr("Select media directories"));
+  htmlParser.setField("TR_HOSTNAME", tr("Hostname"));
+  htmlParser.setField("TR_SHARE_PATH", tr("Share/Path"));
+  htmlParser.setField("TR_USERNAME", tr("Username"));
+  htmlParser.setField("TR_PASSWORD", tr("Password"));
 
   htmlParser.setField("TR_RIGHTS_EXPLAIN", tr(
       "By default, the LXiMediaCenter backend (lximcbackend) runs as a restricted user.\n"
@@ -139,6 +169,26 @@ QByteArray MediaPlayerServer::settingsContent(void)
       "Furthermore, certain system directories can not be selected to prevent security issues."
       ));
 
+  htmlParser.setField("TR_ADD_NETWORK_DRIVE_EXPLAIN", tr(
+      "A network drive can be added here. Provide the hostname or IP address "
+      "of the server and a share name. A username and password can be "
+      "optionally provided, a guest accunt is used if omitted."));
+
+  if (fileProtocols().contains("smb"))
+  {
+#if defined(Q_OS_WIN)
+    htmlParser.setField("SMBPREFIX", "\\\\");
+    htmlParser.setField("SMBSLASH", "\\");
+#else
+    htmlParser.setField("SMBPREFIX", "smb://");
+    htmlParser.setField("SMBSLASH", "/");
+#endif
+
+    htmlParser.setField("ADDNETWORKDRIVE", htmlParser.parse(htmlSettingsAddNetworkDrive));
+  }
+  else
+    htmlParser.setField("ADDNETWORKDRIVE", "");
+
   htmlParser.setField("SLIDEDURATION", QByteArray::number(settings.value("SlideDuration", 7500).toInt()));
 
   scanDrives();
@@ -146,160 +196,169 @@ QByteArray MediaPlayerServer::settingsContent(void)
   return htmlParser.parse(htmlSettingsMain);
 }
 
-void MediaPlayerServer::generateDirs(SStringParser &htmlParser, const QFileInfoList &dirs, int indent, const QStringList &allopen, const QStringList &rootPaths)
+void MediaPlayerServer::generateDirs(SStringParser &htmlParser, const QList<QUrl> &dirs, int indent, const QStringList &allopen, const QList<QUrl> &rootPaths)
 {
-  foreach (const QFileInfo &info, dirs)
-  if (!info.fileName().startsWith('.'))
+  foreach (const QUrl &dir, dirs)
   {
-    const QString fileName = info.fileName();
-    const QString absoluteName = info.absoluteFilePath().endsWith('/') ? info.absoluteFilePath() : (info.absoluteFilePath() + '/');
+    QString path = dir.toString();
+    if (!path.endsWith('/'))
+      path += '/';
 
-    QFileInfoList children = QDir(absoluteName).entryInfoList(QDir::Dirs);
-    for (QList<QFileInfo>::Iterator i=children.begin(); i!=children.end(); )
-    if (i->fileName().startsWith('.'))
-      i = children.erase(i);
-    else
-      i++;
+    QString fileName = path.left(path.length() - 1);
+    fileName = fileName.mid(fileName.lastIndexOf('/') + 1);
 
-    htmlParser.setField("DIR_FULLPATH", absoluteName.toUtf8().toHex());
+    htmlParser.setField("DIR_FULLPATH", path.toUtf8().toHex());
 
     // Indentation
     htmlParser.setField("DIR_INDENT", "");
     for (int i=0; i<indent; i++)
       htmlParser.appendField("DIR_INDENT", htmlParser.parse(htmlSettingsDirTreeIndent));
 
-    // Expand
-    htmlParser.setField("DIR_EXPAND", htmlParser.parse(htmlSettingsDirTreeIndent));
-    if (!isHidden(absoluteName))
-    if ((indent > 0) && !children.isEmpty())
+    if (dir.scheme() != "file")
     {
-      QStringList all = allopen;
-      if (all.contains(absoluteName, caseSensitivity))
-      {
-        for (QStringList::Iterator i=all.begin(); i!=all.end(); )
-        if (i->compare(absoluteName, caseSensitivity) == 0)
-          i = all.erase(i);
-        else
-          i++;
+      htmlParser.setField("DIR_CHECKED", "full");
+      htmlParser.setField("DIR_CHECKTYPE", "checkoff");
+      htmlParser.setField("DIR_ALLOPEN", "");
+      htmlParser.setField("DIR_CHECK", htmlParser.parse(htmlSettingsDirTreeCheckLink));
+      htmlParser.setField("DIR_EXPAND", htmlParser.parse(htmlSettingsDirTreeIndent));
+      htmlParser.setField("DIR_NAME", fileName + " (" + dir.toString(QUrl::RemovePassword) + ")");
+      htmlParser.appendField("DIRS", htmlParser.parse(htmlSettingsDirTreeDir));
+    }
+    else if (!fileName.startsWith('.'))
+    {
+      SMediaFilesystem filesystem(dir);
 
-        htmlParser.setField("DIR_OPEN", "open");
+      QList<QUrl> children;
+      foreach (const QString &child, filesystem.entryList(QDir::Dirs))
+      if (!child.isEmpty() && !child.startsWith('.'))
+        children += filesystem.filePath(child);
+
+      const bool isSingleRoot = (indent == 0) && (dirs.count() == 1);
+
+      // Expand
+      htmlParser.setField("DIR_EXPAND", htmlParser.parse(htmlSettingsDirTreeIndent));
+      if (!isSingleRoot && !children.isEmpty())
+      {
+        QStringList all = allopen;
+        if (all.contains(path))
+        {
+          for (QStringList::Iterator i=all.begin(); i!=all.end(); )
+          if (*i == path)
+            i = all.erase(i);
+          else
+            i++;
+
+          htmlParser.setField("DIR_OPEN", "open");
+        }
+        else
+        {
+          all.append(path);
+          htmlParser.setField("DIR_OPEN", "close");
+        }
+
+        htmlParser.setField("DIR_ALLOPEN", qCompress(all.join(QString(dirSplit)).toUtf8()).toHex());
+        htmlParser.setField("DIR_EXPAND", htmlParser.parse(htmlSettingsDirTreeExpand));
+      }
+
+      // Check
+      bool checkEnabled = true;
+      htmlParser.setField("DIR_CHECKED", "none");
+      htmlParser.setField("DIR_CHECKTYPE", "checkon");
+      foreach (const QUrl &root, rootPaths)
+      {
+        const QString rootPath = root.toString();
+
+        if (rootPath == path)
+        {
+          htmlParser.setField("DIR_CHECKED", "full");
+          htmlParser.setField("DIR_CHECKTYPE", "checkoff");
+          checkEnabled = true;
+          break;
+        }
+        else if (rootPath.startsWith(path))
+        {
+          htmlParser.setField("DIR_CHECKED", "some");
+          htmlParser.setField("DIR_TITLE", "A child is selected");
+          checkEnabled = false;
+        }
+        else if (path.startsWith(rootPath))
+        {
+          htmlParser.setField("DIR_CHECKED", "fulldisabled");
+          htmlParser.setField("DIR_TITLE", "A parent is selected");
+          checkEnabled = false;
+        }
+      }
+
+      if (!filesystem.readInfo(".").isReadable)
+      {
+        htmlParser.appendField("DIR_CHECKED", "disabled");
+        htmlParser.setField("DIR_TITLE", tr("Access denied"));
+        checkEnabled = false;
+      }
+
+      htmlParser.setField("DIR_ALLOPEN", qCompress(allopen.join(QString(dirSplit)).toUtf8()).toHex());
+      htmlParser.setField("DIR_CHECK", htmlParser.parse(checkEnabled ? htmlSettingsDirTreeCheckLink : htmlSettingsDirTreeCheck));
+
+      // Name
+      QMap<QUrl, QString>::Iterator i = driveList.find(dir);
+      if (i != driveList.end())
+      {
+        htmlParser.setField("DIR_NAME", dir.path());
+        if (!i->isEmpty())
+          htmlParser.appendField("DIR_NAME", " (" + *i + ")");
       }
       else
-      {
-        all.append(absoluteName);
-        htmlParser.setField("DIR_OPEN", "close");
-      }
+        htmlParser.setField("DIR_NAME", fileName);
 
-      htmlParser.setField("DIR_ALLOPEN", qCompress(all.join(QString(dirSplit)).toUtf8()).toHex());
-      htmlParser.setField("DIR_EXPAND", htmlParser.parse(htmlSettingsDirTreeExpand));
+      htmlParser.appendField("DIRS", htmlParser.parse(htmlSettingsDirTreeDir));
+
+      // Recurse
+      if (isSingleRoot || (allopen.contains(path)))
+        generateDirs(htmlParser, children, indent + 1, allopen, rootPaths);
     }
-
-    // Check
-    bool checkEnabled = true;
-    htmlParser.setField("DIR_CHECKED", "none");
-    htmlParser.setField("DIR_CHECKTYPE", "checkon");
-    foreach (const QString &root, rootPaths)
-    {
-      if (root.compare(absoluteName, caseSensitivity) == 0)
-      {
-        htmlParser.setField("DIR_CHECKED", "full");
-        htmlParser.setField("DIR_CHECKTYPE", "checkoff");
-        checkEnabled = true;
-        break;
-      }
-      else if (root.startsWith(absoluteName, caseSensitivity))
-      {
-        htmlParser.setField("DIR_CHECKED", "some");
-        htmlParser.setField("DIR_TITLE", "A child is selected");
-        checkEnabled = false;
-      }
-      else if (absoluteName.startsWith(root, caseSensitivity))
-      {
-        htmlParser.setField("DIR_CHECKED", "fulldisabled");
-        htmlParser.setField("DIR_TITLE", "A parent is selected");
-        checkEnabled = false;
-      }
-    }
-
-    if (isHidden(absoluteName))
-    {
-      htmlParser.appendField("DIR_CHECKED", "disabled");
-      htmlParser.setField("DIR_TITLE", tr("This system directory can not be selected"));
-      checkEnabled = false;
-    }
-    else if (!info.isReadable() || !info.isExecutable())
-    {
-      htmlParser.appendField("DIR_CHECKED", "disabled");
-      htmlParser.setField("DIR_TITLE", tr("Access denied"));
-      checkEnabled = false;
-    }
-    else if (indent == 0)
-    {
-      htmlParser.appendField("DIR_CHECKED", "disabled");
-      htmlParser.setField("DIR_TITLE", tr("The root can not be selected"));
-      checkEnabled = false;
-    }
-
-    htmlParser.setField("DIR_ALLOPEN", qCompress(allopen.join(QString(dirSplit)).toUtf8()).toHex());
-    htmlParser.setField("DIR_CHECK", htmlParser.parse(checkEnabled ? htmlSettingsDirTreeCheckLink : htmlSettingsDirTreeCheck));
-
-    // Name
-    if (fileName.isEmpty())
-    {
-      htmlParser.setField("DIR_NAME", info.absoluteFilePath());
-
-      QMap<QString, QString>::Iterator i = driveLabelList.find(info.absoluteFilePath());
-      if ((i != driveLabelList.end()) && !i->isEmpty())
-        htmlParser.appendField("DIR_NAME", " (" + *i + ")");
-    }
-    else
-      htmlParser.setField("DIR_NAME", fileName);
-
-    if (info.isSymLink())
-      htmlParser.appendField("DIR_NAME", " (" + tr("symbolic link to") + " " + info.symLinkTarget() + ")");
-
-    htmlParser.appendField("DIRS", htmlParser.parse(htmlSettingsDirTreeDir));
-
-    // Recurse
-    if (!isHidden(absoluteName))
-    if ((indent == 0) || (allopen.contains(absoluteName, caseSensitivity)))
-      generateDirs(htmlParser, children, indent + 1, allopen, rootPaths);
   }
 }
 
 void MediaPlayerServer::scanDrives(void)
 {
-  driveInfoList.clear();
-  driveLabelList.clear();
+  driveList.clear();
 
-  foreach (const QFileInfo &drive, QDir::drives())
-  if (QDir(drive.absoluteFilePath()).count() != 0)
+  QUrl root;
+  root.setScheme("file");
+
+  SMediaFilesystem filesystem(root);
+  foreach (const QString &drive, filesystem.entryList(QDir::Dirs))
   {
-    driveInfoList.insert(drive.absoluteFilePath(), drive);
-
-#ifdef Q_OS_WIN
-    WCHAR szVolumeName[MAX_PATH+1];
-    WCHAR szFileSystemName[MAX_PATH+1];
-    DWORD dwSerialNumber = 0;
-    DWORD dwMaxFileNameLength = MAX_PATH;
-    DWORD dwFileSystemFlags = 0;
-
-    if (::GetVolumeInformationW(reinterpret_cast<const WCHAR *>(drive.absoluteFilePath().utf16()),
-                                szVolumeName, sizeof(szVolumeName) / sizeof(*szVolumeName),
-                                &dwSerialNumber,
-                                &dwMaxFileNameLength,
-                                &dwFileSystemFlags,
-                                szFileSystemName, sizeof(szFileSystemName) / sizeof(*szFileSystemName)))
+    const SMediaFilesystem dir(filesystem.filePath(drive));
+    if (!dir.entryList().isEmpty())
     {
-      driveLabelList.insert(
-            drive.absoluteFilePath(),
-            QString::fromUtf16((const ushort *)szVolumeName).trimmed());
+  #ifdef Q_OS_WIN
+      WCHAR szVolumeName[MAX_PATH+1];
+      WCHAR szFileSystemName[MAX_PATH+1];
+      DWORD dwSerialNumber = 0;
+      DWORD dwMaxFileNameLength = MAX_PATH;
+      DWORD dwFileSystemFlags = 0;
+
+      if (::GetVolumeInformationW(reinterpret_cast<const WCHAR *>(filesystem.filePath(drive).path().utf16()),
+                                  szVolumeName, sizeof(szVolumeName) / sizeof(*szVolumeName),
+                                  &dwSerialNumber,
+                                  &dwMaxFileNameLength,
+                                  &dwFileSystemFlags,
+                                  szFileSystemName, sizeof(szFileSystemName) / sizeof(*szFileSystemName)))
+      {
+        driveList.insert(
+              filesystem.filePath(drive),
+              QString::fromUtf16((const ushort *)szVolumeName).trimmed());
+      }
+  #else
+      driveList.insert(filesystem.filePath(drive), tr("Root"));
+  #endif
     }
-#else
-    if (drive.absoluteFilePath() == "/")
-      driveLabelList.insert(drive.absoluteFilePath(), tr("Root"));
-#endif
   }
+
+  foreach (const QUrl &drive, rootPaths)
+  if (drive.scheme() != "file")
+    driveList.insert(drive, drive.toString(QUrl::RemovePassword));
 }
 
 SHttpServer::ResponseMessage MediaPlayerServer::httpRequest(const SHttpServer::RequestMessage &request, QIODevice *socket)
@@ -308,7 +367,7 @@ SHttpServer::ResponseMessage MediaPlayerServer::httpRequest(const SHttpServer::R
   {
     if (request.url().hasQueryItem("thumbnail"))
     {
-      const QString filePath = realPath(request.file());
+      const QUrl filePath = realPath(request.file());
       nodeReadQueue.insert(filePath, qMakePair(request, socket));
       mediaDatabase->queueReadNode(filePath);
 
@@ -316,18 +375,43 @@ SHttpServer::ResponseMessage MediaPlayerServer::httpRequest(const SHttpServer::R
     }
     else if (request.url().hasQueryItem("save_settings"))
     {
-      QSettings settings;
-      settings.beginGroup(Module::pluginName);
+      if (request.url().hasQueryItem("save"))
+      {
+        QSettings settings;
+        settings.beginGroup(Module::pluginName);
+  
+        settings.setValue("SlideDuration", qBound(2500, request.url().queryItemValue("slideduration").toInt(), 60000));
+      }
+      else if (request.url().hasQueryItem("smbadd"))
+      {
+        QUrl url;
+        url.setScheme("smb");
+        url.setHost(QString::fromUtf8(QByteArray::fromPercentEncoding(
+              request.url().encodedQueryItemValue("smbhostname").replace('+', ' '))));
+        url.setPath(QString::fromUtf8(QByteArray::fromPercentEncoding(
+              request.url().encodedQueryItemValue("smbpath").replace('+', ' '))));
+        url.setUserName(QString::fromUtf8(QByteArray::fromPercentEncoding(
+              request.url().encodedQueryItemValue("smbusername").replace('+', ' '))));
+        url.setPassword(QString::fromUtf8(QByteArray::fromPercentEncoding(
+              request.url().encodedQueryItemValue("smbpassword").replace('+', ' '))));
 
-      settings.setValue("SlideDuration", qBound(2500, request.url().queryItemValue("slideduration").toInt(), 60000));
-
-      SHttpServer::ResponseMessage response(request, SHttpServer::Status_MovedPermanently);
+        if (url.isValid())
+        {
+          QList<QUrl> paths = rootPaths.values();
+          paths += url;
+          setRootPaths(paths);
+          scanDrives();
+        }
+      }
+      
+      SHttpServer::ResponseMessage response(request, SHttpServer::Status_TemporaryRedirect);
+      response.setCacheControl(-1);
       response.setField("Location", "http://" + request.host() + "/settings");
       return response;
     }
     else if (request.url().hasQueryItem("folder_tree"))
     {
-      QStringList paths = rootPaths.values();
+      QList<QUrl> paths = rootPaths.values();
 
       const QString open = request.url().queryItemValue("open");
       const QStringList allopen = !open.isEmpty()
@@ -342,22 +426,29 @@ SHttpServer::ResponseMessage MediaPlayerServer::httpRequest(const SHttpServer::R
           paths.append(checkon.endsWith('/') ? checkon : (checkon + '/'));
 
         if (!checkoff.isEmpty())
-        for (QStringList::Iterator i=paths.begin(); i!=paths.end(); )
-        if (i->compare(checkoff, caseSensitivity) == 0)
-          i = paths.erase(i);
-        else
-          i++;
+        for (QList<QUrl>::Iterator i=paths.begin(); i!=paths.end(); )
+        {
+          QString path = i->toString();
+          if (!path.endsWith('/'))
+            path += '/';
+
+          if (path == checkoff)
+            i = paths.erase(i);
+          else
+            i++;
+        }
 
         setRootPaths(paths);
+        scanDrives();
       }
 
       SStringParser htmlParser;
       htmlParser.setField("SERVER_PATH", QUrl(serverPath()));
       htmlParser.setField("DIRS", "");
-      generateDirs(htmlParser, driveInfoList.values(), 0, allopen, paths);
+      generateDirs(htmlParser, driveList.keys(), 0, allopen, paths);
 
       SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
-      response.setField("Cache-Control", "no-cache");
+      response.setCacheControl(-1);
       response.setContentType(SHttpEngine::mimeTextHtml);
       response.setContent(htmlParser.parse(htmlSettingsDirTreeIndex));
       return response;

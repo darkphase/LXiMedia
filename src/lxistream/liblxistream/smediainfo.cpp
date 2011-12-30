@@ -19,6 +19,7 @@
 
 #include "smediainfo.h"
 #include "sinterfaces.h"
+#include "smediafilesystem.h"
 #include "ssubtitlefile.h"
 #include <LXiCore>
 
@@ -36,7 +37,7 @@ SMediaInfo::SMediaInfo(const SMediaInfo &from)
 {
 }
 
-SMediaInfo::SMediaInfo(const QString &filePath)
+SMediaInfo::SMediaInfo(const QUrl &filePath)
   : pi(new ProbeInfo())
 {
   pi->filePath = filePath;
@@ -64,24 +65,40 @@ bool SMediaInfo::isNull(void) const
   return pi == NULL;
 }
 
-QString SMediaInfo::filePath(void) const
+QUrl SMediaInfo::filePath(void) const
 {
   return pi->filePath;
 }
 
 QString SMediaInfo::fileName(void) const
 {
-  return QFileInfo(pi->filePath).fileName();
+  const QString path = pi->filePath.path();
+  
+  return path.mid(path.lastIndexOf('/') + 1);
 }
 
 QString SMediaInfo::baseName(void) const
 {
-  return QFileInfo(pi->filePath).completeBaseName();
+  const QString name = fileName();
+  const int lastdot = name.lastIndexOf('.');
+
+  return lastdot >= 0 ? name.left(lastdot) : name;
 }
 
-QString SMediaInfo::path(void) const
+QUrl SMediaInfo::path(void) const
 {
-  return QFileInfo(pi->filePath).path();
+  QUrl result = pi->filePath;
+
+  QString path = result.path();
+  path = path.left(path.lastIndexOf('/') + 1);
+  result.setPath(path);
+  
+  return result;
+}
+
+SMediaFilesystem SMediaInfo::directory(void) const
+{
+  return SMediaFilesystem(path());
 }
 
 bool SMediaInfo::isReadable(void) const
@@ -170,16 +187,15 @@ const QList<SMediaInfo::ProbeInfo::Title> & SMediaInfo::titles(void) const
 
 void SMediaInfo::readFileInfo(void)
 {
-  const QFileInfo fileInfo(pi->filePath);
-  if (fileInfo.exists())
-  {
-    pi->fileInfo.isDir = fileInfo.isDir();
-    pi->fileInfo.size = fileInfo.size();
-    pi->fileInfo.lastModified = fileInfo.lastModified();
-    pi->isReadable = fileInfo.isReadable();
+  const SMediaFilesystem mediaDir(path());
 
-    pi->isFileInfoRead = true;
-  }
+  const SMediaFilesystem::Info info = mediaDir.readInfo(fileName());
+  pi->fileInfo.isDir = info.isDir;
+  pi->fileInfo.size = info.size;
+  pi->fileInfo.lastModified = info.lastModified;
+  pi->isReadable = info.isReadable;
+
+  pi->isFileInfoRead = true;
 }
 
 void SMediaInfo::probeFormat(void)
@@ -189,14 +205,16 @@ void SMediaInfo::probeFormat(void)
 
   if (!pi->fileInfo.isDir)
   {
-    QFile file(pi->filePath);
-    if (file.open(QFile::ReadOnly))
+    const SMediaFilesystem mediaDir(path());
+
+    QIODevice * const ioDevice = mediaDir.openFile(fileName());
+    if (ioDevice)
     {
       foreach (SInterfaces::FormatProber *prober, SInterfaces::FormatProber::create(NULL))
       {
-        if (file.seek(0))
+        if (ioDevice->seek(0))
         if (!pi->isFormatProbed)
-          prober->probeFormat(*pi, &file);
+          prober->probeFormat(*pi, ioDevice);
 
         delete prober;
       }
@@ -225,18 +243,20 @@ void SMediaInfo::probeContent(void)
 
   if (!pi->fileInfo.isDir)
   {
-    QFile file(pi->filePath);
-    if (file.open(QFile::ReadOnly))
+    const SMediaFilesystem mediaDir(path());
+
+    QIODevice * const ioDevice = mediaDir.openFile(fileName());
+    if (ioDevice)
     {
       foreach (SInterfaces::FormatProber *prober, SInterfaces::FormatProber::create(NULL))
       {
-        if (file.seek(0))
+        if (ioDevice->seek(0))
         {
           if (!pi->isFormatProbed)
-            prober->probeFormat(*pi, &file);
+            prober->probeFormat(*pi, ioDevice);
 
           if (pi->isFormatProbed && !pi->isContentProbed)
-            prober->probeContent(*pi, &file, QSize(128, 128));
+            prober->probeContent(*pi, ioDevice, QSize(128, 128));
         }
 
         delete prober;
@@ -286,11 +306,11 @@ void SMediaInfo::probeDataStreams(void)
 
       // Add subtitles with new ID (To ensure IDs match SFileInputNode).
       quint16 nextStreamId = 0xF000;
-      foreach (const QString &fileName, SSubtitleFile::findSubtitleFiles(pi->filePath))
+      foreach (const QUrl &filePath, SSubtitleFile::findSubtitleFiles(pi->filePath))
       {
         bool found = false;
         for (QList<DataStreamInfo>::Iterator i=subs.begin(); i!=subs.end(); i++)
-        if (i->file == fileName)
+        if (i->file == filePath)
         {
           i->type = DataStreamInfo::Type_Subtitle;
           i->id = nextStreamId++;
@@ -302,7 +322,7 @@ void SMediaInfo::probeDataStreams(void)
 
         if (!found)
         {
-          SSubtitleFile file(fileName);
+          SSubtitleFile file(filePath);
           if (file.open())
           {
             DataStreamInfo stream(
@@ -311,7 +331,7 @@ void SMediaInfo::probeDataStreams(void)
                 QString::null,
                 file.codec());
 
-            stream.file = fileName;
+            stream.file = filePath;
             title.dataStreams += stream;
           }
         }

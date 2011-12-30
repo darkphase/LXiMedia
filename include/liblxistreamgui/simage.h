@@ -16,10 +16,7 @@ public:
   inline                        SImage(const QSize &size, Format format) : QImage(size, format) { d.aspectRatio = 1.0f; d.originalSize = size; }
   inline                        SImage(const SSize &size, Format format) : QImage(size.size(), format) { d.aspectRatio = size.aspectRatio(); d.originalSize = size.size(); }
   inline                        SImage(int width, int height, Format format) : QImage(width, height, format) { d.aspectRatio = 1.0f; d.originalSize = QSize(width, height); }
-  explicit                      SImage(const QString &fileName, const QSize &maxsize = QSize(), const char *format = NULL);
-#ifndef QT_NO_CAST_FROM_ASCII
-  explicit                      SImage(const char *fileName, const QSize &maxsize = QSize(), const char * = NULL);
-#endif
+  explicit                      SImage(const QUrl &filePath, const QSize &maxsize = QSize(), const char *format = NULL);
   inline                        SImage(const QImage &img) : QImage(img)         { d.aspectRatio = 1.0f; }
   inline                        SImage(const SImage &img) : QImage(img)         { d.aspectRatio = img.d.aspectRatio; d.originalSize = img.d.originalSize; }
                                 SImage(const LXiStream::SVideoBuffer &, bool = false);
@@ -33,12 +30,13 @@ public:
   static SImage                 fromData(const char *, int, const QSize &maxsize = QSize(), const char *format = NULL);
   inline static SImage          fromData(const QByteArray &data, const QSize &maxsize = QSize(), const char *format = NULL) { return fromData(data.data(), data.size(), maxsize, format); }
   static SImage                 fromData(QIODevice *, const QSize &maxsize = QSize(), const char *format = NULL);
-  static SImage                 fromFile(const QString &fileName, const QSize &maxsize = QSize(), const char *format = NULL);
+  static SImage                 fromFile(const QUrl &filePath, const QSize &maxsize = QSize(), const char *format = NULL);
 
   static const QSet<QString>  & rawImageSuffixes(void);
   static QString                rawImageDescription(const QString &suffix);
 
 private:
+  static SImage                 handleRawFile(QIODevice *, QSize, const QString &suffix);
   static SImage                 handleFile(QImageReader &, QSize, void * = NULL);
 
 private:

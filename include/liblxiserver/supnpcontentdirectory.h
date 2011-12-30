@@ -102,8 +102,7 @@ public:
 
   struct Callback
   {
-    virtual int                 countContentDirItems(const QString &client, const QString &path) = 0;
-    virtual QList<Item>         listContentDirItems(const QString &client, const QString &path, unsigned start = 0, unsigned count = 0) = 0;
+    virtual QList<Item>         listContentDirItems(const QString &client, const QString &path, int start, int &count) = 0;
     virtual Item                getContentDirItem(const QString &client, const QString &path) = 0;
   };
 

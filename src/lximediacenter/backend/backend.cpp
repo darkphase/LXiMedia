@@ -137,6 +137,7 @@ void Backend::start(const SHttpEngine::ResponseMessage &formats)
   QStringList outAudioCodecs;
   QStringList outVideoCodecs;
   QStringList outFormats;
+  QStringList fileProtocols;
 
   QDomDocument doc("");
   if (doc.setContent(formats.content()))
@@ -162,6 +163,7 @@ void Backend::start(const SHttpEngine::ResponseMessage &formats)
     outAudioCodecs = T::readElement(doc, "audiocodecs", "codec");
     outVideoCodecs = T::readElement(doc, "videocodecs", "codec");
     outFormats = T::readElement(doc, "formats", "format");
+    fileProtocols = T::readElement(doc, "fileprotocols", "protocol");
   }
 
   // Figure out the supported DLNA audio protocols.
@@ -170,6 +172,8 @@ void Backend::start(const SHttpEngine::ResponseMessage &formats)
       QSet<QString>::fromList(outVideoCodecs),
       QSet<QString>::fromList(QStringList() << "JPEG" << "PNG"),
       QSet<QString>::fromList(outFormats));
+
+  MediaServer::fileProtocols() = QSet<QString>::fromList(fileProtocols);
 
   masterConnectionManager.setSourceProtocols(MediaServer::mediaProfiles().listProtocols(QString::null));
   masterConnectionManager.setSinkProtocols(SUPnPBase::ProtocolList());

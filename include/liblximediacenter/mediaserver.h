@@ -139,6 +139,7 @@ public:
 
   static QByteArray             makeThumbnail(QSize, const QImage &, const QString & = QString::null);
 
+  static QSet<QString>        & fileProtocols(void);
   static MediaProfiles        & mediaProfiles(void);
   static QSet<QString>        & activeClients(void);
 
@@ -159,8 +160,7 @@ protected:
   virtual Stream              * streamVideo(const SHttpServer::RequestMessage &) = 0;
   virtual SHttpServer::ResponseMessage sendPhoto(const SHttpServer::RequestMessage &) = 0;
 
-  virtual int                   countItems(const QString &path) = 0;
-  virtual QList<Item>           listItems(const QString &path, unsigned start = 0, unsigned count = 0) = 0;
+  virtual QList<Item>           listItems(const QString &path, int start, int &count) = 0;
   virtual Item                  getItem(const QString &path) = 0;
   virtual ListType              listType(const QString &path);
 
@@ -171,8 +171,7 @@ protected: // From SHttpServer::Callback
   virtual SHttpServer::ResponseMessage httpRequest(const SHttpServer::RequestMessage &, QIODevice *);
 
 private: // From UPnPContentDirectory::Callback
-  virtual int                   countContentDirItems(const QString &client, const QString &path);
-  virtual QList<SUPnPContentDirectory::Item> listContentDirItems(const QString &client, const QString &path, unsigned start, unsigned count);
+  virtual QList<SUPnPContentDirectory::Item> listContentDirItems(const QString &client, const QString &path, int start, int &count);
   virtual SUPnPContentDirectory::Item getContentDirItem(const QString &client, const QString &path);
 
 private:

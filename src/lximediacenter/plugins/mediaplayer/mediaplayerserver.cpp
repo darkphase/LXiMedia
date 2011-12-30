@@ -24,24 +24,7 @@
 namespace LXiMediaCenter {
 namespace MediaPlayerBackend {
 
-const char MediaPlayerServer::dirSplit =
-#if defined(Q_OS_UNIX)
-    ':';
-#elif  defined(Q_OS_WIN)
-    ';';
-#else
-#error Not implemented.
-#endif
-
-const Qt::CaseSensitivity MediaPlayerServer::caseSensitivity =
-#if defined(Q_OS_UNIX)
-    Qt::CaseSensitive;
-#elif  defined(Q_OS_WIN)
-    Qt::CaseInsensitive;
-#else
-#error Not implemented.
-#endif
-
+const char          MediaPlayerServer::dirSplit = '\t';
 const QEvent::Type  MediaPlayerServer::responseEventType = QEvent::Type(QEvent::registerEventType());
 const int           MediaPlayerServer::maxSongDurationMin = 7;
 
@@ -53,10 +36,18 @@ MediaPlayerServer::MediaPlayerServer(const QString &, QObject *parent)
   QSettings settings;
   settings.beginGroup(Module::pluginName);
 
-  QStringList paths;
+  QList<QUrl> paths;
   foreach (const QString &root, settings.value("RootPaths").toStringList())
-  if (!root.trimmed().isEmpty() && !isHidden(root) && QDir(root).exists())
-    paths.append(root);
+  if (!root.isEmpty())
+  {
+    QUrl path = QUrl::fromEncoded(root.toAscii());
+
+    // Lame-decrypt the password.
+    if (!path.password().isEmpty())
+      path.setPassword(QString::fromUtf8(qUncompress(QByteArray::fromHex(path.password().toAscii()))));
+
+    paths.append(path);
+  }
 
   setRootPaths(paths);
 }
@@ -99,7 +90,7 @@ MediaPlayerServer::Stream * MediaPlayerServer::streamVideo(const SHttpServer::Re
   connect(sandbox, SIGNAL(consoleLine(QString)), SLOT(consoleLine(QString)));
   sandbox->ensureStarted();
 
-  QString filePath = realPath(request.file());
+  const QUrl filePath = realPath(request.file());
   if (!filePath.isEmpty())
   {
     QUrl rurl;
@@ -133,7 +124,7 @@ MediaPlayerServer::Stream * MediaPlayerServer::streamVideo(const SHttpServer::Re
       rurl.addQueryItem("play", QString::null);
 
     Stream *stream = new Stream(this, sandbox, request.path());
-    if (stream->setup(rurl, filePath.toUtf8()))
+    if (stream->setup(rurl, filePath.toString().toUtf8()))
       return stream; // The graph owns the socket now.
 
     delete stream;
@@ -147,7 +138,7 @@ MediaPlayerServer::Stream * MediaPlayerServer::streamVideo(const SHttpServer::Re
 
 SHttpServer::ResponseMessage MediaPlayerServer::sendPhoto(const SHttpServer::RequestMessage &request)
 {
-  const QString filePath = realPath(request.file());
+  const QUrl filePath = realPath(request.file());
   if (!filePath.isEmpty())
   {
     SSize size(4096, 4096);
@@ -196,76 +187,42 @@ SHttpServer::ResponseMessage MediaPlayerServer::sendPhoto(const SHttpServer::Req
   return SHttpServer::ResponseMessage(request, SHttpServer::Status_NotFound);
 }
 
-int MediaPlayerServer::countItems(const QString &virtualPath)
-{
-  if (virtualPath != serverPath())
-  {
-    const QString path = realPath(virtualPath);
-
-    const FileNode node = mediaDatabase->readNode(path);
-    if (!node.titles().isEmpty())
-    {
-      return node.titles().count();
-    }
-    else
-    {
-      int result = mediaDatabase->countItems(realPath(virtualPath));
-      if (result > 1)
-        result++; // "Play all" item
-
-      return result;
-    }
-  }
-  else
-    return rootPaths.count();
-}
-
-QList<MediaPlayerServer::Item> MediaPlayerServer::listItems(const QString &virtualPath, unsigned start, unsigned count)
+QList<MediaPlayerServer::Item> MediaPlayerServer::listItems(const QString &virtualPath, int start, int &count)
 {
   const bool returnAll = count == 0;
   QList<Item> result;
 
   if (virtualPath != serverPath())
   {
-    if (returnAll || (count > 0))
+    const QUrl path = realPath(virtualPath);
+
+    const FileNode node = mediaDatabase->readNode(path);
+    if (!node.isNull() && !node.titles().isEmpty())
     {
-      const QString path = realPath(virtualPath);
+      const int numTitles = node.titles().count();
+      for (int i=start, n=0; (i<numTitles) && (returnAll || (n<count)); i++, n++)
+        result += makeItem(node, i);
 
-      const FileNode node = mediaDatabase->readNode(path);
-      if (!node.isNull())
-      {
-        if (!node.titles().isEmpty())
-        {
-          const int numTitles = node.titles().count();
-          for (unsigned i=start, n=0; (int(i)<numTitles) && (returnAll || (n<count)); i++, n++)
-            result += makeItem(node, i);
-        }
-        else
-        {
-          if (mediaDatabase->countItems(path) > 1)
-          {
-            if (start == 0)
-            {
-              result += makePlayAllItem(virtualPath);
-              count--;
-            }
-            else
-              start--;
-          }
+      count = numTitles;
+    }
+    else
+    {
+      if ((start == 0) && (count > 1)) // For play all item
+        count--;
 
-          if (returnAll || (count > 0))
-          {
-            foreach (const FileNode &node, mediaDatabase->listItems(path, start, count))
-              result += makeItem(node);
-          }
-        }
-      }
+      foreach (const FileNode &node, mediaDatabase->listItems(path, start, count))
+        result += makeItem(node);
+
+      if (start == 0) // For play all item
+        result.prepend(makePlayAllItem(virtualPath));
+
+      count++; // For play all item
     }
   }
   else
   {
     const QStringList paths = rootPaths.keys();
-    for (unsigned i=start, n=0; (int(i)<paths.count()) && (returnAll || (n<count)); i++, n++)
+    for (int i=start, n=0; (i<paths.count()) && (returnAll || (n<count)); i++, n++)
     {
       Item item;
       item.isDir = true;
@@ -275,6 +232,8 @@ QList<MediaPlayerServer::Item> MediaPlayerServer::listItems(const QString &virtu
 
       result += item;
     }
+
+    count = paths.count();
   }
 
   return result;
@@ -319,71 +278,7 @@ void MediaPlayerServer::customEvent(QEvent *e)
     MediaServer::customEvent(e);
 }
 
-bool MediaPlayerServer::isHidden(const QString &path)
-{
-  static QSet<QString> hiddenDirs;
-  if (hiddenDirs.isEmpty())
-  {
-    const QDir root = QDir::root();
-
-#if defined(Q_OS_UNIX)
-    hiddenDirs += root.absoluteFilePath("bin");
-    hiddenDirs += root.absoluteFilePath("boot");
-    hiddenDirs += root.absoluteFilePath("dev");
-    hiddenDirs += root.absoluteFilePath("etc");
-    hiddenDirs += root.absoluteFilePath("lib");
-    hiddenDirs += root.absoluteFilePath("proc");
-    hiddenDirs += root.absoluteFilePath("sbin");
-    hiddenDirs += root.absoluteFilePath("sys");
-    hiddenDirs += root.absoluteFilePath("tmp");
-    hiddenDirs += root.absoluteFilePath("usr");
-    hiddenDirs += root.absoluteFilePath("var");
-#endif
-
-#if defined(Q_OS_MACX)
-    hiddenDirs += root.absoluteFilePath("Applications");
-    hiddenDirs += root.absoluteFilePath("cores");
-    hiddenDirs += root.absoluteFilePath("Developer");
-    hiddenDirs += root.absoluteFilePath("private");
-    hiddenDirs += root.absoluteFilePath("System");
-#endif
-
-#if defined(Q_OS_WIN)
-    hiddenDirs += root.absoluteFilePath("Program Files");
-    hiddenDirs += root.absoluteFilePath("Program Files (x86)");
-    hiddenDirs += root.absoluteFilePath("WINDOWS");
-#endif
-
-    foreach (const QFileInfo &drive, QDir::drives())
-    {
-      hiddenDirs += QDir(drive.absoluteFilePath()).absoluteFilePath("lost+found");
-
-#if defined(Q_OS_WIN)
-      hiddenDirs += QDir(drive.absoluteFilePath()).absoluteFilePath("RECYCLER");
-      hiddenDirs += QDir(drive.absoluteFilePath()).absoluteFilePath("System Volume Information");
-#endif
-    }
-  }
-
-  const QFileInfo info(path);
-
-  QString absoluteFilePath = info.absolutePath();
-  if (!absoluteFilePath.endsWith('/')) absoluteFilePath += '/';
-
-  QString canonicalFilePath = (info.exists() ? info.canonicalFilePath() : info.absolutePath());
-  if (!canonicalFilePath.endsWith('/')) canonicalFilePath += '/';
-
-  foreach (const QString &hidden, hiddenDirs)
-  {
-    const QString path = hidden.endsWith('/') ? hidden : (hidden + '/');
-    if (absoluteFilePath.startsWith(path, caseSensitivity) || canonicalFilePath.startsWith(path, caseSensitivity))
-      return true;
-  }
-
-  return false;
-}
-
-void MediaPlayerServer::setRootPaths(const QStringList &paths)
+void MediaPlayerServer::setRootPaths(const QList<QUrl> &paths)
 {
   struct T
   {
@@ -399,31 +294,43 @@ void MediaPlayerServer::setRootPaths(const QStringList &paths)
     }
   };
 
+  rootPaths.clear();
+
+  QStringList encodedPaths;
+  foreach (QUrl path, paths)
+  {
+    rootPaths.insert(T::albumName(path.path(), 1), path);
+
+    // Lame-encrypt the password.
+    if (!path.password().isEmpty())
+      path.setPassword(qCompress(path.password().toUtf8()).toHex());
+
+    encodedPaths += path.toEncoded();
+  }
+
   QSettings settings;
   settings.beginGroup(Module::pluginName);
-  settings.setValue("RootPaths", paths);
-
-  rootPaths.clear();
-  foreach (QString path, paths)
-  {
-    if (!path.endsWith('/'))
-      path += '/';
-
-    const QString album = T::albumName(path, 1);
-    rootPaths.insert(album, path);
-  }
+  settings.setValue("RootPaths", encodedPaths);
 }
 
-QString MediaPlayerServer::virtualPath(const QString &realPath) const
+QString MediaPlayerServer::virtualPath(const QUrl &realPath) const
 {
-  for (QMap<QString, QString>::ConstIterator i=rootPaths.begin(); i!=rootPaths.end(); i++)
-  if (realPath.startsWith(i.value(), caseSensitivity))
-    return serverPath() + i.key() + '/' + realPath.mid(i.value().length());
+  const QString realPathString = realPath.toString();
+
+  for (QMap<QString, QUrl>::ConstIterator i=rootPaths.begin(); i!=rootPaths.end(); i++)
+  {
+    QString rootString = i.value().toString();
+    if (!rootString.endsWith('/'))
+      rootString += '/';
+
+    if (realPathString.startsWith(rootString))
+      return serverPath() + i.key() + '/' + realPathString.mid(rootString.length());
+  }
 
   return QString::null;
 }
 
-QString MediaPlayerServer::realPath(const QString &virtualPath) const
+QUrl MediaPlayerServer::realPath(const QString &virtualPath) const
 {
   const QString basepath = serverPath();
 
@@ -432,10 +339,14 @@ QString MediaPlayerServer::realPath(const QString &virtualPath) const
     const int s = virtualPath.indexOf('/', basepath.length());
     if (s >= 1)
     {
-      QMap<QString, QString>::ConstIterator i = rootPaths.find(virtualPath.mid(basepath.length(), s - basepath.length()));
+      QMap<QString, QUrl>::ConstIterator i = rootPaths.find(virtualPath.mid(basepath.length(), s - basepath.length()));
       if (i != rootPaths.end())
       {
-        QString result = i.value() + virtualPath.mid(s + 1);
+        QString rootString = i.value().toString();
+        if (!rootString.endsWith('/'))
+          rootString += '/';
+
+        QString result = rootString + virtualPath.mid(s + 1);
         while (result.endsWith('/'))
           result = result.left(result.length() - 1);
 
@@ -449,7 +360,7 @@ QString MediaPlayerServer::realPath(const QString &virtualPath) const
     }
   }
 
-  return QString::null;
+  return QUrl();
 }
 
 QString MediaPlayerServer::virtualFile(const QString &virtualPath)
@@ -641,11 +552,10 @@ MediaPlayerServer::Item MediaPlayerServer::makePlayAllItem(const QString &virtua
 
 FileNode::ProbeInfo::FileType MediaPlayerServer::dirType(const QString &virtualPath)
 {
-  const QString path = realPath(virtualPath);
-  const int numItems = mediaDatabase->countItems(path);
-
-  if (numItems > 0)
+  if (virtualPath != serverPath())
   {
+    const QUrl path = realPath(virtualPath);
+
     int audio = 0, video = 0, image = 0;
     foreach (const FileNode &node, mediaDatabase->representativeItems(path))
     if (!node.isNull())
@@ -669,12 +579,6 @@ FileNode::ProbeInfo::FileType MediaPlayerServer::dirType(const QString &virtualP
     else if ((image > audio) && (image > video))
       return FileNode::ProbeInfo::FileType_Image;
   }
-  else
-  {
-    const FileNode node = mediaDatabase->readNode(path);
-    if (!node.isNull())
-      return node.fileType();
-  }
 
   return FileNode::ProbeInfo::FileType_None;
 }
@@ -693,7 +597,7 @@ void MediaPlayerServer::nodeRead(const FileNode &node)
 {
   if (!node.isNull())
   {
-    QMap<QString, QPair<SHttpServer::RequestMessage, QIODevice *> >::Iterator i =
+    QMap<QUrl, QPair<SHttpServer::RequestMessage, QIODevice *> >::Iterator i =
         nodeReadQueue.find(node.filePath());
 
     if (i != nodeReadQueue.end())
@@ -757,7 +661,7 @@ void MediaPlayerServer::nodeRead(const FileNode &node)
 
 void MediaPlayerServer::aborted(void)
 {
-  for (QMap<QString, QPair<SHttpServer::RequestMessage, QIODevice *> >::Iterator i = nodeReadQueue.begin();
+  for (QMap<QUrl, QPair<SHttpServer::RequestMessage, QIODevice *> >::Iterator i = nodeReadQueue.begin();
        i != nodeReadQueue.end();
        i = nodeReadQueue.erase(i))
   {

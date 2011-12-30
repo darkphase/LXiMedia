@@ -65,7 +65,7 @@ MediaDatabase::~MediaDatabase()
   delete probeSandbox;
 }
 
-FileNode MediaDatabase::readNode(const QString &filePath) const
+FileNode MediaDatabase::readNode(const QUrl &filePath) const
 {
   if (!filePath.isEmpty())
   {
@@ -75,7 +75,7 @@ FileNode MediaDatabase::readNode(const QString &filePath) const
 
     SSandboxClient::RequestMessage request(probeSandbox);
     request.setRequest("POST", QByteArray(MediaPlayerSandbox::path) + "?probecontent=");
-    request.setContent(filePath.toUtf8());
+    request.setContent(filePath.toString().toUtf8());
 
     const SHttpEngine::ResponseMessage response = probeSandbox->blockingRequest(request);
     if (response.status() == SHttpEngine::Status_Ok)
@@ -93,7 +93,7 @@ FileNode MediaDatabase::readNode(const QString &filePath) const
   return FileNode();
 }
 
-void MediaDatabase::queueReadNode(const QString &filePath) const
+void MediaDatabase::queueReadNode(const QUrl &filePath) const
 {
   if (!filePath.isEmpty())
   {
@@ -106,13 +106,13 @@ void MediaDatabase::queueReadNode(const QString &filePath) const
 
     SSandboxClient::RequestMessage request(probeSandbox);
     request.setRequest("POST", QByteArray(MediaPlayerSandbox::path) + "?probecontent=");
-    request.setContent(filePath.toUtf8());
+    request.setContent(filePath.toString().toUtf8());
 
     probeSandbox->sendRequest(request);
   }
 }
 
-QByteArray MediaDatabase::readImage(const QString &filePath, const QSize &size, const QColor &backgroundColor, const QString &format) const
+QByteArray MediaDatabase::readImage(const QUrl &filePath, const QSize &size, const QColor &backgroundColor, const QString &format) const
 {
   if (!filePath.isEmpty())
   {
@@ -124,7 +124,7 @@ QByteArray MediaDatabase::readImage(const QString &filePath, const QSize &size, 
         "&bgcolor=" + backgroundColor.name().mid(1).toAscii() +
         "&format=" + format.toAscii());
 
-    request.setContent(filePath.toUtf8());
+    request.setContent(filePath.toString().toUtf8());
 
     const SHttpEngine::ResponseMessage response = probeSandbox->blockingRequest(request);
     if (response.status() == SHttpEngine::Status_Ok)
@@ -169,68 +169,30 @@ QDateTime MediaDatabase::lastPlayed(const FileNode &node) const
   return QDateTime();
 }
 
-int MediaDatabase::countItems(const QString &filePath) const
+FileNodeList MediaDatabase::listItems(const QUrl &dirPath, int start, int &count) const
 {
-  int result = 0;
-
-  QDir dir(filePath);
-  if (!filePath.isEmpty() && dir.exists())
-    result += dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot | QDir::Files).count();
-
-  return result;
+  return readNodeFormat(listFiles(dirPath, start, count));
 }
 
-FileNodeList MediaDatabase::listItems(const QString &filePath, unsigned start, unsigned count) const
+FileNodeList MediaDatabase::representativeItems(const QUrl &filePath) const
 {
-  const bool returnAll = count == 0;
+  QList<Info> probeFiles;
 
-  QDir dir(filePath);
-  if (!filePath.isEmpty() && dir.exists())
-  {
-    QStringList probeFiles;
-
-    const QStringList items =
-        dir.entryList(
-            QDir::Dirs | QDir::NoDotAndDotDot | QDir::Files,
-            QDir::DirsFirst | QDir::Name | QDir::IgnoreCase);
-
-    for (int i=start, n=0; (i<items.count()) && (returnAll || (n<int(count))); i++, n++)
-      probeFiles += dir.cleanPath(dir.absoluteFilePath(items[i]));
-
-    if (!probeFiles.isEmpty())
-      return readNodeFormat(probeFiles);
-  }
-
-  return FileNodeList();
-}
-
-FileNodeList MediaDatabase::representativeItems(const QString &filePath) const
-{
-  QStringList probeFiles;
-
-  QList< QPair<QString, int> > paths;
+  QList< QPair<QUrl, int> > paths;
   paths += qMakePair(filePath, 8);
   while (!paths.isEmpty())
   {
-    const QPair<QString, int> path = paths.takeFirst();
+    const QPair<QUrl, int> path = paths.takeFirst();
 
-    QDir dir(path.first);
-    if (!path.first.isEmpty() && dir.exists())
+    int count = -path.second; // List representative items.
+    foreach (const Info &item, listFiles(path.first, 0, count))
+    if (item.isDir)
     {
-      const QStringList items =
-          dir.entryList(
-              QDir::Dirs | QDir::NoDotAndDotDot | QDir::Files,
-              QDir::DirsFirst | QDir::Name | QDir::IgnoreCase);
-
-      for (int n = items.count(), ni = qMax(1, n / path.second), i = ni / 2; i < n; i += ni)
-      {
-        const QFileInfo info(dir.absoluteFilePath(items[i]));
-        if (info.isDir())
-          paths += qMakePair(info.absoluteFilePath(), 1);
-        else
-          probeFiles += dir.cleanPath(info.absoluteFilePath());
-      }
+      if (item.path.toString().startsWith(path.first.toString()))
+        paths += qMakePair(item.path, 1);
     }
+    else
+      probeFiles += item;
   }
 
   if (!probeFiles.isEmpty())
@@ -264,24 +226,63 @@ void MediaDatabase::flushCache(void) const
   }
 }
 
-FileNodeList MediaDatabase::readNodeFormat(const QStringList &filePaths) const
+QList<MediaDatabase::Info> MediaDatabase::listFiles(const QUrl &dirPath, int start, int &count) const
+{
+  SSandboxClient::RequestMessage request(probeSandbox);
+  request.setRequest(
+      "POST",
+      QByteArray(MediaPlayerSandbox::path) +
+      "?listfiles=&start=" + QByteArray::number(start) +
+      "&count=" + QByteArray::number(count));
+  request.setContent(dirPath.toString().toUtf8());
+
+  QList<Info> result;
+  const SHttpEngine::ResponseMessage response = probeSandbox->blockingRequest(request);
+  if (response.status() == SHttpEngine::Status_Ok)
+  {
+    QDomDocument doc("");
+    if (doc.setContent(response.content()))
+    {
+      QDomElement rootElm = doc.documentElement();
+      count = rootElm.attribute("total").toInt();
+
+      for (QDomElement fileElm = rootElm.firstChildElement("file");
+           !fileElm.isNull();
+           fileElm = fileElm.nextSiblingElement("file"))
+      {
+        Info info;
+        info.path = fileElm.text();
+        info.isDir = fileElm.attribute("isDir").toInt() != 0;
+        info.isReadable = fileElm.attribute("isReadable").toInt() != 0;
+        info.size = fileElm.attribute("size").toLongLong();
+        info.lastModified = QDateTime::fromString(fileElm.attribute("lastModified"), Qt::ISODate);
+
+        result += info;
+      }
+    }
+  }
+
+  return result;
+}
+
+FileNodeList MediaDatabase::readNodeFormat(const QList<Info> &files) const
 {
   FileNodeList result;
 
-  if (!filePaths.isEmpty())
+  if (!files.isEmpty())
   {
     QByteArray probeFiles;
     QList<int> probeFilePos;
-    foreach (const QString &filePath, filePaths)
+    foreach (const Info &file, files)
     {
-      const FileNode node = readNodeCache(filePath);
+      const FileNode node = readNodeCache(file);
       if (!node.isNull() && node.isFormatProbed())
       {
         result += node;
       }
       else
       {
-        probeFiles += filePath.toUtf8() + '\n';
+        probeFiles += file.path.toString().toUtf8() + '\n';
         probeFilePos += result.count();
         result += FileNode();
       }
@@ -310,23 +311,20 @@ FileNodeList MediaDatabase::readNodeFormat(const QStringList &filePaths) const
   return result;
 }
 
-FileNode MediaDatabase::readNodeCache(const QString &filePath) const
+FileNode MediaDatabase::readNodeCache(const Info &file) const
 {
   if (cacheFile.isOpen())
   {
     cacheTimer.start(cacheTimeout);
 
-    foreach (qint64 pos, cachePos.values(qHash(filePath)))
+    foreach (qint64 pos, cachePos.values(qHash(file.path.toString())))
     if (cacheFile.seek(pos))
     {
       const FileNode node = FileNode::fromByteArray(cacheFile.readLine());
       if (!node.isNull())
       {
-        const QFileInfo fileInfo(filePath);
-
-        if ((node.filePath() == filePath) &&
-            (node.size() == fileInfo.size()) &&
-            (qAbs(node.lastModified().secsTo(fileInfo.lastModified())) <= 1))
+        if ((node.filePath() == file.path) && (node.size() == file.size) &&
+            (qAbs(node.lastModified().secsTo(file.lastModified)) <= 2))
         {
           return node;
         }
@@ -347,7 +345,38 @@ FileNode MediaDatabase::readNodeCache(const QString &filePath) const
   return FileNode();
 }
 
-void MediaDatabase::writeNodeCache(const QString &filePath, const QByteArray &data) const
+FileNode MediaDatabase::readNodeCache(const QUrl &filePath) const
+{
+  if (cacheFile.isOpen())
+  {
+    cacheTimer.start(cacheTimeout);
+
+    foreach (qint64 pos, cachePos.values(qHash(filePath.toString())))
+    if (cacheFile.seek(pos))
+    {
+      const FileNode node = FileNode::fromByteArray(cacheFile.readLine());
+      if (!node.isNull())
+      {
+        if (node.filePath() == filePath)
+          return node;
+      }
+      else // Corrupted cache
+      {
+        flushCache();
+        break;
+      }
+    }
+    else // Corrupted cache
+    {
+      flushCache();
+      break;
+    }
+  }
+
+  return FileNode();
+}
+
+void MediaDatabase::writeNodeCache(const QUrl &filePath, const QByteArray &data) const
 {
   if (cacheFile.isOpen())
   {
@@ -355,7 +384,7 @@ void MediaDatabase::writeNodeCache(const QString &filePath, const QByteArray &da
 
     if (cacheFile.seek(cacheFile.size()))
     {
-      cachePos.insert(qHash(filePath), cacheFile.pos());
+      cachePos.insert(qHash(filePath.toString()), cacheFile.pos());
       cacheFile.write(data.trimmed());
       cacheFile.write("\n");
     }

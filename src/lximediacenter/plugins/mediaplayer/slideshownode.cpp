@@ -28,7 +28,7 @@ extern "C" void LXiMediaCenter_MediaPlayerBackend_SlideShowNode_blendImages(
 namespace LXiMediaCenter {
 namespace MediaPlayerBackend {
 
-SlideShowNode::SlideShowNode(SGraph *parent, const QStringList &files)
+SlideShowNode::SlideShowNode(SGraph *parent, const QList<QUrl> &files)
   : SInterfaces::SourceNode(parent),
     files(files),
     outSize(1280, 720),

@@ -33,14 +33,14 @@ FormatProber::~FormatProber()
 {
 }
 
-QList<FormatProber::Format> FormatProber::probeFormat(const QByteArray &, const QString &filePath)
+QList<FormatProber::Format> FormatProber::probeFormat(const QByteArray &, const QUrl &filePath)
 {
   QList<Format> result;
 
   if (BufferReader::isDiscPath(filePath))
   {
     ::dvdnav_t * dvdHandle = NULL;
-    if (::dvdnav_open(&dvdHandle, filePath.toUtf8()) == DVDNAV_STATUS_OK)
+    if (::dvdnav_open(&dvdHandle, filePath.path().toUtf8()) == DVDNAV_STATUS_OK)
     {
       result += Format(BufferReader::formatName, 0);
 
@@ -55,7 +55,7 @@ void FormatProber::probeFormat(ProbeInfo &pi, QIODevice *)
 {
   if (BufferReader::isDiscPath(pi.filePath))
   {
-    QFile file(pi.filePath);
+    QFile file(pi.filePath.path());
     BufferReader bufferReader(QString::null, this);
     if (bufferReader.start(&file, NULL, false))
     {
@@ -78,7 +78,7 @@ void FormatProber::probeContent(ProbeInfo &pi, QIODevice *, const QSize &thumbSi
 {
   if (BufferReader::isDiscPath(pi.filePath))
   {
-    QFile file(pi.filePath);
+    QFile file(pi.filePath.path());
     BufferReader bufferReader(QString::null, this);
     if (bufferReader.start(&file, NULL, false))
     {

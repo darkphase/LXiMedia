@@ -116,29 +116,7 @@ SHttpServer::ResponseMessage InternetServer::sendPhoto(const SHttpServer::Reques
   return SHttpServer::ResponseMessage(request, SHttpServer::Status_NotFound);
 }
 
-int InternetServer::countItems(const QString &path)
-{
-  if (path == serverPath())
-  {
-    QSettings settings;
-    settings.beginGroup(Module::pluginName);
-
-    return siteDatabase->countSites(settings.value("Audiences").toStringList());
-  }
-  else
-  {
-    const QString localPath = sitePath(path);
-    const QString name = localPath.left(localPath.indexOf('/'));
-
-    ScriptEngine * const engine = getScriptEngine(name);
-    if (engine)
-      return engine->listItems(localPath.mid(name.length())).count();
-  }
-
-  return 0;
-}
-
-QList<InternetServer::Item> InternetServer::listItems(const QString &path, unsigned start, unsigned count)
+QList<InternetServer::Item> InternetServer::listItems(const QString &path, int start, int &count)
 {
   QList<Item> result;
 
@@ -147,7 +125,7 @@ QList<InternetServer::Item> InternetServer::listItems(const QString &path, unsig
     QSettings settings;
     settings.beginGroup(Module::pluginName);
 
-    foreach (const QString &host, siteDatabase->getSites(settings.value("Audiences").toStringList(), start, count))
+    foreach (const QString &host, siteDatabase->listSites(settings.value("Audiences").toStringList(), start, count))
     {
       Item item;
       item.isDir = true;

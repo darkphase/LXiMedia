@@ -42,7 +42,7 @@ void IOTest::cleanupTestCase(void)
  */
 void IOTest::MediaFileInfoImage(void)
 {
-  const SMediaInfo mediaInfo(":/ImageTest.jpeg");
+  const SMediaInfo mediaInfo(QUrl("file::/ImageTest.jpeg"));
 
   QVERIFY(mediaInfo.titles().first().audioStreams.isEmpty());
   QVERIFY(mediaInfo.titles().first().videoStreams.isEmpty());

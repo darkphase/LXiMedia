@@ -69,7 +69,7 @@ private:
 public:
   static const char             formatName[];
 
-  static bool                   isDiscPath(const QString &path);
+  static bool                   isDiscPath(const QUrl &path);
 
   explicit                      BufferReader(const QString &, QObject *);
   virtual                       ~BufferReader();

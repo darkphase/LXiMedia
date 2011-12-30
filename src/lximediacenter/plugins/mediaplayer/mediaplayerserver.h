@@ -86,8 +86,7 @@ protected: // From MediaServer
   virtual Stream              * streamVideo(const SHttpServer::RequestMessage &);
   virtual SHttpServer::ResponseMessage sendPhoto(const SHttpServer::RequestMessage &);
 
-  virtual int                   countItems(const QString &virtualPath);
-  virtual QList<Item>           listItems(const QString &virtualPath, unsigned start = 0, unsigned count = 0);
+  virtual QList<Item>           listItems(const QString &virtualPath, int start, int &count);
   virtual Item                  getItem(const QString &path);
   virtual ListType              listType(const QString &path);
 
@@ -95,11 +94,9 @@ protected: // From QObject
   virtual void                  customEvent(QEvent *);
 
 private:
-  static bool                   isHidden(const QString &path);
-
-  void                          setRootPaths(const QStringList &paths);
-  QString                       virtualPath(const QString &realPath) const;
-  QString                       realPath(const QString &virtualPath) const;
+  void                          setRootPaths(const QList<QUrl> &paths);
+  QString                       virtualPath(const QUrl &realPath) const;
+  QUrl                          realPath(const QString &virtualPath) const;
   static QString                virtualFile(const QString &virtualPath);
 
   Item                          makeItem(const FileNode &, int titleId = -1);
@@ -112,26 +109,25 @@ private slots:
   void                          aborted(void);
 
 private:
-  void                          generateDirs(SStringParser &, const QFileInfoList &, int, const QStringList &, const QStringList &);
+  void                          generateDirs(SStringParser &, const QList<QUrl> &, int, const QStringList &, const QList<QUrl> &);
   void                          scanDrives(void);
 
 private:
   static const char             dirSplit;
-  static const Qt::CaseSensitivity caseSensitivity;
   static const QEvent::Type     responseEventType;
   static const int              maxSongDurationMin;
   MasterServer                * masterServer;
   MediaDatabase               * mediaDatabase;
 
-  QMap<QString, QString>        rootPaths;
-  QMap<QString, QFileInfo>      driveInfoList;
-  QMap<QString, QString>        driveLabelList;
+  QMap<QString, QUrl>           rootPaths;
+  QMap<QUrl, QString>           driveList;
 
-  QMap<QString, QPair<SHttpServer::RequestMessage, QIODevice *> > nodeReadQueue;
+  QMap<QUrl, QPair<SHttpServer::RequestMessage, QIODevice *> > nodeReadQueue;
 
 private:
   static const char             htmlFrontPageContent[];
   static const char             htmlSettingsMain[];
+  static const char             htmlSettingsAddNetworkDrive[];
 
   static const char             htmlSettingsDirTreeIndex[];
   static const char             htmlSettingsDirTreeDir[];

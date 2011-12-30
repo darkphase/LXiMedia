@@ -106,7 +106,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
   videoEncodeFlags |= SInterfaces::VideoEncoder::Flag_HardBitrateLimit;
 
   SHttpServer::ResponseHeader header(request, SHttpServer::Status_Ok);
-  header.setField("Cache-Control", "no-cache");
+  header.setCacheControl(-1);
 
   // Match with DLNA profile
   const QString contentFeatures = QByteArray::fromBase64(request.url().queryItemValue("contentFeatures").toAscii());
@@ -314,7 +314,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
     audioEncodeFlags |= SInterfaces::AudioEncoder::Flag_Fast;
 
   SHttpServer::ResponseHeader header(request, SHttpServer::Status_Ok);
-  header.setField("Cache-Control", "no-cache");
+  header.setCacheControl(-1);
 
   // Match with DLNA profile
   const QString contentFeatures = QByteArray::fromBase64(request.url().queryItemValue("contentFeatures").toAscii());

@@ -223,7 +223,7 @@ SHttpServer::ResponseMessage MediaServer::buildAudioPlayer(const SHttpServer::Re
   htmlParser.setField("ITEM_URL", QUrl(request.file()));
 
   SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
-  response.setField("Cache-Control", "no-cache");
+  response.setCacheControl(-1);
   response.setContentType(SHttpEngine::mimeTextHtml);
   response.setContent(htmlParser.parse(htmlAudioPlayer));
   return response;
@@ -246,7 +246,7 @@ SHttpServer::ResponseMessage MediaServer::buildPlayer(const SHttpServer::Request
     htmlParser.setField("ITEM_TYPE", "Image");
 
   SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
-  response.setField("Cache-Control", "no-cache");
+  response.setCacheControl(-1);
   response.setContentType(SHttpEngine::mimeTextHtml);
   response.setContent(htmlParser.parse(htmlPlayer));
   return response;

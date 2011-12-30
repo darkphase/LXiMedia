@@ -17,41 +17,45 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef __FILENODE_H
-#define __FILENODE_H
+#ifndef LXSTREAM_SMEDIAFILESYSTEM_H
+#define LXSTREAM_SMEDIAFILESYSTEM_H
 
 #include <QtCore>
-#include <LXiStream>
-#include <LXiStreamGui>
+#include <LXiCore>
+#include "sinterfaces.h"
+#include "export.h"
 
-namespace LXiMediaCenter {
-namespace MediaPlayerBackend {
+namespace LXiStream {
 
-class FileNode;
-typedef QList<FileNode> FileNodeList;
-
-class FileNode : public SMediaInfo
+class LXISTREAM_PUBLIC SMediaFilesystem
 {
 public:
-  inline                        FileNode(void) : SMediaInfo() { }
-  inline                        FileNode(const FileNode &from) : SMediaInfo(from) { }
-  inline                        FileNode(const SMediaInfo &from) : SMediaInfo(from) { }
-  inline explicit               FileNode(const QUrl &path) : SMediaInfo(path) { }
-  inline explicit               FileNode(const QSharedDataPointer<ProbeInfo> &pi) : SMediaInfo(pi) { }
+  typedef SInterfaces::Filesystem::Info Info;
 
-  inline FileNode             & operator=(const FileNode &from) { SMediaInfo::operator=(from); return *this; }
-  inline FileNode             & operator=(const SMediaInfo &from) { SMediaInfo::operator=(from); return *this; }
+public:
+                                SMediaFilesystem(void);
+                                SMediaFilesystem(const SMediaFilesystem &);
+  explicit                      SMediaFilesystem(const QUrl &path);
+  virtual                       ~SMediaFilesystem();
 
-  bool                          isFormatProbed(void) const;
-  bool                          isContentProbed(void) const;
+  static QStringList            protocols(void);
 
-  QByteArray                    probeFormat(int = 1);
-  QByteArray                    probeContent(int = 1);
+  SMediaFilesystem            & operator=(const SMediaFilesystem &);
 
-  QByteArray                    toByteArray(int = 1) const;
-  static FileNode               fromByteArray(const QByteArray &);
+  QUrl                          path(void) const;
+
+  QStringList                   entryList(QDir::Filters filters = QDir::NoFilter, QDir::SortFlags sort = QDir::NoSort ) const;
+  QUrl                          filePath(const QString &fileName) const;
+  Info                          readInfo(const QString &fileName) const;
+  QIODevice                   * openFile(const QString &fileName) const;
+
+  static QIODevice            * open(const QUrl &filePath);
+
+private:
+  struct Data;
+  Data                  * const d;
 };
 
-} } // End of namespaces
+} // End of namespace
 
 #endif

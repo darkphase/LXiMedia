@@ -34,7 +34,7 @@ public:
   virtual                       ~FormatProber();
 
 public: // From SInterfaces::FormatProber
-  virtual QList<Format>         probeFormat(const QByteArray &, const QString &);
+  virtual QList<Format>         probeFormat(const QByteArray &, const QUrl &);
   virtual void                  probeFormat(ProbeInfo &, QIODevice *);
   virtual void                  probeContent(ProbeInfo &, QIODevice *, const QSize &);
 };

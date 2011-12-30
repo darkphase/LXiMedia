@@ -200,6 +200,9 @@ public:
     inline Status               status(void) const                              { return isValid() ? Status(head[1].toInt(), head[2]) : Status(Status_None); }
     void                        setStatus(const Status &status);
 
+    int                         cacheControl(void) const;                       //!< Returns the cache timeout.
+    void                        setCacheControl(int timeout);                   //!< Sets the cache timeout; < 0 = no cache, 0 = let browser decide, > 0 = timeout in seconds.
+
     inline void                 setResponse(Status status)                      { setStatus(status); }
     inline void                 setResponse(Status status, const QByteArray &version) { setStatus(status); setVersion(version); }
 

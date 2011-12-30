@@ -63,8 +63,7 @@ protected: // From MediaServer
   virtual Stream              * streamVideo(const SHttpServer::RequestMessage &);
   virtual SHttpServer::ResponseMessage sendPhoto(const SHttpServer::RequestMessage &);
 
-  virtual int                   countItems(const QString &path);
-  virtual QList<Item>           listItems(const QString &path, unsigned start = 0, unsigned count = 0);
+  virtual QList<Item>           listItems(const QString &path, int start, int &count);
   virtual Item                  getItem(const QString &path);
 
 protected: // From SHttpServer::Callback

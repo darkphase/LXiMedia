@@ -32,7 +32,7 @@ FormatProber::~FormatProber()
 {
 }
 
-QList<FormatProber::Format> FormatProber::probeFormat(const QByteArray &data, const QString &filePath)
+QList<FormatProber::Format> FormatProber::probeFormat(const QByteArray &data, const QUrl &filePath)
 {
   QList<Format> result;
 
@@ -46,7 +46,10 @@ QList<FormatProber::Format> FormatProber::probeFormat(const QByteArray &data, co
       result += Format("png", -1);
   }
 
-  const QString suffix = QFileInfo(filePath).suffix().toLower();
+  const QString path = filePath.path();
+  const QString fileName = path.mid(path.lastIndexOf('/') + 1);
+  const int lastdot = fileName.lastIndexOf('.');
+  const QString suffix = lastdot >= 0 ? fileName.mid(lastdot + 1) : QString::null;
   if (SImage::rawImageSuffixes().contains(suffix))
     result += Format(suffix, -1);
 
