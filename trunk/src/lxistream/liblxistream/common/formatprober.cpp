@@ -34,7 +34,7 @@ FormatProber::~FormatProber()
 {
 }
 
-QList<FormatProber::Format> FormatProber::probeFormat(const QByteArray &, const QString &)
+QList<FormatProber::Format> FormatProber::probeFormat(const QByteArray &, const QUrl &)
 {
   QList<Format> formats;
 
@@ -50,17 +50,22 @@ void FormatProber::probeFormat(ProbeInfo &pi, QIODevice *device)
 
   if (!pi.filePath.isEmpty())
   {
-    const QFileInfo info(pi.filePath);
-    if (info.isDir())
+    const QString path = pi.filePath.path();
+    if (pi.fileInfo.isDir)
     {
       pi.format.fileType = ProbeInfo::FileType_Directory;
       pi.format.fileTypeName = "Directory";
 
-      pi.format.metadata.insert("title", info.fileName());
+      pi.format.metadata.insert(
+          "title",
+          path.mid(path.left(path.length() - 1).lastIndexOf('/') + 1));
     }
-    else if (info.isFile())
+    else
     {
-      const QString suffix = info.suffix().toLower();
+      const QString fileName = path.mid(path.lastIndexOf('/') + 1);
+      const int lastdot = fileName.lastIndexOf('.');
+      const QString suffix = lastdot >= 0 ? fileName.mid(lastdot + 1) : QString::null;
+      const QString baseName = lastdot >= 0 ? fileName.left(lastdot) : fileName;
 
       QString title, author, album;
       int track = 0;
@@ -75,39 +80,17 @@ void FormatProber::probeFormat(ProbeInfo &pi, QIODevice *device)
         pi.format.fileType = ProbeInfo::FileType_Audio;
         pi.format.fileTypeName = audioDescription(suffix);
 
-        splitFileName(info.completeBaseName(), title, author, album, track);
+        splitFileName(baseName, title, author, album, track);
       }
       else if (videoSuffixes().contains(suffix))
       {
         pi.format.fileType = ProbeInfo::FileType_Video;
         pi.format.fileTypeName = videoDescription(suffix);
 
-        splitFileName(info.completeBaseName(), title, author, album, track);
-
-        QDir dir = info.absoluteDir();
-        QString dirName = dir.dirName();
-
-        if (dirName.contains("season", Qt::CaseInsensitive) &&
-            (dirName.length() < 10))
-        {
-          track = (track % SMediaInfo::tvShowSeason) + (dirName.mid(7).toUInt() * SMediaInfo::tvShowSeason);
-
-          const QString path = dir.absolutePath();
-
-          dir = QDir(path.left(path.length() - dirName.length()));
-          dirName = dir.dirName();
-        }
-
-        if (track > 0)
-        {
-          QString dummy1, dummy2;
-          int dummy3 = 0;
-          splitFileName(dirName, album, dummy1, dummy2, dummy3);
-        }
-        else
-          title = info.completeBaseName();
+        splitFileName(baseName, title, author, album, track);
       }
 
+      if (device)
       if (device->isOpen())
       if (device->seek(qMax(Q_INT64_C(0), (device->size() / 2) - (hashSize / 2))))
       {
@@ -118,7 +101,7 @@ void FormatProber::probeFormat(ProbeInfo &pi, QIODevice *device)
       }
 
       if (title.length() <= 3)
-        title = info.completeBaseName();
+        title = baseName;
 
       if (!title.isEmpty())   pi.format.metadata.insert("title", title);
       if (!author.isEmpty())  pi.format.metadata.insert("author", author);

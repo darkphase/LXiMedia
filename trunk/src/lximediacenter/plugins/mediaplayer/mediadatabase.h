@@ -33,6 +33,12 @@ namespace MediaPlayerBackend {
 class MediaDatabase : public QObject
 {
 Q_OBJECT
+private:
+  struct Info : SMediaFilesystem::Info
+  {
+    QUrl                        path;
+  };
+
 public:
   static MediaDatabase        * createInstance(BackendServer::MasterServer *);
   static void                   destroyInstance(void);
@@ -42,16 +48,15 @@ private:
   virtual                       ~MediaDatabase();
 
 public:
-  void                          queueReadNode(const QString &filePath) const;
-  FileNode                      readNode(const QString &filePath) const;
-  QByteArray                    readImage(const QString &filePath, const QSize &maxSize, const QColor &backgroundColor, const QString &format) const;
+  void                          queueReadNode(const QUrl &filePath) const;
+  FileNode                      readNode(const QUrl &filePath) const;
+  QByteArray                    readImage(const QUrl &filePath, const QSize &maxSize, const QColor &backgroundColor, const QString &format) const;
 
   void                          setLastPlayed(const FileNode &, const QDateTime & = QDateTime::currentDateTime());
   QDateTime                     lastPlayed(const FileNode &) const;
 
-  int                           countItems(const QString &path) const;
-  FileNodeList                  listItems(const QString &path, unsigned start = 0, unsigned count = 0) const;
-  FileNodeList                  representativeItems(const QString &path) const;
+  FileNodeList                  listItems(const QUrl &path, int start, int &count) const;
+  FileNodeList                  representativeItems(const QUrl &path) const;
 
 signals:
   void                          nodeRead(const FileNode &);
@@ -62,9 +67,11 @@ private slots:
   void                          flushCache(void) const;
 
 private:
-  FileNodeList                  readNodeFormat(const QStringList &filePaths) const;
-  FileNode                      readNodeCache(const QString &filePath) const;
-  void                          writeNodeCache(const QString &filePath, const QByteArray &) const;
+  QList<Info>                   listFiles(const QUrl &dirPath, int start, int &count) const;
+  FileNodeList                  readNodeFormat(const QList<Info> &filePaths) const;
+  FileNode                      readNodeCache(const Info &file) const;
+  FileNode                      readNodeCache(const QUrl &filePath) const;
+  void                          writeNodeCache(const QUrl &filePath, const QByteArray &) const;
 
   static QString                lastPlayedFile(void);
 

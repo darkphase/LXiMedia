@@ -64,11 +64,12 @@ private slots:
   void                          cleanStreams(void);
 
 private:
-  static SMediaInfo::ProbeInfo::FileType probeFileType(const QString &fileName);
+  static SMediaInfo::ProbeInfo::FileType probeFileType(const QUrl &filePath);
+  void                          listFiles(const SSandboxServer::RequestMessage &request, QIODevice *);
   void                          probeFormat(const SSandboxServer::RequestMessage &request, QIODevice *);
-  static QByteArray             probeFileFormat(const QString &fileName);
+  static QByteArray             probeFileFormat(const QUrl &filePath);
   void                          probeContent(const SSandboxServer::RequestMessage &request, QIODevice *);
-  static QByteArray             probeFileContent(const QString &fileName);
+  static QByteArray             probeFileContent(const QUrl &filePath);
   void                          readImage(const SSandboxServer::RequestMessage &request, QIODevice *);
 
 public:
@@ -79,13 +80,14 @@ private:
   SSandboxServer              * server;
   QList<MediaStream *>          streams;
   QTimer                        cleanStreamsTimer;
+  QMap<QUrl, QPair<QStringList, QTime> > itemCache;
 };
 
 class SandboxFileStream : public MediaTranscodeStream
 {
 Q_OBJECT
 public:
-  explicit                      SandboxFileStream(const QString &fileName);
+  explicit                      SandboxFileStream(const QUrl &fileName);
   virtual                       ~SandboxFileStream();
 
   bool                          setup(const SHttpServer::RequestMessage &, QIODevice *);
@@ -98,7 +100,7 @@ class SandboxPlaylistStream : public MediaTranscodeStream
 {
 Q_OBJECT
 public:
-  explicit                      SandboxPlaylistStream(const QStringList &files, SMediaInfo::ProbeInfo::FileType);
+  explicit                      SandboxPlaylistStream(const QList<QUrl> &files, SMediaInfo::ProbeInfo::FileType);
 
   bool                          setup(const SHttpServer::RequestMessage &, QIODevice *);
 
@@ -107,7 +109,7 @@ public slots:
   void                          closed(const QString &);
 
 private:
-  QString                       currentFile;
+  QUrl                          currentFile;
   SPlaylistNode                 playlistNode;
 };
 
@@ -115,7 +117,7 @@ class SandboxSlideShowStream : public MediaStream
 {
 Q_OBJECT
 public:
-  explicit                      SandboxSlideShowStream(const QStringList &files);
+  explicit                      SandboxSlideShowStream(const QList<QUrl> &files);
 
   bool                          setup(const SHttpServer::RequestMessage &, QIODevice *);
 

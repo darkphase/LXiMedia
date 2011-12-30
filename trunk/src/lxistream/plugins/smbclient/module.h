@@ -17,39 +17,23 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef __FILENODE_H
-#define __FILENODE_H
+#ifndef SMBCLIENTBACKEND_MODULE_H
+#define SMBCLIENTBACKEND_MODULE_H
 
 #include <QtCore>
 #include <LXiStream>
-#include <LXiStreamGui>
 
-namespace LXiMediaCenter {
-namespace MediaPlayerBackend {
+namespace LXiStream {
+namespace SMBClientBackend {
 
-class FileNode;
-typedef QList<FileNode> FileNodeList;
-
-class FileNode : public SMediaInfo
+class Module : public SModule
 {
+Q_OBJECT
 public:
-  inline                        FileNode(void) : SMediaInfo() { }
-  inline                        FileNode(const FileNode &from) : SMediaInfo(from) { }
-  inline                        FileNode(const SMediaInfo &from) : SMediaInfo(from) { }
-  inline explicit               FileNode(const QUrl &path) : SMediaInfo(path) { }
-  inline explicit               FileNode(const QSharedDataPointer<ProbeInfo> &pi) : SMediaInfo(pi) { }
-
-  inline FileNode             & operator=(const FileNode &from) { SMediaInfo::operator=(from); return *this; }
-  inline FileNode             & operator=(const SMediaInfo &from) { SMediaInfo::operator=(from); return *this; }
-
-  bool                          isFormatProbed(void) const;
-  bool                          isContentProbed(void) const;
-
-  QByteArray                    probeFormat(int = 1);
-  QByteArray                    probeContent(int = 1);
-
-  QByteArray                    toByteArray(int = 1) const;
-  static FileNode               fromByteArray(const QByteArray &);
+  virtual bool                  registerClasses(void);
+  virtual void                  unload(void);
+  virtual QByteArray            about(void);
+  virtual QByteArray            licenses(void);
 };
 
 } } // End of namespaces

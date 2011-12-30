@@ -22,6 +22,7 @@
 #include "audioresampler.h"
 #include "deinterlace.h"
 #include "formatprober.h"
+#include "localfilesystem.h"
 #include "pcmaudiodecoder.h"
 #include "pcmaudioencoder.h"
 #include "psbufferreader.h"
@@ -35,13 +36,14 @@ namespace Common {
 
 bool Module::registerClasses(void)
 {
-  AudioResampler::registerClass<AudioResampler>(SFactory::Scheme(-1, "linear"));
-
   // Ensure static initializers have been initialized.
   FormatProber::audioSuffixes();
   FormatProber::videoSuffixes();
   FormatProber::imageSuffixes();
   FormatProber::registerClass<FormatProber>(INT_MAX); // This one always first.
+
+  LocalFilesystem::registerClass<LocalFilesystem>(LocalFilesystem::scheme);
+  AudioResampler::registerClass<AudioResampler>(SFactory::Scheme(-1, "linear"));
 
   // Codecs
   PcmAudioDecoder::registerClass<PcmAudioDecoder>(SFactory::Scheme(1, "PCM/S8"));

@@ -127,6 +127,13 @@ QByteArray MediaServer::makeThumbnail(QSize size, const QImage &image, const QSt
   return buffer.data();
 }
 
+QSet<QString> & MediaServer::fileProtocols(void)
+{
+  static QSet<QString> p;
+
+  return p;
+}
+
 MediaProfiles & MediaServer::mediaProfiles(void)
 {
   static MediaProfiles p;
@@ -251,12 +258,12 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
       if (request.url().hasQueryItem("items"))
       {
         const QStringList range = request.url().queryItemValue("items").split(',');
-        unsigned start = 0, count = 0;
+        int start = 0, count = 0;
         if (!range.isEmpty())
         {
-          start = range[0].toUInt();
+          start = range[0].toInt();
           if (range.count() >= 2)
-            count = range[1].toUInt();
+            count = range[1].toInt();
         }
 
         QMap<int, QString> funcs;
@@ -505,15 +512,7 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
   return SHttpServer::ResponseMessage(request, SHttpServer::Status_NotFound);
 }
 
-int MediaServer::countContentDirItems(const QString &client, const QString &dirPath)
-{
-  if (!activeClients().contains(client))
-    activeClients().insert(client);
-
-  return countItems(dirPath);
-}
-
-QList<SUPnPContentDirectory::Item> MediaServer::listContentDirItems(const QString &client, const QString &dirPath, unsigned start, unsigned count)
+QList<SUPnPContentDirectory::Item> MediaServer::listContentDirItems(const QString &client, const QString &dirPath, int start, int &count)
 {
   if (!activeClients().contains(client))
     activeClients().insert(client);

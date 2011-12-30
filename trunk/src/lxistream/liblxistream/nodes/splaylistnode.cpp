@@ -25,15 +25,15 @@ namespace LXiStream {
 
 struct SPlaylistNode::Data
 {
-  QStringList                   files;
+  QList<QUrl>                   files;
   int                           fileId;
 
   QList<AudioStreamInfo>        audioStreams;
   QList<VideoStreamInfo>        videoStreams;
 };
 
-SPlaylistNode::SPlaylistNode(SGraph *parent, const QStringList &files, SMediaInfo::ProbeInfo::FileType fileType)
-  : SFileInputNode(parent, QString::null),
+SPlaylistNode::SPlaylistNode(SGraph *parent, const QList<QUrl> &files, SMediaInfo::ProbeInfo::FileType fileType)
+  : SFileInputNode(parent, QUrl()),
     d(new Data())
 {
   setFiles(files, fileType);
@@ -45,7 +45,7 @@ SPlaylistNode::~SPlaylistNode()
   *const_cast<Data **>(&d) = NULL;
 }
 
-void SPlaylistNode::setFiles(const QStringList &files, SMediaInfo::ProbeInfo::FileType fileType)
+void SPlaylistNode::setFiles(const QList<QUrl> &files, SMediaInfo::ProbeInfo::FileType fileType)
 {
   d->files = files;
   d->fileId = -1;
@@ -142,7 +142,7 @@ bool SPlaylistNode::openNext(void)
 
   for (d->fileId++; d->fileId < d->files.count(); d->fileId++)
   {
-    setFileName(d->files[d->fileId]);
+    setFilePath(d->files[d->fileId]);
 
     if (d->audioStreams.isEmpty() || !SFileInputNode::audioStreams(0).isEmpty())
     if (d->videoStreams.isEmpty() || !SFileInputNode::videoStreams(0).isEmpty())

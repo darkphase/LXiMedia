@@ -107,6 +107,35 @@ public:
   virtual bool                  process(void) = 0;
 };
 
+/*! The Filesystem interface class is used to expose media filesystems.
+ */
+class LXISTREAM_PUBLIC Filesystem : public QObject
+{
+Q_OBJECT
+S_FACTORIZABLE(Filesystem)
+public:
+  struct Info
+  {
+    inline Info(void) : isDir(false), isReadable(false), size(0), lastModified() { }
+
+    bool                        isDir;
+    bool                        isReadable;
+    qint64                      size;
+    QDateTime                   lastModified;
+  };
+
+protected:
+  inline explicit               Filesystem(QObject *parent) : QObject(parent) { }
+
+public:
+  virtual bool                  openDirectory(const QUrl &) = 0;
+
+  virtual QStringList           entryList(QDir::Filters, QDir::SortFlags) const = 0;
+  virtual QUrl                  filePath(const QString &fileName) const = 0;
+  virtual Info                  readInfo(const QString &fileName) const = 0;
+  virtual QIODevice           * openFile(const QString &fileName) const = 0;
+};
+
 /*! The FormatProber interface can be used to detect the format of a byte
     stream.
  */
@@ -197,7 +226,7 @@ public:
     }
 
     SDataCodec                  codec;
-    QString                     file;
+    QUrl                        file;
   };
 
   struct Chapter
@@ -252,7 +281,7 @@ public:
       format.isComplexFile = false;
     }
 
-    QString                     filePath;                                       //!< The full absolute path to the file.
+    QUrl                        filePath;                                       //!< The full absolute path to the file.
 
     bool                        isReadable;                                     //!< True if the file can be read.
     bool                        isFileInfoRead;                                 //!< True if the fileInfo structure has been read.
@@ -316,7 +345,7 @@ public:
                                 device path is provided to probe the format of a
                                 disc.
    */
-  virtual QList<Format>         probeFormat(const QByteArray &buffer, const QString &filePath) = 0;
+  virtual QList<Format>         probeFormat(const QByteArray &buffer, const QUrl &filePath) = 0;
 
   /*! Should probe the provided device and retrieve all information in
       probeInfo.format. Note that for probing a file, probeFormat() should be

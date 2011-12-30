@@ -120,7 +120,7 @@ SHttpServer::ResponseMessage SUPnPBase::handleControl(const SHttpServer::Request
             request, SHttpServer::Status_Ok,
             serializeSoapMessage(responseDoc), SHttpEngine::mimeTextXml);
 
-        response.setField("Cache-Control", "no-cache");
+        response.setCacheControl(-1);
         return response;
       }
       else
@@ -146,7 +146,7 @@ SHttpServer::ResponseMessage SUPnPBase::handleDescription(const SHttpServer::Req
       request, SHttpServer::Status_Ok,
       QByteArray(xmlDeclaration) + doc.toByteArray(-1), SHttpEngine::mimeTextXml);
 
-  response.setField("Cache-Control", "no-cache");
+  response.setCacheControl(-1);
   response.setField("Accept-Ranges", "bytes");
   response.setField("Connection", "close");
   return response;

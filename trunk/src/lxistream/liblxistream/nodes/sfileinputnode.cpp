@@ -18,6 +18,7 @@
  ***************************************************************************/
 
 #include "nodes/sfileinputnode.h"
+#include "smediafilesystem.h"
 #include "ssubtitlefile.h"
 #include "svideobuffer.h"
 #include <LXiCore>
@@ -27,41 +28,44 @@ namespace LXiStream {
 
 struct SFileInputNode::Data
 {
-  QFile                         mediaFile;
-  QMap<StreamId, QString>       subtitleStreams;
+  QIODevice                   * ioDevice;
+  QUrl                          filePath;
+  QMap<StreamId, QUrl>          subtitleStreams;
   SSubtitleFile               * subtitleFile;
   SEncodedDataBuffer            nextSubtitle;
 };
 
-SFileInputNode::SFileInputNode(SGraph *parent, const QString &fileName)
+SFileInputNode::SFileInputNode(SGraph *parent, const QUrl &filePath)
   : SIOInputNode(parent),
     d(new Data())
 {
+  d->ioDevice = NULL;
   d->subtitleFile = NULL;
 
-  setFileName(fileName);
+  setFilePath(filePath);
 }
 
 SFileInputNode::~SFileInputNode()
 {
+  delete d->ioDevice;
   delete d->subtitleFile;
   delete d;
   *const_cast<Data **>(&d) = NULL;
 }
 
-void SFileInputNode::setFileName(const QString &fileName)
+void SFileInputNode::setFilePath(const QUrl &filePath)
 {
-  d->mediaFile.close();
-  d->mediaFile.setFileName(fileName);
+  delete d->ioDevice;
+  d->filePath = filePath;
+  d->ioDevice = SMediaFilesystem::open(filePath);
 
-  if (!fileName.isEmpty())
-  if (d->mediaFile.open(QFile::ReadOnly))
-    SIOInputNode::setIODevice(&d->mediaFile);
+  if (d->ioDevice)
+    SIOInputNode::setIODevice(d->ioDevice);
 }
 
-QString SFileInputNode::fileName(void) const
+QUrl SFileInputNode::filePath(void) const
 {
-  return d->mediaFile.fileName();
+  return d->filePath;
 }
 
 bool SFileInputNode::setPosition(STime pos)
@@ -78,9 +82,9 @@ QList<SFileInputNode::DataStreamInfo> SFileInputNode::dataStreams(int title) con
 
   // Add subtitles.
   quint16 nextStreamId = 0xF000;
-  foreach (const QString &fileName, SSubtitleFile::findSubtitleFiles(d->mediaFile.fileName()))
+  foreach (const QUrl &filePath, SSubtitleFile::findSubtitleFiles(d->filePath))
   {
-    SSubtitleFile file(fileName);
+    SSubtitleFile file(filePath);
     if (file.open())
     {
       DataStreamInfo stream(
@@ -89,10 +93,10 @@ QList<SFileInputNode::DataStreamInfo> SFileInputNode::dataStreams(int title) con
           QString::null,
           file.codec());
 
-      stream.file = fileName;
+      stream.file = filePath;
       dataStreams += stream;
 
-      d->subtitleStreams.insert(stream, fileName);
+      d->subtitleStreams.insert(stream, filePath);
     }
   }
 
@@ -129,7 +133,8 @@ void SFileInputNode::stop(void)
   SIOInputNode::stop();
 
   SIOInputNode::setIODevice(NULL);
-  d->mediaFile.close();
+  delete d->ioDevice;
+  d->ioDevice = NULL;
 
   if (d->subtitleFile)
   {

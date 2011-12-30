@@ -49,7 +49,7 @@ public:
   QString                       audience(void);
 
   QImage                        icon(const QString &name);
-  QList<Item>                   listItems(const QString &path, unsigned start = 0, unsigned count = 0);
+  QList<Item>                   listItems(const QString &path, int start, int &count);
   QString                       streamLocation(const QString &name);
 
 private slots:

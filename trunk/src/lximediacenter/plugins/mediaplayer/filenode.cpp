@@ -64,7 +64,7 @@ QByteArray FileNode::toByteArray(int indent) const
 
   const ProbeInfo &pi = probeInfo();
 
-  mediaInfoElm.setAttribute("filePath", pi.filePath);
+  mediaInfoElm.setAttribute("filePath", pi.filePath.toString());
 
   mediaInfoElm.setAttribute("isFileInfoRead", T::trueFalse(pi.isFileInfoRead));
   mediaInfoElm.setAttribute("isFormatProbed", T::trueFalse(pi.isFormatProbed));
@@ -151,7 +151,7 @@ QByteArray FileNode::toByteArray(int indent) const
         elm.setAttribute("id", dataStream.toString());
         elm.setAttribute("language", dataStream.language);
         elm.setAttribute("title", dataStream.title);
-        elm.setAttribute("file", dataStream.file);
+        elm.setAttribute("file", dataStream.file.toString());
         elm.setAttribute("codec", dataStream.codec.toString());
         titleElm.appendChild(elm);
       }

@@ -24,17 +24,15 @@ namespace DVDNavBackend {
 
 const char BufferReader::formatName[] = "disc.dvd";
 
-bool BufferReader::isDiscPath(const QString &path)
+bool BufferReader::isDiscPath(const QUrl &path)
 {
-  const QString canonicalPath = QFileInfo(path).canonicalFilePath();
+  // libdvdnav only supports local files.
+  if (path.scheme() == "file")
+  {
+    if (path.path().endsWith(".iso", Qt::CaseInsensitive))
+      return true;
 
-  if (canonicalPath.endsWith(".iso", Qt::CaseInsensitive))
-  {
-    return true;
-  }
-  else
-  {
-    QDir dir(canonicalPath);
+    QDir dir(path.path());
     foreach (const QString &name, dir.entryList(QStringList("video_ts"), QDir::Dirs))
     if (dir.cd(name))
     {

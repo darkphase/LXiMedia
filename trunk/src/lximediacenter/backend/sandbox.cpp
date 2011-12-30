@@ -108,6 +108,7 @@ SSandboxServer::ResponseMessage Sandbox::httpRequest(const SSandboxServer::Reque
       rootElm.appendChild(T::createElement(doc, "audiocodecs", "codec", SAudioEncoderNode::codecs()));
       rootElm.appendChild(T::createElement(doc, "videocodecs", "codec", SVideoEncoderNode::codecs()));
       rootElm.appendChild(T::createElement(doc, "formats", "format", SIOOutputNode::formats()));
+      rootElm.appendChild(T::createElement(doc, "fileprotocols", "protocol", SMediaFilesystem::protocols()));
 
       return SSandboxServer::ResponseMessage(
           request, SSandboxServer::Status_Ok,

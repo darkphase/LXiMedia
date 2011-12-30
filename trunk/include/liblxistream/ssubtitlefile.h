@@ -34,11 +34,10 @@ namespace LXiStream {
 class LXISTREAM_PUBLIC SSubtitleFile
 {
 public:
-                                SSubtitleFile(const QString &name);
+                                SSubtitleFile(const QUrl &filePath);
                                 ~SSubtitleFile();
 
-  bool                          exists(void) const;
-  QString                       fileName(void) const;
+  QUrl                          filePath(void) const;
 
   bool                          open(void);
   void                          close(void);
@@ -50,7 +49,7 @@ public:
   SEncodedDataBuffer            readSubtitle(STime);
 
 public:
-  static QStringList            findSubtitleFiles(const QString &);
+  static QList<QUrl>            findSubtitleFiles(const QUrl &);
 
 private:
   struct Data;

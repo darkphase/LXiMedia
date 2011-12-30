@@ -104,7 +104,7 @@ QImage ScriptEngine::icon(const QString &name)
   return QImage();
 }
 
-QList<ScriptEngine::Item> ScriptEngine::listItems(const QString &path, unsigned start, unsigned count)
+QList<ScriptEngine::Item> ScriptEngine::listItems(const QString &path, int start, int &count)
 {
   QList<ScriptEngine::Item> result;
 
@@ -142,8 +142,10 @@ QList<ScriptEngine::Item> ScriptEngine::listItems(const QString &path, unsigned 
   if (items != itemCache.end())
   {
     const bool returnAll = count == 0;
-    for (unsigned i=start, n=0; (int(i)<items->count()) && (returnAll || (n<count)); i++, n++)
+    for (int i=start, n=0; (i<items->count()) && (returnAll || (n<count)); i++, n++)
       result += (*items)[i];
+
+    count = items->count();
   }
 
   return result;

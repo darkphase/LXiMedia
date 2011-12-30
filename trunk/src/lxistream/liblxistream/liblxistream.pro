@@ -31,6 +31,7 @@ HEADERS += $${PWD}/$${LXIMEDIA_DIR}/include/LXiStream \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/sgraph.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/sinterfaces.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/sinterval.h \
+    $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/smediafilesystem.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/smediainfo.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/spixels.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/ssize.h \
@@ -54,6 +55,7 @@ SOURCES += saudiobuffer.cpp \
     sgraph.cpp \
     sinterfaces.cpp \
     sinterval.cpp \
+    smediafilesystem.cpp \
     smediainfo.cpp \
     spixels.cpp \
     spixels.convert.c \
@@ -136,6 +138,7 @@ HEADERS += common/audioformatconverter.h \
     common/audioresampler.h \
     common/deinterlace.h \
     common/formatprober.h \
+    common/localfilesystem.h \
     common/mpeg.h \
     common/pcmaudiodecoder.h \
     common/pcmaudioencoder.h \
@@ -150,6 +153,7 @@ SOURCES += common/audioformatconverter.cpp \
     common/audioresampler.resample.c \
     common/deinterlace.cpp \
     common/formatprober.cpp \
+    common/localfilesystem.cpp \
     common/mpeg.cpp \
     common/pcmaudiodecoder.cpp \
     common/pcmaudioencoder.cpp \

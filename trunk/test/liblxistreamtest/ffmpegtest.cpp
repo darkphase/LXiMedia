@@ -43,7 +43,7 @@ void FFMpegTest::cleanupTestCase(void)
  */
 void FFMpegTest::MediaFileInfoAudioDeep(void)
 {
-  const SMediaInfo mediaInfo(":/SoundTest.ogg");
+  const SMediaInfo mediaInfo(QUrl("file::/SoundTest.ogg"));
 
   QCOMPARE(mediaInfo.fileType(), SMediaInfo::ProbeInfo::FileType_Audio);
   QCOMPARE(mediaInfo.metadata("title").toString(), QString("SoundTest"));

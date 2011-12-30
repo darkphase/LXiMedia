@@ -23,6 +23,7 @@
 #include <QtCore>
 #include <LXiCore>
 #include "sinterfaces.h"
+#include "smediafilesystem.h"
 #include "export.h"
 
 namespace LXiStream {
@@ -43,7 +44,7 @@ public:
 public:
                                 SMediaInfo(void);
                                 SMediaInfo(const SMediaInfo &);
-  explicit                      SMediaInfo(const QString &filePath);
+  explicit                      SMediaInfo(const QUrl &filePath);
   explicit                      SMediaInfo(const QSharedDataPointer<ProbeInfo> &);
   virtual                       ~SMediaInfo();
 
@@ -51,10 +52,11 @@ public:
 
   bool                          isNull(void) const;                             //!< Returns true if the SMediaInfo is empty.
 
-  QString                       filePath(void) const;                           //!< Returns the file path, including the file name.
+  QUrl                          filePath(void) const;                           //!< Returns the file path, including the file name.
   QString                       fileName(void) const;                           //!< Returns the name of the file, without the path.
   QString                       baseName(void) const;                           //!< Returns the name of the file, without the path and extension.
-  QString                       path(void) const;                               //!< Returns the path to the file, without the file name.
+  QUrl                          path(void) const;                               //!< Returns the path to the file, without the file name.
+  SMediaFilesystem              directory(void) const;                          //!< Returns the directory that contains the file.
 
   bool                          isReadable(void) const;                         //!< Returns true if the file can be read.
   qint64                        size(void) const;                               //!< Returns the file size.

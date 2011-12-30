@@ -114,34 +114,12 @@ QStringList SiteDatabase::allAudiences(void) const
   return audiences.keys();
 }
 
-int SiteDatabase::countSites(const QString &audience) const
+QStringList SiteDatabase::listSites(const QString &audience, int start, int &count) const
 {
-  return countSites(QStringList() << audience);
+  return listSites(QStringList() << audience, start, count);
 }
 
-int SiteDatabase::countSites(const QStringList &audiences) const
-{
-  int result = 0;
-
-  while (!loadFutures.isEmpty())
-    loadFutures.takeFirst().waitForFinished();
-
-  foreach (const QString &audience, audiences)
-  {
-    QMap<QString, QSet<QString> >::ConstIterator i = this->audiences.find(audience);
-    if (i != this->audiences.end())
-      result += i->count();
-  }
-
-  return result;
-}
-
-QStringList SiteDatabase::getSites(const QString &audience, unsigned start, unsigned count) const
-{
-  return getSites(QStringList() << audience, start, count);
-}
-
-QStringList SiteDatabase::getSites(const QStringList &audiences, unsigned start, unsigned count) const
+QStringList SiteDatabase::listSites(const QStringList &audiences, int start, int &count) const
 {
   while (!loadFutures.isEmpty())
     loadFutures.takeFirst().waitForFinished();
@@ -159,8 +137,10 @@ QStringList SiteDatabase::getSites(const QStringList &audiences, unsigned start,
   QStringList result;
 
   const QStringList sortedValues = sortedItems.values();
-  for (unsigned i=start, n=0; (int(i)<sortedValues.count()) && (returnAll || (n<count)); i++, n++)
+  for (int i=start, n=0; (i<sortedValues.count()) && (returnAll || (n<count)); i++, n++)
     result.append(sortedValues[i]);
+
+  count = sortedValues.count();
 
   return result;
 }

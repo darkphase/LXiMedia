@@ -258,6 +258,25 @@ void SHttpEngine::ResponseHeader::setStatus(const Status &status)
     head.append(status.description());
 }
 
+int SHttpEngine::ResponseHeader::cacheControl(void) const
+{
+  const QString value = field("Cache-Control");
+  if (value.startsWith("max-age"))
+    return value.mid(value.indexOf('=') + 1).toInt();
+  else if (value == "no-cache")
+    return -1;
+
+  return 0;
+}
+
+void SHttpEngine::ResponseHeader::setCacheControl(int timeout)
+{
+  if (timeout < 0)
+    setField("Cache-Control", "no-cache");
+  else if (timeout > 0)
+    setField("Cache-Control", "max-age=" + QString::number(timeout));
+}
+
 void SHttpEngine::ResponseHeader::parse(const QByteArray &header)
 {
   Header::parse(header);

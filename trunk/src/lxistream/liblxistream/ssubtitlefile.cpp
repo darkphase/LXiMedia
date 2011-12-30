@@ -19,46 +19,51 @@
 
 #include "ssubtitlefile.h"
 #include <LXiCore>
+#include "smediafilesystem.h"
+#include "smediainfo.h"
 
 namespace LXiStream {
 
 struct SSubtitleFile::Data
 {
-  inline Data(const QString &name) : file(name), language(NULL), utf8(false) { }
+  inline Data(const QUrl &filePath)
+    : filePath(filePath), ioDevice(NULL), language(NULL), utf8(false)
+  {
+  }
 
-  QFile                         file;
+  QUrl                          filePath;
+  QIODevice                   * ioDevice;
   SDataCodec                    dataCodec;
   const char                  * language;
   bool                          utf8;
 };
 
-SSubtitleFile::SSubtitleFile(const QString &name)
-  : d(new Data(name))
+SSubtitleFile::SSubtitleFile(const QUrl &filePath)
+  : d(new Data(filePath))
 {
 }
 
 SSubtitleFile::~SSubtitleFile()
 {
+  delete d->ioDevice;
   delete d;
   *const_cast<Data **>(&d) = NULL;
 }
 
-bool SSubtitleFile::exists(void) const
+QUrl SSubtitleFile::filePath(void) const
 {
-  return d->file.exists();
-}
-
-QString SSubtitleFile::fileName(void) const
-{
-  return d->file.fileName();
+  return d->filePath;
 }
 
 bool SSubtitleFile::open(void)
 {
-  if (d->file.open(QFile::ReadOnly))
+  delete d->ioDevice;
+  d->ioDevice = SMediaFilesystem::open(d->filePath);
+
+  if (d->ioDevice)
   {
-    const QByteArray sample = d->file.read(262144);
-    d->file.seek(0);
+    const QByteArray sample = d->ioDevice->read(262144);
+    d->ioDevice->seek(0);
 
     if (!sample.isEmpty())
     {
@@ -87,12 +92,13 @@ bool SSubtitleFile::open(void)
 
 void SSubtitleFile::close(void)
 {
-  d->file.close();
+  delete d->ioDevice;
+  d->ioDevice = NULL;
 }
 
 void SSubtitleFile::reset(void)
 {
-  d->file.seek(0);
+  d->ioDevice->seek(0);
 }
 
 /*! Returns the ISO 639-2 language code of the subtitles, or an empty string if
@@ -117,7 +123,7 @@ SEncodedDataBuffer SSubtitleFile::readSubtitle(STime timeStamp)
   QByteArray data;
   QByteArray line;
 
-  while ((line = d->file.readLine()).length() > 0)
+  while ((line = d->ioDevice->readLine()).length() > 0)
   {
     if (phase == 0)
     { // Get ID
@@ -177,43 +183,52 @@ SEncodedDataBuffer SSubtitleFile::readSubtitle(STime timeStamp)
   return SEncodedDataBuffer();
 }
 
-QStringList SSubtitleFile::findSubtitleFiles(const QString &file)
+QList<QUrl> SSubtitleFile::findSubtitleFiles(const QUrl &file)
 {
   struct T
   {
-    static void exactMatches(QStringList &result, const QDir &dir, const QString &baseName)
+    static void exactMatches(QList<QUrl> &result, const SMediaFilesystem &dir, const QString &baseName)
     {
-      foreach (const QFileInfo &info, dir.entryInfoList(QStringList() << "*.srt", QDir::Files | QDir::Readable))
-      if (info.completeBaseName().startsWith(baseName))
-      if (!result.contains(info.absoluteFilePath()))
-        result += info.absoluteFilePath();
+      foreach (const QString &fileName, dir.entryList(QDir::Files | QDir::Readable))
+      if (fileName.startsWith(baseName, Qt::CaseInsensitive) &&
+          fileName.toLower().endsWith(".srt"))
+      {
+        const QUrl url(dir.filePath(fileName));
+        if (!result.contains(url))
+          result += url;
+      }
     }
 
-    static void fuzzyMatches(QStringList &result, const QDir &dir, const QString &baseName)
+    static void fuzzyMatches(QList<QUrl> &result, const SMediaFilesystem &dir, const QString &baseName)
     {
-      foreach (const QFileInfo &info, dir.entryInfoList(QStringList() << "*.srt", QDir::Files | QDir::Readable))
-      if (SStringParser::toRawName(info.completeBaseName()).startsWith(baseName))
-      if (!result.contains(info.absoluteFilePath()))
-        result += info.absoluteFilePath();
+      foreach (const QString &fileName, dir.entryList(QDir::Files | QDir::Readable))
+      if (SStringParser::toRawName(fileName).startsWith(baseName) &&
+          fileName.toLower().endsWith(".srt"))
+      {
+        const QUrl url(dir.filePath(fileName));
+        if (!result.contains(url))
+          result += url;
+      }
     }
   };
 
-  const QFileInfo fileInfo(file);
-  const QString baseName = fileInfo.completeBaseName();
-  const QString rawBaseName = SStringParser::toRawName(fileInfo.completeBaseName());
+  const SMediaInfo mediaInfo(file);
+  const SMediaFilesystem directory(mediaInfo.directory());
+  const QString baseName = mediaInfo.baseName();
+  const QString rawBaseName = SStringParser::toRawName(baseName);
 
-  QStringList result;
-  T::exactMatches(result, fileInfo.absoluteDir(), baseName);
+  QList<QUrl> result;
+  T::exactMatches(result, directory, baseName);
 
-  foreach (const QFileInfo &info, fileInfo.absoluteDir().entryInfoList(QDir::Dirs))
-  if ((info.fileName().toLower() == "subtitles") || (info.fileName().toLower() == "subs"))
-    T::exactMatches(result, info.absoluteFilePath(), baseName);
+  foreach (const QString &fileName, directory.entryList(QDir::Dirs | QDir::NoDotAndDotDot))
+  if ((fileName.toLower() == "subtitles") || (fileName.toLower() == "subs"))
+    T::exactMatches(result, SMediaFilesystem(directory.filePath(fileName)), baseName);
 
-  T::fuzzyMatches(result, fileInfo.absoluteDir(), rawBaseName);
+  T::fuzzyMatches(result, directory, rawBaseName);
 
-  foreach (const QFileInfo &info, fileInfo.absoluteDir().entryInfoList(QDir::Dirs))
-  if ((info.fileName().toLower() == "subtitles") || (info.fileName().toLower() == "subs"))
-    T::fuzzyMatches(result, info.absoluteFilePath(), rawBaseName);
+  foreach (const QString &fileName, directory.entryList(QDir::Dirs | QDir::NoDotAndDotDot))
+  if ((fileName.toLower() == "subtitles") || (fileName.toLower() == "subs"))
+    T::fuzzyMatches(result, SMediaFilesystem(directory.filePath(fileName)), rawBaseName);
 
   return result;
 }

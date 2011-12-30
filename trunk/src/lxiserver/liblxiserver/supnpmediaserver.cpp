@@ -176,7 +176,7 @@ SHttpServer::ResponseMessage SUPnPMediaServer::httpRequest(const SHttpServer::Re
           request, SHttpServer::Status_Ok,
           SUPnPBase::xmlDeclaration + doc.toByteArray(-1), SHttpEngine::mimeTextXml);
 
-      response.setField("Cache-Control", "no-cache");
+      response.setCacheControl(-1);
       response.setField("Accept-Ranges", "bytes");
       response.setField("Connection", "close");
       return response;

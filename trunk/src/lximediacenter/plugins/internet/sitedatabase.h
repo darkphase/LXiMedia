@@ -40,10 +40,8 @@ private:
 
 public:
   QStringList                   allAudiences(void) const;
-  int                           countSites(const QString &audience) const;
-  int                           countSites(const QStringList &audiences) const;
-  QStringList                   getSites(const QString &audience, unsigned start = 0, unsigned count = 0) const;
-  QStringList                   getSites(const QStringList &audiences, unsigned start = 0, unsigned count = 0) const;
+  QStringList                   listSites(const QString &audience, int start, int &count) const;
+  QStringList                   listSites(const QStringList &audiences, int start, int &count) const;
 
   QString                       getScript(const QString &host) const;
   bool                          updateScript(const QString &host, const QString &script);

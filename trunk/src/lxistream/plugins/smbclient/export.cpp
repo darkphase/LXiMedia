@@ -17,41 +17,7 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef __FILENODE_H
-#define __FILENODE_H
+#include "module.h"
+#include <QtPlugin>
 
-#include <QtCore>
-#include <LXiStream>
-#include <LXiStreamGui>
-
-namespace LXiMediaCenter {
-namespace MediaPlayerBackend {
-
-class FileNode;
-typedef QList<FileNode> FileNodeList;
-
-class FileNode : public SMediaInfo
-{
-public:
-  inline                        FileNode(void) : SMediaInfo() { }
-  inline                        FileNode(const FileNode &from) : SMediaInfo(from) { }
-  inline                        FileNode(const SMediaInfo &from) : SMediaInfo(from) { }
-  inline explicit               FileNode(const QUrl &path) : SMediaInfo(path) { }
-  inline explicit               FileNode(const QSharedDataPointer<ProbeInfo> &pi) : SMediaInfo(pi) { }
-
-  inline FileNode             & operator=(const FileNode &from) { SMediaInfo::operator=(from); return *this; }
-  inline FileNode             & operator=(const SMediaInfo &from) { SMediaInfo::operator=(from); return *this; }
-
-  bool                          isFormatProbed(void) const;
-  bool                          isContentProbed(void) const;
-
-  QByteArray                    probeFormat(int = 1);
-  QByteArray                    probeContent(int = 1);
-
-  QByteArray                    toByteArray(int = 1) const;
-  static FileNode               fromByteArray(const QByteArray &);
-};
-
-} } // End of namespaces
-
-#endif
+Q_EXPORT_PLUGIN2(lxistream_smbclient, LXiStream::SMBClientBackend::Module);

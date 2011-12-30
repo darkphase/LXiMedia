@@ -82,19 +82,11 @@ SImage::SImage(const SVideoBuffer &inBuffer, bool fast)
   }
 }
 
-SImage::SImage(const QString &fileName, const QSize &maxsize, const char *format)
+SImage::SImage(const QUrl &filePath, const QSize &maxsize, const char *format)
   : QImage()
 {
-  *this = fromFile(fileName, maxsize, format);
+  *this = fromFile(filePath, maxsize, format);
 }
-
-#ifndef QT_NO_CAST_FROM_ASCII
-SImage::SImage(const char *fileName, const QSize &maxsize, const char *format)
-  : QImage()
-{
-  *this = fromFile(fileName, maxsize, format);
-}
-#endif
 
 SVideoBuffer SImage::toVideoBuffer(SInterval frameRate) const
 {
@@ -210,12 +202,20 @@ SImage SImage::fromData(QIODevice *ioDevice, const QSize &maxsize, const char *f
       ExifData * exifData = NULL;
       if (imageReader.format() == "jpeg")
       {
-        const qint64 pos = ioDevice->pos();
-        ioDevice->seek(0);
-        data = ioDevice->readAll();
-        ioDevice->seek(pos);
+        QFile * const file = qobject_cast<QFile *>(ioDevice);
+        if (file)
+        {
+          exifData = exif_data_new_from_file(file->fileName().toUtf8());
+        }
+        else
+        {
+          const qint64 pos = ioDevice->pos();
+          ioDevice->seek(0);
+          data = ioDevice->readAll();
+          ioDevice->seek(pos);
 
-        exifData = exif_data_new_from_data(reinterpret_cast<const uchar *>(data.data()), data.size());
+          exifData = exif_data_new_from_data(reinterpret_cast<const uchar *>(data.data()), data.size());
+        }
       }
 
       return handleFile(imageReader, maxsize, exifData);
@@ -225,45 +225,88 @@ SImage SImage::fromData(QIODevice *ioDevice, const QSize &maxsize, const char *f
   return SImage();
 }
 
-SImage SImage::fromFile(const QString &fileName, const QSize &maxsize, const char *format)
+SImage SImage::fromFile(const QUrl &filePath, const QSize &maxsize, const char *format)
 {
-  if (rawImageSuffixes().contains(format) ||
-      rawImageSuffixes().contains(QFileInfo(fileName).suffix().toLower()))
+  const QString path = filePath.path();
+  const QString fileName = path.mid(path.lastIndexOf('/') + 1);
+  const int lastdot = fileName.lastIndexOf('.');
+  const QString suffix = lastdot >= 0 ? fileName.mid(lastdot + 1) : QString::null;
+
+  SImage result;
+
+  QIODevice * const ioDevice = SMediaFilesystem::open(filePath);
+  if (ioDevice)
   {
-    struct T
+    if (rawImageSuffixes().contains(format))
+      result = handleRawFile(ioDevice, maxsize, format);
+    else if (rawImageSuffixes().contains(suffix.toLower()))
+      result = handleRawFile(ioDevice, maxsize, suffix);
+    else
+      result = fromData(ioDevice, maxsize, format);
+
+    delete ioDevice;
+  }
+
+  return result;
+}
+
+SImage SImage::handleRawFile(QIODevice *ioDevice, QSize maxsize, const QString &suffix)
+{
+  struct T
+  {
+    static SImage rundcraw(const QStringList &options, const QSize &maxsize)
     {
-      static SImage rundcraw(const QStringList &options, const QSize &maxsize)
-      {
-        QProcess dcRawProcess;
+      QProcess dcRawProcess;
 #ifdef Q_OS_WIN
-        const QDir appDir(qApp->applicationDirPath());
-        dcRawProcess.start(appDir.absoluteFilePath("dcraw.exe"), options);
+      const QDir appDir(qApp->applicationDirPath());
+      dcRawProcess.start(appDir.absoluteFilePath("dcraw.exe"), options);
 #else
-        dcRawProcess.start("dcraw", options);
+      dcRawProcess.start("dcraw", options);
 #endif
 
-        if (dcRawProcess.waitForStarted())
-        if (dcRawProcess.waitForFinished())
+      if (dcRawProcess.waitForStarted())
+      if (dcRawProcess.waitForFinished())
+      {
+        if (dcRawProcess.exitCode() == 0)
         {
-          if (dcRawProcess.exitCode() == 0)
-          {
-            QImageReader imageReader(&dcRawProcess);
-            if (imageReader.canRead())
-              return handleFile(imageReader, maxsize);
-          }
-          else
-          {
-            dcRawProcess.setReadChannel(QProcess::StandardError);
-            qDebug() << "dcraw:" << dcRawProcess.readAll();
-          }
+          QImageReader imageReader(&dcRawProcess);
+          if (imageReader.canRead())
+            return handleFile(imageReader, maxsize);
         }
-
-        dcRawProcess.kill();
-
-        return SImage();
+        else
+        {
+          dcRawProcess.setReadChannel(QProcess::StandardError);
+          qDebug() << "dcraw:" << dcRawProcess.readAll();
+        }
       }
-    };
 
+      dcRawProcess.kill();
+
+      return SImage();
+    }
+  };
+
+  QFile * const file = qobject_cast<QFile *>(ioDevice);
+  QTemporaryFile tmpfile(
+      QDir::temp().absoluteFilePath(
+          QFileInfo(qApp->applicationFilePath()).baseName() + ".XXXXXX." + suffix));
+
+  QString fileName;
+  if (file == NULL)
+  {
+    if (tmpfile.open())
+    {
+      tmpfile.write(ioDevice->readAll());
+      tmpfile.close();
+
+      fileName = tmpfile.fileName();
+    }
+  }
+  else
+    fileName = file->fileName();
+
+  if (!fileName.isEmpty())
+  {
     SImage result;
     if (maxsize.isValid() && !maxsize.isNull() && (maxsize.width() <= 256) && (maxsize.height() < 256))
       result = T::rundcraw(QStringList() << "-c" << "-e" << fileName, maxsize);
@@ -272,22 +315,6 @@ SImage SImage::fromFile(const QString &fileName, const QSize &maxsize, const cha
       result = T::rundcraw(QStringList() << "-c" << fileName, maxsize);
 
     return result;
-  }
-  else
-  {
-    QFile file(fileName);
-    if (file.open(QBuffer::ReadOnly))
-    {
-      QImageReader imageReader(&file, format ? QByteArray(format) : QByteArray());
-      if (imageReader.canRead())
-      {
-        ExifData * exifData = NULL;
-        if (imageReader.format() == "jpeg")
-          exifData = exif_data_new_from_file(fileName.toUtf8());
-
-        return handleFile(imageReader, maxsize, exifData);
-      }
-    }
   }
 
   return SImage();

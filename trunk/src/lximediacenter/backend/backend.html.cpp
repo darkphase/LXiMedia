@@ -113,11 +113,12 @@ const char Backend::htmlAbout[] =
 
 const char Backend::htmlSettingsMain[] =
     " <div class=\"main_settings\">\n"
+    "  <a class=\"hidden\" name=\"httpserver\" />\n"
     "  <fieldset>\n"
     "   <legend>{TR_HTTP_SERVER}</legend>\n"
     "   {TR_HTTPSERVER_EXPLAIN}<br />\n"
     "   <br />\n"
-    "   <form name=\"httpsettings\" action=\"/settings\" method=\"get\">\n"
+    "   <form name=\"httpsettings\" action=\"/settings#httpserver\" method=\"get\">\n"
     "    <input type=\"hidden\" name=\"save_settings\" value=\"http\" />\n"
     "    {TR_HTTP_PORT_NUMBER}:\n"
     "    <input type=\"text\" size=\"6\" name=\"httpport\" value=\"{HTTPPORT}\" />\n"
@@ -127,11 +128,12 @@ const char Backend::htmlSettingsMain[] =
     "    <input type=\"submit\" name=\"save\" value=\"{TR_SAVE}\" />\n"
     "   </form>\n"
     "  </fieldset>\n"
+    "  <a class=\"hidden\" name=\"localization\" />\n"
     "  <fieldset>\n"
     "   <legend>{TR_LOCALIZATION}</legend>\n"
     "   {TR_LOCALIZATION_EXPLAIN}<br />\n"
     "   <br />\n"
-    "   <form name=\"localizationsettings\" action=\"/settings\" method=\"get\">\n"
+    "   <form name=\"localizationsettings\" action=\"/settings#localization\" method=\"get\">\n"
     "    <input type=\"hidden\" name=\"save_settings\" value=\"localization\" />\n"
     "    {TR_DEFAULT_CODEPAGE}:\n"
     "    <select name=\"defaultcodepage\">\n"
@@ -141,6 +143,7 @@ const char Backend::htmlSettingsMain[] =
     "    <input type=\"submit\" name=\"save\" value=\"{TR_SAVE}\" />\n"
     "   </form>\n"
     "  </fieldset>\n"
+    "  <a class=\"hidden\" name=\"dlna\" />\n"
     "  <fieldset>\n"
     "   <legend>{TR_DLNA}</legend>\n"
     "   {TR_MEDIA_TRANSCODE_SETTINGS_EXPLAIN}<br />\n"
@@ -157,7 +160,7 @@ const char Backend::htmlSettingsDlnaRow[] =
     "   <a name=\"{CLIENT_NAME}\"></a>\n"
     "   <fieldset>\n"
     "    <legend>{NAME}</legend>\n"
-    "    <form name=\"dlnasettings\" action=\"/settings\" method=\"get\">\n"
+    "    <form name=\"dlnasettings\" action=\"/settings#dlna\" method=\"get\">\n"
     "     <input type=\"hidden\" name=\"save_settings\" value=\"dlna\" />\n"
     "     <input type=\"hidden\" name=\"client\" value=\"{CLIENT_NAME}\" />\n"
     "     <table>\n"
@@ -301,7 +304,8 @@ SHttpServer::ResponseMessage Backend::httpRequest(const SHttpServer::RequestMess
         {
           saveHtmlSettings(request);
 
-          SHttpServer::ResponseMessage response(request, SHttpServer::Status_MovedPermanently);
+          SHttpServer::ResponseMessage response(request, SHttpServer::Status_TemporaryRedirect);
+          response.setCacheControl(-1);
           response.setField("Location", "http://" + request.host() + "/settings");
           return response;
         }
@@ -372,8 +376,8 @@ SHttpServer::ResponseMessage Backend::httpRequest(const SHttpServer::RequestMess
         return sendFile(request, ":/lximedia.png");
 
       SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
+      response.setCacheControl(-1);
       response.setContentType(SHttpEngine::mimeTextHtml);
-      response.setField("Cache-Control", "no-cache");
       response.setContent(parseHtmlContent(request, content, htmlFrontPagesHead));
       return response;
     }
@@ -463,7 +467,10 @@ QByteArray Backend::handleHtmlSettings(const SHttpServer::RequestMessage &reques
   htmlParser.setField("TR_LOCALIZATION", tr("Localization"));
   htmlParser.setField("TR_DEFAULT_CODEPAGE", tr("Default codepage"));
   htmlParser.setField("TR_LOCALIZATION_EXPLAIN",
-    tr("This configures the localization settings."));
+    tr("This configures the localization settings. The codepage is used to "
+       "decode non-utf8 text (e.g. subtitles), when left at \"System\" the "
+       "codepage is automatically determined based on the system settings and "
+       "the language of the text."));
 
   const QByteArray defaultCodepage =
       settings.value("DefaultCodepage", "System").toByteArray();

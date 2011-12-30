@@ -57,7 +57,13 @@ SSandboxServer::ResponseMessage MediaPlayerSandbox::httpRequest(const SSandboxSe
 {
   if (request.isPost())
   {
-    if (request.url().hasQueryItem("probeformat"))
+    if (request.url().hasQueryItem("listfiles"))
+    {
+      QtConcurrent::run(this, &MediaPlayerSandbox::listFiles, request, socket);
+
+      return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_None);
+    }
+    else if (request.url().hasQueryItem("probeformat"))
     {
       QtConcurrent::run(this, &MediaPlayerSandbox::probeFormat, request, socket);
 
@@ -77,20 +83,20 @@ SSandboxServer::ResponseMessage MediaPlayerSandbox::httpRequest(const SSandboxSe
     }
     else if (request.url().hasQueryItem("play"))
     {
-      const QString path = QString::fromUtf8(request.content());
+      const QUrl path(QString::fromUtf8(request.content()));
       if (!path.isEmpty())
       {
         if (request.url().queryItemValue("play") == "all")
         {
-          QStringList files;
-          for (QStringList dirs = QStringList() << path; !dirs.isEmpty(); )
+          QList<QUrl> files;
+          for (QList<QUrl> dirs = QList<QUrl>() << path; !dirs.isEmpty(); )
           {
-            const QDir dir(dirs.takeFirst());
+            const SMediaFilesystem dir(dirs.takeFirst());
             foreach (const QString &file, dir.entryList(QDir::Files, QDir::Name | QDir::IgnoreCase))
-              files += dir.absoluteFilePath(file);
+              files += dir.filePath(file);
 
             foreach (const QString &subDir, dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name | QDir::IgnoreCase))
-              dirs += dir.absoluteFilePath(subDir);
+              dirs += dir.filePath(subDir);
           }
 
           QList< QFuture<SMediaInfo::ProbeInfo::FileType> > futures;
@@ -197,9 +203,70 @@ void MediaPlayerSandbox::cleanStreams(void)
     i++;
 }
 
-SMediaInfo::ProbeInfo::FileType MediaPlayerSandbox::probeFileType(const QString &fileName)
+SMediaInfo::ProbeInfo::FileType MediaPlayerSandbox::probeFileType(const QUrl &filePath)
 {
-  return SMediaInfo(fileName).fileType();
+  return SMediaInfo(filePath).fileType();
+}
+
+void MediaPlayerSandbox::listFiles(const SSandboxServer::RequestMessage &request, QIODevice *socket)
+{
+  const int start = request.url().queryItemValue("start").toInt();
+  const int count = request.url().queryItemValue("count").toInt();
+  const bool returnAll = count == 0;
+
+  const QUrl path = QString::fromUtf8(request.content());
+  SMediaFilesystem filesystem(path);
+
+  QMap<QUrl, QPair<QStringList, QTime> >::Iterator items = itemCache.find(path);
+  if ((items == itemCache.end()) ||
+      ((start == 0) && (count >= 0) && (qAbs(items->second.elapsed()) > 15000)))
+  {
+    items = itemCache.insert(path, qMakePair(filesystem.entryList(
+        QDir::Dirs | QDir::NoDotAndDotDot | QDir::Files,
+        QDir::DirsFirst | QDir::Name | QDir::IgnoreCase), QTime()));
+
+    items->second.start();
+  }
+
+  QDomDocument doc("");
+  QDomElement rootElm = doc.createElement("files");
+  doc.appendChild(rootElm);
+
+  struct T
+  {
+    static QDomElement createElement(QDomDocument &doc, const SMediaFilesystem::Info &info, const QUrl &path)
+    {
+      QDomElement fileElm = doc.createElement("file");
+      fileElm.setAttribute("isDir", info.isDir);
+      fileElm.setAttribute("isReadable", info.isReadable);
+      fileElm.setAttribute("size", info.size);
+      fileElm.setAttribute("lastModified", info.lastModified.toString(Qt::ISODate));
+      fileElm.appendChild(doc.createTextNode(path.toString()));
+
+      return fileElm;
+    }
+  };
+
+  rootElm.setAttribute("total", items->first.count());
+  if (count >= 0)
+  {
+    for (int i=start, n=0; (i<items->first.count()) && (returnAll || (n<int(count))); i++, n++)
+      rootElm.appendChild(T::createElement(doc, filesystem.readInfo(items->first[i]), filesystem.filePath(items->first[i])));
+  }
+  else
+  {
+    for (int n = items->first.count(), ni = qMax(1, n / -count), i = ni / 2; i < n; i += ni)
+      rootElm.appendChild(T::createElement(doc, filesystem.readInfo(items->first[i]), filesystem.filePath(items->first[i])));
+  }
+
+  qApp->postEvent(this, new ResponseEvent(
+      request,
+      SHttpServer::ResponseMessage(
+          request,
+          SSandboxServer::Status_Ok,
+          doc.toByteArray(-1),
+          SHttpEngine::mimeTextXml),
+      socket));
 }
 
 void MediaPlayerSandbox::probeFormat(const SSandboxServer::RequestMessage &request, QIODevice *socket)
@@ -223,11 +290,11 @@ void MediaPlayerSandbox::probeFormat(const SSandboxServer::RequestMessage &reque
       socket));
 }
 
-QByteArray MediaPlayerSandbox::probeFileFormat(const QString &fileName)
+QByteArray MediaPlayerSandbox::probeFileFormat(const QUrl &filePath)
 {
-  qDebug() << "Probing format:" << fileName;
+  qDebug() << "Probing format:" << filePath.toString(QUrl::RemovePassword);
 
-  FileNode fileNode(fileName);
+  FileNode fileNode(filePath);
   if (!fileNode.isNull())
     return fileNode.probeFormat(-1);
 
@@ -255,11 +322,11 @@ void MediaPlayerSandbox::probeContent(const SSandboxServer::RequestMessage &requ
       socket));
 }
 
-QByteArray MediaPlayerSandbox::probeFileContent(const QString &fileName)
+QByteArray MediaPlayerSandbox::probeFileContent(const QUrl &filePath)
 {
-  qDebug() << "Probing content:" << fileName;
+  qDebug() << "Probing content:" << filePath.toString(QUrl::RemovePassword);
 
-  FileNode fileNode(fileName);
+  FileNode fileNode(filePath);
   if (!fileNode.isNull())
     return fileNode.probeContent(-1);
 
@@ -328,9 +395,9 @@ void MediaPlayerSandbox::readImage(const SSandboxServer::RequestMessage &request
 }
 
 
-SandboxFileStream::SandboxFileStream(const QString &fileName)
+SandboxFileStream::SandboxFileStream(const QUrl &filePath)
   : MediaTranscodeStream(),
-    file(this, fileName)
+    file(this, filePath)
 {
   connect(&file, SIGNAL(finished()), SLOT(stop()));
 
@@ -339,7 +406,7 @@ SandboxFileStream::SandboxFileStream(const QString &fileName)
   connect(&file, SIGNAL(output(SEncodedDataBuffer)), &dataDecoder, SLOT(input(SEncodedDataBuffer)));
 
   // Mark as played:
-  std::cerr << ("#PLAYED:" + fileName.toUtf8().toHex()).data() << std::endl;
+  std::cerr << ("#PLAYED:" + filePath.toString().toUtf8().toHex()).data() << std::endl;
 }
 
 SandboxFileStream::~SandboxFileStream()
@@ -352,7 +419,7 @@ bool SandboxFileStream::setup(const SHttpServer::RequestMessage &request, QIODev
 }
 
 
-SandboxPlaylistStream::SandboxPlaylistStream(const QStringList &files, SMediaInfo::ProbeInfo::FileType fileType)
+SandboxPlaylistStream::SandboxPlaylistStream(const QList<QUrl> &files, SMediaInfo::ProbeInfo::FileType fileType)
   : MediaTranscodeStream(),
     playlistNode(this, files, fileType)
 {
@@ -394,7 +461,7 @@ void SandboxPlaylistStream::closed(const QString &filePath)
 }
 
 
-SandboxSlideShowStream::SandboxSlideShowStream(const QStringList &files)
+SandboxSlideShowStream::SandboxSlideShowStream(const QList<QUrl> &files)
   : MediaStream(),
     slideShow(this, files)
 {

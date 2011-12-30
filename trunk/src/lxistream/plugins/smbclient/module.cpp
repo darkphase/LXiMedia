@@ -17,41 +17,40 @@
  *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
  ***************************************************************************/
 
-#ifndef __FILENODE_H
-#define __FILENODE_H
+#include "module.h"
+#include "smbfilesystem.h"
 
-#include <QtCore>
-#include <LXiStream>
-#include <LXiStreamGui>
+namespace LXiStream {
+namespace SMBClientBackend {
 
-namespace LXiMediaCenter {
-namespace MediaPlayerBackend {
-
-class FileNode;
-typedef QList<FileNode> FileNodeList;
-
-class FileNode : public SMediaInfo
+bool Module::registerClasses(void)
 {
-public:
-  inline                        FileNode(void) : SMediaInfo() { }
-  inline                        FileNode(const FileNode &from) : SMediaInfo(from) { }
-  inline                        FileNode(const SMediaInfo &from) : SMediaInfo(from) { }
-  inline explicit               FileNode(const QUrl &path) : SMediaInfo(path) { }
-  inline explicit               FileNode(const QSharedDataPointer<ProbeInfo> &pi) : SMediaInfo(pi) { }
+  SMBFilesystem::init();
+  SMBFilesystem::registerClass<SMBFilesystem>(SMBFilesystem::scheme);
 
-  inline FileNode             & operator=(const FileNode &from) { SMediaInfo::operator=(from); return *this; }
-  inline FileNode             & operator=(const SMediaInfo &from) { SMediaInfo::operator=(from); return *this; }
+  return true;
+}
 
-  bool                          isFormatProbed(void) const;
-  bool                          isContentProbed(void) const;
+void Module::unload(void)
+{
+  SMBFilesystem::close();
+}
 
-  QByteArray                    probeFormat(int = 1);
-  QByteArray                    probeContent(int = 1);
+QByteArray Module::about(void)
+{
+  return "SMBClient plugin by A.J. Admiraal";
+}
 
-  QByteArray                    toByteArray(int = 1) const;
-  static FileNode               fromByteArray(const QByteArray &);
-};
+QByteArray Module::licenses(void)
+{
+  const QByteArray text =
+      " <h3>libsmbclient</h3>\n"
+      " Version: " + SMBFilesystem::version() + "<br />\n"
+      " <br />\n"
+      " Used under the terms of the GNU General Public License version 2\n"
+      " as published by the Free Software Foundation.\n";
+
+  return text;
+}
 
 } } // End of namespaces
-
-#endif
