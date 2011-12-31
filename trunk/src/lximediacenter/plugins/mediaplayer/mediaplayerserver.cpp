@@ -21,6 +21,10 @@
 #include "mediaplayersandbox.h"
 #include "module.h"
 
+#ifdef Q_OS_WIN
+#include <windows.h>
+#endif
+
 namespace LXiMediaCenter {
 namespace MediaPlayerBackend {
 
@@ -280,26 +284,18 @@ void MediaPlayerServer::customEvent(QEvent *e)
 
 void MediaPlayerServer::setRootPaths(const QList<QUrl> &paths)
 {
-  struct T
-  {
-    static QString albumName(const QString &path, int recurse)
-    {
-      QStringList dirs = path.split('/', QString::SkipEmptyParts);
-
-      QString result;
-      for (int r=0; (r<recurse) && !dirs.isEmpty(); r++)
-        result = dirs.takeLast() + (result.isEmpty() ? "" : "_") + result;
-
-      return result;
-    }
-  };
-
   rootPaths.clear();
 
   QStringList encodedPaths;
   foreach (QUrl path, paths)
   {
-    rootPaths.insert(T::albumName(path.path(), 1), path);
+    const QString baseLabel = dirLabel(path.path());
+    int index = 1;
+    QString label = baseLabel;
+    while (rootPaths.contains(label))
+      label = baseLabel + '_' + QString::number(++index);
+
+    rootPaths.insert(label, path);
 
     // Lame-encrypt the password.
     if (!path.password().isEmpty())
@@ -368,6 +364,40 @@ QString MediaPlayerServer::virtualFile(const QString &virtualPath)
   const int ls = virtualPath.lastIndexOf('/');
   if ((ls >= 0) && ((ls + 1) < virtualPath.length()) && (virtualPath[ls + 1] == '.'))
     return virtualPath.mid(ls + 1);
+
+  return QString::null;
+}
+
+QString MediaPlayerServer::dirLabel(const QString &path)
+{
+#ifdef Q_OS_WIN
+  if (((path.length() == 2) || (path.length() == 3)) &&
+      path[0].isLetterOrNumber() && (path[1] == ':'))
+  {
+    WCHAR szVolumeName[MAX_PATH+1];
+    WCHAR szFileSystemName[MAX_PATH+1];
+    DWORD dwSerialNumber = 0;
+    DWORD dwMaxFileNameLength = MAX_PATH;
+    DWORD dwFileSystemFlags = 0;
+
+    if (::GetVolumeInformationW(reinterpret_cast<const WCHAR *>(path.utf16()),
+                                szVolumeName, sizeof(szVolumeName) / sizeof(*szVolumeName),
+                                &dwSerialNumber,
+                                &dwMaxFileNameLength,
+                                &dwFileSystemFlags,
+                                szFileSystemName, sizeof(szFileSystemName) / sizeof(*szFileSystemName)))
+    {
+      return QString::fromUtf16((const ushort *)szVolumeName).trimmed();
+    }
+  }
+#else
+  if (path == "/")
+    return tr("Root");
+#endif
+
+  const QStringList dirs = path.split('/', QString::SkipEmptyParts);
+  if (!dirs.isEmpty())
+    return dirs.last();
 
   return QString::null;
 }

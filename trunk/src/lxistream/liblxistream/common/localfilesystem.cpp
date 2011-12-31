@@ -26,6 +26,7 @@ const char LocalFilesystem::scheme[] = "file";
 
 LocalFilesystem::LocalFilesystem(const QString &, QObject *parent)
   : SInterfaces::Filesystem(parent),
+    valid(false),
     root(true)
 {
 }
@@ -35,35 +36,49 @@ bool LocalFilesystem::openDirectory(const QUrl &path)
   if (path.path().isEmpty())
   {
     dir = QDir();
-    root = true;
+    root = valid = true;
     return true;
   }
   else
   {
-    const QString localPath = path.path();
-    if (!isHidden(localPath))
+    const QFileInfo info = path.path();
+    if (!isHidden(info.canonicalFilePath()))
     {
-      dir = QDir(localPath);
+      dir = QDir(info.absoluteFilePath());
+      valid = true;
       root = false;
       return dir.exists();
     }
   }
 
+  dir = QDir();
+  root = valid = false;
   return false;
 }
 
 QStringList LocalFilesystem::entryList(QDir::Filters filter, QDir::SortFlags sort) const
 {
+  QStringList result;
+
   if (root)
   {
-    QStringList result;
-    foreach (const QFileInfo &info, QDir::drives())
-      result += info.fileName();
+    foreach (const QFileInfo &info, dir.drives())
+    {
+      QString path = info.absolutePath();
+      while (path.endsWith('/'))
+        path = path.left(path.length() - 1);
 
-    return result;
+      result += path;
+    }
   }
-  else
-    return dir.entryList(filter, sort);
+  else if (valid)
+  {
+    foreach (const QString &fileName, dir.entryList(filter, sort))
+    if (!fileName.startsWith('.'))
+      result += fileName;
+  }
+
+  return result;
 }
 
 QUrl LocalFilesystem::filePath(const QString &fileName) const
@@ -72,7 +87,7 @@ QUrl LocalFilesystem::filePath(const QString &fileName) const
   result.setScheme(scheme);
   if (root)
     result.setPath(fileName + '/');
-  else
+  else if (valid)
     result.setPath(dir.absoluteFilePath(fileName));
 
   return result;
@@ -80,45 +95,50 @@ QUrl LocalFilesystem::filePath(const QString &fileName) const
 
 LocalFilesystem::Info LocalFilesystem::readInfo(const QString &fileName) const
 {
+  Info result;
+
   if (root)
   {
     foreach (const QFileInfo &info, QDir::drives())
     if (info.fileName() == fileName)
     {
-      Info result;
       result.isDir = info.isDir();
       result.isReadable = info.isReadable();
       result.size = info.size();
       result.lastModified = info.lastModified();
-      return result;
     }
-
-    return Info();
   }
-  else
+  else if (valid)
   {
     const QFileInfo info(dir.absoluteFilePath(fileName));
 
-    Info result;
     result.isDir = info.isDir();
     result.isReadable = info.isReadable();
     result.size = info.size();
     result.lastModified = info.lastModified();
 
     if (result.isDir)
-      result.isReadable = result.isReadable && info.isExecutable() && !isHidden(info.absolutePath());
-
-    return result;
+      result.isReadable = result.isReadable && info.isExecutable() && !isHidden(info.canonicalFilePath());
   }
+
+  return result;
 }
 
 QIODevice * LocalFilesystem::openFile(const QString &fileName) const
 {
-  QFile * const file = new QFile(dir.absoluteFilePath(fileName));
-  if (file->open(QFile::ReadOnly))
-    return file;
+  if (!root && valid)
+  {
+    const QString path = dir.absoluteFilePath(fileName);
+    if (!isHidden(QFileInfo(path).canonicalFilePath()))
+    {
+      QFile * const file = new QFile(path);
+      if (file->open(QFile::ReadOnly))
+        return file;
 
-  delete file;
+      delete file;
+    }
+  }
+
   return NULL;
 }
 
@@ -133,10 +153,12 @@ bool LocalFilesystem::isHidden(const QString &path)
 #error Not implemented.
 #endif
 
-  static QSet<QString> hiddenDirs;
+  static QStringList hiddenDirs;
   if (hiddenDirs.isEmpty())
   {
     const QDir root = QDir::root();
+
+    hiddenDirs += QDir::tempPath();
 
 #if defined(Q_OS_UNIX)
     hiddenDirs += root.absoluteFilePath("bin");
@@ -147,7 +169,6 @@ bool LocalFilesystem::isHidden(const QString &path)
     hiddenDirs += root.absoluteFilePath("proc");
     hiddenDirs += root.absoluteFilePath("sbin");
     hiddenDirs += root.absoluteFilePath("sys");
-    hiddenDirs += root.absoluteFilePath("tmp");
     hiddenDirs += root.absoluteFilePath("usr");
     hiddenDirs += root.absoluteFilePath("var");
 #endif
@@ -177,19 +198,18 @@ bool LocalFilesystem::isHidden(const QString &path)
     }
   }
 
-  const QFileInfo info(path);
-
-  QString absoluteFilePath = info.absolutePath();
-  if (!absoluteFilePath.endsWith('/')) absoluteFilePath += '/';
-
-  QString canonicalFilePath = (info.exists() ? info.canonicalFilePath() : info.absolutePath());
-  if (!canonicalFilePath.endsWith('/')) canonicalFilePath += '/';
-
-  foreach (const QString &hidden, hiddenDirs)
+  if (!path.isEmpty())
   {
-    const QString path = hidden.endsWith('/') ? hidden : (hidden + '/');
-    if (absoluteFilePath.startsWith(path, caseSensitivity) || canonicalFilePath.startsWith(path, caseSensitivity))
-      return true;
+    QString dirPath = path;
+    if (!dirPath.endsWith('/'))
+      dirPath += '/';
+
+    foreach (const QString &hidden, hiddenDirs)
+    {
+      const QString path = hidden.endsWith('/') ? hidden : (hidden + '/');
+      if (dirPath.startsWith(path, caseSensitivity))
+        return true;
+    }
   }
 
   return false;

@@ -98,6 +98,7 @@ private:
   QString                       virtualPath(const QUrl &realPath) const;
   QUrl                          realPath(const QString &virtualPath) const;
   static QString                virtualFile(const QString &virtualPath);
+  static QString                dirLabel(const QString &);
 
   Item                          makeItem(const FileNode &, int titleId = -1);
   Item                          makePlayAllItem(const QString &virtualPath);

@@ -48,6 +48,7 @@ private:
 
 private:
   QDir                          dir;
+  bool                          valid;
   bool                          root;
 };
 
