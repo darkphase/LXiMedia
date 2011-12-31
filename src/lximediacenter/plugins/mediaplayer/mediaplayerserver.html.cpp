@@ -21,10 +21,6 @@
 #include "mediadatabase.h"
 #include "module.h"
 
-#ifdef Q_OS_WIN
-#include <windows.h>
-#endif
-
 namespace LXiMediaCenter {
 namespace MediaPlayerBackend {
 
@@ -234,10 +230,11 @@ void MediaPlayerServer::generateDirs(SStringParser &htmlParser, const QList<QUrl
         children += filesystem.filePath(child);
 
       const bool isSingleRoot = (indent == 0) && (dirs.count() == 1);
+      const bool isReadable = filesystem.readInfo(".").isReadable;
 
       // Expand
       htmlParser.setField("DIR_EXPAND", htmlParser.parse(htmlSettingsDirTreeIndent));
-      if (!isSingleRoot && !children.isEmpty())
+      if (!isSingleRoot && isReadable && !children.isEmpty())
       {
         QStringList all = allopen;
         if (all.contains(path))
@@ -289,9 +286,9 @@ void MediaPlayerServer::generateDirs(SStringParser &htmlParser, const QList<QUrl
         }
       }
 
-      if (!filesystem.readInfo(".").isReadable)
+      if (!isReadable)
       {
-        htmlParser.appendField("DIR_CHECKED", "disabled");
+        htmlParser.setField("DIR_CHECKED", "nonedisabled");
         htmlParser.setField("DIR_TITLE", tr("Access denied"));
         checkEnabled = false;
       }
@@ -332,33 +329,14 @@ void MediaPlayerServer::scanDrives(void)
     const SMediaFilesystem dir(filesystem.filePath(drive));
     if (!dir.entryList().isEmpty())
     {
-  #ifdef Q_OS_WIN
-      WCHAR szVolumeName[MAX_PATH+1];
-      WCHAR szFileSystemName[MAX_PATH+1];
-      DWORD dwSerialNumber = 0;
-      DWORD dwMaxFileNameLength = MAX_PATH;
-      DWORD dwFileSystemFlags = 0;
-
-      if (::GetVolumeInformationW(reinterpret_cast<const WCHAR *>(filesystem.filePath(drive).path().utf16()),
-                                  szVolumeName, sizeof(szVolumeName) / sizeof(*szVolumeName),
-                                  &dwSerialNumber,
-                                  &dwMaxFileNameLength,
-                                  &dwFileSystemFlags,
-                                  szFileSystemName, sizeof(szFileSystemName) / sizeof(*szFileSystemName)))
-      {
-        driveList.insert(
-              filesystem.filePath(drive),
-              QString::fromUtf16((const ushort *)szVolumeName).trimmed());
-      }
-  #else
-      driveList.insert(filesystem.filePath(drive), tr("Root"));
-  #endif
+      const QUrl path = filesystem.filePath(drive);
+      driveList.insert(path, dirLabel(path.path()));
     }
   }
 
-  foreach (const QUrl &drive, rootPaths)
-  if (drive.scheme() != "file")
-    driveList.insert(drive, drive.toString(QUrl::RemovePassword));
+  foreach (const QUrl &path, rootPaths)
+  if (path.scheme() != "file")
+    driveList.insert(path, path.toString(QUrl::RemovePassword));
 }
 
 SHttpServer::ResponseMessage MediaPlayerServer::httpRequest(const SHttpServer::RequestMessage &request, QIODevice *socket)
