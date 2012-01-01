@@ -91,22 +91,22 @@ QList<SPlaylistNode::Chapter> SPlaylistNode::chapters(void) const
   return QList<SPlaylistNode::Chapter>();
 }
 
-QList<SPlaylistNode::AudioStreamInfo> SPlaylistNode::audioStreams(void) const
+QList<SPlaylistNode::AudioStreamInfo> SPlaylistNode::audioStreams(int) const
 {
   return d->audioStreams;
 }
 
-QList<SPlaylistNode::VideoStreamInfo> SPlaylistNode::videoStreams(void) const
+QList<SPlaylistNode::VideoStreamInfo> SPlaylistNode::videoStreams(int) const
 {
   return d->videoStreams;
 }
 
-QList<SPlaylistNode::DataStreamInfo>  SPlaylistNode::dataStreams(void) const
+QList<SPlaylistNode::DataStreamInfo>  SPlaylistNode::dataStreams(int) const
 {
   return QList<DataStreamInfo>();
 }
 
-void SPlaylistNode::selectStreams(const QVector<StreamId> &)
+void SPlaylistNode::selectStreams(int, const QVector<StreamId> &)
 {
 }
 

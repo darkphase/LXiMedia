@@ -434,8 +434,8 @@ bool SandboxPlaylistStream::setup(const SHttpServer::RequestMessage &request, QI
         true))
   {
     connect(&playlistNode, SIGNAL(finished()), SLOT(stop()));
-    connect(&playlistNode, SIGNAL(opened(QString)), SLOT(opened(QString)));
-    connect(&playlistNode, SIGNAL(closed(QString)), SLOT(closed(QString)));
+    connect(&playlistNode, SIGNAL(opened(QUrl)), SLOT(opened(QUrl)));
+    connect(&playlistNode, SIGNAL(closed(QUrl)), SLOT(closed(QUrl)));
     connect(&playlistNode, SIGNAL(output(SEncodedAudioBuffer)), &audioDecoder, SLOT(input(SEncodedAudioBuffer)));
     connect(&playlistNode, SIGNAL(output(SEncodedVideoBuffer)), &videoDecoder, SLOT(input(SEncodedVideoBuffer)));
     connect(&playlistNode, SIGNAL(output(SEncodedDataBuffer)), &dataDecoder, SLOT(input(SEncodedDataBuffer)));
@@ -446,15 +446,15 @@ bool SandboxPlaylistStream::setup(const SHttpServer::RequestMessage &request, QI
   return false;
 }
 
-void SandboxPlaylistStream::opened(const QString &filePath)
+void SandboxPlaylistStream::opened(const QUrl &filePath)
 {
   // Mark as played:
-  std::cerr << ("#PLAYED:" + filePath.toUtf8().toHex()).data() << std::endl;
+  std::cerr << ("#PLAYED:" + filePath.toString().toUtf8().toHex()).data() << std::endl;
 
   currentFile = filePath;
 }
 
-void SandboxPlaylistStream::closed(const QString &filePath)
+void SandboxPlaylistStream::closed(const QUrl &filePath)
 {
   if (currentFile == filePath)
     currentFile = QString::null;
