@@ -56,7 +56,9 @@ MediaProfiles::MediaProfiles(void)
     INSERT_PROFILE_NAME(d->audioProfileNames, AAC_ADTS);
     INSERT_PROFILE_NAME(d->audioProfileNames, AC3);
     INSERT_PROFILE_NAME(d->audioProfileNames, WMABASE);
-    INSERT_PROFILE_NAME(d->audioProfileNames, VORBIS);
+    INSERT_PROFILE_NAME(d->audioProfileNames, VORBIS_NONSTD);
+    INSERT_PROFILE_NAME(d->audioProfileNames, FLAC_NONSTD);
+    INSERT_PROFILE_NAME(d->audioProfileNames, WAV_NONSTD);
   }
 
   if (d->videoProfileNames.isEmpty())
@@ -99,6 +101,8 @@ MediaProfiles::MediaProfiles(void)
     INSERT_PROFILE_NAME(d->videoProfileNames, MPEG4_P2_MATROSKA_AAC_HD_NONSTD);
     INSERT_PROFILE_NAME(d->videoProfileNames, MPEG4_P2_MATROSKA_AC3_SD_NONSTD);
     INSERT_PROFILE_NAME(d->videoProfileNames, MPEG4_P2_MATROSKA_AC3_HD_NONSTD);
+    INSERT_PROFILE_NAME(d->videoProfileNames, OGG_THEORA_VORBIS_SD_NONSTD);
+    INSERT_PROFILE_NAME(d->videoProfileNames, OGG_THEORA_FLAC_SD_NONSTD);
   }
 
   if (d->imageProfileNames.isEmpty())
@@ -177,6 +181,33 @@ QStringList MediaProfiles::enabledImageProfiles(void)
     result += profileName(profile);
 
   return result;
+}
+
+bool MediaProfiles::isProfileEnabled(AudioProfile profile) const
+{
+  foreach (AudioProfile p, d->audioProfiles)
+  if (p == profile)
+    return true;
+
+  return false;
+}
+
+bool MediaProfiles::isProfileEnabled(VideoProfile profile) const
+{
+  foreach (VideoProfile p, d->videoProfiles)
+  if (p == profile)
+    return true;
+
+  return false;
+}
+
+bool MediaProfiles::isProfileEnabled(ImageProfile profile) const
+{
+  foreach (ImageProfile p, d->imageProfiles)
+  if (p == profile)
+    return true;
+
+  return false;
 }
 
 SUPnPBase::ProtocolList MediaProfiles::listProtocols(const QString &client)
@@ -470,11 +501,10 @@ int MediaProfiles::correctFormat(AudioProfile profile, SAudioFormat &format)
   case MP3:
   case AAC_ADTS:
   case WMABASE:
+  case VORBIS_NONSTD:
+  case FLAC_NONSTD:
+  case WAV_NONSTD:
     format.setSampleRate(44100);
-    return correctFormatStereo(format);
-
-  case VORBIS:
-    format.setSampleRate(48000);
     return correctFormatStereo(format);
 
   case AC3:
@@ -505,6 +535,8 @@ int MediaProfiles::correctFormat(VideoProfile profile, SAudioFormat &format)
   case WMVMED_BASE:
   case MPEG4_P2_MATROSKA_MP3_SD_NONSTD:
   case MPEG4_P2_MATROSKA_AAC_SD_NONSTD:
+  case OGG_THEORA_VORBIS_SD_NONSTD:
+  case OGG_THEORA_FLAC_SD_NONSTD:
     format.setSampleRate(44100);
     return correctFormatStereo(format);
 
@@ -735,6 +767,8 @@ int MediaProfiles::correctFormat(VideoProfile profile, SVideoFormat &format)
   case MPEG4_P2_MATROSKA_MP3_SD_NONSTD:
   case MPEG4_P2_MATROSKA_AAC_SD_NONSTD:
   case MPEG4_P2_MATROSKA_AC3_SD_NONSTD:
+  case OGG_THEORA_VORBIS_SD_NONSTD:
+  case OGG_THEORA_FLAC_SD_NONSTD:
     if ((format.size().width() <= 352) && (format.size().height() <= 288))
       offset = Data::hiddenPriority * 2;
     else if ((format.size().width() <= 768) && (format.size().height() <= 576))
@@ -891,8 +925,14 @@ QString MediaProfiles::audioCodecFor(AudioProfile profile, SAudioFormat::Channel
   case WMABASE:
     return "WMAV2";
 
-  case VORBIS:
+  case VORBIS_NONSTD:
     return "VORBIS";
+
+  case FLAC_NONSTD:
+    return "FLAC";
+
+  case WAV_NONSTD:
+    return "PCM/S16LE";
   }
 
   return QString::null;
@@ -958,6 +998,12 @@ QString MediaProfiles::audioCodecFor(VideoProfile profile, SAudioFormat::Channel
   case MPEG4_P2_MATROSKA_MP3_SD_NONSTD:
   case MPEG4_P2_MATROSKA_MP3_HD_NONSTD:
     return "MP3";
+
+  case OGG_THEORA_VORBIS_SD_NONSTD:
+    return "VORBIS";
+
+  case OGG_THEORA_FLAC_SD_NONSTD:
+    return "FLAC";
   }
 
   return QString::null;
@@ -1012,6 +1058,10 @@ QString MediaProfiles::videoCodecFor(VideoProfile profile)
 
   case WMVMED_BASE:
     return "WMV3";
+
+  case OGG_THEORA_VORBIS_SD_NONSTD:
+  case OGG_THEORA_FLAC_SD_NONSTD:
+    return "THEORA";
   }
 
   return QString::null;
@@ -1057,8 +1107,12 @@ QString MediaProfiles::formatFor(AudioProfile profile)
   case WMABASE:
     return "asf";
 
-  case VORBIS:
+  case VORBIS_NONSTD:
+  case FLAC_NONSTD:
     return "ogg";
+
+  case WAV_NONSTD:
+    return "wav";
   }
 
   return QString::null;
@@ -1121,6 +1175,10 @@ QString MediaProfiles::formatFor(VideoProfile profile)
   case MPEG4_P2_MATROSKA_AC3_SD_NONSTD:
   case MPEG4_P2_MATROSKA_AC3_HD_NONSTD:
     return "matroska";
+
+  case OGG_THEORA_VORBIS_SD_NONSTD:
+  case OGG_THEORA_FLAC_SD_NONSTD:
+    return "ogg";
   }
 
   return QString::null;
@@ -1164,8 +1222,12 @@ const char * MediaProfiles::mimeTypeFor(AudioProfile profile)
   case WMABASE:
     return SHttpEngine::mimeAudioWma;
 
-  case VORBIS:
+  case VORBIS_NONSTD:
+  case FLAC_NONSTD:
     return SHttpEngine::mimeAudioOgg;
+
+  case WAV_NONSTD:
+    return SHttpEngine::mimeAudioWave;
   }
 
   return "";
@@ -1224,6 +1286,10 @@ const char * MediaProfiles::mimeTypeFor(VideoProfile profile)
   case MPEG4_P2_MATROSKA_AC3_SD_NONSTD:
   case MPEG4_P2_MATROSKA_AC3_HD_NONSTD:
     return SHttpEngine::mimeVideoMatroska;
+
+  case OGG_THEORA_VORBIS_SD_NONSTD:
+  case OGG_THEORA_FLAC_SD_NONSTD:
+    return SHttpEngine::mimeVideoOgg;
   }
 
   return "";
@@ -1269,8 +1335,12 @@ const char * MediaProfiles::suffixFor(AudioProfile profile)
   case WMABASE:
     return ".wma";
 
-  case VORBIS:
+  case VORBIS_NONSTD:
+  case FLAC_NONSTD:
     return ".oga";
+
+  case WAV_NONSTD:
+    return ".wav";
   }
 
   return "";
@@ -1329,6 +1399,10 @@ const char * MediaProfiles::suffixFor(VideoProfile profile)
   case MPEG4_P2_MATROSKA_AC3_SD_NONSTD:
   case MPEG4_P2_MATROSKA_AC3_HD_NONSTD:
     return ".mkv";
+
+  case OGG_THEORA_VORBIS_SD_NONSTD:
+  case OGG_THEORA_FLAC_SD_NONSTD:
+    return ".ogv";
   }
 
   return "";
@@ -1370,7 +1444,9 @@ int MediaProfiles::profilePriority(AudioProfile profile)
   case WMABASE:
     return 1;
 
-  case VORBIS:
+  case VORBIS_NONSTD:
+  case FLAC_NONSTD:
+  case WAV_NONSTD:
     return 0;
   }
 
@@ -1449,6 +1525,8 @@ int MediaProfiles::profilePriority(VideoProfile profile)
     return 8;
 
   case WMVMED_BASE:
+  case OGG_THEORA_VORBIS_SD_NONSTD:
+  case OGG_THEORA_FLAC_SD_NONSTD:
     return 9;
   }
 

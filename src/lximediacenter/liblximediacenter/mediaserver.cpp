@@ -371,9 +371,8 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
       if (item.duration > 0)
         htmlParser.appendField("TITLE", " (" + QTime(0, 0, 0).addSecs(item.duration).toString("m:ss") + ")");
 
-      if (SIOOutputNode::formats().contains("ogg") &&
-          (SAudioEncoderNode::codecs().contains("VORBIS") ||
-           SAudioEncoderNode::codecs().contains("FLAC")))
+      if (mediaProfiles().isProfileEnabled(MediaProfiles::VORBIS_NONSTD) ||
+          mediaProfiles().isProfileEnabled(MediaProfiles::FLAC_NONSTD))
       {
         QUrl url(request.file());
         url.addQueryItem("format", "oga");
@@ -383,8 +382,7 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
         htmlParser.appendField("SOURCES", htmlParser.parse(htmlAudioPlayerSource));
       }
 
-      if (SIOOutputNode::formats().contains("mp3") &&
-          SAudioEncoderNode::codecs().contains("MP3"))
+      if (mediaProfiles().isProfileEnabled(MediaProfiles::MP3))
       {
         QUrl url(request.file());
         url.addQueryItem("format", "mp3");
@@ -394,8 +392,7 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
         htmlParser.appendField("SOURCES", htmlParser.parse(htmlAudioPlayerSource));
       }
 
-      if (SIOOutputNode::formats().contains("mp2") &&
-          SAudioEncoderNode::codecs().contains("MP2"))
+      if (mediaProfiles().isProfileEnabled(MediaProfiles::MP2))
       {
         QUrl url(request.file());
         url.addQueryItem("format", "mp2");
@@ -405,8 +402,7 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
         htmlParser.appendField("SOURCES", htmlParser.parse(htmlAudioPlayerSource));
       }
 
-      if (SIOOutputNode::formats().contains("wav") &&
-          SAudioEncoderNode::codecs().contains("PCM/S16LE"))
+      if (mediaProfiles().isProfileEnabled(MediaProfiles::WAV_NONSTD))
       {
         QUrl url(request.file());
         url.addQueryItem("format", "wav");
@@ -423,10 +419,8 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
       SStringParser htmlParser;
       htmlParser.setField("SOURCES", "");
 
-      if (SIOOutputNode::formats().contains("ogg") &&
-          (SAudioEncoderNode::codecs().contains("VORBIS") ||
-           SAudioEncoderNode::codecs().contains("FLAC")) &&
-          SVideoEncoderNode::codecs().contains("THEORA"))
+      if (mediaProfiles().isProfileEnabled(MediaProfiles::OGG_THEORA_VORBIS_SD_NONSTD) ||
+          mediaProfiles().isProfileEnabled(MediaProfiles::OGG_THEORA_FLAC_SD_NONSTD))
       {
         QUrl url(request.file());
         url.addQueryItem("format", "ogv");
@@ -436,9 +430,8 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
         htmlParser.appendField("SOURCES", htmlParser.parse(htmlVideoPlayerSource));
       }
 
-      if (SIOOutputNode::formats().contains("vob") &&
-          SAudioEncoderNode::codecs().contains("MP2") &&
-          SVideoEncoderNode::codecs().contains("MPEG2"))
+      if (mediaProfiles().isProfileEnabled(MediaProfiles::MPEG_PS_SD_EU_NONSTD) ||
+          mediaProfiles().isProfileEnabled(MediaProfiles::MPEG_PS_SD_NA_NONSTD))
       {
         QUrl url(request.file());
         url.addQueryItem("format", "vob");
@@ -448,10 +441,9 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
         htmlParser.appendField("SOURCES", htmlParser.parse(htmlVideoPlayerSource));
       }
 
-      if (SIOOutputNode::formats().contains("matroska") &&
-          (SAudioEncoderNode::codecs().contains("MP3") ||
-           SAudioEncoderNode::codecs().contains("MP2")) &&
-          SVideoEncoderNode::codecs().contains("MPEG4"))
+      if (mediaProfiles().isProfileEnabled(MediaProfiles::MPEG4_P2_MATROSKA_MP3_SD_NONSTD) ||
+          mediaProfiles().isProfileEnabled(MediaProfiles::MPEG4_P2_MATROSKA_AAC_SD_NONSTD) ||
+          mediaProfiles().isProfileEnabled(MediaProfiles::MPEG4_P2_MATROSKA_AC3_SD_NONSTD))
       {
         QUrl url(request.file());
         url.addQueryItem("format", "matroska");
