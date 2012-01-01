@@ -1,7 +1,7 @@
 # Default build settings for LXiMedia
 CONFIG += qt thread warn_on
-INCLUDEPATH += $${PWD}/
-DEPENDPATH += ./ $${PWD}/
+INCLUDEPATH += $${OUT_PWD}/$${LXIMEDIA_DIR}/include/ $${PWD}/
+DEPENDPATH += ./ $${OUT_PWD}/$${LXIMEDIA_DIR}/include/ $${PWD}/
 
 # Version number
 unix:VERSION = $$system(cat $${PWD}/../VERSION)

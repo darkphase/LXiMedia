@@ -44,10 +44,10 @@ public:
   virtual STime                 position(void) const;
   virtual QList<Chapter>        chapters(void) const;
 
-  virtual QList<AudioStreamInfo> audioStreams(void) const;
-  virtual QList<VideoStreamInfo> videoStreams(void) const;
-  virtual QList<DataStreamInfo>  dataStreams(void) const;
-  virtual void                  selectStreams(const QVector<StreamId> &);
+  virtual QList<AudioStreamInfo> audioStreams(int title) const;
+  virtual QList<VideoStreamInfo> videoStreams(int title) const;
+  virtual QList<DataStreamInfo>  dataStreams(int title) const;
+  virtual void                  selectStreams(int title, const QVector<StreamId> &);
 
 public: // From SInterfaces::SourceNode
   virtual bool                  start(void);

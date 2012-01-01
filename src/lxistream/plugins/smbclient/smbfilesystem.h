@@ -70,6 +70,7 @@ public:
   static const char             scheme[];
 
 private:
+  static QMutex               * mutex(void);
   static QMap<QString, QUrl>  & paths(void);
   static void                   authenticate(const char *srv, const char *shr,
                                              char *wg, int wglen,

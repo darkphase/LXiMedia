@@ -67,9 +67,16 @@ SApplication::SApplication(bool useLogFile, const QStringList &skipModules, QObj
   if (self != NULL)
     qFatal("Only one instance of the SApplication class is allowed.");
 
+  const QString appName = QFileInfo(qApp->applicationFilePath()).baseName();
+  QDir tmpDir = QDir::temp();
+
+  // Remove previous temporary files.
+  foreach (const QString &fileName, tmpDir.entryList(QStringList(appName + ".*"), QDir::Files))
+    tmpDir.remove(fileName);
+
   if (useLogFile)
   {
-    d->logFile.setFileTemplate(QDir::temp().absoluteFilePath(QFileInfo(qApp->applicationFilePath()).baseName() + ".XXXXXX.log"));
+    d->logFile.setFileTemplate(tmpDir.absoluteFilePath(appName + ".XXXXXX.log"));
     d->logFile.open();
   }
 

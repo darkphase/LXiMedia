@@ -105,8 +105,8 @@ public:
   bool                          setup(const SHttpServer::RequestMessage &, QIODevice *);
 
 public slots:
-  void                          opened(const QString &);
-  void                          closed(const QString &);
+  void                          opened(const QUrl &);
+  void                          closed(const QUrl &);
 
 private:
   QUrl                          currentFile;

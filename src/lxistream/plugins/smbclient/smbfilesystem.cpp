@@ -27,16 +27,22 @@ const char  SMBFilesystem::scheme[] = "smb";
 
 void SMBFilesystem::init(void)
 {
+  QMutexLocker l(mutex());
+
   ::smbc_init(&SMBFilesystem::authenticate, 0);
 }
 
 void SMBFilesystem::close(void)
 {
+  QMutexLocker l(mutex());
+
   paths().clear();
 }
 
 QByteArray SMBFilesystem::version(void)
 {
+  QMutexLocker l(mutex());
+
   return ::smbc_version();
 }
 
@@ -47,6 +53,8 @@ SMBFilesystem::SMBFilesystem(const QString &, QObject *parent)
 
 bool SMBFilesystem::openDirectory(const QUrl &path)
 {
+  QMutexLocker l(mutex());
+
   QString share = path.path();
   if (share.startsWith('/'))
   {
@@ -72,6 +80,8 @@ bool SMBFilesystem::openDirectory(const QUrl &path)
 
 QStringList SMBFilesystem::entryList(QDir::Filters filter, QDir::SortFlags sort) const
 {
+  QMutexLocker l(mutex());
+
   QMultiMap<QString, QString> result;
 
   const int dh = ::smbc_opendir(path.toEncoded(QUrl::RemoveUserInfo));
@@ -174,6 +184,8 @@ QUrl SMBFilesystem::filePath(const QString &fileName) const
 
 SMBFilesystem::Info SMBFilesystem::readInfo(const QString &fileName) const
 {
+  QMutexLocker l(mutex());
+
   Info result;
 
   struct ::stat st;
@@ -196,6 +208,13 @@ QIODevice * SMBFilesystem::openFile(const QString &fileName) const
 
   delete file;
   return NULL;
+}
+
+QMutex * SMBFilesystem::mutex(void)
+{
+  static QMutex m(QMutex::Recursive);
+
+  return &m;
 }
 
 QMap<QString, QUrl> & SMBFilesystem::paths(void)
@@ -227,12 +246,16 @@ SMBFilesystem::File::File(const QUrl &path)
 
 SMBFilesystem::File::~File()
 {
+  QMutexLocker l(mutex());
+
   if (fd >= 0)
     ::smbc_close(fd);
 }
 
 bool SMBFilesystem::File::open(OpenMode mode)
 {
+  QMutexLocker l(mutex());
+
   if ((fd < 0) && (mode == QIODevice::ReadOnly))
   if ((fd = ::smbc_open(path.toEncoded(QUrl::RemoveUserInfo), O_RDONLY, 0)) >= 0)
     return QIODevice::open(mode);
@@ -242,6 +265,8 @@ bool SMBFilesystem::File::open(OpenMode mode)
 
 void SMBFilesystem::File::close(void)
 {
+  QMutexLocker l(mutex());
+
   QIODevice::close();
 
   if (fd >= 0)
@@ -257,6 +282,8 @@ bool SMBFilesystem::File::isSequential(void) const
 
 bool SMBFilesystem::File::seek(qint64 pos)
 {
+  QMutexLocker l(mutex());
+
   if (fd >= 0)
   if (::smbc_lseek(fd, pos, SEEK_SET) != off_t(-1))
     return QIODevice::seek(pos);
@@ -266,6 +293,8 @@ bool SMBFilesystem::File::seek(qint64 pos)
 
 qint64 SMBFilesystem::File::size(void) const
 {
+  QMutexLocker l(mutex());
+
   if (fd >= 0)
   {
     struct ::stat st;
@@ -278,6 +307,8 @@ qint64 SMBFilesystem::File::size(void) const
 
 qint64 SMBFilesystem::File::readData(char *data, qint64 maxSize)
 {
+  QMutexLocker l(mutex());
+
   if (fd >= 0)
     return ::smbc_read(fd, data, maxSize);
 

@@ -343,8 +343,6 @@ QUrl MediaPlayerServer::realPath(const QString &virtualPath) const
           rootString += '/';
 
         QString result = rootString + virtualPath.mid(s + 1);
-        while (result.endsWith('/'))
-          result = result.left(result.length() - 1);
 
         // Remove any virtual files
         const int ls = result.lastIndexOf('/');

@@ -370,6 +370,14 @@ SHttpServer::ResponseMessage Backend::httpRequest(const SHttpServer::RequestMess
         return SHttpServer::ResponseMessage(request, SHttpServer::Status_NoContent);
       }
 #endif
+      else if (request.fileName() == "robots.txt")
+      {
+        // Prevent search engines from crawling this site.
+        return SHttpServer::ResponseMessage(
+            request, SHttpServer::Status_Ok,
+            "User-agent: *\r\nDisallow: /\r\n",
+            SHttpServer::mimeTextPlain);
+      }
       else if (request.fileName() == "favicon.ico")
         return sendFile(request, ":/lximedia.ico");
       else if (request.fileName() == "lximedia.png")
