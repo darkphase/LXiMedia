@@ -43,6 +43,7 @@ QByteArray Module::about(void)
 
 QByteArray Module::licenses(void)
 {
+#ifndef Q_OS_WIN
   const QByteArray text =
       " <h3>libsmbclient</h3>\n"
       " Version: " + SMBFilesystem::version() + "<br />\n"
@@ -51,6 +52,9 @@ QByteArray Module::licenses(void)
       " as published by the Free Software Foundation.\n";
 
   return text;
+#else
+  return QByteArray();
+#endif
 }
 
 } } // End of namespaces

@@ -64,17 +64,21 @@ const char MediaPlayerServer::htmlSettingsAddNetworkDrive[] =
     "        <td>{TR_HOSTNAME}</td>\n"
     "        <td></td>\n"
     "        <td>{TR_SHARE_PATH}</td>\n"
+#if !defined(Q_OS_WIN)
     "        <td>{TR_USERNAME}</td>\n"
     "        <td>{TR_PASSWORD}</td>\n"
+#endif
     "        <td></td>\n"
     "       </tr>\n"
     "       <tr>\n"
-    "        <td>{SMBPREFIX}</td>\n"
+    "        <td>smb://</td>\n"
     "        <td><input type=\"text\" size=\"20\" name=\"smbhostname\" value=\"\" /></td>\n"
-    "        <td>{SMBSLASH}</td>\n"
+    "        <td>/</td>\n"
     "        <td><input type=\"text\" size=\"20\" name=\"smbpath\" value=\"\" /></td>\n"
+#if !defined(Q_OS_WIN)
     "        <td><input type=\"text\" size=\"10\" name=\"smbusername\" value=\"\" /></td>\n"
     "        <td><input type=\"password\" size=\"10\" name=\"smbpassword\" value=\"\" /></td>\n"
+#endif
     "        <td><input type=\"submit\" name=\"smbadd\" value=\"{TR_ADD}\" /></td>\n"
     "       </tr>\n"
     "      </table>\n"
@@ -146,8 +150,10 @@ QByteArray MediaPlayerServer::settingsContent(void)
   htmlParser.setField("TR_SELECT_MEDIA_DIRECTORIES", tr("Select media directories"));
   htmlParser.setField("TR_HOSTNAME", tr("Hostname"));
   htmlParser.setField("TR_SHARE_PATH", tr("Share/Path"));
+#if !defined(Q_OS_WIN)
   htmlParser.setField("TR_USERNAME", tr("Username"));
   htmlParser.setField("TR_PASSWORD", tr("Password"));
+#endif
 
   htmlParser.setField("TR_RIGHTS_EXPLAIN", tr(
       "By default, the LXiMediaCenter backend (lximcbackend) runs as a restricted user.\n"
@@ -167,21 +173,15 @@ QByteArray MediaPlayerServer::settingsContent(void)
 
   htmlParser.setField("TR_ADD_NETWORK_DRIVE_EXPLAIN", tr(
       "A network drive can be added here. Provide the hostname or IP address "
-      "of the server and a share name. A username and password can be "
-      "optionally provided, a guest accunt is used if omitted."));
+      "of the server and a share name. "
+#if !defined(Q_OS_WIN)
+      "A username and password can be optionally provided, a guest accunt is "
+      "used if omitted."
+#endif
+      ));
 
   if (fileProtocols().contains("smb"))
-  {
-#if defined(Q_OS_WIN)
-    htmlParser.setField("SMBPREFIX", "\\\\");
-    htmlParser.setField("SMBSLASH", "\\");
-#else
-    htmlParser.setField("SMBPREFIX", "smb://");
-    htmlParser.setField("SMBSLASH", "/");
-#endif
-
     htmlParser.setField("ADDNETWORKDRIVE", htmlParser.parse(htmlSettingsAddNetworkDrive));
-  }
   else
     htmlParser.setField("ADDNETWORKDRIVE", "");
 

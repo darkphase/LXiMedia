@@ -18,7 +18,10 @@
  ***************************************************************************/
 
 #include "smbfilesystem.h"
+
+#if !defined(Q_OS_WIN) || defined(USE_LIBSMBCLIENT_ON_WIN)
 #include <libsmbclient.h>
+#endif
 
 namespace LXiStream {
 namespace SMBClientBackend {
@@ -27,24 +30,30 @@ const char  SMBFilesystem::scheme[] = "smb";
 
 void SMBFilesystem::init(void)
 {
+#if !defined(Q_OS_WIN) || defined(USE_LIBSMBCLIENT_ON_WIN)
   QMutexLocker l(mutex());
 
   ::smbc_init(&SMBFilesystem::authenticate, 0);
+#endif
 }
 
 void SMBFilesystem::close(void)
 {
+#if !defined(Q_OS_WIN) || defined(USE_LIBSMBCLIENT_ON_WIN)
   QMutexLocker l(mutex());
 
   paths().clear();
+#endif
 }
 
+#if !defined(Q_OS_WIN) || defined(USE_LIBSMBCLIENT_ON_WIN)
 QByteArray SMBFilesystem::version(void)
 {
   QMutexLocker l(mutex());
 
   return ::smbc_version();
 }
+#endif
 
 SMBFilesystem::SMBFilesystem(const QString &, QObject *parent)
   : SInterfaces::Filesystem(parent)
@@ -53,6 +62,7 @@ SMBFilesystem::SMBFilesystem(const QString &, QObject *parent)
 
 bool SMBFilesystem::openDirectory(const QUrl &path)
 {
+#if !defined(Q_OS_WIN) || defined(USE_LIBSMBCLIENT_ON_WIN)
   QMutexLocker l(mutex());
 
   QString share = path.path();
@@ -76,10 +86,23 @@ bool SMBFilesystem::openDirectory(const QUrl &path)
   this->path = path;
 
   return true;
+#else
+  const QString uncPath = "\\\\" + path.host() + QDir::toNativeSeparators(path.path());
+
+  dir = QDir(uncPath);
+  if (dir.exists())
+  {
+    this->path = path;
+    return true;
+  }
+
+  return false;
+#endif
 }
 
 QStringList SMBFilesystem::entryList(QDir::Filters filter, QDir::SortFlags sort) const
 {
+#if !defined(Q_OS_WIN) || defined(USE_LIBSMBCLIENT_ON_WIN)
   QMutexLocker l(mutex());
 
   QMultiMap<QString, QString> result;
@@ -162,6 +185,15 @@ QStringList SMBFilesystem::entryList(QDir::Filters filter, QDir::SortFlags sort)
   }
 
   return result.values();
+#else
+  QStringList result;
+
+  foreach (const QString &fileName, dir.entryList(filter, sort))
+  if (!fileName.startsWith('.'))
+    result += fileName;
+
+  return result;
+#endif
 }
 
 QUrl SMBFilesystem::filePath(const QString &fileName) const
@@ -184,9 +216,10 @@ QUrl SMBFilesystem::filePath(const QString &fileName) const
 
 SMBFilesystem::Info SMBFilesystem::readInfo(const QString &fileName) const
 {
-  QMutexLocker l(mutex());
-
   Info result;
+
+#if !defined(Q_OS_WIN) || defined(USE_LIBSMBCLIENT_ON_WIN)
+  QMutexLocker l(mutex());
 
   struct ::stat st;
   if (::smbc_stat(filePath(fileName).toEncoded(QUrl::RemoveUserInfo), &st) == 0)
@@ -196,20 +229,35 @@ SMBFilesystem::Info SMBFilesystem::readInfo(const QString &fileName) const
     result.size = st.st_size;
     result.lastModified = QDateTime::fromTime_t(st.st_mtime);
   }
+#else
+  const QFileInfo info(dir.absoluteFilePath(fileName));
+
+  result.isDir = info.isDir();
+  result.isReadable = info.isReadable();
+  result.size = info.size();
+  result.lastModified = info.lastModified();
+#endif
 
   return result;
 }
 
 QIODevice * SMBFilesystem::openFile(const QString &fileName) const
 {
+#if !defined(Q_OS_WIN) || defined(USE_LIBSMBCLIENT_ON_WIN)
   File * const file = new File(filePath(fileName));
   if (file->open(File::ReadOnly))
     return file;
+#else
+  QFile * const file = new QFile(dir.absoluteFilePath(fileName));
+  if (file->open(QFile::ReadOnly))
+    return file;
+#endif
 
   delete file;
   return NULL;
 }
 
+#if !defined(Q_OS_WIN) || defined(USE_LIBSMBCLIENT_ON_WIN)
 QMutex * SMBFilesystem::mutex(void)
 {
   static QMutex m(QMutex::Recursive);
@@ -230,7 +278,7 @@ void SMBFilesystem::authenticate(
 {
   QMap<QString, QUrl>::ConstIterator i = paths().find(
       QString::fromUtf8(srv) + '/' + QString::fromUtf8(shr));
-  
+
   if (i != paths().end())
   {
     qstrncpy(un, i->userName().toUtf8(), unlen);
@@ -319,5 +367,6 @@ qint64 SMBFilesystem::File::writeData(const char *, qint64)
 {
   return -1;
 }
+#endif
 
 } } // End of namespaces
