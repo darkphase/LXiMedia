@@ -26,10 +26,14 @@
 namespace LXiStream {
 namespace SMBClientBackend {
 
+/*! Implements a SMB/CIFS filesystem. Uses libsmbclient on unix and UNC paths
+    on Windows.
+ */
 class SMBFilesystem : public SInterfaces::Filesystem
 {
 Q_OBJECT
 private:
+#if !defined(Q_OS_WIN) || defined(USE_LIBSMBCLIENT_ON_WIN)
   class File : public QIODevice
   {
   public:
@@ -50,11 +54,14 @@ private:
     const QUrl                  path;
     int                         fd;
   };
+#endif
 
 public:
   static void                   init(void);
   static void                   close(void);
+#if !defined(Q_OS_WIN) || defined(USE_LIBSMBCLIENT_ON_WIN)
   static QByteArray             version(void);
+#endif
 
                                 SMBFilesystem(const QString &, QObject *parent);
 
@@ -70,15 +77,20 @@ public:
   static const char             scheme[];
 
 private:
+#if !defined(Q_OS_WIN) || defined(USE_LIBSMBCLIENT_ON_WIN)
   static QMutex               * mutex(void);
   static QMap<QString, QUrl>  & paths(void);
   static void                   authenticate(const char *srv, const char *shr,
                                              char *wg, int wglen,
                                              char *un, int unlen,
                                              char *pw, int pwlen);
+#endif
 
 private:
   QUrl                          path;
+#if defined(Q_OS_WIN) && !defined(USE_LIBSMBCLIENT_ON_WIN)
+  QDir                          dir;
+#endif
 };
 
 } } // End of namespaces
