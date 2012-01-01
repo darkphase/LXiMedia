@@ -46,8 +46,9 @@ public:
     // WMA
     WMABASE = 0x1000,
 
-    // Vorbis
-    VORBIS = 0x2000
+    // Non-standard
+    VORBIS_NONSTD = 0x7000, FLAC_NONSTD,
+    WAV_NONSTD
   };
 
   enum VideoProfile
@@ -84,6 +85,8 @@ public:
     MPEG4_P2_MATROSKA_MP3_SD_NONSTD, MPEG4_P2_MATROSKA_MP3_HD_NONSTD,
     MPEG4_P2_MATROSKA_AAC_SD_NONSTD, MPEG4_P2_MATROSKA_AAC_HD_NONSTD,
     MPEG4_P2_MATROSKA_AC3_SD_NONSTD, MPEG4_P2_MATROSKA_AC3_HD_NONSTD,
+
+    OGG_THEORA_VORBIS_SD_NONSTD, OGG_THEORA_FLAC_SD_NONSTD
   };
 
   enum ImageProfile
@@ -106,6 +109,9 @@ public:
   QStringList                   enabledAudioProfiles(void);
   QStringList                   enabledVideoProfiles(void);
   QStringList                   enabledImageProfiles(void);
+  bool                          isProfileEnabled(AudioProfile) const;
+  bool                          isProfileEnabled(VideoProfile) const;
+  bool                          isProfileEnabled(ImageProfile) const;
 
   SUPnPBase::ProtocolList       listProtocols(const QString &client);
   SUPnPBase::ProtocolList       listProtocols(const QString &client, const SAudioFormat &);
