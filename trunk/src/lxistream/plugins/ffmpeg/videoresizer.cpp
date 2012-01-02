@@ -115,7 +115,7 @@ bool VideoResizer::needsResize(const SVideoFormat &format)
           baseOverlap + 0);
 
       if (filterOverlap < (lastFormat.size().height() / 4))
-        numThreads = qBound(1, QThread::idealThreadCount(), 2);
+        numThreads = qBound(1, QThreadPool::globalInstance()->maxThreadCount(), 2);
       else
         numThreads = 1;
 

@@ -481,7 +481,7 @@ struct SHttpClientEngine::Data
 {
   QString                       senderId;
 
-  int                           maxOpenSockets;
+  static const int              maxOpenSockets = 8;
   int                           openSockets;
 };
 
@@ -501,7 +501,6 @@ SHttpClientEngine::SHttpClientEngine(QObject *parent)
   d->senderId += " Windows";
 #endif
 
-  d->maxOpenSockets = qMax(1, QThread::idealThreadCount()) * 4;
   d->openSockets = 0;
 }
 

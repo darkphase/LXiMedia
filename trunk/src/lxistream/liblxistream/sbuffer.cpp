@@ -184,7 +184,7 @@ SBuffer::Memory::Memory(const QByteArray &data)
 
 void SBuffer::copy(char *dst, const char *src, int size)
 {
-  int count = QThread::idealThreadCount();
+  int count = QThreadPool::globalInstance()->maxThreadCount();
   if ((size >= 262144) && (count > 1))
   {
     const int chunk = SMemoryPool::alignAddr(size / count);

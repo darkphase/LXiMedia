@@ -1059,7 +1059,7 @@ int FFMpegCommon::encodeThreadCount(::CodecID codec)
     break;
   }
 
-  return qBound(1, QThread::idealThreadCount(), limit);
+  return qBound(1, QThreadPool::globalInstance()->maxThreadCount(), limit);
 }
 
 int FFMpegCommon::decodeThreadCount(::CodecID codec)
@@ -1089,7 +1089,7 @@ int FFMpegCommon::decodeThreadCount(::CodecID codec)
     break;
   }
 
-  return qBound(1, QThread::idealThreadCount(), limit);
+  return qBound(1, QThreadPool::globalInstance()->maxThreadCount(), limit);
 }
 
 int FFMpegCommon::execute(::AVCodecContext *c, int (*func)(::AVCodecContext *c2, void *arg), void *arg2, int *ret, int count, int size)
