@@ -577,8 +577,13 @@ public:
      */
     Flag_HighQuality          = 0x0002,
 
-    /*! Indicates the video encoding should be as fast as possible at the
-        expense of image quality. (For example by only using intra-frames)
+    /*! Indicates the audio encoding may not be delayed (encodig may be delayed
+        due to parallelization).
+     */
+    Flag_NoDelay              = 0x0040,
+
+    /*! Indicates the audio encoding should be as fast as possible at the
+        expense of sound quality.
      */
     Flag_Fast                 = 0x0080
   };

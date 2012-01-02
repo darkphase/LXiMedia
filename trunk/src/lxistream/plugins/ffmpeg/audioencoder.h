@@ -42,7 +42,7 @@ public:
                                 AudioEncoder(const QString &, QObject *);
   virtual                       ~AudioEncoder();
 
-  inline const ::AVCodecContext * avCodecContext(void) const                    { return contextHandle; }
+  const ::AVCodecContext      * avCodecContext(void) const;
 
 public: // From SBufferEncoder
   virtual bool                  openCodec(const SAudioCodec &, SInterfaces::BufferWriter *, Flags = Flag_None);
@@ -51,6 +51,7 @@ public: // From SBufferEncoder
 
 private:
   inline int                    numSamples(size_t n)                            { return int((n / contextHandle->channels) / inSampleSize); }
+  void                          encodeBufferTask(const SAudioBuffer &, SEncodedAudioBufferList *, bool);
 
 private:
   SAudioCodec                   outCodec;
@@ -67,6 +68,14 @@ private:
   size_t                        inFrameBufferSize;
 
   SAudioFormatConvertNode       formatConvert;
+
+  QFuture<void>                 encodeFuture;
+  SEncodedAudioBufferList       delayedResult;
+  static const int              memorySemCount = 64;
+  QSemaphore                    memorySem;
+
+  bool                          noDelay;
+  mutable bool                  enableWait;
 
   unsigned                      showErrors;
 };

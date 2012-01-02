@@ -34,21 +34,11 @@ Q_OBJECT
 private:
   typedef void (* PKtoPLfunc)(const void *, unsigned, size_t, quint8 *, quint8 *, quint8 *);
 
-  class Memory : public SBuffer::Memory
-  {
-  public:
-                                Memory(int capacity, QSemaphore *);
-    virtual                     ~Memory();
-
-  private:
-    QSemaphore          * const semaphore;
-  };
-
 public:
                                 VideoEncoder(const QString &, QObject *);
   virtual                       ~VideoEncoder();
 
-  inline const ::AVCodecContext * avCodecContext(void) const                    { return contextHandle; }
+  const ::AVCodecContext      * avCodecContext(void) const;
 
 public: // From SBufferEncoder
   virtual bool                  openCodec(const SVideoCodec &, SInterfaces::BufferWriter *, Flags = Flag_None);
@@ -79,6 +69,7 @@ private:
 
   bool                          fastEncode;
   bool                          noDelay;
+  mutable bool                  enableWait;
 
   int                           bufferSize;
 };

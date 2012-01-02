@@ -44,6 +44,17 @@ namespace FFMpegBackend {
 class FFMpegCommon
 {
 public:
+  class SyncMemory : public SBuffer::Memory
+  {
+  public:
+                                SyncMemory(int capacity, QSemaphore *);
+    virtual                     ~SyncMemory();
+
+  private:
+    QSemaphore          * const semaphore;
+  };
+
+public:
   static void                   init(bool verbose = false);
 
   static void                   disableLog(bool);

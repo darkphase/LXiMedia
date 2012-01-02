@@ -38,6 +38,7 @@ VideoEncoder::VideoEncoder(const QString &, QObject *parent)
     memorySem(memorySemCount),
     fastEncode(false),
     noDelay(false),
+    enableWait(false),
     bufferSize(FF_MIN_BUFFER_SIZE)
 {
 }
@@ -45,6 +46,7 @@ VideoEncoder::VideoEncoder(const QString &, QObject *parent)
 VideoEncoder::~VideoEncoder()
 {
   encodeFuture.waitForFinished();
+  delayedResult.clear();
   memorySem.acquire(memorySemCount);
 
   if (contextHandle && contextHandleOwner)
@@ -57,6 +59,13 @@ VideoEncoder::~VideoEncoder()
 
   if (pictureHandle)
     ::av_free(pictureHandle);
+}
+
+const ::AVCodecContext * VideoEncoder::avCodecContext(void) const
+{
+  enableWait = true;
+
+  return contextHandle;
 }
 
 bool VideoEncoder::openCodec(const SVideoCodec &c, SInterfaces::BufferWriter *bufferWriter, Flags flags)
@@ -156,7 +165,7 @@ bool VideoEncoder::openCodec(const SVideoCodec &c, SInterfaces::BufferWriter *bu
     noDelay = true;
   }
   else
-    noDelay = QThread::idealThreadCount() <= 1;
+    noDelay = false;//QThread::idealThreadCount() <= 1;
 
 #ifdef OPT_ENABLE_THREADS
   contextHandle->thread_count = FFMpegCommon::encodeThreadCount(codecHandle->id);
@@ -216,7 +225,7 @@ SEncodedVideoBufferList VideoEncoder::encodeBuffer(const SVideoBuffer &videoBuff
     delayedResult.clear();
 
     if (!videoBuffer.isNull())
-      encodeFuture = QtConcurrent::run(this, &VideoEncoder::encodeBufferTask, videoBuffer, &delayedResult, true);
+      encodeFuture = QtConcurrent::run(this, &VideoEncoder::encodeBufferTask, videoBuffer, &delayedResult, enableWait);
     else // Flush
       encodeBufferTask(videoBuffer, &output, false);
   }
@@ -263,7 +272,9 @@ void VideoEncoder::encodeBufferTask(const SVideoBuffer &videoBuffer, SEncodedVid
       inputTimeStamps.append(preprocBuffer.timeStamp());
       pictureHandle->pts = inputTimeStamps.last().toClock(contextHandle->time_base.num, contextHandle->time_base.den);
 
-      SBuffer outBuffer(SBuffer::MemoryPtr(new Memory(bufferSize, wait ? &memorySem : NULL)));
+      SBuffer outBuffer(SBuffer::MemoryPtr(
+          new FFMpegCommon::SyncMemory(bufferSize, wait ? &memorySem : NULL)));
+
       int out_size = avcodec_encode_video(contextHandle,
                                           (uint8_t *)outBuffer.data(),
                                           outBuffer.capacity(),
@@ -322,7 +333,9 @@ void VideoEncoder::encodeBufferTask(const SVideoBuffer &videoBuffer, SEncodedVid
     for (int out_size=1; out_size > 0;)
     {
       // Get any remaining frames
-      SBuffer outBuffer(SBuffer::MemoryPtr(new Memory(bufferSize, wait ? &memorySem : NULL)));
+      SBuffer outBuffer(SBuffer::MemoryPtr(
+          new FFMpegCommon::SyncMemory(bufferSize, wait ? &memorySem : NULL)));
+
       out_size = avcodec_encode_video(contextHandle,
                                       (uint8_t *)outBuffer.data(),
                                       outBuffer.capacity(),
@@ -362,21 +375,6 @@ void VideoEncoder::encodeBufferTask(const SVideoBuffer &videoBuffer, SEncodedVid
       }
     }
   }
-}
-
-
-VideoEncoder::Memory::Memory(int capacity, QSemaphore *semaphore)
-  : SBuffer::Memory(capacity),
-    semaphore(semaphore)
-{
-  if (semaphore)
-    semaphore->acquire();
-}
-
-VideoEncoder::Memory::~Memory()
-{
-  if (semaphore)
-    semaphore->release();
 }
 
 } } // End of namespaces
