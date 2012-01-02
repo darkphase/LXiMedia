@@ -74,6 +74,12 @@ namespace LXiCore {
 class LXICORE_PUBLIC SDaemon
 {
 public:
+  static bool                   isInstalled(const QString &name);
+  static bool                   isRunning(const QString &name);
+  static bool                   start(const QString &name);
+  static bool                   stop(const QString &name);
+
+public:
   explicit                      SDaemon(const QString &name);
   virtual                       ~SDaemon();
 
