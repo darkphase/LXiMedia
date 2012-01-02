@@ -61,7 +61,7 @@ public:
                                 Memory(const Memory &);
     virtual                     ~Memory();
 
-  private:
+  protected:
                                 Memory(void);
     explicit                    Memory(int capacity);
                                 Memory(const char *data, int size);

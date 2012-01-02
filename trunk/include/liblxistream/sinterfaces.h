@@ -629,7 +629,12 @@ public:
         images. When possible, the encoder shall optimize its settings for
         this.
      */
-    Flag_Slideshow            = 0x0040,
+    Flag_Slideshow            = 0x0020,
+
+    /*! Indicates the video encoding may not be delayed (encodig may be delayed
+        due to the encoding of B-frames and/or parallelization).
+     */
+    Flag_NoDelay              = 0x0040,
 
     /*! Indicates the video encoding should be as fast as possible at the
         expense of image quality. (For example by only using intra-frames)
