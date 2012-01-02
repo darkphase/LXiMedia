@@ -122,7 +122,7 @@ bool SDaemon::start(const QString &name)
       for (unsigned i=0; i<30; i++)
       {
         if (::QueryServiceStatus(service, &serviceStatus))
-        if (serviceStatus.dwCurrentState == SERVICE_STOPPED)
+        if (serviceStatus.dwCurrentState == SERVICE_RUNNING)
         {
           result = true;
           break;
