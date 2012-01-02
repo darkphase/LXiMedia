@@ -113,11 +113,12 @@ FormatProber::StreamId FormatProber::StreamId::fromString(const QString &txt)
 
 QString FormatProber::StreamInfo::fullName(void) const
 {
+  QString title = this->title.left(16);
   QString lang = SStringParser::iso639Language(language);
   if (!lang.isEmpty() && !title.isEmpty() &&
       !title.contains(lang, Qt::CaseInsensitive))
   {
-    return lang + " " + title;
+      return lang + " " + title;
   }
   else if (!title.isEmpty())
     return title;
