@@ -38,10 +38,6 @@ extern "C"
 // This enables multithreaded encoding and decoding.
 #define OPT_ENABLE_THREADS
 
-// This enables resending the last encoded buffer in case the same buffer is
-// encoded twice (only if encoding intra-frames only).
-#define OPT_RESEND_LAST_FRAME
-
 namespace LXiStream {
 namespace FFMpegBackend {
 

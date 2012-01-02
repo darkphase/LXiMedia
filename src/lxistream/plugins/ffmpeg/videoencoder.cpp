@@ -35,17 +35,18 @@ VideoEncoder::VideoEncoder(const QString &, QObject *parent)
     formatConvert(NULL),
     inputTimeStamps(),
     lastSubStreamId(0),
+    memorySem(memorySemCount),
     fastEncode(false),
-#ifdef OPT_RESEND_LAST_FRAME
-    enableResend(false),
-    lastInBufferId(0),
-#endif
+    noDelay(false),
     bufferSize(FF_MIN_BUFFER_SIZE)
 {
 }
 
 VideoEncoder::~VideoEncoder()
 {
+  encodeFuture.waitForFinished();
+  memorySem.acquire(memorySemCount);
+
   if (contextHandle && contextHandleOwner)
   {
     if (codecHandle)
@@ -128,6 +129,10 @@ bool VideoEncoder::openCodec(const SVideoCodec &c, SInterfaces::BufferWriter *bu
     contextHandle->bit_rate -= contextHandle->bit_rate_tolerance;
   }
 
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(52, 72, 0)
+  contextHandle->max_b_frames = 0;
+#endif
+
   if (flags & Flag_Fast)
   {
     contextHandle->rc_max_rate += contextHandle->bit_rate_tolerance / 2;
@@ -143,19 +148,15 @@ bool VideoEncoder::openCodec(const SVideoCodec &c, SInterfaces::BufferWriter *bu
     contextHandle->flags2 |= CODEC_FLAG2_FAST;
 
     fastEncode = true;
-
-#ifdef OPT_RESEND_LAST_FRAME
-    // Resending the last frame can only be done if the bitrate limit is not hard.
-    if (((flags & Flag_HardBitrateLimit) == 0) && ((flags & Flag_Slideshow) == 0))
-      enableResend = true;
-#endif
   }
 
-#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(52, 72, 0)
-  // This circumvents a bug generating corrupt blocks in large areas with the same color.
-  if (((outCodec == "MPEG1") || (outCodec == "MPEG2")) && !fastEncode)
-    contextHandle->max_b_frames = 3;
-#endif
+  if (flags & Flag_NoDelay)
+  {
+    contextHandle->max_b_frames = 0;
+    noDelay = true;
+  }
+  else
+    noDelay = QThread::idealThreadCount() <= 1;
 
 #ifdef OPT_ENABLE_THREADS
   contextHandle->thread_count = FFMpegCommon::encodeThreadCount(codecHandle->id);
@@ -205,25 +206,40 @@ SVideoCodec VideoEncoder::codec(void) const
 
 SEncodedVideoBufferList VideoEncoder::encodeBuffer(const SVideoBuffer &videoBuffer)
 {
+  SEncodedVideoBufferList output;
+
+  if (!noDelay)
+  {
+    LXI_PROFILE_WAIT(encodeFuture.waitForFinished());
+
+    output = delayedResult;
+    delayedResult.clear();
+
+    if (!videoBuffer.isNull())
+      encodeFuture = QtConcurrent::run(this, &VideoEncoder::encodeBufferTask, videoBuffer, &delayedResult, true);
+    else // Flush
+      encodeBufferTask(videoBuffer, &output, false);
+  }
+  else
+    encodeBufferTask(videoBuffer, &output, false);
+
+  return output;
+}
+
+void VideoEncoder::encodeBufferTask(const SVideoBuffer &videoBuffer, SEncodedVideoBufferList *output, bool wait)
+{
+  // We need to wait until all BufferWriters have written the previous buffer as
+  // they may share the AVCodecContext.
+  if (wait)
+  {
+    LXI_PROFILE_WAIT(memorySem.acquire(memorySemCount));
+    memorySem.release(memorySemCount);
+  }
+
   LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
 
-  SEncodedVideoBufferList output;
   if (!videoBuffer.isNull() && codecHandle)
   {
-#ifdef OPT_RESEND_LAST_FRAME
-    // Simply return the previously encoded buffer if we're encoding fast (I
-    // frames only) and the input buffer is the same as the output buffer.
-    if (enableResend && (videoBuffer.memory()->uid == lastInBufferId) &&
-        lastEncodedBuffer.isKeyFrame())
-    {
-      lastEncodedBuffer.setPresentationTimeStamp(lastEncodedBuffer.presentationTimeStamp() + frameTime);
-      lastEncodedBuffer.setDecodingTimeStamp(lastEncodedBuffer.decodingTimeStamp() + frameTime);
-
-      output << lastEncodedBuffer;
-      return output;
-    }
-#endif
-
     const SVideoBuffer preprocBuffer = formatConvert.convert(videoBuffer);
     if (!preprocBuffer.isNull())
     {
@@ -247,7 +263,7 @@ SEncodedVideoBufferList VideoEncoder::encodeBuffer(const SVideoBuffer &videoBuff
       inputTimeStamps.append(preprocBuffer.timeStamp());
       pictureHandle->pts = inputTimeStamps.last().toClock(contextHandle->time_base.num, contextHandle->time_base.den);
 
-      SBuffer outBuffer(bufferSize);
+      SBuffer outBuffer(SBuffer::MemoryPtr(new Memory(bufferSize, wait ? &memorySem : NULL)));
       int out_size = avcodec_encode_video(contextHandle,
                                           (uint8_t *)outBuffer.data(),
                                           outBuffer.capacity(),
@@ -297,31 +313,16 @@ SEncodedVideoBufferList VideoEncoder::encodeBuffer(const SVideoBuffer &videoBuff
 //            << ", duration =" << destBuffer.duration().toMSec()
 //            << ", key =" << destBuffer.isKeyFrame();
 
-  #ifdef OPT_RESEND_LAST_FRAME
-        if (enableResend)
-        {
-          lastInBufferId = videoBuffer.memory()->uid;
-          lastEncodedBuffer = destBuffer;
-        }
-  #endif
-
-        output << destBuffer;
+        output->append(destBuffer);
       }
     }
-#ifdef OPT_RESEND_LAST_FRAME
-    else if (enableResend)
-    {
-      lastInBufferId = 0;
-      lastEncodedBuffer.clear();
-    }
-#endif
   }
   else if (codecHandle)
   {
     for (int out_size=1; out_size > 0;)
     {
       // Get any remaining frames
-      SBuffer outBuffer(bufferSize);
+      SBuffer outBuffer(SBuffer::MemoryPtr(new Memory(bufferSize, wait ? &memorySem : NULL)));
       out_size = avcodec_encode_video(contextHandle,
                                       (uint8_t *)outBuffer.data(),
                                       outBuffer.capacity(),
@@ -357,21 +358,25 @@ SEncodedVideoBufferList VideoEncoder::encodeBuffer(const SVideoBuffer &videoBuff
 
         destBuffer.setDuration(frameTime);
 
-        output << destBuffer;
+        output->append(destBuffer);
       }
     }
-
-#ifdef OPT_RESEND_LAST_FRAME
-    if (enableResend)
-    {
-      lastInBufferId = 0;
-      lastEncodedBuffer.clear();
-    }
-#endif
   }
-
-  return output;
 }
 
+
+VideoEncoder::Memory::Memory(int capacity, QSemaphore *semaphore)
+  : SBuffer::Memory(capacity),
+    semaphore(semaphore)
+{
+  if (semaphore)
+    semaphore->acquire();
+}
+
+VideoEncoder::Memory::~Memory()
+{
+  if (semaphore)
+    semaphore->release();
+}
 
 } } // End of namespaces

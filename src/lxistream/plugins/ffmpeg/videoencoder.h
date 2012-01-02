@@ -34,6 +34,16 @@ Q_OBJECT
 private:
   typedef void (* PKtoPLfunc)(const void *, unsigned, size_t, quint8 *, quint8 *, quint8 *);
 
+  class Memory : public SBuffer::Memory
+  {
+  public:
+                                Memory(int capacity, QSemaphore *);
+    virtual                     ~Memory();
+
+  private:
+    QSemaphore          * const semaphore;
+  };
+
 public:
                                 VideoEncoder(const QString &, QObject *);
   virtual                       ~VideoEncoder();
@@ -44,6 +54,9 @@ public: // From SBufferEncoder
   virtual bool                  openCodec(const SVideoCodec &, SInterfaces::BufferWriter *, Flags = Flag_None);
   virtual SVideoCodec           codec(void) const;
   virtual SEncodedVideoBufferList encodeBuffer(const SVideoBuffer &);
+
+private:
+  void                          encodeBufferTask(const SVideoBuffer &, SEncodedVideoBufferList *, bool);
 
 private:
   SVideoCodec                   outCodec;
@@ -59,12 +72,13 @@ private:
   QList<STime>                  inputTimeStamps;
   quint32                       lastSubStreamId;
 
+  QFuture<void>                 encodeFuture;
+  SEncodedVideoBufferList       delayedResult;
+  static const int              memorySemCount = 64;
+  QSemaphore                    memorySem;
+
   bool                          fastEncode;
-#ifdef OPT_RESEND_LAST_FRAME
-  bool                          enableResend;
-  int                           lastInBufferId;
-  SEncodedVideoBuffer           lastEncodedBuffer;
-#endif
+  bool                          noDelay;
 
   int                           bufferSize;
 };
