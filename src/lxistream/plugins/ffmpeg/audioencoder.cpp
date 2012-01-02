@@ -38,12 +38,19 @@ AudioEncoder::AudioEncoder(const QString &, QObject *parent)
     inFrameBuffer(NULL),
     inFrameBufferSize(0),
     formatConvert(NULL),
+    memorySem(memorySemCount),
+    noDelay(false),
+    enableWait(false),
     showErrors(0)
 {
 }
 
 AudioEncoder::~AudioEncoder()
 {
+  encodeFuture.waitForFinished();
+  delayedResult.clear();
+  memorySem.acquire(memorySemCount);
+
   if (contextHandle && contextHandleOwner)
   {
     if (codecHandle)
@@ -53,6 +60,13 @@ AudioEncoder::~AudioEncoder()
   }
 
   delete [] inFrameBufferRaw;
+}
+
+const ::AVCodecContext * AudioEncoder::avCodecContext(void) const
+{
+  enableWait = true;
+
+  return contextHandle;
 }
 
 bool AudioEncoder::openCodec(const SAudioCodec &c, SInterfaces::BufferWriter *bufferWriter, Flags flags)
@@ -144,6 +158,11 @@ bool AudioEncoder::openCodec(const SAudioCodec &c, SInterfaces::BufferWriter *bu
   if (flags & Flag_Fast)
     contextHandle->flags2 |= CODEC_FLAG2_FAST;
 
+  if (flags & Flag_NoDelay)
+    noDelay = true;
+  else
+    noDelay = false;//QThread::idealThreadCount() <= 1;
+
 #ifdef OPT_ENABLE_THREADS
   contextHandle->thread_count = FFMpegCommon::encodeThreadCount(codecHandle->id);
   contextHandle->execute = &FFMpegCommon::execute;
@@ -187,9 +206,38 @@ SAudioCodec AudioEncoder::codec(void) const
 
 SEncodedAudioBufferList AudioEncoder::encodeBuffer(const SAudioBuffer &audioBuffer)
 {
+  SEncodedAudioBufferList output;
+
+  if (!noDelay)
+  {
+    LXI_PROFILE_WAIT(encodeFuture.waitForFinished());
+
+    output = delayedResult;
+    delayedResult.clear();
+
+    if (!audioBuffer.isNull())
+      encodeFuture = QtConcurrent::run(this, &AudioEncoder::encodeBufferTask, audioBuffer, &delayedResult, enableWait);
+    else // Flush
+      encodeBufferTask(audioBuffer, &output, false);
+  }
+  else
+    encodeBufferTask(audioBuffer, &output, false);
+
+  return output;
+}
+
+void AudioEncoder::encodeBufferTask(const SAudioBuffer &audioBuffer, SEncodedAudioBufferList *output, bool wait)
+{
+  // We need to wait until all BufferWriters have written the previous buffer as
+  // they may share the AVCodecContext.
+  if (wait)
+  {
+    LXI_PROFILE_WAIT(memorySem.acquire(memorySemCount));
+    memorySem.release(memorySemCount);
+  }
+
   LXI_PROFILE_FUNCTION(TaskType_AudioProcessing);
 
-  SEncodedAudioBufferList output;
   if (!audioBuffer.isNull())
   {
     if (passThrough)
@@ -198,7 +246,7 @@ SEncodedAudioBufferList AudioEncoder::encodeBuffer(const SAudioBuffer &audioBuff
       destBuffer.setPresentationTimeStamp(audioBuffer.timeStamp());
       destBuffer.setDuration(audioBuffer.duration());
 
-      output << destBuffer;
+      output->append(destBuffer);
     }
     else if (audioBuffer.format().numChannels() == unsigned(contextHandle->channels))
     {
@@ -222,7 +270,11 @@ SEncodedAudioBufferList AudioEncoder::encodeBuffer(const SAudioBuffer &audioBuff
             // Concatenate to the remaining buffer
             memcpy(inFrameBuffer + inFrameBufferSize, buffer + ptr, inFrameSize - inFrameBufferSize);
 
-            SEncodedAudioBuffer destBuffer(outCodec, qMax(FF_MIN_BUFFER_SIZE, AVCODEC_MAX_AUDIO_FRAME_SIZE));
+            SEncodedAudioBuffer destBuffer(outCodec, SBuffer::MemoryPtr(
+                new FFMpegCommon::SyncMemory(
+                    qMax(FF_MIN_BUFFER_SIZE, AVCODEC_MAX_AUDIO_FRAME_SIZE),
+                    wait ? &memorySem : NULL)));
+
             int out_size = avcodec_encode_audio(
                 contextHandle,
                 reinterpret_cast<uint8_t *>(destBuffer.data()), destBuffer.capacity(),
@@ -238,7 +290,7 @@ SEncodedAudioBufferList AudioEncoder::encodeBuffer(const SAudioBuffer &audioBuff
               destBuffer.setPresentationTimeStamp(timeStamp);
               destBuffer.setDuration(inFrameDuration);
 
-              output << destBuffer;
+              output->append(destBuffer);
               timeStamp += STime::fromClock(numSamples(inFrameSize), contextHandle->sample_rate);
             }
             else
@@ -246,7 +298,11 @@ SEncodedAudioBufferList AudioEncoder::encodeBuffer(const SAudioBuffer &audioBuff
           }
           else if (size >= inFrameSize)
           {
-            SEncodedAudioBuffer destBuffer(outCodec, qMax(FF_MIN_BUFFER_SIZE, AVCODEC_MAX_AUDIO_FRAME_SIZE));
+            SEncodedAudioBuffer destBuffer(outCodec, SBuffer::MemoryPtr(
+                new FFMpegCommon::SyncMemory(
+                    qMax(FF_MIN_BUFFER_SIZE, AVCODEC_MAX_AUDIO_FRAME_SIZE),
+                    wait ? &memorySem : NULL)));
+
             int out_size = avcodec_encode_audio(
                 contextHandle,
                 reinterpret_cast<uint8_t *>(destBuffer.data()), destBuffer.capacity(),
@@ -263,7 +319,7 @@ SEncodedAudioBufferList AudioEncoder::encodeBuffer(const SAudioBuffer &audioBuff
                 destBuffer.setPresentationTimeStamp(timeStamp);
                 destBuffer.setDuration(inFrameDuration);
 
-                output << destBuffer;
+                output->append(destBuffer);
                 timeStamp += STime::fromClock(numSamples(inFrameSize), contextHandle->sample_rate);
               }
             }
@@ -288,8 +344,6 @@ SEncodedAudioBufferList AudioEncoder::encodeBuffer(const SAudioBuffer &audioBuff
           << contextHandle->channels;
     }
   }
-
-  return output;
 }
 
 

@@ -1249,4 +1249,19 @@ int FFMpegCommon::lock(void **mutex, AVLockOp op)
   return -1;
 }
 
+
+FFMpegCommon::SyncMemory::SyncMemory(int capacity, QSemaphore *semaphore)
+  : SBuffer::Memory(capacity),
+    semaphore(semaphore)
+{
+  if (semaphore)
+    semaphore->acquire();
+}
+
+FFMpegCommon::SyncMemory::~SyncMemory()
+{
+  if (semaphore)
+    semaphore->release();
+}
+
 } } // End of namespaces
