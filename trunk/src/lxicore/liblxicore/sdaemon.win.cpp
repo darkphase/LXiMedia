@@ -46,6 +46,137 @@ TCHAR                           SDaemon::Data::serviceName[512];
 SERVICE_STATUS                  SDaemon::Data::serviceStatus;
 SERVICE_STATUS_HANDLE           SDaemon::Data::serviceStatusHandle = 0;
 
+bool SDaemon::isInstalled(const QString &name)
+{
+  TCHAR serviceName[512];
+  memcpy(serviceName, name.unicode(), qMin((name.length() + 1) * sizeof(*serviceName), sizeof(serviceName)));
+  serviceName[(sizeof(serviceName) / sizeof(*serviceName)) - 1] = 0;
+
+  bool result = false;
+
+  SC_HANDLE serviceControlManager = ::OpenSCManager(0, 0, SC_MANAGER_CONNECT);
+  if (serviceControlManager)
+  {
+    SC_HANDLE service = ::OpenService(serviceControlManager, serviceName, SERVICE_QUERY_STATUS);
+    if (service)
+    {
+      SERVICE_STATUS serviceStatus;
+      if (::QueryServiceStatus(service, &serviceStatus))
+        result = true;
+
+      ::CloseServiceHandle(service);
+    }
+
+    ::CloseServiceHandle(serviceControlManager);
+  }
+
+  return result;
+}
+
+bool SDaemon::isRunning(const QString &name)
+{
+  TCHAR serviceName[512];
+  memcpy(serviceName, name.unicode(), qMin((name.length() + 1) * sizeof(*serviceName), sizeof(serviceName)));
+  serviceName[(sizeof(serviceName) / sizeof(*serviceName)) - 1] = 0;
+
+  bool result = false;
+
+  SC_HANDLE serviceControlManager = ::OpenSCManager(0, 0, SC_MANAGER_CONNECT);
+  if (serviceControlManager)
+  {
+    SC_HANDLE service = ::OpenService(serviceControlManager, serviceName, SERVICE_QUERY_STATUS);
+    if (service)
+    {
+      SERVICE_STATUS serviceStatus;
+      if (::QueryServiceStatus(service, &serviceStatus))
+      if (serviceStatus.dwCurrentState == SERVICE_RUNNING)
+        result = true;
+
+      ::CloseServiceHandle(service);
+    }
+
+    ::CloseServiceHandle(serviceControlManager);
+  }
+
+  return result;
+}
+
+bool SDaemon::start(const QString &name)
+{
+  TCHAR serviceName[512];
+  memcpy(serviceName, name.unicode(), qMin((name.length() + 1) * sizeof(*serviceName), sizeof(serviceName)));
+  serviceName[(sizeof(serviceName) / sizeof(*serviceName)) - 1] = 0;
+
+  bool result = false;
+
+  SC_HANDLE serviceControlManager = ::OpenSCManager(0, 0, SC_MANAGER_CONNECT);
+  if (serviceControlManager)
+  {
+    SC_HANDLE service = ::OpenService(serviceControlManager, serviceName, SERVICE_QUERY_STATUS | SERVICE_START);
+    if (service)
+    {
+      SERVICE_STATUS serviceStatus;
+      ::ControlService(service, SERVICE_CONTROL_START, &serviceStatus);
+
+      for (unsigned i=0; i<30; i++)
+      {
+        if (::QueryServiceStatus(service, &serviceStatus))
+        if (serviceStatus.dwCurrentState == SERVICE_RUNNING)
+        {
+          result = true;
+          break;
+        }
+
+        ::Sleep(1000);
+      }
+
+      ::CloseServiceHandle(service);
+    }
+
+    ::CloseServiceHandle(serviceControlManager);
+  }
+
+  return result;
+}
+
+bool SDaemon::stop(const QString &name)
+{
+  TCHAR serviceName[512];
+  memcpy(serviceName, name.unicode(), qMin((name.length() + 1) * sizeof(*serviceName), sizeof(serviceName)));
+  serviceName[(sizeof(serviceName) / sizeof(*serviceName)) - 1] = 0;
+
+  bool result = false;
+
+  SC_HANDLE serviceControlManager = ::OpenSCManager(0, 0, SC_MANAGER_CONNECT);
+  if (serviceControlManager)
+  {
+    SC_HANDLE service = ::OpenService(serviceControlManager, serviceName, SERVICE_QUERY_STATUS | SERVICE_STOP);
+    if (service)
+    {
+      SERVICE_STATUS serviceStatus;
+      ::ControlService(service, SERVICE_CONTROL_STOP, &serviceStatus);
+
+      for (unsigned i=0; i<30; i++)
+      {
+        if (::QueryServiceStatus(service, &serviceStatus))
+        if (serviceStatus.dwCurrentState == SERVICE_STOPPED)
+        {
+          result = true;
+          break;
+        }
+
+        ::Sleep(1000);
+      }
+
+      ::CloseServiceHandle(service);
+    }
+
+    ::CloseServiceHandle(serviceControlManager);
+  }
+
+  return result;
+}
+
 SDaemon::SDaemon(const QString &name)
 {
   qstrncpy(Data::name, name.toAscii(), sizeof(Data::name));

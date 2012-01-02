@@ -157,7 +157,7 @@ QByteArray Frontend::makeFrontendPage(void) const
          "not all provide a web-based configuration utility. Please refer to "
          "the manual of the respective manufacturer for more information."));
 
-  if (isBackendRunning())
+  if (SDaemon::isRunning(backendName))
   {
     htmlParser.setField("LOCAL_SERVER_STATUS", tr("The local server is running"));
   }
@@ -212,7 +212,7 @@ QByteArray Frontend::makeFrontendPage(void) const
       otherServers.insert(server.friendlyName, htmlParser.parse(htmlServer));
   }
 
-  if (isBackendInstalled())
+  if (SDaemon::isInstalled(backendName))
     htmlParser.setField("LOCAL_SERVER", htmlParser.parse(htmlLocalServer));
   else
     htmlParser.setField("LOCAL_SERVER", htmlParser.parse(htmlNoLocalServer));

@@ -19,7 +19,11 @@
 
 #include "frontend.h"
 
-const char Frontend::backendExecutable[] = "lximcbackend";
+#if defined(Q_OS_LINUX)
+const char Frontend::backendName[] = "lximcbackend";
+#elif defined(Q_OS_WIN)
+const char Frontend::backendName[] = "LXiMediaCenter Backend";
+#endif
 
 Frontend::Frontend()
   : QWebView(),
@@ -99,7 +103,14 @@ void Frontend::loadFrontendPage(const QUrl &url)
     setContent(makeIFrame(QByteArray::fromHex(url.path().mid(8).toAscii())), "text/html", QUrl("qrc:/"));
   }
   else
+  {
+    if (url.path() == "/startbackend")
+      SDaemon::start(backendName);
+    else if (url.path() == "/stopbackend")
+      SDaemon::stop(backendName);
+
     setContent(makeFrontendPage(), "text/html", QUrl("qrc:/"));
+  }
 }
 
 void Frontend::updateServers(void)
@@ -176,34 +187,6 @@ void Frontend::updateFrontendPage(void)
 void Frontend::titleChanged(const QString &title)
 {
   setWindowTitle(title);
-}
-
-bool Frontend::isBackendInstalled(void)
-{
-  QDir appDir(qApp->applicationDirPath());
-
-  return !appDir.entryList(QStringList(backendExecutable), QDir::Files).isEmpty();
-}
-
-bool Frontend::isBackendRunning(void)
-{
-  QDir procDir("/proc");
-  foreach (const QString &dir, procDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot))
-  if (dir[0].isNumber())
-  {
-    QFile file(procDir.absoluteFilePath(dir) + "/cmdline");
-    if (file.open(QFile::ReadOnly))
-    {
-      QByteArray cmdLine = file.readAll();
-      cmdLine = cmdLine.left(cmdLine.indexOf('\0'));
-
-      if (!cmdLine.isEmpty())
-        if (cmdLine.endsWith('/' + QByteArray(backendExecutable)))
-        return true;
-    }
-  }
-
-  return false;
 }
 
 bool Frontend::isLocalAddress(const QString &host)

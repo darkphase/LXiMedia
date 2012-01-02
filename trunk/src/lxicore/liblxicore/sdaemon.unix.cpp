@@ -47,6 +47,44 @@ SDaemon                       * SDaemon::Data::instance = NULL;
 char                            SDaemon::Data::name[256] = { '\0' };
 pid_t                           SDaemon::Data::sessionID = 0;
 
+bool SDaemon::isInstalled(const QString &name)
+{
+  QDir appDir(qApp->applicationDirPath());
+
+  return !appDir.entryList(QStringList(name), QDir::Files).isEmpty();
+}
+
+bool SDaemon::isRunning(const QString &name)
+{
+  QDir procDir("/proc");
+  foreach (const QString &dir, procDir.entryList(QDir::Dirs | QDir::NoDotAndDotDot))
+  if (dir[0].isNumber())
+  {
+    QFile file(procDir.absoluteFilePath(dir) + "/cmdline");
+    if (file.open(QFile::ReadOnly))
+    {
+      QByteArray cmdLine = file.readAll();
+      cmdLine = cmdLine.left(cmdLine.indexOf('\0'));
+
+      if (!cmdLine.isEmpty())
+      if (cmdLine.endsWith('/' + name.toUtf8()))
+        return true;
+    }
+  }
+
+  return false;
+}
+
+bool SDaemon::start(const QString &)
+{
+  return false;
+}
+
+bool SDaemon::stop(const QString &)
+{
+  return false;
+}
+
 SDaemon::SDaemon(const QString &name)
 {
   qstrncpy(Data::name, name.toAscii(), sizeof(Data::name));
@@ -109,6 +147,7 @@ int SDaemon::main(int &argc, char *argv[])
 
   return 0;
 }
+
 
 bool SDaemon::Data::start(int &argc, char *argv[])
 {

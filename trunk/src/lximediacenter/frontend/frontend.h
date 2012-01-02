@@ -82,12 +82,10 @@ private slots:
   void                          titleChanged(const QString &);
 
 private:
-  static bool                   isBackendInstalled(void);
-  static bool                   isBackendRunning(void);
   static bool                   isLocalAddress(const QString &);
 
 private:
-  static const char             backendExecutable[];
+  static const char             backendName[];
 
   SSsdpClient                   ssdpClient;
   QNetworkAccessManager         networkAccessManager;
