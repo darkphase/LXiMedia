@@ -28,7 +28,7 @@ struct SDaemon::Data
 {
   static SDaemon              * instance;
   static char                   name[256];
-  static TCHAR                  serviceName[512];
+  static WCHAR                  serviceName[512];
   static SERVICE_STATUS         serviceStatus;
   static SERVICE_STATUS_HANDLE  serviceStatusHandle;
 
@@ -37,27 +37,27 @@ struct SDaemon::Data
   static bool                   uninstall(void);
 
   static void WINAPI            serviceControlHandler(DWORD);
-  static void WINAPI            serviceMain(DWORD, TCHAR*[]);
+  static void WINAPI            serviceMain(DWORD, WCHAR*[]);
 };
 
 SDaemon                       * SDaemon::Data::instance = NULL;
 char                            SDaemon::Data::name[256] = { '\0' };
-TCHAR                           SDaemon::Data::serviceName[512];
+WCHAR                           SDaemon::Data::serviceName[512];
 SERVICE_STATUS                  SDaemon::Data::serviceStatus;
 SERVICE_STATUS_HANDLE           SDaemon::Data::serviceStatusHandle = 0;
 
 bool SDaemon::isInstalled(const QString &name)
 {
-  TCHAR serviceName[512];
+  WCHAR serviceName[512];
   memcpy(serviceName, name.unicode(), qMin((name.length() + 1) * sizeof(*serviceName), sizeof(serviceName)));
   serviceName[(sizeof(serviceName) / sizeof(*serviceName)) - 1] = 0;
 
   bool result = false;
 
-  SC_HANDLE serviceControlManager = ::OpenSCManager(0, 0, SC_MANAGER_CONNECT);
+  SC_HANDLE serviceControlManager = ::OpenSCManagerW(0, 0, SC_MANAGER_CONNECT);
   if (serviceControlManager)
   {
-    SC_HANDLE service = ::OpenService(serviceControlManager, serviceName, SERVICE_QUERY_STATUS);
+    SC_HANDLE service = ::OpenServiceW(serviceControlManager, serviceName, SERVICE_QUERY_STATUS);
     if (service)
     {
       SERVICE_STATUS serviceStatus;
@@ -75,16 +75,16 @@ bool SDaemon::isInstalled(const QString &name)
 
 bool SDaemon::isRunning(const QString &name)
 {
-  TCHAR serviceName[512];
+  WCHAR serviceName[512];
   memcpy(serviceName, name.unicode(), qMin((name.length() + 1) * sizeof(*serviceName), sizeof(serviceName)));
   serviceName[(sizeof(serviceName) / sizeof(*serviceName)) - 1] = 0;
 
   bool result = false;
 
-  SC_HANDLE serviceControlManager = ::OpenSCManager(0, 0, SC_MANAGER_CONNECT);
+  SC_HANDLE serviceControlManager = ::OpenSCManagerW(0, 0, SC_MANAGER_CONNECT);
   if (serviceControlManager)
   {
-    SC_HANDLE service = ::OpenService(serviceControlManager, serviceName, SERVICE_QUERY_STATUS);
+    SC_HANDLE service = ::OpenServiceW(serviceControlManager, serviceName, SERVICE_QUERY_STATUS);
     if (service)
     {
       SERVICE_STATUS serviceStatus;
@@ -103,25 +103,26 @@ bool SDaemon::isRunning(const QString &name)
 
 bool SDaemon::start(const QString &name)
 {
-  TCHAR serviceName[512];
+  WCHAR serviceName[512];
   memcpy(serviceName, name.unicode(), qMin((name.length() + 1) * sizeof(*serviceName), sizeof(serviceName)));
   serviceName[(sizeof(serviceName) / sizeof(*serviceName)) - 1] = 0;
 
   bool result = false;
 
-  SC_HANDLE serviceControlManager = ::OpenSCManager(0, 0, SC_MANAGER_CONNECT);
+  SC_HANDLE serviceControlManager = ::OpenSCManagerW(0, 0, SC_MANAGER_CONNECT);
   if (serviceControlManager)
   {
-    SC_HANDLE service = ::OpenService(serviceControlManager, serviceName, SERVICE_QUERY_STATUS | SERVICE_START);
+    SC_HANDLE service = ::OpenServiceW(serviceControlManager, serviceName, SERVICE_QUERY_STATUS | SERVICE_START);
     if (service)
     {
-      SERVICE_STATUS serviceStatus;
-      ::ControlService(service, SERVICE_CONTROL_START, &serviceStatus);
+      if (::StartServiceW(service, 0, NULL))
+        result = true;
 
+      SERVICE_STATUS serviceStatus;
       for (unsigned i=0; i<30; i++)
       {
         if (::QueryServiceStatus(service, &serviceStatus))
-        if (serviceStatus.dwCurrentState == SERVICE_RUNNING)
+        if (serviceStatus.dwCurrentState == SERVICE_STOPPED)
         {
           result = true;
           break;
@@ -141,16 +142,16 @@ bool SDaemon::start(const QString &name)
 
 bool SDaemon::stop(const QString &name)
 {
-  TCHAR serviceName[512];
+  WCHAR serviceName[512];
   memcpy(serviceName, name.unicode(), qMin((name.length() + 1) * sizeof(*serviceName), sizeof(serviceName)));
   serviceName[(sizeof(serviceName) / sizeof(*serviceName)) - 1] = 0;
 
   bool result = false;
 
-  SC_HANDLE serviceControlManager = ::OpenSCManager(0, 0, SC_MANAGER_CONNECT);
+  SC_HANDLE serviceControlManager = ::OpenSCManagerW(0, 0, SC_MANAGER_CONNECT);
   if (serviceControlManager)
   {
-    SC_HANDLE service = ::OpenService(serviceControlManager, serviceName, SERVICE_QUERY_STATUS | SERVICE_STOP);
+    SC_HANDLE service = ::OpenServiceW(serviceControlManager, serviceName, SERVICE_QUERY_STATUS | SERVICE_STOP);
     if (service)
     {
       SERVICE_STATUS serviceStatus;
@@ -249,24 +250,24 @@ int SDaemon::main(int &argc, char *argv[])
 
 void SDaemon::Data::startDispatcher(void)
 {
-  SERVICE_TABLE_ENTRY serviceTable[] =
+  SERVICE_TABLE_ENTRYW serviceTable[] =
   {
     { Data::serviceName, Data::serviceMain },
     { 0, 0 }
   };
 
-  ::StartServiceCtrlDispatcher(serviceTable);
+  ::StartServiceCtrlDispatcherW(serviceTable);
 }
 
 bool SDaemon::Data::install(bool startImmediately)
 {
-  SC_HANDLE serviceControlManager = ::OpenSCManager(0, 0, SC_MANAGER_CREATE_SERVICE);
+  SC_HANDLE serviceControlManager = ::OpenSCManagerW(0, 0, SC_MANAGER_CREATE_SERVICE);
   if (serviceControlManager)
   {
-    TCHAR path[_MAX_PATH + 1];
-    if (::GetModuleFileName(0, path, sizeof(path)/sizeof(path[0]) ) > 0)
+    WCHAR path[_MAX_PATH + 1];
+    if (::GetModuleFileNameW(0, path, sizeof(path)/sizeof(path[0]) ) > 0)
     {
-      SC_HANDLE service = ::CreateService(
+      SC_HANDLE service = ::CreateServiceW(
           serviceControlManager,
           serviceName, serviceName,
           SERVICE_ALL_ACCESS, SERVICE_WIN32_OWN_PROCESS,
@@ -277,7 +278,7 @@ bool SDaemon::Data::install(bool startImmediately)
       if (service)
       {
         if (startImmediately)
-          ::StartService(service, 0, NULL);
+          ::StartServiceW(service, 0, NULL);
 
         ::CloseServiceHandle(service);
       }
@@ -291,10 +292,10 @@ bool SDaemon::Data::install(bool startImmediately)
 
 bool SDaemon::Data::uninstall(void)
 {
-  SC_HANDLE serviceControlManager = ::OpenSCManager(0, 0, SC_MANAGER_CONNECT);
+  SC_HANDLE serviceControlManager = ::OpenSCManagerW(0, 0, SC_MANAGER_CONNECT);
   if (serviceControlManager)
   {
-    SC_HANDLE service = ::OpenService(serviceControlManager, serviceName, SERVICE_QUERY_STATUS | SERVICE_STOP | DELETE);
+    SC_HANDLE service = ::OpenServiceW(serviceControlManager, serviceName, SERVICE_QUERY_STATUS | SERVICE_STOP | DELETE);
     if (service)
     {
       SERVICE_STATUS serviceStatus;
@@ -321,7 +322,7 @@ bool SDaemon::Data::uninstall(void)
   return true;
 }
 
-void WINAPI SDaemon::Data::serviceMain(DWORD argc, TCHAR *argv[])
+void WINAPI SDaemon::Data::serviceMain(DWORD argc, WCHAR *argv[])
 {
   ::OutputDebugStringA("WindowsService::serviceMain");
 
@@ -333,7 +334,7 @@ void WINAPI SDaemon::Data::serviceMain(DWORD argc, TCHAR *argv[])
   serviceStatus.dwCheckPoint = 0;
   serviceStatus.dwWaitHint = 0;
 
-  serviceStatusHandle = ::RegisterServiceCtrlHandler(serviceName, serviceControlHandler);
+  serviceStatusHandle = ::RegisterServiceCtrlHandlerW(serviceName, serviceControlHandler);
 
   if ((serviceStatusHandle) && (instance != NULL))
   {
