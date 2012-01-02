@@ -86,7 +86,7 @@ const QEvent::Type  SHttpStreamProxy::addSocketEventType = QEvent::Type(QEvent::
 const QEvent::Type  SHttpStreamProxy::disconnectEventType = QEvent::Type(QEvent::registerEventType());
 
 const int           SHttpStreamProxy::inBufferSize  = 262144;
-const int           SHttpStreamProxy::outBufferSize = 2097152;
+const int           SHttpStreamProxy::outBufferSize = 33554432;
 
 SHttpStreamProxy::SHttpStreamProxy(void)
   : QThread(),
@@ -191,8 +191,8 @@ void SHttpStreamProxy::customEvent(QEvent *e)
     d->aSource = qobject_cast<QAbstractSocket *>(d->source);
     d->lSource = qobject_cast<QLocalSocket *>(d->source);
 
-    if (d->aSource) d->aSource->setReadBufferSize(inBufferSize);
-    if (d->lSource) d->lSource->setReadBufferSize(inBufferSize);
+    if (d->aSource) d->aSource->setReadBufferSize(inBufferSize * 2);
+    if (d->lSource) d->lSource->setReadBufferSize(inBufferSize * 2);
 
     connect(d->source, SIGNAL(readyRead()), SLOT(processData()));
     if (d->source->metaObject()->indexOfSignal("disconnected()") >= 0)
@@ -214,7 +214,7 @@ void SHttpStreamProxy::customEvent(QEvent *e)
 #if (defined(Q_OS_UNIX) || defined(Q_OS_WIN))
     if (s.aSocket)
     {
-      const int optval = outBufferSize / 2;
+      const int optval = inBufferSize * 2;
       ::setsockopt(
             s.aSocket->socketDescriptor(), SOL_SOCKET, SO_SNDBUF,
             reinterpret_cast<const char *>(&optval), sizeof(optval));
@@ -339,7 +339,7 @@ void SHttpStreamProxy::processData(void)
         {
           if (s->readPos >= d->cache.size())
           {
-            if (s->socket->bytesToWrite() <= (outBufferSize * 2))
+            if (s->socket->bytesToWrite() <= (outBufferSize + inBufferSize))
             {
               if (s->socket->write(buffer) == buffer.size())
                 s->readPos += buffer.size();
@@ -350,7 +350,7 @@ void SHttpStreamProxy::processData(void)
             }
             else if (!d->caching)
             {
-              //qDebug() << "SHttpStreamProxy: Disconnecting stalled socket" << s->socket;
+              qDebug() << "SHttpStreamProxy: Disconnecting stalled socket" << s->socket;
               if (s->aSocket) s->aSocket->disconnectFromHost();
               if (s->lSocket) s->lSocket->disconnectFromServer();
             }
@@ -426,7 +426,7 @@ void SHttpStreamProxy::flushData(void)
       const QByteArray buffer = d->source->read(inBufferSize);
 
       for (QVector<Data::Socket>::Iterator s=d->sockets.begin(); s!=d->sockets.end(); )
-      if (s->isConnected() && (s->socket->bytesToWrite() <= (outBufferSize * 2)))
+      if (s->isConnected() && (s->socket->bytesToWrite() <= (outBufferSize + inBufferSize)))
       {
         if (s->readPos >= d->cache.size())
         {
