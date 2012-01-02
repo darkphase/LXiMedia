@@ -215,7 +215,7 @@ lxivec_always_inline SVideoBuffer VideoFormatConverterBase<_srcFormat, _dstForma
         srcBuffer.format().frameRate(),
         srcBuffer.format().fieldMode()));
 
-    const int threadCount = QThread::idealThreadCount();
+    const int threadCount = QThreadPool::globalInstance()->maxThreadCount();
     const Buffers buffers = { &dstBuffer, &srcBuffer, srcBuffer.format().size().width() };
     const int h = srcBuffer.format().size().height();
     const int sh = (((h + threadCount - 1) / threadCount) + 1) & ~1;

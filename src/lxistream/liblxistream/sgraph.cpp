@@ -35,9 +35,13 @@ struct SGraph::Data
   QList<SInterfaces::SinkNode *> startedSinks;
 
   QThread                     * parentThread;
+  QThreadPool                 * threadPool;
   STimer                        timer;
   int                           processTimer;
   volatile bool                 running;
+
+  QSemaphore                    blockThreadSem[2];
+  void                          blockThread(void) { blockThreadSem[0].release(); blockThreadSem[1].acquire(); }
 
   static const QEvent::Type     stopEventType;
 };
@@ -49,6 +53,7 @@ SGraph::SGraph(void)
         d(new Data())
 {
   d->parentThread = QThread::thread();
+  d->threadPool = QThreadPool::globalInstance();
   d->running = false;
   d->processTimer = -1;
 }
@@ -154,12 +159,25 @@ void SGraph::timerEvent(QTimerEvent *e)
   {
     if (d->running)
     {
+      // This thread is also doing processing, so one thread is reserved from
+      // the threadpool to prevent processing with one thread too many.
+      QtConcurrent::run(d, &Data::blockThread);
+
+      // Wait for the blockThread task to be started ...
+      d->blockThreadSem[0].acquire();
+
+      // This construction is needed to make sure the signals and slots
+      // transporting the buffers are executed on the thread that has the event
+      // loop.
       bool produced = false;
       foreach (SInterfaces::SourceNode *source, d->sourceNodes)
         produced |= source->process();
 
+      // Let the blockThread task finish.
+      d->blockThreadSem[1].release();
+
       if (!produced)
-        QThread::msleep(10);
+        QThread::msleep(40);
     }
     else if (QThread::currentThread() == this)
       QThread::exit(0);

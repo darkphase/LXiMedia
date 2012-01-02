@@ -161,7 +161,7 @@ bool AudioEncoder::openCodec(const SAudioCodec &c, SInterfaces::BufferWriter *bu
   if (flags & Flag_NoDelay)
     noDelay = true;
   else
-    noDelay = false;//QThread::idealThreadCount() <= 1;
+    noDelay = QThreadPool::globalInstance()->maxThreadCount() <= 1;
 
 #ifdef OPT_ENABLE_THREADS
   contextHandle->thread_count = FFMpegCommon::encodeThreadCount(codecHandle->id);

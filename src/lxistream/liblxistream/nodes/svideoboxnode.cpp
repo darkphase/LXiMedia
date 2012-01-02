@@ -71,7 +71,7 @@ void SVideoBoxNode::input(const SVideoBuffer &videoBuffer)
                                            videoBuffer.format().frameRate(),
                                            videoBuffer.format().fieldMode()));
 
-      const int threadCount = QThread::idealThreadCount();
+      const int threadCount = QThreadPool::globalInstance()->maxThreadCount();
       const int h = d->destSize.height();
       const int sh = (((h + threadCount - 1) / threadCount) + 1) & ~1;
 
