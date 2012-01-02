@@ -97,6 +97,8 @@ void Frontend::loadFrontendPage(const QUrl &url)
 {
   frontendPageShowing = true;
 
+  qApp->setOverrideCursor(Qt::WaitCursor);
+
   if (url.path().startsWith("/iframe/"))
   {
     frontendPageShowing = false;
@@ -111,6 +113,8 @@ void Frontend::loadFrontendPage(const QUrl &url)
 
     setContent(makeFrontendPage(), "text/html", QUrl("qrc:/"));
   }
+
+  qApp->restoreOverrideCursor();
 }
 
 void Frontend::updateServers(void)

@@ -73,7 +73,7 @@ const char Frontend::htmlStopLocalServer[] =
 #ifdef Q_OS_LINUX
     " <span class=\"idle\">{TR_STOP_LINUX}</span>";
 #else
-    " <a href=\"frontend:/stopbackend\">{TR_START}</a>";
+    " <a href=\"frontend:/stopbackend\">{TR_STOP}</a>";
 #endif
 
 const char Frontend::htmlConfigureLocalServer[] =
@@ -160,6 +160,7 @@ QByteArray Frontend::makeFrontendPage(void) const
   if (SDaemon::isRunning(backendName))
   {
     htmlParser.setField("LOCAL_SERVER_STATUS", tr("The local server is running"));
+    htmlParser.appendField("LOCAL_SERVER_STATUS", htmlParser.parse(htmlStopLocalServer));
   }
   else
   {
@@ -184,7 +185,6 @@ QByteArray Frontend::makeFrontendPage(void) const
       if (isLocalAddress(host) && (localConfigAdded++ == 0))
       {
         htmlParser.appendField("THIS_COMPUTER", '(' + tr("This computer") + ')');
-        htmlParser.appendField("LOCAL_SERVER_STATUS", htmlParser.parse(htmlStopLocalServer));
         htmlParser.appendField("LOCAL_SERVER_STATUS", htmlParser.parse(htmlConfigureLocalServer));
       }
     }
