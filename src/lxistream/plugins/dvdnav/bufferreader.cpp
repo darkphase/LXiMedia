@@ -32,15 +32,16 @@ bool BufferReader::isDiscPath(const QUrl &path)
     if (path.path().endsWith(".iso", Qt::CaseInsensitive))
       return true;
 
-    QDir dir(path.path());
-    foreach (const QString &name, dir.entryList(QStringList("video_ts"), QDir::Dirs))
-    if (dir.cd(name))
-    {
-      if (!dir.entryList(QStringList("video_ts.ifo"), QDir::Files).isEmpty())
-        return true;
-
-      dir.cdUp();
-    }
+//  libdvdread crashes when reading separate files, so only ISO for now.
+//    QDir dir(path.path());
+//    foreach (const QString &name, dir.entryList(QStringList("video_ts"), QDir::Dirs))
+//    if (dir.cd(name))
+//    {
+//      if (!dir.entryList(QStringList("video_ts.ifo"), QDir::Files).isEmpty())
+//        return true;
+//
+//      dir.cdUp();
+//    }
   }
 
   return false;
