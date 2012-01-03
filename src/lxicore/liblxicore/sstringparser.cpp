@@ -23,9 +23,12 @@ namespace LXiCore {
 
 struct SStringParser::Data
 {
+  static QMap<QByteArray, QByteArray> staticFields;
   QMap<QByteArray, QByteArray>  fields;
   bool                          enableEscapeXml;
 };
+
+QMap<QByteArray, QByteArray> SStringParser::Data::staticFields;
 
 SStringParser::SStringParser(bool enableEscapeXml)
   : d(new Data())
@@ -52,6 +55,31 @@ SStringParser & SStringParser::operator=(const SStringParser &from)
   d->enableEscapeXml = from.d->enableEscapeXml;
 
   return *this;
+}
+
+void SStringParser::setStaticField(const char *name, const char *content)
+{
+  Data::staticFields[name] = content;
+}
+
+void SStringParser::setStaticField(const char *name, const QByteArray &content)
+{
+  Data::staticFields[name] = content;
+}
+
+void SStringParser::setStaticField(const char *name, const QString &content)
+{
+  Data::staticFields[name] = content.toUtf8();
+}
+
+void SStringParser::setStaticField(const char *name, const QUrl &content)
+{
+  Data::staticFields[name] = content.toEncoded();
+}
+
+void SStringParser::clearStaticField(const char *name)
+{
+  Data::staticFields.remove(name);
 }
 
 void SStringParser::clear(void)
@@ -118,18 +146,40 @@ void SStringParser::clearField(const char *name)
 
 void SStringParser::copyField(const char *to, const char *from)
 {
-  d->fields[to] = d->fields[from];
+  QMap<QByteArray, QByteArray>::ConstIterator i = d->fields.find(from);
+  if (i != d->fields.end())
+  {
+    d->fields[to] = *i;
+  }
+  else
+  {
+    i = d->staticFields.find(from);
+    if (i != d->staticFields.end())
+      d->fields[to] = *i;
+  }
 }
 
 QByteArray SStringParser::field(const char *name) const
 {
-  return d->fields[name];
+  QMap<QByteArray, QByteArray>::ConstIterator i = d->fields.find(name);
+  if (i != d->fields.end())
+    return *i;
+
+  i = d->staticFields.find(name);
+  if (i != d->staticFields.end())
+    return *i;
+
+  return QByteArray();
 }
 
 QByteArray SStringParser::parse(const QByteArray &data) const
 {
   QByteArray result = data;
-  for (QMap<QByteArray, QByteArray>::const_iterator i=d->fields.begin(); i!=d->fields.end(); i++)
+
+  for (QMap<QByteArray, QByteArray>::ConstIterator i=d->fields.begin(); i!=d->fields.end(); i++)
+    result.replace("{" + i.key() + "}", *i);
+
+  for (QMap<QByteArray, QByteArray>::ConstIterator i=d->staticFields.begin(); i!=d->staticFields.end(); i++)
     result.replace("{" + i.key() + "}", *i);
 
   return result;

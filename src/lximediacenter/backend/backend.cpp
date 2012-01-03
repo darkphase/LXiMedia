@@ -86,8 +86,8 @@ void Backend::start(void)
   // Setup template parsers
   cssParser.clear();
   htmlParser.clear();
-  htmlParser.setField("_PRODUCT", qApp->applicationName());
-  htmlParser.setField("_HOSTNAME", (settings.value("DeviceName", defaultDeviceName())).toString());
+  htmlParser.setStaticField("_PRODUCT", qApp->applicationName());
+  htmlParser.setStaticField("_HOSTNAME", (settings.value("DeviceName", defaultDeviceName())).toString());
 
   backendServers = BackendServer::create(this);
   foreach (BackendServer *server, backendServers)
