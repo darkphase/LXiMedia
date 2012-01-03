@@ -46,6 +46,12 @@ public:
                                 SStringParser(const SStringParser &);
   SStringParser               & operator=(const SStringParser &);
 
+  static void                   setStaticField(const char *, const char *);
+  static void                   setStaticField(const char *, const QByteArray &);
+  static void                   setStaticField(const char *, const QString &);
+  static void                   setStaticField(const char *, const QUrl &);
+  static void                   clearStaticField(const char *);
+
   void                          clear(void);
 
   void                          setField(const char *, const char *);
@@ -57,9 +63,9 @@ public:
   void                          appendField(const char *, const QString &);
   void                          appendField(const char *, const QUrl &);
   void                          clearField(const char *);
+
   void                          copyField(const char *, const char *);
   QByteArray                    field(const char *) const;
-
   QByteArray                    parse(const QByteArray &) const;
 
 public:

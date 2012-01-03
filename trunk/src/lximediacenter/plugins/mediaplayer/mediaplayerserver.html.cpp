@@ -30,8 +30,7 @@ const char MediaPlayerServer::htmlFrontPageContent[] =
     "   <script type=\"text/javascript\">loadListContent(\"mediaplayeritems\", \"{SERVER_PATH}\", 0, 0);</script>\n";
 
 const char MediaPlayerServer::htmlSettingsMain[] =
-    "  <a class=\"hidden\" name=\"mediaplayer\" />\n"
-    "  <fieldset>\n"
+    "  <fieldset id=\"mediaplayer\">\n"
     "   <legend>{TR_MEDIAPLAYER}</legend>\n"
     "   <form name=\"settings\" action=\"{SERVER_PATH}#mediaplayer\" method=\"get\">\n"
     "    <input type=\"hidden\" name=\"save_settings\" value=\"settings\" />\n"
@@ -39,7 +38,7 @@ const char MediaPlayerServer::htmlSettingsMain[] =
     "     <tr>\n"
     "      <td>\n"
     "       {TR_SELECT_MEDIA_DIRECTORIES}:<br />\n"
-    "       <iframe style=\"width:30em;height:30em;\" src=\"{SERVER_PATH}?folder_tree=\" frameborder=\"0\">\n"
+    "       <iframe style=\"width:30em;height:30em;\" src=\"{SERVER_PATH}?folder_tree=\">\n"
     "        <a href=\"{SERVER_PATH}?folder_tree=\" target=\"_blank\">frame</a>\n"
     "       </iframe>\n"
     "      </td>\n"
@@ -88,6 +87,7 @@ const char MediaPlayerServer::htmlSettingsDirTreeIndex[] =
     "<!DOCTYPE html>\n"
     "<html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"en\" xml:lang=\"en\">\n"
     "<head>\n"
+    " <title></title>\n"
     " <meta http-equiv=\"Content-Type\" content=\"text/html;charset=utf-8\" />\n"
     " <link rel=\"stylesheet\" href=\"/css/main.css\" type=\"text/css\" media=\"screen, handheld, projection\" />\n"
     "</head>\n"
@@ -99,8 +99,7 @@ const char MediaPlayerServer::htmlSettingsDirTreeIndex[] =
     "</html>\n";
 
 const char MediaPlayerServer::htmlSettingsDirTreeDir[] =
-    " <tr align=\"middle\"><td align=\"left\">\n"
-    "  <a class=\"hidden\" name=\"{DIR_FULLPATH}\" />\n"
+    " <tr align=\"middle\" id=\"{DIR_FULLPATH}\"><td align=\"left\">\n"
     "{DIR_INDENT}"
     "{DIR_EXPAND}"
     "{DIR_CHECK}"

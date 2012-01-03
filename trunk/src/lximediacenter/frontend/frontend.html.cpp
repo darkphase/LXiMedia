@@ -107,7 +107,7 @@ const char Frontend::htmlIFrame[] =
     "</head>\n"
     "<body class=\"browser\" id=\"body\" onresize=\"resizeWindow()\">\n"
     "{NAVIGATOR}"
-    " <iframe class=\"browser\" id=\"browser\" src=\"{PATH}\" frameborder=\"0\">\n"
+    " <iframe class=\"browser\" id=\"browser\" src=\"{PATH}\">\n"
     " </iframe>\n"
     " <script type=\"text/javascript\">resizeWindow();</script>\n"
     "</body>\n"

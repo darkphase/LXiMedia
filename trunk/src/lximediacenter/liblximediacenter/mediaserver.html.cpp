@@ -104,12 +104,13 @@ const char MediaServer::htmlAudioPlayer[] =
     "<!DOCTYPE html>\n"
     "<html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"en\" xml:lang=\"en\">\n"
     "<head>\n"
+    " <title>{_PRODUCT} @ {_HOSTNAME}</title>\n"
     " <meta http-equiv=\"Content-Type\" content=\"text/html;charset=utf-8\" />\n"
     " <link rel=\"stylesheet\" href=\"/css/player.css\" type=\"text/css\" media=\"screen, handheld, projection\" />\n"
     " <script type=\"text/javascript\" src=\"/js/player.js\"></script>\n" // Open and close tag due to IE bug
     "</head>\n"
     "<body id=\"body\" onresize=\"resizeWindow()\">\n"
-    " <iframe class=\"browser\" id=\"browser\" src=\"{PATH}\" frameborder=\"0\">\n"
+    " <iframe class=\"browser\" id=\"browser\" src=\"{PATH}\">\n"
     " </iframe>\n"
     " <div class=\"audioplayer\" id=\"audioplayer\">\n"
     "  <span><img src=\"/img/audio-file.png?invert=\" alt=\"&gt;\" /></span>\n"
@@ -130,6 +131,7 @@ const char MediaServer::htmlPlayer[] =
     "<!DOCTYPE html>\n"
     "<html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"en\" xml:lang=\"en\">\n"
     "<head>\n"
+    " <title>{_PRODUCT} @ {_HOSTNAME}</title>\n"
     " <meta http-equiv=\"Content-Type\" content=\"text/html;charset=utf-8\" />\n"
     " <link rel=\"stylesheet\" href=\"/css/player.css\" type=\"text/css\" media=\"screen, handheld, projection\" />\n"
     " <script type=\"text/javascript\" src=\"/js/player.js\"></script>\n" // Open and close tag due to IE bug

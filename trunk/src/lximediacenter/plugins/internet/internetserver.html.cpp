@@ -39,7 +39,7 @@ const char InternetServer::htmlSettingsMain[] =
     "     <tr>\n"
     "      <td>\n"
     "       {TR_SELECT_SITES}:<br />\n"
-    "       <iframe style=\"width:30em;height:30em;\" src=\"{SERVER_PATH}?site_tree=\" frameborder=\"0\">\n"
+    "       <iframe style=\"width:30em;height:30em;\" src=\"{SERVER_PATH}?site_tree=\">\n"
     "        <a href=\"{SERVER_PATH}?site_tree=\" target=\"_blank\">frame</a>\n"
     "       </iframe><br />\n"
     "       <a href=\"{SERVER_PATH}?edit=\" target=\"_blank\">{TR_CREATE_NEW_SITE}</a>"
@@ -57,6 +57,7 @@ const char InternetServer::htmlSiteTreeIndex[] =
     "<!DOCTYPE html>\n"
     "<html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"en\" xml:lang=\"en\">\n"
     "<head>\n"
+    " <title></title>\n"
     " <meta http-equiv=\"Content-Type\" content=\"text/html;charset=utf-8\" />\n"
     " <link rel=\"stylesheet\" href=\"/css/main.css\" type=\"text/css\" media=\"screen, handheld, projection\" />\n"
     "</head>\n"
@@ -68,8 +69,7 @@ const char InternetServer::htmlSiteTreeIndex[] =
     "</html>\n";
 
 const char InternetServer::htmlSiteTreeDir[] =
-    " <tr valign=\"middle\"><td align=\"left\">\n"
-    "  <a class=\"hidden\" name=\"{DIR_FULLPATH}\" />\n"
+    " <tr valign=\"middle\" id=\"{DIR_FULLPATH}\"><td align=\"left\">\n"
     "{DIR_INDENT}"
     "{DIR_EXPAND}"
     "{DIR_CHECK}"
