@@ -115,15 +115,21 @@ const char Backend::htmlSettingsMain[] =
     " <div class=\"main_settings\">\n"
     "  <a class=\"hidden\" name=\"httpserver\" />\n"
     "  <fieldset>\n"
-    "   <legend>{TR_HTTP_SERVER}</legend>\n"
-    "   {TR_HTTPSERVER_EXPLAIN}<br />\n"
+    "   <legend>{TR_SERVER}</legend>\n"
+    "   {TR_SERVER_EXPLAIN}<br />\n"
     "   <br />\n"
     "   <form name=\"httpsettings\" action=\"/settings#httpserver\" method=\"get\">\n"
     "    <input type=\"hidden\" name=\"save_settings\" value=\"http\" />\n"
-    "    {TR_HTTP_PORT_NUMBER}:\n"
-    "    <input type=\"text\" size=\"6\" name=\"httpport\" value=\"{HTTPPORT}\" />\n"
-    "    {TR_DEVICE_NAME}:\n"
-    "    <input type=\"text\" size=\"40\" name=\"devicename\" value=\"{DEVICENAME}\" /><br />\n"
+    "    <table>\n"
+    "     <tr><td>\n"
+    "      {TR_HTTP_PORT_NUMBER}:\n"
+    "      <input type=\"text\" size=\"6\" name=\"httpport\" value=\"{HTTPPORT}\" />\n"
+    "      <input type=\"checkbox\" name=\"bindallnetworks\" value=\"on\" {BINDALLNETWORKS} />{TR_BIND_ALL_NETWORKS}\n"
+    "     </tr></td><tr><td>\n"
+    "      {TR_DEVICE_NAME}:\n"
+    "      <input type=\"text\" size=\"40\" name=\"devicename\" value=\"{DEVICENAME}\" />\n"
+    "     </tr></td>\n"
+    "    </table>\n"
     "    <br />\n"
     "    <input type=\"submit\" name=\"save\" value=\"{TR_SAVE}\" />\n"
     "   </form>\n"
@@ -135,10 +141,14 @@ const char Backend::htmlSettingsMain[] =
     "   <br />\n"
     "   <form name=\"localizationsettings\" action=\"/settings#localization\" method=\"get\">\n"
     "    <input type=\"hidden\" name=\"save_settings\" value=\"localization\" />\n"
-    "    {TR_DEFAULT_CODEPAGE}:\n"
-    "    <select name=\"defaultcodepage\">\n"
+    "    <table>\n"
+    "     <tr><td>\n"
+    "      {TR_DEFAULT_CODEPAGE}:\n"
+    "      <select name=\"defaultcodepage\">\n"
     "{CODEPAGES}"
-    "    </select><br />\n"
+    "      </select>\n"
+    "     </tr></td>\n"
+    "    </table>\n"
     "    <br />\n"
     "    <input type=\"submit\" name=\"save\" value=\"{TR_SAVE}\" />\n"
     "   </form>\n"
@@ -463,13 +473,27 @@ QByteArray Backend::handleHtmlSettings(const SHttpServer::RequestMessage &reques
   QSettings settings;
 
   SStringParser htmlParser;
-  htmlParser.setField("TR_HTTP_SERVER", tr("HTTP server"));
+  htmlParser.setField("TR_SERVER", tr("Server"));
   htmlParser.setField("TR_HTTP_PORT_NUMBER", tr("Preferred HTTP port number"));
   htmlParser.setField("TR_DEVICE_NAME", tr("Device name"));
-  htmlParser.setField("TR_HTTPSERVER_EXPLAIN",
-    tr("This configures the internal HTTP server."));
-
+  htmlParser.setField("TR_BIND_ALL_NETWORKS", tr("Bind all networks"));
+  
+  htmlParser.setField("TR_SERVER_EXPLAIN",
+    tr("This configures the internal server. By default, the server only binds "
+       "local/private networks (i.e. 10.0.0.0/8, 127.0.0.0/8, 169.254.0.0/16, "
+       "172.16.0.0/12, and 192.168.0.0/16), all other networks are not bound. "
+       "This can be overridden by checking the \"Bind all networks\" option, "
+       "but note that this might expose this server to the internet; so before "
+       "enabling \"Bind all networks\" make sure the local router/firewall is "
+       "properly configured"
+#ifdef Q_OS_WIN
+       " (the Windows firewall will not be sufficient)"
+#endif
+       "."
+       ));
+  
   htmlParser.setField("HTTPPORT", settings.value("HttpPort", defaultPort).toString());
+  htmlParser.setField("BINDALLNETWORKS", settings.value("BindAllNetworks", false).toBool() ? "checked=\"checked\"" : "");
   htmlParser.setField("DEVICENAME", settings.value("DeviceName", defaultDeviceName()).toString());
 
   htmlParser.setField("TR_LOCALIZATION", tr("Localization"));
@@ -813,6 +837,11 @@ void Backend::saveHtmlSettings(const SHttpServer::RequestMessage &request)
     const int portValue = request.url().queryItemValue("httpport").toInt();
     if ((portValue > 0) && (portValue < 65536))
       settings.setValue("HttpPort", portValue);
+
+    if (request.url().queryItemValue("bindallnetworks") == "on")
+      settings.setValue("BindAllNetworks", true);
+    else
+      settings.remove("BindAllNetworks");
 
     const QString deviceName =
         QString::fromUtf8(QByteArray::fromPercentEncoding(

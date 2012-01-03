@@ -445,7 +445,7 @@ bool SUPnPContentDirectory::handleBrowse(const QDomElement &elem, QDomDocument &
   return true;
 }
 
-void SUPnPContentDirectory::didlDirectory(QDomDocument &doc, QDomElement &root, Item::Type type, const QString &client, const QString &path, const QString &title)
+void SUPnPContentDirectory::didlDirectory(QDomDocument &doc, QDomElement &root, Item::Type type, const QString &, const QString &path, const QString &title)
 {
   QMap<QString, Callback *>::Iterator callback = d->callbacks.find(path);
   for (QString i=path; !i.isEmpty() && (callback == d->callbacks.end()); i=parentDir(i))
@@ -887,7 +887,7 @@ SUPnPContentDirectory::Item::Chapter::~Chapter()
 }
 
 
-QList<SUPnPContentDirectory::Item> SUPnPContentDirectory::Data::listContentDirItems(const QString &client, const QString &path, int start, int &count)
+QList<SUPnPContentDirectory::Item> SUPnPContentDirectory::Data::listContentDirItems(const QString &, const QString &path, int start, int &count)
 {
   const bool returnAll = count == 0;
   QList<SUPnPContentDirectory::Item> result;

@@ -75,7 +75,9 @@ void Backend::start(void)
   QSettings settings;
 
   masterHttpServer.initialize(
-      SSsdpClient::localInterfaces(),
+      settings.value("BindAllNetworks", false).toBool()
+          ? QNetworkInterface::allAddresses()
+          : SSsdpClient::localInterfaces(),
       settings.value("HttpPort", defaultPort).toInt());
 
   // Setup HTTP server
@@ -185,9 +187,11 @@ void Backend::reset(void)
 {
   QSettings settings;
 
-  const quint16 newPort = settings.value("HttpPort", defaultPort).toInt();
-  if (newPort != masterHttpServer.defaultPort())
-    masterHttpServer.reset(SSsdpClient::localInterfaces(), newPort);
+  masterHttpServer.reset(
+      settings.value("BindAllNetworks", false).toBool()
+          ? QNetworkInterface::allAddresses()
+          : SSsdpClient::localInterfaces(),
+      settings.value("HttpPort", defaultPort).toInt());
 
   masterSsdpServer.reset();
   masterMediaServer.reset();
