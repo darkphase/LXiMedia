@@ -110,7 +110,9 @@ SHttpClient::ResponseMessage SHttpClient::blockingRequest(const RequestMessage &
     socket.connectToHost(hostname, port);
     if (socket.waitForConnected(qMax(0, timeout - timer.elapsed())))
     {
-      socket.write(request);
+      RequestMessage req = request;
+      req.setConnection("Close");
+      socket.write(req);
       if (socket.waitForBytesWritten(qMax(0, timeout - timer.elapsed())))
       {
         QByteArray data;
@@ -121,18 +123,22 @@ SHttpClient::ResponseMessage SHttpClient::blockingRequest(const RequestMessage &
             data += socket.readLine();
         }
 
-        ResponseMessage response(NULL);
-        response.parse(data);
-
-        data = socket.readAll();
-        while (((response.contentLength() == 0) || (data.length() < response.contentLength())) &&
-               socket.waitForReadyRead(qMax(0, timeout - timer.elapsed())))
+        if (data.endsWith("\r\n\r\n"))
         {
-          data += socket.readAll();
-        }
+          ResponseMessage response(NULL);
+          response.parse(data);
 
-        response.setContent(data);
-        return response;
+          data = socket.readAll();
+          while ((!response.hasField(SHttpEngine::fieldContentLength) ||
+                 (data.length() < response.contentLength())) &&
+                 socket.waitForReadyRead(qMax(0, timeout - timer.elapsed())))
+          {
+            data += socket.readAll();
+          }
+
+          response.setContent(data);
+          return response;
+        }
       }
     }
   }

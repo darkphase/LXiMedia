@@ -38,10 +38,15 @@ private slots:
   void                          localSandbox(void);
   void                          remoteSandbox(void);
 
+private:
+  void                          testClient(SSandboxClient *client);
+  void                          testBlockingClient(SSandboxClient *client);
+
+private slots:
   void                          handleResponse(const SHttpEngine::ResponseMessage &);
 
 private:
   SApplication                * mediaApp;
   static const int              numResponses;
-  int                           responseCount;
+  QAtomicInt                    responseCount;
 };

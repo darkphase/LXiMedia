@@ -352,7 +352,7 @@ SHttpEngine::ResponseMessage::ResponseMessage(const RequestHeader &request, Stat
 
 bool SHttpEngine::ResponseMessage::isComplete(void) const
 {
-  return data.length() >= contentLength();
+  return hasField(fieldContentLength) && (data.length() >= contentLength());
 }
 
 void SHttpEngine::ResponseMessage::setContent(const QByteArray &content)

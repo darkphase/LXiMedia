@@ -53,5 +53,5 @@ private:
   SApplication                * mediaApp;
   SHttpServer                 * httpServer;
   static const int              numResponses;
-  int                           responseCount;
+  QAtomicInt                    responseCount;
 };
