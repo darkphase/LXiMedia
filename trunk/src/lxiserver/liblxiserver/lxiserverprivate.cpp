@@ -100,6 +100,9 @@ void HttpClientRequest::start(QIODevice *socket)
     connect(socket, SIGNAL(disconnected()), SLOT(close()), Qt::QueuedConnection);
 
     closeTimer.start(SHttpEngine::maxTTL);
+
+    if (socket->bytesAvailable() > 0)
+      readyRead();
   }
   else
     close();
@@ -109,9 +112,13 @@ void HttpClientRequest::readyRead()
 {
   Q_ASSERT(QThread::currentThread() == thread());
 
+#ifdef TRACE_CONNECTIONS
+  qDebug() << this << "HttpClientRequest::readyRead";
+#endif
+
   if (!responded)
   {
-    while (socket->bytesAvailable())
+    while (socket->bytesAvailable() > 0)
       data += socket->read(65536);
 
     if (socket && !data.isEmpty())
@@ -154,6 +161,8 @@ void HttpClientRequest::close()
   deleteLater();
 }
 
+
+const QEvent::Type HttpServerRequest::handleRequestEventType = QEvent::Type(QEvent::registerEventType());
 
 HttpServerRequest::HttpServerRequest(SHttpServerEngine *parent, quint16 serverPort)
   : QObject(parent),
@@ -207,6 +216,24 @@ void HttpServerRequest::start(QIODevice *socket)
   }
   else
     deleteLater();
+}
+
+void HttpServerRequest::customEvent(QEvent *e)
+{
+  if (e->type() == handleRequestEventType)
+  {
+    const HandleRequestEvent * const event = static_cast<HandleRequestEvent *>(e);
+
+    SHttpEngine::ResponseMessage response = parent->handleHttpRequest(event->request, socket);
+
+    if (socket)
+      parent->sendHttpResponse(event->request, response, socket);
+
+    socket = NULL;
+    deleteLater();
+  }
+  else
+    QObject::customEvent(e);
 }
 
 void HttpServerRequest::readyRead()
@@ -273,13 +300,7 @@ void HttpServerRequest::readyRead()
         disconnect(socket, SIGNAL(readyRead()), this, SLOT(readyRead()));
         disconnect(socket, SIGNAL(disconnected()), this, SLOT(close()));
 
-        SHttpEngine::ResponseMessage response = parent->handleHttpRequest(request, socket);
-
-        if (socket)
-          parent->sendHttpResponse(request, response, socket);
-
-        socket = NULL;
-        deleteLater();
+        qApp->postEvent(this, new HandleRequestEvent(request));
       }
     }
   }

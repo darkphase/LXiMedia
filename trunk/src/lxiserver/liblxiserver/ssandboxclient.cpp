@@ -37,6 +37,13 @@ struct SSandboxClient::Data
     {
       if (parent)
         qApp->sendEvent(parent, new QEvent(socketCreatedEventType));
+
+#ifdef Q_OS_WIN
+      // This is needed to ensure the socket isn't kept open by any child
+      // processes.
+      if (state() != QLocalSocket::UnconnectedState)
+        ::SetHandleInformation((HANDLE)socketDescriptor(), HANDLE_FLAG_INHERIT, 0);
+#endif
     }
 
     virtual ~Socket()
@@ -193,7 +200,9 @@ SSandboxClient::ResponseMessage SSandboxClient::blockingRequest(const RequestMes
   socket.connectToServer(d->serverName);
   if (socket.waitForConnected(qMax(0, timeout - timer.elapsed())))
   {
-    socket.write(request);
+    RequestMessage req = request;
+    req.setConnection("Close");
+    socket.write(req);
     if (socket.waitForBytesWritten(qMax(0, timeout - timer.elapsed())))
     {
       QByteArray data;
@@ -213,28 +222,32 @@ SSandboxClient::ResponseMessage SSandboxClient::blockingRequest(const RequestMes
         }
       }
 
-      ResponseMessage response(NULL);
-      response.parse(data);
-
-      data = socket.readAll();
-      while (((response.contentLength() == 0) || (data.length() < response.contentLength())) &&
-             (qAbs(timer.elapsed()) < timeout))
+      if (data.endsWith("\r\n\r\n"))
       {
-        if (socket.waitForReadyRead(qBound(0, timeout - timer.elapsed(), 50)))
-        {
-          data += socket.readAll();
-        }
-        else if (d->serverProcess)
-        {
-          if (d->serverProcess->isRunning())
-            d->serverProcess->waitForReadyRead(qBound(0, timeout - timer.elapsed(), 50));
-          else
-            return ResponseMessage(request, Status_InternalServerError);
-        }
-      }
+        ResponseMessage response(NULL);
+        response.parse(data);
 
-      response.setContent(data);
-      return response;
+        data = socket.readAll();
+        while ((!response.hasField(SHttpEngine::fieldContentLength) ||
+                (data.length() < response.contentLength())) &&
+               (qAbs(timer.elapsed()) < timeout))
+        {
+          if (socket.waitForReadyRead(qBound(0, timeout - timer.elapsed(), 50)))
+          {
+            data += socket.readAll();
+          }
+          else if (d->serverProcess)
+          {
+            if (d->serverProcess->isRunning())
+              d->serverProcess->waitForReadyRead(qBound(0, timeout - timer.elapsed(), 50));
+            else
+              return ResponseMessage(request, Status_InternalServerError);
+          }
+        }
+
+        response.setContent(data);
+        return response;
+      }
     }
   }
 

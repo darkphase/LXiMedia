@@ -133,6 +133,8 @@ bool HttpEngineTest::startServer(const QHostAddress &address)
         }
       }
 
+      qWarning() << "Corrupted request" << request.method() << request.path() << request.version();
+
       return SHttpServer::ResponseMessage(request, SHttpServer::Status_NotFound);
     }
   };
@@ -173,7 +175,7 @@ void HttpEngineTest::testQtClient(const QHostAddress &address)
   for (unsigned i=0; (i<100) && (responseCount<numResponses); i++)
     QTest::qWait(100);
 
-  QCOMPARE(responseCount, numResponses);
+  QCOMPARE(int(responseCount), numResponses);
 }
 
 void HttpEngineTest::testHttpClient(const QHostAddress &address)
@@ -193,7 +195,7 @@ void HttpEngineTest::testHttpClient(const QHostAddress &address)
   for (unsigned i=0; (i<100) && (responseCount<numResponses); i++)
     QTest::qWait(100);
 
-  QCOMPARE(responseCount, numResponses);
+  QCOMPARE(int(responseCount), numResponses);
 }
 
 void HttpEngineTest::testBlockingHttpClient(const QHostAddress &address)
@@ -204,7 +206,7 @@ void HttpEngineTest::testBlockingHttpClient(const QHostAddress &address)
   {
   public:
     inline Thread(HttpEngineTest *parent, const QHostAddress &address)
-      : parent(parent), address(address)
+      : QThread(parent), parent(parent), address(address)
     {
     }
 
@@ -217,26 +219,37 @@ void HttpEngineTest::testBlockingHttpClient(const QHostAddress &address)
       request.setHost(address, parent->httpServer->serverPort(address));
 
       for (int i=0; i<parent->numResponses; i++)
-      if (httpClient.blockingRequest(request).status() == SHttpEngine::Status_Ok)
-        parent->responseCount++;
+      {
+        const SHttpEngine::ResponseMessage response = httpClient.blockingRequest(request);
+        if (response.status() == SHttpEngine::Status_Ok)
+          parent->responseCount.ref();
+        else
+          qWarning() << "Corrupted response" << response.status().statusCode() << response.status().description();
+      }
     }
 
     HttpEngineTest * const parent;
     const QHostAddress address;
   };
 
-  Thread thread(this, address);
-  thread.start();
-  while (!thread.wait(0))
+  static const int numThreads = 4;
+  Thread * thread[numThreads];
+  for (int i=0; i<numThreads; i++)
+    (thread[i] = new Thread(this, address))->start();
+
+  for (int i=0; i<numThreads; i++)
+  while (!thread[i]->wait(0))
     QTest::qWait(100);
 
-  QCOMPARE(responseCount, numResponses);
+  QCOMPARE(int(responseCount), numResponses * numThreads);
 }
 
 void HttpEngineTest::serverReply(QNetworkReply *reply)
 {
   if (reply->error() == QNetworkReply::NoError)
-    responseCount++;
+    responseCount.ref();
+  else
+    qWarning() << "Corrupted response" << reply->errorString();
 
   reply->deleteLater();
 }
@@ -244,5 +257,7 @@ void HttpEngineTest::serverReply(QNetworkReply *reply)
 void HttpEngineTest::handleResponse(const SHttpEngine::ResponseMessage &response)
 {
   if (response.status() == SHttpEngine::Status_Ok)
-    responseCount++;
+    responseCount.ref();
+  else
+    qWarning() << "Corrupted response" << response.status().statusCode() << response.status().description();
 }

@@ -523,9 +523,11 @@ const QString & SHttpClientEngine::senderId(void) const
 void SHttpClientEngine::sendRequest(const RequestMessage &request)
 {
   HttpClientRequest * const clientRequest = new HttpClientRequest(this);
-
   connect(clientRequest, SIGNAL(response(SHttpEngine::ResponseMessage)), SLOT(handleResponse(SHttpEngine::ResponseMessage)));
-  openRequest(request, clientRequest, SLOT(start(QIODevice *)));
+
+  RequestMessage req = request;
+  req.setConnection("Close");
+  openRequest(req, clientRequest, SLOT(start(QIODevice *)));
 }
 
 void SHttpClientEngine::customEvent(QEvent *e)

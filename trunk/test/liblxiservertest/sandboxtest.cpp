@@ -21,7 +21,7 @@
 #include <QtTest>
 #include <LXiServer>
 
-const int SandboxTest::numResponses = 50;
+const int SandboxTest::numResponses = 100;
 
 int SandboxTest::startSandbox(const QString &mode)
 {
@@ -59,12 +59,14 @@ SSandboxServer * SandboxTest::createSandbox(void)
         {
           if (url.hasQueryItem("nop"))
           {
-            return SSandboxServer::ResponseMessage(request, SHttpServer::Status_Ok);
+            return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_Ok);
           }
         }
       }
 
-      return SSandboxServer::ResponseMessage(request, SHttpServer::Status_NotFound);
+      qWarning() << "Corrupted request" << request.method() << request.path() << request.version();
+
+      return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_NotFound);
     }
   };
 
@@ -93,18 +95,8 @@ void SandboxTest::localSandbox(void)
   LXiServer::SSandboxClient * const sandboxClient = new SSandboxClient(sandboxServer, SSandboxClient::Priority_Normal, this);
   connect(sandboxClient, SIGNAL(response(SHttpEngine::ResponseMessage)), SLOT(handleResponse(SHttpEngine::ResponseMessage)), Qt::DirectConnection);
 
-  responseCount = 0;
-
-  SSandboxClient::RequestMessage nopRequest(sandboxClient);
-  nopRequest.setRequest("GET", "/?nop");
-
-  for (int i=0; i<numResponses; i++)
-    sandboxClient->sendRequest(nopRequest);
-
-  for (int i=0; (i<100) && (responseCount<numResponses); i++)
-    QTest::qWait(100);
-
-  QCOMPARE(responseCount, numResponses);
+  testClient(sandboxClient);
+  testBlockingClient(sandboxClient);
 
   delete sandboxClient;
 
@@ -117,24 +109,74 @@ void SandboxTest::remoteSandbox(void)
   LXiServer::SSandboxClient * const sandboxClient = new SSandboxClient("\"" + qApp->applicationFilePath() + "\" --sandbox", SSandboxClient::Priority_Normal, this);
   connect(sandboxClient, SIGNAL(response(SHttpEngine::ResponseMessage)), SLOT(handleResponse(SHttpEngine::ResponseMessage)), Qt::DirectConnection);
 
-  responseCount = 0;
-
-  SSandboxClient::RequestMessage nopRequest(sandboxClient);
-  nopRequest.setRequest("GET", "/?nop");
-
-  for (int i=0; i<numResponses; i++)
-    sandboxClient->sendRequest(nopRequest);
-
-  for (int i=0; (i<100) && (responseCount<numResponses); i++)
-    QTest::qWait(100);
-
-  QCOMPARE(responseCount, numResponses);
+  testClient(sandboxClient);
 
   delete sandboxClient;
 }
 
+void SandboxTest::testClient(SSandboxClient *client)
+{
+  responseCount = 0;
+
+  SSandboxClient::RequestMessage nopRequest(client);
+  nopRequest.setRequest("GET", "/?nop");
+
+  for (int i=0; i<numResponses; i++)
+    client->sendRequest(nopRequest);
+
+  for (int i=0; (i<100) && (responseCount<numResponses); i++)
+    QTest::qWait(100);
+
+  QCOMPARE(int(responseCount), numResponses);
+}
+
+void SandboxTest::testBlockingClient(SSandboxClient *client)
+{
+  responseCount = 0;
+
+  class Thread : public QThread
+  {
+  public:
+    inline Thread(SandboxTest *parent, SSandboxClient *client)
+      : QThread(parent), parent(parent), client(client)
+    {
+    }
+
+    inline virtual void run(void)
+    {
+      SSandboxClient::RequestMessage nopRequest(client);
+      nopRequest.setRequest("GET", "/?nop");
+
+      for (int i=0; i<parent->numResponses; i++)
+      {
+        const SHttpEngine::ResponseMessage response = client->blockingRequest(nopRequest);
+        if (response.status() == SHttpEngine::Status_Ok)
+          parent->responseCount.ref();
+        else
+          qWarning() << "Corrupted response" << response.status().statusCode() << response.status().description();
+      }
+    }
+
+    SandboxTest * const parent;
+    SSandboxClient * const client;
+  };
+
+  static const int numThreads = 4;
+  Thread * thread[numThreads];
+  for (int i=0; i<numThreads; i++)
+    (thread[i] = new Thread(this, client))->start();
+
+  for (int i=0; i<numThreads; i++)
+  while (!thread[i]->wait(0))
+    QTest::qWait(100);
+
+  QCOMPARE(int(responseCount), numResponses * numThreads);
+}
+
 void SandboxTest::handleResponse(const SHttpEngine::ResponseMessage &response)
 {
-  if (response.status() == SHttpEngine::Status_Ok)
-    responseCount++;
+  if (response.status() == SSandboxServer::Status_Ok)
+    responseCount.ref();
+  else
+    qWarning() << "Corrupted response" << response.status().statusCode() << response.status().description();
 }
