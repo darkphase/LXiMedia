@@ -66,8 +66,8 @@ bool SDaemon::isRunning(const QString &name)
       QByteArray cmdLine = file.readAll();
       cmdLine = cmdLine.left(cmdLine.indexOf('\0'));
 
-      if (!cmdLine.isEmpty())
-      if (cmdLine.endsWith('/' + name.toUtf8()))
+      const QByteArray u8name = name.toUtf8();
+      if ((cmdLine == u8name) || cmdLine.endsWith('/' + u8name))
         return true;
     }
   }

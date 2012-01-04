@@ -31,6 +31,8 @@ int main(int argc, char *argv[])
 
   SApplication mediaApp(true);
 
+  SStringParser::setStaticField("_PRODUCT", qApp->applicationName());
+
   Frontend * const frontend = new Frontend();
   frontend->show();
 

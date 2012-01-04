@@ -887,7 +887,7 @@ SUPnPContentDirectory::Item::Chapter::~Chapter()
 }
 
 
-QList<SUPnPContentDirectory::Item> SUPnPContentDirectory::Data::listContentDirItems(const QString &, const QString &path, int start, int &count)
+QList<SUPnPContentDirectory::Item> SUPnPContentDirectory::Data::listContentDirItems(const QString &client, const QString &path, int start, int &count)
 {
   const bool returnAll = count == 0;
   QList<SUPnPContentDirectory::Item> result;
@@ -900,25 +900,29 @@ QList<SUPnPContentDirectory::Item> SUPnPContentDirectory::Data::listContentDirIt
     sub = sub.left(sub.indexOf('/', 1) + 1);
     if ((sub.length() > 1) && !names.contains(sub))
     {
-      names.insert(sub);
-
-      if (returnAll || (count > 0))
+      int total = 1;
+      if (!(*i)->listContentDirItems(client, i.key(), 0, total).isEmpty() && (total > 0))
       {
-        if (start == 0)
-        {
-          Item item;
-          item.isDir = true;
-          item.path = sub;
-          item.title = sub;
-          item.title = item.title.startsWith('/') ? item.title.mid(1) : item.title;
-          item.title = item.title.endsWith('/') ? item.title.left(item.title.length() - 1) : item.title;
+        names.insert(sub);
 
-          result += item;
-          if (count > 0)
-            count--;
+        if (returnAll || (count > 0))
+        {
+          if (start == 0)
+          {
+            Item item;
+            item.isDir = true;
+            item.path = sub;
+            item.title = sub;
+            item.title = item.title.startsWith('/') ? item.title.mid(1) : item.title;
+            item.title = item.title.endsWith('/') ? item.title.left(item.title.length() - 1) : item.title;
+
+            result += item;
+            if (count > 0)
+              count--;
+          }
+          else
+            start--;
         }
-        else
-          start--;
       }
     }
   }

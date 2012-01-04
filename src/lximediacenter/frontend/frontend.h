@@ -93,13 +93,16 @@ private:
   QMap<QString, Server>         servers;
   QTimer                        frontendPageTimer;
   bool                          frontendPageShowing;
+  bool                          waitingForWelcome;
 
 private:
+  QByteArray                    makeWaitingPage(void) const;
   QByteArray                    makeFrontendPage(void) const;
   QByteArray                    makeIFrame(const QByteArray &) const;
 
 private:
   static const char             htmlIndex[];
+  static const char             htmlWaiting[];
   static const char             htmlNavigator[];
   static const char             htmlServers[];
   static const char             htmlLocalServer[];

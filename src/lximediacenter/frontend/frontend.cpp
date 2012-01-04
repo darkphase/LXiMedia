@@ -28,7 +28,8 @@ const char Frontend::backendName[] = "LXiMediaCenter Backend";
 Frontend::Frontend()
   : QWebView(),
     ssdpClient(QString("uuid:" + QUuid::createUuid().toString()).replace("{", "").replace("}", "")),
-    frontendPageShowing(false)
+    frontendPageShowing(false),
+    waitingForWelcome(qApp->arguments().contains("--welcome"))
 {
   WebPage * const webPage = new WebPage(this);
   webPage->setNetworkAccessManager(new NetworkAccessManager(this));
@@ -104,6 +105,10 @@ void Frontend::loadFrontendPage(const QUrl &url)
     frontendPageShowing = false;
     setContent(makeIFrame(QByteArray::fromHex(url.path().mid(8).toAscii())), "text/html", QUrl("qrc:/"));
   }
+  else if (url.path() == "/waiting")
+  {
+    setContent(makeWaitingPage(), "text/html", QUrl("qrc:/"));
+  }
   else
   {
     if (url.path() == "/startbackend")
@@ -173,7 +178,18 @@ void Frontend::requestFinished(QNetworkReply *reply)
             }
           }
 
-          frontendPageTimer.start(250);
+          if (waitingForWelcome &&
+              (server->modelName == qApp->applicationName()) &&
+              isLocalAddress(server->presentationURL.host()))
+          {
+            QUrl url = server->presentationURL;
+            url.setPath(url.path() + "settings");
+
+            waitingForWelcome = false;
+            setUrl(url);
+          }
+          else
+            frontendPageTimer.start(250);
         }
       }
     }
@@ -184,7 +200,9 @@ void Frontend::requestFinished(QNetworkReply *reply)
 
 void Frontend::updateFrontendPage(void)
 {
-  if (frontendPageShowing)
+  if (waitingForWelcome)
+    loadFrontendPage(QUrl("frontend:/waiting"));
+  else if (frontendPageShowing)
     loadFrontendPage(QUrl("frontend:/"));
 }
 
