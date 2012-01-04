@@ -23,7 +23,7 @@ const char Frontend::htmlIndex[] =
     "<!DOCTYPE html>\n"
     "<html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"en\" xml:lang=\"en\">\n"
     "<head>\n"
-    " <title>{PRODUCT}</title>\n"
+    " <title>{_PRODUCT}</title>\n"
     " <meta http-equiv=\"Content-Type\" content=\"text/html;charset=utf-8\" />\n"
     " <link rel=\"icon\" type=\"image/png\" href=\"/lximedia.png\" />"
     " <link rel=\"stylesheet\" href=\"/css/main.css\" type=\"text/css\" media=\"screen, handheld, projection\" />\n"
@@ -35,9 +35,14 @@ const char Frontend::htmlIndex[] =
     "</body>\n"
     "</html>\n";
 
+const char Frontend::htmlWaiting[] =
+    " <div style=\"font-size:3em;text-align:center;padding-top:4em;\">\n"
+    "  {TR_STARTING_PLEASE_WAIT}\n"
+    " </div>\n";
+
 const char Frontend::htmlNavigator[] =
     " <div class=\"main_navigator\" id=\"navigator\">\n"
-    "  <div class=\"root\">{PRODUCT}</div>\n"
+    "  <div class=\"root\">{_PRODUCT}</div>\n"
     "  <div><a href=\"frontend:/\"><img src=\"/lximedia.png\" alt=\"..\" /></a></div>\n"
     " </div>\n";
 
@@ -98,7 +103,7 @@ const char Frontend::htmlIFrame[] =
     "<!DOCTYPE html>\n"
     "<html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"en\" xml:lang=\"en\">\n"
     "<head>\n"
-    " <title>{PRODUCT}</title>\n"
+    " <title>{_PRODUCT}</title>\n"
     " <meta http-equiv=\"Content-Type\" content=\"text/html;charset=utf-8\" />\n"
     " <link rel=\"icon\" type=\"image/png\" href=\"/lximedia.png\" />"
     " <link rel=\"stylesheet\" href=\"/css/main.css\" type=\"text/css\" media=\"screen, handheld, projection\" />\n"
@@ -113,10 +118,20 @@ const char Frontend::htmlIFrame[] =
     "</body>\n"
     "</html>\n";
 
+QByteArray Frontend::makeWaitingPage(void) const
+{
+  SStringParser htmlParser;
+  htmlParser.setField("NAVIGATOR", "");
+
+  htmlParser.setField("TR_STARTING_PLEASE_WAIT", tr("Starting, please wait ..."));
+
+  htmlParser.setField("CONTENT", htmlParser.parse(htmlWaiting));
+  return htmlParser.parse(htmlIndex);
+}
+
 QByteArray Frontend::makeFrontendPage(void) const
 {
   SStringParser htmlParser;
-  htmlParser.setField("PRODUCT", qApp->applicationName());
   htmlParser.setField("NAVIGATOR", htmlParser.parse(htmlNavigator));
 
   htmlParser.setField("TR_ADDRESS", tr("Address"));
@@ -242,7 +257,6 @@ QByteArray Frontend::makeFrontendPage(void) const
 QByteArray Frontend::makeIFrame(const QByteArray &url) const
 {
   SStringParser htmlParser;
-  htmlParser.setField("PRODUCT", qApp->applicationName());
   htmlParser.setField("NAVIGATOR", htmlParser.parse(htmlNavigator));
   htmlParser.setField("PATH", htmlParser.escapeXml(url));
 

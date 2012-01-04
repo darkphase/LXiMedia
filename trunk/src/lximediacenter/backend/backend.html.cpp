@@ -481,12 +481,11 @@ QByteArray Backend::handleHtmlSettings(const SHttpServer::RequestMessage &reques
        "This can be overridden by checking the \"Bind all networks\" option, "
        "but note that this might expose this server to the internet; so before "
        "enabling \"Bind all networks\" make sure the local router/firewall is "
-       "properly configured"
+       "properly configured.")
 #ifdef Q_OS_WIN
-       " (the Windows firewall will not be sufficient)"
+    + " (" + tr("the Windows firewall will not be sufficient") + ")"
 #endif
-       "."
-       ));
+    );
   
   htmlParser.setField("HTTPPORT", settings.value("HttpPort", defaultPort).toString());
   htmlParser.setField("BINDALLNETWORKS", settings.value("BindAllNetworks", false).toBool() ? "checked=\"checked\"" : "");
