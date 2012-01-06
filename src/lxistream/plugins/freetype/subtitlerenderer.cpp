@@ -151,7 +151,7 @@ SubtitleRenderer::RenderedSubtitle SubtitleRenderer::renderSubtitle(const SSubti
   if (initialized)
   {
     const float height = float(size.height()) * ratio;
-    const float width = (height / size.aspectRatio()) * 0.75f;
+    const float width = (height / size.aspectRatio()) * 0.85f;
     const int shadowHeight = qMax(1, int((height / 16.0f) + 0.5f));
     const int shadowWidth = qMax(1, int(((height / size.aspectRatio()) / 16.0f) + 0.5f));
 

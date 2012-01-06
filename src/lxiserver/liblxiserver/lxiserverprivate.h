@@ -37,18 +37,6 @@ using namespace LXiServer;
 class HttpClientRequest : public QObject
 {
 Q_OBJECT
-private:
-  class HandleResponseEvent : public QEvent
-  {
-  public:
-    inline HandleResponseEvent(const SHttpEngine::ResponseMessage &response)
-      : QEvent(handleResponseEventType), response(response)
-    {
-    }
-
-    SHttpEngine::ResponseMessage response;
-  };
-
 public:
   explicit                      HttpClientRequest(SHttpClientEngine *, bool reuse);
   virtual                       ~HttpClientRequest();
@@ -59,16 +47,11 @@ public slots:
 signals:
   void                          response(const SHttpEngine::ResponseMessage &);
 
-protected:
-  virtual void                  customEvent(QEvent *);
-
 private slots:
   void                          readyRead();
   void                          close();
 
 private:
-  static const QEvent::Type     handleResponseEventType;
-
   SHttpClientEngine     * const parent;
   const bool                    reuse;
   const SHttpEngine::RequestMessage message;
@@ -81,18 +64,6 @@ private:
 class HttpServerRequest : public QObject
 {
 Q_OBJECT
-private:
-  class HandleRequestEvent : public QEvent
-  {
-  public:
-    inline HandleRequestEvent(const SHttpEngine::RequestMessage &request)
-      : QEvent(handleRequestEventType), request(request)
-    {
-    }
-
-    SHttpEngine::RequestMessage request;
-  };
-
 public:
   explicit                      HttpServerRequest(SHttpServerEngine *, quint16 serverPort);
   virtual                       ~HttpServerRequest();
@@ -100,16 +71,11 @@ public:
 public slots:
   void                          start(QIODevice *);
 
-protected:
-  virtual void                  customEvent(QEvent *);
-
 private slots:
   void                          readyRead();
   void                          close();
 
 private:
-  static const QEvent::Type     handleRequestEventType;
-
   const QPointer<SHttpServerEngine> parent;
   const quint16                 serverPort;
   QPointer<QIODevice>           socket;
