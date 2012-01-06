@@ -42,7 +42,9 @@ struct SSsdpServer::Private
     unsigned                    msgCount;
   };
 
-  const SHttpServer            * httpServer;
+  const SHttpServer           * httpServer;
+  qint32                        bootid;
+  qint32                        configid;
   QMultiMap<QString, Service>   published;
   QTimer                        publishTimer, autoPublishTimer;
 };
@@ -52,6 +54,8 @@ SSsdpServer::SSsdpServer(const SHttpServer *httpServer)
     p(new Private())
 {
   p->httpServer = httpServer;
+  p->bootid = 0;
+  p->configid = 0;
 
   p->publishTimer.setSingleShot(true);
   connect(&(p->publishTimer), SIGNAL(timeout()), SLOT(publishServices()));
@@ -66,6 +70,9 @@ SSsdpServer::~SSsdpServer()
 
 void SSsdpServer::initialize(const QList<QHostAddress> &interfaces)
 {
+  p->bootid = qint32(QDateTime::currentDateTime().toTime_t() & 0x7FFFFFFF);
+  p->configid = p->bootid & 0x00FFFFFF;
+
   SSsdpClient::initialize(interfaces);
 
   p->autoPublishTimer.start(((cacheTimeout / 2) - 300) * 1000);
@@ -81,17 +88,20 @@ void SSsdpServer::close(void)
 
 void SSsdpServer::reset(void)
 {
+  p->bootid = qint32(QDateTime::currentDateTime().toTime_t() & 0x7FFFFFFF);
+  p->configid = ((p->configid + 1) & 0x00FFFFFF);
+
   p->autoPublishTimer.stop();
   unpublishServices();
 
-  p->publishTimer.start(3000);
+  p->publishTimer.start(3000 + (qrand() % 100));
   p->autoPublishTimer.start(((cacheTimeout / 2) - 300) * 1000);
 }
 
 void SSsdpServer::publish(const QString &nt, const QString &relativeUrl, unsigned msgCount)
 {
   p->published.insert(nt, Private::Service(relativeUrl, msgCount));
-  p->publishTimer.start(3000);
+  p->publishTimer.start(3000 + (qrand() % 100));
 }
 
 void SSsdpServer::parsePacket(SsdpClientInterface *iface, const SHttpServer::RequestHeader &header, const QHostAddress &sourceAddress, quint16 sourcePort)
@@ -132,6 +142,8 @@ void SSsdpServer::sendAlive(SsdpClientInterface *iface, const QString &nt, const
   request.setField("LOCATION", url);
   request.setField("NT", nt);
   request.setField("NTS", "ssdp:alive");
+  request.setField("BOOTID.UPNP.ORG", QString::number(p->bootid));
+  request.setField("CONFIGID.UPNP.ORG", QString::number(p->configid));
 
   sendDatagram(iface, request, ssdpAddressIPv4, ssdpPort);
 }
@@ -144,6 +156,8 @@ void SSsdpServer::sendByeBye(SsdpClientInterface *iface, const QString &nt) cons
   request.setField("USN", serverUdn() + (!nt.startsWith("uuid:") ? ("::" + nt) : QString::null));
   request.setField("NT", nt);
   request.setField("NTS", "ssdp:byebye");
+  request.setField("BOOTID.UPNP.ORG", QString::number(p->bootid));
+  request.setField("CONFIGID.UPNP.ORG", QString::number(p->configid));
 
   sendDatagram(iface, request, ssdpAddressIPv4, ssdpPort);
 }
