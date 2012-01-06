@@ -26,6 +26,20 @@
 
 namespace LXiServer {
 
+class SHttpEngine::CloseSocketEvent : public QEvent
+{
+public:
+  inline CloseSocketEvent(QIODevice *socket)
+    : QEvent(closeSocketEventType), socket(socket)
+  {
+  }
+
+public:
+  QIODevice * const socket;
+};
+
+const QEvent::Type  SHttpEngine::closeSocketEventType = QEvent::Type(QEvent::registerEventType());
+
 const char  SHttpEngine::httpVersion[]       = "HTTP/1.1";
 const int   SHttpEngine::maxTTL              = 300000;
 const char  SHttpEngine::fieldConnection[]   = "Connection";
@@ -76,6 +90,31 @@ SHttpEngine::SHttpEngine(QObject *parent)
 
 SHttpEngine::~SHttpEngine()
 {
+}
+
+void SHttpEngine::closeSocket(QIODevice *socket)
+{
+  if (socket)
+  {
+    if (QThread::currentThread() == thread())
+    {
+      QObject::connect(socket, SIGNAL(disconnected()), socket, SLOT(deleteLater()));
+      QTimer::singleShot(30000, socket, SLOT(deleteLater()));
+
+      QAbstractSocket * const aSocket = qobject_cast<QAbstractSocket *>(socket);
+      if (aSocket)
+        aSocket->disconnectFromHost();
+
+      QLocalSocket * const lSocket = qobject_cast<QLocalSocket *>(socket);
+      if (lSocket)
+        lSocket->disconnectFromServer();
+    }
+    else
+    {
+      socket->moveToThread(thread());
+      qApp->postEvent(this, new CloseSocketEvent(socket));
+    }
+  }
 }
 
 /*! Returns the error description for the HTTP status code.
@@ -276,21 +315,16 @@ SHttpEngine::MimePartMap SHttpEngine::splitMultipartMime(const QByteArray &conte
   return result;
 }
 
-void SHttpEngine::closeSocket(QIODevice *socket)
+void SHttpEngine::customEvent(QEvent *e)
 {
-  if (socket)
+  if (e->type() == closeSocketEventType)
   {
-    QObject::connect(socket, SIGNAL(disconnected()), socket, SLOT(deleteLater()));
-    QTimer::singleShot(30000, socket, SLOT(deleteLater()));
+    const CloseSocketEvent * const event = static_cast<const CloseSocketEvent *>(e);
 
-    QAbstractSocket * const aSocket = qobject_cast<QAbstractSocket *>(socket);
-    if (aSocket)
-      aSocket->disconnectFromHost();
-
-    QLocalSocket * const lSocket = qobject_cast<QLocalSocket *>(socket);
-    if (lSocket)
-      lSocket->disconnectFromServer();
+    closeSocket(event->socket);
   }
+  else
+    QObject::customEvent(e);
 }
 
 
@@ -354,7 +388,7 @@ const QString & SHttpServerEngine::senderId(void) const
   return d->senderId;
 }
 
-SHttpServerEngine::ResponseMessage SHttpServerEngine::handleHttpRequest(const SHttpEngine::RequestMessage &request, QIODevice *socket) const
+SHttpServerEngine::ResponseMessage SHttpServerEngine::handleHttpRequest(const SHttpEngine::RequestMessage &request, QIODevice *socket)
 {
   if (request.method() == "OPTIONS")
   {
@@ -436,10 +470,7 @@ void SHttpServerEngine::sendHttpResponse(const SHttpEngine::RequestHeader &reque
 
   if (response.status() != SHttpEngine::Status_None)
   {
-    if (reuse && response.hasField(fieldContentLength) &&
-        (request.connection().compare("Close", Qt::CaseInsensitive) != 0) &&
-        ((response.version() >= SHttpEngine::httpVersion) ||
-         (request.connection().compare("Keep-Alive", Qt::CaseInsensitive) == 0)))
+    if (reuse && response.canReuseConnection())
     {
       // Reuse the socket if possible
       SHttpServerEngine * const serverEngine =
@@ -461,7 +492,7 @@ void SHttpServerEngine::sendHttpResponse(const SHttpEngine::RequestHeader &reque
     response.setConnection("Close");
     T::send(request, response, socket);
 
-    SHttpEngine::closeSocket(socket);
+    closeSocket(socket);
   }
 }
 
@@ -474,15 +505,9 @@ SHttpServerEngine::ResponseMessage SHttpServerEngine::Callback::httpOptions(cons
 }
 
 
-const QEvent::Type  SHttpClientEngine::socketCreatedEventType = QEvent::Type(QEvent::registerEventType());
-const QEvent::Type  SHttpClientEngine::socketDestroyedEventType = QEvent::Type(QEvent::registerEventType());
-
 struct SHttpClientEngine::Data
 {
   QString                       senderId;
-
-  static const int              maxOpenSockets = 8;
-  int                           openSockets;
 };
 
 SHttpClientEngine::SHttpClientEngine(QObject *parent)
@@ -500,8 +525,6 @@ SHttpClientEngine::SHttpClientEngine(QObject *parent)
 #elif defined(Q_OS_WIN)
   d->senderId += " Windows";
 #endif
-
-  d->openSockets = 0;
 }
 
 SHttpClientEngine::~SHttpClientEngine()
@@ -522,38 +545,10 @@ const QString & SHttpClientEngine::senderId(void) const
 
 void SHttpClientEngine::sendRequest(const RequestMessage &request)
 {
-  HttpClientRequest * const clientRequest = new HttpClientRequest(this);
+  HttpClientRequest * const clientRequest = new HttpClientRequest(this, request.canReuseConnection());
   connect(clientRequest, SIGNAL(response(SHttpEngine::ResponseMessage)), SLOT(handleResponse(SHttpEngine::ResponseMessage)));
 
-  RequestMessage req = request;
-  req.setConnection("Close");
-  openRequest(req, clientRequest, SLOT(start(QIODevice *)));
-}
-
-void SHttpClientEngine::customEvent(QEvent *e)
-{
-  if (e->type() == socketCreatedEventType)
-    socketCreated();
-  else if (e->type() == socketDestroyedEventType)
-    socketDestroyed();
-  else
-    QObject::customEvent(e);
-}
-
-int SHttpClientEngine::socketsAvailable(void) const
-{
-  return d->maxOpenSockets - d->openSockets;
-}
-
-void SHttpClientEngine::socketCreated(void)
-{
-  d->openSockets++;
-}
-
-void SHttpClientEngine::socketDestroyed(void)
-{
-  Q_ASSERT(d->openSockets > 0);
-  d->openSockets--;
+  openRequest(request, clientRequest, SLOT(start(QIODevice *)));
 }
 
 void SHttpClientEngine::handleResponse(const SHttpEngine::ResponseMessage &message)

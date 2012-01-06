@@ -28,140 +28,224 @@ namespace LXiServer {
 
 struct SHttpClient::Data
 {
-  class Socket : public QTcpSocket
-  {
-  public:
-    Socket(SHttpClientEngine *parent)
-      : QTcpSocket(parent), parent(parent)
-    {
-      if (parent)
-        qApp->sendEvent(parent, new QEvent(socketCreatedEventType));
-
-#ifdef Q_OS_WIN
-      // This is needed to ensure the socket isn't kept open by any child
-      // processes.
-      ::SetHandleInformation((HANDLE)socketDescriptor(), HANDLE_FLAG_INHERIT, 0);
-#endif
-    }
-
-    virtual ~Socket()
-    {
-      if (parent)
-        qApp->postEvent(parent, new QEvent(socketDestroyedEventType));
-    }
-
-  private:
-    const QPointer<SHttpClientEngine> parent;
-  };
-
   struct Request
   {
-    inline Request(const QString &hostname, quint16 port, const QByteArray &message, QObject *receiver, const char *slot)
-      : hostname(hostname), port(port), message(message), receiver(receiver), slot(slot)
+    inline Request(const QString &host, const QByteArray &message, QObject *receiver, const char *slot, Qt::ConnectionType connectionType)
+      : host(host), message(message), receiver(receiver), slot(slot), connectionType(connectionType)
     {
     }
 
-    QString                     hostname;
-    quint16                     port;
+    QString                     host;
     QByteArray                  message;
     QObject                   * receiver;
     const char                * slot;
+    Qt::ConnectionType          connectionType;
   };
 
   QList<Request>                requests;
+
+  static const int              maxSocketCount = 32;
+  QHash<QIODevice *, QString>   socketHost;
+  QMultiHash<QString, QIODevice *> socketPool;
+  QTimer                        socketPoolTimer;
 };
 
 SHttpClient::SHttpClient(QObject *parent)
   : SHttpClientEngine(parent),
     d(new Data())
 {
+  d->socketPoolTimer.setSingleShot(true);
+  connect(&d->socketPoolTimer, SIGNAL(timeout()), SLOT(clearSocketPool()));
 }
 
 SHttpClient::~SHttpClient()
 {
+  clearSocketPool();
+
+  Q_ASSERT(d->socketHost.isEmpty());
+
   delete d;
   *const_cast<Data **>(&d) = NULL;
 }
 
-void SHttpClient::openRequest(const RequestMessage &message, QObject *receiver, const char *slot)
+void SHttpClient::openRequest(const RequestMessage &message, QObject *receiver, const char *slot, Qt::ConnectionType connectionType)
 {
   if (QThread::currentThread() != thread())
     qFatal("SHttpClient::openRequest() should be invoked from the thread "
            "that owns the SHttpClient object.");
 
-  QString hostname;
-  quint16 port = 80;
-  if (splitHost(message.host(), hostname, port))
-  {
-    d->requests.append(Data::Request(hostname, port, message, receiver, slot));
-    openRequest();
-  }
+  d->requests.append(Data::Request(message.host(), message, receiver, slot, connectionType));
+  openRequest();
 }
 
 SHttpClient::ResponseMessage SHttpClient::blockingRequest(const RequestMessage &request, int timeout)
 {
   QTime timer; timer.start();
 
-  QString hostname;
-  quint16 port = 80;
-  if (splitHost(request.host(), hostname, port))
+  QTcpSocket * const socket = static_cast<QTcpSocket *>(openSocket(request.host(), true));
+  if (socket &&
+      ((socket->state() == socket->ConnectedState) ||
+       socket->waitForConnected(qMax(0, timeout - timer.elapsed()))))
   {
-    Data::Socket socket(NULL);
-    socket.connectToHost(hostname, port);
-    if (socket.waitForConnected(qMax(0, timeout - timer.elapsed())))
+    socket->write(request);
+    if (socket->waitForBytesWritten(qMax(0, timeout - timer.elapsed())))
     {
-      RequestMessage req = request;
-      req.setConnection("Close");
-      socket.write(req);
-      if (socket.waitForBytesWritten(qMax(0, timeout - timer.elapsed())))
+      QByteArray data;
+      while (!data.endsWith("\r\n\r\n") &&
+             socket->waitForReadyRead(qMax(0, timeout - timer.elapsed())))
       {
-        QByteArray data;
-        while (!data.endsWith("\r\n\r\n") &&
-               socket.waitForReadyRead(qMax(0, timeout - timer.elapsed())))
+        while (socket->canReadLine() && !data.endsWith("\r\n\r\n"))
+          data += socket->readLine();
+      }
+
+      if (data.endsWith("\r\n\r\n"))
+      {
+        ResponseMessage response(NULL);
+        response.parse(data);
+
+        data = socket->readAll();
+        while ((!response.hasField(SHttpEngine::fieldContentLength) ||
+               (data.length() < response.contentLength())) &&
+               socket->waitForReadyRead(qMax(0, timeout - timer.elapsed())))
         {
-          while (socket.canReadLine() && !data.endsWith("\r\n\r\n"))
-            data += socket.readLine();
+          data += socket->readAll();
         }
 
-        if (data.endsWith("\r\n\r\n"))
-        {
-          ResponseMessage response(NULL);
-          response.parse(data);
+        if (request.canReuseConnection() && response.canReuseConnection())
+          reuseSocket(socket);
+        else
+          closeSocket(socket);
 
-          data = socket.readAll();
-          while ((!response.hasField(SHttpEngine::fieldContentLength) ||
-                 (data.length() < response.contentLength())) &&
-                 socket.waitForReadyRead(qMax(0, timeout - timer.elapsed())))
-          {
-            data += socket.readAll();
-          }
-
-          response.setContent(data);
-          return response;
-        }
+        response.setContent(data);
+        return response;
       }
     }
   }
 
+  closeSocket(socket);
+
   return ResponseMessage(request, Status_BadRequest);
 }
 
-void SHttpClient::socketDestroyed(void)
+void SHttpClient::closeSocket(QIODevice *socket)
 {
-  SHttpClientEngine::socketDestroyed();
+  if (QThread::currentThread() == thread())
+  {
+    SHttpClientEngine::closeSocket(socket);
+
+    if (socket)
+    {
+      d->socketHost.remove(socket);
+
+      openRequest();
+    }
+  }
+  else
+    SHttpClientEngine::closeSocket(socket); // Will call closeSocket() again from the correct thread.
+}
+
+void SHttpClient::reuseSocket(QIODevice *socket)
+{
+  QHash<QIODevice *, QString>::ConstIterator i = d->socketHost.find(socket);
+  if (i != d->socketHost.end())
+  {
+    d->socketPool.insert(*i, socket);
+    d->socketPoolTimer.start(30000);
+  }
+  else
+    closeSocket(socket);
 
   openRequest();
 }
 
+QIODevice * SHttpClient::openSocket(const QString &host, bool force)
+{
+  d->socketPoolTimer.start(30000);
+
+  QMultiHash<QString, QIODevice *>::Iterator i = d->socketPool.find(host);
+  if (i != d->socketPool.end())
+  {
+    QTcpSocket * const socket = static_cast<QTcpSocket *>(*i);
+    d->socketPool.erase(i);
+
+    if (socket->state() == QTcpSocket::ConnectedState)
+      return socket;
+    else
+      closeSocket(socket);
+  }
+
+  while (d->socketHost.count() >= d->maxSocketCount)
+  {
+    QMultiHash<QString, QIODevice *>::Iterator i = d->socketPool.begin();
+    if (i != d->socketPool.end())
+    {
+      closeSocket(*i);
+      d->socketPool.erase(i);
+    }
+    else
+      break;
+  }
+
+  if (force || (d->socketHost.count() < d->maxSocketCount))
+  {
+    QString hostname;
+    quint16 port = 80;
+    if (splitHost(host, hostname, port))
+    {
+      QTcpSocket * const socket = new QTcpSocket(this);
+      socket->connectToHost(hostname, port);
+
+#ifdef Q_OS_WIN
+      // This is needed to ensure the socket isn't kept open by any child processes.
+      ::SetHandleInformation((HANDLE)socket->socketDescriptor(), HANDLE_FLAG_INHERIT, 0);
+#endif
+
+      d->socketHost.insert(socket, host);
+
+      return socket;
+    }
+  }
+
+  return NULL;
+}
+
 void SHttpClient::openRequest(void)
 {
-  while (!d->requests.isEmpty() && (socketsAvailable() > 0))
+  while (!d->requests.isEmpty())
   {
     const Data::Request request = d->requests.takeFirst();
 
-    HttpSocketRequest * const socketRequest = new HttpSocketRequest(this, new Data::Socket(this), request.hostname, request.port, request.message);
+    QString hostname;
+    quint16 port = 80;
+    if (splitHost(request.host, hostname, port))
+    {
+      QTcpSocket * const socket = static_cast<QTcpSocket *>(openSocket(request.host, false));
+      if (socket)
+      {
+        HttpSocketRequest * const socketRequest =
+            new HttpSocketRequest(this, socket, port, request.message);
 
-    connect(socketRequest, SIGNAL(connected(QIODevice *)), request.receiver, request.slot);
+        if (request.receiver)
+          connect(socketRequest, SIGNAL(connected(QIODevice *, SHttpEngine *)), request.receiver, request.slot, request.connectionType);
+        else
+          connect(socketRequest, SIGNAL(connected(QIODevice *, SHttpEngine *)), SLOT(closeSocket(QIODevice *)));
+      }
+      else // No more free sockets.
+      {
+        d->requests.prepend(request);
+        break;
+      }
+    }
+  }
+}
+
+void SHttpClient::clearSocketPool(void)
+{
+  for (QMultiHash<QString, QIODevice *>::Iterator i = d->socketPool.begin();
+       i != d->socketPool.end();
+       i = d->socketPool.erase(i))
+  {
+    closeSocket(*i);
   }
 }
 

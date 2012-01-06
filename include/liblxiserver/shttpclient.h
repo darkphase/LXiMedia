@@ -37,17 +37,19 @@ public:
   virtual                       ~SHttpClient();
 
 public: // From HttpClientEngine
-  virtual void                  openRequest(const RequestMessage &header, QObject *receiver, const char *slot);
-
+  virtual void                  openRequest(const RequestMessage &header, QObject *receiver, const char *slot, Qt::ConnectionType = Qt::AutoConnection);
   virtual ResponseMessage       blockingRequest(const RequestMessage &, int timeout = 30000);
 
-protected:
-  /*! Shall be invoked when a socket is destroyed.
-   */
-  virtual void                  socketDestroyed(void);
-      
+public slots: // From HttpClientEngine
+  virtual void                  closeSocket(QIODevice *);
+  virtual void                  reuseSocket(QIODevice *);
+
+private:
+  QIODevice                   * openSocket(const QString &host, bool force);
+
 private slots:
   void                          openRequest(void);
+  void                          clearSocketPool(void);
 
 private:
   struct Data;

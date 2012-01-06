@@ -245,7 +245,7 @@ bool InternetServer::Stream::setup(const QUrl &url, const QByteArray &content)
   message.setRequest("POST", url.toEncoded(QUrl::RemoveScheme | QUrl::RemoveAuthority));
   message.setContent(content);
 
-  sandbox->openRequest(message, &proxy, SLOT(setSource(QIODevice *)));
+  sandbox->openRequest(message, &proxy, SLOT(setSource(QIODevice *, SHttpEngine *)), Qt::DirectConnection);
 
   return true;
 }

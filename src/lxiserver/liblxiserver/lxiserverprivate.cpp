@@ -56,8 +56,13 @@ void LXiServerInit::shutdown(void)
 {
 }
 
-HttpClientRequest::HttpClientRequest(SHttpClientEngine *parent)
+
+const QEvent::Type HttpClientRequest::handleResponseEventType = QEvent::Type(QEvent::registerEventType());
+
+HttpClientRequest::HttpClientRequest(SHttpClientEngine *parent, bool reuse)
   : QObject(parent),
+    parent(parent),
+    reuse(reuse),
     socket(NULL),
     responded(false)
 {
@@ -79,7 +84,8 @@ HttpClientRequest::~HttpClientRequest()
   qDebug() << this << "HttpClientRequest::~HttpClientRequest";
 #endif
 
-  delete socket;
+  if (socket)
+    parent->closeSocket(socket);
 }
 
 void HttpClientRequest::start(QIODevice *socket)
@@ -108,6 +114,18 @@ void HttpClientRequest::start(QIODevice *socket)
     close();
 }
 
+void HttpClientRequest::customEvent(QEvent *e)
+{
+  if (e->type() == handleResponseEventType)
+  {
+    emit response(static_cast<HandleResponseEvent *>(e)->response);
+
+    deleteLater();
+  }
+  else
+    QObject::customEvent(e);
+}
+
 void HttpClientRequest::readyRead()
 {
   Q_ASSERT(QThread::currentThread() == thread());
@@ -123,22 +141,24 @@ void HttpClientRequest::readyRead()
 
     if (socket && !data.isEmpty())
     {
-      SHttpEngine::ResponseMessage message(NULL);
-      message.parse(data);
+      SHttpEngine::ResponseMessage response(NULL);
+      response.parse(data);
 
-      if (message.isValid() && message.isComplete())
+      if (response.isValid() && response.isComplete())
       {
 #ifdef TRACE_CONNECTIONS
         qDebug() << this << "HttpClientRequest::readyRead emit response";
 #endif
 
-        responded = true;
-        emit response(message);
+        if (reuse && response.canReuseConnection())
+          parent->reuseSocket(socket);
+        else
+          parent->closeSocket(socket);
 
-        socket->deleteLater();
         socket = NULL;
 
-        deleteLater();
+        responded = true;
+        qApp->postEvent(this, new HandleResponseEvent(response));
       }
     }
   }
@@ -155,7 +175,9 @@ void HttpClientRequest::close()
   if (!responded)
   {
     responded = true;
-    emit response(SHttpEngine::ResponseMessage(message, SHttpEngine::Status_InternalServerError));
+
+    const SHttpEngine::ResponseMessage response(message, SHttpEngine::Status_InternalServerError);
+    qApp->postEvent(this, new HandleResponseEvent(response));
   }
 
   deleteLater();
@@ -189,7 +211,10 @@ HttpServerRequest::~HttpServerRequest()
   qDebug() << this << "HttpServerRequest::~HttpServerRequest" << socket;
 #endif
 
-  SHttpEngine::closeSocket(socket);
+  if (parent)
+    parent->closeSocket(socket);
+  else
+    delete socket;
 }
 
 void HttpServerRequest::start(QIODevice *socket)
@@ -318,8 +343,9 @@ void HttpServerRequest::close()
 }
 
 
-HttpSocketRequest::HttpSocketRequest(QObject *parent, QAbstractSocket *socket, const QHostAddress &host, quint16 port, const QByteArray &message)
+HttpSocketRequest::HttpSocketRequest(SHttpClientEngine *parent, QAbstractSocket *socket, quint16 port, const QByteArray &message)
   : QObject(parent),
+    parent(parent),
     port(port),
     message(message),
     socket(socket)
@@ -327,22 +353,25 @@ HttpSocketRequest::HttpSocketRequest(QObject *parent, QAbstractSocket *socket, c
   Q_ASSERT(QThread::currentThread() == thread());
 
 #ifdef TRACE_CONNECTIONS
-  qDebug() << this << "HttpSocketRequest::HttpSocketRequest" << host.toString() << port;
+  qDebug() << this << "HttpSocketRequest::HttpSocketRequest" << port;
 #endif
 
-  connect(socket, SIGNAL(connected()), SLOT(connected()), Qt::QueuedConnection);
   connect(socket, SIGNAL(bytesWritten(qint64)), SLOT(bytesWritten()), Qt::QueuedConnection);
   connect(socket, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(failed()), Qt::QueuedConnection);
-
-  socket->connectToHost(host, port);
 
   connect(&failTimer, SIGNAL(timeout()), SLOT(failed()));
   failTimer.setSingleShot(true);
   failTimer.start(maxTTL);
+
+  if (socket->state() != QAbstractSocket::ConnectedState)
+    connect(socket, SIGNAL(connected()), SLOT(connected()), Qt::QueuedConnection);
+  else
+    connected();
 }
 
-HttpSocketRequest::HttpSocketRequest(QObject *parent, QAbstractSocket *socket, const QString &host, quint16 port, const QByteArray &message)
+HttpSocketRequest::HttpSocketRequest(SHttpClientEngine *parent, QLocalSocket *socket, const QByteArray &message)
   : QObject(parent),
+    parent(parent),
     port(port),
     message(message),
     socket(socket)
@@ -350,41 +379,21 @@ HttpSocketRequest::HttpSocketRequest(QObject *parent, QAbstractSocket *socket, c
   Q_ASSERT(QThread::currentThread() == thread());
 
 #ifdef TRACE_CONNECTIONS
-  qDebug() << this << "HttpSocketRequest::HttpSocketRequest" << host << port;
+  qDebug() << this << "HttpSocketRequest::HttpSocketRequest";
 #endif
 
-  connect(socket, SIGNAL(connected()), SLOT(connected()), Qt::QueuedConnection);
-  connect(socket, SIGNAL(bytesWritten(qint64)), SLOT(bytesWritten()), Qt::QueuedConnection);
-  connect(socket, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(failed()), Qt::QueuedConnection);
-
-  QHostInfo::lookupHost(host, this, SLOT(connectToHost(QHostInfo)));
-
-  connect(&failTimer, SIGNAL(timeout()), SLOT(failed()));
-  failTimer.setSingleShot(true);
-  failTimer.start(maxTTL);
-}
-
-HttpSocketRequest::HttpSocketRequest(QObject *parent, QLocalSocket *socket, const QString &server, const QByteArray &message)
-  : QObject(parent),
-    port(port),
-    message(message),
-    socket(socket)
-{
-  Q_ASSERT(QThread::currentThread() == thread());
-
-#ifdef TRACE_CONNECTIONS
-  qDebug() << this << "HttpSocketRequest::HttpSocketRequest" << server;
-#endif
-
-  connect(socket, SIGNAL(connected()), SLOT(connected()), Qt::QueuedConnection);
   connect(socket, SIGNAL(bytesWritten(qint64)), SLOT(bytesWritten()), Qt::QueuedConnection);
   connect(socket, SIGNAL(error(QLocalSocket::LocalSocketError)), SLOT(failed()), Qt::QueuedConnection);
-
-  socket->connectToServer(server);
+  connect(socket, SIGNAL(disconnected()), SLOT(failed()), Qt::QueuedConnection);
 
   connect(&failTimer, SIGNAL(timeout()), SLOT(failed()));
   failTimer.setSingleShot(true);
   failTimer.start(maxTTL);
+
+  if (socket->state() != QLocalSocket::ConnectedState)
+    connect(socket, SIGNAL(connected()), SLOT(connected()), Qt::QueuedConnection);
+  else
+    connected();
 }
 
 HttpSocketRequest::~HttpSocketRequest()
@@ -395,7 +404,8 @@ HttpSocketRequest::~HttpSocketRequest()
   qDebug() << this << "HttpSocketRequest::~HttpSocketRequest";
 #endif
 
-  delete socket;
+  if (socket)
+    parent->closeSocket(socket);
 }
 
 void HttpSocketRequest::connectToHost(const QHostInfo &hostInfo)
@@ -436,14 +446,14 @@ void HttpSocketRequest::connected(void)
     if (socket)
     {
       disconnect(socket, SIGNAL(connected()), this, SLOT(connected()));
+      disconnect(socket, SIGNAL(disconnected()), this, SLOT(failed()));
       disconnect(socket, SIGNAL(bytesWritten(qint64)), this, SLOT(bytesWritten()));
-
 
       if (aSocket) disconnect(aSocket, SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(failed()));
       if (lSocket) disconnect(lSocket, SIGNAL(error(QLocalSocket::LocalSocketError)), this, SLOT(failed()));
     }
 
-    emit connected(socket);
+    emit connected(socket, parent);
     socket = NULL;
     deleteLater();
   }
@@ -474,7 +484,7 @@ void HttpSocketRequest::failed(void)
   {
     qWarning() << "HTTP request failed" << socket->errorString();
 
-    socket->deleteLater();
+    parent->closeSocket(socket);
     socket = NULL;
   }
 

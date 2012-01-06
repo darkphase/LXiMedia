@@ -27,6 +27,8 @@
 
 namespace LXiServer {
 
+class SHttpEngine;
+
 /*! This is a HTTP stream proxy that can be used to stream to one or more
     clients simultaneously.
  */
@@ -40,8 +42,8 @@ public:
   bool                          isConnected(void) const;
 
 public slots:
-  bool                          setSource(QIODevice *);
-  bool                          addSocket(QIODevice *);
+  bool                          setSource(QIODevice *, SHttpEngine *);
+  bool                          addSocket(QIODevice *, SHttpEngine *);
 
 protected:
   virtual void                  run(void);

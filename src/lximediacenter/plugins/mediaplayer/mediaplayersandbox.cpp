@@ -49,6 +49,7 @@ void MediaPlayerSandbox::close(void)
   BackendSandbox::close();
 
   server->unregisterCallback(this);
+  server = NULL;
 
   cleanStreams();
 }
@@ -184,8 +185,8 @@ void MediaPlayerSandbox::customEvent(QEvent *e)
   if (e->type() == responseEventType)
   {
     ResponseEvent * const event = static_cast<ResponseEvent *>(e);
-
-    SSandboxServer::sendHttpResponse(event->request, event->response, event->socket, false);
+    if (server)
+      server->sendHttpResponse(event->request, event->response, event->socket, false);
   }
   else
     BackendSandbox::customEvent(e);

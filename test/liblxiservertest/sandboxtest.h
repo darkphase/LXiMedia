@@ -41,6 +41,7 @@ private slots:
 private:
   void                          testClient(SSandboxClient *client);
   void                          testBlockingClient(SSandboxClient *client);
+  void                          testBlockingClient(SSandboxServer *server);
 
 private slots:
   void                          handleResponse(const SHttpEngine::ResponseMessage &);

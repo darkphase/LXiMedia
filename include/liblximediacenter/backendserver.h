@@ -82,6 +82,9 @@ public:
   SHttpServer::ResponseMessage  makeResponse(const SHttpServer::RequestHeader &, const QString &, const char * = SHttpEngine::mimeTextPlain, bool allowCache = false) const;
   SHttpServer::ResponseMessage  makeHtmlContent(const SHttpServer::RequestHeader &, const QByteArray &content, const QByteArray &head = QByteArray()) const;
 
+protected:
+  MasterServer                * masterServer(void);
+
 public:
   static const int              maxRequestTime;
   static const qreal            minSearchRelevance;

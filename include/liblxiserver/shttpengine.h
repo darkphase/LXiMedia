@@ -150,6 +150,8 @@ public:
     inline QByteArray           version(void) const                             { return isValid() ? head[2] : QByteArray(); }
     void                        setVersion(const QByteArray &);
 
+    bool                        canReuseConnection(void) const;
+
     inline void                 setRequest(const QByteArray &method, const QByteArray &path) { setMethod(method); setPath(path);  }
     inline void                 setRequest(const QByteArray &method, const QByteArray &path, const QByteArray &version) { setMethod(method); setPath(path); setVersion(version); }
 
@@ -202,6 +204,7 @@ public:
 
     int                         cacheControl(void) const;                       //!< Returns the cache timeout.
     void                        setCacheControl(int timeout);                   //!< Sets the cache timeout; < 0 = no cache, 0 = let browser decide, > 0 = timeout in seconds.
+    bool                        canReuseConnection(void) const;
 
     inline void                 setResponse(Status status)                      { setStatus(status); }
     inline void                 setResponse(Status status, const QByteArray &version) { setStatus(status); setVersion(version); }
@@ -267,12 +270,20 @@ public:
   virtual const char          * senderType(void) const = 0;
   virtual const QString       & senderId(void) const = 0;
 
+public slots:
+  /*! Closes and deletes the socket asynchronously. This method immediately
+      returns, the socket is closed in the background.
+   */
+  virtual void                  closeSocket(QIODevice *);
+
+public:
   static const char           * errorDescription(StatusCode);
   static const char           * toMimeType(const QString &fileName);
   static bool                   splitHost(const QString &host, QString &hostname, quint16 &port);
   static MimePartMap            splitMultipartMime(const QByteArray &content);
 
-  static void                   closeSocket(QIODevice *);
+protected:
+  virtual void                  customEvent(QEvent *);
 
 public:
   static const char             httpVersion[];
@@ -318,6 +329,11 @@ public:
   static const char             mimeTextJs[];
   static const char             mimeTextPlain[];
   static const char             mimeTextXml[];
+
+private:
+  static const QEvent::Type     closeSocketEventType;
+
+  class CloseSocketEvent;
 };
 
 
@@ -343,8 +359,8 @@ public:
   virtual const char          * senderType(void) const;
   virtual const QString       & senderId(void) const;
 
-  ResponseMessage               handleHttpRequest(const RequestMessage &, QIODevice *) const;
-  static void                   sendHttpResponse(const RequestHeader &, ResponseMessage &, QIODevice *, bool reuse = true);
+  ResponseMessage               handleHttpRequest(const RequestMessage &, QIODevice *);
+  void                          sendHttpResponse(const RequestHeader &, ResponseMessage &, QIODevice *, bool reuse = true);
   
 private:
   struct Data;
@@ -366,10 +382,11 @@ public:
 
   /*! This sends a request message to the server specified by the host in the
       message. After the connection has been established and the message has been
-      sent, the provided slot is invoked with the opened socket (QIODevice *) as
-      the first argument.
+      sent, the provided slot is invoked with the opened socket and the
+      HTTPEngine that owns the socket(QIODevice *, SHttpEngine *) as arguments.
+      The opened socket must be closed with closeSocket().
    */
-  virtual void                  openRequest(const RequestMessage &message, QObject *receiver, const char *slot) = 0;
+  virtual void                  openRequest(const RequestMessage &message, QObject *receiver, const char *slot, Qt::ConnectionType = Qt::AutoConnection) = 0;
 
   void                          sendRequest(const RequestMessage &);
 
@@ -383,23 +400,18 @@ public:
    */
   virtual ResponseMessage       blockingRequest(const RequestMessage &, int timeout = 30000) = 0;
 
+public slots:
+  /*! Shall take the socket and reuse it when possible, otherwise closes and
+      deletes the socket.
+   */
+  virtual void                  reuseSocket(QIODevice *) = 0;
+
 signals:
   void                          response(const SHttpEngine::ResponseMessage &);
   void                          opened(QIODevice *);
 
-protected:
-  virtual void                  customEvent(QEvent *);
-
-  int                           socketsAvailable(void) const;
-  virtual void                  socketCreated(void);
-  virtual void                  socketDestroyed(void);
-
 protected slots:
   virtual void                  handleResponse(const SHttpEngine::ResponseMessage &);
-
-protected:
-  static const QEvent::Type     socketCreatedEventType;
-  static const QEvent::Type     socketDestroyedEventType;
 
 private:
   struct Data;

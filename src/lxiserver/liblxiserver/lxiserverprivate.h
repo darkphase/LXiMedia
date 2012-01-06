@@ -37,8 +37,20 @@ using namespace LXiServer;
 class HttpClientRequest : public QObject
 {
 Q_OBJECT
+private:
+  class HandleResponseEvent : public QEvent
+  {
+  public:
+    inline HandleResponseEvent(const SHttpEngine::ResponseMessage &response)
+      : QEvent(handleResponseEventType), response(response)
+    {
+    }
+
+    SHttpEngine::ResponseMessage response;
+  };
+
 public:
-  explicit                      HttpClientRequest(SHttpClientEngine *);
+  explicit                      HttpClientRequest(SHttpClientEngine *, bool reuse);
   virtual                       ~HttpClientRequest();
 
 public slots:
@@ -47,11 +59,18 @@ public slots:
 signals:
   void                          response(const SHttpEngine::ResponseMessage &);
 
+protected:
+  virtual void                  customEvent(QEvent *);
+
 private slots:
   void                          readyRead();
   void                          close();
 
 private:
+  static const QEvent::Type     handleResponseEventType;
+
+  SHttpClientEngine     * const parent;
+  const bool                    reuse;
   const SHttpEngine::RequestMessage message;
   QPointer<QIODevice>           socket;
   QByteArray                    data;
@@ -104,13 +123,12 @@ class HttpSocketRequest : public QObject
 {
 Q_OBJECT
 public:
-                                HttpSocketRequest(QObject *, QAbstractSocket *, const QHostAddress &host, quint16 port, const QByteArray &message = QByteArray());
-                                HttpSocketRequest(QObject *, QAbstractSocket *, const QString &host, quint16 port, const QByteArray &message = QByteArray());
-                                HttpSocketRequest(QObject *, QLocalSocket *, const QString &server, const QByteArray &message = QByteArray());
+                                HttpSocketRequest(SHttpClientEngine *, QAbstractSocket *, quint16 port, const QByteArray &message = QByteArray());
+                                HttpSocketRequest(SHttpClientEngine *, QLocalSocket *, const QByteArray &message = QByteArray());
   virtual                       ~HttpSocketRequest();
 
 signals:
-  void                          connected(QIODevice *);
+  void                          connected(QIODevice *, SHttpEngine *);
 
 private slots:
   void                          connectToHost(const QHostInfo &);
@@ -120,6 +138,7 @@ private slots:
 
 private:
   static const int              maxTTL = 15000;
+  SHttpClientEngine     * const parent;
   const quint16                 port;
   QByteArray                    message;
   QPointer<QIODevice>           socket;
