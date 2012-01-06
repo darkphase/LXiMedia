@@ -76,7 +76,12 @@ public:
 
   inline bool listen(void)
   {
-    return QLocalServer::listen("sandbox-" + QUuid::createUuid().toString().replace("{", "").replace("}", ""));
+    const QString appName = QFileInfo(qApp->applicationFilePath()).baseName();
+    if (QLocalServer::listen(appName + '.' + QUuid::createUuid().toString().replace("{", "").replace("}", "")))
+      return true;
+
+    qDebug() << "SSandboxServer" << errorString();
+    return false;
   }
 
 protected:
@@ -178,7 +183,6 @@ bool SSandboxServer::initialize(const QString &mode)
   d->mode = mode;
   d->server = new Server(this);
 
-  // First try IPv6, then IPv4
   if (!d->server->listen())
   {
     qWarning() << "SSandboxServer Failed to bind localhost interface";

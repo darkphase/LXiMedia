@@ -357,7 +357,7 @@ void SSandboxClient::openRequest(void)
             new HttpSocketRequest(this, socket, port, request.message);
 
         if (request.receiver)
-          connect(socketRequest, SIGNAL(connected(QIODevice *)), request.receiver, request.slot);
+          connect(socketRequest, SIGNAL(connected(QIODevice *, SHttpEngine *)), request.receiver, request.slot, request.connectionType);
       }
       else // No more free sockets.
       {
