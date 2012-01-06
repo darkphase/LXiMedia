@@ -1,5 +1,5 @@
 <RCC>
     <qresource prefix="/freetype">
-        <file>DejaVuSans-Bold.ttf</file>
+        <file>LiberationSans-Bold.ttf</file>
     </qresource>
 </RCC>
