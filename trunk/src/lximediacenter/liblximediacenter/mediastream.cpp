@@ -552,20 +552,34 @@ bool MediaTranscodeStream::setup(
 
     QVector<SInputNode::StreamId> selectedStreams;
     if (request.url().hasQueryItem("language"))
+    {
       selectedStreams += SInputNode::StreamId::fromString(request.url().queryItemValue("language"));
-    else if (!audioStreams.isEmpty())
-      selectedStreams += audioStreams.first();
+    }
+    else foreach (const SInputNode::AudioStreamInfo &stream, audioStreams)
+    if (!stream.codec.isNull())
+    {
+      selectedStreams += stream;
+      break;
+    }
 
-    if (!videoStreams.isEmpty())
-      selectedStreams += videoStreams.first();
+    foreach (const SInputNode::VideoStreamInfo &stream, videoStreams)
+    if (!stream.codec.isNull())
+    {
+      selectedStreams += stream;
+      break;
+    }
 
     if (request.url().hasQueryItem("subtitles"))
     {
       if (!request.url().queryItemValue("subtitles").isEmpty())
         selectedStreams += SInputNode::StreamId::fromString(request.url().queryItemValue("subtitles"));
     }
-    else if (!dataStreams.isEmpty())
-      selectedStreams += dataStreams.first();
+    else foreach (const SInputNode::DataStreamInfo &stream, dataStreams)
+    if (!stream.codec.isNull())
+    {
+      selectedStreams += stream;
+      break;
+    }
 
     input->selectStreams(titleId, selectedStreams);
 
