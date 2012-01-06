@@ -275,7 +275,7 @@ bool SsdpClientInterface::joinMulticastGroup(QUdpSocket &sock, const QHostAddres
                  IPPROTO_IP, IP_ADD_MEMBERSHIP,
                  reinterpret_cast<const char *>(&mreq), sizeof(mreq)) != -1)
   {
-    const int ttl = 4;
+    const int ttl = 2;
 
     if (setsockopt(sock.socketDescriptor(),
 #ifndef Q_OS_WIN
