@@ -107,6 +107,10 @@ SHttpServer::ResponseMessage BackendServer::makeHtmlContent(const SHttpServer::R
   return response;
 }
 
+BackendServer::MasterServer * BackendServer::masterServer(void)
+{
+  return d->masterServer;
+}
 
 BackendServer::SearchResult::SearchResult(void)
   : relevance(0.0)

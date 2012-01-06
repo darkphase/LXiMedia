@@ -270,18 +270,6 @@ MediaPlayerServer::ListType MediaPlayerServer::listType(const QString &virtualPa
   return MediaServer::listType(virtualPath);
 }
 
-void MediaPlayerServer::customEvent(QEvent *e)
-{
-  if (e->type() == responseEventType)
-  {
-    ResponseEvent * const event = static_cast<ResponseEvent *>(e);
-
-    SSandboxServer::sendHttpResponse(event->request, event->response, event->socket, false);
-  }
-  else
-    MediaServer::customEvent(e);
-}
-
 void MediaPlayerServer::setRootPaths(const QList<QUrl> &paths)
 {
   rootPaths.clear();
@@ -665,21 +653,21 @@ void MediaPlayerServer::nodeRead(const FileNode &node)
           content = makeThumbnail(size, QImage(defaultIcon));
         }
 
-        SSandboxServer::ResponseMessage response(
+        SHttpServer::ResponseMessage response(
             i->first,
-            SSandboxServer::Status_Ok,
+            SHttpServer::Status_Ok,
             content,
             SHttpEngine::mimeImagePng);
 
-        SHttpServerEngine::sendHttpResponse(i->first, response, i->second);
+        masterServer->httpServer()->sendHttpResponse(i->first, response, i->second);
       }
       else
       {
-        SSandboxServer::ResponseMessage response(
+        SHttpServer::ResponseMessage response(
             i->first,
-            SSandboxServer::Status_InternalServerError);
+            SHttpServer::Status_InternalServerError);
 
-        SHttpServerEngine::sendHttpResponse(i->first, response, i->second);
+        masterServer->httpServer()->sendHttpResponse(i->first, response, i->second);
       }
 
       nodeReadQueue.erase(i);
@@ -693,11 +681,11 @@ void MediaPlayerServer::aborted(void)
        i != nodeReadQueue.end();
        i = nodeReadQueue.erase(i))
   {
-    SSandboxServer::ResponseMessage response(
+    SHttpServer::ResponseMessage response(
         i->first,
-        SSandboxServer::Status_InternalServerError);
+        SHttpServer::Status_InternalServerError);
 
-    SHttpServerEngine::sendHttpResponse(i->first, response, i->second);
+    masterServer->httpServer()->sendHttpResponse(i->first, response, i->second);
   }
 }
 
@@ -720,7 +708,7 @@ bool MediaPlayerServer::Stream::setup(const QUrl &url, const QByteArray &content
   message.setRequest("POST", url.toEncoded(QUrl::RemoveScheme | QUrl::RemoveAuthority));
   message.setContent(content);
 
-  sandbox->openRequest(message, &proxy, SLOT(setSource(QIODevice *)));
+  sandbox->openRequest(message, &proxy, SLOT(setSource(QIODevice *, SHttpEngine *)), Qt::DirectConnection);
 
   return true;
 }

@@ -201,6 +201,15 @@ void SHttpEngine::RequestHeader::setVersion(const QByteArray &version)
     head << "GET" << "/" << version;
 }
 
+bool SHttpEngine::RequestHeader::canReuseConnection(void) const
+{
+  return
+      (!isPost() || hasField(fieldContentLength)) &&
+      (connection().compare("Close", Qt::CaseInsensitive) != 0) &&
+      ((version() >= SHttpEngine::httpVersion) ||
+       (connection().compare("Keep-Alive", Qt::CaseInsensitive) == 0));
+}
+
 void SHttpEngine::RequestHeader::update(void) const
 {
   QByteArray file = path();
@@ -275,6 +284,15 @@ void SHttpEngine::ResponseHeader::setCacheControl(int timeout)
     setField("Cache-Control", "no-cache");
   else if (timeout > 0)
     setField("Cache-Control", "max-age=" + QString::number(timeout));
+}
+
+bool SHttpEngine::ResponseHeader::canReuseConnection(void) const
+{
+  return
+      hasField(fieldContentLength) &&
+      (connection().compare("Close", Qt::CaseInsensitive) != 0) &&
+      ((version() >= SHttpEngine::httpVersion) ||
+       (connection().compare("Keep-Alive", Qt::CaseInsensitive) == 0));
 }
 
 void SHttpEngine::ResponseHeader::parse(const QByteArray &header)

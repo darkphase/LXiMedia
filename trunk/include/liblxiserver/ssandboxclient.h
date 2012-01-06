@@ -47,13 +47,15 @@ public:
   virtual                       ~SSandboxClient();
 
   Priority                      priority(void) const;
-
   void                          ensureStarted(void);
 
 public: // From HttpClientEngine
-  virtual void                  openRequest(const RequestMessage &header, QObject *receiver, const char *slot);
-  
+  virtual void                  openRequest(const RequestMessage &header, QObject *receiver, const char *slot, Qt::ConnectionType = Qt::AutoConnection);
   virtual ResponseMessage       blockingRequest(const RequestMessage &, int timeout = 30000);
+
+public slots: // From HttpClientEngine
+  virtual void                  closeSocket(QIODevice *);
+  virtual void                  reuseSocket(QIODevice *);
 
 signals:
   /*! This signal is emitted when a line is written to stderr that starts with
@@ -64,8 +66,8 @@ signals:
 
   void                          terminated(void);
 
-protected:
-  virtual void                  socketDestroyed(void);
+private:
+  QIODevice                   * openSocket(const QString &host, bool force);
 
 private slots:
   void                          startProcess(void);
@@ -73,6 +75,7 @@ private slots:
   void                          openRequest(void);
   void                          stop(void);
   void                          finished(QProcess::ExitStatus);
+  void                          clearSocketPool(void);
 
 private:
   struct Data;

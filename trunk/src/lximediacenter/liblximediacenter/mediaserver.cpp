@@ -477,13 +477,13 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
         // Else Audio/Video stream
         foreach (Stream *stream, d->streams)
         if (stream->url == request.path())
-        if (stream->proxy.addSocket(socket))
+        if (stream->proxy.addSocket(socket, masterServer()->httpServer()))
           return SHttpServer::ResponseMessage(request, SHttpServer::Status_None);
 
         Stream * const stream = streamVideo(request);
         if (stream)
         {
-          stream->proxy.addSocket(socket);
+          stream->proxy.addSocket(socket, masterServer()->httpServer());
           return SHttpServer::ResponseMessage(request, SHttpServer::Status_None);
         }
         else

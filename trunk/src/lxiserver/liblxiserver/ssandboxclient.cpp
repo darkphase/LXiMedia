@@ -28,93 +28,17 @@ namespace LXiServer {
 
 struct SSandboxClient::Data
 {
-#ifdef SANDBOX_USE_LOCALSERVER
-  class Socket : public QLocalSocket
-  {
-  public:
-    Socket(SHttpClientEngine *parent)
-      : QLocalSocket(parent), parent(parent)
-    {
-      if (parent)
-        qApp->sendEvent(parent, new QEvent(socketCreatedEventType));
-
-#ifdef Q_OS_WIN
-      // This is needed to ensure the socket isn't kept open by any child
-      // processes.
-      if (state() != QLocalSocket::UnconnectedState)
-        ::SetHandleInformation((HANDLE)socketDescriptor(), HANDLE_FLAG_INHERIT, 0);
-#endif
-    }
-
-    virtual ~Socket()
-    {
-      if (parent)
-        qApp->postEvent(parent, new QEvent(socketDestroyedEventType));
-    }
-
-    inline HttpSocketRequest * createRequest(const QString &serverName, const QByteArray &message)
-    {
-      return new HttpSocketRequest(parent, this, serverName, message);
-    }
-
-  private:
-    const QPointer<SHttpClientEngine> parent;
-  };
-#else
-  class Socket : public QTcpSocket
-  {
-  public:
-    Socket(SHttpClientEngine *parent)
-      : QTcpSocket(parent), parent(parent)
-    {
-      if (parent)
-        qApp->sendEvent(parent, new QEvent(socketCreatedEventType));
-
-#ifdef Q_OS_WIN
-      // This is needed to ensure the socket isn't kept open by any child
-      // processes.
-      ::SetHandleInformation((HANDLE)socketDescriptor(), HANDLE_FLAG_INHERIT, 0);
-#endif
-    }
-
-    virtual ~Socket()
-    {
-      if (parent)
-        qApp->postEvent(parent, new QEvent(socketDestroyedEventType));
-    }
-
-    inline HttpSocketRequest * createRequest(const QString &serverName, const QByteArray &message)
-    {
-      QString address; quint16 port = 0;
-      if (splitHost(serverName, address, port))
-        return new HttpSocketRequest(parent, this, QHostAddress(address), port, message);
-
-      delete this;
-      return NULL;
-    }
-
-    inline void connectToServer(const QString &serverName)
-    {
-      QString address; quint16 port = 0;
-      if (splitHost(serverName, address, port))
-        QTcpSocket::connectToHost(address, port);
-    }
-
-  private:
-    const QPointer<SHttpClientEngine> parent;
-  };
-#endif
-
   struct Request
   {
-    inline Request(const QByteArray &message, QObject *receiver, const char *slot)
-      : message(message), receiver(receiver), slot(slot)
+    inline Request(const QByteArray &message, QObject *receiver, const char *slot, Qt::ConnectionType connectionType)
+      : message(message), receiver(receiver), slot(slot), connectionType(connectionType)
     {
     }
 
     QByteArray                  message;
     QObject                   * receiver;
     const char                * slot;
+    Qt::ConnectionType          connectionType;
   };
 
   QString                       application;
@@ -126,6 +50,11 @@ struct SSandboxClient::Data
   SandboxProcess              * serverProcess;
   bool                          processStarted;
   QList<Request>                requests;
+
+  static const int              maxSocketCount = 32;
+  int                           socketCount;
+  QList<QIODevice *>            socketPool;
+  QTimer                        socketPoolTimer;
 };
 
 SSandboxClient::SSandboxClient(const QString &application, Priority priority, QObject *parent)
@@ -145,6 +74,10 @@ SSandboxClient::SSandboxClient(const QString &application, Priority priority, QO
 
   d->serverProcess = NULL;
   d->processStarted = false;
+
+  d->socketCount = 0;
+  d->socketPoolTimer.setSingleShot(true);
+  connect(&d->socketPoolTimer, SIGNAL(timeout()), SLOT(clearSocketPool()));
 }
 
 SSandboxClient::SSandboxClient(SSandboxServer *localServer, Priority priority, QObject *parent)
@@ -156,10 +89,19 @@ SSandboxClient::SSandboxClient(SSandboxServer *localServer, Priority priority, Q
   d->serverProcess = NULL;
   d->serverName = localServer->serverName();
   d->processStarted = true;
+
+  d->socketCount = 0;
+  d->socketPoolTimer.setSingleShot(true);
+  connect(&d->socketPoolTimer, SIGNAL(timeout()), SLOT(clearSocketPool()));
 }
 
 SSandboxClient::~SSandboxClient()
 {
+  emit terminated();
+  clearSocketPool();
+
+  Q_ASSERT(d->socketCount == 0);
+
   delete d->serverProcess;
   delete d;
   *const_cast<Data **>(&d) = NULL;
@@ -175,13 +117,13 @@ void SSandboxClient::ensureStarted(void)
   openRequest();
 }
 
-void SSandboxClient::openRequest(const RequestMessage &message, QObject *receiver, const char *slot)
+void SSandboxClient::openRequest(const RequestMessage &message, QObject *receiver, const char *slot, Qt::ConnectionType connectionType)
 {
   if (QThread::currentThread() != thread())
     qFatal("SSandboxClient::openRequest() should be invoked from the thread "
            "that owns the SSandboxClient object.");
 
-  d->requests.append(Data::Request(message, receiver, slot));
+  d->requests.append(Data::Request(message, receiver, slot, connectionType));
   openRequest();
 }
 
@@ -196,22 +138,26 @@ SSandboxClient::ResponseMessage SSandboxClient::blockingRequest(const RequestMes
       d->serverProcess->waitForStarted(qMax(0, timeout - timer.elapsed()));
   }
 
-  Data::Socket socket(NULL);
-  socket.connectToServer(d->serverName);
-  if (socket.waitForConnected(qMax(0, timeout - timer.elapsed())))
+#ifdef SANDBOX_USE_LOCALSERVER
+  QLocalSocket * const socket = static_cast<QLocalSocket *>(openSocket(d->serverName, true));
+#else
+  QTcpSocket * const socket = static_cast<QTcpSocket *>(openSocket(d->serverName, true));
+#endif
+
+  if (socket &&
+      ((socket->state() == socket->ConnectedState) ||
+       socket->waitForConnected(qMax(0, timeout - timer.elapsed()))))
   {
-    RequestMessage req = request;
-    req.setConnection("Close");
-    socket.write(req);
-    if (socket.waitForBytesWritten(qMax(0, timeout - timer.elapsed())))
+    socket->write(request);
+    if (socket->waitForBytesWritten(qMax(0, timeout - timer.elapsed())))
     {
       QByteArray data;
       while (!data.endsWith("\r\n\r\n") && (qAbs(timer.elapsed()) < timeout))
       {
-        if (socket.waitForReadyRead(qBound(0, timeout - timer.elapsed(), 50)))
+        if (socket->waitForReadyRead(qBound(0, timeout - timer.elapsed(), 50)))
         {
-          while (socket.canReadLine() && !data.endsWith("\r\n\r\n"))
-            data += socket.readLine();
+          while (socket->canReadLine() && !data.endsWith("\r\n\r\n"))
+            data += socket->readLine();
         }
         else if (d->serverProcess)
         {
@@ -227,14 +173,14 @@ SSandboxClient::ResponseMessage SSandboxClient::blockingRequest(const RequestMes
         ResponseMessage response(NULL);
         response.parse(data);
 
-        data = socket.readAll();
+        data = socket->readAll();
         while ((!response.hasField(SHttpEngine::fieldContentLength) ||
                 (data.length() < response.contentLength())) &&
                (qAbs(timer.elapsed()) < timeout))
         {
-          if (socket.waitForReadyRead(qBound(0, timeout - timer.elapsed(), 50)))
+          if (socket->waitForReadyRead(qBound(0, timeout - timer.elapsed(), 50)))
           {
-            data += socket.readAll();
+            data += socket->readAll();
           }
           else if (d->serverProcess)
           {
@@ -245,20 +191,108 @@ SSandboxClient::ResponseMessage SSandboxClient::blockingRequest(const RequestMes
           }
         }
 
+        if (request.canReuseConnection() && response.canReuseConnection())
+          reuseSocket(socket);
+        else
+          closeSocket(socket);
+
         response.setContent(data);
         return response;
       }
     }
   }
 
+  closeSocket(socket);
+
   return ResponseMessage(request, Status_BadRequest);
 }
 
-void SSandboxClient::socketDestroyed(void)
+void SSandboxClient::closeSocket(QIODevice *socket)
 {
-  SHttpClientEngine::socketDestroyed();
+  if (QThread::currentThread() == thread())
+  {
+    SHttpClientEngine::closeSocket(socket);
+
+    if (socket)
+    {
+      d->socketCount--;
+
+      openRequest();
+    }
+  }
+  else
+    SHttpClientEngine::closeSocket(socket); // Will call closeSocket() again from the correct thread.
+}
+
+void SSandboxClient::reuseSocket(QIODevice *socket)
+{
+  Q_ASSERT(QThread::currentThread() == thread());
+
+  d->socketPool.append(socket);
+  d->socketPoolTimer.start(30000);
 
   openRequest();
+}
+
+QIODevice * SSandboxClient::openSocket(const QString &host, bool force)
+{
+  d->socketPoolTimer.start(30000);
+
+  while (!d->socketPool.isEmpty())
+  {
+#ifdef SANDBOX_USE_LOCALSERVER
+    QLocalSocket * const socket = static_cast<QLocalSocket *>(d->socketPool.takeLast());
+
+    if (socket->state() == QLocalSocket::ConnectedState)
+      return socket;
+    else
+      closeSocket(socket);
+#else
+    QTcpSocket * const socket = static_cast<QTcpSocket *>(d->socketPool.takeLast());
+
+    if (socket->state() == QTcpSocket::ConnectedState)
+      return socket;
+    else
+      closeSocket(socket);
+#endif
+  }
+
+  while ((d->socketCount >= d->maxSocketCount) && !d->socketPool.isEmpty())
+    closeSocket(d->socketPool.takeFirst());
+
+  if (force || (d->socketCount < d->maxSocketCount))
+  {
+#ifdef SANDBOX_USE_LOCALSERVER
+    QLocalSocket * const socket = new QLocalSocket(this);
+    socket->connectToServer(host);
+
+#ifdef Q_OS_WIN
+    // This is needed to ensure the socket isn't kept open by any child processes.
+    ::SetHandleInformation((HANDLE)socket->socketDescriptor(), HANDLE_FLAG_INHERIT, 0);
+#endif
+
+    d->socketCount++;
+    return socket;
+#else
+    QString hostname;
+    quint16 port = 80;
+    if (splitHost(host, hostname, port))
+    {
+      QTcpSocket * const socket = new QTcpSocket(this);
+      socket->connectToHost(hostname, port);
+
+#ifdef Q_OS_WIN
+      // This is needed to ensure the socket isn't kept open by any child processes.
+      ::SetHandleInformation((HANDLE)socket->socketDescriptor(), HANDLE_FLAG_INHERIT, 0);
+#endif
+
+      d->socketCount++;
+      return socket;
+    }
+#endif
+  }
+
+  return NULL;
 }
 
 void SSandboxClient::startProcess(void)
@@ -284,17 +318,54 @@ void SSandboxClient::processStarted(const QString &serverName)
 
 void SSandboxClient::openRequest(void)
 {
+  Q_ASSERT(QThread::currentThread() == thread());
+
   if (!d->processStarted)
   {
     startProcess();
   }
-  else while (d->processStarted && !d->requests.isEmpty() && (socketsAvailable() > 0))
+  else while (d->processStarted && !d->requests.isEmpty())
   {
     const Data::Request request = d->requests.takeFirst();
 
-    HttpSocketRequest * const socketRequest = (new Data::Socket(this))->createRequest(d->serverName, request.message);
-    if (socketRequest && request.receiver)
-      connect(socketRequest, SIGNAL(connected(QIODevice *)), request.receiver, request.slot, Qt::DirectConnection);
+#ifdef SANDBOX_USE_LOCALSERVER
+    QLocalSocket * const socket = static_cast<QLocalSocket *>(openSocket(d->serverName, false));
+    if (socket)
+    {
+      HttpSocketRequest * const socketRequest =
+          new HttpSocketRequest(this, socket, request.message);
+
+      if (request.receiver)
+        connect(socketRequest, SIGNAL(connected(QIODevice *, SHttpEngine *)), request.receiver, request.slot, request.connectionType);
+      else
+        connect(socketRequest, SIGNAL(connected(QIODevice *, SHttpEngine *)), SLOT(closeSocket(QIODevice *)));
+    }
+    else // No more free sockets.
+    {
+      d->requests.prepend(request);
+      break;
+    }
+#else
+    QString hostname;
+    quint16 port = 80;
+    if (splitHost(d->serverName, hostname, port))
+    {
+      QTcpSocket * const socket = static_cast<QTcpSocket *>(openSocket(d->serverName, false));
+      if (socket)
+      {
+        HttpSocketRequest * const socketRequest =
+            new HttpSocketRequest(this, socket, port, request.message);
+
+        if (request.receiver)
+          connect(socketRequest, SIGNAL(connected(QIODevice *)), request.receiver, request.slot);
+      }
+      else // No more free sockets.
+      {
+        d->requests.prepend(request);
+        break;
+      }
+    }
+#endif
   }
 }
 
@@ -330,6 +401,12 @@ void SSandboxClient::finished(QProcess::ExitStatus status)
   d->processStarted = false;
 
   emit terminated();
+}
+
+void SSandboxClient::clearSocketPool(void)
+{
+  while (!d->socketPool.isEmpty())
+    closeSocket(d->socketPool.takeFirst());
 }
 
 } // End of namespace

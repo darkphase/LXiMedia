@@ -96,9 +96,10 @@ void SandboxTest::localSandbox(void)
   connect(sandboxClient, SIGNAL(response(SHttpEngine::ResponseMessage)), SLOT(handleResponse(SHttpEngine::ResponseMessage)), Qt::DirectConnection);
 
   testClient(sandboxClient);
-  testBlockingClient(sandboxClient);
 
   delete sandboxClient;
+
+  testBlockingClient(sandboxServer);
 
   sandboxServer->close();
   delete sandboxServer;
@@ -110,6 +111,7 @@ void SandboxTest::remoteSandbox(void)
   connect(sandboxClient, SIGNAL(response(SHttpEngine::ResponseMessage)), SLOT(handleResponse(SHttpEngine::ResponseMessage)), Qt::DirectConnection);
 
   testClient(sandboxClient);
+  testBlockingClient(sandboxClient);
 
   delete sandboxClient;
 }
@@ -134,16 +136,37 @@ void SandboxTest::testBlockingClient(SSandboxClient *client)
 {
   responseCount = 0;
 
+  SSandboxClient::RequestMessage nopRequest(client);
+  nopRequest.setRequest("GET", "/?nop");
+
+  for (int i=0; i<numResponses; i++)
+  {
+    const SHttpEngine::ResponseMessage response = client->blockingRequest(nopRequest);
+    if (response.status() == SHttpEngine::Status_Ok)
+      responseCount.ref();
+    else
+      qWarning() << "Corrupted response" << response.status().statusCode() << response.status().description();
+  }
+
+  QCOMPARE(int(responseCount), numResponses);
+}
+
+void SandboxTest::testBlockingClient(SSandboxServer *server)
+{
+  responseCount = 0;
+
   class Thread : public QThread
   {
   public:
-    inline Thread(SandboxTest *parent, SSandboxClient *client)
-      : QThread(parent), parent(parent), client(client)
+    inline Thread(SandboxTest *parent, SSandboxServer *server)
+      : QThread(parent), parent(parent), server(server)
     {
     }
 
     inline virtual void run(void)
     {
+      LXiServer::SSandboxClient * const client = new SSandboxClient(server, SSandboxClient::Priority_Normal, NULL);
+
       SSandboxClient::RequestMessage nopRequest(client);
       nopRequest.setRequest("GET", "/?nop");
 
@@ -155,16 +178,18 @@ void SandboxTest::testBlockingClient(SSandboxClient *client)
         else
           qWarning() << "Corrupted response" << response.status().statusCode() << response.status().description();
       }
+
+      delete client;
     }
 
     SandboxTest * const parent;
-    SSandboxClient * const client;
+    SSandboxServer * const server;
   };
 
   static const int numThreads = 4;
   Thread * thread[numThreads];
   for (int i=0; i<numThreads; i++)
-    (thread[i] = new Thread(this, client))->start();
+    (thread[i] = new Thread(this, server))->start();
 
   for (int i=0; i<numThreads; i++)
   while (!thread[i]->wait(0))

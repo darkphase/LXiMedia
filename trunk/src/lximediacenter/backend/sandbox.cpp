@@ -145,7 +145,10 @@ SSandboxServer::ResponseMessage Sandbox::httpRequest(const SSandboxServer::Reque
     {
       QTimer::singleShot(5000, this, SLOT(deleteLater()));
 
-      return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_Ok);
+      SSandboxServer::ResponseMessage response(request, SSandboxServer::Status_Ok);
+      response.setConnection("Close");
+
+      return response;
     }
   }
 

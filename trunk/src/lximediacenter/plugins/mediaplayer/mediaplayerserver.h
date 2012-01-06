@@ -34,25 +34,6 @@ class MediaPlayerServer : public MediaServer
 {
 Q_OBJECT
 friend class MediaPlayerServerDir;
-private:
-  class ResponseEvent : public QEvent
-  {
-  public:
-    inline ResponseEvent(
-        const SSandboxServer::RequestMessage &request,
-        const SHttpServer::ResponseMessage &response,
-        QIODevice *socket)
-      : QEvent(responseEventType),
-        request(request), response(response), socket(socket)
-    {
-    }
-
-  public:
-    const SSandboxServer::RequestHeader request;
-    SHttpServer::ResponseMessage response;
-    QIODevice           * const socket;
-  };
-
 protected:
   class Stream : public MediaServer::Stream
   {
@@ -89,9 +70,6 @@ protected: // From MediaServer
   virtual QList<Item>           listItems(const QString &virtualPath, int start, int &count);
   virtual Item                  getItem(const QString &path);
   virtual ListType              listType(const QString &path);
-
-protected: // From QObject
-  virtual void                  customEvent(QEvent *);
 
 private:
   void                          setRootPaths(const QList<QUrl> &paths);
