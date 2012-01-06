@@ -49,7 +49,7 @@ QList<FormatProber::Format> FormatProber::probeFormat(const QByteArray &data, co
   const QString path = filePath.path();
   const QString fileName = path.mid(path.lastIndexOf('/') + 1);
   const int lastdot = fileName.lastIndexOf('.');
-  const QString suffix = lastdot >= 0 ? fileName.mid(lastdot + 1) : QString::null;
+  const QString suffix = lastdot >= 0 ? fileName.mid(lastdot + 1).toLower() : QString::null;
   if (SImage::rawImageSuffixes().contains(suffix))
     result += Format(suffix, -1);
 

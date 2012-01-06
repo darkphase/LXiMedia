@@ -182,7 +182,12 @@ SImage SImage::fromData(QIODevice *ioDevice, const QSize &maxsize, const char *f
   {
     QFile * const file = qobject_cast<QFile *>(ioDevice);
     if (file)
-      return fromFile(file->fileName(), maxsize, format);
+    {
+      QUrl url;
+      url.setScheme("file");
+      url.setPath(file->fileName());
+      return fromFile(url, maxsize, format);
+    }
 
     QTemporaryFile tmpfile(QDir::temp().absoluteFilePath(QFileInfo(qApp->applicationFilePath()).baseName() + ".XXXXXX." + format));
     if (tmpfile.open())

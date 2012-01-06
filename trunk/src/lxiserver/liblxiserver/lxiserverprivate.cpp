@@ -57,8 +57,6 @@ void LXiServerInit::shutdown(void)
 }
 
 
-const QEvent::Type HttpClientRequest::handleResponseEventType = QEvent::Type(QEvent::registerEventType());
-
 HttpClientRequest::HttpClientRequest(SHttpClientEngine *parent, bool reuse)
   : QObject(parent),
     parent(parent),
@@ -114,18 +112,6 @@ void HttpClientRequest::start(QIODevice *socket)
     close();
 }
 
-void HttpClientRequest::customEvent(QEvent *e)
-{
-  if (e->type() == handleResponseEventType)
-  {
-    emit response(static_cast<HandleResponseEvent *>(e)->response);
-
-    deleteLater();
-  }
-  else
-    QObject::customEvent(e);
-}
-
 void HttpClientRequest::readyRead()
 {
   Q_ASSERT(QThread::currentThread() == thread());
@@ -158,7 +144,7 @@ void HttpClientRequest::readyRead()
         socket = NULL;
 
         responded = true;
-        qApp->postEvent(this, new HandleResponseEvent(response));
+        emit this->response(response);
       }
     }
   }
@@ -175,16 +161,12 @@ void HttpClientRequest::close()
   if (!responded)
   {
     responded = true;
-
-    const SHttpEngine::ResponseMessage response(message, SHttpEngine::Status_InternalServerError);
-    qApp->postEvent(this, new HandleResponseEvent(response));
+    emit response(SHttpEngine::ResponseMessage(message, SHttpEngine::Status_InternalServerError));
   }
 
   deleteLater();
 }
 
-
-const QEvent::Type HttpServerRequest::handleRequestEventType = QEvent::Type(QEvent::registerEventType());
 
 HttpServerRequest::HttpServerRequest(SHttpServerEngine *parent, quint16 serverPort)
   : QObject(parent),
@@ -241,24 +223,6 @@ void HttpServerRequest::start(QIODevice *socket)
   }
   else
     deleteLater();
-}
-
-void HttpServerRequest::customEvent(QEvent *e)
-{
-  if (e->type() == handleRequestEventType)
-  {
-    const HandleRequestEvent * const event = static_cast<HandleRequestEvent *>(e);
-
-    SHttpEngine::ResponseMessage response = parent->handleHttpRequest(event->request, socket);
-
-    if (socket)
-      parent->sendHttpResponse(event->request, response, socket);
-
-    socket = NULL;
-    deleteLater();
-  }
-  else
-    QObject::customEvent(e);
 }
 
 void HttpServerRequest::readyRead()
@@ -325,7 +289,8 @@ void HttpServerRequest::readyRead()
         disconnect(socket, SIGNAL(readyRead()), this, SLOT(readyRead()));
         disconnect(socket, SIGNAL(disconnected()), this, SLOT(close()));
 
-        qApp->postEvent(this, new HandleRequestEvent(request));
+        SHttpEngine::ResponseMessage response = parent->handleHttpRequest(request, socket);
+        parent->sendHttpResponse(request, response, socket);
       }
     }
   }
