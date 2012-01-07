@@ -123,8 +123,6 @@ SSandboxServer::ResponseMessage MediaPlayerSandbox::httpRequest(const SSandboxSe
           if ((audio > video) && (audio > image))
           {
             fileType = SMediaInfo::ProbeInfo::FileType_Audio;
-
-            qsrand(QDateTime::currentDateTime().toTime_t());
             for (int i=0; i<files.count(); i++)
               qSwap(files[i], files[qrand() % files.count()]);
           }

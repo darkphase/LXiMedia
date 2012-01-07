@@ -387,6 +387,8 @@ void SSandboxClient::stop(void)
   }
 
   d->processStarted = false;
+
+  clearSocketPool();
 }
 
 void SSandboxClient::finished(QProcess::ExitStatus status)
@@ -401,6 +403,8 @@ void SSandboxClient::finished(QProcess::ExitStatus status)
   }
 
   d->processStarted = false;
+
+  clearSocketPool();
 
   emit terminated();
 }

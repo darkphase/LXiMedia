@@ -27,8 +27,6 @@ Playlist::Playlist(MediaDatabase *mediaDatabase, QObject *parent)
     mediaDatabase(mediaDatabase),
     played(0)
 {
-  // Seed the random number generator.
-  qsrand(int(QDateTime::currentDateTime().toTime_t()));
 }
 
 Playlist::~Playlist()
