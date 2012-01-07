@@ -76,10 +76,10 @@ public:
 
   inline bool listen(void)
   {
-    const QString appName = QFileInfo(qApp->applicationFilePath()).baseName();
+    const QString base = QFileInfo(qApp->applicationFilePath()).baseName() + '.';
 
     for (int i=0; i<8; i++)
-    if (QLocalServer::listen(appName + '.' + QUuid::createUuid().toString().replace("{", "").replace("}", "")))
+    if (QLocalServer::listen(base + QUuid::createUuid().toString().replace("{", "").replace("}", "")))
       return true;
 
     qDebug() << "SSandboxServer" << errorString();

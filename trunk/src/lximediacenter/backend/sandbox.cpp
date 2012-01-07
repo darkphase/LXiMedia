@@ -28,7 +28,7 @@ Sandbox::Sandbox()
     sApp->enableProfiling(tempDir.absoluteFilePath("sandbox_profile.svg"));
 
   // Seed the random number generator.
-  qsrand(int(QDateTime::currentDateTime().toTime_t()));
+  qsrand(uint(QDateTime::currentDateTime().toTime_t() + qApp->applicationPid()));
 }
 
 Sandbox::~Sandbox()

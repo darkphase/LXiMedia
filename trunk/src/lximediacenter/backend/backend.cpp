@@ -42,7 +42,7 @@ Backend::Backend()
     initSandbox(NULL)
 {
   // Seed the random number generator.
-  qsrand(int(QDateTime::currentDateTime().toTime_t()));
+  qsrand(uint(QDateTime::currentDateTime().toTime_t() + qApp->applicationPid()));
 
   // Open device configuration
   MediaServer::mediaProfiles().openDeviceConfig(":/devices.ini");
