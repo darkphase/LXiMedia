@@ -369,7 +369,7 @@ SHttpServer::ResponseMessage Backend::httpRequest(const SHttpServer::RequestMess
         htmlParser.setField("ABOUT_LXIMEDIA", sApp->about());
         content = htmlParser.parse(htmlAbout);
       }
-#ifndef QT_NO_DEBUG
+#if !defined(QT_NO_DEBUG) || defined(Q_OS_MACX)
       else if (request.fileName() == "exit")
       {
         QCoreApplication::postEvent(this, new QEvent(exitEventType));

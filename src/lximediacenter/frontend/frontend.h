@@ -83,9 +83,12 @@ private slots:
 
 private:
   static bool                   isLocalAddress(const QString &);
+#if defined(Q_OS_MACX)
+  static void                   registerAgent(void);
+#endif
 
 private:
-  static const char             backendName[];
+  static const char             daemonName[];
 
   SSsdpClient                   ssdpClient;
   QNetworkAccessManager         networkAccessManager;
@@ -94,6 +97,10 @@ private:
   QTimer                        frontendPageTimer;
   bool                          frontendPageShowing;
   bool                          waitingForWelcome;
+
+#if defined(Q_OS_MACX)
+  QTime                         startingTimer;
+#endif
 
 private:
   QByteArray                    makeWaitingPage(void) const;
@@ -109,6 +116,7 @@ private:
   static const char             htmlNoLocalServer[];
   static const char             htmlStartLocalServer[];
   static const char             htmlStopLocalServer[];
+  static const char             htmlDisableLocalServer[];
   static const char             htmlConfigureLocalServer[];
   static const char             htmlServer[];
   static const char             htmlNoServers[];

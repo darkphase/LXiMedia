@@ -23,7 +23,7 @@
 #endif
 #include <iostream>
 
-#ifndef QT_NO_DEBUG
+#if !defined(QT_NO_DEBUG) || defined(Q_OS_MACX)
 const QEvent::Type  Backend::exitEventType = QEvent::Type(QEvent::registerEventType());
 #endif
 
@@ -237,7 +237,7 @@ void Backend::addModules(const SHttpEngine::ResponseMessage &modules)
 
 void Backend::customEvent(QEvent *e)
 {
-#ifndef QT_NO_DEBUG
+#if !defined(QT_NO_DEBUG) || defined(Q_OS_MACX)
   if (e->type() == exitEventType)
     qApp->exit(0);
   else
