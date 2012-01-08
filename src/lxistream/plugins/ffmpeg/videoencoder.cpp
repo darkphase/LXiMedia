@@ -186,7 +186,11 @@ bool VideoEncoder::openCodec(const SVideoCodec &c, SInterfaces::BufferWriter *bu
     contextHandle->rc_initial_buffer_occupancy = contextHandle->rc_buffer_size * 3 / 4;
   }
 
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(53, 6, 0)
   if (avcodec_open(contextHandle, codecHandle) < 0)
+#else
+  if (avcodec_open2(contextHandle, codecHandle, NULL) < 0)
+#endif
   {
     qCritical() << "VideoEncoder: Could not open video codec " << codecHandle->name;
     codecHandle = NULL;
