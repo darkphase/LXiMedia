@@ -90,7 +90,7 @@ private:
 
 private:
   static const quint16          defaultPort = 4280;
-#ifndef QT_NO_DEBUG
+#if !defined(QT_NO_DEBUG) || defined(Q_OS_MACX)
   static const QEvent::Type     exitEventType;
 #endif
 

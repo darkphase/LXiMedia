@@ -37,7 +37,7 @@ const char Frontend::htmlIndex[] =
 
 const char Frontend::htmlWaiting[] =
     " <div style=\"font-size:3em;text-align:center;padding-top:4em;\">\n"
-    "  {TR_STARTING_PLEASE_WAIT}\n"
+    "  {TR_INITIALIZING_PLEASE_WAIT}\n"
     " </div>\n";
 
 const char Frontend::htmlNavigator[] =
@@ -68,17 +68,24 @@ const char Frontend::htmlNoLocalServer[] =
     " <p class=\"idle\">{TR_NOT_INSTALLED}</p>\n";
 
 const char Frontend::htmlStartLocalServer[] =
-#ifdef Q_OS_LINUX
+#if defined(Q_OS_LINUX)
     " <span class=\"idle\">{TR_START_LINUX}</span>";
 #else
     " <a href=\"frontend:/startbackend\">{TR_START}</a>";
 #endif
 
 const char Frontend::htmlStopLocalServer[] =
-#ifdef Q_OS_LINUX
+#if defined(Q_OS_LINUX)
     " <span class=\"idle\">{TR_STOP_LINUX}</span>";
 #else
     " <a href=\"frontend:/stopbackend\">{TR_STOP}</a>";
+#endif
+
+const char Frontend::htmlDisableLocalServer[] =
+#if !defined(Q_OS_MACX)
+    "";
+#else
+    " <a href=\"frontend:/disablebackend\">{TR_DISABLE}</a>";
 #endif
 
 const char Frontend::htmlConfigureLocalServer[] =
@@ -123,7 +130,7 @@ QByteArray Frontend::makeWaitingPage(void) const
   SStringParser htmlParser;
   htmlParser.setField("NAVIGATOR", "");
 
-  htmlParser.setField("TR_STARTING_PLEASE_WAIT", tr("Starting, please wait ..."));
+  htmlParser.setField("TR_INITIALIZING_PLEASE_WAIT", tr("Initializing, please wait ..."));
 
   htmlParser.setField("CONTENT", htmlParser.parse(htmlWaiting));
   return htmlParser.parse(htmlIndex);
@@ -136,6 +143,7 @@ QByteArray Frontend::makeFrontendPage(void) const
 
   htmlParser.setField("TR_ADDRESS", tr("Address"));
   htmlParser.setField("TR_CONFIGURE", tr("Configure"));
+  htmlParser.setField("TR_DISABLE", tr("Disable"));
   htmlParser.setField("TR_LXIMEDIACENTER_SERVER_ON_THIS_COMPUTER", qApp->applicationName() + ' ' + tr("server on this computer"));
   htmlParser.setField("TR_LXIMEDIACENTER_SERVERS", qApp->applicationName() + ' ' + tr("servers"));
   htmlParser.setField("TR_MODEL", tr("Model"));
@@ -172,17 +180,6 @@ QByteArray Frontend::makeFrontendPage(void) const
          "not all provide a web-based configuration utility. Please refer to "
          "the manual of the respective manufacturer for more information."));
 
-  if (SDaemon::isRunning(backendName))
-  {
-    htmlParser.setField("LOCAL_SERVER_STATUS", tr("The local server is running"));
-    htmlParser.appendField("LOCAL_SERVER_STATUS", htmlParser.parse(htmlStopLocalServer));
-  }
-  else
-  {
-    htmlParser.setField("LOCAL_SERVER_STATUS", tr("The local server is not running"));
-    htmlParser.appendField("LOCAL_SERVER_STATUS", htmlParser.parse(htmlStartLocalServer));
-  }
-
   int localConfigAdded = 0;
   QMultiMap<QString, QByteArray> lximediaServers, otherServers;
   foreach (const Server &server, servers)
@@ -198,10 +195,7 @@ QByteArray Frontend::makeFrontendPage(void) const
     {
       htmlParser.setField("ITEM_LOCATION", server.presentationURL);
       if (isLocalAddress(host) && (localConfigAdded++ == 0))
-      {
         htmlParser.appendField("THIS_COMPUTER", '(' + tr("This computer") + ')');
-        htmlParser.appendField("LOCAL_SERVER_STATUS", htmlParser.parse(htmlConfigureLocalServer));
-      }
     }
     else
       htmlParser.setField("ITEM_LOCATION", "frontend:/iframe/" + server.presentationURL.toEncoded().toHex());
@@ -227,8 +221,36 @@ QByteArray Frontend::makeFrontendPage(void) const
       otherServers.insert(server.friendlyName, htmlParser.parse(htmlServer));
   }
 
-  if (SDaemon::isInstalled(backendName))
+  if (localConfigAdded)
+  {
+    htmlParser.setField("LOCAL_SERVER_STATUS", tr("The local server is running"));
+    htmlParser.appendField("LOCAL_SERVER_STATUS", htmlParser.parse(htmlStopLocalServer));
+    htmlParser.appendField("LOCAL_SERVER_STATUS", htmlParser.parse(htmlConfigureLocalServer));
+  }
+#if !defined(Q_OS_MACX)
+  else if (SDaemon::isRunning(daemonName))
+#else
+  else if (qAbs(startingTimer.elapsed()) < 30000)
+#endif
+  {
+    htmlParser.setField("LOCAL_SERVER_STATUS", tr("The local server is starting"));
+  }
+  else
+  {
+    htmlParser.setField("LOCAL_SERVER_STATUS", tr("The local server is not running"));
+    htmlParser.appendField("LOCAL_SERVER_STATUS", htmlParser.parse(htmlStartLocalServer));
+  }
+
+#if defined(Q_OS_MACX)
+  if (QFile::exists(QDir::homePath() + "/Library/LaunchAgents/" + daemonName + ".plist"))
+  {
+    htmlParser.appendField("LOCAL_SERVER_STATUS", htmlParser.parse(htmlDisableLocalServer));
     htmlParser.setField("LOCAL_SERVER", htmlParser.parse(htmlLocalServer));
+  }
+#else
+  if (SDaemon::isInstalled(daemonName))
+    htmlParser.setField("LOCAL_SERVER", htmlParser.parse(htmlLocalServer));
+#endif
   else
     htmlParser.setField("LOCAL_SERVER", htmlParser.parse(htmlNoLocalServer));
 

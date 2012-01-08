@@ -20,9 +20,11 @@
 #include "frontend.h"
 
 #if defined(Q_OS_LINUX)
-const char Frontend::backendName[] = "lximcbackend";
+const char Frontend::daemonName[] = "lximcbackend";
 #elif defined(Q_OS_WIN)
-const char Frontend::backendName[] = "LXiMediaCenter Backend";
+const char Frontend::daemonName[] = "LXiMediaCenter Backend";
+#elif defined(Q_OS_MACX)
+const char Frontend::daemonName[] = "net.sf.lximedia.lximediacenter.backend";
 #endif
 
 Frontend::Frontend()
@@ -31,6 +33,16 @@ Frontend::Frontend()
     frontendPageShowing(false),
     waitingForWelcome(qApp->arguments().contains("--welcome"))
 {
+#if defined(Q_OS_MACX)
+  if (!QFile::exists(QDir::homePath() + "/Library/LaunchAgents/" + daemonName + ".plist"))
+  if (QProcess::startDetached(QDir(qApp->applicationDirPath()).absoluteFilePath("lximcbackend"), QStringList("--run")))
+  {
+    registerAgent();
+    startingTimer.start();
+    waitingForWelcome = true;
+  }
+#endif
+
   WebPage * const webPage = new WebPage(this);
   webPage->setNetworkAccessManager(new NetworkAccessManager(this));
   setPage(webPage);
@@ -112,9 +124,38 @@ void Frontend::loadFrontendPage(const QUrl &url)
   else
   {
     if (url.path() == "/startbackend")
-      SDaemon::start(backendName);
-    else if (url.path() == "/stopbackend")
-      SDaemon::stop(backendName);
+    {
+#if !defined(Q_OS_MACX)
+      SDaemon::start(daemonName);
+#else
+      if (QProcess::startDetached(QDir(qApp->applicationDirPath()).absoluteFilePath("lximcbackend"), QStringList("--run")))
+        startingTimer.start();
+#endif
+    }
+    else if ((url.path() == "/stopbackend") || (url.path() == "/disablebackend"))
+    {
+#if !defined(Q_OS_MACX)
+      SDaemon::stop(daemonName);
+#else
+      startingTimer = QTime();
+
+      foreach (const Server &server, servers)
+      if (isLocalAddress(server.presentationURL.host()))
+      {
+        QUrl url = server.presentationURL;
+        url.setPath(url.path() + "exit");
+
+        networkAccessManager.get(QNetworkRequest(url));
+      }
+
+      if (url.path() == "/disablebackend")
+      {
+        QDir dir(QDir::homePath() + "/Library/LaunchAgents/");
+        if (dir.exists())
+          dir.remove(QString(daemonName) + ".plist");
+      }
+#endif
+    }
 
     setContent(makeFrontendPage(), "text/html", QUrl("qrc:/"));
   }
@@ -221,6 +262,52 @@ bool Frontend::isLocalAddress(const QString &host)
 
   return false;
 }
+
+#if defined(Q_OS_MACX)
+void Frontend::registerAgent(void)
+{
+  QDir dir(QDir::homePath() + "/Library/LaunchAgents/");
+
+  if (!dir.exists())
+    QDir::home().mkpath("Library/LaunchAgents");
+
+  if (dir.exists())
+  {
+    QDomDocument doc;
+    QDomElement root = doc.createElement("plist");
+    root.setAttribute("version", "1.0");
+    QDomElement dict = doc.createElement("dict");
+
+    QDomElement elm;
+    elm = doc.createElement("key");
+    elm.appendChild(doc.createTextNode("Label"));
+    dict.appendChild(elm);
+    elm = doc.createElement("string");
+    elm.appendChild(doc.createTextNode(QString(daemonName) + ".agent"));
+    dict.appendChild(elm);
+
+    elm = doc.createElement("key");
+    elm.appendChild(doc.createTextNode("RunAtLoad"));
+    dict.appendChild(elm);
+    dict.appendChild(doc.createElement("true"));
+
+    elm = doc.createElement("key");
+    elm.appendChild(doc.createTextNode("Program"));
+    dict.appendChild(elm);
+    elm = doc.createElement("string");
+    elm.appendChild(doc.createTextNode(QDir(qApp->applicationDirPath()).absoluteFilePath("lximcbackend")));
+    dict.appendChild(elm);
+
+    root.appendChild(dict);
+    doc.appendChild(root);
+
+    QFile file(dir.absoluteFilePath(QString(daemonName) + ".plist"));
+    if (file.open(QFile::WriteOnly))
+      file.write(doc.toByteArray());
+  }
+}
+#endif
+
 
 Frontend::WebPage::WebPage(Frontend *parent)
   : QWebPage(parent),
