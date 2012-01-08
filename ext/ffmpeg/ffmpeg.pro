@@ -1,7 +1,7 @@
 TEMPLATE = subdirs
 CONFIG += ordered
 
-FFMPEG_VERSION = libav-0.7.2
+FFMPEG_VERSION = libav-0.7.3
 FFMPEG_HEADERS = $${FFMPEG_VERSION}/libavcodec/avcodec.h \
  $${FFMPEG_VERSION}/libavcodec/version.h \
  $${FFMPEG_VERSION}/libavformat/avformat.h \
@@ -31,11 +31,11 @@ macx {
   system(bzip2 -cdk $${PWD}/bin.macx/libswscale.a.bz2 > $${OUT_PWD}/bin.win32/libswscale.a)
   system(bzip2 -cdk $${PWD}/bin.macx/libmp3lame.a.bz2 > $${OUT_PWD}/bin.win32/libmp3lame.a)
 
-  system(bzip2 -cdk $${PWD}/libav_0.7.2.orig.tar.bz2 > $${OUT_PWD}/libav_0.7.2.orig.tar)
-  system(cd $${OUT_PWD} && tar -x -f libav_0.7.2.orig.tar $${FFMPEG_HEADERS})
+  system(bzip2 -cdk $${PWD}/libav_0.7.3.orig.tar.bz2 > $${OUT_PWD}/libav_0.7.3.orig.tar)
+  system(cd $${OUT_PWD} && tar -x -f libav_0.7.3.orig.tar $${FFMPEG_HEADERS})
   system(cd $${OUT_PWD} && rm -rf include)
   system(cd $${OUT_PWD} && mv $${FFMPEG_VERSION} include)
-  system(rm $${OUT_PWD}/libav_0.7.2.orig.tar)
+  system(rm $${OUT_PWD}/libav_0.7.3.orig.tar)
   system(cp bin.macx/avconfig.h $${OUT_PWD}/include/libavutil/)
 }
 win32 {
@@ -49,10 +49,10 @@ win32 {
   system($${BZIP2} -cdk $${PWD}/bin.win32/libswscale.a.bz2 > $${OUT_PWD}/bin.win32/libswscale.a)
   system($${BZIP2} -cdk $${PWD}/bin.win32/libmp3lame.a.bz2 > $${OUT_PWD}/bin.win32/libmp3lame.a)
 
-  system($${BZIP2} -cdk $${PWD}/libav_0.7.2.orig.tar.bz2 > $${OUT_PWD}/libav_0.7.2.orig.tar)
-  system(cd $$replace(OUT_PWD,/,\\) && $${TAR} -x -f libav_0.7.2.orig.tar $${FFMPEG_HEADERS})
+  system($${BZIP2} -cdk $${PWD}/libav_0.7.3.orig.tar.bz2 > $${OUT_PWD}/libav_0.7.3.orig.tar)
+  system(cd $$replace(OUT_PWD,/,\\) && $${TAR} -x -f libav_0.7.3.orig.tar $${FFMPEG_HEADERS})
   system(cd $$replace(OUT_PWD,/,\\) && del /S /Q include > NUL 2>&1 && rmdir /S /Q include > NUL 2>&1)
   system(cd $$replace(OUT_PWD,/,\\) && ren $${FFMPEG_VERSION} include > NUL)
-  system(del /S /Q $$replace(OUT_PWD,/,\\)\\libav_0.7.2.orig.tar > NUL 2>&1)
+  system(del /S /Q $$replace(OUT_PWD,/,\\)\\libav_0.7.3.orig.tar > NUL 2>&1)
   system(copy /Y bin.win32\\avconfig.h $$replace(OUT_PWD,/,\\)\\include\\libavutil\\ > NUL)
 }
