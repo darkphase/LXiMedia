@@ -12,3 +12,11 @@ SOURCES += module.cpp \
 
 # Export plugin
 SOURCES += export.cpp
+
+# Windows specific
+win32-msvc2005|win32-msvc2008|win32-msvc2010 {
+  TEMPLATE = vclib
+  GUID = abd0f006-3a38-11e1-9457-6f298440b8ae
+  DEFINES += _CRT_SECURE_NO_WARNINGS
+  PRECOMPILED_SOURCE = $${PRECOMPILED_HEADER}
+}

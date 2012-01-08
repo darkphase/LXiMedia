@@ -15,6 +15,11 @@ macx {
 # Visual Studio specific
 win32-msvc2005|win32-msvc2008|win32-msvc2010 {
   DEFINES += __SSE__ __SSE2__
+  !contains(QMAKE_HOST.arch, x86_64) {
+    QMAKE_CXXFLAGS += /arch:SSE2
+    QMAKE_CFLAGS += /arch:SSE2
+	}
+  
   QMAKE_CXXFLAGS += /MP
   QMAKE_CFLAGS += /MP
 }

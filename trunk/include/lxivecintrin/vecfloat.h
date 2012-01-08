@@ -417,7 +417,7 @@ struct DoubleVector : VecObject
 
   friend lxivec_always_inline DoubleVector<_count> add(
       const DoubleVector<_count> &a,
-      float b)
+      double b)
   {
     DoubleVector<_count> r;
     add(r.data, a.data, b);
@@ -435,7 +435,7 @@ struct DoubleVector : VecObject
 
   friend lxivec_always_inline DoubleVector<_count> sub(
       const DoubleVector<_count> &a,
-      float b)
+      double b)
   {
     DoubleVector<_count> r;
     sub(r.data, a.data, b);
@@ -453,7 +453,7 @@ struct DoubleVector : VecObject
 
   friend lxivec_always_inline DoubleVector<_count> mul(
       const DoubleVector<_count> &a,
-      float b)
+      double b)
   {
     DoubleVector<_count> r;
     mul(r.data, a.data, b);
@@ -471,7 +471,7 @@ struct DoubleVector : VecObject
 
   friend lxivec_always_inline DoubleVector<_count> div(
       const DoubleVector<_count> &a,
-      float b)
+      double b)
   {
     DoubleVector<_count> r;
     div(r.data, a.data, b);
@@ -569,13 +569,13 @@ struct DoubleVector : VecObject
   }
 
   lxivec_always_inline DoubleVector<_count> operator+(
-      float b) const
+      double b) const
   {
     return add(*this, b);
   }
 
   lxivec_always_inline DoubleVector<_count> & operator+=(
-      float b)
+      double b)
   {
     add(data, data, b);
     return *this;
@@ -595,13 +595,13 @@ struct DoubleVector : VecObject
   }
 
   lxivec_always_inline DoubleVector<_count> operator-(
-      float b) const
+      double b) const
   {
     return sub(*this, b);
   }
 
   lxivec_always_inline DoubleVector<_count> & operator-=(
-      float b)
+      double b)
   {
     sub(data, data, b);
     return *this;
@@ -621,13 +621,13 @@ struct DoubleVector : VecObject
   }
 
   lxivec_always_inline DoubleVector<_count> operator*(
-      float b) const
+      double b) const
   {
     return mul(*this, b);
   }
 
   lxivec_always_inline DoubleVector<_count> & operator*=(
-      float b)
+      double b)
   {
     mul(data, data, b);
     return *this;
@@ -647,13 +647,13 @@ struct DoubleVector : VecObject
   }
 
   lxivec_always_inline DoubleVector<_count> operator/(
-      float b) const
+      double b) const
   {
     return div(*this, b);
   }
 
   lxivec_always_inline DoubleVector<_count> & operator/=(
-      float b)
+      double b)
   {
     div(data, data, b);
     return *this;

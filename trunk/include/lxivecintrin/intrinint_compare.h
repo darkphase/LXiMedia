@@ -199,8 +199,8 @@ namespace _private {
   lxivec_always_inline __m128i max(__m128i a, __m128i b, uint16_t)
   {
     const __m128i m = _mm_cmpgt_epi16(
-        _mm_sub_epi16(a, _mm_set1_epi16(32768)),
-        _mm_sub_epi16(b, _mm_set1_epi16(32768)));
+        _mm_sub_epi16(a, _mm_set1_epi16(int16_t(32768))),
+        _mm_sub_epi16(b, _mm_set1_epi16(int16_t(32768))));
     return _mm_or_si128(_mm_and_si128(m, a), _mm_andnot_si128(m, b));
   }
 
@@ -230,8 +230,8 @@ namespace _private {
   lxivec_always_inline __m128i min(__m128i a, __m128i b, uint16_t)
   {
     const __m128i m = _mm_cmplt_epi16(
-        _mm_sub_epi16(a, _mm_set1_epi16(32768)),
-        _mm_sub_epi16(b, _mm_set1_epi16(32768)));
+        _mm_sub_epi16(a, _mm_set1_epi16(int16_t(32768))),
+        _mm_sub_epi16(b, _mm_set1_epi16(int16_t(32768))));
     return _mm_or_si128(_mm_and_si128(m, a), _mm_andnot_si128(m, b));
   }
 

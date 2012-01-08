@@ -72,7 +72,7 @@ void AudioConvert::convert(int16_t * dst, const uint8_t * src, int n)
   for (int i = 0; i < n; i += uint8_v::count)
   {
     int16_dv a = uint8_v::load(src + i);
-    a = (a << 8) - 32768;
+    a = (a << 8) - int16_t(32768);
 
     store(dst + i, a);
   }
@@ -82,7 +82,7 @@ void AudioConvert::convert(uint8_t * dst, const int16_t * src, int n)
 {
   for (int i = 0; i < n; i += int16_dv::count)
   {
-    uint8_v a = (int16_dv::load(src + i) + 32768) >> 8;
+    uint8_v a = (int16_dv::load(src + i) + int16_t(32768)) >> 8;
 
     store(dst + i, a);
   }
@@ -144,7 +144,7 @@ void AudioConvert::convert(uint16_t * dst, const int16_t * src, int n)
 {
   for (int i = 0; i < n; i += int16_v::count)
   {
-    uint16_v a = int16_v::load(src + i) - 32768;
+    uint16_v a = int16_v::load(src + i) - int16_t(32768);
 
     store(dst + i, a);
   }

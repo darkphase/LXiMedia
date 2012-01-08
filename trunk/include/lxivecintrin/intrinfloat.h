@@ -52,6 +52,10 @@ namespace _private {
 #endif
   };
 
+#ifdef _MSC_VER
+# pragma pack()
+#endif
+
   template <int _count>
   lxivec_always_inline void load(Floats<_count> &dst, const float *p, int max = _count)
   {

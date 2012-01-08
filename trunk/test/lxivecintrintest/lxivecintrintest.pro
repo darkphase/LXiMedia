@@ -96,3 +96,9 @@ win32 {
     system(copy /Y $$(QTDIR)\\bin\\QtTestd4.dll $${OUT_DIR} > NUL)
   }
 }
+
+win32-msvc2005|win32-msvc2008|win32-msvc2010 {
+  TEMPLATE = vcapp
+  GUID = f1ce2e42-3a3e-11e1-8eb1-b3fc04316b98
+  DEFINES += _CRT_SECURE_NO_WARNINGS
+}

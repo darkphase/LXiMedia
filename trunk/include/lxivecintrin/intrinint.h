@@ -242,23 +242,23 @@ namespace _private {
   }
   
   template <typename _type> lxivec_always_inline _type max_val();
-  template <> lxivec_always_inline int8_t max_val<int8_t>() { return 0x7F; }
-  template <> lxivec_always_inline uint8_t max_val<uint8_t>() { return 0xFF; }
-  template <> lxivec_always_inline int16_t max_val<int16_t>() { return 0x7FFF; }
-  template <> lxivec_always_inline uint16_t max_val<uint16_t>() { return 0xFFFF; }
-  template <> lxivec_always_inline int32_t max_val<int32_t>() { return 0x7FFFFFFF; }
-  template <> lxivec_always_inline uint32_t max_val<uint32_t>() { return 0xFFFFFFFFu; }
-  template <> lxivec_always_inline int64_t max_val<int64_t>() { return 0x7FFFFFFFFFFFFFFFll; }
-  template <> lxivec_always_inline uint64_t max_val<uint64_t>() { return 0xFFFFFFFFFFFFFFFFull; }
+  template <> lxivec_always_inline int8_t max_val<int8_t>() { return int8_t(0x7F); }
+  template <> lxivec_always_inline uint8_t max_val<uint8_t>() { return uint8_t(0xFF); }
+  template <> lxivec_always_inline int16_t max_val<int16_t>() { return int16_t(0x7FFF); }
+  template <> lxivec_always_inline uint16_t max_val<uint16_t>() { return uint16_t(0xFFFF); }
+  template <> lxivec_always_inline int32_t max_val<int32_t>() { return int32_t(0x7FFFFFFF); }
+  template <> lxivec_always_inline uint32_t max_val<uint32_t>() { return uint32_t(0xFFFFFFFFu); }
+  template <> lxivec_always_inline int64_t max_val<int64_t>() { return int64_t(0x7FFFFFFFFFFFFFFFll); }
+  template <> lxivec_always_inline uint64_t max_val<uint64_t>() { return uint64_t(0xFFFFFFFFFFFFFFFFull); }
   
   template <typename _type> lxivec_always_inline _type min_val();
-  template <> lxivec_always_inline int8_t min_val<int8_t>() { return 0x80; }
+  template <> lxivec_always_inline int8_t min_val<int8_t>() { return int8_t(0x80); }
   template <> lxivec_always_inline uint8_t min_val<uint8_t>() { return 0; }
-  template <> lxivec_always_inline int16_t min_val<int16_t>() { return 0x8000; }
+  template <> lxivec_always_inline int16_t min_val<int16_t>() { return int16_t(0x8000); }
   template <> lxivec_always_inline uint16_t min_val<uint16_t>() { return 0; }
-  template <> lxivec_always_inline int32_t min_val<int32_t>() { return 0x80000000; }
+  template <> lxivec_always_inline int32_t min_val<int32_t>() { return int32_t(0x80000000); }
   template <> lxivec_always_inline uint32_t min_val<uint32_t>() { return 0; }
-  template <> lxivec_always_inline int64_t min_val<int64_t>() { return 0x8000000000000000ll; }
+  template <> lxivec_always_inline int64_t min_val<int64_t>() { return int64_t(0x8000000000000000ll); }
   template <> lxivec_always_inline uint64_t min_val<uint64_t>() { return 0; }
   
   template <typename _totype, typename _fromtype>
