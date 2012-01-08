@@ -483,7 +483,7 @@ void SHttpServerEngine::sendHttpResponse(const SHttpEngine::RequestHeader &reque
         response.setConnection("Keep-Alive");
         T::send(request, response, socket);
 
-        (new HttpServerRequest(serverEngine, port))->start(socket);
+        (new HttpServerRequest(serverEngine, port, __FILE__, __LINE__))->start(socket);
 
         return;
       }
@@ -545,7 +545,7 @@ const QString & SHttpClientEngine::senderId(void) const
 
 void SHttpClientEngine::sendRequest(const RequestMessage &request)
 {
-  HttpClientRequest * const clientRequest = new HttpClientRequest(this, request.canReuseConnection());
+  HttpClientRequest * const clientRequest = new HttpClientRequest(this, request.canReuseConnection(), __FILE__, __LINE__);
   connect(clientRequest, SIGNAL(response(SHttpEngine::ResponseMessage)), SLOT(handleResponse(SHttpEngine::ResponseMessage)));
 
   openRequest(request, clientRequest, SLOT(start(QIODevice *)));

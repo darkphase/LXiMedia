@@ -57,17 +57,18 @@ void LXiServerInit::shutdown(void)
 }
 
 
-HttpClientRequest::HttpClientRequest(SHttpClientEngine *parent, bool reuse)
+HttpClientRequest::HttpClientRequest(SHttpClientEngine *parent, bool reuse, const char *file, int line)
   : QObject(parent),
     parent(parent),
     reuse(reuse),
+    file(file), line(line),
     socket(NULL),
     responded(false)
 {
   Q_ASSERT(QThread::currentThread() == thread());
 
 #ifdef TRACE_CONNECTIONS
-  qDebug() << this << "HttpClientRequest::HttpClientRequest";
+  qDebug() << this << file << line << "HttpClientRequest::HttpClientRequest";
 #endif
 
   connect(&closeTimer, SIGNAL(timeout()), SLOT(close()));
@@ -79,7 +80,7 @@ HttpClientRequest::~HttpClientRequest()
   Q_ASSERT(QThread::currentThread() == thread());
 
 #ifdef TRACE_CONNECTIONS
-  qDebug() << this << "HttpClientRequest::~HttpClientRequest";
+  qDebug() << this << file << line << "HttpClientRequest::~HttpClientRequest";
 #endif
 
   if (socket)
@@ -91,7 +92,7 @@ void HttpClientRequest::start(QIODevice *socket)
   Q_ASSERT(QThread::currentThread() == thread());
 
 #ifdef TRACE_CONNECTIONS
-  qDebug() << this << "HttpClientRequest::start" << socket;
+  qDebug() << this << file << line << "HttpClientRequest::start" << socket;
 #endif
 
   if (socket)
@@ -117,7 +118,7 @@ void HttpClientRequest::readyRead()
   Q_ASSERT(QThread::currentThread() == thread());
 
 #ifdef TRACE_CONNECTIONS
-  qDebug() << this << "HttpClientRequest::readyRead";
+  qDebug() << this << file << line << "HttpClientRequest::readyRead";
 #endif
 
   if (!responded)
@@ -133,7 +134,7 @@ void HttpClientRequest::readyRead()
       if (response.isValid() && response.isComplete())
       {
 #ifdef TRACE_CONNECTIONS
-        qDebug() << this << "HttpClientRequest::readyRead emit response";
+        qDebug() << this << file << line << "HttpClientRequest::readyRead emit response";
 #endif
 
         if (reuse && response.canReuseConnection())
@@ -155,7 +156,7 @@ void HttpClientRequest::close()
   Q_ASSERT(QThread::currentThread() == thread());
 
 #ifdef TRACE_CONNECTIONS
-  qDebug() << this << "HttpClientRequest::close" << responded;
+  qDebug() << this << file << line << "HttpClientRequest::close" << responded;
 #endif
 
   if (!responded)
@@ -168,17 +169,18 @@ void HttpClientRequest::close()
 }
 
 
-HttpServerRequest::HttpServerRequest(SHttpServerEngine *parent, quint16 serverPort)
+HttpServerRequest::HttpServerRequest(SHttpServerEngine *parent, quint16 serverPort, const char *file, int line)
   : QObject(parent),
     parent(parent),
     serverPort(serverPort),
+    file(file), line(line),
     socket(NULL),
     headerReceived(false)
 {
   Q_ASSERT(QThread::currentThread() == thread());
 
 #ifdef TRACE_CONNECTIONS
-  qDebug() << this << "HttpServerRequest::HttpServerRequest" << serverPort;
+  qDebug() << this << file << line << "HttpServerRequest::HttpServerRequest" << serverPort;
 #endif
 
   connect(&closeTimer, SIGNAL(timeout()), SLOT(deleteLater()));
@@ -190,7 +192,7 @@ HttpServerRequest::~HttpServerRequest()
   Q_ASSERT(QThread::currentThread() == thread());
 
 #ifdef TRACE_CONNECTIONS
-  qDebug() << this << "HttpServerRequest::~HttpServerRequest" << socket;
+  qDebug() << this << file << line << "HttpServerRequest::~HttpServerRequest" << socket;
 #endif
 
   if (parent)
@@ -204,7 +206,7 @@ void HttpServerRequest::start(QIODevice *socket)
   Q_ASSERT(QThread::currentThread() == thread());
 
 #ifdef TRACE_CONNECTIONS
-  qDebug() << this << "HttpServerRequest::start" << socket;
+  qDebug() << this << file << line << "HttpServerRequest::start" << socket;
 #endif
 
   if (socket)
@@ -232,7 +234,7 @@ void HttpServerRequest::readyRead()
   if (socket)
   {
 #ifdef TRACE_CONNECTIONS
-    qDebug() << this << "HttpServerRequest::readyRead" << socket->bytesAvailable();
+    qDebug() << this << file << line << "HttpServerRequest::readyRead" << socket->bytesAvailable();
 #endif
 
     if (!headerReceived)
@@ -254,7 +256,7 @@ void HttpServerRequest::readyRead()
       if (!request.isValid())
       {
 #ifdef TRACE_CONNECTIONS
-        qDebug() << this << "HttpServerRequest::readyRead request invalid";
+        qDebug() << this << file << line << "HttpServerRequest::readyRead request invalid";
 #endif
 
         socket->write(SHttpEngine::ResponseHeader(request, SHttpEngine::Status_BadRequest));
@@ -273,7 +275,7 @@ void HttpServerRequest::readyRead()
       if (content.length() >= length)
       {
 #ifdef TRACE_CONNECTIONS
-        qDebug() << this << "HttpServerRequest::readyRead request valid" << length;
+        qDebug() << this << file << line << "HttpServerRequest::readyRead request valid" << length;
 #endif
 
         request.setContent(content);
@@ -301,24 +303,25 @@ void HttpServerRequest::close()
   Q_ASSERT(QThread::currentThread() == thread());
 
 #ifdef TRACE_CONNECTIONS
-  qDebug() << this << "HttpServerRequest::close";
+  qDebug() << this << file << line << "HttpServerRequest::close";
 #endif
 
   deleteLater();
 }
 
 
-HttpSocketRequest::HttpSocketRequest(SHttpClientEngine *parent, QAbstractSocket *socket, quint16 port, const QByteArray &message)
+HttpSocketRequest::HttpSocketRequest(SHttpClientEngine *parent, QAbstractSocket *socket, quint16 port, const QByteArray &message, const char *file, int line)
   : QObject(parent),
     parent(parent),
     port(port),
+    file(file), line(line),
     message(message),
     socket(socket)
 {
   Q_ASSERT(QThread::currentThread() == thread());
 
 #ifdef TRACE_CONNECTIONS
-  qDebug() << this << "HttpSocketRequest::HttpSocketRequest" << port;
+  qDebug() << this << file << line << "HttpSocketRequest::HttpSocketRequest" << port;
 #endif
 
   connect(socket, SIGNAL(bytesWritten(qint64)), SLOT(bytesWritten()), Qt::QueuedConnection);
@@ -326,7 +329,7 @@ HttpSocketRequest::HttpSocketRequest(SHttpClientEngine *parent, QAbstractSocket 
 
   connect(&failTimer, SIGNAL(timeout()), SLOT(failed()));
   failTimer.setSingleShot(true);
-  failTimer.start(maxTTL);
+  failTimer.start(SHttpEngine::maxTTL);
 
   if (socket->state() != QAbstractSocket::ConnectedState)
     connect(socket, SIGNAL(connected()), SLOT(connected()), Qt::QueuedConnection);
@@ -334,17 +337,18 @@ HttpSocketRequest::HttpSocketRequest(SHttpClientEngine *parent, QAbstractSocket 
     connected();
 }
 
-HttpSocketRequest::HttpSocketRequest(SHttpClientEngine *parent, QLocalSocket *socket, const QByteArray &message)
+HttpSocketRequest::HttpSocketRequest(SHttpClientEngine *parent, QLocalSocket *socket, const QByteArray &message, const char *file, int line)
   : QObject(parent),
     parent(parent),
-    port(port),
+    port(0),
+    file(file), line(line),
     message(message),
     socket(socket)
 {
   Q_ASSERT(QThread::currentThread() == thread());
 
 #ifdef TRACE_CONNECTIONS
-  qDebug() << this << "HttpSocketRequest::HttpSocketRequest";
+  qDebug() << this << file << line << "HttpSocketRequest::HttpSocketRequest";
 #endif
 
   connect(socket, SIGNAL(bytesWritten(qint64)), SLOT(bytesWritten()), Qt::QueuedConnection);
@@ -353,7 +357,7 @@ HttpSocketRequest::HttpSocketRequest(SHttpClientEngine *parent, QLocalSocket *so
 
   connect(&failTimer, SIGNAL(timeout()), SLOT(failed()));
   failTimer.setSingleShot(true);
-  failTimer.start(maxTTL);
+  failTimer.start(SHttpEngine::maxTTL);
 
   if (socket->state() != QLocalSocket::ConnectedState)
     connect(socket, SIGNAL(connected()), SLOT(connected()), Qt::QueuedConnection);
@@ -366,7 +370,7 @@ HttpSocketRequest::~HttpSocketRequest()
   Q_ASSERT(QThread::currentThread() == thread());
 
 #ifdef TRACE_CONNECTIONS
-  qDebug() << this << "HttpSocketRequest::~HttpSocketRequest";
+  qDebug() << this << file << line << "HttpSocketRequest::~HttpSocketRequest";
 #endif
 
   if (socket)
@@ -378,7 +382,7 @@ void HttpSocketRequest::connectToHost(const QHostInfo &hostInfo)
   Q_ASSERT(QThread::currentThread() == thread());
 
 #ifdef TRACE_CONNECTIONS
-  qDebug() << this << "HttpSocketRequest::connectToHost";
+  qDebug() << this << file << line << "HttpSocketRequest::connectToHost";
 #endif
 
   if (!hostInfo.addresses().isEmpty())
@@ -392,7 +396,7 @@ void HttpSocketRequest::connected(void)
   Q_ASSERT(QThread::currentThread() == thread());
 
 #ifdef TRACE_CONNECTIONS
-  qDebug() << this << "HttpSocketRequest::connected" << socket << message.count();
+  qDebug() << this << file << line << "HttpSocketRequest::connected" << socket << message.count();
 #endif
 
   QAbstractSocket * const aSocket = qobject_cast<QAbstractSocket *>(socket);
@@ -429,7 +433,7 @@ void HttpSocketRequest::bytesWritten(void)
   Q_ASSERT(QThread::currentThread() == thread());
 
 #ifdef TRACE_CONNECTIONS
-  qDebug() << this << "HttpSocketRequest::bytesWritten" << socket << socket->bytesToWrite();
+  qDebug() << this << file << line << "HttpSocketRequest::bytesWritten" << socket << socket->bytesToWrite();
 #endif
 
   if (socket)
@@ -442,12 +446,12 @@ void HttpSocketRequest::failed(void)
   Q_ASSERT(QThread::currentThread() == thread());
 
 #ifdef TRACE_CONNECTIONS
-  qDebug() << this << "HttpSocketRequest::failed" << socket;
+  qDebug() << this << file << line << "HttpSocketRequest::failed" << socket;
 #endif
 
   if (socket)
   {
-    qWarning() << "HTTP request failed" << socket->errorString();
+    qWarning() << "HTTP request failed" << socket->errorString() << "in request from:" << file << line;
 
     parent->closeSocket(socket);
     socket = NULL;
@@ -457,16 +461,17 @@ void HttpSocketRequest::failed(void)
 }
 
 
-SandboxProcess::SandboxProcess(SSandboxClient *parent, const QString &cmd)
+SandboxProcess::SandboxProcess(SSandboxClient *parent, const QString &cmd, const char *file, int line)
   : QObject(parent),
     parent(parent),
+    file(file), line(line),
     process(new QProcess(parent)),
     started(false)
 {
   Q_ASSERT(QThread::currentThread() == thread());
 
 #ifdef TRACE_CONNECTIONS
-  qDebug() << this << "SandboxProcess::SandboxProcess" << cmd;
+  qDebug() << this << file << line << "SandboxProcess::SandboxProcess" << cmd;
 #endif
 
   connect(process, SIGNAL(readyRead()), SLOT(readyRead()));
@@ -481,7 +486,7 @@ SandboxProcess::~SandboxProcess()
   Q_ASSERT(QThread::currentThread() == thread());
 
 #ifdef TRACE_CONNECTIONS
-  qDebug() << this << "SandboxProcess::~SandboxProcess";
+  qDebug() << this << file << line << "SandboxProcess::~SandboxProcess";
 #endif
 
   if (process->state() != QProcess::NotRunning)
@@ -508,7 +513,7 @@ bool SandboxProcess::waitForStarted(int timeout)
   Q_ASSERT(QThread::currentThread() == thread());
 
 #ifdef TRACE_CONNECTIONS
-  qDebug() << this << "SandboxProcess::waitForStarted" << timeout;
+  qDebug() << this << file << line << "SandboxProcess::waitForStarted" << timeout;
 #endif
 
   QTime timer; timer.start();
@@ -540,7 +545,7 @@ void SandboxProcess::kill(void)
   Q_ASSERT(QThread::currentThread() == thread());
 
 #ifdef TRACE_CONNECTIONS
-  qDebug() << this << "SandboxProcess::kill";
+  qDebug() << this << file << line << "SandboxProcess::kill";
 #endif
 
   process->kill();
@@ -560,7 +565,7 @@ void SandboxProcess::readyRead()
         if (line.startsWith("##READY"))
         {
 #ifdef TRACE_CONNECTIONS
-          qDebug() << this << "SandboxProcess::readyRead ##READY";
+          qDebug() << this << file << line << "SandboxProcess::readyRead ##READY";
 #endif
 
           const QList<QByteArray> items = line.simplified().split(' ');
@@ -573,7 +578,7 @@ void SandboxProcess::readyRead()
         else if (line.startsWith("##STOP"))
         {
 #ifdef TRACE_CONNECTIONS
-          qDebug() << this << "SandboxProcess::readyRead ##STOP";
+          qDebug() << this << file << line << "SandboxProcess::readyRead ##STOP";
 #endif
 
           emit stop();
@@ -592,7 +597,7 @@ void SandboxProcess::finished(int, QProcess::ExitStatus status)
   Q_ASSERT(QThread::currentThread() == thread());
 
 #ifdef TRACE_CONNECTIONS
-  qDebug() << this << "SandboxProcess::finished" << status;
+  qDebug() << this << file << line << "SandboxProcess::finished" << status;
 #endif
 
   emit finished(status);
