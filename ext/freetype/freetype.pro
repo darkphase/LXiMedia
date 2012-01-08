@@ -17,7 +17,7 @@ FREETYPE_HEADERS = $${FREETYPE_VERSION}/include/ft2build.h \
 
 macx {
   system(mkdir -p $${OUT_PWD}/bin.macx)
-  system(bzip2 -cdk $${PWD}/bin.macx/libfreetype.a.bz2 > $${OUT_PWD}/bin.win32/libfreetype.a)
+  system(bzip2 -cdk $${PWD}/bin.macx/libfreetype.a.bz2 > $${OUT_PWD}/bin.macx/libfreetype.a)
 
   system(bzip2 -cdk $${PWD}/freetype-2.4.8.tar.bz2 > $${OUT_PWD}/freetype-2.4.8.tar)
   system(cd $${OUT_PWD} && tar -x -f freetype-2.4.8.tar $${FREETYPE_HEADERS})

@@ -2,7 +2,8 @@ TEMPLATE = subdirs
 CONFIG += ordered
 DESTDIR = .
 
-SUBDIRS += dvdnav ffmpeg freetype gui smbclient #opengl
+SUBDIRS += dvdnav ffmpeg freetype gui #opengl
+!macx:SUBDIRS += smbclient
 
 unix {
   contains(QMAKE_HOST.os, Linux) {

@@ -3,12 +3,21 @@ for Linux the livavcodec-dev, libavformat-dev, libavutil-dev and
 libswscale-dev packages should be installed instead.
 
 Mac OS X:
-- Make sure XCode is installed and start a terminal.
+- Make sure XCode with yasm is installed and start a terminal.
+
+- Extract the lame sources somewhere and cd into the source directory.
+
+- Configure lame using:
+  ./configure --enable-static CFLAGS="-mtune=generic -msse3 -mssse3 -mfpmath=sse"
+  
+- Run make and copy libmp3lame/.libs/libmp3lame.a to ext/ffmpeg/bin.macx.
 
 - Extract the libav sources somewhere and cd into the source directory.
 
+- Create a directory "ext" and copy libmp3lame.a there and create a directory "ext/lame" and copy lame.h there.
+
 - Configure libav using:
-  ./configure --disable-ffmpeg --disable-ffplay --disable-ffprobe --disable-ffserver --enable-swscale --disable-network --disable-debug --disable-amd3dnow --disable-amd3dnowext --disable-ssse3 --disable-zlib --disable-bzlib
+  ./configure --enable-gpl --disable-ffmpeg --disable-ffplay --disable-ffprobe --disable-ffserver --enable-swscale --enable-network --disable-debug --enable-mmx --enable-sse --enable-ssse3 --disable-amd3dnow --disable-amd3dnowext --disable-avx --disable-zlib --disable-bzlib --disable-pthreads --enable-libmp3lame --extra-cflags="-I./ext/ -mtune=generic -msse3 -mssse3 -mfpmath=sse" --extra-ldflags="-L./ext/"
 
 - Run make and copy the libavcodec.a, libavformat.a, libavutil.a and
   libswscale.a files to ext/ffmpeg/bin.macx.
@@ -24,7 +33,7 @@ Windows:
 - Configure lame using:
   ./configure --enable-static CFLAGS="-mtune=generic -march=i686 -mmmx -msse -msse2 -mfpmath=sse -mincoming-stack-boundary=2"
   
-- Run make and copy the libmp3lame.a to ext/ffmpeg/bin.win32.
+- Run make and copy libmp3lame.a to ext/ffmpeg/bin.win32.
 
 - In the mingw installation directory; remove make.exe again.
 

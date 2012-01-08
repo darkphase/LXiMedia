@@ -9,7 +9,7 @@ Mac OS X:
 - Configure libexif using:
   ./configure --enable-static
 
-- Run make and copy the libexif.a file to ext/exif/bin.macx.
+- Run make and copy the libexif/.libs/libexif.a file to ext/exif/bin.macx.
 
 Windows:
 - Make sure MinGW and MSYS are installed and start a MinGW bash shell.
@@ -22,6 +22,6 @@ Windows:
 - In the mingw installation directory; copy and rename mingw32-make.exe
   into make.exe.
   
-- Run make and copy the libexif.a file to ext/exif/bin.win32.
+- Run make and copy the libexif/.libs/libexif.a file to ext/exif/bin.win32.
 
 - In the mingw installation directory; remove make.exe again.

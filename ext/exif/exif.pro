@@ -18,7 +18,7 @@ EXIF_HEADERS = $${EXIF_VERSION}/libexif/_stdint.h \
 
 macx {
   system(mkdir -p $${OUT_PWD}/bin.macx)
-  system(bzip2 -cdk $${PWD}/bin.macx/libexif.a.bz2 > $${OUT_PWD}/bin.win32/libexif.a)
+  system(bzip2 -cdk $${PWD}/bin.macx/libexif.a.bz2 > $${OUT_PWD}/bin.macx/libexif.a)
 
   system(bzip2 -cdk $${PWD}/libexif_0.6.20.orig.tar.bz2 > $${OUT_PWD}/libexif_0.6.20.orig.tar)
   system(cd $${OUT_PWD} && tar -x -f libexif_0.6.20.orig.tar $${EXIF_HEADERS})

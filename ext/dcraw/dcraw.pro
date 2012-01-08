@@ -7,6 +7,7 @@ DESTDIR = $${OUT_PWD}/$${LXIMEDIA_DIR}/bin
 macx {
   system(mkdir -p $${DESTDIR})
   system(bzip2 -cdk $${PWD}/bin.macx/dcraw.bz2 > $${DESTDIR}/dcraw)
+  system(chmod a+x $${DESTDIR}/dcraw)
 }
 win32 {
   BZIP2 = $$replace(PWD,/,\\)\\..\\gnuwin32\\bzip2.exe

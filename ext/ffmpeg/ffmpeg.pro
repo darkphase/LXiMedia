@@ -25,11 +25,11 @@ FFMPEG_HEADERS = $${FFMPEG_VERSION}/libavcodec/avcodec.h \
 
 macx {
   system(mkdir -p $${OUT_PWD}/bin.macx)
-  system(bzip2 -cdk $${PWD}/bin.macx/libavcodec.a.bz2 > $${OUT_PWD}/bin.win32/libavcodec.a)
-  system(bzip2 -cdk $${PWD}/bin.macx/libavformat.a.bz2 > $${OUT_PWD}/bin.win32/libavformat.a)
-  system(bzip2 -cdk $${PWD}/bin.macx/libavutil.a.bz2 > $${OUT_PWD}/bin.win32/libavutil.a)
-  system(bzip2 -cdk $${PWD}/bin.macx/libswscale.a.bz2 > $${OUT_PWD}/bin.win32/libswscale.a)
-  system(bzip2 -cdk $${PWD}/bin.macx/libmp3lame.a.bz2 > $${OUT_PWD}/bin.win32/libmp3lame.a)
+  system(bzip2 -cdk $${PWD}/bin.macx/libavcodec.a.bz2 > $${OUT_PWD}/bin.macx/libavcodec.a)
+  system(bzip2 -cdk $${PWD}/bin.macx/libavformat.a.bz2 > $${OUT_PWD}/bin.macx/libavformat.a)
+  system(bzip2 -cdk $${PWD}/bin.macx/libavutil.a.bz2 > $${OUT_PWD}/bin.macx/libavutil.a)
+  system(bzip2 -cdk $${PWD}/bin.macx/libswscale.a.bz2 > $${OUT_PWD}/bin.macx/libswscale.a)
+  system(bzip2 -cdk $${PWD}/bin.macx/libmp3lame.a.bz2 > $${OUT_PWD}/bin.macx/libmp3lame.a)
 
   system(bzip2 -cdk $${PWD}/libav_0.7.3.orig.tar.bz2 > $${OUT_PWD}/libav_0.7.3.orig.tar)
   system(cd $${OUT_PWD} && tar -x -f libav_0.7.3.orig.tar $${FFMPEG_HEADERS})
