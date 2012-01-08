@@ -93,7 +93,7 @@ protected:
     {
       QLocalSocket * const socket = new Socket(parent);
       if (socket->setSocketDescriptor(socketDescriptor))
-        (new HttpServerRequest(parent, 0))->start(socket);
+        (new HttpServerRequest(parent, 0, __FILE__, __LINE__))->start(socket);
       else
         delete socket;
     }
@@ -154,7 +154,7 @@ protected:
     {
       QTcpSocket * const socket = new Socket(parent);
       if (socket->setSocketDescriptor(socketDescriptor))
-        (new HttpServerRequest(parent, serverPort()))->start(socket);
+        (new HttpServerRequest(parent, serverPort(), __FILE__, __LINE__))->start(socket);
       else
         delete socket;
     }

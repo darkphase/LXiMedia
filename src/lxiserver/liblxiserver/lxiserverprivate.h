@@ -38,7 +38,7 @@ class HttpClientRequest : public QObject
 {
 Q_OBJECT
 public:
-  explicit                      HttpClientRequest(SHttpClientEngine *, bool reuse);
+  explicit                      HttpClientRequest(SHttpClientEngine *, bool reuse, const char *file, int line);
   virtual                       ~HttpClientRequest();
 
 public slots:
@@ -54,6 +54,8 @@ private slots:
 private:
   SHttpClientEngine     * const parent;
   const bool                    reuse;
+  const char            * const file;
+  const int                     line;
   const SHttpEngine::RequestMessage message;
   QPointer<QIODevice>           socket;
   QByteArray                    data;
@@ -65,7 +67,7 @@ class HttpServerRequest : public QObject
 {
 Q_OBJECT
 public:
-  explicit                      HttpServerRequest(SHttpServerEngine *, quint16 serverPort);
+  explicit                      HttpServerRequest(SHttpServerEngine *, quint16 serverPort, const char *file, int line);
   virtual                       ~HttpServerRequest();
 
 public slots:
@@ -78,6 +80,8 @@ private slots:
 private:
   const QPointer<SHttpServerEngine> parent;
   const quint16                 serverPort;
+  const char            * const file;
+  const int                     line;
   QPointer<QIODevice>           socket;
   QByteArray                    data;
   bool                          headerReceived;
@@ -89,8 +93,8 @@ class HttpSocketRequest : public QObject
 {
 Q_OBJECT
 public:
-                                HttpSocketRequest(SHttpClientEngine *, QAbstractSocket *, quint16 port, const QByteArray &message = QByteArray());
-                                HttpSocketRequest(SHttpClientEngine *, QLocalSocket *, const QByteArray &message = QByteArray());
+                                HttpSocketRequest(SHttpClientEngine *, QAbstractSocket *, quint16 port, const QByteArray &message, const char *file, int line);
+                                HttpSocketRequest(SHttpClientEngine *, QLocalSocket *, const QByteArray &message, const char *file, int line);
   virtual                       ~HttpSocketRequest();
 
 signals:
@@ -103,9 +107,10 @@ private slots:
   void                          failed(void);
 
 private:
-  static const int              maxTTL = 15000;
   SHttpClientEngine     * const parent;
   const quint16                 port;
+  const char            * const file;
+  const int                     line;
   QByteArray                    message;
   QPointer<QIODevice>           socket;
   QTimer                        failTimer;
@@ -115,7 +120,7 @@ class SandboxProcess : public QObject
 {
 Q_OBJECT
 public:
-  explicit                      SandboxProcess(SSandboxClient *, const QString &);
+  explicit                      SandboxProcess(SSandboxClient *, const QString &, const char *file, int line);
   virtual                       ~SandboxProcess();
 
   bool                          waitForStarted(int msecs = 30000);
@@ -137,6 +142,8 @@ private slots:
 
 private:
   const QPointer<SSandboxClient> parent;
+  const char            * const file;
+  const int                     line;
   QProcess              * const process;
   bool                          started;
 };

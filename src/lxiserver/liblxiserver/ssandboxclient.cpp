@@ -299,7 +299,7 @@ void SSandboxClient::startProcess(void)
 {
   if ((d->processStarted == false) && (d->serverProcess == NULL) && !d->application.isEmpty())
   {
-    d->serverProcess = new SandboxProcess(this, d->application + " " + d->modeText);
+    d->serverProcess = new SandboxProcess(this, d->application + " " + d->modeText, __FILE__, __LINE__);
 
     connect(d->serverProcess, SIGNAL(ready(QString)), SLOT(processStarted(QString)));
     connect(d->serverProcess, SIGNAL(stop()), SLOT(stop()));
@@ -333,7 +333,7 @@ void SSandboxClient::openRequest(void)
     if (socket)
     {
       HttpSocketRequest * const socketRequest =
-          new HttpSocketRequest(this, socket, request.message);
+          new HttpSocketRequest(this, socket, request.message, __FILE__, __LINE__);
 
       if (request.receiver)
         connect(socketRequest, SIGNAL(connected(QIODevice *, SHttpEngine *)), request.receiver, request.slot, request.connectionType);
@@ -354,7 +354,7 @@ void SSandboxClient::openRequest(void)
       if (socket)
       {
         HttpSocketRequest * const socketRequest =
-            new HttpSocketRequest(this, socket, port, request.message);
+            new HttpSocketRequest(this, socket, port, request.message, __FILE__, __LINE__);
 
         if (request.receiver)
           connect(socketRequest, SIGNAL(connected(QIODevice *, SHttpEngine *)), request.receiver, request.slot, request.connectionType);

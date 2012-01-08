@@ -223,7 +223,7 @@ void SHttpClient::openRequest(void)
       if (socket)
       {
         HttpSocketRequest * const socketRequest =
-            new HttpSocketRequest(this, socket, port, request.message);
+            new HttpSocketRequest(this, socket, port, request.message, __FILE__, __LINE__);
 
         if (request.receiver)
           connect(socketRequest, SIGNAL(connected(QIODevice *, SHttpEngine *)), request.receiver, request.slot, request.connectionType);

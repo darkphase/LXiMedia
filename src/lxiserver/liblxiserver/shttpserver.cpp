@@ -81,7 +81,7 @@ protected:
         // processes.
         ::SetHandleInformation((HANDLE)socket->socketDescriptor(), HANDLE_FLAG_INHERIT, 0);
 #endif
-        (new HttpServerRequest(parent, serverPort()))->start(socket);
+        (new HttpServerRequest(parent, serverPort(), __FILE__, __LINE__))->start(socket);
       }
       else
         delete socket;
