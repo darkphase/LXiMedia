@@ -42,6 +42,22 @@
 #include <ammintrin.h>
 #endif
 
+#if defined(_MSC_VER) && defined(__SSE2__) && !(_M_AMD64)
+__forceinline __m128i _mm_set_epi64x(__int64 i1, __int64 i2) 
+{ 
+  return _mm_set_epi32(
+    __int32(i1 >> 32), __int32(i1), 
+    __int32(i2 >> 32), __int32(i2)); 
+}
+
+__forceinline __m128i _mm_set1_epi64x(__int64 i) 
+{ 
+  return _mm_set_epi32(
+    __int32(i >> 32), __int32(i), 
+    __int32(i >> 32), __int32(i)); 
+}
+#endif
+
 namespace lxivec {
 
 #if defined(__AVX__)

@@ -25,10 +25,20 @@
 # pragma GCC diagnostic ignored "-Wuninitialized" // Buggy
 #endif
 
+#if defined(_MSC_VER)
+# pragma warning(disable : 4200) // Zero sized array
+# pragma warning(disable : 4522) // Multiple assignment operators
+#endif
+
 #include "platform.h"
 
 #include "vecbool.h"
 #include "vecfloat.h"
 #include "vecint.h"
+
+#if defined(_MSC_VER)
+# pragma warning(default : 4200)
+# pragma warning(default : 4522)
+#endif
 
 #endif

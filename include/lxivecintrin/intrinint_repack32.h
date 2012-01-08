@@ -325,7 +325,7 @@ namespace _private {
                     _mm_and_si128(mb, _mm_set1_epi32(2147483647)),
                     _mm_andnot_si128(mb, src.vec[vi * 2 + 1])),
                 _mm_set1_epi32(32768))),
-        _mm_set1_epi16(32768));
+        _mm_set1_epi16(int16_t(32768)));
     }
 
     i += sizeof(dst.vec) / sizeof(dst.val[0]);

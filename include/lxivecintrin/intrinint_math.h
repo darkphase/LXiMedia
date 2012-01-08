@@ -286,7 +286,7 @@ namespace _private {
                     _mm_and_si128(b, _mm_set1_epi32(0x0000FFFF)),
                     _mm_srli_epi32(b, 16)),
                 _mm_set1_epi32(32768))),
-        _mm_set1_epi16(32768));
+        _mm_set1_epi16(int16_t(32768)));
   }
 
   lxivec_always_inline __m128i hadd(__m128i a, __m128i b, int32_t)
