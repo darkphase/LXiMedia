@@ -13,8 +13,8 @@ DVDNAV_HEADERS = $${DVDNAV_VERSION}/src/dvdnav/dvdnav.h \
 
 macx {
   system(mkdir -p $${OUT_PWD}/bin.macx)
-  system(bzip2 -cdk $${PWD}/bin.macx/libdvdnav.a.bz2 > $${OUT_PWD}/bin.win32/libdvdnav.a)
-  system(bzip2 -cdk $${PWD}/bin.macx/libdvdread.a.bz2 > $${OUT_PWD}/bin.win32/libdvdread.a)
+  system(bzip2 -cdk $${PWD}/bin.macx/libdvdnav.a.bz2 > $${OUT_PWD}/bin.macx/libdvdnav.a)
+  system(bzip2 -cdk $${PWD}/bin.macx/libdvdread.a.bz2 > $${OUT_PWD}/bin.macx/libdvdread.a)
 
   system(bzip2 -cdk $${PWD}/libdvdread_4.2.0.orig.tar.bz2 > $${OUT_PWD}/libdvdread_4.2.0.orig.tar)
   system(cd $${OUT_PWD} && tar -x -f libdvdread_4.2.0.orig.tar $${DVDREAD_HEADERS})

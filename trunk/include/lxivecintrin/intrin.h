@@ -72,10 +72,10 @@ namespace _private {
   lxivec_always_inline float    abs(float a)     { return (a >= 0.0f) ? a : -a; }
   lxivec_always_inline double   abs(double a)    { return (a >= 0.0) ? a : -a; }
 
-#ifndef __LP64__
+#if !defined(__LP64__)
   lxivec_always_inline long abs(long a) { return abs(int32_t(a)); }
   lxivec_always_inline unsigned long abs(unsigned long a) { return abs(uint32_t(a)); }
-#else
+#elif defined(__GNUC__) && ((__GNUC__ > 4) || ((__GNUC__ == 4) && (__GNUC_MINOR__ >= 4)))
   lxivec_always_inline long long abs(long long a) { return abs(int64_t(a)); }
   lxivec_always_inline unsigned long long abs(unsigned long long a) { return abs(uint64_t(a)); }
 #endif
