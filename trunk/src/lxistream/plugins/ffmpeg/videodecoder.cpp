@@ -122,7 +122,11 @@ bool VideoDecoder::openCodec(const SVideoCodec &c, SInterfaces::AbstractBufferRe
 #endif
 #endif
 
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(53, 6, 0)
   if (avcodec_open(contextHandle, codecHandle) < 0)
+#else
+  if (avcodec_open2(contextHandle, codecHandle, NULL) < 0)
+#endif
   {
     qCritical() << "VideoDecoder: Could not open video codec " << inCodec.codec();
     codecHandle = NULL;

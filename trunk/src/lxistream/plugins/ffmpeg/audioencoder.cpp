@@ -177,7 +177,11 @@ bool AudioEncoder::openCodec(const SAudioCodec &c, SInterfaces::BufferWriter *bu
 
   contextHandle->flags |= CODEC_FLAG_QSCALE;
 
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(53, 6, 0)
   if (avcodec_open(contextHandle, codecHandle) < 0)
+#else
+  if (avcodec_open2(contextHandle, codecHandle, NULL) < 0)
+#endif
   {
     qCritical() << "AudioEncoder: Could not open audio codec" << codecHandle->name;
     codecHandle = NULL;

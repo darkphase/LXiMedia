@@ -80,7 +80,11 @@ bool DataDecoder::openCodec(const SDataCodec &c, SInterfaces::AbstractBufferRead
     contextHandle->flags2 |= CODEC_FLAG2_CHUNKS;
   }
 
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(53, 6, 0)
   if (avcodec_open(contextHandle, codecHandle) < 0)
+#else
+  if (avcodec_open2(contextHandle, codecHandle, NULL) < 0)
+#endif
   {
     qCritical() << "DataDecoder: Could not open data codec " << codecHandle->name;
     codecHandle = NULL;
