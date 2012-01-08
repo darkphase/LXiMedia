@@ -13,6 +13,3 @@ SUBDIRS += lxistream
 
 # LXiMediaCenter
 SUBDIRS += lximediacenter
-
-# LXiMediaPlayer
-SUBDIRS += lximediaplayer
