@@ -26,12 +26,6 @@
 #include "shttpclient.h"
 #include "ssandboxclient.h"
 
-// Qt uses names pipes for local sockets under Windows, which are not suitable
-// for using HTTP and therefore normal TCP sockets need to be used.
-#ifndef Q_OS_WIN
-#define SANDBOX_USE_LOCALSERVER
-#endif
-
 using namespace LXiServer;
 
 class HttpClientRequest : public QObject

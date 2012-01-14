@@ -48,7 +48,6 @@ private slots:
   void                          closedConnection(void);
 
 private:
-  class Server;
   struct Data;
   Data                  * const d;
 };

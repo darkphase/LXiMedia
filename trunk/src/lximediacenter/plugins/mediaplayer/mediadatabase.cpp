@@ -179,7 +179,7 @@ FileNodeList MediaDatabase::representativeItems(const QUrl &filePath) const
   QList<Info> probeFiles;
 
   QList< QPair<QUrl, int> > paths;
-  paths += qMakePair(filePath, 8);
+  paths += qMakePair(filePath, 4);
   while (!paths.isEmpty())
   {
     const QPair<QUrl, int> path = paths.takeFirst();

@@ -51,7 +51,11 @@ struct SSandboxClient::Data
   bool                          processStarted;
   QList<Request>                requests;
 
+#if defined(Q_OS_WIN)
+  static const int              maxSocketCount = 4;
+#else
   static const int              maxSocketCount = 32;
+#endif
   int                           socketCount;
   QList<QIODevice *>            socketPool;
   QTimer                        socketPoolTimer;
@@ -138,12 +142,7 @@ SSandboxClient::ResponseMessage SSandboxClient::blockingRequest(const RequestMes
       d->serverProcess->waitForStarted(qMax(0, timeout - timer.elapsed()));
   }
 
-#ifdef SANDBOX_USE_LOCALSERVER
   QLocalSocket * const socket = static_cast<QLocalSocket *>(openSocket(d->serverName, true));
-#else
-  QTcpSocket * const socket = static_cast<QTcpSocket *>(openSocket(d->serverName, true));
-#endif
-
   if (socket &&
       ((socket->state() == socket->ConnectedState) ||
        socket->waitForConnected(qMax(0, timeout - timer.elapsed()))))
@@ -154,7 +153,7 @@ SSandboxClient::ResponseMessage SSandboxClient::blockingRequest(const RequestMes
       QByteArray data;
       while (!data.endsWith("\r\n\r\n") && (qAbs(timer.elapsed()) < timeout))
       {
-        if (socket->waitForReadyRead(qBound(0, timeout - timer.elapsed(), 50)))
+        if (socket->waitForReadyRead(qBound(0, timeout - timer.elapsed(), 250)))
         {
           while (socket->canReadLine() && !data.endsWith("\r\n\r\n"))
             data += socket->readLine();
@@ -162,7 +161,7 @@ SSandboxClient::ResponseMessage SSandboxClient::blockingRequest(const RequestMes
         else if (d->serverProcess)
         {
           if (d->serverProcess->isRunning())
-            d->serverProcess->waitForReadyRead(qBound(0, timeout - timer.elapsed(), 50));
+            d->serverProcess->waitForReadyRead(qBound(0, timeout - timer.elapsed(), 250));
           else
             return ResponseMessage(request, Status_InternalServerError);
         }
@@ -178,14 +177,14 @@ SSandboxClient::ResponseMessage SSandboxClient::blockingRequest(const RequestMes
                 (data.length() < response.contentLength())) &&
                (qAbs(timer.elapsed()) < timeout))
         {
-          if (socket->waitForReadyRead(qBound(0, timeout - timer.elapsed(), 50)))
+          if (socket->waitForReadyRead(qBound(0, timeout - timer.elapsed(), 250)))
           {
             data += socket->readAll();
           }
           else if (d->serverProcess)
           {
             if (d->serverProcess->isRunning())
-              d->serverProcess->waitForReadyRead(qBound(0, timeout - timer.elapsed(), 50));
+              d->serverProcess->waitForReadyRead(qBound(0, timeout - timer.elapsed(), 250));
             else
               return ResponseMessage(request, Status_InternalServerError);
           }
@@ -240,21 +239,12 @@ QIODevice * SSandboxClient::openSocket(const QString &host, bool force)
 
   while (!d->socketPool.isEmpty())
   {
-#ifdef SANDBOX_USE_LOCALSERVER
     QLocalSocket * const socket = static_cast<QLocalSocket *>(d->socketPool.takeLast());
 
     if (socket->state() == QLocalSocket::ConnectedState)
       return socket;
     else
       closeSocket(socket);
-#else
-    QTcpSocket * const socket = static_cast<QTcpSocket *>(d->socketPool.takeLast());
-
-    if (socket->state() == QTcpSocket::ConnectedState)
-      return socket;
-    else
-      closeSocket(socket);
-#endif
   }
 
   while ((d->socketCount >= d->maxSocketCount) && !d->socketPool.isEmpty())
@@ -262,7 +252,6 @@ QIODevice * SSandboxClient::openSocket(const QString &host, bool force)
 
   if (force || (d->socketCount < d->maxSocketCount))
   {
-#ifdef SANDBOX_USE_LOCALSERVER
     QLocalSocket * const socket = new QLocalSocket(this);
     socket->connectToServer(host);
 
@@ -273,23 +262,6 @@ QIODevice * SSandboxClient::openSocket(const QString &host, bool force)
 
     d->socketCount++;
     return socket;
-#else
-    QString hostname;
-    quint16 port = 80;
-    if (splitHost(host, hostname, port))
-    {
-      QTcpSocket * const socket = new QTcpSocket(this);
-      socket->connectToHost(hostname, port);
-
-#ifdef Q_OS_WIN
-      // This is needed to ensure the socket isn't kept open by any child processes.
-      ::SetHandleInformation((HANDLE)socket->socketDescriptor(), HANDLE_FLAG_INHERIT, 0);
-#endif
-
-      d->socketCount++;
-      return socket;
-    }
-#endif
   }
 
   return NULL;
@@ -328,7 +300,6 @@ void SSandboxClient::openRequest(void)
   {
     const Data::Request request = d->requests.takeFirst();
 
-#ifdef SANDBOX_USE_LOCALSERVER
     QLocalSocket * const socket = static_cast<QLocalSocket *>(openSocket(d->serverName, false));
     if (socket)
     {
@@ -345,29 +316,6 @@ void SSandboxClient::openRequest(void)
       d->requests.prepend(request);
       break;
     }
-#else
-    QString hostname;
-    quint16 port = 80;
-    if (splitHost(d->serverName, hostname, port))
-    {
-      QTcpSocket * const socket = static_cast<QTcpSocket *>(openSocket(d->serverName, false));
-      if (socket)
-      {
-        HttpSocketRequest * const socketRequest =
-            new HttpSocketRequest(this, socket, port, request.message, __FILE__, __LINE__);
-
-        if (request.receiver)
-          connect(socketRequest, SIGNAL(connected(QIODevice *, SHttpEngine *)), request.receiver, request.slot, request.connectionType);
-        else
-          connect(socketRequest, SIGNAL(connected(QIODevice *, SHttpEngine *)), SLOT(closeSocket(QIODevice *)));
-      }
-      else // No more free sockets.
-      {
-        d->requests.prepend(request);
-        break;
-      }
-    }
-#endif
   }
 }
 
