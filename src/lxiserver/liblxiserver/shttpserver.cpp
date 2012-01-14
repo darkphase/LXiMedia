@@ -32,64 +32,8 @@ struct SHttpServer::Data
   QList<QHostAddress>           addresses;
   quint16                       defaultPort;
   QString                       serverUdn;
-  QMultiMap<QString, Server *>  servers;
-  int                           openSockets;
-};
-
-class SHttpServer::Socket : public QTcpSocket
-{
-public:
-  explicit Socket(SHttpServer *parent)
-    : QTcpSocket(parent), parent(parent)
-  {
-    if (parent->d->openSockets++ == 0)
-      emit parent->busy();
-  }
-
-  virtual ~Socket()
-  {
-    if (parent)
-    if (parent->d)
-    if (--parent->d->openSockets == 0)
-      emit parent->idle();
-  }
-
-private:
-  const QPointer<SHttpServer>   parent;
-};
-
-class SHttpServer::Server : public QTcpServer
-{
-public:
-  explicit Server(SHttpServer *parent)
-    : QTcpServer(parent), parent(parent)
-  {
-  }
-
-protected:
-  virtual void incomingConnection(int socketDescriptor)
-  {
-    Q_ASSERT(QThread::currentThread() == thread());
-
-    if (parent)
-    {
-      QTcpSocket * const socket = new Socket(parent);
-      if (socket->setSocketDescriptor(socketDescriptor))
-      {
-#ifdef Q_OS_WIN
-        // This is needed to ensure the socket isn't kept open by any child
-        // processes.
-        ::SetHandleInformation((HANDLE)socket->socketDescriptor(), HANDLE_FLAG_INHERIT, 0);
-#endif
-        (new HttpServerRequest(parent, serverPort(), __FILE__, __LINE__))->start(socket);
-      }
-      else
-        delete socket;
-    }
-  }
-
-private:
-  const QPointer<SHttpServer>   parent;
+  QMultiMap<QString, QTcpServer *>  servers;
+  int                           openConnections;
 };
 
 /*! Creates an instance of the HTTP server, the specified protocol and
@@ -101,7 +45,7 @@ SHttpServer::SHttpServer(const QString &protocol, const QUuid &serverUuid, QObje
 {
   d->defaultPort = 0;
   d->serverUdn = QString("uuid:" + serverUuid.toString()).replace("{", "").replace("}", "");
-  d->openSockets = 0;
+  d->openConnections = 0;
 }
 
 SHttpServer::~SHttpServer()
@@ -120,7 +64,9 @@ void SHttpServer::initialize(const QList<QHostAddress> &addresses, quint16 port)
 
   foreach (const QHostAddress &address, addresses)
   {
-    Server * const server = new Server(this);
+    QTcpServer * const server = new QTcpServer(this);
+
+    connect(server, SIGNAL(newConnection()), SLOT(newConnection()));
 
     if (port > 0)
     if (server->listen(address, port))
@@ -140,7 +86,7 @@ void SHttpServer::initialize(const QList<QHostAddress> &addresses, quint16 port)
  */
 void SHttpServer::close(void)
 {
-  foreach (Server *server, d->servers)
+  foreach (QTcpServer *server, d->servers)
   {
     server->close();
     server->deleteLater();
@@ -169,7 +115,7 @@ quint16 SHttpServer::defaultPort(void) const
  */
 quint16 SHttpServer::serverPort(const QHostAddress &address) const
 {
-  QMultiMap<QString, Server *>::ConstIterator i = d->servers.find(address.toString());
+  QMultiMap<QString, QTcpServer *>::ConstIterator i = d->servers.find(address.toString());
   if (i != d->servers.end())
     return (*i)->serverPort();
 
@@ -181,6 +127,35 @@ quint16 SHttpServer::serverPort(const QHostAddress &address) const
 const QString & SHttpServer::serverUdn(void) const
 {
   return d->serverUdn;
+}
+
+void SHttpServer::newConnection(void)
+{
+  foreach (QTcpServer *server, d->servers)
+  while (server->hasPendingConnections())
+  {
+    QTcpSocket * const socket = server->nextPendingConnection();
+    if (socket)
+    {
+#ifdef Q_OS_WIN
+      // This is needed to ensure the socket isn't kept open by any child
+      // processes.
+      ::SetHandleInformation((HANDLE)socket->socketDescriptor(), HANDLE_FLAG_INHERIT, 0);
+#endif
+
+      connect(socket, SIGNAL(destroyed()), SLOT(closedConnection()));
+      if (d->openConnections++ == 0)
+        emit busy();
+
+      (new HttpServerRequest(this, server->serverPort(), __FILE__, __LINE__))->start(socket);
+    }
+  }
+}
+
+void SHttpServer::closedConnection(void)
+{
+  if (--d->openConnections == 0)
+    emit idle();
 }
 
 } // End of namespace
