@@ -49,9 +49,11 @@ signals:
   void                          busy(void);
   void                          idle(void);
 
+private slots:
+  void                          newConnection(void);
+  void                          closedConnection(void);
+
 private:
-  class Socket;
-  class Server;
   struct Data;
   Data                  * const d;
 };

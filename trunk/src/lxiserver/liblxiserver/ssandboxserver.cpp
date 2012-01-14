@@ -39,33 +39,10 @@ struct SSandboxServer::Data
 {
   QString                       mode;
   Server                      * server;
-  int                           openSockets;
-  QQueue<int>                   pendingSockets;
+  int                           openConnections;
 };
 
 #ifdef SANDBOX_USE_LOCALSERVER
-class SSandboxServer::Socket : public QLocalSocket
-{
-public:
-  explicit Socket(SSandboxServer *parent)
-    : QLocalSocket(parent), parent(parent)
-  {
-    if (parent->d->openSockets++ == 0)
-      emit parent->busy();
-  }
-
-  virtual ~Socket()
-  {
-    if (parent)
-    if (parent->d)
-    if (--parent->d->openSockets == 0)
-      emit parent->idle();
-  }
-
-private:
-  const QPointer<SSandboxServer> parent;
-};
-
 class SSandboxServer::Server : public QLocalServer
 {
 public:
@@ -86,45 +63,10 @@ public:
     return false;
   }
 
-protected:
-  virtual void incomingConnection(quintptr socketDescriptor)
-  {
-    if (parent)
-    {
-      QLocalSocket * const socket = new Socket(parent);
-      if (socket->setSocketDescriptor(socketDescriptor))
-        (new HttpServerRequest(parent, 0, __FILE__, __LINE__))->start(socket);
-      else
-        delete socket;
-    }
-  }
-
 private:
   const QPointer<SSandboxServer> parent;
 };
 #else
-class SSandboxServer::Socket : public QTcpSocket
-{
-public:
-  explicit Socket(SSandboxServer *parent)
-    : QTcpSocket(parent), parent(parent)
-  {
-    if (parent->d->openSockets++ == 0)
-      emit parent->busy();
-  }
-
-  virtual ~Socket()
-  {
-    if (parent)
-    if (parent->d)
-    if (--parent->d->openSockets == 0)
-      emit parent->idle();
-  }
-
-private:
-  const QPointer<SSandboxServer> parent;
-};
-
 class SSandboxServer::Server : public QTcpServer
 {
 public:
@@ -147,19 +89,6 @@ public:
     return "[" + serverAddress().toString() + "]:" + QString::number(serverPort());
   }
 
-protected:
-  virtual void incomingConnection(int socketDescriptor)
-  {
-    if (parent)
-    {
-      QTcpSocket * const socket = new Socket(parent);
-      if (socket->setSocketDescriptor(socketDescriptor))
-        (new HttpServerRequest(parent, serverPort(), __FILE__, __LINE__))->start(socket);
-      else
-        delete socket;
-    }
-  }
-
 private:
   const QPointer<SSandboxServer> parent;
 };
@@ -170,7 +99,7 @@ SSandboxServer::SSandboxServer(QObject *parent)
     d(new Data())
 {
   d->server = NULL;
-  d->openSockets = 0;
+  d->openConnections = 0;
 }
 
 SSandboxServer::~SSandboxServer()
@@ -185,9 +114,11 @@ bool SSandboxServer::initialize(const QString &mode)
   d->mode = mode;
   d->server = new Server(this);
 
+  connect(d->server, SIGNAL(newConnection()), SLOT(newConnection()));
+
   if (!d->server->listen())
   {
-    qWarning() << "SSandboxServer Failed to bind localhost interface";
+    qWarning() << "SSandboxServer Failed to bind interface";
     return false;
   }
 
@@ -236,6 +167,28 @@ void SSandboxServer::close(void)
 QString SSandboxServer::serverName(void) const
 {
   return d->server->serverName();
+}
+
+void SSandboxServer::newConnection(void)
+{
+  while (d->server->hasPendingConnections())
+  {
+    QIODevice * const socket = d->server->nextPendingConnection();
+    if (socket)
+    {
+      connect(socket, SIGNAL(destroyed()), SLOT(closedConnection()));
+      if (d->openConnections++ == 0)
+        emit busy();
+
+      (new HttpServerRequest(this, 0, __FILE__, __LINE__))->start(socket);
+    }
+  }
+}
+
+void SSandboxServer::closedConnection(void)
+{
+  if (--d->openConnections == 0)
+    emit idle();
 }
 
 } // End of namespace
