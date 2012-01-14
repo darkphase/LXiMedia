@@ -45,12 +45,14 @@ MediaPlayerServer::MediaPlayerServer(const QString &, QObject *parent)
   if (!root.isEmpty())
   {
     QUrl path = QUrl::fromEncoded(root.toAscii());
+    if (path.isValid() && !path.scheme().isEmpty())
+    {
+      // Lame-decrypt the password.
+      if (!path.password().isEmpty())
+        path.setPassword(QString::fromUtf8(qUncompress(QByteArray::fromHex(path.password().toAscii()))));
 
-    // Lame-decrypt the password.
-    if (!path.password().isEmpty())
-      path.setPassword(QString::fromUtf8(qUncompress(QByteArray::fromHex(path.password().toAscii()))));
-
-    paths.append(path);
+      paths.append(path);
+    }
   }
 
   setRootPaths(paths);
