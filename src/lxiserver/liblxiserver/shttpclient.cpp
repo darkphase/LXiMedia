@@ -44,7 +44,11 @@ struct SHttpClient::Data
 
   QList<Request>                requests;
 
+#if defined(Q_OS_WIN)
+  static const int              maxSocketCount = 8;
+#else
   static const int              maxSocketCount = 32;
+#endif
   QHash<QIODevice *, QString>   socketHost;
   QMultiHash<QString, QIODevice *> socketPool;
   QTimer                        socketPoolTimer;

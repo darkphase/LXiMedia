@@ -34,14 +34,16 @@ Section "-Shared Files" SecShared
   File COPYING
   File VERSION
   File README
-  File libgcc_s_dw2-1.dll
-  File mingwm10.dll
   File QtCore4.dll
   File QtGui4.dll
   File QtNetwork4.dll
   File QtXml4.dll
   File LXiCore.dll
   File LXiServer.dll
+
+  ; Only needed when compiled with MinGW
+  File /nonfatal libgcc_s_dw2-1.dll
+  File /nonfatal mingwm10.dll
 
   SetOutPath $INSTDIR\imageformats
   SetOverwrite ifnewer

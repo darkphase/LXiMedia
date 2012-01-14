@@ -38,61 +38,9 @@ namespace LXiServer {
 struct SSandboxServer::Data
 {
   QString                       mode;
-  Server                      * server;
+  QLocalServer                * server;
   int                           openConnections;
 };
-
-#ifdef SANDBOX_USE_LOCALSERVER
-class SSandboxServer::Server : public QLocalServer
-{
-public:
-  explicit Server(SSandboxServer *parent)
-    : QLocalServer(parent), parent(parent)
-  {
-  }
-
-  inline bool listen(void)
-  {
-    const QString base = QFileInfo(qApp->applicationFilePath()).baseName() + '.';
-
-    for (int i=0; i<8; i++)
-    if (QLocalServer::listen(base + QUuid::createUuid().toString().replace("{", "").replace("}", "")))
-      return true;
-
-    qDebug() << "SSandboxServer" << errorString();
-    return false;
-  }
-
-private:
-  const QPointer<SSandboxServer> parent;
-};
-#else
-class SSandboxServer::Server : public QTcpServer
-{
-public:
-  explicit Server(SSandboxServer *parent)
-    : QTcpServer(parent), parent(parent)
-  {
-  }
-
-  inline bool listen(void)
-  {
-    if (!QTcpServer::listen(QHostAddress::LocalHostIPv6))
-    if (!QTcpServer::listen(QHostAddress::LocalHost))
-      return false;
-
-    return true;
-  }
-
-  inline QString serverName(void) const
-  {
-    return "[" + serverAddress().toString() + "]:" + QString::number(serverPort());
-  }
-
-private:
-  const QPointer<SSandboxServer> parent;
-};
-#endif
 
 SSandboxServer::SSandboxServer(QObject *parent)
   : SHttpServerEngine("Sandbox/1.0", parent),
@@ -112,13 +60,16 @@ SSandboxServer::~SSandboxServer()
 bool SSandboxServer::initialize(const QString &mode)
 {
   d->mode = mode;
-  d->server = new Server(this);
+  d->server = new QLocalServer(this);
 
   connect(d->server, SIGNAL(newConnection()), SLOT(newConnection()));
 
-  if (!d->server->listen())
+  if (!d->server->listen(
+          QFileInfo(qApp->applicationFilePath()).baseName() + '.' + 
+          QString::number(quintptr(this), 16) + '-' +
+          QString::number(qApp->applicationPid(), 16)))
   {
-    qWarning() << "SSandboxServer Failed to bind interface";
+    qWarning() << "SSandboxServer Failed to bind interface" << d->server->errorString();
     return false;
   }
 
@@ -173,9 +124,15 @@ void SSandboxServer::newConnection(void)
 {
   while (d->server->hasPendingConnections())
   {
-    QIODevice * const socket = d->server->nextPendingConnection();
+    QLocalSocket * const socket = d->server->nextPendingConnection();
     if (socket)
     {
+#ifdef Q_OS_WIN
+      // This is needed to ensure the socket isn't kept open by any child
+      // processes.
+      ::SetHandleInformation((HANDLE)socket->socketDescriptor(), HANDLE_FLAG_INHERIT, 0);
+#endif
+
       connect(socket, SIGNAL(destroyed()), SLOT(closedConnection()));
       if (d->openConnections++ == 0)
         emit busy();

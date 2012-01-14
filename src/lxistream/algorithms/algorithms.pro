@@ -47,6 +47,10 @@ unix|win32-g++ {
   QMAKE_CXXFLAGS_RELEASE -= -O2
   QMAKE_CXXFLAGS += -O3 -funsafe-math-optimizations -funsafe-loop-optimizations
 }
+win32-msvc2005|win32-msvc2008|win32-msvc2010 {
+  QMAKE_CXXFLAGS_RELEASE -= /O2
+  QMAKE_CXXFLAGS += /Ox /Oi /Ot /fp:fast
+}
 
 # Windows specific
 win32-msvc2005|win32-msvc2008|win32-msvc2010 {
