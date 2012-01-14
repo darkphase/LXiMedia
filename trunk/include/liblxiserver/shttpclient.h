@@ -38,14 +38,13 @@ public:
 
 public: // From HttpClientEngine
   virtual void                  openRequest(const RequestMessage &header, QObject *receiver, const char *slot, Qt::ConnectionType = Qt::AutoConnection);
-  virtual ResponseMessage       blockingRequest(const RequestMessage &, int timeout = 30000);
 
 public slots: // From HttpClientEngine
   virtual void                  closeSocket(QIODevice *);
   virtual void                  reuseSocket(QIODevice *);
 
-private:
-  QIODevice                   * openSocket(const QString &host, bool force);
+protected:
+  virtual QIODevice           * openSocket(const QString &host);
 
 private slots:
   void                          openRequest(void);

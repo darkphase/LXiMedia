@@ -216,6 +216,14 @@ void HttpServerRequest::start(QIODevice *socket)
     headerReceived = false;
     content.clear();
 
+    QAbstractSocket * const aSocket = qobject_cast<QAbstractSocket *>(socket);
+    if (aSocket)
+      aSocket->flush();
+
+    QLocalSocket * const lSocket = qobject_cast<QLocalSocket *>(socket);
+    if (lSocket)
+      lSocket->flush();
+
     connect(socket, SIGNAL(readyRead()), SLOT(readyRead()), Qt::QueuedConnection);
     connect(socket, SIGNAL(disconnected()), SLOT(close()), Qt::QueuedConnection);
 
@@ -293,6 +301,9 @@ void HttpServerRequest::readyRead()
 
         SHttpEngine::ResponseMessage response = parent->handleHttpRequest(request, socket);
         parent->sendHttpResponse(request, response, socket);
+
+        socket = NULL;
+        deleteLater();
       }
     }
   }
@@ -458,6 +469,22 @@ void HttpSocketRequest::failed(void)
   }
 
   QMetaObject::invokeMethod(this, "connected", Qt::QueuedConnection);
+}
+
+
+HttpBlockingRequest::HttpBlockingRequest(SHttpClientEngine *parent, const char *file, int line)
+  : QObject(parent),
+    parent(parent),
+    file(file), line(line),
+    message(parent),
+    hasResponse(false)
+{
+}
+
+void HttpBlockingRequest::handleResponse(const SHttpEngine::ResponseMessage &m)
+{
+  message = m;
+  hasResponse = true;
 }
 
 

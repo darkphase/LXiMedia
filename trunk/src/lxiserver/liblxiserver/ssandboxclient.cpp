@@ -133,77 +133,10 @@ void SSandboxClient::openRequest(const RequestMessage &message, QObject *receive
 
 SSandboxClient::ResponseMessage SSandboxClient::blockingRequest(const RequestMessage &request, int timeout)
 {
-  QTime timer; timer.start();
+  RequestMessage r = request;
+  r.setHost(d->serverName);
 
-  if (!d->processStarted && !d->application.isEmpty())
-  {
-    startProcess();
-    if (d->serverProcess)
-      d->serverProcess->waitForStarted(qMax(0, timeout - timer.elapsed()));
-  }
-
-  QLocalSocket * const socket = static_cast<QLocalSocket *>(openSocket(d->serverName, true));
-  if (socket &&
-      ((socket->state() == socket->ConnectedState) ||
-       socket->waitForConnected(qMax(0, timeout - timer.elapsed()))))
-  {
-    socket->write(request);
-    if (socket->waitForBytesWritten(qMax(0, timeout - timer.elapsed())))
-    {
-      QByteArray data;
-      while (!data.endsWith("\r\n\r\n") && (qAbs(timer.elapsed()) < timeout))
-      {
-        if (socket->waitForReadyRead(qBound(0, timeout - timer.elapsed(), 250)))
-        {
-          while (socket->canReadLine() && !data.endsWith("\r\n\r\n"))
-            data += socket->readLine();
-        }
-        else if (d->serverProcess)
-        {
-          if (d->serverProcess->isRunning())
-            d->serverProcess->waitForReadyRead(qBound(0, timeout - timer.elapsed(), 250));
-          else
-            return ResponseMessage(request, Status_InternalServerError);
-        }
-      }
-
-      if (data.endsWith("\r\n\r\n"))
-      {
-        ResponseMessage response(NULL);
-        response.parse(data);
-
-        data = socket->readAll();
-        while ((!response.hasField(SHttpEngine::fieldContentLength) ||
-                (data.length() < response.contentLength())) &&
-               (qAbs(timer.elapsed()) < timeout))
-        {
-          if (socket->waitForReadyRead(qBound(0, timeout - timer.elapsed(), 250)))
-          {
-            data += socket->readAll();
-          }
-          else if (d->serverProcess)
-          {
-            if (d->serverProcess->isRunning())
-              d->serverProcess->waitForReadyRead(qBound(0, timeout - timer.elapsed(), 250));
-            else
-              return ResponseMessage(request, Status_InternalServerError);
-          }
-        }
-
-        if (request.canReuseConnection() && response.canReuseConnection())
-          reuseSocket(socket);
-        else
-          closeSocket(socket);
-
-        response.setContent(data);
-        return response;
-      }
-    }
-  }
-
-  closeSocket(socket);
-
-  return ResponseMessage(request, Status_BadRequest);
+  return SHttpClientEngine::blockingRequest(r, timeout);
 }
 
 void SSandboxClient::closeSocket(QIODevice *socket)
@@ -233,7 +166,7 @@ void SSandboxClient::reuseSocket(QIODevice *socket)
   openRequest();
 }
 
-QIODevice * SSandboxClient::openSocket(const QString &host, bool force)
+QIODevice * SSandboxClient::openSocket(const QString &host)
 {
   d->socketPoolTimer.start(30000);
 
@@ -250,7 +183,7 @@ QIODevice * SSandboxClient::openSocket(const QString &host, bool force)
   while ((d->socketCount >= d->maxSocketCount) && !d->socketPool.isEmpty())
     closeSocket(d->socketPool.takeFirst());
 
-  if (force || (d->socketCount < d->maxSocketCount))
+  if (d->socketCount < d->maxSocketCount)
   {
     QLocalSocket * const socket = new QLocalSocket(this);
     socket->connectToServer(host);
@@ -300,7 +233,7 @@ void SSandboxClient::openRequest(void)
   {
     const Data::Request request = d->requests.takeFirst();
 
-    QLocalSocket * const socket = static_cast<QLocalSocket *>(openSocket(d->serverName, false));
+    QLocalSocket * const socket = static_cast<QLocalSocket *>(openSocket(d->serverName));
     if (socket)
     {
       HttpSocketRequest * const socketRequest =

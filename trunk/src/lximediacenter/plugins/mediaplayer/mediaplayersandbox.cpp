@@ -183,8 +183,11 @@ void MediaPlayerSandbox::customEvent(QEvent *e)
   if (e->type() == responseEventType)
   {
     ResponseEvent * const event = static_cast<ResponseEvent *>(e);
+
     if (server)
       server->sendHttpResponse(event->request, event->response, event->socket, false);
+    else
+      event->socket->deleteLater();
   }
   else
     BackendSandbox::customEvent(e);

@@ -110,6 +110,26 @@ private:
   QTimer                        failTimer;
 };
 
+class HttpBlockingRequest : public QObject
+{
+Q_OBJECT
+public:
+  explicit                      HttpBlockingRequest(SHttpClientEngine *, const char *file, int line);
+
+  inline bool                   isReady(void) const { return hasResponse; }
+  inline const SHttpEngine::ResponseMessage & response(void) const { return message; }
+
+public slots:
+  void                          handleResponse(const SHttpEngine::ResponseMessage &);
+
+private:
+  SHttpClientEngine     * const parent;
+  const char            * const file;
+  const int                     line;
+  SHttpEngine::ResponseMessage  message;
+  bool                          hasResponse;
+};
+
 class SandboxProcess : public QObject
 {
 Q_OBJECT
