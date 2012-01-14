@@ -398,13 +398,16 @@ public:
       \note This method blocks until a response has been received or the timeout
             expires.
    */
-  virtual ResponseMessage       blockingRequest(const RequestMessage &, int timeout = 30000) = 0;
+  virtual ResponseMessage       blockingRequest(const RequestMessage &, int timeout = 30000);
 
 public slots:
   /*! Shall take the socket and reuse it when possible, otherwise closes and
       deletes the socket.
    */
   virtual void                  reuseSocket(QIODevice *) = 0;
+
+protected:
+  virtual QIODevice           * openSocket(const QString &host) = 0;
 
 signals:
   void                          response(const SHttpEngine::ResponseMessage &);

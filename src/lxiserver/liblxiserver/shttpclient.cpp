@@ -82,55 +82,6 @@ void SHttpClient::openRequest(const RequestMessage &message, QObject *receiver, 
   openRequest();
 }
 
-SHttpClient::ResponseMessage SHttpClient::blockingRequest(const RequestMessage &request, int timeout)
-{
-  QTime timer; timer.start();
-
-  QTcpSocket * const socket = static_cast<QTcpSocket *>(openSocket(request.host(), true));
-  if (socket &&
-      ((socket->state() == socket->ConnectedState) ||
-       socket->waitForConnected(qMax(0, timeout - timer.elapsed()))))
-  {
-    socket->write(request);
-    if (socket->waitForBytesWritten(qMax(0, timeout - timer.elapsed())))
-    {
-      QByteArray data;
-      while (!data.endsWith("\r\n\r\n") &&
-             socket->waitForReadyRead(qMax(0, timeout - timer.elapsed())))
-      {
-        while (socket->canReadLine() && !data.endsWith("\r\n\r\n"))
-          data += socket->readLine();
-      }
-
-      if (data.endsWith("\r\n\r\n"))
-      {
-        ResponseMessage response(NULL);
-        response.parse(data);
-
-        data = socket->readAll();
-        while ((!response.hasField(SHttpEngine::fieldContentLength) ||
-               (data.length() < response.contentLength())) &&
-               socket->waitForReadyRead(qMax(0, timeout - timer.elapsed())))
-        {
-          data += socket->readAll();
-        }
-
-        if (request.canReuseConnection() && response.canReuseConnection())
-          reuseSocket(socket);
-        else
-          closeSocket(socket);
-
-        response.setContent(data);
-        return response;
-      }
-    }
-  }
-
-  closeSocket(socket);
-
-  return ResponseMessage(request, Status_BadRequest);
-}
-
 void SHttpClient::closeSocket(QIODevice *socket)
 {
   if (QThread::currentThread() == thread())
@@ -162,7 +113,7 @@ void SHttpClient::reuseSocket(QIODevice *socket)
   openRequest();
 }
 
-QIODevice * SHttpClient::openSocket(const QString &host, bool force)
+QIODevice * SHttpClient::openSocket(const QString &host)
 {
   d->socketPoolTimer.start(30000);
 
@@ -190,7 +141,7 @@ QIODevice * SHttpClient::openSocket(const QString &host, bool force)
       break;
   }
 
-  if (force || (d->socketHost.count() < d->maxSocketCount))
+  if (d->socketHost.count() < d->maxSocketCount)
   {
     QString hostname;
     quint16 port = 80;
@@ -223,7 +174,7 @@ void SHttpClient::openRequest(void)
     quint16 port = 80;
     if (splitHost(request.host, hostname, port))
     {
-      QTcpSocket * const socket = static_cast<QTcpSocket *>(openSocket(request.host, false));
+      QTcpSocket * const socket = static_cast<QTcpSocket *>(openSocket(request.host));
       if (socket)
       {
         HttpSocketRequest * const socketRequest =

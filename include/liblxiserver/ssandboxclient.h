@@ -66,8 +66,8 @@ signals:
 
   void                          terminated(void);
 
-private:
-  QIODevice                   * openSocket(const QString &host, bool force);
+protected:
+  virtual QIODevice           * openSocket(const QString &host);
 
 private slots:
   void                          startProcess(void);

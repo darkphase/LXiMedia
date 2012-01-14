@@ -103,11 +103,17 @@ void SHttpEngine::closeSocket(QIODevice *socket)
 
       QAbstractSocket * const aSocket = qobject_cast<QAbstractSocket *>(socket);
       if (aSocket)
+      {
+        aSocket->flush();
         aSocket->disconnectFromHost();
+      }
 
       QLocalSocket * const lSocket = qobject_cast<QLocalSocket *>(socket);
       if (lSocket)
+      {
+        lSocket->flush();
         lSocket->disconnectFromServer();
+      }
     }
     else
     {
@@ -449,27 +455,11 @@ SHttpServerEngine::ResponseMessage SHttpServerEngine::handleHttpRequest(const SH
 
 void SHttpServerEngine::sendHttpResponse(const SHttpEngine::RequestHeader &request, SHttpEngine::ResponseMessage &response, QIODevice *socket, bool reuse)
 {
-  struct T
-  {
-    static void send(const SHttpEngine::RequestHeader &request, SHttpEngine::ResponseMessage &response, QIODevice *socket)
-    {
-      if (request.isHead())
-        response.setContent(QByteArray());
-
-      socket->write(response);
-
-      QAbstractSocket * const aSocket = qobject_cast<QAbstractSocket *>(socket);
-      if (aSocket)
-        aSocket->flush();
-
-      QLocalSocket * const lSocket = qobject_cast<QLocalSocket *>(socket);
-      if (lSocket)
-        lSocket->flush();
-    }
-  };
-
   if (response.status() != SHttpEngine::Status_None)
   {
+    if (request.isHead())
+      response.setContent(QByteArray());
+
     if (reuse && response.canReuseConnection())
     {
       // Reuse the socket if possible
@@ -481,7 +471,7 @@ void SHttpServerEngine::sendHttpResponse(const SHttpEngine::RequestHeader &reque
       if (serverEngine && splitHost(request.host(), hostname, port))
       {
         response.setConnection("Keep-Alive");
-        T::send(request, response, socket);
+        socket->write(response);
 
         (new HttpServerRequest(serverEngine, port, __FILE__, __LINE__))->start(socket);
 
@@ -490,10 +480,12 @@ void SHttpServerEngine::sendHttpResponse(const SHttpEngine::RequestHeader &reque
     }
 
     response.setConnection("Close");
-    T::send(request, response, socket);
+    socket->write(response);
 
     closeSocket(socket);
   }
+
+  // Status_None should keep socket open.
 }
 
 SHttpServerEngine::ResponseMessage SHttpServerEngine::Callback::httpOptions(const RequestMessage &request)
@@ -549,6 +541,26 @@ void SHttpClientEngine::sendRequest(const RequestMessage &request)
   connect(clientRequest, SIGNAL(response(SHttpEngine::ResponseMessage)), SLOT(handleResponse(SHttpEngine::ResponseMessage)));
 
   openRequest(request, clientRequest, SLOT(start(QIODevice *)));
+}
+
+SHttpClient::ResponseMessage SHttpClientEngine::blockingRequest(const RequestMessage &request, int timeout)
+{
+  QTime timer; timer.start();
+
+  HttpBlockingRequest blockingRequest(this, __FILE__, __LINE__);
+
+  HttpClientRequest * const clientRequest = new HttpClientRequest(this, request.canReuseConnection(), __FILE__, __LINE__);
+  connect(clientRequest, SIGNAL(response(SHttpEngine::ResponseMessage)), &blockingRequest, SLOT(handleResponse(SHttpEngine::ResponseMessage)));
+
+  openRequest(request, clientRequest, SLOT(start(QIODevice *)));
+
+  while (!blockingRequest.isReady() && (qAbs(timer.elapsed()) < timeout))
+    qApp->processEvents(QEventLoop::WaitForMoreEvents, 250);
+
+  if (blockingRequest.isReady())
+    return blockingRequest.response();
+
+  return ResponseMessage(request, Status_BadRequest);
 }
 
 void SHttpClientEngine::handleResponse(const SHttpEngine::ResponseMessage &message)
