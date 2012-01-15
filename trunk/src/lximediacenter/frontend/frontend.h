@@ -72,7 +72,6 @@ public:
 protected:
   virtual void                  contextMenuEvent(QContextMenuEvent *);
   virtual void                  keyPressEvent(QKeyEvent *);
-  virtual void                  keyReleaseEvent(QKeyEvent *);
 
 private slots:
   void                          loadFrontendPage(const QUrl &);

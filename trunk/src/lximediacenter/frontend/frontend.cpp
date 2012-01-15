@@ -97,13 +97,8 @@ void Frontend::keyPressEvent(QKeyEvent *e)
     else
       showFullScreen();
   }
-
-  // Disable keyboard navigation
-}
-
-void Frontend::keyReleaseEvent(QKeyEvent *)
-{
-  // Disable keyboard navigation
+  else
+    QWebView::keyPressEvent(e);
 }
 
 void Frontend::loadFrontendPage(const QUrl &url)

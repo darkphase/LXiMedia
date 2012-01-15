@@ -555,7 +555,9 @@ SAudioFormat MediaServer::audioFormatFor(const QString &client, const Item &item
     if (!group.isEmpty())
       settings.beginGroup(group);
 
-    if ((item.type == Item::Type_Music) || (item.type == Item::Type_MusicVideo))
+    if ((item.type == Item::Type_Music) ||
+        (item.type == Item::Type_AudioBroadcast) || // For play-all
+        (item.type == Item::Type_MusicVideo))
     {
       const QString transcodeMusicChannels = settings.value("TranscodeMusicChannels", genericTranscodeMusicChannels).toString();
       foreach (const TranscodeChannel &channel, allTranscodeChannels())
@@ -753,6 +755,9 @@ void MediaServer::setQueryItemsFor(const QString &client, QUrl &url, bool isMusi
       url.addQueryItem("subtitlesize", QString::number(size.ratio, 'f', 3));
       break;
     }
+
+    if (isMusic)
+      url.addQueryItem("music", QString::null);
 
     break;
   }
