@@ -493,11 +493,14 @@ void MediaStream::decodeChannels(const QUrl &url, SAudioFormat &audioFormat)
 {
   if (url.hasQueryItem("channels"))
   {
+    qDebug() << "MediaStream::decodeChannels" << url.queryItemValue("channels");
+
     const SAudioFormat::Channels c =
         SAudioFormat::Channels(url.queryItemValue("channels").toUInt(NULL, 16));
 
     if ((SAudioFormat::numChannels(c) > 0) &&
-        (audioFormat.numChannels() > SAudioFormat::numChannels(c)))
+        (url.hasQueryItem("music") ||
+         (audioFormat.numChannels() > SAudioFormat::numChannels(c))))
     {
       audioFormat.setChannelSetup(c);
     }
@@ -624,34 +627,30 @@ bool MediaTranscodeStream::setup(
     }
 
     bool generateVideo = false;
-    if (videoStreams.isEmpty())
+    if (videoStreams.isEmpty() && request.url().hasQueryItem("addvideo"))
     {
-      const QString musicMode = request.url().queryItemValue("addvideo");
-      if (musicMode.startsWith("addvideo"))
+      SSize size(352, 288);
+      if (request.url().hasQueryItem("resolution"))
       {
-        SSize size(352, 288);
-        if (request.url().hasQueryItem("resolution"))
+        const QStringList formatTxt = request.url().queryItemValue("resolution").split(',');
+
+        const QStringList sizeTxt = formatTxt.first().split('x');
+        if (sizeTxt.count() >= 2)
         {
-          const QStringList formatTxt = request.url().queryItemValue("resolution").split(',');
-
-          const QStringList sizeTxt = formatTxt.first().split('x');
-          if (sizeTxt.count() >= 2)
-          {
-            size.setWidth(sizeTxt[0].toInt());
-            size.setHeight(sizeTxt[1].toInt());
-            if (sizeTxt.count() >= 3)
-              size.setAspectRatio(sizeTxt[2].toFloat());
-            else
-              size.setAspectRatio(1.0f);
-          }
+          size.setWidth(sizeTxt[0].toInt());
+          size.setHeight(sizeTxt[1].toInt());
+          if (sizeTxt.count() >= 3)
+            size.setAspectRatio(sizeTxt[2].toFloat());
+          else
+            size.setAspectRatio(1.0f);
         }
-
-        SImage blackImage(size, SImage::Format_RGB32);
-        blackImage.fill(0);
-        videoGenerator.setImage(blackImage);
-        videoGenerator.setFrameRate(SInterval::fromFrequency(24));
-        generateVideo = true;
       }
+
+      SImage blackImage(size, SImage::Format_RGB32);
+      blackImage.fill(0);
+      videoGenerator.setImage(blackImage);
+      videoGenerator.setFrameRate(SInterval::fromFrequency(24));
+      generateVideo = true;
     }
 
     // Set stream properties
@@ -697,6 +696,7 @@ bool MediaTranscodeStream::setup(
       timeStampResampler.setFrameRate(frameRate);
 
       videoEncodeFlags |= SInterfaces::VideoEncoder::Flag_Fast;
+      videoEncodeFlags |= SInterfaces::VideoEncoder::Flag_Slideshow;
 
       if (MediaStream::setup(request, socket,
               input->position(), duration,
