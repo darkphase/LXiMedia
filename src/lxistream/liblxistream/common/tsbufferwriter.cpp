@@ -122,7 +122,7 @@ qint64 TsBufferWriter::Filter::writeData(const char *data, qint64 size)
       return -1;
 
     qint64 i = 0;
-    while ((i + MPEG::tsPacketSize) <= size)
+    while ((i + qint64(MPEG::tsPacketSize)) <= size)
     {
       const MPEG::TSPacket * const tsPacket =
           reinterpret_cast<const MPEG::TSPacket *>(data + i);
