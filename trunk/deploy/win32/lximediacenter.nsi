@@ -61,12 +61,13 @@ SectionEnd
 Section "Backend service" SecBackend
   SetOutPath $INSTDIR
   SetOverwrite ifnewer
-  File QtScript4.dll
   File LXiMediaCenter.dll
   File LXiStream.dll
   File LXiStreamGui.dll
-  File dcraw.exe
   File lximcbackend.exe
+
+  File /nonfatal dcraw.exe
+  File /nonfatal QtScript4.dll
 
   SetOutPath $INSTDIR\lximedia
   SetOverwrite ifnewer
