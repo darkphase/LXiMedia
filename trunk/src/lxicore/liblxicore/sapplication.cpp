@@ -61,7 +61,7 @@ SApplication::SApplication(bool useLogFile, const QStringList &skipModules, QObj
 
   if (useLogFile)
   {
-#ifdef Q_OS_LINUX
+#ifdef Q_OS_UNIX
     d->logFile.setFileName("/var/log/" + QFileInfo(qApp->applicationFilePath()).baseName() + ".log");
 #else
     d->logFile.setFileName(QDir::temp().absoluteFilePath(tempFileBase() + "log"));
