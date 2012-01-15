@@ -473,6 +473,14 @@ void SHttpServerEngine::sendHttpResponse(const SHttpEngine::RequestHeader &reque
         response.setConnection("Keep-Alive");
         socket->write(response);
 
+        QAbstractSocket * const aSocket = qobject_cast<QAbstractSocket *>(socket);
+        if (aSocket)
+          aSocket->flush();
+
+        QLocalSocket * const lSocket = qobject_cast<QLocalSocket *>(socket);
+        if (lSocket)
+          lSocket->flush();
+
         (new HttpServerRequest(serverEngine, port, __FILE__, __LINE__))->start(socket);
 
         return;
@@ -555,7 +563,7 @@ SHttpClient::ResponseMessage SHttpClientEngine::blockingRequest(const RequestMes
   openRequest(request, clientRequest, SLOT(start(QIODevice *)));
 
   while (!blockingRequest.isReady() && (qAbs(timer.elapsed()) < timeout))
-    qApp->processEvents(QEventLoop::WaitForMoreEvents, 250);
+    qApp->processEvents(QEventLoop::WaitForMoreEvents, 100);
 
   if (blockingRequest.isReady())
     return blockingRequest.response();

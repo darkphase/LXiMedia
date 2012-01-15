@@ -182,6 +182,8 @@ NetworkBufferReader * NetworkBufferReader::create(QObject *parent, const QString
   return bufferReader;
 }
 
+const int BufferWriter::outBufferSize = 262144;
+
 /*! Creates a buffer writer for the specified format.
     \param parent   The parent object, or NULL if none.
     \param format   The data format of the serialized data (e.g. "mpeg" or "flv").

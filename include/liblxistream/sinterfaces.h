@@ -669,13 +669,6 @@ class LXISTREAM_PUBLIC BufferWriter : public QObject
 Q_OBJECT
 S_FACTORIZABLE_NO_CREATE(BufferWriter)
 public:
-  struct WriteCallback
-  {
-    virtual void                write(const uchar *, qint64) = 0;
-    virtual qint64              seek(qint64, int) = 0;
-  };
-
-public:
   static BufferWriter         * create(QObject *parent, const QString &format, bool nonNull = true);
 
 protected:
@@ -687,12 +680,15 @@ public:
   virtual bool                  addStream(const AudioEncoder *, STime) = 0;
   virtual bool                  addStream(const VideoEncoder *, STime) = 0;
 
-  virtual bool                  start(WriteCallback *, bool sequential) = 0;
+  virtual bool                  start(QIODevice *) = 0;
   virtual void                  stop(void) = 0;
 
   virtual void                  process(const SEncodedAudioBuffer &) = 0;
   virtual void                  process(const SEncodedVideoBuffer &) = 0;
   virtual void                  process(const SEncodedDataBuffer &) = 0;
+
+protected:
+  static const int              outBufferSize;
 };
 
 /*! The AudioFormatConverter interface can be used to convert audio formats.

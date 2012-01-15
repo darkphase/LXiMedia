@@ -231,7 +231,6 @@ void SHttpStreamProxy::customEvent(QEvent *e)
 
     d->cacheTimer.start();
 
-    //qDebug() << "SHttpStreamProxy: Connected socket" << s.socket;
     d->sockets += s;
   }
   else if (e->type() == disconnectEventType)
@@ -255,7 +254,6 @@ void SHttpStreamProxy::disconnectAllSockets(void)
     d->sourceFinished = true;
     d->socketTimer.stop();
 
-    //qDebug() << "SHttpStreamProxy: All clients disconnected";
     emit disconnected();
   }
 
@@ -287,8 +285,6 @@ void SHttpStreamProxy::processData(void)
         }
         else if (s->socket->bytesToWrite() <= (outBufferSize - inBufferSize))
         {
-          //qDebug() << "SHttpStreamProxy: Cached" << s->socket << s->readPos << d->cache.size();
-
           const QByteArray chunk = d->cache.mid(s->readPos, inBufferSize);
           if (s->socket->write(chunk) == chunk.size())
             s->readPos += chunk.size();
@@ -319,8 +315,6 @@ void SHttpStreamProxy::processData(void)
                 s->readPos += buffer.size();
               else
                 qDebug() << "SHttpStreamProxy: Error writing data to socket" << s->socket;
-
-              //qDebug() << "SHttpStreamProxy: Direct" << s->socket << s->readPos << (d->cache.size() + buffer.size());
             }
             else if (!d->caching)
             {
@@ -337,11 +331,9 @@ void SHttpStreamProxy::processData(void)
               ((d->cache.size() + buffer.size()) <= d->maxCacheSize))
           {
             d->cache.append(buffer);
-            //qDebug() << "SHttpStreamProxy: Append cache" << d->cache.size() << buffer.size();
           }
           else
           {
-            //qDebug() << "SHttpStreamProxy: Flushed reconnect cache" << d->cache.size();
             d->cache.clear();
             d->caching = false;
           }
@@ -351,7 +343,6 @@ void SHttpStreamProxy::processData(void)
       {
         if (d->caching && (qAbs(d->cacheTimer.elapsed()) >= d->cacheTimeout))
         {
-          //qDebug() << "SHttpStreamProxy: Flushed reconnect cache" << d->cache.size();
           d->cache.clear();
           d->caching = false;
         }

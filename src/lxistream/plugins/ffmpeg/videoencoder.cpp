@@ -146,7 +146,7 @@ bool VideoEncoder::openCodec(const SVideoCodec &c, SInterfaces::BufferWriter *bu
   {
     contextHandle->rc_max_rate += contextHandle->bit_rate_tolerance / 2;
     contextHandle->bit_rate += contextHandle->bit_rate_tolerance / 2;
-    contextHandle->gop_size = (flags & Flag_Slideshow) ? 4 : 0;
+    contextHandle->gop_size = 0;
     contextHandle->max_b_frames = 0;
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
     contextHandle->strict_std_compliance = FF_COMPLIANCE_UNOFFICIAL;
@@ -157,6 +157,15 @@ bool VideoEncoder::openCodec(const SVideoCodec &c, SInterfaces::BufferWriter *bu
     contextHandle->flags2 |= CODEC_FLAG2_FAST;
 
     fastEncode = true;
+  }
+  else if (outCodec.gopSize() >= 0)
+    contextHandle->gop_size = outCodec.gopSize();
+
+  if (flags & Flag_Slideshow)
+  {
+    contextHandle->me_method = 1;
+    contextHandle->max_b_frames = 0;
+    contextHandle->gop_size = (outCodec.gopSize() >= 0) ? outCodec.gopSize() : 100;
   }
 
   if (flags & Flag_NoDelay)
@@ -206,6 +215,7 @@ bool VideoEncoder::openCodec(const SVideoCodec &c, SInterfaces::BufferWriter *bu
   avcodec_get_frame_defaults(pictureHandle);
 
   outCodec.setBitRate(contextHandle->bit_rate + contextHandle->bit_rate_tolerance);
+  outCodec.setGopSize(contextHandle->gop_size);
 
   bufferSize = qMax((contextHandle->width * contextHandle->height * 4) + 8192, FF_MIN_BUFFER_SIZE);
 

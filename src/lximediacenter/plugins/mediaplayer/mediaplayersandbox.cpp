@@ -185,7 +185,7 @@ void MediaPlayerSandbox::customEvent(QEvent *e)
     ResponseEvent * const event = static_cast<ResponseEvent *>(e);
 
     if (server)
-      server->sendHttpResponse(event->request, event->response, event->socket, false);
+      server->sendHttpResponse(event->request, event->response, event->socket, true);
     else
       event->socket->deleteLater();
   }
@@ -471,6 +471,9 @@ SandboxSlideShowStream::SandboxSlideShowStream(const QList<QUrl> &files)
 
 bool SandboxSlideShowStream::setup(const SHttpServer::RequestMessage &request, QIODevice *socket)
 {
+  if (request.url().hasQueryItem("slideduration"))
+    slideShow.setSlideDuration(STime::fromMSec(request.url().queryItemValue("slideduration").toInt()));
+
   if (MediaStream::setup(
           request, socket,
           STime::null, slideShow.duration(),
@@ -478,16 +481,14 @@ bool SandboxSlideShowStream::setup(const SHttpServer::RequestMessage &request, Q
           SVideoFormat(SVideoFormat::Format_Invalid, slideShow.size(), SInterval::fromFrequency(slideShow.frameRate)),
           false,
           SInterfaces::AudioEncoder::Flag_None,
-          SInterfaces::VideoEncoder::Flag_Slideshow))
+          SInterfaces::VideoEncoder::Flag_Slideshow,
+          slideShow.framesPerSlide()))
   {
     connect(&slideShow, SIGNAL(finished()), SLOT(stop()));
     connect(&slideShow, SIGNAL(output(SAudioBuffer)), &sync, SLOT(input(SAudioBuffer)));
     connect(&slideShow, SIGNAL(output(SVideoBuffer)), &video->subtitleRenderer, SLOT(input(SVideoBuffer)));
 
     slideShow.setSize(video->resizer.size());
-
-    if (request.url().hasQueryItem("slideduration"))
-      slideShow.setSlideDuration(STime::fromMSec(request.url().queryItemValue("slideduration").toInt()));
 
     return true;
   }

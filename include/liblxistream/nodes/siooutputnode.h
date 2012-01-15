@@ -32,8 +32,7 @@ class SVideoEncoderNode;
 
 /*! This is a generic output node, writing to a QIODevice.
  */
-class LXISTREAM_PUBLIC SIOOutputNode : public SInterfaces::SinkNode,
-                                       protected SInterfaces::BufferWriter::WriteCallback
+class LXISTREAM_PUBLIC SIOOutputNode : public SInterfaces::SinkNode
 {
 Q_OBJECT
 friend class SAudioEncoderNode;
@@ -44,7 +43,7 @@ public:
 
   static QStringList            formats(void);
 
-  void                          setIODevice(QIODevice *, bool autoClose = false);
+  void                          setIODevice(QIODevice *);
   bool                          openFormat(const QString &);
   bool                          hasIODevice(void) const;
 
@@ -63,11 +62,7 @@ public slots:
   void                          input(const SEncodedDataBuffer &);
 
 signals:
-  void                          closed(void);
-
-protected: // From SInterfaces::BufferReader::WriteCallback
-  virtual void                  write(const uchar *, qint64);
-  virtual qint64                seek(qint64, int);
+  void                          closed(QIODevice *);
 
 private:
   SInterfaces::BufferWriter   * bufferWriter(void);
@@ -75,9 +70,6 @@ private:
 
 private slots:
   void                          close(void);
-
-public:
-  static const int              outBufferSize;
 
 private:
   struct Data;

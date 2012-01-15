@@ -33,6 +33,7 @@ SlideShowNode::SlideShowNode(SGraph *parent, const QList<QUrl> &files)
     files(files),
     outSize(1280, 720),
     slideFrameCount(180),
+    fadeFrameCount(frameRate / 2),
     time(STime::null),
     currentPicture(-1),
     currentFrame(-1)
@@ -62,6 +63,7 @@ STime SlideShowNode::slideDuration(void) const
 void SlideShowNode::setSlideDuration(const STime &time)
 {
   slideFrameCount = time.toClock(frameRate);
+  fadeFrameCount = qMin(slideFrameCount, frameRate / 2);
 }
 
 STime SlideShowNode::duration(void) const
@@ -140,7 +142,7 @@ bool SlideShowNode::process(void)
 
   if (currentFrame >= 0)
   {
-    const int fade = qMin(255, (++currentFrame) * 256 / frameRate);
+    const int fade = qMin(255, (++currentFrame) * 256 / fadeFrameCount);
 
     computeVideoBuffer(lastBuffer, currentBuffer, fade);
 

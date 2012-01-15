@@ -36,8 +36,8 @@ class LXISTREAM_PUBLIC SVideoCodec
 {
 public:
                                 SVideoCodec(void);
-                                SVideoCodec(const char *, SSize = SSize(), SInterval = SInterval(), int streamId = -1, int bitRate = 0);
-                                SVideoCodec(const QString &, SSize = SSize(), SInterval = SInterval(), int streamId = -1, int bitRate = 0);
+                                SVideoCodec(const char *, SSize = SSize(), SInterval = SInterval(), int streamId = -1, int bitRate = 0, int gopSize = -1);
+                                SVideoCodec(const QString &, SSize = SSize(), SInterval = SInterval(), int streamId = -1, int bitRate = 0, int gopSize = -1);
 
   inline                        operator const QString &() const                { return codec(); }
 
@@ -50,7 +50,7 @@ public:
 
   inline bool                   isNull(void) const                              { return d.codec.isEmpty(); }
   inline const QString        & codec(void) const                               { return d.codec; }
-  void                          setCodec(const QString &codec, SSize = SSize(), SInterval = SInterval(), int streamId = -1, int bitRate = 0);
+  void                          setCodec(const QString &codec, SSize = SSize(), SInterval = SInterval(), int streamId = -1, int bitRate = 0, int gopSize = -1);
 
   inline SSize                  size(void) const                                { return d.size; }
   inline void                   setSize(SSize s)                                { d.size = s; }
@@ -60,6 +60,8 @@ public:
   inline void                   setStreamId(int i)                              { d.streamId = i; }
   inline int                    bitRate(void) const                             { return d.bitRate; }
   inline void                   setBitRate(int b)                               { d.bitRate = b; }
+  inline int                    gopSize(void) const                             { return d.gopSize; }
+  inline void                   setGopSize(int g)                               { d.gopSize = g; }
 
   QString                       toString(void) const;
   static SVideoCodec            fromString(const QString &);
@@ -72,6 +74,7 @@ private:
     SInterval                   frameRate;
     int                         streamId;
     int                         bitRate;
+    int                         gopSize;
   }                             d;
 };
 

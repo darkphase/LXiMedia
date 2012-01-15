@@ -35,12 +35,44 @@
 
 namespace LXiServer {
 
+class SSandboxServer::ReadThread : public QThread
+{
+public:
+  ReadThread(SSandboxServer *parent)
+    : QThread(parent),
+      parent(parent)
+  {
+    QThread::setTerminationEnabled(true);
+  }
+
+  virtual void run(void)
+  {
+    forever
+    {
+      std::string token;
+      std::cin >> token;
+
+      if (token == "##exit")
+      {
+        qApp->postEvent(parent, new QEvent(closeServerEventType));
+        break;
+      }
+    }
+  }
+
+private:
+  SSandboxServer * const parent;
+};
+
 struct SSandboxServer::Data
 {
   QString                       mode;
   QLocalServer                * server;
+  ReadThread                  * readThread;
   int                           openConnections;
 };
+
+const QEvent::Type  SSandboxServer::closeServerEventType = QEvent::Type(QEvent::registerEventType());
 
 SSandboxServer::SSandboxServer(QObject *parent)
   : SHttpServerEngine("Sandbox/1.0", parent),
@@ -48,10 +80,22 @@ SSandboxServer::SSandboxServer(QObject *parent)
 {
   d->server = NULL;
   d->openConnections = 0;
+  d->readThread = NULL;
 }
 
 SSandboxServer::~SSandboxServer()
 {
+  if (d->readThread)
+  {
+    if (!d->readThread->wait(250))
+    {
+      d->readThread->terminate();
+      d->readThread->wait(250);
+    }
+
+    delete d->readThread;
+  }
+
   delete d->server;
   delete d;
   *const_cast<Data **>(&d) = NULL;
@@ -64,17 +108,22 @@ bool SSandboxServer::initialize(const QString &mode)
 
   connect(d->server, SIGNAL(newConnection()), SLOT(newConnection()));
 
-  if (!d->server->listen(
-          QFileInfo(qApp->applicationFilePath()).baseName() + '.' + 
-          QString::number(quintptr(this), 16) + '-' +
-          QString::number(qApp->applicationPid(), 16)))
+  if (!d->server->listen(sApp->tempFileBase() + "sandbox-" + QString::number(quintptr(this), 16)))
   {
     qWarning() << "SSandboxServer Failed to bind interface" << d->server->errorString();
     return false;
   }
 
   if (d->mode != "local")
+  {
+    if (d->readThread == NULL)
+    {
+      d->readThread = new ReadThread(this);
+      d->readThread->start();
+    }
+
     std::cerr << "##READY " << d->server->serverName().toAscii().data() << std::endl;
+  }
 
   // This is performed after initialization to prevent priority inversion with
   // the process that is waiting for this one to start.
@@ -102,22 +151,39 @@ bool SSandboxServer::initialize(const QString &mode)
 #endif
   }
 
+  emit started();
+
   return true;
 }
 
 void SSandboxServer::close(void)
 {
-  d->server->close();
-  delete d->server;
-  d->server = NULL;
+  if (d->server)
+  {
+    d->server->close();
+    delete d->server;
+    d->server = NULL;
 
-  if (d->mode != "local")
-    std::cerr << "##STOP" << std::endl;
+    if (d->mode != "local")
+      std::cerr << "##STOP" << std::endl;
+
+    emit finished();
+  }
 }
 
 QString SSandboxServer::serverName(void) const
 {
   return d->server->serverName();
+}
+
+void SSandboxServer::customEvent(QEvent *e)
+{
+  if (e->type() == closeServerEventType)
+  {
+    close();
+  }
+  else
+    SHttpServerEngine::customEvent(e);
 }
 
 void SSandboxServer::newConnection(void)

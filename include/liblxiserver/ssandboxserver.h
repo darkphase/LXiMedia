@@ -39,7 +39,12 @@ public:
 
   QString                       serverName(void) const;
 
+protected:
+  virtual void                  customEvent(QEvent *);
+
 signals:
+  void                          started(void);
+  void                          finished(void);
   void                          busy(void);
   void                          idle(void);
 
@@ -48,6 +53,9 @@ private slots:
   void                          closedConnection(void);
 
 private:
+  static const QEvent::Type     closeServerEventType;
+
+  class ReadThread;
   struct Data;
   Data                  * const d;
 };

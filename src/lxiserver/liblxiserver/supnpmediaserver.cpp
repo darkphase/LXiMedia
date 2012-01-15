@@ -178,7 +178,6 @@ SHttpServer::ResponseMessage SUPnPMediaServer::httpRequest(const SHttpServer::Re
 
       response.setCacheControl(-1);
       response.setField("Accept-Ranges", "bytes");
-      response.setField("Connection", "close");
       return response;
     }
   }

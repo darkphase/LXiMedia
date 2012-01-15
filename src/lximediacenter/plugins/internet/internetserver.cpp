@@ -107,7 +107,7 @@ InternetServer::Stream * InternetServer::streamVideo(const SHttpServer::RequestM
     }
   }
 
-  masterServer->recycleSandbox(sandbox);
+  delete sandbox;
   return NULL;
 }
 
@@ -236,7 +236,7 @@ InternetServer::Stream::Stream(InternetServer *parent, SSandboxClient *sandbox, 
 
 InternetServer::Stream::~Stream()
 {
-  static_cast<InternetServer *>(parent)->masterServer->recycleSandbox(sandbox);
+  delete sandbox;
 }
 
 bool InternetServer::Stream::setup(const QUrl &url, const QByteArray &content)

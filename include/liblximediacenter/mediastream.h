@@ -72,7 +72,8 @@ public:
                                       const SVideoFormat &,
                                       bool enableNormalize = false,
                                       SInterfaces::AudioEncoder::Flags = SInterfaces::AudioEncoder::Flag_None,
-                                      SInterfaces::VideoEncoder::Flags = SInterfaces::VideoEncoder::Flag_None);
+                                      SInterfaces::VideoEncoder::Flags = SInterfaces::VideoEncoder::Flag_None,
+                                      int videoGopSize = -1);
   bool                          setup(const SHttpServer::RequestMessage &,
                                       QIODevice *,
                                       STime position, STime duration,

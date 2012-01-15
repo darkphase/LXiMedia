@@ -43,7 +43,7 @@ public: // From SInterfaces::BufferWriter
   virtual bool                  addStream(const SInterfaces::AudioEncoder *, STime);
   virtual bool                  addStream(const SInterfaces::VideoEncoder *, STime);
 
-  virtual bool                  start(WriteCallback *, bool);
+  virtual bool                  start(QIODevice *);
   virtual void                  stop(void);
   virtual void                  process(const SEncodedAudioBuffer &);
   virtual void                  process(const SEncodedVideoBuffer &);
@@ -56,7 +56,7 @@ private:
   static int64_t                seek(void *opaque, int64_t offset, int whence);
 
 private:
-  WriteCallback               * callback;
+  QIODevice                   * ioDevice;
   ::AVOutputFormat            * format;
   ::AVFormatContext           * formatContext;
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
@@ -66,7 +66,6 @@ private:
 #endif
   QMap<int, ::AVStream *>       streams;
 
-  bool                          sequential;
   bool                          hasAudio, hasVideo;
   bool                          mpegClock, mpegTs;
 };

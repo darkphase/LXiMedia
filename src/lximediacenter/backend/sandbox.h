@@ -26,6 +26,7 @@
 class Sandbox : public QObject,
                 public SSandboxServer::Callback
 {
+Q_OBJECT
 public:
                                 Sandbox(void);
   virtual                       ~Sandbox();

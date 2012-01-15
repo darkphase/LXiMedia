@@ -42,8 +42,9 @@ SSandboxServer * SandboxTest::createSandbox(void)
                    public SSandboxServer::Callback
   {
   public:
-    Callback(QObject *parent)
-      : QObject(parent)
+    Callback(SSandboxServer *parent)
+      : QObject(parent),
+        parent(parent)
     {
     }
 
@@ -61,6 +62,12 @@ SSandboxServer * SandboxTest::createSandbox(void)
           {
             return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_Ok);
           }
+          else if (url.hasQueryItem("exit"))
+          {
+            parent->close();
+
+            return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_Ok);
+          }
         }
       }
 
@@ -68,6 +75,9 @@ SSandboxServer * SandboxTest::createSandbox(void)
 
       return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_NotFound);
     }
+
+  private:
+    SSandboxServer * const parent;
   };
 
   SSandboxServer * const sandboxServer = new SSandboxServer();

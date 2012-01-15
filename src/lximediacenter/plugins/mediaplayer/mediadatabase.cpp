@@ -45,14 +45,17 @@ MediaDatabase::MediaDatabase(BackendServer::MasterServer *masterServer, QObject 
     lastPlayedFileName(lastPlayedFile()),
     probeSandbox(masterServer->createSandbox(SSandboxClient::Priority_Low))
 {
+  if (self != NULL)
+    qFatal("Only one instance of the MediaDatabase class is allowed.");
+
   connect(probeSandbox, SIGNAL(response(SHttpEngine::ResponseMessage)), SLOT(handleResponse(SHttpEngine::ResponseMessage)));
   connect(probeSandbox, SIGNAL(terminated()), SIGNAL(aborted()));
 
   connect (&cacheTimer, SIGNAL(timeout()), SLOT(flushCache()));
   cacheTimer.setSingleShot(true);
 
-  cacheFile.setFileTemplate(QDir::temp().absoluteFilePath(QFileInfo(qApp->applicationFilePath()).baseName() + ".XXXXXX.mediafilecache"));
-  if (cacheFile.open())
+  cacheFile.setFileName(QDir::temp().absoluteFilePath(sApp->tempFileBase() + "mediafilecache"));
+  if (cacheFile.open(QFile::ReadWrite))
     qDebug() << "MediaDatabase opened" << cacheFile.fileName();
   else
     qWarning() << "MediaDatabase could not open cache file";
@@ -63,6 +66,8 @@ MediaDatabase::~MediaDatabase()
   self = NULL;
 
   delete probeSandbox;
+
+  cacheFile.remove();
 }
 
 FileNode MediaDatabase::readNode(const QUrl &filePath) const

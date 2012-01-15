@@ -216,14 +216,6 @@ void HttpServerRequest::start(QIODevice *socket)
     headerReceived = false;
     content.clear();
 
-    QAbstractSocket * const aSocket = qobject_cast<QAbstractSocket *>(socket);
-    if (aSocket)
-      aSocket->flush();
-
-    QLocalSocket * const lSocket = qobject_cast<QLocalSocket *>(socket);
-    if (lSocket)
-      lSocket->flush();
-
     connect(socket, SIGNAL(readyRead()), SLOT(readyRead()), Qt::QueuedConnection);
     connect(socket, SIGNAL(disconnected()), SLOT(close()), Qt::QueuedConnection);
 
@@ -519,16 +511,21 @@ SandboxProcess::~SandboxProcess()
   if (process->state() != QProcess::NotRunning)
   {
     disconnect(process, SIGNAL(finished(int, QProcess::ExitStatus)), this, SLOT(finished(int, QProcess::ExitStatus)));
-
     connect(process, SIGNAL(finished(int, QProcess::ExitStatus)), process, SLOT(deleteLater()));
-    process->terminate();
+
+    process->write("##exit\n");
+    process->waitForBytesWritten(250);
     if (!process->waitForFinished(250))
     {
-      process->kill();
+      process->terminate();
       if (!process->waitForFinished(250))
-        QTimer::singleShot(30000, process, SLOT(deleteLater()));
-      else
-        process->deleteLater();
+      {
+        process->kill();
+        if (!process->waitForFinished(250))
+          QTimer::singleShot(30000, process, SLOT(deleteLater()));
+        else
+          process->deleteLater();
+      }
     }
   }
   else

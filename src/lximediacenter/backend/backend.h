@@ -78,7 +78,6 @@ protected: // From BackendServer::MasterServer
   virtual SUPnPContentDirectory * contentDirectory(void);
 
   virtual SSandboxClient      * createSandbox(SSandboxClient::Priority);
-  virtual void                  recycleSandbox(SSandboxClient *);
 
 private:
   static QUuid                  serverUuid(void);

@@ -98,14 +98,6 @@ public:
     Initializer               * next;
   };
 
-  struct StackFrame
-  {
-    inline StackFrame(void) : stackPointer(NULL), framePointer(NULL)  { }
-
-    void                      * stackPointer;
-    void                      * framePointer;
-  };
-
   /*! Enumerates different task types for use with profiling. They determine the
       color of the block in the profile.
    */
@@ -135,18 +127,69 @@ public:
   };
 
 public:
+  /*! Initializes all LXiMedia components.
+
+      \note Only one active instance is allowed at any time.
+      \param useLogFile         When true a log file is created.
+      \param skipModules        A list of modules for which no plugins should be
+                                loaded.
+      \param parent             The parent QObject.
+   */
   explicit                      SApplication(bool useLogFile = false, const QStringList &skipModules = QStringList(), QObject * = NULL);
+
+  /*! Uninitializes all LXiMedia components.
+
+      \note Only one active instance is allowed at any time.
+   */
   virtual                       ~SApplication();
 
+  /*! Returns a name string for LXiMedia.
+   */
   static const char           * name(void);
+
+  /*! Returns the version identifier for the active build of LXiStream.
+   */
   static const char           * version(void);
+
+  /*! Returns a pointer to the active SApplication instance or NULL if none
+      exists.
+
+      \note Only one active instance is allowed at any time.
+   */
   static SApplication         * instance(void);
 
+  /*! Returns the base filename fo be used for temporary files, excluding the
+      path to the temporary dir.
+   */
+  static QString                tempFileBase(void);
+
+  /*! Returns the paths that are searched for plugins.
+   */
   static QStringList            pluginPaths(void);
+
+  /*! Adds a module filter string whoich is use to determine which of the plugins
+      in the plugin directory is actually loaded.
+
+      \note This method should rarely be useful.
+   */
   void                          addModuleFilter(const QString &);
+
+  /*! Loads a module.
+
+      \note This method should rarely be useful.
+   */
   bool                          loadModule(const QString &);
+
+  /*! Loads a module.
+
+      \note This method should rarely be useful.
+   */
   bool                          loadModule(SModule *, QPluginLoader * = NULL);
+
   QMap<QString, SModule *>      modules(void) const;
+
+  /*! Returns the about text with minimal XHTML markup.
+   */
   QByteArray                    about(void) const;
 
 public: // Logging
@@ -163,6 +206,10 @@ public: // Profiling
   void                          profileTask(int, int, const QByteArray &, TaskType);
 
 public:
+  /*! Creates a new SApplication instance for use within a QTest environment. No
+      modules will be loaded automatically and they have to be loaded using
+      loadModule().
+   */
   static SApplication         * createForQTest(QObject *);
 
 private:

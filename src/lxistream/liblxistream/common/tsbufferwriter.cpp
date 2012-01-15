@@ -26,7 +26,8 @@ namespace Common {
 TsBufferWriter::TsBufferWriter(const QString &, QObject *parent)
   : SInterfaces::BufferWriter(parent),
     bufferWriter(NULL),
-    callback(NULL)
+    filter(this),
+    ioDevice(NULL)
 {
 }
 
@@ -64,12 +65,12 @@ bool TsBufferWriter::addStream(const SInterfaces::VideoEncoder *encoder, STime d
   return false;
 }
 
-bool TsBufferWriter::start(SInterfaces::BufferWriter::WriteCallback *c, bool /*sequential*/)
+bool TsBufferWriter::start(QIODevice *d)
 {
-  callback = c;
+  ioDevice = d;
 
   if (bufferWriter)
-    return bufferWriter->start(this, true);
+    return bufferWriter->start(&filter);
 
   return false;
 }
@@ -98,38 +99,47 @@ void TsBufferWriter::process(const SEncodedDataBuffer &buffer)
     bufferWriter->process(buffer);
 }
 
-void TsBufferWriter::write(const uchar *buffer, qint64 size)
+
+TsBufferWriter::Filter::Filter(TsBufferWriter *parent)
+  : QIODevice(parent),
+    parent(parent)
+{
+}
+
+qint64 TsBufferWriter::Filter::readData(char *, qint64)
+{
+  return -1;
+}
+
+qint64 TsBufferWriter::Filter::writeData(const char *data, qint64 size)
 {
   static const quint32 timeCode = 0;
 
-  if (callback)
-  for (qint64 i=0; i<size; )
+  if (parent->ioDevice)
   {
-    const MPEG::TSPacket * const tsPacket =
-        reinterpret_cast<const MPEG::TSPacket *>(buffer + i);
+    while (parent->ioDevice->bytesToWrite() >= outBufferSize)
+    if (!parent->ioDevice->waitForBytesWritten(-1))
+      return -1;
 
-    if (tsPacket->isValid())
+    qint64 i = 0;
+    while ((i + MPEG::tsPacketSize) <= size)
     {
-      callback->write(reinterpret_cast<const uchar *>(tsPacket), MPEG::tsPacketSize);
-      callback->write(reinterpret_cast<const uchar *>(&timeCode), sizeof(timeCode));
+      const MPEG::TSPacket * const tsPacket =
+          reinterpret_cast<const MPEG::TSPacket *>(data + i);
 
-      i += MPEG::tsPacketSize;
+      if (tsPacket->isValid())
+      {
+        parent->ioDevice->write(reinterpret_cast<const char *>(tsPacket), MPEG::tsPacketSize);
+        parent->ioDevice->write(reinterpret_cast<const char *>(&timeCode), sizeof(timeCode));
+
+        i += MPEG::tsPacketSize;
+      }
+      else
+        i++;
     }
-    else
-      i++;
-  }
-}
 
-qint64 TsBufferWriter::seek(qint64 offset, int whence)
-{
-  if (whence == SEEK_SET)
-    return -1;
-  else if (whence == SEEK_CUR)
-    return -1;
-  else if (whence == SEEK_END)
-    return -1;
-  else if (whence == -1) // get size
-    return callback->seek(offset, whence);
+    return i;
+  }
 
   return -1;
 }
