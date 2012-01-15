@@ -425,9 +425,11 @@ void HttpSocketRequest::connected(void)
       if (lSocket) disconnect(lSocket, SIGNAL(error(QLocalSocket::LocalSocketError)), this, SLOT(failed()));
     }
 
-    emit connected(socket, parent);
+    QIODevice * const s = socket;
     socket = NULL;
     deleteLater();
+
+    emit connected(s, parent);
   }
 }
 
