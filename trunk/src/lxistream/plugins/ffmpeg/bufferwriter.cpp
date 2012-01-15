@@ -27,11 +27,10 @@ namespace FFMpegBackend {
 
 BufferWriter::BufferWriter(const QString &, QObject *parent)
   : SInterfaces::BufferWriter(parent),
-    callback(NULL),
+    ioDevice(NULL),
     format(NULL),
     formatContext(NULL),
     ioContext(NULL),
-    sequential(false),
     hasAudio(false), hasVideo(false),
     mpegClock(false), mpegTs(false)
 {
@@ -263,14 +262,13 @@ bool BufferWriter::addStream(const SInterfaces::VideoEncoder *encoder, STime dur
   return false;
 }
 
-bool BufferWriter::start(WriteCallback *c, bool seq)
+bool BufferWriter::start(QIODevice *d)
 {
   static const int ioBufferSize = 350 * 188;
 
   if (!streams.isEmpty())
   {
-    callback = c;
-    sequential = seq;
+    ioDevice = d;
 
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
     ioContext = ::avio_alloc_context(
@@ -286,9 +284,9 @@ bool BufferWriter::start(WriteCallback *c, bool seq)
         &BufferWriter::seek);
 
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
-    ioContext->seekable = sequential ? 0 : AVIO_SEEKABLE_NORMAL;
+    ioContext->seekable = ioDevice->isSequential() ? 0 : AVIO_SEEKABLE_NORMAL;
 #else
-    ioContext->is_streamed = sequential;
+    ioContext->is_streamed = ioDevice->isSequential();
 #endif
 
     formatContext->pb = ioContext;
@@ -407,21 +405,40 @@ void BufferWriter::clear(void)
     ioContext = NULL;
   }
 
-  callback = NULL;
+  ioDevice = NULL;
 }
 
 int BufferWriter::write(void *opaque, uint8_t *buf, int buf_size)
 {
-  reinterpret_cast<BufferWriter *>(opaque)->callback->write(buf, buf_size);
+  BufferWriter * const me = reinterpret_cast<BufferWriter *>(opaque);
 
-  return 0;
+  if (me->ioDevice)
+  {
+    while (me->ioDevice->bytesToWrite() >= outBufferSize)
+    if (!me->ioDevice->waitForBytesWritten(-1))
+      return -1;
+
+    int i = 0;
+    while (i < buf_size)
+    {
+      const qint64 r = me->ioDevice->write((char *)buf + i, buf_size - i);
+      if (r > 0)
+        i += r;
+      else
+        break;
+    }
+
+    return i;
+  }
+
+  return -1;
 }
 
 int64_t BufferWriter::seek(void *opaque, int64_t offset, int whence)
 {
   BufferWriter * const me = reinterpret_cast<BufferWriter *>(opaque);
   
-  if (me->sequential)
+  if (me->ioDevice->isSequential())
   {
     if (whence == SEEK_SET)
       return -1;
@@ -430,12 +447,21 @@ int64_t BufferWriter::seek(void *opaque, int64_t offset, int whence)
     else if (whence == SEEK_END)
       return -1;
     else if (whence == AVSEEK_SIZE) // get size
-      return me->callback->seek(offset, -1);
-
-    return -1;
+      return me->ioDevice->size();
   }
   else  
-    return me->callback->seek(offset, (whence == AVSEEK_SIZE) ? -1 : whence);
+  {
+    if (whence == SEEK_SET)
+      return me->ioDevice->seek(offset) ? 0 : -1;
+    else if (whence == SEEK_CUR)
+      return me->ioDevice->seek(me->ioDevice->pos() + offset) ? 0 : -1;
+    else if (whence == SEEK_END)
+      return me->ioDevice->seek(me->ioDevice->size() + offset) ? 0 : -1;
+    else if (whence == AVSEEK_SIZE) // get size
+      return me->ioDevice->size();
+  }
+
+  return -1;
 }
 
 } } // End of namespaces

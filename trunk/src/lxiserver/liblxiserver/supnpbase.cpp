@@ -148,7 +148,6 @@ SHttpServer::ResponseMessage SUPnPBase::handleDescription(const SHttpServer::Req
 
   response.setCacheControl(-1);
   response.setField("Accept-Ranges", "bytes");
-  response.setField("Connection", "close");
   return response;
 }
 

@@ -23,8 +23,6 @@
 
 namespace LXiStream {
 
-const int SIOOutputNode::outBufferSize = 262144;
-
 struct SIOOutputNode::Data
 {
   inline Data(void) : mutex(QMutex::Recursive) { }
@@ -32,7 +30,6 @@ struct SIOOutputNode::Data
   QMutex                        mutex;
   QIODevice                   * ioDevice;
   SInterfaces::BufferWriter   * bufferWriter;
-  bool                          autoClose;
 
   float                         streamingSpeed;
   STime                         streamingPreload;
@@ -45,7 +42,6 @@ SIOOutputNode::SIOOutputNode(SGraph *parent, QIODevice *ioDevice)
 {
   d->ioDevice = ioDevice;
   d->bufferWriter = NULL;
-  d->autoClose = false;
 
   d->streamingSpeed = 0.0f;
 }
@@ -62,10 +58,9 @@ QStringList SIOOutputNode::formats(void)
   return SInterfaces::BufferWriter::available();
 }
 
-void SIOOutputNode::setIODevice(QIODevice *ioDevice, bool autoClose)
+void SIOOutputNode::setIODevice(QIODevice *ioDevice)
 {
   d->ioDevice = ioDevice;
-  d->autoClose = autoClose;
 }
 
 bool SIOOutputNode::hasIODevice(void) const
@@ -104,7 +99,7 @@ bool SIOOutputNode::start(STimer *)
     if (d->ioDevice->metaObject()->indexOfSignal("disconnected()") >= 0)
       connect(d->ioDevice, SIGNAL(disconnected()), SLOT(close()));
 
-    return d->bufferWriter->start(this, d->ioDevice->isSequential());
+    return d->bufferWriter->start(d->ioDevice);
   }
 
   return false;
@@ -167,58 +162,12 @@ void SIOOutputNode::input(const SEncodedDataBuffer &buffer)
   d->mutex.unlock();
 }
 
-void SIOOutputNode::write(const uchar *buffer, qint64 size)
-{
-  if (d->ioDevice)
-  while (d->ioDevice->bytesToWrite() >= outBufferSize)
-  if (!d->ioDevice->waitForBytesWritten(-1))
-    return;
-
-  for (qint64 i=0; (i<size) && d->ioDevice; )
-  {
-    const qint64 r = d->ioDevice->write((char *)buffer + i, size - i);
-    if (r > 0)
-      i += r;
-    else
-      return;
-  }
-}
-
-qint64 SIOOutputNode::seek(qint64 offset, int whence)
-{
-  if (d->ioDevice)
-  {
-    if (whence == SEEK_SET)
-      return d->ioDevice->seek(offset) ? 0 : -1;
-    else if (whence == SEEK_CUR)
-      return d->ioDevice->seek(d->ioDevice->pos() + offset) ? 0 : -1;
-    else if (whence == SEEK_END)
-      return d->ioDevice->seek(d->ioDevice->size() + offset) ? 0 : -1;
-    else if (whence == -1) // get size
-      return d->ioDevice->size();
-  }
-
-  return -1;
-}
-
 void SIOOutputNode::close(void)
 {
   LXI_PROFILE_WAIT(d->mutex.lock());
 
-  if (d->ioDevice)
-  {
-    QIODevice * const device = d->ioDevice; // May be called recursively from close().
-    d->ioDevice = NULL;
-
-    if (d->autoClose)
-    {
-      device->close();
-      device->deleteLater();
-    }
-
-    //qDebug() << "SIOOutputNode: Client disconnected";
-    emit closed();
-  }
+  emit closed(d->ioDevice);
+  d->ioDevice = NULL;
 
   d->mutex.unlock();
 }

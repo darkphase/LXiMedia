@@ -189,7 +189,7 @@ SImage SImage::fromData(QIODevice *ioDevice, const QSize &maxsize, const char *f
       return fromFile(url, maxsize, format);
     }
 
-    QTemporaryFile tmpfile(QDir::temp().absoluteFilePath(QFileInfo(qApp->applicationFilePath()).baseName() + ".XXXXXX." + format));
+    QTemporaryFile tmpfile(QDir::temp().absoluteFilePath(sApp->tempFileBase() + "XXXXXX." + format));
     if (tmpfile.open())
     {
       tmpfile.write(ioDevice->readAll());
@@ -292,9 +292,7 @@ SImage SImage::handleRawFile(QIODevice *ioDevice, QSize maxsize, const QString &
   };
 
   QFile * const file = qobject_cast<QFile *>(ioDevice);
-  QTemporaryFile tmpfile(
-      QDir::temp().absoluteFilePath(
-          QFileInfo(qApp->applicationFilePath()).baseName() + ".XXXXXX." + suffix));
+  QTemporaryFile tmpfile(QDir::temp().absoluteFilePath(sApp->tempFileBase() + "XXXXXX." + suffix));
 
   QString fileName;
   if (file == NULL)

@@ -29,6 +29,8 @@ Sandbox::Sandbox()
 
   // Seed the random number generator.
   qsrand(uint(QDateTime::currentDateTime().toTime_t() + qApp->applicationPid()));
+
+  connect(&sandboxServer, SIGNAL(finished()), SLOT(deleteLater()));
 }
 
 Sandbox::~Sandbox()
@@ -140,15 +142,6 @@ SSandboxServer::ResponseMessage Sandbox::httpRequest(const SSandboxServer::Reque
       return SSandboxServer::ResponseMessage(
           request, SSandboxServer::Status_Ok,
           doc.toByteArray(-1), SHttpEngine::mimeTextXml);
-    }
-    else if (request.url().hasQueryItem("exit"))
-    {
-      QTimer::singleShot(5000, this, SLOT(deleteLater()));
-
-      SSandboxServer::ResponseMessage response(request, SSandboxServer::Status_Ok);
-      response.setConnection("Close");
-
-      return response;
     }
   }
 

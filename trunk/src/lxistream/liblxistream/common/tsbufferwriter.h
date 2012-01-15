@@ -27,10 +27,23 @@
 namespace LXiStream {
 namespace Common {
 
-class TsBufferWriter : public SInterfaces::BufferWriter,
-                       protected SInterfaces::BufferWriter::WriteCallback
+class TsBufferWriter : public SInterfaces::BufferWriter
 {
 Q_OBJECT
+private:
+  class Filter : public QIODevice
+  {
+  public:
+    explicit                    Filter(TsBufferWriter *parent);
+
+  protected:
+    virtual qint64              readData(char *data, qint64 maxSize);
+    virtual qint64              writeData(const char *data, qint64 maxSize);
+
+  private:
+    TsBufferWriter      * const parent;
+  };
+
 public:
   explicit                      TsBufferWriter(const QString &, QObject *);
   virtual                       ~TsBufferWriter();
@@ -40,19 +53,16 @@ public: // From SInterfaces::BufferWriter
   virtual bool                  addStream(const SInterfaces::AudioEncoder *, STime);
   virtual bool                  addStream(const SInterfaces::VideoEncoder *, STime);
 
-  virtual bool                  start(SInterfaces::BufferWriter::WriteCallback *, bool);
+  virtual bool                  start(QIODevice *);
   virtual void                  stop(void);
   virtual void                  process(const SEncodedAudioBuffer &);
   virtual void                  process(const SEncodedVideoBuffer &);
   virtual void                  process(const SEncodedDataBuffer &);
 
-protected:
-  virtual void                  write(const uchar *, qint64);
-  virtual qint64                seek(qint64, int);
-
 private:
   SInterfaces::BufferWriter   * bufferWriter;
-  SInterfaces::BufferWriter::WriteCallback * callback;
+  Filter                        filter;
+  QIODevice                   * ioDevice;
 };
 
 

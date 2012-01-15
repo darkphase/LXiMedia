@@ -37,7 +37,7 @@ struct SApplication::Data
 
   QMutex                        logMutex;
   QtMsgHandler                  defaultMsgHandler;
-  QTemporaryFile                logFile;
+  QFile                         logFile;
 
   QMutex                        profileMutex;
   QFile                       * profileFile;
@@ -52,14 +52,6 @@ struct SApplication::Data
 SApplication::Initializer * SApplication::initializers = NULL;
 SApplication              * SApplication::self = NULL;
 
-/*! Initializes all LXiMedia components.
-
-    \note Only one active instance is allowed at any time.
-
-    \param logDir           The directory where to store log files, no log files
-                            are written if this is an empty string.
-    \param parent           The parent QObject.
- */
 SApplication::SApplication(bool useLogFile, const QStringList &skipModules, QObject *parent)
   : QObject(parent),
     d(new Data())
@@ -67,17 +59,15 @@ SApplication::SApplication(bool useLogFile, const QStringList &skipModules, QObj
   if (self != NULL)
     qFatal("Only one instance of the SApplication class is allowed.");
 
-  const QString appName = QFileInfo(qApp->applicationFilePath()).baseName();
-  QDir tmpDir = QDir::temp();
-
-  // Remove previous temporary files.
-  foreach (const QString &fileName, tmpDir.entryList(QStringList(appName + ".*"), QDir::Files))
-    tmpDir.remove(fileName);
-
   if (useLogFile)
   {
-    d->logFile.setFileTemplate(tmpDir.absoluteFilePath(appName + ".XXXXXX.log"));
-    d->logFile.open();
+#ifdef Q_OS_LINUX
+    d->logFile.setFileName("/var/log/" + QFileInfo(qApp->applicationFilePath()).baseName() + ".log");
+#else
+    d->logFile.setFileName(QDir::temp().absoluteFilePath(tempFileBase() + "log"));
+#endif
+
+    d->logFile.open(QFile::ReadWrite);
   }
 
   d->profileFile = NULL;
@@ -153,10 +143,6 @@ SApplication::SApplication(bool useLogFile, const QStringList &skipModules, QObj
   }
 }
 
-/*! Uninitializes all LXiMedia components.
-
-    \note Only one active instance is allowed at any time.
- */
 SApplication::~SApplication(void)
 {
   Q_ASSERT(QThread::currentThread() == thread());
@@ -181,19 +167,19 @@ SApplication::~SApplication(void)
 
   self = NULL;
 
+  // Remove log file on successful exit.
+  if (d->logFile.isOpen())
+    d->logFile.remove();
+
   delete d;
   *const_cast<Data **>(&d) = NULL;
 }
 
-/*! Returns a name string for LXiMedia.
- */
 const char * SApplication::name(void)
 {
   return "LXiMedia";
 }
 
-/*! Returns the version identifier for the active build of LXiStream.
- */
 const char * SApplication::version(void)
 {
   return
@@ -201,18 +187,18 @@ const char * SApplication::version(void)
       ;
 }
 
-/*! Returns a pointer to the active SApplication instance or NULL if none
-    exists.
-
-    \note Only one active instance is allowed at any time.
- */
 SApplication  * SApplication::instance(void)
 {
   return self;
 }
 
-/*! Returns the paths that are searched for plugins.
- */
+QString SApplication::tempFileBase(void)
+{
+  return
+      QFileInfo(qApp->applicationFilePath()).baseName() + '-' +
+      QString::number(qApp->applicationPid()) + '.';
+}
+
 QStringList SApplication::pluginPaths(void)
 {
   QStringList result;
@@ -246,20 +232,11 @@ QStringList SApplication::pluginPaths(void)
   return result;
 }
 
-/*! Adds a module filter string whoich is use to determine which of the plugins
-    in the plugin directory is actually loaded.
-
-    \note This method should rarely be useful.
- */
 void SApplication::addModuleFilter(const QString &filter)
 {
   d->moduleFilter.append(filter);
 }
 
-/*! Loads a module.
-
-    \note This method should rarely be useful.
- */
 bool SApplication::loadModule(const QString &name)
 {
   Q_ASSERT(QThread::currentThread() == thread());
@@ -293,10 +270,6 @@ bool SApplication::loadModule(const QString &name)
   return false;
 }
 
-/*! Loads a module.
-
-    \note This method should rarely be useful.
- */
 bool SApplication::loadModule(SModule *module, QPluginLoader *loader)
 {
   Q_ASSERT(QThread::currentThread() == thread());
@@ -320,8 +293,6 @@ QMap<QString, SModule *> SApplication::modules(void) const
   return result;
 }
 
-/*! Returns the about text with minimal XHTML markup.
- */
 QByteArray SApplication::about(void) const
 {
   QByteArray text =
@@ -576,10 +547,6 @@ void SApplication::profileTask(int startTime, int stopTime, const QByteArray &ta
   }
 }
 
-/*! Creates a new SApplication instance for use within a QTest environment. No
-    modules will be loaded automatically and they have to be loaded using
-    loadModule().
- */
 SApplication * SApplication::createForQTest(QObject *parent)
 {
   return new SApplication(parent);

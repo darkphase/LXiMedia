@@ -137,7 +137,7 @@ MediaPlayerServer::Stream * MediaPlayerServer::streamVideo(const SHttpServer::Re
   }
 
   disconnect(sandbox, SIGNAL(consoleLine(QString)), this, SLOT(consoleLine(QString)));
-  masterServer->recycleSandbox(sandbox);
+  delete sandbox;
 
   return NULL;
 }
@@ -701,7 +701,7 @@ MediaPlayerServer::Stream::Stream(MediaPlayerServer *parent, SSandboxClient *san
 MediaPlayerServer::Stream::~Stream()
 {
   disconnect(sandbox, SIGNAL(consoleLine(QString)), parent, SLOT(consoleLine(QString)));
-  static_cast<MediaPlayerServer *>(parent)->masterServer->recycleSandbox(sandbox);
+  delete sandbox;
 }
 
 bool MediaPlayerServer::Stream::setup(const QUrl &url, const QByteArray &content)

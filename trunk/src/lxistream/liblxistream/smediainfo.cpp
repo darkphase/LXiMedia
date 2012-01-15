@@ -220,6 +220,7 @@ void SMediaInfo::probeFormat(void)
       }
 
       pi->isFormatProbed = true;
+      delete ioDevice;
     }
   }
   else
@@ -265,6 +266,7 @@ void SMediaInfo::probeContent(void)
       probeDataStreams();
 
       pi->isContentProbed = true;
+      delete ioDevice;
     }
   }
   else

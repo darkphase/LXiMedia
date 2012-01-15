@@ -83,7 +83,7 @@ private:
 
   static const int              cacheTimeout = 150 * 60000; // Flush cache after 2.5 hrs.
   mutable QTimer                cacheTimer;
-  mutable QTemporaryFile        cacheFile;
+  mutable QFile                 cacheFile;
   mutable QMultiMap<uint, qint64> cachePos;
 };
 

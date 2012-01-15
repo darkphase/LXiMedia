@@ -44,6 +44,15 @@ Backend::Backend()
   // Seed the random number generator.
   qsrand(uint(QDateTime::currentDateTime().toTime_t() + qApp->applicationPid()));
 
+  // Remove previous temporary files.
+  const QString baseName = sApp->tempFileBase();
+  const QString searchName = baseName.left(baseName.lastIndexOf('-') + 1) + '*';
+  QDir tmpDir = QDir::temp();
+
+  foreach (const QString &fileName, tmpDir.entryList(QStringList(searchName), QDir::Files | QDir::System))
+  if (!fileName.startsWith(baseName))
+    tmpDir.remove(fileName);
+
   // Open device configuration
   MediaServer::mediaProfiles().openDeviceConfig(":/devices.ini");
 }
@@ -206,7 +215,7 @@ void Backend::reset(void)
 
 void Backend::addModules(const SHttpEngine::ResponseMessage &modules)
 {
-  recycleSandbox(initSandbox);
+  delete initSandbox;
   initSandbox = NULL;
 
   QDomDocument doc("");
@@ -294,18 +303,6 @@ SSandboxClient * Backend::createSandbox(SSandboxClient::Priority priority)
 
   return new SSandboxClient(thread->sandbox->server(), priority);
 #endif
-}
-
-void Backend::recycleSandbox(SSandboxClient *sandboxClient)
-{
-  if (sandboxClient)
-  {
-    SHttpEngine::RequestMessage message(sandboxClient);
-    message.setRequest("GET", "/?exit");
-
-    sandboxClient->openRequest(message, NULL, NULL);
-    QTimer::singleShot(30000, sandboxClient, SLOT(deleteLater()));
-  }
 }
 
 QUuid Backend::serverUuid(void)

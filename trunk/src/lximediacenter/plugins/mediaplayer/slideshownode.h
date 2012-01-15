@@ -39,6 +39,7 @@ public:
   STime                         slideDuration(void) const;
   void                          setSlideDuration(const STime &);
 
+  inline int                    framesPerSlide(void) const                      { return slideFrameCount; }
   STime                         duration(void) const;
 
 public: // From SInterfaces::SourceNode
@@ -63,6 +64,7 @@ private:
 
   SSize                         outSize;
   int                           slideFrameCount;
+  int                           fadeFrameCount;
   SAudioBuffer                  audioBuffer;
   STime                         time;
   volatile int                  currentPicture;

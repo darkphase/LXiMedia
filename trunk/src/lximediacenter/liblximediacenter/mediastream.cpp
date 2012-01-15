@@ -47,9 +47,10 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
                         const SVideoFormat &inputVideoFormat,
                         bool enableNormalize,
                         SInterfaces::AudioEncoder::Flags audioEncodeFlags,
-                        SInterfaces::VideoEncoder::Flags videoEncodeFlags)
+                        SInterfaces::VideoEncoder::Flags videoEncodeFlags,
+                        int videoGopSize)
 {
-  connect(&output, SIGNAL(closed()), SLOT(stop()));
+  connect(&output, SIGNAL(closed(QIODevice *)), SLOT(stop()));
 
   delete audio;
   audio = new Audio(this);
@@ -141,10 +142,13 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
       return false;
     }
 
-    const SVideoCodec videoCodec(MediaProfiles::videoCodecFor(videoProfile), videoFormat.size(), videoFormat.frameRate());
+    SVideoCodec videoCodec(MediaProfiles::videoCodecFor(videoProfile), videoFormat.size(), videoFormat.frameRate());
+    videoCodec.setGopSize(videoGopSize);
+
     video->resizer.setSize(videoCodec.size());
     video->resizer.setAspectRatioMode(aspectRatioMode);
     video->box.setSize(videoCodec.size());
+
     if (!video->encoder.openCodec(videoCodec, &output, duration, videoEncodeFlags))
     {
       qWarning() << "Could not open video codec:" << videoCodec.codec();
@@ -176,6 +180,8 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
         audioCodec = SAudioCodec("FLAC", SAudioFormat::Channels_Stereo, 44100);
 
       videoCodec = SVideoCodec("THEORA", videoFormat.size(), videoFormat.frameRate());
+      videoCodec.setGopSize(videoGopSize);
+
       format = "ogg";
       header.setContentType(SHttpEngine::mimeVideoOgg);
     }
@@ -194,6 +200,8 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
         audioCodec = SAudioCodec("PCM/S16LE", SAudioFormat::Channels_Stereo, 44100);
 
       videoCodec = SVideoCodec("FLV1", videoFormat.size(), videoFormat.frameRate());
+      videoCodec.setGopSize(videoGopSize);
+
       header.setContentType(SHttpEngine::mimeVideoFlv);
     }
     else if ((format == "matroska") && SIOOutputNode::formats().contains(format))
@@ -204,6 +212,8 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
         audioCodec = SAudioCodec("MP2", SAudioFormat::Channels_Stereo, 44100);
 
       videoCodec = SVideoCodec("MPEG4", videoFormat.size(), videoFormat.frameRate());
+      videoCodec.setGopSize(videoGopSize);
+
       header.setContentType(SHttpEngine::mimeVideoMatroska);
     }
     else // Default to mpeg
@@ -222,6 +232,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
         audioCodec = SAudioCodec("AC3", audioFormat.channelSetup(), audioFormat.sampleRate());
 
       videoCodec = SVideoCodec("MPEG2", videoFormat.size(), roundedFrameRate);
+      videoCodec.setGopSize(videoGopSize);
 
       if (format == "mpegts")
       {
@@ -256,6 +267,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
     video->resizer.setSize(videoCodec.size());
     video->resizer.setAspectRatioMode(aspectRatioMode);
     video->box.setSize(videoCodec.size());
+
     if (!video->encoder.openCodec(videoCodec, &output, duration, videoEncodeFlags))
     {
       qWarning() << "Could not open video codec:" << videoCodec.codec();
@@ -267,7 +279,9 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
 
   connect(socket, SIGNAL(disconnected()), SLOT(stop()));
   socket->write(header);
-  output.setIODevice(socket, true);
+
+  connect(&output, SIGNAL(closed(QIODevice *)), request.httpEngine, SLOT(closeSocket(QIODevice *)));
+  output.setIODevice(socket);
 
   qDebug() << "Started video stream"
       << videoFormat.size().toString()
@@ -415,7 +429,9 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
 
   connect(socket, SIGNAL(disconnected()), SLOT(stop()));
   socket->write(header);
-  output.setIODevice(socket, true);
+
+  connect(&output, SIGNAL(closed(QIODevice*)), request.httpEngine, SLOT(closeSocket(QIODevice *)));
+  output.setIODevice(socket);
 
   qDebug() << "Started audio stream"
       << SAudioFormat::channelSetupName(audio->encoder.codec().channelSetup())
