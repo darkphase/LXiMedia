@@ -1,5 +1,5 @@
 To compile ffmpeg for Windows or Mac OS X follow the steps below, note that
-for Linux the livavcodec-dev, libavformat-dev, libavutil-dev and
+for Linux the libavcodec-dev, libavformat-dev, libavutil-dev and
 libswscale-dev packages should be installed instead.
 
 Mac OS X:
