@@ -55,6 +55,7 @@ public:
   void                          setLastPlayed(const FileNode &, const QDateTime & = QDateTime::currentDateTime());
   QDateTime                     lastPlayed(const FileNode &) const;
 
+  bool                          isEmpty(const QUrl &path) const;
   FileNodeList                  listItems(const QUrl &path, int start, int &count) const;
   FileNodeList                  representativeItems(const QUrl &path) const;
 
