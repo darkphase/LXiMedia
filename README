@@ -1,5 +1,5 @@
 ================================================================================
-LeX-Interactive Media (LXiMedia) README Copyright 2009-2011 by A.J. Admiraal
+LeX-Interactive Media (LXiMedia) README Copyright 2009-2012 by A.J. Admiraal
 ================================================================================
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License version 2 as
@@ -19,40 +19,42 @@ Free Software Foundation, Inc.,
 
 Introduction
 ------------
-LXiMedia is a multi-platform multimedia framework. Which is based around a
-streaming media library, and provides a media player and a DLNA/UPnP based media
-center application.
+LXiMedia is a multi-platform multimedia framework. Which is based around a set
+of streaming media libraries, and provides a DLNA/UPnP based media center
+application.
 
 
 Compilation
 -----------
-To compile LXiMedia on a Linux machine, first ensure all development libraries
-are installed. On a Debian based system (e.g. Ubuntu) this can be done from a
-command shell with the following command:
+To compile LXiMedia on a Linux machine, first ensure all compilers and 
+development libraries are installed. On a Debian based system (e.g. Ubuntu) this
+can be done from a command shell with the following command:
 
-# sudo apt-get install subversion debhelper dpkg-dev bash doxygen g++ gcc make
-binutils-dev libasound2-dev libavcodec-dev libavformat-dev libavutil-dev 
-libdvdnav-dev libswscale-dev libexif-dev libfftw3-dev libpulse-dev libqt4-dev 
-libqt4-test libqtcore4 libqtgui4 libqt4-network libqt4-sql libqt4-xml libx11-dev 
-libxext-dev libxrandr-dev libxtst-dev libxv-dev qt4-qmake zlib1g-dev
+# sudo apt-get install debhelper dpkg-dev bash doxygen g++ gcc make binutils-dev
+libasound2-dev libavcodec-dev libavformat-dev libavutil-dev libdvdnav-dev 
+libswscale-dev libexif-dev libfreetype6-dev libpulse-dev libqt4-dev libqt4-test 
+libsmbclient-dev libx11-dev libxext-dev libxrandr-dev libxtst-dev libxv-dev 
+qt4-qmake zlib1g-dev
 
-Open a shell and enter the lximedia directory that was checked out above, run
-qmake and make to build:
+Open a shell and enter the lximedia source directory, run qmake and make to 
+build:
 
 # cd lximedia
 # qmake
 # make
 
-Building from source on windows is a little more involved. First, a development
-environment is needed. For now only QtCreator is supported, but support for
-Visual Studio (Express Edition) is upcoming.
+Building from source on Windows is a little more involved. First, a development
+environment is needed, both QtCreator and Microsoft Visual Studio 2008  (Express
+Edition) are supported.
 
-All library dependencies for Windows are stored precompiled in the source
+All other library dependencies for Windows are stored precompiled in the source
 archive, so no libraries have to be downloaded or built.
 
+For QtCreator:
+
 Download and install the latest version of the QtSDK from 
-http://qt.nokia.com/downloads/ (Choose LGPL when asked). Make sure you install
-the QtSDK in a directory without spaces.
+http://qt.nokia.com/downloads/. Make sure you install the QtSDK in a directory 
+without spaces.
 
 Finish the installation and start QtCreator. Select ''File -> Open File or
 Project'' from the menu. Then select the ''lximedia.pro'' file from the lximedia
@@ -65,3 +67,17 @@ bar appears above the project button.
 Next, select ''Build -> Build All'' from the menu to build the entire project.
 This may take some time, press the ''Compile Output'' button to monitor the build
 progress.
+
+For Microsoft Visual Studio 2008:
+
+Download and install the latest version of the Qt for Visual Studio 2008 from 
+http://qt.nokia.com/downloads/. Make sure you install Qt in a directory without
+spaces.
+
+Next open a command prompt and and enter the lximedia source directory, run
+configure.bat followed by the directory where Qt is installed:
+
+C:\lximedia\> configure.bat C:\Qt
+
+Next open lximedia.sln with Visual Studio and select ''Build -> Build Solution''
+from the menu and wait for the build to complete.
