@@ -230,13 +230,17 @@ QList<MediaPlayerServer::Item> MediaPlayerServer::listItems(const QString &virtu
     const QStringList paths = rootPaths.keys();
     for (int i=start, n=0; (i<paths.count()) && (returnAll || (n<count)); i++, n++)
     {
-      Item item;
-      item.isDir = true;
-      item.title = paths[i];
-      item.path = virtualPath + paths[i] + '/';
-      item.iconUrl = "/img/directory.png";
+      const QString path = virtualPath + paths[i] + '/';
+      if (!mediaDatabase->isEmpty(realPath(path)))
+      {
+        Item item;
+        item.isDir = true;
+        item.title = paths[i];
+        item.path = path;
+        item.iconUrl = "/img/directory.png";
 
-      result += item;
+        result += item;
+      }
     }
 
     count = paths.count();

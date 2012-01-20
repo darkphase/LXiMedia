@@ -174,6 +174,13 @@ QDateTime MediaDatabase::lastPlayed(const FileNode &node) const
   return QDateTime();
 }
 
+bool MediaDatabase::isEmpty(const QUrl &dirPath) const
+{
+  int count = 1;
+
+  return listFiles(dirPath, 0, count).isEmpty();
+}
+
 FileNodeList MediaDatabase::listItems(const QUrl &dirPath, int start, int &count) const
 {
   return readNodeFormat(listFiles(dirPath, start, count));
