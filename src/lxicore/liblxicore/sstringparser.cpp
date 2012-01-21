@@ -107,10 +107,21 @@ void SStringParser::setField(const char *name, const QString &content)
 
 void SStringParser::setField(const char *name, const QUrl &content)
 {
+  QByteArray encoded = content.toEncoded(), query;
+  const int q = encoded.indexOf('?');
+  if (q >= 0)
+  {
+    query = encoded.mid(q);
+    encoded = encoded.left(q);
+  }
+
+  encoded.replace("&", "%26");
+  encoded.replace("'", "%27");
+
   if (d->enableEscapeXml)
-    d->fields[name] = escapeXml(content.toEncoded());
+    d->fields[name] = escapeXml(encoded + query);
   else
-    d->fields[name] = content.toEncoded();
+    d->fields[name] = encoded + query;
 }
 
 void SStringParser::appendField(const char *name, const char *content)

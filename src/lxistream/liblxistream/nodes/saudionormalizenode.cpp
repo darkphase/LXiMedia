@@ -85,7 +85,7 @@ void SAudioNormalizeNode::input(const SAudioBuffer &audioBuffer)
       {
         const SAudioBuffer srcBuffer = d->delay.dequeue();
 
-        SAudioBuffer destBuffer(audioBuffer.format(), srcBuffer.numSamples());
+        SAudioBuffer destBuffer(srcBuffer.format(), srcBuffer.numSamples());
         destBuffer.setTimeStamp(srcBuffer.timeStamp());
 
         Algorithms::AudioProcess::gain(
@@ -117,7 +117,7 @@ void SAudioNormalizeNode::input(const SAudioBuffer &audioBuffer)
       {
         const SAudioBuffer srcBuffer = d->delay.dequeue();
 
-        SAudioBuffer destBuffer(audioBuffer.format(), srcBuffer.numSamples());
+        SAudioBuffer destBuffer(srcBuffer.format(), srcBuffer.numSamples());
         destBuffer.setTimeStamp(srcBuffer.timeStamp());
 
         Algorithms::AudioProcess::gain(

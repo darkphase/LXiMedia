@@ -310,13 +310,12 @@ SVideoBufferList VideoDecoder::decodeBuffer(const SEncodedVideoBuffer &videoBuff
   }
   else if (codecHandle)
   {
-    for (int gotPicture=1; gotPicture;)
-    {
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
-      ::AVPacket packet;
-      memset(&packet, 0, sizeof(packet));
+    ::AVPacket packet = FFMpegCommon::toAVPacket(videoBuffer);
 #endif
 
+    for (int gotPicture=1; gotPicture && contextHandle->codec;)
+    {
       // Get any remaining frames
       ::avcodec_get_frame_defaults(pictureHandle);
       gotPicture = 0;
@@ -345,6 +344,8 @@ SVideoBufferList VideoDecoder::decodeBuffer(const SEncodedVideoBuffer &videoBuff
         timeStamp += STime(1, outFormat.frameRate());
       }
     }
+
+    output << SVideoBuffer(); // Flush
   }
 
   return output;

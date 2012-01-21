@@ -480,6 +480,178 @@ QString MediaProfiles::findBestClient(const QString &client)
   return result;
 }
 
+
+SSize MediaProfiles::maximumResolution(const QStringList &profileNames)
+{
+  SSize result(0, 0);
+
+  foreach (const QString &profileName, profileNames)
+  {
+    QMap<QByteArray, VideoProfile>::ConstIterator i = Data::videoProfileNames.find(profileName.toAscii());
+    if (i != Data::videoProfileNames.end())
+      result = qMax(result, maximumResolution(i.value()));
+  }
+
+  return result;
+}
+
+SSize MediaProfiles::maximumResolution(VideoProfile profile)
+{
+  switch (profile)
+  {
+  case MPEG1:
+    return SSize(352, 288, 1.45455f);
+
+  case MPEG_PS_PAL:
+  case MPEG_PS_PAL_XAC3:
+  case MPEG_TS_SD_EU:
+  case MPEG_TS_SD_EU_ISO:
+  case MPEG_PS_SD_EU_NONSTD:
+  case MPEG4_P2_MATROSKA_MP3_SD_NONSTD:
+  case MPEG4_P2_MATROSKA_AAC_SD_NONSTD:
+  case MPEG4_P2_MATROSKA_AC3_SD_NONSTD:
+  case OGG_THEORA_VORBIS_SD_NONSTD:
+  case OGG_THEORA_FLAC_SD_NONSTD:
+    return SSize(720, 576, 1.42222f);
+
+  case MPEG_PS_NTSC:
+  case MPEG_PS_NTSC_XAC3:
+  case MPEG_TS_SD_NA:
+  case MPEG_TS_SD_NA_ISO:
+  case MPEG_PS_SD_NA_NONSTD:
+    return SSize(704, 480, 1.21307f);
+
+  case MPEG4_P2_TS_SP_AAC:
+  case MPEG4_P2_TS_SP_AAC_ISO:
+  case MPEG4_P2_TS_SP_MPEG1_L3:
+  case MPEG4_P2_TS_SP_MPEG1_L3_ISO:
+  case MPEG4_P2_TS_SP_MPEG2_L2:
+  case MPEG4_P2_TS_SP_MPEG2_L2_ISO:
+  case MPEG4_P2_TS_SP_AC3_L3:
+  case MPEG4_P2_TS_SP_AC3_ISO:
+    return SSize(320, 240);
+
+  case MPEG4_P2_TS_ASP_AAC:
+  case MPEG4_P2_TS_ASP_AAC_ISO:
+  case MPEG4_P2_TS_ASP_MPEG1_L3:
+  case MPEG4_P2_TS_ASP_MPEG1_L3_ISO:
+  case MPEG4_P2_TS_ASP_AC3_L3:
+  case MPEG4_P2_TS_ASP_AC3_ISO:
+  case WMVMED_BASE:
+    return SSize(720, 576, 1.42222f);
+
+  case MPEG_TS_HD_EU:
+  case MPEG_TS_HD_EU_ISO:
+  case MPEG_TS_HD_NA:
+  case MPEG_TS_HD_NA_ISO:
+  case MPEG_PS_HD_EU_NONSTD:
+  case MPEG_PS_HD_NA_NONSTD:
+  case MPEG4_P2_MATROSKA_AC3_HD_NONSTD:
+  case MPEG4_P2_MATROSKA_MP3_HD_NONSTD:
+  case MPEG4_P2_MATROSKA_AAC_HD_NONSTD:
+    return SSize(1920, 1080);
+  }
+
+  return SSize();
+}
+
+SAudioFormat::Channels MediaProfiles::maximumChannels(const QStringList &profileNames)
+{
+  SAudioFormat::Channels result = SAudioFormat::Channel_None;
+
+  foreach (const QString &profileName, profileNames)
+  {
+    QMap<QByteArray, AudioProfile>::ConstIterator i = Data::audioProfileNames.find(profileName.toAscii());
+    if (i != Data::audioProfileNames.end())
+    {
+      if (SAudioFormat::numChannels(maximumChannels(i.value())) > SAudioFormat::numChannels(result))
+        result = maximumChannels(i.value());
+    }
+    else
+    {
+      QMap<QByteArray, VideoProfile>::ConstIterator i = Data::videoProfileNames.find(profileName.toAscii());
+      if (i != Data::videoProfileNames.end())
+      if (SAudioFormat::numChannels(maximumChannels(i.value())) > SAudioFormat::numChannels(result))
+        result = maximumChannels(i.value());
+    }
+  }
+
+  return result;
+}
+
+SAudioFormat::Channels MediaProfiles::maximumChannels(AudioProfile profile)
+{
+  switch (profile)
+  {
+  case LPCM:
+  case MP2:
+  case MP3:
+  case AAC_ADTS:
+  case WMABASE:
+  case VORBIS_NONSTD:
+  case FLAC_NONSTD:
+  case WAV_NONSTD:
+    return SAudioFormat::Channels_Stereo;
+
+  case AC3:
+    return SAudioFormat::Channels_Surround_5_1;
+  }
+
+  return SAudioFormat::Channel_None;
+}
+
+SAudioFormat::Channels MediaProfiles::maximumChannels(VideoProfile profile)
+{
+  switch (profile)
+  {
+  case MPEG1:
+  case MPEG_PS_PAL:
+  case MPEG_PS_NTSC:
+  case MPEG4_P2_TS_SP_AAC:
+  case MPEG4_P2_TS_SP_AAC_ISO:
+  case MPEG4_P2_TS_SP_MPEG1_L3:
+  case MPEG4_P2_TS_SP_MPEG1_L3_ISO:
+  case MPEG4_P2_TS_SP_MPEG2_L2:
+  case MPEG4_P2_TS_SP_MPEG2_L2_ISO:
+  case MPEG4_P2_TS_ASP_AAC:
+  case MPEG4_P2_TS_ASP_AAC_ISO:
+  case MPEG4_P2_TS_ASP_MPEG1_L3:
+  case MPEG4_P2_TS_ASP_MPEG1_L3_ISO:
+  case WMVMED_BASE:
+  case MPEG4_P2_MATROSKA_MP3_SD_NONSTD:
+  case MPEG4_P2_MATROSKA_AAC_SD_NONSTD:
+  case MPEG4_P2_MATROSKA_MP3_HD_NONSTD:
+  case MPEG4_P2_MATROSKA_AAC_HD_NONSTD:
+  case OGG_THEORA_VORBIS_SD_NONSTD:
+  case OGG_THEORA_FLAC_SD_NONSTD:
+    return SAudioFormat::Channels_Stereo;
+
+  case MPEG_PS_PAL_XAC3:
+  case MPEG_PS_NTSC_XAC3:
+  case MPEG_TS_SD_EU:
+  case MPEG_TS_SD_EU_ISO:
+  case MPEG_TS_SD_NA:
+  case MPEG_TS_SD_NA_ISO:
+  case MPEG_TS_HD_EU:
+  case MPEG_TS_HD_EU_ISO:
+  case MPEG_TS_HD_NA:
+  case MPEG_TS_HD_NA_ISO:
+  case MPEG_PS_HD_EU_NONSTD:
+  case MPEG_PS_HD_NA_NONSTD:
+  case MPEG4_P2_TS_SP_AC3_L3:
+  case MPEG4_P2_TS_SP_AC3_ISO:
+  case MPEG4_P2_TS_ASP_AC3_L3:
+  case MPEG4_P2_TS_ASP_AC3_ISO:
+  case MPEG_PS_SD_EU_NONSTD:
+  case MPEG_PS_SD_NA_NONSTD:
+  case MPEG4_P2_MATROSKA_AC3_SD_NONSTD:
+  case MPEG4_P2_MATROSKA_AC3_HD_NONSTD:
+    return SAudioFormat::Channels_Surround_5_1;
+  }
+
+  return SAudioFormat::Channel_None;
+}
+
 int MediaProfiles::correctFormat(AudioProfile profile, SAudioFormat &format)
 {
   switch (profile)

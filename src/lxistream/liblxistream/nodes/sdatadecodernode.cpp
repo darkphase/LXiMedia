@@ -86,7 +86,7 @@ void SDataDecoderNode::input(const SEncodedDataBuffer &dataBuffer)
   {
     if ((d->decoder == NULL) || (d->lastCodec != dataBuffer.codec()))
     {
-      delete d->decoder;
+      closeDecoder();
 
       SInterfaces::AbstractBufferReader * const bufferReader =
           d->inputNode ? d->inputNode->bufferReader() : NULL;
@@ -97,29 +97,48 @@ void SDataDecoderNode::input(const SEncodedDataBuffer &dataBuffer)
       if (d->decoder == NULL)
         qWarning() << "Failed to find data decoder for codec" << d->lastCodec.codec();
     }
+  }
 
-    if (d->decoder)
+  if (d->decoder)
+  {
     foreach (const SDataBuffer &buffer, d->decoder->decodeBuffer(dataBuffer))
-    switch(buffer.type())
-    {
-    case SDataBuffer::Type_None:
-      break;
+      output(buffer);
+  }
+  else if (dataBuffer.isNull())
+    emit output(SDataBuffer()); // Flush
+}
 
-    case SDataBuffer::Type_SubtitleBuffer:
-      emit output(buffer.subtitleBuffer());
-      break;
+void SDataDecoderNode::output(const SDataBuffer &buffer)
+{
+  switch(buffer.type())
+  {
+  case SDataBuffer::Type_None:
+    emit output(SSubtitleBuffer());
+    emit output(SSubpictureBuffer());
+    break;
 
-    case SDataBuffer::Type_SubpictureBuffer:
-      emit output(buffer.subpictureBuffer());
-      break;
-    }
+  case SDataBuffer::Type_SubtitleBuffer:
+    emit output(buffer.subtitleBuffer());
+    break;
+
+  case SDataBuffer::Type_SubpictureBuffer:
+    emit output(buffer.subpictureBuffer());
+    break;
   }
 }
 
 void SDataDecoderNode::closeDecoder(void)
 {
-  delete d->decoder;
-  d->decoder = NULL;
+  if (d->decoder)
+  {
+    // Flush
+    foreach (const SDataBuffer &buffer, d->decoder->decodeBuffer(SEncodedDataBuffer()))
+    if (buffer.type() != SDataBuffer::Type_None)
+      output(buffer);
+
+    delete d->decoder;
+    d->decoder = NULL;
+  }
 }
 
 } // End of namespace

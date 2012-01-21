@@ -578,8 +578,7 @@ QByteArray Backend::handleHtmlSettings(const SHttpServer::RequestMessage &reques
     tr("If your device does not work with the default enabled DLNA profiles and "
        "you were able to make it work by disabling the unsupported profiles "
        "above, please take the time to post the configuration below on the "
-       "<a href=\"http://sourceforge.net/projects/lximedia/forums/forum/1178772\">"
-       "Sourceforge LXIMedia forum</a>. These settings will then be added to the "
+       "Sourceforge LXIMedia forum. These settings will then be added to the "
        "next release."));
 
   htmlParser.setField("CLIENT_ROWS", QByteArray(""));
@@ -690,6 +689,20 @@ QByteArray Backend::handleHtmlSettings(const SHttpServer::RequestMessage &reques
 
   // DLNA clients
   QStringList activeClients = MediaServer::activeClients().toList();
+  foreach (const QString &group, settings.childGroups())
+  if (group.startsWith("Client_"))
+  {
+    QString clientTag = group.mid(7);
+
+    bool found = false;
+    for (int i=0; (i<activeClients.count()) && !found; i++)
+    if (SStringParser::toCleanName(activeClients[i]).replace(' ', '_') == clientTag)
+      found = true;
+
+    if (!found)
+      activeClients += clientTag.replace('_', ' ');
+  }
+
   qSort(activeClients);
 
   foreach (const QString &activeClient, activeClients)
@@ -700,18 +713,85 @@ QByteArray Backend::handleHtmlSettings(const SHttpServer::RequestMessage &reques
 
     htmlParser.setField("NAME", activeClient);
     htmlParser.setField("CLIENT_NAME", clientTag);
-    htmlParser.setField("FORMATS", "");
-    htmlParser.setField("CHANNELS", "");
-    htmlParser.setField("MUSICCHANNELS", "");
     htmlParser.setField("SUBTITLESIZE", "");
 
+    QStringList checkedAudioProfiles =
+        settings.value(
+            "SupportedAudioProfiles",
+            MediaServer::mediaProfiles().supportedAudioProfiles(activeClient)
+            ).toStringList();
+
+    if (checkedAudioProfiles.isEmpty())
+      checkedAudioProfiles = enabledAudioProfiles;
+    else for (QStringList::Iterator i=checkedAudioProfiles.begin(); i!=checkedAudioProfiles.end(); )
+    if (!enabledAudioProfiles.contains(*i))
+      i = checkedAudioProfiles.erase(i);
+    else
+      i++;
+
+    QStringList checkedVideoProfiles =
+        settings.value(
+            "SupportedVideoProfiles",
+            MediaServer::mediaProfiles().supportedVideoProfiles(activeClient)
+            ).toStringList();
+
+    if (checkedVideoProfiles.isEmpty())
+      checkedVideoProfiles = enabledVideoProfiles;
+    else for (QStringList::Iterator i=checkedVideoProfiles.begin(); i!=checkedVideoProfiles.end(); )
+    if (!enabledVideoProfiles.contains(*i))
+      i = checkedVideoProfiles.erase(i);
+    else
+      i++;
+
+    QStringList checkedImageProfiles =
+        settings.value(
+            "SupportedImageProfiles",
+            MediaServer::mediaProfiles().supportedImageProfiles(activeClient)
+            ).toStringList();
+
+    if (checkedImageProfiles.isEmpty())
+      checkedImageProfiles = enabledImageProfiles;
+    else for (QStringList::Iterator i=checkedImageProfiles.begin(); i!=checkedImageProfiles.end(); )
+    if (!enabledImageProfiles.contains(*i))
+      i = checkedImageProfiles.erase(i);
+    else
+      i++;
+
+    const SSize maximumResolution =
+        MediaServer::mediaProfiles().maximumResolution(checkedVideoProfiles);
+
+    const SAudioFormat::Channels maximumChannels =
+        MediaServer::mediaProfiles().maximumChannels(checkedAudioProfiles + checkedVideoProfiles);
+
+    htmlParser.setField("SELECTED", "");
+    htmlParser.setField("VALUE", "");
+    htmlParser.setField("TEXT", tr("Optimal") +
+                        " (" + QString::number(maximumResolution.width()) +
+                        "x" + QString::number(maximumResolution.height()) + ")");
+    htmlParser.setField("FORMATS", htmlParser.parse(htmlSettingsOption));
+
     foreach (const MediaServer::TranscodeSize &size, MediaServer::allTranscodeSizes())
+    if (size.size <= maximumResolution)
       T::addFormat(htmlParser, settings, genericTranscodeSize,  size);
 
-    foreach (const MediaServer::TranscodeChannel &channel, MediaServer::allTranscodeChannels())
-      T::addChannel(htmlParser, settings, genericTranscodeChannels, channel);
+    htmlParser.setField("SELECTED", "");
+    htmlParser.setField("VALUE", "");
+    htmlParser.setField("TEXT", tr("Optimal") +
+                        " (" + SAudioFormat::channelSetupName(maximumChannels) + ")");
+    htmlParser.setField("CHANNELS", htmlParser.parse(htmlSettingsOption));
 
     foreach (const MediaServer::TranscodeChannel &channel, MediaServer::allTranscodeChannels())
+    if (SAudioFormat::numChannels(channel.channels) <= SAudioFormat::numChannels(maximumChannels))
+      T::addChannel(htmlParser, settings, genericTranscodeChannels, channel);
+
+    htmlParser.setField("SELECTED", "");
+    htmlParser.setField("VALUE", "");
+    htmlParser.setField("TEXT", tr("Optimal") +
+                        " (" + SAudioFormat::channelSetupName(maximumChannels) + ")");
+    htmlParser.setField("MUSICCHANNELS", htmlParser.parse(htmlSettingsOption));
+
+    foreach (const MediaServer::TranscodeChannel &channel, MediaServer::allTranscodeChannels())
+    if (SAudioFormat::numChannels(channel.channels) <= SAudioFormat::numChannels(maximumChannels))
       T::addMusicChannel(htmlParser, settings, genericTranscodeMusicChannels, channel);
 
     foreach (const MediaServer::SubtitleSize &size, MediaServer::allSubtitleSizes())
@@ -748,15 +828,6 @@ QByteArray Backend::handleHtmlSettings(const SHttpServer::RequestMessage &reques
     {
       htmlParser.setField("INI_NAME", activeClient.split('@').first());
 
-      QStringList checkedAudioProfiles =
-          settings.value(
-              "SupportedAudioProfiles",
-              MediaServer::mediaProfiles().supportedAudioProfiles(activeClient)
-              ).toStringList();
-
-      if (checkedAudioProfiles.isEmpty())
-        checkedAudioProfiles = enabledAudioProfiles;
-
       htmlParser.setField("AUDIO_PROFILES", "");
       foreach (const QString &profile, enabledAudioProfiles)
       {
@@ -767,15 +838,6 @@ QByteArray Backend::handleHtmlSettings(const SHttpServer::RequestMessage &reques
 
       htmlParser.setField("INI_AUDIO_PROFILES", checkedAudioProfiles.join(", "));
 
-      QStringList checkedVideoProfiles =
-          settings.value(
-              "SupportedVideoProfiles",
-              MediaServer::mediaProfiles().supportedVideoProfiles(activeClient)
-              ).toStringList();
-
-      if (checkedVideoProfiles.isEmpty())
-        checkedVideoProfiles = enabledVideoProfiles;
-
       htmlParser.setField("VIDEO_PROFILES", "");
       foreach (const QString &profile, enabledVideoProfiles)
       {
@@ -785,15 +847,6 @@ QByteArray Backend::handleHtmlSettings(const SHttpServer::RequestMessage &reques
       }
 
       htmlParser.setField("INI_VIDEO_PROFILES", checkedVideoProfiles.join(", "));
-
-      QStringList checkedImageProfiles =
-          settings.value(
-              "SupportedImageProfiles",
-              MediaServer::mediaProfiles().supportedImageProfiles(activeClient)
-              ).toStringList();
-
-      if (checkedImageProfiles.isEmpty())
-        checkedImageProfiles = enabledImageProfiles;
 
       htmlParser.setField("IMAGE_PROFILES", "");
       foreach (const QString &profile, enabledImageProfiles)

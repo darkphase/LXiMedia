@@ -76,11 +76,8 @@ struct SHttpStreamProxy::Data
   QVector<Socket>               sockets;
   QTimer                        socketTimer;
 
-  bool                          caching;
   QByteArray                    cache;
-  QTime                         cacheTimer;
-  static const int              cacheTimeout = 30000;
-  static const int              maxCacheSize = 134217728;
+  bool                          caching;
 };
 
 const QEvent::Type  SHttpStreamProxy::setSourceEventType = QEvent::Type(QEvent::registerEventType());
@@ -162,7 +159,7 @@ bool SHttpStreamProxy::addSocket(QIODevice *socket, SHttpEngine *owner)
         "is invoked through a signal.";
   }
 
-  if (d->caching && ((d->source.socket == NULL) || (qAbs(d->cacheTimer.elapsed()) < d->cacheTimeout)))
+  if (d->caching)
   {
     socket->setParent(NULL);
     socket->moveToThread(this);
@@ -176,7 +173,7 @@ bool SHttpStreamProxy::addSocket(QIODevice *socket, SHttpEngine *owner)
 
 void SHttpStreamProxy::run(void)
 {
-  d->cache.reserve(d->maxCacheSize);
+  d->cache.reserve(outBufferSize + (outBufferSize / 2));
 
   QThread::exec();
 
@@ -203,7 +200,6 @@ void SHttpStreamProxy::customEvent(QEvent *e)
     if (d->source.socket->metaObject()->indexOfSignal("disconnected()") >= 0)
       connect(d->source.socket, SIGNAL(disconnected()), SLOT(flushData()));
 
-    d->cacheTimer.start();
     d->socketTimer.start(250);
   }
   else if (e->type() == addSocketEventType)
@@ -228,8 +224,6 @@ void SHttpStreamProxy::customEvent(QEvent *e)
 #endif
 
     connect(s.socket, SIGNAL(bytesWritten(qint64)), SLOT(processData()));
-
-    d->cacheTimer.start();
 
     d->sockets += s;
   }
@@ -309,7 +303,7 @@ void SHttpStreamProxy::processData(void)
         {
           if (s->readPos >= d->cache.size())
           {
-            if (s->socket->bytesToWrite() <= (outBufferSize + inBufferSize))
+            if (s->socket->bytesToWrite() <= (outBufferSize * 2))
             {
               if (s->socket->write(buffer) == buffer.size())
                 s->readPos += buffer.size();
@@ -327,8 +321,7 @@ void SHttpStreamProxy::processData(void)
 
         if (d->caching)
         {
-          if ((qAbs(d->cacheTimer.elapsed()) < d->cacheTimeout) &&
-              ((d->cache.size() + buffer.size()) <= d->maxCacheSize))
+          if ((d->cache.size() + buffer.size()) <= d->cache.capacity())
           {
             d->cache.append(buffer);
           }
@@ -341,7 +334,7 @@ void SHttpStreamProxy::processData(void)
       }
       else
       {
-        if (d->caching && (qAbs(d->cacheTimer.elapsed()) >= d->cacheTimeout))
+        if (d->caching)
         {
           d->cache.clear();
           d->caching = false;
@@ -387,7 +380,7 @@ void SHttpStreamProxy::flushData(void)
       const QByteArray buffer = d->source.socket->read(inBufferSize);
 
       for (QVector<Data::Socket>::Iterator s=d->sockets.begin(); s!=d->sockets.end(); )
-      if (s->isConnected() && (s->socket->bytesToWrite() <= (outBufferSize + inBufferSize)))
+      if (s->isConnected() && (s->socket->bytesToWrite() <= (outBufferSize * 3)))
       {
         if (s->readPos >= d->cache.size())
         {

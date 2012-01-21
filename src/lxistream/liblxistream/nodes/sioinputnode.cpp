@@ -24,6 +24,7 @@ namespace LXiStream {
 struct SIOInputNode::Data
 {
   QIODevice                   * ioDevice;
+  bool                          endReached;
 };
 
 SIOInputNode::SIOInputNode(SGraph *parent, QIODevice *ioDevice)
@@ -49,6 +50,7 @@ void SIOInputNode::setIODevice(QIODevice *ioDevice)
   }
 
   d->ioDevice = ioDevice;
+  d->endReached = false;
 
   if (ioDevice && ioDevice->isOpen())
   {
@@ -100,7 +102,7 @@ QIODevice * SIOInputNode::ioDevice(void)
 
 bool SIOInputNode::start(void)
 {
-  if (d->ioDevice)
+  if (d->ioDevice && !d->endReached)
     return SInputNode::start();
 
   return false;
@@ -117,10 +119,11 @@ void SIOInputNode::stop(void)
 
 bool SIOInputNode::process(void)
 {
-  if (d->ioDevice)
+  if (d->ioDevice && !d->endReached)
   {
     if (!d->ioDevice->atEnd())
-      return SInputNode::process();
+    if (SInputNode::process())
+      return true;
 
     endReached();
 
@@ -135,12 +138,12 @@ void SIOInputNode::endReached(void)
   while (SInputNode::process())
     continue;
 
-  stop();
-
   emit output(SEncodedAudioBuffer());
   emit output(SEncodedVideoBuffer());
   emit output(SEncodedDataBuffer());
   emit finished();
+
+  d->endReached = true;
 }
 
 } // End of namespace

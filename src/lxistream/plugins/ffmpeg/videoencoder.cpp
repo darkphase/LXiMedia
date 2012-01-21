@@ -388,6 +388,8 @@ void VideoEncoder::encodeBufferTask(const SVideoBuffer &videoBuffer, SEncodedVid
         output->append(destBuffer);
       }
     }
+
+    output->append(SEncodedVideoBuffer()); // Flush
   }
 }
 

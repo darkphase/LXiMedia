@@ -214,9 +214,9 @@ const char * SAudioFormat::channelSetupName(Channels channels)
 {
   switch (channels)
   {
-  case Channels_Mono:                     return "Mono";
-  case Channels_Stereo:                   return "Stereo";
-  case Channels_Quadraphonic:             return "Quadraphonic";
+  case Channels_Mono:                     return "1.0 Mono";
+  case Channels_Stereo:                   return "2.0 Stereo";
+  case Channels_Quadraphonic:             return "4.0 Quadraphonic";
   case Channels_Surround_3_0:             return "3.0 Surround";
   case Channels_Surround_4_0:             return "4.0 Surround";
   case Channels_Surround_5_1:             return "5.1 Surround";

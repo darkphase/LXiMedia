@@ -158,6 +158,24 @@ void STimeStampSyncNode::input(const SAudioBuffer &audioBuffer)
         break;
     }
   }
+  else // Flush queue.
+  {
+    QMap<quint16, Queue<SAudioBuffer> >::Iterator i = d->audioQueue.find(0);
+    if (i != d->audioQueue.end())
+    {
+      foreach (SAudioBuffer buffer, i->buffers)
+      {
+        buffer.setTimeStamp(i->time);
+        emit output(buffer);
+
+        i->time += buffer.duration();
+      }
+
+      i->buffers.clear();
+
+      emit output(SAudioBuffer()); // Flush
+    }
+  }
 }
 
 void STimeStampSyncNode::input(const SVideoBuffer &videoBuffer)
@@ -207,6 +225,24 @@ void STimeStampSyncNode::input(const SVideoBuffer &videoBuffer)
       }
       else
         break;
+    }
+  }
+  else // Flush queue.
+  {
+    QMap<quint16, Queue<SVideoBuffer> >::Iterator i = d->videoQueue.find(0);
+    if (i != d->videoQueue.end())
+    {
+      foreach (SVideoBuffer buffer, i->buffers)
+      {
+        buffer.setTimeStamp(i->time);
+        emit output(buffer);
+
+        i->time += STime(1, d->frameRate);
+      }
+
+      i->buffers.clear();
+
+      emit output(SVideoBuffer()); // Flush
     }
   }
 }

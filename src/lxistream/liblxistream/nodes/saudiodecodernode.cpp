@@ -88,7 +88,7 @@ void SAudioDecoderNode::input(const SEncodedAudioBuffer &audioBuffer)
   {
     if ((d->decoder == NULL) || (d->lastCodec != audioBuffer.codec()))
     {
-      delete d->decoder;
+      closeDecoder();
 
       SInterfaces::AbstractBufferReader * const bufferReader =
           d->inputNode ? d->inputNode->bufferReader() : NULL;
@@ -102,14 +102,26 @@ void SAudioDecoderNode::input(const SEncodedAudioBuffer &audioBuffer)
   }
 
   if (d->decoder)
-  foreach (const SAudioBuffer &buffer, d->decoder->decodeBuffer(audioBuffer))
-    emit output(buffer);
+  {
+    foreach (const SAudioBuffer &buffer, d->decoder->decodeBuffer(audioBuffer))
+      emit output(buffer);
+  }
+  else if (audioBuffer.isNull())
+    emit output(SAudioBuffer()); // Flush
 }
 
 void SAudioDecoderNode::closeDecoder(void)
 {
-  delete d->decoder;
-  d->decoder = NULL;
+  if (d->decoder)
+  {
+    // Flush
+    foreach (const SAudioBuffer &buffer, d->decoder->decodeBuffer(SEncodedAudioBuffer()))
+    if (!buffer.isNull())
+      emit output(buffer);
+
+    delete d->decoder;
+    d->decoder = NULL;
+  }
 }
 
 } // End of namespace

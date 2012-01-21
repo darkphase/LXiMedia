@@ -195,8 +195,13 @@ SHttpServer::ResponseMessage MediaPlayerServer::sendPhoto(const SHttpServer::Req
 
 QList<MediaPlayerServer::Item> MediaPlayerServer::listItems(const QString &virtualPath, int start, int &count)
 {
-  const bool returnAll = count == 0;
   QList<Item> result;
+
+  // Limit the maximum number of returned results to 16 to prevent probing too
+  // long and not responding tiemly.
+  const int maxCount = loadItemCount();
+  if ((count == 0) || (count > maxCount))
+    count = maxCount;
 
   if (virtualPath != serverPath())
   {
@@ -206,7 +211,7 @@ QList<MediaPlayerServer::Item> MediaPlayerServer::listItems(const QString &virtu
     if (!node.isNull() && !node.titles().isEmpty())
     {
       const int numTitles = node.titles().count();
-      for (int i=start, n=0; (i<numTitles) && (returnAll || (n<count)); i++, n++)
+      for (int i=start, n=0; (i<numTitles) && (n<count); i++, n++)
         result += makeItem(node, i);
 
       count = numTitles;
@@ -228,7 +233,7 @@ QList<MediaPlayerServer::Item> MediaPlayerServer::listItems(const QString &virtu
   else
   {
     const QStringList paths = rootPaths.keys();
-    for (int i=start, n=0; (i<paths.count()) && (returnAll || (n<count)); i++, n++)
+    for (int i=start, n=0; (i<paths.count()) && (n<count); i++, n++)
     {
       const QString path = virtualPath + paths[i] + '/';
       if (!mediaDatabase->isEmpty(realPath(path)))

@@ -43,6 +43,9 @@ bool TsBufferWriter::openFormat(const QString &name)
     delete bufferWriter;
     bufferWriter = SInterfaces::BufferWriter::create(this, "mpegts", false);
 
+    if (bufferWriter)
+      filter.open(QIODevice::WriteOnly);
+
     return bufferWriter;
   }
 

@@ -52,36 +52,46 @@ void SAudioGapRemoverNode::stop(void)
 
 void SAudioGapRemoverNode::input(const SAudioBuffer &audioBuffer)
 {
-  if (!d->audioDelay.isEmpty() &&
-      (qAbs(audioBuffer.timeStamp() - d->audioDelay.last().timeStamp()).toMSec() > (d->delay * 2)))
-  { // New stream (timestamp gap).
-    if (Algorithms::AudioProcess::avg(
-            reinterpret_cast<const qint16 *>(audioBuffer.data()),
-            audioBuffer.numSamples() * audioBuffer.format().numChannels()) >= 512)
-    {
-      while (!d->audioDelay.isEmpty() &&
-             (Algorithms::AudioProcess::avg(
-                  reinterpret_cast<const qint16 *>(d->audioDelay.last().data()),
-                  d->audioDelay.last().numSamples() * d->audioDelay.last().format().numChannels()) < 512))
+  if (!audioBuffer.isNull())
+  {
+    if (!d->audioDelay.isEmpty() &&
+        (qAbs(audioBuffer.timeStamp() - d->audioDelay.last().timeStamp()).toMSec() > (d->delay * 2)))
+    { // New stream (timestamp gap).
+      if (Algorithms::AudioProcess::avg(
+              reinterpret_cast<const qint16 *>(audioBuffer.data()),
+              audioBuffer.numSamples() * audioBuffer.format().numChannels()) >= 512)
       {
-        d->audioDelay.takeLast();
+        while (!d->audioDelay.isEmpty() &&
+               (Algorithms::AudioProcess::avg(
+                    reinterpret_cast<const qint16 *>(d->audioDelay.last().data()),
+                    d->audioDelay.last().numSamples() * d->audioDelay.last().format().numChannels()) < 512))
+        {
+          d->audioDelay.takeLast();
+        }
+
+        while (!d->audioDelay.isEmpty())
+          emit output(d->audioDelay.dequeue());
+
+        d->audioDelay.enqueue(audioBuffer);
       }
-
-      while (!d->audioDelay.isEmpty())
-        emit output(d->audioDelay.dequeue());
-
+    }
+    else
+    {
       d->audioDelay.enqueue(audioBuffer);
+
+      while (!d->audioDelay.isEmpty() &&
+             ((d->audioDelay.last().timeStamp() - d->audioDelay.first().timeStamp()).toMSec() > d->delay))
+      {
+        emit output(d->audioDelay.dequeue());
+      }
     }
   }
-  else
+  else // Flush
   {
-    d->audioDelay.enqueue(audioBuffer);
-
-    while (!d->audioDelay.isEmpty() &&
-           ((d->audioDelay.last().timeStamp() - d->audioDelay.first().timeStamp()).toMSec() > d->delay))
-    {
+    while (!d->audioDelay.isEmpty())
       emit output(d->audioDelay.dequeue());
-    }
+
+    emit output(audioBuffer);
   }
 }
 

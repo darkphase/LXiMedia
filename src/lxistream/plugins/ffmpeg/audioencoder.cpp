@@ -348,6 +348,8 @@ void AudioEncoder::encodeBufferTask(const SAudioBuffer &audioBuffer, SEncodedAud
           << contextHandle->channels;
     }
   }
+  else
+    output->append(SEncodedAudioBuffer()); // Flush
 }
 
 
