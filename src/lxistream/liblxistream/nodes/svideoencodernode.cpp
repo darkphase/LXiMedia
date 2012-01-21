@@ -95,7 +95,6 @@ bool SVideoEncoderNode::start(void)
 
 void SVideoEncoderNode::stop(void)
 {
-
   delete d->encoder;
   d->encoder = NULL;
 }
