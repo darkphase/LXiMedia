@@ -96,12 +96,20 @@ void SHttpServer::close(void)
 }
 
 /*! Resets the HTTP server by releasing the bound ports and binding the
-    specified interfaces and port.
+    specified interfaces and port. Does nothing if all addresses are already
+    bound on the specified port.
  */
 void SHttpServer::reset(const QList<QHostAddress> &addresses, quint16 port)
 {
-  close();
-  initialize(addresses, port);
+  bool reset = addresses.count() != d->servers.count();
+  for (int i=0; (i<addresses.count()) && !reset; i++)
+    reset = !d->servers.contains(addresses[i].toString());
+
+  if (reset || (d->defaultPort != port))
+  {
+    close();
+    initialize(addresses, port);
+  }
 }
 
 /*! Returns the default port number as provided to initialize() and reset().

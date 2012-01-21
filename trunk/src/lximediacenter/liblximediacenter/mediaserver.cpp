@@ -216,11 +216,11 @@ bool MediaServer::defaultMusicAddBlackVideo(void)
 QList<MediaServer::SubtitleSize> MediaServer::allSubtitleSizes(void)
 {
   QList<SubtitleSize> sizes;
-  sizes << SubtitleSize("Tiny",     0.025)
-        << SubtitleSize("Small",    0.04)
-        << SubtitleSize("Normal",   0.05)
-        << SubtitleSize("Large",    0.0625)
-        << SubtitleSize("Huge",     0.08);
+  sizes << SubtitleSize("Tiny",     0.5f)
+        << SubtitleSize("Small",    0.75f)
+        << SubtitleSize("Normal",   1.0f)
+        << SubtitleSize("Large",    1.5f)
+        << SubtitleSize("Huge",     2.0f);
 
   return sizes;
 }
@@ -232,7 +232,7 @@ QString MediaServer::defaultSubtitleSizeName(void)
 
 int MediaServer::loadItemCount(void)
 {
-  return qBound(1, QThread::idealThreadCount(), 16) * 4;
+  return qBound(4, QThread::idealThreadCount(), 16) * 4;
 }
 
 MediaServer::ListType MediaServer::listType(const QString &)

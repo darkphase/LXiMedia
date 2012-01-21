@@ -37,8 +37,8 @@ public:
   explicit                      SSubtitleRenderNode(SGraph *);
   virtual                       ~SSubtitleRenderNode();
 
-  float                         fontRatio(void) const;
-  void                          setFontRatio(float r);
+  float                         fontSize(void) const;
+  void                          setFontSize(float r);
 
 public: // From SInterfaces::Node
   virtual bool                  start(void);

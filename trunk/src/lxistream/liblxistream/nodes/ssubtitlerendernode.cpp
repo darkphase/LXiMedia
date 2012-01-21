@@ -50,18 +50,18 @@ SSubtitleRenderNode::~SSubtitleRenderNode()
   *const_cast<Data **>(&d) = NULL;
 }
 
-float SSubtitleRenderNode::fontRatio(void) const
+float SSubtitleRenderNode::fontSize(void) const
 {
   if (d->renderer)
-    return d->renderer->fontRatio();
+    return d->renderer->fontSize();
 
-  return 0.0f;
+  return 1.0f;
 }
 
-void SSubtitleRenderNode::setFontRatio(float r)
+void SSubtitleRenderNode::setFontSize(float s)
 {
   if (d->renderer)
-    return d->renderer->setFontRatio(r);
+    return d->renderer->setFontSize(s);
 }
 
 bool SSubtitleRenderNode::start(void)

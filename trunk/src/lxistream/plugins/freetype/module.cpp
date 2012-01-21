@@ -50,11 +50,8 @@ QByteArray Module::licenses(void)
       "<br />\n"
       "Used under the terms of the GNU General Public License version 2\n"
       "as published by the Free Software Foundation.\n"
-      "<h3>Liberation Sans font</h3>\n"
-      "Website: <a href=\"https://fedorahosted.org/liberation-fonts/\">\n"
-      "fedorahosted.org/liberation-fonts/</a><br />\n"
-      "<br />\n"
-      "Used under the terms of the GNU General Public License version 2\n";
+      "<h3>DejaVu Fonts</h3>\n"
+      "Website: <a href=\"http://dejavu-fonts.org/\">dejavu-fonts.org</a><br />\n";
 
   return text;
 }
