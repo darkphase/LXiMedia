@@ -107,7 +107,7 @@ bool SIOOutputNode::start(STimer *)
 
 void SIOOutputNode::stop(void)
 {
-  if (d->bufferWriter)
+  if (d->bufferWriter && d->ioDevice)
     d->bufferWriter->stop();
 
   close();
@@ -121,7 +121,7 @@ void SIOOutputNode::input(const SEncodedAudioBuffer &buffer)
   if (!qFuzzyCompare(d->streamingSpeed, 0.0f))
     blockUntil(buffer.decodingTimeStamp().isValid() ? buffer.decodingTimeStamp() : buffer.presentationTimeStamp());
 
-  if (d->bufferWriter)
+  if (d->bufferWriter && d->ioDevice)
     d->bufferWriter->process(buffer);
 
   d->mutex.unlock();
@@ -135,7 +135,7 @@ void SIOOutputNode::input(const SEncodedVideoBuffer &buffer)
   if (!qFuzzyCompare(d->streamingSpeed, 0.0f))
     blockUntil(buffer.decodingTimeStamp().isValid() ? buffer.decodingTimeStamp() : buffer.presentationTimeStamp());
 
-  if (d->bufferWriter)
+  if (d->bufferWriter && d->ioDevice)
     d->bufferWriter->process(buffer);
 
   d->mutex.unlock();
@@ -149,7 +149,7 @@ void SIOOutputNode::input(const SEncodedDataBuffer &buffer)
   if (!qFuzzyCompare(d->streamingSpeed, 0.0f))
     blockUntil(buffer.decodingTimeStamp().isValid() ? buffer.decodingTimeStamp() : buffer.presentationTimeStamp());
 
-  if (d->bufferWriter)
+  if (d->bufferWriter && d->ioDevice)
     d->bufferWriter->process(buffer);
 
   d->mutex.unlock();
