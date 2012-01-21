@@ -277,6 +277,8 @@ SAudioBufferList AudioDecoder::decodeBuffer(const SEncodedAudioBuffer &audioBuff
       }
     }
   }
+  else
+    output << SAudioBuffer(); // Flush
 
   return output;
 }

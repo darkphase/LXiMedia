@@ -151,7 +151,9 @@ QSet<QString> & MediaServer::activeClients(void)
 QList<MediaServer::TranscodeSize> MediaServer::allTranscodeSizes(void)
 {
   QList<TranscodeSize> sizes;
-  sizes << TranscodeSize("Webcam 4:3",      SSize(352,  288,  1.0f))
+  sizes << TranscodeSize("QVGA",            SSize(320,  240,  1.0f))
+        << TranscodeSize("Video CD 4:3",    SSize(352,  288,  1.0f))
+        << TranscodeSize("Video CD 16:9",   SSize(352,  288,  1.45455f))
         << TranscodeSize("DVD/NTSC 4:3",    SSize(640,  480,  1.0f))
         << TranscodeSize("DVD/NTSC 16:9",   SSize(704,  480,  1.21307f))
         << TranscodeSize("DVD/PAL 4:3",     SSize(720,  576,  1.06666f))
@@ -230,7 +232,7 @@ QString MediaServer::defaultSubtitleSizeName(void)
 
 int MediaServer::loadItemCount(void)
 {
-  return qBound(1, QThread::idealThreadCount(), 16) * 8;
+  return qBound(1, QThread::idealThreadCount(), 16) * 4;
 }
 
 MediaServer::ListType MediaServer::listType(const QString &)

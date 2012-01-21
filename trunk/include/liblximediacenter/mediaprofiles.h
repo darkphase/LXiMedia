@@ -122,6 +122,12 @@ public:
   QStringList                   supportedVideoProfiles(const QString &client);
   QStringList                   supportedImageProfiles(const QString &client);
 
+  static SSize                  maximumResolution(const QStringList &profileNames);
+  static SSize                  maximumResolution(VideoProfile);
+  static SAudioFormat::Channels maximumChannels(const QStringList &profileNames);
+  static SAudioFormat::Channels maximumChannels(AudioProfile);
+  static SAudioFormat::Channels maximumChannels(VideoProfile);
+
   static int                    correctFormat(AudioProfile, SAudioFormat &);
   static int                    correctFormat(VideoProfile, SAudioFormat &);
   static int                    correctFormat(VideoProfile, SVideoFormat &);

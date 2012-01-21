@@ -204,7 +204,7 @@ QByteArray MediaServer::buildListItems(const ThumbnailListItemList &items)
       else
       {
         htmlParser.setField("ITEM_FUNC", item.func);
-        htmlParser.setField("ITEM_FILE", item.url.toEncoded(QUrl::RemoveQuery).replace("'", "%27"));
+        htmlParser.setField("ITEM_FILE", item.url);
         result += htmlParser.parse(item.title.isEmpty() ? htmlListItemFuncNoTitle : htmlListItemFunc);
       }
     }

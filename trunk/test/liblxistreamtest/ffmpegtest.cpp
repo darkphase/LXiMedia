@@ -186,7 +186,7 @@ void FFMpegTest::VideoEncodeDecode(const char *codecName)
     }
 
     encBuffers += videoEncoder->encodeBuffer(SVideoBuffer());
-    QCOMPARE(encBuffers.count(), count);
+    QCOMPARE(encBuffers.count(), count + 1); // +1 for flush buffer.
 
     // And decode it again
     videoDecoder = SInterfaces::VideoDecoder::create(NULL, encBuffers.first().codec(), NULL);
@@ -196,9 +196,8 @@ void FFMpegTest::VideoEncodeDecode(const char *codecName)
     foreach (const SEncodedVideoBuffer &buffer, encBuffers)
       decBuffers += videoDecoder->decodeBuffer(buffer);
 
-    decBuffers += videoDecoder->decodeBuffer(SEncodedVideoBuffer());
     QVERIFY2(!decBuffers.isEmpty(), codecName);
-    QCOMPARE(decBuffers.count(), count);
+    QCOMPARE(decBuffers.count(), count + 1); // +1 for flush buffer.
 
     if (!qApp->arguments().contains("-silent"))
       qDebug() << codecName << QString::number(float(count * 1000) / float(timer.elapsed()), 'f', 2).toAscii().data() << "fps";

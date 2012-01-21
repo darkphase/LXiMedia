@@ -218,6 +218,8 @@ SDataBufferList DataDecoder::decodeBuffer(const SEncodedDataBuffer &dataBuffer)
       break;
     }
   }
+  else
+    output << SDataBuffer(); // Flush
 
   return output;
 }

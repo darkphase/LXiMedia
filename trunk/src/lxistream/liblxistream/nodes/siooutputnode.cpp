@@ -110,13 +110,6 @@ void SIOOutputNode::stop(void)
   if (d->bufferWriter)
     d->bufferWriter->stop();
 
-  QTime timer;
-  timer.start();
-
-  while (d->ioDevice && (d->ioDevice->bytesToWrite() >= 0))
-  if (!d->ioDevice->waitForBytesWritten(qMax(0, 5000 - qAbs(timer.elapsed()))))
-    break;
-
   close();
 }
 

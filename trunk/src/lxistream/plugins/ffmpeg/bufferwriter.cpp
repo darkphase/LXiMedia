@@ -318,6 +318,7 @@ void BufferWriter::stop(void)
 
 void BufferWriter::process(const SEncodedAudioBuffer &buffer)
 {
+  if (!buffer.isNull())
   foreach (::AVStream *stream, streams)
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
   if (stream->codec->codec_type == AVMEDIA_TYPE_AUDIO)
@@ -338,6 +339,7 @@ void BufferWriter::process(const SEncodedAudioBuffer &buffer)
 
 void BufferWriter::process(const SEncodedVideoBuffer &buffer)
 {
+  if (!buffer.isNull())
   foreach (::AVStream *stream, streams)
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
   if (stream->codec->codec_type == AVMEDIA_TYPE_VIDEO)
@@ -358,6 +360,7 @@ void BufferWriter::process(const SEncodedVideoBuffer &buffer)
 
 void BufferWriter::process(const SEncodedDataBuffer &buffer)
 {
+  if (!buffer.isNull())
   foreach (::AVStream *stream, streams)
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
   if (stream->codec->codec_type == AVMEDIA_TYPE_SUBTITLE)

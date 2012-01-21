@@ -86,7 +86,7 @@ void SVideoDecoderNode::input(const SEncodedVideoBuffer &videoBuffer)
   {
     if ((d->decoder == NULL) || (d->lastCodec != videoBuffer.codec()))
     {
-      delete d->decoder;
+      closeDecoder();
 
       SInterfaces::AbstractBufferReader * const bufferReader =
           d->inputNode ? d->inputNode->bufferReader() : NULL;
@@ -100,14 +100,26 @@ void SVideoDecoderNode::input(const SEncodedVideoBuffer &videoBuffer)
   }
 
   if (d->decoder)
-  foreach (const SVideoBuffer &buffer, d->decoder->decodeBuffer(videoBuffer))
-    emit output(buffer);
+  {
+    foreach (const SVideoBuffer &buffer, d->decoder->decodeBuffer(videoBuffer))
+      emit output(buffer);
+  }
+  else if (videoBuffer.isNull())
+    emit output(SVideoBuffer()); // Flush
 }
 
 void SVideoDecoderNode::closeDecoder(void)
 {
-  delete d->decoder;
-  d->decoder = NULL;
+  if (d->decoder)
+  {
+    // Flush
+    foreach (const SVideoBuffer &buffer, d->decoder->decodeBuffer(SEncodedVideoBuffer()))
+    if (!buffer.isNull())
+      emit output(buffer);
+
+    delete d->decoder;
+    d->decoder = NULL;
+  }
 }
 
 } // End of namespace
