@@ -28,7 +28,7 @@ QByteArray SubtitleRenderer::faceData;
 
 SubtitleRenderer::SubtitleRenderer(const QString &, QObject *parent)
   : SInterfaces::SubtitleRenderer(parent),
-    ratio(0.05f),
+    size(1.0f),
     initialized(false),
     rendering(false)
 {
@@ -37,7 +37,7 @@ SubtitleRenderer::SubtitleRenderer(const QString &, QObject *parent)
 
   if (instanceCount++ == 0)
   {
-    QFile file(":/freetype/LiberationSans-Bold.ttf");
+    QFile file(":/freetype/DejaVuSans-Bold.ttf");
     if (file.open(QFile::ReadOnly))
       faceData = file.readAll();
   }
@@ -78,14 +78,14 @@ SubtitleRenderer::~SubtitleRenderer()
     faceData.clear();
 }
 
-void SubtitleRenderer::setFontRatio(float r)
+void SubtitleRenderer::setFontSize(float s)
 {
-  ratio = r;
+  size = s;
 }
 
-float SubtitleRenderer::fontRatio(void) const
+float SubtitleRenderer::fontSize(void) const
 {
-  return ratio;
+  return size;
 }
 
 void SubtitleRenderer::prepareSubtitle(const SSubtitleBuffer &subtitleBuffer, const SSize &size)
@@ -141,19 +141,19 @@ SVideoBuffer SubtitleRenderer::processBuffer(const SVideoBuffer &videoBuffer, co
   return videoBuffer;
 }
 
-SubtitleRenderer::RenderedSubtitle SubtitleRenderer::renderSubtitle(const SSubtitleBuffer &subtitleBuffer, const SSize &size)
+SubtitleRenderer::RenderedSubtitle SubtitleRenderer::renderSubtitle(const SSubtitleBuffer &subtitleBuffer, const SSize &imageSize)
 {
   RenderedSubtitle renderedSubtitle;
   renderedSubtitle.uid = subtitleBuffer.memory()->uid;
-  renderedSubtitle.margin = int((float(size.height()) * 0.05f) + 0.5f);
-  renderedSubtitle.videoSize = size;
+  renderedSubtitle.margin = int((float(imageSize.height()) * fontRatio) + 0.5f);
+  renderedSubtitle.videoSize = imageSize;
 
   if (initialized)
   {
-    const float height = float(size.height()) * ratio;
-    const float width = (height / size.aspectRatio()) * 0.85f;
+    const float height = float(imageSize.height()) * size * fontRatio;
+    const float width = (height / imageSize.aspectRatio()) * fontStretch;
     const int shadowHeight = qMax(1, int((height / 16.0f) + 0.5f));
-    const int shadowWidth = qMax(1, int(((height / size.aspectRatio()) / 16.0f) + 0.5f));
+    const int shadowWidth = qMax(1, int(((height / imageSize.aspectRatio()) / 16.0f) + 0.5f));
 
     if (::FT_Set_Pixel_Sizes(face, int(width + 0.5f), int(height + 0.5f)) == 0)
     {
@@ -164,7 +164,7 @@ SubtitleRenderer::RenderedSubtitle SubtitleRenderer::renderSubtitle(const SSubti
 
       const SVideoFormat format(
           SVideoFormat::Format_GRAY8,
-          SSize(size.width(), lineHeight + shadowHeight * 2));
+          SSize(imageSize.width(), lineHeight + shadowHeight * 2));
 
       bool oblique = false, bold = false;
       foreach (QString line, lines)

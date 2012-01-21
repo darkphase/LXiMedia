@@ -805,8 +805,8 @@ protected:
   inline explicit               SubtitleRenderer(QObject *parent) : QObject(parent) { }
 
 public:
-  virtual void                  setFontRatio(float r) = 0;                      //!< Sets the relative font size (1.0 = the font will be as big as the image).
-  virtual float                 fontRatio(void) const = 0;                      //!< Returns the relative font size.
+  virtual void                  setFontSize(float r) = 0;                       //!< Sets the relative font size (1.0 = sormal subtitle size).
+  virtual float                 fontSize(void) const = 0;                       //!< Returns the relative font size.
 
   /*! Shall prepare a subtitle for rendering so that the next  invoke of
       processBuffer() with this subtitle can be faster. This method shall return

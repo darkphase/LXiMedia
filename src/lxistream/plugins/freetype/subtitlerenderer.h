@@ -53,8 +53,8 @@ public:
   virtual                       ~SubtitleRenderer();
 
 public: // From SInterfaces::SubtitleRenderer
-  virtual void                  setFontRatio(float r);
-  virtual float                 fontRatio(void) const;
+  virtual void                  setFontSize(float s);
+  virtual float                 fontSize(void) const;
 
   virtual void                  prepareSubtitle(const SSubtitleBuffer &, const SSize &);
   virtual SVideoBuffer          processBuffer(const SVideoBuffer &, const SSubtitleBuffer &);
@@ -67,10 +67,12 @@ private:
   static void                   blendLine(SVideoBuffer *, const RenderedSubtitle::Line *, int y);
 
 private:
+  static const float            fontRatio = 0.055f;
+  static const float            fontStretch = 0.7f;
   static int                    instanceCount;
   static QByteArray             faceData;
 
-  float                         ratio;
+  float                         size;
 
   bool                          initialized;
   ::FT_Library                  library;
