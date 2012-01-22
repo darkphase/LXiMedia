@@ -2,6 +2,7 @@
     <qresource prefix="/">
         <file>devices.ini</file>
         <file>css/list.css</file>
+        <file>css/help.css</file>
         <file>css/main.css</file>
         <file>css/player.css</file>
         <file>img/glossary.png</file>
@@ -13,8 +14,6 @@
         <file>img/audio-file.png</file>
         <file>img/video-file.png</file>
         <file>img/image-file.png</file>
-        <file>js/list.js</file>
-        <file>js/player.js</file>
         <file>img/play-all.png</file>
         <file>img/settings.png</file>
         <file>img/close.png</file>
@@ -26,5 +25,13 @@
         <file>img/checksomedisabled.png</file>
         <file>img/search.png</file>
         <file>img/home.png</file>
+        <file>js/list.js</file>
+        <file>js/player.js</file>
+        <file>help/quickstart.en.html</file>
+        <file>help/troubleshooting.en.html</file>
+        <file>help/connect-direct.png</file>
+        <file>help/connect-network.png</file>
+        <file>help/connect-powerline.png</file>
+        <file>help/connect-wireless.png</file>
     </qresource>
 </RCC>

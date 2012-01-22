@@ -181,12 +181,11 @@ QByteArray Module::about(void)
 QByteArray Module::licenses(void)
 {
   const QByteArray text =
-      "<h3>FFMpeg (libavcodec, libavformat, libswscale)</h3>\n"
-      "Versions: " LIBAVCODEC_IDENT ", " LIBAVFORMAT_IDENT ", " LIBSWSCALE_IDENT "<br />\n"
-      "Website: <a href=\"http://www.ffmpeg.org/\">www.ffmpeg.org</a><br />\n"
-      "<br />\n"
-      "Used under the terms of the GNU Lesser General Public License version 2.1\n"
-      "as published by the Free Software Foundation.\n";
+      " <h3>FFMpeg (libavcodec, libavformat, libswscale)</h3>\n"
+      " <p>Versions: " LIBAVCODEC_IDENT ", " LIBAVFORMAT_IDENT ", " LIBSWSCALE_IDENT "</p>\n"
+      " <p>Website: <a href=\"http://www.ffmpeg.org/\">www.ffmpeg.org</a></p>\n"
+      " <p>Used under the terms of the GNU Lesser General Public License version 2.1\n"
+      " as published by the Free Software Foundation.</p>\n";
 
   return text;
 }

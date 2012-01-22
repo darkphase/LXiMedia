@@ -1,0 +1,41 @@
+div.contents {
+ padding: 1em;
+ margin: 1em;
+ float: right;
+ background-color: #E0E0E0;
+ border: 1px solid #000000;
+}
+.contents p {
+ font-size: 1.2em;
+ font-weight: bold;
+ color: #808080;
+}
+.contents ul {
+ padding: 0;
+ margin: 0;
+ list-style-type: none;
+}
+.contents li {
+ padding-left: 1.5em;
+ margin: 0;
+}
+
+h1 {
+ font-size: 2em;
+ font-weight: bold;
+ color: #808080;
+ border: none;
+}
+h2 {
+ font-size: 1.7em;
+ font-weight: bold;
+ color: #808080;
+ border: 1px dotted #FFFFFF;
+ border-bottom-color: #808080;
+}
+h3 {
+ font-size: 1.2em;
+ font-weight: bold;
+ color: #808080;
+ border: none;
+}

@@ -51,11 +51,10 @@ QByteArray Module::about(void)
 QByteArray Module::licenses(void)
 {
   const QByteArray text =
-      "<h3>KDE monochromatic icons theme</h3>\n"
-      "Website: <a href=\"http://www.kde.org/\">www.kde.org</a><br />\n"
-      "<br />\n"
-      "Used under the terms of the GNU General Public License version 2\n"
-      "as published by the Free Software Foundation.\n";
+      " <h3>KDE monochromatic icons theme</h3>\n"
+      " <p>Website: <a href=\"http://www.kde.org/\">www.kde.org</a></p>\n"
+      " <p>Used under the terms of the GNU General Public License version 2\n"
+      " as published by the Free Software Foundation.</p>\n";
 
   return text;
 }

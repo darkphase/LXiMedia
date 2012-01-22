@@ -42,16 +42,15 @@ QByteArray Module::about(void)
 QByteArray Module::licenses(void)
 {
   const QByteArray text =
-      "<h3>FreeType</h3>\n"
-      "Version: " + QByteArray::number(FREETYPE_MAJOR) +
+      " <h3>FreeType</h3>\n"
+      " <p>Version: " + QByteArray::number(FREETYPE_MAJOR) +
       "." + QByteArray::number(FREETYPE_MINOR) +
-      "." + QByteArray::number(FREETYPE_PATCH) + "<br />\n"
-      "Website: <a href=\"http://freetype.org/\">freetype.org</a><br />\n"
-      "<br />\n"
-      "Used under the terms of the GNU General Public License version 2\n"
-      "as published by the Free Software Foundation.\n"
-      "<h3>DejaVu Fonts</h3>\n"
-      "Website: <a href=\"http://dejavu-fonts.org/\">dejavu-fonts.org</a><br />\n";
+      "." + QByteArray::number(FREETYPE_PATCH) + "</p>\n"
+      " <p>Website: <a href=\"http://freetype.org/\">freetype.org</a></p>\n"
+      " <p>Used under the terms of the GNU General Public License version 2\n"
+      " as published by the Free Software Foundation.</p>\n"
+      " <h3>DejaVu Fonts</h3>\n"
+      " <p>Website: <a href=\"http://dejavu-fonts.org/\">dejavu-fonts.org</a></p>\n";
 
   return text;
 }

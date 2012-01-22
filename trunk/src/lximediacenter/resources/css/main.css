@@ -93,6 +93,49 @@ div.main_navigator {
  height: 3em;
 }
 
+div.main_buttons {
+ padding: 0;
+ margin: 0;
+ display: table-cell;
+}
+.main_buttons div.button {
+ padding: 0;
+ margin: 0.5em;
+ width: 30em;
+ display: table;
+ float: left;
+ overflow: hidden;
+ white-space: nowrap;
+ border: 1px solid #D0D0D0;
+}
+.button div {
+ padding: 0;
+ margin: 0;
+ display: table-cell;
+ vertical-align: top;
+}
+.button div.title {
+ padding-left: 0.5em;
+ width: 100%;
+}
+.button img {
+ padding: 0;
+ margin: 0;
+ width: 4em;
+ height: 4em;
+}
+.button p {
+ padding: 0;
+ margin: 0;
+ font-size: 0.8em;
+ overflow: hidden;
+ white-space: nowrap;
+}
+.button p.name {
+ font-size: 1.2em;
+ font-weight: bold;
+}
+
 div.main_frontpages {
  padding: 0;
  margin: 0;
@@ -167,32 +210,4 @@ div.main_log {
 .main_log td.stretch {
  width: 1000em;
  white-space: normal;
-}
-
-div.main_about {
- padding: 0;
- margin: 0;
- width: 100%;
- display: block;
-}
-.main_about h1 {
- font-size: 2em;
- font-weight: bold;
- color: #808080;
- border: 1px solid #FFFFFF;
- border-bottom-color: #808080;
-}
-.main_about h2 {
- font-size: 1.7em;
- font-weight: bold;
- color: #808080;
- border: 1px dotted #FFFFFF;
- border-bottom-color: #808080;
-}
-.main_about h3 {
- font-size: 1.2em;
- font-weight: bold;
- color: #808080;
- border: 1px dotted #FFFFFF;
- border-bottom-color: #808080;
 }

@@ -219,7 +219,7 @@ void Frontend::requestFinished(QNetworkReply *reply)
               isLocalAddress(server->presentationURL.host()))
           {
             QUrl url = server->presentationURL;
-            url.setPath(url.path() + "settings");
+            url.setPath(url.path() + "help");
 
             waitingForWelcome = false;
             setUrl(url);
