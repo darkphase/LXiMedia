@@ -51,13 +51,13 @@ const char Frontend::htmlServers[] =
     " <p class=\"title\">{TR_LXIMEDIACENTER_SERVER_ON_THIS_COMPUTER}</p>\n"
     "{LOCAL_SERVER}"
     " <p class=\"title\">{TR_LXIMEDIACENTER_SERVERS}</p>\n"
-    " <div class=\"servers\">\n"
+    " <div class=\"main_buttons\">\n"
     " <p>{TR_LXIMEDIACENTER_SERVERS_EXPLAIN}</p>\n"
     "{LXIMEDIACENTER_SERVERS}"
     " </div>\n"
     " <p class=\"title\">{TR_OTHER_SERVERS}</p>\n"
     " <p>{TR_OTHER_SERVERS_EXPLAIN}</p>\n"
-    " <div class=\"servers\">\n"
+    " <div class=\"main_buttons\">\n"
     "{OTHER_SERVERS}"
     " </div>\n";
 
@@ -92,16 +92,16 @@ const char Frontend::htmlConfigureLocalServer[] =
     " <a href=\"{ITEM_LOCATION}settings\">{TR_CONFIGURE}</a>";
 
 const char Frontend::htmlServer[] =
-    " <a class=\"hidden\" href=\"{ITEM_LOCATION}\">"
-    "  <div class=\"server\">\n"
-    "   <span><img src=\"{ITEM_ICON}\" /></span>\n"
-    "   <span class=\"title\">\n"
-    "    <p class=\"name\">{ITEM_NAME}</p>\n"
-    "    <p>{TR_MODEL}: {ITEM_MODEL}</p>\n"
-    "    <p>{TR_ADDRESS}: http://{ITEM_HOST}/ {THIS_COMPUTER}</p>\n"
-    "   </span>\n"
-    "  </div>\n"
-    " </a>\n";
+    "  <a class=\"hidden\" href=\"{ITEM_LOCATION}\">\n"
+    "   <div class=\"button\">\n"
+    "    <div><img src=\"{ITEM_ICON}\" alt=\"..\" /></div>\n"
+    "    <div class=\"title\">\n"
+    "     <p class=\"name\">{ITEM_NAME}</p>\n"
+    "     <p>{TR_MODEL}: {ITEM_MODEL}</p>\n"
+    "     <p>{TR_ADDRESS}: http://{ITEM_HOST}/ {THIS_COMPUTER}</p>\n"
+    "    </div>\n"
+    "   </div>\n"
+    "  </a>\n";
 
 const char Frontend::htmlNoServers[] =
     " <p class=\"idle\">{TR_NO_SERVERS}</p>\n";

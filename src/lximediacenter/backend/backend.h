@@ -120,7 +120,6 @@ private:
   static const char             htmlLogFile[];
   static const char             htmlLogFileHeadline[];
   static const char             htmlLogFileMessage[];
-  static const char             htmlAbout[];
 
   static const char             htmlSettingsMain[];
   static const char             htmlSettingsDlnaRow[];
@@ -128,6 +127,9 @@ private:
   static const char             htmlSettingsDlnaRowProfiles[];
   static const char             htmlSettingsDlnaRowProfilesCheck[];
   static const char             htmlSettingsOption[];
+
+  static const char             htmlHelpHead[];
+  static const char             htmlHelpContents[];
 };
 
 #endif

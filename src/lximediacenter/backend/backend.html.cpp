@@ -58,8 +58,31 @@ const char Backend::htmlFrontPagesHead[] =
     " <script type=\"text/javascript\" src=\"/js/list.js\"></script>\n"; // Open and close tag due to IE bug
 
 const char Backend::htmlFrontPages[] =
+    " <p>\n"
+    "  {TR_MAINPAGE_EXPLAIN}\n"
+    "  <a href=\"http://lximedia.sourceforge.net/\">lximedia.sourceforge.net</a>\n"
+    " </p>\n"
+    " <div class=\"main_buttons\">\n"
+    "  <a class=\"hidden\" href=\"/settings\">\n"
+    "   <div class=\"button\">\n"
+    "    <div><img src=\"/img/settings.png\" alt=\"..\" /></div>\n"
+    "    <div class=\"title\">\n"
+    "     <p class=\"name\">{TR_BUTTON_SETTINGS}</p>\n"
+    "     <p>{TR_BUTTON_SETTINGS_EXPLAIN}</p>\n"
+    "    </div>\n"
+    "   </div>\n"
+    "  </a>\n"
+    "  <a class=\"hidden\" href=\"/help\">\n"
+    "   <div class=\"button\">\n"
+    "    <div><img src=\"/img/glossary.png\" alt=\"..\" /></div>\n"
+    "    <div class=\"title\">\n"
+    "     <p class=\"name\">{TR_BUTTON_HELP}</p>\n"
+    "     <p>{TR_BUTTON_HELP_EXPLAIN}</p>\n"
+    "    </div>\n"
+    "   </div>\n"
+    "  </a>\n"
+    " </div>\n"
     " <div class=\"main_frontpages\">\n"
-    "  <p>{TR_FRONTPAGES_EXPLAIN}</p>\n"
     "{FRONTPAGES}"
     " </div>\n";
 
@@ -106,13 +129,9 @@ const char Backend::htmlLogFileMessage[] =
     "    </td>\n"
     "   </tr>\n";
 
-const char Backend::htmlAbout[] =
-    " <div class=\"main_about\">\n"
-    "{ABOUT_LXIMEDIA}"
-    " </div>\n";
-
 const char Backend::htmlSettingsMain[] =
     " <div class=\"main_settings\">\n"
+    "{PLUGIN_SETTINGS}"
     "  <fieldset id=\"httpserver\">\n"
     "   <legend>{TR_SERVER}</legend>\n"
     "   {TR_SERVER_EXPLAIN}<br />\n"
@@ -155,12 +174,9 @@ const char Backend::htmlSettingsMain[] =
     "   <legend>{TR_DLNA}</legend>\n"
     "   {TR_MEDIA_TRANSCODE_SETTINGS_EXPLAIN}<br />\n"
     "   <br />\n"
-    "   {TR_AUDIO_TRANSCODE_SETTINGS_EXPLAIN}<br />\n"
-    "   <br />\n"
     "{CLIENT_ROWS}"
     "   {TR_CLIENT_SETTINGS_EXPLAIN}<br />\n"
     "  </fieldset>\n"
-    "{PLUGIN_SETTINGS}"
     " </div>\n";
 
 const char Backend::htmlSettingsDlnaRow[] =
@@ -270,6 +286,18 @@ const char Backend::htmlSettingsDlnaRowProfilesCheck[] =
 const char Backend::htmlSettingsOption[] =
     "         <option value=\"{VALUE}\" {SELECTED}>{TEXT}</option>\n";
 
+const char Backend::htmlHelpHead[] =
+    " <link rel=\"stylesheet\" href=\"/css/help.css\" type=\"text/css\" media=\"screen, handheld, projection\" />\n";
+
+const char Backend::htmlHelpContents[] =
+    " <div class=\"contents\">\n"
+    "  <p>{TR_CONTENTS}</p>\n"
+    "  <ul>\n"
+    "   <li><a href=\"quickstart\">{TR_QUICK_START}</a></li>\n"
+    "   <li><a href=\"troubleshooting\">{TR_TROUBLESHOOTING}</a></li>\n"
+    "   <li><a href=\"about\">{TR_ABOUT}</a></li>\n"
+    "  </ul>\n"
+    " </div>\n";
 
 SHttpServer::ResponseMessage Backend::httpRequest(const SHttpServer::RequestMessage &request, QIODevice *)
 {
@@ -285,10 +313,18 @@ SHttpServer::ResponseMessage Backend::httpRequest(const SHttpServer::RequestMess
 
       if (request.fileName().isEmpty())
       {
-        htmlParser.setField("TR_FRONTPAGES_EXPLAIN",
-            tr("Below is a list of media that is available for this server, "
-               "the icons on the top-right can be used to configure this "
-               "server."));
+        htmlParser.setField("TR_MAINPAGE_EXPLAIN",
+            tr("Welcome to the web interface of LXiMediaCenter. Through this "
+               "web interface the LXiMediaCenter server can be configured and "
+               "all served items can be browsed. For more information please "
+               "refer to the user-manual or the web site."));
+
+        htmlParser.setField("TR_BUTTON_SETTINGS", tr("Settings"));
+        htmlParser.setField("TR_BUTTON_SETTINGS_EXPLAIN",
+            tr("Configure this server."));
+        htmlParser.setField("TR_BUTTON_HELP", tr("Help"));
+        htmlParser.setField("TR_BUTTON_HELP_EXPLAIN",
+            tr("Read the user manual."));
 
         htmlParser.setField("FRONTPAGES", "");
         foreach (BackendServer *backendServer, backendServers)
@@ -364,10 +400,12 @@ SHttpServer::ResponseMessage Backend::httpRequest(const SHttpServer::RequestMess
 
         content = htmlParser.parse(htmlLogFile);
       }
-      else if (request.fileName() == "about")
+      else if (request.fileName() == "help")
       {
-        htmlParser.setField("ABOUT_LXIMEDIA", sApp->about());
-        content = htmlParser.parse(htmlAbout);
+        SHttpServer::ResponseMessage response(request, SHttpServer::Status_MovedPermanently);
+        response.setCacheControl(-1);
+        response.setField("Location", "http://" + request.host() + "/help/");
+        return response;
       }
 #if !defined(QT_NO_DEBUG) || defined(Q_OS_MACX)
       else if (request.fileName() == "exit")
@@ -395,8 +433,64 @@ SHttpServer::ResponseMessage Backend::httpRequest(const SHttpServer::RequestMess
       response.setContent(parseHtmlContent(request, content, htmlFrontPagesHead));
       return response;
     }
+    else if (dir == "/help/")
+    {
+      if (request.fileName().isEmpty())
+      {
+        SHttpServer::ResponseMessage response(request, SHttpServer::Status_MovedPermanently);
+        response.setCacheControl(-1);
+        response.setField("Location", "http://" + request.host() + "/help/quickstart");
+        return response;
+      }
+      else if (request.fileName().endsWith(".png"))
+      {
+        return sendFile(request, ':' + request.file());
+      }
+      else
+      {
+        SStringParser htmlParser(this->htmlParser);
+        htmlParser.setField("TR_ABOUT", tr("About"));
+        htmlParser.setField("TR_CONTENTS", tr("Contents"));
+        htmlParser.setField("TR_QUICK_START", tr("Quick Start"));
+        htmlParser.setField("TR_TROUBLESHOOTING", tr("Troubleshooting"));
+
+        QByteArray content = htmlParser.parse(htmlHelpContents);
+
+        if (request.fileName() == "about")
+        {
+          content +=
+              " <h1>" + tr("About") + ' ' + qApp->applicationName() + "</h1>\n" +
+              sApp->about();
+        }
+        else
+        {
+          QFile htmlFile(':' + request.file() + ".en.html");
+          if (htmlFile.open(QFile::ReadOnly))
+          {
+            bool body = false;
+            for (QByteArray line=htmlFile.readLine(); !line.isEmpty(); line=htmlFile.readLine())
+            {
+              const QByteArray cline = line.simplified().toLower();
+
+              if (cline.startsWith("<body "))
+                body = true;
+              else if (cline.startsWith("</body>"))
+                body = false;
+              else if (body)
+                content += ' ' + line.replace('\t', ' ');
+            }
+          }
+        }
+
+        SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
+        response.setCacheControl(-1);
+        response.setContentType(SHttpEngine::mimeTextHtml);
+        response.setContent(parseHtmlContent(request, content, htmlHelpHead));
+        return response;
+      }
+    }
     else if ((dir == "/css/") || (dir == "/js/") || (dir == "/img/"))
-      return sendFile(request, ":" + request.file());
+      return sendFile(request, ':' + request.file());
   }
 
   return SHttpServer::ResponseMessage(request, SHttpServer::Status_NotFound);
@@ -450,7 +544,7 @@ QByteArray Backend::parseHtmlContent(const SHttpServer::RequestHeader &request, 
   htmlParser.setField("ITEM_ICON", "/img/journal.png");
   htmlParser.appendField("NAVIGATOR_BUTTONS", htmlParser.parse(htmlNavigatorButton));
 
-  htmlParser.setField("ITEM_LINK", "/about");
+  htmlParser.setField("ITEM_LINK", "/help");
   htmlParser.setField("ITEM_ICON", "/img/glossary.png");
   htmlParser.appendField("NAVIGATOR_BUTTONS", htmlParser.parse(htmlNavigatorButton));
 
@@ -469,6 +563,11 @@ QByteArray Backend::handleHtmlSettings(const SHttpServer::RequestMessage &reques
   QSettings settings;
 
   SStringParser htmlParser;
+
+  htmlParser.setField("PLUGIN_SETTINGS", "");
+  foreach (BackendServer *backendServer, backendServers)
+    htmlParser.appendField("PLUGIN_SETTINGS", backendServer->settingsContent());
+
   htmlParser.setField("TR_SERVER", tr("Server"));
   htmlParser.setField("TR_HTTP_PORT_NUMBER", tr("Preferred HTTP port number"));
   htmlParser.setField("TR_DEVICE_NAME", tr("Device name"));
@@ -557,18 +656,7 @@ QByteArray Backend::handleHtmlSettings(const SHttpServer::RequestMessage &reques
   htmlParser.setField("TR_MEDIA_TRANSCODE_SETTINGS_EXPLAIN",
     tr("This form will allow adjustment of the transcode settings for the DLNA "
        "clients. Note that higher settings require more CPU power and more "
-       "network bandwidth. The \"Letterbox\" setting will add black bars to "
-       "the image if the aspect ratio does not match, whereas the \"Fullscreen\" "
-       "setting will zoom in and cut off part of the image. The \"High quality\" "
-       "setting will use more CPU power but gives higher quality images than the "
-       "\"Fast\" setting, which only encodes intra-frames."));
-
-  htmlParser.setField("TR_AUDIO_TRANSCODE_SETTINGS_EXPLAIN",
-    tr("There are two separate transcode settings for music. The "
-       "\"4.0 Quadraphonic\" setting can be used to duplicate the front channels "
-       "to the rear channels. Furthermore, the \"Add black video\" setting can "
-       "be used to add a video stream with black images to simulate that a TV is "
-       "switched off (audio only)."));
+       "network bandwidth."));
 
   htmlParser.setField("TR_CLIENT_SETTINGS_EXPLAIN",
     tr("A box will appear here for each DLNA device that connects to this "
@@ -866,10 +954,6 @@ QByteArray Backend::handleHtmlSettings(const SHttpServer::RequestMessage &reques
     settings.endGroup();
     htmlParser.appendField("CLIENT_ROWS", htmlParser.parse(htmlSettingsDlnaRow));
   }
-
-  htmlParser.setField("PLUGIN_SETTINGS", "");
-  foreach (BackendServer *backendServer, backendServers)
-    htmlParser.appendField("PLUGIN_SETTINGS", backendServer->settingsContent());
 
   return htmlParser.parse(htmlSettingsMain);
 }

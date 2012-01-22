@@ -46,10 +46,9 @@ QByteArray Module::licenses(void)
 #ifndef Q_OS_WIN
   const QByteArray text =
       " <h3>libsmbclient</h3>\n"
-      " Version: " + SMBFilesystem::version() + "<br />\n"
-      " <br />\n"
-      " Used under the terms of the GNU General Public License version 2\n"
-      " as published by the Free Software Foundation.\n";
+      " <p>Version: " + SMBFilesystem::version() + "</p>\n"
+      " <p>Used under the terms of the GNU General Public License version 2\n"
+      " as published by the Free Software Foundation.</p>\n";
 
   return text;
 #else
