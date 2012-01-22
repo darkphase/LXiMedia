@@ -51,21 +51,24 @@ QList<FormatProber::Format> FormatProber::probeFormat(const QByteArray &buffer, 
   {
     formats.clear();
 
-    QByteArray fileName("");
-    if (!filePath.isEmpty())
+    if (buffer.isEmpty() || (buffer.size() >= (defaultProbeSize / 2)))
     {
-      const QString path = filePath.path();
-      fileName = path.mid(path.lastIndexOf('/') + 1).toUtf8();
+      QByteArray fileName("");
+      if (!filePath.isEmpty())
+      {
+        const QString path = filePath.path();
+        fileName = path.mid(path.lastIndexOf('/') + 1).toUtf8();
+      }
+
+      ::AVProbeData probeData;
+      probeData.filename = fileName.data();
+      probeData.buf = (uchar *)buffer.data();
+      probeData.buf_size = buffer.size();
+
+      ::AVInputFormat * format = ::av_probe_input_format(&probeData, true);
+      if (format && format->name)
+        formats += Format(format->name, 0);
     }
-
-    ::AVProbeData probeData;
-    probeData.filename = fileName.data();
-    probeData.buf = (uchar *)buffer.data();
-    probeData.buf_size = buffer.size();
-
-    ::AVInputFormat * format = ::av_probe_input_format(&probeData, true);
-    if (format)
-      formats += Format(format->name, 0);
 
     lastFilePath = filePath;
   }

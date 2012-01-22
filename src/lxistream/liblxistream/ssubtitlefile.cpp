@@ -68,19 +68,14 @@ bool SSubtitleFile::open(void)
     if (!sample.isEmpty())
     {
       d->utf8 = SStringParser::isUtf8(sample);
-      if (d->utf8)
-      {
-        d->dataCodec = SDataCodec("SUB/RAWUTF8");
-        d->language = SStringParser::languageOf(QString::fromUtf8(sample));
-      }
-      else
-      {
-        d->dataCodec = SDataCodec("SUB/RAWLOCAL8BIT");
-        d->language = SStringParser::languageOf(QString::fromLocal8Bit(sample));
+      d->dataCodec = SDataCodec(d->utf8 ? "SUB/RAWUTF8" : "SUB/RAW8BIT");
+      d->language = SStringParser::languageOf(sample);
 
+      if (!d->utf8)
+      {
         const char * const codepage = SStringParser::codepageFor(d->language);
         if (codepage)
-          d->dataCodec.setCodePage(codepage);
+          d->dataCodec.setCodepage(codepage);
       }
 
       return true;
@@ -220,15 +215,15 @@ QList<QUrl> SSubtitleFile::findSubtitleFiles(const QUrl &file)
   QList<QUrl> result;
   T::exactMatches(result, directory, baseName);
 
-  foreach (const QString &fileName, directory.entryList(QDir::Dirs | QDir::NoDotAndDotDot))
-  if ((fileName.toLower() == "subtitles") || (fileName.toLower() == "subs"))
-    T::exactMatches(result, SMediaFilesystem(directory.filePath(fileName)), baseName);
+  foreach (const QString &dirName, directory.entryList(QDir::Dirs | QDir::NoDotAndDotDot))
+  if (dirName.contains("sub", Qt::CaseInsensitive))
+    T::exactMatches(result, SMediaFilesystem(directory.filePath(dirName)), baseName);
 
   T::fuzzyMatches(result, directory, rawBaseName);
 
-  foreach (const QString &fileName, directory.entryList(QDir::Dirs | QDir::NoDotAndDotDot))
-  if ((fileName.toLower() == "subtitles") || (fileName.toLower() == "subs"))
-    T::fuzzyMatches(result, SMediaFilesystem(directory.filePath(fileName)), rawBaseName);
+  foreach (const QString &dirName, directory.entryList(QDir::Dirs | QDir::NoDotAndDotDot))
+  if (dirName.contains("sub", Qt::CaseInsensitive))
+    T::fuzzyMatches(result, SMediaFilesystem(directory.filePath(dirName)), rawBaseName);
 
   return result;
 }

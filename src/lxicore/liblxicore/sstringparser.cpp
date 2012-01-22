@@ -516,10 +516,75 @@ unsigned SStringParser::numWords(const QString &txt)
   return toCleanName(txt).count(' ') + 1;
 }
 
-/*! Returns the ISO 639-2 language code of the text, or an empty string if it
-    can't be determined. The language is determined by analyzing the letter
-    frequency.
- */
+const char * SStringParser::languageOf(const QByteArray &text)
+{
+  if (isUtf8(text))
+    return languageOf(QString::fromUtf8(text));
+
+  const LetterFrequency * const freqs = letterFrequencies();
+  QMap<int, float> score;
+
+  for (int i=0; freqs[i].lang; i++)
+  {
+    QTextCodec * const textCodec = QTextCodec::codecForName(SStringParser::codepageFor(freqs[i].lang));
+    if (textCodec)
+    {
+      // Count the number of characters.
+      QMap<QChar, int> count;
+      foreach (const QChar c, textCodec->toUnicode(text).toLower())
+      if (c.isLetter())
+      {
+        QMap<QChar, int>::Iterator i = count.find(c);
+        if (i != count.end())
+          (*i)++;
+        else
+          count.insert(c, 1);
+      }
+
+      // Sort the characters by frequency.
+      QMultiMap<int, QChar> freq;
+      for (QMap<QChar, int>::ConstIterator j = count.begin(); j != count.end(); j++)
+        freq.insert(-(j.value()), j.key());
+
+      // And determine the language.
+      int n = 0;
+      for (QMultiMap<int, QChar>::ConstIterator j = freq.begin(); j != freq.end(); j++, n++)
+      {
+        const float weight = 1.0f / (1.0f + (float(n) / 2.0f));
+
+        float d = 25.0f * weight;
+        for (int k=0; freqs[i].freq[k]; k++)
+        if (QChar(freqs[i].freq[k]) == *j)
+        {
+          d = float(qAbs(k - n)) * weight;
+          break;
+        }
+
+        QMap<int, float>::Iterator k = score.find(i);
+        if (k != score.end())
+          (*k) += d;
+        else
+          score.insert(i, d);
+      }
+    }
+  }
+
+  // Find the best score
+  int best = -1;
+  float bestValue = 10000000.0f;
+  for (QMap<int, float>::ConstIterator i = score.begin(); i != score.end(); i++)
+  if (i.value() < bestValue)
+  {
+    best = i.key();
+    bestValue = i.value();
+  }
+
+  if (best >= 0)
+    return freqs[best].lang;
+  else
+    return "";
+}
+
 const char * SStringParser::languageOf(const QString &text)
 {
   // Count the number of characters.
@@ -540,40 +605,21 @@ const char * SStringParser::languageOf(const QString &text)
     freq.insert(-(i.value()), i.key());
 
   // And determine the language.
-  static const struct { const char * const l; const wchar_t * const f; } frequencies[] =
-    { { "cze", L"oeantivlsrdkupímcházyjbřêéĉžýŝũgfúňwďóxťq" },
-      { "dan", L"enadtrslgiohmkvufbpøjycéxqwèzüàóêç" },
-      { "dut", L"enatirodslghvkmubpwjczfxyëéóq" },
-      { "eng", L"etaoinsrhldcumfpgwybvkxjqz" },
-      { "epo", L"aieonlsrtkjudmpvgfbcĝĉŭzŝhĵĥwyxq" },
-      { "fin", L"enatrsildokgmvfuphäcböjyxzwq" },
-      { "fre", L"esaitnrulodcmpévqfbghjàxèyêzçôùâûîœwkïëüæñ" },
-      { "ger", L"enisratdhulcgmobwfkzvüpäßjöyqx" },
-      { "grc", L"αοιετσνηυρπκμλωδγχθφβξζψ" },
-      { "hun", L"eatlnskomzrigáéydbvhjfupöócíúüxwq" },
-      { "ice", L"anriestudhlgmkfhvoáthídjóbyæúöpéýcxwzq" },
-      { "ita", L"eaionlrtscdupmvghfbqzòàùìéèóykwxjô" },
-      { "nor", L"erntsilakodgmvfupbhøjyæcwzxq" },
-      { "pol", L"iaeoznscrwyłdkmtpujlgębąhżśóćńfźvqx" },
-      { "por", L"aeosrinmdutlcphvqgfbãzçjáéxóõêôàyíèú" },
-      { "rus", L"oeaинтсвлркдмпуëягбзчйхжшюцщeф" },
-      { "slo", L"aoesnitrvlkdmcupzyhjgfbqwx" },
-      { "spa", L"eaosrnidlctumpbgyívqóhfzjéáñxúüwk" },
-      { "swe", L"eantrslidomgkvähfupåöbcjyxwzéq" },
-      { "tur", L"aeinrlıdkmuytsboüşzgçhğvcöpfjwxq" },
-      { NULL, NULL } };
+  const LetterFrequency * const freqs = letterFrequencies();
 
   QMap<int, float> score;
-  for (int i=0; frequencies[i].l; i++)
+  for (int i=0; freqs[i].lang; i++)
   {
-    int n = 1;
+    int n = 0;
     for (QMultiMap<int, QChar>::ConstIterator j = freq.begin(); j != freq.end(); j++, n++)
     {
-      float d = 25.0f / float(n);
-      for (int k=0; frequencies[i].f[k]; k++)
-      if (QChar(frequencies[i].f[k]) == *j)
+      const float weight = 1.0f / (1.0f + (float(n) / 2.0f));
+
+      float d = 25.0f * weight;
+      for (int k=0; freqs[i].freq[k]; k++)
+      if (QChar(freqs[i].freq[k]) == *j)
       {
-        d = float(qAbs(k - n)) / float(n);
+        d = float(qAbs(k - n)) * weight;
         break;
       }
 
@@ -585,6 +631,7 @@ const char * SStringParser::languageOf(const QString &text)
     }
   }
 
+  // Find the best score
   int best = -1;
   float bestValue = 10000000.0f;
   for (QMap<int, float>::ConstIterator i = score.begin(); i != score.end(); i++)
@@ -595,7 +642,7 @@ const char * SStringParser::languageOf(const QString &text)
   }
 
   if (best >= 0)
-    return frequencies[best].l;
+    return freqs[best].lang;
   else
     return "";
 }

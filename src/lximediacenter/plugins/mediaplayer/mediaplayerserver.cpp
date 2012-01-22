@@ -119,13 +119,13 @@ MediaPlayerServer::Stream * MediaPlayerServer::streamVideo(const SHttpServer::Re
     }
 
     const QString vFile = virtualFile(request.file());
-    if ((vFile.length() > 1) && vFile[1].isNumber())
+    if (!vFile.isEmpty() && vFile[0].isNumber())
     {
       rurl.addQueryItem("title", vFile.mid(1));
       rurl.addQueryItem("play", QString::null);
     }
-    else if (vFile.length() > 1)
-      rurl.addQueryItem("play", vFile.mid(1));
+    else if (!vFile.isEmpty())
+      rurl.addQueryItem("play", vFile);
     else
       rurl.addQueryItem("play", QString::null);
 
@@ -205,9 +205,11 @@ QList<MediaPlayerServer::Item> MediaPlayerServer::listItems(const QString &virtu
 
   if (virtualPath != serverPath())
   {
-    const QUrl path = realPath(virtualPath);
+    QString virtualFilePath = virtualPath;
+    while (virtualFilePath.endsWith('/'))
+      virtualFilePath = virtualFilePath.left(virtualFilePath.length() - 1);
 
-    const FileNode node = mediaDatabase->readNode(path);
+    const FileNode node = mediaDatabase->readNode(realPath(virtualFilePath));
     if (!node.isNull() && !node.titles().isEmpty())
     {
       const int numTitles = node.titles().count();
@@ -221,7 +223,7 @@ QList<MediaPlayerServer::Item> MediaPlayerServer::listItems(const QString &virtu
       if ((start == 0) && (count > 1)) // For play all item
         count--;
 
-      foreach (const FileNode &node, mediaDatabase->listItems(path, start, count))
+      foreach (const FileNode &node, mediaDatabase->listItems(realPath(virtualPath), start, count))
         result += makeItem(node);
 
       if (start == 0) // For play all item
@@ -256,8 +258,11 @@ QList<MediaPlayerServer::Item> MediaPlayerServer::listItems(const QString &virtu
 
 MediaPlayerServer::Item MediaPlayerServer::getItem(const QString &virtualPath)
 {
-  if (virtualPath.endsWith("/.all"))
+  const QString vFile = virtualFile(virtualPath);
+  if (vFile == "all")
     return makePlayAllItem(virtualPath.left(virtualPath.length() - 4));
+  else if (!vFile.isEmpty() && vFile[0].isNumber())
+    return makeItem(mediaDatabase->readNode(realPath(virtualPath)), vFile.toInt());
   else
     return makeItem(mediaDatabase->readNode(realPath(virtualPath)));
 }
@@ -360,7 +365,7 @@ QString MediaPlayerServer::virtualFile(const QString &virtualPath)
 {
   const int ls = virtualPath.lastIndexOf('/');
   if ((ls >= 0) && ((ls + 1) < virtualPath.length()) && (virtualPath[ls + 1] == '.'))
-    return virtualPath.mid(ls + 1);
+    return virtualPath.mid(ls + 2);
 
   return QString::null;
 }
@@ -510,7 +515,7 @@ MediaPlayerServer::Item MediaPlayerServer::makeItem(const FileNode &node, int ti
               item.imageSize = title.imageCodec.size();
           }
 
-          if (titles.count() > 1)
+          if ((node.fileType() == SMediaInfo::ProbeInfo::FileType_Disc) || (titles.count() > 1))
           {
             item.path += "/." + QString::number(qMax(0, titleId));
             item.title = tr("Title") + ' ' + QString::number(qMax(0, titleId) + 1);
@@ -639,8 +644,8 @@ void MediaPlayerServer::nodeRead(const FileNode &node)
           int titleId = 0;
 
           const QString titleFile = virtualFile(i->first.file());
-          if (titleFile.length() > 1)
-            titleId = qBound(0, titleFile.mid(1).toInt(), node.titles().count());
+          if (!titleFile.isEmpty())
+            titleId = qBound(0, titleFile.toInt(), node.titles().count());
 
           const FileNode::ProbeInfo::Title &title = node.titles()[titleId];
           if (!title.thumbnail.isNull())
