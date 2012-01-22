@@ -77,6 +77,7 @@ struct SHttpStreamProxy::Data
   QTimer                        socketTimer;
 
   QByteArray                    cache;
+  QTime                         cacheTimer;
   bool                          caching;
 };
 
@@ -174,6 +175,7 @@ bool SHttpStreamProxy::addSocket(QIODevice *socket, SHttpEngine *owner)
 void SHttpStreamProxy::run(void)
 {
   d->cache.reserve(outBufferSize + (outBufferSize / 2));
+  d->cacheTimer.start();
 
   QThread::exec();
 
@@ -324,6 +326,7 @@ void SHttpStreamProxy::processData(void)
           if ((d->cache.size() + buffer.size()) <= d->cache.capacity())
           {
             d->cache.append(buffer);
+            d->cacheTimer.start();
           }
           else
           {
@@ -334,7 +337,7 @@ void SHttpStreamProxy::processData(void)
       }
       else
       {
-        if (d->caching)
+        if (d->caching && (qAbs(d->cacheTimer.elapsed()) >= 5000))
         {
           d->cache.clear();
           d->caching = false;

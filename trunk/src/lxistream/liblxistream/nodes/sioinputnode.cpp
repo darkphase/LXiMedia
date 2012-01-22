@@ -54,10 +54,13 @@ void SIOInputNode::setIODevice(QIODevice *ioDevice)
 
   if (ioDevice && ioDevice->isOpen())
   {
-    QString filePath;
+    QUrl filePath;
     QFile * const file = qobject_cast<QFile *>(ioDevice);
     if (file)
-      filePath = file->fileName();
+    {
+      filePath.setScheme("file");
+      filePath.setPath(file->fileName());
+    }
 
     const QByteArray buffer = ioDevice->peek(SInterfaces::FormatProber::defaultProbeSize);
 

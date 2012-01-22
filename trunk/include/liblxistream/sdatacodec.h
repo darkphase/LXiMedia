@@ -48,7 +48,7 @@ public:
   void                          setCodec(const QString &codec, const QByteArray &codepage = QByteArray(), int streamId = -1);
 
   inline const QByteArray     & codepage(void) const                            { return d.codepage; }
-  inline void                   setCodePage(const QByteArray &c)                { d.codepage = c; }
+  inline void                   setCodepage(const QByteArray &c)                { d.codepage = c; }
   inline int                    streamId(void) const                            { return d.streamId; }
   inline void                   setStreamId(int i)                              { d.streamId = i; }
 

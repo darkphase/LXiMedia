@@ -37,6 +37,7 @@ namespace LXiCore {
 class LXICORE_PUBLIC SStringParser
 {
 private:
+  struct LetterFrequency { const char * const lang; const wchar_t * const freq; };
   struct Iso639LangCode { const char * const code, * const name; };
 
 public:
@@ -92,6 +93,16 @@ public:
 
   static unsigned               numWords(const QString &);
 
+  /*! Returns the ISO 639-2 language code of the text, or an empty string if it
+      can't be determined. The language is determined by analyzing the letter
+      frequency.
+   */
+  static const char           * languageOf(const QByteArray &);
+
+  /*! Returns the ISO 639-2 language code of the text, or an empty string if it
+      can't be determined. The language is determined by analyzing the letter
+      frequency.
+   */
   static const char           * languageOf(const QString &);
 
   /*! Returns the translated language name for the ISO 639-1 or ISO 639-2 language
@@ -118,6 +129,7 @@ public:
   static QMap<QByteArray, QString> allIso639Languages(void);
 
 private:
+  static const LetterFrequency * letterFrequencies(void);
   static const Iso639LangCode * iso639_1Codes(void);
   static const Iso639LangCode * iso639_2Codes(void);
 

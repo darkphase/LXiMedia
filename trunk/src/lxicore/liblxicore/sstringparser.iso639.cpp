@@ -65,6 +65,7 @@ const char * SStringParser::codepageFor(const char *lang)
   if ((qstrcmp(lang, "cs") == 0) || (qstrcmp(lang, "ces") == 0) || (qstrcmp(lang, "cze") == 0) || // Czech
       (qstrcmp(lang, "hu") == 0) || (qstrcmp(lang, "hun") == 0) || // Hungarian
       (qstrcmp(lang, "pl") == 0) || (qstrcmp(lang, "pol") == 0) || // Polish
+      (qstrcmp(lang, "ro") == 0) || (qstrcmp(lang, "ron") == 0) || (qstrcmp(lang, "rum") == 0) || // Romanian
       (qstrcmp(lang, "sk") == 0) || (qstrcmp(lang, "slk") == 0) || (qstrcmp(lang, "slo") == 0) || // Slovak
       (qstrcmp(lang, "sl") == 0) || (qstrcmp(lang, "slv") == 0)) // Slovenian
   {
@@ -75,12 +76,15 @@ const char * SStringParser::codepageFor(const char *lang)
   {
     return "CP1251";
   }
-  else if ((qstrcmp(lang, "da") == 0) || (qstrcmp(lang, "dan") == 0) || // Danish
+  else if ((qstrcmp(lang, "af") == 0) || (qstrcmp(lang, "afr") == 0) || // Afrikaans
+           (qstrcmp(lang, "ca") == 0) || (qstrcmp(lang, "cat") == 0) || // Catalan
+           (qstrcmp(lang, "da") == 0) || (qstrcmp(lang, "dan") == 0) || // Danish
            (qstrcmp(lang, "de") == 0) || (qstrcmp(lang, "ger") == 0) || // German
            (qstrcmp(lang, "en") == 0) || (qstrcmp(lang, "eng") == 0) || // English
            (qstrcmp(lang, "es") == 0) || (qstrcmp(lang, "esl") == 0) || (qstrcmp(lang, "spa") == 0) || // Spanish
            (qstrcmp(lang, "fi") == 0) || (qstrcmp(lang, "fin") == 0) || // Finnish
            (qstrcmp(lang, "fr") == 0) || (qstrcmp(lang, "fre") == 0) || (qstrcmp(lang, "fra") == 0) || // French
+           (qstrcmp(lang, "fy") == 0) || (qstrcmp(lang, "fry") == 0) || // Frisian
            (qstrcmp(lang, "is") == 0) || (qstrcmp(lang, "ice") == 0) || (qstrcmp(lang, "isl") == 0) || // Icelandic
            (qstrcmp(lang, "it") == 0) || (qstrcmp(lang, "ita") == 0) || // Italian
            (qstrcmp(lang, "nl") == 0) || (qstrcmp(lang, "dut") == 0) || (qstrcmp(lang, "nla") == 0) || // Dutch
@@ -116,6 +120,39 @@ const char * SStringParser::codepageFor(const char *lang)
   }
 
   return NULL;
+}
+
+const SStringParser::LetterFrequency * SStringParser::letterFrequencies(void)
+{
+  static const LetterFrequency frequencies[] =
+    { { "afr", L"eainrsotdlkgvmpubwfhjcêzëö" },
+      { "cat", L"easirtocnlumdpgvfbqóàòhíèjwxyzl" },
+      { "cze", L"oeantivlsrdkupímcházyjbřêéĉžýŝũgfúňwďóxťq" },
+      { "dan", L"enadtrslgiohmkvufbpøjycéxqwèzüàóêç" },
+      { "dut", L"enatirodslghvkmubpwjczfxyëéóq" },
+      { "eng", L"etaoinsrhldcumfpgwybvkxjqz" },
+      { "epo", L"aieonlsrtkjudmpvgfbcĝĉŭzŝhĵĥwyxq" },
+      { "fin", L"enatrsildokgmvfuphäcböjyxzwq" },
+      { "fre", L"esaitnrulodcmpévqfbghjàxèyêzçôùâûîœwkïëüæñ" },
+      { "fry", L"erainftslbdkojgmuhypwczûâvúêôïëä" },
+      { "ger", L"enisratdhulcgmobwfkzvüpäßjöyqx" },
+      { "grc", L"αοιετσνηυρπκμλωδγχθφβξζψ" },
+      { "heb", L"יהולארתבמשעםנכדחקפסזגצטןךףץ" },
+      { "hun", L"eatlnskomzrigáéydbvhjfupöócíúüxwq" },
+      { "ice", L"anriestudhlgmkfhvoáthídjóbyæúöpéýcxwzq" },
+      { "ita", L"eaionlrtscdupmvghfbqzòàùìéèóykwxjô" },
+      { "nor", L"erntsilakodgmvfupbhøjyæcwzxq" },
+      { "pol", L"iaeoznscrwyłdkmtpujlgębąhżśóćńfźvqx" },
+      { "por", L"aeosrinmdutlcphvqgfbãzçjáéxóõêôàyíèú" },
+      { "ron", L"eaitnurcomăsdlpşvbţîfghzâjykxwq" },
+      { "rus", L"oeaинтсвлркдмпуëягбзчйхжшюцщeф" },
+      { "slo", L"aoesnitrvlkdmcupzyhjgfbqwx" },
+      { "spa", L"eaosrnidlctumpbgyívqóhfzjéáñxúüwk" },
+      { "swe", L"eantrslidomgkvähfupåöbcjyxwzéq" },
+      { "tur", L"aeinrlıdkmuytsboüşzgçhğvcöpfjwxq" },
+      { NULL, NULL } };
+
+  return frequencies;
 }
 
 const SStringParser::Iso639LangCode * SStringParser::iso639_1Codes(void)
