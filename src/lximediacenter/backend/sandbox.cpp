@@ -38,6 +38,7 @@ Sandbox::~Sandbox()
   if (mode != "local")
     qDebug() << "Stopping sandbox process" << qApp->applicationPid();
 
+  disconnect(&sandboxServer, SIGNAL(finished()), this, SLOT(deleteLater()));
   sandboxServer.close();
 
   QThreadPool::globalInstance()->waitForDone();
@@ -51,7 +52,7 @@ Sandbox::~Sandbox()
   sApp->disableProfiling();
 
   if (mode != "local")
-    qApp->exit(0);
+    QTimer::singleShot(250, qApp, SLOT(quit()));
 }
 
 void Sandbox::start(const QString &mode)
