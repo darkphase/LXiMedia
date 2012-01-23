@@ -493,8 +493,6 @@ void MediaStream::decodeChannels(const QUrl &url, SAudioFormat &audioFormat)
 {
   if (url.hasQueryItem("channels"))
   {
-    qDebug() << "MediaStream::decodeChannels" << url.queryItemValue("channels");
-
     const SAudioFormat::Channels c =
         SAudioFormat::Channels(url.queryItemValue("channels").toUInt(NULL, 16));
 
