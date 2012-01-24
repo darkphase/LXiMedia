@@ -58,10 +58,7 @@ const char Backend::htmlFrontPagesHead[] =
     " <script type=\"text/javascript\" src=\"/js/list.js\"></script>\n"; // Open and close tag due to IE bug
 
 const char Backend::htmlFrontPages[] =
-    " <p>\n"
-    "  {TR_MAINPAGE_EXPLAIN}\n"
-    "  <a href=\"http://lximedia.sourceforge.net/\">lximedia.sourceforge.net</a>\n"
-    " </p>\n"
+    " <p>{TR_MAINPAGE_EXPLAIN}</p>\n"
     " <div class=\"main_buttons\">\n"
     "  <a class=\"hidden\" href=\"/settings\">\n"
     "   <div class=\"button\">\n"
@@ -316,8 +313,7 @@ SHttpServer::ResponseMessage Backend::httpRequest(const SHttpServer::RequestMess
         htmlParser.setField("TR_MAINPAGE_EXPLAIN",
             tr("Welcome to the web interface of LXiMediaCenter. Through this "
                "web interface the LXiMediaCenter server can be configured and "
-               "all served items can be browsed. For more information please "
-               "refer to the user-manual or the web site."));
+               "all served items can be browsed."));
 
         htmlParser.setField("TR_BUTTON_SETTINGS", tr("Settings"));
         htmlParser.setField("TR_BUTTON_SETTINGS_EXPLAIN",
