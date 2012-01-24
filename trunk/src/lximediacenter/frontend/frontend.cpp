@@ -218,11 +218,8 @@ void Frontend::requestFinished(QNetworkReply *reply)
               (server->modelName == qApp->applicationName()) &&
               isLocalAddress(server->presentationURL.host()))
           {
-            QUrl url = server->presentationURL;
-            url.setPath(url.path() + "help");
-
             waitingForWelcome = false;
-            setUrl(url);
+            setUrl(server->presentationURL);
           }
           else
             frontendPageTimer.start(250);
