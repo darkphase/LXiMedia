@@ -187,7 +187,7 @@ QByteArray Frontend::makeFrontendPage(void) const
     htmlParser.setField("ITEM_NAME", server.friendlyName);
     htmlParser.setField("ITEM_MODEL", server.modelName);
     htmlParser.setField("ITEM_ICON", server.iconURL.isEmpty() ? QUrl(":/img/null.png") : server.iconURL);
-    htmlParser.appendField("THIS_COMPUTER", "");
+    htmlParser.setField("THIS_COMPUTER", "");
 
     QString host = server.presentationURL.host();
 
