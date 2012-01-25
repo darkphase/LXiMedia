@@ -2,6 +2,8 @@ TEMPLATE = subdirs
 CONFIG += ordered
 DESTDIR = .
 
+SUBDIRS += deploy ext src test
+
 # Generate _version.h
 unix {
   VERSION = $$system(cat $${PWD}/VERSION)
@@ -30,5 +32,3 @@ win32-msvc2005|win32-msvc2008|win32-msvc2010 {
   system(echo typedef off_t             ssize_t; >> $$replace(OUT_PWD,/,\\)\\include\\stdint.h)
   system(copy /Y $$replace(OUT_PWD,/,\\)\\include\\stdint.h $$replace(OUT_PWD,/,\\)\\include\\inttypes.h > NUL)
 }
-
-SUBDIRS += ext src test deploy

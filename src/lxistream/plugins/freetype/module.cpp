@@ -1,21 +1,19 @@
-/***************************************************************************
- *   Copyright (C) 2010 by A.J. Admiraal                                   *
- *   code@admiraal.dds.nl                                                  *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License version 2 as     *
- *   published by the Free Software Foundation.                            *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
- ***************************************************************************/
+/******************************************************************************
+ *   Copyright (C) 2012  A.J. Admiraal                                        *
+ *   code@admiraal.dds.nl                                                     *
+ *                                                                            *
+ *   This program is free software: you can redistribute it and/or modify     *
+ *   it under the terms of the GNU General Public License version 3 as        *
+ *   published by the Free Software Foundation.                               *
+ *                                                                            *
+ *   This program is distributed in the hope that it will be useful,          *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of           *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            *
+ *   GNU General Public License for more details.                             *
+ *                                                                            *
+ *   You should have received a copy of the GNU General Public License        *
+ *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
+ ******************************************************************************/
 
 #include "module.h"
 #include "subtitlerenderer.h"
@@ -47,8 +45,8 @@ QByteArray Module::licenses(void)
       "." + QByteArray::number(FREETYPE_MINOR) +
       "." + QByteArray::number(FREETYPE_PATCH) + "</p>\n"
       " <p>Website: <a href=\"http://freetype.org/\">freetype.org</a></p>\n"
-      " <p>Used under the terms of the GNU General Public License version 2\n"
-      " as published by the Free Software Foundation.</p>\n"
+      " <p>Used under the terms of the distributed under the terms of the\n"
+      " FreeType project license.\n"
       " <h3>DejaVu Fonts</h3>\n"
       " <p>Website: <a href=\"http://dejavu-fonts.org/\">dejavu-fonts.org</a></p>\n";
 
