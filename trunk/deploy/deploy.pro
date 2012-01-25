@@ -1,6 +1,8 @@
 TEMPLATE = subdirs
 CONFIG += ordered
 
+unix:SUBDIRS += licensetool
+
 macx {
   release {
     OUT_DIR = $${OUT_PWD}/../bin

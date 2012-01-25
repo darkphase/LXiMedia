@@ -1,21 +1,19 @@
-/***************************************************************************
- *   Copyright (C) 2010 by A.J. Admiraal                                   *
- *   code@admiraal.dds.nl                                                  *
- *                                                                         *
- *   This program is free software; you can redistribute it and/or modify  *
- *   it under the terms of the GNU General Public License version 2 as     *
- *   published by the Free Software Foundation.                            *
- *                                                                         *
- *   This program is distributed in the hope that it will be useful,       *
- *   but WITHOUT ANY WARRANTY; without even the implied warranty of        *
- *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the         *
- *   GNU General Public License for more details.                          *
- *                                                                         *
- *   You should have received a copy of the GNU General Public License     *
- *   along with this program; if not, write to the                         *
- *   Free Software Foundation, Inc.,                                       *
- *   51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.           *
- ***************************************************************************/
+/******************************************************************************
+ *   Copyright (C) 2012  A.J. Admiraal                                        *
+ *   code@admiraal.dds.nl                                                     *
+ *                                                                            *
+ *   This program is free software: you can redistribute it and/or modify     *
+ *   it under the terms of the GNU General Public License version 3 as        *
+ *   published by the Free Software Foundation.                               *
+ *                                                                            *
+ *   This program is distributed in the hope that it will be useful,          *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of           *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            *
+ *   GNU General Public License for more details.                             *
+ *                                                                            *
+ *   You should have received a copy of the GNU General Public License        *
+ *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
+ ******************************************************************************/
 
 #include "sapplication.h"
 #include "sfactory.h"
@@ -298,13 +296,16 @@ QByteArray SApplication::about(void) const
   QByteArray text =
       " <p>Version: " + QByteArray(version()) + "</p>\n"
       " <p>Website: <a href=\"http://lximedia.sourceforge.net/\">lximedia.sourceforge.net</a></p>\n"
-      " <p><b>Copyright &copy; 2009-2011 A.J. Admiraal. All rights reserved.</b></p>\n"
-      " <p>This program is free software; you can redistribute it and/or modify it\n"
-      " under the terms of the GNU General Public License version 2 as published\n"
-      " by the Free Software Foundation.</p>\n"
-      " <p>This program is distributed in the hope that it will be useful, but WITHOUT\n"
-      " ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS\n"
-      " FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.</p>\n";
+      " <p><b>Copyright &copy; 2009-2012  A.J. Admiraal.</b></p>\n"
+      " <p>This program is free software: you can redistribute it and/or modify\n"
+      " it under the terms of the GNU General Public License version 3 as\n"
+      " published by the Free Software Foundation.</p>\n"
+      " <p>This program is distributed in the hope that it will be useful,\n"
+      " but WITHOUT ANY WARRANTY; without even the implied warranty of\n"
+      " MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the\n"
+      " GNU General Public License for more details.</p>\n"
+      " <p>You should have received a copy of the GNU General Public License\n"
+      " along with this program. If not, see &lt;http://www.gnu.org/licenses/&gt;</p>\n";
 
   QByteArray plugins;
   for (QList< QPair<QPluginLoader *, SModule *> >::Iterator i=d->modules.begin(); i!=d->modules.end(); i++)
@@ -320,7 +321,7 @@ QByteArray SApplication::about(void) const
       " <p>Versions: " + QByteArray(qVersion()) + " (linked), " QT_VERSION_STR " (built)</p>\n"
       " <p>Website: <a href=\"http://qt.nokia.com/\">qt.nokia.com</a></p>\n"
       " <p><b>Copyright &copy; 2011 Nokia Corporation and/or its subsidiary(-ies).</b></p>\n"
-      " <p>Used under the terms of the GNU Lesser General Public License version 2.1\n"
+      " <p>Used under the terms of the GNU General Public License version 3.0\n"
       " as published by the Free Software Foundation.</p>\n";
 
   QSet<QByteArray> allLicenses;
