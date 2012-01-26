@@ -31,8 +31,8 @@ can be done from a command shell with the following command:
 # sudo apt-get install debhelper dpkg-dev bash doxygen g++ gcc make binutils-dev
 libasound2-dev libavcodec-dev libavformat-dev libavutil-dev libdvdnav-dev 
 libswscale-dev libexif-dev libfreetype6-dev libpulse-dev libqt4-dev libqt4-test 
-libsmbclient-dev libx11-dev libxext-dev libxrandr-dev libxtst-dev libxv-dev 
-qt4-qmake zlib1g-dev
+libqtwebkit-dev libsmbclient-dev libx11-dev libxext-dev libxrandr-dev 
+libxtst-dev libxv-dev qt4-qmake zlib1g-dev
 
 Open a shell and enter the lximedia source directory, run qmake and make to 
 build:
