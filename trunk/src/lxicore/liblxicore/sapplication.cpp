@@ -61,11 +61,12 @@ SApplication::SApplication(bool useLogFile, const QStringList &skipModules, QObj
   {
 #ifdef Q_OS_UNIX
     d->logFile.setFileName("/var/log/" + QFileInfo(qApp->applicationFilePath()).baseName() + ".log");
-#else
-    d->logFile.setFileName(QDir::temp().absoluteFilePath(tempFileBase() + "log"));
+    if (!d->logFile.open(QFile::ReadWrite))
 #endif
-
-    d->logFile.open(QFile::ReadWrite);
+    {
+      d->logFile.setFileName(QDir::temp().absoluteFilePath(tempFileBase() + "log"));
+      d->logFile.open(QFile::ReadWrite);
+    }
   }
 
   d->profileFile = NULL;
