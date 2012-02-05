@@ -919,6 +919,125 @@ SAudioFormat::Channels FFMpegCommon::fromFFMpegChannelLayout(int64_t layout, int
   }
 }
 
+bool FFMpegCommon::isAudioFormat(const QByteArray &name)
+{
+  static const QSet<QByteArray> audioFormats = QSet<QByteArray>() <<
+      "aac" <<
+      "ac3" <<
+      "adts" <<
+      "aea" <<
+      "aiff" <<
+      "alaw" <<
+      "alsa" <<
+      "ape" <<
+      "au" <<
+      "caf" <<
+      "daud" <<
+      "dts" <<
+      "eac3" <<
+      "f32be" <<
+      "f32le" <<
+      "f64be" <<
+      "f64le" <<
+      "flac" <<
+      "g722" <<
+      "gsm" <<
+      "jack" <<
+      "mmf" <<
+      "mp2" <<
+      "mp3" <<
+      "mpc" <<
+      "mpc8" <<
+      "mulaw" <<
+      "nsv" <<
+      "ogg" <<
+      "oma" <<
+      "oss" <<
+      "s16be" <<
+      "s16le" <<
+      "s24be" <<
+      "s24le" <<
+      "s32be" <<
+      "s32le" <<
+      "s8" <<
+      "spdif" <<
+      "truehd" <<
+      "tta" <<
+      "u16be" <<
+      "u16le" <<
+      "u24be" <<
+      "u24le" <<
+      "u32be" <<
+      "u32le" <<
+      "u8" <<
+      "voc" <<
+      "vqf" <<
+      "w64" <<
+      "wav" <<
+      "wv" <<
+      "xwma";
+
+  return audioFormats.contains(name.toLower());
+}
+
+bool FFMpegCommon::isVideoFormat(const QByteArray &name)
+{
+  static const QSet<QByteArray> videoFormats = QSet<QByteArray>() <<
+      "3g2" <<
+      "3gp" <<
+      "asf" <<
+      "asf_stream" <<
+      "avi" <<
+      "cavsvideo" <<
+      "dirac" <<
+      "dnxhd" <<
+      "dv" <<
+      "dv1394" <<
+      "dvd" <<
+      "fbdev" <<
+      "filmstrip" <<
+      "flv" <<
+      "gxf" <<
+      "h261" <<
+      "h263" <<
+      "h264" <<
+      "ingenient" <<
+      "ivf" <<
+      "libdc1394" <<
+      "m4v" <<
+      "matroska" <<
+      "matroska,webm" <<
+      "mjpeg" <<
+      "mov" <<
+      "mov,mp4,m4a,3gp,3g2,mj2" <<
+      "mp4" <<
+      "mpeg" <<
+      "mpeg1video" <<
+      "mpeg2video" <<
+      "mpegts" <<
+      "mpegtsraw" <<
+      "mpegvideo" <<
+      "mpjpeg" <<
+      "null" <<
+      "nut" <<
+      "nuv" <<
+      "rawvideo" <<
+      "smjpeg" <<
+      "smk" <<
+      "svcd" <<
+      "swf" <<
+      "thp" <<
+      "vc1" <<
+      "vc1test" <<
+      "vcd" <<
+      "video4linux2" <<
+      "vob" <<
+      "webm" <<
+      "xmv";
+
+  return videoFormats.contains(name.toLower());
+}
+
 ::AVPacket FFMpegCommon::toAVPacket(const SEncodedAudioBuffer &buffer, ::AVStream *stream)
 {
   ::AVPacket packet;

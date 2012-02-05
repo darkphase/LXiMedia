@@ -56,7 +56,7 @@ bool LocalFilesystem::openDirectory(const QUrl &path)
 
 QStringList LocalFilesystem::entryList(QDir::Filters filter, QDir::SortFlags sort) const
 {
-  QStringList result;
+  QStringList resulta, resultb, resultc;
 
   if (root)
   {
@@ -66,17 +66,51 @@ QStringList LocalFilesystem::entryList(QDir::Filters filter, QDir::SortFlags sor
       while (path.endsWith('/'))
         path = path.left(path.length() - 1);
 
-      result += path;
+      resultb += path;
     }
   }
   else if (valid)
   {
-    foreach (const QString &fileName, dir.entryList(filter, sort))
-    if (!fileName.startsWith('.'))
-      result += fileName;
+    foreach (const QFileInfo &info, dir.entryInfoList(filter))
+    if (info.isDir() &&
+        ((filter & QDir::Dirs) != 0) &&
+        (((filter & QDir::NoDotAndDotDot) != 0) &&
+         ((info.fileName() != ".") && (info.fileName() != ".."))) &&
+        (((filter & QDir::Hidden) != 0) ||
+         !info.fileName().startsWith('.')))
+    {
+      if ((sort & QDir::DirsFirst) != 0)
+        resulta += info.fileName();
+      else if ((sort & QDir::DirsLast) != 0)
+        resultc += info.fileName();
+      else
+        resultb += info.fileName();
+    }
+    else if (info.isFile() &&
+             ((filter & QDir::Files) != 0) &&
+             (((filter & QDir::Hidden) != 0) ||
+              !info.fileName().startsWith('.')))
+    {
+      resultb += info.fileName();
+    }
   }
 
-  return result;
+  if (sort != QDir::Unsorted)
+  {
+    struct T
+    {
+      static bool lessThan(const QString &a, const QString &b)
+      {
+        return SStringParser::alphaNumCompare(a.toLower(), b.toLower()) < 0;
+      }
+    };
+
+    qSort(resulta.begin(), resulta.end(), &T::lessThan);
+    qSort(resultb.begin(), resultb.end(), &T::lessThan);
+    qSort(resultc.begin(), resultc.end(), &T::lessThan);
+  }
+
+  return resulta + resultb + resultc;
 }
 
 QUrl LocalFilesystem::filePath(const QString &fileName) const

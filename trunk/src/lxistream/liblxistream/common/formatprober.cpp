@@ -32,20 +32,8 @@ FormatProber::~FormatProber()
 {
 }
 
-QList<FormatProber::Format> FormatProber::probeFormat(const QByteArray &, const QUrl &)
+void FormatProber::readFormat(ProbeInfo &pi, const QByteArray &)
 {
-  QList<Format> formats;
-
-  //if (data.startsWith(PsBufferWriter::buildHeader()))
-  //  formats += Format(PsBufferWriter::formatName, 1);
-
-  return formats;
-}
-
-void FormatProber::probeFormat(ProbeInfo &pi, QIODevice *device)
-{
-  static const int hashSize = 524288;
-
   if (!pi.filePath.isEmpty())
   {
     const QString path = pi.filePath.path();
@@ -54,19 +42,13 @@ void FormatProber::probeFormat(ProbeInfo &pi, QIODevice *device)
       pi.format.fileType = ProbeInfo::FileType_Directory;
       pi.format.fileTypeName = "Directory";
 
-      pi.format.metadata.insert(
-          "title",
-          path.mid(path.left(path.length() - 1).lastIndexOf('/') + 1));
+      pi.isFormatProbed = true;
     }
     else
     {
       const QString fileName = path.mid(path.lastIndexOf('/') + 1);
       const int lastdot = fileName.lastIndexOf('.');
       const QString suffix = lastdot >= 0 ? fileName.mid(lastdot + 1) : QString::null;
-      const QString baseName = lastdot >= 0 ? fileName.left(lastdot) : fileName;
-
-      QString title, author, album;
-      int track = 0;
 
       if (imageSuffixes().contains(suffix))
       {
@@ -77,40 +59,47 @@ void FormatProber::probeFormat(ProbeInfo &pi, QIODevice *device)
       {
         pi.format.fileType = ProbeInfo::FileType_Audio;
         pi.format.fileTypeName = audioDescription(suffix);
-
-        splitFileName(baseName, title, author, album, track);
       }
       else if (videoSuffixes().contains(suffix))
       {
         pi.format.fileType = ProbeInfo::FileType_Video;
         pi.format.fileTypeName = videoDescription(suffix);
-
-        splitFileName(baseName, title, author, album, track);
       }
-
-      if (device)
-      if (device->isOpen())
-      if (device->seek(qMax(Q_INT64_C(0), (device->size() / 2) - (hashSize / 2))))
-      {
-        QCryptographicHash hash(QCryptographicHash::Sha1);
-        hash.addData(device->read(hashSize));
-
-        pi.format.quickHash = hash.result();
-      }
-
-      if (title.length() <= 3)
-        title = baseName;
-
-      if (!title.isEmpty())   pi.format.metadata.insert("title", title);
-      if (!author.isEmpty())  pi.format.metadata.insert("author", author);
-      if (!album.isEmpty())   pi.format.metadata.insert("album", album);
-      if (track > 0)          pi.format.metadata.insert("track", QString::number(track));
     }
   }
 }
 
-void FormatProber::probeContent(ProbeInfo &, QIODevice *, const QSize &)
+void FormatProber::readContent(ProbeInfo &pi, QIODevice *)
 {
+  if (!pi.filePath.isEmpty())
+  {
+    const QString path = pi.filePath.path();
+    const QString fileName = path.mid(path.lastIndexOf('/') + 1);
+    const int lastdot = fileName.lastIndexOf('.');
+    const QString baseName = lastdot >= 0 ? fileName.left(lastdot) : fileName;
+
+    QString title, author, album;
+    int track = 0;
+
+    switch(pi.format.fileType)
+    {
+    case ProbeInfo::FileType_Audio:
+    case ProbeInfo::FileType_Video:
+      splitFileName(baseName, title, author, album, track);
+      break;
+
+    default:
+      break;
+    }
+
+    if (title.length() <= 3)
+      title = baseName;
+
+    if (!title.isEmpty())   pi.content.metadata.insert("title", title);
+    if (!author.isEmpty())  pi.content.metadata.insert("author", author);
+    if (!album.isEmpty())   pi.content.metadata.insert("album", album);
+    if (track > 0)          pi.content.metadata.insert("track", QString::number(track));
+  }
 }
 
 void FormatProber::splitFileName(QString baseName, QString &title, QString &author, QString &album, int &episode)

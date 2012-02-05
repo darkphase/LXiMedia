@@ -31,6 +31,15 @@ bool SHttpEngine::Header::isValid(void) const
   return head.count() == 3;
 }
 
+QStringList SHttpEngine::Header::fieldNames(void) const
+{
+  QStringList result;
+  for (QList< QPair<QString, QString> >::ConstIterator i=fields.begin(); i!=fields.end(); i++)
+    result += i->first;
+
+  return result;
+}
+
 bool SHttpEngine::Header::hasField(const QString &name) const
 {
   for (QList< QPair<QString, QString> >::ConstIterator i=fields.begin(); i!=fields.end(); i++)

@@ -50,6 +50,7 @@ public:
 public: // From HttpClientEngine
   virtual void                  openRequest(const RequestMessage &header, QObject *receiver, const char *slot, Qt::ConnectionType = Qt::AutoConnection);
   virtual ResponseMessage       blockingRequest(const RequestMessage &, int timeout = 30000);
+  virtual int                   maxSocketCount(void) const;
 
 public slots: // From HttpClientEngine
   virtual void                  closeSocket(QIODevice *);

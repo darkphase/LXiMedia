@@ -62,19 +62,19 @@ void SIOInputNode::setIODevice(QIODevice *ioDevice)
 
     const QByteArray buffer = ioDevice->peek(SInterfaces::FormatProber::defaultProbeSize);
 
-    QMultiMap<int, QString> formats;
+    SInterfaces::FormatProber::ProbeInfo pi;
+    pi.filePath = filePath;
     foreach (SInterfaces::FormatProber *prober, SInterfaces::FormatProber::create(this))
     {
-      foreach (const SInterfaces::FormatProber::Format &format, prober->probeFormat(buffer, filePath))
-        formats.insert(-format.confidence, format.name);
-
+      prober->readFormat(pi, buffer);
       delete prober;
     }
 
-    // Now try to open a parser.
-    foreach (const QString &format, formats)
+    if (!pi.format.format.isEmpty())
     {
-      SInterfaces::BufferReader * const bufferReader = SInterfaces::BufferReader::create(this, format, false);
+      SInterfaces::BufferReader * const bufferReader =
+          SInterfaces::BufferReader::create(this, pi.format.format, false);
+
       if (bufferReader)
       {
         if (bufferReader->start(d->ioDevice, this, ioDevice->isSequential()))

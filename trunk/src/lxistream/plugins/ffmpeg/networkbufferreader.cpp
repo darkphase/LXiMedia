@@ -16,6 +16,7 @@
  ******************************************************************************/
 
 #include "networkbufferreader.h"
+#include <QtXml>
 #include <LXiServer>
 
 namespace LXiStream {

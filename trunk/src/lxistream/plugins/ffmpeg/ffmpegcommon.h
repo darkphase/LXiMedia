@@ -72,6 +72,9 @@ public:
   static int64_t                toFFMpegChannelLayout(SAudioFormat::Channels);
   static SAudioFormat::Channels fromFFMpegChannelLayout(int64_t, int);
 
+  static bool                   isAudioFormat(const QByteArray &name);
+  static bool                   isVideoFormat(const QByteArray &name);
+
   static ::AVPacket             toAVPacket(const SEncodedAudioBuffer &, ::AVStream * = NULL);
   static ::AVPacket             toAVPacket(const SEncodedVideoBuffer &, ::AVStream * = NULL);
   static ::AVPacket             toAVPacket(const SEncodedDataBuffer &, ::AVStream * = NULL);

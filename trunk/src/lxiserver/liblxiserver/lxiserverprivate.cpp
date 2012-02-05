@@ -173,7 +173,8 @@ HttpServerRequest::HttpServerRequest(SHttpServerEngine *parent, quint16 serverPo
     serverPort(serverPort),
     file(file), line(line),
     socket(NULL),
-    headerReceived(false)
+    headerReceived(false),
+    handlingRequest(false)
 {
   Q_ASSERT(QThread::currentThread() == thread());
 
@@ -288,11 +289,15 @@ void HttpServerRequest::readyRead()
 
         disconnect(socket, SIGNAL(readyRead()), this, SLOT(readyRead()));
         disconnect(socket, SIGNAL(disconnected()), this, SLOT(close()));
+        handlingRequest = true;
 
         SHttpEngine::ResponseMessage response = parent->handleHttpRequest(request, socket);
-        parent->sendHttpResponse(request, response, socket);
+        if (socket)
+        {
+          parent->sendHttpResponse(request, response, socket);
+          socket = NULL;
+        }
 
-        socket = NULL;
         deleteLater();
       }
     }
@@ -307,7 +312,8 @@ void HttpServerRequest::close()
   qDebug() << this << file << line << "HttpServerRequest::close";
 #endif
 
-  deleteLater();
+  if (!handlingRequest)
+    deleteLater();
 }
 
 

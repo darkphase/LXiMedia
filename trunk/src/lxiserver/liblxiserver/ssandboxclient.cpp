@@ -137,6 +137,11 @@ SSandboxClient::ResponseMessage SSandboxClient::blockingRequest(const RequestMes
   return SHttpClientEngine::blockingRequest(r, timeout);
 }
 
+int SSandboxClient::maxSocketCount(void) const
+{
+  return d->maxSocketCount;
+}
+
 void SSandboxClient::closeSocket(QIODevice *socket)
 {
   if (QThread::currentThread() == thread())

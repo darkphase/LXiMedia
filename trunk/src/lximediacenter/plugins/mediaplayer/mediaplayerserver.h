@@ -76,20 +76,19 @@ private:
   static QString                virtualFile(const QString &virtualPath);
   static QString                dirLabel(const QString &);
 
-  Item                          makeItem(const FileNode &, int titleId = -1);
+  Item                          makeItem(SMediaInfo::ProbeInfo::FileType dirType, const SMediaInfo &, int titleId = -1);
   Item                          makePlayAllItem(const QString &virtualPath);
-  FileNode::ProbeInfo::FileType dirType(const QString &virtualPath);
+  SMediaInfo::ProbeInfo::FileType dirType(const QString &virtualPath);
 
 private slots:
   void                          consoleLine(const QString &);
-  void                          nodeRead(const FileNode &);
-  void                          aborted(void);
 
 private:
   void                          generateDirs(SStringParser &, const QList<QUrl> &, int, const QStringList &, const QList<QUrl> &);
   void                          scanDrives(void);
 
 private:
+  static const int              numRepresentativeItems = 4;
   static const char             dirSplit;
   static const QEvent::Type     responseEventType;
   static const int              maxSongDurationMin;
@@ -98,8 +97,6 @@ private:
 
   QMap<QString, QUrl>           rootPaths;
   QMap<QUrl, QString>           driveList;
-
-  QMap<QUrl, QPair<SHttpServer::RequestMessage, QIODevice *> > nodeReadQueue;
 
 private:
   static const char             htmlFrontPageContent[];

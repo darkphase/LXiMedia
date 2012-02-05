@@ -57,25 +57,33 @@ public:
   SMediaFilesystem              directory(void) const;                          //!< Returns the directory that contains the file.
 
   bool                          isReadable(void) const;                         //!< Returns true if the file can be read.
+  bool                          isDir(void) const;                              //!< Returns true if the file is a directory.
   qint64                        size(void) const;                               //!< Returns the file size.
   QDateTime                     lastModified(void) const;                       //!< Returns the date the file was last modified.
 
   QString                       format(void) const;                             //!< The format name of the media (e.g. matroska, mpeg, dvd, etc.)
   ProbeInfo::FileType           fileType(void) const;                           //!< The detected file type.
   QString                       fileTypeName(void) const;                       //!< A user-friendly description of the file type.
-  bool                          isComplexFile(void) const;                      //!< True if this file has multiple streams or is >= 10 min.
-  QByteArray                    quickHash(void) const;                          //!< Returns a hash of a part of the file.
-  QVariant                      metadata(const QString &key) const;             //!< Returns the requested metadata value or an empty QVariant if not present.
 
+  QVariant                      metadata(const QString &key) const;             //!< Returns the requested metadata value or an empty QVariant if not present.
   const QList<ProbeInfo::Title> & titles(void) const;                           //!< The titles in the file.
+
+  bool                          isFileInfoRead(void) const;                     //!< Returns true if the file information has been read from the filesystem.
+  void                          readFileInfo(void);                             //!< Reads file information from the filesystem.
+  bool                          isFormatProbed(void) const;                     //!< Returns true if the format information has been read from the file.
+  void                          probeFormat(void);                              //!< Reads format information from the file.
+  bool                          isContentProbed(void) const;                    //!< Returns true if the content information has been read from the file.
+  void                          probeContent(void);                             //!< Reads content information from the file.
+
+  SVideoBuffer                  readThumbnail(const QSize &size);               //!< Reads a thumbnail for the file.
+
+  void                          serialize(QXmlStreamWriter &) const;            //!< Serializes all information to the XML stream.
+  bool                          deserialize(QXmlStreamReader &);                //!< Deserializes all information from the XML stream, make sure readNextStartElement() is invoked on the reader.
 
 protected:
   inline const ProbeInfo      & probeInfo(void) const                           { return *pi; }
   inline ProbeInfo            & probeInfo(void)                                 { return *pi; }
 
-  void                          readFileInfo(void);
-  void                          probeFormat(void);
-  void                          probeContent(void);
   void                          probeDataStreams(void);
 
 public:

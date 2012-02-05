@@ -62,13 +62,21 @@ private slots:
   void                          cleanStreams(void);
 
 private:
-  static SMediaInfo::ProbeInfo::FileType probeFileType(const QUrl &filePath);
+  typedef void (MediaPlayerSandbox::* TaskFunc)(const SSandboxServer::RequestMessage &, QIODevice *);
+  void                          startTask(TaskFunc, const SSandboxServer::RequestMessage &request, QIODevice *);
+
   void                          listFiles(const SSandboxServer::RequestMessage &request, QIODevice *);
   void                          probeFormat(const SSandboxServer::RequestMessage &request, QIODevice *);
-  static QByteArray             probeFileFormat(const QUrl &filePath);
+  static SMediaInfo             probeFileFormat(const QUrl &filePath);
   void                          probeContent(const SSandboxServer::RequestMessage &request, QIODevice *);
-  static QByteArray             probeFileContent(const QUrl &filePath);
+  static SMediaInfo             probeFileContent(const QUrl &filePath);
+  void                          readThumbnail(const SSandboxServer::RequestMessage &request, QIODevice *);
   void                          readImage(const SSandboxServer::RequestMessage &request, QIODevice *);
+
+  SSandboxServer::ResponseMessage play(const SSandboxServer::RequestMessage &request, QIODevice *);
+  static SMediaInfo::ProbeInfo::FileType probeFileType(const QUrl &filePath);
+
+  static QByteArray             serializeNodes(const SMediaInfoList &);
 
 public:
   static const char     * const path;
@@ -78,6 +86,8 @@ private:
   SSandboxServer              * server;
   QList<MediaStream *>          streams;
   QTimer                        cleanStreamsTimer;
+  
+  QMutex                        itemCacheMutex;
   QMap<QUrl, QPair<QStringList, QTime> > itemCache;
 };
 

@@ -41,8 +41,12 @@ bool Module::registerClasses(void)
   FFMpegCommon::init(true); // Verbose output
 #endif
 
+  // Static initializers
+  FFMpegCommon::isAudioFormat(QByteArray());
+  FFMpegCommon::isVideoFormat(QByteArray());
+
   // Format prober
-  FormatProber::registerClass<FormatProber>(-1); // A very expensive prober, try a cheaper one first.
+  FormatProber::registerClass<FormatProber>(-1); // A expensive prober, try a cheaper one first.
 
   // Codecs
   const QSet<QByteArray> unsupportedDecoders = QSet<QByteArray>()

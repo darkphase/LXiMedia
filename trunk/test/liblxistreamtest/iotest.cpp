@@ -40,23 +40,48 @@ void IOTest::cleanupTestCase(void)
  */
 void IOTest::MediaFileInfoImage(void)
 {
-  const SMediaInfo mediaInfo(QUrl("file::/ImageTest.jpeg"));
+  SMediaInfo mediaInfo(QUrl("file::/ImageTest.jpeg"));
 
-  QVERIFY(mediaInfo.titles().first().audioStreams.isEmpty());
-  QVERIFY(mediaInfo.titles().first().videoStreams.isEmpty());
-  QVERIFY(!mediaInfo.titles().first().imageCodec.isNull());
-  QCOMPARE(mediaInfo.titles().first().imageCodec.size().width(), 570);
-  QCOMPARE(mediaInfo.titles().first().imageCodec.size().height(), 717);
-  QVERIFY(qFuzzyCompare(mediaInfo.titles().first().imageCodec.size().aspectRatio(), 1.0f));
-  QCOMPARE(mediaInfo.fileType(), SMediaInfo::ProbeInfo::FileType_Image);
-  QCOMPARE(mediaInfo.metadata("title").toString(), QString("ImageTest"));
-  QVERIFY(!mediaInfo.titles().first().thumbnail.isNull());
+  verifyMediaFileInfoImage(mediaInfo);
 
-  const SImage image = mediaInfo.titles().first().thumbnail;
+  const SImage image = mediaInfo.readThumbnail(QSize(128, 128));
   QVERIFY(image.width() <= 128);
   QVERIFY(image.width() > 64);
   QVERIFY(image.height() <= 128);
   QVERIFY(image.height() > 64);
+}
+
+/*! Tests deep image file probe.
+ */
+void IOTest::MediaFileInfoSerialize(void)
+{
+  SMediaInfo mediaInfo(QUrl("file::/ImageTest.jpeg"));
+  mediaInfo.probeContent();
+
+  QByteArray data;
+  {
+    QXmlStreamWriter writer(&data);
+    writer.setAutoFormatting(true);
+    mediaInfo.serialize(writer);
+  }
+
+  SMediaInfo read;
+  {
+    QXmlStreamReader reader(data);
+    QVERIFY(reader.readNextStartElement());
+    read.deserialize(reader);
+  }
+
+  verifyMediaFileInfoImage(read);
+}
+
+void IOTest::verifyMediaFileInfoImage(const SMediaInfo &mediaInfo)
+{
+  QVERIFY(mediaInfo.titles().first().audioStreams.isEmpty());
+  QVERIFY(mediaInfo.titles().first().videoStreams.isEmpty());
+  QVERIFY(!mediaInfo.titles().first().imageCodec.isNull());
+  QCOMPARE(mediaInfo.fileType(), SMediaInfo::ProbeInfo::FileType_Image);
+  QCOMPARE(mediaInfo.metadata("title").toString(), QString("ImageTest"));
 }
 
 /*! Tests the AudioResampler converting to half the samplerate.

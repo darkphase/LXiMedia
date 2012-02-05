@@ -24,10 +24,8 @@
 namespace LXiStream {
 namespace FFMpegBackend {
 
-
 FormatProber::FormatProber(const QString &, QObject *parent)
   : SInterfaces::FormatProber(parent),
-    lastFilePath(":"),
     bufferReader(NULL),
     lastIoDevice(NULL),
     waitForKeyFrame(true)
@@ -43,75 +41,42 @@ FormatProber::~FormatProber()
   }
 }
 
-QList<FormatProber::Format> FormatProber::probeFormat(const QByteArray &buffer, const QUrl &filePath)
+void FormatProber::readFormat(ProbeInfo &pi, const QByteArray &buffer)
 {
-  if (lastFilePath != filePath)
+  if (!pi.fileInfo.isDir && (buffer.size() >= (defaultProbeSize / 2)))
   {
-    formats.clear();
-
-    if (buffer.isEmpty() || (buffer.size() >= (defaultProbeSize / 2)))
+    QByteArray fileName("");
+    if (!pi.filePath.isEmpty())
     {
-      QByteArray fileName("");
-      if (!filePath.isEmpty())
-      {
-        const QString path = filePath.path();
-        fileName = path.mid(path.lastIndexOf('/') + 1).toUtf8();
-      }
-
-      ::AVProbeData probeData;
-      probeData.filename = fileName.data();
-      probeData.buf = (uchar *)buffer.data();
-      probeData.buf_size = buffer.size();
-
-      ::AVInputFormat * format = ::av_probe_input_format(&probeData, true);
-      if (format && format->name)
-        formats += Format(format->name, 0);
+      const QString path = pi.filePath.path();
+      fileName = path.mid(path.lastIndexOf('/') + 1).toUtf8();
     }
 
-    lastFilePath = filePath;
-  }
+    ::AVProbeData probeData;
+    probeData.filename = fileName.data();
+    probeData.buf = (uchar *)buffer.data();
+    probeData.buf_size = buffer.size();
 
-  return formats;
-}
-
-void FormatProber::probeFormat(ProbeInfo &pi, QIODevice *ioDevice)
-{
-  BufferReader * const bufferReader = createBufferReader(ioDevice, pi.filePath);
-  if (bufferReader && !formats.isEmpty())
-  {
-    pi.format.format = formats.first().name;
-    pi.format.fileTypeName = bufferReader->formatName();
-    pi.format.isComplexFile = bufferReader->duration().toSec() >= 600;
-
-    for (int title=0, n=bufferReader->numTitles();
-         (title<n) && (pi.format.fileType!=ProbeInfo::FileType_Video);
-         title++)
+    ::AVInputFormat * format = ::av_probe_input_format(&probeData, true);
+    if (format && format->name)
     {
-      if (!bufferReader->audioStreams(title).isEmpty() &&
-          !bufferReader->videoStreams(title).isEmpty())
-      {
+      pi.format.format = format->name;
+      pi.format.fileTypeName = format->long_name;
+
+      if (FFMpegCommon::isVideoFormat(format->name))
         pi.format.fileType = ProbeInfo::FileType_Video;
-      }
-      else if (!bufferReader->audioStreams(title).isEmpty())
+      else if (FFMpegCommon::isAudioFormat(format->name))
         pi.format.fileType = ProbeInfo::FileType_Audio;
 
-      pi.format.isComplexFile |= bufferReader->audioStreams(title).count() > 1;
-      pi.format.isComplexFile |= bufferReader->videoStreams(title).count() > 1;
-      pi.format.isComplexFile |= !bufferReader->dataStreams(title).isEmpty();
+      pi.isFormatProbed = true;
     }
-
-    setMetadata(pi, bufferReader);
-
-    pi.isFormatProbed = true;
   }
 }
 
-void FormatProber::probeContent(ProbeInfo &pi, QIODevice *ioDevice, const QSize &thumbSize)
+void FormatProber::readContent(ProbeInfo &pi, QIODevice *ioDevice)
 {
-//  QTime timer; timer.start();
-
-  BufferReader * const bufferReader = createBufferReader(ioDevice, pi.filePath);
-  if (bufferReader && !formats.isEmpty())
+  BufferReader * const bufferReader = createBufferReader(pi.format.format, ioDevice, pi.filePath);
+  if (bufferReader)
   {
     for (int title=0, n=bufferReader->numTitles(); title<n; title++)
     {
@@ -136,106 +101,75 @@ void FormatProber::probeContent(ProbeInfo &pi, QIODevice *ioDevice, const QSize 
       if (!videoStreams.isEmpty())
         mainTitle.videoStreams = videoStreams;
 
-      // Get thumbnail
-      if (!videoStreams.isEmpty())
+      // This is needed to detect all subtitle streams in MPEG files.
+      if (pi.format.format.contains("vob") ||
+          pi.format.format.contains("mpeg"))
       {
-        static const int minBufferCount = 25;
-        static const int maxBufferCount = 50;
-        static const int minDist = 80;
-        int iter = 4096;
+        int iter = 4096, bufferCount = 0;
 
-        bufferReader->selectStreams(title, QVector<StreamId>() << videoStreams.first());
-
-        while ((videoBuffers.count() < minBufferCount) && (--iter > 0))
+        while ((bufferCount < minBufferCount) && (--iter > 0))
         {
           if (!bufferReader->process())
             break;
 
-          while (!videoBuffers.isEmpty() && videoBuffers.first().codec().isNull())
+          while (!videoBuffers.isEmpty())
           {
             videoBuffers.takeFirst();
+            bufferCount++;
           }
         }
 
         // Skip first 5%
-        if (!formats.first().name.contains("mpegts")) // mpegts has very slow seeking.
-          bufferReader->setPosition(mainTitle.duration / 20);
+        const STime duration = bufferReader->duration();
+        if (!pi.format.format.contains("mpegts") && duration.isPositive()) // mpegts has very slow seeking.
+          bufferReader->setPosition(duration / 20);
 
-        // Extract the thumbnail
-        if (!videoBuffers.isEmpty() && !videoBuffers.first().codec().isNull())
+        while ((bufferCount < maxBufferCount) && (--iter > 0))
         {
-          VideoDecoder videoDecoder(QString::null, this);
-          if (videoDecoder.openCodec(
-                  videoBuffers.first().codec(),
-                  bufferReader,
-                  VideoDecoder::Flag_Fast))
+          if (!bufferReader->process())
+            break;
+
+          while (!videoBuffers.isEmpty())
           {
-            SVideoBuffer thumbnail;
-            int bestDist = -1, counter = 0;
-
-            do
-            {
-              while (!videoBuffers.isEmpty())
-              foreach (const SVideoBuffer &decoded, videoDecoder.decodeBuffer(videoBuffers.takeFirst()))
-              if (!decoded.isNull())
-              {
-                // Get all greyvalues
-                QVector<quint8> pixels;
-                pixels.reserve(4096);
-                for (unsigned y=0, n=decoded.format().size().height(), i=n/32; y<n; y+=i)
-                {
-                  const quint8 * const line = reinterpret_cast<const quint8 *>(decoded.scanLine(y, 0));
-                  for (int x=0, n=decoded.format().size().width(), i=n/32; x<n; x+=i)
-                    pixels += line[x];
-                }
-
-                qSort(pixels);
-                const int dist = (counter / 10) + (int(pixels[pixels.count() * 3 / 4]) - int(pixels[pixels.count() / 4]));
-                if (dist >= bestDist)
-                {
-                  thumbnail = decoded;
-                  bestDist = dist;
-                }
-
-                counter++;
-              }
-
-              if (bestDist < minDist)
-              while ((videoBuffers.count() < minBufferCount) && (--iter > 0))
-              {
-                if (!bufferReader->process())
-                  break;
-              }
-            }
-            while (!videoBuffers.isEmpty() && (bestDist < minDist) && (counter < maxBufferCount));
-
-            // Build thumbnail
-            if (!thumbnail.isNull())
-            {
-              VideoResizer videoResizer("bilinear", this);
-              videoResizer.setSize(thumbSize);
-              videoResizer.setAspectRatioMode(Qt::KeepAspectRatio);
-              mainTitle.thumbnail = videoResizer.processBuffer(thumbnail);
-            }
+            videoBuffers.takeFirst();
+            bufferCount++;
           }
         }
-
-        videoBuffers.clear();
-
-        // Subtitle streams may not be visible after reading some data (as the
-        // first subtitle usually appears after a few minutes).
-        const QList<DataStreamInfo> dataStreams = bufferReader->dataStreams(title);
-        if (!dataStreams.isEmpty())
-          mainTitle.dataStreams = dataStreams;
       }
+
+      // Subtitle streams may not be visible after reading some data (as the
+      // first subtitle usually appears after a few minutes).
+      const QList<DataStreamInfo> dataStreams = bufferReader->dataStreams(title);
+      if (!dataStreams.isEmpty())
+        mainTitle.dataStreams = dataStreams;
+
+      videoBuffers.clear();
     }
 
     setMetadata(pi, bufferReader);
 
     pi.isContentProbed = true;
   }
+}
 
-//  qDebug() << pi.filePath << pi.format << timer.elapsed();
+SVideoBuffer FormatProber::readThumbnail(const ProbeInfo &pi, QIODevice *ioDevice, const QSize &thumbSize)
+{
+  if (ioDevice)
+  {
+    QUrl filePath;
+    QFile const * file = qobject_cast<QFile *>(ioDevice);
+    if (file)
+    {
+      filePath.setPath(file->fileName());
+      filePath.setScheme("file");
+    }
+
+    BufferReader * const bufferReader = createBufferReader(pi.format.format, ioDevice, filePath);
+    if (bufferReader)
+      return readThumbnail(pi, bufferReader, thumbSize);
+  }
+
+  return SVideoBuffer();
 }
 
 void FormatProber::produce(const SEncodedAudioBuffer &)
@@ -255,7 +189,101 @@ void FormatProber::produce(const SEncodedDataBuffer &)
 {
 }
 
-BufferReader * FormatProber::createBufferReader(QIODevice *ioDevice, const QUrl &filePath)
+SVideoBuffer FormatProber::readThumbnail(const ProbeInfo &pi, BufferReader *bufferReader, const QSize &thumbSize)
+{
+  SVideoBuffer result;
+
+  for (int title=0, n=bufferReader->numTitles(); (title<n) && result.isNull(); title++)
+  {
+    const QList<VideoStreamInfo> videoStreams = bufferReader->videoStreams(title);
+    if (!videoStreams.isEmpty())
+    {
+      static const int minDist = 80;
+      int iter = 4096;
+
+      bufferReader->selectStreams(title, QVector<StreamId>() << videoStreams.first());
+
+      while ((videoBuffers.count() < minBufferCount) && (--iter > 0))
+      {
+        if (!bufferReader->process())
+          break;
+
+        while (!videoBuffers.isEmpty() && videoBuffers.first().codec().isNull())
+          videoBuffers.takeFirst();
+      }
+
+      // Skip first 5%
+      const STime duration = bufferReader->duration();
+      if (!pi.format.format.contains("mpegts") && duration.isPositive()) // mpegts has very slow seeking.
+        bufferReader->setPosition(duration / 20);
+
+      // Extract the thumbnail
+      if (!videoBuffers.isEmpty() && !videoBuffers.first().codec().isNull())
+      {
+        VideoDecoder videoDecoder(QString::null, this);
+        if (videoDecoder.openCodec(
+                videoBuffers.first().codec(),
+                bufferReader,
+                VideoDecoder::Flag_Fast))
+        {
+          SVideoBuffer thumbnail;
+          int bestDist = -1, counter = 0;
+
+          do
+          {
+            while (!videoBuffers.isEmpty())
+            foreach (const SVideoBuffer &decoded, videoDecoder.decodeBuffer(videoBuffers.takeFirst()))
+            if (!decoded.isNull())
+            {
+              // Get all greyvalues
+              QVector<quint8> pixels;
+              pixels.reserve(4096);
+              for (unsigned y=0, n=decoded.format().size().height(), i=n/32; y<n; y+=i)
+              {
+                const quint8 * const line = reinterpret_cast<const quint8 *>(decoded.scanLine(y, 0));
+                for (int x=0, n=decoded.format().size().width(), i=n/32; x<n; x+=i)
+                  pixels += line[x];
+              }
+
+              qSort(pixels);
+              const int dist = (counter / 10) + (int(pixels[pixels.count() * 3 / 4]) - int(pixels[pixels.count() / 4]));
+              if (dist >= bestDist)
+              {
+                thumbnail = decoded;
+                bestDist = dist;
+              }
+
+              counter++;
+            }
+
+            if (bestDist < minDist)
+            while ((videoBuffers.count() < minBufferCount) && (--iter > 0))
+            {
+              if (!bufferReader->process())
+                break;
+            }
+          }
+          while (!videoBuffers.isEmpty() && (bestDist < minDist) && (counter < maxBufferCount));
+
+          // Build thumbnail
+          if (!thumbnail.isNull())
+          {
+            VideoResizer videoResizer("bilinear", this);
+            videoResizer.setSize(thumbSize);
+            videoResizer.setAspectRatioMode(Qt::KeepAspectRatio);
+            result = videoResizer.processBuffer(thumbnail);
+          }
+        }
+      }
+
+      videoBuffers.clear();
+    }
+  }
+
+  return result;
+}
+
+BufferReader * FormatProber::createBufferReader(const QString &format, QIODevice *ioDevice, const QUrl &filePath)
 {
   if (ioDevice != lastIoDevice)
   {
@@ -266,20 +294,20 @@ BufferReader * FormatProber::createBufferReader(QIODevice *ioDevice, const QUrl 
       bufferReader = NULL;
     }
 
-    foreach (
-        const SInterfaces::FormatProber::Format &format,
-        FormatProber::probeFormat(ioDevice->peek(defaultProbeSize), filePath))
+    bufferReader = new BufferReader(QString::null, this);
+    if (bufferReader->openFormat(format))
+    if (bufferReader->start(ioDevice, this, false, true))
     {
-      bufferReader = new BufferReader(QString::null, this);
-      if (bufferReader->openFormat(format.name))
-      if (bufferReader->start(ioDevice, this, false, true))
-        break;
+      lastIoDevice = ioDevice;
 
-      delete bufferReader;
-      bufferReader = NULL;
+      videoBuffers.clear();
+      waitForKeyFrame = true;
+
+      return bufferReader;
     }
 
-    lastIoDevice = ioDevice;
+    delete bufferReader;
+    bufferReader = NULL;
   }
   else if (bufferReader)
     bufferReader->setPosition(STime::null);
@@ -297,15 +325,15 @@ void FormatProber::setMetadata(ProbeInfo &pi, const BufferReader *bufferReader)
        e != NULL;
        e = av_dict_get(bufferReader->context()->metadata, "", e, AV_DICT_IGNORE_SUFFIX))
   {
-    setMetadata(pi, e->key, QString::fromUtf8(e->value));
+    setMetadata(pi, e->key, QString::fromUtf8(e->value).simplified());
   }
 #else
-  setMetadata(pi, "title", SStringParser::removeControl(QString::fromUtf8(bufferReader->context()->title)).trimmed());
-  setMetadata(pi, "author", SStringParser::removeControl(QString::fromUtf8(bufferReader->context()->author)).trimmed());
-  setMetadata(pi, "copyright", SStringParser::removeControl(QString::fromUtf8(bufferReader->context()->copyright)).trimmed());
-  setMetadata(pi, "comment", SStringParser::removeControl(QString::fromUtf8(bufferReader->context()->comment)).trimmed());
-  setMetadata(pi, "album", SStringParser::removeControl(QString::fromUtf8(bufferReader->context()->album)).trimmed());
-  setMetadata(pi, "genre", SStringParser::removeControl(QString::fromUtf8(bufferReader->context()->genre)).trimmed());
+  setMetadata(pi, "title", QString::fromUtf8(bufferReader->context()->title).simplified());
+  setMetadata(pi, "author", QString::fromUtf8(bufferReader->context()->author).simplified());
+  setMetadata(pi, "copyright", QString::fromUtf8(bufferReader->context()->copyright).simplified());
+  setMetadata(pi, "comment", QString::fromUtf8(bufferReader->context()->comment).simplified());
+  setMetadata(pi, "album", QString::fromUtf8(bufferReader->context()->album).simplified());
+  setMetadata(pi, "genre", QString::fromUtf8(bufferReader->context()->genre).simplified());
   setMetadata(pi, "year", bufferReader->context()->year > 0 ? QString::number(bufferReader->context()->year) : QString::null);
   setMetadata(pi, "track", bufferReader->context()->track > 0 ? QString::number(bufferReader->context()->track) : QString::null);
 #endif
@@ -314,7 +342,7 @@ void FormatProber::setMetadata(ProbeInfo &pi, const BufferReader *bufferReader)
 void FormatProber::setMetadata(ProbeInfo &pi, const char *name, const QString &value)
 {
   if (!value.isEmpty())
-    pi.format.metadata.insert(QString::fromUtf8(name), value);
+    pi.content.metadata.insert(QString::fromUtf8(name), value);
 }
 
 } } // End of namespaces

@@ -20,7 +20,6 @@
 
 #include <QtCore>
 #include <QtNetwork>
-#include <QtXml>
 #include <LXiCore>
 #include <LXiServer>
 #include <LXiStream>

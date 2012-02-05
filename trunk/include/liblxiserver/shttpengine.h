@@ -94,6 +94,7 @@ public:
   public:
     bool                        isValid(void) const;
 
+    QStringList                 fieldNames(void) const;
     bool                        hasField(const QString &name) const;
     QString                     field(const QString &name) const;
     void                        setField(const QString &name, const QString &value);
@@ -397,6 +398,10 @@ public:
             expires.
    */
   virtual ResponseMessage       blockingRequest(const RequestMessage &, int timeout = 30000);
+
+  /*! This method returns the maximum number of sockets that can be open.
+   */
+  virtual int                   maxSocketCount(void) const = 0;
 
 public slots:
   /*! Shall take the socket and reuse it when possible, otherwise closes and

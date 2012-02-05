@@ -30,71 +30,82 @@ FormatProber::~FormatProber()
 {
 }
 
-QList<FormatProber::Format> FormatProber::probeFormat(const QByteArray &data, const QUrl &filePath)
+void FormatProber::readFormat(ProbeInfo &pi, const QByteArray &buffer)
 {
-  QList<Format> result;
-
-  if (data.size() >= 4)
+  if (!pi.fileInfo.isDir)
   {
-    if ((data[0] == 'B') && (data[1] == 'M'))
-      result += Format("bmp", -1);
-    else if ((data[0] == char(0xFF)) && (data[1] == char(0xD8)))
-      result += Format("jpeg", -1);
-    else if ((data[0] == char(0x89)) && (data[1] == 'P') && (data[2] == 'N') && (data[3] == 'G'))
-      result += Format("png", -1);
-  }
+    const QString path = pi.filePath.path();
+    const QString fileName = path.mid(path.lastIndexOf('/') + 1);
+    const int lastdot = fileName.lastIndexOf('.');
+    const QString suffix = lastdot >= 0 ? fileName.mid(lastdot + 1).toLower() : QString::null;
 
-  const QString path = filePath.path();
-  const QString fileName = path.mid(path.lastIndexOf('/') + 1);
-  const int lastdot = fileName.lastIndexOf('.');
-  const QString suffix = lastdot >= 0 ? fileName.mid(lastdot + 1).toLower() : QString::null;
-  if (SImage::rawImageSuffixes().contains(suffix))
-    result += Format(suffix, -1);
-
-  return result;
-}
-
-void FormatProber::probeFormat(ProbeInfo &pi, QIODevice *ioDevice)
-{
-  if (ioDevice)
-  foreach (
-      const Format &format,
-      FormatProber::probeFormat(ioDevice->peek(4), pi.filePath))
-  {
-    pi.format.format = format.name;
-    pi.format.fileType = ProbeInfo::FileType_Image;
-
-    if (pi.format.fileTypeName.isEmpty())
-      pi.format.fileTypeName = SImage::rawImageDescription(format.name);
-
-    pi.isFormatProbed = true;
-    break;
-  }
-}
-
-void FormatProber::probeContent(ProbeInfo &pi, QIODevice *ioDevice, const QSize &thumbSize)
-{
-  if (ioDevice)
-  foreach (
-      const Format &format,
-      FormatProber::probeFormat(ioDevice->peek(4), pi.filePath))
-  {
-    const SImage thumbnail = SImage::fromData(ioDevice, thumbSize, format.name.toAscii());
-    if (!thumbnail.isNull())
+    if (SImage::rawImageSuffixes().contains(suffix))
     {
-      if (pi.content.titles.isEmpty())
-        pi.content.titles += ProbeInfo::Title();
-
-      ProbeInfo::Title &mainTitle = pi.content.titles.first();
-
-      mainTitle.imageCodec = SVideoCodec(format.name.toUpper(), thumbnail.originalSize());
-      mainTitle.thumbnail = thumbnail.toVideoBuffer();
-
-      pi.isContentProbed = true;
+      pi.format.format = suffix;
+      pi.format.fileType = ProbeInfo::FileType_Image;
+      pi.format.fileTypeName = "RAW image";
+      pi.isFormatProbed = true;
     }
-
-    break;
+    else if (buffer.size() >= 4)
+    {
+      if ((buffer[0] == 'B') && (buffer[1] == 'M') && suffix.contains("bmp"))
+      {
+        pi.format.format = "bmp";
+        pi.format.fileType = ProbeInfo::FileType_Image;
+        pi.format.fileTypeName = "Portable Pixmap";
+        pi.isFormatProbed = true;
+      }
+      else if ((buffer[0] == char(0xFF)) && (buffer[1] == char(0xD8)) && suffix.contains("jp"))
+      {
+        pi.format.format = "jpeg";
+        pi.format.fileType = ProbeInfo::FileType_Image;
+        pi.format.fileTypeName = "JPEG Compressed";
+        pi.isFormatProbed = true;
+      }
+      else if ((buffer[0] == char(0x89)) && (buffer[1] == 'P') && (buffer[2] == 'N') && (buffer[3] == 'G'))
+      {
+        pi.format.format = "png";
+        pi.format.fileType = ProbeInfo::FileType_Image;
+        pi.format.fileTypeName = "Portable Pixmap";
+        pi.isFormatProbed = true;
+      }
+    }
   }
+}
+
+void FormatProber::readContent(ProbeInfo &pi, QIODevice *ioDevice)
+{
+  if (ioDevice)
+  if (SImage::rawImageSuffixes().contains(pi.format.format) ||
+      (pi.format.format == "bmp") || (pi.format.format == "jpeg") ||
+      (pi.format.format == "png"))
+  {
+    if (pi.content.titles.isEmpty())
+      pi.content.titles += ProbeInfo::Title();
+
+    ProbeInfo::Title &mainTitle = pi.content.titles.first();
+
+    mainTitle.imageCodec = SVideoCodec(pi.format.format.toUpper());
+
+    pi.isContentProbed = true;
+  }
+}
+
+SVideoBuffer FormatProber::readThumbnail(const ProbeInfo &pi, QIODevice *ioDevice, const QSize &thumbSize)
+{
+  if (ioDevice)
+  {
+    if (SImage::rawImageSuffixes().contains(pi.format.format) ||
+        (pi.format.format == "bmp") || (pi.format.format == "jpeg") ||
+        (pi.format.format == "png"))
+    {
+      const SImage thumbnail = SImage::fromData(ioDevice, thumbSize, pi.format.format.toAscii());
+      if (!thumbnail.isNull())
+        return thumbnail.toVideoBuffer();
+    }
+  }
+  
+  return SVideoBuffer();
 }
 
 } } // End of namespaces

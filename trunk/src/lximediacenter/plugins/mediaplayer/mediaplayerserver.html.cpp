@@ -343,10 +343,47 @@ SHttpServer::ResponseMessage MediaPlayerServer::httpRequest(const SHttpServer::R
     if (request.url().hasQueryItem("thumbnail"))
     {
       const QUrl filePath = realPath(request.file());
-      nodeReadQueue.insert(filePath, qMakePair(request, socket));
-      mediaDatabase->queueReadNode(filePath);
+      if (!filePath.isEmpty())
+      {
+        SSize size(128, 128);
+        if (request.url().hasQueryItem("resolution"))
+          size = SSize::fromString(request.url().queryItemValue("resolution"));
 
-      return SHttpServer::ResponseMessage(request, SHttpServer::Status_None);
+        SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
+        response.setContentType(SHttpEngine::mimeImagePng);
+
+        if (!request.isHead())
+        {
+          const QByteArray result = mediaDatabase->readThumbnail(filePath, size.size(), Qt::black, "png");
+          if (!result.isEmpty())
+          {
+            response.setContent(makeThumbnail(
+                size.size(),
+                QImage::fromData(result),
+                request.url().queryItemValue("overlay")));
+          }
+          else
+          {
+            QString defaultIcon = ":/img/null.png";
+            switch (mediaDatabase->readNodeFormat(filePath).fileType())
+            {
+            case SMediaInfo::ProbeInfo::FileType_None:      defaultIcon = ":/img/null.png";           break;
+            case SMediaInfo::ProbeInfo::FileType_Audio:     defaultIcon = ":/img/audio-file.png";     break;
+            case SMediaInfo::ProbeInfo::FileType_Video:     defaultIcon = ":/img/video-file.png";     break;
+            case SMediaInfo::ProbeInfo::FileType_Image:     defaultIcon = ":/img/image-file.png";     break;
+            case SMediaInfo::ProbeInfo::FileType_Directory: defaultIcon = ":/img/directory.png";      break;
+            case SMediaInfo::ProbeInfo::FileType_Drive:     defaultIcon = ":/img/drive.png";          break;
+            case SMediaInfo::ProbeInfo::FileType_Disc:      defaultIcon = ":/img/media-optical.png";  break;
+            }
+
+            response.setContent(makeThumbnail(size.size(), QImage(defaultIcon)));
+          }
+        }
+
+        return response;
+      }
+
+      return SHttpServer::ResponseMessage(request, SHttpServer::Status_NotFound);
     }
     else if (request.url().hasQueryItem("save_settings"))
     {

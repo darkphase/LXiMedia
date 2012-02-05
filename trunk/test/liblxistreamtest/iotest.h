@@ -31,6 +31,7 @@ private slots:
 
 private slots:
   void                          MediaFileInfoImage(void);
+  void                          MediaFileInfoSerialize(void);
 
   void                          AudioResamplerHalfRate(void);
   void                          AudioResamplerDoubleRate(void);
@@ -45,6 +46,8 @@ private slots:
 private:
   SAudioBuffer                  createAudioBuffer(unsigned sampleRate);
   SVideoBuffer                  createVideoBuffer(const SSize &);
+
+  void                          verifyMediaFileInfoImage(const SMediaInfo &);
 
 private:
   SApplication                * mediaApp;

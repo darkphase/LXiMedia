@@ -80,6 +80,11 @@ void SHttpClient::openRequest(const RequestMessage &message, QObject *receiver, 
   openRequest();
 }
 
+int SHttpClient::maxSocketCount(void) const
+{
+  return d->maxSocketCount;
+}
+
 void SHttpClient::closeSocket(QIODevice *socket)
 {
   if (QThread::currentThread() == thread())
