@@ -1,6 +1,6 @@
 TEMPLATE = lib
 CONFIG += dll
-QT += network xml
+QT += network
 LXIMEDIA_DIR = ../../..
 DESTDIR = $${OUT_PWD}/$${LXIMEDIA_DIR}/bin
 TARGET = LXiMediaCenter
@@ -60,11 +60,9 @@ win32 {
   system(mkdir $${OUT_DIR} > NUL 2>&1)
   release {
     system(copy /Y $$(QTDIR)\\bin\\QtCore4.dll $${OUT_DIR} > NUL)
-    system(copy /Y $$(QTDIR)\\bin\\QtXml4.dll $${OUT_DIR} > NUL)
   }
   debug {
     system(copy /Y $$(QTDIR)\\bin\\QtCored4.dll $${OUT_DIR} > NUL)
-    system(copy /Y $$(QTDIR)\\bin\\QtXmld4.dll $${OUT_DIR} > NUL)
   }
 }
 win32-g++ {

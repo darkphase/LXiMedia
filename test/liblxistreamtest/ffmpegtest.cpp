@@ -47,7 +47,6 @@ void FFMpegTest::MediaFileInfoAudioDeep(void)
   QCOMPARE(mediaInfo.metadata("title").toString(), QString("SoundTest"));
   QCOMPARE(mediaInfo.titles().first().audioStreams.first().codec.codec(), QString("VORBIS"));
   QVERIFY(mediaInfo.titles().first().videoStreams.isEmpty());
-  QVERIFY(mediaInfo.titles().first().thumbnail.isNull());
 
   QCOMPARE(mediaInfo.titles().first().duration.toSec(), 3);
 }
@@ -57,7 +56,8 @@ void FFMpegTest::MediaFileInfoAudioDeep(void)
 void FFMpegTest::AudioEncodeDecode(void)
 {
   static const QSet<QString> skipCodecs = QSet<QString>()
-      << "AAC" << "ALAC" << "MP3" << "SONIC" << "VORBIS" << "WMAV1" << "WMAV2"
+      << "AAC" << "ALAC" << "MP3" << "SONIC" << "SPEEX" << "VORBIS" << "WMAV1"
+      << "WMAV2"
       << "PCM/S16LE" << "PCM/S16BE" << "PCM/U16LE" << "PCM/U16BE" << "PCM/S8"
       << "PCM/U8" << "PCM/MULAW" << "PCM/ALAW" << "PCM/S32LE" << "PCM/S32BE"
       << "PCM/U32LE" << "PCM/U32BE" << "PCM/S24LE" << "PCM/S24BE" << "PCM/U24LE"

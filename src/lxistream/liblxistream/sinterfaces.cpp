@@ -62,11 +62,26 @@ SourceNode::SourceNode(SGraph *graph)
 }
 
 
-const unsigned FormatProber::defaultProbeSize = 16384;
+const int FormatProber::defaultProbeSize = 16384;
 
 QList<FormatProber *> FormatProber::create(QObject *parent)
 {
   return factory().createObjects<FormatProber>(parent);
+}
+
+SVideoBuffer FormatProber::readThumbnail(const ProbeInfo &, QIODevice *, const QSize &)
+{
+  return SVideoBuffer();
+}
+
+
+FormatProber::ProbeInfo::ProbeInfo(void)
+  : isReadable(false), isFileInfoRead(false), isFormatProbed(false),
+    isContentProbed(false)
+{
+  fileInfo.isDir = false;
+  fileInfo.size = 0;
+  format.fileType = FileType_None;
 }
 
 

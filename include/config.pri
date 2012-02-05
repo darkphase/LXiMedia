@@ -29,6 +29,11 @@ CONFIG += mmx sse sse2
 CONFIG -= 3dnow exceptions rtti
 
 unix {
+  # Make sure the debug version can run locally without install.
+  debug {
+    QMAKE_LFLAGS += -Wl,-rpath -Wl,.
+  }
+
   # Reduce export symbol table size and binary size.
   QMAKE_CXXFLAGS += -fvisibility=hidden -fvisibility-inlines-hidden
   QMAKE_CFLAGS += -fvisibility=hidden -fvisibility-inlines-hidden

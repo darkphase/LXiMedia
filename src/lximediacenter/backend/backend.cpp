@@ -19,6 +19,7 @@
 #ifdef DEBUG_USE_LOCAL_SANDBOX
 # include "sandbox.h"
 #endif
+#include <QtXml>
 #include <iostream>
 
 #if !defined(QT_NO_DEBUG) || defined(Q_OS_MACX)

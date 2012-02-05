@@ -77,6 +77,7 @@ private:
   QPointer<QIODevice>           socket;
   QByteArray                    data;
   bool                          headerReceived;
+  bool                          handlingRequest;
   QByteArray                    content;
   QTimer                        closeTimer;
 };

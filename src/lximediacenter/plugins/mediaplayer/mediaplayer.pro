@@ -2,22 +2,20 @@ MODULE_NAME = lximediacenter_mediaplayer
 LXIMEDIA_DIR = ../../../..
 include($${PWD}/$${LXIMEDIA_DIR}/include/liblxicore/module.pri)
 include($${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/linklximediacenter.pri)
-QT += network xml
+QT += network
 
 CONFIG += precompile_header
 PRECOMPILED_HEADER = $${PWD}/$${LXIMEDIA_DIR}/include/LXiMediaCenter
 
 # Files
-HEADERS += filenode.h \
-    mediadatabase.h \
+HEADERS += mediadatabase.h \
     mediaplayersandbox.h \
     mediaplayerserver.h \
     module.h \
     playlist.h \
     slideshownode.h
 
-SOURCES += filenode.cpp \
-    mediadatabase.cpp \
+SOURCES += mediadatabase.cpp \
     mediaplayersandbox.cpp \
     mediaplayerserver.cpp \
     mediaplayerserver.html.cpp \

@@ -31,55 +31,29 @@ FormatProber::~FormatProber()
 {
 }
 
-QList<FormatProber::Format> FormatProber::probeFormat(const QByteArray &, const QUrl &filePath)
-{
-  QList<Format> result;
-
-  if (BufferReader::isDiscPath(filePath))
-  {
-    ::dvdnav_t * dvdHandle = NULL;
-    if (::dvdnav_open(&dvdHandle, filePath.path().toUtf8()) == DVDNAV_STATUS_OK)
-    {
-      result += Format(BufferReader::formatName, 0);
-
-      ::dvdnav_close(dvdHandle);
-    }
-  }
-
-  return result;
-}
-
-void FormatProber::probeFormat(ProbeInfo &pi, QIODevice *)
+void FormatProber::readFormat(ProbeInfo &pi, const QByteArray &)
 {
   if (BufferReader::isDiscPath(pi.filePath))
   {
-    QFile file(pi.filePath.path());
-    BufferReader bufferReader(QString::null, this);
-    if (bufferReader.start(&file, NULL, false))
-    {
-      pi.format.format = BufferReader::formatName;
-      pi.format.fileType = ProbeInfo::FileType_Disc;
-      pi.format.fileTypeName = "Digital Versatile Disc";
+    pi.format.format = BufferReader::formatName;
+    pi.format.fileType = ProbeInfo::FileType_Disc;
+    pi.format.fileTypeName = "Digital Versatile Disc";
+    pi.isFormatProbed = true;
+  }
+}
 
+void FormatProber::readContent(ProbeInfo &pi, QIODevice *ioDevice)
+{
+  QFile * const file = qobject_cast<QFile *>(ioDevice);
+  if (file && (pi.format.format == BufferReader::formatName))
+  {
+    BufferReader bufferReader(QString::null, this);
+    if (bufferReader.start(file, NULL, false))
+    {
       const QString discName = bufferReader.discName();
       if (!discName.isEmpty())
-        pi.format.metadata.insert("title", discName);
+        pi.content.metadata.insert("title", discName);
 
-      pi.isFormatProbed = true;
-
-      bufferReader.stop();
-    }
-  }
-}
-
-void FormatProber::probeContent(ProbeInfo &pi, QIODevice *, const QSize &thumbSize)
-{
-  if (BufferReader::isDiscPath(pi.filePath))
-  {
-    QFile file(pi.filePath.path());
-    BufferReader bufferReader(QString::null, this);
-    if (bufferReader.start(&file, NULL, false))
-    {
       pi.content.titles.clear();
 
       for (int i=0, n=bufferReader.numTitles(); i<n; i++)
@@ -93,13 +67,8 @@ void FormatProber::probeContent(ProbeInfo &pi, QIODevice *, const QSize &thumbSi
         foreach (SInterfaces::FormatProber *prober, SInterfaces::FormatProber::create(NULL))
         {
           if (ioDevice->seek(0))
-          {
-            if (!fpi.isFormatProbed)
-              prober->probeFormat(fpi, ioDevice);
-
-            if (fpi.isFormatProbed && !fpi.isContentProbed)
-              prober->probeContent(fpi, ioDevice, thumbSize);
-          }
+          if (!fpi.isContentProbed)
+            prober->readContent(fpi, ioDevice);
 
           delete prober;
         }
@@ -125,6 +94,49 @@ void FormatProber::probeContent(ProbeInfo &pi, QIODevice *, const QSize &thumbSi
       pi.isContentProbed = true;
     }
   }
+}
+
+SVideoBuffer FormatProber::readThumbnail(const ProbeInfo &pi, QIODevice *ioDevice, const QSize &thumbSize)
+{
+  SVideoBuffer result;
+
+  if (ioDevice)
+  {
+    QFile * const file = qobject_cast<QFile *>(ioDevice);
+    if (file && BufferReader::isDiscPath(file->fileName()))
+    {
+      BufferReader bufferReader(QString::null, this);
+      if (bufferReader.start(file, NULL, false))
+      {
+        for (int i=0, n=bufferReader.numTitles(); (i<n) && result.isNull(); i++)
+        if (bufferReader.selectTitle(i))
+        {
+          QIODevice * const ioDevice = bufferReader.getIODevice();
+
+          const QByteArray buffer =
+              ioDevice->read(SInterfaces::FormatProber::defaultProbeSize);
+
+          const QList<SInterfaces::FormatProber *> probers =
+              SInterfaces::FormatProber::create(NULL);
+
+          ProbeInfo fpi;
+          foreach (SInterfaces::FormatProber *prober, probers)
+          if (!fpi.isFormatProbed)
+            prober->readFormat(fpi, buffer);
+
+          foreach (SInterfaces::FormatProber *prober, probers)
+          {
+            if (fpi.isFormatProbed && result.isNull() && ioDevice->seek(0))
+              result = prober->readThumbnail(fpi, ioDevice, thumbSize);
+
+            delete prober;
+          }
+        }
+      }
+    }
+  }
+
+  return result;
 }
 
 

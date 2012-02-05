@@ -85,15 +85,14 @@ QList<SFileInputNode::DataStreamInfo> SFileInputNode::dataStreams(int title) con
     SSubtitleFile file(filePath);
     if (file.open())
     {
-      DataStreamInfo stream(
+      const DataStreamInfo stream(
           StreamId(StreamId::Type_Subtitle, nextStreamId++),
           file.language(),
           QString::null,
-          file.codec());
+          file.codec(),
+          filePath);
 
-      stream.file = filePath;
       dataStreams += stream;
-
       d->subtitleStreams.insert(stream, filePath);
     }
   }

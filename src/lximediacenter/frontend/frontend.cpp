@@ -16,6 +16,7 @@
  ******************************************************************************/
 
 #include "frontend.h"
+#include <QtXml>
 
 #if defined(Q_OS_LINUX)
 const char Frontend::daemonName[] = "lximcbackend";

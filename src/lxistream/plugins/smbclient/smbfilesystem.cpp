@@ -100,10 +100,10 @@ bool SMBFilesystem::openDirectory(const QUrl &path)
 
 QStringList SMBFilesystem::entryList(QDir::Filters filter, QDir::SortFlags sort) const
 {
+  QStringList resulta, resultb, resultc;
+
 #if !defined(Q_OS_WIN) || defined(USE_LIBSMBCLIENT_ON_WIN)
   QMutexLocker l(mutex());
-
-  QMultiMap<QString, QString> result;
 
   const int dh = ::smbc_opendir(path.toEncoded(QUrl::RemoveUserInfo));
   if (dh >= 0)
@@ -122,54 +122,29 @@ QStringList SMBFilesystem::entryList(QDir::Filters filter, QDir::SortFlags sort)
         {
           const QString name = QString::fromUtf8(dirent->name);
 
-          QString index;
-          if ((sort & QDir::Unsorted) == QDir::Name)
-          {
-            if ((sort & QDir::IgnoreCase) != 0)
-              index = name.toLower();
-            else
-              index = name;
-          }
-          else
-            index = ("0000000" + QString::number(result.count(), 16)).right(8);
-
           if (((dirent->smbc_type == SMBC_WORKGROUP) ||
                (dirent->smbc_type == SMBC_SERVER) ||
                (dirent->smbc_type == SMBC_FILE_SHARE) ||
                (dirent->smbc_type == SMBC_DIR)) &&
-              ((filter & QDir::Dirs) != 0))
+              ((filter & QDir::Dirs) != 0) &&
+              (((filter & QDir::NoDotAndDotDot) != 0) &&
+               ((name != ".") && (name != ".."))) &&
+              (((filter & QDir::Hidden) != 0) ||
+               !name.startsWith('.')))
           {
             if ((sort & QDir::DirsFirst) != 0)
-              index = 'A' + index;
+              resulta += name;
             else if ((sort & QDir::DirsLast) != 0)
-              index = 'C' + index;
+              resultc += name;
             else
-              index = 'B' + index;
-
-            if ((name == ".") || (name == ".."))
-            {
-              if ((filter & QDir::NoDotAndDotDot) == 0)
-                result.insert(index, name);
-            }
-            else if (name.startsWith('.'))
-            {
-              if ((filter & QDir::Hidden) != 0)
-                result.insert(index, name);
-            }
-            else
-              result.insert(index, name);
+              resultb += name;
           }
-          else if ((dirent->smbc_type == SMBC_FILE) && ((filter & QDir::Files) != 0))
+          else if ((dirent->smbc_type == SMBC_FILE) &&
+                   ((filter & QDir::Files) != 0) &&
+                   (((filter & QDir::Hidden) != 0) ||
+                    !name.startsWith('.')))
           {
-            index = 'B' + index;
-
-            if (name.startsWith('.'))
-            {
-              if ((filter & QDir::Hidden) != 0)
-                result.insert(index, name);
-            }
-            else
-              result.insert(index, name);
+            resultb += name;
           }
 
           i += dirent->dirlen;
@@ -181,17 +156,47 @@ QStringList SMBFilesystem::entryList(QDir::Filters filter, QDir::SortFlags sort)
 
     ::smbc_closedir(dh);
   }
-
-  return result.values();
 #else
-  QStringList result;
-
-  foreach (const QString &fileName, dir.entryList(filter, sort))
-  if (!fileName.startsWith('.'))
-    result += fileName;
-
-  return result;
+  foreach (const QFileInfo &info, dir.entryInfoList(filter))
+  if (info.isDir() &&
+      ((filter & QDir::Dirs) != 0) &&
+      (((filter & QDir::NoDotAndDotDot) != 0) &&
+       ((info.fileName() != ".") && (info.fileName() != ".."))) &&
+      (((filter & QDir::Hidden) != 0) ||
+       !info.fileName().startsWith('.')))
+  {
+    if ((sort & QDir::DirsFirst) != 0)
+      resulta += info.fileName();
+    else if ((sort & QDir::DirsLast) != 0)
+      resultc += info.fileName();
+    else
+      resultb += info.fileName();
+  }
+  else if (info.isFile() &&
+           ((filter & QDir::Files) != 0) &&
+           (((filter & QDir::Hidden) != 0) ||
+            !info.fileName().startsWith('.')))
+  {
+    resultb += info.fileName();
+  }
 #endif
+
+  if (sort != QDir::Unsorted)
+  {
+    struct T
+    {
+      static bool lessThan(const QString &a, const QString &b)
+      {
+        return SStringParser::alphaNumCompare(a.toLower(), b.toLower()) < 0;
+      }
+    };
+
+    qSort(resulta.begin(), resulta.end(), &T::lessThan);
+    qSort(resultb.begin(), resultb.end(), &T::lessThan);
+    qSort(resultc.begin(), resultc.end(), &T::lessThan);
+  }
+
+  return resulta + resultb + resultc;
 }
 
 QUrl SMBFilesystem::filePath(const QString &fileName) const

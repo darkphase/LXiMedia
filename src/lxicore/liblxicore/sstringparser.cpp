@@ -194,8 +194,6 @@ QByteArray SStringParser::parse(const QByteArray &data) const
   return result;
 }
 
-/*! Returns true if the string is a valid UTF8 string, otherwise returns false.
- */
 bool SStringParser::isUtf8(const QByteArray &text)
 {
   for (int i=0; i<text.count()-4; )
@@ -250,8 +248,6 @@ bool SStringParser::isUtf8(const QByteArray &text)
   return true;
 }
 
-/*! Ensures a string is properly escaped for use in XML.
- */
 QByteArray SStringParser::escapeXml(const QByteArray &data)
 {
   QByteArray result = data;
@@ -259,17 +255,11 @@ QByteArray SStringParser::escapeXml(const QByteArray &data)
   return result.replace("&amp;", "&").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
 }
 
-/*! Ensures a string is properly escaped for use in XML.
- */
 QByteArray SStringParser::escapeXml(const QString &data)
 {
   return escapeXml(data.toUtf8());
 }
 
-/*! Returns a string with only printable characters; all control characters are
-    removed except for the tab (\t), which is replaced by a space. For example
-    "This\tis a test\n" becomes "This is a test".
- */
 QString SStringParser::removeControl(const QString &str)
 {
   QString input(str);
@@ -284,8 +274,6 @@ QString SStringParser::removeControl(const QString &str)
   return printable;
 }
 
-/*! Overload provided for convenience.
- */
 QStringList SStringParser::removeControl(const QStringList &list)
 {
   QStringList result;
@@ -295,10 +283,6 @@ QStringList SStringParser::removeControl(const QStringList &list)
   return result;
 }
 
-/*! Returns the provided string as a basic latin string, all non basic latin
-    characters are replaced by their basic latin equivalent or ignored. For
-    example "dæmon" becomes "daemon" and "heiß" becomes "heiss".
- */
 QString SStringParser::toBasicLatin(const QString &s)
 {
   QString result = "";
@@ -309,8 +293,6 @@ QString SStringParser::toBasicLatin(const QString &s)
   return result;
 }
 
-/*! Overload provided for convenience.
- */
 QString SStringParser::toBasicLatin(QChar c)
 {
   const char ascii = c.toAscii();
@@ -339,8 +321,6 @@ QString SStringParser::toBasicLatin(QChar c)
   return QString("");
 }
 
-/*! Overload provided for convenience.
- */
 QStringList SStringParser::toBasicLatin(const QStringList &list)
 {
   QStringList result;
@@ -350,13 +330,6 @@ QStringList SStringParser::toBasicLatin(const QStringList &list)
   return result;
 }
 
-/*! Returns the provided string with only basic latin letters and numbers,
-    all other characters are replaced by their basic latin equivalent or
-    spaces and then QString::simplified() is applied on that string. For example
-    "# This ... is a test!" becomes "This is a test".
-
-    \sa toBasicLatin()
- */
 QString SStringParser::toCleanName(const QString &name)
 {
   QString clean = "";
@@ -371,8 +344,6 @@ QString SStringParser::toCleanName(const QString &name)
   return clean.trimmed();
 }
 
-/*! Overload provided for convenience.
- */
 QStringList SStringParser::toCleanName(const QStringList &list)
 {
   QStringList result;
@@ -382,12 +353,6 @@ QStringList SStringParser::toCleanName(const QStringList &list)
   return result;
 }
 
-/*! Returns the provided string with only basic latin letters and numbers
-    remaining in upper case, all other characters are replaced by their basic
-    latin equivalent. For example: "This is ... a test!" becomes "THISISATEST".
-
-    \sa toBasicLatin()
- */
 QString SStringParser::toRawName(const QString &name)
 {
   QString raw;
@@ -400,8 +365,6 @@ QString SStringParser::toRawName(const QString &name)
   return raw;
 }
 
-/*! Overload provided for convenience.
- */
 QStringList SStringParser::toRawName(const QStringList &list)
 {
   QStringList result;
@@ -411,13 +374,6 @@ QStringList SStringParser::toRawName(const QStringList &list)
   return result;
 }
 
-/*! Returns the provided string with only basic latin letters, numbers and path
-    separators remaining in upper case, all other characters are replaced by
-    their basic latin equivalent. For example: "/home/test-user/??/test/" becomes
-    "HOME/TESTUSER/TEST".
-
-    \sa toRawName()
- */
 QString SStringParser::toRawPath(const QString &path)
 {
   QStringList raw = toRawName(path.split('/', QString::SkipEmptyParts));
@@ -430,8 +386,77 @@ QString SStringParser::toRawPath(const QString &path)
   return raw.join("/");
 }
 
-/*! Looks for the biggest possible matching string in a and b.
- */
+int SStringParser::alphaNumCompare(const QString &a, const QString &b)
+{
+  struct T
+  {
+    static unsigned readNumber(const QString &s, int &p)
+    {
+      unsigned n = 0;
+      while (p < s.length())
+      {
+        const QChar c = s[p];
+        if (c.isNumber())
+        {
+          const unsigned v = unsigned(c.toAscii() - '0');
+          if (n <= (UINT_MAX - v) / 10)
+            n = (n * 10) + v;
+          else
+            n = UINT_MAX;
+
+          p++;
+        }
+        else
+          break;
+      }
+
+      return n;
+    }
+  };
+
+  for (int ap = 0, bp = 0, m = 0; (ap < a.length()) && (bp < b.length()); )
+  if (m == 0) // Processing strings
+  {
+    const QChar ac = a[ap], bc = b[bp];
+    if (ac.isNumber() && bc.isNumber())
+    {
+      m = 1;
+    }
+    else if (ac < bc)
+    {
+      return -1;
+    }
+    else if (ac > bc)
+    {
+      return 1;
+    }
+    else
+    {
+      ap++;
+      bp++;
+    }
+  }
+  else // Processing numbers
+  {
+    const unsigned an = T::readNumber(a, ap);
+    const unsigned bn = T::readNumber(b, bp);
+    if (an < bn)
+    {
+      return -1;
+    }
+    else if (an > bn)
+    {
+      return 1;
+    }
+    else
+    {
+      m = 0;
+    }
+  }
+
+  return 0;
+}
+
 QString SStringParser::findMatch(const QString &a, const QString &b)
 {
   QString match = QString::null;
@@ -459,12 +484,6 @@ QString SStringParser::findMatch(const QString &a, const QString &b)
   return match;
 }
 
-/*! Looks for the biggest possible matching string of b in a, returns a
-    real value from 0.0 to 1.0 indicating the location and amount of b matched.
-
-    \note This operation is case sensitive, it may be useful to first pass the
-          two arguments through toRawName() or toCleanName().
- */
 qreal SStringParser::computeMatch(const QString &a, const QString &b)
 {
   if (!a.isEmpty() && !b.isEmpty())
@@ -478,12 +497,6 @@ qreal SStringParser::computeMatch(const QString &a, const QString &b)
     return 0.0;
 }
 
-/*! Looks for the biggest possible matching strings of b in a, returns a
-    real value from 0.0 to 1.0 indicating the location and amount of b matched.
-
-    \note This operation is case sensitive, it may be useful to first pass the
-          two arguments through toRawName() or toCleanName().
- */
 qreal SStringParser::computeMatch(const QString &a, const QStringList &b)
 {
   if (!a.isEmpty() && !b.isEmpty())
@@ -498,12 +511,6 @@ qreal SStringParser::computeMatch(const QString &a, const QStringList &b)
     return 0.0;
 }
 
-/*! Returns computeMatch(a, b) * computeMatch(b, a).
-
-    \note This operation is case sensitive, it may be useful to first pass the
-          two arguments through toRawName() or toCleanName().
-    \sa computeMatch()
- */
 qreal SStringParser::computeBidirMatch(const QString &a, const QString &b)
 {
   return computeMatch(a, b) * computeMatch(b, a);

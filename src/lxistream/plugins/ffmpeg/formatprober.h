@@ -36,9 +36,9 @@ public:
   virtual                       ~FormatProber();
 
 public: // From SInterfaces::FormatProber
-  virtual QList<Format>         probeFormat(const QByteArray &, const QUrl &);
-  virtual void                  probeFormat(ProbeInfo &, QIODevice *);
-  virtual void                  probeContent(ProbeInfo &, QIODevice *, const QSize &);
+  virtual void                  readFormat(ProbeInfo &, const QByteArray &);
+  virtual void                  readContent(ProbeInfo &, QIODevice *);
+  virtual SVideoBuffer          readThumbnail(const ProbeInfo &, QIODevice *, const QSize &);
 
 private: // SInterfaces::BufferReader::ProduceCallback
   virtual void                  produce(const SEncodedAudioBuffer &);
@@ -46,14 +46,17 @@ private: // SInterfaces::BufferReader::ProduceCallback
   virtual void                  produce(const SEncodedDataBuffer &);
 
 private:
-  BufferReader                * createBufferReader(QIODevice *, const QUrl &);
+  SVideoBuffer                  readThumbnail(const ProbeInfo &, BufferReader *, const QSize &);
+
+  BufferReader                * createBufferReader(const QString &, QIODevice *, const QUrl &);
 
   static void                   setMetadata(ProbeInfo &, const BufferReader *);
   static void                   setMetadata(ProbeInfo &, const char *, const QString &);
 
 private:
-  QList<Format>                 formats;
-  QUrl                          lastFilePath;
+  static const int              minBufferCount = 25;
+  static const int              maxBufferCount = 50;
+
   BufferReader                * bufferReader;
   QIODevice                   * lastIoDevice;
 

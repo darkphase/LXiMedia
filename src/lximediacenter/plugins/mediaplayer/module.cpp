@@ -16,7 +16,6 @@
  ******************************************************************************/
 
 #include "module.h"
-#include "filenode.h"
 #include "mediadatabase.h"
 #include "mediaplayersandbox.h"
 #include "mediaplayerserver.h"
@@ -28,8 +27,6 @@ const char Module::pluginName[]     = QT_TR_NOOP("Media Player");
 
 bool Module::registerClasses(void)
 {
-  qRegisterMetaType<FileNode>("FileNode");
-
   MediaPlayerServer::registerClass<MediaPlayerServer>(0);
   MediaPlayerSandbox::registerClass<MediaPlayerSandbox>(0);
 

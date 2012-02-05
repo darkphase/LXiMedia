@@ -205,10 +205,11 @@ QStringList SApplication::pluginPaths(void)
 #if defined(Q_OS_UNIX)
   const QByteArray majorVersion = QByteArray(version()).split('.').first();
 
-# if defined(Q_OS_LINUX)
-  qApp->addLibraryPath("/usr/lib");
-  qApp->addLibraryPath("/usr/local/lib");
-# endif
+  if (qApp->applicationFilePath().startsWith("/usr/"))
+    qApp->addLibraryPath("/usr/lib");
+
+  if (qApp->applicationFilePath().startsWith("/usr/local/"))
+    qApp->addLibraryPath("/usr/local/lib");
 
   foreach (const QString &path, qApp->libraryPaths())
     result += path + "/lximedia" + majorVersion + "/";

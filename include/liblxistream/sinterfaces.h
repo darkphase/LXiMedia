@@ -142,15 +142,6 @@ class LXISTREAM_PUBLIC FormatProber : public QObject
 Q_OBJECT
 S_FACTORIZABLE_NO_CREATE(FormatProber)
 public:
-  struct Format
-  {
-    inline                      Format(void) : name(), confidence(0) { }
-    inline                      Format(const QString &name, int confidence) : name(name), confidence(confidence) { }
-
-    QString                     name;
-    int                         confidence;
-  };
-
   struct LXISTREAM_PUBLIC StreamId
   {
     enum Type
@@ -218,8 +209,8 @@ public:
   struct DataStreamInfo : StreamInfo
   {
     inline DataStreamInfo(void) : codec() { }
-    inline DataStreamInfo(StreamId id, const QString &language, const QString &title, const SDataCodec &codec)
-      : StreamInfo(id, language, title), codec(codec)
+    inline DataStreamInfo(StreamId id, const QString &language, const QString &title, const SDataCodec &codec, const QUrl &file = QUrl())
+      : StreamInfo(id, language, title), codec(codec), file(file)
     {
     }
 
@@ -234,7 +225,7 @@ public:
     STime                       end;
   };
 
-  struct ProbeInfo : QSharedData
+  struct LXISTREAM_PUBLIC ProbeInfo : QSharedData
   {
     /*! The type of file.
      */
@@ -265,19 +256,9 @@ public:
       QList<VideoStreamInfo>    videoStreams;                                   //!< The video streams in the title.
       QList<DataStreamInfo>     dataStreams;                                    //!< The data streams in the title.
       SVideoCodec               imageCodec;                                     //!< If the title is a signle image, this holds the image codec..
-
-      SVideoBuffer              thumbnail;                                      //!< A thumbnail of the title.
     };
 
-    inline ProbeInfo(void)
-      : isReadable(false), isFileInfoRead(false),
-        isFormatProbed(false), isContentProbed(false)
-    {
-      fileInfo.isDir = false;
-      fileInfo.size = 0;
-      format.fileType = FileType_None;
-      format.isComplexFile = false;
-    }
+                                ProbeInfo(void);
 
     QUrl                        filePath;                                       //!< The full absolute path to the file.
 
@@ -302,15 +283,13 @@ public:
       QString                   format;
       FileType                  fileType;
       QString                   fileTypeName;
-      bool                      isComplexFile;                                  //!< True if this file has multiple streams or is >= 10 min.
-      QByteArray                quickHash;
-      QMap<QString, QVariant>   metadata;
     }                           format;
 
     /*! Contains the file content information.
      */
     struct
     {
+      QMap<QString, QVariant>   metadata;
       QList<Title>              titles;
     }                           content;
   };
@@ -328,36 +307,23 @@ public:
   /*! Defines the recommended size of the buffer that is provided to
       probeFormat().
    */
-  static const unsigned         defaultProbeSize;
+  static const int              defaultProbeSize;
 
   /*! Should probe the provided buffer for the container format (e.g. ogg,
-      matroska, mpeg-ps, dvd, etc.) and return zero or more format names. The
-      confidence value can be used to provide a priority. The provided file path
-      can optionally be used to detect the format.
-
-      \param buffer             The buffer to probe, can be empty if only the
-                                filename should be used to determine the format.
-      \param filePath           The filename to probe, the file should not be
-                                opened as the provided buffer should be used to
-                                determine the format. One exception is when a
-                                device path is provided to probe the format of a
-                                disc.
-   */
-  virtual QList<Format>         probeFormat(const QByteArray &buffer, const QUrl &filePath) = 0;
-
-  /*! Should probe the provided device and retrieve all information in
-      probeInfo.format. Note that for probing a file, probeFormat() should be
-      invoked on all probers returned by create() until probeInfo.isFormatProbed
-      is set to true.
+      matroska, mpeg-ps, dvd, etc.)  and retrieve all information in
+      probeInfo.format. Note that for probing a file, readFormat() should be
+      invoked on all probers returned by create() until
+      probeInfo.isFormatProbed is set to true.
 
       \param probeInfo          The ProbeInfo structure that needs to be filled
                                 with data.
-      \param ioDevice           The QIODevice that is to be used to read data.
+      \param buffer             The buffer to probe, can be empty if only the
+                                filename should be used to determine the format.
    */
-  virtual void                  probeFormat(ProbeInfo &probeInfo, QIODevice *ioDevice) = 0;
+  virtual void                  readFormat(ProbeInfo &probeInfo, const QByteArray &buffer) = 0;
 
-  /*! Should probe the provided object and retrieve all information in
-      probeInfo.content. Note that for probing a file, probeContent() should be
+  /*! Should probe the provided device and retrieve all information in
+      probeInfo.content. Note that for probing a file, readContent() should be
       invoked on all probers returned by create() until
       probeInfo.isContentProbed is set to true.
 
@@ -365,7 +331,17 @@ public:
                                 with data.
       \param ioDevice           The QIODevice that is to be used to read data.
    */
-  virtual void                  probeContent(ProbeInfo &probeInfo, QIODevice *ioDevice, const QSize &thumbSize) = 0;
+  virtual void                  readContent(ProbeInfo &probeInfo, QIODevice *ioDevice) = 0;
+
+  /*! Should probe the provided object and retrieve a thumbnail, note that
+      readFormat() should be invoked first to fill the probeInfo structure. The
+      default implementation returns a null SVideoBuffer.
+
+      \param probeInfo          The ProbeInfo structure.
+      \param ioDevice           The QIODevice that is to be used to read data.
+      \param thumbSize          The Preferred thumbnail size.
+   */
+  virtual SVideoBuffer          readThumbnail(const ProbeInfo &probeInfo, QIODevice *ioDevice, const QSize &thumbSize);
 };
 
 class AbstractBufferReader;

@@ -20,10 +20,8 @@
 
 #include <QtCore>
 #include <QtNetwork>
-#include <QtXml>
 #include <LXiMediaCenter>
 #include <LXiStream>
-#include "filenode.h"
 
 namespace LXiMediaCenter {
 namespace MediaPlayerBackend {
@@ -37,6 +35,23 @@ private:
     QUrl                        path;
   };
 
+  struct PreProbe
+  {
+    inline PreProbe()
+      : info(), start(0), content(false)
+    {
+    }
+
+    inline PreProbe(const Info &info, int start, bool content = false)
+      : info(info), start(start), content(content)
+    {
+    }
+
+    Info                        info;
+    int                         start;
+    bool                        content;
+  };
+
 public:
   static MediaDatabase        * createInstance(BackendServer::MasterServer *);
   static void                   destroyInstance(void);
@@ -46,31 +61,37 @@ private:
   virtual                       ~MediaDatabase();
 
 public:
-  void                          queueReadNode(const QUrl &filePath) const;
-  FileNode                      readNode(const QUrl &filePath) const;
+  inline int                    preferredItemCount(void) const                  { return preProbeItemCount; }
+
+  SMediaInfo                    readNodeFormat(const QUrl &filePath) const;
+  SMediaInfo                    readNodeContent(const QUrl &filePath) const;
+  QByteArray                    readThumbnail(const QUrl &filePath, const QSize &maxSize, const QColor &backgroundColor, const QString &format) const;
   QByteArray                    readImage(const QUrl &filePath, const QSize &maxSize, const QColor &backgroundColor, const QString &format) const;
 
-  void                          setLastPlayed(const FileNode &, const QDateTime & = QDateTime::currentDateTime());
-  QDateTime                     lastPlayed(const FileNode &) const;
+  void                          setLastPlayed(const QUrl &filePath, const QDateTime & = QDateTime::currentDateTime());
+  QPair<QDateTime, int>         lastPlayed(const QUrl &filePath) const;
 
-  bool                          isEmpty(const QUrl &path) const;
-  FileNodeList                  listItems(const QUrl &path, int start, int &count) const;
-  FileNodeList                  representativeItems(const QUrl &path) const;
-
-signals:
-  void                          nodeRead(const FileNode &);
-  void                          aborted(void);
+  bool                          isEmpty(const QUrl &dirPath) const;
+  SMediaInfoList                listItems(const QUrl &dirPath, int start, int &count) const;
+  SMediaInfoList                representativeItems(const QUrl &dirPath, int &count) const;
 
 private slots:
   void                          handleResponse(const SHttpEngine::ResponseMessage &);
+  void                          preProbeNext(void);
+  void                          sandboxTerminated(void);
   void                          flushCache(void) const;
 
 private:
   QList<Info>                   listFiles(const QUrl &dirPath, int start, int &count) const;
-  FileNodeList                  readNodeFormat(const QList<Info> &filePaths) const;
-  FileNode                      readNodeCache(const Info &file) const;
-  FileNode                      readNodeCache(const QUrl &filePath) const;
-  void                          writeNodeCache(const QUrl &filePath, const QByteArray &) const;
+  SMediaInfoList                readNodeFormat(const QList<Info> &filePaths) const;
+  SMediaInfo                    readNodeCache(const Info &file) const;
+  SMediaInfo                    readNodeCache(const QUrl &filePath) const;
+  void                          writeNodeCache(const SMediaInfo &) const;
+
+  void                          preProbeDir(const QUrl &dirPath, int start, bool content) const;
+
+  static SMediaInfoList         deserializeNodes(const QByteArray &);
+  static QList<Info>            deserializeFiles(const QByteArray &, int &total);
 
   static QString                lastPlayedFile(void);
 
@@ -80,8 +101,12 @@ private:
   const QString                 lastPlayedFileName;
   SSandboxClient        * const probeSandbox;
 
+  const int                     preProbeItemCount;
+  mutable QMultiMap<int, PreProbe> preProbeQueue;
+  const int                     preProbingCount;
+  mutable int                   preProbing;
+
   static const int              cacheTimeout = 150 * 60000; // Flush cache after 2.5 hrs.
-  mutable QTimer                cacheTimer;
   mutable QFile                 cacheFile;
   mutable QMultiMap<uint, qint64> cachePos;
 };

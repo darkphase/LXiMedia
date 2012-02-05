@@ -36,6 +36,7 @@ public:
 
 public: // From HttpClientEngine
   virtual void                  openRequest(const RequestMessage &header, QObject *receiver, const char *slot, Qt::ConnectionType = Qt::AutoConnection);
+  virtual int                   maxSocketCount(void) const;
 
 public slots: // From HttpClientEngine
   virtual void                  closeSocket(QIODevice *);

@@ -16,6 +16,7 @@
  ******************************************************************************/
 
 #include "sandbox.h"
+#include <QtXml>
 
 Sandbox::Sandbox()
   : QObject(),
