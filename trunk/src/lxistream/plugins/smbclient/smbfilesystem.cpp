@@ -127,7 +127,7 @@ QStringList SMBFilesystem::entryList(QDir::Filters filter, QDir::SortFlags sort)
                (dirent->smbc_type == SMBC_FILE_SHARE) ||
                (dirent->smbc_type == SMBC_DIR)) &&
               ((filter & QDir::Dirs) != 0) &&
-              (((filter & QDir::NoDotAndDotDot) != 0) &&
+              (((filter & QDir::NoDotAndDotDot) == 0) ||
                ((name != ".") && (name != ".."))) &&
               (((filter & QDir::Hidden) != 0) ||
                !name.startsWith('.')))
@@ -160,7 +160,7 @@ QStringList SMBFilesystem::entryList(QDir::Filters filter, QDir::SortFlags sort)
   foreach (const QFileInfo &info, dir.entryInfoList(filter))
   if (info.isDir() &&
       ((filter & QDir::Dirs) != 0) &&
-      (((filter & QDir::NoDotAndDotDot) != 0) &&
+      (((filter & QDir::NoDotAndDotDot) == 0) ||
        ((info.fileName() != ".") && (info.fileName() != ".."))) &&
       (((filter & QDir::Hidden) != 0) ||
        !info.fileName().startsWith('.')))
