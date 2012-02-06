@@ -222,8 +222,8 @@ void MediaPlayerServer::generateDirs(SStringParser &htmlParser, const QList<QUrl
       SMediaFilesystem filesystem(dir);
 
       QList<QUrl> children;
-      foreach (const QString &child, filesystem.entryList(QDir::Dirs))
-      if (!child.isEmpty() && !child.startsWith('.'))
+      foreach (const QString &child, filesystem.entryList(QDir::Dirs | QDir::NoDotAndDotDot))
+      if (!child.isEmpty())
         children += filesystem.filePath(child);
 
       const bool isSingleRoot = (indent == 0) && (dirs.count() == 1);
