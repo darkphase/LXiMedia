@@ -61,8 +61,6 @@ private:
   virtual                       ~MediaDatabase();
 
 public:
-  inline int                    preferredItemCount(void) const                  { return preProbeItemCount; }
-
   SMediaInfo                    readNodeFormat(const QUrl &filePath) const;
   SMediaInfo                    readNodeContent(const QUrl &filePath) const;
   QByteArray                    readThumbnail(const QUrl &filePath, const QSize &maxSize, const QColor &backgroundColor, const QString &format) const;

@@ -96,8 +96,8 @@ void SHttpEngine::closeSocket(QIODevice *socket)
   {
     if (QThread::currentThread() == thread())
     {
-      QObject::connect(socket, SIGNAL(disconnected()), socket, SLOT(deleteLater()));
       QTimer::singleShot(30000, socket, SLOT(deleteLater()));
+      QObject::connect(socket, SIGNAL(disconnected()), socket, SLOT(deleteLater()));
 
       QAbstractSocket * const aSocket = qobject_cast<QAbstractSocket *>(socket);
       if (aSocket)

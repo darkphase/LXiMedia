@@ -193,12 +193,9 @@ SHttpServer::ResponseMessage MediaPlayerServer::sendPhoto(const SHttpServer::Req
 
 QList<MediaPlayerServer::Item> MediaPlayerServer::listItems(const QString &virtualPath, int start, int &count)
 {
-  QList<Item> result;
+  const bool returnAll = count == 0;
 
-  // Limit the maximum number of returned results to prevent probing too long
-  // and not responding timely.
-  if ((count == 0) || (count > mediaDatabase->preferredItemCount()))
-    count = mediaDatabase->preferredItemCount();
+  QList<Item> result;
 
   if (virtualPath != serverPath())
   {
@@ -253,7 +250,7 @@ QList<MediaPlayerServer::Item> MediaPlayerServer::listItems(const QString &virtu
     else
       i++;
 
-    for (int i=start, n=0; (i<paths.count()) && (n<count); i++, n++)
+    for (int i=start, n=0; (i<paths.count()) && (returnAll || (n<count)); i++, n++)
     {
       Item item;
       item.isDir = true;
