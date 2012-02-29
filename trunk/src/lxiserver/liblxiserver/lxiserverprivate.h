@@ -35,13 +35,13 @@ public:
 
 public slots:
   void                          start(QIODevice *);
+  void                          stop(void);
 
 signals:
   void                          response(const SHttpEngine::ResponseMessage &);
 
 private slots:
   void                          readyRead();
-  void                          close();
 
 private:
   SHttpClientEngine     * const parent;
@@ -64,10 +64,10 @@ public:
 
 public slots:
   void                          start(QIODevice *);
+  void                          stop(void);
 
 private slots:
   void                          readyRead();
-  void                          close();
 
 private:
   const QPointer<SHttpServerEngine> parent;
@@ -77,7 +77,6 @@ private:
   QPointer<QIODevice>           socket;
   QByteArray                    data;
   bool                          headerReceived;
-  bool                          handlingRequest;
   QByteArray                    content;
   QTimer                        closeTimer;
 };

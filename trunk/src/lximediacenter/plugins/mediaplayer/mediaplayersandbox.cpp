@@ -212,7 +212,7 @@ void MediaPlayerSandbox::listFiles(const SSandboxServer::RequestMessage &request
 
     if (count >= 0)
     {
-      for (int i=start, n=0; (i<items.count()) && (returnAll || (n<int(count))); i++, n++)
+      for (int i=start, n=0; (i<items.count()) && (returnAll || (n<count)); i++, n++)
         T::writeFile(writer, filesystem.readInfo(items[i]), filesystem.filePath(items[i]));
     }
     else
@@ -461,13 +461,23 @@ SSandboxServer::ResponseMessage MediaPlayerSandbox::play(const SSandboxServer::R
       if ((audio > video) && (audio > image))
       {
         fileType = SMediaInfo::ProbeInfo::FileType_Audio;
+
+        // Randomize files.
         for (int i=0; i<files.count(); i++)
           qSwap(files[i], files[qrand() % files.count()]);
       }
+      else if ((image > audio) && (image > video))
+      {
+        fileType = SMediaInfo::ProbeInfo::FileType_Image;
+
+        // Only play files in this directory.
+        files.clear();
+        const SMediaFilesystem dir(path);
+        foreach (const QString &file, dir.entryList(QDir::Files, QDir::Name | QDir::IgnoreCase))
+          files += dir.filePath(file);
+      }
       else if ((video > audio) && (video > image))
         fileType = SMediaInfo::ProbeInfo::FileType_Video;
-      else if ((image > audio) && (image > video))
-        fileType = SMediaInfo::ProbeInfo::FileType_Image;
 
       if ((fileType == SMediaInfo::ProbeInfo::FileType_Audio) ||
           (fileType == SMediaInfo::ProbeInfo::FileType_Video))

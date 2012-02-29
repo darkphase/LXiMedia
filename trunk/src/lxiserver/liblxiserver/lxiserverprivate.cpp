@@ -69,20 +69,13 @@ HttpClientRequest::HttpClientRequest(SHttpClientEngine *parent, bool reuse, cons
   qDebug() << this << file << line << "HttpClientRequest::HttpClientRequest";
 #endif
 
-  connect(&closeTimer, SIGNAL(timeout()), SLOT(close()));
+  connect(&closeTimer, SIGNAL(timeout()), SLOT(stop()));
   closeTimer.setSingleShot(true);
 }
 
 HttpClientRequest::~HttpClientRequest()
 {
-  Q_ASSERT(QThread::currentThread() == thread());
-
-#ifdef TRACE_CONNECTIONS
-  qDebug() << this << file << line << "HttpClientRequest::~HttpClientRequest";
-#endif
-
-  if (socket)
-    parent->closeSocket(socket);
+  Q_ASSERT(socket == NULL);
 }
 
 void HttpClientRequest::start(QIODevice *socket)
@@ -100,7 +93,7 @@ void HttpClientRequest::start(QIODevice *socket)
     responded = false;
 
     connect(socket, SIGNAL(readyRead()), SLOT(readyRead()), Qt::QueuedConnection);
-    connect(socket, SIGNAL(disconnected()), SLOT(close()), Qt::QueuedConnection);
+    connect(socket, SIGNAL(disconnected()), SLOT(stop()), Qt::QueuedConnection);
 
     closeTimer.start(SHttpEngine::maxTTL);
 
@@ -108,7 +101,30 @@ void HttpClientRequest::start(QIODevice *socket)
       readyRead();
   }
   else
-    close();
+    stop();
+}
+
+void HttpClientRequest::stop(void)
+{
+  Q_ASSERT(QThread::currentThread() == thread());
+
+#ifdef TRACE_CONNECTIONS
+  qDebug() << this << file << line << "HttpClientRequest::stop" << responded;
+#endif
+
+  if (socket)
+  {
+    parent->closeSocket(socket);
+    socket = NULL;
+
+    if (!responded)
+    {
+      responded = true;
+      emit response(SHttpEngine::ResponseMessage(message, SHttpEngine::Status_InternalServerError));
+    }
+  }
+
+  deleteLater();
 }
 
 void HttpClientRequest::readyRead()
@@ -149,23 +165,6 @@ void HttpClientRequest::readyRead()
   }
 }
 
-void HttpClientRequest::close()
-{
-  Q_ASSERT(QThread::currentThread() == thread());
-
-#ifdef TRACE_CONNECTIONS
-  qDebug() << this << file << line << "HttpClientRequest::close" << responded;
-#endif
-
-  if (!responded)
-  {
-    responded = true;
-    emit response(SHttpEngine::ResponseMessage(message, SHttpEngine::Status_InternalServerError));
-  }
-
-  deleteLater();
-}
-
 
 HttpServerRequest::HttpServerRequest(SHttpServerEngine *parent, quint16 serverPort, const char *file, int line)
   : QObject(parent),
@@ -173,8 +172,7 @@ HttpServerRequest::HttpServerRequest(SHttpServerEngine *parent, quint16 serverPo
     serverPort(serverPort),
     file(file), line(line),
     socket(NULL),
-    headerReceived(false),
-    handlingRequest(false)
+    headerReceived(false)
 {
   Q_ASSERT(QThread::currentThread() == thread());
 
@@ -182,22 +180,13 @@ HttpServerRequest::HttpServerRequest(SHttpServerEngine *parent, quint16 serverPo
   qDebug() << this << file << line << "HttpServerRequest::HttpServerRequest" << serverPort;
 #endif
 
-  connect(&closeTimer, SIGNAL(timeout()), SLOT(deleteLater()));
+  connect(&closeTimer, SIGNAL(timeout()), SLOT(stop()));
   closeTimer.setSingleShot(true);
 }
 
 HttpServerRequest::~HttpServerRequest()
 {
-  Q_ASSERT(QThread::currentThread() == thread());
-
-#ifdef TRACE_CONNECTIONS
-  qDebug() << this << file << line << "HttpServerRequest::~HttpServerRequest" << socket;
-#endif
-
-  if (parent)
-    parent->closeSocket(socket);
-  else
-    delete socket;
+  Q_ASSERT(socket == NULL);
 }
 
 void HttpServerRequest::start(QIODevice *socket)
@@ -216,14 +205,38 @@ void HttpServerRequest::start(QIODevice *socket)
     content.clear();
 
     connect(socket, SIGNAL(readyRead()), SLOT(readyRead()), Qt::QueuedConnection);
-    connect(socket, SIGNAL(disconnected()), SLOT(close()), Qt::QueuedConnection);
+    connect(socket, SIGNAL(disconnected()), SLOT(stop()), Qt::QueuedConnection);
 
     closeTimer.start(SHttpEngine::maxTTL);
 
     readyRead();
   }
   else
-    deleteLater();
+    stop();
+}
+
+void HttpServerRequest::stop(void)
+{
+  Q_ASSERT(QThread::currentThread() == thread());
+
+#ifdef TRACE_CONNECTIONS
+  qDebug() << this << file << line << "HttpServerRequest::stop" << socket;
+#endif
+
+  if (socket)
+  {
+    disconnect(socket, SIGNAL(readyRead()), this, SLOT(readyRead()));
+    disconnect(socket, SIGNAL(disconnected()), this, SLOT(stop()));
+
+    if (parent)
+      parent->closeSocket(socket);
+    else
+      delete socket;
+
+    socket = NULL;
+  }
+
+  deleteLater();
 }
 
 void HttpServerRequest::readyRead()
@@ -259,11 +272,7 @@ void HttpServerRequest::readyRead()
 #endif
 
         socket->write(SHttpEngine::ResponseHeader(request, SHttpEngine::Status_BadRequest));
-
-        disconnect(socket, SIGNAL(readyRead()), this, SLOT(readyRead()));
-        disconnect(socket, SIGNAL(disconnected()), this, SLOT(close()));
-
-        deleteLater();
+        stop();
         return;
       }
 
@@ -287,33 +296,21 @@ void HttpServerRequest::readyRead()
             request.setHost(hostname, serverPort);
         }
 
-        disconnect(socket, SIGNAL(readyRead()), this, SLOT(readyRead()));
-        disconnect(socket, SIGNAL(disconnected()), this, SLOT(close()));
-        handlingRequest = true;
+        // This object may alreadye be deleted even before handleHttpRequest or
+        // sendHttpResponse return (because they process events on the event
+        // loop) So we keep these on the stack so there is no dependency on
+        // 'this' anymore.
+        const QPointer<QIODevice> socket = this->socket;
+        const QPointer<SHttpServerEngine> parent = this->parent;
+        this->socket = NULL;
+        deleteLater();
 
         SHttpEngine::ResponseMessage response = parent->handleHttpRequest(request, socket);
         if (socket)
-        {
           parent->sendHttpResponse(request, response, socket);
-          socket = NULL;
-        }
-
-        deleteLater();
       }
     }
   }
-}
-
-void HttpServerRequest::close()
-{
-  Q_ASSERT(QThread::currentThread() == thread());
-
-#ifdef TRACE_CONNECTIONS
-  qDebug() << this << file << line << "HttpServerRequest::close";
-#endif
-
-  if (!handlingRequest)
-    deleteLater();
 }
 
 

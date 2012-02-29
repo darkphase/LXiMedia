@@ -157,8 +157,16 @@ void SIOOutputNode::close(void)
 {
   LXI_PROFILE_WAIT(d->mutex.lock());
 
-  emit closed(d->ioDevice);
-  d->ioDevice = NULL;
+  if (d->ioDevice)
+  {
+    disconnect(d->ioDevice, SIGNAL(readChannelFinished()), this, SLOT(close()));
+    if (d->ioDevice->metaObject()->indexOfSignal("disconnected()") >= 0)
+      disconnect(d->ioDevice, SIGNAL(disconnected()), this, SLOT(close()));
+
+    QIODevice * const ioDevice = d->ioDevice;
+    d->ioDevice = NULL;
+    emit closed(ioDevice);
+  }
 
   d->mutex.unlock();
 }
