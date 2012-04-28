@@ -63,11 +63,7 @@ private:
 private:
   QIODevice                   * ioDevice;
   ::AVInputFormat             * format;
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
   ::AVIOContext               * ioContext;
-#else
-  ::ByteIOContext             * ioContext;
-#endif
 };
 
 } } // End of namespaces

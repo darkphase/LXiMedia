@@ -39,8 +39,9 @@ public: // From SBufferDecoder
 
 private:
   SDataCodec                    inCodec;
-  AVCodec                     * codecHandle;
-  AVCodecContext              * contextHandle;
+  ::AVDictionary              * codecDict;
+  ::AVCodec                   * codecHandle;
+  ::AVCodecContext            * contextHandle;
   bool                          contextHandleOwner;
 };
 

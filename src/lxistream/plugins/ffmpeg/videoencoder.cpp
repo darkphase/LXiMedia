@@ -25,6 +25,7 @@ namespace FFMpegBackend {
 VideoEncoder::VideoEncoder(const QString &, QObject *parent)
   : SInterfaces::VideoEncoder(parent),
     outCodec(),
+    codecDict(NULL),
     codecHandle(NULL),
     contextHandle(NULL),
     contextHandleOwner(false),
@@ -55,6 +56,9 @@ VideoEncoder::~VideoEncoder()
     ::av_free(contextHandle);
   }
 
+  if (codecDict)
+    ::av_dict_free(&codecDict);
+
   if (pictureHandle)
     ::av_free(pictureHandle);
 }
@@ -73,29 +77,23 @@ bool VideoEncoder::openCodec(const SVideoCodec &c, SInterfaces::BufferWriter *bu
 
   outCodec = c;
 
-  if ((codecHandle = ::avcodec_find_encoder(FFMpegCommon::toFFMpegCodecID(outCodec))) == NULL)
+  if ((codecHandle = ::avcodec_find_encoder_by_name(outCodec.name())) == NULL)
   {
-    qCritical() << "VideoEncoder: Video codec not found " << outCodec.codec();
+    qCritical() << "VideoEncoder: Video codec not found " << outCodec.name();
     return false;
   }
 
   BufferWriter * const ffBufferWriter = qobject_cast<BufferWriter *>(bufferWriter);
   if (ffBufferWriter)
   {
-    contextHandle = ffBufferWriter->createStream()->codec;
+    contextHandle = ffBufferWriter->createStream(codecHandle)->codec;
     contextHandleOwner = false;
   }
   else
   {
-    contextHandle = ::avcodec_alloc_context();
+    contextHandle = ::avcodec_alloc_context3(codecHandle);
     contextHandleOwner = true;
   }
-
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
-  ::avcodec_get_context_defaults2(contextHandle, AVMEDIA_TYPE_VIDEO);
-#else
-  ::avcodec_get_context_defaults2(contextHandle, CODEC_TYPE_VIDEO);
-#endif
 
   contextHandle->pix_fmt = ::PIX_FMT_NONE;
 
@@ -136,21 +134,13 @@ bool VideoEncoder::openCodec(const SVideoCodec &c, SInterfaces::BufferWriter *bu
     contextHandle->bit_rate -= contextHandle->bit_rate_tolerance;
   }
 
-#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(52, 72, 0)
-  contextHandle->max_b_frames = 0;
-#endif
-
   if (flags & Flag_Fast)
   {
     contextHandle->rc_max_rate += contextHandle->bit_rate_tolerance / 2;
     contextHandle->bit_rate += contextHandle->bit_rate_tolerance / 2;
     contextHandle->gop_size = 0;
     contextHandle->max_b_frames = 0;
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
     contextHandle->strict_std_compliance = FF_COMPLIANCE_UNOFFICIAL;
-#else
-    contextHandle->strict_std_compliance = FF_COMPLIANCE_INOFFICIAL;
-#endif
 
     contextHandle->flags2 |= CODEC_FLAG2_FAST;
 
@@ -177,9 +167,7 @@ bool VideoEncoder::openCodec(const SVideoCodec &c, SInterfaces::BufferWriter *bu
 #ifdef OPT_ENABLE_THREADS
   contextHandle->thread_count = FFMpegCommon::encodeThreadCount(codecHandle->id);
   contextHandle->execute = &FFMpegCommon::execute;
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
   contextHandle->execute2 = &FFMpegCommon::execute2;
-#endif
 #endif
 
   if (ffBufferWriter)
@@ -193,11 +181,7 @@ bool VideoEncoder::openCodec(const SVideoCodec &c, SInterfaces::BufferWriter *bu
     contextHandle->rc_initial_buffer_occupancy = contextHandle->rc_buffer_size * 3 / 4;
   }
 
-#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(53, 6, 0)
-  if (avcodec_open(contextHandle, codecHandle) < 0)
-#else
-  if (avcodec_open2(contextHandle, codecHandle, NULL) < 0)
-#endif
+  if (avcodec_open2(contextHandle, codecHandle, &codecDict) < 0)
   {
     qCritical() << "VideoEncoder: Could not open video codec " << codecHandle->name;
     codecHandle = NULL;

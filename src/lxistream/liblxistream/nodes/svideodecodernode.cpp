@@ -93,7 +93,7 @@ void SVideoDecoderNode::input(const SEncodedVideoBuffer &videoBuffer)
       d->decoder = SInterfaces::VideoDecoder::create(NULL, d->lastCodec, bufferReader, d->flags, false);
 
       if (d->decoder == NULL)
-        qWarning() << "Failed to find video decoder for codec" << d->lastCodec.codec();
+        qWarning() << "Failed to find video decoder for codec" << d->lastCodec.name();
     }
   }
 

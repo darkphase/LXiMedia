@@ -48,6 +48,7 @@ private:
 
 private:
   SVideoCodec                   outCodec;
+  ::AVDictionary              * codecDict;
   ::AVCodec                   * codecHandle;
   ::AVCodecContext            * contextHandle;
   bool                          contextHandleOwner;

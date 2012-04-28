@@ -21,7 +21,7 @@ namespace LXiStream {
 
 SVideoCodec::SVideoCodec(void)
 {
-  d.codec = QString::null;
+  d.name = QByteArray();
   d.size = SSize();
   d.frameRate = SInterval();
   d.streamId = -1;
@@ -29,19 +29,19 @@ SVideoCodec::SVideoCodec(void)
   d.gopSize = -1;
 }
 
-SVideoCodec::SVideoCodec(const char *codec, SSize size, SInterval frameRate, int streamId, int bitRate, int gopSize)
+SVideoCodec::SVideoCodec(const char *name, SSize size, SInterval frameRate, int streamId, int bitRate, int gopSize)
 {
-  setCodec(codec, size, frameRate, streamId, bitRate, gopSize);
+  setCodec(name, size, frameRate, streamId, bitRate, gopSize);
 }
 
-SVideoCodec::SVideoCodec(const QString &codec, SSize size, SInterval frameRate, int streamId, int bitRate, int gopSize)
+SVideoCodec::SVideoCodec(const QByteArray &name, SSize size, SInterval frameRate, int streamId, int bitRate, int gopSize)
 {
-  setCodec(codec, size, frameRate, streamId, bitRate, gopSize);
+  setCodec(name, size, frameRate, streamId, bitRate, gopSize);
 }
 
 bool SVideoCodec::operator==(const SVideoCodec &comp) const
 {
-  return (d.codec == comp.d.codec) && (d.size == comp.d.size) &&
+  return (d.name == comp.d.name) && (d.size == comp.d.size) &&
       qFuzzyCompare(d.frameRate.toFrequency(), comp.d.frameRate.toFrequency()) &&
       (d.streamId == comp.d.streamId) && (d.bitRate == comp.d.bitRate) &&
       (d.gopSize == comp.d.gopSize);
@@ -49,9 +49,9 @@ bool SVideoCodec::operator==(const SVideoCodec &comp) const
 
 /*! Sets this codec to the specified video codec.
  */
-void SVideoCodec::setCodec(const QString &codec, SSize size, SInterval frameRate, int streamId, int bitRate, int gopSize)
+void SVideoCodec::setCodec(const QByteArray &name, SSize size, SInterval frameRate, int streamId, int bitRate, int gopSize)
 {
-  d.codec = codec;
+  d.name = name;
   d.size = size;
   d.frameRate = frameRate;
   d.streamId = streamId;
@@ -59,39 +59,40 @@ void SVideoCodec::setCodec(const QString &codec, SSize size, SInterval frameRate
   d.gopSize = gopSize;
 }
 
-QString SVideoCodec::toString(void) const
+void SVideoCodec::serialize(QXmlStreamWriter &writer) const
 {
-  QString result = d.codec + ';' +
-    d.size.toString() + ';' +
-    QString::number(d.frameRate.num()) + '/' +
-    QString::number(d.frameRate.den()) + ';' +
-    QString::number(d.streamId) + ';' +
-    QString::number(d.bitRate) + ';' +
-    QString::number(d.gopSize);
+  writer.writeStartElement("videocodec");
 
-  return result;
+  writer.writeAttribute("name", d.name);
+  writer.writeAttribute("size", d.size.toString());
+  writer.writeAttribute("framerate", QString::number(d.frameRate.num()) + '/' + QString::number(d.frameRate.den()));
+  writer.writeAttribute("streamid", QString::number(d.streamId));
+  writer.writeAttribute("bitrate", QString::number(d.bitRate));
+  writer.writeAttribute("gopsize", QString::number(d.gopSize));
+
+  writer.writeEndElement();
 }
 
-SVideoCodec SVideoCodec::fromString(const QString &str)
+bool SVideoCodec::deserialize(QXmlStreamReader &reader)
 {
-  const QStringList items = str.split(';');
-  SVideoCodec result;
-
-  if (items.count() >= 6)
+  if (reader.name() == "videocodec")
   {
-    result.d.codec = items[0].toAscii();
-    result.d.size = SSize::fromString(items[1]);
+    d.name = reader.attributes().value("name").toString().toAscii();
+    d.size = SSize::fromString(reader.attributes().value("streamid").toString());
 
-    const QStringList rate = items[2].split('/');
+    const QStringList rate = reader.attributes().value("framerate").toString().split('/');
     if (rate.count() >= 2)
-      result.d.frameRate = SInterval(rate[0].toLongLong(), rate[1].toLongLong());
+      d.frameRate = SInterval(rate[0].toLongLong(), rate[1].toLongLong());
 
-    result.d.streamId = items[3].toInt();
-    result.d.bitRate = items[4].toInt();
-    result.d.gopSize = items[5].toInt();
+    d.streamId = reader.attributes().value("streamid").toString().toInt();
+    d.bitRate = reader.attributes().value("bitrate").toString().toInt();
+    d.gopSize = reader.attributes().value("gopsize").toString().toInt();
+
+    return true;
   }
 
-  return result;
+  reader.raiseError("Not a videocodec element.");
+  return false;
 }
 
 } // End of namespace

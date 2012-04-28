@@ -36,7 +36,7 @@ namespace LXiStream {
  */
 SAudioCodec::SAudioCodec(void)
 {
-  d.codec = QString::null;
+  d.name = QByteArray();
   d.channels = SAudioFormat::Channel_None;
   d.sampleRate = 0;
   d.streamId = -1;
@@ -46,28 +46,28 @@ SAudioCodec::SAudioCodec(void)
 
 /*! Initializes a codec with the specified name, channels, sample rate and bit rate.
  */
-SAudioCodec::SAudioCodec(const char *codec, SAudioFormat::Channels channels, int sampleRate, int streamId, int bitRate, int frameSize)
+SAudioCodec::SAudioCodec(const char *name, SAudioFormat::Channels channels, int sampleRate, int streamId, int bitRate, int frameSize)
 {
-  setCodec(codec, channels, sampleRate, streamId, bitRate, frameSize);
+  setCodec(name, channels, sampleRate, streamId, bitRate, frameSize);
 }
 
 /*! Initializes a codec with the specified name, channels, sample rate and bit rate.
  */
-SAudioCodec::SAudioCodec(const QString &codec, SAudioFormat::Channels channels, int sampleRate, int streamId, int bitRate, int frameSize)
+SAudioCodec::SAudioCodec(const QByteArray &name, SAudioFormat::Channels channels, int sampleRate, int streamId, int bitRate, int frameSize)
 {
-  setCodec(codec, channels, sampleRate, streamId, bitRate, frameSize);
+  setCodec(name, channels, sampleRate, streamId, bitRate, frameSize);
 }
 
 bool SAudioCodec::operator==(const SAudioCodec &comp) const
 {
-  return (d.codec == comp.d.codec) && (d.channels == comp.d.channels) &&
+  return (d.name == comp.d.name) && (d.channels == comp.d.channels) &&
       (d.sampleRate == comp.d.sampleRate) && (d.streamId == comp.d.streamId) &&
       (d.bitRate == comp.d.bitRate) && (d.frameSize == comp.d.frameSize);
 }
 
-void SAudioCodec::setCodec(const QString &codec, SAudioFormat::Channels channels, int sampleRate, int streamId, int bitRate, int frameSize)
+void SAudioCodec::setCodec(const QByteArray &name, SAudioFormat::Channels channels, int sampleRate, int streamId, int bitRate, int frameSize)
 {
-  d.codec = codec;
+  d.name = name;
   d.channels = channels;
   d.sampleRate = sampleRate;
   d.streamId = streamId;
@@ -75,34 +75,36 @@ void SAudioCodec::setCodec(const QString &codec, SAudioFormat::Channels channels
   d.frameSize = frameSize;
 }
 
-QString SAudioCodec::toString(void) const
+void SAudioCodec::serialize(QXmlStreamWriter &writer) const
 {
-  QString result = d.codec + ';' +
-    QString::number(d.channels) + ';' +
-    QString::number(d.sampleRate) + ';' +
-    QString::number(d.streamId) + ';' +
-    QString::number(d.bitRate) + ';' +
-    QString::number(d.frameSize);
+  writer.writeStartElement("audiocodec");
 
-  return result;
+  writer.writeAttribute("name", d.name);
+  writer.writeAttribute("channels", QString::number(d.channels, 16));
+  writer.writeAttribute("samplerate", QString::number(d.sampleRate));
+  writer.writeAttribute("streamid", QString::number(d.streamId));
+  writer.writeAttribute("bitrate", QString::number(d.bitRate));
+  writer.writeAttribute("framesize", QString::number(d.frameSize));
+
+  writer.writeEndElement();
 }
 
-SAudioCodec SAudioCodec::fromString(const QString &str)
+bool SAudioCodec::deserialize(QXmlStreamReader &reader)
 {
-  const QStringList items = str.split(';');
-  SAudioCodec result;
-
-  if (items.count() >= 6)
+  if (reader.name() == "audiocodec")
   {
-    result.d.codec = items[0].toAscii();
-    result.d.channels = SAudioFormat::Channels(items[1].toInt());
-    result.d.sampleRate = items[2].toInt();
-    result.d.streamId = items[3].toInt();
-    result.d.bitRate = items[4].toInt();
-    result.d.frameSize = items[5].toInt();
+    d.name = reader.attributes().value("name").toString().toAscii();
+    d.channels = SAudioFormat::Channels(reader.attributes().value("channels").toString().toInt(NULL, 16));
+    d.sampleRate = reader.attributes().value("samplerate").toString().toInt();
+    d.streamId = reader.attributes().value("streamid").toString().toInt();
+    d.bitRate = reader.attributes().value("bitrate").toString().toInt();
+    d.frameSize = reader.attributes().value("framesize").toString().toInt();
+
+    return true;
   }
 
-  return result;
+  reader.raiseError("Not an audiocodec element.");
+  return false;
 }
 
 } // End of namespace

@@ -33,9 +33,7 @@ BufferReader::~BufferReader()
   if (ioContext)
   {
     ::av_free(ioContext->buffer);
-#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(53, 0, 0)
     ::av_free(ioContext);
-#endif
   }
 }
 
@@ -62,11 +60,7 @@ bool BufferReader::start(QIODevice *ioDevice, ProduceCallback *produceCallback, 
 
     this->ioDevice = ioDevice;
 
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
     ioContext = ::avio_alloc_context(
-#else
-    ioContext = ::av_alloc_put_byte(
-#endif
         (unsigned char *)::av_malloc(ioBufferSize),
         ioBufferSize,
         false,
@@ -75,22 +69,12 @@ bool BufferReader::start(QIODevice *ioDevice, ProduceCallback *produceCallback, 
         NULL,
         &BufferReader::seek);
 
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
     ioContext->seekable = streamed ? 0 : AVIO_SEEKABLE_NORMAL;
-#else
-    ioContext->is_streamed = streamed;
-#endif
 
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
     ::AVFormatContext * formatContext = avformat_alloc_context();
     formatContext->pb = ioContext;
     if (::avformat_open_input(&formatContext, "", format, NULL) == 0)
       return BufferReaderBase::start(produceCallback, formatContext, fast);
-#else
-    ::AVFormatContext * formatContext = NULL;
-    if (::av_open_input_stream(&formatContext, ioContext, "", format, NULL) == 0)
-      return BufferReaderBase::start(produceCallback, formatContext, fast);
-#endif
   }
 
   return false;

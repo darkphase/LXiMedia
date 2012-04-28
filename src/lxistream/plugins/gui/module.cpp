@@ -30,21 +30,21 @@ bool Module::registerClasses(void)
 
   FormatProber::registerClass<FormatProber>(1);
 
-  ImageDecoder::registerClass<ImageDecoder>("BMP");
-  ImageDecoder::registerClass<ImageDecoder>("JPG");
-  ImageDecoder::registerClass<ImageDecoder>("JPEG");
-  ImageDecoder::registerClass<ImageDecoder>("PNG");
-  ImageDecoder::registerClass<ImageDecoder>("PBM");
-  ImageDecoder::registerClass<ImageDecoder>("PGM");
-  ImageDecoder::registerClass<ImageDecoder>("PPM");
-  ImageDecoder::registerClass<ImageDecoder>("TIFF");
+  ImageDecoder::registerClass<ImageDecoder>("bmp");
+  ImageDecoder::registerClass<ImageDecoder>("jpg");
+  ImageDecoder::registerClass<ImageDecoder>("jpeg");
+  ImageDecoder::registerClass<ImageDecoder>("png");
+  ImageDecoder::registerClass<ImageDecoder>("pbm");
+  ImageDecoder::registerClass<ImageDecoder>("pgm");
+  ImageDecoder::registerClass<ImageDecoder>("ppm");
+  ImageDecoder::registerClass<ImageDecoder>("tiff");
 
-  ImageEncoder::registerClass<ImageEncoder>("BMP");
-  ImageEncoder::registerClass<ImageEncoder>("JPG");
-  ImageEncoder::registerClass<ImageEncoder>("JPEG");
-  ImageEncoder::registerClass<ImageEncoder>("PNG");
-  ImageEncoder::registerClass<ImageEncoder>("PPM");
-  ImageEncoder::registerClass<ImageEncoder>("TIFF");
+  ImageEncoder::registerClass<ImageEncoder>("bmp");
+  ImageEncoder::registerClass<ImageEncoder>("jpg");
+  ImageEncoder::registerClass<ImageEncoder>("jpeg");
+  ImageEncoder::registerClass<ImageEncoder>("png");
+  ImageEncoder::registerClass<ImageEncoder>("ppm");
+  ImageEncoder::registerClass<ImageEncoder>("tiff");
 
   return true;
 }

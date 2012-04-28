@@ -25,6 +25,7 @@ namespace FFMpegBackend {
 AudioDecoder::AudioDecoder(const QString &, QObject *parent)
   : SInterfaces::AudioDecoder(parent),
     inCodec(),
+    codecDict(NULL),
     codecHandle(NULL),
     contextHandle(NULL),
     contextHandleOwner(false),
@@ -43,6 +44,9 @@ AudioDecoder::~AudioDecoder()
 
     ::av_free(contextHandle);
   }
+
+  if (codecDict)
+    ::av_dict_free(&codecDict);
 }
 
 bool AudioDecoder::openCodec(const SAudioCodec &c, SInterfaces::AbstractBufferReader *bufferReader, Flags flags)
@@ -67,9 +71,9 @@ bool AudioDecoder::openCodec(const SAudioCodec &c, SInterfaces::AbstractBufferRe
   }
 #endif
 
-  if ((codecHandle = avcodec_find_decoder(FFMpegCommon::toFFMpegCodecID(inCodec))) == NULL)
+  if ((codecHandle = ::avcodec_find_decoder_by_name(inCodec.name())) == NULL)
   {
-    qWarning() << "AudioDecoder: Audio codec not found " << inCodec.codec();
+    qWarning() << "AudioDecoder: Audio codec not found " << inCodec.name();
     return false;
   }
 
@@ -84,14 +88,8 @@ bool AudioDecoder::openCodec(const SAudioCodec &c, SInterfaces::AbstractBufferRe
   }
   else
   {
-    contextHandle = avcodec_alloc_context();
+    contextHandle = avcodec_alloc_context3(codecHandle);
     contextHandleOwner = true;
-
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
-    contextHandle->codec_type = AVMEDIA_TYPE_AUDIO;
-#else
-    contextHandle->codec_type = CODEC_TYPE_AUDIO;
-#endif
 
     if (inCodec.sampleRate() != 0)
       contextHandle->sample_rate = inCodec.sampleRate();
@@ -113,69 +111,17 @@ bool AudioDecoder::openCodec(const SAudioCodec &c, SInterfaces::AbstractBufferRe
 #ifdef OPT_ENABLE_THREADS
   contextHandle->thread_count = FFMpegCommon::decodeThreadCount(codecHandle->id);
   contextHandle->execute = &FFMpegCommon::execute;
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
   contextHandle->execute2 = &FFMpegCommon::execute2;
 #endif
-#endif
 
-#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(53, 6, 0)
-  if (avcodec_open(contextHandle, codecHandle) < 0)
-#else
-  if (avcodec_open2(contextHandle, codecHandle, NULL) < 0)
-#endif
+  if (avcodec_open2(contextHandle, codecHandle, &codecDict) < 0)
   {
     qCritical() << "AudioDecoder: Could not open audio codec " << codecHandle->name;
     codecHandle = NULL;
     return false;
   }
 
-#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(52, 72, 0)
-  struct PostFilter
-  {
-    static void Dts(qint16 *dst, const qint16 *src, size_t numBytes, unsigned numChannels)
-    {
-      if (numChannels == 6)
-      {
-        for (unsigned i=0, n=numBytes/sizeof(qint16); i<n; i+=6)
-        {
-          dst[i+0] = src[i+0];
-          dst[i+1] = src[i+2];
-          dst[i+2] = src[i+1];
-          dst[i+3] = src[i+4];
-          dst[i+4] = src[i+5];
-          dst[i+5] = src[i+3];
-        }
-      }
-      else
-        memcpy(dst, src, numBytes);
-    }
-    
-    static void Aac(qint16 *dst, const qint16 *src, size_t numBytes, unsigned numChannels)
-    {
-      if (numChannels == 6)
-      {
-        for (unsigned i=0, n=numBytes/sizeof(qint16); i<n; i+=6)
-        {
-          dst[i+0] = src[i+1];
-          dst[i+1] = src[i+0];
-          dst[i+2] = src[i+2];
-          dst[i+3] = src[i+3];
-          dst[i+4] = src[i+4];
-          dst[i+5] = src[i+5];
-        }
-      }
-      else
-        memcpy(dst, src, numBytes);
-    }
-  };
-  
-  if (inCodec == "DTS")
-    postFilter = &PostFilter::Dts;
-  else if (inCodec == "AAC")
-    postFilter = &PostFilter::Aac;
-  else
-#endif
-    postFilter = PostFilterFunc(&memcpy);
+  postFilter = PostFilterFunc(&memcpy);
 
   return true;
 }
@@ -196,9 +142,7 @@ SAudioBufferList AudioDecoder::decodeBuffer(const SEncodedAudioBuffer &audioBuff
     }
     else if (codecHandle)
     {
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
       ::AVPacket packet = FFMpegCommon::toAVPacket(audioBuffer);
-#endif
 
       const uint8_t *inPtr = reinterpret_cast<const uint8_t *>(audioBuffer.data());
       int inSize = audioBuffer.size();
@@ -210,32 +154,28 @@ SAudioBufferList AudioDecoder::decodeBuffer(const SEncodedAudioBuffer &audioBuff
       if (qAbs(timeStamp - currentTime).toMSec() > defaultBufferLen)
         timeStamp = currentTime;
 
-      SBuffer temp(AVCODEC_MAX_AUDIO_FRAME_SIZE + FF_INPUT_BUFFER_PADDING_SIZE);
-      temp.resize(AVCODEC_MAX_AUDIO_FRAME_SIZE + FF_INPUT_BUFFER_PADDING_SIZE);
+      ::AVFrame *frame = ::avcodec_alloc_frame();
 
       while (inSize > 0)
       {
         // decode the audio
-        int outSize = AVCODEC_MAX_AUDIO_FRAME_SIZE;
+        int gotFrame = 0;
 
-#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(52, 72, 0)
-        const int len = ::avcodec_decode_audio2(contextHandle, reinterpret_cast<int16_t *>(temp.data()), &outSize, (quint8 *)inPtr, inSize);
-#else
         packet.data = (uint8_t *)inPtr;
         packet.size = inSize;
-        const int len = ::avcodec_decode_audio3(contextHandle, reinterpret_cast<int16_t *>(temp.data()), &outSize, &packet);
-#endif
+        const int len = ::avcodec_decode_audio4(contextHandle, frame, &gotFrame, &packet);
 
         if (len >= 0)
         {
-          if ((outSize > 0) && (contextHandle->sample_rate > 0))
+          if ((gotFrame != 0) && (contextHandle->sample_rate > 0))
           {
-            const SAudioFormat outFormat(SAudioFormat::Format_PCM_S16,
-                                         FFMpegCommon::fromFFMpegChannelLayout(contextHandle->channel_layout, contextHandle->channels),
-                                         contextHandle->sample_rate);
+            const SAudioFormat outFormat(
+                SAudioFormat::Format_PCM_S16,
+                FFMpegCommon::fromFFMpegChannelLayout(contextHandle->channel_layout, contextHandle->channels),
+                contextHandle->sample_rate);
 
             const int sampleSize = outFormat.sampleSize() * outFormat.numChannels();
-            const int totalSamples = outSize / sampleSize;
+            const int totalSamples = frame->nb_samples;
             const int defaultSamples = (contextHandle->sample_rate * defaultBufferLen) / 1000;
             const int maxSamples = defaultSamples + (defaultSamples / 2);
 
@@ -247,7 +187,7 @@ SAudioBufferList AudioDecoder::decodeBuffer(const SEncodedAudioBuffer &audioBuff
 
               postFilter(
                   reinterpret_cast<qint16 *>(destBuffer.data()),
-                  reinterpret_cast<const qint16 *>(temp.data()) + ((i * sampleSize) / sizeof(qint16)),
+                  reinterpret_cast<const qint16 *>(frame->data[0]) + ((i * sampleSize) / sizeof(qint16)),
                   numSamples * sampleSize,
                   outFormat.numChannels());
 
@@ -268,11 +208,15 @@ SAudioBufferList AudioDecoder::decodeBuffer(const SEncodedAudioBuffer &audioBuff
 
           inPtr += len;
           inSize -= len;
+
+          ::avcodec_get_frame_defaults(frame);
           continue;
         }
 
         break;
       }
+
+      ::av_free(frame);
     }
   }
   else

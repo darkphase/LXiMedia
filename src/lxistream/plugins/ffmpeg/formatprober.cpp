@@ -283,7 +283,7 @@ SVideoBuffer FormatProber::readThumbnail(const ProbeInfo &pi, BufferReader *buff
   return result;
 }
 
-BufferReader * FormatProber::createBufferReader(const QString &format, QIODevice *ioDevice, const QUrl &filePath)
+BufferReader * FormatProber::createBufferReader(const QString &format, QIODevice *ioDevice, const QUrl &)
 {
   if (ioDevice != lastIoDevice)
   {
@@ -320,23 +320,12 @@ BufferReader * FormatProber::createBufferReader(const QString &format, QIODevice
 
 void FormatProber::setMetadata(ProbeInfo &pi, const BufferReader *bufferReader)
 {
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
   for (AVDictionaryEntry *e = av_dict_get(bufferReader->context()->metadata, "", NULL, AV_DICT_IGNORE_SUFFIX);
        e != NULL;
        e = av_dict_get(bufferReader->context()->metadata, "", e, AV_DICT_IGNORE_SUFFIX))
   {
     setMetadata(pi, e->key, QString::fromUtf8(e->value).simplified());
   }
-#else
-  setMetadata(pi, "title", QString::fromUtf8(bufferReader->context()->title).simplified());
-  setMetadata(pi, "author", QString::fromUtf8(bufferReader->context()->author).simplified());
-  setMetadata(pi, "copyright", QString::fromUtf8(bufferReader->context()->copyright).simplified());
-  setMetadata(pi, "comment", QString::fromUtf8(bufferReader->context()->comment).simplified());
-  setMetadata(pi, "album", QString::fromUtf8(bufferReader->context()->album).simplified());
-  setMetadata(pi, "genre", QString::fromUtf8(bufferReader->context()->genre).simplified());
-  setMetadata(pi, "year", bufferReader->context()->year > 0 ? QString::number(bufferReader->context()->year) : QString::null);
-  setMetadata(pi, "track", bufferReader->context()->track > 0 ? QString::number(bufferReader->context()->track) : QString::null);
-#endif
 }
 
 void FormatProber::setMetadata(ProbeInfo &pi, const char *name, const QString &value)

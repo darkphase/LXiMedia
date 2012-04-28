@@ -21,50 +21,56 @@ namespace LXiStream {
 
 SDataCodec::SDataCodec(void)
 {
-  d.codec = QString::null;
+  d.name = QByteArray();
 }
 
-SDataCodec::SDataCodec(const QString &codec, const QByteArray &codepage, int streamId)
+SDataCodec::SDataCodec(const char *name, const QByteArray &codepage, int streamId)
 {
-  setCodec(codec, codepage, streamId);
+  setCodec(name, codepage, streamId);
+}
+
+SDataCodec::SDataCodec(const QByteArray &name, const QByteArray &codepage, int streamId)
+{
+  setCodec(name, codepage, streamId);
 }
 
 bool SDataCodec::operator==(const SDataCodec &comp) const
 {
-  return (d.codec == comp.d.codec) &&
+  return (d.name == comp.d.name) &&
       (d.streamId == comp.d.streamId);
 }
 
 /*! Sets this codec to the specified format.
  */
-void SDataCodec::setCodec(const QString &codec, const QByteArray &codepage, int streamId)
+void SDataCodec::setCodec(const QByteArray &name, const QByteArray &codepage, int streamId)
 {
-  d.codec = codec;
+  d.name = name;
   d.codepage = codepage;
   d.streamId = streamId;
 }
 
-QString SDataCodec::toString(void) const
+void SDataCodec::serialize(QXmlStreamWriter &writer) const
 {
-  QString result =
-      d.codec + ';' +
-      QString::number(d.streamId);
+  writer.writeStartElement("datacodec");
 
-  return result;
+  writer.writeAttribute("name", d.name);
+  writer.writeAttribute("streamid", QString::number(d.streamId));
+
+  writer.writeEndElement();
 }
 
-SDataCodec SDataCodec::fromString(const QString &str)
+bool SDataCodec::deserialize(QXmlStreamReader &reader)
 {
-  const QStringList items = str.split(';');
-  SDataCodec result;
-
-  if (items.count() >= 2)
+  if (reader.name() == "datacodec")
   {
-    result.d.codec = items[0].toAscii();
-    result.d.streamId = items[1].toInt();
+    d.name = reader.attributes().value("name").toString().toAscii();
+    d.streamId = reader.attributes().value("streamid").toString().toInt();
+
+    return true;
   }
 
-  return result;
+  reader.raiseError("Not a datacodec element.");
+  return false;
 }
 
 } // End of namespace

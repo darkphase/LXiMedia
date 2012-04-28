@@ -106,11 +106,7 @@ private: // DTS framing
 private:
   void                          clear(void);
   static StreamContext        * initStreamContext(const ::AVStream *);
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
   static QString                readMetadata(::AVDictionary *, const char *tagName);
-#else
-  static QString                readMetadata(::AVMetadata *, const char *tagName);
-#endif
   bool                          isSelected(const ::AVStream *) const;
   QPair<STime, STime>           correctTimeStamp(const Packet &);
   QPair<STime, STime>           correctTimeStampToVideo(const Packet &);

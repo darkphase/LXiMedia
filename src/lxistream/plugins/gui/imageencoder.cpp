@@ -56,11 +56,11 @@ SEncodedVideoBufferList ImageEncoder::encodeBuffer(const SVideoBuffer &input)
     const SImage image(input, quality < 80);
     if (!image.isNull())
     {
-      outCodec = SVideoCodec(outCodec.codec(), image.size());
+      outCodec = SVideoCodec(outCodec.name(), image.size());
 
       QBuffer buffer;
       buffer.open(QBuffer::WriteOnly);
-      if (image.save(&buffer, outCodec.codec().toAscii().data(), quality))
+      if (image.save(&buffer, outCodec.name().data(), quality))
       {
         buffer.close();
 

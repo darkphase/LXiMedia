@@ -53,6 +53,7 @@ private:
 
 private:
   SAudioCodec                   outCodec;
+  ::AVDictionary              * codecDict;
   ::AVCodec                   * codecHandle;
   ::AVCodecContext            * contextHandle;
   bool                          contextHandleOwner;

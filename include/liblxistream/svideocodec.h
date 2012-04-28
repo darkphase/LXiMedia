@@ -35,20 +35,20 @@ class LXISTREAM_PUBLIC SVideoCodec
 public:
                                 SVideoCodec(void);
                                 SVideoCodec(const char *, SSize = SSize(), SInterval = SInterval(), int streamId = -1, int bitRate = 0, int gopSize = -1);
-                                SVideoCodec(const QString &, SSize = SSize(), SInterval = SInterval(), int streamId = -1, int bitRate = 0, int gopSize = -1);
+                                SVideoCodec(const QByteArray &, SSize = SSize(), SInterval = SInterval(), int streamId = -1, int bitRate = 0, int gopSize = -1);
 
-  inline                        operator const QString &() const                { return codec(); }
+  inline                        operator const QByteArray &() const             { return name(); }
 
   bool                          operator==(const SVideoCodec &other) const;
   inline bool                   operator!=(const SVideoCodec &other) const      { return !operator==(other); }
-  inline bool                   operator==(const char *other) const             { return d.codec == other; }
+  inline bool                   operator==(const char *other) const             { return d.name == other; }
   inline bool                   operator!=(const char *other) const             { return !operator==(other); }
-  inline bool                   operator==(const QString &other) const          { return d.codec == other; }
-  inline bool                   operator!=(const QString &other) const          { return !operator==(other); }
+  inline bool                   operator==(const QByteArray &other) const       { return d.name == other; }
+  inline bool                   operator!=(const QByteArray &other) const       { return !operator==(other); }
 
-  inline bool                   isNull(void) const                              { return d.codec.isEmpty(); }
-  inline const QString        & codec(void) const                               { return d.codec; }
-  void                          setCodec(const QString &codec, SSize = SSize(), SInterval = SInterval(), int streamId = -1, int bitRate = 0, int gopSize = -1);
+  inline bool                   isNull(void) const                              { return d.name.isEmpty(); }
+  inline const QByteArray     & name(void) const                                { return d.name; }
+  void                          setCodec(const QByteArray &codec, SSize = SSize(), SInterval = SInterval(), int streamId = -1, int bitRate = 0, int gopSize = -1);
 
   inline SSize                  size(void) const                                { return d.size; }
   inline void                   setSize(SSize s)                                { d.size = s; }
@@ -61,13 +61,13 @@ public:
   inline int                    gopSize(void) const                             { return d.gopSize; }
   inline void                   setGopSize(int g)                               { d.gopSize = g; }
 
-  QString                       toString(void) const;
-  static SVideoCodec            fromString(const QString &);
+  void                          serialize(QXmlStreamWriter &) const;            //!< Serializes all information to the XML stream.
+  bool                          deserialize(QXmlStreamReader &);                //!< Deserializes all information from the XML stream, make sure readNextStartElement() is invoked on the reader.
 
 private:
   struct
   {
-    QString                     codec;
+    QByteArray                  name;
     SSize                       size;
     SInterval                   frameRate;
     int                         streamId;

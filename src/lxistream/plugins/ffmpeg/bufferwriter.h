@@ -34,7 +34,7 @@ public:
   virtual                       ~BufferWriter();
 
   inline const ::AVOutputFormat * avFormat(void) const                          { return format; }
-  ::AVStream                  * createStream(void);
+  ::AVStream                  * createStream(AVCodec *codec);
 
 public: // From SInterfaces::BufferWriter
   virtual bool                  openFormat(const QString &);
@@ -57,11 +57,7 @@ private:
   QIODevice                   * ioDevice;
   ::AVOutputFormat            * format;
   ::AVFormatContext           * formatContext;
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
   ::AVIOContext               * ioContext;
-#else
-  ::ByteIOContext             * ioContext;
-#endif
   QMap<int, ::AVStream *>       streams;
 
   bool                          hasAudio, hasVideo;

@@ -93,7 +93,7 @@ void SDataDecoderNode::input(const SEncodedDataBuffer &dataBuffer)
       d->decoder = SInterfaces::DataDecoder::create(NULL, d->lastCodec, bufferReader, d->flags, false);
 
       if (d->decoder == NULL)
-        qWarning() << "Failed to find data decoder for codec" << d->lastCodec.codec();
+        qWarning() << "Failed to find data decoder for codec" << d->lastCodec.name();
     }
   }
 

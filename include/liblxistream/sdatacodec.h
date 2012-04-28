@@ -32,31 +32,32 @@ class LXISTREAM_PUBLIC SDataCodec
 {
 public:
                                 SDataCodec(void);
-                                SDataCodec(const QString &name, const QByteArray &codepage = QByteArray(), int streamId = -1);
+                                SDataCodec(const char *name, const QByteArray &codepage = QByteArray(), int streamId = -1);
+                                SDataCodec(const QByteArray &name, const QByteArray &codepage = QByteArray(), int streamId = -1);
 
-  inline                        operator const QString &() const                { return codec(); }
+  inline                        operator const QByteArray &() const             { return name(); }
 
   bool                          operator==(const SDataCodec &other) const;
   inline bool                   operator!=(const SDataCodec &other) const       { return !operator==(other); }
-  bool                          operator==(const QString &other) const          { return d.codec == other; }
-  inline bool                   operator!=(const QString &other) const          { return !operator==(other); }
+  bool                          operator==(const QByteArray &other) const       { return d.name == other; }
+  inline bool                   operator!=(const QByteArray &other) const       { return !operator==(other); }
 
-  inline bool                   isNull(void) const                              { return d.codec.isEmpty(); }
-  inline const QString        & codec(void) const                               { return d.codec; }
-  void                          setCodec(const QString &codec, const QByteArray &codepage = QByteArray(), int streamId = -1);
+  inline bool                   isNull(void) const                              { return d.name.isEmpty(); }
+  inline const QByteArray     & name(void) const                                { return d.name; }
+  void                          setCodec(const QByteArray &name, const QByteArray &codepage = QByteArray(), int streamId = -1);
 
   inline const QByteArray     & codepage(void) const                            { return d.codepage; }
   inline void                   setCodepage(const QByteArray &c)                { d.codepage = c; }
   inline int                    streamId(void) const                            { return d.streamId; }
   inline void                   setStreamId(int i)                              { d.streamId = i; }
 
-  QString                       toString(void) const;
-  static SDataCodec             fromString(const QString &);
+  void                          serialize(QXmlStreamWriter &) const;            //!< Serializes all information to the XML stream.
+  bool                          deserialize(QXmlStreamReader &);                //!< Deserializes all information from the XML stream, make sure readNextStartElement() is invoked on the reader.
 
 private:
   struct
   {
-    QString                     codec;
+    QByteArray                  name;
     QByteArray                  codepage;
     int                         streamId;
   }                             d;

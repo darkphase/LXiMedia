@@ -45,7 +45,7 @@ void FFMpegTest::MediaFileInfoAudioDeep(void)
 
   QCOMPARE(mediaInfo.fileType(), SMediaInfo::ProbeInfo::FileType_Audio);
   QCOMPARE(mediaInfo.metadata("title").toString(), QString("SoundTest"));
-  QCOMPARE(mediaInfo.titles().first().audioStreams.first().codec.codec(), QString("VORBIS"));
+  QCOMPARE(mediaInfo.titles().first().audioStreams.first().codec.name(), QByteArray("vorbis"));
   QVERIFY(mediaInfo.titles().first().videoStreams.isEmpty());
 
   QCOMPARE(mediaInfo.titles().first().duration.toSec(), 3);
@@ -56,16 +56,16 @@ void FFMpegTest::MediaFileInfoAudioDeep(void)
 void FFMpegTest::AudioEncodeDecode(void)
 {
   static const QSet<QString> skipCodecs = QSet<QString>()
-      << "AAC" << "ALAC" << "MP3" << "SONIC" << "SPEEX" << "VORBIS" << "WMAV1"
-      << "WMAV2"
-      << "PCM/S16LE" << "PCM/S16BE" << "PCM/U16LE" << "PCM/U16BE" << "PCM/S8"
-      << "PCM/U8" << "PCM/MULAW" << "PCM/ALAW" << "PCM/S32LE" << "PCM/S32BE"
-      << "PCM/U32LE" << "PCM/U32BE" << "PCM/S24LE" << "PCM/S24BE" << "PCM/U24LE"
-      << "PCM/U24BE" << "PCM/S24DAUD" << "PCM/ZORK" << "PCM/S16LEP" << "PCM/DVD"
-      << "PCM/F32BE" << "PCM/F32LE" << "PCM/F64BE" << "PCM/F64LE"
-      << "ADPCM/ADX" << "ADPCM/G722" << "ADPCM/G726" << "ADPCM/IMA_WAV"
-      << "AMR/WB"
-      << "DPCM/ROQ";
+      << "aac" << "alac" << "sonic" << "libspeex" << "vorbis"
+      << "wmav1" << "wmav2"
+      << "pcm_s16le" << "pcm_s16be" << "pcm_u16le" << "pcm_u16be" << "pcm_s8"
+      << "pcm_u8" << "PCM/MULAW" << "PCM/ALAW" << "pcm_s32le" << "pcm_s32be"
+      << "pcm_u32le" << "pcm_u32be" << "pcm_s24le" << "pcm_s24be" << "pcm_u24le"
+      << "pcm_u24be" << "pcm_s24DAUD" << "PCM/ZORK" << "pcm_s16leP" << "PCM/DVD"
+      << "pcm_f32be" << "pcm_f32le" << "pcm_f64be" << "pcm_f64le"
+      << "adpcm_adx" << "g722" << "g726" << "adpcm_ima_wav"
+      << "amr_wb"
+      << "roq_dpcm";
 
   const QSet<QString> decoders = QSet<QString>::fromList(SAudioDecoderNode::codecs());
   const QSet<QString> encoders = QSet<QString>::fromList(SAudioEncoderNode::codecs());
@@ -79,7 +79,7 @@ void FFMpegTest::AudioEncodeDecode(void)
 
 void FFMpegTest::AudioEncodeDecode(const char *codecName)
 {
-//  qDebug() << codecName;
+  //qDebug() << codecName;
 
   const SAudioBuffer inBuffer = StreamTest::makeTestBuffer(65536);
 
@@ -133,8 +133,10 @@ void FFMpegTest::AudioEncodeDecode(const char *codecName)
 void FFMpegTest::VideoEncodeDecode(void)
 {
   static const QSet<QString> skipCodecs = QSet<QString>()
-      << "ASV1" << "ASV2" << "FFVHUFF" << "GIF" << "H261" << "H263" << "H264"
-      << "THEORA" << "WMV2";
+      << "asv1" << "asv2" << "dnxhd" << "dvvideo" << "ffvhuff" << "jpegls"
+      << "gif" << "h261" << "h263" << "h264"<< "huffyuv" << "libvpx"
+      << "roqvideo" << "rv10" << "rv20" << "svq1" << "theora" << "v210"
+      << "wmv2" << "zlib";
 
   const QSet<QString> decoders = QSet<QString>::fromList(SVideoDecoderNode::codecs());
   const QSet<QString> encoders = QSet<QString>::fromList(SVideoEncoderNode::codecs());
@@ -148,7 +150,7 @@ void FFMpegTest::VideoEncodeDecode(void)
 
 void FFMpegTest::VideoEncodeDecode(const char *codecName)
 {
-//  qDebug() << codecName;
+  //qDebug() << codecName;
 
   // Prepare a buffer
   static const unsigned width = 352;

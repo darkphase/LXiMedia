@@ -393,7 +393,7 @@ void SMediaInfo::serialize(QXmlStreamWriter &writer) const
         writer.writeAttribute("id", audioStream.toString());
         writer.writeAttribute("language", audioStream.language);
         writer.writeAttribute("title", audioStream.title);
-        writer.writeAttribute("codec", audioStream.codec.toString());
+        audioStream.codec.serialize(writer);
 
         writer.writeEndElement();
       }
@@ -405,7 +405,7 @@ void SMediaInfo::serialize(QXmlStreamWriter &writer) const
         writer.writeAttribute("id", videoStream.toString());
         writer.writeAttribute("language", videoStream.language);
         writer.writeAttribute("title", videoStream.title);
-        writer.writeAttribute("codec", videoStream.codec.toString());
+        videoStream.codec.serialize(writer);
 
         writer.writeEndElement();
       }
@@ -418,7 +418,7 @@ void SMediaInfo::serialize(QXmlStreamWriter &writer) const
         writer.writeAttribute("language", dataStream.language);
         writer.writeAttribute("title", dataStream.title);
         writer.writeAttribute("file", dataStream.file.toString());
-        writer.writeAttribute("codec", dataStream.codec.toString());
+        dataStream.codec.serialize(writer);
 
         writer.writeEndElement();
       }
@@ -427,7 +427,7 @@ void SMediaInfo::serialize(QXmlStreamWriter &writer) const
       {
         writer.writeStartElement("imagecodec");
 
-        writer.writeAttribute("codec", title.imageCodec.toString());
+        title.imageCodec.serialize(writer);
 
         writer.writeEndElement();
       }
@@ -467,7 +467,7 @@ bool SMediaInfo::deserialize(QXmlStreamReader &reader)
       }
       else if (reader.name() == "format")
       {
-        pi->format.format = reader.attributes().value("format").toString();
+        pi->format.format = reader.attributes().value("format").toString().toAscii();
         pi->format.fileType = ProbeInfo::FileType(reader.attributes().value("filetype").toString().toInt());
         pi->format.fileTypeName = reader.attributes().value("filetypename").toString();
 
@@ -500,49 +500,50 @@ bool SMediaInfo::deserialize(QXmlStreamReader &reader)
                 chapter.title = reader.attributes().value("title").toString();
                 chapter.begin = STime::fromMSec(reader.attributes().value("begin").toString().toLongLong());
                 chapter.end = STime::fromMSec(reader.attributes().value("end").toString().toLongLong());
-
-                reader.skipCurrentElement();
               }
               else if (reader.name() == "audiostream")
               {
-                title.audioStreams += AudioStreamInfo(
-                    StreamId::fromString(reader.attributes().value("id").toString()),
-                    reader.attributes().value("language").toString(),
-                    reader.attributes().value("title").toString(),
-                    SAudioCodec::fromString(reader.attributes().value("codec").toString()));
+                const StreamId id = StreamId::fromString(reader.attributes().value("id").toString());
+                const QString language = reader.attributes().value("language").toString();
+                const QString xtitle = reader.attributes().value("title").toString();
 
-                reader.skipCurrentElement();
+                reader.readNextStartElement();
+                SAudioCodec codec;
+                if (codec.deserialize(reader))
+                  title.audioStreams += AudioStreamInfo(id, language, xtitle, codec);
               }
               else if (reader.name() == "videostream")
               {
-                title.videoStreams += VideoStreamInfo(
-                    StreamId::fromString(reader.attributes().value("id").toString()),
-                    reader.attributes().value("language").toString(),
-                    reader.attributes().value("title").toString(),
-                    SVideoCodec::fromString(reader.attributes().value("codec").toString()));
+                const StreamId id = StreamId::fromString(reader.attributes().value("id").toString());
+                const QString language = reader.attributes().value("language").toString();
+                const QString xtitle = reader.attributes().value("title").toString();
 
-                reader.skipCurrentElement();
+                reader.readNextStartElement();
+                SVideoCodec codec;
+                if (codec.deserialize(reader))
+                  title.videoStreams += VideoStreamInfo(id, language, xtitle, codec);
               }
               else if (reader.name() == "datastream")
               {
-                title.dataStreams += DataStreamInfo(
-                    StreamId::fromString(reader.attributes().value("id").toString()),
-                    reader.attributes().value("language").toString(),
-                    reader.attributes().value("title").toString(),
-                    SDataCodec::fromString(reader.attributes().value("codec").toString()),
-                    reader.attributes().value("file").toString());
+                const StreamId id = StreamId::fromString(reader.attributes().value("id").toString());
+                const QString language = reader.attributes().value("language").toString();
+                const QString xtitle = reader.attributes().value("title").toString();
+                const QString file = reader.attributes().value("file").toString();
 
-                reader.skipCurrentElement();
+                reader.readNextStartElement();
+                SDataCodec codec;
+                if (codec.deserialize(reader))
+                  title.dataStreams += DataStreamInfo(id, language, xtitle, codec, file);
               }
               else if (reader.name() == "imagecodec")
               {
-                title.imageCodec =
-                    SVideoCodec::fromString(reader.attributes().value("codec").toString());
-
-                reader.skipCurrentElement();
+                reader.readNextStartElement();
+                SVideoCodec codec;
+                if (codec.deserialize(reader))
+                  title.imageCodec = codec;
               }
-              else
-                reader.skipCurrentElement();
+
+              reader.skipCurrentElement();
             }
           }
           else
@@ -556,7 +557,7 @@ bool SMediaInfo::deserialize(QXmlStreamReader &reader)
     return true;
   }
 
-  reader.raiseError("Not a MediaInfo element.");
+  reader.raiseError("Not a mediainfo element.");
   return false;
 }
 
