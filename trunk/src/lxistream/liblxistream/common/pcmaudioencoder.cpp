@@ -32,40 +32,40 @@ PcmAudioEncoder::~PcmAudioEncoder()
 
 bool PcmAudioEncoder::openCodec(const SAudioCodec &c, SInterfaces::BufferWriter *, Flags)
 {
-  if (c.codec().startsWith("PCM/"))
+  if (c.name().startsWith("pcm_"))
   {
     outCodec = c;
 
-    if (c.codec() == "PCM/S8")
+    if (c.name() == "pcm_S8")
       formatConvert.setDestFormat(SAudioFormat::Format_PCM_S8);
-    else if (c.codec() == "PCM/U8")
+    else if (c.name() == "pcm_u8")
       formatConvert.setDestFormat(SAudioFormat::Format_PCM_U8);
-    else if (c.codec() == "PCM/S16LE")
+    else if (c.name() == "pcm_s16le")
       formatConvert.setDestFormat(SAudioFormat::Format_PCM_S16LE);
-    else if (c.codec() == "PCM/S16BE")
+    else if (c.name() == "pcm_s16be")
       formatConvert.setDestFormat(SAudioFormat::Format_PCM_S16BE);
-    else if (c.codec() == "PCM/U16LE")
+    else if (c.name() == "pcm_u16le")
       formatConvert.setDestFormat(SAudioFormat::Format_PCM_U16LE);
-    else if (c.codec() == "PCM/U16BE")
+    else if (c.name() == "pcm_u16be")
       formatConvert.setDestFormat(SAudioFormat::Format_PCM_U16BE);
 
-    else if (c.codec() == "PCM/S32LE")
+    else if (c.name() == "pcm_s32le")
       formatConvert.setDestFormat(SAudioFormat::Format_PCM_S32LE);
-    else if (c.codec() == "PCM/S32BE")
+    else if (c.name() == "pcm_s32be")
       formatConvert.setDestFormat(SAudioFormat::Format_PCM_S32BE);
-    else if (c.codec() == "PCM/U32LE")
+    else if (c.name() == "pcm_u32le")
       formatConvert.setDestFormat(SAudioFormat::Format_PCM_U32LE);
-    else if (c.codec() == "PCM/U32BE")
+    else if (c.name() == "pcm_u32be")
       formatConvert.setDestFormat(SAudioFormat::Format_PCM_U32BE);
 
-    else if (c.codec() == "PCM/F32LE")
+    else if (c.name() == "pcm_f32le")
       formatConvert.setDestFormat(SAudioFormat::Format_PCM_F32LE);
-    else if (c.codec() == "PCM/F32BE")
+    else if (c.name() == "pcm_f32be")
       formatConvert.setDestFormat(SAudioFormat::Format_PCM_F32BE);
 
-    else if (c.codec() == "PCM/F64LE")
+    else if (c.name() == "pcm_f64le")
       formatConvert.setDestFormat(SAudioFormat::Format_PCM_F64LE);
-    else if (c.codec() == "PCM/F64BE")
+    else if (c.name() == "pcm_f64be")
       formatConvert.setDestFormat(SAudioFormat::Format_PCM_F64BE);
   }
 
@@ -90,7 +90,7 @@ SEncodedAudioBufferList PcmAudioEncoder::encodeBuffer(const SAudioBuffer &audioB
     {
       SEncodedAudioBuffer encodedBuffer(
           SAudioCodec(
-              outCodec.codec(),
+              outCodec.name(),
               destBuffer.format().channelSetup(),
               destBuffer.format().sampleRate()),
           destBuffer.memory());

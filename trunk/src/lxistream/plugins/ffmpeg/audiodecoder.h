@@ -47,8 +47,9 @@ public: // From SBufferDecoder
 
 private:
   SAudioCodec                   inCodec;
-  AVCodec                     * codecHandle;
-  AVCodecContext              * contextHandle;
+  ::AVDictionary              * codecDict;
+  ::AVCodec                   * codecHandle;
+  ::AVCodecContext            * contextHandle;
   bool                          contextHandleOwner;
   PostFilterFunc                postFilter;
   bool                          passThrough;

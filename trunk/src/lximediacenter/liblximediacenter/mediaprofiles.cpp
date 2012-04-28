@@ -1073,42 +1073,42 @@ MediaProfiles::ImageProfile MediaProfiles::imageProfileFor(const QString &conten
   return ImageProfile(0);
 }
 
-QString MediaProfiles::audioCodecFor(AudioProfile profile, SAudioFormat::Channels)
+QByteArray MediaProfiles::audioCodecFor(AudioProfile profile, SAudioFormat::Channels)
 {
   switch (profile)
   {
   case LPCM:
-    return "PCM/S16BE";
+    return "pcm_s16be";
 
   case MP2:
-    return "MP2";
+    return "mp2";
 
   case MP3:
-    return "MP3";
+    return "mp3";
 
   case AAC_ADTS:
-    return "AAC";
+    return "aac";
 
   case AC3:
-    return "AC3";
+    return "ac3";
 
   case WMABASE:
-    return "WMAV2";
+    return "wmav2";
 
   case VORBIS_NONSTD:
-    return "VORBIS";
+    return "vorbis";
 
   case FLAC_NONSTD:
-    return "FLAC";
+    return "flac";
 
   case WAV_NONSTD:
-    return "PCM/S16LE";
+    return "pcm_s16le";
   }
 
-  return QString::null;
+  return QByteArray();
 }
 
-QString MediaProfiles::audioCodecFor(VideoProfile profile, SAudioFormat::Channels channels)
+QByteArray MediaProfiles::audioCodecFor(VideoProfile profile, SAudioFormat::Channels channels)
 {
   switch (profile)
   {
@@ -1117,7 +1117,7 @@ QString MediaProfiles::audioCodecFor(VideoProfile profile, SAudioFormat::Channel
   case MPEG_PS_NTSC:
   case MPEG4_P2_TS_SP_MPEG2_L2:
   case MPEG4_P2_TS_SP_MPEG2_L2_ISO:
-    return "MP2";
+    return "mp2";
 
   case MPEG_PS_PAL_XAC3:
   case MPEG_PS_NTSC_XAC3:
@@ -1127,7 +1127,7 @@ QString MediaProfiles::audioCodecFor(VideoProfile profile, SAudioFormat::Channel
   case MPEG4_P2_TS_ASP_AC3_ISO:
   case MPEG4_P2_MATROSKA_AC3_SD_NONSTD:
   case MPEG4_P2_MATROSKA_AC3_HD_NONSTD:
-    return "AC3";
+    return "ac3";
 
   case MPEG_TS_SD_EU:
   case MPEG_TS_SD_EU_ISO:
@@ -1136,9 +1136,9 @@ QString MediaProfiles::audioCodecFor(VideoProfile profile, SAudioFormat::Channel
   case MPEG_TS_HD_EU_ISO:
   case MPEG_PS_HD_EU_NONSTD:
     if ((channels == SAudioFormat::Channels_Mono) || (channels == SAudioFormat::Channels_Stereo))
-      return "MP2";
+      return "mp2";
     else
-      return "AC3";
+      return "ac3";
 
   case MPEG_TS_SD_NA:
   case MPEG_TS_SD_NA_ISO:
@@ -1146,7 +1146,7 @@ QString MediaProfiles::audioCodecFor(VideoProfile profile, SAudioFormat::Channel
   case MPEG_TS_HD_NA:
   case MPEG_TS_HD_NA_ISO:
   case MPEG_PS_HD_NA_NONSTD:
-    return "AC3";
+    return "ac3";
 
   case MPEG4_P2_TS_SP_AAC:
   case MPEG4_P2_TS_SP_AAC_ISO:
@@ -1154,37 +1154,37 @@ QString MediaProfiles::audioCodecFor(VideoProfile profile, SAudioFormat::Channel
   case MPEG4_P2_TS_ASP_AAC_ISO:
   case MPEG4_P2_MATROSKA_AAC_SD_NONSTD:
   case MPEG4_P2_MATROSKA_AAC_HD_NONSTD:
-    return "AAC";
+    return "aac";
 
   case MPEG4_P2_TS_SP_MPEG1_L3:
   case MPEG4_P2_TS_SP_MPEG1_L3_ISO:
   case MPEG4_P2_TS_ASP_MPEG1_L3:
   case MPEG4_P2_TS_ASP_MPEG1_L3_ISO:
-    return "MP3";
+    return "mp3";
 
   case WMVMED_BASE:
-    return "WMAV2";
+    return "wmav2";
 
   case MPEG4_P2_MATROSKA_MP3_SD_NONSTD:
   case MPEG4_P2_MATROSKA_MP3_HD_NONSTD:
-    return "MP3";
+    return "mp3";
 
   case OGG_THEORA_VORBIS_SD_NONSTD:
-    return "VORBIS";
+    return "vorbis";
 
   case OGG_THEORA_FLAC_SD_NONSTD:
-    return "FLAC";
+    return "flac";
   }
 
-  return QString::null;
+  return QByteArray();
 }
 
-QString MediaProfiles::videoCodecFor(VideoProfile profile)
+QByteArray MediaProfiles::videoCodecFor(VideoProfile profile)
 {
   switch (profile)
   {
   case MPEG1:
-    return "MPEG1";
+    return "mpeg1video";
 
   case MPEG_PS_PAL:
   case MPEG_PS_NTSC:
@@ -1202,7 +1202,7 @@ QString MediaProfiles::videoCodecFor(VideoProfile profile)
   case MPEG_TS_HD_NA:
   case MPEG_TS_HD_NA_ISO:
   case MPEG_PS_HD_NA_NONSTD:
-    return "MPEG2";
+    return "mpeg2video";
 
   case MPEG4_P2_TS_SP_AAC:
   case MPEG4_P2_TS_SP_AAC_ISO:
@@ -1224,20 +1224,20 @@ QString MediaProfiles::videoCodecFor(VideoProfile profile)
   case MPEG4_P2_MATROSKA_AAC_HD_NONSTD:
   case MPEG4_P2_MATROSKA_AC3_SD_NONSTD:
   case MPEG4_P2_MATROSKA_AC3_HD_NONSTD:
-    return "MPEG4";
+    return "mpeg4";
 
   case WMVMED_BASE:
-    return "WMV3";
+    return "wmv3";
 
   case OGG_THEORA_VORBIS_SD_NONSTD:
   case OGG_THEORA_FLAC_SD_NONSTD:
-    return "THEORA";
+    return "theora";
   }
 
-  return QString::null;
+  return QByteArray();
 }
 
-QString MediaProfiles::imageCodecFor(ImageProfile profile)
+QByteArray MediaProfiles::imageCodecFor(ImageProfile profile)
 {
   switch (profile)
   {
@@ -1245,17 +1245,17 @@ QString MediaProfiles::imageCodecFor(ImageProfile profile)
   case JPEG_SM:
   case JPEG_MED:
   case JPEG_LRG:
-    return "JPEG";
+    return "jpeg";
 
   case PNG_TN:
   case PNG_LRG:
-    return "PNG";
+    return "png";
   }
 
-  return QString::null;
+  return QByteArray();
 }
 
-QString MediaProfiles::formatFor(AudioProfile profile)
+QByteArray MediaProfiles::formatFor(AudioProfile profile)
 {
   switch (profile)
   {
@@ -1285,10 +1285,10 @@ QString MediaProfiles::formatFor(AudioProfile profile)
     return "wav";
   }
 
-  return QString::null;
+  return QByteArray();
 }
 
-QString MediaProfiles::formatFor(VideoProfile profile)
+QByteArray MediaProfiles::formatFor(VideoProfile profile)
 {
   switch (profile)
   {
@@ -1351,10 +1351,10 @@ QString MediaProfiles::formatFor(VideoProfile profile)
     return "ogg";
   }
 
-  return QString::null;
+  return QByteArray();
 }
 
-QString MediaProfiles::formatFor(ImageProfile profile)
+QByteArray MediaProfiles::formatFor(ImageProfile profile)
 {
   switch (profile)
   {
@@ -1369,7 +1369,7 @@ QString MediaProfiles::formatFor(ImageProfile profile)
     return "png";
   }
 
-  return QString::null;
+  return QByteArray();
 }
 
 const char * MediaProfiles::mimeTypeFor(AudioProfile profile)

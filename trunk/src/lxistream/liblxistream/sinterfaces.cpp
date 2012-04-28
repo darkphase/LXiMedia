@@ -239,7 +239,7 @@ BufferWriter * BufferWriter::create(QObject *parent, const QString &format, bool
 AudioDecoder * AudioDecoder::create(QObject *parent, const SAudioCodec &codec, AbstractBufferReader *bufferReader, Flags flags, bool nonNull)
 {
   AudioDecoder * audioDecoder =
-      static_cast<AudioDecoder *>(factory().createObject(staticMetaObject.className(), parent, codec.codec(), nonNull));
+      static_cast<AudioDecoder *>(factory().createObject(staticMetaObject.className(), parent, codec.name(), nonNull));
 
   if (audioDecoder)
   if (!audioDecoder->openCodec(codec, bufferReader, flags))
@@ -249,7 +249,7 @@ AudioDecoder * AudioDecoder::create(QObject *parent, const SAudioCodec &codec, A
   }
 
   if (nonNull && (audioDecoder == NULL))
-    qFatal("Failed to open audio decoder for \"%s\".", codec.codec().toAscii().data());
+    qFatal("Failed to open audio decoder for \"%s\".", codec.name().data());
 
   return audioDecoder;
 }
@@ -269,7 +269,7 @@ AudioDecoder * AudioDecoder::create(QObject *parent, const SAudioCodec &codec, A
 VideoDecoder * VideoDecoder::create(QObject *parent, const SVideoCodec &codec, AbstractBufferReader *bufferReader, Flags flags, bool nonNull)
 {
   VideoDecoder * videoDecoder =
-      static_cast<VideoDecoder *>(factory().createObject(staticMetaObject.className(), parent, codec.codec(), nonNull));
+      static_cast<VideoDecoder *>(factory().createObject(staticMetaObject.className(), parent, codec.name(), nonNull));
 
   if (videoDecoder)
   if (!videoDecoder->openCodec(codec, bufferReader, flags))
@@ -279,7 +279,7 @@ VideoDecoder * VideoDecoder::create(QObject *parent, const SVideoCodec &codec, A
   }
 
   if (nonNull && (videoDecoder == NULL))
-    qFatal("Failed to open video decoder for \"%s\".", codec.codec().toAscii().data());
+    qFatal("Failed to open video decoder for \"%s\".", codec.name().data());
 
   return videoDecoder;
 }
@@ -299,7 +299,7 @@ VideoDecoder * VideoDecoder::create(QObject *parent, const SVideoCodec &codec, A
 DataDecoder * DataDecoder::create(QObject *parent, const SDataCodec &codec, AbstractBufferReader *bufferReader, Flags flags, bool nonNull)
 {
   DataDecoder * dataDecoder =
-      static_cast<DataDecoder *>(factory().createObject(staticMetaObject.className(), parent, codec.codec(), nonNull));
+      static_cast<DataDecoder *>(factory().createObject(staticMetaObject.className(), parent, codec.name(), nonNull));
 
   if (dataDecoder)
   if (!dataDecoder->openCodec(codec, bufferReader, flags))
@@ -309,7 +309,7 @@ DataDecoder * DataDecoder::create(QObject *parent, const SDataCodec &codec, Abst
   }
 
   if (nonNull && (dataDecoder == NULL))
-    qFatal("Failed to open data decoder for \"%s\".", codec.codec().toAscii().data());
+    qFatal("Failed to open data decoder for \"%s\".", codec.name().data());
 
   return dataDecoder;
 }
@@ -327,7 +327,7 @@ DataDecoder * DataDecoder::create(QObject *parent, const SDataCodec &codec, Abst
 AudioEncoder * AudioEncoder::create(QObject *parent, const SAudioCodec &codec, BufferWriter *bufferWriter, Flags flags, bool nonNull)
 {
   AudioEncoder * audioEncoder =
-      static_cast<AudioEncoder *>(factory().createObject(staticMetaObject.className(), parent, codec.codec(), nonNull));
+      static_cast<AudioEncoder *>(factory().createObject(staticMetaObject.className(), parent, codec.name(), nonNull));
 
   if (audioEncoder)
   if (!audioEncoder->openCodec(codec, bufferWriter, flags))
@@ -337,7 +337,7 @@ AudioEncoder * AudioEncoder::create(QObject *parent, const SAudioCodec &codec, B
   }
 
   if (nonNull && (audioEncoder == NULL))
-    qFatal("Failed to open audio encoder for \"%s\".", codec.codec().toAscii().data());
+    qFatal("Failed to open audio encoder for \"%s\".", codec.name().data());
 
   return audioEncoder;
 }
@@ -355,7 +355,7 @@ AudioEncoder * AudioEncoder::create(QObject *parent, const SAudioCodec &codec, B
 VideoEncoder * VideoEncoder::create(QObject *parent, const SVideoCodec &codec, BufferWriter *bufferWriter, Flags flags, bool nonNull)
 {
   VideoEncoder * videoEncoder =
-      static_cast<VideoEncoder *>(factory().createObject(staticMetaObject.className(), parent, codec.codec(), nonNull));
+      static_cast<VideoEncoder *>(factory().createObject(staticMetaObject.className(), parent, codec.name(), nonNull));
 
   if (videoEncoder)
   if (!videoEncoder->openCodec(codec, bufferWriter, flags))
@@ -365,7 +365,7 @@ VideoEncoder * VideoEncoder::create(QObject *parent, const SVideoCodec &codec, B
   }
 
   if (nonNull && (videoEncoder == NULL))
-    qFatal("Failed to open video encoder for \"%s\".", codec.codec().toAscii().data());
+    qFatal("Failed to open video encoder for \"%s\".", codec.name().data());
 
   return videoEncoder;
 }

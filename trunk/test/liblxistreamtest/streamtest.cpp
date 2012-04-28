@@ -275,22 +275,22 @@ void StreamTest::AudioFormat(void)
  */
 void StreamTest::AudioCodec(void)
 {
-  SAudioCodec codec = "AC3";
-  QVERIFY(codec == SAudioCodec("AC3"));
-  QVERIFY(codec != SAudioCodec("VORBIS"));
-  QVERIFY(codec == "AC3");
-  QVERIFY(codec != "VORBIS");
-  QCOMPARE(codec.codec(), QString("AC3"));
+  SAudioCodec codec = "ac3";
+  QVERIFY(codec == SAudioCodec("ac3"));
+  QVERIFY(codec != SAudioCodec("vorbis"));
+  QVERIFY(codec == "ac3");
+  QVERIFY(codec != "vorbis");
+  QCOMPARE(codec.name(), QByteArray("ac3"));
   QCOMPARE(codec.isNull(), false);
   QCOMPARE(codec.numChannels(), 0);
   QCOMPARE(codec.sampleRate(), 0);
 
-  codec.setCodec("VORBIS", SAudioFormat::Channels_Surround_5_1, 48000);
-  QVERIFY(codec == SAudioCodec("VORBIS", SAudioFormat::Channels_Surround_5_1, 48000));
-  QVERIFY(codec != SAudioCodec("VORBIS"));
-  QVERIFY(codec == "VORBIS");
-  QVERIFY(codec != "AC3");
-  QCOMPARE(codec.codec(), QString("VORBIS"));
+  codec.setCodec("vorbis", SAudioFormat::Channels_Surround_5_1, 48000);
+  QVERIFY(codec == SAudioCodec("vorbis", SAudioFormat::Channels_Surround_5_1, 48000));
+  QVERIFY(codec != SAudioCodec("vorbis"));
+  QVERIFY(codec == "vorbis");
+  QVERIFY(codec != "ac3");
+  QCOMPARE(codec.name(), QByteArray("vorbis"));
   QCOMPARE(codec.isNull(), false);
   QCOMPARE(codec.numChannels(), 6);
   QCOMPARE(codec.sampleRate(), 48000);
@@ -339,24 +339,24 @@ void StreamTest::VideoFormat(void)
  */
 void StreamTest::VideoCodec(void)
 {
-  SVideoCodec codec = "MPEG1";
-  QVERIFY(codec == SVideoCodec("MPEG1"));
-  QVERIFY(codec != SVideoCodec("THEORA"));
-  QVERIFY(codec == "MPEG1");
-  QVERIFY(codec != "THEORA");
-  QCOMPARE(codec.codec(), QString("MPEG1"));
+  SVideoCodec codec = "mpeg1video";
+  QVERIFY(codec == SVideoCodec("mpeg1video"));
+  QVERIFY(codec != SVideoCodec("theora"));
+  QVERIFY(codec == "mpeg1video");
+  QVERIFY(codec != "theora");
+  QCOMPARE(codec.name(), QByteArray("mpeg1video"));
   QCOMPARE(codec.isNull(), false);
   QCOMPARE(codec.size().width(), 0);
   QCOMPARE(codec.size().height(), 0);
   QVERIFY(qFuzzyCompare(codec.size().aspectRatio(), 1.0f));
   QVERIFY(!codec.frameRate().isValid());
 
-  codec.setCodec("THEORA", SSize(384, 288, 0.7f), SInterval::fromFrequency(25));
-  QVERIFY(codec == SVideoCodec("THEORA", SSize(384, 288, 0.7f), SInterval::fromFrequency(25)));
-  QVERIFY(codec != SVideoCodec("THEORA"));
-  QVERIFY(codec == "THEORA");
-  QVERIFY(codec != "MPEG1");
-  QCOMPARE(codec.codec(), QString("THEORA"));
+  codec.setCodec("theora", SSize(384, 288, 0.7f), SInterval::fromFrequency(25));
+  QVERIFY(codec == SVideoCodec("theora", SSize(384, 288, 0.7f), SInterval::fromFrequency(25)));
+  QVERIFY(codec != SVideoCodec("theora"));
+  QVERIFY(codec == "theora");
+  QVERIFY(codec != "mpeg1video");
+  QCOMPARE(codec.name(), QByteArray("theora"));
   QCOMPARE(codec.isNull(), false);
   QCOMPARE(codec.size().width(), 384);
   QCOMPARE(codec.size().height(), 288);

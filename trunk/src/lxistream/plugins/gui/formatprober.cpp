@@ -41,7 +41,7 @@ void FormatProber::readFormat(ProbeInfo &pi, const QByteArray &buffer)
 
     if (SImage::rawImageSuffixes().contains(suffix))
     {
-      pi.format.format = suffix;
+      pi.format.format = suffix.toAscii();
       pi.format.fileType = ProbeInfo::FileType_Image;
       pi.format.fileTypeName = "RAW image";
       pi.isFormatProbed = true;
@@ -99,7 +99,7 @@ SVideoBuffer FormatProber::readThumbnail(const ProbeInfo &pi, QIODevice *ioDevic
         (pi.format.format == "bmp") || (pi.format.format == "jpeg") ||
         (pi.format.format == "png"))
     {
-      const SImage thumbnail = SImage::fromData(ioDevice, thumbSize, pi.format.format.toAscii());
+      const SImage thumbnail = SImage::fromData(ioDevice, thumbSize, pi.format.format);
       if (!thumbnail.isNull())
         return thumbnail.toVideoBuffer();
     }

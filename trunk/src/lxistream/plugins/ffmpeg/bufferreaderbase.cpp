@@ -48,15 +48,13 @@ bool BufferReaderBase::start(SInterfaces::AbstractBufferReader::ProduceCallback 
   this->produceCallback = produceCallback;
   this->formatContext = formatContext;
 
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
   if (!fast)
     formatContext->flags |= AVFMT_FLAG_GENPTS;
-#endif
 
   formatContext->probesize = fast ? 524288 : 4194304;
   formatContext->max_analyze_duration = fast ? (AV_TIME_BASE / 4) : (AV_TIME_BASE * 2);
 
-  if (::av_find_stream_info(formatContext) >= 0)
+  if (::avformat_find_stream_info(formatContext, NULL) >= 0)
   {
     //::dump_format(formatContext, 0, "", false);
 
@@ -68,33 +66,21 @@ bool BufferReaderBase::start(SInterfaces::AbstractBufferReader::ProduceCallback 
 
       streamContext += initStreamContext(stream);
 
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
       if (stream->codec->codec_type == AVMEDIA_TYPE_AUDIO)
-#else
-      if (stream->codec->codec_type == CODEC_TYPE_AUDIO)
-#endif
       {
         if (!hasAudio)
             selectedStreams += SInterfaces::AbstractBufferReader::StreamId(SInterfaces::AbstractBufferReader::StreamId::Type_Audio, stream->index);
 
         hasAudio = true;
       }
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
       else if (stream->codec->codec_type == AVMEDIA_TYPE_VIDEO)
-#else
-      else if (stream->codec->codec_type == CODEC_TYPE_VIDEO)
-#endif
       {
         if (!hasVideo)
             selectedStreams += SInterfaces::AbstractBufferReader::StreamId(SInterfaces::AbstractBufferReader::StreamId::Type_Video, stream->index);
 
         hasVideo = true;
       }
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
       else if (stream->codec->codec_type == AVMEDIA_TYPE_SUBTITLE)
-#else
-      else if (stream->codec->codec_type == CODEC_TYPE_SUBTITLE)
-#endif
       {
         if (!hasSubtitle)
             selectedStreams += SInterfaces::AbstractBufferReader::StreamId(SInterfaces::AbstractBufferReader::StreamId::Type_Subtitle, stream->index);
@@ -121,11 +107,7 @@ bool BufferReaderBase::start(SInterfaces::AbstractBufferReader::ProduceCallback 
 
             if (stream && context)
             {
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
               if (stream->codec->codec_type == AVMEDIA_TYPE_VIDEO)
-#else
-              if (stream->codec->codec_type == CODEC_TYPE_VIDEO)
-#endif
               {
                 if (context->measurement.count() < context->measurementSize)
                 {
@@ -182,11 +164,7 @@ bool BufferReaderBase::start(SInterfaces::AbstractBufferReader::ProduceCallback 
     // And determine the framerate for each video stream          .
     if (hasVideo)
     for (int i=0; i<streamContext.count(); i++)
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
     if (formatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO)
-#else
-    if (formatContext->streams[i]->codec->codec_type == CODEC_TYPE_VIDEO)
-#endif
     {
       if (streamContext[i]->measurement.count() >= streamContext[i]->measurementSize)
       {
@@ -337,11 +315,7 @@ bool BufferReaderBase::demux(const Packet &packet)
         StreamContext * const context = streamContext[packet.streamIndex];
         if (context)
         {
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
           if (stream->codec->codec_type == AVMEDIA_TYPE_AUDIO)
-#else
-          if (stream->codec->codec_type == CODEC_TYPE_AUDIO)
-#endif
           {
             if (isSelected(stream))
             {
@@ -403,11 +377,7 @@ bool BufferReaderBase::demux(const Packet &packet)
               }
             }
           }
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
           else if (stream->codec->codec_type == AVMEDIA_TYPE_VIDEO)
-#else
-          else if (stream->codec->codec_type == CODEC_TYPE_VIDEO)
-#endif
           {
             if (isSelected(stream))
             {
@@ -418,11 +388,7 @@ bool BufferReaderBase::demux(const Packet &packet)
               buffer.setDecodingTimeStamp(ts.second);
               buffer.setDuration(STime(packet.duration, context->timeBase));
 
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
               buffer.setKeyFrame((packet.flags & AV_PKT_FLAG_KEY) != 0);
-#else
-              buffer.setKeyFrame((packet.flags & PKT_FLAG_KEY) != 0);
-#endif
 
 //              qDebug() << "Video timestamp" << packet.streamIndex
 //                  << ", dts =" << buffer.decodingTimeStamp().toMSec()
@@ -435,11 +401,7 @@ bool BufferReaderBase::demux(const Packet &packet)
                 produceCallback->produce(buffer);
             }
           }
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
           else if (stream->codec->codec_type == AVMEDIA_TYPE_SUBTITLE)
-#else
-          else if (stream->codec->codec_type == CODEC_TYPE_SUBTITLE)
-#endif
           {
             if (isSelected(stream))
             {
@@ -472,9 +434,7 @@ bool BufferReaderBase::demux(const Packet &packet)
 
 bool BufferReaderBase::buffer(void)
 {
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
   formatContext->flags &= ~int(AVFMT_FLAG_NOFILLIN);
-#endif
 
   ::AVPacket avPacket;
   ::av_init_packet(&avPacket);
@@ -559,12 +519,7 @@ QList<SInterfaces::AbstractBufferReader::Chapter> BufferReaderBase::chapters(voi
     const SInterval interval(formatContext->chapters[i]->time_base.num, formatContext->chapters[i]->time_base.den);
 
     SInterfaces::AbstractBufferReader::Chapter chapter;
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
     chapter.title = readMetadata(formatContext->chapters[i]->metadata, "title");
-#else
-    if (formatContext->chapters[i]->title)
-      chapter.title = formatContext->chapters[i]->title;
-#endif
 
     chapter.begin = STime(formatContext->chapters[i]->start, interval);
     chapter.end = STime(formatContext->chapters[i]->end, interval);
@@ -581,22 +536,14 @@ QList<SInterfaces::AbstractBufferReader::AudioStreamInfo> BufferReaderBase::audi
 
   if (formatContext)
   for (int i=0; i<streamContext.count(); i++)
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
   if (formatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_AUDIO)
-#else
-  if (formatContext->streams[i]->codec->codec_type == CODEC_TYPE_AUDIO)
-#endif
   if (streamContext[i])
   {
     SInterfaces::AbstractBufferReader::AudioStreamInfo streamInfo(
         SInterfaces::AbstractBufferReader::StreamId(
             SInterfaces::AbstractBufferReader::StreamId::Type_Audio,
             formatContext->streams[i]->index),
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
         readMetadata(formatContext->streams[i]->metadata, "language"),
-#else
-        formatContext->streams[i]->language,
-#endif
         readMetadata(formatContext->streams[i]->metadata, "title"),
         streamContext[i]->audioCodec);
 
@@ -618,22 +565,14 @@ QList<SInterfaces::AbstractBufferReader::VideoStreamInfo> BufferReaderBase::vide
 
   if (formatContext)
   for (int i=0; i<streamContext.count(); i++)
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
   if (formatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO)
-#else
-  if (formatContext->streams[i]->codec->codec_type == CODEC_TYPE_VIDEO)
-#endif
   if (streamContext[i])
   {
     SInterfaces::AbstractBufferReader::VideoStreamInfo streamInfo(
         SInterfaces::AbstractBufferReader::StreamId(
             SInterfaces::AbstractBufferReader::StreamId::Type_Video,
             formatContext->streams[i]->index),
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
         readMetadata(formatContext->streams[i]->metadata, "language"),
-#else
-        formatContext->streams[i]->language,
-#endif
         readMetadata(formatContext->streams[i]->metadata, "title"),
         streamContext[i]->videoCodec);
 
@@ -655,22 +594,14 @@ QList<SInterfaces::AbstractBufferReader::DataStreamInfo> BufferReaderBase::dataS
 
   if (formatContext)
   for (int i=0; i<streamContext.count(); i++)
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
   if (formatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_SUBTITLE)
-#else
-  if (formatContext->streams[i]->codec->codec_type == CODEC_TYPE_VIDEO)
-#endif
   if (streamContext[i])
   {
     SInterfaces::AbstractBufferReader::DataStreamInfo streamInfo(
         SInterfaces::AbstractBufferReader::StreamId(
             SInterfaces::AbstractBufferReader::DataStreamInfo::Type_Subtitle,
             formatContext->streams[i]->index),
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
         readMetadata(formatContext->streams[i]->metadata, "language"),
-#else
-        formatContext->streams[i]->language,
-#endif
         readMetadata(formatContext->streams[i]->metadata, "title"),
         streamContext[i]->dataCodec);
 
@@ -870,13 +801,7 @@ void BufferReaderBase::clear(void)
     if (formatContext->streams[i]->codec->codec)
       ::avcodec_close(formatContext->streams[i]->codec);
 
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
-    ::av_close_input_file(formatContext);
-#else
-    ::av_close_input_stream(formatContext);
-#endif
-
-    formatContext = NULL;
+    ::avformat_close_input(&formatContext);
   }
 
   produceCallback = NULL;
@@ -893,24 +818,22 @@ BufferReaderBase::StreamContext * BufferReaderBase::initStreamContext(const ::AV
   streamContext->dtsBuffer = NULL;
   streamContext->dtsBufferUsed = 0;
 
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
   if (stream->codec->codec_type == AVMEDIA_TYPE_AUDIO)
-#else
-  if (stream->codec->codec_type == CODEC_TYPE_AUDIO)
-#endif
   {
-    streamContext->audioCodec =
-        SAudioCodec(FFMpegCommon::fromFFMpegCodecID(stream->codec->codec_id),
-                    FFMpegCommon::fromFFMpegChannelLayout(stream->codec->channel_layout, stream->codec->channels),
-                    stream->codec->sample_rate,
-                    stream->index,
-                    stream->codec->bit_rate);
+    ::AVCodec * const codec = ::avcodec_find_decoder(stream->codec->codec_id);
+    if (codec)
+    {
+      streamContext->audioCodec = SAudioCodec(
+          codec->name,
+          FFMpegCommon::fromFFMpegChannelLayout(
+              stream->codec->channel_layout,
+              stream->codec->channels),
+          stream->codec->sample_rate,
+          stream->index,
+          stream->codec->bit_rate);
+    }
   }
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
   else if (stream->codec->codec_type == AVMEDIA_TYPE_VIDEO)
-#else
-  else if (stream->codec->codec_type == CODEC_TYPE_VIDEO)
-#endif
   {
     float ar = 1.0f;
     if ((stream->codec->sample_aspect_ratio.den != 0) &&
@@ -929,31 +852,34 @@ BufferReaderBase::StreamContext * BufferReaderBase::initStreamContext(const ::AV
     // Note that den and num are deliberately swapped! (see documentation of AVStream::r_frame_rate)
     const SInterval fr(stream->r_frame_rate.den, stream->r_frame_rate.num);
 
-    streamContext->videoCodec =
-        SVideoCodec(FFMpegCommon::fromFFMpegCodecID(stream->codec->codec_id),
-                    SSize(stream->codec->width, stream->codec->height, ar),
-                    fr,
-                    stream->index,
-                    stream->codec->bit_rate);
+    ::AVCodec * const codec = ::avcodec_find_decoder(stream->codec->codec_id);
+    if (codec)
+    {
+      streamContext->videoCodec = SVideoCodec(
+          codec->name,
+          SSize(stream->codec->width, stream->codec->height, ar),
+          fr,
+          stream->index,
+          stream->codec->bit_rate);
+    }
 
     streamContext->measurement.reserve(streamContext->measurementSize);
   }
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
   else if (stream->codec->codec_type == AVMEDIA_TYPE_SUBTITLE)
-#else
-  else if (stream->codec->codec_type == CODEC_TYPE_SUBTITLE)
-#endif
   {
-    streamContext->dataCodec =
-        SDataCodec(FFMpegCommon::fromFFMpegCodecID(stream->codec->codec_id),
-                   QByteArray(),
-                   stream->index);
+    ::AVCodec * const codec = ::avcodec_find_decoder(stream->codec->codec_id);
+    if (codec)
+    {
+      streamContext->dataCodec = SDataCodec(
+          codec->name,
+          QByteArray(),
+          stream->index);
+    }
   }
 
   return streamContext;
 }
 
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
 QString BufferReaderBase::readMetadata(::AVDictionary *dictionary, const char *tagName)
 {
   if (dictionary)
@@ -965,19 +891,6 @@ QString BufferReaderBase::readMetadata(::AVDictionary *dictionary, const char *t
 
   return QString::null;
 }
-#else
-QString BufferReaderBase::readMetadata(::AVMetadata *metadata, const char *tagName)
-{
-  if (metadata)
-  {
-    AVMetadataTag * const tag = ::av_metadata_get(metadata, tagName, NULL, 0);
-    if (tag && tag->value)
-      return QString::fromUtf8(tag->value);
-  }
-
-  return QString::null;
-}
-#endif
 
 bool BufferReaderBase::isSelected(const ::AVStream *stream) const
 {
@@ -1072,11 +985,7 @@ QPair<STime, STime> BufferReaderBase::correctTimeStampToVideo(const Packet &pack
 
   STime timeStampGap;
   for (int i=0; i<streamContext.count(); i++)
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
   if (formatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO)
-#else
-  if (formatContext->streams[i]->codec->codec_type == CODEC_TYPE_VIDEO)
-#endif
   if (streamContext[i])
   {
     timeStampGap = streamContext[i]->timeStampGap;
@@ -1106,11 +1015,7 @@ QPair<STime, STime> BufferReaderBase::correctTimeStampToVideoOnly(const Packet &
 
   STime timeStampGap = STime::null;
   for (int i=0; i<streamContext.count(); i++)
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
   if (formatContext->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO)
-#else
-  if (formatContext->streams[i]->codec->codec_type == CODEC_TYPE_VIDEO)
-#endif
   if (streamContext[i])
   {
     timeStampGap = streamContext[i]->timeStampGap;

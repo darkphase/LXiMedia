@@ -280,7 +280,7 @@ public:
      */
     struct
     {
-      QString                   format;
+      QByteArray                format;
       FileType                  fileType;
       QString                   fileTypeName;
     }                           format;

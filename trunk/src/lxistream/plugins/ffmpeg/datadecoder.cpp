@@ -26,6 +26,7 @@ namespace FFMpegBackend {
 DataDecoder::DataDecoder(const QString &, QObject *parent)
   : SInterfaces::DataDecoder(parent),
     inCodec(),
+    codecDict(NULL),
     codecHandle(NULL),
     contextHandle(NULL),
     contextHandleOwner(false)
@@ -41,6 +42,9 @@ DataDecoder::~DataDecoder()
 
     ::av_free(contextHandle);
   }
+
+  if (codecDict)
+    ::av_dict_free(&codecDict);
 }
 
 bool DataDecoder::openCodec(const SDataCodec &c, SInterfaces::AbstractBufferReader *bufferReader, Flags)
@@ -50,9 +54,9 @@ bool DataDecoder::openCodec(const SDataCodec &c, SInterfaces::AbstractBufferRead
 
   inCodec = c;
 
-  if ((codecHandle = avcodec_find_decoder(FFMpegCommon::toFFMpegCodecID(inCodec))) == NULL)
+  if ((codecHandle = ::avcodec_find_decoder_by_name(inCodec.name())) == NULL)
   {
-    qCritical() << "DataDecoder: Data codec not found " << inCodec.codec();
+    qCritical() << "DataDecoder: Data codec not found " << inCodec.name();
     return false;
   }
 
@@ -67,22 +71,13 @@ bool DataDecoder::openCodec(const SDataCodec &c, SInterfaces::AbstractBufferRead
   }
   else
   {
-    contextHandle = avcodec_alloc_context();
+    contextHandle = avcodec_alloc_context3(codecHandle);
     contextHandleOwner = true;
 
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
-    contextHandle->codec_type = AVMEDIA_TYPE_SUBTITLE;
-#else
-    contextHandle->codec_type = CODEC_TYPE_SUBTITLE;
-#endif
     contextHandle->flags2 |= CODEC_FLAG2_CHUNKS;
   }
 
-#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(53, 6, 0)
-  if (avcodec_open(contextHandle, codecHandle) < 0)
-#else
-  if (avcodec_open2(contextHandle, codecHandle, NULL) < 0)
-#endif
+  if (avcodec_open2(contextHandle, codecHandle, &codecDict) < 0)
   {
     qCritical() << "DataDecoder: Could not open data codec " << codecHandle->name;
     codecHandle = NULL;
@@ -97,9 +92,7 @@ SDataBufferList DataDecoder::decodeBuffer(const SEncodedDataBuffer &dataBuffer)
   SDataBufferList output;
   if (!dataBuffer.isNull() && codecHandle)
   {
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
     ::AVPacket packet = FFMpegCommon::toAVPacket(dataBuffer);
-#endif
 
     const uint8_t *inPtr = reinterpret_cast<const uint8_t *>(dataBuffer.data());
     int inSize = dataBuffer.size();
@@ -114,13 +107,9 @@ SDataBufferList DataDecoder::decodeBuffer(const SEncodedDataBuffer &dataBuffer)
       ::AVSubtitle subtitle;
 
       // decode the subtitle
-#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(52, 72, 0)
-      const int len = ::avcodec_decode_subtitle(contextHandle, &subtitle, &gotSubtitle, (uint8_t *)inPtr, inSize);
-#else
       packet.data = (uint8_t *)inPtr;
       packet.size = inSize;
       const int len = ::avcodec_decode_subtitle2(contextHandle, &subtitle, &gotSubtitle, &packet);
-#endif
 
       if (len >= 0)
       {

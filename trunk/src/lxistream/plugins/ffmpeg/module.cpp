@@ -50,70 +50,39 @@ bool Module::registerClasses(void)
 
   // Codecs
   const QSet<QByteArray> unsupportedDecoders = QSet<QByteArray>()
-#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(52, 72, 0)
-      // Audio
-      << "FLAC"
-      // Video
-      << "THEORA"
-#endif
       ;
 
   const QSet<QByteArray> unsupportedEncoders = QSet<QByteArray>()
       // Audio
-      << "GSM" << "GSM_MS" << "NELLYMOSER" << "PCM/S16LE" << "PCM/S16BE"
-      << "PCM/U16LE" << "PCM/U16BE" << "PCM/MULAW" << "PCM/ALAW"
-//      << "WMAV1" << "WMAV2"
+      << "libgsm" << "libgsm_ms" << "nellymoser" << "real_144"
+//      << "wmav1" << "wmav2"
       // Video
-      << "BMP" << "DVVIDEO" << "DNXHD" << "HUFFYUV" << "JPEGLS" << "MSMPEG4V1"
-      << "PAM" << "PCX" << "PNG" << "QTRLE" << "RAWVIDEO" << "ROQ" << "RV10"
-      << "RV20" << "SGI" << "SNOW" << "SVQ1" << "TARGA" << "TIFF" << "V210"
-      << "VP8" << "ZLIB"
-#if (LIBAVCODEC_VERSION_INT < AV_VERSION_INT(52, 72, 0)) || defined(Q_OS_WIN)
-      // Audio
-      << "FLAC" << "VORBIS"
-      // Video
-      << "THEORA"
-#endif
+      << "bmp" << "pam" << "pcx" << "png" << "qtrle" << "snow" << "rawvideo"
+      << "roq" << "targa" << "tiff"
       ;
 
   for (::AVCodec *codec=::av_codec_next(NULL); codec; codec=::av_codec_next(codec))
   {
-    const char * const name = FFMpegCommon::fromFFMpegCodecID(codec->id);
-    if (name)
+    if (codec->type == AVMEDIA_TYPE_AUDIO)
     {
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
-      if (codec->type == AVMEDIA_TYPE_AUDIO)
-#else
-      if (codec->type == CODEC_TYPE_AUDIO)
-#endif
-      {
-        if (codec->decode && !unsupportedDecoders.contains(name))
-          AudioDecoder::registerClass<AudioDecoder>(name);
+      if (codec->decode && !unsupportedDecoders.contains(codec->name))
+        AudioDecoder::registerClass<AudioDecoder>(codec->name);
 
-        if (codec->encode && !unsupportedEncoders.contains(name))
-          AudioEncoder::registerClass<AudioEncoder>(name);
-      }
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
-      else if (codec->type == AVMEDIA_TYPE_VIDEO)
-#else
-      else if (codec->type == CODEC_TYPE_VIDEO)
-#endif
-      {
-        if (codec->decode && !unsupportedDecoders.contains(name))
-          VideoDecoder::registerClass<VideoDecoder>(name);
+      if (codec->encode && !unsupportedEncoders.contains(codec->name))
+        AudioEncoder::registerClass<AudioEncoder>(codec->name);
+    }
+    else if (codec->type == AVMEDIA_TYPE_VIDEO)
+    {
+      if (codec->decode && !unsupportedDecoders.contains(codec->name))
+        VideoDecoder::registerClass<VideoDecoder>(codec->name);
 
-        if (codec->encode && !unsupportedEncoders.contains(name))
-          VideoEncoder::registerClass<VideoEncoder>(name);
-      }
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
-      else if (codec->type == AVMEDIA_TYPE_SUBTITLE)
-#else
-      else if (codec->type == CODEC_TYPE_SUBTITLE)
-#endif
-      {
-        if (codec->decode && !unsupportedDecoders.contains(name))
-          DataDecoder::registerClass<DataDecoder>(name);
-      }
+      if (codec->encode && !unsupportedEncoders.contains(codec->name))
+        VideoEncoder::registerClass<VideoEncoder>(codec->name);
+    }
+    else if (codec->type == AVMEDIA_TYPE_SUBTITLE)
+    {
+      if (codec->decode && !unsupportedDecoders.contains(codec->name))
+        DataDecoder::registerClass<DataDecoder>(codec->name);
     }
   }
 
@@ -136,15 +105,9 @@ bool Module::registerClasses(void)
   const QSet<QByteArray> unsupportedProtocols = QSet<QByteArray>()
       ;
 
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
   void *opaque = NULL;
   for (const char *protocol = avio_enum_protocols(&opaque, 0); protocol; protocol = avio_enum_protocols(&opaque, 0))
     NetworkBufferReader::registerClass<NetworkBufferReader>(protocol);
-#else
-  for (::URLProtocol *protocol=::av_protocol_next(NULL); protocol; protocol=::av_protocol_next(protocol))
-  if (!unsupportedProtocols.contains(protocol->name))
-    NetworkBufferReader::registerClass<NetworkBufferReader>(protocol->name);
-#endif
 
   // Filters
   AudioResampler::registerClass<AudioResampler>("fir");

@@ -42,10 +42,11 @@ public: // From SBufferDecoder
 
 private:
   SVideoCodec                   inCodec;
-  AVCodec                     * codecHandle;
-  AVCodecContext              * contextHandle;
+  ::AVDictionary              * codecDict;
+  ::AVCodec                   * codecHandle;
+  ::AVCodecContext            * contextHandle;
   bool                          contextHandleOwner;
-  AVFrame                     * pictureHandle;
+  ::AVFrame                   * pictureHandle;
 
   SVideoFormat                  outFormat;
   int                           outNumLines[3];

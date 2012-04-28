@@ -136,7 +136,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
     audio->resampler.setSampleRate(audioCodec.sampleRate());
     if (!audio->encoder.openCodec(audioCodec, &output, duration, audioEncodeFlags))
     {
-      qWarning() << "Could not open audio codec:" << audioCodec.codec();
+      qWarning() << "Could not open audio codec:" << audioCodec.name();
       return false;
     }
 
@@ -149,7 +149,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
 
     if (!video->encoder.openCodec(videoCodec, &output, duration, videoEncodeFlags))
     {
-      qWarning() << "Could not open video codec:" << videoCodec.codec();
+      qWarning() << "Could not open video codec:" << videoCodec.name();
       return false;
     }
 
@@ -172,12 +172,12 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
         videoFormat.setSize(size);
       }
 
-      if (SAudioEncoderNode::codecs().contains("VORBIS"))
-        audioCodec = SAudioCodec("VORBIS", SAudioFormat::Channels_Stereo, 44100);
+      if (SAudioEncoderNode::codecs().contains("vorbis"))
+        audioCodec = SAudioCodec("vorbis", SAudioFormat::Channels_Stereo, 44100);
       else
-        audioCodec = SAudioCodec("FLAC", SAudioFormat::Channels_Stereo, 44100);
+        audioCodec = SAudioCodec("flac", SAudioFormat::Channels_Stereo, 44100);
 
-      videoCodec = SVideoCodec("THEORA", videoFormat.size(), videoFormat.frameRate());
+      videoCodec = SVideoCodec("theora", videoFormat.size(), videoFormat.frameRate());
       videoCodec.setGopSize(videoGopSize);
 
       format = "ogg";
@@ -192,24 +192,24 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
         videoFormat.setSize(size);
       }
 
-      if (SAudioEncoderNode::codecs().contains("MP3"))
-        audioCodec = SAudioCodec("MP3", SAudioFormat::Channels_Stereo, 44100);
+      if (SAudioEncoderNode::codecs().contains("mp3"))
+        audioCodec = SAudioCodec("mp3", SAudioFormat::Channels_Stereo, 44100);
       else
-        audioCodec = SAudioCodec("PCM/S16LE", SAudioFormat::Channels_Stereo, 44100);
+        audioCodec = SAudioCodec("pcm_s16le", SAudioFormat::Channels_Stereo, 44100);
 
-      videoCodec = SVideoCodec("FLV1", videoFormat.size(), videoFormat.frameRate());
+      videoCodec = SVideoCodec("flv1", videoFormat.size(), videoFormat.frameRate());
       videoCodec.setGopSize(videoGopSize);
 
       header.setContentType(SHttpEngine::mimeVideoFlv);
     }
     else if ((format == "matroska") && SIOOutputNode::formats().contains(format))
     {
-      if (SAudioEncoderNode::codecs().contains("MP3"))
-        audioCodec = SAudioCodec("MP3", SAudioFormat::Channels_Stereo, 44100);
+      if (SAudioEncoderNode::codecs().contains("mp3"))
+        audioCodec = SAudioCodec("mp3", SAudioFormat::Channels_Stereo, 44100);
       else
-        audioCodec = SAudioCodec("MP2", SAudioFormat::Channels_Stereo, 44100);
+        audioCodec = SAudioCodec("mp2", SAudioFormat::Channels_Stereo, 44100);
 
-      videoCodec = SVideoCodec("MPEG4", videoFormat.size(), videoFormat.frameRate());
+      videoCodec = SVideoCodec("mpeg4", videoFormat.size(), videoFormat.frameRate());
       videoCodec.setGopSize(videoGopSize);
 
       header.setContentType(SHttpEngine::mimeVideoMatroska);
@@ -224,12 +224,12 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
       if ((audioFormat.channelSetup() == SAudioFormat::Channels_Mono) ||
           (audioFormat.channelSetup() == SAudioFormat::Channels_Stereo))
       {
-        audioCodec = SAudioCodec("MP2", audioFormat.channelSetup(), audioFormat.sampleRate());
+        audioCodec = SAudioCodec("mp2", audioFormat.channelSetup(), audioFormat.sampleRate());
       }
       else
-        audioCodec = SAudioCodec("AC3", audioFormat.channelSetup(), audioFormat.sampleRate());
+        audioCodec = SAudioCodec("ac3", audioFormat.channelSetup(), audioFormat.sampleRate());
 
-      videoCodec = SVideoCodec("MPEG2", videoFormat.size(), roundedFrameRate);
+      videoCodec = SVideoCodec("mpeg2video", videoFormat.size(), roundedFrameRate);
       videoCodec.setGopSize(videoGopSize);
 
       if (format == "mpegts")
@@ -258,7 +258,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
     audio->resampler.setSampleRate(audioCodec.sampleRate());
     if (!audio->encoder.openCodec(audioCodec, &output, duration, audioEncodeFlags))
     {
-      qWarning() << "Could not open audio codec:" << audioCodec.codec();
+      qWarning() << "Could not open audio codec:" << audioCodec.name();
       return false;
     }
 
@@ -268,7 +268,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
 
     if (!video->encoder.openCodec(videoCodec, &output, duration, videoEncodeFlags))
     {
-      qWarning() << "Could not open video codec:" << videoCodec.codec();
+      qWarning() << "Could not open video codec:" << videoCodec.name();
       return false;
     }
 
@@ -283,9 +283,9 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
 
   qDebug() << "Started video stream"
       << videoFormat.size().toString()
-      << "@" << videoFormat.frameRate().toFrequency() << video->encoder.codec().codec()
+      << "@" << videoFormat.frameRate().toFrequency() << video->encoder.codec().name()
       << SAudioFormat::channelSetupName(audio->encoder.codec().channelSetup())
-      << audio->encoder.codec().sampleRate() << audio->encoder.codec().codec()
+      << audio->encoder.codec().sampleRate() << audio->encoder.codec().name()
       << header.contentType();
 
   return true;
@@ -356,7 +356,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
     audio->resampler.setSampleRate(audioCodec.sampleRate());
     if (!audio->encoder.openCodec(audioCodec, &output, duration, audioEncodeFlags))
     {
-      qWarning() << "Could not open audio codec:" << audioCodec.codec();
+      qWarning() << "Could not open audio codec:" << audioCodec.name();
       return false;
     }
 
@@ -369,42 +369,42 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
 
     if ((format == "adts") && SIOOutputNode::formats().contains(format))
     {
-      audioCodec = SAudioCodec("AAC", SAudioFormat::Channels_Stereo, audioFormat.sampleRate());
+      audioCodec = SAudioCodec("aac", SAudioFormat::Channels_Stereo, audioFormat.sampleRate());
       header.setContentType(SHttpEngine::mimeAudioAac);
     }
     else if ((format == "ac3") && SIOOutputNode::formats().contains(format))
     {
-      audioCodec = SAudioCodec("AC3", SAudioFormat::Channels_Stereo, audioFormat.sampleRate());
+      audioCodec = SAudioCodec("ac3", SAudioFormat::Channels_Stereo, audioFormat.sampleRate());
       header.setContentType(SHttpEngine::mimeAudioAc3);
     }
     else if ((format == "mp3") && SIOOutputNode::formats().contains(format))
     {
-      audioCodec = SAudioCodec("MP3", SAudioFormat::Channels_Stereo, 44100);
+      audioCodec = SAudioCodec("mp3", SAudioFormat::Channels_Stereo, 44100);
       header.setContentType(SHttpEngine::mimeAudioMp3);
     }
     else if ((format == "oga") && SIOOutputNode::formats().contains("ogg"))
     {
-      if (SAudioEncoderNode::codecs().contains("VORBIS"))
-        audioCodec = SAudioCodec("VORBIS", SAudioFormat::Channels_Stereo, 44100);
+      if (SAudioEncoderNode::codecs().contains("vorbis"))
+        audioCodec = SAudioCodec("vorbis", SAudioFormat::Channels_Stereo, 44100);
       else
-        audioCodec = SAudioCodec("FLAC", SAudioFormat::Channels_Stereo, 44100);
+        audioCodec = SAudioCodec("flac", SAudioFormat::Channels_Stereo, 44100);
 
       format = "ogg";
       header.setContentType(SHttpEngine::mimeAudioOgg);
     }
     else if ((format == "s16be") && SIOOutputNode::formats().contains(format))
     {
-      audioCodec = SAudioCodec("PCM/S16BE", SAudioFormat::Channels_Stereo, 48000);
+      audioCodec = SAudioCodec("pcm_s16be", SAudioFormat::Channels_Stereo, 48000);
       header.setContentType(SHttpEngine::mimeAudioLpcm);
     }
     else if ((format == "wav") && SIOOutputNode::formats().contains(format))
     {
-      audioCodec = SAudioCodec("PCM/S16LE", SAudioFormat::Channels_Stereo, 44100);
+      audioCodec = SAudioCodec("pcm_s16le", SAudioFormat::Channels_Stereo, 44100);
       header.setContentType(SHttpEngine::mimeAudioWave);
     }
     else // Default to mpeg
     {
-      audioCodec = SAudioCodec("MP2", SAudioFormat::Channels_Stereo, 44100);
+      audioCodec = SAudioCodec("mp2", SAudioFormat::Channels_Stereo, 44100);
       format = "mp2";
       header.setContentType(SHttpEngine::mimeAudioMpeg);
     }
@@ -420,7 +420,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
     audio->resampler.setSampleRate(audioCodec.sampleRate());
     if (!audio->encoder.openCodec(audioCodec, &output, duration, audioEncodeFlags))
     {
-      qWarning() << "Could not open audio codec:" << audioCodec.codec();
+      qWarning() << "Could not open audio codec:" << audioCodec.name();
       return false;
     }
   }
@@ -433,7 +433,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
 
   qDebug() << "Started audio stream"
       << SAudioFormat::channelSetupName(audio->encoder.codec().channelSetup())
-      << audio->encoder.codec().sampleRate() << audio->encoder.codec().codec()
+      << audio->encoder.codec().sampleRate() << audio->encoder.codec().name()
       << header.contentType();
 
   return true;

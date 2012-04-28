@@ -134,14 +134,14 @@ public:
   VideoProfile                  videoProfileFor(const QString &contentFeatures) const;
   ImageProfile                  imageProfileFor(const QString &contentFeatures) const;
 
-  static QString                audioCodecFor(AudioProfile, SAudioFormat::Channels);
-  static QString                audioCodecFor(VideoProfile, SAudioFormat::Channels);
-  static QString                videoCodecFor(VideoProfile);
-  static QString                imageCodecFor(ImageProfile);
+  static QByteArray             audioCodecFor(AudioProfile, SAudioFormat::Channels);
+  static QByteArray             audioCodecFor(VideoProfile, SAudioFormat::Channels);
+  static QByteArray             videoCodecFor(VideoProfile);
+  static QByteArray             imageCodecFor(ImageProfile);
 
-  static QString                formatFor(AudioProfile);
-  static QString                formatFor(VideoProfile);
-  static QString                formatFor(ImageProfile);
+  static QByteArray             formatFor(AudioProfile);
+  static QByteArray             formatFor(VideoProfile);
+  static QByteArray             formatFor(ImageProfile);
 
   static const char           * mimeTypeFor(AudioProfile);
   static const char           * mimeTypeFor(VideoProfile);

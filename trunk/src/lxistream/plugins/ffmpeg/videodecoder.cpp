@@ -26,6 +26,7 @@ namespace FFMpegBackend {
 VideoDecoder::VideoDecoder(const QString &, QObject *parent)
   : SInterfaces::VideoDecoder(parent),
     inCodec(),
+    codecDict(NULL),
     codecHandle(NULL),
     contextHandle(NULL),
     contextHandleOwner(false),
@@ -45,6 +46,9 @@ VideoDecoder::~VideoDecoder()
     ::av_free(contextHandle);
   }
 
+  if (codecDict)
+    ::av_dict_free(&codecDict);
+
   if (pictureHandle)
     av_free(pictureHandle);
 }
@@ -58,9 +62,9 @@ bool VideoDecoder::openCodec(const SVideoCodec &c, SInterfaces::AbstractBufferRe
   timeStamp = STime::null;
   reorderBuffer.clear();
 
-  if ((codecHandle = avcodec_find_decoder(FFMpegCommon::toFFMpegCodecID(inCodec))) == NULL)
+  if ((codecHandle = ::avcodec_find_decoder_by_name(inCodec.name())) == NULL)
   {
-    qWarning() << "VideoDecoder: Video codec not found " << inCodec.codec();
+    qWarning() << "VideoDecoder: Video codec not found " << inCodec.name();
     return false;
   }
 
@@ -75,14 +79,8 @@ bool VideoDecoder::openCodec(const SVideoCodec &c, SInterfaces::AbstractBufferRe
   }
   else
   {
-    contextHandle = avcodec_alloc_context();
+    contextHandle = avcodec_alloc_context3(codecHandle);
     contextHandleOwner = true;
-
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(53, 0, 0)
-    contextHandle->codec_type = AVMEDIA_TYPE_VIDEO;
-#else
-    contextHandle->codec_type = CODEC_TYPE_VIDEO;
-#endif
 
     contextHandle->coded_width = inCodec.size().width();
     contextHandle->coded_height = inCodec.size().height();
@@ -93,7 +91,6 @@ bool VideoDecoder::openCodec(const SVideoCodec &c, SInterfaces::AbstractBufferRe
   }
 
   contextHandle->flags2 |= CODEC_FLAG2_CHUNKS;
-  contextHandle->error_recognition = FF_ER_COMPLIANT;
   contextHandle->error_concealment = FF_EC_DEBLOCK;
 
 #ifdef FF_BUG_NO_PADDING
@@ -115,18 +112,12 @@ bool VideoDecoder::openCodec(const SVideoCodec &c, SInterfaces::AbstractBufferRe
 #ifdef OPT_ENABLE_THREADS
   contextHandle->thread_count = FFMpegCommon::decodeThreadCount(codecHandle->id);
   contextHandle->execute = &FFMpegCommon::execute;
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
   contextHandle->execute2 = &FFMpegCommon::execute2;
 #endif
-#endif
 
-#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(53, 6, 0)
-  if (avcodec_open(contextHandle, codecHandle) < 0)
-#else
-  if (avcodec_open2(contextHandle, codecHandle, NULL) < 0)
-#endif
+  if (avcodec_open2(contextHandle, codecHandle, &codecDict) < 0)
   {
-    qCritical() << "VideoDecoder: Could not open video codec " << inCodec.codec();
+    qCritical() << "VideoDecoder: Could not open video codec " << inCodec.name();
     codecHandle = NULL;
     return false;
   }
@@ -144,9 +135,7 @@ SVideoBufferList VideoDecoder::decodeBuffer(const SEncodedVideoBuffer &videoBuff
   SVideoBufferList output;
   if (!videoBuffer.isNull() && codecHandle)
   {
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
     ::AVPacket packet = FFMpegCommon::toAVPacket(videoBuffer);
-#endif
 
     const uint8_t *inPtr = reinterpret_cast<const uint8_t *>(videoBuffer.data());
     int inSize = videoBuffer.size();
@@ -162,13 +151,9 @@ SVideoBufferList VideoDecoder::decodeBuffer(const SEncodedVideoBuffer &videoBuff
 
       int gotPicture = 0;
 
-#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(52, 72, 0)
-      const int len = ::avcodec_decode_video(contextHandle, pictureHandle, &gotPicture, (uint8_t *)inPtr, inSize);
-#else
       packet.data = (uint8_t *)inPtr;
       packet.size = inSize;
       const int len = ::avcodec_decode_video2(contextHandle, pictureHandle, &gotPicture, &packet);
-#endif
 
       for (int i=0, n=outFormat.numPlanes(); (i<n) && gotPicture; i++)
       if (pictureHandle->data[i] == NULL)
@@ -308,9 +293,7 @@ SVideoBufferList VideoDecoder::decodeBuffer(const SEncodedVideoBuffer &videoBuff
   }
   else if (codecHandle)
   {
-#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
     ::AVPacket packet = FFMpegCommon::toAVPacket(videoBuffer);
-#endif
 
     for (int gotPicture=1; gotPicture && contextHandle->codec;)
     {
@@ -318,11 +301,7 @@ SVideoBufferList VideoDecoder::decodeBuffer(const SEncodedVideoBuffer &videoBuff
       ::avcodec_get_frame_defaults(pictureHandle);
       gotPicture = 0;
 
-#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(52, 72, 0)
-      ::avcodec_decode_video(contextHandle, pictureHandle, &gotPicture, NULL, 0);
-#else
       ::avcodec_decode_video2(contextHandle, pictureHandle, &gotPicture, &packet);
-#endif
 
       //const int len = avcodec_decode_video2(contextHandle, pictureHandle, &gotPicture, &packet);
       if (gotPicture)

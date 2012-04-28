@@ -95,7 +95,7 @@ void SAudioDecoderNode::input(const SEncodedAudioBuffer &audioBuffer)
       d->decoder = SInterfaces::AudioDecoder::create(NULL, d->lastCodec, bufferReader, d->flags, false);
 
       if (d->decoder == NULL)
-        qWarning() << "Failed to find audio decoder for codec" << d->lastCodec.codec();
+        qWarning() << "Failed to find audio decoder for codec" << d->lastCodec.name();
     }
   }
 
