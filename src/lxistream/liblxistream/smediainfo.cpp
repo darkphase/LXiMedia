@@ -507,10 +507,14 @@ bool SMediaInfo::deserialize(QXmlStreamReader &reader)
                 const QString language = reader.attributes().value("language").toString();
                 const QString xtitle = reader.attributes().value("title").toString();
 
-                reader.readNextStartElement();
-                SAudioCodec codec;
-                if (codec.deserialize(reader))
-                  title.audioStreams += AudioStreamInfo(id, language, xtitle, codec);
+                if (reader.readNextStartElement())
+                {
+                  SAudioCodec codec;
+                  if (codec.deserialize(reader))
+                    title.audioStreams += AudioStreamInfo(id, language, xtitle, codec);
+
+                  reader.skipCurrentElement();
+                }
               }
               else if (reader.name() == "videostream")
               {
@@ -518,10 +522,14 @@ bool SMediaInfo::deserialize(QXmlStreamReader &reader)
                 const QString language = reader.attributes().value("language").toString();
                 const QString xtitle = reader.attributes().value("title").toString();
 
-                reader.readNextStartElement();
-                SVideoCodec codec;
-                if (codec.deserialize(reader))
-                  title.videoStreams += VideoStreamInfo(id, language, xtitle, codec);
+                if (reader.readNextStartElement())
+                {
+                  SVideoCodec codec;
+                  if (codec.deserialize(reader))
+                    title.videoStreams += VideoStreamInfo(id, language, xtitle, codec);
+
+                  reader.skipCurrentElement();
+                }
               }
               else if (reader.name() == "datastream")
               {
@@ -530,17 +538,25 @@ bool SMediaInfo::deserialize(QXmlStreamReader &reader)
                 const QString xtitle = reader.attributes().value("title").toString();
                 const QString file = reader.attributes().value("file").toString();
 
-                reader.readNextStartElement();
-                SDataCodec codec;
-                if (codec.deserialize(reader))
-                  title.dataStreams += DataStreamInfo(id, language, xtitle, codec, file);
+                if (reader.readNextStartElement())
+                {
+                  SDataCodec codec;
+                  if (codec.deserialize(reader))
+                    title.dataStreams += DataStreamInfo(id, language, xtitle, codec, file);
+
+                  reader.skipCurrentElement();
+                }
               }
               else if (reader.name() == "imagecodec")
               {
-                reader.readNextStartElement();
-                SVideoCodec codec;
-                if (codec.deserialize(reader))
-                  title.imageCodec = codec;
+                if (reader.readNextStartElement())
+                {
+                  SVideoCodec codec;
+                  if (codec.deserialize(reader))
+                    title.imageCodec = codec;
+
+                  reader.skipCurrentElement();
+                }
               }
 
               reader.skipCurrentElement();
