@@ -25,7 +25,17 @@ class AudioProcess
 {
 public:
   static int16_t avg(const int16_t * src, int n);
+
   static void gain(int16_t * dst, const int16_t * src, int n, float g);
+
+  static void matrix(
+      const int16_t * src, unsigned numSamples, unsigned srcNumChannels,
+      int16_t * dst, const int * matrix, unsigned dstNumChannels);
+
+  static unsigned resample(
+      const int16_t * src, unsigned srcSampleRate, unsigned numSamples, unsigned numChannels,
+      int16_t * dst, unsigned dstSampleRate, unsigned maxSamples,
+      unsigned *pNextPos, float *pWeightOffset);
 };
 
 } } // End of namespaces

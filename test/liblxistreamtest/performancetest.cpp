@@ -17,6 +17,7 @@
 
 #include "performancetest.h"
 #include "lxistream/algorithms/audioconvert.h"
+#include "lxistream/algorithms/audioprocess.h"
 #include "lxistream/algorithms/data.h"
 #include "lxistream/algorithms/deinterlace.h"
 #include "lxistream/algorithms/videoconvert.h"
@@ -128,7 +129,7 @@ void * PerformanceTest::AudioResampleUp(void *dst, const void *src, size_t len)
   unsigned nextPos = 0;
   float weightOffset = 0.0f;
 
-  LXiStream_Common_AudioResampler_resampleAudio(
+  Algorithms::AudioProcess::resample(
       reinterpret_cast<const qint16 *>(src), 22050, numSamples / 2, 1,
       reinterpret_cast<qint16 *>(dst),       44100, numSamples,
       &nextPos, &weightOffset);
@@ -142,7 +143,7 @@ void * PerformanceTest::AudioResampleDown(void *dst, const void *src, size_t len
   unsigned nextPos = 0;
   float weightOffset = 0.0f;
 
-  LXiStream_Common_AudioResampler_resampleAudio(
+  Algorithms::AudioProcess::resample(
       reinterpret_cast<const qint16 *>(src), 44100, numSamples * 2, 1,
       reinterpret_cast<qint16 *>(dst),       22050, numSamples,
       &nextPos, &weightOffset);

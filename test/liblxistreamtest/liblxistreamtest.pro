@@ -27,8 +27,7 @@ RESOURCES = test.qrc
 
 # Performance test
 HEADERS += performancetest.h
-SOURCES += performancetest.cpp \
-    $${PWD}/$${LXIMEDIA_DIR}/src/lxistream/liblxistream/common/audioresampler.resample.c
+SOURCES += performancetest.cpp
 
 include($${PWD}/$${LXIMEDIA_DIR}/src/lxistream/algorithms/linkalgorithms.pri)
 

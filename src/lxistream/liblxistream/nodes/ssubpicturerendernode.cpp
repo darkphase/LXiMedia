@@ -16,13 +16,9 @@
  ******************************************************************************/
 
 #include "nodes/ssubpicturerendernode.h"
+#include "../../algorithms/videoprocess.h"
 #include "ssubpicturebuffer.h"
 #include "svideobuffer.h"
-
-// Implemented in ssubpicturerendernode.mix.c
-extern "C" void LXiStream_SSubpictureRenderNode_mixSubpictureYUV
-    (const LXiStream::SPixels::YUVData &yuvData,
-     const void *rect, const void *palette, unsigned paletteSize);
 
 namespace LXiStream {
 
@@ -34,14 +30,9 @@ struct SSubpictureRenderNode::Data
   STime                         subpictureTime;
   bool                          subpictureVisible;
 
-  struct Rect
+  struct Rect : Algorithms::VideoProcess::SubpictureRect
   {
-    inline                      Rect(void) : lines(NULL) { }
-
-    int                         x, y;
-    unsigned                    width, height;
-    unsigned                    lineStride;
-    const quint8              * lines;
+    inline                      Rect(void) { lines = NULL; }
 
     QByteArray                  palette;
   };
@@ -179,10 +170,23 @@ void SSubpictureRenderNode::input(const SVideoBuffer &videoBuffer)
         case SVideoFormat::Format_YUV420P:
         case SVideoFormat::Format_YUV422P:
         case SVideoFormat::Format_YUV444P:
-          LXiStream_SSubpictureRenderNode_mixSubpictureYUV(
-              buffer, &rect, rect.palette.data(), rect.palette.size());
+          {
+            Algorithms::VideoProcess::YUVData yuvData;
+            yuvData.y = reinterpret_cast<uint8_t *>(buffer.scanLine(0, 0));
+            yuvData.u = reinterpret_cast<uint8_t *>(buffer.scanLine(0, 1));
+            yuvData.v = reinterpret_cast<uint8_t *>(buffer.scanLine(0, 2));
+            yuvData.yStride = buffer.lineSize(0);
+            yuvData.uStride = buffer.lineSize(1);
+            yuvData.vStride = buffer.lineSize(2);
 
-          break;
+            yuvData.wr = yuvData.hr = 1;
+            buffer.format().planarYUVRatio(yuvData.wr, yuvData.hr);
+
+            Algorithms::VideoProcess::mixSubpictureYUV(
+                yuvData, rect, rect.palette.data(), rect.palette.size());
+
+            break;
+          }
 
         default:
           break;
@@ -198,8 +202,38 @@ void SSubpictureRenderNode::input(const SVideoBuffer &videoBuffer)
     emit output(videoBuffer);
 }
 
-void SSubpictureRenderNode::buildPalette(const SPixels::RGBAPixel *palette, unsigned paletteSize, SVideoFormat::Format dstFormat, QByteArray &dstPalette)
+void SSubpictureRenderNode::buildPalette(const quint32 *palette, unsigned paletteSize, SVideoFormat::Format dstFormat, QByteArray &dstPalette)
 {
+  struct T
+  {
+#if defined(__GNUC__)
+    union RGBAPixel { struct __attribute__((packed)) { uint8_t b, g, r, a; }; quint32 p; };
+    union YUVAPixel { struct __attribute__((packed)) { uint8_t y, u, v, a; }; quint32 p; };
+#elif defined(_MSC_VER)
+# pragma pack(1)
+    union RGBAPixel { struct { uint8_t b, g, r, a; }; quint32 p; };
+    union YUVAPixel { struct { uint8_t y, u, v, a; }; quint32 p; };
+# pragma pack()
+#else
+    union RGBAPixel { struct { uint8_t b, g, r, a; }; quint32 p; };
+    union YUVAPixel { struct { uint8_t y, u, v, a; }; quint32 p; };
+#endif
+
+    static inline quint32 RGBAtoYUVA(quint32 src)
+    {
+      YUVAPixel result;
+      RGBAPixel p;
+      p.p = src;
+
+      result.y = (uint8_t)(((( 66 * (int)(p.r)) + (129 * (int)(p.g)) + ( 25 * (int)(p.b)) + 128) >> 8) +  16);
+      result.u = (uint8_t)((((-38 * (int)(p.r)) - ( 74 * (int)(p.g)) + (112 * (int)(p.b)) + 128) >> 8) + 128);
+      result.v = (uint8_t)((((112 * (int)(p.r)) - ( 94 * (int)(p.g)) - ( 18 * (int)(p.b)) + 128) >> 8) + 128);
+      result.a = p.a;
+
+      return result.p;
+    }
+  };
+
   switch (dstFormat)
   {
   case SVideoFormat::Format_YUV410P:
@@ -208,9 +242,9 @@ void SSubpictureRenderNode::buildPalette(const SPixels::RGBAPixel *palette, unsi
   case SVideoFormat::Format_YUV422P:
   case SVideoFormat::Format_YUV444P:
     {
-      dstPalette.resize(paletteSize * sizeof(SPixels::YUVAPixel));
+      dstPalette.resize(paletteSize * sizeof(quint32));
       for (unsigned i=0; i<paletteSize; i++)
-        reinterpret_cast<SPixels::YUVAPixel *>(dstPalette.data())[i] = SPixels::RGBA2YUVA(palette[i]);
+        reinterpret_cast<quint32 *>(dstPalette.data())[i] = T::RGBAtoYUVA(palette[i]);
     }
     break;
 

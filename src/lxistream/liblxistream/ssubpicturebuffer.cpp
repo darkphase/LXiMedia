@@ -66,7 +66,7 @@ QList<SSubpictureBuffer::Rect> SSubpictureBuffer::rects(void) const
   return result;
 }
 
-const SPixels::RGBAPixel * SSubpictureBuffer::palette(int rectId) const
+const quint32 * SSubpictureBuffer::palette(int rectId) const
 {
   const char * const data = SBuffer::data();
   const int size = SBuffer::size();
@@ -75,7 +75,7 @@ const SPixels::RGBAPixel * SSubpictureBuffer::palette(int rectId) const
     const Rect * const rect = reinterpret_cast<const Rect *>(data + pos);
     if (rectId-- <= 0)
     {
-      return reinterpret_cast<const SPixels::RGBAPixel *>
+      return reinterpret_cast<const quint32 *>
           (data + pos + SBuffer::align(sizeof(*rect), SBuffer::minimumAlignVal));
     }
 
@@ -85,7 +85,7 @@ const SPixels::RGBAPixel * SSubpictureBuffer::palette(int rectId) const
   return NULL;
 }
 
-SPixels::RGBAPixel * SSubpictureBuffer::palette(int rectId)
+quint32 * SSubpictureBuffer::palette(int rectId)
 {
   char * const data = SBuffer::data();
   const int size = SBuffer::size();
@@ -94,7 +94,7 @@ SPixels::RGBAPixel * SSubpictureBuffer::palette(int rectId)
     const Rect * const rect = reinterpret_cast<const Rect *>(data + pos);
     if (rectId-- <= 0)
     {
-      return reinterpret_cast<SPixels::RGBAPixel *>
+      return reinterpret_cast<quint32 *>
           (data + pos + SBuffer::align(sizeof(*rect), SBuffer::minimumAlignVal));
     }
 
@@ -115,7 +115,7 @@ const quint8 * SSubpictureBuffer::lines(int rectId) const
     {
       return reinterpret_cast<const quint8 *>
           (data + pos + SBuffer::align(sizeof(*rect), SBuffer::minimumAlignVal) +
-           SBuffer::align(rect->paletteSize * sizeof(SPixels::RGBAPixel), SBuffer::minimumAlignVal));
+           SBuffer::align(rect->paletteSize * sizeof(quint32), SBuffer::minimumAlignVal));
     }
 
     pos += rectSize(*rect);
@@ -135,7 +135,7 @@ quint8 * SSubpictureBuffer::lines(int rectId)
     {
       return reinterpret_cast<quint8 *>
           (data + pos + SBuffer::align(sizeof(*rect), SBuffer::minimumAlignVal) +
-           SBuffer::align(rect->paletteSize * sizeof(SPixels::RGBAPixel), SBuffer::minimumAlignVal));
+           SBuffer::align(rect->paletteSize * sizeof(quint32), SBuffer::minimumAlignVal));
     }
 
     pos += rectSize(*rect);
@@ -147,7 +147,7 @@ quint8 * SSubpictureBuffer::lines(int rectId)
 int SSubpictureBuffer::rectSize(const Rect &rect)
 {
   return SBuffer::align(sizeof(rect), SBuffer::minimumAlignVal) +
-         SBuffer::align(rect.paletteSize * sizeof(SPixels::RGBAPixel), SBuffer::minimumAlignVal) +
+         SBuffer::align(rect.paletteSize * sizeof(quint32), SBuffer::minimumAlignVal) +
          (rect.height * rect.lineStride * sizeof(quint8));
 }
 

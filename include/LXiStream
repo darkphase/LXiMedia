@@ -21,7 +21,6 @@
 #include "liblxistream/sinterval.h"
 #include "liblxistream/smediafilesystem.h"
 #include "liblxistream/smediainfo.h"
-#include "liblxistream/spixels.h"
 #include "liblxistream/ssize.h"
 #include "liblxistream/ssubpicturebuffer.h"
 #include "liblxistream/ssubtitlebuffer.h"
@@ -62,10 +61,6 @@
 #include "liblxistream/nodes/svideoresizenode.h"
 
 using namespace LXiStream;
-
-#else
-
-#include "liblxistream/spixels.h"
 
 #endif
 

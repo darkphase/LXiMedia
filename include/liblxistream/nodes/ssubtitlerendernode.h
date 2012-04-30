@@ -21,7 +21,6 @@
 #include <QtCore>
 #include <LXiCore>
 #include "../sinterfaces.h"
-#include "../spixels.h"
 #include "../ssubtitlebuffer.h"
 #include "../svideobuffer.h"
 #include "../export.h"

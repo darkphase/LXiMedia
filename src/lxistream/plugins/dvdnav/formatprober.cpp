@@ -96,7 +96,7 @@ void FormatProber::readContent(ProbeInfo &pi, QIODevice *ioDevice)
   }
 }
 
-SVideoBuffer FormatProber::readThumbnail(const ProbeInfo &pi, QIODevice *ioDevice, const QSize &thumbSize)
+SVideoBuffer FormatProber::readThumbnail(const ProbeInfo &, QIODevice *ioDevice, const QSize &thumbSize)
 {
   SVideoBuffer result;
 

@@ -181,6 +181,65 @@ bool VideoEncoder::openCodec(const SVideoCodec &c, SInterfaces::BufferWriter *bu
     contextHandle->rc_initial_buffer_occupancy = contextHandle->rc_buffer_size * 3 / 4;
   }
 
+  if (codecHandle->id == CODEC_ID_H264)
+  {
+    contextHandle->qmin = 0;
+    contextHandle->qmax = 69;
+    contextHandle->qcompress = 0.6f;
+    contextHandle->max_qdiff = 4;
+    contextHandle->me_cmp = FF_CMP_CHROMA;
+    contextHandle->i_quant_factor = 0.71f;
+
+    contextHandle->flags |= CODEC_FLAG_CLOSED_GOP;
+    contextHandle->flags2 |= CODEC_FLAG2_FASTPSKIP;
+
+    if (flags & Flag_Fast)
+    {
+      contextHandle->coder_type = FF_CODER_TYPE_VLC;
+      contextHandle->me_method = 5;
+      contextHandle->me_subpel_quality = 0;
+      contextHandle->me_range = 0;
+      contextHandle->gop_size = 0;
+      contextHandle->keyint_min = 0;
+      contextHandle->scenechange_threshold = 0;
+      contextHandle->max_b_frames = 0;
+      contextHandle->b_frame_strategy = 0;
+      contextHandle->refs = 1;
+      contextHandle->directpred = 1;
+      contextHandle->trellis = 0;
+      contextHandle->weighted_p_pred = 0;
+      contextHandle->rc_lookahead = 0;
+      contextHandle->aq_mode = 0;
+    }
+    else
+    {
+      contextHandle->coder_type = FF_CODER_TYPE_AC;
+      contextHandle->me_method = 8;
+      contextHandle->me_subpel_quality = 8;
+      contextHandle->me_range = 16;
+      contextHandle->gop_size = 250;
+      contextHandle->keyint_min = 25;
+      contextHandle->scenechange_threshold = 40;
+      contextHandle->max_b_frames = 3;
+      contextHandle->b_frame_strategy = 2;
+      contextHandle->refs = 5;
+      contextHandle->directpred = 3;
+      contextHandle->trellis = 1;
+      contextHandle->weighted_p_pred = 3;
+      contextHandle->rc_lookahead = 50;
+
+      contextHandle->partitions |= X264_PART_I4X4;
+      contextHandle->partitions |= X264_PART_I8X8;
+      contextHandle->partitions |= X264_PART_P8X8;
+      contextHandle->partitions |= X264_PART_B8X8;
+
+      contextHandle->flags |= CODEC_FLAG_LOOP_FILTER;
+      contextHandle->flags2 |= CODEC_FLAG2_BPYRAMID;
+      contextHandle->flags2 |= CODEC_FLAG2_WPRED;
+      contextHandle->flags2 |= CODEC_FLAG2_8X8DCT;
+    }
+  }
+
   if (avcodec_open2(contextHandle, codecHandle, &codecDict) < 0)
   {
     qCritical() << "VideoEncoder: Could not open video codec " << codecHandle->name;

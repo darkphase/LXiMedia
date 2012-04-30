@@ -21,7 +21,6 @@
 #include <QtCore>
 #include <LXiCore>
 #include "sbuffer.h"
-#include "spixels.h"
 #include "stime.h"
 #include "export.h"
 
@@ -57,8 +56,8 @@ public:
   void                          setRects(const QList<Rect> &);
   QList<Rect>                   rects(void) const;
 
-  const SPixels::RGBAPixel    * palette(int rectId) const;
-  SPixels::RGBAPixel          * palette(int rectId);
+  const quint32               * palette(int rectId) const;
+  quint32                     * palette(int rectId);
   const quint8                * lines(int rectId) const;
   quint8                      * lines(int rectId);
 

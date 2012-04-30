@@ -526,6 +526,7 @@ int FFMpegCommon::encodeThreadCount(::CodecID codec)
   {
 #if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(52, 72, 0)
   case CODEC_ID_MPEG2VIDEO:
+  case CODEC_ID_H264:
   case CODEC_ID_THEORA:
     limit = threadLimit;
     break;
