@@ -148,15 +148,7 @@ SDataBufferList DataDecoder::decodeBuffer(const SEncodedDataBuffer &dataBuffer)
               const SSubpictureBuffer::Rect rect = rects[rectId];
 
               // Copy palette and make sure it is monochrome.
-              const SPixels::RGBAPixel * const srcPalette = reinterpret_cast<const SPixels::RGBAPixel *>(subtitle.rects[i]->pict.data[1]);
-              SPixels::RGBAPixel * const dstPalette = buffer.palette(rectId);
-              for (int j=0; j<rect.paletteSize; j++)
-              {
-                dstPalette[j].r = dstPalette[j].g = dstPalette[j].b =
-                    qMax(srcPalette[j].r, qMax(srcPalette[j].g, srcPalette[j].b));
-
-                dstPalette[j].a = srcPalette[j].a;
-              }
+              ::memcpy(buffer.palette(rectId), subtitle.rects[i]->pict.data[1], rect.paletteSize * sizeof(quint32));
 
               // And copy the lines
               const int srcLineStride = qMax(subtitle.rects[i]->w, subtitle.rects[i]->pict.linesize[0]);

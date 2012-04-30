@@ -19,22 +19,6 @@
 #include "../../algorithms/videoconvert.h"
 #include <lxivecintrin/vectypes>
 
-// Implemented in videoformatconverter.demosaic.c
-extern "C" void LXiStream_Common_VideoFormatConverter_demosaic_GRBG8(
-    const void * srcData, unsigned srcWidth, unsigned srcStride, unsigned srcNumLines,
-    void * dstData, unsigned dstStride);
-extern "C" void LXiStream_Common_VideoFormatConverter_demosaic_GBRG8(
-    const void * srcData, unsigned srcWidth, unsigned srcStride, unsigned srcNumLines,
-    void * dstData, unsigned dstStride);
-extern "C" void LXiStream_Common_VideoFormatConverter_demosaic_RGGB8(
-    const void * srcData, unsigned srcWidth, unsigned srcStride, unsigned srcNumLines,
-    void * dstData, unsigned dstStride);
-extern "C" void LXiStream_Common_VideoFormatConverter_demosaic_BGGR8(
-    const void * srcData, unsigned srcWidth, unsigned srcStride, unsigned srcNumLines,
-    void * dstData, unsigned dstStride);
-extern "C" void LXiStream_Common_VideoFormatConverter_demosaic_postfilter(
-    void * srcData, unsigned srcWidth, unsigned srcStride, unsigned srcNumLines);
-
 namespace LXiStream {
 namespace Common {
 
@@ -318,12 +302,12 @@ SVideoBuffer VideoFormatConverter_Format_GRBG8_Format_RGB32::convertBuffer(const
                                          videoBuffer.format().frameRate(),
                                          videoBuffer.format().fieldMode()));
 
-    LXiStream_Common_VideoFormatConverter_demosaic_GRBG8(
-        videoBuffer.scanLine(0, 0),
+    Algorithms::VideoConvert::demosaicGRBG8(
+        reinterpret_cast<const uint8_t *>(videoBuffer.scanLine(0, 0)),
         videoBuffer.format().size().width(),
         videoBuffer.lineSize(0),
         videoBuffer.format().size().height(),
-        destBuffer.scanLine(0, 0),
+        reinterpret_cast<uint8_t *>(destBuffer.scanLine(0, 0)),
         destBuffer.lineSize(0));
 
     destBuffer.setTimeStamp(videoBuffer.timeStamp());
@@ -343,12 +327,12 @@ SVideoBuffer VideoFormatConverter_Format_GBRG8_Format_RGB32::convertBuffer(const
                                          videoBuffer.format().frameRate(),
                                          videoBuffer.format().fieldMode()));
 
-    LXiStream_Common_VideoFormatConverter_demosaic_GBRG8(
-        videoBuffer.scanLine(0, 0),
+    Algorithms::VideoConvert::demosaicGBRG8(
+        reinterpret_cast<const uint8_t *>(videoBuffer.scanLine(0, 0)),
         videoBuffer.format().size().width(),
         videoBuffer.lineSize(0),
         videoBuffer.format().size().height(),
-        destBuffer.scanLine(0, 0),
+        reinterpret_cast<uint8_t *>(destBuffer.scanLine(0, 0)),
         destBuffer.lineSize(0));
 
     destBuffer.setTimeStamp(videoBuffer.timeStamp());
@@ -368,12 +352,12 @@ SVideoBuffer VideoFormatConverter_Format_RGGB8_Format_RGB32::convertBuffer(const
                                          videoBuffer.format().frameRate(),
                                          videoBuffer.format().fieldMode()));
 
-    LXiStream_Common_VideoFormatConverter_demosaic_RGGB8(
-        videoBuffer.scanLine(0, 0),
+    Algorithms::VideoConvert::demosaicRGGB8(
+        reinterpret_cast<const uint8_t *>(videoBuffer.scanLine(0, 0)),
         videoBuffer.format().size().width(),
         videoBuffer.lineSize(0),
         videoBuffer.format().size().height(),
-        destBuffer.scanLine(0, 0),
+        reinterpret_cast<uint8_t *>(destBuffer.scanLine(0, 0)),
         destBuffer.lineSize(0));
 
     destBuffer.setTimeStamp(videoBuffer.timeStamp());
@@ -393,12 +377,12 @@ SVideoBuffer VideoFormatConverter_Format_BGGR8_Format_RGB32::convertBuffer(const
                                          videoBuffer.format().frameRate(),
                                          videoBuffer.format().fieldMode()));
 
-    LXiStream_Common_VideoFormatConverter_demosaic_BGGR8(
-        videoBuffer.scanLine(0, 0),
+    Algorithms::VideoConvert::demosaicBGGR8(
+        reinterpret_cast<const uint8_t *>(videoBuffer.scanLine(0, 0)),
         videoBuffer.format().size().width(),
         videoBuffer.lineSize(0),
         videoBuffer.format().size().height(),
-        destBuffer.scanLine(0, 0),
+        reinterpret_cast<uint8_t *>(destBuffer.scanLine(0, 0)),
         destBuffer.lineSize(0));
 
     destBuffer.setTimeStamp(videoBuffer.timeStamp());

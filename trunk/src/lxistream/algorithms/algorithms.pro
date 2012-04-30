@@ -34,13 +34,15 @@ HEADERS += audioconvert.h \
     data.h \
     deinterlace.h \
     subtitles.h \
-    videoconvert.h
+    videoconvert.h \
+    videoprocess.h
 SOURCES += audioconvert.cpp \
     audioprocess.cpp \
     data.cpp \
     deinterlace.cpp \
     subtitles.cpp \
-    videoconvert.cpp
+    videoconvert.cpp \
+    videoprocess.cpp
 
 # Platform specific
 unix|win32-g++ {

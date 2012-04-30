@@ -16,12 +16,7 @@
  ******************************************************************************/
 
 #include "audioresampler.h"
-
-// Implemented in audioresampler.resample.c
-extern "C" unsigned LXiStream_Common_AudioResampler_resampleAudio(
-    const qint16 * srcData, unsigned srcSampleRate, unsigned numSamples, unsigned numChannels,
-    qint16 * dstData, unsigned dstSampleRate, unsigned maxSamples,
-    unsigned *nextPos, float *weightOffset);
+#include "../../algorithms/audioprocess.h"
 
 namespace LXiStream {
 namespace Common {
@@ -72,7 +67,7 @@ SAudioBuffer AudioResampler::processBuffer(const SAudioBuffer &audioBuffer)
         SAudioBuffer destBuffer(outFormat, estNumSamples);
 
         const unsigned numOutSamples =
-            LXiStream_Common_AudioResampler_resampleAudio(
+            Algorithms::AudioProcess::resample(
                 reinterpret_cast<const qint16 *>(srcBuffer.data()),
                 srcBuffer.format().sampleRate(),
                 srcBuffer.numSamples(),

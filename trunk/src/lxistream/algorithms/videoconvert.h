@@ -39,6 +39,27 @@ public:
   static void RGBtoYUV2(uint8_t *dsty, uint8_t *dstu, uint8_t *dstv, const uint32_t *src, int n);
 
   static void BGRtoRGB(uint32_t *dst, const uint32_t *src, int n);
+
+  static void demosaicGRBG8(
+      const uint8_t * src, unsigned srcWidth, unsigned srcStride, unsigned srcNumLines,
+      uint8_t * dst, unsigned dstStride);
+
+  static void demosaicGBRG8(
+      const uint8_t * src, unsigned srcWidth, unsigned srcStride, unsigned srcNumLines,
+      uint8_t * dst, unsigned dstStride);
+
+  static void demosaicBGGR8(
+      const uint8_t * src, unsigned srcWidth, unsigned srcStride, unsigned srcNumLines,
+      uint8_t * dst, unsigned dstStride);
+
+  static void demosaicRGGB8(
+      const uint8_t * src, unsigned srcWidth, unsigned srcStride, unsigned srcNumLines,
+      uint8_t * dst, unsigned dstStride);
+
+  static void demosaicPostfilter(uint8_t * data, unsigned width, unsigned stride, unsigned numLines);
+
+private:
+  struct RGBAPixel;
 };
 
 } } // End of namespaces

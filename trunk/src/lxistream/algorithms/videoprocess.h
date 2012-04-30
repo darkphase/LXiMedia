@@ -18,28 +18,34 @@
 #include <sys/types.h>
 #include <stdint.h>
 
-void LXiStream_SAudioMatrixNode_mixMatrix
- (const int16_t * __restrict srcData, unsigned numSamples, unsigned srcNumChannels,
-  int16_t * __restrict dstData, const int * __restrict appliedMatrix, unsigned dstNumChannels)
+namespace LXiStream {
+namespace Algorithms {
+
+class VideoProcess
 {
-  unsigned i, dc, mp, sc;
-  int result;
-
-  for (i=0; i<numSamples; i++)
+public:
+  struct YUVData
   {
-    for (dc=0; dc<dstNumChannels; dc++)
-    {
-      mp = dc * srcNumChannels;
-      result = ((int)srcData[0]) * appliedMatrix[mp];
+    uint8_t * y, * u, * v;
+    unsigned yStride, uStride, vStride;
+    int wr, hr;
+  };
 
-      for (sc=1; sc<srcNumChannels; sc++)
-        result += ((int)srcData[sc]) * appliedMatrix[mp + sc];
+  struct SubpictureRect
+  {
+    int                           x, y;
+    unsigned                      width, height;
+    unsigned                      lineStride;
+    const uint8_t               * lines;
+  };
 
-      result >>= 8;
-      dstData[dc] = (int16_t)(result >= -32768 ? (result <= 32767 ? result : 32767) : -32768);
-    }
+public:
+  static void mixSubpictureYUV(
+      const YUVData &yuvData, const SubpictureRect &rect,
+      const void *palette, unsigned paletteSize);
 
-    srcData += srcNumChannels;
-    dstData += dstNumChannels;
-  }
-}
+private:
+  struct YUVAPixel;
+};
+
+} } // End of namespaces

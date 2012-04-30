@@ -16,11 +16,7 @@
  ******************************************************************************/
 
 #include "nodes/saudiomatrixnode.h"
-
-// Implemented in saudiomatrixnode.mix.c
-extern "C" void LXiStream_SAudioMatrixNode_mixMatrix
- (const qint16 * srcData, unsigned numSamples, unsigned srcNumChannels,
-  qint16 * dstData, const int * appliedMatrix, unsigned dstNumChannels);
+#include "../../algorithms/audioprocess.h"
 
 namespace LXiStream {
 
@@ -232,12 +228,13 @@ void SAudioMatrixNode::input(const SAudioBuffer &audioBuffer)
     {
       SAudioBuffer destBuffer(d->outFormat, audioBuffer.numSamples());
 
-      LXiStream_SAudioMatrixNode_mixMatrix(reinterpret_cast<const qint16 *>(audioBuffer.data()),
-                                           audioBuffer.numSamples(),
-                                           audioBuffer.format().numChannels(),
-                                           reinterpret_cast<qint16 *>(destBuffer.data()),
-                                           d->appliedMatrix,
-                                           d->outFormat.numChannels());
+      Algorithms::AudioProcess::matrix(
+          reinterpret_cast<const qint16 *>(audioBuffer.data()),
+          audioBuffer.numSamples(),
+          audioBuffer.format().numChannels(),
+          reinterpret_cast<qint16 *>(destBuffer.data()),
+          d->appliedMatrix,
+          d->outFormat.numChannels());
 
       destBuffer.setTimeStamp(audioBuffer.timeStamp());
 

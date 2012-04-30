@@ -22,7 +22,6 @@
 #include <LXiCore>
 #include "../saudiobuffer.h"
 #include "../sinterfaces.h"
-#include "../spixels.h"
 #include "../ssubpicturebuffer.h"
 #include "../ssubtitlebuffer.h"
 #include "../svideobuffer.h"

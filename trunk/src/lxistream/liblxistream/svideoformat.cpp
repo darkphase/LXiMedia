@@ -16,7 +16,6 @@
  ******************************************************************************/
 
 #include "svideoformat.h"
-#include "spixels.h"
 
 namespace LXiStream {
 
@@ -176,23 +175,51 @@ bool SVideoFormat::planarYUVRatio(Format format, int &w, int &h)
 
 quint32 SVideoFormat::nullPixelValue(Format format)
 {
+#if defined(__GNUC__)
+  static const struct __attribute__((packed)) { quint8 y0, u, y1, v; } YUYVPixelBlack = { 0x00, 0x7F, 0x00, 0x7F };
+  static const struct __attribute__((packed)) { quint8 u, y0, v, y1; } UYVYPixelBlack = { 0x7F, 0x00, 0x7F, 0x00 };
+  static const struct __attribute__((packed)) { quint8 b, g, r, a; } RGBAPixelBlack = { 0x00, 0x00, 0x00, 0xFF };
+  static const struct __attribute__((packed)) { quint8 r, g, b, a; } BGRAPixelBlack = { 0x00, 0x00, 0x00, 0xFF };
+#elif defined(_MSC_VER)
+# pragma pack(1)
+  static const struct { quint8 y0, u, y1, v; } YUYVPixelBlack = { 0x00, 0x7F, 0x00, 0x7F };
+  static const struct { quint8 u, y0, v, y1; } UYVYPixelBlack = { 0x7F, 0x00, 0x7F, 0x00 };
+  static const struct { quint8 b, g, r, a; } RGBAPixelBlack = { 0x00, 0x00, 0x00, 0xFF };
+  static const struct { quint8 r, g, b, a; } BGRAPixelBlack = { 0x00, 0x00, 0x00, 0xFF };
+# pragma pack()
+#else
+  static const struct { quint8 y0, u, y1, v; } YUYVPixelBlack = { 0x00, 0x7F, 0x00, 0x7F };
+  static const struct { quint8 u, y0, v, y1; } UYVYPixelBlack = { 0x7F, 0x00, 0x7F, 0x00 };
+  static const struct { quint8 b, g, r, a; } RGBAPixelBlack = { 0x00, 0x00, 0x00, 0xFF };
+  static const struct { quint8 r, g, b, a; } BGRAPixelBlack = { 0x00, 0x00, 0x00, 0xFF };
+#endif
+
   switch (format)
   {
-  case Format_RGB32:        return SPixels::RGBAPixel_Black;
-  case Format_BGR32:        return SPixels::BGRAPixel_Black;
-  case Format_RGB24:        return 0;//SPixels::RGBPixel_Black;
-  case Format_BGR24:        return 0;//SPixels::BGRPixel_Black;
-  case Format_RGB555:       return (quint32(SPixels::RGB555Pixel_Black) << 16) | quint32(SPixels::RGB555Pixel_Black);
-  case Format_BGR555:       return (quint32(SPixels::BGR555Pixel_Black) << 16) | quint32(SPixels::BGR555Pixel_Black);
-  case Format_RGB565:       return (quint32(SPixels::RGB565Pixel_Black) << 16) | quint32(SPixels::RGB565Pixel_Black);
-  case Format_BGR565:       return (quint32(SPixels::BGR565Pixel_Black) << 16) | quint32(SPixels::BGR565Pixel_Black);
+  case Format_RGB32:
+    return *reinterpret_cast<const quint32 *>(&RGBAPixelBlack);
 
-  case Format_GRAY8:        return 0;
-  case Format_GRAY16BE:     return 0;
-  case Format_GRAY16LE:     return 0;
+  case Format_BGR32:
+    return *reinterpret_cast<const quint32 *>(&BGRAPixelBlack);
 
-  case Format_YUYV422:      return SPixels::YUYVPixel_Black;
-  case Format_UYVY422:      return SPixels::UYVYPixel_Black;
+  case Format_RGB24:
+  case Format_BGR24:
+  case Format_RGB555:
+  case Format_BGR555:
+  case Format_RGB565:
+  case Format_BGR565:
+    return 0;
+
+  case Format_GRAY8:
+  case Format_GRAY16BE:
+  case Format_GRAY16LE:
+    return 0;
+
+  case Format_YUYV422:
+    return *reinterpret_cast<const quint32 *>(&YUYVPixelBlack);
+
+  case Format_UYVY422:
+    return *reinterpret_cast<const quint32 *>(&UYVYPixelBlack);
 
   case Format_BGGR8:
   case Format_GBRG8:

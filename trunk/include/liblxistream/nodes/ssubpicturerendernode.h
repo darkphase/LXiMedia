@@ -21,7 +21,6 @@
 #include <QtCore>
 #include <LXiCore>
 #include "../sinterfaces.h"
-#include "../spixels.h"
 #include "../ssubpicturebuffer.h"
 #include "../svideobuffer.h"
 #include "../export.h"
@@ -47,7 +46,7 @@ signals:
   void                          output(const SVideoBuffer &);
 
 private:
-  static void                   buildPalette(const SPixels::RGBAPixel *, unsigned, SVideoFormat::Format, QByteArray &);
+  static void                   buildPalette(const quint32 *, unsigned, SVideoFormat::Format, QByteArray &);
 
 private:
   struct Data;

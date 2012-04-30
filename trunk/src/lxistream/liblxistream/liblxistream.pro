@@ -33,7 +33,6 @@ HEADERS += $${PWD}/$${LXIMEDIA_DIR}/include/LXiStream \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/sinterval.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/smediafilesystem.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/smediainfo.h \
-    $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/spixels.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/ssize.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/ssubpicturebuffer.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/ssubtitlebuffer.h \
@@ -57,8 +56,6 @@ SOURCES += saudiobuffer.cpp \
     sinterval.cpp \
     smediafilesystem.cpp \
     smediainfo.cpp \
-    spixels.cpp \
-    spixels.convert.c \
     ssize.cpp \
     ssubpicturebuffer.cpp \
     ssubtitlebuffer.cpp \
@@ -103,7 +100,6 @@ SOURCES += nodes/saudiodecodernode.cpp \
     nodes/saudioformatconvertnode.cpp \
     nodes/saudiogapremovernode.cpp \
     nodes/saudiomatrixnode.cpp \
-    nodes/saudiomatrixnode.mix.c \
     nodes/saudionormalizenode.cpp \
     nodes/saudioresamplenode.cpp \
     nodes/sbufferdeserializernode.cpp \
@@ -117,7 +113,6 @@ SOURCES += nodes/saudiodecodernode.cpp \
     nodes/snetworkinputnode.cpp \
     nodes/splaylistnode.cpp \
     nodes/ssubpicturerendernode.cpp \
-    nodes/ssubpicturerendernode.mix.c \
     nodes/ssubtitlerendernode.cpp \
     nodes/stimestampresamplernode.cpp \
     nodes/stimestampsyncnode.cpp \
@@ -150,7 +145,6 @@ HEADERS += common/audioformatconverter.h \
 SOURCES += common/audioformatconverter.cpp \
     common/audiooutput.cpp \
     common/audioresampler.cpp \
-    common/audioresampler.resample.c \
     common/deinterlace.cpp \
     common/formatprober.cpp \
     common/localfilesystem.cpp \
@@ -161,8 +155,7 @@ SOURCES += common/audioformatconverter.cpp \
     common/psbufferwriter.cpp \
     common/rawsubtitledecoder.cpp \
     common/tsbufferwriter.cpp \
-    common/videoformatconverter.cpp \
-    common/videoformatconverter.demosaic.c
+    common/videoformatconverter.cpp
 
 HEADERS += common/module.h
 SOURCES += common/module.cpp

@@ -30,6 +30,7 @@ macx {
   system(bzip2 -cdk $${PWD}/bin.macx/libavutil.a.bz2 > $${OUT_PWD}/bin.macx/libavutil.a)
   system(bzip2 -cdk $${PWD}/bin.macx/libswscale.a.bz2 > $${OUT_PWD}/bin.macx/libswscale.a)
   system(bzip2 -cdk $${PWD}/bin.macx/libmp3lame.a.bz2 > $${OUT_PWD}/bin.macx/libmp3lame.a)
+  system(bzip2 -cdk $${PWD}/bin.macx/libx264.a.bz2 > $${OUT_PWD}/bin.macx/libx264.a)
 
   system(bzip2 -cdk $${PWD}/libav_0.7.3.orig.tar.bz2 > $${OUT_PWD}/libav_0.7.3.orig.tar)
   system(cd $${OUT_PWD} && tar -x -f libav_0.7.3.orig.tar $${FFMPEG_HEADERS})
@@ -48,6 +49,7 @@ win32 {
   system($${BZIP2} -cdk $${PWD}/bin.win32/libavutil.a.bz2 > $${OUT_PWD}/bin.win32/libavutil.a)
   system($${BZIP2} -cdk $${PWD}/bin.win32/libswscale.a.bz2 > $${OUT_PWD}/bin.win32/libswscale.a)
   system($${BZIP2} -cdk $${PWD}/bin.win32/libmp3lame.a.bz2 > $${OUT_PWD}/bin.win32/libmp3lame.a)
+  system($${BZIP2} -cdk $${PWD}/bin.win32/libx264.a.bz2 > $${OUT_PWD}/bin.win32/libx264.a)
 
   system($${BZIP2} -cdk $${PWD}/libav_0.7.3.orig.tar.bz2 > $${OUT_PWD}/libav_0.7.3.orig.tar)
   system(cd $$replace(OUT_PWD,/,\\) && $${TAR} -x -f libav_0.7.3.orig.tar $${FFMPEG_HEADERS})

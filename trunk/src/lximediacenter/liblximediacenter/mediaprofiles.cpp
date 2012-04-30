@@ -74,6 +74,8 @@ MediaProfiles::MediaProfiles(void)
     INSERT_PROFILE_NAME(d->videoProfileNames, MPEG_TS_SD_NA_ISO);
     INSERT_PROFILE_NAME(d->videoProfileNames, MPEG_TS_HD_NA);
     INSERT_PROFILE_NAME(d->videoProfileNames, MPEG_TS_HD_NA_ISO);
+    INSERT_PROFILE_NAME(d->videoProfileNames, AVC_TS_MP_HD_AC3);
+    INSERT_PROFILE_NAME(d->videoProfileNames, AVC_TS_MP_HD_AC3_ISO);
     INSERT_PROFILE_NAME(d->videoProfileNames, MPEG4_P2_TS_SP_AAC);
     INSERT_PROFILE_NAME(d->videoProfileNames, MPEG4_P2_TS_SP_AAC_ISO);
     INSERT_PROFILE_NAME(d->videoProfileNames, MPEG4_P2_TS_SP_MPEG1_L3);
@@ -542,6 +544,8 @@ SSize MediaProfiles::maximumResolution(VideoProfile profile)
   case MPEG_TS_HD_EU_ISO:
   case MPEG_TS_HD_NA:
   case MPEG_TS_HD_NA_ISO:
+  case AVC_TS_MP_HD_AC3:
+  case AVC_TS_MP_HD_AC3_ISO:
   case MPEG_PS_HD_EU_NONSTD:
   case MPEG_PS_HD_NA_NONSTD:
   case MPEG4_P2_MATROSKA_AC3_HD_NONSTD:
@@ -634,6 +638,8 @@ SAudioFormat::Channels MediaProfiles::maximumChannels(VideoProfile profile)
   case MPEG_TS_HD_EU_ISO:
   case MPEG_TS_HD_NA:
   case MPEG_TS_HD_NA_ISO:
+  case AVC_TS_MP_HD_AC3:
+  case AVC_TS_MP_HD_AC3_ISO:
   case MPEG_PS_HD_EU_NONSTD:
   case MPEG_PS_HD_NA_NONSTD:
   case MPEG4_P2_TS_SP_AC3_L3:
@@ -735,6 +741,8 @@ int MediaProfiles::correctFormat(VideoProfile profile, SAudioFormat &format)
   case MPEG_TS_HD_EU_ISO:
   case MPEG_TS_HD_NA:
   case MPEG_TS_HD_NA_ISO:
+  case AVC_TS_MP_HD_AC3:
+  case AVC_TS_MP_HD_AC3_ISO:
   case MPEG_PS_HD_EU_NONSTD:
   case MPEG_PS_HD_NA_NONSTD:
   case MPEG4_P2_MATROSKA_AC3_HD_NONSTD:
@@ -826,6 +834,8 @@ int MediaProfiles::correctFormat(VideoProfile profile, SVideoFormat &format)
 
   case MPEG_TS_HD_EU:
   case MPEG_TS_HD_EU_ISO:
+  case AVC_TS_MP_HD_AC3:
+  case AVC_TS_MP_HD_AC3_ISO:
   case MPEG_PS_HD_EU_NONSTD:
     if ((format.size().width() >= 1280) || (format.size().height() >= 720))
       offset -= Data::priorityBoost;
@@ -1121,6 +1131,8 @@ QByteArray MediaProfiles::audioCodecFor(VideoProfile profile, SAudioFormat::Chan
 
   case MPEG_PS_PAL_XAC3:
   case MPEG_PS_NTSC_XAC3:
+  case AVC_TS_MP_HD_AC3:
+  case AVC_TS_MP_HD_AC3_ISO:
   case MPEG4_P2_TS_SP_AC3_L3:
   case MPEG4_P2_TS_SP_AC3_ISO:
   case MPEG4_P2_TS_ASP_AC3_L3:
@@ -1226,6 +1238,10 @@ QByteArray MediaProfiles::videoCodecFor(VideoProfile profile)
   case MPEG4_P2_MATROSKA_AC3_HD_NONSTD:
     return "mpeg4";
 
+  case AVC_TS_MP_HD_AC3:
+  case AVC_TS_MP_HD_AC3_ISO:
+    return "h264";
+
   case WMVMED_BASE:
     return "wmv3";
 
@@ -1309,12 +1325,14 @@ QByteArray MediaProfiles::formatFor(VideoProfile profile)
   case MPEG_TS_HD_EU:
   case MPEG_TS_SD_NA:
   case MPEG_TS_HD_NA:
+  case AVC_TS_MP_HD_AC3:
     return "m2ts";
 
   case MPEG_TS_SD_EU_ISO:
   case MPEG_TS_HD_EU_ISO:
   case MPEG_TS_SD_NA_ISO:
   case MPEG_TS_HD_NA_ISO:
+  case AVC_TS_MP_HD_AC3_ISO:
     return "mpegts";
 
   case MPEG4_P2_TS_SP_AAC:
@@ -1422,6 +1440,7 @@ const char * MediaProfiles::mimeTypeFor(VideoProfile profile)
   case MPEG_TS_HD_EU_ISO:
   case MPEG_TS_SD_NA_ISO:
   case MPEG_TS_HD_NA_ISO:
+  case AVC_TS_MP_HD_AC3_ISO:
   case MPEG4_P2_TS_SP_AAC_ISO:
   case MPEG4_P2_TS_SP_MPEG1_L3_ISO:
   case MPEG4_P2_TS_SP_MPEG2_L2_ISO:
@@ -1435,6 +1454,7 @@ const char * MediaProfiles::mimeTypeFor(VideoProfile profile)
   case MPEG_TS_HD_EU:
   case MPEG_TS_SD_NA:
   case MPEG_TS_HD_NA:
+  case AVC_TS_MP_HD_AC3:
     return SHttpEngine::mimeVideoMpegM2TS;
 
   case MPEG4_P2_TS_SP_AAC:
@@ -1535,12 +1555,14 @@ const char * MediaProfiles::suffixFor(VideoProfile profile)
   case MPEG_TS_HD_EU:
   case MPEG_TS_SD_NA:
   case MPEG_TS_HD_NA:
+  case AVC_TS_MP_HD_AC3:
     return ".m2ts";
 
   case MPEG_TS_SD_EU_ISO:
   case MPEG_TS_HD_EU_ISO:
   case MPEG_TS_SD_NA_ISO:
   case MPEG_TS_HD_NA_ISO:
+  case AVC_TS_MP_HD_AC3_ISO:
   case MPEG4_P2_TS_SP_AAC_ISO:
   case MPEG4_P2_TS_SP_MPEG1_L3_ISO:
   case MPEG4_P2_TS_SP_MPEG2_L2_ISO:
@@ -1650,6 +1672,9 @@ int MediaProfiles::profilePriority(VideoProfile profile)
   case MPEG_TS_SD_NA:
   case MPEG_TS_SD_NA_ISO:
     return 6;
+  case AVC_TS_MP_HD_AC3:
+  case AVC_TS_MP_HD_AC3_ISO:
+    return 9;
 
   case MPEG4_P2_TS_SP_AAC:
   case MPEG4_P2_TS_SP_AAC_ISO:

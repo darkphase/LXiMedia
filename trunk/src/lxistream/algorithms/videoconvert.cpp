@@ -23,6 +23,16 @@ namespace Algorithms {
 
 using namespace lxivec;
 
+#if defined(__GNUC__)
+struct __attribute__((packed)) VideoConvert::RGBAPixel { uint8_t b, g, r, a; };
+#elif defined(_MSC_VER)
+# pragma pack(1)
+struct VideoConvert::RGBAPixel { uint8_t b, g, r, a; };
+# pragma pack()
+#else
+struct VideoConvert::RGBAPixel { uint8_t b, g, r, a; };
+#endif
+
 void VideoConvert::YUYVtoYUV2(uint8_t *dsty, uint8_t *dstu, uint8_t *dstv, const uint8_t * src, int n)
 {
   struct T
@@ -494,6 +504,180 @@ void VideoConvert::BGRtoRGB(uint32_t *dst, const uint32_t *src, int n)
     rgba |= (bgra & 0x000000FF) << 16;
 
     store(dst + i, rgba);
+  }
+}
+
+void VideoConvert::demosaicGRBG8(
+    const uint8_t * src, unsigned srcWidth, unsigned srcStride, unsigned srcNumLines,
+    uint8_t * dst, unsigned dstStride)
+{
+  if ((srcNumLines > 1) && (srcWidth > 1))
+  for (unsigned y=0; y<srcNumLines-1; y+=2)
+  {
+    const uint8_t * const __restrict srcLine1 = src + (srcStride * y);
+    const uint8_t * const __restrict srcLine2 = srcLine1 + srcStride;
+    RGBAPixel * const __restrict dstLine1 = (RGBAPixel *)(dst + (dstStride * y));
+    RGBAPixel * const __restrict dstLine2 = (RGBAPixel *)(((uint8_t *)dstLine1) + dstStride);
+
+    for (unsigned x=0; x<srcWidth-1; x+=2)
+    {
+      dstLine1[x+0].r = dstLine2[x+1].r = srcLine1[x+1];
+      dstLine1[x+0].g = srcLine1[x+0];
+      dstLine2[x+1].g = srcLine2[x+1];
+      dstLine1[x+0].b = dstLine2[x+1].b = srcLine2[x+0];
+      dstLine1[x+0].a = dstLine2[x+1].a = 0xFF;
+      dstLine1[x+1].a = dstLine2[x+0].a = 0x00;
+    }
+  }
+}
+
+void VideoConvert::demosaicGBRG8(
+    const uint8_t * src, unsigned srcWidth, unsigned srcStride, unsigned srcNumLines,
+    uint8_t * dst, unsigned dstStride)
+{
+  if ((srcNumLines > 1) && (srcWidth > 1))
+  for (unsigned y=0; y<srcNumLines-1; y+=2)
+  {
+    const uint8_t * const srcLine1 = src + (srcStride * y);
+    const uint8_t * const srcLine2 = srcLine1 + srcStride;
+    RGBAPixel * const dstLine1 = (RGBAPixel *)(dst + (dstStride * y));
+    RGBAPixel * const dstLine2 = (RGBAPixel *)(((uint8_t *)dstLine1) + dstStride);
+
+    for (unsigned x=0; x<srcWidth-1; x+=2)
+    {
+      dstLine1[x+0].r = dstLine2[x+1].r = srcLine2[x+0];
+      dstLine1[x+0].g = srcLine1[x+0];
+      dstLine2[x+1].g = srcLine2[x+1];
+      dstLine1[x+0].b = dstLine2[x+1].b = srcLine1[x+1];
+      dstLine1[x+0].a = dstLine2[x+1].a = 0xFF;
+      dstLine1[x+1].a = dstLine2[x+0].a = 0x00;
+    }
+  }
+}
+
+void VideoConvert::demosaicBGGR8(
+    const uint8_t * src, unsigned srcWidth, unsigned srcStride, unsigned srcNumLines,
+    uint8_t * dst, unsigned dstStride)
+{
+  if ((srcNumLines > 1) && (srcWidth > 1))
+  for (unsigned y=0; y<srcNumLines-1; y+=2)
+  {
+    const uint8_t * const srcLine1 = src + (srcStride * y);
+    const uint8_t * const srcLine2 = srcLine1 + srcStride;
+    RGBAPixel * const dstLine1 = (RGBAPixel *)(dst + (dstStride * y));
+    RGBAPixel * const dstLine2 = (RGBAPixel *)(((uint8_t *)dstLine1) + dstStride);
+
+    for (unsigned x=0; x<srcWidth-1; x+=2)
+    {
+      dstLine1[x+0].r = dstLine2[x+1].r = srcLine2[x+1];
+      dstLine1[x+0].g = srcLine1[x+1];
+      dstLine2[x+1].g = srcLine2[x+0];
+      dstLine1[x+0].b = dstLine2[x+1].b = srcLine1[x+0];
+      dstLine1[x+0].a = dstLine2[x+1].a = 0xFF;
+      dstLine1[x+1].a = dstLine2[x+0].a = 0x00;
+    }
+  }
+}
+
+void VideoConvert::demosaicRGGB8(
+    const uint8_t * src, unsigned srcWidth, unsigned srcStride, unsigned srcNumLines,
+    uint8_t * dst, unsigned dstStride)
+{
+  if ((srcNumLines > 1) && (srcWidth > 1))
+  for (unsigned y=0; y<srcNumLines-1; y+=2)
+  {
+    const uint8_t * const __restrict srcLine1 = src + (srcStride * y);
+    const uint8_t * const __restrict srcLine2 = srcLine1 + srcStride;
+    RGBAPixel * const __restrict dstLine1 = (RGBAPixel *)(dst + (dstStride * y));
+    RGBAPixel * const __restrict dstLine2 = (RGBAPixel *)(((uint8_t *)dstLine1) + dstStride);
+
+    for (unsigned x=0; x<srcWidth-1; x+=2)
+    {
+      dstLine1[x+0].r = dstLine2[x+1].r = srcLine1[x+0];
+      dstLine1[x+0].g = srcLine1[x+1];
+      dstLine2[x+1].g = srcLine2[x+0];
+      dstLine1[x+0].b = dstLine2[x+1].b = srcLine2[x+1];
+      dstLine1[x+0].a = dstLine2[x+1].a = 0xFF;
+      dstLine1[x+1].a = dstLine2[x+0].a = 0x00;
+    }
+  }
+}
+
+void VideoConvert::demosaicPostfilter(
+    uint8_t * data, unsigned width, unsigned stride, unsigned numLines)
+{
+  const int yo = ((const RGBAPixel *)data)->a == 0 ? 1 : 0;
+
+  if ((numLines > 1) && (width > 1))
+  {
+    for (unsigned y=1; y<numLines-1; y++)
+    {
+      RGBAPixel * const __restrict line2 = (RGBAPixel *)(data + (stride * y));
+      RGBAPixel * const __restrict line1 = (RGBAPixel *)(((uint8_t *)line2) - stride);
+      RGBAPixel * const __restrict line3 = (RGBAPixel *)(((uint8_t *)line2) + stride);
+
+      for (unsigned x=1+((y+yo)%2); x<width-1; x+=2)
+      {
+        const int8_t gw = line2[x-1].g >> 1;
+        const int8_t ge = line2[x+1].g >> 1;
+        const int8_t gn = line1[x+0].g >> 1;
+        const int8_t gs = line3[x+0].g >> 1;
+
+        if (abs(int8_t(gw - ge)) < abs(int8_t(gw - ge)))
+        {
+          line2[x].r = (line2[x-1].r >> 1) + (line2[x+1].r >> 1);
+          line2[x].g = gw + ge;
+          line2[x].b = (line2[x-1].b >> 1) + (line2[x+1].b >> 1);
+        }
+        else
+        {
+          line2[x].r = (line1[x+0].r >> 1) + (line3[x+0].r >> 1);
+          line2[x].g = gn + gs;
+          line2[x].b = (line1[x+0].b >> 1) + (line3[x+0].b >> 1);
+        }
+
+        line2[x].a = 0xFF;
+      }
+
+      // Side pixels
+      {
+        const int n = (((y+yo)%2) == 0) ? (width - 1) : 0;
+        line2[n].r = (line1[n].r >> 1) + (line3[n].r >> 1);
+        line2[n].g = (line1[n].g >> 1) + (line3[n].g >> 1);
+        line2[n].b = (line1[n].b >> 1) + (line3[n].b >> 1);
+        line2[n].a = 0xFF;
+      }
+    }
+
+    // Top line
+    {
+      RGBAPixel * const __restrict topLine = (RGBAPixel *)data;
+      for (unsigned x=1+(yo%2); x<width-1; x+=2)
+      {
+        topLine[x].r = (topLine[x-1].r >> 1) + (topLine[x+1].r >> 1);
+        topLine[x].g = (topLine[x-1].g >> 1) + (topLine[x+1].g >> 1);
+        topLine[x].b = (topLine[x-1].b >> 1) + (topLine[x+1].b >> 1);
+        topLine[x].a = 0xFF;
+      }
+
+      topLine[0]       = topLine[1];
+      topLine[width-1] = topLine[width-2];
+    }
+
+    // Bottom line
+    {
+      RGBAPixel * const __restrict botLine = (RGBAPixel *)(data + (stride * (numLines-1)));
+      for (unsigned x=1+(((numLines-1)+yo)%2); x<width-1; x+=2)
+      {
+        botLine[x].r = (botLine[x-1].r >> 1) + (botLine[x+1].r >> 1);
+        botLine[x].g = (botLine[x-1].g >> 1) + (botLine[x+1].g >> 1);
+        botLine[x].b = (botLine[x-1].b >> 1) + (botLine[x+1].b >> 1);
+        botLine[x].a = 0xFF;
+      }
+
+      botLine[0]       = botLine[1];
+      botLine[width-1] = botLine[width-2];
+    }
   }
 }
 

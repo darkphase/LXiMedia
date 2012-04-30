@@ -263,13 +263,13 @@ void PsBufferWriter::fillPSMap(MPEG::PSMap &psMap, const SBuffer &buffer)
     MPEG::PSMap::Stream videoStream;
     videoStream.setStreamID(streamID);
 
-    if (buffer.codec() == "MPEG1")
+    if (buffer.codec() == "mpeg1video")
       videoStream.setStreamType(MPEG::PSMap::StreamType_MPEG1Video);
-    else if (buffer.codec() == "MPEG2")
+    else if (buffer.codec() == "mpeg2video")
       videoStream.setStreamType(MPEG::PSMap::StreamType_MPEG2Video);
-    else if (buffer.codec() == "MPEG4")
+    else if (buffer.codec() == "mpeg4")
       videoStream.setStreamType(MPEG::PSMap::StreamType_MPEG4Video);
-    else if (buffer.codec() == "H264")
+    else if (buffer.codec() == "h264")
       videoStream.setStreamType(MPEG::PSMap::StreamType_H264Video);
     else
       videoStream.setStreamType(MPEG::PSMap::StreamType_PrivateData);
