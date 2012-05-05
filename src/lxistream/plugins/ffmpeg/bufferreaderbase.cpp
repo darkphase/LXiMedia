@@ -263,9 +263,10 @@ BufferReaderBase::Packet BufferReaderBase::read(void)
     avPacket.size = 0;
 
     if (::av_read_frame(formatContext, &avPacket) >= 0)
+    {
       result = Packet(avPacket);
-
-    ::av_free_packet(&avPacket);
+      ::av_free_packet(&avPacket);
+    }
 
     return result;
   }
