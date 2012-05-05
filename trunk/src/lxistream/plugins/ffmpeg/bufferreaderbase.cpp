@@ -260,10 +260,9 @@ BufferReaderBase::Packet BufferReaderBase::read(void)
     ::AVPacket avPacket;
     ::av_init_packet(&avPacket);
     if (::av_read_frame(formatContext, &avPacket) >= 0)
-    {
       result = Packet(avPacket);
-      ::av_free_packet(&avPacket);
-    }
+
+    ::av_free_packet(&avPacket);
 
     return result;
   }

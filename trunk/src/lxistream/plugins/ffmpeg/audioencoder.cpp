@@ -259,15 +259,9 @@ void AudioEncoder::encodeBufferTask(const SAudioBuffer &audioBuffer, SEncodedAud
             frame.linesize[0] = inFrameSize;
             frame.nb_samples = contextHandle->frame_size;
 
-            SEncodedAudioBuffer destBuffer(outCodec, SBuffer::MemoryPtr(
-                new FFMpegCommon::SyncMemory(
-                    qMax(FF_MIN_BUFFER_SIZE, AVCODEC_MAX_AUDIO_FRAME_SIZE),
-                    wait ? &memorySem : NULL)));
-
             ::AVPacket packet;
-            memset(&packet, 0, sizeof(packet));
-            packet.data = reinterpret_cast<uint8_t *>(destBuffer.data());
-            packet.size = destBuffer.capacity();
+            packet.data = NULL;
+            packet.size = 0;
 
             int gotPacket = 0;
             if (avcodec_encode_audio2(contextHandle, &packet, &frame, &gotPacket) >= 0)
@@ -278,7 +272,12 @@ void AudioEncoder::encodeBufferTask(const SAudioBuffer &audioBuffer, SEncodedAud
 
               if (gotPacket != 0)
               {
+                SEncodedAudioBuffer destBuffer(outCodec, SBuffer::MemoryPtr(
+                    new FFMpegCommon::SyncMemory(packet.size, wait ? &memorySem : NULL)));
+
                 destBuffer.resize(packet.size);
+                ::memcpy(destBuffer.data(), packet.data, packet.size);
+
                 destBuffer.setPresentationTimeStamp(timeStamp);
                 destBuffer.setDuration(inFrameDuration);
 
@@ -288,6 +287,8 @@ void AudioEncoder::encodeBufferTask(const SAudioBuffer &audioBuffer, SEncodedAud
             }
             else
               size = 0;
+
+            ::av_free_packet(&packet);
           }
           else if (size >= inFrameSize)
           {
@@ -297,15 +298,9 @@ void AudioEncoder::encodeBufferTask(const SAudioBuffer &audioBuffer, SEncodedAud
             frame.linesize[0] = inFrameSize;
             frame.nb_samples = contextHandle->frame_size;
 
-            SEncodedAudioBuffer destBuffer(outCodec, SBuffer::MemoryPtr(
-                new FFMpegCommon::SyncMemory(
-                    qMax(FF_MIN_BUFFER_SIZE, AVCODEC_MAX_AUDIO_FRAME_SIZE),
-                    wait ? &memorySem : NULL)));
-
             ::AVPacket packet;
-            memset(&packet, 0, sizeof(packet));
-            packet.data = reinterpret_cast<uint8_t *>(destBuffer.data());
-            packet.size = destBuffer.capacity();
+            packet.data = NULL;
+            packet.size = 0;
 
             int gotPacket = 0;
             if (avcodec_encode_audio2(contextHandle, &packet, &frame, &gotPacket) >= 0)
@@ -315,7 +310,12 @@ void AudioEncoder::encodeBufferTask(const SAudioBuffer &audioBuffer, SEncodedAud
 
               if (gotPacket != 0)
               {
+                SEncodedAudioBuffer destBuffer(outCodec, SBuffer::MemoryPtr(
+                    new FFMpegCommon::SyncMemory(packet.size, wait ? &memorySem : NULL)));
+
                 destBuffer.resize(packet.size);
+                ::memcpy(destBuffer.data(), packet.data, packet.size);
+
                 destBuffer.setPresentationTimeStamp(timeStamp);
                 destBuffer.setDuration(inFrameDuration);
 
@@ -325,6 +325,8 @@ void AudioEncoder::encodeBufferTask(const SAudioBuffer &audioBuffer, SEncodedAud
             }
             else
               size = 0;
+
+            ::av_free_packet(&packet);
           }
           else
           {
