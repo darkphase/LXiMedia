@@ -80,13 +80,13 @@ bool AudioEncoder::openCodec(const SAudioCodec &c, SInterfaces::BufferWriter *bu
   outCodec = c;
 
 #if Q_BYTE_ORDER == Q_BIG_ENDIAN
-  if (outCodec == "PCM/S16BE")
+  if (outCodec == "pcm_s16be")
   {
     passThrough = true;
     return true;
   }
 #else
-  if (outCodec == "PCM/S16LE")
+  if (outCodec == "pcm_s16le")
   {
     passThrough = true;
     return true;
@@ -133,9 +133,9 @@ bool AudioEncoder::openCodec(const SAudioCodec &c, SInterfaces::BufferWriter *bu
   contextHandle->time_base.den = contextHandle->sample_rate;
 
   contextHandle->bit_rate = (outCodec.bitRate() > 0) ? outCodec.bitRate() : (96000 * contextHandle->channels);
-  if (outCodec == "AC3")
+  if (contextHandle->codec_id == CODEC_ID_AC3)
     contextHandle->bit_rate = qMin(contextHandle->bit_rate, 384000); // Higher bitrates give problems muxing.
-  else if (outCodec == "FLAC")
+  else if (contextHandle->codec_id == CODEC_ID_FLAC)
     contextHandle->bit_rate = (contextHandle->sample_rate * contextHandle->channels * 2) * 8; // To prevent problems muxing.
 
   contextHandle->bit_rate_tolerance = contextHandle->bit_rate / 4;
@@ -254,79 +254,99 @@ void AudioEncoder::encodeBufferTask(const SAudioBuffer &audioBuffer, SEncodedAud
             memcpy(inFrameBuffer + inFrameBufferSize, buffer + ptr, inFrameSize - inFrameBufferSize);
 
             ::AVFrame frame;
-            memset(&frame, 0, sizeof(frame));
-            frame.data[0] = reinterpret_cast<uint8_t *>(inFrameBuffer);
-            frame.linesize[0] = inFrameSize;
-            frame.nb_samples = contextHandle->frame_size;
+            ::avcodec_get_frame_defaults(&frame);
+            frame.nb_samples = inFrameSize / (::av_get_bytes_per_sample(contextHandle->sample_fmt) * contextHandle->channels);
 
-            ::AVPacket packet;
-            packet.data = NULL;
-            packet.size = 0;
-
-            int gotPacket = 0;
-            if (avcodec_encode_audio2(contextHandle, &packet, &frame, &gotPacket) >= 0)
+            if (::avcodec_fill_audio_frame(
+                  &frame,
+                  contextHandle->channels,
+                  contextHandle->sample_fmt,
+                  (uint8_t *)inFrameBuffer,
+                  inFrameSize,
+                  1) >= 0)
             {
-              size -= inFrameSize - inFrameBufferSize;
-              ptr += inFrameSize - inFrameBufferSize;
-              inFrameBufferSize = 0;
+              ::AVPacket packet;
+              ::av_init_packet(&packet);
+              packet.data = NULL;
+              packet.size = 0;
 
-              if (gotPacket != 0)
+              int gotPacket = 0;
+              if (avcodec_encode_audio2(contextHandle, &packet, &frame, &gotPacket) >= 0)
               {
-                SEncodedAudioBuffer destBuffer(outCodec, SBuffer::MemoryPtr(
-                    new FFMpegCommon::SyncMemory(packet.size, wait ? &memorySem : NULL)));
+                size -= inFrameSize - inFrameBufferSize;
+                ptr += inFrameSize - inFrameBufferSize;
+                inFrameBufferSize = 0;
 
-                destBuffer.resize(packet.size);
-                ::memcpy(destBuffer.data(), packet.data, packet.size);
+                if (gotPacket != 0)
+                {
+                  SEncodedAudioBuffer destBuffer(outCodec, SBuffer::MemoryPtr(
+                      new FFMpegCommon::SyncMemory(packet.size, wait ? &memorySem : NULL)));
 
-                destBuffer.setPresentationTimeStamp(timeStamp);
-                destBuffer.setDuration(inFrameDuration);
+                  destBuffer.resize(packet.size);
+                  ::memcpy(destBuffer.data(), packet.data, packet.size);
 
-                output->append(destBuffer);
-                timeStamp += STime::fromClock(numSamples(inFrameSize), contextHandle->sample_rate);
+                  destBuffer.setPresentationTimeStamp(timeStamp);
+                  destBuffer.setDuration(inFrameDuration);
+
+                  output->append(destBuffer);
+                  timeStamp += STime::fromClock(numSamples(inFrameSize), contextHandle->sample_rate);
+
+                  ::av_free_packet(&packet);
+                }
               }
+              else
+                size = 0;
             }
             else
               size = 0;
-
-            ::av_free_packet(&packet);
           }
           else if (size >= inFrameSize)
           {
             ::AVFrame frame;
-            memset(&frame, 0, sizeof(frame));
-            frame.data[0] = const_cast<uint8_t *>(reinterpret_cast<const uint8_t *>(buffer + ptr));
-            frame.linesize[0] = inFrameSize;
-            frame.nb_samples = contextHandle->frame_size;
+            ::avcodec_get_frame_defaults(&frame);
+            frame.nb_samples = inFrameSize / (::av_get_bytes_per_sample(contextHandle->sample_fmt) * contextHandle->channels);
 
-            ::AVPacket packet;
-            packet.data = NULL;
-            packet.size = 0;
-
-            int gotPacket = 0;
-            if (avcodec_encode_audio2(contextHandle, &packet, &frame, &gotPacket) >= 0)
+            if (::avcodec_fill_audio_frame(
+                  &frame,
+                  contextHandle->channels,
+                  contextHandle->sample_fmt,
+                  (uint8_t *)(buffer + ptr),
+                  inFrameSize,
+                  1) >= 0)
             {
-              size -= inFrameSize;
-              ptr += inFrameSize;
+              ::AVPacket packet;
+              ::av_init_packet(&packet);
+              packet.data = NULL;
+              packet.size = 0;
 
-              if (gotPacket != 0)
+              int gotPacket = 0;
+              if (avcodec_encode_audio2(contextHandle, &packet, &frame, &gotPacket) >= 0)
               {
-                SEncodedAudioBuffer destBuffer(outCodec, SBuffer::MemoryPtr(
-                    new FFMpegCommon::SyncMemory(packet.size, wait ? &memorySem : NULL)));
+                size -= inFrameSize;
+                ptr += inFrameSize;
 
-                destBuffer.resize(packet.size);
-                ::memcpy(destBuffer.data(), packet.data, packet.size);
+                if (gotPacket != 0)
+                {
+                  SEncodedAudioBuffer destBuffer(outCodec, SBuffer::MemoryPtr(
+                      new FFMpegCommon::SyncMemory(packet.size, wait ? &memorySem : NULL)));
 
-                destBuffer.setPresentationTimeStamp(timeStamp);
-                destBuffer.setDuration(inFrameDuration);
+                  destBuffer.resize(packet.size);
+                  ::memcpy(destBuffer.data(), packet.data, packet.size);
 
-                output->append(destBuffer);
-                timeStamp += STime::fromClock(numSamples(inFrameSize), contextHandle->sample_rate);
+                  destBuffer.setPresentationTimeStamp(timeStamp);
+                  destBuffer.setDuration(inFrameDuration);
+
+                  output->append(destBuffer);
+                  timeStamp += STime::fromClock(numSamples(inFrameSize), contextHandle->sample_rate);
+
+                  ::av_free_packet(&packet);
+                }
               }
+              else
+                size = 0;
             }
             else
               size = 0;
-
-            ::av_free_packet(&packet);
           }
           else
           {
@@ -349,7 +369,5 @@ void AudioEncoder::encodeBufferTask(const SAudioBuffer &audioBuffer, SEncodedAud
   else
     output->append(SEncodedAudioBuffer()); // Flush
 }
-
-
 
 } } // End of namespaces
