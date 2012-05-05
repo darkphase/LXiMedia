@@ -259,6 +259,9 @@ BufferReaderBase::Packet BufferReaderBase::read(void)
 
     ::AVPacket avPacket;
     ::av_init_packet(&avPacket);
+    avPacket.data = NULL;
+    avPacket.size = 0;
+
     if (::av_read_frame(formatContext, &avPacket) >= 0)
       result = Packet(avPacket);
 
