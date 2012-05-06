@@ -52,18 +52,27 @@ void FormatProber::readFormat(ProbeInfo &pi, const QByteArray &)
 
       if (imageSuffixes().contains(suffix))
       {
+        pi.format.format = suffix;
         pi.format.fileType = ProbeInfo::FileType_Image;
         pi.format.fileTypeName = imageDescription(suffix);
       }
       else if (audioSuffixes().contains(suffix))
       {
+        pi.format.format = suffix;
         pi.format.fileType = ProbeInfo::FileType_Audio;
         pi.format.fileTypeName = audioDescription(suffix);
       }
       else if (videoSuffixes().contains(suffix))
       {
+        pi.format.format = suffix;
         pi.format.fileType = ProbeInfo::FileType_Video;
         pi.format.fileTypeName = videoDescription(suffix);
+      }
+      else if (subtitleSuffixes().contains(suffix))
+      {
+        pi.format.format = suffix;
+        pi.format.fileType = ProbeInfo::FileType_Subtitle;
+        pi.format.fileTypeName = subtitleDescription(suffix);
       }
     }
   }
@@ -304,6 +313,14 @@ QString FormatProber::imageDescription(const QString &suffix)
   return "Image";
 }
 
+QString FormatProber::subtitleDescription(const QString &suffix)
+{
+  if (suffix == "srt")
+    return "SubRip subtitle";
+
+  return "Subtitle";
+}
+
 const QSet<QString> & FormatProber::audioSuffixes(void)
 {
   static QSet<QString> suffixes;
@@ -392,6 +409,18 @@ const QSet<QString> & FormatProber::imageSuffixes(void)
     suffixes += "svg";
     suffixes += "tif";
     suffixes += "tiff";
+  }
+
+  return suffixes;
+}
+
+const QSet<QString> & FormatProber::subtitleSuffixes(void)
+{
+  static QSet<QString> suffixes;
+
+  if (suffixes.isEmpty())
+  {
+    suffixes += "srt";
   }
 
   return suffixes;

@@ -32,9 +32,9 @@ RawSubtitleDecoder::~RawSubtitleDecoder()
 
 bool RawSubtitleDecoder::openCodec(const SDataCodec &c, SInterfaces::AbstractBufferReader *, Flags)
 {
-  if (c.name() == "SUB/RAWUTF8")
+  if (c.name() == "sub_rawutf8")
     decode = &RawSubtitleDecoder::decodeUtf8;
-  else if (c.name() == "SUB/RAW8BIT")
+  else if (c.name() == "sub_raw8bit")
     decode = &RawSubtitleDecoder::decodeLocal8Bit;
 
   return decode != NULL;

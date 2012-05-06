@@ -15,36 +15,32 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#ifndef LXSTREAM_SSUBTITLEFILE_H
-#define LXSTREAM_SSUBTITLEFILE_H
+#ifndef LXSTREAM_SSUBTITLEINPUTNODE_H
+#define LXSTREAM_SSUBTITLEINPUTNODE_H
 
 #include <LXiCore>
-#include "sdatacodec.h"
-#include "sencodeddatabuffer.h"
-#include "export.h"
+#include "../sdatacodec.h"
+#include "../sencodeddatabuffer.h"
+#include "../export.h"
 
 namespace LXiStream {
 
-/*! Represents a separate subtitle file (e.g. srt file). This class is used
-    internally by SMediaInfo and SFileInputNode to transparently support
-    separate subtitle files (they are added as separate data streams).
- */
-class LXISTREAM_PUBLIC SSubtitleFile
+class LXISTREAM_PUBLIC SSubtitleInputNode : public SIOInputNode
 {
+Q_OBJECT
 public:
-                                SSubtitleFile(const QUrl &filePath);
-                                ~SSubtitleFile();
+                                SSubtitleInputNode(SGraph *, const QUrl &filePath = QUrl());
+                                ~SSubtitleInputNode();
 
+  void                          setFilePath(const QUrl &filePath);
   QUrl                          filePath(void) const;
 
-  bool                          open(void);
-  void                          close(void);
-  void                          reset(void);
+  bool                          process(STime);
 
-  const char                  * language(void) const;
-  SDataCodec                    codec(void) const;
-
-  SEncodedDataBuffer            readSubtitle(STime);
+protected: // From SInterfaces::AbstractBufferReader::ProduceCallback
+  virtual void                  produce(const SEncodedAudioBuffer &);
+  virtual void                  produce(const SEncodedVideoBuffer &);
+  virtual void                  produce(const SEncodedDataBuffer &);
 
 public:
   static QList<QUrl>            findSubtitleFiles(const QUrl &);

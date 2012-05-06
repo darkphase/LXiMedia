@@ -237,6 +237,7 @@ public:
       FileType_Audio          = 10,                                             //!< Audio file.
       FileType_Video,                                                           //!< Video file.
       FileType_Image,                                                           //!< Image file.
+      FileType_Subtitle,                                                        //!< Subtitle file.
 
 
       FileType_Directory      = 20,                                             //!< Filesystem directry.

@@ -122,7 +122,6 @@ bool SIOInputNode::process(void)
 {
   if (d->ioDevice && !d->endReached)
   {
-    if (!d->ioDevice->atEnd())
     if (SInputNode::process())
       return true;
 

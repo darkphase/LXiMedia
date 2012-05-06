@@ -42,9 +42,6 @@ public:
   virtual QList<DataStreamInfo> dataStreams(int title) const;
   virtual void                  selectStreams(int title, const QVector<StreamId> &);
 
-public: // From SInterfaces::SourceNode
-  virtual void                  stop(void);
-
 private slots:
   void                          parseSubtitle(const SEncodedVideoBuffer &);
 

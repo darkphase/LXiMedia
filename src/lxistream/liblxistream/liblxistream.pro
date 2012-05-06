@@ -36,7 +36,6 @@ HEADERS += $${PWD}/$${LXIMEDIA_DIR}/include/LXiStream \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/ssize.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/ssubpicturebuffer.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/ssubtitlebuffer.h \
-    $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/ssubtitlefile.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/stime.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/stimer.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/svideobuffer.h \
@@ -59,7 +58,6 @@ SOURCES += saudiobuffer.cpp \
     ssize.cpp \
     ssubpicturebuffer.cpp \
     ssubtitlebuffer.cpp \
-    ssubtitlefile.cpp \
     stime.cpp \
     stimer.cpp \
     svideobuffer.cpp \
@@ -85,6 +83,7 @@ HEADERS += $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/saudiodecodernode
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/snetworkinputnode.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/splaylistnode.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/ssubpicturerendernode.h \
+    $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/ssubtitleinputnode.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/ssubtitlerendernode.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/stimestampresamplernode.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/nodes/stimestampsyncnode.h \
@@ -113,6 +112,7 @@ SOURCES += nodes/saudiodecodernode.cpp \
     nodes/snetworkinputnode.cpp \
     nodes/splaylistnode.cpp \
     nodes/ssubpicturerendernode.cpp \
+    nodes/ssubtitleinputnode.cpp \
     nodes/ssubtitlerendernode.cpp \
     nodes/stimestampresamplernode.cpp \
     nodes/stimestampsyncnode.cpp \
@@ -140,6 +140,7 @@ HEADERS += common/audioformatconverter.h \
     common/psbufferreader.h \
     common/psbufferwriter.h \
     common/rawsubtitledecoder.h \
+    common/subtitlereader.h \
     common/tsbufferwriter.h \
     common/videoformatconverter.h
 SOURCES += common/audioformatconverter.cpp \
@@ -154,6 +155,7 @@ SOURCES += common/audioformatconverter.cpp \
     common/psbufferreader.cpp \
     common/psbufferwriter.cpp \
     common/rawsubtitledecoder.cpp \
+    common/subtitlereader.cpp \
     common/tsbufferwriter.cpp \
     common/videoformatconverter.cpp
 

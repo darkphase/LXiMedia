@@ -18,7 +18,7 @@
 #include "smediainfo.h"
 #include "sinterfaces.h"
 #include "smediafilesystem.h"
-#include "ssubtitlefile.h"
+#include "nodes/ssubtitleinputnode.h"
 #include <LXiCore>
 
 namespace LXiStream {
@@ -585,45 +585,24 @@ void SMediaInfo::probeDataStreams(void)
 
     if (!title.videoStreams.isEmpty())
     {
-      // Remove subtitles.
-      QList<DataStreamInfo> subs;
-      for (QList<DataStreamInfo>::Iterator i=title.dataStreams.begin();
-           i != title.dataStreams.end(); )
-      if (!i->file.isEmpty())
-      {
-        subs += *i;
-        i = title.dataStreams.erase(i);
-      }
-      else
-        i++;
+      QList<StreamId> subs;
+      foreach (const DataStreamInfo &info, title.dataStreams)
+        subs.append(info);
 
-      // Add subtitles with new ID (To ensure IDs match SFileInputNode).
       quint16 nextStreamId = 0xF000;
-      foreach (const QUrl &filePath, SSubtitleFile::findSubtitleFiles(pi->filePath))
+      foreach (const QUrl &filePath, SSubtitleInputNode::findSubtitleFiles(pi->filePath))
       {
-        bool found = false;
-        for (QList<DataStreamInfo>::Iterator i=subs.begin(); i!=subs.end(); i++)
-        if (i->file == filePath)
+        SSubtitleInputNode node(NULL, filePath);
+        for (int i=0; i<node.numTitles(); i++)
         {
-          i->type = DataStreamInfo::Type_Subtitle;
-          i->id = nextStreamId++;
-          title.dataStreams += *i;
-
-          found = true;
-          break;
-        }
-
-        if (!found)
-        {
-          SSubtitleFile file(filePath);
-          if (file.open())
+          foreach (const DataStreamInfo &stream, node.dataStreams(i))
+          if ((stream.type & ~StreamId::Type_Flags) == StreamId::Type_Subtitle)
           {
-            title.dataStreams += DataStreamInfo(
-                StreamId(DataStreamInfo::Type_Subtitle, nextStreamId++),
-                file.language(),
-                QString::null,
-                file.codec(),
-                filePath);
+            DataStreamInfo s = stream;
+            s.id = nextStreamId++;
+
+            if (!subs.contains(s))
+              title.dataStreams += s;
           }
         }
       }
