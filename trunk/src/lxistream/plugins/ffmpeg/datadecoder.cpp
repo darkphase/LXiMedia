@@ -105,6 +105,7 @@ SDataBufferList DataDecoder::decodeBuffer(const SEncodedDataBuffer &dataBuffer)
     {
       int gotSubtitle = 0;
       ::AVSubtitle subtitle;
+      ::memset(&subtitle, 0, sizeof(subtitle));
 
       // decode the subtitle
       packet.data = (uint8_t *)inPtr;
@@ -115,78 +116,83 @@ SDataBufferList DataDecoder::decodeBuffer(const SEncodedDataBuffer &dataBuffer)
       {
         if (gotSubtitle != 0)
         {
-          QStringList text;
-          QList<SSubpictureBuffer::Rect> rects;
-          for (unsigned i=0; i<subtitle.num_rects; i++)
-          if ((subtitle.rects[i]->type == ::SUBTITLE_BITMAP) ||
-              ((subtitle.rects[i]->type == ::SUBTITLE_NONE) &&
-               (subtitle.rects[i]->pict.data[0] != NULL) &&
-               (subtitle.rects[i]->pict.data[1] != NULL)))
+          if (subtitle.format == 0)
           {
-            SSubpictureBuffer::Rect rect;
-            rect.x = subtitle.rects[i]->x;
-            rect.y = subtitle.rects[i]->y;
-            rect.width = subtitle.rects[i]->w;
-            rect.height = subtitle.rects[i]->h;
-            rect.lineStride = SBuffer::align(rect.width, SBuffer::minimumAlignVal);
-            rect.paletteSize = subtitle.rects[i]->nb_colors;
-
-            rects += rect;
-          }
-          else if (subtitle.rects[i]->type == ::SUBTITLE_TEXT)
-            text += QString::fromUtf8(subtitle.rects[i]->text);
-
-          if (!rects.isEmpty())
-          {
-            SSubpictureBuffer buffer(rects);
-            for (unsigned i=0, rectId = 0; (i<subtitle.num_rects) && (rectId<unsigned(rects.count())); i++)
-            if (((subtitle.rects[i]->type == ::SUBTITLE_BITMAP) ||
-                 (subtitle.rects[i]->type == ::SUBTITLE_NONE)) &&
-                (subtitle.rects[i]->pict.data[0] != NULL) &&
-                (subtitle.rects[i]->pict.data[1] != NULL))
+            QStringList text;
+            QList<SSubpictureBuffer::Rect> rects;
+            for (unsigned i=0; i<subtitle.num_rects; i++)
+            if ((subtitle.rects[i]->type == ::SUBTITLE_BITMAP) ||
+                ((subtitle.rects[i]->type == ::SUBTITLE_NONE) &&
+                 (subtitle.rects[i]->pict.data[0] != NULL) &&
+                 (subtitle.rects[i]->pict.data[1] != NULL)))
             {
-              const SSubpictureBuffer::Rect rect = rects[rectId];
+              SSubpictureBuffer::Rect rect;
+              rect.x = subtitle.rects[i]->x;
+              rect.y = subtitle.rects[i]->y;
+              rect.width = subtitle.rects[i]->w;
+              rect.height = subtitle.rects[i]->h;
+              rect.lineStride = SBuffer::align(rect.width, SBuffer::minimumAlignVal);
+              rect.paletteSize = subtitle.rects[i]->nb_colors;
 
-              // Copy palette and make sure it is monochrome.
-              ::memcpy(buffer.palette(rectId), subtitle.rects[i]->pict.data[1], rect.paletteSize * sizeof(quint32));
+              rects += rect;
+            }
+            else if (subtitle.rects[i]->type == ::SUBTITLE_TEXT)
+              text += QString::fromUtf8(subtitle.rects[i]->text);
 
-              // And copy the lines
-              const int srcLineStride = qMax(subtitle.rects[i]->w, subtitle.rects[i]->pict.linesize[0]);
-              quint8 * const lines = buffer.lines(rectId);
-              for (int y=0; y<subtitle.rects[i]->h; y++)
+            if (!rects.isEmpty())
+            {
+              SSubpictureBuffer buffer(rects);
+              for (unsigned i=0, rectId = 0; (i<subtitle.num_rects) && (rectId<unsigned(rects.count())); i++)
+              if (((subtitle.rects[i]->type == ::SUBTITLE_BITMAP) ||
+                   (subtitle.rects[i]->type == ::SUBTITLE_NONE)) &&
+                  (subtitle.rects[i]->pict.data[0] != NULL) &&
+                  (subtitle.rects[i]->pict.data[1] != NULL))
               {
-                const quint8 * const srcLine = subtitle.rects[i]->pict.data[0] + (srcLineStride * y);
-                quint8 * const dstLine = lines + (rect.lineStride * y);
+                const SSubpictureBuffer::Rect rect = rects[rectId];
 
-                memcpy(dstLine, srcLine, rect.width);
+                // Copy palette and make sure it is monochrome.
+                ::memcpy(buffer.palette(rectId), subtitle.rects[i]->pict.data[1], rect.paletteSize * sizeof(quint32));
+
+                // And copy the lines
+                const int srcLineStride = qMax(subtitle.rects[i]->w, subtitle.rects[i]->pict.linesize[0]);
+                quint8 * const lines = buffer.lines(rectId);
+                for (int y=0; y<subtitle.rects[i]->h; y++)
+                {
+                  const quint8 * const srcLine = subtitle.rects[i]->pict.data[0] + (srcLineStride * y);
+                  quint8 * const dstLine = lines + (rect.lineStride * y);
+
+                  memcpy(dstLine, srcLine, rect.width);
+                }
+
+                rectId++;
               }
 
-              rectId++;
+              if (dataBuffer.presentationTimeStamp().isValid())
+                buffer.setTimeStamp(dataBuffer.presentationTimeStamp() + STime::fromMSec(subtitle.start_display_time));
+              else if (dataBuffer.decodingTimeStamp().isValid())
+                buffer.setTimeStamp(dataBuffer.decodingTimeStamp() + STime::fromMSec(subtitle.start_display_time));
+
+              buffer.setDuration(STime::fromMSec(subtitle.end_display_time - subtitle.start_display_time));
+
+              output += buffer;
             }
 
-            if (dataBuffer.presentationTimeStamp().isValid())
-              buffer.setTimeStamp(dataBuffer.presentationTimeStamp() + STime::fromMSec(subtitle.start_display_time));
-            else if (dataBuffer.decodingTimeStamp().isValid())
-              buffer.setTimeStamp(dataBuffer.decodingTimeStamp() + STime::fromMSec(subtitle.start_display_time));
+            if (!text.isEmpty())
+            {
+              SSubtitleBuffer buffer(text);
 
-            buffer.setDuration(STime::fromMSec(subtitle.end_display_time - subtitle.start_display_time));
+              if (dataBuffer.presentationTimeStamp().isValid())
+                buffer.setTimeStamp(dataBuffer.presentationTimeStamp() + STime::fromMSec(subtitle.start_display_time));
+              else if (dataBuffer.decodingTimeStamp().isValid())
+                buffer.setTimeStamp(dataBuffer.decodingTimeStamp() + STime::fromMSec(subtitle.start_display_time));
 
-            output += buffer;
+              buffer.setDuration(STime::fromMSec(subtitle.end_display_time - subtitle.start_display_time));
+
+              output += buffer;
+            }
           }
 
-          if (!text.isEmpty())
-          {
-            SSubtitleBuffer buffer(text);
-
-            if (dataBuffer.presentationTimeStamp().isValid())
-              buffer.setTimeStamp(dataBuffer.presentationTimeStamp() + STime::fromMSec(subtitle.start_display_time));
-            else if (dataBuffer.decodingTimeStamp().isValid())
-              buffer.setTimeStamp(dataBuffer.decodingTimeStamp() + STime::fromMSec(subtitle.start_display_time));
-
-            buffer.setDuration(STime::fromMSec(subtitle.end_display_time - subtitle.start_display_time));
-
-            output += buffer;
-          }
+          ::avsubtitle_free(&subtitle);
         }
 
         inPtr += len;

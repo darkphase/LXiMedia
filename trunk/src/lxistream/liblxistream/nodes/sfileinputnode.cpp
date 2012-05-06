@@ -16,8 +16,8 @@
  ******************************************************************************/
 
 #include "nodes/sfileinputnode.h"
+#include "nodes/ssubtitleinputnode.h"
 #include "smediafilesystem.h"
-#include "ssubtitlefile.h"
 #include "svideobuffer.h"
 #include <LXiCore>
 
@@ -26,11 +26,19 @@ namespace LXiStream {
 
 struct SFileInputNode::Data
 {
+  struct SubtitleFile
+  {
+    inline                      SubtitleFile(void) : node(NULL) { }
+    inline explicit             SubtitleFile(SSubtitleInputNode *node) : node(node) { }
+
+    SSubtitleInputNode        * node;
+    QMap<int, QMap<StreamId, DataStreamInfo> > streams;
+  };
+
   QIODevice                   * ioDevice;
   QUrl                          filePath;
-  QMap<StreamId, QUrl>          subtitleStreams;
-  SSubtitleFile               * subtitleFile;
-  SEncodedDataBuffer            nextSubtitle;
+
+  QList<SubtitleFile>           subtitleFiles;
 };
 
 SFileInputNode::SFileInputNode(SGraph *parent, const QUrl &filePath)
@@ -38,27 +46,61 @@ SFileInputNode::SFileInputNode(SGraph *parent, const QUrl &filePath)
     d(new Data())
 {
   d->ioDevice = NULL;
-  d->subtitleFile = NULL;
 
   setFilePath(filePath);
+
+  connect(this, SIGNAL(output(const SEncodedVideoBuffer &)), SLOT(parseSubtitle(const SEncodedVideoBuffer &)));
 }
 
 SFileInputNode::~SFileInputNode()
 {
+  foreach (const Data::SubtitleFile &file, d->subtitleFiles)
+    delete file.node;
+
   delete d->ioDevice;
-  delete d->subtitleFile;
   delete d;
   *const_cast<Data **>(&d) = NULL;
 }
 
 void SFileInputNode::setFilePath(const QUrl &filePath)
 {
+  foreach (const Data::SubtitleFile &file, d->subtitleFiles)
+    delete file.node;
+
   delete d->ioDevice;
+
+  d->subtitleFiles.clear();
+
   d->filePath = filePath;
   d->ioDevice = SMediaFilesystem::open(filePath);
 
   if (d->ioDevice)
+  {
+    quint16 nextStreamId = 0xF000;
+
+    foreach (const QUrl &filePath, SSubtitleInputNode::findSubtitleFiles(d->filePath))
+    {
+      SSubtitleInputNode * const node = new SSubtitleInputNode(NULL, filePath);
+      if (node->numTitles() > 0)
+      {
+        Data::SubtitleFile file(node);
+        for (int i=0; i<node->numTitles(); i++)
+        {
+          foreach (const DataStreamInfo &stream, node->dataStreams(i))
+          if ((stream.type & ~StreamId::Type_Flags) == StreamId::Type_Subtitle)
+            file.streams[i].insert(StreamId(stream.type, nextStreamId++), stream);
+        }
+
+        connect(node, SIGNAL(output(const SEncodedDataBuffer &)), SIGNAL(output(const SEncodedDataBuffer &)));
+
+        d->subtitleFiles += file;
+      }
+      else
+        delete node;
+    }
+
     SIOInputNode::setIODevice(d->ioDevice);
+  }
 }
 
 QUrl SFileInputNode::filePath(void) const
@@ -68,8 +110,8 @@ QUrl SFileInputNode::filePath(void) const
 
 bool SFileInputNode::setPosition(STime pos)
 {
-  if (d->subtitleFile)
-    d->subtitleFile->reset();
+  //foreach (const Data::SubtitleFile &file, d->subtitleFiles)
+  //  file.node->setPosition(pos);
 
   return SIOInputNode::setPosition(pos);
 }
@@ -78,22 +120,16 @@ QList<SFileInputNode::DataStreamInfo> SFileInputNode::dataStreams(int title) con
 {
   QList<DataStreamInfo> dataStreams = SIOInputNode::dataStreams(title);
 
-  // Add subtitles.
-  quint16 nextStreamId = 0xF000;
-  foreach (const QUrl &filePath, SSubtitleFile::findSubtitleFiles(d->filePath))
+  foreach (const Data::SubtitleFile &file, d->subtitleFiles)
   {
-    SSubtitleFile file(filePath);
-    if (file.open())
+    QMap<int, QMap<StreamId, DataStreamInfo> >::ConstIterator streams = file.streams.find(title);
+    if (streams != file.streams.end())
+    for (QMap<StreamId, DataStreamInfo>::ConstIterator i = streams->begin(); i != streams->end(); i++)
     {
-      const DataStreamInfo stream(
-          StreamId(StreamId::Type_Subtitle, nextStreamId++),
-          file.language(),
-          QString::null,
-          file.codec(),
-          filePath);
+      DataStreamInfo s = *i;
+      s.id = i.key().id;
 
-      dataStreams += stream;
-      d->subtitleStreams.insert(stream, filePath);
+      dataStreams += s;
     }
   }
 
@@ -103,67 +139,38 @@ QList<SFileInputNode::DataStreamInfo> SFileInputNode::dataStreams(int title) con
 void SFileInputNode::selectStreams(int title, const QVector<StreamId> &streamIds)
 {
   QVector<StreamId> nextStreamIds;
-  foreach (StreamId id, streamIds)
-  if (d->subtitleStreams.contains(id))
+  foreach (StreamId streamId, streamIds)
+  if (streamId.id < 0xF000)
+    nextStreamIds += streamId;
+
+  foreach (const Data::SubtitleFile &file, d->subtitleFiles)
   {
-    d->subtitleFile = new SSubtitleFile(d->subtitleStreams[id]);
-    if (d->subtitleFile->open())
+    QVector<StreamId> subtitleStreamIds;
+
+    QMap<int, QMap<StreamId, DataStreamInfo> >::ConstIterator streams = file.streams.find(title);
+    if (streams != file.streams.end())
+    foreach (StreamId streamId, streamIds)
     {
-      connect(this, SIGNAL(output(const SEncodedVideoBuffer &)), SLOT(parseSubtitle(const SEncodedVideoBuffer &)));
-      d->nextSubtitle.clear();
-      break; // Limit to one subtitle file.
+      QMap<StreamId, DataStreamInfo>::ConstIterator stream = streams->find(streamId);
+      if (stream != streams->end())
+        subtitleStreamIds += *stream;
     }
-    else
-    {
-      delete d->subtitleFile;
-      d->subtitleFile = NULL;
-    }
+
+    file.node->selectStreams(title, subtitleStreamIds);
   }
-  else
-    nextStreamIds += id;
 
   SIOInputNode::selectStreams(title, nextStreamIds);
 }
 
-void SFileInputNode::stop(void)
-{
-  SIOInputNode::stop();
-
-  SIOInputNode::setIODevice(NULL);
-  delete d->ioDevice;
-  d->ioDevice = NULL;
-
-  if (d->subtitleFile)
-  {
-    disconnect(this, SIGNAL(output(const SEncodedVideoBuffer &)), this, SLOT(parseSubtitle(const SEncodedVideoBuffer &)));
-    delete d->subtitleFile;
-    d->subtitleFile = NULL;
-
-    d->nextSubtitle.clear();
-  }
-}
-
 void SFileInputNode::parseSubtitle(const SEncodedVideoBuffer &videoBuffer)
 {
-  // parse subtitle (subtitles are sent slightly ahead of video)
-  if (d->subtitleFile)
-  {
-    const STime subtitleTime =
-        (videoBuffer.presentationTimeStamp().isValid()
-         ? videoBuffer.presentationTimeStamp()
-         : videoBuffer.decodingTimeStamp());
+  const STime subtitleTime =
+      (videoBuffer.presentationTimeStamp().isValid()
+       ? videoBuffer.presentationTimeStamp()
+       : videoBuffer.decodingTimeStamp());
 
-    if (d->nextSubtitle.isNull())
-    {
-      d->nextSubtitle = d->subtitleFile->readSubtitle(subtitleTime);
-    }
-    else if (d->nextSubtitle.presentationTimeStamp() < subtitleTime)
-    {
-      emit output(d->nextSubtitle);
-      d->nextSubtitle = d->subtitleFile->readSubtitle(subtitleTime);
-    }
-  }
+  foreach (const Data::SubtitleFile &file, d->subtitleFiles)
+    file.node->process(subtitleTime);
 }
-
 
 } // End of namespace

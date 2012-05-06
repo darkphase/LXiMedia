@@ -26,6 +26,7 @@
 #include "psbufferreader.h"
 #include "psbufferwriter.h"
 #include "rawsubtitledecoder.h"
+#include "subtitlereader.h"
 #include "tsbufferwriter.h"
 #include "videoformatconverter.h"
 
@@ -38,6 +39,7 @@ bool Module::registerClasses(void)
   FormatProber::audioSuffixes();
   FormatProber::videoSuffixes();
   FormatProber::imageSuffixes();
+  FormatProber::subtitleSuffixes();
   FormatProber::registerClass<FormatProber>(INT_MAX); // This one always first.
 
   LocalFilesystem::registerClass<LocalFilesystem>(LocalFilesystem::scheme);
@@ -74,12 +76,13 @@ bool Module::registerClasses(void)
   PcmAudioEncoder::registerClass<PcmAudioEncoder>(SFactory::Scheme(1, "pcm_f64le"));
   PcmAudioEncoder::registerClass<PcmAudioEncoder>(SFactory::Scheme(1, "pcm_f64be"));
 
-  RawSubtitleDecoder::registerClass<RawSubtitleDecoder>(SFactory::Scheme(1, "SUB/RAWUTF8"));
-  RawSubtitleDecoder::registerClass<RawSubtitleDecoder>(SFactory::Scheme(1, "SUB/RAW8BIT"));
+  RawSubtitleDecoder::registerClass<RawSubtitleDecoder>(SFactory::Scheme(1, "sub_rawutf8"));
+  RawSubtitleDecoder::registerClass<RawSubtitleDecoder>(SFactory::Scheme(1, "sub_raw8bit"));
 
   // Buffer readers and writers
   //PsBufferReader::registerClass<PsBufferReader>(PsBufferWriter::formatName);
   //PsBufferWriter::registerClass<PsBufferWriter>(PsBufferWriter::formatName);
+  SubtitleReader::registerClass<SubtitleReader>(SFactory::Scheme(1, "srt"));
   TsBufferWriter::registerClass<TsBufferWriter>(SFactory::Scheme(-1, "m2ts"));
 
   // Filters

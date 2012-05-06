@@ -43,10 +43,12 @@ public:
   static QString                audioDescription(const QString &suffix);
   static QString                videoDescription(const QString &suffix);
   static QString                imageDescription(const QString &suffix);
+  static QString                subtitleDescription(const QString &suffix);
 
   static const QSet<QString>  & audioSuffixes(void);
   static const QSet<QString>  & videoSuffixes(void);
   static const QSet<QString>  & imageSuffixes(void);
+  static const QSet<QString>  & subtitleSuffixes(void);
 };
 
 
