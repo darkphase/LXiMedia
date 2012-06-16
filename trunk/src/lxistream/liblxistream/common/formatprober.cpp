@@ -52,25 +52,25 @@ void FormatProber::readFormat(ProbeInfo &pi, const QByteArray &)
 
       if (imageSuffixes().contains(suffix))
       {
-        pi.format.format = suffix;
+        pi.format.format = suffix.toAscii();
         pi.format.fileType = ProbeInfo::FileType_Image;
         pi.format.fileTypeName = imageDescription(suffix);
       }
       else if (audioSuffixes().contains(suffix))
       {
-        pi.format.format = suffix;
+        pi.format.format = suffix.toAscii();
         pi.format.fileType = ProbeInfo::FileType_Audio;
         pi.format.fileTypeName = audioDescription(suffix);
       }
       else if (videoSuffixes().contains(suffix))
       {
-        pi.format.format = suffix;
+        pi.format.format = suffix.toAscii();
         pi.format.fileType = ProbeInfo::FileType_Video;
         pi.format.fileTypeName = videoDescription(suffix);
       }
       else if (subtitleSuffixes().contains(suffix))
       {
-        pi.format.format = suffix;
+        pi.format.format = suffix.toAscii();
         pi.format.fileType = ProbeInfo::FileType_Subtitle;
         pi.format.fileTypeName = subtitleDescription(suffix);
       }
