@@ -139,7 +139,7 @@ public: // Alignment methods
   template <typename _type>
   static inline _type         * align(_type *ptr, int alignVal = optimalAlignVal)
   {
-    return (_type *)((intptr_t(ptr) + alignVal - 1) & ~intptr_t(alignVal - 1));
+    return (_type *)((quintptr(ptr) + alignVal - 1) & ~quintptr(alignVal - 1));
   }
 
   /*! This constant specifies the number of bytes padding that are appended to

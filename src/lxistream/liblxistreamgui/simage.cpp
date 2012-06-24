@@ -118,7 +118,7 @@ SVideoBuffer SImage::toVideoBuffer(SInterval frameRate) const
     if (!bufferFormat.isNull())
     {
       if (((bytesPerLine() & ~(SBuffer::minimumAlignVal - 1)) == 0) &&
-          ((intptr_t(bits()) & ~intptr_t(SBuffer::minimumAlignVal - 1)) == 0))
+          ((quintptr(bits()) & ~quintptr(SBuffer::minimumAlignVal - 1)) == 0))
       { // Data is aligned; it can be reused.
         class Image : public SBuffer::Memory
         {
