@@ -28,6 +28,7 @@ const unsigned  SUPnPContentDirectory::seekSec = 120;
 
 struct SUPnPContentDirectory::Data : SUPnPContentDirectory::Callback
 {
+  virtual                       ~Data() { }
   virtual QList<Item>           listContentDirItems(const QString &client, const QString &path, int start, int &count);
   virtual Item                  getContentDirItem(const QString &client, const QString &path);
 

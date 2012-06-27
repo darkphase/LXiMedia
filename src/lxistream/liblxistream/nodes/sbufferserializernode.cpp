@@ -90,7 +90,7 @@ void SBufferSerializerNode::serialize(const QByteArray &buffer, quint32 bufferId
       return;
     }
 
-    const struct { quint32 bufferId, dataLen; } header = { bufferId, buffer.size() };
+    const struct { quint32 bufferId, dataLen; } header = { quint32(bufferId), quint32(buffer.size()) };
 
     d->ioDevice->write(reinterpret_cast<const char *>(&header), sizeof(header));
     d->ioDevice->write(buffer.data(), header.dataLen);
@@ -115,7 +115,7 @@ void SBufferSerializerNode::serialize(const _buffer &buffer, quint32 bufferId)
       return;
     }
 
-    const struct { quint32 bufferId, metaLen, dataLen; } header = { bufferId, sizeof(buffer.d), buffer.size() };
+    const struct { quint32 bufferId, metaLen, dataLen; } header = { quint32(bufferId), quint32(sizeof(buffer.d)), quint32(buffer.size()) };
     d->ioDevice->write(reinterpret_cast<const char *>(&header), sizeof(header));
     d->ioDevice->write(reinterpret_cast<const char *>(&buffer.d), header.metaLen);
     d->ioDevice->write(buffer.data(), header.dataLen);

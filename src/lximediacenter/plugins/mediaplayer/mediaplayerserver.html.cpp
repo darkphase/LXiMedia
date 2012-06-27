@@ -371,6 +371,7 @@ SHttpServer::ResponseMessage MediaPlayerServer::httpRequest(const SHttpServer::R
             case SMediaInfo::ProbeInfo::FileType_Audio:     defaultIcon = ":/img/audio-file.png";     break;
             case SMediaInfo::ProbeInfo::FileType_Video:     defaultIcon = ":/img/video-file.png";     break;
             case SMediaInfo::ProbeInfo::FileType_Image:     defaultIcon = ":/img/image-file.png";     break;
+            case SMediaInfo::ProbeInfo::FileType_Subtitle:  defaultIcon = ":/img/journal.png";        break;
             case SMediaInfo::ProbeInfo::FileType_Directory: defaultIcon = ":/img/directory.png";      break;
             case SMediaInfo::ProbeInfo::FileType_Drive:     defaultIcon = ":/img/drive.png";          break;
             case SMediaInfo::ProbeInfo::FileType_Disc:      defaultIcon = ":/img/media-optical.png";  break;
