@@ -174,7 +174,7 @@ SEncodedDataBuffer SubtitleReader::readNextSrtSubtitle(void)
   QByteArray data;
   QByteArray line;
 
-  if (open)
+  if (open && selected)
   while ((line = ioDevice->readLine()).length() > 0)
   {
     if (phase == 0)
