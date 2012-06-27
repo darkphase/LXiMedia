@@ -18,6 +18,7 @@
 #include "v4l2input.h"
 #include <fcntl.h>
 #include <stropts.h>
+#include <unistd.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 
@@ -369,7 +370,7 @@ bool V4l2Input::process(void)
         else
         {
           const int offset[4] = { 0, 0, 0, 0 };
-          const int lineSize[4] = { bufferSize / outFormat.size().height(), 0, 0, 0 };
+          const int lineSize[4] = { int(bufferSize / outFormat.size().height()), 0, 0, 0 };
 
           buffer = SVideoBuffer(outFormat, SBuffer::MemoryPtr(mem), offset, lineSize);
         }

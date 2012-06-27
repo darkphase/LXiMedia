@@ -272,7 +272,7 @@ void PerformanceTest::ConvertS16S32(void)
 void PerformanceTest::ConvertU16U32(void)
 {
   static const int count = 8;
-  static const quint16 lxivec_align src[count] = { 1, -2, 3, -4, 5, -6, 7, -8 };
+  static const quint16 lxivec_align src[count] = { 1, quint16(-2), 3, quint16(-4), 5, quint16(-6), 7, quint16(-8) };
   quint32 lxivec_align dst1[count] = { 0 };
 
   Algorithms::AudioConvert::convert(dst1, src, count);

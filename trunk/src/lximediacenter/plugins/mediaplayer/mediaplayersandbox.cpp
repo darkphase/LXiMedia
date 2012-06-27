@@ -454,6 +454,7 @@ SSandboxServer::ResponseMessage MediaPlayerSandbox::play(const SSandboxServer::R
       case SMediaInfo::ProbeInfo::FileType_Directory:
       case SMediaInfo::ProbeInfo::FileType_Drive:
       case SMediaInfo::ProbeInfo::FileType_Disc:
+      case SMediaInfo::ProbeInfo::FileType_Subtitle:
         break;
       }
 

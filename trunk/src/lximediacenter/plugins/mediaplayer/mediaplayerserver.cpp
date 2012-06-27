@@ -285,6 +285,7 @@ MediaPlayerServer::ListType MediaPlayerServer::listType(const QString &virtualPa
   case SMediaInfo::ProbeInfo::FileType_Disc:
   case SMediaInfo::ProbeInfo::FileType_Audio:
   case SMediaInfo::ProbeInfo::FileType_Video:
+  case SMediaInfo::ProbeInfo::FileType_Subtitle:
     return ListType_Details;
 
   case SMediaInfo::ProbeInfo::FileType_None:
@@ -471,6 +472,7 @@ MediaPlayerServer::Item MediaPlayerServer::makeItem(SMediaInfo::ProbeInfo::FileT
       case SMediaInfo::ProbeInfo::FileType_None:
       case SMediaInfo::ProbeInfo::FileType_Directory:
       case SMediaInfo::ProbeInfo::FileType_Drive:
+      case SMediaInfo::ProbeInfo::FileType_Subtitle:
         break;
       }
 
@@ -576,6 +578,7 @@ MediaPlayerServer::Item MediaPlayerServer::makePlayAllItem(const QString &virtua
   case SMediaInfo::ProbeInfo::FileType_Directory:
   case SMediaInfo::ProbeInfo::FileType_Drive:
   case SMediaInfo::ProbeInfo::FileType_Video:
+  case SMediaInfo::ProbeInfo::FileType_Subtitle:
     item.type = Item::Type_VideoBroadcast;
     item.title = tr("Play all");
     break;
@@ -607,6 +610,7 @@ SMediaInfo::ProbeInfo::FileType MediaPlayerServer::dirType(const QString &virtua
 
     case SMediaInfo::ProbeInfo::FileType_Directory:
     case SMediaInfo::ProbeInfo::FileType_Drive:
+    case SMediaInfo::ProbeInfo::FileType_Subtitle:
     case SMediaInfo::ProbeInfo::FileType_None:
       break;
     }
