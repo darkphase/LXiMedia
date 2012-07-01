@@ -55,17 +55,8 @@ void FFMpegTest::MediaFileInfoAudioDeep(void)
  */
 void FFMpegTest::AudioEncodeDecode(void)
 {
-  static const QSet<QString> skipCodecs = QSet<QString>()
-      << "aac" << "alac" << "sonic" << "libspeex" << "vorbis"
-      << "wmav1" << "wmav2"
-      << "pcm_s16le" << "pcm_s16be" << "pcm_u16le" << "pcm_u16be" << "pcm_s8"
-      << "pcm_u8" << "pcm_mulaw" << "pcm_alaw" << "pcm_s32le" << "pcm_s32be"
-      << "pcm_u32le" << "pcm_u32be" << "pcm_s24le" << "pcm_s24be" << "pcm_u24le"
-      << "pcm_u24be" << "pcm_s24DAUD" << "PCM/ZORK" << "pcm_s16leP" << "pcm_dvd"
-      << "pcm_f32be" << "pcm_f32le" << "pcm_f64be" << "pcm_f64le"
-      << "adpcm_adx" << "g722" << "g726" << "adpcm_ima_wav"
-      << "amr_wb"
-      << "roq_dpcm";
+  static const QSet<QString> codecs = QSet<QString>()
+      << "ac3" << "mp2";
 
   const QSet<QString> decoders = QSet<QString>::fromList(SAudioDecoderNode::codecs());
   const QSet<QString> encoders = QSet<QString>::fromList(SAudioEncoderNode::codecs());
@@ -73,7 +64,7 @@ void FFMpegTest::AudioEncodeDecode(void)
   QList<QString> test = (encoders & decoders).toList();
   qSort(test);
   foreach (const QString &codec, test)
-  if (!skipCodecs.contains(codec))
+  if (codecs.contains(codec))
     AudioEncodeDecode(codec.toAscii());
 }
 
@@ -132,11 +123,8 @@ void FFMpegTest::AudioEncodeDecode(const char *codecName)
  */
 void FFMpegTest::VideoEncodeDecode(void)
 {
-  static const QSet<QString> skipCodecs = QSet<QString>()
-      << "asv1" << "asv2" << "dnxhd" << "dvvideo" << "ffvhuff" << "jpegls"
-      << "gif" << "h261" << "h263" << "h264"<< "huffyuv" << "libvpx"
-      << "roqvideo" << "rv10" << "rv20" << "svq1" << "theora" << "v210"
-      << "wmv2" << "zlib";
+  static const QSet<QString> codecs = QSet<QString>()
+      << "flv1" << "mjpeg" << "mpeg1" << "mpeg2" << "mpeg4";
 
   const QSet<QString> decoders = QSet<QString>::fromList(SVideoDecoderNode::codecs());
   const QSet<QString> encoders = QSet<QString>::fromList(SVideoEncoderNode::codecs());
@@ -144,7 +132,7 @@ void FFMpegTest::VideoEncodeDecode(void)
   QList<QString> test = (encoders & decoders).toList();
   qSort(test);
   foreach (const QString &codec, test)
-  if (!skipCodecs.contains(codec))
+  if (codecs.contains(codec))
     VideoEncodeDecode(codec.toAscii());
 }
 
