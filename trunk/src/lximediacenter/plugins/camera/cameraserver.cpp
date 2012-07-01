@@ -24,19 +24,24 @@ namespace CameraBackend {
 
 CameraServer::CameraServer(const QString &, QObject *parent)
   : MediaServer(parent),
-    masterServer(NULL)
+    masterServer(NULL),
+    probeSandbox(NULL)
 {
 }
 
 void CameraServer::initialize(MasterServer *masterServer)
 {
   this->masterServer = masterServer;
+  probeSandbox = masterServer->createSandbox(SSandboxClient::Priority_Low);
 
   MediaServer::initialize(masterServer);
 }
 
 void CameraServer::close(void)
 {
+  delete probeSandbox;
+  probeSandbox = NULL;
+
   MediaServer::close();
 }
 
@@ -87,7 +92,20 @@ QList<CameraServer::Item> CameraServer::listItems(const QString &, int start, in
   const bool returnAll = count == 0;
   QList<Item> result;
 
-  const QStringList cameras = SAudioVideoInputNode::devices();
+  SSandboxClient::RequestMessage request(probeSandbox);
+  request.setRequest("GET",QByteArray(CameraSandbox::path) + "?listcameras=");
+
+  QStringList cameras;
+  const SHttpEngine::ResponseMessage response = probeSandbox->blockingRequest(request);
+  if (response.status() == SHttpEngine::Status_Ok)
+  {
+    QXmlStreamReader reader(response.content());
+    if (reader.readNextStartElement() && (reader.name() == "cameras"))
+    while (reader.readNextStartElement())
+    if (reader.name() == "camera")
+      cameras += reader.readElementText();
+  }
+
   for (int i=start, n=0; (i<cameras.count()) && (returnAll || (n<int(count))); i++, n++)
   {
     Item item;
@@ -102,7 +120,7 @@ QList<CameraServer::Item> CameraServer::listItems(const QString &, int start, in
     result += item;
   }
 
-  count = SAudioVideoInputNode::devices().count();
+  count = cameras.count();
 
   return result;
 }

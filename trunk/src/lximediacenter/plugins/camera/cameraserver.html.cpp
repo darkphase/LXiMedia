@@ -27,7 +27,8 @@ const char CameraServer::htmlFrontPageContent[] =
 
 QByteArray CameraServer::frontPageContent(void)
 {
-  if (!SAudioVideoInputNode::devices().isEmpty())
+  int count = 1;
+  if (!listItems(QString::null, 0, count).isEmpty())
   {
     SStringParser htmlParser;
     htmlParser.setField("SERVER_PATH", QUrl(serverPath()));
