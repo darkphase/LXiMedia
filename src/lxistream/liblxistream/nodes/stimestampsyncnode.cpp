@@ -98,6 +98,8 @@ bool STimeStampSyncNode::start(void)
 
 void STimeStampSyncNode::stop(void)
 {
+  d->audioQueue.clear();
+  d->videoQueue.clear();
 }
 
 void STimeStampSyncNode::input(const SAudioBuffer &audioBuffer)

@@ -51,7 +51,8 @@ private:
 struct SAudioVideoInputNode::Data
 {
   QString                       device;
-  SVideoFormat                  format;
+  SAudioFormat                  audioFormat;
+  SVideoFormat                  videoFormat;
   int                           maxBuffers;
 
   SInterfaces::AudioInput     * audioInput;
@@ -85,9 +86,10 @@ QStringList SAudioVideoInputNode::devices(void)
   return SInterfaces::VideoInput::available();
 }
 
-void SAudioVideoInputNode::setFormat(const SVideoFormat &format)
+void SAudioVideoInputNode::setFormat(const SAudioFormat &audioFormat, const SVideoFormat &videoFormat)
 {
-  d->format = format;
+  d->audioFormat = audioFormat;
+  d->videoFormat = videoFormat;
 }
 
 void SAudioVideoInputNode::setMaxBuffers(int maxBuffers)
@@ -131,6 +133,9 @@ bool SAudioVideoInputNode::start(void)
       d->audioInput = SInterfaces::AudioInput::create(this, bestMatch);
       if (d->audioInput)
       {
+        if (!d->audioFormat.isNull())
+          d->audioInput->setFormat(d->audioFormat);
+
         if (d->audioInput->start())
         {
           connect(d->audioInput, SIGNAL(produce(const SAudioBuffer &)), SIGNAL(output(const SAudioBuffer &)));
@@ -144,8 +149,8 @@ bool SAudioVideoInputNode::start(void)
       }
     }
 
-    if (!d->format.isNull())
-      d->videoInput->setFormat(d->format);
+    if (!d->videoFormat.isNull())
+      d->videoInput->setFormat(d->videoFormat);
 
     if (d->maxBuffers > 0)
       d->videoInput->setMaxBuffers(d->maxBuffers);
@@ -171,23 +176,13 @@ void SAudioVideoInputNode::stop(void)
   d->audioThread = NULL;
 
   if (d->audioInput)
-  {
     d->audioInput->stop();
-
-    delete d->audioInput;
-    d->audioInput = NULL;
-  }
 
   delete d->videoThread;
   d->videoThread = NULL;
 
   if (d->videoInput)
-  {
     d->videoInput->stop();
-
-    delete d->videoInput;
-    d->videoInput = NULL;
-  }
 }
 
 bool SAudioVideoInputNode::process(void)

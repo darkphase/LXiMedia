@@ -15,56 +15,27 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#ifndef TELEVISIONSANDBOX_H
-#define TELEVISIONSANDBOX_H
-
-#include <LXiMediaCenter>
-#include <LXiStreamDevice>
+#include "cameraserver.h"
 
 namespace LXiMediaCenter {
-namespace TelevisionBackend {
+namespace CameraBackend {
 
-class TelevisionSandbox : public BackendSandbox
+const char CameraServer::htmlFrontPageContent[] =
+    "   <div class=\"list_thumbnails\" id=\"cameraitems\">\n"
+    "   </div>\n"
+    "   <script type=\"text/javascript\">loadListContent(\"cameraitems\", \"{SERVER_PATH}\", 0, 0);</script>\n";
+
+QByteArray CameraServer::frontPageContent(void)
 {
-Q_OBJECT
-public:
-  explicit                      TelevisionSandbox(const QString &, QObject *parent = NULL);
+  if (!SAudioVideoInputNode::devices().isEmpty())
+  {
+    SStringParser htmlParser;
+    htmlParser.setField("SERVER_PATH", QUrl(serverPath()));
 
-  virtual void                  initialize(SSandboxServer *);
-  virtual void                  close(void);
+    return htmlParser.parse(htmlFrontPageContent);
+  }
 
-public: // From SSandboxServer::Callback
-  virtual SSandboxServer::ResponseMessage httpRequest(const SSandboxServer::RequestMessage &, QIODevice *);
-  virtual void                  handleHttpOptions(SHttpServer::ResponseHeader &);
-
-private slots:
-  void                          cleanStreams(void);
-
-public:
-  static const char     * const path;
-
-private:
-  static const QEvent::Type     probeResponseEventType;
-
-  SSandboxServer              * server;
-  QList<MediaStream *>          streams;
-  QTimer                        cleanStreamsTimer;
-};
-
-class SandboxInputStream : public MediaStream
-{
-Q_OBJECT
-public:
-  explicit                      SandboxInputStream(const QString &device);
-  virtual                       ~SandboxInputStream();
-
-  bool                          setup(const SHttpServer::RequestMessage &, QIODevice *);
-
-public:
-  SAudioVideoInputNode          input;
-};
-
+  return QByteArray();
+}
 
 } } // End of namespaces
-
-#endif

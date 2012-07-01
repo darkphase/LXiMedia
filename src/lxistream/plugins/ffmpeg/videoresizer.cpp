@@ -29,6 +29,7 @@ VideoResizer::VideoResizer(const QString &scheme, QObject *parent)
     scaleAspectRatioMode(Qt::KeepAspectRatio),
     lastFormat(SVideoFormat::Format_Invalid),
     destFormat(SVideoFormat::Format_Invalid),
+    formatConvert(NULL),
     numThreads(0),
     preFilter((scheme == "deinterlace") ? createDeinterlaceFilter() : NULL)
 {
@@ -90,8 +91,16 @@ bool VideoResizer::needsResize(const SVideoFormat &format)
 
     size.setHeight((size.height() + 1) & ~1);
 
+    if ((lastFormat.format() == SVideoFormat::Format_YUYV422) ||
+        (lastFormat.format() == SVideoFormat::Format_UYVY422))
+    {
+      formatConvert.setDestFormat(SVideoFormat::Format_YUV422P);
+    }
+    else
+      formatConvert.setDestFormat(lastFormat.format());
+
     destFormat = SVideoFormat(
-        lastFormat.format(),
+        formatConvert.destFormat(),
         size,
         lastFormat.frameRate(),
         lastFormat.fieldMode());
@@ -119,7 +128,7 @@ bool VideoResizer::needsResize(const SVideoFormat &format)
 
       for (int i=0; i<numThreads; i++)
       {
-        const ::PixelFormat pf = FFMpegCommon::toFFMpegPixelFormat(lastFormat);
+        const ::PixelFormat pf = FFMpegCommon::toFFMpegPixelFormat(destFormat);
 
         swsContext[i] = ::sws_getCachedContext(
             NULL,
@@ -151,10 +160,11 @@ SVideoBuffer VideoResizer::processBuffer(const SVideoBuffer &videoBuffer)
 {
   if (!scaleSize.isNull() && !videoBuffer.isNull() && VideoResizer::needsResize(videoBuffer.format()))
   {
+    const SVideoBuffer srcBuffer = formatConvert.convert(videoBuffer);
     SVideoBuffer destBuffer(destFormat);
 
     int wf = 1, hf = 1;
-    destFormat.planarYUVRatio(wf, hf);
+    const bool planar = destFormat.planarYUVRatio(wf, hf);
 
     bool result = true;
     QVector< QFuture<bool> > futures;
@@ -167,24 +177,24 @@ SVideoBuffer VideoResizer::processBuffer(const SVideoBuffer &videoBuffer)
       const int stripSrcPos = (i == 0) ? 0 : (imageHeight - stripSrcHeight);
 
       Slice src;
-      src.stride[0] = videoBuffer.lineSize(0);
-      src.stride[1] = videoBuffer.lineSize(1);
-      src.stride[2] = videoBuffer.lineSize(2);
-      src.stride[3] = videoBuffer.lineSize(3);
-      src.line[0] = (quint8 *)videoBuffer.scanLine(0, 0) + (stripSrcPos * src.stride[0]);
-      src.line[1] = (quint8 *)videoBuffer.scanLine(0, 1) + ((stripSrcPos / hf) * src.stride[1]);
-      src.line[2] = (quint8 *)videoBuffer.scanLine(0, 2) + ((stripSrcPos / hf) * src.stride[2]);
-      src.line[3] = (quint8 *)videoBuffer.scanLine(0, 3) + ((stripSrcPos / hf) * src.stride[3]);
+      src.stride[0] = srcBuffer.lineSize(0);
+      src.stride[1] = planar ? srcBuffer.lineSize(1) : 0;
+      src.stride[2] = planar ? srcBuffer.lineSize(2) : 0;
+      src.stride[3] = planar ? srcBuffer.lineSize(3) : 0;
+      src.line[0] = (quint8 *)srcBuffer.scanLine(0, 0) + (stripSrcPos * src.stride[0]);
+      src.line[1] = planar ? ((quint8 *)srcBuffer.scanLine(0, 1) + ((stripSrcPos / hf) * src.stride[1])) : NULL;
+      src.line[2] = planar ? ((quint8 *)srcBuffer.scanLine(0, 2) + ((stripSrcPos / hf) * src.stride[2])) : NULL;
+      src.line[3] = planar ? ((quint8 *)srcBuffer.scanLine(0, 3) + ((stripSrcPos / hf) * src.stride[3])) : NULL;
 
       Slice dst;
       dst.stride[0] = destBuffer.lineSize(0);
-      dst.stride[1] = destBuffer.lineSize(1);
-      dst.stride[2] = destBuffer.lineSize(2);
-      dst.stride[3] = destBuffer.lineSize(3);
+      dst.stride[1] = planar ? destBuffer.lineSize(1) : 0;
+      dst.stride[2] = planar ? destBuffer.lineSize(2) : 0;
+      dst.stride[3] = planar ? destBuffer.lineSize(3) : 0;
       dst.line[0] = (quint8 *)destBuffer.scanLine(0, 0);
-      dst.line[1] = (quint8 *)destBuffer.scanLine(0, 1);
-      dst.line[2] = (quint8 *)destBuffer.scanLine(0, 2);
-      dst.line[3] = (quint8 *)destBuffer.scanLine(0, 3);
+      dst.line[1] = planar ? (quint8 *)destBuffer.scanLine(0, 1) : NULL;
+      dst.line[2] = planar ? (quint8 *)destBuffer.scanLine(0, 2) : NULL;
+      dst.line[3] = planar ? (quint8 *)destBuffer.scanLine(0, 3) : NULL;
 
       if (numThreads > 1)
         futures += QtConcurrent::run(this, &VideoResizer::processSlice, i, stripSrcPos, stripSrcHeight, src, dst);
@@ -198,7 +208,7 @@ SVideoBuffer VideoResizer::processBuffer(const SVideoBuffer &videoBuffer)
 
     if (result)
     {
-      destBuffer.setTimeStamp(videoBuffer.timeStamp());
+      destBuffer.setTimeStamp(srcBuffer.timeStamp());
       return destBuffer;
     }
   }

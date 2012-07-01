@@ -60,7 +60,7 @@ public:
   {
     QCoreApplication app(argc, argv); configApp();
 #if !defined(DEBUG_USE_LOCAL_SANDBOX)
-    SApplication mediaApp(true, QStringList() << "lxistream" << "lxistreamgui");
+    SApplication mediaApp(true, QStringList() << "lxistream" << "lxistreamdevice" << "lxistreamgui");
 #else
     SApplication mediaApp(true);
 #endif
@@ -179,7 +179,7 @@ int main(int argc, char *argv[])
   else
   {
 #if !defined(DEBUG_USE_LOCAL_SANDBOX)
-    SApplication mediaApp(true, QStringList() << "lxistream" << "lxistreamgui");
+    SApplication mediaApp(true, QStringList() << "lxistream" << "lxistreamdevice" << "lxistreamgui");
 #else
     SApplication mediaApp(true);
 #endif

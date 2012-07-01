@@ -185,7 +185,10 @@ V4l2Input::V4l2Input(const QString &device, QObject *parent)
 V4l2Input::~V4l2Input()
 {
   if (devDesc >= 0)
+  {
+    unmapBuffers();
     ::close(devDesc);
+  }
 }
 
 void V4l2Input::setFormat(const SVideoFormat &format)
@@ -210,6 +213,8 @@ int V4l2Input::maxBuffers(void) const
 
 bool V4l2Input::start(void)
 {
+  unmapBuffers();
+
   // Build a list of codecs to test
   QList<SVideoFormat> formats;
   if (!outFormat.isNull() && pixelFormats.contains(outFormat.format()))
@@ -244,10 +249,12 @@ bool V4l2Input::start(void)
       {
         testSize.setWidth(imgformat.fmt.pix.width);
         testSize.setHeight(imgformat.fmt.pix.height);
+        testFormat.setFormat(fromV4L(imgformat.fmt.pix.pixelformat));
+        testFormat.setFieldMode(fromV4L(imgformat.fmt.pix.field));
       }
 
       // Assuming always 4:3 aspect ratio.
-      testSize.setAspectRatio(float(imgformat.fmt.pix.height) / float(imgformat.fmt.pix.width) * 1.333f);
+      testSize.setAspectRatio(float(testSize.height()) / float(testSize.width()) * 1.333f);
       testFormat.setSize(testSize);
       outFormat = testFormat;
       bufferSize = outFormat.sampleSize() * testSize.width() * testSize.height();
@@ -331,18 +338,6 @@ void V4l2Input::stop(void)
   bufferSize = 0;
   agcMin = agcMax = agcMaxc = -1.0f;
   agcWeight = 1.0;
-
-  if (mappedBuffers > 0)
-  {
-    for (int i=0; i<mappedBuffers; i++)
-      munmap((void *)maps[i], buffers[i].length);
-
-    delete [] buffers;
-    buffers = NULL;
-    delete [] maps;
-    maps = NULL;
-    mappedBuffers = 0;
-  }
 }
 
 bool V4l2Input::process(void)
@@ -398,7 +393,7 @@ bool V4l2Input::process(void)
         if (::ioctl(devDesc, VIDIOC_STREAMON, &bufferRequest.type) >= 0)
         {
           for (int i=0; i<mappedBuffers; i++)
-            queueBuffer(i);
+            ::ioctl(devDesc, VIDIOC_QBUF, buffers + i);
         }
       }
     }
@@ -432,11 +427,7 @@ bool V4l2Input::process(void)
 
         // Start it again
         l.relock();
-        if (::ioctl(devDesc, VIDIOC_STREAMON, &bufferRequest.type) >= 0)
-        {
-          for (int i=0; i<mappedBuffers; i++)
-            queueBuffer(i);
-        }
+        ::ioctl(devDesc, VIDIOC_STREAMON, &bufferRequest.type);
       }
     }
   }
@@ -699,9 +690,21 @@ void V4l2Input::queueBuffer(int index)
   QMutexLocker l(&mutex);
 
   if (index < mappedBuffers)
+    ::ioctl(devDesc, VIDIOC_QBUF, buffers + index);
+}
+
+void V4l2Input::unmapBuffers(void)
+{
+  if (mappedBuffers > 0)
   {
-    if (::ioctl(devDesc, VIDIOC_QBUF, buffers + index) < 0)
-      qWarning() << "V4l2Input: failed to ioctl device (VIDIOC_QBUF) " << index;
+    for (int i=0; i<mappedBuffers; i++)
+      munmap((void *)maps[i], buffers[i].length);
+
+    delete [] buffers;
+    buffers = NULL;
+    delete [] maps;
+    maps = NULL;
+    mappedBuffers = 0;
   }
 }
 
@@ -825,6 +828,23 @@ v4l2_field V4l2Input::toV4L(SVideoFormat::FieldMode fieldMode)
   }
 
   return V4L2_FIELD_ANY;
+}
+
+SVideoFormat::FieldMode V4l2Input::fromV4L(v4l2_field fieldMode)
+{
+  switch(fieldMode)
+  {
+  case V4L2_FIELD_ANY:        return SVideoFormat::FieldMode_Invalid;
+  case V4L2_FIELD_NONE:       return SVideoFormat::FieldMode_Progressive;
+  case V4L2_FIELD_TOP:        return SVideoFormat::FieldMode_TopField;
+  case V4L2_FIELD_BOTTOM:     return SVideoFormat::FieldMode_BottomField;
+  case V4L2_FIELD_INTERLACED: return SVideoFormat::FieldMode_InterlacedTopFirst;
+  case V4L2_FIELD_SEQ_TB:     return SVideoFormat::FieldMode_SequentialTopFirst;
+  case V4L2_FIELD_SEQ_BT:     return SVideoFormat::FieldMode_SequentialBottomFirst;
+  case V4L2_FIELD_ALTERNATE:  return SVideoFormat::FieldMode_Alternating;
+  }
+
+  return SVideoFormat::FieldMode_Invalid;
 }
 
 

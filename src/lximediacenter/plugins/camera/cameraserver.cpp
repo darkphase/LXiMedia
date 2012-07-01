@@ -17,10 +17,10 @@
 
 #include "cameraserver.h"
 #include "module.h"
-#include "televisionsandbox.h"
+#include "camerasandbox.h"
 
 namespace LXiMediaCenter {
-namespace TelevisionBackend {
+namespace CameraBackend {
 
 CameraServer::CameraServer(const QString &, QObject *parent)
   : MediaServer(parent),
@@ -40,28 +40,15 @@ void CameraServer::close(void)
   MediaServer::close();
 }
 
-QString CameraServer::pluginName(void) const
-{
-  return Module::pluginName;
-}
-
 QString CameraServer::serverName(void) const
 {
-  return QT_TR_NOOP("Cameras");
+  return Module::pluginName;
 }
 
 QString CameraServer::serverIconPath(void) const
 {
   return "/img/camera-photo.png";
 }
-
-CameraServer::SearchResultList CameraServer::search(const QStringList &rawQuery) const
-{
-  SearchResultList list;
-
-  return list;
-}
-
 
 CameraServer::Stream * CameraServer::streamVideo(const SHttpServer::RequestMessage &request)
 {
@@ -73,32 +60,29 @@ CameraServer::Stream * CameraServer::streamVideo(const SHttpServer::RequestMessa
   sandbox->ensureStarted();
 
   QUrl rurl;
-  rurl.setPath(TelevisionSandbox::path + request.file());
+  rurl.setPath(CameraSandbox::path + request.file());
   rurl.addQueryItem("opencamera", QString::null);
+  rurl.addQueryItem("device", request.fileName());
   typedef QPair<QString, QString> QStringPair;
   foreach (const QStringPair &queryItem, url.queryItems())
     rurl.addQueryItem(queryItem.first, queryItem.second);
-
-  const QStringList file = request.file().split('.');
-  if (file.count() >= 2)
-    rurl.addQueryItem("device", file.first());
 
   Stream *stream = new Stream(this, sandbox, request.path());
   if (stream->setup(rurl))
     return stream; // The graph owns the socket now.
 
   delete stream;
-  masterServer->recycleSandbox(sandbox);
+  delete sandbox;
 
   return NULL;
 }
 
-int CameraServer::countItems(const QString &path)
+SHttpServer::ResponseMessage CameraServer::sendPhoto(const SHttpServer::RequestMessage &request)
 {
-  return SAudioVideoInputNode::devices().count();
+  return SHttpServer::ResponseMessage(request, SSandboxServer::Status_NotFound);
 }
 
-QList<CameraServer::Item> CameraServer::listItems(const QString &path, unsigned start, unsigned count)
+QList<CameraServer::Item> CameraServer::listItems(const QString &, int start, int &count)
 {
   const bool returnAll = count == 0;
   QList<Item> result;
@@ -109,37 +93,34 @@ QList<CameraServer::Item> CameraServer::listItems(const QString &path, unsigned 
     Item item;
     item.type = SUPnPContentDirectory::Item::Type_Video;
     item.played = false;
-    item.url = cameras[i].toUtf8().toBase64();
+    item.url = serverPath() + cameras[i].toUtf8().toBase64();
     item.iconUrl = "/img/camera-photo.png";
     item.title = cameras[i];
+
+    item.audioFormat.setChannelSetup(SAudioFormat::Channels_Stereo);
 
     result += item;
   }
 
+  count = SAudioVideoInputNode::devices().count();
+
   return result;
 }
 
-SHttpServer::SocketOp CameraServer::handleHttpRequest(const SHttpServer::RequestMessage &request, QIODevice *socket)
+CameraServer::Item CameraServer::getItem(const QString &path)
 {
-  if ((request.method() == "GET") || (request.method() == "HEAD"))
-  {
-    const QUrl url(request.path());
-    const QString file = request.file();
+  const QString file = path.mid(path.lastIndexOf('/') + 1);
 
-    if (file.endsWith(".html")) // Show player
-    {
-      const QByteArray camera = file.left(file.length() - 5).toAscii();
-      const QString title = QString::fromUtf8(QByteArray::fromBase64(camera));
+  Item item;
+  item.type = SUPnPContentDirectory::Item::Type_Video;
+  item.played = false;
+  item.url = serverPath() + file;
+  item.iconUrl = "/img/camera-photo.png";
+  item.title = QString::fromUtf8(QByteArray::fromBase64(file.toAscii()));
 
-      SHttpServer::ResponseHeader response(request, SHttpServer::Status_Ok);
-      response.setContentType("text/html;charset=utf-8");
-      response.setField("Cache-Control", "no-cache");
+  item.audioFormat.setChannelSetup(SAudioFormat::Channels_Stereo);
 
-      return sendHtmlContent(request, socket, url, response, buildVideoPlayer(camera, title, url), headPlayer);
-    }
-  }
-
-  return MediaServer::handleHttpRequest(request, socket);
+  return item;
 }
 
 CameraServer::Stream::Stream(CameraServer *parent, SSandboxClient *sandbox, const QString &url)
@@ -150,7 +131,7 @@ CameraServer::Stream::Stream(CameraServer *parent, SSandboxClient *sandbox, cons
 
 CameraServer::Stream::~Stream()
 {
-  static_cast<CameraServer *>(parent)->masterServer->recycleSandbox(sandbox);
+  delete sandbox;
 }
 
 bool CameraServer::Stream::setup(const QUrl &url)
@@ -158,7 +139,7 @@ bool CameraServer::Stream::setup(const QUrl &url)
   SHttpEngine::RequestMessage message(sandbox);
   message.setRequest("GET", url.toEncoded(QUrl::RemoveScheme | QUrl::RemoveAuthority));
 
-  sandbox->openRequest(message, &proxy, SLOT(setSource(QAbstractSocket *)));
+  sandbox->openRequest(message, &proxy, SLOT(setSource(QIODevice *, SHttpEngine *)), Qt::DirectConnection);
 
   return true;
 }

@@ -28,6 +28,9 @@ SVideoBuffer::SVideoBuffer(void)
 
 SVideoBuffer::SVideoBuffer(const SVideoFormat &format)
 {
+  for (int i=0; i<d.maxPlanes; i++)
+    d.lineSize[i] = d.offset[i] = 0;
+
   setFormat(format);
 }
 
@@ -36,11 +39,15 @@ SVideoBuffer::SVideoBuffer(const SVideoFormat &format, const MemoryPtr &memory, 
 {
   d.format = format;
 
-  for (int i=0; i<format.numPlanes(); i++)
+  int i = 0;
+  for (int n=format.numPlanes(); i<n; i++)
   {
     d.offset[i] = offset[i];
     d.lineSize[i] = lineSize[i];
   }
+
+  for (; i<d.maxPlanes; i++)
+    d.lineSize[i] = d.offset[i] = 0;
 }
 
 /*! Sets the format of the video buffer. This method ensures enough memory is

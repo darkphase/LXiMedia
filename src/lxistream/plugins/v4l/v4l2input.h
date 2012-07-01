@@ -83,11 +83,13 @@ private:
   V4l2Input::Memory           * nextImage(void);
   void                          queueBuffer(int);
   void                          updateAgc(const SVideoBuffer &);
+  void                          unmapBuffers(void);
 
   static quint32                toV4L(SVideoFormat::Format);
   static SVideoFormat::Format   fromV4L(quint32);
   static quint32                toV4L(const SVideoCodec &codec);
   static v4l2_field             toV4L(SVideoFormat::FieldMode);
+  static SVideoFormat::FieldMode fromV4L(v4l2_field);
 
 private:
   static QMap<QString, int>     deviceMap;

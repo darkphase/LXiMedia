@@ -15,45 +15,38 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
+#include "module.h"
 #include "cameraserver.h"
+#include "camerasandbox.h"
 
 namespace LXiMediaCenter {
+namespace CameraBackend {
 
-bool CameraServer::handleHtmlRequest(const QUrl &url, const QString &file, QAbstractSocket *socket)
+const char Module::pluginName[] = QT_TR_NOOP("Cameras");
+
+bool Module::registerClasses(void)
 {
-  QHttpResponseHeader response(200);
-  response.setContentType("text/html;charset=utf-8");
-  response.setValue("Cache-Control", "no-cache");
+  CameraServer::registerClass<CameraServer>(0);
+  CameraSandbox::registerClass<CameraSandbox>(0);
 
-  SDebug::ReadLocker l(&lock, __FILE__, __LINE__);
-
-  HtmlParser htmlParser;
-
-  if (file.endsWith(".html")) // Show player
-  {
-    htmlParser.setField("PLAYER", buildVideoPlayer(file.left(file.length() - 5).toAscii(), SMediaInfo(), url));
-
-    htmlParser.setField("PLAYER_INFOITEMS", QByteArray(""));
-    htmlParser.setField("PLAYER_DESCRIPTION_NAME", QByteArray(""));
-    htmlParser.setField("PLAYER_DESCRIPTION", QByteArray(""));
-
-    return sendHtmlContent(socket, url, response, htmlParser.parse(htmlPlayer), headPlayer);
-  }
-  else
-  {
-    ThumbnailListItemMap items;
-    foreach (const QString &camera, cameras)
-    {
-      ThumbnailListItem item;
-      item.title = camera;
-      item.iconurl = camera.toUtf8().toHex() + "-thumb.jpeg";
-      item.url = camera.toUtf8().toHex() + ".html";
-      items.insert(SStringParser::toRawName(item.title), item);
-    }
-
-    l.unlock();
-    return sendHtmlContent(socket, url, response, buildThumbnailView(tr("Cameras"), items, url), headList);
-  }
+  return true;
 }
 
-} // End of namespace
+void Module::unload(void)
+{
+}
+
+QByteArray Module::about(void)
+{
+  return QByteArray(pluginName) + " by A.J. Admiraal";
+}
+
+QByteArray Module::licenses(void)
+{
+  return QByteArray();
+}
+
+} } // End of namespaces
+
+#include <QtPlugin>
+Q_EXPORT_PLUGIN2(lximediacenter_camera, LXiMediaCenter::CameraBackend::Module);

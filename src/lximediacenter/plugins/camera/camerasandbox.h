@@ -15,20 +15,20 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#ifndef TELEVISIONSANDBOX_H
-#define TELEVISIONSANDBOX_H
+#ifndef CAMERASANDBOX_H
+#define CAMERASANDBOX_H
 
 #include <LXiMediaCenter>
 #include <LXiStreamDevice>
 
 namespace LXiMediaCenter {
-namespace TelevisionBackend {
+namespace CameraBackend {
 
-class TelevisionSandbox : public BackendSandbox
+class CameraSandbox : public BackendSandbox
 {
 Q_OBJECT
 public:
-  explicit                      TelevisionSandbox(const QString &, QObject *parent = NULL);
+  explicit                      CameraSandbox(const QString &, QObject *parent = NULL);
 
   virtual void                  initialize(SSandboxServer *);
   virtual void                  close(void);
