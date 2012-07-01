@@ -21,6 +21,7 @@
 #include <QtCore>
 #include <LXiStream>
 #define this self
+#include <stdint.h>
 #include <dvdnav/dvdnav.h>
 #undef this
 
