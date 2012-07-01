@@ -62,7 +62,7 @@ protected: // From MediaServer
 
 private:
   MasterServer                * masterServer;
-  const QStringList             cameras;
+  SSandboxClient              * probeSandbox;
 
 private:
   static const char             htmlFrontPageContent[];

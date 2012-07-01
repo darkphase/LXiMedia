@@ -54,7 +54,27 @@ SSandboxServer::ResponseMessage CameraSandbox::httpRequest(const SSandboxServer:
 
   if (request.method() == "GET")
   {
-    if (url.hasQueryItem("opencamera"))
+    if (url.hasQueryItem("listcameras"))
+    {
+      QByteArray content;
+      {
+        QXmlStreamWriter writer(&content);
+        writer.setAutoFormatting(false);
+        writer.writeStartElement("cameras");
+
+        foreach (const QString &camera, SAudioVideoInputNode::devices())
+        {
+          writer.writeStartElement("camera");
+          writer.writeCharacters(camera);
+          writer.writeEndElement();
+        }
+
+        writer.writeEndElement();
+      }
+
+      return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_Ok, content, SHttpEngine::mimeTextXml);
+    }
+    else if (url.hasQueryItem("opencamera"))
     {
       const QString device = QString::fromUtf8(QByteArray::fromBase64(url.queryItemValue("device").toAscii()));
       if (!device.isEmpty())
