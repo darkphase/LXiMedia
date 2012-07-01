@@ -17,7 +17,6 @@
 
 #include "v4l2input.h"
 #include <fcntl.h>
-#include <stropts.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
