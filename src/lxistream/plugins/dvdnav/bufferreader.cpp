@@ -434,6 +434,7 @@ QList<STime> BufferReader::DvdDevice::chapters(void) const
   {
     const SInterval clock(1, 90000);
 
+#if DVDREAD_VERSION >= 904
     uint64_t * chapters = NULL;
     uint64_t duration = 0;
     const uint32_t count = ::dvdnav_describe_title_chapters(dvdHandle, parent->currentTitle + 1, &chapters, &duration);
@@ -449,6 +450,9 @@ QList<STime> BufferReader::DvdDevice::chapters(void) const
       ::free(chapters);
     }
   }
+#else
+  result += STime::null;
+#endif
 
   return result;
 }
