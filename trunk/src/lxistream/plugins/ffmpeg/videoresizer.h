@@ -63,6 +63,7 @@ private:
   Qt::AspectRatioMode           scaleAspectRatioMode;
   SVideoFormat                  lastFormat;
   SVideoFormat                  destFormat;
+  SVideoFormatConvertNode       formatConvert;
 
   int                           numThreads;
   ::SwsContext                * swsContext[2];

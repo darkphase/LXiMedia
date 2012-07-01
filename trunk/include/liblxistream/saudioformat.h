@@ -133,7 +133,7 @@ public:
   bool                          operator==(Format other) const                  { return d.format == other; }
   inline bool                   operator!=(Format other) const                  { return !operator==(other); }
 
-  inline bool                   isNull(void) const                              { return d.format == Format_Invalid; }
+  bool                          isNull(void) const;
   inline Format                 format(void) const                              { return d.format; }
   void                          setFormat(Format format, Channels = Channel_None, unsigned sampleRate = 0);
 

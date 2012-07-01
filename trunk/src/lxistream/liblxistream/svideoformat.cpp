@@ -47,6 +47,15 @@ bool SVideoFormat::operator==(const SVideoFormat &comp) const
       (d.fieldMode == comp.d.fieldMode);
 }
 
+bool SVideoFormat::isNull(void) const
+{
+  return
+      (d.format == Format_Invalid) &&
+      d.size.isNull() &&
+      d.frameRate.isValid() &&
+      (d.fieldMode == FieldMode_Invalid);
+}
+
 /*! Sets this codec to the specified video format.
  */
 void SVideoFormat::setFormat(Format format, SSize size, SInterval frameRate, FieldMode fieldMode)

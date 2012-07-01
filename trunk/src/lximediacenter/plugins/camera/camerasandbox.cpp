@@ -15,16 +15,16 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#include "televisionsandbox.h"
+#include "camerasandbox.h"
 #include <iostream>
 
 namespace LXiMediaCenter {
-namespace TelevisionBackend {
+namespace CameraBackend {
 
-const char  * const TelevisionSandbox::path = "/television/";
-const QEvent::Type  TelevisionSandbox::probeResponseEventType = QEvent::Type(QEvent::registerEventType());
+const char  * const CameraSandbox::path = "/camera/";
+const QEvent::Type  CameraSandbox::probeResponseEventType = QEvent::Type(QEvent::registerEventType());
 
-TelevisionSandbox::TelevisionSandbox(const QString &, QObject *parent)
+CameraSandbox::CameraSandbox(const QString &, QObject *parent)
   : BackendSandbox(parent),
     server(NULL)
 {
@@ -32,7 +32,7 @@ TelevisionSandbox::TelevisionSandbox(const QString &, QObject *parent)
   cleanStreamsTimer.start(5000);
 }
 
-void TelevisionSandbox::initialize(SSandboxServer *server)
+void CameraSandbox::initialize(SSandboxServer *server)
 {
   this->server = server;
 
@@ -41,14 +41,14 @@ void TelevisionSandbox::initialize(SSandboxServer *server)
   server->registerCallback(path, this);
 }
 
-void TelevisionSandbox::close(void)
+void CameraSandbox::close(void)
 {
   BackendSandbox::close();
 
   server->unregisterCallback(this);
 }
 
-SSandboxServer::ResponseMessage TelevisionSandbox::httpRequest(const SSandboxServer::RequestMessage &request, QIODevice *socket)
+SSandboxServer::ResponseMessage CameraSandbox::httpRequest(const SSandboxServer::RequestMessage &request, QIODevice *socket)
 {
   const QUrl url(request.path());
 
@@ -75,12 +75,12 @@ SSandboxServer::ResponseMessage TelevisionSandbox::httpRequest(const SSandboxSer
   return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_NotFound);
 }
 
-void TelevisionSandbox::handleHttpOptions(SHttpServer::ResponseHeader &response)
+void CameraSandbox::handleHttpOptions(SHttpServer::ResponseHeader &response)
 {
   response.setField("Allow", response.field("Allow") + ",GET,POST");
 }
 
-void TelevisionSandbox::cleanStreams(void)
+void CameraSandbox::cleanStreams(void)
 {
   for (QList<MediaStream *>::Iterator i=streams.begin(); i!=streams.end(); )
   if (!(*i)->isRunning())
@@ -108,8 +108,18 @@ bool SandboxInputStream::setup(const SHttpServer::RequestMessage &request, QIODe
   const bool result = MediaStream::setup(
         request, socket,
         STime(), STime(),
-        SAudioFormat(SAudioFormat::Format_PCM_S16, SAudioFormat::Channels_Stereo),
-        SVideoFormat(SVideoFormat::Format_Invalid, SSize(352, 288), SInterval::fromFrequency(15)));
+        SAudioFormat(SAudioFormat::Format_PCM_S16, SAudioFormat::Channels_Stereo, 44100),
+        SVideoFormat(SVideoFormat::Format_Invalid, SSize(640, 480), SInterval::fromFrequency(25)));
+
+  input.setFormat(
+        SAudioFormat(
+          SAudioFormat::Format_PCM_S16,
+          audio->encoder.codec().channelSetup(),
+          audio->encoder.codec().sampleRate()),
+        SVideoFormat(
+          SVideoFormat::Format_Invalid,
+          video->encoder.codec().size(),
+          video->encoder.codec().frameRate()));
 
   connect(&input, SIGNAL(output(SAudioBuffer)), &audio->matrix, SLOT(input(SAudioBuffer)));
   connect(&input, SIGNAL(output(SVideoBuffer)), &video->deinterlacer, SLOT(input(SVideoBuffer)));

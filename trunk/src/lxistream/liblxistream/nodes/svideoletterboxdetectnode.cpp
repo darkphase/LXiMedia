@@ -59,6 +59,7 @@ bool SVideoLetterboxDetectNode::start(void)
 
 void SVideoLetterboxDetectNode::stop(void)
 {
+  d->buffers.clear();
 }
 
 void SVideoLetterboxDetectNode::input(const SVideoBuffer &videoBuffer)

@@ -93,6 +93,7 @@ public:
     virtual void                shutdown(void) = 0;
 
   private:
+    bool                        inilialized;
     Initializer               * next;
   };
 

@@ -41,6 +41,14 @@ bool SAudioFormat::operator==(const SAudioFormat &comp) const
          (d.channels == comp.d.channels) && (d.sampleRate == comp.d.sampleRate);
 }
 
+bool SAudioFormat::isNull(void) const
+{
+  return
+      (d.format == Format_Invalid) &&
+      (d.channels == Channel_None) &&
+      (d.sampleRate == 0);
+}
+
 /*! Sets this codec to the specified audio format.
  */
 void SAudioFormat::setFormat(Format format, Channels channels, unsigned sampleRate)

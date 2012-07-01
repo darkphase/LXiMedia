@@ -15,55 +15,58 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#ifndef TELEVISIONSANDBOX_H
-#define TELEVISIONSANDBOX_H
+#ifndef CAMERASERVER_H
+#define CAMERASERVER_H
 
+#include <QtCore>
 #include <LXiMediaCenter>
+#include <LXiStream>
 #include <LXiStreamDevice>
 
 namespace LXiMediaCenter {
-namespace TelevisionBackend {
+namespace CameraBackend {
 
-class TelevisionSandbox : public BackendSandbox
+class CameraServer : public MediaServer
 {
 Q_OBJECT
-public:
-  explicit                      TelevisionSandbox(const QString &, QObject *parent = NULL);
+protected:
+  class Stream : public MediaServer::Stream
+  {
+  public:
+                                Stream(CameraServer *, SSandboxClient *, const QString &url);
+    virtual                     ~Stream();
 
-  virtual void                  initialize(SSandboxServer *);
+    bool                        setup(const QUrl &request);
+
+  public:
+    SSandboxClient      * const sandbox;
+  };
+
+public:
+                                CameraServer(const QString &, QObject *);
+
+  virtual void                  initialize(MasterServer *);
   virtual void                  close(void);
 
-public: // From SSandboxServer::Callback
-  virtual SSandboxServer::ResponseMessage httpRequest(const SSandboxServer::RequestMessage &, QIODevice *);
-  virtual void                  handleHttpOptions(SHttpServer::ResponseHeader &);
+  virtual QString               serverName(void) const;
+  virtual QString               serverIconPath(void) const;
 
-private slots:
-  void                          cleanStreams(void);
+  virtual QByteArray            frontPageContent(void);
 
-public:
-  static const char     * const path;
+protected: // From MediaServer
+  virtual Stream              * streamVideo(const SHttpServer::RequestMessage &);
+  virtual SHttpServer::ResponseMessage sendPhoto(const SHttpServer::RequestMessage &);
+
+  virtual QList<Item>           listItems(const QString &path, int start, int &count);
+  virtual Item                  getItem(const QString &path);
 
 private:
-  static const QEvent::Type     probeResponseEventType;
+  MasterServer                * masterServer;
+  const QStringList             cameras;
 
-  SSandboxServer              * server;
-  QList<MediaStream *>          streams;
-  QTimer                        cleanStreamsTimer;
+private:
+  static const char             htmlFrontPageContent[];
 };
-
-class SandboxInputStream : public MediaStream
-{
-Q_OBJECT
-public:
-  explicit                      SandboxInputStream(const QString &device);
-  virtual                       ~SandboxInputStream();
-
-  bool                          setup(const SHttpServer::RequestMessage &, QIODevice *);
-
-public:
-  SAudioVideoInputNode          input;
-};
-
 
 } } // End of namespaces
 

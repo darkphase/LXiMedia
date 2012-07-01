@@ -15,57 +15,27 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#ifndef CAMERASERVER_H
-#define CAMERASERVER_H
+#ifndef CAMERA_MODULE_H
+#define CAMERA_MODULE_H
 
 #include <QtCore>
 #include <LXiMediaCenter>
-#include <LXiStream>
 #include <LXiStreamDevice>
 
 namespace LXiMediaCenter {
-namespace TelevisionBackend {
+namespace CameraBackend {
 
-class CameraServer : public MediaServer
+class Module : public SModule
 {
 Q_OBJECT
-protected:
-  class Stream : public MediaServer::Stream
-  {
-  public:
-                                Stream(CameraServer *, SSandboxClient *, const QString &url);
-    virtual                     ~Stream();
-
-    bool                        setup(const QUrl &request);
-
-  public:
-    SSandboxClient      * const sandbox;
-  };
+public:
+  virtual bool                  registerClasses(void);
+  virtual void                  unload(void);
+  virtual QByteArray            about(void);
+  virtual QByteArray            licenses(void);
 
 public:
-                                CameraServer(const QString &, QObject *);
-
-  virtual void                  initialize(MasterServer *);
-  virtual void                  close(void);
-
-  virtual QString               pluginName(void) const;
-  virtual QString               serverName(void) const;
-  virtual QString               serverIconPath(void) const;
-
-  virtual SearchResultList      search(const QStringList &) const;
-
-protected: // From MediaServer
-  virtual Stream              * streamVideo(const SHttpServer::RequestMessage &);
-
-  virtual int                   countItems(const QString &path);
-  virtual QList<Item>           listItems(const QString &path, unsigned start = 0, unsigned count = 0);
-
-protected: // From SHttpServer::Callback
-  virtual SHttpServer::SocketOp handleHttpRequest(const SHttpServer::RequestMessage &, QIODevice *);
-
-private:
-  MasterServer                * masterServer;
-  const QStringList             cameras;
+  static const char             pluginName[];
 };
 
 } } // End of namespaces

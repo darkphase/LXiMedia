@@ -205,11 +205,7 @@ bool VideoEncoder::openCodec(const SVideoCodec &c, SInterfaces::BufferWriter *bu
       contextHandle->max_b_frames = 0;
       contextHandle->b_frame_strategy = 0;
       contextHandle->refs = 1;
-      contextHandle->directpred = 1;
       contextHandle->trellis = 0;
-      contextHandle->weighted_p_pred = 0;
-      contextHandle->rc_lookahead = 0;
-      contextHandle->aq_mode = 0;
     }
     else
     {
@@ -223,15 +219,7 @@ bool VideoEncoder::openCodec(const SVideoCodec &c, SInterfaces::BufferWriter *bu
       contextHandle->max_b_frames = 3;
       contextHandle->b_frame_strategy = 2;
       contextHandle->refs = 5;
-      contextHandle->directpred = 3;
       contextHandle->trellis = 1;
-      contextHandle->weighted_p_pred = 3;
-      contextHandle->rc_lookahead = 50;
-
-      contextHandle->partitions |= X264_PART_I4X4;
-      contextHandle->partitions |= X264_PART_I8X8;
-      contextHandle->partitions |= X264_PART_P8X8;
-      contextHandle->partitions |= X264_PART_B8X8;
 
       contextHandle->flags |= CODEC_FLAG_LOOP_FILTER;
       contextHandle->flags2 |= CODEC_FLAG2_BPYRAMID;

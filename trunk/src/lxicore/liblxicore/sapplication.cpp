@@ -76,13 +76,20 @@ SApplication::SApplication(bool useLogFile, const QStringList &skipModules, QObj
 
   d->defaultMsgHandler = qInstallMsgHandler(&SApplication::logMessage);
 
-  for (Initializer *i = initializers; i; i = i->next)
-    i->startup();
-
-  if (!d->moduleFilter.isEmpty())
+  // Repeat this while the module filter is expanded.
+  QSet<QString> modules;
+  for (bool repeat = true; repeat; )
   {
+    repeat = false;
+
+    for (Initializer *i = initializers; i; i = i->next)
+    if (!i->inilialized)
+    {
+      i->startup();
+      i->inilialized = true;
+    }
+
     // And now load the plugins
-    QSet<QString> modules;
     foreach (QDir dir, pluginPaths())
 #if defined(Q_OS_UNIX)
 # if defined(Q_OS_MACX)
@@ -123,6 +130,7 @@ SApplication::SApplication(bool useLogFile, const QStringList &skipModules, QObj
           if (loadModule(module, loader))
           {
             qDebug() << "Loaded" << fileInfo.absoluteFilePath();
+            repeat = true;
             continue;
           }
         }
@@ -149,7 +157,11 @@ SApplication::~SApplication(void)
   disableProfiling();
 
   for (Initializer *i = initializers; i; i = i->next)
+  if (i->inilialized)
+  {
     i->shutdown();
+    i->inilialized = false;
+  }
 
   foreach (SFactory *factory, factories())
     factory->clear();
@@ -563,7 +575,11 @@ SApplication::SApplication(QObject *parent)
   self = this;
 
   for (Initializer *i = initializers; i; i = i->next)
+  if (!i->inilialized)
+  {
     i->startup();
+    i->inilialized = true;
+  }
 }
 
 QList<SFactory *> & SApplication::factories(void)
@@ -577,7 +593,8 @@ QList<SFactory *> & SApplication::factories(void)
 
 
 SApplication::Initializer::Initializer(void)
-  : next(NULL)
+  : inilialized(false),
+    next(NULL)
 {
   if (initializers == NULL)
   {
