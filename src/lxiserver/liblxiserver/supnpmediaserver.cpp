@@ -37,8 +37,8 @@ struct SUPnPMediaServer::Data
   };
 
   QString                       basePath;
-  SHttpServer                 * httpServer;
-  SSsdpServer                 * ssdpServer;
+  QPointer<SHttpServer>         httpServer;
+  QPointer<SSsdpServer>         ssdpServer;
   QList<Service>                services;
   QList<Icon>                   icons;
   QString                       deviceName;

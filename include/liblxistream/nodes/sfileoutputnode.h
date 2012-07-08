@@ -29,11 +29,11 @@ class LXISTREAM_PUBLIC SFileOutputNode : public SIOOutputNode
 {
 Q_OBJECT
 public:
-  explicit                      SFileOutputNode(SGraph *, const QString &fileName);
+  explicit                      SFileOutputNode(SGraph *, const QUrl &filePath);
   virtual                       ~SFileOutputNode();
 
-  virtual bool                  start(STimer *);
-  virtual void                  stop(void);
+  void                          setFilePath(const QUrl &filePath);
+  QUrl                          filePath(void) const;
 
 private:
   struct Data;

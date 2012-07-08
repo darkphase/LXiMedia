@@ -41,13 +41,14 @@ Q_OBJECT
 public:
   class Memory : public SBuffer::Memory
   {
+  friend class V4l2Input;
   public:
                                 Memory(char *data, int size, int, V4l2Input *);
     virtual                     ~Memory();
 
   private:
-    int                         bufferIndex;
-    V4l2Input           * const parent;
+    const int                   bufferIndex;
+    V4l2Input                 * parent;
   };
 
 public:
@@ -81,7 +82,7 @@ private:
   bool                          setControl(quint32 id, qreal value);
 
   V4l2Input::Memory           * nextImage(void);
-  void                          queueBuffer(int);
+  void                          releaseBuffer(Memory *);
   void                          updateAgc(const SVideoBuffer &);
   void                          unmapBuffers(void);
 
@@ -105,7 +106,7 @@ private:
   mutable QMutex                mutex;
   STimer                        timer;
   SVideoFormat                  outFormat;
-  static const int              defaultOutBuffers = 32;
+  static const int              defaultOutBuffers = 8;
   int                           numOutBuffers;
 
   bool                          agc;
@@ -118,6 +119,7 @@ private:
   v4l2_buffer                 * buffers;
   char                       ** maps;
   size_t                        bufferSize;
+  QSet<Memory *>                postedBuffers;
 
   bool                          streamOn;
 };

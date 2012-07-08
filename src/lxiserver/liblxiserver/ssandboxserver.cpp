@@ -59,14 +59,14 @@ public:
   }
 
 private:
-  SSandboxServer * const parent;
+  const QPointer<SSandboxServer> parent;
 };
 
 struct SSandboxServer::Data
 {
   QString                       mode;
-  QLocalServer                * server;
-  ReadThread                  * readThread;
+  QPointer<QLocalServer>        server;
+  QPointer<ReadThread>          readThread;
   int                           openConnections;
 };
 

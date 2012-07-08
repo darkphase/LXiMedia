@@ -47,21 +47,40 @@ private:
   static const QEvent::Type     probeResponseEventType;
 
   SSandboxServer              * server;
-  QList<MediaStream *>          streams;
+  QList<SGraph *>               streams;
   QTimer                        cleanStreamsTimer;
 };
 
-class SandboxInputStream : public MediaStream
+class SandboxRecordStream : public SGraph
 {
 Q_OBJECT
 public:
-  explicit                      SandboxInputStream(const QString &device);
-  virtual                       ~SandboxInputStream();
+  explicit                      SandboxRecordStream(const QString &device);
+  virtual                       ~SandboxRecordStream();
+
+  bool                          setup(const SHttpServer::RequestMessage &);
+
+public:
+  SAudioVideoInputNode          input;
+  SAudioEncoderNode             audioEncoder;
+  SVideoEncoderNode             videoEncoder;
+  SFileOutputNode               output;
+};
+
+class SandboxPlaybackStream : public MediaStream
+{
+Q_OBJECT
+public:
+  explicit                      SandboxPlaybackStream(const QString &device);
+  virtual                       ~SandboxPlaybackStream();
 
   bool                          setup(const SHttpServer::RequestMessage &, QIODevice *);
 
 public:
-  SAudioVideoInputNode          input;
+  SFileInputNode                file;
+  SAudioDecoderNode             audioDecoder;
+  SVideoDecoderNode             videoDecoder;
+  STimeStampResamplerNode       timeStampResampler;
 };
 
 

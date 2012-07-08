@@ -65,7 +65,7 @@ signals:
 
 protected:
   const QString               & serverUdn(void) const;
-  const QList<SsdpClientInterface *> & interfaces(void) const;
+  const QList< QPointer<SsdpClientInterface> > & interfaces(void) const;
   virtual void                  parsePacket(SsdpClientInterface *, const SHttpServer::RequestHeader &, const QHostAddress &, quint16);
   virtual void                  parsePacket(SsdpClientInterface *, const SHttpServer::ResponseHeader &, const QHostAddress &, quint16);
 

@@ -44,7 +44,7 @@ private slots:
   void                          readyRead();
 
 private:
-  SHttpClientEngine     * const parent;
+  const QPointer<SHttpClientEngine> parent;
   const bool                    reuse;
   const char            * const file;
   const int                     line;
@@ -99,7 +99,7 @@ private slots:
   void                          failed(void);
 
 private:
-  SHttpClientEngine     * const parent;
+  const QPointer<SHttpClientEngine> parent;
   const quint16                 port;
   const char            * const file;
   const int                     line;
@@ -121,7 +121,7 @@ public slots:
   void                          handleResponse(const SHttpEngine::ResponseMessage &);
 
 private:
-  SHttpClientEngine     * const parent;
+  const QPointer<SHttpClientEngine> parent;
   const char            * const file;
   const int                     line;
   SHttpEngine::ResponseMessage  message;
@@ -156,7 +156,7 @@ private:
   const QPointer<SSandboxClient> parent;
   const char            * const file;
   const int                     line;
-  QProcess              * const process;
+  const QPointer<QProcess>      process;
   bool                          started;
 };
 

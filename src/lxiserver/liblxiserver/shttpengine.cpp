@@ -33,7 +33,7 @@ public:
   }
 
 public:
-  QIODevice * const socket;
+  QPointer<QIODevice>           socket;
 };
 
 const QEvent::Type  SHttpEngine::closeSocketEventType = QEvent::Type(QEvent::registerEventType());

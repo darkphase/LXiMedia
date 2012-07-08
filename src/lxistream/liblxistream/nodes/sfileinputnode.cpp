@@ -37,6 +37,7 @@ struct SFileInputNode::Data
 
   QIODevice                   * ioDevice;
   QUrl                          filePath;
+  bool                          timeShift;
 
   QList<SubtitleFile>           subtitleFiles;
 };
@@ -46,6 +47,7 @@ SFileInputNode::SFileInputNode(SGraph *parent, const QUrl &filePath)
     d(new Data())
 {
   d->ioDevice = NULL;
+  d->timeShift = false;
 
   setFilePath(filePath);
 
@@ -54,10 +56,12 @@ SFileInputNode::SFileInputNode(SGraph *parent, const QUrl &filePath)
 
 SFileInputNode::~SFileInputNode()
 {
+  SIOInputNode::setIODevice(NULL);
+  delete d->ioDevice;
+
   foreach (const Data::SubtitleFile &file, d->subtitleFiles)
     delete file.node;
 
-  delete d->ioDevice;
   delete d;
   *const_cast<Data **>(&d) = NULL;
 }
@@ -67,12 +71,13 @@ void SFileInputNode::setFilePath(const QUrl &filePath)
   foreach (const Data::SubtitleFile &file, d->subtitleFiles)
     delete file.node;
 
+  SIOInputNode::setIODevice(NULL);
   delete d->ioDevice;
 
   d->subtitleFiles.clear();
 
   d->filePath = filePath;
-  d->ioDevice = SMediaFilesystem::open(filePath);
+  d->ioDevice = SMediaFilesystem::open(filePath, QIODevice::ReadOnly);
 
   if (d->ioDevice)
   {
@@ -106,6 +111,11 @@ void SFileInputNode::setFilePath(const QUrl &filePath)
 QUrl SFileInputNode::filePath(void) const
 {
   return d->filePath;
+}
+
+void SFileInputNode::enableTimeShift(bool enabled)
+{
+  d->timeShift = enabled;
 }
 
 bool SFileInputNode::setPosition(STime pos)
@@ -160,6 +170,19 @@ void SFileInputNode::selectStreams(int title, const QVector<StreamId> &streamIds
   }
 
   SIOInputNode::selectStreams(title, nextStreamIds);
+}
+
+bool SFileInputNode::process(void)
+{
+  if (d->timeShift)
+  {
+    if (d->ioDevice)
+      return SInputNode::process();
+
+    return false;
+  }
+  else
+    return SIOInputNode::process();
 }
 
 void SFileInputNode::parseSubtitle(const SEncodedVideoBuffer &videoBuffer)

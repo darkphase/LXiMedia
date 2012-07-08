@@ -54,7 +54,7 @@ public:
   int                           queued;
 
 private:
-  SUPnPGenaServer             * const parent;
+  const QPointer<SUPnPGenaServer> parent;
   quint32                       eventKey;
   QDateTime                     lastSubscribe;
   QList<SHttpServer::RequestMessage> pendingRequests;
@@ -63,11 +63,11 @@ private:
 struct SUPnPGenaServer::Data
 {
   QString                       path;
-  SHttpServer                 * httpServer;
+  QPointer<SHttpServer>         httpServer;
 
   QUuid                         sidBase;
   QAtomicInt                    sidCounter;
-  QMap<QString, EventSession *> eventSessions;
+  QMap<QString, QPointer<EventSession> > eventSessions;
   int                           cleanTimer;
 
   QByteArray                    eventMessage;
@@ -108,7 +108,7 @@ void SUPnPGenaServer::initialize(SHttpServer *httpServer)
 
 void SUPnPGenaServer::close(void)
 {
-  for (QMap<QString, EventSession *>::Iterator i = d->eventSessions.begin();
+  for (QMap<QString, QPointer<EventSession> >::Iterator i = d->eventSessions.begin();
        i != d->eventSessions.end();
        i = d->eventSessions.erase(i))
   {
@@ -124,7 +124,7 @@ void SUPnPGenaServer::close(void)
 
 void SUPnPGenaServer::reset(void)
 {
-  for (QMap<QString, EventSession *>::Iterator i = d->eventSessions.begin();
+  for (QMap<QString, QPointer<EventSession> >::Iterator i = d->eventSessions.begin();
        i != d->eventSessions.end();
        i = d->eventSessions.erase(i))
   {
@@ -158,7 +158,7 @@ void SUPnPGenaServer::timerEvent(QTimerEvent *e)
   if (e->timerId() == d->cleanTimer)
   {
     // Cleanup old sessions.
-    for (QMap<QString, EventSession *>::Iterator i=d->eventSessions.begin(); i!=d->eventSessions.end(); )
+    for (QMap<QString, QPointer<EventSession> >::Iterator i=d->eventSessions.begin(); i!=d->eventSessions.end(); )
     if (!(*i)->isActive() && ((*i)->queued == 0))
     {
       delete *i;
@@ -177,7 +177,7 @@ SHttpServer::ResponseMessage SUPnPGenaServer::httpRequest(const SHttpServer::Req
   {
     if (request.method() == "SUBSCRIBE")
     {
-      QMap<QString, EventSession *>::Iterator session = d->eventSessions.end();
+      QMap<QString, QPointer<EventSession> >::Iterator session = d->eventSessions.end();
       if (request.hasField("SID"))
       { // Update subscription
         session = d->eventSessions.find(request.field("SID").trimmed());
@@ -228,7 +228,7 @@ SHttpServer::ResponseMessage SUPnPGenaServer::httpRequest(const SHttpServer::Req
     {
       if (!request.hasField("CALLBACK") && !request.hasField("NT"))
       {
-        QMap<QString, EventSession *>::Iterator session = d->eventSessions.find(request.field("SID").trimmed());
+        QMap<QString, QPointer<EventSession> >::Iterator session = d->eventSessions.find(request.field("SID").trimmed());
         if (session != d->eventSessions.end())
         {
           (*session)->unsubscribe();

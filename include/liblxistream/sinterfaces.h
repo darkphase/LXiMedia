@@ -131,7 +131,7 @@ public:
   virtual QStringList           entryList(QDir::Filters, QDir::SortFlags) const = 0;
   virtual QUrl                  filePath(const QString &fileName) const = 0;
   virtual Info                  readInfo(const QString &fileName) const = 0;
-  virtual QIODevice           * openFile(const QString &fileName) const = 0;
+  virtual QIODevice           * openFile(const QString &fileName, QIODevice::OpenMode) const = 0;
 };
 
 /*! The FormatProber interface can be used to detect the format of a byte

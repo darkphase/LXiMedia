@@ -32,7 +32,7 @@ struct SUPnPContentDirectory::Data : SUPnPContentDirectory::Callback
   virtual QList<Item>           listContentDirItems(const QString &client, const QString &path, int start, int &count);
   virtual Item                  getContentDirItem(const QString &client, const QString &path);
 
-  SUPnPGenaServer             * genaServer;
+  QPointer<SUPnPGenaServer>     genaServer;
 
   QMap<QString, Callback *>     callbacks;
   QAtomicInt                    systemUpdateId;

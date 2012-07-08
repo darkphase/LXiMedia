@@ -105,15 +105,15 @@ QUrl SMediaFilesystem::filePath(const QString &fileName) const
   return QUrl();
 }
 
-QIODevice * SMediaFilesystem::openFile(const QString &fileName) const
+QIODevice * SMediaFilesystem::openFile(const QString &fileName, QIODevice::OpenMode openMode) const
 {
   if (d->directory)
-    return d->directory->openFile(fileName);
+    return d->directory->openFile(fileName, openMode);
 
   return NULL;
 }
 
-QIODevice * SMediaFilesystem::open(const QUrl &filePath)
+QIODevice * SMediaFilesystem::open(const QUrl &filePath, QIODevice::OpenMode openMode)
 {
   const QString path = filePath.path();
   const int lastSlash = path.lastIndexOf('/');
@@ -122,7 +122,7 @@ QIODevice * SMediaFilesystem::open(const QUrl &filePath)
   dirPath.setPath(path.left(lastSlash + 1));
 
   SMediaFilesystem instance(dirPath);
-  return instance.openFile(path.mid(lastSlash + 1));
+  return instance.openFile(path.mid(lastSlash + 1), openMode);
 }
 
 } // End of namespace

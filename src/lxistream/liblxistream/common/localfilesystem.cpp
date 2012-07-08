@@ -156,7 +156,7 @@ LocalFilesystem::Info LocalFilesystem::readInfo(const QString &fileName) const
   return result;
 }
 
-QIODevice * LocalFilesystem::openFile(const QString &fileName) const
+QIODevice * LocalFilesystem::openFile(const QString &fileName, QIODevice::OpenMode openMode) const
 {
   if (!root && valid)
   {
@@ -164,7 +164,7 @@ QIODevice * LocalFilesystem::openFile(const QString &fileName) const
     if (!isHidden(QFileInfo(path).canonicalFilePath()))
     {
       QFile * const file = new QFile(path);
-      if (file->open(QFile::ReadOnly))
+      if (file->open(openMode))
         return file;
 
       delete file;
