@@ -136,7 +136,9 @@ bool VideoEncoder::openCodec(const SVideoCodec &c, SInterfaces::BufferWriter *bu
 
   if (flags & Flag_Fast)
   {
-    contextHandle->rc_max_rate += contextHandle->bit_rate_tolerance / 2;
+    if (contextHandle->rc_max_rate > 0)
+      contextHandle->rc_max_rate += contextHandle->bit_rate_tolerance / 2;
+
     contextHandle->bit_rate += contextHandle->bit_rate_tolerance / 2;
     contextHandle->gop_size = 0;
     contextHandle->max_b_frames = 0;
