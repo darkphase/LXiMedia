@@ -50,7 +50,7 @@ void SSubtitleInputNode::setFilePath(const QUrl &filePath)
 {
   delete d->ioDevice;
   d->filePath = filePath;
-  d->ioDevice = SMediaFilesystem::open(filePath);
+  d->ioDevice = SMediaFilesystem::open(filePath, QIODevice::ReadOnly);
 
   if (d->ioDevice)
     SIOInputNode::setIODevice(d->ioDevice);

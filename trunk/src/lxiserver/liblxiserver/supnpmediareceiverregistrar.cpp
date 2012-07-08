@@ -25,7 +25,7 @@ const char  SUPnPMediaReceiverRegistrar::datatypesNS[] = "urn:schemas-microsoft-
 
 struct SUPnPMediaReceiverRegistrar::Data
 {
-  SUPnPGenaServer             * genaServer;
+  QPointer<SUPnPGenaServer>     genaServer;
 
   quint32                       authorizationGrantedUpdateID;
   quint32                       authorizationDeniedUpdateID;

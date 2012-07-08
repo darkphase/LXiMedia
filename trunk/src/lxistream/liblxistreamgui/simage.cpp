@@ -237,7 +237,7 @@ SImage SImage::fromFile(const QUrl &filePath, const QSize &maxsize, const char *
 
   SImage result;
 
-  QIODevice * const ioDevice = SMediaFilesystem::open(filePath);
+  QIODevice * const ioDevice = SMediaFilesystem::open(filePath, QIODevice::ReadOnly);
   if (ioDevice)
   {
     if (rawImageSuffixes().contains(format))

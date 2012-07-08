@@ -45,9 +45,9 @@ public:
   QStringList                   entryList(QDir::Filters filters = QDir::NoFilter, QDir::SortFlags sort = QDir::NoSort ) const;
   QUrl                          filePath(const QString &fileName) const;
   Info                          readInfo(const QString &fileName) const;
-  QIODevice                   * openFile(const QString &fileName) const;
+  QIODevice                   * openFile(const QString &fileName, QIODevice::OpenMode) const;
 
-  static QIODevice            * open(const QUrl &filePath);
+  static QIODevice            * open(const QUrl &filePath, QIODevice::OpenMode);
 
 private:
   struct Data;

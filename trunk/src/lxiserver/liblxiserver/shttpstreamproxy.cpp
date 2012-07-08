@@ -34,8 +34,8 @@ public:
   }
 
 public:
-  QIODevice * const source;
-  SHttpEngine * const owner;
+  const QPointer<QIODevice>     source;
+  const QPointer<SHttpEngine>   owner;
 };
 
 class SHttpStreamProxy::AddSocketEvent : public QEvent
@@ -47,8 +47,8 @@ public:
   }
 
 public:
-  QIODevice * const socket;
-  SHttpEngine * const owner;
+  const QPointer<QIODevice>     socket;
+  const QPointer<SHttpEngine>   owner;
 };
 
 struct SHttpStreamProxy::Data
@@ -58,10 +58,10 @@ struct SHttpStreamProxy::Data
     bool                        isConnected(void) const;
     void                        close(void);
 
-    QIODevice                 * socket;
-    QAbstractSocket           * aSocket;
-    QLocalSocket              * lSocket;
-    SHttpEngine               * owner;
+    QPointer<QIODevice>         socket;
+    QPointer<QAbstractSocket>   aSocket;
+    QPointer<QLocalSocket>      lSocket;
+    QPointer<SHttpEngine>       owner;
     qint64                      readPos;
   };
 

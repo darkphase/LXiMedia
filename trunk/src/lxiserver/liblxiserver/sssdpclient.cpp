@@ -30,7 +30,7 @@ namespace LXiServer {
 struct SSsdpClient::Private
 {
   QString                       serverUdn;
-  QList<SsdpClientInterface *>  interfaces;
+  QList< QPointer<SsdpClientInterface> >  interfaces;
   QMultiMap<QString, Node>      nodes;
   QTimer                        updateTimer;
 };
@@ -152,7 +152,7 @@ const QString & SSsdpClient::serverUdn(void) const
   return p->serverUdn;
 }
 
-const QList<SsdpClientInterface *> & SSsdpClient::interfaces(void) const
+const QList< QPointer<SsdpClientInterface> > & SSsdpClient::interfaces(void) const
 {
   return p->interfaces;
 }

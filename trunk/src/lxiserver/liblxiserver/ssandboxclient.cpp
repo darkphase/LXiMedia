@@ -34,18 +34,18 @@ struct SSandboxClient::Data
     }
 
     QByteArray                  message;
-    QObject                   * receiver;
+    QPointer<QObject>           receiver;
     const char                * slot;
     Qt::ConnectionType          connectionType;
   };
 
   QString                       application;
-  SSandboxServer              * localServer;
+  QPointer<SSandboxServer>      localServer;
   Priority                      priority;
   QString                       modeText;
 
   QString                       serverName;
-  SandboxProcess              * serverProcess;
+  QPointer<SandboxProcess>      serverProcess;
   bool                          processStarted;
   QList<Request>                requests;
 
@@ -55,7 +55,7 @@ struct SSandboxClient::Data
   static const int              maxSocketCount = 32;
 #endif
   int                           socketCount;
-  QList<QIODevice *>            socketPool;
+  QList< QPointer<QIODevice> >  socketPool;
   QTimer                        socketPoolTimer;
 };
 
@@ -175,7 +175,7 @@ QIODevice * SSandboxClient::openSocket(const QString &host)
 
   while (!d->socketPool.isEmpty())
   {
-    QLocalSocket * const socket = static_cast<QLocalSocket *>(d->socketPool.takeLast());
+    QLocalSocket * const socket = static_cast<QLocalSocket *>(d->socketPool.takeLast().data());
 
     if (socket->state() == QLocalSocket::ConnectedState)
       return socket;

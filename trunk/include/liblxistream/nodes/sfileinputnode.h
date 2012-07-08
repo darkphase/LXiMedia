@@ -37,10 +37,15 @@ public:
   void                          setFilePath(const QUrl &filePath);
   QUrl                          filePath(void) const;
 
+  void                          enableTimeShift(bool = true);
+
   virtual bool                  setPosition(STime);
 
   virtual QList<DataStreamInfo> dataStreams(int title) const;
   virtual void                  selectStreams(int title, const QVector<StreamId> &);
+
+public: // From SInterfaces::SourceNode
+  virtual bool                  process(void);
 
 private slots:
   void                          parseSubtitle(const SEncodedVideoBuffer &);

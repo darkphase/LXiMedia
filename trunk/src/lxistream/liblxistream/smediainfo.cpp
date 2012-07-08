@@ -214,7 +214,7 @@ void SMediaInfo::probeFormat(void)
     {
       const SMediaFilesystem mediaDir(path());
 
-      QIODevice * const ioDevice = mediaDir.openFile(fileName());
+      QIODevice * const ioDevice = mediaDir.openFile(fileName(), QIODevice::ReadOnly);
       if (ioDevice)
       {
         const QByteArray buffer =
@@ -258,7 +258,7 @@ void SMediaInfo::probeContent(void)
     {
       const SMediaFilesystem mediaDir(path());
 
-      QIODevice * const ioDevice = mediaDir.openFile(fileName());
+      QIODevice * const ioDevice = mediaDir.openFile(fileName(), QIODevice::ReadOnly);
       if (ioDevice)
       {
         foreach (SInterfaces::FormatProber *prober, SInterfaces::FormatProber::create(NULL))
@@ -302,7 +302,7 @@ SVideoBuffer SMediaInfo::readThumbnail(const QSize &size)
   {
     const SMediaFilesystem mediaDir(path());
 
-    QIODevice * const ioDevice = mediaDir.openFile(fileName());
+    QIODevice * const ioDevice = mediaDir.openFile(fileName(), QIODevice::ReadOnly);
     if (ioDevice)
     {
       foreach (SInterfaces::FormatProber *prober, SInterfaces::FormatProber::create(NULL))

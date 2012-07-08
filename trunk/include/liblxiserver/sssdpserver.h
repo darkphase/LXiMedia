@@ -32,7 +32,7 @@ class LXISERVER_PUBLIC SSsdpServer : public SSsdpClient
 {
 Q_OBJECT
 public:
-  explicit                      SSsdpServer(const SHttpServer *);
+  explicit                      SSsdpServer(SHttpServer *);
   virtual                       ~SSsdpServer();
 
   virtual void                  initialize(const QList<QHostAddress> &interfaces);

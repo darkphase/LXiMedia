@@ -24,7 +24,7 @@ const char  SUPnPConnectionManager::connectionManagerNS[] = "urn:schemas-upnp-or
 
 struct SUPnPConnectionManager::Data
 {
-  SUPnPGenaServer             * genaServer;
+  QPointer<SUPnPGenaServer>     genaServer;
 
   ProtocolList                  sourceProtocols;
   ProtocolList                  sinkProtocols;

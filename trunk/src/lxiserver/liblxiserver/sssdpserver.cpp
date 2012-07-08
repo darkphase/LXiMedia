@@ -40,14 +40,14 @@ struct SSsdpServer::Private
     unsigned                    msgCount;
   };
 
-  const SHttpServer           * httpServer;
+  QPointer<SHttpServer>         httpServer;
   qint32                        bootid;
   qint32                        configid;
   QMultiMap<QString, Service>   published;
   QTimer                        publishTimer, autoPublishTimer;
 };
 
-SSsdpServer::SSsdpServer(const SHttpServer *httpServer)
+SSsdpServer::SSsdpServer(SHttpServer *httpServer)
   : SSsdpClient(httpServer->serverUdn()),
     p(new Private())
 {

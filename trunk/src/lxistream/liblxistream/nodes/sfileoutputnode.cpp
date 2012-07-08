@@ -16,43 +16,50 @@
  ******************************************************************************/
 
 #include "nodes/sfileoutputnode.h"
+#include "smediafilesystem.h"
 
 namespace LXiStream {
 
 
 struct SFileOutputNode::Data
 {
-  inline Data(const QString &fileName) : mediaFile(fileName) { }
-
-  QFile                         mediaFile;
+  QIODevice                   * ioDevice;
+  QUrl                          filePath;
 };
 
-SFileOutputNode::SFileOutputNode(SGraph *parent, const QString &fileName)
+SFileOutputNode::SFileOutputNode(SGraph *parent, const QUrl &filePath)
   : SIOOutputNode(parent),
-    d(new Data(fileName))
+    d(new Data())
 {
-  SIOOutputNode::setIODevice(&d->mediaFile);
+  d->ioDevice = NULL;
+
+  setFilePath(filePath);
 }
 
 SFileOutputNode::~SFileOutputNode()
 {
+  SIOOutputNode::setIODevice(NULL);
+  delete d->ioDevice;
+
   delete d;
   *const_cast<Data **>(&d) = NULL;
 }
 
-bool SFileOutputNode::start(STimer *timer)
+void SFileOutputNode::setFilePath(const QUrl &filePath)
 {
-  if (d->mediaFile.open(QFile::WriteOnly))
-    return SIOOutputNode::start(timer);
+  SIOOutputNode::setIODevice(NULL);
+  delete d->ioDevice;
 
-  return false;
+  d->filePath = filePath;
+  d->ioDevice = SMediaFilesystem::open(filePath, QIODevice::WriteOnly);
+
+  if (d->ioDevice)
+    SIOOutputNode::setIODevice(d->ioDevice);
 }
 
-void SFileOutputNode::stop(void)
+QUrl SFileOutputNode::filePath(void) const
 {
-  SIOOutputNode::stop();
-
-  d->mediaFile.close();
+  return d->filePath;
 }
 
 

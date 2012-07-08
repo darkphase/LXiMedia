@@ -35,7 +35,7 @@ struct SHttpClient::Data
 
     QString                     host;
     QByteArray                  message;
-    QObject                   * receiver;
+    QPointer<QObject>           receiver;
     const char                * slot;
     Qt::ConnectionType          connectionType;
   };

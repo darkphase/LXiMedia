@@ -244,15 +244,15 @@ SMBFilesystem::Info SMBFilesystem::readInfo(const QString &fileName) const
   return result;
 }
 
-QIODevice * SMBFilesystem::openFile(const QString &fileName) const
+QIODevice * SMBFilesystem::openFile(const QString &fileName, QIODevice::OpenMode openMode) const
 {
 #if !defined(Q_OS_WIN) || defined(USE_LIBSMBCLIENT_ON_WIN)
   File * const file = new File(filePath(fileName));
-  if (file->open(File::ReadOnly))
+  if (file->open(openMode))
     return file;
 #else
   QFile * const file = new QFile(dir.absoluteFilePath(fileName));
-  if (file->open(QFile::ReadOnly))
+  if (file->open(openMode))
     return file;
 #endif
 

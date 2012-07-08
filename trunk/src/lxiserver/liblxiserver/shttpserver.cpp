@@ -30,7 +30,7 @@ struct SHttpServer::Data
   QList<QHostAddress>           addresses;
   quint16                       defaultPort;
   QString                       serverUdn;
-  QMultiMap<QString, QTcpServer *>  servers;
+  QMultiMap<QString, QPointer<QTcpServer> >  servers;
   int                           openConnections;
 };
 
@@ -121,7 +121,7 @@ quint16 SHttpServer::defaultPort(void) const
  */
 quint16 SHttpServer::serverPort(const QHostAddress &address) const
 {
-  QMultiMap<QString, QTcpServer *>::ConstIterator i = d->servers.find(address.toString());
+  QMultiMap<QString, QPointer<QTcpServer> >::ConstIterator i = d->servers.find(address.toString());
   if (i != d->servers.end())
     return (*i)->serverPort();
 

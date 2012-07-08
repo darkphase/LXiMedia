@@ -296,7 +296,7 @@ void HttpServerRequest::readyRead()
             request.setHost(hostname, serverPort);
         }
 
-        // This object may alreadye be deleted even before handleHttpRequest or
+        // This object may already be deleted even before handleHttpRequest or
         // sendHttpResponse return (because they process events on the event
         // loop) So we keep these on the stack so there is no dependency on
         // 'this' anymore.

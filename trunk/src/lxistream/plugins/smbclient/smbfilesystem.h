@@ -69,7 +69,7 @@ public: // From SInterfaces::Filesystem
   virtual QStringList           entryList(QDir::Filters, QDir::SortFlags) const;
   virtual QUrl                  filePath(const QString &fileName) const;
   virtual Info                  readInfo(const QString &fileName) const;
-  virtual QIODevice           * openFile(const QString &fileName) const;
+  virtual QIODevice           * openFile(const QString &fileName, QIODevice::OpenMode) const;
 
 public:
   static const char             scheme[];

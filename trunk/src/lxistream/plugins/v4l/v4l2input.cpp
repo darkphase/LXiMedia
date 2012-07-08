@@ -183,6 +183,11 @@ V4l2Input::V4l2Input(const QString &device, QObject *parent)
 
 V4l2Input::~V4l2Input()
 {
+  QMutexLocker l(&mutex);
+
+  foreach (Memory *buffer, postedBuffers)
+    buffer->parent = NULL;
+
   if (devDesc >= 0)
   {
     unmapBuffers();
@@ -672,24 +677,28 @@ V4l2Input::Memory * V4l2Input::nextImage(void)
 
     if (ioctl(devDesc, VIDIOC_DQBUF, &cur_buf) >= 0)
     { // Got a buffer
-      l.unlock();
+      Memory * const buffer = new Memory(
+            maps[cur_buf.index],
+            buffers[cur_buf.index].length,
+            cur_buf.index,
+            this);
 
-      return new Memory(maps[cur_buf.index],
-                        buffers[cur_buf.index].length,
-                        cur_buf.index,
-                        this);
+      postedBuffers.insert(buffer);
+      return buffer;
     }
   }
 
   return NULL;
 }
 
-void V4l2Input::queueBuffer(int index)
+void V4l2Input::releaseBuffer(Memory *buffer)
 {
   QMutexLocker l(&mutex);
 
-  if (index < mappedBuffers)
-    ::ioctl(devDesc, VIDIOC_QBUF, buffers + index);
+  postedBuffers.remove(buffer);
+
+  if (buffer->bufferIndex < mappedBuffers)
+    ::ioctl(devDesc, VIDIOC_QBUF, buffers + buffer->bufferIndex);
 }
 
 void V4l2Input::unmapBuffers(void)
@@ -856,7 +865,8 @@ V4l2Input::Memory::Memory(char *data, int size, int bufferIndex, V4l2Input *pare
 
 V4l2Input::Memory::~Memory()
 {
-  parent->queueBuffer(bufferIndex);
+  if (parent)
+    parent->releaseBuffer(this);
 }
 
 } } // End of namespaces
