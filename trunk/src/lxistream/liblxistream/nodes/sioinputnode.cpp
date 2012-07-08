@@ -111,11 +111,11 @@ bool SIOInputNode::start(void)
 
 void SIOInputNode::stop(void)
 {
+  SInputNode::stop();
+
   SInterfaces::BufferReader * const bufferReader = static_cast<SInterfaces::BufferReader *>(SInputNode::bufferReader());
   if (bufferReader)
     bufferReader->stop();
-
-  SInputNode::stop();
 }
 
 bool SIOInputNode::process(void)
