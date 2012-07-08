@@ -33,6 +33,10 @@ extern "C"
 #include <libswscale/swscale.h>
 }
 
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(53, 0, 0)
+# error "Old versions of FFMpeg are no longer supported, please upgrade to FFMpeg version 0.8 or newer."
+#endif
+
 // This enables multithreaded encoding and decoding.
 #define OPT_ENABLE_THREADS
 
