@@ -48,6 +48,27 @@ private:
   volatile bool                 running;
 };
 
+class SAudioVideoInputNode::SilentAudioInput : public SInterfaces::AudioInput
+{
+public:
+                                SilentAudioInput(QObject *parent);
+  virtual                       ~SilentAudioInput();
+
+  virtual void                  setFormat(const SAudioFormat &);
+  virtual SAudioFormat          format(void);
+
+  virtual bool                  start(void);
+  virtual void                  stop(void);
+  virtual bool                  process(void);
+
+private:
+  SInterval                     bufferRate;
+  STimer                        timer;
+  STime                         lastBuffer;
+  SAudioFormat                  audioFormat;
+  SAudioBuffer                  audioBuffer;
+};
+
 struct SAudioVideoInputNode::Data
 {
   QString                       device;
@@ -149,6 +170,19 @@ bool SAudioVideoInputNode::start(void)
       }
     }
 
+    if (d->audioInput == NULL)
+    {
+      d->audioInput = new SilentAudioInput(this);
+
+      if (!d->audioFormat.isNull())
+        d->audioInput->setFormat(d->audioFormat);
+
+      d->audioInput->start();
+
+      connect(d->audioInput, SIGNAL(produce(const SAudioBuffer &)), SIGNAL(output(const SAudioBuffer &)));
+      d->audioThread = new Thread<SInterfaces::AudioInput>(this, d->audioInput);
+    }
+
     if (!d->videoFormat.isNull())
       d->videoInput->setFormat(d->videoFormat);
 
@@ -162,6 +196,9 @@ bool SAudioVideoInputNode::start(void)
       return true;
     }
   }
+
+  delete d->audioInput;
+  d->audioInput = NULL;
 
   delete d->videoInput;
   d->videoInput = NULL;
@@ -189,6 +226,66 @@ bool SAudioVideoInputNode::process(void)
 {
   // The threads do all the work.
   return false;
+}
+
+
+SAudioVideoInputNode::SilentAudioInput::SilentAudioInput(QObject *parent)
+  : SInterfaces::AudioInput(parent),
+    bufferRate(SInterval::fromFrequency(25)),
+    audioFormat(SAudioFormat::Format_PCM_S16, SAudioFormat::Channels_Stereo, 48000)
+{
+}
+
+SAudioVideoInputNode::SilentAudioInput::~SilentAudioInput()
+{
+}
+
+void SAudioVideoInputNode::SilentAudioInput::setFormat(const SAudioFormat &format)
+{
+  audioFormat = format;
+}
+
+SAudioFormat SAudioVideoInputNode::SilentAudioInput::format(void)
+{
+  return audioFormat;
+}
+
+bool SAudioVideoInputNode::SilentAudioInput::start(void)
+{
+  // Create a silent audio buffer
+  audioBuffer.setFormat(audioFormat);
+  audioBuffer.setNumSamples(audioFormat.sampleRate() / bufferRate.toFrequency());
+  memset(audioBuffer.data(), 0, audioBuffer.size());
+
+  lastBuffer = timer.timeStamp();
+
+  return true;
+}
+
+void SAudioVideoInputNode::SilentAudioInput::stop(void)
+{
+}
+
+bool SAudioVideoInputNode::SilentAudioInput::process(void)
+{
+  // Hack to get access to msleep()
+  struct T : QThread { static inline void msleep(unsigned long msec) { QThread::msleep(msec); } };
+
+  const STime now = timer.timeStamp();
+  const STime next = lastBuffer + bufferRate;
+  const qint64 wait = (next - now).toMSec();
+
+  if (qAbs(wait) >= 1000)
+    lastBuffer = now;
+  else if (wait > 0)
+    T::msleep(wait);
+
+  lastBuffer += bufferRate;
+
+  audioBuffer.setTimeStamp(lastBuffer);
+  emit produce(audioBuffer);
+
+  return true;
 }
 
 } // End of namespace

@@ -15,48 +15,59 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#ifndef LXISTREAMDEVICE_SAUDIOVIDEOINPUTNODE_H
-#define LXISTREAMDEVICE_SAUDIOVIDEOINPUTNODE_H
+#ifndef SCREENINPUT_H
+#define SCREENINPUT_H
 
+#include <xcb/xcb.h>
 #include <QtCore>
-#include <LXiCore>
-#include <LXiStream>
-#include "../export.h"
+#include <LXiStreamDevice>
 
 namespace LXiStreamDevice {
+namespace X11Capture {
 
-/*! This is a generic audio/video input node that can be used to obtain audio
-    and video data from a capture device such as a video capture card.
- */
-class LXISTREAMDEVICE_PUBLIC SAudioVideoInputNode : public ::LXiStream::SInterfaces::SourceNode
+class ScreenInput : public SInterfaces::VideoInput
 {
 Q_OBJECT
 public:
-  explicit                      SAudioVideoInputNode(SGraph *, const QString &device = QString::null);
-  virtual                       ~SAudioVideoInputNode();
+  class Memory : public SBuffer::Memory
+  {
+  public:
+                                Memory(::xcb_get_image_reply_t *img);
+    virtual                     ~Memory();
 
-  static QStringList            devices(void);
+  private:
+    ::xcb_get_image_reply_t * const img;
+  };
 
-  void                          setFormat(const SAudioFormat &, const SVideoFormat &);
-  void                          setMaxBuffers(int);
+public:
+  static QList<SFactory::Scheme> listDevices(void);
+
+public:
+                                ScreenInput(const QString &, QObject *);
+  virtual                       ~ScreenInput();
+
+public: // From SInterfaces::VideoInput
+  virtual void                  setFormat(const SVideoFormat &);
+  virtual SVideoFormat          format(void);
+  virtual void                  setMaxBuffers(int);
+  virtual int                   maxBuffers(void) const;
 
   virtual bool                  start(void);
   virtual void                  stop(void);
   virtual bool                  process(void);
 
-signals:
-  void                          output(const SAudioBuffer &);
-  void                          output(const SVideoBuffer &);
-
 private:
-  template <class _input> class Thread;
-  class SilentAudioInput;
+  static QMap<QString, QRect>   screens;
 
-  struct Data;
-  Data                  * const d;
+  ::xcb_connection_t          * connnection;
+  ::xcb_window_t                window;
+  QRect                         screenRect;
+
+  STimer                        timer;
+  STime                         lastImage;
+  SVideoFormat                  videoFormat;
 };
 
-
-} // End of namespace
+} } // End of namespaces
 
 #endif

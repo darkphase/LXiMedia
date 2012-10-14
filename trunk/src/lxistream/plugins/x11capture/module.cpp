@@ -15,48 +15,37 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#ifndef LXISTREAMDEVICE_SAUDIOVIDEOINPUTNODE_H
-#define LXISTREAMDEVICE_SAUDIOVIDEOINPUTNODE_H
-
-#include <QtCore>
-#include <LXiCore>
-#include <LXiStream>
-#include "../export.h"
+#include "module.h"
+#include "screeninput.h"
 
 namespace LXiStreamDevice {
+namespace X11Capture {
 
-/*! This is a generic audio/video input node that can be used to obtain audio
-    and video data from a capture device such as a video capture card.
- */
-class LXISTREAMDEVICE_PUBLIC SAudioVideoInputNode : public ::LXiStream::SInterfaces::SourceNode
+bool Module::registerClasses(void)
 {
-Q_OBJECT
-public:
-  explicit                      SAudioVideoInputNode(SGraph *, const QString &device = QString::null);
-  virtual                       ~SAudioVideoInputNode();
+  int result = false;
+  foreach (const SFactory::Scheme &scheme, ScreenInput::listDevices())
+  {
+    ScreenInput::registerClass<ScreenInput>(scheme);
 
-  static QStringList            devices(void);
+    result = true;
+  }
 
-  void                          setFormat(const SAudioFormat &, const SVideoFormat &);
-  void                          setMaxBuffers(int);
+  return result;
+}
 
-  virtual bool                  start(void);
-  virtual void                  stop(void);
-  virtual bool                  process(void);
+void Module::unload(void)
+{
+}
 
-signals:
-  void                          output(const SAudioBuffer &);
-  void                          output(const SVideoBuffer &);
+QByteArray Module::about(void)
+{
+  return "X11 capture plugin by A.J. Admiraal";
+}
 
-private:
-  template <class _input> class Thread;
-  class SilentAudioInput;
+QByteArray Module::licenses(void)
+{
+  return QByteArray();
+}
 
-  struct Data;
-  Data                  * const d;
-};
-
-
-} // End of namespace
-
-#endif
+} } // End of namespaces

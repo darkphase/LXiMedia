@@ -51,36 +51,17 @@ private:
   QTimer                        cleanStreamsTimer;
 };
 
-class SandboxRecordStream : public SGraph
+class CameraStream : public MediaStream
 {
 Q_OBJECT
 public:
-  explicit                      SandboxRecordStream(const QString &device);
-  virtual                       ~SandboxRecordStream();
-
-  bool                          setup(const SHttpServer::RequestMessage &);
-
-public:
-  SAudioVideoInputNode          input;
-  SAudioEncoderNode             audioEncoder;
-  SVideoEncoderNode             videoEncoder;
-  SFileOutputNode               output;
-};
-
-class SandboxPlaybackStream : public MediaStream
-{
-Q_OBJECT
-public:
-  explicit                      SandboxPlaybackStream(const QString &device);
-  virtual                       ~SandboxPlaybackStream();
+  explicit                      CameraStream(const QString &device);
+  virtual                       ~CameraStream();
 
   bool                          setup(const SHttpServer::RequestMessage &, QIODevice *);
 
 public:
-  SFileInputNode                file;
-  SAudioDecoderNode             audioDecoder;
-  SVideoDecoderNode             videoDecoder;
-  STimeStampResamplerNode       timeStampResampler;
+  SAudioVideoInputNode          input;
 };
 
 

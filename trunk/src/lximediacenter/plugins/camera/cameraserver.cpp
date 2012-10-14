@@ -111,7 +111,7 @@ QList<CameraServer::Item> CameraServer::listItems(const QString &, int start, in
     Item item;
     item.type = SUPnPContentDirectory::Item::Type_Video;
     item.played = false;
-    item.url = serverPath() + cameras[i].toUtf8().toBase64();
+    item.url = serverPath() + cameras[i].toUtf8().toHex();
     item.iconUrl = "/img/camera-photo.png";
     item.title = cameras[i];
 
@@ -134,7 +134,7 @@ CameraServer::Item CameraServer::getItem(const QString &path)
   item.played = false;
   item.url = serverPath() + file;
   item.iconUrl = "/img/camera-photo.png";
-  item.title = QString::fromUtf8(QByteArray::fromBase64(file.toAscii()));
+  item.title = QString::fromUtf8(QByteArray::fromHex(file.toAscii()));
 
   item.audioFormat.setChannelSetup(SAudioFormat::Channels_Stereo);
 
