@@ -7,7 +7,7 @@ SUBDIRS += dvdnav ffmpeg freetype gui #opengl
 
 unix {
   contains(QMAKE_HOST.os, Linux) {
-    SUBDIRS += alsa pulseaudio v4l #linuxdvb
+    SUBDIRS += alsa pulseaudio v4l x11capture #linuxdvb
   }
 }
 
