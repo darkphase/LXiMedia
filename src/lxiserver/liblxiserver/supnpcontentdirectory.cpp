@@ -208,6 +208,15 @@ void SUPnPContentDirectory::buildDescription(QDomDocument &doc, QDomElement &scp
     actionElm.appendChild(argumentListElm);
     actionListElm.appendChild(actionElm);
   }*/
+  {
+    // Samsung GetFeatureList
+    QDomElement actionElm = doc.createElement("action");
+    addTextElm(doc, actionElm, "name", "X_GetFeatureList");
+    QDomElement argumentListElm = doc.createElement("argumentList");
+    addActionArgument(doc, argumentListElm, "FeatureList", "out", "A_ARG_TYPE_Featurelist");
+    actionElm.appendChild(argumentListElm);
+    actionListElm.appendChild(actionElm);
+  }
   scpdElm.appendChild(actionListElm);
 
   QDomElement serviceStateTableElm = doc.createElement("serviceStateTable");
@@ -220,6 +229,7 @@ void SUPnPContentDirectory::buildDescription(QDomDocument &doc, QDomElement &scp
   addStateVariable(doc, serviceStateTableElm, false, "A_ARG_TYPE_Index", "ui4");
   addStateVariable(doc, serviceStateTableElm, false, "A_ARG_TYPE_Count", "ui4");
   addStateVariable(doc, serviceStateTableElm, false, "A_ARG_TYPE_UpdateID", "ui4");
+  addStateVariable(doc, serviceStateTableElm, false, "A_ARG_TYPE_Featurelist", "string"); // Samsung GetFeatureList
   addStateVariable(doc, serviceStateTableElm, false, "SearchCapabilities", "string");
   addStateVariable(doc, serviceStateTableElm, false, "SortCapabilities", "string");
   addStateVariable(doc, serviceStateTableElm, true, "SystemUpdateID", "ui4");
@@ -263,6 +273,28 @@ SHttpServer::Status SUPnPContentDirectory::handleSoapMessage(const QDomElement &
   {
     QDomElement responseElm = createElementNS(responseDoc, getSystemUpdateIdElm, "GetSystemUpdateIDResponse");
     addTextElm(responseDoc, responseElm, "Id", QString::number(d->systemUpdateId));
+    responseBody.appendChild(responseElm);
+    status = SHttpServer::Status_Ok;
+  }
+
+  // Samsung GetFeatureList
+  const QDomElement getFeatureListElm = firstChildElementNS(body, contentDirectoryNS, "X_GetFeatureList");
+  if (!getFeatureListElm.isNull())
+  {
+    QDomElement responseElm = createElementNS(responseDoc, getFeatureListElm, "X_GetFeatureListResponse");
+
+    addTextElm(
+          responseDoc, responseElm, "FeatureList",
+          "<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n"
+          "<Features xmlns=\"urn:schemas-upnp-org:av:avs\""
+          " xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\""
+          " xsi:schemaLocation=\"urn:schemas-upnp-org:av:avs http://www.upnp.org/schemas/av/avs.xsd\"&gt;"
+          "<Feature name=\"samsung.com_BASICVIEW\" version=\"1\"&gt;"
+          "<container id=\"1\" type=\"object.item.audioItem\"/&gt;"
+          "<container id=\"2\" type=\"object.item.videoItem\"/&gt;"
+          "<container id=\"3\" type=\"object.item.imageItem\"/&gt;"
+          "</Feature&gt;"); // &gt; = Crude hack for non-compliant XML parsers
+
     responseBody.appendChild(responseElm);
     status = SHttpServer::Status_Ok;
   }
@@ -523,12 +555,17 @@ void SUPnPContentDirectory::didlFile(QDomDocument &doc, QDomElement &root, const
 
     QDomElement iconElm = doc.createElement("upnp:albumArtURI");
 
-    if (url.path().endsWith(".png"))
-      iconElm.setAttribute("dlna:profileID", "PNG_SM");
-    else if (url.path().endsWith(".jpeg") || url.path().endsWith(".jpg"))
+    if (url.path().endsWith(".jpeg") || url.path().endsWith(".jpg"))
+    {
       iconElm.setAttribute("dlna:profileID", "JPEG_TN");
+      iconElm.appendChild(doc.createTextNode(toObjectURL(url, ".jpeg")));
+    }
+    else
+    {
+      iconElm.setAttribute("dlna:profileID", "PNG_SM");
+      iconElm.appendChild(doc.createTextNode(toObjectURL(url, ".png")));
+    }
 
-    iconElm.appendChild(doc.createTextNode(url.toString()));
     itemElm.appendChild(iconElm);
   }
 

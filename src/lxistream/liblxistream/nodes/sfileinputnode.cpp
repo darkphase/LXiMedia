@@ -120,8 +120,8 @@ void SFileInputNode::enableTimeShift(bool enabled)
 
 bool SFileInputNode::setPosition(STime pos)
 {
-  //foreach (const Data::SubtitleFile &file, d->subtitleFiles)
-  //  file.node->setPosition(pos);
+  foreach (const Data::SubtitleFile &file, d->subtitleFiles)
+    file.node->setPosition(pos);
 
   return SIOInputNode::setPosition(pos);
 }
