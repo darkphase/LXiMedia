@@ -52,23 +52,26 @@ void FormatProber::readFormat(ProbeInfo &pi, const QByteArray &buffer)
       fileName = path.mid(path.lastIndexOf('/') + 1).toUtf8();
     }
 
-    ::AVProbeData probeData;
-    probeData.filename = fileName.data();
-    probeData.buf = (uchar *)buffer.data();
-    probeData.buf_size = buffer.size();
-
-    ::AVInputFormat * format = ::av_probe_input_format(&probeData, true);
-    if (format && format->name)
+    if (!fileName.toLower().endsWith(".sub")) // .sub files cause crashes
     {
-      pi.format.format = format->name;
-      pi.format.fileTypeName = format->long_name;
+      ::AVProbeData probeData;
+      probeData.filename = fileName.data();
+      probeData.buf = (uchar *)buffer.data();
+      probeData.buf_size = buffer.size();
 
-      if (FFMpegCommon::isVideoFormat(format->name))
-        pi.format.fileType = ProbeInfo::FileType_Video;
-      else if (FFMpegCommon::isAudioFormat(format->name))
-        pi.format.fileType = ProbeInfo::FileType_Audio;
+      ::AVInputFormat * format = ::av_probe_input_format(&probeData, true);
+      if (format && format->name)
+      {
+        pi.format.format = format->name;
+        pi.format.fileTypeName = format->long_name;
 
-      pi.isFormatProbed = true;
+        if (FFMpegCommon::isVideoFormat(format->name))
+          pi.format.fileType = ProbeInfo::FileType_Video;
+        else if (FFMpegCommon::isAudioFormat(format->name))
+          pi.format.fileType = ProbeInfo::FileType_Audio;
+
+        pi.isFormatProbed = true;
+      }
     }
   }
 }
