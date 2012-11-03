@@ -16,16 +16,53 @@
  ******************************************************************************/
 
 #include "pulseaudioinput.h"
+#include "pulseaudiodevices.h"
 
 namespace LXiStreamDevice {
 namespace PulseAudioBackend {
 
-PulseAudioInput::PulseAudioInput(const QString &server, QObject *parent)
+PulseAudioInput::PulseAudioInput(const QString &, QObject *parent)
   : SInterfaces::AudioInput(parent),
-    server(server),
     handle(NULL),
     outFormat(SAudioFormat::Format_PCM_S16, SAudioFormat::Channels_Stereo, 48000)
 {
+  PulseAudioDevices devices;
+  foreach (const pa_source_info &input, devices.inputDevices())
+  if (QString(input.name).endsWith(".monitor", Qt::CaseInsensitive))
+  {
+    handle = pa_simple_new(
+          NULL,
+          SApplication::name(),
+          PA_STREAM_RECORD,
+          input.name,
+          "PulseAudioInput",
+          &(input.sample_spec),
+          NULL, NULL, NULL);
+
+    if (handle)
+    {
+      switch(input.sample_spec.format)
+      {
+      case PA_SAMPLE_U8:        outFormat.setFormat(SAudioFormat::Format_PCM_U8);     break;
+      case PA_SAMPLE_ALAW:      outFormat.setFormat(SAudioFormat::Format_PCM_ALAW);   break;
+      case PA_SAMPLE_ULAW:      outFormat.setFormat(SAudioFormat::Format_PCM_MULAW);  break;
+      case PA_SAMPLE_S16LE:     outFormat.setFormat(SAudioFormat::Format_PCM_S16LE);  break;
+      case PA_SAMPLE_S16BE:     outFormat.setFormat(SAudioFormat::Format_PCM_S16BE);  break;
+      case PA_SAMPLE_FLOAT32LE: outFormat.setFormat(SAudioFormat::Format_PCM_F32LE);  break;
+      case PA_SAMPLE_FLOAT32BE: outFormat.setFormat(SAudioFormat::Format_PCM_F32BE);  break;
+      case PA_SAMPLE_S32LE:     outFormat.setFormat(SAudioFormat::Format_PCM_S32LE);  break;
+      case PA_SAMPLE_S32BE:     outFormat.setFormat(SAudioFormat::Format_PCM_S32BE);  break;
+      case PA_SAMPLE_S24LE:     outFormat.setFormat(SAudioFormat::Format_PCM_S24LE);  break;
+      case PA_SAMPLE_S24BE:     outFormat.setFormat(SAudioFormat::Format_PCM_S24BE);  break;
+      case PA_SAMPLE_S24_32LE:  outFormat.setFormat(SAudioFormat::Format_PCM_S32LE);  break;
+      case PA_SAMPLE_S24_32BE:  outFormat.setFormat(SAudioFormat::Format_PCM_S32BE);  break;
+      default:                  outFormat.setFormat(SAudioFormat::Format_PCM_S16LE);  break;
+      }
+
+      outFormat.setSampleRate(input.sample_spec.rate);
+      outFormat.setChannelSetup(outFormat.guessChannels(input.sample_spec.channels));
+    }
+  }
 }
 
 PulseAudioInput::~PulseAudioInput()
@@ -46,38 +83,11 @@ SAudioFormat PulseAudioInput::format(void)
 
 bool PulseAudioInput::start(void)
 {
-  if (handle)
-  {
-    pa_simple_free(handle);
-    handle = NULL;
-  }
-
-  pa_sample_spec sampleSpec;
-  sampleSpec.format = PA_SAMPLE_S16LE;
-  sampleSpec.rate = outFormat.sampleRate();
-  sampleSpec.channels = outFormat.numChannels();
-
-  handle = pa_simple_new(server.isEmpty() ? NULL : server.toAscii().data(),
-                         SApplication::name(),
-                         PA_STREAM_RECORD,
-                         NULL,
-                         "PulseAudioInput",
-                         &sampleSpec,
-                         NULL,
-                         NULL,
-                         NULL);
-
   return handle;
 }
 
 void PulseAudioInput::stop(void)
 {
-  if (handle)
-  {
-    pa_simple_flush(handle, NULL);
-    pa_simple_free(handle);
-    handle = NULL;
-  }
 }
 
 bool PulseAudioInput::process(void)

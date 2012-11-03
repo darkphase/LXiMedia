@@ -22,9 +22,6 @@ namespace LXiStreamDevice {
 
 struct SVideoInputNode::Data
 {
-  QString                       device;
-  SVideoFormat                  format;
-  int                           maxBuffers;
   SInterfaces::VideoInput     * input;
 };
 
@@ -32,9 +29,7 @@ SVideoInputNode::SVideoInputNode(SGraph *parent, const QString &device)
   : ::LXiStream::SInterfaces::SourceNode(parent),
     d(new Data())
 {
-  d->device = device;
-  d->maxBuffers = 0;
-  d->input = NULL;
+  d->input = SInterfaces::VideoInput::create(this, device);
 }
 
 SVideoInputNode::~SVideoInputNode()
@@ -51,50 +46,40 @@ QStringList SVideoInputNode::devices(void)
 
 void SVideoInputNode::setFormat(const SVideoFormat &format)
 {
-  d->format = format;
+  if (d->input)
+    d->input->setFormat(format);
+}
+
+SVideoFormat SVideoInputNode::format() const
+{
+  if (d->input)
+    return d->input->format();
+
+  return SVideoFormat();
 }
 
 void SVideoInputNode::setMaxBuffers(int maxBuffers)
 {
-  d->maxBuffers = maxBuffers;
+  if (d->input)
+    d->input->setMaxBuffers(maxBuffers);
 }
 
 bool SVideoInputNode::start(void)
 {
-  delete d->input;
-  d->input = SInterfaces::VideoInput::create(this, d->device);
-
-  if (d->input)
+  if (d->input && d->input->start())
   {
-    if (!d->format.isNull())
-      d->input->setFormat(d->format);
-
-    if (d->maxBuffers > 0)
-      d->input->setMaxBuffers(d->maxBuffers);
-
-    if (d->input->start())
-    {
-      connect(d->input, SIGNAL(produce(const SVideoBuffer &)), SIGNAL(output(const SVideoBuffer &)));
-      return true;
-    }
+    connect(d->input, SIGNAL(produce(const SVideoBuffer &)), SIGNAL(output(const SVideoBuffer &)));
+    return true;
   }
 
-  delete d->input;
-  d->input = NULL;
-
-  qWarning() << "Failed to open video input device" << d->device;
+  qWarning() << "Failed to open video input device";
   return false;
 }
 
 void SVideoInputNode::stop(void)
 {
   if (d->input)
-  {
     d->input->stop();
-
-    delete d->input;
-    d->input = NULL;
-  }
 }
 
 bool SVideoInputNode::process(void)

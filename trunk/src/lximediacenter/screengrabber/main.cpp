@@ -15,27 +15,24 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#ifndef ALSABACKEND_MODULE_H
-#define ALSABACKEND_MODULE_H
+#include "screengrabber.h"
 
-#include <LXiStreamDevice>
-
-namespace LXiStreamDevice {
-namespace AlsaBackend {
-
-class Module : public SModule
+int main(int argc, char *argv[])
 {
-Q_OBJECT
-public:
-  virtual bool                  registerClasses(void);
-  virtual void                  unload(void);
-  virtual QByteArray            about(void);
-  virtual QByteArray            licenses(void);
-};
+  QApplication qapp(argc, argv);
+  qapp.setOrganizationName("LeX-Interactive");
+  qapp.setOrganizationDomain("lximedia.sf.net");
+  qapp.setApplicationName("LXiMediaCenter");
+  qapp.setApplicationVersion(
+#include "_version.h"
+      );
 
-QString deviceName(const QString &);
-QString channelName(const QString &);
+  SApplication mediaApp(true);
 
-} } // End of namespaces
+  SStringParser::setStaticField("_PRODUCT", qApp->applicationName());
 
-#endif
+  ScreenGrabber screenGrabber;
+  screenGrabber.show();
+
+  return qapp.exec();
+}

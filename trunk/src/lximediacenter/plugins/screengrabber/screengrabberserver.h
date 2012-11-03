@@ -15,39 +15,56 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#ifndef ALSAINPUT_H
-#define ALSAINPUT_H
+#ifndef SCREENGRABBERSERVER_H
+#define SCREENGRABBERSERVER_H
 
-#include <alsa/asoundlib.h>
 #include <QtCore>
+#include <LXiMediaCenter>
+#include <LXiStream>
 #include <LXiStreamDevice>
-#include "alsamixer.h"
 
-namespace LXiStreamDevice {
-namespace AlsaBackend {
+namespace LXiMediaCenter {
+namespace ScreenGrabberBackend {
 
-class AlsaInput : public SInterfaces::AudioInput
+class ScreenGrabberServer : public MediaServer
 {
 Q_OBJECT
+protected:
+  class Stream : public MediaServer::Stream
+  {
+  public:
+                                Stream(ScreenGrabberServer *, SSandboxClient *, const QString &url);
+    virtual                     ~Stream();
+
+    bool                        setup(const QUrl &request);
+
+  public:
+    SSandboxClient      * const sandbox;
+  };
+
 public:
-                                AlsaInput(const QString &, QObject *);
-  virtual                       ~AlsaInput();
+                                ScreenGrabberServer(const QString &, QObject *);
 
-  virtual void                  setFormat(const SAudioFormat &);
-  virtual SAudioFormat          format(void);
+  virtual void                  initialize(MasterServer *);
+  virtual void                  close(void);
 
-  virtual bool                  start(void);
-  virtual void                  stop(void);
-  virtual bool                  process(void);
+  virtual QString               serverName(void) const;
+  virtual QString               serverIconPath(void) const;
+
+  virtual QByteArray            frontPageContent(void);
+
+protected: // From MediaServer
+  virtual Stream              * streamVideo(const SHttpServer::RequestMessage &);
+  virtual SHttpServer::ResponseMessage sendPhoto(const SHttpServer::RequestMessage &);
+
+  virtual QList<Item>           listItems(const QString &path, int start, int &count);
+  virtual Item                  getItem(const QString &path);
 
 private:
-  const QString                 dev;
-  const QString                 channel;
-  AlsaMixer                     mixer;
-  snd_pcm_t                   * pcm;
+  SSandboxClient              * sandbox;
 
-  STimer                        timer;
-  SAudioFormat                  outFormat;
+private:
+  static const char             htmlFrontPageContent[];
 };
 
 } } // End of namespaces

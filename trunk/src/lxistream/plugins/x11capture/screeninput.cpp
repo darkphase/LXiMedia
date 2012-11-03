@@ -90,7 +90,7 @@ void ScreenInput::setFormat(const SVideoFormat &)
 
 SVideoFormat ScreenInput::format(void)
 {
-  return SVideoFormat(SVideoFormat::Format_RGB32);
+  return SVideoFormat(SVideoFormat::Format_RGB32, screenRect.size(), SInterval::fromFrequency(25));
 }
 
 void ScreenInput::setMaxBuffers(int)

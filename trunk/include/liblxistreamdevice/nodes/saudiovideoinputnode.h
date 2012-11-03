@@ -37,7 +37,10 @@ public:
 
   static QStringList            devices(void);
 
-  void                          setFormat(const SAudioFormat &, const SVideoFormat &);
+  void                          setAudioFormat(const SAudioFormat &);
+  SAudioFormat                  audioFormat() const;
+  void                          setVideoFormat(const SVideoFormat &);
+  SVideoFormat                  videoFormat() const;
   void                          setMaxBuffers(int);
 
   virtual bool                  start(void);

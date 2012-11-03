@@ -32,7 +32,7 @@ public:
   explicit                      SSandboxServer(QObject * = NULL);
   virtual                       ~SSandboxServer();
 
-  bool                          initialize(const QString &mode);
+  bool                          initialize(const QString &mode, const QString &name);
   void                          close(void);
 
   QString                       serverName(void) const;

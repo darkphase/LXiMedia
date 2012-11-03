@@ -65,6 +65,7 @@ private:
 struct SSandboxServer::Data
 {
   QString                       mode;
+  bool                          notifyStop;
   QPointer<QLocalServer>        server;
   QPointer<ReadThread>          readThread;
   int                           openConnections;
@@ -76,6 +77,7 @@ SSandboxServer::SSandboxServer(QObject *parent)
   : SHttpServerEngine("Sandbox/1.0", parent),
     d(new Data())
 {
+  d->notifyStop = false;
   d->server = NULL;
   d->openConnections = 0;
   d->readThread = NULL;
@@ -99,14 +101,20 @@ SSandboxServer::~SSandboxServer()
   *const_cast<Data **>(&d) = NULL;
 }
 
-bool SSandboxServer::initialize(const QString &mode)
+bool SSandboxServer::initialize(const QString &mode, const QString &name)
 {
   d->mode = mode;
   d->server = new QLocalServer(this);
 
   connect(d->server, SIGNAL(newConnection()), SLOT(newConnection()));
 
-  if (!d->server->listen(sApp->tempFileBase() + "sandbox-" + QString::number(quintptr(this), 16)))
+  const QString fullName = name.isEmpty()
+      ? sApp->tempFileBase() + "sandbox-" + QString::number(quintptr(this), 16)
+      : name;
+
+  d->server->removeServer(fullName);
+
+  if (!d->server->listen(fullName))
   {
     qWarning() << "SSandboxServer Failed to bind interface" << d->server->errorString();
     return false;
@@ -120,7 +128,11 @@ bool SSandboxServer::initialize(const QString &mode)
       d->readThread->start();
     }
 
-    std::cerr << "##READY " << d->server->serverName().toAscii().data() << std::endl;
+    if (name.isEmpty())
+    {
+      std::cerr << "##READY " << d->server->serverName().toAscii().data() << std::endl;
+      d->notifyStop = true;
+    }
   }
 
   // This is performed after initialization to prevent priority inversion with
@@ -162,7 +174,7 @@ void SSandboxServer::close(void)
     delete d->server;
     d->server = NULL;
 
-    if (d->mode != "local")
+    if ((d->mode != "local") && d->notifyStop)
       std::cerr << "##STOP" << std::endl;
 
     emit finished();

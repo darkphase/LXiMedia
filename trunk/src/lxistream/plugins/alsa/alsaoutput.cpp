@@ -16,13 +16,14 @@
  ******************************************************************************/
 
 #include "alsaoutput.h"
+#include "module.h"
 
 namespace LXiStreamDevice {
 namespace AlsaBackend {
 
 AlsaOutput::AlsaOutput(const QString &dev, QObject *parent)
   : SInterfaces::AudioOutput(parent),
-    dev(dev.mid(dev.lastIndexOf(", ") + 2)),
+    dev(deviceName(dev)),
     pcm(NULL),
     resampler(NULL),
     outLatency(STime::null),

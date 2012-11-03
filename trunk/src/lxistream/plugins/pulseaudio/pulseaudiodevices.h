@@ -15,26 +15,35 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#ifndef ALSABACKEND_MODULE_H
-#define ALSABACKEND_MODULE_H
+#ifndef PULSEAUDIODEVICES_H
+#define PULSEAUDIODEVICES_H
 
-#include <LXiStreamDevice>
+#include <QtCore>
+#include <pulse/pulseaudio.h>
 
 namespace LXiStreamDevice {
-namespace AlsaBackend {
+namespace PulseAudioBackend {
 
-class Module : public SModule
+class PulseAudioDevices : public QObject
 {
 Q_OBJECT
 public:
-  virtual bool                  registerClasses(void);
-  virtual void                  unload(void);
-  virtual QByteArray            about(void);
-  virtual QByteArray            licenses(void);
-};
+                                PulseAudioDevices(QObject * = NULL);
+  virtual                       ~PulseAudioDevices();
 
-QString deviceName(const QString &);
-QString channelName(const QString &);
+  inline const QMap<QString, pa_source_info> & inputDevices() const { return inputs; }
+  inline const QMap<QString, pa_sink_info> & outputDevices() const { return outputs; }
+
+private:
+  static void                   stateCallback(pa_context *, void *);
+  static void                   sinklistCallback(pa_context *, const pa_sink_info *, int, void *);
+  static void                   sourcelistCallback(pa_context *, const pa_source_info *, int, void *);
+  void                          buildDevicelist();
+
+private:
+  QMap<QString, pa_source_info> inputs;
+  QMap<QString, pa_sink_info>   outputs;
+};
 
 } } // End of namespaces
 

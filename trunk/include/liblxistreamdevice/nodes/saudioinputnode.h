@@ -37,6 +37,9 @@ public:
 
   static QStringList            devices(void);
 
+  void                          setFormat(const SAudioFormat &);
+  SAudioFormat                  format() const;
+
   virtual bool                  start(void);
   virtual void                  stop(void);
   virtual bool                  process(void);

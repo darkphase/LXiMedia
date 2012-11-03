@@ -15,13 +15,15 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#ifndef ALSABACKEND_MODULE_H
-#define ALSABACKEND_MODULE_H
+#ifndef SCREENGRABBER_MODULE_H
+#define SCREENGRABBER_MODULE_H
 
+#include <QtCore>
+#include <LXiMediaCenter>
 #include <LXiStreamDevice>
 
-namespace LXiStreamDevice {
-namespace AlsaBackend {
+namespace LXiMediaCenter {
+namespace ScreenGrabberBackend {
 
 class Module : public SModule
 {
@@ -31,10 +33,10 @@ public:
   virtual void                  unload(void);
   virtual QByteArray            about(void);
   virtual QByteArray            licenses(void);
-};
 
-QString deviceName(const QString &);
-QString channelName(const QString &);
+public:
+  static const char             pluginName[];
+};
 
 } } // End of namespaces
 

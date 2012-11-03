@@ -17,6 +17,7 @@
 
 #include "module.h"
 #include "alsainput.h"
+#include "alsamixer.h"
 #include "alsaoutput.h"
 
 namespace LXiStreamDevice {
@@ -60,21 +61,32 @@ bool Module::registerClasses(void)
                   continue;
               }
 
-              if (name == "default:") // Analog output
+              if ((name == "default:") || (name == "sysdefault:")) // Analog output
               {
-                if (!inputOnly)
-                  AlsaOutput::registerClass<AlsaOutput>(SFactory::Scheme(-card, longName + ", hw:" + QString::number(card)));
+                const QString dev = longName + ", hw:" + QString::number(card);
 
-                AlsaInput::registerClass<AlsaInput>(SFactory::Scheme(-card, longName + ", hw:" + QString::number(card)));
+                if (!inputOnly)
+                  AlsaOutput::registerClass<AlsaOutput>(SFactory::Scheme(-card, dev));
+
+                AlsaMixer mixer(dev);
+                if (mixer.open())
+                {
+                  foreach (const QString &channel, mixer.listInputChannels())
+                    AlsaInput::registerClass<AlsaInput>(SFactory::Scheme(-card, dev + '@' + channel));
+                }
+                else
+                  AlsaInput::registerClass<AlsaInput>(SFactory::Scheme(-card, dev));
 
                 result = true;
               }
               else if (name == "iec958:") // Iec958 (S/PDIF) output
               {
-                if (!inputOnly)
-                  AlsaOutput::registerClass<AlsaOutput>(SFactory::Scheme(-card, longName + ", iec958:" + QString::number(card)));
+                const QString dev = longName + ", iec958:" + QString::number(card);
 
-                AlsaInput::registerClass<AlsaInput>(SFactory::Scheme(-card, longName + ", iec958:" + QString::number(card)));
+                if (!inputOnly)
+                  AlsaOutput::registerClass<AlsaOutput>(SFactory::Scheme(-card, dev));
+
+                AlsaInput::registerClass<AlsaInput>(SFactory::Scheme(-card, dev));
 
                 result = true;
               }
@@ -113,6 +125,25 @@ QByteArray Module::about(void)
 QByteArray Module::licenses(void)
 {
   return QByteArray();
+}
+
+
+QString deviceName(const QString &dev)
+{
+  const QStringList l = dev.mid(dev.lastIndexOf(", ") + 2).split('@');
+  if (!l.isEmpty())
+    return l.first();
+
+  return QString::null;
+}
+
+QString channelName(const QString &dev)
+{
+  const QStringList l = dev.mid(dev.lastIndexOf(", ") + 2).split('@');
+  if (l.count() > 1)
+    return l.last();
+
+  return QString::null;
 }
 
 } } // End of namespaces

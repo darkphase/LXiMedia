@@ -15,27 +15,36 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#ifndef ALSABACKEND_MODULE_H
-#define ALSABACKEND_MODULE_H
+#include "module.h"
+#include "screengrabberserver.h"
 
-#include <LXiStreamDevice>
+namespace LXiMediaCenter {
+namespace ScreenGrabberBackend {
 
-namespace LXiStreamDevice {
-namespace AlsaBackend {
+const char Module::pluginName[] = QT_TR_NOOP("ScreenGrabbers");
 
-class Module : public SModule
+bool Module::registerClasses(void)
 {
-Q_OBJECT
-public:
-  virtual bool                  registerClasses(void);
-  virtual void                  unload(void);
-  virtual QByteArray            about(void);
-  virtual QByteArray            licenses(void);
-};
+  ScreenGrabberServer::registerClass<ScreenGrabberServer>(0);
 
-QString deviceName(const QString &);
-QString channelName(const QString &);
+  return true;
+}
+
+void Module::unload(void)
+{
+}
+
+QByteArray Module::about(void)
+{
+  return QByteArray(pluginName) + " by A.J. Admiraal";
+}
+
+QByteArray Module::licenses(void)
+{
+  return QByteArray();
+}
 
 } } // End of namespaces
 
-#endif
+#include <QtPlugin>
+Q_EXPORT_PLUGIN2(lximediacenter_screengrabber, LXiMediaCenter::ScreenGrabberBackend::Module);

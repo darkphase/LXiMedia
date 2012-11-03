@@ -45,7 +45,6 @@ private:
   void                          openCodec(const SAudioFormat &);
 
 private:
-  const QString                 server;
   pa_simple                   * handle;
 
   STime                         outLatency;

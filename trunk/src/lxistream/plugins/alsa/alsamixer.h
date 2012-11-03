@@ -15,26 +15,33 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#ifndef ALSABACKEND_MODULE_H
-#define ALSABACKEND_MODULE_H
+#ifndef ALSAMIXER_H
+#define ALSAMIXER_H
 
+#include <alsa/asoundlib.h>
+#include <QtCore>
 #include <LXiStreamDevice>
 
 namespace LXiStreamDevice {
 namespace AlsaBackend {
 
-class Module : public SModule
+class AlsaMixer : public QObject
 {
 Q_OBJECT
 public:
-  virtual bool                  registerClasses(void);
-  virtual void                  unload(void);
-  virtual QByteArray            about(void);
-  virtual QByteArray            licenses(void);
-};
+                                AlsaMixer(const QString &, QObject * = NULL);
+  virtual                       ~AlsaMixer();
 
-QString deviceName(const QString &);
-QString channelName(const QString &);
+  bool                          open();
+  void                          close();
+
+  QStringList                   listInputChannels();
+  bool                          activateInputChannel(const QString &);
+
+private:
+  const QString                 dev;
+  snd_mixer_t                 * mixer;
+};
 
 } } // End of namespaces
 
