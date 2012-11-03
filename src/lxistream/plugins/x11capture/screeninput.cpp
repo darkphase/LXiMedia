@@ -77,10 +77,31 @@ ScreenInput::ScreenInput(const QString &screen, QObject *parent)
 
 ScreenInput::~ScreenInput()
 {
+  imagesMutex.lock();
+
   if (connnection)
   {
+    while (!images.isEmpty())
+    {
+      Image * const image = images.pop();
+
+      ::xcb_shm_detach(connnection, image->shminfo.shmseg);
+      ::shmdt(image->shminfo.shmaddr);
+      ::shmctl(image->shminfo.shmid, IPC_RMID, 0);
+      delete image;
+    }
+
     ::xcb_disconnect(connnection);
     connnection = NULL;
+  }
+
+  while (!images.isEmpty())
+  {
+    Image * const image = images.pop();
+
+    ::shmdt(image->shminfo.shmaddr);
+    ::shmctl(image->shminfo.shmid, IPC_RMID, 0);
+    delete image;
   }
 }
 
@@ -104,6 +125,8 @@ int ScreenInput::maxBuffers(void) const
 
 bool ScreenInput::start(void)
 {
+  stop();
+
   if (!screenRect.isEmpty())
   {
     int snum = 0;
@@ -135,6 +158,40 @@ bool ScreenInput::start(void)
               SInterval::fromFrequency(25),
               SVideoFormat::FieldMode_Progressive);
 
+        for (int i=0; i<numImages; i++)
+        {
+          Image * const image = new Image();
+          image->img.width = screenRect.width();
+          image->img.height = screenRect.height();
+          image->img.format = XCB_IMAGE_FORMAT_Z_PIXMAP;
+          image->img.depth = 24;
+          image->img.bpp = 32;
+          image->img.unit = 32;
+          image->img.plane_mask = 0xFFFFFFFF;
+          image->img.byte_order = XCB_IMAGE_ORDER_LSB_FIRST;
+          image->img.bit_order = XCB_IMAGE_ORDER_LSB_FIRST;
+          image->img.stride = image->img.width * (image->img.bpp / 8);
+          image->img.size = image->img.stride * image->img.height;
+          image->img.base = NULL;
+          image->img.data = NULL;
+
+          image->shminfo.shmid = ::shmget(IPC_PRIVATE, image->img.stride * image->img.height, IPC_CREAT | 0666);
+          if (image->shminfo.shmid != uint32_t(-1))
+          {
+            image->shminfo.shmaddr = reinterpret_cast<uint8_t *>(::shmat(image->shminfo.shmid, 0, 0));
+            image->img.data = image->shminfo.shmaddr;
+
+            image->shminfo.shmseg = ::xcb_generate_id(connnection);
+            ::xcb_shm_attach(connnection, image->shminfo.shmseg, image->shminfo.shmid, 0);
+
+            QMutexLocker l(&imagesMutex);
+
+            images.push(image);
+
+            continue;
+          }
+        }
+
         lastImage = timer.timeStamp();
 
         return true;
@@ -149,6 +206,18 @@ void ScreenInput::stop(void)
 {
   if (connnection)
   {
+    QMutexLocker l(&imagesMutex);
+
+    while (!images.isEmpty())
+    {
+      Image * const image = images.pop();
+
+      ::xcb_shm_detach(connnection, image->shminfo.shmseg);
+      ::shmdt(image->shminfo.shmaddr);
+      ::shmctl(image->shminfo.shmid, IPC_RMID, 0);
+      delete image;
+    }
+
     ::xcb_disconnect(connnection);
     connnection = NULL;
   }
@@ -172,44 +241,63 @@ bool ScreenInput::process(void)
 
     lastImage += videoFormat.frameRate();
 
-    xcb_get_image_reply_t * const img = ::xcb_get_image_reply(
-          connnection,
-          ::xcb_get_image(
-            connnection,
-            XCB_IMAGE_FORMAT_Z_PIXMAP,
-            window,
-            screenRect.x(), screenRect.y(), screenRect.width(), screenRect.height(),
-            ~0),
-          NULL);
+    QMutexLocker l(&imagesMutex);
 
-    if (img)
+    if (!images.isEmpty())
     {
-      const int offset[4] = { 0, 0, 0, 0 };
-      const int lineSize[4] = { int(screenRect.width() * sizeof(uint32_t)), 0, 0, 0 };
+      Image * const image = images.pop();
 
-      SVideoBuffer videoBuffer(videoFormat, SBuffer::MemoryPtr(new Memory(img)), offset, lineSize);
-      videoBuffer.setTimeStamp(lastImage);
-      emit produce(videoBuffer);
+      l.unlock();
 
-      return true;
+      const ::xcb_shm_get_image_cookie_t cookie = ::xcb_shm_get_image(
+            connnection, window,
+            screenRect.x(), screenRect.y(), image->img.width, image->img.height,
+            0xffffffff, image->img.format,
+            image->shminfo.shmseg, image->img.data - image->shminfo.shmaddr);
+
+      ::xcb_shm_get_image_reply_t * const ireply = ::xcb_shm_get_image_reply(
+            connnection, cookie, NULL);
+
+      if (ireply)
+      {
+        const int offset[4] = { 0, 0, 0, 0 };
+        const int lineSize[4] = { int(image->img.stride), 0, 0, 0 };
+
+        SVideoBuffer videoBuffer(videoFormat, SBuffer::MemoryPtr(new Memory(this, image)), offset, lineSize);
+        videoBuffer.setTimeStamp(lastImage);
+        emit produce(videoBuffer);
+
+        ::free(ireply);
+      }
+      else
+      {
+        l.relock();
+
+        images.push(image);
+      }
     }
+
+    return true;
   }
 
   return false;
 }
 
-ScreenInput::Memory::Memory(::xcb_get_image_reply_t *img)
+ScreenInput::Memory::Memory(ScreenInput *parent, Image *image)
   : SBuffer::Memory(
-      ::xcb_get_image_data_length(img),
-      reinterpret_cast<char *>(::xcb_get_image_data(img)),
-      ::xcb_get_image_data_length(img)),
-    img(img)
+      image->img.stride * image->img.height,
+      reinterpret_cast<char *>(image->img.data),
+      image->img.stride * image->img.height),
+    parent(parent),
+    image(image)
 {
 }
 
 ScreenInput::Memory::~Memory()
 {
-  ::free(img);
+  QMutexLocker l(&parent->imagesMutex);
+
+  parent->images.push(image);
 }
 
 } } // End of namespaces

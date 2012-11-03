@@ -18,7 +18,11 @@
 #ifndef SCREENINPUT_H
 #define SCREENINPUT_H
 
+#include <sys/ipc.h>
+#include <sys/shm.h>
 #include <xcb/xcb.h>
+#include <xcb/xcb_image.h>
+#include <xcb/shm.h>
 #include <QtCore>
 #include <LXiStreamDevice>
 
@@ -29,14 +33,21 @@ class ScreenInput : public SInterfaces::VideoInput
 {
 Q_OBJECT
 public:
+  struct Image
+  {
+    ::xcb_image_t               img;
+    ::xcb_shm_segment_info_t    shminfo;
+  };
+
   class Memory : public SBuffer::Memory
   {
   public:
-                                Memory(::xcb_get_image_reply_t *img);
+                                Memory(ScreenInput *, Image *);
     virtual                     ~Memory();
 
   private:
-    ::xcb_get_image_reply_t * const img;
+    ScreenInput         * const parent;
+    Image               * const image;
   };
 
 public:
@@ -66,6 +77,10 @@ private:
   STimer                        timer;
   STime                         lastImage;
   SVideoFormat                  videoFormat;
+
+  static const int              numImages = 3;
+  QMutex                        imagesMutex;
+  QStack<Image *>               images;
 };
 
 } } // End of namespaces
