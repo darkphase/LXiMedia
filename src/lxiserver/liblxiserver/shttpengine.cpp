@@ -121,6 +121,28 @@ void SHttpEngine::closeSocket(QIODevice *socket)
   }
 }
 
+QString SHttpEngine::osName()
+{
+#if defined(Q_OS_UNIX)
+  struct utsname osname;
+  if (uname(&osname) >= 0)
+    return QString(osname.sysname) + '/' + QString(osname.release);
+  else
+    return "Unix/1.0";
+#elif defined(Q_OS_WIN)
+  switch (QSysInfo::windowsVersion())
+  {
+  case QSysInfo::WV_4_0:  return "Windows/4.0";
+  case QSysInfo::WV_5_0:  return "Windows/5.0";
+  case QSysInfo::WV_5_1:  return "Windows/5.1";
+  case QSysInfo::WV_5_2:  return "Windows/5.2";
+  case QSysInfo::WV_6_0:  return "Windows/6.0";
+  case QSysInfo::WV_6_1:  return "Windows/6.1";
+  default:                return "Windows/1.0";
+  }
+#endif
+}
+
 /*! Returns the error description for the HTTP status code.
  */
 const char * SHttpEngine::errorDescription(StatusCode code)
@@ -512,17 +534,7 @@ SHttpClientEngine::SHttpClientEngine(QObject *parent)
   : SHttpEngine(parent),
     d(new Data())
 {
-  d->senderId = qApp->applicationName() + "/" + qApp->applicationVersion();
-
-#if defined(Q_OS_UNIX)
-  struct utsname osname;
-  if (uname(&osname) >= 0)
-    d->senderId += " " + QString(osname.sysname) + "/" + QString(osname.release);
-  else
-    d->senderId += " Unix";
-#elif defined(Q_OS_WIN)
-  d->senderId += " Windows";
-#endif
+  d->senderId = qApp->applicationName() + '/' + qApp->applicationVersion() + ' ' + osName();
 }
 
 SHttpClientEngine::~SHttpClientEngine()
