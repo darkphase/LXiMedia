@@ -41,6 +41,9 @@ private slots:
   void                          cleanStreams(void);
 
 private:
+  const QIcon                   screenIcon;
+  const QIcon                   eyesIcon;
+
   QMenu                         menu;
   QSystemTrayIcon               trayIcon;
 

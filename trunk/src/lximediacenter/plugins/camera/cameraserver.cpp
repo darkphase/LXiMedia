@@ -87,7 +87,7 @@ SHttpServer::ResponseMessage CameraServer::sendPhoto(const SHttpServer::RequestM
   return SHttpServer::ResponseMessage(request, SSandboxServer::Status_NotFound);
 }
 
-QList<CameraServer::Item> CameraServer::listItems(const QString &, int start, int &count)
+QList<CameraServer::Item> CameraServer::listItems(const QString &virtualPath, int start, int &count)
 {
   const bool returnAll = count == 0;
   QList<Item> result;
@@ -108,10 +108,13 @@ QList<CameraServer::Item> CameraServer::listItems(const QString &, int start, in
 
   for (int i=start, n=0; (i<cameras.count()) && (returnAll || (n<int(count))); i++, n++)
   {
+    const QByteArray name = cameras[i].toUtf8().toHex();
+
     Item item;
+    item.path = virtualPath + '/' + name;
     item.type = SUPnPContentDirectory::Item::Type_Video;
     item.played = false;
-    item.url = serverPath() + cameras[i].toUtf8().toHex();
+    item.url = serverPath() + name;
     item.iconUrl = "/img/camera-photo.png";
     item.title = cameras[i];
 

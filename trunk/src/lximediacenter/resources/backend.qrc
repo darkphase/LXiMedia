@@ -25,6 +25,8 @@
         <file>img/checksomedisabled.png</file>
         <file>img/search.png</file>
         <file>img/home.png</file>
+        <file>img/eyes.png</file>
+        <file>img/video-display.png</file>
         <file>js/list.js</file>
         <file>js/player.js</file>
         <file>help/quickstart.en.html</file>

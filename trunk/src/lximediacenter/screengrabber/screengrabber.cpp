@@ -19,8 +19,10 @@
 
 ScreenGrabber::ScreenGrabber()
   : QObject(),
+    screenIcon(":/img/video-display.png"),
+    eyesIcon(":/img/eyes.png"),
     menu(),
-    trayIcon(QIcon(":/img/play-all.png"), this),
+    trayIcon(screenIcon, this),
     sandboxServer(this)
 {
   menu.addAction(tr("Quit"), qApp, SLOT(quit()));
@@ -37,6 +39,7 @@ void ScreenGrabber::show()
   sandboxServer.initialize("", "lximc-screengrabber");
 
   trayIcon.show();
+  trayIcon.setToolTip(tr("LXiMediaCenter screen grabber"));
 
   connect(&cleanStreamsTimer, SIGNAL(timeout()), SLOT(cleanStreams()));
   cleanStreamsTimer.start(5000);
@@ -78,6 +81,13 @@ SSandboxServer::ResponseMessage ScreenGrabber::httpRequest(const SSandboxServer:
         if (desktopStream->setup(request, socket))
         if (desktopStream->start())
         {
+          trayIcon.showMessage(
+                tr("LXiMediaCenter screen grabber"),
+                tr("Grabber stream started, your desktop is being watched."));
+
+          if (streams.isEmpty())
+            trayIcon.setIcon(eyesIcon);
+
           streams.append(desktopStream);
           return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_None);
         }
@@ -92,6 +102,8 @@ SSandboxServer::ResponseMessage ScreenGrabber::httpRequest(const SSandboxServer:
 
 void ScreenGrabber::cleanStreams(void)
 {
+  const bool wasEmpty = streams.isEmpty();
+
   for (QList<SGraph *>::Iterator i=streams.begin(); i!=streams.end(); )
   if (!(*i)->isRunning())
   {
@@ -100,6 +112,9 @@ void ScreenGrabber::cleanStreams(void)
   }
   else
     i++;
+
+  if (!wasEmpty && streams.isEmpty())
+    trayIcon.setIcon(screenIcon);
 }
 
 

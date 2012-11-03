@@ -42,11 +42,11 @@ public:
   class Memory : public SBuffer::Memory
   {
   public:
-                                Memory(ScreenInput *, Image *);
+                                Memory(int, Image *);
     virtual                     ~Memory();
 
   private:
-    ScreenInput         * const parent;
+    const int                   inputId;
     Image               * const image;
   };
 
@@ -68,19 +68,23 @@ public: // From SInterfaces::VideoInput
   virtual bool                  process(void);
 
 private:
-  static QMap<QString, QRect>   screens;
+  static void                   deleteImage(::xcb_connection_t *, Image *);
 
-  ::xcb_connection_t          * connnection;
+private:
+  static QMap<QString, QRect>   screens;
+  static const int              numImages;
+  static QMutex                 imagesMutex;
+  static QAtomicInt             inputIdCounter;
+  static QMap< int, QStack<Image *> > images;
+
+  const quint32                 inputId;
+  ::xcb_connection_t          * connection;
   ::xcb_window_t                window;
   QRect                         screenRect;
 
   STimer                        timer;
   STime                         lastImage;
   SVideoFormat                  videoFormat;
-
-  static const int              numImages = 3;
-  QMutex                        imagesMutex;
-  QStack<Image *>               images;
 };
 
 } } // End of namespaces
