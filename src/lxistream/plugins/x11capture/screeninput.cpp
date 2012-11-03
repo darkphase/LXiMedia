@@ -21,7 +21,11 @@
 namespace LXiStreamDevice {
 namespace X11Capture {
 
-QMap<QString, QRect> ScreenInput::screens;
+QMap<QString, QRect>                      ScreenInput::screens;
+const int                                 ScreenInput::numImages = 3;
+QMutex                                    ScreenInput::imagesMutex(QMutex::Recursive);
+QAtomicInt                                ScreenInput::inputIdCounter = 0;
+QMap< int, QStack<ScreenInput::Image *> > ScreenInput::images;
 
 QList<SFactory::Scheme> ScreenInput::listDevices(void)
 {
@@ -30,12 +34,12 @@ QList<SFactory::Scheme> ScreenInput::listDevices(void)
   ScreenInput::screens.clear();
 
   int snum = 0;
-  ::xcb_connection_t * connnection = ::xcb_connect(NULL, &snum);
-  if (!::xcb_connection_has_error(connnection))
+  ::xcb_connection_t * connection = ::xcb_connect(NULL, &snum);
+  if (!::xcb_connection_has_error(connection))
   {
     ::xcb_xinerama_query_screens_reply_t * const screens = ::xcb_xinerama_query_screens_reply(
-          connnection,
-          ::xcb_xinerama_query_screens(connnection),
+          connection,
+          ::xcb_xinerama_query_screens(connection),
           NULL);
 
     int count = 1;
@@ -57,7 +61,7 @@ QList<SFactory::Scheme> ScreenInput::listDevices(void)
 
     ::free(screens);
 
-    ::xcb_disconnect(connnection);
+    ::xcb_disconnect(connection);
   }
 
   return result;
@@ -65,7 +69,8 @@ QList<SFactory::Scheme> ScreenInput::listDevices(void)
 
 ScreenInput::ScreenInput(const QString &screen, QObject *parent)
   : SInterfaces::VideoInput(parent),
-    connnection(NULL),
+    inputId(inputIdCounter.fetchAndAddAcquire(1)),
+    connection(NULL),
     window(),
     screenRect(),
     videoFormat()
@@ -77,32 +82,7 @@ ScreenInput::ScreenInput(const QString &screen, QObject *parent)
 
 ScreenInput::~ScreenInput()
 {
-  imagesMutex.lock();
-
-  if (connnection)
-  {
-    while (!images.isEmpty())
-    {
-      Image * const image = images.pop();
-
-      ::xcb_shm_detach(connnection, image->shminfo.shmseg);
-      ::shmdt(image->shminfo.shmaddr);
-      ::shmctl(image->shminfo.shmid, IPC_RMID, 0);
-      delete image;
-    }
-
-    ::xcb_disconnect(connnection);
-    connnection = NULL;
-  }
-
-  while (!images.isEmpty())
-  {
-    Image * const image = images.pop();
-
-    ::shmdt(image->shminfo.shmaddr);
-    ::shmctl(image->shminfo.shmid, IPC_RMID, 0);
-    delete image;
-  }
+  ScreenInput::stop();
 }
 
 void ScreenInput::setFormat(const SVideoFormat &)
@@ -130,10 +110,10 @@ bool ScreenInput::start(void)
   if (!screenRect.isEmpty())
   {
     int snum = 0;
-    connnection = ::xcb_connect(NULL, &snum);
-    if (!::xcb_connection_has_error(connnection))
+    connection = ::xcb_connect(NULL, &snum);
+    if (!::xcb_connection_has_error(connection))
     {
-      const ::xcb_setup_t * const setup = ::xcb_get_setup(connnection);
+      const ::xcb_setup_t * const setup = ::xcb_get_setup(connection);
       const ::xcb_screen_t *scr = NULL;
       for (::xcb_screen_iterator_t i = ::xcb_setup_roots_iterator(setup);
            i.rem > 0;
@@ -150,6 +130,12 @@ bool ScreenInput::start(void)
 
       if (scr != NULL)
       {
+        QMutexLocker l(&imagesMutex);
+
+        QMap< int, QStack<Image *> >::Iterator imgs = images.find(inputId);
+        if (imgs == images.end())
+          imgs = images.insert(inputId, QStack<Image *>());
+
         window = scr->root;
 
         videoFormat = SVideoFormat(
@@ -170,7 +156,7 @@ bool ScreenInput::start(void)
           image->img.plane_mask = 0xFFFFFFFF;
           image->img.byte_order = XCB_IMAGE_ORDER_LSB_FIRST;
           image->img.bit_order = XCB_IMAGE_ORDER_LSB_FIRST;
-          image->img.stride = image->img.width * (image->img.bpp / 8);
+          image->img.stride = SBuffer::align(image->img.width * (image->img.bpp / 8));
           image->img.size = image->img.stride * image->img.height;
           image->img.base = NULL;
           image->img.data = NULL;
@@ -181,12 +167,10 @@ bool ScreenInput::start(void)
             image->shminfo.shmaddr = reinterpret_cast<uint8_t *>(::shmat(image->shminfo.shmid, 0, 0));
             image->img.data = image->shminfo.shmaddr;
 
-            image->shminfo.shmseg = ::xcb_generate_id(connnection);
-            ::xcb_shm_attach(connnection, image->shminfo.shmseg, image->shminfo.shmid, 0);
+            image->shminfo.shmseg = ::xcb_generate_id(connection);
+            ::xcb_shm_attach(connection, image->shminfo.shmseg, image->shminfo.shmid, 0);
 
-            QMutexLocker l(&imagesMutex);
-
-            images.push(image);
+            imgs->push(image);
 
             continue;
           }
@@ -204,22 +188,21 @@ bool ScreenInput::start(void)
 
 void ScreenInput::stop(void)
 {
-  if (connnection)
+  QMutexLocker l(&imagesMutex);
+
+  QMap< int, QStack<Image *> >::Iterator imgs = images.find(inputId);
+  if (imgs != images.end())
   {
-    QMutexLocker l(&imagesMutex);
+    while (!imgs->isEmpty())
+      deleteImage(connection, imgs->pop());
 
-    while (!images.isEmpty())
-    {
-      Image * const image = images.pop();
+    images.erase(imgs);
+  }
 
-      ::xcb_shm_detach(connnection, image->shminfo.shmseg);
-      ::shmdt(image->shminfo.shmaddr);
-      ::shmctl(image->shminfo.shmid, IPC_RMID, 0);
-      delete image;
-    }
-
-    ::xcb_disconnect(connnection);
-    connnection = NULL;
+  if (connection)
+  {
+    ::xcb_disconnect(connection);
+    connection = NULL;
   }
 }
 
@@ -228,7 +211,7 @@ bool ScreenInput::process(void)
   // Hack to get access to msleep()
   struct T : QThread { static inline void msleep(unsigned long msec) { QThread::msleep(msec); } };
 
-  if (connnection)
+  if (connection)
   {
     const STime now = timer.timeStamp();
     const STime next = lastImage + videoFormat.frameRate();
@@ -243,27 +226,28 @@ bool ScreenInput::process(void)
 
     QMutexLocker l(&imagesMutex);
 
-    if (!images.isEmpty())
+    QMap< int, QStack<Image *> >::Iterator imgs = images.find(inputId);
+    if ((imgs != images.end()) && !imgs->isEmpty())
     {
-      Image * const image = images.pop();
+      Image * const image = imgs->pop();
 
       l.unlock();
 
       const ::xcb_shm_get_image_cookie_t cookie = ::xcb_shm_get_image(
-            connnection, window,
+            connection, window,
             screenRect.x(), screenRect.y(), image->img.width, image->img.height,
             0xffffffff, image->img.format,
             image->shminfo.shmseg, image->img.data - image->shminfo.shmaddr);
 
       ::xcb_shm_get_image_reply_t * const ireply = ::xcb_shm_get_image_reply(
-            connnection, cookie, NULL);
+            connection, cookie, NULL);
 
       if (ireply)
       {
         const int offset[4] = { 0, 0, 0, 0 };
         const int lineSize[4] = { int(image->img.stride), 0, 0, 0 };
 
-        SVideoBuffer videoBuffer(videoFormat, SBuffer::MemoryPtr(new Memory(this, image)), offset, lineSize);
+        SVideoBuffer videoBuffer(videoFormat, SBuffer::MemoryPtr(new Memory(inputId, image)), offset, lineSize);
         videoBuffer.setTimeStamp(lastImage);
         emit produce(videoBuffer);
 
@@ -273,7 +257,11 @@ bool ScreenInput::process(void)
       {
         l.relock();
 
-        images.push(image);
+        imgs = images.find(inputId);
+        if (imgs != images.end())
+          imgs->push(image);
+        else
+          deleteImage(connection, image);
       }
     }
 
@@ -283,21 +271,35 @@ bool ScreenInput::process(void)
   return false;
 }
 
-ScreenInput::Memory::Memory(ScreenInput *parent, Image *image)
+void ScreenInput::deleteImage(::xcb_connection_t *connection, Image *image)
+{
+  if (connection)
+    ::xcb_shm_detach(connection, image->shminfo.shmseg);
+
+  ::shmdt(image->shminfo.shmaddr);
+  ::shmctl(image->shminfo.shmid, IPC_RMID, 0);
+  delete image;
+}
+
+ScreenInput::Memory::Memory(int inputId, Image *image)
   : SBuffer::Memory(
       image->img.stride * image->img.height,
       reinterpret_cast<char *>(image->img.data),
       image->img.stride * image->img.height),
-    parent(parent),
+    inputId(inputId),
     image(image)
 {
 }
 
 ScreenInput::Memory::~Memory()
 {
-  QMutexLocker l(&parent->imagesMutex);
+  QMutexLocker l(&imagesMutex);
 
-  parent->images.push(image);
+  QMap< int, QStack<Image *> >::Iterator imgs = images.find(inputId);
+  if (imgs != images.end())
+    imgs->push(image);
+  else
+    deleteImage(NULL, image);
 }
 
 } } // End of namespaces

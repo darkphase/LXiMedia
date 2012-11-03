@@ -49,7 +49,7 @@ QString ScreenGrabberServer::serverName(void) const
 
 QString ScreenGrabberServer::serverIconPath(void) const
 {
-  return "/img/camera-photo.png";
+  return "/img/video-display.png";
 }
 
 ScreenGrabberServer::Stream * ScreenGrabberServer::streamVideo(const SHttpServer::RequestMessage &request)
@@ -82,7 +82,7 @@ SHttpServer::ResponseMessage ScreenGrabberServer::sendPhoto(const SHttpServer::R
   return SHttpServer::ResponseMessage(request, SSandboxServer::Status_NotFound);
 }
 
-QList<ScreenGrabberServer::Item> ScreenGrabberServer::listItems(const QString &, int start, int &count)
+QList<ScreenGrabberServer::Item> ScreenGrabberServer::listItems(const QString &virtualPath, int start, int &count)
 {
   const bool returnAll = count == 0;
   QList<Item> result;
@@ -90,7 +90,7 @@ QList<ScreenGrabberServer::Item> ScreenGrabberServer::listItems(const QString &,
   SSandboxClient::RequestMessage request(sandbox);
   request.setRequest("GET", "/?listdesktops=");
 
-  QStringList cameras;
+  QStringList desktops;
   const SHttpEngine::ResponseMessage response = sandbox->blockingRequest(request, 250);
   if (response.status() == SHttpEngine::Status_Ok)
   {
@@ -98,24 +98,27 @@ QList<ScreenGrabberServer::Item> ScreenGrabberServer::listItems(const QString &,
     if (reader.readNextStartElement() && (reader.name() == "desktops"))
     while (reader.readNextStartElement())
     if (reader.name() == "desktop")
-      cameras += reader.readElementText();
+      desktops += reader.readElementText();
   }
 
-  for (int i=start, n=0; (i<cameras.count()) && (returnAll || (n<int(count))); i++, n++)
+  for (int i=start, n=0; (i<desktops.count()) && (returnAll || (n<int(count))); i++, n++)
   {
+    const QByteArray name = desktops[i].toUtf8().toHex();
+
     Item item;
+    item.path = virtualPath + '/' + name;
     item.type = SUPnPContentDirectory::Item::Type_Video;
     item.played = false;
-    item.url = serverPath() + cameras[i].toUtf8().toHex();
-    item.iconUrl = "/img/camera-photo.png";
-    item.title = cameras[i];
+    item.url = serverPath() + name;
+    item.iconUrl = "/img/video-display.png";
+    item.title = desktops[i];
 
     item.audioFormat.setChannelSetup(SAudioFormat::Channels_Stereo);
 
     result += item;
   }
 
-  count = cameras.count();
+  count = desktops.count();
 
   return result;
 }
@@ -128,7 +131,7 @@ ScreenGrabberServer::Item ScreenGrabberServer::getItem(const QString &path)
   item.type = SUPnPContentDirectory::Item::Type_Video;
   item.played = false;
   item.url = serverPath() + file;
-  item.iconUrl = "/img/camera-photo.png";
+  item.iconUrl = "/img/video-display.png";
   item.title = QString::fromUtf8(QByteArray::fromHex(file.toAscii()));
 
   item.audioFormat.setChannelSetup(SAudioFormat::Channels_Stereo);
