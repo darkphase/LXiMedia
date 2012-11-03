@@ -44,11 +44,13 @@ public:
 protected:
   virtual void                  parsePacket(SsdpClientInterface *, const SHttpServer::RequestHeader &, const QHostAddress &, quint16);
 
+  void                          sendUpdate(SsdpClientInterface *, const QString &nt, const QString &url) const;
   void                          sendAlive(SsdpClientInterface *, const QString &nt, const QString &url) const;
   void                          sendByeBye(SsdpClientInterface *, const QString &nt) const;
   void                          sendSearchResponse(SsdpClientInterface *, const QString &st, const QString &url, const QHostAddress &, quint16) const;
 
 private slots:
+  void                          updateServices(void);
   void                          publishServices(void);
   void                          unpublishServices(void);
 

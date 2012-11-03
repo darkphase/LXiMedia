@@ -38,7 +38,7 @@ struct SSsdpClient::Private
 const QHostAddress  SSsdpClient::ssdpAddressIPv4("239.255.255.250");
 const QHostAddress  SSsdpClient::ssdpAddressIPv6("FF02::C");
 const quint16       SSsdpClient::ssdpPort = 1900;
-const int           SSsdpClient::cacheTimeout = 7200; // Alive messages are broadcast every (cacheTimeout/2)-300 seconds.
+const int           SSsdpClient::cacheTimeout = 1800; // Alive messages are broadcast every (cacheTimeout/2)-300 seconds.
 
 const QList<QHostAddress> & SSsdpClient::localInterfaces(void)
 {
@@ -184,6 +184,7 @@ void SSsdpClient::sendSearch(SsdpClientInterface *iface, const QString &st, unsi
 {
   SHttpServer::RequestHeader request(NULL);
   request.setRequest("M-SEARCH", "*", SHttpServer::httpVersion);
+  request.setField("USER-AGENT", SHttpServer::osName() + " UPnP/1.1 " + qApp->applicationName() + '/' + qApp->applicationVersion());
   request.setField("HOST", SSsdpClient::ssdpAddressIPv4.toString() + ":" + QString::number(SSsdpClient::ssdpPort));
   request.setField("MAN", "\"ssdp:discover\"");
   request.setField("MX", QString::number(mx));

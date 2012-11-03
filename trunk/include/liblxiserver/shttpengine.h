@@ -276,6 +276,7 @@ public slots:
   virtual void                  closeSocket(QIODevice *);
 
 public:
+  static QString                osName();
   static const char           * errorDescription(StatusCode);
   static const char           * toMimeType(const QString &fileName);
   static bool                   splitHost(const QString &host, QString &hostname, quint16 &port);
