@@ -20,9 +20,8 @@
 namespace LXiStreamDevice {
 namespace PulseAudioBackend {
 
-PulseAudioOutput::PulseAudioOutput(const QString &server, QObject *parent)
+PulseAudioOutput::PulseAudioOutput(const QString &, QObject *parent)
   : SInterfaces::AudioOutput(parent),
-    server(server),
     handle(NULL),
     outLatency(STime::null),
     inFormat()
@@ -90,15 +89,14 @@ void PulseAudioOutput::openCodec(const SAudioFormat &reqFormat)
     sampleSpec.rate = reqFormat.sampleRate();
     sampleSpec.channels = reqFormat.numChannels();
 
-    handle = pa_simple_new(server.isEmpty() ? NULL : server.toAscii().data(),
-                           SApplication::name(),
-                           PA_STREAM_PLAYBACK,
-                           NULL,
-                           "PulseAudioOutput",
-                           &sampleSpec,
-                           NULL,
-                           NULL,
-                           NULL);
+    handle = pa_simple_new(
+          NULL,
+          SApplication::name(),
+          PA_STREAM_PLAYBACK,
+          NULL,
+          "PulseAudioOutput",
+          &sampleSpec,
+          NULL, NULL, NULL);
 
     if (!handle)
       qWarning() << "PulseAudioOutput: Can't create output stream.";

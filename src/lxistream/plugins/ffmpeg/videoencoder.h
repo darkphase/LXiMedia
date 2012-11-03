@@ -63,7 +63,7 @@ private:
 
   QFuture<void>                 encodeFuture;
   SEncodedVideoBufferList       delayedResult;
-  static const int              memorySemCount = 64;
+  static const int              memorySemCount = 16;
   QSemaphore                    memorySem;
 
   bool                          fastEncode;

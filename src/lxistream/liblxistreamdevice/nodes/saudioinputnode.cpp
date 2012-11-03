@@ -22,7 +22,6 @@ namespace LXiStreamDevice {
 
 struct SAudioInputNode::Data
 {
-  QString                       device;
   SInterfaces::AudioInput     * input;
 };
 
@@ -30,8 +29,7 @@ SAudioInputNode::SAudioInputNode(SGraph *parent, const QString &device)
   : ::LXiStream::SInterfaces::SourceNode(parent),
     d(new Data())
 {
-  d->device = device;
-  d->input = NULL;
+  d->input = SInterfaces::AudioInput::create(this, device);
 }
 
 SAudioInputNode::~SAudioInputNode()
@@ -46,34 +44,36 @@ QStringList SAudioInputNode::devices(void)
   return SInterfaces::AudioInput::available();
 }
 
+void SAudioInputNode::setFormat(const SAudioFormat &format)
+{
+  if (d->input)
+    d->input->setFormat(format);
+}
+
+SAudioFormat SAudioInputNode::format() const
+{
+  if (d->input)
+    return d->input->format();
+
+  return SAudioFormat();
+}
+
 bool SAudioInputNode::start(void)
 {
-  delete d->input;
-  d->input = SInterfaces::AudioInput::create(this, d->device);
-
-  if (d->input)
-  if (d->input->start())
+  if (d->input && d->input->start())
   {
     connect(d->input, SIGNAL(produce(const SAudioBuffer &)), SIGNAL(output(const SAudioBuffer &)));
     return true;
   }
 
-  delete d->input;
-  d->input = NULL;
-
-  qWarning() << "Failed to open audio input device" << d->device;
+  qWarning() << "Failed to open audio input device";
   return false;
 }
 
 void SAudioInputNode::stop(void)
 {
   if (d->input)
-  {
     d->input->stop();
-
-    delete d->input;
-    d->input = NULL;
-  }
 }
 
 bool SAudioInputNode::process(void)

@@ -65,7 +65,7 @@ void Sandbox::start(const QString &mode)
   foreach (BackendSandbox *sandbox, backendSandboxes)
     sandbox->initialize(&sandboxServer);
 
-  sandboxServer.initialize(mode);
+  sandboxServer.initialize(mode, QString::null);
 
   if (mode != "local")
   {

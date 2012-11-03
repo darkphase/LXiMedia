@@ -97,6 +97,19 @@ SSandboxClient::SSandboxClient(SSandboxServer *localServer, Priority priority, Q
   connect(&d->socketPoolTimer, SIGNAL(timeout()), SLOT(clearSocketPool()));
 }
 
+SSandboxClient::SSandboxClient(const QString &serverName, QObject *parent)
+  : SHttpClientEngine(parent),
+    d(new Data())
+{
+  d->serverProcess = NULL;
+  d->serverName = serverName;
+  d->processStarted = true;
+
+  d->socketCount = 0;
+  d->socketPoolTimer.setSingleShot(true);
+  connect(&d->socketPoolTimer, SIGNAL(timeout()), SLOT(clearSocketPool()));
+}
+
 SSandboxClient::~SSandboxClient()
 {
   emit terminated();

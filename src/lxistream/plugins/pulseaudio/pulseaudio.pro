@@ -7,11 +7,13 @@ include($${PWD}/$${LXIMEDIA_DIR}/include/liblxistreamdevice/linklxistreamdevice.
 # Files
 HEADERS += pulseaudioinput.h \
  pulseaudiooutput.h \
- module.h
+ module.h \
+    pulseaudiodevices.h
 
 SOURCES += pulseaudioinput.cpp \
  pulseaudiooutput.cpp \
- module.cpp
+ module.cpp \
+    pulseaudiodevices.cpp
 
 # Export plugin
 SOURCES += export.cpp

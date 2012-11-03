@@ -71,11 +71,6 @@ private:
 
 struct SAudioVideoInputNode::Data
 {
-  QString                       device;
-  SAudioFormat                  audioFormat;
-  SVideoFormat                  videoFormat;
-  int                           maxBuffers;
-
   SInterfaces::AudioInput     * audioInput;
   SInterfaces::VideoInput     * videoInput;
   Thread<SInterfaces::AudioInput> * audioThread;
@@ -86,55 +81,14 @@ SAudioVideoInputNode::SAudioVideoInputNode(SGraph *parent, const QString &device
   : ::LXiStream::SInterfaces::SourceNode(parent),
     d(new Data())
 {
-  d->device = device;
-  d->maxBuffers = 0;
   d->audioInput = NULL;
-  d->videoInput = NULL;
+  d->videoInput = SInterfaces::VideoInput::create(this, device);
   d->audioThread = NULL;
   d->videoThread = NULL;
-}
-
-SAudioVideoInputNode::~SAudioVideoInputNode()
-{
-  delete d->audioInput;
-  delete d->videoInput;
-  delete d;
-  *const_cast<Data **>(&d) = NULL;
-}
-
-QStringList SAudioVideoInputNode::devices(void)
-{
-  return SInterfaces::VideoInput::available();
-}
-
-void SAudioVideoInputNode::setFormat(const SAudioFormat &audioFormat, const SVideoFormat &videoFormat)
-{
-  d->audioFormat = audioFormat;
-  d->videoFormat = videoFormat;
-}
-
-void SAudioVideoInputNode::setMaxBuffers(int maxBuffers)
-{
-  d->maxBuffers = maxBuffers;
-}
-
-bool SAudioVideoInputNode::start(void)
-{
-  delete d->audioThread;
-  d->audioThread = NULL;
-
-  delete d->audioInput;
-  d->audioInput = NULL;
-
-  delete d->videoThread;
-  d->videoThread = NULL;
-
-  delete d->videoInput;
-  d->videoInput = SInterfaces::VideoInput::create(this, d->device);
 
   if (d->videoInput)
   {
-    const QString myName = SStringParser::toRawName(d->device);
+    const QString myName = SStringParser::toRawName(device);
     QString bestMatch = QString::null;
     qreal match = 0.0, weight = 1.0;
 
@@ -150,60 +104,86 @@ bool SAudioVideoInputNode::start(void)
     }
 
     if (!bestMatch.isEmpty())
-    { // Found one
       d->audioInput = SInterfaces::AudioInput::create(this, bestMatch);
-      if (d->audioInput)
-      {
-        if (!d->audioFormat.isNull())
-          d->audioInput->setFormat(d->audioFormat);
-
-        if (d->audioInput->start())
-        {
-          connect(d->audioInput, SIGNAL(produce(const SAudioBuffer &)), SIGNAL(output(const SAudioBuffer &)));
-          d->audioThread = new Thread<SInterfaces::AudioInput>(this, d->audioInput);
-        }
-        else
-        {
-          delete d->audioInput;
-          d->audioInput = NULL;
-        }
-      }
-    }
 
     if (d->audioInput == NULL)
-    {
       d->audioInput = new SilentAudioInput(this);
+  }
+}
 
-      if (!d->audioFormat.isNull())
-        d->audioInput->setFormat(d->audioFormat);
+SAudioVideoInputNode::~SAudioVideoInputNode()
+{
+  delete d->audioThread;
+  delete d->videoThread;
+  delete d->audioInput;
+  delete d->videoInput;
+  delete d;
+  *const_cast<Data **>(&d) = NULL;
+}
 
-      d->audioInput->start();
+QStringList SAudioVideoInputNode::devices(void)
+{
+  return SInterfaces::VideoInput::available();
+}
 
-      connect(d->audioInput, SIGNAL(produce(const SAudioBuffer &)), SIGNAL(output(const SAudioBuffer &)));
-      d->audioThread = new Thread<SInterfaces::AudioInput>(this, d->audioInput);
-    }
+void SAudioVideoInputNode::setAudioFormat(const SAudioFormat &format)
+{
+  if (d->audioInput)
+    d->audioInput->setFormat(format);
+}
 
-    if (!d->videoFormat.isNull())
-      d->videoInput->setFormat(d->videoFormat);
+SAudioFormat SAudioVideoInputNode::audioFormat() const
+{
+  if (d->audioInput)
+    return d->audioInput->format();
 
-    if (d->maxBuffers > 0)
-      d->videoInput->setMaxBuffers(d->maxBuffers);
+  return SAudioFormat();
+}
 
-    if (d->videoInput->start())
+void SAudioVideoInputNode::setVideoFormat(const SVideoFormat &format)
+{
+  if (d->videoInput)
+    d->videoInput->setFormat(format);
+}
+
+SVideoFormat SAudioVideoInputNode::videoFormat() const
+{
+  if (d->videoInput)
+    return d->videoInput->format();
+
+  return SVideoFormat();
+}
+
+void SAudioVideoInputNode::setMaxBuffers(int maxBuffers)
+{
+  if (d->videoInput)
+    d->videoInput->setMaxBuffers(maxBuffers);
+}
+
+bool SAudioVideoInputNode::start(void)
+{
+  delete d->audioThread;
+  d->audioThread = NULL;
+
+  delete d->videoThread;
+  d->videoThread = NULL;
+
+  if (d->videoInput && d->audioInput)
+  {
+    if (d->audioInput->start() && d->videoInput->start())
     {
+      connect(d->audioInput, SIGNAL(produce(const SAudioBuffer &)), SIGNAL(output(const SAudioBuffer &)));
       connect(d->videoInput, SIGNAL(produce(const SVideoBuffer &)), SIGNAL(output(const SVideoBuffer &)));
+      d->audioThread = new Thread<SInterfaces::AudioInput>(this, d->audioInput);
       d->videoThread = new Thread<SInterfaces::VideoInput>(this, d->videoInput);
       return true;
     }
+
+    d->audioInput->stop();
+    d->videoInput->stop();
   }
 
-  delete d->audioInput;
-  d->audioInput = NULL;
-
-  delete d->videoInput;
-  d->videoInput = NULL;
-
-  qWarning() << "Failed to open audio/video input device" << d->device;
+  qWarning() << "Failed to open audio/video input device";
   return false;
 }
 

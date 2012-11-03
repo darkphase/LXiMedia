@@ -15,27 +15,51 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#ifndef ALSABACKEND_MODULE_H
-#define ALSABACKEND_MODULE_H
+#ifndef SCREENGRABBER_H
+#define SCREENGRABBER_H
 
+#include <QtCore>
+#include <QtGui>
+#include <LXiServer>
+#include <LXiMediaCenter>
 #include <LXiStreamDevice>
 
-namespace LXiStreamDevice {
-namespace AlsaBackend {
-
-class Module : public SModule
+class ScreenGrabber : public QObject,
+                      public SSandboxServer::Callback
 {
 Q_OBJECT
 public:
-  virtual bool                  registerClasses(void);
-  virtual void                  unload(void);
-  virtual QByteArray            about(void);
-  virtual QByteArray            licenses(void);
+                                ScreenGrabber();
+  virtual                       ~ScreenGrabber();
+
+  void                          show();
+
+public: // From SSandboxServer::Callback
+  virtual SSandboxServer::ResponseMessage httpRequest(const SSandboxServer::RequestMessage &, QIODevice *);
+
+private slots:
+  void                          cleanStreams(void);
+
+private:
+  QMenu                         menu;
+  QSystemTrayIcon               trayIcon;
+
+  SSandboxServer                sandboxServer;
+  QList<SGraph *>               streams;
+  QTimer                        cleanStreamsTimer;
 };
 
-QString deviceName(const QString &);
-QString channelName(const QString &);
+class DesktopStream : public MediaStream
+{
+Q_OBJECT
+public:
+  explicit                      DesktopStream(const QString &device);
+  virtual                       ~DesktopStream();
 
-} } // End of namespaces
+  bool                          setup(const SHttpServer::RequestMessage &, QIODevice *);
+
+public:
+  SAudioVideoInputNode          input;
+};
 
 #endif

@@ -15,27 +15,28 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#ifndef ALSABACKEND_MODULE_H
-#define ALSABACKEND_MODULE_H
+#include "screengrabberserver.h"
 
-#include <LXiStreamDevice>
+namespace LXiMediaCenter {
+namespace ScreenGrabberBackend {
 
-namespace LXiStreamDevice {
-namespace AlsaBackend {
+const char ScreenGrabberServer::htmlFrontPageContent[] =
+    "   <div class=\"list_thumbnails\" id=\"screengrabberitems\">\n"
+    "   </div>\n"
+    "   <script type=\"text/javascript\">loadListContent(\"screengrabberitems\", \"{SERVER_PATH}\", 0, 0);</script>\n";
 
-class Module : public SModule
+QByteArray ScreenGrabberServer::frontPageContent(void)
 {
-Q_OBJECT
-public:
-  virtual bool                  registerClasses(void);
-  virtual void                  unload(void);
-  virtual QByteArray            about(void);
-  virtual QByteArray            licenses(void);
-};
+  int count = 1;
+  if (!listItems(QString::null, 0, count).isEmpty())
+  {
+    SStringParser htmlParser;
+    htmlParser.setField("SERVER_PATH", QUrl(serverPath()));
 
-QString deviceName(const QString &);
-QString channelName(const QString &);
+    return htmlParser.parse(htmlFrontPageContent);
+  }
+
+  return QByteArray();
+}
 
 } } // End of namespaces
-
-#endif

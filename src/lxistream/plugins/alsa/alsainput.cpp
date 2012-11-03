@@ -16,13 +16,16 @@
  ******************************************************************************/
 
 #include "alsainput.h"
+#include "module.h"
 
 namespace LXiStreamDevice {
 namespace AlsaBackend {
 
 AlsaInput::AlsaInput(const QString &dev, QObject *parent)
   : SInterfaces::AudioInput(parent),
-    dev(dev.mid(dev.lastIndexOf(", ") + 2)),
+    dev(deviceName(dev)),
+    channel(channelName(dev)),
+    mixer(dev),
     pcm(NULL),
     outFormat(SAudioFormat::Format_PCM_S16, SAudioFormat::Channels_Stereo, 48000)
 {
@@ -53,6 +56,10 @@ bool AlsaInput::start(void)
   unsigned outSampleRate = outFormat.sampleRate();
   unsigned outNumChannels = outFormat.numChannels();
 
+  if (!channel.isEmpty())
+  if (!mixer.open() || !mixer.activateInputChannel(channel))
+    return false;
+
   if (snd_pcm_open(&pcm, dev.toAscii().data(), SND_PCM_STREAM_CAPTURE, 0) == 0)
   if (snd_pcm_hw_params_malloc(&hw_params) == 0)
   if (snd_pcm_hw_params_any(pcm, hw_params) == 0)
@@ -82,6 +89,8 @@ void AlsaInput::stop(void)
     snd_pcm_close(pcm);
     pcm = NULL;
   }
+
+  mixer.close();
 }
 
 bool AlsaInput::process(void)

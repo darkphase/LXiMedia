@@ -24,7 +24,7 @@ const int SandboxTest::numResponses = 100;
 int SandboxTest::startSandbox(const QString &mode)
 {
   SSandboxServer * const sandboxServer = createSandbox();
-  sandboxServer->initialize(mode);
+  sandboxServer->initialize(mode, QString::null);
 
   const int result = qApp->exec();
 
@@ -98,7 +98,7 @@ void SandboxTest::cleanupTestCase(void)
 void SandboxTest::localSandbox(void)
 {
   SSandboxServer * const sandboxServer = createSandbox();
-  sandboxServer->initialize("local");
+  sandboxServer->initialize("local", QString::null);
 
   LXiServer::SSandboxClient * const sandboxClient = new SSandboxClient(sandboxServer, SSandboxClient::Priority_Normal, this);
   connect(sandboxClient, SIGNAL(response(SHttpEngine::ResponseMessage)), SLOT(handleResponse(SHttpEngine::ResponseMessage)), Qt::DirectConnection);

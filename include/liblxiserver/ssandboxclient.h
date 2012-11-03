@@ -42,6 +42,7 @@ public:
 public:
                                 SSandboxClient(const QString &application, Priority, QObject * = NULL);
                                 SSandboxClient(SSandboxServer *, Priority, QObject * = NULL);
+  explicit                      SSandboxClient(const QString &serverName, QObject * = NULL);
   virtual                       ~SSandboxClient();
 
   Priority                      priority(void) const;

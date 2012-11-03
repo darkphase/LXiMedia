@@ -38,6 +38,7 @@ public:
   static QStringList            devices(void);
 
   void                          setFormat(const SVideoFormat &);
+  SVideoFormat                  format() const;
   void                          setMaxBuffers(int);
 
   virtual bool                  start(void);

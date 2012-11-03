@@ -40,7 +40,6 @@ public:
   virtual bool                  process(void);
 
 private:
-  const QString                 server;
   pa_simple                   * handle;
 
   STimer                        timer;

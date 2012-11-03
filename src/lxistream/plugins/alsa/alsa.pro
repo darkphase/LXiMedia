@@ -7,11 +7,13 @@ include($${PWD}/$${LXIMEDIA_DIR}/include/liblxistreamdevice/linklxistreamdevice.
 # Files
 HEADERS += alsainput.h \
  alsaoutput.h \
- module.h
+ module.h \
+    alsamixer.h
 
 SOURCES += alsainput.cpp \
  alsaoutput.cpp \
- module.cpp
+ module.cpp \
+    alsamixer.cpp
 
 LIBS += -lasound
 
