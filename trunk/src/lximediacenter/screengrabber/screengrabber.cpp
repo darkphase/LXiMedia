@@ -23,7 +23,8 @@ ScreenGrabber::ScreenGrabber()
     eyesIcon(":/img/eyes.png"),
     menu(),
     trayIcon(screenIcon, this),
-    sandboxServer(this)
+    httpServer(SUPnPBase::protocol(), serverUuid()),
+    ssdpServer(&httpServer)
 {
   menu.addAction(tr("Quit"), qApp, SLOT(quit()));
   trayIcon.setContextMenu(&menu);
@@ -31,12 +32,26 @@ ScreenGrabber::ScreenGrabber()
 
 ScreenGrabber::~ScreenGrabber()
 {
+  ssdpServer.close();
+  httpServer.close();
 }
 
 void ScreenGrabber::show()
 {
-  sandboxServer.registerCallback("/", this);
-  sandboxServer.initialize("", "lximc-screengrabber");
+  QSettings settings;
+  settings.beginGroup("ScreenGrabber");
+
+  httpServer.initialize(
+      settings.value("BindAllNetworks", false).toBool()
+          ? QNetworkInterface::allAddresses()
+          : SSsdpClient::localInterfaces(),
+      settings.value("HttpPort", defaultPort).toInt());
+
+  // Setup HTTP server
+  httpServer.registerCallback("/", this);
+
+  ssdpServer.initialize(SSsdpClient::localInterfaces());
+  ssdpServer.publish("urn:XXX:service:ScreenGrabber:1", "/", 1);
 
   trayIcon.show();
   trayIcon.setToolTip(tr("LXiMediaCenter screen grabber"));
@@ -51,7 +66,20 @@ SSandboxServer::ResponseMessage ScreenGrabber::httpRequest(const SSandboxServer:
 
   if (request.method() == "GET")
   {
-    if (url.hasQueryItem("listdesktops"))
+    if (url.path() == "/hostname")
+    {
+      QByteArray content;
+      {
+        QXmlStreamWriter writer(&content);
+        writer.setAutoFormatting(false);
+        writer.writeStartElement("hostname");
+        writer.writeCharacters(QHostInfo::localHostName());
+        writer.writeEndElement();
+      }
+
+      return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_Ok, content, SHttpEngine::mimeTextXml);
+    }
+    else if (url.path() == "/desktops")
     {
       QByteArray content;
       {
@@ -72,7 +100,7 @@ SSandboxServer::ResponseMessage ScreenGrabber::httpRequest(const SSandboxServer:
 
       return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_Ok, content, SHttpEngine::mimeTextXml);
     }
-    else if (url.hasQueryItem("opendesktop"))
+    else if (url.path() == "/desktop")
     {
       const QString device = QString::fromUtf8(QByteArray::fromHex(url.queryItemValue("desktop").toAscii()));
       if (!device.isEmpty() && device.startsWith("Desktop ", Qt::CaseInsensitive))
@@ -117,6 +145,22 @@ void ScreenGrabber::cleanStreams(void)
     trayIcon.setIcon(screenIcon);
 }
 
+QUuid ScreenGrabber::serverUuid(void)
+{
+  QString uuid = "00000000-0000-0000-0000-000000000000";
+
+  QSettings settings;
+  settings.beginGroup("ScreenGrabber");
+
+  if (settings.contains("UUID"))
+    return settings.value("UUID", uuid).toString();
+
+  uuid = QUuid::createUuid().toString().replace("{", "").replace("}", "");
+  settings.setValue("UUID", uuid);
+
+  return uuid;
+}
+
 
 DesktopStream::DesktopStream(const QString &device)
   : MediaStream(),
@@ -130,10 +174,21 @@ DesktopStream::~DesktopStream()
 
 bool DesktopStream::setup(const SHttpServer::RequestMessage &request, QIODevice *socket)
 {
+  SAudioFormat audioFormat = input.audioFormat();
+  SVideoFormat videoFormat = input.videoFormat();
+
   if (MediaStream::setup(
         request, socket, STime::null, STime(),
-        input.audioFormat(), input.videoFormat()))
+        audioFormat, videoFormat))
   {
+    audioFormat.setSampleRate(audio->resampler.sampleRate());
+    audioFormat.setChannelSetup(audio->outChannels);
+    input.setAudioFormat(audioFormat);
+
+    videoFormat.setSize(video->resizer.size());
+    videoFormat.setFrameRate(sync.frameRate());
+    input.setVideoFormat(videoFormat);
+
     connect(&input, SIGNAL(output(SAudioBuffer)), &audio->matrix, SLOT(input(SAudioBuffer)));
     connect(&input, SIGNAL(output(SVideoBuffer)), &video->letterboxDetectNode, SLOT(input(SVideoBuffer)));
 

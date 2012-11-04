@@ -77,7 +77,14 @@ ScreenInput::ScreenInput(const QString &screen, QObject *parent)
 {
   QMap<QString, QRect>::const_iterator i = screens.find(screen);
   if (i != screens.end())
+  {
     screenRect = *i;
+
+    videoFormat = SVideoFormat(
+          SVideoFormat::Format_RGB32,
+          screenRect.size(),
+          SInterval::fromFrequency(30));
+  }
 }
 
 ScreenInput::~ScreenInput()
@@ -85,13 +92,14 @@ ScreenInput::~ScreenInput()
   ScreenInput::stop();
 }
 
-void ScreenInput::setFormat(const SVideoFormat &)
+void ScreenInput::setFormat(const SVideoFormat &format)
 {
+  videoFormat.setFrameRate(format.frameRate());
 }
 
 SVideoFormat ScreenInput::format(void)
 {
-  return SVideoFormat(SVideoFormat::Format_RGB32, screenRect.size(), SInterval::fromFrequency(25));
+  return videoFormat;
 }
 
 void ScreenInput::setMaxBuffers(int)

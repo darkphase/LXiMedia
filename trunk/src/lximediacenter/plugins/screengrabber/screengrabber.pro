@@ -16,6 +16,8 @@ SOURCES += screengrabberserver.cpp \
 HEADERS += screengrabberserver.h \
  module.h
 
+RESOURCES += screengrabber.qrc
+
 # Windows specific
 win32-msvc2005|win32-msvc2008|win32-msvc2010 {
   TEMPLATE = vclib

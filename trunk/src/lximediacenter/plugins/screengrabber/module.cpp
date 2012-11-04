@@ -21,11 +21,11 @@
 namespace LXiMediaCenter {
 namespace ScreenGrabberBackend {
 
-const char Module::pluginName[] = QT_TR_NOOP("ScreenGrabbers");
+const char Module::pluginName[] = QT_TR_NOOP("Computers");
 
 bool Module::registerClasses(void)
 {
-  ScreenGrabberServer::registerClass<ScreenGrabberServer>(0);
+  ScreenGrabberServer::registerClass<ScreenGrabberServer>(-1);
 
   return true;
 }

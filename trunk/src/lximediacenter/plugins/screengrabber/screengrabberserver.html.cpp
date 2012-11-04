@@ -28,7 +28,7 @@ const char ScreenGrabberServer::htmlFrontPageContent[] =
 QByteArray ScreenGrabberServer::frontPageContent(void)
 {
   int count = 1;
-  if (!listItems(QString::null, 0, count).isEmpty())
+  if (!listItems(serverPath(), 0, count).isEmpty())
   {
     SStringParser htmlParser;
     htmlParser.setField("SERVER_PATH", QUrl(serverPath()));

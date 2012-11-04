@@ -33,13 +33,13 @@ protected:
   class Stream : public MediaServer::Stream
   {
   public:
-                                Stream(ScreenGrabberServer *, SSandboxClient *, const QString &url);
+                                Stream(ScreenGrabberServer *, SHttpClient *, const QString &url);
     virtual                     ~Stream();
 
     bool                        setup(const QUrl &request);
 
   public:
-    SSandboxClient      * const sandbox;
+    SHttpClient         * const httpClient;
   };
 
 public:
@@ -60,8 +60,19 @@ protected: // From MediaServer
   virtual QList<Item>           listItems(const QString &path, int start, int &count);
   virtual Item                  getItem(const QString &path);
 
+private slots:
+  void                          sendSearch();
+
 private:
-  SSandboxClient              * sandbox;
+  Item                          makeItem(const QString &path);
+  void                          updateNodes(void);
+
+private:
+  SSsdpClient                 * ssdpClient;
+  QTimer                        searchTimer;
+  int                           searchCounter;
+
+  QMap<QString, SSsdpClient::Node> nodes;
 
 private:
   static const char             htmlFrontPageContent[];

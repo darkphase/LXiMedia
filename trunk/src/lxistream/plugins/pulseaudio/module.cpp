@@ -56,8 +56,11 @@ bool Module::registerClasses(void)
   {
     pa_simple_free(handle);
 
-    PulseAudioInput::registerClass<PulseAudioInput>(SFactory::Scheme(1, "Desktop"));
     PulseAudioOutput::registerClass<PulseAudioOutput>(1);
+
+    PulseAudioInput input(QString::null, NULL);
+    if (input.start())
+      PulseAudioInput::registerClass<PulseAudioInput>(SFactory::Scheme(1, "Desktop"));
 
     result = true;
   }

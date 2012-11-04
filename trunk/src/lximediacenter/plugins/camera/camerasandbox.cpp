@@ -126,10 +126,21 @@ CameraStream::~CameraStream()
 
 bool CameraStream::setup(const SHttpServer::RequestMessage &request, QIODevice *socket)
 {
+  SAudioFormat audioFormat = input.audioFormat();
+  SVideoFormat videoFormat = input.videoFormat();
+
   if (MediaStream::setup(
         request, socket, STime::null, STime(),
-        input.audioFormat(), input.videoFormat()))
+        audioFormat, videoFormat))
   {
+    audioFormat.setSampleRate(audio->resampler.sampleRate());
+    audioFormat.setChannelSetup(audio->outChannels);
+    input.setAudioFormat(audioFormat);
+
+    videoFormat.setSize(video->resizer.size());
+    videoFormat.setFrameRate(sync.frameRate());
+    input.setVideoFormat(videoFormat);
+
     connect(&input, SIGNAL(output(SAudioBuffer)), &audio->matrix, SLOT(input(SAudioBuffer)));
     connect(&input, SIGNAL(output(SVideoBuffer)), &video->deinterlacer, SLOT(input(SVideoBuffer)));
 
