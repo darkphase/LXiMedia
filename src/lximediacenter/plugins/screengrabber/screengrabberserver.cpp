@@ -23,23 +23,29 @@ namespace ScreenGrabberBackend {
 
 ScreenGrabberServer::ScreenGrabberServer(const QString &, QObject *parent)
   : MediaServer(parent),
-    sandbox(NULL)
+    ssdpClient(NULL),
+    searchTimer(),
+    searchCounter(0)
 {
+  searchTimer.setInterval(500);
+  connect(&searchTimer, SIGNAL(timeout()), SLOT(sendSearch()));
 }
 
 void ScreenGrabberServer::initialize(MasterServer *masterServer)
 {
-  sandbox = new SSandboxClient("lximc-screengrabber", this);
+  ssdpClient = masterServer->ssdpServer();
+  searchCounter = 0;
+  searchTimer.start();
 
   MediaServer::initialize(masterServer);
 }
 
 void ScreenGrabberServer::close(void)
 {
-  delete sandbox;
-  sandbox = NULL;
-
   MediaServer::close();
+
+  searchTimer.stop();
+  ssdpClient = NULL;
 }
 
 QString ScreenGrabberServer::serverName(void) const
@@ -58,21 +64,33 @@ ScreenGrabberServer::Stream * ScreenGrabberServer::streamVideo(const SHttpServer
   if (url.hasQueryItem("query"))
     url = url.toEncoded(QUrl::RemoveQuery) + QByteArray::fromHex(url.queryItemValue("query").toAscii());
 
-  SSandboxClient * const sandbox = new SSandboxClient("lximc-screengrabber", this);
+  const QStringList path = QString(request.path()).split('/');
+  if (path.count() >= 2)
+  {
+    updateNodes();
 
-  QUrl rurl;
-  rurl.setPath("/" + request.file());
-  rurl.addQueryItem("opendesktop", QString::null);
-  rurl.addQueryItem("desktop", request.fileName());
-  typedef QPair<QString, QString> QStringPair;
-  foreach (const QStringPair &queryItem, url.queryItems())
-    rurl.addQueryItem(queryItem.first, queryItem.second);
+    QMap<QString, SSsdpClient::Node>::Iterator node =
+        nodes.find(path[path.count() - 2]);
 
-  Stream *stream = new Stream(this, sandbox, request.path());
-  if (stream->setup(rurl))
-    return stream; // The graph owns the socket now.
+    if (node != nodes.end())
+    {
+      SHttpClient * const httpClient = new SHttpClient(this);
 
-  delete stream;
+      QUrl rurl(node->location);
+      rurl.setPath("/desktop");
+      rurl.addQueryItem("opendesktop", QString::null);
+      rurl.addQueryItem("desktop", request.fileName());
+      typedef QPair<QString, QString> QStringPair;
+      foreach (const QStringPair &queryItem, url.queryItems())
+        rurl.addQueryItem(queryItem.first, queryItem.second);
+
+      Stream *stream = new Stream(this, httpClient, request.path());
+      if (stream->setup(rurl))
+        return stream; // The graph owns the socket now.
+
+      delete stream;
+    }
+  }
 
   return NULL;
 }
@@ -82,80 +100,204 @@ SHttpServer::ResponseMessage ScreenGrabberServer::sendPhoto(const SHttpServer::R
   return SHttpServer::ResponseMessage(request, SSandboxServer::Status_NotFound);
 }
 
-QList<ScreenGrabberServer::Item> ScreenGrabberServer::listItems(const QString &virtualPath, int start, int &count)
+QList<ScreenGrabberServer::Item> ScreenGrabberServer::listItems(const QString &path, int start, int &count)
 {
   const bool returnAll = count == 0;
   QList<Item> result;
 
-  SSandboxClient::RequestMessage request(sandbox);
-  request.setRequest("GET", "/?listdesktops=");
-
-  QStringList desktops;
-  const SHttpEngine::ResponseMessage response = sandbox->blockingRequest(request, 250);
-  if (response.status() == SHttpEngine::Status_Ok)
+  if (path == serverPath())
   {
-    QXmlStreamReader reader(response.content());
-    if (reader.readNextStartElement() && (reader.name() == "desktops"))
-    while (reader.readNextStartElement())
-    if (reader.name() == "desktop")
-      desktops += reader.readElementText();
-  }
+    updateNodes();
 
-  for (int i=start, n=0; (i<desktops.count()) && (returnAll || (n<int(count))); i++, n++)
+    const QList<QString> hostnames = nodes.keys();
+
+    for (int i=start, n=0; (i<hostnames.count()) && (returnAll || (n<int(count))); i++, n++)
+      result += makeItem(serverPath() + hostnames[i] + '/');
+
+    count = hostnames.count();
+  }
+  else
   {
-    const QByteArray name = desktops[i].toUtf8().toHex();
+    QString filePath = path;
+    while (filePath.endsWith('/'))
+      filePath = filePath.left(filePath.length() - 1);
 
-    Item item;
-    item.path = virtualPath + '/' + name;
-    item.type = SUPnPContentDirectory::Item::Type_Video;
-    item.played = false;
-    item.url = serverPath() + name;
-    item.iconUrl = "/img/video-display.png";
-    item.title = desktops[i];
+    QMap<QString, SSsdpClient::Node>::Iterator node =
+        nodes.find(filePath.split('/').last());
 
-    item.audioFormat.setChannelSetup(SAudioFormat::Channels_Stereo);
+    if (node != nodes.end())
+    {
+      SHttpClient httpClient;
+      QStringList desktops;
 
-    result += item;
+      QUrl url(node->location);
+
+      SHttpClient::RequestMessage request(&httpClient);
+      request.setHost(url.host(), url.port());
+      request.setRequest("GET", "/desktops");
+
+      const SHttpEngine::ResponseMessage response = httpClient.blockingRequest(request, 250);
+      if (response.status() == SHttpEngine::Status_Ok)
+      {
+        QXmlStreamReader reader(response.content());
+        if (reader.readNextStartElement() && (reader.name() == "desktops"))
+        while (reader.readNextStartElement())
+        if (reader.name() == "desktop")
+          desktops += reader.readElementText();
+      }
+
+      for (int i=start, n=0; (i<desktops.count()) && (returnAll || (n<int(count))); i++, n++)
+        result += makeItem(path + desktops[i].toUtf8().toHex());
+
+      count = desktops.count();
+    }
   }
-
-  count = desktops.count();
 
   return result;
 }
 
 ScreenGrabberServer::Item ScreenGrabberServer::getItem(const QString &path)
 {
-  const QString file = path.mid(path.lastIndexOf('/') + 1);
+  return makeItem(path);
+}
+
+void ScreenGrabberServer::sendSearch()
+{
+  if (ssdpClient)
+  {
+    if (searchCounter++ < 3)
+      ssdpClient->sendSearch("urn:XXX:service:ScreenGrabber:1");
+    else
+      searchTimer.stop();
+  }
+}
+
+ScreenGrabberServer::Item ScreenGrabberServer::makeItem(const QString &path)
+{
+  QString virtualPath = path.mid(serverPath().length());
+  while (virtualPath.endsWith('/'))
+    virtualPath = virtualPath.left(virtualPath.length() - 1);
+
+  const int ls = virtualPath.lastIndexOf('/');
+  if (ls >= 0)
+  {
+    const QString file = virtualPath.mid(ls + 1);
+    const QString dir = virtualPath.left(ls);
+    if (!file.isEmpty() && !dir.isEmpty())
+    {
+      Item item;
+      item.isDir = false;
+      item.path = path;
+      item.type = SUPnPContentDirectory::Item::Type_Video;
+      item.played = false;
+      item.url = path;
+      item.iconUrl = "/img/video-display.png";
+      item.title = QString::fromUtf8(QByteArray::fromHex(file.toAscii()));
+
+      item.audioFormat.setChannelSetup(SAudioFormat::Channels_Stereo);
+
+      return item;
+    }
+  }
 
   Item item;
-  item.type = SUPnPContentDirectory::Item::Type_Video;
+  item.isDir = true;
+  item.path = path;
   item.played = false;
-  item.url = serverPath() + file;
-  item.iconUrl = "/img/video-display.png";
-  item.title = QString::fromUtf8(QByteArray::fromHex(file.toAscii()));
-
-  item.audioFormat.setChannelSetup(SAudioFormat::Channels_Stereo);
+  item.url = path;
+  item.iconUrl = "/img/screengrabber.png";
+  item.title = virtualPath;
 
   return item;
 }
 
-ScreenGrabberServer::Stream::Stream(ScreenGrabberServer *parent, SSandboxClient *sandbox, const QString &url)
+void ScreenGrabberServer::updateNodes(void)
+{
+  SHttpClient httpClient;
+
+  if (ssdpClient)
+  {
+    const QList<SSsdpClient::Node> activeNodes =
+        ssdpClient->searchResults("urn:XXX:service:ScreenGrabber:1");
+
+    QSet<QString> activeUuids;
+
+    // Add new nodes.
+    foreach (const SSsdpClient::Node &node, activeNodes)
+    {
+      QUrl url(node.location);
+
+      activeUuids.insert(node.uuid);
+
+      bool found = false;
+      for (QMap<QString, SSsdpClient::Node>::Iterator i = nodes.begin();
+           (i != nodes.end()) && !found;
+           i++)
+      {
+        if (i->uuid == node.uuid)
+        {
+          *i = node;
+          found = true;
+        }
+      }
+
+      if (!found)
+      {
+        SHttpClient::RequestMessage request(&httpClient);
+        request.setHost(url.host(), url.port());
+        request.setRequest("GET", "/hostname");
+
+        const SHttpEngine::ResponseMessage response = httpClient.blockingRequest(request, 250);
+        if (response.status() == SHttpEngine::Status_Ok)
+        {
+          QXmlStreamReader reader(response.content());
+          if (reader.readNextStartElement() && (reader.name() == "hostname"))
+          {
+            const QString hostname = reader.readElementText();
+
+            QString name = hostname;
+            for (int i=0;; i++)
+            if (nodes.find(name) != nodes.end())
+              name = hostname + QString::number(i + 1);
+            else
+              break;
+
+            nodes[name] = node;
+          }
+        }
+      }
+    }
+
+    // Remove deactivated nodes
+    for (QMap<QString, SSsdpClient::Node>::Iterator i = nodes.begin();
+         i != nodes.end(); )
+    {
+      if (!activeUuids.contains(i->uuid))
+        i = nodes.erase(i);
+      else
+        i++;
+    }
+  }
+}
+
+ScreenGrabberServer::Stream::Stream(ScreenGrabberServer *parent, SHttpClient *httpClient, const QString &url)
   : MediaServer::Stream(parent, url),
-    sandbox(sandbox)
+    httpClient(httpClient)
 {
 }
 
 ScreenGrabberServer::Stream::~Stream()
 {
-  delete sandbox;
+  delete httpClient;
 }
 
 bool ScreenGrabberServer::Stream::setup(const QUrl &url)
 {
-  SHttpEngine::RequestMessage message(sandbox);
+  SHttpEngine::RequestMessage message(httpClient);
+  message.setHost(url.host(), url.port());
   message.setRequest("GET", url.toEncoded(QUrl::RemoveScheme | QUrl::RemoveAuthority));
 
-  sandbox->openRequest(message, &proxy, SLOT(setSource(QIODevice *, SHttpEngine *)), Qt::DirectConnection);
+  httpClient->openRequest(message, &proxy, SLOT(setSource(QIODevice *, SHttpEngine *)), Qt::DirectConnection);
 
   return true;
 }

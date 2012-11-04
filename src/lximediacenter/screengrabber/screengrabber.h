@@ -41,13 +41,18 @@ private slots:
   void                          cleanStreams(void);
 
 private:
+  static QUuid                  serverUuid(void);
+
+private:
+  static const quint16          defaultPort = 4281;
   const QIcon                   screenIcon;
   const QIcon                   eyesIcon;
 
   QMenu                         menu;
   QSystemTrayIcon               trayIcon;
 
-  SSandboxServer                sandboxServer;
+  SHttpServer                   httpServer;
+  SSsdpServer                   ssdpServer;
   QList<SGraph *>               streams;
   QTimer                        cleanStreamsTimer;
 };

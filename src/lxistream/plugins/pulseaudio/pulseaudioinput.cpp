@@ -61,6 +61,8 @@ PulseAudioInput::PulseAudioInput(const QString &, QObject *parent)
 
       outFormat.setSampleRate(input.sample_spec.rate);
       outFormat.setChannelSetup(outFormat.guessChannels(input.sample_spec.channels));
+
+      break;
     }
   }
 }
