@@ -22,7 +22,7 @@ namespace LXiStreamDevice {
 namespace X11Capture {
 
 QMap<QString, QRect>                      ScreenInput::screens;
-const int                                 ScreenInput::numImages = 3;
+const int                                 ScreenInput::numImages = 5;
 QMutex                                    ScreenInput::imagesMutex(QMutex::Recursive);
 QAtomicInt                                ScreenInput::inputIdCounter = 0;
 QMap< int, QStack<ScreenInput::Image *> > ScreenInput::images;
