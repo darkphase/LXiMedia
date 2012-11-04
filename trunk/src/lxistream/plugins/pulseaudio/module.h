@@ -19,6 +19,7 @@
 #define PULSEAUDIOBACKEND_MODULE_H
 
 #include <LXiStreamDevice>
+#include <pulse/simple.h>
 
 namespace LXiStreamDevice {
 namespace PulseAudioBackend {
@@ -32,6 +33,9 @@ public:
   virtual QByteArray            about(void);
   virtual QByteArray            licenses(void);
 };
+
+pa_sample_format_t toPulseAudio(SAudioFormat::Format);
+SAudioFormat::Format fromPulseAudio(pa_sample_format_t);
 
 } } // End of namespaces
 

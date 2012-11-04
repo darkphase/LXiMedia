@@ -16,6 +16,7 @@
  ******************************************************************************/
 
 #include "pulseaudiooutput.h"
+#include "module.h"
 
 namespace LXiStreamDevice {
 namespace PulseAudioBackend {
@@ -85,7 +86,7 @@ void PulseAudioOutput::openCodec(const SAudioFormat &reqFormat)
   if (!reqFormat.isNull())
   {
     pa_sample_spec sampleSpec;
-    sampleSpec.format = PA_SAMPLE_S16LE;
+    sampleSpec.format = toPulseAudio(reqFormat.format());
     sampleSpec.rate = reqFormat.sampleRate();
     sampleSpec.channels = reqFormat.numChannels();
 

@@ -17,6 +17,7 @@
 
 #include "pulseaudioinput.h"
 #include "pulseaudiodevices.h"
+#include "module.h"
 
 namespace LXiStreamDevice {
 namespace PulseAudioBackend {
@@ -24,46 +25,20 @@ namespace PulseAudioBackend {
 PulseAudioInput::PulseAudioInput(const QString &, QObject *parent)
   : SInterfaces::AudioInput(parent),
     handle(NULL),
-    outFormat(SAudioFormat::Format_PCM_S16, SAudioFormat::Channels_Stereo, 48000)
+    outFormat(SAudioFormat::Format_PCM_S16, SAudioFormat::Channels_Stereo, 48000),
+    bufferRate(SInterval::fromFrequency(25))
 {
   PulseAudioDevices devices;
   foreach (const pa_source_info &input, devices.inputDevices())
   if (QString(input.name).endsWith(".monitor", Qt::CaseInsensitive))
   {
-    handle = pa_simple_new(
-          NULL,
-          SApplication::name(),
-          PA_STREAM_RECORD,
-          input.name,
-          "PulseAudioInput",
-          &(input.sample_spec),
-          NULL, NULL, NULL);
+    inputName = input.name;
 
-    if (handle)
-    {
-      switch(input.sample_spec.format)
-      {
-      case PA_SAMPLE_U8:        outFormat.setFormat(SAudioFormat::Format_PCM_U8);     break;
-      case PA_SAMPLE_ALAW:      outFormat.setFormat(SAudioFormat::Format_PCM_ALAW);   break;
-      case PA_SAMPLE_ULAW:      outFormat.setFormat(SAudioFormat::Format_PCM_MULAW);  break;
-      case PA_SAMPLE_S16LE:     outFormat.setFormat(SAudioFormat::Format_PCM_S16LE);  break;
-      case PA_SAMPLE_S16BE:     outFormat.setFormat(SAudioFormat::Format_PCM_S16BE);  break;
-      case PA_SAMPLE_FLOAT32LE: outFormat.setFormat(SAudioFormat::Format_PCM_F32LE);  break;
-      case PA_SAMPLE_FLOAT32BE: outFormat.setFormat(SAudioFormat::Format_PCM_F32BE);  break;
-      case PA_SAMPLE_S32LE:     outFormat.setFormat(SAudioFormat::Format_PCM_S32LE);  break;
-      case PA_SAMPLE_S32BE:     outFormat.setFormat(SAudioFormat::Format_PCM_S32BE);  break;
-      case PA_SAMPLE_S24LE:     outFormat.setFormat(SAudioFormat::Format_PCM_S24LE);  break;
-      case PA_SAMPLE_S24BE:     outFormat.setFormat(SAudioFormat::Format_PCM_S24BE);  break;
-      case PA_SAMPLE_S24_32LE:  outFormat.setFormat(SAudioFormat::Format_PCM_S32LE);  break;
-      case PA_SAMPLE_S24_32BE:  outFormat.setFormat(SAudioFormat::Format_PCM_S32BE);  break;
-      default:                  outFormat.setFormat(SAudioFormat::Format_PCM_S16LE);  break;
-      }
+    outFormat.setFormat(fromPulseAudio(input.sample_spec.format));
+    outFormat.setSampleRate(input.sample_spec.rate);
+    outFormat.setChannelSetup(outFormat.guessChannels(input.sample_spec.channels));
 
-      outFormat.setSampleRate(input.sample_spec.rate);
-      outFormat.setChannelSetup(outFormat.guessChannels(input.sample_spec.channels));
-
-      break;
-    }
+    break;
   }
 }
 
@@ -85,30 +60,97 @@ SAudioFormat PulseAudioInput::format(void)
 
 bool PulseAudioInput::start(void)
 {
-  return handle;
+  openHandle();
+
+  // Create a silent audio buffer
+  silentBuffer.setFormat(outFormat);
+  silentBuffer.setNumSamples(outFormat.sampleRate() / bufferRate.toFrequency());
+  memset(silentBuffer.data(), 0, silentBuffer.size());
+
+  lastTryOpen = lastBuffer = timer.timeStamp();
+
+  return true;
 }
 
 void PulseAudioInput::stop(void)
 {
+  if (handle)
+  {
+    pa_simple_free(handle);
+    handle = NULL;
+  }
 }
 
 bool PulseAudioInput::process(void)
 {
-  const unsigned numSamples = outFormat.sampleRate() * 40 / 1000; // 40 ms of samples
-  SAudioBuffer buffer(outFormat, numSamples);
+  // Hack to get access to msleep()
+  struct T : QThread { static inline void msleep(unsigned long msec) { QThread::msleep(msec); } };
 
-  const int r = pa_simple_read(handle, buffer.data(), buffer.size(), NULL);
-  if (r >= 0)
+  if (handle)
   {
-    const STime latency = STime::fromUSec(pa_simple_get_latency(handle, NULL));
+    SAudioBuffer buffer(outFormat, outFormat.sampleRate() / bufferRate.toFrequency());
 
-    buffer.setTimeStamp(timer.smoothTimeStamp(buffer.duration(), latency));
+    const int r = pa_simple_read(handle, buffer.data(), buffer.size(), NULL);
+    if (r >= 0)
+    {
+      lastBuffer = timer.smoothTimeStamp(buffer.duration());
+      buffer.setTimeStamp(lastBuffer);
 
-    emit produce(buffer);
+      emit produce(buffer);
+      return true;
+    }
+    else
+    {
+      pa_simple_free(handle);
+      handle = NULL;
+    }
+  }
+
+  if (handle == NULL)
+  {
+    const STime now = timer.timeStamp();
+    const STime next = lastBuffer + bufferRate;
+    const qint64 wait = (next - now).toMSec();
+
+    if (qAbs(wait) >= 1000)
+      lastBuffer = now;
+    else if (wait > 0)
+      T::msleep(wait);
+
+    lastBuffer += bufferRate;
+
+    silentBuffer.setTimeStamp(lastBuffer);
+    emit produce(silentBuffer);
+
+    if (qAbs((now - lastTryOpen).toMSec()) >= 1000)
+    {
+      openHandle();
+      lastTryOpen = now;
+    }
+
     return true;
   }
 
   return false;
+}
+
+bool PulseAudioInput::openHandle()
+{
+  pa_sample_spec sampleSpec;
+  sampleSpec.format = toPulseAudio(outFormat.format());
+  sampleSpec.rate = outFormat.sampleRate();
+  sampleSpec.channels = outFormat.numChannels();
+
+  handle = pa_simple_new(
+        NULL,
+        SApplication::name(),
+        PA_STREAM_RECORD,
+        inputName,
+        "PulseAudioInput",
+        &sampleSpec,
+        NULL, NULL, NULL);
+
+  return handle;
 }
 
 } } // End of namespaces
