@@ -16,6 +16,7 @@
  ******************************************************************************/
 
 #include "module.h"
+#include "pulseaudiodevices.h"
 #include "pulseaudioinput.h"
 #include "pulseaudiooutput.h"
 #include <QtGui/QApplication>
@@ -58,9 +59,13 @@ bool Module::registerClasses(void)
 
     PulseAudioOutput::registerClass<PulseAudioOutput>(1);
 
-    PulseAudioInput input(QString::null, NULL);
-    if (input.start())
+    PulseAudioDevices devices;
+    foreach (const pa_source_info &input, devices.inputDevices())
+    if (QString(input.name).endsWith(".monitor", Qt::CaseInsensitive))
+    {
       PulseAudioInput::registerClass<PulseAudioInput>(SFactory::Scheme(1, "Desktop"));
+      break;
+    }
 
     result = true;
   }
@@ -86,6 +91,46 @@ QByteArray Module::licenses(void)
       " as published by the Free Software Foundation.</p>\n";
 
   return text;
+}
+
+pa_sample_format_t toPulseAudio(SAudioFormat::Format format)
+{
+  switch(format)
+  {
+  case SAudioFormat::Format_PCM_U8:     return PA_SAMPLE_U8;
+  case SAudioFormat::Format_PCM_ALAW:   return PA_SAMPLE_ALAW;
+  case SAudioFormat::Format_PCM_MULAW:  return PA_SAMPLE_ULAW;
+  case SAudioFormat::Format_PCM_S16LE:  return PA_SAMPLE_S16LE;
+  case SAudioFormat::Format_PCM_S16BE:  return PA_SAMPLE_S16BE;
+  case SAudioFormat::Format_PCM_F32LE:  return PA_SAMPLE_FLOAT32LE;
+  case SAudioFormat::Format_PCM_F32BE:  return PA_SAMPLE_FLOAT32BE;
+  case SAudioFormat::Format_PCM_S32LE:  return PA_SAMPLE_S32LE;
+  case SAudioFormat::Format_PCM_S32BE:  return PA_SAMPLE_S32BE;
+  case SAudioFormat::Format_PCM_S24LE:  return PA_SAMPLE_S24LE;
+  case SAudioFormat::Format_PCM_S24BE:  return PA_SAMPLE_S24BE;
+  default:                              return PA_SAMPLE_INVALID;
+  }
+}
+
+SAudioFormat::Format fromPulseAudio(pa_sample_format_t format)
+{
+  switch(format)
+  {
+  case PA_SAMPLE_U8:        return SAudioFormat::Format_PCM_U8;
+  case PA_SAMPLE_ALAW:      return SAudioFormat::Format_PCM_ALAW;
+  case PA_SAMPLE_ULAW:      return SAudioFormat::Format_PCM_MULAW;
+  case PA_SAMPLE_S16LE:     return SAudioFormat::Format_PCM_S16LE;
+  case PA_SAMPLE_S16BE:     return SAudioFormat::Format_PCM_S16BE;
+  case PA_SAMPLE_FLOAT32LE: return SAudioFormat::Format_PCM_F32LE;
+  case PA_SAMPLE_FLOAT32BE: return SAudioFormat::Format_PCM_F32BE;
+  case PA_SAMPLE_S32LE:     return SAudioFormat::Format_PCM_S32LE;
+  case PA_SAMPLE_S32BE:     return SAudioFormat::Format_PCM_S32BE;
+  case PA_SAMPLE_S24LE:     return SAudioFormat::Format_PCM_S24LE;
+  case PA_SAMPLE_S24BE:     return SAudioFormat::Format_PCM_S24BE;
+  case PA_SAMPLE_S24_32LE:  return SAudioFormat::Format_PCM_S32LE;
+  case PA_SAMPLE_S24_32BE:  return SAudioFormat::Format_PCM_S32BE;
+  default:                  return SAudioFormat::Format_Invalid;
+  }
 }
 
 } } // End of namespaces

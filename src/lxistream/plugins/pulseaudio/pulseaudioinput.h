@@ -40,10 +40,18 @@ public:
   virtual bool                  process(void);
 
 private:
+  bool                          openHandle();
+
+private:
   pa_simple                   * handle;
+  QByteArray                    inputName;
+  SAudioFormat                  outFormat;
+  SAudioBuffer                  silentBuffer;
 
   STimer                        timer;
-  SAudioFormat                  outFormat;
+  SInterval                     bufferRate;
+  STime                         lastBuffer;
+  STime                         lastTryOpen;
 };
 
 } } // End of namespaces
