@@ -86,6 +86,7 @@ void FFMpegTest::AudioEncodeDecode(const char *codecName)
     encBuffers += audioEncoder->encodeBuffer(SAudioBuffer());
 
     QVERIFY2(!encBuffers.isEmpty(), codecName);
+    QVERIFY2(!encBuffers.first().codec().isNull(), codecName);
 
     // And decode it again
     audioDecoder = SInterfaces::AudioDecoder::create(NULL, encBuffers.first().codec(), NULL);

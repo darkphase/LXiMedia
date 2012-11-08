@@ -60,8 +60,8 @@ SCodecList AudioOutput::acceptedCodecs(void) const
 
   if (iec958)
   {
-    list += SAudioCodec("AC3");
-    list += SAudioCodec("DTS");
+    list += SAudioCodec("ac3");
+    list += SAudioCodec("dts");
   }
   else
     list += SAudioCodec(SAudioCodec::Format_PCM_S16, SAudioCodec::Channel_Stereo);
@@ -111,11 +111,11 @@ SNode::Result AudioOutput::processBuffer(const SBuffer &input, SBufferList &)
 
   if (!audioBuffer.isNull())
   {
-    if (audioBuffer.codec() == "DTS")
+    if (audioBuffer.codec() == "dts")
     {
       writeAudio(audioBuffer);
     }
-    else if (audioBuffer.codec() == "AC3")
+    else if (audioBuffer.codec() == "ac3")
     {
       const quint16 * const rawAC3packet = reinterpret_cast<const quint16 *>(audioBuffer.bits());
       const size_t dataSize = audioBuffer.numBytes();
@@ -134,7 +134,7 @@ SNode::Result AudioOutput::processBuffer(const SBuffer &input, SBufferList &)
       for (unsigned i=0; i<dataSize/2; i++)
         packet[i+4] = qFromBigEndian(rawAC3packet[i]);
 
-      destBuffer.setCodec(SAudioCodec("AC3"));
+      destBuffer.setCodec(SAudioCodec("ac3"));
       destBuffer.setTimeStamp(audioBuffer.timeStamp());
 
       writeAudio(destBuffer);
@@ -206,7 +206,7 @@ SAudioBuffer AudioOutput::createAC3SilentPacket(SAudioCodec::Channels channels)
     for (unsigned i=0; i<dataSize/2; i++)
       packet[i+4] = qFromBigEndian(tmpPacket[i]);
 
-    destBuffer.setCodec(SAudioCodec("AC3"));
+    destBuffer.setCodec(SAudioCodec("ac3"));
     destBuffer.setNumBytes(ac3PacketSize);
     destBuffer.setTimeStamp(STime()); // No timestamp
 

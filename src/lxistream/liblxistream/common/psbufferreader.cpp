@@ -202,7 +202,7 @@ void PsBufferReader::processPESPacket(const MPEG::PESPacket *pesPacket, size_t s
       size_t dataSize = pesPacket->calculatePayloadSize(size);
 
       if ((pesPacket->getStreamID() == MPEG::PESHeader::StreamId_Private1) &&
-          ((buffer->codec() == "AC3") || (buffer->codec() == "DTS")) &&
+          ((buffer->codec() == "ac3") || (buffer->codec() == "dts")) &&
           (dataSize >= 4))
       {
         data += 4; // Skip AC3/DTS Audio Substream Header

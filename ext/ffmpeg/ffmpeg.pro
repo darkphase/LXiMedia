@@ -1,60 +1,77 @@
 TEMPLATE = subdirs
 CONFIG += ordered
-
-FFMPEG_VERSION = libav-0.7.3
-FFMPEG_HEADERS = $${FFMPEG_VERSION}/libavcodec/avcodec.h \
- $${FFMPEG_VERSION}/libavcodec/version.h \
- $${FFMPEG_VERSION}/libavformat/avformat.h \
- $${FFMPEG_VERSION}/libavformat/avio.h \
- $${FFMPEG_VERSION}/libavformat/version.h \
- $${FFMPEG_VERSION}/libavutil/attributes.h \
- $${FFMPEG_VERSION}/libavutil/audioconvert.h \
- $${FFMPEG_VERSION}/libavutil/avutil.h \
- $${FFMPEG_VERSION}/libavutil/common.h \
- $${FFMPEG_VERSION}/libavutil/cpu.h \
- $${FFMPEG_VERSION}/libavutil/dict.h \
- $${FFMPEG_VERSION}/libavutil/error.h \
- $${FFMPEG_VERSION}/libavutil/intfloat_readwrite.h \
- $${FFMPEG_VERSION}/libavutil/log.h \
- $${FFMPEG_VERSION}/libavutil/mathematics.h \
- $${FFMPEG_VERSION}/libavutil/mem.h \
- $${FFMPEG_VERSION}/libavutil/pixfmt.h \
- $${FFMPEG_VERSION}/libavutil/samplefmt.h \
- $${FFMPEG_VERSION}/libavutil/rational.h \
- $${FFMPEG_VERSION}/libswscale/swscale.h
+include($${PWD}/../../include/platform.pri)
+include($${PWD}/ffmpeg-version.pri)
 
 macx {
-  system(mkdir -p $${OUT_PWD}/bin.macx)
-  system(bzip2 -cdk $${PWD}/bin.macx/libavcodec.a.bz2 > $${OUT_PWD}/bin.macx/libavcodec.a)
-  system(bzip2 -cdk $${PWD}/bin.macx/libavformat.a.bz2 > $${OUT_PWD}/bin.macx/libavformat.a)
-  system(bzip2 -cdk $${PWD}/bin.macx/libavutil.a.bz2 > $${OUT_PWD}/bin.macx/libavutil.a)
-  system(bzip2 -cdk $${PWD}/bin.macx/libswscale.a.bz2 > $${OUT_PWD}/bin.macx/libswscale.a)
-  system(bzip2 -cdk $${PWD}/bin.macx/libmp3lame.a.bz2 > $${OUT_PWD}/bin.macx/libmp3lame.a)
-  system(bzip2 -cdk $${PWD}/bin.macx/libx264.a.bz2 > $${OUT_PWD}/bin.macx/libx264.a)
+  system(mkdir -p $${OUT_PWD})
 
-  system(bzip2 -cdk $${PWD}/libav_0.7.3.orig.tar.bz2 > $${OUT_PWD}/libav_0.7.3.orig.tar)
-  system(cd $${OUT_PWD} && tar -x -f libav_0.7.3.orig.tar $${FFMPEG_HEADERS})
-  system(cd $${OUT_PWD} && rm -rf include)
-  system(cd $${OUT_PWD} && mv $${FFMPEG_VERSION} include)
-  system(rm $${OUT_PWD}/libav_0.7.3.orig.tar)
-  system(cp bin.macx/avconfig.h $${OUT_PWD}/include/libavutil/)
+  !exists($${OUT_PWD}/lame-$${LAME_VERSION}/libmp3lame/.libs/libmp3lame.a) {
+    # Extract
+    system(cp $${PWD}/lame_$${LAME_VERSION}.orig.tar.bz2 $${OUT_PWD})
+    system(cd $${OUT_PWD} && tar -xjf lame_$${LAME_VERSION}.orig.tar.bz2)
+
+    system(mkdir -p $${OUT_PWD}/lame-$${LAME_VERSION}/include/lame)
+    system(cp $${OUT_PWD}/lame-$${LAME_VERSION}/include/lame.h $${OUT_PWD}/lame-$${LAME_VERSION}/include/lame)
+
+    # Compile
+    system(cd $${OUT_PWD}/lame-$${LAME_VERSION} && sh configure --enable-static --disable-shared CFLAGS=\"-w $${PLATFORM_CFLAGS}\")
+    system(cd $${OUT_PWD}/lame-$${LAME_VERSION} && make -j $${PLATFORM_NUMCORES})
+  }
+
+  !exists($${OUT_PWD}/x264-$${X264_VERSION}/libx264.a) {
+    # Extract
+    system(cp $${PWD}/x264_$${X264_VERSION}.orig.tar.bz2 $${OUT_PWD})
+    system(cd $${OUT_PWD} && tar -xjf x264_$${X264_VERSION}.orig.tar.bz2)
+
+    # Compile
+    system(cd $${OUT_PWD}/x264-$${X264_VERSION} && sh configure --enable-static --disable-shared --disable-thread --extra-cflags=\"-w $${PLATFORM_CFLAGS}\")
+    system(cd $${OUT_PWD}/x264-$${X264_VERSION} && make -j $${PLATFORM_NUMCORES})
+  }
+
+  !exists($${OUT_PWD}/libav-$${LIBAV_VERSION}/libavcodec/libavcodec.a) {
+    # Extract
+    system(cp $${PWD}/libav_$${LIBAV_VERSION}.orig.tar.bz2 $${OUT_PWD})
+    system(cd $${OUT_PWD} && tar -xjf libav_$${LIBAV_VERSION}.orig.tar.bz2)
+
+    # Compile
+    system(cd $${OUT_PWD}/libav-$${LIBAV_VERSION} && sh configure --enable-gpl --enable-version3 --disable-ffmpeg --disable-avconv --disable-avplay --disable-avprobe --disable-avserver --disable-avdevice --enable-swscale --enable-network --disable-debug --disable-zlib --disable-bzlib --disable-pthreads --enable-libmp3lame --enable-libx264 --enable-runtime-cpudetect --extra-cflags=\"-I../lame-$${LAME_VERSION}/include/ -I../x264-$${X264_VERSION}/ -w\" --extra-ldflags=\"-L../lame-$${LAME_VERSION}/libmp3lame/.libs/ -L../x264-$${X264_VERSION}/\")
+    system(cd $${OUT_PWD}/libav-$${LIBAV_VERSION} && make -j $${PLATFORM_NUMCORES})
+  }
 }
 win32 {
-  BZIP2 = $$replace(PWD,/,\\)\\..\\gnuwin32\\bzip2.exe
-  TAR = $$replace(PWD,/,\\)\\..\\gnuwin32\\tar.exe
+  system(mkdir $$replace(OUT_PWD,/,\\) > NUL 2>&1)
 
-  system(mkdir $$replace(OUT_PWD,/,\\)\\bin.win32 > NUL 2>&1)
-  system($${BZIP2} -cdk $${PWD}/bin.win32/libavcodec.a.bz2 > $${OUT_PWD}/bin.win32/libavcodec.a)
-  system($${BZIP2} -cdk $${PWD}/bin.win32/libavformat.a.bz2 > $${OUT_PWD}/bin.win32/libavformat.a)
-  system($${BZIP2} -cdk $${PWD}/bin.win32/libavutil.a.bz2 > $${OUT_PWD}/bin.win32/libavutil.a)
-  system($${BZIP2} -cdk $${PWD}/bin.win32/libswscale.a.bz2 > $${OUT_PWD}/bin.win32/libswscale.a)
-  system($${BZIP2} -cdk $${PWD}/bin.win32/libmp3lame.a.bz2 > $${OUT_PWD}/bin.win32/libmp3lame.a)
-  system($${BZIP2} -cdk $${PWD}/bin.win32/libx264.a.bz2 > $${OUT_PWD}/bin.win32/libx264.a)
+  !exists($${OUT_PWD}/lame-$${LAME_VERSION}/libmp3lame/.libs/libmp3lame.a) {
+    # Extract
+    system(copy /Y $$replace(PWD,/,\\)\\lame_$${LAME_VERSION}.orig.tar.bz2 $$replace(OUT_PWD,/,\\) > NUL)
+    system(cd $$replace(OUT_PWD,/,\\) && tar -xjf lame_$${LAME_VERSION}.orig.tar.bz2)
 
-  system($${BZIP2} -cdk $${PWD}/libav_0.7.3.orig.tar.bz2 > $${OUT_PWD}/libav_0.7.3.orig.tar)
-  system(cd $$replace(OUT_PWD,/,\\) && $${TAR} -x -f libav_0.7.3.orig.tar $${FFMPEG_HEADERS})
-  system(cd $$replace(OUT_PWD,/,\\) && del /S /Q include > NUL 2>&1 && rmdir /S /Q include > NUL 2>&1)
-  system(cd $$replace(OUT_PWD,/,\\) && ren $${FFMPEG_VERSION} include > NUL)
-  system(del /S /Q $$replace(OUT_PWD,/,\\)\\libav_0.7.3.orig.tar > NUL 2>&1)
-  system(copy /Y bin.win32\\avconfig.h $$replace(OUT_PWD,/,\\)\\include\\libavutil\\ > NUL)
+    system(mkdir $$replace(OUT_PWD,/,\\)\\lame-$${LAME_VERSION}\\include\\lame > NUL 2>&1)
+    system(copy /Y $$replace(OUT_PWD,/,\\)\\lame-$${LAME_VERSION}\\include\\lame.h $$replace(OUT_PWD,/,\\)\\lame-$${LAME_VERSION}\\include\\lame > NUL)
+
+    # Compile
+    system(cd $$replace(OUT_PWD,/,\\)\\lame-$${LAME_VERSION} && sh configure --enable-static --disable-shared CFLAGS=\"-w $${PLATFORM_CFLAGS}\")
+    system(cd $$replace(OUT_PWD,/,\\)\\lame-$${LAME_VERSION} && mingw32-make -j $${PLATFORM_NUMCORES} MAKE=mingw32-make)
+  }
+
+  !exists($${OUT_PWD}/x264-$${X264_VERSION}/libx264.a) {
+    # Extract
+    system(copy /Y $$replace(PWD,/,\\)\\x264_$${X264_VERSION}.orig.tar.bz2 $$replace(OUT_PWD,/,\\) > NUL)
+    system(cd $$replace(OUT_PWD,/,\\) && tar -xjf x264_$${X264_VERSION}.orig.tar.bz2)
+
+    # Compile
+    system(cd $$replace(OUT_PWD,/,\\)\\x264-$${X264_VERSION} && sh configure --enable-static --disable-shared --disable-thread --extra-cflags=\"-w $${PLATFORM_CFLAGS}\")
+    system(cd $$replace(OUT_PWD,/,\\)\\x264-$${X264_VERSION} && mingw32-make -j $${PLATFORM_NUMCORES})
+  }
+
+  !exists($${OUT_PWD}/libav-$${LIBAV_VERSION}/libavcodec/libavcodec.a) {
+    # Extract
+    system(copy /Y $$replace(PWD,/,\\)\\libav_$${LIBAV_VERSION}.orig.tar.bz2 $$replace(OUT_PWD,/,\\) > NUL)
+    system(cd $$replace(OUT_PWD,/,\\) && tar -xjf libav_$${LIBAV_VERSION}.orig.tar.bz2)
+
+    # Compile
+    system(cd $$replace(OUT_PWD,/,\\)\\libav-$${LIBAV_VERSION} && sh configure --enable-gpl --enable-version3 --disable-ffmpeg --disable-avconv --disable-avplay --disable-avprobe --disable-avserver --disable-avdevice --enable-swscale --enable-network --disable-debug --disable-zlib --disable-bzlib --disable-pthreads --disable-w32threads --enable-libmp3lame --enable-libx264 --enable-runtime-cpudetect --extra-cflags=\"-I../lame-$${LAME_VERSION}/include/ -I../x264-$${X264_VERSION}/ -w\" --extra-ldflags=\"-L../lame-$${LAME_VERSION}/libmp3lame/.libs/ -L../x264-$${X264_VERSION}/\")
+    system(cd $$replace(OUT_PWD,/,\\)\\libav-$${LIBAV_VERSION} && mingw32-make -j $${PLATFORM_NUMCORES})
+  }
 }
