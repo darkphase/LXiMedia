@@ -170,7 +170,7 @@ void PsBufferWriter::toPESPackets(QList<MPEG::PESPacket> &packets, const SBuffer
       pesPacket->initialize(streamID);
       setTimeStamp(pesPacket, pts, dts);
 
-      if ((streamID == MPEG::PESHeader::StreamId_Private1) && (buffer.codec() == "AC3"))
+      if ((streamID == MPEG::PESHeader::StreamId_Private1) && (buffer.codec() == "ac3"))
       { // Prepend AC3 Audio Substream Header
         pesPacket->setPayloadSize(packetSize + 4);
         quint8 * const payload = pesPacket->getPayload();
@@ -180,7 +180,7 @@ void PsBufferWriter::toPESPackets(QList<MPEG::PESPacket> &packets, const SBuffer
         payload[3] = 0x01; // First AC3 packet immediately after this byte
         memcpy(payload + 4, data + off, packetSize);
       }
-      else if ((streamID == MPEG::PESHeader::StreamId_Private1) && (buffer.codec() == "DTS"))
+      else if ((streamID == MPEG::PESHeader::StreamId_Private1) && (buffer.codec() == "dts"))
       { // Prepend DTS Audio Substream Header
         pesPacket->setPayloadSize(packetSize + 4);
         quint8 * const payload = pesPacket->getPayload();

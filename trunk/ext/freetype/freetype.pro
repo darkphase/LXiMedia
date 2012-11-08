@@ -1,43 +1,32 @@
 TEMPLATE = subdirs
 CONFIG += ordered
-
-FREETYPE_VERSION = freetype-2.4.8
-FREETYPE_HEADERS = $${FREETYPE_VERSION}/include/ft2build.h \
- $${FREETYPE_VERSION}/include/freetype/config/ftconfig.h \
- $${FREETYPE_VERSION}/include/freetype/config/ftheader.h \
- $${FREETYPE_VERSION}/include/freetype/config/ftoption.h \
- $${FREETYPE_VERSION}/include/freetype/config/ftstdlib.h \
- $${FREETYPE_VERSION}/include/freetype/freetype.h \
- $${FREETYPE_VERSION}/include/freetype/fterrdef.h \
- $${FREETYPE_VERSION}/include/freetype/fterrors.h \
- $${FREETYPE_VERSION}/include/freetype/ftimage.h \
- $${FREETYPE_VERSION}/include/freetype/ftmoderr.h \
- $${FREETYPE_VERSION}/include/freetype/ftsystem.h \
- $${FREETYPE_VERSION}/include/freetype/fttypes.h
+include($${PWD}/../../include/platform.pri)
+include($${PWD}/freetype-version.pri)
 
 macx {
-  system(mkdir -p $${OUT_PWD}/bin.macx)
-  system(bzip2 -cdk $${PWD}/bin.macx/libfreetype.a.bz2 > $${OUT_PWD}/bin.macx/libfreetype.a)
+  system(mkdir -p $${OUT_PWD})
 
-  system(bzip2 -cdk $${PWD}/freetype-2.4.8.tar.bz2 > $${OUT_PWD}/freetype-2.4.8.tar)
-  system(cd $${OUT_PWD} && tar -x -f freetype-2.4.8.tar $${FREETYPE_HEADERS})
-  system(cd $${OUT_PWD} && rm -rf include)
-  system(cd $${OUT_PWD} && mv $${FREETYPE_VERSION}/include include)
-  system(cd $${OUT_PWD} && rm -rf $${FREETYPE_VERSION})
-  system(rm $${OUT_PWD}/freetype-2.4.8.tar)
+  !exists($${OUT_PWD}/freetype-$${FREETYPE_VERSION}/objs/.libs/libfreetype.a) {
+    # Extract
+    system(cp $${PWD}/freetype_$${FREETYPE_VERSION}.tar.bz2 $${OUT_PWD})
+    system(cd $${OUT_PWD} && tar -xjf freetype_$${FREETYPE_VERSION}.tar.bz2)
+
+    # Compile
+    system(cd $${OUT_PWD}/freetype-$${FREETYPE_VERSION} && sh configure --enable-static --disable-shared --without-bzip2 CFLAGS=\"-w $${PLATFORM_CFLAGS}\")
+    system(cd $${OUT_PWD}/freetype-$${FREETYPE_VERSION} && make -j $${PLATFORM_NUMCORES})
+  }
 }
 win32 {
-  BZIP2 = $$replace(PWD,/,\\)\\..\\gnuwin32\\bzip2.exe
-  TAR = $$replace(PWD,/,\\)\\..\\gnuwin32\\tar.exe
+  system(mkdir $$replace(OUT_PWD,/,\\) > NUL 2>&1)
 
-  system(mkdir $$replace(OUT_PWD,/,\\)\\bin.win32 > NUL 2>&1)
-  system($${BZIP2} -cdk $${PWD}/bin.win32/libfreetype.a.bz2 > $${OUT_PWD}/bin.win32/libfreetype.a)
+  !exists($${OUT_PWD}/freetype-$${FREETYPE_VERSION}/objs/.libs/libfreetype.a) {
+    # Extract
+    system(copy /Y $$replace(PWD,/,\\)\\freetype_$${FREETYPE_VERSION}.tar.bz2 $$replace(OUT_PWD,/,\\) > NUL)
+    system(cd $$replace(OUT_PWD,/,\\) && tar -xjf freetype_$${FREETYPE_VERSION}.tar.bz2)
 
-  system($${BZIP2} -cdk $${PWD}/freetype-2.4.8.tar.bz2 > $${OUT_PWD}/freetype-2.4.8.tar)
-  system(cd $$replace(OUT_PWD,/,\\) && $${TAR} -x -f freetype-2.4.8.tar $${FREETYPE_HEADERS})
-  system(cd $$replace(OUT_PWD,/,\\) && del /S /Q include > NUL 2>&1)
-  system(cd $$replace(OUT_PWD,/,\\) && rmdir /S /Q include > NUL 2>&1)
-  system(cd $$replace(OUT_PWD,/,\\) && move $${FREETYPE_VERSION}\\include include > NUL)
-  system(cd $$replace(OUT_PWD,/,\\) && rmdir /S /Q $${FREETYPE_VERSION} > NUL)
-  system(del /S /Q $$replace(OUT_PWD,/,\\)\\freetype-2.4.8.tar > NUL 2>&1)
+    # Compile
+    system(echo GNUMAKE=mingw32-make ./configure --enable-static --disable-shared --disable-mmap --without-bzip2 CFLAGS=\"-w $${PLATFORM_CFLAGS}\" > $$replace(OUT_PWD,/,\\)\\freetype-$${FREETYPE_VERSION}\\bootstrap.sh)
+    system(cd $$replace(OUT_PWD,/,\\)\\freetype-$${FREETYPE_VERSION} && sh bootstrap.sh)
+    system(cd $$replace(OUT_PWD,/,\\)\\freetype-$${FREETYPE_VERSION} && mingw32-make -j $${PLATFORM_NUMCORES})
+  }
 }

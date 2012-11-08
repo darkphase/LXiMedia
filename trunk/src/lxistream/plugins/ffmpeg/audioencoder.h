@@ -48,8 +48,8 @@ public: // From SBufferEncoder
   virtual SEncodedAudioBufferList encodeBuffer(const SAudioBuffer &);
 
 private:
-  inline int                    numSamples(size_t n)                            { return int((n / contextHandle->channels) / inSampleSize); }
   void                          encodeBufferTask(const SAudioBuffer &, SEncodedAudioBufferList *, bool);
+  size_t                        encodeFrames(const char *, size_t, STime &, SEncodedAudioBufferList &, bool) const;
 
 private:
   SAudioCodec                   outCodec;
@@ -59,8 +59,7 @@ private:
   bool                          contextHandleOwner;
   bool                          passThrough;
 
-  unsigned                      inSampleSize;
-  size_t                        inFrameSize;
+  int                           inFrameSize;
   STime                         inFrameDuration;
   char                        * inFrameBufferRaw;
   char                        * inFrameBuffer;
@@ -71,7 +70,7 @@ private:
   QFuture<void>                 encodeFuture;
   SEncodedAudioBufferList       delayedResult;
   static const int              memorySemCount = 64;
-  QSemaphore                    memorySem;
+  mutable QSemaphore            memorySem;
 
   bool                          noDelay;
   mutable bool                  enableWait;

@@ -42,41 +42,26 @@ build:
 # qmake
 # make
 
-Building from source on Windows is a little more involved. First, a development
-environment is needed, both QtCreator and Microsoft Visual Studio 2008  (Express
-Edition) are supported.
-
-All other library dependencies for Windows are stored precompiled in the source
-archive, so no libraries have to be downloaded or built.
+Building from source on Windows is a little more involved. First, a Qt
+development environment is needed, QtCreator is recommended.
 
 For QtCreator:
 
 Download and install the latest version of the QtSDK from 
-http://qt.nokia.com/downloads/. Make sure you install the QtSDK in a directory 
-without spaces.
+http://qt-project.org/downloads. Make sure you install the QtSDK in a directory
+without spaces (for example C:\QtSDK\). Download the latest version of MSYS and
+install it in the C:\QtSDK\mingw directory. And download YASM for mingw and
+copy yasm.exe to C:\QtSDK\mingw\bin.
 
-Finish the installation and start QtCreator. Select ''File -> Open File or
-Project'' from the menu. Then select the ''lximedia.pro'' file from the lximedia
-directory that was checked out above. A ''project setup'' dialog pops up, select
-the Qt for desktop version and click ''Finish'' to continue.
+Start QtCreator. Select ''File -> Open File or Project'' from the menu. Then
+select the ''lximedia.pro'' file from the lximedia directory that was checked
+out above. A ''project setup'' dialog pops up, select the Qt for desktop
+version and click ''Finish'' to continue.
 
 Next select ''Build -> Run qmake'' from the menu and wait until a green ''Build''
-bar appears above the project button.
+bar appears above the project button. This may take a long time as it will
+build all library dependencies.
 
 Next, select ''Build -> Build All'' from the menu to build the entire project.
 This may take some time, press the ''Compile Output'' button to monitor the build
 progress.
-
-For Microsoft Visual Studio 2008:
-
-Download and install the latest version of the Qt for Visual Studio 2008 from 
-http://qt.nokia.com/downloads/. Make sure you install Qt in a directory without
-spaces.
-
-Next open a command prompt and and enter the lximedia source directory, run
-configure.bat followed by the directory where Qt is installed:
-
-C:\lximedia\> configure.bat C:\Qt
-
-Next open lximedia.sln with Visual Studio and select ''Build -> Build Solution''
-from the menu and wait for the build to complete.
