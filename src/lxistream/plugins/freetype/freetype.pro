@@ -4,6 +4,8 @@ include($${PWD}/$${LXIMEDIA_DIR}/include/liblxicore/module.pri)
 include($${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/linklxistream.pri)
 include($${PWD}/$${LXIMEDIA_DIR}/ext/freetype/freetype.pri)
 
+unix:INCLUDEPATH += /usr/include/freetype2
+
 # Files
 HEADERS += module.h \
  subtitlerenderer.h
