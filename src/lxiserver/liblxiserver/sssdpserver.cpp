@@ -16,13 +16,6 @@
  ******************************************************************************/
 
 #include "sssdpserver.h"
-
-#if defined(Q_OS_UNIX)
-#include <arpa/inet.h>
-#include <sys/socket.h>
-#elif defined(Q_OS_WIN)
-#include <ws2tcpip.h>
-#endif
 #include "shttpserver.h"
 
 namespace LXiServer {
@@ -72,7 +65,7 @@ SSsdpServer::~SSsdpServer()
   *const_cast<Private **>(&p) = NULL;
 }
 
-void SSsdpServer::initialize(const QList<QHostAddress> &interfaces)
+void SSsdpServer::initialize(const InterfaceList &interfaces)
 {
   QSettings settings;
   settings.beginGroup("SSDP");
@@ -134,10 +127,10 @@ void SSsdpServer::parsePacket(SsdpClientInterface *iface, const SHttpServer::Req
          (i != p->published.end()) && (findAll || (i.key() == st));
          i++)
     {
-      const quint16 port = p->httpServer->serverPort(iface->interfaceAddr);
+      const quint16 port = p->httpServer->serverPort(iface->address);
       if (port > 0)
       {
-        const QString url = "http://" + iface->interfaceAddr.toString() + ":" +
+        const QString url = "http://" + iface->address.toString() + ":" +
                             QString::number(port) + i->relativeUrl;
 
         for (unsigned j=0; j<(findAll ? i->msgCount : 1); j++)
@@ -225,10 +218,10 @@ void SSsdpServer::updateServices(void)
     for (unsigned j=0; j<i->msgCount; j++)
     foreach (SsdpClientInterface *iface, interfaces())
     {
-      const quint16 port = p->httpServer->serverPort(iface->interfaceAddr);
+      const quint16 port = p->httpServer->serverPort(iface->address);
       if (port > 0)
       {
-        const QString url = "http://" + iface->interfaceAddr.toString() + ":" +
+        const QString url = "http://" + iface->address.toString() + ":" +
                             QString::number(port) + i->relativeUrl;
 
         sendUpdate(iface, i.key(), url);
@@ -246,10 +239,10 @@ void SSsdpServer::publishServices(void)
     for (unsigned j=0; j<i->msgCount; j++)
     foreach (SsdpClientInterface *iface, interfaces())
     {
-      const quint16 port = p->httpServer->serverPort(iface->interfaceAddr);
+      const quint16 port = p->httpServer->serverPort(iface->address);
       if (port > 0)
       {
-        const QString url = "http://" + iface->interfaceAddr.toString() + ":" +
+        const QString url = "http://" + iface->address.toString() + ":" +
                             QString::number(port) + i->relativeUrl;
 
         sendAlive(iface, i.key(), url);

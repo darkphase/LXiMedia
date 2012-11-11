@@ -35,7 +35,7 @@ public:
   explicit                      SSsdpServer(SHttpServer *);
   virtual                       ~SSsdpServer();
 
-  virtual void                  initialize(const QList<QHostAddress> &interfaces);
+  virtual void                  initialize(const InterfaceList &interfaces);
   virtual void                  close(void);
   void                          reset(void);
 
