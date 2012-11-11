@@ -44,17 +44,33 @@ public:
     QString                     location;
   };
 
+  struct Interface
+  {
+    inline Interface(void) { }
+    inline Interface(const QNetworkInterface &interface, const QHostAddress &address, const QHostAddress &netmask)
+      : interface(interface), address(address), netmask(netmask)
+    {
+    }
+
+    QNetworkInterface           interface;
+    QHostAddress                address;
+    QHostAddress                netmask;
+  };
+
+  typedef QList<Interface> InterfaceList;
+
 public:
   /*! Returns a list of local IP addresses (i.e. in 10.0.0.0/8, 127.0.0.0/8,
       169.254.0.0/16, 172.16.0.0/12 or 192.168.0.0/16). This list can be used to
       prevent binding internet interfaces.
    */
-  static const QList<QHostAddress> & localInterfaces(void);
+  static const InterfaceList  & localInterfaces(void);
+  static QList<QHostAddress>    localAddresses(void);
 
   explicit                      SSsdpClient(const QString &serverUdn);
   virtual                       ~SSsdpClient();
 
-  virtual void                  initialize(const QList<QHostAddress> &interfaces);
+  virtual void                  initialize(const InterfaceList &interfaces);
   virtual void                  close(void);
 
   void                          sendSearch(const QString &st, unsigned msgCount = 3);
@@ -66,8 +82,8 @@ signals:
 protected:
   const QString               & serverUdn(void) const;
   const QList< QPointer<SsdpClientInterface> > & interfaces(void) const;
-  virtual void                  parsePacket(SsdpClientInterface *, const SHttpServer::RequestHeader &, const QHostAddress &, quint16);
-  virtual void                  parsePacket(SsdpClientInterface *, const SHttpServer::ResponseHeader &, const QHostAddress &, quint16);
+  virtual void                  parsePacket(SsdpClientInterface *iface, const SHttpServer::RequestHeader &, const QHostAddress &, quint16);
+  virtual void                  parsePacket(SsdpClientInterface *iface, const SHttpServer::ResponseHeader &, const QHostAddress &, quint16);
 
   static void                   sendDatagram(SsdpClientInterface *, const QByteArray &, const QHostAddress &, quint16);
   static void                   sendSearch(SsdpClientInterface *, const QString &st, unsigned mx = 5);
@@ -93,17 +109,17 @@ class LXISERVER_PUBLIC SsdpClientInterface : public QObject
 Q_OBJECT
 friend class SSsdpClient;
 private:
-                                SsdpClientInterface(const QHostAddress &, SSsdpClient *);
-
-  bool                          joinMulticastGroup(QUdpSocket &, const QHostAddress &);
+                                SsdpClientInterface(const QNetworkInterface &, const QHostAddress &, const QHostAddress &, SSsdpClient *);
 
 private slots:
   void                          ssdpDatagramReady(void);
   void                          privateDatagramReady(void);
 
 public:
-  SSsdpClient            * const parent;
-  const QHostAddress            interfaceAddr;
+  SSsdpClient           * const parent;
+  const QNetworkInterface       interface;
+  const QHostAddress            address;
+  const QHostAddress            netmask;
 
 private:
   QUdpSocket                    ssdpSocket;

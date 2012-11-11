@@ -85,7 +85,7 @@ void Backend::start(void)
   masterHttpServer.initialize(
       settings.value("BindAllNetworks", false).toBool()
           ? QNetworkInterface::allAddresses()
-          : SSsdpClient::localInterfaces(),
+          : SSsdpClient::localAddresses(),
       settings.value("HttpPort", defaultPort).toInt());
 
   // Setup HTTP server
@@ -198,7 +198,7 @@ void Backend::reset(void)
   masterHttpServer.reset(
       settings.value("BindAllNetworks", false).toBool()
           ? QNetworkInterface::allAddresses()
-          : SSsdpClient::localInterfaces(),
+          : SSsdpClient::localAddresses(),
       settings.value("HttpPort", defaultPort).toInt());
 
   masterSsdpServer.reset();
