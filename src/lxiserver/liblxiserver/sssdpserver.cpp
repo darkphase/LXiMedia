@@ -36,6 +36,7 @@ struct SSsdpServer::Private
   QPointer<SHttpServer>         httpServer;
   qint32                        oldbootid;
   qint32                        bootid;
+  qint32                        oldconfigid;
   qint32                        configid;
   QMultiMap<QString, Service>   published;
   QTimer                        updateTimer;
@@ -50,6 +51,7 @@ SSsdpServer::SSsdpServer(SHttpServer *httpServer)
   p->httpServer = httpServer;
   p->oldbootid = 0;
   p->bootid = 0;
+  p->oldconfigid = 0;
   p->configid = 0;
 
   p->updateTimer.setSingleShot(true);
@@ -72,9 +74,11 @@ void SSsdpServer::initialize(const InterfaceList &interfaces)
 
   p->oldbootid = settings.value("BOOTID.UPNP.ORG").toUInt();
   p->bootid = qint32(QDateTime::currentDateTime().toTime_t() & 0x7FFFFFFF);
+  p->oldconfigid = settings.value("CONFIGID.UPNP.ORG").toUInt();
   p->configid = p->bootid & 0x00FFFFFF;
 
   settings.setValue("BOOTID.UPNP.ORG", p->bootid);
+  settings.setValue("CONFIGID.UPNP.ORG", p->configid);
 
   SSsdpClient::initialize(interfaces);
 
@@ -83,6 +87,11 @@ void SSsdpServer::initialize(const InterfaceList &interfaces)
 
 void SSsdpServer::close(void)
 {
+  p->oldbootid = p->bootid;
+  p->bootid = 0;
+  p->oldconfigid = p->configid;
+  p->configid = 0;
+
   p->rePublishTimer.stop();
   unpublishServices();
 
@@ -96,12 +105,14 @@ void SSsdpServer::reset(void)
 
   p->oldbootid = p->bootid;
   p->bootid = qMax(qint32(QDateTime::currentDateTime().toTime_t() & 0x7FFFFFFF), p->bootid + 1);
+  p->oldconfigid = p->configid;
   p->configid = ((p->configid + 1) & 0x00FFFFFF);
 
   p->rePublishTimer.stop();
   unpublishServices();
 
   settings.setValue("BOOTID.UPNP.ORG", p->bootid);
+  settings.setValue("CONFIGID.UPNP.ORG", p->configid);
 
   p->updateTimer.start(3000 + (qrand() % 100));
   p->publishTimer.start(3500 + (qrand() % 100));
@@ -113,6 +124,10 @@ void SSsdpServer::publish(const QString &nt, const QString &relativeUrl, unsigne
   p->published.insert(nt, Private::Service(relativeUrl, msgCount));
   p->updateTimer.start(3000 + (qrand() % 100));
   p->publishTimer.start(3500 + (qrand() % 100));
+
+  for (unsigned i=0; i<msgCount; i++)
+  foreach (SsdpClientInterface *iface, interfaces())
+    sendByeBye(iface, nt);
 }
 
 void SSsdpServer::parsePacket(SsdpClientInterface *iface, const SHttpServer::RequestHeader &header, const QHostAddress &sourceAddress, quint16 sourcePort)
@@ -153,9 +168,9 @@ void SSsdpServer::sendUpdate(SsdpClientInterface *iface, const QString &nt, cons
     request.setField("LOCATION", url);
     request.setField("NT", nt);
     request.setField("NTS", "ssdp:update");
-    request.setField("BOOTID.UPNP.ORG", QString::number(p->oldbootid));
-    request.setField("CONFIGID.UPNP.ORG", QString::number(p->configid));
-    request.setField("NEXTBOOTID.UPNP.ORG", QString::number(p->bootid));
+    if (p->oldbootid) request.setField("BOOTID.UPNP.ORG", QString::number(p->oldbootid));
+    if (p->configid)  request.setField("CONFIGID.UPNP.ORG", QString::number(p->configid));
+    if (p->bootid)    request.setField("NEXTBOOTID.UPNP.ORG", QString::number(p->bootid));
 
     sendDatagram(iface, request, ssdpAddressIPv4, ssdpPort);
   }
@@ -165,15 +180,15 @@ void SSsdpServer::sendAlive(SsdpClientInterface *iface, const QString &nt, const
 {
   SHttpServer::RequestHeader request(NULL);
   request.setRequest("NOTIFY", "*", SHttpServer::httpVersion);
-  request.setField("SERVER", SHttpServer::osName() + " UPnP/1.1 " + qApp->applicationName() + '/' + qApp->applicationVersion());
+  request.setField("SERVER", SHttpServer::osName() + ' ' + SUPnPBase::protocol() + ' ' + qApp->applicationName() + '/' + qApp->applicationVersion());
   request.setField("HOST", SSsdpServer::ssdpAddressIPv4.toString() + ":" + QString::number(SSsdpServer::ssdpPort));
   request.setField("USN", serverUdn() + (!nt.startsWith("uuid:") ? ("::" + nt) : QString::null));
   request.setField("CACHE-CONTROL", "max-age=" + QString::number(SSsdpServer::cacheTimeout));
   request.setField("LOCATION", url);
   request.setField("NT", nt);
   request.setField("NTS", "ssdp:alive");
-  request.setField("BOOTID.UPNP.ORG", QString::number(p->bootid));
-  request.setField("CONFIGID.UPNP.ORG", QString::number(p->configid));
+  if (p->bootid)   request.setField("BOOTID.UPNP.ORG", QString::number(p->bootid));
+  if (p->configid) request.setField("CONFIGID.UPNP.ORG", QString::number(p->configid));
 
   sendDatagram(iface, request, ssdpAddressIPv4, ssdpPort);
 }
@@ -186,8 +201,8 @@ void SSsdpServer::sendByeBye(SsdpClientInterface *iface, const QString &nt) cons
   request.setField("USN", serverUdn() + (!nt.startsWith("uuid:") ? ("::" + nt) : QString::null));
   request.setField("NT", nt);
   request.setField("NTS", "ssdp:byebye");
-  request.setField("BOOTID.UPNP.ORG", QString::number(p->bootid));
-  request.setField("CONFIGID.UPNP.ORG", QString::number(p->configid));
+  if (p->oldbootid)   request.setField("BOOTID.UPNP.ORG", QString::number(p->oldbootid));
+  if (p->oldconfigid) request.setField("CONFIGID.UPNP.ORG", QString::number(p->oldconfigid));
 
   sendDatagram(iface, request, ssdpAddressIPv4, ssdpPort);
 }
@@ -197,14 +212,14 @@ void SSsdpServer::sendSearchResponse(SsdpClientInterface *iface, const QString &
   SHttpServer::ResponseHeader response(NULL);
   response.setResponse(SHttpServer::Status_Ok, SHttpServer::httpVersion);
   response.setDate();
-  response.setField("SERVER", SHttpServer::osName() + " UPnP/1.1 " + qApp->applicationName() + '/' + qApp->applicationVersion());
+  response.setField("SERVER", SHttpServer::osName() + ' ' + SUPnPBase::protocol() + ' ' + qApp->applicationName() + '/' + qApp->applicationVersion());
   response.setField("USN", serverUdn() + (!nt.startsWith("uuid:") ? ("::" + nt) : QString::null));
   response.setField("CACHE-CONTROL", "max-age=" + QString::number(SSsdpServer::cacheTimeout));
   response.setField("EXT", QString::null);
   response.setField("LOCATION", url);
   response.setField("ST", nt);
-  response.setField("BOOTID.UPNP.ORG", QString::number(p->bootid));
-  response.setField("CONFIGID.UPNP.ORG", QString::number(p->configid));
+  if (p->bootid)   response.setField("BOOTID.UPNP.ORG", QString::number(p->bootid));
+  if (p->configid) response.setField("CONFIGID.UPNP.ORG", QString::number(p->configid));
 
   sendDatagram(iface, response, toAddr, toPort);
 }
