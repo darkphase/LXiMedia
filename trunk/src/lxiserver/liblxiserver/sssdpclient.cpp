@@ -166,7 +166,7 @@ const QList< QPointer<SsdpClientInterface> > & SSsdpClient::interfaces(void) con
   return p->interfaces;
 }
 
-void SSsdpClient::parsePacket(SsdpClientInterface *iface, const SHttpServer::RequestHeader &header, const QHostAddress &, quint16)
+void SSsdpClient::parsePacket(SsdpClientInterface *, const SHttpServer::RequestHeader &header, const QHostAddress &, quint16)
 {
   if (header.method() == "NOTIFY")
   {
@@ -179,7 +179,7 @@ void SSsdpClient::parsePacket(SsdpClientInterface *iface, const SHttpServer::Req
   }
 }
 
-void SSsdpClient::parsePacket(SsdpClientInterface *iface, const SHttpServer::ResponseHeader &header, const QHostAddress &, quint16)
+void SSsdpClient::parsePacket(SsdpClientInterface *, const SHttpServer::ResponseHeader &header, const QHostAddress &, quint16)
 {
   addNode(header, "ST");
 }
@@ -193,7 +193,7 @@ void SSsdpClient::sendSearch(SsdpClientInterface *iface, const QString &st, unsi
 {
   SHttpServer::RequestHeader request(NULL);
   request.setRequest("M-SEARCH", "*", SHttpServer::httpVersion);
-  request.setField("USER-AGENT", SHttpServer::osName() + " UPnP/1.1 " + qApp->applicationName() + '/' + qApp->applicationVersion());
+  request.setField("USER-AGENT", SHttpServer::osName() + ' ' + SUPnPBase::protocol() + ' ' + qApp->applicationName() + '/' + qApp->applicationVersion());
   request.setField("HOST", SSsdpClient::ssdpAddressIPv4.toString() + ":" + QString::number(SSsdpClient::ssdpPort));
   request.setField("MAN", "\"ssdp:discover\"");
   request.setField("MX", QString::number(mx));

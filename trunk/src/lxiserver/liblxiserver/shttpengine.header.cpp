@@ -113,7 +113,7 @@ QByteArray SHttpEngine::Header::toByteArray(void) const
   {
     result = head[0] + ' ' + head[1] + ' ' + head[2] + "\r\n";
     for (QList< QPair<QString, QString> >::ConstIterator i=fields.begin(); i!=fields.end(); i++)
-      result += i->first.toUtf8() + ": " + i->second.toUtf8() + "\r\n";
+      result += i->first.toUtf8() + ':' + i->second.toUtf8() + "\r\n";
 
     result += "\r\n";
   }
