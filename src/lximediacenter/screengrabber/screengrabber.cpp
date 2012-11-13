@@ -44,7 +44,7 @@ void ScreenGrabber::show()
   httpServer.initialize(
       settings.value("BindAllNetworks", false).toBool()
           ? QNetworkInterface::allAddresses()
-          : SSsdpClient::localInterfaces(),
+          : SSsdpClient::localAddresses(),
       settings.value("HttpPort", defaultPort).toInt());
 
   // Setup HTTP server
