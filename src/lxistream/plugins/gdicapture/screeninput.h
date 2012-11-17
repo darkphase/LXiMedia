@@ -19,7 +19,6 @@
 #define SCREENINPUT_H
 
 #include <QtCore>
-#include <QtGui>
 #include <LXiStreamDevice>
 #include <windows.h>
 

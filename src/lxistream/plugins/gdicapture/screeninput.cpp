@@ -32,19 +32,47 @@ QList<SFactory::Scheme> ScreenInput::listDevices(void)
 
   ScreenInput::screens.clear();
 
-  QDesktopWidget * const desktop = qApp->desktop();
-  for (int i=0; i<desktop->screenCount(); i++)
+  struct T
   {
-    const QRect rect = desktop->screenGeometry(i);
+    static BOOL CALLBACK monitorEnum(
+          HMONITOR /*hMonitor*/,
+          HDC /*hdcMonitor*/,
+          LPRECT lprcMonitor,
+          LPARAM dwData)
+    {
+      QRect r(
+            lprcMonitor->left,
+            lprcMonitor->top,
+            lprcMonitor->right - lprcMonitor->left,
+            lprcMonitor->bottom - lprcMonitor->top);
 
-    const QString name =
-        "Desktop " + QString::number(i + 1) +
-        " (" + QString::number(rect.width()) +
-        " x " + QString::number(rect.height()) + ")";
+      ((T *)dwData)->rects += r;
 
-    ScreenInput::screens.insert(name, rect);
+      return TRUE;
+    }
 
-    result += SFactory::Scheme(name);
+    QList<QRect> rects;
+  } t;
+
+  HDC screenDc = ::CreateDCA("DISPLAY", NULL, NULL, NULL);
+  if (screenDc != NULL)
+  {
+    if (::EnumDisplayMonitors(screenDc, NULL, &T::monitorEnum, LPARAM(&t)))
+    {
+      int count = 1;
+      foreach (const QRect &rect, t.rects)
+      {
+        const QString name =
+            "Desktop " + QString::number(count++) +
+            " (" + QString::number(rect.width()) +
+            " x " + QString::number(rect.height()) + ")";
+
+        ScreenInput::screens.insert(name, rect);
+        result += SFactory::Scheme(name);
+      }
+    }
+
+    ::ReleaseDC(0, screenDc);
   }
 
   return result;
