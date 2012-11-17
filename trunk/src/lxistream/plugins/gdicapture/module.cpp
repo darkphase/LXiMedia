@@ -23,15 +23,6 @@ namespace GdiCapture {
 
 bool Module::registerClasses(void)
 {
-  if (qobject_cast<QApplication *>(QCoreApplication::instance()) == NULL)
-  {
-    qWarning() <<
-        "Not loading GdiCapture because this is a non-gui application (i.e. "
-        "a QCoreApplication is used instead of a QApplication)";
-
-    return false; // Non-gui application
-  }
-
   int result = false;
   foreach (const SFactory::Scheme &scheme, ScreenInput::listDevices())
   {
