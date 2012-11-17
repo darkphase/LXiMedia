@@ -15,75 +15,46 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#ifndef __WINMMAUDIOOUTPUT_H
-#define __WINMMAUDIOOUTPUT_H
+#ifndef WINMMAUDIOOUTPUT_H
+#define WINMMAUDIOOUTPUT_H
 
 #include <windows.h>
 #include <mmsystem.h>
 #include <QtCore>
-#include <LXiStream>
-#include <liblxistream/common/audiooutput.h>
+#include <LXiStreamDevice>
 
-namespace LXiStream {
+namespace LXiStreamDevice {
 namespace WinMMBackend {
 
-class WinMMAudioOutputNode;
-
-class WinMMAudioOutput : public Common::AudioOutput
+class WinMMAudioOutput : public SInterfaces::AudioOutput
 {
 Q_OBJECT
-friend class WinMMAudioOutputNode;
 public:
-                                WinMMAudioOutput(int, bool, QObject *);
+                                WinMMAudioOutput(const QString &, QObject *);
   virtual                       ~WinMMAudioOutput();
 
-  virtual Common::AudioMixerNode * createNode(void);
-
-public: // From SNode
+  virtual bool                  start(void);
+  virtual void                  stop(void);
   virtual STime                 latency(void) const;
 
-  virtual bool                  prepare(const SCodecList &);
-  virtual bool                  unprepare(void);
-
-protected:
-  virtual void                  writeAudio(const SAudioBuffer &);
+  virtual void                  consume(const SAudioBuffer &);
 
 private:
-  bool                          openCodec(const SAudioCodec &);
-
-  void                          writeHeader(const qint16 *, size_t, const SAudioBuffer &);
+  void                          openCodec(const SAudioFormat &);
+  void                          writeHeader(const qint16 *data, size_t size, const SAudioBuffer &buffer);
   void                          flushHeaders(void);
-
-public:
-  int                           nodeCount;
 
 private:
   static const unsigned         maxDelay = 250; // ms
 
-  STime                         outLatency;
-  SAudioBuffer                  silentBuffer;
-  SAudioBuffer                  lastBuffer;
-  unsigned                      lastBufferRepeats;
-
-  SCodec                        outCodec;
-  const int                     dev;
   HWAVEOUT                      waveOut;
   bool                          errorProduced;
+
+  STime                         outLatency;
+  SAudioFormat                  inFormat;
+
   QQueue< QPair<WAVEHDR *, SAudioBuffer> > headers;
 };
-
-
-class WinMMAudioOutputNode : public Common::AudioOutputNode
-{
-Q_OBJECT
-public:
-                                WinMMAudioOutputNode(WinMMAudioOutput *);
-  virtual                       ~WinMMAudioOutputNode();
-
-private:
-  WinMMAudioOutput      * const parent;
-};
-
 
 } } // End of namespaces
 

@@ -20,20 +20,18 @@
 
 #include <LXiStream>
 
-namespace LXiStream {
+namespace LXiStreamDevice {
 namespace WinMMBackend {
 
-
-class Module : public QObject,
-               public SModule
+class Module : public SModule
 {
 Q_OBJECT
-Q_INTERFACES(LXiStream::SModule)
 public:
-  virtual void                  registerClasses(void);
+  virtual bool                  registerClasses(void);
   virtual void                  unload(void);
+  virtual QByteArray            about(void);
+  virtual QByteArray            licenses(void);
 };
-
 
 } } // End of namespaces
 

@@ -1,17 +1,15 @@
-# Globals
-PLUGIN_NAME = winmm
+MODULE_NAME = lxistreamdevice_winmm
 LXIMEDIA_DIR = ../../../..
-include($${LXIMEDIA_DIR}/include/liblxistream/plugin.pri)
-include($${LXIMEDIA_DIR}/include/liblxistream/linklxistream.pri)
+include($${PWD}/$${LXIMEDIA_DIR}/include/liblxicore/module.pri)
+include($${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/linklxistream.pri)
+include($${PWD}/$${LXIMEDIA_DIR}/include/liblxistreamdevice/linklxistreamdevice.pri)
 
 # Files
-HEADERS += winmmaudiodevice.h \
- winmmaudioinput.h \
+HEADERS += winmmaudioinput.h \
  winmmaudiooutput.h \
  module.h
 
-SOURCES += winmmaudiodevice.cpp \
- winmmaudioinput.cpp \
+SOURCES += winmmaudioinput.cpp \
  winmmaudiooutput.cpp \
  module.cpp
 

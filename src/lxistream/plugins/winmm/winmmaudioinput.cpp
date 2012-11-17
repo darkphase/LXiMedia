@@ -17,92 +17,162 @@
 
 #include "winmmaudioinput.h"
 
-namespace LXiStream {
+namespace LXiStreamDevice {
 namespace WinMMBackend {
 
-
-WinMMAudioInput::WinMMAudioInput(int dev, QObject *parent)
-  : SNodes::Audio::Source(Behavior_Blocking, 0, SCodecList(), parent),
-    running(false),
-    dev(dev),
+WinMMAudioInput::WinMMAudioInput(const QString &, QObject *parent)
+  : SInterfaces::AudioInput(parent),
     waveIn(NULL),
-    format(SCodec::Format_Invalid),
-    outSampleSize(0),
-    outSampleRate(48000),
-    outNumChannels(2)
+    inFormat(SAudioFormat::Format_PCM_S16, SAudioFormat::Channels_Stereo, 48000)
 {
 }
 
-bool WinMMAudioInput::prepare(const SCodecList &)
+WinMMAudioInput::~WinMMAudioInput()
 {
-  bool retval = false;
+  WinMMAudioInput::stop();
+}
 
-  /*snd_pcm_hw_params_t *hw_params = NULL;
+void WinMMAudioInput::setFormat(const SAudioFormat &f)
+{
+  inFormat = f;
+}
 
-  if (snd_pcm_open(&pcm, dev.toAscii().data(), SND_PCM_STREAM_CAPTURE, 0) == 0)
-  if (snd_pcm_hw_params_malloc(&hw_params) == 0)
-  if (snd_pcm_hw_params_any(pcm, hw_params) == 0)
-  if (snd_pcm_hw_params_set_access(pcm, hw_params, SND_PCM_ACCESS_RW_INTERLEAVED) == 0)
-  if (snd_pcm_hw_params_set_format(pcm, hw_params, SND_PCM_FORMAT_S16_LE) == 0)
-  if (snd_pcm_hw_params_set_rate_near(pcm, hw_params, &outSampleRate, 0) == 0)
-  if (snd_pcm_hw_params_set_channels_near(pcm, hw_params, &outNumChannels) == 0)
-  if (snd_pcm_hw_params(pcm, hw_params) == 0)
-  if (snd_pcm_prepare(pcm) == 0)
+SAudioFormat WinMMAudioInput::format(void)
+{
+  return inFormat;
+}
+
+bool WinMMAudioInput::start(void)
+{
+  WAVEFORMATEX format;
+  format.wFormatTag = WAVE_FORMAT_PCM;
+  format.nChannels = inFormat.numChannels();
+  format.nSamplesPerSec = inFormat.sampleRate();
+  format.nAvgBytesPerSec = format.nChannels * format.nSamplesPerSec * inFormat.sampleSize();
+  format.nBlockAlign = format.nChannels * inFormat.sampleSize();
+  format.wBitsPerSample = inFormat.sampleSize() * 8;
+  format.cbSize = sizeof(format);
+
+  MMRESULT result = ::waveInOpen(
+        &waveIn,
+        WAVE_MAPPER,
+        &format,
+        NULL, NULL,
+        CALLBACK_NULL | WAVE_FORMAT_DIRECT);
+
+  if (result == MMSYSERR_NOERROR)
   {
-    format = SCodec(SAudioCodec::Format_PCM_S16LE, SCodec::guessChannels(outNumChannels), outSampleRate);
-    outSampleSize = format.sampleSize();
+    queueHeaders();
 
-    retval = true;
+    if (waveInStart(waveIn) == MMSYSERR_NOERROR)
+      return true;
+
+    ::waveInClose(waveIn);
   }
 
-  if (hw_params)
-    snd_pcm_hw_params_free(hw_params);
-*/
-  return retval;
+  waveIn = NULL;
+
+  WCHAR fault[256];
+  ::waveOutGetErrorText(result, fault, sizeof(fault) / sizeof(WCHAR));
+  qWarning() << "WinMMAudioInput:" << QString::fromWCharArray(fault);
+
+  return false;
 }
 
-bool WinMMAudioInput::unprepare(void)
+void WinMMAudioInput::stop(void)
 {
-  //if (pcm)
-  //  snd_pcm_close(pcm);
-
-  return true;
-}
-
-SNode::Result WinMMAudioInput::processBuffer(const SBuffer &, SBufferList &output)
-{
-  /*const unsigned numSamples = outSampleRate * 40 / 1000; // 40 ms of samples
-  SAudioBuffer buffer(numSamples * outNumChannels * outSampleSize);
-
-  for (int n=0; n<3; n++)
+  if (waveIn != NULL)
   {
-    int err = snd_pcm_readi(pcm, buffer.bits(), numSamples);
-    if (err > 0)
-    {
-      // Determine latency
-      STime delay = STime::fromMSec(0);
-      snd_pcm_sframes_t framesDelay = 0;
-      if (snd_pcm_delay(pcm, &framesDelay) == 0)
-        delay = STime::fromClock(framesDelay, outSampleRate);
+    ::waveInStop(waveIn);
 
-      const STime duration = STime::fromClock(err, outSampleRate);
-      buffer.setTimeStamp(timer.smoothTimeStamp(duration, delay));
-      buffer.setDecodedTimeStamp(buffer.timeStamp());
-      buffer.setCodec(format);
-      buffer.setNumSamples(err);
+    flushHeaders();
 
-      output << buffer;
-      return Result_Active;
-    }
-    else if (err < 0)
-    {
-      qWarning() << "AlsaInput: Recovering";
-      snd_pcm_recover(pcm, err, 1);
-    }
-  }*/
-
-  return Result_Blocked;
+    ::waveInClose(waveIn);
+    waveIn = NULL;
+  }
 }
 
+bool WinMMAudioInput::process(void)
+{
+  if (waveIn != NULL)
+  {
+    while (!headers.isEmpty() && ((headers.front().first->dwFlags & WHDR_DONE) != 0))
+    {
+      if (::waveInUnprepareHeader(waveIn, headers.front().first, sizeof(*(headers.front().first))) == MMSYSERR_NOERROR)
+      {
+        SAudioBuffer buffer = headers.front().second;
+        delete headers.front().first;
+        headers.dequeue();
+
+        buffer.setTimeStamp(timer.smoothTimeStamp(buffer.duration()));
+        emit produce(buffer);
+
+        continue;
+      }
+
+      break;
+    }
+
+    queueHeaders();
+  }
+
+  return false;
+}
+
+void WinMMAudioInput::queueHeaders(void)
+{
+  STime delay;
+  for (QQueue< QPair<WAVEHDR *, SAudioBuffer> >::Iterator i=headers.begin(); i!=headers.end(); i++)
+    delay += i->second.duration();
+
+  while (delay.toMSec() < maxDelay)
+  {
+    SAudioBuffer buffer(inFormat);
+    buffer.setNumSamples(inFormat.sampleRate() / 25);
+
+    WAVEHDR *waveHdr = new WAVEHDR();
+    waveHdr->lpData = (CHAR *)buffer.data();
+    waveHdr->dwBufferLength = buffer.size();
+    waveHdr->dwBytesRecorded = 0;
+    waveHdr->dwUser = 0;
+    waveHdr->dwFlags = 0;
+    waveHdr->dwLoops = 0;
+
+    if (::waveInPrepareHeader(waveIn, waveHdr, sizeof(*waveHdr)) == MMSYSERR_NOERROR)
+    {
+      if (::waveInAddBuffer(waveIn, waveHdr, sizeof(*waveHdr)) == MMSYSERR_NOERROR)
+      {
+        headers.enqueue(QPair<WAVEHDR *, SAudioBuffer>(waveHdr, buffer));
+        delay += buffer.duration();
+
+        continue;
+      }
+
+      ::waveInUnprepareHeader(waveIn, waveHdr, sizeof(*waveHdr));
+    }
+
+    delete waveHdr;
+
+    break;
+  }
+}
+
+void WinMMAudioInput::flushHeaders(void)
+{
+  while (headers.count() > 0)
+  {
+    QPair<WAVEHDR *, SAudioBuffer> header = headers.head();
+
+    if ((header.first->dwFlags & WHDR_DONE) != 0)
+    if (::waveInUnprepareHeader(waveIn, header.first, sizeof(*(header.first))) == MMSYSERR_NOERROR)
+    {
+      delete header.first;
+      headers.dequeue();
+      continue;
+    }
+
+    break;
+  }
+}
 
 } } // End of namespaces

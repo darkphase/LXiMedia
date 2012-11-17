@@ -16,24 +16,32 @@
  ******************************************************************************/
 
 #include "module.h"
-#include "winmmaudiodevice.h"
+#include "winmmaudioinput.h"
+#include "winmmaudiooutput.h"
 
-namespace LXiStream {
+namespace LXiStreamDevice {
 namespace WinMMBackend {
 
-
-void Module::registerClasses(void)
+bool Module::registerClasses(void)
 {
-  if ((SSystem::initializeFlags() & SSystem::Initialize_Devices) == SSystem::Initialize_Devices)
-  {
-    SSystem::registerClass<WinMMAudioDevice>("lx-winmmaudio");
-    SSystem::registerAudioDevices(WinMMAudioDevice::listDevices());
-  }
+  WinMMAudioOutput::registerClass<WinMMAudioOutput>(1);
+  WinMMAudioInput::registerClass<WinMMAudioInput>(SFactory::Scheme(1, "Desktop"));
+
+  return true;
 }
 
 void Module::unload(void)
 {
 }
 
+QByteArray Module::about(void)
+{
+  return "WinMM plugin by A.J. Admiraal";
+}
+
+QByteArray Module::licenses(void)
+{
+  return QByteArray();
+}
 
 } } // End of namespaces

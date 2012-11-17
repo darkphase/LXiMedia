@@ -18,4 +18,4 @@
 #include "module.h"
 #include <QtPlugin>
 
-Q_EXPORT_PLUGIN2(winmm, LXiStream::WinMMBackend::Module);
+Q_EXPORT_PLUGIN2(lxistreamdevice_winmm, LXiStreamDevice::WinMMBackend::Module);
