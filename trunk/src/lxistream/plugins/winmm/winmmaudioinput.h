@@ -15,51 +15,45 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#ifndef __WINMMAUDIOINPUT_H
-#define __WINMMAUDIOINPUT_H
+#ifndef WINMMAUDIOINPUT_H
+#define WINMMAUDIOINPUT_H
 
 #include <windows.h>
 #include <mmsystem.h>
 #include <QtCore>
-#include <LXiStream>
+#include <LXiStreamDevice>
 
-namespace LXiStream {
+namespace LXiStreamDevice {
 namespace WinMMBackend {
 
-
-class WinMMAudioInput : public SNodes::Audio::Source
+class WinMMAudioInput : public SInterfaces::AudioInput
 {
 Q_OBJECT
 public:
-                                WinMMAudioInput(int, QObject *);
+                                WinMMAudioInput(const QString &, QObject *);
+  virtual                       ~WinMMAudioInput();
 
-  virtual inline bool           finished(void) const                            { return false; }
-  virtual inline SAudioCodec::Channels channels(void) const                     { return SAudioCodec::guessChannels(outNumChannels); }
-  virtual inline void           setChannels(SAudioCodec::Channels c)            { outNumChannels = SAudioCodec::numChannels(c); }
-  virtual inline unsigned       sampleRate(void) const                          { return outSampleRate; }
-  virtual inline void           setSampleRate(unsigned s)                       { outSampleRate = s; }
+  virtual void                  setFormat(const SAudioFormat &);
+  virtual SAudioFormat          format(void);
 
-public: // From SNode
-  virtual bool                  prepare(const SCodecList &);
-  virtual bool                  unprepare(void);
-  virtual Result                processBuffer(const SBuffer &, SBufferList &);
+  virtual bool                  start(void);
+  virtual void                  stop(void);
+  virtual bool                  process(void);
 
 private:
-  static const unsigned         maxBuffers = 256;
+  void                          queueHeaders(void);
+  void                          flushHeaders(void);
 
-  volatile bool                 running;
-  const int                     dev;
-  HWAVEOUT                      waveIn;
+private:
+  static const unsigned         maxDelay = 1000; // ms
+
+  HWAVEIN                       waveIn;
+  QByteArray                    inputName;
+  SAudioFormat                  inFormat;
 
   STimer                        timer;
-  SAudioCodec                   format;
-  unsigned                      outSampleSize;
-  unsigned                      outSampleRate;
-  unsigned                      outNumChannels;
-
-  SBufferQueue                  producedBuffers;
+  QQueue< QPair<WAVEHDR *, SAudioBuffer> > headers;
 };
-
 
 } } // End of namespaces
 

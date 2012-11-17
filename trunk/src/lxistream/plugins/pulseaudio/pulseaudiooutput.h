@@ -25,12 +25,9 @@
 namespace LXiStreamDevice {
 namespace PulseAudioBackend {
 
-class PulseAudioOutputNode;
-
 class PulseAudioOutput : public SInterfaces::AudioOutput
 {
 Q_OBJECT
-friend class PulseAudioOutputNode;
 public:
                                 PulseAudioOutput(const QString &, QObject *);
   virtual                       ~PulseAudioOutput();
