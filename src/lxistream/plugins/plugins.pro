@@ -12,5 +12,5 @@ unix {
 }
 
 win32 {
-  #SUBDIRS += winmm
+  SUBDIRS += gdicapture #winmm
 }
