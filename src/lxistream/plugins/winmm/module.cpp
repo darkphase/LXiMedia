@@ -25,7 +25,9 @@ namespace WinMMBackend {
 bool Module::registerClasses(void)
 {
   WinMMAudioOutput::registerClass<WinMMAudioOutput>(1);
-  WinMMAudioInput::registerClass<WinMMAudioInput>(SFactory::Scheme(1, "Desktop"));
+
+  foreach (const SFactory::Scheme &scheme, WinMMAudioInput::listDevices())
+    WinMMAudioInput::registerClass<WinMMAudioInput>(scheme);
 
   return true;
 }

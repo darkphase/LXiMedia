@@ -30,6 +30,8 @@ class WinMMAudioInput : public SInterfaces::AudioInput
 {
 Q_OBJECT
 public:
+  static QList<SFactory::Scheme> listDevices(void);
+
                                 WinMMAudioInput(const QString &, QObject *);
   virtual                       ~WinMMAudioInput();
 
@@ -41,12 +43,15 @@ public:
   virtual bool                  process(void);
 
 private:
+  void                          correctFormat(void);
   void                          queueHeaders(void);
   void                          flushHeaders(void);
 
 private:
   static const unsigned         maxDelay = 1000; // ms
+  static QMap<QString, unsigned> deviceMap;
 
+  const unsigned                devId;
   HWAVEIN                       waveIn;
   QByteArray                    inputName;
   SAudioFormat                  inFormat;
