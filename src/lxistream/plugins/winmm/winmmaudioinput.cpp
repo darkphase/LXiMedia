@@ -34,7 +34,7 @@
 namespace LXiStreamDevice {
 namespace WinMMBackend {
 
-QMap<QString, unsigned> WinMMAudioInput::deviceMap;
+QMap<QString, WinMMAudioInput::Device> WinMMAudioInput::deviceMap;
 
 QList<SFactory::Scheme> WinMMAudioInput::listDevices(void)
 {
@@ -43,17 +43,54 @@ QList<SFactory::Scheme> WinMMAudioInput::listDevices(void)
   deviceMap.clear();
 
   const UINT count = ::waveInGetNumDevs();
-  for (UINT i=0, j=0; i<count; i++)
+  for (UINT i=0; i<count; i++)
   {
     WAVEINCAPS caps;
     if (::waveInGetDevCaps(i, &caps, sizeof(caps)) == MMSYSERR_NOERROR)
     {
-      const QString name = (j == 0) ? QString("Desktop") : QString("Device " + QString::number(i));
+      HMIXER mixer = NULL;
+      if (::mixerOpen(&mixer, i, NULL, NULL, MIXER_OBJECTF_WAVEIN) == MMSYSERR_NOERROR)
+      {
+        MIXERLINE mixerLine;
+        memset(&mixerLine, 0, sizeof(mixerLine));
 
-      deviceMap.insert(name, i);
-      result += SFactory::Scheme((j == 0) ? 0 : -1, name);
+        mixerLine.cbStruct = sizeof(mixerLine);
+        mixerLine.dwComponentType = MIXERLINE_COMPONENTTYPE_DST_WAVEIN;
+        if (::mixerGetLineInfo(HMIXEROBJ(mixer), &mixerLine, MIXER_GETLINEINFOF_COMPONENTTYPE) == MMSYSERR_NOERROR)
+        for (unsigned j=0, dc=0, n=mixerLine.cConnections; j<n; j++)
+        {
+          mixerLine.dwSource = j;
+          if (::mixerGetLineInfo(HMIXEROBJ(mixer), &mixerLine, MIXER_GETLINEINFOF_SOURCE) == MMSYSERR_NOERROR)
+          {
+            QString name = QString::fromWCharArray(mixerLine.szName);
+            bool isDesktop = false;
 
-      j++;
+            if ((name.simplified().compare("Stereo Mix", Qt::CaseInsensitive) == 0) ||
+                (name.simplified().compare("Waveout Mix", Qt::CaseInsensitive) == 0) ||
+                (name.simplified().compare("Mixed Output", Qt::CaseInsensitive) == 0) ||
+                (name.simplified().compare("What You Hear", Qt::CaseInsensitive) == 0))
+            {
+              name = "Desktop";
+              isDesktop = true;
+              dc++;
+            }
+
+            if (deviceMap.contains(name))
+            {
+              int idx = 1;
+              while (deviceMap.contains(name + ' ' + QString::number(idx)))
+                idx++;
+
+              name += ' ' + QString::number(idx);
+            }
+
+            result += SFactory::Scheme((isDesktop && (dc == 1)) ? 0 : -1, name);
+            deviceMap.insert(name, Device(i, j, mixerLine.dwLineID));
+          }
+        }
+
+        ::mixerClose(mixer);
+      }
     }
   }
 
@@ -62,7 +99,7 @@ QList<SFactory::Scheme> WinMMAudioInput::listDevices(void)
 
 WinMMAudioInput::WinMMAudioInput(const QString &dev, QObject *parent)
   : SInterfaces::AudioInput(parent),
-    devId(deviceMap.contains(dev) ? deviceMap[dev] : WAVE_MAPPER),
+    device(deviceMap.contains(dev) ? deviceMap[dev] : Device(WAVE_MAPPER)),
     waveIn(NULL),
     inFormat(SAudioFormat::Format_PCM_S16, SAudioFormat::Channels_Stereo, 44100)
 {
@@ -100,13 +137,22 @@ bool WinMMAudioInput::start(void)
 
   MMRESULT result = ::waveInOpen(
         &waveIn,
-        devId,
+        device.id,
         &format,
         NULL, NULL,
         CALLBACK_NULL | WAVE_FORMAT_DIRECT);
 
   if (result == MMSYSERR_NOERROR)
   {
+    HMIXER mixer = NULL;
+    if (::mixerOpen(&mixer, device.id, NULL, NULL, MIXER_OBJECTF_WAVEIN) == MMSYSERR_NOERROR)
+    {
+      selectSource(mixer, device.source);
+      setVolume(mixer, device.lineId, 65535);
+
+      ::mixerClose(mixer);
+    }
+
     queueHeaders();
 
     if (waveInStart(waveIn) == MMSYSERR_NOERROR)
@@ -119,7 +165,7 @@ bool WinMMAudioInput::start(void)
 
   WCHAR fault[256];
   ::waveOutGetErrorText(result, fault, sizeof(fault) / sizeof(WCHAR));
-  qWarning() << "WinMMAudioInput:" << QString::fromWCharArray(fault);
+  qWarning() << "WinMMAudioInput: " << QString::fromWCharArray(fault);
 
   return false;
 }
@@ -164,10 +210,113 @@ bool WinMMAudioInput::process(void)
   return false;
 }
 
+bool WinMMAudioInput::setVolume(HMIXER mixer, DWORD lineId, uint16_t volume)
+{
+  MIXERLINECONTROLS lineControls;
+  memset(&lineControls, 0, sizeof(lineControls));
+  lineControls.cbStruct = sizeof(lineControls);
+  lineControls.dwLineID = lineId;
+  lineControls.dwControlType = MIXERCONTROL_CONTROLTYPE_VOLUME;
+
+  MIXERCONTROL control;
+  memset(&control, 0, sizeof(control));
+  control.cbStruct = sizeof(control);
+  lineControls.cbmxctrl = sizeof(control);
+  lineControls.pamxctrl = &control;
+
+  if (::mixerGetLineControls(HMIXEROBJ(mixer), &lineControls, MIXER_GETLINECONTROLSF_ONEBYTYPE) == MMSYSERR_NOERROR)
+  {
+    MIXERCONTROLDETAILS details;
+    memset(&details, 0, sizeof(details));
+    details.cbStruct = sizeof(details);
+    details.dwControlID = control.dwControlID;
+    details.cChannels = 1;
+    details.cMultipleItems = 0;
+
+    MIXERCONTROLDETAILS_UNSIGNED value;
+    memset(&value, 0, sizeof(value));
+    value.dwValue = volume;
+    details.cbDetails = sizeof(value);
+    details.paDetails = &value;
+
+    return ::mixerSetControlDetails(HMIXEROBJ(mixer), &details, MIXER_GETCONTROLDETAILSF_VALUE) == MMSYSERR_NOERROR;
+  }
+
+  return false;
+}
+
+bool WinMMAudioInput::selectSource(HMIXER mixer, DWORD source)
+{
+  MIXERLINE mixerLine;
+  memset(&mixerLine, 0, sizeof(mixerLine));
+  mixerLine.cbStruct = sizeof(mixerLine);
+  mixerLine.dwComponentType = MIXERLINE_COMPONENTTYPE_DST_WAVEIN;
+
+  if (::mixerGetLineInfo(HMIXEROBJ(mixer), &mixerLine, MIXER_GETLINEINFOF_COMPONENTTYPE) == MMSYSERR_NOERROR)
+  {
+    MIXERLINECONTROLS lineControls;
+    memset(&lineControls, 0, sizeof(lineControls));
+    lineControls.cbStruct = sizeof(lineControls);
+    lineControls.dwLineID = mixerLine.dwLineID;
+    lineControls.dwControlType = MIXERCONTROL_CONTROLTYPE_MIXER;
+    lineControls.cControls = 1;
+
+    MIXERCONTROL control;
+    memset(&control, 0, sizeof(control));
+    lineControls.cbmxctrl = sizeof(control);
+    lineControls.pamxctrl = &control;
+
+    if (::mixerGetLineControls(HMIXEROBJ(mixer), &lineControls, MIXER_GETLINECONTROLSF_ONEBYTYPE) != MMSYSERR_NOERROR)
+    {
+      lineControls.dwControlType = MIXERCONTROL_CONTROLTYPE_MUX;
+      if (::mixerGetLineControls(HMIXEROBJ(mixer), &lineControls, MIXER_GETLINECONTROLSF_ONEBYTYPE) != MMSYSERR_NOERROR)
+        return false;
+    }
+
+    MIXERCONTROLDETAILS details;
+    memset(&details, 0, sizeof(details));
+    details.cbStruct = sizeof(details);
+    details.dwControlID = control.dwControlID;
+    details.cChannels = 1;
+    details.cMultipleItems = control.cMultipleItems;
+
+    MIXERCONTROLDETAILS_LISTTEXT value[details.cMultipleItems];
+    memset(&value, 0, sizeof(value));
+    details.cbDetails = sizeof(*value);
+    details.paDetails = &value;
+
+    if (::mixerGetControlDetails(HMIXEROBJ(mixer), &details, MIXER_GETCONTROLDETAILSF_LISTTEXT) == MMSYSERR_NOERROR)
+    {
+      for (unsigned i=0; i<details.cMultipleItems; i++)
+      {
+        MIXERLINE line;
+        memset(&line, 0, sizeof(line));
+        line.cbStruct = sizeof(line);
+        line.dwLineID = value[i].dwParam1;
+
+        if (::mixerGetLineInfo(HMIXEROBJ(mixer), &line, MIXER_GETLINEINFOF_LINEID) == MMSYSERR_NOERROR)
+        if (line.dwSource == source)
+        {
+          MIXERCONTROLDETAILS_UNSIGNED newval[details.cMultipleItems];
+          memset(&newval, 0, sizeof(newval));
+          newval[i].dwValue = 1;
+          details.cbDetails = sizeof(*newval);
+          details.paDetails = &newval;
+
+          if (::mixerSetControlDetails(HMIXEROBJ(mixer), &details, MIXER_SETCONTROLDETAILSF_VALUE) == MMSYSERR_NOERROR)
+            return true;
+        }
+      }
+    }
+  }
+
+  return false;
+}
+
 void WinMMAudioInput::correctFormat(void)
 {
   WAVEINCAPS caps;
-  if (::waveInGetDevCaps(devId, &caps, sizeof(caps)) == MMSYSERR_NOERROR)
+  if (::waveInGetDevCaps(device.id, &caps, sizeof(caps)) == MMSYSERR_NOERROR)
   {
     if ((inFormat.sampleSize() == 2) && (inFormat.numChannels() == 2))
     {

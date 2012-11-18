@@ -29,6 +29,18 @@ namespace WinMMBackend {
 class WinMMAudioInput : public SInterfaces::AudioInput
 {
 Q_OBJECT
+private:
+  struct Device
+  {
+    inline Device(UINT id = 0, DWORD source = 0, DWORD lineId = 0)
+      : id(id), source(source), lineId(lineId)
+    {
+    }
+
+    UINT id;
+    DWORD source, lineId;
+  };
+
 public:
   static QList<SFactory::Scheme> listDevices(void);
 
@@ -43,15 +55,17 @@ public:
   virtual bool                  process(void);
 
 private:
+  static bool                   setVolume(HMIXER mixer, DWORD lineId, uint16_t volume);
+  static bool                   selectSource(HMIXER mixer, DWORD source);
   void                          correctFormat(void);
   void                          queueHeaders(void);
   void                          flushHeaders(void);
 
 private:
   static const unsigned         maxDelay = 1000; // ms
-  static QMap<QString, unsigned> deviceMap;
+  static QMap<QString, Device>  deviceMap;
 
-  const unsigned                devId;
+  const Device                  device;
   HWAVEIN                       waveIn;
   QByteArray                    inputName;
   SAudioFormat                  inFormat;
