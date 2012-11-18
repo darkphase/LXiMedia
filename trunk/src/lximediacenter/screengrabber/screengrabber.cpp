@@ -177,15 +177,17 @@ bool DesktopStream::setup(const SHttpServer::RequestMessage &request, QIODevice 
   SAudioFormat audioFormat = input.audioFormat();
   SVideoFormat videoFormat = input.videoFormat();
 
+  SVideoFormat destFormat = videoFormat;
+  destFormat.setSize(toStandardVideoSize(destFormat.size()));
+
   if (MediaStream::setup(
         request, socket, STime::null, STime(),
-        audioFormat, videoFormat))
+        audioFormat, destFormat))
   {
     audioFormat.setSampleRate(audio->resampler.sampleRate());
     audioFormat.setChannelSetup(audio->outChannels);
     input.setAudioFormat(audioFormat);
 
-    videoFormat.setSize(video->resizer.size());
     videoFormat.setFrameRate(sync.frameRate());
     input.setVideoFormat(videoFormat);
 

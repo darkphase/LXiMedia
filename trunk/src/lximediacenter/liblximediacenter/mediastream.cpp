@@ -503,6 +503,20 @@ void MediaStream::decodeChannels(const QUrl &url, SAudioFormat &audioFormat)
   }
 }
 
+SSize MediaStream::toStandardVideoSize(const SSize &size)
+{
+  if ((size.width() > 1280) || (size.height() > 720))
+    return SSize(1920, 1080);
+  else if ((size.width() > 768) || (size.height() > 576))
+    return SSize(1280, 720);
+  else if ((size.width() > 640) || (size.height() > 480))
+    return SSize(768, 576);
+  else if ((size.width() > 384) || (size.height() > 288))
+    return SSize(640, 480);
+  else
+    return SSize(384, 288);
+}
+
 
 MediaStream::Audio::Audio(SGraph *parent)
   : outChannels(SAudioFormat::Channel_None),
@@ -658,7 +672,7 @@ bool MediaTranscodeStream::setup(
       if (MediaStream::setup(request, socket,
               input->position(), duration,
               SAudioFormat(SAudioFormat::Format_Invalid, audioInCodec.channelSetup(), audioInCodec.sampleRate()),
-              SVideoFormat(SVideoFormat::Format_Invalid, videoInCodec.size(), videoInCodec.frameRate()),
+              SVideoFormat(SVideoFormat::Format_Invalid, toStandardVideoSize(videoInCodec.size()), videoInCodec.frameRate()),
               false,
               audioEncodeFlags, videoEncodeFlags))
       {
