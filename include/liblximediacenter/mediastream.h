@@ -85,6 +85,9 @@ public:
   static void                   decodeChannels(const QUrl &, SAudioFormat &);
 
 protected:
+  static SSize                  toStandardVideoSize(const SSize &);
+
+protected:
   Audio                       * audio;
   Video                       * video;
   STimeStampSyncNode            sync;
