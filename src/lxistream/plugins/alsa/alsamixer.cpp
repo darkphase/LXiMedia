@@ -118,9 +118,9 @@ bool AlsaMixer::activateInputChannel(const QString &channel)
     // Activate selected channel
     ::snd_mixer_selem_set_capture_switch_all(selected, 1);
 
-    long min = 0, max = 0, r = -1;
+    long min = 0, max = 0;
     if (::snd_mixer_selem_get_capture_volume_range(selected, &min, &max) == 0)
-      r = ::snd_mixer_selem_set_capture_volume_all(selected, max);
+      ::snd_mixer_selem_set_capture_volume_all(selected, max);
 
     return true;
   }
