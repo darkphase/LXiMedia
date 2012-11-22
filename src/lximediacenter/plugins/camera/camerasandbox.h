@@ -60,10 +60,12 @@ public:
 
   bool                          setup(const SHttpServer::RequestMessage &, QIODevice *);
 
+protected:
+  static SSize                  toWebcamSize(const SSize &);
+
 public:
   SAudioVideoInputNode          input;
 };
-
 
 } } // End of namespaces
 
