@@ -129,9 +129,15 @@ bool CameraStream::setup(const SHttpServer::RequestMessage &request, QIODevice *
   SAudioFormat audioFormat = input.audioFormat();
   SVideoFormat videoFormat = input.videoFormat();
 
+  SVideoFormat srcFormat = videoFormat;
+  srcFormat.setSize(toWebcamSize(srcFormat.size()));
+
+  SVideoFormat destFormat = srcFormat;
+  destFormat.setSize(toStandardVideoSize(destFormat.size()));
+
   if (MediaStream::setup(
         request, socket, STime::null, STime(),
-        audioFormat, videoFormat))
+        audioFormat, destFormat))
   {
     audioFormat.setSampleRate(audio->resampler.sampleRate());
     audioFormat.setChannelSetup(audio->outChannels);
@@ -139,7 +145,7 @@ bool CameraStream::setup(const SHttpServer::RequestMessage &request, QIODevice *
 
     videoFormat.setSize(video->resizer.size());
     videoFormat.setFrameRate(sync.frameRate());
-    input.setVideoFormat(videoFormat);
+    input.setVideoFormat(srcFormat);
 
     connect(&input, SIGNAL(output(SAudioBuffer)), &audio->matrix, SLOT(input(SAudioBuffer)));
     connect(&input, SIGNAL(output(SVideoBuffer)), &video->deinterlacer, SLOT(input(SVideoBuffer)));
@@ -148,6 +154,26 @@ bool CameraStream::setup(const SHttpServer::RequestMessage &request, QIODevice *
   }
 
   return false;
+}
+
+SSize CameraStream::toWebcamSize(const SSize &size)
+{
+  // Reduce resolution to make sure a fluent stream can be captured.
+  const float ar = float(size.absoluteWidth()) / float(size.absoluteHeight());
+  if (ar >= 1.5) // 16:9
+  {
+    if ((size.width() >= 768) || (size.height() >= 432))
+      return SSize(768, 432);
+    else
+      return SSize(384, 216);
+  }
+  else // 4:3
+  {
+    if ((size.width() >= 768) || (size.height() >= 576))
+      return SSize(768, 576);
+    else
+      return SSize(384, 288);
+  }
 }
 
 } } // End of namespaces
