@@ -93,7 +93,7 @@ QList<CameraServer::Item> CameraServer::listItems(const QString &virtualPath, in
   QList<Item> result;
 
   SSandboxClient::RequestMessage request(probeSandbox);
-  request.setRequest("GET",QByteArray(CameraSandbox::path) + "?listcameras=");
+  request.setRequest("GET", QByteArray(CameraSandbox::path) + "?listcameras=");
 
   QStringList cameras;
   const SHttpEngine::ResponseMessage response = probeSandbox->blockingRequest(request);
