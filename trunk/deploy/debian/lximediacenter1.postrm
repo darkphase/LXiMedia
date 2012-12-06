@@ -24,6 +24,7 @@ case "$1" in
 		if [ -d $HOME ]; then
 			rm -rf $HOME
 		fi
+		rm -f /etc/sudoers.d/$USER
 		;;
 
 	*)

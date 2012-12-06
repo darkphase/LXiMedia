@@ -16,6 +16,7 @@
  ******************************************************************************/
 
 #include "backend.h"
+#include "setup.h"
 #ifdef DEBUG_USE_LOCAL_SANDBOX
 # include "sandbox.h"
 #endif
@@ -98,6 +99,7 @@ void Backend::start(void)
   htmlParser.setStaticField("_HOSTNAME", (settings.value("DeviceName", defaultDeviceName())).toString());
 
   backendServers = BackendServer::create(this);
+  backendServers += new Setup(settings.value("AllowShutdown", true).toBool(), this);
   foreach (BackendServer *server, backendServers)
     server->initialize(this);
 

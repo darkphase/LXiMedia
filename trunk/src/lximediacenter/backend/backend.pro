@@ -10,9 +10,11 @@ include($${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/linklximediacenter.pr
 SOURCES += main.cpp \
     backend.cpp \
     backend.html.cpp \
-    sandbox.cpp
+    sandbox.cpp \
+    setup.cpp
 HEADERS += $${PWD}/backend.h \
-    $${PWD}/sandbox.h
+    $${PWD}/sandbox.h \
+    $${PWD}/setup.h
 RESOURCES = ../resources/backend.qrc
 
 # Platform specific

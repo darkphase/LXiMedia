@@ -141,6 +141,8 @@ const char Backend::htmlSettingsMain[] =
     "     </td></tr><tr><td>\n"
     "      {TR_DEVICE_NAME}:\n"
     "      <input type=\"text\" size=\"40\" name=\"devicename\" value=\"{DEVICENAME}\" />\n"
+    "     </td></tr><tr><td>\n"
+    "      <input type=\"checkbox\" name=\"allowshutdown\" value=\"on\" {ALLOWSHUTDOWN} />{TR_ALLOW_SHUTDOWN}\n"
     "     </td></tr>\n"
     "    </table>\n"
     "    <br />\n"
@@ -566,7 +568,8 @@ QByteArray Backend::handleHtmlSettings(const SHttpServer::RequestMessage &reques
   htmlParser.setField("TR_HTTP_PORT_NUMBER", tr("Preferred HTTP port number"));
   htmlParser.setField("TR_DEVICE_NAME", tr("Device name"));
   htmlParser.setField("TR_BIND_ALL_NETWORKS", tr("Bind all networks"));
-  
+  htmlParser.setField("TR_ALLOW_SHUTDOWN", tr("Allow shutting down the computer remotely"));
+
   htmlParser.setField("TR_SERVER_EXPLAIN",
     tr("This configures the internal server. By default, the server only binds "
        "local/private networks (i.e. 10.0.0.0/8, 127.0.0.0/8, 169.254.0.0/16, "
@@ -583,6 +586,7 @@ QByteArray Backend::handleHtmlSettings(const SHttpServer::RequestMessage &reques
   htmlParser.setField("HTTPPORT", settings.value("HttpPort", defaultPort).toString());
   htmlParser.setField("BINDALLNETWORKS", settings.value("BindAllNetworks", false).toBool() ? "checked=\"checked\"" : "");
   htmlParser.setField("DEVICENAME", settings.value("DeviceName", defaultDeviceName()).toString());
+  htmlParser.setField("ALLOWSHUTDOWN", settings.value("AllowShutdown", true).toBool() ? "checked=\"checked\"" : "");
 
   htmlParser.setField("TR_LOCALIZATION", tr("Localization"));
   htmlParser.setField("TR_DEFAULT_CODEPAGE", tr("Default codepage"));
@@ -978,6 +982,11 @@ void Backend::saveHtmlSettings(const SHttpServer::RequestMessage &request)
       settings.setValue("DeviceName", deviceName);
       masterMediaServer.setDeviceName(deviceName);
     }
+
+    if (request.url().queryItemValue("allowshutdown") == "on")
+      settings.setValue("AllowShutdown", true);
+    else
+      settings.remove("AllowShutdown");
 
     reset();
   }
