@@ -69,6 +69,8 @@ Setup::Stream * Setup::streamVideo(const SHttpServer::RequestMessage &request)
 {
   if (QUrl(request.path()).path().endsWith("/shutdown") && allowShutdown)
   {
+    qDebug() << "Shut down requested.";
+
 #if defined(Q_OS_LINUX)
     // This only works if "your_username ALL = NOPASSWD: /sbin/shutdown" is added to sudoers.
     if (!QProcess::startDetached("sudo", QStringList() << "shutdown" << "-h" << "now"))
@@ -96,7 +98,7 @@ Setup::Stream * Setup::streamVideo(const SHttpServer::RequestMessage &request)
           0, NULL, 0);
 
     if (::GetLastError() != ERROR_SUCCESS)
-      qDebug() << "Failed to enable SE_PRIVILEGE_ENABLED privilege.";
+      qDebug() << "Failed to enable shutdown privilege.";
     else if (::ExitWindowsEx(EWX_POWEROFF | EWX_FORCEIFHUNG, SHTDN_REASON_MAJOR_APPLICATION) != TRUE)
       qDebug() << "Failed to shut down.";
 #endif
@@ -136,7 +138,7 @@ Setup::Item Setup::getItem(const QString &virtualPath)
     item.path = virtualPath;
     item.url = item.path;
     item.iconUrl = "/img/close.png";
-    item.type = Item::Type_AudioBroadcast;
+    item.type = Item::Type_VideoBroadcast;
     item.title = tr("Shut down PC");
   }
 
