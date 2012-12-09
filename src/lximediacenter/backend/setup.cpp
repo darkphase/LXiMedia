@@ -19,11 +19,8 @@
 
 #ifdef Q_OS_WIN
 # include <windows.h>
-# ifndef EWX_FORCEIFHUNG
-#  define EWX_FORCEIFHUNG 0x00000010
-# endif
-# ifndef SHTDN_REASON_MAJOR_APPLICATION
-#  define SHTDN_REASON_MAJOR_APPLICATION 0x00040000
+# ifndef SHTDN_REASON_FLAG_PLANNED
+#  define SHTDN_REASON_FLAG_PLANNED 0x80000000
 # endif
 #endif
 
@@ -74,7 +71,7 @@ Setup::Stream * Setup::streamVideo(const SHttpServer::RequestMessage &request)
 #if defined(Q_OS_LINUX)
     // This only works if "your_username ALL = NOPASSWD: /sbin/shutdown" is added to sudoers.
     if (!QProcess::startDetached("sudo", QStringList() << "shutdown" << "-h" << "now"))
-      qDebug() << "Failed to shut down.";
+      qWarning() << "Failed to shut down.";
 #elif defined(Q_OS_WIN)
     HANDLE token;
     ::OpenProcessToken(
@@ -97,10 +94,29 @@ Setup::Stream * Setup::streamVideo(const SHttpServer::RequestMessage &request)
           &privileges,
           0, NULL, 0);
 
+    static const wchar_t message[] = L"Shutdown requested by LXiMediaCenter.";
+
     if (::GetLastError() != ERROR_SUCCESS)
+    {
       qDebug() << "Failed to enable shutdown privilege.";
-    else if (::ExitWindowsEx(EWX_POWEROFF | EWX_FORCEIFHUNG, SHTDN_REASON_MAJOR_APPLICATION) != TRUE)
-      qDebug() << "Failed to shut down.";
+    }
+    else if (::InitiateSystemShutdown(NULL, const_cast<wchar_t *>(message), 30, TRUE, FALSE) == FALSE)
+    {
+      qDebug() << "InitiateSystemShutdown failed" << ::GetLastError() << " trying WTSShutdownSystem.";
+
+      HMODULE lib = ::LoadLibraryA("wtsapi32.dll");
+      if (lib)
+      {
+        FARPROC proc = ::GetProcAddress(lib, "WTSShutdownSystem");
+        if (proc)
+        if (((BOOL (WINAPI *)(HANDLE, DWORD))proc)(NULL, 0x00000008) == FALSE)
+          qWarning() << "WTSShutdownSystem failed.";
+
+        ::FreeLibrary(lib);
+      }
+      else
+        qWarning() << "Failed to load wtsapi32.dll.";
+    }
 #endif
   }
 

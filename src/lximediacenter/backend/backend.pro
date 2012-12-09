@@ -25,7 +25,8 @@ unix {
   }
 }
 win32 { 
-    CONFIG += console
+  CONFIG += console
+  LIBS += -ladvapi32
 }
 
 # Windows specific
