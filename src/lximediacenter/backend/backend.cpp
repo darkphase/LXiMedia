@@ -29,6 +29,7 @@ const QEvent::Type  Backend::exitEventType = QEvent::Type(QEvent::registerEventT
 
 Backend::Backend()
   : BackendServer::MasterServer(),
+    checkNetworkInterfacesTimer(this),
     masterHttpServer(SUPnPBase::protocol(), serverUuid()),
     masterSsdpServer(&masterHttpServer),
     masterMediaServer("/upnp/"),
@@ -55,6 +56,8 @@ Backend::Backend()
 
   // Open device configuration
   MediaServer::mediaProfiles().openDeviceConfig(":/devices.ini");
+
+  connect(&checkNetworkInterfacesTimer, SIGNAL(timeout()), SLOT(checkNetworkInterfaces()));
 }
 
 Backend::~Backend()
@@ -83,11 +86,7 @@ void Backend::start(void)
 {
   QSettings settings;
 
-  masterHttpServer.initialize(
-      settings.value("BindAllNetworks", false).toBool()
-          ? QNetworkInterface::allAddresses()
-          : SSsdpClient::localAddresses(),
-      settings.value("HttpPort", defaultPort).toInt());
+  masterHttpServer.initialize(settings.value("HttpPort", defaultPort).toInt());
 
   // Setup HTTP server
   masterHttpServer.registerCallback("/", this);
@@ -104,7 +103,7 @@ void Backend::start(void)
     server->initialize(this);
 
   // Setup SSDP server
-  masterSsdpServer.initialize(SSsdpClient::localInterfaces());
+  masterSsdpServer.initialize();
 
   // Setup DLNA server
   masterMediaServer.initialize(&masterHttpServer, &masterSsdpServer);
@@ -134,6 +133,9 @@ void Backend::start(void)
   SSandboxClient::RequestMessage request(initSandbox);
   request.setRequest("GET", "/?formats");
   initSandbox->sendRequest(request);
+
+  checkNetworkInterfaces();
+  checkNetworkInterfacesTimer.start(10000);
 }
 
 void Backend::start(const SHttpEngine::ResponseMessage &formats)
@@ -197,13 +199,8 @@ void Backend::reset(void)
 {
   QSettings settings;
 
-  masterHttpServer.reset(
-      settings.value("BindAllNetworks", false).toBool()
-          ? QNetworkInterface::allAddresses()
-          : SSsdpClient::localAddresses(),
-      settings.value("HttpPort", defaultPort).toInt());
+  checkNetworkInterfaces();
 
-  masterSsdpServer.reset();
   masterMediaServer.reset();
   masterConnectionManager.reset();
   masterContentDirectory.reset();
@@ -242,6 +239,64 @@ void Backend::addModules(const SHttpEngine::ResponseMessage &modules)
       module->licensesText = moduleElm.firstChildElement("licenses").text().toUtf8();
       sApp->loadModule(module);
     }
+  }
+}
+
+void Backend::checkNetworkInterfaces(void)
+{
+  QSettings settings;
+
+  const QList<QHostAddress> interfaces =
+      settings.value("BindAllNetworks", false).toBool()
+          ? QNetworkInterface::allAddresses()
+          : SSsdpClient::localAddresses();
+
+  // Bind new interfaces
+  foreach (const QHostAddress &interface, interfaces)
+  {
+    bool found = false;
+    foreach (const QHostAddress &bound, boundNetworkInterfaces)
+    if (bound == interface)
+    {
+      found = true;
+      break;
+    }
+
+    if (!found)
+    {
+      qDebug() << "Binding interface" << interface.toString();
+
+      masterHttpServer.bind(interface);
+      masterSsdpServer.bind(interface);
+
+      boundNetworkInterfaces += interface;
+    }
+  }
+
+  // Release old interfaces
+  for (QList<QHostAddress>::Iterator bound = boundNetworkInterfaces.begin();
+       bound != boundNetworkInterfaces.end();
+       )
+  {
+    bool found = false;
+    foreach (const QHostAddress &interface, interfaces)
+    if (interface == *bound)
+    {
+      found = true;
+      break;
+    }
+
+    if (!found)
+    {
+      qDebug() << "Releasing interface" << bound->toString();
+
+      masterHttpServer.release(*bound);
+      masterSsdpServer.release(*bound);
+
+      bound = boundNetworkInterfaces.erase(bound);
+    }
+    else
+      bound++;
   }
 }
 

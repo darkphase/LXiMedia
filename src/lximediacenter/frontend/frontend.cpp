@@ -28,6 +28,7 @@ const char Frontend::daemonName[] = "net.sf.lximedia.lximediacenter.backend";
 
 Frontend::Frontend()
   : QWebView(),
+    checkNetworkInterfacesTimer(this),
     ssdpClient(QString("uuid:" + QUuid::createUuid().toString()).replace("{", "").replace("}", "")),
     frontendPageShowing(false),
     waitingForWelcome(qApp->arguments().contains("--welcome"))
@@ -47,7 +48,7 @@ Frontend::Frontend()
   setPage(webPage);
 
   connect(&ssdpClient, SIGNAL(searchUpdated()), SLOT(updateServers()));
-  ssdpClient.initialize(SSsdpClient::localInterfaces());
+  ssdpClient.initialize();
   ssdpClient.sendSearch("urn:schemas-upnp-org:device:MediaServer:1");
 
   connect(&networkAccessManager, SIGNAL(finished(QNetworkReply *)), SLOT(requestFinished(QNetworkReply *)));
@@ -56,6 +57,9 @@ Frontend::Frontend()
   frontendPageTimer.setSingleShot(true);
 
   connect(this, SIGNAL(titleChanged(QString)), SLOT(titleChanged(QString)));
+
+  checkNetworkInterfaces();
+  connect(&checkNetworkInterfacesTimer, SIGNAL(timeout()), SLOT(checkNetworkInterfaces()));
 }
 
 Frontend::~Frontend()
@@ -241,6 +245,58 @@ void Frontend::updateFrontendPage(void)
 void Frontend::titleChanged(const QString &title)
 {
   setWindowTitle(title);
+}
+
+void Frontend::checkNetworkInterfaces(void)
+{
+  QSettings settings;
+
+  const QList<QHostAddress> interfaces =
+      settings.value("BindAllNetworks", false).toBool()
+          ? QNetworkInterface::allAddresses()
+          : SSsdpClient::localAddresses();
+
+  // Bind new interfaces
+  foreach (const QHostAddress &interface, interfaces)
+  {
+    bool found = false;
+    foreach (const QHostAddress &bound, boundNetworkInterfaces)
+    if (bound == interface)
+    {
+      found = true;
+      break;
+    }
+
+    if (!found)
+    {
+      ssdpClient.bind(interface);
+
+      boundNetworkInterfaces += interface;
+    }
+  }
+
+  // Release old interfaces
+  for (QList<QHostAddress>::Iterator bound = boundNetworkInterfaces.begin();
+       bound != boundNetworkInterfaces.end();
+       )
+  {
+    bool found = false;
+    foreach (const QHostAddress &interface, interfaces)
+    if (interface == *bound)
+    {
+      found = true;
+      break;
+    }
+
+    if (!found)
+    {
+      ssdpClient.release(*bound);
+
+      bound = boundNetworkInterfaces.erase(bound);
+    }
+    else
+      bound++;
+  }
 }
 
 bool Frontend::isLocalAddress(const QString &host)

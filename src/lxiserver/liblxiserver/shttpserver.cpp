@@ -54,30 +54,11 @@ SHttpServer::~SHttpServer()
   *const_cast<Data **>(&d) = NULL;
 }
 
-/*! Initializes the HTTP server by binding the specified interfaces and port.
+/*! Initializes the HTTP server.
  */
-void SHttpServer::initialize(const QList<QHostAddress> &addresses, quint16 port)
+void SHttpServer::initialize(quint16 port)
 {
   d->defaultPort = port;
-
-  foreach (const QHostAddress &address, addresses)
-  {
-    QTcpServer * const server = new QTcpServer(this);
-
-    connect(server, SIGNAL(newConnection()), SLOT(newConnection()));
-
-    if (port > 0)
-    if (server->listen(address, port))
-    {
-      d->servers.insert(address.toString(), server);
-      continue;
-    }
-
-    if (server->listen(address))
-      d->servers.insert(address.toString(), server);
-    else
-      delete server;
-  }
 }
 
 /*! Uninitializes the HTTP server by releasing the bound ports.
@@ -93,20 +74,46 @@ void SHttpServer::close(void)
   d->servers.clear();
 }
 
-/*! Resets the HTTP server by releasing the bound ports and binding the
-    specified interfaces and port. Does nothing if all addresses are already
-    bound on the specified port.
+/*! binds thespecified interfac and port.
  */
-void SHttpServer::reset(const QList<QHostAddress> &addresses, quint16 port)
+bool SHttpServer::bind(const QHostAddress &address)
 {
-  bool reset = addresses.count() != d->servers.count();
-  for (int i=0; (i<addresses.count()) && !reset; i++)
-    reset = !d->servers.contains(addresses[i].toString());
+  QTcpServer * const server = new QTcpServer(this);
 
-  if (reset || (d->defaultPort != port))
+  connect(server, SIGNAL(newConnection()), SLOT(newConnection()));
+
+  if (d->defaultPort > 0)
+  if (server->listen(address, d->defaultPort))
   {
-    close();
-    initialize(addresses, port);
+    d->servers.insert(address.toString(), server);
+    return true;
+  }
+
+  if (server->listen(address))
+  {
+    d->servers.insert(address.toString(), server);
+    return true;
+  }
+
+  delete server;
+  return false;
+}
+
+/*! releases the bound interface.
+ */
+void SHttpServer::release(const QHostAddress &address)
+{
+  forever
+  {
+    QMultiMap<QString, QPointer<QTcpServer> >::Iterator i = d->servers.find(address.toString());
+    if (i != d->servers.end())
+    {
+      (*i)->close();
+      (*i)->deleteLater();
+      d->servers.erase(i);
+    }
+    else
+      break;
   }
 }
 
