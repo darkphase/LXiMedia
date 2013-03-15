@@ -105,6 +105,9 @@ void Backend::start(void)
   // Setup SSDP server
   masterSsdpServer.initialize();
 
+  checkNetworkInterfaces();
+  checkNetworkInterfacesTimer.start(10000);
+
   // Setup DLNA server
   masterMediaServer.initialize(&masterHttpServer, &masterSsdpServer);
   masterConnectionManager.initialize(&masterHttpServer, &masterMediaServer);
@@ -133,9 +136,6 @@ void Backend::start(void)
   SSandboxClient::RequestMessage request(initSandbox);
   request.setRequest("GET", "/?formats");
   initSandbox->sendRequest(request);
-
-  checkNetworkInterfaces();
-  checkNetworkInterfacesTimer.start(10000);
 }
 
 void Backend::start(const SHttpEngine::ResponseMessage &formats)
