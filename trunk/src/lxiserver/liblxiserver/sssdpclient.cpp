@@ -23,7 +23,7 @@ namespace LXiServer {
 struct SSsdpClient::Private
 {
   QString                       serverUdn;
-  QList< QPointer<SsdpClientInterface> >  interfaces;
+  QMultiMap<QString, QPointer<SsdpClientInterface> > interfaces;
   QMultiMap<QString, Node>      nodes;
   QTimer                        updateTimer;
 };
@@ -33,11 +33,10 @@ const QHostAddress  SSsdpClient::ssdpAddressIPv6("FF02::C");
 const quint16       SSsdpClient::ssdpPort = 1900;
 const int           SSsdpClient::cacheTimeout = 1800; // Alive messages are sent every (cacheTimeout/2)-300 seconds.
 
-const SSsdpClient::InterfaceList &SSsdpClient::localInterfaces(void)
+QList<QHostAddress> SSsdpClient::localAddresses(void)
 {
-  static InterfaceList interfaces;
+  QList<QHostAddress> result;
 
-  if (interfaces.isEmpty())
   foreach (const QNetworkInterface &interface, QNetworkInterface::allInterfaces())
   {
     QList<QNetworkAddressEntry> entries = interface.addressEntries();
@@ -53,20 +52,11 @@ const SSsdpClient::InterfaceList &SSsdpClient::localInterfaces(void)
             ((addr & 0xFFF00000u) == 0xAC100000u) || //172.16.0.0/12
             ((addr & 0xFFFF0000u) == 0xC0A80000u))   //192.168.0.0/16
         {
-          interfaces += Interface(interface, address, entry.netmask());
+          result += address;
         }
       }
     }
   }
-
-  return interfaces;
-}
-
-QList<QHostAddress> SSsdpClient::localAddresses(void)
-{
-  QList<QHostAddress> result;
-  foreach (const Interface &interface, localInterfaces())
-    result += interface.address;
 
   return result;
 }
@@ -86,10 +76,8 @@ SSsdpClient::~SSsdpClient()
   *const_cast<Private **>(&p) = NULL;
 }
 
-void SSsdpClient::initialize(const InterfaceList &interfaces)
+void SSsdpClient::initialize()
 {
-  foreach (const Interface &interface, interfaces)
-    p->interfaces += new SsdpClientInterface(interface.interface, interface.address, interface.netmask, this);
 }
 
 void SSsdpClient::close(void)
@@ -98,6 +86,40 @@ void SSsdpClient::close(void)
     delete iface;
 
   p->interfaces.clear();
+}
+
+bool SSsdpClient::bind(const QHostAddress &address)
+{
+  foreach (const QNetworkInterface &interface, QNetworkInterface::allInterfaces())
+  {
+    QList<QNetworkAddressEntry> entries = interface.addressEntries();
+    foreach (const QNetworkAddressEntry &entry, entries)
+    if (entry.ip() == address)
+    {
+      p->interfaces.insert(
+            address.toString(),
+            new SsdpClientInterface(interface, entry.ip(), entry.netmask(), this));
+
+      return true;
+    }
+  }
+
+  return false;
+}
+
+void SSsdpClient::release(const QHostAddress &address)
+{
+  forever
+  {
+    QMultiMap<QString, QPointer<SsdpClientInterface> >::Iterator i = p->interfaces.find(address.toString());
+    if (i != p->interfaces.end())
+    {
+      delete (*i);
+      p->interfaces.erase(i);
+    }
+    else
+      break;
+  }
 }
 
 void SSsdpClient::sendSearch(const QString &st, unsigned msgCount)
@@ -161,7 +183,7 @@ const QString & SSsdpClient::serverUdn(void) const
   return p->serverUdn;
 }
 
-const QList< QPointer<SsdpClientInterface> > & SSsdpClient::interfaces(void) const
+const QMultiMap<QString, QPointer<SsdpClientInterface> > & SSsdpClient::interfaces(void) const
 {
   return p->interfaces;
 }

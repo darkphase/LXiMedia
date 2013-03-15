@@ -61,6 +61,7 @@ public:
 private slots:
   void                          start(const SHttpEngine::ResponseMessage &);
   void                          addModules(const SHttpEngine::ResponseMessage &);
+  void                          checkNetworkInterfaces(void);
 
 protected:
   virtual void                  customEvent(QEvent *);
@@ -90,6 +91,9 @@ private:
 #if !defined(QT_NO_DEBUG) || defined(Q_OS_MACX)
   static const QEvent::Type     exitEventType;
 #endif
+
+  QTimer                        checkNetworkInterfacesTimer;
+  QList<QHostAddress>           boundNetworkInterfaces;
 
   SHttpServer                   masterHttpServer;
   SSsdpServer                   masterSsdpServer;

@@ -44,34 +44,20 @@ public:
     QString                     location;
   };
 
-  struct Interface
-  {
-    inline Interface(void) { }
-    inline Interface(const QNetworkInterface &interface, const QHostAddress &address, const QHostAddress &netmask)
-      : interface(interface), address(address), netmask(netmask)
-    {
-    }
-
-    QNetworkInterface           interface;
-    QHostAddress                address;
-    QHostAddress                netmask;
-  };
-
-  typedef QList<Interface> InterfaceList;
-
 public:
   /*! Returns a list of local IP addresses (i.e. in 10.0.0.0/8, 127.0.0.0/8,
       169.254.0.0/16, 172.16.0.0/12 or 192.168.0.0/16). This list can be used to
       prevent binding internet interfaces.
    */
-  static const InterfaceList  & localInterfaces(void);
   static QList<QHostAddress>    localAddresses(void);
 
   explicit                      SSsdpClient(const QString &serverUdn);
   virtual                       ~SSsdpClient();
 
-  virtual void                  initialize(const InterfaceList &interfaces);
+  virtual void                  initialize();
   virtual void                  close(void);
+  virtual bool                  bind(const QHostAddress &address);
+  virtual void                  release(const QHostAddress &address);
 
   void                          sendSearch(const QString &st, unsigned msgCount = 3);
   QList<Node>                   searchResults(const QString &st) const;
@@ -81,7 +67,7 @@ signals:
 
 protected:
   const QString               & serverUdn(void) const;
-  const QList< QPointer<SsdpClientInterface> > & interfaces(void) const;
+  const QMultiMap<QString, QPointer<SsdpClientInterface> > & interfaces(void) const;
   virtual void                  parsePacket(SsdpClientInterface *iface, const SHttpServer::RequestHeader &, const QHostAddress &, quint16);
   virtual void                  parsePacket(SsdpClientInterface *iface, const SHttpServer::ResponseHeader &, const QHostAddress &, quint16);
 

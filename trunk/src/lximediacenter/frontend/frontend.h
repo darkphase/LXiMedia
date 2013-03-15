@@ -77,6 +77,7 @@ private slots:
   void                          requestFinished(QNetworkReply *);
   void                          updateFrontendPage(void);
   void                          titleChanged(const QString &);
+  void                          checkNetworkInterfaces(void);
 
 private:
   static bool                   isLocalAddress(const QString &);
@@ -86,6 +87,9 @@ private:
 
 private:
   static const char             daemonName[];
+
+  QTimer                        checkNetworkInterfacesTimer;
+  QList<QHostAddress>           boundNetworkInterfaces;
 
   SSsdpClient                   ssdpClient;
   QNetworkAccessManager         networkAccessManager;

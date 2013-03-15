@@ -35,9 +35,11 @@ public:
   explicit                      SSsdpServer(SHttpServer *);
   virtual                       ~SSsdpServer();
 
-  virtual void                  initialize(const InterfaceList &interfaces);
+  virtual void                  initialize();
   virtual void                  close(void);
   void                          reset(void);
+  virtual bool                  bind(const QHostAddress &address);
+  virtual void                  release(const QHostAddress &address);
 
   void                          publish(const QString &nt, const QString &relativeUrl, unsigned msgCount);
 
@@ -48,6 +50,10 @@ protected:
   void                          sendAlive(SsdpClientInterface *, const QString &nt, const QString &url) const;
   void                          sendByeBye(SsdpClientInterface *, const QString &nt) const;
   void                          sendSearchResponse(SsdpClientInterface *, const QString &st, const QString &url, const QHostAddress &, quint16) const;
+
+private:
+  void                          publishServices(SsdpClientInterface *);
+  void                          unpublishServices(SsdpClientInterface *);
 
 private slots:
   void                          updateServices(void);

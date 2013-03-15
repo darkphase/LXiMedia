@@ -35,9 +35,10 @@ public:
                                 SHttpServer(const QString &protocol, const QUuid &serverUuid, QObject * = NULL);
   virtual                       ~SHttpServer();
 
-  void                          initialize(const QList<QHostAddress> &addresses, quint16 port = 0);
+  void                          initialize(quint16 port = 0);
   void                          close(void);
-  void                          reset(const QList<QHostAddress> &addresses, quint16 port = 0);
+  bool                          bind(const QHostAddress &address);
+  void                          release(const QHostAddress &address);
 
   quint16                       defaultPort(void) const;
   quint16                       serverPort(const QHostAddress &) const;

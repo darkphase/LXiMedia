@@ -67,7 +67,7 @@ SSsdpServer::~SSsdpServer()
   *const_cast<Private **>(&p) = NULL;
 }
 
-void SSsdpServer::initialize(const InterfaceList &interfaces)
+void SSsdpServer::initialize()
 {
   QSettings settings;
   settings.beginGroup("SSDP");
@@ -80,7 +80,7 @@ void SSsdpServer::initialize(const InterfaceList &interfaces)
   settings.setValue("BOOTID.UPNP.ORG", p->bootid);
   settings.setValue("CONFIGID.UPNP.ORG", p->configid);
 
-  SSsdpClient::initialize(interfaces);
+  SSsdpClient::initialize();
 
   p->rePublishTimer.start(((cacheTimeout / 2) - 300) * 1000);
 }
@@ -117,6 +117,29 @@ void SSsdpServer::reset(void)
   p->updateTimer.start(3000 + (qrand() % 100));
   p->publishTimer.start(3500 + (qrand() % 100));
   p->rePublishTimer.start(((cacheTimeout / 2) - 300) * 1000);
+}
+
+bool SSsdpServer::bind(const QHostAddress &address)
+{
+  if (SSsdpClient::bind(address))
+  {
+    QMultiMap<QString, QPointer<SsdpClientInterface> >::ConstIterator i = interfaces().find(address.toString());
+    if (i != interfaces().end())
+      publishServices(*i);
+
+    return true;
+  }
+
+  return false;
+}
+
+void SSsdpServer::release(const QHostAddress &address)
+{
+  QMultiMap<QString, QPointer<SsdpClientInterface> >::ConstIterator i = interfaces().find(address.toString());
+  if (i != interfaces().end())
+    unpublishServices(*i);
+
+  SSsdpClient::release(address);
 }
 
 void SSsdpServer::publish(const QString &nt, const QString &relativeUrl, unsigned msgCount)
@@ -224,6 +247,37 @@ void SSsdpServer::sendSearchResponse(SsdpClientInterface *iface, const QString &
   sendDatagram(iface, response, toAddr, toPort);
 }
 
+void SSsdpServer::publishServices(SsdpClientInterface *iface)
+{
+  for (QMultiMap<QString, Private::Service>::ConstIterator i = p->published.begin();
+       i != p->published.end();
+       i++)
+  {
+    for (unsigned j=0; j<i->msgCount; j++)
+    {
+      const quint16 port = p->httpServer->serverPort(iface->address);
+      if (port > 0)
+      {
+        const QString url = "http://" + iface->address.toString() + ":" +
+                            QString::number(port) + i->relativeUrl;
+
+        sendAlive(iface, i.key(), url);
+      }
+    }
+  }
+}
+
+void SSsdpServer::unpublishServices(SsdpClientInterface *iface)
+{
+  for (QMultiMap<QString, Private::Service>::ConstIterator i = p->published.begin();
+       i != p->published.end();
+       i++)
+  {
+    for (unsigned j=0; j<i->msgCount; j++)
+      sendByeBye(iface, i.key());
+  }
+}
+
 void SSsdpServer::updateServices(void)
 {
   for (QMultiMap<QString, Private::Service>::ConstIterator i = p->published.begin();
@@ -247,35 +301,14 @@ void SSsdpServer::updateServices(void)
 
 void SSsdpServer::publishServices(void)
 {
-  for (QMultiMap<QString, Private::Service>::ConstIterator i = p->published.begin();
-       i != p->published.end();
-       i++)
-  {
-    for (unsigned j=0; j<i->msgCount; j++)
-    foreach (SsdpClientInterface *iface, interfaces())
-    {
-      const quint16 port = p->httpServer->serverPort(iface->address);
-      if (port > 0)
-      {
-        const QString url = "http://" + iface->address.toString() + ":" +
-                            QString::number(port) + i->relativeUrl;
-
-        sendAlive(iface, i.key(), url);
-      }
-    }
-  }
+  foreach (SsdpClientInterface *iface, interfaces())
+    publishServices(iface);
 }
 
 void SSsdpServer::unpublishServices(void)
 {
-  for (QMultiMap<QString, Private::Service>::ConstIterator i = p->published.begin();
-       i != p->published.end();
-       i++)
-  {
-    for (unsigned j=0; j<i->msgCount; j++)
-    foreach (SsdpClientInterface *iface, interfaces())
-      sendByeBye(iface, i.key());
-  }
+  foreach (SsdpClientInterface *iface, interfaces())
+    unpublishServices(iface);
 }
 
 } // End of namespace

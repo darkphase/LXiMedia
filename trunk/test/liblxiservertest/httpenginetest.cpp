@@ -138,7 +138,8 @@ bool HttpEngineTest::startServer(const QHostAddress &address)
   };
 
   httpServer = new SHttpServer("TEST/1.0", QUuid::createUuid());
-  httpServer->initialize(QList<QHostAddress>() << address);
+  httpServer->initialize();
+  httpServer->bind(address);
   httpServer->registerCallback("/", new Callback(this));
 
   return httpServer->serverPort(address) > 0;
