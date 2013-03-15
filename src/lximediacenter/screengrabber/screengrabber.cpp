@@ -41,16 +41,14 @@ void ScreenGrabber::show()
   QSettings settings;
   settings.beginGroup("ScreenGrabber");
 
-  httpServer.initialize(
-      settings.value("BindAllNetworks", false).toBool()
-          ? QNetworkInterface::allAddresses()
-          : SSsdpClient::localAddresses(),
-      settings.value("HttpPort", defaultPort).toInt());
+  httpServer.initialize(settings.value("HttpPort", defaultPort).toInt());
+  httpServer.bind(QHostAddress::LocalHost);
 
   // Setup HTTP server
   httpServer.registerCallback("/", this);
 
-  ssdpServer.initialize(SSsdpClient::localInterfaces());
+  ssdpServer.initialize();
+  ssdpServer.bind(QHostAddress::LocalHost);
   ssdpServer.publish("urn:XXX:service:ScreenGrabber:1", "/", 1);
 
   trayIcon.show();
