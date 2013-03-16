@@ -16,7 +16,7 @@ macx {
 
     # Compile
     system(cd $${OUT_PWD}/lame-$${LAME_VERSION} && sh configure --enable-static --disable-shared CFLAGS=\"-w $${PLATFORM_CFLAGS}\")
-    system(cd $${OUT_PWD}/lame-$${LAME_VERSION} && make -j $${PLATFORM_NUMCORES})
+    system(cd $${OUT_PWD}/lame-$${LAME_VERSION} && make)
   }
 
   !exists($${OUT_PWD}/x264-$${X264_VERSION}/libx264.a) {
@@ -26,7 +26,7 @@ macx {
 
     # Compile
     system(cd $${OUT_PWD}/x264-$${X264_VERSION} && sh configure --enable-static --disable-shared --disable-thread --extra-cflags=\"-w $${PLATFORM_CFLAGS}\")
-    system(cd $${OUT_PWD}/x264-$${X264_VERSION} && make -j $${PLATFORM_NUMCORES})
+    system(cd $${OUT_PWD}/x264-$${X264_VERSION} && make)
   }
 
   !exists($${OUT_PWD}/libav-$${LIBAV_VERSION}/libavcodec/libavcodec.a) {
@@ -36,7 +36,7 @@ macx {
 
     # Compile
     system(cd $${OUT_PWD}/libav-$${LIBAV_VERSION} && sh configure --enable-gpl --enable-version3 --disable-ffmpeg --disable-avconv --disable-avplay --disable-avprobe --disable-avserver --disable-avdevice --enable-swscale --enable-network --disable-debug --disable-zlib --disable-bzlib --disable-pthreads --enable-libmp3lame --enable-libx264 --enable-runtime-cpudetect --extra-cflags=\"-I../lame-$${LAME_VERSION}/include/ -I../x264-$${X264_VERSION}/ -w\" --extra-ldflags=\"-L../lame-$${LAME_VERSION}/libmp3lame/.libs/ -L../x264-$${X264_VERSION}/\")
-    system(cd $${OUT_PWD}/libav-$${LIBAV_VERSION} && make -j $${PLATFORM_NUMCORES})
+    system(cd $${OUT_PWD}/libav-$${LIBAV_VERSION} && make)
   }
 }
 win32 {
