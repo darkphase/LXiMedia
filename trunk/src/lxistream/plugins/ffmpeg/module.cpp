@@ -149,7 +149,7 @@ QByteArray Module::licenses(void)
       " <h3>FFMpeg (libavcodec, libavformat, libswscale)</h3>\n"
       " <p>Versions: " LIBAVCODEC_IDENT ", " LIBAVFORMAT_IDENT ", " LIBSWSCALE_IDENT "</p>\n"
       " <p>Website: <a href=\"http://www.ffmpeg.org/\">www.ffmpeg.org</a></p>\n"
-      " <p>Used under the terms of the GNU Lesser General Public License version 2.1\n"
+      " <p>Used under the terms of the GNU General Public License version 3\n"
       " as published by the Free Software Foundation.</p>\n";
 
   return text;
