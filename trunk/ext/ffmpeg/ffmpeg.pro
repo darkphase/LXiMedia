@@ -71,7 +71,7 @@ win32 {
     system(cd $$replace(OUT_PWD,/,\\) && tar -xjf libav_$${LIBAV_VERSION}.orig.tar.bz2)
 
     # Compile
-    system(cd $$replace(OUT_PWD,/,\\)\\libav-$${LIBAV_VERSION} && sh configure --enable-gpl --enable-version3 --disable-ffmpeg --disable-avconv --disable-avplay --disable-avprobe --disable-avserver --disable-avdevice --enable-swscale --enable-network --disable-debug --disable-zlib --disable-bzlib --disable-pthreads --disable-w32threads --enable-libmp3lame --enable-libx264 --enable-runtime-cpudetect --extra-cflags=\"-I../lame-$${LAME_VERSION}/include/ -I../x264-$${X264_VERSION}/ -w\" --extra-ldflags=\"-L../lame-$${LAME_VERSION}/libmp3lame/.libs/ -L../x264-$${X264_VERSION}/\")
+    system(cd $$replace(OUT_PWD,/,\\)\\libav-$${LIBAV_VERSION} && sh configure --enable-gpl --enable-version3 --disable-ffmpeg --disable-avconv --disable-avplay --disable-avprobe --disable-avserver --disable-avdevice --enable-swscale --enable-network --disable-debug --disable-zlib --disable-bzlib --disable-pthreads --disable-w32threads --disable-encoder=h263 --enable-libmp3lame --enable-libx264 --enable-runtime-cpudetect --extra-cflags=\"-I../lame-$${LAME_VERSION}/include/ -I../x264-$${X264_VERSION}/ -w\" --extra-ldflags=\"-L../lame-$${LAME_VERSION}/libmp3lame/.libs/ -L../x264-$${X264_VERSION}/\")
     system(cd $$replace(OUT_PWD,/,\\)\\libav-$${LIBAV_VERSION} && mingw32-make -j $${PLATFORM_NUMCORES})
   }
 }
