@@ -13,7 +13,7 @@ macx {
 
     # Compile
     system(cd $${OUT_PWD}/libdvdread-$${DVDREAD_VERSION} && sh configure2 --enable-static --disable-shared --disable-debug --extra-cflags=\"-w -I../../dlfcn-win32-r19/ -O2 $${PLATFORM_CFLAGS}\")
-    system(cd $${OUT_PWD}/libdvdread-$${DVDREAD_VERSION} && make -j $${PLATFORM_NUMCORES})
+    system(cd $${OUT_PWD}/libdvdread-$${DVDREAD_VERSION} && make)
   }
 
   !exists($${OUT_PWD}/libdvdnav-$${DVDNAV_VERSION}/obj/libdvdnav.a) {
@@ -24,7 +24,7 @@ macx {
     # Compile
     system(cd $${OUT_PWD}/libdvdnav-$${DVDNAV_VERSION} && patch -i $${PWD}/libdvdnav_$${DVDNAV_VERSION}.orig.patch)
     system(cd $${OUT_PWD}/libdvdnav-$${DVDNAV_VERSION} && sh configure2 --enable-static --disable-shared --disable-debug --extra-cflags=\"-w -I../../libdvdread-$${DVDNAV_VERSION}/src/ -O2 $${PLATFORM_CFLAGS}\")
-    system(cd $${OUT_PWD}/libdvdnav-$${DVDNAV_VERSION} && make -j $${PLATFORM_NUMCORES})
+    system(cd $${OUT_PWD}/libdvdnav-$${DVDNAV_VERSION} && make)
   }
 }
 win32 {

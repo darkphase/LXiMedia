@@ -13,7 +13,7 @@ macx {
 
     # Compile
     system(cd $${OUT_PWD}/freetype-$${FREETYPE_VERSION} && sh configure --enable-static --disable-shared --without-bzip2 CFLAGS=\"-w $${PLATFORM_CFLAGS}\")
-    system(cd $${OUT_PWD}/freetype-$${FREETYPE_VERSION} && make -j $${PLATFORM_NUMCORES})
+    system(cd $${OUT_PWD}/freetype-$${FREETYPE_VERSION} && make)
   }
 }
 win32 {

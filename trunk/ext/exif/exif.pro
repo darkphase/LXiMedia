@@ -13,7 +13,7 @@ macx {
 
     # Compile
     system(cd $${OUT_PWD}/libexif-$${EXIF_VERSION} && sh configure --enable-static --disable-shared CFLAGS=\"-w -O2 $${PLATFORM_CFLAGS}\")
-    system(cd $${OUT_PWD}/libexif-$${EXIF_VERSION} && make -j $${PLATFORM_NUMCORES})
+    system(cd $${OUT_PWD}/libexif-$${EXIF_VERSION} && make)
   }
 }
 win32 {
