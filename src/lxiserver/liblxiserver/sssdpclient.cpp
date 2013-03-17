@@ -83,8 +83,7 @@ SSsdpClient::SSsdpClient(const QString &serverUdn)
 
 SSsdpClient::~SSsdpClient()
 {
-  foreach (const Private::Interface *i, p->interfaces)
-    delete i;
+  SSsdpClient::close();
 
   delete p;
   *const_cast<Private **>(&p) = NULL;
@@ -100,7 +99,17 @@ void SSsdpClient::initialize()
 void SSsdpClient::close(void)
 {
   foreach (const Private::Interface *i, p->interfaces)
+  {
+    foreach (const QNetworkInterface &interface, QNetworkInterface::allInterfaces())
+    foreach (const QNetworkAddressEntry &entry, interface.addressEntries())
+    if (entry.ip() == i->address)
+    {
+      p->ssdpSocket.leaveMulticastGroup(SSsdpClient::ssdpAddressIPv4, interface);
+      break;
+    }
+
     delete i;
+  }
 
   p->interfaces.clear();
 }
