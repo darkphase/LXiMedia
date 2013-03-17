@@ -22,10 +22,19 @@ namespace LXiServer {
 
 struct SSsdpClient::Private
 {
+  struct Interface
+  {
+    QHostAddress                address;
+    QPair<QHostAddress, int>    subnet;
+    QUdpSocket                  privateSocket;
+  };
+
   QString                       serverUdn;
-  QMultiMap<QString, QPointer<SsdpClientInterface> > interfaces;
   QMultiMap<QString, Node>      nodes;
   QTimer                        updateTimer;
+
+  QList<Interface *>            interfaces;
+  QUdpSocket                    ssdpSocket;
 };
 
 const QHostAddress  SSsdpClient::ssdpAddressIPv4("239.255.255.250");
@@ -67,41 +76,66 @@ SSsdpClient::SSsdpClient(const QString &serverUdn)
 {
   p->serverUdn = serverUdn;
   p->updateTimer.setSingleShot(true);
+
   connect(&p->updateTimer, SIGNAL(timeout()), SIGNAL(searchUpdated()));
+  connect(&p->ssdpSocket, SIGNAL(readyRead()), SLOT(ssdpDatagramReady()));
 }
 
 SSsdpClient::~SSsdpClient()
 {
+  foreach (const Private::Interface *i, p->interfaces)
+    delete i;
+
   delete p;
   *const_cast<Private **>(&p) = NULL;
 }
 
 void SSsdpClient::initialize()
 {
+  if (!p->ssdpSocket.state() != QUdpSocket::BoundState)
+  if (!p->ssdpSocket.bind(SSsdpClient::ssdpPort, QUdpSocket::ShareAddress))
+    qWarning() << "Failed to bind the SSDP port" << p->ssdpSocket.errorString();
 }
 
 void SSsdpClient::close(void)
 {
-  foreach (SsdpClientInterface *iface, p->interfaces)
-    delete iface;
+  foreach (const Private::Interface *i, p->interfaces)
+    delete i;
 
   p->interfaces.clear();
 }
 
 bool SSsdpClient::bind(const QHostAddress &address)
 {
+  if (address.protocol() == QAbstractSocket::IPv4Protocol)
   foreach (const QNetworkInterface &interface, QNetworkInterface::allInterfaces())
+  foreach (const QNetworkAddressEntry &entry, interface.addressEntries())
+  if (entry.ip() == address)
   {
-    QList<QNetworkAddressEntry> entries = interface.addressEntries();
-    foreach (const QNetworkAddressEntry &entry, entries)
-    if (entry.ip() == address)
+    if (p->ssdpSocket.joinMulticastGroup(SSsdpClient::ssdpAddressIPv4, interface))
     {
-      p->interfaces.insert(
-            address.toString(),
-            new SsdpClientInterface(interface, entry.ip(), entry.netmask(), this));
+      Private::Interface * const iface = new Private::Interface();
+      iface->address = address;
+      iface->subnet = QHostAddress::parseSubnet(entry.ip().toString() + '/' + entry.netmask().toString());
 
-      return true;
+      connect(&iface->privateSocket, SIGNAL(readyRead()), SLOT(privateDatagramReady()));
+      if (iface->privateSocket.bind(address, 0))
+      {
+        iface->privateSocket.setMulticastInterface(interface);
+        iface->privateSocket.setSocketOption(QAbstractSocket::MulticastTtlOption, 4);
+        iface->privateSocket.setSocketOption(QAbstractSocket::MulticastLoopbackOption, 0);
+
+        p->interfaces += iface;
+
+        return true;
+      }
+      else
+        qWarning() << "Failed to bind the private port" << iface->privateSocket.errorString();
+
+      delete iface;
     }
+    else
+      qWarning() << "Failed to join multicast group on SSDP port for interface" << address.toString() << p->ssdpSocket.errorString();
   }
 
   return false;
@@ -109,23 +143,30 @@ bool SSsdpClient::bind(const QHostAddress &address)
 
 void SSsdpClient::release(const QHostAddress &address)
 {
-  forever
+  if (address.protocol() == QAbstractSocket::IPv4Protocol)
+  foreach (const QNetworkInterface &interface, QNetworkInterface::allInterfaces())
+  foreach (const QNetworkAddressEntry &entry, interface.addressEntries())
+  if (entry.ip() == address)
   {
-    QMultiMap<QString, QPointer<SsdpClientInterface> >::Iterator i = p->interfaces.find(address.toString());
-    if (i != p->interfaces.end())
+    p->ssdpSocket.leaveMulticastGroup(SSsdpClient::ssdpAddressIPv4, interface);
+
+    for (QList<Private::Interface *>::Iterator i = p->interfaces.begin(); i != p->interfaces.end(); )
+    if ((*i)->address == address)
     {
-      delete (*i);
-      p->interfaces.erase(i);
+      delete *i;
+      i = p->interfaces.erase(i);
     }
     else
-      break;
+      i++;
+
+    break;
   }
 }
 
 void SSsdpClient::sendSearch(const QString &st, unsigned msgCount)
 {
   for (unsigned i=0; i<msgCount; i++)
-  foreach (SsdpClientInterface *iface, interfaces())
+  foreach (const QHostAddress &iface, interfaces())
     sendSearch(iface, st);
 }
 
@@ -183,12 +224,16 @@ const QString & SSsdpClient::serverUdn(void) const
   return p->serverUdn;
 }
 
-const QMultiMap<QString, QPointer<SsdpClientInterface> > & SSsdpClient::interfaces(void) const
+QList<QHostAddress> SSsdpClient::interfaces(void) const
 {
-  return p->interfaces;
+  QList<QHostAddress> result;
+  foreach (const Private::Interface *i, p->interfaces)
+    result += i->address;
+
+  return result;
 }
 
-void SSsdpClient::parsePacket(SsdpClientInterface *, const SHttpServer::RequestHeader &header, const QHostAddress &, quint16)
+void SSsdpClient::parsePacket(const QHostAddress &, const SHttpServer::RequestHeader &header, const QHostAddress &, quint16)
 {
   if (header.method() == "NOTIFY")
   {
@@ -201,17 +246,19 @@ void SSsdpClient::parsePacket(SsdpClientInterface *, const SHttpServer::RequestH
   }
 }
 
-void SSsdpClient::parsePacket(SsdpClientInterface *, const SHttpServer::ResponseHeader &header, const QHostAddress &, quint16)
+void SSsdpClient::parsePacket(const QHostAddress &, const SHttpServer::ResponseHeader &header, const QHostAddress &, quint16)
 {
   addNode(header, "ST");
 }
 
-void SSsdpClient::sendDatagram(SsdpClientInterface *iface, const QByteArray &datagram, const QHostAddress &address, quint16 port)
+void SSsdpClient::sendDatagram(const QHostAddress &iface, const QByteArray &datagram, const QHostAddress &address, quint16 port) const
 {
-  iface->privateSocket.writeDatagram(datagram, address, port);
+  foreach (Private::Interface *i, p->interfaces)
+  if (iface.isInSubnet(i->subnet))
+    i->privateSocket.writeDatagram(datagram, address, port);
 }
 
-void SSsdpClient::sendSearch(SsdpClientInterface *iface, const QString &st, unsigned mx)
+void SSsdpClient::sendSearch(const QHostAddress &iface, const QString &st, unsigned mx)
 {
   SHttpServer::RequestHeader request(NULL);
   request.setRequest("M-SEARCH", "*", SHttpServer::httpVersion);
@@ -266,64 +313,36 @@ void SSsdpClient::removeNode(const SHttpServer::Header &header)
     p->updateTimer.start(250);
 }
 
-
-SsdpClientInterface::SsdpClientInterface(const QNetworkInterface &interface, const QHostAddress &address, const QHostAddress &netmask, SSsdpClient *parent)
-    : QObject(parent),
-      parent(parent),
-      interface(interface),
-      address(address),
-      netmask(netmask),
-      ssdpSocket(this),
-      privateSocket(this)
+void SSsdpClient::ssdpDatagramReady(void)
 {
-  connect(&ssdpSocket, SIGNAL(readyRead()), SLOT(ssdpDatagramReady()));
-  connect(&privateSocket, SIGNAL(readyRead()), SLOT(privateDatagramReady()));
-
-  if (ssdpSocket.bind(address, SSsdpClient::ssdpPort, QUdpSocket::ShareAddress | QUdpSocket::ReuseAddressHint))
-  {
-    if (!ssdpSocket.joinMulticastGroup(SSsdpClient::ssdpAddressIPv4, interface))
-      qWarning() << "Failed to join multicast group on SSDP port for interface" << address.toString() << ssdpSocket.errorString();
-  }
-  else
-    qWarning() << "Failed to bind the SSDP port for interface" << address.toString() << ssdpSocket.errorString();
-
-  if (privateSocket.bind(address, 0))
-  {
-    privateSocket.setMulticastInterface(interface);
-    privateSocket.setSocketOption(QAbstractSocket::MulticastTtlOption, 4);
-    privateSocket.setSocketOption(QAbstractSocket::MulticastLoopbackOption, 0);
-  }
-  else
-    qWarning() << "Failed to bind the private port for interface" << address.toString() << privateSocket.errorString();
-}
-
-void SsdpClientInterface::ssdpDatagramReady(void)
-{
-  while (ssdpSocket.hasPendingDatagrams())
+  while (p->ssdpSocket.hasPendingDatagrams())
   {
     QHostAddress sourceAddress;
     quint16 sourcePort = 0;
     char buffer[65536];
-    const qint64 size = ssdpSocket.readDatagram(buffer, sizeof(buffer), &sourceAddress, &sourcePort);
+    const qint64 size = p->ssdpSocket.readDatagram(buffer, sizeof(buffer), &sourceAddress, &sourcePort);
 
     if (size > 0)
     {
       SHttpServer::RequestHeader request(NULL);
       request.parse(QByteArray(buffer, size));
 
-      parent->parsePacket(this, request, sourceAddress, sourcePort);
+      foreach (const Private::Interface *i, p->interfaces)
+      if (sourceAddress.isInSubnet(i->subnet))
+        parsePacket(i->address, request, sourceAddress, sourcePort);
     }
   }
 }
 
-void SsdpClientInterface::privateDatagramReady(void)
+void SSsdpClient::privateDatagramReady(void)
 {
-  while (privateSocket.hasPendingDatagrams())
+  foreach (Private::Interface *i, p->interfaces)
+  while (i->privateSocket.hasPendingDatagrams())
   {
     QHostAddress sourceAddress;
     quint16 sourcePort = 0;
     char buffer[65536];
-    const qint64 size = privateSocket.readDatagram(buffer, sizeof(buffer), &sourceAddress, &sourcePort);
+    const qint64 size = i->privateSocket.readDatagram(buffer, sizeof(buffer), &sourceAddress, &sourcePort);
 
     if (size > 0)
     {
@@ -333,13 +352,12 @@ void SsdpClientInterface::privateDatagramReady(void)
         SHttpServer::ResponseHeader response(NULL);
         response.parse(txt);
 
-        parent->parsePacket(this, response, sourceAddress, sourcePort);
+        parsePacket(i->address, response, sourceAddress, sourcePort);
       }
     }
     else if (size < 0)
       break;
   }
 }
-
 
 } // End of namespace

@@ -44,16 +44,16 @@ public:
   void                          publish(const QString &nt, const QString &relativeUrl, unsigned msgCount);
 
 protected:
-  virtual void                  parsePacket(SsdpClientInterface *, const SHttpServer::RequestHeader &, const QHostAddress &, quint16);
+  virtual void                  parsePacket(const QHostAddress &iface, const SHttpServer::RequestHeader &, const QHostAddress &, quint16);
 
-  void                          sendUpdate(SsdpClientInterface *, const QString &nt, const QString &url) const;
-  void                          sendAlive(SsdpClientInterface *, const QString &nt, const QString &url) const;
-  void                          sendByeBye(SsdpClientInterface *, const QString &nt) const;
-  void                          sendSearchResponse(SsdpClientInterface *, const QString &st, const QString &url, const QHostAddress &, quint16) const;
+  void                          sendUpdate(const QHostAddress &iface, const QString &nt, const QString &url) const;
+  void                          sendAlive(const QHostAddress &iface, const QString &nt, const QString &url) const;
+  void                          sendByeBye(const QHostAddress &iface, const QString &nt) const;
+  void                          sendSearchResponse(const QHostAddress &iface, const QString &st, const QString &url, const QHostAddress &, quint16) const;
 
 private:
-  void                          publishServices(SsdpClientInterface *);
-  void                          unpublishServices(SsdpClientInterface *);
+  void                          publishServices(const QHostAddress &iface);
+  void                          unpublishServices(const QHostAddress &iface);
 
 private slots:
   void                          updateServices(void);
@@ -64,7 +64,6 @@ private:
   struct Private;
   Private               * const p;
 };
-
 
 } // End of namespace
 

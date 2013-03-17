@@ -26,12 +26,9 @@
 
 namespace LXiServer {
 
-class SsdpClientInterface;
-
 class LXISERVER_PUBLIC SSsdpClient : public QObject
 {
 Q_OBJECT
-friend class SsdpClientInterface;
 public:
   struct Node
   {
@@ -67,16 +64,20 @@ signals:
 
 protected:
   const QString               & serverUdn(void) const;
-  const QMultiMap<QString, QPointer<SsdpClientInterface> > & interfaces(void) const;
-  virtual void                  parsePacket(SsdpClientInterface *iface, const SHttpServer::RequestHeader &, const QHostAddress &, quint16);
-  virtual void                  parsePacket(SsdpClientInterface *iface, const SHttpServer::ResponseHeader &, const QHostAddress &, quint16);
+  QList<QHostAddress>           interfaces(void) const;
+  virtual void                  parsePacket(const QHostAddress &iface, const SHttpServer::RequestHeader &, const QHostAddress &, quint16);
+  virtual void                  parsePacket(const QHostAddress &iface, const SHttpServer::ResponseHeader &, const QHostAddress &, quint16);
 
-  static void                   sendDatagram(SsdpClientInterface *, const QByteArray &, const QHostAddress &, quint16);
-  static void                   sendSearch(SsdpClientInterface *, const QString &st, unsigned mx = 5);
+  void                          sendDatagram(const QHostAddress &iface, const QByteArray &, const QHostAddress &, quint16) const;
+  void                          sendSearch(const QHostAddress &iface, const QString &st, unsigned mx = 5);
 
 private:
   void                          addNode(const SHttpServer::Header &, const QString &);
   void                          removeNode(const SHttpServer::Header &);
+
+private slots:
+  void                          ssdpDatagramReady(void);
+  void                          privateDatagramReady(void);
 
 public:
   static const QHostAddress     ssdpAddressIPv4;
@@ -88,30 +89,6 @@ private:
   struct Private;
   Private               * const p;
 };
-
-
-class LXISERVER_PUBLIC SsdpClientInterface : public QObject
-{
-Q_OBJECT
-friend class SSsdpClient;
-private:
-                                SsdpClientInterface(const QNetworkInterface &, const QHostAddress &, const QHostAddress &, SSsdpClient *);
-
-private slots:
-  void                          ssdpDatagramReady(void);
-  void                          privateDatagramReady(void);
-
-public:
-  SSsdpClient           * const parent;
-  const QNetworkInterface       interface;
-  const QHostAddress            address;
-  const QHostAddress            netmask;
-
-private:
-  QUdpSocket                    ssdpSocket;
-  QUdpSocket                    privateSocket;
-};
-
 
 } // End of namespace
 

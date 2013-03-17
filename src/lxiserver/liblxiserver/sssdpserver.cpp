@@ -123,9 +123,7 @@ bool SSsdpServer::bind(const QHostAddress &address)
 {
   if (SSsdpClient::bind(address))
   {
-    QMultiMap<QString, QPointer<SsdpClientInterface> >::ConstIterator i = interfaces().find(address.toString());
-    if (i != interfaces().end())
-      publishServices(*i);
+    publishServices(address);
 
     return true;
   }
@@ -135,9 +133,7 @@ bool SSsdpServer::bind(const QHostAddress &address)
 
 void SSsdpServer::release(const QHostAddress &address)
 {
-  QMultiMap<QString, QPointer<SsdpClientInterface> >::ConstIterator i = interfaces().find(address.toString());
-  if (i != interfaces().end())
-    unpublishServices(*i);
+  unpublishServices(address);
 
   SSsdpClient::release(address);
 }
@@ -149,11 +145,11 @@ void SSsdpServer::publish(const QString &nt, const QString &relativeUrl, unsigne
   p->publishTimer.start(3500 + (qrand() % 100));
 
   for (unsigned i=0; i<msgCount; i++)
-  foreach (SsdpClientInterface *iface, interfaces())
+  foreach (const QHostAddress &iface, interfaces())
     sendByeBye(iface, nt);
 }
 
-void SSsdpServer::parsePacket(SsdpClientInterface *iface, const SHttpServer::RequestHeader &header, const QHostAddress &sourceAddress, quint16 sourcePort)
+void SSsdpServer::parsePacket(const QHostAddress &iface, const SHttpServer::RequestHeader &header, const QHostAddress &sourceAddress, quint16 sourcePort)
 {
   if ((header.method() == "M-SEARCH") && header.hasField("MX") &&
       !sourceAddress.isNull() && sourcePort)
@@ -165,10 +161,10 @@ void SSsdpServer::parsePacket(SsdpClientInterface *iface, const SHttpServer::Req
          (i != p->published.end()) && (findAll || (i.key() == st));
          i++)
     {
-      const quint16 port = p->httpServer->serverPort(iface->address);
+      const quint16 port = p->httpServer->serverPort(iface);
       if (port > 0)
       {
-        const QString url = "http://" + iface->address.toString() + ":" +
+        const QString url = "http://" + iface.toString() + ":" +
                             QString::number(port) + i->relativeUrl;
 
         for (unsigned j=0; j<(findAll ? i->msgCount : 1); j++)
@@ -180,7 +176,7 @@ void SSsdpServer::parsePacket(SsdpClientInterface *iface, const SHttpServer::Req
     SSsdpClient::parsePacket(iface, header, sourceAddress, sourcePort);
 }
 
-void SSsdpServer::sendUpdate(SsdpClientInterface *iface, const QString &nt, const QString &url) const
+void SSsdpServer::sendUpdate(const QHostAddress &iface, const QString &nt, const QString &url) const
 {
   if (p->oldbootid != 0)
   {
@@ -199,7 +195,7 @@ void SSsdpServer::sendUpdate(SsdpClientInterface *iface, const QString &nt, cons
   }
 }
 
-void SSsdpServer::sendAlive(SsdpClientInterface *iface, const QString &nt, const QString &url) const
+void SSsdpServer::sendAlive(const QHostAddress &iface, const QString &nt, const QString &url) const
 {
   SHttpServer::RequestHeader request(NULL);
   request.setRequest("NOTIFY", "*", SHttpServer::httpVersion);
@@ -216,7 +212,7 @@ void SSsdpServer::sendAlive(SsdpClientInterface *iface, const QString &nt, const
   sendDatagram(iface, request, ssdpAddressIPv4, ssdpPort);
 }
 
-void SSsdpServer::sendByeBye(SsdpClientInterface *iface, const QString &nt) const
+void SSsdpServer::sendByeBye(const QHostAddress &iface, const QString &nt) const
 {
   SHttpServer::RequestHeader request(NULL);
   request.setRequest("NOTIFY", "*", SHttpServer::httpVersion);
@@ -230,7 +226,7 @@ void SSsdpServer::sendByeBye(SsdpClientInterface *iface, const QString &nt) cons
   sendDatagram(iface, request, ssdpAddressIPv4, ssdpPort);
 }
 
-void SSsdpServer::sendSearchResponse(SsdpClientInterface *iface, const QString &nt, const QString &url, const QHostAddress &toAddr, quint16 toPort) const
+void SSsdpServer::sendSearchResponse(const QHostAddress &iface, const QString &nt, const QString &url, const QHostAddress &toAddr, quint16 toPort) const
 {
   SHttpServer::ResponseHeader response(NULL);
   response.setResponse(SHttpServer::Status_Ok, SHttpServer::httpVersion);
@@ -247,7 +243,7 @@ void SSsdpServer::sendSearchResponse(SsdpClientInterface *iface, const QString &
   sendDatagram(iface, response, toAddr, toPort);
 }
 
-void SSsdpServer::publishServices(SsdpClientInterface *iface)
+void SSsdpServer::publishServices(const QHostAddress &iface)
 {
   for (QMultiMap<QString, Private::Service>::ConstIterator i = p->published.begin();
        i != p->published.end();
@@ -255,10 +251,10 @@ void SSsdpServer::publishServices(SsdpClientInterface *iface)
   {
     for (unsigned j=0; j<i->msgCount; j++)
     {
-      const quint16 port = p->httpServer->serverPort(iface->address);
+      const quint16 port = p->httpServer->serverPort(iface);
       if (port > 0)
       {
-        const QString url = "http://" + iface->address.toString() + ":" +
+        const QString url = "http://" + iface.toString() + ":" +
                             QString::number(port) + i->relativeUrl;
 
         sendAlive(iface, i.key(), url);
@@ -267,7 +263,7 @@ void SSsdpServer::publishServices(SsdpClientInterface *iface)
   }
 }
 
-void SSsdpServer::unpublishServices(SsdpClientInterface *iface)
+void SSsdpServer::unpublishServices(const QHostAddress &iface)
 {
   for (QMultiMap<QString, Private::Service>::ConstIterator i = p->published.begin();
        i != p->published.end();
@@ -285,12 +281,12 @@ void SSsdpServer::updateServices(void)
        i++)
   {
     for (unsigned j=0; j<i->msgCount; j++)
-    foreach (SsdpClientInterface *iface, interfaces())
+    foreach (const QHostAddress &iface, interfaces())
     {
-      const quint16 port = p->httpServer->serverPort(iface->address);
+      const quint16 port = p->httpServer->serverPort(iface);
       if (port > 0)
       {
-        const QString url = "http://" + iface->address.toString() + ":" +
+        const QString url = "http://" + iface.toString() + ":" +
                             QString::number(port) + i->relativeUrl;
 
         sendUpdate(iface, i.key(), url);
@@ -301,13 +297,13 @@ void SSsdpServer::updateServices(void)
 
 void SSsdpServer::publishServices(void)
 {
-  foreach (SsdpClientInterface *iface, interfaces())
+  foreach (const QHostAddress &iface, interfaces())
     publishServices(iface);
 }
 
 void SSsdpServer::unpublishServices(void)
 {
-  foreach (SsdpClientInterface *iface, interfaces())
+  foreach (const QHostAddress &iface, interfaces())
     unpublishServices(iface);
 }
 
