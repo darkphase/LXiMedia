@@ -94,7 +94,7 @@ bool Module::registerClasses(void)
       ;
 
   for (::AVInputFormat *format=::av_iformat_next(NULL); format; format=::av_iformat_next(format))
-    if (!unsupportedReaders.contains(format->name))
+  if (!unsupportedReaders.contains(format->name))
     BufferReader::registerClass<BufferReader>(format->name);
 
   for (::AVOutputFormat *format=::av_oformat_next(NULL); format; format=::av_oformat_next(format))
@@ -119,13 +119,21 @@ bool Module::registerClasses(void)
   // Format converters
   FFMpegCommon::disableLog(true);
 
-  for (int srcFormat = PIX_FMT_NONE + 1; srcFormat < PIX_FMT_NB; srcFormat++)
-  for (int dstFormat = PIX_FMT_NONE + 1; dstFormat < PIX_FMT_NB; dstFormat++)
-    if ((srcFormat != dstFormat) && VideoFormatConverter::testformat(::PixelFormat(srcFormat), ::PixelFormat(dstFormat)))
+  static const int formats[] =
+  {
+    PIX_FMT_YUV420P, PIX_FMT_YUV440P, PIX_FMT_YUV422P, PIX_FMT_YUV444P, PIX_FMT_YUV410P, PIX_FMT_YUV411P,
+    PIX_FMT_YUVJ420P, PIX_FMT_YUVJ440P, PIX_FMT_YUVJ422P, PIX_FMT_YUVJ444P,
+    PIX_FMT_YUYV422, PIX_FMT_UYVY422, PIX_FMT_UYYVYY411,
+    PIX_FMT_ARGB, PIX_FMT_RGBA, PIX_FMT_ABGR, PIX_FMT_BGRA
+  };
+
+  for (unsigned srcFormat = 0; srcFormat < (sizeof(formats) / sizeof(*formats)); srcFormat++)
+  for (unsigned dstFormat = 0; dstFormat < (sizeof(formats) / sizeof(*formats)); dstFormat++)
+  if ((srcFormat != dstFormat) && VideoFormatConverter::testformat(::PixelFormat(formats[srcFormat]), ::PixelFormat(formats[dstFormat])))
   {
     VideoFormatConverter::registerClass<VideoFormatConverter>(
-        FFMpegCommon::fromFFMpegPixelFormat(::PixelFormat(srcFormat)),
-        FFMpegCommon::fromFFMpegPixelFormat(::PixelFormat(dstFormat)),
+        FFMpegCommon::fromFFMpegPixelFormat(::PixelFormat(formats[srcFormat])),
+        FFMpegCommon::fromFFMpegPixelFormat(::PixelFormat(formats[dstFormat])),
         -1);
   }
 
