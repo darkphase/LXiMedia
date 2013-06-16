@@ -49,7 +49,6 @@ Frontend::Frontend()
 
   connect(&ssdpClient, SIGNAL(searchUpdated()), SLOT(updateServers()));
   ssdpClient.initialize();
-  ssdpClient.sendSearch("urn:schemas-upnp-org:device:MediaServer:1");
 
   connect(&networkAccessManager, SIGNAL(finished(QNetworkReply *)), SLOT(requestFinished(QNetworkReply *)));
 
@@ -257,6 +256,7 @@ void Frontend::checkNetworkInterfaces(void)
           : SSsdpClient::localAddresses();
 
   // Bind new interfaces
+  bool boundNew = false;
   foreach (const QHostAddress &interface, interfaces)
   {
     bool found = false;
@@ -272,6 +272,7 @@ void Frontend::checkNetworkInterfaces(void)
       ssdpClient.bind(interface);
 
       boundNetworkInterfaces += interface;
+      boundNew = true;
     }
   }
 
@@ -297,6 +298,9 @@ void Frontend::checkNetworkInterfaces(void)
     else
       bound++;
   }
+
+  if (boundNew)
+    ssdpClient.sendSearch("urn:schemas-upnp-org:device:MediaServer:1");
 }
 
 bool Frontend::isLocalAddress(const QString &host)
