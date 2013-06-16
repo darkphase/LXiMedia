@@ -35,6 +35,7 @@ struct SSsdpClient::Private
 
   QList<Interface *>            interfaces;
   QUdpSocket                    ssdpSocket;
+  quint16                       preferredPort;
 };
 
 const QHostAddress  SSsdpClient::ssdpAddressIPv4("239.255.255.250");
@@ -76,6 +77,7 @@ SSsdpClient::SSsdpClient(const QString &serverUdn)
 {
   p->serverUdn = serverUdn;
   p->updateTimer.setSingleShot(true);
+  p->preferredPort = 0;
 
   connect(&p->updateTimer, SIGNAL(timeout()), SIGNAL(searchUpdated()));
   connect(&p->ssdpSocket, SIGNAL(readyRead()), SLOT(ssdpDatagramReady()));
@@ -128,13 +130,17 @@ bool SSsdpClient::bind(const QHostAddress &address)
       iface->subnet = QHostAddress::parseSubnet(entry.ip().toString() + '/' + entry.netmask().toString());
 
       connect(&iface->privateSocket, SIGNAL(readyRead()), SLOT(privateDatagramReady()));
-      if (iface->privateSocket.bind(address, 0))
+      if (iface->privateSocket.bind(address, p->preferredPort) ||
+          iface->privateSocket.bind(address, 0))
       {
         iface->privateSocket.setMulticastInterface(interface);
         iface->privateSocket.setSocketOption(QAbstractSocket::MulticastTtlOption, 4);
         iface->privateSocket.setSocketOption(QAbstractSocket::MulticastLoopbackOption, 0);
 
         p->interfaces += iface;
+
+        if (p->preferredPort == 0)
+          p->preferredPort = iface->privateSocket.localPort();
 
         return true;
       }
