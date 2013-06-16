@@ -39,9 +39,9 @@ VideoFormatConverter::~VideoFormatConverter()
 bool VideoFormatConverter::testformat(::PixelFormat srcFormat, ::PixelFormat dstFormat)
 {
   ::SwsContext * context =
-      ::sws_getContext(720, 576,
+      ::sws_getContext(352, 288,
                        srcFormat,
-                       720, 576,
+                       352, 288,
                        dstFormat,
                        SWS_POINT,
                        NULL, NULL, NULL);
