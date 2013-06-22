@@ -46,6 +46,7 @@ const int           SSsdpClient::cacheTimeout = 1800; // Alive messages are sent
 QList<QHostAddress> SSsdpClient::localAddresses(void)
 {
   QList<QHostAddress> result;
+  QHostAddress local;
 
   foreach (const QNetworkInterface &interface, QNetworkInterface::allInterfaces())
   {
@@ -57,16 +58,21 @@ QList<QHostAddress> SSsdpClient::localAddresses(void)
       {
         const quint32 addr = address.toIPv4Address();
         if (((addr & 0xFF000000u) == 0x0A000000u) || //10.0.0.0/8
-            ((addr & 0xFF000000u) == 0x7F000000u) || //127.0.0.0/8
             ((addr & 0xFFFF0000u) == 0xA9FE0000u) || //169.254.0.0/16
             ((addr & 0xFFF00000u) == 0xAC100000u) || //172.16.0.0/12
             ((addr & 0xFFFF0000u) == 0xC0A80000u))   //192.168.0.0/16
         {
           result += address;
         }
+        else if ((addr & 0xFF000000u) == 0x7F000000u) //127.0.0.0/8
+          local = address;
       }
     }
   }
+
+  // Loopback should be bound last.
+  if (!local.isNull())
+    result += local;
 
   return result;
 }
@@ -94,7 +100,7 @@ SSsdpClient::~SSsdpClient()
 void SSsdpClient::initialize()
 {
   if (!p->ssdpSocket.state() != QUdpSocket::BoundState)
-  if (!p->ssdpSocket.bind(SSsdpClient::ssdpPort, QUdpSocket::ShareAddress | QUdpSocket::ReuseAddressHint))
+  if (!p->ssdpSocket.bind(QHostAddress("0.0.0.0"), SSsdpClient::ssdpPort, QUdpSocket::ShareAddress | QUdpSocket::ReuseAddressHint))
     qWarning() << "Failed to bind the SSDP port" << p->ssdpSocket.errorString();
 }
 
@@ -123,34 +129,32 @@ bool SSsdpClient::bind(const QHostAddress &address)
   foreach (const QNetworkAddressEntry &entry, interface.addressEntries())
   if (entry.ip() == address)
   {
-    if (p->ssdpSocket.joinMulticastGroup(SSsdpClient::ssdpAddressIPv4, interface))
+    Private::Interface * const iface = new Private::Interface();
+    iface->address = address;
+    iface->subnet = QHostAddress::parseSubnet(entry.ip().toString() + '/' + entry.netmask().toString());
+
+    connect(&iface->privateSocket, SIGNAL(readyRead()), SLOT(privateDatagramReady()));
+    if (iface->privateSocket.bind(address, p->preferredPort) ||
+        iface->privateSocket.bind(address, 0))
     {
-      Private::Interface * const iface = new Private::Interface();
-      iface->address = address;
-      iface->subnet = QHostAddress::parseSubnet(entry.ip().toString() + '/' + entry.netmask().toString());
+      iface->privateSocket.setMulticastInterface(interface);
+      iface->privateSocket.setSocketOption(QAbstractSocket::MulticastTtlOption, 4);
+      iface->privateSocket.setSocketOption(QAbstractSocket::MulticastLoopbackOption, 1);
 
-      connect(&iface->privateSocket, SIGNAL(readyRead()), SLOT(privateDatagramReady()));
-      if (iface->privateSocket.bind(address, p->preferredPort) ||
-          iface->privateSocket.bind(address, 0))
-      {
-        iface->privateSocket.setMulticastInterface(interface);
-        iface->privateSocket.setSocketOption(QAbstractSocket::MulticastTtlOption, 4);
-        iface->privateSocket.setSocketOption(QAbstractSocket::MulticastLoopbackOption, 0);
+      p->interfaces += iface;
 
-        p->interfaces += iface;
+      if (p->preferredPort == 0)
+        p->preferredPort = iface->privateSocket.localPort();
 
-        if (p->preferredPort == 0)
-          p->preferredPort = iface->privateSocket.localPort();
+      if (!p->ssdpSocket.joinMulticastGroup(SSsdpClient::ssdpAddressIPv4, interface))
+        qWarning() << "Failed to join multicast group on SSDP port for interface" << address.toString() << p->ssdpSocket.errorString();
 
-        return true;
-      }
-      else
-        qWarning() << "Failed to bind the private port" << iface->privateSocket.errorString();
-
-      delete iface;
+      return true;
     }
     else
-      qWarning() << "Failed to join multicast group on SSDP port for interface" << address.toString() << p->ssdpSocket.errorString();
+      qWarning() << "Failed to bind the private port" << iface->privateSocket.errorString();
+
+    delete iface;
   }
 
   return false;
