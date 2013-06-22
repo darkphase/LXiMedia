@@ -25,7 +25,7 @@ win32 {
     system(cd $$replace(OUT_PWD,/,\\) && tar -xjf libexif_$${EXIF_VERSION}.orig.tar.bz2)
 
     # Compile
-    system(cd $$replace(OUT_PWD,/,\\)\\libexif-$${EXIF_VERSION} && sh configure --enable-static --disable-shared CFLAGS=\"-w -O2 $${PLATFORM_CFLAGS}")
+    system(cd $$replace(OUT_PWD,/,\\)\\libexif-$${EXIF_VERSION} && sh configure --enable-static --disable-shared CFLAGS=\"-w -O2 $${PLATFORM_CFLAGS}\")
     system(cd $$replace(OUT_PWD,/,\\)\\libexif-$${EXIF_VERSION} && mingw32-make -j $${PLATFORM_NUMCORES} MAKE=mingw32-make)
   }
 }

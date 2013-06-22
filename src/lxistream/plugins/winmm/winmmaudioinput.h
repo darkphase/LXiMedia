@@ -20,6 +20,7 @@
 
 #include <windows.h>
 #include <mmsystem.h>
+#include <stdint.h>
 #include <QtCore>
 #include <LXiStreamDevice>
 

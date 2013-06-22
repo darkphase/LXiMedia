@@ -50,8 +50,8 @@ For QtCreator:
 Download and install the latest version of the QtSDK from 
 http://qt-project.org/downloads. Make sure you install the QtSDK in a directory
 without spaces (for example C:\QtSDK\). Download the latest version of MSYS and
-install it in the C:\QtSDK\mingw directory. And download YASM for mingw and
-copy yasm.exe to C:\QtSDK\mingw\bin.
+install it in the C:\QtSDK\Tools\MinGW\ directory. And download YASM for mingw 
+and copy yasm.exe to C:\QtSDK\Tools\MinGW\bin.
 
 Start QtCreator. Select ''File -> Open File or Project'' from the menu. Then
 select the ''lximedia.pro'' file from the lximedia directory that was checked
