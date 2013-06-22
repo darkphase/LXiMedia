@@ -94,7 +94,7 @@ SSsdpClient::~SSsdpClient()
 void SSsdpClient::initialize()
 {
   if (!p->ssdpSocket.state() != QUdpSocket::BoundState)
-  if (!p->ssdpSocket.bind(SSsdpClient::ssdpPort, QUdpSocket::ShareAddress))
+  if (!p->ssdpSocket.bind(SSsdpClient::ssdpPort, QUdpSocket::ShareAddress | QUdpSocket::ReuseAddressHint))
     qWarning() << "Failed to bind the SSDP port" << p->ssdpSocket.errorString();
 }
 
