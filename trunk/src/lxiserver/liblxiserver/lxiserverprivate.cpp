@@ -487,7 +487,7 @@ SandboxProcess::SandboxProcess(SSandboxClient *parent, const QString &cmd, const
   : QObject(parent),
     parent(parent),
     file(file), line(line),
-    process(new QProcess(parent)),
+    process(new QProcess()),
     started(false)
 {
   Q_ASSERT(QThread::currentThread() == thread());

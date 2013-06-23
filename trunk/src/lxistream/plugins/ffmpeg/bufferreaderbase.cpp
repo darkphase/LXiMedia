@@ -870,13 +870,23 @@ BufferReaderBase::StreamContext * BufferReaderBase::initStreamContext(const ::AV
   }
   else if (stream->codec->codec_type == AVMEDIA_TYPE_SUBTITLE)
   {
-    ::AVCodec * const codec = ::avcodec_find_decoder(stream->codec->codec_id);
-    if (codec)
+    if (stream->codec->codec_id == CODEC_ID_TEXT)
     {
       streamContext->dataCodec = SDataCodec(
-          codec->name,
+          "SUB/RAWUTF8",
           QByteArray(),
           stream->index);
+    }
+    else
+    {
+      ::AVCodec * const codec = ::avcodec_find_decoder(stream->codec->codec_id);
+      if (codec)
+      {
+        streamContext->dataCodec = SDataCodec(
+            codec->name,
+            QByteArray(),
+            stream->index);
+      }
     }
   }
 
