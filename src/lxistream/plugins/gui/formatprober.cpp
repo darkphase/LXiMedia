@@ -84,8 +84,9 @@ void FormatProber::readContent(ProbeInfo &pi, QIODevice *ioDevice)
       pi.content.titles += ProbeInfo::Title();
 
     ProbeInfo::Title &mainTitle = pi.content.titles.first();
-
-    mainTitle.imageCodec = SVideoCodec(pi.format.format.toUpper());
+    mainTitle.imageCodec = SVideoCodec(
+          pi.format.format.toUpper(),
+          SImage::sizeOf(ioDevice, pi.format.format));
 
     pi.isContentProbed = true;
   }
