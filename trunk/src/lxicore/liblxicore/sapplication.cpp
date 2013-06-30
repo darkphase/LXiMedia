@@ -334,7 +334,7 @@ QByteArray SApplication::about(void) const
       " <h3>Qt</h3>\n"
       " <p>Versions: " + QByteArray(qVersion()) + " (linked), " QT_VERSION_STR " (built)</p>\n"
       " <p>Website: <a href=\"http://qt.nokia.com/\">qt.nokia.com</a></p>\n"
-      " <p><b>Copyright &copy; 2011 Nokia Corporation and/or its subsidiary(-ies).</b></p>\n"
+      " <p><b>Copyright &copy; 2012 Digia Plc and/or its subsidiary(-ies).</b></p>\n"
       " <p>Used under the terms of the GNU General Public License version 3.0\n"
       " as published by the Free Software Foundation.</p>\n";
 
