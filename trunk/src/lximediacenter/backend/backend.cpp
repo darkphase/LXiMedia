@@ -184,7 +184,7 @@ void Backend::start(const SHttpEngine::ResponseMessage &formats)
   MediaServer::mediaProfiles().setCodecs(
       QSet<QString>::fromList(outAudioCodecs),
       QSet<QString>::fromList(outVideoCodecs),
-      QSet<QString>::fromList(QStringList() << "JPEG" << "PNG"),
+      QSet<QString>::fromList(QStringList() << "jpeg" << "png"),
       QSet<QString>::fromList(outFormats));
 
   MediaServer::fileProtocols() = QSet<QString>::fromList(fileProtocols);

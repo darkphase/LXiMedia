@@ -78,7 +78,7 @@ bool SVideoCodec::deserialize(QXmlStreamReader &reader)
   if (reader.name() == "videocodec")
   {
     d.name = reader.attributes().value("name").toString().toAscii();
-    d.size = SSize::fromString(reader.attributes().value("streamid").toString());
+    d.size = SSize::fromString(reader.attributes().value("size").toString());
 
     const QStringList rate = reader.attributes().value("framerate").toString().split('/');
     if (rate.count() >= 2)

@@ -409,6 +409,125 @@ SImage SImage::handleFile(QImageReader &imageReader, QSize maxsize, void *exifDa
   return image;
 }
 
+SSize SImage::sizeOf(QIODevice *ioDevice, const char *format)
+{
+  if (rawImageSuffixes().contains(format))
+  {
+    QFile * const file = qobject_cast<QFile *>(ioDevice);
+    if (file)
+    {
+      QUrl url;
+      url.setScheme("file");
+      url.setPath(file->fileName());
+      return sizeOf(url, format);
+    }
+
+    QTemporaryFile tmpfile(QDir::temp().absoluteFilePath(sApp->tempFileBase() + "XXXXXX." + format));
+    if (tmpfile.open())
+    {
+      tmpfile.write(ioDevice->readAll());
+      tmpfile.close();
+
+      return sizeOf(tmpfile.fileName(), format);
+    }
+  }
+  else
+  {
+    QImageReader imageReader(ioDevice, format ? QByteArray(format) : QByteArray());
+    if (imageReader.canRead())
+      return imageReader.size();
+  }
+
+  return SSize();
+}
+
+SSize SImage::sizeOf(const QUrl &filePath, const char *format)
+{
+  const QString path = filePath.path();
+  const QString fileName = path.mid(path.lastIndexOf('/') + 1);
+  const int lastdot = fileName.lastIndexOf('.');
+  const QString suffix = lastdot >= 0 ? fileName.mid(lastdot + 1) : QString::null;
+
+  SSize result;
+
+  QIODevice * const ioDevice = SMediaFilesystem::open(filePath);
+  if (ioDevice)
+  {
+    if (rawImageSuffixes().contains(format))
+      result = sizeOfRawFile(ioDevice, format);
+    else if (rawImageSuffixes().contains(suffix.toLower()))
+      result = sizeOfRawFile(ioDevice, suffix);
+    else
+      result = sizeOf(ioDevice, format);
+
+    delete ioDevice;
+  }
+
+  return result;
+}
+
+SSize SImage::sizeOfRawFile(QIODevice *ioDevice, const QString &suffix)
+{
+  struct T
+  {
+    static SSize rundcraw(const QStringList &options)
+    {
+      QProcess dcRawProcess;
+#ifdef Q_OS_WIN
+      const QDir appDir(qApp->applicationDirPath());
+      dcRawProcess.start(appDir.absoluteFilePath("dcraw.exe"), options);
+#else
+      dcRawProcess.start("dcraw", options);
+#endif
+
+      if (dcRawProcess.waitForStarted())
+      if (dcRawProcess.waitForFinished())
+      {
+        if (dcRawProcess.exitCode() == 0)
+        {
+          for (QByteArray line=dcRawProcess.readLine(); !line.isEmpty(); line=dcRawProcess.readLine())
+          {
+            line = line.trimmed().toLower();
+            if (line.startsWith("image size:"))
+              return SSize::fromString(line.mid(11));
+          }
+        }
+        else
+        {
+          dcRawProcess.setReadChannel(QProcess::StandardError);
+          qDebug() << "dcraw:" << dcRawProcess.readAll();
+        }
+      }
+
+      dcRawProcess.kill();
+
+      return SSize();
+    }
+  };
+
+  QFile * const file = qobject_cast<QFile *>(ioDevice);
+  QTemporaryFile tmpfile(QDir::temp().absoluteFilePath(sApp->tempFileBase() + "XXXXXX." + suffix));
+
+  QString fileName;
+  if (file == NULL)
+  {
+    if (tmpfile.open())
+    {
+      tmpfile.write(ioDevice->readAll());
+      tmpfile.close();
+
+      fileName = tmpfile.fileName();
+    }
+  }
+  else
+    fileName = file->fileName();
+
+  if (!fileName.isEmpty())
+    return T::rundcraw(QStringList() << "-i" << "-v" << fileName);
+
+  return SSize();
+}
+
 const QSet<QString>  & SImage::rawImageSuffixes(void)
 {
   static QSet<QString> suffixes;

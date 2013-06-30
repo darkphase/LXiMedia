@@ -49,12 +49,17 @@ public:
   static SImage                 fromData(QIODevice *, const QSize &maxsize = QSize(), const char *format = NULL);
   static SImage                 fromFile(const QUrl &filePath, const QSize &maxsize = QSize(), const char *format = NULL);
 
+  static SSize                  sizeOf(QIODevice *, const char *format = NULL);
+  static SSize                  sizeOf(const QUrl &, const char *format = NULL);
+
   static const QSet<QString>  & rawImageSuffixes(void);
   static QString                rawImageDescription(const QString &suffix);
 
 private:
   static SImage                 handleRawFile(QIODevice *, QSize, const QString &suffix);
   static SImage                 handleFile(QImageReader &, QSize, void * = NULL);
+
+  static SSize                  sizeOfRawFile(QIODevice *, const QString &suffix);
 
 private:
   struct

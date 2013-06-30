@@ -118,9 +118,9 @@ SSize SSize::fromString(const QString &str)
 {
   const QStringList l = str.split('x');
   return SSize(
-      l.count() >= 1 ? l[0].toInt() : 0,
-      l.count() >= 2 ? l[1].toInt() : (l.count() >= 1 ? l[0].toInt() : 0),
-      l.count() >= 3 ? l[2].toFloat() : 1.0f);
+      l.count() >= 1 ? l[0].trimmed().toInt() : 0,
+      l.count() >= 2 ? l[1].trimmed().toInt() : (l.count() >= 1 ? l[0].trimmed().toInt() : 0),
+      l.count() >= 3 ? l[2].trimmed().toFloat() : 1.0f);
 }
 
 SSize SSize::scaled(int nw, int nh) const
