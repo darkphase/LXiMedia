@@ -101,6 +101,7 @@ Architecture: any
 Depends: ${misc:Depends},
          liblxicore1 (= ${binary:Version}), 
          binutils,
+         dcraw,
          libasound2,
          libavcodec53 | libavcodec-extra-53 | libavcodec52 | libavcodec51,
          libavformat53 | libavformat-extra-53 | libavformat52 | libavformat51,
@@ -164,6 +165,7 @@ Section: multimedia
 Architecture: any
 Depends: ${misc:Depends},
          binutils,
+         dcraw,
          libasound2,
          libavcodec53 | libavcodec-extra-53 | libavcodec52 | libavcodec51,
          libavformat53 | libavformat-extra-53 | libavformat52 | libavformat51,
