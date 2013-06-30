@@ -181,10 +181,45 @@ SubtitleRenderer::RenderedSubtitle SubtitleRenderer::renderSubtitle(const SSubti
         line.replace("<u>", "", Qt::CaseInsensitive);
         line.replace("</u>", "", Qt::CaseInsensitive);
 
+        // Correct for right-to-left languages.
+        QVector<uint> u4line;
+        u4line.reserve(line.size());
+        {
+          int pos = -1;
+          foreach (const uint c, line.toUcs4())
+          {
+            switch (QChar::direction(c))
+            {
+            case QChar::DirL:
+            case QChar::DirLRE:
+            case QChar::DirLRO:
+              pos = -1;
+              break;
+
+            case QChar::DirR:
+            case QChar::DirAL:
+            case QChar::DirRLE:
+            case QChar::DirRLO:
+              if (pos < 0)
+                pos = u4line.size();
+
+              break;
+
+            default:
+              break;
+            }
+
+            if (pos < 0)
+              u4line.append(c);
+            else
+              u4line.insert(pos, c);
+          }
+        }
+
         int xpos = ((charWidth / 2) + shadowWidth) << 6;
         ::FT_UInt previousGlyph = 0;
 
-        foreach (const uint c, line.toUcs4())
+        foreach (const uint c, u4line)
         if (c >= ' ')
         {
           const FT_UInt glyph = ::FT_Get_Char_Index(face, c);

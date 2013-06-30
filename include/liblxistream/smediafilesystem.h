@@ -42,7 +42,7 @@ public:
 
   QUrl                          path(void) const;
 
-  QStringList                   entryList(QDir::Filters filters = QDir::NoFilter, QDir::SortFlags sort = QDir::NoSort ) const;
+  QStringList                   entryList(QDir::Filters filters = QDir::NoFilter, QDir::SortFlags sort = QDir::NoSort) const;
   QUrl                          filePath(const QString &fileName) const;
   Info                          readInfo(const QString &fileName) const;
   QIODevice                   * openFile(const QString &fileName, QIODevice::OpenMode) const;

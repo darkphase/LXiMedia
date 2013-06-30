@@ -313,7 +313,7 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
             thumbItem.iconurl = item.iconUrl;
             thumbItem.played = item.played;
             thumbItem.url = item.url;
-            if (!thumbItem.url.isEmpty())
+            if (!thumbItem.url.isEmpty() && funcs.isEmpty())
               thumbItem.url.addQueryItem("player", QString::number(item.type));
 
             if (item.played)

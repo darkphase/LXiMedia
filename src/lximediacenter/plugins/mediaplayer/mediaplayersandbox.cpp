@@ -174,6 +174,20 @@ void MediaPlayerSandbox::listFiles(const SSandboxServer::RequestMessage &request
           QDir::Dirs | QDir::NoDotAndDotDot | QDir::Files,
           QDir::DirsFirst | QDir::Name | QDir::IgnoreCase);
 
+      // Filter items that need to be hidden.
+      for (QStringList::Iterator j=items.begin(); j!=items.end(); )
+      if (j->endsWith(".db" , Qt::CaseInsensitive) ||
+          j->endsWith(".idx", Qt::CaseInsensitive) ||
+          j->endsWith(".nfo", Qt::CaseInsensitive) ||
+          j->endsWith(".srt", Qt::CaseInsensitive) ||
+          j->endsWith(".sub", Qt::CaseInsensitive) ||
+          j->endsWith(".txt", Qt::CaseInsensitive))
+      {
+        j = items.erase(j);
+      }
+      else
+        j++;
+
       l.relock();
 
       i = itemCache.insert(path, qMakePair(items, QTime()));
