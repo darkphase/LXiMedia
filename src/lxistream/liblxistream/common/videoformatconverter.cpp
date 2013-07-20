@@ -18,6 +18,7 @@
 #include "videoformatconverter.h"
 #include "../../algorithms/videoconvert.h"
 #include <lxivecintrin/vectypes>
+#include <QtConcurrent>
 
 namespace LXiStream {
 namespace Common {

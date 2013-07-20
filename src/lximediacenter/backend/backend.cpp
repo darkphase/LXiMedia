@@ -393,16 +393,16 @@ SHttpServer::ResponseMessage Backend::sendFile(const SHttpServer::RequestMessage
     {
       bool render = false;
 
-      if (request.url().hasQueryItem("scale"))
+      if (request.query().hasQueryItem("scale"))
       {
         render = true;
         image = image.scaled(
-            SSize::fromString(request.url().queryItemValue("scale")).size(),
+            SSize::fromString(request.query().queryItemValue("scale")).size(),
             Qt::KeepAspectRatio,
             Qt::SmoothTransformation);
       }
 
-      if (request.url().hasQueryItem("invert"))
+      if (request.query().hasQueryItem("invert"))
       {
         render = true;
         image.invertPixels();

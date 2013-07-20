@@ -338,7 +338,7 @@ SHttpServer::ResponseMessage Backend::httpRequest(const SHttpServer::RequestMess
       }
       else if (request.fileName() == "settings")
       {
-        if (request.url().hasQueryItem("save_settings"))
+        if (request.query().hasQueryItem("save_settings"))
         {
           saveHtmlSettings(request);
 
@@ -520,7 +520,7 @@ QByteArray Backend::parseHtmlContent(const SHttpServer::RequestHeader &request, 
 
   htmlParser.setField("NAVIGATOR_BUTTONS", "");
 
-  const QByteArray homeAddressField = qApp->applicationName().toAscii() + ".HomeAddress";
+  const QByteArray homeAddressField = qApp->applicationName().toLatin1() + ".HomeAddress";
   if (request.hasField(homeAddressField))
   {
     htmlParser.setField("ITEM_LINK", request.field(homeAddressField));
@@ -910,7 +910,7 @@ QByteArray Backend::handleHtmlSettings(const SHttpServer::RequestMessage &reques
     else
       htmlParser.setField("CHECKED_ADDBLACKVIDEO", "");
 
-    if (request.url().queryItemValue("expand") == clientTag)
+    if (request.query().queryItemValue("expand") == clientTag)
     {
       htmlParser.setField("INI_NAME", activeClient.split('@').first());
 
@@ -960,22 +960,22 @@ void Backend::saveHtmlSettings(const SHttpServer::RequestMessage &request)
 {
   QSettings settings;
 
-  if ((request.url().queryItemValue("save_settings") == "http") &&
-      request.url().hasQueryItem("httpport") &&
-      request.url().hasQueryItem("devicename"))
+  if ((request.query().queryItemValue("save_settings") == "http") &&
+      request.query().hasQueryItem("httpport") &&
+      request.query().hasQueryItem("devicename"))
   {
-    const int portValue = request.url().queryItemValue("httpport").toInt();
+    const int portValue = request.query().queryItemValue("httpport").toInt();
     if ((portValue > 0) && (portValue < 65536))
       settings.setValue("HttpPort", portValue);
 
-    if (request.url().queryItemValue("bindallnetworks") == "on")
+    if (request.query().queryItemValue("bindallnetworks") == "on")
       settings.setValue("BindAllNetworks", true);
     else
       settings.remove("BindAllNetworks");
 
     const QString deviceName =
         QString::fromUtf8(QByteArray::fromPercentEncoding(
-          request.url().encodedQueryItemValue("devicename").replace('+', ' ')));
+          request.query().queryItemValue("devicename", QUrl::FullyEncoded).replace('+', ' ').toLatin1()));
 
     if (!deviceName.isEmpty())
     {
@@ -983,7 +983,7 @@ void Backend::saveHtmlSettings(const SHttpServer::RequestMessage &request)
       masterMediaServer.setDeviceName(deviceName);
     }
 
-    if (request.url().queryItemValue("allowshutdown") == "on")
+    if (request.query().queryItemValue("allowshutdown") == "on")
       settings.setValue("AllowShutdown", true);
     else
       settings.remove("AllowShutdown");
@@ -991,11 +991,11 @@ void Backend::saveHtmlSettings(const SHttpServer::RequestMessage &request)
     reset();
   }
 
-  if ((request.url().queryItemValue("save_settings") == "localization") &&
-      request.url().hasQueryItem("defaultcodepage"))
+  if ((request.query().queryItemValue("save_settings") == "localization") &&
+      request.query().hasQueryItem("defaultcodepage"))
   {
     const QByteArray codepage = QByteArray::fromPercentEncoding(
-          request.url().encodedQueryItemValue("defaultcodepage").replace('+', ' '));
+          request.query().queryItemValue("defaultcodepage", QUrl::FullyEncoded).replace('+', ' ').toLatin1());
 
     if (!codepage.isEmpty())
     {
@@ -1008,7 +1008,7 @@ void Backend::saveHtmlSettings(const SHttpServer::RequestMessage &request)
     }
   }
 
-  if ((request.url().queryItemValue("save_settings") == "dlna"))
+  if ((request.query().queryItemValue("save_settings") == "dlna"))
   {
     const QStringList enabledAudioProfiles = MediaServer::mediaProfiles().enabledAudioProfiles();
     const QStringList enabledVideoProfiles = MediaServer::mediaProfiles().enabledVideoProfiles();
@@ -1016,9 +1016,9 @@ void Backend::saveHtmlSettings(const SHttpServer::RequestMessage &request)
 
     settings.beginGroup("DLNA");
 
-    if (request.url().hasQueryItem("client"))
+    if (request.query().hasQueryItem("client"))
     {
-      const QString group = "Client_" + request.url().queryItemValue("client");
+      const QString group = "Client_" + request.query().queryItemValue("client");
 
       bool needEndGroup = false;
       if ((group.length() > 7) && (group != "Client__default"))
@@ -1027,10 +1027,11 @@ void Backend::saveHtmlSettings(const SHttpServer::RequestMessage &request)
         needEndGroup = true;
       }
 
-      if (request.url().hasQueryItem("save"))
+      if (request.query().hasQueryItem("save"))
       {
         const QString sizeName =
-            QByteArray::fromPercentEncoding(request.url().encodedQueryItemValue("transcodesize").replace('+', ' '));
+            QByteArray::fromPercentEncoding(
+              request.query().queryItemValue("transcodesize", QUrl::FullyEncoded).replace('+', ' ').toLatin1());
         if (!sizeName.isEmpty())
           settings.setValue("TranscodeSize", sizeName);
         else
@@ -1038,7 +1039,7 @@ void Backend::saveHtmlSettings(const SHttpServer::RequestMessage &request)
 
         const QString cropName =
             QString::fromUtf8(QByteArray::fromPercentEncoding(
-                request.url().encodedQueryItemValue("cropmode").replace('+', ' ')));
+                request.query().queryItemValue("cropmode", QUrl::FullyEncoded).replace('+', ' ').toLatin1()));
 
         if (!cropName.isEmpty())
           settings.setValue("TranscodeCrop", cropName);
@@ -1047,7 +1048,7 @@ void Backend::saveHtmlSettings(const SHttpServer::RequestMessage &request)
 
         const QString encodeModeName =
             QString::fromUtf8(QByteArray::fromPercentEncoding(
-                request.url().encodedQueryItemValue("encodemode").replace('+', ' ')));
+                request.query().queryItemValue("encodemode", QUrl::FullyEncoded).replace('+', ' ').toLatin1()));
 
         if (!encodeModeName.isEmpty())
           settings.setValue("EncodeMode", encodeModeName);
@@ -1056,7 +1057,7 @@ void Backend::saveHtmlSettings(const SHttpServer::RequestMessage &request)
 
         const QString channelsName =
             QString::fromUtf8(QByteArray::fromPercentEncoding(
-                request.url().encodedQueryItemValue("channels").replace('+', ' ')));
+                request.query().queryItemValue("channels", QUrl::FullyEncoded).replace('+', ' ').toLatin1()));
 
         if (!channelsName.isEmpty())
           settings.setValue("TranscodeChannels", channelsName);
@@ -1065,21 +1066,21 @@ void Backend::saveHtmlSettings(const SHttpServer::RequestMessage &request)
 
         const QString musicChannelsName =
             QString::fromUtf8(QByteArray::fromPercentEncoding(
-                request.url().encodedQueryItemValue("musicchannels").replace('+', ' ')));
+                request.query().queryItemValue("musicchannels", QUrl::FullyEncoded).replace('+', ' ').toLatin1()));
 
         if (!musicChannelsName.isEmpty())
           settings.setValue("TranscodeMusicChannels", musicChannelsName);
         else
           settings.remove("TranscodeMusicChannels");
 
-        if (request.url().queryItemValue("musicaddvideo") == "on")
+        if (request.query().queryItemValue("musicaddvideo") == "on")
           settings.setValue("MusicAddBlackVideo", true);
         else
           settings.remove("MusicAddBlackVideo");
 
         const QString subtitleSizeName =
             QString::fromUtf8(QByteArray::fromPercentEncoding(
-                request.url().encodedQueryItemValue("subtitlesize").replace('+', ' ')));
+                request.query().queryItemValue("subtitlesize", QUrl::FullyEncoded).replace('+', ' ').toLatin1()));
 
         if (!subtitleSizeName.isEmpty())
           settings.setValue("SubtitleSize", subtitleSizeName);
@@ -1088,7 +1089,7 @@ void Backend::saveHtmlSettings(const SHttpServer::RequestMessage &request)
 
         QStringList audioProfiles;
         foreach (const QString &profile, enabledAudioProfiles)
-        if (request.url().hasQueryItem("profile_" + profile))
+        if (request.query().hasQueryItem("profile_" + profile))
           audioProfiles += profile;
 
         if (!audioProfiles.isEmpty())
@@ -1098,7 +1099,7 @@ void Backend::saveHtmlSettings(const SHttpServer::RequestMessage &request)
 
         QStringList videoProfiles;
         foreach (const QString &profile, enabledVideoProfiles)
-        if (request.url().hasQueryItem("profile_" + profile))
+        if (request.query().hasQueryItem("profile_" + profile))
           videoProfiles += profile;
 
         if (!videoProfiles.isEmpty())
@@ -1108,7 +1109,7 @@ void Backend::saveHtmlSettings(const SHttpServer::RequestMessage &request)
 
         QStringList imageProfiles;
         foreach (const QString &profile, enabledImageProfiles)
-        if (request.url().hasQueryItem("profile_" + profile))
+        if (request.query().hasQueryItem("profile_" + profile))
           imageProfiles += profile;
 
         if (!imageProfiles.isEmpty())
@@ -1118,7 +1119,7 @@ void Backend::saveHtmlSettings(const SHttpServer::RequestMessage &request)
 
         reset();
       }
-      else if (request.url().hasQueryItem("defaults"))
+      else if (request.query().hasQueryItem("defaults"))
       {
         settings.remove("TranscodeSize");
         settings.remove("TranscodeCrop");

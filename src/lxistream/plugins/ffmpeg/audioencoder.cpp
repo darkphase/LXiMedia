@@ -17,6 +17,7 @@
 
 #include "audioencoder.h"
 #include "bufferwriter.h"
+#include <QtConcurrent>
 #include <QtEndian>
 
 namespace LXiStream {

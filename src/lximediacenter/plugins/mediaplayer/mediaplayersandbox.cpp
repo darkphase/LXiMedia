@@ -17,6 +17,7 @@
 
 #include "mediaplayersandbox.h"
 #include <iostream>
+#include <QtConcurrent>
 
 namespace LXiMediaCenter {
 namespace MediaPlayerBackend {
@@ -55,37 +56,37 @@ SSandboxServer::ResponseMessage MediaPlayerSandbox::httpRequest(const SSandboxSe
 {
   if (request.isPost())
   {
-    if (request.url().hasQueryItem("probeformat"))
+    if (request.query().hasQueryItem("probeformat"))
     {
       startTask(&MediaPlayerSandbox::probeFormat, request, socket);
 
       return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_None);
     }
-    else if (request.url().hasQueryItem("probecontent"))
+    else if (request.query().hasQueryItem("probecontent"))
     {
       startTask(&MediaPlayerSandbox::probeContent, request, socket);
 
       return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_None);
     }
-    else if (request.url().hasQueryItem("readthumbnail"))
+    else if (request.query().hasQueryItem("readthumbnail"))
     {
       startTask(&MediaPlayerSandbox::readThumbnail, request, socket);
 
       return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_None);
     }
-    else if (request.url().hasQueryItem("readimage"))
+    else if (request.query().hasQueryItem("readimage"))
     {
       startTask(&MediaPlayerSandbox::readImage, request, socket);
 
       return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_None);
     }
-    else if (request.url().hasQueryItem("listfiles"))
+    else if (request.query().hasQueryItem("listfiles"))
     {
       startTask(&MediaPlayerSandbox::listFiles, request, socket);
 
       return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_None);
     }
-    else if (request.url().hasQueryItem("play"))
+    else if (request.query().hasQueryItem("play"))
     {
       return play(request, socket);
     }
@@ -145,16 +146,16 @@ void MediaPlayerSandbox::startTask(TaskFunc taskFunc, const SSandboxServer::Requ
   };
 
   int priority = 0;
-  if (request.url().hasQueryItem("priority"))
-    priority = request.url().queryItemValue("priority").toInt();
+  if (request.query().hasQueryItem("priority"))
+    priority = request.query().queryItemValue("priority").toInt();
 
   QThreadPool::globalInstance()->start(new Task(this, taskFunc, request, socket), priority);
 }
 
 void MediaPlayerSandbox::listFiles(const SSandboxServer::RequestMessage &request, QIODevice *socket)
 {
-  const int start = request.url().queryItemValue("start").toInt();
-  const int count = request.url().queryItemValue("count").toInt();
+  const int start = request.query().queryItemValue("start").toInt();
+  const int count = request.query().queryItemValue("count").toInt();
   const bool returnAll = count == 0;
 
   const QUrl path = QString::fromUtf8(request.content());
@@ -330,16 +331,16 @@ SMediaInfo MediaPlayerSandbox::probeFileContent(const QUrl &filePath)
 void MediaPlayerSandbox::readThumbnail(const SSandboxServer::RequestMessage &request, QIODevice *socket)
 {
   QSize maxSize(128, 128);
-  if (request.url().hasQueryItem("maxsize"))
-    maxSize = SSize::fromString(request.url().queryItemValue("maxsize")).size();
+  if (request.query().hasQueryItem("maxsize"))
+    maxSize = SSize::fromString(request.query().queryItemValue("maxsize")).size();
 
   QColor backgroundColor = Qt::black;
-  if (request.url().hasQueryItem("bgcolor"))
-    backgroundColor.setNamedColor('#' + request.url().queryItemValue("bgcolor"));
+  if (request.query().hasQueryItem("bgcolor"))
+    backgroundColor.setNamedColor('#' + request.query().queryItemValue("bgcolor"));
 
   QByteArray format = "png";
-  if (request.url().hasQueryItem("format"))
-    format = request.url().queryItemValue("format").toAscii();
+  if (request.query().hasQueryItem("format"))
+    format = request.query().queryItemValue("format").toLatin1();
 
   SMediaInfo fileNode(QString::fromUtf8(request.content()));
   if (!fileNode.isNull())
@@ -376,16 +377,16 @@ void MediaPlayerSandbox::readThumbnail(const SSandboxServer::RequestMessage &req
 void MediaPlayerSandbox::readImage(const SSandboxServer::RequestMessage &request, QIODevice *socket)
 {
   QSize maxsize;
-  if (request.url().hasQueryItem("maxsize"))
-    maxsize = SSize::fromString(request.url().queryItemValue("maxsize")).size();
+  if (request.query().hasQueryItem("maxsize"))
+    maxsize = SSize::fromString(request.query().queryItemValue("maxsize")).size();
 
   QColor backgroundColor = Qt::black;
-  if (request.url().hasQueryItem("bgcolor"))
-    backgroundColor.setNamedColor('#' + request.url().queryItemValue("bgcolor"));
+  if (request.query().hasQueryItem("bgcolor"))
+    backgroundColor.setNamedColor('#' + request.query().queryItemValue("bgcolor"));
 
   QByteArray format = "png";
-  if (request.url().hasQueryItem("format"))
-    format = request.url().queryItemValue("format").toAscii();
+  if (request.query().hasQueryItem("format"))
+    format = request.query().queryItemValue("format").toLatin1();
 
   QImage image = SImage::fromFile(QString::fromUtf8(request.content()), maxsize);
   if (!image.isNull())
@@ -439,7 +440,7 @@ SSandboxServer::ResponseMessage MediaPlayerSandbox::play(const SSandboxServer::R
   const QUrl path(QString::fromUtf8(request.content()));
   if (!path.isEmpty())
   {
-    if (request.url().queryItemValue("play") == "all")
+    if (request.query().queryItemValue("play") == "all")
     {
       QList<QUrl> files;
       for (QList<QUrl> dirs = QList<QUrl>() << path; !dirs.isEmpty(); )
@@ -634,8 +635,8 @@ SandboxSlideShowStream::SandboxSlideShowStream(const QList<QUrl> &files)
 
 bool SandboxSlideShowStream::setup(const SHttpServer::RequestMessage &request, QIODevice *socket)
 {
-  if (request.url().hasQueryItem("slideduration"))
-    slideShow.setSlideDuration(STime::fromMSec(request.url().queryItemValue("slideduration").toInt()));
+  if (request.query().hasQueryItem("slideduration"))
+    slideShow.setSlideDuration(STime::fromMSec(request.query().queryItemValue("slideduration").toInt()));
 
   if (MediaStream::setup(
           request, socket,

@@ -21,7 +21,7 @@ namespace LXiCore {
 
 QString SStringParser::iso639Language(const QString &lang)
 {
-  return iso639Language(lang.toAscii().data());
+  return iso639Language(lang.toLatin1().data());
 }
 
 QString SStringParser::iso639Language(const char *lang)
@@ -55,7 +55,7 @@ QMap<QByteArray, QString> SStringParser::allIso639Languages(void)
 
 const char * SStringParser::codepageFor(const QString &lang)
 {
-  return codepageFor(lang.toAscii().data());
+  return codepageFor(lang.toLatin1().data());
 }
 
 const char * SStringParser::codepageFor(const char *lang)

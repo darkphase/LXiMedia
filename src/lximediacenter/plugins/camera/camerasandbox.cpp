@@ -50,11 +50,9 @@ void CameraSandbox::close(void)
 
 SSandboxServer::ResponseMessage CameraSandbox::httpRequest(const SSandboxServer::RequestMessage &request, QIODevice *socket)
 {
-  const QUrl url(request.path());
-
   if (request.method() == "GET")
   {
-    if (url.hasQueryItem("listcameras"))
+    if (request.query().hasQueryItem("listcameras"))
     {
       QByteArray content;
       {
@@ -75,9 +73,9 @@ SSandboxServer::ResponseMessage CameraSandbox::httpRequest(const SSandboxServer:
 
       return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_Ok, content, SHttpEngine::mimeTextXml);
     }
-    else if (url.hasQueryItem("opencamera"))
+    else if (request.query().hasQueryItem("opencamera"))
     {
-      const QString device = QString::fromUtf8(QByteArray::fromHex(url.queryItemValue("device").toAscii()));
+      const QString device = QString::fromUtf8(QByteArray::fromHex(request.query().queryItemValue("device").toLatin1()));
       if (!device.isEmpty() && !device.startsWith("Desktop ", Qt::CaseInsensitive))
       {
         CameraStream * const cameraStream = new CameraStream(device);

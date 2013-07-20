@@ -178,7 +178,7 @@ bool SDaemon::stop(const QString &name)
 
 SDaemon::SDaemon(const QString &name)
 {
-  qstrncpy(Data::name, name.toAscii(), sizeof(Data::name));
+  qstrncpy(Data::name, name.toLatin1(), sizeof(Data::name));
   memcpy(Data::serviceName, name.unicode(), qMin((name.length() + 1) * sizeof(*Data::serviceName), sizeof(Data::serviceName)));
   Data::serviceName[(sizeof(Data::serviceName) / sizeof(*Data::serviceName)) - 1] = 0;
   Data::serviceStatusHandle = 0;

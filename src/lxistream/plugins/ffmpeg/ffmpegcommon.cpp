@@ -17,6 +17,7 @@
 
 #include "ffmpegcommon.h"
 #include <cstring>
+#include <QtConcurrent>
 
 #ifdef __MMX__
 #include <mmintrin.h>

@@ -17,6 +17,7 @@
 
 #include "subtitlerenderer.h"
 #include "../../algorithms/subtitles.h"
+#include <QtConcurrent>
 
 namespace LXiStream {
 namespace FreeTypeBackend {

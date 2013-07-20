@@ -16,6 +16,7 @@
  ******************************************************************************/
 
 #include <LXiCore>
+#include <QtWidgets>
 #include <iostream>
 #if defined(Q_OS_WIN)
 # include <windows.h>
@@ -58,7 +59,7 @@ public:
 
   virtual int run(int &argc, char *argv[])
   {
-    QCoreApplication app(argc, argv); configApp();
+    QApplication app(argc, argv); configApp();
 #if !defined(DEBUG_USE_LOCAL_SANDBOX)
     SApplication mediaApp(true, QStringList() << "lxistream" << "lxistreamdevice" << "lxistreamgui");
 #else
@@ -145,7 +146,7 @@ int main(int argc, char *argv[])
 {
   if ((argc >= 3) && (strcmp(argv[1], "--sandbox") == 0))
   {
-    QCoreApplication app(argc, argv); configApp();
+    QApplication app(argc, argv); configApp();
     SApplication mediaApp(false);
 
 #if defined(Q_OS_WIN)
@@ -166,7 +167,7 @@ int main(int argc, char *argv[])
 #elif defined(Q_OS_MACX)
 int main(int argc, char *argv[])
 {
-  QCoreApplication app(argc, argv); configApp();
+  QApplication app(argc, argv); configApp();
 
   if ((argc >= 3) && (strcmp(argv[1], "--sandbox") == 0))
   {

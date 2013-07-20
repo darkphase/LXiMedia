@@ -467,7 +467,7 @@ bool SMediaInfo::deserialize(QXmlStreamReader &reader)
       }
       else if (reader.name() == "format")
       {
-        pi->format.format = reader.attributes().value("format").toString().toAscii();
+        pi->format.format = reader.attributes().value("format").toString().toLatin1();
         pi->format.fileType = ProbeInfo::FileType(reader.attributes().value("filetype").toString().toInt());
         pi->format.fileTypeName = reader.attributes().value("filetypename").toString();
 

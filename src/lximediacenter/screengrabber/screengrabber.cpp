@@ -100,7 +100,7 @@ SSandboxServer::ResponseMessage ScreenGrabber::httpRequest(const SSandboxServer:
     }
     else if (url.path() == "/desktop")
     {
-      const QString device = QString::fromUtf8(QByteArray::fromHex(url.queryItemValue("desktop").toAscii()));
+      const QString device = QString::fromUtf8(QByteArray::fromHex(QUrlQuery(url).queryItemValue("desktop").toLatin1()));
       if (!device.isEmpty() && device.startsWith("Desktop ", Qt::CaseInsensitive))
       {
         DesktopStream * const desktopStream = new DesktopStream(device);

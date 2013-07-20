@@ -61,8 +61,8 @@ QString ScreenGrabberServer::serverIconPath(void) const
 ScreenGrabberServer::Stream * ScreenGrabberServer::streamVideo(const SHttpServer::RequestMessage &request)
 {
   QUrl url(request.path());
-  if (url.hasQueryItem("query"))
-    url = url.toEncoded(QUrl::RemoveQuery) + QByteArray::fromHex(url.queryItemValue("query").toAscii());
+  if (request.query().hasQueryItem("query"))
+    url = url.toEncoded(QUrl::RemoveQuery) + QByteArray::fromHex(request.query().queryItemValue("query").toLatin1());
 
   const QStringList path = QString(request.path()).split('/');
   if (path.count() >= 2)
@@ -76,13 +76,16 @@ ScreenGrabberServer::Stream * ScreenGrabberServer::streamVideo(const SHttpServer
     {
       SHttpClient * const httpClient = new SHttpClient(this);
 
+      QUrlQuery rquery;
+      rquery.addQueryItem("opendesktop", QString::null);
+      rquery.addQueryItem("desktop", request.fileName());
+      typedef QPair<QString, QString> QStringPair;
+      foreach (const QStringPair &queryItem, QUrlQuery(url).queryItems())
+        rquery.addQueryItem(queryItem.first, queryItem.second);
+
       QUrl rurl(node->location);
       rurl.setPath("/desktop");
-      rurl.addQueryItem("opendesktop", QString::null);
-      rurl.addQueryItem("desktop", request.fileName());
-      typedef QPair<QString, QString> QStringPair;
-      foreach (const QStringPair &queryItem, url.queryItems())
-        rurl.addQueryItem(queryItem.first, queryItem.second);
+      rurl.setQuery(rquery);
 
       Stream *stream = new Stream(this, httpClient, request.path());
       if (stream->setup(rurl))
@@ -192,7 +195,7 @@ ScreenGrabberServer::Item ScreenGrabberServer::makeItem(const QString &path)
       item.played = false;
       item.url = path;
       item.iconUrl = "/img/video-display.png";
-      item.title = QString::fromUtf8(QByteArray::fromHex(file.toAscii()));
+      item.title = QString::fromUtf8(QByteArray::fromHex(file.toLatin1()));
 
       item.audioFormat.setChannelSetup(SAudioFormat::Channels_Stereo);
 

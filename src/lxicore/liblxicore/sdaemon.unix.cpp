@@ -85,7 +85,7 @@ bool SDaemon::stop(const QString &)
 
 SDaemon::SDaemon(const QString &name)
 {
-  qstrncpy(Data::name, name.toAscii(), sizeof(Data::name));
+  qstrncpy(Data::name, name.toLatin1(), sizeof(Data::name));
   Data::sessionID = 0;
   Data::instance = this;
 }

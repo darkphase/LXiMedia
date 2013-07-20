@@ -18,6 +18,7 @@
 #include "nodes/svideoboxnode.h"
 #include "svideobuffer.h"
 #include <cstring>
+#include <QtConcurrent>
 
 namespace LXiStream {
 

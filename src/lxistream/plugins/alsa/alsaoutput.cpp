@@ -152,7 +152,7 @@ void AlsaOutput::openFormat(const SAudioFormat &reqFormat)
                            ",AES2=" + QString::number(aes2) +
                            ",AES3=" + QString::number(aes3);
 
-    if (snd_pcm_open(&pcm, iecdev.toAscii().data(), SND_PCM_STREAM_PLAYBACK, 0) < 0)
+    if (snd_pcm_open(&pcm, iecdev.toLatin1().data(), SND_PCM_STREAM_PLAYBACK, 0) < 0)
     {
       qWarning() << "AlsaOutput: Failed to open device " << iecdev;
       return; // Unable to play
@@ -165,7 +165,7 @@ void AlsaOutput::openFormat(const SAudioFormat &reqFormat)
   }
   else*/ if ((format != SND_PCM_FORMAT_UNKNOWN) && (sampleRate > 0))
   {
-    if (snd_pcm_open(&pcm, dev.toAscii().data(), SND_PCM_STREAM_PLAYBACK, 0) < 0)
+    if (snd_pcm_open(&pcm, dev.toLatin1().data(), SND_PCM_STREAM_PLAYBACK, 0) < 0)
     {
       qWarning() << "AlsaOutput: Failed to open device " << dev;
       return; // Unable to play

@@ -450,7 +450,7 @@ SSize SImage::sizeOf(const QUrl &filePath, const char *format)
 
   SSize result;
 
-  QIODevice * const ioDevice = SMediaFilesystem::open(filePath);
+  QIODevice * const ioDevice = SMediaFilesystem::open(filePath, QIODevice::ReadOnly);
   if (ioDevice)
   {
     if (rawImageSuffixes().contains(format))

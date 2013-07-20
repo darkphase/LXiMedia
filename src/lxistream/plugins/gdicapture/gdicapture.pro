@@ -12,6 +12,6 @@ SOURCES += module.cpp \
  screeninput.cpp
 
 # Export plugin
-SOURCES += export.cpp
+SOURCES +=
 
 LIBS += -lgdi32

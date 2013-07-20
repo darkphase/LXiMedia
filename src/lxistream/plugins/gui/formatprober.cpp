@@ -41,7 +41,7 @@ void FormatProber::readFormat(ProbeInfo &pi, const QByteArray &buffer)
 
     if (SImage::rawImageSuffixes().contains(suffix))
     {
-      pi.format.format = suffix.toAscii();
+      pi.format.format = suffix.toLatin1();
       pi.format.fileType = ProbeInfo::FileType_Image;
       pi.format.fileTypeName = "RAW image";
       pi.isFormatProbed = true;

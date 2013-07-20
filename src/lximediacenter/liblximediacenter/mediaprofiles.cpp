@@ -487,7 +487,7 @@ SSize MediaProfiles::maximumResolution(const QStringList &profileNames)
 
   foreach (const QString &profileName, profileNames)
   {
-    QMap<QByteArray, VideoProfile>::ConstIterator i = Data::videoProfileNames.find(profileName.toAscii());
+    QMap<QByteArray, VideoProfile>::ConstIterator i = Data::videoProfileNames.find(profileName.toLatin1());
     if (i != Data::videoProfileNames.end())
       result = qMax(result, maximumResolution(i.value()));
   }
@@ -563,7 +563,7 @@ SAudioFormat::Channels MediaProfiles::maximumChannels(const QStringList &profile
 
   foreach (const QString &profileName, profileNames)
   {
-    QMap<QByteArray, AudioProfile>::ConstIterator i = Data::audioProfileNames.find(profileName.toAscii());
+    QMap<QByteArray, AudioProfile>::ConstIterator i = Data::audioProfileNames.find(profileName.toLatin1());
     if (i != Data::audioProfileNames.end())
     {
       if (SAudioFormat::numChannels(maximumChannels(i.value())) > SAudioFormat::numChannels(result))
@@ -571,7 +571,7 @@ SAudioFormat::Channels MediaProfiles::maximumChannels(const QStringList &profile
     }
     else
     {
-      QMap<QByteArray, VideoProfile>::ConstIterator i = Data::videoProfileNames.find(profileName.toAscii());
+      QMap<QByteArray, VideoProfile>::ConstIterator i = Data::videoProfileNames.find(profileName.toLatin1());
       if (i != Data::videoProfileNames.end())
       if (SAudioFormat::numChannels(maximumChannels(i.value())) > SAudioFormat::numChannels(result))
         result = maximumChannels(i.value());
@@ -1043,7 +1043,7 @@ MediaProfiles::AudioProfile MediaProfiles::audioProfileFor(const QString &conten
     const int end = contentFeatures.indexOf(';', profilePos);
     const QString profileName = contentFeatures.mid(profilePos + 12, qMax(-1, end - (profilePos + 12)));
 
-    QMap<QByteArray, AudioProfile>::ConstIterator i = d->audioProfileNames.find(profileName.toAscii());
+    QMap<QByteArray, AudioProfile>::ConstIterator i = d->audioProfileNames.find(profileName.toLatin1());
     if (i != d->audioProfileNames.end())
       return i.value();
   }
@@ -1059,7 +1059,7 @@ MediaProfiles::VideoProfile MediaProfiles::videoProfileFor(const QString &conten
     const int end = contentFeatures.indexOf(';', profilePos);
     const QString profileName = contentFeatures.mid(profilePos + 12, qMax(-1, end - (profilePos + 12)));
 
-    QMap<QByteArray, VideoProfile>::ConstIterator i = d->videoProfileNames.find(profileName.toAscii());
+    QMap<QByteArray, VideoProfile>::ConstIterator i = d->videoProfileNames.find(profileName.toLatin1());
     if (i != d->videoProfileNames.end())
       return i.value();
   }
@@ -1075,7 +1075,7 @@ MediaProfiles::ImageProfile MediaProfiles::imageProfileFor(const QString &conten
     const int end = contentFeatures.indexOf(';', profilePos);
     const QString profileName = contentFeatures.mid(profilePos + 12, qMax(-1, end - (profilePos + 12)));
 
-    QMap<QByteArray, ImageProfile>::ConstIterator i = d->imageProfileNames.find(profileName.toAscii());
+    QMap<QByteArray, ImageProfile>::ConstIterator i = d->imageProfileNames.find(profileName.toLatin1());
     if (i != d->imageProfileNames.end())
       return i.value();
   }

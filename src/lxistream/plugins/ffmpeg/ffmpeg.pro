@@ -5,7 +5,7 @@ include($${PWD}/$${LXIMEDIA_DIR}/include/liblxiserver/linklxiserver.pri)
 include($${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/linklxistream.pri)
 include($${PWD}/$${LXIMEDIA_DIR}/ext/ffmpeg/ffmpeg.pri)
 
-QT += network xml
+QT += concurrent network xml
 
 CONFIG += precompile_header
 PRECOMPILED_HEADER = ffmpegcommon.h
@@ -43,7 +43,7 @@ SOURCES += audiodecoder.cpp \
     videoformatconverter.cpp
 
 # Export plugin
-SOURCES += export.cpp
+SOURCES +=
 
 # Windows specific
 win32-msvc2005|win32-msvc2008|win32-msvc2010 {

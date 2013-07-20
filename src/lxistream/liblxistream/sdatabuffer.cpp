@@ -157,7 +157,7 @@ QString SDataBuffer::TeletextPage::channelName(void) const
     }
 
     if (channelNameLen > 0)
-      return QString::fromAscii(header + channelNameStart, channelNameLen);
+      return QString::fromLatin1(header + channelNameStart, channelNameLen);
   }
 
   return QString::null;
@@ -182,7 +182,7 @@ QTime SDataBuffer::TeletextPage::localTime(void) const
       }
     }
 
-    return QTime::fromString(QString::fromAscii(time, 8));
+    return QTime::fromString(QString::fromLatin1(time, 8));
   }
 
   return QTime(-1, -1, -1);

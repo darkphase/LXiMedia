@@ -1,5 +1,5 @@
 TEMPLATE = app
-QT += network webkit xml
+QT += network webkitwidgets xml
 LXIMEDIA_DIR = ../../..
 DESTDIR = $${OUT_PWD}/$${LXIMEDIA_DIR}/bin
 

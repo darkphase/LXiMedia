@@ -4,6 +4,8 @@ include($${PWD}/../liblxiserver/linklxiserver.pri)
 include($${PWD}/../liblxistream/linklxistream.pri)
 include($${PWD}/../liblxistreamgui/linklxistreamgui.pri)
 
+QT += xml
+
 !contains(LINKED, LXiMediaCenter) {
   LINKED += LXiMediaCenter
   

@@ -16,6 +16,7 @@
  ******************************************************************************/
 
 #include "audioresampler.h"
+#include <QtConcurrent>
 
 namespace LXiStream {
 namespace FFMpegBackend {

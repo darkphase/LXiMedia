@@ -598,7 +598,7 @@ void SandboxProcess::readyRead()
           const QList<QByteArray> items = line.simplified().split(' ');
           if (items.count() >= 2)
           {
-            emit ready(QString::fromAscii(items[1]));
+            emit ready(QString::fromLatin1(items[1]));
             started = true;
           }
         }

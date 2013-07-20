@@ -65,7 +65,7 @@ void FFMpegTest::AudioEncodeDecode(void)
   qSort(test);
   foreach (const QString &codec, test)
   if (codecs.contains(codec))
-    AudioEncodeDecode(codec.toAscii());
+    AudioEncodeDecode(codec.toLatin1());
 }
 
 void FFMpegTest::AudioEncodeDecode(const char *codecName)
@@ -134,7 +134,7 @@ void FFMpegTest::VideoEncodeDecode(void)
   qSort(test);
   foreach (const QString &codec, test)
   if (codecs.contains(codec))
-    VideoEncodeDecode(codec.toAscii());
+    VideoEncodeDecode(codec.toLatin1());
 }
 
 void FFMpegTest::VideoEncodeDecode(const char *codecName)
@@ -189,7 +189,7 @@ void FFMpegTest::VideoEncodeDecode(const char *codecName)
     QCOMPARE(decBuffers.count(), count + 1); // +1 for flush buffer.
 
     if (!qApp->arguments().contains("-silent"))
-      qDebug() << codecName << QString::number(float(count * 1000) / float(timer.elapsed()), 'f', 2).toAscii().data() << "fps";
+      qDebug() << codecName << QString::number(float(count * 1000) / float(timer.elapsed()), 'f', 2).toLatin1().data() << "fps";
   }
 
   delete videoDecoder;

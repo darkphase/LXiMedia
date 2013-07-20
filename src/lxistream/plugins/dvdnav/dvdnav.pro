@@ -13,7 +13,7 @@ SOURCES += formatprober.cpp \
     bufferreader.cpp
 
 # Export plugin
-SOURCES += export.cpp
+SOURCES +=
 
 # Windows specific
 win32-msvc2005|win32-msvc2008|win32-msvc2010 {

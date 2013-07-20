@@ -39,7 +39,7 @@ BufferReader::~BufferReader()
 
 bool BufferReader::openFormat(const QString &name)
 {
-  format = ::av_find_input_format(name.toAscii().data());
+  format = ::av_find_input_format(name.toLatin1().data());
 
   // Do not allow redirecting.
   if (format)

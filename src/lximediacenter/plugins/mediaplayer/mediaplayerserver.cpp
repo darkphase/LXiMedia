@@ -42,12 +42,12 @@ MediaPlayerServer::MediaPlayerServer(const QString &, QObject *parent)
   foreach (const QString &root, settings.value("RootPaths").toStringList())
   if (!root.isEmpty())
   {
-    QUrl path = QUrl::fromEncoded(root.toAscii());
+    QUrl path = QUrl::fromEncoded(root.toLatin1());
     if (path.isValid() && !path.scheme().isEmpty())
     {
       // Lame-decrypt the password.
       if (!path.password().isEmpty())
-        path.setPassword(QString::fromUtf8(qUncompress(QByteArray::fromHex(path.password().toAscii()))));
+        path.setPassword(QString::fromUtf8(qUncompress(QByteArray::fromHex(path.password().toLatin1()))));
 
       paths.append(path);
     }
@@ -85,9 +85,9 @@ QString MediaPlayerServer::serverIconPath(void) const
 MediaPlayerServer::Stream * MediaPlayerServer::streamVideo(const SHttpServer::RequestMessage &request)
 {
   SSandboxClient::Priority priority = SSandboxClient::Priority_Normal;
-  if (request.url().queryItemValue("priority") == "low")
+  if (request.query().queryItemValue("priority") == "low")
     priority = SSandboxClient::Priority_Low;
-  else if (request.url().queryItemValue("priority") == "high")
+  else if (request.query().queryItemValue("priority") == "high")
     priority = SSandboxClient::Priority_High;
 
   SSandboxClient * const sandbox = masterServer->createSandbox(priority);
@@ -97,35 +97,38 @@ MediaPlayerServer::Stream * MediaPlayerServer::streamVideo(const SHttpServer::Re
   const QUrl filePath = realPath(request.file());
   if (!filePath.isEmpty())
   {
-    QUrl rurl;
-    rurl.setPath(MediaPlayerSandbox::path);
+    QUrlQuery rquery;
     typedef QPair<QString, QString> QStringPair;
-    foreach (const QStringPair &queryItem, request.url().queryItems())
-      rurl.addQueryItem(queryItem.first, queryItem.second);
+    foreach (const QStringPair &queryItem, request.query().queryItems())
+      rquery.addQueryItem(queryItem.first, queryItem.second);
 
     if (request.hasField("timeSeekRange.dlna.org"))
     {
-      int pos = rurl.queryItemValue("position").toInt();
-      rurl.removeAllQueryItems("position");
+      int pos = rquery.queryItemValue("position").toInt();
+      rquery.removeAllQueryItems("position");
 
       QString ntp = request.field("timeSeekRange.dlna.org");
       ntp = ntp.mid(ntp.indexOf("ntp=") + 4);
       ntp = ntp.left(ntp.indexOf('-'));
       pos += int(ntp.toFloat() + 0.5f);
 
-      rurl.addQueryItem("position", QString::number(pos));
+      rquery.addQueryItem("position", QString::number(pos));
     }
 
     const QString vFile = virtualFile(request.file());
     if (!vFile.isEmpty() && vFile[0].isNumber())
     {
-      rurl.addQueryItem("title", vFile.mid(1));
-      rurl.addQueryItem("play", QString::null);
+      rquery.addQueryItem("title", vFile.mid(1));
+      rquery.addQueryItem("play", QString::null);
     }
     else if (!vFile.isEmpty())
-      rurl.addQueryItem("play", vFile);
+      rquery.addQueryItem("play", vFile);
     else
-      rurl.addQueryItem("play", QString::null);
+      rquery.addQueryItem("play", QString::null);
+
+    QUrl rurl;
+    rurl.setPath(MediaPlayerSandbox::path);
+    rurl.setQuery(rquery);
 
     Stream *stream = new Stream(this, sandbox, request.path());
     if (stream->setup(rurl, filePath.toString().toUtf8()))
@@ -146,20 +149,20 @@ SHttpServer::ResponseMessage MediaPlayerServer::sendPhoto(const SHttpServer::Req
   if (!filePath.isEmpty())
   {
     SSize size(4096, 4096);
-    if (request.url().hasQueryItem("resolution"))
-      size = SSize::fromString(request.url().queryItemValue("resolution"));
+    if (request.query().hasQueryItem("resolution"))
+      size = SSize::fromString(request.query().queryItemValue("resolution"));
 
     QColor backgroundColor = Qt::black;
-    if (request.url().hasQueryItem("bgcolor"))
-      backgroundColor.setNamedColor('#' + request.url().queryItemValue("bgcolor"));
+    if (request.query().hasQueryItem("bgcolor"))
+      backgroundColor.setNamedColor('#' + request.query().queryItemValue("bgcolor"));
 
     QString format = "png";
-    if (request.url().hasQueryItem("format"))
-      format = request.url().queryItemValue("format");
+    if (request.query().hasQueryItem("format"))
+      format = request.query().queryItemValue("format");
 
     QString contentType = "image/" + format.toLower();
 
-    const QString contentFeatures = QByteArray::fromBase64(request.url().queryItemValue("contentFeatures").toAscii());
+    const QString contentFeatures = QByteArray::fromBase64(request.query().queryItemValue("contentFeatures").toLatin1());
     const MediaProfiles::ImageProfile imageProfile = mediaProfiles().imageProfileFor(contentFeatures);
     if (imageProfile != 0) // DLNA stream.
     {
@@ -537,7 +540,9 @@ MediaPlayerServer::Item MediaPlayerServer::makeItem(SMediaInfo::ProbeInfo::FileT
         item.played = mediaDatabase->lastPlayed(node.filePath()).first.isValid();
         item.url = item.path;
         item.iconUrl = item.url;
-        item.iconUrl.addQueryItem("thumbnail", QString::null);
+        QUrlQuery q(item.iconUrl);
+        q.addQueryItem("thumbnail", QString::null);
+        item.iconUrl.setQuery(q);
 
         if (item.title.isEmpty())
           item.title = node.baseName();
@@ -629,7 +634,7 @@ SMediaInfo::ProbeInfo::FileType MediaPlayerServer::dirType(const QString &virtua
 void MediaPlayerServer::consoleLine(const QString &line)
 {
   if (line.startsWith("#PLAYED:"))
-    mediaDatabase->setLastPlayed(QUrl::fromEncoded(QByteArray::fromHex(line.mid(8).toAscii())));
+    mediaDatabase->setLastPlayed(QUrl::fromEncoded(QByteArray::fromHex(line.mid(8).toLatin1())));
 }
 
 

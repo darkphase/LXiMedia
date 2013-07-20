@@ -90,10 +90,10 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
 
   decodeChannels(request.url(), audioFormat);
 
-  if (request.url().hasQueryItem("subtitlesize"))
-    video->subtitleRenderer.setFontSize(request.url().queryItemValue("subtitlesize").toFloat());
+  if (request.query().hasQueryItem("subtitlesize"))
+    video->subtitleRenderer.setFontSize(request.query().queryItemValue("subtitlesize").toFloat());
 
-  if (request.url().queryItemValue("encodemode") == "fast")
+  if (request.query().queryItemValue("encodemode") == "fast")
   {
     audioEncodeFlags |= SInterfaces::AudioEncoder::Flag_Fast;
     videoEncodeFlags |= SInterfaces::VideoEncoder::Flag_Fast;
@@ -108,7 +108,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
   header.setCacheControl(-1);
 
   // Match with DLNA profile
-  const QString contentFeatures = QByteArray::fromBase64(request.url().queryItemValue("contentFeatures").toAscii());
+  const QString contentFeatures = QByteArray::fromBase64(request.query().queryItemValue("contentFeatures").toLatin1());
   const MediaProfiles::VideoProfile videoProfile = MediaServer::mediaProfiles().videoProfileFor(contentFeatures);
   if (videoProfile != 0) // DLNA stream.
   {
@@ -161,7 +161,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
   {
     SAudioCodec audioCodec;
     SVideoCodec videoCodec;
-    QString format = request.url().queryItemValue("format");
+    QString format = request.query().queryItemValue("format");
 
     if ((format == "ogv") && SIOOutputNode::formats().contains("ogg"))
     {
@@ -322,14 +322,14 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
 
   decodeChannels(request.url(), audioFormat);
 
-  if (request.url().queryItemValue("encodemode") == "fast")
+  if (request.query().queryItemValue("encodemode") == "fast")
     audioEncodeFlags |= SInterfaces::AudioEncoder::Flag_Fast;
 
   SHttpServer::ResponseHeader header(request, SHttpServer::Status_Ok);
   header.setCacheControl(-1);
 
   // Match with DLNA profile
-  const QString contentFeatures = QByteArray::fromBase64(request.url().queryItemValue("contentFeatures").toAscii());
+  const QString contentFeatures = QByteArray::fromBase64(request.query().queryItemValue("contentFeatures").toLatin1());
   const MediaProfiles::AudioProfile audioProfile = MediaServer::mediaProfiles().audioProfileFor(contentFeatures);
   if (audioProfile != 0) // DLNA stream.
   {
@@ -365,7 +365,7 @@ bool MediaStream::setup(const SHttpServer::RequestMessage &request,
   else // Non-DLNA stream.
   {
     SAudioCodec audioCodec;
-    QString format = request.url().queryItemValue("format");
+    QString format = request.query().queryItemValue("format");
 
     if ((format == "adts") && SIOOutputNode::formats().contains(format))
     {
@@ -450,11 +450,12 @@ SSize MediaStream::decodeSize(const QUrl &url)
 
 void MediaStream::decodeSize(const QUrl &url, SVideoFormat &videoFormat, Qt::AspectRatioMode &aspectRatioMode)
 {
-  if (url.hasQueryItem("resolution"))
+  const QUrlQuery query(url);
+  if (query.hasQueryItem("resolution"))
   {
 	SSize size = videoFormat.size();
 
-    const QStringList formatTxt = url.queryItemValue("resolution").split(',');
+    const QStringList formatTxt = query.queryItemValue("resolution").split(',');
 
     const QStringList sizeTxt = formatTxt.first().split('x');
     if (sizeTxt.count() >= 2)
@@ -489,13 +490,14 @@ SAudioFormat::Channels MediaStream::decodeChannels(const QUrl &url)
 
 void MediaStream::decodeChannels(const QUrl &url, SAudioFormat &audioFormat)
 {
-  if (url.hasQueryItem("channels"))
+  const QUrlQuery query(url);
+  if (query.hasQueryItem("channels"))
   {
     const SAudioFormat::Channels c =
-        SAudioFormat::Channels(url.queryItemValue("channels").toUInt(NULL, 16));
+        SAudioFormat::Channels(query.queryItemValue("channels").toUInt(NULL, 16));
 
     if ((SAudioFormat::numChannels(c) > 0) &&
-        (url.hasQueryItem("music") ||
+        (query.hasQueryItem("music") ||
          (audioFormat.numChannels() > SAudioFormat::numChannels(c))))
     {
       audioFormat.setChannelSetup(c);
@@ -569,8 +571,8 @@ bool MediaTranscodeStream::setup(
     SInterfaces::VideoEncoder::Flags videoEncodeFlags)
 {
   int titleId = 0;
-  if (request.url().hasQueryItem("title"))
-    titleId = request.url().queryItemValue("title").toInt();
+  if (request.query().hasQueryItem("title"))
+    titleId = request.query().queryItemValue("title").toInt();
 
   if (audioDecoder.open(input) && videoDecoder.open(input) && dataDecoder.open(input))
   {
@@ -580,9 +582,9 @@ bool MediaTranscodeStream::setup(
     QList<SInputNode::DataStreamInfo>  dataStreams  = input->dataStreams(titleId);
 
     QVector<SInputNode::StreamId> selectedStreams;
-    if (request.url().hasQueryItem("language"))
+    if (request.query().hasQueryItem("language"))
     {
-      selectedStreams += SInputNode::StreamId::fromString(request.url().queryItemValue("language"));
+      selectedStreams += SInputNode::StreamId::fromString(request.query().queryItemValue("language"));
     }
     else foreach (const SInputNode::AudioStreamInfo &stream, audioStreams)
     if (!stream.codec.isNull())
@@ -598,10 +600,10 @@ bool MediaTranscodeStream::setup(
       break;
     }
 
-    if (request.url().hasQueryItem("subtitles"))
+    if (request.query().hasQueryItem("subtitles"))
     {
-      if (!request.url().queryItemValue("subtitles").isEmpty())
-        selectedStreams += SInputNode::StreamId::fromString(request.url().queryItemValue("subtitles"));
+      if (!request.query().queryItemValue("subtitles").isEmpty())
+        selectedStreams += SInputNode::StreamId::fromString(request.query().queryItemValue("subtitles"));
     }
     else foreach (const SInputNode::DataStreamInfo &stream, dataStreams)
     if (!stream.codec.isNull())
@@ -616,9 +618,9 @@ bool MediaTranscodeStream::setup(
     if (!duration.isValid())
       duration = input->duration();
 
-    if (request.url().hasQueryItem("position"))
+    if (request.query().hasQueryItem("position"))
     {
-      const STime pos = STime::fromSec(request.url().queryItemValue("position").toInt());
+      const STime pos = STime::fromSec(request.query().queryItemValue("position").toInt());
       input->setPosition(pos);
 
       if (duration > pos)
@@ -627,9 +629,9 @@ bool MediaTranscodeStream::setup(
         duration = STime::null;
     }
 
-    if (request.url().hasQueryItem("starttime"))
+    if (request.query().hasQueryItem("starttime"))
     {
-      const STime pos = STime::fromSec(request.url().queryItemValue("starttime").toInt());
+      const STime pos = STime::fromSec(request.query().queryItemValue("starttime").toInt());
       sync.setStartTime(pos);
 
       if (duration.isPositive())
@@ -637,12 +639,12 @@ bool MediaTranscodeStream::setup(
     }
 
     bool generateVideo = false;
-    if (videoStreams.isEmpty() && request.url().hasQueryItem("addvideo"))
+    if (videoStreams.isEmpty() && request.query().hasQueryItem("addvideo"))
     {
       SSize size(352, 288);
-      if (request.url().hasQueryItem("resolution"))
+      if (request.query().hasQueryItem("resolution"))
       {
-        const QStringList formatTxt = request.url().queryItemValue("resolution").split(',');
+        const QStringList formatTxt = request.query().queryItemValue("resolution").split(',');
 
         const QStringList sizeTxt = formatTxt.first().split('x');
         if (sizeTxt.count() >= 2)

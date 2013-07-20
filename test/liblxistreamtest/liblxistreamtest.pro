@@ -1,5 +1,5 @@
 TEMPLATE = app
-CONFIG += qtestlib
+QT += testlib
 win32:CONFIG += console
 LXIMEDIA_DIR = ../..
 DESTDIR = $${OUT_PWD}/$${LXIMEDIA_DIR}/bin

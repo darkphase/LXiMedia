@@ -93,7 +93,7 @@ bool SAudioCodec::deserialize(QXmlStreamReader &reader)
 {
   if (reader.name() == "audiocodec")
   {
-    d.name = reader.attributes().value("name").toString().toAscii();
+    d.name = reader.attributes().value("name").toString().toLatin1();
     d.channels = SAudioFormat::Channels(reader.attributes().value("channels").toString().toInt(NULL, 16));
     d.sampleRate = reader.attributes().value("samplerate").toString().toInt();
     d.streamId = reader.attributes().value("streamid").toString().toInt();

@@ -85,7 +85,7 @@ SSandboxServer::ResponseMessage Sandbox::httpRequest(const SSandboxServer::Reque
 {
   if (request.isGet() && (request.url().path() == "/"))
   {
-    if (request.url().hasQueryItem("formats"))
+    if (request.query().hasQueryItem("formats"))
     {
       QDomDocument doc("");
       QDomElement rootElm = doc.createElement("formats");
@@ -116,7 +116,7 @@ SSandboxServer::ResponseMessage Sandbox::httpRequest(const SSandboxServer::Reque
           request, SSandboxServer::Status_Ok,
           doc.toByteArray(-1), SHttpEngine::mimeTextXml);
     }
-    else if (request.url().hasQueryItem("modules"))
+    else if (request.query().hasQueryItem("modules"))
     {
       QDomDocument doc("");
       QDomElement rootElm = doc.createElement("modules");

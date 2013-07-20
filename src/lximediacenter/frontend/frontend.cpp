@@ -112,7 +112,7 @@ void Frontend::loadFrontendPage(const QUrl &url)
   if (url.path().startsWith("/iframe/"))
   {
     frontendPageShowing = false;
-    setContent(makeIFrame(QByteArray::fromHex(url.path().mid(8).toAscii())), "text/html", QUrl("qrc:/"));
+    setContent(makeIFrame(QByteArray::fromHex(url.path().mid(8).toLatin1())), "text/html", QUrl("qrc:/"));
   }
   else if (url.path() == "/waiting")
   {
@@ -201,7 +201,7 @@ void Frontend::requestFinished(QNetworkReply *reply)
           const QUrl presentationURL = deviceElm.firstChildElement("presentationURL").text();
           server->presentationURL = reply->request().url();
           server->presentationURL.setPath(presentationURL.path());
-          server->presentationURL.setQueryItems(presentationURL.queryItems());
+          server->presentationURL.setQuery(presentationURL.query());
 
           QDomElement iconListElm = deviceElm.firstChildElement("iconList");
           if (!iconListElm.isNull())
@@ -212,7 +212,7 @@ void Frontend::requestFinished(QNetworkReply *reply)
               const QUrl iconURL = urlElm.text();
               server->iconURL = reply->request().url();
               server->iconURL.setPath(iconURL.path());
-              server->iconURL.setQueryItems(iconURL.queryItems());
+              server->iconURL.setQuery(iconURL.query());
             }
           }
 
@@ -392,7 +392,7 @@ QNetworkReply * Frontend::NetworkAccessManager::createRequest(Operation op, cons
   if (op == GetOperation)
   {
     QNetworkRequest req = request;
-    req.setRawHeader(qApp->applicationName().toAscii() + ".HomeAddress", "frontend:/");
+    req.setRawHeader(qApp->applicationName().toLatin1() + ".HomeAddress", "frontend:/");
 
     return QNetworkAccessManager::createRequest(op, req, outgoingData);
   }

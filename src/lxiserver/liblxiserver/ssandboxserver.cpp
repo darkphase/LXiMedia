@@ -130,7 +130,7 @@ bool SSandboxServer::initialize(const QString &mode, const QString &name)
 
     if (name.isEmpty())
     {
-      std::cerr << "##READY " << d->server->serverName().toAscii().data() << std::endl;
+      std::cerr << "##READY " << d->server->serverName().toLatin1().data() << std::endl;
       d->notifyStop = true;
     }
   }

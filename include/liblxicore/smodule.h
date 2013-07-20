@@ -25,9 +25,8 @@ namespace LXiCore {
 
 /*! The SModule interface is used to register modules to the factories.
  */
-class LXICORE_PUBLIC SModule : public QObject
+class LXICORE_PUBLIC SModule
 {
-Q_OBJECT
 public:
   virtual                       ~SModule();
 
@@ -51,5 +50,8 @@ public:
 };
 
 } // End of namespace
+
+#define LXiCore_SModule_iid "net.sourceforge.lximedia.LXiCore.SModule"
+Q_DECLARE_INTERFACE(LXiCore::SModule, LXiCore_SModule_iid)
 
 #endif

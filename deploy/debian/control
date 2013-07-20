@@ -17,10 +17,16 @@ Build-Depends: debhelper (>= 7),
                libswscale-dev,
                libexif-dev,
                libfreetype6-dev,
+               libgstreamer0.10-dev,
+               libgstreamer-plugins-base0.10-dev,
                libpulse-dev,
-               libqtwebkit-dev | libqt4-dev,
-               libqt4-test,
+               libqt5webkit5-dev,
+               qtbase5-dev,
+               qtsensors5-dev,
+               qtlocation5-dev,
+               libqt5test5,
                libsmbclient-dev,
+               libsqlite3-dev,
                libx11-dev,
                libx11-xcb-dev,
                libxcb-image0-dev,
@@ -28,9 +34,11 @@ Build-Depends: debhelper (>= 7),
                libxcb-xinerama0-dev,
                libxext-dev,
                libxrandr-dev,
+               libxml2-dev,
+               libxslt1-dev,
                libxtst-dev,
                libxv-dev,
-               qt4-qmake,
+               qt5-qmake,
                zlib1g-dev
 Standards-Version: 3.8.4
 Section: libs
@@ -77,8 +85,7 @@ Package: liblxicore1
 Section: libs
 Architecture: any
 Depends: ${misc:Depends},
-         libqtcore4,
-         libqt4-xml
+         libqt5core5
 Description: A streaming media server library
  Provides the shared functions of LXiMedia.
 
@@ -87,10 +94,9 @@ Section: libs
 Architecture: any
 Depends: ${misc:Depends},
          liblxicore1 (= ${binary:Version}), 
-         libqtcore4,
-         libqtgui4,
-         libqt4-network,
-         libqt4-xml
+         libqt5core5,
+         libqt5gui5,
+         libqt5network5
 Description: A streaming media server library
  Provides a platform independent abstraction for different multimedia server
  protocols.
@@ -111,10 +117,9 @@ Depends: ${misc:Depends},
          libexif12,
          libfreetype6,
          libpulse0,
-         libqtcore4,
-         libqtgui4,
-         libqt4-network,
-         libqt4-xml,
+         libqt5core5,
+         libqt5gui5,
+         libqt5network5,
          libsmbclient
 Recommends: liblxistreamdevice1 (= ${binary:Version})
 Description: A streaming media library
@@ -126,7 +131,7 @@ Architecture: any
 Depends: ${misc:Depends},
          liblxicore1 (= ${binary:Version}), 
          liblxistream1 (= ${binary:Version}), 
-         libqtcore4
+         libqt5core5
 Description: Device library for liblxistream.
  Adds device support to liblxistream.
 
@@ -137,10 +142,9 @@ Depends: ${misc:Depends},
          liblxicore1 (= ${binary:Version}), 
          liblxiserver1 (= ${binary:Version}), 
          liblxistream1 (= ${binary:Version}), 
-         libqtcore4,
-         libqtgui4,
-         libqt4-script,
-         libqt4-xml
+         libqt5core5,
+         libqt5gui5,
+         libqt5script5
 Description: A DLNA based transcoding media server
  This package provides the base library for LXiMediaCenter.
 
@@ -153,10 +157,9 @@ Depends: ${misc:Depends},
          liblxistream1 (= ${binary:Version}), 
          liblxistreamdevice1 (= ${binary:Version}),
          liblximediacenter1 (= ${binary:Version}), 
-         libqtcore4,
-         libqtgui4,
-         libqtwebkit4 | libqt4-webkit,
-         libqt4-xml
+         libqt5core5,
+         libqt5gui5,
+         libqt5webkit5
 Description: A DLNA based transcoding media server
  LXiMediaCenter is a DLNA based transcoding media server.
 
@@ -175,11 +178,10 @@ Depends: ${misc:Depends},
          libexif12,
          libfreetype6,
          libpulse0,
-         libqtcore4,
-         libqtgui4,
-         libqtwebkit4 | libqt4-webkit,
-         libqt4-script,
-         libqt4-xml,
+         libqt5core5,
+         libqt5gui5,
+         libqt5webkit5,
+         libqt5script5,
          libsmbclient,
          libx11-6,
          libx11-xcb1,

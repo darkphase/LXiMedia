@@ -18,6 +18,7 @@
 #include "videoencoder.h"
 #include "bufferwriter.h"
 #include <cmath>
+#include <QtConcurrent>
 
 namespace LXiStream {
 namespace FFMpegBackend {

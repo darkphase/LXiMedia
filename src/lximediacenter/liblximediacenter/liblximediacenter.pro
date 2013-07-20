@@ -1,6 +1,6 @@
 TEMPLATE = lib
 CONFIG += dll
-QT += network
+QT += network xml
 LXIMEDIA_DIR = ../../..
 DESTDIR = $${OUT_PWD}/$${LXIMEDIA_DIR}/bin
 TARGET = LXiMediaCenter

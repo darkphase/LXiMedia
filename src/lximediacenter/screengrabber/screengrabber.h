@@ -20,6 +20,7 @@
 
 #include <QtCore>
 #include <QtGui>
+#include <QtWidgets>
 #include <LXiServer>
 #include <LXiMediaCenter>
 #include <LXiStreamDevice>

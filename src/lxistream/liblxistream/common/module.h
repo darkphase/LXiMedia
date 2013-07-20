@@ -26,7 +26,6 @@ namespace Common {
 
 class Module : public SModule
 {
-Q_OBJECT
 public:
   virtual bool                  registerClasses(void);
   virtual void                  unload(void);

@@ -50,7 +50,7 @@ void HttpEngineTest::HttpServerIPv4(void)
   else
   {
     stopServer();
-    QSKIP("IPv4 not available.", SkipSingle);
+    QSKIP("IPv4 not available.");
   }
 }
 
@@ -66,7 +66,7 @@ void HttpEngineTest::HttpServerIPv6(void)
   else
   {
     stopServer();
-    QSKIP("IPv6 not available.", SkipSingle);
+    QSKIP("IPv6 not available.");
   }
 }
 
@@ -83,7 +83,7 @@ void HttpEngineTest::HttpClientIPv4(void)
   else
   {
     stopServer();
-    QSKIP("IPv4 not available.", SkipSingle);
+    QSKIP("IPv4 not available.");
   }
 }
 
@@ -100,7 +100,7 @@ void HttpEngineTest::HttpClientIPv6(void)
   else
   {
     stopServer();
-    QSKIP("IPv6 not available.", SkipSingle);
+    QSKIP("IPv6 not available.");
   }
 }
 
@@ -171,10 +171,10 @@ void HttpEngineTest::testQtClient(const QHostAddress &address)
   for (int i=0; i<numResponses; i++)
     manager.get(QNetworkRequest(url));
 
-  for (unsigned i=0; (i<100) && (responseCount<numResponses); i++)
+  for (unsigned i=0; (i<100) && (responseCount.load()<numResponses); i++)
     QTest::qWait(100);
 
-  QCOMPARE(int(responseCount), numResponses);
+  QCOMPARE(responseCount.load(), numResponses);
 }
 
 void HttpEngineTest::testHttpClient(const QHostAddress &address)
@@ -191,10 +191,10 @@ void HttpEngineTest::testHttpClient(const QHostAddress &address)
   for (int i=0; i<numResponses; i++)
     httpClient.sendRequest(request);
 
-  for (unsigned i=0; (i<100) && (responseCount<numResponses); i++)
+  for (unsigned i=0; (i<100) && (responseCount.load()<numResponses); i++)
     QTest::qWait(100);
 
-  QCOMPARE(int(responseCount), numResponses);
+  QCOMPARE(responseCount.load(), numResponses);
 }
 
 void HttpEngineTest::testBlockingHttpClient(const QHostAddress &address)
@@ -240,7 +240,7 @@ void HttpEngineTest::testBlockingHttpClient(const QHostAddress &address)
   while (!thread[i]->wait(0))
     QTest::qWait(100);
 
-  QCOMPARE(int(responseCount), numResponses * numThreads);
+  QCOMPARE(responseCount.load(), numResponses * numThreads);
 }
 
 void HttpEngineTest::serverReply(QNetworkReply *reply)

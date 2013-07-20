@@ -1,5 +1,5 @@
 TEMPLATE = app
-QT += network xml
+QT += network widgets
 LXIMEDIA_DIR = ../../..
 DESTDIR = $${OUT_PWD}/$${LXIMEDIA_DIR}/bin
 

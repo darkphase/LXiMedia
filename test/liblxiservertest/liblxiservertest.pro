@@ -1,8 +1,7 @@
 TEMPLATE = app
-CONFIG += qtestlib
-win32:CONFIG += console
+QT += testlib network xml
 QT -= gui
-QT += network
+win32:CONFIG += console
 LXIMEDIA_DIR = ../..
 DESTDIR = $${OUT_PWD}/$${LXIMEDIA_DIR}/bin
 TARGET = lxiservertest

@@ -8,10 +8,7 @@
 #include <QtCore>
 #include <QtGui>
 
-#include "liblxistreamgui/sdisplay.h"
 #include "liblxistreamgui/simage.h"
-#include "liblxistreamgui/svideoview.h"
-#include "liblxistreamgui/svumeter.h"
 
 #include "liblxistreamgui/nodes/svideogeneratornode.h"
 
