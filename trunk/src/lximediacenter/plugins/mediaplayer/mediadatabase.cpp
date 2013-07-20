@@ -177,9 +177,9 @@ QByteArray MediaDatabase::readThumbnail(const QUrl &filePath, const QSize &size,
     request.setRequest(
         "POST",
         QByteArray(MediaPlayerSandbox::path) + "?readthumbnail="
-        "&maxsize=" + SSize(size).toString().toAscii() +
-        "&bgcolor=" + backgroundColor.name().mid(1).toAscii() +
-        "&format=" + format.toAscii());
+        "&maxsize=" + SSize(size).toString().toLatin1() +
+        "&bgcolor=" + backgroundColor.name().mid(1).toLatin1() +
+        "&format=" + format.toLatin1());
 
     request.setContent(filePath.toString().toUtf8());
 
@@ -199,9 +199,9 @@ QByteArray MediaDatabase::readImage(const QUrl &filePath, const QSize &size, con
     request.setRequest(
         "POST",
         QByteArray(MediaPlayerSandbox::path) + "?readimage="
-        "&maxsize=" + SSize(size).toString().toAscii() +
-        "&bgcolor=" + backgroundColor.name().mid(1).toAscii() +
-        "&format=" + format.toAscii());
+        "&maxsize=" + SSize(size).toString().toLatin1() +
+        "&bgcolor=" + backgroundColor.name().mid(1).toLatin1() +
+        "&format=" + format.toLatin1());
 
     request.setContent(filePath.toString().toUtf8());
 
@@ -335,12 +335,15 @@ void MediaDatabase::preProbeNext(void)
   {
     if (i.key() < 0)
     {
+      QUrlQuery query;
+      query.addQueryItem("listfiles", QString::null);
+      query.addQueryItem("priority", QString::number(-1000));
+      query.addQueryItem("start", QString::number(i->start));
+      query.addQueryItem("count", QString::number(preProbeItemCount));
+
       QUrl url;
       url.setPath(MediaPlayerSandbox::path);
-      url.addQueryItem("listfiles", QString::null);
-      url.addQueryItem("priority", QString::number(-1000));
-      url.addQueryItem("start", QString::number(i->start));
-      url.addQueryItem("count", QString::number(preProbeItemCount));
+      url.setQuery(query);
 
       SSandboxClient::RequestMessage request(probeSandbox);
       request.setRequest("POST", url.toEncoded(QUrl::RemoveScheme | QUrl::RemoveAuthority));
@@ -356,10 +359,13 @@ void MediaDatabase::preProbeNext(void)
       const SMediaInfo node = readNodeCache(i->info);
       if (node.isNull() || (i->content && !node.isContentProbed()))
       {
+        QUrlQuery query;
+        query.addQueryItem(i->content ? "probecontent" : "probeformat", QString::null);
+        query.addQueryItem("priority", QString::number(-1001));
+
         QUrl url;
         url.setPath(MediaPlayerSandbox::path);
-        url.addQueryItem(i->content ? "probecontent" : "probeformat", QString::null);
-        url.addQueryItem("priority", QString::number(-1001));
+        url.setQuery(query);
 
         SSandboxClient::RequestMessage request(probeSandbox);
         request.setRequest("POST", url.toEncoded(QUrl::RemoveScheme | QUrl::RemoveAuthority));

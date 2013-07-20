@@ -155,6 +155,7 @@ public:
     inline void                 setRequest(const QByteArray &method, const QByteArray &path, const QByteArray &version) { setMethod(method); setPath(path); setVersion(version); }
 
     inline const QUrl         & url(void) const                                 { if (!cache.valid) update(); return cache.url; }
+    inline const QUrlQuery    & query(void) const                               { if (!cache.valid) update(); return cache.query; }
     inline const QString      & file(void) const                                { if (!cache.valid) update(); return cache.file; }
     inline const QString      & fileName(void) const                            { if (!cache.valid) update(); return cache.fileName; }
 
@@ -164,6 +165,7 @@ public:
     mutable struct
     {
       QUrl                      url;
+      QUrlQuery                 query;
       QString                   file;
       QString                   fileName;
       bool                      valid;

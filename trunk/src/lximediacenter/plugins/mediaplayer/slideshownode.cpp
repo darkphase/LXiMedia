@@ -17,6 +17,7 @@
 
 #include "slideshownode.h"
 #include <LXiStreamGui>
+#include <QtConcurrent>
 
 // Implemented in slideshowsource.blend.c
 extern "C" void LXiMediaCenter_MediaPlayerBackend_SlideShowNode_blendImages(

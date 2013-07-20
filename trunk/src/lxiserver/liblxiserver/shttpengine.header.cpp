@@ -221,6 +221,7 @@ void SHttpEngine::RequestHeader::update(void) const
 {
   QByteArray file = path();
   cache.url = QUrl::fromEncoded(file);
+  cache.query = QUrlQuery(cache.url);
 
   const int q = file.indexOf('?');
   if (q >= 0)

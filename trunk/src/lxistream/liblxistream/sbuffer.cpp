@@ -16,6 +16,7 @@
  ******************************************************************************/
 
 #include "sbuffer.h"
+#include <QtConcurrent>
 
 namespace LXiStream {
 

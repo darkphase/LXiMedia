@@ -196,7 +196,7 @@ public: // Logging
   void                          logLine(const QByteArray &line);
 
 private:
-  static void                   logMessage(QtMsgType, const char *);
+  static void                   logMessage(QtMsgType, const QMessageLogContext &, const QString &);
 
 public: // Profiling
   bool                          enableProfiling(const QString &fileName);

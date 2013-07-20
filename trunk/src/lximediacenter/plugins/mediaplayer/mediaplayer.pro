@@ -2,7 +2,7 @@ MODULE_NAME = lximediacenter_mediaplayer
 LXIMEDIA_DIR = ../../../..
 include($${PWD}/$${LXIMEDIA_DIR}/include/liblxicore/module.pri)
 include($${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/linklximediacenter.pri)
-QT += network
+QT += concurrent network
 
 CONFIG += precompile_header
 PRECOMPILED_HEADER = $${PWD}/$${LXIMEDIA_DIR}/include/LXiMediaCenter

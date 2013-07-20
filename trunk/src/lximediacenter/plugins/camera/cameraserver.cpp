@@ -58,19 +58,22 @@ QString CameraServer::serverIconPath(void) const
 CameraServer::Stream * CameraServer::streamVideo(const SHttpServer::RequestMessage &request)
 {
   QUrl url(request.path());
-  if (url.hasQueryItem("query"))
-    url = url.toEncoded(QUrl::RemoveQuery) + QByteArray::fromHex(url.queryItemValue("query").toAscii());
+  if (request.query().hasQueryItem("query"))
+    url = url.toEncoded(QUrl::RemoveQuery) + QByteArray::fromHex(request.query().queryItemValue("query").toLatin1());
 
   SSandboxClient * const sandbox = masterServer->createSandbox(SSandboxClient::Priority_Normal);
   sandbox->ensureStarted();
 
+  QUrlQuery rquery;
+  rquery.addQueryItem("opencamera", QString::null);
+  rquery.addQueryItem("device", request.fileName());
+  typedef QPair<QString, QString> QStringPair;
+  foreach (const QStringPair &queryItem, QUrlQuery(url).queryItems())
+    rquery.addQueryItem(queryItem.first, queryItem.second);
+
   QUrl rurl;
   rurl.setPath(CameraSandbox::path + request.file());
-  rurl.addQueryItem("opencamera", QString::null);
-  rurl.addQueryItem("device", request.fileName());
-  typedef QPair<QString, QString> QStringPair;
-  foreach (const QStringPair &queryItem, url.queryItems())
-    rurl.addQueryItem(queryItem.first, queryItem.second);
+  rurl.setQuery(rquery);
 
   Stream *stream = new Stream(this, sandbox, request.path());
   if (stream->setup(rurl))
@@ -137,7 +140,7 @@ CameraServer::Item CameraServer::getItem(const QString &path)
   item.played = false;
   item.url = serverPath() + file;
   item.iconUrl = "/img/camera-photo.png";
-  item.title = QString::fromUtf8(QByteArray::fromHex(file.toAscii()));
+  item.title = QString::fromUtf8(QByteArray::fromHex(file.toLatin1()));
 
   item.audioFormat.setChannelSetup(SAudioFormat::Channels_Stereo);
 

@@ -41,7 +41,7 @@ BufferWriter::~BufferWriter()
 
 bool BufferWriter::openFormat(const QString &name)
 {
-  format = ::av_guess_format(name.toAscii().data(), NULL, NULL);
+  format = ::av_guess_format(name.toLatin1().data(), NULL, NULL);
   if (format)
   {
     formatContext = ::avformat_alloc_context();

@@ -47,6 +47,3 @@ QByteArray Module::licenses(void)
 }
 
 } } // End of namespaces
-
-#include <QtPlugin>
-Q_EXPORT_PLUGIN2(lximediacenter_camera, LXiMediaCenter::CameraBackend::Module);

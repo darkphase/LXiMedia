@@ -178,14 +178,14 @@ bool BufferReaderBase::start(SInterfaces::AbstractBufferReader::ProduceCallback 
         // Keep only the ones that reoccur
         int maxCount = 0;
         for (QMap<qint64, QAtomicInt>::Iterator j=intervals.begin(); j!=intervals.end(); j++)
-          maxCount = qMax(int(*j), maxCount);
+          maxCount = qMax(j->load(), maxCount);
 
         for (QMap<qint64, QAtomicInt>::Iterator j=intervals.begin(); j!=intervals.end();)
-        if ((j.key() > 10000) && (j.key() < 100000) && (*j > (maxCount / 4)))
+          if ((j.key() > 10000) && (j.key() < 100000) && (j->load() > (maxCount / 4)))
         {
-          if (*j > ((maxCount / 2) + (maxCount / 4)))
+            if (j->load() > ((maxCount / 2) + (maxCount / 4)))
             *j = maxCount;
-          else if (*j > ((maxCount / 3) + (maxCount / 4)))
+          else if (j->load() > ((maxCount / 3) + (maxCount / 4)))
             *j = maxCount / 2;
           else
             *j = maxCount / 3;
@@ -204,8 +204,8 @@ bool BufferReaderBase::start(SInterfaces::AbstractBufferReader::ProduceCallback 
           int count = 0;
           for (QMap<qint64, QAtomicInt>::Iterator j=intervals.begin(); j!=intervals.end(); j++)
           {
-            sum += j.key() * j.value();
-            count += j.value();
+            sum += j.key() * j->load();
+            count += j->load();
           }
 
           const SInterval refFrameRate = streamContext[i]->videoCodec.frameRate();

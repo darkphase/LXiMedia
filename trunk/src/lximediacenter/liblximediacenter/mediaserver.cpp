@@ -255,9 +255,9 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
   {
     if (request.file().endsWith('/'))
     {
-      if (request.url().hasQueryItem("items"))
+      if (request.query().hasQueryItem("items"))
       {
-        const QStringList range = request.url().queryItemValue("items").split(',');
+        const QStringList range = request.query().queryItemValue("items").split(',');
         int start = 0, count = 0;
         if (!range.isEmpty())
         {
@@ -267,9 +267,9 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
         }
 
         QMap<int, QString> funcs;
-        if (request.url().hasQueryItem("func"))
+        if (request.query().hasQueryItem("func"))
         {
-          const QStringList list = request.url().queryItemValue("func").split(',');
+          const QStringList list = request.query().queryItemValue("func").split(',');
           for (int i=0; i+1<list.count(); i+=2)
             funcs.insert(list[i].toInt(), list[i+1]);
         }
@@ -314,12 +314,18 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
             thumbItem.played = item.played;
             thumbItem.url = item.url;
             if (!thumbItem.url.isEmpty() && funcs.isEmpty())
-              thumbItem.url.addQueryItem("player", QString::number(item.type));
+            {
+              QUrlQuery q(thumbItem.url);
+              q.addQueryItem("player", QString::number(item.type));
+              thumbItem.url.setQuery(q);
+            }
 
             if (item.played)
             {
-              thumbItem.iconurl.removeQueryItem("overlay");
-              thumbItem.iconurl.addQueryItem("overlay", "played");
+              QUrlQuery q(thumbItem.iconurl);
+              q.removeQueryItem("overlay");
+              q.addQueryItem("overlay", "played");
+              thumbItem.iconurl.setQuery(q);
             }
 
             if (!funcs.isEmpty())
@@ -334,10 +340,10 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
       else
         return makeHtmlContent(request, buildListLoader(request.file(), listType(request.file())), htmlListHead);
     }
-    else if (request.url().hasQueryItem("player"))
+    else if (request.query().hasQueryItem("player"))
     {
       const SUPnPContentDirectory::Item::Type playerType =
-          SUPnPContentDirectory::Item::Type(request.url().queryItemValue("player").toInt());
+          SUPnPContentDirectory::Item::Type(request.query().queryItemValue("player").toInt());
 
       switch (playerType)
       {
@@ -359,7 +365,7 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
         return buildPlayer(request);
       }
     }
-    else if (request.url().hasQueryItem("audioplayer"))
+    else if (request.query().hasQueryItem("audioplayer"))
     {
       SStringParser htmlParser;
       htmlParser.setField("SOURCES", "");
@@ -375,7 +381,9 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
           mediaProfiles().isProfileEnabled(MediaProfiles::FLAC_NONSTD))
       {
         QUrl url(request.file());
-        url.addQueryItem("format", "oga");
+        QUrlQuery q(url);
+        q.addQueryItem("format", "oga");
+        url.setQuery(q);
 
         htmlParser.setField("SOURCE_URL", url);
         htmlParser.setField("SOURCE_MIME", SHttpEngine::mimeAudioOgg);
@@ -385,7 +393,9 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
       if (mediaProfiles().isProfileEnabled(MediaProfiles::MP3))
       {
         QUrl url(request.file());
-        url.addQueryItem("format", "mp3");
+        QUrlQuery q(url);
+        q.addQueryItem("format", "mp3");
+        url.setQuery(q);
 
         htmlParser.setField("SOURCE_URL", url);
         htmlParser.setField("SOURCE_MIME", SHttpEngine::mimeAudioMp3);
@@ -395,7 +405,9 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
       if (mediaProfiles().isProfileEnabled(MediaProfiles::MP2))
       {
         QUrl url(request.file());
-        url.addQueryItem("format", "mp2");
+        QUrlQuery q(url);
+        q.addQueryItem("format", "mp2");
+        url.setQuery(q);
 
         htmlParser.setField("SOURCE_URL", url);
         htmlParser.setField("SOURCE_MIME", SHttpEngine::mimeAudioMpeg);
@@ -405,7 +417,9 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
       if (mediaProfiles().isProfileEnabled(MediaProfiles::WAV_NONSTD))
       {
         QUrl url(request.file());
-        url.addQueryItem("format", "wav");
+        QUrlQuery q(url);
+        q.addQueryItem("format", "wav");
+        url.setQuery(q);
 
         htmlParser.setField("SOURCE_URL", url);
         htmlParser.setField("SOURCE_MIME", SHttpEngine::mimeAudioWave);
@@ -414,7 +428,7 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
 
       return makeResponse(request, htmlParser.parse(htmlAudioPlayerElement), SHttpEngine::mimeTextHtml, false);
     }
-    else if (request.url().hasQueryItem("videoplayer"))
+    else if (request.query().hasQueryItem("videoplayer"))
     {
       SStringParser htmlParser;
       htmlParser.setField("SOURCES", "");
@@ -423,7 +437,9 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
           mediaProfiles().isProfileEnabled(MediaProfiles::OGG_THEORA_FLAC_SD_NONSTD))
       {
         QUrl url(request.file());
-        url.addQueryItem("format", "ogv");
+        QUrlQuery q(url);
+        q.addQueryItem("format", "ogv");
+        url.setQuery(q);
 
         htmlParser.setField("SOURCE_URL", url);
         htmlParser.setField("SOURCE_MIME", SHttpEngine::mimeVideoOgg);
@@ -434,7 +450,9 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
           mediaProfiles().isProfileEnabled(MediaProfiles::MPEG_PS_SD_NA_NONSTD))
       {
         QUrl url(request.file());
-        url.addQueryItem("format", "vob");
+        QUrlQuery q(url);
+        q.addQueryItem("format", "vob");
+        url.setQuery(q);
 
         htmlParser.setField("SOURCE_URL", url);
         htmlParser.setField("SOURCE_MIME", SHttpEngine::mimeVideoMpeg);
@@ -446,7 +464,9 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
           mediaProfiles().isProfileEnabled(MediaProfiles::MPEG4_P2_MATROSKA_AC3_SD_NONSTD))
       {
         QUrl url(request.file());
-        url.addQueryItem("format", "matroska");
+        QUrlQuery q(url);
+        q.addQueryItem("format", "matroska");
+        url.setQuery(q);
 
         htmlParser.setField("SOURCE_URL", url);
         htmlParser.setField("SOURCE_MIME", SHttpEngine::mimeVideoMatroska);
@@ -457,13 +477,13 @@ SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::Request
     }
     else // Stream file
     {
-      const QString contentFeatures = QByteArray::fromBase64(request.url().queryItemValue("contentFeatures").toAscii());
+      const QString contentFeatures = QByteArray::fromBase64(request.query().queryItemValue("contentFeatures").toLatin1());
 
       if (!request.isHead())
       {
         // Check for image
         const MediaProfiles::ImageProfile imageProfile = mediaProfiles().imageProfileFor(contentFeatures);
-        const QString format = request.url().queryItemValue("format");
+        const QString format = request.query().queryItemValue("format");
         if ((imageProfile != 0) || (format == "jpeg") || (format == "png"))
         {
           SHttpServer::ResponseMessage response = sendPhoto(request);
@@ -665,11 +685,13 @@ void MediaServer::processItem(const QString &client, Item &item)
       }
     }
 
-    setQueryItemsFor(client, item.url, item.isMusic());
+    QUrlQuery q(item.url);
+    setQueryItemsFor(client, q, item.isMusic());
+    item.url.setQuery(q);
   }
 }
 
-void MediaServer::setQueryItemsFor(const QString &client, QUrl &url, bool isMusic)
+void MediaServer::setQueryItemsFor(const QString &client, QUrlQuery &query, bool isMusic)
 {
   QSettings settings;
   settings.beginGroup("DLNA");
@@ -710,7 +732,7 @@ void MediaServer::setQueryItemsFor(const QString &client, QUrl &url, bool isMusi
       if (!transcodeCrop.isEmpty())
         sizeStr += ',' + transcodeCrop.toLower();
 
-      url.addQueryItem("resolution", sizeStr);
+      query.addQueryItem("resolution", sizeStr);
       break;
     }
 
@@ -736,28 +758,28 @@ void MediaServer::setQueryItemsFor(const QString &client, QUrl &url, bool isMusi
       }
     }
 
-    url.addQueryItem("channels", channels);
-    url.addQueryItem("priority", "high");
+    query.addQueryItem("channels", channels);
+    query.addQueryItem("priority", "high");
 
     const QString encodeMode = settings.value("EncodeMode", genericEncodeMode).toString();
     if (!encodeMode.isEmpty())
-      url.addQueryItem("encodemode", encodeMode.toLower());
+      query.addQueryItem("encodemode", encodeMode.toLower());
     else
-      url.addQueryItem("encodemode", "fast");
+      query.addQueryItem("encodemode", "fast");
 
     if (settings.value("MusicAddBlackVideo", genericMusicAddBlackVideo).toBool())
-      url.addQueryItem("addvideo", QString::null);
+      query.addQueryItem("addvideo", QString::null);
 
     const QString subtitleSize = settings.value("SubtitleSize", genericSubtitleSize).toString();
     foreach (const SubtitleSize &size, allSubtitleSizes())
     if (size.name == subtitleSize)
     {
-      url.addQueryItem("subtitlesize", QString::number(size.ratio, 'f', 3));
+      query.addQueryItem("subtitlesize", QString::number(size.ratio, 'f', 3));
       break;
     }
 
     if (isMusic)
-      url.addQueryItem("music", QString::null);
+      query.addQueryItem("music", QString::null);
 
     break;
   }

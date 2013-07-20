@@ -36,7 +36,7 @@ bool Module::registerClasses(void)
     {
       QString dev = "hw:" + QString::number(card);
       snd_ctl_t *ctl = NULL;
-      if (snd_ctl_open(&ctl, dev.toAscii().data(), 0) == 0)
+      if (snd_ctl_open(&ctl, dev.toLatin1().data(), 0) == 0)
       {
         snd_ctl_card_info_t *info = NULL;
 

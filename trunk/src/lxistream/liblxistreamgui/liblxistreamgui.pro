@@ -20,14 +20,8 @@ include($${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/linklxistream.pri)
 # Files
 HEADERS += $${PWD}/$${LXIMEDIA_DIR}/include/LXiStreamGui \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistreamgui/export.h \
-    $${PWD}/$${LXIMEDIA_DIR}/include/liblxistreamgui/sdisplay.h \
-    $${PWD}/$${LXIMEDIA_DIR}/include/liblxistreamgui/simage.h \
-    $${PWD}/$${LXIMEDIA_DIR}/include/liblxistreamgui/svideoview.h \
-    $${PWD}/$${LXIMEDIA_DIR}/include/liblxistreamgui/svumeter.h
-SOURCES += sdisplay.cpp \
-    simage.cpp \
-    svideoview.cpp \
-    svumeter.cpp
+    $${PWD}/$${LXIMEDIA_DIR}/include/liblxistreamgui/simage.h
+SOURCES += simage.cpp
 
 # Nodes
 HEADERS += $${PWD}/$${LXIMEDIA_DIR}/include/liblxistreamgui/nodes/svideogeneratornode.h
@@ -35,29 +29,6 @@ SOURCES += nodes/svideogeneratornode.cpp
 
 HEADERS += lxistreamguiprivate.h
 SOURCES += lxistreamguiprivate.cpp
-
-# Platform specific
-unix { 
-  macx {
-    SOURCES += sdisplay.macx.cpp \
-        svideoview.macx.cpp
-  } else {
-    SOURCES += sdisplay.x11.cpp \
-        svideoview.x11.cpp
-    LIBS += -lX11 \
-        -lXext \
-        -lXrandr \
-        -lXtst \
-        -lXv
-
-    target.path = /usr/lib
-    INSTALLS += target
-  }
-}
-win32 {
-  SOURCES += sdisplay.win.cpp \
-    svideoview.win.cpp
-}
 
 # Windows specific
 win32 {

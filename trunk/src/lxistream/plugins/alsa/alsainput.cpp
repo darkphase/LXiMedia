@@ -60,7 +60,7 @@ bool AlsaInput::start(void)
   if (!mixer.open() || !mixer.activateInputChannel(channel))
     return false;
 
-  if (snd_pcm_open(&pcm, dev.toAscii().data(), SND_PCM_STREAM_CAPTURE, 0) == 0)
+  if (snd_pcm_open(&pcm, dev.toLatin1().data(), SND_PCM_STREAM_CAPTURE, 0) == 0)
   if (snd_pcm_hw_params_malloc(&hw_params) == 0)
   if (snd_pcm_hw_params_any(pcm, hw_params) == 0)
   if (snd_pcm_hw_params_set_access(pcm, hw_params, SND_PCM_ACCESS_RW_INTERLEAVED) == 0)

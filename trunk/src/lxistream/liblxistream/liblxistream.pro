@@ -1,5 +1,6 @@
 TEMPLATE = lib
 CONFIG += dll
+QT += concurrent
 QT -= gui
 LXIMEDIA_DIR = ../../..
 DESTDIR = $${OUT_PWD}/$${LXIMEDIA_DIR}/bin

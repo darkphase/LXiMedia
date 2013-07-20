@@ -19,7 +19,6 @@
 #include "pulseaudiodevices.h"
 #include "pulseaudioinput.h"
 #include "pulseaudiooutput.h"
-#include <QtGui/QApplication>
 
 namespace LXiStreamDevice {
 namespace PulseAudioBackend {
@@ -27,15 +26,6 @@ namespace PulseAudioBackend {
 bool Module::registerClasses(void)
 {
   int result = false;
-
-  if (qobject_cast<QApplication *>(QCoreApplication::instance()) == NULL)
-  {
-    qWarning() <<
-        "Not loading PulseAudio because this is a non-gui application (i.e. "
-        "a QCoreApplication is used instead of a QApplication)";
-
-    return false; // Non-gui application
-  }
 
   pa_sample_spec sampleSpec;
   sampleSpec.format = PA_SAMPLE_S16LE;

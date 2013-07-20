@@ -272,7 +272,7 @@ SHttpServer::Status SUPnPContentDirectory::handleSoapMessage(const QDomElement &
   if (!getSystemUpdateIdElm.isNull())
   {
     QDomElement responseElm = createElementNS(responseDoc, getSystemUpdateIdElm, "GetSystemUpdateIDResponse");
-    addTextElm(responseDoc, responseElm, "Id", QString::number(d->systemUpdateId));
+    addTextElm(responseDoc, responseElm, "Id", QString::number(d->systemUpdateId.load()));
     responseBody.appendChild(responseElm);
     status = SHttpServer::Status_Ok;
   }
@@ -304,7 +304,7 @@ SHttpServer::Status SUPnPContentDirectory::handleSoapMessage(const QDomElement &
 
 bool SUPnPContentDirectory::handleBrowse(const QDomElement &elem, QDomDocument &doc, QDomElement &body, const SHttpServer::RequestMessage &request, const QHostAddress &peerAddress)
 {
-  const QString path = fromObjectID(elem.firstChildElement("ObjectID").text().toAscii());
+  const QString path = fromObjectID(elem.firstChildElement("ObjectID").text().toLatin1());
   const QString browseFlag = elem.firstChildElement("BrowseFlag").text();
   const QString client = toClientString(peerAddress, request);
   const QString host = request.host();
@@ -470,7 +470,7 @@ bool SUPnPContentDirectory::handleBrowse(const QDomElement &elem, QDomDocument &
     addTextElm(doc, browseResponse, "TotalMatches", QString::number(totalMatches));
   }
 
-  addTextElm(doc, browseResponse, "UpdateID", QString::number(d->systemUpdateId));
+  addTextElm(doc, browseResponse, "UpdateID", QString::number(d->systemUpdateId.load()));
   body.appendChild(browseResponse);
 
   return true;
@@ -502,8 +502,8 @@ void SUPnPContentDirectory::didlContainer(QDomDocument &doc, QDomElement &root, 
                 : QString("root"));
 
   QDomElement containerElm = doc.createElement("container");
-  containerElm.setAttribute("id", QString::fromAscii(toObjectID(path)));
-  containerElm.setAttribute("parentID", QString::fromAscii(toObjectID(parentPath)));
+  containerElm.setAttribute("id", QString::fromLatin1(toObjectID(path)));
+  containerElm.setAttribute("parentID", QString::fromLatin1(toObjectID(parentPath)));
   containerElm.setAttribute("restricted", "1");
 
   if (childCount > 0)
@@ -535,9 +535,9 @@ void SUPnPContentDirectory::didlContainer(QDomDocument &doc, QDomElement &root, 
 void SUPnPContentDirectory::didlFile(QDomDocument &doc, QDomElement &root, const QString &host, const Item &item, const QString &path, const QString &title)
 {
   QDomElement itemElm = doc.createElement("item");
-  itemElm.setAttribute("id", QString::fromAscii(toObjectID(path)));
+  itemElm.setAttribute("id", QString::fromLatin1(toObjectID(path)));
   itemElm.setAttribute("restricted", "1");
-  itemElm.setAttribute("parentID", QString::fromAscii(toObjectID(parentDir(path))));
+  itemElm.setAttribute("parentID", QString::fromLatin1(toObjectID(parentDir(path))));
 
   addTextElm(doc, itemElm, "dc:title", !title.isEmpty() ? title : item.title);
 
@@ -593,7 +593,7 @@ void SUPnPContentDirectory::didlFile(QDomDocument &doc, QDomElement &root, const
     resElm.setAttribute("protocolInfo", QString(protocol.toByteArray()));
 
     if (item.duration > 0)
-      resElm.setAttribute("duration", QTime().addSecs(item.duration).toString("h:mm:ss.zzz"));
+      resElm.setAttribute("duration", QTime(0, 0).addSecs(item.duration).toString("h:mm:ss.zzz"));
 
     if (protocol.sampleRate > 0)
       resElm.setAttribute("sampleFrequency", QString::number(protocol.sampleRate));
@@ -610,7 +610,9 @@ void SUPnPContentDirectory::didlFile(QDomDocument &doc, QDomElement &root, const
     QUrl url = item.url;
     url.setScheme("http");
     url.setAuthority(host);
-    url.addQueryItem("contentFeatures", protocol.contentFeatures().toBase64());
+    QUrlQuery query(url);
+    query.addQueryItem("contentFeatures", protocol.contentFeatures().toBase64());
+    url.setQuery(query);
 
     // Encode the filename
     resElm.appendChild(doc.createTextNode(toObjectURL(url, protocol.suffix)));
@@ -691,7 +693,7 @@ QStringList SUPnPContentDirectory::seekItems(const Item &item)
 
   for (unsigned i=0; i<item.duration; i+=seekSec)
   {
-    QString title = tr("Play from") + " " + QTime().addSecs(i).toString("h:mm");
+    QString title = tr("Play from") + " " + QTime(0, 0).addSecs(i).toString("h:mm");
 
     result += ("p&position=" + QString::number(i) + "#" + title);
   }
@@ -743,11 +745,17 @@ SUPnPContentDirectory::Item SUPnPContentDirectory::makePlayItem(const Item &base
     item.title = itemProps[3];
 
   if (!itemProps[2].isEmpty())
-  foreach (const QString &qi, itemProps[2].split('&', QString::SkipEmptyParts))
   {
-    const QStringList qil = qi.split('=');
-    if (qil.count() == 2)
-      item.url.addQueryItem(qil[0], qil[1]);
+    QUrlQuery query(item.url);
+
+    foreach (const QString &qi, itemProps[2].split('&', QString::SkipEmptyParts))
+    {
+      const QStringList qil = qi.split('=');
+      if (qil.count() == 2)
+        query.addQueryItem(qil[0], qil[1]);
+    }
+
+    item.url.setQuery(query);
   }
 
   return item;

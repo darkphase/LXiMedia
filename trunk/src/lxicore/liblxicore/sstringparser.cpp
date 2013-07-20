@@ -295,7 +295,7 @@ QString SStringParser::toBasicLatin(const QString &s)
 
 QString SStringParser::toBasicLatin(QChar c)
 {
-  const char ascii = c.toAscii();
+  const char ascii = c.toLatin1();
   if ((ascii > 0) && (ascii < 127))
     return QString(ascii);
 
@@ -398,7 +398,7 @@ int SStringParser::alphaNumCompare(const QString &a, const QString &b)
         const QChar c = s[p];
         if (c.isNumber())
         {
-          const unsigned v = unsigned(c.toAscii() - '0');
+          const unsigned v = unsigned(c.toLatin1() - '0');
           if (n <= (UINT_MAX - v) / 10)
             n = (n * 10) + v;
           else

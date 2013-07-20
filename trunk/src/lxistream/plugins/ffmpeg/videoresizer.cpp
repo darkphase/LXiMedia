@@ -17,6 +17,7 @@
 
 #include "videoresizer.h"
 #include "ffmpegcommon.h"
+#include <QtConcurrent>
 
 namespace LXiStream {
 namespace FFMpegBackend {

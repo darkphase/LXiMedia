@@ -52,15 +52,14 @@ SSandboxServer * SandboxTest::createSandbox(void)
       {
         const QUrl url(request.path());
         const QString path = url.path();
-        const QString file = path.mid(path.lastIndexOf('/') + 1);
 
         if (path.left(path.lastIndexOf('/') + 1) == "/")
         {
-          if (url.hasQueryItem("nop"))
+          if (request.query().hasQueryItem("nop"))
           {
             return SSandboxServer::ResponseMessage(request, SSandboxServer::Status_Ok);
           }
-          else if (url.hasQueryItem("exit"))
+          else if (request.query().hasQueryItem("exit"))
           {
             parent->close();
 
@@ -134,10 +133,10 @@ void SandboxTest::testClient(SSandboxClient *client)
   for (int i=0; i<numResponses; i++)
     client->sendRequest(nopRequest);
 
-  for (int i=0; (i<100) && (responseCount<numResponses); i++)
+  for (int i=0; (i<100) && (responseCount.load()<numResponses); i++)
     QTest::qWait(100);
 
-  QCOMPARE(int(responseCount), numResponses);
+  QCOMPARE(responseCount.load(), numResponses);
 }
 
 void SandboxTest::testBlockingClient(SSandboxClient *client)
@@ -156,7 +155,7 @@ void SandboxTest::testBlockingClient(SSandboxClient *client)
       qWarning() << "Corrupted response" << response.status().statusCode() << response.status().description();
   }
 
-  QCOMPARE(int(responseCount), numResponses);
+  QCOMPARE(responseCount.load(), numResponses);
 }
 
 void SandboxTest::testBlockingClient(SSandboxServer *server)
@@ -203,7 +202,7 @@ void SandboxTest::testBlockingClient(SSandboxServer *server)
   while (!thread[i]->wait(0))
     QTest::qWait(100);
 
-  QCOMPARE(int(responseCount), numResponses * numThreads);
+  QCOMPARE(responseCount.load(), numResponses * numThreads);
 }
 
 void SandboxTest::handleResponse(const SHttpEngine::ResponseMessage &response)

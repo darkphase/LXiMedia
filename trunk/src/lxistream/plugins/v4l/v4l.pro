@@ -23,7 +23,7 @@ SOURCES += module.cpp \
 # vbiinput.cpp
 
 # Export plugin
-SOURCES += export.cpp
+SOURCES +=
 
 # AleVt
 #SOURCES += $${PWD}/$${LXIMEDIA_DIR}/ext/alevt-1.6.1/cache.c \

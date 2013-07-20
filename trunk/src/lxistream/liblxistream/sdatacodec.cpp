@@ -63,7 +63,7 @@ bool SDataCodec::deserialize(QXmlStreamReader &reader)
 {
   if (reader.name() == "datacodec")
   {
-    d.name = reader.attributes().value("name").toString().toAscii();
+    d.name = reader.attributes().value("name").toString().toLatin1();
     d.streamId = reader.attributes().value("streamid").toString().toInt();
 
     return true;

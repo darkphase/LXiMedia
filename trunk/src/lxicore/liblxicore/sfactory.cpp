@@ -72,7 +72,7 @@ QObject * SFactory::createObject(const char *className, QObject *parent, const Q
   }
 
   if (nonNull)
-    qFatal("Could not find class for \"%s\" with scheme \"%s\".", className, scheme.toAscii().data());
+    qFatal("Could not find class for \"%s\" with scheme \"%s\".", className, scheme.toLatin1().data());
 
   return NULL;
 }

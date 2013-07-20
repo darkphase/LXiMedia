@@ -55,6 +55,3 @@ QByteArray Module::licenses(void)
 }
 
 } } // End of namespaces
-
-#include <QtPlugin>
-Q_EXPORT_PLUGIN2(lximediacenter_mediaplayer, LXiMediaCenter::MediaPlayerBackend::Module);

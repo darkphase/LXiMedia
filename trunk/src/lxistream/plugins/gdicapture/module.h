@@ -23,9 +23,11 @@
 namespace LXiStreamDevice {
 namespace GdiCapture {
 
-class Module : public SModule
+class Module : public QObject, public SModule
 {
 Q_OBJECT
+Q_INTERFACES(LXiCore::SModule)
+Q_PLUGIN_METADATA(IID LXiCore_SModule_iid)
 public:
   virtual bool                  registerClasses(void);
   virtual void                  unload(void);

@@ -340,14 +340,14 @@ SHttpServer::ResponseMessage MediaPlayerServer::httpRequest(const SHttpServer::R
 {
   if (request.isGet())
   {
-    if (request.url().hasQueryItem("thumbnail"))
+    if (request.query().hasQueryItem("thumbnail"))
     {
       const QUrl filePath = realPath(request.file());
       if (!filePath.isEmpty())
       {
         SSize size(128, 128);
-        if (request.url().hasQueryItem("resolution"))
-          size = SSize::fromString(request.url().queryItemValue("resolution"));
+        if (request.query().hasQueryItem("resolution"))
+          size = SSize::fromString(request.query().queryItemValue("resolution"));
 
         SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
         response.setContentType(SHttpEngine::mimeImagePng);
@@ -360,7 +360,7 @@ SHttpServer::ResponseMessage MediaPlayerServer::httpRequest(const SHttpServer::R
             response.setContent(makeThumbnail(
                 size.size(),
                 QImage::fromData(result),
-                request.url().queryItemValue("overlay")));
+                request.query().queryItemValue("overlay")));
           }
           else
           {
@@ -386,27 +386,27 @@ SHttpServer::ResponseMessage MediaPlayerServer::httpRequest(const SHttpServer::R
 
       return SHttpServer::ResponseMessage(request, SHttpServer::Status_NotFound);
     }
-    else if (request.url().hasQueryItem("save_settings"))
+    else if (request.query().hasQueryItem("save_settings"))
     {
-      if (request.url().hasQueryItem("save"))
+      if (request.query().hasQueryItem("save"))
       {
         QSettings settings;
         settings.beginGroup(Module::pluginName);
   
-        settings.setValue("SlideDuration", qBound(2500, request.url().queryItemValue("slideduration").toInt(), 60000));
+        settings.setValue("SlideDuration", qBound(2500, request.query().queryItemValue("slideduration").toInt(), 60000));
       }
-      else if (request.url().hasQueryItem("smbadd"))
+      else if (request.query().hasQueryItem("smbadd"))
       {
         QUrl url;
         url.setScheme("smb");
         url.setHost(QString::fromUtf8(QByteArray::fromPercentEncoding(
-              request.url().encodedQueryItemValue("smbhostname").replace('+', ' '))));
+              request.query().queryItemValue("smbhostname", QUrl::FullyEncoded).replace('+', ' ').toLatin1())));
         url.setPath(QString::fromUtf8(QByteArray::fromPercentEncoding(
-              request.url().encodedQueryItemValue("smbpath").replace('+', ' '))));
+              request.query().queryItemValue("smbpath", QUrl::FullyEncoded).replace('+', ' ').toLatin1())));
         url.setUserName(QString::fromUtf8(QByteArray::fromPercentEncoding(
-              request.url().encodedQueryItemValue("smbusername").replace('+', ' '))));
+              request.query().queryItemValue("smbusername", QUrl::FullyEncoded).replace('+', ' ').toLatin1())));
         url.setPassword(QString::fromUtf8(QByteArray::fromPercentEncoding(
-              request.url().encodedQueryItemValue("smbpassword").replace('+', ' '))));
+              request.query().queryItemValue("smbpassword", QUrl::FullyEncoded).replace('+', ' ').toLatin1())));
 
         if (url.isValid())
         {
@@ -422,17 +422,17 @@ SHttpServer::ResponseMessage MediaPlayerServer::httpRequest(const SHttpServer::R
       response.setField("Location", "http://" + request.host() + "/settings");
       return response;
     }
-    else if (request.url().hasQueryItem("folder_tree"))
+    else if (request.query().hasQueryItem("folder_tree"))
     {
       QList<QUrl> paths = rootPaths.values();
 
-      const QString open = request.url().queryItemValue("open");
+      const QString open = request.query().queryItemValue("open");
       const QStringList allopen = !open.isEmpty()
-                                  ? QString::fromUtf8(qUncompress(QByteArray::fromHex(open.toAscii()))).split(dirSplit)
+                                  ? QString::fromUtf8(qUncompress(QByteArray::fromHex(open.toLatin1()))).split(dirSplit)
                                   : QStringList();
 
-      const QString checkon = QString::fromUtf8(QByteArray::fromHex(request.url().queryItemValue("checkon").toAscii()));
-      const QString checkoff = QString::fromUtf8(QByteArray::fromHex(request.url().queryItemValue("checkoff").toAscii()));
+      const QString checkon = QString::fromUtf8(QByteArray::fromHex(request.query().queryItemValue("checkon").toLatin1()));
+      const QString checkoff = QString::fromUtf8(QByteArray::fromHex(request.query().queryItemValue("checkoff").toLatin1()));
       if (!checkon.isEmpty() || !checkoff.isEmpty())
       {
         if (!checkon.isEmpty())

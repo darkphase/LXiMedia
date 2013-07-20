@@ -24,7 +24,7 @@ void processDir(const QByteArray &license, const QDir &dir)
           {
             if (oldLicense != license)
             {
-              std::cout << "Updating: " << file.fileName().toAscii().data() << std::endl;
+              std::cout << "Updating: " << file.fileName().toLatin1().data() << std::endl;
 
               newFile = license;
               newFile.reserve(file.size() + license.size());
@@ -65,7 +65,7 @@ int main(int argc, char *argv[])
     }
     else
     {
-      std::cerr << "Could not read: " << app.arguments()[1].toAscii().data() << std::endl;
+      std::cerr << "Could not read: " << app.arguments()[1].toLatin1().data() << std::endl;
 
       return 1;
     }

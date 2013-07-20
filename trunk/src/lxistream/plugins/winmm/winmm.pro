@@ -14,6 +14,6 @@ SOURCES += winmmaudioinput.cpp \
  module.cpp
 
 # Export plugin
-SOURCES += export.cpp
+SOURCES +=
 
 LIBS += -lwinmm

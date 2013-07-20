@@ -742,7 +742,7 @@ float PerformanceTest::measureSpeed(_rettype (* func)(_dsttype *, const _srctype
   const float bytes = float(sizeof(src) + sizeof(dst)) * float(i);
   const float result = (bytes / float(timer.elapsed())) / 1073741.824f;
 
-  qDebug() << name << QString::number(result, 'f', 2).toAscii().data() << "GiB/s";
+  qDebug() << name << QString::number(result, 'f', 2).toLatin1().data() << "GiB/s";
 
   return result;
 }
@@ -778,7 +778,7 @@ float PerformanceTest::measureSpeed(_rettype (* func)(_dsttype *, const _srctype
   const float bytes = float(sizeof(src1) + sizeof(src2) + sizeof(dst)) * float(i);
   const float result = (bytes / float(timer.elapsed())) / 1073741.824f;
 
-  qDebug() << name << QString::number(result, 'f', 2).toAscii().data() << "GiB/s";
+  qDebug() << name << QString::number(result, 'f', 2).toLatin1().data() << "GiB/s";
 
   return result;
 }
@@ -810,7 +810,7 @@ float PerformanceTest::measureSpeed(_rettype (* func)(_dsttype *, const _srctype
   const float bytes = float(sizeof(src1) + sizeof(src2) + sizeof(src3) + sizeof(dst)) * float(i);
   const float result = (bytes / float(timer.elapsed())) / 1073741.824f;
 
-  qDebug() << name << QString::number(result, 'f', 2).toAscii().data() << "GiB/s";
+  qDebug() << name << QString::number(result, 'f', 2).toLatin1().data() << "GiB/s";
 
   return result;
 }
@@ -842,7 +842,7 @@ float PerformanceTest::measureSpeed(_rettype (* func)(_dsttype1 *, _dsttype2 *, 
   const float bytes = float(sizeof(src) + sizeof(dst1) + sizeof(dst2) + sizeof(dst3)) * float(i);
   const float result = (bytes / float(timer.elapsed())) / 1073741.824f;
 
-  qDebug() << name << QString::number(result, 'f', 2).toAscii().data() << "GiB/s";
+  qDebug() << name << QString::number(result, 'f', 2).toLatin1().data() << "GiB/s";
 
   return result;
 }
@@ -852,7 +852,7 @@ float PerformanceTest::measureSpeed(_rettype (* func)(_dsttype1 *, _dsttype2 *, 
 void PerformanceTest::Performance(void)
 {
   if (qApp->arguments().contains("-silent"))
-    QSKIP("Performance test skipped when running silent", SkipSingle);
+    QSKIP("Performance test skipped when running silent");
 
 #define measureSpeed(func) measureSpeed(func, #func)
 

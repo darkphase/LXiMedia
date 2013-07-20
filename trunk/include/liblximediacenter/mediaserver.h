@@ -176,7 +176,7 @@ private:
   static SAudioFormat           audioFormatFor(const QString &client, const Item &item, bool &addVideo);
   static SVideoFormat           videoFormatFor(const QString &client, const Item &item);
   static void                   processItem(const QString &client, Item &);
-  static void                   setQueryItemsFor(const QString &client, QUrl &, bool isMusic);
+  static void                   setQueryItemsFor(const QString &client, QUrlQuery &query, bool isMusic);
   void                          addStream(Stream *);
   void                          removeStream(Stream *);
 

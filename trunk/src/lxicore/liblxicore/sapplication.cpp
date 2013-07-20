@@ -34,7 +34,7 @@ struct SApplication::Data
   QList< QPair<QPluginLoader *, SModule *> > modules;
 
   QMutex                        logMutex;
-  QtMsgHandler                  defaultMsgHandler;
+  QtMessageHandler              defaultMessageHandler;
   QFile                         logFile;
 
   QMutex                        profileMutex;
@@ -74,7 +74,7 @@ SApplication::SApplication(bool useLogFile, const QStringList &skipModules, QObj
 
   self = this;
 
-  d->defaultMsgHandler = qInstallMsgHandler(&SApplication::logMessage);
+  d->defaultMessageHandler = qInstallMessageHandler(&SApplication::logMessage);
 
   // Repeat this while the module filter is expanded.
   QSet<QString> modules;
@@ -377,9 +377,9 @@ void SApplication::logLine(const QByteArray &line)
   std::cerr << line.data() << std::endl;
 }
 
-void SApplication::logMessage(QtMsgType type, const char *msg)
+void SApplication::logMessage(QtMsgType type, const QMessageLogContext &, const QString &msg)
 {
-  QByteArray message = QDateTime::currentDateTime().toString(Qt::ISODate).toAscii();
+  QByteArray message = QDateTime::currentDateTime().toString(Qt::ISODate).toLatin1();
 
   switch (type)
   {

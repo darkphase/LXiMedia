@@ -4,6 +4,8 @@ include($${PWD}/$${LXIMEDIA_DIR}/include/liblxicore/module.pri)
 include($${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/linklxistream.pri)
 include($${PWD}/$${LXIMEDIA_DIR}/ext/freetype/freetype.pri)
 
+QT += concurrent
+
 unix:INCLUDEPATH += /usr/include/freetype2
 
 # Files
@@ -14,7 +16,7 @@ SOURCES += module.cpp \
 RESOURCES += freetype.qrc
 
 # Export plugin
-SOURCES += export.cpp
+SOURCES +=
 
 include($${PWD}/$${LXIMEDIA_DIR}/src/lxistream/algorithms/linkalgorithms.pri)
 

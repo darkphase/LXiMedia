@@ -163,7 +163,7 @@ BufferReader * BufferReader::create(QObject *parent, const QString &format, bool
   }
 
   if (nonNull && (bufferReader == NULL))
-    qFatal("Failed to open input format \"%s\".", format.toAscii().data());
+    qFatal("Failed to open input format \"%s\".", format.toLatin1().data());
 
   return bufferReader;
 }
@@ -190,7 +190,7 @@ NetworkBufferReader * NetworkBufferReader::create(QObject *parent, const QString
   }
 
   if (nonNull && (bufferReader == NULL))
-    qFatal("Failed to open network protocol \"%s\".", protocol.toAscii().data());
+    qFatal("Failed to open network protocol \"%s\".", protocol.toLatin1().data());
 
   return bufferReader;
 }
@@ -219,7 +219,7 @@ BufferWriter * BufferWriter::create(QObject *parent, const QString &format, bool
   }
 
   if (nonNull && (bufferWriter == NULL))
-    qFatal("Failed to open output format \"%s\".", format.toAscii().data());
+    qFatal("Failed to open output format \"%s\".", format.toLatin1().data());
 
   return bufferWriter;
 }
@@ -395,7 +395,7 @@ AudioFormatConverter * AudioFormatConverter::create(QObject *parent, const SAudi
   }
 
   if (nonNull && (audioFormatConverter == NULL))
-    qFatal("Failed to open audio format converter for \"%s\".", scheme.toAscii().data());
+    qFatal("Failed to open audio format converter for \"%s\".", scheme.toLatin1().data());
 
   return audioFormatConverter;
 }
@@ -425,7 +425,7 @@ VideoFormatConverter * VideoFormatConverter::create(QObject *parent, const SVide
   }
 
   if (nonNull && (videoFormatConverter == NULL))
-    qFatal("Failed to open video format converter for \"%s\".", scheme.toAscii().data());
+    qFatal("Failed to open video format converter for \"%s\".", scheme.toLatin1().data());
 
   return videoFormatConverter;
 }

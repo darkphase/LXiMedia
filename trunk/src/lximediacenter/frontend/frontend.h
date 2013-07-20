@@ -22,7 +22,7 @@
 #include <QtGui>
 #include <QtNetwork>
 #include <QtWebKit>
-#include <QtXml>
+#include <QtWebKitWidgets>
 #include <LXiServer>
 
 class Frontend : public QWebView

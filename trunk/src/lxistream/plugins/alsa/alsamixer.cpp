@@ -38,7 +38,7 @@ bool AlsaMixer::open()
   close();
 
   if ((::snd_mixer_open(&mixer, 0) == 0) && mixer)
-  if (::snd_mixer_attach(mixer, dev.toAscii().data()) == 0)
+  if (::snd_mixer_attach(mixer, dev.toLatin1().data()) == 0)
   if (::snd_mixer_selem_register(mixer, NULL, NULL) == 0)
   if (::snd_mixer_load(mixer) == 0)
     return true;

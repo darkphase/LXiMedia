@@ -1,7 +1,7 @@
 TEMPLATE = app
-CONFIG += qtestlib
-win32:CONFIG += console
+QT += testlib
 QT -= gui
+win32:CONFIG += console
 LXIMEDIA_DIR = ../..
 DESTDIR = $${OUT_PWD}/$${LXIMEDIA_DIR}/bin
 TARGET = lxicoretest

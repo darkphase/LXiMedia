@@ -3,8 +3,6 @@ include($${PWD}/../liblxicore/linklxicore.pri)
     
 !contains(LINKED, LXiServer) {
   LINKED += LXiServer
-
-  QT += xml
   
   !contains(CONFIG, staticlib) {
     unix|win32-g++:LIBS += -L$${OUT_PWD}/$${LXIMEDIA_DIR}/bin -lLXiServer

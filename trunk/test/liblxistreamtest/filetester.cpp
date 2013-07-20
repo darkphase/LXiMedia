@@ -30,7 +30,7 @@ void FileTester::testFile(const QString &fileName)
     {
       QTime timer; timer.start();
 
-      std::cout << fileName.toAscii().data() << " ... " << std::flush;
+      std::cout << fileName.toLatin1().data() << " ... " << std::flush;
 
       tester->start();
       tester->wait();

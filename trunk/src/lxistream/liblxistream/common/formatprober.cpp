@@ -52,25 +52,25 @@ void FormatProber::readFormat(ProbeInfo &pi, const QByteArray &)
 
       if (imageSuffixes().contains(suffix))
       {
-        pi.format.format = suffix.toAscii();
+        pi.format.format = suffix.toLatin1();
         pi.format.fileType = ProbeInfo::FileType_Image;
         pi.format.fileTypeName = imageDescription(suffix);
       }
       else if (audioSuffixes().contains(suffix))
       {
-        pi.format.format = suffix.toAscii();
+        pi.format.format = suffix.toLatin1();
         pi.format.fileType = ProbeInfo::FileType_Audio;
         pi.format.fileTypeName = audioDescription(suffix);
       }
       else if (videoSuffixes().contains(suffix))
       {
-        pi.format.format = suffix.toAscii();
+        pi.format.format = suffix.toLatin1();
         pi.format.fileType = ProbeInfo::FileType_Video;
         pi.format.fileTypeName = videoDescription(suffix);
       }
       else if (subtitleSuffixes().contains(suffix))
       {
-        pi.format.format = suffix.toAscii();
+        pi.format.format = suffix.toLatin1();
         pi.format.fileType = ProbeInfo::FileType_Subtitle;
         pi.format.fileTypeName = subtitleDescription(suffix);
       }
@@ -170,7 +170,7 @@ void FormatProber::splitFileName(QString baseName, QString &title, QString &auth
         {
           if (c.isNumber())
           {
-            ep = (ep * 10) + (c.toAscii() - '0');
+            ep = (ep * 10) + (c.toLatin1() - '0');
             digits++;
           }
           else if ((c.toLower() == 'e') || (c.toLower() == 'x'))
