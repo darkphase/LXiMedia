@@ -58,20 +58,26 @@ win32 {
   OUT_DIR = $$replace(OUT_PWD,/,\\)\\$$replace(LXIMEDIA_DIR,/,\\)\\bin
 
   system(mkdir $${OUT_DIR} > NUL 2>&1)
+
   release {
-    system(copy /Y $$(QTDIR)\\bin\\QtCore4.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\Qt5Gui.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\Qt5Network.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\Qt5Test.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\libGLESv2.dll $${OUT_DIR} > NUL)
   }
   debug {
-    system(copy /Y $$(QTDIR)\\bin\\QtCored4.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\Qt5Guid.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\Qt5Networkd.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\Qt5Testd.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\libGLESv2d.dll $${OUT_DIR} > NUL)
   }
-}
-win32-g++ {
-    system(copy /Y $$(QTDIR)\\bin\\libgcc_s_dw2-1.dll $${OUT_DIR} > NUL)
-    system(copy /Y $$(QTDIR)\\bin\\mingwm10.dll $${OUT_DIR} > NUL)
-}
-win32-msvc2005|win32-msvc2008|win32-msvc2010 {
-  TEMPLATE = vclib
-  GUID = f4e525ea-7365-11e0-aef3-cba632b16f97
-  DEFINES += _CRT_SECURE_NO_WARNINGS
-  PRECOMPILED_SOURCE = $${PRECOMPILED_HEADER}
+
+  system(copy /Y $$(QTDIR)\\bin\\D3DCompiler_43.dll $${OUT_DIR} > NUL)
+
+  win32-msvc2005|win32-msvc2008|win32-msvc2010 {
+    TEMPLATE = vclib
+    GUID = f4e525ea-7365-11e0-aef3-cba632b16f97
+    DEFINES += _CRT_SECURE_NO_WARNINGS
+    PRECOMPILED_SOURCE = $${PRECOMPILED_HEADER}
+  }
 }

@@ -43,21 +43,6 @@ unix {
 }
 
 # Windows specific
-win32 {
-  OUT_DIR = $$replace(OUT_PWD,/,\\)\\$$replace(LXIMEDIA_DIR,/,\\)\\bin
-
-  system(mkdir $${OUT_DIR} > NUL 2>&1)
-  release {
-    system(copy /Y $$(QTDIR)\\bin\\QtCore4.dll $${OUT_DIR} > NUL)
-  }
-  debug {
-    system(copy /Y $$(QTDIR)\\bin\\QtCored4.dll $${OUT_DIR} > NUL)
-  }
-}
-win32-g++ {
-  system(copy /Y $$(QTDIR)\\bin\\libgcc_s_dw2-1.dll $${OUT_DIR} > NUL)
-  system(copy /Y $$(QTDIR)\\bin\\mingwm10.dll $${OUT_DIR} > NUL)
-}
 win32-msvc2005|win32-msvc2008|win32-msvc2010 {
   TEMPLATE = vclib
   GUID = a412c2e6-892f-11e0-8c25-132c45a4d138

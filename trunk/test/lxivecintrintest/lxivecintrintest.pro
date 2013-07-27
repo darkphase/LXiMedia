@@ -90,15 +90,17 @@ win32 {
 
   system(mkdir $${OUT_DIR} > NUL 2>&1)
   release {
-    system(copy /Y $$(QTDIR)\\bin\\QtTest4.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\Qt5Core.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\Qt5Test.dll $${OUT_DIR} > NUL)
   }
   debug {
-    system(copy /Y $$(QTDIR)\\bin\\QtTestd4.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\Qt5Cored.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\Qt5Testd.dll $${OUT_DIR} > NUL)
   }
-}
 
-win32-msvc2005|win32-msvc2008|win32-msvc2010 {
-  TEMPLATE = vcapp
-  GUID = f1ce2e42-3a3e-11e1-8eb1-b3fc04316b98
-  DEFINES += _CRT_SECURE_NO_WARNINGS
+  win32-msvc2005|win32-msvc2008|win32-msvc2010 {
+    TEMPLATE = vcapp
+    GUID = f1ce2e42-3a3e-11e1-8eb1-b3fc04316b98
+    DEFINES += _CRT_SECURE_NO_WARNINGS
+  }
 }

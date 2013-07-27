@@ -71,23 +71,18 @@ win32 {
 
   system(mkdir $${OUT_DIR} > NUL 2>&1)
   release {
-    system(copy /Y $$(QTDIR)\\bin\\QtCore4.dll $${OUT_DIR} > NUL)
-    system(copy /Y $$(QTDIR)\\bin\\QtNetwork4.dll $${OUT_DIR} > NUL)
-    system(copy /Y $$(QTDIR)\\bin\\QtXml4.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\Qt5Network.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\Qt5Xml.dll $${OUT_DIR} > NUL)
   }
   debug {
-    system(copy /Y $$(QTDIR)\\bin\\QtCored4.dll $${OUT_DIR} > NUL)
     system(copy /Y $$(QTDIR)\\bin\\QtNetworkd4.dll $${OUT_DIR} > NUL)
     system(copy /Y $$(QTDIR)\\bin\\QtXmld4.dll $${OUT_DIR} > NUL)
   }
-}
-win32-g++ {
-  system(copy /Y $$(QTDIR)\\bin\\libgcc_s_dw2-1.dll $${OUT_DIR} > NUL)
-  system(copy /Y $$(QTDIR)\\bin\\mingwm10.dll $${OUT_DIR} > NUL)
-}
-win32-msvc2005|win32-msvc2008|win32-msvc2010 {
-  TEMPLATE = vclib
-  GUID = 32841a84-734b-11e0-8112-bb07c8c3cae7
-  DEFINES += _CRT_SECURE_NO_WARNINGS
-  PRECOMPILED_SOURCE = $${PRECOMPILED_HEADER}
+
+  win32-msvc2005|win32-msvc2008|win32-msvc2010 {
+    TEMPLATE = vclib
+    GUID = 32841a84-734b-11e0-8112-bb07c8c3cae7
+    DEFINES += _CRT_SECURE_NO_WARNINGS
+    PRECOMPILED_SOURCE = $${PRECOMPILED_HEADER}
+  }
 }
