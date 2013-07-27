@@ -30,8 +30,14 @@ win32 {
 }
 
 # Windows specific
-win32-msvc2005|win32-msvc2008|win32-msvc2010 {
-  TEMPLATE = vcapp
-  GUID = 1d1d07bc-7366-11e0-bb6e-ab91c88aba17
-  DEFINES += _CRT_SECURE_NO_WARNINGS
+win32 {
+  OUT_DIR = $$replace(OUT_PWD,/,\\)\\$$replace(LXIMEDIA_DIR,/,\\)\\bin
+
+  system(mkdir $${OUT_DIR} > NUL 2>&1)
+
+  win32-msvc2005|win32-msvc2008|win32-msvc2010 {
+    TEMPLATE = vcapp
+    GUID = 1d1d07bc-7366-11e0-bb6e-ab91c88aba17
+    DEFINES += _CRT_SECURE_NO_WARNINGS
+  }
 }

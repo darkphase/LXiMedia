@@ -29,15 +29,19 @@ win32 {
 
   system(mkdir $${OUT_DIR} > NUL 2>&1)
   release {
-    system(copy /Y $$(QTDIR)\\bin\\QtTest4.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\Qt5Network.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\Qt5Test.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\Qt5Xml.dll $${OUT_DIR} > NUL)
   }
   debug {
-    system(copy /Y $$(QTDIR)\\bin\\QtTestd4.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\Qt5Networkd.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\Qt5Testd.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\Qt5Xmld.dll $${OUT_DIR} > NUL)
   }
-}
 
-win32-msvc2005|win32-msvc2008|win32-msvc2010 {
-  TEMPLATE = vcapp
-  GUID = cbbc176e-3a3e-11e1-9f6e-332020b652d8
-  DEFINES += _CRT_SECURE_NO_WARNINGS
+  win32-msvc2005|win32-msvc2008|win32-msvc2010 {
+    TEMPLATE = vcapp
+    GUID = cbbc176e-3a3e-11e1-9f6e-332020b652d8
+    DEFINES += _CRT_SECURE_NO_WARNINGS
+  }
 }

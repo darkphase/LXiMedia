@@ -36,28 +36,26 @@ win32 {
 
   system(mkdir $${OUT_DIR} > NUL 2>&1)
   system(mkdir $${OUT_DIR}\\imageformats > NUL 2>&1)
+
   release {
-    system(copy /Y $$(QTDIR)\\bin\\QtCore4.dll $${OUT_DIR} > NUL)
-    system(copy /Y $$(QTDIR)\\bin\\QtGui4.dll $${OUT_DIR} > NUL)
-    system(copy /Y $$(QTDIR)\\bin\\QtXml4.dll $${OUT_DIR} > NUL)
-    system(copy /Y $$(QTDIR)\\plugins\\imageformats\\qjpeg4.dll $${OUT_DIR}\\imageformats > NUL)
-    system(copy /Y $$(QTDIR)\\plugins\\imageformats\\qtiff4.dll $${OUT_DIR}\\imageformats > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\Qt5Gui.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\plugins\\imageformats\\qjpeg.dll $${OUT_DIR}\\imageformats > NUL)
+    system(copy /Y $$(QTDIR)\\plugins\\imageformats\\qtiff.dll $${OUT_DIR}\\imageformats > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\libGLESv2.dll $${OUT_DIR} > NUL)
   }
   debug {
-    system(copy /Y $$(QTDIR)\\bin\\QtCored4.dll $${OUT_DIR} > NUL)
-    system(copy /Y $$(QTDIR)\\bin\\QtGuid4.dll $${OUT_DIR} > NUL)
-    system(copy /Y $$(QTDIR)\\bin\\QtXmld4.dll $${OUT_DIR} > NUL)
-    system(copy /Y $$(QTDIR)\\plugins\\imageformats\\qjpegd4.dll $${OUT_DIR}\\imageformats > NUL)
-    system(copy /Y $$(QTDIR)\\plugins\\imageformats\\qtiffd4.dll $${OUT_DIR}\\imageformats > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\Qt5Guid.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\plugins\\imageformats\\qjpegd.dll $${OUT_DIR}\\imageformats > NUL)
+    system(copy /Y $$(QTDIR)\\plugins\\imageformats\\qtiffd.dll $${OUT_DIR}\\imageformats > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\libGLESv2d.dll $${OUT_DIR} > NUL)
   }
-}
-win32-g++ {
-  system(copy /Y $$(QTDIR)\\bin\\libgcc_s_dw2-1.dll $${OUT_DIR} > NUL)
-  system(copy /Y $$(QTDIR)\\bin\\mingwm10.dll $${OUT_DIR} > NUL)
-}
-win32-msvc2005|win32-msvc2008|win32-msvc2010 {
-  TEMPLATE = vclib
-  GUID = 4d862d4a-734b-11e0-9782-a7eb248805c9
-  DEFINES += _CRT_SECURE_NO_WARNINGS
-  PRECOMPILED_SOURCE = $${PRECOMPILED_HEADER}
+
+  system(copy /Y $$(QTDIR)\\bin\\D3DCompiler_43.dll $${OUT_DIR} > NUL)
+
+  win32-msvc2005|win32-msvc2008|win32-msvc2010 {
+    TEMPLATE = vclib
+    GUID = 4d862d4a-734b-11e0-9782-a7eb248805c9
+    DEFINES += _CRT_SECURE_NO_WARNINGS
+    PRECOMPILED_SOURCE = $${PRECOMPILED_HEADER}
+  }
 }

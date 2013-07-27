@@ -8,5 +8,5 @@ win32-g++|macx {
 
 unix:LIBS += -lfreetype
 macx:LIBS += -lz
-win32-g++:LIBS += -lfreetype
+win32-g++:LIBS += -lfreetype -lz
 win32-msvc2005|win32-msvc2008|win32-msvc2010:LIBS += $$replace(FREETYPE_DIR,/,\\)\\freetype-$${FREETYPE_VERSION}\\objs\\.libs\\libfreetype.a

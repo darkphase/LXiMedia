@@ -49,7 +49,7 @@ QList<SFactory::Scheme> WinMMAudioInput::listDevices(void)
     if (::waveInGetDevCaps(i, &caps, sizeof(caps)) == MMSYSERR_NOERROR)
     {
       HMIXER mixer = NULL;
-      if (::mixerOpen(&mixer, i, NULL, NULL, MIXER_OBJECTF_WAVEIN) == MMSYSERR_NOERROR)
+      if (::mixerOpen(&mixer, i, 0, 0, MIXER_OBJECTF_WAVEIN) == MMSYSERR_NOERROR)
       {
         MIXERLINE mixerLine;
         memset(&mixerLine, 0, sizeof(mixerLine));
@@ -139,13 +139,13 @@ bool WinMMAudioInput::start(void)
         &waveIn,
         device.id,
         &format,
-        NULL, NULL,
+        0, 0,
         CALLBACK_NULL | WAVE_FORMAT_DIRECT);
 
   if (result == MMSYSERR_NOERROR)
   {
     HMIXER mixer = NULL;
-    if (::mixerOpen(&mixer, device.id, NULL, NULL, MIXER_OBJECTF_WAVEIN) == MMSYSERR_NOERROR)
+    if (::mixerOpen(&mixer, device.id, 0, 0, MIXER_OBJECTF_WAVEIN) == MMSYSERR_NOERROR)
     {
       selectSource(mixer, device.source);
       setVolume(mixer, device.lineId, 65535);

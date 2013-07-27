@@ -34,29 +34,25 @@ win32 {
   OUT_DIR = $$replace(OUT_PWD,/,\\)\\$$replace(LXIMEDIA_DIR,/,\\)\\bin
 
   system(mkdir $${OUT_DIR} > NUL 2>&1)
+
   release {
-    system(copy /Y $$(QTDIR)\\bin\\QtCore4.dll $${OUT_DIR} > NUL)
-    system(copy /Y $$(QTDIR)\\bin\\QtGui4.dll $${OUT_DIR} > NUL)
-    system(copy /Y $$(QTDIR)\\bin\\QtNetwork4.dll $${OUT_DIR} > NUL)
-    system(copy /Y $$(QTDIR)\\bin\\phonon4.dll $${OUT_DIR} > NUL)
-    system(copy /Y $$(QTDIR)\\bin\\QtWebKit4.dll $${OUT_DIR} > NUL)
-    system(copy /Y $$(QTDIR)\\bin\\QtXml4.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\Qt5Gui.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\Qt5Network.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\Qt5Widgets.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\libGLESv2.dll $${OUT_DIR} > NUL)
   }
   debug {
-    system(copy /Y $$(QTDIR)\\bin\\QtCored4.dll $${OUT_DIR} > NUL)
-    system(copy /Y $$(QTDIR)\\bin\\QtGuid4.dll $${OUT_DIR} > NUL)
-    system(copy /Y $$(QTDIR)\\bin\\QtNetworkd4.dll $${OUT_DIR} > NUL)
-    system(copy /Y $$(QTDIR)\\bin\\phonond4.dll $${OUT_DIR} > NUL)
-    system(copy /Y $$(QTDIR)\\bin\\QtWebKitd4.dll $${OUT_DIR} > NUL)
-    system(copy /Y $$(QTDIR)\\bin\\QtXmld4.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\Qt5Guid.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\Qt5Networkd.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\Qt5Widgetsd.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\libGLESv2d.dll $${OUT_DIR} > NUL)
   }
-}
-win32-g++ {
-  system(copy /Y $$(QTDIR)\\bin\\libgcc_s_dw2-1.dll $${OUT_DIR} > NUL)
-  system(copy /Y $$(QTDIR)\\bin\\mingwm10.dll $${OUT_DIR} > NUL)
-}
-win32-msvc2005|win32-msvc2008|win32-msvc2010 {
-  TEMPLATE = vcapp
-  GUID = 6ba196aa-1617-11e2-9c6a-002421558ad4
-  DEFINES += _CRT_SECURE_NO_WARNINGS
+
+  system(copy /Y $$(QTDIR)\\bin\\D3DCompiler_43.dll $${OUT_DIR} > NUL)
+
+  win32-msvc2005|win32-msvc2008|win32-msvc2010 {
+    TEMPLATE = vcapp
+    GUID = 6ba196aa-1617-11e2-9c6a-002421558ad4
+    DEFINES += _CRT_SECURE_NO_WARNINGS
+  }
 }

@@ -34,24 +34,31 @@ Section "-Shared Files" SecShared
   File COPYING
   File VERSION
   File README
-  File QtCore4.dll
-  File QtGui4.dll
-  File QtNetwork4.dll
-  File QtXml4.dll
+  File D3DCompiler_43.dll
+  File icudt49.dll
+  File icuin49.dll
+  File icuuc49.dll
+  File libEGL.dll
+  File libGLESv2.dll
+  File Qt5Concurrent.dll
+  File Qt5Core.dll
+  File Qt5Gui.dll
+  File Qt5Network.dll
+  File Qt5OpenGL.dll
+  File Qt5Widgets.dll
+  File Qt5Xml.dll
   File LXiCore.dll
   File LXiServer.dll
 
   ; Only needed when compiled with MinGW
-  File /nonfatal libgcc_s_dw2-1.dll
-  File /nonfatal mingwm10.dll
+  File /nonfatal libgcc_s_sjlj-1.dll
+  File /nonfatal libstdc++-6.dll
+  File /nonfatal libwinpthread-1.dll
 
   SetOutPath $INSTDIR\imageformats
   SetOverwrite ifnewer
-  File imageformats\qjpeg4.dll
-  File imageformats\qtiff4.dll
-
-  ; For backwards compatibility with 0.2.x versions, can be removed in the future.
-  RMDir /r "$%ALLUSERSPROFILE%\..\LocalService\Local Settings\Application Data\LXiMediaCenter"
+  File imageformats\qjpeg.dll
+  File imageformats\qtiff.dll
 
   WriteUninstaller "$INSTDIR\Uninstall.exe"
   WriteRegStr HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\LXiMediaCenter" "DisplayName" "LeX-Interactive MediaCenter"
@@ -67,7 +74,6 @@ Section "Backend service" SecBackend
   File lximcbackend.exe
 
   File /nonfatal dcraw.exe
-  File /nonfatal QtScript4.dll
 
   SetOutPath $INSTDIR\lximedia
   SetOverwrite ifnewer
@@ -86,8 +92,14 @@ SectionEnd
 Section "Frontend application" SecFrontend
   SetOutPath $INSTDIR
   SetOverwrite ifnewer
-  File phonon4.dll
-  File QtWebKit4.dll
+  File Qt5Multimedia.dll
+  File Qt5MultimediaWidgets.dll
+  File Qt5PrintSupport.dll
+  File Qt5Qml.dll
+  File Qt5Quick.dll
+  File Qt5Sql.dll
+  File Qt5WebKit.dll
+  File Qt5WebKitWidgets.dll
   File lximcfrontend.exe
 
   CreateShortCut "$SMPROGRAMS\LXiMediaCenter Frontend.lnk" "$INSTDIR\lximcfrontend.exe" "" "$INSTDIR\lximcfrontend.exe" 0

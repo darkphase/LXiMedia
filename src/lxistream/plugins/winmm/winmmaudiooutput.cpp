@@ -150,7 +150,7 @@ void WinMMAudioOutput::openCodec(const SAudioFormat &reqFormat)
               &waveOut,
               WAVE_MAPPER,
               &format,
-              NULL, NULL,
+              0, 0,
               WAVE_FORMAT_DIRECT);
 
         if (result != MMSYSERR_NOERROR)
