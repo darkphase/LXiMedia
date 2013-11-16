@@ -102,6 +102,8 @@ const char MediaPlayerServer::htmlSettingsDirTreeDir[] =
     "{DIR_EXPAND}"
     "{DIR_CHECK}"
     "  {DIR_NAME}\n"
+    " </td><td align=\"right\">\n"
+    "{DIR_CONTENTTYPE}"
     " </td></tr>\n";
 
 const char MediaPlayerServer::htmlSettingsDirTreeIndent[] =
@@ -118,6 +120,11 @@ const char MediaPlayerServer::htmlSettingsDirTreeCheck[] =
 const char MediaPlayerServer::htmlSettingsDirTreeCheckLink[] =
     "  <a class=\"hidden\" href=\"{SERVER_PATH}?folder_tree=&open={DIR_ALLOPEN}&amp;{DIR_CHECKTYPE}={DIR_FULLPATH}#{DIR_FULLPATH}\">\n"
     "   <img src=\"/img/check{DIR_CHECKED}.png\" width=\"16\" height=\"16\" />\n"
+    "  </a>\n";
+
+const char MediaPlayerServer::htmlSettingsDirTreeContentType[] =
+    "  <a class=\"hidden\" href=\"{SERVER_PATH}?folder_tree=&open={DIR_ALLOPEN}&amp;{MUSIC_CHECKTYPE}={DIR_FULLPATH}#{DIR_FULLPATH}\">\n"
+    "   <img src=\"/img/check{MUSIC_CHECKED}.png\" width=\"16\" height=\"16\" />\n"
     "  </a>\n";
 
 QByteArray MediaPlayerServer::frontPageContent(void)
@@ -189,7 +196,7 @@ QByteArray MediaPlayerServer::settingsContent(void)
   return htmlParser.parse(htmlSettingsMain);
 }
 
-void MediaPlayerServer::generateDirs(SStringParser &htmlParser, const QList<QUrl> &dirs, int indent, const QStringList &allopen, const QList<QUrl> &rootPaths)
+void MediaPlayerServer::generateDirs(SStringParser &htmlParser, const QList<QUrl> &dirs, int indent, const QStringList &allopen, const QList<RootPath> &rootPaths)
 {
   foreach (const QUrl &dir, dirs)
   {
@@ -206,6 +213,8 @@ void MediaPlayerServer::generateDirs(SStringParser &htmlParser, const QList<QUrl
     htmlParser.setField("DIR_INDENT", "");
     for (int i=0; i<indent; i++)
       htmlParser.appendField("DIR_INDENT", htmlParser.parse(htmlSettingsDirTreeIndent));
+
+    htmlParser.setField("DIR_CONTENTTYPE", "");
 
     if (dir.scheme() != "file")
     {
@@ -255,18 +264,21 @@ void MediaPlayerServer::generateDirs(SStringParser &htmlParser, const QList<QUrl
       }
 
       // Check
-      bool checkEnabled = true;
+      bool checkEnabled = true, checked = false, music = false;
       htmlParser.setField("DIR_CHECKED", "none");
       htmlParser.setField("DIR_CHECKTYPE", "checkon");
-      foreach (const QUrl &root, rootPaths)
+      foreach (const RootPath &root, rootPaths)
       {
-        const QString rootPath = root.toString();
+        const QString rootPath = root.url.toString();
 
         if (rootPath == path)
         {
           htmlParser.setField("DIR_CHECKED", "full");
           htmlParser.setField("DIR_CHECKTYPE", "checkoff");
-          checkEnabled = true;
+
+          checkEnabled = checked = true;
+          music = root.type == RootPath::Music;
+
           break;
         }
         else if (rootPath.startsWith(path))
@@ -304,6 +316,14 @@ void MediaPlayerServer::generateDirs(SStringParser &htmlParser, const QList<QUrl
       else
         htmlParser.setField("DIR_NAME", fileName);
 
+      if (checkEnabled && checked)
+      {
+        htmlParser.setField("MUSIC_CHECKTYPE", music ? "musicoff" : "musicon");
+        htmlParser.setField("MUSIC_CHECKED", music ? "note" : "none");
+
+        htmlParser.setField("DIR_CONTENTTYPE", htmlParser.parse(htmlSettingsDirTreeContentType));
+      }
+
       htmlParser.appendField("DIRS", htmlParser.parse(htmlSettingsDirTreeDir));
 
       // Recurse
@@ -331,9 +351,9 @@ void MediaPlayerServer::scanDrives(void)
     }
   }
 
-  foreach (const QUrl &path, rootPaths)
-  if (path.scheme() != "file")
-    driveList.insert(path, path.toString(QUrl::RemovePassword));
+  foreach (const RootPath &rootPath, rootPaths)
+  if (rootPath.url.scheme() != "file")
+    driveList.insert(rootPath.url, rootPath.url.toString(QUrl::RemovePassword));
 }
 
 SHttpServer::ResponseMessage MediaPlayerServer::httpRequest(const SHttpServer::RequestMessage &request, QIODevice *socket)
@@ -342,8 +362,8 @@ SHttpServer::ResponseMessage MediaPlayerServer::httpRequest(const SHttpServer::R
   {
     if (request.query().hasQueryItem("thumbnail"))
     {
-      const QUrl filePath = realPath(request.file());
-      if (!filePath.isEmpty())
+      const RootPath filePath = realPath(request.file());
+      if (!filePath.url.isEmpty())
       {
         SSize size(128, 128);
         if (request.query().hasQueryItem("resolution"))
@@ -354,7 +374,7 @@ SHttpServer::ResponseMessage MediaPlayerServer::httpRequest(const SHttpServer::R
 
         if (!request.isHead())
         {
-          const QByteArray result = mediaDatabase->readThumbnail(filePath, size.size(), Qt::black, "png");
+          const QByteArray result = mediaDatabase->readThumbnail(filePath.url, size.size(), Qt::black, "png");
           if (!result.isEmpty())
           {
             response.setContent(makeThumbnail(
@@ -365,7 +385,7 @@ SHttpServer::ResponseMessage MediaPlayerServer::httpRequest(const SHttpServer::R
           else
           {
             QString defaultIcon = ":/img/null.png";
-            switch (mediaDatabase->readNodeFormat(filePath).fileType())
+            switch (mediaDatabase->readNodeFormat(filePath.url).fileType())
             {
             case SMediaInfo::ProbeInfo::FileType_None:      defaultIcon = ":/img/null.png";           break;
             case SMediaInfo::ProbeInfo::FileType_Audio:     defaultIcon = ":/img/audio-file.png";     break;
@@ -410,8 +430,8 @@ SHttpServer::ResponseMessage MediaPlayerServer::httpRequest(const SHttpServer::R
 
         if (url.isValid())
         {
-          QList<QUrl> paths = rootPaths.values();
-          paths += url;
+          QList<RootPath> paths = rootPaths.values();
+          paths += RootPath(url, RootPath::Auto);
           setRootPaths(paths);
           scanDrives();
         }
@@ -424,7 +444,7 @@ SHttpServer::ResponseMessage MediaPlayerServer::httpRequest(const SHttpServer::R
     }
     else if (request.query().hasQueryItem("folder_tree"))
     {
-      QList<QUrl> paths = rootPaths.values();
+      QList<RootPath> paths = rootPaths.values();
 
       const QString open = request.query().queryItemValue("open");
       const QStringList allopen = !open.isEmpty()
@@ -436,12 +456,12 @@ SHttpServer::ResponseMessage MediaPlayerServer::httpRequest(const SHttpServer::R
       if (!checkon.isEmpty() || !checkoff.isEmpty())
       {
         if (!checkon.isEmpty())
-          paths.append(checkon.endsWith('/') ? checkon : (checkon + '/'));
+          paths.append(RootPath(checkon.endsWith('/') ? checkon : (checkon + '/'), RootPath::Auto));
 
         if (!checkoff.isEmpty())
-        for (QList<QUrl>::Iterator i=paths.begin(); i!=paths.end(); )
+        for (QList<RootPath>::Iterator i=paths.begin(); i!=paths.end(); )
         {
-          QString path = i->toString();
+          QString path = i->url.toString();
           if (!path.endsWith('/'))
             path += '/';
 
@@ -449,6 +469,29 @@ SHttpServer::ResponseMessage MediaPlayerServer::httpRequest(const SHttpServer::R
             i = paths.erase(i);
           else
             i++;
+        }
+
+        setRootPaths(paths);
+        scanDrives();
+      }
+
+      QString musicon = QString::fromUtf8(QByteArray::fromHex(request.query().queryItemValue("musicon").toLatin1()));
+      QString musicoff = QString::fromUtf8(QByteArray::fromHex(request.query().queryItemValue("musicoff").toLatin1()));
+      if (!musicon.isEmpty() || !musicoff.isEmpty())
+      {
+        if (!musicon.isEmpty() && !musicon.endsWith('/')) musicon += '/';
+        if (!musicoff.isEmpty() && !musicoff.endsWith('/')) musicoff += '/';
+
+        for (QList<RootPath>::Iterator i=paths.begin(); i!=paths.end(); i++)
+        {
+          QString path = i->url.toString();
+          if (!path.endsWith('/'))
+            path += '/';
+
+          if (path == musicon)
+            i->type = RootPath::Music;
+          else if (path == musicoff)
+            i->type = RootPath::Auto;
         }
 
         setRootPaths(paths);

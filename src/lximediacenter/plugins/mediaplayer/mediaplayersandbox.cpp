@@ -474,13 +474,19 @@ SSandboxServer::ResponseMessage MediaPlayerSandbox::play(const SSandboxServer::R
       }
 
       SMediaInfo::ProbeInfo::FileType fileType = SMediaInfo::ProbeInfo::FileType_None;
-      if ((audio > video) && (audio > image))
+      if (request.query().hasQueryItem("music") ||
+          ((audio > video) && (audio > image)))
       {
-        fileType = SMediaInfo::ProbeInfo::FileType_Audio;
+        fileType = (video > audio) && (video > image)
+                   ? SMediaInfo::ProbeInfo::FileType_Video
+                   : SMediaInfo::ProbeInfo::FileType_Audio;
 
         // Randomize files.
-        for (int i=0; i<files.count(); i++)
-          qSwap(files[i], files[qrand() % files.count()]);
+        QList<QUrl> random;
+        while (!files.empty())
+          random.append(files.takeAt(qrand() % files.count()));
+
+        qSwap(random, files);
       }
       else if ((image > audio) && (image > video))
       {
