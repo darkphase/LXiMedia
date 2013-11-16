@@ -25,13 +25,17 @@ struct SSsdpServer::Private
   struct Service
   {
     inline Service(const QString &relativeUrl = QString::null, unsigned msgCount = 0)
-      : relativeUrl(relativeUrl), msgCount(msgCount)
+      : relativeUrl(relativeUrl), msgCount(msgCount), publishCount(0)
     {
     }
 
     QString                     relativeUrl;
     unsigned                    msgCount;
+    unsigned                    publishCount;
   };
+
+  static const int              cacheTimeout = 1800; // Sec
+  static const int              advertisementInterval = 5; // Sec
 
   QPointer<SHttpServer>         httpServer;
   qint32                        oldbootid;
@@ -40,7 +44,6 @@ struct SSsdpServer::Private
   qint32                        configid;
   QMultiMap<QString, Service>   published;
   QTimer                        updateTimer;
-  QTimer                        publishTimer;
   QTimer                        rePublishTimer;
 };
 
@@ -55,9 +58,7 @@ SSsdpServer::SSsdpServer(SHttpServer *httpServer)
   p->configid = 0;
 
   p->updateTimer.setSingleShot(true);
-  p->publishTimer.setSingleShot(true);
   connect(&(p->updateTimer), SIGNAL(timeout()), SLOT(updateServices()));
-  connect(&(p->publishTimer), SIGNAL(timeout()), SLOT(publishServices()));
   connect(&(p->rePublishTimer), SIGNAL(timeout()), SLOT(publishServices()));
 }
 
@@ -82,7 +83,7 @@ void SSsdpServer::initialize()
 
   SSsdpClient::initialize();
 
-  p->rePublishTimer.start(((cacheTimeout / 2) - 300) * 1000);
+  p->rePublishTimer.start(p->advertisementInterval * 1000);
 }
 
 void SSsdpServer::close(void)
@@ -114,9 +115,8 @@ void SSsdpServer::reset(void)
   settings.setValue("BOOTID.UPNP.ORG", p->bootid);
   settings.setValue("CONFIGID.UPNP.ORG", p->configid);
 
-  p->updateTimer.start(3000 + (qrand() % 100));
-  p->publishTimer.start(3500 + (qrand() % 100));
-  p->rePublishTimer.start(((cacheTimeout / 2) - 300) * 1000);
+  p->updateTimer.start((p->advertisementInterval * 500) + (qrand() % 100));
+  p->rePublishTimer.start((p->advertisementInterval * 1000) + (qrand() % 100));
 }
 
 bool SSsdpServer::bind(const QHostAddress &address)
@@ -141,8 +141,7 @@ void SSsdpServer::release(const QHostAddress &address)
 void SSsdpServer::publish(const QString &nt, const QString &relativeUrl, unsigned msgCount)
 {
   p->published.insert(nt, Private::Service(relativeUrl, msgCount));
-  p->updateTimer.start(3000 + (qrand() % 100));
-  p->publishTimer.start(3500 + (qrand() % 100));
+  p->updateTimer.start((p->advertisementInterval * 500) + (qrand() % 100));
 
   for (unsigned i=0; i<msgCount; i++)
   foreach (const QHostAddress &iface, interfaces())
@@ -202,7 +201,7 @@ void SSsdpServer::sendAlive(const QHostAddress &iface, const QString &nt, const 
   request.setField("SERVER", SHttpServer::osName() + ' ' + SUPnPBase::protocol() + ' ' + qApp->applicationName() + '/' + qApp->applicationVersion());
   request.setField("HOST", SSsdpServer::ssdpAddressIPv4.toString() + ":" + QString::number(SSsdpServer::ssdpPort));
   request.setField("USN", serverUdn() + (!nt.startsWith("uuid:") ? ("::" + nt) : QString::null));
-  request.setField("CACHE-CONTROL", "max-age=" + QString::number(SSsdpServer::cacheTimeout));
+  request.setField("CACHE-CONTROL", "max-age=" + QString::number(p->cacheTimeout));
   request.setField("LOCATION", url);
   request.setField("NT", nt);
   request.setField("NTS", "ssdp:alive");
@@ -233,7 +232,7 @@ void SSsdpServer::sendSearchResponse(const QHostAddress &iface, const QString &n
   response.setDate();
   response.setField("SERVER", SHttpServer::osName() + ' ' + SUPnPBase::protocol() + ' ' + qApp->applicationName() + '/' + qApp->applicationVersion());
   response.setField("USN", serverUdn() + (!nt.startsWith("uuid:") ? ("::" + nt) : QString::null));
-  response.setField("CACHE-CONTROL", "max-age=" + QString::number(SSsdpServer::cacheTimeout));
+  response.setField("CACHE-CONTROL", "max-age=" + QString::number(p->cacheTimeout));
   response.setField("EXT", QString::null);
   response.setField("LOCATION", url);
   response.setField("ST", nt);
@@ -245,11 +244,11 @@ void SSsdpServer::sendSearchResponse(const QHostAddress &iface, const QString &n
 
 void SSsdpServer::publishServices(const QHostAddress &iface)
 {
-  for (QMultiMap<QString, Private::Service>::ConstIterator i = p->published.begin();
+  for (QMultiMap<QString, Private::Service>::Iterator i = p->published.begin();
        i != p->published.end();
        i++)
   {
-    for (unsigned j=0; j<i->msgCount; j++)
+    for (unsigned j = 0; j < ((i->publishCount == 0) ? i->msgCount : 1); j++)
     {
       const quint16 port = p->httpServer->serverPort(iface);
       if (port > 0)
@@ -260,6 +259,8 @@ void SSsdpServer::publishServices(const QHostAddress &iface)
         sendAlive(iface, i.key(), url);
       }
     }
+
+    i->publishCount++;
   }
 }
 
