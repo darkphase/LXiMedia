@@ -256,10 +256,7 @@ SVideoBufferList VideoDecoder::decodeBuffer(const SEncodedVideoBuffer &videoBuff
         if (!destBuffer.isNull())
         {
           // Correct invalid timestamps
-          const STime delta = qAbs(timeStamp - ts);
-          if (!videoBuffer.isKeyFrame() && (delta <= STime(contextHandle->gop_size, frameRate)))
-            ts = timeStamp;
-          else if (videoBuffer.isKeyFrame() && (delta <= STime(2, frameRate)))
+          if ((ts < timeStamp) && !videoBuffer.isKeyFrame())
             ts = timeStamp;
 
           destBuffer.setTimeStamp(ts);

@@ -20,7 +20,7 @@
 namespace LXiStream {
 namespace FFMpegBackend {
 
-const int   BufferReaderBase::StreamContext::measurementSize = 48;
+const int   BufferReaderBase::StreamContext::measurementSize = 96;
 const int   BufferReaderBase::maxBufferCount = StreamContext::measurementSize * 8;
 const STime BufferReaderBase::maxJumpTime = STime::fromSec(10);
 
@@ -170,53 +170,59 @@ bool BufferReaderBase::start(SInterfaces::AbstractBufferReader::ProduceCallback 
       {
         qSort(streamContext[i]->measurement);
 
-        // Get the frame intervals
+        // Get the frame intervals (skip first 4 frames)
         QMap<qint64, QAtomicInt> intervals;
-        for (int j=1; j<streamContext[i]->measurementSize; j++)
+        for (int j=5; j<streamContext[i]->measurementSize; j++)
           intervals[(streamContext[i]->measurement[j] - streamContext[i]->measurement[j-1]).toUSec()].ref();
 
         // Keep only the ones that reoccur
         int maxCount = 0;
-        for (QMap<qint64, QAtomicInt>::Iterator j=intervals.begin(); j!=intervals.end(); j++)
+        for (QMap<qint64, QAtomicInt>::ConstIterator j=intervals.begin(); j!=intervals.end(); j++)
           maxCount = qMax(j->load(), maxCount);
 
-        for (QMap<qint64, QAtomicInt>::Iterator j=intervals.begin(); j!=intervals.end();)
-          if ((j.key() > 10000) && (j.key() < 100000) && (j->load() > (maxCount / 4)))
+        QMap<qint64, double> filteredIntervals;
+        for (QMap<qint64, QAtomicInt>::ConstIterator j=intervals.begin(); j!=intervals.end(); j++)
+        if ((j.key() > 10000) && (j.key() < 100000))
         {
-            if (j->load() > ((maxCount / 2) + (maxCount / 4)))
-            *j = maxCount;
-          else if (j->load() > ((maxCount / 3) + (maxCount / 4)))
-            *j = maxCount / 2;
-          else
-            *j = maxCount / 3;
+//          qDebug() << "Interval" << j.key() << j->load() << maxCount;
 
-          j++;
+          if (j->load() > ((maxCount / 2) + (maxCount / 4)))
+            filteredIntervals[j.key()] = double(maxCount);
+          else if (j->load() > ((maxCount / 3) + (maxCount / 9)))
+            filteredIntervals[j.key()] = double(maxCount) / 2.0;
+          else if (j->load() > ((maxCount / 4) + (maxCount / 16)))
+            filteredIntervals[j.key()] = double(maxCount) / 3.0;
+          else if ((j->load() > ((maxCount + 1) / 16)) && (j->load() < ((maxCount + 1) / 8)))
+            filteredIntervals[j.key()] = double(maxCount + 1) / 12.0;
         }
-        else
-          j = intervals.erase(j);
 
-//              for (QMap<qint64, QAtomicInt>::Iterator j=intervals.begin(); j!=intervals.end(); j++)
-//                qDebug() << "Interval" << j.key() << j.value();
-
-        if (!intervals.isEmpty())
+        // Compute frame rate
+        if (!filteredIntervals.isEmpty())
         {
-          qint64 sum = 0;
-          int count = 0;
-          for (QMap<qint64, QAtomicInt>::Iterator j=intervals.begin(); j!=intervals.end(); j++)
+          double sum = 0.0, count = 0.0;
+          for (QMap<qint64, double>::ConstIterator j=filteredIntervals.begin(); j!=filteredIntervals.end(); j++)
           {
-            sum += j.key() * j->load();
-            count += j->load();
+            sum += double(j.key()) * j.value();
+            count += j.value();
           }
 
           const SInterval refFrameRate = streamContext[i]->videoCodec.frameRate();
-          SInterval frameRate(sum, count * 1000000);
+          SInterval frameRate(qint64(sum), qint64(count * 1000000.0));
+          qDebug() << "BufferReaderBase::start framerate =" << frameRate.toFrequency()
+                   << ", refFrameRate =" << refFrameRate.toFrequency();
+
+          // Check if a standard framerate is a better match.
+          static const double standard[] = { 10.0, 12.5, 15.0, 24.0, 25.0, 30.0, 50.0, 60.0 };
+          for (size_t j=0; j<(sizeof(standard)/sizeof(*standard)); j++)
+          if (qAbs(standard[j] - frameRate.toFrequency()) < 0.2)
+            frameRate = SInterval::fromFrequency(standard[j]);
 
           // Check if a 1/1, 1/2, 1/3 or 1/4 of the refFrameRate is a better match.
           for (int j=1; j<=4; j++)
-          if (qAbs((refFrameRate.toFrequency() / j) - frameRate.toFrequency()) < 1.0)
+          if (qAbs((refFrameRate.toFrequency() / j) - frameRate.toFrequency()) < 0.8)
             frameRate = SInterval(refFrameRate.num() * j, refFrameRate.den());
 
-//                qDebug() << "Framerate" << frameRate.toFrequency() << refFrameRate.toFrequency();
+          qDebug() << "BufferReaderBase::start setFrameRate" << frameRate.toFrequency();
           streamContext[i]->videoCodec.setFrameRate(frameRate.simplified());
         }
       }
