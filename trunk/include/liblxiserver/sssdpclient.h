@@ -83,7 +83,6 @@ public:
   static const QHostAddress     ssdpAddressIPv4;
   static const QHostAddress     ssdpAddressIPv6;
   static const quint16          ssdpPort;
-  static const int              cacheTimeout;
 
 private:
   struct Private;

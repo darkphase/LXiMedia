@@ -41,7 +41,6 @@ struct SSsdpClient::Private
 const QHostAddress  SSsdpClient::ssdpAddressIPv4("239.255.255.250");
 const QHostAddress  SSsdpClient::ssdpAddressIPv6("FF02::C");
 const quint16       SSsdpClient::ssdpPort = 1900;
-const int           SSsdpClient::cacheTimeout = 1800; // Alive messages are sent every (cacheTimeout/2)-300 seconds.
 
 QList<QHostAddress> SSsdpClient::localAddresses(void)
 {
