@@ -1033,8 +1033,6 @@ int MediaProfiles::correctFormat(ImageProfile profile, SSize &size)
   return offset;
 }
 
-#define PROFILE_NAME(x) if (profileName == #x) return x
-
 MediaProfiles::AudioProfile MediaProfiles::audioProfileFor(const QString &contentFeatures) const
 {
   const int profilePos = contentFeatures.indexOf("DLNA.ORG_PN=");

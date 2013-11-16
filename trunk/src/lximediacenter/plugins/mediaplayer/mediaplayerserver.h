@@ -45,6 +45,26 @@ protected:
     SSandboxClient      * const sandbox;
   };
 
+private:
+  struct RootPath
+  {
+    enum Type { Auto, Music };
+
+    inline                      RootPath() : url(), type(Auto) { }
+    inline                      RootPath(const QUrl &url, Type type) : url(url), type(type) { }
+
+    QUrl                        url;
+    Type                        type;
+  };
+
+  struct DirType
+  {
+    inline                      DirType(SMediaInfo::ProbeInfo::FileType f, RootPath::Type p = RootPath::Auto) : fileType(f), pathType(p) { }
+
+    SMediaInfo::ProbeInfo::FileType fileType;
+    RootPath::Type              pathType;
+  };
+
 public:
                                 MediaPlayerServer(const QString &, QObject *);
 
@@ -70,21 +90,21 @@ protected: // From MediaServer
   virtual ListType              listType(const QString &path);
 
 private:
-  void                          setRootPaths(const QList<QUrl> &paths);
+  void                          setRootPaths(const QList<RootPath> &paths);
   QString                       virtualPath(const QUrl &realPath) const;
-  QUrl                          realPath(const QString &virtualPath) const;
+  RootPath                      realPath(const QString &virtualPath) const;
   static QString                virtualFile(const QString &virtualPath);
   static QString                dirLabel(const QString &);
 
-  Item                          makeItem(SMediaInfo::ProbeInfo::FileType dirType, const SMediaInfo &, int titleId = -1);
+  Item                          makeItem(DirType dirType, const SMediaInfo &, int titleId = -1);
   Item                          makePlayAllItem(const QString &virtualPath);
-  SMediaInfo::ProbeInfo::FileType dirType(const QString &virtualPath);
+  DirType                       dirType(const QString &virtualPath);
 
 private slots:
   void                          consoleLine(const QString &);
 
 private:
-  void                          generateDirs(SStringParser &, const QList<QUrl> &, int, const QStringList &, const QList<QUrl> &);
+  void                          generateDirs(SStringParser &, const QList<QUrl> &, int, const QStringList &, const QList<RootPath> &);
   void                          scanDrives(void);
 
 private:
@@ -95,7 +115,7 @@ private:
   MasterServer                * masterServer;
   MediaDatabase               * mediaDatabase;
 
-  QMap<QString, QUrl>           rootPaths;
+  QMap<QString, RootPath>       rootPaths;
   QMap<QUrl, QString>           driveList;
 
 private:
@@ -109,6 +129,7 @@ private:
   static const char             htmlSettingsDirTreeExpand[];
   static const char             htmlSettingsDirTreeCheck[];
   static const char             htmlSettingsDirTreeCheckLink[];
+  static const char             htmlSettingsDirTreeContentType[];
 };
 
 } } // End of namespaces

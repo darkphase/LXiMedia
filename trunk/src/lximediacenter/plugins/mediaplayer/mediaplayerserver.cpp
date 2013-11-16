@@ -38,18 +38,30 @@ MediaPlayerServer::MediaPlayerServer(const QString &, QObject *parent)
   QSettings settings;
   settings.beginGroup(Module::pluginName);
 
-  QList<QUrl> paths;
+  QList<RootPath> paths;
   foreach (const QString &root, settings.value("RootPaths").toStringList())
   if (!root.isEmpty())
   {
-    QUrl path = QUrl::fromEncoded(root.toLatin1());
+    QUrl path;
+    RootPath::Type type = RootPath::Auto;
+
+    const int comma = root.indexOf(',');
+    if (comma >= 0)
+    {
+      path = QUrl::fromEncoded(root.mid(comma + 1).toLatin1());
+      if (root.left(comma).compare("Music", Qt::CaseInsensitive) == 0)
+        type = RootPath::Music;
+    }
+    else
+      path = QUrl::fromEncoded(root.toLatin1());
+
     if (path.isValid() && !path.scheme().isEmpty())
     {
       // Lame-decrypt the password.
       if (!path.password().isEmpty())
         path.setPassword(QString::fromUtf8(qUncompress(QByteArray::fromHex(path.password().toLatin1()))));
 
-      paths.append(path);
+      paths.append(RootPath(path, type));
     }
   }
 
@@ -64,7 +76,7 @@ void MediaPlayerServer::initialize(MasterServer *masterServer)
   MediaServer::initialize(masterServer);
 
   foreach (const QString &path, rootPaths.keys())
-    mediaDatabase->isEmpty(realPath(serverPath() + path + '/'));
+    mediaDatabase->isEmpty(realPath(serverPath() + path + '/').url);
 }
 
 void MediaPlayerServer::close(void)
@@ -94,8 +106,8 @@ MediaPlayerServer::Stream * MediaPlayerServer::streamVideo(const SHttpServer::Re
   connect(sandbox, SIGNAL(consoleLine(QString)), SLOT(consoleLine(QString)));
   sandbox->ensureStarted();
 
-  const QUrl filePath = realPath(request.file());
-  if (!filePath.isEmpty())
+  const RootPath filePath = realPath(request.file());
+  if (!filePath.url.isEmpty())
   {
     QUrlQuery rquery;
     typedef QPair<QString, QString> QStringPair;
@@ -131,7 +143,7 @@ MediaPlayerServer::Stream * MediaPlayerServer::streamVideo(const SHttpServer::Re
     rurl.setQuery(rquery);
 
     Stream *stream = new Stream(this, sandbox, request.path());
-    if (stream->setup(rurl, filePath.toString().toUtf8()))
+    if (stream->setup(rurl, filePath.url.toString().toUtf8()))
       return stream; // The graph owns the socket now.
 
     delete stream;
@@ -145,8 +157,8 @@ MediaPlayerServer::Stream * MediaPlayerServer::streamVideo(const SHttpServer::Re
 
 SHttpServer::ResponseMessage MediaPlayerServer::sendPhoto(const SHttpServer::RequestMessage &request)
 {
-  const QUrl filePath = realPath(request.file());
-  if (!filePath.isEmpty())
+  const RootPath filePath = realPath(request.file());
+  if (!filePath.url.isEmpty())
   {
     SSize size(4096, 4096);
     if (request.query().hasQueryItem("resolution"))
@@ -181,7 +193,7 @@ SHttpServer::ResponseMessage MediaPlayerServer::sendPhoto(const SHttpServer::Req
 
     if (!request.isHead())
     {
-      const QByteArray result = mediaDatabase->readImage(filePath, size.size(), backgroundColor, format);
+      const QByteArray result = mediaDatabase->readImage(filePath.url, size.size(), backgroundColor, format);
       if (!result.isEmpty())
         response.setContent(result);
       else
@@ -206,7 +218,7 @@ QList<MediaPlayerServer::Item> MediaPlayerServer::listItems(const QString &virtu
     while (virtualFilePath.endsWith('/'))
       virtualFilePath = virtualFilePath.left(virtualFilePath.length() - 1);
 
-    const SMediaInfo node = mediaDatabase->readNodeContent(realPath(virtualFilePath));
+    const SMediaInfo node = mediaDatabase->readNodeContent(realPath(virtualFilePath).url);
     if (!node.isNull() && !node.titles().isEmpty())
     {
       const int numTitles = node.titles().count();
@@ -217,10 +229,11 @@ QList<MediaPlayerServer::Item> MediaPlayerServer::listItems(const QString &virtu
     }
     else
     {
-      const SMediaInfo::ProbeInfo::FileType type = dirType(virtualPath);
-      if ((type == SMediaInfo::ProbeInfo::FileType_Audio) ||
-          (type == SMediaInfo::ProbeInfo::FileType_Video) ||
-          (type == SMediaInfo::ProbeInfo::FileType_Image))
+      const DirType type = dirType(virtualPath);
+      if ((type.pathType == RootPath::Music) ||
+          (type.fileType == SMediaInfo::ProbeInfo::FileType_Audio) ||
+          (type.fileType == SMediaInfo::ProbeInfo::FileType_Video) ||
+          (type.fileType == SMediaInfo::ProbeInfo::FileType_Image))
       {
         // Add play all item
         int first = start;
@@ -229,7 +242,7 @@ QList<MediaPlayerServer::Item> MediaPlayerServer::listItems(const QString &virtu
         else if (start > 0)
           first--;
 
-        foreach (const SMediaInfo &node, mediaDatabase->listItems(realPath(virtualPath), first, count))
+        foreach (const SMediaInfo &node, mediaDatabase->listItems(realPath(virtualPath).url, first, count))
           result += makeItem(type, node);
 
         if (start == 0)
@@ -239,7 +252,7 @@ QList<MediaPlayerServer::Item> MediaPlayerServer::listItems(const QString &virtu
       }
       else
       {
-        foreach (const SMediaInfo &node, mediaDatabase->listItems(realPath(virtualPath), start, count))
+        foreach (const SMediaInfo &node, mediaDatabase->listItems(realPath(virtualPath).url, start, count))
           result += makeItem(type, node);
       }
     }
@@ -248,7 +261,7 @@ QList<MediaPlayerServer::Item> MediaPlayerServer::listItems(const QString &virtu
   {
     QStringList paths = rootPaths.keys();
     for (QStringList::Iterator i=paths.begin(); i!=paths.end(); )
-    if (mediaDatabase->isEmpty(realPath(virtualPath + *i + '/')))
+    if (mediaDatabase->isEmpty(realPath(virtualPath + *i + '/').url))
       i = paths.erase(i);
     else
       i++;
@@ -276,14 +289,14 @@ MediaPlayerServer::Item MediaPlayerServer::getItem(const QString &virtualPath)
   if (vFile == "all")
     return makePlayAllItem(virtualPath.left(virtualPath.length() - 4));
   else if (!vFile.isEmpty() && vFile[0].isNumber())
-    return makeItem(dirType(virtualPath), mediaDatabase->readNodeContent(realPath(virtualPath)), vFile.toInt());
+    return makeItem(dirType(virtualPath), mediaDatabase->readNodeContent(realPath(virtualPath).url), vFile.toInt());
   else
-    return makeItem(dirType(virtualPath), mediaDatabase->readNodeContent(realPath(virtualPath)));
+    return makeItem(dirType(virtualPath), mediaDatabase->readNodeContent(realPath(virtualPath).url));
 }
 
 MediaPlayerServer::ListType MediaPlayerServer::listType(const QString &virtualPath)
 {
-  switch (dirType(virtualPath))
+  switch (dirType(virtualPath).fileType)
   {
   case SMediaInfo::ProbeInfo::FileType_Disc:
   case SMediaInfo::ProbeInfo::FileType_Audio:
@@ -301,14 +314,14 @@ MediaPlayerServer::ListType MediaPlayerServer::listType(const QString &virtualPa
   return MediaServer::listType(virtualPath);
 }
 
-void MediaPlayerServer::setRootPaths(const QList<QUrl> &paths)
+void MediaPlayerServer::setRootPaths(const QList<RootPath> &paths)
 {
   rootPaths.clear();
 
   QStringList encodedPaths;
-  foreach (QUrl path, paths)
+  foreach (RootPath path, paths)
   {
-    const QString baseLabel = dirLabel(path.path());
+    const QString baseLabel = dirLabel(path.url.path());
     int index = 1;
     QString label = baseLabel;
     while (rootPaths.contains(label))
@@ -317,10 +330,14 @@ void MediaPlayerServer::setRootPaths(const QList<QUrl> &paths)
     rootPaths.insert(label, path);
 
     // Lame-encrypt the password.
-    if (!path.password().isEmpty())
-      path.setPassword(qCompress(path.password().toUtf8()).toHex());
+    if (!path.url.password().isEmpty())
+      path.url.setPassword(qCompress(path.url.password().toUtf8()).toHex());
 
-    encodedPaths += path.toEncoded();
+    switch (path.type)
+    {
+    case RootPath::Auto:  encodedPaths += "Auto,"   + path.url.toEncoded();   break;
+    case RootPath::Music: encodedPaths += "Music,"  + path.url.toEncoded();   break;
+    }
   }
 
   QSettings settings;
@@ -332,9 +349,9 @@ QString MediaPlayerServer::virtualPath(const QUrl &realPath) const
 {
   const QString realPathString = realPath.toString();
 
-  for (QMap<QString, QUrl>::ConstIterator i=rootPaths.begin(); i!=rootPaths.end(); i++)
+  for (QMap<QString, RootPath>::ConstIterator i=rootPaths.begin(); i!=rootPaths.end(); i++)
   {
-    QString rootString = i.value().toString();
+    QString rootString = i.value().url.toString();
     if (!rootString.endsWith('/'))
       rootString += '/';
 
@@ -345,7 +362,7 @@ QString MediaPlayerServer::virtualPath(const QUrl &realPath) const
   return QString::null;
 }
 
-QUrl MediaPlayerServer::realPath(const QString &virtualPath) const
+MediaPlayerServer::RootPath MediaPlayerServer::realPath(const QString &virtualPath) const
 {
   const QString basepath = serverPath();
 
@@ -354,10 +371,10 @@ QUrl MediaPlayerServer::realPath(const QString &virtualPath) const
     const int s = virtualPath.indexOf('/', basepath.length());
     if (s >= 1)
     {
-      QMap<QString, QUrl>::ConstIterator i = rootPaths.find(virtualPath.mid(basepath.length(), s - basepath.length()));
+      QMap<QString, RootPath>::ConstIterator i = rootPaths.find(virtualPath.mid(basepath.length(), s - basepath.length()));
       if (i != rootPaths.end())
       {
-        QString rootString = i.value().toString();
+        QString rootString = i->url.toString();
         if (!rootString.endsWith('/'))
           rootString += '/';
 
@@ -368,12 +385,12 @@ QUrl MediaPlayerServer::realPath(const QString &virtualPath) const
         if ((ls >= 0) && ((ls + 1) < result.length()) && (result[ls + 1] == '.'))
           result = result.left(ls);
 
-        return result;
+        return RootPath(result, i->type);
       }
     }
   }
 
-  return QUrl();
+  return RootPath();
 }
 
 QString MediaPlayerServer::virtualFile(const QString &virtualPath)
@@ -419,7 +436,7 @@ QString MediaPlayerServer::dirLabel(const QString &path)
   return QString::null;
 }
 
-MediaPlayerServer::Item MediaPlayerServer::makeItem(SMediaInfo::ProbeInfo::FileType dirType, const SMediaInfo &node, int titleId)
+MediaPlayerServer::Item MediaPlayerServer::makeItem(DirType dirType, const SMediaInfo &node, int titleId)
 {
   Item item;
 
@@ -454,18 +471,18 @@ MediaPlayerServer::Item MediaPlayerServer::makeItem(SMediaInfo::ProbeInfo::FileT
       switch (node.fileType())
       {
       case SMediaInfo::ProbeInfo::FileType_Audio:
-        item.type = (dirType == SMediaInfo::ProbeInfo::FileType_Audio)
+        item.type = (dirType.pathType == RootPath::Music)
                     ? Item::Type_Music
                     : Item::Type_Audio;
 
         break;
 
       case SMediaInfo::ProbeInfo::FileType_Video:
-        item.type = Item::Type_Movie;
-        break;
-
       case SMediaInfo::ProbeInfo::FileType_Disc:
-        item.type = Item::Type_Movie;
+        item.type = (dirType.pathType == RootPath::Music)
+                    ? Item::Type_MusicVideo
+                    : Item::Type_Movie;
+
         break;
 
       case SMediaInfo::ProbeInfo::FileType_Image:
@@ -571,40 +588,69 @@ MediaPlayerServer::Item MediaPlayerServer::makePlayAllItem(const QString &virtua
   item.url = item.path;
   item.iconUrl = "/img/play-all.png";
 
-  switch (dirType(virtualPath))
+  const DirType type = dirType(virtualPath);
+  switch (type.pathType)
   {
-  case SMediaInfo::ProbeInfo::FileType_Audio:
-    item.type = Item::Type_AudioBroadcast;
-    item.title = tr("Play all");
+  case RootPath::Auto:
+    switch (type.fileType)
+    {
+    case SMediaInfo::ProbeInfo::FileType_Audio:
+      item.type = Item::Type_AudioBroadcast;
+      item.title = tr("Play all");
+      break;
+
+    case SMediaInfo::ProbeInfo::FileType_None:
+    case SMediaInfo::ProbeInfo::FileType_Disc:
+    case SMediaInfo::ProbeInfo::FileType_Directory:
+    case SMediaInfo::ProbeInfo::FileType_Drive:
+    case SMediaInfo::ProbeInfo::FileType_Video:
+    case SMediaInfo::ProbeInfo::FileType_Subtitle:
+      item.type = Item::Type_VideoBroadcast;
+      item.title = tr("Play all");
+      break;
+
+    case SMediaInfo::ProbeInfo::FileType_Image:
+      item.type = Item::Type_VideoBroadcast;
+      item.title = tr("Slideshow");
+      break;
+    }
+
     break;
 
-  case SMediaInfo::ProbeInfo::FileType_None:
-  case SMediaInfo::ProbeInfo::FileType_Disc:
-  case SMediaInfo::ProbeInfo::FileType_Directory:
-  case SMediaInfo::ProbeInfo::FileType_Drive:
-  case SMediaInfo::ProbeInfo::FileType_Video:
-  case SMediaInfo::ProbeInfo::FileType_Subtitle:
-    item.type = Item::Type_VideoBroadcast;
-    item.title = tr("Play all");
-    break;
+  case RootPath::Music:
+    switch (type.fileType)
+    {
+    case SMediaInfo::ProbeInfo::FileType_Audio:
+    case SMediaInfo::ProbeInfo::FileType_Image:
+      item.type = Item::Type_Music;
+      item.title = tr("Play all");
+      break;
 
-  case SMediaInfo::ProbeInfo::FileType_Image:
-    item.type = Item::Type_VideoBroadcast;
-    item.title = tr("Slideshow");
+    case SMediaInfo::ProbeInfo::FileType_None:
+    case SMediaInfo::ProbeInfo::FileType_Disc:
+    case SMediaInfo::ProbeInfo::FileType_Directory:
+    case SMediaInfo::ProbeInfo::FileType_Drive:
+    case SMediaInfo::ProbeInfo::FileType_Video:
+    case SMediaInfo::ProbeInfo::FileType_Subtitle:
+      item.type = Item::Type_MusicVideo;
+      item.title = tr("Play all");
+      break;
+    }
+
     break;
   }
 
   return item;
 }
 
-SMediaInfo::ProbeInfo::FileType MediaPlayerServer::dirType(const QString &virtualPath)
+MediaPlayerServer::DirType MediaPlayerServer::dirType(const QString &virtualPath)
 {
   if (virtualPath != serverPath())
   {
-    const QUrl path = realPath(virtualPath);
+    const RootPath path = realPath(virtualPath);
 
     int audio = 0, video = 0, image = 0, count = numRepresentativeItems;
-    foreach (const SMediaInfo &node, mediaDatabase->representativeItems(path, count))
+    foreach (const SMediaInfo &node, mediaDatabase->representativeItems(path.url, count))
     if (!node.isNull())
     switch (node.fileType())
     {
@@ -621,11 +667,13 @@ SMediaInfo::ProbeInfo::FileType MediaPlayerServer::dirType(const QString &virtua
     }
 
     if ((audio > video) && (audio > image) && (audio >= (numRepresentativeItems / 2)))
-      return SMediaInfo::ProbeInfo::FileType_Audio;
+      return DirType(SMediaInfo::ProbeInfo::FileType_Audio, path.type);
     else if ((video > audio) && (video > image) && (video >= (numRepresentativeItems / 2)))
-      return SMediaInfo::ProbeInfo::FileType_Video;
+      return DirType(SMediaInfo::ProbeInfo::FileType_Video, path.type);
     else if ((image > audio) && (image > video) && (image >= (numRepresentativeItems / 2)))
-      return SMediaInfo::ProbeInfo::FileType_Image;
+      return DirType(SMediaInfo::ProbeInfo::FileType_Image, path.type);
+
+    return DirType(SMediaInfo::ProbeInfo::FileType_None, path.type);
   }
 
   return SMediaInfo::ProbeInfo::FileType_None;
