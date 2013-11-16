@@ -151,7 +151,7 @@ SAudioBufferList AudioDecoder::decodeBuffer(const SEncodedAudioBuffer &audioBuff
       if (!currentTime.isValid())
         currentTime = audioBuffer.decodingTimeStamp();
 
-      if (qAbs(timeStamp - currentTime).toMSec() > defaultBufferLen)
+      if (currentTime.isValid() && (qAbs(timeStamp - currentTime).toMSec() > defaultBufferLen))
         timeStamp = currentTime;
 
       ::AVFrame *frame = ::avcodec_alloc_frame();
