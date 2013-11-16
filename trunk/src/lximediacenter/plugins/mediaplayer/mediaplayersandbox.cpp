@@ -639,6 +639,11 @@ SandboxSlideShowStream::SandboxSlideShowStream(const QList<QUrl> &files)
 {
 }
 
+SandboxSlideShowStream::~SandboxSlideShowStream()
+{
+  stop();
+}
+
 bool SandboxSlideShowStream::setup(const SHttpServer::RequestMessage &request, QIODevice *socket)
 {
   if (request.query().hasQueryItem("slideduration"))

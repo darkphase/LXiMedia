@@ -32,6 +32,8 @@ MediaStream::MediaStream(void)
 
 MediaStream::~MediaStream()
 {
+  stop();
+
   delete audio;
   delete video;
 
@@ -559,6 +561,11 @@ MediaTranscodeStream::MediaTranscodeStream(void)
     videoGenerator(this),
     timeStampResampler(this)
 {
+}
+
+MediaTranscodeStream::~MediaTranscodeStream(void)
+{
+  stop();
 }
 
 bool MediaTranscodeStream::setup(

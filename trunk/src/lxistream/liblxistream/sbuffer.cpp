@@ -84,7 +84,8 @@ void SBuffer::resize(int size)
   else
   {
     d->size = size;
-    memset(d->data + size, 0, numPaddingBytes);
+    if (d->size > 0)
+      memset(d->data + size, 0, numPaddingBytes);
   }
 }
 
