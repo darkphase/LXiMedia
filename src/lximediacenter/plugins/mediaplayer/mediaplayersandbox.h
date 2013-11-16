@@ -126,6 +126,7 @@ class SandboxSlideShowStream : public MediaStream
 Q_OBJECT
 public:
   explicit                      SandboxSlideShowStream(const QList<QUrl> &files);
+  virtual                       ~SandboxSlideShowStream();
 
   bool                          setup(const SHttpServer::RequestMessage &, QIODevice *);
 

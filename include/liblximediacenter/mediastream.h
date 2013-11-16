@@ -98,6 +98,7 @@ class LXIMEDIACENTER_PUBLIC MediaTranscodeStream : public MediaStream
 {
 public:
   explicit                      MediaTranscodeStream(void);
+  virtual                       ~MediaTranscodeStream();
 
   bool                          setup(const SHttpServer::RequestMessage &,
                                       QIODevice *,
