@@ -14,4 +14,4 @@ SOURCES += module.cpp \
 # Export plugin
 SOURCES +=
 
-LIBS += -lxcb -lxcb-xinerama
+LIBS += -lxcb -lxcb-shm -lxcb-xinerama
