@@ -74,35 +74,28 @@ QByteArray BackendServer::settingsContent(void)
   return QByteArray();
 }
 
-SHttpServer::ResponseMessage BackendServer::makeResponse(const SHttpServer::RequestHeader &request, const QByteArray &data, const char *mime, bool allowCache) const
+HttpStatus BackendServer::makeResponse(const QByteArray &data, QByteArray &contentType, QIODevice *&response) const
 {
-  SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
-  response.setCacheControl(allowCache ? 0 : -1);
+  if (contentType.isEmpty())
+    contentType = RootDevice::mimeAppOctet;
 
-  if (mime != NULL)
-    response.setContentType(mime);
-
-  if (!request.isHead())
-    response.setContent(data);
-
-  return response;
+  QBuffer * const buffer = new QBuffer();
+  buffer->setData(data);
+  response = buffer;
+  return HttpStatus_Ok;
 }
 
-SHttpServer::ResponseMessage BackendServer::makeResponse(const SHttpServer::RequestHeader &request, const QString &data, const char *mime, bool allowCache) const
+HttpStatus BackendServer::makeResponse(const QString &data, QByteArray &contentType, QIODevice *&response) const
 {
-  return makeResponse(request, data.toUtf8(), mime, allowCache);
+  if (contentType.isEmpty())
+    contentType = RootDevice::mimeTextPlain;
+
+  return makeResponse(data.toUtf8(), contentType, response);
 }
 
-SHttpServer::ResponseMessage BackendServer::makeHtmlContent(const SHttpServer::RequestHeader &request, const QByteArray &content, const QByteArray &head) const
+HttpStatus BackendServer::makeHtmlContent(const QUrl &request, const QByteArray &content, QByteArray &contentType, QIODevice *&response, const QByteArray &head) const
 {
-  SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
-  response.setCacheControl(-1);
-  response.setContentType(SHttpEngine::mimeTextHtml);
-
-  if (!request.isHead())
-    response.setContent(d->masterServer->parseHtmlContent(request, content, head));
-
-  return response;
+  return d->masterServer->parseHtmlContent(request, content, head, contentType, response);
 }
 
 BackendServer::MasterServer * BackendServer::masterServer(void)

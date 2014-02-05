@@ -16,6 +16,7 @@
  ******************************************************************************/
 
 #include "mediaprofiles.h"
+#include "rootdevice.h"
 
 namespace LXiMediaCenter {
 
@@ -210,9 +211,9 @@ bool MediaProfiles::isProfileEnabled(ImageProfile profile) const
   return false;
 }
 
-SUPnPBase::ProtocolList MediaProfiles::listProtocols(const QString &client)
+ConnectionManager::ProtocolList MediaProfiles::listProtocols(const QString &client)
 {
-  QMultiMap<int, SUPnPBase::Protocol> result;
+  QMultiMap<int, ConnectionManager::Protocol> result;
 
   const QStringList supportedAudioProfiles = this->supportedAudioProfiles(client);
   for (QMultiMap<int, AudioProfile>::Iterator i = d->audioProfiles.begin();
@@ -222,7 +223,7 @@ SUPnPBase::ProtocolList MediaProfiles::listProtocols(const QString &client)
     const QByteArray name = profileName(i.value());
     if (supportedAudioProfiles.isEmpty() || supportedAudioProfiles.contains(name))
     {
-      result.insert(i.key(), SUPnPBase::Protocol(
+      result.insert(i.key(), ConnectionManager::Protocol(
           "http-get",
           mimeTypeFor(i.value()),
           true, false, true,
@@ -239,7 +240,7 @@ SUPnPBase::ProtocolList MediaProfiles::listProtocols(const QString &client)
     const QByteArray name = profileName(i.value());
     if (supportedVideoProfiles.isEmpty() || supportedVideoProfiles.contains(name))
     {
-      result.insert(i.key(), SUPnPBase::Protocol(
+      result.insert(i.key(), ConnectionManager::Protocol(
           "http-get",
           mimeTypeFor(i.value()),
           true, false, true,
@@ -256,7 +257,7 @@ SUPnPBase::ProtocolList MediaProfiles::listProtocols(const QString &client)
     const QByteArray name = profileName(i.value());
     if (supportedImageProfiles.isEmpty() || supportedImageProfiles.contains(name))
     {
-      result.insert(i.key(), SUPnPBase::Protocol(
+      result.insert(i.key(), ConnectionManager::Protocol(
           "http-get",
           mimeTypeFor(i.value()),
           true, false, false,
@@ -268,9 +269,9 @@ SUPnPBase::ProtocolList MediaProfiles::listProtocols(const QString &client)
   return result.values();
 }
 
-SUPnPBase::ProtocolList MediaProfiles::listProtocols(const QString &client, const SAudioFormat &audioFormat)
+ConnectionManager::ProtocolList MediaProfiles::listProtocols(const QString &client, const SAudioFormat &audioFormat)
 {
-  QMultiMap<int, SUPnPBase::Protocol> result;
+  QMultiMap<int, ConnectionManager::Protocol> result;
 
   const QStringList supportedAudioProfiles = this->supportedAudioProfiles(client);
   for (QMultiMap<int, AudioProfile>::Iterator i = d->audioProfiles.begin();
@@ -283,7 +284,7 @@ SUPnPBase::ProtocolList MediaProfiles::listProtocols(const QString &client, cons
       SAudioFormat correctedAudioFormat = audioFormat;
       const int priority = i.key() + correctFormat(*i,correctedAudioFormat);
 
-      result.insert(priority, SUPnPBase::Protocol(
+      result.insert(priority, ConnectionManager::Protocol(
           "http-get",
           mimeTypeFor(i.value()),
           true, false, false,
@@ -296,9 +297,9 @@ SUPnPBase::ProtocolList MediaProfiles::listProtocols(const QString &client, cons
   return result.values();
 }
 
-SUPnPBase::ProtocolList MediaProfiles::listProtocols(const QString &client, const SAudioFormat &audioFormat, const SVideoFormat &videoFormat)
+ConnectionManager::ProtocolList MediaProfiles::listProtocols(const QString &client, const SAudioFormat &audioFormat, const SVideoFormat &videoFormat)
 {
-  QMultiMap<int, SUPnPBase::Protocol> result;
+  QMultiMap<int, ConnectionManager::Protocol> result;
 
   const QStringList supportedVideoProfiles = this->supportedVideoProfiles(client);
   for (QMultiMap<int, VideoProfile>::Iterator i = d->videoProfiles.begin();
@@ -317,7 +318,7 @@ SUPnPBase::ProtocolList MediaProfiles::listProtocols(const QString &client, cons
 
       if (priority < d->hiddenPriority)
       {
-        result.insert(priority, SUPnPBase::Protocol(
+        result.insert(priority, ConnectionManager::Protocol(
             "http-get",
             mimeTypeFor(i.value()),
             true, false, false,
@@ -332,9 +333,9 @@ SUPnPBase::ProtocolList MediaProfiles::listProtocols(const QString &client, cons
   return result.values();
 }
 
-SUPnPBase::ProtocolList MediaProfiles::listProtocols(const QString &client, const SSize &imageSize)
+ConnectionManager::ProtocolList MediaProfiles::listProtocols(const QString &client, const SSize &imageSize)
 {
-  QMultiMap<int, SUPnPBase::Protocol> result;
+  QMultiMap<int, ConnectionManager::Protocol> result;
 
   const QStringList supportedImageProfiles = this->supportedImageProfiles(client);
   for (QMultiMap<int, ImageProfile>::Iterator i = d->imageProfiles.begin();
@@ -355,7 +356,7 @@ SUPnPBase::ProtocolList MediaProfiles::listProtocols(const QString &client, cons
 
       if (priority < d->hiddenPriority)
       {
-        result.insert(priority, SUPnPBase::Protocol(
+        result.insert(priority, ConnectionManager::Protocol(
             "http-get",
             mimeTypeFor(i.value()),
             true, false, false,
@@ -1397,23 +1398,23 @@ const char * MediaProfiles::mimeTypeFor(AudioProfile profile)
 
   case MP2:
   case MP3:
-    return SHttpEngine::mimeAudioMpeg;
+    return RootDevice::mimeAudioMpeg;
 
   case AAC_ADTS:
-    return SHttpEngine::mimeAudioAac; //"audio/vnd.dlna.adts";
+    return RootDevice::mimeAudioAac; //"audio/vnd.dlna.adts";
 
   case AC3:
-    return SHttpEngine::mimeAudioAc3;
+    return RootDevice::mimeAudioAc3;
 
   case WMABASE:
-    return SHttpEngine::mimeAudioWma;
+    return RootDevice::mimeAudioWma;
 
   case VORBIS_NONSTD:
   case FLAC_NONSTD:
-    return SHttpEngine::mimeAudioOgg;
+    return RootDevice::mimeAudioOgg;
 
   case WAV_NONSTD:
-    return SHttpEngine::mimeAudioWave;
+    return RootDevice::mimeAudioWave;
   }
 
   return "";
@@ -1432,7 +1433,7 @@ const char * MediaProfiles::mimeTypeFor(VideoProfile profile)
   case MPEG_PS_HD_EU_NONSTD:
   case MPEG_PS_SD_NA_NONSTD:
   case MPEG_PS_HD_NA_NONSTD:
-    return SHttpEngine::mimeVideoMpeg;
+    return RootDevice::mimeVideoMpeg;
 
   case MPEG_TS_SD_EU_ISO:
   case MPEG_TS_HD_EU_ISO:
@@ -1446,14 +1447,14 @@ const char * MediaProfiles::mimeTypeFor(VideoProfile profile)
   case MPEG4_P2_TS_ASP_AAC_ISO:
   case MPEG4_P2_TS_ASP_MPEG1_L3_ISO:
   case MPEG4_P2_TS_ASP_AC3_ISO:
-    return SHttpEngine::mimeVideoMpegTS;
+    return RootDevice::mimeVideoMpegTS;
 
   case MPEG_TS_SD_EU:
   case MPEG_TS_HD_EU:
   case MPEG_TS_SD_NA:
   case MPEG_TS_HD_NA:
   case AVC_TS_MP_HD_AC3:
-    return SHttpEngine::mimeVideoMpegM2TS;
+    return RootDevice::mimeVideoMpegM2TS;
 
   case MPEG4_P2_TS_SP_AAC:
   case MPEG4_P2_TS_SP_MPEG1_L3:
@@ -1462,10 +1463,10 @@ const char * MediaProfiles::mimeTypeFor(VideoProfile profile)
   case MPEG4_P2_TS_ASP_AAC:
   case MPEG4_P2_TS_ASP_MPEG1_L3:
   case MPEG4_P2_TS_ASP_AC3_L3:
-    return SHttpEngine::mimeVideoMpegM2TS;
+    return RootDevice::mimeVideoMpegM2TS;
 
   case WMVMED_BASE:
-    return SHttpEngine::mimeVideoWmv;
+    return RootDevice::mimeVideoWmv;
 
   case MPEG4_P2_MATROSKA_MP3_SD_NONSTD:
   case MPEG4_P2_MATROSKA_MP3_HD_NONSTD:
@@ -1473,11 +1474,11 @@ const char * MediaProfiles::mimeTypeFor(VideoProfile profile)
   case MPEG4_P2_MATROSKA_AAC_HD_NONSTD:
   case MPEG4_P2_MATROSKA_AC3_SD_NONSTD:
   case MPEG4_P2_MATROSKA_AC3_HD_NONSTD:
-    return SHttpEngine::mimeVideoMatroska;
+    return RootDevice::mimeVideoMatroska;
 
   case OGG_THEORA_VORBIS_SD_NONSTD:
   case OGG_THEORA_FLAC_SD_NONSTD:
-    return SHttpEngine::mimeVideoOgg;
+    return RootDevice::mimeVideoOgg;
   }
 
   return "";
@@ -1491,11 +1492,11 @@ const char * MediaProfiles::mimeTypeFor(ImageProfile profile)
   case JPEG_SM:
   case JPEG_MED:
   case JPEG_LRG:
-    return SHttpEngine::mimeImageJpeg;
+    return RootDevice::mimeImageJpeg;
 
   case PNG_TN:
   case PNG_LRG:
-    return SHttpEngine::mimeImagePng;
+    return RootDevice::mimeImagePng;
   }
 
   return "";

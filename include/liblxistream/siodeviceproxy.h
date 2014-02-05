@@ -15,60 +15,43 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#ifndef LXISERVER_SUPNPMEDIASERVER_H
-#define LXISERVER_SUPNPMEDIASERVER_H
+#ifndef LXISTREAM_SIODEVICEPROXY_H
+#define LXISTREAM_SIODEVICEPROXY_H
 
 #include <QtCore>
-#include <QtNetwork>
 #include <LXiCore>
-#include "shttpserver.h"
 #include "export.h"
 
-namespace LXiServer {
+namespace LXiStream {
 
-class SSsdpServer;
-
-class LXISERVER_PUBLIC SUPnPMediaServer : public QObject,
-                                          protected SHttpServer::Callback
+class LXISTREAM_PUBLIC SIODeviceProxy : public QIODevice
 {
-Q_OBJECT
 public:
-  struct Service
-  {
-    QString                     serviceType;
-    QString                     serviceId;
-    QString                     descriptionUrl;
-    QString                     controlURL;
-    QString                     eventSubURL;
-  };
+  explicit                      SIODeviceProxy(QObject *parent = NULL);
+  virtual                       ~SIODeviceProxy();
 
-public:
-  explicit                      SUPnPMediaServer(const QString &basePath, QObject * = NULL);
-  virtual                       ~SUPnPMediaServer();
+  QIODevice                   * createReader(QObject * parent = NULL);
+  bool                          isActive() const;
+  bool                          isReusable() const;
 
-  void                          initialize(SHttpServer *, SSsdpServer *);
-  void                          close(void);
-  void                          reset(void);
+public: // From QIODevice
+  virtual bool                  isSequential() const;
+  virtual bool                  open(OpenMode mode);
+  virtual void                  close(void);
 
-  void                          setDeviceName(const QString &);
+  virtual bool                  seek(qint64);
+  virtual qint64                pos() const;
+  virtual qint64                size(void) const;
+  virtual qint64                bytesAvailable() const;
 
-  void                          addIcon(const QString &url, unsigned width, unsigned height, unsigned depth);
-
-  void                          registerService(const Service &);
-
-protected: // From SHttpServer::Callback
-  virtual SHttpServer::ResponseMessage httpRequest(const SHttpServer::RequestMessage &, QIODevice *);
-
-public:
-  static const char             dlnaDeviceNS[];
+  virtual qint64                readData(char *data, qint64 maxSize);
+  virtual qint64                writeData(const char *data, qint64 maxSize);
 
 private:
-  static const char             deviceType[];
-
+  class Reader;
   struct Data;
-  Data                  * const d;
+  QExplicitlySharedDataPointer<Data> d;
 };
-
 
 } // End of namespace
 

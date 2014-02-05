@@ -20,10 +20,10 @@
 
 #include <QtCore>
 #include <QtNetwork>
-#include <LXiServer>
 #include <LXiStream>
 #include "backendserver.h"
 #include "mediaprofiles.h"
+#include "rootdevice.h"
 #include "export.h"
 
 namespace LXiMediaCenter {
@@ -31,13 +31,13 @@ namespace LXiMediaCenter {
 class MediaStream;
 
 class LXIMEDIACENTER_PUBLIC MediaServer : public BackendServer,
-                                          protected SHttpServer::Callback,
-                                          private SUPnPContentDirectory::Callback
+                                          protected RootDevice::HttpCallback,
+                                          private ContentDirectory::Callback
 {
 Q_OBJECT
 friend class MediaServerDir;
 public:
-  struct LXIMEDIACENTER_PUBLIC Item : SUPnPContentDirectory::Item
+  struct LXIMEDIACENTER_PUBLIC Item : ContentDirectory::Item
   {
                                 Item(void);
                                 ~Item();
@@ -45,18 +45,6 @@ public:
     SAudioFormat                audioFormat;
     SVideoFormat                videoFormat;
     SSize                       imageSize;
-  };
-
-  class LXIMEDIACENTER_PUBLIC Stream
-  {
-  public:
-                                Stream(MediaServer *parent, const QString &url);
-    virtual                     ~Stream();
-
-  public:
-    MediaServer         * const parent;
-    const QString               url;
-    SHttpStreamProxy            proxy;
   };
 
   struct LXIMEDIACENTER_PUBLIC ThumbnailListItem
@@ -135,7 +123,7 @@ public:
   virtual void                  initialize(MasterServer *);
   virtual void                  close(void);
 
-  static QByteArray             makeThumbnail(QSize, const QImage &, const QString & = QString::null);
+  static HttpStatus             makeThumbnail(QIODevice *&, QByteArray &, QSize, const QImage &, const QString & = QString::null);
 
   static QSet<QString>        & fileProtocols(void);
   static MediaProfiles        & mediaProfiles(void);
@@ -155,8 +143,8 @@ public:
   static int                    loadItemCount(void);
 
 protected:
-  virtual Stream              * streamVideo(const SHttpServer::RequestMessage &) = 0;
-  virtual SHttpServer::ResponseMessage sendPhoto(const SHttpServer::RequestMessage &) = 0;
+  virtual MediaStream         * streamVideo(const QUrl &request) = 0;
+  virtual HttpStatus            sendPhoto(const QUrl &request, QByteArray &contentType, QIODevice *&response) = 0;
 
   virtual QList<Item>           listItems(const QString &path, int start, int &count) = 0;
   virtual Item                  getItem(const QString &path) = 0;
@@ -165,20 +153,18 @@ protected:
 protected slots:
   virtual void                  cleanStreams(void);
 
-protected: // From SHttpServer::Callback
-  virtual SHttpServer::ResponseMessage httpRequest(const SHttpServer::RequestMessage &, QIODevice *);
+protected: // From Server::HttpCallback
+  virtual HttpStatus            httpRequest(const QUrl &request, QByteArray &contentType, QIODevice *&response);
 
-private: // From UPnPContentDirectory::Callback
-  virtual QList<SUPnPContentDirectory::Item> listContentDirItems(const QString &client, const QString &path, int start, int &count);
-  virtual SUPnPContentDirectory::Item getContentDirItem(const QString &client, const QString &path);
+private: // From ContentDirectory::Callback
+  virtual QList<ContentDirectory::Item> listContentDirItems(const QString &client, const QString &path, int start, int &count);
+  virtual ContentDirectory::Item getContentDirItem(const QString &client, const QString &path);
 
 private:
   static SAudioFormat           audioFormatFor(const QString &client, const Item &item, bool &addVideo);
   static SVideoFormat           videoFormatFor(const QString &client, const Item &item);
   static void                   processItem(const QString &client, Item &);
   static void                   setQueryItemsFor(const QString &client, QUrlQuery &query, bool isMusic);
-  void                          addStream(Stream *);
-  void                          removeStream(Stream *);
 
 public:
   static const qint32           defaultDirSortOrder;
@@ -210,8 +196,8 @@ private: // Implemented in mediaserver.html.cpp
 
   QByteArray                    buildListLoader(const QString &path, ListType);
   QByteArray                    buildListItems(const ThumbnailListItemList &);
-  SHttpServer::ResponseMessage  buildAudioPlayer(const SHttpServer::RequestMessage &);
-  SHttpServer::ResponseMessage  buildPlayer(const SHttpServer::RequestMessage &);
+  HttpStatus                    buildAudioPlayer(const QUrl &, QByteArray &contentType, QIODevice *&response);
+  HttpStatus                    buildPlayer(const QUrl &, QByteArray &contentType, QIODevice *&response);
 };
 
 } // End of namespace

@@ -20,15 +20,11 @@
 
 #include <QtCore>
 #include <LXiMediaCenter>
-
-// This starts the sandboxes in the local process, so they can be debugged.
-#ifndef QT_NO_DEBUG
-#define DEBUG_USE_LOCAL_SANDBOX
-#endif
+#include "pupnprootdevice.h"
 
 class Backend : public QObject,
                 protected BackendServer::MasterServer,
-                protected SHttpServer::Callback
+                protected RootDevice::HttpCallback
 {
 Q_OBJECT
 private:
@@ -59,32 +55,27 @@ public:
   void                          reset(void);
 
 private slots:
-  void                          start(const SHttpEngine::ResponseMessage &);
-  void                          addModules(const SHttpEngine::ResponseMessage &);
   void                          checkNetworkInterfaces(void);
 
 protected:
   virtual void                  customEvent(QEvent *);
 
-protected: // From SHttpServer::Callback
-  virtual SHttpServer::ResponseMessage httpRequest(const SHttpServer::RequestMessage &, QIODevice *);
+protected: // From RootDevice::HttpCallback
+  virtual HttpStatus            httpRequest(const QUrl &request, QByteArray &contentType, QIODevice *&response);
 
 protected: // From BackendServer::MasterServer
-  virtual QByteArray            parseHtmlContent(const SHttpServer::RequestHeader &, const QByteArray &content, const QByteArray &head) const;
+  virtual HttpStatus            parseHtmlContent(const QUrl &, const QByteArray &content, const QByteArray &head, QByteArray &contentType, QIODevice *&response) const;
 
-  virtual SHttpServer         * httpServer(void);
-  virtual SSsdpServer         * ssdpServer(void);
-  virtual SUPnPContentDirectory * contentDirectory(void);
-
-  virtual SSandboxClient      * createSandbox(SSandboxClient::Priority);
+  virtual RootDevice          * rootDevice(void);
+  virtual ContentDirectory    * contentDirectory(void);
 
 private:
   static QUuid                  serverUuid(void);
   static QString                defaultDeviceName(void);
 
-  SHttpServer::ResponseMessage  sendFile(const SHttpServer::RequestMessage &, const QString &fileName);
-  QByteArray                    handleHtmlSettings(const SHttpServer::RequestMessage &);
-  void                          saveHtmlSettings(const SHttpServer::RequestMessage &);
+  HttpStatus                    sendFile(const QUrl &, const QString &, QByteArray &, QIODevice *&);
+  QByteArray                    handleHtmlSettings(const QUrl &);
+  void                          saveHtmlSettings(const QUrl &);
 
 private:
   static const quint16          defaultPort = 4280;
@@ -95,20 +86,15 @@ private:
   QTimer                        checkNetworkInterfacesTimer;
   QList<QHostAddress>           boundNetworkInterfaces;
 
-  SHttpServer                   masterHttpServer;
-  SSsdpServer                   masterSsdpServer;
-  SUPnPMediaServer              masterMediaServer;
-  SUPnPConnectionManager        masterConnectionManager;
-  SUPnPContentDirectory         masterContentDirectory;
-  SUPnPMediaReceiverRegistrar   masterMediaReceiverRegistrar;
+  PupnpRootDevice               upnpRootDevice;
+  ConnectionManager             upnpConnectionManager;
+  ContentDirectory              upnpContentDirectory;
 
   const QString                 sandboxApplication;
 
   SStringParser                 cssParser;
   SStringParser                 htmlParser;
   QList<BackendServer *>        backendServers;
-
-  SSandboxClient              * initSandbox;
 
 private:
   static const char             htmlIndex[];

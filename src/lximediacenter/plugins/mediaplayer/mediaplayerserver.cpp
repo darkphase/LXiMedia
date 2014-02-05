@@ -16,9 +16,8 @@
  ******************************************************************************/
 
 #include "mediaplayerserver.h"
-#include "mediaplayersandbox.h"
 #include "module.h"
-
+#include <QtConcurrent>
 #ifdef Q_OS_WIN
 #include <windows.h>
 #endif
@@ -71,7 +70,7 @@ MediaPlayerServer::MediaPlayerServer(const QString &, QObject *parent)
 void MediaPlayerServer::initialize(MasterServer *masterServer)
 {
   this->masterServer = masterServer;
-  this->mediaDatabase = MediaDatabase::createInstance(masterServer);
+  this->mediaDatabase = MediaDatabase::createInstance();
 
   MediaServer::initialize(masterServer);
 
@@ -94,87 +93,138 @@ QString MediaPlayerServer::serverIconPath(void) const
   return "/img/media-tape.png";
 }
 
-MediaPlayerServer::Stream * MediaPlayerServer::streamVideo(const SHttpServer::RequestMessage &request)
+MediaStream * MediaPlayerServer::streamVideo(const QUrl &request)
 {
-  SSandboxClient::Priority priority = SSandboxClient::Priority_Normal;
-  if (request.query().queryItemValue("priority") == "low")
-    priority = SSandboxClient::Priority_Low;
-  else if (request.query().queryItemValue("priority") == "high")
-    priority = SSandboxClient::Priority_High;
+  const QUrlQuery query(request);
 
-  SSandboxClient * const sandbox = masterServer->createSandbox(priority);
-  connect(sandbox, SIGNAL(consoleLine(QString)), SLOT(consoleLine(QString)));
-  sandbox->ensureStarted();
-
-  const RootPath filePath = realPath(request.file());
+  const RootPath filePath = realPath(request.path());
   if (!filePath.url.isEmpty())
   {
-    QUrlQuery rquery;
-    typedef QPair<QString, QString> QStringPair;
-    foreach (const QStringPair &queryItem, request.query().queryItems())
-      rquery.addQueryItem(queryItem.first, queryItem.second);
-
-    if (request.hasField("timeSeekRange.dlna.org"))
+    const QString vFile = virtualFile(request.path());
+    if (vFile == "all")
     {
-      int pos = rquery.queryItemValue("position").toInt();
-      rquery.removeAllQueryItems("position");
+      QList<QUrl> files;
+      for (QList<QUrl> dirs = QList<QUrl>() << request; !dirs.isEmpty(); )
+      {
+        const SMediaFilesystem dir(dirs.takeFirst());
+        foreach (const QString &file, dir.entryList(QDir::Files, QDir::Name | QDir::IgnoreCase))
+          files += dir.filePath(file);
 
-      QString ntp = request.field("timeSeekRange.dlna.org");
-      ntp = ntp.mid(ntp.indexOf("ntp=") + 4);
-      ntp = ntp.left(ntp.indexOf('-'));
-      pos += int(ntp.toFloat() + 0.5f);
+        foreach (const QString &subDir, dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name | QDir::IgnoreCase))
+          dirs += dir.filePath(subDir);
+      }
 
-      rquery.addQueryItem("position", QString::number(pos));
+      struct T
+      {
+        static SMediaInfo::ProbeInfo::FileType probeFileType(const QUrl &filePath)
+        {
+          return SMediaInfo(filePath).fileType();
+        }
+      };
+
+      QList< QFuture<SMediaInfo::ProbeInfo::FileType> > futures;
+      for (int n = files.count(), ni = qMax(1, n / 16), i = ni / 2; i < n; i += ni)
+        futures += QtConcurrent::run(&T::probeFileType, files[i]);
+
+      int audio = 0, video = 0, image = 0;
+      for (int i=0; i<futures.count(); i++)
+      switch (futures[i].result())
+      {
+      case SMediaInfo::ProbeInfo::FileType_Audio:   audio++; break;
+      case SMediaInfo::ProbeInfo::FileType_Video:   video++; break;
+      case SMediaInfo::ProbeInfo::FileType_Image:   image++; break;
+
+      case SMediaInfo::ProbeInfo::FileType_None:
+      case SMediaInfo::ProbeInfo::FileType_Directory:
+      case SMediaInfo::ProbeInfo::FileType_Drive:
+      case SMediaInfo::ProbeInfo::FileType_Disc:
+      case SMediaInfo::ProbeInfo::FileType_Subtitle:
+        break;
+      }
+
+      SMediaInfo::ProbeInfo::FileType fileType = SMediaInfo::ProbeInfo::FileType_None;
+      if (query.hasQueryItem("music") ||
+          ((audio > video) && (audio > image)))
+      {
+        fileType = (video > audio) && (video > image)
+                   ? SMediaInfo::ProbeInfo::FileType_Video
+                   : SMediaInfo::ProbeInfo::FileType_Audio;
+
+        // Randomize files.
+        QList<QUrl> random;
+        while (!files.empty())
+          random.append(files.takeAt(qrand() % files.count()));
+
+        qSwap(random, files);
+      }
+      else if ((image > audio) && (image > video))
+      {
+        fileType = SMediaInfo::ProbeInfo::FileType_Image;
+
+        // Only play files in this directory.
+        files.clear();
+        const SMediaFilesystem dir(filePath.url);
+        foreach (const QString &file, dir.entryList(QDir::Files, QDir::Name | QDir::IgnoreCase))
+          files += dir.filePath(file);
+      }
+      else if ((video > audio) && (video > image))
+        fileType = SMediaInfo::ProbeInfo::FileType_Video;
+
+      if ((fileType == SMediaInfo::ProbeInfo::FileType_Audio) ||
+          (fileType == SMediaInfo::ProbeInfo::FileType_Video))
+      {
+        PlaylistStream * const stream = new PlaylistStream(files, fileType);
+        if (stream->setup(request))
+        if (stream->start())
+          return stream;
+
+        delete stream;
+      }
+      else if (fileType == SMediaInfo::ProbeInfo::FileType_Image)
+      {
+        SlideShowStream * const stream = new SlideShowStream(files);
+        if (stream->setup(request))
+        if (stream->start())
+          return stream;
+
+        delete stream;
+      }
     }
-
-    const QString vFile = virtualFile(request.file());
-    if (!vFile.isEmpty() && vFile[0].isNumber())
-    {
-      rquery.addQueryItem("title", vFile.mid(1));
-      rquery.addQueryItem("play", QString::null);
-    }
-    else if (!vFile.isEmpty())
-      rquery.addQueryItem("play", vFile);
     else
-      rquery.addQueryItem("play", QString::null);
+    {
+      FileStream * const stream = new FileStream(filePath.url);
+      if (stream->setup(request))
+      if (stream->start())
+        return stream;
 
-    QUrl rurl;
-    rurl.setPath(MediaPlayerSandbox::path);
-    rurl.setQuery(rquery);
-
-    Stream *stream = new Stream(this, sandbox, request.path());
-    if (stream->setup(rurl, filePath.url.toString().toUtf8()))
-      return stream; // The graph owns the socket now.
-
-    delete stream;
+      delete stream;
+    }
   }
-
-  disconnect(sandbox, SIGNAL(consoleLine(QString)), this, SLOT(consoleLine(QString)));
-  delete sandbox;
 
   return NULL;
 }
 
-SHttpServer::ResponseMessage MediaPlayerServer::sendPhoto(const SHttpServer::RequestMessage &request)
+HttpStatus MediaPlayerServer::sendPhoto(const QUrl &request, QByteArray &contentType, QIODevice *&response)
 {
-  const RootPath filePath = realPath(request.file());
+  const RootPath filePath = realPath(request.path());
   if (!filePath.url.isEmpty())
   {
+    const QUrlQuery query(request);
+
     SSize size(4096, 4096);
-    if (request.query().hasQueryItem("resolution"))
-      size = SSize::fromString(request.query().queryItemValue("resolution"));
+    if (query.hasQueryItem("resolution"))
+      size = SSize::fromString(query.queryItemValue("resolution"));
 
     QColor backgroundColor = Qt::black;
-    if (request.query().hasQueryItem("bgcolor"))
-      backgroundColor.setNamedColor('#' + request.query().queryItemValue("bgcolor"));
+    if (query.hasQueryItem("bgcolor"))
+      backgroundColor.setNamedColor('#' + query.queryItemValue("bgcolor"));
 
     QString format = "png";
-    if (request.query().hasQueryItem("format"))
-      format = request.query().queryItemValue("format");
+    if (query.hasQueryItem("format"))
+      format = query.queryItemValue("format");
 
-    QString contentType = "image/" + format.toLower();
 
-    const QString contentFeatures = QByteArray::fromBase64(request.query().queryItemValue("contentFeatures").toLatin1());
+    const QString contentFeatures = QByteArray::fromBase64(query.queryItemValue("contentFeatures").toLatin1());
     const MediaProfiles::ImageProfile imageProfile = mediaProfiles().imageProfileFor(contentFeatures);
     if (imageProfile != 0) // DLNA stream.
     {
@@ -183,27 +233,24 @@ SHttpServer::ResponseMessage MediaPlayerServer::sendPhoto(const SHttpServer::Req
       contentType = mediaProfiles().mimeTypeFor(imageProfile);
     }
 
-    SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
-    response.setContentType(contentType);
-    if (!contentFeatures.isEmpty())
+    const QImage result = mediaDatabase->readImage(filePath.url, size.size(), backgroundColor);
+    if (!result.isNull())
     {
-      response.setField("transferMode.dlna.org", "Interactive");
-      response.setField("contentFeatures.dlna.org", contentFeatures);
-    }
+      QBuffer * const buffer = new QBuffer();
+      buffer->open(QBuffer::ReadWrite);
+      if (result.save(buffer, format.toLatin1(), 80))
+      {
+        buffer->close();
+        contentType = "image/" + format.toLower().toLatin1();
+        response = buffer;
+        return HttpStatus_Ok;
+      }
 
-    if (!request.isHead())
-    {
-      const QByteArray result = mediaDatabase->readImage(filePath.url, size.size(), backgroundColor, format);
-      if (!result.isEmpty())
-        response.setContent(result);
-      else
-        return SHttpServer::ResponseMessage(request, SHttpServer::Status_NotFound);
+      delete buffer;
     }
-
-    return response;
   }
 
-  return SHttpServer::ResponseMessage(request, SHttpServer::Status_NotFound);
+  return HttpStatus_NotFound;
 }
 
 QList<MediaPlayerServer::Item> MediaPlayerServer::listItems(const QString &virtualPath, int start, int &count)
@@ -679,34 +726,120 @@ MediaPlayerServer::DirType MediaPlayerServer::dirType(const QString &virtualPath
   return SMediaInfo::ProbeInfo::FileType_None;
 }
 
-void MediaPlayerServer::consoleLine(const QString &line)
+
+FileStream::FileStream(const QUrl &filePath)
+  : MediaTranscodeStream(),
+    file(this, filePath)
 {
-  if (line.startsWith("#PLAYED:"))
-    mediaDatabase->setLastPlayed(QUrl::fromEncoded(QByteArray::fromHex(line.mid(8).toLatin1())));
+  connect(&file, SIGNAL(finished()), SLOT(stop()));
+
+  connect(&file, SIGNAL(output(SEncodedAudioBuffer)), &audioDecoder, SLOT(input(SEncodedAudioBuffer)));
+  connect(&file, SIGNAL(output(SEncodedVideoBuffer)), &videoDecoder, SLOT(input(SEncodedVideoBuffer)));
+  connect(&file, SIGNAL(output(SEncodedDataBuffer)), &dataDecoder, SLOT(input(SEncodedDataBuffer)));
+
+  // Mark as played:
+  MediaDatabase::createInstance()->setLastPlayed(filePath);
+}
+
+FileStream::~FileStream()
+{
+  proxy.close();
+  stop();
+}
+
+bool FileStream::setup(const QUrl &request)
+{
+  return MediaTranscodeStream::setup(request, &file);
 }
 
 
-MediaPlayerServer::Stream::Stream(MediaPlayerServer *parent, SSandboxClient *sandbox, const QString &url)
-  : MediaServer::Stream(parent, url),
-    sandbox(sandbox)
+PlaylistStream::PlaylistStream(const QList<QUrl> &files, SMediaInfo::ProbeInfo::FileType fileType)
+  : MediaTranscodeStream(),
+    playlistNode(this, files, fileType)
 {
 }
 
-MediaPlayerServer::Stream::~Stream()
+PlaylistStream::~PlaylistStream()
 {
-  disconnect(sandbox, SIGNAL(consoleLine(QString)), parent, SLOT(consoleLine(QString)));
-  delete sandbox;
+  proxy.close();
+  stop();
 }
 
-bool MediaPlayerServer::Stream::setup(const QUrl &url, const QByteArray &content)
+bool PlaylistStream::setup(const QUrl &request)
 {
-  SHttpEngine::RequestMessage message(sandbox);
-  message.setRequest("POST", url.toEncoded(QUrl::RemoveScheme | QUrl::RemoveAuthority));
-  message.setContent(content);
+  if (MediaTranscodeStream::setup(
+        request,
+        &playlistNode,
+        STime(),
+        true))
+  {
+    connect(&playlistNode, SIGNAL(finished()), SLOT(stop()));
+    connect(&playlistNode, SIGNAL(opened(QUrl)), SLOT(opened(QUrl)));
+    connect(&playlistNode, SIGNAL(closed(QUrl)), SLOT(closed(QUrl)));
+    connect(&playlistNode, SIGNAL(output(SEncodedAudioBuffer)), &audioDecoder, SLOT(input(SEncodedAudioBuffer)));
+    connect(&playlistNode, SIGNAL(output(SEncodedVideoBuffer)), &videoDecoder, SLOT(input(SEncodedVideoBuffer)));
+    connect(&playlistNode, SIGNAL(output(SEncodedDataBuffer)), &dataDecoder, SLOT(input(SEncodedDataBuffer)));
 
-  sandbox->openRequest(message, &proxy, SLOT(setSource(QIODevice *, SHttpEngine *)), Qt::DirectConnection);
+    return true;
+  }
 
-  return true;
+  return false;
+}
+
+void PlaylistStream::opened(const QUrl &filePath)
+{
+  // Mark as played:
+  MediaDatabase::createInstance()->setLastPlayed(filePath);
+
+  currentFile = filePath;
+}
+
+void PlaylistStream::closed(const QUrl &filePath)
+{
+  if (currentFile == filePath)
+    currentFile = QString::null;
+}
+
+
+SlideShowStream::SlideShowStream(const QList<QUrl> &files)
+  : MediaStream(),
+    slideShow(this, files)
+{
+}
+
+SlideShowStream::~SlideShowStream()
+{
+  proxy.close();
+  stop();
+}
+
+bool SlideShowStream::setup(const QUrl &request)
+{
+  QUrlQuery query(request);
+
+  if (query.hasQueryItem("slideduration"))
+    slideShow.setSlideDuration(STime::fromMSec(query.queryItemValue("slideduration").toInt()));
+
+  if (MediaStream::setup(
+          request,
+          slideShow.duration(),
+          SAudioFormat(SAudioFormat::Format_Invalid, SAudioFormat::Channels_Stereo, 48000),
+          SVideoFormat(SVideoFormat::Format_Invalid, slideShow.size(), SInterval::fromFrequency(slideShow.frameRate)),
+          false,
+          SInterfaces::AudioEncoder::Flag_None,
+          SInterfaces::VideoEncoder::Flag_Slideshow,
+          slideShow.framesPerSlide()))
+  {
+    connect(&slideShow, SIGNAL(finished()), SLOT(stop()));
+    connect(&slideShow, SIGNAL(output(SAudioBuffer)), &sync, SLOT(input(SAudioBuffer)));
+    connect(&slideShow, SIGNAL(output(SVideoBuffer)), &video->subtitleRenderer, SLOT(input(SVideoBuffer)));
+
+    slideShow.setSize(video->resizer.size());
+
+    return true;
+  }
+  else
+    return false;
 }
 
 } } // End of namespaces

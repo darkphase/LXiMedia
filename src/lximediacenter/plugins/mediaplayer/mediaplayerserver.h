@@ -22,6 +22,7 @@
 #include <LXiStream>
 #include <LXiMediaCenter>
 #include "mediadatabase.h"
+#include "slideshownode.h"
 
 namespace LXiMediaCenter {
 namespace MediaPlayerBackend {
@@ -32,19 +33,6 @@ class MediaPlayerServer : public MediaServer
 {
 Q_OBJECT
 friend class MediaPlayerServerDir;
-protected:
-  class Stream : public MediaServer::Stream
-  {
-  public:
-                                Stream(MediaPlayerServer *, SSandboxClient *, const QString &url);
-    virtual                     ~Stream();
-
-    bool                        setup(const QUrl &request, const QByteArray &content);
-
-  public:
-    SSandboxClient      * const sandbox;
-  };
-
 private:
   struct RootPath
   {
@@ -78,12 +66,12 @@ protected: // From BackendServer
   virtual QByteArray            frontPageContent(void);
   virtual QByteArray            settingsContent(void);
 
-protected: // From SHttpServer::Callback
-  virtual SHttpServer::ResponseMessage httpRequest(const SHttpServer::RequestMessage &, QIODevice *);
+protected: // From RootDevice::HttpCallback
+  virtual HttpStatus            httpRequest(const QUrl &request, QByteArray &contentType, QIODevice *&response);
 
 protected: // From MediaServer
-  virtual Stream              * streamVideo(const SHttpServer::RequestMessage &);
-  virtual SHttpServer::ResponseMessage sendPhoto(const SHttpServer::RequestMessage &);
+  virtual MediaStream         * streamVideo(const QUrl &request);
+  virtual HttpStatus            sendPhoto(const QUrl &request, QByteArray &contentType, QIODevice *&response);
 
   virtual QList<Item>           listItems(const QString &virtualPath, int start, int &count);
   virtual Item                  getItem(const QString &path);
@@ -99,9 +87,6 @@ private:
   Item                          makeItem(DirType dirType, const SMediaInfo &, int titleId = -1);
   Item                          makePlayAllItem(const QString &virtualPath);
   DirType                       dirType(const QString &virtualPath);
-
-private slots:
-  void                          consoleLine(const QString &);
 
 private:
   void                          generateDirs(SStringParser &, const QList<QUrl> &, int, const QStringList &, const QList<RootPath> &);
@@ -130,6 +115,50 @@ private:
   static const char             htmlSettingsDirTreeCheck[];
   static const char             htmlSettingsDirTreeCheckLink[];
   static const char             htmlSettingsDirTreeContentType[];
+};
+
+class FileStream : public MediaTranscodeStream
+{
+Q_OBJECT
+public:
+  explicit                      FileStream(const QUrl &fileName);
+  virtual                       ~FileStream();
+
+  bool                          setup(const QUrl &);
+
+public:
+  SFileInputNode                file;
+};
+
+class PlaylistStream : public MediaTranscodeStream
+{
+Q_OBJECT
+public:
+  explicit                      PlaylistStream(const QList<QUrl> &files, SMediaInfo::ProbeInfo::FileType);
+  virtual                       ~PlaylistStream();
+
+  bool                          setup(const QUrl &);
+
+public slots:
+  void                          opened(const QUrl &);
+  void                          closed(const QUrl &);
+
+private:
+  QUrl                          currentFile;
+  SPlaylistNode                 playlistNode;
+};
+
+class SlideShowStream : public MediaStream
+{
+Q_OBJECT
+public:
+  explicit                      SlideShowStream(const QList<QUrl> &files);
+  virtual                       ~SlideShowStream();
+
+  bool                          setup(const QUrl &);
+
+public:
+  SlideShowNode                 slideShow;
 };
 
 } } // End of namespaces

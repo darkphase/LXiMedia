@@ -19,6 +19,7 @@
 #include "liblxistream/sgraph.h"
 #include "liblxistream/sinterfaces.h"
 #include "liblxistream/sinterval.h"
+#include "liblxistream/siodeviceproxy.h"
 #include "liblxistream/smediafilesystem.h"
 #include "liblxistream/smediainfo.h"
 #include "liblxistream/ssize.h"

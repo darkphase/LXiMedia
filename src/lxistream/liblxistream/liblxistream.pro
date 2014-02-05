@@ -32,6 +32,7 @@ HEADERS += $${PWD}/$${LXIMEDIA_DIR}/include/LXiStream \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/sgraph.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/sinterfaces.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/sinterval.h \
+    $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/siodeviceproxy.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/smediafilesystem.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/smediainfo.h \
     $${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/ssize.h \
@@ -54,6 +55,7 @@ SOURCES += saudiobuffer.cpp \
     sgraph.cpp \
     sinterfaces.cpp \
     sinterval.cpp \
+    siodeviceproxy.cpp \
     smediafilesystem.cpp \
     smediainfo.cpp \
     ssize.cpp \

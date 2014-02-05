@@ -24,10 +24,10 @@ namespace LXiMediaCenter {
 struct MediaServer::Data
 {
   static const int              maxStreams = 64;
+  static const int              cleanStreamsInterval = 5000;
 
   MasterServer                * masterServer;
-  QList<Stream *>               streams;
-  QList<Stream *>               reusableStreams;
+  QList<MediaStream *>          streams;
   QTimer                        cleanStreamsTimer;
 };
 
@@ -57,10 +57,8 @@ void MediaServer::initialize(MasterServer *masterServer)
 
   BackendServer::initialize(masterServer);
 
-  d->masterServer->httpServer()->registerCallback(serverPath(), this);
+  d->masterServer->rootDevice()->registerHttpCallback(serverPath(), this);
   d->masterServer->contentDirectory()->registerCallback(serverPath(), this);
-
-  d->cleanStreamsTimer.start(30000);
 }
 
 void MediaServer::close(void)
@@ -69,11 +67,11 @@ void MediaServer::close(void)
 
   BackendServer::close();
 
-  d->masterServer->httpServer()->unregisterCallback(this);
+  d->masterServer->rootDevice()->unregisterHttpCallback(this);
   d->masterServer->contentDirectory()->unregisterCallback(this);
 }
 
-QByteArray MediaServer::makeThumbnail(QSize size, const QImage &image, const QString &overlay)
+HttpStatus MediaServer::makeThumbnail(QIODevice *&response, QByteArray &contentType, QSize size, const QImage &image, const QString &overlay)
 {
   if (size.isNull())
     size = QSize(128, 128);
@@ -117,12 +115,17 @@ QByteArray MediaServer::makeThumbnail(QSize size, const QImage &image, const QSt
 
   p.end();
 
-  QBuffer buffer;
-  buffer.open(QBuffer::WriteOnly);
-  result.save(&buffer, "PNG");
-  buffer.close();
+  QBuffer * const buffer = new QBuffer();
+  if (buffer->open(QBuffer::ReadWrite) && image.save(buffer, "PNG"))
+  {
+    buffer->close();
+    contentType = RootDevice::mimeImagePng;
+    response = buffer;
+    return HttpStatus_Ok;
+  }
 
-  return buffer.data();
+  delete buffer;
+  return HttpStatus_NotFound;
 }
 
 QSet<QString> & MediaServer::fileProtocols(void)
@@ -240,296 +243,291 @@ MediaServer::ListType MediaServer::listType(const QString &)
 
 void MediaServer::cleanStreams(void)
 {
-  QList<Stream *> obsolete;
-  foreach (Stream *stream, d->streams)
-  if (!stream->proxy.isConnected())
-    obsolete += stream;
+  for (QList<MediaStream *>::Iterator i = d->streams.begin(); i != d->streams.end(); )
+  if (!(*i)->isActive())
+  {
+    delete *i;
 
-  foreach (Stream *stream, obsolete)
-    delete stream;
+    i = d->streams.erase(i);
+  }
+  else
+    i++;
+
+  if (d->streams.isEmpty())
+    d->cleanStreamsTimer.stop();
 }
 
-SHttpServer::ResponseMessage MediaServer::httpRequest(const SHttpServer::RequestMessage &request, QIODevice *socket)
+HttpStatus MediaServer::httpRequest(const QUrl &request, QByteArray &contentType, QIODevice *&response)
 {
-  if (request.isGet())
+  const QUrlQuery query(request);
+
+  if (request.path().endsWith('/'))
   {
-    if (request.file().endsWith('/'))
+    if (query.hasQueryItem("items"))
     {
-      if (request.query().hasQueryItem("items"))
+      const QStringList range = query.queryItemValue("items").split(',');
+      int start = 0, count = 0;
+      if (!range.isEmpty())
       {
-        const QStringList range = request.query().queryItemValue("items").split(',');
-        int start = 0, count = 0;
-        if (!range.isEmpty())
-        {
-          start = range[0].toInt();
-          if (range.count() >= 2)
-            count = range[1].toInt();
-        }
+        start = range[0].toInt();
+        if (range.count() >= 2)
+          count = range[1].toInt();
+      }
 
-        QMap<int, QString> funcs;
-        if (request.query().hasQueryItem("func"))
-        {
-          const QStringList list = request.query().queryItemValue("func").split(',');
-          for (int i=0; i+1<list.count(); i+=2)
-            funcs.insert(list[i].toInt(), list[i+1]);
-        }
+      QMap<int, QString> funcs;
+      if (query.hasQueryItem("func"))
+      {
+        const QStringList list = query.queryItemValue("func").split(',');
+        for (int i=0; i+1<list.count(); i+=2)
+          funcs.insert(list[i].toInt(), list[i+1]);
+      }
 
-        ThumbnailListItemList thumbItems;
-        foreach (const SUPnPContentDirectory::Item &item, listItems(request.url().path(), start, count))
+      ThumbnailListItemList thumbItems;
+      foreach (const ContentDirectory::Item &item, listItems(request.path(), start, count))
+      {
+        if (funcs.isEmpty() && item.isDir)
         {
-          if (funcs.isEmpty() && item.isDir)
+          ThumbnailListItem thumbItem;
+          thumbItem.title = item.title;
+          thumbItem.iconurl = item.iconUrl;
+          thumbItem.url = item.path;
+
+          thumbItems.append(thumbItem);
+        }
+        else if (funcs.isEmpty() || funcs.contains(item.type / 10))
+        {
+          ThumbnailListItem thumbItem;
+          thumbItem.title = item.title;
+
+          if (!item.artist.isEmpty())
+            thumbItem.text += tr("Artist") + ": " + item.artist;
+
+          if (!item.album.isEmpty())
+            thumbItem.text += tr("Album") + ": " + item.album;
+
+          if (item.track > SMediaInfo::tvShowSeason)
           {
-            ThumbnailListItem thumbItem;
-            thumbItem.title = item.title;
-            thumbItem.iconurl = item.iconUrl;
-            thumbItem.url = item.path;
-
-            thumbItems.append(thumbItem);
+            thumbItem.text +=
+                tr("Track") + ": " +
+                QString::number(item.track / SMediaInfo::tvShowSeason) + 'x' +
+                ('0' + QString::number(item.track % SMediaInfo::tvShowSeason)).right(2);
           }
-          else if (funcs.isEmpty() || funcs.contains(item.type / 10))
+          else if (item.track > 0)
+            thumbItem.text += tr("Track") + ": " + QString::number(item.track);
+
+          if (item.duration > 0)
+            thumbItem.text += tr("Duration") + ": " + QTime(0, 0, 0).addSecs(item.duration).toString("h:mm:ss");
+
+          thumbItem.iconurl = item.iconUrl;
+          thumbItem.played = item.played;
+          thumbItem.url = item.url;
+          if (!thumbItem.url.isEmpty() && funcs.isEmpty())
           {
-            ThumbnailListItem thumbItem;
-            thumbItem.title = item.title;
-
-            if (!item.artist.isEmpty())
-              thumbItem.text += tr("Artist") + ": " + item.artist;
-
-            if (!item.album.isEmpty())
-              thumbItem.text += tr("Album") + ": " + item.album;
-
-            if (item.track > SMediaInfo::tvShowSeason)
-            {
-              thumbItem.text +=
-                  tr("Track") + ": " +
-                  QString::number(item.track / SMediaInfo::tvShowSeason) + 'x' +
-                  ('0' + QString::number(item.track % SMediaInfo::tvShowSeason)).right(2);
-            }
-            else if (item.track > 0)
-              thumbItem.text += tr("Track") + ": " + QString::number(item.track);
-
-            if (item.duration > 0)
-              thumbItem.text += tr("Duration") + ": " + QTime(0, 0, 0).addSecs(item.duration).toString("h:mm:ss");
-
-            thumbItem.iconurl = item.iconUrl;
-            thumbItem.played = item.played;
-            thumbItem.url = item.url;
-            if (!thumbItem.url.isEmpty() && funcs.isEmpty())
-            {
-              QUrlQuery q(thumbItem.url);
-              q.addQueryItem("player", QString::number(item.type));
-              thumbItem.url.setQuery(q);
-            }
-
-            if (item.played)
-            {
-              QUrlQuery q(thumbItem.iconurl);
-              q.removeQueryItem("overlay");
-              q.addQueryItem("overlay", "played");
-              thumbItem.iconurl.setQuery(q);
-            }
-
-            if (!funcs.isEmpty())
-              thumbItem.func = funcs[item.type / 10];
-
-            thumbItems.append(thumbItem);
+            QUrlQuery q(thumbItem.url);
+            q.addQueryItem("player", QString::number(item.type));
+            thumbItem.url.setQuery(q);
           }
+
+          if (item.played)
+          {
+            QUrlQuery q(thumbItem.iconurl);
+            q.removeQueryItem("overlay");
+            q.addQueryItem("overlay", "played");
+            thumbItem.iconurl.setQuery(q);
+          }
+
+          if (!funcs.isEmpty())
+            thumbItem.func = funcs[item.type / 10];
+
+          thumbItems.append(thumbItem);
         }
-
-        return makeResponse(request, buildListItems(thumbItems), SHttpEngine::mimeTextHtml, false);
       }
-      else
-        return makeHtmlContent(request, buildListLoader(request.file(), listType(request.file())), htmlListHead);
+
+      contentType = RootDevice::mimeTextHtml;
+      return makeResponse(buildListItems(thumbItems), contentType, response);
     }
-    else if (request.query().hasQueryItem("player"))
+    else
+      return makeHtmlContent(request, buildListLoader(request.path(), listType(request.path())), contentType, response, htmlListHead);
+  }
+  else if (query.hasQueryItem("player"))
+  {
+    const ContentDirectory::Item::Type playerType =
+        ContentDirectory::Item::Type(query.queryItemValue("player").toInt());
+
+    switch (playerType)
     {
-      const SUPnPContentDirectory::Item::Type playerType =
-          SUPnPContentDirectory::Item::Type(request.query().queryItemValue("player").toInt());
+    case ContentDirectory::Item::Type_None:
+      return HttpStatus_NotFound;
 
-      switch (playerType)
-      {
-      case SUPnPContentDirectory::Item::Type_None:
-        return SHttpServer::ResponseMessage(request, SHttpServer::Status_NotFound);
+    case ContentDirectory::Item::Type_Audio:
+    case ContentDirectory::Item::Type_Music:
+    case ContentDirectory::Item::Type_AudioBroadcast:
+    case ContentDirectory::Item::Type_AudioBook:
+      return buildAudioPlayer(request, contentType, response);
 
-      case SUPnPContentDirectory::Item::Type_Audio:
-      case SUPnPContentDirectory::Item::Type_Music:
-      case SUPnPContentDirectory::Item::Type_AudioBroadcast:
-      case SUPnPContentDirectory::Item::Type_AudioBook:
-        return buildAudioPlayer(request);
-
-      case SUPnPContentDirectory::Item::Type_Video:
-      case SUPnPContentDirectory::Item::Type_Movie:
-      case SUPnPContentDirectory::Item::Type_VideoBroadcast:
-      case SUPnPContentDirectory::Item::Type_MusicVideo:
-      case SUPnPContentDirectory::Item::Type_Image:
-      case SUPnPContentDirectory::Item::Type_Photo:
-        return buildPlayer(request);
-      }
+    case ContentDirectory::Item::Type_Video:
+    case ContentDirectory::Item::Type_Movie:
+    case ContentDirectory::Item::Type_VideoBroadcast:
+    case ContentDirectory::Item::Type_MusicVideo:
+    case ContentDirectory::Item::Type_Image:
+    case ContentDirectory::Item::Type_Photo:
+      return buildPlayer(request, contentType, response);
     }
-    else if (request.query().hasQueryItem("audioplayer"))
+  }
+  else if (query.hasQueryItem("audioplayer"))
+  {
+    SStringParser htmlParser;
+    htmlParser.setField("SOURCES", "");
+
+    const Item item = getItem(request.path());
+    htmlParser.setField("TITLE", item.title);
+    if (!item.artist.isEmpty())
+      htmlParser.appendField("TITLE", " [" + item.artist + "]");
+    if (item.duration > 0)
+      htmlParser.appendField("TITLE", " (" + QTime(0, 0, 0).addSecs(item.duration).toString("m:ss") + ")");
+
+    if (mediaProfiles().isProfileEnabled(MediaProfiles::VORBIS_NONSTD) ||
+        mediaProfiles().isProfileEnabled(MediaProfiles::FLAC_NONSTD))
     {
-      SStringParser htmlParser;
-      htmlParser.setField("SOURCES", "");
+      QUrl url(request.path());
+      QUrlQuery q(url);
+      q.addQueryItem("format", "oga");
+      url.setQuery(q);
 
-      const Item item = getItem(request.file());
-      htmlParser.setField("TITLE", item.title);
-      if (!item.artist.isEmpty())
-        htmlParser.appendField("TITLE", " [" + item.artist + "]");
-      if (item.duration > 0)
-        htmlParser.appendField("TITLE", " (" + QTime(0, 0, 0).addSecs(item.duration).toString("m:ss") + ")");
-
-      if (mediaProfiles().isProfileEnabled(MediaProfiles::VORBIS_NONSTD) ||
-          mediaProfiles().isProfileEnabled(MediaProfiles::FLAC_NONSTD))
-      {
-        QUrl url(request.file());
-        QUrlQuery q(url);
-        q.addQueryItem("format", "oga");
-        url.setQuery(q);
-
-        htmlParser.setField("SOURCE_URL", url);
-        htmlParser.setField("SOURCE_MIME", SHttpEngine::mimeAudioOgg);
-        htmlParser.appendField("SOURCES", htmlParser.parse(htmlAudioPlayerSource));
-      }
-
-      if (mediaProfiles().isProfileEnabled(MediaProfiles::MP3))
-      {
-        QUrl url(request.file());
-        QUrlQuery q(url);
-        q.addQueryItem("format", "mp3");
-        url.setQuery(q);
-
-        htmlParser.setField("SOURCE_URL", url);
-        htmlParser.setField("SOURCE_MIME", SHttpEngine::mimeAudioMp3);
-        htmlParser.appendField("SOURCES", htmlParser.parse(htmlAudioPlayerSource));
-      }
-
-      if (mediaProfiles().isProfileEnabled(MediaProfiles::MP2))
-      {
-        QUrl url(request.file());
-        QUrlQuery q(url);
-        q.addQueryItem("format", "mp2");
-        url.setQuery(q);
-
-        htmlParser.setField("SOURCE_URL", url);
-        htmlParser.setField("SOURCE_MIME", SHttpEngine::mimeAudioMpeg);
-        htmlParser.appendField("SOURCES", htmlParser.parse(htmlAudioPlayerSource));
-      }
-
-      if (mediaProfiles().isProfileEnabled(MediaProfiles::WAV_NONSTD))
-      {
-        QUrl url(request.file());
-        QUrlQuery q(url);
-        q.addQueryItem("format", "wav");
-        url.setQuery(q);
-
-        htmlParser.setField("SOURCE_URL", url);
-        htmlParser.setField("SOURCE_MIME", SHttpEngine::mimeAudioWave);
-        htmlParser.appendField("SOURCES", htmlParser.parse(htmlAudioPlayerSource));
-      }
-
-      return makeResponse(request, htmlParser.parse(htmlAudioPlayerElement), SHttpEngine::mimeTextHtml, false);
+      htmlParser.setField("SOURCE_URL", url);
+      htmlParser.setField("SOURCE_MIME", RootDevice::mimeAudioOgg);
+      htmlParser.appendField("SOURCES", htmlParser.parse(htmlAudioPlayerSource));
     }
-    else if (request.query().hasQueryItem("videoplayer"))
+
+    if (mediaProfiles().isProfileEnabled(MediaProfiles::MP3))
     {
-      SStringParser htmlParser;
-      htmlParser.setField("SOURCES", "");
+      QUrl url(request.path());
+      QUrlQuery q(url);
+      q.addQueryItem("format", "mp3");
+      url.setQuery(q);
 
-      if (mediaProfiles().isProfileEnabled(MediaProfiles::OGG_THEORA_VORBIS_SD_NONSTD) ||
-          mediaProfiles().isProfileEnabled(MediaProfiles::OGG_THEORA_FLAC_SD_NONSTD))
-      {
-        QUrl url(request.file());
-        QUrlQuery q(url);
-        q.addQueryItem("format", "ogv");
-        url.setQuery(q);
-
-        htmlParser.setField("SOURCE_URL", url);
-        htmlParser.setField("SOURCE_MIME", SHttpEngine::mimeVideoOgg);
-        htmlParser.appendField("SOURCES", htmlParser.parse(htmlVideoPlayerSource));
-      }
-
-      if (mediaProfiles().isProfileEnabled(MediaProfiles::MPEG_PS_SD_EU_NONSTD) ||
-          mediaProfiles().isProfileEnabled(MediaProfiles::MPEG_PS_SD_NA_NONSTD))
-      {
-        QUrl url(request.file());
-        QUrlQuery q(url);
-        q.addQueryItem("format", "vob");
-        url.setQuery(q);
-
-        htmlParser.setField("SOURCE_URL", url);
-        htmlParser.setField("SOURCE_MIME", SHttpEngine::mimeVideoMpeg);
-        htmlParser.appendField("SOURCES", htmlParser.parse(htmlVideoPlayerSource));
-      }
-
-      if (mediaProfiles().isProfileEnabled(MediaProfiles::MPEG4_P2_MATROSKA_MP3_SD_NONSTD) ||
-          mediaProfiles().isProfileEnabled(MediaProfiles::MPEG4_P2_MATROSKA_AAC_SD_NONSTD) ||
-          mediaProfiles().isProfileEnabled(MediaProfiles::MPEG4_P2_MATROSKA_AC3_SD_NONSTD))
-      {
-        QUrl url(request.file());
-        QUrlQuery q(url);
-        q.addQueryItem("format", "matroska");
-        url.setQuery(q);
-
-        htmlParser.setField("SOURCE_URL", url);
-        htmlParser.setField("SOURCE_MIME", SHttpEngine::mimeVideoMatroska);
-        htmlParser.appendField("SOURCES", htmlParser.parse(htmlVideoPlayerSource));
-      }
-
-      return makeResponse(request, htmlParser.parse(htmlVideoPlayerElement), SHttpEngine::mimeTextHtml, false);
+      htmlParser.setField("SOURCE_URL", url);
+      htmlParser.setField("SOURCE_MIME", RootDevice::mimeAudioMp3);
+      htmlParser.appendField("SOURCES", htmlParser.parse(htmlAudioPlayerSource));
     }
-    else // Stream file
+
+    if (mediaProfiles().isProfileEnabled(MediaProfiles::MP2))
     {
-      const QString contentFeatures = QByteArray::fromBase64(request.query().queryItemValue("contentFeatures").toLatin1());
+      QUrl url(request.path());
+      QUrlQuery q(url);
+      q.addQueryItem("format", "mp2");
+      url.setQuery(q);
 
-      if (!request.isHead())
-      {
-        // Check for image
-        const MediaProfiles::ImageProfile imageProfile = mediaProfiles().imageProfileFor(contentFeatures);
-        const QString format = request.query().queryItemValue("format");
-        if ((imageProfile != 0) || (format == "jpeg") || (format == "png"))
-        {
-          SHttpServer::ResponseMessage response = sendPhoto(request);
-          response.setField("transferMode.dlna.org", "Streaming");
-          if (!contentFeatures.isEmpty())
-            response.setField("contentFeatures.dlna.org", contentFeatures);
+      htmlParser.setField("SOURCE_URL", url);
+      htmlParser.setField("SOURCE_MIME", RootDevice::mimeAudioMpeg);
+      htmlParser.appendField("SOURCES", htmlParser.parse(htmlAudioPlayerSource));
+    }
 
-          return response;
-        }
+    if (mediaProfiles().isProfileEnabled(MediaProfiles::WAV_NONSTD))
+    {
+      QUrl url(request.path());
+      QUrlQuery q(url);
+      q.addQueryItem("format", "wav");
+      url.setQuery(q);
 
-        // Else Audio/Video stream
-        foreach (Stream *stream, d->streams)
-        if (stream->url == request.path())
-        if (stream->proxy.addSocket(socket, masterServer()->httpServer()))
-          return SHttpServer::ResponseMessage(request, SHttpServer::Status_None);
+      htmlParser.setField("SOURCE_URL", url);
+      htmlParser.setField("SOURCE_MIME", RootDevice::mimeAudioWave);
+      htmlParser.appendField("SOURCES", htmlParser.parse(htmlAudioPlayerSource));
+    }
 
-        Stream * const stream = streamVideo(request);
-        if (stream)
-        {
-          stream->proxy.addSocket(socket, masterServer()->httpServer());
-          return SHttpServer::ResponseMessage(request, SHttpServer::Status_None);
-        }
-        else
-          return SHttpServer::ResponseMessage(request, SHttpServer::Status_NotFound);
-      }
-      else // Return head only.
-      {
-        SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
-        response.setField("transferMode.dlna.org", "Streaming");
-        if (!contentFeatures.isEmpty())
-          response.setField("contentFeatures.dlna.org", contentFeatures);
+    contentType = RootDevice::mimeTextHtml;
+    return makeResponse(htmlParser.parse(htmlAudioPlayerElement), contentType, response);
+  }
+  else if (query.hasQueryItem("videoplayer"))
+  {
+    SStringParser htmlParser;
+    htmlParser.setField("SOURCES", "");
 
-        return response;
-      }
+    if (mediaProfiles().isProfileEnabled(MediaProfiles::OGG_THEORA_VORBIS_SD_NONSTD) ||
+        mediaProfiles().isProfileEnabled(MediaProfiles::OGG_THEORA_FLAC_SD_NONSTD))
+    {
+      QUrl url(request.path());
+      QUrlQuery q(url);
+      q.addQueryItem("format", "ogv");
+      url.setQuery(q);
+
+      htmlParser.setField("SOURCE_URL", url);
+      htmlParser.setField("SOURCE_MIME", RootDevice::mimeVideoOgg);
+      htmlParser.appendField("SOURCES", htmlParser.parse(htmlVideoPlayerSource));
+    }
+
+    if (mediaProfiles().isProfileEnabled(MediaProfiles::MPEG_PS_SD_EU_NONSTD) ||
+        mediaProfiles().isProfileEnabled(MediaProfiles::MPEG_PS_SD_NA_NONSTD))
+    {
+      QUrl url(request.path());
+      QUrlQuery q(url);
+      q.addQueryItem("format", "vob");
+      url.setQuery(q);
+
+      htmlParser.setField("SOURCE_URL", url);
+      htmlParser.setField("SOURCE_MIME", RootDevice::mimeVideoMpeg);
+      htmlParser.appendField("SOURCES", htmlParser.parse(htmlVideoPlayerSource));
+    }
+
+    if (mediaProfiles().isProfileEnabled(MediaProfiles::MPEG4_P2_MATROSKA_MP3_SD_NONSTD) ||
+        mediaProfiles().isProfileEnabled(MediaProfiles::MPEG4_P2_MATROSKA_AAC_SD_NONSTD) ||
+        mediaProfiles().isProfileEnabled(MediaProfiles::MPEG4_P2_MATROSKA_AC3_SD_NONSTD))
+    {
+      QUrl url(request.path());
+      QUrlQuery q(url);
+      q.addQueryItem("format", "matroska");
+      url.setQuery(q);
+
+      htmlParser.setField("SOURCE_URL", url);
+      htmlParser.setField("SOURCE_MIME", RootDevice::mimeVideoMatroska);
+      htmlParser.appendField("SOURCES", htmlParser.parse(htmlVideoPlayerSource));
+    }
+
+    contentType = RootDevice::mimeTextHtml;
+    return makeResponse(htmlParser.parse(htmlVideoPlayerElement), contentType, response);
+  }
+  else // Stream file
+  {
+    const QString contentFeatures = QByteArray::fromBase64(query.queryItemValue("contentFeatures").toLatin1());
+
+    // Check for image
+    const MediaProfiles::ImageProfile imageProfile = mediaProfiles().imageProfileFor(contentFeatures);
+    const QString format = query.queryItemValue("format");
+    if ((imageProfile != 0) || (format == "jpeg") || (format == "png"))
+      return sendPhoto(request, contentType, response);
+
+    // Try to re-use Audio/Video stream
+    foreach (MediaStream *stream, d->streams)
+    if ((stream->getRequest() == request) && stream->isReusable())
+    {
+      contentType = stream->getContentType();
+      response = stream->createReader();
+      return HttpStatus_Ok;
+    }
+
+    // Create new Audio/Video stream
+    MediaStream * const stream = streamVideo(request);
+    if (stream)
+    {
+      contentType = stream->getContentType();
+      response = stream->createReader();
+      if (d->streams.isEmpty())
+        d->cleanStreamsTimer.start(d->cleanStreamsInterval);
+
+      d->streams += stream;
+      return HttpStatus_Ok;
     }
   }
 
-  return SHttpServer::ResponseMessage(request, SHttpServer::Status_NotFound);
+  return HttpStatus_NotFound;
 }
 
-QList<SUPnPContentDirectory::Item> MediaServer::listContentDirItems(const QString &client, const QString &dirPath, int start, int &count)
+QList<ContentDirectory::Item> MediaServer::listContentDirItems(const QString &client, const QString &dirPath, int start, int &count)
 {
   if (!activeClients().contains(client))
     activeClients().insert(client);
 
-  QList<SUPnPContentDirectory::Item> result;
+  QList<ContentDirectory::Item> result;
   foreach (Item item, listItems(dirPath, start, count))
   {
     processItem(client, item);
@@ -540,7 +538,7 @@ QList<SUPnPContentDirectory::Item> MediaServer::listContentDirItems(const QStrin
   return result;
 }
 
-SUPnPContentDirectory::Item MediaServer::getContentDirItem(const QString &client, const QString &path)
+ContentDirectory::Item MediaServer::getContentDirItem(const QString &client, const QString &path)
 {
   if (!activeClients().contains(client))
     activeClients().insert(client);
@@ -759,7 +757,6 @@ void MediaServer::setQueryItemsFor(const QString &client, QUrlQuery &query, bool
     }
 
     query.addQueryItem("channels", channels);
-    query.addQueryItem("priority", "high");
 
     const QString encodeMode = settings.value("EncodeMode", genericEncodeMode).toString();
     if (!encodeMode.isEmpty())
@@ -785,19 +782,6 @@ void MediaServer::setQueryItemsFor(const QString &client, QUrlQuery &query, bool
   }
 }
 
-void MediaServer::addStream(Stream *stream)
-{
-  connect(&stream->proxy, SIGNAL(disconnected()), SLOT(cleanStreams()), Qt::QueuedConnection);
-
-  d->streams += stream;
-}
-
-void MediaServer::removeStream(Stream *stream)
-{
-  d->streams.removeAll(stream);
-  d->reusableStreams.removeAll(stream);
-}
-
 
 MediaServer::Item::Item(void)
 {
@@ -805,20 +789,6 @@ MediaServer::Item::Item(void)
 
 MediaServer::Item::~Item()
 {
-}
-
-
-MediaServer::Stream::Stream(MediaServer *parent, const QString &url)
-  : parent(parent),
-    url(url),
-    proxy()
-{
-  parent->addStream(this);
-}
-
-MediaServer::Stream::~Stream()
-{
-  parent->removeStream(this);
 }
 
 

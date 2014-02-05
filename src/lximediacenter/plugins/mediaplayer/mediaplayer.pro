@@ -9,14 +9,12 @@ PRECOMPILED_HEADER = $${PWD}/$${LXIMEDIA_DIR}/include/LXiMediaCenter
 
 # Files
 HEADERS += mediadatabase.h \
-    mediaplayersandbox.h \
     mediaplayerserver.h \
     module.h \
     playlist.h \
     slideshownode.h
 
 SOURCES += mediadatabase.cpp \
-    mediaplayersandbox.cpp \
     mediaplayerserver.cpp \
     mediaplayerserver.html.cpp \
     module.cpp \

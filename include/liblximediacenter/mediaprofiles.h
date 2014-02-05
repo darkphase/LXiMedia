@@ -21,7 +21,6 @@
 #include <QtCore>
 #include <QtNetwork>
 #include <LXiCore>
-#include <LXiServer>
 #include <LXiStream>
 #include "export.h"
 
@@ -113,10 +112,10 @@ public:
   bool                          isProfileEnabled(VideoProfile) const;
   bool                          isProfileEnabled(ImageProfile) const;
 
-  SUPnPBase::ProtocolList       listProtocols(const QString &client);
-  SUPnPBase::ProtocolList       listProtocols(const QString &client, const SAudioFormat &);
-  SUPnPBase::ProtocolList       listProtocols(const QString &client, const SAudioFormat &, const SVideoFormat &);
-  SUPnPBase::ProtocolList       listProtocols(const QString &client, const SSize &imageSize);
+  ConnectionManager::ProtocolList listProtocols(const QString &client);
+  ConnectionManager::ProtocolList listProtocols(const QString &client, const SAudioFormat &);
+  ConnectionManager::ProtocolList listProtocols(const QString &client, const SAudioFormat &, const SVideoFormat &);
+  ConnectionManager::ProtocolList listProtocols(const QString &client, const SSize &imageSize);
 
   QStringList                   supportedAudioProfiles(const QString &client);
   QStringList                   supportedVideoProfiles(const QString &client);

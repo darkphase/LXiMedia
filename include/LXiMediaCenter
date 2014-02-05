@@ -2,17 +2,18 @@
 #define LXMEDIACENTER_MODULE_H
 
 #include <LXiCore>
-#include <LXiServer>
 #include <LXiStream>
 #include <LXiStreamGui>
 
 #ifdef __cplusplus
 
-#include "liblximediacenter/backendsandbox.h"
 #include "liblximediacenter/backendserver.h"
+#include "liblximediacenter/connectionmanager.h"
+#include "liblximediacenter/contentdirectory.h"
 #include "liblximediacenter/mediaprofiles.h"
 #include "liblximediacenter/mediaserver.h"
 #include "liblximediacenter/mediastream.h"
+#include "liblximediacenter/rootdevice.h"
 #include "liblximediacenter/teletext.h"
 
 using namespace LXiMediaCenter;

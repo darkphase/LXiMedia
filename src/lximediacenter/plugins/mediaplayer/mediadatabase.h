@@ -26,12 +26,16 @@
 namespace LXiMediaCenter {
 namespace MediaPlayerBackend {
 
-class MediaDatabase : public QObject
+class MediaDatabase : public QThread
 {
 Q_OBJECT
 private:
   struct Info : SMediaFilesystem::Info
   {
+    inline                      Info() { }
+    inline                      Info(const Info &info) : SMediaFilesystem::Info(info), path(info.path) { }
+    inline                      Info(const SMediaFilesystem::Info &info, const QUrl &path) : SMediaFilesystem::Info(info), path(path) { }
+
     QUrl                        path;
   };
 
@@ -53,18 +57,18 @@ private:
   };
 
 public:
-  static MediaDatabase        * createInstance(BackendServer::MasterServer *);
+  static MediaDatabase        * createInstance();
   static void                   destroyInstance(void);
 
 private:
-  explicit                      MediaDatabase(BackendServer::MasterServer *, QObject *parent = NULL);
+  explicit                      MediaDatabase(QObject *parent = NULL);
   virtual                       ~MediaDatabase();
 
 public:
   SMediaInfo                    readNodeFormat(const QUrl &filePath) const;
   SMediaInfo                    readNodeContent(const QUrl &filePath) const;
-  QByteArray                    readThumbnail(const QUrl &filePath, const QSize &maxSize, const QColor &backgroundColor, const QString &format) const;
-  QByteArray                    readImage(const QUrl &filePath, const QSize &maxSize, const QColor &backgroundColor, const QString &format) const;
+  SImage                        readThumbnail(const QUrl &filePath, const QSize &maxSize) const;
+  QImage readImage(const QUrl &filePath, const QSize &maxSize, const QColor &backgroundColor) const;
 
   void                          setLastPlayed(const QUrl &filePath, const QDateTime & = QDateTime::currentDateTime());
   QPair<QDateTime, int>         lastPlayed(const QUrl &filePath) const;
@@ -73,10 +77,10 @@ public:
   SMediaInfoList                listItems(const QUrl &dirPath, int start, int &count) const;
   SMediaInfoList                representativeItems(const QUrl &dirPath, int &count) const;
 
+protected:
+  virtual void                  run();
+
 private slots:
-  void                          handleResponse(const SHttpEngine::ResponseMessage &);
-  void                          preProbeNext(void);
-  void                          sandboxTerminated(void);
   void                          flushCache(void) const;
 
 private:
@@ -97,10 +101,13 @@ private:
   static MediaDatabase        * self;
 
   const QString                 lastPlayedFileName;
-  SSandboxClient        * const probeSandbox;
 
+  mutable QMutex                mutex;
+
+  volatile bool                 preProbeRunning;
   const int                     preProbeItemCount;
   mutable QMultiMap<int, PreProbe> preProbeQueue;
+  mutable QWaitCondition        preProbeWaiting;
   const int                     preProbingCount;
   mutable int                   preProbing;
 

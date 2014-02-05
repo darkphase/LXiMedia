@@ -17,9 +17,6 @@
 
 #include "backend.h"
 #include "setup.h"
-#ifdef DEBUG_USE_LOCAL_SANDBOX
-# include "sandbox.h"
-#endif
 #include <QtXml>
 #include <iostream>
 
@@ -30,17 +27,13 @@ const QEvent::Type  Backend::exitEventType = QEvent::Type(QEvent::registerEventT
 Backend::Backend()
   : BackendServer::MasterServer(),
     checkNetworkInterfacesTimer(this),
-    masterHttpServer(SUPnPBase::protocol(), serverUuid()),
-    masterSsdpServer(&masterHttpServer),
-    masterMediaServer("/upnp/"),
-    masterConnectionManager("/upnp/"),
-    masterContentDirectory("/upnp/"),
-    masterMediaReceiverRegistrar("/upnp/"),
+    upnpRootDevice(serverUuid(), "urn:schemas-upnp-org:device:MediaServer:1", this),
+    upnpConnectionManager(&upnpRootDevice),
+    upnpContentDirectory(&upnpRootDevice, &upnpConnectionManager),
     sandboxApplication("\"" + qApp->applicationFilePath() + "\" --sandbox"),
     cssParser(),
     htmlParser(),
-    backendServers(),
-    initSandbox(NULL)
+    backendServers()
 {
   // Seed the random number generator.
   qsrand(uint(QDateTime::currentDateTime().toTime_t() + qApp->applicationPid()));
@@ -64,12 +57,7 @@ Backend::~Backend()
 {
   qDebug() << "LXiMediaCenter backend stopping.";
 
-  masterContentDirectory.close();
-  masterConnectionManager.close();
-  masterMediaReceiverRegistrar.close();
-  masterMediaServer.close();
-  masterSsdpServer.close();
-  masterHttpServer.close();
+  upnpRootDevice.close();
 
   foreach (BackendServer *server, backendServers)
   {
@@ -86,10 +74,17 @@ void Backend::start(void)
 {
   QSettings settings;
 
-  masterHttpServer.initialize(settings.value("HttpPort", defaultPort).toInt());
+  upnpRootDevice.registerHttpCallback("/", this);
+  upnpRootDevice.registerHttpCallback("/css", this);
+  upnpRootDevice.registerHttpCallback("/img", this);
+  upnpRootDevice.registerHttpCallback("/js", this);
+  upnpRootDevice.registerHttpCallback("/help", this);
 
-  // Setup HTTP server
-  masterHttpServer.registerCallback("/", this);
+  upnpRootDevice.addIcon("/lximedia.png");
+
+  upnpRootDevice.initialize(
+        settings.value("HttpPort", defaultPort).toInt(),
+        settings.value("DeviceName", defaultDeviceName()).toString());
 
   // Setup template parsers
   cssParser.clear();
@@ -102,20 +97,6 @@ void Backend::start(void)
   foreach (BackendServer *server, backendServers)
     server->initialize(this);
 
-  // Setup SSDP server
-  masterSsdpServer.initialize();
-
-  checkNetworkInterfaces();
-  checkNetworkInterfacesTimer.start(10000);
-
-  // Setup DLNA server
-  masterMediaServer.initialize(&masterHttpServer, &masterSsdpServer);
-  masterConnectionManager.initialize(&masterHttpServer, &masterMediaServer);
-  masterContentDirectory.initialize(&masterHttpServer, &masterMediaServer);
-  masterMediaReceiverRegistrar.initialize(&masterHttpServer, &masterMediaServer);
-
-  masterMediaServer.setDeviceName(settings.value("DeviceName", defaultDeviceName()).toString());
-
   // Default codepage
   const QByteArray defaultCodePage =
       settings.value("DefaultCodepage", "System").toByteArray();
@@ -125,72 +106,18 @@ void Backend::start(void)
   else
     QTextCodec::setCodecForLocale(QTextCodec::codecForName(defaultCodePage));
 
-  const QImage icon(":/lximedia.png");
-  if (!icon.isNull())
-    masterMediaServer.addIcon("/lximedia.png", icon.width(), icon.height(), icon.depth());
-
-  // Request all supported formats
-  initSandbox = createSandbox(SSandboxClient::Priority_Low);
-  connect(initSandbox, SIGNAL(response(SHttpEngine::ResponseMessage)), SLOT(start(SHttpEngine::ResponseMessage)));
-
-  SSandboxClient::RequestMessage request(initSandbox);
-  request.setRequest("GET", "/?formats");
-  initSandbox->sendRequest(request);
-}
-
-void Backend::start(const SHttpEngine::ResponseMessage &formats)
-{
-  disconnect(initSandbox, SIGNAL(response(SHttpEngine::ResponseMessage)), this, SLOT(start(SHttpEngine::ResponseMessage)));
-  connect(initSandbox, SIGNAL(response(SHttpEngine::ResponseMessage)), SLOT(addModules(SHttpEngine::ResponseMessage)));
-
-  SSandboxClient::RequestMessage request(initSandbox);
-  request.setRequest("GET", "/?modules");
-  initSandbox->sendRequest(request);
-
-  // Decode the message
-  QStringList outAudioCodecs;
-  QStringList outVideoCodecs;
-  QStringList outFormats;
-  QStringList fileProtocols;
-
-  QDomDocument doc("");
-  if (doc.setContent(formats.content()))
-  {
-    struct T
-    {
-      static QStringList readElement(QDomDocument &doc, const QString &name, const QString &type)
-      {
-        QStringList result;
-
-        QDomElement codecsElm = doc.documentElement().firstChildElement(name);
-        for (QDomElement codecElm = codecsElm.firstChildElement(type);
-             !codecElm.isNull();
-             codecElm = codecElm.nextSiblingElement(type))
-        {
-          result += codecElm.text();
-        }
-
-        return result;
-      }
-    };
-
-    outAudioCodecs = T::readElement(doc, "audiocodecs", "codec");
-    outVideoCodecs = T::readElement(doc, "videocodecs", "codec");
-    outFormats = T::readElement(doc, "formats", "format");
-    fileProtocols = T::readElement(doc, "fileprotocols", "protocol");
-  }
-
   // Figure out the supported DLNA audio protocols.
   MediaServer::mediaProfiles().setCodecs(
-      QSet<QString>::fromList(outAudioCodecs),
-      QSet<QString>::fromList(outVideoCodecs),
+      QSet<QString>::fromList(SAudioEncoderNode::codecs()),
+      QSet<QString>::fromList(SVideoEncoderNode::codecs()),
       QSet<QString>::fromList(QStringList() << "jpeg" << "png"),
-      QSet<QString>::fromList(outFormats));
+      QSet<QString>::fromList(SIOOutputNode::formats()));
 
-  MediaServer::fileProtocols() = QSet<QString>::fromList(fileProtocols);
+  MediaServer::fileProtocols() = QSet<QString>::fromList(SMediaFilesystem::protocols());
 
-  masterConnectionManager.setSourceProtocols(MediaServer::mediaProfiles().listProtocols(QString::null));
-  masterConnectionManager.setSinkProtocols(SUPnPBase::ProtocolList());
+  upnpConnectionManager.setProtocols(
+        MediaServer::mediaProfiles().listProtocols(QString::null),
+        ConnectionManager::ProtocolList());
 
   qDebug() << "Finished initialization.";
 }
@@ -201,45 +128,14 @@ void Backend::reset(void)
 
   checkNetworkInterfaces();
 
-  masterMediaServer.reset();
-  masterConnectionManager.reset();
-  masterContentDirectory.reset();
-  masterMediaReceiverRegistrar.reset();
+  upnpRootDevice.close();
+  upnpRootDevice.initialize(
+        settings.value("HttpPort", defaultPort).toInt(),
+        settings.value("DeviceName", defaultDeviceName()).toString());
 
   htmlParser.clear();
   htmlParser.setField("_PRODUCT", qApp->applicationName());
   htmlParser.setField("_HOSTNAME", (settings.value("DeviceName", defaultDeviceName())).toString());
-}
-
-void Backend::addModules(const SHttpEngine::ResponseMessage &modules)
-{
-  delete initSandbox;
-  initSandbox = NULL;
-
-  QDomDocument doc("");
-  if (doc.setContent(modules.content()))
-  {
-    struct VirtualModule : public SModule
-    {
-      virtual bool registerClasses(void) { return true; }
-      virtual void unload(void) { }
-      virtual QByteArray about(void) { return aboutText; }
-      virtual QByteArray licenses(void) { return licensesText; }
-
-      QByteArray aboutText;
-      QByteArray licensesText;
-    };
-
-    for (QDomElement moduleElm = doc.documentElement().firstChildElement("module");
-         !moduleElm.isNull();
-         moduleElm = moduleElm.nextSiblingElement("module"))
-    {
-      VirtualModule * const module = new VirtualModule();
-      module->aboutText = moduleElm.firstChildElement("about").text().toUtf8();
-      module->licensesText = moduleElm.firstChildElement("licenses").text().toUtf8();
-      sApp->loadModule(module);
-    }
-  }
 }
 
 void Backend::checkNetworkInterfaces(void)
@@ -247,9 +143,9 @@ void Backend::checkNetworkInterfaces(void)
   QSettings settings;
 
   const QList<QHostAddress> interfaces =
-      settings.value("BindAllNetworks", false).toBool()
-          ? QNetworkInterface::allAddresses()
-          : SSsdpClient::localAddresses();
+      /*settings.value("BindAllNetworks", false).toBool()
+          ?*/ QNetworkInterface::allAddresses()
+          /*: SSsdpClient::localAddresses()*/;
 
   // Bind new interfaces
   foreach (const QHostAddress &interface, interfaces)
@@ -266,8 +162,7 @@ void Backend::checkNetworkInterfaces(void)
     {
       qDebug() << "Binding interface" << interface.toString();
 
-      masterHttpServer.bind(interface);
-      masterSsdpServer.bind(interface);
+      //upnpRootDevice.bind(interface);
 
       boundNetworkInterfaces += interface;
     }
@@ -290,8 +185,7 @@ void Backend::checkNetworkInterfaces(void)
     {
       qDebug() << "Releasing interface" << bound->toString();
 
-      masterHttpServer.release(*bound);
-      masterSsdpServer.release(*bound);
+      //upnpRootDevice.release(*bound);
 
       bound = boundNetworkInterfaces.erase(bound);
     }
@@ -310,55 +204,14 @@ void Backend::customEvent(QEvent *e)
     QObject::customEvent(e);
 }
 
-SHttpServer * Backend::httpServer(void)
+RootDevice * Backend::rootDevice(void)
 {
-  return &masterHttpServer;
+  return &upnpRootDevice;
 }
 
-SSsdpServer * Backend::ssdpServer(void)
+ContentDirectory * Backend::contentDirectory(void)
 {
-  return &masterSsdpServer;
-}
-
-SUPnPContentDirectory * Backend::contentDirectory(void)
-{
-  return &masterContentDirectory;
-}
-
-SSandboxClient * Backend::createSandbox(SSandboxClient::Priority priority)
-{
-#ifndef DEBUG_USE_LOCAL_SANDBOX
-  return new SSandboxClient(sandboxApplication, priority);
-#else
-  struct SandboxThread : QThread
-  {
-    SandboxThread()
-      : startSem(0), sandbox(NULL)
-    {
-    }
-
-    virtual void run(void)
-    {
-      sandbox = new Sandbox();
-      sandbox->start("local");
-
-      startSem.release(1);
-
-      exec();
-
-      delete sandbox;
-    }
-
-    QSemaphore startSem;
-    Sandbox * volatile sandbox;
-  };
-
-  SandboxThread * const thread = new SandboxThread();
-  thread->start();
-  thread->startSem.acquire(1);
-
-  return new SSandboxClient(thread->sandbox->server(), priority);
-#endif
+  return &upnpContentDirectory;
 }
 
 QUuid Backend::serverUuid(void)
@@ -381,10 +234,11 @@ QString Backend::defaultDeviceName(void)
   return QHostInfo::localHostName() + ": " + qApp->applicationName();
 }
 
-SHttpServer::ResponseMessage Backend::sendFile(const SHttpServer::RequestMessage &request, const QString &fileName)
+HttpStatus Backend::sendFile(const QUrl &request, const QString &fileName, QByteArray &contentType, QIODevice *&response)
 {
-  SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
-  response.setContentType(SHttpServer::toMimeType(fileName));
+  const QUrlQuery query(request);
+
+  contentType = RootDevice::toMimeType(fileName);
 
   if (fileName.endsWith(".png"))
   {
@@ -393,16 +247,16 @@ SHttpServer::ResponseMessage Backend::sendFile(const SHttpServer::RequestMessage
     {
       bool render = false;
 
-      if (request.query().hasQueryItem("scale"))
+      if (query.hasQueryItem("scale"))
       {
         render = true;
         image = image.scaled(
-            SSize::fromString(request.query().queryItemValue("scale")).size(),
+            SSize::fromString(query.queryItemValue("scale")).size(),
             Qt::KeepAspectRatio,
             Qt::SmoothTransformation);
       }
 
-      if (request.query().hasQueryItem("invert"))
+      if (query.hasQueryItem("invert"))
       {
         render = true;
         image.invertPixels();
@@ -410,25 +264,19 @@ SHttpServer::ResponseMessage Backend::sendFile(const SHttpServer::RequestMessage
 
       if (render)
       {
-        QBuffer buffer;
-        buffer.open(QBuffer::WriteOnly);
-        if (image.save(&buffer, "PNG"))
+        QBuffer * const buffer = new QBuffer();
+        if (buffer->open(QBuffer::ReadWrite) && image.save(buffer, "PNG"))
         {
-          buffer.close();
-
-          response.setContent(buffer.data());
-          return response;
+          buffer->close();
+          response = buffer;
+          return HttpStatus_Ok;
         }
+
+        delete buffer;
       }
     }
   }
 
-  QFile file(fileName);
-  if (file.open(QFile::ReadOnly))
-  {
-    response.setContent(file.readAll());
-    return response;
-  }
-
-  return SHttpServer::ResponseMessage(request, SHttpServer::Status_NotFound);
+  response = new QFile(fileName);
+  return HttpStatus_Ok;
 }

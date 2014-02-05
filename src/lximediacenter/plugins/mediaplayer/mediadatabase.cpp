@@ -16,21 +16,21 @@
  ******************************************************************************/
 
 #include "mediadatabase.h"
-#include "mediaplayersandbox.h"
 #include "module.h"
 #include <LXiStreamGui>
+#include <QtConcurrent>
 
 namespace LXiMediaCenter {
 namespace MediaPlayerBackend {
 
 MediaDatabase     * MediaDatabase::self = NULL;
 
-MediaDatabase * MediaDatabase::createInstance(BackendServer::MasterServer *masterServer)
+MediaDatabase * MediaDatabase::createInstance()
 {
   if (self)
     return self;
   else
-    return self = new MediaDatabase(masterServer);
+    return self = new MediaDatabase();
 }
 
 void MediaDatabase::destroyInstance(void)
@@ -38,32 +38,34 @@ void MediaDatabase::destroyInstance(void)
   delete self;
 }
 
-MediaDatabase::MediaDatabase(BackendServer::MasterServer *masterServer, QObject *parent)
-  : QObject(parent),
+MediaDatabase::MediaDatabase(QObject *parent)
+  : QThread(parent),
     lastPlayedFileName(lastPlayedFile()),
-    probeSandbox(masterServer->createSandbox(SSandboxClient::Priority_Low)),
+    mutex(QMutex::NonRecursive),
+    preProbeRunning(true),
     preProbeItemCount(MediaServer::loadItemCount() * 2),
-    preProbingCount(qMin(probeSandbox->maxSocketCount() / 2, QThread::idealThreadCount())),
+    preProbingCount(QThread::idealThreadCount()),
     preProbing(preProbingCount)
 {
   if (self != NULL)
     qFatal("Only one instance of the MediaDatabase class is allowed.");
-
-  connect(probeSandbox, SIGNAL(response(SHttpEngine::ResponseMessage)), SLOT(handleResponse(SHttpEngine::ResponseMessage)));
-  connect(probeSandbox, SIGNAL(terminated()), SLOT(sandboxTerminated()));
 
   cacheFile.setFileName(QDir::temp().absoluteFilePath(sApp->tempFileBase() + "mediafilecache"));
   if (cacheFile.open(QFile::ReadWrite))
     qDebug() << "MediaDatabase opened" << cacheFile.fileName();
   else
     qWarning() << "MediaDatabase could not open cache file";
+
+  start(QThread::LowPriority);
 }
 
 MediaDatabase::~MediaDatabase()
 {
-  self = NULL;
+  preProbeRunning = false;
+  preProbeWaiting.wakeOne();
+  wait();
 
-  delete probeSandbox;
+  self = NULL;
 
   cacheFile.remove();
 }
@@ -76,21 +78,14 @@ SMediaInfo MediaDatabase::readNodeFormat(const QUrl &filePath) const
     if (!node.isNull() && node.isFormatProbed())
       return node;
 
-    SSandboxClient::RequestMessage request(probeSandbox);
-    request.setRequest("POST", QByteArray(MediaPlayerSandbox::path) + "?probeformat=");
-    request.setContent(filePath.toString().toUtf8());
-
-    const SHttpEngine::ResponseMessage response = probeSandbox->blockingRequest(request);
-    if (response.status() == SHttpEngine::Status_Ok)
+    SMediaInfo fileNode(filePath);
+    if (!fileNode.isNull())
     {
-      foreach (const SMediaInfo &node, deserializeNodes(response.content()))
-      if (!node.isNull())
-      {
-        writeNodeCache(node);
-
-        return node;
-      }
+      fileNode.probeFormat();
+      writeNodeCache(fileNode);
     }
+
+    return fileNode;
   }
 
   return SMediaInfo();
@@ -102,7 +97,7 @@ SMediaInfoList MediaDatabase::readNodeFormat(const QList<Info> &files) const
 
   if (!files.isEmpty())
   {
-    QByteArray probeFiles;
+    QStringList probeFiles;
     QList<int> probeFilePos;
     foreach (const Info &file, files)
     {
@@ -113,7 +108,7 @@ SMediaInfoList MediaDatabase::readNodeFormat(const QList<Info> &files) const
       }
       else
       {
-        probeFiles += file.path.toString().toUtf8() + '\n';
+        probeFiles += file.path.toString();
         probeFilePos += result.count();
         result += SMediaInfo();
       }
@@ -121,19 +116,27 @@ SMediaInfoList MediaDatabase::readNodeFormat(const QList<Info> &files) const
 
     if (!probeFiles.isEmpty())
     {
-      SSandboxClient::RequestMessage request(probeSandbox);
-      request.setRequest("POST", QByteArray(MediaPlayerSandbox::path) + "?probeformat=");
-      request.setContent(probeFiles);
-
-      const SHttpEngine::ResponseMessage response = probeSandbox->blockingRequest(request);
-      if (response.status() == SHttpEngine::Status_Ok)
-      foreach (const SMediaInfo &node, deserializeNodes(response.content()))
+      struct T
       {
-        if (!node.isNull())
-          writeNodeCache(node);
+        static SMediaInfo probeFileFormat(const QString &path)
+        {
+          SMediaInfo fileNode(path);
+          if (!fileNode.isNull())
+            fileNode.probeFormat();
 
-        if (!probeFilePos.isEmpty())
-          result[probeFilePos.takeFirst()] = node;
+          return fileNode;
+        }
+      };
+
+      QList< QFuture<SMediaInfo> > futures;
+      foreach (const QString &path, probeFiles)
+      if (!path.isEmpty())
+        futures += QtConcurrent::run(&T::probeFileFormat, path);
+
+      foreach (const QFuture<SMediaInfo> &future, futures)
+      {
+        writeNodeCache(future.result());
+        result[probeFilePos.takeFirst()] = future.result();
       }
     }
   }
@@ -149,68 +152,64 @@ SMediaInfo MediaDatabase::readNodeContent(const QUrl &filePath) const
     if (!node.isNull() && node.isContentProbed())
       return node;
 
-    SSandboxClient::RequestMessage request(probeSandbox);
-    request.setRequest("POST", QByteArray(MediaPlayerSandbox::path) + "?probecontent=");
-    request.setContent(filePath.toString().toUtf8());
-
-    const SHttpEngine::ResponseMessage response = probeSandbox->blockingRequest(request);
-    if (response.status() == SHttpEngine::Status_Ok)
+    SMediaInfo fileNode(filePath);
+    if (!fileNode.isNull())
     {
-      foreach (const SMediaInfo &node, deserializeNodes(response.content()))
-      if (!node.isNull())
-      {
-        writeNodeCache(node);
-
-        return node;
-      }
+      fileNode.probeContent();
+      writeNodeCache(fileNode);
     }
+
+    return fileNode;
   }
 
   return SMediaInfo();
 }
 
-QByteArray MediaDatabase::readThumbnail(const QUrl &filePath, const QSize &size, const QColor &backgroundColor, const QString &format) const
+SImage MediaDatabase::readThumbnail(const QUrl &filePath, const QSize &size) const
 {
   if (!filePath.isEmpty())
   {
-    SSandboxClient::RequestMessage request(probeSandbox);
-    request.setRequest(
-        "POST",
-        QByteArray(MediaPlayerSandbox::path) + "?readthumbnail="
-        "&maxsize=" + SSize(size).toString().toLatin1() +
-        "&bgcolor=" + backgroundColor.name().mid(1).toLatin1() +
-        "&format=" + format.toLatin1());
-
-    request.setContent(filePath.toString().toUtf8());
-
-    const SHttpEngine::ResponseMessage response = probeSandbox->blockingRequest(request);
-    if (response.status() == SHttpEngine::Status_Ok)
-      return response.content();
+    SMediaInfo fileNode(filePath);
+    if (!fileNode.isNull())
+    {
+      const SVideoBuffer thumbnail = fileNode.readThumbnail(size);
+      if (!thumbnail.isNull())
+        return SImage(thumbnail, true);
+    }
   }
 
-  return QByteArray();
+  return SImage();
 }
 
-QByteArray MediaDatabase::readImage(const QUrl &filePath, const QSize &size, const QColor &backgroundColor, const QString &format) const
+QImage MediaDatabase::readImage(const QUrl &filePath, const QSize &size, const QColor &backgroundColor) const
 {
-  if (!filePath.isEmpty())
+  QImage image = SImage::fromFile(filePath, size);
+  if (!image.isNull())
   {
-    SSandboxClient::RequestMessage request(probeSandbox);
-    request.setRequest(
-        "POST",
-        QByteArray(MediaPlayerSandbox::path) + "?readimage="
-        "&maxsize=" + SSize(size).toString().toLatin1() +
-        "&bgcolor=" + backgroundColor.name().mid(1).toLatin1() +
-        "&format=" + format.toLatin1());
+    QSize maxsize = size;
+    if (maxsize.isNull())
+      maxsize = image.size();
 
-    request.setContent(filePath.toString().toUtf8());
+    if (maxsize != image.size())
+    {
+      QImage result(maxsize, QImage::Format_ARGB32);
+      QPainter p;
+      p.begin(&result);
+        p.setCompositionMode(QPainter::CompositionMode_Source); // Ignore alpha
+        p.fillRect(result.rect(), backgroundColor);
+        p.setCompositionMode(QPainter::CompositionMode_SourceOver); // Process alpha
+        p.drawImage(
+            (result.width() / 2) - (image.width() / 2),
+            (result.height() / 2) - (image.height() / 2),
+            image);
+      p.end();
+      image = result;
+    }
 
-    const SHttpEngine::ResponseMessage response = probeSandbox->blockingRequest(request);
-    if (response.status() == SHttpEngine::Status_Ok)
-      return response.content();
+    return image;
   }
 
-  return QByteArray();
+  return QImage();
 }
 
 void MediaDatabase::setLastPlayed(const QUrl &filePath, const QDateTime &lastPlayed)
@@ -297,102 +296,66 @@ SMediaInfoList MediaDatabase::representativeItems(const QUrl &dirPath, int &coun
   return readNodeFormat(listFiles(dirPath, 0, count));
 }
 
-void MediaDatabase::handleResponse(const SHttpEngine::ResponseMessage &response)
+void MediaDatabase::run()
 {
-  if (response.status() == SHttpEngine::Status_Ok)
+  while (preProbeRunning)
   {
-    if (response.contentType().endsWith(";mediainfo"))
+    int preProbeKey;
+    PreProbe preProbe;
     {
-      foreach (const SMediaInfo &node, deserializeNodes(response.content()))
-      if (!node.isNull())
-        writeNodeCache(node);
+      QMutexLocker l(&mutex);
+
+      while (preProbeRunning && preProbeQueue.empty())
+        preProbeWaiting.wait(&mutex);
+
+      QMultiMap<int, PreProbe>::Iterator i = preProbeQueue.begin();
+      if (i != preProbeQueue.end())
+      {
+        preProbeKey = i.key();
+        preProbe = i.value();
+        preProbeQueue.erase(i);
+      }
+      else
+        continue;
     }
-    else if (response.contentType().endsWith(";files"))
+
+    if (preProbeKey < 0)
     {
-      bool content = false;
-      if (response.hasField("X-Content"))
-        content = response.field("X-Content").toInt() != 0;
+      int count = 0;
+      const QList<Info> files = listFiles(preProbe.info.path, 0, count);
+      {
+        QMutexLocker l(&mutex);
 
-      int i = 0, total = 0;
-      foreach (const Info &info, deserializeFiles(response.content(), total))
-      if (info.isReadable && !info.isDir)
-        preProbeQueue.insert(i++, PreProbe(info, 0, content));
-    }
-
-    Q_ASSERT(preProbing < preProbingCount);
-    preProbing = qMin(preProbing + 1, preProbingCount);
-
-    preProbeNext();
-  }
-}
-
-void MediaDatabase::preProbeNext(void)
-{
-  int maxIter = preProbingCount;
-  for (QMultiMap<int, PreProbe>::Iterator i = preProbeQueue.begin();
-       (i != preProbeQueue.end()) && (preProbing > 0) && (maxIter-- > 0);
-       i = preProbeQueue.erase(i))
-  {
-    if (i.key() < 0)
-    {
-      QUrlQuery query;
-      query.addQueryItem("listfiles", QString::null);
-      query.addQueryItem("priority", QString::number(-1000));
-      query.addQueryItem("start", QString::number(i->start));
-      query.addQueryItem("count", QString::number(preProbeItemCount));
-
-      QUrl url;
-      url.setPath(MediaPlayerSandbox::path);
-      url.setQuery(query);
-
-      SSandboxClient::RequestMessage request(probeSandbox);
-      request.setRequest("POST", url.toEncoded(QUrl::RemoveScheme | QUrl::RemoveAuthority));
-      request.setField("X-Content", i->content ? "1" : "0");
-      request.setContent(i->info.path.toString().toUtf8());
-
-      probeSandbox->sendRequest(request);
-
-      preProbing = qMax(preProbing - 1, 0);
+        int n = 0;
+        foreach (const Info &info, files)
+          preProbeQueue.insert(n++, PreProbe(info, 0, preProbe.content));
+      }
     }
     else
     {
-      const SMediaInfo node = readNodeCache(i->info);
-      if (node.isNull() || (i->content && !node.isContentProbed()))
+      const SMediaInfo node = readNodeCache(preProbe.info);
+      if (node.isNull() || (preProbe.content && !node.isContentProbed()))
       {
-        QUrlQuery query;
-        query.addQueryItem(i->content ? "probecontent" : "probeformat", QString::null);
-        query.addQueryItem("priority", QString::number(-1001));
+        SMediaInfo fileNode(preProbe.info.path);
+        if (!fileNode.isNull())
+        {
+          if (preProbe.content)
+            fileNode.probeContent();
+          else
+            fileNode.probeFormat();
 
-        QUrl url;
-        url.setPath(MediaPlayerSandbox::path);
-        url.setQuery(query);
-
-        SSandboxClient::RequestMessage request(probeSandbox);
-        request.setRequest("POST", url.toEncoded(QUrl::RemoveScheme | QUrl::RemoveAuthority));
-        request.setContent(i->info.path.toString().toUtf8());
-
-        probeSandbox->sendRequest(request);
-
-        preProbing = qMax(preProbing - 1, 0);
+          writeNodeCache(fileNode);
+        }
       }
     }
   }
-
-  if ((preProbing > 0) && !preProbeQueue.isEmpty())
-    QTimer::singleShot(0, this, SLOT(preProbeNext()));
-}
-
-void MediaDatabase::sandboxTerminated(void)
-{
-  preProbing = preProbingCount;
-  preProbeQueue.clear();
 }
 
 void MediaDatabase::flushCache(void) const
 {
   if (cacheFile.isOpen())
   {
-    qDebug() << "MediaDatabase flushing" << cacheFile.fileName();
+    qWarning() << "MediaDatabase flushing" << cacheFile.fileName();
 
     cacheFile.resize(0);
     cachePos.clear();
@@ -401,24 +364,45 @@ void MediaDatabase::flushCache(void) const
 
 QList<MediaDatabase::Info> MediaDatabase::listFiles(const QUrl &dirPath, int start, int &count) const
 {
-  SSandboxClient::RequestMessage request(probeSandbox);
-  request.setRequest(
-      "POST",
-      QByteArray(MediaPlayerSandbox::path) +
-      "?listfiles=&start=" + QByteArray::number(start) +
-      "&count=" + QByteArray::number(count));
-  request.setContent(dirPath.toString().toUtf8());
-
   QList<Info> result;
-  const SHttpEngine::ResponseMessage response = probeSandbox->blockingRequest(request);
-  if (response.status() == SHttpEngine::Status_Ok)
-    result = deserializeFiles(response.content(), count);
+
+  const bool returnAll = count == 0;
+  int n = 0;
+
+  SMediaFilesystem filesystem(dirPath);
+  const QStringList items = filesystem.entryList(
+        QDir::Dirs | QDir::NoDotAndDotDot | QDir::Files,
+        QDir::DirsFirst | QDir::Name | QDir::IgnoreCase);
+
+  foreach (const QString &item, items)
+  {
+    // Filter items that need to be hidden.
+    if (!item.endsWith(".db" , Qt::CaseInsensitive) &&
+        !item.endsWith(".idx", Qt::CaseInsensitive) &&
+        !item.endsWith(".nfo", Qt::CaseInsensitive) &&
+        !item.endsWith(".srt", Qt::CaseInsensitive) &&
+        !item.endsWith(".sub", Qt::CaseInsensitive) &&
+        !item.endsWith(".txt", Qt::CaseInsensitive))
+    {
+      if (n++ >= start)
+      {
+        if (returnAll || (result.count() < count))
+          result += Info(filesystem.readInfo(item), filesystem.filePath(item));
+        else
+          break;
+      }
+    }
+  }
+
+  count = items.count();
 
   return result;
 }
 
 SMediaInfo MediaDatabase::readNodeCache(const Info &file) const
 {
+  QMutexLocker l(&mutex);
+
   if (cacheFile.isOpen())
   {
     foreach (qint64 pos, cachePos.values(qHash(file.path.toString())))
@@ -453,6 +437,8 @@ SMediaInfo MediaDatabase::readNodeCache(const Info &file) const
 
 SMediaInfo MediaDatabase::readNodeCache(const QUrl &filePath) const
 {
+  QMutexLocker l(&mutex);
+
   if (cacheFile.isOpen())
   {
     foreach (qint64 pos, cachePos.values(qHash(filePath.toString())))
@@ -486,6 +472,8 @@ SMediaInfo MediaDatabase::readNodeCache(const QUrl &filePath) const
 
 void MediaDatabase::writeNodeCache(const SMediaInfo &node) const
 {
+  QMutexLocker l(&mutex);
+
   if (cacheFile.isOpen() && cacheFile.seek(cacheFile.size()))
   {
     cachePos.insert(qHash(node.filePath().toString()), cacheFile.pos());
@@ -502,14 +490,15 @@ void MediaDatabase::writeNodeCache(const SMediaInfo &node) const
 
 void MediaDatabase::preProbeDir(const QUrl &dirPath, int start, bool content) const
 {
+  QMutexLocker l(&mutex);
+
   Info info;
   info.isDir = true;
   info.isReadable = true;
   info.path = dirPath;
 
   preProbeQueue.insert(-1, PreProbe(info, start, content));
-
-  QTimer::singleShot(250, const_cast<MediaDatabase *>(this), SLOT(preProbeNext()));
+  preProbeWaiting.wakeOne();
 }
 
 SMediaInfoList MediaDatabase::deserializeNodes(const QByteArray &data)

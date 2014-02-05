@@ -15,26 +15,29 @@ CONFIG += precompile_header
 PRECOMPILED_HEADER = $${PWD}/$${LXIMEDIA_DIR}/include/LXiMediaCenter
 
 include($${PWD}/$${LXIMEDIA_DIR}/include/liblxicore/linklxicore.pri)
-include($${PWD}/$${LXIMEDIA_DIR}/include/liblxiserver/linklxiserver.pri)
 include($${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/linklxistream.pri)
 include($${PWD}/$${LXIMEDIA_DIR}/include/liblxistreamgui/linklxistreamgui.pri)
 
 # Files
 HEADERS += $${PWD}/$${LXIMEDIA_DIR}/include/LXiMediaCenter \
  $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/export.h \
- $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/backendsandbox.h \
  $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/backendserver.h \
+ $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/connectionmanager.h \
+ $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/contentdirectory.h \
  $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/mediaprofiles.h \
  $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/mediaserver.h \
  $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/mediastream.h \
+ $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/rootdevice.h \
  $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/teletext.h
 
-SOURCES += backendsandbox.cpp \
- backendserver.cpp \
+SOURCES += backendserver.cpp \
+ connectionmanager.cpp \
+ contentdirectory.cpp \
  mediaprofiles.cpp \
  mediaserver.cpp \
  mediaserver.html.cpp \
  mediastream.cpp \
+ rootdevice.cpp \
  teletext.cpp
 
 HEADERS += lximediacenterprivate.h

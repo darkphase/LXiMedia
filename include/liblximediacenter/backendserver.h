@@ -19,8 +19,10 @@
 #define LXMEDIACENTER_BACKENDSERVER_H
 
 #include <QtCore>
-#include <LXiServer>
+#include <LXiCore>
 #include "export.h"
+#include "rootdevice.h"
+#include "contentdirectory.h"
 
 namespace LXiMediaCenter {
 
@@ -32,13 +34,10 @@ public:
   class LXIMEDIACENTER_PUBLIC MasterServer
   {
   public:
-    virtual QByteArray          parseHtmlContent(const SHttpServer::RequestHeader &, const QByteArray &content, const QByteArray &head) const = 0;
+    virtual HttpStatus          parseHtmlContent(const QUrl &, const QByteArray &content, const QByteArray &head, QByteArray &contentType, QIODevice *&response) const = 0;
 
-    virtual SHttpServer       * httpServer(void) = 0;
-    virtual SSsdpServer       * ssdpServer(void) = 0;
-    virtual SUPnPContentDirectory * contentDirectory(void) = 0;
-
-    virtual SSandboxClient    * createSandbox(SSandboxClient::Priority) = 0;
+    virtual RootDevice        * rootDevice(void) = 0;
+    virtual ContentDirectory  * contentDirectory(void) = 0;
   };
 
   struct LXIMEDIACENTER_PUBLIC SearchResult
@@ -75,9 +74,9 @@ public:
   virtual QByteArray            settingsContent(void);
 
 public:
-  SHttpServer::ResponseMessage  makeResponse(const SHttpServer::RequestHeader &, const QByteArray &, const char * = SHttpEngine::mimeAppOctet, bool allowCache = false) const;
-  SHttpServer::ResponseMessage  makeResponse(const SHttpServer::RequestHeader &, const QString &, const char * = SHttpEngine::mimeTextPlain, bool allowCache = false) const;
-  SHttpServer::ResponseMessage  makeHtmlContent(const SHttpServer::RequestHeader &, const QByteArray &content, const QByteArray &head = QByteArray()) const;
+  HttpStatus                    makeResponse(const QByteArray &, QByteArray &contentType, QIODevice *&response) const;
+  HttpStatus                    makeResponse(const QString &, QByteArray &contentType, QIODevice *&response) const;
+  HttpStatus                    makeHtmlContent(const QUrl &, const QByteArray &content, QByteArray &contentType, QIODevice *&response, const QByteArray &head = QByteArray()) const;
 
 protected:
   MasterServer                * masterServer(void);

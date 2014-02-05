@@ -5,15 +5,18 @@ DESTDIR = $${OUT_PWD}/$${LXIMEDIA_DIR}/bin
 TARGET = lximcbackend
 include($${PWD}/$${LXIMEDIA_DIR}/include/config.pri)
 include($${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/linklximediacenter.pri)
+include($${PWD}/$${LXIMEDIA_DIR}/ext/pupnp/pupnp.pri)
 
 # Files
 SOURCES += main.cpp \
     backend.cpp \
     backend.html.cpp \
-    sandbox.cpp \
+    ixmlstructures.cpp \
+    pupnprootdevice.cpp \
     setup.cpp
 HEADERS += $${PWD}/backend.h \
-    $${PWD}/sandbox.h \
+    $${PWD}/ixmlstructures.h \
+    $${PWD}/pupnprootdevice.h \
     $${PWD}/setup.h
 RESOURCES = ../resources/backend.qrc
 
