@@ -213,43 +213,37 @@ QByteArray MediaServer::buildListItems(const ThumbnailListItemList &items)
   return result;
 }
 
-SHttpServer::ResponseMessage MediaServer::buildAudioPlayer(const SHttpServer::RequestMessage &request)
+HttpStatus MediaServer::buildAudioPlayer(const QUrl &request, QByteArray &contentType, QIODevice *&response)
 {
   SStringParser htmlParser;
 
-  QString path = request.file();
+  QString path = request.path();
   path = path.left(path.lastIndexOf('/') + 1);
   htmlParser.setField("PATH", QUrl(path));
-  htmlParser.setField("ITEM_URL", QUrl(request.file()));
+  htmlParser.setField("ITEM_URL", QUrl(request.path()));
 
-  SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
-  response.setCacheControl(-1);
-  response.setContentType(SHttpEngine::mimeTextHtml);
-  response.setContent(htmlParser.parse(htmlAudioPlayer));
-  return response;
+  contentType = RootDevice::mimeTextHtml;
+  return makeResponse(htmlParser.parse(htmlAudioPlayer), contentType, response);
 }
 
-SHttpServer::ResponseMessage MediaServer::buildPlayer(const SHttpServer::RequestMessage &request)
+HttpStatus MediaServer::buildPlayer(const QUrl &request, QByteArray &contentType, QIODevice *&response)
 {
   SStringParser htmlParser;
 
-  QString path = request.file();
+  QString path = request.path();
   path = path.left(path.lastIndexOf('/') + 1);
   htmlParser.setField("PATH", QUrl(path));
   htmlParser.setField("LOAD_ITEM_COUNT", QString::number(loadItemCount()));
-  htmlParser.setField("ITEM_URL", QUrl(request.file()));
+  htmlParser.setField("ITEM_URL", QUrl(request.path()));
 
-  const Item item = getItem(request.file());
+  const Item item = getItem(request.path());
   if ((int(item.type) / 10) == 2)
     htmlParser.setField("ITEM_TYPE", "Video");
   else if ((int(item.type) / 10) == 3)
     htmlParser.setField("ITEM_TYPE", "Image");
 
-  SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
-  response.setCacheControl(-1);
-  response.setContentType(SHttpEngine::mimeTextHtml);
-  response.setContent(htmlParser.parse(htmlPlayer));
-  return response;
+  contentType = RootDevice::mimeTextHtml;
+  return makeResponse(htmlParser.parse(htmlPlayer), contentType, response);
 }
 
 } // End of namespace

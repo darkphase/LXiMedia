@@ -17,7 +17,6 @@
 
 #include "networkbufferreader.h"
 #include <QtXml>
-#include <LXiServer>
 
 namespace LXiStream {
 namespace FFMpegBackend {
@@ -90,9 +89,9 @@ bool NetworkBufferReader::process(void)
   return BufferReaderBase::demux(BufferReaderBase::read());
 }
 
-QList<QUrl> NetworkBufferReader::resolveAsf(const QUrl &url)
+QList<QUrl> NetworkBufferReader::resolveAsf(const QUrl &/*url*/)
 {
-  if (url.scheme() == "http")
+/*  if (url.scheme() == "http")
   {
     SHttpClient httpClient;
 
@@ -144,7 +143,7 @@ QList<QUrl> NetworkBufferReader::resolveAsf(const QUrl &url)
   //        qDebug() << line << col << error << corrected;
       }
     }
-  }
+  }*/
 
   return QList<QUrl>();
 }

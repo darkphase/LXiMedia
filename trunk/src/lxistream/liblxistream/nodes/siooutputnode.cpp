@@ -165,7 +165,7 @@ void SIOOutputNode::close(void)
 
     QIODevice * const ioDevice = d->ioDevice;
     d->ioDevice = NULL;
-    emit closed(ioDevice);
+    ioDevice->close();
   }
 
   d->mutex.unlock();

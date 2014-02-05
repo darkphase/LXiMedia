@@ -17,7 +17,6 @@
 
 #include "module.h"
 #include "mediadatabase.h"
-#include "mediaplayersandbox.h"
 #include "mediaplayerserver.h"
 
 namespace LXiMediaCenter {
@@ -28,7 +27,6 @@ const char Module::pluginName[]     = QT_TR_NOOP("Media Player");
 bool Module::registerClasses(void)
 {
   MediaPlayerServer::registerClass<MediaPlayerServer>(0);
-  MediaPlayerSandbox::registerClass<MediaPlayerSandbox>(0);
 
   return true;
 }

@@ -1,6 +1,5 @@
 # Linking the lximediacenter library
 include($${PWD}/../liblxicore/linklxicore.pri)
-include($${PWD}/../liblxiserver/linklxiserver.pri)
 include($${PWD}/../liblxistream/linklxistream.pri)
 include($${PWD}/../liblxistreamgui/linklxistreamgui.pri)
 

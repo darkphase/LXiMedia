@@ -20,7 +20,6 @@
 
 #include <QtCore>
 #include <QtNetwork>
-#include <LXiServer>
 #include <LXiStream>
 #include <LXiStreamGui>
 #include "backendserver.h"
@@ -63,21 +62,25 @@ public:
                                 MediaStream(void);
   virtual                       ~MediaStream();
 
-  bool                          setup(const SHttpServer::RequestMessage &,
-                                      QIODevice *,
-                                      STime position, STime duration,
+  bool                          setup(const QUrl &,
+                                      STime duration,
                                       const SAudioFormat &,
                                       const SVideoFormat &,
                                       bool enableNormalize = false,
                                       SInterfaces::AudioEncoder::Flags = SInterfaces::AudioEncoder::Flag_None,
                                       SInterfaces::VideoEncoder::Flags = SInterfaces::VideoEncoder::Flag_None,
                                       int videoGopSize = -1);
-  bool                          setup(const SHttpServer::RequestMessage &,
-                                      QIODevice *,
-                                      STime position, STime duration,
+  bool                          setup(const QUrl &,
+                                      STime duration,
                                       const SAudioFormat &,
                                       bool enableNormalize = false,
                                       SInterfaces::AudioEncoder::Flags = SInterfaces::AudioEncoder::Flag_None);
+
+  inline const QUrl           & getRequest() const { return request; }
+  inline const QByteArray     & getContentType() const { return contentType; }
+  inline QIODevice            * createReader(QObject *parent = NULL) { return proxy.createReader(parent); }
+  inline bool                   isActive() const { return proxy.isActive(); }
+  inline bool                   isReusable() const { return proxy.isReusable(); }
 
   static SSize                  decodeSize(const QUrl &);
   static void                   decodeSize(const QUrl &, SVideoFormat &, Qt::AspectRatioMode &);
@@ -88,10 +91,13 @@ protected:
   static SSize                  toStandardVideoSize(const SSize &);
 
 protected:
+  QUrl                          request;
   Audio                       * audio;
   Video                       * video;
   STimeStampSyncNode            sync;
   SIOOutputNode                 output;
+  SIODeviceProxy                proxy;
+  QByteArray                    contentType;
 };
 
 class LXIMEDIACENTER_PUBLIC MediaTranscodeStream : public MediaStream
@@ -100,8 +106,7 @@ public:
   explicit                      MediaTranscodeStream(void);
   virtual                       ~MediaTranscodeStream();
 
-  bool                          setup(const SHttpServer::RequestMessage &,
-                                      QIODevice *,
+  bool                          setup(const QUrl &,
                                       SInputNode *,
                                       STime duration = STime(),
                                       bool enableNormalize = false,

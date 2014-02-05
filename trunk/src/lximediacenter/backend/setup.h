@@ -39,8 +39,8 @@ protected: // From BackendServer
   virtual QByteArray            settingsContent(void);
 
 protected: // From MediaServer
-  virtual Stream              * streamVideo(const SHttpServer::RequestMessage &);
-  virtual SHttpServer::ResponseMessage sendPhoto(const SHttpServer::RequestMessage &);
+  virtual MediaStream         * streamVideo(const QUrl &request);
+  virtual HttpStatus            sendPhoto(const QUrl &request, QByteArray &contentType, QIODevice *&response);
 
   virtual QList<Item>           listItems(const QString &virtualPath, int start, int &count);
   virtual Item                  getItem(const QString &path);

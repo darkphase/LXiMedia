@@ -23,7 +23,6 @@
 #endif
 
 #include "backend.h"
-#include "sandbox.h"
 
 void configApp(void)
 {
@@ -60,11 +59,7 @@ public:
   virtual int run(int &argc, char *argv[])
   {
     QApplication app(argc, argv); configApp();
-#if !defined(DEBUG_USE_LOCAL_SANDBOX)
-    SApplication mediaApp(true, QStringList() << "lxistream" << "lxistreamdevice" << "lxistreamgui");
-#else
     SApplication mediaApp(true);
-#endif
 
     Backend backend;
     backend.start();
@@ -144,58 +139,25 @@ LONG WINAPI topLevelExceptionFilter(PEXCEPTION_POINTERS exceptionInfo)
 
 int main(int argc, char *argv[])
 {
-  if ((argc >= 3) && (strcmp(argv[1], "--sandbox") == 0))
-  {
-    QApplication app(argc, argv); configApp();
-    SApplication mediaApp(false);
-
-#if defined(Q_OS_WIN)
-  if (!::IsDebuggerPresent())
-    ::SetUnhandledExceptionFilter(&topLevelExceptionFilter);
-#endif
-
-    (new Sandbox())->start(argv[2]);
-
-    return qApp->exec();
-  }
-  else
-  {
-    Daemon daemon;
-    return daemon.main(argc, argv);
-  }
+  Daemon daemon;
+  return daemon.main(argc, argv);
 }
 #elif defined(Q_OS_MACX)
 int main(int argc, char *argv[])
 {
   QApplication app(argc, argv); configApp();
+  SApplication mediaApp(true);
 
-  if ((argc >= 3) && (strcmp(argv[1], "--sandbox") == 0))
+  int exitCode = 0;
+  do
   {
-    SApplication mediaApp(false);
+    Backend backend;
+    backend.start();
 
-    (new Sandbox())->start(argv[2]);
-
-    return qApp->exec();
+    exitCode = qApp->exec();
   }
-  else
-  {
-#if !defined(DEBUG_USE_LOCAL_SANDBOX)
-    SApplication mediaApp(true, QStringList() << "lxistream" << "lxistreamdevice" << "lxistreamgui");
-#else
-    SApplication mediaApp(true);
-#endif
+  while (exitCode == -1);
 
-    int exitCode = 0;
-    do
-    {
-      Backend backend;
-      backend.start();
-
-      exitCode = qApp->exec();
-    }
-    while (exitCode == -1);
-
-    return exitCode;
-  }
+  return exitCode;
 }
 #endif

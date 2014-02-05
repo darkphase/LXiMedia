@@ -187,6 +187,10 @@ public:
 
   QMap<QString, SModule *>      modules(void) const;
 
+  /*! Append a license text to the about string.
+   */
+  void                          addLicense(const QByteArray &);
+
   /*! Returns the about text with minimal XHTML markup.
    */
   QByteArray                    about(void) const;

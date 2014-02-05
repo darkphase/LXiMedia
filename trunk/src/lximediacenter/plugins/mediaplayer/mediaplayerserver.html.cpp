@@ -356,162 +356,145 @@ void MediaPlayerServer::scanDrives(void)
     driveList.insert(rootPath.url, rootPath.url.toString(QUrl::RemovePassword));
 }
 
-SHttpServer::ResponseMessage MediaPlayerServer::httpRequest(const SHttpServer::RequestMessage &request, QIODevice *socket)
+HttpStatus MediaPlayerServer::httpRequest(const QUrl &request, QByteArray &contentType, QIODevice *&response)
 {
-  if (request.isGet())
+  const QUrlQuery query(request);
+
+  if (query.hasQueryItem("thumbnail"))
   {
-    if (request.query().hasQueryItem("thumbnail"))
+    const RootPath filePath = realPath(request.path());
+    if (!filePath.url.isEmpty())
     {
-      const RootPath filePath = realPath(request.file());
-      if (!filePath.url.isEmpty())
+      SSize size(128, 128);
+      if (query.hasQueryItem("resolution"))
+        size = SSize::fromString(query.queryItemValue("resolution"));
+
+      const SImage result = mediaDatabase->readThumbnail(filePath.url, size.size());
+      if (!result.isNull())
       {
-        SSize size(128, 128);
-        if (request.query().hasQueryItem("resolution"))
-          size = SSize::fromString(request.query().queryItemValue("resolution"));
-
-        SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
-        response.setContentType(SHttpEngine::mimeImagePng);
-
-        if (!request.isHead())
+        return makeThumbnail(response, contentType, size.size(), result, query.queryItemValue("overlay"));
+      }
+      else
+      {
+        QString defaultIcon = ":/img/null.png";
+        switch (mediaDatabase->readNodeFormat(filePath.url).fileType())
         {
-          const QByteArray result = mediaDatabase->readThumbnail(filePath.url, size.size(), Qt::black, "png");
-          if (!result.isEmpty())
-          {
-            response.setContent(makeThumbnail(
-                size.size(),
-                QImage::fromData(result),
-                request.query().queryItemValue("overlay")));
-          }
-          else
-          {
-            QString defaultIcon = ":/img/null.png";
-            switch (mediaDatabase->readNodeFormat(filePath.url).fileType())
-            {
-            case SMediaInfo::ProbeInfo::FileType_None:      defaultIcon = ":/img/null.png";           break;
-            case SMediaInfo::ProbeInfo::FileType_Audio:     defaultIcon = ":/img/audio-file.png";     break;
-            case SMediaInfo::ProbeInfo::FileType_Video:     defaultIcon = ":/img/video-file.png";     break;
-            case SMediaInfo::ProbeInfo::FileType_Image:     defaultIcon = ":/img/image-file.png";     break;
-            case SMediaInfo::ProbeInfo::FileType_Subtitle:  defaultIcon = ":/img/journal.png";        break;
-            case SMediaInfo::ProbeInfo::FileType_Directory: defaultIcon = ":/img/directory.png";      break;
-            case SMediaInfo::ProbeInfo::FileType_Drive:     defaultIcon = ":/img/drive.png";          break;
-            case SMediaInfo::ProbeInfo::FileType_Disc:      defaultIcon = ":/img/media-optical.png";  break;
-            }
-
-            response.setContent(makeThumbnail(size.size(), QImage(defaultIcon)));
-          }
+        case SMediaInfo::ProbeInfo::FileType_None:      defaultIcon = ":/img/null.png";           break;
+        case SMediaInfo::ProbeInfo::FileType_Audio:     defaultIcon = ":/img/audio-file.png";     break;
+        case SMediaInfo::ProbeInfo::FileType_Video:     defaultIcon = ":/img/video-file.png";     break;
+        case SMediaInfo::ProbeInfo::FileType_Image:     defaultIcon = ":/img/image-file.png";     break;
+        case SMediaInfo::ProbeInfo::FileType_Subtitle:  defaultIcon = ":/img/journal.png";        break;
+        case SMediaInfo::ProbeInfo::FileType_Directory: defaultIcon = ":/img/directory.png";      break;
+        case SMediaInfo::ProbeInfo::FileType_Drive:     defaultIcon = ":/img/drive.png";          break;
+        case SMediaInfo::ProbeInfo::FileType_Disc:      defaultIcon = ":/img/media-optical.png";  break;
         }
 
-        return response;
+        return makeThumbnail(response, contentType, size.size(), QImage(defaultIcon));
       }
-
-      return SHttpServer::ResponseMessage(request, SHttpServer::Status_NotFound);
     }
-    else if (request.query().hasQueryItem("save_settings"))
-    {
-      if (request.query().hasQueryItem("save"))
-      {
-        QSettings settings;
-        settings.beginGroup(Module::pluginName);
-  
-        settings.setValue("SlideDuration", qBound(2500, request.query().queryItemValue("slideduration").toInt(), 60000));
-      }
-      else if (request.query().hasQueryItem("smbadd"))
-      {
-        QUrl url;
-        url.setScheme("smb");
-        url.setHost(QString::fromUtf8(QByteArray::fromPercentEncoding(
-              request.query().queryItemValue("smbhostname", QUrl::FullyEncoded).replace('+', ' ').toLatin1())));
-        url.setPath(QString::fromUtf8(QByteArray::fromPercentEncoding(
-              request.query().queryItemValue("smbpath", QUrl::FullyEncoded).replace('+', ' ').toLatin1())));
-        url.setUserName(QString::fromUtf8(QByteArray::fromPercentEncoding(
-              request.query().queryItemValue("smbusername", QUrl::FullyEncoded).replace('+', ' ').toLatin1())));
-        url.setPassword(QString::fromUtf8(QByteArray::fromPercentEncoding(
-              request.query().queryItemValue("smbpassword", QUrl::FullyEncoded).replace('+', ' ').toLatin1())));
 
-        if (url.isValid())
-        {
-          QList<RootPath> paths = rootPaths.values();
-          paths += RootPath(url, RootPath::Auto);
-          setRootPaths(paths);
-          scanDrives();
-        }
-      }
-      
-      SHttpServer::ResponseMessage response(request, SHttpServer::Status_TemporaryRedirect);
-      response.setCacheControl(-1);
-      response.setField("Location", "http://" + request.host() + "/settings");
-      return response;
+    return HttpStatus_NotFound;
+  }
+  else if (query.hasQueryItem("save_settings"))
+  {
+    if (query.hasQueryItem("save"))
+    {
+      QSettings settings;
+      settings.beginGroup(Module::pluginName);
+
+      settings.setValue("SlideDuration", qBound(2500, query.queryItemValue("slideduration").toInt(), 60000));
     }
-    else if (request.query().hasQueryItem("folder_tree"))
+    else if (query.hasQueryItem("smbadd"))
     {
-      QList<RootPath> paths = rootPaths.values();
+      QUrl url;
+      url.setScheme("smb");
+      url.setHost(QString::fromUtf8(QByteArray::fromPercentEncoding(
+            query.queryItemValue("smbhostname", QUrl::FullyEncoded).replace('+', ' ').toLatin1())));
+      url.setPath(QString::fromUtf8(QByteArray::fromPercentEncoding(
+            query.queryItemValue("smbpath", QUrl::FullyEncoded).replace('+', ' ').toLatin1())));
+      url.setUserName(QString::fromUtf8(QByteArray::fromPercentEncoding(
+            query.queryItemValue("smbusername", QUrl::FullyEncoded).replace('+', ' ').toLatin1())));
+      url.setPassword(QString::fromUtf8(QByteArray::fromPercentEncoding(
+            query.queryItemValue("smbpassword", QUrl::FullyEncoded).replace('+', ' ').toLatin1())));
 
-      const QString open = request.query().queryItemValue("open");
-      const QStringList allopen = !open.isEmpty()
-                                  ? QString::fromUtf8(qUncompress(QByteArray::fromHex(open.toLatin1()))).split(dirSplit)
-                                  : QStringList();
-
-      const QString checkon = QString::fromUtf8(QByteArray::fromHex(request.query().queryItemValue("checkon").toLatin1()));
-      const QString checkoff = QString::fromUtf8(QByteArray::fromHex(request.query().queryItemValue("checkoff").toLatin1()));
-      if (!checkon.isEmpty() || !checkoff.isEmpty())
+      if (url.isValid())
       {
-        if (!checkon.isEmpty())
-          paths.append(RootPath(checkon.endsWith('/') ? checkon : (checkon + '/'), RootPath::Auto));
-
-        if (!checkoff.isEmpty())
-        for (QList<RootPath>::Iterator i=paths.begin(); i!=paths.end(); )
-        {
-          QString path = i->url.toString();
-          if (!path.endsWith('/'))
-            path += '/';
-
-          if (path == checkoff)
-            i = paths.erase(i);
-          else
-            i++;
-        }
-
+        QList<RootPath> paths = rootPaths.values();
+        paths += RootPath(url, RootPath::Auto);
         setRootPaths(paths);
         scanDrives();
       }
-
-      QString musicon = QString::fromUtf8(QByteArray::fromHex(request.query().queryItemValue("musicon").toLatin1()));
-      QString musicoff = QString::fromUtf8(QByteArray::fromHex(request.query().queryItemValue("musicoff").toLatin1()));
-      if (!musicon.isEmpty() || !musicoff.isEmpty())
-      {
-        if (!musicon.isEmpty() && !musicon.endsWith('/')) musicon += '/';
-        if (!musicoff.isEmpty() && !musicoff.endsWith('/')) musicoff += '/';
-
-        for (QList<RootPath>::Iterator i=paths.begin(); i!=paths.end(); i++)
-        {
-          QString path = i->url.toString();
-          if (!path.endsWith('/'))
-            path += '/';
-
-          if (path == musicon)
-            i->type = RootPath::Music;
-          else if (path == musicoff)
-            i->type = RootPath::Auto;
-        }
-
-        setRootPaths(paths);
-        scanDrives();
-      }
-
-      SStringParser htmlParser;
-      htmlParser.setField("SERVER_PATH", QUrl(serverPath()));
-      htmlParser.setField("DIRS", "");
-      generateDirs(htmlParser, driveList.keys(), 0, allopen, paths);
-
-      SHttpServer::ResponseMessage response(request, SHttpServer::Status_Ok);
-      response.setCacheControl(-1);
-      response.setContentType(SHttpEngine::mimeTextHtml);
-      response.setContent(htmlParser.parse(htmlSettingsDirTreeIndex));
-      return response;
     }
   }
+  else if (query.hasQueryItem("folder_tree"))
+  {
+    QList<RootPath> paths = rootPaths.values();
 
-  return MediaServer::httpRequest(request, socket);
+    const QString open = query.queryItemValue("open");
+    const QStringList allopen = !open.isEmpty()
+                                ? QString::fromUtf8(qUncompress(QByteArray::fromHex(open.toLatin1()))).split(dirSplit)
+                                : QStringList();
+
+    const QString checkon = QString::fromUtf8(QByteArray::fromHex(query.queryItemValue("checkon").toLatin1()));
+    const QString checkoff = QString::fromUtf8(QByteArray::fromHex(query.queryItemValue("checkoff").toLatin1()));
+    if (!checkon.isEmpty() || !checkoff.isEmpty())
+    {
+      if (!checkon.isEmpty())
+        paths.append(RootPath(checkon.endsWith('/') ? checkon : (checkon + '/'), RootPath::Auto));
+
+      if (!checkoff.isEmpty())
+      for (QList<RootPath>::Iterator i=paths.begin(); i!=paths.end(); )
+      {
+        QString path = i->url.toString();
+        if (!path.endsWith('/'))
+          path += '/';
+
+        if (path == checkoff)
+          i = paths.erase(i);
+        else
+          i++;
+      }
+
+      setRootPaths(paths);
+      scanDrives();
+    }
+
+    QString musicon = QString::fromUtf8(QByteArray::fromHex(query.queryItemValue("musicon").toLatin1()));
+    QString musicoff = QString::fromUtf8(QByteArray::fromHex(query.queryItemValue("musicoff").toLatin1()));
+    if (!musicon.isEmpty() || !musicoff.isEmpty())
+    {
+      if (!musicon.isEmpty() && !musicon.endsWith('/')) musicon += '/';
+      if (!musicoff.isEmpty() && !musicoff.endsWith('/')) musicoff += '/';
+
+      for (QList<RootPath>::Iterator i=paths.begin(); i!=paths.end(); i++)
+      {
+        QString path = i->url.toString();
+        if (!path.endsWith('/'))
+          path += '/';
+
+        if (path == musicon)
+          i->type = RootPath::Music;
+        else if (path == musicoff)
+          i->type = RootPath::Auto;
+      }
+
+      setRootPaths(paths);
+      scanDrives();
+    }
+
+    SStringParser htmlParser;
+    htmlParser.setField("SERVER_PATH", QUrl(serverPath()));
+    htmlParser.setField("DIRS", "");
+    generateDirs(htmlParser, driveList.keys(), 0, allopen, paths);
+
+    QBuffer * const buffer = new QBuffer();
+    buffer->setData(htmlParser.parse(htmlSettingsDirTreeIndex));
+    contentType = RootDevice::mimeTextHtml;
+    response = buffer;
+    return HttpStatus_Ok;
+  }
+
+  return MediaServer::httpRequest(request, contentType, response);
 }
 
 } } // End of namespaces

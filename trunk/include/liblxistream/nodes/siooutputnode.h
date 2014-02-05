@@ -59,9 +59,6 @@ public slots:
   void                          input(const SEncodedVideoBuffer &);
   void                          input(const SEncodedDataBuffer &);
 
-signals:
-  void                          closed(QIODevice *);
-
 private:
   SInterfaces::BufferWriter   * bufferWriter(void);
   void                          blockUntil(STime);

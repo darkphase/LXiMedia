@@ -15,23 +15,17 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#ifndef LXISERVER_SUPNPBASE_H
-#define LXISERVER_SUPNPBASE_H
+#ifndef LXIMEDIACENTER_CONNECTIONMAMANGER_H
+#define LXIMEDIACENTER_CONNECTIONMAMANGER_H
 
 #include <QtCore>
-#include <QtNetwork>
-#include <QtXml>
-#include <LXiCore>
-#include "shttpserver.h"
-#include "supnpmediaserver.h"
 #include "export.h"
+#include "rootdevice.h"
 
-namespace LXiServer {
+namespace LXiMediaCenter {
 
-class SUPnPMediaServer;
-
-class LXISERVER_PUBLIC SUPnPBase : public QObject,
-                                   protected SHttpServer::Callback
+class LXIMEDIACENTER_PUBLIC ConnectionManager : public QObject,
+                                                public RootDevice::Service
 {
 Q_OBJECT
 public:
@@ -99,58 +93,70 @@ public:
 
   typedef QList<Protocol>       ProtocolList;
 
+  struct LXIMEDIACENTER_PUBLIC ConnectionInfo
+  {
+                                ConnectionInfo();
+                                ~ConnectionInfo();
+
+    qint32                      rcsID;
+    qint32                      avTransportID;
+    QByteArray                  protocolInfo;
+    QByteArray                  peerConnectionManager;
+    qint32                      peerConnectionID;
+    enum { Input, Output }      direction;
+    enum { OK, ContentFormatMismatch, InsufficientBandwidth, UnreliableChannel, Unknown } status;
+  };
+
+  struct LXIMEDIACENTER_PUBLIC ActionGetCurrentConnectionIDs
+  {
+    virtual void                setResponse(const QList<qint32> &) = 0;
+  };
+
+  struct LXIMEDIACENTER_PUBLIC ActionGetCurrentConnectionInfo
+  {
+    virtual qint32              getConnectionID() const = 0;
+
+    virtual void                setResponse(const ConnectionInfo &info) = 0;
+  };
+
+  struct LXIMEDIACENTER_PUBLIC ActionGetProtocolInfo
+  {
+    virtual void                setResponse(const QByteArray &source, const QByteArray &sink) = 0;
+  };
+
 public:
-  explicit                      SUPnPBase(const QString &basePath, QObject * = NULL);
-  virtual                       ~SUPnPBase();
+  explicit                      ConnectionManager(RootDevice *parent);
+  virtual                       ~ConnectionManager();
 
-  void                          initialize(SHttpServer *, SUPnPMediaServer::Service &);
-  void                          close(void);
-  void                          reset(void);
+  void                          setProtocols(const ProtocolList &sourceProtocols, const ProtocolList &sinkProtocols);
+  const ProtocolList          & sourceProtocols() const;
 
-protected: // From SHttpServer::Callback
-  virtual SHttpServer::ResponseMessage httpRequest(const SHttpServer::RequestMessage &, QIODevice *);
+  void                          addOutputConnection(const QUrl &, const QByteArray &, const QIODevice *);
+
+  void                          handleAction(const QByteArray &, ActionGetCurrentConnectionIDs &);
+  void                          handleAction(const QByteArray &, ActionGetCurrentConnectionInfo &);
+  void                          handleAction(const QByteArray &, ActionGetProtocolInfo &);
+
+protected: // From RootDevice::Service
+  virtual const char          * serviceType(void);
+
+  virtual void                  initialize(void);
+  virtual void                  close(void);
+
+  virtual void                  writeServiceDescription(RootDevice::ServiceDescription &) const;
+  virtual void                  writeEventableStateVariables(RootDevice::EventablePropertySet &) const;
 
 protected:
-  virtual SHttpServer::ResponseMessage handleControl(const SHttpServer::RequestMessage &, QIODevice *);
-  virtual SHttpServer::ResponseMessage handleDescription(const SHttpServer::RequestMessage &);
+  virtual void                  customEvent(QEvent *);
 
-  virtual void                  buildDescription(QDomDocument &, QDomElement &) = 0;
-  virtual SHttpServer::Status   handleSoapMessage(const QDomElement &, QDomDocument &, QDomElement &, const SHttpServer::RequestMessage &, const QHostAddress &) = 0;
+private slots:
+  void                          connectionClosed(QObject *);
 
 protected:
-  const QString               & basePath(void) const;
-  SHttpServer                 * httpServer(void) const;
-
-public:
-  static QString                protocol(void);
-  static QString                toClientString(const QHostAddress &, const SHttpServer::RequestMessage &);
-
-  static QDomElement            addTextElm(QDomDocument &doc, QDomElement &elm, const QString &name, const QString &value);
-  static QDomElement            addTextElmNS(QDomDocument &doc, QDomElement &elm, const QString &name, const QString &nsUri, const QString &value);
-  static void                   addSpecVersion(QDomDocument &doc, QDomElement &elm);
-  static void                   addActionArgument(QDomDocument &doc, QDomElement &elm, const QString &name, const QString &direction, const QString &relatedStateVariable);
-  static void                   addStateVariable(QDomDocument &doc, QDomElement &elm, bool sendEvents, const QString &name, const QString &dataType, const QStringList &allowedValues = QStringList());
-
-  static QDomElement            createElementNS(QDomDocument &doc, const QDomElement &nsElm, const QString &localName);
-  static QDomElement            makeSoapMessage(QDomDocument &doc, const QDomElement &nsElm);
-  static QByteArray             serializeSoapMessage(const QDomDocument &doc);
-
-  static QDomElement            firstChildElementNS(const QDomElement &, const QString &nsURI, const QString &localName);
-  static QDomElement            parseSoapMessage(QDomDocument &doc, const QByteArray &data);
-
-public:
-  static const int              majorVersion;
-  static const int              minorVersion;
-  static const int              responseTimeout;
-  static const char             dlnaDoc[];
-  static const char             xmlDeclaration[];
-  static const char             dlnaNS[];
-  static const char             didlNS[];
-  static const char             dublinCoreNS[];
-  static const char             metadataNS[];
-  static const char             soapNS[];
+  static const char             serviceId[];
 
 private:
+  RootDevice            * const parent;
   struct Data;
   Data                  * const d;
 };

@@ -7,7 +7,6 @@ INCLUDEPATH += $${PWD}/$${LXIMEDIA_DIR}/src/
 DEPENDPATH += $${PWD}/$${LXIMEDIA_DIR}/src/
 include($${PWD}/$${LXIMEDIA_DIR}/include/config.pri)
 include($${PWD}/$${LXIMEDIA_DIR}/include/liblxicore/linklxicore.pri)
-include($${PWD}/$${LXIMEDIA_DIR}/include/liblxiserver/linklxiserver.pri)
 include($${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/linklxistream.pri)
 include($${PWD}/$${LXIMEDIA_DIR}/include/liblxistreamgui/linklxistreamgui.pri)
 include($${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/linklximediacenter.pri)

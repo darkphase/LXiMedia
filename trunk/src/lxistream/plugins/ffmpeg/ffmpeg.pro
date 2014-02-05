@@ -1,7 +1,6 @@
 MODULE_NAME = lxistream_ffmpeg
 LXIMEDIA_DIR = ../../../..
 include($${PWD}/$${LXIMEDIA_DIR}/include/liblxicore/module.pri)
-include($${PWD}/$${LXIMEDIA_DIR}/include/liblxiserver/linklxiserver.pri)
 include($${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/linklxistream.pri)
 include($${PWD}/$${LXIMEDIA_DIR}/ext/ffmpeg/ffmpeg.pri)
 

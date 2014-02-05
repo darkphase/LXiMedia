@@ -62,9 +62,9 @@ QByteArray Setup::settingsContent(void)
   return QByteArray();
 }
 
-Setup::Stream * Setup::streamVideo(const SHttpServer::RequestMessage &request)
+MediaStream * Setup::streamVideo(const QUrl &request)
 {
-  if (QUrl(request.path()).path().endsWith("/shutdown") && allowShutdown)
+  if (request.path().endsWith("/shutdown") && allowShutdown)
   {
     qDebug() << "Shut down requested.";
 
@@ -123,9 +123,9 @@ Setup::Stream * Setup::streamVideo(const SHttpServer::RequestMessage &request)
   return NULL;
 }
 
-SHttpServer::ResponseMessage Setup::sendPhoto(const SHttpServer::RequestMessage &request)
+HttpStatus Setup::sendPhoto(const QUrl &, QByteArray &, QIODevice *&)
 {
-  return SHttpServer::ResponseMessage(request, SHttpServer::Status_NotFound);
+  return HttpStatus_NotFound;
 }
 
 QList<Setup::Item> Setup::listItems(const QString &virtualPath, int start, int &count)
@@ -134,7 +134,7 @@ QList<Setup::Item> Setup::listItems(const QString &virtualPath, int start, int &
 
   QList<Item> items;
   if (allowShutdown)
-    items += getItem(virtualPath + "/shutdown");
+    items += getItem(virtualPath + "shutdown");
 
   QList<Item> result;
   for (int i=start, n=0; (i<items.count()) && (returnAll || (n<count)); i++, n++)
