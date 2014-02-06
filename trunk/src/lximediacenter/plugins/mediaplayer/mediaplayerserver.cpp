@@ -104,7 +104,7 @@ MediaStream * MediaPlayerServer::streamVideo(const QUrl &request)
     if (vFile == "all")
     {
       QList<QUrl> files;
-      for (QList<QUrl> dirs = QList<QUrl>() << request; !dirs.isEmpty(); )
+      for (QList<QUrl> dirs = QList<QUrl>() << filePath.url; !dirs.isEmpty(); )
       {
         const SMediaFilesystem dir(dirs.takeFirst());
         foreach (const QString &file, dir.entryList(QDir::Files, QDir::Name | QDir::IgnoreCase))
