@@ -30,6 +30,12 @@ SOURCES += nodes/svideogeneratornode.cpp
 HEADERS += lxistreamguiprivate.h
 SOURCES += lxistreamguiprivate.cpp
 
+# Platform specific
+unix {
+    target.path = /usr/lib
+    INSTALLS += target
+}
+
 # Windows specific
 win32 {
   OUT_DIR = $$replace(OUT_PWD,/,\\)\\$$replace(LXIMEDIA_DIR,/,\\)\\bin
