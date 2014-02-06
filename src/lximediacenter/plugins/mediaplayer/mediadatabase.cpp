@@ -367,31 +367,55 @@ QList<MediaDatabase::Info> MediaDatabase::listFiles(const QUrl &dirPath, int sta
   QList<Info> result;
 
   const bool returnAll = count == 0;
-  int n = 0;
 
   SMediaFilesystem filesystem(dirPath);
-  const QStringList items = filesystem.entryList(
-        QDir::Dirs | QDir::NoDotAndDotDot | QDir::Files,
-        QDir::DirsFirst | QDir::Name | QDir::IgnoreCase);
-
-  foreach (const QString &item, items)
+  QStringList items;
   {
-    // Filter items that need to be hidden.
-    if (!item.endsWith(".db" , Qt::CaseInsensitive) &&
-        !item.endsWith(".idx", Qt::CaseInsensitive) &&
-        !item.endsWith(".nfo", Qt::CaseInsensitive) &&
-        !item.endsWith(".srt", Qt::CaseInsensitive) &&
-        !item.endsWith(".sub", Qt::CaseInsensitive) &&
-        !item.endsWith(".txt", Qt::CaseInsensitive))
+    QMutexLocker l(&itemCacheMutex);
+
+    QMap<QUrl, QPair<QStringList, QTime> >::Iterator i = itemCache.find(dirPath);
+    if ((i == itemCache.end()) ||
+        ((start == 0) && (count >= 0) && (qAbs(i->second.elapsed()) > 15000)))
     {
-      if (n++ >= start)
+      l.unlock();
+
+      items = filesystem.entryList(
+            QDir::Dirs | QDir::NoDotAndDotDot | QDir::Files,
+            QDir::DirsFirst | QDir::Name | QDir::IgnoreCase);
+
+      // Filter items that need to be hidden.
+      for (QStringList::Iterator j=items.begin(); j!=items.end(); )
+      if (j->endsWith(".db" , Qt::CaseInsensitive) ||
+          j->endsWith(".idx", Qt::CaseInsensitive) ||
+          j->endsWith(".nfo", Qt::CaseInsensitive) ||
+          j->endsWith(".srt", Qt::CaseInsensitive) ||
+          j->endsWith(".sub", Qt::CaseInsensitive) ||
+          j->endsWith(".txt", Qt::CaseInsensitive))
       {
-        if (returnAll || (result.count() < count))
-          result += Info(filesystem.readInfo(item), filesystem.filePath(item));
-        else
-          break;
+        j = items.erase(j);
       }
+      else
+        j++;
+
+      l.relock();
+
+      i = itemCache.insert(dirPath, qMakePair(items, QTime()));
     }
+    else
+      items = i->first;
+
+    i->second.start();
+  }
+
+  if (count >= 0)
+  {
+    for (int i=start, n=0; (i<items.count()) && (returnAll || (n<count)); i++, n++)
+      result += Info(filesystem.readInfo(items[i]), filesystem.filePath(items[i]));
+  }
+  else
+  {
+    for (int n = items.count(), ni = qMax(1, (n + (-count - 1)) / -count), i = ni / 2; i < n; i += ni)
+      result += Info(filesystem.readInfo(items[i]), filesystem.filePath(items[i]));
   }
 
   count = items.count();
