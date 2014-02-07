@@ -58,7 +58,7 @@ public:
 
   virtual int run(int &argc, char *argv[])
   {
-    QApplication app(argc, argv); configApp();
+    QCoreApplication app(argc, argv); configApp();
     SApplication mediaApp(true);
 
     Backend backend;
