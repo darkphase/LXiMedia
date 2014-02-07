@@ -23,23 +23,11 @@
 #include <QtNetwork>
 #include <QtWebKit>
 #include <QtWebKitWidgets>
-#include <LXiServer>
 
 class Frontend : public QWebView
 {
 Q_OBJECT
 private:
-  struct Server : SSsdpClient::Node
-  {
-    inline                      Server(const SSsdpClient::Node &node) : Node(node) { }
-    inline                      Server(const Server &server) : Node(server) { }
-
-    QString                     friendlyName;
-    QString                     modelName;
-    QUrl                        presentationURL;
-    QUrl                        iconURL;
-  };
-
   class WebPage : public QWebPage
   {
   public:
@@ -61,6 +49,31 @@ private:
     virtual QNetworkReply     * createRequest(Operation, const QNetworkRequest &, QIODevice *);
   };
 
+  class DiscoveryEvent : public QEvent
+  {
+  public:
+    static const QEvent::Type myType;
+    const enum Kind { Alive, ByeBye, Found } kind;
+    const QByteArray deviceId;
+    const QByteArray location;
+
+    DiscoveryEvent(Kind kind, const char *deviceId, const char *location)
+      : QEvent(myType),
+        kind(kind),
+        deviceId(deviceId),
+        location(location)
+    {
+    }
+  };
+
+  struct Server
+  {
+    QByteArray friendlyName;
+    QByteArray modelName;
+    QUrl presentationURL;
+    QUrl iconURL;
+  };
+
 public:
                                 Frontend();
   virtual                       ~Frontend();
@@ -70,10 +83,10 @@ public:
 protected:
   virtual void                  contextMenuEvent(QContextMenuEvent *);
   virtual void                  keyPressEvent(QKeyEvent *);
+  virtual void                  customEvent(QEvent *e);
 
 private slots:
   void                          loadFrontendPage(const QUrl &);
-  void                          updateServers(void);
   void                          requestFinished(QNetworkReply *);
   void                          updateFrontendPage(void);
   void                          titleChanged(const QString &);
@@ -88,13 +101,15 @@ private:
 private:
   static const char             daemonName[];
 
+  bool                          initialized;
+  int                           clientHandle;
+
   QTimer                        checkNetworkInterfacesTimer;
   QList<QHostAddress>           boundNetworkInterfaces;
 
-  SSsdpClient                   ssdpClient;
   QNetworkAccessManager         networkAccessManager;
+  QMap<QByteArray, Server>      servers;
 
-  QMap<QString, Server>         servers;
   QTimer                        frontendPageTimer;
   bool                          frontendPageShowing;
   bool                          waitingForWelcome;

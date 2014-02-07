@@ -16,6 +16,7 @@
  ******************************************************************************/
 
 #include "frontend.h"
+#include <LXiCore>
 
 int main(int argc, char *argv[])
 {

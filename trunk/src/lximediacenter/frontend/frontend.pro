@@ -10,7 +10,8 @@ macx {
 }
 
 include($${PWD}/$${LXIMEDIA_DIR}/include/config.pri)
-include($${PWD}/$${LXIMEDIA_DIR}/include/liblxiserver/linklxiserver.pri)
+include($${PWD}/$${LXIMEDIA_DIR}/include/liblxicore/linklxicore.pri)
+include($${PWD}/$${LXIMEDIA_DIR}/ext/pupnp/pupnp.pri)
 
 macx {
   CONFIG += app_bundle

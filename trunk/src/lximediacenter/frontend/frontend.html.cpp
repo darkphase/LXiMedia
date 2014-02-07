@@ -16,6 +16,7 @@
  ******************************************************************************/
 
 #include "frontend.h"
+#include <LXiCore>
 
 const char Frontend::htmlIndex[] =
     "<!DOCTYPE html>\n"

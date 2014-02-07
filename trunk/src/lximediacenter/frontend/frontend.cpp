@@ -16,7 +16,8 @@
  ******************************************************************************/
 
 #include "frontend.h"
-#include <QtXml>
+#include <LXiCore>
+#include <upnp/upnp.h>
 
 #if defined(Q_OS_LINUX)
 const char Frontend::daemonName[] = "lximcbackend";
@@ -26,10 +27,14 @@ const char Frontend::daemonName[] = "LXiMediaCenter Backend";
 const char Frontend::daemonName[] = "net.sf.lximedia.lximediacenter.backend";
 #endif
 
+const QEvent::Type Frontend::DiscoveryEvent::myType = QEvent::Type(QEvent::registerEventType());
+
+
 Frontend::Frontend()
   : QWebView(),
+    initialized(false),
+    clientHandle(0),
     checkNetworkInterfacesTimer(this),
-    ssdpClient(QString("uuid:" + QUuid::createUuid().toString()).replace("{", "").replace("}", "")),
     frontendPageShowing(false),
     waitingForWelcome(qApp->arguments().contains("--welcome"))
 {
@@ -47,8 +52,28 @@ Frontend::Frontend()
   webPage->setNetworkAccessManager(new NetworkAccessManager(this));
   setPage(webPage);
 
-  connect(&ssdpClient, SIGNAL(searchUpdated()), SLOT(updateServers()));
-  ssdpClient.initialize();
+  int result = ::UpnpInit(NULL, 0);
+  initialized = result == UPNP_E_SUCCESS;
+  if (initialized)
+  {
+    struct T
+    {
+      static int callback(Upnp_EventType eventType, void *event, void *cookie)
+      {
+        Upnp_Discovery * const discovery = reinterpret_cast<Upnp_Discovery *>(event);
+        Frontend * const me = reinterpret_cast<Frontend *>(cookie);
+        if (eventType == UPNP_DISCOVERY_ADVERTISEMENT_ALIVE)
+          qApp->postEvent(me, new DiscoveryEvent(DiscoveryEvent::Alive, discovery->DeviceId, discovery->Location));
+        else if (eventType == UPNP_DISCOVERY_ADVERTISEMENT_BYEBYE)
+          qApp->postEvent(me, new DiscoveryEvent(DiscoveryEvent::ByeBye, discovery->DeviceId, discovery->Location));
+        else if (eventType == UPNP_DISCOVERY_SEARCH_RESULT)
+          qApp->postEvent(me, new DiscoveryEvent(DiscoveryEvent::Found, discovery->DeviceId, discovery->Location));
+      }
+    };
+
+    if (::UpnpRegisterClient(&T::callback, this, &clientHandle) == UPNP_E_SUCCESS)
+      ::UpnpSearchAsync(clientHandle, 10, "urn:schemas-upnp-org:device:MediaServer:1", this);
+  }
 
   connect(&networkAccessManager, SIGNAL(finished(QNetworkReply *)), SLOT(requestFinished(QNetworkReply *)));
 
@@ -63,6 +88,11 @@ Frontend::Frontend()
 
 Frontend::~Frontend()
 {
+  if (initialized)
+  {
+    ::UpnpUnRegisterClient(clientHandle);
+    ::UpnpFinish();
+  }
 }
 
 void Frontend::show(void)
@@ -101,6 +131,34 @@ void Frontend::keyPressEvent(QKeyEvent *e)
   }
   else
     QWebView::keyPressEvent(e);
+}
+
+void Frontend::customEvent(QEvent *e)
+{
+  if (e->type() == DiscoveryEvent::myType)
+  {
+    DiscoveryEvent * const event = static_cast<DiscoveryEvent *>(e);
+    switch (event->kind)
+    {
+    case DiscoveryEvent::Alive:
+    case DiscoveryEvent::Found:
+      networkAccessManager.get(QNetworkRequest(QUrl::fromEncoded(event->location)));
+      break;
+
+    case DiscoveryEvent::ByeBye:
+      {
+        QMap<QByteArray, Server>::Iterator server = servers.find(event->deviceId);
+        if (server != servers.end())
+        {
+          servers.erase(server);
+          frontendPageTimer.start(250);
+        }
+      }
+      break;
+    }
+  }
+  else
+    QWebView::customEvent(e);
 }
 
 void Frontend::loadFrontendPage(const QUrl &url)
@@ -160,56 +218,80 @@ void Frontend::loadFrontendPage(const QUrl &url)
   qApp->restoreOverrideCursor();
 }
 
-void Frontend::updateServers(void)
+static IXML_Node * getElement(_IXML_Node *from, const char *name)
 {
-  QSet<QString> uuids;
-  foreach (const SSsdpClient::Node &result, ssdpClient.searchResults("urn:schemas-upnp-org:device:MediaServer:1"))
+  IXML_Node *result = NULL;
+
+  IXML_NodeList * const children = ixmlNode_getChildNodes(from);
+  for (IXML_NodeList *i = children; i && !result; i = i->next)
   {
-    servers.insert(result.uuid, result);
-    uuids += result.uuid;
-    networkAccessManager.get(QNetworkRequest(result.location));
+    const char *n = strchr(i->nodeItem->nodeName, ':');
+    if (n == NULL)
+      n = i->nodeItem->nodeName;
+    else
+      n++;
+
+    if (strcmp(n, name) == 0)
+      result = i->nodeItem;
   }
 
-  // Remove old servers
-  for (QMap<QString, Server>::Iterator i=servers.begin(); i!=servers.end(); )
-  if (!uuids.contains(i.key()))
-    i = servers.erase(i);
-  else
-    i++;
+  ixmlNodeList_free(children);
 
-  frontendPageTimer.start(250);
+  return result;
+}
+
+static QByteArray getText(_IXML_Node *from)
+{
+  QByteArray result;
+
+  if (from)
+  {
+    IXML_NodeList * const children = ixmlNode_getChildNodes(from);
+    for (IXML_NodeList *i = children; i; i = i->next)
+    if (i->nodeItem->nodeValue)
+      result += i->nodeItem->nodeValue;
+
+    ixmlNodeList_free(children);
+  }
+
+  return result;
 }
 
 void Frontend::requestFinished(QNetworkReply *reply)
 {
   if (reply->error() == QNetworkReply::NoError)
   {
-    QDomDocument doc;
-    if (doc.setContent(reply))
+    const QByteArray data = reply->readAll();
+    qDebug() << data;
+    IXML_Document * const doc = ixmlParseBuffer(data);
+    if (doc)
     {
-      QDomElement deviceElm = doc.documentElement().firstChildElement("device");
-      if (!deviceElm.isNull())
+      IXML_Node * const rootElm = getElement(&doc->n, "root");
+      if (rootElm)
       {
-        QMap<QString, Server>::Iterator server =
-            servers.find(deviceElm.firstChildElement("UDN").text());
-
-        if (server != servers.end())
+        IXML_Node * const deviceElm = getElement(rootElm, "device");
+        if (deviceElm)
         {
-          server->friendlyName = deviceElm.firstChildElement("friendlyName").text();
-          server->modelName = deviceElm.firstChildElement("modelName").text();
+          const QByteArray udn = getText(getElement(deviceElm, "UDN"));
+          QMap<QByteArray, Server>::Iterator server = servers.find(udn);
+          if (server == servers.end())
+            server = servers.insert(udn, Server());
 
-          const QUrl presentationURL = deviceElm.firstChildElement("presentationURL").text();
+          server->friendlyName = getText(getElement(deviceElm, "friendlyName"));
+          server->modelName = getText(getElement(deviceElm, "modelName"));
+
+          const QUrl presentationURL = QUrl::fromEncoded(getText(getElement(deviceElm, "presentationURL")));
           server->presentationURL = reply->request().url();
           server->presentationURL.setPath(presentationURL.path());
           server->presentationURL.setQuery(presentationURL.query());
 
-          QDomElement iconListElm = deviceElm.firstChildElement("iconList");
-          if (!iconListElm.isNull())
+          IXML_Node * const iconListElm = getElement(deviceElm, "iconList");
+          if (iconListElm)
           {
-            QDomElement urlElm = iconListElm.firstChildElement("icon").firstChildElement("url");
-            if (!urlElm.isNull())
+            IXML_Node * const iconElm = getElement(iconListElm, "icon");
+            if (iconElm)
             {
-              const QUrl iconURL = urlElm.text();
+              const QUrl iconURL = QUrl::fromEncoded(getText(getElement(iconElm, "url")));
               server->iconURL = reply->request().url();
               server->iconURL.setPath(iconURL.path());
               server->iconURL.setQuery(iconURL.query());
@@ -225,6 +307,8 @@ void Frontend::requestFinished(QNetworkReply *reply)
           }
           else
             frontendPageTimer.start(250);
+
+          ixmlDocument_free(doc);
         }
       }
     }
@@ -248,59 +332,59 @@ void Frontend::titleChanged(const QString &title)
 
 void Frontend::checkNetworkInterfaces(void)
 {
-  QSettings settings;
+//  QSettings settings;
 
-  const QList<QHostAddress> interfaces =
-      settings.value("BindAllNetworks", false).toBool()
-          ? QNetworkInterface::allAddresses()
-          : SSsdpClient::localAddresses();
+//  const QList<QHostAddress> interfaces =
+//      settings.value("BindAllNetworks", false).toBool()
+//          ? QNetworkInterface::allAddresses()
+//          : SSsdpClient::localAddresses();
 
-  // Bind new interfaces
-  bool boundNew = false;
-  foreach (const QHostAddress &interface, interfaces)
-  {
-    bool found = false;
-    foreach (const QHostAddress &bound, boundNetworkInterfaces)
-    if (bound == interface)
-    {
-      found = true;
-      break;
-    }
+//  // Bind new interfaces
+//  bool boundNew = false;
+//  foreach (const QHostAddress &interface, interfaces)
+//  {
+//    bool found = false;
+//    foreach (const QHostAddress &bound, boundNetworkInterfaces)
+//    if (bound == interface)
+//    {
+//      found = true;
+//      break;
+//    }
 
-    if (!found)
-    {
-      ssdpClient.bind(interface);
+//    if (!found)
+//    {
+//      ssdpClient.bind(interface);
 
-      boundNetworkInterfaces += interface;
-      boundNew = true;
-    }
-  }
+//      boundNetworkInterfaces += interface;
+//      boundNew = true;
+//    }
+//  }
 
-  // Release old interfaces
-  for (QList<QHostAddress>::Iterator bound = boundNetworkInterfaces.begin();
-       bound != boundNetworkInterfaces.end();
-       )
-  {
-    bool found = false;
-    foreach (const QHostAddress &interface, interfaces)
-    if (interface == *bound)
-    {
-      found = true;
-      break;
-    }
+//  // Release old interfaces
+//  for (QList<QHostAddress>::Iterator bound = boundNetworkInterfaces.begin();
+//       bound != boundNetworkInterfaces.end();
+//       )
+//  {
+//    bool found = false;
+//    foreach (const QHostAddress &interface, interfaces)
+//    if (interface == *bound)
+//    {
+//      found = true;
+//      break;
+//    }
 
-    if (!found)
-    {
-      ssdpClient.release(*bound);
+//    if (!found)
+//    {
+//      ssdpClient.release(*bound);
 
-      bound = boundNetworkInterfaces.erase(bound);
-    }
-    else
-      bound++;
-  }
+//      bound = boundNetworkInterfaces.erase(bound);
+//    }
+//    else
+//      bound++;
+//  }
 
-  if (boundNew)
-    ssdpClient.sendSearch("urn:schemas-upnp-org:device:MediaServer:1");
+//  if (boundNew)
+//    ssdpClient.sendSearch("urn:schemas-upnp-org:device:MediaServer:1");
 }
 
 bool Frontend::isLocalAddress(const QString &host)

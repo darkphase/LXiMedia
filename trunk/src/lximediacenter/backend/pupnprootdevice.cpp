@@ -19,7 +19,6 @@
 #include "ixmlstructures.h"
 #include <upnp/upnp.h>
 
-
 struct PupnpRootDevice::Data
 {
   class Event : public QEvent
