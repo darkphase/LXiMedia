@@ -29,6 +29,8 @@ struct ContentDirectory::Data : ContentDirectory::Callback
   virtual QList<Item>           listContentDirItems(const QString &client, const QString &path, int start, int &count);
   virtual Item                  getContentDirItem(const QString &client, const QString &path);
 
+  static const QEvent::Type     emitUpdateEventType;
+
   quint32                       systemUpdateId;
   QMap<QString, Callback *>     callbacks;
 
@@ -37,6 +39,8 @@ struct ContentDirectory::Data : ContentDirectory::Callback
   QVector<QByteArray>           objectUrlList;
   QHash<QByteArray, qint32>     objectUrlHash;
 };
+
+const QEvent::Type  ContentDirectory::Data::emitUpdateEventType = QEvent::Type(QEvent::registerEventType());
 
 ContentDirectory::ContentDirectory(RootDevice *parent, ConnectionManager *connectionManager)
   : QObject(parent),
@@ -184,9 +188,9 @@ void ContentDirectory::handleAction(const QByteArray &host, ActionBrowse &action
   action.setResponse(totalMatches, d->systemUpdateId);
 }
 
-void ContentDirectory::handleAction(const QByteArray &, ActionSearch &)
+void ContentDirectory::handleAction(const QByteArray &, ActionSearch &action)
 {
-
+  action.setResponse(0, d->systemUpdateId);
 }
 
 void ContentDirectory::handleAction(const QByteArray &, ActionGetSearchCapabilities &action)
@@ -242,12 +246,12 @@ void ContentDirectory::writeServiceDescription(RootDevice::ServiceDescription &d
     static const char * const argvar[]  = { "A_ARG_TYPE_ObjectID" , "A_ARG_TYPE_BrowseFlag" , "A_ARG_TYPE_Filter" , "A_ARG_TYPE_Index", "A_ARG_TYPE_Count", "A_ARG_TYPE_SortCriteria" , "A_ARG_TYPE_Result" , "A_ARG_TYPE_Count", "A_ARG_TYPE_Count", "A_ARG_TYPE_UpdateID" };
     desc.addAction("Browse", argname, argdir, argvar);
   }
-  /*{
+  {
     static const char * const argname[] = { "ContainerID"         , "SearchCriteria"            , "Filter"            , "StartingIndex"   , "RequestedCount"  , "SortCriteria"            , "Result"            , "NumberReturned"  , "TotalMatches"    , "UpdateID"            };
     static const char * const argdir[]  = { "in"                  , "in"                        , "in"                , "in"              , "in"              , "in"                      , "out"               , "out"             , "out"             , "out"                 };
     static const char * const argvar[]  = { "A_ARG_TYPE_ObjectID" , "A_ARG_TYPE_SearchCriteria" , "A_ARG_TYPE_Filter" , "A_ARG_TYPE_Index", "A_ARG_TYPE_Count", "A_ARG_TYPE_SortCriteria" , "A_ARG_TYPE_Result" , "A_ARG_TYPE_Count", "A_ARG_TYPE_Count", "A_ARG_TYPE_UpdateID" };
     desc.addAction("Search", argname, argdir, argvar);
-  }*/
+  }
   {
     static const char * const argname[] = { "SearchCaps"          };
     static const char * const argdir[]  = { "out"                 };
@@ -294,6 +298,14 @@ void ContentDirectory::writeEventableStateVariables(RootDevice::EventablePropert
 {
   propset.addProperty("SystemUpdateID", QString::number(d->systemUpdateId));
   propset.addProperty("TransferIDs", "");
+}
+
+void ContentDirectory::customEvent(QEvent *e)
+{
+  if (e->type() == d->emitUpdateEventType)
+    parent->emitEvent(serviceId);
+  else
+    QObject::customEvent(e);
 }
 
 HttpStatus ContentDirectory::httpRequest(const QUrl &request, QByteArray &contentType, QIODevice *&response)

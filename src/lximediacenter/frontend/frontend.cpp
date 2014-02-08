@@ -68,6 +68,8 @@ Frontend::Frontend()
           qApp->postEvent(me, new DiscoveryEvent(DiscoveryEvent::ByeBye, discovery->DeviceId, discovery->Location));
         else if (eventType == UPNP_DISCOVERY_SEARCH_RESULT)
           qApp->postEvent(me, new DiscoveryEvent(DiscoveryEvent::Found, discovery->DeviceId, discovery->Location));
+
+        return UPNP_E_SUCCESS;
       }
     };
 

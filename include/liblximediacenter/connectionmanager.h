@@ -29,7 +29,7 @@ class LXIMEDIACENTER_PUBLIC ConnectionManager : public QObject,
 {
 Q_OBJECT
 public:
-  struct Protocol
+  struct LXIMEDIACENTER_PUBLIC Protocol
   {
     inline Protocol(const QByteArray &protocol = "http-get",
                     const QByteArray &contentFormat = "",

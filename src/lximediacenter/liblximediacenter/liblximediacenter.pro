@@ -25,6 +25,7 @@ HEADERS += $${PWD}/$${LXIMEDIA_DIR}/include/LXiMediaCenter \
  $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/connectionmanager.h \
  $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/contentdirectory.h \
  $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/mediaprofiles.h \
+ $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/mediareceiverregistrar.h \
  $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/mediaserver.h \
  $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/mediastream.h \
  $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/rootdevice.h \
@@ -34,6 +35,7 @@ SOURCES += backendserver.cpp \
  connectionmanager.cpp \
  contentdirectory.cpp \
  mediaprofiles.cpp \
+ mediareceiverregistrar.cpp \
  mediaserver.cpp \
  mediaserver.html.cpp \
  mediastream.cpp \

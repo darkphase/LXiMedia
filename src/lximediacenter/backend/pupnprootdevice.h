@@ -34,7 +34,7 @@ public:
   };
 
 public:
-  explicit                      PupnpRootDevice(const QUuid &, const QString &deviceType, QObject *parent);
+  explicit                      PupnpRootDevice(const QUuid &, const QByteArray &deviceType, QObject *parent);
   virtual                       ~PupnpRootDevice();
 
   virtual void                  registerService(const QByteArray &serviceId, Service *);
@@ -55,6 +55,8 @@ private: // From RootDevice::HttpCallback
   virtual HttpStatus            httpRequest(const QUrl &request, QByteArray &contentType, QIODevice *&response);
 
 private:
+  void                          cleanup(void);
+
   struct Functor { virtual ~Functor() { } virtual void operator()() = 0; };
   void                          send(Functor &) const;
 

@@ -19,8 +19,9 @@
 
 namespace LXiMediaCenter {
 
-const char  RootDevice::serviceTypeConnectionManager[] = "urn:schemas-upnp-org:service:ConnectionManager:1";
-const char  RootDevice::serviceTypeContentDirectory[]  = "urn:schemas-upnp-org:service:ContentDirectory:1";
+const char  RootDevice::serviceTypeConnectionManager[]      = "urn:schemas-upnp-org:service:ConnectionManager:1";
+const char  RootDevice::serviceTypeContentDirectory[]       = "urn:schemas-upnp-org:service:ContentDirectory:1";
+const char  RootDevice::serviceTypeMediaReceiverRegistrar[] = "urn:microsoft.com:service:X_MS_MediaReceiverRegistrar:1";
 
 const char  RootDevice::mimeAppOctet[]          = "application/octet-stream";
 const char  RootDevice::mimeAudioAac[]          = "audio/aac";
@@ -57,16 +58,15 @@ const char  RootDevice::mimeTextXml[]           = "text/xml;charset=\"utf-8\"";
 struct RootDevice::Data
 {
   QUuid uuid;
-  QString deviceType;
+  QByteArray deviceType;
   QString deviceName;
   QMap<QByteArray, Service *> services;
   QStringList icons;
   QMap<QString, HttpCallback *> httpCallbacks;
 };
 
-RootDevice::RootDevice(const QUuid &uuid, const QString &deviceType, QObject *parent)
+RootDevice::RootDevice(const QUuid &uuid, const QByteArray &deviceType, QObject *parent)
   : QObject(parent),
-    mutex(QMutex::Recursive),
     d(new Data())
 {
   d->uuid = uuid;
@@ -75,28 +75,24 @@ RootDevice::RootDevice(const QUuid &uuid, const QString &deviceType, QObject *pa
 
 RootDevice::~RootDevice()
 {
+  d->httpCallbacks.clear();
+
   delete d;
   *const_cast<Data **>(&d) = NULL;
 }
 
 void RootDevice::registerService(const QByteArray &serviceId, Service *service)
 {
-  QMutexLocker l(&mutex);
-
   d->services.insert(serviceId, service);
 }
 
 void RootDevice::unregisterService(const QByteArray &serviceId)
 {
-  QMutexLocker l(&mutex);
-
   d->services.remove(serviceId);
 }
 
 void RootDevice::registerHttpCallback(const QString &path, HttpCallback *callback)
 {
-  QMutexLocker l(&mutex);
-
   QString p = path;
   if (!p.endsWith('/'))
     p += '/';
@@ -106,8 +102,6 @@ void RootDevice::registerHttpCallback(const QString &path, HttpCallback *callbac
 
 void RootDevice::unregisterHttpCallback(HttpCallback *callback)
 {
-  QMutexLocker l(&mutex);
-
   for (QMap<QString, HttpCallback *>::Iterator i = d->httpCallbacks.begin();
        i != d->httpCallbacks.end();)
   {
@@ -120,8 +114,6 @@ void RootDevice::unregisterHttpCallback(HttpCallback *callback)
 
 void RootDevice::initialize(quint16, const QString &deviceName)
 {
-  QMutexLocker l(&mutex);
-
   d->deviceName = deviceName;
 
   foreach (Service *service, d->services)
@@ -130,8 +122,6 @@ void RootDevice::initialize(quint16, const QString &deviceName)
 
 void RootDevice::close(void)
 {
-  QMutexLocker l(&mutex);
-
   foreach (Service *service, d->services)
     service->close();
 }
@@ -146,8 +136,6 @@ void RootDevice::close(void)
 
 void RootDevice::addIcon(const QString &path)
 {
-  QMutexLocker l(&mutex);
-
   d->icons += path;
 }
 
@@ -157,8 +145,6 @@ void RootDevice::emitEvent(const QByteArray &)
 
 HttpStatus RootDevice::handleHttpRequest(const QUrl &url, QByteArray &contentType, QIODevice *&response)
 {
-  QMutexLocker l(&mutex);
-
   QString path = url.path().left(url.path().lastIndexOf('/') + 1);
   while (!path.isEmpty())
   {
@@ -174,8 +160,6 @@ HttpStatus RootDevice::handleHttpRequest(const QUrl &url, QByteArray &contentTyp
 
 void RootDevice::handleEvent(const QByteArray &serviceId, EventablePropertySet &propset)
 {
-  QMutexLocker l(&mutex);
-
   QMap<QByteArray, Service *>::Iterator i = d->services.find(serviceId);
   if (i != d->services.end())
     (*i)->writeEventableStateVariables(propset);
@@ -188,9 +172,7 @@ QByteArray RootDevice::udn() const
 
 void RootDevice::writeDeviceDescription(DeviceDescription &desc)
 {
-  QMutexLocker l(&mutex);
-
-  desc.setDeviceType(d->deviceType);
+  desc.setDeviceType(d->deviceType, "DMS-1.50");
   desc.setFriendlyName(d->deviceName);
   desc.setManufacturer(qApp->organizationName(), "http://" + qApp->organizationDomain() + "/");
   desc.setModel(qApp->applicationName(), qApp->applicationName(), "http://" + qApp->organizationDomain() + "/", qApp->applicationVersion());

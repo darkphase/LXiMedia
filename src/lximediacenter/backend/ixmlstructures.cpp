@@ -135,15 +135,16 @@ DeviceDescription::DeviceDescription(const QString &host)
   addTextElement(&specVersion->n, "major", "1");
   addTextElement(&specVersion->n, "minor", "0");
 
-  addTextElement(&root->n, "URLBase", ("http://" + host + "/").toUtf8());
+  addTextElement(&root->n, "URLBase", ("http://" + host).toUtf8());
 
   device = addElement(&root->n, "device");
-  addTextElement(&device->n, "urn:schemas-dlna-org:device-1-0", "dlna:X_DLNADOC", "DMS-1.50");
 }
 
-void DeviceDescription::setDeviceType(const QString &deviceType)
+void DeviceDescription::setDeviceType(const QByteArray &deviceType, const QByteArray &dlnaDoc)
 {
-  addTextElement(&device->n, "deviceType", deviceType.toUtf8());
+  addTextElement(&device->n, "deviceType", deviceType);
+  if (!dlnaDoc.isEmpty())
+    addTextElement(&device->n, "urn:schemas-dlna-org:device-1-0", "dlna:X_DLNADOC", dlnaDoc);
 }
 
 void DeviceDescription::setFriendlyName(const QString &friendlyName)
@@ -491,6 +492,112 @@ void ActionBrowse::setResponse(quint32 totalMatches, quint32 updateID)
 }
 
 
+ActionSearch::ActionSearch(IXML_Node *src, IXML_Document *&dst, const char *prefix)
+  : XmlStructure(dst),
+    src(src),
+    prefix(prefix),
+    result(),
+    didl(result.addElement(&result.doc->n, "DIDL-Lite")),
+    numberReturned(0)
+{
+  result.setAttribute(didl, "xmlns", "urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/");
+  result.setAttribute(didl, "xmlns:dc", "http://purl.org/dc/elements/1.1/");
+  result.setAttribute(didl, "xmlns:dlna", "urn:schemas-dlna-org:metadata-1-0/");
+  result.setAttribute(didl, "xmlns:upnp", "urn:schemas-upnp-org:metadata-1-0/upnp/");
+}
+
+QByteArray ActionSearch::getContainerID() const
+{
+  return getTextElement(src, "ContainerID");
+}
+
+QByteArray ActionSearch::getSearchCriteria() const
+{
+  return getTextElement(src, "SearchCriteria");
+}
+
+QByteArray ActionSearch::getFilter() const
+{
+  return getTextElement(src, "Filter");
+}
+
+quint32 ActionSearch::getStartingIndex() const
+{
+  return getTextElement(src, "StartingIndex").toUInt();
+}
+
+quint32 ActionSearch::getRequestedCount() const
+{
+  return getTextElement(src, "RequestedCount").toUInt();
+}
+
+QByteArray ActionSearch::getSortCriteria() const
+{
+  return getTextElement(src, "SortCriteria");
+}
+
+void ActionSearch::addItem(const ContentDirectory::BrowseItem &browseItem)
+{
+  IXML_Element * const item = result.addElement(&didl->n, "item");
+  result.setAttribute(item, "id", browseItem.id);
+  result.setAttribute(item, "parentID", browseItem.parentID);
+  result.setAttribute(item, "restricted", browseItem.restricted ? "1" : "0");
+
+  result.addTextElement(&item->n, "dc:title", browseItem.title);
+
+  typedef QPair<QByteArray, QByteArray> Attribute;
+  foreach (const Attribute &attribute, browseItem.attributes)
+  {
+    IXML_Element * const e = result.addTextElement(&item->n, attribute.first, attribute.second);
+    if (attribute.first == "upnp:albumArtURI")
+    {
+      if (attribute.second.endsWith(".jpeg") || attribute.second.endsWith(".jpeg"))
+        result.setAttribute(e, "dlna:profileID", "JPEG_TN");
+      else if (attribute.second.endsWith(".png"))
+        result.setAttribute(e, "dlna:profileID", "PNG_SM");
+    }
+  }
+
+  typedef QPair<QByteArray, ConnectionManager::Protocol> File;
+  foreach (const File &file, browseItem.files)
+  {
+    IXML_Element * const res = result.addTextElement(&item->n, "res", file.first);
+    result.setAttribute(res, "protocolInfo", file.second.toByteArray());
+
+    if (browseItem.duration > 0)
+      result.setAttribute(res, "duration", QTime(0, 0).addSecs(browseItem.duration).toString("h:mm:ss.zzz").toUtf8());
+
+    if (file.second.sampleRate > 0)
+      result.setAttribute(res, "sampleFrequency", QByteArray::number(file.second.sampleRate));
+
+    if (file.second.channels > 0)
+      result.setAttribute(res, "nrAudioChannels", QByteArray::number(file.second.channels));
+
+    if (file.second.resolution.isValid() && !file.second.resolution.isNull())
+      result.setAttribute(res, "resolution", QByteArray::number(file.second.resolution.width()) + "x" + QByteArray::number(file.second.resolution.height()));
+
+    if (file.second.size > 0)
+      result.setAttribute(res, "size", QByteArray::number(file.second.size));
+  }
+
+  numberReturned++;
+}
+
+void ActionSearch::setResponse(quint32 totalMatches, quint32 updateID)
+{
+  IXML_Element * const response = addElement(&doc->n, prefix + ":SearchResponse");
+  setAttribute(response, "xmlns:" + prefix, RootDevice::serviceTypeContentDirectory);
+
+  DOMString r = ixmlDocumenttoString(result.doc);
+  addTextElement(&response->n, "Result", r);
+  ixmlFreeDOMString(r);
+
+  addTextElement(&response->n, "NumberReturned", QByteArray::number(numberReturned));
+  addTextElement(&response->n, "TotalMatches", QByteArray::number(totalMatches));
+  addTextElement(&response->n, "UpdateID", QByteArray::number(updateID));
+}
+
+
 ActionGetSearchCapabilities::ActionGetSearchCapabilities(IXML_Node *src, IXML_Document *&dst, const char *prefix)
   : XmlStructure(dst),
     src(src),
@@ -568,6 +675,78 @@ void ActionGetFeatureList::setResponse(const QList<QByteArray> &containers)
   DOMString f = ixmlDocumenttoString(sdoc.doc);
   addTextElement(&response->n, "FeatureList", f);
   ixmlFreeDOMString(f);
+}
+
+
+// Microsoft MediaReceiverRegistrar IsAuthorized
+ActionIsAuthorized::ActionIsAuthorized(IXML_Node *src, IXML_Document *&dst, const char *prefix)
+  : XmlStructure(dst),
+    src(src),
+    prefix(prefix)
+{
+}
+
+QByteArray ActionIsAuthorized::getDeviceID() const
+{
+  return getTextElement(src, "DeviceID");
+}
+
+void ActionIsAuthorized::setResponse(int result)
+{
+  IXML_Element * const response = addElement(&doc->n, prefix + ":IsAuthorizedResponse");
+  setAttribute(response, "xmlns:" + prefix, RootDevice::serviceTypeMediaReceiverRegistrar);
+
+  addTextElement(&response->n, "Result", QByteArray::number(result));
+  setAttribute(response, "xmlns:dt", "urn:schemas-microsoft-com:datatypes");
+  setAttribute(response, "dt:dt", "int");
+}
+
+
+// Microsoft MediaReceiverRegistrar IsValidated
+ActionIsValidated::ActionIsValidated(IXML_Node *src, IXML_Document *&dst, const char *prefix)
+  : XmlStructure(dst),
+    src(src),
+    prefix(prefix)
+{
+}
+
+QByteArray ActionIsValidated::getDeviceID() const
+{
+  return getTextElement(src, "DeviceID");
+}
+
+void ActionIsValidated::setResponse(int result)
+{
+  IXML_Element * const response = addElement(&doc->n, prefix + ":IsValidatedResponse");
+  setAttribute(response, "xmlns:" + prefix, RootDevice::serviceTypeMediaReceiverRegistrar);
+
+  addTextElement(&response->n, "Result", QByteArray::number(result));
+  setAttribute(response, "xmlns:dt", "urn:schemas-microsoft-com:datatypes");
+  setAttribute(response, "dt:dt", "int");
+}
+
+
+// Microsoft MediaReceiverRegistrar RegisterDevice
+ActionRegisterDevice::ActionRegisterDevice(IXML_Node *src, IXML_Document *&dst, const char *prefix)
+  : XmlStructure(dst),
+    src(src),
+    prefix(prefix)
+{
+}
+
+QByteArray ActionRegisterDevice::getRegistrationReqMsg() const
+{
+  return QByteArray::fromBase64(getTextElement(src, "RegistrationReqMsg"));
+}
+
+void ActionRegisterDevice::setResponse(const QByteArray &result)
+{
+  IXML_Element * const response = addElement(&doc->n, prefix + ":RegisterDeviceResponse");
+  setAttribute(response, "xmlns:" + prefix, RootDevice::serviceTypeMediaReceiverRegistrar);
+
+  addTextElement(&response->n, "RegistrationRespMsg", result.toBase64());
+  setAttribute(response, "xmlns:dt", "urn:schemas-microsoft-com:datatypes");
+  setAttribute(response, "dt:dt", "bin.Base64");
 }
 
 }
