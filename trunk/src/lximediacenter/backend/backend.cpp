@@ -30,6 +30,7 @@ Backend::Backend()
     upnpRootDevice(serverUuid(), "urn:schemas-upnp-org:device:MediaServer:1", this),
     upnpConnectionManager(&upnpRootDevice),
     upnpContentDirectory(&upnpRootDevice, &upnpConnectionManager),
+    upnpMediaReceiverRegistrar(&upnpRootDevice),
     sandboxApplication("\"" + qApp->applicationFilePath() + "\" --sandbox"),
     cssParser(),
     htmlParser(),

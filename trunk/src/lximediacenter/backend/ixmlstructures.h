@@ -55,7 +55,7 @@ class DeviceDescription : public RootDevice::DeviceDescription,
 public:
   explicit                      DeviceDescription(const QString &host);
 
-  virtual void                  setDeviceType(const QString &);
+  virtual void                  setDeviceType(const QByteArray &, const QByteArray &dlnaDoc);
   virtual void                  setFriendlyName(const QString &);
   virtual void                  setManufacturer(const QString &manufacturer, const QString &url);
   virtual void                  setModel(const QString &description, const QString &name, const QString &url, const QString &number);
@@ -167,6 +167,30 @@ private:
   quint32                       numberReturned;
 };
 
+class ActionSearch : public ContentDirectory::ActionSearch,
+                     public XmlStructure
+{
+public:
+  explicit                      ActionSearch(_IXML_Node *, _IXML_Document *&, const char *);
+
+  virtual QByteArray            getContainerID() const;
+  virtual QByteArray            getSearchCriteria() const;
+  virtual QByteArray            getFilter() const;
+  virtual quint32               getStartingIndex() const;
+  virtual quint32               getRequestedCount() const;
+  virtual QByteArray            getSortCriteria() const;
+
+  virtual void                  addItem(const ContentDirectory::BrowseItem &);
+  virtual void                  setResponse(quint32 totalMatches, quint32 updateID);
+
+private:
+  _IXML_Node            * const src;
+  const QByteArray              prefix;
+  XmlStructure                  result;
+  _IXML_Element         * const didl;
+  quint32                       numberReturned;
+};
+
 class ActionGetSearchCapabilities : public ContentDirectory::ActionGetSearchCapabilities,
                                     public XmlStructure
 {
@@ -214,6 +238,51 @@ public:
   explicit                      ActionGetFeatureList(_IXML_Node *, _IXML_Document *&, const char *);
 
   virtual void                  setResponse(const QList<QByteArray> &);
+
+private:
+  _IXML_Node            * const src;
+  const QByteArray              prefix;
+};
+
+// Microsoft MediaReceiverRegistrar IsAuthorized
+class ActionIsAuthorized : public MediaReceiverRegistrar::ActionIsAuthorized,
+                           public XmlStructure
+{
+public:
+  explicit                      ActionIsAuthorized(_IXML_Node *, _IXML_Document *&, const char *);
+
+  virtual QByteArray            getDeviceID() const;
+  virtual void                  setResponse(int);
+
+private:
+  _IXML_Node            * const src;
+  const QByteArray              prefix;
+};
+
+// Microsoft MediaReceiverRegistrar IsValidated
+class ActionIsValidated : public MediaReceiverRegistrar::ActionIsValidated,
+                          public XmlStructure
+{
+public:
+  explicit                      ActionIsValidated(_IXML_Node *, _IXML_Document *&, const char *);
+
+  virtual QByteArray            getDeviceID() const;
+  virtual void                  setResponse(int);
+
+private:
+  _IXML_Node            * const src;
+  const QByteArray              prefix;
+};
+
+// Microsoft MediaReceiverRegistrar RegisterDevice
+class ActionRegisterDevice : public MediaReceiverRegistrar::ActionRegisterDevice,
+                             public XmlStructure
+{
+public:
+  explicit                      ActionRegisterDevice(_IXML_Node *, _IXML_Document *&, const char *);
+
+  virtual QByteArray            getRegistrationReqMsg() const;
+  virtual void                  setResponse(const QByteArray &);
 
 private:
   _IXML_Node            * const src;

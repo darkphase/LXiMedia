@@ -149,7 +149,15 @@ public:
 
   struct LXIMEDIACENTER_PUBLIC ActionSearch
   {
-    virtual void                setResponse(const QByteArray &) = 0;
+    virtual QByteArray          getContainerID() const = 0;
+    virtual QByteArray          getSearchCriteria() const = 0;
+    virtual QByteArray          getFilter() const = 0;
+    virtual quint32             getStartingIndex() const = 0;
+    virtual quint32             getRequestedCount() const = 0;
+    virtual QByteArray          getSortCriteria() const = 0;
+
+    virtual void                addItem(const BrowseItem &) = 0;
+    virtual void                setResponse(quint32 totalMatches, quint32 updateID) = 0;
   };
 
   struct LXIMEDIACENTER_PUBLIC ActionGetSearchCapabilities
@@ -195,6 +203,9 @@ protected: // From RootDevice::Service
 
   virtual void                  writeServiceDescription(RootDevice::ServiceDescription &) const;
   virtual void                  writeEventableStateVariables(RootDevice::EventablePropertySet &) const;
+
+protected: // From RootDevice::Service
+  virtual void                  customEvent(QEvent *e);
 
 private: // From RootDevice::HttpCallback
   virtual HttpStatus            httpRequest(const QUrl &request, QByteArray &contentType, QIODevice *&response);

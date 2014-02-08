@@ -11,6 +11,7 @@
 #include "liblximediacenter/connectionmanager.h"
 #include "liblximediacenter/contentdirectory.h"
 #include "liblximediacenter/mediaprofiles.h"
+#include "liblximediacenter/mediareceiverregistrar.h"
 #include "liblximediacenter/mediaserver.h"
 #include "liblximediacenter/mediastream.h"
 #include "liblximediacenter/rootdevice.h"

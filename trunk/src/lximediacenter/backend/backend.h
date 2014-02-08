@@ -89,6 +89,7 @@ private:
   PupnpRootDevice               upnpRootDevice;
   ConnectionManager             upnpConnectionManager;
   ContentDirectory              upnpContentDirectory;
+  MediaReceiverRegistrar        upnpMediaReceiverRegistrar;
 
   const QString                 sandboxApplication;
 

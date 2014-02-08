@@ -41,7 +41,7 @@ public:
 
   struct LXIMEDIACENTER_PUBLIC DeviceDescription
   {
-    virtual void                setDeviceType(const QString &) = 0;
+    virtual void                setDeviceType(const QByteArray &, const QByteArray &dlnaDoc) = 0;
     virtual void                setFriendlyName(const QString &) = 0;
     virtual void                setManufacturer(const QString &manufacturer, const QString &url) = 0;
     virtual void                setModel(const QString &description, const QString &name, const QString &url, const QString &number) = 0;
@@ -78,9 +78,10 @@ public:
 
   static const char             serviceTypeConnectionManager[];
   static const char             serviceTypeContentDirectory[];
+  static const char             serviceTypeMediaReceiverRegistrar[];
 
 public:
-  explicit                      RootDevice(const QUuid &uuid, const QString &deviceType, QObject *parent);
+  explicit                      RootDevice(const QUuid &uuid, const QByteArray &deviceType, QObject *parent);
   virtual                       ~RootDevice();
 
   virtual void                  registerService(const QByteArray &serviceId, Service *);
@@ -139,9 +140,6 @@ public:
   static const char             mimeTextJs[];
   static const char             mimeTextPlain[];
   static const char             mimeTextXml[];
-
-protected:
-  mutable QMutex                mutex;
 
 private:
   struct Data;

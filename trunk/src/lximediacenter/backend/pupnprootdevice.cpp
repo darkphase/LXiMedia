@@ -47,6 +47,8 @@ struct PupnpRootDevice::Data
   QMap<QString, RootDevice::HttpCallback *> httpCallbacks;
   QSet<QByteArray> serviceExts;
   QMap<QByteArray, QPair<Service *, QByteArray> > services;
+
+  QMutex responsesMutex;
   QMap<QByteArray, QPair<QIODevice *, QByteArray> > responses;
 
   bool rootDeviceRegistred;
@@ -63,7 +65,7 @@ const char          PupnpRootDevice::Data::serviceEventFile[] = "/upnp/event-";
 PupnpRootDevice   * PupnpRootDevice::Data::me = NULL;
 const QEvent::Type  PupnpRootDevice::Data::Event::myType = QEvent::Type(QEvent::registerEventType());
 
-PupnpRootDevice::PupnpRootDevice(const QUuid &uuid, const QString &deviceType, QObject *parent)
+PupnpRootDevice::PupnpRootDevice(const QUuid &uuid, const QByteArray &deviceType, QObject *parent)
   : RootDevice(uuid, deviceType, parent),
     d(new Data())
 {
@@ -83,11 +85,9 @@ PupnpRootDevice::PupnpRootDevice(const QUuid &uuid, const QString &deviceType, Q
 
 PupnpRootDevice::~PupnpRootDevice()
 {
-  if (d->rootDeviceRegistred)
-    ::UpnpUnRegisterRootDevice(d->rootDeviceHandle);
+  d->httpCallbacks.clear();
 
-  if (d->initialized)
-    ::UpnpFinish();
+  cleanup();
 
   Q_ASSERT(d->me != NULL);
   d->me = NULL;
@@ -98,10 +98,8 @@ PupnpRootDevice::~PupnpRootDevice()
 
 void PupnpRootDevice::registerService(const QByteArray &serviceId, Service *service)
 {
-  QMutexLocker l(&mutex);
-
   QByteArray ext;
-  for (int lc = serviceId.lastIndexOf(':'); (lc >= 0) && (lc < serviceId.size()); lc++)
+  for (int lc = qMax(serviceId.lastIndexOf(':'), serviceId.lastIndexOf('_')); (lc >= 0) && (lc < serviceId.size()); lc++)
   if ((serviceId[lc] >= 'A') && (serviceId[lc] <= 'Z'))
     ext += (serviceId[lc] + ('a' - 'A'));
 
@@ -118,8 +116,6 @@ void PupnpRootDevice::registerService(const QByteArray &serviceId, Service *serv
 
 void PupnpRootDevice::unregisterService(const QByteArray &serviceId)
 {
-  QMutexLocker l(&mutex);
-
   d->services.remove(serviceId);
 
   RootDevice::unregisterService(serviceId);
@@ -127,8 +123,6 @@ void PupnpRootDevice::unregisterService(const QByteArray &serviceId)
 
 void PupnpRootDevice::registerHttpCallback(const QString &path, RootDevice::HttpCallback *callback)
 {
-  QMutexLocker l(&mutex);
-
   RootDevice::registerHttpCallback(path, callback);
 
   QString p = path;
@@ -145,8 +139,6 @@ void PupnpRootDevice::registerHttpCallback(const QString &path, RootDevice::Http
 
 void PupnpRootDevice::unregisterHttpCallback(RootDevice::HttpCallback *callback)
 {
-  QMutexLocker l(&mutex);
-
   RootDevice::unregisterHttpCallback(callback);
 
   for (QMap<QString, RootDevice::HttpCallback *>::Iterator i = d->httpCallbacks.begin();
@@ -194,22 +186,37 @@ void PupnpRootDevice::initialize(quint16 port, const QString &deviceName)
 
 void PupnpRootDevice::close(void)
 {
-  if (d->rootDeviceRegistred)
-  {
-    ::UpnpUnRegisterRootDevice(d->rootDeviceHandle);
-    d->rootDeviceRegistred = false;
-  }
-
   unregisterHttpCallback(this);
 
-  if (d->initialized)
-  {
-    ::UpnpRemoveAllVirtualDirs();
-    ::UpnpFinish();
-    d->initialized = false;
-  }
+  cleanup();
 
   RootDevice::close();
+}
+
+void PupnpRootDevice::cleanup(void)
+{
+  if (d->initialized)
+  {
+    d->initialized = false;
+
+    if (d->rootDeviceRegistred)
+    {
+      d->rootDeviceRegistred = false;
+      ::UpnpUnRegisterRootDevice(d->rootDeviceHandle);
+    }
+
+    ::UpnpRemoveAllVirtualDirs();
+
+    struct T : QThread
+    {
+      virtual void run() { ::UpnpFinish(); }
+    } t;
+
+    // Ugly, but needed as UpnpFinish waits for callbacks from the HTTP server.
+    t.start();
+    while (!t.isFinished()) { qApp->processEvents(QEventLoop::ExcludeUserInputEvents | QEventLoop::WaitForMoreEvents, 16); }
+    t.wait();
+  }
 }
 
 void PupnpRootDevice::emitEvent(const QByteArray &serviceId)
@@ -243,8 +250,6 @@ HttpStatus PupnpRootDevice::httpRequest(const QUrl &request, QByteArray &content
 
   if (request.path().startsWith(d->deviceDescriptionFile))
   {
-    QMutexLocker l(&mutex);
-
     IXMLStructures::DeviceDescription desc(host);
     writeDeviceDescription(desc);
 
@@ -271,9 +276,10 @@ HttpStatus PupnpRootDevice::httpRequest(const QUrl &request, QByteArray &content
   }
   else if (request.path().startsWith(d->serviceDescriptionFile))
   {
-    QMutexLocker l(&mutex);
+    const uint l = qstrlen(d->serviceDescriptionFile);
+    const QByteArray path = request.path().toUtf8();
+    const QByteArray ext = path.mid(l, path.length() - 4 - l);
 
-    const QByteArray ext = request.path().toUtf8().mid(qstrlen(d->serviceDescriptionFile), 3);
     for (QMap<QByteArray, QPair<Service *, QByteArray> >::Iterator i = d->services.begin();
          i != d->services.end();
          i++)
@@ -307,8 +313,6 @@ void PupnpRootDevice::send(Functor &f) const
 
 void PupnpRootDevice::enableWebserver()
 {
-  QMutexLocker l(&mutex);
-
   struct T
   {
     static int get_info(const char *filename, ::File_Info *info)
@@ -396,7 +400,7 @@ void PupnpRootDevice::enableWebserver()
 
 HttpStatus PupnpRootDevice::getResponse(const QByteArray &path, QByteArray &contentType, QIODevice *&response, bool erase)
 {
-  QMutexLocker l(&mutex);
+  QMutexLocker l(&d->responsesMutex);
 
   QMap<QByteArray, QPair<QIODevice *, QByteArray> >::Iterator i = d->responses.find(path);
   if (i != d->responses.end())
@@ -418,7 +422,10 @@ HttpStatus PupnpRootDevice::getResponse(const QByteArray &path, QByteArray &cont
 
       void operator()()
       {
-        result = me->handleHttpRequest(url, contentType, response);
+        if (me->d->initialized)
+          result = me->handleHttpRequest(url, contentType, response);
+        else
+          result = HttpStatus_InternalServerError;
       }
 
       PupnpRootDevice * const me;
@@ -472,7 +479,7 @@ void PupnpRootDevice::enableRootDevice(void)
           void operator()()
           {
             QMap<QByteArray, QPair<Service *, QByteArray> >::Iterator i = me->d->services.find(request->ServiceID);
-            if (i != me->d->services.end())
+            if ((i != me->d->services.end()) && me->d->initialized)
             {
               if ((strcmp(i->first->serviceType(), serviceTypeConnectionManager) == 0))
               {
@@ -518,6 +525,11 @@ void PupnpRootDevice::enableRootDevice(void)
                     IXMLStructures::ActionBrowse action(i->nodeItem, request->ActionResult, prefix);
                     service->handleAction(me->d->httpHost, action);
                   }
+                  else if (name == "Search")
+                  {
+                    IXMLStructures::ActionSearch action(i->nodeItem, request->ActionResult, prefix);
+                    service->handleAction(me->d->httpHost, action);
+                  }
                   else if (name == "GetSearchCapabilities")
                   {
                     IXMLStructures::ActionGetSearchCapabilities action(i->nodeItem, request->ActionResult, prefix);
@@ -542,6 +554,35 @@ void PupnpRootDevice::enableRootDevice(void)
 
                 ixmlNodeList_free(children);
               }
+              else if ((strcmp(i->first->serviceType(), serviceTypeMediaReceiverRegistrar) == 0))
+              {
+                MediaReceiverRegistrar * const service = static_cast<MediaReceiverRegistrar *>(i->first);
+
+                IXML_NodeList * const children = ixmlNode_getChildNodes(&request->ActionRequest->n);
+                for (IXML_NodeList *i = children; i; i = i->next)
+                {
+                  QByteArray prefix = "ns0", name;
+                  splitName(i->nodeItem->nodeName, prefix, name);
+
+                  if (name == "IsAuthorized")
+                  {
+                    IXMLStructures::ActionIsAuthorized action(i->nodeItem, request->ActionResult, prefix);
+                    service->handleAction(me->d->httpHost, action);
+                  }
+                  else if (name == "IsValidated")
+                  {
+                    IXMLStructures::ActionIsValidated action(i->nodeItem, request->ActionResult, prefix);
+                    service->handleAction(me->d->httpHost, action);
+                  }
+                  else if (name == "RegisterDevice")
+                  {
+                    IXMLStructures::ActionRegisterDevice action(i->nodeItem, request->ActionResult, prefix);
+                    service->handleAction(me->d->httpHost, action);
+                  }
+                }
+
+                ixmlNodeList_free(children);
+              }
             }
           }
 
@@ -560,8 +601,11 @@ void PupnpRootDevice::enableRootDevice(void)
 
           void operator()()
           {
-            udn = me->udn();
-            me->handleEvent(request->ServiceId, propertyset);
+            if (me->d->initialized)
+            {
+              udn = me->udn();
+              me->handleEvent(request->ServiceId, propertyset);
+            }
           }
 
           PupnpRootDevice * const me;
@@ -592,20 +636,14 @@ void PupnpRootDevice::enableRootDevice(void)
       result = ::UpnpRegisterRootDevice(path, &T::callback, me, &me->d->rootDeviceHandle);
     }
 
-    static void msleep(unsigned long msecs)
-    {
-      QThread::msleep(msecs);
-    }
-
     PupnpRootDevice * const me;
     const QByteArray path;
     volatile int result;
   } t(this, "http://" + d->httpHost + d->deviceDescriptionFile + ".xml");
 
-
   // Ugly, but needed as UpnpRegisterRootDevice retrieves files from the HTTP server.
   t.start();
-  while (t.result == -1) { qApp->processEvents(); t.msleep(16); }
+  while (t.result == -1) { qApp->processEvents(QEventLoop::ExcludeUserInputEvents | QEventLoop::WaitForMoreEvents, 16); }
   t.wait();
 
   if (t.result == UPNP_E_SUCCESS)
