@@ -346,7 +346,7 @@ void PupnpRootDevice::enableWebserver()
     static int read(::UpnpWebFileHandle fileHnd, char *buf, size_t len)
     {
       if (fileHnd)
-        return reinterpret_cast<QIODevice *>(fileHnd)->read(buf, len);
+        return qMax(int(reinterpret_cast<QIODevice *>(fileHnd)->read(buf, len)), 0);
 
       return UPNP_E_INVALID_HANDLE;
     }

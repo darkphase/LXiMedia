@@ -309,8 +309,8 @@ qint64 SIODeviceProxy::Reader::readData(char *data, qint64 maxSize)
     while (opened && ((available = (parent->available - (readPos - parent->absolutePos))) <= 0) && parent->opened)
       parent->readPossible.wait(&parent->mutex);
 
-    if (available == 0)
-      break; // Parent has stopped writing.
+    if ((available <= 0) || !opened)
+      break; // Parent or reader was closed.
 
     const qint64 relativePos = readPos % parent->buffer.size();
     const qint64 copy = qMin(qMin(maxSize, available), parent->buffer.size() - relativePos);
@@ -326,7 +326,10 @@ qint64 SIODeviceProxy::Reader::readData(char *data, qint64 maxSize)
     lastRead.start();
   }
 
-  return (read > 0) ? read : -1;
+  if (opened && parent->opened)
+    return read;
+  else
+    return (read > 0) ? read : -1;
 }
 
 qint64 SIODeviceProxy::Reader::writeData(const char *, qint64)
