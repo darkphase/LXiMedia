@@ -18,6 +18,7 @@
 #include "backend.h"
 #include "setup.h"
 #include <QtXml>
+#include <QtNetwork>
 #include <iostream>
 
 #if !defined(QT_NO_DEBUG) || defined(Q_OS_MACX)
@@ -26,7 +27,6 @@ const QEvent::Type  Backend::exitEventType = QEvent::Type(QEvent::registerEventT
 
 Backend::Backend()
   : BackendServer::MasterServer(),
-    checkNetworkInterfacesTimer(this),
     upnpRootDevice(serverUuid(), "urn:schemas-upnp-org:device:MediaServer:1", this),
     upnpConnectionManager(&upnpRootDevice),
     upnpContentDirectory(&upnpRootDevice, &upnpConnectionManager),
@@ -50,8 +50,6 @@ Backend::Backend()
 
   // Open device configuration
   MediaServer::mediaProfiles().openDeviceConfig(":/devices.ini");
-
-  connect(&checkNetworkInterfacesTimer, SIGNAL(timeout()), SLOT(checkNetworkInterfaces()));
 }
 
 Backend::~Backend()
@@ -85,7 +83,8 @@ void Backend::start(void)
 
   upnpRootDevice.initialize(
         settings.value("HttpPort", defaultPort).toInt(),
-        settings.value("DeviceName", defaultDeviceName()).toString());
+        settings.value("DeviceName", defaultDeviceName()).toString(),
+        settings.value("BindAllNetworks", false).toBool());
 
   // Setup template parsers
   cssParser.clear();
@@ -127,72 +126,15 @@ void Backend::reset(void)
 {
   QSettings settings;
 
-  checkNetworkInterfaces();
-
   upnpRootDevice.close();
   upnpRootDevice.initialize(
         settings.value("HttpPort", defaultPort).toInt(),
-        settings.value("DeviceName", defaultDeviceName()).toString());
+        settings.value("DeviceName", defaultDeviceName()).toString(),
+        settings.value("BindAllNetworks", false).toBool());
 
   htmlParser.clear();
   htmlParser.setField("_PRODUCT", qApp->applicationName());
   htmlParser.setField("_HOSTNAME", (settings.value("DeviceName", defaultDeviceName())).toString());
-}
-
-void Backend::checkNetworkInterfaces(void)
-{
-  QSettings settings;
-
-  const QList<QHostAddress> interfaces =
-      /*settings.value("BindAllNetworks", false).toBool()
-          ?*/ QNetworkInterface::allAddresses()
-          /*: SSsdpClient::localAddresses()*/;
-
-  // Bind new interfaces
-  foreach (const QHostAddress &interface, interfaces)
-  {
-    bool found = false;
-    foreach (const QHostAddress &bound, boundNetworkInterfaces)
-    if (bound == interface)
-    {
-      found = true;
-      break;
-    }
-
-    if (!found)
-    {
-      qDebug() << "Binding interface" << interface.toString();
-
-      //upnpRootDevice.bind(interface);
-
-      boundNetworkInterfaces += interface;
-    }
-  }
-
-  // Release old interfaces
-  for (QList<QHostAddress>::Iterator bound = boundNetworkInterfaces.begin();
-       bound != boundNetworkInterfaces.end();
-       )
-  {
-    bool found = false;
-    foreach (const QHostAddress &interface, interfaces)
-    if (interface == *bound)
-    {
-      found = true;
-      break;
-    }
-
-    if (!found)
-    {
-      qDebug() << "Releasing interface" << bound->toString();
-
-      //upnpRootDevice.release(*bound);
-
-      bound = boundNetworkInterfaces.erase(bound);
-    }
-    else
-      bound++;
-  }
 }
 
 void Backend::customEvent(QEvent *e)

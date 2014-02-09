@@ -236,6 +236,9 @@ void ContentDirectory::close(void)
   d->objectIdHash.clear();
   d->objectUrlList.clear();
   d->objectUrlHash.clear();
+
+  d->objectIdList.append(QByteArray());
+  d->objectIdHash.insert(d->objectIdList.last(), d->objectIdList.count() - 1);
 }
 
 void ContentDirectory::writeServiceDescription(RootDevice::ServiceDescription &desc) const

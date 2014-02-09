@@ -19,7 +19,6 @@
 #define LXIMEDIACENTER_MEDIAPROFILES_H
 
 #include <QtCore>
-#include <QtNetwork>
 #include <LXiCore>
 #include <LXiStream>
 #include "export.h"

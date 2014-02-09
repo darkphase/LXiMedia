@@ -19,7 +19,6 @@
 #define LXIMEDIACENTER_MEDIASTREAM_H
 
 #include <QtCore>
-#include <QtNetwork>
 #include <LXiStream>
 #include <LXiStreamGui>
 #include "backendserver.h"

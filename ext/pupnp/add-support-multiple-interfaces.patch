@@ -1,5 +1,5 @@
 --- upnp/inc/upnp.h	2013-11-15 17:01:35.000000000 +0100
-+++ upnp/inc/upnp.h	2014-02-09 16:38:51.270476751 +0100
++++ upnp/inc/upnp.h	2014-02-09 19:47:26.178800187 +0100
 @@ -613,6 +613,9 @@
    /** The error string in case of error. */
    char ErrStr[LINE_SIZE];
@@ -20,7 +20,81 @@
    /** The identifier for the service being subscribed to. */
    char *ServiceId; 
  
-@@ -1016,6 +1022,19 @@
+@@ -871,6 +877,18 @@
+  */
+ 
+ /*!
++ * \brief Returns the local alvailable IPv4 ip addresses.
++ *
++ * This function can be called before UpnpInit to determine the addresses to
++ * pass to UpnpInit.
++ *
++ * \return
++ * 	\li On success: A NULL terminated list of the  IPv4 addresses.
++ * 	\li On error: \c NULL is returned.
++ */
++EXPORT_SPEC char **UpnpGetAvailableIpAddresses(void);
++
++/*!
+  * \brief Initializes the Linux SDK for UPnP Devices (IPv4 only).
+  *
+  * \deprecated Kept for backwards compatibility. Use UpnpInit2 for new
+@@ -886,7 +904,7 @@
+  * process, multiple processes using the SDK must specify
+  * different port numbers.
+  *
+- * If unspecified, the SDK will use the first IPv4-capable adapter's IP address
++ * If unspecified, the SDK will use all IPv4-capable adapter's IP address
+  * and an arbitrary port.
+  *
+  * This call is synchronous.
+@@ -955,6 +973,45 @@
+ #endif
+ 
+ /*!
++ * \brief Initializes the Linux SDK for UPnP Devices (IPv4 only).
++ *
++ * This function must be called before any other API function can be called.
++ * It should be called only once. Subsequent calls to this API return a
++ * \c UPNP_E_INIT error code.
++ *
++ * Optionally, the application can specify set of host IPv4 addresses (in the
++ * case of a multi-homed configuration) and a port number to use for
++ * all UPnP operations.  Since a port number can be used only by one
++ * process, multiple processes using the SDK must specify
++ * different port numbers.
++ *
++ * If unspecified, the SDK will use all IPv4-capable adapter's IP address
++ * and an arbitrary port.
++ *
++ * This call is synchronous.
++ *
++ * \return An integer representing one of the following:
++ *     \li \c UPNP_E_SUCCESS: The operation completed successfully.
++ *     \li \c UPNP_E_OUTOF_MEMORY: Insufficient resources exist
++ *             to initialize the SDK.
++ *     \li \c UPNP_E_INIT: The SDK is already initialized.
++ *     \li \c UPNP_E_INIT_FAILED: The SDK initialization
++ *             failed for an unknown reason.
++ *     \li \c UPNP_E_SOCKET_BIND: An error occurred binding a socket.
++ *     \li \c UPNP_E_LISTEN: An error occurred listening to a socket.
++ *     \li \c UPNP_E_OUTOF_SOCKET: An error ocurred creating a socket.
++ *     \li \c UPNP_E_INTERNAL_ERROR: An internal error ocurred.
++ */
++EXPORT_SPEC int UpnpInit3(
++    /*! A NULL terminated list of host local IPv4 addresses to use, in string
++     * format, for example "192.168.0.1", or \c NULL to use all IPv4 adapter's
++     * IP addresses. */
++    const char **HostIPs,
++    /*! Local Port to listen for incoming connections
++     * \c NULL will pick an arbitrary free port. */
++    unsigned short DestPort);
++
++/*!
+  * \brief Terminates the Linux SDK for UPnP Devices.
+  *
+  * \li Checks for pending jobs and threads
+@@ -1016,6 +1073,19 @@
  EXPORT_SPEC char *UpnpGetServerIpAddress(void);
  
  /*!
@@ -40,7 +114,7 @@
   * \brief Returns the local IPv6 listening ip address.
   *
   * If \c NULL is used as the IPv6 address in \b UpnpInit, then this function can
-@@ -2665,9 +2684,11 @@
+@@ -2665,9 +2735,11 @@
   * \brief Get-info callback function prototype.
   */
  typedef int (*VDCallback_GetInfo)(
@@ -54,7 +128,7 @@
  #if UPNP_VERSION < 10800
  		struct File_Info *info
  #else
-@@ -2689,9 +2710,11 @@
+@@ -2689,9 +2761,11 @@
   * \brief Open callback function prototype.
   */
  typedef UpnpWebFileHandle (*VDCallback_Open)(
@@ -69,7 +143,7 @@
  		enum UpnpOpenFileMode Mode);
  
 --- upnp/src/api/upnpapi.c	2013-11-15 17:01:35.000000000 +0100
-+++ upnp/src/api/upnpapi.c	2014-02-09 18:44:31.614692291 +0100
++++ upnp/src/api/upnpapi.c	2014-02-09 21:31:55.340775390 +0100
 @@ -130,7 +130,12 @@
  char gIF_NAME[LINE_SIZE] = { '\0' };
  
@@ -84,7 +158,34 @@
  
  /*! Static buffer to contain interface IPv6 address. (extern'ed in upnp.h) */
  char gIF_IPV6[INET6_ADDRSTRLEN] = { '\0' };
-@@ -432,6 +437,7 @@
+@@ -428,10 +433,34 @@
+ 	return UPNP_E_SUCCESS;
+ }
+ 
++/*! Static buffers to contain interface IPv4 address for UpnpGetAvailableIpAddresses. */
++char * gAVIFIP_IPV4[MAX_INTERFACES + 1] = { 0 };
++char gAVIFIP_IPV4_MEMORY[INET_ADDRSTRLEN * MAX_INTERFACES];
++
++char **UpnpGetAvailableIpAddresses(void)
++{
++    char dummy[INET_ADDRSTRLEN * MAX_INTERFACES];
++    int i;
++
++    memset(gAVIFIP_IPV4, 0, sizeof(gAVIFIP_IPV4));
++    memset(gAVIFIP_IPV4_MEMORY, 0, sizeof(gAVIFIP_IPV4_MEMORY));
++    memset(dummy, 0, sizeof(dummy));
++
++    i = getlocalhostnames( gAVIFIP_IPV4_MEMORY, dummy, sizeof(gAVIFIP_IPV4_MEMORY) );
++    if (i < UPNP_E_SUCCESS ) {
++        return NULL;
++    }
++    for (; i > 0; i--) {
++        gAVIFIP_IPV4[i - 1] = gAVIFIP_IPV4_MEMORY + ((i - 1) * INET_ADDRSTRLEN);
++    }
++
++    return gAVIFIP_IPV4;
++}
+ 
  int UpnpInit(const char *HostIP, unsigned short DestPort)
  {
  	int retVal = UPNP_E_SUCCESS;
@@ -92,7 +193,7 @@
  
  	/* Initializes the ithread library */
  	ithread_initialize_library();
-@@ -454,15 +460,25 @@
+@@ -454,15 +483,25 @@
  		"UpnpInit with HostIP=%s, DestPort=%d.\n", 
  		HostIP ? HostIP : "", (int)DestPort);
  
@@ -126,7 +227,7 @@
  	}
  
  	/* Set the UpnpSdkInit flag to 1 to indicate we're successfully initialized. */
-@@ -475,9 +491,11 @@
+@@ -475,9 +514,11 @@
  		goto exit_function;
  	}
  
@@ -141,7 +242,112 @@
  
  exit_function:
  	ithread_mutex_unlock(&gSDKInitMutex);
-@@ -603,6 +621,7 @@
+@@ -534,6 +575,104 @@
+ }
+ #endif
+ 
++int UpnpInit3(const char **HostIPs, unsigned short DestPort)
++{
++    int retVal = UPNP_E_SUCCESS;
++    int i, found;
++    const char **j;
++
++    /* Initializes the ithread library */
++    ithread_initialize_library();
++
++    ithread_mutex_lock(&gSDKInitMutex);
++
++    /* Check if we're already initialized. */
++    if (UpnpSdkInit == 1) {
++        retVal = UPNP_E_INIT;
++        goto exit_function;
++    }
++
++    /* Perform initialization preamble. */
++    retVal = UpnpInitPreamble();
++    if (retVal != UPNP_E_SUCCESS) {
++        goto exit_function;
++    }
++
++    UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
++        "UpnpInit3 with HostIP=%s, DestPort=%d.\n",
++        HostIPs ? "not NULL" : "NULL", (int)DestPort);
++
++    memset(gIFIP_IPV4, 0, sizeof(gIFIP_IPV4));
++    memset(gIFIP_IPV4_MEMORY, 0, sizeof(gIFIP_IPV4_MEMORY));
++    memset(gIFNM_IPV4, 0, sizeof(gIFNM_IPV4));
++    memset(gIFNM_IPV4_MEMORY, 0, sizeof(gIFNM_IPV4_MEMORY));
++
++    i = getlocalhostnames( gIFIP_IPV4_MEMORY, gIFNM_IPV4_MEMORY, sizeof(gIFIP_IPV4_MEMORY) );
++    if (i < UPNP_E_SUCCESS ) {
++        retVal = UPNP_E_INIT_FAILED;
++        goto exit_function;
++    }
++    for (; i > 0; i--) {
++        gIFIP_IPV4[i - 1] = gIFIP_IPV4_MEMORY + ((i - 1) * INET_ADDRSTRLEN);
++        gIFNM_IPV4[i - 1] = gIFNM_IPV4_MEMORY + ((i - 1) * INET_ADDRSTRLEN);
++    }
++
++    if (HostIPs) {
++        /* Clear items from the list that were not selected. */
++        for (i = 0; gIFIP_IPV4[i] && (i < MAX_INTERFACES); i++) {
++            found = 0;
++            for (j = HostIPs; *j; j++) {
++                if (strcmp(*j, gIFIP_IPV4[i]) == 0) {
++                    found = 1;
++                    break;
++                }
++            }
++            if (found == 0) {
++                gIFIP_IPV4[i] = NULL;
++                gIFNM_IPV4[i] = NULL;
++            }
++        }
++
++        found = 0;
++        for (i = 0; i < MAX_INTERFACES; i++) {
++            if (gIFIP_IPV4[i]) {
++                gIFIP_IPV4[found] = gIFIP_IPV4[i];
++                gIFNM_IPV4[found] = gIFNM_IPV4[i];
++                found++;
++            }
++        }
++        if (found == 0) {
++            retVal = UPNP_E_INIT_FAILED;
++            goto exit_function;
++        }
++        for (; found < MAX_INTERFACES; found++) {
++            gIFIP_IPV4[i] = NULL;
++            gIFNM_IPV4[i] = NULL;
++        }
++    }
++
++    /* Set the UpnpSdkInit flag to 1 to indicate we're successfully initialized. */
++    UpnpSdkInit = 1;
++
++    /* Finish initializing the SDK. */
++    retVal = UpnpInitStartServers(DestPort);
++    if (retVal != UPNP_E_SUCCESS) {
++        UpnpSdkInit = 0;
++        goto exit_function;
++    }
++
++    for (i = 0; gIFIP_IPV4[i] && (i < MAX_INTERFACES); i++) {
++        UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
++                   "Host Ip: %s Host Port: %d\n", gIFIP_IPV4[i],
++            (int)LOCAL_PORT_V4);
++    }
++
++exit_function:
++    ithread_mutex_unlock(&gSDKInitMutex);
++
++    return retVal;
++}
++
+ #ifdef DEBUG
+ /*!
+  * \brief Prints thread pool statistics.
+@@ -603,6 +742,7 @@
  	UpnpClient_Handle client_handle;
  #endif
  	struct Handle_Info *temp;
@@ -149,7 +355,7 @@
  
  	if (UpnpSdkInit != 1)
  		return UPNP_E_FINISH;
-@@ -618,14 +637,17 @@
+@@ -618,14 +758,17 @@
  	PrintThreadPoolStats(&gMiniServerThreadPool, __FILE__, __LINE__,
  		"MiniServer Thread Pool");
  #ifdef INCLUDE_DEVICE_APIS
@@ -175,7 +381,7 @@
  	case HND_DEVICE:
  		UpnpUnRegisterRootDevice(device_handle);
  		break;
-@@ -698,7 +720,15 @@
+@@ -698,7 +841,15 @@
  	if (UpnpSdkInit != 1)
  		return NULL;
  
@@ -192,7 +398,7 @@
  }
  
  char *UpnpGetServerIp6Address(void)
-@@ -799,11 +829,6 @@
+@@ -799,11 +950,6 @@
  		goto exit_function;
  	}
  
@@ -204,7 +410,7 @@
  	*Hnd = GetFreeHandle();
  	if (*Hnd == UPNP_E_OUTOF_HANDLE) {
  		retVal = UPNP_E_OUTOF_MEMORY;
-@@ -901,7 +926,7 @@
+@@ -901,7 +1047,7 @@
  	}
  #endif /* EXCLUDE_GENA */
  
@@ -213,7 +419,7 @@
  
  	retVal = UPNP_E_SUCCESS;
  
-@@ -965,11 +990,6 @@
+@@ -965,11 +1111,6 @@
  		goto exit_function;
  	}
  
@@ -225,7 +431,7 @@
  	*Hnd = GetFreeHandle();
  	if (*Hnd == UPNP_E_OUTOF_HANDLE) {
  		retVal = UPNP_E_OUTOF_MEMORY;
-@@ -1064,7 +1084,7 @@
+@@ -1064,7 +1205,7 @@
  	}
  #endif /* EXCLUDE_GENA */
  
@@ -234,7 +440,7 @@
  
  	retVal = UPNP_E_SUCCESS;
  
-@@ -1127,11 +1147,6 @@
+@@ -1127,11 +1268,6 @@
  		retVal = UPNP_E_INVALID_PARAM;
  		goto exit_function;
  	}
@@ -246,7 +452,7 @@
  	/* Test for already registered IPV6. IPV6 devices might register on multiple
  	 * IPv6 addresses (link local and GUA or ULA), so we must to check the
  	 * description URL in the HandleTable. */
-@@ -1239,7 +1254,7 @@
+@@ -1239,7 +1375,7 @@
  
  	switch (AddressFamily) {
  	case AF_INET:
@@ -255,7 +461,7 @@
  		break;
  	default:
  		UpnpSdkDeviceregisteredV6 = 1;
-@@ -1321,7 +1336,7 @@
+@@ -1321,7 +1457,7 @@
  #endif /* INTERNAL_WEB_SERVER */
  	switch (HInfo->DeviceAf) {
  	case AF_INET:
@@ -264,7 +470,7 @@
  		break;
  	case AF_INET6:
  		UpnpSdkDeviceregisteredV6 = 0;
-@@ -1476,6 +1491,8 @@
+@@ -1476,6 +1612,8 @@
   * \brief Fill the sockadr with IPv4 miniserver information.
   */
  static void get_server_addr(
@@ -273,7 +479,7 @@
  	/*! [out] pointer to server address structure. */
  	struct sockaddr *serverAddr)
  {
-@@ -1484,7 +1501,7 @@
+@@ -1484,7 +1622,7 @@
      memset( serverAddr, 0, sizeof(struct sockaddr_storage) );
  
      sa4->sin_family = AF_INET;
@@ -282,7 +488,7 @@
      sa4->sin_port = htons( LOCAL_PORT_V4 );
  }
  
-@@ -1595,7 +1612,7 @@
+@@ -1595,7 +1733,7 @@
  			strncpy(aliasStr, temp_str, sizeof(aliasStr) - 1);
  		}
  		if (AddressFamily == AF_INET) {
@@ -291,7 +497,7 @@
  		} else {
  			get_server_addr6((struct sockaddr *)&serverAddr);
  		}
-@@ -3354,7 +3371,8 @@
+@@ -3354,7 +3492,8 @@
  			   "Failed to find an adapter with valid IP addresses for use.\n");
  		return UPNP_E_INVALID_INTERFACE;
  	}
@@ -301,7 +507,7 @@
  	inet_ntop(AF_INET6, &v6_addr, gIF_IPV6, sizeof(gIF_IPV6));
  #elif (defined(BSD) && BSD >= 199306) || defined(__FreeBSD_kernel__)
  	struct ifaddrs *ifap, *ifa;
-@@ -3435,7 +3453,8 @@
+@@ -3435,7 +3574,8 @@
  			   "Failed to find an adapter with valid IP addresses for use.\n");
  		return UPNP_E_INVALID_INTERFACE;
  	}
@@ -311,7 +517,7 @@
  	inet_ntop(AF_INET6, &v6_addr, gIF_IPV6, sizeof(gIF_IPV6));
  	gIF_INDEX = if_nametoindex(gIF_NAME);
  #else
-@@ -3516,9 +3535,10 @@
+@@ -3516,9 +3656,10 @@
  			/* Copy interface name, IPv4 address and interface index. */
  			memset(gIF_NAME, 0, sizeof(gIF_NAME));
  			strncpy(gIF_NAME, pifReq->ifr_name, sizeof(gIF_NAME) - 1);
@@ -324,7 +530,7 @@
  			gIF_INDEX = if_nametoindex(gIF_NAME);
  			valid_addr_found = 1;
  			break;
-@@ -3585,7 +3605,7 @@
+@@ -3585,7 +3726,7 @@
  #endif
  	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
  		   "Interface name=%s, index=%d, v4=%s, v6=%s, ULA or GUA v6=%s\n",
@@ -333,22 +539,39 @@
  
  	return UPNP_E_SUCCESS;
  }
-@@ -3714,61 +3734,71 @@
+@@ -3714,61 +3855,88 @@
  	return ((struct Handle_Info *)HandleTable[Hnd])->Callback;
  }
  
-+void DetermineHost(
-+    in_addr_t srcAddr,
-+    char *host,
-+    size_t host_len)
++int IsBoundAddress(
++    in_addr_t src_addr)
 +{
-+    in_addr_t ifAddr, ifNetmask;
++    in_addr_t if_addr, if_netmask;
 +    int i;
 +
 +    for (i = 0; gIFIP_IPV4[i] && gIFNM_IPV4[i] && (i < MAX_INTERFACES); i++) {
-+        ifAddr = inet_addr(gIFIP_IPV4[i]);
-+        ifNetmask = inet_addr(gIFNM_IPV4[i]);
-+        if ((ifAddr & ifNetmask) == (srcAddr & ifNetmask)) {
++        if_addr = inet_addr(gIFIP_IPV4[i]);
++        if_netmask = inet_addr(gIFNM_IPV4[i]);
++        if ((if_addr & if_netmask) == (src_addr & if_netmask)) {
++            return 1;
++        }
++    }
++
++    return 0;
++}
++
++void DetermineHost(
++    in_addr_t src_addr,
++    char *host,
++    size_t host_len)
++{
++    in_addr_t if_addr, if_netmask;
++    int i;
++
++    for (i = 0; gIFIP_IPV4[i] && gIFNM_IPV4[i] && (i < MAX_INTERFACES); i++) {
++        if_addr = inet_addr(gIFIP_IPV4[i]);
++        if_netmask = inet_addr(gIFNM_IPV4[i]);
++        if ((if_addr & if_netmask) == (src_addr & if_netmask)) {
 +            strncpy(host, gIFIP_IPV4[i], host_len);
 +        }
 +    }
@@ -439,7 +662,7 @@
  
  	*device_handle_out = -1;
  	return HND_INVALID;
-@@ -3828,9 +3858,10 @@
+@@ -3828,9 +3996,10 @@
  }
  
  
@@ -452,7 +675,7 @@
  	char tempstr[INET_ADDRSTRLEN];
  	const char *p = NULL;
  
-@@ -3840,6 +3871,8 @@
+@@ -3840,6 +4009,8 @@
  
  	memset(&LocalAddr, 0, sizeof(LocalAddr));
  
@@ -461,7 +684,7 @@
  	gethostname(out, out_len);
  	h = gethostbyname(out);
  	if (h != NULL) {
-@@ -3868,33 +3901,37 @@
+@@ -3868,33 +4039,37 @@
  	}
  
  	/* cycle through available interfaces */
@@ -515,7 +738,7 @@
  		}
  	}
  	freeifaddrs(ifap);
-@@ -3908,7 +3945,6 @@
+@@ -3908,7 +4083,6 @@
  	long unsigned int i;
  	int LocalSock;
  	struct sockaddr_in LocalAddr;
@@ -523,7 +746,7 @@
  
  	/* purify */
  	memset(&ifConf,  0, sizeof(ifConf));
-@@ -3935,7 +3971,7 @@
+@@ -3935,7 +4109,7 @@
  	}
  
  	/* Cycle through the list of interfaces looking for IP addresses. */
@@ -532,7 +755,7 @@
  		struct ifreq *pifReq =
  			(struct ifreq *)((caddr_t)ifConf.ifc_req + i);
  		i += sizeof *pifReq;
-@@ -3948,41 +3984,47 @@
+@@ -3948,41 +4122,47 @@
  				"Can't get interface flags for %s:\n",
  				ifReq.ifr_name);
  		}
@@ -685,7 +908,7 @@
          error_respond( info, HTTP_PRECONDITION_FAILED, request );
          membuffer_destroy( &event_url_path );
 --- upnp/src/genlib/miniserver/miniserver.c	2013-11-15 16:50:02.000000000 +0100
-+++ upnp/src/genlib/miniserver/miniserver.c	2014-02-09 18:45:13.186693479 +0100
++++ upnp/src/genlib/miniserver/miniserver.c	2014-02-09 21:31:55.332775389 +0100
 @@ -201,7 +201,8 @@
  	int ret_code;
  	int major = 1;
@@ -720,6 +943,20 @@
  		"miniserver %d: PROCESSING...\n", connfd);
  	/* dispatch */
  	http_error_code = dispatch_request(&info, &parser);
+@@ -308,7 +324,12 @@
+ 		clientLen = sizeof(clientAddr);
+ 		asock = accept(lsock, (struct sockaddr *)&clientAddr,
+ 			&clientLen);
+-		if (asock == INVALID_SOCKET) {
++        if (!IsBoundAddress(((struct sockaddr_in *)&clientAddr)->sin_addr.s_addr)) {
++            sock_close(asock);
++            UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
++                "miniserver: Refused incoming connection\n");
++        }
++        else if (asock == INVALID_SOCKET) {
+ 			strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
+ 			UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
+ 				"miniserver: Error in accept(): %s\n",
 --- upnp/src/genlib/net/http/httpreadwrite.c	2013-11-15 17:01:35.000000000 +0100
 +++ upnp/src/genlib/net/http/httpreadwrite.c	2014-02-09 13:14:43.175489716 +0100
 @@ -379,8 +379,9 @@
@@ -963,7 +1200,7 @@
  /************************************************************************
   * Function: http_RequestAndResponse
 --- upnp/src/inc/upnpapi.h	2013-11-15 17:01:35.000000000 +0100
-+++ upnp/src/inc/upnpapi.h	2014-02-09 18:44:31.610692291 +0100
++++ upnp/src/inc/upnpapi.h	2014-02-09 21:31:55.336775390 +0100
 @@ -45,7 +45,7 @@
  #include "VirtualDir.h"		/* for struct VirtualDirCallbacks */
  
@@ -973,16 +1210,24 @@
  
  #define DEFAULT_INTERFACE 1
  
-@@ -155,6 +155,18 @@
+@@ -155,6 +155,26 @@
  
  
  /*!
++ * \brief Returns nonzero when the address if from one of the bound interfaces.
++ */
++int IsBoundAddress(
++    /*! [in] Source IP address. */
++    in_addr_t src_addr);
++
++/*!
 + * \brief Determines the host string.
 + *
 + * \return host address
 + */
-+void DetermineHost(/*! [in] Source IP address. */
-+    in_addr_t source,
++void DetermineHost(
++    /*! [in] Source IP address. */
++    in_addr_t src_addr,
 +    /*! [out] Destination host string. */
 +    char *host,
 +    /*! [in] Destination host string length. */
@@ -992,7 +1237,7 @@
   * \brief Get client handle info.
   *
   * \note The logic around the use of this function should be revised.
-@@ -173,8 +185,8 @@
+@@ -173,8 +193,8 @@
   * \return HND_DEVICE or HND_INVALID
   */
  Upnp_Handle_Type GetDeviceHandleInfo(
@@ -1003,7 +1248,7 @@
  	/*! [out] Device handle pointer. */
  	int *device_handle_out, 
  	/*! [out] Device handle structure passed by this function. */
-@@ -180,9 +192,9 @@
+@@ -180,9 +200,9 @@
  	/*! [out] Device handle structure passed by this function. */
  	struct Handle_Info **HndInfo);
  
@@ -1015,7 +1260,7 @@
  extern char gIF_IPV6[INET6_ADDRSTRLEN];
  
  extern char gIF_IPV6_ULA_GUA[INET6_ADDRSTRLEN];
-@@ -289,18 +301,20 @@
+@@ -289,18 +309,20 @@
  
  
  /*!
@@ -1139,7 +1384,7 @@
  	int retVal;
  
 --- upnp/src/ssdp/ssdp_device.c	2012-06-21 03:06:38.000000000 +0200
-+++ upnp/src/ssdp/ssdp_device.c	2014-02-09 18:50:05.494701835 +0100
++++ upnp/src/ssdp/ssdp_device.c	2014-02-09 22:03:55.581336280 +0100
 @@ -82,6 +82,7 @@
  void ssdp_handle_device_request(http_message_t *hmsg, struct sockaddr_storage *dest_addr)
  {
@@ -1196,30 +1441,37 @@
  	/*! [in] Number of packet to be sent. */
  	int NumPacket,
  	/*! [in] . */
-@@ -183,7 +197,7 @@
+@@ -181,9 +195,10 @@
+ {
+ 	char errorBuffer[ERROR_BUFFER_LEN];
  	SOCKET ReplySock;
- 	socklen_t socklen = sizeof(struct sockaddr_storage);
+-	socklen_t socklen = sizeof(struct sockaddr_storage);
++    struct sockaddr_storage __ss;
++    struct sockaddr_in *ssdpAddr4 = (struct sockaddr_in *)&__ss;
++    socklen_t socklen = sizeof(struct sockaddr_storage);
  	int Index;
 -	unsigned long replyAddr = inet_addr(gIF_IPV4);
-+    unsigned long replyAddr4;
  	/* a/c to UPNP Spec */
  	int ttl = 4;
  #ifdef INET_IPV6
-@@ -204,10 +218,11 @@
+@@ -204,10 +219,14 @@
  
  	switch (DestAddr->sa_family) {
  	case AF_INET:
 -		inet_ntop(AF_INET, &((struct sockaddr_in *)DestAddr)->sin_addr,
-+        replyAddr4 = inet_addr(SrcAddr);
++        ssdpAddr4->sin_family = (sa_family_t)AF_INET;
++        ssdpAddr4->sin_addr.s_addr = inet_addr(SrcAddr);
++        ssdpAddr4->sin_port = 0;
++        bind(ReplySock, (struct sockaddr *)ssdpAddr4, sizeof(*ssdpAddr4));
 +        inet_ntop(AF_INET, &((struct sockaddr_in *)DestAddr)->sin_addr,
  			  buf_ntop, sizeof(buf_ntop));
  		setsockopt(ReplySock, IPPROTO_IP, IP_MULTICAST_IF,
 -			   (char *)&replyAddr, sizeof(replyAddr));
-+               (char *)&replyAddr4, sizeof(replyAddr4));
++               (char *)&(ssdpAddr4->sin_addr.s_addr), sizeof(ssdpAddr4->sin_addr.s_addr));
  		setsockopt(ReplySock, IPPROTO_IP, IP_MULTICAST_TTL,
  			   (char *)&ttl, sizeof(int));
  		socklen = sizeof(struct sockaddr_in);
-@@ -263,6 +278,38 @@
+@@ -263,6 +282,38 @@
   *
   * \return 1 if an inet6 @ has been found.
   */
@@ -1258,7 +1510,7 @@
  static int extractIPv6address(char *url, char *address)
  {
  	int i = 0;
-@@ -502,7 +549,8 @@
+@@ -502,7 +553,8 @@
  	struct sockaddr_storage __ss;
  	struct sockaddr_in *DestAddr4 = (struct sockaddr_in *)&__ss;
  	struct sockaddr_in6 *DestAddr6 = (struct sockaddr_in6 *)&__ss;
@@ -1268,7 +1520,7 @@
  	char Mil_Usn[LINE_SIZE];
  	char *msgs[3];
  	int ret_code = UPNP_E_OUTOF_MEMORY;
-@@ -558,17 +606,19 @@
+@@ -558,17 +610,19 @@
  	if ((RootDev && msgs[0] == NULL) || msgs[1] == NULL || msgs[2] == NULL) {
  		goto error_handler;
  	}
@@ -1299,7 +1551,7 @@
  
  error_handler:
  	/* free msgs */
-@@ -586,7 +636,8 @@
+@@ -586,7 +640,8 @@
  	int ret_code = UPNP_E_OUTOF_MEMORY;
  	char *msgs[2];
  	int num_msgs;
@@ -1309,7 +1561,7 @@
  	int i;
  	int rc = 0;
  
-@@ -632,7 +683,8 @@
+@@ -632,7 +687,8 @@
  		}
  	}
  	/* send msgs */
@@ -1319,7 +1571,7 @@
  
  error_handler:
  	for (i = 0; i < num_msgs; i++) {
-@@ -647,7 +699,8 @@
+@@ -647,7 +703,8 @@
  		char *Udn, char *Location, int Duration, int PowerState,
  		int SleepPeriod, int RegistrationState)
  {
@@ -1329,7 +1581,7 @@
  	int RetVal = UPNP_E_OUTOF_MEMORY;
  	int rc = 0;
  
-@@ -691,11 +744,13 @@
+@@ -691,11 +748,13 @@
  		goto error_handler;
  	}
  	/* send replies */
@@ -1348,7 +1600,7 @@
  
  error_handler:
  	/* free */
-@@ -710,7 +765,8 @@
+@@ -710,7 +769,8 @@
  			 int Duration, int AddressFamily,
  			 int PowerState, int SleepPeriod, int RegistrationState)
  {
@@ -1358,7 +1610,7 @@
  	char *szReq[1];
  	int RetVal = UPNP_E_OUTOF_MEMORY;
  	struct sockaddr_storage __ss;
-@@ -749,7 +805,8 @@
+@@ -749,7 +809,8 @@
  	if (szReq[0] == NULL) {
  		goto error_handler;
  	}
@@ -1368,7 +1620,7 @@
  
  error_handler:
  	free(szReq[0]);
-@@ -761,7 +818,8 @@
+@@ -761,7 +822,8 @@
  		 char *Location, int Duration, int PowerState, int SleepPeriod,
  		 int RegistrationState)
  {
@@ -1378,7 +1630,7 @@
  	char *szReq[1];
  	int RetVal = UPNP_E_OUTOF_MEMORY;
  	int rc = 0;
-@@ -775,7 +833,8 @@
+@@ -775,7 +837,8 @@
  			    PowerState, SleepPeriod, RegistrationState);
  	if (szReq[0] == NULL)
  		goto error_handler;
@@ -1388,7 +1640,7 @@
  
  error_handler:
  	free(szReq[0]);
-@@ -787,7 +846,8 @@
+@@ -787,7 +850,8 @@
  		    int AddressFamily, int PowerState,
  		    int SleepPeriod, int RegistrationState)
  {
@@ -1398,7 +1650,7 @@
  	char *szReq[1];
  	struct sockaddr_storage __ss;
  	struct sockaddr_in *DestAddr4 = (struct sockaddr_in *)&__ss;
-@@ -826,7 +886,8 @@
+@@ -826,7 +890,8 @@
  			    PowerState, SleepPeriod, RegistrationState);
  	if (szReq[0] == NULL)
  		goto error_handler;
@@ -1408,7 +1660,7 @@
  
  error_handler:
  	free(szReq[0]);
-@@ -842,7 +903,8 @@
+@@ -842,7 +907,8 @@
  	struct sockaddr_in *DestAddr4 = (struct sockaddr_in *)&__ss;
  	struct sockaddr_in6 *DestAddr6 = (struct sockaddr_in6 *)&__ss;
  	char *msgs[3];
@@ -1418,7 +1670,7 @@
  	int ret_code = UPNP_E_OUTOF_MEMORY;
  	int rc = 0;
  
-@@ -896,16 +958,18 @@
+@@ -896,16 +962,18 @@
  		goto error_handler;
  	}
  	/* send packets */
@@ -1448,7 +1700,16 @@
  error_handler:
  	/* free msgs */
 --- upnp/src/ssdp/ssdp_server.c	2013-11-15 16:50:02.000000000 +0100
-+++ upnp/src/ssdp/ssdp_server.c	2014-02-09 18:04:12.794623149 +0100
++++ upnp/src/ssdp/ssdp_server.c	2014-02-09 21:34:21.324779563 +0100
+@@ -736,7 +736,7 @@
+ 	}
+ 	byteReceived = recvfrom(socket, requestBuf, BUFSIZE - (size_t)1, 0,
+ 				(struct sockaddr *)&__ss, &socklen);
+-	if (byteReceived > 0) {
++    if ((byteReceived > 0) && IsBoundAddress(((struct sockaddr_in *)&__ss)->sin_addr.s_addr)) {
+ 		requestBuf[byteReceived] = '\0';
+ 		switch (__ss.ss_family) {
+ 		case AF_INET:
 @@ -788,12 +788,11 @@
  {
  	char errorBuffer[ERROR_BUFFER_LEN];
