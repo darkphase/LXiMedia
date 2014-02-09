@@ -13,7 +13,8 @@ unix {
 
     # Patch
     system(cp $${PWD}/*.patch $${OUT_PWD}/libupnp-$${PUPNP_VERSION})
-    system(cd $${OUT_PWD}/libupnp-$${PUPNP_VERSION} && patch -p0 < fix-ignore-specified-port.patch)
+    system(cd $${OUT_PWD}/libupnp-$${PUPNP_VERSION} && patch -p0 < fix-binding-port.patch)
+    system(cd $${OUT_PWD}/libupnp-$${PUPNP_VERSION} && patch -p0 < add-support-multiple-interfaces.patch)
 
     # Compile
     system(cd $${OUT_PWD}/libupnp-$${PUPNP_VERSION} && sh configure --enable-static --disable-shared --disable-samples --disable-dependency-tracking CFLAGS=\"-w $${PLATFORM_CFLAGS}\")
@@ -35,7 +36,8 @@ win32 {
     # Patch
     system(copy /Y $$replace(PWD,/,\\)\\*.patch $$replace(OUT_PWD,/,\\)\\libupnp-$${PUPNP_VERSION} > NUL)
     system(cd $$replace(OUT_PWD,/,\\)\\libupnp-$${PUPNP_VERSION} && patch -p0 < fix-mingw47-build.patch)
-    system(cd $$replace(OUT_PWD,/,\\)\\libupnp-$${PUPNP_VERSION} && patch -p0 < fix-ignore-specified-port.patch)
+    system(cd $$replace(OUT_PWD,/,\\)\\libupnp-$${PUPNP_VERSION} && patch -p0 < fix-binding-port.patch)
+    system(cd $$replace(OUT_PWD,/,\\)\\libupnp-$${PUPNP_VERSION} && patch -p0 < add-support-multiple-interfaces.patch)
 
     # Compile
     system(cd $$replace(OUT_PWD,/,\\)\\libupnp-$${PUPNP_VERSION} && sh configure --enable-static --disable-shared --disable-samples --disable-dependency-tracking CFLAGS=\"-w -DUPNP_STATIC_LIB $${PLATFORM_CFLAGS}\")

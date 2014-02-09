@@ -1,0 +1,1549 @@
+--- upnp/inc/upnp.h	2013-11-15 17:01:35.000000000 +0100
++++ upnp/inc/upnp.h	2014-02-09 16:38:51.270476751 +0100
+@@ -613,6 +613,9 @@
+   /** The error string in case of error. */
+   char ErrStr[LINE_SIZE];
+ 
++  /** The IP address and port used to perform this request. */
++  char Host[NAME_SIZE];
++
+  /** The Action Name. */
+   char ActionName[NAME_SIZE];
+ 
+@@ -788,6 +791,9 @@
+ 
+ struct Upnp_Subscription_Request
+ {
++  /** The IP address and port used to perform this request. */
++  char Host[NAME_SIZE];
++
+   /** The identifier for the service being subscribed to. */
+   char *ServiceId; 
+ 
+@@ -1016,6 +1022,19 @@
+ EXPORT_SPEC char *UpnpGetServerIpAddress(void);
+ 
+ /*!
++ * \brief Returns the local IPv4 listening ip addresses.
++ *
++ * If \c NULL is used as the IPv4 address in \b UpnpInit, then this function can
++ * be used to retrieve the actual interface addresses on which device is running.
++ *
++ * \return
++ * 	\li On success: A NULL terminated list of the  IPv4 addresses on which an
++ *      internal server is listening for UPnP related requests.
++ * 	\li On error: \c NULL is returned if \b UpnpInit has not succeeded.
++ */
++EXPORT_SPEC char **UpnpGetServerIpAddresses(void);
++
++/*!
+  * \brief Returns the local IPv6 listening ip address.
+  *
+  * If \c NULL is used as the IPv6 address in \b UpnpInit, then this function can
+@@ -2665,9 +2684,11 @@
+  * \brief Get-info callback function prototype.
+  */
+ typedef int (*VDCallback_GetInfo)(
+-		/*! [in] The name of the file to query. */
++        /*! [in] The IP address and port used to perform this request. */
++        const char *host,
++        /*! [in] The name of the file to query. */
+ 		const char *filename,
+-		/*! [out] Pointer to a structure to store the information on the file. */
++        /*! [out] Pointer to a structure to store the information on the file. */
+ #if UPNP_VERSION < 10800
+ 		struct File_Info *info
+ #else
+@@ -2689,9 +2710,11 @@
+  * \brief Open callback function prototype.
+  */
+ typedef UpnpWebFileHandle (*VDCallback_Open)(
+-		/*! [in] The name of the file to open. */ 
++        /*! [in] The IP address and port used to perform this request. */
++        const char *host,
++        /*! [in] The name of the file to open. */
+ 		const char *filename,
+-		/*! [in] The mode in which to open the file.
++        /*! [in] The mode in which to open the file.
+ 		 * Valid values are \c UPNP_READ or \c UPNP_WRITE. */
+ 		enum UpnpOpenFileMode Mode);
+ 
+--- upnp/src/api/upnpapi.c	2013-11-15 17:01:35.000000000 +0100
++++ upnp/src/api/upnpapi.c	2014-02-09 18:44:31.614692291 +0100
+@@ -130,7 +130,12 @@
+ char gIF_NAME[LINE_SIZE] = { '\0' };
+ 
+ /*! Static buffer to contain interface IPv4 address. (extern'ed in upnp.h) */
+-char gIF_IPV4[INET_ADDRSTRLEN] = { '\0' };
++char * gIFIP_IPV4[MAX_INTERFACES + 1] = { 0 };
++char gIFIP_IPV4_MEMORY[INET_ADDRSTRLEN * MAX_INTERFACES];
++
++/*! Static buffer to contain interface IPv4 netmasks. (extern'ed in upnp.h) */
++char * gIFNM_IPV4[MAX_INTERFACES + 1] = { 0 };
++char gIFNM_IPV4_MEMORY[INET_ADDRSTRLEN * MAX_INTERFACES];
+ 
+ /*! Static buffer to contain interface IPv6 address. (extern'ed in upnp.h) */
+ char gIF_IPV6[INET6_ADDRSTRLEN] = { '\0' };
+@@ -432,6 +437,7 @@
+ int UpnpInit(const char *HostIP, unsigned short DestPort)
+ {
+ 	int retVal = UPNP_E_SUCCESS;
++    int i;
+ 
+ 	/* Initializes the ithread library */
+ 	ithread_initialize_library();
+@@ -454,15 +460,25 @@
+ 		"UpnpInit with HostIP=%s, DestPort=%d.\n", 
+ 		HostIP ? HostIP : "", (int)DestPort);
+ 
+-	/* Verify HostIP, if provided, or find it ourselves. */
+-	memset(gIF_IPV4, 0, sizeof(gIF_IPV4));
+-	if (HostIP != NULL) {
+-		strncpy(gIF_IPV4, HostIP, sizeof(gIF_IPV4) - 1);
++    memset(gIFIP_IPV4, 0, sizeof(gIFIP_IPV4));
++    memset(gIFIP_IPV4_MEMORY, 0, sizeof(gIFIP_IPV4_MEMORY));
++    memset(gIFNM_IPV4, 0, sizeof(gIFNM_IPV4));
++    memset(gIFNM_IPV4_MEMORY, 0, sizeof(gIFNM_IPV4_MEMORY));
++
++    /* Verify HostIP, if provided, or find it ourselves. */
++    if (HostIP != NULL) {
++        gIFIP_IPV4[0] = gIFIP_IPV4_MEMORY;
++        strncpy(gIFIP_IPV4[0], HostIP, INET_ADDRSTRLEN - 1);
+ 	} else {
+-		if( getlocalhostname( gIF_IPV4, sizeof(gIF_IPV4) - 1 ) != UPNP_E_SUCCESS ) {
+-			retVal = UPNP_E_INIT_FAILED;
+-			goto exit_function;
+-		}
++        i = getlocalhostnames( gIFIP_IPV4_MEMORY, gIFNM_IPV4_MEMORY, sizeof(gIFIP_IPV4_MEMORY) );
++        if (i < UPNP_E_SUCCESS ) {
++            retVal = UPNP_E_INIT_FAILED;
++            goto exit_function;
++        }
++        for (; i > 0; i--) {
++            gIFIP_IPV4[i - 1] = gIFIP_IPV4_MEMORY + ((i - 1) * INET_ADDRSTRLEN);
++            gIFNM_IPV4[i - 1] = gIFNM_IPV4_MEMORY + ((i - 1) * INET_ADDRSTRLEN);
++        }
+ 	}
+ 
+ 	/* Set the UpnpSdkInit flag to 1 to indicate we're successfully initialized. */
+@@ -475,9 +491,11 @@
+ 		goto exit_function;
+ 	}
+ 
+-	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
+-		"Host Ip: %s Host Port: %d\n", gIF_IPV4,
+-		(int)LOCAL_PORT_V4);
++    for (i = 0; gIFIP_IPV4[i] && (i < MAX_INTERFACES); i++) {
++        UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
++                   "Host Ip: %s Host Port: %d\n", gIFIP_IPV4[i],
++            (int)LOCAL_PORT_V4);
++    }
+ 
+ exit_function:
+ 	ithread_mutex_unlock(&gSDKInitMutex);
+@@ -603,6 +621,7 @@
+ 	UpnpClient_Handle client_handle;
+ #endif
+ 	struct Handle_Info *temp;
++    int i;
+ 
+ 	if (UpnpSdkInit != 1)
+ 		return UPNP_E_FINISH;
+@@ -618,14 +637,17 @@
+ 	PrintThreadPoolStats(&gMiniServerThreadPool, __FILE__, __LINE__,
+ 		"MiniServer Thread Pool");
+ #ifdef INCLUDE_DEVICE_APIS
+-	switch (GetDeviceHandleInfo(AF_INET, &device_handle, &temp)) {
+-	case HND_DEVICE:
+-		UpnpUnRegisterRootDevice(device_handle);
+-		break;
+-	default:
+-		break;
+-	}
+-	switch (GetDeviceHandleInfo(AF_INET6, &device_handle, &temp)) {
++    for (i = 0; gIFIP_IPV4[i] && (i < MAX_INTERFACES); i++) {
++        switch (GetDeviceHandleInfo(gIFIP_IPV4[i], &device_handle, &temp)) {
++        case HND_DEVICE:
++            UpnpUnRegisterRootDevice(device_handle);
++            break;
++        default:
++            break;
++        }
++    }
++
++    switch (GetDeviceHandleInfo(gIF_IPV6, &device_handle, &temp)) {
+ 	case HND_DEVICE:
+ 		UpnpUnRegisterRootDevice(device_handle);
+ 		break;
+@@ -698,7 +720,15 @@
+ 	if (UpnpSdkInit != 1)
+ 		return NULL;
+ 
+-	return gIF_IPV4;
++    return gIFIP_IPV4[0];
++}
++
++char **UpnpGetServerIpAddresses(void)
++{
++    if (UpnpSdkInit != 1)
++        return NULL;
++
++    return gIFIP_IPV4;
+ }
+ 
+ char *UpnpGetServerIp6Address(void)
+@@ -799,11 +829,6 @@
+ 		goto exit_function;
+ 	}
+ 
+-	if (UpnpSdkDeviceRegisteredV4 == 1) {
+-		retVal = UPNP_E_ALREADY_REGISTERED;
+-		goto exit_function;
+-	}
+-
+ 	*Hnd = GetFreeHandle();
+ 	if (*Hnd == UPNP_E_OUTOF_HANDLE) {
+ 		retVal = UPNP_E_OUTOF_MEMORY;
+@@ -901,7 +926,7 @@
+ 	}
+ #endif /* EXCLUDE_GENA */
+ 
+-	UpnpSdkDeviceRegisteredV4 = 1;
++    UpnpSdkDeviceRegisteredV4++;
+ 
+ 	retVal = UPNP_E_SUCCESS;
+ 
+@@ -965,11 +990,6 @@
+ 		goto exit_function;
+ 	}
+ 
+-	if (UpnpSdkDeviceRegisteredV4 == 1) {
+-		retVal = UPNP_E_ALREADY_REGISTERED;
+-		goto exit_function;
+-	}
+-
+ 	*Hnd = GetFreeHandle();
+ 	if (*Hnd == UPNP_E_OUTOF_HANDLE) {
+ 		retVal = UPNP_E_OUTOF_MEMORY;
+@@ -1064,7 +1084,7 @@
+ 	}
+ #endif /* EXCLUDE_GENA */
+ 
+-	UpnpSdkDeviceRegisteredV4 = 1;
++    UpnpSdkDeviceRegisteredV4++;
+ 
+ 	retVal = UPNP_E_SUCCESS;
+ 
+@@ -1127,11 +1147,6 @@
+ 		retVal = UPNP_E_INVALID_PARAM;
+ 		goto exit_function;
+ 	}
+-	/* Test for already regsitered IPV4. */
+-	if (AddressFamily == AF_INET && UpnpSdkDeviceRegisteredV4 == 1) {
+-		retVal = UPNP_E_ALREADY_REGISTERED;
+-		goto exit_function;
+-	}
+ 	/* Test for already registered IPV6. IPV6 devices might register on multiple
+ 	 * IPv6 addresses (link local and GUA or ULA), so we must to check the
+ 	 * description URL in the HandleTable. */
+@@ -1239,7 +1254,7 @@
+ 
+ 	switch (AddressFamily) {
+ 	case AF_INET:
+-		UpnpSdkDeviceRegisteredV4 = 1;
++        UpnpSdkDeviceRegisteredV4++;
+ 		break;
+ 	default:
+ 		UpnpSdkDeviceregisteredV6 = 1;
+@@ -1321,7 +1336,7 @@
+ #endif /* INTERNAL_WEB_SERVER */
+ 	switch (HInfo->DeviceAf) {
+ 	case AF_INET:
+-		UpnpSdkDeviceRegisteredV4 = 0;
++        UpnpSdkDeviceRegisteredV4--;
+ 		break;
+ 	case AF_INET6:
+ 		UpnpSdkDeviceregisteredV6 = 0;
+@@ -1476,6 +1491,8 @@
+  * \brief Fill the sockadr with IPv4 miniserver information.
+  */
+ static void get_server_addr(
++    /*! [in] index of the interface. */
++    int index,
+ 	/*! [out] pointer to server address structure. */
+ 	struct sockaddr *serverAddr)
+ {
+@@ -1484,7 +1501,7 @@
+     memset( serverAddr, 0, sizeof(struct sockaddr_storage) );
+ 
+     sa4->sin_family = AF_INET;
+-    inet_pton( AF_INET, gIF_IPV4, &sa4->sin_addr );
++    inet_pton( AF_INET, gIFIP_IPV4[index], &sa4->sin_addr );
+     sa4->sin_port = htons( LOCAL_PORT_V4 );
+ }
+ 
+@@ -1595,7 +1612,7 @@
+ 			strncpy(aliasStr, temp_str, sizeof(aliasStr) - 1);
+ 		}
+ 		if (AddressFamily == AF_INET) {
+-			get_server_addr((struct sockaddr *)&serverAddr);
++            get_server_addr(0, (struct sockaddr *)&serverAddr);
+ 		} else {
+ 			get_server_addr6((struct sockaddr *)&serverAddr);
+ 		}
+@@ -3354,7 +3371,8 @@
+ 			   "Failed to find an adapter with valid IP addresses for use.\n");
+ 		return UPNP_E_INVALID_INTERFACE;
+ 	}
+-	inet_ntop(AF_INET, &v4_addr, gIF_IPV4, sizeof(gIF_IPV4));
++    gIFIP_IPV4[0] = gIFIP_IPV4_MEMORY;
++    inet_ntop(AF_INET, &v4_addr, gIFIP_IPV4[0], INET_ADDRSTRLEN);
+ 	inet_ntop(AF_INET6, &v6_addr, gIF_IPV6, sizeof(gIF_IPV6));
+ #elif (defined(BSD) && BSD >= 199306) || defined(__FreeBSD_kernel__)
+ 	struct ifaddrs *ifap, *ifa;
+@@ -3435,7 +3453,8 @@
+ 			   "Failed to find an adapter with valid IP addresses for use.\n");
+ 		return UPNP_E_INVALID_INTERFACE;
+ 	}
+-	inet_ntop(AF_INET, &v4_addr, gIF_IPV4, sizeof(gIF_IPV4));
++    gIFIP_IPV4[0] = gIFIP_IPV4_MEMORY;
++    inet_ntop(AF_INET, &v4_addr, gIFIP_IPV4[0], INET_ADDRSTRLEN);
+ 	inet_ntop(AF_INET6, &v6_addr, gIF_IPV6, sizeof(gIF_IPV6));
+ 	gIF_INDEX = if_nametoindex(gIF_NAME);
+ #else
+@@ -3516,9 +3535,10 @@
+ 			/* Copy interface name, IPv4 address and interface index. */
+ 			memset(gIF_NAME, 0, sizeof(gIF_NAME));
+ 			strncpy(gIF_NAME, pifReq->ifr_name, sizeof(gIF_NAME) - 1);
+-			inet_ntop(AF_INET,
++            gIFIP_IPV4[0] = gIFIP_IPV4_MEMORY;
++            inet_ntop(AF_INET,
+ 				  &((struct sockaddr_in *)&pifReq->ifr_addr)->
+-				  sin_addr, gIF_IPV4, sizeof(gIF_IPV4));
++                      sin_addr, gIFIP_IPV4[0], INET_ADDRSTRLEN);
+ 			gIF_INDEX = if_nametoindex(gIF_NAME);
+ 			valid_addr_found = 1;
+ 			break;
+@@ -3585,7 +3605,7 @@
+ #endif
+ 	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
+ 		   "Interface name=%s, index=%d, v4=%s, v6=%s, ULA or GUA v6=%s\n",
+-		   gIF_NAME, gIF_INDEX, gIF_IPV4, gIF_IPV6, gIF_IPV6_ULA_GUA);
++               gIF_NAME, gIF_INDEX, gIFIP_IPV4[0] ? gIFIP_IPV4[0] : "", gIF_IPV6, gIF_IPV6_ULA_GUA);
+ 
+ 	return UPNP_E_SUCCESS;
+ }
+@@ -3714,61 +3734,71 @@
+ 	return ((struct Handle_Info *)HandleTable[Hnd])->Callback;
+ }
+ 
++void DetermineHost(
++    in_addr_t srcAddr,
++    char *host,
++    size_t host_len)
++{
++    in_addr_t ifAddr, ifNetmask;
++    int i;
++
++    for (i = 0; gIFIP_IPV4[i] && gIFNM_IPV4[i] && (i < MAX_INTERFACES); i++) {
++        ifAddr = inet_addr(gIFIP_IPV4[i]);
++        ifNetmask = inet_addr(gIFNM_IPV4[i]);
++        if ((ifAddr & ifNetmask) == (srcAddr & ifNetmask)) {
++            strncpy(host, gIFIP_IPV4[i], host_len);
++        }
++    }
++}
+ 
+ /* Assumes at most one client */
+ Upnp_Handle_Type GetClientHandleInfo(
+ 	UpnpClient_Handle *client_handle_out,
+ 	struct Handle_Info **HndInfo)
+ {
+-	Upnp_Handle_Type ret = HND_CLIENT;
++    Upnp_Handle_Type ret = HND_INVALID;
+ 	UpnpClient_Handle client;
+ 
+-	switch (GetHandleInfo(1, HndInfo)) {
+-	case HND_CLIENT:
+-		client = 1;
++    *client_handle_out = -1;
++
++    for (client = 0; (client < NUM_HANDLE) && (ret == HND_INVALID); client++)
++    if (GetHandleInfo(client, HndInfo) == HND_CLIENT) {
++        ret = HND_CLIENT;
++        *client_handle_out = client;
+ 		break;
+-	default:
+-		switch (GetHandleInfo(2, HndInfo)) {
+-		case HND_CLIENT:
+-			client = 2;
+-			break;
+-		default:
+-			client = -1;
+-			ret = HND_INVALID;
+-		}
+ 	}
+ 
+-	*client_handle_out = client;
+ 	return ret;
+ }
+ 
+ 
+ Upnp_Handle_Type GetDeviceHandleInfo(
+-	int AddressFamily,
++    const char *host,
+ 	UpnpDevice_Handle *device_handle_out,
+ 	struct Handle_Info **HndInfo)
+ {
+-#ifdef INCLUDE_DEVICE_APIS
+-	/* Check if we've got a registered device of the address family specified. */
+-	if ((AddressFamily == AF_INET  && UpnpSdkDeviceRegisteredV4 == 0) ||
+-	    (AddressFamily == AF_INET6 && UpnpSdkDeviceregisteredV6 == 0)) {
+-		*device_handle_out = -1;
+-		return HND_INVALID;
+-	}
++    char *pos;
+ 
+-	/* Find it. */
+-	for (*device_handle_out=1; *device_handle_out < NUM_HANDLE; (*device_handle_out)++) {
+-		switch (GetHandleInfo(*device_handle_out, HndInfo)) {
+-		case HND_DEVICE:
+-			if ((*HndInfo)->DeviceAf == AddressFamily) {
+-				return HND_DEVICE;
+-			}
+-			break;
+-		default:
+-			break;
+-		}
+-	}
++    if (host == NULL) {
++        UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
++            "GetDeviceHandleInfo: host is NULL\n");
++    } else {
++#ifdef INCLUDE_DEVICE_APIS
++        /* Find it. */
++        for (*device_handle_out=1; *device_handle_out < NUM_HANDLE; (*device_handle_out)++) {
++            switch (GetHandleInfo(*device_handle_out, HndInfo)) {
++            case HND_DEVICE:
++                pos = strstr((*HndInfo)->DescURL, "://");
++                if (pos && (strncmp(pos + 3, host, strlen(host)) == 0)) {
++                    return HND_DEVICE;
++                }
++                break;
++            default:
++                break;
++            }
++        }
+ #endif /* INCLUDE_DEVICE_APIS */
++    }
+ 
+ 	*device_handle_out = -1;
+ 	return HND_INVALID;
+@@ -3828,9 +3858,10 @@
+ }
+ 
+ 
+-int getlocalhostname(char *out, size_t out_len)
++int getlocalhostnames(char *out, char *out_nm, size_t out_len)
+ {
+-	int ret = UPNP_E_SUCCESS;
++    int ret = UPNP_E_SUCCESS;
++    size_t out_pos = 0;
+ 	char tempstr[INET_ADDRSTRLEN];
+ 	const char *p = NULL;
+ 
+@@ -3840,6 +3871,8 @@
+ 
+ 	memset(&LocalAddr, 0, sizeof(LocalAddr));
+ 
++    TODO
++
+ 	gethostname(out, out_len);
+ 	h = gethostbyname(out);
+ 	if (h != NULL) {
+@@ -3868,33 +3901,37 @@
+ 	}
+ 
+ 	/* cycle through available interfaces */
+-	for (ifa = ifap; ifa != NULL; ifa = ifa->ifa_next) {
+-		/* Skip loopback, point-to-point and down interfaces, 
+-		 * except don't skip down interfaces
+-		 * if we're trying to get a list of configurable interfaces. */
+-		if ((ifa->ifa_flags & IFF_LOOPBACK) ||
+-		    (!( ifa->ifa_flags & IFF_UP))) {
++    for (ifa = ifap; (ifa != NULL) && (out_pos < out_len); ifa = ifa->ifa_next) {
++        if (!( ifa->ifa_flags & IFF_UP)) {
+ 			continue;
+ 		}
+ 		if (ifa->ifa_addr->sa_family == AF_INET) {
+-			/* We don't want the loopback interface. */
+-			if (((struct sockaddr_in *)(ifa->ifa_addr))->sin_addr.s_addr ==
+-			    htonl(INADDR_LOOPBACK)) {
+-				continue;
+-			}
+ 			p = inet_ntop(AF_INET,
+ 				&((struct sockaddr_in *)(ifa->ifa_addr))->sin_addr,
+ 				tempstr, sizeof(tempstr));
+ 			if (p) {
+-				strncpy(out, p, out_len);
+-			} else {
++              strncpy(out + out_pos, p, INET_ADDRSTRLEN - 1);
++              UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
++                  "Inside getlocalhostname: after strncpy %s\n", out + out_pos);
++
++              p = inet_ntop(AF_INET,
++                  &((struct sockaddr_in *)(ifa->ifa_netmask))->sin_addr,
++                  tempstr, sizeof(tempstr));
++              if (p) {
++                strncpy(out_nm + out_pos, p, INET_ADDRSTRLEN - 1);
++                UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
++                    "Inside getlocalhostname: after strncpy %s\n", out + out_pos);
++                out_pos += INET_ADDRSTRLEN;
++              } else {
++                  UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
++                      "getlocalhostname: inet_ntop returned error\n");
++                  ret = UPNP_E_INIT;
++              }
++            } else {
+ 				UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
+ 					"getlocalhostname: inet_ntop returned error\n");
+ 				ret = UPNP_E_INIT;
+ 			}
+-			UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
+-				"Inside getlocalhostname: after strncpy %s\n", out);
+-			break;
+ 		}
+ 	}
+ 	freeifaddrs(ifap);
+@@ -3908,7 +3945,6 @@
+ 	long unsigned int i;
+ 	int LocalSock;
+ 	struct sockaddr_in LocalAddr;
+-	int j = 0;
+ 
+ 	/* purify */
+ 	memset(&ifConf,  0, sizeof(ifConf));
+@@ -3935,7 +3971,7 @@
+ 	}
+ 
+ 	/* Cycle through the list of interfaces looking for IP addresses. */
+-	for (i = 0lu; i < (long unsigned int)ifConf.ifc_len && j < DEFAULT_INTERFACE; ) {
++    for (i = 0lu; (i < (long unsigned int)ifConf.ifc_len) && (out_pos < out_len); ) {
+ 		struct ifreq *pifReq =
+ 			(struct ifreq *)((caddr_t)ifConf.ifc_req + i);
+ 		i += sizeof *pifReq;
+@@ -3948,41 +3984,47 @@
+ 				"Can't get interface flags for %s:\n",
+ 				ifReq.ifr_name);
+ 		}
+-		/* Skip loopback, point-to-point and down interfaces,
+-		 * except don't skip down interfaces
+-		 * if we're trying to get a list of configurable interfaces. */
+-		if ((ifReq.ifr_flags & IFF_LOOPBACK) ||
+-		    (!(ifReq.ifr_flags & IFF_UP))) {
++        if (!(ifReq.ifr_flags & IFF_UP)) {
+ 			continue;
+ 		}
+ 		if (pifReq->ifr_addr.sa_family == AF_INET) {
+ 			/* Get a pointer to the address...*/
+ 			memcpy(&LocalAddr, &pifReq->ifr_addr,
+ 				sizeof pifReq->ifr_addr);
+-			/* We don't want the loopback interface. */
+-			if (LocalAddr.sin_addr.s_addr ==
+-			    htonl(INADDR_LOOPBACK)) {
+-				continue;
+-			}
+-		}
+-		/* increment j if we found an address which is not loopback
+-		 * and is up */
+-		j++;
++
++            p = inet_ntop(AF_INET, &LocalAddr.sin_addr, tempstr, sizeof(tempstr));
++            if (p) {
++                strncpy(out + out_pos, p, INET_ADDRSTRLEN - 1);
++
++                /* Get a pointer to the netmask...*/
++                memcpy(&LocalAddr, &pifReq->ifr_netmask,
++                    sizeof pifReq->ifr_netmask);
++
++                UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
++                    "Inside getlocalhostname: after strncpy %s\n", out + out_pos);
++
++                p = inet_ntop(AF_INET, &LocalAddr.sin_addr, tempstr, sizeof(tempstr));
++                if (p) {
++                    strncpy(out_nm + out_pos, p, INET_ADDRSTRLEN - 1);
++                    UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
++                        "Inside getlocalhostname: after strncpy %s\n", out + out_pos);
++                    out_pos += INET_ADDRSTRLEN;
++                } else {
++                    UpnpPrintf( UPNP_ALL, API, __FILE__, __LINE__,
++                        "getlocalhostname: inet_ntop returned error\n" );
++                    ret = UPNP_E_INIT;
++                }
++            } else {
++                UpnpPrintf( UPNP_ALL, API, __FILE__, __LINE__,
++                    "getlocalhostname: inet_ntop returned error\n" );
++                ret = UPNP_E_INIT;
++            }
++        }
+ 	}
+ 	close(LocalSock);
+ 
+-	p = inet_ntop(AF_INET, &LocalAddr.sin_addr, tempstr, sizeof(tempstr));
+-	if (p) {
+-		strncpy(out, p, out_len);
+-	} else {
+-		UpnpPrintf( UPNP_ALL, API, __FILE__, __LINE__,
+-			"getlocalhostname: inet_ntop returned error\n" );
+-		ret = UPNP_E_INIT;
+-	}
+-	UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
+-		"Inside getlocalhostname: after strncpy %s\n", out);
+ #endif
+-	return ret;
++    return (ret < UPNP_E_SUCCESS) ? ret : (int)(out_pos / INET_ADDRSTRLEN);
+ }
+ 
+ 
+--- upnp/src/gena/gena_ctrlpt.c	2013-11-15 17:01:35.000000000 +0100
++++ upnp/src/gena/gena_ctrlpt.c	2014-02-09 18:04:12.798623149 +0100
+@@ -351,7 +351,7 @@
+ 				&request, 1, 1,
+ 				"q" "sssdsc" "sc" "sscc",
+ 				HTTPMETHOD_SUBSCRIBE, &dest_url,
+-				"CALLBACK: <http://", gIF_IPV4, ":", LOCAL_PORT_V4, "/>",
++                        "CALLBACK: <http://", gIFIP_IPV4[0], ":", LOCAL_PORT_V4, "/>",
+ 				"NT: upnp:event",
+ 				"TIMEOUT: Second-", timeout_str);
+ 		}
+--- upnp/src/gena/gena_device.c	2013-11-15 17:01:35.000000000 +0100
++++ upnp/src/gena/gena_device.c	2014-02-09 19:01:08.482720787 +0100
+@@ -210,7 +210,7 @@
+ 	}
+ 	timeout = GENA_NOTIFICATION_SENDING_TIMEOUT;
+ 	/* send msg (note: end of notification will contain "\r\n" twice) */
+-	ret_code = http_SendMessage(&info, &timeout,
++    ret_code = http_SendMessage(&info, &timeout,
+ 		"bbb",
+ 		start_msg.buf, start_msg.length,
+ 		propertySet, strlen(propertySet),
+@@ -1207,7 +1207,7 @@
+ 	SOCKINFO *info,
+ 	http_message_t *request)
+ {
+-	struct Upnp_Subscription_Request request_struct;
++    struct Upnp_Subscription_Request request_struct;
+ 	Upnp_SID temp_sid;
+ 	int return_code = 1;
+ 	int time_out = 1801;
+@@ -1229,10 +1229,14 @@
+ 	UpnpPrintf(UPNP_INFO, GENA, __FILE__, __LINE__,
+ 		"Subscription Request Received:\n");
+ 
+-	if (httpmsg_find_hdr(request, HDR_NT, &nt_hdr) == NULL) {
+-		error_respond(info, HTTP_BAD_REQUEST, request);
+-		goto exit_function;
+-	}
++    /* get host header */
++    strncpy(request_struct.Host, request->host, sizeof(request_struct.Host) - 1);
++    request_struct.Host[sizeof(request_struct.Host) - 1] = '\0';
++
++    if (httpmsg_find_hdr(request, HDR_NT, &nt_hdr) == NULL) {
++        error_respond(info, HTTP_BAD_REQUEST, request);
++        goto exit_function;
++    }
+ 
+ 	/* check NT header */
+ 	/* Windows Millenium Interoperability: */
+@@ -1260,8 +1264,8 @@
+ 
+ 	HandleLock();
+ 
+-	/* CURRENTLY, ONLY ONE DEVICE */
+-	if (GetDeviceHandleInfo(info->foreign_sockaddr.ss_family , 
++    /* CURRENTLY, ONLY SUPPORT ONE DEVICE */
++    if (GetDeviceHandleInfo(request->host,
+ 	    &device_handle, &handle_info) != HND_DEVICE) {
+ 		free(event_url_path);
+ 		error_respond(info, HTTP_INTERNAL_SERVER_ERROR, request);
+@@ -1432,7 +1436,7 @@
+     HandleLock();
+ 
+     /* CURRENTLY, ONLY SUPPORT ONE DEVICE */
+-    if( GetDeviceHandleInfo( info->foreign_sockaddr.ss_family,
++    if( GetDeviceHandleInfo( request->host,
+         &device_handle, &handle_info ) != HND_DEVICE ) {
+         error_respond( info, HTTP_PRECONDITION_FAILED, request );
+         membuffer_destroy( &event_url_path );
+@@ -1543,7 +1547,7 @@
+     HandleLock();
+ 
+     /* CURRENTLY, ONLY SUPPORT ONE DEVICE */
+-    if( GetDeviceHandleInfo( info->foreign_sockaddr.ss_family,
++    if( GetDeviceHandleInfo( request->host,
+         &device_handle, &handle_info ) != HND_DEVICE ) {
+         error_respond( info, HTTP_PRECONDITION_FAILED, request );
+         membuffer_destroy( &event_url_path );
+--- upnp/src/genlib/miniserver/miniserver.c	2013-11-15 16:50:02.000000000 +0100
++++ upnp/src/genlib/miniserver/miniserver.c	2014-02-09 18:45:13.186693479 +0100
+@@ -201,7 +201,8 @@
+ 	int ret_code;
+ 	int major = 1;
+ 	int minor = 1;
+-	http_parser_t parser;
++    memptr host;
++    http_parser_t parser;
+ 	http_message_t *hmsg = NULL;
+ 	int timeout = HTTP_DEFAULT_TIMEOUT;
+ 	struct mserv_request_t *request = (struct mserv_request_t *)args;
+@@ -224,7 +225,22 @@
+ 	if (ret_code != 0) {
+ 		goto error_handler;
+ 	}
+-	UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
++    /* Determine host */
++    parser.msg.host[0] = parser.msg.host[sizeof(parser.msg.host) - 1] = '\0';
++    if (httpmsg_find_hdr(&parser.msg, HDR_HOST, &host) != NULL) {
++        strncpy(parser.msg.host, host.buf, sizeof(parser.msg.host) - 1);
++    } else {
++        DetermineHost(((struct sockaddr_in *)&request->foreign_sockaddr)->sin_addr.s_addr, parser.msg.host, sizeof(parser.msg.host) - 1);
++    }
++    if (parser.msg.host[0] == '\0') {
++        strncpy(parser.msg.host, gIFIP_IPV4[0], sizeof(parser.msg.host) - 1);
++    }
++    if (strchr(parser.msg.host, ':') == NULL) {
++        sprintf(
++            parser.msg.host + strlen(parser.msg.host),
++            ":%d", LOCAL_PORT_V4);
++    }
++    UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
+ 		"miniserver %d: PROCESSING...\n", connfd);
+ 	/* dispatch */
+ 	http_error_code = dispatch_request(&info, &parser);
+--- upnp/src/genlib/net/http/httpreadwrite.c	2013-11-15 17:01:35.000000000 +0100
++++ upnp/src/genlib/net/http/httpreadwrite.c	2014-02-09 13:14:43.175489716 +0100
+@@ -379,8 +379,9 @@
+ #if EXCLUDE_WEB_SERVER == 0
+ 	FILE *Fp;
+ 	struct SendInstruction *Instr = NULL;
+-	char *filename = NULL;
+-	char *file_buf = NULL;
++    char *host = NULL;
++    char *filename = NULL;
++    char *file_buf = NULL;
+ 	char *ChunkBuf = NULL;
+ 	/* 10 byte allocated for chunk header. */
+ 	char Chunk_Header[CHUNK_HEADER_SIZE];
+@@ -420,9 +421,10 @@
+ 			file_buf = ChunkBuf + CHUNK_HEADER_SIZE;
+ 		} else if (c == 'f') {
+ 			/* file name */
+-			filename = va_arg(argp, char *);
++            host = va_arg(argp, char *);
++            filename = va_arg(argp, char *);
+ 			if (Instr && Instr->IsVirtualFile)
+-				Fp = (virtualDirCallback.open)(filename, UPNP_READ);
++                Fp = (virtualDirCallback.open)(host, filename, UPNP_READ);
+ 			else
+ 				Fp = fopen(filename, "rb");
+ 			if (Fp == NULL) {
+@@ -613,7 +615,7 @@
+ 		goto end_function;
+ 	}
+ 	/* send request */
+-	ret_code = http_SendMessage(&info, &timeout_secs, "b",
++    ret_code = http_SendMessage(&info, &timeout_secs, "b",
+ 		request, request_length);
+ 	if (ret_code != 0) {
+ 		parser_response_init(response, req_method);
+@@ -1042,7 +1044,7 @@
+ 		goto errorHandler;
+ 	}
+ 	/* send request */
+-	ret_code = http_SendMessage(&handle->sock_info, &timeout, "b",
++    ret_code = http_SendMessage(&handle->sock_info, &timeout, "b",
+ 				    request.buf, request.length);
+ 	if (ret_code != 0)
+ 		sock_destroy(&handle->sock_info, SD_BOTH);
+@@ -1536,7 +1538,7 @@
+ 		goto errorHandler;
+ 	}
+ 	/* send request */
+-	ret_code = http_SendMessage(&handle->sock_info, &timeout, "b",
++    ret_code = http_SendMessage(&handle->sock_info, &timeout, "b",
+ 				    request.buf, request.length);
+ 	if (ret_code) {
+ 		sock_destroy(&handle->sock_info, SD_BOTH);
+@@ -1618,7 +1620,7 @@
+ 			       http_status_code, http_status_code);
+ 	if (ret == 0) {
+ 		timeout = HTTP_DEFAULT_TIMEOUT;
+-		ret = http_SendMessage(info, &timeout, "b",
++        ret = http_SendMessage(info, &timeout, "b",
+ 		       membuf.buf, membuf.length);
+ 	}
+ 	membuffer_destroy(&membuf);
+@@ -2079,7 +2081,7 @@
+ 			break;
+ 		}
+ 		/* send request */
+-		errCode = http_SendMessage(&handle->sock_info, &timeout,
++        errCode = http_SendMessage(&handle->sock_info, &timeout,
+ 			"b", request.buf, request.length);
+ 		if (errCode != UPNP_E_SUCCESS) {
+ 			sock_destroy(&handle->sock_info, SD_BOTH);
+--- upnp/src/genlib/net/http/webserver.c	2013-11-15 17:01:35.000000000 +0100
++++ upnp/src/genlib/net/http/webserver.c	2014-02-09 18:58:10.962715712 +0100
+@@ -1024,7 +1024,7 @@
+ static int process_request(
+ 	/*! [in] HTTP Request message. */
+ 	http_message_t *req,
+-	/*! [out] Tpye of response. */
++    /*! [out] Tpye of response. */
+ 	enum resp_type *rtype,
+ 	/*! [out] Headers. */
+ 	membuffer *headers,
+@@ -1114,7 +1114,7 @@
+ 		if (req->method != HTTPMETHOD_POST) {
+ 			/* get file info */
+ 			if (virtualDirCallback.
+-			    get_info(filename->buf, &finfo) != 0) {
++                get_info(req->host, filename->buf, &finfo) != 0) {
+ 				err_code = HTTP_NOT_FOUND;
+ 				goto error_handler;
+ 			}
+@@ -1128,10 +1128,10 @@
+ 				if (membuffer_append_str(filename, temp_str) !=
+ 				    0) {
+ 					goto error_handler;
+-				}
++                }
+ 				/* get info */
+ 				if ((virtualDirCallback.
+-				     get_info(filename->buf,
++                     get_info(req->host, filename->buf,
+ 					      &finfo) != UPNP_E_SUCCESS)
+ 				    || finfo.is_directory) {
+ 					err_code = HTTP_NOT_FOUND;
+@@ -1349,7 +1349,9 @@
+ 	SOCKINFO *info,
+ 	/*! File where received data is copied to. */
+ 	char *filename,
+-	/*! Send Instruction object which gives information whether the file
++    /*! IPaddress:port that was used to perform this request. */
++    const char *host,
++    /*! Send Instruction object which gives information whether the file
+ 	 * is a virtual file or not. */
+ 	struct SendInstruction *Instr)
+ {
+@@ -1364,7 +1366,7 @@
+ 	int ret_code = HTTP_OK;
+ 
+ 	if (Instr && Instr->IsVirtualFile) {
+-		Fp = (virtualDirCallback.open) (filename, UPNP_WRITE);
++        Fp = (virtualDirCallback.open) (host, filename, UPNP_WRITE);
+ 		if (Fp == NULL)
+ 			return HTTP_INTERNAL_SERVER_ERROR;
+ 	} else {
+@@ -1486,7 +1488,7 @@
+ 
+ 	/*Process request should create the different kind of header depending on the */
+ 	/*the type of request. */
+-	ret = process_request(req, &rtype, &headers, &filename, &xmldoc,
++    ret = process_request(req, &rtype, &headers, &filename, &xmldoc,
+ 		&RespInstr);
+ 	if (ret != HTTP_OK) {
+ 		/* send error code */
+@@ -1496,13 +1498,13 @@
+ 		/* send response */
+ 		switch (rtype) {
+ 		case RESP_FILEDOC:
+-			http_SendMessage(info, &timeout, "Ibf",
++            http_SendMessage(info, &timeout, "Ibf",
+ 					 &RespInstr,
+ 					 headers.buf, headers.length,
+-					 filename.buf);
++                     req->host, filename.buf);
+ 			break;
+ 		case RESP_XMLDOC:
+-			http_SendMessage(info, &timeout, "Ibb",
++            http_SendMessage(info, &timeout, "Ibb",
+ 				&RespInstr,
+ 				headers.buf, headers.length,
+ 				xmldoc.doc.buf, xmldoc.doc.length);
+@@ -1512,26 +1514,26 @@
+ 			/*http_SendVirtualDirDoc(info, &timeout, "Ibf",
+ 				&RespInstr,
+ 				headers.buf, headers.length,
+-				filename.buf);*/
+-			http_SendMessage(info, &timeout, "Ibf",
++                req->host, filename.buf);*/
++            http_SendMessage(info, &timeout, "Ibf",
+ 				&RespInstr,
+ 				headers.buf, headers.length,
+-				filename.buf);
++                req->host, filename.buf);
+ 			break;
+ 		case RESP_HEADERS:
+ 			/* headers only */
+-			http_SendMessage(info, &timeout, "b",
++            http_SendMessage(info, &timeout, "b",
+ 				headers.buf, headers.length);
+ 			break;
+ 		case RESP_POST:
+ 			/* headers only */
+-			ret = http_RecvPostMessage(parser, info, filename.buf,
++            ret = http_RecvPostMessage(parser, info, filename.buf, req->host,
+ 				&RespInstr);
+ 			/* Send response. */
+ 			http_MakeMessage(&headers, 1, 1,
+ 				"RTLSXcCc",
+ 				ret, "text/html", &RespInstr, X_USER_AGENT);
+-			http_SendMessage(info, &timeout, "b",
++            http_SendMessage(info, &timeout, "b",
+ 				headers.buf, headers.length);
+ 			break;
+ 		default:
+--- upnp/src/inc/httpparser.h	2013-11-15 17:01:35.000000000 +0100
++++ upnp/src/inc/httpparser.h	2014-02-09 18:43:35.690690693 +0100
+@@ -174,6 +174,8 @@
+ 
+ typedef struct {
+ 	int initialized;
++    /*! host, determined either from the host field or the source address. */
++    char host[LINE_SIZE];
+ 	/*! request only. */
+ 	http_method_t method;
+ 	/*! request only. */
+--- upnp/src/inc/httpreadwrite.h	2013-11-15 17:01:35.000000000 +0100
++++ upnp/src/inc/httpreadwrite.h	2014-02-09 13:14:43.171489716 +0100
+@@ -130,17 +130,18 @@
+  * \brief Sends a message to the destination based on the format parameter.
+  *
+  * fmt types:
+- * \li \c 'f': arg = "const char *" file name
++ * \li \c 'f': arg1 = "const char *" IPaddress:port that was used to perform this request; arg2 = "const char *" file name.
+  * \li \c 'b': arg1 = "const char *" mem_buffer; arg2 = "size_t" buffer length.
+  * \li \c 'I': arg = "struct SendInstruction *"
+  *
+  * E.g.:
+  \verbatim
+  	char *buf = "POST /xyz.cgi http/1.1\r\n\r\n";
+- 	char *filename = "foo.dat";
++    char *host = "127.0.0.1:1234";
++    char *filename = "foo.dat";
+  	int status = http_SendMessage(tcpsock, "bf",
+  		buf, strlen(buf),	// args for memory buffer
+- 		filename);		// arg for file
++        host, filename);	// args for file
+  \endverbatim
+  *
+  * \return
+@@ -149,14 +150,14 @@
+  * \li \c UPNP_E_SUCCESS
+  */
+ int http_SendMessage(
+-	/* [in] Socket information object. */
+-	SOCKINFO *info,
+-	/* [in,out] Time out value. */
+-	int* timeout_secs, 
+-	/* [in] Pattern format to take actions upon. */
+-	const char* fmt,
+-	/* [in] Variable parameter list. */
+-	...);
++    /* [in] Socket information object. */
++    SOCKINFO *info,
++    /* [in,out] Time out value. */
++    int* timeout_secs,
++    /* [in] Pattern format to take actions upon. */
++    const char* fmt,
++    /* [in] Variable parameter list. */
++    ...);
+ 
+ /************************************************************************
+  * Function: http_RequestAndResponse
+--- upnp/src/inc/upnpapi.h	2013-11-15 17:01:35.000000000 +0100
++++ upnp/src/inc/upnpapi.h	2014-02-09 18:44:31.610692291 +0100
+@@ -45,7 +45,7 @@
+ #include "VirtualDir.h"		/* for struct VirtualDirCallbacks */
+ 
+ 
+-#define MAX_INTERFACES 256
++#define MAX_INTERFACES 16
+ 
+ #define DEFAULT_INTERFACE 1
+ 
+@@ -155,6 +155,18 @@
+ 
+ 
+ /*!
++ * \brief Determines the host string.
++ *
++ * \return host address
++ */
++void DetermineHost(/*! [in] Source IP address. */
++    in_addr_t source,
++    /*! [out] Destination host string. */
++    char *host,
++    /*! [in] Destination host string length. */
++    size_t host_len);
++
++/*!
+  * \brief Get client handle info.
+  *
+  * \note The logic around the use of this function should be revised.
+@@ -173,8 +185,8 @@
+  * \return HND_DEVICE or HND_INVALID
+  */
+ Upnp_Handle_Type GetDeviceHandleInfo(
+-	/*! [in] Address family. */
+-	int AddressFamily,
++    /** The IP address (and optionally) port used to perform this request. */
++    const char *host,
+ 	/*! [out] Device handle pointer. */
+ 	int *device_handle_out, 
+ 	/*! [out] Device handle structure passed by this function. */
+@@ -180,9 +192,9 @@
+ 	/*! [out] Device handle structure passed by this function. */
+ 	struct Handle_Info **HndInfo);
+ 
+-
+ extern char gIF_NAME[LINE_SIZE];
+-extern char gIF_IPV4[INET_ADDRSTRLEN];
++extern char * gIFIP_IPV4[MAX_INTERFACES + 1];
++extern char * gIFNM_IPV4[MAX_INTERFACES + 1];
+ extern char gIF_IPV6[INET6_ADDRSTRLEN];
+ 
+ extern char gIF_IPV6_ULA_GUA[INET6_ADDRSTRLEN];
+@@ -289,18 +301,20 @@
+ 
+ 
+ /*!
+- * \brief Get local IP address.
++ * \brief Get local IP addresses.
+  *
+- * Gets the ip address for the DEFAULT_INTERFACE interface which is up and not
+- * a loopback. Assumes at most MAX_INTERFACES interfaces
++ * Gets the ip addresses for the interfaces which are up.
++ * Assumes at most MAX_INTERFACES interfaces
+  *
+  * \return UPNP_E_SUCCESS  if successful or UPNP_E_INIT.
+  */
+-int getlocalhostname(
+-	/*! [out] IP address of the interface. */
+-	char *out,
+-	/*! [in] Length of the output buffer. */
+-	size_t out_len);
++int getlocalhostnames(
++    /*! [out] IP addresses of the interfaces. */
++    char *out,
++    /*! [out] netmask addresses of the interfaces. */
++    char *out_nm,
++    /*! [in] Length of the output buffer. */
++    size_t out_len);
+ 
+ 
+ /*!
+--- upnp/src/soap/soap_device.c	2013-11-15 17:01:35.000000000 +0100
++++ upnp/src/soap/soap_device.c	2014-02-09 18:57:20.630714273 +0100
+@@ -214,7 +214,7 @@
+ 		return;
+ 	}
+ 	/* send err msg */
+-	http_SendMessage(info, &timeout_secs, "b",
++    http_SendMessage(info, &timeout_secs, "b",
+ 		headers.buf, headers.length);
+ 	membuffer_destroy(&headers);
+ }
+@@ -265,7 +265,7 @@
+ 		return;
+ 	}
+ 	/* send msg */
+-	http_SendMessage(info, &timeout_secs, "b",
++    http_SendMessage(info, &timeout_secs, "b",
+ 		response.buf, response.length);
+ 	membuffer_destroy(&response);
+ }
+@@ -475,8 +475,6 @@
+ 	int isQuery,
+ 	/*! [in] Action request document. */
+ 	IXML_Document *actionDoc,
+-	/*! [in] . */
+-	int AddressFamily,
+ 	/*! [out] Device UDN string. */
+ 	OUT char device_udn[LINE_SIZE],
+ 	/*! [out] Service ID string. */
+@@ -502,7 +500,7 @@
+ 
+ 	HandleLock();
+ 
+-	if (GetDeviceHandleInfo(AddressFamily, &device_hnd,
++    if (GetDeviceHandleInfo(request->host, &device_hnd,
+ 				&device_info) != HND_DEVICE)
+ 		goto error_handler;
+ 	serv_info = FindServiceControlURLPath(
+@@ -600,7 +598,7 @@
+ 	}
+ 	/* send whole msg */
+ 	ret_code = http_SendMessage(
+-		info, &timeout_secs, "bbbb",
++        info, &timeout_secs, "bbbb",
+ 		headers.buf, headers.length,
+ 		start_body, strlen(start_body),
+ 		xml_response, strlen(xml_response),
+@@ -702,7 +700,6 @@
+ 	}
+ 	/* get info for event */
+ 	err_code = get_device_info(request, 1, xml_doc,
+-				   info->foreign_sockaddr.ss_family,
+ 				   variable.DevUDN,
+ 				   variable.ServiceID,
+ 				   &soap_event_callback, &cookie);
+@@ -757,7 +754,7 @@
+ 	/*! [in] Document containing the SOAP action request. */
+ 	IN IXML_Document *xml_doc)
+ {
+-	char save_char;
++    char save_char;
+ 	IXML_Document *resp_node = NULL;
+ 	struct Upnp_Action_Request action;
+ 	Upnp_FunPtr soap_event_callback;
+@@ -765,6 +762,10 @@
+ 	int err_code;
+ 	const char *err_str;
+ 
++    /* get host header */
++    strncpy(action.Host, request->host, sizeof(action.Host) - 1);
++    action.Host[sizeof(action.Host) - 1] = '\0';
++
+ 	action.ActionResult = NULL;
+ 	/* null-terminate */
+ 	save_char = action_name.buf[action_name.length];
+@@ -779,7 +780,6 @@
+ 	err_code = get_device_info(request,
+ 				   0,
+ 				   xml_doc,
+-				   info->foreign_sockaddr.ss_family,
+ 				   action.DevUDN,
+ 				   action.ServiceID,
+ 				   &soap_event_callback, &cookie);
+--- upnp/src/ssdp/ssdp_ctrlpt.c	2013-11-15 17:01:35.000000000 +0100
++++ upnp/src/ssdp/ssdp_ctrlpt.c	2014-02-09 18:04:12.786623149 +0100
+@@ -523,7 +523,7 @@
+ 	int handle;
+ 	struct Handle_Info *ctrlpt_info = NULL;
+ 	enum SsdpSearchType requestType;
+-	unsigned long addrv4 = inet_addr(gIF_IPV4);
++    unsigned long addrv4 = inet_addr(gIFIP_IPV4[0]);
+ 	SOCKET max_fd = 0;
+ 	int retVal;
+ 
+--- upnp/src/ssdp/ssdp_device.c	2012-06-21 03:06:38.000000000 +0200
++++ upnp/src/ssdp/ssdp_device.c	2014-02-09 18:50:05.494701835 +0100
+@@ -82,6 +82,7 @@
+ void ssdp_handle_device_request(http_message_t *hmsg, struct sockaddr_storage *dest_addr)
+ {
+ #define MX_FUDGE_FACTOR 10
++    char host[LINE_SIZE];
+ 	int handle;
+ 	struct Handle_Info *dev_info = NULL;
+ 	memptr hdr_value;
+@@ -117,17 +118,28 @@
+ 		/* bad ST header. */
+ 		return;
+ 
++    /* Determine host */
++    host[0] = host[sizeof(host) - 1] = '\0';
++    DetermineHost(((struct sockaddr_in *)dest_addr)->sin_addr.s_addr, host, sizeof(host) - 1);
++    if (host[0] == '\0') {
++        strncpy(host, gIFIP_IPV4[0], sizeof(host) - 1);
++    }
++    if (strchr(host, ':') == NULL) {
++        sprintf(host + strlen(host), ":%d", LOCAL_PORT_V4);
++    }
++
+ 	HandleLock();
+-	/* device info. */
+-	switch (GetDeviceHandleInfo((int)dest_addr->ss_family,
+-				&handle, &dev_info)) {
+-	case HND_DEVICE:
+-		break;
+-	default:
+-		HandleUnlock();
+-		/* no info found. */
+-		return;
+-	}
++
++    /* device info. */
++    switch (GetDeviceHandleInfo(host, &handle, &dev_info)) {
++    case HND_DEVICE:
++        break;
++    default:
++        HandleUnlock();
++        /* no info found. */
++        return;
++    }
++
+ 	maxAge = dev_info->MaxAge;
+ 	HandleUnlock();
+ 
+@@ -174,6 +186,8 @@
+ static int NewRequestHandler(
+ 	/*! [in] Ip address, to send the reply. */
+ 	struct sockaddr *DestAddr,
++    /*! [in] Ip address, to send from. */
++    const char *SrcAddr,
+ 	/*! [in] Number of packet to be sent. */
+ 	int NumPacket,
+ 	/*! [in] . */
+@@ -183,7 +197,7 @@
+ 	SOCKET ReplySock;
+ 	socklen_t socklen = sizeof(struct sockaddr_storage);
+ 	int Index;
+-	unsigned long replyAddr = inet_addr(gIF_IPV4);
++    unsigned long replyAddr4;
+ 	/* a/c to UPNP Spec */
+ 	int ttl = 4;
+ #ifdef INET_IPV6
+@@ -204,10 +218,11 @@
+ 
+ 	switch (DestAddr->sa_family) {
+ 	case AF_INET:
+-		inet_ntop(AF_INET, &((struct sockaddr_in *)DestAddr)->sin_addr,
++        replyAddr4 = inet_addr(SrcAddr);
++        inet_ntop(AF_INET, &((struct sockaddr_in *)DestAddr)->sin_addr,
+ 			  buf_ntop, sizeof(buf_ntop));
+ 		setsockopt(ReplySock, IPPROTO_IP, IP_MULTICAST_IF,
+-			   (char *)&replyAddr, sizeof(replyAddr));
++               (char *)&replyAddr4, sizeof(replyAddr4));
+ 		setsockopt(ReplySock, IPPROTO_IP, IP_MULTICAST_TTL,
+ 			   (char *)&ttl, sizeof(int));
+ 		socklen = sizeof(struct sockaddr_in);
+@@ -263,6 +278,38 @@
+  *
+  * \return 1 if an inet6 @ has been found.
+  */
++static int extractIPv4address(char *url, char *address)
++{
++    int i = 0;
++    int j = 0;
++    int ret = 0;
++
++    while (((url[i] < '0') || (url[i] > '9')) && (url[i] != '\0')) {
++        i++;
++    }
++    if (url[i] == '\0') {
++        goto exit_function;
++    }
++
++    /* number has been found, we deal with an IPv4 address */
++    while ((((url[i] >= '0') && (url[i] <= '9')) || (url[i] == '.')) && (url[i] != '\0') && (j < (INET_ADDRSTRLEN - 1))) {
++        address[j] = url[i];
++        i++;
++        j++;
++    }
++
++    address[j] = '\0';
++    ret = 1;
++
++ exit_function:
++    return ret;
++}
++
++/*!
++ * \brief
++ *
++ * \return 1 if an inet6 @ has been found.
++ */
+ static int extractIPv6address(char *url, char *address)
+ {
+ 	int i = 0;
+@@ -502,7 +549,8 @@
+ 	struct sockaddr_storage __ss;
+ 	struct sockaddr_in *DestAddr4 = (struct sockaddr_in *)&__ss;
+ 	struct sockaddr_in6 *DestAddr6 = (struct sockaddr_in6 *)&__ss;
+-	/* char Mil_Nt[LINE_SIZE] */
++    char SrcAddr[INET6_ADDRSTRLEN];
++    /* char Mil_Nt[LINE_SIZE] */
+ 	char Mil_Usn[LINE_SIZE];
+ 	char *msgs[3];
+ 	int ret_code = UPNP_E_OUTOF_MEMORY;
+@@ -558,17 +606,19 @@
+ 	if ((RootDev && msgs[0] == NULL) || msgs[1] == NULL || msgs[2] == NULL) {
+ 		goto error_handler;
+ 	}
+-	/* send packets */
+-	if (RootDev) {
+-		/* send 3 msg types */
+-		ret_code =
+-		    NewRequestHandler((struct sockaddr *)&__ss, 3, &msgs[0]);
+-	} else {		/* sub-device */
+-
+-		/* send 2 msg types */
+-		ret_code =
+-		    NewRequestHandler((struct sockaddr *)&__ss, 2, &msgs[1]);
+-	}
++    /* send packets */
++    if (extractIPv6address(Location, SrcAddr) || extractIPv4address(Location, SrcAddr)) {
++        if (RootDev) {
++            /* send 3 msg types */
++            ret_code =
++                NewRequestHandler((struct sockaddr *)&__ss, SrcAddr, 3, &msgs[0]);
++        } else {		/* sub-device */
++
++            /* send 2 msg types */
++            ret_code =
++                NewRequestHandler((struct sockaddr *)&__ss, SrcAddr, 2, &msgs[1]);
++        }
++    }
+ 
+ error_handler:
+ 	/* free msgs */
+@@ -586,7 +636,8 @@
+ 	int ret_code = UPNP_E_OUTOF_MEMORY;
+ 	char *msgs[2];
+ 	int num_msgs;
+-	char Mil_Usn[LINE_SIZE];
++    char SrcAddr[INET6_ADDRSTRLEN];
++    char Mil_Usn[LINE_SIZE];
+ 	int i;
+ 	int rc = 0;
+ 
+@@ -632,7 +683,8 @@
+ 		}
+ 	}
+ 	/* send msgs */
+-	ret_code = NewRequestHandler(DestAddr, num_msgs, msgs);
++    if (extractIPv6address(Location, SrcAddr) || extractIPv4address(Location, SrcAddr))
++        ret_code = NewRequestHandler(DestAddr, SrcAddr, num_msgs, msgs);
+ 
+ error_handler:
+ 	for (i = 0; i < num_msgs; i++) {
+@@ -647,7 +699,8 @@
+ 		char *Udn, char *Location, int Duration, int PowerState,
+ 		int SleepPeriod, int RegistrationState)
+ {
+-	char *szReq[3], Mil_Nt[LINE_SIZE], Mil_Usn[LINE_SIZE];
++    char SrcAddr[INET6_ADDRSTRLEN];
++    char *szReq[3], Mil_Nt[LINE_SIZE], Mil_Usn[LINE_SIZE];
+ 	int RetVal = UPNP_E_OUTOF_MEMORY;
+ 	int rc = 0;
+ 
+@@ -691,11 +744,13 @@
+ 		goto error_handler;
+ 	}
+ 	/* send replies */
+-	if (RootDev) {
+-		RetVal = NewRequestHandler(DestAddr, 3, szReq);
+-	} else {
+-		RetVal = NewRequestHandler(DestAddr, 2, &szReq[1]);
+-	}
++    if (extractIPv6address(Location, SrcAddr) || extractIPv4address(Location, SrcAddr)) {
++        if (RootDev) {
++            RetVal = NewRequestHandler(DestAddr, SrcAddr, 3, szReq);
++        } else {
++            RetVal = NewRequestHandler(DestAddr, SrcAddr, 2, &szReq[1]);
++        }
++    }
+ 
+ error_handler:
+ 	/* free */
+@@ -710,7 +765,8 @@
+ 			 int Duration, int AddressFamily,
+ 			 int PowerState, int SleepPeriod, int RegistrationState)
+ {
+-	char Mil_Usn[LINE_SIZE];
++    char SrcAddr[INET6_ADDRSTRLEN];
++    char Mil_Usn[LINE_SIZE];
+ 	char *szReq[1];
+ 	int RetVal = UPNP_E_OUTOF_MEMORY;
+ 	struct sockaddr_storage __ss;
+@@ -749,7 +805,8 @@
+ 	if (szReq[0] == NULL) {
+ 		goto error_handler;
+ 	}
+-	RetVal = NewRequestHandler((struct sockaddr *)&__ss, 1, szReq);
++    if (extractIPv6address(Location, SrcAddr) || extractIPv4address(Location, SrcAddr))
++        RetVal = NewRequestHandler((struct sockaddr *)&__ss, SrcAddr, 1, szReq);
+ 
+ error_handler:
+ 	free(szReq[0]);
+@@ -761,7 +818,8 @@
+ 		 char *Location, int Duration, int PowerState, int SleepPeriod,
+ 		 int RegistrationState)
+ {
+-	char Mil_Usn[LINE_SIZE];
++    char SrcAddr[INET6_ADDRSTRLEN];
++    char Mil_Usn[LINE_SIZE];
+ 	char *szReq[1];
+ 	int RetVal = UPNP_E_OUTOF_MEMORY;
+ 	int rc = 0;
+@@ -775,7 +833,8 @@
+ 			    PowerState, SleepPeriod, RegistrationState);
+ 	if (szReq[0] == NULL)
+ 		goto error_handler;
+-	RetVal = NewRequestHandler(DestAddr, 1, szReq);
++    if (extractIPv6address(Location, SrcAddr) || extractIPv4address(Location, SrcAddr))
++        RetVal = NewRequestHandler(DestAddr, SrcAddr, 1, szReq);
+ 
+ error_handler:
+ 	free(szReq[0]);
+@@ -787,7 +846,8 @@
+ 		    int AddressFamily, int PowerState,
+ 		    int SleepPeriod, int RegistrationState)
+ {
+-	char Mil_Usn[LINE_SIZE];
++    char SrcAddr[INET6_ADDRSTRLEN];
++    char Mil_Usn[LINE_SIZE];
+ 	char *szReq[1];
+ 	struct sockaddr_storage __ss;
+ 	struct sockaddr_in *DestAddr4 = (struct sockaddr_in *)&__ss;
+@@ -826,7 +886,8 @@
+ 			    PowerState, SleepPeriod, RegistrationState);
+ 	if (szReq[0] == NULL)
+ 		goto error_handler;
+-	RetVal = NewRequestHandler((struct sockaddr *)&__ss, 1, szReq);
++    if (extractIPv6address(Location, SrcAddr) || extractIPv4address(Location, SrcAddr))
++        RetVal = NewRequestHandler((struct sockaddr *)&__ss, SrcAddr, 1, szReq);
+ 
+ error_handler:
+ 	free(szReq[0]);
+@@ -842,7 +903,8 @@
+ 	struct sockaddr_in *DestAddr4 = (struct sockaddr_in *)&__ss;
+ 	struct sockaddr_in6 *DestAddr6 = (struct sockaddr_in6 *)&__ss;
+ 	char *msgs[3];
+-	char Mil_Usn[LINE_SIZE];
++    char SrcAddr[INET6_ADDRSTRLEN];
++    char Mil_Usn[LINE_SIZE];
+ 	int ret_code = UPNP_E_OUTOF_MEMORY;
+ 	int rc = 0;
+ 
+@@ -896,16 +958,18 @@
+ 		goto error_handler;
+ 	}
+ 	/* send packets */
+-	if (RootDev) {
+-		/* send 3 msg types */
+-		ret_code =
+-		    NewRequestHandler((struct sockaddr *)&__ss, 3, &msgs[0]);
+-	} else {
+-		/* sub-device */
+-		/* send 2 msg types */
+-		ret_code =
+-		    NewRequestHandler((struct sockaddr *)&__ss, 2, &msgs[1]);
+-	}
++    if (extractIPv6address(Location, SrcAddr) || extractIPv4address(Location, SrcAddr)) {
++        if (RootDev) {
++            /* send 3 msg types */
++            ret_code =
++                NewRequestHandler((struct sockaddr *)&__ss, SrcAddr, 3, &msgs[0]);
++        } else {
++            /* sub-device */
++            /* send 2 msg types */
++            ret_code =
++                NewRequestHandler((struct sockaddr *)&__ss, SrcAddr, 2, &msgs[1]);
++        }
++    }
+ 
+ error_handler:
+ 	/* free msgs */
+--- upnp/src/ssdp/ssdp_server.c	2013-11-15 16:50:02.000000000 +0100
++++ upnp/src/ssdp/ssdp_server.c	2014-02-09 18:04:12.794623149 +0100
+@@ -788,12 +788,11 @@
+ {
+ 	char errorBuffer[ERROR_BUFFER_LEN];
+ 	int onOff;
+-	u_char ttl = (u_char)4;
+ 	struct ip_mreq ssdpMcastAddr;
+ 	struct sockaddr_storage __ss;
+ 	struct sockaddr_in *ssdpAddr4 = (struct sockaddr_in *)&__ss;
++    int i;
+ 	int ret = 0;
+-	struct in_addr addr;
+ 
+ 	*ssdpSock = socket(AF_INET, SOCK_DGRAM, 0);
+ 	if (*ssdpSock == INVALID_SOCKET) {
+@@ -840,45 +839,24 @@
+ 		ret = UPNP_E_SOCKET_BIND;
+ 		goto error_handler;
+ 	}
+-	memset((void *)&ssdpMcastAddr, 0, sizeof(struct ip_mreq));
+-	ssdpMcastAddr.imr_interface.s_addr = inet_addr(gIF_IPV4);
+-	ssdpMcastAddr.imr_multiaddr.s_addr = inet_addr(SSDP_IP);
+-	ret = setsockopt(*ssdpSock, IPPROTO_IP, IP_ADD_MEMBERSHIP,
+-			 (char *)&ssdpMcastAddr, sizeof(struct ip_mreq));
+-	if (ret == -1) {
+-		strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
+-		UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
+-			   "Error in setsockopt() IP_ADD_MEMBERSHIP (join multicast group): %s\n",
+-			   errorBuffer);
+-		ret = UPNP_E_SOCKET_ERROR;
+-		goto error_handler;
+-	}
+-	/* Set multicast interface. */
+-	memset((void *)&addr, 0, sizeof(struct in_addr));
+-	addr.s_addr = inet_addr(gIF_IPV4);
+-	ret = setsockopt(*ssdpSock, IPPROTO_IP, IP_MULTICAST_IF,
+-			 (char *)&addr, sizeof addr);
+-	if (ret == -1) {
+-		strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
+-		UpnpPrintf(UPNP_INFO, SSDP, __FILE__, __LINE__,
+-			   "Error in setsockopt() IP_MULTICAST_IF (set multicast interface): %s\n",
+-			   errorBuffer);
+-		/* This is probably not a critical error, so let's continue. */
+-	}
+-	/* result is not checked becuase it will fail in WinMe and Win9x. */
+-	setsockopt(*ssdpSock, IPPROTO_IP,
+-		IP_MULTICAST_TTL, &ttl, sizeof(ttl));
+-	onOff = 1;
+-	ret = setsockopt(*ssdpSock, SOL_SOCKET, SO_BROADCAST,
+-			 (char *)&onOff, sizeof(onOff));
+-	if (ret == -1) {
+-		strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
+-		UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
+-			   "Error in setsockopt() SO_BROADCAST (set broadcast): %s\n",
+-			   errorBuffer);
+-		ret = UPNP_E_NETWORK_ERROR;
+-		goto error_handler;
+-	}
++    ret = UPNP_E_SOCKET_ERROR;
++    for (i = 0; gIFIP_IPV4[i] && (i < MAX_INTERFACES); i++) {
++        memset((void *)&ssdpMcastAddr, 0, sizeof(struct ip_mreq));
++        ssdpMcastAddr.imr_interface.s_addr = inet_addr(gIFIP_IPV4[i]);
++        ssdpMcastAddr.imr_multiaddr.s_addr = inet_addr(SSDP_IP);
++        ret = setsockopt(*ssdpSock, IPPROTO_IP, IP_ADD_MEMBERSHIP,
++                 (char *)&ssdpMcastAddr, sizeof(struct ip_mreq));
++        if (ret == -1) {
++            strerror_r(errno, errorBuffer, ERROR_BUFFER_LEN);
++            UpnpPrintf(UPNP_CRITICAL, SSDP, __FILE__, __LINE__,
++                   "Error in setsockopt() IP_ADD_MEMBERSHIP (join multicast group): %s\n",
++                   errorBuffer);
++        }
++        else
++            ret = UPNP_E_SUCCESS;
++    }
++    if (ret != UPNP_E_SUCCESS)
++        goto error_handler;
+ 	ret = UPNP_E_SUCCESS;
+ 
+ error_handler:
+@@ -1188,7 +1166,7 @@
+ 	out->ssdpReqSock4 = INVALID_SOCKET;
+ 	out->ssdpReqSock6 = INVALID_SOCKET;
+ 	/* Create the IPv4 socket for SSDP REQUESTS */
+-	if (strlen(gIF_IPV4) > (size_t)0) {
++    if (gIFIP_IPV4[0]) {
+ 		retVal = create_ssdp_sock_reqv4(&out->ssdpReqSock4);
+ 		if (retVal != UPNP_E_SUCCESS)
+ 			return retVal;
+@@ -1212,8 +1190,8 @@
+ #endif /* IPv6 */
+ #endif /* INCLUDE_CLIENT_APIS */
+ 	/* Create the IPv4 socket for SSDP */
+-	if (strlen(gIF_IPV4) > (size_t)0) {
+-		retVal = create_ssdp_sock_v4(&out->ssdpSock4);
++    if (gIFIP_IPV4[0]) {
++        retVal = create_ssdp_sock_v4(&out->ssdpSock4);
+ 		if (retVal != UPNP_E_SUCCESS) {
+ #ifdef INCLUDE_CLIENT_APIS
+ 			shutdown(out->ssdpReqSock4, SD_BOTH);
