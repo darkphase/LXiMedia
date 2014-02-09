@@ -15,9 +15,9 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
+#include <upnp/upnp.h>
 #include "pupnprootdevice.h"
 #include "ixmlstructures.h"
-#include <upnp/upnp.h>
 
 struct PupnpRootDevice::Data
 {
