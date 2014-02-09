@@ -42,6 +42,11 @@ struct PupnpRootDevice::Data
 
   static PupnpRootDevice * me;
 
+  quint16 port;
+  QString deviceName;
+  bool bindPublicInterfaces;
+
+  QSet<QByteArray> availableAddresses;
   bool initialized;
   QMap<QString, RootDevice::HttpCallback *> httpCallbacks;
   QSet<QByteArray> serviceExts;
@@ -49,10 +54,16 @@ struct PupnpRootDevice::Data
 
   QMutex responsesMutex;
   QMap<QByteArray, QPair<QIODevice *, QByteArray> > responses;
+  static const int clearResponsesInterval = 15000;
+  QTimer clearResponsesTimer;
 
   bool rootDeviceRegistred;
   QMap<QByteArray, ::UpnpDevice_Handle> rootDeviceHandle;
   static const int advertisementExpiration = 1800;
+
+  QSet<QObject *> pendingFiles;
+  static const int updateInterfacesInterval = 10000;
+  QTimer updateInterfacesTimer;
 };
 
 const char          PupnpRootDevice::Data::baseDir[] = "/upnp";
@@ -71,8 +82,15 @@ PupnpRootDevice::PupnpRootDevice(const QUuid &uuid, const QByteArray &deviceType
   Q_ASSERT(d->me == NULL);
 
   d->me = this;
+  d->port = 0;
+  d->bindPublicInterfaces = false;
   d->initialized = false;
   d->rootDeviceRegistred = false;
+
+  connect(&d->clearResponsesTimer, SIGNAL(timeout()), SLOT(clearResponses()));
+  d->clearResponsesTimer.setSingleShot(true);
+
+  connect(&d->updateInterfacesTimer, SIGNAL(timeout()), SLOT(updateInterfaces()));
 
   sApp->addLicense(
       " <h3>Portable SDK for UPnP Devices</h3>\n"
@@ -155,11 +173,49 @@ void PupnpRootDevice::unregisterHttpCallback(RootDevice::HttpCallback *callback)
   }
 }
 
-void PupnpRootDevice::initialize(quint16 port, const QString &deviceName)
+bool PupnpRootDevice::isLocalAddress(const char *address)
 {
-  d->initialized = ::UpnpInit(NULL, port) == UPNP_E_SUCCESS;
+  return
+      (qstrncmp(address, "10.", 3) == 0) ||
+      (qstrncmp(address, "127.", 4) == 0) ||
+      (qstrncmp(address, "169.254.", 8) == 0) ||
+      (qstrncmp(address, "172.16.", 7) == 0) ||
+      (qstrncmp(address, "172.17.", 7) == 0) ||
+      (qstrncmp(address, "172.18.", 7) == 0) ||
+      (qstrncmp(address, "172.19.", 7) == 0) ||
+      (qstrncmp(address, "172.20.", 7) == 0) ||
+      (qstrncmp(address, "172.21.", 7) == 0) ||
+      (qstrncmp(address, "172.22.", 7) == 0) ||
+      (qstrncmp(address, "172.23.", 7) == 0) ||
+      (qstrncmp(address, "172.24.", 7) == 0) ||
+      (qstrncmp(address, "172.25.", 7) == 0) ||
+      (qstrncmp(address, "172.26.", 7) == 0) ||
+      (qstrncmp(address, "172.27.", 7) == 0) ||
+      (qstrncmp(address, "172.28.", 7) == 0) ||
+      (qstrncmp(address, "172.29.", 7) == 0) ||
+      (qstrncmp(address, "172.30.", 7) == 0) ||
+      (qstrncmp(address, "172.31.", 7) == 0) ||
+      (qstrncmp(address, "192.168.", 8) == 0);
+}
+
+void PupnpRootDevice::initialize(quint16 port, const QString &deviceName, bool bindPublicInterfaces)
+{
+  d->port = port;
+  d->deviceName = deviceName;
+  d->bindPublicInterfaces = bindPublicInterfaces;
+
+  QVector<const char *> addresses;
+  for (char **i = ::UpnpGetAvailableIpAddresses(); i && *i; i++)
+  {
+    d->availableAddresses.insert(*i);
+    if (bindPublicInterfaces || isLocalAddress(*i))
+      addresses.append(*i);
+  }
+
+  addresses.append(NULL);
+  d->initialized = ::UpnpInit3(&(addresses[0]), port) == UPNP_E_SUCCESS;
   if (!d->initialized)
-    d->initialized = ::UpnpInit(NULL, 0) == UPNP_E_SUCCESS;
+    d->initialized = ::UpnpInit3(&(addresses[0]), 0) == UPNP_E_SUCCESS;
 
   if (d->initialized)
   {
@@ -177,14 +233,18 @@ void PupnpRootDevice::initialize(quint16 port, const QString &deviceName)
 
     registerHttpCallback(d->baseDir, this);
 
-    RootDevice::initialize(port, deviceName);
+    RootDevice::initialize(port, deviceName, bindPublicInterfaces);
 
     enableRootDevice();
   }
+
+  d->updateInterfacesTimer.start(d->updateInterfacesInterval);
 }
 
 void PupnpRootDevice::close(void)
 {
+  d->updateInterfacesTimer.stop();
+
   unregisterHttpCallback(this);
 
   cleanup();
@@ -216,6 +276,8 @@ void PupnpRootDevice::cleanup(void)
     t.start();
     while (!t.isFinished()) { qApp->processEvents(QEventLoop::ExcludeUserInputEvents | QEventLoop::WaitForMoreEvents, 16); }
     t.wait();
+
+    clearResponses();
   }
 }
 
@@ -307,6 +369,37 @@ HttpStatus PupnpRootDevice::httpRequest(const QUrl &request, QByteArray &content
   return HttpStatus_NotFound;
 }
 
+void PupnpRootDevice::clearResponses()
+{
+  QMutexLocker l(&d->responsesMutex);
+
+  for (QMap<QByteArray, QPair<QIODevice *, QByteArray> >::Iterator i = d->responses.begin();
+       i != d->responses.end();
+       i = d->responses.erase(i))
+  {
+    i->first->deleteLater();
+  }
+}
+
+void PupnpRootDevice::closedFile(QObject *file)
+{
+  d->pendingFiles.remove(file);
+  if (d->pendingFiles.isEmpty())
+    d->updateInterfacesTimer.start(d->updateInterfacesInterval);
+}
+
+void PupnpRootDevice::updateInterfaces()
+{
+  for (char **i = ::UpnpGetAvailableIpAddresses(); i && *i; i++)
+  if (d->availableAddresses.find(*i) == d->availableAddresses.end())
+  if (d->bindPublicInterfaces || isLocalAddress(*i))
+  {
+    close();
+    initialize(d->port, d->deviceName, d->bindPublicInterfaces);
+    break;
+  }
+}
+
 void PupnpRootDevice::send(Functor &f) const
 {
   QSemaphore sem;
@@ -342,7 +435,9 @@ void PupnpRootDevice::enableWebserver()
       if (Data::me->getResponse(host, filename, contentType, response, true) == HttpStatus_Ok)
       {
         if (response->open((mode == UPNP_READ) ? QIODevice::ReadOnly : QIODevice::WriteOnly))
+        {
           return response;
+        }
         else
           response->deleteLater();
       }
@@ -421,22 +516,36 @@ HttpStatus PupnpRootDevice::getResponse(const QByteArray &host, const QByteArray
 
     struct F : Functor
     {
-      F(PupnpRootDevice *me, const QUrl &url) : me(me), url(url), response(NULL), result(HttpStatus_InternalServerError) { }
+      F(PupnpRootDevice *me, bool erase, const QUrl &url) : me(me), erase(erase), url(url), response(NULL), result(HttpStatus_InternalServerError) { }
 
       void operator()()
       {
         if (me->d->initialized)
+        {
           result = me->handleHttpRequest(url, contentType, response);
+          if (response)
+          {
+            connect(response, SIGNAL(destroyed(QObject*)), me, SLOT(closedFile(QObject*)));
+            if (me->d->pendingFiles.isEmpty())
+              me->d->updateInterfacesTimer.stop();
+
+            me->d->pendingFiles.insert(response);
+
+            if (!erase && (result == HttpStatus_Ok))
+              me->d->clearResponsesTimer.start(me->d->clearResponsesInterval);
+          }
+        }
         else
           result = HttpStatus_InternalServerError;
       }
 
       PupnpRootDevice * const me;
-      QUrl url;
+      const bool erase;
+      const QUrl url;
       QByteArray contentType;
       QIODevice *response;
       HttpStatus result;
-    } f(this, QUrl("http://" + host + QString::fromUtf8(path)));
+    } f(this, erase, QUrl("http://" + host + QString::fromUtf8(path)));
 
     send(f);
 

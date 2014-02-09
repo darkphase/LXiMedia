@@ -54,9 +54,6 @@ public:
   void                          start(void);
   void                          reset(void);
 
-private slots:
-  void                          checkNetworkInterfaces(void);
-
 protected:
   virtual void                  customEvent(QEvent *);
 
@@ -82,9 +79,6 @@ private:
 #if !defined(QT_NO_DEBUG) || defined(Q_OS_MACX)
   static const QEvent::Type     exitEventType;
 #endif
-
-  QTimer                        checkNetworkInterfacesTimer;
-  QList<QHostAddress>           boundNetworkInterfaces;
 
   PupnpRootDevice               upnpRootDevice;
   ConnectionManager             upnpConnectionManager;

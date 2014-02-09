@@ -43,7 +43,7 @@ public:
   virtual void                  registerHttpCallback(const QString &path, RootDevice::HttpCallback *);
   virtual void                  unregisterHttpCallback(RootDevice::HttpCallback *);
 
-  virtual void                  initialize(quint16 port, const QString &deviceName);
+  virtual void                  initialize(quint16 port, const QString &deviceName, bool bindPublicInterfaces);
   virtual void                  close(void);
 
   virtual void                  emitEvent(const QByteArray &serviceId);
@@ -54,8 +54,14 @@ protected:
 private: // From RootDevice::HttpCallback
   virtual HttpStatus            httpRequest(const QUrl &request, QByteArray &contentType, QIODevice *&response);
 
+private slots:
+  void                          clearResponses();
+  void                          closedFile(QObject *);
+  void                          updateInterfaces();
+
 private:
   void                          cleanup(void);
+  static bool                   isLocalAddress(const char *);
 
   struct Functor { virtual ~Functor() { } virtual void operator()() = 0; };
   void                          send(Functor &) const;

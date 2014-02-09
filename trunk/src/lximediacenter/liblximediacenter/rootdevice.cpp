@@ -112,7 +112,7 @@ void RootDevice::unregisterHttpCallback(HttpCallback *callback)
   }
 }
 
-void RootDevice::initialize(quint16, const QString &deviceName)
+void RootDevice::initialize(quint16, const QString &deviceName, bool)
 {
   d->deviceName = deviceName;
 

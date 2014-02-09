@@ -90,7 +90,7 @@ public:
   virtual void                  registerHttpCallback(const QString &path, HttpCallback *);
   virtual void                  unregisterHttpCallback(HttpCallback *);
 
-  virtual void                  initialize(quint16 port, const QString &deviceName);
+  virtual void                  initialize(quint16 port, const QString &deviceName, bool bindPublicInterfaces);
   virtual void                  close(void);
 
 //  virtual void                  bind(const QHostAddress &);
