@@ -1,0 +1,28 @@
+--- upnp/src/genlib/miniserver/miniserver.c	2013-11-15 16:50:02.000000000 +0100
++++ upnp/src/genlib/miniserver/miniserver.c	2014-02-09 10:45:54.231234482 +0100
+@@ -524,7 +524,7 @@
+ 	int onOff;
+ #endif
+ 	int ret_code;
+-	int reuseaddr_on = 0;
++    int reuseaddr_on = 1;
+ 	int sockError = UPNP_E_SUCCESS;
+ 	int errCode = 0;
+ 
+@@ -549,16 +549,6 @@
+ 		return UPNP_E_SOCKET_BIND;
+ 	}
+ #endif
+-	/* As per the IANA specifications for the use of ports by applications
+-	 * override the listen port passed in with the first available. */
+-	if (listen_port4 < APPLICATION_LISTENING_PORT) {
+-		listen_port4 = (uint16_t)APPLICATION_LISTENING_PORT;
+-	}
+-#ifdef UPNP_ENABLE_IPV6
+-	if (listen_port6 < APPLICATION_LISTENING_PORT) {
+-		listen_port6 = (uint16_t)APPLICATION_LISTENING_PORT;
+-	}
+-#endif
+ 	memset(&__ss_v4, 0, sizeof (__ss_v4));
+ 	serverAddr4->sin_family = (sa_family_t)AF_INET;
+ 	serverAddr4->sin_addr.s_addr = htonl(INADDR_ANY);

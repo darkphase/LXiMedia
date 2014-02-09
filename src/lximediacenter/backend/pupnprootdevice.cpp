@@ -43,7 +43,6 @@ struct PupnpRootDevice::Data
   static PupnpRootDevice * me;
 
   bool initialized;
-  QByteArray httpHost;
   QMap<QString, RootDevice::HttpCallback *> httpCallbacks;
   QSet<QByteArray> serviceExts;
   QMap<QByteArray, QPair<Service *, QByteArray> > services;
@@ -52,7 +51,7 @@ struct PupnpRootDevice::Data
   QMap<QByteArray, QPair<QIODevice *, QByteArray> > responses;
 
   bool rootDeviceRegistred;
-  ::UpnpDevice_Handle rootDeviceHandle;
+  QMap<QByteArray, ::UpnpDevice_Handle> rootDeviceHandle;
   static const int advertisementExpiration = 1800;
 };
 
@@ -164,8 +163,8 @@ void PupnpRootDevice::initialize(quint16 port, const QString &deviceName)
 
   if (d->initialized)
   {
-    d->httpHost = QByteArray(::UpnpGetServerIpAddress()) + ':' + QByteArray::number(::UpnpGetServerPort());
-    qDebug() << "Bound " << d->httpHost;
+    for (char **i = ::UpnpGetServerIpAddresses(); i && *i; i++)
+      qDebug() << "Bound " << *i << ":" << ::UpnpGetServerPort();
 
     enableWebserver();
 
@@ -202,7 +201,8 @@ void PupnpRootDevice::cleanup(void)
     if (d->rootDeviceRegistred)
     {
       d->rootDeviceRegistred = false;
-      ::UpnpUnRegisterRootDevice(d->rootDeviceHandle);
+      foreach(const ::UpnpDevice_Handle &handle, d->rootDeviceHandle)
+        ::UpnpUnRegisterRootDevice(handle);
     }
 
     ::UpnpRemoveAllVirtualDirs();
@@ -226,11 +226,14 @@ void PupnpRootDevice::emitEvent(const QByteArray &serviceId)
     IXMLStructures::EventablePropertySet propertyset;
     handleEvent(serviceId, propertyset);
 
-    ::UpnpNotifyExt(
-          d->rootDeviceHandle,
-          udn(),
-          serviceId,
-          propertyset.doc);
+    foreach(const ::UpnpDevice_Handle &handle, d->rootDeviceHandle)
+    {
+      ::UpnpNotifyExt(
+            handle,
+            udn(),
+            serviceId,
+            propertyset.doc);
+    }
   }
 }
 
@@ -315,11 +318,11 @@ void PupnpRootDevice::enableWebserver()
 {
   struct T
   {
-    static int get_info(const char *filename, ::File_Info *info)
+    static int get_info(const char *host, const char *filename, ::File_Info *info)
     {
       QByteArray contentType;
       QIODevice *response = NULL;
-      if (Data::me->getResponse(filename, contentType, response, false) == HttpStatus_Ok)
+      if (Data::me->getResponse(host, filename, contentType, response, false) == HttpStatus_Ok)
       {
         info->file_length = (response && !response->isSequential()) ? response->size() : -1;
         info->last_modified = QDateTime::currentDateTime().toTime_t();
@@ -332,11 +335,11 @@ void PupnpRootDevice::enableWebserver()
         return -1;
     }
 
-    static ::UpnpWebFileHandle open(const char *filename, ::UpnpOpenFileMode mode)
+    static ::UpnpWebFileHandle open(const char *host, const char *filename, ::UpnpOpenFileMode mode)
     {
       QByteArray contentType;
       QIODevice *response = NULL;
-      if (Data::me->getResponse(filename, contentType, response, true) == HttpStatus_Ok)
+      if (Data::me->getResponse(host, filename, contentType, response, true) == HttpStatus_Ok)
       {
         if (response->open((mode == UPNP_READ) ? QIODevice::ReadOnly : QIODevice::WriteOnly))
           return response;
@@ -398,7 +401,7 @@ void PupnpRootDevice::enableWebserver()
   ::UpnpSetVirtualDirCallbacks(const_cast< ::UpnpVirtualDirCallbacks * >(&callbacks));
 }
 
-HttpStatus PupnpRootDevice::getResponse(const QByteArray &path, QByteArray &contentType, QIODevice *&response, bool erase)
+HttpStatus PupnpRootDevice::getResponse(const QByteArray &host, const QByteArray &path, QByteArray &contentType, QIODevice *&response, bool erase)
 {
   QMutexLocker l(&d->responsesMutex);
 
@@ -433,7 +436,7 @@ HttpStatus PupnpRootDevice::getResponse(const QByteArray &path, QByteArray &cont
       QByteArray contentType;
       QIODevice *response;
       HttpStatus result;
-    } f(this, QUrl("http://" + d->httpHost + QString::fromUtf8(path)));
+    } f(this, QUrl("http://" + host + QString::fromUtf8(path)));
 
     send(f);
 
@@ -494,17 +497,17 @@ void PupnpRootDevice::enableRootDevice(void)
                   if (name == "GetCurrentConnectionIDs")
                   {
                     IXMLStructures::ActionGetCurrentConnectionIDs action(i->nodeItem, request->ActionResult, prefix);
-                    service->handleAction(me->d->httpHost, action);
+                    service->handleAction(request->Host, action);
                   }
                   else if (name == "GetCurrentConnectionInfo")
                   {
                     IXMLStructures::ActionGetCurrentConnectionInfo action(i->nodeItem, request->ActionResult, prefix);
-                    service->handleAction(me->d->httpHost, action);
+                    service->handleAction(request->Host, action);
                   }
                   else if (name == "GetProtocolInfo")
                   {
                     IXMLStructures::ActionGetProtocolInfo action(i->nodeItem, request->ActionResult, prefix);
-                    service->handleAction(me->d->httpHost, action);
+                    service->handleAction(request->Host, action);
                   }
                 }
 
@@ -523,32 +526,32 @@ void PupnpRootDevice::enableRootDevice(void)
                   if (name == "Browse")
                   {
                     IXMLStructures::ActionBrowse action(i->nodeItem, request->ActionResult, prefix);
-                    service->handleAction(me->d->httpHost, action);
+                    service->handleAction(request->Host, action);
                   }
                   else if (name == "Search")
                   {
                     IXMLStructures::ActionSearch action(i->nodeItem, request->ActionResult, prefix);
-                    service->handleAction(me->d->httpHost, action);
+                    service->handleAction(request->Host, action);
                   }
                   else if (name == "GetSearchCapabilities")
                   {
                     IXMLStructures::ActionGetSearchCapabilities action(i->nodeItem, request->ActionResult, prefix);
-                    service->handleAction(me->d->httpHost, action);
+                    service->handleAction(request->Host, action);
                   }
                   else if (name == "GetSortCapabilities")
                   {
                     IXMLStructures::ActionGetSortCapabilities action(i->nodeItem, request->ActionResult, prefix);
-                    service->handleAction(me->d->httpHost, action);
+                    service->handleAction(request->Host, action);
                   }
                   else if (name == "GetSystemUpdateID")
                   {
                     IXMLStructures::ActionGetSystemUpdateID action(i->nodeItem, request->ActionResult, prefix);
-                    service->handleAction(me->d->httpHost, action);
+                    service->handleAction(request->Host, action);
                   }
                   else if (name == "X_GetFeatureList")
                   {
                     IXMLStructures::ActionGetFeatureList action(i->nodeItem, request->ActionResult, prefix);
-                    service->handleAction(me->d->httpHost, action);
+                    service->handleAction(request->Host, action);
                   }
                 }
 
@@ -567,17 +570,17 @@ void PupnpRootDevice::enableRootDevice(void)
                   if (name == "IsAuthorized")
                   {
                     IXMLStructures::ActionIsAuthorized action(i->nodeItem, request->ActionResult, prefix);
-                    service->handleAction(me->d->httpHost, action);
+                    service->handleAction(request->Host, action);
                   }
                   else if (name == "IsValidated")
                   {
                     IXMLStructures::ActionIsValidated action(i->nodeItem, request->ActionResult, prefix);
-                    service->handleAction(me->d->httpHost, action);
+                    service->handleAction(request->Host, action);
                   }
                   else if (name == "RegisterDevice")
                   {
                     IXMLStructures::ActionRegisterDevice action(i->nodeItem, request->ActionResult, prefix);
-                    service->handleAction(me->d->httpHost, action);
+                    service->handleAction(request->Host, action);
                   }
                 }
 
@@ -605,6 +608,10 @@ void PupnpRootDevice::enableRootDevice(void)
             {
               udn = me->udn();
               me->handleEvent(request->ServiceId, propertyset);
+
+              QMap<QByteArray, ::UpnpDevice_Handle>::Iterator i = me->d->rootDeviceHandle.find(request->Host);
+              if (i != me->d->rootDeviceHandle.end())
+                ::UpnpAcceptSubscriptionExt(*i, udn, request->ServiceId, propertyset.doc, request->Sid);
             }
           }
 
@@ -615,13 +622,6 @@ void PupnpRootDevice::enableRootDevice(void)
         } f(me, reinterpret_cast<Upnp_Subscription_Request *>(event));
         me->send(f);
 
-        ::UpnpAcceptSubscriptionExt(
-              me->d->rootDeviceHandle,
-              f.udn,
-              f.request->ServiceId,
-              f.propertyset.doc,
-              f.request->Sid);
-
         return 0;
       }
 
@@ -629,28 +629,39 @@ void PupnpRootDevice::enableRootDevice(void)
       return -1;
     }
 
-    T(PupnpRootDevice *me, const QByteArray &path) : me(me), path(path), result(-1) { }
+    T(PupnpRootDevice *me, const QByteArray &path) : me(me), path(path), result(UPNP_E_INTERNAL_ERROR) { }
 
     virtual void run()
     {
-      result = ::UpnpRegisterRootDevice(path, &T::callback, me, &me->d->rootDeviceHandle);
+      for (char **i = ::UpnpGetServerIpAddresses(); i && *i; i++)
+      {
+        const QByteArray host = QByteArray(*i) + ":" + QByteArray::number(::UpnpGetServerPort());
+        if (::UpnpRegisterRootDevice(
+              "http://" + host + path,
+              &T::callback, me,
+              &(me->d->rootDeviceHandle[host])) == UPNP_E_SUCCESS)
+        {
+          result = UPNP_E_SUCCESS;
+        }
+      }
     }
 
     PupnpRootDevice * const me;
     const QByteArray path;
     volatile int result;
-  } t(this, "http://" + d->httpHost + d->deviceDescriptionFile + ".xml");
+  } t(this, QByteArray(d->deviceDescriptionFile) + ".xml");
 
   // Ugly, but needed as UpnpRegisterRootDevice retrieves files from the HTTP server.
   t.start();
-  while (t.result == -1) { qApp->processEvents(QEventLoop::ExcludeUserInputEvents | QEventLoop::WaitForMoreEvents, 16); }
+  while (!t.isFinished()) { qApp->processEvents(QEventLoop::ExcludeUserInputEvents | QEventLoop::WaitForMoreEvents, 16); }
   t.wait();
 
   if (t.result == UPNP_E_SUCCESS)
   {
     d->rootDeviceRegistred = true;
 
-    ::UpnpSendAdvertisement(d->rootDeviceHandle, d->advertisementExpiration);
+    foreach(const ::UpnpDevice_Handle &handle, d->rootDeviceHandle)
+      ::UpnpSendAdvertisement(handle, d->advertisementExpiration);
   }
   else
     qWarning() << "UpnpRegisterRootDevice" << t.path << "failed:" << t.result;

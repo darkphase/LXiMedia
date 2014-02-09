@@ -61,7 +61,7 @@ private:
   void                          send(Functor &) const;
 
   void                          enableWebserver(void);
-  HttpStatus                    getResponse(const QByteArray &path, QByteArray &contentType, QIODevice *&response, bool erase);
+  HttpStatus                    getResponse(const QByteArray &host, const QByteArray &path, QByteArray &contentType, QIODevice *&response, bool erase);
 
   void                          enableRootDevice(void);
 
