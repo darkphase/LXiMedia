@@ -15,9 +15,9 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
+#include <upnp/upnp.h>
 #include "frontend.h"
 #include <LXiCore>
-#include <upnp/upnp.h>
 
 #if defined(Q_OS_LINUX)
 const char Frontend::daemonName[] = "lximcbackend";

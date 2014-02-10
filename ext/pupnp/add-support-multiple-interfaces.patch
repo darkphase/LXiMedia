@@ -143,7 +143,7 @@
  		enum UpnpOpenFileMode Mode);
  
 --- upnp/src/api/upnpapi.c	2013-11-15 17:01:35.000000000 +0100
-+++ upnp/src/api/upnpapi.c	2014-02-09 21:31:55.340775390 +0100
++++ upnp/src/api/upnpapi.c	2014-02-10 21:10:26.865578398 +0100
 @@ -130,7 +130,12 @@
  char gIF_NAME[LINE_SIZE] = { '\0' };
  
@@ -544,9 +544,9 @@
  }
  
 +int IsBoundAddress(
-+    in_addr_t src_addr)
++    unsigned src_addr)
 +{
-+    in_addr_t if_addr, if_netmask;
++    unsigned if_addr, if_netmask;
 +    int i;
 +
 +    for (i = 0; gIFIP_IPV4[i] && gIFNM_IPV4[i] && (i < MAX_INTERFACES); i++) {
@@ -561,11 +561,11 @@
 +}
 +
 +void DetermineHost(
-+    in_addr_t src_addr,
++    unsigned src_addr,
 +    char *host,
 +    size_t host_len)
 +{
-+    in_addr_t if_addr, if_netmask;
++    unsigned if_addr, if_netmask;
 +    int i;
 +
 +    for (i = 0; gIFIP_IPV4[i] && gIFNM_IPV4[i] && (i < MAX_INTERFACES); i++) {
@@ -662,7 +662,7 @@
  
  	*device_handle_out = -1;
  	return HND_INVALID;
-@@ -3828,9 +3996,10 @@
+@@ -3828,36 +3996,59 @@
  }
  
  
@@ -675,16 +675,76 @@
  	char tempstr[INET_ADDRSTRLEN];
  	const char *p = NULL;
  
-@@ -3840,6 +4009,8 @@
- 
- 	memset(&LocalAddr, 0, sizeof(LocalAddr));
- 
-+    TODO
+ #ifdef WIN32
+-	struct hostent *h = NULL;
+-	struct sockaddr_in LocalAddr;
++    SOCKET sock = socket(AF_INET, SOCK_DGRAM, 0);
++    INTERFACE_INFO interfaceInfo[MAX_INTERFACES];
++    DWORD bytes = 0;
++    struct sockaddr_in *LocalAddr;
++    unsigned i;
 +
- 	gethostname(out, out_len);
- 	h = gethostbyname(out);
- 	if (h != NULL) {
-@@ -3868,33 +4039,37 @@
++    memset(interfaceInfo, 0, sizeof(interfaceInfo));
++    if (WSAIoctl(sock, SIO_GET_INTERFACE_LIST,
++        0, 0, interfaceInfo, sizeof(interfaceInfo),
++        &bytes, 0, 0) != SOCKET_ERROR) {
++        for (i = 0; (i < bytes / sizeof(*interfaceInfo)) && (i < MAX_INTERFACES) && (out_pos < out_len); i++) {
++            /* Get a pointer to the address...*/
++            LocalAddr = ((struct sockaddr_in *)&interfaceInfo[i].iiAddress);
++            if (LocalAddr->sin_family == AF_INET) {
++                p = inet_ntop(AF_INET, &LocalAddr->sin_addr, tempstr, sizeof(tempstr));
++                if (p) {
++                    strncpy(out + out_pos, p, INET_ADDRSTRLEN - 1);
+ 
+-	memset(&LocalAddr, 0, sizeof(LocalAddr));
++                    UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
++                        "Inside getlocalhostname: after strncpy %s\n", out + out_pos);
+ 
+-	gethostname(out, out_len);
+-	h = gethostbyname(out);
+-	if (h != NULL) {
+-		memcpy(&LocalAddr.sin_addr, h->h_addr_list[0], 4);
+-		p = inet_ntop(AF_INET, &LocalAddr.sin_addr, tempstr, sizeof(tempstr));
+-		if (p) {
+-			strncpy(out, p, out_len);
+-		} else {
+-			UpnpPrintf( UPNP_ALL, API, __FILE__, __LINE__,
+-				"getlocalhostname: inet_ntop returned error\n" );
+-			ret = UPNP_E_INIT;
+-		}
+-	} else {
+-		UpnpPrintf( UPNP_ALL, API, __FILE__, __LINE__,
+-			"getlocalhostname: gethostbyname returned error\n" );
+-		ret = UPNP_E_INIT;
+-	}
++                    /* Get a pointer to the netmask...*/
++                    LocalAddr = ((struct sockaddr_in *)&interfaceInfo[i].iiNetmask);
++
++                    p = inet_ntop(AF_INET, &LocalAddr->sin_addr, tempstr, sizeof(tempstr));
++                    if (p) {
++                        strncpy(out_nm + out_pos, p, INET_ADDRSTRLEN - 1);
++                        UpnpPrintf(UPNP_ALL, API, __FILE__, __LINE__,
++                            "Inside getlocalhostname: after strncpy %s\n", out + out_pos);
++                        out_pos += INET_ADDRSTRLEN;
++                    } else {
++                        UpnpPrintf( UPNP_ALL, API, __FILE__, __LINE__,
++                            "getlocalhostname: inet_ntop returned error\n" );
++                        ret = UPNP_E_INIT;
++                    }
++                } else {
++                    UpnpPrintf( UPNP_ALL, API, __FILE__, __LINE__,
++                        "getlocalhostname: inet_ntop returned error\n" );
++                    ret = UPNP_E_INIT;
++                }
++            }
++        }
++    }
+ 
++    closesocket(sock);
+ #elif (defined(BSD) && BSD >= 199306) || defined(__FreeBSD_kernel__)
+ 	struct ifaddrs *ifap, *ifa;
+ 
+@@ -3868,33 +4059,37 @@
  	}
  
  	/* cycle through available interfaces */
@@ -738,7 +798,7 @@
  		}
  	}
  	freeifaddrs(ifap);
-@@ -3908,7 +4083,6 @@
+@@ -3908,7 +4103,6 @@
  	long unsigned int i;
  	int LocalSock;
  	struct sockaddr_in LocalAddr;
@@ -746,7 +806,7 @@
  
  	/* purify */
  	memset(&ifConf,  0, sizeof(ifConf));
-@@ -3935,7 +4109,7 @@
+@@ -3935,7 +4129,7 @@
  	}
  
  	/* Cycle through the list of interfaces looking for IP addresses. */
@@ -755,7 +815,7 @@
  		struct ifreq *pifReq =
  			(struct ifreq *)((caddr_t)ifConf.ifc_req + i);
  		i += sizeof *pifReq;
-@@ -3948,41 +4122,47 @@
+@@ -3948,41 +4142,47 @@
  				"Can't get interface flags for %s:\n",
  				ifReq.ifr_name);
  		}
@@ -1200,7 +1260,7 @@
  /************************************************************************
   * Function: http_RequestAndResponse
 --- upnp/src/inc/upnpapi.h	2013-11-15 17:01:35.000000000 +0100
-+++ upnp/src/inc/upnpapi.h	2014-02-09 21:31:55.336775390 +0100
++++ upnp/src/inc/upnpapi.h	2014-02-10 21:04:53.081568856 +0100
 @@ -45,7 +45,7 @@
  #include "VirtualDir.h"		/* for struct VirtualDirCallbacks */
  
@@ -1218,7 +1278,7 @@
 + */
 +int IsBoundAddress(
 +    /*! [in] Source IP address. */
-+    in_addr_t src_addr);
++    unsigned src_addr);
 +
 +/*!
 + * \brief Determines the host string.
@@ -1227,7 +1287,7 @@
 + */
 +void DetermineHost(
 +    /*! [in] Source IP address. */
-+    in_addr_t src_addr,
++    unsigned src_addr,
 +    /*! [out] Destination host string. */
 +    char *host,
 +    /*! [in] Destination host string length. */
@@ -1700,7 +1760,7 @@
  error_handler:
  	/* free msgs */
 --- upnp/src/ssdp/ssdp_server.c	2013-11-15 16:50:02.000000000 +0100
-+++ upnp/src/ssdp/ssdp_server.c	2014-02-09 21:34:21.324779563 +0100
++++ upnp/src/ssdp/ssdp_server.c	2014-02-10 21:08:58.065575859 +0100
 @@ -736,7 +736,7 @@
  	}
  	byteReceived = recvfrom(socket, requestBuf, BUFSIZE - (size_t)1, 0,
@@ -1788,6 +1848,15 @@
  	ret = UPNP_E_SUCCESS;
  
  error_handler:
+@@ -915,7 +893,7 @@
+ 		return UPNP_E_OUTOF_SOCKET;
+ 	}
+ 	setsockopt(*ssdpReqSock, IPPROTO_IP, IP_MULTICAST_TTL,
+-		   &ttl, sizeof(ttl));
++           (char *)&ttl, sizeof(ttl));
+ 	/* just do it, regardless if fails or not. */
+ 	sock_make_no_blocking(*ssdpReqSock);
+ 
 @@ -1188,7 +1166,7 @@
  	out->ssdpReqSock4 = INVALID_SOCKET;
  	out->ssdpReqSock6 = INVALID_SOCKET;
