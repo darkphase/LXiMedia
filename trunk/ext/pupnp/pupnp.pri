@@ -14,5 +14,5 @@ unix|win32-g++ {
 win32:DEFINES += UPNP_STATIC_LIB
 
 unix:LIBS += -lupnp -lixml -lthreadutil
-win32-g++:LIBS += -lupnp -lixml -lthreadutil -lws2_32
-win32-msvc2005|win32-msvc2008|win32-msvc2010:LIBS += $$replace(PUPNP_DIR,/,\\)libupnp-$${PUPNP_VERSION}\\upnp\\.libs\\libupnp.a $$replace(PUPNP_DIR,/,\\)libupnp-$${PUPNP_VERSION}\\ixml\\.libs\\libixml.a $$replace(PUPNP_DIR,/,\\)libupnp-$${PUPNP_VERSION}\\threadutil\\.libs\\libthreadutil.a ws2_32.lib
+win32-g++:LIBS += -lupnp -lixml -lthreadutil -lws2_32 -liphlpapi
+win32-msvc2005|win32-msvc2008|win32-msvc2010:LIBS += $$replace(PUPNP_DIR,/,\\)libupnp-$${PUPNP_VERSION}\\upnp\\.libs\\libupnp.a $$replace(PUPNP_DIR,/,\\)libupnp-$${PUPNP_VERSION}\\ixml\\.libs\\libixml.a $$replace(PUPNP_DIR,/,\\)libupnp-$${PUPNP_VERSION}\\threadutil\\.libs\\libthreadutil.a ws2_32.lib iphlpapi.lib
