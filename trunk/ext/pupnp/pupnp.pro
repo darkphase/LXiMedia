@@ -36,6 +36,7 @@ win32 {
     # Patch
     system(copy /Y $$replace(PWD,/,\\)\\*.patch $$replace(OUT_PWD,/,\\)\\libupnp-$${PUPNP_VERSION} > NUL)
     system(cd $$replace(OUT_PWD,/,\\)\\libupnp-$${PUPNP_VERSION} && patch -p0 < fix-mingw47-build.patch)
+    system(cd $$replace(OUT_PWD,/,\\)\\libupnp-$${PUPNP_VERSION} && patch -p0 < fix-windows-xp-compatibility.patch)
     system(cd $$replace(OUT_PWD,/,\\)\\libupnp-$${PUPNP_VERSION} && patch -p0 < fix-binding-port.patch)
     system(cd $$replace(OUT_PWD,/,\\)\\libupnp-$${PUPNP_VERSION} && patch -p0 < add-support-multiple-interfaces.patch)
 
