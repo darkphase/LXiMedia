@@ -1,0 +1,11 @@
+--- upnp/src/inc/upnputil.h	2012-04-28 23:32:06 +0100
++++ upnp/src/inc/upnputil.h	2014-02-11 21:15:17 +0100
+@@ -130,7 +130,7 @@
+ 		#define strncasecmp		strnicmp
+ 		#define sleep(a)		Sleep((a)*1000)
+ 		#define usleep(a)		Sleep((a)/1000)
+-		#define strerror_r(a,b,c)	(strerror_s((b),(c),(a)))
++        #define strerror_r(a,b,c)	(strncpy((b),strerror(a),(c)-1));b[(c)-1]='\0'
+ 	#else
+ 		#define max(a, b)   (((a)>(b))? (a):(b))
+ 		#define min(a, b)   (((a)<(b))? (a):(b))
