@@ -1,5 +1,5 @@
 --- upnp/inc/upnp.h	2013-11-15 17:01:35.000000000 +0100
-+++ upnp/inc/upnp.h	2014-02-09 19:47:26.178800187 +0100
++++ upnp/inc/upnp.h	2014-02-12 20:39:05.987368588 +0100
 @@ -613,6 +613,9 @@
    /** The error string in case of error. */
    char ErrStr[LINE_SIZE];
@@ -143,7 +143,7 @@
  		enum UpnpOpenFileMode Mode);
  
 --- upnp/src/api/upnpapi.c	2013-11-15 17:01:35.000000000 +0100
-+++ upnp/src/api/upnpapi.c	2014-02-10 21:10:26.865578398 +0100
++++ upnp/src/api/upnpapi.c	2014-02-12 20:45:51.191380171 +0100
 @@ -130,7 +130,12 @@
  char gIF_NAME[LINE_SIZE] = { '\0' };
  
@@ -158,7 +158,74 @@
  
  /*! Static buffer to contain interface IPv6 address. (extern'ed in upnp.h) */
  char gIF_IPV6[INET6_ADDRSTRLEN] = { '\0' };
-@@ -428,10 +433,34 @@
+@@ -180,6 +185,12 @@
+ Upnp_SID gUpnpSdkNLSuuid;
+ #endif /* UPNP_HAVE_OPTSSDP */
+ 
++#ifdef WIN32
++/*! Global variable to denote the state of Winsock == 0 if uninitialized,
++ * == 1 if initialized. */
++int WinsockInitialized = 0;
++#endif
++
+ 
+ /*!
+  * \brief (Windows Only) Initializes the Windows Winsock library.
+@@ -194,28 +205,31 @@
+ 	WSADATA wsaData;
+ 	int err;
+ 
+-	wVersionRequested = MAKEWORD(2, 2);
+-	err = WSAStartup(wVersionRequested, &wsaData);
+-	if (err != 0) {
+-		/* Tell the user that we could not find a usable */
+-		/* WinSock DLL.                                  */
+-		retVal = UPNP_E_INIT_FAILED;
+-		goto exit_function;
+-	}
+-	/* Confirm that the WinSock DLL supports 2.2.
+-	 * Note that if the DLL supports versions greater
+-	 * than 2.2 in addition to 2.2, it will still return
+-	 * 2.2 in wVersion since that is the version we
+-	 * requested. */
+-	if (LOBYTE(wsaData.wVersion) != 2 ||
+-	    HIBYTE(wsaData.wVersion) != 2) {
+-		/* Tell the user that we could not find a usable
+-		 * WinSock DLL. */
+-		WSACleanup();
+-		retVal = UPNP_E_INIT_FAILED; 
+-		goto exit_function;
+-	}
+-	/* The WinSock DLL is acceptable. Proceed. */
++    if (WinsockInitialized == 0) {
++        wVersionRequested = MAKEWORD(2, 2);
++        err = WSAStartup(wVersionRequested, &wsaData);
++        if (err != 0) {
++            /* Tell the user that we could not find a usable */
++            /* WinSock DLL.                                  */
++            retVal = UPNP_E_INIT_FAILED;
++            goto exit_function;
++        }
++        /* Confirm that the WinSock DLL supports 2.2.
++         * Note that if the DLL supports versions greater
++         * than 2.2 in addition to 2.2, it will still return
++         * 2.2 in wVersion since that is the version we
++         * requested. */
++        if (LOBYTE(wsaData.wVersion) != 2 ||
++            HIBYTE(wsaData.wVersion) != 2) {
++            /* Tell the user that we could not find a usable
++             * WinSock DLL. */
++            WSACleanup();
++            retVal = UPNP_E_INIT_FAILED;
++            goto exit_function;
++        }
++        /* The WinSock DLL is acceptable. Proceed. */
++        WinsockInitialized = 1;
++    }
+ exit_function:
+ #else
+ #endif
+@@ -428,10 +442,36 @@
  	return UPNP_E_SUCCESS;
  }
  
@@ -174,6 +241,8 @@
 +    memset(gAVIFIP_IPV4, 0, sizeof(gAVIFIP_IPV4));
 +    memset(gAVIFIP_IPV4_MEMORY, 0, sizeof(gAVIFIP_IPV4_MEMORY));
 +    memset(dummy, 0, sizeof(dummy));
++
++    WinsockInit();
 +
 +    i = getlocalhostnames( gAVIFIP_IPV4_MEMORY, dummy, sizeof(gAVIFIP_IPV4_MEMORY) );
 +    if (i < UPNP_E_SUCCESS ) {
@@ -193,7 +262,7 @@
  
  	/* Initializes the ithread library */
  	ithread_initialize_library();
-@@ -454,15 +483,25 @@
+@@ -454,15 +494,25 @@
  		"UpnpInit with HostIP=%s, DestPort=%d.\n", 
  		HostIP ? HostIP : "", (int)DestPort);
  
@@ -227,7 +296,7 @@
  	}
  
  	/* Set the UpnpSdkInit flag to 1 to indicate we're successfully initialized. */
-@@ -475,9 +514,11 @@
+@@ -475,9 +525,11 @@
  		goto exit_function;
  	}
  
@@ -242,7 +311,7 @@
  
  exit_function:
  	ithread_mutex_unlock(&gSDKInitMutex);
-@@ -534,6 +575,104 @@
+@@ -534,6 +586,104 @@
  }
  #endif
  
@@ -347,7 +416,7 @@
  #ifdef DEBUG
  /*!
   * \brief Prints thread pool statistics.
-@@ -603,6 +742,7 @@
+@@ -603,6 +753,7 @@
  	UpnpClient_Handle client_handle;
  #endif
  	struct Handle_Info *temp;
@@ -355,7 +424,7 @@
  
  	if (UpnpSdkInit != 1)
  		return UPNP_E_FINISH;
-@@ -618,14 +758,17 @@
+@@ -618,14 +769,17 @@
  	PrintThreadPoolStats(&gMiniServerThreadPool, __FILE__, __LINE__,
  		"MiniServer Thread Pool");
  #ifdef INCLUDE_DEVICE_APIS
@@ -381,7 +450,7 @@
  	case HND_DEVICE:
  		UpnpUnRegisterRootDevice(device_handle);
  		break;
-@@ -698,7 +841,15 @@
+@@ -698,7 +852,15 @@
  	if (UpnpSdkInit != 1)
  		return NULL;
  
@@ -398,7 +467,7 @@
  }
  
  char *UpnpGetServerIp6Address(void)
-@@ -799,11 +950,6 @@
+@@ -799,11 +961,6 @@
  		goto exit_function;
  	}
  
@@ -410,7 +479,7 @@
  	*Hnd = GetFreeHandle();
  	if (*Hnd == UPNP_E_OUTOF_HANDLE) {
  		retVal = UPNP_E_OUTOF_MEMORY;
-@@ -901,7 +1047,7 @@
+@@ -901,7 +1058,7 @@
  	}
  #endif /* EXCLUDE_GENA */
  
@@ -419,7 +488,7 @@
  
  	retVal = UPNP_E_SUCCESS;
  
-@@ -965,11 +1111,6 @@
+@@ -965,11 +1122,6 @@
  		goto exit_function;
  	}
  
@@ -431,7 +500,7 @@
  	*Hnd = GetFreeHandle();
  	if (*Hnd == UPNP_E_OUTOF_HANDLE) {
  		retVal = UPNP_E_OUTOF_MEMORY;
-@@ -1064,7 +1205,7 @@
+@@ -1064,7 +1216,7 @@
  	}
  #endif /* EXCLUDE_GENA */
  
@@ -440,7 +509,7 @@
  
  	retVal = UPNP_E_SUCCESS;
  
-@@ -1127,11 +1268,6 @@
+@@ -1127,11 +1279,6 @@
  		retVal = UPNP_E_INVALID_PARAM;
  		goto exit_function;
  	}
@@ -452,7 +521,7 @@
  	/* Test for already registered IPV6. IPV6 devices might register on multiple
  	 * IPv6 addresses (link local and GUA or ULA), so we must to check the
  	 * description URL in the HandleTable. */
-@@ -1239,7 +1375,7 @@
+@@ -1239,7 +1386,7 @@
  
  	switch (AddressFamily) {
  	case AF_INET:
@@ -461,7 +530,7 @@
  		break;
  	default:
  		UpnpSdkDeviceregisteredV6 = 1;
-@@ -1321,7 +1457,7 @@
+@@ -1321,7 +1468,7 @@
  #endif /* INTERNAL_WEB_SERVER */
  	switch (HInfo->DeviceAf) {
  	case AF_INET:
@@ -470,7 +539,7 @@
  		break;
  	case AF_INET6:
  		UpnpSdkDeviceregisteredV6 = 0;
-@@ -1476,6 +1612,8 @@
+@@ -1476,6 +1623,8 @@
   * \brief Fill the sockadr with IPv4 miniserver information.
   */
  static void get_server_addr(
@@ -479,7 +548,7 @@
  	/*! [out] pointer to server address structure. */
  	struct sockaddr *serverAddr)
  {
-@@ -1484,7 +1622,7 @@
+@@ -1484,7 +1633,7 @@
      memset( serverAddr, 0, sizeof(struct sockaddr_storage) );
  
      sa4->sin_family = AF_INET;
@@ -488,7 +557,7 @@
      sa4->sin_port = htons( LOCAL_PORT_V4 );
  }
  
-@@ -1595,7 +1733,7 @@
+@@ -1595,7 +1744,7 @@
  			strncpy(aliasStr, temp_str, sizeof(aliasStr) - 1);
  		}
  		if (AddressFamily == AF_INET) {
@@ -497,7 +566,7 @@
  		} else {
  			get_server_addr6((struct sockaddr *)&serverAddr);
  		}
-@@ -3354,7 +3492,8 @@
+@@ -3354,7 +3503,8 @@
  			   "Failed to find an adapter with valid IP addresses for use.\n");
  		return UPNP_E_INVALID_INTERFACE;
  	}
@@ -507,7 +576,7 @@
  	inet_ntop(AF_INET6, &v6_addr, gIF_IPV6, sizeof(gIF_IPV6));
  #elif (defined(BSD) && BSD >= 199306) || defined(__FreeBSD_kernel__)
  	struct ifaddrs *ifap, *ifa;
-@@ -3435,7 +3574,8 @@
+@@ -3435,7 +3585,8 @@
  			   "Failed to find an adapter with valid IP addresses for use.\n");
  		return UPNP_E_INVALID_INTERFACE;
  	}
@@ -517,7 +586,7 @@
  	inet_ntop(AF_INET6, &v6_addr, gIF_IPV6, sizeof(gIF_IPV6));
  	gIF_INDEX = if_nametoindex(gIF_NAME);
  #else
-@@ -3516,9 +3656,10 @@
+@@ -3516,9 +3667,10 @@
  			/* Copy interface name, IPv4 address and interface index. */
  			memset(gIF_NAME, 0, sizeof(gIF_NAME));
  			strncpy(gIF_NAME, pifReq->ifr_name, sizeof(gIF_NAME) - 1);
@@ -530,7 +599,7 @@
  			gIF_INDEX = if_nametoindex(gIF_NAME);
  			valid_addr_found = 1;
  			break;
-@@ -3585,7 +3726,7 @@
+@@ -3585,7 +3737,7 @@
  #endif
  	UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
  		   "Interface name=%s, index=%d, v4=%s, v6=%s, ULA or GUA v6=%s\n",
@@ -539,7 +608,7 @@
  
  	return UPNP_E_SUCCESS;
  }
-@@ -3714,61 +3855,88 @@
+@@ -3714,61 +3866,88 @@
  	return ((struct Handle_Info *)HandleTable[Hnd])->Callback;
  }
  
@@ -662,7 +731,7 @@
  
  	*device_handle_out = -1;
  	return HND_INVALID;
-@@ -3828,36 +3996,59 @@
+@@ -3828,36 +4007,59 @@
  }
  
  
@@ -744,7 +813,7 @@
  #elif (defined(BSD) && BSD >= 199306) || defined(__FreeBSD_kernel__)
  	struct ifaddrs *ifap, *ifa;
  
-@@ -3868,33 +4059,37 @@
+@@ -3868,33 +4070,37 @@
  	}
  
  	/* cycle through available interfaces */
@@ -798,7 +867,7 @@
  		}
  	}
  	freeifaddrs(ifap);
-@@ -3908,7 +4103,6 @@
+@@ -3908,7 +4114,6 @@
  	long unsigned int i;
  	int LocalSock;
  	struct sockaddr_in LocalAddr;
@@ -806,7 +875,7 @@
  
  	/* purify */
  	memset(&ifConf,  0, sizeof(ifConf));
-@@ -3935,7 +4129,7 @@
+@@ -3935,7 +4140,7 @@
  	}
  
  	/* Cycle through the list of interfaces looking for IP addresses. */
@@ -815,7 +884,7 @@
  		struct ifreq *pifReq =
  			(struct ifreq *)((caddr_t)ifConf.ifc_req + i);
  		i += sizeof *pifReq;
-@@ -3948,41 +4142,47 @@
+@@ -3948,41 +4153,47 @@
  				"Can't get interface flags for %s:\n",
  				ifReq.ifr_name);
  		}
@@ -889,7 +958,7 @@
  
  
 --- upnp/src/gena/gena_ctrlpt.c	2013-11-15 17:01:35.000000000 +0100
-+++ upnp/src/gena/gena_ctrlpt.c	2014-02-09 18:04:12.798623149 +0100
++++ upnp/src/gena/gena_ctrlpt.c	2014-02-12 20:39:05.991368588 +0100
 @@ -351,7 +351,7 @@
  				&request, 1, 1,
  				"q" "sssdsc" "sc" "sscc",
@@ -900,7 +969,7 @@
  				"TIMEOUT: Second-", timeout_str);
  		}
 --- upnp/src/gena/gena_device.c	2013-11-15 17:01:35.000000000 +0100
-+++ upnp/src/gena/gena_device.c	2014-02-09 19:01:08.482720787 +0100
++++ upnp/src/gena/gena_device.c	2014-02-12 20:39:05.991368588 +0100
 @@ -210,7 +210,7 @@
  	}
  	timeout = GENA_NOTIFICATION_SENDING_TIMEOUT;
@@ -968,7 +1037,7 @@
          error_respond( info, HTTP_PRECONDITION_FAILED, request );
          membuffer_destroy( &event_url_path );
 --- upnp/src/genlib/miniserver/miniserver.c	2013-11-15 16:50:02.000000000 +0100
-+++ upnp/src/genlib/miniserver/miniserver.c	2014-02-09 21:31:55.332775389 +0100
++++ upnp/src/genlib/miniserver/miniserver.c	2014-02-12 20:39:05.991368588 +0100
 @@ -201,7 +201,8 @@
  	int ret_code;
  	int major = 1;
@@ -1018,7 +1087,7 @@
  			UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
  				"miniserver: Error in accept(): %s\n",
 --- upnp/src/genlib/net/http/httpreadwrite.c	2013-11-15 17:01:35.000000000 +0100
-+++ upnp/src/genlib/net/http/httpreadwrite.c	2014-02-09 13:14:43.175489716 +0100
++++ upnp/src/genlib/net/http/httpreadwrite.c	2014-02-12 20:39:05.991368588 +0100
 @@ -379,8 +379,9 @@
  #if EXCLUDE_WEB_SERVER == 0
  	FILE *Fp;
@@ -1090,7 +1159,7 @@
  		if (errCode != UPNP_E_SUCCESS) {
  			sock_destroy(&handle->sock_info, SD_BOTH);
 --- upnp/src/genlib/net/http/webserver.c	2013-11-15 17:01:35.000000000 +0100
-+++ upnp/src/genlib/net/http/webserver.c	2014-02-09 18:58:10.962715712 +0100
++++ upnp/src/genlib/net/http/webserver.c	2014-02-12 20:39:05.991368588 +0100
 @@ -1024,7 +1024,7 @@
  static int process_request(
  	/*! [in] HTTP Request message. */
@@ -1202,7 +1271,7 @@
  			break;
  		default:
 --- upnp/src/inc/httpparser.h	2013-11-15 17:01:35.000000000 +0100
-+++ upnp/src/inc/httpparser.h	2014-02-09 18:43:35.690690693 +0100
++++ upnp/src/inc/httpparser.h	2014-02-12 20:39:05.991368588 +0100
 @@ -174,6 +174,8 @@
  
  typedef struct {
@@ -1213,7 +1282,7 @@
  	http_method_t method;
  	/*! request only. */
 --- upnp/src/inc/httpreadwrite.h	2013-11-15 17:01:35.000000000 +0100
-+++ upnp/src/inc/httpreadwrite.h	2014-02-09 13:14:43.171489716 +0100
++++ upnp/src/inc/httpreadwrite.h	2014-02-12 20:39:05.995368588 +0100
 @@ -130,17 +130,18 @@
   * \brief Sends a message to the destination based on the format parameter.
   *
@@ -1260,7 +1329,7 @@
  /************************************************************************
   * Function: http_RequestAndResponse
 --- upnp/src/inc/upnpapi.h	2013-11-15 17:01:35.000000000 +0100
-+++ upnp/src/inc/upnpapi.h	2014-02-10 21:04:53.081568856 +0100
++++ upnp/src/inc/upnpapi.h	2014-02-12 20:39:05.995368588 +0100
 @@ -45,7 +45,7 @@
  #include "VirtualDir.h"		/* for struct VirtualDirCallbacks */
  
@@ -1350,7 +1419,7 @@
  
  /*!
 --- upnp/src/soap/soap_device.c	2013-11-15 17:01:35.000000000 +0100
-+++ upnp/src/soap/soap_device.c	2014-02-09 18:57:20.630714273 +0100
++++ upnp/src/soap/soap_device.c	2014-02-12 20:39:05.995368588 +0100
 @@ -214,7 +214,7 @@
  		return;
  	}
@@ -1433,7 +1502,7 @@
  				   action.ServiceID,
  				   &soap_event_callback, &cookie);
 --- upnp/src/ssdp/ssdp_ctrlpt.c	2013-11-15 17:01:35.000000000 +0100
-+++ upnp/src/ssdp/ssdp_ctrlpt.c	2014-02-09 18:04:12.786623149 +0100
++++ upnp/src/ssdp/ssdp_ctrlpt.c	2014-02-12 20:39:05.995368588 +0100
 @@ -523,7 +523,7 @@
  	int handle;
  	struct Handle_Info *ctrlpt_info = NULL;
@@ -1444,7 +1513,7 @@
  	int retVal;
  
 --- upnp/src/ssdp/ssdp_device.c	2012-06-21 03:06:38.000000000 +0200
-+++ upnp/src/ssdp/ssdp_device.c	2014-02-09 22:03:55.581336280 +0100
++++ upnp/src/ssdp/ssdp_device.c	2014-02-12 20:39:05.995368588 +0100
 @@ -82,6 +82,7 @@
  void ssdp_handle_device_request(http_message_t *hmsg, struct sockaddr_storage *dest_addr)
  {
@@ -1760,7 +1829,7 @@
  error_handler:
  	/* free msgs */
 --- upnp/src/ssdp/ssdp_server.c	2013-11-15 16:50:02.000000000 +0100
-+++ upnp/src/ssdp/ssdp_server.c	2014-02-10 21:08:58.065575859 +0100
++++ upnp/src/ssdp/ssdp_server.c	2014-02-12 20:39:05.995368588 +0100
 @@ -736,7 +736,7 @@
  	}
  	byteReceived = recvfrom(socket, requestBuf, BUFSIZE - (size_t)1, 0,
