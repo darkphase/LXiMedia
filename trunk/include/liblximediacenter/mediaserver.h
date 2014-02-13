@@ -126,7 +126,7 @@ public:
 
   static QSet<QString>        & fileProtocols(void);
   static MediaProfiles        & mediaProfiles(void);
-  static QSet<QString>        & activeClients(void);
+  static QSet<QByteArray>     & activeClients(void);
 
   static QList<TranscodeSize>   allTranscodeSizes(void);
   static QString                defaultTranscodeSizeName(void);
@@ -153,17 +153,17 @@ protected slots:
   virtual void                  cleanStreams(void);
 
 protected: // From Server::HttpCallback
-  virtual HttpStatus            httpRequest(const QUrl &request, QByteArray &contentType, QIODevice *&response);
+  virtual HttpStatus            httpRequest(const QUrl &request, const RequestInfo &requestInfo, QByteArray &contentType, QIODevice *&response);
 
 private: // From ContentDirectory::Callback
-  virtual QList<ContentDirectory::Item> listContentDirItems(const QString &client, const QString &path, int start, int &count);
-  virtual ContentDirectory::Item getContentDirItem(const QString &client, const QString &path);
+  virtual QList<ContentDirectory::Item> listContentDirItems(const QByteArray &client, const QString &path, int start, int &count);
+  virtual ContentDirectory::Item getContentDirItem(const QByteArray &client, const QString &path);
 
 private:
-  static SAudioFormat           audioFormatFor(const QString &client, const Item &item, bool &addVideo);
-  static SVideoFormat           videoFormatFor(const QString &client, const Item &item);
-  static void                   processItem(const QString &client, Item &);
-  static void                   setQueryItemsFor(const QString &client, QUrlQuery &query, bool isMusic);
+  static SAudioFormat           audioFormatFor(const QByteArray &client, const Item &item, bool &addVideo);
+  static SVideoFormat           videoFormatFor(const QByteArray &client, const Item &item);
+  static void                   processItem(const QByteArray &client, Item &);
+  static void                   setQueryItemsFor(const QByteArray &client, QUrlQuery &query, bool isMusic);
 
 public:
   static const qint32           defaultDirSortOrder;

@@ -296,7 +296,7 @@ const char Backend::htmlHelpContents[] =
     "  </ul>\n"
     " </div>\n";
 
-HttpStatus Backend::httpRequest(const QUrl &request, QByteArray &contentType, QIODevice *&response)
+HttpStatus Backend::httpRequest(const QUrl &request, const RequestInfo &, QByteArray &contentType, QIODevice *&response)
 {
   const QString dir = request.path().left(request.path().lastIndexOf('/') + 1);
   const QString fileName = request.path().mid(dir.length());
@@ -740,11 +740,11 @@ QByteArray Backend::handleHtmlSettings(const QUrl &request)
   htmlParser.appendField("CLIENT_ROWS", htmlParser.parse(htmlSettingsDlnaRow));
 
   // DLNA clients
-  QStringList activeClients = MediaServer::activeClients().toList();
+  QList<QByteArray> activeClients = MediaServer::activeClients().toList();
   foreach (const QString &group, settings.childGroups())
   if (group.startsWith("Client_"))
   {
-    QString clientTag = group.mid(7);
+    QByteArray clientTag = group.mid(7).toLatin1();
 
     bool found = false;
     for (int i=0; (i<activeClients.count()) && !found; i++)
@@ -757,7 +757,7 @@ QByteArray Backend::handleHtmlSettings(const QUrl &request)
 
   qSort(activeClients);
 
-  foreach (const QString &activeClient, activeClients)
+  foreach (const QByteArray &activeClient, activeClients)
   {
     const QString clientTag = SStringParser::toCleanName(activeClient).replace(' ', '_');
 

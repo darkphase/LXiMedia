@@ -58,7 +58,7 @@ protected:
   virtual void                  customEvent(QEvent *);
 
 protected: // From RootDevice::HttpCallback
-  virtual HttpStatus            httpRequest(const QUrl &request, QByteArray &contentType, QIODevice *&response);
+  virtual HttpStatus            httpRequest(const QUrl &request, const RequestInfo &userAgent, QByteArray &contentType, QIODevice *&response);
 
 protected: // From BackendServer::MasterServer
   virtual HttpStatus            parseHtmlContent(const QUrl &, const QByteArray &content, const QByteArray &head, QByteArray &contentType, QIODevice *&response) const;

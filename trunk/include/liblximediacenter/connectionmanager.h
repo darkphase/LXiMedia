@@ -133,9 +133,9 @@ public:
 
   void                          addOutputConnection(const QUrl &, const QByteArray &, const QIODevice *);
 
-  void                          handleAction(const QByteArray &, ActionGetCurrentConnectionIDs &);
-  void                          handleAction(const QByteArray &, ActionGetCurrentConnectionInfo &);
-  void                          handleAction(const QByteArray &, ActionGetProtocolInfo &);
+  void                          handleAction(const RootDevice::HttpCallback::RequestInfo &, ActionGetCurrentConnectionIDs &);
+  void                          handleAction(const RootDevice::HttpCallback::RequestInfo &, ActionGetCurrentConnectionInfo &);
+  void                          handleAction(const RootDevice::HttpCallback::RequestInfo &, ActionGetProtocolInfo &);
 
 protected: // From RootDevice::Service
   virtual const char          * serviceType(void);

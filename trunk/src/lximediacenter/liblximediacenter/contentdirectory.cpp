@@ -26,8 +26,8 @@ const unsigned  ContentDirectory::seekSec = 120;
 struct ContentDirectory::Data : ContentDirectory::Callback
 {
   virtual                       ~Data() { }
-  virtual QList<Item>           listContentDirItems(const QString &client, const QString &path, int start, int &count);
-  virtual Item                  getContentDirItem(const QString &client, const QString &path);
+  virtual QList<Item>           listContentDirItems(const QByteArray &client, const QString &path, int start, int &count);
+  virtual Item                  getContentDirItem(const QByteArray &client, const QString &path);
 
   static const QEvent::Type     emitUpdateEventType;
 
@@ -81,12 +81,18 @@ void ContentDirectory::unregisterCallback(Callback *callback)
     i++;
 }
 
-void ContentDirectory::handleAction(const QByteArray &host, ActionBrowse &action)
+void ContentDirectory::handleAction(const RequestInfo &requestInfo, ActionBrowse &action)
 {
-  const QString client = "Unknown@Unknown";
   const QString path = fromObjectID(action.getObjectID());
   const int start = action.getStartingIndex();
   const int count = action.getRequestedCount();
+
+  QByteArray client = requestInfo.userAgent;
+  const int space = requestInfo.userAgent.indexOf(' ');
+  if (space > 0)
+    client = client.left(space);
+
+  client += '@' + requestInfo.sourceAddress;
 
   const QString basePath = baseDir(path);
   QMap<QString, Callback *>::Iterator callback = d->callbacks.find(basePath);
@@ -118,13 +124,13 @@ void ContentDirectory::handleAction(const QByteArray &host, ActionBrowse &action
           case Item::Type_MusicVideo:
           case Item::Type_Image:
           case Item::Type_Photo:
-            addFile(action, host, item, item.path, item.title);
+            addFile(action, requestInfo.host, item, item.path, item.title);
             break;
 
           case Item::Type_AudioBroadcast:
           case Item::Type_Video:
           case Item::Type_VideoBroadcast:
-            addFile(action, host, item, item.path, item.played ? ('*' + item.title) : item.title);
+            addFile(action, requestInfo.host, item, item.path, item.played ? ('*' + item.title) : item.title);
             break;
 
           case Item::Type_Audio:
@@ -166,7 +172,7 @@ void ContentDirectory::handleAction(const QByteArray &host, ActionBrowse &action
       {
         const QStringList props = splitItemProps(path + '\t' + items[i]);
         if (props[1] == "p")
-          addFile(action, host, makePlayItem(item, props), path + '\t' + items[i]);
+          addFile(action, requestInfo.host, makePlayItem(item, props), path + '\t' + items[i]);
         else
           addContainer(action, Item::Type(item.type), path + '\t' + items[i], props[3], allItems(item, splitItemProps(items[i])).count());
       }
@@ -176,7 +182,7 @@ void ContentDirectory::handleAction(const QByteArray &host, ActionBrowse &action
 
     case ActionBrowse::BrowseMetadata:
       if (itemProps[1].isEmpty() || (itemProps[1] == "p"))
-        addFile(action, host, makePlayItem(item, itemProps), path);
+        addFile(action, requestInfo.host, makePlayItem(item, itemProps), path);
       else
         addContainer(action, Item::Type(item.type), path, itemProps[3], items.count());
 
@@ -188,27 +194,27 @@ void ContentDirectory::handleAction(const QByteArray &host, ActionBrowse &action
   action.setResponse(totalMatches, d->systemUpdateId);
 }
 
-void ContentDirectory::handleAction(const QByteArray &, ActionSearch &action)
+void ContentDirectory::handleAction(const RequestInfo &, ActionSearch &action)
 {
   action.setResponse(0, d->systemUpdateId);
 }
 
-void ContentDirectory::handleAction(const QByteArray &, ActionGetSearchCapabilities &action)
+void ContentDirectory::handleAction(const RequestInfo &, ActionGetSearchCapabilities &action)
 {
   action.setResponse(QByteArray());
 }
 
-void ContentDirectory::handleAction(const QByteArray &, ActionGetSortCapabilities &action)
+void ContentDirectory::handleAction(const RequestInfo &, ActionGetSortCapabilities &action)
 {
   action.setResponse(QByteArray());
 }
 
-void ContentDirectory::handleAction(const QByteArray &, ActionGetSystemUpdateID &action)
+void ContentDirectory::handleAction(const RequestInfo &, ActionGetSystemUpdateID &action)
 {
   action.setResponse(d->systemUpdateId);
 }
 
-void ContentDirectory::handleAction(const QByteArray &, ActionGetFeatureList &action)
+void ContentDirectory::handleAction(const RequestInfo &, ActionGetFeatureList &action)
 {
   QList<QByteArray> containers;
   containers += "object.item.audioItem";
@@ -311,11 +317,11 @@ void ContentDirectory::customEvent(QEvent *e)
     QObject::customEvent(e);
 }
 
-HttpStatus ContentDirectory::httpRequest(const QUrl &request, QByteArray &contentType, QIODevice *&response)
+HttpStatus ContentDirectory::httpRequest(const QUrl &request, const RequestInfo &requestInfo, QByteArray &contentType, QIODevice *&response)
 {
   if (request.path().startsWith(httpBaseDir))
   {
-    const HttpStatus result = parent->handleHttpRequest(fromObjectURL(request), contentType, response);
+    const HttpStatus result = parent->handleHttpRequest(fromObjectURL(request), requestInfo, contentType, response);
     if (result == HttpStatus_Ok)
       connectionManager->addOutputConnection(request, contentType, response);
 
@@ -746,7 +752,7 @@ ContentDirectory::BrowseContainer::~BrowseContainer()
 }
 
 
-QList<ContentDirectory::Item> ContentDirectory::Data::listContentDirItems(const QString &client, const QString &path, int start, int &count)
+QList<ContentDirectory::Item> ContentDirectory::Data::listContentDirItems(const QByteArray &client, const QString &path, int start, int &count)
 {
   const bool returnAll = count == 0;
   QList<ContentDirectory::Item> result;
@@ -791,7 +797,7 @@ QList<ContentDirectory::Item> ContentDirectory::Data::listContentDirItems(const 
   return result;
 }
 
-ContentDirectory::Item ContentDirectory::Data::getContentDirItem(const QString &, const QString &)
+ContentDirectory::Item ContentDirectory::Data::getContentDirItem(const QByteArray &, const QString &)
 {
   return Item();
 }

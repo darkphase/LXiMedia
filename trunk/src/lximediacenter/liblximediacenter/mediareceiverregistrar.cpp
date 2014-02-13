@@ -115,17 +115,17 @@ void MediaReceiverRegistrar::customEvent(QEvent *e)
     QObject::customEvent(e);
 }
 
-void MediaReceiverRegistrar::handleAction(const QByteArray &, ActionIsAuthorized &action)
+void MediaReceiverRegistrar::handleAction(const RootDevice::HttpCallback::RequestInfo &, ActionIsAuthorized &action)
 {
   action.setResponse(1);
 }
 
-void MediaReceiverRegistrar::handleAction(const QByteArray &, ActionIsValidated &action)
+void MediaReceiverRegistrar::handleAction(const RootDevice::HttpCallback::RequestInfo &, ActionIsValidated &action)
 {
   action.setResponse(1);
 }
 
-void MediaReceiverRegistrar::handleAction(const QByteArray &, ActionRegisterDevice &action)
+void MediaReceiverRegistrar::handleAction(const RootDevice::HttpCallback::RequestInfo &, ActionRegisterDevice &action)
 {
   action.setResponse("DUMMY");
 }

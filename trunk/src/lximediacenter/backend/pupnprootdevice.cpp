@@ -307,7 +307,7 @@ void PupnpRootDevice::customEvent(QEvent *e)
     RootDevice::customEvent(e);
 }
 
-HttpStatus PupnpRootDevice::httpRequest(const QUrl &request, QByteArray &contentType, QIODevice *&response)
+HttpStatus PupnpRootDevice::httpRequest(const QUrl &request, const RootDevice::RequestInfo &, QByteArray &contentType, QIODevice *&response)
 {
   QString host = request.host();
   if (request.port() > 0)
@@ -411,11 +411,11 @@ void PupnpRootDevice::enableWebserver()
 {
   struct T
   {
-    static int get_info(const char *host, const char *filename, ::File_Info *info)
+    static int get_info(::Request_Info *request, const char *filename, ::File_Info *info)
     {
       QByteArray contentType;
       QIODevice *response = NULL;
-      if (Data::me->getResponse(host, filename, contentType, response, false) == HttpStatus_Ok)
+      if (Data::me->getResponse(request->host, filename, request->userAgent, request->sourceAddress, contentType, response, false) == HttpStatus_Ok)
       {
         info->file_length = (response && !response->isSequential()) ? response->size() : -1;
         info->last_modified = QDateTime::currentDateTime().toTime_t();
@@ -428,11 +428,11 @@ void PupnpRootDevice::enableWebserver()
         return -1;
     }
 
-    static ::UpnpWebFileHandle open(const char *host, const char *filename, ::UpnpOpenFileMode mode)
+    static ::UpnpWebFileHandle open(::Request_Info *request, const char *filename, ::UpnpOpenFileMode mode)
     {
       QByteArray contentType;
       QIODevice *response = NULL;
-      if (Data::me->getResponse(host, filename, contentType, response, true) == HttpStatus_Ok)
+      if (Data::me->getResponse(request->host, filename, request->userAgent, request->sourceAddress, contentType, response, true) == HttpStatus_Ok)
       {
         if (response->open((mode == UPNP_READ) ? QIODevice::ReadOnly : QIODevice::WriteOnly))
         {
@@ -496,7 +496,7 @@ void PupnpRootDevice::enableWebserver()
   ::UpnpSetVirtualDirCallbacks(const_cast< ::UpnpVirtualDirCallbacks * >(&callbacks));
 }
 
-HttpStatus PupnpRootDevice::getResponse(const QByteArray &host, const QByteArray &path, QByteArray &contentType, QIODevice *&response, bool erase)
+HttpStatus PupnpRootDevice::getResponse(const QByteArray &host, const QByteArray &path, const QByteArray &userAgent, const QByteArray &sourceAddress, QByteArray &contentType, QIODevice *&response, bool erase)
 {
   QMutexLocker l(&d->responsesMutex);
 
@@ -516,13 +516,20 @@ HttpStatus PupnpRootDevice::getResponse(const QByteArray &host, const QByteArray
 
     struct F : Functor
     {
-      F(PupnpRootDevice *me, bool erase, const QUrl &url) : me(me), erase(erase), url(url), response(NULL), result(HttpStatus_InternalServerError) { }
+      F(PupnpRootDevice *me, bool erase, const QUrl &url, const QByteArray &host, const QByteArray &userAgent, const QByteArray &sourceAddress)
+        : me(me), erase(erase), url(url),
+          response(NULL), result(HttpStatus_InternalServerError)
+      {
+        requestInfo.host = host;
+        requestInfo.userAgent = userAgent;
+        requestInfo.sourceAddress = sourceAddress;
+      }
 
       void operator()()
       {
         if (me->d->initialized)
         {
-          result = me->handleHttpRequest(url, contentType, response);
+          result = me->handleHttpRequest(url, requestInfo, contentType, response);
           if (response)
           {
             connect(response, SIGNAL(destroyed(QObject*)), me, SLOT(closedFile(QObject*)));
@@ -542,10 +549,11 @@ HttpStatus PupnpRootDevice::getResponse(const QByteArray &host, const QByteArray
       PupnpRootDevice * const me;
       const bool erase;
       const QUrl url;
+      RootDevice::HttpCallback::RequestInfo requestInfo;
       QByteArray contentType;
       QIODevice *response;
       HttpStatus result;
-    } f(this, erase, QUrl("http://" + host + QString::fromUtf8(path)));
+    } f(this, erase, QUrl("http://" + host + QString::fromUtf8(path)), host, userAgent, sourceAddress);
 
     send(f);
 
@@ -593,6 +601,11 @@ void PupnpRootDevice::enableRootDevice(void)
             QMap<QByteArray, QPair<Service *, QByteArray> >::Iterator i = me->d->services.find(request->ServiceID);
             if ((i != me->d->services.end()) && me->d->initialized)
             {
+              RootDevice::RequestInfo requestInfo;
+              requestInfo.host = request->RequestInfo.host;
+              requestInfo.userAgent = request->RequestInfo.userAgent;
+              requestInfo.sourceAddress = request->RequestInfo.sourceAddress;
+
               if ((strcmp(i->first->serviceType(), serviceTypeConnectionManager) == 0))
               {
                 ConnectionManager * const service = static_cast<ConnectionManager *>(i->first);
@@ -606,17 +619,17 @@ void PupnpRootDevice::enableRootDevice(void)
                   if (name == "GetCurrentConnectionIDs")
                   {
                     IXMLStructures::ActionGetCurrentConnectionIDs action(i->nodeItem, request->ActionResult, prefix);
-                    service->handleAction(request->Host, action);
+                    service->handleAction(requestInfo, action);
                   }
                   else if (name == "GetCurrentConnectionInfo")
                   {
                     IXMLStructures::ActionGetCurrentConnectionInfo action(i->nodeItem, request->ActionResult, prefix);
-                    service->handleAction(request->Host, action);
+                    service->handleAction(requestInfo, action);
                   }
                   else if (name == "GetProtocolInfo")
                   {
                     IXMLStructures::ActionGetProtocolInfo action(i->nodeItem, request->ActionResult, prefix);
-                    service->handleAction(request->Host, action);
+                    service->handleAction(requestInfo, action);
                   }
                 }
 
@@ -635,32 +648,32 @@ void PupnpRootDevice::enableRootDevice(void)
                   if (name == "Browse")
                   {
                     IXMLStructures::ActionBrowse action(i->nodeItem, request->ActionResult, prefix);
-                    service->handleAction(request->Host, action);
+                    service->handleAction(requestInfo, action);
                   }
                   else if (name == "Search")
                   {
                     IXMLStructures::ActionSearch action(i->nodeItem, request->ActionResult, prefix);
-                    service->handleAction(request->Host, action);
+                    service->handleAction(requestInfo, action);
                   }
                   else if (name == "GetSearchCapabilities")
                   {
                     IXMLStructures::ActionGetSearchCapabilities action(i->nodeItem, request->ActionResult, prefix);
-                    service->handleAction(request->Host, action);
+                    service->handleAction(requestInfo, action);
                   }
                   else if (name == "GetSortCapabilities")
                   {
                     IXMLStructures::ActionGetSortCapabilities action(i->nodeItem, request->ActionResult, prefix);
-                    service->handleAction(request->Host, action);
+                    service->handleAction(requestInfo, action);
                   }
                   else if (name == "GetSystemUpdateID")
                   {
                     IXMLStructures::ActionGetSystemUpdateID action(i->nodeItem, request->ActionResult, prefix);
-                    service->handleAction(request->Host, action);
+                    service->handleAction(requestInfo, action);
                   }
                   else if (name == "X_GetFeatureList")
                   {
                     IXMLStructures::ActionGetFeatureList action(i->nodeItem, request->ActionResult, prefix);
-                    service->handleAction(request->Host, action);
+                    service->handleAction(requestInfo, action);
                   }
                 }
 
@@ -679,17 +692,17 @@ void PupnpRootDevice::enableRootDevice(void)
                   if (name == "IsAuthorized")
                   {
                     IXMLStructures::ActionIsAuthorized action(i->nodeItem, request->ActionResult, prefix);
-                    service->handleAction(request->Host, action);
+                    service->handleAction(requestInfo, action);
                   }
                   else if (name == "IsValidated")
                   {
                     IXMLStructures::ActionIsValidated action(i->nodeItem, request->ActionResult, prefix);
-                    service->handleAction(request->Host, action);
+                    service->handleAction(requestInfo, action);
                   }
                   else if (name == "RegisterDevice")
                   {
                     IXMLStructures::ActionRegisterDevice action(i->nodeItem, request->ActionResult, prefix);
-                    service->handleAction(request->Host, action);
+                    service->handleAction(requestInfo, action);
                   }
                 }
 
