@@ -34,9 +34,18 @@ class LXIMEDIACENTER_PUBLIC RootDevice : public QObject
 {
 Q_OBJECT
 public:
+  struct LXIMEDIACENTER_PUBLIC RequestInfo
+  {
+    QByteArray                host;
+    QByteArray                userAgent;
+    QByteArray                sourceAddress;
+  };
+
   struct LXIMEDIACENTER_PUBLIC HttpCallback
   {
-    virtual HttpStatus          httpRequest(const QUrl &request, QByteArray &contentType, QIODevice *&response) = 0;
+    typedef RootDevice::RequestInfo RequestInfo;
+
+    virtual HttpStatus          httpRequest(const QUrl &request, const RequestInfo &requestInfo, QByteArray &contentType, QIODevice *&response) = 0;
   };
 
   struct LXIMEDIACENTER_PUBLIC DeviceDescription
@@ -99,7 +108,7 @@ public:
   virtual void                  addIcon(const QString &path);
   virtual void                  emitEvent(const QByteArray &serviceId);
 
-  HttpStatus                    handleHttpRequest(const QUrl &path, QByteArray &contentType, QIODevice *&response);
+  HttpStatus                    handleHttpRequest(const QUrl &path, const HttpCallback::RequestInfo &requestInfo, QByteArray &contentType, QIODevice *&response);
   void                          handleEvent(const QByteArray &serviceId, EventablePropertySet &);
 
   QByteArray                    udn() const;

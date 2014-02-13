@@ -1,16 +1,33 @@
 --- upnp/inc/upnp.h	2013-11-15 17:01:35.000000000 +0100
-+++ upnp/inc/upnp.h	2014-02-12 20:39:05.987368588 +0100
-@@ -613,6 +613,9 @@
++++ upnp/inc/upnp.h	2014-02-13 20:45:24.671245685 +0100
+@@ -433,6 +433,16 @@
+  */
+ typedef int  UpnpDevice_Handle;
+ 
++struct Request_Info
++{
++    /** The IP address and port used to perform this request. */
++    char host[NAME_SIZE];
++    /** The user agent used to perform this request. */
++    char userAgent[NAME_SIZE];
++    /** The address the request came from. */
++    char sourceAddress[INET6_ADDRSTRLEN];
++};
++
+ /*!
+  * \brief The reason code for an event callback.
+  *
+@@ -613,6 +623,9 @@
    /** The error string in case of error. */
    char ErrStr[LINE_SIZE];
  
-+  /** The IP address and port used to perform this request. */
-+  char Host[NAME_SIZE];
++  /** The Request_Info structure used to perform this request. */
++  struct Request_Info RequestInfo;
 +
   /** The Action Name. */
    char ActionName[NAME_SIZE];
  
-@@ -788,6 +791,9 @@
+@@ -788,6 +801,9 @@
  
  struct Upnp_Subscription_Request
  {
@@ -20,7 +37,7 @@
    /** The identifier for the service being subscribed to. */
    char *ServiceId; 
  
-@@ -871,6 +877,18 @@
+@@ -871,6 +887,18 @@
   */
  
  /*!
@@ -39,7 +56,7 @@
   * \brief Initializes the Linux SDK for UPnP Devices (IPv4 only).
   *
   * \deprecated Kept for backwards compatibility. Use UpnpInit2 for new
-@@ -886,7 +904,7 @@
+@@ -886,7 +914,7 @@
   * process, multiple processes using the SDK must specify
   * different port numbers.
   *
@@ -48,7 +65,7 @@
   * and an arbitrary port.
   *
   * This call is synchronous.
-@@ -955,6 +973,45 @@
+@@ -955,6 +983,45 @@
  #endif
  
  /*!
@@ -94,7 +111,7 @@
   * \brief Terminates the Linux SDK for UPnP Devices.
   *
   * \li Checks for pending jobs and threads
-@@ -1016,6 +1073,19 @@
+@@ -1016,6 +1083,19 @@
  EXPORT_SPEC char *UpnpGetServerIpAddress(void);
  
  /*!
@@ -114,13 +131,13 @@
   * \brief Returns the local IPv6 listening ip address.
   *
   * If \c NULL is used as the IPv6 address in \b UpnpInit, then this function can
-@@ -2665,9 +2735,11 @@
+@@ -2665,9 +2745,11 @@
   * \brief Get-info callback function prototype.
   */
  typedef int (*VDCallback_GetInfo)(
 -		/*! [in] The name of the file to query. */
 +        /*! [in] The IP address and port used to perform this request. */
-+        const char *host,
++        struct Request_Info *request,
 +        /*! [in] The name of the file to query. */
  		const char *filename,
 -		/*! [out] Pointer to a structure to store the information on the file. */
@@ -128,13 +145,13 @@
  #if UPNP_VERSION < 10800
  		struct File_Info *info
  #else
-@@ -2689,9 +2761,11 @@
+@@ -2689,9 +2771,11 @@
   * \brief Open callback function prototype.
   */
  typedef UpnpWebFileHandle (*VDCallback_Open)(
 -		/*! [in] The name of the file to open. */ 
 +        /*! [in] The IP address and port used to perform this request. */
-+        const char *host,
++        struct Request_Info *request,
 +        /*! [in] The name of the file to open. */
  		const char *filename,
 -		/*! [in] The mode in which to open the file.
@@ -143,7 +160,7 @@
  		enum UpnpOpenFileMode Mode);
  
 --- upnp/src/api/upnpapi.c	2013-11-15 17:01:35.000000000 +0100
-+++ upnp/src/api/upnpapi.c	2014-02-12 20:45:51.191380171 +0100
++++ upnp/src/api/upnpapi.c	2014-02-13 19:05:13.951073869 +0100
 @@ -130,7 +130,12 @@
  char gIF_NAME[LINE_SIZE] = { '\0' };
  
@@ -958,7 +975,7 @@
  
  
 --- upnp/src/gena/gena_ctrlpt.c	2013-11-15 17:01:35.000000000 +0100
-+++ upnp/src/gena/gena_ctrlpt.c	2014-02-12 20:39:05.991368588 +0100
++++ upnp/src/gena/gena_ctrlpt.c	2014-02-13 19:05:13.955073869 +0100
 @@ -351,7 +351,7 @@
  				&request, 1, 1,
  				"q" "sssdsc" "sc" "sscc",
@@ -969,7 +986,7 @@
  				"TIMEOUT: Second-", timeout_str);
  		}
 --- upnp/src/gena/gena_device.c	2013-11-15 17:01:35.000000000 +0100
-+++ upnp/src/gena/gena_device.c	2014-02-12 20:39:05.991368588 +0100
++++ upnp/src/gena/gena_device.c	2014-02-13 19:05:13.955073869 +0100
 @@ -210,7 +210,7 @@
  	}
  	timeout = GENA_NOTIFICATION_SENDING_TIMEOUT;
@@ -1037,7 +1054,7 @@
          error_respond( info, HTTP_PRECONDITION_FAILED, request );
          membuffer_destroy( &event_url_path );
 --- upnp/src/genlib/miniserver/miniserver.c	2013-11-15 16:50:02.000000000 +0100
-+++ upnp/src/genlib/miniserver/miniserver.c	2014-02-12 20:39:05.991368588 +0100
++++ upnp/src/genlib/miniserver/miniserver.c	2014-02-13 19:05:13.955073869 +0100
 @@ -201,7 +201,8 @@
  	int ret_code;
  	int major = 1;
@@ -1087,32 +1104,35 @@
  			UpnpPrintf(UPNP_INFO, MSERV, __FILE__, __LINE__,
  				"miniserver: Error in accept(): %s\n",
 --- upnp/src/genlib/net/http/httpreadwrite.c	2013-11-15 17:01:35.000000000 +0100
-+++ upnp/src/genlib/net/http/httpreadwrite.c	2014-02-12 20:39:05.991368588 +0100
++++ upnp/src/genlib/net/http/httpreadwrite.c	2014-02-13 20:21:22.099204449 +0100
 @@ -379,8 +379,9 @@
  #if EXCLUDE_WEB_SERVER == 0
  	FILE *Fp;
  	struct SendInstruction *Instr = NULL;
 -	char *filename = NULL;
 -	char *file_buf = NULL;
-+    char *host = NULL;
++    struct Request_Info *rinfo;
 +    char *filename = NULL;
 +    char *file_buf = NULL;
  	char *ChunkBuf = NULL;
  	/* 10 byte allocated for chunk header. */
  	char Chunk_Header[CHUNK_HEADER_SIZE];
-@@ -420,9 +421,10 @@
+@@ -420,10 +421,11 @@
  			file_buf = ChunkBuf + CHUNK_HEADER_SIZE;
  		} else if (c == 'f') {
  			/* file name */
 -			filename = va_arg(argp, char *);
-+            host = va_arg(argp, char *);
-+            filename = va_arg(argp, char *);
- 			if (Instr && Instr->IsVirtualFile)
+-			if (Instr && Instr->IsVirtualFile)
 -				Fp = (virtualDirCallback.open)(filename, UPNP_READ);
-+                Fp = (virtualDirCallback.open)(host, filename, UPNP_READ);
- 			else
+-			else
++            rinfo = va_arg(argp, struct Request_Info *);
++            filename = va_arg(argp, char *);
++            if (Instr && Instr->IsVirtualFile)
++                Fp = (virtualDirCallback.open)(rinfo, filename, UPNP_READ);
++            else
  				Fp = fopen(filename, "rb");
  			if (Fp == NULL) {
+ 				RetVal = UPNP_E_FILE_READ_ERROR;
 @@ -613,7 +615,7 @@
  		goto end_function;
  	}
@@ -1159,26 +1179,57 @@
  		if (errCode != UPNP_E_SUCCESS) {
  			sock_destroy(&handle->sock_info, SD_BOTH);
 --- upnp/src/genlib/net/http/webserver.c	2013-11-15 17:01:35.000000000 +0100
-+++ upnp/src/genlib/net/http/webserver.c	2014-02-12 20:39:05.991368588 +0100
-@@ -1024,7 +1024,7 @@
++++ upnp/src/genlib/net/http/webserver.c	2014-02-13 20:56:16.527264318 +0100
+@@ -1024,7 +1024,9 @@
  static int process_request(
  	/*! [in] HTTP Request message. */
  	http_message_t *req,
 -	/*! [out] Tpye of response. */
++    /*! [in] Socket information object. */
++    SOCKINFO *info,
 +    /*! [out] Tpye of response. */
  	enum resp_type *rtype,
  	/*! [out] Headers. */
  	membuffer *headers,
-@@ -1114,7 +1114,7 @@
+@@ -1039,6 +1041,7 @@
+ 	int err_code;
+ 
+ 	char *request_doc;
++    struct Request_Info rinfo;
+ 	struct File_Info finfo;
+ 	int using_alias;
+ 	int using_virtual_dir;
+@@ -1049,6 +1052,8 @@
+ 	int alias_grabbed;
+ 	size_t dummy;
+ 	const char *extra_headers = NULL;
++    memptr userAgent;
++    struct sockaddr_in *inAddr;
+ 
+ 	print_http_headers(req);
+ 	url = &req->uri;
+@@ -1112,9 +1117,18 @@
+ 	}
+ 	if (using_virtual_dir) {
  		if (req->method != HTTPMETHOD_POST) {
- 			/* get file info */
+-			/* get file info */
++            rinfo.host[0] = rinfo.host[sizeof(rinfo.host) - 1] = '\0';
++            strncpy(rinfo.host, req->host, sizeof(rinfo.host) - 1);
++            rinfo.userAgent[0] = rinfo.userAgent[sizeof(rinfo.userAgent) - 1] = '\0';
++            if (httpmsg_find_hdr(req, HDR_USER_AGENT, &userAgent))
++                strncpy(rinfo.userAgent, userAgent.buf, sizeof(rinfo.userAgent) - 1);
++            inAddr = ((struct sockaddr_in *)&info->foreign_sockaddr);
++            if (inet_ntop(inAddr->sin_family, &inAddr->sin_addr, rinfo.sourceAddress, sizeof(rinfo.sourceAddress)) == NULL)
++                rinfo.sourceAddress[0] = '\0';
++
++            /* get file info */
  			if (virtualDirCallback.
 -			    get_info(filename->buf, &finfo) != 0) {
-+                get_info(req->host, filename->buf, &finfo) != 0) {
++                get_info(&rinfo, filename->buf, &finfo) != 0) {
  				err_code = HTTP_NOT_FOUND;
  				goto error_handler;
  			}
-@@ -1128,10 +1128,10 @@
+@@ -1128,10 +1142,10 @@
  				if (membuffer_append_str(filename, temp_str) !=
  				    0) {
  					goto error_handler;
@@ -1187,40 +1238,78 @@
  				/* get info */
  				if ((virtualDirCallback.
 -				     get_info(filename->buf,
-+                     get_info(req->host, filename->buf,
++                     get_info(&rinfo, filename->buf,
  					      &finfo) != UPNP_E_SUCCESS)
  				    || finfo.is_directory) {
  					err_code = HTTP_NOT_FOUND;
-@@ -1349,7 +1349,9 @@
+@@ -1349,7 +1363,7 @@
  	SOCKINFO *info,
  	/*! File where received data is copied to. */
  	char *filename,
 -	/*! Send Instruction object which gives information whether the file
-+    /*! IPaddress:port that was used to perform this request. */
-+    const char *host,
 +    /*! Send Instruction object which gives information whether the file
  	 * is a virtual file or not. */
  	struct SendInstruction *Instr)
  {
-@@ -1364,7 +1366,7 @@
+@@ -1357,14 +1371,26 @@
+ 	char Buf[1024];
+ 	int Timeout = 0;
+ 	FILE *Fp;
++    struct Request_Info rinfo;
+ 	parse_status_t status = PARSE_OK;
+ 	int ok_on_close = FALSE;
+ 	size_t entity_offset = 0;
+ 	int num_read = 0;
  	int ret_code = HTTP_OK;
++    memptr userAgent;
++    struct sockaddr_in *inAddr;
  
  	if (Instr && Instr->IsVirtualFile) {
 -		Fp = (virtualDirCallback.open) (filename, UPNP_WRITE);
-+        Fp = (virtualDirCallback.open) (host, filename, UPNP_WRITE);
++        rinfo.host[0] = rinfo.host[sizeof(rinfo.host) - 1] = '\0';
++        strncpy(rinfo.host, parser->msg.host, sizeof(rinfo.host) - 1);
++        rinfo.userAgent[0] = rinfo.userAgent[sizeof(rinfo.userAgent) - 1] = '\0';
++        if (httpmsg_find_hdr(&parser->msg, HDR_USER_AGENT, &userAgent))
++            strncpy(rinfo.userAgent, userAgent.buf, sizeof(rinfo.userAgent) - 1);
++        inAddr = ((struct sockaddr_in *)&info->foreign_sockaddr);
++        if (inet_ntop(inAddr->sin_family, &inAddr->sin_addr, rinfo.sourceAddress, sizeof(rinfo.sourceAddress)) == NULL)
++            rinfo.sourceAddress[0] = '\0';
++
++        Fp = (virtualDirCallback.open) (&rinfo, filename, UPNP_WRITE);
  		if (Fp == NULL)
  			return HTTP_INTERNAL_SERVER_ERROR;
  	} else {
-@@ -1486,7 +1488,7 @@
+@@ -1472,6 +1498,9 @@
+ 	membuffer filename;
+ 	struct xml_alias_t xmldoc;
+ 	struct SendInstruction RespInstr;
++    memptr userAgent;
++    struct Request_Info rinfo;
++    struct sockaddr_in *inAddr;
+ 
+ 	/*Initialize instruction header. */
+ 	RespInstr.IsVirtualFile = 0;
+@@ -1486,23 +1515,32 @@
  
  	/*Process request should create the different kind of header depending on the */
  	/*the type of request. */
 -	ret = process_request(req, &rtype, &headers, &filename, &xmldoc,
-+    ret = process_request(req, &rtype, &headers, &filename, &xmldoc,
++    ret = process_request(req, info, &rtype, &headers, &filename, &xmldoc,
  		&RespInstr);
  	if (ret != HTTP_OK) {
  		/* send error code */
-@@ -1496,13 +1498,13 @@
+ 		http_SendStatusResponse(info, ret, req->major_version,
+ 			req->minor_version);
+ 	} else {
++        rinfo.host[0] = rinfo.host[sizeof(rinfo.host) - 1] = '\0';
++        strncpy(rinfo.host, req->host, sizeof(rinfo.host) - 1);
++        rinfo.userAgent[0] = rinfo.userAgent[sizeof(rinfo.userAgent) - 1] = '\0';
++        if (httpmsg_find_hdr(req, HDR_USER_AGENT, &userAgent))
++            strncpy(rinfo.userAgent, userAgent.buf, sizeof(rinfo.userAgent) - 1);
++        inAddr = ((struct sockaddr_in *)&info->foreign_sockaddr);
++        if (inet_ntop(inAddr->sin_family, &inAddr->sin_addr, rinfo.sourceAddress, sizeof(rinfo.sourceAddress)) == NULL)
++            rinfo.sourceAddress[0] = '\0';
++
  		/* send response */
  		switch (rtype) {
  		case RESP_FILEDOC:
@@ -1229,7 +1318,7 @@
  					 &RespInstr,
  					 headers.buf, headers.length,
 -					 filename.buf);
-+                     req->host, filename.buf);
++                     &rinfo, filename.buf);
  			break;
  		case RESP_XMLDOC:
 -			http_SendMessage(info, &timeout, "Ibb",
@@ -1237,18 +1326,18 @@
  				&RespInstr,
  				headers.buf, headers.length,
  				xmldoc.doc.buf, xmldoc.doc.length);
-@@ -1512,26 +1514,26 @@
+@@ -1512,26 +1550,26 @@
  			/*http_SendVirtualDirDoc(info, &timeout, "Ibf",
  				&RespInstr,
  				headers.buf, headers.length,
 -				filename.buf);*/
 -			http_SendMessage(info, &timeout, "Ibf",
-+                req->host, filename.buf);*/
++                &rinfo, filename.buf);*/
 +            http_SendMessage(info, &timeout, "Ibf",
  				&RespInstr,
  				headers.buf, headers.length,
 -				filename.buf);
-+                req->host, filename.buf);
++                &rinfo, filename.buf);
  			break;
  		case RESP_HEADERS:
  			/* headers only */
@@ -1259,7 +1348,7 @@
  		case RESP_POST:
  			/* headers only */
 -			ret = http_RecvPostMessage(parser, info, filename.buf,
-+            ret = http_RecvPostMessage(parser, info, filename.buf, req->host,
++            ret = http_RecvPostMessage(parser, info, filename.buf,
  				&RespInstr);
  			/* Send response. */
  			http_MakeMessage(&headers, 1, 1,
@@ -1271,7 +1360,7 @@
  			break;
  		default:
 --- upnp/src/inc/httpparser.h	2013-11-15 17:01:35.000000000 +0100
-+++ upnp/src/inc/httpparser.h	2014-02-12 20:39:05.991368588 +0100
++++ upnp/src/inc/httpparser.h	2014-02-13 19:05:13.955073869 +0100
 @@ -174,6 +174,8 @@
  
  typedef struct {
@@ -1282,13 +1371,13 @@
  	http_method_t method;
  	/*! request only. */
 --- upnp/src/inc/httpreadwrite.h	2013-11-15 17:01:35.000000000 +0100
-+++ upnp/src/inc/httpreadwrite.h	2014-02-12 20:39:05.995368588 +0100
-@@ -130,17 +130,18 @@
++++ upnp/src/inc/httpreadwrite.h	2014-02-13 20:21:22.107204449 +0100
+@@ -130,17 +130,19 @@
   * \brief Sends a message to the destination based on the format parameter.
   *
   * fmt types:
 - * \li \c 'f': arg = "const char *" file name
-+ * \li \c 'f': arg1 = "const char *" IPaddress:port that was used to perform this request; arg2 = "const char *" file name.
++ * \li \c 'f': arg1 = "struct Request_Info *" Request_Info structure for this request; arg2 = "const char *" file name.
   * \li \c 'b': arg1 = "const char *" mem_buffer; arg2 = "size_t" buffer length.
   * \li \c 'I': arg = "struct SendInstruction *"
   *
@@ -1297,15 +1386,16 @@
   	char *buf = "POST /xyz.cgi http/1.1\r\n\r\n";
 - 	char *filename = "foo.dat";
 +    char *host = "127.0.0.1:1234";
++    char *userAgent = "bar";
 +    char *filename = "foo.dat";
   	int status = http_SendMessage(tcpsock, "bf",
   		buf, strlen(buf),	// args for memory buffer
 - 		filename);		// arg for file
-+        host, filename);	// args for file
++        host, userAgent, filename);	// args for file
   \endverbatim
   *
   * \return
-@@ -149,14 +150,14 @@
+@@ -149,14 +151,14 @@
   * \li \c UPNP_E_SUCCESS
   */
  int http_SendMessage(
@@ -1329,7 +1419,7 @@
  /************************************************************************
   * Function: http_RequestAndResponse
 --- upnp/src/inc/upnpapi.h	2013-11-15 17:01:35.000000000 +0100
-+++ upnp/src/inc/upnpapi.h	2014-02-12 20:39:05.995368588 +0100
++++ upnp/src/inc/upnpapi.h	2014-02-13 19:05:13.955073869 +0100
 @@ -45,7 +45,7 @@
  #include "VirtualDir.h"		/* for struct VirtualDirCallbacks */
  
@@ -1419,7 +1509,7 @@
  
  /*!
 --- upnp/src/soap/soap_device.c	2013-11-15 17:01:35.000000000 +0100
-+++ upnp/src/soap/soap_device.c	2014-02-12 20:39:05.995368588 +0100
++++ upnp/src/soap/soap_device.c	2014-02-13 20:50:49.903254982 +0100
 @@ -214,7 +214,7 @@
  		return;
  	}
@@ -1473,7 +1563,7 @@
  				   variable.DevUDN,
  				   variable.ServiceID,
  				   &soap_event_callback, &cookie);
-@@ -757,7 +754,7 @@
+@@ -757,13 +754,25 @@
  	/*! [in] Document containing the SOAP action request. */
  	IN IXML_Document *xml_doc)
  {
@@ -1482,18 +1572,25 @@
  	IXML_Document *resp_node = NULL;
  	struct Upnp_Action_Request action;
  	Upnp_FunPtr soap_event_callback;
-@@ -765,6 +762,10 @@
+ 	void *cookie = NULL;
  	int err_code;
  	const char *err_str;
- 
-+    /* get host header */
-+    strncpy(action.Host, request->host, sizeof(action.Host) - 1);
-+    action.Host[sizeof(action.Host) - 1] = '\0';
++    memptr userAgent;
++    struct sockaddr_in *inAddr;
 +
++    /* Get request info */
++    action.RequestInfo.host[0] = action.RequestInfo.host[sizeof(action.RequestInfo.host) - 1] = '\0';
++    strncpy(action.RequestInfo.host, request->host, sizeof(action.RequestInfo.host) - 1);
++    action.RequestInfo.userAgent[0] = action.RequestInfo.userAgent[sizeof(action.RequestInfo.userAgent) - 1] = '\0';
++    if (httpmsg_find_hdr(request, HDR_USER_AGENT, &userAgent))
++        strncpy(action.RequestInfo.userAgent, userAgent.buf, sizeof(action.RequestInfo.userAgent) - 1);
++    inAddr = ((struct sockaddr_in *)&info->foreign_sockaddr);
++    if (inet_ntop(inAddr->sin_family, &inAddr->sin_addr, action.RequestInfo.sourceAddress, sizeof(action.RequestInfo.sourceAddress)) == NULL)
++        action.RequestInfo.sourceAddress[0] = '\0';
+ 
  	action.ActionResult = NULL;
  	/* null-terminate */
- 	save_char = action_name.buf[action_name.length];
-@@ -779,7 +780,6 @@
+@@ -779,7 +788,6 @@
  	err_code = get_device_info(request,
  				   0,
  				   xml_doc,
@@ -1502,7 +1599,7 @@
  				   action.ServiceID,
  				   &soap_event_callback, &cookie);
 --- upnp/src/ssdp/ssdp_ctrlpt.c	2013-11-15 17:01:35.000000000 +0100
-+++ upnp/src/ssdp/ssdp_ctrlpt.c	2014-02-12 20:39:05.995368588 +0100
++++ upnp/src/ssdp/ssdp_ctrlpt.c	2014-02-13 19:05:13.955073869 +0100
 @@ -523,7 +523,7 @@
  	int handle;
  	struct Handle_Info *ctrlpt_info = NULL;
@@ -1513,7 +1610,7 @@
  	int retVal;
  
 --- upnp/src/ssdp/ssdp_device.c	2012-06-21 03:06:38.000000000 +0200
-+++ upnp/src/ssdp/ssdp_device.c	2014-02-12 20:39:05.995368588 +0100
++++ upnp/src/ssdp/ssdp_device.c	2014-02-13 19:05:13.955073869 +0100
 @@ -82,6 +82,7 @@
  void ssdp_handle_device_request(http_message_t *hmsg, struct sockaddr_storage *dest_addr)
  {
@@ -1829,7 +1926,7 @@
  error_handler:
  	/* free msgs */
 --- upnp/src/ssdp/ssdp_server.c	2013-11-15 16:50:02.000000000 +0100
-+++ upnp/src/ssdp/ssdp_server.c	2014-02-12 20:39:05.995368588 +0100
++++ upnp/src/ssdp/ssdp_server.c	2014-02-13 19:05:13.959073869 +0100
 @@ -736,7 +736,7 @@
  	}
  	byteReceived = recvfrom(socket, requestBuf, BUFSIZE - (size_t)1, 0,

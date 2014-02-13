@@ -356,7 +356,7 @@ void MediaPlayerServer::scanDrives(void)
     driveList.insert(rootPath.url, rootPath.url.toString(QUrl::RemovePassword));
 }
 
-HttpStatus MediaPlayerServer::httpRequest(const QUrl &request, QByteArray &contentType, QIODevice *&response)
+HttpStatus MediaPlayerServer::httpRequest(const QUrl &request, const RequestInfo &requestInfo, QByteArray &contentType, QIODevice *&response)
 {
   const QUrlQuery query(request);
 
@@ -494,7 +494,7 @@ HttpStatus MediaPlayerServer::httpRequest(const QUrl &request, QByteArray &conte
     return HttpStatus_Ok;
   }
 
-  return MediaServer::httpRequest(request, contentType, response);
+  return MediaServer::httpRequest(request, requestInfo, contentType, response);
 }
 
 } } // End of namespaces

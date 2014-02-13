@@ -142,9 +142,9 @@ MediaProfiles & MediaServer::mediaProfiles(void)
   return p;
 }
 
-QSet<QString> & MediaServer::activeClients(void)
+QSet<QByteArray> & MediaServer::activeClients(void)
 {
-  static QSet<QString> c;
+  static QSet<QByteArray> c;
 
   return c;
 }
@@ -257,7 +257,7 @@ void MediaServer::cleanStreams(void)
     d->cleanStreamsTimer.stop();
 }
 
-HttpStatus MediaServer::httpRequest(const QUrl &request, QByteArray &contentType, QIODevice *&response)
+HttpStatus MediaServer::httpRequest(const QUrl &request, const RequestInfo &, QByteArray &contentType, QIODevice *&response)
 {
   const QUrlQuery query(request);
 
@@ -522,7 +522,7 @@ HttpStatus MediaServer::httpRequest(const QUrl &request, QByteArray &contentType
   return HttpStatus_NotFound;
 }
 
-QList<ContentDirectory::Item> MediaServer::listContentDirItems(const QString &client, const QString &dirPath, int start, int &count)
+QList<ContentDirectory::Item> MediaServer::listContentDirItems(const QByteArray &client, const QString &dirPath, int start, int &count)
 {
   if (!activeClients().contains(client))
     activeClients().insert(client);
@@ -538,7 +538,7 @@ QList<ContentDirectory::Item> MediaServer::listContentDirItems(const QString &cl
   return result;
 }
 
-ContentDirectory::Item MediaServer::getContentDirItem(const QString &client, const QString &path)
+ContentDirectory::Item MediaServer::getContentDirItem(const QByteArray &client, const QString &path)
 {
   if (!activeClients().contains(client))
     activeClients().insert(client);
@@ -550,7 +550,7 @@ ContentDirectory::Item MediaServer::getContentDirItem(const QString &client, con
   return item;
 }
 
-SAudioFormat MediaServer::audioFormatFor(const QString &client, const Item &item, bool &addVideo)
+SAudioFormat MediaServer::audioFormatFor(const QByteArray &client, const Item &item, bool &addVideo)
 {
   QSettings settings;
   settings.beginGroup("DLNA");
@@ -604,7 +604,7 @@ SAudioFormat MediaServer::audioFormatFor(const QString &client, const Item &item
   return result;
 }
 
-SVideoFormat MediaServer::videoFormatFor(const QString &client, const Item &)
+SVideoFormat MediaServer::videoFormatFor(const QByteArray &client, const Item &)
 {
   QSettings settings;
   settings.beginGroup("DLNA");
@@ -636,7 +636,7 @@ SVideoFormat MediaServer::videoFormatFor(const QString &client, const Item &)
   return result;
 }
 
-void MediaServer::processItem(const QString &client, Item &item)
+void MediaServer::processItem(const QByteArray &client, Item &item)
 {
   if (!item.isNull())
   {
@@ -689,7 +689,7 @@ void MediaServer::processItem(const QString &client, Item &item)
   }
 }
 
-void MediaServer::setQueryItemsFor(const QString &client, QUrlQuery &query, bool isMusic)
+void MediaServer::setQueryItemsFor(const QByteArray &client, QUrlQuery &query, bool isMusic)
 {
   QSettings settings;
   settings.beginGroup("DLNA");

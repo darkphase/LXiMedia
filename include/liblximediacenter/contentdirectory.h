@@ -99,8 +99,8 @@ public:
 
   struct Callback
   {
-    virtual QList<Item>         listContentDirItems(const QString &client, const QString &path, int start, int &count) = 0;
-    virtual Item                getContentDirItem(const QString &client, const QString &path) = 0;
+    virtual QList<Item>         listContentDirItems(const QByteArray &client, const QString &path, int start, int &count) = 0;
+    virtual Item                getContentDirItem(const QByteArray &client, const QString &path) = 0;
   };
 
 public:
@@ -188,12 +188,12 @@ public:
   void                          registerCallback(const QString &path, Callback *);
   void                          unregisterCallback(Callback *);
 
-  void                          handleAction(const QByteArray &, ActionBrowse &);
-  void                          handleAction(const QByteArray &, ActionSearch &);
-  void                          handleAction(const QByteArray &, ActionGetSearchCapabilities &);
-  void                          handleAction(const QByteArray &, ActionGetSortCapabilities &);
-  void                          handleAction(const QByteArray &, ActionGetSystemUpdateID &);
-  void                          handleAction(const QByteArray &, ActionGetFeatureList &);
+  void                          handleAction(const RequestInfo &, ActionBrowse &);
+  void                          handleAction(const RequestInfo &, ActionSearch &);
+  void                          handleAction(const RequestInfo &, ActionGetSearchCapabilities &);
+  void                          handleAction(const RequestInfo &, ActionGetSortCapabilities &);
+  void                          handleAction(const RequestInfo &, ActionGetSystemUpdateID &);
+  void                          handleAction(const RequestInfo &, ActionGetFeatureList &);
 
 protected: // From RootDevice::Service
   virtual const char          * serviceType(void);
@@ -208,7 +208,7 @@ protected: // From RootDevice::Service
   virtual void                  customEvent(QEvent *e);
 
 private: // From RootDevice::HttpCallback
-  virtual HttpStatus            httpRequest(const QUrl &request, QByteArray &contentType, QIODevice *&response);
+  virtual HttpStatus            httpRequest(const QUrl &request, const RequestInfo &requestInfo, QByteArray &contentType, QIODevice *&response);
 
 private:
   void                          addDirectory(ActionBrowse &, Item::Type, const QString &client, const QString &path, const QString &title = QString::null);

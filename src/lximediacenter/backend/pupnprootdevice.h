@@ -52,7 +52,7 @@ protected:
   virtual void                  customEvent(QEvent *);
 
 private: // From RootDevice::HttpCallback
-  virtual HttpStatus            httpRequest(const QUrl &request, QByteArray &contentType, QIODevice *&response);
+  virtual HttpStatus            httpRequest(const QUrl &request, const RootDevice::RequestInfo &, QByteArray &contentType, QIODevice *&response);
 
 private slots:
   void                          clearResponses();
@@ -67,7 +67,7 @@ private:
   void                          send(Functor &) const;
 
   void                          enableWebserver(void);
-  HttpStatus                    getResponse(const QByteArray &host, const QByteArray &path, QByteArray &contentType, QIODevice *&response, bool erase);
+  HttpStatus                    getResponse(const QByteArray &host, const QByteArray &path, const QByteArray &userAgent, const QByteArray &sourceAddress, QByteArray &contentType, QIODevice *&response, bool erase);
 
   void                          enableRootDevice(void);
 

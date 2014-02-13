@@ -143,14 +143,14 @@ void RootDevice::emitEvent(const QByteArray &)
 {
 }
 
-HttpStatus RootDevice::handleHttpRequest(const QUrl &url, QByteArray &contentType, QIODevice *&response)
+HttpStatus RootDevice::handleHttpRequest(const QUrl &url, const HttpCallback::RequestInfo &requestInfo, QByteArray &contentType, QIODevice *&response)
 {
   QString path = url.path().left(url.path().lastIndexOf('/') + 1);
   while (!path.isEmpty())
   {
     QMap<QString, HttpCallback *>::Iterator i = d->httpCallbacks.find(path);
     if (i != d->httpCallbacks.end())
-      return (*i)->httpRequest(url, contentType, response);
+      return (*i)->httpRequest(url, requestInfo, contentType, response);
 
     path = path.left(path.lastIndexOf('/', -2) + 1);
   }
