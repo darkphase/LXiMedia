@@ -51,9 +51,9 @@ public:
   explicit                      MediaReceiverRegistrar(RootDevice *parent);
   virtual                       ~MediaReceiverRegistrar();
 
-  void                          handleAction(const RootDevice::HttpCallback::RequestInfo &, ActionIsAuthorized &);
-  void                          handleAction(const RootDevice::HttpCallback::RequestInfo &, ActionIsValidated &);
-  void                          handleAction(const RootDevice::HttpCallback::RequestInfo &, ActionRegisterDevice &);
+  void                          handleAction(const UPnP::HttpRequestInfo &, ActionIsAuthorized &);
+  void                          handleAction(const UPnP::HttpRequestInfo &, ActionIsValidated &);
+  void                          handleAction(const UPnP::HttpRequestInfo &, ActionRegisterDevice &);
 
 protected: // From RootDevice::Service
   virtual const char          * serviceType(void);

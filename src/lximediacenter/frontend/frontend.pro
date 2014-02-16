@@ -1,5 +1,5 @@
 TEMPLATE = app
-QT += network webkitwidgets xml
+QT += webkitwidgets
 LXIMEDIA_DIR = ../../..
 DESTDIR = $${OUT_PWD}/$${LXIMEDIA_DIR}/bin
 
@@ -10,8 +10,7 @@ macx {
 }
 
 include($${PWD}/$${LXIMEDIA_DIR}/include/config.pri)
-include($${PWD}/$${LXIMEDIA_DIR}/include/liblxicore/linklxicore.pri)
-include($${PWD}/$${LXIMEDIA_DIR}/ext/pupnp/pupnp.pri)
+include($${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/linklximediacenter.pri)
 
 macx {
   CONFIG += app_bundle

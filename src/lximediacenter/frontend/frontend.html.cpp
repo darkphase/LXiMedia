@@ -181,23 +181,23 @@ QByteArray Frontend::makeFrontendPage(void) const
 
   int localConfigAdded = 0;
   QMultiMap<QString, QByteArray> lximediaServers, otherServers;
-  foreach (const Server &server, servers)
+  foreach (const Client::DeviceDescription &device, devices)
   {
-    htmlParser.setField("ITEM_NAME", server.friendlyName);
-    htmlParser.setField("ITEM_MODEL", server.modelName);
-    htmlParser.setField("ITEM_ICON", server.iconURL.isEmpty() ? QUrl(":/img/null.png") : server.iconURL);
+    htmlParser.setField("ITEM_NAME", device.friendlyName);
+    htmlParser.setField("ITEM_MODEL", device.modelName);
+    htmlParser.setField("ITEM_ICON", device.iconURL.isEmpty() ? QUrl(":/img/null.png") : device.iconURL);
     htmlParser.setField("THIS_COMPUTER", "");
 
-    QString host = server.presentationURL.host();
+    QString host = device.presentationURL.host();
 
-    if (server.modelName == qApp->applicationName())
+    if (device.modelName == qApp->applicationName())
     {
-      htmlParser.setField("ITEM_LOCATION", server.presentationURL);
-      if (isLocalAddress(host) && (localConfigAdded++ == 0))
+      htmlParser.setField("ITEM_LOCATION", device.presentationURL);
+      if (upnpClient.isMyAddress(host.toLatin1()) && (localConfigAdded++ == 0))
         htmlParser.appendField("THIS_COMPUTER", '(' + tr("This computer") + ')');
     }
     else
-      htmlParser.setField("ITEM_LOCATION", "frontend:/iframe/" + server.presentationURL.toEncoded().toHex());
+      htmlParser.setField("ITEM_LOCATION", "frontend:/iframe/" + device.presentationURL.toEncoded().toHex());
 
     if ((QHostAddress(host) == QHostAddress::LocalHost) ||
         (QHostAddress(host) == QHostAddress::LocalHostIPv6))
@@ -211,13 +211,13 @@ QByteArray Frontend::makeFrontendPage(void) const
       }
     }
 
-    host += ':' + QString::number(server.presentationURL.port());
+    host += ':' + QString::number(device.presentationURL.port());
     htmlParser.setField("ITEM_HOST", host);
 
-    if (server.modelName == qApp->applicationName())
-      lximediaServers.insert(server.friendlyName, htmlParser.parse(htmlServer));
+    if (device.modelName == qApp->applicationName())
+      lximediaServers.insert(device.friendlyName, htmlParser.parse(htmlServer));
     else
-      otherServers.insert(server.friendlyName, htmlParser.parse(htmlServer));
+      otherServers.insert(device.friendlyName, htmlParser.parse(htmlServer));
   }
 
   if (localConfigAdded)

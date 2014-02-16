@@ -53,7 +53,7 @@ class DeviceDescription : public RootDevice::DeviceDescription,
                           public XmlStructure
 {
 public:
-  explicit                      DeviceDescription(const QString &host);
+  explicit                      DeviceDescription(const QByteArray &host);
 
   virtual void                  setDeviceType(const QByteArray &, const QByteArray &dlnaDoc);
   virtual void                  setFriendlyName(const QString &);
@@ -63,7 +63,7 @@ public:
   virtual void                  setUDN(const QByteArray &);
   virtual void                  addIcon(const QString &url, const char *mimetype, int width, int height, int depth);
   virtual void                  addService(const QByteArray &serviceType, const QByteArray &serviceId, const QByteArray &descriptionFile, const QByteArray &controlFile, const QByteArray &eventFile);
-  virtual void                  setPresentationURL(const QString &);
+  virtual void                  setPresentationURL(const QByteArray &);
 
 private:
   _IXML_Element         * const root;
@@ -71,7 +71,7 @@ private:
   _IXML_Element               * iconList;
   _IXML_Element               * serviceList;
 
-  const QString                 host;
+  const QByteArray              host;
 };
 
 class ServiceDescription : public RootDevice::ServiceDescription,

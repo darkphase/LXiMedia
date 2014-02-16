@@ -296,7 +296,7 @@ const char Backend::htmlHelpContents[] =
     "  </ul>\n"
     " </div>\n";
 
-HttpStatus Backend::httpRequest(const QUrl &request, const RequestInfo &, QByteArray &contentType, QIODevice *&response)
+HttpStatus Backend::httpRequest(const QUrl &request, const UPnP::HttpRequestInfo &, QByteArray &contentType, QIODevice *&response)
 {
   const QString dir = request.path().left(request.path().lastIndexOf('/') + 1);
   const QString fileName = request.path().mid(dir.length());

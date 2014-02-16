@@ -121,7 +121,7 @@ QByteArray XmlStructure::getTextElement(_IXML_Node *from, const char *name) cons
 }
 
 
-DeviceDescription::DeviceDescription(const QString &host)
+DeviceDescription::DeviceDescription(const QByteArray &host)
   : XmlStructure(),
     root(addElement(&doc->n, "root")),
     device(NULL),
@@ -135,7 +135,7 @@ DeviceDescription::DeviceDescription(const QString &host)
   addTextElement(&specVersion->n, "major", "1");
   addTextElement(&specVersion->n, "minor", "0");
 
-  addTextElement(&root->n, "URLBase", ("http://" + host).toUtf8());
+  addTextElement(&root->n, "URLBase", "http://" + host);
 
   device = addElement(&root->n, "device");
 }
@@ -176,12 +176,12 @@ void DeviceDescription::setUDN(const QByteArray &udn)
   addTextElement(&device->n, "UDN", udn);
 }
 
-void DeviceDescription::setPresentationURL(const QString &presentationURL)
+void DeviceDescription::setPresentationURL(const QByteArray &presentationURL)
 {
   if (serviceList == NULL)
     serviceList = addElement(&device->n, "serviceList");
 
-  addTextElement(&device->n, "presentationURL", ("http://" + host + presentationURL).toUtf8());
+  addTextElement(&device->n, "presentationURL", "http://" + host + presentationURL);
 }
 
 void DeviceDescription::addIcon(const QString &url, const char *mimetype, int width, int height, int depth)

@@ -20,9 +20,9 @@
 
 #include <QtCore>
 #include <QtGui>
-#include <QtNetwork>
 #include <QtWebKit>
 #include <QtWebKitWidgets>
+#include <LXiMediaCenter>
 
 class Frontend : public QWebView
 {
@@ -49,31 +49,6 @@ private:
     virtual QNetworkReply     * createRequest(Operation, const QNetworkRequest &, QIODevice *);
   };
 
-  class DiscoveryEvent : public QEvent
-  {
-  public:
-    static const QEvent::Type myType;
-    const enum Kind { Alive, ByeBye, Found } kind;
-    const QByteArray deviceId;
-    const QByteArray location;
-
-    DiscoveryEvent(Kind kind, const char *deviceId, const char *location)
-      : QEvent(myType),
-        kind(kind),
-        deviceId(deviceId),
-        location(location)
-    {
-    }
-  };
-
-  struct Server
-  {
-    QByteArray friendlyName;
-    QByteArray modelName;
-    QUrl presentationURL;
-    QUrl iconURL;
-  };
-
 public:
                                 Frontend();
   virtual                       ~Frontend();
@@ -83,17 +58,15 @@ public:
 protected:
   virtual void                  contextMenuEvent(QContextMenuEvent *);
   virtual void                  keyPressEvent(QKeyEvent *);
-  virtual void                  customEvent(QEvent *e);
 
 private slots:
+  void                          deviceDiscovered(const QByteArray &, const QByteArray &location);
+  void                          deviceClosed(const QByteArray &deviceId);
   void                          loadFrontendPage(const QUrl &);
-  void                          requestFinished(QNetworkReply *);
   void                          updateFrontendPage(void);
   void                          titleChanged(const QString &);
-  void                          checkNetworkInterfaces(void);
 
 private:
-  static bool                   isLocalAddress(const QString &);
 #if defined(Q_OS_MACX)
   static void                   registerAgent(void);
 #endif
@@ -101,14 +74,9 @@ private:
 private:
   static const char             daemonName[];
 
-  bool                          initialized;
-  int                           clientHandle;
+  Client                        upnpClient;
 
-  QTimer                        checkNetworkInterfacesTimer;
-  QList<QHostAddress>           boundNetworkInterfaces;
-
-  QNetworkAccessManager         networkAccessManager;
-  QMap<QByteArray, Server>      servers;
+  QMap<QByteArray, Client::DeviceDescription> devices;
 
   QTimer                        frontendPageTimer;
   bool                          frontendPageShowing;

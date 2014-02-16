@@ -17,7 +17,7 @@ unix {
     system(cd $${OUT_PWD}/libupnp-$${PUPNP_VERSION} && patch -p0 < add-support-multiple-interfaces.patch)
 
     # Compile
-    system(cd $${OUT_PWD}/libupnp-$${PUPNP_VERSION} && sh configure --enable-static --disable-shared --disable-samples --disable-dependency-tracking CFLAGS=\"-w $${PLATFORM_CFLAGS}\")
+    system(cd $${OUT_PWD}/libupnp-$${PUPNP_VERSION} && sh configure --enable-static --disable-shared --disable-samples --disable-dependency-tracking CFLAGS=\"-w -fPIC $${PLATFORM_CFLAGS}\")
     system(cd $${OUT_PWD}/libupnp-$${PUPNP_VERSION} && make)
 
     # Public headers
@@ -41,7 +41,7 @@ win32 {
     system(cd $$replace(OUT_PWD,/,\\)\\libupnp-$${PUPNP_VERSION} && patch -p0 < add-support-multiple-interfaces.patch)
 
     # Compile
-    system(cd $$replace(OUT_PWD,/,\\)\\libupnp-$${PUPNP_VERSION} && sh configure --enable-static --disable-shared --disable-samples --disable-dependency-tracking CFLAGS=\"-w -DUPNP_STATIC_LIB $${PLATFORM_CFLAGS}\")
+    system(cd $$replace(OUT_PWD,/,\\)\\libupnp-$${PUPNP_VERSION} && sh configure --enable-static --disable-shared --disable-samples --disable-dependency-tracking CFLAGS=\"-w -fPIC -DUPNP_STATIC_LIB $${PLATFORM_CFLAGS}\")
     system(cd $$replace(OUT_PWD,/,\\)\\libupnp-$${PUPNP_VERSION} && mingw32-make MAKE=mingw32-make -j $${PLATFORM_NUMCORES})
 
     # Public headers

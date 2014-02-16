@@ -20,34 +20,15 @@
 
 #include <QtCore>
 #include "export.h"
+#include "upnp.h"
 
 namespace LXiMediaCenter {
 
-enum HttpStatus
-{
-  HttpStatus_Ok                   = 200,
-  HttpStatus_NotFound             = 404,
-  HttpStatus_InternalServerError  = 500
-};
-
-class LXIMEDIACENTER_PUBLIC RootDevice : public QObject
+class LXIMEDIACENTER_PUBLIC RootDevice : public UPnP,
+                                         private UPnP::HttpCallback
 {
 Q_OBJECT
 public:
-  struct LXIMEDIACENTER_PUBLIC RequestInfo
-  {
-    QByteArray                host;
-    QByteArray                userAgent;
-    QByteArray                sourceAddress;
-  };
-
-  struct LXIMEDIACENTER_PUBLIC HttpCallback
-  {
-    typedef RootDevice::RequestInfo RequestInfo;
-
-    virtual HttpStatus          httpRequest(const QUrl &request, const RequestInfo &requestInfo, QByteArray &contentType, QIODevice *&response) = 0;
-  };
-
   struct LXIMEDIACENTER_PUBLIC DeviceDescription
   {
     virtual void                setDeviceType(const QByteArray &, const QByteArray &dlnaDoc) = 0;
@@ -57,7 +38,7 @@ public:
     virtual void                setSerialNumber(const QByteArray &) = 0;
     virtual void                setUDN(const QByteArray &) = 0;
     virtual void                addIcon(const QString &url, const char *mimetype, int width, int height, int depth) = 0;
-    virtual void                setPresentationURL(const QString &) = 0;
+    virtual void                setPresentationURL(const QByteArray &) = 0;
   };
 
   struct LXIMEDIACENTER_PUBLIC ServiceDescription
@@ -90,69 +71,36 @@ public:
   static const char             serviceTypeMediaReceiverRegistrar[];
 
 public:
-  explicit                      RootDevice(const QUuid &uuid, const QByteArray &deviceType, QObject *parent);
+                                RootDevice(const QUuid &, const QByteArray &deviceType, QObject *parent = NULL);
   virtual                       ~RootDevice();
 
-  virtual void                  registerService(const QByteArray &serviceId, Service *);
-  virtual void                  unregisterService(const QByteArray &serviceId);
+  void                          setDeviceName(const QString &deviceName);
+  void                          addIcon(const QString &path);
 
-  virtual void                  registerHttpCallback(const QString &path, HttpCallback *);
-  virtual void                  unregisterHttpCallback(HttpCallback *);
+  void                          registerService(const QByteArray &serviceId, Service *);
+  void                          unregisterService(const QByteArray &serviceId);
 
-  virtual void                  initialize(quint16 port, const QString &deviceName, bool bindPublicInterfaces);
+  virtual bool                  initialize(quint16 port, bool bindPublicInterfaces = false);
   virtual void                  close(void);
 
-//  virtual void                  bind(const QHostAddress &);
-//  virtual void                  release(const QHostAddress &);
-
-  virtual void                  addIcon(const QString &path);
-  virtual void                  emitEvent(const QByteArray &serviceId);
-
-  HttpStatus                    handleHttpRequest(const QUrl &path, const HttpCallback::RequestInfo &requestInfo, QByteArray &contentType, QIODevice *&response);
-  void                          handleEvent(const QByteArray &serviceId, EventablePropertySet &);
+  void                          emitEvent(const QByteArray &serviceId);
 
   QByteArray                    udn() const;
 
 protected:
+  void                          handleEvent(const QByteArray &serviceId, EventablePropertySet &);
+
+private: // From UPnP::HttpCallback
+  virtual HttpStatus            httpRequest(const QUrl &request, const HttpRequestInfo &, QByteArray &contentType, QIODevice *&response);
+
+private:
   void                          writeDeviceDescription(DeviceDescription &);
 
-public:
-  static const char           * toMimeType(const QString &fileName);
-  static const char             mimeAppOctet[];
-  static const char             mimeAudioAac[];
-  static const char             mimeAudioAc3[];
-  static const char             mimeAudioLpcm[];
-  static const char             mimeAudioMp3[];
-  static const char             mimeAudioMpeg[];
-  static const char             mimeAudioMpegUrl[];
-  static const char             mimeAudioOgg[];
-  static const char             mimeAudioWave[];
-  static const char             mimeAudioWma[];
-  static const char             mimeImageJpeg[];
-  static const char             mimeImagePng[];
-  static const char             mimeImageSvg[];
-  static const char             mimeImageTiff[];
-  static const char             mimeVideo3g2[];
-  static const char             mimeVideoAsf[];
-  static const char             mimeVideoAvi[];
-  static const char             mimeVideoFlv[];
-  static const char             mimeVideoMatroska[];
-  static const char             mimeVideoMpeg[];
-  static const char             mimeVideoMpegM2TS[];
-  static const char             mimeVideoMpegTS[];
-  static const char             mimeVideoMp4[];
-  static const char             mimeVideoOgg[];
-  static const char             mimeVideoQt[];
-  static const char             mimeVideoWmv[];
-  static const char             mimeTextCss[];
-  static const char             mimeTextHtml[];
-  static const char             mimeTextJs[];
-  static const char             mimeTextPlain[];
-  static const char             mimeTextXml[];
+  bool                          enableRootDevice(void);
 
 private:
   struct Data;
-  Data                  * const d;
+  Data                 * const d;
 };
 
 } // End of namespace

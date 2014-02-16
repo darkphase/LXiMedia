@@ -27,7 +27,7 @@ namespace LXiMediaCenter {
 
 class LXIMEDIACENTER_PUBLIC ContentDirectory : public QObject,
                                                public RootDevice::Service,
-                                               private RootDevice::HttpCallback
+                                               private UPnP::HttpCallback
 {
 Q_OBJECT
 public:
@@ -188,12 +188,12 @@ public:
   void                          registerCallback(const QString &path, Callback *);
   void                          unregisterCallback(Callback *);
 
-  void                          handleAction(const RequestInfo &, ActionBrowse &);
-  void                          handleAction(const RequestInfo &, ActionSearch &);
-  void                          handleAction(const RequestInfo &, ActionGetSearchCapabilities &);
-  void                          handleAction(const RequestInfo &, ActionGetSortCapabilities &);
-  void                          handleAction(const RequestInfo &, ActionGetSystemUpdateID &);
-  void                          handleAction(const RequestInfo &, ActionGetFeatureList &);
+  void                          handleAction(const UPnP::HttpRequestInfo &, ActionBrowse &);
+  void                          handleAction(const UPnP::HttpRequestInfo &, ActionSearch &);
+  void                          handleAction(const UPnP::HttpRequestInfo &, ActionGetSearchCapabilities &);
+  void                          handleAction(const UPnP::HttpRequestInfo &, ActionGetSortCapabilities &);
+  void                          handleAction(const UPnP::HttpRequestInfo &, ActionGetSystemUpdateID &);
+  void                          handleAction(const UPnP::HttpRequestInfo &, ActionGetFeatureList &);
 
 protected: // From RootDevice::Service
   virtual const char          * serviceType(void);
@@ -207,8 +207,8 @@ protected: // From RootDevice::Service
 protected: // From RootDevice::Service
   virtual void                  customEvent(QEvent *e);
 
-private: // From RootDevice::HttpCallback
-  virtual HttpStatus            httpRequest(const QUrl &request, const RequestInfo &requestInfo, QByteArray &contentType, QIODevice *&response);
+private: // From HttpCallback
+  virtual HttpStatus            httpRequest(const QUrl &request, const UPnP::HttpRequestInfo &requestInfo, QByteArray &contentType, QIODevice *&response);
 
 private:
   void                          addDirectory(ActionBrowse &, Item::Type, const QString &client, const QString &path, const QString &title = QString::null);

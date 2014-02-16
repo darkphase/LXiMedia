@@ -66,8 +66,8 @@ protected: // From BackendServer
   virtual QByteArray            frontPageContent(void);
   virtual QByteArray            settingsContent(void);
 
-protected: // From RootDevice::HttpCallback
-  virtual HttpStatus            httpRequest(const QUrl &request, const RequestInfo &requestInfo, QByteArray &contentType, QIODevice *&response);
+protected: // From HttpCallback
+  virtual HttpStatus            httpRequest(const QUrl &request, const UPnP::HttpRequestInfo &requestInfo, QByteArray &contentType, QIODevice *&response);
 
 protected: // From MediaServer
   virtual MediaStream         * streamVideo(const QUrl &request);
