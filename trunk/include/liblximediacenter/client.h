@@ -15,20 +15,51 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#ifndef LXMEDIACENTER_TELETEXT_H
-#define LXMEDIACENTER_TELETEXT_H
+#ifndef LXIMEDIACENTER_CLIENT_H
+#define LXIMEDIACENTER_CLIENT_H
 
 #include <QtCore>
-#include <QtGui>
-#include <LXiCore>
 #include "export.h"
+#include "upnp.h"
 
 namespace LXiMediaCenter {
 
-class LXIMEDIACENTER_PUBLIC Teletext
+class LXIMEDIACENTER_PUBLIC Client : public UPnP
 {
+Q_OBJECT
 public:
-  static void                   drawGraphics(QPainter &, const QRect &, int, char);
+  struct DeviceDescription
+  {
+    QByteArray                  deviceType;
+    QString                     friendlyName;
+    QString                     manufacturer;
+    QString                     modelName;
+    QByteArray                  udn;
+    QUrl                        iconURL;
+    QUrl                        presentationURL;
+  };
+
+public:
+  explicit                      Client(QObject *parent = NULL);
+  virtual                       ~Client();
+
+  virtual bool                  initialize(quint16 port = 0, bool bindPublicInterfaces = false);
+  virtual void                  close(void);
+
+  void                          startSearch(const QByteArray &target, int mx = 3);
+
+  bool                          getDeviceDescription(const QByteArray &location, DeviceDescription &description);
+
+signals:
+  void                          deviceDiscovered(const QByteArray &deviceId, const QByteArray &location);
+  void                          deviceClosed(const QByteArray &deviceId);
+
+private:
+  bool                          enableClient(void);
+
+private:
+  struct Data;
+  Data                 * const d;
 };
 
 } // End of namespace

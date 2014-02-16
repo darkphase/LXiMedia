@@ -8,6 +8,7 @@
 #ifdef __cplusplus
 
 #include "liblximediacenter/backendserver.h"
+#include "liblximediacenter/client.h"
 #include "liblximediacenter/connectionmanager.h"
 #include "liblximediacenter/contentdirectory.h"
 #include "liblximediacenter/mediaprofiles.h"
@@ -15,7 +16,7 @@
 #include "liblximediacenter/mediaserver.h"
 #include "liblximediacenter/mediastream.h"
 #include "liblximediacenter/rootdevice.h"
-#include "liblximediacenter/teletext.h"
+#include "liblximediacenter/upnp.h"
 
 using namespace LXiMediaCenter;
 

@@ -20,7 +20,6 @@
 
 #include <QtCore>
 #include <LXiStream>
-#include <LXiStreamGui>
 #include "backendserver.h"
 #include "export.h"
 

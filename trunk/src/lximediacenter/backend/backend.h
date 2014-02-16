@@ -20,11 +20,10 @@
 
 #include <QtCore>
 #include <LXiMediaCenter>
-#include "pupnprootdevice.h"
 
 class Backend : public QObject,
                 protected BackendServer::MasterServer,
-                protected RootDevice::HttpCallback
+                protected UPnP::HttpCallback
 {
 Q_OBJECT
 private:
@@ -57,8 +56,8 @@ public:
 protected:
   virtual void                  customEvent(QEvent *);
 
-protected: // From RootDevice::HttpCallback
-  virtual HttpStatus            httpRequest(const QUrl &request, const RequestInfo &userAgent, QByteArray &contentType, QIODevice *&response);
+protected: // From HttpCallback
+  virtual HttpStatus            httpRequest(const QUrl &request, const UPnP::HttpRequestInfo &userAgent, QByteArray &contentType, QIODevice *&response);
 
 protected: // From BackendServer::MasterServer
   virtual HttpStatus            parseHtmlContent(const QUrl &, const QByteArray &content, const QByteArray &head, QByteArray &contentType, QIODevice *&response) const;
@@ -80,7 +79,7 @@ private:
   static const QEvent::Type     exitEventType;
 #endif
 
-  PupnpRootDevice               upnpRootDevice;
+  RootDevice                    upnpRootDevice;
   ConnectionManager             upnpConnectionManager;
   ContentDirectory              upnpContentDirectory;
   MediaReceiverRegistrar        upnpMediaReceiverRegistrar;

@@ -257,7 +257,7 @@ void MediaServer::cleanStreams(void)
     d->cleanStreamsTimer.stop();
 }
 
-HttpStatus MediaServer::httpRequest(const QUrl &request, const RequestInfo &, QByteArray &contentType, QIODevice *&response)
+HttpStatus MediaServer::httpRequest(const QUrl &request, const UPnP::HttpRequestInfo &, QByteArray &contentType, QIODevice *&response)
 {
   const QUrlQuery query(request);
 

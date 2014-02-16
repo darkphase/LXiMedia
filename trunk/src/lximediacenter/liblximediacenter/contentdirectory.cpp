@@ -81,7 +81,7 @@ void ContentDirectory::unregisterCallback(Callback *callback)
     i++;
 }
 
-void ContentDirectory::handleAction(const RequestInfo &requestInfo, ActionBrowse &action)
+void ContentDirectory::handleAction(const UPnP::HttpRequestInfo &requestInfo, ActionBrowse &action)
 {
   const QString path = fromObjectID(action.getObjectID());
   const int start = action.getStartingIndex();
@@ -194,27 +194,27 @@ void ContentDirectory::handleAction(const RequestInfo &requestInfo, ActionBrowse
   action.setResponse(totalMatches, d->systemUpdateId);
 }
 
-void ContentDirectory::handleAction(const RequestInfo &, ActionSearch &action)
+void ContentDirectory::handleAction(const UPnP::HttpRequestInfo &, ActionSearch &action)
 {
   action.setResponse(0, d->systemUpdateId);
 }
 
-void ContentDirectory::handleAction(const RequestInfo &, ActionGetSearchCapabilities &action)
+void ContentDirectory::handleAction(const UPnP::HttpRequestInfo &, ActionGetSearchCapabilities &action)
 {
   action.setResponse(QByteArray());
 }
 
-void ContentDirectory::handleAction(const RequestInfo &, ActionGetSortCapabilities &action)
+void ContentDirectory::handleAction(const UPnP::HttpRequestInfo &, ActionGetSortCapabilities &action)
 {
   action.setResponse(QByteArray());
 }
 
-void ContentDirectory::handleAction(const RequestInfo &, ActionGetSystemUpdateID &action)
+void ContentDirectory::handleAction(const UPnP::HttpRequestInfo &, ActionGetSystemUpdateID &action)
 {
   action.setResponse(d->systemUpdateId);
 }
 
-void ContentDirectory::handleAction(const RequestInfo &, ActionGetFeatureList &action)
+void ContentDirectory::handleAction(const UPnP::HttpRequestInfo &, ActionGetFeatureList &action)
 {
   QList<QByteArray> containers;
   containers += "object.item.audioItem";
@@ -317,7 +317,7 @@ void ContentDirectory::customEvent(QEvent *e)
     QObject::customEvent(e);
 }
 
-HttpStatus ContentDirectory::httpRequest(const QUrl &request, const RequestInfo &requestInfo, QByteArray &contentType, QIODevice *&response)
+HttpStatus ContentDirectory::httpRequest(const QUrl &request, const UPnP::HttpRequestInfo &requestInfo, QByteArray &contentType, QIODevice *&response)
 {
   if (request.path().startsWith(httpBaseDir))
   {

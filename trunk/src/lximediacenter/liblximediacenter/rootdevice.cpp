@@ -15,75 +15,84 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
+#include <upnp/upnp.h>
 #include "rootdevice.h"
+#include "ixmlstructures.h"
 
 namespace LXiMediaCenter {
+
+struct RootDevice::Data
+{
+  static const char baseDir[];
+  static const char deviceDescriptionFile[];
+  static const char serviceDescriptionFile[];
+  static const char serviceControlFile[];
+  static const char serviceEventFile[];
+
+  QUuid uuid;
+  QByteArray deviceType;
+  QString deviceName;
+  QStringList icons;
+
+  QSet<QByteArray> serviceExts;
+  QMap<QByteArray, QPair<Service *, QByteArray> > services;
+
+  bool rootDeviceRegistred;
+  QMap<QByteArray, ::UpnpDevice_Handle> rootDeviceHandle;
+  static const int advertisementExpiration = 60;
+};
 
 const char  RootDevice::serviceTypeConnectionManager[]      = "urn:schemas-upnp-org:service:ConnectionManager:1";
 const char  RootDevice::serviceTypeContentDirectory[]       = "urn:schemas-upnp-org:service:ContentDirectory:1";
 const char  RootDevice::serviceTypeMediaReceiverRegistrar[] = "urn:microsoft.com:service:X_MS_MediaReceiverRegistrar:1";
 
-const char  RootDevice::mimeAppOctet[]          = "application/octet-stream";
-const char  RootDevice::mimeAudioAac[]          = "audio/aac";
-const char  RootDevice::mimeAudioAc3[]          = "audio/x-ac3";
-const char  RootDevice::mimeAudioLpcm[]         = "audio/L16;rate=48000;channels=2";
-const char  RootDevice::mimeAudioMp3[]          = "audio/mp3";
-const char  RootDevice::mimeAudioMpeg[]         = "audio/mpeg";
-const char  RootDevice::mimeAudioMpegUrl[]      = "audio/x-mpegurl";
-const char  RootDevice::mimeAudioOgg[]          = "audio/ogg";
-const char  RootDevice::mimeAudioWave[]         = "audio/wave";
-const char  RootDevice::mimeAudioWma[]          = "audio/x-ms-wma";
-const char  RootDevice::mimeImageJpeg[]         = "image/jpeg";
-const char  RootDevice::mimeImagePng[]          = "image/png";
-const char  RootDevice::mimeImageSvg[]          = "image/svg+xml";
-const char  RootDevice::mimeImageTiff[]         = "image/tiff";
-const char  RootDevice::mimeVideo3g2[]          = "video/3gpp";
-const char  RootDevice::mimeVideoAsf[]          = "video/x-ms-asf";
-const char  RootDevice::mimeVideoAvi[]          = "video/avi";
-const char  RootDevice::mimeVideoFlv[]          = "video/x-flv";
-const char  RootDevice::mimeVideoMatroska[]     = "video/x-matroska";
-const char  RootDevice::mimeVideoMpeg[]         = "video/mpeg";
-const char  RootDevice::mimeVideoMpegM2TS[]     = "video/vnd.dlna.mpeg-tts";
-const char  RootDevice::mimeVideoMpegTS[]       = "video/x-mpegts";
-const char  RootDevice::mimeVideoMp4[]          = "video/mp4";
-const char  RootDevice::mimeVideoOgg[]          = "video/ogg";
-const char  RootDevice::mimeVideoQt[]           = "video/quicktime";
-const char  RootDevice::mimeVideoWmv[]          = "video/x-ms-wmv";
-const char  RootDevice::mimeTextCss[]           = "text/css;charset=\"utf-8\"";
-const char  RootDevice::mimeTextHtml[]          = "text/html;charset=\"utf-8\"";
-const char  RootDevice::mimeTextJs[]            = "text/javascript;charset=\"utf-8\"";
-const char  RootDevice::mimeTextPlain[]         = "text/plain;charset=\"utf-8\"";
-const char  RootDevice::mimeTextXml[]           = "text/xml;charset=\"utf-8\"";
-
-struct RootDevice::Data
-{
-  QUuid uuid;
-  QByteArray deviceType;
-  QString deviceName;
-  QMap<QByteArray, Service *> services;
-  QStringList icons;
-  QMap<QString, HttpCallback *> httpCallbacks;
-};
+const char  RootDevice::Data::baseDir[] = "/upnp";
+const char  RootDevice::Data::deviceDescriptionFile[] = "/upnp/device";
+const char  RootDevice::Data::serviceDescriptionFile[] = "/upnp/service-";
+const char  RootDevice::Data::serviceControlFile[] = "/upnp/control-";
+const char  RootDevice::Data::serviceEventFile[] = "/upnp/event-";
 
 RootDevice::RootDevice(const QUuid &uuid, const QByteArray &deviceType, QObject *parent)
-  : QObject(parent),
+  : UPnP(parent),
     d(new Data())
 {
   d->uuid = uuid;
   d->deviceType = deviceType;
+  d->rootDeviceRegistred = false;
 }
 
 RootDevice::~RootDevice()
 {
-  d->httpCallbacks.clear();
+  RootDevice::close();
 
   delete d;
   *const_cast<Data **>(&d) = NULL;
 }
 
+void RootDevice::setDeviceName(const QString &deviceName)
+{
+  d->deviceName = deviceName;
+}
+
+void RootDevice::addIcon(const QString &path)
+{
+  d->icons += path;
+}
+
 void RootDevice::registerService(const QByteArray &serviceId, Service *service)
 {
-  d->services.insert(serviceId, service);
+  QByteArray ext;
+  for (int lc = qMax(serviceId.lastIndexOf(':'), serviceId.lastIndexOf('_')); (lc >= 0) && (lc < serviceId.size()); lc++)
+  if ((serviceId[lc] >= 'A') && (serviceId[lc] <= 'Z'))
+    ext += (serviceId[lc] + ('a' - 'A'));
+
+  static const char id[] = "abcdefghijklmnopqrstuvwxyz";
+  int n = 0;
+  while (id[n] && (d->serviceExts.find(ext + QByteArray::number(n)) != d->serviceExts.end()))
+    n++;
+
+  if (id[n])
+    d->services.insert(serviceId, qMakePair(service, ext + id[n]));
 }
 
 void RootDevice::unregisterService(const QByteArray &serviceId)
@@ -91,83 +100,74 @@ void RootDevice::unregisterService(const QByteArray &serviceId)
   d->services.remove(serviceId);
 }
 
-void RootDevice::registerHttpCallback(const QString &path, HttpCallback *callback)
+bool RootDevice::initialize(quint16 port, bool bindPublicInterfaces)
 {
-  QString p = path;
-  if (!p.endsWith('/'))
-    p += '/';
-
-  d->httpCallbacks.insert(p, callback);
-}
-
-void RootDevice::unregisterHttpCallback(HttpCallback *callback)
-{
-  for (QMap<QString, HttpCallback *>::Iterator i = d->httpCallbacks.begin();
-       i != d->httpCallbacks.end();)
+  if (UPnP::initialize(port, bindPublicInterfaces))
   {
-    if (*i == callback)
-      i = d->httpCallbacks.erase(i);
-    else
-      i++;
+    registerHttpCallback(d->baseDir, this);
+
+    for (QMap<QByteArray, QPair<Service *, QByteArray> >::Iterator i = d->services.begin();
+         i != d->services.end();
+         i++)
+    {
+      i->first->initialize();
+    }
+
+    return enableRootDevice();
   }
-}
 
-void RootDevice::initialize(quint16, const QString &deviceName, bool)
-{
-  d->deviceName = deviceName;
-
-  foreach (Service *service, d->services)
-    service->initialize();
+  return false;
 }
 
 void RootDevice::close(void)
 {
-  foreach (Service *service, d->services)
-    service->close();
-}
+  unregisterHttpCallback(this);
 
-//void RootDevice::bind(const QHostAddress &)
-//{
-//}
-
-//void RootDevice::release(const QHostAddress &)
-//{
-//}
-
-void RootDevice::addIcon(const QString &path)
-{
-  d->icons += path;
-}
-
-void RootDevice::emitEvent(const QByteArray &)
-{
-}
-
-HttpStatus RootDevice::handleHttpRequest(const QUrl &url, const HttpCallback::RequestInfo &requestInfo, QByteArray &contentType, QIODevice *&response)
-{
-  QString path = url.path().left(url.path().lastIndexOf('/') + 1);
-  while (!path.isEmpty())
+  if (d->rootDeviceRegistred)
   {
-    QMap<QString, HttpCallback *>::Iterator i = d->httpCallbacks.find(path);
-    if (i != d->httpCallbacks.end())
-      return (*i)->httpRequest(url, requestInfo, contentType, response);
-
-    path = path.left(path.lastIndexOf('/', -2) + 1);
+    d->rootDeviceRegistred = false;
+    foreach(const ::UpnpDevice_Handle &handle, d->rootDeviceHandle)
+      ::UpnpUnRegisterRootDevice(handle);
   }
 
-  return HttpStatus_NotFound;
+  UPnP::close();
+
+  for (QMap<QByteArray, QPair<Service *, QByteArray> >::Iterator i = d->services.begin();
+       i != d->services.end();
+       i++)
+  {
+    i->first->close();
+  }
 }
 
-void RootDevice::handleEvent(const QByteArray &serviceId, EventablePropertySet &propset)
+void RootDevice::emitEvent(const QByteArray &serviceId)
 {
-  QMap<QByteArray, Service *>::Iterator i = d->services.find(serviceId);
-  if (i != d->services.end())
-    (*i)->writeEventableStateVariables(propset);
+  if (d->services.contains(serviceId))
+  {
+    IXMLStructures::EventablePropertySet propertyset;
+    handleEvent(serviceId, propertyset);
+
+    foreach(const ::UpnpDevice_Handle &handle, d->rootDeviceHandle)
+    {
+      ::UpnpNotifyExt(
+            handle,
+            udn(),
+            serviceId,
+            propertyset.doc);
+    }
+  }
 }
 
 QByteArray RootDevice::udn() const
 {
   return QString("uuid:" + d->uuid.toString()).replace("{", "").replace("}", "").toUtf8();
+}
+
+void RootDevice::handleEvent(const QByteArray &serviceId, EventablePropertySet &propset)
+{
+  QMap<QByteArray, QPair<Service *, QByteArray> >::Iterator i = d->services.find(serviceId);
+  if (i != d->services.end())
+    i->first->writeEventableStateVariables(propset);
 }
 
 void RootDevice::writeDeviceDescription(DeviceDescription &desc)
@@ -189,61 +189,289 @@ void RootDevice::writeDeviceDescription(DeviceDescription &desc)
   desc.setPresentationURL("/");
 }
 
-/*! Returns the MIME type for the specified filename, based on the extension.
- */
-const char * RootDevice::toMimeType(const QString &fileName)
+HttpStatus RootDevice::httpRequest(const QUrl &request, const HttpRequestInfo &, QByteArray &contentType, QIODevice *&response)
 {
-  const QString ext = QFileInfo(fileName).suffix().toLower();
+  QByteArray host = request.host().toLatin1();
+  if (request.port() > 0)
+    host += ':' + QByteArray::number(request.port());
 
-  if      (ext == "js")     return mimeTextJs;
-  else if (ext == "pdf")    return "application/pdf";
-  else if (ext == "xhtml")  return "application/xhtml+xml";
-  else if (ext == "dtd")    return "application/xml-dtd";
-  else if (ext == "zip")    return "application/zip";
-  else if (ext == "aac")    return mimeAudioAac;
-  else if (ext == "ac3")    return mimeAudioAc3;
-  else if (ext == "lpcm")   return mimeAudioLpcm;
-  else if (ext == "m3u")    return mimeAudioMpegUrl;
-  else if (ext == "mpa")    return mimeAudioMpeg;
-  else if (ext == "mp2")    return mimeAudioMpeg;
-  else if (ext == "mp3")    return mimeAudioMp3;
-  else if (ext == "ac3")    return mimeAudioMpeg;
-  else if (ext == "dts")    return mimeAudioMpeg;
-  else if (ext == "oga")    return mimeAudioOgg;
-  else if (ext == "wav")    return mimeAudioWave;
-  else if (ext == "wma")    return mimeAudioWma;
-  else if (ext == "jpeg")   return mimeImageJpeg;
-  else if (ext == "jpg")    return mimeImageJpeg;
-  else if (ext == "png")    return mimeImagePng;
-  else if (ext == "svg")    return mimeImageSvg;
-  else if (ext == "tiff")   return mimeImageTiff;
-  else if (ext == "css")    return mimeTextCss;
-  else if (ext == "html")   return mimeTextHtml;
-  else if (ext == "htm")    return mimeTextHtml;
-  else if (ext == "txt")    return mimeTextPlain;
-  else if (ext == "log")    return mimeTextPlain;
-  else if (ext == "xml")    return mimeTextXml;
-  else if (ext == "3g2")    return mimeVideo3g2;
-  else if (ext == "asf")    return mimeVideoAsf;
-  else if (ext == "avi")    return mimeVideoAvi;
-  else if (ext == "m2ts")   return mimeVideoMpegTS;
-  else if (ext == "mkv")    return mimeVideoMatroska;
-  else if (ext == "mpeg")   return mimeVideoMpeg;
-  else if (ext == "mpg")    return mimeVideoMpeg;
-  else if (ext == "mp4")    return mimeVideoMp4;
-  else if (ext == "ts")     return mimeVideoMpeg;
-  else if (ext == "ogg")    return mimeVideoOgg;
-  else if (ext == "ogv")    return mimeVideoOgg;
-  else if (ext == "ogx")    return mimeVideoOgg;
-  else if (ext == "spx")    return mimeVideoOgg;
-  else if (ext == "qt")     return mimeVideoQt;
-  else if (ext == "flv")    return mimeVideoFlv;
-  else if (ext == "wmv")    return mimeVideoWmv;
+  if (request.path().startsWith(d->deviceDescriptionFile))
+  {
+    IXMLStructures::DeviceDescription desc(host);
+    writeDeviceDescription(desc);
 
-  // For licenses
-  else if (fileName.startsWith("COPYING")) return "text/plain";
+    for (QMap<QByteArray, QPair<Service *, QByteArray> >::Iterator i = d->services.begin();
+         i != d->services.end();
+         i++)
+    {
+      desc.addService(
+            i->first->serviceType(),
+            i.key(),
+            d->serviceDescriptionFile + i->second + ".xml",
+            d->serviceControlFile + i->second,
+            d->serviceEventFile + i->second);
+    }
 
-  else                      return "application/octet-stream";
+    QBuffer * const buffer = new QBuffer();
+    DOMString s = ixmlDocumenttoString(desc.doc);
+    buffer->setData(s);
+    ixmlFreeDOMString(s);
+    contentType = mimeTextXml;
+    response = buffer;
+
+    return HttpStatus_Ok;
+  }
+  else if (request.path().startsWith(d->serviceDescriptionFile))
+  {
+    const uint l = qstrlen(d->serviceDescriptionFile);
+    const QByteArray path = request.path().toUtf8();
+    const QByteArray ext = path.mid(l, path.length() - 4 - l);
+
+    for (QMap<QByteArray, QPair<Service *, QByteArray> >::Iterator i = d->services.begin();
+         i != d->services.end();
+         i++)
+    {
+      if (i->second == ext)
+      {
+        IXMLStructures::ServiceDescription desc;
+        i->first->writeServiceDescription(desc);
+
+        QBuffer * const buffer = new QBuffer();
+        DOMString s = ixmlDocumenttoString(desc.doc);
+        buffer->setData(s);
+        ixmlFreeDOMString(s);
+        contentType = mimeTextXml;
+        response = buffer;
+
+        return HttpStatus_Ok;
+      }
+    }
+  }
+
+  return HttpStatus_NotFound;
+}
+
+static void splitName(const QByteArray &fullName, QByteArray &prefix, QByteArray &name)
+{
+  const int colon = fullName.indexOf(':');
+  if (colon >= 0)
+  {
+    prefix = fullName.left(colon);
+    name = fullName.mid(colon + 1);
+  }
+  else
+    name = fullName;
+}
+
+bool RootDevice::enableRootDevice(void)
+{
+  struct T : QThread
+  {
+    static int callback(Upnp_EventType eventType, void *event, void *cookie)
+    {
+      RootDevice * const me = reinterpret_cast<RootDevice *>(cookie);
+
+      if (eventType == UPNP_CONTROL_ACTION_REQUEST)
+      {
+        struct F : Functor
+        {
+          F(RootDevice *me, Upnp_Action_Request *request) : me(me), request(request) { }
+
+          void operator()()
+          {
+            QMap<QByteArray, QPair<Service *, QByteArray> >::Iterator i = me->d->services.find(request->ServiceID);
+            if ((i != me->d->services.end()) && me->d->rootDeviceRegistred)
+            {
+              HttpRequestInfo requestInfo;
+              requestInfo.host = request->RequestInfo.host;
+              requestInfo.userAgent = request->RequestInfo.userAgent;
+              requestInfo.sourceAddress = request->RequestInfo.sourceAddress;
+
+              if ((strcmp(i->first->serviceType(), serviceTypeConnectionManager) == 0))
+              {
+                ConnectionManager * const service = static_cast<ConnectionManager *>(i->first);
+
+                IXML_NodeList * const children = ixmlNode_getChildNodes(&request->ActionRequest->n);
+                for (IXML_NodeList *i = children; i; i = i->next)
+                {
+                  QByteArray prefix = "ns0", name;
+                  splitName(i->nodeItem->nodeName, prefix, name);
+
+                  if (name == "GetCurrentConnectionIDs")
+                  {
+                    IXMLStructures::ActionGetCurrentConnectionIDs action(i->nodeItem, request->ActionResult, prefix);
+                    service->handleAction(requestInfo, action);
+                  }
+                  else if (name == "GetCurrentConnectionInfo")
+                  {
+                    IXMLStructures::ActionGetCurrentConnectionInfo action(i->nodeItem, request->ActionResult, prefix);
+                    service->handleAction(requestInfo, action);
+                  }
+                  else if (name == "GetProtocolInfo")
+                  {
+                    IXMLStructures::ActionGetProtocolInfo action(i->nodeItem, request->ActionResult, prefix);
+                    service->handleAction(requestInfo, action);
+                  }
+                }
+
+                ixmlNodeList_free(children);
+              }
+              else if ((strcmp(i->first->serviceType(), serviceTypeContentDirectory) == 0))
+              {
+                ContentDirectory * const service = static_cast<ContentDirectory *>(i->first);
+
+                IXML_NodeList * const children = ixmlNode_getChildNodes(&request->ActionRequest->n);
+                for (IXML_NodeList *i = children; i; i = i->next)
+                {
+                  QByteArray prefix = "ns0", name;
+                  splitName(i->nodeItem->nodeName, prefix, name);
+
+                  if (name == "Browse")
+                  {
+                    IXMLStructures::ActionBrowse action(i->nodeItem, request->ActionResult, prefix);
+                    service->handleAction(requestInfo, action);
+                  }
+                  else if (name == "Search")
+                  {
+                    IXMLStructures::ActionSearch action(i->nodeItem, request->ActionResult, prefix);
+                    service->handleAction(requestInfo, action);
+                  }
+                  else if (name == "GetSearchCapabilities")
+                  {
+                    IXMLStructures::ActionGetSearchCapabilities action(i->nodeItem, request->ActionResult, prefix);
+                    service->handleAction(requestInfo, action);
+                  }
+                  else if (name == "GetSortCapabilities")
+                  {
+                    IXMLStructures::ActionGetSortCapabilities action(i->nodeItem, request->ActionResult, prefix);
+                    service->handleAction(requestInfo, action);
+                  }
+                  else if (name == "GetSystemUpdateID")
+                  {
+                    IXMLStructures::ActionGetSystemUpdateID action(i->nodeItem, request->ActionResult, prefix);
+                    service->handleAction(requestInfo, action);
+                  }
+                  else if (name == "X_GetFeatureList")
+                  {
+                    IXMLStructures::ActionGetFeatureList action(i->nodeItem, request->ActionResult, prefix);
+                    service->handleAction(requestInfo, action);
+                  }
+                }
+
+                ixmlNodeList_free(children);
+              }
+              else if ((strcmp(i->first->serviceType(), serviceTypeMediaReceiverRegistrar) == 0))
+              {
+                MediaReceiverRegistrar * const service = static_cast<MediaReceiverRegistrar *>(i->first);
+
+                IXML_NodeList * const children = ixmlNode_getChildNodes(&request->ActionRequest->n);
+                for (IXML_NodeList *i = children; i; i = i->next)
+                {
+                  QByteArray prefix = "ns0", name;
+                  splitName(i->nodeItem->nodeName, prefix, name);
+
+                  if (name == "IsAuthorized")
+                  {
+                    IXMLStructures::ActionIsAuthorized action(i->nodeItem, request->ActionResult, prefix);
+                    service->handleAction(requestInfo, action);
+                  }
+                  else if (name == "IsValidated")
+                  {
+                    IXMLStructures::ActionIsValidated action(i->nodeItem, request->ActionResult, prefix);
+                    service->handleAction(requestInfo, action);
+                  }
+                  else if (name == "RegisterDevice")
+                  {
+                    IXMLStructures::ActionRegisterDevice action(i->nodeItem, request->ActionResult, prefix);
+                    service->handleAction(requestInfo, action);
+                  }
+                }
+
+                ixmlNodeList_free(children);
+              }
+            }
+          }
+
+          RootDevice * const me;
+          Upnp_Action_Request * const request;
+        } f(me, reinterpret_cast<Upnp_Action_Request *>(event));
+        me->send(f);
+
+        return 0;
+      }
+      else if (eventType == UPNP_EVENT_SUBSCRIPTION_REQUEST)
+      {
+        struct F : Functor
+        {
+          F(RootDevice *me, Upnp_Subscription_Request *request) : me(me), request(request) { }
+
+          void operator()()
+          {
+            if (me->d->rootDeviceRegistred)
+            {
+              udn = me->udn();
+              me->handleEvent(request->ServiceId, propertyset);
+
+              QMap<QByteArray, ::UpnpDevice_Handle>::Iterator i = me->d->rootDeviceHandle.find(request->Host);
+              if (i != me->d->rootDeviceHandle.end())
+                ::UpnpAcceptSubscriptionExt(*i, udn, request->ServiceId, propertyset.doc, request->Sid);
+            }
+          }
+
+          RootDevice * const me;
+          Upnp_Subscription_Request * const request;
+          IXMLStructures::EventablePropertySet propertyset;
+          QByteArray udn;
+        } f(me, reinterpret_cast<Upnp_Subscription_Request *>(event));
+        me->send(f);
+
+        return 0;
+      }
+
+      qDebug() << "enableRootDevice::callback Unsupported eventType" << eventType;
+      return -1;
+    }
+
+    T(RootDevice *me, const QByteArray &path) : me(me), path(path), result(UPNP_E_INTERNAL_ERROR) { }
+
+    virtual void run()
+    {
+      for (char **i = ::UpnpGetServerIpAddresses(); i && *i; i++)
+      {
+        const QByteArray host = QByteArray(*i) + ":" + QByteArray::number(::UpnpGetServerPort());
+        if (::UpnpRegisterRootDevice(
+              "http://" + host + path,
+              &T::callback, me,
+              &(me->d->rootDeviceHandle[host])) == UPNP_E_SUCCESS)
+        {
+          result = UPNP_E_SUCCESS;
+        }
+      }
+    }
+
+    RootDevice * const me;
+    const QByteArray path;
+    volatile int result;
+  } t(this, QByteArray(d->deviceDescriptionFile) + ".xml");
+
+  // Ugly, but needed as UpnpRegisterRootDevice retrieves files from the HTTP server.
+  t.start();
+  while (!t.isFinished()) { qApp->processEvents(QEventLoop::ExcludeUserInputEvents | QEventLoop::WaitForMoreEvents, 16); }
+  t.wait();
+
+  if (t.result == UPNP_E_SUCCESS)
+  {
+    d->rootDeviceRegistred = true;
+
+    foreach(const ::UpnpDevice_Handle &handle, d->rootDeviceHandle)
+      ::UpnpSendAdvertisement(handle, d->advertisementExpiration);
+
+    return true;
+  }
+  else
+    qWarning() << "UpnpRegisterRootDevice" << t.path << "failed:" << t.result;
+
+  return false;
 }
 
 } // End of namespace

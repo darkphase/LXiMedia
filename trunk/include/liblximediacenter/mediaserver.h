@@ -30,7 +30,7 @@ namespace LXiMediaCenter {
 class MediaStream;
 
 class LXIMEDIACENTER_PUBLIC MediaServer : public BackendServer,
-                                          protected RootDevice::HttpCallback,
+                                          protected UPnP::HttpCallback,
                                           private ContentDirectory::Callback
 {
 Q_OBJECT
@@ -153,7 +153,7 @@ protected slots:
   virtual void                  cleanStreams(void);
 
 protected: // From Server::HttpCallback
-  virtual HttpStatus            httpRequest(const QUrl &request, const RequestInfo &requestInfo, QByteArray &contentType, QIODevice *&response);
+  virtual HttpStatus            httpRequest(const QUrl &request, const UPnP::HttpRequestInfo &requestInfo, QByteArray &contentType, QIODevice *&response);
 
 private: // From ContentDirectory::Callback
   virtual QList<ContentDirectory::Item> listContentDirItems(const QByteArray &client, const QString &path, int start, int &count);

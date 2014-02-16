@@ -179,19 +179,19 @@ void ConnectionManager::connectionClosed(QObject *ioDevice)
   }
 }
 
-void ConnectionManager::handleAction(const RootDevice::HttpCallback::RequestInfo &, ActionGetCurrentConnectionIDs &action)
+void ConnectionManager::handleAction(const UPnP::HttpRequestInfo &, ActionGetCurrentConnectionIDs &action)
 {
   action.setResponse(d->connections.keys());
 }
 
-void ConnectionManager::handleAction(const RootDevice::HttpCallback::RequestInfo &, ActionGetCurrentConnectionInfo &action)
+void ConnectionManager::handleAction(const UPnP::HttpRequestInfo &, ActionGetCurrentConnectionInfo &action)
 {
   QMap<qint32, ConnectionInfo>::Iterator i = d->connections.find(action.getConnectionID());
   if (i != d->connections.end())
     action.setResponse(*i);
 }
 
-void ConnectionManager::handleAction(const RootDevice::HttpCallback::RequestInfo &, ActionGetProtocolInfo &action)
+void ConnectionManager::handleAction(const UPnP::HttpRequestInfo &, ActionGetProtocolInfo &action)
 {
   QByteArray sourceProtocols;
   foreach (const Protocol &protocol, d->sourceProtocols)

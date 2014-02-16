@@ -18,7 +18,6 @@
 #include "backend.h"
 #include "setup.h"
 #include <QtXml>
-#include <QtNetwork>
 #include <iostream>
 
 #if !defined(QT_NO_DEBUG) || defined(Q_OS_MACX)
@@ -79,11 +78,11 @@ void Backend::start(void)
   upnpRootDevice.registerHttpCallback("/js", this);
   upnpRootDevice.registerHttpCallback("/help", this);
 
+  upnpRootDevice.setDeviceName(settings.value("DeviceName", defaultDeviceName()).toString());
   upnpRootDevice.addIcon("/lximedia.png");
 
   upnpRootDevice.initialize(
         settings.value("HttpPort", defaultPort).toInt(),
-        settings.value("DeviceName", defaultDeviceName()).toString(),
         settings.value("BindAllNetworks", false).toBool());
 
   // Setup template parsers
@@ -129,7 +128,6 @@ void Backend::reset(void)
   upnpRootDevice.close();
   upnpRootDevice.initialize(
         settings.value("HttpPort", defaultPort).toInt(),
-        settings.value("DeviceName", defaultDeviceName()).toString(),
         settings.value("BindAllNetworks", false).toBool());
 
   htmlParser.clear();
@@ -174,7 +172,7 @@ QUuid Backend::serverUuid(void)
 
 QString Backend::defaultDeviceName(void)
 {
-  return QHostInfo::localHostName() + ": " + qApp->applicationName();
+  return UPnP::hostname() + ": " + qApp->applicationName();
 }
 
 HttpStatus Backend::sendFile(const QUrl &request, const QString &fileName, QByteArray &contentType, QIODevice *&response)

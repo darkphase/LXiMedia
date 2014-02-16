@@ -1,6 +1,5 @@
 TEMPLATE = lib
 CONFIG += dll
-QT += network xml
 LXIMEDIA_DIR = ../../..
 DESTDIR = $${OUT_PWD}/$${LXIMEDIA_DIR}/bin
 TARGET = LXiMediaCenter
@@ -17,11 +16,13 @@ PRECOMPILED_HEADER = $${PWD}/$${LXIMEDIA_DIR}/include/LXiMediaCenter
 include($${PWD}/$${LXIMEDIA_DIR}/include/liblxicore/linklxicore.pri)
 include($${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/linklxistream.pri)
 include($${PWD}/$${LXIMEDIA_DIR}/include/liblxistreamgui/linklxistreamgui.pri)
+include($${PWD}/$${LXIMEDIA_DIR}/ext/pupnp/pupnp.pri)
 
 # Files
 HEADERS += $${PWD}/$${LXIMEDIA_DIR}/include/LXiMediaCenter \
  $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/export.h \
  $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/backendserver.h \
+ $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/client.h \
  $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/connectionmanager.h \
  $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/contentdirectory.h \
  $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/mediaprofiles.h \
@@ -29,9 +30,10 @@ HEADERS += $${PWD}/$${LXIMEDIA_DIR}/include/LXiMediaCenter \
  $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/mediaserver.h \
  $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/mediastream.h \
  $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/rootdevice.h \
- $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/teletext.h
+ $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/upnp.h
 
 SOURCES += backendserver.cpp \
+ client.cpp \
  connectionmanager.cpp \
  contentdirectory.cpp \
  mediaprofiles.cpp \
@@ -40,10 +42,12 @@ SOURCES += backendserver.cpp \
  mediaserver.html.cpp \
  mediastream.cpp \
  rootdevice.cpp \
- teletext.cpp
+ upnp.cpp
 
-HEADERS += lximediacenterprivate.h
-SOURCES += lximediacenterprivate.cpp
+HEADERS += lximediacenterprivate.h \
+ ixmlstructures.h
+SOURCES += lximediacenterprivate.cpp \
+ ixmlstructures.cpp
 
 unix {
   LIBS += -lz
@@ -66,13 +70,11 @@ win32 {
 
   release {
     system(copy /Y $$(QTDIR)\\bin\\Qt5Gui.dll $${OUT_DIR} > NUL)
-    system(copy /Y $$(QTDIR)\\bin\\Qt5Network.dll $${OUT_DIR} > NUL)
     system(copy /Y $$(QTDIR)\\bin\\Qt5Test.dll $${OUT_DIR} > NUL)
     system(copy /Y $$(QTDIR)\\bin\\libGLESv2.dll $${OUT_DIR} > NUL)
   }
   debug {
     system(copy /Y $$(QTDIR)\\bin\\Qt5Guid.dll $${OUT_DIR} > NUL)
-    system(copy /Y $$(QTDIR)\\bin\\Qt5Networkd.dll $${OUT_DIR} > NUL)
     system(copy /Y $$(QTDIR)\\bin\\Qt5Testd.dll $${OUT_DIR} > NUL)
     system(copy /Y $$(QTDIR)\\bin\\libGLESv2d.dll $${OUT_DIR} > NUL)
   }
