@@ -157,8 +157,6 @@ void UPnP::registerHttpCallback(const QString &path, HttpCallback *callback)
 
 void UPnP::unregisterHttpCallback(HttpCallback *callback)
 {
-  UPnP::unregisterHttpCallback(callback);
-
   for (QMap<QString, HttpCallback *>::Iterator i = d->httpCallbacks.begin();
        i != d->httpCallbacks.end();)
   {
