@@ -140,7 +140,7 @@ QString UPnP::hostname()
 
 void UPnP::registerHttpCallback(const QString &path, HttpCallback *callback)
 {
-  if (!d->webServerEnabled)
+  if (d->initialized && !d->webServerEnabled)
     enableWebserver();
 
   QString p = path;
@@ -412,9 +412,11 @@ void UPnP::enableWebserver()
         QIODevice * const ioDevice = reinterpret_cast<QIODevice *>(fileHnd);
         ioDevice->close();
         ioDevice->deleteLater();
+
+        return UPNP_E_SUCCESS;
       }
 
-      return -1;
+      return UPNP_E_INVALID_HANDLE;
     }
   };
 
