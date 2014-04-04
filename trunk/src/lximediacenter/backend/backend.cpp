@@ -20,6 +20,7 @@
 #include <QtXml>
 #include <iostream>
 
+const QEvent::Type  Backend::resetEventType = QEvent::Type(QEvent::registerEventType());
 #if !defined(QT_NO_DEBUG) || defined(Q_OS_MACX)
 const QEvent::Type  Backend::exitEventType = QEvent::Type(QEvent::registerEventType());
 #endif
@@ -123,20 +124,25 @@ void Backend::start(void)
 
 void Backend::reset(void)
 {
-  QSettings settings;
-
-  upnpRootDevice.close();
-  upnpRootDevice.initialize(
-        settings.value("HttpPort", defaultPort).toInt(),
-        settings.value("BindAllNetworks", false).toBool());
-
-  htmlParser.clear();
-  htmlParser.setField("_PRODUCT", qApp->applicationName());
-  htmlParser.setField("_HOSTNAME", (settings.value("DeviceName", defaultDeviceName())).toString());
+  QCoreApplication::postEvent(this, new QEvent(resetEventType));
 }
 
 void Backend::customEvent(QEvent *e)
 {
+  if (e->type() == resetEventType)
+  {
+    QSettings settings;
+
+    upnpRootDevice.close();
+    upnpRootDevice.initialize(
+          settings.value("HttpPort", defaultPort).toInt(),
+          settings.value("BindAllNetworks", false).toBool());
+
+    htmlParser.clear();
+    htmlParser.setField("_PRODUCT", qApp->applicationName());
+    htmlParser.setField("_HOSTNAME", (settings.value("DeviceName", defaultDeviceName())).toString());
+  }
+  else
 #if !defined(QT_NO_DEBUG) || defined(Q_OS_MACX)
   if (e->type() == exitEventType)
     qApp->exit(0);
