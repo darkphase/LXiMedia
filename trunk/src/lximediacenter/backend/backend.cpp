@@ -156,15 +156,13 @@ ContentDirectory * Backend::contentDirectory(void)
 
 QUuid Backend::serverUuid(void)
 {
-  QString uuid = "00000000-0000-0000-0000-000000000000";
+  const QString uuid = QUuid::createUuid().toString().replace("{", "").replace("}", "");
 
-  //QSettings settings;
+  QSettings settings;
+  if (settings.contains("UUID"))
+    return settings.value("UUID", uuid).toString();
 
-  //if (settings.contains("UUID"))
-  //  return settings.value("UUID", uuid).toString();
-
-  uuid = QUuid::createUuid().toString().replace("{", "").replace("}", "");
-  //settings.setValue("UUID", uuid);
+  settings.setValue("UUID", uuid);
 
   return uuid;
 }
