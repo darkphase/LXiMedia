@@ -348,7 +348,24 @@ void UPnP::enableWebserver()
         info->last_modified = QDateTime::currentDateTime().toTime_t();
         info->is_directory = FALSE;
         info->is_readable = TRUE;
+        info->is_cacheable = FALSE;
         info->content_type = ::ixmlCloneDOMString(contentType);
+
+        QFile * const file = qobject_cast<QFile *>(response);
+        if (file)
+        {
+          QDateTime lastModified;
+          if (file->fileName().startsWith(":/"))
+            lastModified = QFileInfo(QCoreApplication::applicationFilePath()).lastModified();
+          else
+            lastModified = QFileInfo(file->fileName()).lastModified();
+
+          if (lastModified.isValid())
+            info->last_modified = lastModified.toTime_t();
+
+          info->is_cacheable = TRUE;
+        }
+
         return 0;
       }
       else

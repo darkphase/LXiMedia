@@ -53,9 +53,6 @@ public:
   void                          start(void);
   void                          reset(void);
 
-protected:
-  virtual void                  customEvent(QEvent *);
-
 protected: // From HttpCallback
   virtual HttpStatus            httpRequest(const QUrl &request, const UPnP::HttpRequestInfo &userAgent, QByteArray &contentType, QIODevice *&response);
 
@@ -64,6 +61,12 @@ protected: // From BackendServer::MasterServer
 
   virtual RootDevice          * rootDevice(void);
   virtual ContentDirectory    * contentDirectory(void);
+
+private slots:
+  void                          resetUpnpRootDevice(void);
+#if !defined(QT_NO_DEBUG) || defined(Q_OS_MACX)
+  void                          performExit(void);
+#endif
 
 private:
   static QUuid                  serverUuid(void);
@@ -75,10 +78,6 @@ private:
 
 private:
   static const quint16          defaultPort = 4280;
-  static const QEvent::Type     resetEventType;
-#if !defined(QT_NO_DEBUG) || defined(Q_OS_MACX)
-  static const QEvent::Type     exitEventType;
-#endif
 
   RootDevice                    upnpRootDevice;
   ConnectionManager             upnpConnectionManager;
