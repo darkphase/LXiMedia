@@ -102,9 +102,11 @@ UPnP::UPnP(QObject *parent)
   d->webServerEnabled = false;
 
   connect(&d->clearResponsesTimer, SIGNAL(timeout()), SLOT(clearResponses()));
+  d->clearResponsesTimer.setTimerType(Qt::VeryCoarseTimer);
   d->clearResponsesTimer.setSingleShot(true);
 
   connect(&d->updateInterfacesTimer, SIGNAL(timeout()), SLOT(updateInterfaces()));
+  d->updateInterfacesTimer.setTimerType(Qt::VeryCoarseTimer);
 
   sApp->addLicense(
       " <h3>Portable SDK for UPnP Devices</h3>\n"

@@ -39,7 +39,10 @@ struct RootDevice::Data
 
   bool rootDeviceRegistred;
   QMap<QByteArray, ::UpnpDevice_Handle> rootDeviceHandle;
-  static const int advertisementExpiration = 60;
+
+  QTimer initialAdvertisementTimer;
+  static const int advertisementDelay = 3; // Seconds
+  static const int advertisementExpiration = 1800; // Seconds
 };
 
 const char  RootDevice::serviceTypeConnectionManager[]      = "urn:schemas-upnp-org:service:ConnectionManager:1";
@@ -59,6 +62,10 @@ RootDevice::RootDevice(const QUuid &uuid, const QByteArray &deviceType, QObject 
   d->uuid = uuid;
   d->deviceType = deviceType;
   d->rootDeviceRegistred = false;
+
+  connect(&d->initialAdvertisementTimer, SIGNAL(timeout()), SLOT(sendAdvertisements()));
+  d->initialAdvertisementTimer.setTimerType(Qt::VeryCoarseTimer);
+  d->initialAdvertisementTimer.setSingleShot(true);
 }
 
 RootDevice::~RootDevice()
@@ -126,6 +133,8 @@ void RootDevice::close(void)
   if (d->rootDeviceRegistred)
   {
     d->rootDeviceRegistred = false;
+    d->initialAdvertisementTimer.stop();
+
     foreach(const ::UpnpDevice_Handle &handle, d->rootDeviceHandle)
       ::UpnpUnRegisterRootDevice(handle);
   }
@@ -462,9 +471,7 @@ bool RootDevice::enableRootDevice(void)
   if (t.result == UPNP_E_SUCCESS)
   {
     d->rootDeviceRegistred = true;
-
-    foreach(const ::UpnpDevice_Handle &handle, d->rootDeviceHandle)
-      ::UpnpSendAdvertisement(handle, d->advertisementExpiration);
+    d->initialAdvertisementTimer.start(d->advertisementDelay * 1000);
 
     return true;
   }
@@ -472,6 +479,13 @@ bool RootDevice::enableRootDevice(void)
     qWarning() << "UpnpRegisterRootDevice" << t.path << "failed:" << t.result;
 
   return false;
+}
+
+void RootDevice::sendAdvertisements()
+{
+  if (d->rootDeviceRegistred)
+  foreach(const ::UpnpDevice_Handle &handle, d->rootDeviceHandle)
+    ::UpnpSendAdvertisement(handle, d->advertisementExpiration);
 }
 
 } // End of namespace

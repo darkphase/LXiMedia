@@ -93,6 +93,9 @@ protected:
 private: // From UPnP::HttpCallback
   virtual HttpStatus            httpRequest(const QUrl &request, const HttpRequestInfo &, QByteArray &contentType, QIODevice *&response);
 
+private slots:
+  void                          sendAdvertisements();
+
 private:
   void                          writeDeviceDescription(DeviceDescription &);
 
