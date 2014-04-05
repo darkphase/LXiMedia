@@ -391,7 +391,8 @@ HttpStatus Backend::httpRequest(const QUrl &request, const UPnP::HttpRequestInfo
 #if !defined(QT_NO_DEBUG) || defined(Q_OS_MACX)
     else if (fileName == "exit")
     {
-      QCoreApplication::postEvent(this, new QEvent(exitEventType));
+      // Wait a bit to allow any pending HTTP requests to be handled.
+      QTimer::singleShot(500, this, SLOT(performExit()));
     }
 #endif
     else if (fileName == "robots.txt")

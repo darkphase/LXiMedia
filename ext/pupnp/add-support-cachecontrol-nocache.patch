@@ -1,0 +1,53 @@
+--- upnp/inc/upnp.h	2013-11-15 17:01:35.000000000 +0100
++++ upnp/inc/upnp.h	2014-04-05 15:55:34.978396477 +0200
+@@ -818,6 +818,11 @@
+ 	* a non-zero value. If unreadable, it should be set to 0. */
+ 	int is_readable;
+ 
++    /** If the file or directory is cacheable, this contains
++    * a non-zero value. For "Cache-Control:no-cache", it should be set
++    * to 0. */
++    int is_cacheable;
++
+ 	/** The content type of the file. This string needs to be allocated 
+ 	*  by the caller using {\bf ixmlCloneDOMString}.  When finished 
+ 	*  with it, the SDK frees the {\bf DOMString}. */
+--- upnp/src/genlib/net/http/webserver.c	2013-11-15 17:01:35.000000000 +0100
++++ upnp/src/genlib/net/http/webserver.c	2014-04-05 15:55:34.970396476 +0200
+@@ -541,7 +541,8 @@
+ 	fp = fopen(filename, "r");
+ 	info->is_readable = (fp != NULL);
+ 	if (fp)
+-		fclose(fp);
++        fclose(fp);
++    info->is_cacheable = TRUE;
+ 	info->file_length = s.st_size;
+ 	info->last_modified = s.st_mtime;
+ 	rc = get_content_type(filename, &info->content_type);
+@@ -595,7 +596,8 @@
+ 		info->file_length = (off_t)alias->doc.length;
+ 		info->is_readable = TRUE;
+ 		info->is_directory = FALSE;
+-		info->last_modified = alias->last_modified;
++        info->is_cacheable = TRUE;
++        info->last_modified = alias->last_modified;
+ 	}
+ 
+ 	return cmp == 0;
+@@ -1216,10 +1218,12 @@
+ 		err_code = HTTP_OK;
+ 		goto error_handler;
+ 	}
+-	/*extra_headers = UpnpFileInfo_get_ExtraHeaders(finfo); */
+-	if (!extra_headers) {
+-		extra_headers = "";
+-	}
++
++    if (finfo.is_cacheable == 0) {
++        extra_headers = "CACHE-CONTROL: no-cache\r\n";
++    } else {
++        extra_headers = "";
++    }
+ 
+ 	/* Check if chunked encoding should be used. */
+ 	if (using_virtual_dir && finfo.file_length == UPNP_USING_CHUNKED) {

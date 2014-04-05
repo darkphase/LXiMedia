@@ -20,11 +20,6 @@
 #include <QtXml>
 #include <iostream>
 
-const QEvent::Type  Backend::resetEventType = QEvent::Type(QEvent::registerEventType());
-#if !defined(QT_NO_DEBUG) || defined(Q_OS_MACX)
-const QEvent::Type  Backend::exitEventType = QEvent::Type(QEvent::registerEventType());
-#endif
-
 Backend::Backend()
   : BackendServer::MasterServer(),
     upnpRootDevice(serverUuid(), "urn:schemas-upnp-org:device:MediaServer:1", this),
@@ -124,32 +119,30 @@ void Backend::start(void)
 
 void Backend::reset(void)
 {
-  QCoreApplication::postEvent(this, new QEvent(resetEventType));
+  // Wait a bit to allow any pending HTTP requests to be handled.
+  QTimer::singleShot(500, this, SLOT(resetUpnpRootDevice()));
 }
 
-void Backend::customEvent(QEvent *e)
+void Backend::resetUpnpRootDevice(void)
 {
-  if (e->type() == resetEventType)
-  {
-    QSettings settings;
+  QSettings settings;
 
-    upnpRootDevice.close();
-    upnpRootDevice.initialize(
-          settings.value("HttpPort", defaultPort).toInt(),
-          settings.value("BindAllNetworks", false).toBool());
+  upnpRootDevice.close();
+  upnpRootDevice.initialize(
+        settings.value("HttpPort", defaultPort).toInt(),
+        settings.value("BindAllNetworks", false).toBool());
 
-    htmlParser.clear();
-    htmlParser.setField("_PRODUCT", qApp->applicationName());
-    htmlParser.setField("_HOSTNAME", (settings.value("DeviceName", defaultDeviceName())).toString());
-  }
-  else
-#if !defined(QT_NO_DEBUG) || defined(Q_OS_MACX)
-  if (e->type() == exitEventType)
-    qApp->exit(0);
-  else
-#endif
-    QObject::customEvent(e);
+  htmlParser.clear();
+  htmlParser.setField("_PRODUCT", qApp->applicationName());
+  htmlParser.setField("_HOSTNAME", (settings.value("DeviceName", defaultDeviceName())).toString());
 }
+
+#if !defined(QT_NO_DEBUG) || defined(Q_OS_MACX)
+void Backend::performExit(void)
+{
+  qApp->exit(0);
+}
+#endif
 
 RootDevice * Backend::rootDevice(void)
 {
@@ -165,13 +158,13 @@ QUuid Backend::serverUuid(void)
 {
   QString uuid = "00000000-0000-0000-0000-000000000000";
 
-  QSettings settings;
+  //QSettings settings;
 
-  if (settings.contains("UUID"))
-    return settings.value("UUID", uuid).toString();
+  //if (settings.contains("UUID"))
+  //  return settings.value("UUID", uuid).toString();
 
   uuid = QUuid::createUuid().toString().replace("{", "").replace("}", "");
-  settings.setValue("UUID", uuid);
+  //settings.setValue("UUID", uuid);
 
   return uuid;
 }

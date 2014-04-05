@@ -14,6 +14,7 @@ unix {
     # Patch
     system(cp $${PWD}/*.patch $${OUT_PWD}/libupnp-$${PUPNP_VERSION})
     system(cd $${OUT_PWD}/libupnp-$${PUPNP_VERSION} && patch -p0 < fix-binding-port.patch)
+    system(cd $${OUT_PWD}/libupnp-$${PUPNP_VERSION} && patch -p0 < add-support-cachecontrol-nocache.patch)
     system(cd $${OUT_PWD}/libupnp-$${PUPNP_VERSION} && patch -p0 < add-support-multiple-interfaces.patch)
 
     # Compile
@@ -38,6 +39,7 @@ win32 {
     system(cd $$replace(OUT_PWD,/,\\)\\libupnp-$${PUPNP_VERSION} && patch -p0 < fix-mingw47-build.patch)
     system(cd $$replace(OUT_PWD,/,\\)\\libupnp-$${PUPNP_VERSION} && patch -p0 < fix-windows-xp-compatibility.patch)
     system(cd $$replace(OUT_PWD,/,\\)\\libupnp-$${PUPNP_VERSION} && patch -p0 < fix-binding-port.patch)
+    system(cd $$replace(OUT_PWD,/,\\)\\libupnp-$${PUPNP_VERSION} && patch -p0 < add-support-cachecontrol-nocache.patch)
     system(cd $$replace(OUT_PWD,/,\\)\\libupnp-$${PUPNP_VERSION} && patch -p0 < add-support-multiple-interfaces.patch)
 
     # Compile
