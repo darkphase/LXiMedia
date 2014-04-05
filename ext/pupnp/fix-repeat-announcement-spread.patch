@@ -1,0 +1,368 @@
+--- upnp/src/inc/ssdplib.h	2012-03-26 18:49:42.000000000 +0200
++++ upnp/src/inc/ssdplib.h	2014-04-05 18:45:13.434687427 +0200
+@@ -347,7 +347,9 @@
+ 	char *DevType,
+ 	/* [in] flag to indicate if the device is root device. */
+ 	int RootDev,
+-	/* [in] UDN. */
++    /* [in] The index of the advertisement set (i.e. 0 = first set). */
++    int NumCopy,
++    /* [in] UDN. */
+ 	char *Udn, 
+ 	/* [in] Location URL. */
+ 	char *Location,
+@@ -375,7 +377,9 @@
+ 	char *DevType, 
+ 	/* [in] 1 means root device 0 means embedded device. */
+ 	int RootDev, 
+-	/* [in] Device UDN. */
++    /* [in] The index of the advertisement set (i.e. 0 = first set). */
++    int NumCopy,
++    /* [in] Device UDN. */
+ 	char *Udn, 
+ 	/* [in] Location of Device description document. */
+ 	char *Location, 
+@@ -403,7 +407,9 @@
+ 	char *DevType, 
+ 	/* [in] 1 means root device 0 means embedded device. */
+ 	int RootDev, 
+-	/* [in] Device UDN. */
++    /* [in] The index of the advertisement set (i.e. 0 = first set). */
++    int NumCopy,
++    /* [in] Device UDN. */
+ 	char *Udn, 
+ 	/* [in] Location of Device description document. */
+ 	char *Location, 
+@@ -423,7 +429,9 @@
+  * \return UPNP_E_SUCCESS if successful else appropriate error.
+  */
+ int ServiceAdvertisement(
+-	/* [in] Device UDN. */
++    /* [in] The index of the advertisement set (i.e. 0 = first set). */
++    int NumCopy,
++    /* [in] Device UDN. */
+ 	char *Udn, 
+ 	/* [in] Service Type. */
+ 	char *ServType,
+@@ -447,11 +455,13 @@
+  * \return UPNP_E_SUCCESS if successful else appropriate error.
+  */
+ int ServiceReply(
+-	/* [in] . */
++    /* [in] . */
+ 	struct sockaddr *DestAddr,  
+ 	/* [in] Service Type. */
+ 	char *ServType, 
+-	/* [in] Device UDN. */
++    /* [in] The index of the advertisement set (i.e. 0 = first set). */
++    int NumCopy,
++    /* [in] Device UDN. */
+ 	char *Udn, 
+ 	/* [in] Location of Device description document. */
+ 	char *Location,
+@@ -471,7 +481,9 @@
+  * \return UPNP_E_SUCCESS if successful else appropriate error.
+  */
+ int ServiceShutdown(
+-	/* [in] Device UDN. */
++    /* [in] The index of the advertisement set (i.e. 0 = first set). */
++    int NumCopy,
++    /* [in] Device UDN. */
+ 	char *Udn,
+ 	/* [in] Service Type. */
+ 	char *ServType,
+@@ -499,7 +511,9 @@
+ 	char *DevType, 
+ 	/* [in] 1 means root device. */
+ 	int RootDev,
+-	/* [in] Device UDN. */
++    /* [in] The index of the advertisement set (i.e. 0 = first set). */
++    int NumCopy,
++    /* [in] Device UDN. */
+ 	char *Udn, 
+ 	/* [in] Location URL. */
+ 	char *Location, 
+--- upnp/src/ssdp/ssdp_device.c	2012-06-21 03:06:38.000000000 +0200
++++ upnp/src/ssdp/ssdp_device.c	2014-04-05 18:45:13.454687428 +0200
+@@ -172,7 +172,9 @@
+  * \return UPNP_E_SUCCESS if successful else appropriate error.
+  */
+ static int NewRequestHandler(
+-	/*! [in] Ip address, to send the reply. */
++    /*! [in] The index of the advertisement set (i.e. 0 = first set). */
++    int NumCopy,
++    /*! [in] Ip address, to send the reply. */
+ 	struct sockaddr *DestAddr,
+ 	/*! [in] Number of packet to be sent. */
+ 	int NumPacket,
+@@ -245,7 +247,14 @@
+ 			ret = UPNP_E_SOCKET_WRITE;
+ 			goto end_NewRequestHandler;
+ 		}
+-	}
++        if (NumCopy > 0) {
++            /* Wait a random short amount of time to prevent UDP
++             * datagrams being dropped when the server is on a fast
++             * (e.g. gigabit) connection and one of the clients is
++             * on a slower (e.g. wifi) connection. */
++            imillisleep((rand() % 32) + 16);
++        }
++    }
+ 
+  end_NewRequestHandler:
+ 	if (shutdown(ReplySock, SD_BOTH) == -1) {
+@@ -495,7 +504,7 @@
+ 	return;
+ }
+ 
+-int DeviceAdvertisement(char *DevType, int RootDev, char *Udn, char *Location,
++int DeviceAdvertisement(char *DevType, int RootDev, int NumCopy, char *Udn, char *Location,
+ 			int Duration, int AddressFamily, int PowerState,
+ 			int SleepPeriod, int RegistrationState)
+ {
+@@ -562,12 +571,12 @@
+ 	if (RootDev) {
+ 		/* send 3 msg types */
+ 		ret_code =
+-		    NewRequestHandler((struct sockaddr *)&__ss, 3, &msgs[0]);
++            NewRequestHandler(NumCopy, (struct sockaddr *)&__ss, 3, &msgs[0]);
+ 	} else {		/* sub-device */
+ 
+ 		/* send 2 msg types */
+ 		ret_code =
+-		    NewRequestHandler((struct sockaddr *)&__ss, 2, &msgs[1]);
++            NewRequestHandler(NumCopy, (struct sockaddr *)&__ss, 2, &msgs[1]);
+ 	}
+ 
+ error_handler:
+@@ -580,7 +589,7 @@
+ }
+ 
+ int SendReply(struct sockaddr *DestAddr, char *DevType, int RootDev,
+-	      char *Udn, char *Location, int Duration, int ByType,
++          int NumCopy, char *Udn, char *Location, int Duration, int ByType,
+ 	      int PowerState, int SleepPeriod, int RegistrationState)
+ {
+ 	int ret_code = UPNP_E_OUTOF_MEMORY;
+@@ -632,7 +641,7 @@
+ 		}
+ 	}
+ 	/* send msgs */
+-	ret_code = NewRequestHandler(DestAddr, num_msgs, msgs);
++    ret_code = NewRequestHandler(NumCopy, DestAddr, num_msgs, msgs);
+ 
+ error_handler:
+ 	for (i = 0; i < num_msgs; i++) {
+@@ -644,8 +653,8 @@
+ }
+ 
+ int DeviceReply(struct sockaddr *DestAddr, char *DevType, int RootDev,
+-		char *Udn, char *Location, int Duration, int PowerState,
+-		int SleepPeriod, int RegistrationState)
++        int NumCopy, char *Udn, char *Location, int Duration,
++        int PowerState, int SleepPeriod, int RegistrationState)
+ {
+ 	char *szReq[3], Mil_Nt[LINE_SIZE], Mil_Usn[LINE_SIZE];
+ 	int RetVal = UPNP_E_OUTOF_MEMORY;
+@@ -692,9 +701,9 @@
+ 	}
+ 	/* send replies */
+ 	if (RootDev) {
+-		RetVal = NewRequestHandler(DestAddr, 3, szReq);
++        RetVal = NewRequestHandler(NumCopy, DestAddr, 3, szReq);
+ 	} else {
+-		RetVal = NewRequestHandler(DestAddr, 2, &szReq[1]);
++        RetVal = NewRequestHandler(NumCopy, DestAddr, 2, &szReq[1]);
+ 	}
+ 
+ error_handler:
+@@ -706,7 +715,7 @@
+ 	return RetVal;
+ }
+ 
+-int ServiceAdvertisement(char *Udn, char *ServType, char *Location,
++int ServiceAdvertisement(int NumCopy, char *Udn, char *ServType, char *Location,
+ 			 int Duration, int AddressFamily,
+ 			 int PowerState, int SleepPeriod, int RegistrationState)
+ {
+@@ -749,7 +758,7 @@
+ 	if (szReq[0] == NULL) {
+ 		goto error_handler;
+ 	}
+-	RetVal = NewRequestHandler((struct sockaddr *)&__ss, 1, szReq);
++    RetVal = NewRequestHandler(NumCopy, (struct sockaddr *)&__ss, 1, szReq);
+ 
+ error_handler:
+ 	free(szReq[0]);
+@@ -757,7 +766,7 @@
+ 	return RetVal;
+ }
+ 
+-int ServiceReply(struct sockaddr *DestAddr, char *ServType, char *Udn,
++int ServiceReply(struct sockaddr *DestAddr, char *ServType, int NumCopy, char *Udn,
+ 		 char *Location, int Duration, int PowerState, int SleepPeriod,
+ 		 int RegistrationState)
+ {
+@@ -775,7 +784,7 @@
+ 			    PowerState, SleepPeriod, RegistrationState);
+ 	if (szReq[0] == NULL)
+ 		goto error_handler;
+-	RetVal = NewRequestHandler(DestAddr, 1, szReq);
++    RetVal = NewRequestHandler(NumCopy, DestAddr, 1, szReq);
+ 
+ error_handler:
+ 	free(szReq[0]);
+@@ -783,7 +792,7 @@
+ 	return RetVal;
+ }
+ 
+-int ServiceShutdown(char *Udn, char *ServType, char *Location, int Duration,
++int ServiceShutdown(int NumCopy, char *Udn, char *ServType, char *Location, int Duration,
+ 		    int AddressFamily, int PowerState,
+ 		    int SleepPeriod, int RegistrationState)
+ {
+@@ -826,7 +835,7 @@
+ 			    PowerState, SleepPeriod, RegistrationState);
+ 	if (szReq[0] == NULL)
+ 		goto error_handler;
+-	RetVal = NewRequestHandler((struct sockaddr *)&__ss, 1, szReq);
++    RetVal = NewRequestHandler(NumCopy, (struct sockaddr *)&__ss, 1, szReq);
+ 
+ error_handler:
+ 	free(szReq[0]);
+@@ -834,7 +843,7 @@
+ 	return RetVal;
+ }
+ 
+-int DeviceShutdown(char *DevType, int RootDev, char *Udn,
++int DeviceShutdown(char *DevType, int RootDev, int NumCopy, char *Udn,
+ 		   char *Location, int Duration, int AddressFamily,
+ 		   int PowerState, int SleepPeriod, int RegistrationState)
+ {
+@@ -899,12 +908,12 @@
+ 	if (RootDev) {
+ 		/* send 3 msg types */
+ 		ret_code =
+-		    NewRequestHandler((struct sockaddr *)&__ss, 3, &msgs[0]);
++            NewRequestHandler(NumCopy, (struct sockaddr *)&__ss, 3, &msgs[0]);
+ 	} else {
+ 		/* sub-device */
+ 		/* send 2 msg types */
+ 		ret_code =
+-		    NewRequestHandler((struct sockaddr *)&__ss, 2, &msgs[1]);
++            NewRequestHandler(NumCopy, (struct sockaddr *)&__ss, 2, &msgs[1]);
+ 	}
+ 
+ error_handler:
+--- upnp/src/ssdp/ssdp_server.c	2013-11-15 16:50:02.000000000 +0100
++++ upnp/src/ssdp/ssdp_server.c	2014-04-05 18:50:19.842696186 +0200
+@@ -205,7 +205,7 @@
+ 			if (AdFlag) {
+ 				/* send the device advertisement */
+ 				if (AdFlag == 1) {
+-					DeviceAdvertisement(devType, i == 0lu,
++                    DeviceAdvertisement(devType, i == 0lu, NumCopy - 1,
+ 							    UDNstr,
+ 							    SInfo->DescURL, Exp,
+ 							    SInfo->DeviceAf,
+@@ -214,7 +214,7 @@
+ 	                                                    SInfo->RegistrationState);
+ 				} else {
+ 					/* AdFlag == -1 */
+-					DeviceShutdown(devType, i == 0lu, UDNstr,
++                    DeviceShutdown(devType, i == 0lu, NumCopy - 1, UDNstr,
+ 						       SInfo->DescURL,
+ 						       Exp, SInfo->DeviceAf,
+ 						       SInfo->PowerState,
+@@ -224,7 +224,7 @@
+ 			} else {
+ 				switch (SearchType) {
+ 				case SSDP_ALL:
+-					DeviceReply(DestAddr, devType, i == 0lu,
++                    DeviceReply(DestAddr, devType, i == 0lu, NumCopy - 1,
+ 						    UDNstr, SInfo->DescURL,
+ 						    defaultExp, SInfo->PowerState,
+ 						    SInfo->SleepPeriod,
+@@ -232,7 +232,7 @@
+ 					break;
+ 				case SSDP_ROOTDEVICE:
+ 					if (i == 0lu) {
+-						SendReply(DestAddr, devType, 1,
++                        SendReply(DestAddr, devType, 1, NumCopy - 1,
+ 							  UDNstr,
+ 							  SInfo->DescURL,
+ 							  defaultExp, 0,
+@@ -252,7 +252,7 @@
+ 							UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
+ 								"DeviceUDN=%s and search UDN=%s MATCH\n",
+ 								UDNstr, DeviceUDN);
+-							SendReply(DestAddr, devType, 0, UDNstr, SInfo->DescURL, defaultExp, 0,
++                            SendReply(DestAddr, devType, 0, NumCopy - 1, UDNstr, SInfo->DescURL, defaultExp, 0,
+ 								SInfo->PowerState,
+ 								SInfo->SleepPeriod,
+ 								SInfo->RegistrationState);
+@@ -270,7 +270,7 @@
+ 							UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
+ 								   "DeviceType=%s and search devType=%s MATCH\n",
+ 								   devType, DeviceType);
+-							SendReply(DestAddr, DeviceType, 0, UDNstr, SInfo->LowerDescURL,
++                            SendReply(DestAddr, DeviceType, 0, NumCopy - 1, UDNstr, SInfo->LowerDescURL,
+ 								  defaultExp, 1,
+ 								  SInfo->PowerState,
+ 								  SInfo->SleepPeriod,
+@@ -280,7 +280,7 @@
+ 							UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
+ 								   "DeviceType=%s and search devType=%s MATCH\n",
+ 								   devType, DeviceType);
+-							SendReply(DestAddr, DeviceType, 0, UDNstr, SInfo->DescURL,
++                            SendReply(DestAddr, DeviceType, 0, NumCopy - 1, UDNstr, SInfo->DescURL,
+ 								  defaultExp, 1,
+ 								  SInfo->PowerState,
+ 								  SInfo->SleepPeriod,
+@@ -358,7 +358,7 @@
+ 					   "ServiceType = %s\n", servType);
+ 				if (AdFlag) {
+ 					if (AdFlag == 1) {
+-						ServiceAdvertisement(UDNstr,
++                        ServiceAdvertisement(NumCopy - 1, UDNstr,
+ 							servType, SInfo->DescURL,
+ 							Exp, SInfo->DeviceAf,
+ 							SInfo->PowerState,
+@@ -366,7 +366,7 @@
+ 							SInfo->RegistrationState);
+ 					} else {
+ 						/* AdFlag == -1 */
+-						ServiceShutdown(UDNstr,
++                        ServiceShutdown(NumCopy - 1, UDNstr,
+ 							servType, SInfo->DescURL,
+ 							Exp, SInfo->DeviceAf,
+ 							SInfo->PowerState,
+@@ -376,7 +376,9 @@
+ 				} else {
+ 					switch (SearchType) {
+ 					case SSDP_ALL:
+-						ServiceReply(DestAddr, servType,
++                        ServiceReply(DestAddr,
++                                 servType,
++                                 NumCopy - 1,
+ 							     UDNstr,
+ 							     SInfo->DescURL,
+ 							     defaultExp,
+@@ -395,7 +397,7 @@
+ 									UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
+ 										   "ServiceType=%s and search servType=%s MATCH\n",
+ 										   ServiceType, servType);
+-									SendReply(DestAddr, ServiceType, 0, UDNstr, SInfo->LowerDescURL,
++                                    SendReply(DestAddr, ServiceType, 0, NumCopy - 1, UDNstr, SInfo->LowerDescURL,
+ 										  defaultExp, 1,
+ 										  SInfo->PowerState,
+ 										  SInfo->SleepPeriod,
+@@ -405,7 +407,7 @@
+ 									UpnpPrintf(UPNP_INFO, API, __FILE__, __LINE__,
+ 										   "ServiceType=%s and search servType=%s MATCH\n",
+ 										   ServiceType, servType);
+-									SendReply(DestAddr, ServiceType, 0, UDNstr, SInfo->DescURL,
++                                    SendReply(DestAddr, ServiceType, 0, NumCopy - 1, UDNstr, SInfo->DescURL,
+ 										  defaultExp, 1,
+ 										  SInfo->PowerState,
+ 										  SInfo->SleepPeriod,
