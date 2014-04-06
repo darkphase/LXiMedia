@@ -18,6 +18,8 @@
 #ifndef MEDIADATABASE_H
 #define MEDIADATABASE_H
 
+#define MEDIADATABASE_USE_SANDBOX
+
 #include <QtCore>
 #include <QtNetwork>
 #include <LXiMediaCenter>
@@ -56,6 +58,30 @@ private:
     bool                        content;
   };
 
+#ifdef MEDIADATABASE_USE_SANDBOX
+  class Sandbox : public QProcess
+  {
+  public:
+    explicit                    Sandbox(bool lowprio, QObject *parent = NULL);
+    virtual                     ~Sandbox();
+
+    SMediaInfo                  probeFormat(const QUrl &);
+    SMediaInfoList              probeFormat(const QList<QUrl> &);
+    SMediaInfo                  probeContent(const QUrl &);
+    SMediaInfoList              probeContent(const QList<QUrl> &);
+    SImage                      readThumbnail(const QUrl &filePath, const QSize &maxSize);
+
+  private:
+    void                        restart();
+    SMediaInfo                  probe(const QByteArray &, const QUrl &);
+    SMediaInfoList              probe(const QByteArray &, const QList<QUrl> &);
+    SMediaInfoList              probe(const QByteArray &);
+
+  private:
+    const bool                  lowprio;
+  };
+#endif
+
 public:
   static MediaDatabase        * createInstance();
   static void                   destroyInstance(void);
@@ -82,6 +108,10 @@ protected:
 
 private slots:
   void                          flushCache(void) const;
+#ifdef MEDIADATABASE_USE_SANDBOX
+  void                          startSandbox(void) const;
+  void                          stopSandbox(void);
+#endif
 
 private:
   QList<Info>                   listFiles(const QUrl &dirPath, int start, int &count) const;
@@ -91,9 +121,11 @@ private:
   void                          writeNodeCache(const SMediaInfo &) const;
 
   void                          preProbeDir(const QUrl &dirPath, int start, bool content) const;
-
-  static SMediaInfoList         deserializeNodes(const QByteArray &);
-  static QList<Info>            deserializeFiles(const QByteArray &, int &total);
+#ifdef MEDIADATABASE_USE_SANDBOX
+  void                          preProbeItems(Sandbox *&, QTime &, QList<QUrl> &, bool);
+#else
+  void                          preProbeItems(QList<QUrl> &, bool);
+#endif
 
   static QString                lastPlayedFile(void);
 
@@ -103,6 +135,12 @@ private:
   const QString                 lastPlayedFileName;
 
   mutable QMutex                mutex;
+
+#ifdef MEDIADATABASE_USE_SANDBOX
+  mutable Sandbox             * sandbox;
+  mutable QTimer                sandboxTimer;
+  static const int              sandboxTimeout = 3000;
+#endif
 
   volatile bool                 preProbeRunning;
   const int                     preProbeItemCount;
@@ -118,7 +156,6 @@ private:
   mutable QMutex                itemCacheMutex;
   mutable QMap<QUrl, QPair<QStringList, QTime> > itemCache;
 };
-
 
 } } // End of namespaces
 
