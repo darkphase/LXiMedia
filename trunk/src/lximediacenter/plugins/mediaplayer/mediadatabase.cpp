@@ -18,7 +18,6 @@
 #include "mediadatabase.h"
 #include "module.h"
 #include <LXiStreamGui>
-#include <QtConcurrent>
 
 namespace LXiMediaCenter {
 namespace MediaPlayerBackend {
@@ -42,6 +41,10 @@ MediaDatabase::MediaDatabase(QObject *parent)
   : QThread(parent),
     lastPlayedFileName(lastPlayedFile()),
     mutex(QMutex::NonRecursive),
+#ifdef MEDIADATABASE_USE_SANDBOX
+    sandbox(NULL),
+    sandboxTimer(this),
+#endif
     preProbeRunning(true),
     preProbeItemCount(MediaServer::loadItemCount() * 2),
     preProbingCount(QThread::idealThreadCount()),
@@ -57,6 +60,12 @@ MediaDatabase::MediaDatabase(QObject *parent)
     qWarning() << "MediaDatabase could not open cache file";
 
   start(QThread::LowPriority);
+
+#ifdef MEDIADATABASE_USE_SANDBOX
+  connect(&sandboxTimer, SIGNAL(timeout()), SLOT(stopSandbox()));
+  sandboxTimer.setSingleShot(true);
+  sandboxTimer.setTimerType(Qt::VeryCoarseTimer);
+#endif
 }
 
 MediaDatabase::~MediaDatabase()
@@ -78,12 +87,18 @@ SMediaInfo MediaDatabase::readNodeFormat(const QUrl &filePath) const
     if (!node.isNull() && node.isFormatProbed())
       return node;
 
+#ifdef MEDIADATABASE_USE_SANDBOX
+    startSandbox();
+    SMediaInfo fileNode = sandbox->probeFormat(filePath);
+    writeNodeCache(fileNode);
+#else
     SMediaInfo fileNode(filePath);
     if (!fileNode.isNull())
     {
       fileNode.probeFormat();
       writeNodeCache(fileNode);
     }
+#endif
 
     return fileNode;
   }
@@ -97,7 +112,7 @@ SMediaInfoList MediaDatabase::readNodeFormat(const QList<Info> &files) const
 
   if (!files.isEmpty())
   {
-    QStringList probeFiles;
+    QList<QUrl> probeFiles;
     QList<int> probeFilePos;
     foreach (const Info &file, files)
     {
@@ -108,37 +123,26 @@ SMediaInfoList MediaDatabase::readNodeFormat(const QList<Info> &files) const
       }
       else
       {
-        probeFiles += file.path.toString();
+        probeFiles += file.path;
         probeFilePos += result.count();
         result += SMediaInfo();
       }
     }
 
+#ifdef MEDIADATABASE_USE_SANDBOX
     if (!probeFiles.isEmpty())
     {
-      struct T
+      startSandbox();
+      foreach (const SMediaInfo &node, sandbox->probeFormat(probeFiles))
       {
-        static SMediaInfo probeFileFormat(const QString &path)
-        {
-          SMediaInfo fileNode(path);
-          if (!fileNode.isNull())
-            fileNode.probeFormat();
-
-          return fileNode;
-        }
-      };
-
-      QList< QFuture<SMediaInfo> > futures;
-      foreach (const QString &path, probeFiles)
-      if (!path.isEmpty())
-        futures += QtConcurrent::run(&T::probeFileFormat, path);
-
-      foreach (const QFuture<SMediaInfo> &future, futures)
-      {
-        writeNodeCache(future.result());
-        result[probeFilePos.takeFirst()] = future.result();
+        writeNodeCache(node);
+        result[probeFilePos.takeFirst()] = node;
       }
     }
+#else
+    foreach (const QUrl &path, probeFiles)
+      result[probeFilePos.takeFirst()] = readNodeFormat(path);
+#endif
   }
 
   return result;
@@ -152,12 +156,18 @@ SMediaInfo MediaDatabase::readNodeContent(const QUrl &filePath) const
     if (!node.isNull() && node.isContentProbed())
       return node;
 
+#ifdef MEDIADATABASE_USE_SANDBOX
+    startSandbox();
+    SMediaInfo fileNode = sandbox->probeContent(filePath);
+    writeNodeCache(fileNode);
+#else
     SMediaInfo fileNode(filePath);
     if (!fileNode.isNull())
     {
       fileNode.probeContent();
       writeNodeCache(fileNode);
     }
+#endif
 
     return fileNode;
   }
@@ -165,17 +175,22 @@ SMediaInfo MediaDatabase::readNodeContent(const QUrl &filePath) const
   return SMediaInfo();
 }
 
-SImage MediaDatabase::readThumbnail(const QUrl &filePath, const QSize &size) const
+SImage MediaDatabase::readThumbnail(const QUrl &filePath, const QSize &maxSize) const
 {
   if (!filePath.isEmpty())
   {
+#ifdef MEDIADATABASE_USE_SANDBOX
+    startSandbox();
+    return sandbox->readThumbnail(filePath, maxSize);
+#else
     SMediaInfo fileNode(filePath);
     if (!fileNode.isNull())
     {
-      const SVideoBuffer thumbnail = fileNode.readThumbnail(size);
+      const SVideoBuffer thumbnail = fileNode.readThumbnail(maxSize);
       if (!thumbnail.isNull())
         return SImage(thumbnail, true);
     }
+#endif
   }
 
   return SImage();
@@ -298,12 +313,42 @@ SMediaInfoList MediaDatabase::representativeItems(const QUrl &dirPath, int &coun
 
 void MediaDatabase::run()
 {
+#ifdef MEDIADATABASE_USE_SANDBOX
+  Sandbox *sandbox = NULL;
+  QTime sandboxUsed;
+#endif
+
+  QList<QUrl> preProbePaths;
+  bool preProbePathsContent = false;
+
   while (preProbeRunning)
   {
     int preProbeKey;
     PreProbe preProbe;
     {
       QMutexLocker l(&mutex);
+
+      if (!preProbePaths.isEmpty() && preProbeRunning && preProbeQueue.empty())
+      {
+        l.unlock();
+
+#ifdef MEDIADATABASE_USE_SANDBOX
+        preProbeItems(sandbox, sandboxUsed, preProbePaths, preProbePathsContent);
+#else
+        preProbeItems(preProbePaths, preProbePathsContent);
+#endif
+
+        l.relock();
+      }
+
+#ifdef MEDIADATABASE_USE_SANDBOX
+      while (sandbox && preProbeRunning && preProbeQueue.empty())
+      if (!preProbeWaiting.wait(&mutex, qMax(0, sandboxTimeout - qAbs(sandboxUsed.elapsed()))))
+      {
+        delete sandbox;
+        sandbox = NULL;
+      }
+#endif
 
       while (preProbeRunning && preProbeQueue.empty())
         preProbeWaiting.wait(&mutex);
@@ -321,6 +366,15 @@ void MediaDatabase::run()
 
     if (preProbeKey < 0)
     {
+      if (!preProbePaths.isEmpty())
+      {
+#ifdef MEDIADATABASE_USE_SANDBOX
+        preProbeItems(sandbox, sandboxUsed, preProbePaths, preProbePathsContent);
+#else
+        preProbeItems(preProbePaths, preProbePathsContent);
+#endif
+      }
+
       int count = 0;
       const QList<Info> files = listFiles(preProbe.info.path, 0, count);
       {
@@ -336,20 +390,64 @@ void MediaDatabase::run()
       const SMediaInfo node = readNodeCache(preProbe.info);
       if (node.isNull() || (preProbe.content && !node.isContentProbed()))
       {
-        SMediaInfo fileNode(preProbe.info.path);
-        if (!fileNode.isNull())
+        if (!preProbePaths.isEmpty() &&
+            ((preProbePathsContent != preProbe.content) ||
+             (preProbePaths.count() >= (QThread::idealThreadCount() * 8))))
         {
-          if (preProbe.content)
-            fileNode.probeContent();
-          else
-            fileNode.probeFormat();
-
-          writeNodeCache(fileNode);
+#ifdef MEDIADATABASE_USE_SANDBOX
+          preProbeItems(sandbox, sandboxUsed, preProbePaths, preProbePathsContent);
+#else
+          preProbeItems(preProbePaths, preProbePathsContent);
+#endif
         }
+
+        preProbePathsContent = preProbe.content;
+        preProbePaths += preProbe.info.path;
       }
     }
   }
+
+#ifdef MEDIADATABASE_USE_SANDBOX
+  delete sandbox;
+#endif
 }
+
+#ifdef MEDIADATABASE_USE_SANDBOX
+void MediaDatabase::preProbeItems(Sandbox *&sandbox, QTime &sandboxUsed, QList<QUrl> &paths, bool content)
+{
+  sandboxUsed.start();
+  if (sandbox == NULL)
+    sandbox = new Sandbox(true);
+
+  const SMediaInfoList nodes = content
+      ? sandbox->probeContent(paths)
+      : sandbox->probeFormat(paths);
+
+  foreach (const SMediaInfo &node, nodes)
+    writeNodeCache(node);
+
+  paths.clear();
+}
+#else
+void MediaDatabase::preProbeItems(QList<QUrl> &paths, bool content)
+{
+  foreach (const QUrl &path, paths)
+  {
+    SMediaInfo fileNode(path);
+    if (!fileNode.isNull())
+    {
+      if (content)
+        fileNode.probeContent();
+      else
+        fileNode.probeFormat();
+
+      writeNodeCache(fileNode);
+    }
+  }
+
+  paths.clear();
+}
+#endif
 
 void MediaDatabase::flushCache(void) const
 {
@@ -361,6 +459,22 @@ void MediaDatabase::flushCache(void) const
     cachePos.clear();
   }
 }
+
+#ifdef MEDIADATABASE_USE_SANDBOX
+void MediaDatabase::startSandbox(void) const
+{
+  if (sandbox == NULL)
+    sandbox = new Sandbox(false, const_cast<MediaDatabase *>(this));
+
+  sandboxTimer.start(sandboxTimeout);
+}
+
+void MediaDatabase::stopSandbox(void)
+{
+  delete sandbox;
+  sandbox = NULL;
+}
+#endif
 
 QList<MediaDatabase::Info> MediaDatabase::listFiles(const QUrl &dirPath, int start, int &count) const
 {
@@ -498,7 +612,7 @@ void MediaDatabase::writeNodeCache(const SMediaInfo &node) const
 {
   QMutexLocker l(&mutex);
 
-  if (cacheFile.isOpen() && cacheFile.seek(cacheFile.size()))
+  if (!node.isNull() && cacheFile.isOpen() && cacheFile.seek(cacheFile.size()))
   {
     cachePos.insert(qHash(node.filePath().toString()), cacheFile.pos());
 
@@ -525,58 +639,6 @@ void MediaDatabase::preProbeDir(const QUrl &dirPath, int start, bool content) co
   preProbeWaiting.wakeOne();
 }
 
-SMediaInfoList MediaDatabase::deserializeNodes(const QByteArray &data)
-{
-  SMediaInfoList result;
-
-  QXmlStreamReader reader(data);
-  if (reader.readNextStartElement() && (reader.name() == "nodes"))
-  while (reader.readNextStartElement())
-  {
-    if (reader.name() == "mediainfo")
-    {
-      SMediaInfo node;
-      if (node.deserialize(reader))
-        result += node;
-    }
-    else
-      reader.skipCurrentElement();
-  }
-
-  return result;
-}
-
-QList<MediaDatabase::Info> MediaDatabase::deserializeFiles(const QByteArray &data, int &total)
-{
-  QList<Info> result;
-
-  QXmlStreamReader reader(data);
-  if (reader.readNextStartElement() && (reader.name() == "files"))
-  {
-    total = reader.attributes().value("total").toString().toInt();
-
-    while (reader.readNextStartElement())
-    {
-      if (reader.name() == "file")
-      {
-        Info info;
-        info.isDir = reader.attributes().value("isdir") == "true";
-        info.isReadable = reader.attributes().value("isreadable") == "true";
-        info.size = reader.attributes().value("size").toString().toLongLong();
-        info.lastModified = QDateTime::fromString(reader.attributes().value("lastmodified").toString(), Qt::ISODate);
-
-        info.path = reader.readElementText();
-
-        result += info;
-      }
-      else
-        reader.skipCurrentElement();
-    }
-  }
-
-  return result;
-}
-
 QString MediaDatabase::lastPlayedFile(void)
 {
   const QFileInfo settingsFile = QSettings().fileName();
@@ -587,5 +649,168 @@ QString MediaDatabase::lastPlayedFile(void)
       QString(Module::pluginName).replace(" ", "") +
       ".LastPlayed.db";
 }
+
+#ifdef MEDIADATABASE_USE_SANDBOX
+MediaDatabase::Sandbox::Sandbox(bool lowprio, QObject *parent)
+  : QProcess(parent),
+    lowprio(lowprio)
+{
+  restart();
+}
+
+MediaDatabase::Sandbox::~Sandbox()
+{
+  if (state() == QProcess::Running)
+  {
+    write("quit\n");
+    do waitForBytesWritten(); while (bytesToWrite() && (state() == QProcess::Running));
+    if (!waitForFinished(sandboxTimeout))
+      kill();
+  }
+  else if (state() != QProcess::NotRunning)
+    kill();
+}
+
+SMediaInfo MediaDatabase::Sandbox::probeFormat(const QUrl &path)
+{
+  return probe("format", path);
+}
+
+SMediaInfoList MediaDatabase::Sandbox::probeFormat(const QList<QUrl> &paths)
+{
+  return probe("format", paths);
+}
+
+SMediaInfo MediaDatabase::Sandbox::probeContent(const QUrl &path)
+{
+  return probe("content", path);
+}
+
+SMediaInfoList MediaDatabase::Sandbox::probeContent(const QList<QUrl> &paths)
+{
+  return probe("content", paths);
+}
+
+void MediaDatabase::Sandbox::restart()
+{
+  close();
+
+  start(qApp->applicationFilePath(), QStringList() << "--sandbox");
+  waitForStarted();
+  if (lowprio)
+  {
+    write("setprio low\n");
+    do waitForBytesWritten(); while (bytesToWrite() && (state() == QProcess::Running));
+  }
+}
+
+SMediaInfo MediaDatabase::Sandbox::probe(const QByteArray &type, const QUrl &path)
+{
+  const SMediaInfoList result = probe("probe " + type + " " + path.toEncoded());
+  if (!result.isEmpty())
+    return result.first();
+
+  return SMediaInfo();
+}
+
+SMediaInfoList MediaDatabase::Sandbox::probe(const QByteArray &type, const QList<QUrl> &paths)
+{
+  static const int maxlen = 65536; // Keep in sync with line in sandbox.cpp
+
+  SMediaInfoList result;
+  if (!paths.isEmpty())
+  {
+    QByteArray cmd = "probe " + type;
+    int pos = 0;
+    for (int i = 0; i < paths.size(); i++)
+    {
+      const QByteArray path = paths[i].toEncoded();
+      if (cmd.length() + path.length() >= (maxlen - 8))
+      {
+        SMediaInfoList list = probe(cmd);
+        if (state() != QProcess::Running)
+        {
+          // Crashed; probe one-by-one to get good ones.
+          for (int j = pos; j < i; j++)
+            result += probe("probe " + type + " " + paths[j].toEncoded());
+        }
+
+        pos = i;
+        result += list;
+        cmd = "probe " + type;
+      }
+
+      cmd += " " + path;
+    }
+
+    SMediaInfoList list = probe(cmd);
+    if (state() != QProcess::Running)
+    {
+      // Crashed; probe one-by-one to get good ones.
+      for (int j = pos; j < paths.size(); j++)
+        result += probe("probe " + type + " " + paths[j].toEncoded());
+    }
+
+    result += list;
+  }
+
+  return result;
+}
+
+SMediaInfoList MediaDatabase::Sandbox::probe(const QByteArray &cmd)
+{
+  if (state() != QProcess::Running)
+    restart();
+
+  write(cmd + "\n");
+  do waitForBytesWritten(); while (bytesToWrite() && (state() == QProcess::Running));
+  do waitForReadyRead(); while (!canReadLine() && (state() == QProcess::Running));
+  QByteArray data = readLine();
+  if (!data.isEmpty() && !data.startsWith('#'))
+  {
+    SMediaInfoList result;
+
+    QXmlStreamReader reader(data);
+    if (reader.readNextStartElement() && (reader.name() == "nodes"))
+    while (reader.readNextStartElement())
+    {
+      if (reader.name() == "mediainfo")
+      {
+        SMediaInfo node;
+        if (node.deserialize(reader))
+          result += node;
+      }
+      else
+        reader.skipCurrentElement();
+    }
+
+    return result;
+  }
+
+  if (state() != QProcess::Running)
+    qWarning() << "Sandbox crashed while processing:" << cmd;
+
+  return SMediaInfoList();
+}
+
+SImage MediaDatabase::Sandbox::readThumbnail(const QUrl &path, const QSize &maxSize)
+{
+  if (state() != QProcess::Running)
+    restart();
+
+  const QByteArray cmd = "thumb " + SSize(maxSize).toString().toLatin1() + " " + path.toEncoded();
+  write(cmd + "\n");
+  do waitForBytesWritten(); while (bytesToWrite() && (state() == QProcess::Running));
+  do waitForReadyRead(); while (!canReadLine() && (state() == QProcess::Running));
+  QByteArray data = readLine();
+  if (!data.isEmpty() && !data.startsWith('#'))
+    return QImage::fromData(QByteArray::fromBase64(data));
+
+  if (state() != QProcess::Running)
+    qWarning() << "Sandbox crashed while processing:" << cmd;
+
+  return SImage();
+}
+#endif
 
 } } // End of namespaces

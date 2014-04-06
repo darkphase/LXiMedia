@@ -18,11 +18,10 @@
 #include <LXiCore>
 #include <QtWidgets>
 #include <iostream>
-#if defined(Q_OS_WIN)
-# include <windows.h>
-#endif
 
 #include "backend.h"
+
+int sandbox();
 
 void configApp(void)
 {
@@ -85,60 +84,16 @@ const char Daemon::name[] = "lximcbackend";
 const char Daemon::name[] = "LXiMediaCenter Backend";
 #endif
 
-#if defined(Q_OS_WIN)
-// Entry point where control comes on an unhandled exception, so crashing
-// sandboxes can terminate cleanly.
-LONG WINAPI topLevelExceptionFilter(PEXCEPTION_POINTERS exceptionInfo)
-{
-  PEXCEPTION_RECORD exceptionRecord = exceptionInfo->ExceptionRecord;
-
-  const char *excName = NULL;
-  switch(exceptionRecord->ExceptionCode)
-  {
-  case EXCEPTION_ACCESS_VIOLATION:          excName = "Access Violation";          break;
-  case EXCEPTION_ARRAY_BOUNDS_EXCEEDED:     excName = "Array Bound Exceeded";      break;
-  case EXCEPTION_BREAKPOINT:                excName = "Breakpoint";                break;
-  case EXCEPTION_DATATYPE_MISALIGNMENT:     excName = "Datatype Misalignment";     break;
-  case EXCEPTION_FLT_DENORMAL_OPERAND:      excName = "Float Denormal Operand";    break;
-  case EXCEPTION_FLT_DIVIDE_BY_ZERO:        excName = "Float Divide By Zero";      break;
-  case EXCEPTION_FLT_INEXACT_RESULT:        excName = "Float Inexact Result";      break;
-  case EXCEPTION_FLT_INVALID_OPERATION:     excName = "Float Invalid Operation";   break;
-  case EXCEPTION_FLT_OVERFLOW:              excName = "Float Overflow";            break;
-  case EXCEPTION_FLT_STACK_CHECK:           excName = "Float Stack Check";         break;
-  case EXCEPTION_FLT_UNDERFLOW:             excName = "Float Underflow";           break;
-  case EXCEPTION_GUARD_PAGE:                excName = "Guard Page";                break;
-  case EXCEPTION_ILLEGAL_INSTRUCTION:       excName = "Illegal Instruction";       break;
-  case EXCEPTION_IN_PAGE_ERROR:             excName = "In Page Error";             break;
-  case EXCEPTION_INT_DIVIDE_BY_ZERO:        excName = "Integer Divide By Zero";    break;
-  case EXCEPTION_INT_OVERFLOW:              excName = "Integer Overflow";          break;
-  case EXCEPTION_INVALID_DISPOSITION:       excName = "Invalid Disposition";       break;
-  case EXCEPTION_INVALID_HANDLE:            excName = "Invalid Handle";            break;
-  case EXCEPTION_NONCONTINUABLE_EXCEPTION:  excName = "Noncontinuable Exception";  break;
-  case EXCEPTION_PRIV_INSTRUCTION:          excName = "Privileged Instruction";    break;
-  case EXCEPTION_SINGLE_STEP:               excName = "Single Step";               break;
-  case EXCEPTION_STACK_OVERFLOW:            excName = "Stack Overflow";            break;
-  case DBG_CONTROL_C:                       excName = "Control+C";                 break;
-  case DBG_CONTROL_BREAK:                   excName = "Control+Break";             break;
-  case DBG_TERMINATE_THREAD:                excName = "Terminate Thread";          break;
-  case DBG_TERMINATE_PROCESS:               excName = "Terminate Process";         break;
-  case RPC_S_UNKNOWN_IF:                    excName = "Unknown Interface";         break;
-  case RPC_S_SERVER_UNAVAILABLE:            excName = "Server Unavailable";        break;
-  default:                                  excName = "";                          break;
-  }
-
-  std::cerr
-      << "Caught exception " << excName << "(" << ((void *)exceptionRecord->ExceptionCode)
-      << ") at location " << exceptionRecord->ExceptionAddress << std::endl;
-
-  ::TerminateProcess(::GetCurrentProcess(), 1);
-  ::Sleep(1000);
-
-  return EXCEPTION_CONTINUE_SEARCH;
-}
-#endif
-
 int main(int argc, char *argv[])
 {
+  if ((argc >= 2) && (strcmp(argv[1], "--sandbox") == 0))
+  {
+    QCoreApplication app(argc, argv); configApp();
+    SApplication mediaApp(false);
+
+    return sandbox();
+  }
+
   Daemon daemon;
   return daemon.main(argc, argv);
 }
@@ -147,6 +102,9 @@ int main(int argc, char *argv[])
 {
   QApplication app(argc, argv); configApp();
   SApplication mediaApp(true);
+
+  if ((argc >= 2) && (strcmp(argv[1], "--sandbox") == 0))
+    return sandbox();
 
   int exitCode = 0;
   do

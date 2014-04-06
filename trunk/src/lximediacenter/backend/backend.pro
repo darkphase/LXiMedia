@@ -1,5 +1,5 @@
 TEMPLATE = app
-QT += widgets
+QT += concurrent widgets
 QT -= gui
 LXIMEDIA_DIR = ../../..
 DESTDIR = $${OUT_PWD}/$${LXIMEDIA_DIR}/bin
@@ -11,7 +11,8 @@ include($${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/linklximediacenter.pr
 SOURCES += main.cpp \
     backend.cpp \
     backend.html.cpp \
-    setup.cpp
+    setup.cpp \
+    sandbox.cpp
 HEADERS += $${PWD}/backend.h \
     $${PWD}/setup.h
 RESOURCES = ../resources/backend.qrc
