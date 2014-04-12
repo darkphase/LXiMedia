@@ -392,7 +392,7 @@ void MediaDatabase::run()
       {
         if (!preProbePaths.isEmpty() &&
             ((preProbePathsContent != preProbe.content) ||
-             (preProbePaths.count() >= (QThread::idealThreadCount() * 8))))
+             (preProbePaths.count() >= (QThread::idealThreadCount() * 4))))
         {
 #ifdef MEDIADATABASE_USE_SANDBOX
           preProbeItems(sandbox, sandboxUsed, preProbePaths, preProbePathsContent);
