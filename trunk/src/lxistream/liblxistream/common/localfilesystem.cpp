@@ -185,50 +185,32 @@ bool LocalFilesystem::isHidden(const QString &path)
 #error Not implemented.
 #endif
 
-  static QStringList hiddenDirs;
-  if (hiddenDirs.isEmpty())
+  static const char * const hiddenRootDirs[] =
   {
-    const QDir root = QDir::root();
-
-    hiddenDirs += QDir::tempPath();
-
 #if defined(Q_OS_UNIX)
-    hiddenDirs += root.absoluteFilePath("bin");
-    hiddenDirs += root.absoluteFilePath("boot");
-    hiddenDirs += root.absoluteFilePath("dev");
-    hiddenDirs += root.absoluteFilePath("etc");
-    hiddenDirs += root.absoluteFilePath("lib");
-    hiddenDirs += root.absoluteFilePath("proc");
-    hiddenDirs += root.absoluteFilePath("sbin");
-    hiddenDirs += root.absoluteFilePath("sys");
-    hiddenDirs += root.absoluteFilePath("usr");
-    hiddenDirs += root.absoluteFilePath("var");
+    "bin", "boot", "dev", "etc", "lib", "proc", "sbin", "sys", "usr", "var",
 #endif
-
 #if defined(Q_OS_MACX)
-    hiddenDirs += root.absoluteFilePath("Applications");
-    hiddenDirs += root.absoluteFilePath("cores");
-    hiddenDirs += root.absoluteFilePath("Developer");
-    hiddenDirs += root.absoluteFilePath("private");
-    hiddenDirs += root.absoluteFilePath("System");
+    "Applications", "cores", "Developer", "private", "System",
 #endif
+#if defined(Q_OS_WIN)
+    "Program Files", "Program Files (x86)", "WINDOWS",
+#endif
+
+    NULL
+  };
+
+  static const char * const hiddenDriveDirs[] =
+  {
+    "lost+found",
 
 #if defined(Q_OS_WIN)
-    hiddenDirs += root.absoluteFilePath("Program Files");
-    hiddenDirs += root.absoluteFilePath("Program Files (x86)");
-    hiddenDirs += root.absoluteFilePath("WINDOWS");
+    "RECYCLER",
+    "System Volume Information",
 #endif
 
-    foreach (const QFileInfo &drive, QDir::drives())
-    {
-      hiddenDirs += QDir(drive.absoluteFilePath()).absoluteFilePath("lost+found");
-
-#if defined(Q_OS_WIN)
-      hiddenDirs += QDir(drive.absoluteFilePath()).absoluteFilePath("RECYCLER");
-      hiddenDirs += QDir(drive.absoluteFilePath()).absoluteFilePath("System Volume Information");
-#endif
-    }
-  }
+    NULL
+  };
 
   if (!path.isEmpty())
   {
@@ -236,11 +218,23 @@ bool LocalFilesystem::isHidden(const QString &path)
     if (!dirPath.endsWith('/'))
       dirPath += '/';
 
-    foreach (const QString &hidden, hiddenDirs)
+    const QDir root = QDir::root();
+    for (const char * const *i = hiddenRootDirs; *i; i++)
     {
-      const QString path = hidden.endsWith('/') ? hidden : (hidden + '/');
-      if (dirPath.startsWith(path, caseSensitivity))
+      const QString hidden = root.absoluteFilePath(*i) + '/';
+      if (dirPath.startsWith(hidden, caseSensitivity))
         return true;
+    }
+
+    foreach (const QFileInfo &drive, QDir::drives())
+    {
+      QDir dir(drive.absoluteFilePath());
+      for (const char * const *i = hiddenDriveDirs; *i; i++)
+      {
+        const QString hidden = dir.absoluteFilePath(*i) + '/';
+        if (dirPath.startsWith(hidden, caseSensitivity))
+          return true;
+      }
     }
   }
 
