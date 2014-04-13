@@ -17,6 +17,7 @@
 
 #include <upnp/upnp.h>
 #include "upnp.h"
+#include <LXiCore>
 
 namespace LXiMediaCenter {
 
@@ -462,6 +463,8 @@ HttpStatus UPnP::getResponse(const QByteArray &host, const QByteArray &path, con
   {
     l.unlock();
 
+    const QByteArray url = "http://" + host + QByteArray(path).replace('#', "%23");
+
     struct F : Functor
     {
       F(UPnP *me, bool erase, const QUrl &url, const QByteArray &host, const QByteArray &userAgent, const QByteArray &sourceAddress)
@@ -501,7 +504,7 @@ HttpStatus UPnP::getResponse(const QByteArray &host, const QByteArray &path, con
       QByteArray contentType;
       QIODevice *response;
       HttpStatus result;
-    } f(this, erase, QUrl("http://" + host + QString::fromUtf8(path)), host, userAgent, sourceAddress);
+    } f(this, erase, QUrl::fromEncoded(url), host, userAgent, sourceAddress);
 
     send(f);
 
