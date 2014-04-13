@@ -113,8 +113,17 @@ void SStringParser::setField(const char *name, const QUrl &content)
     encoded = encoded.left(q);
   }
 
-  encoded.replace("&", "%26");
-  encoded.replace("'", "%27");
+  static const struct { char c; const char *e; } reserved[] =
+  {
+    { '!', "%21" }, { '#', "%23" }, { '$', "%24" }, { '&', "%26" },
+    {'\'', "%27" }, { '(', "%28" }, { ')', "%29" }, { '*', "%2A" },
+    { '+', "%2B" }, { ',', "%2C" }, { ';', "%3B" }, { '=', "%3D" },
+    { '@', "%40" }, { '[', "%5B" }, { ']', "%5D" },
+    {'\0', NULL }
+  };
+
+  for (int i = 0; reserved[i].c; i++)
+    encoded.replace(reserved[i].c, reserved[i].e);
 
   if (d->enableEscapeXml)
     d->fields[name] = escapeXml(encoded + query);
