@@ -12,14 +12,9 @@ unix|win32-g++ {
   PLATFORM_CFLAGS += -mtune=generic -mmmx -msse -msse2 -mfpmath=sse
 
   !contains(QMAKE_HOST.arch, x86_64) {
-    PLATFORM_CFLAGS += -march=i686
+    PLATFORM_CFLAGS += -march=i686 -D_FILE_OFFSET_BITS=64
     macx:PLATFORM_CFLAGS += -msse3
   } else {
     macx:PLATFORM_CFLAGS += -msse3 -mssse3
   }
-}
-
-# Needed because of a bug in GCC 4.4
-win32-g++ {
-  PLATFORM_CFLAGS += -mincoming-stack-boundary=2
 }
