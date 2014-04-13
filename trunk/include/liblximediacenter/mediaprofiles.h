@@ -21,6 +21,7 @@
 #include <QtCore>
 #include <LXiCore>
 #include <LXiStream>
+#include "connectionmanager.h"
 #include "export.h"
 
 namespace LXiMediaCenter {
