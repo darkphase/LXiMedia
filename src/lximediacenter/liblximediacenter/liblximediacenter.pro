@@ -10,9 +10,6 @@ DEPENDPATH += $${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter
 
 DEFINES += S_BUILD_LIBLXIMEDIACENTER
 
-CONFIG += precompile_header
-PRECOMPILED_HEADER = $${PWD}/$${LXIMEDIA_DIR}/include/LXiMediaCenter
-
 include($${PWD}/$${LXIMEDIA_DIR}/include/liblxicore/linklxicore.pri)
 include($${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/linklxistream.pri)
 include($${PWD}/$${LXIMEDIA_DIR}/include/liblxistreamgui/linklxistreamgui.pri)
