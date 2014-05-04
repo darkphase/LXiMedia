@@ -11,8 +11,8 @@ HEADERS += license.h
 SOURCES += main.cpp
 
 # Run after link
-unix:QMAKE_LFLAGS += -Wl,-rpath -Wl,.
-unix:QMAKE_POST_LINK = cd $${DESTDIR} && ./$${TARGET} $${PWD}/license.h \
+unix:!macx:QMAKE_LFLAGS += -Wl,-rpath -Wl,.
+unix:!macx:QMAKE_POST_LINK = cd $${DESTDIR} && ./$${TARGET} $${PWD}/license.h \
   $${PWD}/$${LXIMEDIA_DIR}/src \
   $${PWD}/$${LXIMEDIA_DIR}/include \
   $${PWD}/$${LXIMEDIA_DIR}/test

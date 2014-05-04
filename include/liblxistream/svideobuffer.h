@@ -58,7 +58,7 @@ public:
 
 private:
   // Ensure all these struct members are serializable.
-  struct
+  struct D
   {
     SVideoFormat                format;
     STime                       timeStamp;

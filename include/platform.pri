@@ -9,7 +9,8 @@ unix|win32-g++ {
   }
 
   # All floating point operations are to be performed on the SSE2 unit
-  PLATFORM_CFLAGS += -mtune=generic -mmmx -msse -msse2 -mfpmath=sse
+  PLATFORM_CFLAGS += -mtune=generic -mmmx -msse -msse2
+  !macx:PLATFORM_CFLAGS += -mfpmath=sse
 
   !contains(QMAKE_HOST.arch, x86_64) {
     PLATFORM_CFLAGS += -march=i686 -D_FILE_OFFSET_BITS=64

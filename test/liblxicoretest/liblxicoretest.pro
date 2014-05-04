@@ -16,8 +16,8 @@ SOURCES += main.cpp \
     coretest.cpp
 
 # Run tests after link
-unix:QMAKE_LFLAGS += -Wl,-rpath -Wl,.
-unix:QMAKE_POST_LINK = cd $${DESTDIR} && ./$${TARGET} -silent
+unix:!macx:QMAKE_LFLAGS += -Wl,-rpath -Wl,.
+unix:!macx:QMAKE_POST_LINK = cd $${DESTDIR} && ./$${TARGET} -silent
 win32:QMAKE_POST_LINK = $${DESTDIR}/$${TARGET} -silent
 
 # Windows specific

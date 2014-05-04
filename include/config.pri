@@ -10,7 +10,8 @@ unix:VERSION = $$system(cat $${PWD}/../VERSION)
 # Mac specific
 macx {
   CONFIG -= app_bundle
-  QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.5
+  QMAKE_MAC_SDK = macosx10.9
+  QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.9
 }
 
 # Visual Studio specific

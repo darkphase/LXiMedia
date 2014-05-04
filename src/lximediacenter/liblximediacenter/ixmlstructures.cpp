@@ -278,9 +278,9 @@ void EventablePropertySet::addProperty(const QString &name, const QString &value
 }
 
 
-ActionGetCurrentConnectionIDs::ActionGetCurrentConnectionIDs(IXML_Node *src, IXML_Document *&dst, const char *prefix)
+ActionGetCurrentConnectionIDs::ActionGetCurrentConnectionIDs(IXML_Node *, IXML_Document *&dst, const char *prefix)
   : XmlStructure(dst),
-    src(src),
+//    src(src),
     prefix(prefix)
 {
 }
@@ -345,9 +345,9 @@ void ActionGetCurrentConnectionInfo::setResponse(const ConnectionManager::Connec
 }
 
 
-ActionGetProtocolInfo::ActionGetProtocolInfo(IXML_Node *src, IXML_Document *&dst, const char *prefix)
+ActionGetProtocolInfo::ActionGetProtocolInfo(IXML_Node *, IXML_Document *&dst, const char *prefix)
   : XmlStructure(dst),
-    src(src),
+//    src(src),
     prefix(prefix)
 {
 }
@@ -598,9 +598,9 @@ void ActionSearch::setResponse(quint32 totalMatches, quint32 updateID)
 }
 
 
-ActionGetSearchCapabilities::ActionGetSearchCapabilities(IXML_Node *src, IXML_Document *&dst, const char *prefix)
+ActionGetSearchCapabilities::ActionGetSearchCapabilities(IXML_Node *, IXML_Document *&dst, const char *prefix)
   : XmlStructure(dst),
-    src(src),
+//    src(src),
     prefix(prefix)
 {
 }
@@ -613,9 +613,9 @@ void ActionGetSearchCapabilities::setResponse(const QByteArray &ids)
 }
 
 
-ActionGetSortCapabilities::ActionGetSortCapabilities(IXML_Node *src, IXML_Document *&dst, const char *prefix)
+ActionGetSortCapabilities::ActionGetSortCapabilities(IXML_Node *, IXML_Document *&dst, const char *prefix)
   : XmlStructure(dst),
-    src(src),
+//    src(src),
     prefix(prefix)
 {
 }
@@ -628,9 +628,9 @@ void ActionGetSortCapabilities::setResponse(const QByteArray &ids)
 }
 
 
-ActionGetSystemUpdateID::ActionGetSystemUpdateID(IXML_Node *src, IXML_Document *&dst, const char *prefix)
+ActionGetSystemUpdateID::ActionGetSystemUpdateID(IXML_Node *, IXML_Document *&dst, const char *prefix)
   : XmlStructure(dst),
-    src(src),
+//    src(src),
     prefix(prefix)
 {
 }
@@ -644,9 +644,9 @@ void ActionGetSystemUpdateID::setResponse(quint32 id)
 
 
 // Samsung GetFeatureList
-ActionGetFeatureList::ActionGetFeatureList(IXML_Node *src, IXML_Document *&dst, const char *prefix)
+ActionGetFeatureList::ActionGetFeatureList(IXML_Node *, IXML_Document *&dst, const char *prefix)
   : XmlStructure(dst),
-    src(src),
+//    src(src),
     prefix(prefix)
 {
 }

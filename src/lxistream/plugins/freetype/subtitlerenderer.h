@@ -65,8 +65,8 @@ private:
   static void                   blendLine(SVideoBuffer *, const RenderedSubtitle::Line *, int y);
 
 private:
-  static const float            fontRatio = 0.055f;
-  static const float            fontStretch = 0.7f;
+  static const float            fontRatio;
+  static const float            fontStretch;
   static int                    instanceCount;
   static QByteArray             faceData;
 
