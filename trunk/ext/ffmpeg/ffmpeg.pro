@@ -3,6 +3,21 @@ CONFIG += ordered
 include($${PWD}/../../include/platform.pri)
 include($${PWD}/ffmpeg-version.pri)
 
+unix {
+  contains(QMAKE_HOST.os, Linux) {
+    system(mkdir -p $${OUT_PWD})
+
+    !exists($${OUT_PWD}/libav-$${LIBAV_VERSION}/libavcodec/libavcodec.a) {
+      # Extract
+      system(cp $${PWD}/libav_$${LIBAV_VERSION}.orig.tar.bz2 $${OUT_PWD})
+      system(cd $${OUT_PWD} && tar -xjf libav_$${LIBAV_VERSION}.orig.tar.bz2)
+
+      # Compile
+      system(cd $${OUT_PWD}/libav-$${LIBAV_VERSION} && sh configure --enable-gpl --enable-version3 --disable-ffmpeg --disable-avconv --disable-avplay --disable-avprobe --disable-avserver --disable-avdevice --enable-swscale --enable-network --disable-debug --disable-zlib --disable-bzlib --disable-pthreads --enable-libmp3lame --enable-libx264 --enable-runtime-cpudetect --extra-cflags=\"-w -fPIC\")
+      system(cd $${OUT_PWD}/libav-$${LIBAV_VERSION} && make)
+    }
+  }
+}
 macx {
   system(mkdir -p $${OUT_PWD})
 
