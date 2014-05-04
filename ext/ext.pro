@@ -2,9 +2,9 @@ TEMPLATE = subdirs
 CONFIG += ordered
 
 macx|win32 {
-  SUBDIRS = dcraw dvdnav exif ffmpeg freetype
+  SUBDIRS = dcraw dvdnav exif freetype
 }
 
 unix|win32 {
-  SUBDIRS += pupnp
+  SUBDIRS += pupnp ffmpeg
 }
