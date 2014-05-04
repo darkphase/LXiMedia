@@ -18,7 +18,7 @@
 #include "smbfilesystem.h"
 
 #if !defined(Q_OS_WIN) || defined(USE_LIBSMBCLIENT_ON_WIN)
-#include <libsmbclient.h>
+#include <samba-4.0/libsmbclient.h>
 #endif
 
 namespace LXiStream {
