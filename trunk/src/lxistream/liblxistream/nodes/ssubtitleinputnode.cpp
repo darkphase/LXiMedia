@@ -75,6 +75,11 @@ bool SSubtitleInputNode::process(STime pos)
     return true;
 }
 
+bool SSubtitleInputNode::process(void)
+{
+  return SIOInputNode::process();
+}
+
 void SSubtitleInputNode::produce(const SEncodedAudioBuffer &)
 {
 }

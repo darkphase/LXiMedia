@@ -22,8 +22,10 @@
 namespace LXiStream {
 namespace FreeTypeBackend {
 
-int        SubtitleRenderer::instanceCount = 0;
-QByteArray SubtitleRenderer::faceData;
+const float SubtitleRenderer::fontRatio = 0.055f;
+const float SubtitleRenderer::fontStretch = 0.7f;
+int         SubtitleRenderer::instanceCount = 0;
+QByteArray  SubtitleRenderer::faceData;
 
 SubtitleRenderer::SubtitleRenderer(const QString &, QObject *parent)
   : SInterfaces::SubtitleRenderer(parent),

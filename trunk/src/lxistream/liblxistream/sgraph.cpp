@@ -193,27 +193,31 @@ bool SGraph::startNodes(void)
 
   if (result)
   foreach (SInterfaces::Node *node, d->nodes)
-  if (!node->start())
   {
-    qWarning() << "Failed to start node:" << node->metaObject()->className();
+    if (!node->start())
+    {
+      qWarning() << "Failed to start node:" << node->metaObject()->className();
 
-    result = false;
-    break;
+      result = false;
+      break;
+    }
+    else
+      d->startedNodes += node;
   }
-  else
-    d->startedNodes += node;
 
   if (result)
   foreach (SInterfaces::SinkNode *sink, d->sinkNodes)
-  if (!sink->start(&(d->timer)))
   {
-    qWarning() << "Failed to start sink node:" << sink->metaObject()->className();
+    if (!sink->start(&(d->timer)))
+    {
+      qWarning() << "Failed to start sink node:" << sink->metaObject()->className();
 
-    result = false;
-    break;
+      result = false;
+      break;
+    }
+    else
+      d->startedSinks += sink;
   }
-  else
-    d->startedSinks += sink;
 
   if (!result)
     stopNodes();

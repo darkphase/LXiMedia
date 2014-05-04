@@ -42,6 +42,9 @@ protected: // From SInterfaces::AbstractBufferReader::ProduceCallback
   virtual void                  produce(const SEncodedVideoBuffer &);
   virtual void                  produce(const SEncodedDataBuffer &);
 
+protected: // From SInterfaces::SourceNode
+  virtual bool                  process(void);
+
 public:
   static QList<QUrl>            findSubtitleFiles(const QUrl &);
 

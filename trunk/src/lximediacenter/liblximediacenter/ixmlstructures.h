@@ -110,7 +110,7 @@ public:
   virtual void                  setResponse(const QList<qint32> &);
 
 private:
-  _IXML_Node            * const src;
+//  _IXML_Node            * const src;
   const QByteArray              prefix;
 };
 
@@ -138,7 +138,7 @@ public:
   virtual void                  setResponse(const QByteArray &source, const QByteArray &sink);
 
 private:
-  _IXML_Node            * const src;
+//  _IXML_Node            * const src;
   const QByteArray              prefix;
 };
 
@@ -200,7 +200,7 @@ public:
   virtual void                  setResponse(const QByteArray &);
 
 private:
-  _IXML_Node            * const src;
+//  _IXML_Node            * const src;
   const QByteArray              prefix;
 };
 
@@ -213,7 +213,7 @@ public:
   virtual void                  setResponse(const QByteArray &);
 
 private:
-  _IXML_Node            * const src;
+//  _IXML_Node            * const src;
   const QByteArray              prefix;
 };
 
@@ -226,7 +226,7 @@ public:
   virtual void                  setResponse(quint32);
 
 private:
-  _IXML_Node            * const src;
+//  _IXML_Node            * const src;
   const QByteArray              prefix;
 };
 
@@ -240,7 +240,7 @@ public:
   virtual void                  setResponse(const QList<QByteArray> &);
 
 private:
-  _IXML_Node            * const src;
+//  _IXML_Node            * const src;
   const QByteArray              prefix;
 };
 

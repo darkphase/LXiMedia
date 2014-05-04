@@ -366,10 +366,12 @@ QList<BufferReader::DataStreamInfo> BufferReader::filterDataStreams(const QList<
   // Remove any unidentified subtitle streams.
   if (found)
   for (QList<DataStreamInfo>::Iterator i=result.begin(); i!=result.end(); )
-  if (i->language.isEmpty())
-    i = result.erase(i);
-  else
-    i++;
+  {
+    if (i->language.isEmpty())
+      i = result.erase(i);
+    else
+      i++;
+  }
 
   return result;
 }
