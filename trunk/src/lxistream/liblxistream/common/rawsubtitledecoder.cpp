@@ -81,7 +81,7 @@ SSubtitleBuffer RawSubtitleDecoder::decodeLocal8Bit(const SEncodedDataBuffer &da
   const QList<QByteArray> lines = QByteArray(dataBuffer.data(), dataBuffer.size()).split('\n');
 
   QTextCodec * textCodec = QTextCodec::codecForLocale();
-  if (!dataBuffer.codec().codepage().isEmpty() && (textCodec->name() == "System"))
+  if (!dataBuffer.codec().codepage().isEmpty() && ((textCodec->name() == "System") || (textCodec->name() == "UTF-8")))
     textCodec = QTextCodec::codecForName(dataBuffer.codec().codepage());
 
   QStringList text;
