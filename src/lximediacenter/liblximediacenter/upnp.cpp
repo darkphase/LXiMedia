@@ -141,6 +141,11 @@ QString UPnP::hostname()
   return QString::fromUtf8(buffer);
 }
 
+QByteArray UPnP::httpBaseDir() const
+{
+  return "/upnp";
+}
+
 void UPnP::registerHttpCallback(const QString &path, HttpCallback *callback)
 {
   if (d->initialized && !d->webServerEnabled)

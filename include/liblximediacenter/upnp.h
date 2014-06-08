@@ -52,6 +52,8 @@ public:
 
   static QString                hostname();
 
+  QByteArray                    httpBaseDir() const;
+
   void                          registerHttpCallback(const QString &path, HttpCallback *);
   void                          unregisterHttpCallback(HttpCallback *);
 

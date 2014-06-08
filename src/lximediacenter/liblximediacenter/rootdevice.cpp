@@ -23,7 +23,6 @@ namespace LXiMediaCenter {
 
 struct RootDevice::Data
 {
-  static const char baseDir[];
   static const char deviceDescriptionFile[];
   static const char serviceDescriptionFile[];
   static const char serviceControlFile[];
@@ -44,17 +43,18 @@ struct RootDevice::Data
   QTimer initialAdvertisementTimer;
   static const int advertisementDelay = 3; // Seconds
   static const int advertisementExpiration = 1800; // Seconds
+
+  QByteArray baseDir;
 };
 
 const char  RootDevice::serviceTypeConnectionManager[]      = "urn:schemas-upnp-org:service:ConnectionManager:1";
 const char  RootDevice::serviceTypeContentDirectory[]       = "urn:schemas-upnp-org:service:ContentDirectory:1";
 const char  RootDevice::serviceTypeMediaReceiverRegistrar[] = "urn:microsoft.com:service:X_MS_MediaReceiverRegistrar:1";
 
-const char  RootDevice::Data::baseDir[] = "/upnp";
-const char  RootDevice::Data::deviceDescriptionFile[] = "/upnp/device";
-const char  RootDevice::Data::serviceDescriptionFile[] = "/upnp/service-";
-const char  RootDevice::Data::serviceControlFile[] = "/upnp/control-";
-const char  RootDevice::Data::serviceEventFile[] = "/upnp/event-";
+const char  RootDevice::Data::deviceDescriptionFile[]       = "device";
+const char  RootDevice::Data::serviceDescriptionFile[]      = "service-";
+const char  RootDevice::Data::serviceControlFile[]          = "control-";
+const char  RootDevice::Data::serviceEventFile[]            = "event-";
 
 RootDevice::RootDevice(UPnP *upnp, const QUuid &uuid, const QByteArray &deviceType)
   : QObject(upnp),
@@ -68,6 +68,8 @@ RootDevice::RootDevice(UPnP *upnp, const QUuid &uuid, const QByteArray &deviceTy
   connect(&d->initialAdvertisementTimer, SIGNAL(timeout()), SLOT(sendAdvertisements()));
   d->initialAdvertisementTimer.setTimerType(Qt::VeryCoarseTimer);
   d->initialAdvertisementTimer.setSingleShot(true);
+
+  d->baseDir = upnp->httpBaseDir() + "/" + uuid.toString().replace("{", "").replace("}", "").toLatin1() + "/";
 }
 
 RootDevice::~RootDevice()
@@ -81,6 +83,11 @@ RootDevice::~RootDevice()
 UPnP * RootDevice::upnp()
 {
   return d->upnp;
+}
+
+QByteArray RootDevice::httpBaseDir() const
+{
+  return d->baseDir;
 }
 
 void RootDevice::setDeviceName(const QString &deviceName)
@@ -198,15 +205,15 @@ void RootDevice::writeDeviceDescription(DeviceDescription &desc)
   desc.setPresentationURL("/");
 }
 
-HttpStatus RootDevice::httpRequest(const QUrl &request, const UPnP::HttpRequestInfo &, QByteArray &contentType, QIODevice *&response)
+HttpStatus RootDevice::httpRequest(const QUrl &request, const UPnP::HttpRequestInfo &requestInfo, QByteArray &contentType, QIODevice *&response)
 {
   QByteArray host = request.host().toLatin1();
   if (request.port() > 0)
     host += ':' + QByteArray::number(request.port());
 
-  if (request.path().startsWith(d->deviceDescriptionFile))
+  if (request.path().startsWith(d->baseDir + d->deviceDescriptionFile))
   {
-    IXMLStructures::DeviceDescription desc(host);
+    IXMLStructures::DeviceDescription desc(host, d->baseDir);
     writeDeviceDescription(desc);
 
     for (QMap<QByteArray, QPair<Service *, QByteArray> >::Iterator i = d->services.begin();
@@ -230,9 +237,9 @@ HttpStatus RootDevice::httpRequest(const QUrl &request, const UPnP::HttpRequestI
 
     return HttpStatus_Ok;
   }
-  else if (request.path().startsWith(d->serviceDescriptionFile))
+  else if (request.path().startsWith(d->baseDir + d->serviceDescriptionFile))
   {
-    const uint l = qstrlen(d->serviceDescriptionFile);
+    const uint l = d->baseDir.length() + qstrlen(d->serviceDescriptionFile);
     const QByteArray path = request.path().toUtf8();
     const QByteArray ext = path.mid(l, path.length() - 4 - l);
 
@@ -255,6 +262,11 @@ HttpStatus RootDevice::httpRequest(const QUrl &request, const UPnP::HttpRequestI
         return HttpStatus_Ok;
       }
     }
+  }
+  else foreach (const QString &icon, d->icons)
+  {
+    if (request.path().startsWith(d->baseDir + icon))
+      return d->upnp->handleHttpRequest("http://" + host + "/" + icon, requestInfo, contentType, response);
   }
 
   return HttpStatus_NotFound;
@@ -461,7 +473,7 @@ bool RootDevice::enableRootDevice(void)
     RootDevice * const me;
     const QByteArray path;
     volatile int result;
-  } t(this, QByteArray(d->deviceDescriptionFile) + ".xml");
+  } t(this, QByteArray(d->baseDir + d->deviceDescriptionFile) + ".xml");
 
   // Ugly, but needed as UpnpRegisterRootDevice retrieves files from the HTTP server.
   t.start();

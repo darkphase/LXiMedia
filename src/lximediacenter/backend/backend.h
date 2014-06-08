@@ -67,6 +67,8 @@ private slots:
 #if !defined(QT_NO_DEBUG) || defined(Q_OS_MACX)
   void                          performExit(void);
 #endif
+  void                          startUpnpDummyDevice(void);
+  void                          stopUpnpDummyDevice(void);
 
 private:
   static QUuid                  serverUuid(void);
@@ -84,6 +86,10 @@ private:
   ConnectionManager             upnpConnectionManager;
   ContentDirectory              upnpContentDirectory;
   MediaReceiverRegistrar        upnpMediaReceiverRegistrar;
+  RootDevice                  * upnpDummyRootDevice;
+  ConnectionManager           * upnpDummyConnectionManager;
+  ContentDirectory            * upnpDummyContentDirectory;
+  QTimer                        upnpDummyTimer;
 
   const QString                 sandboxApplication;
 
