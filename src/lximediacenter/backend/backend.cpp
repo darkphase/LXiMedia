@@ -22,7 +22,8 @@
 
 Backend::Backend()
   : BackendServer::MasterServer(),
-    upnpRootDevice(serverUuid(), "urn:schemas-upnp-org:device:MediaServer:1", this),
+    upnp(this),
+    upnpRootDevice(&upnp, serverUuid(), "urn:schemas-upnp-org:device:MediaServer:1"),
     upnpConnectionManager(&upnpRootDevice),
     upnpContentDirectory(&upnpRootDevice, &upnpConnectionManager),
     upnpMediaReceiverRegistrar(&upnpRootDevice),
@@ -52,6 +53,7 @@ Backend::~Backend()
   qDebug() << "LXiMediaCenter backend stopping.";
 
   upnpRootDevice.close();
+  upnp.close();
 
   foreach (BackendServer *server, backendServers)
   {
@@ -68,18 +70,19 @@ void Backend::start(void)
 {
   QSettings settings;
 
-  upnpRootDevice.registerHttpCallback("/", this);
-  upnpRootDevice.registerHttpCallback("/css", this);
-  upnpRootDevice.registerHttpCallback("/img", this);
-  upnpRootDevice.registerHttpCallback("/js", this);
-  upnpRootDevice.registerHttpCallback("/help", this);
+  upnp.registerHttpCallback("/", this);
+  upnp.registerHttpCallback("/css", this);
+  upnp.registerHttpCallback("/img", this);
+  upnp.registerHttpCallback("/js", this);
+  upnp.registerHttpCallback("/help", this);
+
+  upnp.initialize(
+        settings.value("HttpPort", defaultPort).toInt(),
+        settings.value("BindAllNetworks", false).toBool());
 
   upnpRootDevice.setDeviceName(settings.value("DeviceName", defaultDeviceName()).toString());
   upnpRootDevice.addIcon("/lximedia.png");
-
-  upnpRootDevice.initialize(
-        settings.value("HttpPort", defaultPort).toInt(),
-        settings.value("BindAllNetworks", false).toBool());
+  upnpRootDevice.initialize();
 
   // Setup template parsers
   cssParser.clear();
@@ -128,9 +131,12 @@ void Backend::resetUpnpRootDevice(void)
   QSettings settings;
 
   upnpRootDevice.close();
-  upnpRootDevice.initialize(
+  upnp.close();
+
+  upnp.initialize(
         settings.value("HttpPort", defaultPort).toInt(),
         settings.value("BindAllNetworks", false).toBool());
+  upnpRootDevice.initialize();
 
   htmlParser.clear();
   htmlParser.setField("_PRODUCT", qApp->applicationName());
@@ -176,7 +182,7 @@ HttpStatus Backend::sendFile(const QUrl &request, const QString &fileName, QByte
 {
   const QUrlQuery query(request);
 
-  contentType = RootDevice::toMimeType(fileName);
+  contentType = UPnP::toMimeType(fileName);
 
   if (fileName.endsWith(".png"))
   {

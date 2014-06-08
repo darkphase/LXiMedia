@@ -57,7 +57,7 @@ void MediaServer::initialize(MasterServer *masterServer)
 
   BackendServer::initialize(masterServer);
 
-  d->masterServer->rootDevice()->registerHttpCallback(serverPath(), this);
+  d->masterServer->rootDevice()->upnp()->registerHttpCallback(serverPath(), this);
   d->masterServer->contentDirectory()->registerCallback(serverPath(), this);
 }
 
@@ -67,7 +67,7 @@ void MediaServer::close(void)
 
   BackendServer::close();
 
-  d->masterServer->rootDevice()->unregisterHttpCallback(this);
+  d->masterServer->rootDevice()->upnp()->unregisterHttpCallback(this);
   d->masterServer->contentDirectory()->unregisterCallback(this);
 }
 
@@ -119,7 +119,7 @@ HttpStatus MediaServer::makeThumbnail(QIODevice *&response, QByteArray &contentT
   if (buffer->open(QBuffer::ReadWrite) && image.save(buffer, "PNG"))
   {
     buffer->close();
-    contentType = RootDevice::mimeImagePng;
+    contentType = UPnP::mimeImagePng;
     response = buffer;
     return HttpStatus_Ok;
   }
@@ -343,7 +343,7 @@ HttpStatus MediaServer::httpRequest(const QUrl &request, const UPnP::HttpRequest
         }
       }
 
-      contentType = RootDevice::mimeTextHtml;
+      contentType = UPnP::mimeTextHtml;
       return makeResponse(buildListItems(thumbItems), contentType, response);
     }
     else
@@ -395,7 +395,7 @@ HttpStatus MediaServer::httpRequest(const QUrl &request, const UPnP::HttpRequest
       url.setQuery(q);
 
       htmlParser.setField("SOURCE_URL", url);
-      htmlParser.setField("SOURCE_MIME", RootDevice::mimeAudioOgg);
+      htmlParser.setField("SOURCE_MIME", UPnP::mimeAudioOgg);
       htmlParser.appendField("SOURCES", htmlParser.parse(htmlAudioPlayerSource));
     }
 
@@ -407,7 +407,7 @@ HttpStatus MediaServer::httpRequest(const QUrl &request, const UPnP::HttpRequest
       url.setQuery(q);
 
       htmlParser.setField("SOURCE_URL", url);
-      htmlParser.setField("SOURCE_MIME", RootDevice::mimeAudioMp3);
+      htmlParser.setField("SOURCE_MIME", UPnP::mimeAudioMp3);
       htmlParser.appendField("SOURCES", htmlParser.parse(htmlAudioPlayerSource));
     }
 
@@ -419,7 +419,7 @@ HttpStatus MediaServer::httpRequest(const QUrl &request, const UPnP::HttpRequest
       url.setQuery(q);
 
       htmlParser.setField("SOURCE_URL", url);
-      htmlParser.setField("SOURCE_MIME", RootDevice::mimeAudioMpeg);
+      htmlParser.setField("SOURCE_MIME", UPnP::mimeAudioMpeg);
       htmlParser.appendField("SOURCES", htmlParser.parse(htmlAudioPlayerSource));
     }
 
@@ -431,11 +431,11 @@ HttpStatus MediaServer::httpRequest(const QUrl &request, const UPnP::HttpRequest
       url.setQuery(q);
 
       htmlParser.setField("SOURCE_URL", url);
-      htmlParser.setField("SOURCE_MIME", RootDevice::mimeAudioWave);
+      htmlParser.setField("SOURCE_MIME", UPnP::mimeAudioWave);
       htmlParser.appendField("SOURCES", htmlParser.parse(htmlAudioPlayerSource));
     }
 
-    contentType = RootDevice::mimeTextHtml;
+    contentType = UPnP::mimeTextHtml;
     return makeResponse(htmlParser.parse(htmlAudioPlayerElement), contentType, response);
   }
   else if (query.hasQueryItem("videoplayer"))
@@ -452,7 +452,7 @@ HttpStatus MediaServer::httpRequest(const QUrl &request, const UPnP::HttpRequest
       url.setQuery(q);
 
       htmlParser.setField("SOURCE_URL", url);
-      htmlParser.setField("SOURCE_MIME", RootDevice::mimeVideoOgg);
+      htmlParser.setField("SOURCE_MIME", UPnP::mimeVideoOgg);
       htmlParser.appendField("SOURCES", htmlParser.parse(htmlVideoPlayerSource));
     }
 
@@ -465,7 +465,7 @@ HttpStatus MediaServer::httpRequest(const QUrl &request, const UPnP::HttpRequest
       url.setQuery(q);
 
       htmlParser.setField("SOURCE_URL", url);
-      htmlParser.setField("SOURCE_MIME", RootDevice::mimeVideoMpeg);
+      htmlParser.setField("SOURCE_MIME", UPnP::mimeVideoMpeg);
       htmlParser.appendField("SOURCES", htmlParser.parse(htmlVideoPlayerSource));
     }
 
@@ -479,11 +479,11 @@ HttpStatus MediaServer::httpRequest(const QUrl &request, const UPnP::HttpRequest
       url.setQuery(q);
 
       htmlParser.setField("SOURCE_URL", url);
-      htmlParser.setField("SOURCE_MIME", RootDevice::mimeVideoMatroska);
+      htmlParser.setField("SOURCE_MIME", UPnP::mimeVideoMatroska);
       htmlParser.appendField("SOURCES", htmlParser.parse(htmlVideoPlayerSource));
     }
 
-    contentType = RootDevice::mimeTextHtml;
+    contentType = UPnP::mimeTextHtml;
     return makeResponse(htmlParser.parse(htmlVideoPlayerElement), contentType, response);
   }
   else // Stream file

@@ -79,6 +79,7 @@ private:
 private:
   static const quint16          defaultPort = 4280;
 
+  UPnP                          upnp;
   RootDevice                    upnpRootDevice;
   ConnectionManager             upnpConnectionManager;
   ContentDirectory              upnpContentDirectory;

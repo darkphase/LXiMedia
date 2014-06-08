@@ -77,7 +77,7 @@ QByteArray BackendServer::settingsContent(void)
 HttpStatus BackendServer::makeResponse(const QByteArray &data, QByteArray &contentType, QIODevice *&response) const
 {
   if (contentType.isEmpty())
-    contentType = RootDevice::mimeAppOctet;
+    contentType = UPnP::mimeAppOctet;
 
   QBuffer * const buffer = new QBuffer();
   buffer->setData(data);
@@ -88,7 +88,7 @@ HttpStatus BackendServer::makeResponse(const QByteArray &data, QByteArray &conte
 HttpStatus BackendServer::makeResponse(const QString &data, QByteArray &contentType, QIODevice *&response) const
 {
   if (contentType.isEmpty())
-    contentType = RootDevice::mimeTextPlain;
+    contentType = UPnP::mimeTextPlain;
 
   return makeResponse(data.toUtf8(), contentType, response);
 }

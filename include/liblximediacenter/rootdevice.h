@@ -24,7 +24,7 @@
 
 namespace LXiMediaCenter {
 
-class LXIMEDIACENTER_PUBLIC RootDevice : public UPnP,
+class LXIMEDIACENTER_PUBLIC RootDevice : public QObject,
                                          private UPnP::HttpCallback
 {
 Q_OBJECT
@@ -71,8 +71,10 @@ public:
   static const char             serviceTypeMediaReceiverRegistrar[];
 
 public:
-                                RootDevice(const QUuid &, const QByteArray &deviceType, QObject *parent = NULL);
+                                RootDevice(UPnP *, const QUuid &, const QByteArray &deviceType);
   virtual                       ~RootDevice();
+
+  UPnP                        * upnp();
 
   void                          setDeviceName(const QString &deviceName);
   void                          addIcon(const QString &path);
@@ -80,7 +82,7 @@ public:
   void                          registerService(const QByteArray &serviceId, Service *);
   void                          unregisterService(const QByteArray &serviceId);
 
-  virtual bool                  initialize(quint16 port, bool bindPublicInterfaces = false);
+  virtual bool                  initialize();
   virtual void                  close(void);
 
   void                          emitEvent(const QByteArray &serviceId);
@@ -91,7 +93,7 @@ protected:
   void                          handleEvent(const QByteArray &serviceId, EventablePropertySet &);
 
 private: // From UPnP::HttpCallback
-  virtual HttpStatus            httpRequest(const QUrl &request, const HttpRequestInfo &, QByteArray &contentType, QIODevice *&response);
+  virtual HttpStatus            httpRequest(const QUrl &request, const UPnP::HttpRequestInfo &, QByteArray &contentType, QIODevice *&response);
 
 private slots:
   void                          sendAdvertisements();

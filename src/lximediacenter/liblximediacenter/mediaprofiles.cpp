@@ -1398,23 +1398,23 @@ const char * MediaProfiles::mimeTypeFor(AudioProfile profile)
 
   case MP2:
   case MP3:
-    return RootDevice::mimeAudioMpeg;
+    return UPnP::mimeAudioMpeg;
 
   case AAC_ADTS:
-    return RootDevice::mimeAudioAac; //"audio/vnd.dlna.adts";
+    return UPnP::mimeAudioAac; //"audio/vnd.dlna.adts";
 
   case AC3:
-    return RootDevice::mimeAudioAc3;
+    return UPnP::mimeAudioAc3;
 
   case WMABASE:
-    return RootDevice::mimeAudioWma;
+    return UPnP::mimeAudioWma;
 
   case VORBIS_NONSTD:
   case FLAC_NONSTD:
-    return RootDevice::mimeAudioOgg;
+    return UPnP::mimeAudioOgg;
 
   case WAV_NONSTD:
-    return RootDevice::mimeAudioWave;
+    return UPnP::mimeAudioWave;
   }
 
   return "";
@@ -1433,7 +1433,7 @@ const char * MediaProfiles::mimeTypeFor(VideoProfile profile)
   case MPEG_PS_HD_EU_NONSTD:
   case MPEG_PS_SD_NA_NONSTD:
   case MPEG_PS_HD_NA_NONSTD:
-    return RootDevice::mimeVideoMpeg;
+    return UPnP::mimeVideoMpeg;
 
   case MPEG_TS_SD_EU_ISO:
   case MPEG_TS_HD_EU_ISO:
@@ -1447,14 +1447,14 @@ const char * MediaProfiles::mimeTypeFor(VideoProfile profile)
   case MPEG4_P2_TS_ASP_AAC_ISO:
   case MPEG4_P2_TS_ASP_MPEG1_L3_ISO:
   case MPEG4_P2_TS_ASP_AC3_ISO:
-    return RootDevice::mimeVideoMpegTS;
+    return UPnP::mimeVideoMpegTS;
 
   case MPEG_TS_SD_EU:
   case MPEG_TS_HD_EU:
   case MPEG_TS_SD_NA:
   case MPEG_TS_HD_NA:
   case AVC_TS_MP_HD_AC3:
-    return RootDevice::mimeVideoMpegM2TS;
+    return UPnP::mimeVideoMpegM2TS;
 
   case MPEG4_P2_TS_SP_AAC:
   case MPEG4_P2_TS_SP_MPEG1_L3:
@@ -1463,10 +1463,10 @@ const char * MediaProfiles::mimeTypeFor(VideoProfile profile)
   case MPEG4_P2_TS_ASP_AAC:
   case MPEG4_P2_TS_ASP_MPEG1_L3:
   case MPEG4_P2_TS_ASP_AC3_L3:
-    return RootDevice::mimeVideoMpegM2TS;
+    return UPnP::mimeVideoMpegM2TS;
 
   case WMVMED_BASE:
-    return RootDevice::mimeVideoWmv;
+    return UPnP::mimeVideoWmv;
 
   case MPEG4_P2_MATROSKA_MP3_SD_NONSTD:
   case MPEG4_P2_MATROSKA_MP3_HD_NONSTD:
@@ -1474,11 +1474,11 @@ const char * MediaProfiles::mimeTypeFor(VideoProfile profile)
   case MPEG4_P2_MATROSKA_AAC_HD_NONSTD:
   case MPEG4_P2_MATROSKA_AC3_SD_NONSTD:
   case MPEG4_P2_MATROSKA_AC3_HD_NONSTD:
-    return RootDevice::mimeVideoMatroska;
+    return UPnP::mimeVideoMatroska;
 
   case OGG_THEORA_VORBIS_SD_NONSTD:
   case OGG_THEORA_FLAC_SD_NONSTD:
-    return RootDevice::mimeVideoOgg;
+    return UPnP::mimeVideoOgg;
   }
 
   return "";
@@ -1492,11 +1492,11 @@ const char * MediaProfiles::mimeTypeFor(ImageProfile profile)
   case JPEG_SM:
   case JPEG_MED:
   case JPEG_LRG:
-    return RootDevice::mimeImageJpeg;
+    return UPnP::mimeImageJpeg;
 
   case PNG_TN:
   case PNG_LRG:
-    return RootDevice::mimeImagePng;
+    return UPnP::mimeImagePng;
   }
 
   return "";
