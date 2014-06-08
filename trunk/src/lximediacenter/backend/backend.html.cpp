@@ -514,7 +514,7 @@ HttpStatus Backend::parseHtmlContent(const QUrl &request, const QByteArray &cont
 
   QBuffer * const buffer = new QBuffer();
   buffer->setData(htmlParser.parse(htmlIndex));
-  contentType = RootDevice::mimeTextHtml;
+  contentType = UPnP::mimeTextHtml;
   response = buffer;
   return HttpStatus_Ok;
 }

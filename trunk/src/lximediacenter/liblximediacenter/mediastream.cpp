@@ -171,7 +171,7 @@ bool MediaStream::setup(const QUrl &request,
       videoCodec.setGopSize(videoGopSize);
 
       format = "ogg";
-      contentType = RootDevice::mimeVideoOgg;
+      contentType = UPnP::mimeVideoOgg;
     }
     else if ((format == "flv") && SIOOutputNode::formats().contains(format))
     {
@@ -190,7 +190,7 @@ bool MediaStream::setup(const QUrl &request,
       videoCodec = SVideoCodec("flv1", videoFormat.size(), videoFormat.frameRate());
       videoCodec.setGopSize(videoGopSize);
 
-      contentType = RootDevice::mimeVideoFlv;
+      contentType = UPnP::mimeVideoFlv;
     }
     else if ((format == "matroska") && SIOOutputNode::formats().contains(format))
     {
@@ -202,7 +202,7 @@ bool MediaStream::setup(const QUrl &request,
       videoCodec = SVideoCodec("mpeg4", videoFormat.size(), videoFormat.frameRate());
       videoCodec.setGopSize(videoGopSize);
 
-      contentType = RootDevice::mimeVideoMatroska;
+      contentType = UPnP::mimeVideoMatroska;
     }
     else // Default to mpeg
     {
@@ -224,16 +224,16 @@ bool MediaStream::setup(const QUrl &request,
 
       if (format == "mpegts")
       {
-        contentType = RootDevice::mimeVideoMpeg;
+        contentType = UPnP::mimeVideoMpeg;
       }
       else if (format == "m2ts")
       {
-        contentType = RootDevice::mimeVideoMpegM2TS;
+        contentType = UPnP::mimeVideoMpegM2TS;
       }
       else
       {
         format = "vob";
-        contentType = RootDevice::mimeVideoMpeg;
+        contentType = UPnP::mimeVideoMpeg;
       }
     }
 
@@ -352,17 +352,17 @@ bool MediaStream::setup(const QUrl &request,
     if ((format == "adts") && SIOOutputNode::formats().contains(format))
     {
       audioCodec = SAudioCodec("aac", SAudioFormat::Channels_Stereo, audioFormat.sampleRate());
-      contentType = RootDevice::mimeAudioAac;
+      contentType = UPnP::mimeAudioAac;
     }
     else if ((format == "ac3") && SIOOutputNode::formats().contains(format))
     {
       audioCodec = SAudioCodec("ac3", SAudioFormat::Channels_Stereo, audioFormat.sampleRate());
-      contentType = RootDevice::mimeAudioAc3;
+      contentType = UPnP::mimeAudioAc3;
     }
     else if ((format == "mp3") && SIOOutputNode::formats().contains(format))
     {
       audioCodec = SAudioCodec("mp3", SAudioFormat::Channels_Stereo, 44100);
-      contentType = RootDevice::mimeAudioMp3;
+      contentType = UPnP::mimeAudioMp3;
     }
     else if ((format == "oga") && SIOOutputNode::formats().contains("ogg"))
     {
@@ -372,23 +372,23 @@ bool MediaStream::setup(const QUrl &request,
         audioCodec = SAudioCodec("flac", SAudioFormat::Channels_Stereo, 44100);
 
       format = "ogg";
-      contentType = RootDevice::mimeAudioOgg;
+      contentType = UPnP::mimeAudioOgg;
     }
     else if ((format == "s16be") && SIOOutputNode::formats().contains(format))
     {
       audioCodec = SAudioCodec("pcm_s16be", SAudioFormat::Channels_Stereo, 48000);
-      contentType = RootDevice::mimeAudioLpcm;
+      contentType = UPnP::mimeAudioLpcm;
     }
     else if ((format == "wav") && SIOOutputNode::formats().contains(format))
     {
       audioCodec = SAudioCodec("pcm_s16le", SAudioFormat::Channels_Stereo, 44100);
-      contentType = RootDevice::mimeAudioWave;
+      contentType = UPnP::mimeAudioWave;
     }
     else // Default to mpeg
     {
       audioCodec = SAudioCodec("mp2", SAudioFormat::Channels_Stereo, 44100);
       format = "mp2";
-      contentType = RootDevice::mimeAudioMpeg;
+      contentType = UPnP::mimeAudioMpeg;
     }
 
     if (!output.openFormat(format))

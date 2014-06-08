@@ -182,7 +182,7 @@ public:
   };
 
 public:
-  explicit                      ContentDirectory(RootDevice *parent, ConnectionManager *connectionManager);
+  explicit                      ContentDirectory(RootDevice *rootDevice, ConnectionManager *connectionManager);
   virtual                       ~ContentDirectory();
 
   void                          registerCallback(const QString &path, Callback *);
@@ -236,7 +236,7 @@ protected:
   static const unsigned         seekSec;
 
 private:
-  RootDevice            * const parent;
+  RootDevice            * const rootDevice;
   ConnectionManager     * const connectionManager;
   struct Data;
   Data                  * const d;

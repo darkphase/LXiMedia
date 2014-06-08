@@ -193,7 +193,7 @@ QByteArray Frontend::makeFrontendPage(void) const
     if (device.modelName == qApp->applicationName())
     {
       htmlParser.setField("ITEM_LOCATION", device.presentationURL);
-      if (upnpClient.isMyAddress(host.toLatin1()) && (localConfigAdded++ == 0))
+      if (upnp.isMyAddress(host.toLatin1()) && (localConfigAdded++ == 0))
         htmlParser.appendField("THIS_COMPUTER", '(' + tr("This computer") + ')');
     }
     else

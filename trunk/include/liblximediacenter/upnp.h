@@ -62,6 +62,9 @@ public:
 
   HttpStatus                    handleHttpRequest(const QUrl &path, const HttpRequestInfo &requestInfo, QByteArray &contentType, QIODevice *&response);
 
+  struct LXIMEDIACENTER_PUBLIC Functor { virtual ~Functor() { } virtual void operator()() = 0; };
+  void                          send(Functor &) const;
+
 protected:
   virtual void                  customEvent(QEvent *);
 
@@ -72,9 +75,6 @@ private slots:
 
 protected:
   static bool                   isLocalAddress(const char *);
-
-  struct LXIMEDIACENTER_PUBLIC Functor { virtual ~Functor() { } virtual void operator()() = 0; };
-  void                          send(Functor &) const;
 
 private:
   void                          enableWebserver(void);

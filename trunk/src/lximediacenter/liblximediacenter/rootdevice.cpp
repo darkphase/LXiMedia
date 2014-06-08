@@ -29,6 +29,7 @@ struct RootDevice::Data
   static const char serviceControlFile[];
   static const char serviceEventFile[];
 
+  UPnP *upnp;
   QUuid uuid;
   QByteArray deviceType;
   QString deviceName;
@@ -55,10 +56,11 @@ const char  RootDevice::Data::serviceDescriptionFile[] = "/upnp/service-";
 const char  RootDevice::Data::serviceControlFile[] = "/upnp/control-";
 const char  RootDevice::Data::serviceEventFile[] = "/upnp/event-";
 
-RootDevice::RootDevice(const QUuid &uuid, const QByteArray &deviceType, QObject *parent)
-  : UPnP(parent),
+RootDevice::RootDevice(UPnP *upnp, const QUuid &uuid, const QByteArray &deviceType)
+  : QObject(upnp),
     d(new Data())
 {
+  d->upnp = upnp;
   d->uuid = uuid;
   d->deviceType = deviceType;
   d->rootDeviceRegistred = false;
@@ -74,6 +76,11 @@ RootDevice::~RootDevice()
 
   delete d;
   *const_cast<Data **>(&d) = NULL;
+}
+
+UPnP * RootDevice::upnp()
+{
+  return d->upnp;
 }
 
 void RootDevice::setDeviceName(const QString &deviceName)
@@ -107,28 +114,23 @@ void RootDevice::unregisterService(const QByteArray &serviceId)
   d->services.remove(serviceId);
 }
 
-bool RootDevice::initialize(quint16 port, bool bindPublicInterfaces)
+bool RootDevice::initialize()
 {
-  if (UPnP::initialize(port, bindPublicInterfaces))
+  d->upnp->registerHttpCallback(d->baseDir, this);
+
+  for (QMap<QByteArray, QPair<Service *, QByteArray> >::Iterator i = d->services.begin();
+       i != d->services.end();
+       i++)
   {
-    registerHttpCallback(d->baseDir, this);
-
-    for (QMap<QByteArray, QPair<Service *, QByteArray> >::Iterator i = d->services.begin();
-         i != d->services.end();
-         i++)
-    {
-      i->first->initialize();
-    }
-
-    return enableRootDevice();
+    i->first->initialize();
   }
 
-  return false;
+  return enableRootDevice();
 }
 
 void RootDevice::close(void)
 {
-  unregisterHttpCallback(this);
+  d->upnp->unregisterHttpCallback(this);
 
   if (d->rootDeviceRegistred)
   {
@@ -138,8 +140,6 @@ void RootDevice::close(void)
     foreach(const ::UpnpDevice_Handle &handle, d->rootDeviceHandle)
       ::UpnpUnRegisterRootDevice(handle);
   }
-
-  UPnP::close();
 
   for (QMap<QByteArray, QPair<Service *, QByteArray> >::Iterator i = d->services.begin();
        i != d->services.end();
@@ -192,13 +192,13 @@ void RootDevice::writeDeviceDescription(DeviceDescription &desc)
   {
     const QImage icon(':' + path);
     if (!icon.isNull())
-      desc.addIcon(path, toMimeType(path), icon.width(), icon.height(), icon.depth());
+      desc.addIcon(path, UPnP::toMimeType(path), icon.width(), icon.height(), icon.depth());
   }
 
   desc.setPresentationURL("/");
 }
 
-HttpStatus RootDevice::httpRequest(const QUrl &request, const HttpRequestInfo &, QByteArray &contentType, QIODevice *&response)
+HttpStatus RootDevice::httpRequest(const QUrl &request, const UPnP::HttpRequestInfo &, QByteArray &contentType, QIODevice *&response)
 {
   QByteArray host = request.host().toLatin1();
   if (request.port() > 0)
@@ -225,7 +225,7 @@ HttpStatus RootDevice::httpRequest(const QUrl &request, const HttpRequestInfo &,
     DOMString s = ixmlDocumenttoString(desc.doc);
     buffer->setData(s);
     ixmlFreeDOMString(s);
-    contentType = mimeTextXml;
+    contentType = UPnP::mimeTextXml;
     response = buffer;
 
     return HttpStatus_Ok;
@@ -249,7 +249,7 @@ HttpStatus RootDevice::httpRequest(const QUrl &request, const HttpRequestInfo &,
         DOMString s = ixmlDocumenttoString(desc.doc);
         buffer->setData(s);
         ixmlFreeDOMString(s);
-        contentType = mimeTextXml;
+        contentType = UPnP::mimeTextXml;
         response = buffer;
 
         return HttpStatus_Ok;
@@ -282,7 +282,7 @@ bool RootDevice::enableRootDevice(void)
 
       if (eventType == UPNP_CONTROL_ACTION_REQUEST)
       {
-        struct F : Functor
+        struct F : UPnP::Functor
         {
           F(RootDevice *me, Upnp_Action_Request *request) : me(me), request(request) { }
 
@@ -291,7 +291,7 @@ bool RootDevice::enableRootDevice(void)
             QMap<QByteArray, QPair<Service *, QByteArray> >::Iterator i = me->d->services.find(request->ServiceID);
             if ((i != me->d->services.end()) && me->d->rootDeviceRegistred)
             {
-              HttpRequestInfo requestInfo;
+              UPnP::HttpRequestInfo requestInfo;
               requestInfo.host = request->RequestInfo.host;
               requestInfo.userAgent = request->RequestInfo.userAgent;
               requestInfo.sourceAddress = request->RequestInfo.sourceAddress;
@@ -404,13 +404,13 @@ bool RootDevice::enableRootDevice(void)
           RootDevice * const me;
           Upnp_Action_Request * const request;
         } f(me, reinterpret_cast<Upnp_Action_Request *>(event));
-        me->send(f);
+        me->d->upnp->send(f);
 
         return 0;
       }
       else if (eventType == UPNP_EVENT_SUBSCRIPTION_REQUEST)
       {
-        struct F : Functor
+        struct F : UPnP::Functor
         {
           F(RootDevice *me, Upnp_Subscription_Request *request) : me(me), request(request) { }
 
@@ -432,7 +432,7 @@ bool RootDevice::enableRootDevice(void)
           IXMLStructures::EventablePropertySet propertyset;
           QByteArray udn;
         } f(me, reinterpret_cast<Upnp_Subscription_Request *>(event));
-        me->send(f);
+        me->d->upnp->send(f);
 
         return 0;
       }

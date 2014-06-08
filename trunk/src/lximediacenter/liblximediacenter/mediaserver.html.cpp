@@ -222,7 +222,7 @@ HttpStatus MediaServer::buildAudioPlayer(const QUrl &request, QByteArray &conten
   htmlParser.setField("PATH", QUrl(path));
   htmlParser.setField("ITEM_URL", QUrl(request.path()));
 
-  contentType = RootDevice::mimeTextHtml;
+  contentType = UPnP::mimeTextHtml;
   return makeResponse(htmlParser.parse(htmlAudioPlayer), contentType, response);
 }
 
@@ -242,7 +242,7 @@ HttpStatus MediaServer::buildPlayer(const QUrl &request, QByteArray &contentType
   else if ((int(item.type) / 10) == 3)
     htmlParser.setField("ITEM_TYPE", "Image");
 
-  contentType = RootDevice::mimeTextHtml;
+  contentType = UPnP::mimeTextHtml;
   return makeResponse(htmlParser.parse(htmlPlayer), contentType, response);
 }
 

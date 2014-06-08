@@ -22,14 +22,17 @@ namespace LXiMediaCenter {
 
 struct Client::Data
 {
+  UPnP                        * upnp;
+
   bool                          clientEnabled;
   UpnpClient_Handle             clientHandle;
 };
 
-Client::Client(QObject *parent)
-  : UPnP(parent),
+Client::Client(UPnP *upnp)
+  : QObject(upnp),
     d(new Data())
 {
+  d->upnp = upnp;
   d->clientEnabled = false;
 }
 
@@ -39,12 +42,14 @@ Client::~Client()
   *const_cast<Data **>(&d) = NULL;
 }
 
-bool Client::initialize(quint16 port, bool bindPublicInterfaces)
+UPnP * Client::upnp()
 {
-  if (UPnP::initialize(port, bindPublicInterfaces))
-    return enableClient();
+  return d->upnp;
+}
 
-  return false;
+bool Client::initialize()
+{
+  return enableClient();
 }
 
 void Client::close(void)
@@ -54,8 +59,6 @@ void Client::close(void)
     d->clientEnabled = false;
     ::UpnpUnRegisterClient(d->clientHandle);
   }
-
-  UPnP::close();
 }
 
 void Client::startSearch(const QByteArray &target, int mx)
@@ -166,7 +169,7 @@ bool Client::enableClient()
           (eventType == UPNP_DISCOVERY_ADVERTISEMENT_BYEBYE) ||
           (eventType == UPNP_DISCOVERY_SEARCH_RESULT))
       {
-        struct F : Functor
+        struct F : UPnP::Functor
         {
           F(Client *me, Upnp_EventType eventType, Upnp_Discovery *discovery) : me(me), eventType(eventType), discovery(discovery) { }
 
@@ -188,7 +191,7 @@ bool Client::enableClient()
           const Upnp_EventType eventType;
           Upnp_Discovery * const discovery;
         } f(me, eventType, reinterpret_cast<Upnp_Discovery *>(event));
-        me->send(f);
+        me->d->upnp->send(f);
       }
 
       return UPNP_E_SUCCESS;

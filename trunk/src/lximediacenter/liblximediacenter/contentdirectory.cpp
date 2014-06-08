@@ -42,9 +42,9 @@ struct ContentDirectory::Data : ContentDirectory::Callback
 
 const QEvent::Type  ContentDirectory::Data::emitUpdateEventType = QEvent::Type(QEvent::registerEventType());
 
-ContentDirectory::ContentDirectory(RootDevice *parent, ConnectionManager *connectionManager)
-  : QObject(parent),
-    parent(parent),
+ContentDirectory::ContentDirectory(RootDevice *rootDevice, ConnectionManager *connectionManager)
+  : QObject(rootDevice),
+    rootDevice(rootDevice),
     connectionManager(connectionManager),
     d(new Data())
 {
@@ -56,12 +56,12 @@ ContentDirectory::ContentDirectory(RootDevice *parent, ConnectionManager *connec
   d->objectIdList.append(QByteArray());
   d->objectIdHash.insert(d->objectIdList.last(), d->objectIdList.count() - 1);
 
-  parent->registerService(serviceId, this);
+  rootDevice->registerService(serviceId, this);
 }
 
 ContentDirectory::~ContentDirectory()
 {
-  parent->unregisterService(serviceId);
+  rootDevice->unregisterService(serviceId);
 
   delete d;
   *const_cast<Data **>(&d) = NULL;
@@ -233,7 +233,7 @@ void ContentDirectory::initialize(void)
 {
   d->systemUpdateId = 1;
 
-  parent->registerHttpCallback(httpBaseDir, this);
+  rootDevice->upnp()->registerHttpCallback(httpBaseDir, this);
 }
 
 void ContentDirectory::close(void)
@@ -312,7 +312,7 @@ void ContentDirectory::writeEventableStateVariables(RootDevice::EventablePropert
 void ContentDirectory::customEvent(QEvent *e)
 {
   if (e->type() == d->emitUpdateEventType)
-    parent->emitEvent(serviceId);
+    rootDevice->emitEvent(serviceId);
   else
     QObject::customEvent(e);
 }
@@ -321,7 +321,7 @@ HttpStatus ContentDirectory::httpRequest(const QUrl &request, const UPnP::HttpRe
 {
   if (request.path().startsWith(httpBaseDir))
   {
-    const HttpStatus result = parent->handleHttpRequest(fromObjectURL(request), requestInfo, contentType, response);
+    const HttpStatus result = rootDevice->upnp()->handleHttpRequest(fromObjectURL(request), requestInfo, contentType, response);
     if (result == HttpStatus_Ok)
       connectionManager->addOutputConnection(request, contentType, response);
 

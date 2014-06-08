@@ -489,7 +489,7 @@ HttpStatus MediaPlayerServer::httpRequest(const QUrl &request, const UPnP::HttpR
 
     QBuffer * const buffer = new QBuffer();
     buffer->setData(htmlParser.parse(htmlSettingsDirTreeIndex));
-    contentType = RootDevice::mimeTextHtml;
+    contentType = UPnP::mimeTextHtml;
     response = buffer;
     return HttpStatus_Ok;
   }

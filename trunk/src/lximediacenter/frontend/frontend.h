@@ -74,6 +74,7 @@ private:
 private:
   static const char             daemonName[];
 
+  UPnP                          upnp;
   Client                        upnpClient;
 
   QMap<QByteArray, Client::DeviceDescription> devices;

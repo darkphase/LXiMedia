@@ -27,7 +27,8 @@ const char Frontend::daemonName[] = "net.sf.lximedia.lximediacenter.backend";
 
 Frontend::Frontend()
   : QWebView(),
-    upnpClient(this),
+    upnp(this),
+    upnpClient(&upnp),
     frontendPageShowing(false),
     waitingForWelcome(qApp->arguments().contains("--welcome"))
 {
@@ -45,6 +46,7 @@ Frontend::Frontend()
   webPage->setNetworkAccessManager(new NetworkAccessManager(this));
   setPage(webPage);
 
+  if (upnp.initialize(0))
   if (upnpClient.initialize())
   {
     connect(&upnpClient, SIGNAL(deviceDiscovered(QByteArray,QByteArray)), SLOT(deviceDiscovered(QByteArray,QByteArray)));
@@ -62,6 +64,7 @@ Frontend::Frontend()
 Frontend::~Frontend()
 {
   upnpClient.close();
+  upnp.close();
 }
 
 void Frontend::show(void)
@@ -115,7 +118,7 @@ void Frontend::deviceDiscovered(const QByteArray &, const QByteArray &location)
 
     if (waitingForWelcome &&
         (description.modelName == qApp->applicationName()) &&
-        upnpClient.isMyAddress(description.presentationURL.host().toLatin1()))
+        upnp.isMyAddress(description.presentationURL.host().toLatin1()))
     {
       waitingForWelcome = false;
       setUrl(device->presentationURL);
