@@ -76,6 +76,8 @@ public:
 
   UPnP                        * upnp();
 
+  QByteArray                    httpBaseDir() const;
+
   void                          setDeviceName(const QString &deviceName);
   void                          addIcon(const QString &path);
 

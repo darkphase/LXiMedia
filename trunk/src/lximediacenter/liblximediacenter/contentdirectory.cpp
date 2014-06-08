@@ -20,7 +20,6 @@
 namespace LXiMediaCenter {
 
 const char      ContentDirectory::serviceId[]       = "urn:upnp-org:serviceId:ContentDirectory";
-const char      ContentDirectory::httpBaseDir[]     = "/upnp/condir/";
 const unsigned  ContentDirectory::seekSec = 120;
 
 struct ContentDirectory::Data : ContentDirectory::Callback
@@ -38,6 +37,8 @@ struct ContentDirectory::Data : ContentDirectory::Callback
   QHash<QByteArray, qint32>     objectIdHash;
   QVector<QByteArray>           objectUrlList;
   QHash<QByteArray, qint32>     objectUrlHash;
+
+  QByteArray                    httpBaseDir;
 };
 
 const QEvent::Type  ContentDirectory::Data::emitUpdateEventType = QEvent::Type(QEvent::registerEventType());
@@ -55,6 +56,8 @@ ContentDirectory::ContentDirectory(RootDevice *rootDevice, ConnectionManager *co
 
   d->objectIdList.append(QByteArray());
   d->objectIdHash.insert(d->objectIdList.last(), d->objectIdList.count() - 1);
+
+  d->httpBaseDir = rootDevice->httpBaseDir() + "/condir/";
 
   rootDevice->registerService(serviceId, this);
 }
@@ -233,7 +236,7 @@ void ContentDirectory::initialize(void)
 {
   d->systemUpdateId = 1;
 
-  rootDevice->upnp()->registerHttpCallback(httpBaseDir, this);
+  rootDevice->upnp()->registerHttpCallback(d->httpBaseDir, this);
 }
 
 void ContentDirectory::close(void)
@@ -319,7 +322,7 @@ void ContentDirectory::customEvent(QEvent *e)
 
 HttpStatus ContentDirectory::httpRequest(const QUrl &request, const UPnP::HttpRequestInfo &requestInfo, QByteArray &contentType, QIODevice *&response)
 {
-  if (request.path().startsWith(httpBaseDir))
+  if (request.path().startsWith(d->httpBaseDir))
   {
     const HttpStatus result = rootDevice->upnp()->handleHttpRequest(fromObjectURL(request), requestInfo, contentType, response);
     if (result == HttpStatus_Ok)
@@ -646,10 +649,10 @@ QByteArray ContentDirectory::toObjectURL(const QUrl &url, const QByteArray &suff
     d->objectUrlList.last().squeeze();
     d->objectUrlHash.insert(d->objectUrlList.last(), d->objectUrlList.count() - 1);
 
-    newUrl = httpBaseDir + ("0000000" + QByteArray::number(d->objectUrlList.count() - 1, 16)).right(8) + suffix;
+    newUrl = d->httpBaseDir + ("0000000" + QByteArray::number(d->objectUrlList.count() - 1, 16)).right(8) + suffix;
   }
   else
-    newUrl = httpBaseDir + ("0000000" + QByteArray::number(*i, 16)).right(8) + suffix;
+    newUrl = d->httpBaseDir + ("0000000" + QByteArray::number(*i, 16)).right(8) + suffix;
 
   newUrl.setScheme("http");
   newUrl.setAuthority(url.authority());

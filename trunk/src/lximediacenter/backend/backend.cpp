@@ -27,6 +27,9 @@ Backend::Backend()
     upnpConnectionManager(&upnpRootDevice),
     upnpContentDirectory(&upnpRootDevice, &upnpConnectionManager),
     upnpMediaReceiverRegistrar(&upnpRootDevice),
+    upnpDummyRootDevice(NULL),
+    upnpDummyConnectionManager(NULL),
+    upnpDummyContentDirectory(NULL),
     sandboxApplication("\"" + qApp->applicationFilePath() + "\" --sandbox"),
     cssParser(),
     htmlParser(),
@@ -46,11 +49,17 @@ Backend::Backend()
 
   // Open device configuration
   MediaServer::mediaProfiles().openDeviceConfig(":/devices.ini");
+
+  connect(&upnpDummyTimer, SIGNAL(timeout()), SLOT(startUpnpDummyDevice()));
+  upnpDummyTimer.setTimerType(Qt::VeryCoarseTimer);
+  upnpDummyTimer.setInterval(15000);
 }
 
 Backend::~Backend()
 {
   qDebug() << "LXiMediaCenter backend stopping.";
+
+  stopUpnpDummyDevice();
 
   upnpRootDevice.close();
   upnp.close();
@@ -81,8 +90,10 @@ void Backend::start(void)
         settings.value("BindAllNetworks", false).toBool());
 
   upnpRootDevice.setDeviceName(settings.value("DeviceName", defaultDeviceName()).toString());
-  upnpRootDevice.addIcon("/lximedia.png");
+  upnpRootDevice.addIcon("lximedia.png");
   upnpRootDevice.initialize();
+
+  upnpDummyTimer.start();
 
   // Setup template parsers
   cssParser.clear();
@@ -130,6 +141,9 @@ void Backend::resetUpnpRootDevice(void)
 {
   QSettings settings;
 
+  upnpDummyTimer.stop();
+  stopUpnpDummyDevice();
+
   upnpRootDevice.close();
   upnp.close();
 
@@ -137,6 +151,8 @@ void Backend::resetUpnpRootDevice(void)
         settings.value("HttpPort", defaultPort).toInt(),
         settings.value("BindAllNetworks", false).toBool());
   upnpRootDevice.initialize();
+
+  upnpDummyTimer.start();
 
   htmlParser.clear();
   htmlParser.setField("_PRODUCT", qApp->applicationName());
@@ -149,6 +165,36 @@ void Backend::performExit(void)
   qApp->exit(0);
 }
 #endif
+
+void Backend::startUpnpDummyDevice(void)
+{
+  if (upnpDummyRootDevice == NULL)
+  {
+    upnpDummyRootDevice = new RootDevice(&upnp, QUuid::createUuid(), "urn:schemas-upnp-org:device:MediaServer:1");
+    upnpDummyConnectionManager = new ConnectionManager(upnpDummyRootDevice);
+    upnpDummyContentDirectory = new ContentDirectory(upnpDummyRootDevice, upnpDummyConnectionManager);
+
+    upnpDummyRootDevice->setDeviceName("~");
+    upnpDummyRootDevice->initialize();
+
+    QTimer::singleShot(upnpDummyTimer.interval() / 2, Qt::VeryCoarseTimer, this, SLOT(stopUpnpDummyDevice()));
+  }
+}
+
+void Backend::stopUpnpDummyDevice(void)
+{
+  if (upnpDummyRootDevice != NULL)
+  {
+    upnpDummyRootDevice->close();
+
+    delete upnpDummyContentDirectory;
+    upnpDummyContentDirectory = NULL;
+    delete upnpDummyConnectionManager;
+    upnpDummyConnectionManager = NULL;
+    delete upnpDummyRootDevice;
+    upnpDummyRootDevice = NULL;
+  }
+}
 
 RootDevice * Backend::rootDevice(void)
 {

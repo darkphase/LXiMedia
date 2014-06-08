@@ -232,7 +232,6 @@ private:
 
 protected:
   static const char             serviceId[];
-  static const char             httpBaseDir[];
   static const unsigned         seekSec;
 
 private:

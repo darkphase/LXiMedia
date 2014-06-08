@@ -53,7 +53,7 @@ class DeviceDescription : public RootDevice::DeviceDescription,
                           public XmlStructure
 {
 public:
-  explicit                      DeviceDescription(const QByteArray &host);
+  explicit                      DeviceDescription(const QByteArray &host, const QByteArray &baseDir);
 
   virtual void                  setDeviceType(const QByteArray &, const QByteArray &dlnaDoc);
   virtual void                  setFriendlyName(const QString &);

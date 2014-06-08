@@ -121,7 +121,7 @@ QByteArray XmlStructure::getTextElement(_IXML_Node *from, const char *name) cons
 }
 
 
-DeviceDescription::DeviceDescription(const QByteArray &host)
+DeviceDescription::DeviceDescription(const QByteArray &host, const QByteArray &baseDir)
   : XmlStructure(),
     root(addElement(&doc->n, "root")),
     device(NULL),
@@ -135,7 +135,7 @@ DeviceDescription::DeviceDescription(const QByteArray &host)
   addTextElement(&specVersion->n, "major", "1");
   addTextElement(&specVersion->n, "minor", "0");
 
-  addTextElement(&root->n, "URLBase", "http://" + host);
+  addTextElement(&root->n, "URLBase", "http://" + host + baseDir);
 
   device = addElement(&root->n, "device");
 }
