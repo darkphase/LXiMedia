@@ -57,7 +57,7 @@ ContentDirectory::ContentDirectory(RootDevice *rootDevice, ConnectionManager *co
   d->objectIdList.append(QByteArray());
   d->objectIdHash.insert(d->objectIdList.last(), d->objectIdList.count() - 1);
 
-  d->httpBaseDir = rootDevice->httpBaseDir() + "/condir/";
+  d->httpBaseDir = rootDevice->httpBaseDir() + "condir/";
 
   rootDevice->registerService(serviceId, this);
 }

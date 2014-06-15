@@ -38,6 +38,8 @@ struct UPnP::Data
 
   static UPnP * me;
 
+  QSet<RootDevice *> rootDevices;
+
   quint16 port;
   bool bindPublicInterfaces;
 
@@ -139,6 +141,18 @@ QString UPnP::hostname()
     gethostname(buffer, sizeof(buffer) - 1);
 
   return QString::fromUtf8(buffer);
+}
+
+int UPnP::addRootDevice(RootDevice *rootDevice)
+{
+  d->rootDevices.insert(rootDevice);
+
+  return d->rootDevices.count();
+}
+
+void UPnP::removeRootDevice(RootDevice *rootDevice)
+{
+  d->rootDevices.remove(rootDevice);
 }
 
 QByteArray UPnP::httpBaseDir() const
