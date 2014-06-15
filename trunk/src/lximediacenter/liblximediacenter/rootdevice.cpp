@@ -44,6 +44,7 @@ struct RootDevice::Data
   static const int advertisementDelay = 3; // Seconds
   static const int advertisementExpiration = 1800; // Seconds
 
+  bool masterRootDevice;
   QByteArray baseDir;
 };
 
@@ -69,12 +70,18 @@ RootDevice::RootDevice(UPnP *upnp, const QUuid &uuid, const QByteArray &deviceTy
   d->initialAdvertisementTimer.setTimerType(Qt::VeryCoarseTimer);
   d->initialAdvertisementTimer.setSingleShot(true);
 
-  d->baseDir = upnp->httpBaseDir() + "/" + uuid.toString().replace("{", "").replace("}", "").toLatin1() + "/";
+  d->masterRootDevice = (d->upnp->addRootDevice(this) == 1);
+  if (d->masterRootDevice)
+    d->baseDir = upnp->httpBaseDir() + "/master/";
+  else
+    d->baseDir = upnp->httpBaseDir() + "/" + uuid.toString().replace("{", "").replace("}", "").toLatin1() + "/";
 }
 
 RootDevice::~RootDevice()
 {
   RootDevice::close();
+
+  d->upnp->removeRootDevice(this);
 
   delete d;
   *const_cast<Data **>(&d) = NULL;

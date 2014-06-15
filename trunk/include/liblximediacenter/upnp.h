@@ -23,6 +23,8 @@
 
 namespace LXiMediaCenter {
 
+class RootDevice;
+
 enum HttpStatus
 {
   HttpStatus_Ok                   = 200,
@@ -51,6 +53,9 @@ public:
   virtual                       ~UPnP();
 
   static QString                hostname();
+
+  int                           addRootDevice(RootDevice *);
+  void                          removeRootDevice(RootDevice *);
 
   QByteArray                    httpBaseDir() const;
 
