@@ -879,7 +879,7 @@ BufferReaderBase::StreamContext * BufferReaderBase::initStreamContext(const ::AV
     if (stream->codec->codec_id == CODEC_ID_TEXT)
     {
       streamContext->dataCodec = SDataCodec(
-          "SUB/RAWUTF8",
+          "sub_rawutf8",
           QByteArray(),
           stream->index);
     }
