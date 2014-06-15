@@ -59,6 +59,7 @@ Backend::~Backend()
 {
   qDebug() << "LXiMediaCenter backend stopping.";
 
+  upnpDummyTimer.stop();
   stopUpnpDummyDevice();
 
   upnpRootDevice.close();
