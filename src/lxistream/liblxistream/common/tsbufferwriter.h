@@ -33,6 +33,7 @@ private:
   {
   public:
     explicit                    Filter(TsBufferWriter *parent);
+    virtual                     ~Filter();
 
   protected:
     virtual qint64              readData(char *data, qint64 maxSize);
@@ -40,6 +41,8 @@ private:
 
   private:
     TsBufferWriter      * const parent;
+    size_t                      bufferSize;
+    char                        buffer[MPEG::tsPacketSize];
   };
 
 public:

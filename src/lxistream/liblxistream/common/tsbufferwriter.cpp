@@ -103,7 +103,12 @@ void TsBufferWriter::process(const SEncodedDataBuffer &buffer)
 
 TsBufferWriter::Filter::Filter(TsBufferWriter *parent)
   : QIODevice(parent),
-    parent(parent)
+    parent(parent),
+    bufferSize(0)
+{
+}
+
+TsBufferWriter::Filter::~Filter()
 {
 }
 
@@ -118,28 +123,51 @@ qint64 TsBufferWriter::Filter::writeData(const char *data, qint64 size)
 
   if (parent->ioDevice)
   {
+    qint64 i = 0;
+
+    if (bufferSize > 0)
+    {
+      const size_t count = qMin(size_t(size), MPEG::tsPacketSize - bufferSize);
+      memcpy(buffer, data, count);
+      bufferSize += count;
+      i += count;
+
+      Q_ASSERT(bufferSize <= MPEG::tsPacketSize);
+      if (bufferSize >= MPEG::tsPacketSize)
+      {
+        parent->ioDevice->write(reinterpret_cast<const char *>(&timeCode), sizeof(timeCode));
+        parent->ioDevice->write(buffer, MPEG::tsPacketSize);
+        bufferSize = 0;
+      }
+    }
+
     while (parent->ioDevice->bytesToWrite() >= outBufferSize)
     if (!parent->ioDevice->waitForBytesWritten(-1))
       return -1;
 
-    qint64 i = 0;
-    while ((i + qint64(MPEG::tsPacketSize)) <= size)
+    while (i < size)
     {
-      const MPEG::TSPacket * const tsPacket =
-          reinterpret_cast<const MPEG::TSPacket *>(data + i);
-
-      if (tsPacket->isValid())
+      if (data[i] == MPEG::tsSyncByte)
       {
-        parent->ioDevice->write(reinterpret_cast<const char *>(tsPacket), MPEG::tsPacketSize);
-        parent->ioDevice->write(reinterpret_cast<const char *>(&timeCode), sizeof(timeCode));
+        if ((i + qint64(MPEG::tsPacketSize)) <= size)
+        {
+          parent->ioDevice->write(reinterpret_cast<const char *>(&timeCode), sizeof(timeCode));
+          parent->ioDevice->write(data, MPEG::tsPacketSize);
 
-        i += MPEG::tsPacketSize;
+          i += MPEG::tsPacketSize;
+        }
+        else
+          break;
       }
       else
         i++;
     }
 
-    return i;
+    bufferSize = size - i;
+    if (bufferSize > 0)
+      memcpy(buffer, data + i, bufferSize);
+
+    return i + bufferSize;
   }
 
   return -1;
