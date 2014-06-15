@@ -91,6 +91,9 @@ public:
 
   QByteArray                    udn() const;
 
+signals:
+  void                          handledEvent(const QByteArray &from);
+
 protected:
   void                          handleEvent(const QByteArray &serviceId, EventablePropertySet &);
 
