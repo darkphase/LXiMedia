@@ -1671,8 +1671,8 @@
 +        }
 +    }
 +
-+    maxAge = dev_info->MaxAge;
 +    HandleUnlock();
++    if (dev_info) maxAge = dev_info->MaxAge; else return;
  
  	UpnpPrintf(UPNP_PACKET, API, __FILE__, __LINE__,
  		   "MAX-AGE     =  %d\n", maxAge);
