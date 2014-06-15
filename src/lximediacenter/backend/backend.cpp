@@ -50,17 +50,25 @@ Backend::Backend()
   // Open device configuration
   MediaServer::mediaProfiles().openDeviceConfig(":/devices.ini");
 
+  connect(&upnpRootDevice, SIGNAL(handledEvent(QByteArray)), SLOT(handledEvent(QByteArray)));
+
   connect(&upnpDummyTimer, SIGNAL(timeout()), SLOT(startUpnpDummyDevice()));
   upnpDummyTimer.setTimerType(Qt::VeryCoarseTimer);
   upnpDummyTimer.setInterval(15000);
+  upnpDummyTimer.setSingleShot(true);
+
+  connect(&upnpDummyCleanupTimer, SIGNAL(timeout()), SLOT(stopUpnpDummyDevice()));
+  upnpDummyCleanupTimer.setTimerType(Qt::VeryCoarseTimer);
+  upnpDummyCleanupTimer.setInterval(upnpDummyTimer.interval() / 2);
+  upnpDummyCleanupTimer.setSingleShot(true);
 }
 
 Backend::~Backend()
 {
   qDebug() << "LXiMediaCenter backend stopping.";
 
-  upnpDummyTimer.stop();
   stopUpnpDummyDevice();
+  upnpDummyTimer.stop();
 
   upnpRootDevice.close();
   upnp.close();
@@ -142,8 +150,8 @@ void Backend::resetUpnpRootDevice(void)
 {
   QSettings settings;
 
-  upnpDummyTimer.stop();
   stopUpnpDummyDevice();
+  upnpDummyTimer.stop();
 
   upnpRootDevice.close();
   upnp.close();
@@ -167,6 +175,18 @@ void Backend::performExit(void)
 }
 #endif
 
+void Backend::handledEvent(const QByteArray &)
+{
+  if (upnpDummyTimer.isActive())
+    upnpDummyTimer.start();
+}
+
+void Backend::handledDummyEvent()
+{
+  if (upnpDummyCleanupTimer.isActive())
+    upnpDummyCleanupTimer.start();
+}
+
 void Backend::startUpnpDummyDevice(void)
 {
   if (upnpDummyRootDevice == NULL)
@@ -178,12 +198,16 @@ void Backend::startUpnpDummyDevice(void)
     upnpDummyRootDevice->setDeviceName("~");
     upnpDummyRootDevice->initialize();
 
-    QTimer::singleShot(upnpDummyTimer.interval() / 2, Qt::VeryCoarseTimer, this, SLOT(stopUpnpDummyDevice()));
+    connect(upnpDummyRootDevice, SIGNAL(handledEvent(QByteArray)), SLOT(handledDummyEvent()));
+    upnpDummyCleanupTimer.start();
   }
 }
 
 void Backend::stopUpnpDummyDevice(void)
 {
+  upnpDummyTimer.stop();
+  upnpDummyCleanupTimer.stop();
+
   if (upnpDummyRootDevice != NULL)
   {
     upnpDummyRootDevice->close();
@@ -195,6 +219,8 @@ void Backend::stopUpnpDummyDevice(void)
     delete upnpDummyRootDevice;
     upnpDummyRootDevice = NULL;
   }
+
+  upnpDummyTimer.start();
 }
 
 RootDevice * Backend::rootDevice(void)

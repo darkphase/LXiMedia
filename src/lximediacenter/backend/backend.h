@@ -67,6 +67,8 @@ private slots:
 #if !defined(QT_NO_DEBUG) || defined(Q_OS_MACX)
   void                          performExit(void);
 #endif
+  void                          handledEvent(const QByteArray &);
+  void                          handledDummyEvent();
   void                          startUpnpDummyDevice(void);
   void                          stopUpnpDummyDevice(void);
 
@@ -90,6 +92,7 @@ private:
   ConnectionManager           * upnpDummyConnectionManager;
   ContentDirectory            * upnpDummyContentDirectory;
   QTimer                        upnpDummyTimer;
+  QTimer                        upnpDummyCleanupTimer;
 
   const QString                 sandboxApplication;
 

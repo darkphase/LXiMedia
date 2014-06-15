@@ -411,6 +411,8 @@ bool RootDevice::enableRootDevice(void)
                 ixmlNodeList_free(children);
               }
             }
+
+            emit me->handledEvent(QByteArray());
           }
 
           RootDevice * const me;
@@ -437,6 +439,8 @@ bool RootDevice::enableRootDevice(void)
               if (i != me->d->rootDeviceHandle.end())
                 ::UpnpAcceptSubscriptionExt(*i, udn, request->ServiceId, propertyset.doc, request->Sid);
             }
+
+            emit me->handledEvent(QByteArray());
           }
 
           RootDevice * const me;
