@@ -17,6 +17,7 @@
 
 #include <upnp/upnp.h>
 #include "upnp.h"
+#include "rootdevice.h"
 #include <LXiCore>
 
 namespace LXiMediaCenter {
@@ -230,12 +231,19 @@ bool UPnP::initialize(quint16 port, bool bindPublicInterfaces)
 
   d->updateInterfacesTimer.start(d->updateInterfacesInterval);
 
+  if (d->initialized)
+  foreach (RootDevice *rootDevice, d->rootDevices)
+    d->initialized &= rootDevice->initialize();
+
   return d->initialized;
 }
 
 void UPnP::close(void)
 {
   d->updateInterfacesTimer.stop();
+
+  foreach (RootDevice *rootDevice, d->rootDevices)
+    rootDevice->close();
 
   if (d->initialized)
   {
