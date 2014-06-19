@@ -27,9 +27,10 @@ Backend::Backend()
     upnpConnectionManager(&upnpRootDevice),
     upnpContentDirectory(&upnpRootDevice, &upnpConnectionManager),
     upnpMediaReceiverRegistrar(&upnpRootDevice),
-    upnpDummyRootDevice(NULL),
-    upnpDummyConnectionManager(NULL),
-    upnpDummyContentDirectory(NULL),
+    upnpDummyRootDevice(&upnp, QUuid::createUuid(), "urn:schemas-upnp-org:device:MediaServer:1"),
+    upnpDummyConnectionManager(&upnpDummyRootDevice),
+    upnpDummyContentDirectory(&upnpDummyRootDevice, &upnpDummyConnectionManager),
+    upnpDummyInitialized(false),
     sandboxApplication("\"" + qApp->applicationFilePath() + "\" --sandbox"),
     cssParser(),
     htmlParser(),
@@ -101,6 +102,8 @@ void Backend::start(void)
   upnpRootDevice.setDeviceName(settings.value("DeviceName", defaultDeviceName()).toString());
   upnpRootDevice.addIcon("lximedia.png");
   upnpRootDevice.initialize();
+
+  upnpDummyRootDevice.setDeviceName("~");
 
   upnpDummyTimer.start();
 
@@ -189,17 +192,14 @@ void Backend::handledDummyEvent()
 
 void Backend::startUpnpDummyDevice(void)
 {
-  if (upnpDummyRootDevice == NULL)
+  if (!upnpDummyInitialized)
   {
-    upnpDummyRootDevice = new RootDevice(&upnp, QUuid::createUuid(), "urn:schemas-upnp-org:device:MediaServer:1");
-    upnpDummyConnectionManager = new ConnectionManager(upnpDummyRootDevice);
-    upnpDummyContentDirectory = new ContentDirectory(upnpDummyRootDevice, upnpDummyConnectionManager);
+    upnpDummyRootDevice.initialize();
 
-    upnpDummyRootDevice->setDeviceName("~");
-    upnpDummyRootDevice->initialize();
-
-    connect(upnpDummyRootDevice, SIGNAL(handledEvent(QByteArray)), SLOT(handledDummyEvent()));
+    connect(&upnpDummyRootDevice, SIGNAL(handledEvent(QByteArray)), SLOT(handledDummyEvent()));
     upnpDummyCleanupTimer.start();
+
+    upnpDummyInitialized = true;
   }
 }
 
@@ -208,16 +208,11 @@ void Backend::stopUpnpDummyDevice(void)
   upnpDummyTimer.stop();
   upnpDummyCleanupTimer.stop();
 
-  if (upnpDummyRootDevice != NULL)
+  if (upnpDummyInitialized)
   {
-    upnpDummyRootDevice->close();
+    upnpDummyRootDevice.close();
 
-    delete upnpDummyContentDirectory;
-    upnpDummyContentDirectory = NULL;
-    delete upnpDummyConnectionManager;
-    upnpDummyConnectionManager = NULL;
-    delete upnpDummyRootDevice;
-    upnpDummyRootDevice = NULL;
+    upnpDummyInitialized = false;
   }
 
   upnpDummyTimer.start();
