@@ -88,9 +88,10 @@ private:
   ConnectionManager             upnpConnectionManager;
   ContentDirectory              upnpContentDirectory;
   MediaReceiverRegistrar        upnpMediaReceiverRegistrar;
-  RootDevice                  * upnpDummyRootDevice;
-  ConnectionManager           * upnpDummyConnectionManager;
-  ContentDirectory            * upnpDummyContentDirectory;
+  RootDevice                    upnpDummyRootDevice;
+  ConnectionManager             upnpDummyConnectionManager;
+  ContentDirectory              upnpDummyContentDirectory;
+  bool                          upnpDummyInitialized;
   QTimer                        upnpDummyTimer;
   QTimer                        upnpDummyCleanupTimer;
 
