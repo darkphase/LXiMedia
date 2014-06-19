@@ -33,6 +33,7 @@ struct RootDevice::Data
   QByteArray deviceType;
   QString deviceName;
   QStringList icons;
+  bool initialized;
 
   QSet<QByteArray> serviceExts;
   QMap<QByteArray, QPair<Service *, QByteArray> > services;
@@ -64,6 +65,7 @@ RootDevice::RootDevice(UPnP *upnp, const QUuid &uuid, const QByteArray &deviceTy
   d->upnp = upnp;
   d->uuid = uuid;
   d->deviceType = deviceType;
+  d->initialized = false;
   d->rootDeviceRegistred = false;
 
   connect(&d->initialAdvertisementTimer, SIGNAL(timeout()), SLOT(sendAdvertisements()));
@@ -130,36 +132,48 @@ void RootDevice::unregisterService(const QByteArray &serviceId)
 
 bool RootDevice::initialize()
 {
-  d->upnp->registerHttpCallback(d->baseDir, this);
-
-  for (QMap<QByteArray, QPair<Service *, QByteArray> >::Iterator i = d->services.begin();
-       i != d->services.end();
-       i++)
+  if (!d->initialized)
   {
-    i->first->initialize();
+    d->upnp->registerHttpCallback(d->baseDir, this);
+
+    for (QMap<QByteArray, QPair<Service *, QByteArray> >::Iterator i = d->services.begin();
+         i != d->services.end();
+         i++)
+    {
+      i->first->initialize();
+    }
+
+    d->initialized = true;
+
+    return enableRootDevice();
   }
 
-  return enableRootDevice();
+  return d->initialized;
 }
 
 void RootDevice::close(void)
 {
-  d->upnp->unregisterHttpCallback(this);
-
-  if (d->rootDeviceRegistred)
+  if (d->initialized)
   {
-    d->rootDeviceRegistred = false;
-    d->initialAdvertisementTimer.stop();
+    d->upnp->unregisterHttpCallback(this);
 
-    foreach(const ::UpnpDevice_Handle &handle, d->rootDeviceHandle)
-      ::UpnpUnRegisterRootDevice(handle);
-  }
+    if (d->rootDeviceRegistred)
+    {
+      d->rootDeviceRegistred = false;
+      d->initialAdvertisementTimer.stop();
 
-  for (QMap<QByteArray, QPair<Service *, QByteArray> >::Iterator i = d->services.begin();
-       i != d->services.end();
-       i++)
-  {
-    i->first->close();
+      foreach(const ::UpnpDevice_Handle &handle, d->rootDeviceHandle)
+        ::UpnpUnRegisterRootDevice(handle);
+    }
+
+    for (QMap<QByteArray, QPair<Service *, QByteArray> >::Iterator i = d->services.begin();
+         i != d->services.end();
+         i++)
+    {
+      i->first->close();
+    }
+
+    d->initialized = false;
   }
 }
 
