@@ -733,7 +733,7 @@ MediaPlayerServer::DirType MediaPlayerServer::dirType(const QString &virtualPath
 
 void MediaPlayerServer::updatePlaybackProgress(const QUrl &filePath, int position)
 {
-  mediaDatabase->setLastPlaybackPosition(filePath, qMax(0, ((position - 29) / 60) * 60));
+  mediaDatabase->setLastPlaybackPosition(filePath, position);
 }
 
 
@@ -785,7 +785,7 @@ void FileStream::stop(void)
 
 void FileStream::updatePlaybackProgress(void)
 {
-  const int position = file.position().toSec();
+  const int position = ((file.position().toSec() - 29) / 60) * 60;
   if (position != lastPosition)
   {
     emit playbackProgress(filePath, position);
