@@ -119,7 +119,7 @@ bool SIODeviceProxy::open(OpenMode mode)
   if (QIODevice::open(mode))
   {
     d->opened = true;
-    d->buffer.resize(4096 * 1024);
+    d->buffer.resize(16384 * 1024);
     d->absolutePos = 0;
     d->available = 0;
 

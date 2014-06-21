@@ -290,6 +290,8 @@ void BufferWriter::stop(void)
 
 void BufferWriter::process(const SEncodedAudioBuffer &buffer)
 {
+  LXI_PROFILE_FUNCTION(TaskType_AudioProcessing);
+
   if (!buffer.isNull())
   foreach (::AVStream *stream, streams)
   if (stream->codec->codec_type == AVMEDIA_TYPE_AUDIO)
@@ -307,6 +309,8 @@ void BufferWriter::process(const SEncodedAudioBuffer &buffer)
 
 void BufferWriter::process(const SEncodedVideoBuffer &buffer)
 {
+  LXI_PROFILE_FUNCTION(TaskType_VideoProcessing);
+
   if (!buffer.isNull())
   foreach (::AVStream *stream, streams)
   if (stream->codec->codec_type == AVMEDIA_TYPE_VIDEO)
@@ -324,6 +328,8 @@ void BufferWriter::process(const SEncodedVideoBuffer &buffer)
 
 void BufferWriter::process(const SEncodedDataBuffer &buffer)
 {
+  LXI_PROFILE_FUNCTION(TaskType_MiscProcessing);
+
   if (!buffer.isNull())
   foreach (::AVStream *stream, streams)
   if (stream->codec->codec_type == AVMEDIA_TYPE_SUBTITLE)
