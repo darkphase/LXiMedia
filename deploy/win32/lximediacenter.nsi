@@ -34,26 +34,23 @@ Section "-Shared Files" SecShared
   File COPYING
   File VERSION
   File README
-  File D3DCompiler_43.dll
-  File icudt49.dll
-  File icuin49.dll
-  File icuuc49.dll
-  File libEGL.dll
-  File libGLESv2.dll
-  File Qt5Concurrent.dll
+  File icudt*.dll
+  File icuin*.dll
+  File icuuc*.dll
   File Qt5Core.dll
   File Qt5Gui.dll
   File Qt5Network.dll
-  File Qt5OpenGL.dll
   File Qt5Widgets.dll
-  File Qt5Xml.dll
   File LXiCore.dll
-  File LXiServer.dll
 
   ; Only needed when compiled with MinGW
-  File /nonfatal libgcc_s_sjlj-1.dll
-  File /nonfatal libstdc++-6.dll
-  File /nonfatal libwinpthread-1.dll
+  File /nonfatal libgcc_s_*.dll
+  File /nonfatal libstdc*.dll
+  File /nonfatal libwinpthread*.dll
+
+  SetOutPath $INSTDIR\platforms
+  SetOverwrite ifnewer
+  File platforms\qwindows.dll
 
   SetOutPath $INSTDIR\imageformats
   SetOverwrite ifnewer
@@ -94,9 +91,12 @@ Section "Frontend application" SecFrontend
   SetOverwrite ifnewer
   File Qt5Multimedia.dll
   File Qt5MultimediaWidgets.dll
+  File Qt5OpenGL.dll
+  File Qt5Positioning.dll
   File Qt5PrintSupport.dll
   File Qt5Qml.dll
   File Qt5Quick.dll
+  File Qt5Sensors.dll
   File Qt5Sql.dll
   File Qt5WebKit.dll
   File Qt5WebKitWidgets.dll

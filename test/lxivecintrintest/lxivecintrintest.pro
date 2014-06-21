@@ -89,12 +89,11 @@ win32 {
   OUT_DIR = $$replace(OUT_PWD,/,\\)\\$$replace(LXIMEDIA_DIR,/,\\)\\bin
 
   system(mkdir $${OUT_DIR} > NUL 2>&1)
+
   release {
-    system(copy /Y $$(QTDIR)\\bin\\Qt5Core.dll $${OUT_DIR} > NUL)
     system(copy /Y $$(QTDIR)\\bin\\Qt5Test.dll $${OUT_DIR} > NUL)
   }
   debug {
-    system(copy /Y $$(QTDIR)\\bin\\Qt5Cored.dll $${OUT_DIR} > NUL)
     system(copy /Y $$(QTDIR)\\bin\\Qt5Testd.dll $${OUT_DIR} > NUL)
   }
 
