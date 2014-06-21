@@ -98,6 +98,9 @@ static void setprio(const char *cmd)
     ::SetPriorityClass(::GetCurrentProcess(), IDLE_PRIORITY_CLASS);
     ::SetPriorityClass(::GetCurrentProcess(), PROCESS_MODE_BACKGROUND_BEGIN);
 #endif
+
+    // Limit number of threads to prevent high disk I/O.
+    QThreadPool::globalInstance()->setMaxThreadCount(qBound(1, QThread::idealThreadCount() / 2, 2));
   }
   else if (strcmp(cmd, "high") == 0)
   {
