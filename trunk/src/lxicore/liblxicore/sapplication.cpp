@@ -1,5 +1,5 @@
 /******************************************************************************
- *   Copyright (C) 2012  A.J. Admiraal                                        *
+ *   Copyright (C) 2014  A.J. Admiraal                                        *
  *   code@admiraal.dds.nl                                                     *
  *                                                                            *
  *   This program is free software: you can redistribute it and/or modify     *
@@ -317,7 +317,7 @@ QByteArray SApplication::about(void) const
   QByteArray text =
       " <p>Version: " + QByteArray(version()) + "</p>\n"
       " <p>Website: <a href=\"http://lximedia.sourceforge.net/\">lximedia.sourceforge.net</a></p>\n"
-      " <p><b>Copyright &copy; 2009-2012  A.J. Admiraal.</b></p>\n"
+      " <p><b>Copyright &copy; 2009-2014  A.J. Admiraal.</b></p>\n"
       " <p>This program is free software: you can redistribute it and/or modify\n"
       " it under the terms of the GNU General Public License version 3 as\n"
       " published by the Free Software Foundation.</p>\n"

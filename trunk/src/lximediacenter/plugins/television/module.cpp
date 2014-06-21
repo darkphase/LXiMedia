@@ -1,5 +1,5 @@
 /******************************************************************************
- *   Copyright (C) 2012  A.J. Admiraal                                        *
+ *   Copyright (C) 2014  A.J. Admiraal                                        *
  *   code@admiraal.dds.nl                                                     *
  *                                                                            *
  *   This program is free software: you can redistribute it and/or modify     *
