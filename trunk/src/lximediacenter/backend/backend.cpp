@@ -17,7 +17,6 @@
 
 #include "backend.h"
 #include "setup.h"
-#include <QtXml>
 #include <iostream>
 
 Backend::Backend()

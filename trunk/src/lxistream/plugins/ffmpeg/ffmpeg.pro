@@ -4,7 +4,7 @@ include($${PWD}/$${LXIMEDIA_DIR}/include/liblxicore/module.pri)
 include($${PWD}/$${LXIMEDIA_DIR}/include/liblxistream/linklxistream.pri)
 include($${PWD}/$${LXIMEDIA_DIR}/ext/ffmpeg/ffmpeg.pri)
 
-QT += concurrent network xml
+QT += concurrent network
 
 CONFIG += precompile_header
 PRECOMPILED_HEADER = ffmpegcommon.h

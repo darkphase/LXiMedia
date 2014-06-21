@@ -16,7 +16,6 @@
  ******************************************************************************/
 
 #include "networkbufferreader.h"
-#include <QtXml>
 
 namespace LXiStream {
 namespace FFMpegBackend {
