@@ -221,11 +221,12 @@ void RootDevice::writeDeviceDescription(DeviceDescription &desc)
   desc.setSerialNumber(d->uuid.toString().replace("{", "").replace("}", "").toUtf8());
   desc.setUDN(udn());
 
+  const QByteArray prefix = d->masterRootDevice ? d->baseDir : QByteArray();
   foreach (const QString &path, d->icons)
   {
     const QImage icon(':' + path);
     if (!icon.isNull())
-      desc.addIcon(path, UPnP::toMimeType(path), icon.width(), icon.height(), icon.depth());
+      desc.addIcon(prefix + path, UPnP::toMimeType(path), icon.width(), icon.height(), icon.depth());
   }
 
   desc.setPresentationURL("/");
