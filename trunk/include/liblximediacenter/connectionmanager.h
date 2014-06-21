@@ -137,6 +137,9 @@ public:
   void                          handleAction(const UPnP::HttpRequestInfo &, ActionGetCurrentConnectionInfo &);
   void                          handleAction(const UPnP::HttpRequestInfo &, ActionGetProtocolInfo &);
 
+signals:
+  void                          numConnectionsChanged(int numConnections);
+
 protected: // From RootDevice::Service
   virtual const char          * serviceType(void);
 

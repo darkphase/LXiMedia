@@ -80,6 +80,8 @@ void ConnectionManager::close(void)
 {
   d->connections.clear();
   d->ioDevices.clear();
+
+  emit numConnectionsChanged(0);
 }
 
 void ConnectionManager::writeServiceDescription(RootDevice::ServiceDescription &desc) const
@@ -152,6 +154,8 @@ void ConnectionManager::addOutputConnection(const QUrl &url, const QByteArray &c
   connect(ioDevice, SIGNAL(destroyed(QObject*)), this, SLOT(connectionClosed(QObject*)));
 
   qApp->postEvent(this, new QEvent(d->emitUpdateEventType), Qt::LowEventPriority);
+
+  emit numConnectionsChanged(d->connections.count());
 }
 
 void ConnectionManager::customEvent(QEvent *e)
@@ -173,6 +177,8 @@ void ConnectionManager::connectionClosed(QObject *ioDevice)
       d->connections.erase(j);
 
       qApp->postEvent(this, new QEvent(d->emitUpdateEventType), Qt::LowEventPriority);
+
+      emit numConnectionsChanged(d->connections.count());
     }
 
     d->ioDevices.erase(i);
