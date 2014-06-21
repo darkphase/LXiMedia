@@ -31,6 +31,7 @@ struct RootDevice::Data
   UPnP *upnp;
   QUuid uuid;
   QByteArray deviceType;
+  int advertisementExpiration;
   QString deviceName;
   QStringList icons;
   bool initialized;
@@ -43,7 +44,6 @@ struct RootDevice::Data
 
   QTimer initialAdvertisementTimer;
   static const int advertisementDelay = 3; // Seconds
-  static const int advertisementExpiration = 1800; // Seconds
 
   bool masterRootDevice;
   QByteArray baseDir;
@@ -53,18 +53,21 @@ const char  RootDevice::serviceTypeConnectionManager[]      = "urn:schemas-upnp-
 const char  RootDevice::serviceTypeContentDirectory[]       = "urn:schemas-upnp-org:service:ContentDirectory:1";
 const char  RootDevice::serviceTypeMediaReceiverRegistrar[] = "urn:microsoft.com:service:X_MS_MediaReceiverRegistrar:1";
 
+const int   RootDevice::defaultAdvertisementExpiration      = 1800; // Seconds
+
 const char  RootDevice::Data::deviceDescriptionFile[]       = "device";
 const char  RootDevice::Data::serviceDescriptionFile[]      = "service-";
 const char  RootDevice::Data::serviceControlFile[]          = "control-";
 const char  RootDevice::Data::serviceEventFile[]            = "event-";
 
-RootDevice::RootDevice(UPnP *upnp, const QUuid &uuid, const QByteArray &deviceType)
+RootDevice::RootDevice(UPnP *upnp, const QUuid &uuid, const QByteArray &deviceType, bool masterRootDevice, int advertisementExpiration)
   : QObject(upnp),
     d(new Data())
 {
   d->upnp = upnp;
   d->uuid = uuid;
   d->deviceType = deviceType;
+  d->advertisementExpiration = advertisementExpiration;
   d->initialized = false;
   d->rootDeviceRegistred = false;
 
@@ -72,18 +75,20 @@ RootDevice::RootDevice(UPnP *upnp, const QUuid &uuid, const QByteArray &deviceTy
   d->initialAdvertisementTimer.setTimerType(Qt::VeryCoarseTimer);
   d->initialAdvertisementTimer.setSingleShot(true);
 
-  d->masterRootDevice = (d->upnp->addRootDevice(this) == 1);
+  d->masterRootDevice = masterRootDevice;
   if (d->masterRootDevice)
     d->baseDir = upnp->httpBaseDir() + "/master/";
   else
     d->baseDir = upnp->httpBaseDir() + "/" + uuid.toString().replace("{", "").replace("}", "").toLatin1() + "/";
+
+  d->upnp->addChild(this);
 }
 
 RootDevice::~RootDevice()
 {
   RootDevice::close();
 
-  d->upnp->removeRootDevice(this);
+  d->upnp->removeChild(this);
 
   delete d;
   *const_cast<Data **>(&d) = NULL;
@@ -130,7 +135,7 @@ void RootDevice::unregisterService(const QByteArray &serviceId)
   d->services.remove(serviceId);
 }
 
-bool RootDevice::initialize()
+bool RootDevice::initialize(void)
 {
   if (!d->initialized)
   {
@@ -234,7 +239,10 @@ HttpStatus RootDevice::httpRequest(const QUrl &request, const UPnP::HttpRequestI
 
   if (request.path().startsWith(d->baseDir + d->deviceDescriptionFile))
   {
-    IXMLStructures::DeviceDescription desc(host, d->baseDir);
+    const QByteArray baseDir = d->masterRootDevice ? "/" : d->baseDir;
+    const QByteArray prefix  = d->masterRootDevice ? d->baseDir : QByteArray();
+
+    IXMLStructures::DeviceDescription desc(host, baseDir);
     writeDeviceDescription(desc);
 
     for (QMap<QByteArray, QPair<Service *, QByteArray> >::Iterator i = d->services.begin();
@@ -244,9 +252,9 @@ HttpStatus RootDevice::httpRequest(const QUrl &request, const UPnP::HttpRequestI
       desc.addService(
             i->first->serviceType(),
             i.key(),
-            d->serviceDescriptionFile + i->second + ".xml",
-            d->serviceControlFile + i->second,
-            d->serviceEventFile + i->second);
+            prefix + d->serviceDescriptionFile + i->second + ".xml",
+            prefix + d->serviceControlFile + i->second,
+            prefix + d->serviceEventFile + i->second);
     }
 
     QBuffer * const buffer = new QBuffer();

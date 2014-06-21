@@ -34,10 +34,16 @@ Client::Client(UPnP *upnp)
 {
   d->upnp = upnp;
   d->clientEnabled = false;
+
+  d->upnp->addChild(this);
 }
 
 Client::~Client()
 {
+  Client::close();
+
+  d->upnp->removeChild(this);
+
   delete d;
   *const_cast<Data **>(&d) = NULL;
 }

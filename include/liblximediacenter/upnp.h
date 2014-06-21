@@ -36,11 +36,17 @@ class LXIMEDIACENTER_PUBLIC UPnP : public QObject
 {
 Q_OBJECT
 public:
+  struct LXIMEDIACENTER_PUBLIC Child
+  {
+    virtual bool                initialize(void) = 0;
+    virtual void                close(void) = 0;
+  };
+
   struct LXIMEDIACENTER_PUBLIC HttpRequestInfo
   {
-    QByteArray                host;
-    QByteArray                userAgent;
-    QByteArray                sourceAddress;
+    QByteArray                  host;
+    QByteArray                  userAgent;
+    QByteArray                  sourceAddress;
   };
 
   struct LXIMEDIACENTER_PUBLIC HttpCallback
@@ -54,8 +60,8 @@ public:
 
   static QString                hostname();
 
-  int                           addRootDevice(RootDevice *);
-  void                          removeRootDevice(RootDevice *);
+  void                          addChild(Child *);
+  void                          removeChild(Child *);
 
   QByteArray                    httpBaseDir() const;
 
