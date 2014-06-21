@@ -144,7 +144,7 @@ const char Backend::htmlSettingsMain[] =
     "     </td></tr><tr><td>\n"
     "      <input type=\"checkbox\" name=\"allowshutdown\" value=\"on\" {ALLOWSHUTDOWN} />{TR_ALLOW_SHUTDOWN}\n"
     "     </td></tr><tr><td>\n"
-    "      <input type=\"checkbox\" name=\"publishdummy\" value=\"on\" {PUBLISHDUMMY} />{TR_PUBLISH_DUMMY}\n"
+    "      <input type=\"checkbox\" name=\"republishrootdevice\" value=\"on\" {REPUBLISHROOTDEVICE} />{TR_REPUBLISH_ROOTDEVICE}\n"
     "     </td></tr>\n"
     "    </table>\n"
     "    <br />\n"
@@ -539,9 +539,9 @@ QByteArray Backend::handleHtmlSettings(const QUrl &request)
   htmlParser.setField("TR_BIND_ALL_NETWORKS", tr("Bind all networks"));
   htmlParser.setField("TR_ALLOW_SHUTDOWN", tr("Allow shutting down the computer remotely"));
 
-  htmlParser.setField("TR_PUBLISH_DUMMY",
-    tr("Regularly publish a dummy device (\"~\") to force all clients to update "
-       "their device list"));
+  htmlParser.setField("TR_REPUBLISH_ROOTDEVICE",
+    tr("Regularly reinitialize the server while inactive to force all clients "
+       "to update their device lists"));
 
   htmlParser.setField("TR_SERVER_EXPLAIN",
     tr("This configures the internal server. By default, the server only binds "
@@ -560,7 +560,7 @@ QByteArray Backend::handleHtmlSettings(const QUrl &request)
   htmlParser.setField("BINDALLNETWORKS", settings.value("BindAllNetworks", false).toBool() ? "checked=\"checked\"" : "");
   htmlParser.setField("DEVICENAME", settings.value("DeviceName", defaultDeviceName()).toString());
   htmlParser.setField("ALLOWSHUTDOWN", settings.value("AllowShutdown", true).toBool() ? "checked=\"checked\"" : "");
-  htmlParser.setField("PUBLISHDUMMY", settings.value("PublishDummy", true).toBool() ? "checked=\"checked\"" : "");
+  htmlParser.setField("REPUBLISHROOTDEVICE", settings.value("RepublishRootDevice", true).toBool() ? "checked=\"checked\"" : "");
 
   htmlParser.setField("TR_LOCALIZATION", tr("Localization"));
   htmlParser.setField("TR_DEFAULT_CODEPAGE", tr("Default codepage"));
@@ -961,10 +961,10 @@ void Backend::saveHtmlSettings(const QUrl &request)
     else
       settings.setValue("AllowShutdown", false);
 
-    if (query.queryItemValue("publishdummy") == "on")
-      settings.remove("PublishDummy");
+    if (query.queryItemValue("republishrootdevice") == "on")
+      settings.remove("RepublishRootDevice");
     else
-      settings.setValue("PublishDummy", false);
+      settings.setValue("RepublishRootDevice", false);
 
     reset();
   }

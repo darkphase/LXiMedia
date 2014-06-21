@@ -108,24 +108,21 @@ void Frontend::deviceDiscovered(const QByteArray &, const QByteArray &location)
   Client::DeviceDescription description;
   if (upnpClient.getDeviceDescription(location, description))
   {
-    if (description.friendlyName != "~")
-    {
-      QMap<QByteArray, Client::DeviceDescription>::Iterator device = devices.find(description.udn);
-      if (device == devices.end())
-        device = devices.insert(description.udn, description);
-      else
-        *device = description;
+    QMap<QByteArray, Client::DeviceDescription>::Iterator device = devices.find(description.udn);
+    if (device == devices.end())
+      device = devices.insert(description.udn, description);
+    else
+      *device = description;
 
-      if (waitingForWelcome &&
-          (description.modelName == qApp->applicationName()) &&
-          upnp.isMyAddress(description.presentationURL.host().toLatin1()))
-      {
-        waitingForWelcome = false;
-        setUrl(device->presentationURL);
-      }
-      else
-        frontendPageTimer.start(250);
+    if (waitingForWelcome &&
+        (description.modelName == qApp->applicationName()) &&
+        upnp.isMyAddress(description.presentationURL.host().toLatin1()))
+    {
+      waitingForWelcome = false;
+      setUrl(device->presentationURL);
     }
+    else
+      frontendPageTimer.start(250);
   }
 }
 

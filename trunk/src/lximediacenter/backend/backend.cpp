@@ -19,6 +19,8 @@
 #include "setup.h"
 #include <iostream>
 
+const int Backend::upnpRepublishTimout = 15000;
+
 Backend::Backend()
   : BackendServer::MasterServer(),
     upnp(this),
@@ -26,7 +28,7 @@ Backend::Backend()
     upnpConnectionManager(&upnpRootDevice),
     upnpContentDirectory(&upnpRootDevice, &upnpConnectionManager),
     upnpMediaReceiverRegistrar(&upnpRootDevice),
-    upnpDummy(NULL),
+    upnpRepublishRequired(false),
     sandboxApplication("\"" + qApp->applicationFilePath() + "\" --sandbox"),
     cssParser(),
     htmlParser(),
@@ -47,18 +49,20 @@ Backend::Backend()
   // Open device configuration
   MediaServer::mediaProfiles().openDeviceConfig(":/devices.ini");
 
+  connect(&upnpRootDevice, SIGNAL(handledEvent()), SLOT(handledEvent()));
   connect(&upnpConnectionManager, SIGNAL(numConnectionsChanged(int)), SLOT(numConnectionsChanged(int)));
+
+  connect(&upnpRepublishTimer, SIGNAL(timeout()), SLOT(republishRootDevice()));
+  upnpRepublishTimer.setTimerType(Qt::VeryCoarseTimer);
+  upnpRepublishTimer.setSingleShot(true);
 }
 
 Backend::~Backend()
 {
   qDebug() << "LXiMediaCenter backend stopping.";
 
-  if (upnpDummy)
-  {
-    stopUpnpDummyDevice();
-    upnpDummy->timer.stop();
-  }
+  upnpRepublishTimer.stop();
+  upnpRepublishRequired = false;
 
   upnp.close();
 
@@ -67,8 +71,6 @@ Backend::~Backend()
     server->close();
     delete server;
   }
-
-  delete upnpDummy;
 
   QThreadPool::globalInstance()->waitForDone();
 
@@ -79,9 +81,6 @@ void Backend::start(void)
 {
   QSettings settings;
 
-  if (settings.value("PublishDummy", true).toBool())
-    setupUpnpDummyDevice();
-
   upnp.registerHttpCallback("/", this);
   upnp.registerHttpCallback("/css", this);
   upnp.registerHttpCallback("/img", this);
@@ -91,6 +90,10 @@ void Backend::start(void)
   upnp.initialize(
         settings.value("HttpPort", defaultPort).toInt(),
         settings.value("BindAllNetworks", false).toBool());
+
+  upnpRepublishRequired = settings.value("RepublishRootDevice", true).toBool();
+  if (upnpRepublishRequired)
+    upnpRepublishTimer.start(upnpRepublishTimout * 2);
 
   upnpRootDevice.setDeviceName(settings.value("DeviceName", defaultDeviceName()).toString());
   upnpRootDevice.addIcon("lximedia.png");
@@ -141,23 +144,17 @@ void Backend::resetUpnpRootDevice(void)
 {
   QSettings settings;
 
-  if (upnpDummy)
-  {
-    stopUpnpDummyDevice();
-    upnpDummy->timer.stop();
-  }
+  upnpRepublishTimer.stop();
+  upnpRepublishRequired = false;
 
   upnp.close();
-
-  delete upnpDummy;
-  upnpDummy = NULL;
-
-  if (settings.value("PublishDummy", true).toBool())
-    setupUpnpDummyDevice();
-
   upnp.initialize(
         settings.value("HttpPort", defaultPort).toInt(),
         settings.value("BindAllNetworks", false).toBool());
+
+  upnpRepublishRequired = settings.value("RepublishRootDevice", true).toBool();
+  if (upnpRepublishRequired)
+    upnpRepublishTimer.start(upnpRepublishTimout * 2);
 
   htmlParser.clear();
   htmlParser.setField("_PRODUCT", qApp->applicationName());
@@ -171,119 +168,34 @@ void Backend::performExit(void)
 }
 #endif
 
-void Backend::setupUpnpDummyDevice(void)
+void Backend::republishRootDevice(void)
 {
-  upnpDummy = new UpnpDummy(&upnp);
-
-  // This only needs to be initialized temporarily.
-  upnp.removeChild(&upnpDummy->rootDevice);
-
-  upnpDummy->rootDevice.setDeviceName("~");
-
-  connect(&upnpDummy->client, SIGNAL(deviceDiscovered(QByteArray,QByteArray)), SLOT(deviceDiscovered(QByteArray)));
-  connect(&upnpDummy->client, SIGNAL(deviceClosed(QByteArray)), SLOT(deviceClosed(QByteArray)));
-
-  connect(&upnpDummy->rootDevice, SIGNAL(handledEvent(QByteArray)), SLOT(handledEvent(QByteArray)));
-
-  connect(&upnpDummy->timer, SIGNAL(timeout()), SLOT(startUpnpDummyDevice()));
-  upnpDummy->timer.setTimerType(Qt::VeryCoarseTimer);
-  upnpDummy->timer.setSingleShot(true);
-
-  connect(&upnpDummy->cleanupTimer, SIGNAL(timeout()), SLOT(stopUpnpDummyDevice()));
-  upnpDummy->cleanupTimer.setTimerType(Qt::VeryCoarseTimer);
-  upnpDummy->cleanupTimer.setSingleShot(true);
-
-  upnpDummy->timer.start(upnpDummy->timeout * 2);
-}
-
-void Backend::startUpnpDummyDevice(void)
-{
-  if (upnpDummy)
+  if (upnpRepublishRequired)
   {
-    if (!upnpDummy->initialized && (upnpDummy->numConnections == 0))
-    {
-      upnp.addChild(&upnpDummy->rootDevice);
-      upnpDummy->rootDevice.initialize();
+    upnp.removeChild(&upnpRootDevice);
+    upnpRootDevice.close();
 
-      connect(&upnpDummy->rootDevice, SIGNAL(handledEvent(QByteArray)), SLOT(handledDummyEvent()));
-      upnpDummy->cleanupTimer.start(upnpDummy->timeout / 2);
+    upnpRootDevice.initialize();
+    upnp.addChild(&upnpRootDevice);
 
-      upnpDummy->initialized = true;
-    }
+    upnpRepublishTimer.start(upnpRepublishTimout);
   }
 }
 
-void Backend::stopUpnpDummyDevice(void)
+void Backend::handledEvent(void)
 {
-  if (upnpDummy)
-  {
-    upnpDummy->timer.stop();
-    upnpDummy->cleanupTimer.stop();
-
-    if (upnpDummy->initialized)
-    {
-      upnpDummy->rootDevice.close();
-      upnp.removeChild(&upnpDummy->rootDevice);
-
-      upnpDummy->initialized = false;
-    }
-
-    if (upnpDummy->numConnections == 0)
-      upnpDummy->timer.start(upnpDummy->timeout);
-  }
-}
-
-void Backend::deviceDiscovered(const QByteArray &deviceId)
-{
-  if (upnpDummy)
-  {
-    if ((deviceId != upnpRootDevice.udn()) && (deviceId != upnpDummy->rootDevice.udn()))
-    {
-      if (!upnpDummy->discoveredDevices.contains(deviceId))
-      {
-        if (upnpDummy->timer.isActive())
-          upnpDummy->timer.start(upnpDummy->timeout * 2);
-
-        upnpDummy->discoveredDevices.insert(deviceId);
-      }
-    }
-  }
-}
-
-void Backend::deviceClosed(const QByteArray &deviceId)
-{
-  if (upnpDummy)
-    upnpDummy->discoveredDevices.remove(deviceId);
-}
-
-void Backend::handledEvent(const QByteArray &)
-{
-  if (upnpDummy)
-  {
-    if (upnpDummy->timer.isActive())
-      upnpDummy->timer.start(upnpDummy->timeout * 4);
-  }
-}
-
-void Backend::handledDummyEvent()
-{
-  if (upnpDummy)
-  {
-    if (upnpDummy->cleanupTimer.isActive())
-      upnpDummy->cleanupTimer.start(upnpDummy->timeout / 2);
-  }
+  if (upnpRepublishRequired && upnpRepublishTimer.isActive())
+    upnpRepublishTimer.start(upnpRepublishTimout * 8);
 }
 
 void Backend::numConnectionsChanged(int numConnections)
 {
-  if (upnpDummy)
+  if (upnpRepublishRequired)
   {
-    if ((upnpDummy->numConnections == 0) && (numConnections > 0))
-      upnpDummy->timer.stop();
-    else if ((upnpDummy->numConnections > 0) && (numConnections == 0))
-      upnpDummy->timer.start(upnpDummy->timeout * 2);
-
-    upnpDummy->numConnections = numConnections;
+    if (numConnections > 0)
+      upnpRepublishTimer.stop();
+    else if (numConnections == 0)
+      upnpRepublishTimer.start(upnpRepublishTimout * 4);
   }
 }
 
@@ -360,14 +272,4 @@ HttpStatus Backend::sendFile(const QUrl &request, const QString &fileName, QByte
 
   response = new QFile(fileName);
   return HttpStatus_Ok;
-}
-
-Backend::UpnpDummy::UpnpDummy(UPnP *upnp)
-  : client(upnp),
-    rootDevice(upnp, QUuid::createUuid(), "urn:schemas-upnp-org:device:MediaServer:1", false, 120),
-    connectionManager(&rootDevice),
-    contentDirectory(&rootDevice, &connectionManager),
-    initialized(false),
-    numConnections(0)
-{
 }
