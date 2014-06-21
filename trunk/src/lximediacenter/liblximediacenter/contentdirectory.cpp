@@ -133,13 +133,13 @@ void ContentDirectory::handleAction(const UPnP::HttpRequestInfo &requestInfo, Ac
           case Item::Type_AudioBroadcast:
           case Item::Type_Video:
           case Item::Type_VideoBroadcast:
-            addFile(action, requestInfo.host, item, item.path, item.played ? ('*' + item.title) : item.title);
+            addFile(action, requestInfo.host, item, item.path, (item.lastPosition >= 0) ? ('*' + item.title) : item.title);
             break;
 
           case Item::Type_Audio:
           case Item::Type_AudioBook:
           case Item::Type_Movie:
-            addContainer(action, Item::Type(item.type), item.path, item.played ? ('*' + item.title) : item.title);
+            addContainer(action, Item::Type(item.type), item.path, (item.lastPosition >= 0) ? ('*' + item.title) : item.title);
             break;
           }
         }
@@ -490,6 +490,12 @@ QStringList ContentDirectory::playSeekItems(const Item &item)
 
   result += ("p#" + tr("Play"));
 
+  if ((item.lastPosition > 0) && (item.lastPosition < (int(item.duration) - 120)))
+  {
+    const QString title = tr("Resume from") + " " + QTime(0, 0).addSecs(item.lastPosition).toString("h:mm");
+    result += ("p&position=" + QString::number(item.lastPosition) + "#" + title);
+  }
+
   if (item.chapters.count() > 1)
     result += ("c#" + tr("Chapters"));
 
@@ -505,9 +511,8 @@ QStringList ContentDirectory::seekItems(const Item &item)
 
   for (unsigned i=0; i<item.duration; i+=seekSec)
   {
-    QString title = tr("Play from") + " " + QTime(0, 0).addSecs(i).toString("h:mm");
-
-    result += ("p&position=" + QString::number(i) + "#" + title);
+    const QString title = tr("Play from") + " " + QTime(0, 0).addSecs(i).toString("h:mm");
+    result += ("p&position=" + QString::number(i) + "#" + ((item.lastPosition > int(i)) ? ('*' + title) : title));
   }
 
   return result;
@@ -680,7 +685,7 @@ QUrl ContentDirectory::fromObjectURL(const QUrl &url)
 
 
 ContentDirectory::Item::Item(void)
-  : isDir(false), played(false), type(Type_None), track(0), duration(0)
+  : isDir(false), type(Type_None), track(0), duration(0), lastPosition(-1)
 {
 }
 

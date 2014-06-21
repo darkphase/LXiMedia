@@ -43,6 +43,7 @@ MediaServer::MediaServer(QObject *parent)
   d->masterServer = NULL;
 
   connect(&d->cleanStreamsTimer, SIGNAL(timeout()), SLOT(cleanStreams()));
+  d->cleanStreamsTimer.setTimerType(Qt::VeryCoarseTimer);
 }
 
 MediaServer::~MediaServer()
@@ -319,7 +320,7 @@ HttpStatus MediaServer::httpRequest(const QUrl &request, const UPnP::HttpRequest
             thumbItem.text += tr("Duration") + ": " + QTime(0, 0, 0).addSecs(item.duration).toString("h:mm:ss");
 
           thumbItem.iconurl = item.iconUrl;
-          thumbItem.played = item.played;
+          thumbItem.played = item.lastPosition >= 0;
           thumbItem.url = item.url;
           if (!thumbItem.url.isEmpty() && funcs.isEmpty())
           {
@@ -328,7 +329,7 @@ HttpStatus MediaServer::httpRequest(const QUrl &request, const UPnP::HttpRequest
             thumbItem.url.setQuery(q);
           }
 
-          if (item.played)
+          if (thumbItem.played)
           {
             QUrlQuery q(thumbItem.iconurl);
             q.removeQueryItem("overlay");

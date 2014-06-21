@@ -94,10 +94,10 @@ public:
   SMediaInfo                    readNodeFormat(const QUrl &filePath) const;
   SMediaInfo                    readNodeContent(const QUrl &filePath) const;
   SImage                        readThumbnail(const QUrl &filePath, const QSize &maxSize) const;
-  QImage readImage(const QUrl &filePath, const QSize &maxSize, const QColor &backgroundColor) const;
+  QImage                        readImage(const QUrl &filePath, const QSize &maxSize, const QColor &backgroundColor) const;
 
-  void                          setLastPlayed(const QUrl &filePath, const QDateTime & = QDateTime::currentDateTime());
-  QPair<QDateTime, int>         lastPlayed(const QUrl &filePath) const;
+  void                          setLastPlaybackPosition(const QUrl &filePath, int position);
+  int                           getLastPlaybackPosition(const QUrl &filePath) const;
 
   bool                          isEmpty(const QUrl &dirPath) const;
   SMediaInfoList                listItems(const QUrl &dirPath, int start, int &count) const;

@@ -195,7 +195,11 @@ MediaStream * MediaPlayerServer::streamVideo(const QUrl &request)
       FileStream * const stream = new FileStream(filePath.url);
       if (stream->setup(request))
       if (stream->start())
+      {
+        connect(stream, SIGNAL(playbackProgress(QUrl,int)), SLOT(updatePlaybackProgress(QUrl,int)));
+
         return stream;
+      }
 
       delete stream;
     }
@@ -601,7 +605,6 @@ MediaPlayerServer::Item MediaPlayerServer::makeItem(DirType dirType, const SMedi
 
       if (item.type != Item::Type_None)
       {
-        item.played = mediaDatabase->lastPlayed(node.filePath()).first.isValid();
         item.url = item.path;
         item.iconUrl = item.url;
         QUrlQuery q(item.iconUrl);
@@ -614,6 +617,8 @@ MediaPlayerServer::Item MediaPlayerServer::makeItem(DirType dirType, const SMedi
         item.artist = node.metadata("author").toString();
         item.album = node.metadata("album").toString();
         item.track = node.metadata("track").toInt();
+
+        item.lastPosition = mediaDatabase->getLastPlaybackPosition(node.filePath());
       }
       else
       {
@@ -726,10 +731,17 @@ MediaPlayerServer::DirType MediaPlayerServer::dirType(const QString &virtualPath
   return SMediaInfo::ProbeInfo::FileType_None;
 }
 
+void MediaPlayerServer::updatePlaybackProgress(const QUrl &filePath, int position)
+{
+  mediaDatabase->setLastPlaybackPosition(filePath, qMax(0, ((position - 29) / 60) * 60));
+}
+
 
 FileStream::FileStream(const QUrl &filePath)
   : MediaTranscodeStream(),
-    file(this, filePath)
+    file(this, filePath),
+    filePath(filePath),
+    lastPosition(0)
 {
   connect(&file, SIGNAL(finished()), SLOT(stop()));
 
@@ -737,8 +749,9 @@ FileStream::FileStream(const QUrl &filePath)
   connect(&file, SIGNAL(output(SEncodedVideoBuffer)), &videoDecoder, SLOT(input(SEncodedVideoBuffer)));
   connect(&file, SIGNAL(output(SEncodedDataBuffer)), &dataDecoder, SLOT(input(SEncodedDataBuffer)));
 
-  // Mark as played:
-  MediaDatabase::createInstance()->setLastPlayed(filePath);
+  connect(&playbackProgressTimer, SIGNAL(timeout()), SLOT(updatePlaybackProgress()));
+  playbackProgressTimer.setInterval(30000);
+  playbackProgressTimer.setTimerType(Qt::VeryCoarseTimer);
 }
 
 FileStream::~FileStream()
@@ -750,6 +763,35 @@ FileStream::~FileStream()
 bool FileStream::setup(const QUrl &request)
 {
   return MediaTranscodeStream::setup(request, &file);
+}
+
+bool FileStream::start(void)
+{
+  if (MediaTranscodeStream::start())
+  {
+    playbackProgressTimer.start();
+    return true;
+  }
+
+  return false;
+}
+
+void FileStream::stop(void)
+{
+  playbackProgressTimer.stop();
+
+  MediaTranscodeStream::stop();
+}
+
+void FileStream::updatePlaybackProgress(void)
+{
+  const int position = file.position().toSec();
+  if (position != lastPosition)
+  {
+    emit playbackProgress(filePath, position);
+
+    lastPosition = position;
+  }
 }
 
 
@@ -788,9 +830,6 @@ bool PlaylistStream::setup(const QUrl &request)
 
 void PlaylistStream::opened(const QUrl &filePath)
 {
-  // Mark as played:
-  MediaDatabase::createInstance()->setLastPlayed(filePath);
-
   currentFile = filePath;
 }
 
