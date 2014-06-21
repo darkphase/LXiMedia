@@ -46,6 +46,8 @@ Backend::Backend()
 
   // Open device configuration
   MediaServer::mediaProfiles().openDeviceConfig(":/devices.ini");
+
+  connect(&upnpConnectionManager, SIGNAL(numConnectionsChanged(int)), SLOT(numConnectionsChanged(int)));
 }
 
 Backend::~Backend()
@@ -198,7 +200,7 @@ void Backend::startUpnpDummyDevice(void)
 {
   if (upnpDummy)
   {
-    if (!upnpDummy->initialized)
+    if (!upnpDummy->initialized && (upnpDummy->numConnections == 0))
     {
       upnp.addChild(&upnpDummy->rootDevice);
       upnpDummy->rootDevice.initialize();
@@ -216,7 +218,7 @@ void Backend::stopUpnpDummyDevice(void)
   if (upnpDummy)
   {
     upnpDummy->timer.stop();
-    upnpDummy->timer.stop();
+    upnpDummy->cleanupTimer.stop();
 
     if (upnpDummy->initialized)
     {
@@ -226,7 +228,8 @@ void Backend::stopUpnpDummyDevice(void)
       upnpDummy->initialized = false;
     }
 
-    upnpDummy->timer.start(upnpDummy->timeout);
+    if (upnpDummy->numConnections == 0)
+      upnpDummy->timer.start(upnpDummy->timeout);
   }
 }
 
@@ -268,6 +271,19 @@ void Backend::handledDummyEvent()
   {
     if (upnpDummy->cleanupTimer.isActive())
       upnpDummy->cleanupTimer.start(upnpDummy->timeout / 2);
+  }
+}
+
+void Backend::numConnectionsChanged(int numConnections)
+{
+  if (upnpDummy)
+  {
+    if ((upnpDummy->numConnections == 0) && (numConnections > 0))
+      upnpDummy->timer.stop();
+    else if ((upnpDummy->numConnections > 0) && (numConnections == 0))
+      upnpDummy->timer.start(upnpDummy->timeout * 2);
+
+    upnpDummy->numConnections = numConnections;
   }
 }
 
@@ -351,6 +367,7 @@ Backend::UpnpDummy::UpnpDummy(UPnP *upnp)
     rootDevice(upnp, QUuid::createUuid(), "urn:schemas-upnp-org:device:MediaServer:1", false, 120),
     connectionManager(&rootDevice),
     contentDirectory(&rootDevice, &connectionManager),
-    initialized(false)
+    initialized(false),
+    numConnections(0)
 {
 }

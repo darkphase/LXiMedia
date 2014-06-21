@@ -74,6 +74,7 @@ private slots:
   void                          deviceClosed(const QByteArray &);
   void                          handledEvent(const QByteArray &);
   void                          handledDummyEvent();
+  void                          numConnectionsChanged(int);
 
 private:
   static QUuid                  serverUuid(void);
@@ -104,6 +105,7 @@ private:
     static const int            timeout = 15000;
     QTimer                      timer;
     QTimer                      cleanupTimer;
+    int                         numConnections;
   }                           * upnpDummy;
 
   const QString                 sandboxApplication;
