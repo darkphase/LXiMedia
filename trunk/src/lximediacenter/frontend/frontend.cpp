@@ -47,7 +47,6 @@ Frontend::Frontend()
   setPage(webPage);
 
   if (upnp.initialize(0))
-  if (upnpClient.initialize())
   {
     connect(&upnpClient, SIGNAL(deviceDiscovered(QByteArray,QByteArray)), SLOT(deviceDiscovered(QByteArray,QByteArray)));
     connect(&upnpClient, SIGNAL(deviceClosed(QByteArray)), SLOT(deviceClosed(QByteArray)));
@@ -63,7 +62,6 @@ Frontend::Frontend()
 
 Frontend::~Frontend()
 {
-  upnpClient.close();
   upnp.close();
 }
 

@@ -67,10 +67,13 @@ private slots:
 #if !defined(QT_NO_DEBUG) || defined(Q_OS_MACX)
   void                          performExit(void);
 #endif
-  void                          handledEvent(const QByteArray &);
-  void                          handledDummyEvent();
+  void                          setupUpnpDummyDevice(void);
   void                          startUpnpDummyDevice(void);
   void                          stopUpnpDummyDevice(void);
+  void                          deviceDiscovered(const QByteArray &);
+  void                          deviceClosed(const QByteArray &);
+  void                          handledEvent(const QByteArray &);
+  void                          handledDummyEvent();
 
 private:
   static QUuid                  serverUuid(void);
@@ -88,12 +91,20 @@ private:
   ConnectionManager             upnpConnectionManager;
   ContentDirectory              upnpContentDirectory;
   MediaReceiverRegistrar        upnpMediaReceiverRegistrar;
-  RootDevice                    upnpDummyRootDevice;
-  ConnectionManager             upnpDummyConnectionManager;
-  ContentDirectory              upnpDummyContentDirectory;
-  bool                          upnpDummyInitialized;
-  QTimer                        upnpDummyTimer;
-  QTimer                        upnpDummyCleanupTimer;
+
+  struct UpnpDummy
+  {
+    explicit                    UpnpDummy(UPnP *);
+    Client                      client;
+    QSet<QByteArray>            discoveredDevices;
+    RootDevice                  rootDevice;
+    ConnectionManager           connectionManager;
+    ContentDirectory            contentDirectory;
+    bool                        initialized;
+    static const int            timeout = 15000;
+    QTimer                      timer;
+    QTimer                      cleanupTimer;
+  }                           * upnpDummy;
 
   const QString                 sandboxApplication;
 

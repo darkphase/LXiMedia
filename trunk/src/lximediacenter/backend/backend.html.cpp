@@ -143,6 +143,8 @@ const char Backend::htmlSettingsMain[] =
     "      <input type=\"text\" size=\"40\" name=\"devicename\" value=\"{DEVICENAME}\" />\n"
     "     </td></tr><tr><td>\n"
     "      <input type=\"checkbox\" name=\"allowshutdown\" value=\"on\" {ALLOWSHUTDOWN} />{TR_ALLOW_SHUTDOWN}\n"
+    "     </td></tr><tr><td>\n"
+    "      <input type=\"checkbox\" name=\"publishdummy\" value=\"on\" {PUBLISHDUMMY} />{TR_PUBLISH_DUMMY}\n"
     "     </td></tr>\n"
     "    </table>\n"
     "    <br />\n"
@@ -537,6 +539,10 @@ QByteArray Backend::handleHtmlSettings(const QUrl &request)
   htmlParser.setField("TR_BIND_ALL_NETWORKS", tr("Bind all networks"));
   htmlParser.setField("TR_ALLOW_SHUTDOWN", tr("Allow shutting down the computer remotely"));
 
+  htmlParser.setField("TR_PUBLISH_DUMMY",
+    tr("Regularly publish a dummy device (\"~\") to force all clients to update "
+       "their device list"));
+
   htmlParser.setField("TR_SERVER_EXPLAIN",
     tr("This configures the internal server. By default, the server only binds "
        "local/private networks (i.e. 10.0.0.0/8, 127.0.0.0/8, 169.254.0.0/16, "
@@ -554,6 +560,7 @@ QByteArray Backend::handleHtmlSettings(const QUrl &request)
   htmlParser.setField("BINDALLNETWORKS", settings.value("BindAllNetworks", false).toBool() ? "checked=\"checked\"" : "");
   htmlParser.setField("DEVICENAME", settings.value("DeviceName", defaultDeviceName()).toString());
   htmlParser.setField("ALLOWSHUTDOWN", settings.value("AllowShutdown", true).toBool() ? "checked=\"checked\"" : "");
+  htmlParser.setField("PUBLISHDUMMY", settings.value("PublishDummy", true).toBool() ? "checked=\"checked\"" : "");
 
   htmlParser.setField("TR_LOCALIZATION", tr("Localization"));
   htmlParser.setField("TR_DEFAULT_CODEPAGE", tr("Default codepage"));
@@ -950,9 +957,14 @@ void Backend::saveHtmlSettings(const QUrl &request)
       settings.setValue("DeviceName", deviceName);
 
     if (query.queryItemValue("allowshutdown") == "on")
-      settings.setValue("AllowShutdown", true);
-    else
       settings.remove("AllowShutdown");
+    else
+      settings.setValue("AllowShutdown", false);
+
+    if (query.queryItemValue("publishdummy") == "on")
+      settings.remove("PublishDummy");
+    else
+      settings.setValue("PublishDummy", false);
 
     reset();
   }

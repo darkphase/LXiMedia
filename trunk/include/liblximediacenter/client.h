@@ -24,7 +24,8 @@
 
 namespace LXiMediaCenter {
 
-class LXIMEDIACENTER_PUBLIC Client : public QObject
+class LXIMEDIACENTER_PUBLIC Client : public QObject,
+                                     public UPnP::Child
 {
 Q_OBJECT
 public:
@@ -45,7 +46,7 @@ public:
 
   UPnP                        * upnp();
 
-  virtual bool                  initialize();
+  virtual bool                  initialize(void);
   virtual void                  close(void);
 
   void                          startSearch(const QByteArray &target, int mx = 3);
