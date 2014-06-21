@@ -44,43 +44,37 @@ win32 {
   system(mkdir $${OUT_DIR} > NUL 2>&1)
 
   release {
-    system(copy /Y $$(QTDIR)\\bin\\Qt5Core.dll $${OUT_DIR} > NUL)
     system(copy /Y $$(QTDIR)\\bin\\Qt5Gui.dll $${OUT_DIR} > NUL)
     system(copy /Y $$(QTDIR)\\bin\\Qt5Multimedia.dll $${OUT_DIR} > NUL)
     system(copy /Y $$(QTDIR)\\bin\\Qt5MultimediaWidgets.dll $${OUT_DIR} > NUL)
     system(copy /Y $$(QTDIR)\\bin\\Qt5Network.dll $${OUT_DIR} > NUL)
     system(copy /Y $$(QTDIR)\\bin\\Qt5OpenGL.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\Qt5Positioning.dll $${OUT_DIR} > NUL)
     system(copy /Y $$(QTDIR)\\bin\\Qt5PrintSupport.dll $${OUT_DIR} > NUL)
     system(copy /Y $$(QTDIR)\\bin\\Qt5Qml.dll $${OUT_DIR} > NUL)
     system(copy /Y $$(QTDIR)\\bin\\Qt5Quick.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\Qt5Sensors.dll $${OUT_DIR} > NUL)
     system(copy /Y $$(QTDIR)\\bin\\Qt5Sql.dll $${OUT_DIR} > NUL)
     system(copy /Y $$(QTDIR)\\bin\\Qt5WebKit.dll $${OUT_DIR} > NUL)
     system(copy /Y $$(QTDIR)\\bin\\Qt5WebKitWidgets.dll $${OUT_DIR} > NUL)
     system(copy /Y $$(QTDIR)\\bin\\Qt5Widgets.dll $${OUT_DIR} > NUL)
-    system(copy /Y $$(QTDIR)\\bin\\Qt5Xml.dll $${OUT_DIR} > NUL)
-    system(copy /Y $$(QTDIR)\\bin\\libEGL.dll $${OUT_DIR} > NUL)
-    system(copy /Y $$(QTDIR)\\bin\\libGLESv2.dll $${OUT_DIR} > NUL)
   }
   debug {
-    system(copy /Y $$(QTDIR)\\bin\\Qt5Cored.dll $${OUT_DIR} > NUL)
     system(copy /Y $$(QTDIR)\\bin\\Qt5Guid.dll $${OUT_DIR} > NUL)
     system(copy /Y $$(QTDIR)\\bin\\Qt5Multimediad.dll $${OUT_DIR} > NUL)
     system(copy /Y $$(QTDIR)\\bin\\Qt5MultimediaWidgetsd.dll $${OUT_DIR} > NUL)
     system(copy /Y $$(QTDIR)\\bin\\Qt5Networkd.dll $${OUT_DIR} > NUL)
     system(copy /Y $$(QTDIR)\\bin\\Qt5OpenGLd.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\Qt5Positioningd.dll $${OUT_DIR} > NUL)
     system(copy /Y $$(QTDIR)\\bin\\Qt5PrintSupportd.dll $${OUT_DIR} > NUL)
     system(copy /Y $$(QTDIR)\\bin\\Qt5Qmld.dll $${OUT_DIR} > NUL)
     system(copy /Y $$(QTDIR)\\bin\\Qt5Quickd.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\Qt5Sensorsd.dll $${OUT_DIR} > NUL)
     system(copy /Y $$(QTDIR)\\bin\\Qt5Sqld.dll $${OUT_DIR} > NUL)
     system(copy /Y $$(QTDIR)\\bin\\Qt5WebKitd.dll $${OUT_DIR} > NUL)
     system(copy /Y $$(QTDIR)\\bin\\Qt5WebKitWidgetsd.dll $${OUT_DIR} > NUL)
     system(copy /Y $$(QTDIR)\\bin\\Qt5Widgetsd.dll $${OUT_DIR} > NUL)
-    system(copy /Y $$(QTDIR)\\bin\\Qt5Xmld.dll $${OUT_DIR} > NUL)
-    system(copy /Y $$(QTDIR)\\bin\\libEGLd.dll $${OUT_DIR} > NUL)
-    system(copy /Y $$(QTDIR)\\bin\\libGLESv2d.dll $${OUT_DIR} > NUL)
   }
-
-  system(copy /Y $$(QTDIR)\\bin\\D3DCompiler_43.dll $${OUT_DIR} > NUL)
 
   win32-msvc2005|win32-msvc2008|win32-msvc2010 {
     TEMPLATE = vcapp

@@ -49,20 +49,24 @@ win32 {
   OUT_DIR = $$replace(OUT_PWD,/,\\)\\$$replace(LXIMEDIA_DIR,/,\\)\\bin
 
   system(mkdir $${OUT_DIR} > NUL 2>&1)
+  system(mkdir $${OUT_DIR}\\platforms > NUL 2>&1)
+
   release {
     system(copy /Y $$(QTDIR)\\bin\\Qt5Core.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\plugins\\platforms\\qwindows.dll $${OUT_DIR}\\platforms > NUL)
   }
   debug {
     system(copy /Y $$(QTDIR)\\bin\\Qt5Cored.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\plugins\\platforms\\qwindowsd.dll $${OUT_DIR}\\platforms > NUL)
   }
 
   win32-g++ {
-    system(copy /Y $$(QTDIR)\\bin\\libgcc_s_sjlj-1.dll $${OUT_DIR} > NUL)
-    system(copy /Y $$(QTDIR)\\bin\\libstdc??-6.dll $${OUT_DIR} > NUL)
-    system(copy /Y $$(QTDIR)\\bin\\libwinpthread-1.dll $${OUT_DIR} > NUL)
-    system(copy /Y $$(QTDIR)\\bin\\icuin49.dll $${OUT_DIR} > NUL)
-    system(copy /Y $$(QTDIR)\\bin\\icuuc49.dll $${OUT_DIR} > NUL)
-    system(copy /Y $$(QTDIR)\\bin\\icudt49.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\libgcc_s_*.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\libstdc*.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\libwinpthread*.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\icudt*.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\icuin*.dll $${OUT_DIR} > NUL)
+    system(copy /Y $$(QTDIR)\\bin\\icuuc*.dll $${OUT_DIR} > NUL)
   }
   win32-msvc2005|win32-msvc2008|win32-msvc2010 {
     TEMPLATE = vclib

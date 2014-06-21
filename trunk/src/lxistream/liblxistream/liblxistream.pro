@@ -179,14 +179,6 @@ unix {
 win32 {
   OUT_DIR = $$replace(OUT_PWD,/,\\)\\$$replace(LXIMEDIA_DIR,/,\\)\\bin
 
-  system(mkdir $${OUT_DIR} > NUL 2>&1)
-  release {
-    system(copy /Y $$(QTDIR)\\bin\\Qt5Concurrent.dll $${OUT_DIR} > NUL)
-  }
-  debug {
-    system(copy /Y $$(QTDIR)\\bin\\Qt5Concurrentd.dll $${OUT_DIR} > NUL)
-  }
-
   win32-msvc2005|win32-msvc2008|win32-msvc2010 {
     TEMPLATE = vclib
     GUID = 3f2e4bd8-734b-11e0-be72-a39b83acd183
