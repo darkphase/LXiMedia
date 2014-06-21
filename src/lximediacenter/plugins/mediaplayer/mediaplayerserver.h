@@ -88,6 +88,9 @@ private:
   Item                          makePlayAllItem(const QString &virtualPath);
   DirType                       dirType(const QString &virtualPath);
 
+private slots:
+  void                          updatePlaybackProgress(const QUrl &filePath, int position);
+
 private:
   void                          generateDirs(SStringParser &, const QList<QUrl> &, int, const QStringList &, const QList<RootPath> &);
   void                          scanDrives(void);
@@ -121,13 +124,27 @@ class FileStream : public MediaTranscodeStream
 {
 Q_OBJECT
 public:
-  explicit                      FileStream(const QUrl &fileName);
+  explicit                      FileStream(const QUrl &filePath);
   virtual                       ~FileStream();
 
   bool                          setup(const QUrl &);
 
+  virtual bool                  start(void);
+  virtual void                  stop(void);
+
+signals:
+  void                          playbackProgress(const QUrl &filePath, int position);
+
+private slots:
+  void                          updatePlaybackProgress(void);
+
 public:
   SFileInputNode                file;
+
+private:
+  const QUrl                    filePath;
+  QTimer                        playbackProgressTimer;
+  int                           lastPosition;
 };
 
 class PlaylistStream : public MediaTranscodeStream

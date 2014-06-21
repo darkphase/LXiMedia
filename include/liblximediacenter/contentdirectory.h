@@ -79,7 +79,6 @@ public:
     bool                        isMusic(void) const;
 
     bool                        isDir;
-    bool                        played;
     quint8                      type;
     QUrl                        url;
     QUrl                        iconUrl;
@@ -90,7 +89,8 @@ public:
     QString                     album;
     int                         track;
 
-    unsigned                    duration; //!< In seconds
+    unsigned                    duration; //!< In seconds.
+    int                         lastPosition; //!< In seconds, -1 = unknown.
 
     QList<Stream>               streams;
     QList<Chapter>              chapters;

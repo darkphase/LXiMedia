@@ -227,53 +227,59 @@ QImage MediaDatabase::readImage(const QUrl &filePath, const QSize &size, const Q
   return QImage();
 }
 
-void MediaDatabase::setLastPlayed(const QUrl &filePath, const QDateTime &lastPlayed)
+void MediaDatabase::setLastPlaybackPosition(const QUrl &filePath, int position)
 {
   if (!filePath.isEmpty())
   {
     QSettings settings(lastPlayedFileName, QSettings::IniFormat);
-    settings.beginGroup("LastPlayed");
 
-    // Remove obsolete items.
-    foreach (const QString &key, settings.childKeys())
-    if (key.length() != 40)
-      settings.remove(key);
+    // Upgrade old items.
+    {
+      QStringList oldKeys;
+      settings.beginGroup("LastPlayed");
+        foreach (const QString &key, settings.childKeys())
+        {
+          settings.remove(key);
+          if (key.length() == 40)
+            oldKeys += key;
+        }
+      settings.endGroup();
+
+      if (!oldKeys.isEmpty())
+      {
+        settings.beginGroup("LastPlaybackPosition");
+        foreach (const QString &key, oldKeys)
+          settings.setValue(key, 99999);
+        settings.endGroup();
+      }
+    }
 
     QCryptographicHash hash(QCryptographicHash::Sha1);
     hash.addData(filePath.toEncoded());
     const QString key = hash.result().toHex();
 
-    if (lastPlayed.isValid())
-    {
-      const int count =
-          settings.value(key).toString().split(',').last().toInt() + 1;
-
-      settings.setValue(
-          key,
-          lastPlayed.toString(Qt::ISODate) + ',' + QString::number(count));
-    }
-    else
-      settings.remove(key);
+    settings.beginGroup("LastPlaybackPosition");
+    settings.setValue(key, position);
+    settings.endGroup();
   }
 }
 
-QPair<QDateTime, int> MediaDatabase::lastPlayed(const QUrl &filePath) const
+int MediaDatabase::getLastPlaybackPosition(const QUrl &filePath) const
 {
   if (!filePath.isEmpty())
   {
     QSettings settings(lastPlayedFileName, QSettings::IniFormat);
-    settings.beginGroup("LastPlayed");
+    settings.beginGroup("LastPlaybackPosition");
 
     QCryptographicHash hash(QCryptographicHash::Sha1);
     hash.addData(filePath.toEncoded());
     const QString key = hash.result().toHex();
 
-    const QStringList value = settings.value(key).toString().split(',');
-    if (value.count() >= 2)
-      return qMakePair(QDateTime::fromString(value[0], Qt::ISODate), value[1].toInt());
+    if (settings.contains(key))
+      return settings.value(key).toInt();
   }
 
-  return qMakePair(QDateTime(), -1);
+  return -1;
 }
 
 bool MediaDatabase::isEmpty(const QUrl &dirPath) const
