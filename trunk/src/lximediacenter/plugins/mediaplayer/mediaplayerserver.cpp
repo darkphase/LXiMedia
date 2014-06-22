@@ -76,10 +76,14 @@ void MediaPlayerServer::initialize(MasterServer *masterServer)
 
   foreach (const QString &path, rootPaths.keys())
     mediaDatabase->isEmpty(realPath(serverPath() + path + '/').url);
+
+  connect(mediaDatabase, SIGNAL(itemChanged(QUrl)), SLOT(itemChanged(QUrl)));
 }
 
 void MediaPlayerServer::close(void)
 {
+  disconnect(mediaDatabase, SIGNAL(itemChanged(QUrl)), this, SLOT(itemChanged(QUrl)));
+
   MediaServer::close();
 }
 
@@ -731,6 +735,11 @@ MediaPlayerServer::DirType MediaPlayerServer::dirType(const QString &virtualPath
   return SMediaInfo::ProbeInfo::FileType_None;
 }
 
+void MediaPlayerServer::itemChanged(const QUrl &path)
+{
+  masterServer->contentDirectory()->updatePath(virtualPath(path));
+}
+
 void MediaPlayerServer::updatePlaybackProgress(const QUrl &filePath, int position)
 {
   mediaDatabase->setLastPlaybackPosition(filePath, position);
@@ -785,7 +794,7 @@ void FileStream::stop(void)
 
 void FileStream::updatePlaybackProgress(void)
 {
-  const int position = ((file.position().toSec() - 29) / 60) * 60;
+  const int position = ((file.position().toSec() - 29) / 15) * 15;
   if (position != lastPosition)
   {
     emit playbackProgress(filePath, position);

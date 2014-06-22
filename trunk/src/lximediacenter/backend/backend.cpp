@@ -49,7 +49,7 @@ Backend::Backend()
   // Open device configuration
   MediaServer::mediaProfiles().openDeviceConfig(":/devices.ini");
 
-  connect(&upnpRootDevice, SIGNAL(handledEvent()), SLOT(handledEvent()));
+  connect(&upnpRootDevice, SIGNAL(handledAction()), SLOT(handledAction()));
   connect(&upnpConnectionManager, SIGNAL(numConnectionsChanged(int)), SLOT(numConnectionsChanged(int)));
 
   connect(&upnpRepublishTimer, SIGNAL(timeout()), SLOT(republishRootDevice()));
@@ -182,7 +182,7 @@ void Backend::republishRootDevice(void)
   }
 }
 
-void Backend::handledEvent(void)
+void Backend::handledAction(void)
 {
   if (upnpRepublishRequired && upnpRepublishTimer.isActive())
     upnpRepublishTimer.start(upnpRepublishTimout * 8);

@@ -30,7 +30,10 @@ struct ContentDirectory::Data : ContentDirectory::Callback
 
   static const QEvent::Type     emitUpdateEventType;
 
+  QTimer                        updateTimer;
   quint32                       systemUpdateId;
+  QSet<QByteArray>              pendingContainerUpdates;
+  QMap<QByteArray, quint32>     containerUpdateIds;
   QMap<QString, Callback *>     callbacks;
 
   QVector<QByteArray>           objectIdList;
@@ -59,6 +62,11 @@ ContentDirectory::ContentDirectory(RootDevice *rootDevice, ConnectionManager *co
 
   d->httpBaseDir = rootDevice->httpBaseDir() + "condir/";
 
+  connect(&d->updateTimer, SIGNAL(timeout()), SLOT(processPendingUpdates()));
+  d->updateTimer.setTimerType(Qt::VeryCoarseTimer);
+  d->updateTimer.setSingleShot(true);
+  d->updateTimer.setInterval(2000);
+
   rootDevice->registerService(serviceId, this);
 }
 
@@ -84,9 +92,47 @@ void ContentDirectory::unregisterCallback(Callback *callback)
     i++;
 }
 
+void ContentDirectory::updateSystem()
+{
+  const quint32 updateId = QDateTime::currentDateTimeUtc().toTime_t();
+  if (updateId != d->systemUpdateId)
+  {
+    d->systemUpdateId = updateId;
+
+    qApp->postEvent(this, new QEvent(d->emitUpdateEventType), Qt::LowEventPriority);
+  }
+}
+
+void ContentDirectory::updatePath(const QString &path)
+{
+  const QByteArray objectId = toObjectID(path, false);
+  if (!objectId.isEmpty() && (objectId != "0") && (objectId != "-1"))
+  {
+    if (!d->pendingContainerUpdates.contains(objectId))
+    {
+      d->pendingContainerUpdates.insert(objectId);
+      d->updateTimer.start();
+    }
+  }
+}
+
+void ContentDirectory::processPendingUpdates(void)
+{
+  const quint32 updateId = QDateTime::currentDateTimeUtc().toTime_t();
+
+  foreach (const QByteArray &objectId, d->pendingContainerUpdates)
+    d->containerUpdateIds[objectId] = updateId;
+
+  if (!d->pendingContainerUpdates.isEmpty())
+    qApp->postEvent(this, new QEvent(d->emitUpdateEventType), Qt::LowEventPriority);
+
+  d->pendingContainerUpdates.clear();
+}
+
 void ContentDirectory::handleAction(const UPnP::HttpRequestInfo &requestInfo, ActionBrowse &action)
 {
-  const QString path = fromObjectID(action.getObjectID());
+  const QByteArray objectId = action.getObjectID();
+  const QString path = fromObjectID(objectId);
   const int start = action.getStartingIndex();
   const int count = action.getRequestedCount();
 
@@ -120,6 +166,14 @@ void ContentDirectory::handleAction(const UPnP::HttpRequestInfo &requestInfo, Ac
       {
         if (!item.isDir)
         {
+          QString title;
+          if (item.lastPosition > (item.duration - (item.duration / 20)))
+            title = '*' + item.title;
+          else if (item.lastPosition > 0)
+            title = '+' + item.title;
+          else
+            title = item.title;
+
           switch (item.type)
           {
           case Item::Type_None:
@@ -133,13 +187,13 @@ void ContentDirectory::handleAction(const UPnP::HttpRequestInfo &requestInfo, Ac
           case Item::Type_AudioBroadcast:
           case Item::Type_Video:
           case Item::Type_VideoBroadcast:
-            addFile(action, requestInfo.host, item, item.path, (item.lastPosition >= 0) ? ('*' + item.title) : item.title);
+            addFile(action, requestInfo.host, item, item.path, title);
             break;
 
           case Item::Type_Audio:
           case Item::Type_AudioBook:
           case Item::Type_Movie:
-            addContainer(action, Item::Type(item.type), item.path, (item.lastPosition >= 0) ? ('*' + item.title) : item.title);
+            addContainer(action, Item::Type(item.type), item.path, title);
             break;
           }
         }
@@ -194,7 +248,15 @@ void ContentDirectory::handleAction(const UPnP::HttpRequestInfo &requestInfo, Ac
     }
   }
 
-  action.setResponse(totalMatches, d->systemUpdateId);
+  quint32 updateId = d->systemUpdateId;
+  if (objectId != "0")
+  {
+    QMap<QByteArray, quint32>::ConstIterator containerUpdateId = d->containerUpdateIds.find(objectId);
+    if (containerUpdateId != d->containerUpdateIds.end())
+      updateId = *containerUpdateId;
+  }
+
+  action.setResponse(totalMatches, updateId);
 }
 
 void ContentDirectory::handleAction(const UPnP::HttpRequestInfo &, ActionSearch &action)
@@ -234,13 +296,21 @@ const char * ContentDirectory::serviceType(void)
 
 void ContentDirectory::initialize(void)
 {
-  d->systemUpdateId = 1;
+  quint32 updateId = QDateTime::currentDateTimeUtc().toTime_t();
+  if (updateId == d->systemUpdateId)
+    updateId++;
+
+  d->systemUpdateId = updateId;
 
   rootDevice->upnp()->registerHttpCallback(d->httpBaseDir, this);
 }
 
 void ContentDirectory::close(void)
 {
+  d->updateTimer.stop();
+  d->pendingContainerUpdates.clear();
+  d->containerUpdateIds.clear();
+
   d->objectIdList.clear();
   d->objectIdHash.clear();
   d->objectUrlList.clear();
@@ -303,12 +373,24 @@ void ContentDirectory::writeServiceDescription(RootDevice::ServiceDescription &d
   desc.addStateVariable("SearchCapabilities"       , "string", false );
   desc.addStateVariable("SortCapabilities"         , "string", false );
   desc.addStateVariable("SystemUpdateID"           , "ui4"   , true  );
+  desc.addStateVariable("ContainerUpdateIDs"       , "ui4"   , true  );
   desc.addStateVariable("TransferIDs"              , "string", true  );
 }
 
 void ContentDirectory::writeEventableStateVariables(RootDevice::EventablePropertySet &propset) const
 {
   propset.addProperty("SystemUpdateID", QString::number(d->systemUpdateId));
+
+  QString containerUpdateIDs;
+  for (QMap<QByteArray, quint32>::ConstIterator i = d->containerUpdateIds.begin();
+       i != d->containerUpdateIds.end();
+       i++)
+  {
+    containerUpdateIDs += i.key() + ',' + QString::number(i.value()) + ',';
+  }
+
+  propset.addProperty("ContainerUpdateIDs", containerUpdateIDs.left(qMax(0, containerUpdateIDs.length() - 1)));
+
   propset.addProperty("TransferIDs", "");
 }
 
@@ -512,7 +594,9 @@ QStringList ContentDirectory::seekItems(const Item &item)
   for (unsigned i=0; i<item.duration; i+=seekSec)
   {
     const QString title = tr("Play from") + " " + QTime(0, 0).addSecs(i).toString("h:mm");
-    result += ("p&position=" + QString::number(i) + "#" + ((item.lastPosition > int(i)) ? ('*' + title) : title));
+    result += (
+          "p&position=" + QString::number(i) +
+          "#" + ((item.lastPosition > int(i)) ? ('*' + title) : title));
   }
 
   return result;
@@ -523,13 +607,22 @@ QStringList ContentDirectory::chapterItems(const Item &item)
   QStringList result;
 
   int chapterNum = 1;
-  foreach (const Item::Chapter &chapter, item.chapters)
+  for (int i = 0; i < item.chapters.count(); i++)
   {
+    const Item::Chapter &chapter = item.chapters[i];
+
     QString title = tr("Chapter") + " " + QString::number(chapterNum++);
     if (!chapter.title.isEmpty())
       title += ", " + chapter.title;
 
-    result += ("p&position=" + QString::number(chapter.position) + "#" + title);
+    const bool seen =
+        ((i + 1) < item.chapters.count())
+        ? (item.lastPosition >= int(item.chapters[i + 1].position))
+        : (item.lastPosition > (item.duration - 60));
+
+    result += (
+          "p&position=" + QString::number(chapter.position) +
+          "#" + (seen ? ('*' + title) : title));
   }
 
   return result;
@@ -598,7 +691,7 @@ QString ContentDirectory::parentDir(const QString &dir)
   return QString::null;
 }
 
-QByteArray ContentDirectory::toObjectID(const QString &path)
+QByteArray ContentDirectory::toObjectID(const QString &path, bool create)
 {
   if (path == "/")
   {
@@ -614,12 +707,17 @@ QByteArray ContentDirectory::toObjectID(const QString &path)
     if (i != d->objectIdHash.end())
       return QByteArray::number(*i);
 
-    d->objectIdList.append(path.toUtf8());
-    d->objectIdList.last().squeeze();
-    d->objectIdHash.insert(d->objectIdList.last(), d->objectIdList.count() - 1);
+    if (create)
+    {
+      d->objectIdList.append(path.toUtf8());
+      d->objectIdList.last().squeeze();
+      d->objectIdHash.insert(d->objectIdList.last(), d->objectIdList.count() - 1);
 
-    return QByteArray::number(d->objectIdList.count() - 1);
+      return QByteArray::number(d->objectIdList.count() - 1);
+    }
   }
+
+  return QByteArray();
 }
 
 QString ContentDirectory::fromObjectID(const QByteArray &idStr)

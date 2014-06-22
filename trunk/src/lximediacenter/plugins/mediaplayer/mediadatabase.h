@@ -103,10 +103,14 @@ public:
   SMediaInfoList                listItems(const QUrl &dirPath, int start, int &count) const;
   SMediaInfoList                representativeItems(const QUrl &dirPath, int &count) const;
 
+signals:
+  void                          itemChanged(const QUrl &);
+
 protected:
   virtual void                  run();
 
 private slots:
+  void                          directoryChanged(const QString &);
   void                          flushCache(void) const;
 #ifdef MEDIADATABASE_USE_SANDBOX
   void                          startSandbox(void) const;
@@ -136,6 +140,8 @@ private:
 
   mutable QMutex                mutex;
 
+  mutable QFileSystemWatcher    fileSystemWatcher;
+
 #ifdef MEDIADATABASE_USE_SANDBOX
   mutable Sandbox             * sandbox;
   mutable QTimer                sandboxTimer;
@@ -155,6 +161,7 @@ private:
 
   mutable QMutex                itemCacheMutex;
   mutable QMap<QUrl, QPair<QStringList, QTime> > itemCache;
+  static const int              itemCacheTimeout;
 };
 
 } } // End of namespaces

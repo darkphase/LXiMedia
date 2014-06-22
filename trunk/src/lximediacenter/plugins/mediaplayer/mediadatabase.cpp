@@ -23,6 +23,7 @@ namespace LXiMediaCenter {
 namespace MediaPlayerBackend {
 
 MediaDatabase     * MediaDatabase::self = NULL;
+const int           MediaDatabase::itemCacheTimeout = 15000;
 
 MediaDatabase * MediaDatabase::createInstance()
 {
@@ -41,6 +42,7 @@ MediaDatabase::MediaDatabase(QObject *parent)
   : QThread(parent),
     lastPlayedFileName(lastPlayedFile()),
     mutex(QMutex::NonRecursive),
+    fileSystemWatcher(this),
 #ifdef MEDIADATABASE_USE_SANDBOX
     sandbox(NULL),
     sandboxTimer(this),
@@ -60,6 +62,8 @@ MediaDatabase::MediaDatabase(QObject *parent)
     qWarning() << "MediaDatabase could not open cache file";
 
   start(QThread::LowPriority);
+
+  connect(&fileSystemWatcher, SIGNAL(directoryChanged(QString)), SLOT(directoryChanged(QString)));
 
 #ifdef MEDIADATABASE_USE_SANDBOX
   connect(&sandboxTimer, SIGNAL(timeout()), SLOT(stopSandbox()));
@@ -261,6 +265,8 @@ void MediaDatabase::setLastPlaybackPosition(const QUrl &filePath, int position)
     settings.beginGroup("LastPlaybackPosition");
     settings.setValue(key, position);
     settings.endGroup();
+
+    emit itemChanged(filePath);
   }
 }
 
@@ -455,6 +461,23 @@ void MediaDatabase::preProbeItems(QList<QUrl> &paths, bool content)
 }
 #endif
 
+void MediaDatabase::directoryChanged(const QString &path)
+{
+  QUrl url;
+  url.setScheme("file");
+  url.setPath(path);
+
+  {
+    QMutexLocker l(&itemCacheMutex);
+
+    QMap<QUrl, QPair<QStringList, QTime> >::Iterator i = itemCache.find(url);
+    if (i != itemCache.end())
+      i->second.addSecs(-itemCacheTimeout * 2);
+  }
+
+  emit itemChanged(url);
+}
+
 void MediaDatabase::flushCache(void) const
 {
   if (cacheFile.isOpen())
@@ -495,7 +518,7 @@ QList<MediaDatabase::Info> MediaDatabase::listFiles(const QUrl &dirPath, int sta
 
     QMap<QUrl, QPair<QStringList, QTime> >::Iterator i = itemCache.find(dirPath);
     if ((i == itemCache.end()) ||
-        ((start == 0) && (count >= 0) && (qAbs(i->second.elapsed()) > 15000)))
+        ((start == 0) && (count >= 0) && (qAbs(i->second.elapsed()) > itemCacheTimeout)))
     {
       l.unlock();
 
@@ -516,6 +539,13 @@ QList<MediaDatabase::Info> MediaDatabase::listFiles(const QUrl &dirPath, int sta
       }
       else
         j++;
+
+      if (dirPath.scheme() == "file")
+      {
+        const QFileInfo info = dirPath.path();
+        if (info.exists())
+          fileSystemWatcher.addPath(info.absoluteFilePath());
+      }
 
       l.relock();
 

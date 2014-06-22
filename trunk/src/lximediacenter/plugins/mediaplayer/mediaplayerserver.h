@@ -89,6 +89,7 @@ private:
   DirType                       dirType(const QString &virtualPath);
 
 private slots:
+  void                          itemChanged(const QUrl &);
   void                          updatePlaybackProgress(const QUrl &filePath, int position);
 
 private:

@@ -93,7 +93,7 @@ public:
   QByteArray                    udn() const;
 
 signals:
-  void                          handledEvent();
+  void                          handledAction();
 
 protected:
   void                          handleEvent(const QByteArray &serviceId, EventablePropertySet &);
