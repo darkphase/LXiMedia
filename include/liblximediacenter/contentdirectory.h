@@ -234,6 +234,7 @@ private:
   QUrl                          fromObjectURL(const QUrl &url);
 
 private slots:
+  void                          numConnectionsChanged(int);
   void                          processPendingUpdates(void);
 
 protected:

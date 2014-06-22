@@ -33,6 +33,7 @@ struct ContentDirectory::Data : ContentDirectory::Callback
   QTimer                        updateTimer;
   quint32                       systemUpdateId;
   QSet<QByteArray>              pendingContainerUpdates;
+  bool                          allowProcessPendingUpdates;
   QMap<QByteArray, quint32>     containerUpdateIds;
   QMap<QString, Callback *>     callbacks;
 
@@ -53,6 +54,7 @@ ContentDirectory::ContentDirectory(RootDevice *rootDevice, ConnectionManager *co
     d(new Data())
 {
   d->systemUpdateId = 0;
+  d->allowProcessPendingUpdates = true;
 
   // Add the root path.
   d->callbacks.insert("/", d);
@@ -61,6 +63,8 @@ ContentDirectory::ContentDirectory(RootDevice *rootDevice, ConnectionManager *co
   d->objectIdHash.insert(d->objectIdList.last(), d->objectIdList.count() - 1);
 
   d->httpBaseDir = rootDevice->httpBaseDir() + "condir/";
+
+  connect(connectionManager, SIGNAL(numConnectionsChanged(int)), SLOT(numConnectionsChanged(int)));
 
   connect(&d->updateTimer, SIGNAL(timeout()), SLOT(processPendingUpdates()));
   d->updateTimer.setTimerType(Qt::VeryCoarseTimer);
@@ -111,22 +115,33 @@ void ContentDirectory::updatePath(const QString &path)
     if (!d->pendingContainerUpdates.contains(objectId))
     {
       d->pendingContainerUpdates.insert(objectId);
-      d->updateTimer.start();
+      if (d->allowProcessPendingUpdates)
+        d->updateTimer.start();
     }
   }
 }
 
+void ContentDirectory::numConnectionsChanged(int numConnections)
+{
+  d->allowProcessPendingUpdates = numConnections == 0;
+  if (d->allowProcessPendingUpdates)
+    d->updateTimer.start();
+}
+
 void ContentDirectory::processPendingUpdates(void)
 {
-  const quint32 updateId = QDateTime::currentDateTimeUtc().toTime_t();
+  if (d->allowProcessPendingUpdates)
+  {
+    const quint32 updateId = QDateTime::currentDateTimeUtc().toTime_t();
 
-  foreach (const QByteArray &objectId, d->pendingContainerUpdates)
-    d->containerUpdateIds[objectId] = updateId;
+    foreach (const QByteArray &objectId, d->pendingContainerUpdates)
+      d->containerUpdateIds[objectId] = updateId;
 
-  if (!d->pendingContainerUpdates.isEmpty())
-    qApp->postEvent(this, new QEvent(d->emitUpdateEventType), Qt::LowEventPriority);
+    if (!d->pendingContainerUpdates.isEmpty())
+      qApp->postEvent(this, new QEvent(d->emitUpdateEventType), Qt::LowEventPriority);
 
-  d->pendingContainerUpdates.clear();
+    d->pendingContainerUpdates.clear();
+  }
 }
 
 void ContentDirectory::handleAction(const UPnP::HttpRequestInfo &requestInfo, ActionBrowse &action)
@@ -167,7 +182,7 @@ void ContentDirectory::handleAction(const UPnP::HttpRequestInfo &requestInfo, Ac
         if (!item.isDir)
         {
           QString title;
-          if (item.lastPosition > (item.duration - (item.duration / 20)))
+          if (item.lastPosition > int(item.duration - (item.duration / 10)))
             title = '*' + item.title;
           else if (item.lastPosition > 0)
             title = '+' + item.title;
@@ -570,12 +585,19 @@ QStringList ContentDirectory::playSeekItems(const Item &item)
 {
   QStringList result;
 
-  result += ("p#" + tr("Play"));
-
-  if ((item.lastPosition > 0) && (item.lastPosition < (int(item.duration) - 120)))
+  if ((item.lastPosition > 0) && (item.lastPosition <= int(item.duration - (item.duration / 10))))
   {
-    const QString title = tr("Resume from") + " " + QTime(0, 0).addSecs(item.lastPosition).toString("h:mm");
-    result += ("p&position=" + QString::number(item.lastPosition) + "#" + title);
+    result += (
+          "p&position=" + QString::number(item.lastPosition) +
+          "#" + tr("Resume") +
+          " (" + QTime(0, 0).addSecs(item.lastPosition).toString("h:mm") +
+          "/" + QTime(0, 0).addSecs(item.duration).toString("h:mm") + ")");
+  }
+  else
+  {
+    result += (
+          "p#" + tr("Play") +
+          " (" + QTime(0, 0).addSecs(item.duration).toString("h:mm") + ")");
   }
 
   if (item.chapters.count() > 1)
@@ -596,7 +618,7 @@ QStringList ContentDirectory::seekItems(const Item &item)
     const QString title = tr("Play from") + " " + QTime(0, 0).addSecs(i).toString("h:mm");
     result += (
           "p&position=" + QString::number(i) +
-          "#" + ((item.lastPosition > int(i)) ? ('*' + title) : title));
+          "#" + ((item.lastPosition > int(i + seekSec)) ? ('*' + title) : title));
   }
 
   return result;
@@ -618,7 +640,7 @@ QStringList ContentDirectory::chapterItems(const Item &item)
     const bool seen =
         ((i + 1) < item.chapters.count())
         ? (item.lastPosition >= int(item.chapters[i + 1].position))
-        : (item.lastPosition > (item.duration - 60));
+        : (item.lastPosition >= int(item.chapters[i].position));
 
     result += (
           "p&position=" + QString::number(chapter.position) +
