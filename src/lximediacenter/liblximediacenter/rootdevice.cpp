@@ -265,8 +265,6 @@ HttpStatus RootDevice::httpRequest(const QUrl &request, const UPnP::HttpRequestI
     contentType = UPnP::mimeTextXml;
     response = buffer;
 
-    emit handledEvent();
-
     return HttpStatus_Ok;
   }
   else if (request.path().startsWith(d->baseDir + d->serviceDescriptionFile))
@@ -290,8 +288,6 @@ HttpStatus RootDevice::httpRequest(const QUrl &request, const UPnP::HttpRequestI
         ixmlFreeDOMString(s);
         contentType = UPnP::mimeTextXml;
         response = buffer;
-
-        emit handledEvent();
 
         return HttpStatus_Ok;
       }
@@ -446,7 +442,7 @@ bool RootDevice::enableRootDevice(void)
               }
             }
 
-            emit me->handledEvent();
+            emit me->handledAction();
           }
 
           RootDevice * const me;
@@ -473,8 +469,6 @@ bool RootDevice::enableRootDevice(void)
               if (i != me->d->rootDeviceHandle.end())
                 ::UpnpAcceptSubscriptionExt(*i, udn, request->ServiceId, propertyset.doc, request->Sid);
             }
-
-            emit me->handledEvent();
           }
 
           RootDevice * const me;

@@ -188,6 +188,9 @@ public:
   void                          registerCallback(const QString &path, Callback *);
   void                          unregisterCallback(Callback *);
 
+  void                          updateSystem();
+  void                          updatePath(const QString &path);
+
   void                          handleAction(const UPnP::HttpRequestInfo &, ActionBrowse &);
   void                          handleAction(const UPnP::HttpRequestInfo &, ActionSearch &);
   void                          handleAction(const UPnP::HttpRequestInfo &, ActionGetSearchCapabilities &);
@@ -225,10 +228,13 @@ private:
 
   static QString                baseDir(const QString &);
   static QString                parentDir(const QString &);
-  QByteArray                    toObjectID(const QString &path);
+  QByteArray                    toObjectID(const QString &path, bool create = true);
   QString                       fromObjectID(const QByteArray &id);
   QByteArray                    toObjectURL(const QUrl &path, const QByteArray &suffix);
   QUrl                          fromObjectURL(const QUrl &url);
+
+private slots:
+  void                          processPendingUpdates(void);
 
 protected:
   static const char             serviceId[];

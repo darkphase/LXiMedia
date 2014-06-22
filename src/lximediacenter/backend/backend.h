@@ -68,7 +68,7 @@ private slots:
   void                          performExit(void);
 #endif
   void                          republishRootDevice(void);
-  void                          handledEvent(void);
+  void                          handledAction(void);
   void                          numConnectionsChanged(int);
 
 private:
