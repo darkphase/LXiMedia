@@ -285,10 +285,7 @@ QList<MediaPlayerServer::Item> MediaPlayerServer::listItems(const QString &virtu
     else
     {
       const DirType type = dirType(virtualPath);
-      if ((type.pathType == RootPath::Music) ||
-          (type.fileType == SMediaInfo::ProbeInfo::FileType_Audio) ||
-          (type.fileType == SMediaInfo::ProbeInfo::FileType_Video) ||
-          (type.fileType == SMediaInfo::ProbeInfo::FileType_Image))
+      if (type.fileType == SMediaInfo::ProbeInfo::FileType_Image)
       {
         // Add play all item
         int first = start;
