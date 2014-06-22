@@ -112,6 +112,20 @@ static QByteArray getText(_IXML_Node *from)
   return result;
 }
 
+QByteArray Client::get(const QUrl &location)
+{
+  char *buffer = NULL;
+  char contentType[LINE_SIZE];
+  if (::UpnpDownloadUrlItem(location.toEncoded(), &buffer, contentType) == UPNP_E_SUCCESS)
+  {
+    QByteArray result(buffer);
+    ::free(buffer);
+    return result;
+  }
+
+  return QByteArray();
+}
+
 bool Client::getDeviceDescription(const QByteArray &location, DeviceDescription &description)
 {
   char *buffer = NULL;
