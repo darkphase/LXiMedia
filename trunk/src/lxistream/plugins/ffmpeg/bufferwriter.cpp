@@ -381,7 +381,7 @@ int BufferWriter::write(void *opaque, uint8_t *buf, int buf_size)
 {
   BufferWriter * const me = reinterpret_cast<BufferWriter *>(opaque);
 
-  if (me->ioDevice)
+  if (me->ioDevice && me->ioDevice->isOpen())
   {
     while (me->ioDevice->bytesToWrite() >= outBufferSize)
     if (!me->ioDevice->waitForBytesWritten(-1))
@@ -407,27 +407,30 @@ int64_t BufferWriter::seek(void *opaque, int64_t offset, int whence)
 {
   BufferWriter * const me = reinterpret_cast<BufferWriter *>(opaque);
   
-  if (me->ioDevice->isSequential())
+  if (me->ioDevice && me->ioDevice->isOpen())
   {
-    if (whence == SEEK_SET)
-      return -1;
-    else if (whence == SEEK_CUR)
-      return -1;
-    else if (whence == SEEK_END)
-      return -1;
-    else if (whence == AVSEEK_SIZE) // get size
-      return me->ioDevice->size();
-  }
-  else  
-  {
-    if (whence == SEEK_SET)
-      return me->ioDevice->seek(offset) ? 0 : -1;
-    else if (whence == SEEK_CUR)
-      return me->ioDevice->seek(me->ioDevice->pos() + offset) ? 0 : -1;
-    else if (whence == SEEK_END)
-      return me->ioDevice->seek(me->ioDevice->size() + offset) ? 0 : -1;
-    else if (whence == AVSEEK_SIZE) // get size
-      return me->ioDevice->size();
+    if (me->ioDevice->isSequential())
+    {
+      if (whence == SEEK_SET)
+        return -1;
+      else if (whence == SEEK_CUR)
+        return -1;
+      else if (whence == SEEK_END)
+        return -1;
+      else if (whence == AVSEEK_SIZE) // get size
+        return me->ioDevice->size();
+    }
+    else
+    {
+      if (whence == SEEK_SET)
+        return me->ioDevice->seek(offset) ? 0 : -1;
+      else if (whence == SEEK_CUR)
+        return me->ioDevice->seek(me->ioDevice->pos() + offset) ? 0 : -1;
+      else if (whence == SEEK_END)
+        return me->ioDevice->seek(me->ioDevice->size() + offset) ? 0 : -1;
+      else if (whence == AVSEEK_SIZE) // get size
+        return me->ioDevice->size();
+    }
   }
 
   return -1;

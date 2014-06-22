@@ -397,10 +397,21 @@ void SApplication::logMessage(QtMsgType type, const QMessageLogContext &, const 
 
   switch (type)
   {
-  case QtDebugMsg:    message += "\tDBG"; break;
-  case QtWarningMsg:  message += "\tWRN"; break;
-  case QtCriticalMsg: message += "\tCRT"; break;
-  case QtFatalMsg:    message += "\tFTL"; break;
+  case QtDebugMsg:
+    message += "\tDBG";
+    break;
+
+  case QtWarningMsg:
+    message += "\tWRN";
+    break;
+
+  case QtCriticalMsg:
+    message += "\tCRT";
+    break;
+
+  case QtFatalMsg:
+    message += "\tFTL";
+    break;
   }
 
   message +=
