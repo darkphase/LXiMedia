@@ -51,6 +51,7 @@ public:
 
   void                          startSearch(const QByteArray &target, int mx = 3);
 
+  QByteArray					get(const QUrl &);
   bool                          getDeviceDescription(const QByteArray &location, DeviceDescription &description);
 
 signals:

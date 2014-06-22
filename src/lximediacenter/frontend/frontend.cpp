@@ -169,13 +169,13 @@ void Frontend::loadFrontendPage(const QUrl &url)
 #else
       startingTimer = QTime();
 
-      foreach (const Server &server, servers)
-      if (isLocalAddress(server.presentationURL.host()))
+      foreach (const Client::DeviceDescription &device, devices)
+      if (upnp.isMyAddress(device.presentationURL.host().toLatin1()))
       {
-        QUrl url = server.presentationURL;
+        QUrl url = device.presentationURL;
         url.setPath(url.path() + "exit");
 
-        networkAccessManager.get(QNetworkRequest(url));
+        upnpClient.get(url);
       }
 
       if (url.path() == "/disablebackend")
@@ -216,37 +216,29 @@ void Frontend::registerAgent(void)
 
   if (dir.exists())
   {
-    QDomDocument doc;
-    QDomElement root = doc.createElement("plist");
-    root.setAttribute("version", "1.0");
-    QDomElement dict = doc.createElement("dict");
-
-    QDomElement elm;
-    elm = doc.createElement("key");
-    elm.appendChild(doc.createTextNode("Label"));
-    dict.appendChild(elm);
-    elm = doc.createElement("string");
-    elm.appendChild(doc.createTextNode(QString(daemonName) + ".agent"));
-    dict.appendChild(elm);
-
-    elm = doc.createElement("key");
-    elm.appendChild(doc.createTextNode("RunAtLoad"));
-    dict.appendChild(elm);
-    dict.appendChild(doc.createElement("true"));
-
-    elm = doc.createElement("key");
-    elm.appendChild(doc.createTextNode("Program"));
-    dict.appendChild(elm);
-    elm = doc.createElement("string");
-    elm.appendChild(doc.createTextNode(QDir(qApp->applicationDirPath()).absoluteFilePath("lximcbackend")));
-    dict.appendChild(elm);
-
-    root.appendChild(dict);
-    doc.appendChild(root);
-
     QFile file(dir.absoluteFilePath(QString(daemonName) + ".plist"));
     if (file.open(QFile::WriteOnly))
-      file.write(doc.toByteArray());
+    {
+      QXmlStreamWriter writer(&file);
+      writer.writeStartElement("plist");
+      writer.writeAttribute("version", "1.0");
+
+        writer.writeStartElement("dict");
+
+          writer.writeTextElement("key", "Label");
+          writer.writeTextElement("string", QString(daemonName) + ".agent");
+
+          writer.writeTextElement("key", "RunAtLoad");
+          writer.writeStartElement("true");
+          writer.writeEndElement();
+
+          writer.writeTextElement("key", "Program");
+          writer.writeTextElement("string", QDir(qApp->applicationDirPath()).absoluteFilePath("lximcbackend"));
+
+        writer.writeEndElement();
+
+      writer.writeEndElement();
+    }
   }
 }
 #endif
