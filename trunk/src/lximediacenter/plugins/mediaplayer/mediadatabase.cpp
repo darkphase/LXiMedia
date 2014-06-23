@@ -237,6 +237,24 @@ void MediaDatabase::setLastPlaybackPosition(const QUrl &filePath, int position)
   {
     QSettings settings(lastPlayedFileName, QSettings::IniFormat);
 
+    QCryptographicHash hash(QCryptographicHash::Sha1);
+    hash.addData(filePath.toEncoded());
+    const QString key = hash.result().toHex();
+
+    settings.beginGroup("LastPlaybackPosition");
+    settings.setValue(key, position);
+    settings.endGroup();
+
+    emit itemChanged(filePath);
+  }
+}
+
+int MediaDatabase::getLastPlaybackPosition(const QUrl &filePath) const
+{
+  if (!filePath.isEmpty())
+  {
+    QSettings settings(lastPlayedFileName, QSettings::IniFormat);
+
     // Upgrade old items.
     {
       QStringList oldKeys;
@@ -263,24 +281,6 @@ void MediaDatabase::setLastPlaybackPosition(const QUrl &filePath, int position)
     const QString key = hash.result().toHex();
 
     settings.beginGroup("LastPlaybackPosition");
-    settings.setValue(key, position);
-    settings.endGroup();
-
-    emit itemChanged(filePath);
-  }
-}
-
-int MediaDatabase::getLastPlaybackPosition(const QUrl &filePath) const
-{
-  if (!filePath.isEmpty())
-  {
-    QSettings settings(lastPlayedFileName, QSettings::IniFormat);
-    settings.beginGroup("LastPlaybackPosition");
-
-    QCryptographicHash hash(QCryptographicHash::Sha1);
-    hash.addData(filePath.toEncoded());
-    const QString key = hash.result().toHex();
-
     if (settings.contains(key))
       return settings.value(key).toInt();
   }
