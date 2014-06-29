@@ -56,6 +56,7 @@ SSubtitleBuffer RawSubtitleDecoder::decodeUtf8(const SEncodedDataBuffer &dataBuf
 {
   const QList<QByteArray> lines = QByteArray(dataBuffer.data(), dataBuffer.size()).split('\n');
 
+  qDebug() << "RawSubtitleDecoder::decodeUtf8";
   QStringList text;
   for (int i=0; i<lines.count(); i++)
     text += QString::fromUtf8(lines[i].trimmed());
@@ -81,8 +82,13 @@ SSubtitleBuffer RawSubtitleDecoder::decodeLocal8Bit(const SEncodedDataBuffer &da
   const QList<QByteArray> lines = QByteArray(dataBuffer.data(), dataBuffer.size()).split('\n');
 
   QTextCodec * textCodec = QTextCodec::codecForLocale();
-  if (!dataBuffer.codec().codepage().isEmpty() && ((textCodec->name() == "System") || (textCodec->name() == "UTF-8")))
+  if (!dataBuffer.codec().codepage().isEmpty() &&
+      ((textCodec->name() == "System") ||
+       (textCodec->name() == "UTF-8") ||
+       textCodec->name().endsWith("ASCII")))
+  {
     textCodec = QTextCodec::codecForName(dataBuffer.codec().codepage());
+  }
 
   QStringList text;
   for (int i=0; i<lines.count(); i++)
