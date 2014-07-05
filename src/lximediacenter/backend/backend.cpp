@@ -105,7 +105,10 @@ void Backend::start(void)
   htmlParser.setStaticField("_HOSTNAME", (settings.value("DeviceName", defaultDeviceName())).toString());
 
   backendServers = BackendServer::create(this);
+#ifndef Q_OS_MACX
   backendServers += new Setup(settings.value("AllowShutdown", true).toBool(), this);
+#endif
+
   foreach (BackendServer *server, backendServers)
     server->initialize(this);
 
