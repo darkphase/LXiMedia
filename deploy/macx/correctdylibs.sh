@@ -17,6 +17,7 @@ do
     do
         install_name_tool -change $j.framework/Versions/Current/$j @executable_path/../Frameworks/lib$j.5.dylib $2/Frameworks/lib$i.5.dylib
         install_name_tool -change $j.framework/Versions/5/$j @executable_path/../Frameworks/lib$j.5.dylib $2/Frameworks/lib$i.5.dylib
+        install_name_tool -change $1/lib/$j.framework/Versions/5/$j @executable_path/../Frameworks/lib$j.5.dylib $2/Frameworks/lib$i.5.dylib
         install_name_tool -change $QT_PREFIX$j.framework/Versions/5/$j @executable_path/../Frameworks/lib$j.5.dylib $2/Frameworks/lib$i.5.dylib
     done
 done
@@ -33,6 +34,7 @@ do
     do
         install_name_tool -change $j.framework/Versions/Current/$j @executable_path/../Frameworks/lib$j.5.dylib $2/PlugIns/platforms/$i.dylib
         install_name_tool -change $j.framework/Versions/5/$j @executable_path/../Frameworks/lib$j.5.dylib $2/PlugIns/platforms/$i.dylib
+        install_name_tool -change $1/lib/$j.framework/Versions/5/$j @executable_path/../Frameworks/lib$j.5.dylib $2/PlugIns/platforms/$i.dylib
         install_name_tool -change $QT_PREFIX$j.framework/Versions/5/$j @executable_path/../Frameworks/lib$j.5.dylib $2/PlugIns/platforms/$i.dylib
     done
 done
@@ -49,6 +51,7 @@ do
     do
         install_name_tool -change $j.framework/Versions/Current/$j @executable_path/../Frameworks/lib$j.5.dylib $2/PlugIns/imageformats/$i.dylib
         install_name_tool -change $j.framework/Versions/5/$j @executable_path/../Frameworks/lib$j.5.dylib $2/PlugIns/imageformats/$i.dylib
+        install_name_tool -change $1/lib/$j.framework/Versions/5/$j @executable_path/../Frameworks/lib$j.5.dylib $2/PlugIns/imageformats/$i.dylib
         install_name_tool -change $QT_PREFIX$j.framework/Versions/5/$j @executable_path/../Frameworks/lib$j.5.dylib $2/PlugIns/imageformats/$i.dylib
     done
 done
@@ -61,6 +64,7 @@ do
     do
         install_name_tool -change $j.framework/Versions/Current/$j @executable_path/../Frameworks/lib$j.5.dylib $2/Frameworks/lib$i.dylib
         install_name_tool -change $j.framework/Versions/5/$j @executable_path/../Frameworks/lib$j.5.dylib $2/Frameworks/lib$i.dylib
+        install_name_tool -change $1/lib/$j.framework/Versions/5/$j @executable_path/../Frameworks/lib$j.5.dylib $2/Frameworks/lib$i.dylib
         install_name_tool -change $QT_PREFIX$j.framework/Versions/5/$j @executable_path/../Frameworks/lib$j.5.dylib $2/Frameworks/lib$i.dylib
     done
 
@@ -78,6 +82,7 @@ do
     do
         install_name_tool -change $j.framework/Versions/Current/$j @executable_path/../Frameworks/lib$j.5.dylib $2/PlugIns/lximedia0/lib$i.dylib
         install_name_tool -change $j.framework/Versions/5/$j @executable_path/../Frameworks/lib$j.5.dylib $2/PlugIns/lximedia0/lib$i.dylib
+        install_name_tool -change $1/lib/$j.framework/Versions/5/$j @executable_path/../Frameworks/lib$j.5.dylib $2/PlugIns/lximedia0/lib$i.dylib
         install_name_tool -change $QT_PREFIX$j.framework/Versions/5/$j @executable_path/../Frameworks/lib$j.5.dylib $2/PlugIns/lximedia0/lib$i.dylib
     done
 
@@ -95,6 +100,7 @@ do
     do
         install_name_tool -change $j.framework/Versions/Current/$j @executable_path/../Frameworks/lib$j.5.dylib $2/MacOS/$i
         install_name_tool -change $j.framework/Versions/5/$j @executable_path/../Frameworks/lib$j.5.dylib $2/MacOS/$i
+        install_name_tool -change $1/lib/$j.framework/Versions/5/$j @executable_path/../Frameworks/lib$j.5.dylib $2/MacOS/$i
         install_name_tool -change $QT_PREFIX$j.framework/Versions/5/$j @executable_path/../Frameworks/lib$j.5.dylib $2/MacOS/$i
     done
 
