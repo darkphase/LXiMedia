@@ -10,7 +10,7 @@ win32 {
     macx {
         DESTDIR = $${OUT_PWD}/$${LXIMEDIA_DIR}/bin/LXiMediaCenter.app/Contents/PlugIns/lximedia$${LXIMEDIA_VERSION_MAJOR}
     } else {
-        DESTDIR = $${OUT_PWD}/$${LXIMEDIA_DIR}/lximedia$${LXIMEDIA_VERSION_MAJOR}
+        DESTDIR = $${OUT_PWD}/$${LXIMEDIA_DIR}/bin/lximedia$${LXIMEDIA_VERSION_MAJOR}
     }
 }
 
