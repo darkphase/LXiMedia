@@ -3,14 +3,15 @@ CONFIG += ordered
 include($${PWD}/../../include/platform.pri)
 
 LXIMEDIA_DIR = ../..
-DESTDIR = $${OUT_PWD}/$${LXIMEDIA_DIR}/bin
 
 macx {
+  DESTDIR = $${OUT_PWD}/$${LXIMEDIA_DIR}/bin/LXiMediaCenter.app/Contents/MacOS
+
   system(mkdir -p $${OUT_PWD})
 
   !exists($${OUT_PWD}/dcraw-8.99.orig/dcraw) {
     # Extract
-    system(cp $${PWD}/dcraw_8.99.orig.tar.bz2 $${OUT_PWD} > NUL)
+    system(cp $${PWD}/dcraw_8.99.orig.tar.bz2 $${OUT_PWD})
     system(cd $${OUT_PWD} && tar -xjf dcraw_8.99.orig.tar.bz2)
 
     # Compile
@@ -21,6 +22,8 @@ macx {
   system(cp $${OUT_PWD}/dcraw-8.99.orig/dcraw $${DESTDIR})
 }
 win32 {
+  DESTDIR = $${OUT_PWD}/$${LXIMEDIA_DIR}/bin
+
   system(mkdir $$replace(OUT_PWD,/,\\) > NUL 2>&1)
 
   !exists($${OUT_PWD}/dcraw-8.99.orig/dcraw.exe) {

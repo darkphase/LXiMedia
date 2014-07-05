@@ -2,7 +2,11 @@ TEMPLATE = app
 QT += concurrent widgets
 QT -= gui
 LXIMEDIA_DIR = ../../..
-DESTDIR = $${OUT_PWD}/$${LXIMEDIA_DIR}/bin
+macx {
+    DESTDIR = $${OUT_PWD}/$${LXIMEDIA_DIR}/bin/LXiMediaCenter.app/Contents/MacOS
+} else {
+    DESTDIR = $${OUT_PWD}/$${LXIMEDIA_DIR}/bin
+}
 TARGET = lximcbackend
 include($${PWD}/$${LXIMEDIA_DIR}/include/config.pri)
 include($${PWD}/$${LXIMEDIA_DIR}/include/liblximediacenter/linklximediacenter.pri)

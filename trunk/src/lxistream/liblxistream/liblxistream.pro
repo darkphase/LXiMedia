@@ -3,7 +3,11 @@ CONFIG += dll
 QT += concurrent
 QT -= gui
 LXIMEDIA_DIR = ../../..
-DESTDIR = $${OUT_PWD}/$${LXIMEDIA_DIR}/bin
+macx {
+    DESTDIR = $${OUT_PWD}/$${LXIMEDIA_DIR}/bin/LXiMediaCenter.app/Contents/Frameworks
+} else {
+    DESTDIR = $${OUT_PWD}/$${LXIMEDIA_DIR}/bin
+}
 TARGET = LXiStream
 include($${PWD}/$${LXIMEDIA_DIR}/include/config.pri)
 

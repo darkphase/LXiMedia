@@ -20,6 +20,9 @@
 
 int main(int argc, char *argv[])
 {
+#if defined(Q_OS_MACX)
+  QApplication::setLibraryPaths(QStringList(QFileInfo(argv[0]).absolutePath() + "/../PlugIns"));
+#endif
   QApplication qapp(argc, argv);
   qapp.setOrganizationName("LeX-Interactive");
   qapp.setOrganizationDomain("lximedia.sf.net");
