@@ -164,12 +164,10 @@ void Backend::resetUpnpRootDevice(void)
   htmlParser.setField("_HOSTNAME", (settings.value("DeviceName", defaultDeviceName())).toString());
 }
 
-#if !defined(QT_NO_DEBUG) || defined(Q_OS_MACX)
 void Backend::performExit(void)
 {
   qApp->exit(0);
 }
-#endif
 
 void Backend::republishRootDevice(void)
 {

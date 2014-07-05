@@ -99,16 +99,12 @@ int main(int argc, char *argv[])
   if ((argc >= 2) && (strcmp(argv[1], "--sandbox") == 0))
     return sandbox();
 
-  int exitCode = 0;
-  do
-  {
-    Backend backend;
-    backend.start();
+  Backend backend;
+  backend.start();
 
-    exitCode = qApp->exec();
-  }
-  while (exitCode == -1);
+  const int exitCode = qApp->exec();
 
+  qDebug() << "Agent has finished with exit code" << exitCode;
   return exitCode;
 }
 #endif

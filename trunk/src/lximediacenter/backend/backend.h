@@ -64,9 +64,7 @@ protected: // From BackendServer::MasterServer
 
 private slots:
   void                          resetUpnpRootDevice(void);
-#if !defined(QT_NO_DEBUG) || defined(Q_OS_MACX)
   void                          performExit(void);
-#endif
   void                          republishRootDevice(void);
   void                          handledAction(void);
   void                          numConnectionsChanged(int);
