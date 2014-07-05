@@ -347,16 +347,13 @@ void UPnP::closedFile(QObject *file)
 void UPnP::updateInterfaces()
 {
   for (char **i = ::UpnpGetAvailableIpAddresses(); i && *i; i++)
-  {
-    qDebug() << "Found interface: " << *i;
-
   if (d->availableAddresses.find(*i) == d->availableAddresses.end())
   if (d->bindPublicInterfaces || isLocalAddress(*i))
   {
     close();
     initialize(d->port, d->bindPublicInterfaces);
     break;
-  }}
+  }
 }
 
 void UPnP::send(Functor &f) const
