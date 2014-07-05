@@ -229,7 +229,7 @@ QByteArray Frontend::makeFrontendPage(void) const
 #if !defined(Q_OS_MACX)
   else if (SDaemon::isRunning(daemonName))
 #else
-  else if (qAbs(startingTimer.elapsed()) < 30000)
+  else if (startingTimer.isValid() && (qAbs(startingTimer.elapsed()) < 30000))
 #endif
   {
     htmlParser.setField("LOCAL_SERVER_STATUS", tr("The local server is starting"));
