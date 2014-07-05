@@ -207,9 +207,10 @@ bool UPnP::initialize(quint16 port, bool bindPublicInterfaces)
   }
 
   addresses.append(NULL);
-  d->initialized = ::UpnpInit3(&(addresses[0]), port) == UPNP_E_SUCCESS;
+  int result = ::UpnpInit3(&(addresses[0]), port);
+  d->initialized = result == UPNP_E_SUCCESS;
   if (!d->initialized)
-    d->initialized = ::UpnpInit3(&(addresses[0]), 0) == UPNP_E_SUCCESS;
+    d->initialized = (result = ::UpnpInit3(&(addresses[0]), 0)) == UPNP_E_SUCCESS;
 
   if (d->initialized)
   {
@@ -226,6 +227,8 @@ bool UPnP::initialize(quint16 port, bool bindPublicInterfaces)
       ::UpnpAddVirtualDir(i.key().toUtf8());
     }
   }
+  else
+    qWarning() << "Failed to initialize libupnp:" << result;
 
   d->updateInterfacesTimer.start(d->updateInterfacesInterval);
 
@@ -344,13 +347,16 @@ void UPnP::closedFile(QObject *file)
 void UPnP::updateInterfaces()
 {
   for (char **i = ::UpnpGetAvailableIpAddresses(); i && *i; i++)
+  {
+    qDebug() << "Found interface: " << *i;
+
   if (d->availableAddresses.find(*i) == d->availableAddresses.end())
   if (d->bindPublicInterfaces || isLocalAddress(*i))
   {
     close();
     initialize(d->port, d->bindPublicInterfaces);
     break;
-  }
+  }}
 }
 
 void UPnP::send(Functor &f) const

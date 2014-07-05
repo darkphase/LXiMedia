@@ -32,15 +32,7 @@ void configApp(void)
 #include "_version.h"
       );
 
-#if defined(Q_OS_MACX)
-  QDir appDir(qApp->applicationDirPath());
-  if (appDir.dirName() == "MacOS")
-  {
-    appDir.cdUp();
-    appDir.cd("PlugIns");
-    qApp->setLibraryPaths(QStringList() << appDir.absolutePath());
-  }
-#elif defined(Q_OS_WIN)
+#if defined(Q_OS_WIN)
   // Do not use the registry on Windows.
   QSettings::setDefaultFormat(QSettings::IniFormat);
 #endif
@@ -100,7 +92,8 @@ int main(int argc, char *argv[])
 #elif defined(Q_OS_MACX)
 int main(int argc, char *argv[])
 {
-  QApplication app(argc, argv); configApp();
+  QCoreApplication::setLibraryPaths(QStringList(QFileInfo(argv[0]).absolutePath() + "/../PlugIns"));
+  QCoreApplication app(argc, argv); configApp();
   SApplication mediaApp(true);
 
   if ((argc >= 2) && (strcmp(argv[1], "--sandbox") == 0))

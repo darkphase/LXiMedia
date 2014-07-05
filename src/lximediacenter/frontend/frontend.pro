@@ -82,3 +82,6 @@ win32 {
     DEFINES += _CRT_SECURE_NO_WARNINGS
   }
 }
+
+# Mac specific
+macx:QMAKE_POST_LINK = cd $${DESTDIR} && sh correctdylibs.sh $$(QTDIR) $${DESTDIR}/$${TARGET}.app/Contents

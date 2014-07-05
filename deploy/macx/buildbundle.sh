@@ -4,15 +4,23 @@ VERSION=`cat VERSION`
 
 # Copy Qt libraries
 mkdir -p ${PKGNAME}.app/Contents/Frameworks
-cp /Library/Frameworks/phonon.framework/Versions/Current/phonon ${PKGNAME}.app/Contents/Frameworks/libphonon.4.dylib
-cp /Library/Frameworks/QtCore.framework/Versions/Current/QtCore ${PKGNAME}.app/Contents/Frameworks/libQtCore.4.dylib
-cp /Library/Frameworks/QtDBus.framework/Versions/Current/QtDBus ${PKGNAME}.app/Contents/Frameworks/libQtDBus.4.dylib
-cp /Library/Frameworks/QtGui.framework/Versions/Current/QtGui ${PKGNAME}.app/Contents/Frameworks/libQtGui.4.dylib
-cp -R /Library/Frameworks/QtGui.framework/Resources/* ${PKGNAME}.app/Contents/Resources/
-cp /Library/Frameworks/QtNetwork.framework/Versions/Current/QtNetwork ${PKGNAME}.app/Contents/Frameworks/libQtNetwork.4.dylib
-#cp /Library/Frameworks/QtScript.framework/Versions/Current/QtScript ${PKGNAME}.app/Contents/Frameworks/libQtScript.4.dylib
-cp /Library/Frameworks/QtXml.framework/Versions/Current/QtXml ${PKGNAME}.app/Contents/Frameworks/libQtXml.4.dylib
-cp /Library/Frameworks/QtWebKit.framework/Versions/Current/QtWebKit ${PKGNAME}.app/Contents/Frameworks/libQtWebKit.4.dylib
+cp ~/Qt/5.3/clang_64/lib/QtCore.framework/Versions/Current/QtCore ${PKGNAME}.app/Contents/Frameworks/libQtCore.5.dylib
+cp ~/Qt/5.3/clang_64/lib/QtDBus.framework/Versions/Current/QtDBus ${PKGNAME}.app/Contents/Frameworks/libQtDBus.5.dylib
+cp ~/Qt/5.3/clang_64/lib/QtGui.framework/Versions/Current/QtGui ${PKGNAME}.app/Contents/Frameworks/libQtGui.5.dylib
+cp -R ~/Qt/5.3/clang_64/lib/QtGui.framework/Resources/* ${PKGNAME}.app/Contents/Resources/
+cp ~/Qt/5.3/clang_64/lib/QtMultimedia.framework/Versions/Current/Qtultimedia ${PKGNAME}.app/Contents/Frameworks/libQtMultimedia.5.dylib
+cp ~/Qt/5.3/clang_64/lib/QtMultimediaWidgets.framework/Versions/Current/QtMultimediaWidgets ${PKGNAME}.app/Contents/Frameworks/libQtMultimediaWidgets.5.dylib
+cp ~/Qt/5.3/clang_64/lib/QtNetwork.framework/Versions/Current/QtNetwork ${PKGNAME}.app/Contents/Frameworks/libQtNetwork.5.dylib
+cp ~/Qt/5.3/clang_64/lib/QtOpenGL.framework/Versions/Current/QtOpenGL ${PKGNAME}.app/Contents/Frameworks/libQtOpenGL.5.dylib
+cp ~/Qt/5.3/clang_64/lib/QtPositioning.framework/Versions/Current/QtPositioning ${PKGNAME}.app/Contents/Frameworks/libQtPositioning.5.dylib
+cp ~/Qt/5.3/clang_64/lib/QtPrintSupport.framework/Versions/Current/QtPrintSupport ${PKGNAME}.app/Contents/Frameworks/libQtPrintSupport.5.dylib
+cp ~/Qt/5.3/clang_64/lib/QtQml.framework/Versions/Current/QtQml ${PKGNAME}.app/Contents/Frameworks/libQtQml.5.dylib
+cp ~/Qt/5.3/clang_64/lib/QtQuick.framework/Versions/Current/QtQuick ${PKGNAME}.app/Contents/Frameworks/libQtQuick.5.dylib
+cp ~/Qt/5.3/clang_64/lib/QtSensors.framework/Versions/Current/QtSensors ${PKGNAME}.app/Contents/Frameworks/libQtSensors.5.dylib
+cp ~/Qt/5.3/clang_64/lib/QtSql.framework/Versions/Current/QtSql ${PKGNAME}.app/Contents/Frameworks/libQtSql.5.dylib
+cp ~/Qt/5.3/clang_64/lib/QtWebKit.framework/Versions/Current/QtWebKit ${PKGNAME}.app/Contents/Frameworks/libQtWebKit.5.dylib
+cp ~/Qt/5.3/clang_64/lib/QtWebKitWidgets.framework/Versions/Current/QtWebKitWidgets ${PKGNAME}.app/Contents/Frameworks/libQtWebKitWidgets.5.dylib
+cp ~/Qt/5.3/clang_64/lib/QtWidgets.framework/Versions/Current/QtWidgets ${PKGNAME}.app/Contents/Frameworks/libQtWidgets.5.dylib
 
 # Copy Qt Plugins
 mkdir -p ${PKGNAME}.app/Contents/PlugIns/imageformats
