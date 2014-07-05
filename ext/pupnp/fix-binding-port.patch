@@ -1,11 +1,11 @@
 --- upnp/src/genlib/miniserver/miniserver.c	2013-11-15 16:50:02.000000000 +0100
-+++ upnp/src/genlib/miniserver/miniserver.c	2014-02-09 10:45:54.231234482 +0100
++++ upnp/src/genlib/miniserver/miniserver.c	2014-07-05 11:49:26.000000000 +0200
 @@ -524,7 +524,7 @@
  	int onOff;
  #endif
  	int ret_code;
 -	int reuseaddr_on = 0;
-+    int reuseaddr_on = 1;
++	int reuseaddr_on = 1;
  	int sockError = UPNP_E_SUCCESS;
  	int errCode = 0;
  
@@ -26,3 +26,33 @@
  	memset(&__ss_v4, 0, sizeof (__ss_v4));
  	serverAddr4->sin_family = (sa_family_t)AF_INET;
  	serverAddr4->sin_addr.s_addr = htonl(INADDR_ANY);
+@@ -591,10 +581,10 @@
+ 				return UPNP_E_SOCKET_BIND;
+ 			}
+ 			serverAddr4->sin_port = htons(listen_port4);
+-			sockError = bind(listenfd4,
+-				(struct sockaddr *)&__ss_v4,
+-				sizeof (__ss_v4));
+-			if (sockError == SOCKET_ERROR) {
++			sockError = bind(listenfd4,
++				(struct sockaddr *)serverAddr4,
++				sizeof(*serverAddr4));
++			if (sockError == SOCKET_ERROR) {
+ 				strerror_r(errno, errorBuffer,
+ 					ERROR_BUFFER_LEN);
+ 				UpnpPrintf(UPNP_INFO, MSERV,
+@@ -621,10 +611,10 @@
+ 				return UPNP_E_SOCKET_BIND;
+ 			}
+ 			serverAddr6->sin6_port = htons(listen_port6);
+-			sockError = bind(listenfd6,
+-				(struct sockaddr *)&__ss_v6,
+-				sizeof (__ss_v6));
+-			if (sockError == SOCKET_ERROR) {
++			sockError = bind(listenfd6,
++				(struct sockaddr *)serverAddr6,
++				sizeof(*serverAddr6));
++			if (sockError == SOCKET_ERROR) {
+ 				strerror_r(errno, errorBuffer,
+ 					ERROR_BUFFER_LEN);
+ 				UpnpPrintf(UPNP_INFO, MSERV,
