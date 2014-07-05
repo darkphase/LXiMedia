@@ -528,7 +528,8 @@ QList<MediaDatabase::Info> MediaDatabase::listFiles(const QUrl &dirPath, int sta
 
       // Filter items that need to be hidden.
       for (QStringList::Iterator j=items.begin(); j!=items.end(); )
-      if (j->endsWith(".db" , Qt::CaseInsensitive) ||
+      if ((j->compare("@eaDir", Qt::CaseInsensitive) == 0) ||
+          j->endsWith(".db" , Qt::CaseInsensitive) ||
           j->endsWith(".idx", Qt::CaseInsensitive) ||
           j->endsWith(".nfo", Qt::CaseInsensitive) ||
           j->endsWith(".srt", Qt::CaseInsensitive) ||
