@@ -71,8 +71,8 @@ public:
 
     bool is_dir;
     item_type type;
-    std::string url;
-    std::string iconUrl;
+    upnp::url url;
+    upnp::url icon_url;
     std::string path;
 
     std::string title;
@@ -209,27 +209,17 @@ private:
   void add_container(action_browse &, enum item::item_type, const std::string &path, const std::string &title = std::string(), size_t child_count = size_t(-1));
   void add_file(action_browse &, const std::string &host, const item &, const std::string &path, const std::string &title = std::string());
 
-  static std::vector<std::string> allItems(const item &, const std::vector<std::string> &itemProps);
-  static std::vector<std::string> streamItems(const item &);
-  static std::vector<std::string> playSeekItems(const item &);
-  static std::vector<std::string> seekItems(const item &);
-  static std::vector<std::string> chapterItems(const item &);
-  static std::vector<std::string> splitItemProps(const std::string &);
-  static item  makePlayItem(const item &, const std::vector<std::string> &);
-
   static std::string basepath(const std::string &);
   static std::string parentpath(const std::string &);
   std::string to_objectid(const std::string &path, bool create = true);
   std::string from_objectid(const std::string &id);
-  std::string to_objecturl(const std::string &path, const std::string &suffix);
-  std::string from_objecturl(const std::string &url);
+  lximediacenter::upnp::url to_objecturl(const upnp::url &url, const std::string &suffix);
+  lximediacenter::upnp::url from_objecturl(const upnp::url &url);
 
   void num_connections_changed(int num_connections);
   void process_pending_updates(void);
 
 private:
-  static const unsigned seek_sec;
-
   class messageloop &messageloop;
   class upnp &upnp;
   class rootdevice &rootdevice;
@@ -245,9 +235,9 @@ private:
   std::map<std::string, item_source *> item_sources;
 
   std::vector<std::string> objectid_list;
-  std::map<std::string, int32_t> objectid_map;
+  std::map<std::string, size_t> objectid_map;
   std::vector<std::string> objecturl_list;
-  std::map<std::string, int32_t> objecturl_map;
+  std::map<std::string, size_t> objecturl_map;
 
   struct root_item_source final : item_source
   {

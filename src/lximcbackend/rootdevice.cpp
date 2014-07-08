@@ -188,9 +188,9 @@ void rootdevice::write_device_description(device_description &desc)
 
 int rootdevice::http_request(const upnp::request &request, std::string &content_type, std::shared_ptr<std::istream> &response)
 {
-  if (starts_with(request.path, basedir + devicedescriptionfile))
+  if (starts_with(request.url.path, basedir + devicedescriptionfile))
   {
-    ixml_structures::device_description desc(request.host, "/");
+    ixml_structures::device_description desc(request.url.host, "/");
     write_device_description(desc);
 
     for (auto &i : services)
@@ -212,10 +212,10 @@ int rootdevice::http_request(const upnp::request &request, std::string &content_
 
     return upnp::http_ok;
   }
-  else if (starts_with(request.path, basedir + servicedescriptionfile))
+  else if (starts_with(request.url.path, basedir + servicedescriptionfile))
   {
     const uint l = basedir.length() + strlen(servicedescriptionfile);
-    const std::string path = request.path;
+    const std::string path = request.url.path;
     const std::string ext = path.substr(l, path.length() - 4 - l);
 
     for (auto &i : services)
@@ -239,10 +239,10 @@ int rootdevice::http_request(const upnp::request &request, std::string &content_
   else for (auto &icon : icons)
   {
     const std::string iconpath = basedir + icon;
-    if (starts_with(request.path, iconpath))
+    if (starts_with(request.url.path, iconpath))
     {
       upnp::request r = request;
-      r.set_url("http://" + request.host + "/" + icon);
+      r.url.path = upnp::url("http://" + request.url.host + "/" + icon);
 
       return upnp.handle_http_request(r, content_type, response);
     }
@@ -280,9 +280,9 @@ bool rootdevice::enable_rootdevice(void)
           if ((i != me->services.end()) && me->rootdevice_registred)
           {
             upnp::request request;
-            request.host = action_request->RequestInfo.host;
             request.user_agent = action_request->RequestInfo.userAgent;
             request.source_address = action_request->RequestInfo.sourceAddress;
+            request.url.host = action_request->RequestInfo.host;
 
 #if 0
             if ((strcmp(i->first->servicetype(), serviceTypeConnectionManager) == 0))
