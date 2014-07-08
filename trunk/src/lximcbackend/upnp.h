@@ -42,17 +42,22 @@ public:
     virtual void close() = 0;
   };
 
-  struct request
+  struct url
   {
-    std::string user_agent;
-    std::string source_address;
-
-    void set_url(const std::string &);
-    std::string get_url() const;
+    url();
+    url(const std::string &);
+    operator std::string() const;
 
     std::string host;
     std::string path;
     std::map<std::string, std::string> query;
+  };
+
+  struct request
+  {
+    std::string user_agent;
+    std::string source_address;
+    struct url url;
   };
 
   typedef std::function<int(const request &, std::string &, std::shared_ptr<std::istream> &)> http_callback;

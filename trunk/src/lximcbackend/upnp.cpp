@@ -27,22 +27,6 @@
 
 namespace lximediacenter {
 
-bool starts_with(const std::string &text, const std::string &find)
-{
-  if (text.length() >= find.length())
-    return strncmp(&text[0], &find[0], find.length()) == 0;
-
-  return false;
-}
-
-bool ends_with(const std::string &text, const std::string &find)
-{
-  if (text.length() >= find.length())
-    return strncmp(&text[text.length() - find.length()], &find[0], find.length()) == 0;
-
-  return false;
-}
-
 const char  upnp::mime_application_octetstream[]  = "application/octet-stream";
 const char  upnp::mime_audio_aac[]                = "audio/aac";
 const char  upnp::mime_audio_ac3[]                = "audio/x-ac3";
@@ -259,7 +243,7 @@ bool upnp::is_my_address(const std::string &address) const
 
 int upnp::handle_http_request(const struct request &request, std::string &content_type, std::shared_ptr<std::istream> &response)
 {
-  for (std::string path = request.path;;)
+  for (std::string path = request.url.path;;)
   {
     auto i = http_callbacks.find(path);
     if (i != http_callbacks.end())
@@ -304,7 +288,7 @@ void upnp::enable_webserver()
       struct request request;
       request.user_agent = request_info->userAgent;
       request.source_address = request_info->sourceAddress;
-      request.set_url("http://" + std::string(request_info->host) + url);
+      request.url = upnp::url("http://" + std::string(request_info->host) + url);
 
       std::string content_type;
       std::shared_ptr<std::istream> response;
@@ -339,7 +323,7 @@ void upnp::enable_webserver()
       struct request request;
       request.user_agent = request_info->userAgent;
       request.source_address = request_info->sourceAddress;
-      request.set_url("http://" + std::string(request_info->host) + url);
+      request.url = upnp::url("http://" + std::string(request_info->host) + url);
 
       std::string content_type;
       std::shared_ptr<std::istream> response;
@@ -420,7 +404,7 @@ int upnp::get_response(const struct request &request, std::string &content_type,
   {
     std::lock_guard<std::mutex> _(responses_mutex);
 
-    auto i = responses.find(request.path);
+    auto i = responses.find(request.url.path);
     if (i != responses.end())
     {
       response = i->second.first;
@@ -449,7 +433,7 @@ int upnp::get_response(const struct request &request, std::string &content_type,
   {
     std::lock_guard<std::mutex> _(responses_mutex);
 
-    responses[request.path] = std::make_pair(response, content_type);
+    responses[request.url.path] = std::make_pair(response, content_type);
   }
 
   return result;
@@ -510,22 +494,22 @@ const char * upnp::mime_type(const std::string &filename)
   return "application/octet-stream";
 }
 
-void upnp::request::set_url(const std::string &url)
+
+upnp::url::url()
+{
+}
+
+upnp::url::url(const std::string &url)
 {
   size_t s = 0;
   if (starts_with(url, "http://"))
   {
     s = url.find_first_of('/', 7);
-    if (s == url.npos)
-    {
-      host.clear();
-      s = 7;
-    }
-    else
+    if (s != url.npos)
       host = url.substr(7, s - 7);
+    else
+      s = 7;
   }
-
-  query.clear();
 
   const size_t q = url.find_first_of('?', s);
   if (q != url.npos)
@@ -548,7 +532,7 @@ void upnp::request::set_url(const std::string &url)
     path = url.substr(s);
 }
 
-std::string upnp::request::get_url() const
+upnp::url::operator std::string() const
 {
   std::string result = "http://" + host + path;
 
@@ -563,6 +547,23 @@ std::string upnp::request::get_url() const
   }
 
   return result;
+}
+
+
+bool starts_with(const std::string &text, const std::string &find)
+{
+  if (text.length() >= find.length())
+    return strncmp(&text[0], &find[0], find.length()) == 0;
+
+  return false;
+}
+
+bool ends_with(const std::string &text, const std::string &find)
+{
+  if (text.length() >= find.length())
+    return strncmp(&text[text.length() - find.length()], &find[0], find.length()) == 0;
+
+  return false;
 }
 
 } // End of namespace

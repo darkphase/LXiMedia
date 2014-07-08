@@ -28,6 +28,9 @@
 
 namespace lximediacenter {
 
+// TODO: translate
+inline std::string tr(const std::string &text) { return text; }
+
 class rootdevice : private upnp::child
 {
 public:

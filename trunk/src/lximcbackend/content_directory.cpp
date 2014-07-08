@@ -18,12 +18,52 @@
 #include "content_directory.h"
 #include <cstring>
 #include <iostream>
+#include <iomanip>
+#include <sstream>
 
 namespace lximediacenter {
 
+static std::string from_base64(const std::string &input)
+{
+  static const uint8_t table[256] =
+  {
+    0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+    0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+    0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,  62,0x00,0x00,0x00,  63,
+      52,  53,  54,  55,  56,  57,  58,  59,  60,  61,0x00,0x00,0x00,0x00,0x00,0x00,
+    0x00,   0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12,  13,  14,
+      15,  16,  17,  18,  19,  20,  21,  22,  23,  24,  25,0x00,0x00,0x00,0x00,0x00,
+    0x00,  26,  27,  28,  29,  30,  31,  32,  33,  34,  35,  36,  37,  38,  39,  40,
+      41,  42,  43,  44,  45,  46,  47,  48,  49,  50,  51,0x00,0x00,0x00,0x00,0x00
+    // Remainder will be initialized to zero.
+  };
+
+  std::string result;
+  result.reserve(input.length() * 3 / 4);
+
+  for (size_t i = 0; i < input.length(); i += 4)
+  {
+    const bool has[] =
+    {
+                                 input[i  ] != '=' ,
+      (i+1 < input.length()) && (input[i+1] != '='),
+      (i+2 < input.length()) && (input[i+2] != '='),
+      (i+3 < input.length()) && (input[i+3] != '='),
+    };
+
+    uint32_t triple = 0;
+    for (int j = 0; j < 4; j++)
+      triple |= uint32_t(has[j] ? table[uint8_t(input[i + j])] : 0) << (18 - (j * 6));
+
+    for (int j = 0; (j < 3) && has[j + 1]; j++)
+      result.push_back(char(triple >> (16 - (j * 8)) & 0xFF));
+  }
+
+  return result;
+}
+
 const char content_directory::service_id[]   = "urn:upnp-org:serviceId:ContentDirectory";
 const char content_directory::service_type[] = "urn:schemas-upnp-org:service:ContentDirectory:1";
-const unsigned content_directory::seek_sec = 120;
 
 content_directory::content_directory(class messageloop &messageloop, class upnp &upnp, class rootdevice &rootdevice, class connection_manager &connection_manager)
   : messageloop(messageloop),
@@ -115,6 +155,168 @@ void content_directory::process_pending_updates(void)
   }
 }
 
+static const unsigned seek_sec = 120;
+
+static std::string to_time(int secs)
+{
+  std::ostringstream str;
+  str << (secs / 60) << ":" << std::setw(2) << std::setfill('0') << (secs % 60);
+  return str.str();
+}
+
+static std::vector<std::string> playseek_items(const content_directory::item &item)
+{
+  std::vector<std::string> result;
+
+  if ((item.last_position > 0) && (item.last_position <= int(item.duration - (item.duration / 10))))
+  {
+    result.push_back(
+          "p&position=" + std::to_string(item.last_position) +
+          "#" + tr("Resume") +
+          " (" + to_time(item.last_position) +
+          "/" + to_time(item.duration) + ")");
+  }
+  else
+  {
+    result.push_back(
+          "p#" + tr("Play") +
+          " (" + to_time(item.duration) + ")");
+  }
+
+  if (item.chapters.size() > 1)
+    result.push_back("c#" + tr("Chapters"));
+
+  if (item.duration > seek_sec)
+    result.push_back("s#" + tr("Seek"));
+
+  return result;
+}
+
+static std::vector<std::string> stream_items(const content_directory::item &item)
+{
+  if (item.streams.size() > 1)
+  {
+    std::vector<std::string> result;
+    for (const content_directory::item::stream &stream : item.streams)
+    {
+      std::string query;
+      for (size_t i=0; i<stream.query_items.size(); i++)
+        query += '&' + stream.query_items[i].first + '=' + stream.query_items[i].second;
+
+      result.push_back('r' + query + '#' + stream.title);
+    }
+
+    return result;
+  }
+
+  return playseek_items(item);
+}
+
+static std::vector<std::string> seek_items(const content_directory::item &item)
+{
+  std::vector<std::string> result;
+
+  for (unsigned i=0; i<item.duration; i+=seek_sec)
+  {
+    const std::string title = tr("Play from") + " " + to_time(i);
+    result.push_back(
+          "p&position=" + std::to_string(i) +
+          "#" + ((item.last_position > int(i + seek_sec)) ? ('*' + title) : title));
+  }
+
+  return result;
+}
+
+static std::vector<std::string> chapter_items(const content_directory::item &item)
+{
+  std::vector<std::string> result;
+
+  int chapter_num = 1;
+  for (size_t i = 0; i < item.chapters.size(); i++)
+  {
+    const content_directory::item::chapter &chapter = item.chapters[i];
+
+    std::string title = tr("Chapter") + " " + std::to_string(chapter_num++);
+    if (!chapter.title.empty())
+      title += ", " + chapter.title;
+
+    const bool seen =
+        ((i + 1) < item.chapters.size())
+        ? (item.last_position >= int(item.chapters[i + 1].position))
+        : (item.last_position >= int(item.chapters[i].position));
+
+    result.push_back(
+          "p&position=" + std::to_string(chapter.position) +
+          "#" + (seen ? ('*' + title) : title));
+  }
+
+  return result;
+}
+
+static std::vector<std::string> all_items(const content_directory::item &item, const std::vector<std::string> &item_props)
+{
+  std::vector<std::string> items;
+  if (item_props.empty() || item_props[1].empty()) // Root
+    items = stream_items(item);
+  else if (item_props[1] == "r")
+    items = playseek_items(item);
+  else if (item_props[1] == "s")
+    items = seek_items(item);
+  else if (item_props[1] == "c")
+    items = chapter_items(item);
+
+  return items;
+}
+
+static std::vector<std::string> split_item_props(const std::string &text)
+{
+  std::vector<std::string> item_props;
+  item_props.resize(4);
+
+  std::stringstream str(text);
+  std::string section;
+  while (std::getline(str, section, '\t'))
+  {
+    const size_t hash = section.find_first_of('#');
+    if (hash != section.npos)
+    {
+      item_props[1] = section.substr(0, 1);
+      item_props[2] += section.substr(1, hash - 1);
+      item_props[3] = section.substr(hash + 1);
+    }
+    else
+      item_props[0] = section.empty() ? item_props[0] : section;
+  }
+
+  return item_props;
+}
+
+static content_directory::item make_play_item(const content_directory::item &base_item, const std::vector<std::string> &item_props)
+{
+  content_directory::item item = base_item;
+
+  if (!item_props[3].empty())
+    item.title = item_props[3];
+
+  if (!item_props[2].empty())
+  {
+    item.url.query.clear();
+
+    std::stringstream str(item_props[2]);
+    std::string qi;
+    while (std::getline(str, qi, '&'))
+    {
+      const size_t eq = qi.find_first_of('=');
+      if (eq != qi.npos)
+        item.url.query[qi.substr(0, eq)] = qi.substr(eq + 1);
+      else
+        item.url.query[qi] = std::string();
+    }
+  }
+
+  return item;
+}
+
 void content_directory::handle_action(const upnp::request &request, action_browse &action)
 {
   const auto objectid = action.get_object_id();
@@ -167,13 +369,13 @@ void content_directory::handle_action(const upnp::request &request, action_brows
           case item::item_type::music_video:
           case item::item_type::image:
           case item::item_type::photo:
-            add_file(action, request.host, item, item.path, item.title);
+            add_file(action, request.url.host, item, item.path, item.title);
             break;
 
           case item::item_type::audio_broadcast:
           case item::item_type::video:
           case item::item_type::video_broadcast:
-            add_file(action, request.host, item, item.path, title);
+            add_file(action, request.url.host, item, item.path, title);
             break;
 
           case item::item_type::audio:
@@ -196,7 +398,7 @@ void content_directory::handle_action(const upnp::request &request, action_brows
   }
   else
   {
-    const auto itemprops = splitItemProps(path);
+    const auto itemprops = split_item_props(path);
 
     // Get the item
     const item item = item_source->second->get_contentdir_item(client, itemprops[0]);
@@ -206,18 +408,18 @@ void content_directory::handle_action(const upnp::request &request, action_brows
       return;
     }
 
-    const std::vector<std::string> items = allItems(item, itemprops);
+    const std::vector<std::string> items = all_items(item, itemprops);
     switch (action.get_browse_flag())
     {
     case action_browse::direct_children:
       // Only select the items that were requested.
       for (size_t i=start, n=0; (i<items.size()) && ((count == 0) || (n < count)); i++, n++)
       {
-        const std::vector<std::string> props = splitItemProps(path + '\t' + items[i]);
+        const std::vector<std::string> props = split_item_props(path + '\t' + items[i]);
         if (props[1] == "p")
-          add_file(action, request.host, makePlayItem(item, props), path + '\t' + items[i]);
+          add_file(action, request.url.host, make_play_item(item, props), path + '\t' + items[i]);
         else
-          add_container(action, item.type, path + '\t' + items[i], props[3], allItems(item, splitItemProps(items[i])).size());
+          add_container(action, item.type, path + '\t' + items[i], props[3], all_items(item, split_item_props(items[i])).size());
       }
 
       totalmatches = items.size();
@@ -225,7 +427,7 @@ void content_directory::handle_action(const upnp::request &request, action_brows
 
     case action_browse::metadata:
       if (itemprops[1].empty() || (itemprops[1] == "p"))
-        add_file(action, request.host, makePlayItem(item, itemprops), path);
+        add_file(action, request.url.host, make_play_item(item, itemprops), path);
       else
         add_container(action, item.type, path, itemprops[3], items.size());
 
@@ -382,10 +584,10 @@ void content_directory::write_eventable_statevariables(rootdevice::eventable_pro
 
 int content_directory::http_request(const upnp::request &request, std::string &content_type, std::shared_ptr<std::istream> &response)
 {
-  if (starts_with(request.path, basedir))
+  if (starts_with(request.url.path, basedir))
   {
     upnp::request r = request;
-    r.set_url("http://" + request.host + from_objecturl(request.path));
+    r.url = from_objecturl(request.url);
 
     const auto result = upnp.handle_http_request(r, content_type, response);
     if (result == upnp::http_ok)
@@ -449,6 +651,33 @@ void content_directory::add_container(action_browse &action, item::item_type typ
 
   action.add_container(container);
 }
+static std::string to_base64(const std::string &input)
+{
+  static const char table[64] =
+  {
+    'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P',
+    'Q','R','S','T','U','V','W','X','Y','Z','a','b','c','d','e','f',
+    'g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v',
+    'w','x','y','z','0','1','2','3','4','5','6','7','8','9','+','/'
+  };
+
+  std::string result;
+  result.reserve(4 * ((input.length() + 2) / 3));
+
+  for (size_t i = 0; i < input.length(); i += 3)
+  {
+    const bool has[] = { true, true, i + 1 < input.length(), i + 2 < input.length() };
+
+    uint32_t triple = 0;
+    for (int j = 0; j < 3; j++)
+      triple |= uint32_t(has[j+1] ? uint8_t(input[i + j]) : 0) << (j * 8);
+
+    for (int j = 0; (j < 4) && has[j]; j++)
+      result.push_back(table[(triple >> (18 - (j * 6))) & 0x3F]);
+  }
+
+  return result;
+}
 
 void content_directory::add_file(action_browse &action, const std::string &host, const item &item, const std::string &path, const std::string &title)
 {
@@ -466,12 +695,12 @@ void content_directory::add_file(action_browse &action, const std::string &host,
   if (!item.album.empty())
     browse_item.attributes.push_back(std::make_pair(std::string("upnp:album"), item.album));
 
-  if (!item.iconUrl.empty())
+  if (!item.icon_url.path.empty())
   {
-    if (ends_with(item.iconUrl, ".jpeg") || ends_with(item.iconUrl, ".jpg"))
-      browse_item.attributes.push_back(std::make_pair(std::string("upnp:albumArtURI"), to_objecturl(item.iconUrl, ".jpeg")));
+    if (ends_with(item.icon_url.path, ".jpeg") || ends_with(item.icon_url.path, ".jpg"))
+      browse_item.attributes.push_back(std::make_pair(std::string("upnp:albumArtURI"), to_objecturl(item.icon_url, ".jpeg")));
     else
-      browse_item.attributes.push_back(std::make_pair(std::string("upnp:albumArtURI"), to_objecturl(item.iconUrl, ".png")));
+      browse_item.attributes.push_back(std::make_pair(std::string("upnp:albumArtURI"), to_objecturl(item.icon_url, ".png")));
   }
 
   switch (item.type)
@@ -494,272 +723,144 @@ void content_directory::add_file(action_browse &action, const std::string &host,
 
   for (auto &protocol : item.protocols)
   {
-    std::string url = item.url;
-    url.setScheme("http");
-    url.setAuthority(host);
-    QUrlQuery query(url);
-    query.addQueryItem("contentFeatures", protocol.contentFeatures().toBase64());
-    url.setQuery(query);
-
+    upnp::url url = item.url;
+    url.host = host;
+    url.query["content_features"] = to_base64(protocol.content_features());
     browse_item.files.push_back(std::make_pair(to_objecturl(url, protocol.suffix), protocol));
   }
 
   action.add_item(browse_item);
 }
 
-std::vector<std::string> content_directory::allItems(const item &item, const std::vector<std::string> &itemProps)
+std::string content_directory::basepath(const std::string &dir)
 {
-  std::vector<std::string> items;
-  if (itemProps.isEmpty() || itemProps[1].isEmpty()) // Root
-    items = streamItems(item);
-  else if (itemProps[1] == "r")
-    items = playSeekItems(item);
-  else if (itemProps[1] == "s")
-    items = seekItems(item);
-  else if (itemProps[1] == "c")
-    items = chapterItems(item);
+  const size_t ls = dir.find_last_of('/');
+  if (ls != dir.npos)
+    return dir.substr(0, ls + 1);
 
-  return items;
+  return std::string();
 }
 
-std::vector<std::string> content_directory::streamItems(const item &item)
+std::string content_directory::parentpath(const std::string &dir)
 {
-  if (item.streams.count() > 1)
+  if (!dir.empty())
   {
-    std::vector<std::string> result;
-    foreach (const item::Stream &stream, item.streams)
-    {
-      std::string query;
+    const size_t ls = dir.find_last_of('/' , dir.length() - 1);
+    const size_t lt = dir.find_last_of('\t', dir.length() - 1);
 
-      for (int i=0; i<stream.queryItems.count(); i++)
-        query += '&' + stream.queryItems[i].first + '=' + stream.queryItems[i].second;
-
-      result += ('r' + query + '#' + stream.title);
-    }
-
-    return result;
+    if ((ls != dir.npos) && (lt != dir.npos) && (lt > 0))
+      return dir.substr(0, std::max(ls, lt - 1));
+    else if (ls != dir.npos)
+      return dir.substr(0, ls);
+    else if ((lt != dir.npos) && (lt > 0))
+      return dir.substr(0, lt - 1);
   }
 
-  return playSeekItems(item);
+  return std::string();
 }
 
-std::vector<std::string> content_directory::playSeekItems(const item &item)
-{
-  std::vector<std::string> result;
-
-  if ((item.lastPosition > 0) && (item.lastPosition <= int(item.duration - (item.duration / 10))))
-  {
-    result += (
-          "p&position=" + std::string::number(item.lastPosition) +
-          "#" + tr("Resume") +
-          " (" + QTime(0, 0).addSecs(item.lastPosition).toString("h:mm") +
-          "/" + QTime(0, 0).addSecs(item.duration).toString("h:mm") + ")");
-  }
-  else
-  {
-    result += (
-          "p#" + tr("Play") +
-          " (" + QTime(0, 0).addSecs(item.duration).toString("h:mm") + ")");
-  }
-
-  if (item.chapters.count() > 1)
-    result += ("c#" + tr("Chapters"));
-
-  if (item.duration > seekSec)
-    result += ("s#" + tr("Seek"));
-
-  return result;
-}
-
-std::vector<std::string> content_directory::seekItems(const item &item)
-{
-  std::vector<std::string> result;
-
-  for (unsigned i=0; i<item.duration; i+=seekSec)
-  {
-    const std::string title = tr("Play from") + " " + QTime(0, 0).addSecs(i).toString("h:mm");
-    result += (
-          "p&position=" + std::string::number(i) +
-          "#" + ((item.lastPosition > int(i + seekSec)) ? ('*' + title) : title));
-  }
-
-  return result;
-}
-
-std::vector<std::string> content_directory::chapterItems(const item &item)
-{
-  std::vector<std::string> result;
-
-  int chapterNum = 1;
-  for (int i = 0; i < item.chapters.count(); i++)
-  {
-    const item::Chapter &chapter = item.chapters[i];
-
-    std::string title = tr("Chapter") + " " + std::string::number(chapterNum++);
-    if (!chapter.title.isEmpty())
-      title += ", " + chapter.title;
-
-    const bool seen =
-        ((i + 1) < item.chapters.count())
-        ? (item.lastPosition >= int(item.chapters[i + 1].position))
-        : (item.lastPosition >= int(item.chapters[i].position));
-
-    result += (
-          "p&position=" + std::string::number(chapter.position) +
-          "#" + (seen ? ('*' + title) : title));
-  }
-
-  return result;
-}
-
-std::vector<std::string> content_directory::splitItemProps(const std::string &text)
-{
-  std::vector<std::string> itemProps = std::vector<std::string>() << std::string::null << std::string::null << std::string::null << std::string::null;
-  foreach (const std::string &section, text.split('\t'))
-  {
-    const int hash = section.indexOf('#');
-    if (hash > 0)
-    {
-      itemProps[1] = section.left(1);
-      itemProps[2] += section.mid(1, hash - 1);
-      itemProps[3] = section.mid(hash + 1);
-    }
-    else
-      itemProps[0] = section.isEmpty() ? itemProps[0] : section;
-  }
-
-  return itemProps;
-}
-
-content_directory::item content_directory::makePlayItem(const item &baseItem, const std::vector<std::string> &itemProps)
-{
-  item item = baseItem;
-
-  if (!itemProps[3].isEmpty())
-    item.title = itemProps[3];
-
-  if (!itemProps[2].isEmpty())
-  {
-    QUrlQuery query(item.url);
-
-    foreach (const std::string &qi, itemProps[2].split('&', std::string::SkipEmptyParts))
-    {
-      const std::vector<std::string> qil = qi.split('=');
-      if (qil.count() == 2)
-        query.addQueryItem(qil[0], qil[1]);
-    }
-
-    item.url.setQuery(query);
-  }
-
-  return item;
-}
-
-std::string content_directory::baseDir(const std::string &dir)
-{
-  return dir.left(dir.lastIndexOf('/') + 1);
-}
-
-std::string content_directory::parentDir(const std::string &dir)
-{
-  if (!dir.isEmpty())
-  {
-    const int last =
-        qMax(dir.left(dir.length() - 1).lastIndexOf('/'),
-             dir.left(dir.length() - 1).lastIndexOf('\t') - 1);
-
-    if (last >= 0)
-      return dir.left(last + 1);
-  }
-
-  return std::string::null;
-}
-
-std::string content_directory::toObjectID(const std::string &path, bool create)
+std::string content_directory::to_objectid(const std::string &path, bool create)
 {
   if (path == "/")
   {
     return "0";
   }
-  else if (path.isEmpty())
+  else if (path.empty())
   {
     return "-1";
   }
   else
   {
-    QHash<std::string, qint32>::ConstIterator i = d->objectIdHash.find(path.toUtf8());
-    if (i != d->objectIdHash.end())
-      return std::string::number(*i);
+    auto i = objectid_map.find(path);
+    if (i != objectid_map.end())
+      return std::to_string(i->second);
 
     if (create)
     {
-      d->objectIdList.append(path.toUtf8());
-      d->objectIdList.last().squeeze();
-      d->objectIdHash.insert(d->objectIdList.last(), d->objectIdList.count() - 1);
+      objectid_list.push_back(path);
+      objectid_list.back().shrink_to_fit();
+      objectid_map[objectid_list.back()] = objectid_list.size() - 1;
 
-      return std::string::number(d->objectIdList.count() - 1);
+      return std::to_string(objectid_list.size() - 1);
     }
   }
 
   return std::string();
 }
 
-std::string content_directory::fromObjectID(const std::string &idStr)
+std::string content_directory::from_objectid(const std::string &id_str)
 {
-  if (idStr == "0")
+  if (id_str == "0")
   {
     return "/";
   }
-  else if (idStr == "-1")
+  else if (id_str == "-1")
   {
-    return std::string::null;
+    return std::string();
   }
   else
   {
-    const qint32 id = idStr.toInt();
-    if (id < d->objectIdList.count())
-      return std::string::fromUtf8(d->objectIdList[id]);
-
-    return std::string::null;
-  }
-}
-
-std::string content_directory::toObjectURL(const std::string &url, const std::string &suffix)
-{
-  const std::string encoded = url.toEncoded(std::string::RemoveScheme | std::string::RemoveAuthority);
-
-  std::string newUrl;
-  QHash<std::string, qint32>::ConstIterator i = d->objectUrlHash.find(encoded);
-  if (i == d->objectUrlHash.end())
-  {
-    d->objectUrlList.append(encoded);
-    d->objectUrlList.last().squeeze();
-    d->objectUrlHash.insert(d->objectUrlList.last(), d->objectUrlList.count() - 1);
-
-    newUrl = d->httpBaseDir + ("0000000" + std::string::number(d->objectUrlList.count() - 1, 16)).right(8) + suffix;
-  }
-  else
-    newUrl = d->httpBaseDir + ("0000000" + std::string::number(*i, 16)).right(8) + suffix;
-
-  newUrl.setScheme("http");
-  newUrl.setAuthority(url.authority());
-  return newUrl.toEncoded();
-}
-
-std::string content_directory::fromObjectURL(const std::string &url)
-{
-  const std::string path = url.path().toUtf8();
-  const int lastSlash = path.lastIndexOf('/');
-  if (lastSlash >= 0)
-  {
-    const qint32 id = path.mid(lastSlash + 1, 8).toInt(NULL, 16);
-    if ((id >= 0) && (id < d->objectUrlList.count()))
+    try
     {
-      std::string newUrl = std::string::fromEncoded(d->objectUrlList[id]);
-      newUrl.setScheme("http");
-      newUrl.setAuthority(url.authority());
-      return newUrl;
+      const size_t id = std::stoull(id_str);
+      if (id < objectid_list.size())
+        return objectid_list[id];
     }
+    catch (const std::invalid_argument &) { }
+    catch (const std::out_of_range &) { }
+
+    return std::string();
+  }
+}
+
+upnp::url content_directory::to_objecturl(const upnp::url &url, const std::string &suffix)
+{
+  const std::string encoded = url;
+
+  upnp::url new_url;
+  new_url.host = url.host;
+
+  auto i = objecturl_map.find(encoded);
+  if (i == objecturl_map.end())
+  {
+    objecturl_list.push_back(encoded);
+    objecturl_list.back().shrink_to_fit();
+    objecturl_map[objecturl_list.back()] = objecturl_list.size() - 1;
+
+    std::ostringstream str;
+    str << basedir << std::hex << std::setw(8) << std::setfill('0') << (objecturl_list.size() - 1) << suffix;
+    new_url.path = str.str();
+  }
+  else
+  {
+    std::ostringstream str;
+    str << basedir << std::hex << std::setw(8) << std::setfill('0') << i->second << suffix;
+    new_url.path = str.str();
+  }
+
+  return new_url;
+}
+
+upnp::url content_directory::from_objecturl(const upnp::url &url)
+{
+  const size_t ls = url.path.find_last_of('/');
+  if (ls != url.path.npos)
+  {
+    const size_t dot = url.path.find_first_of('.', ls);
+    const std::string id_str = url.path.substr(ls + 1, (dot != url.path.npos) ? (dot - ls - 1) : url.path.npos);
+
+    try
+    {
+      const size_t id = std::stoull(id_str);
+      if (id < objecturl_list.size())
+      {
+        upnp::url new_url = objecturl_list[id];
+        new_url.host = url.host;
+        return new_url;
+      }
+    }
+    catch (const std::invalid_argument &) { }
+    catch (const std::out_of_range &) { }
   }
 
   return std::string();
@@ -767,7 +868,7 @@ std::string content_directory::fromObjectURL(const std::string &url)
 
 
 content_directory::item::item(void)
-  : isDir(false), type(item_type::None), track(0), duration(0), lastPosition(-1)
+  : is_dir(false), type(item_type::none), track(0), duration(0), last_position(-1)
 {
 }
 
@@ -775,47 +876,47 @@ content_directory::item::~item()
 {
 }
 
-bool content_directory::item::isNull(void) const
+bool content_directory::item::is_null(void) const
 {
-  return url.isEmpty();
+  return url.path.empty();
 }
 
-bool content_directory::item::isAudio(void) const
+bool content_directory::item::is_audio(void) const
 {
-  return (type >= item_type::Audio) && (type < item_type::Video);
+  return (type >= item_type::audio) && (type < item_type::video);
 }
 
-bool content_directory::item::isVideo(void) const
+bool content_directory::item::is_video(void) const
 {
-  return (type >= item_type::Video) && (type < item_type::Image);
+  return (type >= item_type::video) && (type < item_type::image);
 }
 
-bool content_directory::item::isImage(void) const
+bool content_directory::item::is_image(void) const
 {
-  return (type >= item_type::Image) && (type <= item_type::Photo);
+  return (type >= item_type::image) && (type <= item_type::photo);
 }
 
-bool content_directory::item::isMusic(void) const
+bool content_directory::item::is_music(void) const
 {
-  return (type == item_type::Music) || (type == item_type::MusicVideo);
-}
-
-
-content_directory::item::Stream::Stream(void)
-{
-}
-
-content_directory::item::Stream::~Stream()
-{
+  return (type == item_type::music) || (type == item_type::music_video);
 }
 
 
-content_directory::item::Chapter::Chapter(const std::string &title, unsigned position)
+content_directory::item::stream::stream(void)
+{
+}
+
+content_directory::item::stream::~stream()
+{
+}
+
+
+content_directory::item::chapter::chapter(const std::string &title, unsigned position)
   : title(title), position(position)
 {
 }
 
-content_directory::item::Chapter::~Chapter()
+content_directory::item::chapter::~chapter()
 {
 }
 
@@ -833,7 +934,7 @@ content_directory::browse_item::~browse_item()
 
 content_directory::browse_container::browse_container()
   : restricted(true),
-    childCount(-1)
+    child_count(size_t(-1))
 {
 }
 
@@ -842,36 +943,37 @@ content_directory::browse_container::~browse_container()
 }
 
 
-std::vector<content_directory::item> content_directory::Data::listContentDirItems(const std::string &client, const std::string &path, int start, int &count)
+std::vector<content_directory::item> content_directory::root_item_source::list_contentdir_items(const std::string &client, const std::string &path, size_t start, size_t &count)
 {
-  const bool returnAll = count == 0;
+  const bool return_all = count == 0;
   std::vector<content_directory::item> result;
-  QSet<std::string> names;
+  std::set<std::string> names;
 
-  for (QMap<std::string, Callback *>::ConstIterator i=callbacks.begin(); i!=callbacks.end(); i++)
-  if (i.key().startsWith(path))
+  for (auto i = parent.item_sources.begin(); i != parent.item_sources.end(); i++)
+  if (starts_with(i->first, path))
   {
-    std::string sub = i.key().mid(path.length() - 1);
-    sub = sub.left(sub.indexOf('/', 1) + 1);
-    if ((sub.length() > 1) && !names.contains(sub))
+    std::string sub = i->first.substr(path.length() - 1);
+    const size_t sl = sub.find_first_of('/');
+    sub = sub.substr(0, (sl != sub.npos) ? (sl + 1) : 0);
+    if ((sub.length() > 1) && (names.find(sub) == names.end()))
     {
-      int total = 1;
-      if (!(*i)->listContentDirItems(client, i.key(), 0, total).isEmpty() && (total > 0))
+      size_t total = 1;
+      if (!i->second->list_contentdir_items(client, i->first, 0, total).empty() && (total > 0))
       {
         names.insert(sub);
 
-        if (returnAll || (count > 0))
+        if (return_all || (count > 0))
         {
           if (start == 0)
           {
-            item item;
-            item.isDir = true;
+            struct item item;
+            item.is_dir = true;
             item.path = sub;
             item.title = sub;
-            item.title = item.title.startsWith('/') ? item.title.mid(1) : item.title;
-            item.title = item.title.endsWith('/') ? item.title.left(item.title.length() - 1) : item.title;
+            item.title = starts_with(item.title, "/") ? item.title.substr(1) : item.title;
+            item.title = ends_with(item.title, "/") ? item.title.substr(0, item.title.length() - 1) : item.title;
 
-            result += item;
+            result.push_back(item);
             if (count > 0)
               count--;
           }
@@ -882,12 +984,12 @@ std::vector<content_directory::item> content_directory::Data::listContentDirItem
     }
   }
 
-  count = names.count();
+  count = names.size();
 
   return result;
 }
 
-content_directory::item content_directory::Data::getContentDirItem(const std::string &, const std::string &)
+content_directory::item content_directory::root_item_source::get_contentdir_item(const std::string &, const std::string &)
 {
   return item();
 }
