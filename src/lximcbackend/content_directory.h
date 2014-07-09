@@ -29,7 +29,7 @@
 
 namespace lximediacenter {
 
-class content_directory : private rootdevice::service
+class content_directory : public rootdevice::service
 {
 public:
   struct item
@@ -124,7 +124,7 @@ public:
 
   struct action_browse
   {
-    enum browse_flag { metadata, direct_children };
+    enum class browse_flag { metadata, direct_children };
 
     virtual std::string get_object_id() const = 0;
     virtual browse_flag get_browse_flag() const = 0;
@@ -135,20 +135,20 @@ public:
 
     virtual void add_item(const browse_item &) = 0;
     virtual void add_container(const browse_container &) = 0;
-    virtual void set_response(uint32_t totalMatches, uint32_t updateID) = 0;
+    virtual void set_response(size_t totalMatches, uint32_t updateID) = 0;
   };
 
   struct action_search
   {
-    virtual std::string getContainerID() const = 0;
-    virtual std::string getSearchCriteria() const = 0;
+    virtual std::string get_container_id() const = 0;
+    virtual std::string get_search_criteria() const = 0;
     virtual std::string get_filter() const = 0;
-    virtual uint32_t    get_starting_index() const = 0;
-    virtual uint32_t    get_requested_count() const = 0;
+    virtual size_t      get_starting_index() const = 0;
+    virtual size_t      get_requested_count() const = 0;
     virtual std::string get_sort_criteria() const = 0;
 
     virtual void add_item(const browse_item &) = 0;
-    virtual void set_response(uint32_t totalMatches, uint32_t updateID) = 0;
+    virtual void set_response(size_t totalMatches, uint32_t updateID) = 0;
   };
 
   struct action_get_search_capabilities

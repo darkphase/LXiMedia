@@ -18,6 +18,8 @@
 #include "ixml_structures.h"
 #include <ixml.h>
 #include <cstring>
+#include <iomanip>
+#include <sstream>
 
 namespace lximediacenter {
 namespace ixml_structures {
@@ -279,7 +281,7 @@ void eventable_propertyset::add_property(const std::string &name, const std::str
   add_textelement(&property->n, name, value);
 }
 
-action_get_current_connectionids::action_get_current_connectionids(IXML_Node *, IXML_Document *&dst, const char *prefix)
+action_get_current_connectionids::action_get_current_connectionids(IXML_Node *, IXML_Document *&dst, const std::string &prefix)
   : xml_structure(dst),
     prefix(prefix)
 {
@@ -298,7 +300,7 @@ void action_get_current_connectionids::set_response(const std::vector<int32_t> &
 }
 
 
-action_get_current_connection_info::action_get_current_connection_info(IXML_Node *src, IXML_Document *&dst, const char *prefix)
+action_get_current_connection_info::action_get_current_connection_info(IXML_Node *src, IXML_Document *&dst, const std::string &prefix)
   : xml_structure(dst),
     src(src),
     prefix(prefix)
@@ -347,9 +349,8 @@ void action_get_current_connection_info::set_response(const connection_manager::
 }
 
 
-action_get_protocol_info::action_get_protocol_info(IXML_Node *, IXML_Document *&dst, const char *prefix)
+action_get_protocol_info::action_get_protocol_info(IXML_Node *, IXML_Document *&dst, const std::string &prefix)
   : xml_structure(dst),
-//    src(src),
     prefix(prefix)
 {
 }
@@ -363,14 +364,13 @@ void action_get_protocol_info::set_response(const std::string &source, const std
 }
 
 
-#if 0
-action_browse::action_browse(IXML_Node *src, IXML_Document *&dst, const char *prefix)
+action_browse::action_browse(IXML_Node *src, IXML_Document *&dst, const std::string &prefix)
   : xml_structure(dst),
     src(src),
     prefix(prefix),
     result(),
     didl(result.add_element(&result.doc->n, "DIDL-Lite")),
-    numberReturned(0)
+    number_returned(0)
 {
   result.set_attribute(didl, "xmlns", "urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/");
   result.set_attribute(didl, "xmlns:dc", "http://purl.org/dc/elements/1.1/");
@@ -383,15 +383,15 @@ std::string action_browse::get_object_id() const
   return get_textelement(src, "ObjectID");
 }
 
-action_browse::BrowseFlag action_browse::get_browse_flag() const
+action_browse::browse_flag action_browse::get_browse_flag() const
 {
   const std::string f = get_textelement(src, "BrowseFlag");
   if (f == "BrowseMetadata")
-    return action_browse::BrowseMetadata;
+    return action_browse::browse_flag::metadata;
   else if (f == "BrowseDirectChildren")
-    return action_browse::BrowseDirectChildren;
+    return action_browse::browse_flag::direct_children;
 
-  return BrowseFlag(-1);
+  return action_browse::browse_flag(-1);
 }
 
 std::string action_browse::get_filter() const
@@ -399,14 +399,18 @@ std::string action_browse::get_filter() const
   return get_textelement(src, "Filter");
 }
 
-uint32_t action_browse::get_starting_index() const
+size_t action_browse::get_starting_index() const
 {
-  return get_textelement(src, "StartingIndex").toUInt();
+  try { return std::stoul(get_textelement(src, "StartingIndex")); }
+  catch (const std::invalid_argument &) { return size_t(-1); }
+  catch (const std::out_of_range &) { return size_t(-1); }
 }
 
-uint32_t action_browse::get_requested_count() const
+size_t action_browse::get_requested_count() const
 {
-  return get_textelement(src, "RequestedCount").toUInt();
+  try { return std::stoul(get_textelement(src, "RequestedCount")); }
+  catch (const std::invalid_argument &) { return size_t(-1); }
+  catch (const std::out_of_range &) { return size_t(-1); }
 }
 
 std::string action_browse::get_sort_criteria() const
@@ -414,94 +418,101 @@ std::string action_browse::get_sort_criteria() const
   return get_textelement(src, "SortCriteria");
 }
 
-void action_browse::add_item(const ContentDirectory::BrowseItem &browseItem)
+static std::string to_time(int secs)
+{
+  std::ostringstream str;
+  str << (secs / 3600)
+      << ":" << std::setw(2) << std::setfill('0') << ((secs % 3600) / 60)
+      << ":" << std::setw(2) << std::setfill('0') << (secs % 60)
+      << ".000";
+  return str.str();
+}
+
+void action_browse::add_item(const content_directory::browse_item &browse_item)
 {
   IXML_Element * const item = result.add_element(&didl->n, "item");
-  result.set_attribute(item, "id", browseItem.id);
-  result.set_attribute(item, "parentID", browseItem.parentID);
-  result.set_attribute(item, "restricted", browseItem.restricted ? "1" : "0");
+  result.set_attribute(item, "id", browse_item.id);
+  result.set_attribute(item, "parentID", browse_item.parent_id);
+  result.set_attribute(item, "restricted", browse_item.restricted ? "1" : "0");
 
-  result.add_textelement(&item->n, "dc:title", browseItem.title);
+  result.add_textelement(&item->n, "dc:title", browse_item.title);
 
-  typedef QPair<std::string, std::string> Attribute;
-  foreach (const Attribute &attribute, browseItem.attributes)
+  for (auto &attribute : browse_item.attributes)
   {
     IXML_Element * const e = result.add_textelement(&item->n, attribute.first, attribute.second);
     if (attribute.first == "upnp:albumArtURI")
     {
-      if (attribute.second.endsWith(".jpeg") || attribute.second.endsWith(".jpeg"))
+      if (ends_with(attribute.second, ".jpeg") || ends_with(attribute.second, ".jpg"))
         result.set_attribute(e, "dlna:profileID", "JPEG_TN");
-      else if (attribute.second.endsWith(".png"))
+      else if (ends_with(attribute.second, ".png"))
         result.set_attribute(e, "dlna:profileID", "PNG_SM");
     }
   }
 
-  typedef QPair<std::string, ConnectionManager::Protocol> File;
-  foreach (const File &file, browseItem.files)
+  for (auto &file : browse_item.files)
   {
     IXML_Element * const res = result.add_textelement(&item->n, "res", file.first);
-    result.set_attribute(res, "protocolInfo", file.second.toByteArray());
+    result.set_attribute(res, "protocolInfo", file.second.to_string());
 
-    if (browseItem.duration > 0)
-      result.set_attribute(res, "duration", QTime(0, 0).addSecs(browseItem.duration).toString("h:mm:ss.zzz").c_str());
+    if (browse_item.duration > 0)
+      result.set_attribute(res, "duration", to_time(browse_item.duration));
 
-    if (file.second.sampleRate > 0)
-      result.set_attribute(res, "sampleFrequency", std::to_string(file.second.sampleRate));
+    if (file.second.sample_rate > 0)
+      result.set_attribute(res, "sampleFrequency", std::to_string(file.second.sample_rate));
 
     if (file.second.channels > 0)
       result.set_attribute(res, "nrAudioChannels", std::to_string(file.second.channels));
 
-    if (file.second.resolution.isValid() && !file.second.resolution.isNull())
-      result.set_attribute(res, "resolution", std::to_string(file.second.resolution.width()) + "x" + std::to_string(file.second.resolution.height()));
+    if ((file.second.resolution_x > 0) && (file.second.resolution_y > 0))
+      result.set_attribute(res, "resolution", std::to_string(file.second.resolution_x) + "x" + std::to_string(file.second.resolution_y));
 
     if (file.second.size > 0)
       result.set_attribute(res, "size", std::to_string(file.second.size));
   }
 
-  numberReturned++;
+  number_returned++;
 }
 
-void action_browse::add_container(const ContentDirectory::BrowseContainer &browseContainer)
+void action_browse::add_container(const content_directory::browse_container &browse_container)
 {
   IXML_Element * const item = result.add_element(&didl->n, "container");
-  result.set_attribute(item, "id", browseContainer.id);
-  result.set_attribute(item, "parentID", browseContainer.parentID);
-  result.set_attribute(item, "restricted", browseContainer.restricted ? "1" : "0");
+  result.set_attribute(item, "id", browse_container.id);
+  result.set_attribute(item, "parentID", browse_container.parent_id);
+  result.set_attribute(item, "restricted", browse_container.restricted ? "1" : "0");
 
-  if (browseContainer.childCount != uint32_t(-1))
-    result.set_attribute(item, "childCount", std::to_string(browseContainer.childCount));
+  if (browse_container.child_count != size_t(-1))
+    result.set_attribute(item, "childCount", std::to_string(browse_container.child_count));
 
-  result.add_textelement(&item->n, "dc:title", browseContainer.title);
+  result.add_textelement(&item->n, "dc:title", browse_container.title);
 
-  typedef QPair<std::string, std::string> Attribute;
-  foreach (const Attribute &attribute, browseContainer.attributes)
+  for (auto &attribute : browse_container.attributes)
     result.add_textelement(&item->n, attribute.first, attribute.second);
 
-  numberReturned++;
+  number_returned++;
 }
 
-void action_browse::set_response(uint32_t totalMatches, uint32_t updateID)
+void action_browse::set_response(size_t total_matches, uint32_t update_id)
 {
   IXML_Element * const response = add_element(&doc->n, prefix + ":BrowseResponse");
-  set_attribute(response, "xmlns:" + prefix, RootDevice::serviceTypeContentDirectory);
+  set_attribute(response, "xmlns:" + prefix, content_directory::service_type);
 
   DOMString r = ixmlDocumenttoString(result.doc);
   add_textelement(&response->n, "Result", r);
   ixmlFreeDOMString(r);
 
-  add_textelement(&response->n, "NumberReturned", std::to_string(numberReturned));
-  add_textelement(&response->n, "TotalMatches", std::to_string(totalMatches));
-  add_textelement(&response->n, "UpdateID", std::to_string(updateID));
+  add_textelement(&response->n, "NumberReturned", std::to_string(number_returned));
+  add_textelement(&response->n, "TotalMatches", std::to_string(total_matches));
+  add_textelement(&response->n, "UpdateID", std::to_string(update_id));
 }
 
 
-action_search::action_search(IXML_Node *src, IXML_Document *&dst, const char *prefix)
+action_search::action_search(IXML_Node *src, IXML_Document *&dst, const std::string &prefix)
   : xml_structure(dst),
     src(src),
     prefix(prefix),
     result(),
     didl(result.add_element(&result.doc->n, "DIDL-Lite")),
-    numberReturned(0)
+    number_returned(0)
 {
   result.set_attribute(didl, "xmlns", "urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/");
   result.set_attribute(didl, "xmlns:dc", "http://purl.org/dc/elements/1.1/");
@@ -509,12 +520,12 @@ action_search::action_search(IXML_Node *src, IXML_Document *&dst, const char *pr
   result.set_attribute(didl, "xmlns:upnp", "urn:schemas-upnp-org:metadata-1-0/upnp/");
 }
 
-std::string action_search::getContainerID() const
+std::string action_search::get_container_id() const
 {
   return get_textelement(src, "ContainerID");
 }
 
-std::string action_search::getSearchCriteria() const
+std::string action_search::get_search_criteria() const
 {
   return get_textelement(src, "SearchCriteria");
 }
@@ -524,14 +535,18 @@ std::string action_search::get_filter() const
   return get_textelement(src, "Filter");
 }
 
-uint32_t action_search::get_starting_index() const
+size_t action_search::get_starting_index() const
 {
-  return get_textelement(src, "StartingIndex").toUInt();
+  try { return std::stoul(get_textelement(src, "StartingIndex")); }
+  catch (const std::invalid_argument &) { return size_t(-1); }
+  catch (const std::out_of_range &) { return size_t(-1); }
 }
 
-uint32_t action_search::get_requested_count() const
+size_t action_search::get_requested_count() const
 {
-  return get_textelement(src, "RequestedCount").toUInt();
+  try { return std::stoul(get_textelement(src, "RequestedCount")); }
+  catch (const std::invalid_argument &) { return size_t(-1); }
+  catch (const std::out_of_range &) { return size_t(-1); }
 }
 
 std::string action_search::get_sort_criteria() const
@@ -539,71 +554,68 @@ std::string action_search::get_sort_criteria() const
   return get_textelement(src, "SortCriteria");
 }
 
-void action_search::add_item(const ContentDirectory::BrowseItem &browseItem)
+void action_search::add_item(const content_directory::browse_item &browse_item)
 {
   IXML_Element * const item = result.add_element(&didl->n, "item");
-  result.set_attribute(item, "id", browseItem.id);
-  result.set_attribute(item, "parentID", browseItem.parentID);
-  result.set_attribute(item, "restricted", browseItem.restricted ? "1" : "0");
+  result.set_attribute(item, "id", browse_item.id);
+  result.set_attribute(item, "parentID", browse_item.parent_id);
+  result.set_attribute(item, "restricted", browse_item.restricted ? "1" : "0");
 
-  result.add_textelement(&item->n, "dc:title", browseItem.title);
+  result.add_textelement(&item->n, "dc:title", browse_item.title);
 
-  typedef QPair<std::string, std::string> Attribute;
-  foreach (const Attribute &attribute, browseItem.attributes)
+  for (auto &attribute : browse_item.attributes)
   {
     IXML_Element * const e = result.add_textelement(&item->n, attribute.first, attribute.second);
     if (attribute.first == "upnp:albumArtURI")
     {
-      if (attribute.second.endsWith(".jpeg") || attribute.second.endsWith(".jpeg"))
+      if (ends_with(attribute.second, ".jpeg") || ends_with(attribute.second, ".jpg"))
         result.set_attribute(e, "dlna:profileID", "JPEG_TN");
-      else if (attribute.second.endsWith(".png"))
+      else if (ends_with(attribute.second, ".png"))
         result.set_attribute(e, "dlna:profileID", "PNG_SM");
     }
   }
 
-  typedef QPair<std::string, ConnectionManager::Protocol> File;
-  foreach (const File &file, browseItem.files)
+  for (auto &file : browse_item.files)
   {
     IXML_Element * const res = result.add_textelement(&item->n, "res", file.first);
-    result.set_attribute(res, "protocolInfo", file.second.toByteArray());
+    result.set_attribute(res, "protocolInfo", file.second.to_string());
 
-    if (browseItem.duration > 0)
-      result.set_attribute(res, "duration", QTime(0, 0).addSecs(browseItem.duration).toString("h:mm:ss.zzz").c_str());
+    if (browse_item.duration > 0)
+      result.set_attribute(res, "duration", to_time(browse_item.duration));
 
-    if (file.second.sampleRate > 0)
-      result.set_attribute(res, "sampleFrequency", std::to_string(file.second.sampleRate));
+    if (file.second.sample_rate > 0)
+      result.set_attribute(res, "sampleFrequency", std::to_string(file.second.sample_rate));
 
     if (file.second.channels > 0)
       result.set_attribute(res, "nrAudioChannels", std::to_string(file.second.channels));
 
-    if (file.second.resolution.isValid() && !file.second.resolution.isNull())
-      result.set_attribute(res, "resolution", std::to_string(file.second.resolution.width()) + "x" + std::to_string(file.second.resolution.height()));
+    if ((file.second.resolution_x > 0) && (file.second.resolution_y > 0))
+      result.set_attribute(res, "resolution", std::to_string(file.second.resolution_x) + "x" + std::to_string(file.second.resolution_y));
 
     if (file.second.size > 0)
       result.set_attribute(res, "size", std::to_string(file.second.size));
   }
 
-  numberReturned++;
+  number_returned++;
 }
 
-void action_search::set_response(uint32_t totalMatches, uint32_t updateID)
+void action_search::set_response(size_t total_matches, uint32_t update_id)
 {
   IXML_Element * const response = add_element(&doc->n, prefix + ":SearchResponse");
-  set_attribute(response, "xmlns:" + prefix, RootDevice::serviceTypeContentDirectory);
+  set_attribute(response, "xmlns:" + prefix, content_directory::service_type);
 
   DOMString r = ixmlDocumenttoString(result.doc);
   add_textelement(&response->n, "Result", r);
   ixmlFreeDOMString(r);
 
-  add_textelement(&response->n, "NumberReturned", std::to_string(numberReturned));
-  add_textelement(&response->n, "TotalMatches", std::to_string(totalMatches));
-  add_textelement(&response->n, "UpdateID", std::to_string(updateID));
+  add_textelement(&response->n, "NumberReturned", std::to_string(number_returned));
+  add_textelement(&response->n, "TotalMatches", std::to_string(total_matches));
+  add_textelement(&response->n, "UpdateID", std::to_string(update_id));
 }
 
 
-action_get_search_capabilities::action_get_search_capabilities(IXML_Node *, IXML_Document *&dst, const char *prefix)
+action_get_search_capabilities::action_get_search_capabilities(IXML_Node *, IXML_Document *&dst, const std::string &prefix)
   : xml_structure(dst),
-//    src(src),
     prefix(prefix)
 {
 }
@@ -611,14 +623,13 @@ action_get_search_capabilities::action_get_search_capabilities(IXML_Node *, IXML
 void action_get_search_capabilities::set_response(const std::string &ids)
 {
   IXML_Element * const response = add_element(&doc->n, prefix + ":GetSearchCapabilitiesResponse");
-  set_attribute(response, "xmlns:" + prefix, RootDevice::serviceTypeContentDirectory);
+  set_attribute(response, "xmlns:" + prefix, content_directory::service_type);
   add_textelement(&response->n, "SearchCaps", ids);
 }
 
 
-action_get_sort_capabilities::action_get_sort_capabilities(IXML_Node *, IXML_Document *&dst, const char *prefix)
+action_get_sort_capabilities::action_get_sort_capabilities(IXML_Node *, IXML_Document *&dst, const std::string &prefix)
   : xml_structure(dst),
-//    src(src),
     prefix(prefix)
 {
 }
@@ -626,14 +637,13 @@ action_get_sort_capabilities::action_get_sort_capabilities(IXML_Node *, IXML_Doc
 void action_get_sort_capabilities::set_response(const std::string &ids)
 {
   IXML_Element * const response = add_element(&doc->n, prefix + ":GetSortCapabilitiesResponse");
-  set_attribute(response, "xmlns:" + prefix, RootDevice::serviceTypeContentDirectory);
+  set_attribute(response, "xmlns:" + prefix, content_directory::service_type);
   add_textelement(&response->n, "SortCaps", ids);
 }
 
 
-action_get_system_update_id::action_get_system_update_id(IXML_Node *, IXML_Document *&dst, const char *prefix)
+action_get_system_update_id::action_get_system_update_id(IXML_Node *, IXML_Document *&dst, const std::string &prefix)
   : xml_structure(dst),
-//    src(src),
     prefix(prefix)
 {
 }
@@ -641,15 +651,14 @@ action_get_system_update_id::action_get_system_update_id(IXML_Node *, IXML_Docum
 void action_get_system_update_id::set_response(uint32_t id)
 {
   IXML_Element * const response = add_element(&doc->n, prefix + ":GetSystemUpdateIDResponse");
-  set_attribute(response, "xmlns:" + prefix, RootDevice::serviceTypeContentDirectory);
+  set_attribute(response, "xmlns:" + prefix, content_directory::service_type);
   add_textelement(&response->n, "Id", std::to_string(id));
 }
 
 
 // Samsung GetFeatureList
-action_get_featurelist::action_get_featurelist(IXML_Node *, IXML_Document *&dst, const char *prefix)
+action_get_featurelist::action_get_featurelist(IXML_Node *, IXML_Document *&dst, const std::string &prefix)
   : xml_structure(dst),
-//    src(src),
     prefix(prefix)
 {
 }
@@ -657,7 +666,7 @@ action_get_featurelist::action_get_featurelist(IXML_Node *, IXML_Document *&dst,
 void action_get_featurelist::set_response(const std::vector<std::string> &containers)
 {
   IXML_Element * const response = add_element(&doc->n, prefix + ":X_GetFeatureListResponse");
-  set_attribute(response, "xmlns:" + prefix, RootDevice::serviceTypeContentDirectory);
+  set_attribute(response, "xmlns:" + prefix, content_directory::service_type);
 
   xml_structure sdoc;
   IXML_Element * const features = sdoc.add_element(&sdoc.doc->n, "Features");
@@ -682,22 +691,22 @@ void action_get_featurelist::set_response(const std::vector<std::string> &contai
 
 
 // Microsoft MediaReceiverRegistrar IsAuthorized
-ActionIsAuthorized::ActionIsAuthorized(IXML_Node *src, IXML_Document *&dst, const char *prefix)
+action_is_authorized::action_is_authorized(IXML_Node *src, IXML_Document *&dst, const std::string &prefix)
   : xml_structure(dst),
     src(src),
     prefix(prefix)
 {
 }
 
-std::string ActionIsAuthorized::getDeviceID() const
+std::string action_is_authorized::get_deviceid() const
 {
   return get_textelement(src, "DeviceID");
 }
 
-void ActionIsAuthorized::set_response(int result)
+void action_is_authorized::set_response(int result)
 {
   IXML_Element * const response = add_element(&doc->n, prefix + ":IsAuthorizedResponse");
-  set_attribute(response, "xmlns:" + prefix, RootDevice::serviceTypeMediaReceiverRegistrar);
+  set_attribute(response, "xmlns:" + prefix, mediareceiver_registrar::service_type);
 
   add_textelement(&response->n, "Result", std::to_string(result));
   set_attribute(response, "xmlns:dt", "urn:schemas-microsoft-com:datatypes");
@@ -706,22 +715,22 @@ void ActionIsAuthorized::set_response(int result)
 
 
 // Microsoft MediaReceiverRegistrar IsValidated
-ActionIsValidated::ActionIsValidated(IXML_Node *src, IXML_Document *&dst, const char *prefix)
+action_is_validated::action_is_validated(IXML_Node *src, IXML_Document *&dst, const std::string &prefix)
   : xml_structure(dst),
     src(src),
     prefix(prefix)
 {
 }
 
-std::string ActionIsValidated::getDeviceID() const
+std::string action_is_validated::get_deviceid() const
 {
   return get_textelement(src, "DeviceID");
 }
 
-void ActionIsValidated::set_response(int result)
+void action_is_validated::set_response(int result)
 {
   IXML_Element * const response = add_element(&doc->n, prefix + ":IsValidatedResponse");
-  set_attribute(response, "xmlns:" + prefix, RootDevice::serviceTypeMediaReceiverRegistrar);
+  set_attribute(response, "xmlns:" + prefix, mediareceiver_registrar::service_type);
 
   add_textelement(&response->n, "Result", std::to_string(result));
   set_attribute(response, "xmlns:dt", "urn:schemas-microsoft-com:datatypes");
@@ -730,28 +739,27 @@ void ActionIsValidated::set_response(int result)
 
 
 // Microsoft MediaReceiverRegistrar RegisterDevice
-ActionRegisterDevice::ActionRegisterDevice(IXML_Node *src, IXML_Document *&dst, const char *prefix)
+action_register_device::action_register_device(IXML_Node *src, IXML_Document *&dst, const std::string &prefix)
   : xml_structure(dst),
     src(src),
     prefix(prefix)
 {
 }
 
-std::string ActionRegisterDevice::getRegistrationReqMsg() const
+std::string action_register_device::get_registration_req_msg() const
 {
-  return std::string::fromBase64(get_textelement(src, "RegistrationReqMsg"));
+  return from_base64(get_textelement(src, "RegistrationReqMsg"));
 }
 
-void ActionRegisterDevice::set_response(const std::string &result)
+void action_register_device::set_response(const std::string &result)
 {
   IXML_Element * const response = add_element(&doc->n, prefix + ":RegisterDeviceResponse");
-  set_attribute(response, "xmlns:" + prefix, RootDevice::serviceTypeMediaReceiverRegistrar);
+  set_attribute(response, "xmlns:" + prefix, mediareceiver_registrar::service_type);
 
-  add_textelement(&response->n, "RegistrationRespMsg", result.toBase64());
+  add_textelement(&response->n, "RegistrationRespMsg", to_base64(result));
   set_attribute(response, "xmlns:dt", "urn:schemas-microsoft-com:datatypes");
   set_attribute(response, "dt:dt", "bin.Base64");
 }
-#endif
 
 } // End of namespace
 } // End of namespace

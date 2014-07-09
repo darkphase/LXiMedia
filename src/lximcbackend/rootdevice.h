@@ -71,8 +71,6 @@ public:
     virtual void write_eventable_statevariables(eventable_propertyset &) const = 0;
   };
 
-  static const char servicetype_mediareceiverregistrar[];
-
 public:
   rootdevice(class messageloop &, class upnp &, const std::string &uuid, const std::string &devicetype);
   virtual ~rootdevice();

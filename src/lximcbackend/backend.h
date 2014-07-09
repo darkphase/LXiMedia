@@ -20,6 +20,8 @@
 
 #include <cstdint>
 #include "connection_manager.h"
+#include "content_directory.h"
+#include "mediareceiver_registrar.h"
 #include "rootdevice.h"
 #include "upnp.h"
 
@@ -46,8 +48,8 @@ private:
   class upnp upnp;
   class rootdevice rootdevice;
   class connection_manager connection_manager;
-//  ContentDirectory              upnpContentDirectory;
-//  MediaReceiverRegistrar        upnpMediaReceiverRegistrar;
+  class content_directory content_directory;
+  class mediareceiver_registrar mediareceiver_registrar;
 //  static const int              upnpRepublishTimout;
 //  bool                          upnpRepublishRequired;
 //  QTimer                        upnpRepublishTimer;

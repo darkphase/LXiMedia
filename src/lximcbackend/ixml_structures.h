@@ -20,6 +20,8 @@
 
 #include "rootdevice.h"
 #include "connection_manager.h"
+#include "content_directory.h"
+#include "mediareceiver_registrar.h"
 
 struct _IXML_Document;
 struct _IXML_Element;
@@ -101,10 +103,9 @@ private:
 };
 
 class action_get_current_connectionids final : public xml_structure, public connection_manager::action_get_current_connectionids
-
 {
 public:
-  action_get_current_connectionids(_IXML_Node *, _IXML_Document *&, const char *);
+  action_get_current_connectionids(_IXML_Node *, _IXML_Document *&, const std::string &);
 
   virtual void set_response(const std::vector<int32_t> &) override;
 
@@ -115,7 +116,7 @@ private:
 class action_get_current_connection_info final : public xml_structure, public connection_manager::action_get_current_connection_info
 {
 public:
-  action_get_current_connection_info(_IXML_Node *, _IXML_Document *&, const char *);
+  action_get_current_connection_info(_IXML_Node *, _IXML_Document *&, const std::string &);
 
   virtual int32_t get_connectionid() const override;
 
@@ -126,11 +127,10 @@ private:
   const std::string prefix;
 };
 
-class action_get_protocol_info final : public connection_manager::action_get_protocol_info,
-                              public xml_structure
+class action_get_protocol_info final : public xml_structure, public connection_manager::action_get_protocol_info
 {
 public:
-  action_get_protocol_info(_IXML_Node *, _IXML_Document *&, const char *);
+  action_get_protocol_info(_IXML_Node *, _IXML_Document *&, const std::string &);
 
   virtual void set_response(const std::string &source, const std::string &sink) override;
 
@@ -138,154 +138,140 @@ private:
   const std::string prefix;
 };
 
-#if 0
-class action_browse final : public ContentDirectory::action_browse,
-                     public xml_structure
+class action_browse final : public xml_structure, public content_directory::action_browse
+
 {
 public:
-  explicit                      action_browse(_IXML_Node *, _IXML_Document *&, const char *);
+  explicit action_browse(_IXML_Node *, _IXML_Document *&, const std::string &);
 
-  virtual std::string            get_object_id() const override;
-  virtual BrowseFlag            get_browse_flag() const override;
-  virtual std::string            get_filter() const override;
-  virtual uint32_t               get_starting_index() const override;
-  virtual uint32_t               get_requested_count() const override;
-  virtual std::string            get_sort_criteria() const override;
+  virtual std::string get_object_id() const override;
+  virtual browse_flag get_browse_flag() const override;
+  virtual std::string get_filter() const override;
+  virtual size_t      get_starting_index() const override;
+  virtual size_t      get_requested_count() const override;
+  virtual std::string get_sort_criteria() const override;
 
-  virtual void                  add_item(const ContentDirectory::BrowseItem &) override;
-  virtual void                  add_container(const ContentDirectory::BrowseContainer &) override;
-  virtual void                  set_response(uint32_t totalMatches, uint32_t updateID) override;
+  virtual void add_item(const content_directory::browse_item &) override;
+  virtual void add_container(const content_directory::browse_container &) override;
+  virtual void set_response(size_t total_matches, uint32_t update_id) override;
 
 private:
-  _IXML_Node            * const src;
-  const std::string              prefix;
-  xml_structure                  result;
-  _IXML_Element         * const didl;
-  uint32_t                       numberReturned;
+  _IXML_Node * const src;
+  const std::string prefix;
+  xml_structure result;
+  _IXML_Element * const didl;
+  size_t number_returned;
 };
 
-class action_search final : public ContentDirectory::action_search,
-                     public xml_structure
+class action_search final : public xml_structure, public content_directory::action_search
 {
 public:
-  explicit                      action_search(_IXML_Node *, _IXML_Document *&, const char *);
+  explicit action_search(_IXML_Node *, _IXML_Document *&, const std::string &);
 
-  virtual std::string            getContainerID() const override;
-  virtual std::string            getSearchCriteria() const override;
-  virtual std::string            get_filter() const override;
-  virtual uint32_t               get_starting_index() const override;
-  virtual uint32_t               get_requested_count() const override;
-  virtual std::string            get_sort_criteria() const override;
+  virtual std::string get_container_id() const override;
+  virtual std::string get_search_criteria() const override;
+  virtual std::string get_filter() const override;
+  virtual size_t      get_starting_index() const override;
+  virtual size_t      get_requested_count() const override;
+  virtual std::string get_sort_criteria() const override;
 
-  virtual void                  add_item(const ContentDirectory::BrowseItem &) override;
-  virtual void                  set_response(uint32_t totalMatches, uint32_t updateID) override;
+  virtual void add_item(const content_directory::browse_item &) override;
+  virtual void set_response(size_t total_matches, uint32_t update_id) override;
 
 private:
-  _IXML_Node            * const src;
-  const std::string              prefix;
-  xml_structure                  result;
-  _IXML_Element         * const didl;
-  uint32_t                       numberReturned;
+  _IXML_Node * const src;
+  const std::string prefix;
+  xml_structure result;
+  _IXML_Element * const didl;
+  size_t number_returned;
 };
 
-class action_get_search_capabilities final : public ContentDirectory::action_get_search_capabilities,
-                                    public xml_structure
+class action_get_search_capabilities final : public xml_structure, public content_directory::action_get_search_capabilities
 {
 public:
-  explicit                      action_get_search_capabilities(_IXML_Node *, _IXML_Document *&, const char *);
+  explicit action_get_search_capabilities(_IXML_Node *, _IXML_Document *&, const std::string &);
 
-  virtual void                  set_response(const std::string &) override;
+  virtual void set_response(const std::string &) override;
 
 private:
-//  _IXML_Node            * const src;
-  const std::string              prefix;
+  const std::string prefix;
 };
 
-class action_get_sort_capabilities final : public ContentDirectory::action_get_sort_capabilities,
-                                  public xml_structure
+class action_get_sort_capabilities final : public xml_structure, public content_directory::action_get_sort_capabilities
 {
 public:
-  explicit                      action_get_sort_capabilities(_IXML_Node *, _IXML_Document *&, const char *);
+  explicit action_get_sort_capabilities(_IXML_Node *, _IXML_Document *&, const std::string &);
 
-  virtual void                  set_response(const std::string &) override;
+  virtual void set_response(const std::string &) override;
 
 private:
-//  _IXML_Node            * const src;
-  const std::string              prefix;
+  const std::string prefix;
 };
 
-class action_get_system_update_id final : public ContentDirectory::action_get_system_update_id,
-                                public xml_structure
+class action_get_system_update_id final : public xml_structure, public content_directory::action_get_system_update_id
 {
 public:
-  explicit                      action_get_system_update_id(_IXML_Node *, _IXML_Document *&, const char *);
+  explicit action_get_system_update_id(_IXML_Node *, _IXML_Document *&, const std::string &);
 
-  virtual void                  set_response(uint32_t) override;
+  virtual void set_response(uint32_t) override;
 
 private:
-//  _IXML_Node            * const src;
-  const std::string              prefix;
+  const std::string prefix;
 };
 
 // Samsung GetFeatureList
-class action_get_featurelist final : public ContentDirectory::action_get_featurelist,
-                             public xml_structure
+class action_get_featurelist final : public xml_structure, public content_directory::action_get_featurelist
 {
 public:
-  explicit                      action_get_featurelist(_IXML_Node *, _IXML_Document *&, const char *);
+  explicit action_get_featurelist(_IXML_Node *, _IXML_Document *&, const std::string &);
 
-  virtual void                  set_response(const std::vector<std::string> &) override;
+  virtual void set_response(const std::vector<std::string> &) override;
 
 private:
-//  _IXML_Node            * const src;
-  const std::string              prefix;
+  const std::string prefix;
 };
 
 // Microsoft MediaReceiverRegistrar IsAuthorized
-class ActionIsAuthorized final : public MediaReceiverRegistrar::ActionIsAuthorized,
-                           public xml_structure
+class action_is_authorized final : public xml_structure, public mediareceiver_registrar::action_is_authorized
 {
 public:
-  explicit                      ActionIsAuthorized(_IXML_Node *, _IXML_Document *&, const char *);
+  explicit action_is_authorized(_IXML_Node *, _IXML_Document *&, const std::string &);
 
-  virtual std::string            getDeviceID() const override;
-  virtual void                  set_response(int) override;
+  virtual std::string get_deviceid() const override;
+  virtual void set_response(int) override;
 
 private:
-  _IXML_Node            * const src;
-  const std::string              prefix;
+  _IXML_Node * const src;
+  const std::string prefix;
 };
 
 // Microsoft MediaReceiverRegistrar IsValidated
-class ActionIsValidated final : public MediaReceiverRegistrar::ActionIsValidated,
-                          public xml_structure
+class action_is_validated final : public xml_structure, public mediareceiver_registrar::action_is_validated
 {
 public:
-  explicit                      ActionIsValidated(_IXML_Node *, _IXML_Document *&, const char *);
+  explicit action_is_validated(_IXML_Node *, _IXML_Document *&, const std::string &);
 
-  virtual std::string            getDeviceID() const override;
-  virtual void                  set_response(int) override;
+  virtual std::string get_deviceid() const override;
+  virtual void set_response(int) override;
 
 private:
-  _IXML_Node            * const src;
-  const std::string              prefix;
+  _IXML_Node * const src;
+  const std::string prefix;
 };
 
 // Microsoft MediaReceiverRegistrar RegisterDevice
-class ActionRegisterDevice final : public MediaReceiverRegistrar::ActionRegisterDevice,
-                             public xml_structure
+class action_register_device final : public xml_structure, public mediareceiver_registrar::action_register_device
 {
 public:
-  explicit                      ActionRegisterDevice(_IXML_Node *, _IXML_Document *&, const char *);
+  explicit action_register_device(_IXML_Node *, _IXML_Document *&, const std::string &);
 
-  virtual std::string            getRegistrationReqMsg() const override;
-  virtual void                  set_response(const std::string &) override;
+  virtual std::string get_registration_req_msg() const override;
+  virtual void set_response(const std::string &) override;
 
 private:
-  _IXML_Node            * const src;
-  const std::string              prefix;
+  _IXML_Node * const src;
+  const std::string prefix;
 };
-#endif
 
 } // End of namespace
 } // End of namespace

@@ -2,8 +2,6 @@ TEMPLATE = subdirs
 CONFIG += ordered
 DESTDIR = .
 
-SUBDIRS += lximcbackend
-
 # LXiCore
 SUBDIRS += lxicore
 
