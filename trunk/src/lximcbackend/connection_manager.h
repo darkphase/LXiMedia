@@ -18,6 +18,7 @@
 #ifndef LXIMEDIACENTER_CONNECTION_MAMANGER_H
 #define LXIMEDIACENTER_CONNECTION_MAMANGER_H
 
+#include "messageloop.h"
 #include "rootdevice.h"
 #include "upnp.h"
 #include <cstdint>
@@ -32,7 +33,7 @@ namespace lximediacenter {
 
 class messageloop;
 
-class connection_manager : private rootdevice::service
+class connection_manager : public rootdevice::service
 {
 public:
   struct protocol

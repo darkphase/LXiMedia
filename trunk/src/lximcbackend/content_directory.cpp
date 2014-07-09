@@ -23,45 +23,6 @@
 
 namespace lximediacenter {
 
-static std::string from_base64(const std::string &input)
-{
-  static const uint8_t table[256] =
-  {
-    0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-    0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-    0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,  62,0x00,0x00,0x00,  63,
-      52,  53,  54,  55,  56,  57,  58,  59,  60,  61,0x00,0x00,0x00,0x00,0x00,0x00,
-    0x00,   0,   1,   2,   3,   4,   5,   6,   7,   8,   9,  10,  11,  12,  13,  14,
-      15,  16,  17,  18,  19,  20,  21,  22,  23,  24,  25,0x00,0x00,0x00,0x00,0x00,
-    0x00,  26,  27,  28,  29,  30,  31,  32,  33,  34,  35,  36,  37,  38,  39,  40,
-      41,  42,  43,  44,  45,  46,  47,  48,  49,  50,  51,0x00,0x00,0x00,0x00,0x00
-    // Remainder will be initialized to zero.
-  };
-
-  std::string result;
-  result.reserve(input.length() * 3 / 4);
-
-  for (size_t i = 0; i < input.length(); i += 4)
-  {
-    const bool has[] =
-    {
-                                 input[i  ] != '=' ,
-      (i+1 < input.length()) && (input[i+1] != '='),
-      (i+2 < input.length()) && (input[i+2] != '='),
-      (i+3 < input.length()) && (input[i+3] != '='),
-    };
-
-    uint32_t triple = 0;
-    for (int j = 0; j < 4; j++)
-      triple |= uint32_t(has[j] ? table[uint8_t(input[i + j])] : 0) << (18 - (j * 6));
-
-    for (int j = 0; (j < 3) && has[j + 1]; j++)
-      result.push_back(char(triple >> (16 - (j * 8)) & 0xFF));
-  }
-
-  return result;
-}
-
 const char content_directory::service_id[]   = "urn:upnp-org:serviceId:ContentDirectory";
 const char content_directory::service_type[] = "urn:schemas-upnp-org:service:ContentDirectory:1";
 
@@ -348,7 +309,7 @@ void content_directory::handle_action(const upnp::request &request, action_brows
   {
     switch (action.get_browse_flag())
     {
-    case action_browse::direct_children:
+    case action_browse::browse_flag::direct_children:
       totalmatches = count;
       for (auto &item : item_source->second->list_contentdir_items(client, path, start, totalmatches))
       {
@@ -390,7 +351,7 @@ void content_directory::handle_action(const upnp::request &request, action_brows
       }
       break;
 
-    case action_browse::metadata:
+    case action_browse::browse_flag::metadata:
       add_directory(action, item::item_type::none, client, path);
       totalmatches = 1;
       break;
@@ -411,7 +372,7 @@ void content_directory::handle_action(const upnp::request &request, action_brows
     const std::vector<std::string> items = all_items(item, itemprops);
     switch (action.get_browse_flag())
     {
-    case action_browse::direct_children:
+    case action_browse::browse_flag::direct_children:
       // Only select the items that were requested.
       for (size_t i=start, n=0; (i<items.size()) && ((count == 0) || (n < count)); i++, n++)
       {
@@ -425,7 +386,7 @@ void content_directory::handle_action(const upnp::request &request, action_brows
       totalmatches = items.size();
       break;
 
-    case action_browse::metadata:
+    case action_browse::browse_flag::metadata:
       if (itemprops[1].empty() || (itemprops[1] == "p"))
         add_file(action, request.url.host, make_play_item(item, itemprops), path);
       else
@@ -650,33 +611,6 @@ void content_directory::add_container(action_browse &action, item::item_type typ
   }
 
   action.add_container(container);
-}
-static std::string to_base64(const std::string &input)
-{
-  static const char table[64] =
-  {
-    'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P',
-    'Q','R','S','T','U','V','W','X','Y','Z','a','b','c','d','e','f',
-    'g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v',
-    'w','x','y','z','0','1','2','3','4','5','6','7','8','9','+','/'
-  };
-
-  std::string result;
-  result.reserve(4 * ((input.length() + 2) / 3));
-
-  for (size_t i = 0; i < input.length(); i += 3)
-  {
-    const bool has[] = { true, true, i + 1 < input.length(), i + 2 < input.length() };
-
-    uint32_t triple = 0;
-    for (int j = 0; j < 3; j++)
-      triple |= uint32_t(has[j+1] ? uint8_t(input[i + j]) : 0) << (j * 8);
-
-    for (int j = 0; (j < 4) && has[j]; j++)
-      result.push_back(table[(triple >> (18 - (j * 6))) & 0x3F]);
-  }
-
-  return result;
 }
 
 void content_directory::add_file(action_browse &action, const std::string &host, const item &item, const std::string &path, const std::string &title)

@@ -23,9 +23,9 @@ backend::backend(class messageloop &messageloop)
   : messageloop(messageloop),
     upnp(messageloop),
     rootdevice(messageloop, upnp, "00000000-0000-0000-0000-000000000000", "urn:schemas-upnp-org:device:MediaServer:1"),
-    connection_manager(messageloop, rootdevice)
-    //upnpContentDirectory(&upnpRootDevice, &upnpConnectionManager),
-    //upnpMediaReceiverRegistrar(&upnpRootDevice),
+    connection_manager(messageloop, rootdevice),
+    content_directory(messageloop, upnp, rootdevice, connection_manager),
+    mediareceiver_registrar(messageloop, rootdevice)
 {
   using namespace std::placeholders;
 

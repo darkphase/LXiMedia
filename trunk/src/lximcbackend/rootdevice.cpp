@@ -27,8 +27,6 @@
 
 namespace lximediacenter {
 
-const char  rootdevice::servicetype_mediareceiverregistrar[]  = "urn:microsoft.com:service:X_MS_MediaReceiverRegistrar:1";
-
 const char  rootdevice::devicedescriptionfile[]   = "device";
 const char  rootdevice::servicedescriptionfile[]  = "service-";
 const char  rootdevice::servicecontrolfile[]      = "control-";
@@ -284,110 +282,108 @@ bool rootdevice::enable_rootdevice(void)
             request.source_address = action_request->RequestInfo.sourceAddress;
             request.url.host = action_request->RequestInfo.host;
 
-#if 0
-            if ((strcmp(i->first->servicetype(), serviceTypeConnectionManager) == 0))
+            if ((strcmp(i->second.first->get_service_type(), connection_manager::service_type) == 0))
             {
-              ConnectionManager * const service = static_cast<ConnectionManager *>(i->first);
+              connection_manager * const service = static_cast<connection_manager *>(i->second.first);
 
               IXML_NodeList * const children = ixmlNode_getChildNodes(&action_request->ActionRequest->n);
               for (IXML_NodeList *i = children; i; i = i->next)
               {
                 std::string prefix = "ns0", name;
-                splitName(i->nodeItem->nodeName, prefix, name);
+                split_name(i->nodeItem->nodeName, prefix, name);
 
                 if (name == "GetCurrentConnectionIDs")
                 {
-                  IXMLStructures::ActionGetCurrentConnectionIDs action(i->nodeItem, action_request->ActionResult, prefix);
-                  service->handleAction(request, action);
+                  ixml_structures::action_get_current_connectionids action(i->nodeItem, action_request->ActionResult, prefix);
+                  service->handle_action(request, action);
                 }
                 else if (name == "GetCurrentConnectionInfo")
                 {
-                  IXMLStructures::ActionGetCurrentConnectionInfo action(i->nodeItem, action_request->ActionResult, prefix);
-                  service->handleAction(request, action);
+                  ixml_structures::action_get_current_connection_info action(i->nodeItem, action_request->ActionResult, prefix);
+                  service->handle_action(request, action);
                 }
                 else if (name == "GetProtocolInfo")
                 {
-                  IXMLStructures::ActionGetProtocolInfo action(i->nodeItem, action_request->ActionResult, prefix);
-                  service->handleAction(request, action);
+                  ixml_structures::action_get_protocol_info action(i->nodeItem, action_request->ActionResult, prefix);
+                  service->handle_action(request, action);
                 }
               }
 
               ixmlNodeList_free(children);
             }
-            else if ((strcmp(i->first->servicetype(), serviceTypeContentDirectory) == 0))
+            else if ((strcmp(i->second.first->get_service_type(), content_directory::service_type) == 0))
             {
-              ContentDirectory * const service = static_cast<ContentDirectory *>(i->first);
+              content_directory * const service = static_cast<content_directory *>(i->second.first);
 
               IXML_NodeList * const children = ixmlNode_getChildNodes(&action_request->ActionRequest->n);
               for (IXML_NodeList *i = children; i; i = i->next)
               {
                 std::string prefix = "ns0", name;
-                splitName(i->nodeItem->nodeName, prefix, name);
+                split_name(i->nodeItem->nodeName, prefix, name);
 
                 if (name == "Browse")
                 {
-                  IXMLStructures::ActionBrowse action(i->nodeItem, action_request->ActionResult, prefix);
-                  service->handleAction(request, action);
+                  ixml_structures::action_browse action(i->nodeItem, action_request->ActionResult, prefix);
+                  service->handle_action(request, action);
                 }
                 else if (name == "Search")
                 {
-                  IXMLStructures::ActionSearch action(i->nodeItem, action_request->ActionResult, prefix);
-                  service->handleAction(request, action);
+                  ixml_structures::action_search action(i->nodeItem, action_request->ActionResult, prefix);
+                  service->handle_action(request, action);
                 }
                 else if (name == "GetSearchCapabilities")
                 {
-                  IXMLStructures::ActionGetSearchCapabilities action(i->nodeItem, action_request->ActionResult, prefix);
-                  service->handleAction(request, action);
+                  ixml_structures::action_get_search_capabilities action(i->nodeItem, action_request->ActionResult, prefix);
+                  service->handle_action(request, action);
                 }
                 else if (name == "GetSortCapabilities")
                 {
-                  IXMLStructures::ActionGetSortCapabilities action(i->nodeItem, action_request->ActionResult, prefix);
-                  service->handleAction(request, action);
+                  ixml_structures::action_get_sort_capabilities action(i->nodeItem, action_request->ActionResult, prefix);
+                  service->handle_action(request, action);
                 }
                 else if (name == "GetSystemUpdateID")
                 {
-                  IXMLStructures::ActionGetSystemUpdateID action(i->nodeItem, action_request->ActionResult, prefix);
-                  service->handleAction(request, action);
+                  ixml_structures::action_get_system_update_id action(i->nodeItem, action_request->ActionResult, prefix);
+                  service->handle_action(request, action);
                 }
                 else if (name == "X_GetFeatureList")
                 {
-                  IXMLStructures::ActionGetFeatureList action(i->nodeItem, action_request->ActionResult, prefix);
-                  service->handleAction(request, action);
+                  ixml_structures::action_get_featurelist action(i->nodeItem, action_request->ActionResult, prefix);
+                  service->handle_action(request, action);
                 }
               }
 
               ixmlNodeList_free(children);
             }
-            else if ((strcmp(i->first->servicetype(), serviceTypeMediaReceiverRegistrar) == 0))
+            else if ((strcmp(i->second.first->get_service_type(), mediareceiver_registrar::service_type) == 0))
             {
-              MediaReceiverRegistrar * const service = static_cast<MediaReceiverRegistrar *>(i->first);
+              mediareceiver_registrar * const service = static_cast<mediareceiver_registrar *>(i->second.first);
 
               IXML_NodeList * const children = ixmlNode_getChildNodes(&action_request->ActionRequest->n);
               for (IXML_NodeList *i = children; i; i = i->next)
               {
                 std::string prefix = "ns0", name;
-                splitName(i->nodeItem->nodeName, prefix, name);
+                split_name(i->nodeItem->nodeName, prefix, name);
 
                 if (name == "IsAuthorized")
                 {
-                  IXMLStructures::ActionIsAuthorized action(i->nodeItem, action_request->ActionResult, prefix);
-                  service->handleAction(request, action);
+                  ixml_structures::action_is_authorized action(i->nodeItem, action_request->ActionResult, prefix);
+                  service->handle_action(request, action);
                 }
                 else if (name == "IsValidated")
                 {
-                  IXMLStructures::ActionIsValidated action(i->nodeItem, action_request->ActionResult, prefix);
-                  service->handleAction(request, action);
+                  ixml_structures::action_is_validated action(i->nodeItem, action_request->ActionResult, prefix);
+                  service->handle_action(request, action);
                 }
                 else if (name == "RegisterDevice")
                 {
-                  IXMLStructures::ActionRegisterDevice action(i->nodeItem, action_request->ActionResult, prefix);
-                  service->handleAction(request, action);
+                  ixml_structures::action_register_device action(i->nodeItem, action_request->ActionResult, prefix);
+                  service->handle_action(request, action);
                 }
               }
 
               ixmlNodeList_free(children);
             }
-#endif
           }
 
           for (auto &i : me->handled_action) if (i.second) i.second();
