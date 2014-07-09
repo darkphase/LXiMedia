@@ -19,6 +19,7 @@
 #include <cstring>
 
 namespace lximediacenter {
+namespace pupnp {
 
 const char connection_manager::service_id[]   = "urn:upnp-org:serviceId:ConnectionManager";
 const char connection_manager::service_type[] = "urn:schemas-upnp-org:service:ConnectionManager:1";
@@ -256,4 +257,5 @@ connection_manager::connection_info::~connection_info()
 {
 }
 
+} // End of namespace
 } // End of namespace

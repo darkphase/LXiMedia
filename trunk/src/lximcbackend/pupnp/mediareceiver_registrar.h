@@ -18,11 +18,11 @@
 #ifndef LXIMEDIACENTER_MEDIARECEIVER_REGISTRAR_H
 #define LXIMEDIACENTER_MEDIARECEIVER_REGISTRAR_H
 
-#include "messageloop.h"
 #include "rootdevice.h"
 #include <cstdint>
 
 namespace lximediacenter {
+namespace pupnp {
 
 class mediareceiver_registrar : public rootdevice::service
 {
@@ -75,6 +75,7 @@ private:
   uint32_t validation_revoked_updateid;
 };
 
+} // End of namespace
 } // End of namespace
 
 #endif

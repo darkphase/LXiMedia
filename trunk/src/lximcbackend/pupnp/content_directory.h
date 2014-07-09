@@ -28,6 +28,7 @@
 #include <vector>
 
 namespace lximediacenter {
+namespace pupnp {
 
 class content_directory : public rootdevice::service
 {
@@ -213,8 +214,8 @@ private:
   static std::string parentpath(const std::string &);
   std::string to_objectid(const std::string &path, bool create = true);
   std::string from_objectid(const std::string &id);
-  lximediacenter::upnp::url to_objecturl(const upnp::url &url, const std::string &suffix);
-  lximediacenter::upnp::url from_objecturl(const upnp::url &url);
+  pupnp::upnp::url to_objecturl(const upnp::url &url, const std::string &suffix);
+  pupnp::upnp::url from_objecturl(const upnp::url &url);
 
   void num_connections_changed(int num_connections);
   void process_pending_updates(void);
@@ -249,6 +250,7 @@ private:
   } root_item_source;
 };
 
+} // End of namespace
 } // End of namespace
 
 #endif

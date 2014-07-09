@@ -26,6 +26,7 @@
 #include <vector>
 
 namespace lximediacenter {
+namespace pupnp {
 
 const char  upnp::mime_application_octetstream[]  = "application/octet-stream";
 const char  upnp::mime_audio_aac[]                = "audio/aac";
@@ -47,7 +48,7 @@ const char  upnp::mime_video_avi[]                = "video/avi";
 const char  upnp::mime_video_flv[]                = "video/x-flv";
 const char  upnp::mime_video_matroska[]           = "video/x-matroska";
 const char  upnp::mime_video_mpeg[]               = "video/mpeg";
-const char  upnp::mime_video_mpegm2ts[]           = "video/vnd.dlna.mpeg-tts";
+const char  upnp::mime_video_mpegm2ts[]           = "video/vnd.pupnp.mpeg-tts";
 const char  upnp::mime_video_mpegts[]             = "video/x-mpegts";
 const char  upnp::mime_video_mp4[]                = "video/mp4";
 const char  upnp::mime_video_ogg[]                = "video/ogg";
@@ -633,4 +634,5 @@ std::string to_base64(const std::string &input)
   return result;
 }
 
+} // End of namespace
 } // End of namespace

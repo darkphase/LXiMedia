@@ -22,6 +22,7 @@
 #include <sstream>
 
 namespace lximediacenter {
+namespace pupnp {
 namespace ixml_structures {
 
 xml_structure::xml_structure()
@@ -148,7 +149,7 @@ void device_description::set_devicetype(const std::string &deviceType, const std
 {
   add_textelement(&device->n, "deviceType", deviceType);
   if (!dlnaDoc.empty())
-    add_textelement(&device->n, "urn:schemas-dlna-org:device-1-0", "dlna:X_DLNADOC", dlnaDoc);
+    add_textelement(&device->n, "urn:schemas-pupnp-org:device-1-0", "pupnp:X_DLNADOC", dlnaDoc);
 }
 
 void device_description::set_friendlyname(const std::string &friendlyName)
@@ -374,7 +375,7 @@ action_browse::action_browse(IXML_Node *src, IXML_Document *&dst, const std::str
 {
   result.set_attribute(didl, "xmlns", "urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/");
   result.set_attribute(didl, "xmlns:dc", "http://purl.org/dc/elements/1.1/");
-  result.set_attribute(didl, "xmlns:dlna", "urn:schemas-dlna-org:metadata-1-0/");
+  result.set_attribute(didl, "xmlns:pupnp", "urn:schemas-pupnp-org:metadata-1-0/");
   result.set_attribute(didl, "xmlns:upnp", "urn:schemas-upnp-org:metadata-1-0/upnp/");
 }
 
@@ -443,9 +444,9 @@ void action_browse::add_item(const content_directory::browse_item &browse_item)
     if (attribute.first == "upnp:albumArtURI")
     {
       if (ends_with(attribute.second, ".jpeg") || ends_with(attribute.second, ".jpg"))
-        result.set_attribute(e, "dlna:profileID", "JPEG_TN");
+        result.set_attribute(e, "pupnp:profileID", "JPEG_TN");
       else if (ends_with(attribute.second, ".png"))
-        result.set_attribute(e, "dlna:profileID", "PNG_SM");
+        result.set_attribute(e, "pupnp:profileID", "PNG_SM");
     }
   }
 
@@ -516,7 +517,7 @@ action_search::action_search(IXML_Node *src, IXML_Document *&dst, const std::str
 {
   result.set_attribute(didl, "xmlns", "urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/");
   result.set_attribute(didl, "xmlns:dc", "http://purl.org/dc/elements/1.1/");
-  result.set_attribute(didl, "xmlns:dlna", "urn:schemas-dlna-org:metadata-1-0/");
+  result.set_attribute(didl, "xmlns:pupnp", "urn:schemas-pupnp-org:metadata-1-0/");
   result.set_attribute(didl, "xmlns:upnp", "urn:schemas-upnp-org:metadata-1-0/upnp/");
 }
 
@@ -569,9 +570,9 @@ void action_search::add_item(const content_directory::browse_item &browse_item)
     if (attribute.first == "upnp:albumArtURI")
     {
       if (ends_with(attribute.second, ".jpeg") || ends_with(attribute.second, ".jpg"))
-        result.set_attribute(e, "dlna:profileID", "JPEG_TN");
+        result.set_attribute(e, "pupnp:profileID", "JPEG_TN");
       else if (ends_with(attribute.second, ".png"))
-        result.set_attribute(e, "dlna:profileID", "PNG_SM");
+        result.set_attribute(e, "pupnp:profileID", "PNG_SM");
     }
   }
 
@@ -761,5 +762,6 @@ void action_register_device::set_response(const std::string &result)
   set_attribute(response, "dt:dt", "bin.Base64");
 }
 
+} // End of namespace
 } // End of namespace
 } // End of namespace

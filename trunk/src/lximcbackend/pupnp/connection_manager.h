@@ -18,7 +18,6 @@
 #ifndef LXIMEDIACENTER_CONNECTION_MAMANGER_H
 #define LXIMEDIACENTER_CONNECTION_MAMANGER_H
 
-#include "messageloop.h"
 #include "rootdevice.h"
 #include "upnp.h"
 #include <cstdint>
@@ -30,8 +29,7 @@
 #include <vector>
 
 namespace lximediacenter {
-
-class messageloop;
+namespace pupnp {
 
 class connection_manager : public rootdevice::service
 {
@@ -162,6 +160,7 @@ private:
   std::map<std::istream *, int32_t> streams;
 };
 
+} // End of namespace
 } // End of namespace
 
 #endif

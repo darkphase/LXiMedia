@@ -26,6 +26,7 @@
 #include <thread>
 
 namespace lximediacenter {
+namespace pupnp {
 
 const char  rootdevice::devicedescriptionfile[]   = "device";
 const char  rootdevice::servicedescriptionfile[]  = "service-";
@@ -462,4 +463,5 @@ void rootdevice::send_advertisements()
     ::UpnpSendAdvertisement(handle.second, 1800);
 }
 
+} // End of namespace
 } // End of namespace
