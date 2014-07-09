@@ -18,7 +18,6 @@
 #ifndef LXIMEDIACENTER_ROOTDEVICE_H
 #define LXIMEDIACENTER_ROOTDEVICE_H
 
-#include "messageloop.h"
 #include "upnp.h"
 #include <chrono>
 #include <functional>
@@ -27,6 +26,7 @@
 #include <vector>
 
 namespace lximediacenter {
+namespace pupnp {
 
 // TODO: translate
 inline std::string tr(const std::string &text) { return text; }
@@ -123,6 +123,7 @@ private:
   const std::chrono::seconds initial_advertisement_delay;
 };
 
+} // End of namespace
 } // End of namespace
 
 #endif

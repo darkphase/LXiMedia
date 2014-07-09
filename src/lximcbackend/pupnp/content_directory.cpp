@@ -22,6 +22,7 @@
 #include <sstream>
 
 namespace lximediacenter {
+namespace pupnp {
 
 const char content_directory::service_id[]   = "urn:upnp-org:serviceId:ContentDirectory";
 const char content_directory::service_type[] = "urn:schemas-upnp-org:service:ContentDirectory:1";
@@ -928,4 +929,5 @@ content_directory::item content_directory::root_item_source::get_contentdir_item
   return item();
 }
 
+} // End of namespace
 } // End of namespace

@@ -19,11 +19,11 @@
 #define LXIMEDIACENTER_BACKEND_H
 
 #include <cstdint>
-#include "connection_manager.h"
-#include "content_directory.h"
-#include "mediareceiver_registrar.h"
-#include "rootdevice.h"
-#include "upnp.h"
+#include "pupnp/connection_manager.h"
+#include "pupnp/content_directory.h"
+#include "pupnp/mediareceiver_registrar.h"
+#include "pupnp/rootdevice.h"
+#include "pupnp/upnp.h"
 
 namespace lximediacenter {
 
@@ -38,18 +38,18 @@ public:
   bool initialize();
 
 private:
-  int http_request(const upnp::request &, std::string &, std::shared_ptr<std::istream> &);
+  int http_request(const pupnp::upnp::request &, std::string &, std::shared_ptr<std::istream> &);
 
 private:
   static const uint16_t default_port = 4280;
 
   class messageloop &messageloop;
 
-  class upnp upnp;
-  class rootdevice rootdevice;
-  class connection_manager connection_manager;
-  class content_directory content_directory;
-  class mediareceiver_registrar mediareceiver_registrar;
+  class pupnp::upnp upnp;
+  class pupnp::rootdevice rootdevice;
+  class pupnp::connection_manager connection_manager;
+  class pupnp::content_directory content_directory;
+  class pupnp::mediareceiver_registrar mediareceiver_registrar;
 //  static const int              upnpRepublishTimout;
 //  bool                          upnpRepublishRequired;
 //  QTimer                        upnpRepublishTimer;

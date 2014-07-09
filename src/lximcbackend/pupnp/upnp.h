@@ -18,7 +18,7 @@
 #ifndef LXIMEDIACENTER_UPNP_H
 #define LXIMEDIACENTER_UPNP_H
 
-#include "messageloop.h"
+#include "../messageloop.h"
 #include <cstdint>
 #include <functional>
 #include <istream>
@@ -29,6 +29,7 @@
 #include <string>
 
 namespace lximediacenter {
+namespace pupnp {
 
 bool starts_with(const std::string &, const std::string &);
 bool ends_with(const std::string &, const std::string &);
@@ -156,6 +157,7 @@ private:
   std::map<void *, std::shared_ptr<std::istream>> handles;
 };
 
+} // End of namespace
 } // End of namespace
 
 #endif

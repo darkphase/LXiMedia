@@ -45,9 +45,9 @@ bool backend::initialize()
   return upnp.initialize(default_port, false);
 }
 
-int backend::http_request(const upnp::request &, std::string &, std::shared_ptr<std::istream> &)
+int backend::http_request(const pupnp::upnp::request &, std::string &, std::shared_ptr<std::istream> &)
 {
-  return upnp::http_not_found;
+  return pupnp::upnp::http_not_found;
 }
 
 } // End of namespace
