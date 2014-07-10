@@ -24,6 +24,7 @@
 #include "pupnp/mediareceiver_registrar.h"
 #include "pupnp/rootdevice.h"
 #include "pupnp/upnp.h"
+#include "settings.h"
 
 namespace lximediacenter {
 
@@ -41,10 +42,9 @@ private:
   int http_request(const pupnp::upnp::request &, std::string &, std::shared_ptr<std::istream> &);
 
 private:
-  static const uint16_t default_port = 4280;
-
   class messageloop &messageloop;
 
+  class settings settings;
   class pupnp::upnp upnp;
   class pupnp::rootdevice rootdevice;
   class pupnp::connection_manager connection_manager;

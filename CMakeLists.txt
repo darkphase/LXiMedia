@@ -7,4 +7,4 @@ link_directories(ext/pupnp/libupnp-1.6.19/upnp/.libs ext/pupnp/libupnp-1.6.19/ix
 aux_source_directory(src/lximcbackend/ LXIMCBACKEND_SRC_LIST)
 aux_source_directory(src/lximcbackend/pupnp/ LXIMCBACKEND_PUPNP_SRC_LIST)
 add_executable(lximcbackend ${LXIMCBACKEND_SRC_LIST} ${LXIMCBACKEND_PUPNP_SRC_LIST})
-target_link_libraries(lximcbackend upnp ixml threadutil)
+target_link_libraries(lximcbackend uuid upnp ixml threadutil)
