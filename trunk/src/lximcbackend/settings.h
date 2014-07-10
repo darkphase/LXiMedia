@@ -15,42 +15,35 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#include "backend.h"
+#ifndef LXIMEDIACENTER_SETTINGS_H
+#define LXIMEDIACENTER_SETTINGS_H
+
+#include <cstdint>
+#include <string>
+#include <map>
 
 namespace lximediacenter {
 
-backend::backend(class messageloop &messageloop)
-  : messageloop(messageloop),
-    settings(),
-    upnp(messageloop),
-    rootdevice(messageloop, upnp, settings.uuid(), "urn:schemas-upnp-org:device:MediaServer:1"),
-    connection_manager(messageloop, rootdevice),
-    content_directory(messageloop, upnp, rootdevice, connection_manager),
-    mediareceiver_registrar(messageloop, rootdevice)
+class settings
 {
-  using namespace std::placeholders;
+public:
+  settings();
+  ~settings();
 
-  upnp.http_callback_register("/"     , std::bind(&backend::http_request, this, _1, _2, _3));
-  upnp.http_callback_register("/css"  , std::bind(&backend::http_request, this, _1, _2, _3));
-  upnp.http_callback_register("/img"  , std::bind(&backend::http_request, this, _1, _2, _3));
-  upnp.http_callback_register("/js"   , std::bind(&backend::http_request, this, _1, _2, _3));
-  upnp.http_callback_register("/help" , std::bind(&backend::http_request, this, _1, _2, _3));
+  std::string uuid();
+  std::string devicename() const;
+  uint16_t http_port() const;
 
-  rootdevice.set_devicename(settings.devicename());
-}
+private:
+  void save();
+  std::string read(const std::string &, const std::string &, const std::string &) const;
+  std::string write(const std::string &, const std::string &, const std::string &);
 
-backend::~backend()
-{
-}
-
-bool backend::initialize()
-{
-  return upnp.initialize(settings.http_port(), false);
-}
-
-int backend::http_request(const pupnp::upnp::request &, std::string &, std::shared_ptr<std::istream> &)
-{
-  return pupnp::upnp::http_not_found;
-}
+private:
+  std::map<std::string, std::map<std::string, std::string>> values;
+  bool touched;
+};
 
 } // End of namespace
+
+#endif
