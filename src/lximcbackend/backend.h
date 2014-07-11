@@ -43,8 +43,8 @@ private:
 
 private:
   class messageloop &messageloop;
-
   class settings settings;
+
   class pupnp::upnp upnp;
   class pupnp::rootdevice rootdevice;
   class pupnp::connection_manager connection_manager;

@@ -58,7 +58,7 @@ class device_description final : public xml_structure, public rootdevice::device
 public:
   explicit device_description(const std::string &host, const std::string &baseDir);
 
-  virtual void set_devicetype(const std::string &, const std::string &dlnaDoc) override;
+  virtual void set_devicetype(const std::string &, const std::string &dlnadoc) override;
   virtual void set_friendlyname(const std::string &) override;
   virtual void set_manufacturer(const std::string &manufacturer, const std::string &url) override;
   virtual void set_model(const std::string &description, const std::string &name, const std::string &url, const std::string &number) override;

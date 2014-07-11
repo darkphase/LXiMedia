@@ -18,6 +18,8 @@
 #ifndef LXIMEDIACENTER_SETTINGS_H
 #define LXIMEDIACENTER_SETTINGS_H
 
+#include "messageloop.h"
+#include <chrono>
 #include <cstdint>
 #include <string>
 #include <map>
@@ -27,7 +29,7 @@ namespace lximediacenter {
 class settings
 {
 public:
-  settings();
+  explicit settings(class messageloop &);
   ~settings();
 
   std::string uuid();
@@ -40,6 +42,10 @@ private:
   std::string write(const std::string &, const std::string &, const std::string &);
 
 private:
+  class messageloop &messageloop;
+  class timer timer;
+  const std::chrono::milliseconds save_delay;
+
   std::map<std::string, std::map<std::string, std::string>> values;
   bool touched;
 };

@@ -57,8 +57,11 @@ static std::string make_uuid()
 
 namespace lximediacenter {
 
-settings::settings()
-  : touched(false)
+settings::settings(class messageloop &messageloop)
+  : messageloop(messageloop),
+    timer(messageloop, std::bind(&settings::save, this)),
+    save_delay(250),
+    touched(false)
 {
   std::ifstream file(filename());
   for (std::string line, section; std::getline(file, line); )
@@ -120,7 +123,7 @@ std::string settings::write(const std::string &section, const std::string &name,
   values[section][name] = value;
   touched = true;
 
-  save();
+  timer.start(save_delay, true);
 }
 
 std::string settings::uuid()

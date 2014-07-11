@@ -20,7 +20,7 @@
 namespace lximediacenter {
 namespace pupnp {
 
-const char mediareceiver_registrar::service_id[]   = "urn:microsoft.com:serviceId:X_MS_mediareceiver_registrar";
+const char mediareceiver_registrar::service_id[]   = "urn:microsoft.com:serviceId:X_MS_MediaReceiverRegistrar";
 const char mediareceiver_registrar::service_type[] = "urn:microsoft.com:service:X_MS_MediaReceiverRegistrar:1";
 
 mediareceiver_registrar::mediareceiver_registrar(class messageloop &messageloop, class rootdevice &rootdevice)
