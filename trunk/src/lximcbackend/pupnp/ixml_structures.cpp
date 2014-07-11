@@ -145,16 +145,16 @@ device_description::device_description(const std::string &host, const std::strin
   device = add_element(&root->n, "device");
 }
 
-void device_description::set_devicetype(const std::string &deviceType, const std::string &dlnaDoc)
+void device_description::set_devicetype(const std::string &devicetype, const std::string &dlnadoc)
 {
-  add_textelement(&device->n, "deviceType", deviceType);
-  if (!dlnaDoc.empty())
-    add_textelement(&device->n, "urn:schemas-pupnp-org:device-1-0", "pupnp:X_DLNADOC", dlnaDoc);
+  add_textelement(&device->n, "deviceType", devicetype);
+  if (!dlnadoc.empty())
+    add_textelement(&device->n, "urn:schemas-dlna-org:device-1-0", "dlna:X_DLNADOC", dlnadoc);
 }
 
-void device_description::set_friendlyname(const std::string &friendlyName)
+void device_description::set_friendlyname(const std::string &friendlyname)
 {
-  add_textelement(&device->n, "friendlyName", friendlyName);
+  add_textelement(&device->n, "friendlyName", friendlyname);
 }
 
 void device_description::set_manufacturer(const std::string &manufacturer, const std::string &url)
@@ -171,9 +171,9 @@ void device_description::set_model(const std::string &description, const std::st
   add_textelement(&device->n, "modelURL", url);
 }
 
-void device_description::set_serialnumber(const std::string &serialNumber)
+void device_description::set_serialnumber(const std::string &serialnumber)
 {
-  add_textelement(&device->n, "serialNumber", serialNumber);
+  add_textelement(&device->n, "serialNumber", serialnumber);
 }
 
 void device_description::set_udn(const std::string &udn)
@@ -181,18 +181,18 @@ void device_description::set_udn(const std::string &udn)
   add_textelement(&device->n, "UDN", udn);
 }
 
-void device_description::set_presentation_url(const std::string &presentationURL)
+void device_description::set_presentation_url(const std::string &presentationurl)
 {
   if (servicelist == NULL)
-    servicelist = add_element(&device->n, "servicelist");
+    servicelist = add_element(&device->n, "serviceList");
 
-  add_textelement(&device->n, "presentationURL", "http://" + host + presentationURL);
+  add_textelement(&device->n, "presentationURL", "http://" + host + presentationurl);
 }
 
 void device_description::add_icon(const std::string &url, const char *mimetype, int width, int height, int depth)
 {
   if (iconlist == NULL)
-    iconlist = add_element(&device->n, "iconlist");
+    iconlist = add_element(&device->n, "iconList");
 
   IXML_Element * const icon = add_element(&iconlist->n, "icon");
   add_textelement(&icon->n, "mimetype", mimetype);
@@ -205,7 +205,7 @@ void device_description::add_icon(const std::string &url, const char *mimetype, 
 void device_description::add_service(const std::string &service_type, const std::string &service_id, const std::string &description_file, const std::string &control_file, const std::string &event_file)
 {
   if (servicelist == NULL)
-    servicelist = add_element(&device->n, "servicelist");
+    servicelist = add_element(&device->n, "serviceList");
 
   IXML_Element * const service = add_element(&servicelist->n, "service");
   add_textelement(&service->n, "serviceType", service_type);
@@ -232,7 +232,7 @@ service_description::service_description()
 void service_description::add_action(const char *name, const char * const *argname, const char * const *argdir, const char * const *argvar, int argcount)
 {
   if (actionlist == NULL)
-    actionlist = add_element(&scpd->n, "actionlist");
+    actionlist = add_element(&scpd->n, "actionList");
 
   IXML_Element * const action = add_element(&actionlist->n, "action");
   add_textelement(&action->n, "name", name);
@@ -253,7 +253,7 @@ void service_description::add_action(const char *name, const char * const *argna
 void service_description::add_statevariable(const char *name, const char *type, bool sendEvents, const char * const *values, int valcount)
 {
   if (servicestatetable == NULL)
-    servicestatetable = add_element(&scpd->n, "servicestatetable");
+    servicestatetable = add_element(&scpd->n, "serviceStateTable");
 
   IXML_Element * const stateVariable = add_element(&servicestatetable->n, "stateVariable");
   set_attribute(stateVariable, "sendEvents", sendEvents ? "yes" : "no");
@@ -375,7 +375,7 @@ action_browse::action_browse(IXML_Node *src, IXML_Document *&dst, const std::str
 {
   result.set_attribute(didl, "xmlns", "urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/");
   result.set_attribute(didl, "xmlns:dc", "http://purl.org/dc/elements/1.1/");
-  result.set_attribute(didl, "xmlns:pupnp", "urn:schemas-pupnp-org:metadata-1-0/");
+  result.set_attribute(didl, "xmlns:dlna", "urn:schemas-dlna-org:metadata-1-0/");
   result.set_attribute(didl, "xmlns:upnp", "urn:schemas-upnp-org:metadata-1-0/upnp/");
 }
 
@@ -444,9 +444,9 @@ void action_browse::add_item(const content_directory::browse_item &browse_item)
     if (attribute.first == "upnp:albumArtURI")
     {
       if (ends_with(attribute.second, ".jpeg") || ends_with(attribute.second, ".jpg"))
-        result.set_attribute(e, "pupnp:profileID", "JPEG_TN");
+        result.set_attribute(e, "dlna:profileID", "JPEG_TN");
       else if (ends_with(attribute.second, ".png"))
-        result.set_attribute(e, "pupnp:profileID", "PNG_SM");
+        result.set_attribute(e, "dlna:profileID", "PNG_SM");
     }
   }
 
@@ -517,7 +517,7 @@ action_search::action_search(IXML_Node *src, IXML_Document *&dst, const std::str
 {
   result.set_attribute(didl, "xmlns", "urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/");
   result.set_attribute(didl, "xmlns:dc", "http://purl.org/dc/elements/1.1/");
-  result.set_attribute(didl, "xmlns:pupnp", "urn:schemas-pupnp-org:metadata-1-0/");
+  result.set_attribute(didl, "xmlns:dlna", "urn:schemas-dlna-org:metadata-1-0/");
   result.set_attribute(didl, "xmlns:upnp", "urn:schemas-upnp-org:metadata-1-0/upnp/");
 }
 
@@ -570,9 +570,9 @@ void action_search::add_item(const content_directory::browse_item &browse_item)
     if (attribute.first == "upnp:albumArtURI")
     {
       if (ends_with(attribute.second, ".jpeg") || ends_with(attribute.second, ".jpg"))
-        result.set_attribute(e, "pupnp:profileID", "JPEG_TN");
+        result.set_attribute(e, "dlna:profileID", "JPEG_TN");
       else if (ends_with(attribute.second, ".png"))
-        result.set_attribute(e, "pupnp:profileID", "PNG_SM");
+        result.set_attribute(e, "dlna:profileID", "PNG_SM");
     }
   }
 

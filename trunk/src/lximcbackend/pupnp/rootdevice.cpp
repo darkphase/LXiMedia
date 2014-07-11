@@ -170,8 +170,8 @@ void rootdevice::write_device_description(device_description &desc)
 {
   desc.set_devicetype(devicetype, "DMS-1.50");
   desc.set_friendlyname(devicename);
-  //desc.set_manufacturer(qApp->organizationName(), "http://" + qApp->organizationDomain() + "/");
-  //desc.set_model(qApp->applicationName(), qApp->applicationName(), "http://" + qApp->organizationDomain() + "/", qApp->applicationVersion());
+  desc.set_manufacturer("LeX-Interactive", "http://lximedia.sf.net/");
+  desc.set_model("LXiMediaCenter Backend", "LXiMediaCenter", "http://lximedia.sf.net/", "0.5.0");
   desc.set_serialnumber(uuid);
   desc.set_udn(udn());
 

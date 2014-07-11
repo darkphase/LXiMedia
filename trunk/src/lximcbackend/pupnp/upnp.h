@@ -66,6 +66,7 @@ public:
   typedef std::function<int(const request &, std::string &, std::shared_ptr<std::istream> &)> http_callback;
 
   static const int http_ok = 200;
+  static const int http_no_content = 204;
   static const int http_not_found = 404;
   static const int http_internal_server_error = 500;
 

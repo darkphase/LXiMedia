@@ -21,7 +21,7 @@ namespace lximediacenter {
 
 backend::backend(class messageloop &messageloop)
   : messageloop(messageloop),
-    settings(),
+    settings(messageloop),
     upnp(messageloop),
     rootdevice(messageloop, upnp, settings.uuid(), "urn:schemas-upnp-org:device:MediaServer:1"),
     connection_manager(messageloop, rootdevice),
@@ -48,8 +48,14 @@ bool backend::initialize()
   return upnp.initialize(settings.http_port(), false);
 }
 
-int backend::http_request(const pupnp::upnp::request &, std::string &, std::shared_ptr<std::istream> &)
+int backend::http_request(const pupnp::upnp::request &request, std::string &, std::shared_ptr<std::istream> &)
 {
+  if (request.url.path == "/exit")
+  {
+    messageloop.post([this] { messageloop.stop(0); });
+    return pupnp::upnp::http_no_content;
+  }
+
   return pupnp::upnp::http_not_found;
 }
 
