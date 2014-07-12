@@ -15,8 +15,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#ifndef LXIMEDIACENTER_ROOTDEVICE_H
-#define LXIMEDIACENTER_ROOTDEVICE_H
+#ifndef PUPNP_ROOTDEVICE_H
+#define PUPNP_ROOTDEVICE_H
 
 #include "upnp.h"
 #include <chrono>

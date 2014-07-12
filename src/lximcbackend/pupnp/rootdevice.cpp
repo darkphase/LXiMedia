@@ -419,7 +419,7 @@ bool rootdevice::enable_rootdevice(void)
   };
 
   // Ugly, but needed as UpnpRegisterRootDevice retrieves files from the HTTP server.
-  std::atomic<bool> finished;
+  std::atomic<bool> finished(false);
   int result = UPNP_E_INTERNAL_ERROR;
   char **addresses = ::UpnpGetServerIpAddresses();
   const std::string port = std::to_string(::UpnpGetServerPort());

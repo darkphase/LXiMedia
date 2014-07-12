@@ -16,12 +16,14 @@
  ******************************************************************************/
 
 #include "backend.h"
+#include "vlc/transcode_stream.h"
 
 namespace lximediacenter {
 
 backend::backend(class messageloop &messageloop)
   : messageloop(messageloop),
     settings(messageloop),
+    vlc_instance(),
     upnp(messageloop),
     rootdevice(messageloop, upnp, settings.uuid(), "urn:schemas-upnp-org:device:MediaServer:1"),
     connection_manager(messageloop, rootdevice),
@@ -48,12 +50,22 @@ bool backend::initialize()
   return upnp.initialize(settings.http_port(), false);
 }
 
-int backend::http_request(const pupnp::upnp::request &request, std::string &, std::shared_ptr<std::istream> &)
+int backend::http_request(const pupnp::upnp::request &request, std::string &content_type, std::shared_ptr<std::istream> &response)
 {
   if (request.url.path == "/exit")
   {
     messageloop.post([this] { messageloop.stop(0); });
     return pupnp::upnp::http_no_content;
+  }
+  else if (request.url.path == "/test")
+  {
+    auto stream = std::make_shared<vlc::transcode_stream>(vlc_instance);
+    if (stream->open(""))
+    {
+      content_type = upnp.mime_video_mpeg;
+      response = stream;
+      return pupnp::upnp::http_ok;
+    }
   }
 
   return pupnp::upnp::http_not_found;
