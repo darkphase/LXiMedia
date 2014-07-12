@@ -25,11 +25,7 @@
 #include <string>
 #include <vector>
 
-namespace lximediacenter {
 namespace pupnp {
-
-// TODO: translate
-inline std::string tr(const std::string &text) { return text; }
 
 class rootdevice : private upnp::child
 {
@@ -123,7 +119,6 @@ private:
   const std::chrono::seconds initial_advertisement_delay;
 };
 
-} // End of namespace
 } // End of namespace
 
 #endif

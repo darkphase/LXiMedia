@@ -22,7 +22,6 @@
 #include <memory>
 #include <string>
 
-namespace lximediacenter {
 namespace vlc {
 
 class instance;
@@ -44,7 +43,6 @@ private:
   std::unique_ptr<data> d;
 };
 
-} // End of namespace
 } // End of namespace
 
 #endif

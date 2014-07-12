@@ -1,22 +1,22 @@
 #include "backend.h"
 #include "messageloop.h"
 #include <iostream>
+#include <memory>
 
 int main(int /*argc*/, const char */*argv*/[])
 {
-  using namespace lximediacenter;
+  // Allocate these on heap to keep stack free.
+  const std::unique_ptr<class messageloop> messageloop(new class messageloop());
+  const std::unique_ptr<class backend> backend(new class backend(*messageloop));
 
-  class messageloop messageloop;
-  class backend backend(messageloop);
-
-  messageloop.post([&messageloop, &backend]
+  messageloop->post([&messageloop, &backend]
   {
-    if (!backend.initialize())
+    if (!backend->initialize())
     {
       std::clog << "Failed to initialize backend; stopping." << std::endl;
-      messageloop.stop(1);
+      messageloop->stop(1);
     }
   });
 
-  return messageloop.run();
+  return messageloop->run();
 }

@@ -28,7 +28,6 @@
 #include <string>
 #include <vector>
 
-namespace lximediacenter {
 namespace pupnp {
 
 class connection_manager : public rootdevice::service
@@ -160,7 +159,6 @@ private:
   std::map<std::istream *, int32_t> streams;
 };
 
-} // End of namespace
 } // End of namespace
 
 #endif

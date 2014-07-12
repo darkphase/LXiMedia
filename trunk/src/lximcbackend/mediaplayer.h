@@ -15,22 +15,38 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#include "instance.h"
-#include <vlc/vlc.h>
+#ifndef MEDIAPLAYER_H
+#define MEDIAPLAYER_H
 
-namespace vlc {
+#include "messageloop.h"
+#include "pupnp/content_directory.h"
+#include <cstdint>
+#include <cstdlib>
+#include <string>
+#include <vector>
 
-static const int argc = 1;
-static const char * const argv[argc] = { "-vvv" };
-
-instance::instance()
-  : libvlc_instance(libvlc_new(argc, argv))
+class mediaplayer : private pupnp::content_directory::item_source
 {
-}
+public:
+  mediaplayer(class messageloop &, pupnp::content_directory &);
+  virtual ~mediaplayer();
 
-instance::~instance()
-{
-  libvlc_release(libvlc_instance);
-}
+protected: // From content_directory::item_source
+  virtual std::vector<pupnp::content_directory::item> list_contentdir_items(const std::string &client, const std::string &path, size_t start, size_t &count) override;
+  virtual pupnp::content_directory::item get_contentdir_item(const std::string &client, const std::string &path) override;
 
-} // End of namespace
+private:
+  std::string to_system_path(const std::string &) const;
+  std::string to_virtual_path(const std::string &) const;
+
+  static std::vector<std::string> list_files(const std::string &path);
+
+private:
+  class messageloop &messageloop;
+  class pupnp::content_directory &content_directory;
+  const std::string root_path;
+
+  std::vector<std::string> root_paths;
+};
+
+#endif

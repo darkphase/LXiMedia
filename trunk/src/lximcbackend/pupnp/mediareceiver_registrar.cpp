@@ -17,7 +17,6 @@
 
 #include "mediareceiver_registrar.h"
 
-namespace lximediacenter {
 namespace pupnp {
 
 const char mediareceiver_registrar::service_id[]   = "urn:microsoft.com:serviceId:X_MS_MediaReceiverRegistrar";
@@ -106,5 +105,4 @@ void mediareceiver_registrar::handle_action(const upnp::request &, action_regist
   action.set_response("DUMMY");
 }
 
-} // End of namespace
 } // End of namespace

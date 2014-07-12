@@ -18,8 +18,6 @@
 #include "messageloop.h"
 #include <cassert>
 
-namespace lximediacenter {
-
 messageloop::messageloop()
   : running(false),
     exitcode(-1)
@@ -198,28 +196,3 @@ void timer::stop()
 {
   messageloop.timer_remove(*this);
 }
-
-} // End of namespace
-
-#if 0
-#include <iostream>
-
-int main()
-{
-  using namespace lximediacenter;
-
-  class messageloop messageloop;
-
-  int counter = 0;
-  class timer timer(messageloop, [&]
-  {
-    std::cout << "Hello " << counter << std::endl;
-    if (++counter > 5)
-      messageloop.stop(123);
-  });
-
-  timer.start(std::chrono::seconds(2));
-
-  return messageloop.run();
-}
-#endif

@@ -15,8 +15,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#ifndef LXIMEDIACENTER_MESSAGELOOP_H
-#define LXIMEDIACENTER_MESSAGELOOP_H
+#ifndef MESSAGELOOP_H
+#define MESSAGELOOP_H
 
 #include <chrono>
 #include <condition_variable>
@@ -25,8 +25,6 @@
 #include <mutex>
 #include <queue>
 #include <set>
-
-namespace lximediacenter {
 
 class timer;
 
@@ -89,7 +87,5 @@ void timer::start(const std::chrono::duration<rep, period> &interval, bool once)
 {
   return start(std::chrono::duration_cast<std::chrono::nanoseconds>(interval), once);
 }
-
-} // End of namespace
 
 #endif

@@ -16,12 +16,12 @@
  ******************************************************************************/
 
 #include "ixml_structures.h"
+#include "../string.h"
 #include <ixml.h>
 #include <cstring>
 #include <iomanip>
 #include <sstream>
 
-namespace lximediacenter {
 namespace pupnp {
 namespace ixml_structures {
 
@@ -762,6 +762,5 @@ void action_register_device::set_response(const std::string &result)
   set_attribute(response, "dt:dt", "bin.Base64");
 }
 
-} // End of namespace
 } // End of namespace
 } // End of namespace

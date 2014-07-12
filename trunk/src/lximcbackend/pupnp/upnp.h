@@ -28,13 +28,7 @@
 #include <set>
 #include <string>
 
-namespace lximediacenter {
 namespace pupnp {
-
-bool starts_with(const std::string &, const std::string &);
-bool ends_with(const std::string &, const std::string &);
-std::string from_base64(const std::string &);
-std::string to_base64(const std::string &);
 
 class upnp
 {
@@ -158,7 +152,6 @@ private:
   std::map<void *, std::shared_ptr<std::istream>> handles;
 };
 
-} // End of namespace
 } // End of namespace
 
 #endif

@@ -15,22 +15,11 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#include "instance.h"
-#include <vlc/vlc.h>
+#ifndef TRANSLATOR_H
+#define TRANSLATOR_H
 
-namespace vlc {
+#include <string>
 
-static const int argc = 1;
-static const char * const argv[argc] = { "-vvv" };
+std::string tr(const std::string &text);
 
-instance::instance()
-  : libvlc_instance(libvlc_new(argc, argv))
-{
-}
-
-instance::~instance()
-{
-  libvlc_release(libvlc_instance);
-}
-
-} // End of namespace
+#endif

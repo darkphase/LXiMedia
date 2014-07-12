@@ -16,9 +16,9 @@
  ******************************************************************************/
 
 #include "connection_manager.h"
+#include "../string.h"
 #include <cstring>
 
-namespace lximediacenter {
 namespace pupnp {
 
 const char connection_manager::service_id[]   = "urn:upnp-org:serviceId:ConnectionManager";
@@ -257,5 +257,4 @@ connection_manager::connection_info::~connection_info()
 {
 }
 
-} // End of namespace
 } // End of namespace

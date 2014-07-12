@@ -18,8 +18,6 @@
 #include "backend.h"
 #include "vlc/transcode_stream.h"
 
-namespace lximediacenter {
-
 backend::backend(class messageloop &messageloop)
   : messageloop(messageloop),
     settings(messageloop),
@@ -28,7 +26,8 @@ backend::backend(class messageloop &messageloop)
     rootdevice(messageloop, upnp, settings.uuid(), "urn:schemas-upnp-org:device:MediaServer:1"),
     connection_manager(messageloop, rootdevice),
     content_directory(messageloop, upnp, rootdevice, connection_manager),
-    mediareceiver_registrar(messageloop, rootdevice)
+    mediareceiver_registrar(messageloop, rootdevice),
+    mediaplayer(messageloop, content_directory)
 {
   using namespace std::placeholders;
 
@@ -70,5 +69,3 @@ int backend::http_request(const pupnp::upnp::request &request, std::string &cont
 
   return pupnp::upnp::http_not_found;
 }
-
-} // End of namespace

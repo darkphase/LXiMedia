@@ -27,7 +27,6 @@
 #include <set>
 #include <vector>
 
-namespace lximediacenter {
 namespace pupnp {
 
 class content_directory : public rootdevice::service
@@ -193,7 +192,7 @@ public:
   void handle_action(const upnp::request &, action_get_system_update_id &);
   void handle_action(const upnp::request &, action_get_featurelist &);
 
-protected: // From RootDevice::Service
+protected: // From rootdevice::service
   virtual const char * get_service_type(void) override;
 
   virtual void initialize(void) override;
@@ -250,7 +249,6 @@ private:
   } root_item_source;
 };
 
-} // End of namespace
 } // End of namespace
 
 #endif

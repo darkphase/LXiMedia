@@ -16,12 +16,13 @@
  ******************************************************************************/
 
 #include "content_directory.h"
+#include "../string.h"
+#include "../translator.h"
 #include <cstring>
 #include <iostream>
 #include <iomanip>
 #include <sstream>
 
-namespace lximediacenter {
 namespace pupnp {
 
 const char content_directory::service_id[]   = "urn:upnp-org:serviceId:ContentDirectory";
@@ -300,7 +301,7 @@ void content_directory::handle_action(const upnp::request &request, action_brows
 
   if ((item_source == item_sources.end()) || !starts_with(path, item_source->first))
   {
-    std::clog << "content_directory: could not find item source for path:" << std::endl;
+    std::clog << "content_directory: could not find item source for path: " << std::endl;
     return;
   }
 
@@ -348,7 +349,7 @@ void content_directory::handle_action(const upnp::request &request, action_brows
           }
         }
         else
-          add_directory(action, item.type, client, item.path);
+          add_directory(action, item.type, client, item.path, item.title);
       }
       break;
 
@@ -366,7 +367,7 @@ void content_directory::handle_action(const upnp::request &request, action_brows
     const item item = item_source->second->get_contentdir_item(client, itemprops[0]);
     if (item.is_null())
     {
-      std::clog << "content_directory: could not find item" << itemprops[0] << std::endl;
+      std::clog << "content_directory: could not find item " << itemprops[0] << std::endl;
       return;
     }
 
@@ -569,7 +570,7 @@ void content_directory::add_directory(action_browse &action, item::item_type typ
 
   if ((item_source == item_sources.end()) || !starts_with(path, item_source->first))
   {
-    std::clog << "content_directory: could not find item source for path:" << std::endl;
+    std::clog << "content_directory: could not find item source for path: " << std::endl;
     return;
   }
 
@@ -678,17 +679,11 @@ std::string content_directory::basepath(const std::string &dir)
 
 std::string content_directory::parentpath(const std::string &dir)
 {
-  if (!dir.empty())
+  if (dir.length() > 1)
   {
-    const size_t ls = dir.find_last_of('/' , dir.length() - 1);
-    const size_t lt = dir.find_last_of('\t', dir.length() - 1);
-
-    if ((ls != dir.npos) && (lt != dir.npos) && (lt > 0))
-      return dir.substr(0, std::max(ls, lt - 1));
-    else if (ls != dir.npos)
-      return dir.substr(0, ls);
-    else if ((lt != dir.npos) && (lt > 0))
-      return dir.substr(0, lt - 1);
+    const size_t ls = dir.find_last_of('/' , dir.length() - 2);
+    if (ls != dir.npos)
+      return dir.substr(0, ls + 1);
   }
 
   return std::string();
@@ -887,27 +882,17 @@ std::vector<content_directory::item> content_directory::root_item_source::list_c
   for (auto i = parent.item_sources.begin(); i != parent.item_sources.end(); i++)
   if (starts_with(i->first, path))
   {
-    std::string sub = i->first.substr(path.length() - 1);
-    const size_t sl = sub.find_first_of('/');
-    sub = sub.substr(0, (sl != sub.npos) ? (sl + 1) : 0);
-    if ((sub.length() > 1) && (names.find(sub) == names.end()))
+    auto item = get_contentdir_item(client, i->first);
+    if (!item.title.empty() && (names.find(item.title) == names.end()))
     {
       size_t total = 1;
       if (!i->second->list_contentdir_items(client, i->first, 0, total).empty() && (total > 0))
       {
-        names.insert(sub);
-
+        names.insert(item.title);
         if (return_all || (count > 0))
         {
           if (start == 0)
           {
-            struct item item;
-            item.is_dir = true;
-            item.path = sub;
-            item.title = sub;
-            item.title = starts_with(item.title, "/") ? item.title.substr(1) : item.title;
-            item.title = ends_with(item.title, "/") ? item.title.substr(0, item.title.length() - 1) : item.title;
-
             result.push_back(item);
             if (count > 0)
               count--;
@@ -920,14 +905,20 @@ std::vector<content_directory::item> content_directory::root_item_source::list_c
   }
 
   count = names.size();
-
   return result;
 }
 
-content_directory::item content_directory::root_item_source::get_contentdir_item(const std::string &, const std::string &)
+content_directory::item content_directory::root_item_source::get_contentdir_item(const std::string &, const std::string &path)
 {
-  return item();
+  struct item item;
+  item.is_dir = true;
+  item.path = path;
+
+  const size_t lsl = std::max(path.find_last_of('/'), path.length() - 1);
+  const size_t psl = path.find_last_of('/', lsl - 1);
+  item.title = path.substr(psl + 1, lsl - psl - 1);
+
+  return item;
 }
 
-} // End of namespace
 } // End of namespace

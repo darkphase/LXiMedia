@@ -17,6 +17,7 @@
 
 #include "rootdevice.h"
 #include "ixml_structures.h"
+#include "../string.h"
 #include <upnp/upnp.h>
 #include <atomic>
 #include <cstring>
@@ -25,7 +26,6 @@
 #include <sstream>
 #include <thread>
 
-namespace lximediacenter {
 namespace pupnp {
 
 const char  rootdevice::devicedescriptionfile[]   = "device";
@@ -463,5 +463,4 @@ void rootdevice::send_advertisements()
     ::UpnpSendAdvertisement(handle.second, 1800);
 }
 
-} // End of namespace
 } // End of namespace
