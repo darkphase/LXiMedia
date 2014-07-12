@@ -48,9 +48,9 @@ static void Close( vlc_object_t * );
                             "callback function." )
 
 vlc_module_begin ()
-    set_description( N_("Memory output") )
+    set_description( N_("LXiMedia memory output") )
     set_capability( "sout access", 0 )
-    set_shortname( N_("MemOut") )
+    set_shortname( N_("LXiMemOut") )
     add_shortcut( "lximedia_memout" )
     set_category( CAT_SOUT )
     set_subcategory( SUBCAT_SOUT_ACO )

@@ -18,45 +18,6 @@
 #include "settings.h"
 #include <fstream>
 
-#if defined(__unix__)
-#include <unistd.h>
-#include <sys/types.h>
-#include <pwd.h>
-
-static std::string filename()
-{
-  static const char conffile[] = "/.config/LeX-Interactive/LXiMediaCenter.conf";
-
-  const char *home = getenv("HOME");
-  if (home)
-    return std::string(home) + conffile;
-
-  struct passwd *pw = getpwuid(getuid());
-  if (pw && pw->pw_dir)
-    return std::string(pw->pw_dir) + conffile;
-
-  return std::string();
-}
-
-#include <cstring>
-#include <uuid/uuid.h>
-
-static std::string make_uuid()
-{
-  uuid_t uuid;
-  uuid_generate(uuid);
-
-  std::string result;
-  result.resize(64);
-  uuid_unparse(uuid, &result[0]);
-  result.resize(strlen(&result[0]));
-
-  return result;
-}
-#endif
-
-namespace lximediacenter {
-
 settings::settings(class messageloop &messageloop)
   : messageloop(messageloop),
     timer(messageloop, std::bind(&settings::save, this)),
@@ -157,4 +118,39 @@ uint16_t settings::http_port() const
   catch (const std::out_of_range &) { return default_port; }
 }
 
-} // End of namespace
+#if defined(__unix__)
+#include <unistd.h>
+#include <sys/types.h>
+#include <pwd.h>
+
+std::string settings::filename()
+{
+  static const char conffile[] = "/.config/LeX-Interactive/LXiMediaCenter.conf";
+
+  const char *home = getenv("HOME");
+  if (home)
+    return std::string(home) + conffile;
+
+  struct passwd *pw = getpwuid(getuid());
+  if (pw && pw->pw_dir)
+    return std::string(pw->pw_dir) + conffile;
+
+  return std::string();
+}
+
+#include <cstring>
+#include <uuid/uuid.h>
+
+std::string settings::make_uuid()
+{
+  uuid_t uuid;
+  uuid_generate(uuid);
+
+  std::string result;
+  result.resize(64);
+  uuid_unparse(uuid, &result[0]);
+  result.resize(strlen(&result[0]));
+
+  return result;
+}
+#endif

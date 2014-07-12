@@ -15,16 +15,14 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#ifndef LXIMEDIACENTER_SETTINGS_H
-#define LXIMEDIACENTER_SETTINGS_H
+#ifndef SETTINGS_H
+#define SETTINGS_H
 
 #include "messageloop.h"
 #include <chrono>
 #include <cstdint>
 #include <string>
 #include <map>
-
-namespace lximediacenter {
 
 class settings
 {
@@ -41,6 +39,9 @@ private:
   std::string read(const std::string &, const std::string &, const std::string &) const;
   std::string write(const std::string &, const std::string &, const std::string &);
 
+  static std::string filename();
+  static std::string make_uuid();
+
 private:
   class messageloop &messageloop;
   class timer timer;
@@ -49,7 +50,5 @@ private:
   std::map<std::string, std::map<std::string, std::string>> values;
   bool touched;
 };
-
-} // End of namespace
 
 #endif

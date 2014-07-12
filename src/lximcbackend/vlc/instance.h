@@ -24,7 +24,6 @@
 
 struct libvlc_instance_t;
 
-namespace lximediacenter {
 namespace vlc {
 
 class instance
@@ -41,7 +40,6 @@ private:
   libvlc_instance_t * const libvlc_instance;
 };
 
-} // End of namespace
 } // End of namespace
 
 #endif

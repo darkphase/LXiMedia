@@ -15,8 +15,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#ifndef LXIMEDIACENTER_BACKEND_H
-#define LXIMEDIACENTER_BACKEND_H
+#ifndef BACKEND_H
+#define BACKEND_H
 
 #include <cstdint>
 #include "pupnp/connection_manager.h"
@@ -25,9 +25,8 @@
 #include "pupnp/rootdevice.h"
 #include "pupnp/upnp.h"
 #include "vlc/instance.h"
+#include "mediaplayer.h"
 #include "settings.h"
-
-namespace lximediacenter {
 
 class messageloop;
 
@@ -54,11 +53,12 @@ private:
   class pupnp::content_directory content_directory;
   class pupnp::mediareceiver_registrar mediareceiver_registrar;
 
+  class mediaplayer mediaplayer;
+
+
 //  static const int              upnpRepublishTimout;
 //  bool                          upnpRepublishRequired;
 //  QTimer                        upnpRepublishTimer;
 };
-
-} // End of namespace
 
 #endif

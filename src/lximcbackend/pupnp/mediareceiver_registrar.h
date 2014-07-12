@@ -21,7 +21,6 @@
 #include "rootdevice.h"
 #include <cstdint>
 
-namespace lximediacenter {
 namespace pupnp {
 
 class mediareceiver_registrar : public rootdevice::service
@@ -56,7 +55,7 @@ public:
   void handle_action(const upnp::request &, action_is_validated &);
   void handle_action(const upnp::request &, action_register_device &);
 
-private: // From RootDevice::Service
+private: // From rootdevice::service
   virtual const char * get_service_type(void) override final;
 
   virtual void initialize(void) override final;
@@ -75,7 +74,6 @@ private:
   uint32_t validation_revoked_updateid;
 };
 
-} // End of namespace
 } // End of namespace
 
 #endif

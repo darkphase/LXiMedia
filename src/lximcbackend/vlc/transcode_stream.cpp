@@ -27,7 +27,6 @@
 #include <thread>
 #include <vector>
 
-namespace lximediacenter {
 namespace vlc {
 
 struct transcode_stream::data : std::streambuf
@@ -176,5 +175,4 @@ int transcode_stream::data::underflow()
 }
 
 
-} // End of namespace
 } // End of namespace

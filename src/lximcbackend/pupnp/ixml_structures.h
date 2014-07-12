@@ -27,7 +27,6 @@ struct _IXML_Document;
 struct _IXML_Element;
 struct _IXML_Node;
 
-namespace lximediacenter {
 namespace pupnp {
 namespace ixml_structures {
 
@@ -274,7 +273,6 @@ private:
   const std::string prefix;
 };
 
-} // End of namespace
 } // End of namespace
 } // End of namespace
 
