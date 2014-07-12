@@ -35,7 +35,7 @@ class connection_manager : public rootdevice::service
 public:
   struct protocol
   {
-    inline protocol(
+    protocol(
         const std::string &network_protocol = "http-get",
         const std::string &content_format = std::string(),
         bool conversion_indicator = false,

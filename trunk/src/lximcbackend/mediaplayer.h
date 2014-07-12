@@ -20,6 +20,7 @@
 
 #include "messageloop.h"
 #include "pupnp/content_directory.h"
+#include "vlc/instance.h"
 #include <cstdint>
 #include <cstdlib>
 #include <string>
@@ -28,7 +29,7 @@
 class mediaplayer : private pupnp::content_directory::item_source
 {
 public:
-  mediaplayer(class messageloop &, pupnp::content_directory &);
+  mediaplayer(class messageloop &, class vlc::instance &, pupnp::content_directory &);
   virtual ~mediaplayer();
 
 protected: // From content_directory::item_source
@@ -39,10 +40,9 @@ private:
   std::string to_system_path(const std::string &) const;
   std::string to_virtual_path(const std::string &) const;
 
-  static std::vector<std::string> list_files(const std::string &path);
-
 private:
   class messageloop &messageloop;
+  class vlc::instance &vlc_instance;
   class pupnp::content_directory &content_directory;
   const std::string root_path;
 
