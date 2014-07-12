@@ -27,7 +27,7 @@ backend::backend(class messageloop &messageloop)
     connection_manager(messageloop, rootdevice),
     content_directory(messageloop, upnp, rootdevice, connection_manager),
     mediareceiver_registrar(messageloop, rootdevice),
-    mediaplayer(messageloop, content_directory)
+    mediaplayer(messageloop, vlc_instance, content_directory)
 {
   using namespace std::placeholders;
 
@@ -38,6 +38,20 @@ backend::backend(class messageloop &messageloop)
   upnp.http_callback_register("/help" , std::bind(&backend::http_request, this, _1, _2, _3));
 
   rootdevice.set_devicename(settings.devicename());
+
+  content_directory.open_mrl = [this](const std::string &mrl, std::string &content_type, std::shared_ptr<std::istream> &response)->int
+  {
+    auto stream = std::make_shared<vlc::transcode_stream>(vlc_instance);
+    if (stream->open(mrl))
+    {
+      content_type = upnp.mime_video_mpeg;
+      connection_manager.output_connection_add(content_type, stream);
+      response = stream;
+      return pupnp::upnp::http_ok;
+    }
+
+    return pupnp::upnp::http_not_found;
+  };
 }
 
 backend::~backend()
@@ -55,16 +69,6 @@ int backend::http_request(const pupnp::upnp::request &request, std::string &cont
   {
     messageloop.post([this] { messageloop.stop(0); });
     return pupnp::upnp::http_no_content;
-  }
-  else if (request.url.path == "/test")
-  {
-    auto stream = std::make_shared<vlc::transcode_stream>(vlc_instance);
-    if (stream->open(""))
-    {
-      content_type = upnp.mime_video_mpeg;
-      response = stream;
-      return pupnp::upnp::http_ok;
-    }
   }
 
   return pupnp::upnp::http_not_found;

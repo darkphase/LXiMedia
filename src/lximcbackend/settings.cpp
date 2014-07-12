@@ -18,6 +18,9 @@
 #include "settings.h"
 #include <fstream>
 
+static std::string filename();
+static std::string make_uuid();
+
 settings::settings(class messageloop &messageloop)
   : messageloop(messageloop),
     timer(messageloop, std::bind(&settings::save, this)),
@@ -123,7 +126,7 @@ uint16_t settings::http_port() const
 #include <sys/types.h>
 #include <pwd.h>
 
-std::string settings::filename()
+static std::string filename()
 {
   static const char conffile[] = "/.config/LeX-Interactive/LXiMediaCenter.conf";
 
@@ -141,7 +144,7 @@ std::string settings::filename()
 #include <cstring>
 #include <uuid/uuid.h>
 
-std::string settings::make_uuid()
+static std::string make_uuid()
 {
   uuid_t uuid;
   uuid_generate(uuid);

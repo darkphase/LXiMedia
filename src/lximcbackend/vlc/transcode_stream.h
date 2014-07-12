@@ -34,7 +34,7 @@ public:
   transcode_stream(const transcode_stream &) = delete;
   transcode_stream & operator=(const transcode_stream &) = delete;
 
-  bool open(const std::string &file);
+  bool open(const std::string &mrl);
   void close();
 
 private:

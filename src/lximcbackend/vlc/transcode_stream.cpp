@@ -61,12 +61,9 @@ transcode_stream::~transcode_stream()
   close();
 }
 
-bool transcode_stream::open(const std::string &file)
+bool transcode_stream::open(const std::string &mrl)
 {
   close();
-
-  std::ostringstream source;
-  source << "file://" << file;
 
   static const char transcode[] = "#transcode{vcodec=mp2v,vb=4096,acodec=mpga,ab=256}";
   std::ostringstream sout;
@@ -83,7 +80,7 @@ bool transcode_stream::open(const std::string &file)
     if (libvlc_vlm_add_broadcast(
           instance,
           d->broadcast_name.c_str(),
-          source.str().c_str(),
+          mrl.c_str(),
           sout.str().c_str(),
           0, NULL, 1, 0) == 0)
     {

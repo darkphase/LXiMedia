@@ -258,24 +258,24 @@ static content_directory::item make_play_item(const content_directory::item &bas
 {
   content_directory::item item = base_item;
 
-  if (!item_props[3].empty())
-    item.title = item_props[3];
+//  if (!item_props[3].empty())
+//    item.title = item_props[3];
 
-  if (!item_props[2].empty())
-  {
-    item.url.query.clear();
+//  if (!item_props[2].empty())
+//  {
+//    item.url.query.clear();
 
-    std::stringstream str(item_props[2]);
-    std::string qi;
-    while (std::getline(str, qi, '&'))
-    {
-      const size_t eq = qi.find_first_of('=');
-      if (eq != qi.npos)
-        item.url.query[qi.substr(0, eq)] = qi.substr(eq + 1);
-      else
-        item.url.query[qi] = std::string();
-    }
-  }
+//    std::stringstream str(item_props[2]);
+//    std::string qi;
+//    while (std::getline(str, qi, '&'))
+//    {
+//      const size_t eq = qi.find_first_of('=');
+//      if (eq != qi.npos)
+//        item.url.query[qi.substr(0, eq)] = qi.substr(eq + 1);
+//      else
+//        item.url.query[qi] = std::string();
+//    }
+//  }
 
   return item;
 }
@@ -327,23 +327,23 @@ void content_directory::handle_action(const upnp::request &request, action_brows
 
           switch (item.type)
           {
-          case item::item_type::none:
-          case item::item_type::music:
-          case item::item_type::music_video:
-          case item::item_type::image:
-          case item::item_type::photo:
+          case item_type::none:
+          case item_type::music:
+          case item_type::music_video:
+          case item_type::image:
+          case item_type::photo:
             add_file(action, request.url.host, item, item.path, item.title);
             break;
 
-          case item::item_type::audio_broadcast:
-          case item::item_type::video:
-          case item::item_type::video_broadcast:
+          case item_type::audio_broadcast:
+          case item_type::video:
+          case item_type::video_broadcast:
             add_file(action, request.url.host, item, item.path, title);
             break;
 
-          case item::item_type::audio:
-          case item::item_type::audio_book:
-          case item::item_type::movie:
+          case item_type::audio:
+          case item_type::audio_book:
+          case item_type::movie:
             add_container(action, item.type, item.path, title);
             break;
           }
@@ -354,7 +354,7 @@ void content_directory::handle_action(const upnp::request &request, action_brows
       break;
 
     case action_browse::browse_flag::metadata:
-      add_directory(action, item::item_type::none, client, path);
+      add_directory(action, item_type::none, client, path);
       totalmatches = 1;
       break;
     }
@@ -365,7 +365,7 @@ void content_directory::handle_action(const upnp::request &request, action_brows
 
     // Get the item
     const item item = item_source->second->get_contentdir_item(client, itemprops[0]);
-    if (item.is_null())
+    if (item.mrl.empty())
     {
       std::clog << "content_directory: could not find item " << itemprops[0] << std::endl;
       return;
@@ -549,20 +549,15 @@ int content_directory::http_request(const upnp::request &request, std::string &c
 {
   if (starts_with(request.url.path, basedir))
   {
-    upnp::request r = request;
-    r.url = from_objecturl(request.url);
-
-    const auto result = upnp.handle_http_request(r, content_type, response);
-    if (result == upnp::http_ok)
-      connection_manager.output_connection_add(content_type, response);
-
-    return result;
+    const std::string mrl = from_objecturl(request.url);
+    if (!mrl.empty() && open_mrl)
+      return open_mrl(mrl, content_type, response);
   }
 
   return upnp::http_not_found;
 }
 
-void content_directory::add_directory(action_browse &action, item::item_type type, const std::string &, const std::string &path, const std::string &title)
+void content_directory::add_directory(action_browse &action, item_type type, const std::string &, const std::string &path, const std::string &title)
 {
   auto item_source = item_sources.find(path);
   for (std::string i=path; !i.empty() && (item_source == item_sources.end()); i=parentpath(i))
@@ -577,7 +572,7 @@ void content_directory::add_directory(action_browse &action, item::item_type typ
   add_container(action, type, path, title);
 }
 
-void content_directory::add_container(action_browse &action, item::item_type type, const std::string &path, const std::string &title, size_t child_count)
+void content_directory::add_container(action_browse &action, item_type type, const std::string &path, const std::string &title, size_t child_count)
 {
   const std::string parentpath = content_directory::parentpath(path);
 
@@ -596,20 +591,20 @@ void content_directory::add_container(action_browse &action, item::item_type typ
 
   switch (type)
   {
-  case item::item_type::none:             container.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.container.album"))); break;
+  case item_type::none:             container.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.container.album"))); break;
 
-  case item::item_type::audio:
-  case item::item_type::audio_broadcast:
-  case item::item_type::audio_book:       container.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.container.album"))); break;
-  case item::item_type::music:            container.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.container.album.musicAlbum"))); break;
+  case item_type::audio:
+  case item_type::audio_broadcast:
+  case item_type::audio_book:       container.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.container.album"))); break;
+  case item_type::music:            container.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.container.album.musicAlbum"))); break;
 
-  case item::item_type::video:
-  case item::item_type::movie:
-  case item::item_type::video_broadcast:  container.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.container.album"))); break;
-  case item::item_type::music_video:      container.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.container.album.musicAlbum"))); break;
+  case item_type::video:
+  case item_type::movie:
+  case item_type::video_broadcast:  container.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.container.album"))); break;
+  case item_type::music_video:      container.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.container.album.musicAlbum"))); break;
 
-  case item::item_type::image:            container.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.container.album"))); break;
-  case item::item_type::photo:            container.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.container.album.photoAlbum"))); break;
+  case item_type::image:            container.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.container.album"))); break;
+  case item_type::photo:            container.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.container.album.photoAlbum"))); break;
   }
 
   action.add_container(container);
@@ -631,38 +626,42 @@ void content_directory::add_file(action_browse &action, const std::string &host,
   if (!item.album.empty())
     browse_item.attributes.push_back(std::make_pair(std::string("upnp:album"), item.album));
 
-  if (!item.icon_url.path.empty())
-  {
-    if (ends_with(item.icon_url.path, ".jpeg") || ends_with(item.icon_url.path, ".jpg"))
-      browse_item.attributes.push_back(std::make_pair(std::string("upnp:albumArtURI"), to_objecturl(item.icon_url, ".jpeg")));
-    else
-      browse_item.attributes.push_back(std::make_pair(std::string("upnp:albumArtURI"), to_objecturl(item.icon_url, ".png")));
-  }
+//  if (!item.icon_url.path.empty())
+//  {
+//    if (ends_with(item.icon_url.path, ".jpeg") || ends_with(item.icon_url.path, ".jpg"))
+//      browse_item.attributes.push_back(std::make_pair(std::string("upnp:albumArtURI"), to_objecturl(item.icon_url, ".jpeg")));
+//    else
+//      browse_item.attributes.push_back(std::make_pair(std::string("upnp:albumArtURI"), to_objecturl(item.icon_url, ".png")));
+//  }
 
   switch (item.type)
   {
-  case item::item_type::none:             browse_item.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.item"))); break;
+  case item_type::none:             browse_item.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.item"))); break;
 
-  case item::item_type::audio:            browse_item.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.item.audioItem"))); break;
-  case item::item_type::music:            browse_item.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.item.audioItem.musicTrack"))); break;
-  case item::item_type::audio_broadcast:  browse_item.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.item.audioItem.audioBroadcast"))); break;
-  case item::item_type::audio_book:       browse_item.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.item.audioItem.audioBook"))); break;
+  case item_type::audio:            browse_item.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.item.audioItem"))); break;
+  case item_type::music:            browse_item.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.item.audioItem.musicTrack"))); break;
+  case item_type::audio_broadcast:  browse_item.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.item.audioItem.audioBroadcast"))); break;
+  case item_type::audio_book:       browse_item.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.item.audioItem.audioBook"))); break;
 
-  case item::item_type::video:            browse_item.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.item.videoItem"))); break;
-  case item::item_type::movie:            browse_item.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.item.videoItem.movie"))); break;
-  case item::item_type::video_broadcast:  browse_item.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.item.videoItem.videoBroadcast"))); break;
-  case item::item_type::music_video:      browse_item.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.item.videoItem.musicVideoClip"))); break;
+  case item_type::video:            browse_item.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.item.videoItem"))); break;
+  case item_type::movie:            browse_item.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.item.videoItem.movie"))); break;
+  case item_type::video_broadcast:  browse_item.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.item.videoItem.videoBroadcast"))); break;
+  case item_type::music_video:      browse_item.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.item.videoItem.musicVideoClip"))); break;
 
-  case item::item_type::image:            browse_item.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.item.imageItem"))); break;
-  case item::item_type::photo:            browse_item.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.item.imageItem.photo"))); break;
+  case item_type::image:            browse_item.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.item.imageItem"))); break;
+  case item_type::photo:            browse_item.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.item.imageItem.photo"))); break;
   }
 
-  for (auto &protocol : item.protocols)
+//  for (auto &protocol : item.protocols)
+//  {
+//    upnp::url url = item.url;
+//    url.host = host;
+//    url.query["content_features"] = to_base64(protocol.content_features());
+//    browse_item.files.push_back(std::make_pair(to_objecturl(url, protocol.suffix), protocol));
+//  }
+  if (!item.mrl.empty())
   {
-    upnp::url url = item.url;
-    url.host = host;
-    url.query["content_features"] = to_base64(protocol.content_features());
-    browse_item.files.push_back(std::make_pair(to_objecturl(url, protocol.suffix), protocol));
+    browse_item.files.push_back(std::make_pair(to_objecturl(host, item.mrl, ".mpeg"), connection_manager::protocol()));
   }
 
   action.add_item(browse_item);
@@ -743,17 +742,15 @@ std::string content_directory::from_objectid(const std::string &id_str)
   }
 }
 
-upnp::url content_directory::to_objecturl(const upnp::url &url, const std::string &suffix)
+upnp::url content_directory::to_objecturl(const std::string &host, const std::string &mrl, const std::string &suffix)
 {
-  const std::string encoded = url;
-
   upnp::url new_url;
-  new_url.host = url.host;
+  new_url.host = host;
 
-  auto i = objecturl_map.find(encoded);
+  auto i = objecturl_map.find(mrl);
   if (i == objecturl_map.end())
   {
-    objecturl_list.push_back(encoded);
+    objecturl_list.push_back(mrl);
     objecturl_list.back().shrink_to_fit();
     objecturl_map[objecturl_list.back()] = objecturl_list.size() - 1;
 
@@ -771,7 +768,7 @@ upnp::url content_directory::to_objecturl(const upnp::url &url, const std::strin
   return new_url;
 }
 
-upnp::url content_directory::from_objecturl(const upnp::url &url)
+std::string content_directory::from_objecturl(const upnp::url &url)
 {
   const size_t ls = url.path.find_last_of('/');
   if (ls != url.path.npos)
@@ -783,11 +780,7 @@ upnp::url content_directory::from_objecturl(const upnp::url &url)
     {
       const size_t id = std::stoull(id_str);
       if (id < objecturl_list.size())
-      {
-        upnp::url new_url = objecturl_list[id];
-        new_url.host = url.host;
-        return new_url;
-      }
+        return objecturl_list[id];
     }
     catch (const std::invalid_argument &) { }
     catch (const std::out_of_range &) { }
@@ -804,11 +797,6 @@ content_directory::item::item(void)
 
 content_directory::item::~item()
 {
-}
-
-bool content_directory::item::is_null(void) const
-{
-  return url.path.empty();
 }
 
 bool content_directory::item::is_audio(void) const

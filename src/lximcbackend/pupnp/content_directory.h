@@ -23,6 +23,7 @@
 #include "upnp.h"
 #include <chrono>
 #include <cstdint>
+#include <functional>
 #include <map>
 #include <set>
 #include <vector>
@@ -32,16 +33,16 @@ namespace pupnp {
 class content_directory : public rootdevice::service
 {
 public:
+  enum class item_type : uint8_t
+  {
+    none  = 0,
+    audio = 10, music, audio_broadcast, audio_book,
+    video = 20, movie, video_broadcast, music_video,
+    image = 30, photo
+  };
+
   struct item
   {
-    enum class item_type : uint8_t
-    {
-      none  = 0,
-      audio = 10, music, audio_broadcast, audio_book,
-      video = 20, movie, video_broadcast, music_video,
-      image = 30, photo
-    };
-
     struct stream
     {
       stream(void);
@@ -63,7 +64,6 @@ public:
     item(void);
     ~item();
 
-    bool is_null(void) const;
     bool is_audio(void) const;
     bool is_video(void) const;
     bool is_image(void) const;
@@ -71,9 +71,8 @@ public:
 
     bool is_dir;
     item_type type;
-    upnp::url url;
-    upnp::url icon_url;
     std::string path;
+    std::string mrl;
 
     std::string title;
     std::string artist;
@@ -192,6 +191,8 @@ public:
   void handle_action(const upnp::request &, action_get_system_update_id &);
   void handle_action(const upnp::request &, action_get_featurelist &);
 
+  std::function<int(const std::string &, std::string &, std::shared_ptr<std::istream> &)> open_mrl;
+
 protected: // From rootdevice::service
   virtual const char * get_service_type(void) override;
 
@@ -205,16 +206,16 @@ private:
   int http_request(const upnp::request &, std::string &, std::shared_ptr<std::istream> &);
 
 private:
-  void add_directory(action_browse &, enum item::item_type, const std::string &client, const std::string &path, const std::string &title = std::string());
-  void add_container(action_browse &, enum item::item_type, const std::string &path, const std::string &title = std::string(), size_t child_count = size_t(-1));
+  void add_directory(action_browse &, enum item_type, const std::string &client, const std::string &path, const std::string &title = std::string());
+  void add_container(action_browse &, enum item_type, const std::string &path, const std::string &title = std::string(), size_t child_count = size_t(-1));
   void add_file(action_browse &, const std::string &host, const item &, const std::string &path, const std::string &title = std::string());
 
   static std::string basepath(const std::string &);
   static std::string parentpath(const std::string &);
   std::string to_objectid(const std::string &path, bool create = true);
   std::string from_objectid(const std::string &id);
-  pupnp::upnp::url to_objecturl(const upnp::url &url, const std::string &suffix);
-  pupnp::upnp::url from_objecturl(const upnp::url &url);
+  pupnp::upnp::url to_objecturl(const std::string &host, const std::string &mrl, const std::string &suffix);
+  std::string from_objecturl(const upnp::url &url);
 
   void num_connections_changed(int num_connections);
   void process_pending_updates(void);

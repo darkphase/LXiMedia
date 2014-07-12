@@ -39,9 +39,6 @@ private:
   std::string read(const std::string &, const std::string &, const std::string &) const;
   std::string write(const std::string &, const std::string &, const std::string &);
 
-  static std::string filename();
-  static std::string make_uuid();
-
 private:
   class messageloop &messageloop;
   class timer timer;

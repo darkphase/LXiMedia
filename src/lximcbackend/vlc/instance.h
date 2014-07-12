@@ -18,8 +18,6 @@
 #ifndef VLC_INSTANCE_H
 #define VLC_INSTANCE_H
 
-#include <istream>
-#include <memory>
 #include <string>
 
 struct libvlc_instance_t;
