@@ -15,50 +15,24 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#ifndef LXIMEDIACENTER_BACKEND_H
-#define LXIMEDIACENTER_BACKEND_H
-
-#include <cstdint>
-#include "pupnp/connection_manager.h"
-#include "pupnp/content_directory.h"
-#include "pupnp/mediareceiver_registrar.h"
-#include "pupnp/rootdevice.h"
-#include "pupnp/upnp.h"
-#include "vlc/instance.h"
-#include "settings.h"
+#include "instance.h"
+#include <vlc/vlc.h>
 
 namespace lximediacenter {
+namespace vlc {
 
-class messageloop;
+static const int argc = 1;
+static const char * const argv[argc] = { "-vvv" };
 
-class backend
+instance::instance()
+  : libvlc_instance(libvlc_new(argc, argv))
 {
-public:
-  explicit backend(class messageloop &);
-  ~backend();
+}
 
-  bool initialize();
-
-private:
-  int http_request(const pupnp::upnp::request &, std::string &, std::shared_ptr<std::istream> &);
-
-private:
-  class messageloop &messageloop;
-  class settings settings;
-
-  class vlc::instance vlc_instance;
-
-  class pupnp::upnp upnp;
-  class pupnp::rootdevice rootdevice;
-  class pupnp::connection_manager connection_manager;
-  class pupnp::content_directory content_directory;
-  class pupnp::mediareceiver_registrar mediareceiver_registrar;
-
-//  static const int              upnpRepublishTimout;
-//  bool                          upnpRepublishRequired;
-//  QTimer                        upnpRepublishTimer;
-};
+instance::~instance()
+{
+  libvlc_release(libvlc_instance);
+}
 
 } // End of namespace
-
-#endif
+} // End of namespace

@@ -15,8 +15,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#ifndef LXIMEDIACENTER_UPNP_H
-#define LXIMEDIACENTER_UPNP_H
+#ifndef PUPNP_UPNP_H
+#define PUPNP_UPNP_H
 
 #include "../messageloop.h"
 #include <cstdint>

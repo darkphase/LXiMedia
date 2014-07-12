@@ -15,8 +15,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#ifndef LXIMEDIACENTER_CONTENT_DIRECTORY_H
-#define LXIMEDIACENTER_CONTENT_DIRECTORY_H
+#ifndef PUPNP_CONTENT_DIRECTORY_H
+#define PUPNP_CONTENT_DIRECTORY_H
 
 #include "connection_manager.h"
 #include "rootdevice.h"

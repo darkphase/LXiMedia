@@ -15,8 +15,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#ifndef LXIMEDIACENTER_CONNECTION_MAMANGER_H
-#define LXIMEDIACENTER_CONNECTION_MAMANGER_H
+#ifndef PUPNP_CONNECTION_MAMANGER_H
+#define PUPNP_CONNECTION_MAMANGER_H
 
 #include "rootdevice.h"
 #include "upnp.h"

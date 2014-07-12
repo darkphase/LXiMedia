@@ -15,8 +15,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#ifndef LXIMEDIACENTER_MEDIARECEIVER_REGISTRAR_H
-#define LXIMEDIACENTER_MEDIARECEIVER_REGISTRAR_H
+#ifndef PUPNP_MEDIARECEIVER_REGISTRAR_H
+#define PUPNP_MEDIARECEIVER_REGISTRAR_H
 
 #include "rootdevice.h"
 #include <cstdint>

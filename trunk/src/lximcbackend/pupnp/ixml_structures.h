@@ -15,8 +15,8 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#ifndef LXIMEDIACENTER_IXMLSTRUCTURES_H
-#define LXIMEDIACENTER_IXMLSTRUCTURES_H
+#ifndef PUPNP_IXML_STRUCTURES_H
+#define PUPNP_IXML_STRUCTURES_H
 
 #include "rootdevice.h"
 #include "connection_manager.h"

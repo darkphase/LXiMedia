@@ -201,7 +201,7 @@ void upnp::close(void)
     }
 
     // Ugly, but needed as UpnpFinish waits for callbacks from the HTTP server.
-    std::atomic<bool> finished;
+    std::atomic<bool> finished(false);
     std::thread finish([&finished] { ::UpnpFinish(); finished = true; });
     while (!finished) messageloop.process_events(std::chrono::milliseconds(16));
     finish.join();
@@ -319,7 +319,7 @@ void upnp::enable_webserver()
         return -1;
     }
 
-    static ::UpnpWebFileHandle open(::Request_Info *request_info, const char *url, ::UpnpOpenFileMode)
+    static ::UpnpWebFileHandle open(::Request_Info *request_info, const char *url, ::UpnpOpenFileMode mode)
     {
       struct request request;
       request.user_agent = request_info->userAgent;
