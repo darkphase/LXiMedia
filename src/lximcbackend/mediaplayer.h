@@ -19,6 +19,7 @@
 #define MEDIAPLAYER_H
 
 #include "messageloop.h"
+#include "pupnp/connection_manager.h"
 #include "pupnp/content_directory.h"
 #include "vlc/instance.h"
 #include <cstdint>
@@ -29,12 +30,13 @@
 class mediaplayer : private pupnp::content_directory::item_source
 {
 public:
-  mediaplayer(class messageloop &, class vlc::instance &, pupnp::content_directory &);
+  mediaplayer(class messageloop &, class vlc::instance &, pupnp::connection_manager &, pupnp::content_directory &);
   virtual ~mediaplayer();
 
 protected: // From content_directory::item_source
-  virtual std::vector<pupnp::content_directory::item> list_contentdir_items(const std::string &client, const std::string &path, size_t start, size_t &count) override;
-  virtual pupnp::content_directory::item get_contentdir_item(const std::string &client, const std::string &path) override;
+  std::vector<pupnp::content_directory::item> list_contentdir_items(const std::string &client, const std::string &path, size_t start, size_t &count) override;
+  pupnp::content_directory::item get_contentdir_item(const std::string &client, const std::string &path) override;
+  int play_item(const pupnp::content_directory::item &, const std::string &, std::string &, std::shared_ptr<std::istream> &) override;
 
 private:
   std::string to_system_path(const std::string &) const;
@@ -43,6 +45,7 @@ private:
 private:
   class messageloop &messageloop;
   class vlc::instance &vlc_instance;
+  class pupnp::connection_manager &connection_manager;
   class pupnp::content_directory &content_directory;
   const std::string root_path;
 

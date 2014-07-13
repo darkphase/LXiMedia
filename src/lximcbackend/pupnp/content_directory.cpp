@@ -470,6 +470,8 @@ void content_directory::close(void)
   objectid_map.clear();
   objecturl_list.clear();
   objecturl_map.clear();
+  objectprofile_list.clear();
+  objectprofile_map.clear();
 
   objectid_list.push_back(std::string());
   objectid_map[objectid_list.back()] = objectid_list.size() - 1;
@@ -549,9 +551,27 @@ int content_directory::http_request(const upnp::request &request, std::string &c
 {
   if (starts_with(request.url.path, basedir))
   {
-    const std::string mrl = from_objecturl(request.url);
-    if (!mrl.empty() && open_mrl)
-      return open_mrl(mrl, content_type, response);
+    std::string profile;
+    const std::string path = from_objectpath(request.url.path, profile);
+    if (!path.empty())
+    {
+      auto item_source = item_sources.find(path);
+      for (std::string i=path; !i.empty() && (item_source == item_sources.end()); i=parentpath(i))
+        item_source = item_sources.find(i);
+
+      if ((item_source == item_sources.end()) || !starts_with(path, item_source->first))
+      {
+        std::clog << "content_directory: could not find item source for path: " << std::endl;
+        return upnp::http_not_found;
+      }
+
+      auto item = item_source->second->get_contentdir_item(request.user_agent, path);
+      const int result = item_source->second->play_item(item, profile, content_type, response);
+      if (result == upnp::http_ok)
+        connection_manager.output_connection_add(content_type, response);
+
+      return result;
+    }
   }
 
   return upnp::http_not_found;
@@ -661,7 +681,17 @@ void content_directory::add_file(action_browse &action, const std::string &host,
 //  }
   if (!item.mrl.empty())
   {
-    browse_item.files.push_back(std::make_pair(to_objecturl(host, item.mrl, ".mpeg"), connection_manager::protocol()));
+    std::vector<connection_manager::protocol> protocols;
+    if (item.is_audio())  protocols = connection_manager.get_protocols(2);
+    if (item.is_video())  protocols = connection_manager.get_protocols(2, 768, 25.0f);
+
+    for (auto &protocol : protocols)
+    {
+      upnp::url url;
+      url.host = host;
+      url.path = to_objectpath(path, protocol.profile, protocol.suffix);
+      browse_item.files.push_back(std::make_pair(url, protocol));
+    }
   }
 
   action.add_item(browse_item);
@@ -742,48 +772,68 @@ std::string content_directory::from_objectid(const std::string &id_str)
   }
 }
 
-upnp::url content_directory::to_objecturl(const std::string &host, const std::string &mrl, const std::string &suffix)
+std::string content_directory::to_objectpath(const std::string &path, const std::string &profile, const std::string &suffix)
 {
-  upnp::url new_url;
-  new_url.host = host;
-
-  auto i = objecturl_map.find(mrl);
-  if (i == objecturl_map.end())
+  size_t profile_id = 0;
   {
-    objecturl_list.push_back(mrl);
-    objecturl_list.back().shrink_to_fit();
-    objecturl_map[objecturl_list.back()] = objecturl_list.size() - 1;
-
-    std::ostringstream str;
-    str << basedir << std::hex << std::setw(8) << std::setfill('0') << (objecturl_list.size() - 1) << suffix;
-    new_url.path = str.str();
-  }
-  else
-  {
-    std::ostringstream str;
-    str << basedir << std::hex << std::setw(8) << std::setfill('0') << i->second << suffix;
-    new_url.path = str.str();
+    auto i = objectprofile_map.find(profile);
+    if (i == objectprofile_map.end())
+    {
+      objectprofile_list.push_back(profile);
+      objectprofile_list.back().shrink_to_fit();
+      objectprofile_map[objectprofile_list.back()] = profile_id = objectprofile_list.size() - 1;
+    }
+    else
+      profile_id = i->second;
   }
 
-  return new_url;
+  size_t path_id = 0;
+  {
+    auto i = objecturl_map.find(path);
+    if (i == objecturl_map.end())
+    {
+      objecturl_list.push_back(path);
+      objecturl_list.back().shrink_to_fit();
+      objecturl_map[objecturl_list.back()] = path_id = objecturl_list.size() - 1;
+    }
+    else
+      path_id = i->second;
+  }
+
+  std::ostringstream str;
+  str << basedir << std::hex << std::setfill('0')
+      << std::setw(5) << path_id << '-'
+      << std::setw(2) << profile_id << '.' << suffix;
+  return str.str();
 }
 
-std::string content_directory::from_objecturl(const upnp::url &url)
+std::string content_directory::from_objectpath(const std::string &path, std::string &profile)
 {
-  const size_t ls = url.path.find_last_of('/');
-  if (ls != url.path.npos)
+  const size_t ls = path.find_last_of('/');
+  if (ls != path.npos)
   {
-    const size_t dot = url.path.find_first_of('.', ls);
-    const std::string id_str = url.path.substr(ls + 1, (dot != url.path.npos) ? (dot - ls - 1) : url.path.npos);
-
-    try
+    const size_t dash = path.find_first_of('-', ls);
+    const size_t dot = path.find_first_of('.', dash);
+    if ((dash != path.npos) && (dot != path.npos))
     {
-      const size_t id = std::stoull(id_str);
-      if (id < objecturl_list.size())
-        return objecturl_list[id];
+      const std::string path_id_str = path.substr(ls + 1, dash - ls - 1);
+      const std::string profile_id_str = path.substr(dash + 1, dot - dash - 1);
+
+      try
+      {
+        const size_t path_id = std::stoull(path_id_str, nullptr, 16);
+        const size_t profile_id = std::stoull(profile_id_str, nullptr, 16);
+
+        if (profile_id < objectprofile_list.size())
+        {
+          profile = objectprofile_list[profile_id];
+          if (path_id < objecturl_list.size())
+            return objecturl_list[path_id];
+        }
+      }
+      catch (const std::invalid_argument &) { }
+      catch (const std::out_of_range &) { }
     }
-    catch (const std::invalid_argument &) { }
-    catch (const std::out_of_range &) { }
   }
 
   return std::string();
@@ -907,6 +957,11 @@ content_directory::item content_directory::root_item_source::get_contentdir_item
   item.title = path.substr(psl + 1, lsl - psl - 1);
 
   return item;
+}
+
+int content_directory::root_item_source::play_item(const item &, const std::string &, std::string &, std::shared_ptr<std::istream> &)
+{
+  return upnp::http_not_found;
 }
 
 } // End of namespace

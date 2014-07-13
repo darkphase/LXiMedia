@@ -38,7 +38,7 @@ rootdevice::rootdevice(class messageloop &messageloop, class upnp &upnp, const s
     upnp(upnp),
     uuid(uuid),
     devicetype(devicetype),
-    basedir(upnp.http_basedir() + uuid + "/"),
+    basedir(upnp.http_basedir()),
     devicename(uuid),
     initialized(false),
     rootdevice_registred(false),

@@ -61,17 +61,16 @@ transcode_stream::~transcode_stream()
   close();
 }
 
-bool transcode_stream::open(const std::string &mrl)
+bool transcode_stream::open(const std::string &mrl, const std::string &transcode, const std::string &mux)
 {
   close();
 
-  static const char transcode[] = "#transcode{vcodec=mp2v,vb=4096,acodec=mpga,ab=256}";
   std::ostringstream sout;
   sout
       << transcode
       << ":standard{access=lximedia_memout{callback=" << intptr_t(&transcode_stream::data::write)
       << ",opaque=" << intptr_t(d.get())
-      << "},mux=ps}";
+      << "},mux=" << mux << "}";
 
   {
     std::lock_guard<std::mutex> _(d->buffer_mutex);

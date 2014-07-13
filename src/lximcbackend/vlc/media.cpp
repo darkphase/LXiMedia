@@ -54,61 +54,70 @@ void media::parse() const
   {
     libvlc_media_parse(libvlc_media);
 
-    auto player = libvlc_media_player_new_from_media(libvlc_media);
-    if (player)
+    libvlc_media_track_t **track_list = nullptr;
+    const unsigned count = libvlc_media_tracks_get(libvlc_media, &track_list);
+    if (track_list)
+      libvlc_media_tracks_release(track_list, count);
+
+    // Try to play a bit if libvlc_media_parse() failed.
+    if (count == 0)
     {
-      static const int width = 256, height = 256, align = 32;
-
-      struct T
+      auto player = libvlc_media_player_new_from_media(libvlc_media);
+      if (player)
       {
-        static void callback(const libvlc_event_t *, void *opaque)
+        static const int width = 256, height = 256, align = 32;
+
+        struct T
         {
-          T * const t = reinterpret_cast<T *>(opaque);
-          std::lock_guard<std::mutex> _(t->mutex);
-          t->position_changed = true;
-          t->condition.notify_one();
+          static void callback(const libvlc_event_t *, void *opaque)
+          {
+            T * const t = reinterpret_cast<T *>(opaque);
+            std::lock_guard<std::mutex> _(t->mutex);
+            t->position_changed = true;
+            t->condition.notify_one();
+          }
+
+          static void play(void */*opaque*/, const void */*samples*/, unsigned /*count*/, int64_t /*pts*/)
+          {
+          }
+
+          static void * lock(void *opaque, void **planes)
+          {
+            T * const t = reinterpret_cast<T *>(opaque);
+            *planes = (void *)((uintptr_t(&t->pixel_buffer[0]) + (align - 1)) & ~uintptr_t(align - 1));
+          }
+
+          std::condition_variable condition;
+          std::mutex mutex;
+          bool position_changed;
+          std::vector<uint8_t> pixel_buffer;
+        } t;
+
+        t.position_changed = false;
+        t.pixel_buffer.resize((width * height * sizeof(uint32_t)) + align);
+
+        libvlc_audio_set_callbacks(player, &T::play, nullptr, nullptr, nullptr, nullptr, &t);
+        libvlc_audio_set_format(player, "S16N", 44100, 2);
+        libvlc_video_set_callbacks(player, &T::lock, nullptr, nullptr, &t);
+        libvlc_video_set_format(player, "RV32", width, height, width * sizeof(uint32_t));
+
+        if (libvlc_media_player_play(player) == 0)
+        {
+          auto event_manager = libvlc_media_player_event_manager(player);
+          libvlc_event_attach(event_manager, libvlc_MediaPlayerPositionChanged, T::callback, &t);
+
+          {
+            std::unique_lock<std::mutex> l(t.mutex);
+            libvlc_media_player_set_position(player, 0.05f);
+            while (!t.position_changed) t.condition.wait_for(l, std::chrono::seconds(1));
+          }
+
+          libvlc_event_detach(event_manager, libvlc_MediaPlayerPositionChanged, T::callback, &t);
+          libvlc_media_player_stop(player);
         }
 
-        static void play(void */*opaque*/, const void */*samples*/, unsigned /*count*/, int64_t /*pts*/)
-        {
-        }
-
-        static void * lock(void *opaque, void **planes)
-        {
-          T * const t = reinterpret_cast<T *>(opaque);
-          *planes = (void *)((uintptr_t(&t->pixel_buffer[0]) + (align - 1)) & ~uintptr_t(align - 1));
-        }
-
-        std::condition_variable condition;
-        std::mutex mutex;
-        bool position_changed;
-        std::vector<uint8_t> pixel_buffer;
-      } t;
-
-      t.position_changed = false;
-      t.pixel_buffer.resize((width * height * sizeof(uint32_t)) + align);
-
-      libvlc_audio_set_callbacks(player, &T::play, nullptr, nullptr, nullptr, nullptr, &t);
-      libvlc_audio_set_format(player, "S16N", 44100, 2);
-      libvlc_video_set_callbacks(player, &T::lock, nullptr, nullptr, &t);
-      libvlc_video_set_format(player, "RV32", width, height, width * sizeof(uint32_t));
-
-      if (libvlc_media_player_play(player) == 0)
-      {
-        auto event_manager = libvlc_media_player_event_manager(player);
-        libvlc_event_attach(event_manager, libvlc_MediaPlayerPositionChanged, T::callback, &t);
-
-        {
-          std::unique_lock<std::mutex> l(t.mutex);
-          libvlc_media_player_set_position(player, 0.05f);
-          while (!t.position_changed) t.condition.wait_for(l, std::chrono::seconds(1));
-        }
-
-        libvlc_event_detach(event_manager, libvlc_MediaPlayerPositionChanged, T::callback, &t);
-        libvlc_media_player_stop(player);
+        libvlc_media_player_release(player);
       }
-
-      libvlc_media_player_release(player);
     }
   }
 }

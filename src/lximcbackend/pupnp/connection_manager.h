@@ -35,17 +35,17 @@ class connection_manager : public rootdevice::service
 public:
   struct protocol
   {
+    protocol();
     protocol(
-        const std::string &network_protocol = "http-get",
-        const std::string &content_format = std::string(),
-        bool conversion_indicator = false,
-        bool operations_range = false,
-        bool operations_timeseek = false,
-        const std::string &profile = std::string(),
-        const std::string &suffix = std::string(),
+        const std::string &network_protocol,
+        const std::string &content_format,
+        bool conversion_indicator,
+        bool operations_range,
+        bool operations_timeseek,
+        const std::string &profile,
+        const std::string &suffix,
         unsigned sample_rate = 0, unsigned channels = 0,
-        unsigned resolution_x = 0, unsigned resolution_y = 0,
-        uint64_t size = 0);
+        unsigned width = 0, unsigned height = 0, float frame_rate = 0.0f);
 
     std::string to_string(bool brief = false) const;  //!< Returns the DLNA protocol string.
     std::string content_features() const;             //!< Returns the DLNA contentFeatures string.
@@ -82,10 +82,12 @@ public:
     std::string suffix;                               //!< The file extension (including .).
 
     unsigned sample_rate, channels;
-    unsigned resolution_x, resolution_y;
-    uint64_t size;
+    unsigned width, height;
+    float frame_rate;
 
-    std::vector<std::pair<std::string, std::string>> query_items;
+    std::string to_vlc_transcode() const;             //!< Returns the VLC transcode string.
+
+    std::string acodec, vcodec, mux;
   };
 
   struct connection_info
@@ -126,8 +128,10 @@ public:
   connection_manager(class messageloop &, class rootdevice &);
   virtual ~connection_manager();
 
-  void set_protocols(const std::vector<protocol> &source_protocols, const std::vector<protocol> &sink_protocols);
-  const std::vector<protocol> & source_protocols() const;
+  std::vector<protocol> get_protocols(unsigned channels) const;
+  std::vector<protocol> get_protocols(unsigned channels, unsigned width, float frame_rate) const;
+  protocol get_protocol(const std::string &profile, unsigned num_channels) const;
+  protocol get_protocol(const std::string &profile, unsigned num_channels, unsigned width, float frame_rate) const;
 
   void output_connection_add(const std::string &content_type, const std::shared_ptr<std::istream> &);
   void output_connection_remove(const std::shared_ptr<std::istream> &);
@@ -147,11 +151,18 @@ private: // From rootdevice::service
   virtual void write_service_description(rootdevice::service_description &) const override final;
   virtual void write_eventable_statevariables(rootdevice::eventable_propertyset &) const override final;
 
+  void add_audio_protocols();
+  void add_source_audio_protocol(const char *, const char *, const char *, unsigned, unsigned, const char *, const char *);
+  void add_video_protocols();
+  void add_source_video_protocol(const char *, const char *, const char *, unsigned, unsigned, unsigned, unsigned, float, const char *, const char *, const char *);
+
 private:
   class messageloop &messageloop;
   class rootdevice &rootdevice;
 
-  std::vector<protocol> source_protocol_list;
+  std::vector<protocol> source_audio_protocol_list;
+  std::vector<protocol> source_video_protocol_list;
+
   std::vector<protocol> sink_protocol_list;
 
   int32_t connection_id_counter;

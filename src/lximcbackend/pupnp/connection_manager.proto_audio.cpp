@@ -15,34 +15,14 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#ifndef VLC_TRANSCODE_STREAM_H
-#define VLC_TRANSCODE_STREAM_H
+#include "connection_manager.h"
 
-#include <istream>
-#include <memory>
-#include <string>
-
-namespace vlc {
-
-class instance;
-
-class transcode_stream : public std::istream
+void pupnp::connection_manager::add_audio_protocols()
 {
-public:
-  explicit transcode_stream(class instance &);
-  ~transcode_stream();
-  transcode_stream(const transcode_stream &) = delete;
-  transcode_stream & operator=(const transcode_stream &) = delete;
-
-  bool open(const std::string &mrl, const std::string &transcode, const std::string &mux);
-  void close();
-
-private:
-  class instance &instance;
-  struct data;
-  std::unique_ptr<data> d;
-};
-
-} // End of namespace
-
-#endif
+  add_source_audio_protocol(
+        "LPCM",
+        "audio/L16;rate=48000;channels=2", "lpcm",
+        48000, 2,
+        "acodec=mpga,ab=256",
+        "dummy");
+}

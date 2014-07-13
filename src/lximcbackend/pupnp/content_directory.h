@@ -84,13 +84,13 @@ public:
 
     std::vector<stream> streams;
     std::vector<chapter> chapters;
-    std::vector<connection_manager::protocol> protocols;
   };
 
   struct item_source
   {
     virtual std::vector<item> list_contentdir_items(const std::string &client, const std::string &path, size_t start, size_t &count) = 0;
     virtual item get_contentdir_item(const std::string &client, const std::string &path) = 0;
+    virtual int play_item(const item &, const std::string &profile, std::string &, std::shared_ptr<std::istream> &) = 0;
   };
 
 public:
@@ -191,8 +191,6 @@ public:
   void handle_action(const upnp::request &, action_get_system_update_id &);
   void handle_action(const upnp::request &, action_get_featurelist &);
 
-  std::function<int(const std::string &, std::string &, std::shared_ptr<std::istream> &)> open_mrl;
-
 protected: // From rootdevice::service
   virtual const char * get_service_type(void) override;
 
@@ -214,8 +212,8 @@ private:
   static std::string parentpath(const std::string &);
   std::string to_objectid(const std::string &path, bool create = true);
   std::string from_objectid(const std::string &id);
-  pupnp::upnp::url to_objecturl(const std::string &host, const std::string &mrl, const std::string &suffix);
-  std::string from_objecturl(const upnp::url &url);
+  std::string to_objectpath(const std::string &path, const std::string &profile, const std::string &suffix);
+  std::string from_objectpath(const std::string &path, std::string &profile);
 
   void num_connections_changed(int num_connections);
   void process_pending_updates(void);
@@ -239,14 +237,17 @@ private:
   std::map<std::string, size_t> objectid_map;
   std::vector<std::string> objecturl_list;
   std::map<std::string, size_t> objecturl_map;
+  std::vector<std::string> objectprofile_list;
+  std::map<std::string, size_t> objectprofile_map;
 
   struct root_item_source final : item_source
   {
     root_item_source(content_directory &parent) : parent(parent) { }
     content_directory &parent;
 
-    virtual std::vector<item> list_contentdir_items(const std::string &client, const std::string &path, size_t start, size_t &count) override;
-    virtual item get_contentdir_item(const std::string &client, const std::string &path) override;
+    std::vector<item> list_contentdir_items(const std::string &client, const std::string &path, size_t start, size_t &count) override;
+    item get_contentdir_item(const std::string &client, const std::string &path) override;
+    int play_item(const item &, const std::string &, std::string &, std::shared_ptr<std::istream> &) override;
   } root_item_source;
 };
 
