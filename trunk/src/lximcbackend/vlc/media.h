@@ -34,7 +34,15 @@ public:
 
   struct track
   {
+    std::string language;
+    std::string description;
+
     track_type type;
+    union
+    {
+      struct { unsigned sample_rate, channels; } audio;
+      struct { unsigned width, height; float frame_rate; } video;
+    };
   };
 
 public:
