@@ -86,7 +86,7 @@ bool transcode_stream::open(const std::string &mrl, const std::string &transcode
       if (libvlc_vlm_play_media(instance, d->broadcast_name.c_str()) == 0)
       {
         d->stream_end = false;
-        d->buffer.resize(d->block_size * 64);
+        d->buffer.resize(d->block_size * 256);
         d->buffer_pos = 0;
         d->buffer_used = 0;
 
