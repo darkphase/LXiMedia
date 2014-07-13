@@ -17,7 +17,9 @@
 
 #include "connection_manager.h"
 #include "../string.h"
+#include <cmath>
 #include <cstring>
+#include <sstream>
 
 namespace pupnp {
 
@@ -37,17 +39,74 @@ connection_manager::~connection_manager()
   rootdevice.service_unregister(service_id);
 }
 
-void connection_manager::set_protocols(const std::vector<protocol> &source_protocols, const std::vector<protocol> &sink_protocols)
+std::vector<connection_manager::protocol> connection_manager::get_protocols(unsigned channels) const
 {
-  source_protocol_list = source_protocols;
-  sink_protocol_list = sink_protocols;
+  std::map<int, std::vector<protocol>> protocols;
+  for (auto &protocol : source_audio_protocol_list)
+  {
+    int score = 0;
+    score += ((protocol.channels > 2) == (channels > 2)) ? -1 : 0;
 
-  messageloop.post([this] { rootdevice.emit_event(service_id); });
+    protocols[score].emplace_back(protocol);
+  }
+
+  std::set<std::string> profiles;
+  std::vector<protocol> result;
+  for (auto &i : protocols)
+  for (auto &protocol : i.second)
+  if (profiles.find(protocol.profile) == profiles.end())
+  {
+    profiles.insert(protocol.profile);
+    result.emplace_back(std::move(protocol));
+    result.back().channels = channels;
+  }
+
+  return result;
 }
 
-const std::vector<connection_manager::protocol> & connection_manager::source_protocols() const
+std::vector<connection_manager::protocol> connection_manager::get_protocols(unsigned channels, unsigned width, float frame_rate) const
 {
-  return source_protocol_list;
+  std::map<int, std::vector<protocol>> protocols;
+  for (auto &protocol : source_video_protocol_list)
+  {
+    int score = 0;
+    score += ((protocol.channels > 2) == (channels > 2)) ? -1 : 0;
+    score += (std::abs(int(protocol.width) - int(width)) < int(width / 4)) ? -1 : 0;
+    score += (std::fabs(protocol.frame_rate - frame_rate) < 2.0f) ? -1 : 0;
+
+    protocols[score].emplace_back(protocol);
+  }
+
+  std::set<std::string> profiles;
+  std::vector<protocol> result;
+  for (auto &i : protocols)
+  for (auto &protocol : i.second)
+  if (profiles.find(protocol.profile) == profiles.end())
+  {
+    profiles.insert(protocol.profile);
+    result.emplace_back(std::move(protocol));
+    result.back().channels = channels;
+  }
+
+  return result;
+}
+
+connection_manager::protocol connection_manager::get_protocol(const std::string &profile, unsigned num_channels) const
+{
+  for (auto &i : get_protocols(num_channels))
+  if (i.profile == profile)
+    return i;
+
+  return connection_manager::protocol();
+}
+
+connection_manager::protocol connection_manager::get_protocol(const std::string &profile, unsigned num_channels, unsigned width, float frame_rate) const
+{
+  for (auto &i : get_protocols(num_channels, width, frame_rate))
+  if (i.profile == profile)
+    return i;
+
+  return connection_manager::protocol();
 }
 
 const char * connection_manager::get_service_type(void)
@@ -57,6 +116,8 @@ const char * connection_manager::get_service_type(void)
 
 void connection_manager::initialize(void)
 {
+  add_audio_protocols();
+  add_video_protocols();
 }
 
 void connection_manager::close(void)
@@ -64,6 +125,9 @@ void connection_manager::close(void)
   connections.clear();
 
   for (auto &i : numconnections_changed) if (i.second) i.second(0);
+
+  source_audio_protocol_list.clear();
+  source_video_protocol_list.clear();
 }
 
 void connection_manager::write_service_description(rootdevice::service_description &desc) const
@@ -104,7 +168,7 @@ void connection_manager::write_service_description(rootdevice::service_descripti
 void connection_manager::write_eventable_statevariables(rootdevice::eventable_propertyset &propset) const
 {
   std::string sp;
-  for (auto &protocol : source_protocol_list)
+  for (auto &protocol : source_audio_protocol_list)
     sp += "," + protocol.to_string(true);
 
   propset.add_property("SourceProtocolInfo", sp.empty() ? sp : sp.substr(1));
@@ -175,7 +239,7 @@ void connection_manager::handle_action(const upnp::request &, action_get_current
 void connection_manager::handle_action(const upnp::request &, action_get_protocol_info &action)
 {
   std::string source_protocols;
-  for (auto &protocol : source_protocol_list)
+  for (auto &protocol : source_audio_protocol_list)
     source_protocols += "," + protocol.to_string(true);
 
   source_protocols = source_protocols.empty() ? source_protocols : source_protocols.substr(1);
@@ -189,8 +253,52 @@ void connection_manager::handle_action(const upnp::request &, action_get_protoco
   action.set_response(source_protocols, sink_protocols);
 }
 
-connection_manager::protocol::protocol(
-    const std::string &network_protocol,
+void connection_manager::add_source_audio_protocol(
+    const char *name,
+    const char *mime, const char *suffix,
+    unsigned sample_rate, unsigned channels,
+    const char *acodec, const char *mux)
+{
+  source_audio_protocol_list.emplace_back(protocol(
+                                            "http-get", mime,
+                                            true, false, false,
+                                            name, suffix,
+                                            sample_rate, channels));
+
+  auto &protocol = source_audio_protocol_list.back();
+  protocol.acodec = acodec;
+  protocol.mux = mux;
+}
+
+void connection_manager::add_source_video_protocol(
+    const char *name,
+    const char *mime, const char *suffix,
+    unsigned sample_rate, unsigned channels,
+    unsigned width, unsigned height, float frame_rate,
+    const char *acodec, const char *vcodec, const char *mux)
+{
+  source_video_protocol_list.emplace_back(protocol(
+                                            "http-get", mime,
+                                            true, false, false,
+                                            name, suffix,
+                                            sample_rate, channels,
+                                            width, height, frame_rate));
+
+  auto &protocol = source_video_protocol_list.back();
+  protocol.acodec = acodec;
+  protocol.vcodec = vcodec;
+  protocol.mux = mux;
+}
+
+connection_manager::protocol::protocol()
+  : play_speed(true), conversion_indicator(false),
+    operations_range(false), operations_timeseek(false),
+    sample_rate(0), channels(0),
+    width(0), height(0)
+{
+}
+
+connection_manager::protocol::protocol(const std::string &network_protocol,
     const std::string &content_format,
     bool conversion_indicator,
     bool operations_range,
@@ -198,14 +306,13 @@ connection_manager::protocol::protocol(
     const std::string &profile,
     const std::string &suffix,
     unsigned sample_rate, unsigned channels,
-    unsigned resolution_x, unsigned resolution_y,
-    uint64_t size)
+    unsigned width, unsigned height, float frame_rate)
   : network_protocol(network_protocol), network("*"), content_format(content_format),
     profile(profile), play_speed(true), conversion_indicator(conversion_indicator),
     operations_range(operations_range), operations_timeseek(operations_timeseek),
     flags(starts_with(content_format, "image/") ? "00100000" : "01700000"),
     suffix(suffix), sample_rate(sample_rate), channels(channels),
-    resolution_x(resolution_x), resolution_y(resolution_y), size(size)
+    width(width), height(height), frame_rate(frame_rate)
 {
 }
 
@@ -243,6 +350,34 @@ std::string connection_manager::protocol::content_features(void) const
 
   return result;
 }
+
+std::string connection_manager::protocol::to_vlc_transcode() const
+{
+  std::ostringstream transcode;
+  if (!acodec.empty() || !vcodec.empty())
+  {
+    transcode << "#lximedia_transcode{";
+
+    if (!acodec.empty())
+    {
+      transcode << acodec << ",samplerate=" << sample_rate << ",channels=" << channels;
+      if (!vcodec.empty())
+        transcode << ',';
+    }
+
+    if (!vcodec.empty())
+    {
+      transcode
+          << "vfilter=canvas{width=" << width << ",height=" << height << ",aspect=16:9},"
+          << vcodec << ",width=" << width << ",height=" << height << ",fps=" << frame_rate;
+    }
+
+    transcode << '}';
+  }
+
+  return transcode.str();
+}
+
 
 connection_manager::connection_info::connection_info()
   : rcs_id(0),

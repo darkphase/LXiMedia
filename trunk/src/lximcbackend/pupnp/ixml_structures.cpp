@@ -464,11 +464,8 @@ void action_browse::add_item(const content_directory::browse_item &browse_item)
     if (file.second.channels > 0)
       result.set_attribute(res, "nrAudioChannels", std::to_string(file.second.channels));
 
-    if ((file.second.resolution_x > 0) && (file.second.resolution_y > 0))
-      result.set_attribute(res, "resolution", std::to_string(file.second.resolution_x) + "x" + std::to_string(file.second.resolution_y));
-
-    if (file.second.size > 0)
-      result.set_attribute(res, "size", std::to_string(file.second.size));
+    if ((file.second.width > 0) && (file.second.height > 0))
+      result.set_attribute(res, "resolution", std::to_string(file.second.width) + "x" + std::to_string(file.second.height));
   }
 
   number_returned++;
@@ -590,11 +587,8 @@ void action_search::add_item(const content_directory::browse_item &browse_item)
     if (file.second.channels > 0)
       result.set_attribute(res, "nrAudioChannels", std::to_string(file.second.channels));
 
-    if ((file.second.resolution_x > 0) && (file.second.resolution_y > 0))
-      result.set_attribute(res, "resolution", std::to_string(file.second.resolution_x) + "x" + std::to_string(file.second.resolution_y));
-
-    if (file.second.size > 0)
-      result.set_attribute(res, "size", std::to_string(file.second.size));
+    if ((file.second.width > 0) && (file.second.height > 0))
+      result.set_attribute(res, "resolution", std::to_string(file.second.width) + "x" + std::to_string(file.second.height));
   }
 
   number_returned++;

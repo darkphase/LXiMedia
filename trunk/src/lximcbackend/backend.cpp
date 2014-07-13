@@ -16,7 +16,6 @@
  ******************************************************************************/
 
 #include "backend.h"
-#include "vlc/transcode_stream.h"
 
 backend::backend(class messageloop &messageloop)
   : messageloop(messageloop),
@@ -27,7 +26,7 @@ backend::backend(class messageloop &messageloop)
     connection_manager(messageloop, rootdevice),
     content_directory(messageloop, upnp, rootdevice, connection_manager),
     mediareceiver_registrar(messageloop, rootdevice),
-    mediaplayer(messageloop, vlc_instance, content_directory)
+    mediaplayer(messageloop, vlc_instance, connection_manager, content_directory)
 {
   using namespace std::placeholders;
 
@@ -38,20 +37,6 @@ backend::backend(class messageloop &messageloop)
   upnp.http_callback_register("/help" , std::bind(&backend::http_request, this, _1, _2, _3));
 
   rootdevice.set_devicename(settings.devicename());
-
-  content_directory.open_mrl = [this](const std::string &mrl, std::string &content_type, std::shared_ptr<std::istream> &response)->int
-  {
-    auto stream = std::make_shared<vlc::transcode_stream>(vlc_instance);
-    if (stream->open(mrl))
-    {
-      content_type = upnp.mime_video_mpeg;
-      connection_manager.output_connection_add(content_type, stream);
-      response = stream;
-      return pupnp::upnp::http_ok;
-    }
-
-    return pupnp::upnp::http_not_found;
-  };
 }
 
 backend::~backend()

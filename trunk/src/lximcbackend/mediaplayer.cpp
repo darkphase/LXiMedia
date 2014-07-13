@@ -19,13 +19,15 @@
 #include "string.h"
 #include "translator.h"
 #include "vlc/media.h"
+#include "vlc/transcode_stream.h"
 #include <set>
 
 static std::vector<std::string> list_files(const std::string &path);
 
-mediaplayer::mediaplayer(class messageloop &messageloop, class vlc::instance &vlc_instance, pupnp::content_directory &content_directory)
+mediaplayer::mediaplayer(class messageloop &messageloop, class vlc::instance &vlc_instance, pupnp::connection_manager &connection_manager, pupnp::content_directory &content_directory)
   : messageloop(messageloop),
     vlc_instance(vlc_instance),
+    connection_manager(connection_manager),
     content_directory(content_directory),
     root_path('/' + tr("Media Player") + '/')
 {
@@ -116,6 +118,23 @@ pupnp::content_directory::item mediaplayer::get_contentdir_item(const std::strin
   }
 
   return item;
+}
+
+int mediaplayer::play_item(const pupnp::content_directory::item &item, const std::string &profile, std::string &content_type, std::shared_ptr<std::istream> &response)
+{
+  const auto protocol = connection_manager.get_protocol(profile, 2, 768, 25.0f);
+  if (!protocol.profile.empty())
+  {
+    auto stream = std::make_shared<vlc::transcode_stream>(vlc_instance);
+    if (stream->open(item.mrl, protocol.to_vlc_transcode(), protocol.mux))
+    {
+      content_type = pupnp::upnp::mime_video_mpeg;
+      response = stream;
+      return pupnp::upnp::http_ok;
+    }
+  }
+
+  return pupnp::upnp::http_not_found;
 }
 
 std::string mediaplayer::to_system_path(const std::string &virtual_path) const
