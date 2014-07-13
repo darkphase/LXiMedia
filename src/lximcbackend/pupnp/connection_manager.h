@@ -85,8 +85,6 @@ public:
     unsigned width, height;
     float frame_rate;
 
-    std::string to_vlc_transcode() const;             //!< Returns the VLC transcode string.
-
     std::string acodec, vcodec, mux;
   };
 
@@ -133,8 +131,8 @@ public:
   protocol get_protocol(const std::string &profile, unsigned num_channels) const;
   protocol get_protocol(const std::string &profile, unsigned num_channels, unsigned width, float frame_rate) const;
 
-  void output_connection_add(const std::string &content_type, const std::shared_ptr<std::istream> &);
-  void output_connection_remove(const std::shared_ptr<std::istream> &);
+  void output_connection_add(std::istream &, const struct protocol &);
+  void output_connection_remove(std::istream &);
 
   void handle_action(const upnp::request &, action_get_current_connectionids &);
   void handle_action(const upnp::request &, action_get_current_connection_info &);

@@ -41,26 +41,14 @@ public:
     image = 30, photo
   };
 
+  struct chapter
+  {
+    std::string title;
+    unsigned position;
+  };
+
   struct item
   {
-    struct stream
-    {
-      stream(void);
-      ~stream();
-
-      std::string title;
-      std::vector<std::pair<std::string, std::string>> query_items;
-    };
-
-    struct chapter
-    {
-      chapter(const std::string &title = std::string(), unsigned position = 0);
-      ~chapter();
-
-      std::string title;
-      unsigned position;
-    };
-
     item(void);
     ~item();
 
@@ -79,11 +67,13 @@ public:
     std::string album;
     int track;
 
+    unsigned sample_rate, channels;
+    unsigned width, height;
+    float frame_rate;
+
+    std::vector<chapter> chapters;
     unsigned duration; //!< In seconds.
     int last_position; //!< In seconds, -1 = unknown.
-
-    std::vector<stream> streams;
-    std::vector<chapter> chapters;
   };
 
   struct item_source

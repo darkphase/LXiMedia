@@ -155,26 +155,6 @@ static std::vector<std::string> playseek_items(const content_directory::item &it
   return result;
 }
 
-static std::vector<std::string> stream_items(const content_directory::item &item)
-{
-  if (item.streams.size() > 1)
-  {
-    std::vector<std::string> result;
-    for (const content_directory::item::stream &stream : item.streams)
-    {
-      std::string query;
-      for (size_t i=0; i<stream.query_items.size(); i++)
-        query += '&' + stream.query_items[i].first + '=' + stream.query_items[i].second;
-
-      result.push_back('r' + query + '#' + stream.title);
-    }
-
-    return result;
-  }
-
-  return playseek_items(item);
-}
-
 static std::vector<std::string> seek_items(const content_directory::item &item)
 {
   std::vector<std::string> result;
@@ -197,7 +177,7 @@ static std::vector<std::string> chapter_items(const content_directory::item &ite
   int chapter_num = 1;
   for (size_t i = 0; i < item.chapters.size(); i++)
   {
-    const content_directory::item::chapter &chapter = item.chapters[i];
+    const content_directory::chapter &chapter = item.chapters[i];
 
     std::string title = tr("Chapter") + " " + std::to_string(chapter_num++);
     if (!chapter.title.empty())
@@ -220,8 +200,6 @@ static std::vector<std::string> all_items(const content_directory::item &item, c
 {
   std::vector<std::string> items;
   if (item_props.empty() || item_props[1].empty()) // Root
-    items = stream_items(item);
-  else if (item_props[1] == "r")
     items = playseek_items(item);
   else if (item_props[1] == "s")
     items = seek_items(item);
@@ -565,12 +543,8 @@ int content_directory::http_request(const upnp::request &request, std::string &c
         return upnp::http_not_found;
       }
 
-      auto item = item_source->second->get_contentdir_item(request.user_agent, path);
-      const int result = item_source->second->play_item(item, profile, content_type, response);
-      if (result == upnp::http_ok)
-        connection_manager.output_connection_add(content_type, response);
-
-      return result;
+      const auto item = item_source->second->get_contentdir_item(request.user_agent, path);
+      return item_source->second->play_item(item, profile, content_type, response);
     }
   }
 
@@ -672,18 +646,11 @@ void content_directory::add_file(action_browse &action, const std::string &host,
   case item_type::photo:            browse_item.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.item.imageItem.photo"))); break;
   }
 
-//  for (auto &protocol : item.protocols)
-//  {
-//    upnp::url url = item.url;
-//    url.host = host;
-//    url.query["content_features"] = to_base64(protocol.content_features());
-//    browse_item.files.push_back(std::make_pair(to_objecturl(url, protocol.suffix), protocol));
-//  }
   if (!item.mrl.empty())
   {
     std::vector<connection_manager::protocol> protocols;
-    if (item.is_audio())  protocols = connection_manager.get_protocols(2);
-    if (item.is_video())  protocols = connection_manager.get_protocols(2, 768, 25.0f);
+    if (item.is_audio())  protocols = connection_manager.get_protocols(item.channels);
+    if (item.is_video())  protocols = connection_manager.get_protocols(item.channels, item.width, item.frame_rate);
 
     for (auto &protocol : protocols)
     {
@@ -841,7 +808,8 @@ std::string content_directory::from_objectpath(const std::string &path, std::str
 
 
 content_directory::item::item(void)
-  : is_dir(false), type(item_type::none), track(0), duration(0), last_position(-1)
+  : is_dir(false), type(item_type::none), track(0), sample_rate(0), channels(0),
+    width(0), height(0), frame_rate(0.0f), duration(0), last_position(-1)
 {
 }
 
@@ -867,25 +835,6 @@ bool content_directory::item::is_image(void) const
 bool content_directory::item::is_music(void) const
 {
   return (type == item_type::music) || (type == item_type::music_video);
-}
-
-
-content_directory::item::stream::stream(void)
-{
-}
-
-content_directory::item::stream::~stream()
-{
-}
-
-
-content_directory::item::chapter::chapter(const std::string &title, unsigned position)
-  : title(title), position(position)
-{
-}
-
-content_directory::item::chapter::~chapter()
-{
 }
 
 

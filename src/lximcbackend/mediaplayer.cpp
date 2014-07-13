@@ -21,6 +21,7 @@
 #include "vlc/media.h"
 #include "vlc/transcode_stream.h"
 #include <set>
+#include <sstream>
 
 static std::vector<std::string> list_files(const std::string &path);
 
@@ -103,12 +104,17 @@ pupnp::content_directory::item mediaplayer::get_contentdir_item(const std::strin
         if (!item.is_audio() && !item.is_video())
           item.type = pupnp::content_directory::item_type::audio;
 
+        item.sample_rate = track.audio.sample_rate;
+        item.channels = track.audio.channels;
         break;
 
       case vlc::media::track_type::video:
         if (!item.is_video())
           item.type = pupnp::content_directory::item_type::video;
 
+        item.width = track.video.width;
+        item.height = track.video.height;
+        item.frame_rate = track.video.frame_rate;
         break;
       }
     }
@@ -122,13 +128,64 @@ pupnp::content_directory::item mediaplayer::get_contentdir_item(const std::strin
 
 int mediaplayer::play_item(const pupnp::content_directory::item &item, const std::string &profile, std::string &content_type, std::shared_ptr<std::istream> &response)
 {
-  const auto protocol = connection_manager.get_protocol(profile, 2, 768, 25.0f);
+  const auto protocol = connection_manager.get_protocol(profile, item.channels, item.width, item.frame_rate);
   if (!protocol.profile.empty())
   {
-    auto stream = std::make_shared<vlc::transcode_stream>(vlc_instance);
-    if (stream->open(item.mrl, protocol.to_vlc_transcode(), protocol.mux))
+    std::ostringstream transcode;
+    if (!protocol.acodec.empty() || !protocol.vcodec.empty())
     {
-      content_type = pupnp::upnp::mime_video_mpeg;
+      transcode << "#lximedia_transcode{";
+
+      if (!protocol.vcodec.empty())
+      {
+        transcode
+            << "vfilter=canvas{width=" << protocol.width
+            << ",height=" << protocol.height
+            << ",aspect=16:9},"
+            << protocol.vcodec
+            << ",width=" << protocol.width
+            << ",height=" << protocol.height
+            << ",fps=" << protocol.frame_rate;
+      }
+
+      if (!protocol.acodec.empty())
+      {
+        if (!protocol.vcodec.empty())
+          transcode << ",audio-sync=true,";
+
+        transcode
+            << protocol.acodec
+            << ",samplerate=" << protocol.sample_rate
+            << ",channels=" << protocol.channels;
+      }
+
+      transcode << '}';
+    }
+
+    struct transcode_stream : vlc::transcode_stream
+    {
+      transcode_stream(
+            class vlc::instance &instance,
+            pupnp::connection_manager &connection_manager,
+            const pupnp::connection_manager::protocol &protocol)
+        : vlc::transcode_stream(instance),
+          connection_manager(connection_manager)
+      {
+        connection_manager.output_connection_add(*this, protocol);
+      }
+
+      ~transcode_stream()
+      {
+        connection_manager.output_connection_remove(*this);
+      }
+
+      pupnp::connection_manager &connection_manager;
+    };
+
+    auto stream = std::make_shared<transcode_stream>(vlc_instance, connection_manager, protocol);
+    if (stream->open(item.mrl, transcode.str(), protocol.mux))
+    {
+      content_type = protocol.content_format;
       response = stream;
       return pupnp::upnp::http_ok;
     }

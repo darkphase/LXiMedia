@@ -18,8 +18,10 @@
 #include "media.h"
 #include "instance.h"
 #include <vlc/vlc.h>
+#include <chrono>
 #include <condition_variable>
 #include <mutex>
+#include <thread>
 
 namespace vlc {
 
@@ -69,11 +71,16 @@ void media::parse() const
 
         struct T
         {
-          static void callback(const libvlc_event_t *, void *opaque)
+          static void callback(const libvlc_event_t *e, void *opaque)
           {
             T * const t = reinterpret_cast<T *>(opaque);
             std::lock_guard<std::mutex> _(t->mutex);
-            t->position_changed = true;
+
+            if (e->type == libvlc_MediaPlayerPositionChanged)
+              t->progress = true;
+            else if (e->type == libvlc_MediaPlayerPlaying)
+              t->playing = true;
+
             t->condition.notify_one();
           }
 
@@ -89,33 +96,44 @@ void media::parse() const
 
           std::condition_variable condition;
           std::mutex mutex;
-          bool position_changed;
+          bool playing, progress;
           std::vector<uint8_t> pixel_buffer;
         } t;
 
-        t.position_changed = false;
+        t.progress = t.playing = false;
         t.pixel_buffer.resize((width * height * sizeof(uint32_t)) + align);
+
+        libvlc_media_player_set_rate(player, 10.0f);
 
         libvlc_audio_set_callbacks(player, &T::play, nullptr, nullptr, nullptr, nullptr, &t);
         libvlc_audio_set_format(player, "S16N", 44100, 2);
         libvlc_video_set_callbacks(player, &T::lock, nullptr, nullptr, &t);
         libvlc_video_set_format(player, "RV32", width, height, width * sizeof(uint32_t));
 
+        auto event_manager = libvlc_media_player_event_manager(player);
+        libvlc_event_attach(event_manager, libvlc_MediaPlayerPlaying, T::callback, &t);
+        libvlc_event_attach(event_manager, libvlc_MediaPlayerPositionChanged, T::callback, &t);
+
         if (libvlc_media_player_play(player) == 0)
         {
-          auto event_manager = libvlc_media_player_event_manager(player);
-          libvlc_event_attach(event_manager, libvlc_MediaPlayerPositionChanged, T::callback, &t);
-
           {
             std::unique_lock<std::mutex> l(t.mutex);
-            libvlc_media_player_set_position(player, 0.05f);
-            while (!t.position_changed) t.condition.wait_for(l, std::chrono::seconds(1));
+            while (!t.playing) t.condition.wait(l);
           }
 
-          libvlc_event_detach(event_manager, libvlc_MediaPlayerPositionChanged, T::callback, &t);
+          for (libvlc_time_t start = libvlc_media_player_get_time(player), now = start;
+               (now < (start + 1000));
+               now = libvlc_media_player_get_time(player))
+          {
+            std::unique_lock<std::mutex> l(t.mutex);
+            while (!t.progress) t.condition.wait(l);
+          }
+
           libvlc_media_player_stop(player);
         }
 
+        libvlc_event_detach(event_manager, libvlc_MediaPlayerPositionChanged, T::callback, &t);
+        libvlc_event_detach(event_manager, libvlc_MediaPlayerPlaying, T::callback, &t);
         libvlc_media_player_release(player);
       }
     }
@@ -140,17 +158,43 @@ std::vector<media::track> media::tracks() const
     for (unsigned i = 0; (i < count) && track_list[i]; i++)
     {
       struct track track;
-      track.type = track_type::unknown;
+      if (track_list[i]->psz_language)    track.language    = track_list[i]->psz_language;
+      if (track_list[i]->psz_description) track.description = track_list[i]->psz_description;
 
+      track.type = track_type::unknown;
       switch (track_list[i]->i_type)
       {
-      case libvlc_track_unknown:  track.type = track_type::unknown; break;
-      case libvlc_track_audio  :  track.type = track_type::audio  ; break;
-      case libvlc_track_video  :  track.type = track_type::video  ; break;
-      case libvlc_track_text   :  track.type = track_type::text   ; break;
+      case libvlc_track_unknown:
+        track.type = track_type::unknown;
+        break;
+
+      case libvlc_track_audio:
+        track.type = track_type::audio;
+        if (track_list[i]->audio)
+        {
+          track.audio.sample_rate = track_list[i]->audio->i_rate;
+          track.audio.channels = track_list[i]->audio->i_channels;
+        }
+        break;
+
+      case libvlc_track_video:
+        track.type = track_type::video;
+        if (track_list[i]->video)
+        {
+          track.video.width = track_list[i]->video->i_width;
+          track.video.height = track_list[i]->video->i_height;
+          track.video.frame_rate =
+              float(track_list[i]->video->i_frame_rate_num) /
+              float(track_list[i]->video->i_frame_rate_den);
+        }
+        break;
+
+      case libvlc_track_text:
+        track.type = track_type::text;
+        break;
       }
 
-      result.emplace_back(track);
+      result.emplace_back(std::move(track));
     }
 
     libvlc_media_tracks_release(track_list, count);

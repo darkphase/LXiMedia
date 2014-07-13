@@ -19,7 +19,6 @@
 #include "../string.h"
 #include <cmath>
 #include <cstring>
-#include <sstream>
 
 namespace pupnp {
 
@@ -45,7 +44,7 @@ std::vector<connection_manager::protocol> connection_manager::get_protocols(unsi
   for (auto &protocol : source_audio_protocol_list)
   {
     int score = 0;
-    score += ((protocol.channels > 2) == (channels > 2)) ? -1 : 0;
+    score += ((protocol.channels > 2) == (channels > 2)) ? -2 : 0;
 
     protocols[score].emplace_back(protocol);
   }
@@ -53,12 +52,13 @@ std::vector<connection_manager::protocol> connection_manager::get_protocols(unsi
   std::set<std::string> profiles;
   std::vector<protocol> result;
   for (auto &i : protocols)
+  if (result.empty() || (i.first <= 0))
   for (auto &protocol : i.second)
   if (profiles.find(protocol.profile) == profiles.end())
   {
     profiles.insert(protocol.profile);
     result.emplace_back(std::move(protocol));
-    result.back().channels = channels;
+    result.back().channels = std::min(result.back().channels, channels);
   }
 
   return result;
@@ -70,9 +70,11 @@ std::vector<connection_manager::protocol> connection_manager::get_protocols(unsi
   for (auto &protocol : source_video_protocol_list)
   {
     int score = 0;
-    score += ((protocol.channels > 2) == (channels > 2)) ? -1 : 0;
-    score += (std::abs(int(protocol.width) - int(width)) < int(width / 4)) ? -1 : 0;
-    score += (std::fabs(protocol.frame_rate - frame_rate) < 2.0f) ? -1 : 0;
+    score += ((protocol.channels > 2) == (channels > 2)) ? -2 : 0;
+    score += ((protocol.width > 1280) == (width > 1280)) ? -1 : 0;
+    score += ((protocol.width >  876) == (width >  876)) ? -1 : 0;
+    score += ((protocol.width >  640) == (width >  640)) ? -1 : 0;
+    score += (std::fabs(protocol.frame_rate - frame_rate) > 0.5f) ? 6 : 0;
 
     protocols[score].emplace_back(protocol);
   }
@@ -80,12 +82,13 @@ std::vector<connection_manager::protocol> connection_manager::get_protocols(unsi
   std::set<std::string> profiles;
   std::vector<protocol> result;
   for (auto &i : protocols)
+  if (result.empty() || (i.first <= 0))
   for (auto &protocol : i.second)
   if (profiles.find(protocol.profile) == profiles.end())
   {
     profiles.insert(protocol.profile);
     result.emplace_back(std::move(protocol));
-    result.back().channels = channels;
+    result.back().channels = std::min(result.back().channels, channels);
   }
 
   return result;
@@ -182,28 +185,28 @@ void connection_manager::write_eventable_statevariables(rootdevice::eventable_pr
   propset.add_property("CurrentConnectionIDs", "");
 }
 
-void connection_manager::output_connection_add(const std::string &content_type, const std::shared_ptr<std::istream> &stream)
+void connection_manager::output_connection_add(std::istream &stream, const struct protocol &protocol)
 {
   const auto id = ++connection_id_counter;
 
   connection_info connection;
   connection.rcs_id = -1;
   connection.avtransport_id = -1;
-  connection.protocol_info = "http-get:*:" + content_type + ":*";
+  connection.protocol_info = "http-get:*:" + protocol.content_format + ":*";
   connection.peerconnection_manager = std::string();
   connection.peerconnection_id = -1;
   connection.direction = connection_info::output;
   connection.status = connection_info::ok;
   connections[id] = connection;
-  streams[stream.get()] = id;
+  streams[&stream] = id;
 
   messageloop.post([this] { rootdevice.emit_event(service_id); });
   for (auto &i : numconnections_changed) if (i.second) i.second(connections.size());
 }
 
-void connection_manager::output_connection_remove(const std::shared_ptr<std::istream> &stream)
+void connection_manager::output_connection_remove(std::istream &stream)
 {
-  auto i = streams.find(stream.get());
+  auto i = streams.find(&stream);
   if (i != streams.end())
   {
     auto j = connections.find(i->second);
@@ -349,33 +352,6 @@ std::string connection_manager::protocol::content_features(void) const
     result += ";DLNA.ORG_FLAGS=" + flags + "000000000000000000000000";
 
   return result;
-}
-
-std::string connection_manager::protocol::to_vlc_transcode() const
-{
-  std::ostringstream transcode;
-  if (!acodec.empty() || !vcodec.empty())
-  {
-    transcode << "#lximedia_transcode{";
-
-    if (!acodec.empty())
-    {
-      transcode << acodec << ",samplerate=" << sample_rate << ",channels=" << channels;
-      if (!vcodec.empty())
-        transcode << ',';
-    }
-
-    if (!vcodec.empty())
-    {
-      transcode
-          << "vfilter=canvas{width=" << width << ",height=" << height << ",aspect=16:9},"
-          << vcodec << ",width=" << width << ",height=" << height << ",fps=" << frame_rate;
-    }
-
-    transcode << '}';
-  }
-
-  return transcode.str();
 }
 
 
