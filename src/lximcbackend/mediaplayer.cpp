@@ -25,6 +25,37 @@
 
 static std::vector<std::string> list_files(const std::string &path);
 
+struct mediaplayer::transcode_stream : vlc::transcode_stream
+{
+  transcode_stream(
+      mediaplayer &parent,
+      const std::string &stream_id,
+      const pupnp::connection_manager::protocol &protocol)
+    : vlc::transcode_stream(parent.messageloop, parent.vlc_instance),
+      parent(parent),
+      stream_id(stream_id),
+      sever_timer(parent.messageloop, std::bind(&transcode_stream::sever, this))
+  {
+    parent.connection_manager.output_connection_add(*this, protocol);
+
+    sever_timer.start(std::chrono::seconds(10), true);
+  }
+
+  ~transcode_stream()
+  {
+    parent.connection_manager.output_connection_remove(*this);
+  }
+
+  void sever()
+  {
+    parent.pending_transcode_streams.erase(stream_id);
+  }
+
+  mediaplayer &parent;
+  const std::string stream_id;
+  timer sever_timer;
+};
+
 mediaplayer::mediaplayer(class messageloop &messageloop, class vlc::instance &vlc_instance, pupnp::connection_manager &connection_manager, pupnp::content_directory &content_directory)
   : messageloop(messageloop),
     vlc_instance(vlc_instance),
@@ -141,17 +172,19 @@ int mediaplayer::play_item(const pupnp::content_directory::item &item, const std
         transcode
             << "vfilter=canvas{width=" << protocol.width
             << ",height=" << protocol.height
-            << ",aspect=16:9},"
+            << ",aspect=16:9}"
+            << "," //venc=ffmpeg{hurry-up,vt=800000}," // See: http://www.videolan.org/doc/streaming-howto/en/ch03.html
             << protocol.vcodec
             << ",width=" << protocol.width
             << ",height=" << protocol.height
-            << ",fps=" << protocol.frame_rate;
+            << ",fps=" << protocol.frame_rate
+            << ",soverlay";
       }
 
       if (!protocol.acodec.empty())
       {
         if (!protocol.vcodec.empty())
-          transcode << ",audio-sync=true,";
+          transcode << ",";
 
         transcode
             << protocol.acodec
@@ -162,29 +195,27 @@ int mediaplayer::play_item(const pupnp::content_directory::item &item, const std
       transcode << '}';
     }
 
-    struct transcode_stream : vlc::transcode_stream
+    std::ostringstream stream_id;
+    stream_id << item.mrl << "::" << transcode.str() << "::" << protocol.mux;
+
+    // First try to attach to an already running stream.
+    auto pending_stream = pending_transcode_streams.find(stream_id.str());
+    if (pending_stream != pending_transcode_streams.end())
     {
-      transcode_stream(
-            class vlc::instance &instance,
-            pupnp::connection_manager &connection_manager,
-            const pupnp::connection_manager::protocol &protocol)
-        : vlc::transcode_stream(instance),
-          connection_manager(connection_manager)
+      auto stream = std::make_shared<vlc::transcode_stream>(messageloop, vlc_instance);
+      if (stream->attach(*pending_stream->second))
       {
-        connection_manager.output_connection_add(*this, protocol);
+        content_type = protocol.content_format;
+        response = stream;
+        return pupnp::upnp::http_ok;
       }
+    }
 
-      ~transcode_stream()
-      {
-        connection_manager.output_connection_remove(*this);
-      }
-
-      pupnp::connection_manager &connection_manager;
-    };
-
-    auto stream = std::make_shared<transcode_stream>(vlc_instance, connection_manager, protocol);
+    // Otherwise create a new stream.
+    auto stream = std::make_shared<transcode_stream>(*this, stream_id.str(), protocol);
     if (stream->open(item.mrl, transcode.str(), protocol.mux))
     {
+      pending_transcode_streams[stream_id.str()] = stream;
       content_type = protocol.content_format;
       response = stream;
       return pupnp::upnp::http_ok;

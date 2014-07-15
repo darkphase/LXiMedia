@@ -22,6 +22,8 @@
 #include <memory>
 #include <string>
 
+class messageloop;
+
 namespace vlc {
 
 class instance;
@@ -29,18 +31,23 @@ class instance;
 class transcode_stream : public std::istream
 {
 public:
-  explicit transcode_stream(class instance &);
+  transcode_stream(class messageloop &, class instance &);
   ~transcode_stream();
-  transcode_stream(const transcode_stream &) = delete;
-  transcode_stream & operator=(const transcode_stream &) = delete;
 
   bool open(const std::string &mrl, const std::string &transcode, const std::string &mux);
+  bool attach(transcode_stream &);
   void close();
 
 private:
+  class streambuf;
+  class source;
+
+  static const size_t block_size;
+  static const size_t block_count;
+  class messageloop &messageloop;
   class instance &instance;
-  struct data;
-  std::unique_ptr<data> d;
+  std::unique_ptr<class streambuf> streambuf;
+  std::shared_ptr<class source> source;
 };
 
 } // End of namespace
