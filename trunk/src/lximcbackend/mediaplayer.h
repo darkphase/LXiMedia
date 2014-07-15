@@ -50,6 +50,9 @@ private:
   const std::string root_path;
 
   std::vector<std::string> root_paths;
+
+  struct transcode_stream;
+  std::map<std::string, std::shared_ptr<transcode_stream>> pending_transcode_streams;
 };
 
 #endif
