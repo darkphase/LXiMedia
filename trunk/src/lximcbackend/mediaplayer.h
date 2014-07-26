@@ -21,6 +21,7 @@
 #include "messageloop.h"
 #include "pupnp/connection_manager.h"
 #include "pupnp/content_directory.h"
+#include "settings.h"
 #include "vlc/instance.h"
 #include <cstdint>
 #include <cstdlib>
@@ -30,7 +31,7 @@
 class mediaplayer : private pupnp::content_directory::item_source
 {
 public:
-  mediaplayer(class messageloop &, class vlc::instance &, pupnp::connection_manager &, pupnp::content_directory &);
+  mediaplayer(class messageloop &, class vlc::instance &, pupnp::connection_manager &, pupnp::content_directory &, enum encode_mode encode_mode);
   virtual ~mediaplayer();
 
 protected: // From content_directory::item_source
@@ -47,6 +48,7 @@ private:
   class vlc::instance &vlc_instance;
   class pupnp::connection_manager &connection_manager;
   class pupnp::content_directory &content_directory;
+  const enum encode_mode encode_mode;
   const std::string root_path;
 
   std::vector<std::string> root_paths;

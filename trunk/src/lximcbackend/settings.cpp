@@ -16,7 +16,9 @@
  ******************************************************************************/
 
 #include "settings.h"
+#include <cassert>
 #include <fstream>
+#include <thread>
 
 static std::string filename();
 static std::string make_uuid();
@@ -104,12 +106,12 @@ std::string settings::uuid()
 
 std::string settings::devicename() const
 {
-  std::string def = "LXiMediaCenter";
+  std::string default_devicename = "LXiMediaCenter";
   const char *hostname = getenv("HOSTNAME");
   if (hostname)
-    def = std::string(hostname) + " : " + def;
+    default_devicename = std::string(hostname) + " : " + default_devicename;
 
-  return read("General", "DeviceName", def);
+  return read("General", "DeviceName", default_devicename);
 }
 
 uint16_t settings::http_port() const
@@ -120,6 +122,38 @@ uint16_t settings::http_port() const
   catch (const std::invalid_argument &) { return default_port; }
   catch (const std::out_of_range &) { return default_port; }
 }
+
+static const char * to_string(encode_mode e)
+{
+  switch (e)
+  {
+  case encode_mode::fast: return "Fast";
+  case encode_mode::slow: return "Slow";
+  }
+
+  assert(false);
+  return nullptr;
+}
+
+static encode_mode from_string(const std::string &e)
+{
+  if (e == "Fast")
+    return encode_mode::fast;
+  else if (e == "Slow")
+    return encode_mode::slow;
+
+  assert(false);
+  return encode_mode::slow;
+}
+
+encode_mode settings::encode_mode() const
+{
+  const enum encode_mode default_encode_mode =
+      (std::thread::hardware_concurrency() > 3) ? ::encode_mode::slow : ::encode_mode::fast;
+
+  return from_string(read("DLNA", "EncodeMode", to_string(default_encode_mode)));
+}
+
 
 #if defined(__unix__)
 #include <unistd.h>

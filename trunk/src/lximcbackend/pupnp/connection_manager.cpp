@@ -278,7 +278,8 @@ void connection_manager::add_source_video_protocol(
     const char *mime, const char *suffix,
     unsigned sample_rate, unsigned channels,
     unsigned width, unsigned height, float frame_rate,
-    const char *acodec, const char *vcodec, const char *mux)
+    const char *acodec, const char *vcodec, const char *mux,
+    const char *fast_encode_options)
 {
   source_video_protocol_list.emplace_back(protocol(
                                             "http-get", mime,
@@ -291,6 +292,7 @@ void connection_manager::add_source_video_protocol(
   protocol.acodec = acodec;
   protocol.vcodec = vcodec;
   protocol.mux = mux;
+  protocol.fast_encode_options = fast_encode_options;
 }
 
 connection_manager::protocol::protocol()

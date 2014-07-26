@@ -24,6 +24,8 @@
 #include <string>
 #include <map>
 
+enum class encode_mode { slow, fast };
+
 class settings
 {
 public:
@@ -33,6 +35,8 @@ public:
   std::string uuid();
   std::string devicename() const;
   uint16_t http_port() const;
+
+  enum encode_mode encode_mode() const;
 
 private:
   void save();
