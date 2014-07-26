@@ -25,15 +25,15 @@ void pupnp::connection_manager::add_video_protocols()
         "MPEG1",
         "video/mpeg", "mpg",
         44100, 2, 352, 288, 25.0f,
-        "acodec=mpga,ab=256", "vcodec=mp1v,vb=4096",
-        "mpeg1");
+        "acodec=mpga,ab=256", "vcodec=mp1v,vb=4096", "mpeg1",
+        "venc=ffmpeg{keyint=1,vt=2048}");
 
   add_source_video_protocol(
         "MPEG1",
         "video/mpeg", "mpg",
         44100, 2, 320, 240, 29.97f,
-        "acodec=mpga,ab=256", "vcodec=mp1v,vb=4096",
-        "mpeg1");
+        "acodec=mpga,ab=256", "vcodec=mp1v,vb=4096", "mpeg1",
+        "venc=ffmpeg{keyint=1,vt=2048}");
 
 
   /////////////////////////////////////////////////////////////////////////////
@@ -42,29 +42,29 @@ void pupnp::connection_manager::add_video_protocols()
         "MPEG_PS_PAL",
         "video/mpeg", "mpg",
         44100, 2, 720, 576, 25.0f,
-        "acodec=mpga,ab=256", "vcodec=mp2v,vb=16384",
-        "ps");
+        "acodec=mpga,ab=256", "vcodec=mp2v,vb=8192", "ps",
+        "venc=ffmpeg{keyint=1,vt=4096}");
 
   add_source_video_protocol(
         "MPEG_PS_PAL_XAC3",
         "video/mpeg", "mpg",
         48000, 6, 720, 576, 25.0f,
-        "acodec=a52,ab=640", "vcodec=mp2v,vb=16384",
-        "ps");
+        "acodec=a52,ab=640", "vcodec=mp2v,vb=8192", "ps",
+        "venc=ffmpeg{keyint=1,vt=4096}");
 
   add_source_video_protocol(
         "MPEG_PS_NTSC",
         "video/mpeg", "mpg",
         44100, 2, 704, 480, 29.97f,
-        "acodec=mpga,ab=256", "vcodec=mp2v,vb=16384",
-        "ps");
+        "acodec=mpga,ab=256", "vcodec=mp2v,vb=8192", "ps",
+        "venc=ffmpeg{keyint=1,vt=4096}");
 
   add_source_video_protocol(
         "MPEG_PS_NTSC_XAC3",
         "video/mpeg", "mpg",
         48000, 6, 704, 480, 29.97f,
-        "acodec=a52,ab=640", "vcodec=mp2v,vb=16384",
-        "ps");
+        "acodec=a52,ab=640", "vcodec=mp2v,vb=8192", "ps",
+        "venc=ffmpeg{keyint=1,vt=4096}");
 
   /////////////////////////////////////////////////////////////////////////////
   // MPEG2 SD
@@ -72,57 +72,57 @@ void pupnp::connection_manager::add_video_protocols()
         "MPEG_TS_SD_EU_ISO",
         "video/x-mpegts", "ts",
         44100, 2, 720, 576, 24.0f,
-        "acodec=mpga,ab=256", "vcodec=mp2v,vb=16384",
-        "ts");
+        "acodec=mpga,ab=256", "vcodec=mp2v,vb=8192", "ts",
+        "venc=ffmpeg{keyint=1,vt=4096}");
 
   add_source_video_protocol(
         "MPEG_TS_SD_EU_ISO",
         "video/x-mpegts", "ts",
         44100, 2, 720, 576, 25.0f,
-        "acodec=mpga,ab=256", "vcodec=mp2v,vb=16384",
-        "ts");
+        "acodec=mpga,ab=256", "vcodec=mp2v,vb=8192", "ts",
+        "venc=ffmpeg{keyint=1,vt=4096}");
 
   add_source_video_protocol(
         "MPEG_TS_SD_EU_ISO",
         "video/x-mpegts", "ts",
         48000, 6, 720, 576, 24.0f,
-        "acodec=a52,ab=640", "vcodec=mp2v,vb=16384",
-        "ts");
+        "acodec=a52,ab=640", "vcodec=mp2v,vb=8192", "ts",
+        "venc=ffmpeg{keyint=1,vt=4096}");
 
   add_source_video_protocol(
         "MPEG_TS_SD_EU_ISO",
         "video/x-mpegts", "ts",
         48000, 6, 720, 576, 25.0f,
-        "acodec=a52,ab=640", "vcodec=mp2v,vb=16384",
-        "ts");
+        "acodec=a52,ab=640", "vcodec=mp2v,vb=8192", "ts",
+        "venc=ffmpeg{keyint=1,vt=4096}");
 
   add_source_video_protocol(
         "MPEG_TS_SD_NA_ISO",
         "video/x-mpegts", "ts",
         44100, 2, 704, 480, 24.0f,
-        "acodec=mpga,ab=256", "vcodec=mp2v,vb=16384",
-        "ts");
+        "acodec=mpga,ab=256", "vcodec=mp2v,vb=8192", "ts",
+        "venc=ffmpeg{keyint=1,vt=4096}");
 
   add_source_video_protocol(
         "MPEG_TS_SD_NA_ISO",
         "video/x-mpegts", "ts",
         44100, 2, 704, 480, 29.97f,
-        "acodec=mpga,ab=256", "vcodec=mp2v,vb=16384",
-        "ts");
+        "acodec=mpga,ab=256", "vcodec=mp2v,vb=8192", "ts",
+        "venc=ffmpeg{keyint=1,vt=4096}");
 
   add_source_video_protocol(
         "MPEG_TS_SD_NA_ISO",
         "video/x-mpegts", "ts",
         48000, 6, 704, 480, 24.0f,
-        "acodec=a52,ab=640", "vcodec=mp2v,vb=16384",
-        "ts");
+        "acodec=a52,ab=640", "vcodec=mp2v,vb=8192", "ts",
+        "venc=ffmpeg{keyint=1,vt=4096}");
 
   add_source_video_protocol(
         "MPEG_TS_SD_NA_ISO",
         "video/x-mpegts", "ts",
         48000, 6, 704, 480, 29.97f,
-        "acodec=a52,ab=640", "vcodec=mp2v,vb=16384",
-        "ts");
+        "acodec=a52,ab=640", "vcodec=mp2v,vb=8192", "ts",
+        "venc=ffmpeg{keyint=1,vt=4096}");
 
   /////////////////////////////////////////////////////////////////////////////
   // MPEG2 SD - nonstandard program stream
@@ -130,57 +130,57 @@ void pupnp::connection_manager::add_video_protocols()
         "MPEG_PS_SD_EU_NONSTD",
         "video/mpeg", "mpg",
         44100, 2, 720, 576, 24.0f,
-        "acodec=mpga,ab=256", "vcodec=mp2v,vb=16384",
-        "ps");
+        "acodec=mpga,ab=256", "vcodec=mp2v,vb=8192", "ps",
+        "venc=ffmpeg{keyint=1,vt=4096}");
 
   add_source_video_protocol(
         "MPEG_PS_SD_EU_NONSTD",
         "video/mpeg", "mpg",
         44100, 2, 720, 576, 25.0f,
-        "acodec=mpga,ab=256", "vcodec=mp2v,vb=16384",
-        "ps");
+        "acodec=mpga,ab=256", "vcodec=mp2v,vb=8192", "ps",
+        "venc=ffmpeg{keyint=1,vt=4096}");
 
   add_source_video_protocol(
         "MPEG_PS_SD_EU_NONSTD",
         "video/mpeg", "mpg",
         48000, 6, 720, 576, 24.0f,
-        "acodec=a52,ab=640", "vcodec=mp2v,vb=16384",
-        "ps");
+        "acodec=a52,ab=640", "vcodec=mp2v,vb=8192", "ps",
+        "venc=ffmpeg{keyint=1,vt=4096}");
 
   add_source_video_protocol(
         "MPEG_PS_SD_EU_NONSTD",
         "video/mpeg", "mpg",
         48000, 6, 720, 576, 25.0f,
-        "acodec=a52,ab=640", "vcodec=mp2v,vb=16384",
-        "ps");
+        "acodec=a52,ab=640", "vcodec=mp2v,vb=8192", "ps",
+        "venc=ffmpeg{keyint=1,vt=4096}");
 
   add_source_video_protocol(
         "MPEG_PS_SD_NA_NONSTD",
         "video/mpeg", "mpg",
         44100, 2, 704, 480, 24.0f,
-        "acodec=mpga,ab=256", "vcodec=mp2v,vb=16384",
-        "ps");
+        "acodec=mpga,ab=256", "vcodec=mp2v,vb=8192", "ps",
+        "venc=ffmpeg{keyint=1,vt=4096}");
 
   add_source_video_protocol(
         "MPEG_PS_SD_NA_NONSTD",
         "video/mpeg", "mpg",
         44100, 2, 704, 480, 29.97f,
-        "acodec=mpga,ab=256", "vcodec=mp2v,vb=16384",
-        "ps");
+        "acodec=mpga,ab=256", "vcodec=mp2v,vb=8192", "ps",
+        "venc=ffmpeg{keyint=1,vt=4096}");
 
   add_source_video_protocol(
         "MPEG_PS_SD_NA_NONSTD",
         "video/mpeg", "mpg",
         48000, 6, 704, 480, 24.0f,
-        "acodec=a52,ab=640", "vcodec=mp2v,vb=16384",
-        "ps");
+        "acodec=a52,ab=640", "vcodec=mp2v,vb=8192", "ps",
+        "venc=ffmpeg{keyint=1,vt=4096}");
 
   add_source_video_protocol(
         "MPEG_PS_SD_NA_NONSTD",
         "video/mpeg", "mpg",
         48000, 6, 704, 480, 29.97f,
-        "acodec=a52,ab=640", "vcodec=mp2v,vb=16384",
-        "ps");
+        "acodec=a52,ab=640", "vcodec=mp2v,vb=8192", "ps",
+        "venc=ffmpeg{keyint=1,vt=4096}");
 
   /////////////////////////////////////////////////////////////////////////////
   // MPEG2 720p
@@ -188,57 +188,57 @@ void pupnp::connection_manager::add_video_protocols()
         "MPEG_TS_HD_EU_ISO",
         "video/x-mpegts", "ts",
         44100, 2, 1280, 720, 24.0f,
-        "acodec=mpga,ab=256", "vcodec=mp2v,vb=32768",
-        "ts");
+        "acodec=mpga,ab=256", "vcodec=mp2v,vb=16384", "ts",
+        "venc=ffmpeg{keyint=1,vt=8192}");
 
   add_source_video_protocol(
         "MPEG_TS_HD_EU_ISO",
         "video/x-mpegts", "ts",
         44100, 2, 1280, 720, 25.0f,
-        "acodec=mpga,ab=256", "vcodec=mp2v,vb=32768",
-        "ts");
+        "acodec=mpga,ab=256", "vcodec=mp2v,vb=16384", "ts",
+        "venc=ffmpeg{keyint=1,vt=8192}");
 
   add_source_video_protocol(
         "MPEG_TS_HD_EU_ISO",
         "video/x-mpegts", "ts",
         48000, 6, 1280, 720, 24.0f,
-        "acodec=a52,ab=640", "vcodec=mp2v,vb=32768",
-        "ts");
+        "acodec=a52,ab=640", "vcodec=mp2v,vb=16384", "ts",
+        "venc=ffmpeg{keyint=1,vt=8192}");
 
   add_source_video_protocol(
         "MPEG_TS_HD_EU_ISO",
         "video/x-mpegts", "ts",
         48000, 6, 1280, 720, 25.0f,
-        "acodec=a52,ab=640", "vcodec=mp2v,vb=32768",
-        "ts");
+        "acodec=a52,ab=640", "vcodec=mp2v,vb=16384", "ts",
+        "venc=ffmpeg{keyint=1,vt=8192}");
 
   add_source_video_protocol(
         "MPEG_TS_HD_NA_ISO",
         "video/x-mpegts", "ts",
         44100, 2, 1280, 720, 24.0f,
-        "acodec=mpga,ab=256", "vcodec=mp2v,vb=32768",
-        "ts");
+        "acodec=mpga,ab=256", "vcodec=mp2v,vb=16384", "ts",
+        "venc=ffmpeg{keyint=1,vt=8192}");
 
   add_source_video_protocol(
         "MPEG_TS_HD_NA_ISO",
         "video/x-mpegts", "ts",
         44100, 2, 1280, 720, 29.97f,
-        "acodec=mpga,ab=256", "vcodec=mp2v,vb=32768",
-        "ts");
+        "acodec=mpga,ab=256", "vcodec=mp2v,vb=16384", "ts",
+        "venc=ffmpeg{keyint=1,vt=8192}");
 
   add_source_video_protocol(
         "MPEG_TS_HD_NA_ISO",
         "video/x-mpegts", "ts",
         48000, 6, 1280, 720, 24.0f,
-        "acodec=a52,ab=640", "vcodec=mp2v,vb=32768",
-        "ts");
+        "acodec=a52,ab=640", "vcodec=mp2v,vb=16384", "ts",
+        "venc=ffmpeg{keyint=1,vt=8192}");
 
   add_source_video_protocol(
         "MPEG_TS_HD_NA_ISO",
         "video/x-mpegts", "ts",
         48000, 6, 1280, 720, 29.97f,
-        "acodec=a52,ab=640", "vcodec=mp2v,vb=32768",
-        "ts");
+        "acodec=a52,ab=640", "vcodec=mp2v,vb=16384", "ts",
+        "venc=ffmpeg{keyint=1,vt=8192}");
 
   /////////////////////////////////////////////////////////////////////////////
   // MPEG2 720p - nonstandard program stream
@@ -246,57 +246,57 @@ void pupnp::connection_manager::add_video_protocols()
         "MPEG_PS_HD_EU_NONSTD",
         "video/mpeg", "mpg",
         44100, 2, 1280, 720, 24.0f,
-        "acodec=mpga,ab=256", "vcodec=mp2v,vb=32768",
-        "ps");
+        "acodec=mpga,ab=256", "vcodec=mp2v,vb=16384", "ps",
+        "venc=ffmpeg{keyint=1,vt=8192}");
 
   add_source_video_protocol(
         "MPEG_PS_HD_EU_NONSTD",
         "video/mpeg", "mpg",
         44100, 2, 1280, 720, 25.0f,
-        "acodec=mpga,ab=256", "vcodec=mp2v,vb=32768",
-        "ps");
+        "acodec=mpga,ab=256", "vcodec=mp2v,vb=16384", "ps",
+        "venc=ffmpeg{keyint=1,vt=8192}");
 
   add_source_video_protocol(
         "MPEG_PS_HD_EU_NONSTD",
         "video/mpeg", "mpg",
         48000, 6, 1280, 720, 24.0f,
-        "acodec=a52,ab=640", "vcodec=mp2v,vb=32768",
-        "ps");
+        "acodec=a52,ab=640", "vcodec=mp2v,vb=16384", "ps",
+        "venc=ffmpeg{keyint=1,vt=8192}");
 
   add_source_video_protocol(
         "MPEG_PS_HD_EU_NONSTD",
         "video/mpeg", "mpg",
         48000, 6, 1280, 720, 25.0f,
-        "acodec=a52,ab=640", "vcodec=mp2v,vb=32768",
-        "ps");
+        "acodec=a52,ab=640", "vcodec=mp2v,vb=16384", "ps",
+        "venc=ffmpeg{keyint=1,vt=8192}");
 
   add_source_video_protocol(
         "MPEG_PS_HD_NA_NONSTD",
         "video/mpeg", "mpg",
         44100, 2, 1280, 720, 24.0f,
-        "acodec=mpga,ab=256", "vcodec=mp2v,vb=32768",
-        "ps");
+        "acodec=mpga,ab=256", "vcodec=mp2v,vb=16384", "ps",
+        "venc=ffmpeg{keyint=1,vt=8192}");
 
   add_source_video_protocol(
         "MPEG_PS_HD_NA_NONSTD",
         "video/mpeg", "mpg",
         44100, 2, 1280, 720, 29.97f,
-        "acodec=mpga,ab=256", "vcodec=mp2v,vb=32768",
-        "ps");
+        "acodec=mpga,ab=256", "vcodec=mp2v,vb=16384", "ps",
+        "venc=ffmpeg{keyint=1,vt=8192}");
 
   add_source_video_protocol(
         "MPEG_PS_HD_NA_NONSTD",
         "video/mpeg", "mpg",
-        44100, 6, 1280, 720, 24.0f,
-        "acodec=a52,ab=640", "vcodec=mp2v,vb=32768",
-        "ps");
+        48000, 6, 1280, 720, 24.0f,
+        "acodec=a52,ab=640", "vcodec=mp2v,vb=16384", "ps",
+        "venc=ffmpeg{keyint=1,vt=8192}");
 
   add_source_video_protocol(
         "MPEG_PS_HD_NA_NONSTD",
         "video/mpeg", "mpg",
-        44100, 6, 1280, 720, 29.97f,
-        "acodec=a52,ab=640", "vcodec=mp2v,vb=32768",
-        "ps");
+        48000, 6, 1280, 720, 29.97f,
+        "acodec=a52,ab=640", "vcodec=mp2v,vb=16384", "ps",
+        "venc=ffmpeg{keyint=1,vt=8192}");
 
   /////////////////////////////////////////////////////////////////////////////
   // MPEG2 1080p
@@ -304,57 +304,57 @@ void pupnp::connection_manager::add_video_protocols()
         "MPEG_TS_HD_EU_ISO",
         "video/x-mpegts", "ts",
         44100, 2, 1920, 1080, 24.0f,
-        "acodec=mpga,ab=256", "vcodec=mp2v,vb=49152",
-        "ts");
+        "acodec=mpga,ab=256", "vcodec=mp2v,vb=32768", "ts",
+        "venc=ffmpeg{keyint=1,vt=16384}");
 
   add_source_video_protocol(
         "MPEG_TS_HD_EU_ISO",
         "video/x-mpegts", "ts",
         44100, 2, 1920, 1080, 25.0f,
-        "acodec=mpga,ab=256", "vcodec=mp2v,vb=49152",
-        "ts");
+        "acodec=mpga,ab=256", "vcodec=mp2v,vb=32768", "ts",
+        "venc=ffmpeg{keyint=1,vt=16384}");
 
   add_source_video_protocol(
         "MPEG_TS_HD_EU_ISO",
         "video/x-mpegts", "ts",
-        44100, 6, 1920, 1080, 24.0f,
-        "acodec=a52,ab=640", "vcodec=mp2v,vb=49152",
-        "ts");
+        48000, 6, 1920, 1080, 24.0f,
+        "acodec=a52,ab=640", "vcodec=mp2v,vb=32768", "ts",
+        "venc=ffmpeg{keyint=1,vt=16384}");
 
   add_source_video_protocol(
         "MPEG_TS_HD_EU_ISO",
         "video/x-mpegts", "ts",
-        44100, 6, 1920, 1080, 25.0f,
-        "acodec=a52,ab=640", "vcodec=mp2v,vb=49152",
-        "ts");
+        48000, 6, 1920, 1080, 25.0f,
+        "acodec=a52,ab=640", "vcodec=mp2v,vb=32768", "ts",
+        "venc=ffmpeg{keyint=1,vt=16384}");
 
   add_source_video_protocol(
         "MPEG_TS_HD_NA_ISO",
         "video/x-mpegts", "ts",
         44100, 2, 1920, 1080, 24.0f,
-        "acodec=mpga,ab=256", "vcodec=mp2v,vb=49152",
-        "ts");
+        "acodec=mpga,ab=256", "vcodec=mp2v,vb=32768", "ts",
+        "venc=ffmpeg{keyint=1,vt=16384}");
 
   add_source_video_protocol(
         "MPEG_TS_HD_NA_ISO",
         "video/x-mpegts", "ts",
         44100, 2, 1920, 1080, 29.97f,
-        "acodec=mpga,ab=256", "vcodec=mp2v,vb=49152",
-        "ts");
+        "acodec=mpga,ab=256", "vcodec=mp2v,vb=32768", "ts",
+        "venc=ffmpeg{keyint=1,vt=16384}");
 
   add_source_video_protocol(
         "MPEG_TS_HD_NA_ISO",
         "video/x-mpegts", "ts",
-        44100, 6, 1920, 1080, 24.0f,
-        "acodec=a52,ab=640", "vcodec=mp2v,vb=49152",
-        "ts");
+        48000, 6, 1920, 1080, 24.0f,
+        "acodec=a52,ab=640", "vcodec=mp2v,vb=32768", "ts",
+        "venc=ffmpeg{keyint=1,vt=16384}");
 
   add_source_video_protocol(
         "MPEG_TS_HD_NA_ISO",
         "video/x-mpegts", "ts",
-        44100, 6, 1920, 1080, 29.97f,
-        "acodec=a52,ab=640", "vcodec=mp2v,vb=49152",
-        "ts");
+        48000, 6, 1920, 1080, 29.97f,
+        "acodec=a52,ab=640", "vcodec=mp2v,vb=32768", "ts",
+        "venc=ffmpeg{keyint=1,vt=16384}");
 
   /////////////////////////////////////////////////////////////////////////////
   // MPEG2 1080p - nonstandard program stream
@@ -362,56 +362,56 @@ void pupnp::connection_manager::add_video_protocols()
         "MPEG_PS_HD_EU_NONSTD",
         "video/mpeg", "mpg",
         44100, 2, 1920, 1080, 24.0f,
-        "acodec=mpga,ab=256", "vcodec=mp2v,vb=49152",
-        "ps");
+        "acodec=mpga,ab=256", "vcodec=mp2v,vb=32768", "ps",
+        "venc=ffmpeg{keyint=1,vt=16384}");
 
   add_source_video_protocol(
         "MPEG_PS_HD_EU_NONSTD",
         "video/mpeg", "mpg",
         44100, 2, 1920, 1080, 25.0f,
-        "acodec=mpga,ab=256", "vcodec=mp2v,vb=49152",
-        "ps");
+        "acodec=mpga,ab=256", "vcodec=mp2v,vb=32768", "ps",
+        "venc=ffmpeg{keyint=1,vt=16384}");
 
   add_source_video_protocol(
         "MPEG_PS_HD_EU_NONSTD",
         "video/mpeg", "mpg",
-        44100, 6, 1920, 1080, 24.0f,
-        "acodec=a52,ab=640", "vcodec=mp2v,vb=49152",
-        "ps");
+        48000, 6, 1920, 1080, 24.0f,
+        "acodec=a52,ab=640", "vcodec=mp2v,vb=32768", "ps",
+        "venc=ffmpeg{keyint=1,vt=16384}");
 
   add_source_video_protocol(
         "MPEG_PS_HD_EU_NONSTD",
         "video/mpeg", "mpg",
-        44100, 6, 1920, 1080, 25.0f,
-        "acodec=a52,ab=640", "vcodec=mp2v,vb=49152",
-        "ps");
+        48000, 6, 1920, 1080, 25.0f,
+        "acodec=a52,ab=640", "vcodec=mp2v,vb=32768", "ps",
+        "venc=ffmpeg{keyint=1,vt=16384}");
 
   add_source_video_protocol(
         "MPEG_PS_HD_NA_NONSTD",
         "video/mpeg", "mpg",
         44100, 2, 1920, 1080, 24.0f,
-        "acodec=mpga,ab=256", "vcodec=mp2v,vb=49152",
-        "ps");
+        "acodec=mpga,ab=256", "vcodec=mp2v,vb=32768", "ps",
+        "venc=ffmpeg{keyint=1,vt=16384}");
 
   add_source_video_protocol(
         "MPEG_PS_HD_NA_NONSTD",
         "video/mpeg", "mpg",
         44100, 2, 1920, 1080, 29.97f,
-        "acodec=mpga,ab=256", "vcodec=mp2v,vb=49152",
-        "ps");
+        "acodec=mpga,ab=256", "vcodec=mp2v,vb=32768", "ps",
+        "venc=ffmpeg{keyint=1,vt=16384}");
 
   add_source_video_protocol(
         "MPEG_PS_HD_NA_NONSTD",
         "video/mpeg", "mpg",
-        44100, 6, 1920, 1080, 24.0f,
-        "acodec=a52,ab=640", "vcodec=mp2v,vb=49152",
-        "ps");
+        48000, 6, 1920, 1080, 24.0f,
+        "acodec=a52,ab=640", "vcodec=mp2v,vb=32768", "ps",
+        "venc=ffmpeg{keyint=1,vt=16384}");
 
   add_source_video_protocol(
         "MPEG_PS_HD_NA_NONSTD",
         "video/mpeg", "mpg",
-        44100, 6, 1920, 1080, 29.97f,
-        "acodec=a52,ab=640", "vcodec=mp2v,vb=49152",
-        "ps");
+        48000, 6, 1920, 1080, 29.97f,
+        "acodec=a52,ab=640", "vcodec=mp2v,vb=32768", "ps",
+        "venc=ffmpeg{keyint=1,vt=16384}");
 
 }

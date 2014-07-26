@@ -20,13 +20,13 @@
 
 namespace vlc {
 
-#ifndef NDEBUG
-static const int argc = 1;
-static const char * const argv[argc] = { "-vvv" };
-#else
+//#ifdef NDEBUG
 static const int argc = 0;
 static const char * const * const argv = nullptr;
-#endif
+//#else
+//static const int argc = 1;
+//static const char * const argv[argc] = { "-vvv" };
+//#endif
 
 instance::instance() noexcept
   : libvlc_instance(libvlc_new(argc, argv))

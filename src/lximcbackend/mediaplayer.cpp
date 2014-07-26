@@ -20,8 +20,10 @@
 #include "translator.h"
 #include "vlc/media.h"
 #include "vlc/transcode_stream.h"
+#include <iostream>
 #include <set>
 #include <sstream>
+#include <thread>
 
 static std::vector<std::string> list_files(const std::string &path);
 
@@ -56,11 +58,17 @@ struct mediaplayer::transcode_stream : vlc::transcode_stream
   timer sever_timer;
 };
 
-mediaplayer::mediaplayer(class messageloop &messageloop, class vlc::instance &vlc_instance, pupnp::connection_manager &connection_manager, pupnp::content_directory &content_directory)
+mediaplayer::mediaplayer(
+    class messageloop &messageloop,
+    class vlc::instance &vlc_instance,
+    pupnp::connection_manager &connection_manager,
+    pupnp::content_directory &content_directory,
+    enum encode_mode encode_mode)
   : messageloop(messageloop),
     vlc_instance(vlc_instance),
     connection_manager(connection_manager),
     content_directory(content_directory),
+    encode_mode(encode_mode),
     root_path('/' + tr("Media Player") + '/')
 {
   content_directory.item_source_register(root_path, *this);
@@ -171,29 +179,40 @@ int mediaplayer::play_item(const pupnp::content_directory::item &item, const std
     std::ostringstream transcode;
     if (!protocol.acodec.empty() || !protocol.vcodec.empty())
     {
-      transcode << "#lximedia_transcode{";
+      // See: http://www.videolan.org/doc/streaming-howto/en/ch03.html
+
+      transcode
+          << "#lximedia_transcode{"
+          << "threads=" << std::max(1u, std::min(std::thread::hardware_concurrency(), 8u));
 
       if (!protocol.vcodec.empty())
       {
         transcode
-            << "vfilter=canvas{width=" << protocol.width
+            << ",vfilter=canvas{width=" << protocol.width
             << ",height=" << protocol.height
-            << ",aspect=16:9}"
-            << "," //venc=ffmpeg{keyint=4,bframes=1,vt=16384}," // See: http://www.videolan.org/doc/streaming-howto/en/ch03.html
-            << protocol.vcodec
+            << ",aspect=16:9}";
+
+        switch (encode_mode)
+        {
+        case ::encode_mode::fast:
+          transcode << ',' << protocol.fast_encode_options;
+          break;
+
+        case ::encode_mode::slow:
+          break;
+        }
+
+        transcode
+            << ',' << protocol.vcodec
             << ",width=" << protocol.width
             << ",height=" << protocol.height
-            << ",fps=" << protocol.frame_rate
-            << ",soverlay";
+            << ",fps=" << protocol.frame_rate;
       }
 
       if (!protocol.acodec.empty())
       {
-        if (!protocol.vcodec.empty())
-          transcode << ",";
-
         transcode
-            << protocol.acodec
+            << ',' << protocol.acodec
             << ",samplerate=" << protocol.sample_rate
             << ",channels=" << protocol.channels;
       }
@@ -218,6 +237,7 @@ int mediaplayer::play_item(const pupnp::content_directory::item &item, const std
     }
 
     // Otherwise create a new stream.
+    std::clog << '[' << this << "] Creating new stream " << item.mrl << " transcode=" << transcode.str() << " mux=" << protocol.mux << std::endl;
     auto stream = std::make_shared<transcode_stream>(*this, stream_id.str(), protocol);
     if (stream->open(item.mrl, transcode.str(), protocol.mux))
     {

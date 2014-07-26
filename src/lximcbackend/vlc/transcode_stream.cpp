@@ -20,8 +20,10 @@
 #include "../messageloop.h"
 #include "instance.h"
 #include <vlc/vlc.h>
+#include <cassert>
 #include <condition_variable>
 #include <cstring>
+#include <iostream>
 #include <memory>
 #include <mutex>
 #include <set>
@@ -31,6 +33,9 @@
 #include <vector>
 
 namespace vlc {
+
+const size_t transcode_stream::block_size = 65536;
+const size_t transcode_stream::block_count = 256;
 
 class transcode_stream::streambuf : public std::streambuf
 {
@@ -58,10 +63,11 @@ public:
   bool attach(class streambuf &);
   void detach(class streambuf &);
 
-  static void write(source *, const uint8_t *, size_t);
+  static void write(source *, const char *, size_t);
   bool read(class streambuf &);
 
 private:
+  void recompute_buffer_offset(std::unique_lock<std::mutex> &);
   static void callback(const libvlc_event_t *, void *);
 
 private:
@@ -78,13 +84,10 @@ private:
   std::condition_variable buffer_condition;
   size_t buffer_offset;
   size_t buffer_used;
-  static const size_t preload_size;
-  size_t last_buffer_pos;
-};
 
-const size_t transcode_stream::block_size = 65536;
-const size_t transcode_stream::block_count = 64;
-const size_t transcode_stream::source::preload_size = block_size * block_count / 8;
+  char *write_block;
+  size_t write_block_pos;
+};
 
 transcode_stream::transcode_stream(class messageloop &messageloop, class instance &instance)
   : messageloop(messageloop),
@@ -150,7 +153,8 @@ transcode_stream::source::source(
     stream_end_pending(false),
     buffer_offset(0),
     buffer_used(0),
-    last_buffer_pos(preload_size - block_size)
+    write_block(nullptr),
+    write_block_pos(0)
 {
   std::ostringstream sout;
   sout
@@ -160,17 +164,25 @@ transcode_stream::source::source(
       << "},mux=" << mux << "}";
 
   {
-    std::lock_guard<std::mutex> _(mutex);
+    std::unique_lock<std::mutex> l(mutex);
 
     libvlc_media_add_option(media, sout.str().c_str());
     player = libvlc_media_player_new_from_media(media);
     if (player)
     {
       buffer.resize(block_size * block_count);
+      write_block = &buffer[0];
 
       event_manager = libvlc_media_player_event_manager(player);
-      libvlc_event_attach(event_manager, libvlc_MediaPlayerEndReached, source::callback, this);
+      libvlc_event_attach(event_manager, libvlc_MediaPlayerEndReached, &source::callback, this);
+      libvlc_event_attach(event_manager, libvlc_MediaPlayerEncounteredError, &source::callback, this);
       libvlc_media_player_play(player);
+
+      // Wait for the stream to start
+      while (!stream_end && !stream_end_pending && (buffer_used < (buffer.size() * 1 / 8)))
+        buffer_condition.wait(l);
+
+      std::clog << '[' << this << "] opened transcode_stream " << mrl << std::endl;
     }
   }
 }
@@ -184,11 +196,14 @@ transcode_stream::source::~source()
     stream_end = true;
     buffer_condition.notify_all();
     l.unlock();
-      libvlc_event_detach(event_manager, libvlc_MediaPlayerEndReached, source::callback, this);
+      libvlc_event_detach(event_manager, libvlc_MediaPlayerEncounteredError, &source::callback, this);
+      libvlc_event_detach(event_manager, libvlc_MediaPlayerEndReached, &source::callback, this);
       libvlc_media_player_stop(player);
       libvlc_media_player_release(player);
     l.lock();
   }
+
+  std::clog << '[' << this << "] destroyed transcode_stream " << media.mrl() << std::endl;
 }
 
 bool transcode_stream::source::attach(class streambuf &streambuf)
@@ -197,6 +212,8 @@ bool transcode_stream::source::attach(class streambuf &streambuf)
 
   if (buffer_offset == 0)
   {
+    std::clog << '[' << this << "] attached transcode_stream " << media.mrl() << std::endl;
+
     streambufs.insert(&streambuf);
     return true;
   }
@@ -206,35 +223,49 @@ bool transcode_stream::source::attach(class streambuf &streambuf)
 
 void transcode_stream::source::detach(class streambuf &streambuf)
 {
-  std::lock_guard<std::mutex> _(mutex);
+  std::unique_lock<std::mutex> l(mutex);
 
   streambufs.erase(&streambuf);
+  recompute_buffer_offset(l);
+
+  std::clog << '[' << this << "] detached transcode_stream " << media.mrl() << std::endl;
 }
 
-void transcode_stream::source::write(source *me, const uint8_t *block, size_t size)
+void transcode_stream::source::write(source *me, const char *block, size_t size)
 {
-  std::unique_lock<std::mutex> l(me->mutex);
-
-  while (!me->stream_end && (size > 0))
+  while (size > 0)
   {
-    if (me->buffer.size() > me->buffer_used)
+    const size_t wrt = std::min(block_size - me->write_block_pos, size);
+    memcpy(&me->write_block[me->write_block_pos], block, wrt);
+    me->write_block_pos += wrt;
+    block += wrt;
+    size -= wrt;
+
+    if (me->write_block_pos >= block_size)
     {
-      const size_t pos = (me->buffer_offset + me->buffer_used) % me->buffer.size();
-      const size_t wrt = std::min(me->buffer.size() - pos, size);
+      std::unique_lock<std::mutex> l(me->mutex);
 
-      memcpy(&(me->buffer[pos]), block, wrt);
-      me->buffer_used += wrt;
-      block += wrt;
-      size -= wrt;
-
-      if ((me->buffer_offset + me->buffer_used) >= (me->last_buffer_pos + block_size))
+      if (!me->stream_end)
       {
-        me->last_buffer_pos = ((me->buffer_offset + me->buffer_used) + (block_size - 1)) & ~(block_size - 1);
+        assert(me->write_block_pos == block_size);
+        me->buffer_used += block_size;
         me->buffer_condition.notify_all();
+
+        do
+        {
+          if ((me->buffer_used + block_size) <= me->buffer.size())
+          {
+            me->write_block = &me->buffer[(me->buffer_offset + me->buffer_used) % me->buffer.size()];
+            me->write_block_pos = 0;
+          }
+          else
+            me->buffer_condition.wait(l);
+        } while (!me->stream_end && (me->write_block_pos > 0));
       }
+
+      if (me->stream_end)
+        break;
     }
-    else
-      me->buffer_condition.wait(l);
   }
 }
 
@@ -244,46 +275,60 @@ bool transcode_stream::source::read(class streambuf &streambuf)
 
   streambuf.buffer_offset += streambuf.buffer_available;
   streambuf.buffer_available = 0;
-
-  size_t new_offset = 0;
-  for (auto &i : streambufs)
-    new_offset = std::max(new_offset, i->buffer_offset);
-
-  if ((new_offset > buffer_offset) &&
-      ((buffer_offset > 0) || (new_offset > (buffer.size() * 3 / 4))))
-  {
-    const size_t proceed = new_offset - buffer_offset;
-    buffer_offset += proceed;
-    buffer_used -= proceed;
-    buffer_condition.notify_one();
-  }
+  recompute_buffer_offset(l);
 
   while (!stream_end &&
-         (((buffer_offset + buffer_used) < preload_size) ||
-          ((buffer_offset + buffer_used) < (streambuf.buffer_offset + block_size))))
+         ((buffer_offset + buffer_used) <= streambuf.buffer_offset))
   {
-    stream_end = stream_end_pending;
-    if (!stream_end)
+    if (stream_end_pending)
+    {
+      buffer_used += write_block_pos;
+      stream_end = true;
+    }
+    else
       buffer_condition.wait(l);
   }
 
   if ((buffer_offset + buffer_used) > streambuf.buffer_offset)
   {
-    const size_t offset = streambuf.buffer_offset % buffer.size();
-    const size_t size = std::min((buffer_offset + buffer_used) - streambuf.buffer_offset, block_size);
-    streambuf.setg(&buffer[offset], &buffer[offset], &buffer[offset + size]);
+    const size_t pos = streambuf.buffer_offset % buffer.size();
+    const size_t size = std::min(
+          std::min(
+            buffer.size() - pos,
+            (buffer_offset + buffer_used) - streambuf.buffer_offset),
+          block_size);
+
+    streambuf.setg(&buffer[pos], &buffer[pos], &buffer[pos + size]);
     streambuf.buffer_available = size;
+
     return true;
   }
 
   return false;
 }
 
+void transcode_stream::source::recompute_buffer_offset(std::unique_lock<std::mutex> &)
+{
+  size_t new_offset = size_t(-1);
+  for (auto &i : streambufs)
+    new_offset = std::min(new_offset, i->buffer_offset);
+
+  if ((new_offset != size_t(-1)) && (new_offset > buffer_offset) &&
+      ((buffer_offset > 0) || (new_offset >= (buffer.size() * 3 / 4))))
+  {
+    const size_t proceed = new_offset - buffer_offset;
+    buffer_offset += proceed;
+    buffer_used -= proceed;
+    buffer_condition.notify_all();
+  }
+}
+
 void transcode_stream::source::callback(const libvlc_event_t *e, void *opaque)
 {
   source * const me = reinterpret_cast<source *>(opaque);
 
-  if (e->type == libvlc_MediaPlayerEndReached)
+  if ((e->type == libvlc_MediaPlayerEndReached) ||
+      (e->type == libvlc_MediaPlayerEncounteredError))
   {
     std::lock_guard<std::mutex> _(me->mutex);
 

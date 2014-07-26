@@ -86,6 +86,8 @@ public:
     float frame_rate;
 
     std::string acodec, vcodec, mux;
+
+    std::string fast_encode_options;
   };
 
   struct connection_info
@@ -152,7 +154,7 @@ private: // From rootdevice::service
   void add_audio_protocols();
   void add_source_audio_protocol(const char *, const char *, const char *, unsigned, unsigned, const char *, const char *);
   void add_video_protocols();
-  void add_source_video_protocol(const char *, const char *, const char *, unsigned, unsigned, unsigned, unsigned, float, const char *, const char *, const char *);
+  void add_source_video_protocol(const char *, const char *, const char *, unsigned, unsigned, unsigned, unsigned, float, const char *, const char *, const char *, const char *);
 
 private:
   class messageloop &messageloop;
