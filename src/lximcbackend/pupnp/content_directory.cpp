@@ -279,7 +279,7 @@ void content_directory::handle_action(const upnp::request &request, action_brows
 
   if ((item_source == item_sources.end()) || !starts_with(path, item_source->first))
   {
-    std::clog << "content_directory: could not find item source for path: " << std::endl;
+    std::clog << "[" << this << "] pupnp::content_directory: Could not find item source for path: " << std::endl;
     return;
   }
 
@@ -345,7 +345,7 @@ void content_directory::handle_action(const upnp::request &request, action_brows
     const item item = item_source->second->get_contentdir_item(client, itemprops[0]);
     if (item.mrl.empty())
     {
-      std::clog << "content_directory: could not find item " << itemprops[0] << std::endl;
+      std::clog << "[" << this << "] pupnp::content_directory: Could not find item " << itemprops[0] << std::endl;
       return;
     }
 
@@ -539,7 +539,7 @@ int content_directory::http_request(const upnp::request &request, std::string &c
 
       if ((item_source == item_sources.end()) || !starts_with(path, item_source->first))
       {
-        std::clog << "content_directory: could not find item source for path: " << std::endl;
+        std::clog << "[" << this << "] pupnp::content_directory: Could not find item source for path: " << std::endl;
         return upnp::http_not_found;
       }
 
@@ -559,7 +559,7 @@ void content_directory::add_directory(action_browse &action, item_type type, con
 
   if ((item_source == item_sources.end()) || !starts_with(path, item_source->first))
   {
-    std::clog << "content_directory: could not find item source for path: " << std::endl;
+    std::clog << "[" << this << "] pupnp::content_directory: Could not find item source for path: " << std::endl;
     return;
   }
 

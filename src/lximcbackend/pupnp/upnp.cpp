@@ -163,7 +163,7 @@ bool upnp::initialize(uint16_t port, bool bind_public)
   if (initialized)
   {
     for (char **i = ::UpnpGetServerIpAddresses(); i && *i; i++)
-      std::clog << "Bound " << *i << ":" << ::UpnpGetServerPort() << std::endl;
+      std::clog << "[" << this << "] pupnp::upnp: Bound " << *i << ":" << ::UpnpGetServerPort() << std::endl;
 
     if (!http_callbacks.empty())
       enable_webserver();
@@ -172,7 +172,7 @@ bool upnp::initialize(uint16_t port, bool bind_public)
       ::UpnpAddVirtualDir(i->first.c_str());
   }
   else
-    std::clog << "Failed to initialize libupnp:" << result << std::endl;
+    std::clog << "[" << this << "] pupnp::upnp: Failed to initialize libupnp:" << result << std::endl;
 
   update_interfaces_timer.start(update_interfaces_interval);
 

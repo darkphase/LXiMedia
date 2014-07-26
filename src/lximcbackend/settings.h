@@ -37,7 +37,7 @@ public:
 private:
   void save();
   std::string read(const std::string &, const std::string &, const std::string &) const;
-  std::string write(const std::string &, const std::string &, const std::string &);
+  void write(const std::string &, const std::string &, const std::string &);
 
 private:
   class messageloop &messageloop;

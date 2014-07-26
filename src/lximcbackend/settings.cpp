@@ -82,7 +82,7 @@ std::string settings::read(const std::string &section, const std::string &name, 
   return def;
 }
 
-std::string settings::write(const std::string &section, const std::string &name, const std::string &value)
+void settings::write(const std::string &section, const std::string &name, const std::string &value)
 {
   values[section][name] = value;
   touched = true;

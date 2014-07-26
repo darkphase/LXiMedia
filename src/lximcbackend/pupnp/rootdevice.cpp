@@ -413,7 +413,7 @@ bool rootdevice::enable_rootdevice(void)
         return 0;
       }
 
-      std::clog << "enableRootDevice::callback Unsupported eventtype" << eventtype << std::endl;
+      std::clog << "[" << me << "] pupnp::rootdevice: Unsupported eventtype" << eventtype << std::endl;
       return -1;
     }
   };
@@ -451,7 +451,7 @@ bool rootdevice::enable_rootdevice(void)
     return true;
   }
   else
-    std::clog << "UpnpRegisterRootDevice failed:" << result << std::endl;
+    std::clog << "[" << this << "] pupnp::rootdevice: UpnpRegisterRootDevice failed:" << result << std::endl;
 
   return false;
 }

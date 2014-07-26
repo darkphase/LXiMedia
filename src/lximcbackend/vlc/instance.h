@@ -27,12 +27,13 @@ namespace vlc {
 class instance
 {
 public:
-  instance();
-  ~instance();
+  instance() noexcept;
+  ~instance() noexcept;
+
   instance(const instance &) = delete;
   instance & operator=(const instance &) = delete;
 
-  inline operator libvlc_instance_t *() { return libvlc_instance; }
+  inline operator libvlc_instance_t *() noexcept { return libvlc_instance; }
 
 private:
   libvlc_instance_t * const libvlc_instance;

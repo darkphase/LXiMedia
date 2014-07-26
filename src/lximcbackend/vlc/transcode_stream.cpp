@@ -16,6 +16,7 @@
  ******************************************************************************/
 
 #include "transcode_stream.h"
+#include "media.h"
 #include "../messageloop.h"
 #include "instance.h"
 #include <vlc/vlc.h>
@@ -52,7 +53,7 @@ public:
   source(class instance &, const std::string &, const std::string &, const std::string &);
   ~source();
 
-  bool is_open() const { return !broadcast_name.empty(); }
+  bool is_open() const { return player != nullptr; }
 
   bool attach(class streambuf &);
   void detach(class streambuf &);
@@ -61,13 +62,16 @@ public:
   bool read(class streambuf &);
 
 private:
+  static void callback(const libvlc_event_t *, void *);
+
+private:
   class instance &instance;
+  class media media;
+  libvlc_media_player_t *player;
+  libvlc_event_manager_t *event_manager;
 
   std::mutex mutex;
-
-  std::string broadcast_name;
-  bool stream_end;
-
+  bool stream_end, stream_end_pending;
   std::set<class streambuf *> streambufs;
 
   std::vector<char> buffer;
@@ -79,8 +83,8 @@ private:
 };
 
 const size_t transcode_stream::block_size = 65536;
-const size_t transcode_stream::block_count = 256;
-const size_t transcode_stream::source::preload_size = block_size * block_count / 4;
+const size_t transcode_stream::block_count = 64;
+const size_t transcode_stream::source::preload_size = block_size * block_count / 8;
 
 transcode_stream::transcode_stream(class messageloop &messageloop, class instance &instance)
   : messageloop(messageloop),
@@ -139,14 +143,18 @@ transcode_stream::source::source(
     const std::string &transcode,
     const std::string &mux)
   : instance(instance),
+    media(media::from_mrl(instance, mrl)),
+    player(nullptr),
+    event_manager(nullptr),
     stream_end(false),
+    stream_end_pending(false),
     buffer_offset(0),
     buffer_used(0),
     last_buffer_pos(preload_size - block_size)
 {
   std::ostringstream sout;
   sout
-      << transcode
+      << ":sout=" << transcode
       << ":std{access=lximedia_memout{callback=" << intptr_t(&source::write)
       << ",opaque=" << intptr_t(this)
       << "},mux=" << mux << "}";
@@ -154,19 +162,15 @@ transcode_stream::source::source(
   {
     std::lock_guard<std::mutex> _(mutex);
 
-    const auto name = std::to_string(intptr_t(this));
-    if (libvlc_vlm_add_broadcast(
-          instance,
-          name.c_str(),
-          mrl.c_str(),
-          sout.str().c_str(),
-          0, NULL, 1, 0) == 0)
+    libvlc_media_add_option(media, sout.str().c_str());
+    player = libvlc_media_player_new_from_media(media);
+    if (player)
     {
-      if (libvlc_vlm_play_media(instance, name.c_str()) == 0)
-      {
-        broadcast_name = name;
-        buffer.resize(block_size * block_count);
-      }
+      buffer.resize(block_size * block_count);
+
+      event_manager = libvlc_media_player_event_manager(player);
+      libvlc_event_attach(event_manager, libvlc_MediaPlayerEndReached, source::callback, this);
+      libvlc_media_player_play(player);
     }
   }
 }
@@ -175,15 +179,15 @@ transcode_stream::source::~source()
 {
   std::unique_lock<std::mutex> l(mutex);
 
-  if (!broadcast_name.empty())
+  if (player)
   {
     stream_end = true;
-    buffer_condition.notify_one();
+    buffer_condition.notify_all();
     l.unlock();
-      libvlc_vlm_stop_media(instance, broadcast_name.c_str());
-      libvlc_vlm_del_media(instance, broadcast_name.c_str());
+      libvlc_event_detach(event_manager, libvlc_MediaPlayerEndReached, source::callback, this);
+      libvlc_media_player_stop(player);
+      libvlc_media_player_release(player);
     l.lock();
-    broadcast_name.clear();
   }
 }
 
@@ -211,12 +215,7 @@ void transcode_stream::source::write(source *me, const uint8_t *block, size_t si
 {
   std::unique_lock<std::mutex> l(me->mutex);
 
-  if ((block == nullptr) || (size == 0))
-  {
-    me->stream_end = true;
-    me->buffer_condition.notify_one();
-  }
-  else while (!me->stream_end && (size > 0))
+  while (!me->stream_end && (size > 0))
   {
     if (me->buffer.size() > me->buffer_used)
     {
@@ -263,7 +262,9 @@ bool transcode_stream::source::read(class streambuf &streambuf)
          (((buffer_offset + buffer_used) < preload_size) ||
           ((buffer_offset + buffer_used) < (streambuf.buffer_offset + block_size))))
   {
-    buffer_condition.wait(l);
+    stream_end = stream_end_pending;
+    if (!stream_end)
+      buffer_condition.wait(l);
   }
 
   if ((buffer_offset + buffer_used) > streambuf.buffer_offset)
@@ -277,6 +278,20 @@ bool transcode_stream::source::read(class streambuf &streambuf)
 
   return false;
 }
+
+void transcode_stream::source::callback(const libvlc_event_t *e, void *opaque)
+{
+  source * const me = reinterpret_cast<source *>(opaque);
+
+  if (e->type == libvlc_MediaPlayerEndReached)
+  {
+    std::lock_guard<std::mutex> _(me->mutex);
+
+    me->stream_end_pending = true;
+    me->buffer_condition.notify_all();
+  }
+}
+
 
 transcode_stream::streambuf::streambuf(transcode_stream &parent)
   : parent(parent),

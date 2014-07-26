@@ -46,19 +46,25 @@ public:
   };
 
 public:
-  media(class instance &, const std::string &path);
-  media(const media &);
-  ~media();
+  static media from_file(class instance &, const std::string &path) noexcept;
+  static media from_mrl(class instance &, const std::string &mrl) noexcept;
 
-  media & operator=(const media &);
-  inline operator libvlc_media_t *() { return libvlc_media; }
+  media(const media &) noexcept;
+  media(media &&) noexcept;
+  ~media() noexcept;
+
+  media & operator=(const media &) noexcept;
+  media & operator=(media &&) noexcept;
+  inline operator libvlc_media_t *() noexcept { return libvlc_media; }
+
+  std::string mrl() const noexcept;
 
   void parse() const;
-
-  std::string mrl() const;
   std::vector<track> tracks() const;
 
 private:
+  media(libvlc_media_t *) noexcept;
+
   libvlc_media_t *libvlc_media;
 };
 
