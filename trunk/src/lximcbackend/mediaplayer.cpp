@@ -126,11 +126,14 @@ pupnp::content_directory::item mediaplayer::get_contentdir_item(const std::strin
     const size_t lsl = path.find_last_of('/');
     item.title = path.substr(lsl + 1);
 
-    vlc::media media(vlc_instance, to_system_path(path));
+    const auto media = vlc::media::from_file(vlc_instance, to_system_path(path));
     for (auto &track : media.tracks())
     {
       switch (track.type)
       {
+      case vlc::media::track_type::unknown:
+        break;
+
       case vlc::media::track_type::audio:
         if (!item.is_audio() && !item.is_video())
           item.type = pupnp::content_directory::item_type::audio;
@@ -146,6 +149,9 @@ pupnp::content_directory::item mediaplayer::get_contentdir_item(const std::strin
         item.width = track.video.width;
         item.height = track.video.height;
         item.frame_rate = track.video.frame_rate;
+        break;
+
+      case vlc::media::track_type::text:
         break;
       }
     }
@@ -173,7 +179,7 @@ int mediaplayer::play_item(const pupnp::content_directory::item &item, const std
             << "vfilter=canvas{width=" << protocol.width
             << ",height=" << protocol.height
             << ",aspect=16:9}"
-            << "," //venc=ffmpeg{hurry-up,vt=800000}," // See: http://www.videolan.org/doc/streaming-howto/en/ch03.html
+            << "," //venc=ffmpeg{keyint=4,bframes=1,vt=16384}," // See: http://www.videolan.org/doc/streaming-howto/en/ch03.html
             << protocol.vcodec
             << ",width=" << protocol.width
             << ",height=" << protocol.height

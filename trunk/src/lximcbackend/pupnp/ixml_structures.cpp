@@ -672,7 +672,7 @@ void action_get_featurelist::set_response(const std::vector<std::string> &contai
   sdoc.set_attribute(feature, "name", "samsung.com_BASICVIEW");
   sdoc.set_attribute(feature, "version", "1");
 
-  for (int i = 0; i < containers.size(); i++)
+  for (size_t i = 0; i < containers.size(); i++)
   {
     IXML_Element * const e = sdoc.add_element(&feature->n, "container");
     sdoc.set_attribute(e, "id", std::to_string(i + 1));

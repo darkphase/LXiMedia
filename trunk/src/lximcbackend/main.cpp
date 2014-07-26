@@ -22,7 +22,7 @@ int main(int /*argc*/, const char */*argv*/[])
   {
     if (!backend->initialize())
     {
-      std::clog << "Failed to initialize backend; stopping." << std::endl;
+      std::clog << "[" << backend.get() << "] failed to initialize backend; stopping." << std::endl;
       messageloop->stop(1);
     }
   });

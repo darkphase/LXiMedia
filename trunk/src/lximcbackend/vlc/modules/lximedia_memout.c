@@ -120,9 +120,6 @@ static void Close( vlc_object_t * p_this )
 
     msg_Dbg( p_access, "Close" );
 
-    if (p_sys->pf_callback)
-        p_sys->pf_callback(p_sys->p_opaque, NULL, 0);
-
     free( p_sys );
 }
 
@@ -133,7 +130,7 @@ static int Control( sout_access_out_t *p_access, int i_query, va_list args )
     switch( i_query )
     {
         case ACCESS_OUT_CONTROLS_PACE:
-            *va_arg( args, bool * ) = false;
+            *va_arg( args, bool * ) = true;
             break;
 
         default:
