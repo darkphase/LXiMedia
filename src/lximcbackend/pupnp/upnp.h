@@ -90,7 +90,7 @@ private:
   void update_interfaces();
   void clear_responses();
   void enable_webserver();
-  int get_response(const struct request &, std::string &content_type, std::shared_ptr<std::istream> &, bool erase);
+  int get_response(const struct request &, std::string &, std::shared_ptr<std::istream> &, bool);
 
 public:
   static const char           * mime_type(const std::string &);
@@ -145,7 +145,8 @@ private:
   std::map<std::string, http_callback> http_callbacks;
 
   std::mutex responses_mutex;
-  std::map<std::string, std::pair<std::shared_ptr<std::istream>, std::string>> responses;
+  struct response { std::string type; std::shared_ptr<std::istream> stream; };
+  std::map<std::string, response> responses;
   timer clear_responses_timer;
   const std::chrono::seconds clear_responses_interval;
 

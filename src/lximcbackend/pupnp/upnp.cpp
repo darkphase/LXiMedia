@@ -307,7 +307,7 @@ void upnp::enable_webserver()
           }
         }
 
-        info->last_modified = ::time(nullptr);
+        info->last_modified = 0;
         info->is_directory = FALSE;
         info->is_readable = TRUE;
         info->is_cacheable = FALSE;
@@ -400,7 +400,7 @@ void upnp::enable_webserver()
   webserver_enabled = true;
 }
 
-int upnp::get_response(const struct request &request, std::string &content_type, std::shared_ptr<std::istream> &response, bool erase)
+int upnp::get_response(const struct request &request, std::string &content_type, std::shared_ptr<std::istream> &stream, bool erase)
 {
   {
     std::lock_guard<std::mutex> _(responses_mutex);
@@ -408,8 +408,8 @@ int upnp::get_response(const struct request &request, std::string &content_type,
     auto i = responses.find(request.url.path);
     if (i != responses.end())
     {
-      response = i->second.first;
-      content_type = i->second.second;
+      content_type = i->second.type;
+      stream = i->second.stream;
       if (erase)
         responses.erase(i);
 
@@ -418,12 +418,12 @@ int upnp::get_response(const struct request &request, std::string &content_type,
   }
 
   int result = 0;
-  messageloop.send([this, &request, &content_type, &response, erase, &result]
+  messageloop.send([this, &request, &content_type, &stream, erase, &result]
   {
     if (initialized)
     {
-      result = handle_http_request(request, content_type, response);
-      if (response && !erase && (result == http_ok))
+      result = handle_http_request(request, content_type, stream);
+      if (stream && !erase && (result == http_ok))
         clear_responses_timer.start(clear_responses_interval, true);
     }
     else
@@ -433,8 +433,7 @@ int upnp::get_response(const struct request &request, std::string &content_type,
   if (!erase && (result == http_ok))
   {
     std::lock_guard<std::mutex> _(responses_mutex);
-
-    responses[request.url.path] = std::make_pair(response, content_type);
+    responses[request.url.path] = response { content_type, stream };
   }
 
   return result;

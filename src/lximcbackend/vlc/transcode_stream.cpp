@@ -166,6 +166,7 @@ transcode_stream::source::source(
   {
     std::unique_lock<std::mutex> l(mutex);
 
+    libvlc_media_add_option(media, "file-caching=300");
     libvlc_media_add_option(media, sout.str().c_str());
     player = libvlc_media_player_new_from_media(media);
     if (player)
@@ -178,11 +179,13 @@ transcode_stream::source::source(
       libvlc_event_attach(event_manager, libvlc_MediaPlayerEncounteredError, &source::callback, this);
       libvlc_media_player_play(player);
 
-      // Wait for the stream to start
-      while (!stream_end && !stream_end_pending && (buffer_used < (buffer.size() * 1 / 8)))
-        buffer_condition.wait(l);
+      std::clog
+          << '[' << this << "] opened transcode_stream " << mrl << std::endl
+          << '[' << this << "] " << sout.str() << std::endl;
 
-      std::clog << '[' << this << "] opened transcode_stream " << mrl << std::endl;
+//      // Wait for the stream to start
+//      while (!stream_end && !stream_end_pending && (buffer_used < (buffer.size() * 1 / 8)))
+//        buffer_condition.wait(l);
     }
   }
 }
@@ -253,8 +256,10 @@ void transcode_stream::source::write(source *me, const char *block, size_t size)
 
         do
         {
+          assert((me->buffer_used & (block_size - 1)) == 0);
           if ((me->buffer_used + block_size) <= me->buffer.size())
           {
+            assert((me->buffer_offset & (block_size - 1)) == 0);
             me->write_block = &me->buffer[(me->buffer_offset + me->buffer_used) % me->buffer.size()];
             me->write_block_pos = 0;
           }
@@ -313,10 +318,10 @@ void transcode_stream::source::recompute_buffer_offset(std::unique_lock<std::mut
   for (auto &i : streambufs)
     new_offset = std::min(new_offset, i->buffer_offset);
 
-  if ((new_offset != size_t(-1)) && (new_offset > buffer_offset) &&
+  if ((new_offset != size_t(-1)) && (new_offset >= (buffer_offset + block_size)) &&
       ((buffer_offset > 0) || (new_offset >= (buffer.size() * 3 / 4))))
   {
-    const size_t proceed = new_offset - buffer_offset;
+    const size_t proceed = (new_offset - buffer_offset) & (block_size - 1);
     buffer_offset += proceed;
     buffer_used -= proceed;
     buffer_condition.notify_all();
