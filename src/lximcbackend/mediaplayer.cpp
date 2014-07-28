@@ -178,9 +178,7 @@ int mediaplayer::play_item(const pupnp::content_directory::item &item, const std
   {
     std::ostringstream transcode;
     // #transcode{vcodec=mp2v,vb=8192,fps=24,scale=Auto,width=1280,height=720,acodec=mpga,ab=256,channels=2,samplerate=44100}:std{access=file{no-overwrite},mux=ps,dst='/tmp/test2.ps'}
-    transcode << "#transcode{vcodec=mp2v,vb=8192,fps=24,scale=Auto,width=1280,height=720,acodec=mpga,ab=256,channels=2,samplerate=44100}";
 
- #if 0
     if (!protocol.acodec.empty() || !protocol.vcodec.empty())
     {
       // See: http://www.videolan.org/doc/streaming-howto/en/ch03.html
@@ -191,10 +189,10 @@ int mediaplayer::play_item(const pupnp::content_directory::item &item, const std
 
       if (!protocol.vcodec.empty())
       {
-//        transcode
-//            << ",vfilter=canvas{width=" << protocol.width
-//            << ",height=" << protocol.height
-//            << ",aspect=16:9}";
+        transcode
+            << ",vfilter=canvas{width=" << protocol.width
+            << ",height=" << protocol.height
+            << ",aspect=16:9}";
 
         //transcode << ",venc=ffmpeg{keyint=8,bframes=0,rc-buffer-aggressivity=1.0,strict=1,mpeg4-matrix}";
 
@@ -225,7 +223,6 @@ int mediaplayer::play_item(const pupnp::content_directory::item &item, const std
 
       transcode << '}';
     }
-#endif
 
     std::ostringstream stream_id;
     stream_id << item.mrl << "::" << transcode.str() << "::" << protocol.mux;
