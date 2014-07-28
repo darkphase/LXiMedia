@@ -63,7 +63,7 @@ public:
   bool attach(class streambuf &);
   void detach(class streambuf &);
 
-  static void write(source *, const char *, size_t);
+  static size_t write(source *, const char *, size_t);
   bool read(class streambuf &);
 
 private:
@@ -161,7 +161,7 @@ transcode_stream::source::source(
       << ":sout=" << transcode
       << ":std{access=lximedia_memout{callback=" << intptr_t(&source::write)
       << ",opaque=" << intptr_t(this)
-      << "},mux=" << mux << "}";
+      << "},mux=" << mux << ",dst=dummy}";
 
   {
     std::unique_lock<std::mutex> l(mutex);
@@ -182,10 +182,6 @@ transcode_stream::source::source(
       std::clog
           << '[' << this << "] opened transcode_stream " << mrl << std::endl
           << '[' << this << "] " << sout.str() << std::endl;
-
-//      // Wait for the stream to start
-//      while (!stream_end && !stream_end_pending && (buffer_used < (buffer.size() * 1 / 8)))
-//        buffer_condition.wait(l);
     }
   }
 }
@@ -234,15 +230,15 @@ void transcode_stream::source::detach(class streambuf &streambuf)
   std::clog << '[' << this << "] detached transcode_stream " << media.mrl() << std::endl;
 }
 
-void transcode_stream::source::write(source *me, const char *block, size_t size)
+size_t transcode_stream::source::write(source *me, const char *block, size_t size)
 {
-  while (size > 0)
+  size_t written = 0;
+  while (written < size)
   {
-    const size_t wrt = std::min(block_size - me->write_block_pos, size);
-    memcpy(&me->write_block[me->write_block_pos], block, wrt);
-    me->write_block_pos += wrt;
-    block += wrt;
-    size -= wrt;
+    const size_t chunk = std::min(block_size - me->write_block_pos, size - written);
+    memcpy(&me->write_block[me->write_block_pos], block + written, chunk);
+    me->write_block_pos += chunk;
+    written += chunk;
 
     if (me->write_block_pos >= block_size)
     {
@@ -272,6 +268,8 @@ void transcode_stream::source::write(source *me, const char *block, size_t size)
         break;
     }
   }
+
+  return written;
 }
 
 bool transcode_stream::source::read(class streambuf &streambuf)
@@ -321,7 +319,7 @@ void transcode_stream::source::recompute_buffer_offset(std::unique_lock<std::mut
   if ((new_offset != size_t(-1)) && (new_offset >= (buffer_offset + block_size)) &&
       ((buffer_offset > 0) || (new_offset >= (buffer.size() * 3 / 4))))
   {
-    const size_t proceed = (new_offset - buffer_offset) & (block_size - 1);
+    const size_t proceed = (new_offset - buffer_offset) & ~(block_size - 1);
     buffer_offset += proceed;
     buffer_used -= proceed;
     buffer_condition.notify_all();

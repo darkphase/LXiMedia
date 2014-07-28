@@ -76,7 +76,7 @@ static int Control( sout_access_out_t *, int, va_list );
 struct sout_access_out_sys_t
 {
     vlc_mutex_t *p_lock;
-    void ( *pf_callback ) ( void *p_opaque, const uint8_t *p_data, size_t size );
+    size_t ( *pf_callback ) ( void *p_opaque, const uint8_t *p_data, size_t size );
     void *p_opaque;
 };
 
@@ -125,13 +125,14 @@ static void Close( vlc_object_t * p_this )
 
 static int Control( sout_access_out_t *p_access, int i_query, va_list args )
 {
-    (void)p_access;
-
     switch( i_query )
     {
         case ACCESS_OUT_CONTROLS_PACE:
-            *va_arg( args, bool * ) = true;
+        {
+            bool *pb = va_arg( args, bool * );
+            *pb = strcmp( p_access->psz_access, "stream" );
             break;
+        }
 
         default:
             return VLC_EGENERIC;
@@ -149,10 +150,8 @@ static ssize_t Write( sout_access_out_t *p_access, block_t *p_buffer )
 
     while( p_buffer )
     {
-        if (p_sys->pf_callback && (p_buffer->i_buffer > 0))
-            p_sys->pf_callback(p_sys->p_opaque, p_buffer->p_buffer, p_buffer->i_buffer);
-
-        i_write += p_buffer->i_buffer;
+        if (p_sys->pf_callback && p_buffer->p_buffer && (p_buffer->i_buffer > 0))
+            i_write += p_sys->pf_callback(p_sys->p_opaque, p_buffer->p_buffer, p_buffer->i_buffer);
 
         block_t *p_next = p_buffer->p_next;
         block_Release (p_buffer);
