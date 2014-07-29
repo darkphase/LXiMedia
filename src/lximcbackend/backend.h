@@ -39,6 +39,9 @@ public:
   bool initialize();
 
 private:
+  void add_audio_protocols();
+  void add_video_protocols();
+
   int http_request(const pupnp::upnp::request &, std::string &, std::shared_ptr<std::istream> &);
 
 private:

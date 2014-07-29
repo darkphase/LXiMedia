@@ -38,6 +38,45 @@ connection_manager::~connection_manager()
   rootdevice.service_unregister(service_id);
 }
 
+void connection_manager::add_source_audio_protocol(
+    const char *name,
+    const char *mime, const char *suffix,
+    unsigned sample_rate, unsigned channels,
+    const char *acodec, const char *mux)
+{
+  source_audio_protocol_list.emplace_back(protocol(
+                                            "http-get", mime,
+                                            true, false, false,
+                                            name, suffix,
+                                            sample_rate, channels));
+
+  auto &protocol = source_audio_protocol_list.back();
+  protocol.acodec = acodec;
+  protocol.mux = mux;
+}
+
+void connection_manager::add_source_video_protocol(const char *name,
+    const char *mime, const char *suffix,
+    unsigned sample_rate, unsigned channels,
+    unsigned width, unsigned height, float frame_rate,
+    const char *acodec, const char *vcodec, const char *mux,
+    const char *fast_encode_options, const char *slow_encode_options)
+{
+  source_video_protocol_list.emplace_back(protocol(
+                                            "http-get", mime,
+                                            true, false, false,
+                                            name, suffix,
+                                            sample_rate, channels,
+                                            width, height, frame_rate));
+
+  auto &protocol = source_video_protocol_list.back();
+  protocol.acodec = acodec;
+  protocol.vcodec = vcodec;
+  protocol.mux = mux;
+  protocol.fast_encode_options = fast_encode_options;
+  protocol.slow_encode_options = slow_encode_options;
+}
+
 std::vector<connection_manager::protocol> connection_manager::get_protocols(unsigned channels) const
 {
   std::map<int, std::vector<protocol>> protocols;
@@ -119,8 +158,6 @@ const char * connection_manager::get_service_type(void)
 
 void connection_manager::initialize(void)
 {
-  add_audio_protocols();
-  add_video_protocols();
 }
 
 void connection_manager::close(void)
@@ -254,45 +291,6 @@ void connection_manager::handle_action(const upnp::request &, action_get_protoco
   sink_protocols = sink_protocols.empty() ? sink_protocols : sink_protocols.substr(1);
 
   action.set_response(source_protocols, sink_protocols);
-}
-
-void connection_manager::add_source_audio_protocol(
-    const char *name,
-    const char *mime, const char *suffix,
-    unsigned sample_rate, unsigned channels,
-    const char *acodec, const char *mux)
-{
-  source_audio_protocol_list.emplace_back(protocol(
-                                            "http-get", mime,
-                                            true, false, false,
-                                            name, suffix,
-                                            sample_rate, channels));
-
-  auto &protocol = source_audio_protocol_list.back();
-  protocol.acodec = acodec;
-  protocol.mux = mux;
-}
-
-void connection_manager::add_source_video_protocol(
-    const char *name,
-    const char *mime, const char *suffix,
-    unsigned sample_rate, unsigned channels,
-    unsigned width, unsigned height, float frame_rate,
-    const char *acodec, const char *vcodec, const char *mux,
-    const char *fast_encode_options)
-{
-  source_video_protocol_list.emplace_back(protocol(
-                                            "http-get", mime,
-                                            true, false, false,
-                                            name, suffix,
-                                            sample_rate, channels,
-                                            width, height, frame_rate));
-
-  auto &protocol = source_video_protocol_list.back();
-  protocol.acodec = acodec;
-  protocol.vcodec = vcodec;
-  protocol.mux = mux;
-  protocol.fast_encode_options = fast_encode_options;
 }
 
 connection_manager::protocol::protocol()

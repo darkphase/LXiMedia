@@ -45,6 +45,9 @@ backend::~backend()
 
 bool backend::initialize()
 {
+  add_audio_protocols();
+  add_video_protocols();
+
   return upnp.initialize(settings.http_port(), false);
 }
 
