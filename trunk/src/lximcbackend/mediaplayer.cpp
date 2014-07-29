@@ -177,37 +177,43 @@ int mediaplayer::play_item(const pupnp::content_directory::item &item, const std
   if (!protocol.profile.empty())
   {
     std::ostringstream transcode;
-    // #transcode{vcodec=mp2v,vb=8192,fps=24,scale=Auto,width=1280,height=720,acodec=mpga,ab=256,channels=2,samplerate=44100}:std{access=file{no-overwrite},mux=ps,dst='/tmp/test2.ps'}
 
     if (!protocol.acodec.empty() || !protocol.vcodec.empty())
     {
       // See: http://www.videolan.org/doc/streaming-howto/en/ch03.html
 
-      transcode
-          << "#lximedia_transcode{"
-          << "threads=" << std::max(1u, std::min(std::thread::hardware_concurrency(), 8u));
+      //transcode << "#transcode{";
+      // Fixes: https://forum.videolan.org/viewtopic.php?f=13&t=115390
+      transcode << "#lximedia_transcode{";
 
       if (!protocol.vcodec.empty())
       {
-        transcode
-            << ",vfilter=canvas{width=" << protocol.width
-            << ",height=" << protocol.height
-            << ",aspect=16:9}";
+        transcode << protocol.vcodec;
 
-        //transcode << ",venc=ffmpeg{keyint=8,bframes=0,rc-buffer-aggressivity=1.0,strict=1,mpeg4-matrix}";
+        if ((item.width * 9) != (item.height * 16))
+        {
+          transcode
+              << ",vfilter=canvas{width=" << protocol.width
+              << ",height=" << protocol.height
+              << ",aspect=16:9}";
+        }
 
         switch (encode_mode)
         {
         case ::encode_mode::fast:
-          //transcode << ',' << protocol.fast_encode_options;
+          if (!protocol.fast_encode_options.empty())
+            transcode << ',' << protocol.fast_encode_options;
+
           break;
 
         case ::encode_mode::slow:
+          if (!protocol.slow_encode_options.empty())
+            transcode << ',' << protocol.slow_encode_options;
+
           break;
         }
 
         transcode
-            << ',' << protocol.vcodec
             << ",width=" << protocol.width
             << ",height=" << protocol.height
             << ",fps=" << protocol.frame_rate;
@@ -215,8 +221,10 @@ int mediaplayer::play_item(const pupnp::content_directory::item &item, const std
 
       if (!protocol.acodec.empty())
       {
+        if (!protocol.vcodec.empty()) transcode << ',';
+
         transcode
-            << ',' << protocol.acodec
+            << protocol.acodec
             << ",samplerate=" << protocol.sample_rate
             << ",channels=" << protocol.channels;
       }
@@ -225,7 +233,7 @@ int mediaplayer::play_item(const pupnp::content_directory::item &item, const std
     }
 
     std::ostringstream stream_id;
-    stream_id << item.mrl << "::" << transcode.str() << "::" << protocol.mux;
+    stream_id << '[' << item.mrl << "][" << transcode.str() << "][" << protocol.mux << ']';
 
     // First try to attach to an already running stream.
     auto pending_stream = pending_transcode_streams.find(stream_id.str());

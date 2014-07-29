@@ -88,6 +88,7 @@ public:
     std::string acodec, vcodec, mux;
 
     std::string fast_encode_options;
+    std::string slow_encode_options;
   };
 
   struct connection_info
@@ -128,6 +129,20 @@ public:
   connection_manager(class messageloop &, class rootdevice &);
   virtual ~connection_manager();
 
+  void add_source_audio_protocol(
+      const char *name,
+      const char *mime, const char *suffix,
+      unsigned sample_rate, unsigned channels,
+      const char *acodec, const char *mux);
+
+  void add_source_video_protocol(
+      const char *name,
+      const char *mime, const char *suffix,
+      unsigned sample_rate, unsigned channels,
+      unsigned width, unsigned height, float frame_rate,
+      const char *acodec, const char *vcodec, const char *mux,
+      const char *fast_encode_options, const char *slow_encode_options);
+
   std::vector<protocol> get_protocols(unsigned channels) const;
   std::vector<protocol> get_protocols(unsigned channels, unsigned width, float frame_rate) const;
   protocol get_protocol(const std::string &profile, unsigned num_channels) const;
@@ -150,11 +165,6 @@ private: // From rootdevice::service
 
   virtual void write_service_description(rootdevice::service_description &) const override final;
   virtual void write_eventable_statevariables(rootdevice::eventable_propertyset &) const override final;
-
-  void add_audio_protocols();
-  void add_source_audio_protocol(const char *, const char *, const char *, unsigned, unsigned, const char *, const char *);
-  void add_video_protocols();
-  void add_source_video_protocol(const char *, const char *, const char *, unsigned, unsigned, unsigned, unsigned, float, const char *, const char *, const char *, const char *);
 
 private:
   class messageloop &messageloop;
