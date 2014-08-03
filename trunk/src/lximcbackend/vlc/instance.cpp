@@ -16,6 +16,7 @@
  ******************************************************************************/
 
 #include "instance.h"
+#include "media.h"
 #include <vlc/vlc.h>
 
 namespace vlc {
@@ -29,13 +30,15 @@ static const char * const * const argv = nullptr;
 //#endif
 
 instance::instance() noexcept
-  : libvlc_instance(libvlc_new(argc, argv))
+    : libvlc_instance(libvlc_new(argc, argv))
 {
 }
 
 instance::~instance() noexcept
 {
-  libvlc_release(libvlc_instance);
+    media::flush_cache();
+
+    libvlc_release(libvlc_instance);
 }
 
 } // End of namespace

@@ -83,7 +83,10 @@ mediaplayer::~mediaplayer()
     content_directory.item_source_unregister(basedir);
 }
 
-std::vector<pupnp::content_directory::item> mediaplayer::list_contentdir_items(const std::string &client, const std::string &path, size_t start, size_t &count)
+std::vector<pupnp::content_directory::item> mediaplayer::list_contentdir_items(
+        const std::string &client,
+        const std::string &path,
+        size_t start, size_t &count)
 {
     const bool return_all = count == 0;
     std::vector<pupnp::content_directory::item> result;
@@ -132,7 +135,11 @@ pupnp::content_directory::item mediaplayer::get_contentdir_item(const std::strin
     return make_item(client, path);
 }
 
-int mediaplayer::play_item(const pupnp::content_directory::item &item, const std::string &profile, std::string &content_type, std::shared_ptr<std::istream> &response)
+int mediaplayer::play_item(
+        const pupnp::content_directory::item &item,
+        const std::string &profile,
+        std::string &content_type,
+        std::shared_ptr<std::istream> &response)
 {
     const auto protocol = connection_manager.get_protocol(profile, item.channels, item.width, item.frame_rate);
     if (!protocol.profile.empty())
@@ -178,6 +185,8 @@ int mediaplayer::play_item(const pupnp::content_directory::item &item, const std
                         << ",width=" << protocol.width
                         << ",height=" << protocol.height
                         << ",fps=" << protocol.frame_rate;
+
+                transcode << ",soverlay";
             }
 
             if (!protocol.acodec.empty())
