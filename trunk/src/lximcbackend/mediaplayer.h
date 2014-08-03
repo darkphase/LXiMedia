@@ -40,13 +40,14 @@ public:
 
   virtual ~mediaplayer();
 
-protected: // From content_directory::item_source
+private: // From content_directory::item_source
   std::vector<pupnp::content_directory::item> list_contentdir_items(const std::string &client, const std::string &path, size_t start, size_t &count) override;
   pupnp::content_directory::item get_contentdir_item(const std::string &client, const std::string &path) override;
   int play_item(const pupnp::content_directory::item &, const std::string &, std::string &, std::shared_ptr<std::istream> &) override;
 
 private:
-  std::string to_system_path(const std::string &) const;
+  pupnp::content_directory::item make_item(const std::string &, const std::string &) const;
+  root_path to_system_path(const std::string &) const;
   std::string to_virtual_path(const std::string &) const;
 
 private:

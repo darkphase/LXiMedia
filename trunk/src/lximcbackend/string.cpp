@@ -16,6 +16,7 @@
  ******************************************************************************/
 
 #include "string.h"
+#include <algorithm>
 #include <cstring>
 
 bool starts_with(const std::string &text, const std::string &find)
@@ -32,6 +33,20 @@ bool ends_with(const std::string &text, const std::string &find)
     return strncmp(&text[text.length() - find.length()], &find[0], find.length()) == 0;
 
   return false;
+}
+
+std::string to_upper(const std::string &input)
+{
+    std::string result = input;
+    std::transform(result.begin(), result.end(), result.begin(), ::toupper);
+    return result;
+}
+
+std::string to_lower(const std::string &input)
+{
+    std::string result = input;
+    std::transform(result.begin(), result.end(), result.begin(), ::tolower);
+    return result;
 }
 
 std::string from_base64(const std::string &input)

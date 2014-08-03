@@ -20,11 +20,14 @@
 #include "translator.h"
 #include "vlc/media.h"
 #include "vlc/transcode_stream.h"
+#include <future>
+#include <iomanip>
 #include <iostream>
-#include <set>
+#include <map>
 #include <sstream>
 #include <thread>
 
+static const off_t min_file_size = 65536;
 static std::vector<std::string> list_files(const std::string &path);
 
 struct mediaplayer::transcode_stream : vlc::transcode_stream
@@ -34,9 +37,9 @@ struct mediaplayer::transcode_stream : vlc::transcode_stream
             const std::string &stream_id,
             const pupnp::connection_manager::protocol &protocol)
         :   vlc::transcode_stream(parent.messageloop, parent.vlc_instance),
-            parent(parent),
-            stream_id(stream_id),
-            sever_timer(parent.messageloop, std::bind(&transcode_stream::sever, this))
+          parent(parent),
+          stream_id(stream_id),
+          sever_timer(parent.messageloop, std::bind(&transcode_stream::sever, this))
     {
         parent.connection_manager.output_connection_add(*this, protocol);
 
@@ -65,12 +68,12 @@ mediaplayer::mediaplayer(
         pupnp::content_directory &content_directory,
         class settings &settings)
     :   messageloop(messageloop),
-        vlc_instance(vlc_instance),
-        connection_manager(connection_manager),
-        content_directory(content_directory),
-        encode_mode(settings.encode_mode()),
-        root_paths(settings.root_paths()),
-        basedir('/' + tr("Media Player") + '/')
+      vlc_instance(vlc_instance),
+      connection_manager(connection_manager),
+      content_directory(content_directory),
+      encode_mode(settings.encode_mode()),
+      root_paths(settings.root_paths()),
+      basedir('/' + tr("Media Player") + '/')
 {
     content_directory.item_source_register(basedir, *this);
 }
@@ -97,14 +100,19 @@ std::vector<pupnp::content_directory::item> mediaplayer::list_contentdir_items(c
         }
     }
     else if (starts_with(path, basedir))
-        files = std::move(list_files(to_system_path(path)));
+        files = list_files(to_system_path(path).path);
 
+    std::vector<std::future<pupnp::content_directory::item>> futures;
     for (auto &file : files)
         if (return_all || (count > 0))
         {
             if (start == 0)
             {
-                result.emplace_back(get_contentdir_item(client, path + file));
+                futures.emplace_back(std::async(std::launch::async, [this, &client, &path, &file]
+                {
+                    return make_item(client, path + file);
+                }));
+
                 if (count > 0)
                     count--;
             }
@@ -112,62 +120,16 @@ std::vector<pupnp::content_directory::item> mediaplayer::list_contentdir_items(c
                 start--;
         }
 
+    for (auto &future : futures)
+        result.emplace_back(future.get());
+
     count = result.size();
     return result;
 }
 
-pupnp::content_directory::item mediaplayer::get_contentdir_item(const std::string &, const std::string &path)
+pupnp::content_directory::item mediaplayer::get_contentdir_item(const std::string &client, const std::string &path)
 {
-    struct pupnp::content_directory::item item;
-    item.is_dir = path[path.length() - 1] == '/';
-    item.path = path;
-
-    if (item.is_dir)
-    {
-        const size_t lsl = std::max(path.find_last_of('/'), path.length() - 1);
-        const size_t psl = path.find_last_of('/', lsl - 1);
-        item.title = path.substr(psl + 1, lsl - psl - 1);
-    }
-    else
-    {
-        const size_t lsl = path.find_last_of('/');
-        item.title = path.substr(lsl + 1);
-
-        const auto media = vlc::media::from_file(vlc_instance, to_system_path(path));
-        for (auto &track : media.tracks())
-        {
-            switch (track.type)
-            {
-            case vlc::media::track_type::unknown:
-                break;
-
-            case vlc::media::track_type::audio:
-                if (!item.is_audio() && !item.is_video())
-                    item.type = pupnp::content_directory::item_type::audio;
-
-                item.sample_rate = track.audio.sample_rate;
-                item.channels = track.audio.channels;
-                break;
-
-            case vlc::media::track_type::video:
-                if (!item.is_video())
-                    item.type = pupnp::content_directory::item_type::video;
-
-                item.width = track.video.width;
-                item.height = track.video.height;
-                item.frame_rate = track.video.frame_rate;
-                break;
-
-            case vlc::media::track_type::text:
-                break;
-            }
-        }
-
-        if (item.is_audio() || item.is_video())
-            item.mrl = media.mrl();
-    }
-
-    return item;
+    return make_item(client, path);
 }
 
 int mediaplayer::play_item(const pupnp::content_directory::item &item, const std::string &profile, std::string &content_type, std::shared_ptr<std::istream> &response)
@@ -232,7 +194,10 @@ int mediaplayer::play_item(const pupnp::content_directory::item &item, const std
         }
 
         std::ostringstream stream_id;
-        stream_id << '[' << item.mrl << "][" << transcode.str() << "][" << protocol.mux << ']';
+        stream_id << '[' << item.mrl;
+        if (item.chapter > 0)   stream_id << "][C" << item.chapter;
+        else                    stream_id << "][" << item.position.count();
+        stream_id << "][" << transcode.str() << "][" << protocol.mux << ']';
 
         // First try to attach to an already running stream.
         auto pending_stream = pending_transcode_streams.find(stream_id.str());
@@ -250,7 +215,9 @@ int mediaplayer::play_item(const pupnp::content_directory::item &item, const std
         // Otherwise create a new stream.
         std::clog << '[' << this << "] Creating new stream " << item.mrl << " transcode=" << transcode.str() << " mux=" << protocol.mux << std::endl;
         auto stream = std::make_shared<transcode_stream>(*this, stream_id.str(), protocol);
-        if (stream->open(item.mrl, transcode.str(), protocol.mux))
+        if ((item.chapter > 0)
+                ? stream->open(item.mrl, item.chapter, transcode.str(), protocol.mux)
+                : stream->open(item.mrl, item.position, transcode.str(), protocol.mux))
         {
             pending_transcode_streams[stream_id.str()] = stream;
             content_type = protocol.content_format;
@@ -262,7 +229,82 @@ int mediaplayer::play_item(const pupnp::content_directory::item &item, const std
     return pupnp::upnp::http_not_found;
 }
 
-std::string mediaplayer::to_system_path(const std::string &virtual_path) const
+pupnp::content_directory::item mediaplayer::make_item(const std::string &/*client*/, const std::string &path) const
+{
+    struct pupnp::content_directory::item item;
+    item.is_dir = path[path.length() - 1] == '/';
+    item.path = path;
+
+    if (item.is_dir)
+    {
+        const size_t lsl = std::max(path.find_last_of('/'), path.length() - 1);
+        const size_t psl = path.find_last_of('/', lsl - 1);
+        item.title = path.substr(psl + 1, lsl - psl - 1);
+    }
+    else
+    {
+        const size_t lsl = path.find_last_of('/');
+        item.title = path.substr(lsl + 1);
+
+        const auto system_path = to_system_path(path);
+        const auto media = vlc::media::from_file(vlc_instance, system_path.path);
+        for (auto &track : media.tracks())
+        {
+            switch (track.type)
+            {
+            case vlc::media::track_type::unknown:
+                break;
+
+            case vlc::media::track_type::audio:
+                if (!item.is_audio() && !item.is_video())
+                    switch (system_path.type)
+                    {
+                    case path_type::auto_: item.type = pupnp::content_directory::item_type::audio;  break;
+                    case path_type::music: item.type = pupnp::content_directory::item_type::music;  break;
+                    }
+
+                item.sample_rate = track.audio.sample_rate;
+                item.channels = track.audio.channels;
+                break;
+
+            case vlc::media::track_type::video:
+                if (!item.is_video())
+                    switch (system_path.type)
+                    {
+                    case path_type::auto_: item.type = pupnp::content_directory::item_type::movie;          break;
+                    case path_type::music: item.type = pupnp::content_directory::item_type::music_video;    break;
+                    }
+
+                item.width = track.video.width;
+                item.height = track.video.height;
+                item.frame_rate = track.video.frame_rate;
+                break;
+
+            case vlc::media::track_type::text:
+                break;
+            }
+        }
+
+        if (item.is_audio() || item.is_video())
+        {
+            item.duration = media.duration();
+
+            for (int i = 0, n = media.chapter_count(); i < n; i++)
+            {
+                std::ostringstream str;
+                str << tr("Chapter") << ' ' << (i + 1);
+
+                item.chapters.emplace_back(pupnp::content_directory::chapter { str.str() });
+            }
+        }
+
+        item.mrl = media.mrl();
+    }
+
+    return item;
+}
+
+root_path mediaplayer::to_system_path(const std::string &virtual_path) const
 {
     if (starts_with(virtual_path, basedir))
     {
@@ -274,24 +316,24 @@ std::string mediaplayer::to_system_path(const std::string &virtual_path) const
             const size_t psl = i.path.find_last_of('/', lsl - 1);
             const std::string name = i.path.substr(psl + 1, lsl - psl - 1);
             if (root == name)
-                return i.path + path.substr(root.length() + 1);
+                return root_path { i.type, i.path + path.substr(root.length() + 1) };
         }
     }
 
-    return std::string();
+    return root_path { path_type::auto_, std::string() };
 }
 
 std::string mediaplayer::to_virtual_path(const std::string &system_path) const
 {
     for (auto &i : root_paths)
-    if (starts_with(system_path, i.path))
-    {
-        const size_t lsl = std::max(i.path.find_last_of('/'), i.path.length() - 1);
-        const size_t psl = i.path.find_last_of('/', lsl - 1);
-        const std::string name = i.path.substr(psl + 1, lsl - psl - 1);
+        if (starts_with(system_path, i.path))
+        {
+            const size_t lsl = std::max(i.path.find_last_of('/'), i.path.length() - 1);
+            const size_t psl = i.path.find_last_of('/', lsl - 1);
+            const std::string name = i.path.substr(psl + 1, lsl - psl - 1);
 
-        return basedir + '/' + name + '/' + system_path.substr(i.path.length());
-    }
+            return basedir + '/' + name + '/' + system_path.substr(i.path.length());
+        }
 
     return std::string();
 }
@@ -303,7 +345,7 @@ std::string mediaplayer::to_virtual_path(const std::string &system_path) const
 
 static std::vector<std::string> list_files(const std::string &path)
 {
-    std::set<std::string> dirs, files;
+    std::multimap<std::string, std::string> dirs, files;
 
     auto dir = ::opendir(path.c_str());
     if (dir)
@@ -312,12 +354,24 @@ static std::vector<std::string> list_files(const std::string &path)
         {
             struct stat stat;
             if ((dirent->d_name[0] != '.') &&
-                    (::stat((path + '/' + dirent->d_name).c_str(), &stat) == 0))
+                (::stat((path + '/' + dirent->d_name).c_str(), &stat) == 0))
             {
-                if (S_ISDIR(stat.st_mode))
-                    dirs.emplace(std::string(dirent->d_name) + '/');
-                else
-                    files.emplace(dirent->d_name);
+                std::string name = dirent->d_name, lname = to_lower(name);
+                if (S_ISDIR(stat.st_mode) &&
+                    (lname != "@eadir"))
+                {
+                    dirs.emplace(std::move(lname), name + '/');
+                }
+                else if ((stat.st_size >= min_file_size) &&
+                         !ends_with(lname, ".db" ) &&
+                         !ends_with(lname, ".idx") &&
+                         !ends_with(lname, ".nfo") &&
+                         !ends_with(lname, ".srt") &&
+                         !ends_with(lname, ".sub") &&
+                         !ends_with(lname, ".txt"))
+                {
+                    files.emplace(std::move(lname), std::move(name));
+                }
             }
         }
 
@@ -326,8 +380,8 @@ static std::vector<std::string> list_files(const std::string &path)
 
     std::vector<std::string> result;
     result.reserve(dirs.size() + files.size());
-    for (auto &i : dirs) result.emplace_back(std::move(i));
-    for (auto &i : files) result.emplace_back(std::move(i));
+    for (auto &i : dirs) result.emplace_back(std::move(i.second));
+    for (auto &i : files) result.emplace_back(std::move(i.second));
     return result;
 }
 #endif

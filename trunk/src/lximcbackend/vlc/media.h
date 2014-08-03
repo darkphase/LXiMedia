@@ -18,6 +18,8 @@
 #ifndef VLC_MEDIA_H
 #define VLC_MEDIA_H
 
+#include <chrono>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -30,42 +32,47 @@ class instance;
 class media
 {
 public:
-  enum class track_type { unknown, audio, video, text };
+    enum class track_type { unknown, audio, video, text };
 
-  struct track
-  {
-    std::string language;
-    std::string description;
-
-    track_type type;
-    union
+    struct track
     {
-      struct { unsigned sample_rate, channels; } audio;
-      struct { unsigned width, height; float frame_rate; } video;
+        std::string language;
+        std::string description;
+
+        track_type type;
+        union
+        {
+            struct { unsigned sample_rate, channels; } audio;
+            struct { unsigned width, height; float frame_rate; } video;
+        };
     };
-  };
 
 public:
-  static media from_file(class instance &, const std::string &path) noexcept;
-  static media from_mrl(class instance &, const std::string &mrl) noexcept;
+    static media from_file(class instance &, const std::string &path) noexcept;
+    static media from_mrl(class instance &, const std::string &mrl) noexcept;
 
-  media(const media &) noexcept;
-  media(media &&) noexcept;
-  ~media() noexcept;
+    media(const media &) noexcept;
+    media(media &&) noexcept;
+    ~media() noexcept;
 
-  media & operator=(const media &) noexcept;
-  media & operator=(media &&) noexcept;
-  inline operator libvlc_media_t *() noexcept { return libvlc_media; }
+    media & operator=(const media &) noexcept;
+    media & operator=(media &&) noexcept;
+    inline operator libvlc_media_t *() noexcept { return libvlc_media; }
 
-  std::string mrl() const noexcept;
+    std::string mrl() const noexcept;
 
-  void parse() const;
-  std::vector<track> tracks() const;
+    const std::vector<track> & tracks() const;
+    std::chrono::milliseconds duration() const;
+    int chapter_count() const;
 
 private:
-  media(libvlc_media_t *) noexcept;
+    media(libvlc_media_t *) noexcept;
 
-  libvlc_media_t *libvlc_media;
+    libvlc_media_t *libvlc_media;
+
+    struct parsed_data;
+    const parsed_data &parse() const;
+    mutable std::shared_ptr<parsed_data> parsed;
 };
 
 } // End of namespace
