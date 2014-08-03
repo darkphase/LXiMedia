@@ -96,7 +96,7 @@ static int Open( vlc_object_t *p_this )
     config_ChainParse( p_access, SOUT_CFG_PREFIX, ppsz_sout_options, p_access->p_cfg );
 
     psz_tmp = var_GetString( p_access, SOUT_CFG_PREFIX "callback" );
-    p_sys->pf_callback = (void (*) (void *, const uint8_t *, size_t))(intptr_t)atoll( psz_tmp );
+    p_sys->pf_callback = (size_t (*) (void *, const uint8_t *, size_t))(intptr_t)atoll( psz_tmp );
     free( psz_tmp );
 
     psz_tmp = var_GetString( p_access, SOUT_CFG_PREFIX "opaque" );

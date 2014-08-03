@@ -14,7 +14,7 @@ target_link_libraries(stream_out_lximedia_transcode_plugin vlccore)
 
 # lximcbackend
 set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -pthread")
-include_directories(/development/lximedia/build-trunk-cmake/ext/pupnp/libupnp-1.6.19/upnp/inc/ /development/lximedia/build-trunk-cmake/ext/pupnp/libupnp-1.6.19/ixml/inc/)
+include_directories(/home/lex/Projects/lximedia/build-trunk-debug/ext/pupnp/libupnp-1.6.19/upnp/inc/ /home/lex/Projects/lximedia/build-trunk-debug/ext/pupnp/libupnp-1.6.19/ixml/inc)
 link_directories(ext/pupnp/libupnp-1.6.19/upnp/.libs ext/pupnp/libupnp-1.6.19/ixml/.libs ext/pupnp/libupnp-1.6.19/threadutil/.libs)
 
 aux_source_directory(src/lximcbackend/ LXIMCBACKEND_SRC_LIST)

@@ -31,7 +31,13 @@
 class mediaplayer : private pupnp::content_directory::item_source
 {
 public:
-  mediaplayer(class messageloop &, class vlc::instance &, pupnp::connection_manager &, pupnp::content_directory &, enum encode_mode encode_mode);
+  mediaplayer(
+          class messageloop &,
+          class vlc::instance &,
+          pupnp::connection_manager &,
+          pupnp::content_directory &,
+          class settings &);
+
   virtual ~mediaplayer();
 
 protected: // From content_directory::item_source
@@ -49,9 +55,8 @@ private:
   class pupnp::connection_manager &connection_manager;
   class pupnp::content_directory &content_directory;
   const enum encode_mode encode_mode;
-  const std::string root_path;
-
-  std::vector<std::string> root_paths;
+  const std::vector<root_path> root_paths;
+  const std::string basedir;
 
   struct transcode_stream;
   std::map<std::string, std::shared_ptr<transcode_stream>> pending_transcode_streams;

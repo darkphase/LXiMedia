@@ -29,11 +29,7 @@ development libraries are installed. On a Debian based system (e.g. Ubuntu) this
 can be done from a command shell with the following command:
 
 # sudo apt-get install debhelper dpkg-dev bash doxygen g++ gcc make binutils-dev
-libasound2-dev libdvdnav-dev libexif-dev libfreetype6-dev libmp3lame-dev 
-libpulse-dev libqt4-dev libqt4-test libqtwebkit-dev libsmbclient-dev libx11-dev 
-libx11-xcb-dev libxcb-image0-dev libx264-dev libxcb-shm0-dev 
-libxcb-xinerama0-dev libxext-dev libxrandr-dev libxtst-dev libxv-dev qt4-qmake 
-yasm zlib1g-dev
+libvlc-dev libvlccore-dev uuid-dev
 
 Open a shell and enter the lximedia source directory, run qmake and make to 
 build:

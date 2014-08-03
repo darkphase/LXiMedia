@@ -25,31 +25,35 @@
 #include <map>
 
 enum class encode_mode { slow, fast };
+enum class path_type { auto_, music };
+struct root_path { path_type type; std::string path; };
 
 class settings
 {
 public:
-  explicit settings(class messageloop &);
-  ~settings();
+    explicit settings(class messageloop &);
+    ~settings();
 
-  std::string uuid();
-  std::string devicename() const;
-  uint16_t http_port() const;
+    std::string uuid();
+    std::string devicename() const;
+    uint16_t http_port() const;
 
-  enum encode_mode encode_mode() const;
+    enum encode_mode encode_mode() const;
 
-private:
-  void save();
-  std::string read(const std::string &, const std::string &, const std::string &) const;
-  void write(const std::string &, const std::string &, const std::string &);
+    std::vector<root_path> root_paths() const;
 
 private:
-  class messageloop &messageloop;
-  class timer timer;
-  const std::chrono::milliseconds save_delay;
+    void save();
+    std::string read(const std::string &, const std::string &, const std::string &) const;
+    void write(const std::string &, const std::string &, const std::string &);
 
-  std::map<std::string, std::map<std::string, std::string>> values;
-  bool touched;
+private:
+    class messageloop &messageloop;
+    class timer timer;
+    const std::chrono::milliseconds save_delay;
+
+    std::map<std::string, std::map<std::string, std::string>> values;
+    bool touched;
 };
 
 #endif
