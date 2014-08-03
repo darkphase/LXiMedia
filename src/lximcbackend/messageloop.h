@@ -67,8 +67,8 @@ public:
   ~timer();
 
   template<typename rep, typename period>
-  void start(const std::chrono::duration<rep, period> &interval, bool once = false);
-  void start(const std::chrono::nanoseconds &, bool once);
+  void start(std::chrono::duration<rep, period> interval, bool once = false);
+  void start(std::chrono::nanoseconds, bool once);
   void stop();
 
 private:
@@ -83,7 +83,7 @@ private:
 };
 
 template<typename rep, typename period>
-void timer::start(const std::chrono::duration<rep, period> &interval, bool once)
+void timer::start(std::chrono::duration<rep, period> interval, bool once)
 {
   return start(std::chrono::duration_cast<std::chrono::nanoseconds>(interval), once);
 }

@@ -44,7 +44,6 @@ public:
   struct chapter
   {
     std::string title;
-    unsigned position;
   };
 
   struct item
@@ -71,9 +70,12 @@ public:
     unsigned width, height;
     float frame_rate;
 
-    std::vector<chapter> chapters;
-    unsigned duration; //!< In seconds.
-    int last_position; //!< In seconds, -1 = unknown.
+    std::vector<struct chapter> chapters;
+    int chapter;
+
+    std::chrono::milliseconds duration;
+    std::chrono::milliseconds position;
+    std::chrono::milliseconds last_position;
   };
 
   struct item_source
@@ -93,7 +95,7 @@ public:
     std::string parent_id;
     bool restricted;
     std::string title;
-    uint32_t duration;
+    std::chrono::milliseconds duration;
     std::vector<std::pair<std::string, std::string>> attributes;
     std::vector<std::pair<std::string, connection_manager::protocol>> files;
   };
@@ -195,7 +197,7 @@ private:
 
 private:
   void add_directory(action_browse &, enum item_type, const std::string &client, const std::string &path, const std::string &title = std::string());
-  void add_container(action_browse &, enum item_type, const std::string &path, const std::string &title = std::string(), size_t child_count = size_t(-1));
+  void add_container(action_browse &, enum item_type, const std::string &path, const std::string &title = std::string());
   void add_file(action_browse &, const std::string &host, const item &, const std::string &path, const std::string &title = std::string());
 
   static std::string basepath(const std::string &);

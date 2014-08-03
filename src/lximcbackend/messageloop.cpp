@@ -183,7 +183,7 @@ timer::~timer()
   messageloop.timer_remove(*this);
 }
 
-void timer::start(const std::chrono::nanoseconds &interval, bool once)
+void timer::start(std::chrono::nanoseconds interval, bool once)
 {
   this->interval = interval;
   this->next = messageloop.clock.now() + interval;

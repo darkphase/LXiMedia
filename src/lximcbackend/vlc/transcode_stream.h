@@ -18,6 +18,7 @@
 #ifndef VLC_TRANSCODE_STREAM_H
 #define VLC_TRANSCODE_STREAM_H
 
+#include <chrono>
 #include <istream>
 #include <memory>
 #include <string>
@@ -31,23 +32,24 @@ class instance;
 class transcode_stream : public std::istream
 {
 public:
-  transcode_stream(class messageloop &, class instance &);
-  ~transcode_stream();
+    transcode_stream(class messageloop &, class instance &);
+    ~transcode_stream();
 
-  bool open(const std::string &mrl, const std::string &transcode, const std::string &mux);
-  bool attach(transcode_stream &);
-  void close();
+    bool open(const std::string &mrl, int chapter, const std::string &transcode, const std::string &mux);
+    bool open(const std::string &mrl, std::chrono::milliseconds, const std::string &transcode, const std::string &mux);
+    bool attach(transcode_stream &);
+    void close();
 
 private:
-  class streambuf;
-  class source;
+    class streambuf;
+    class source;
 
-  static const size_t block_size;
-  static const size_t block_count;
-  class messageloop &messageloop;
-  class instance &instance;
-  std::unique_ptr<class streambuf> streambuf;
-  std::shared_ptr<class source> source;
+    static const size_t block_size;
+    static const size_t block_count;
+    class messageloop &messageloop;
+    class instance &instance;
+    std::unique_ptr<class streambuf> streambuf;
+    std::shared_ptr<class source> source;
 };
 
 } // End of namespace

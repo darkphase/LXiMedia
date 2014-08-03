@@ -19,8 +19,8 @@
 #include "../string.h"
 #include "../translator.h"
 #include <cstring>
-#include <iostream>
 #include <iomanip>
+#include <iostream>
 #include <sstream>
 
 namespace pupnp {
@@ -29,787 +29,799 @@ const char content_directory::service_id[]   = "urn:upnp-org:serviceId:ContentDi
 const char content_directory::service_type[] = "urn:schemas-upnp-org:service:ContentDirectory:1";
 
 content_directory::content_directory(class messageloop &messageloop, class upnp &upnp, class rootdevice &rootdevice, class connection_manager &connection_manager)
-  : messageloop(messageloop),
-    upnp(upnp),
-    rootdevice(rootdevice),
-    connection_manager(connection_manager),
-    basedir(rootdevice.http_basedir() + "condir/"),
-    update_timer(messageloop, std::bind(&content_directory::process_pending_updates, this)),
-    update_timer_interval(2),
-    system_update_id(0),
-    allow_process_pending_updates(true),
-    root_item_source(*this)
+    : messageloop(messageloop),
+      upnp(upnp),
+      rootdevice(rootdevice),
+      connection_manager(connection_manager),
+      basedir(rootdevice.http_basedir() + "condir/"),
+      update_timer(messageloop, std::bind(&content_directory::process_pending_updates, this)),
+      update_timer_interval(2),
+      system_update_id(0),
+      allow_process_pending_updates(true),
+      root_item_source(*this)
 {
-  using namespace std::placeholders;
+    using namespace std::placeholders;
 
-  // Add the root path.
-  item_sources["/"] = &root_item_source;
+    // Add the root path.
+    item_sources["/"] = &root_item_source;
 
-  objectid_list.push_back(std::string());
-  objectid_map[objectid_list.back()] = objectid_list.size() - 1;
+    objectid_list.push_back(std::string());
+    objectid_map[objectid_list.back()] = objectid_list.size() - 1;
 
-  connection_manager.numconnections_changed[this] = std::bind(&content_directory::num_connections_changed, this, _1);
+    connection_manager.numconnections_changed[this] = std::bind(&content_directory::num_connections_changed, this, _1);
 
-  rootdevice.service_register(service_id, *this);
+    rootdevice.service_register(service_id, *this);
 }
 
 content_directory::~content_directory()
 {
-  rootdevice.service_unregister(service_id);
+    rootdevice.service_unregister(service_id);
 
-  connection_manager.numconnections_changed.erase(this);
+    connection_manager.numconnections_changed.erase(this);
 }
 
 void content_directory::item_source_register(const std::string &path, struct item_source &item_source)
 {
-  item_sources[path] = &item_source;
+    item_sources[path] = &item_source;
 }
 
 void content_directory::item_source_unregister(const std::string &path)
 {
-  item_sources.erase(path);
+    item_sources.erase(path);
 }
 
 void content_directory::update_system()
 {
-  const uint32_t update_id = ::time(nullptr);
-  if (update_id != system_update_id)
-  {
-    system_update_id = update_id;
+    const uint32_t update_id = ::time(nullptr);
+    if (update_id != system_update_id)
+    {
+        system_update_id = update_id;
 
-    messageloop.post([this] { rootdevice.emit_event(service_id); });
-  }
+        messageloop.post([this] { rootdevice.emit_event(service_id); });
+    }
 }
 
 void content_directory::update_path(const std::string &path)
 {
-  const std::string objectid = to_objectid(path, false);
-  if (!objectid.empty() && (objectid != "0") && (objectid != "-1"))
-  {
-    if (pending_container_updates.find(objectid) != pending_container_updates.end())
+    const std::string objectid = to_objectid(path, false);
+    if (!objectid.empty() && (objectid != "0") && (objectid != "-1"))
     {
-      pending_container_updates.insert(objectid);
-      if (allow_process_pending_updates)
-        update_timer.start(update_timer_interval, true);
+        if (pending_container_updates.find(objectid) != pending_container_updates.end())
+        {
+            pending_container_updates.insert(objectid);
+            if (allow_process_pending_updates)
+                update_timer.start(update_timer_interval, true);
+        }
     }
-  }
 }
 
 void content_directory::num_connections_changed(int num_connections)
 {
-  allow_process_pending_updates = num_connections == 0;
-  if (allow_process_pending_updates)
-    update_timer.start(update_timer_interval, true);
+    allow_process_pending_updates = num_connections == 0;
+    if (allow_process_pending_updates)
+        update_timer.start(update_timer_interval, true);
 }
 
 void content_directory::process_pending_updates(void)
 {
-  if (allow_process_pending_updates)
-  {
-    const uint32_t update_id = ::time(nullptr);
+    if (allow_process_pending_updates)
+    {
+        const uint32_t update_id = ::time(nullptr);
 
-    for (auto &objectid : pending_container_updates)
-      container_update_ids[objectid] = update_id;
+        for (auto &objectid : pending_container_updates)
+            container_update_ids[objectid] = update_id;
 
-    if (pending_container_updates.empty())
-      messageloop.post([this] { rootdevice.emit_event(service_id); });
+        if (pending_container_updates.empty())
+            messageloop.post([this] { rootdevice.emit_event(service_id); });
 
-    pending_container_updates.clear();
-  }
+        pending_container_updates.clear();
+    }
 }
 
-static const unsigned seek_sec = 120;
+static const std::chrono::seconds seek_sec(120);
 
-static std::string to_time(int secs)
+template<typename rep, typename period>
+static std::string to_time(std::chrono::duration<rep, period> duration)
 {
-  std::ostringstream str;
-  str << (secs / 60) << ":" << std::setw(2) << std::setfill('0') << (secs % 60);
-  return str.str();
+    const auto seconds = std::chrono::duration_cast<std::chrono::seconds>(duration).count();
+
+    std::ostringstream str;
+    str << (seconds / 3600)
+        << ":" << std::setw(2) << std::setfill('0') << ((seconds % 3600) / 60)
+        << ":" << std::setw(2) << std::setfill('0') << (seconds % 60);
+
+    return str.str();
 }
 
 static std::vector<std::string> playseek_items(const content_directory::item &item)
 {
-  std::vector<std::string> result;
+    std::vector<std::string> result;
 
-  if ((item.last_position > 0) && (item.last_position <= int(item.duration - (item.duration / 10))))
-  {
-    result.push_back(
-          "p&position=" + std::to_string(item.last_position) +
-          "#" + tr("Resume") +
-          " (" + to_time(item.last_position) +
-          "/" + to_time(item.duration) + ")");
-  }
-  else
-  {
-    result.push_back(
-          "p#" + tr("Play") +
-          " (" + to_time(item.duration) + ")");
-  }
+    if ((item.last_position.count() > 0) &&
+        (item.last_position <= (item.duration - (item.duration / 10))))
+    {
+        result.push_back(
+                    "p&position=" + std::to_string(item.last_position.count()) +
+                    "#" + tr("Resume") +
+                    " (" + to_time(item.last_position) +
+                    "/" + to_time(item.duration) + ")");
+    }
+    else
+    {
+        result.push_back(
+                    "p#" + tr("Play") +
+                    " (" + to_time(item.duration) + ")");
+    }
 
-  if (item.chapters.size() > 1)
-    result.push_back("c#" + tr("Chapters"));
+    if (item.chapters.size() > 1)
+        result.push_back("c#" + tr("Chapters"));
 
-  if (item.duration > seek_sec)
-    result.push_back("s#" + tr("Seek"));
+    if (item.duration > seek_sec)
+        result.push_back("s#" + tr("Seek"));
 
-  return result;
+    return result;
 }
 
 static std::vector<std::string> seek_items(const content_directory::item &item)
 {
-  std::vector<std::string> result;
+    std::vector<std::string> result;
 
-  for (unsigned i=0; i<item.duration; i+=seek_sec)
-  {
-    const std::string title = tr("Play from") + " " + to_time(i);
-    result.push_back(
-          "p&position=" + std::to_string(i) +
-          "#" + ((item.last_position > int(i + seek_sec)) ? ('*' + title) : title));
-  }
+    for (std::chrono::milliseconds i(0); i<item.duration; i+=seek_sec)
+    {
+        const std::string title = tr("Play from") + " " + to_time(i);
+        result.push_back(
+                    "p&position=" + std::to_string(i.count()) +
+                    "#" + ((item.last_position > (i + seek_sec)) ? ('*' + title) : title));
+    }
 
-  return result;
+    return result;
 }
 
 static std::vector<std::string> chapter_items(const content_directory::item &item)
 {
-  std::vector<std::string> result;
+    std::vector<std::string> result;
 
-  int chapter_num = 1;
-  for (size_t i = 0; i < item.chapters.size(); i++)
-  {
-    const content_directory::chapter &chapter = item.chapters[i];
+    for (size_t i = 0; i < item.chapters.size(); i++)
+    {
+        result.push_back(
+                    "p&chapter=" + std::to_string(i + 1) +
+                    "#" + item.chapters[i].title);
+    }
 
-    std::string title = tr("Chapter") + " " + std::to_string(chapter_num++);
-    if (!chapter.title.empty())
-      title += ", " + chapter.title;
-
-    const bool seen =
-        ((i + 1) < item.chapters.size())
-        ? (item.last_position >= int(item.chapters[i + 1].position))
-        : (item.last_position >= int(item.chapters[i].position));
-
-    result.push_back(
-          "p&position=" + std::to_string(chapter.position) +
-          "#" + (seen ? ('*' + title) : title));
-  }
-
-  return result;
+    return result;
 }
 
 static std::vector<std::string> all_items(const content_directory::item &item, const std::vector<std::string> &item_props)
 {
-  std::vector<std::string> items;
-  if (item_props.empty() || item_props[1].empty()) // Root
-    items = playseek_items(item);
-  else if (item_props[1] == "s")
-    items = seek_items(item);
-  else if (item_props[1] == "c")
-    items = chapter_items(item);
+    std::vector<std::string> items;
+    if (item_props.empty() || item_props[1].empty()) // Root
+        items = playseek_items(item);
+    else if (item_props[1] == "s")
+        items = seek_items(item);
+    else if (item_props[1] == "c")
+        items = chapter_items(item);
 
-  return items;
+    return items;
 }
 
 static std::vector<std::string> split_item_props(const std::string &text)
 {
-  std::vector<std::string> item_props;
-  item_props.resize(4);
+    std::vector<std::string> item_props;
+    item_props.resize(4);
 
-  std::stringstream str(text);
-  std::string section;
-  while (std::getline(str, section, '\t'))
-  {
-    const size_t hash = section.find_first_of('#');
-    if (hash != section.npos)
+    size_t sep = text.find("//");
+    while ((sep != text.npos) && (sep > 0) && (text[sep - 1] == ':'))
+        sep = text.find("//", sep + 2);
+
+    if (sep == text.npos)
+        item_props[0] = text;
+    else if (sep > 0)
+        item_props[0] = text.substr(0, sep);
+
+    for (; sep != text.npos; sep = text.find("//", sep + 2))
     {
-      item_props[1] = section.substr(0, 1);
-      item_props[2] += section.substr(1, hash - 1);
-      item_props[3] = section.substr(hash + 1);
+        const std::string section = text.substr(sep + 2);
+        const size_t hash = section.find_first_of('#');
+        if (hash != section.npos)
+        {
+            item_props[1] = section.substr(0, 1);
+            item_props[2] += section.substr(1, hash - 1);
+            item_props[3] = section.substr(hash + 1);
+        }
     }
-    else
-      item_props[0] = section.empty() ? item_props[0] : section;
-  }
 
-  return item_props;
+    return item_props;
 }
 
 static content_directory::item make_play_item(const content_directory::item &base_item, const std::vector<std::string> &item_props)
 {
-  content_directory::item item = base_item;
+    content_directory::item item = base_item;
 
-//  if (!item_props[3].empty())
-//    item.title = item_props[3];
+    if (!item_props[3].empty())
+        item.title = item_props[3];
 
-//  if (!item_props[2].empty())
-//  {
-//    item.url.query.clear();
+    if (!item_props[2].empty())
+    {
+        std::stringstream str(item_props[2]);
+        std::string qi;
+        while (std::getline(str, qi, '&'))
+        {
+            const size_t eq = qi.find_first_of('=');
+            if (eq != qi.npos)
+            {
+                const std::string key = qi.substr(0, eq);
+                if (key == "position")
+                    item.position = std::chrono::milliseconds(std::stoull(qi.substr(eq + 1)));
+                else if (key == "chapter")
+                    item.chapter = std::stoi(qi.substr(eq + 1));
+            }
+        }
+    }
 
-//    std::stringstream str(item_props[2]);
-//    std::string qi;
-//    while (std::getline(str, qi, '&'))
-//    {
-//      const size_t eq = qi.find_first_of('=');
-//      if (eq != qi.npos)
-//        item.url.query[qi.substr(0, eq)] = qi.substr(eq + 1);
-//      else
-//        item.url.query[qi] = std::string();
-//    }
-//  }
-
-  return item;
+    return item;
 }
 
 void content_directory::handle_action(const upnp::request &request, action_browse &action)
 {
-  const auto objectid = action.get_object_id();
-  const auto path = from_objectid(objectid);
-  const auto start = action.get_starting_index();
-  const auto count = action.get_requested_count();
+    const auto objectid = action.get_object_id();
+    const auto path = from_objectid(objectid);
+    const auto start = action.get_starting_index();
+    const auto count = action.get_requested_count();
 
-  std::string client = request.user_agent;
-  const size_t space = request.user_agent.find_first_of(' ');
-  if (space != request.user_agent.npos)
-    client = client.substr(0, space);
+    std::string client = request.user_agent;
+    const size_t space = request.user_agent.find_first_of(' ');
+    if (space != request.user_agent.npos)
+        client = client.substr(0, space);
 
-  client += '@' + request.source_address;
+    client += '@' + request.source_address;
 
-  const std::string basepath = content_directory::basepath(path);
-  auto item_source = item_sources.find(basepath);
-  for (std::string i=basepath; !i.empty() && (item_source == item_sources.end()); i = parentpath(i))
-    item_source = item_sources.find(i);
+    const std::string basepath = content_directory::basepath(path);
+    auto item_source = item_sources.find(basepath);
+    for (std::string i=basepath; !i.empty() && (item_source == item_sources.end()); i = parentpath(i))
+        item_source = item_sources.find(i);
 
-  if ((item_source == item_sources.end()) || !starts_with(path, item_source->first))
-  {
-    std::clog << "[" << this << "] pupnp::content_directory: Could not find item source for path: " << std::endl;
-    return;
-  }
-
-  size_t totalmatches = 0;
-
-  if (!path.empty() && (path[path.length() - 1] == '/')) // Directory
-  {
-    switch (action.get_browse_flag())
+    if ((item_source == item_sources.end()) || !starts_with(path, item_source->first))
     {
-    case action_browse::browse_flag::direct_children:
-      totalmatches = count;
-      for (auto &item : item_source->second->list_contentdir_items(client, path, start, totalmatches))
-      {
-        if (!item.is_dir)
+        std::clog << "[" << this << "] pupnp::content_directory: Could not find item source for path: " << std::endl;
+        return;
+    }
+
+    size_t totalmatches = 0;
+
+    if (!path.empty() && (path[path.length() - 1] == '/')) // Directory
+    {
+        switch (action.get_browse_flag())
         {
-          std::string title;
-          if (item.last_position > int(item.duration - (item.duration / 10)))
-            title = '*' + item.title;
-          else if (item.last_position > 0)
-            title = '+' + item.title;
-          else
-            title = item.title;
+        case action_browse::browse_flag::direct_children:
+            totalmatches = count;
+            for (auto &item : item_source->second->list_contentdir_items(client, path, start, totalmatches))
+            {
+                if (!item.is_dir)
+                {
+                    std::string title;
+                    if (item.last_position > (item.duration - (item.duration / 10)))
+                        title = '*' + item.title;
+                    else if (item.last_position.count() > 0)
+                        title = '+' + item.title;
+                    else
+                        title = item.title;
 
-          switch (item.type)
-          {
-          case item_type::none:
-          case item_type::music:
-          case item_type::music_video:
-          case item_type::image:
-          case item_type::photo:
-            add_file(action, request.url.host, item, item.path, item.title);
+                    switch (item.type)
+                    {
+                    case item_type::none:
+                    case item_type::music:
+                    case item_type::music_video:
+                    case item_type::image:
+                    case item_type::photo:
+                        add_file(action, request.url.host, item, item.path, item.title);
+                        break;
+
+                    case item_type::audio_broadcast:
+                    case item_type::video:
+                    case item_type::video_broadcast:
+                        add_file(action, request.url.host, item, item.path, title);
+                        break;
+
+                    case item_type::audio:
+                    case item_type::audio_book:
+                    case item_type::movie:
+                        add_container(action, item.type, item.path, title);
+                        break;
+                    }
+                }
+                else
+                    add_directory(action, item.type, client, item.path, item.title);
+            }
             break;
 
-          case item_type::audio_broadcast:
-          case item_type::video:
-          case item_type::video_broadcast:
-            add_file(action, request.url.host, item, item.path, title);
+        case action_browse::browse_flag::metadata:
+            add_directory(action, item_type::none, client, path);
+            totalmatches = 1;
             break;
-
-          case item_type::audio:
-          case item_type::audio_book:
-          case item_type::movie:
-            add_container(action, item.type, item.path, title);
-            break;
-          }
         }
-        else
-          add_directory(action, item.type, client, item.path, item.title);
-      }
-      break;
-
-    case action_browse::browse_flag::metadata:
-      add_directory(action, item_type::none, client, path);
-      totalmatches = 1;
-      break;
     }
-  }
-  else
-  {
-    const auto itemprops = split_item_props(path);
-
-    // Get the item
-    const item item = item_source->second->get_contentdir_item(client, itemprops[0]);
-    if (item.mrl.empty())
+    else
     {
-      std::clog << "[" << this << "] pupnp::content_directory: Could not find item " << itemprops[0] << std::endl;
-      return;
+        const auto itemprops = split_item_props(path);
+
+        // Get the item
+        const item item = item_source->second->get_contentdir_item(client, itemprops[0]);
+        if (item.mrl.empty())
+        {
+            std::clog << "[" << this << "] pupnp::content_directory: Could not find item " << itemprops[0] << std::endl;
+            return;
+        }
+
+        const std::vector<std::string> items = all_items(item, itemprops);
+        switch (action.get_browse_flag())
+        {
+        case action_browse::browse_flag::direct_children:
+            // Only select the items that were requested.
+            for (size_t i=start, n=0; (i<items.size()) && ((count == 0) || (n < count)); i++, n++)
+            {
+                const auto props = split_item_props(path + "//" + items[i]);
+                if (props[1] == "p")
+                    add_file(action, request.url.host, make_play_item(item, props), path + "//" + items[i]);
+                else
+                    add_container(action, item.type, path + "//" + items[i], props[3]);
+            }
+
+            totalmatches = items.size();
+            break;
+
+        case action_browse::browse_flag::metadata:
+            if (itemprops[1].empty() || (itemprops[1] == "p"))
+                add_file(action, request.url.host, make_play_item(item, itemprops), path);
+            else
+                add_container(action, item.type, path, itemprops[3]);
+
+            totalmatches = 1;
+            break;
+        }
     }
 
-    const std::vector<std::string> items = all_items(item, itemprops);
-    switch (action.get_browse_flag())
+    auto updateid = system_update_id;
+    if (objectid != "0")
     {
-    case action_browse::browse_flag::direct_children:
-      // Only select the items that were requested.
-      for (size_t i=start, n=0; (i<items.size()) && ((count == 0) || (n < count)); i++, n++)
-      {
-        const std::vector<std::string> props = split_item_props(path + '\t' + items[i]);
-        if (props[1] == "p")
-          add_file(action, request.url.host, make_play_item(item, props), path + '\t' + items[i]);
-        else
-          add_container(action, item.type, path + '\t' + items[i], props[3], all_items(item, split_item_props(items[i])).size());
-      }
-
-      totalmatches = items.size();
-      break;
-
-    case action_browse::browse_flag::metadata:
-      if (itemprops[1].empty() || (itemprops[1] == "p"))
-        add_file(action, request.url.host, make_play_item(item, itemprops), path);
-      else
-        add_container(action, item.type, path, itemprops[3], items.size());
-
-      totalmatches = 1;
-      break;
+        auto container_update_id = container_update_ids.find(objectid);
+        if (container_update_id != container_update_ids.end())
+            updateid = container_update_id->second;
     }
-  }
 
-  auto updateid = system_update_id;
-  if (objectid != "0")
-  {
-    auto container_update_id = container_update_ids.find(objectid);
-    if (container_update_id != container_update_ids.end())
-      updateid = container_update_id->second;
-  }
-
-  action.set_response(totalmatches, updateid);
+    action.set_response(totalmatches, updateid);
 }
 
 void content_directory::handle_action(const upnp::request &, action_search &action)
 {
-  action.set_response(0, system_update_id);
+    action.set_response(0, system_update_id);
 }
 
 void content_directory::handle_action(const upnp::request &, action_get_search_capabilities &action)
 {
-  action.set_response(std::string());
+    action.set_response(std::string());
 }
 
 void content_directory::handle_action(const upnp::request &, action_get_sort_capabilities &action)
 {
-  action.set_response(std::string());
+    action.set_response(std::string());
 }
 
 void content_directory::handle_action(const upnp::request &, action_get_system_update_id &action)
 {
-  action.set_response(system_update_id);
+    action.set_response(system_update_id);
 }
 
 void content_directory::handle_action(const upnp::request &, action_get_featurelist &action)
 {
-  std::vector<std::string> containers;
-  containers.push_back("object.item.audioItem");
-  containers.push_back("object.item.videoItem");
-  containers.push_back("object.item.imageItem");
+    std::vector<std::string> containers;
+    containers.push_back("object.item.audioItem");
+    containers.push_back("object.item.videoItem");
+    containers.push_back("object.item.imageItem");
 
-  action.set_response(containers);
+    action.set_response(containers);
 }
 
 const char * content_directory::get_service_type(void)
 {
-  return service_type;
+    return service_type;
 }
 
 void content_directory::initialize(void)
 {
-  using namespace std::placeholders;
+    using namespace std::placeholders;
 
-  auto updateid = ::time(nullptr);
-  if (updateid == system_update_id)
-    updateid++;
+    auto updateid = ::time(nullptr);
+    if (updateid == system_update_id)
+        updateid++;
 
-  system_update_id = updateid;
+    system_update_id = updateid;
 
-  upnp.http_callback_register(basedir, std::bind(&content_directory::http_request, this, _1, _2, _3));
+    upnp.http_callback_register(basedir, std::bind(&content_directory::http_request, this, _1, _2, _3));
 }
 
 void content_directory::close(void)
 {
-  upnp.http_callback_unregister(basedir);
+    upnp.http_callback_unregister(basedir);
 
-  update_timer.stop();
-  pending_container_updates.clear();
-  container_update_ids.clear();
+    update_timer.stop();
+    pending_container_updates.clear();
+    container_update_ids.clear();
 
-  objectid_list.clear();
-  objectid_map.clear();
-  objecturl_list.clear();
-  objecturl_map.clear();
-  objectprofile_list.clear();
-  objectprofile_map.clear();
+    objectid_list.clear();
+    objectid_map.clear();
+    objecturl_list.clear();
+    objecturl_map.clear();
+    objectprofile_list.clear();
+    objectprofile_map.clear();
 
-  objectid_list.push_back(std::string());
-  objectid_map[objectid_list.back()] = objectid_list.size() - 1;
+    objectid_list.push_back(std::string());
+    objectid_map[objectid_list.back()] = objectid_list.size() - 1;
 }
 
 void content_directory::write_service_description(rootdevice::service_description &desc) const
 {
-  {
-    static const char * const argname[] = { "ObjectID"            , "BrowseFlag"            , "Filter"            , "StartingIndex"   , "RequestedCount"  , "SortCriteria"            , "Result"            , "NumberReturned"  , "TotalMatches"    , "UpdateID"            };
-    static const char * const argdir[]  = { "in"                  , "in"                    , "in"                , "in"              , "in"              , "in"                      , "out"               , "out"             , "out"             , "out"                 };
-    static const char * const argvar[]  = { "A_ARG_TYPE_ObjectID" , "A_ARG_TYPE_BrowseFlag" , "A_ARG_TYPE_Filter" , "A_ARG_TYPE_Index", "A_ARG_TYPE_Count", "A_ARG_TYPE_SortCriteria" , "A_ARG_TYPE_Result" , "A_ARG_TYPE_Count", "A_ARG_TYPE_Count", "A_ARG_TYPE_UpdateID" };
-    desc.add_action("Browse", argname, argdir, argvar);
-  }
-  {
-    static const char * const argname[] = { "ContainerID"         , "SearchCriteria"            , "Filter"            , "StartingIndex"   , "RequestedCount"  , "SortCriteria"            , "Result"            , "NumberReturned"  , "TotalMatches"    , "UpdateID"            };
-    static const char * const argdir[]  = { "in"                  , "in"                        , "in"                , "in"              , "in"              , "in"                      , "out"               , "out"             , "out"             , "out"                 };
-    static const char * const argvar[]  = { "A_ARG_TYPE_ObjectID" , "A_ARG_TYPE_SearchCriteria" , "A_ARG_TYPE_Filter" , "A_ARG_TYPE_Index", "A_ARG_TYPE_Count", "A_ARG_TYPE_SortCriteria" , "A_ARG_TYPE_Result" , "A_ARG_TYPE_Count", "A_ARG_TYPE_Count", "A_ARG_TYPE_UpdateID" };
-    desc.add_action("Search", argname, argdir, argvar);
-  }
-  {
-    static const char * const argname[] = { "SearchCaps"          };
-    static const char * const argdir[]  = { "out"                 };
-    static const char * const argvar[]  = { "SearchCapabilities"  };
-    desc.add_action("GetSearchCapabilities", argname, argdir, argvar);
-  }
-  {
-    static const char * const argname[] = { "SortCaps"          };
-    static const char * const argdir[]  = { "out"               };
-    static const char * const argvar[]  = { "SortCapabilities"  };
-    desc.add_action("GetSortCapabilities", argname, argdir, argvar);
-  }
-  {
-    static const char * const argname[] = { "Id"              };
-    static const char * const argdir[]  = { "out"             };
-    static const char * const argvar[]  = { "SystemUpdateID"  };
-    desc.add_action("GetSystemUpdateID", argname, argdir, argvar);
-  }
-  { // Samsung GetFeatureList
-    static const char * const argname[] = { "FeatureList"             };
-    static const char * const argdir[]  = { "out"                     };
-    static const char * const argvar[]  = { "A_ARG_TYPE_Featurelist"  };
-    desc.add_action("X_GetFeatureList", argname, argdir, argvar);
-  }
+    {
+        static const char * const argname[] = { "ObjectID"            , "BrowseFlag"            , "Filter"            , "StartingIndex"   , "RequestedCount"  , "SortCriteria"            , "Result"            , "NumberReturned"  , "TotalMatches"    , "UpdateID"            };
+        static const char * const argdir[]  = { "in"                  , "in"                    , "in"                , "in"              , "in"              , "in"                      , "out"               , "out"             , "out"             , "out"                 };
+        static const char * const argvar[]  = { "A_ARG_TYPE_ObjectID" , "A_ARG_TYPE_BrowseFlag" , "A_ARG_TYPE_Filter" , "A_ARG_TYPE_Index", "A_ARG_TYPE_Count", "A_ARG_TYPE_SortCriteria" , "A_ARG_TYPE_Result" , "A_ARG_TYPE_Count", "A_ARG_TYPE_Count", "A_ARG_TYPE_UpdateID" };
+        desc.add_action("Browse", argname, argdir, argvar);
+    }
+    {
+        static const char * const argname[] = { "ContainerID"         , "SearchCriteria"            , "Filter"            , "StartingIndex"   , "RequestedCount"  , "SortCriteria"            , "Result"            , "NumberReturned"  , "TotalMatches"    , "UpdateID"            };
+        static const char * const argdir[]  = { "in"                  , "in"                        , "in"                , "in"              , "in"              , "in"                      , "out"               , "out"             , "out"             , "out"                 };
+        static const char * const argvar[]  = { "A_ARG_TYPE_ObjectID" , "A_ARG_TYPE_SearchCriteria" , "A_ARG_TYPE_Filter" , "A_ARG_TYPE_Index", "A_ARG_TYPE_Count", "A_ARG_TYPE_SortCriteria" , "A_ARG_TYPE_Result" , "A_ARG_TYPE_Count", "A_ARG_TYPE_Count", "A_ARG_TYPE_UpdateID" };
+        desc.add_action("Search", argname, argdir, argvar);
+    }
+    {
+        static const char * const argname[] = { "SearchCaps"          };
+        static const char * const argdir[]  = { "out"                 };
+        static const char * const argvar[]  = { "SearchCapabilities"  };
+        desc.add_action("GetSearchCapabilities", argname, argdir, argvar);
+    }
+    {
+        static const char * const argname[] = { "SortCaps"          };
+        static const char * const argdir[]  = { "out"               };
+        static const char * const argvar[]  = { "SortCapabilities"  };
+        desc.add_action("GetSortCapabilities", argname, argdir, argvar);
+    }
+    {
+        static const char * const argname[] = { "Id"              };
+        static const char * const argdir[]  = { "out"             };
+        static const char * const argvar[]  = { "SystemUpdateID"  };
+        desc.add_action("GetSystemUpdateID", argname, argdir, argvar);
+    }
+    { // Samsung GetFeatureList
+        static const char * const argname[] = { "FeatureList"             };
+        static const char * const argdir[]  = { "out"                     };
+        static const char * const argvar[]  = { "A_ARG_TYPE_Featurelist"  };
+        desc.add_action("X_GetFeatureList", argname, argdir, argvar);
+    }
 
-  desc.add_statevariable("A_ARG_TYPE_ObjectID"      , "string", false );
-  desc.add_statevariable("A_ARG_TYPE_Result"        , "string", false );
-  desc.add_statevariable("A_ARG_TYPE_SearchCriteria", "string", false );
-  static const char * const browseflag_values[] = { "BrowseMetadata", "BrowseDirectChildren" };
-  desc.add_statevariable("A_ARG_TYPE_BrowseFlag"    , "string", false, browseflag_values);
-  desc.add_statevariable("A_ARG_TYPE_Filter"        , "string", false );
-  desc.add_statevariable("A_ARG_TYPE_SortCriteria"  , "string", false );
-  desc.add_statevariable("A_ARG_TYPE_Index"         , "ui4"   , false );
-  desc.add_statevariable("A_ARG_TYPE_Count"         , "ui4"   , false );
-  desc.add_statevariable("A_ARG_TYPE_UpdateID"      , "ui4"   , false );
-  desc.add_statevariable("A_ARG_TYPE_Featurelist"   , "string", false ); // Samsung GetFeatureList
-  desc.add_statevariable("SearchCapabilities"       , "string", false );
-  desc.add_statevariable("SortCapabilities"         , "string", false );
-  desc.add_statevariable("SystemUpdateID"           , "ui4"   , true  );
-  desc.add_statevariable("ContainerUpdateIDs"       , "ui4"   , true  );
-  desc.add_statevariable("TransferIDs"              , "string", true  );
+    desc.add_statevariable("A_ARG_TYPE_ObjectID"      , "string", false );
+    desc.add_statevariable("A_ARG_TYPE_Result"        , "string", false );
+    desc.add_statevariable("A_ARG_TYPE_SearchCriteria", "string", false );
+    static const char * const browseflag_values[] = { "BrowseMetadata", "BrowseDirectChildren" };
+    desc.add_statevariable("A_ARG_TYPE_BrowseFlag"    , "string", false, browseflag_values);
+    desc.add_statevariable("A_ARG_TYPE_Filter"        , "string", false );
+    desc.add_statevariable("A_ARG_TYPE_SortCriteria"  , "string", false );
+    desc.add_statevariable("A_ARG_TYPE_Index"         , "ui4"   , false );
+    desc.add_statevariable("A_ARG_TYPE_Count"         , "ui4"   , false );
+    desc.add_statevariable("A_ARG_TYPE_UpdateID"      , "ui4"   , false );
+    desc.add_statevariable("A_ARG_TYPE_Featurelist"   , "string", false ); // Samsung GetFeatureList
+    desc.add_statevariable("SearchCapabilities"       , "string", false );
+    desc.add_statevariable("SortCapabilities"         , "string", false );
+    desc.add_statevariable("SystemUpdateID"           , "ui4"   , true  );
+    desc.add_statevariable("ContainerUpdateIDs"       , "ui4"   , true  );
+    desc.add_statevariable("TransferIDs"              , "string", true  );
 }
 
 void content_directory::write_eventable_statevariables(rootdevice::eventable_propertyset &propset) const
 {
-  propset.add_property("SystemUpdateID", std::to_string(system_update_id));
+    propset.add_property("SystemUpdateID", std::to_string(system_update_id));
 
-  std::string update_ids;
-  for (auto &i : container_update_ids)
-    update_ids += ',' + i.first + ',' + std::to_string(i.second);
+    std::string update_ids;
+    for (auto &i : container_update_ids)
+        update_ids += ',' + i.first + ',' + std::to_string(i.second);
 
-  propset.add_property("ContainerUpdateIDs", update_ids.empty() ? update_ids : update_ids.substr(1));
+    propset.add_property("ContainerUpdateIDs", update_ids.empty() ? update_ids : update_ids.substr(1));
 
-  propset.add_property("TransferIDs", "");
+    propset.add_property("TransferIDs", "");
 }
 
 int content_directory::http_request(const upnp::request &request, std::string &content_type, std::shared_ptr<std::istream> &response)
 {
-  if (starts_with(request.url.path, basedir))
-  {
-    std::string profile;
-    const std::string path = from_objectpath(request.url.path, profile);
-    if (!path.empty())
+    if (starts_with(request.url.path, basedir))
     {
-      auto item_source = item_sources.find(path);
-      for (std::string i=path; !i.empty() && (item_source == item_sources.end()); i=parentpath(i))
-        item_source = item_sources.find(i);
+        std::string profile;
+        const std::string path = from_objectpath(request.url.path, profile);
+        if (!path.empty())
+        {
+            auto item_source = item_sources.find(path);
+            for (std::string i=path; !i.empty() && (item_source == item_sources.end()); i=parentpath(i))
+                item_source = item_sources.find(i);
 
-      if ((item_source == item_sources.end()) || !starts_with(path, item_source->first))
-      {
-        std::clog << "[" << this << "] pupnp::content_directory: Could not find item source for path: " << std::endl;
-        return upnp::http_not_found;
-      }
+            if ((item_source == item_sources.end()) || !starts_with(path, item_source->first))
+            {
+                std::clog << "[" << this << "] pupnp::content_directory: Could not find item source for path: " << std::endl;
+                return upnp::http_not_found;
+            }
 
-      const auto item = item_source->second->get_contentdir_item(request.user_agent, path);
-      return item_source->second->play_item(item, profile, content_type, response);
+            const auto props = split_item_props(path);
+            auto item = item_source->second->get_contentdir_item(request.user_agent, props[0]);
+            if (props[1] == "p")
+                item = make_play_item(item, props);
+
+            return item_source->second->play_item(item, profile, content_type, response);
+        }
     }
-  }
 
-  return upnp::http_not_found;
+    return upnp::http_not_found;
 }
 
 void content_directory::add_directory(action_browse &action, item_type type, const std::string &, const std::string &path, const std::string &title)
 {
-  auto item_source = item_sources.find(path);
-  for (std::string i=path; !i.empty() && (item_source == item_sources.end()); i=parentpath(i))
-    item_source = item_sources.find(i);
+    auto item_source = item_sources.find(path);
+    for (std::string i=path; !i.empty() && (item_source == item_sources.end()); i=parentpath(i))
+        item_source = item_sources.find(i);
 
-  if ((item_source == item_sources.end()) || !starts_with(path, item_source->first))
-  {
-    std::clog << "[" << this << "] pupnp::content_directory: Could not find item source for path: " << std::endl;
-    return;
-  }
+    if ((item_source == item_sources.end()) || !starts_with(path, item_source->first))
+    {
+        std::clog << "[" << this << "] pupnp::content_directory: Could not find item source for path: " << std::endl;
+        return;
+    }
 
-  add_container(action, type, path, title);
+    add_container(action, type, path, title);
 }
 
-void content_directory::add_container(action_browse &action, item_type type, const std::string &path, const std::string &title, size_t child_count)
+void content_directory::add_container(action_browse &action, item_type type, const std::string &path, const std::string &title)
 {
-  const std::string parentpath = content_directory::parentpath(path);
+    const std::string parentpath = content_directory::parentpath(path);
 
-  browse_container container;
-  container.id = to_objectid(path);
-  container.parent_id = to_objectid(parentpath);
-  container.restricted = true;
-  container.child_count = child_count;
+    browse_container container;
+    container.id = to_objectid(path);
+    container.parent_id = to_objectid(parentpath);
+    container.restricted = true;
 
-  container.title =
-      !title.empty()
-          ? title
-          : (!parentpath.empty()
-                ? path.substr(parentpath.length(), path.length() - parentpath.length() - 1)
-                : std::string("root"));
+    container.title =
+            !title.empty()
+            ? title
+            : (!parentpath.empty()
+               ? path.substr(parentpath.length(), path.length() - parentpath.length() - 1)
+               : std::string("root"));
 
-  switch (type)
-  {
-  case item_type::none:             container.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.container.album"))); break;
+    switch (type)
+    {
+    case item_type::none:             container.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.container.album"))); break;
 
-  case item_type::audio:
-  case item_type::audio_broadcast:
-  case item_type::audio_book:       container.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.container.album"))); break;
-  case item_type::music:            container.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.container.album.musicAlbum"))); break;
+    case item_type::audio:
+    case item_type::audio_broadcast:
+    case item_type::audio_book:       container.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.container.album"))); break;
+    case item_type::music:            container.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.container.album.musicAlbum"))); break;
 
-  case item_type::video:
-  case item_type::movie:
-  case item_type::video_broadcast:  container.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.container.album"))); break;
-  case item_type::music_video:      container.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.container.album.musicAlbum"))); break;
+    case item_type::video:
+    case item_type::movie:
+    case item_type::video_broadcast:  container.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.container.album"))); break;
+    case item_type::music_video:      container.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.container.album.musicAlbum"))); break;
 
-  case item_type::image:            container.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.container.album"))); break;
-  case item_type::photo:            container.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.container.album.photoAlbum"))); break;
-  }
+    case item_type::image:            container.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.container.album"))); break;
+    case item_type::photo:            container.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.container.album.photoAlbum"))); break;
+    }
 
-  action.add_container(container);
+    action.add_container(container);
 }
 
 void content_directory::add_file(action_browse &action, const std::string &host, const item &item, const std::string &path, const std::string &title)
 {
-  const std::string parentpath = content_directory::parentpath(path);
+    const std::string parentpath = content_directory::parentpath(path);
 
-  struct browse_item browse_item;
-  browse_item.id = to_objectid(path);
-  browse_item.parent_id = to_objectid(parentpath);
-  browse_item.restricted = true;
-  browse_item.title = !title.empty() ? title : item.title;
+    struct browse_item browse_item;
+    browse_item.id = to_objectid(path);
+    browse_item.parent_id = to_objectid(parentpath);
+    browse_item.restricted = true;
+    browse_item.title = !title.empty() ? title : item.title;
+    browse_item.duration = item.duration - item.position;
 
-  if (!item.artist.empty())
-    browse_item.attributes.push_back(std::make_pair(std::string("upnp:artist"), item.artist));
+    if (!item.artist.empty())
+        browse_item.attributes.push_back(std::make_pair(std::string("upnp:artist"), item.artist));
 
-  if (!item.album.empty())
-    browse_item.attributes.push_back(std::make_pair(std::string("upnp:album"), item.album));
+    if (!item.album.empty())
+        browse_item.attributes.push_back(std::make_pair(std::string("upnp:album"), item.album));
 
-//  if (!item.icon_url.path.empty())
-//  {
-//    if (ends_with(item.icon_url.path, ".jpeg") || ends_with(item.icon_url.path, ".jpg"))
-//      browse_item.attributes.push_back(std::make_pair(std::string("upnp:albumArtURI"), to_objecturl(item.icon_url, ".jpeg")));
-//    else
-//      browse_item.attributes.push_back(std::make_pair(std::string("upnp:albumArtURI"), to_objecturl(item.icon_url, ".png")));
-//  }
+    //  if (!item.icon_url.path.empty())
+    //  {
+    //    if (ends_with(item.icon_url.path, ".jpeg") || ends_with(item.icon_url.path, ".jpg"))
+    //      browse_item.attributes.push_back(std::make_pair(std::string("upnp:albumArtURI"), to_objecturl(item.icon_url, ".jpeg")));
+    //    else
+    //      browse_item.attributes.push_back(std::make_pair(std::string("upnp:albumArtURI"), to_objecturl(item.icon_url, ".png")));
+    //  }
 
-  switch (item.type)
-  {
-  case item_type::none:             browse_item.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.item"))); break;
-
-  case item_type::audio:            browse_item.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.item.audioItem"))); break;
-  case item_type::music:            browse_item.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.item.audioItem.musicTrack"))); break;
-  case item_type::audio_broadcast:  browse_item.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.item.audioItem.audioBroadcast"))); break;
-  case item_type::audio_book:       browse_item.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.item.audioItem.audioBook"))); break;
-
-  case item_type::video:            browse_item.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.item.videoItem"))); break;
-  case item_type::movie:            browse_item.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.item.videoItem.movie"))); break;
-  case item_type::video_broadcast:  browse_item.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.item.videoItem.videoBroadcast"))); break;
-  case item_type::music_video:      browse_item.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.item.videoItem.musicVideoClip"))); break;
-
-  case item_type::image:            browse_item.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.item.imageItem"))); break;
-  case item_type::photo:            browse_item.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.item.imageItem.photo"))); break;
-  }
-
-  if (!item.mrl.empty())
-  {
-    std::vector<connection_manager::protocol> protocols;
-    if (item.is_audio())  protocols = connection_manager.get_protocols(item.channels);
-    if (item.is_video())  protocols = connection_manager.get_protocols(item.channels, item.width, item.frame_rate);
-
-    for (auto &protocol : protocols)
+    switch (item.type)
     {
-      upnp::url url;
-      url.host = host;
-      url.path = to_objectpath(path, protocol.profile, protocol.suffix);
-      browse_item.files.push_back(std::make_pair(url, protocol));
-    }
-  }
+    case item_type::none:             browse_item.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.item"))); break;
 
-  action.add_item(browse_item);
+    case item_type::audio:            browse_item.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.item.audioItem"))); break;
+    case item_type::music:            browse_item.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.item.audioItem.musicTrack"))); break;
+    case item_type::audio_broadcast:  browse_item.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.item.audioItem.audioBroadcast"))); break;
+    case item_type::audio_book:       browse_item.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.item.audioItem.audioBook"))); break;
+
+    case item_type::video:            browse_item.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.item.videoItem"))); break;
+    case item_type::movie:            browse_item.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.item.videoItem.movie"))); break;
+    case item_type::video_broadcast:  browse_item.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.item.videoItem.videoBroadcast"))); break;
+    case item_type::music_video:      browse_item.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.item.videoItem.musicVideoClip"))); break;
+
+    case item_type::image:            browse_item.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.item.imageItem"))); break;
+    case item_type::photo:            browse_item.attributes.push_back(std::make_pair(std::string("upnp:class"), std::string("object.item.imageItem.photo"))); break;
+    }
+
+    if (!item.mrl.empty())
+    {
+        std::vector<connection_manager::protocol> protocols;
+        if (item.is_audio())  protocols = connection_manager.get_protocols(item.channels);
+        if (item.is_video())  protocols = connection_manager.get_protocols(item.channels, item.width, item.frame_rate);
+
+        for (auto &protocol : protocols)
+        {
+            upnp::url url;
+            url.host = host;
+            url.path = to_objectpath(path, protocol.profile, protocol.suffix);
+            browse_item.files.push_back(std::make_pair(url, protocol));
+        }
+    }
+
+    action.add_item(browse_item);
 }
 
 std::string content_directory::basepath(const std::string &dir)
 {
-  const size_t ls = dir.find_last_of('/');
-  if (ls != dir.npos)
-    return dir.substr(0, ls + 1);
+    const size_t ls = dir.find_last_of('/');
+    if (ls != dir.npos)
+        return dir.substr(0, ls + 1);
 
-  return std::string();
+    return std::string();
 }
 
 std::string content_directory::parentpath(const std::string &dir)
 {
-  if (dir.length() > 1)
-  {
-    const size_t ls = dir.find_last_of('/' , dir.length() - 2);
-    if (ls != dir.npos)
-      return dir.substr(0, ls + 1);
-  }
+    if (dir.length() > 1)
+    {
+        const size_t ls = dir.find_last_of('/' , dir.length() - 2);
+        if (ls != dir.npos)
+        {
+            if ((ls > 0) && (dir[ls - 1] == '/'))
+                return dir.substr(0, ls - 1);
+            else
+                return dir.substr(0, ls + 1);
+        }
+    }
 
-  return std::string();
+    return std::string();
 }
 
 std::string content_directory::to_objectid(const std::string &path, bool create)
 {
-  if (path == "/")
-  {
-    return "0";
-  }
-  else if (path.empty())
-  {
-    return "-1";
-  }
-  else
-  {
-    auto i = objectid_map.find(path);
-    if (i != objectid_map.end())
-      return std::to_string(i->second);
-
-    if (create)
+    if (path == "/")
     {
-      objectid_list.push_back(path);
-      objectid_list.back().shrink_to_fit();
-      objectid_map[objectid_list.back()] = objectid_list.size() - 1;
-
-      return std::to_string(objectid_list.size() - 1);
+        return "0";
     }
-  }
+    else if (path.empty())
+    {
+        return "-1";
+    }
+    else
+    {
+        auto i = objectid_map.find(path);
+        if (i != objectid_map.end())
+            return std::to_string(i->second);
 
-  return std::string();
+        if (create)
+        {
+            objectid_list.push_back(path);
+            objectid_list.back().shrink_to_fit();
+            objectid_map[objectid_list.back()] = objectid_list.size() - 1;
+
+            return std::to_string(objectid_list.size() - 1);
+        }
+    }
+
+    return std::string();
 }
 
 std::string content_directory::from_objectid(const std::string &id_str)
 {
-  if (id_str == "0")
-  {
-    return "/";
-  }
-  else if (id_str == "-1")
-  {
-    return std::string();
-  }
-  else
-  {
-    try
+    if (id_str == "0")
     {
-      const size_t id = std::stoull(id_str);
-      if (id < objectid_list.size())
-        return objectid_list[id];
+        return "/";
     }
-    catch (const std::invalid_argument &) { }
-    catch (const std::out_of_range &) { }
+    else if (id_str == "-1")
+    {
+        return std::string();
+    }
+    else
+    {
+        try
+        {
+            const size_t id = std::stoull(id_str);
+            if (id < objectid_list.size())
+                return objectid_list[id];
+        }
+        catch (const std::invalid_argument &) { }
+        catch (const std::out_of_range &) { }
 
-    return std::string();
-  }
+        return std::string();
+    }
 }
 
 std::string content_directory::to_objectpath(const std::string &path, const std::string &profile, const std::string &suffix)
 {
-  size_t profile_id = 0;
-  {
-    auto i = objectprofile_map.find(profile);
-    if (i == objectprofile_map.end())
+    size_t profile_id = 0;
     {
-      objectprofile_list.push_back(profile);
-      objectprofile_list.back().shrink_to_fit();
-      objectprofile_map[objectprofile_list.back()] = profile_id = objectprofile_list.size() - 1;
+        auto i = objectprofile_map.find(profile);
+        if (i == objectprofile_map.end())
+        {
+            objectprofile_list.push_back(profile);
+            objectprofile_list.back().shrink_to_fit();
+            objectprofile_map[objectprofile_list.back()] = profile_id = objectprofile_list.size() - 1;
+        }
+        else
+            profile_id = i->second;
     }
-    else
-      profile_id = i->second;
-  }
 
-  size_t path_id = 0;
-  {
-    auto i = objecturl_map.find(path);
-    if (i == objecturl_map.end())
+    size_t path_id = 0;
     {
-      objecturl_list.push_back(path);
-      objecturl_list.back().shrink_to_fit();
-      objecturl_map[objecturl_list.back()] = path_id = objecturl_list.size() - 1;
+        auto i = objecturl_map.find(path);
+        if (i == objecturl_map.end())
+        {
+            objecturl_list.push_back(path);
+            objecturl_list.back().shrink_to_fit();
+            objecturl_map[objecturl_list.back()] = path_id = objecturl_list.size() - 1;
+        }
+        else
+            path_id = i->second;
     }
-    else
-      path_id = i->second;
-  }
 
-  std::ostringstream str;
-  str << basedir << std::hex << std::setfill('0')
-      << std::setw(5) << path_id << '-'
-      << std::setw(2) << profile_id << '.' << suffix;
-  return str.str();
+    std::ostringstream str;
+    str << basedir << std::hex << std::setfill('0')
+        << std::setw(5) << path_id << '-'
+        << std::setw(2) << profile_id << '.' << suffix;
+    return str.str();
 }
 
 std::string content_directory::from_objectpath(const std::string &path, std::string &profile)
 {
-  const size_t ls = path.find_last_of('/');
-  if (ls != path.npos)
-  {
-    const size_t dash = path.find_first_of('-', ls);
-    const size_t dot = path.find_first_of('.', dash);
-    if ((dash != path.npos) && (dot != path.npos))
+    const size_t ls = path.find_last_of('/');
+    if (ls != path.npos)
     {
-      const std::string path_id_str = path.substr(ls + 1, dash - ls - 1);
-      const std::string profile_id_str = path.substr(dash + 1, dot - dash - 1);
-
-      try
-      {
-        const size_t path_id = std::stoull(path_id_str, nullptr, 16);
-        const size_t profile_id = std::stoull(profile_id_str, nullptr, 16);
-
-        if (profile_id < objectprofile_list.size())
+        const size_t dash = path.find_first_of('-', ls);
+        const size_t dot = path.find_first_of('.', dash);
+        if ((dash != path.npos) && (dot != path.npos))
         {
-          profile = objectprofile_list[profile_id];
-          if (path_id < objecturl_list.size())
-            return objecturl_list[path_id];
-        }
-      }
-      catch (const std::invalid_argument &) { }
-      catch (const std::out_of_range &) { }
-    }
-  }
+            const std::string path_id_str = path.substr(ls + 1, dash - ls - 1);
+            const std::string profile_id_str = path.substr(dash + 1, dot - dash - 1);
 
-  return std::string();
+            try
+            {
+                const size_t path_id = std::stoull(path_id_str, nullptr, 16);
+                const size_t profile_id = std::stoull(profile_id_str, nullptr, 16);
+
+                if (profile_id < objectprofile_list.size())
+                {
+                    profile = objectprofile_list[profile_id];
+                    if (path_id < objecturl_list.size())
+                        return objecturl_list[path_id];
+                }
+            }
+            catch (const std::invalid_argument &) { }
+            catch (const std::out_of_range &) { }
+        }
+    }
+
+    return std::string();
 }
 
 
 content_directory::item::item(void)
-  : is_dir(false), type(item_type::none), track(0), sample_rate(0), channels(0),
-    width(0), height(0), frame_rate(0.0f), duration(0), last_position(-1)
+    : is_dir(false), type(item_type::none), track(0), sample_rate(0), channels(0),
+      width(0), height(0), frame_rate(0.0f), chapter(0), last_position(0)
 {
 }
 
@@ -819,28 +831,28 @@ content_directory::item::~item()
 
 bool content_directory::item::is_audio(void) const
 {
-  return (type >= item_type::audio) && (type < item_type::video);
+    return (type >= item_type::audio) && (type < item_type::video);
 }
 
 bool content_directory::item::is_video(void) const
 {
-  return (type >= item_type::video) && (type < item_type::image);
+    return (type >= item_type::video) && (type < item_type::image);
 }
 
 bool content_directory::item::is_image(void) const
 {
-  return (type >= item_type::image) && (type <= item_type::photo);
+    return (type >= item_type::image) && (type <= item_type::photo);
 }
 
 bool content_directory::item::is_music(void) const
 {
-  return (type == item_type::music) || (type == item_type::music_video);
+    return (type == item_type::music) || (type == item_type::music_video);
 }
 
 
 content_directory::browse_item::browse_item()
-  : restricted(true),
-    duration(0)
+    : restricted(true),
+      duration(0)
 {
 }
 
@@ -850,8 +862,8 @@ content_directory::browse_item::~browse_item()
 
 
 content_directory::browse_container::browse_container()
-  : restricted(true),
-    child_count(size_t(-1))
+    : restricted(true),
+      child_count(size_t(-1))
 {
 }
 
@@ -862,55 +874,55 @@ content_directory::browse_container::~browse_container()
 
 std::vector<content_directory::item> content_directory::root_item_source::list_contentdir_items(const std::string &client, const std::string &path, size_t start, size_t &count)
 {
-  const bool return_all = count == 0;
-  std::vector<content_directory::item> result;
-  std::set<std::string> names;
+    const bool return_all = count == 0;
+    std::vector<content_directory::item> result;
+    std::set<std::string> names;
 
-  for (auto i = parent.item_sources.begin(); i != parent.item_sources.end(); i++)
-  if (starts_with(i->first, path))
-  {
-    auto item = get_contentdir_item(client, i->first);
-    if (!item.title.empty() && (names.find(item.title) == names.end()))
-    {
-      size_t total = 1;
-      if (!i->second->list_contentdir_items(client, i->first, 0, total).empty() && (total > 0))
-      {
-        names.insert(item.title);
-        if (return_all || (count > 0))
+    for (auto i = parent.item_sources.begin(); i != parent.item_sources.end(); i++)
+        if (starts_with(i->first, path))
         {
-          if (start == 0)
-          {
-            result.push_back(item);
-            if (count > 0)
-              count--;
-          }
-          else
-            start--;
+            auto item = get_contentdir_item(client, i->first);
+            if (!item.title.empty() && (names.find(item.title) == names.end()))
+            {
+                size_t total = 1;
+                if (!i->second->list_contentdir_items(client, i->first, 0, total).empty() && (total > 0))
+                {
+                    names.insert(item.title);
+                    if (return_all || (count > 0))
+                    {
+                        if (start == 0)
+                        {
+                            result.push_back(item);
+                            if (count > 0)
+                                count--;
+                        }
+                        else
+                            start--;
+                    }
+                }
+            }
         }
-      }
-    }
-  }
 
-  count = names.size();
-  return result;
+    count = names.size();
+    return result;
 }
 
 content_directory::item content_directory::root_item_source::get_contentdir_item(const std::string &, const std::string &path)
 {
-  struct item item;
-  item.is_dir = true;
-  item.path = path;
+    struct item item;
+    item.is_dir = true;
+    item.path = path;
 
-  const size_t lsl = std::max(path.find_last_of('/'), path.length() - 1);
-  const size_t psl = path.find_last_of('/', lsl - 1);
-  item.title = path.substr(psl + 1, lsl - psl - 1);
+    const size_t lsl = std::max(path.find_last_of('/'), path.length() - 1);
+    const size_t psl = path.find_last_of('/', lsl - 1);
+    item.title = path.substr(psl + 1, lsl - psl - 1);
 
-  return item;
+    return item;
 }
 
 int content_directory::root_item_source::play_item(const item &, const std::string &, std::string &, std::shared_ptr<std::istream> &)
 {
-  return upnp::http_not_found;
+    return upnp::http_not_found;
 }
 
 } // End of namespace
