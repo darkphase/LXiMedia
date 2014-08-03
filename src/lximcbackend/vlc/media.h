@@ -50,6 +50,7 @@ public:
 public:
     static media from_file(class instance &, const std::string &path) noexcept;
     static media from_mrl(class instance &, const std::string &mrl) noexcept;
+    static void flush_cache();
 
     media(const media &) noexcept;
     media(media &&) noexcept;

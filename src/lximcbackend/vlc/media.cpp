@@ -53,6 +53,13 @@ media media::from_mrl(class instance &instance, const std::string &mrl) noexcept
     return libvlc_media_new_location(instance, mrl.c_str());
 }
 
+void media::flush_cache()
+{
+    std::lock_guard<std::mutex> _(parsed_data::mutex);
+
+    parsed_data::cache.clear();
+}
+
 media::media(libvlc_media_t *libvlc_media) noexcept
   : libvlc_media(libvlc_media),
     parsed(false)
