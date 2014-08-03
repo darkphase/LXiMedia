@@ -26,7 +26,7 @@ backend::backend(class messageloop &messageloop)
     connection_manager(messageloop, rootdevice),
     content_directory(messageloop, upnp, rootdevice, connection_manager),
     mediareceiver_registrar(messageloop, rootdevice),
-    mediaplayer(messageloop, vlc_instance, connection_manager, content_directory, settings.encode_mode())
+    mediaplayer(messageloop, vlc_instance, connection_manager, content_directory, settings)
 {
   using namespace std::placeholders;
 

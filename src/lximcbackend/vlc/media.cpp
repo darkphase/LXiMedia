@@ -154,7 +154,7 @@ void media::parse() const
         {
           {
             std::unique_lock<std::mutex> l(t.mutex);
-            while (!t.playing) t.condition.wait(l);
+            while (!t.playing && !t.stopped) t.condition.wait(l);
           }
 
           for (libvlc_time_t start = libvlc_media_player_get_time(player), now = start;
