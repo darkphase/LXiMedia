@@ -58,15 +58,15 @@ void settings::save()
 {
     if (touched)
     {
-        std::ofstream file(filename() + ".test");
+        std::ofstream file(filename());
         for (auto &section : values)
         {
             file << '[' << section.first << ']' << std::endl;
             for (auto &value : section.second)
                 file << value.first << '=' << value.second << std::endl;
-        }
 
-        file << std::endl;
+            file << std::endl;
+        }
     }
 
     touched = false;
@@ -147,12 +147,17 @@ static encode_mode from_string(const std::string &e)
     return encode_mode::slow;
 }
 
-encode_mode settings::encode_mode() const
+enum encode_mode settings::encode_mode() const
 {
     const enum encode_mode default_encode_mode =
             (std::thread::hardware_concurrency() > 3) ? ::encode_mode::slow : ::encode_mode::fast;
 
     return from_string(read("DLNA", "EncodeMode", to_string(default_encode_mode)));
+}
+
+enum canvas_mode settings::canvas_mode() const
+{
+    return ::canvas_mode::letterbox;
 }
 
 std::vector<root_path> settings::root_paths() const

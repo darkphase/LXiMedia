@@ -25,6 +25,7 @@
 #include <map>
 
 enum class encode_mode { slow, fast };
+enum class canvas_mode { none, letterbox, crop };
 enum class path_type { auto_, music };
 struct root_path { path_type type; std::string path; };
 
@@ -39,6 +40,7 @@ public:
     uint16_t http_port() const;
 
     enum encode_mode encode_mode() const;
+    enum canvas_mode canvas_mode() const;
 
     std::vector<root_path> root_paths() const;
 
