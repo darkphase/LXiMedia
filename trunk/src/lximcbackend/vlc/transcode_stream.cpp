@@ -32,6 +32,10 @@
 #include <thread>
 #include <vector>
 
+static void pipe_create(int(&)[2]);
+static size_t pipe_read(int, void *, size_t);
+static void pipe_close(int &);
+
 namespace vlc {
 
 const size_t transcode_stream::block_size = 65536;
@@ -64,7 +68,7 @@ public:
     bool attach(class streambuf &);
     void detach(class streambuf &);
 
-    static size_t write(source *, const char *, size_t);
+    void consume();
     bool read(class streambuf &);
 
 private:
@@ -87,6 +91,8 @@ private:
     size_t buffer_offset;
     size_t buffer_used;
 
+    int pipe[2];
+    std::unique_ptr<std::thread> consume_thread;
     char *write_block;
     size_t write_block_pos;
 };
@@ -173,12 +179,12 @@ transcode_stream::source::source(
       write_block(nullptr),
       write_block_pos(0)
 {
+    pipe_create(pipe);
+
     std::ostringstream sout;
     sout
             << ":sout=" << transcode
-            << ":std{access=lximedia_memout{callback=" << intptr_t(&source::write)
-            << ",opaque=" << intptr_t(this)
-            << "},mux=" << mux << ",dst=dummy}";
+            << ":std{access=fd,mux=" << mux << ",dst=" << pipe[1] << "}";
 
     {
         std::unique_lock<std::mutex> l(mutex);
@@ -190,6 +196,8 @@ transcode_stream::source::source(
         {
             buffer.resize(block_size * block_count);
             write_block = &buffer[0];
+
+            consume_thread.reset(new std::thread(std::bind(&transcode_stream::source::consume, this)));
 
             event_manager = libvlc_media_player_event_manager(player);
             libvlc_event_attach(event_manager, libvlc_MediaPlayerEndReached, &source::callback, this);
@@ -227,7 +235,8 @@ transcode_stream::source::source(
 {
     if (player)
     {
-        libvlc_media_player_set_time(player, position.count());
+        if (position.count() > 0)
+            libvlc_media_player_set_time(player, position.count());
 
         std::clog << '[' << this << "] opened transcode_stream " << mrl << '@' << position.count() << std::endl;
     }
@@ -242,11 +251,20 @@ transcode_stream::source::~source()
         stream_end = true;
         buffer_condition.notify_all();
         l.unlock();
+
         libvlc_event_detach(event_manager, libvlc_MediaPlayerEncounteredError, &source::callback, this);
         libvlc_event_detach(event_manager, libvlc_MediaPlayerEndReached, &source::callback, this);
         libvlc_media_player_stop(player);
         libvlc_media_player_release(player);
+
         l.lock();
+        pipe_close(pipe[1]);
+        l.unlock();
+
+        consume_thread->join();
+
+        l.lock();
+        pipe_close(pipe[0]);
     }
 
     std::clog << '[' << this << "] destroyed transcode_stream " << media.mrl() << std::endl;
@@ -277,46 +295,57 @@ void transcode_stream::source::detach(class streambuf &streambuf)
     std::clog << '[' << this << "] detached transcode_stream " << media.mrl() << std::endl;
 }
 
-size_t transcode_stream::source::write(source *me, const char *block, size_t size)
+void transcode_stream::source::consume()
 {
-    size_t written = 0;
-    while (written < size)
+    for (;;)
     {
-        const size_t chunk = std::min(block_size - me->write_block_pos, size - written);
-        memcpy(&me->write_block[me->write_block_pos], block + written, chunk);
-        me->write_block_pos += chunk;
-        written += chunk;
-
-        if (me->write_block_pos >= block_size)
+        const size_t chunk = pipe_read(pipe[0], &write_block[write_block_pos], block_size - write_block_pos);
+        if ((chunk > 0) && (chunk != size_t(-1)))
         {
-            std::unique_lock<std::mutex> l(me->mutex);
-
-            if (!me->stream_end)
+            write_block_pos += chunk;
+            if (write_block_pos >= block_size)
             {
-                assert(me->write_block_pos == block_size);
-                me->buffer_used += block_size;
-                me->buffer_condition.notify_all();
+                std::unique_lock<std::mutex> l(mutex);
 
-                do
+                if (!stream_end)
                 {
-                    assert((me->buffer_used & (block_size - 1)) == 0);
-                    if ((me->buffer_used + block_size) <= me->buffer.size())
-                    {
-                        assert((me->buffer_offset & (block_size - 1)) == 0);
-                        me->write_block = &me->buffer[(me->buffer_offset + me->buffer_used) % me->buffer.size()];
-                        me->write_block_pos = 0;
-                    }
-                    else
-                        me->buffer_condition.wait(l);
-                } while (!me->stream_end && (me->write_block_pos > 0));
-            }
+                    assert(write_block_pos == block_size);
+                    buffer_used += block_size;
+                    buffer_condition.notify_all();
 
-            if (me->stream_end)
-                break;
+                    do
+                    {
+                        assert((buffer_used & (block_size - 1)) == 0);
+                        if ((buffer_used + block_size) <= buffer.size())
+                        {
+                            assert((buffer_offset & (block_size - 1)) == 0);
+                            write_block = &buffer[(buffer_offset + buffer_used) % buffer.size()];
+                            write_block_pos = 0;
+                        }
+                        else
+                            buffer_condition.wait(l);
+                    } while (!stream_end && (write_block_pos > 0));
+                }
+                else
+                    write_block_pos = 0;
+            }
         }
+        else
+            break;
     }
 
-    return written;
+    // Flush pipe to prevent deadlock while stopping player.
+    {
+        std::unique_lock<std::mutex> l(mutex);
+
+        char buffer[32];
+        while (pipe[1])
+        {
+            l.unlock();
+            pipe_read(pipe[0], buffer, sizeof(buffer));
+            l.lock();
+        }
+    }
 }
 
 bool transcode_stream::source::read(class streambuf &streambuf)
@@ -378,7 +407,7 @@ void transcode_stream::source::callback(const libvlc_event_t *e, void *opaque)
     source * const me = reinterpret_cast<source *>(opaque);
 
     if ((e->type == libvlc_MediaPlayerEndReached) ||
-            (e->type == libvlc_MediaPlayerEncounteredError))
+        (e->type == libvlc_MediaPlayerEncounteredError))
     {
         std::lock_guard<std::mutex> _(me->mutex);
 
@@ -406,3 +435,24 @@ int transcode_stream::streambuf::underflow()
 }
 
 } // End of namespace
+
+#if defined(__unix__)
+#include <unistd.h>
+
+static void pipe_create(int(& filedes)[2])
+{
+    if (pipe(filedes) != 0)
+        throw std::runtime_error("Creating pipe failed");
+}
+
+static size_t pipe_read(int filedes, void *buf, size_t nbyte)
+{
+    return read(filedes, buf, nbyte);
+}
+
+static void pipe_close(int &filedes)
+{
+    close(filedes);
+    filedes = 0;
+}
+#endif

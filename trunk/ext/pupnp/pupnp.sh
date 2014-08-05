@@ -5,7 +5,7 @@ PUPNP_VERSION=$3
 if [ ! -f $2/libupnp-$3/Makefile ]; then
     if [ -f $1/libupnp-$3.tar.bz2 ]; then
         # Extract
-        mkdir $2
+        mkdir -p $2
         cp $1/libupnp-$3.tar.bz2 $2
         cd $2
         tar -xjf libupnp-$3.tar.bz2
@@ -17,8 +17,8 @@ if [ ! -f $2/libupnp-$3/Makefile ]; then
         patch -p0 < $1/add-support-cachecontrol-nocache.patch
         patch -p0 < $1/add-support-multiple-interfaces.patch
 
-        patch -p0 < $1/fix-mingw47-build.patch
-        patch -p0 < $1/fix-windows-xp-compatibility.patch
+        #patch -p0 < $1/fix-mingw47-build.patch
+        #patch -p0 < $1/fix-windows-xp-compatibility.patch
 
         # Configure
         sh configure --enable-static --disable-shared --disable-samples --disable-dependency-tracking CFLAGS="-w -fPIC"

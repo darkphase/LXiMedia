@@ -138,7 +138,7 @@ static std::vector<std::string> playseek_items(const content_directory::item &it
     std::vector<std::string> result;
 
     if ((item.last_position.count() > 0) &&
-        (item.last_position <= (item.duration - (item.duration / 10))))
+            (item.last_position <= (item.duration - (item.duration / 10))))
     {
         result.push_back(
                     "p&position=" + std::to_string(item.last_position.count()) +
@@ -313,13 +313,13 @@ void content_directory::handle_action(const upnp::request &request, action_brows
                     case item_type::music_video:
                     case item_type::image:
                     case item_type::photo:
-                        add_file(action, request.url.host, item, item.path, item.title);
+                        add_file(action, request.url.host, *item_source->second, item, item.path, item.title);
                         break;
 
                     case item_type::audio_broadcast:
                     case item_type::video:
                     case item_type::video_broadcast:
-                        add_file(action, request.url.host, item, item.path, title);
+                        add_file(action, request.url.host, *item_source->second, item, item.path, title);
                         break;
 
                     case item_type::audio:
@@ -361,7 +361,7 @@ void content_directory::handle_action(const upnp::request &request, action_brows
             {
                 const auto props = split_item_props(path + "//" + items[i]);
                 if (props[1] == "p")
-                    add_file(action, request.url.host, make_play_item(item, props), path + "//" + items[i]);
+                    add_file(action, request.url.host, *item_source->second, make_play_item(item, props), path + "//" + items[i]);
                 else
                     add_container(action, item.type, path + "//" + items[i], props[3]);
             }
@@ -371,7 +371,7 @@ void content_directory::handle_action(const upnp::request &request, action_brows
 
         case action_browse::browse_flag::metadata:
             if (itemprops[1].empty() || (itemprops[1] == "p"))
-                add_file(action, request.url.host, make_play_item(item, itemprops), path);
+                add_file(action, request.url.host, *item_source->second, make_play_item(item, itemprops), path);
             else
                 add_container(action, item.type, path, itemprops[3]);
 
@@ -610,7 +610,7 @@ void content_directory::add_container(action_browse &action, item_type type, con
     action.add_container(container);
 }
 
-void content_directory::add_file(action_browse &action, const std::string &host, const item &item, const std::string &path, const std::string &title)
+void content_directory::add_file(action_browse &action, const std::string &host, struct item_source &item_source, const item &item, const std::string &path, const std::string &title)
 {
     const std::string parentpath = content_directory::parentpath(path);
 
@@ -659,8 +659,10 @@ void content_directory::add_file(action_browse &action, const std::string &host,
         if (item.is_audio())  protocols = connection_manager.get_protocols(item.channels);
         if (item.is_video())  protocols = connection_manager.get_protocols(item.channels, item.width, item.frame_rate);
 
-        for (auto &protocol : protocols)
+        for (auto protocol : protocols)
         {
+            item_source.correct_protocol(item, protocol);
+
             upnp::url url;
             url.host = host;
             url.path = to_objectpath(path, protocol.profile, protocol.suffix);
@@ -821,7 +823,8 @@ std::string content_directory::from_objectpath(const std::string &path, std::str
 
 content_directory::item::item(void)
     : is_dir(false), type(item_type::none), track(0), sample_rate(0), channels(0),
-      width(0), height(0), frame_rate(0.0f), chapter(0), last_position(0)
+      width(0), height(0), frame_rate(0.0f), chapter(0),
+      duration(0), position(0), last_position(0)
 {
 }
 
@@ -918,6 +921,10 @@ content_directory::item content_directory::root_item_source::get_contentdir_item
     item.title = path.substr(psl + 1, lsl - psl - 1);
 
     return item;
+}
+
+void content_directory::root_item_source::correct_protocol(const item &, connection_manager::protocol &)
+{
 }
 
 int content_directory::root_item_source::play_item(const item &, const std::string &, std::string &, std::shared_ptr<std::istream> &)

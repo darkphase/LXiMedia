@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 2.8)
 
 # Extract and configure PUPnP
 set(PUPNP_VERSION "1.6.19")
-execute_process(COMMAND sh ${CMAKE_SOURCE_DIR}/ext/pupnp/pupnp.sh ${CMAKE_SOURCE_DIR}/ext/pupnp/ ./pupnp/ ${PUPNP_VERSION})
+execute_process(COMMAND sh ${CMAKE_SOURCE_DIR}/ext/pupnp/pupnp.sh ${CMAKE_SOURCE_DIR}/ext/pupnp/ ./ext/pupnp/ ${PUPNP_VERSION})
 
 # VLC memout plugin.
 set(CMAKE_C_FLAGS "-std=gnu99 -pthread -D__PLUGIN__ -D_FILE_OFFSET_BITS=64 -D__USE_UNIX98 -D_REENTRANT -D_THREAD_SAFE")
@@ -19,12 +19,12 @@ target_link_libraries(stream_out_lximedia_transcode_plugin vlccore)
 # lximcbackend
 set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -pthread")
 include_directories(
-    ${CMAKE_BINARY_DIR}/pupnp/libupnp-${PUPNP_VERSION}/upnp/inc/
-    ${CMAKE_BINARY_DIR}/pupnp/libupnp-${PUPNP_VERSION}/ixml/inc)
+    ${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION}/upnp/inc/
+    ${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION}/ixml/inc)
 
-get_filename_component(UPNP_LIBS ${CMAKE_BINARY_DIR}/pupnp/libupnp-${PUPNP_VERSION}/upnp/.libs ABSOLUTE)
-get_filename_component(IXML_LIBS ${CMAKE_BINARY_DIR}/pupnp/libupnp-${PUPNP_VERSION}/ixml/.libs ABSOLUTE)
-get_filename_component(THREADUTIL_LIBS ${CMAKE_BINARY_DIR}/pupnp/libupnp-${PUPNP_VERSION}/threadutil/.libs ABSOLUTE)
+get_filename_component(UPNP_LIBS ${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION}/upnp/.libs ABSOLUTE)
+get_filename_component(IXML_LIBS ${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION}/ixml/.libs ABSOLUTE)
+get_filename_component(THREADUTIL_LIBS ${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION}/threadutil/.libs ABSOLUTE)
 link_directories(${UPNP_LIBS} ${IXML_LIBS} ${THREADUTIL_LIBS})
 
 aux_source_directory(src/lximcbackend/ LXIMCBACKEND_SRC_LIST)

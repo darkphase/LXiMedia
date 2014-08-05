@@ -66,13 +66,12 @@ mediaplayer::mediaplayer(
         class vlc::instance &vlc_instance,
         pupnp::connection_manager &connection_manager,
         pupnp::content_directory &content_directory,
-        class settings &settings)
+        const class settings &settings)
     :   messageloop(messageloop),
       vlc_instance(vlc_instance),
       connection_manager(connection_manager),
       content_directory(content_directory),
-      encode_mode(settings.encode_mode()),
-      root_paths(settings.root_paths()),
+      settings(settings),
       basedir('/' + tr("Media Player") + '/')
 {
     content_directory.item_source_register(basedir, *this);
@@ -94,7 +93,7 @@ std::vector<pupnp::content_directory::item> mediaplayer::list_contentdir_items(
     std::vector<std::string> files;
     if (path == basedir)
     {
-        for (auto &i : root_paths)
+        for (auto &i : settings.root_paths())
         {
             const size_t lsl = std::max(i.path.find_last_of('/'), i.path.length() - 1);
             const size_t psl = i.path.find_last_of('/', lsl - 1);
@@ -135,17 +134,48 @@ pupnp::content_directory::item mediaplayer::get_contentdir_item(const std::strin
     return make_item(client, path);
 }
 
+void mediaplayer::correct_protocol(const pupnp::content_directory::item &item, pupnp::connection_manager::protocol &protocol)
+{
+    unsigned block;
+    if (protocol.vcodec.find("mp1v") != protocol.vcodec.npos)
+        block = 16;
+    else if (protocol.vcodec.find("mp2v") != protocol.vcodec.npos)
+        block = 8;
+    else
+        block = 64;
+
+    switch (settings.canvas_mode())
+    {
+    case canvas_mode::none:
+        if ((item.width > 0) && (item.height > 0))
+        {
+            const double f = std::min(
+                        double(protocol.width) / double(item.width),
+                        double(protocol.height) / double(item.height));
+
+            protocol.width = (unsigned(item.width * f) + (block / 2) - 1) & ~(block - 1);
+            protocol.height = (unsigned(item.height * f) + (block / 2) - 1) & ~(block - 1);
+        }
+        break;
+
+    case canvas_mode::letterbox:
+    case canvas_mode::crop:
+        break;
+    }
+}
+
 int mediaplayer::play_item(
         const pupnp::content_directory::item &item,
         const std::string &profile,
         std::string &content_type,
         std::shared_ptr<std::istream> &response)
 {
-    const auto protocol = connection_manager.get_protocol(profile, item.channels, item.width, item.frame_rate);
+    auto protocol = connection_manager.get_protocol(profile, item.channels, item.width, item.frame_rate);
     if (!protocol.profile.empty())
     {
-        std::ostringstream transcode;
+        correct_protocol(item, protocol);
 
+        std::ostringstream transcode;
         if (!protocol.acodec.empty() || !protocol.vcodec.empty())
         {
             // See: http://www.videolan.org/doc/streaming-howto/en/ch03.html
@@ -156,17 +186,42 @@ int mediaplayer::play_item(
 
             if (!protocol.vcodec.empty())
             {
-                transcode << protocol.vcodec;
+                transcode
+                        << protocol.vcodec
+                        << ",width=" << protocol.width
+                        << ",height=" << protocol.height
+                        << ",fps=" << protocol.frame_rate;
 
-                if ((item.width * 9) != (item.height * 16))
+                switch (settings.canvas_mode())
                 {
+                case canvas_mode::none:
+                    break;
+
+                case canvas_mode::letterbox:
                     transcode
                             << ",vfilter=canvas{width=" << protocol.width
                             << ",height=" << protocol.height
-                            << ",aspect=16:9}";
+                            << ",aspect=16:9,padd=true}";
+                    break;
+
+                case canvas_mode::crop:
+                    if ((item.width > 0) && (item.height > 0))
+                    {
+                        const double f = std::max(
+                                    double(protocol.width) / double(item.width),
+                                    double(protocol.height) / double(item.height));
+
+                        transcode
+                                << ",width=" << unsigned((item.width * f) + 0.5)
+                                << ",height=" << unsigned((item.height * f) + 0.5)
+                                << ",vfilter=canvas{width=" << protocol.width
+                                << ",height=" << protocol.height
+                                << ",aspect=16:9,padd=false}";
+                    }
+                    break;
                 }
 
-                switch (encode_mode)
+                switch (settings.encode_mode())
                 {
                 case ::encode_mode::fast:
                     if (!protocol.fast_encode_options.empty())
@@ -180,11 +235,6 @@ int mediaplayer::play_item(
 
                     break;
                 }
-
-                transcode
-                        << ",width=" << protocol.width
-                        << ",height=" << protocol.height
-                        << ",fps=" << protocol.frame_rate;
 
                 transcode << ",soverlay";
             }
@@ -319,7 +369,7 @@ root_path mediaplayer::to_system_path(const std::string &virtual_path) const
     {
         const std::string path = virtual_path.substr(basedir.length());
         const std::string root = path.substr(0, path.find_first_of('/'));
-        for (auto &i : root_paths)
+        for (auto &i : settings.root_paths())
         {
             const size_t lsl = std::max(i.path.find_last_of('/'), i.path.length() - 1);
             const size_t psl = i.path.find_last_of('/', lsl - 1);
@@ -334,7 +384,7 @@ root_path mediaplayer::to_system_path(const std::string &virtual_path) const
 
 std::string mediaplayer::to_virtual_path(const std::string &system_path) const
 {
-    for (auto &i : root_paths)
+    for (auto &i : settings.root_paths())
         if (starts_with(system_path, i.path))
         {
             const size_t lsl = std::max(i.path.find_last_of('/'), i.path.length() - 1);

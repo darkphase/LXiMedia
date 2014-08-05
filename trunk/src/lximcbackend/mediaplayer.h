@@ -36,13 +36,14 @@ public:
           class vlc::instance &,
           pupnp::connection_manager &,
           pupnp::content_directory &,
-          class settings &);
+          const class settings &);
 
   virtual ~mediaplayer();
 
 private: // From content_directory::item_source
   std::vector<pupnp::content_directory::item> list_contentdir_items(const std::string &client, const std::string &path, size_t start, size_t &count) override;
   pupnp::content_directory::item get_contentdir_item(const std::string &client, const std::string &path) override;
+  void correct_protocol(const pupnp::content_directory::item &, pupnp::connection_manager::protocol &) override;
   int play_item(const pupnp::content_directory::item &, const std::string &, std::string &, std::shared_ptr<std::istream> &) override;
 
 private:
@@ -55,8 +56,7 @@ private:
   class vlc::instance &vlc_instance;
   class pupnp::connection_manager &connection_manager;
   class pupnp::content_directory &content_directory;
-  const enum encode_mode encode_mode;
-  const std::vector<root_path> root_paths;
+  const class settings &settings;
   const std::string basedir;
 
   struct transcode_stream;
