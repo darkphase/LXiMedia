@@ -25,7 +25,7 @@
 #include <map>
 
 enum class encode_mode { slow, fast };
-enum class canvas_mode { none, letterbox, crop };
+enum class canvas_mode { none, pad, crop };
 enum class path_type { auto_, music };
 struct root_path { path_type type; std::string path; };
 

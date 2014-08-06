@@ -134,31 +134,60 @@ pupnp::content_directory::item mediaplayer::get_contentdir_item(const std::strin
     return make_item(client, path);
 }
 
+static unsigned codec_block(const std::string &codec)
+{
+    if      (codec.find("mp1v") != codec.npos) return 16;
+    else if (codec.find("mp2v") != codec.npos) return 8;
+    else                                       return 16;
+}
+
+static void min_scale(const std::string &codec, unsigned srcw, unsigned srch, unsigned dstw, unsigned dsth, unsigned &w, unsigned &h)
+{
+    const unsigned block = codec_block(codec);
+    if ((srcw > 0) && (srch > 0))
+    {
+        const unsigned f = std::min((dstw * 65536) / srcw, (dsth * 65536) / srch);
+
+        w = ((srcw * f / 65536) + (block / 2) - 1) & ~(block - 1);
+        h = ((srch * f / 65536) + (block / 2) - 1) & ~(block - 1);
+    }
+    else
+    {
+        w = (dstw + (block / 2) - 1) & ~(block - 1);
+        h = (dsth + (block / 2) - 1) & ~(block - 1);
+    }
+}
+
+static void max_scale(const std::string &codec, unsigned srcw, unsigned srch, unsigned dstw, unsigned dsth, unsigned &w, unsigned &h)
+{
+    const unsigned block = codec_block(codec);
+    if ((srcw > 0) && (srch > 0))
+    {
+        const unsigned f = std::max((dstw * 65536) / srcw, (dsth * 65536) / srch);
+
+        w = ((srcw * f / 65536) + (block / 2) - 1) & ~(block - 1);
+        h = ((srch * f / 65536) + (block / 2) - 1) & ~(block - 1);
+    }
+    else
+    {
+        w = (dstw + (block / 2) - 1) & ~(block - 1);
+        h = (dsth + (block / 2) - 1) & ~(block - 1);
+    }
+}
+
 void mediaplayer::correct_protocol(const pupnp::content_directory::item &item, pupnp::connection_manager::protocol &protocol)
 {
-    unsigned block;
-    if (protocol.vcodec.find("mp1v") != protocol.vcodec.npos)
-        block = 16;
-    else if (protocol.vcodec.find("mp2v") != protocol.vcodec.npos)
-        block = 8;
-    else
-        block = 64;
-
     switch (settings.canvas_mode())
     {
     case canvas_mode::none:
-        if ((item.width > 0) && (item.height > 0))
-        {
-            const double f = std::min(
-                        double(protocol.width) / double(item.width),
-                        double(protocol.height) / double(item.height));
-
-            protocol.width = (unsigned(item.width * f) + (block / 2) - 1) & ~(block - 1);
-            protocol.height = (unsigned(item.height * f) + (block / 2) - 1) & ~(block - 1);
-        }
+        min_scale(
+                    protocol.vcodec,
+                    item.width, item.height,
+                    protocol.width, protocol.height,
+                    protocol.width, protocol.height);
         break;
 
-    case canvas_mode::letterbox:
+    case canvas_mode::pad:
     case canvas_mode::crop:
         break;
     }
@@ -180,45 +209,59 @@ int mediaplayer::play_item(
         {
             // See: http://www.videolan.org/doc/streaming-howto/en/ch03.html
 
-            //transcode << "#transcode{";
+            transcode << "#transcode{";
             // Fixes: https://forum.videolan.org/viewtopic.php?f=13&t=115390
-            transcode << "#lximedia_transcode{";
+            //transcode << "#lximedia_transcode{";
 
             if (!protocol.vcodec.empty())
             {
-                transcode
-                        << protocol.vcodec
-                        << ",width=" << protocol.width
-                        << ",height=" << protocol.height
-                        << ",fps=" << protocol.frame_rate;
+                transcode << protocol.vcodec << ",fps=" << protocol.frame_rate;
 
+                unsigned width = 0, height = 0;
                 switch (settings.canvas_mode())
                 {
                 case canvas_mode::none:
+                    width = protocol.width;
+                    height = protocol.height;
                     break;
 
-                case canvas_mode::letterbox:
-                    transcode
-                            << ",vfilter=canvas{width=" << protocol.width
-                            << ",height=" << protocol.height
-                            << ",aspect=16:9,padd=true}";
+                case canvas_mode::pad:
+                    min_scale(
+                                protocol.vcodec,
+                                item.width, item.height,
+                                protocol.width, protocol.height,
+                                width, height);
                     break;
 
                 case canvas_mode::crop:
-                    if ((item.width > 0) && (item.height > 0))
-                    {
-                        const double f = std::max(
-                                    double(protocol.width) / double(item.width),
-                                    double(protocol.height) / double(item.height));
-
-                        transcode
-                                << ",width=" << unsigned((item.width * f) + 0.5)
-                                << ",height=" << unsigned((item.height * f) + 0.5)
-                                << ",vfilter=canvas{width=" << protocol.width
-                                << ",height=" << protocol.height
-                                << ",aspect=16:9,padd=false}";
-                    }
+                    max_scale(
+                                protocol.vcodec,
+                                item.width, item.height,
+                                protocol.width, protocol.height,
+                                width, height);
                     break;
+                }
+
+                transcode << ",width=" << width << ",height=" << height;
+                if (width < protocol.width)
+                {
+                    const unsigned pad = ((protocol.width - width) / 2);
+                    transcode << ",vfilter=croppadd{paddleft=" << pad << ",paddright=" << pad << '}';
+                }
+                else if (width > protocol.width)
+                {
+                    const unsigned crop = ((width - protocol.width) / 2);
+                    transcode << ",vfilter=croppadd{cropleft=" << crop << ",cropright=" << crop << '}';
+                }
+                else if (height < protocol.height)
+                {
+                    const unsigned pad = ((protocol.height - height) / 2);
+                    transcode << ",vfilter=croppadd{paddtop=" << pad << ",paddbottom=" << pad << '}';
+                }
+                else if (height > protocol.height)
+                {
+                    const unsigned crop = ((height - protocol.height) / 2);
+                    transcode << ",vfilter=croppadd{croptop=" << crop << ",cropbottom=" << crop << '}';
                 }
 
                 switch (settings.encode_mode())

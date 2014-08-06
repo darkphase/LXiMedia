@@ -17,6 +17,7 @@
 
 #include "settings.h"
 #include "string.h"
+#include "vlc/instance.h"
 #include <cassert>
 #include <fstream>
 #include <thread>
@@ -157,7 +158,11 @@ enum encode_mode settings::encode_mode() const
 
 enum canvas_mode settings::canvas_mode() const
 {
-    return ::canvas_mode::letterbox;
+    // Workaround for ticket https://trac.videolan.org/vlc/ticket/10148
+    if (vlc::instance::compare_version(2, 1) == 0)
+        return ::canvas_mode::none;
+
+    return ::canvas_mode::pad;
 }
 
 std::vector<root_path> settings::root_paths() const
