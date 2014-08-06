@@ -186,26 +186,23 @@ transcode_stream::source::source(
             << ":sout=" << transcode
             << ":std{access=fd,mux=" << mux << ",dst=" << pipe[1] << "}";
 
+    std::lock_guard<std::mutex> _(mutex);
+
+    libvlc_media_add_option(media, sout.str().c_str());
+    player = libvlc_media_player_new_from_media(media);
+    if (player)
     {
-        std::unique_lock<std::mutex> l(mutex);
+        buffer.resize(block_size * block_count);
+        write_block = &buffer[0];
 
-        libvlc_media_add_option(media, "file-caching=300");
-        libvlc_media_add_option(media, sout.str().c_str());
-        player = libvlc_media_player_new_from_media(media);
-        if (player)
-        {
-            buffer.resize(block_size * block_count);
-            write_block = &buffer[0];
+        consume_thread.reset(new std::thread(std::bind(&transcode_stream::source::consume, this)));
 
-            consume_thread.reset(new std::thread(std::bind(&transcode_stream::source::consume, this)));
+        event_manager = libvlc_media_player_event_manager(player);
+        libvlc_event_attach(event_manager, libvlc_MediaPlayerEndReached, &source::callback, this);
+        libvlc_event_attach(event_manager, libvlc_MediaPlayerEncounteredError, &source::callback, this);
+        libvlc_media_player_play(player);
 
-            event_manager = libvlc_media_player_event_manager(player);
-            libvlc_event_attach(event_manager, libvlc_MediaPlayerEndReached, &source::callback, this);
-            libvlc_event_attach(event_manager, libvlc_MediaPlayerEncounteredError, &source::callback, this);
-            libvlc_media_player_play(player);
-
-            std::clog << '[' << this << "] " << sout << std::endl;
-        }
+        std::clog << '[' << this << "] " << sout << std::endl;
     }
 }
 

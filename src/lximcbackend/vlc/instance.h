@@ -27,16 +27,18 @@ namespace vlc {
 class instance
 {
 public:
-  instance() noexcept;
-  ~instance() noexcept;
+    static int compare_version(int major, int minor = -1, int patch = -1);
 
-  instance(const instance &) = delete;
-  instance & operator=(const instance &) = delete;
+    instance() noexcept;
+    ~instance() noexcept;
 
-  inline operator libvlc_instance_t *() noexcept { return libvlc_instance; }
+    instance(const instance &) = delete;
+    instance & operator=(const instance &) = delete;
+
+    inline operator libvlc_instance_t *() noexcept { return libvlc_instance; }
 
 private:
-  libvlc_instance_t * const libvlc_instance;
+    libvlc_instance_t * const libvlc_instance;
 };
 
 } // End of namespace
