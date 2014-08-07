@@ -20,6 +20,7 @@
 #include "translator.h"
 #include "vlc/media.h"
 #include "vlc/transcode_stream.h"
+#include <cmath>
 #include <future>
 #include <iomanip>
 #include <iostream>
@@ -209,13 +210,16 @@ int mediaplayer::play_item(
         {
             // See: http://www.videolan.org/doc/streaming-howto/en/ch03.html
 
-            transcode << "#transcode{";
+            //transcode << "#transcode{";
             // Fixes: https://forum.videolan.org/viewtopic.php?f=13&t=115390
-            //transcode << "#lximedia_transcode{";
+            transcode << "#lximedia_transcode{";
 
             if (!protocol.vcodec.empty())
             {
-                transcode << protocol.vcodec << ",fps=" << protocol.frame_rate;
+                transcode << protocol.vcodec;
+
+                if (std::abs(protocol.frame_rate - item.frame_rate) > 0.5f)
+                    transcode << ",fps=" << protocol.frame_rate;
 
                 unsigned width = 0, height = 0;
                 switch (settings.canvas_mode())
@@ -297,8 +301,8 @@ int mediaplayer::play_item(
 
         std::ostringstream stream_id;
         stream_id << '[' << item.mrl;
-        if (item.chapter > 0)   stream_id << "][C" << item.chapter;
-        else                    stream_id << "][" << item.position.count();
+        if (item.chapter > 0)               stream_id << "][C" << item.chapter;
+        else if (item.position.count() > 0) stream_id << "][" << item.position.count();
         stream_id << "][" << transcode.str() << "][" << protocol.mux << ']';
 
         // First try to attach to an already running stream.
