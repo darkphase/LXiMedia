@@ -5,13 +5,6 @@ cmake_minimum_required(VERSION 2.8)
 set(PUPNP_VERSION "1.6.19")
 execute_process(COMMAND sh ${CMAKE_SOURCE_DIR}/ext/pupnp/pupnp.sh ${CMAKE_SOURCE_DIR}/ext/pupnp/ ./ext/pupnp/ ${PUPNP_VERSION})
 
-# VLC transcode plugin; fixes https://forum.videolan.org/viewtopic.php?f=13&t=115390
-set(CMAKE_C_FLAGS "-std=gnu99 -pthread -D__PLUGIN__ -D_FILE_OFFSET_BITS=64 -D__USE_UNIX98 -D_REENTRANT -D_THREAD_SAFE")
-include_directories(/usr/include/vlc/plugins)
-aux_source_directory(src/lximcbackend/vlc/modules/lximedia_transcode VLC_TRANSCODE_SRC_LIST)
-add_library(stream_out_lximedia_transcode_plugin MODULE ${VLC_TRANSCODE_SRC_LIST})
-target_link_libraries(stream_out_lximedia_transcode_plugin vlccore)
-
 # lximcbackend
 set(CMAKE_CXX_FLAGS "-std=c++11 -Wall -pthread")
 include_directories(
