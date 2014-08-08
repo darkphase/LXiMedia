@@ -209,10 +209,7 @@ int mediaplayer::play_item(
         if (!protocol.acodec.empty() || !protocol.vcodec.empty())
         {
             // See: http://www.videolan.org/doc/streaming-howto/en/ch03.html
-
-            //transcode << "#transcode{";
-            // Fixes: https://forum.videolan.org/viewtopic.php?f=13&t=115390
-            transcode << "#lximedia_transcode{";
+            transcode << "#transcode{";
 
             if (!protocol.vcodec.empty())
             {
@@ -246,7 +243,7 @@ int mediaplayer::play_item(
                     break;
                 }
 
-                transcode << ",width=" << width << ",height=" << height;
+                transcode << ",width=" << protocol.width << ",height=" << protocol.height;
                 if (width < protocol.width)
                 {
                     const unsigned pad = ((protocol.width - width) / 2);
