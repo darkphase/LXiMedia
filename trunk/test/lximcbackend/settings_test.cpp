@@ -1,8 +1,7 @@
 #include "test.h"
-#include "../../src/lximcbackend/settings.cpp"
-#include "../../src/lximcbackend/messageloop.cpp" // TODO: move to own test
-#include "../../src/lximcbackend/vlc/instance.cpp" // TODO: move to own test
-#include "../../src/lximcbackend/vlc/media.cpp" // TODO: move to own test
+#include "lximcbackend/settings.cpp"
+#include "lximcbackend/vlc/instance.cpp" // TODO: move to own test
+#include "lximcbackend/vlc/media.cpp" // TODO: move to own test
 #include <cstdio>
 
 static const struct settings_test

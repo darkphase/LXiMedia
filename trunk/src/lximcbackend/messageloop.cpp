@@ -102,8 +102,9 @@ void messageloop::stop(int exitcode)
 {
   std::lock_guard<std::mutex> _(mutex);
 
-  exitcode = exitcode;
+  this->exitcode = exitcode;
   running = false;
+  message_added.notify_one();
 }
 
 void messageloop::post(const std::function<void()> &message)
