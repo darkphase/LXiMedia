@@ -1,5 +1,6 @@
 #include "test.h"
 #include <iostream>
+#include <stdexcept>
 #include <vector>
 
 #if defined(__unix__)
@@ -7,6 +8,11 @@
 #endif
 
 struct test * test::current = nullptr;
+
+void test::assert_fail(const char *condition, const char *file, unsigned int line, const char *)
+{
+    throw std::runtime_error(std::string(file) + ':' + std::to_string(line) + ": " + condition);
+}
 
 int main(int /*argc*/, const char */*argv*/[])
 {
@@ -30,10 +36,8 @@ int main(int /*argc*/, const char */*argv*/[])
       }
       catch(const std::exception &e)
       {
-          std::cout
-                  << "error " << e.what() << std::endl
-                  << "fail  " << (*i)->name << std::endl;
-
+          std::cerr << e.what() << std::endl;
+          std::cout << "fail  " << (*i)->name << std::endl;
           result++;
           continue;
       }
