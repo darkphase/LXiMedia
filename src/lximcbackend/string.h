@@ -27,6 +27,6 @@ std::string to_upper(const std::string &);
 std::string to_lower(const std::string &);
 
 std::string from_base64(const std::string &);
-std::string to_base64(const std::string &);
+std::string to_base64(const std::string &, bool pad = false);
 
 #endif
