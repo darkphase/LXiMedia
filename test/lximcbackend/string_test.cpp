@@ -1,5 +1,5 @@
 #include "test.h"
-#include "../../src/lximcbackend/string.cpp"
+#include "lximcbackend/string.cpp"
 
 static const char base64_src[] =
         "Man is distinguished, not only by his reason, but by this singular passion from "
