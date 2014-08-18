@@ -21,3 +21,7 @@ aux_source_directory(src/lximcbackend/pupnp/ LXIMCBACKEND_PUPNP_SRC_LIST)
 aux_source_directory(src/lximcbackend/vlc/ LXIMCBACKEND_VLC_SRC_LIST)
 add_executable(lximcbackend ${LXIMCBACKEND_SRC_LIST} ${LXIMCBACKEND_PUPNP_SRC_LIST} ${LXIMCBACKEND_VLC_SRC_LIST})
 target_link_libraries(lximcbackend uuid vlc upnp ixml threadutil)
+
+aux_source_directory(test/lximcbackend/ LXIMCBACKEND_TEST_SRC_LIST)
+add_executable(lximcbackend_test ${LXIMCBACKEND_TEST_SRC_LIST})
+target_link_libraries(lximcbackend_test uuid vlc upnp ixml threadutil)

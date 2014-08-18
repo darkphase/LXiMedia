@@ -208,6 +208,8 @@ std::vector<root_path> settings::root_paths() const
 }
 
 #if defined(__unix__)
+
+#ifndef TEST_H
 #include <unistd.h>
 #include <sys/types.h>
 #include <pwd.h>
@@ -226,6 +228,7 @@ static std::string filename()
 
     return std::string();
 }
+#endif // TEST_H
 
 #include <cstring>
 #include <uuid/uuid.h>
