@@ -1,8 +1,6 @@
 #ifndef TEST_H
 #define TEST_H
 
-#include <stdexcept>
-
 struct test
 {
     test(const char *name, void(* func)())
@@ -11,10 +9,7 @@ struct test
         current = this;
     }
 
-    static void assert_fail(const char *condition, const char *file, int line)
-    {
-        throw std::runtime_error(std::string(file) + ':' + std::to_string(line) + ' ' + condition);
-    }
+    static void assert_fail(const char *, const char *, unsigned int, const char *);
 
     const char * const name;
     void(* func)();
@@ -22,6 +17,6 @@ struct test
     static struct test *current;
 };
 
-#define test_assert(expr) ((expr) ? (void)0 : test::assert_fail(#expr, __FILE__, __LINE__))
+#define test_assert(expr) ((expr) ? (void)0 : test::assert_fail(#expr, __FILE__, __LINE__, nullptr))
 
 #endif
