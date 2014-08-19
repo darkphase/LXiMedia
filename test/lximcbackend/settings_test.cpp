@@ -1,7 +1,5 @@
 #include "test.h"
 #include "lximcbackend/settings.cpp"
-#include "lximcbackend/vlc/instance.cpp" // TODO: move to own test
-#include "lximcbackend/vlc/media.cpp" // TODO: move to own test
 #include <cstdio>
 
 static const struct settings_test

@@ -22,9 +22,10 @@ aux_source_directory(src/lximcbackend/vlc/ LXIMCBACKEND_VLC_SRC_LIST)
 add_executable(lximcbackend ${LXIMCBACKEND_SRC_LIST} ${LXIMCBACKEND_PUPNP_SRC_LIST} ${LXIMCBACKEND_VLC_SRC_LIST})
 target_link_libraries(lximcbackend uuid vlc upnp ixml threadutil)
 
-include_directories(src/)
+include_directories(src/ test/lximcbackend/)
 aux_source_directory(test/lximcbackend/ LXIMCBACKEND_TEST_SRC_LIST)
-add_executable(lximcbackend_test ${LXIMCBACKEND_TEST_SRC_LIST})
+aux_source_directory(test/lximcbackend/vlc/ LXIMCBACKEND_VLC_TEST_SRC_LIST)
+add_executable(lximcbackend_test ${LXIMCBACKEND_TEST_SRC_LIST} ${LXIMCBACKEND_VLC_TEST_SRC_LIST})
 target_link_libraries(lximcbackend_test uuid vlc upnp ixml threadutil)
 
 add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/testreport.txt COMMAND lximcbackend_test > testreport.txt DEPENDS lximcbackend_test VERBATIM)
