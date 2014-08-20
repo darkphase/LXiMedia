@@ -44,8 +44,10 @@ static const struct settings_test
 } settings_test;
 
 #if defined(__unix__)
+#include <unistd.h>
+
 static std::string filename()
 {
-    return "/tmp/settings_test.ini";
+    return "/tmp/" + std::to_string(getpid()) + ".settings_test.ini";
 }
 #endif
