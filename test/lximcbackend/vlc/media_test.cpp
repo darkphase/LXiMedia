@@ -6,6 +6,8 @@
 extern const uint8_t pm5544_png[15118];
 extern const uint8_t pm5544_mp4[191961];
 extern const uint8_t pm5544_srt[88];
+
+static std::string filename(const char *);
 static std::string write_file(const char *, const uint8_t *, size_t);
 
 namespace vlc {
@@ -18,10 +20,18 @@ static const struct media_test
     {
     }
 
+    ~media_test()
+    {
+        ::remove(filename("pm5544.png").c_str());
+        ::remove(filename("pm5544.mp4").c_str());
+        ::remove(filename("pm5544.srt").c_str());
+    }
+
     struct test png_test;
     static void png()
     {
         const std::string file = write_file("pm5544.png", pm5544_png, sizeof(pm5544_png));
+        ::remove(filename("pm5544.srt").c_str());
 
         class instance instance;
         auto media = media::from_file(instance, file);
@@ -46,15 +56,13 @@ static const struct media_test
                 break;
             }
         }
-
-        ::remove(file.c_str());
     }
 
     struct test mp4_test;
     static void mp4()
     {
         const std::string file = write_file("pm5544.mp4", pm5544_mp4, sizeof(pm5544_mp4));
-        const std::string sub_file = write_file("pm5544.srt", pm5544_srt, sizeof(pm5544_srt));
+        write_file("pm5544.srt", pm5544_srt, sizeof(pm5544_srt));
 
         class instance instance;
         auto media = media::from_file(instance, file);
@@ -88,9 +96,6 @@ static const struct media_test
 
         test_assert(std::abs(media.duration().count() - 10000) < 100);
         test_assert(media.chapter_count() == 0);
-
-        ::remove(sub_file.c_str());
-        ::remove(file.c_str());
     }
 } media_test;
 
@@ -99,11 +104,17 @@ static const struct media_test
 #if defined(__unix__)
 #include <unistd.h>
 
+static std::string filename(const char *file)
+{
+    return std::string("/tmp/") + std::to_string(getpid()) + '.' + file;
+}
+
 static std::string write_file(const char *file, const uint8_t *data, size_t size)
 {
-    const std::string filename = std::string("/tmp/") + std::to_string(getpid()) + '.' + file;
+    const std::string filename = ::filename(file);
 
-    std::ofstream str(filename);
+    std::ofstream str(filename, std::ios::binary);
+    test_assert(str.is_open());
     str.write(reinterpret_cast<const char *>(data), size);
 
     return filename;
