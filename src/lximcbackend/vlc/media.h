@@ -36,6 +36,7 @@ public:
 
     struct track
     {
+        int id;
         std::string language;
         std::string description;
 

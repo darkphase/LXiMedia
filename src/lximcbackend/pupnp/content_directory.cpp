@@ -209,18 +209,18 @@ static std::vector<std::string> split_item_props(const std::string &text)
     std::vector<std::string> item_props;
     item_props.resize(4);
 
-    size_t sep = text.find("//");
+    size_t sep = text.find("///");
     while ((sep != text.npos) && (sep > 0) && (text[sep - 1] == ':'))
-        sep = text.find("//", sep + 2);
+        sep = text.find("///", sep + 3);
 
     if (sep == text.npos)
         item_props[0] = text;
     else if (sep > 0)
         item_props[0] = text.substr(0, sep);
 
-    for (; sep != text.npos; sep = text.find("//", sep + 2))
+    for (; sep != text.npos; sep = text.find("///", sep + 3))
     {
-        const std::string section = text.substr(sep + 2);
+        const std::string section = text.substr(sep + 3);
         const size_t hash = section.find_first_of('#');
         if (hash != section.npos)
         {
@@ -359,11 +359,11 @@ void content_directory::handle_action(const upnp::request &request, action_brows
             // Only select the items that were requested.
             for (size_t i=start, n=0; (i<items.size()) && ((count == 0) || (n < count)); i++, n++)
             {
-                const auto props = split_item_props(path + "//" + items[i]);
+                const auto props = split_item_props(path + "///" + items[i]);
                 if (props[1] == "p")
-                    add_file(action, request.url.host, *item_source->second, make_play_item(item, props), path + "//" + items[i]);
+                    add_file(action, request.url.host, *item_source->second, make_play_item(item, props), path + "///" + items[i]);
                 else
-                    add_container(action, item.type, path + "//" + items[i], props[3]);
+                    add_container(action, item.type, path + "///" + items[i], props[3]);
             }
 
             totalmatches = items.size();
@@ -822,9 +822,10 @@ std::string content_directory::from_objectpath(const std::string &path, std::str
 
 
 content_directory::item::item(void)
-    : is_dir(false), type(item_type::none), track(0), sample_rate(0), channels(0),
-      width(0), height(0), frame_rate(0.0f), chapter(0),
-      duration(0), position(0), last_position(0)
+    : is_dir(false), type(item_type::none), track(0),
+      sample_rate(0), channels(0),
+      width(0), height(0), frame_rate(0.0f),
+      chapter(0), duration(0), position(0), last_position(0)
 {
 }
 

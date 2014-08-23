@@ -238,6 +238,7 @@ const media::parsed_data & media::parse() const
                 if (track_list[i]->i_codec != 0x66646E75 /*'undf'*/)
                 {
                     struct track track;
+                    track.id = track_list[i]->i_id;
                     if (track_list[i]->psz_language)    track.language    = track_list[i]->psz_language;
                     if (track_list[i]->psz_description) track.description = track_list[i]->psz_description;
 

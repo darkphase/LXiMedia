@@ -32,11 +32,26 @@ class instance;
 class transcode_stream : public std::istream
 {
 public:
+    struct track_ids { int audio, video, text; track_ids() : audio(-1), video(-1), text(-1) {} };
+
+public:
     transcode_stream(class messageloop &, class instance &);
     ~transcode_stream();
 
-    bool open(const std::string &mrl, int chapter, const std::string &transcode, const std::string &mux);
-    bool open(const std::string &mrl, std::chrono::milliseconds, const std::string &transcode, const std::string &mux);
+    bool open(
+            const std::string &mrl,
+            int chapter,
+            const struct track_ids &track_ids,
+            const std::string &transcode,
+            const std::string &mux);
+
+    bool open(
+            const std::string &mrl,
+            std::chrono::milliseconds,
+            const struct track_ids &track_ids,
+            const std::string &transcode,
+            const std::string &mux);
+
     bool attach(transcode_stream &);
     void close();
 
