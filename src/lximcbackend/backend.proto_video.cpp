@@ -19,455 +19,518 @@
 
 void backend::add_video_protocols()
 {
-  // See: http://www.videolan.org/doc/streaming-howto/en/ch03.html
+    const auto surround_mode = settings.surround_mode();
+    const bool has_surround51 = surround_mode == ::surround_mode::surround51;
+    const auto video_mode = settings.video_mode();
+    const bool has_vcd          = (video_mode == ::video_mode::auto_) || (video_mode == ::video_mode::vcd       );
+    const bool has_dvd_pal      = (video_mode == ::video_mode::auto_) || (video_mode == ::video_mode::dvd_pal   );
+    const bool has_dvd_ntsc     = (video_mode == ::video_mode::auto_) || (video_mode == ::video_mode::dvd_ntsc  );
+    const bool has_hdtv_720     = (video_mode == ::video_mode::auto_) || (video_mode == ::video_mode::hdtv_720  );
+    const bool has_hdtv_1080    = (video_mode == ::video_mode::auto_) || (video_mode == ::video_mode::hdtv_1080 );
 
-  /////////////////////////////////////////////////////////////////////////////
-  // MPEG1
-  connection_manager.add_source_video_protocol(
-        "MPEG1",
-        "video/mpeg", "mpg",
-        44100, 2, 352, 288, 25.0f,
-        "acodec=mpga,ab=256", "vcodec=mp1v", "mpeg1",
-        "vb=4096,venc=ffmpeg{keyint=0,vt=2048}",
-        "vb=2048,venc=ffmpeg{bframes=0,vt=1024}");
+    // See: http://www.videolan.org/doc/streaming-howto/en/ch03.html
 
-  connection_manager.add_source_video_protocol(
-        "MPEG1",
-        "video/mpeg", "mpg",
-        44100, 2, 320, 240, 29.97f,
-        "acodec=mpga,ab=256", "vcodec=mp1v", "mpeg1",
-        "vb=4096,venc=ffmpeg{keyint=0,vt=2048}",
-        "vb=2048,venc=ffmpeg{bframes=0,vt=1024}");
+    /////////////////////////////////////////////////////////////////////////////
+    // MPEG1
+    if (has_vcd)
+        connection_manager.add_source_video_protocol(
+                    "MPEG1",
+                    "video/mpeg", "mpg",
+                    44100, 2, 352, 288, 25.0f,
+                    "acodec=mpga,ab=256", "vcodec=mp1v", "mpeg1",
+                    "vb=4096,venc=ffmpeg{keyint=0,vt=2048}",
+                    "vb=2048,venc=ffmpeg{bframes=0,vt=1024}");
+
+    if (has_vcd)
+        connection_manager.add_source_video_protocol(
+                    "MPEG1",
+                    "video/mpeg", "mpg",
+                    44100, 2, 320, 240, 29.97f,
+                    "acodec=mpga,ab=256", "vcodec=mp1v", "mpeg1",
+                    "vb=4096,venc=ffmpeg{keyint=0,vt=2048}",
+                    "vb=2048,venc=ffmpeg{bframes=0,vt=1024}");
 
 
-  /////////////////////////////////////////////////////////////////////////////
-  // MPEG2 PAL/NTSC
-  connection_manager.add_source_video_protocol(
-        "MPEG_PS_PAL",
-        "video/mpeg", "mpg",
-        44100, 2, 720, 576, 25.0f,
-        "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
-        "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
-        "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
+    /////////////////////////////////////////////////////////////////////////////
+    // MPEG2 PAL/NTSC
+    if (has_dvd_pal)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_PS_PAL",
+                    "video/mpeg", "mpg",
+                    44100, 2, 720, 576, 25.0f,
+                    "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
+                    "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
+                    "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
 
-  connection_manager.add_source_video_protocol(
-        "MPEG_PS_PAL_XAC3",
-        "video/mpeg", "mpg",
-        48000, 6, 720, 576, 25.0f,
-        "acodec=a52,ab=640", "vcodec=mp2v", "ps",
-        "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
-        "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
+    if (has_dvd_pal && has_surround51)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_PS_PAL_XAC3",
+                    "video/mpeg", "mpg",
+                    48000, 6, 720, 576, 25.0f,
+                    "acodec=a52,ab=640", "vcodec=mp2v", "ps",
+                    "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
+                    "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
 
-  connection_manager.add_source_video_protocol(
-        "MPEG_PS_NTSC",
-        "video/mpeg", "mpg",
-        44100, 2, 704, 480, 29.97f,
-        "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
-        "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
-        "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
+    if (has_dvd_ntsc)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_PS_NTSC",
+                    "video/mpeg", "mpg",
+                    44100, 2, 704, 480, 29.97f,
+                    "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
+                    "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
+                    "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
 
-  connection_manager.add_source_video_protocol(
-        "MPEG_PS_NTSC_XAC3",
-        "video/mpeg", "mpg",
-        48000, 6, 704, 480, 29.97f,
-        "acodec=a52,ab=640", "vcodec=mp2v", "ps",
-        "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
-        "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
+    if (has_dvd_ntsc && has_surround51)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_PS_NTSC_XAC3",
+                    "video/mpeg", "mpg",
+                    48000, 6, 704, 480, 29.97f,
+                    "acodec=a52,ab=640", "vcodec=mp2v", "ps",
+                    "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
+                    "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
 
-  /////////////////////////////////////////////////////////////////////////////
-  // MPEG2 SD
-  connection_manager.add_source_video_protocol(
-        "MPEG_TS_SD_EU_ISO",
-        "video/x-mpegts", "ts",
-        44100, 2, 720, 576, 24.0f,
-        "acodec=mpga,ab=256", "vcodec=mp2v", "ts",
-        "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
-        "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
+    /////////////////////////////////////////////////////////////////////////////
+    // MPEG2 SD
+    if (has_dvd_pal)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_TS_SD_EU_ISO",
+                    "video/x-mpegts", "ts",
+                    44100, 2, 720, 576, 24.0f,
+                    "acodec=mpga,ab=256", "vcodec=mp2v", "ts",
+                    "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
+                    "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
 
-  connection_manager.add_source_video_protocol(
-        "MPEG_TS_SD_EU_ISO",
-        "video/x-mpegts", "ts",
-        44100, 2, 720, 576, 25.0f,
-        "acodec=mpga,ab=256", "vcodec=mp2v", "ts",
-        "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
-        "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
+    if (has_dvd_pal)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_TS_SD_EU_ISO",
+                    "video/x-mpegts", "ts",
+                    44100, 2, 720, 576, 25.0f,
+                    "acodec=mpga,ab=256", "vcodec=mp2v", "ts",
+                    "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
+                    "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
 
-  connection_manager.add_source_video_protocol(
-        "MPEG_TS_SD_EU_ISO",
-        "video/x-mpegts", "ts",
-        48000, 6, 720, 576, 24.0f,
-        "acodec=a52,ab=640", "vcodec=mp2v", "ts",
-        "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
-        "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
+    if (has_dvd_pal && has_surround51)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_TS_SD_EU_ISO",
+                    "video/x-mpegts", "ts",
+                    48000, 6, 720, 576, 24.0f,
+                    "acodec=a52,ab=640", "vcodec=mp2v", "ts",
+                    "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
+                    "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
 
-  connection_manager.add_source_video_protocol(
-        "MPEG_TS_SD_EU_ISO",
-        "video/x-mpegts", "ts",
-        48000, 6, 720, 576, 25.0f,
-        "acodec=a52,ab=640", "vcodec=mp2v", "ts",
-        "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
-        "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
+    if (has_dvd_pal && has_surround51)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_TS_SD_EU_ISO",
+                    "video/x-mpegts", "ts",
+                    48000, 6, 720, 576, 25.0f,
+                    "acodec=a52,ab=640", "vcodec=mp2v", "ts",
+                    "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
+                    "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
 
-  connection_manager.add_source_video_protocol(
-        "MPEG_TS_SD_NA_ISO",
-        "video/x-mpegts", "ts",
-        44100, 2, 704, 480, 24.0f,
-        "acodec=mpga,ab=256", "vcodec=mp2v", "ts",
-        "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
-        "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
+    if (has_dvd_ntsc)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_TS_SD_NA_ISO",
+                    "video/x-mpegts", "ts",
+                    44100, 2, 704, 480, 24.0f,
+                    "acodec=mpga,ab=256", "vcodec=mp2v", "ts",
+                    "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
+                    "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
 
-  connection_manager.add_source_video_protocol(
-        "MPEG_TS_SD_NA_ISO",
-        "video/x-mpegts", "ts",
-        44100, 2, 704, 480, 29.97f,
-        "acodec=mpga,ab=256", "vcodec=mp2v", "ts",
-        "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
-        "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
+    if (has_dvd_ntsc)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_TS_SD_NA_ISO",
+                    "video/x-mpegts", "ts",
+                    44100, 2, 704, 480, 29.97f,
+                    "acodec=mpga,ab=256", "vcodec=mp2v", "ts",
+                    "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
+                    "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
 
-  connection_manager.add_source_video_protocol(
-        "MPEG_TS_SD_NA_ISO",
-        "video/x-mpegts", "ts",
-        48000, 6, 704, 480, 24.0f,
-        "acodec=a52,ab=640", "vcodec=mp2v", "ts",
-        "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
-        "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
+    if (has_dvd_ntsc && has_surround51)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_TS_SD_NA_ISO",
+                    "video/x-mpegts", "ts",
+                    48000, 6, 704, 480, 24.0f,
+                    "acodec=a52,ab=640", "vcodec=mp2v", "ts",
+                    "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
+                    "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
 
-  connection_manager.add_source_video_protocol(
-        "MPEG_TS_SD_NA_ISO",
-        "video/x-mpegts", "ts",
-        48000, 6, 704, 480, 29.97f,
-        "acodec=a52,ab=640", "vcodec=mp2v", "ts",
-        "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
-        "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
+    if (has_dvd_ntsc && has_surround51)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_TS_SD_NA_ISO",
+                    "video/x-mpegts", "ts",
+                    48000, 6, 704, 480, 29.97f,
+                    "acodec=a52,ab=640", "vcodec=mp2v", "ts",
+                    "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
+                    "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
 
-  /////////////////////////////////////////////////////////////////////////////
-  // MPEG2 SD - nonstandard program stream
-  connection_manager.add_source_video_protocol(
-        "MPEG_PS_SD_EU_NONSTD",
-        "video/mpeg", "mpg",
-        44100, 2, 720, 576, 24.0f,
-        "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
-        "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
-        "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
+    /////////////////////////////////////////////////////////////////////////////
+    // MPEG2 SD - nonstandard program stream
+    if (has_dvd_pal)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_PS_SD_EU_NONSTD",
+                    "video/mpeg", "mpg",
+                    44100, 2, 720, 576, 24.0f,
+                    "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
+                    "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
+                    "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
 
-  connection_manager.add_source_video_protocol(
-        "MPEG_PS_SD_EU_NONSTD",
-        "video/mpeg", "mpg",
-        44100, 2, 720, 576, 25.0f,
-        "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
-        "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
-        "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
+    if (has_dvd_pal)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_PS_SD_EU_NONSTD",
+                    "video/mpeg", "mpg",
+                    44100, 2, 720, 576, 25.0f,
+                    "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
+                    "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
+                    "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
 
-  connection_manager.add_source_video_protocol(
-        "MPEG_PS_SD_EU_NONSTD",
-        "video/mpeg", "mpg",
-        48000, 6, 720, 576, 24.0f,
-        "acodec=a52,ab=640", "vcodec=mp2v", "ps",
-        "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
-        "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
+    if (has_dvd_pal && has_surround51)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_PS_SD_EU_NONSTD",
+                    "video/mpeg", "mpg",
+                    48000, 6, 720, 576, 24.0f,
+                    "acodec=a52,ab=640", "vcodec=mp2v", "ps",
+                    "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
+                    "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
 
-  connection_manager.add_source_video_protocol(
-        "MPEG_PS_SD_EU_NONSTD",
-        "video/mpeg", "mpg",
-        48000, 6, 720, 576, 25.0f,
-        "acodec=a52,ab=640", "vcodec=mp2v", "ps",
-        "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
-        "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
+    if (has_dvd_pal && has_surround51)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_PS_SD_EU_NONSTD",
+                    "video/mpeg", "mpg",
+                    48000, 6, 720, 576, 25.0f,
+                    "acodec=a52,ab=640", "vcodec=mp2v", "ps",
+                    "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
+                    "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
 
-  connection_manager.add_source_video_protocol(
-        "MPEG_PS_SD_NA_NONSTD",
-        "video/mpeg", "mpg",
-        44100, 2, 704, 480, 24.0f,
-        "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
-        "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
-        "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
+    if (has_dvd_ntsc)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_PS_SD_NA_NONSTD",
+                    "video/mpeg", "mpg",
+                    44100, 2, 704, 480, 24.0f,
+                    "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
+                    "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
+                    "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
 
-  connection_manager.add_source_video_protocol(
-        "MPEG_PS_SD_NA_NONSTD",
-        "video/mpeg", "mpg",
-        44100, 2, 704, 480, 29.97f,
-        "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
-        "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
-        "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
+    if (has_dvd_ntsc)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_PS_SD_NA_NONSTD",
+                    "video/mpeg", "mpg",
+                    44100, 2, 704, 480, 29.97f,
+                    "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
+                    "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
+                    "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
 
-  connection_manager.add_source_video_protocol(
-        "MPEG_PS_SD_NA_NONSTD",
-        "video/mpeg", "mpg",
-        48000, 6, 704, 480, 24.0f,
-        "acodec=a52,ab=640", "vcodec=mp2v", "ps",
-        "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
-        "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
+    if (has_dvd_ntsc && has_surround51)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_PS_SD_NA_NONSTD",
+                    "video/mpeg", "mpg",
+                    48000, 6, 704, 480, 24.0f,
+                    "acodec=a52,ab=640", "vcodec=mp2v", "ps",
+                    "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
+                    "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
 
-  connection_manager.add_source_video_protocol(
-        "MPEG_PS_SD_NA_NONSTD",
-        "video/mpeg", "mpg",
-        48000, 6, 704, 480, 29.97f,
-        "acodec=a52,ab=640", "vcodec=mp2v", "ps",
-        "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
-        "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
+    if (has_dvd_ntsc && has_surround51)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_PS_SD_NA_NONSTD",
+                    "video/mpeg", "mpg",
+                    48000, 6, 704, 480, 29.97f,
+                    "acodec=a52,ab=640", "vcodec=mp2v", "ps",
+                    "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
+                    "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
 
-  /////////////////////////////////////////////////////////////////////////////
-  // MPEG2 720p
-  connection_manager.add_source_video_protocol(
-        "MPEG_TS_HD_EU_ISO",
-        "video/x-mpegts", "ts",
-        44100, 2, 1280, 720, 24.0f,
-        "acodec=mpga,ab=256", "vcodec=mp2v", "ts",
-        "vb=16384,venc=ffmpeg{keyint=0,vt=8192}",
-        "vb=8192,venc=ffmpeg{bframes=0,vt=4096}");
+    /////////////////////////////////////////////////////////////////////////////
+    // MPEG2 720p
+    if (has_hdtv_720)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_TS_HD_EU_ISO",
+                    "video/x-mpegts", "ts",
+                    44100, 2, 1280, 720, 24.0f,
+                    "acodec=mpga,ab=256", "vcodec=mp2v", "ts",
+                    "vb=16384,venc=ffmpeg{keyint=0,vt=8192}",
+                    "vb=8192,venc=ffmpeg{bframes=0,vt=4096}");
 
-  connection_manager.add_source_video_protocol(
-        "MPEG_TS_HD_EU_ISO",
-        "video/x-mpegts", "ts",
-        44100, 2, 1280, 720, 25.0f,
-        "acodec=mpga,ab=256", "vcodec=mp2v", "ts",
-        "vb=16384,venc=ffmpeg{keyint=0,vt=8192}",
-        "vb=8192,venc=ffmpeg{bframes=0,vt=4096}");
+    if (has_hdtv_720)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_TS_HD_EU_ISO",
+                    "video/x-mpegts", "ts",
+                    44100, 2, 1280, 720, 25.0f,
+                    "acodec=mpga,ab=256", "vcodec=mp2v", "ts",
+                    "vb=16384,venc=ffmpeg{keyint=0,vt=8192}",
+                    "vb=8192,venc=ffmpeg{bframes=0,vt=4096}");
 
-  connection_manager.add_source_video_protocol(
-        "MPEG_TS_HD_EU_ISO",
-        "video/x-mpegts", "ts",
-        48000, 6, 1280, 720, 24.0f,
-        "acodec=a52,ab=640", "vcodec=mp2v", "ts",
-        "vb=16384,venc=ffmpeg{keyint=0,vt=8192}",
-        "vb=8192,venc=ffmpeg{bframes=0,vt=4096}");
+    if (has_hdtv_720 && has_surround51)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_TS_HD_EU_ISO",
+                    "video/x-mpegts", "ts",
+                    48000, 6, 1280, 720, 24.0f,
+                    "acodec=a52,ab=640", "vcodec=mp2v", "ts",
+                    "vb=16384,venc=ffmpeg{keyint=0,vt=8192}",
+                    "vb=8192,venc=ffmpeg{bframes=0,vt=4096}");
 
-  connection_manager.add_source_video_protocol(
-        "MPEG_TS_HD_EU_ISO",
-        "video/x-mpegts", "ts",
-        48000, 6, 1280, 720, 25.0f,
-        "acodec=a52,ab=640", "vcodec=mp2v", "ts",
-        "vb=16384,venc=ffmpeg{keyint=0,vt=8192}",
-        "vb=8192,venc=ffmpeg{bframes=0,vt=4096}");
+    if (has_hdtv_720 && has_surround51)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_TS_HD_EU_ISO",
+                    "video/x-mpegts", "ts",
+                    48000, 6, 1280, 720, 25.0f,
+                    "acodec=a52,ab=640", "vcodec=mp2v", "ts",
+                    "vb=16384,venc=ffmpeg{keyint=0,vt=8192}",
+                    "vb=8192,venc=ffmpeg{bframes=0,vt=4096}");
 
-  connection_manager.add_source_video_protocol(
-        "MPEG_TS_HD_NA_ISO",
-        "video/x-mpegts", "ts",
-        44100, 2, 1280, 720, 24.0f,
-        "acodec=mpga,ab=256", "vcodec=mp2v", "ts",
-        "vb=16384,venc=ffmpeg{keyint=0,vt=8192}",
-        "vb=8192,venc=ffmpeg{bframes=0,vt=4096}");
+    if (has_hdtv_720)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_TS_HD_NA_ISO",
+                    "video/x-mpegts", "ts",
+                    44100, 2, 1280, 720, 24.0f,
+                    "acodec=mpga,ab=256", "vcodec=mp2v", "ts",
+                    "vb=16384,venc=ffmpeg{keyint=0,vt=8192}",
+                    "vb=8192,venc=ffmpeg{bframes=0,vt=4096}");
 
-  connection_manager.add_source_video_protocol(
-        "MPEG_TS_HD_NA_ISO",
-        "video/x-mpegts", "ts",
-        44100, 2, 1280, 720, 29.97f,
-        "acodec=mpga,ab=256", "vcodec=mp2v", "ts",
-        "vb=16384,venc=ffmpeg{keyint=0,vt=8192}",
-        "vb=8192,venc=ffmpeg{bframes=0,vt=4096}");
+    if (has_hdtv_720)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_TS_HD_NA_ISO",
+                    "video/x-mpegts", "ts",
+                    44100, 2, 1280, 720, 29.97f,
+                    "acodec=mpga,ab=256", "vcodec=mp2v", "ts",
+                    "vb=16384,venc=ffmpeg{keyint=0,vt=8192}",
+                    "vb=8192,venc=ffmpeg{bframes=0,vt=4096}");
 
-  connection_manager.add_source_video_protocol(
-        "MPEG_TS_HD_NA_ISO",
-        "video/x-mpegts", "ts",
-        48000, 6, 1280, 720, 24.0f,
-        "acodec=a52,ab=640", "vcodec=mp2v", "ts",
-        "vb=16384,venc=ffmpeg{keyint=0,vt=8192}",
-        "vb=8192,venc=ffmpeg{bframes=0,vt=4096}");
+    if (has_hdtv_720 && has_surround51)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_TS_HD_NA_ISO",
+                    "video/x-mpegts", "ts",
+                    48000, 6, 1280, 720, 24.0f,
+                    "acodec=a52,ab=640", "vcodec=mp2v", "ts",
+                    "vb=16384,venc=ffmpeg{keyint=0,vt=8192}",
+                    "vb=8192,venc=ffmpeg{bframes=0,vt=4096}");
 
-  connection_manager.add_source_video_protocol(
-        "MPEG_TS_HD_NA_ISO",
-        "video/x-mpegts", "ts",
-        48000, 6, 1280, 720, 29.97f,
-        "acodec=a52,ab=640", "vcodec=mp2v", "ts",
-        "vb=16384,venc=ffmpeg{keyint=0,vt=8192}",
-        "vb=8192,venc=ffmpeg{bframes=0,vt=4096}");
+    if (has_hdtv_720 && has_surround51)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_TS_HD_NA_ISO",
+                    "video/x-mpegts", "ts",
+                    48000, 6, 1280, 720, 29.97f,
+                    "acodec=a52,ab=640", "vcodec=mp2v", "ts",
+                    "vb=16384,venc=ffmpeg{keyint=0,vt=8192}",
+                    "vb=8192,venc=ffmpeg{bframes=0,vt=4096}");
 
-  /////////////////////////////////////////////////////////////////////////////
-  // MPEG2 720p - nonstandard program stream
-  connection_manager.add_source_video_protocol(
-        "MPEG_PS_HD_EU_NONSTD",
-        "video/mpeg", "mpg",
-        44100, 2, 1280, 720, 24.0f,
-        "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
-        "vb=16384,venc=ffmpeg{keyint=0,vt=8192}",
-        "vb=8192,venc=ffmpeg{bframes=0,vt=4096}");
+    /////////////////////////////////////////////////////////////////////////////
+    // MPEG2 720p - nonstandard program stream
+    if (has_hdtv_720)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_PS_HD_EU_NONSTD",
+                    "video/mpeg", "mpg",
+                    44100, 2, 1280, 720, 24.0f,
+                    "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
+                    "vb=16384,venc=ffmpeg{keyint=0,vt=8192}",
+                    "vb=8192,venc=ffmpeg{bframes=0,vt=4096}");
 
-  connection_manager.add_source_video_protocol(
-        "MPEG_PS_HD_EU_NONSTD",
-        "video/mpeg", "mpg",
-        44100, 2, 1280, 720, 25.0f,
-        "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
-        "vb=16384,venc=ffmpeg{keyint=0,vt=8192}",
-        "vb=8192,venc=ffmpeg{bframes=0,vt=4096}");
+    if (has_hdtv_720)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_PS_HD_EU_NONSTD",
+                    "video/mpeg", "mpg",
+                    44100, 2, 1280, 720, 25.0f,
+                    "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
+                    "vb=16384,venc=ffmpeg{keyint=0,vt=8192}",
+                    "vb=8192,venc=ffmpeg{bframes=0,vt=4096}");
 
-  connection_manager.add_source_video_protocol(
-        "MPEG_PS_HD_EU_NONSTD",
-        "video/mpeg", "mpg",
-        48000, 6, 1280, 720, 24.0f,
-        "acodec=a52,ab=640", "vcodec=mp2v", "ps",
-        "vb=16384,venc=ffmpeg{keyint=0,vt=8192}",
-        "vb=8192,venc=ffmpeg{bframes=0,vt=4096}");
+    if (has_hdtv_720 && has_surround51)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_PS_HD_EU_NONSTD",
+                    "video/mpeg", "mpg",
+                    48000, 6, 1280, 720, 24.0f,
+                    "acodec=a52,ab=640", "vcodec=mp2v", "ps",
+                    "vb=16384,venc=ffmpeg{keyint=0,vt=8192}",
+                    "vb=8192,venc=ffmpeg{bframes=0,vt=4096}");
 
-  connection_manager.add_source_video_protocol(
-        "MPEG_PS_HD_EU_NONSTD",
-        "video/mpeg", "mpg",
-        48000, 6, 1280, 720, 25.0f,
-        "acodec=a52,ab=640", "vcodec=mp2v", "ps",
-        "vb=16384,venc=ffmpeg{keyint=0,vt=8192}",
-        "vb=8192,venc=ffmpeg{bframes=0,vt=4096}");
+    if (has_hdtv_720 && has_surround51)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_PS_HD_EU_NONSTD",
+                    "video/mpeg", "mpg",
+                    48000, 6, 1280, 720, 25.0f,
+                    "acodec=a52,ab=640", "vcodec=mp2v", "ps",
+                    "vb=16384,venc=ffmpeg{keyint=0,vt=8192}",
+                    "vb=8192,venc=ffmpeg{bframes=0,vt=4096}");
 
-  connection_manager.add_source_video_protocol(
-        "MPEG_PS_HD_NA_NONSTD",
-        "video/mpeg", "mpg",
-        44100, 2, 1280, 720, 24.0f,
-        "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
-        "vb=16384,venc=ffmpeg{keyint=0,vt=8192}",
-        "vb=8192,venc=ffmpeg{bframes=0,vt=4096}");
+    if (has_hdtv_720)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_PS_HD_NA_NONSTD",
+                    "video/mpeg", "mpg",
+                    44100, 2, 1280, 720, 24.0f,
+                    "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
+                    "vb=16384,venc=ffmpeg{keyint=0,vt=8192}",
+                    "vb=8192,venc=ffmpeg{bframes=0,vt=4096}");
 
-  connection_manager.add_source_video_protocol(
-        "MPEG_PS_HD_NA_NONSTD",
-        "video/mpeg", "mpg",
-        44100, 2, 1280, 720, 29.97f,
-        "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
-        "vb=16384,venc=ffmpeg{keyint=0,vt=8192}",
-        "vb=8192,venc=ffmpeg{bframes=0,vt=4096}");
+    if (has_hdtv_720)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_PS_HD_NA_NONSTD",
+                    "video/mpeg", "mpg",
+                    44100, 2, 1280, 720, 29.97f,
+                    "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
+                    "vb=16384,venc=ffmpeg{keyint=0,vt=8192}",
+                    "vb=8192,venc=ffmpeg{bframes=0,vt=4096}");
 
-  connection_manager.add_source_video_protocol(
-        "MPEG_PS_HD_NA_NONSTD",
-        "video/mpeg", "mpg",
-        48000, 6, 1280, 720, 24.0f,
-        "acodec=a52,ab=640", "vcodec=mp2v", "ps",
-        "vb=16384,venc=ffmpeg{keyint=0,vt=8192}",
-        "vb=8192,venc=ffmpeg{bframes=0,vt=4096}");
+    if (has_hdtv_720 && has_surround51)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_PS_HD_NA_NONSTD",
+                    "video/mpeg", "mpg",
+                    48000, 6, 1280, 720, 24.0f,
+                    "acodec=a52,ab=640", "vcodec=mp2v", "ps",
+                    "vb=16384,venc=ffmpeg{keyint=0,vt=8192}",
+                    "vb=8192,venc=ffmpeg{bframes=0,vt=4096}");
 
-  connection_manager.add_source_video_protocol(
-        "MPEG_PS_HD_NA_NONSTD",
-        "video/mpeg", "mpg",
-        48000, 6, 1280, 720, 29.97f,
-        "acodec=a52,ab=640", "vcodec=mp2v", "ps",
-        "vb=16384,venc=ffmpeg{keyint=0,vt=8192}",
-        "vb=8192,venc=ffmpeg{bframes=0,vt=4096}");
+    if (has_hdtv_720 && has_surround51)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_PS_HD_NA_NONSTD",
+                    "video/mpeg", "mpg",
+                    48000, 6, 1280, 720, 29.97f,
+                    "acodec=a52,ab=640", "vcodec=mp2v", "ps",
+                    "vb=16384,venc=ffmpeg{keyint=0,vt=8192}",
+                    "vb=8192,venc=ffmpeg{bframes=0,vt=4096}");
 
-  /////////////////////////////////////////////////////////////////////////////
-  // MPEG2 1080p
-  connection_manager.add_source_video_protocol(
-        "MPEG_TS_HD_EU_ISO",
-        "video/x-mpegts", "ts",
-        44100, 2, 1920, 1080, 24.0f,
-        "acodec=mpga,ab=256", "vcodec=mp2v", "ts",
-        "vb=32768,venc=ffmpeg{keyint=0,vt=16384}",
-        "vb=16384,venc=ffmpeg{bframes=0,vt=8192}");
+    /////////////////////////////////////////////////////////////////////////////
+    // MPEG2 1080p
+    if (has_hdtv_1080)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_TS_HD_EU_ISO",
+                    "video/x-mpegts", "ts",
+                    44100, 2, 1920, 1080, 24.0f,
+                    "acodec=mpga,ab=256", "vcodec=mp2v", "ts",
+                    "vb=32768,venc=ffmpeg{keyint=0,vt=16384}",
+                    "vb=16384,venc=ffmpeg{bframes=0,vt=8192}");
 
-  connection_manager.add_source_video_protocol(
-        "MPEG_TS_HD_EU_ISO",
-        "video/x-mpegts", "ts",
-        44100, 2, 1920, 1080, 25.0f,
-        "acodec=mpga,ab=256", "vcodec=mp2v", "ts",
-        "vb=32768,venc=ffmpeg{keyint=0,vt=16384}",
-        "vb=16384,venc=ffmpeg{bframes=0,vt=8192}");
+    if (has_hdtv_1080)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_TS_HD_EU_ISO",
+                    "video/x-mpegts", "ts",
+                    44100, 2, 1920, 1080, 25.0f,
+                    "acodec=mpga,ab=256", "vcodec=mp2v", "ts",
+                    "vb=32768,venc=ffmpeg{keyint=0,vt=16384}",
+                    "vb=16384,venc=ffmpeg{bframes=0,vt=8192}");
 
-  connection_manager.add_source_video_protocol(
-        "MPEG_TS_HD_EU_ISO",
-        "video/x-mpegts", "ts",
-        48000, 6, 1920, 1080, 24.0f,
-        "acodec=a52,ab=640", "vcodec=mp2v", "ts",
-        "vb=32768,venc=ffmpeg{keyint=0,vt=16384}",
-        "vb=16384,venc=ffmpeg{bframes=0,vt=8192}");
+    if (has_hdtv_1080 && has_surround51)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_TS_HD_EU_ISO",
+                    "video/x-mpegts", "ts",
+                    48000, 6, 1920, 1080, 24.0f,
+                    "acodec=a52,ab=640", "vcodec=mp2v", "ts",
+                    "vb=32768,venc=ffmpeg{keyint=0,vt=16384}",
+                    "vb=16384,venc=ffmpeg{bframes=0,vt=8192}");
 
-  connection_manager.add_source_video_protocol(
-        "MPEG_TS_HD_EU_ISO",
-        "video/x-mpegts", "ts",
-        48000, 6, 1920, 1080, 25.0f,
-        "acodec=a52,ab=640", "vcodec=mp2v", "ts",
-        "vb=32768,venc=ffmpeg{keyint=0,vt=16384}",
-        "vb=16384,venc=ffmpeg{bframes=0,vt=8192}");
+    if (has_hdtv_1080 && has_surround51)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_TS_HD_EU_ISO",
+                    "video/x-mpegts", "ts",
+                    48000, 6, 1920, 1080, 25.0f,
+                    "acodec=a52,ab=640", "vcodec=mp2v", "ts",
+                    "vb=32768,venc=ffmpeg{keyint=0,vt=16384}",
+                    "vb=16384,venc=ffmpeg{bframes=0,vt=8192}");
 
-  connection_manager.add_source_video_protocol(
-        "MPEG_TS_HD_NA_ISO",
-        "video/x-mpegts", "ts",
-        44100, 2, 1920, 1080, 24.0f,
-        "acodec=mpga,ab=256", "vcodec=mp2v", "ts",
-        "vb=32768,venc=ffmpeg{keyint=0,vt=16384}",
-        "vb=16384,venc=ffmpeg{bframes=0,vt=8192}");
+    if (has_hdtv_1080)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_TS_HD_NA_ISO",
+                    "video/x-mpegts", "ts",
+                    44100, 2, 1920, 1080, 24.0f,
+                    "acodec=mpga,ab=256", "vcodec=mp2v", "ts",
+                    "vb=32768,venc=ffmpeg{keyint=0,vt=16384}",
+                    "vb=16384,venc=ffmpeg{bframes=0,vt=8192}");
 
-  connection_manager.add_source_video_protocol(
-        "MPEG_TS_HD_NA_ISO",
-        "video/x-mpegts", "ts",
-        44100, 2, 1920, 1080, 29.97f,
-        "acodec=mpga,ab=256", "vcodec=mp2v", "ts",
-        "vb=32768,venc=ffmpeg{keyint=0,vt=16384}",
-        "vb=16384,venc=ffmpeg{bframes=0,vt=8192}");
+    if (has_hdtv_1080)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_TS_HD_NA_ISO",
+                    "video/x-mpegts", "ts",
+                    44100, 2, 1920, 1080, 29.97f,
+                    "acodec=mpga,ab=256", "vcodec=mp2v", "ts",
+                    "vb=32768,venc=ffmpeg{keyint=0,vt=16384}",
+                    "vb=16384,venc=ffmpeg{bframes=0,vt=8192}");
 
-  connection_manager.add_source_video_protocol(
-        "MPEG_TS_HD_NA_ISO",
-        "video/x-mpegts", "ts",
-        48000, 6, 1920, 1080, 24.0f,
-        "acodec=a52,ab=640", "vcodec=mp2v", "ts",
-        "vb=32768,venc=ffmpeg{keyint=0,vt=16384}",
-        "vb=16384,venc=ffmpeg{bframes=0,vt=8192}");
+    if (has_hdtv_1080 && has_surround51)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_TS_HD_NA_ISO",
+                    "video/x-mpegts", "ts",
+                    48000, 6, 1920, 1080, 24.0f,
+                    "acodec=a52,ab=640", "vcodec=mp2v", "ts",
+                    "vb=32768,venc=ffmpeg{keyint=0,vt=16384}",
+                    "vb=16384,venc=ffmpeg{bframes=0,vt=8192}");
 
-  connection_manager.add_source_video_protocol(
-        "MPEG_TS_HD_NA_ISO",
-        "video/x-mpegts", "ts",
-        48000, 6, 1920, 1080, 29.97f,
-        "acodec=a52,ab=640", "vcodec=mp2v", "ts",
-        "vb=32768,venc=ffmpeg{keyint=0,vt=16384}",
-        "vb=16384,venc=ffmpeg{bframes=0,vt=8192}");
+    if (has_hdtv_1080 && has_surround51)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_TS_HD_NA_ISO",
+                    "video/x-mpegts", "ts",
+                    48000, 6, 1920, 1080, 29.97f,
+                    "acodec=a52,ab=640", "vcodec=mp2v", "ts",
+                    "vb=32768,venc=ffmpeg{keyint=0,vt=16384}",
+                    "vb=16384,venc=ffmpeg{bframes=0,vt=8192}");
 
-  /////////////////////////////////////////////////////////////////////////////
-  // MPEG2 1080p - nonstandard program stream
-  connection_manager.add_source_video_protocol(
-        "MPEG_PS_HD_EU_NONSTD",
-        "video/mpeg", "mpg",
-        44100, 2, 1920, 1080, 24.0f,
-        "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
-        "vb=32768,venc=ffmpeg{keyint=0,vt=16384}",
-        "vb=16384,venc=ffmpeg{bframes=0,vt=8192}");
+    /////////////////////////////////////////////////////////////////////////////
+    // MPEG2 1080p - nonstandard program stream
+    if (has_hdtv_1080)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_PS_HD_EU_NONSTD",
+                    "video/mpeg", "mpg",
+                    44100, 2, 1920, 1080, 24.0f,
+                    "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
+                    "vb=32768,venc=ffmpeg{keyint=0,vt=16384}",
+                    "vb=16384,venc=ffmpeg{bframes=0,vt=8192}");
 
-  connection_manager.add_source_video_protocol(
-        "MPEG_PS_HD_EU_NONSTD",
-        "video/mpeg", "mpg",
-        44100, 2, 1920, 1080, 25.0f,
-        "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
-        "vb=32768,venc=ffmpeg{keyint=0,vt=16384}",
-        "vb=16384,venc=ffmpeg{bframes=0,vt=8192}");
+    if (has_hdtv_1080)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_PS_HD_EU_NONSTD",
+                    "video/mpeg", "mpg",
+                    44100, 2, 1920, 1080, 25.0f,
+                    "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
+                    "vb=32768,venc=ffmpeg{keyint=0,vt=16384}",
+                    "vb=16384,venc=ffmpeg{bframes=0,vt=8192}");
 
-  connection_manager.add_source_video_protocol(
-        "MPEG_PS_HD_EU_NONSTD",
-        "video/mpeg", "mpg",
-        48000, 6, 1920, 1080, 24.0f,
-        "acodec=a52,ab=640", "vcodec=mp2v", "ps",
-        "vb=32768,venc=ffmpeg{keyint=0,vt=16384}",
-        "vb=16384,venc=ffmpeg{bframes=0,vt=8192}");
+    if (has_hdtv_1080 && has_surround51)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_PS_HD_EU_NONSTD",
+                    "video/mpeg", "mpg",
+                    48000, 6, 1920, 1080, 24.0f,
+                    "acodec=a52,ab=640", "vcodec=mp2v", "ps",
+                    "vb=32768,venc=ffmpeg{keyint=0,vt=16384}",
+                    "vb=16384,venc=ffmpeg{bframes=0,vt=8192}");
 
-  connection_manager.add_source_video_protocol(
-        "MPEG_PS_HD_EU_NONSTD",
-        "video/mpeg", "mpg",
-        48000, 6, 1920, 1080, 25.0f,
-        "acodec=a52,ab=640", "vcodec=mp2v", "ps",
-        "vb=32768,venc=ffmpeg{keyint=0,vt=16384}",
-        "vb=16384,venc=ffmpeg{bframes=0,vt=8192}");
+    if (has_hdtv_1080 && has_surround51)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_PS_HD_EU_NONSTD",
+                    "video/mpeg", "mpg",
+                    48000, 6, 1920, 1080, 25.0f,
+                    "acodec=a52,ab=640", "vcodec=mp2v", "ps",
+                    "vb=32768,venc=ffmpeg{keyint=0,vt=16384}",
+                    "vb=16384,venc=ffmpeg{bframes=0,vt=8192}");
 
-  connection_manager.add_source_video_protocol(
-        "MPEG_PS_HD_NA_NONSTD",
-        "video/mpeg", "mpg",
-        44100, 2, 1920, 1080, 24.0f,
-        "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
-        "vb=32768,venc=ffmpeg{keyint=0,vt=16384}",
-        "vb=16384,venc=ffmpeg{bframes=0,vt=8192}");
+    if (has_hdtv_1080)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_PS_HD_NA_NONSTD",
+                    "video/mpeg", "mpg",
+                    44100, 2, 1920, 1080, 24.0f,
+                    "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
+                    "vb=32768,venc=ffmpeg{keyint=0,vt=16384}",
+                    "vb=16384,venc=ffmpeg{bframes=0,vt=8192}");
 
-  connection_manager.add_source_video_protocol(
-        "MPEG_PS_HD_NA_NONSTD",
-        "video/mpeg", "mpg",
-        44100, 2, 1920, 1080, 29.97f,
-        "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
-        "vb=32768,venc=ffmpeg{keyint=0,vt=16384}",
-        "vb=16384,venc=ffmpeg{bframes=0,vt=8192}");
+    if (has_hdtv_1080)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_PS_HD_NA_NONSTD",
+                    "video/mpeg", "mpg",
+                    44100, 2, 1920, 1080, 29.97f,
+                    "acodec=mpga,ab=256", "vcodec=mp2v", "ps",
+                    "vb=32768,venc=ffmpeg{keyint=0,vt=16384}",
+                    "vb=16384,venc=ffmpeg{bframes=0,vt=8192}");
 
-  connection_manager.add_source_video_protocol(
-        "MPEG_PS_HD_NA_NONSTD",
-        "video/mpeg", "mpg",
-        48000, 6, 1920, 1080, 24.0f,
-        "acodec=a52,ab=640", "vcodec=mp2v", "ps",
-        "vb=32768,venc=ffmpeg{keyint=0,vt=16384}",
-        "vb=16384,venc=ffmpeg{bframes=0,vt=8192}");
+    if (has_hdtv_1080 && has_surround51)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_PS_HD_NA_NONSTD",
+                    "video/mpeg", "mpg",
+                    48000, 6, 1920, 1080, 24.0f,
+                    "acodec=a52,ab=640", "vcodec=mp2v", "ps",
+                    "vb=32768,venc=ffmpeg{keyint=0,vt=16384}",
+                    "vb=16384,venc=ffmpeg{bframes=0,vt=8192}");
 
-  connection_manager.add_source_video_protocol(
-        "MPEG_PS_HD_NA_NONSTD",
-        "video/mpeg", "mpg",
-        48000, 6, 1920, 1080, 29.97f,
-        "acodec=a52,ab=640", "vcodec=mp2v", "ps",
-        "vb=32768,venc=ffmpeg{keyint=0,vt=16384}",
-        "vb=16384,venc=ffmpeg{bframes=0,vt=8192}");
+    if (has_hdtv_1080 && has_surround51)
+        connection_manager.add_source_video_protocol(
+                    "MPEG_PS_HD_NA_NONSTD",
+                    "video/mpeg", "mpg",
+                    48000, 6, 1920, 1080, 29.97f,
+                    "acodec=a52,ab=640", "vcodec=mp2v", "ps",
+                    "vb=32768,venc=ffmpeg{keyint=0,vt=16384}",
+                    "vb=16384,venc=ffmpeg{bframes=0,vt=8192}");
 
 }

@@ -21,6 +21,7 @@
 #include "instance.h"
 #include <vlc/vlc.h>
 #include <cassert>
+#include <cmath>
 #include <condition_variable>
 #include <cstring>
 #include <iostream>
@@ -66,7 +67,8 @@ public:
             int,
             const struct track_ids &,
             const std::string &,
-            const std::string &);
+            const std::string &,
+            float);
 
     source(
             class messageloop &,
@@ -75,7 +77,8 @@ public:
             std::chrono::milliseconds,
             const struct track_ids &,
             const std::string &,
-            const std::string &);
+            const std::string &,
+            float);
 
     ~source();
 
@@ -94,7 +97,8 @@ private:
             const std::string &,
             const struct track_ids &,
             const std::string &,
-            const std::string &);
+            const std::string &,
+            float);
 
     void recompute_buffer_offset(std::unique_lock<std::mutex> &);
     static void callback(const libvlc_event_t *, void *);
@@ -108,6 +112,7 @@ private:
     libvlc_event_manager_t *event_manager;
     int chapter;
     std::chrono::milliseconds position;
+    const float rate;
 
     std::mutex mutex;
     bool stream_start_pending;
@@ -137,14 +142,14 @@ transcode_stream::~transcode_stream()
     close();
 }
 
-bool transcode_stream::open(
-        const std::string &mrl,
+bool transcode_stream::open(const std::string &mrl,
         int chapter,
         const struct track_ids &track_ids,
         const std::string &transcode,
-        const std::string &mux)
+        const std::string &mux,
+        float rate)
 {
-    source = std::make_shared<class source>(messageloop, instance, mrl, chapter, track_ids, transcode, mux);
+    source = std::make_shared<class source>(messageloop, instance, mrl, chapter, track_ids, transcode, mux, rate);
     if (source->is_open())
     {
         source->attach(*streambuf);
@@ -162,9 +167,10 @@ bool transcode_stream::open(
         std::chrono::milliseconds position,
         const struct track_ids &track_ids,
         const std::string &transcode,
-        const std::string &mux)
+        const std::string &mux,
+        float rate)
 {
-    source = std::make_shared<class source>(messageloop, instance, mrl, position, track_ids, transcode, mux);
+    source = std::make_shared<class source>(messageloop, instance, mrl, position, track_ids, transcode, mux, rate);
     if (source->is_open())
     {
         source->attach(*streambuf);
@@ -207,7 +213,8 @@ transcode_stream::source::source(
         const std::string &mrl,
         const struct track_ids &track_ids,
         const std::string &transcode,
-        const std::string &mux)
+        const std::string &mux,
+        float rate)
     : messageloop(messageloop),
       instance(instance),
       track_ids(track_ids),
@@ -216,6 +223,7 @@ transcode_stream::source::source(
       event_manager(nullptr),
       chapter(-1),
       position(0),
+      rate(rate),
       stream_start_pending(true),
       stream_end(false),
       stream_end_pending(false),
@@ -258,8 +266,9 @@ transcode_stream::source::source(
         int chapter,
         const struct track_ids &track_ids,
         const std::string &transcode,
-        const std::string &mux)
-      : source(messageloop, instance, mrl, track_ids, transcode, mux)
+        const std::string &mux,
+        float rate)
+      : source(messageloop, instance, mrl, track_ids, transcode, mux, rate)
 {
     this->chapter = chapter;
 
@@ -278,8 +287,9 @@ transcode_stream::source::source(
         std::chrono::milliseconds position,
         const struct track_ids &track_ids,
         const std::string &transcode,
-        const std::string &mux)
-      : source(messageloop, instance, mrl, track_ids, transcode, mux)
+        const std::string &mux,
+        float rate)
+      : source(messageloop, instance, mrl, track_ids, transcode, mux, rate)
 {
     this->position = position;
 
@@ -477,6 +487,8 @@ void transcode_stream::source::callback(const libvlc_event_t *e, void *opaque)
 
                 if (me->chapter >= 0)           libvlc_media_player_set_chapter(me->player, me->chapter);
                 if (me->position.count() > 0)   libvlc_media_player_set_time(me->player, me->position.count());
+
+                if (std::abs(me->rate - 1.0f) > 0.01f) libvlc_media_player_set_rate(me->player, me->rate);
             });
         }
     }

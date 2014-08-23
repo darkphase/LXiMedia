@@ -165,6 +165,20 @@ enum canvas_mode settings::canvas_mode() const
     return ::canvas_mode::pad;
 }
 
+enum surround_mode settings::surround_mode() const
+{
+    // Workaround for ticket https://trac.videolan.org/vlc/ticket/1897
+    if (vlc::instance::compare_version(2, 2) < 0)
+        return ::surround_mode::stereo;
+
+    return ::surround_mode::surround51;
+}
+
+enum video_mode settings::video_mode() const
+{
+    return ::video_mode::hdtv_720;
+}
+
 std::vector<root_path> settings::root_paths() const
 {
     std::vector<std::string> entries;
