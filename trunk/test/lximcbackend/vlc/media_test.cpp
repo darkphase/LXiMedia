@@ -108,6 +108,19 @@ static std::string filename(const char *file)
 {
     return std::string("/tmp/") + std::to_string(getpid()) + '.' + file;
 }
+#elif defined(WIN32)
+#include <cstdlib>
+#include <process.h>
+
+static std::string filename(const char *file)
+{
+    const char * const temp = getenv("TEMP");
+    if (temp)
+        return std::string(temp) + '\\'  + std::to_string(_getpid()) + '.' + file;
+
+    throw std::runtime_error("failed to get TEMP directory");
+}
+#endif
 
 static std::string write_file(const char *file, const uint8_t *data, size_t size)
 {
@@ -119,4 +132,3 @@ static std::string write_file(const char *file, const uint8_t *data, size_t size
 
     return filename;
 }
-#endif

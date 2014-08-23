@@ -637,4 +637,50 @@ static std::vector<std::string> list_files(const std::string &path)
     for (auto &i : files) result.emplace_back(std::move(i.second));
     return result;
 }
+#elif defined(WIN32)
+#include <windows.h>
+
+static std::vector<std::string> list_files(const std::string &path)
+{
+    std::multimap<std::string, std::string> dirs, files;
+
+    std::wstring wpath = to_windows_path(path);
+    WIN32_FIND_DATAW find_data;
+    HANDLE handle = FindFirstFileW((wpath + L"\\*").c_str(), &find_data);
+    if (handle != INVALID_HANDLE_VALUE)
+    {
+        do
+        {
+            struct __stat64 stat;
+            if ((find_data.cFileName[0] != L'.') &&
+                (::_wstat64((wpath + L'/' + find_data.cFileName).c_str(), &stat) == 0))
+            {
+                std::string name = from_windows_path(find_data.cFileName), lname = to_lower(name);
+                if ((find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) &&
+                    (lname != "@eadir"))
+                {
+                    dirs.emplace(std::move(lname), name + '/');
+                }
+                else if ((stat.st_size >= min_file_size) &&
+                         !ends_with(lname, ".db" ) &&
+                         !ends_with(lname, ".idx") &&
+                         !ends_with(lname, ".nfo") &&
+                         !ends_with(lname, ".srt") &&
+                         !ends_with(lname, ".sub") &&
+                         !ends_with(lname, ".txt"))
+                {
+                    files.emplace(std::move(lname), std::move(name));
+                }
+            }
+        } while(FindNextFileW(handle, &find_data) != 0);
+
+        CloseHandle(handle);
+    }
+
+    std::vector<std::string> result;
+    result.reserve(dirs.size() + files.size());
+    for (auto &i : dirs) result.emplace_back(std::move(i.second));
+    for (auto &i : files) result.emplace_back(std::move(i.second));
+    return result;
+}
 #endif

@@ -213,7 +213,7 @@ int rootdevice::http_request(const upnp::request &request, std::string &content_
   }
   else if (starts_with(request.url.path, basedir + servicedescriptionfile))
   {
-    const uint l = basedir.length() + strlen(servicedescriptionfile);
+    const size_t l = basedir.length() + strlen(servicedescriptionfile);
     const std::string path = request.url.path;
     const std::string ext = path.substr(l, path.length() - 4 - l);
 

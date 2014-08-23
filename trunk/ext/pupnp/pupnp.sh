@@ -2,7 +2,7 @@
 
 PUPNP_VERSION=$3
 
-if [ ! -f $2/libupnp-$3/Makefile ]; then
+if [ ! -f $2/libupnp-$3/upnp/inc/upnp/upnpconfig.h ]; then
     if [ -f $1/libupnp-$3.tar.bz2 ]; then
         # Extract
         mkdir -p $2
@@ -17,14 +17,11 @@ if [ ! -f $2/libupnp-$3/Makefile ]; then
         patch -p0 < $1/add-support-cachecontrol-nocache.patch
         patch -p0 < $1/add-support-multiple-interfaces.patch
 
-        #patch -p0 < $1/fix-mingw47-build.patch
-        #patch -p0 < $1/fix-windows-xp-compatibility.patch
+        patch -p0 < $1/fix-mingw-build.patch
+        patch -p0 < $1/fix-windows-xp-compatibility.patch
 
-        # Configure
-        sh configure --enable-static --disable-shared --disable-samples --disable-dependency-tracking CFLAGS="-w -fPIC"
-
-        # Make
-        make
+        cp $1/autoconfig.h autoconfig.h
+        cp $1/upnpconfig.h upnp/inc/upnpconfig.h
 
         # Copy public headers
         mkdir upnp/inc/upnp
