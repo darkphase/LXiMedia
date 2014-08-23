@@ -37,14 +37,38 @@ static const struct transcode_stream_test
         // Transcode file.
         const std::string outfile = filename("output.ts");
         {
-            class transcode_stream transcode_stream(messageloop, instance);
+            struct transcode_stream::track_ids track_ids;
+            for (auto &track : media::from_file(instance, infile).tracks())
+                switch (track.type)
+                {
+                case media::track_type::unknown: break;
+                case media::track_type::audio:  track_ids.audio = track.id; break;
+                case media::track_type::video:  track_ids.video = track.id; break;
+                case media::track_type::text:   track_ids.text  = track.id; break;
+                }
 
-            static const char transcode[] =
-                    "#transcode{"
-                    "vcodec=mp2v,soverlay,vfilter=croppadd{paddleft=128,paddright=128},"
-                    "acodec=mpga"
-                    "}";
-            test_assert(transcode_stream.open("file://" + infile, 0, transcode, "ts"));
+            class transcode_stream transcode_stream(messageloop, instance);
+            if (vlc::instance::compare_version(2, 1) == 0)
+            {
+                // Fallback for VLC 2.1
+                static const char transcode_nocroppadd[] =
+                        "#transcode{"
+                        "vcodec=mp2v,fps=24,soverlay,width=1024,height=576,"
+                        "acodec=mpga"
+                        "}";
+
+                test_assert(transcode_stream.open("file://" + infile, 0, track_ids, transcode_nocroppadd, "ts"));
+            }
+            else
+            {
+                static const char transcode[] =
+                        "#transcode{"
+                        "vcodec=mp2v,fps=24,soverlay,vfilter=croppadd{paddleft=128,paddright=128},"
+                        "acodec=mpga"
+                        "}";
+
+                test_assert(transcode_stream.open("file://" + infile, 0, track_ids, transcode, "ts"));
+            }
 
             std::ofstream out(outfile, std::ios::binary);
             test_assert(out.is_open());

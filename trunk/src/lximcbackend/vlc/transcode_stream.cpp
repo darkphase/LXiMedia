@@ -59,8 +59,24 @@ private:
 class transcode_stream::source
 {
 public:
-    source(class instance &, const std::string &, int, const std::string &, const std::string &);
-    source(class instance &, const std::string &, std::chrono::milliseconds, const std::string &, const std::string &);
+    source(
+            class messageloop &,
+            class instance &,
+            const std::string &,
+            int,
+            const struct track_ids &,
+            const std::string &,
+            const std::string &);
+
+    source(
+            class messageloop &,
+            class instance &,
+            const std::string &,
+            std::chrono::milliseconds,
+            const struct track_ids &,
+            const std::string &,
+            const std::string &);
+
     ~source();
 
     bool is_open() const { return player != nullptr; }
@@ -72,17 +88,29 @@ public:
     bool read(class streambuf &);
 
 private:
-    source(class instance &, const std::string &, const std::string &, const std::string &);
+    source(
+            class messageloop &,
+            class instance &,
+            const std::string &,
+            const struct track_ids &,
+            const std::string &,
+            const std::string &);
+
     void recompute_buffer_offset(std::unique_lock<std::mutex> &);
     static void callback(const libvlc_event_t *, void *);
 
 private:
+    class messageloop &messageloop;
     class instance &instance;
+    const struct track_ids track_ids;
     class media media;
     libvlc_media_player_t *player;
     libvlc_event_manager_t *event_manager;
+    int chapter;
+    std::chrono::milliseconds position;
 
     std::mutex mutex;
+    bool stream_start_pending;
     bool stream_end, stream_end_pending;
     std::set<class streambuf *> streambufs;
 
@@ -109,9 +137,14 @@ transcode_stream::~transcode_stream()
     close();
 }
 
-bool transcode_stream::open(const std::string &mrl, int chapter, const std::string &transcode, const std::string &mux)
+bool transcode_stream::open(
+        const std::string &mrl,
+        int chapter,
+        const struct track_ids &track_ids,
+        const std::string &transcode,
+        const std::string &mux)
 {
-    source = std::make_shared<class source>(instance, mrl, chapter, transcode, mux);
+    source = std::make_shared<class source>(messageloop, instance, mrl, chapter, track_ids, transcode, mux);
     if (source->is_open())
     {
         source->attach(*streambuf);
@@ -124,9 +157,14 @@ bool transcode_stream::open(const std::string &mrl, int chapter, const std::stri
     return false;
 }
 
-bool transcode_stream::open(const std::string &mrl, std::chrono::milliseconds position, const std::string &transcode, const std::string &mux)
+bool transcode_stream::open(
+        const std::string &mrl,
+        std::chrono::milliseconds position,
+        const struct track_ids &track_ids,
+        const std::string &transcode,
+        const std::string &mux)
 {
-    source = std::make_shared<class source>(instance, mrl, position, transcode, mux);
+    source = std::make_shared<class source>(messageloop, instance, mrl, position, track_ids, transcode, mux);
     if (source->is_open())
     {
         source->attach(*streambuf);
@@ -164,14 +202,21 @@ void transcode_stream::close()
 
 
 transcode_stream::source::source(
+        class messageloop &messageloop,
         class instance &instance,
         const std::string &mrl,
+        const struct track_ids &track_ids,
         const std::string &transcode,
         const std::string &mux)
-    : instance(instance),
+    : messageloop(messageloop),
+      instance(instance),
+      track_ids(track_ids),
       media(media::from_mrl(instance, mrl)),
       player(nullptr),
       event_manager(nullptr),
+      chapter(-1),
+      position(0),
+      stream_start_pending(true),
       stream_end(false),
       stream_end_pending(false),
       buffer_offset(0),
@@ -198,42 +243,49 @@ transcode_stream::source::source(
         consume_thread.reset(new std::thread(std::bind(&transcode_stream::source::consume, this)));
 
         event_manager = libvlc_media_player_event_manager(player);
+        libvlc_event_attach(event_manager, libvlc_MediaPlayerPlaying, &source::callback, this);
         libvlc_event_attach(event_manager, libvlc_MediaPlayerEndReached, &source::callback, this);
         libvlc_event_attach(event_manager, libvlc_MediaPlayerEncounteredError, &source::callback, this);
-        libvlc_media_player_play(player);
 
         std::clog << '[' << this << "] " << sout << std::endl;
     }
 }
 
 transcode_stream::source::source(
+        class messageloop &messageloop,
         class instance &instance,
         const std::string &mrl,
         int chapter,
+        const struct track_ids &track_ids,
         const std::string &transcode,
         const std::string &mux)
-      : source(instance, mrl, transcode, mux)
+      : source(messageloop, instance, mrl, track_ids, transcode, mux)
 {
+    this->chapter = chapter;
+
     if (player)
     {
-        libvlc_media_player_set_chapter(player, chapter);
+        libvlc_media_player_play(player);
 
         std::clog << '[' << this << "] opened transcode_stream " << mrl << "@Chapter " << chapter << std::endl;
     }
 }
 
 transcode_stream::source::source(
+        class messageloop &messageloop,
         class instance &instance,
         const std::string &mrl,
         std::chrono::milliseconds position,
+        const struct track_ids &track_ids,
         const std::string &transcode,
         const std::string &mux)
-      : source(instance, mrl, transcode, mux)
+      : source(messageloop, instance, mrl, track_ids, transcode, mux)
 {
+    this->position = position;
+
     if (player)
     {
-        if (position.count() > 0)
-            libvlc_media_player_set_time(player, position.count());
+        libvlc_media_player_play(player);
 
         std::clog << '[' << this << "] opened transcode_stream " << mrl << '@' << position.count() << std::endl;
     }
@@ -251,6 +303,7 @@ transcode_stream::source::~source()
 
         libvlc_event_detach(event_manager, libvlc_MediaPlayerEncounteredError, &source::callback, this);
         libvlc_event_detach(event_manager, libvlc_MediaPlayerEndReached, &source::callback, this);
+        libvlc_event_detach(event_manager, libvlc_MediaPlayerPlaying, &source::callback, this);
         libvlc_media_player_stop(player);
         libvlc_media_player_release(player);
 
@@ -410,6 +463,22 @@ void transcode_stream::source::callback(const libvlc_event_t *e, void *opaque)
 
         me->stream_end_pending = true;
         me->buffer_condition.notify_all();
+    }
+    else if (e->type == libvlc_MediaPlayerPlaying)
+    {
+        if (me->stream_start_pending)
+        {
+            me->stream_start_pending = false;
+            me->messageloop.post([me]
+            {
+                if (me->track_ids.video >= 0)   libvlc_video_set_track(me->player, me->track_ids.video);
+                if (me->track_ids.audio >= 0)   libvlc_audio_set_track(me->player, me->track_ids.audio);
+                libvlc_video_set_spu(me->player, me->track_ids.text);
+
+                if (me->chapter >= 0)           libvlc_media_player_set_chapter(me->player, me->chapter);
+                if (me->position.count() > 0)   libvlc_media_player_set_time(me->player, me->position.count());
+            });
+        }
     }
 }
 
