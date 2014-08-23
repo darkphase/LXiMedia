@@ -27,6 +27,11 @@ namespace vlc {
 class instance
 {
 public:
+    /*! returns:
+     *  <0 if the actual version is older than the specified version.
+     *   0 if the actual version equals the specified version.
+     *  >0 if the actual version is newer than the specified version.
+     */
     static int compare_version(int major, int minor = -1, int patch = -1);
 
     instance() noexcept;

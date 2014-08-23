@@ -301,6 +301,7 @@ int mediaplayer::play_item(
     {
         correct_protocol(item, protocol);
 
+        float rate = 1.0f;
         std::ostringstream transcode;
         if (!protocol.acodec.empty() || !protocol.vcodec.empty())
         {
@@ -311,8 +312,12 @@ int mediaplayer::play_item(
             {
                 transcode << protocol.vcodec;
 
-                if (std::abs(protocol.frame_rate - item.frame_rate) > 0.5f)
+                if (std::abs(protocol.frame_rate - item.frame_rate) > 0.3f)
+                {
                     transcode << ",fps=" << protocol.frame_rate;
+//                    if (std::abs(protocol.frame_rate - item.frame_rate) < 1.5f)
+//                        rate = protocol.frame_rate / item.frame_rate;
+                }
 
                 unsigned width = 0, height = 0;
                 switch (settings.canvas_mode())
@@ -432,8 +437,8 @@ int mediaplayer::play_item(
         std::clog << '[' << this << "] Creating new stream " << item.mrl << " transcode=" << transcode.str() << " mux=" << protocol.mux << std::endl;
         auto stream = std::make_shared<transcode_stream>(*this, stream_id.str(), protocol);
         if ((item.chapter > 0)
-                ? stream->open(item.mrl, item.chapter, track_ids, transcode.str(), protocol.mux)
-                : stream->open(item.mrl, item.position, track_ids, transcode.str(), protocol.mux))
+                ? stream->open(item.mrl, item.chapter, track_ids, transcode.str(), protocol.mux, rate)
+                : stream->open(item.mrl, item.position, track_ids, transcode.str(), protocol.mux, rate))
         {
             pending_transcode_streams[stream_id.str()] = stream;
             content_type = protocol.content_format;

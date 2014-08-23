@@ -43,14 +43,16 @@ public:
             int chapter,
             const struct track_ids &track_ids,
             const std::string &transcode,
-            const std::string &mux);
+            const std::string &mux,
+            float rate = 1.0f);
 
     bool open(
             const std::string &mrl,
             std::chrono::milliseconds,
             const struct track_ids &track_ids,
             const std::string &transcode,
-            const std::string &mux);
+            const std::string &mux,
+            float rate = 1.0f);
 
     bool attach(transcode_stream &);
     void close();
