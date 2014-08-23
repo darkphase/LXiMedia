@@ -522,6 +522,16 @@ static void pipe_create(int(& filedes)[2])
     if (pipe(filedes) != 0)
         throw std::runtime_error("Creating pipe failed");
 }
+#elif defined(WIN32)
+#include <fcntl.h>
+#include <io.h>
+
+static void pipe_create(int(& filedes)[2])
+{
+    if (_pipe(filedes, 65536, _O_BINARY) != 0)
+        throw std::runtime_error("Creating pipe failed");
+}
+#endif
 
 static size_t pipe_read(int filedes, void *buf, size_t nbyte)
 {
@@ -533,4 +543,3 @@ static void pipe_close(int &filedes)
     close(filedes);
     filedes = 0;
 }
-#endif

@@ -29,4 +29,9 @@ std::string to_lower(const std::string &);
 std::string from_base64(const std::string &);
 std::string to_base64(const std::string &, bool pad = false);
 
+#ifdef WIN32
+std::wstring to_windows_path(const std::string &);
+std::string from_windows_path(const std::wstring &);
+#endif
+
 #endif

@@ -259,4 +259,45 @@ static std::string make_uuid()
 
     return result;
 }
+
+#elif defined(WIN32)
+
+#ifndef TEST_H
+#include <cstdlib>
+
+static std::string filename()
+{
+    static const char conffile[] = "\\LeX-Interactive\\LXiMediaCenter.conf";
+
+    const char * const appdata = getenv("APPDATA");
+    if (appdata)
+        return std::string(appdata) + conffile;
+
+    return std::string();
+}
+#endif // TEST_H
+
+#include <rpc.h>
+
+static std::string make_uuid()
+{
+    UUID uuid;
+    if (UuidCreate(&uuid) == RPC_S_UUID_NO_ADDRESS)
+    {
+        uuid.Data1 = (rand() << 16) ^ rand();
+        uuid.Data2 = rand();
+        uuid.Data3 = rand();
+        for (auto &i : uuid.Data4) i = rand();
+    }
+
+    RPC_CSTR rpc_string;
+    if (UuidToStringA(&uuid, &rpc_string) != RPC_S_OK)
+        throw std::runtime_error("out of memory");
+
+    const std::string result = reinterpret_cast<const char *>(rpc_string);
+    RpcStringFree(&rpc_string);
+
+    return result;
+}
+
 #endif

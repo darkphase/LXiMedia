@@ -50,4 +50,16 @@ static std::string filename()
 {
     return "/tmp/" + std::to_string(getpid()) + ".settings_test.ini";
 }
+#elif defined(WIN32)
+#include <cstdlib>
+#include <process.h>
+
+static std::string filename()
+{
+    const char * const temp = getenv("TEMP");
+    if (temp)
+        return std::string(temp) + '\\'  + std::to_string(_getpid()) + ".settings_test.ini";
+
+    throw std::runtime_error("failed to get TEMP directory");
+}
 #endif

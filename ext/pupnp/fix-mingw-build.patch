@@ -1,5 +1,5 @@
 --- ixml/src/ixmlparser.c	2013-11-15 17:01:35.000000000 +0100
-+++ ixml/src/ixmlparser.c	2014-02-12 22:05:31.291516810 +0100
++++ ixml/src/ixmlparser.c	2014-08-23 19:51:15.307905008 +0200
 @@ -49,8 +49,8 @@
  #include <string.h>
  
@@ -12,7 +12,7 @@
  
  
 --- threadutil/inc/ThreadPool.h	2012-03-26 18:49:42.000000000 +0200
-+++ threadutil/inc/ThreadPool.h	2014-02-12 22:05:31.291516810 +0100
++++ threadutil/inc/ThreadPool.h	2014-08-23 19:51:15.307905008 +0200
 @@ -47,12 +47,16 @@
  
  #ifdef WIN32
@@ -37,8 +37,17 @@
  	#include <sys/param.h>
  	#include <sys/time.h> /* for gettimeofday() */
 --- threadutil/src/ThreadPool.c	2012-04-03 15:01:15.000000000 +0200
-+++ threadutil/src/ThreadPool.c	2014-02-12 22:06:06.279517810 +0100
-@@ -415,12 +415,14 @@
++++ threadutil/src/ThreadPool.c	2014-08-23 19:51:45.579905906 +0200
+@@ -263,8 +263,6 @@
+ #elif defined(__OSX__) || defined(__APPLE__) || defined(__NetBSD__)
+ 	setpriority(PRIO_PROCESS, 0, 0);
+ 	retVal = 0;
+-#elif defined(WIN32)
+-	retVal = sched_setscheduler(0, in);
+ #elif defined(_POSIX_PRIORITY_SCHEDULING) && _POSIX_PRIORITY_SCHEDULING > 0
+ 	struct sched_param current;
+ 	int sched_result;
+@@ -415,12 +413,14 @@
  	struct timeval t;
    
  	gettimeofday(&t, NULL);
@@ -55,7 +64,7 @@
  #else
  	{
  		volatile union {
-@@ -651,11 +653,7 @@
+@@ -651,11 +651,7 @@
  	rc = ithread_create(&temp, &attr, WorkerThread, tp);
  	ithread_attr_destroy(&attr);
  	if (rc == 0) {
@@ -68,8 +77,23 @@
  		tp->pendingWorkerThreadStart = 1;
  		/* wait until the new worker thread starts */
  		while (tp->pendingWorkerThreadStart) {
+--- upnp/inc/upnp.h	2013-11-15 17:01:35.000000000 +0100
++++ upnp/inc/upnp.h	2014-08-23 19:51:15.311905008 +0200
+@@ -52,9 +52,9 @@
+  */
+ #ifdef WIN32
+ 	#include <time.h>
+-	#ifdef UPNP_USE_MSVCPP
+-		#include <sys/types.h>	/* needed for off_t */
+-	#endif
++        #if defined(UPNP_USE_MSVCPP) || (defined(__GNUC__) && (__GNUC__ >= 4))
++                #include <sys/types.h>	/* needed for off_t */
++        #endif
+ #elif (defined(BSD) && BSD >= 199306)
+ 	#include <time.h>
+ #else
 --- upnp/inc/UpnpInet.h	2012-03-26 18:49:42.000000000 +0200
-+++ upnp/inc/UpnpInet.h	2014-02-12 22:05:31.291516810 +0100
++++ upnp/inc/UpnpInet.h	2014-08-23 19:51:15.311905008 +0200
 @@ -15,14 +15,15 @@
  
  #ifdef WIN32
@@ -92,34 +116,8 @@
  
  	#define UpnpCloseSocket closesocket
  
---- upnp/inc/upnp.h	2013-11-15 17:01:35.000000000 +0100
-+++ upnp/inc/upnp.h	2014-02-12 22:05:31.291516810 +0100
-@@ -52,9 +52,9 @@
-  */
- #ifdef WIN32
- 	#include <time.h>
--	#ifdef UPNP_USE_MSVCPP
--		#include <sys/types.h>	/* needed for off_t */
--	#endif
-+        #if defined(UPNP_USE_MSVCPP) || (defined(__GNUC__) && (__GNUC__ >= 4))
-+                #include <sys/types.h>	/* needed for off_t */
-+        #endif
- #elif (defined(BSD) && BSD >= 199306)
- 	#include <time.h>
- #else
---- upnp/src/api/UpnpString.c	2012-03-26 18:49:42.000000000 +0200
-+++ upnp/src/api/UpnpString.c	2014-02-12 22:05:31.291516810 +0100
-@@ -22,7 +22,7 @@
- #include <stdlib.h> /* for calloc(), free() */
- #include <string.h> /* for strlen(), strdup() */
- 
--#ifdef WIN32
-+#if defined(WIN32) && (!defined(__GNUC__) || (__GNUC__ < 4))
- 	#define strcasecmp stricmp
- #else
- 	/* Other systems have strncasecmp */
 --- upnp/src/api/upnpapi.c	2013-11-15 17:01:35.000000000 +0100
-+++ upnp/src/api/upnpapi.c	2014-02-12 22:05:31.291516810 +0100
++++ upnp/src/api/upnpapi.c	2014-08-23 19:51:15.319905008 +0200
 @@ -3264,7 +3264,7 @@
  		}
  		if (ifname_found == 0) {
@@ -140,8 +138,19 @@
  			 * Partial fix for VC - friendly name is wchar string,
  			 * but currently gIF_NAME is char string. For now try
  			 * to convert it, which will work with many (but not
+--- upnp/src/api/UpnpString.c	2012-03-26 18:49:42.000000000 +0200
++++ upnp/src/api/UpnpString.c	2014-08-23 19:51:15.315905008 +0200
+@@ -22,7 +22,7 @@
+ #include <stdlib.h> /* for calloc(), free() */
+ #include <string.h> /* for strlen(), strdup() */
+ 
+-#ifdef WIN32
++#if defined(WIN32) && (!defined(__GNUC__) || (__GNUC__ < 4))
+ 	#define strcasecmp stricmp
+ #else
+ 	/* Other systems have strncasecmp */
 --- upnp/src/gena/gena_device.c	2013-11-15 17:01:35.000000000 +0100
-+++ upnp/src/gena/gena_device.c	2014-02-12 22:05:31.295516810 +0100
++++ upnp/src/gena/gena_device.c	2014-08-23 19:51:15.319905008 +0200
 @@ -189,7 +189,7 @@
  		destination_url->hostport.text.buff);
  
@@ -152,7 +161,7 @@
  		return UPNP_E_SOCKET_CONNECT;
  	ret_code = sock_init(&info, conn_fd);
 --- upnp/src/genlib/net/http/httpreadwrite.c	2013-11-15 17:01:35.000000000 +0100
-+++ upnp/src/genlib/net/http/httpreadwrite.c	2014-02-12 22:05:31.295516810 +0100
++++ upnp/src/genlib/net/http/httpreadwrite.c	2014-08-23 19:51:15.319905008 +0200
 @@ -58,8 +58,10 @@
  
  #ifdef WIN32
@@ -167,7 +176,7 @@
  	#include <arpa/inet.h>
  	#include <sys/types.h>
 --- upnp/src/inc/upnputil.h	2012-04-29 00:32:06.000000000 +0200
-+++ upnp/src/inc/upnputil.h	2014-02-12 22:05:31.295516810 +0100
++++ upnp/src/inc/upnputil.h	2014-08-23 19:51:15.319905008 +0200
 @@ -126,8 +126,10 @@
  		#ifndef EADDRINUSE		/* VS2010 has this defined */
  			#define EADDRINUSE		WSAEADDRINUSE
@@ -182,7 +191,7 @@
  		#define usleep(a)		Sleep((a)/1000)
  		#define strerror_r(a,b,c)	(strerror_s((b),(c),(a)))
 --- upnp/src/inc/uri.h	2012-03-26 18:49:42.000000000 +0200
-+++ upnp/src/inc/uri.h	2014-02-12 22:05:31.295516810 +0100
++++ upnp/src/inc/uri.h	2014-08-23 19:51:15.319905008 +0200
 @@ -60,8 +60,8 @@
  	#include <netdb.h>      /* for struct addrinfo */
  #endif

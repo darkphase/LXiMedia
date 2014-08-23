@@ -430,7 +430,7 @@ void content_directory::initialize(void)
 {
     using namespace std::placeholders;
 
-    auto updateid = ::time(nullptr);
+    uint32_t updateid = uint32_t(::time(nullptr));
     if (updateid == system_update_id)
         updateid++;
 
