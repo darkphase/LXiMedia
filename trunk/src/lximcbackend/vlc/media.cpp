@@ -18,6 +18,7 @@
 #include "media.h"
 #include "instance.h"
 #include <vlc/vlc.h>
+#include <algorithm>
 #include <cassert>
 #include <chrono>
 #include <condition_variable>
@@ -45,7 +46,13 @@ std::map<std::string, std::shared_ptr<media::parsed_data>> media::parsed_data::c
 
 media media::from_file(class instance &instance, const std::string &path) noexcept
 {
+#if defined(__unix__)
     return libvlc_media_new_path(instance, path.c_str());
+#elif defined(WIN32)
+    std::string bspath = path;
+    std::replace(bspath.begin(), bspath.end(), '/', '\\');
+    return libvlc_media_new_path(instance, bspath.c_str());
+#endif
 }
 
 media media::from_mrl(class instance &instance, const std::string &mrl) noexcept

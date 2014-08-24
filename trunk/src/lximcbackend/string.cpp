@@ -154,6 +154,4 @@ std::string from_windows_path(const std::wstring &src)
 
     return dst;
 }
-
 #endif
-

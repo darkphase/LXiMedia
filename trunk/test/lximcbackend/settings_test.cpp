@@ -53,12 +53,13 @@ static std::string filename()
 #elif defined(WIN32)
 #include <cstdlib>
 #include <process.h>
+#include "lximcbackend/string.h"
 
 static std::string filename()
 {
-    const char * const temp = getenv("TEMP");
+    const wchar_t * const temp = _wgetenv(L"TEMP");
     if (temp)
-        return std::string(temp) + '\\'  + std::to_string(_getpid()) + ".settings_test.ini";
+        return from_windows_path(std::wstring(temp) + L'\\' + std::to_wstring(_getpid()) + L".settings_test.ini");
 
     throw std::runtime_error("failed to get TEMP directory");
 }
