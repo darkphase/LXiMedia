@@ -2,7 +2,7 @@ fieldset {
  padding: 0.5em;
  margin: 0 0.5em 0.5em 0.5em;
  border: 1px dotted #808080;
- width: 40em;
+ width: 45em;
  float: left;
 }
 legend {
@@ -24,17 +24,34 @@ table {
  padding: 0;
  margin: 0;
  border: none;
+ width: 100%;
+}
+tr {
+ padding: 0;
+ margin: 0;
 }
 td {
- padding: 0.2em;
- margin: 0.2em;
+ padding: 0;
+ margin: 0;
  vertical-align: middle;
 }
-td.top {
- padding: 0.2em;
- margin: 0.2em;
- vertical-align: top;
-}
-p.buttons {
+td.right {
+ padding: 0;
+ margin: 0;
+ vertical-align: middle;
  text-align: right;
 }
+p.buttons {
+ padding: 0;
+ margin: 0;
+ text-align: right;
+}
+p.bug {
+ font-size: 0.75em;
+ font-style: italic;
+ color: #808080;
+}
+.bug a:link      { color: #808080; text-decoration: underline; }
+.bug a:visited   { color: #808080; text-decoration: underline; }
+.bug a:active    { color: #808080; text-decoration: underline; }
+.bug a:hover     { color: #808080; text-decoration: underline; }

@@ -19,12 +19,17 @@
 #include "../settings.h"
 #include "../string.h"
 #include "../translator.h"
+#include <algorithm>
+#include <sstream>
 
 static const char settings_css[] = {
 #include "settings.css.h"
 }, settings_svg[] = {
 #include "settings.svg.h"
 };
+
+static std::vector<std::string> list_root_directories();
+static std::vector<std::string> list_directories(const std::string &);
 
 namespace html {
 
@@ -53,7 +58,7 @@ settingspage::~settingspage()
 
 static const char * is_enabled(bool enabled)
 {
-    return enabled ? "" : " disabled";
+    return enabled ? "" : " disabled=\"disabled\"";
 }
 
 static const char * is_checked(bool checked)
@@ -68,7 +73,7 @@ static const char * is_selected(bool selected)
 
 static void render_http_settings(const class settings &settings, std::ostream &out)
 {
-    out << "<fieldset id=\"httpserver\">"
+    out << "<fieldset>"
            "<legend>" << tr("Server") << "</legend>"
            "<p>" << tr("This configures the internal server. By default, the server only binds "
                        "local/private networks (i.e. 10.0.0.0/8, 127.0.0.0/8, 169.254.0.0/16, "
@@ -88,8 +93,7 @@ static void render_http_settings(const class settings &settings, std::ostream &o
 //           "<p><input type=\"checkbox\" name=\"allowshutdown\" value=\"on\" {ALLOWSHUTDOWN} />{TR_ALLOW_SHUTDOWN}</p>"
 //           "<p><input type=\"checkbox\" name=\"republishrootdevice\" value=\"on\" {REPUBLISHROOTDEVICE} />{TR_REPUBLISH_ROOTDEVICE}</p>"
            "<p class=\"buttons\"><input type=\"submit\" name=\"save\" value=\"" << tr("Save") << "\" /></p>"
-           "</form>\n"
-           "</fieldset>\n";
+           "</form></fieldset>";
 }
 
 static void save_http_settings(class settings &settings, const std::map<std::string, std::string> &query)
@@ -112,7 +116,7 @@ static void save_http_settings(class settings &settings, const std::map<std::str
 
 static void render_dlna_settings(const class settings &settings, std::ostream &out)
 {
-    out << "<fieldset id=\"httpserver\">"
+    out << "<fieldset>"
            "<legend>" << tr("DLNA") << "</legend>"
            "<p>" << tr("This form will allow adjustment of the transcode settings for the DLNA "
                        "clients. Note that higher settings require more CPU power and more "
@@ -120,28 +124,41 @@ static void render_dlna_settings(const class settings &settings, std::ostream &o
            "<form name=\"dlnasettings\" action=\"/settings\" method=\"get\">"
            "<input type=\"hidden\" name=\"save_settings\" value=\"dlna\" />"
            "<p>" << tr("Video settings") << ":</p>"
-           "<p><select name=\"encode_mode\">\n"
+           "<p><select name=\"encode_mode\">"
            "<option value=\"slow\""         << is_selected(settings.encode_mode() == encode_mode::slow      ) << ">" << tr("Slow; High-quality") << "</option>"
            "<option value=\"fast\""         << is_selected(settings.encode_mode() == encode_mode::fast      ) << ">" << tr("Fast; Lower-quality") << "</option>"
-           "</select><select name=\"video_mode\">\n"
+           "</select><select name=\"video_mode\">"
            "<option value=\"auto\""         << is_selected(settings.video_mode() == video_mode::auto_       ) << ">" << tr("Automatic") << "</option>"
            "<option value=\"vcd\""          << is_selected(settings.video_mode() == video_mode::vcd         ) << ">" << tr("Video-CD; 288p") << "</option>"
            "<option value=\"dvd\""          << is_selected(settings.video_mode() == video_mode::dvd         ) << ">" << tr("DVD; 576p") << "</option>"
            "<option value=\"hdtv_720\""     << is_selected(settings.video_mode() == video_mode::hdtv_720    ) << ">" << tr("HDTV; 720p") << "</option>"
            "<option value=\"hdtv_1080\""    << is_selected(settings.video_mode() == video_mode::hdtv_1080   ) << ">" << tr("HDTV; 1080p") << "</option>"
-           "</select><select name=\"canvas_mode\"" << is_enabled(settings.canvas_mode_enabled()) << ">\n"
+           "</select><select name=\"canvas_mode\"" << is_enabled(settings.canvas_mode_enabled()) << ">"
            "<option value=\"none\""         << is_selected(settings.canvas_mode() == canvas_mode::none      ) << ">" << tr("None") << "</option>"
            "<option value=\"pad\""          << is_selected(settings.canvas_mode() == canvas_mode::pad       ) << ">" << tr("Add black bars") << "</option>"
            "<option value=\"crop\""         << is_selected(settings.canvas_mode() == canvas_mode::crop      ) << ">" << tr("Crop video") << "</option>"
-           "</select></p>\n"
-           "<p>" << tr("Audio settings") << ":</p>"
-           "<p><select name=\"surround_mode\"" << is_enabled(settings.surround_mode_enabled()) << ">\n"
+           "</select></p>";
+
+    if (!settings.canvas_mode_enabled())
+    {
+        out << "<p class=\"bug\">Adding black bars or cropping video is disabled due to a "
+               "<a href=\"https://trac.videolan.org/vlc/ticket/10148\">bug</a> in the current VLC version.</p>";
+    }
+
+    out << "<p>" << tr("Audio settings") << ":</p>"
+           "<p><select name=\"surround_mode\"" << is_enabled(settings.surround_mode_enabled()) << ">"
            "<option value=\"stereo\""       << is_selected(settings.surround_mode() == surround_mode::stereo    ) << ">" << tr("Stereo") << "</option>"
            "<option value=\"surround51\""   << is_selected(settings.surround_mode() == surround_mode::surround51) << ">" << tr("5.1 surround") << "</option>"
-           "</select></p>\n"
-           "<p class=\"buttons\"><input type=\"submit\" name=\"save\" value=\"" << tr("Save") << "\" /></p>"
-           "</form>\n"
-           "</fieldset>\n";
+           "</select></p>";
+
+    if (!settings.surround_mode_enabled())
+    {
+        out << "<p class=\"bug\">Surround audio encoding is disabled due to a "
+               "<a href=\"https://trac.videolan.org/vlc/ticket/1897\">bug</a> in the current VLC version.</p>";
+    }
+
+    out << "<p class=\"buttons\"><input type=\"submit\" name=\"save\" value=\"" << tr("Save") << "\" /></p>"
+           "</form></fieldset>";
 }
 
 static void save_dlna_settings(class settings &settings, const std::map<std::string, std::string> &query)
@@ -179,6 +196,153 @@ static void save_dlna_settings(class settings &settings, const std::map<std::str
     }
 }
 
+static void render_path_box(const std::string &full_path, const std::string &current, size_t index, std::ostream &out)
+{
+    const std::vector<std::string> items = full_path.empty() ? list_root_directories() : list_directories(full_path);
+    if (!items.empty())
+    {
+        out << "<select name=\"append_path_" << index << "\" onchange='if(this.value != 0) { this.form.submit(); }'>";
+
+        if (current.empty() || (std::find(items.begin(), items.end(), current) == items.end()))
+            out << "<option value=\"\" disabled=\"disabled\" selected=\"selected\" style=\"display:none;\"></option>";
+
+        for (auto &i : items)
+        {
+            std::string pct = to_percent(i);
+            std::replace(pct.begin(), pct.end(), '%', '_');
+            out << "<option value=\"" << pct << "\"" << is_selected(current == i) << ">" << escape_xml(i) << "</option>";
+        }
+        out << "</select>";
+    }
+}
+
+static void render_path_settings(const std::map<std::string, std::string> &query, const class settings &settings, std::ostream &out)
+{
+    out << "<fieldset>"
+           "<legend>" << tr("Folders") << "</legend>"
+           "<p>"
+           << tr("By default, the LXiMediaCenter backend (lximcbackend) runs as a restricted user.") << ' '
+#if defined(__unix__)
+           << tr("The user and group \"lximediacenter\" were created during installation for this purpose.") << ' '
+#elif defined(WIN32)
+           << tr("The \"Local Service\" user is used for this purpose.") << ' '
+#endif
+           << tr("This means that all files that need to be accessed by LXiMediaCenter, need to be accessible by this user.") << ' '
+#if defined(__unix__)
+           << tr("This can be done by setting the read permission for \"other\" users on the files and directories "
+                 "that need to be accessed by the LXiMediaCenter backend.") << ' '
+#elif defined(WIN32)
+           << tr("This can be done by adding \"Everyone\" with the read permission set to the files and directories "
+                 "that need to be accessed by the LXiMediaCenter backend.") << ' '
+#endif
+           << tr("Furthermore, certain system directories can not be selected to prevent security issues.")
+           << "</p>"
+           "<form name=\"pathsettings\" action=\"/settings\" method=\"get\">"
+           "<input type=\"hidden\" name=\"save_settings\" value=\"path\" />"
+           "<table>";
+
+    const auto paths = settings.root_paths();
+    for (size_t i = 0, n = paths.size(); i < n; i++)
+    {
+        out << "<tr><td><input type=\"text\" size=\"40\" name=\"path_" << i << "\" disabled=\"disabled\" "
+               "value=\"" << escape_xml(paths[i].path) << "\" /></td>";
+        out << "<td class=\"right\"><select name=\"path_type_" << i << "\">"
+               "<option value=\"auto\""     << is_selected(paths[i].type == path_type::auto_) << ">" << tr("Automatic") << "</option>"
+               "<option value=\"music\""    << is_selected(paths[i].type == path_type::music) << ">" << tr("Music") << "</option>"
+               "</select><input type=\"submit\" name=\"remove_" << i << "\" value=\"" << tr("Remove") << "\" /></td></tr>";
+    }
+
+    out << "</table><table><tr><td>";
+
+#if defined(__unix__)
+    std::string full_path = "/";
+#elif defined(WIN32)
+    std::string full_path;
+#endif
+    for (size_t i = 0;; i++)
+    {
+        auto path_type = query.find("append_path_" + std::to_string(i));
+        if ((path_type != query.end()) && (query.find("append") == query.end()))
+        {
+            std::string pct = path_type->second;
+            std::replace(pct.begin(), pct.end(), '_', '%');
+            const std::string current = from_percent(pct);
+
+            render_path_box(full_path, current, i, out);
+            full_path += current;
+        }
+        else
+        {
+            render_path_box(full_path, std::string(), i, out);
+            break;
+        }
+    }
+
+    out << "</td><td class=\"right\"><input type=\"submit\" name=\"append\" value=\"" << tr("Append") << "\" /></td></tr>"
+           "</table><p class=\"buttons\"><input type=\"submit\" name=\"save\" value=\"" << tr("Save") << "\" /></p>"
+           "</form></fieldset>";
+}
+
+static void save_path_settings(class settings &settings, const std::map<std::string, std::string> &query)
+{
+    auto paths = settings.root_paths();
+    bool dirty = false;
+
+    for (size_t i = 0, n = paths.size(); i < n; i++)
+    {
+        auto path_type = query.find("path_type_" + std::to_string(i));
+        if (path_type != query.end())
+        {
+            if      (path_type->second == "auto"    ) paths[i].type = ::path_type::auto_;
+            else if (path_type->second == "music"   ) paths[i].type = ::path_type::music;
+
+            dirty = true;
+        }
+    }
+
+    for (size_t i = 0, n = paths.size(); i < n; i++)
+    {
+        auto remove = query.find("remove_" + std::to_string(i));
+        if (remove != query.end())
+        {
+            paths.erase(paths.begin() + i);
+            dirty = true;
+            break;
+        }
+    }
+
+    auto append = query.find("append");
+    if (append != query.end())
+    {
+#if defined(__unix__)
+        std::string full_path = "/";
+#elif defined(WIN32)
+        std::string full_path;
+#endif
+        for (size_t i = 0;; i++)
+        {
+            auto path_type = query.find("append_path_" + std::to_string(i));
+            if (path_type != query.end())
+            {
+                std::string pct = path_type->second;
+                std::replace(pct.begin(), pct.end(), '_', '%');
+                full_path += from_percent(pct);
+            }
+            else if (i > 0)
+            {
+                paths.emplace_back(root_path { ::path_type::auto_, full_path });
+                dirty = true;
+                break;
+            }
+            else
+                break;
+        }
+    }
+
+    if (dirty)
+        settings.set_root_paths(paths);
+}
+
 int settingspage::render_page(const struct pupnp::upnp::request &request, std::ostream &out)
 {
     const auto save = request.url.query.find("save_settings");
@@ -186,12 +350,96 @@ int settingspage::render_page(const struct pupnp::upnp::request &request, std::o
     {
         if      (save->second == "http") save_http_settings(settings, request.url.query);
         else if (save->second == "dlna") save_dlna_settings(settings, request.url.query);
+        else if (save->second == "path") save_path_settings(settings, request.url.query);
     }
 
     render_http_settings(settings, out);
     render_dlna_settings(settings, out);
+    render_path_settings(request.url.query, settings, out);
 
     return pupnp::upnp::http_ok;
 }
 
 }
+
+#if defined(__unix__)
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <dirent.h>
+
+static std::vector<std::string> list_root_directories()
+{
+    return list_directories("/");
+}
+
+static std::vector<std::string> list_directories(const std::string &path)
+{
+    std::multimap<std::string, std::string> dirs;
+
+    auto dir = ::opendir(path.c_str());
+    if (dir)
+    {
+        for (auto dirent = ::readdir(dir); dirent; dirent = ::readdir(dir))
+        {
+            struct stat stat;
+            if ((dirent->d_name[0] != '.') &&
+                (::stat((path + '/' + dirent->d_name).c_str(), &stat) == 0))
+            {
+                std::string name = dirent->d_name, lname = to_lower(name);
+                if (S_ISDIR(stat.st_mode) &&
+                    (lname != "@eadir"))
+                {
+                    dirs.emplace(std::move(lname), name + '/');
+                }
+            }
+        }
+
+        ::closedir(dir);
+    }
+
+    std::vector<std::string> result;
+    result.reserve(dirs.size());
+    for (auto &i : dirs) result.emplace_back(std::move(i.second));
+    return result;
+}
+#elif defined(WIN32)
+#include <windows.h>
+
+static std::vector<std::string> list_root_directories()
+{
+    TODO
+}
+
+static std::vector<std::string> list_directories(const std::string &path)
+{
+    std::multimap<std::string, std::string> dirs;
+
+    std::wstring wpath = to_windows_path(path);
+    WIN32_FIND_DATAW find_data;
+    HANDLE handle = FindFirstFileW((wpath + L"\\*").c_str(), &find_data);
+    if (handle != INVALID_HANDLE_VALUE)
+    {
+        do
+        {
+            struct __stat64 stat;
+            if ((find_data.cFileName[0] != L'.') &&
+                (::_wstat64((wpath + L'/' + find_data.cFileName).c_str(), &stat) == 0))
+            {
+                std::string name = from_windows_path(find_data.cFileName), lname = to_lower(name);
+                if ((find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) &&
+                    (lname != "@eadir"))
+                {
+                    dirs.emplace(std::move(lname), name + '/');
+                }
+            }
+        } while(FindNextFileW(handle, &find_data) != 0);
+
+        CloseHandle(handle);
+    }
+
+    std::vector<std::string> result;
+    result.reserve(dirs.size());
+    for (auto &i : dirs) result.emplace_back(std::move(i.second));
+    return result;
+}
+#endif
