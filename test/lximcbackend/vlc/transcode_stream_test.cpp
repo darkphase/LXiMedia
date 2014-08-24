@@ -38,7 +38,8 @@ static const struct transcode_stream_test
         const std::string outfile = filename("output.ts");
         {
             struct transcode_stream::track_ids track_ids;
-            for (auto &track : media::from_file(instance, infile).tracks())
+            const class media media = media::from_file(instance, infile);
+            for (auto &track : media.tracks())
                 switch (track.type)
                 {
                 case media::track_type::unknown: break;
@@ -57,7 +58,7 @@ static const struct transcode_stream_test
                         "acodec=mpga"
                         "}";
 
-                test_assert(transcode_stream.open("file://" + infile, 0, track_ids, transcode_nocroppadd, "ts"));
+                test_assert(transcode_stream.open(media.mrl(), 0, track_ids, transcode_nocroppadd, "ts"));
             }
             else
             {
@@ -67,7 +68,7 @@ static const struct transcode_stream_test
                         "acodec=mpga"
                         "}";
 
-                test_assert(transcode_stream.open("file://" + infile, 0, track_ids, transcode, "ts"));
+                test_assert(transcode_stream.open(media.mrl(), 0, track_ids, transcode, "ts"));
             }
 
             std::ofstream out(outfile, std::ios::binary);
@@ -119,12 +120,13 @@ static std::string filename(const char *file)
 #elif defined(WIN32)
 #include <cstdlib>
 #include <process.h>
+#include "lximcbackend/string.h"
 
 static std::string filename(const char *file)
 {
-    const char * const temp = getenv("TEMP");
+    const wchar_t * const temp = _wgetenv(L"TEMP");
     if (temp)
-        return std::string(temp) + '\\'  + std::to_string(_getpid()) + '.' + file;
+        return from_windows_path(std::wstring(temp) + L'\\' + std::to_wstring(_getpid()) + L'.' + to_windows_path(file));
 
     throw std::runtime_error("failed to get TEMP directory");
 }

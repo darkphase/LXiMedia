@@ -52,6 +52,12 @@ static const struct messageloop_test
     struct test timer_test;
     static void timer()
     {
+#if defined(__unix__)
+        static const int granularity = 8;
+#elif defined(WIN32)
+        static const int granularity = 32;
+#endif
+
         class messageloop messageloop;
 
         int test = 0;
@@ -59,9 +65,9 @@ static const struct messageloop_test
         class timer timer_2(messageloop, [&test, &timer_1] { test++; timer_1.stop(); });
         class timer timer_3(messageloop, [&messageloop] { messageloop.stop(123); });
 
-        timer_1.start(std::chrono::milliseconds(16));
-        timer_2.start(std::chrono::milliseconds(40), true);
-        timer_3.start(std::chrono::milliseconds(96), true);
+        timer_1.start(std::chrono::milliseconds(granularity * 2));
+        timer_2.start(std::chrono::milliseconds(granularity * 5), true);
+        timer_3.start(std::chrono::milliseconds(granularity * 12), true);
 
         std::chrono::steady_clock clock;
         const auto start = clock.now();
@@ -71,7 +77,7 @@ static const struct messageloop_test
         test_assert(test == 3);
 
         const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
-        test_assert(duration.count() > 80);
-        test_assert(duration.count() < 112);
+        test_assert(duration.count() > granularity * 8);
+        test_assert(duration.count() < granularity * 14);
     }
 } messageloop_test;
