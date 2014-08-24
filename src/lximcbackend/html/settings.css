@@ -1,0 +1,35 @@
+fieldset {
+ padding: 0.5em;
+ margin: 0 0.5em 0.5em 0.5em;
+ border: 1px dotted #808080;
+}
+legend {
+ padding: 0.2em 0.5em;
+ margin: 0;
+ font-weight: bold;
+ border: 1px solid #808080;
+}
+input {
+ border: 1px solid #000000;
+}
+select {
+ border: 1px solid #000000;
+}
+iframe {
+ border: 1px solid #000000;
+}
+table {
+ padding: 0;
+ margin: 0;
+ border: none;
+}
+td {
+ padding: 0.2em;
+ margin: 0.2em;
+ vertical-align: middle;
+}
+td.top {
+ padding: 0.2em;
+ margin: 0.2em;
+ vertical-align: top;
+}

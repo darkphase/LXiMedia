@@ -39,7 +39,11 @@ public:
 
     std::string uuid();
     std::string devicename() const;
+    void set_devicename(const std::string &);
     uint16_t http_port() const;
+    void set_http_port(uint16_t);
+    bool bindallnetworks() const;
+    void set_bindallnetworks(bool);
 
     enum encode_mode encode_mode() const;
     enum canvas_mode canvas_mode() const;
@@ -52,6 +56,7 @@ private:
     void save();
     std::string read(const std::string &, const std::string &, const std::string &) const;
     void write(const std::string &, const std::string &, const std::string &);
+    void erase(const std::string &, const std::string &);
 
 private:
     class messageloop &messageloop;

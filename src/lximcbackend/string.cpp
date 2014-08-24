@@ -17,7 +17,10 @@
 
 #include "string.h"
 #include <algorithm>
+#include <cstdlib>
 #include <cstring>
+#include <iomanip>
+#include <sstream>
 
 bool starts_with(const std::string &text, const std::string &find)
 {
@@ -121,6 +124,66 @@ std::string to_base64(const std::string &input, bool pad)
     }
 
     return result;
+}
+
+std::string from_percent(const std::string &input)
+{
+    std::string result;
+    result.reserve(input.size());
+
+    for (size_t i = 0, n = input.length(); i < n; i++)
+    {
+        const char c = input[i];
+        if (c != '%')
+        {
+            result.push_back((c != '+') ? c : ' ');
+        }
+        else if (i + 2 < n)
+        {
+            const char h[3] = { input[i + 1], input[i + 2], 0 };
+            result.push_back(char(::strtol(h, nullptr, 16)));
+            i += 2;
+        }
+        else
+            break;
+    }
+
+    return result;
+}
+
+std::string to_percent(const std::string &input)
+{
+    std::ostringstream result;
+    result << std::hex << std::uppercase << std::setfill('0');
+
+    for (size_t i = 0, n = input.length(); i < n; i++)
+    {
+        const char c = input[i];
+        if (((c >= 'A') && (c <= 'Z')) || ((c >= 'a') && (c <= 'z')) ||
+            ((c >= '0') && (c <= '9')))
+        {
+            result << c;
+        }
+        else
+            result << '%' << std::setw(2) << (unsigned(c) & 0xFF);
+    }
+
+    return result.str();
+}
+
+std::string escape_xml(const std::string &input)
+{
+    std::ostringstream result;
+
+    for (auto i : input)
+    {
+        if      (i == '&') result << "&amp;";
+        else if (i == '"') result << "&quot;";
+        else if (i == '<') result << "&lt;";
+        else               result << i;
+    }
+
+    return result.str();
 }
 
 #ifdef WIN32

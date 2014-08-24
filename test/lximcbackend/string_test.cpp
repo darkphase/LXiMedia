@@ -14,6 +14,12 @@ static const char base64_ref[] =
         "dWVkIGFuZCBpbmRlZmF0aWdhYmxlIGdlbmVyYXRpb24gb2Yga25vd2xlZGdlLCBleGNlZWRzIHRo"
         "ZSBzaG9ydCB2ZWhlbWVuY2Ugb2YgYW55IGNhcm5hbCBwbGVhc3VyZS4=";
 
+static const char percent_src[] = "Dogs, Cats & Mice";
+static const char percent_ref[] = "Dogs%2C%20Cats%20%26%20Mice";
+
+static const char escape_xml_src[] = "\"Hello <&> World\"";
+static const char escape_xml_ref[] = "&quot;Hello &lt;&amp;> World&quot;";
+
 static const struct string_test
 {
     string_test()
@@ -22,7 +28,10 @@ static const struct string_test
           to_upper_test("string::to_upper", &string_test::to_upper),
           to_lower_test("string::to_lower", &string_test::to_lower),
           to_base64_test("string::to_base64", &string_test::to_base64),
-          from_base64_test("string::from_base64", &string_test::from_base64)
+          from_base64_test("string::from_base64", &string_test::from_base64),
+          to_percent_test("string::to_percent", &string_test::to_percent),
+          from_percent_test("string::from_percent", &string_test::from_percent),
+          escape_xml_test("string::escape_xml", &string_test::escape_xml)
     {
     }
 
@@ -64,5 +73,26 @@ static const struct string_test
     {
         const std::string result = ::from_base64(base64_ref);
         test_assert(result == base64_src);
+    }
+
+    struct test to_percent_test;
+    static void to_percent()
+    {
+        const std::string result = ::to_percent(percent_src);
+        test_assert(result == percent_ref);
+    }
+
+    struct test from_percent_test;
+    static void from_percent()
+    {
+        const std::string result = ::from_percent(percent_ref);
+        test_assert(result == percent_src);
+    }
+
+    struct test escape_xml_test;
+    static void escape_xml()
+    {
+        const std::string result = ::escape_xml(escape_xml_src);
+        test_assert(result == escape_xml_ref);
     }
 } string_test;
