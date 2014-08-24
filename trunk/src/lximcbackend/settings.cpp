@@ -181,46 +181,168 @@ static const char * to_string(encode_mode e)
     return nullptr;
 }
 
-static encode_mode from_string(const std::string &e)
+static encode_mode to_encode_mode(const std::string &e)
 {
-    if (e == "Fast")
-        return encode_mode::fast;
-    else if (e == "Slow")
-        return encode_mode::slow;
+    if      (e == "Fast")   return encode_mode::fast;
+    else if (e == "Slow")   return encode_mode::slow;
 
     assert(false);
     return encode_mode::slow;
 }
 
+static enum encode_mode default_encode_mode()
+{
+    return (std::thread::hardware_concurrency() > 3) ? encode_mode::slow : encode_mode::fast;
+}
+
 enum encode_mode settings::encode_mode() const
 {
-    const enum encode_mode default_encode_mode =
-            (std::thread::hardware_concurrency() > 3) ? ::encode_mode::slow : ::encode_mode::fast;
-
-    return from_string(read("DLNA", "EncodeMode", to_string(default_encode_mode)));
+    return to_encode_mode(read("DLNA", "EncodeMode", to_string(default_encode_mode())));
 }
 
-enum canvas_mode settings::canvas_mode() const
+void settings::set_encode_mode(enum encode_mode encode_mode)
 {
-    // Workaround for ticket https://trac.videolan.org/vlc/ticket/10148
-    if (vlc::instance::compare_version(2, 1) == 0)
-        return ::canvas_mode::none;
-
-    return ::canvas_mode::pad;
+    if (encode_mode != default_encode_mode())
+        return write("DLNA", "EncodeMode", to_string(encode_mode));
+    else
+        return erase("DLNA", "EncodeMode");
 }
 
-enum surround_mode settings::surround_mode() const
+static const char * to_string(video_mode e)
 {
-    // Workaround for ticket https://trac.videolan.org/vlc/ticket/1897
-    if (vlc::instance::compare_version(2, 2) < 0)
-        return ::surround_mode::stereo;
+    switch (e)
+    {
+    case video_mode::auto_      : return "Auto";
+    case video_mode::vcd        : return "VCD";
+    case video_mode::dvd        : return "DVD";
+    case video_mode::hdtv_720   : return "720p";
+    case video_mode::hdtv_1080  : return "1080p";
+    }
 
-    return ::surround_mode::surround51;
+    assert(false);
+    return nullptr;
+}
+
+static video_mode to_video_mode(const std::string &e)
+{
+    if      (e == "Auto")   return video_mode::auto_;
+    else if (e == "VCD")    return video_mode::vcd;
+    else if (e == "DVD")    return video_mode::dvd;
+    else if (e == "720p")   return video_mode::hdtv_720;
+    else if (e == "1080p")  return video_mode::hdtv_1080;
+
+    assert(false);
+    return video_mode::auto_;
+}
+
+static enum video_mode default_video_mode()
+{
+    return (std::thread::hardware_concurrency() > 1) ? video_mode::hdtv_720 : video_mode::dvd;
 }
 
 enum video_mode settings::video_mode() const
 {
-    return ::video_mode::hdtv_720;
+    return to_video_mode(read("DLNA", "VideoMode", to_string(default_video_mode())));
+}
+
+void settings::set_video_mode(enum video_mode video_mode)
+{
+    if (video_mode != default_video_mode())
+        return write("DLNA", "VideoMode", to_string(video_mode));
+    else
+        return erase("DLNA", "VideoMode");
+}
+
+static const char * to_string(canvas_mode e)
+{
+    switch (e)
+    {
+    case canvas_mode::none  : return "None";
+    case canvas_mode::pad   : return "Pad";
+    case canvas_mode::crop  : return "Crop";
+    }
+
+    assert(false);
+    return nullptr;
+}
+
+static canvas_mode to_canvas_mode(const std::string &e)
+{
+    if      (e == "None")   return canvas_mode::none;
+    else if (e == "Pad")    return canvas_mode::pad;
+    else if (e == "Crop")   return canvas_mode::crop;
+
+    assert(false);
+    return canvas_mode::none;
+}
+
+bool settings::canvas_mode_enabled() const
+{
+    // Workaround for ticket https://trac.videolan.org/vlc/ticket/10148
+    return vlc::instance::compare_version(2, 1) != 0;
+}
+
+static enum canvas_mode default_canvas_mode = canvas_mode::pad;
+
+enum canvas_mode settings::canvas_mode() const
+{
+    if (!canvas_mode_enabled())
+        return ::canvas_mode::none;
+
+    return to_canvas_mode(read("DLNA", "CanvasMode", to_string(default_canvas_mode)));
+}
+
+void settings::set_canvas_mode(enum canvas_mode canvas_mode)
+{
+    if (canvas_mode != default_canvas_mode)
+        return write("DLNA", "CanvasMode", to_string(canvas_mode));
+    else
+        return erase("DLNA", "CanvasMode");
+}
+
+static const char * to_string(surround_mode e)
+{
+    switch (e)
+    {
+    case surround_mode::stereo      : return "Stereo";
+    case surround_mode::surround51  : return "5.1";
+    }
+
+    assert(false);
+    return nullptr;
+}
+
+static surround_mode to_surround_mode(const std::string &e)
+{
+    if      (e == "Stereo") return surround_mode::stereo;
+    else if (e == "5.1")    return surround_mode::surround51;
+
+    assert(false);
+    return surround_mode::stereo;
+}
+
+bool settings::surround_mode_enabled() const
+{
+    // Workaround for ticket https://trac.videolan.org/vlc/ticket/1897
+    return vlc::instance::compare_version(2, 2) >= 0;
+}
+
+static enum surround_mode default_surround_mode = surround_mode::surround51;
+
+enum surround_mode settings::surround_mode() const
+{
+    if (!surround_mode_enabled())
+        return ::surround_mode::stereo;
+
+    return to_surround_mode(read("DLNA", "SurroundMode", to_string(default_surround_mode)));
+}
+
+void settings::set_surround_mode(enum surround_mode surround_mode)
+{
+    if (surround_mode != default_surround_mode)
+        return write("DLNA", "SurroundMode", to_string(surround_mode));
+    else
+        return erase("DLNA", "SurroundMode");
 }
 
 std::vector<root_path> settings::root_paths() const

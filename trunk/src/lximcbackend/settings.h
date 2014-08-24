@@ -25,9 +25,9 @@
 #include <map>
 
 enum class encode_mode { slow, fast };
+enum class video_mode { auto_, vcd, dvd, hdtv_720, hdtv_1080 };
 enum class canvas_mode { none, pad, crop };
 enum class surround_mode { stereo, surround51 };
-enum class video_mode { auto_, vcd, dvd_ntsc, dvd_pal, hdtv_720, hdtv_1080 };
 enum class path_type { auto_, music };
 struct root_path { path_type type; std::string path; };
 
@@ -46,9 +46,16 @@ public:
     void set_bindallnetworks(bool);
 
     enum encode_mode encode_mode() const;
-    enum canvas_mode canvas_mode() const;
-    enum surround_mode surround_mode() const;
+    void set_encode_mode(enum encode_mode);
     enum video_mode video_mode() const;
+    void set_video_mode(enum video_mode);
+    bool canvas_mode_enabled() const;
+    enum canvas_mode canvas_mode() const;
+    void set_canvas_mode(enum canvas_mode);
+
+    bool surround_mode_enabled() const;
+    enum surround_mode surround_mode() const;
+    void set_surround_mode(enum surround_mode);
 
     std::vector<root_path> root_paths() const;
 

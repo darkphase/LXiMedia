@@ -2,6 +2,8 @@ fieldset {
  padding: 0.5em;
  margin: 0 0.5em 0.5em 0.5em;
  border: 1px dotted #808080;
+ width: 40em;
+ float: left;
 }
 legend {
  padding: 0.2em 0.5em;
@@ -32,4 +34,7 @@ td.top {
  padding: 0.2em;
  margin: 0.2em;
  vertical-align: top;
+}
+p.buttons {
+ text-align: right;
 }
