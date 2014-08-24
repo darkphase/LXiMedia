@@ -23,8 +23,7 @@ void backend::add_video_protocols()
     const bool has_surround51 = surround_mode == ::surround_mode::surround51;
     const auto video_mode = settings.video_mode();
     const bool has_vcd          = (video_mode == ::video_mode::auto_) || (video_mode == ::video_mode::vcd       );
-    const bool has_dvd_pal      = (video_mode == ::video_mode::auto_) || (video_mode == ::video_mode::dvd_pal   );
-    const bool has_dvd_ntsc     = (video_mode == ::video_mode::auto_) || (video_mode == ::video_mode::dvd_ntsc  );
+    const bool has_dvd          = (video_mode == ::video_mode::auto_) || (video_mode == ::video_mode::dvd       );
     const bool has_hdtv_720     = (video_mode == ::video_mode::auto_) || (video_mode == ::video_mode::hdtv_720  );
     const bool has_hdtv_1080    = (video_mode == ::video_mode::auto_) || (video_mode == ::video_mode::hdtv_1080 );
 
@@ -53,7 +52,7 @@ void backend::add_video_protocols()
 
     /////////////////////////////////////////////////////////////////////////////
     // MPEG2 PAL/NTSC
-    if (has_dvd_pal)
+    if (has_dvd)
         connection_manager.add_source_video_protocol(
                     "MPEG_PS_PAL",
                     "video/mpeg", "mpg",
@@ -62,7 +61,7 @@ void backend::add_video_protocols()
                     "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
                     "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
 
-    if (has_dvd_pal && has_surround51)
+    if (has_dvd && has_surround51)
         connection_manager.add_source_video_protocol(
                     "MPEG_PS_PAL_XAC3",
                     "video/mpeg", "mpg",
@@ -71,7 +70,7 @@ void backend::add_video_protocols()
                     "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
                     "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
 
-    if (has_dvd_ntsc)
+    if (has_dvd)
         connection_manager.add_source_video_protocol(
                     "MPEG_PS_NTSC",
                     "video/mpeg", "mpg",
@@ -80,7 +79,7 @@ void backend::add_video_protocols()
                     "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
                     "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
 
-    if (has_dvd_ntsc && has_surround51)
+    if (has_dvd && has_surround51)
         connection_manager.add_source_video_protocol(
                     "MPEG_PS_NTSC_XAC3",
                     "video/mpeg", "mpg",
@@ -91,7 +90,7 @@ void backend::add_video_protocols()
 
     /////////////////////////////////////////////////////////////////////////////
     // MPEG2 SD
-    if (has_dvd_pal)
+    if (has_dvd)
         connection_manager.add_source_video_protocol(
                     "MPEG_TS_SD_EU_ISO",
                     "video/x-mpegts", "ts",
@@ -100,7 +99,7 @@ void backend::add_video_protocols()
                     "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
                     "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
 
-    if (has_dvd_pal)
+    if (has_dvd)
         connection_manager.add_source_video_protocol(
                     "MPEG_TS_SD_EU_ISO",
                     "video/x-mpegts", "ts",
@@ -109,7 +108,7 @@ void backend::add_video_protocols()
                     "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
                     "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
 
-    if (has_dvd_pal && has_surround51)
+    if (has_dvd && has_surround51)
         connection_manager.add_source_video_protocol(
                     "MPEG_TS_SD_EU_ISO",
                     "video/x-mpegts", "ts",
@@ -118,7 +117,7 @@ void backend::add_video_protocols()
                     "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
                     "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
 
-    if (has_dvd_pal && has_surround51)
+    if (has_dvd && has_surround51)
         connection_manager.add_source_video_protocol(
                     "MPEG_TS_SD_EU_ISO",
                     "video/x-mpegts", "ts",
@@ -127,7 +126,7 @@ void backend::add_video_protocols()
                     "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
                     "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
 
-    if (has_dvd_ntsc)
+    if (has_dvd)
         connection_manager.add_source_video_protocol(
                     "MPEG_TS_SD_NA_ISO",
                     "video/x-mpegts", "ts",
@@ -136,7 +135,7 @@ void backend::add_video_protocols()
                     "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
                     "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
 
-    if (has_dvd_ntsc)
+    if (has_dvd)
         connection_manager.add_source_video_protocol(
                     "MPEG_TS_SD_NA_ISO",
                     "video/x-mpegts", "ts",
@@ -145,7 +144,7 @@ void backend::add_video_protocols()
                     "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
                     "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
 
-    if (has_dvd_ntsc && has_surround51)
+    if (has_dvd && has_surround51)
         connection_manager.add_source_video_protocol(
                     "MPEG_TS_SD_NA_ISO",
                     "video/x-mpegts", "ts",
@@ -154,7 +153,7 @@ void backend::add_video_protocols()
                     "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
                     "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
 
-    if (has_dvd_ntsc && has_surround51)
+    if (has_dvd && has_surround51)
         connection_manager.add_source_video_protocol(
                     "MPEG_TS_SD_NA_ISO",
                     "video/x-mpegts", "ts",
@@ -165,7 +164,7 @@ void backend::add_video_protocols()
 
     /////////////////////////////////////////////////////////////////////////////
     // MPEG2 SD - nonstandard program stream
-    if (has_dvd_pal)
+    if (has_dvd)
         connection_manager.add_source_video_protocol(
                     "MPEG_PS_SD_EU_NONSTD",
                     "video/mpeg", "mpg",
@@ -174,7 +173,7 @@ void backend::add_video_protocols()
                     "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
                     "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
 
-    if (has_dvd_pal)
+    if (has_dvd)
         connection_manager.add_source_video_protocol(
                     "MPEG_PS_SD_EU_NONSTD",
                     "video/mpeg", "mpg",
@@ -183,7 +182,7 @@ void backend::add_video_protocols()
                     "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
                     "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
 
-    if (has_dvd_pal && has_surround51)
+    if (has_dvd && has_surround51)
         connection_manager.add_source_video_protocol(
                     "MPEG_PS_SD_EU_NONSTD",
                     "video/mpeg", "mpg",
@@ -192,7 +191,7 @@ void backend::add_video_protocols()
                     "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
                     "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
 
-    if (has_dvd_pal && has_surround51)
+    if (has_dvd && has_surround51)
         connection_manager.add_source_video_protocol(
                     "MPEG_PS_SD_EU_NONSTD",
                     "video/mpeg", "mpg",
@@ -201,7 +200,7 @@ void backend::add_video_protocols()
                     "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
                     "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
 
-    if (has_dvd_ntsc)
+    if (has_dvd)
         connection_manager.add_source_video_protocol(
                     "MPEG_PS_SD_NA_NONSTD",
                     "video/mpeg", "mpg",
@@ -210,7 +209,7 @@ void backend::add_video_protocols()
                     "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
                     "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
 
-    if (has_dvd_ntsc)
+    if (has_dvd)
         connection_manager.add_source_video_protocol(
                     "MPEG_PS_SD_NA_NONSTD",
                     "video/mpeg", "mpg",
@@ -219,7 +218,7 @@ void backend::add_video_protocols()
                     "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
                     "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
 
-    if (has_dvd_ntsc && has_surround51)
+    if (has_dvd && has_surround51)
         connection_manager.add_source_video_protocol(
                     "MPEG_PS_SD_NA_NONSTD",
                     "video/mpeg", "mpg",
@@ -228,7 +227,7 @@ void backend::add_video_protocols()
                     "vb=8192,venc=ffmpeg{keyint=0,vt=4096}",
                     "vb=4096,venc=ffmpeg{bframes=0,vt=2048}");
 
-    if (has_dvd_ntsc && has_surround51)
+    if (has_dvd && has_surround51)
         connection_manager.add_source_video_protocol(
                     "MPEG_PS_SD_NA_NONSTD",
                     "video/mpeg", "mpg",
