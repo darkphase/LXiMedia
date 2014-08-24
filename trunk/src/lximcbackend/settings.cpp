@@ -20,6 +20,7 @@
 #include "vlc/instance.h"
 #include <cassert>
 #include <fstream>
+#include <sstream>
 #include <thread>
 
 static std::string filename();
@@ -345,6 +346,27 @@ void settings::set_surround_mode(enum surround_mode surround_mode)
         return erase("DLNA", "SurroundMode");
 }
 
+static const char * to_string(path_type e)
+{
+    switch (e)
+    {
+    case path_type::auto_   : return "Auto";
+    case path_type::music   : return "Music";
+    }
+
+    assert(false);
+    return nullptr;
+}
+
+static path_type to_path_type(const std::string &e)
+{
+    if      (e == "Auto")   return path_type::auto_;
+    else if (e == "Music")  return path_type::music;
+
+    assert(false);
+    return path_type::auto_;
+}
+
 std::vector<root_path> settings::root_paths() const
 {
     std::vector<std::string> entries;
@@ -375,17 +397,40 @@ std::vector<root_path> settings::root_paths() const
             const std::string path = i.substr(comma + 1);
 
             if (starts_with(path, "file://"))
-            {
-                if (type == "Auto")
-                    result.emplace_back(root_path { path_type::auto_, path.substr(7) });
-                else if (type == "Music")
-                    result.emplace_back(root_path { path_type::music, path.substr(7) });
-            }
+                result.emplace_back(root_path { to_path_type(type), path.substr(7) });
+            else if (starts_with(path, "file:"))
+                result.emplace_back(root_path { to_path_type(type), path.substr(5) });
+
+#if defined(WIN32)
+            std::replace(result.back().path.begin(), result.back().path.end(), '\\', '/');
+#endif
         }
     }
 
     return result;
 }
+
+void settings::set_root_paths(const std::vector<root_path> &paths)
+{
+    std::ostringstream str;
+    for (auto &i : paths)
+    {
+#if defined(__unix__)
+        str << ", \"" << to_string(i.type) << ",file://" << i.path << "\"";
+#elif defined(WIN32)
+        std::string path = i.path;
+        std::replace(path.begin(), path.end(), '/', '\\');
+        str << ", \"" << to_string(i.type) << ",file:" << path << "\"";
+#endif
+    }
+
+    const std::string string = str.str();
+    if (!string.empty())
+        return write("Media%20Player", "RootPaths", string.substr(2));
+    else
+        return erase("Media%20Player", "RootPaths");
+}
+
 
 #if defined(__unix__)
 #include <unistd.h>

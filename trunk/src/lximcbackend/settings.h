@@ -58,6 +58,7 @@ public:
     void set_surround_mode(enum surround_mode);
 
     std::vector<root_path> root_paths() const;
+    void set_root_paths(const std::vector<root_path> &);
 
 private:
     void save();

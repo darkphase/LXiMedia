@@ -25,10 +25,10 @@ p.title {
  font-weight: bold;
  color: #B0B0B0;
 }
-a:link            { color: #000000; text-decoration: underline; }
-a:visited         { color: #000000; text-decoration: underline; }
-a:active          { color: #000000; text-decoration: underline; }
-a:hover           { color: #000000; text-decoration: underline; }
+a:link      { color: #000000; text-decoration: underline; }
+a:visited   { color: #000000; text-decoration: underline; }
+a:active    { color: #000000; text-decoration: underline; }
+a:hover     { color: #000000; text-decoration: underline; }
 
 div.main_navigator {
  padding: 0.5em 0 0 0;
