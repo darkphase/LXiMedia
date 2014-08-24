@@ -43,9 +43,10 @@ include_directories(
     ${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION}/ixml/inc/)
 
 aux_source_directory(src/lximcbackend/ LXIMCBACKEND_SRC_LIST)
+aux_source_directory(src/lximcbackend/html/ LXIMCBACKEND_HTML_SRC_LIST)
 aux_source_directory(src/lximcbackend/pupnp/ LXIMCBACKEND_PUPNP_SRC_LIST)
 aux_source_directory(src/lximcbackend/vlc/ LXIMCBACKEND_VLC_SRC_LIST)
-add_executable(lximcbackend ${LXIMCBACKEND_SRC_LIST} ${LXIMCBACKEND_PUPNP_SRC_LIST} ${LXIMCBACKEND_VLC_SRC_LIST})
+add_executable(lximcbackend ${LXIMCBACKEND_SRC_LIST} ${LXIMCBACKEND_HTML_SRC_LIST} ${LXIMCBACKEND_PUPNP_SRC_LIST} ${LXIMCBACKEND_VLC_SRC_LIST})
 target_link_libraries(lximcbackend pupnp)
 if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
     target_link_libraries(lximcbackend ws2_32 iphlpapi rpcrt4)

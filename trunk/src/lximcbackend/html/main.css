@@ -1,0 +1,24 @@
+div.button {
+ padding: 0;
+ margin: 0.5em;
+ display: table;
+ overflow: hidden;
+ white-space: nowrap;
+ border: 1px solid #D0D0D0;
+}
+.button div {
+ padding: 0;
+ margin: 0;
+ display: table-cell;
+ vertical-align: top;
+}
+.button div.title {
+ width: 12em;
+ text-align: center;
+}
+.button img {
+ padding: 0;
+ margin: 0;
+ width: 12em;
+ height: 12em;
+}

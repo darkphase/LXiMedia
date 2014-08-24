@@ -94,6 +94,24 @@ void settings::write(const std::string &section, const std::string &name, const 
     timer.start(save_delay, true);
 }
 
+void settings::erase(const std::string &section, const std::string &name)
+{
+    auto i = values.find(section);
+    if (i != values.end())
+    {
+        auto j = i->second.find(name);
+        if (j != i->second.end())
+        {
+            i->second.erase(j);
+            if (i->second.empty())
+                values.erase(i);
+
+            touched = true;
+            timer.start(save_delay, true);
+        }
+    }
+}
+
 std::string settings::uuid()
 {
     auto value = read("General", "UUID", std::string());
@@ -106,23 +124,49 @@ std::string settings::uuid()
     return value;
 }
 
+static std::string default_devicename();
+
 std::string settings::devicename() const
 {
-    std::string default_devicename = "LXiMediaCenter";
-    const char *hostname = getenv("HOSTNAME");
-    if (hostname)
-        default_devicename = std::string(hostname) + " : " + default_devicename;
-
-    return read("General", "DeviceName", default_devicename);
+    return read("General", "DeviceName", default_devicename());
 }
+
+void settings::set_devicename(const std::string &devicename)
+{
+    if (devicename != default_devicename())
+        return write("General", "DeviceName", devicename);
+    else
+        return erase("General", "DeviceName");
+}
+
+static const uint16_t default_http_port = 4280;
 
 uint16_t settings::http_port() const
 {
-    static const uint16_t default_port = 4280;
+    try { return uint16_t(std::stoi(read("General", "HttpPort", std::to_string(default_http_port)))); }
+    catch (const std::invalid_argument &) { return default_http_port; }
+    catch (const std::out_of_range &) { return default_http_port; }
+}
 
-    try { return uint16_t(std::stoi(read("General", "DeviceName", std::to_string(default_port)))); }
-    catch (const std::invalid_argument &) { return default_port; }
-    catch (const std::out_of_range &) { return default_port; }
+void settings::set_http_port(uint16_t http_port)
+{
+    if (http_port != default_http_port)
+        return write("General", "HttpPort", std::to_string(http_port));
+    else
+        return erase("General", "HttpPort");
+}
+
+bool settings::bindallnetworks() const
+{
+    return read("General", "BindAllNetworks", "false") != "false";
+}
+
+void settings::set_bindallnetworks(bool on)
+{
+    if (on)
+        return write("General", "BindAllNetworks", "true");
+    else
+        return erase("General", "BindAllNetworks");
 }
 
 static const char * to_string(encode_mode e)
@@ -222,9 +266,9 @@ std::vector<root_path> settings::root_paths() const
 }
 
 #if defined(__unix__)
+#include <unistd.h>
 
 #ifndef TEST_H
-#include <unistd.h>
 #include <sys/types.h>
 #include <pwd.h>
 
@@ -258,6 +302,17 @@ static std::string make_uuid()
     result.resize(strlen(&result[0]));
 
     return result;
+}
+
+static std::string default_devicename()
+{
+    std::string default_devicename = "LXiMediaCenter";
+
+    char hostname[256] = { 0 };
+    if (gethostname(hostname, sizeof(hostname) - 1) == 0)
+        default_devicename = std::string(hostname) + " : " + default_devicename;
+
+    return default_devicename;
 }
 
 #elif defined(WIN32)
@@ -300,4 +355,14 @@ static std::string make_uuid()
     return result;
 }
 
+static std::string default_devicename()
+{
+    std::string default_devicename = "LXiMediaCenter";
+
+    const char *hostname = getenv("COMPUTERNAME");
+    if (hostname)
+        default_devicename = std::string(hostname) + " : " + default_devicename;
+
+    return default_devicename;
+}
 #endif

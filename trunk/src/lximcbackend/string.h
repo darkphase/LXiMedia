@@ -29,6 +29,10 @@ std::string to_lower(const std::string &);
 std::string from_base64(const std::string &);
 std::string to_base64(const std::string &, bool pad = false);
 
+std::string from_percent(const std::string &);
+std::string to_percent(const std::string &);
+std::string escape_xml(const std::string &);
+
 #ifdef WIN32
 std::wstring to_windows_path(const std::string &);
 std::string from_windows_path(const std::wstring &);

@@ -18,25 +18,18 @@
 #include "backend.h"
 
 backend::backend(class messageloop &messageloop)
-  : messageloop(messageloop),
-    settings(messageloop),
-    vlc_instance(),
-    upnp(messageloop),
-    rootdevice(messageloop, upnp, settings.uuid(), "urn:schemas-upnp-org:device:MediaServer:1"),
-    connection_manager(messageloop, rootdevice),
-    content_directory(messageloop, upnp, rootdevice, connection_manager),
-    mediareceiver_registrar(messageloop, rootdevice),
-    mediaplayer(messageloop, vlc_instance, connection_manager, content_directory, settings)
+    : messageloop(messageloop),
+      settings(messageloop),
+      vlc_instance(),
+      upnp(messageloop),
+      rootdevice(messageloop, upnp, settings.uuid(), "urn:schemas-upnp-org:device:MediaServer:1"),
+      connection_manager(messageloop, rootdevice),
+      content_directory(messageloop, upnp, rootdevice, connection_manager),
+      mediareceiver_registrar(messageloop, rootdevice),
+      mainpage(upnp),
+      settingspage(mainpage, settings),
+      mediaplayer(messageloop, vlc_instance, connection_manager, content_directory, settings)
 {
-  using namespace std::placeholders;
-
-  upnp.http_callback_register("/"     , std::bind(&backend::http_request, this, _1, _2, _3));
-  upnp.http_callback_register("/css"  , std::bind(&backend::http_request, this, _1, _2, _3));
-  upnp.http_callback_register("/img"  , std::bind(&backend::http_request, this, _1, _2, _3));
-  upnp.http_callback_register("/js"   , std::bind(&backend::http_request, this, _1, _2, _3));
-  upnp.http_callback_register("/help" , std::bind(&backend::http_request, this, _1, _2, _3));
-
-  rootdevice.set_devicename(settings.devicename());
 }
 
 backend::~backend()
@@ -45,19 +38,11 @@ backend::~backend()
 
 bool backend::initialize()
 {
-  add_audio_protocols();
-  add_video_protocols();
+    rootdevice.set_devicename(settings.devicename());
+    mainpage.set_devicename(settings.devicename());
 
-  return upnp.initialize(settings.http_port(), false);
-}
+    add_audio_protocols();
+    add_video_protocols();
 
-int backend::http_request(const pupnp::upnp::request &request, std::string &content_type, std::shared_ptr<std::istream> &response)
-{
-  if (request.url.path == "/exit")
-  {
-    messageloop.post([this] { messageloop.stop(0); });
-    return pupnp::upnp::http_no_content;
-  }
-
-  return pupnp::upnp::http_not_found;
+    return upnp.initialize(settings.http_port(), false);
 }

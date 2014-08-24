@@ -514,16 +514,16 @@ upnp::url::url(const std::string &url)
   const size_t q = url.find_first_of('?', s);
   if (q != url.npos)
   {
-    path = url.substr(s, s - q);
+    path = url.substr(s, q - s);
 
-    for (size_t i = q + 1; i != url.npos; )
+    for (size_t i = q; i != url.npos; )
     {
       const size_t n = url.find_first_of('&', i + 1);
       const size_t e = url.find_first_of('=', i + 1);
       if (e != url.npos)
-        query[url.substr(i, e - i)] = url.substr(e + 1, n - e);
+        query[url.substr(i + 1, e - i - 1)] = url.substr(e + 1, n - e - 1);
       else
-        query[url.substr(i, n - i)] = std::string();
+        query[url.substr(i + 1, n - i - 1)] = std::string();
 
       i = n;
     }
