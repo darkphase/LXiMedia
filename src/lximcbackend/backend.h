@@ -20,6 +20,7 @@
 
 #include <cstdint>
 #include "html/mainpage.h"
+#include "html/helppage.h"
 #include "html/settingspage.h"
 #include "pupnp/connection_manager.h"
 #include "pupnp/content_directory.h"
@@ -58,6 +59,7 @@ private:
 
     class html::mainpage mainpage;
     class html::settingspage settingspage;
+    class html::helppage helppage;
 
     class mediaplayer mediaplayer;
 

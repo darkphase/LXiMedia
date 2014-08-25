@@ -37,9 +37,9 @@ mainpage::mainpage(class pupnp::upnp &upnp)
     upnp.http_callback_register("/css", std::bind(&mainpage::handle_http_request, this, _1, _2, _3));
     upnp.http_callback_register("/img", std::bind(&mainpage::handle_http_request, this, _1, _2, _3));
 
-    add_file("/css/base.css", file { pupnp::upnp::mime_text_css, base_css });
-    add_file("/css/main.css", file { pupnp::upnp::mime_text_css, main_css });
-    add_file("/img/main.svg", file { pupnp::upnp::mime_image_svg, main_svg });
+    add_file("/css/base.css", file { pupnp::upnp::mime_text_css, base_css, sizeof(base_css) });
+    add_file("/css/main.css", file { pupnp::upnp::mime_text_css, main_css, sizeof(main_css) });
+    add_file("/img/main.svg", file { pupnp::upnp::mime_image_svg, main_svg, sizeof(main_svg) });
 }
 
 mainpage::~mainpage()
@@ -77,6 +77,11 @@ void mainpage::add_file(const std::string &path, const struct file &file)
     files[path] = file;
 }
 
+void mainpage::add_file(const std::string &path, const struct bin_file &file)
+{
+    files[path] = reinterpret_cast<const struct file &>(file);
+}
+
 int mainpage::handle_http_request(const struct pupnp::upnp::request &request, std::string &content_type, std::shared_ptr<std::istream> &response)
 {
     auto page = pages.find(request.url.path);
@@ -92,7 +97,7 @@ int mainpage::handle_http_request(const struct pupnp::upnp::request &request, st
     if (file != files.end())
     {
         content_type = file->second.content_type;
-        response = std::make_shared<std::stringstream>(file->second.data);
+        response = std::make_shared<std::stringstream>(std::string(file->second.data, file->second.size));
         return pupnp::upnp::http_ok;
     }
 

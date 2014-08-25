@@ -21,7 +21,6 @@
 #include "../string.h"
 #include "../translator.h"
 #include <algorithm>
-#include <sstream>
 
 static const char settings_css[] = {
 #include "settings.css.h"
@@ -37,8 +36,8 @@ settingspage::settingspage(class mainpage &mainpage, class settings &settings)
 {
     using namespace std::placeholders;
 
-    mainpage.add_file("/css/settings.css", mainpage::file { pupnp::upnp::mime_text_css, settings_css });
-    mainpage.add_file("/img/settings.svg", mainpage::file { pupnp::upnp::mime_image_svg, settings_svg });
+    mainpage.add_file("/css/settings.css", mainpage::file { pupnp::upnp::mime_text_css, settings_css, sizeof(settings_css) });
+    mainpage.add_file("/img/settings.svg", mainpage::file { pupnp::upnp::mime_image_svg, settings_svg, sizeof(settings_svg) });
 
     mainpage.add_page("/settings", mainpage::page
     {
