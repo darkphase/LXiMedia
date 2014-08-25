@@ -16,6 +16,7 @@
  ******************************************************************************/
 
 #include "mediaplayer.h"
+#include "path.h"
 #include "string.h"
 #include "translator.h"
 #include "vlc/media.h"
@@ -28,8 +29,7 @@
 #include <sstream>
 #include <thread>
 
-static const off_t min_file_size = 65536;
-static std::vector<std::string> list_files(const std::string &path);
+static const size_t min_file_size = 65536;
 
 struct mediaplayer::transcode_stream : vlc::transcode_stream
 {
@@ -185,8 +185,16 @@ std::vector<pupnp::content_directory::item> mediaplayer::list_contentdir_items(
             for (auto &track : list_tracks(media))
                 files.push_back(track.first);
         }
-        else
-            files = list_files(to_system_path(path).path);
+        else for (auto &i : list_files(to_system_path(path).path, false, min_file_size))
+        {
+            const std::string lname = to_lower(i);
+            if (!ends_with(lname, ".db" ) && !ends_with(lname, ".idx") &&
+                !ends_with(lname, ".nfo") && !ends_with(lname, ".srt") &&
+                !ends_with(lname, ".sub") && !ends_with(lname, ".txt"))
+            {
+                files.push_back(std::move(i));
+            }
+        }
     }
 
     std::vector<std::future<pupnp::content_directory::item>> futures;
@@ -590,97 +598,3 @@ std::string mediaplayer::to_virtual_path(const std::string &system_path) const
 
     return std::string();
 }
-
-#if defined(__unix__)
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <dirent.h>
-
-static std::vector<std::string> list_files(const std::string &path)
-{
-    std::multimap<std::string, std::string> dirs, files;
-
-    auto dir = ::opendir(path.c_str());
-    if (dir)
-    {
-        for (auto dirent = ::readdir(dir); dirent; dirent = ::readdir(dir))
-        {
-            struct stat stat;
-            if ((dirent->d_name[0] != '.') &&
-                (::stat((path + '/' + dirent->d_name).c_str(), &stat) == 0))
-            {
-                std::string name = dirent->d_name, lname = to_lower(name);
-                if (S_ISDIR(stat.st_mode) &&
-                    (lname != "@eadir"))
-                {
-                    dirs.emplace(std::move(lname), name + '/');
-                }
-                else if ((stat.st_size >= min_file_size) &&
-                         !ends_with(lname, ".db" ) &&
-                         !ends_with(lname, ".idx") &&
-                         !ends_with(lname, ".nfo") &&
-                         !ends_with(lname, ".srt") &&
-                         !ends_with(lname, ".sub") &&
-                         !ends_with(lname, ".txt"))
-                {
-                    files.emplace(std::move(lname), std::move(name));
-                }
-            }
-        }
-
-        ::closedir(dir);
-    }
-
-    std::vector<std::string> result;
-    result.reserve(dirs.size() + files.size());
-    for (auto &i : dirs) result.emplace_back(std::move(i.second));
-    for (auto &i : files) result.emplace_back(std::move(i.second));
-    return result;
-}
-#elif defined(WIN32)
-#include <windows.h>
-
-static std::vector<std::string> list_files(const std::string &path)
-{
-    std::multimap<std::string, std::string> dirs, files;
-
-    std::wstring wpath = to_windows_path(path);
-    WIN32_FIND_DATAW find_data;
-    HANDLE handle = FindFirstFileW((wpath + L"\\*").c_str(), &find_data);
-    if (handle != INVALID_HANDLE_VALUE)
-    {
-        do
-        {
-            struct __stat64 stat;
-            if ((find_data.cFileName[0] != L'.') &&
-                (::_wstat64((wpath + L'/' + find_data.cFileName).c_str(), &stat) == 0))
-            {
-                std::string name = from_windows_path(find_data.cFileName), lname = to_lower(name);
-                if ((find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) &&
-                    (lname != "@eadir"))
-                {
-                    dirs.emplace(std::move(lname), name + '/');
-                }
-                else if ((stat.st_size >= min_file_size) &&
-                         !ends_with(lname, ".db" ) &&
-                         !ends_with(lname, ".idx") &&
-                         !ends_with(lname, ".nfo") &&
-                         !ends_with(lname, ".srt") &&
-                         !ends_with(lname, ".sub") &&
-                         !ends_with(lname, ".txt"))
-                {
-                    files.emplace(std::move(lname), std::move(name));
-                }
-            }
-        } while(FindNextFileW(handle, &find_data) != 0);
-
-        CloseHandle(handle);
-    }
-
-    std::vector<std::string> result;
-    result.reserve(dirs.size() + files.size());
-    for (auto &i : dirs) result.emplace_back(std::move(i.second));
-    for (auto &i : files) result.emplace_back(std::move(i.second));
-    return result;
-}
-#endif

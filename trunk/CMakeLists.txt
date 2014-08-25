@@ -72,5 +72,9 @@ else()
     target_link_libraries(lximcbackend_test uuid vlc)
 endif()
 
-#add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/testreport.txt COMMAND lximcbackend_test > testreport.txt DEPENDS lximcbackend_test VERBATIM)
-#add_custom_target(testreport ALL DEPENDS testreport.txt VERBATIM)
+if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
+else()
+    add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/testreport.txt COMMAND lximcbackend_test > testreport.txt DEPENDS lximcbackend_test VERBATIM)
+    add_custom_target(testreport ALL DEPENDS testreport.txt VERBATIM)
+endif()
+

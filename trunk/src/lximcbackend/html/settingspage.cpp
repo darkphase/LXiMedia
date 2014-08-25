@@ -17,6 +17,7 @@
 
 #include "settingspage.h"
 #include "../settings.h"
+#include "../path.h"
 #include "../string.h"
 #include "../translator.h"
 #include <algorithm>
@@ -27,9 +28,6 @@ static const char settings_css[] = {
 }, settings_svg[] = {
 #include "settings.svg.h"
 };
-
-static std::vector<std::string> list_root_directories();
-static std::vector<std::string> list_directories(const std::string &);
 
 namespace html {
 
@@ -198,7 +196,7 @@ static void save_dlna_settings(class settings &settings, const std::map<std::str
 
 static void render_path_box(const std::string &full_path, const std::string &current, size_t index, std::ostream &out)
 {
-    const std::vector<std::string> items = full_path.empty() ? list_root_directories() : list_directories(full_path);
+    const std::vector<std::string> items = full_path.empty() ? list_root_directories() : list_files(full_path, true);
     if (!items.empty())
     {
         out << "<select name=\"append_path_" << index << "\" onchange='if(this.value != 0) { this.form.submit(); }'>";
@@ -254,6 +252,7 @@ static void render_path_settings(const std::map<std::string, std::string> &query
 
     out << "</table><table><tr><td>";
 
+    bool empty_path = true;
 #if defined(__unix__)
     std::string full_path = "/";
 #elif defined(WIN32)
@@ -270,6 +269,7 @@ static void render_path_settings(const std::map<std::string, std::string> &query
 
             render_path_box(full_path, current, i, out);
             full_path += current;
+            empty_path = false;
         }
         else
         {
@@ -278,8 +278,9 @@ static void render_path_settings(const std::map<std::string, std::string> &query
         }
     }
 
-    out << "</td><td class=\"right\"><input type=\"submit\" name=\"append\" value=\"" << tr("Append") << "\" /></td></tr>"
-           "</table><p class=\"buttons\"><input type=\"submit\" name=\"save\" value=\"" << tr("Save") << "\" /></p>"
+    out << "</td><td class=\"right\"><input type=\"submit\"" << is_enabled(!empty_path) << " name=\"append\" "
+           "value=\"" << tr("Append") << "\" /></td></tr></table>"
+           "<p class=\"buttons\"><input type=\"submit\" name=\"save\" value=\"" << tr("Save") << "\" /></p>"
            "</form></fieldset>";
 }
 
@@ -361,85 +362,3 @@ int settingspage::render_page(const struct pupnp::upnp::request &request, std::o
 }
 
 }
-
-#if defined(__unix__)
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <dirent.h>
-
-static std::vector<std::string> list_root_directories()
-{
-    return list_directories("/");
-}
-
-static std::vector<std::string> list_directories(const std::string &path)
-{
-    std::multimap<std::string, std::string> dirs;
-
-    auto dir = ::opendir(path.c_str());
-    if (dir)
-    {
-        for (auto dirent = ::readdir(dir); dirent; dirent = ::readdir(dir))
-        {
-            struct stat stat;
-            if ((dirent->d_name[0] != '.') &&
-                (::stat((path + '/' + dirent->d_name).c_str(), &stat) == 0))
-            {
-                std::string name = dirent->d_name, lname = to_lower(name);
-                if (S_ISDIR(stat.st_mode) &&
-                    (lname != "@eadir"))
-                {
-                    dirs.emplace(std::move(lname), name + '/');
-                }
-            }
-        }
-
-        ::closedir(dir);
-    }
-
-    std::vector<std::string> result;
-    result.reserve(dirs.size());
-    for (auto &i : dirs) result.emplace_back(std::move(i.second));
-    return result;
-}
-#elif defined(WIN32)
-#include <windows.h>
-
-static std::vector<std::string> list_root_directories()
-{
-    TODO
-}
-
-static std::vector<std::string> list_directories(const std::string &path)
-{
-    std::multimap<std::string, std::string> dirs;
-
-    std::wstring wpath = to_windows_path(path);
-    WIN32_FIND_DATAW find_data;
-    HANDLE handle = FindFirstFileW((wpath + L"\\*").c_str(), &find_data);
-    if (handle != INVALID_HANDLE_VALUE)
-    {
-        do
-        {
-            struct __stat64 stat;
-            if ((find_data.cFileName[0] != L'.') &&
-                (::_wstat64((wpath + L'/' + find_data.cFileName).c_str(), &stat) == 0))
-            {
-                std::string name = from_windows_path(find_data.cFileName), lname = to_lower(name);
-                if ((find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) &&
-                    (lname != "@eadir"))
-                {
-                    dirs.emplace(std::move(lname), name + '/');
-                }
-            }
-        } while(FindNextFileW(handle, &find_data) != 0);
-
-        CloseHandle(handle);
-    }
-
-    std::vector<std::string> result;
-    result.reserve(dirs.size());
-    for (auto &i : dirs) result.emplace_back(std::move(i.second));
-    return result;
-}
-#endif
