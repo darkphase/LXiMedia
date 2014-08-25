@@ -41,6 +41,14 @@ public:
     {
         const char *content_type;
         const char *data;
+        size_t size;
+    };
+
+    struct bin_file
+    {
+        const char *content_type;
+        const unsigned char *data;
+        size_t size;
     };
 
 public:
@@ -52,6 +60,7 @@ public:
     void add_page(const std::string &, const struct page &);
     void remove_page(const std::string &);
     void add_file(const std::string &, const struct file &);
+    void add_file(const std::string &, const struct bin_file &);
 
 private:
     int handle_http_request(const struct pupnp::upnp::request &, std::string &, std::shared_ptr<std::istream> &);

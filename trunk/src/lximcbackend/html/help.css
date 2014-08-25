@@ -1,0 +1,19 @@
+h1 {
+ font-size: 2em;
+ font-weight: bold;
+ color: #808080;
+ border: none;
+}
+h2 {
+ font-size: 1.7em;
+ font-weight: bold;
+ color: #808080;
+ border: 1px dotted #FFFFFF;
+ border-bottom-color: #808080;
+}
+h3 {
+ font-size: 1.2em;
+ font-weight: bold;
+ color: #808080;
+ border: none;
+}
