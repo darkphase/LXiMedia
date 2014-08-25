@@ -185,36 +185,3 @@ std::string escape_xml(const std::string &input)
 
     return result.str();
 }
-
-#ifdef WIN32
-#include <windows.h>
-
-std::wstring to_windows_path(const std::string &src)
-{
-    std::wstring dst;
-    dst.resize(src.length());
-    dst.resize(MultiByteToWideChar(
-            CP_UTF8, 0,
-            &src[0], src.length(),
-            &dst[0], dst.length()));
-
-    std::replace(dst.begin(), dst.end(), L'/', L'\\');
-
-    return dst;
-}
-
-std::string from_windows_path(const std::wstring &src)
-{
-    std::string dst;
-    dst.resize(src.length() * 4);
-    dst.resize(WideCharToMultiByte(
-            CP_UTF8, 0,
-            &src[0], src.length(),
-            &dst[0], dst.length(),
-            NULL, NULL));
-
-    std::replace(dst.begin(), dst.end(), '\\', '/');
-
-    return dst;
-}
-#endif

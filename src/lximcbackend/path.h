@@ -15,22 +15,22 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#ifndef STRING_H
-#define STRING_H
+#ifndef PATH_H
+#define PATH_H
 
 #include <string>
+#include <vector>
 
-bool starts_with(const std::string &, const std::string &);
-bool ends_with(const std::string &, const std::string &);
+std::vector<std::string> list_root_directories();
 
-std::string to_upper(const std::string &);
-std::string to_lower(const std::string &);
+std::vector<std::string> list_files(
+        const std::string &path,
+        bool directories_only = false,
+        const size_t min_file_size = 0);
 
-std::string from_base64(const std::string &);
-std::string to_base64(const std::string &, bool pad = false);
-
-std::string from_percent(const std::string &);
-std::string to_percent(const std::string &);
-std::string escape_xml(const std::string &);
+#ifdef WIN32
+std::wstring to_windows_path(const std::string &);
+std::string from_windows_path(const std::wstring &);
+#endif
 
 #endif
