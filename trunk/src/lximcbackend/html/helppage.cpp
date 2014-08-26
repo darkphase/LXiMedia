@@ -16,7 +16,6 @@
  ******************************************************************************/
 
 #include "helppage.h"
-#include "../string.h"
 #include "../translator.h"
 
 static const char help_css[] = {

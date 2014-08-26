@@ -15,36 +15,30 @@
  *   along with this program.  If not, see <http://www.gnu.org/licenses/>.    *
  ******************************************************************************/
 
-#include "backend.h"
+#ifndef HTML_LOGPAGE_H
+#define HTML_LOGPAGE_H
 
-backend::backend(class messageloop &messageloop, const std::string &logfilename)
-    : messageloop(messageloop),
-      settings(messageloop),
-      vlc_instance(),
-      upnp(messageloop),
-      rootdevice(messageloop, upnp, settings.uuid(), "urn:schemas-upnp-org:device:MediaServer:1"),
-      connection_manager(messageloop, rootdevice),
-      content_directory(messageloop, upnp, rootdevice, connection_manager),
-      mediareceiver_registrar(messageloop, rootdevice),
-      mainpage(upnp),
-      settingspage(mainpage, settings),
-      logpage(mainpage, logfilename),
-      helppage(mainpage),
-      mediaplayer(messageloop, vlc_instance, connection_manager, content_directory, settings)
+#include "mainpage.h"
+#include <ostream>
+
+class settings;
+
+namespace html {
+
+class logpage
 {
-}
+public:
+    logpage(class mainpage &, const std::string &logfilename);
+    ~logpage();
 
-backend::~backend()
-{
-}
+private:
+    int render_page(const struct pupnp::upnp::request &, std::ostream &);
 
-bool backend::initialize()
-{
-    rootdevice.set_devicename(settings.devicename());
-    mainpage.set_devicename(settings.devicename());
+private:
+    class mainpage &mainpage;
+    const std::string logfilename;
+};
 
-    add_audio_protocols();
-    add_video_protocols();
+} // End of namespace
 
-    return upnp.initialize(settings.http_port(), false);
-}
+#endif

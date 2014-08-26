@@ -1,0 +1,15 @@
+p.filename {
+ padding-left: 1em;
+ padding-right: 1em;
+ padding-top: 1em;
+ padding-bottom: 0;
+ margin: 0;
+ color: #808080;
+}
+p {
+ padding-left: 2em;
+ padding-right: 1em;
+ padding-top: 0.2em;
+ padding-bottom: 0;
+ margin: 0;
+}

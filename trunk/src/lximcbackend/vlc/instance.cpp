@@ -29,7 +29,7 @@ static const int argc = 0;
 static const char * const * const argv = nullptr;
 #else
 static const int argc = 1;
-static const char * const argv[argc] = { "-v" };
+static const char * const argv[argc] = { "-vvv" };
 #endif
 
 int instance::compare_version(int major, int minor, int patch)
