@@ -16,6 +16,7 @@
  ******************************************************************************/
 
 #include "mainpage.h"
+#include <algorithm>
 #include <sstream>
 
 static const char base_css[] = {
@@ -24,6 +25,8 @@ static const char base_css[] = {
 #include "main.css.h"
 }, main_svg[] = {
 #include "main.svg.h"
+}, vlc_icon_svg[] = {
+#include "vlc-icon.svg.h"
 };
 
 namespace html {
@@ -40,6 +43,9 @@ mainpage::mainpage(class pupnp::upnp &upnp)
     add_file("/css/base.css", file { pupnp::upnp::mime_text_css, base_css, sizeof(base_css) });
     add_file("/css/main.css", file { pupnp::upnp::mime_text_css, main_css, sizeof(main_css) });
     add_file("/img/main.svg", file { pupnp::upnp::mime_image_svg, main_svg, sizeof(main_svg) });
+    add_file("/img/vlc-icon.svg", file { pupnp::upnp::mime_image_svg, vlc_icon_svg, sizeof(vlc_icon_svg) });
+
+    page_order.push_back("/");
 }
 
 mainpage::~mainpage()
@@ -53,23 +59,30 @@ void mainpage::set_devicename(const std::string &devicename)
 
     this->devicename = devicename;
 
-    pages["/"] = page
+    add_page("/", page
     {
         devicename,
         "/css/main.css",
         "/img/main.svg",
         std::bind(&mainpage::render_mainpage, this, _1, _2)
-    };
+    });
 }
 
 void mainpage::add_page(const std::string &path, const struct page &page)
 {
     pages[path] = page;
+
+    if (std::find(page_order.begin(), page_order.end(), path) == page_order.end())
+        page_order.push_back(path);
 }
 
 void mainpage::remove_page(const std::string &path)
 {
     pages.erase(path);
+
+    auto i = std::find(page_order.begin(), page_order.end(), path);
+    if (i != page_order.end())
+        page_order.erase(i);
 }
 
 void mainpage::add_file(const std::string &path, const struct file &file)
@@ -118,11 +131,15 @@ int mainpage::render_page(const struct pupnp::upnp::request &request, const std:
            "<div class=\"main_navigator\">"
            "<div class=\"root\">" << page.title << "</div>";
 
-    for (const auto &i : pages)
+    for (const auto &i : page_order)
     {
-        out << "<div><a href=\"" << i.first << "\">"
-               "<img src=\"" << i.second.icon << "\" alt=\"" << i.second.title << "\" />"
-               "</a></div>";
+        auto page = pages.find(i);
+        if (page != pages.end())
+        {
+            out << "<div><a href=\"" << page->first << "\">"
+                   "<img src=\"" << page->second.icon << "\" alt=\"" << page->second.title << "\" />"
+                   "</a></div>";
+        }
     }
 
     out << "</div>\n";
@@ -136,12 +153,26 @@ int mainpage::render_page(const struct pupnp::upnp::request &request, const std:
 
 int mainpage::render_mainpage(const struct pupnp::upnp::request &, std::ostream &out)
 {
-    for (const auto &i : pages)
-    {
-        out << "<div class=\"button\"><a href=\"" << i.first << "\">"
-               "<img src=\"" << i.second.icon << "\" alt=\"" << i.second.title << "\" />"
-               "<div class=\"title\">" << i.second.title << "</div></a></div>";
-    }
+    out << "<div class=\"buttons\">";
+
+    for (const auto &i : page_order)
+        if (i != "/")
+        {
+            auto page = pages.find(i);
+            if (page != pages.end())
+            {
+                out << "<div class=\"button\"><a href=\"" << page->first << "\">"
+                       "<img src=\"" << page->second.icon << "\" alt=\"" << page->second.title << "\" />"
+                       "<div class=\"title\">" << page->second.title << "</div></a></div>";
+            }
+        }
+
+    out << "</div><div class=\"footer\"><div class=\"tiles\">"
+           "<div><img src=\"/img/vlc-icon.svg\" /><p><a href=\"http://www.videolan.org/vlc/\">Powered by VLC</a></p></div>"
+           "</div><div class=\"copyright\">"
+           "<p>Copyright &copy; 2014 A.J. Admiraal</p><p>This program is free software: you can redistribute it and/or modify "
+           "it under the terms of the GNU General Public License version 3 as published by the Free Software Foundation.</p>"
+           "</div></div>";
 
     return pupnp::upnp::http_ok;
 }

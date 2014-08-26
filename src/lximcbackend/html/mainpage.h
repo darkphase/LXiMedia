@@ -20,6 +20,7 @@
 
 #include "../pupnp/upnp.h"
 #include <functional>
+#include <list>
 #include <map>
 #include <ostream>
 #include <string>
@@ -73,6 +74,7 @@ private:
     std::string devicename;
 
     std::map<std::string, page> pages;
+    std::list<std::string> page_order;
     std::map<std::string, file> files;
 };
 
