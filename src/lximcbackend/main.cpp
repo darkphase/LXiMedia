@@ -13,7 +13,6 @@ int main(int /*argc*/, const char */*argv*/[])
 #if defined(__unix__)
   // Ensure UTF-8 is enabled.
   setlocale(LC_ALL, "");
-#endif
 
   std::string logfilename = "/var/log/lximcbackend.log";
   auto logfile = freopen(logfilename.c_str(), "w", stderr);
@@ -25,6 +24,10 @@ int main(int /*argc*/, const char */*argv*/[])
 
   if (logfile == nullptr)
       logfilename.clear();
+#elif defined(WIN32)
+    std::string logfilename;
+    FILE *logfile = nullptr;
+#endif
 
   // Allocate these on heap to keep the stack free.
   const std::unique_ptr<class messageloop> messageloop(new class messageloop());
@@ -40,6 +43,6 @@ int main(int /*argc*/, const char */*argv*/[])
   });
 
   const int result = messageloop->run();
-  fclose(logfile);
+  if (logfile) fclose(logfile);
   return result;
 }

@@ -18,6 +18,7 @@
 #include "settings.h"
 #include "string.h"
 #include "vlc/instance.h"
+#include <algorithm>
 #include <cassert>
 #include <fstream>
 #include <sstream>
