@@ -17,6 +17,7 @@
 
 #include "path.h"
 #include "string.h"
+#include <algorithm>
 #include <map>
 #include <mutex>
 #include <unordered_set>
@@ -122,7 +123,20 @@ std::vector<std::string> list_files(
 
 std::vector<std::string> list_root_directories()
 {
-    TODO
+    std::vector<std::string> result;
+
+    wchar_t drives[4096];
+    if (GetLogicalDriveStringsW(sizeof(drives) / sizeof(*drives), drives) != 0)
+    {
+        for (wchar_t *i = drives; *i; )
+        {
+            const size_t len = wcslen(i);
+            result.emplace_back(from_windows_path(std::wstring(i, len)));
+            i += len + 1;
+        }
+    }
+
+    return result;
 }
 
 std::vector<std::string> list_files(

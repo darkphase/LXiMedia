@@ -111,7 +111,7 @@ static std::string filename(const char *file)
 #elif defined(WIN32)
 #include <cstdlib>
 #include <process.h>
-#include "lximcbackend/string.h"
+#include "lximcbackend/path.h"
 
 static std::string filename(const char *file)
 {
