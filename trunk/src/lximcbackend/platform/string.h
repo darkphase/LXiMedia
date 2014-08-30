@@ -33,4 +33,9 @@ std::string from_percent(const std::string &);
 std::string to_percent(const std::string &);
 std::string escape_xml(const std::string &);
 
+#if defined(WIN32)
+std::wstring to_utf16(const std::string &);
+std::string from_utf16(const std::wstring &);
+#endif
+
 #endif

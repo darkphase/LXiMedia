@@ -16,9 +16,9 @@
  ******************************************************************************/
 
 #include "mediaplayer.h"
-#include "path.h"
-#include "string.h"
-#include "translator.h"
+#include "platform/path.h"
+#include "platform/string.h"
+#include "platform/translator.h"
 #include "vlc/media.h"
 #include "vlc/transcode_stream.h"
 #include <cmath>

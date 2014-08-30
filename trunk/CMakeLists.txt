@@ -38,15 +38,20 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
     include_directories(${CMAKE_BINARY_DIR}/ext/vlc/vlc-${VLC_VERSION}/include/)
 endif()
 
-include_directories(
-    ${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION}/upnp/inc/
-    ${CMAKE_BINARY_DIR}/ext/pupnp/libupnp-${PUPNP_VERSION}/ixml/inc/)
-
+include_directories(src/lximcbackend/)
 aux_source_directory(src/lximcbackend/ LXIMCBACKEND_SRC_LIST)
+aux_source_directory(src/lximcbackend/platform/ LXIMCBACKEND_PLATFORM_SRC_LIST)
 aux_source_directory(src/lximcbackend/html/ LXIMCBACKEND_HTML_SRC_LIST)
 aux_source_directory(src/lximcbackend/pupnp/ LXIMCBACKEND_PUPNP_SRC_LIST)
 aux_source_directory(src/lximcbackend/vlc/ LXIMCBACKEND_VLC_SRC_LIST)
-add_executable(lximcbackend ${LXIMCBACKEND_SRC_LIST} ${LXIMCBACKEND_HTML_SRC_LIST} ${LXIMCBACKEND_PUPNP_SRC_LIST} ${LXIMCBACKEND_VLC_SRC_LIST})
+add_executable(
+    lximcbackend
+    ${LXIMCBACKEND_SRC_LIST}
+    ${LXIMCBACKEND_PLATFORM_SRC_LIST}
+    ${LXIMCBACKEND_HTML_SRC_LIST}
+    ${LXIMCBACKEND_PUPNP_SRC_LIST}
+    ${LXIMCBACKEND_VLC_SRC_LIST})
+
 target_link_libraries(lximcbackend pupnp)
 if(${CMAKE_SYSTEM_NAME} STREQUAL Windows)
     target_link_libraries(lximcbackend ws2_32 iphlpapi rpcrt4)
@@ -60,7 +65,7 @@ else()
 endif()
 
 # lximcbackend_test
-include_directories(src/ test/lximcbackend/)
+include_directories(test/lximcbackend/)
 aux_source_directory(test/lximcbackend/ LXIMCBACKEND_TEST_SRC_LIST)
 aux_source_directory(test/lximcbackend/vlc/ LXIMCBACKEND_VLC_TEST_SRC_LIST)
 add_executable(lximcbackend_test ${LXIMCBACKEND_TEST_SRC_LIST} ${LXIMCBACKEND_VLC_TEST_SRC_LIST})

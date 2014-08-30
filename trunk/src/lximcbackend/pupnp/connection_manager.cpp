@@ -16,7 +16,7 @@
  ******************************************************************************/
 
 #include "connection_manager.h"
-#include "../string.h"
+#include "platform/string.h"
 #include <cmath>
 #include <cstring>
 

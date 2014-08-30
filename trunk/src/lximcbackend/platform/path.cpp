@@ -183,13 +183,7 @@ std::vector<std::string> list_files(
 
 std::wstring to_windows_path(const std::string &src)
 {
-    std::wstring dst;
-    dst.resize(src.length());
-    dst.resize(MultiByteToWideChar(
-            CP_UTF8, 0,
-            &src[0], src.length(),
-            &dst[0], dst.length()));
-
+    std::wstring dst = to_utf16(src);
     std::replace(dst.begin(), dst.end(), L'/', L'\\');
 
     return dst;
@@ -197,14 +191,7 @@ std::wstring to_windows_path(const std::string &src)
 
 std::string from_windows_path(const std::wstring &src)
 {
-    std::string dst;
-    dst.resize(src.length() * 4);
-    dst.resize(WideCharToMultiByte(
-            CP_UTF8, 0,
-            &src[0], src.length(),
-            &dst[0], dst.length(),
-            NULL, NULL));
-
+    std::string dst = from_utf16(src);
     std::replace(dst.begin(), dst.end(), '\\', '/');
 
     return dst;

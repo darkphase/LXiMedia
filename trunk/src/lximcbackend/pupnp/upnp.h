@@ -18,7 +18,7 @@
 #ifndef PUPNP_UPNP_H
 #define PUPNP_UPNP_H
 
-#include "../messageloop.h"
+#include "platform/messageloop.h"
 #include <cstdint>
 #include <functional>
 #include <istream>

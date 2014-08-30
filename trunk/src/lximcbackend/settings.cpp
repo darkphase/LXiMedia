@@ -16,11 +16,11 @@
  ******************************************************************************/
 
 #include "settings.h"
-#include "string.h"
+#include "platform/fstream.h"
+#include "platform/string.h"
 #include "vlc/instance.h"
 #include <algorithm>
 #include <cassert>
-#include <fstream>
 #include <sstream>
 #include <thread>
 
@@ -33,7 +33,7 @@ settings::settings(class messageloop &messageloop)
       save_delay(250),
       touched(false)
 {
-    std::ifstream file(filename());
+    ifstream file(filename());
     for (std::string line, section; std::getline(file, line); )
     {
         auto o = line.find_first_of('[');
@@ -61,7 +61,7 @@ void settings::save()
 {
     if (touched)
     {
-        std::ofstream file(filename());
+        ofstream file(filename());
         for (auto &section : values)
         {
             file << '[' << section.first << ']' << std::endl;
@@ -512,15 +512,16 @@ static std::string default_devicename()
 #elif defined(WIN32)
 
 #ifndef TEST_H
+#include "platform/path.h"
 #include <cstdlib>
 
 static std::string filename()
 {
-    static const char conffile[] = "\\LeX-Interactive\\LXiMediaCenter.conf";
+    static const wchar_t conffile[] = L"\\LeX-Interactive\\LXiMediaCenter.conf";
 
-    const char * const appdata = getenv("APPDATA");
+    const wchar_t * const appdata = _wgetenv(L"APPDATA");
     if (appdata)
-        return std::string(appdata) + conffile;
+        return from_windows_path(std::wstring(appdata) + conffile);
 
     return std::string();
 }
@@ -535,8 +536,9 @@ static std::string make_uuid()
     {
         uuid.Data1 = (rand() << 16) ^ rand();
         uuid.Data2 = rand();
-        uuid.Data3 = rand();
+        uuid.Data3 = (rand() & 0x0FFF) | 0x4000;
         for (auto &i : uuid.Data4) i = rand();
+        uuid.Data4[0] = (uuid.Data4[0] & 0x3F) | 0x80;
     }
 
     RPC_CSTR rpc_string;
@@ -553,9 +555,9 @@ static std::string default_devicename()
 {
     std::string default_devicename = "LXiMediaCenter";
 
-    const char *hostname = getenv("COMPUTERNAME");
+    const wchar_t *hostname = _wgetenv(L"COMPUTERNAME");
     if (hostname)
-        default_devicename = std::string(hostname) + " : " + default_devicename;
+        default_devicename = from_utf16(hostname) + " : " + default_devicename;
 
     return default_devicename;
 }

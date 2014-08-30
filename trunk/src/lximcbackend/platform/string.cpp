@@ -185,3 +185,32 @@ std::string escape_xml(const std::string &input)
 
     return result.str();
 }
+
+#if defined(WIN32)
+#include <windows.h>
+
+std::wstring to_utf16(const std::string &src)
+{
+    std::wstring dst;
+    dst.resize(src.length());
+    dst.resize(MultiByteToWideChar(
+            CP_UTF8, 0,
+            &src[0], src.length(),
+            &dst[0], dst.length()));
+
+    return dst;
+}
+
+std::string from_utf16(const std::wstring &src)
+{
+    std::string dst;
+    dst.resize(src.length() * 4);
+    dst.resize(WideCharToMultiByte(
+            CP_UTF8, 0,
+            &src[0], src.length(),
+            &dst[0], dst.length(),
+            NULL, NULL));
+
+    return dst;
+}
+#endif

@@ -1,5 +1,5 @@
 #include "test.h"
-#include "lximcbackend/vlc/instance.cpp"
+#include "vlc/instance.cpp"
 #include <cstdio>
 
 namespace vlc {

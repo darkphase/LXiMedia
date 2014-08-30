@@ -1,5 +1,5 @@
 #include "test.h"
-#include "lximcbackend/messageloop.cpp"
+#include "platform/messageloop.cpp"
 #include <thread>
 
 static const struct messageloop_test

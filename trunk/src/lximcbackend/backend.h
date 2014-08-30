@@ -79,10 +79,6 @@ private:
 
     timer recreate_backend_timer;
     const std::chrono::milliseconds recreate_backend_timeout;
-
-    //  static const int              upnpRepublishTimout;
-    //  bool                          upnpRepublishRequired;
-    //  QTimer                        upnpRepublishTimer;
 };
 
 #endif

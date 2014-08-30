@@ -1,7 +1,7 @@
 #include "test.h"
-#include "lximcbackend/vlc/transcode_stream.cpp"
+#include "vlc/transcode_stream.cpp"
+#include "platform/fstream.h"
 #include <algorithm>
-#include <fstream>
 
 extern const uint8_t pm5544_mp4[191961];
 extern const uint8_t pm5544_srt[88];
@@ -71,7 +71,7 @@ static const struct transcode_stream_test
                 test_assert(transcode_stream.open(media.mrl(), 0, track_ids, transcode, "ts"));
             }
 
-            std::ofstream out(outfile, std::ios::binary);
+            ofstream out(outfile, std::ios::binary);
             test_assert(out.is_open());
             std::copy(  std::istreambuf_iterator<char>(transcode_stream),
                         std::istreambuf_iterator<char>(),
@@ -120,7 +120,7 @@ static std::string filename(const char *file)
 #elif defined(WIN32)
 #include <cstdlib>
 #include <process.h>
-#include "lximcbackend/path.h"
+#include "platform/path.h"
 
 static std::string filename(const char *file)
 {
@@ -136,7 +136,7 @@ static std::string write_file(const char *file, const uint8_t *data, size_t size
 {
     const std::string filename = ::filename(file);
 
-    std::ofstream str(filename, std::ios::binary);
+    ofstream str(filename, std::ios::binary);
     test_assert(str.is_open());
     str.write(reinterpret_cast<const char *>(data), size);
 

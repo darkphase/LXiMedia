@@ -17,7 +17,7 @@
 
 #include "rootdevice.h"
 #include "ixml_structures.h"
-#include "../string.h"
+#include "platform/string.h"
 #include <upnp/upnp.h>
 #include <atomic>
 #include <cstring>
