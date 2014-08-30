@@ -1,5 +1,5 @@
 #include "test.h"
-#include "lximcbackend/path.cpp"
+#include "platform/path.cpp"
 #include <algorithm>
 
 static const struct path_test

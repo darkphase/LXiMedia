@@ -16,7 +16,7 @@
  ******************************************************************************/
 
 #include "mainpage.h"
-#include "../string.h"
+#include "platform/string.h"
 #include <algorithm>
 #include <sstream>
 

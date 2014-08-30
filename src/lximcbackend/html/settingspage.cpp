@@ -16,10 +16,10 @@
  ******************************************************************************/
 
 #include "settingspage.h"
-#include "../settings.h"
-#include "../path.h"
-#include "../string.h"
-#include "../translator.h"
+#include "settings.h"
+#include "platform/path.h"
+#include "platform/string.h"
+#include "platform/translator.h"
 #include <algorithm>
 
 static const char settings_css[] = {

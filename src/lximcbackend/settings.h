@@ -18,7 +18,7 @@
 #ifndef SETTINGS_H
 #define SETTINGS_H
 
-#include "messageloop.h"
+#include "platform/messageloop.h"
 #include <chrono>
 #include <cstdint>
 #include <string>

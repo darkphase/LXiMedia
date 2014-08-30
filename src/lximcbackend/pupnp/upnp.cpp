@@ -16,7 +16,7 @@
  ******************************************************************************/
 
 #include "upnp.h"
-#include "../string.h"
+#include "platform/string.h"
 #include <upnp/upnp.h>
 #include <algorithm>
 #include <atomic>

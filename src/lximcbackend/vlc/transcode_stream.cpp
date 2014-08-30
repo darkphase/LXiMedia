@@ -17,7 +17,7 @@
 
 #include "transcode_stream.h"
 #include "media.h"
-#include "../messageloop.h"
+#include "platform/messageloop.h"
 #include "instance.h"
 #include <vlc/vlc.h>
 #include <cassert>

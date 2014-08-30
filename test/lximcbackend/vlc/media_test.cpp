@@ -1,7 +1,7 @@
 #include "test.h"
-#include "lximcbackend/vlc/media.cpp"
+#include "vlc/media.cpp"
+#include "platform/fstream.h"
 #include <algorithm>
-#include <fstream>
 
 extern const uint8_t pm5544_png[15118];
 extern const uint8_t pm5544_mp4[191961];
@@ -111,7 +111,7 @@ static std::string filename(const char *file)
 #elif defined(WIN32)
 #include <cstdlib>
 #include <process.h>
-#include "lximcbackend/path.h"
+#include "platform/path.h"
 
 static std::string filename(const char *file)
 {
@@ -127,7 +127,7 @@ static std::string write_file(const char *file, const uint8_t *data, size_t size
 {
     const std::string filename = ::filename(file);
 
-    std::ofstream str(filename, std::ios::binary);
+    ofstream str(filename, std::ios::binary);
     test_assert(str.is_open());
     str.write(reinterpret_cast<const char *>(data), size);
 

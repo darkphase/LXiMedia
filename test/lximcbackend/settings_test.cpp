@@ -1,5 +1,5 @@
 #include "test.h"
-#include "lximcbackend/settings.cpp"
+#include "settings.cpp"
 #include <cstdio>
 
 static const struct settings_test
@@ -33,7 +33,7 @@ static const struct settings_test
             test_assert(second_uuid == first_uuid);
         }
 
-        std::ifstream file(filename());
+        ifstream file(filename());
         std::string buffer;
         buffer.resize(4096);
         file.read(&buffer[0], buffer.size());
@@ -53,7 +53,7 @@ static std::string filename()
 #elif defined(WIN32)
 #include <cstdlib>
 #include <process.h>
-#include "lximcbackend/path.h"
+#include "platform/path.h"
 
 static std::string filename()
 {

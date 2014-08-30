@@ -16,7 +16,7 @@
  ******************************************************************************/
 
 #include "ixml_structures.h"
-#include "../string.h"
+#include "platform/string.h"
 #include <ixml.h>
 #include <cstring>
 #include <iomanip>

@@ -16,8 +16,8 @@
  ******************************************************************************/
 
 #include "setup.h"
-#include "string.h"
-#include "translator.h"
+#include "platform/string.h"
+#include "platform/translator.h"
 #include <iostream>
 
 static bool shutdown();
@@ -171,7 +171,7 @@ static bool shutdown()
     {
         std::clog << "Failed to enable shutdown privilege." << std::endl;
     }
-    else if (::InitiateSystemShutdown(NULL, const_cast<wchar_t *>(message), 30, TRUE, FALSE) == FALSE)
+    else if (::InitiateSystemShutdownW(NULL, const_cast<wchar_t *>(message), 30, TRUE, FALSE) == FALSE)
     {
         std::clog << "InitiateSystemShutdown failed" << ::GetLastError() << " trying WTSShutdownSystem." << std::endl;
 

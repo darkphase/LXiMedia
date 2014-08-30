@@ -16,8 +16,8 @@
  ******************************************************************************/
 
 #include "content_directory.h"
-#include "../string.h"
-#include "../translator.h"
+#include "platform/string.h"
+#include "platform/translator.h"
 #include <cstring>
 #include <iomanip>
 #include <iostream>

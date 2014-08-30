@@ -16,9 +16,9 @@
  ******************************************************************************/
 
 #include "logpage.h"
-#include "../string.h"
-#include "../translator.h"
-#include <fstream>
+#include "platform/fstream.h"
+#include "platform/string.h"
+#include "platform/translator.h"
 
 static const char log_css[] = {
 #include "log.css.h"
@@ -61,7 +61,7 @@ void logpage::render_headers(const struct pupnp::upnp::request &, std::ostream &
 
 int logpage::render_page(const struct pupnp::upnp::request &, std::ostream &out)
 {
-    std::ifstream logfile(logfilename);
+    ifstream logfile(logfilename);
     if (logfile.is_open())
     {
         out << "<p class=\"filename\">" << escape_xml(logfilename) << ":</p>";

@@ -18,8 +18,8 @@
 #ifndef HTML_MAINPAGE_H
 #define HTML_MAINPAGE_H
 
-#include "../pupnp/connection_manager.h"
-#include "../pupnp/upnp.h"
+#include "pupnp/connection_manager.h"
+#include "pupnp/upnp.h"
 #include <functional>
 #include <list>
 #include <map>

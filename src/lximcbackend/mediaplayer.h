@@ -18,7 +18,7 @@
 #ifndef MEDIAPLAYER_H
 #define MEDIAPLAYER_H
 
-#include "messageloop.h"
+#include "platform/messageloop.h"
 #include "pupnp/connection_manager.h"
 #include "pupnp/content_directory.h"
 #include "settings.h"

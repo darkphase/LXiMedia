@@ -1,5 +1,5 @@
 #include "backend.h"
-#include "messageloop.h"
+#include "platform/messageloop.h"
 #include <cstdio>
 #include <iostream>
 #include <memory>
@@ -67,4 +67,26 @@ static std::string create_logfile()
     return filename;
 }
 #elif defined(WIN32)
+#include "platform/path.h"
+
+static std::string create_logfile()
+{
+    close_logfile();
+
+    const wchar_t *temp = _wgetenv(L"TEMP");
+    if (temp == nullptr)
+        temp = _wgetenv(L"TMP");
+
+    if (temp)
+    {
+        std::wstring filename = std::wstring(temp) + L"\\lximcbackend.log";
+        logfile = _wfreopen(filename.c_str(), L"w", stderr);
+        if (logfile == nullptr)
+            filename.clear();
+
+        return from_windows_path(filename);
+    }
+
+    return std::string();
+}
 #endif
