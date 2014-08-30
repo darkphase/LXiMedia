@@ -158,17 +158,43 @@ void settings::set_http_port(uint16_t http_port)
         return erase("General", "HttpPort");
 }
 
-bool settings::bindallnetworks() const
+bool settings::bind_all_networks() const
 {
     return read("General", "BindAllNetworks", "false") != "false";
 }
 
-void settings::set_bindallnetworks(bool on)
+void settings::set_bind_all_networks(bool on)
 {
     if (on)
         return write("General", "BindAllNetworks", "true");
     else
         return erase("General", "BindAllNetworks");
+}
+
+bool settings::republish_rootdevice() const
+{
+    return read("General", "RepublishRootDevice", "true") == "true";
+}
+
+void settings::set_republish_rootdevice(bool on)
+{
+    if (on)
+        return erase("General", "RepublishRootDevice");
+    else
+        return write("General", "RepublishRootDevice", "false");
+}
+
+bool settings::allow_shutdown() const
+{
+    return read("General", "AllowShutdown", "true") == "true";
+}
+
+void settings::set_allow_shutdown(bool on)
+{
+    if (on)
+        return erase("General", "AllowShutdown");
+    else
+        return write("General", "AllowShutdown", "false");
 }
 
 static const char * to_string(encode_mode e)
